@@ -38,33 +38,33 @@ enum ATP {
 	ATP_TRACK = 1
 };
 
-struct actorStruct {
-	struct actorStruct *next;
-	struct actorStruct *prev;
-
-	int16 idx;
-	int16 type;
-	int16 overlayNumber;
-	int16 x_dest;
-	int16 y_dest;
-	int16 x;
-	int16 y;
-	int16 startDirection;
-	int16 nextDirection;
-	int16 endDirection;
-	int16 stepX;
-	int16 stepY;
-	int16 pathId;
-	animPhase phase;
-	int16 counter;
-	int16 poly;
-	int16 flag;
-	int16 start;
-	int16 freeze;
+class Actor {
+public:
+	Actor *_next;
+	Actor *_prev;
+	int16 _idx;
+	int16 _type;
+	int16 _overlayNumber;
+	int16 _xDest;
+	int16 _yDest;
+	int16 _x;
+	int16 _y;
+	int16 _startDirection;
+	int16 _nextDirection;
+	int16 _endDirection;
+	int16 _stepX;
+	int16 _stepY;
+	int16 _pathId;
+	animPhase _phase;
+	int16 _counter;
+	int16 _poly;
+	int16 _flag;
+	int16 _start;
+	int16 _freeze;
 };
 
-bool isAnimFinished(int overlayIdx, int idx, actorStruct *pStartEntry, int objType);
-actorStruct *findActor(actorStruct *pStartEntry, int overlayIdx, int objIdx, int type);
+bool isAnimFinished(int overlayIdx, int idx, Actor *pStartEntry, int objType);
+Actor *findActor(Actor *pStartEntry, int overlayIdx, int objIdx, int type);
 void processAnimation();
 void getPixel(int x, int y);
 

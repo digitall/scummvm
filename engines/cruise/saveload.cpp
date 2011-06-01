@@ -488,51 +488,51 @@ static void syncIncrust(Common::Serializer &s) {
 
 static void syncActors(Common::Serializer &s) {
 	int numEntries = 0;
-	actorStruct *ptr;
+	Actor *ptr;
 	uint16 dummyLong = 0;
 
 	if (s.isSaving()) {
-		ptr = actorHead.next;
+		ptr = actorHead._next;
 		while (ptr) {
 			++numEntries;
-			ptr = ptr->next;
+			ptr = ptr->_next;
 		}
 	}
 	s.syncAsSint16LE(numEntries);
 
-	ptr = s.isSaving() ? actorHead.next : &actorHead;
+	ptr = s.isSaving() ? actorHead._next : &actorHead;
 	for (int i = 0; i < numEntries; ++i) {
-		actorStruct *p = s.isSaving() ? ptr : (actorStruct *)mallocAndZero(sizeof(actorStruct));
+		Actor *p = s.isSaving() ? ptr : (Actor *)mallocAndZero(sizeof(Actor));
 
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(p->idx);
-		s.syncAsSint16LE(p->type);
-		s.syncAsSint16LE(p->overlayNumber);
-		s.syncAsSint16LE(p->x_dest);
-		s.syncAsSint16LE(p->y_dest);
-		s.syncAsSint16LE(p->x);
-		s.syncAsSint16LE(p->y);
-		s.syncAsSint16LE(p->startDirection);
-		s.syncAsSint16LE(p->nextDirection);
-		s.syncAsSint16LE(p->endDirection);
-		s.syncAsSint16LE(p->stepX);
-		s.syncAsSint16LE(p->stepY);
-		s.syncAsSint16LE(p->pathId);
-		s.syncAsSint16LE(p->phase);
-		s.syncAsSint16LE(p->counter);
-		s.syncAsSint16LE(p->poly);
-		s.syncAsSint16LE(p->flag);
-		s.syncAsSint16LE(p->start);
-		s.syncAsSint16LE(p->freeze);
+		s.syncAsSint16LE(p->_idx);
+		s.syncAsSint16LE(p->_type);
+		s.syncAsSint16LE(p->_overlayNumber);
+		s.syncAsSint16LE(p->_xDest);
+		s.syncAsSint16LE(p->_yDest);
+		s.syncAsSint16LE(p->_x);
+		s.syncAsSint16LE(p->_y);
+		s.syncAsSint16LE(p->_startDirection);
+		s.syncAsSint16LE(p->_nextDirection);
+		s.syncAsSint16LE(p->_endDirection);
+		s.syncAsSint16LE(p->_stepX);
+		s.syncAsSint16LE(p->_stepY);
+		s.syncAsSint16LE(p->_pathId);
+		s.syncAsSint16LE(p->_phase);
+		s.syncAsSint16LE(p->_counter);
+		s.syncAsSint16LE(p->_poly);
+		s.syncAsSint16LE(p->_flag);
+		s.syncAsSint16LE(p->_start);
+		s.syncAsSint16LE(p->_freeze);
 
 		if (s.isSaving())
-			ptr = ptr->next;
+			ptr = ptr->_next;
 		else {
-			p->next = NULL;
-			ptr->next = p;
-			p->prev = actorHead.prev;
-			actorHead.prev = p;
-			ptr = p->next;
+			p->_next = NULL;
+			ptr->_next = p;
+			p->_prev = actorHead._prev;
+			actorHead._prev = p;
+			ptr = p->_next;
 		}
 	}
 }
