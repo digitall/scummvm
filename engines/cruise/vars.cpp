@@ -84,7 +84,7 @@ opcodeTypeFunction opcodeTypeTable[64];
 
 int16 positionInStack;
 
-actorStruct actorHead;
+Actor actorHead;
 
 int16 stateID;
 int16 xdial = 0;

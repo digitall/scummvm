@@ -187,7 +187,7 @@ extern SoundEntry soundList[4];
 extern opcodeTypeFunction opcodeTypeTable[64];
 
 extern int16 positionInStack;
-extern actorStruct actorHead;
+extern Actor actorHead;
 
 extern int16 stateID;
 extern int16 xdial;
