@@ -617,9 +617,9 @@ int16 Op_AniDir() {
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->overlayNumber;
 
-	actorStruct *pActor = findActor(&actorHead, ovlIdx, objIdx, type);
+	Actor *pActor = findActor(&actorHead, ovlIdx, objIdx, type);
 	if (pActor)
-		return pActor->startDirection;
+		return pActor->_startDirection;
 
 	return -1;
 }
@@ -1089,100 +1089,100 @@ int16 Op_GetZoom() {
 	return (computeZoom(popVar()));
 }
 
-actorStruct *addAnimation(actorStruct * pHead, int overlay, int objIdx, int param, int param2) {
-	actorStruct *pPrevious = pHead;
-	actorStruct *pCurrent = pHead->next;
+Actor *addAnimation(Actor * pHead, int overlay, int objIdx, int param, int param2) {
+	Actor *pPrevious = pHead;
+	Actor *pCurrent = pHead->_next;
 
 	// go to the end of the list
 	while (pCurrent) {
 		pPrevious = pCurrent;
-		pCurrent = pPrevious->next;
+		pCurrent = pPrevious->_next;
 	}
 
-	if (pCurrent && (pCurrent->overlayNumber == overlay)
-	        && (pCurrent->idx == objIdx) && (pCurrent->type == param2)) {
+	if (pCurrent && (pCurrent->_overlayNumber == overlay)
+	        && (pCurrent->_idx == objIdx) && (pCurrent->_type == param2)) {
 		return NULL;
 	}
 
-	actorStruct *pNewElement = (actorStruct *) MemAlloc(sizeof(actorStruct));
+	Actor *pNewElement = (Actor *) MemAlloc(sizeof(Actor));
 	if (!pNewElement)
 		return NULL;
 
-	memset(pNewElement, 0, sizeof(actorStruct));
-	pNewElement->next = pPrevious->next;
-	pPrevious->next = pNewElement;
+	memset(pNewElement, 0, sizeof(Actor));
+	pNewElement->_next = pPrevious->_next;
+	pPrevious->_next = pNewElement;
 
 	if (!pCurrent) {
 		pCurrent = pHead;
 	}
 
-	pNewElement->prev = pCurrent->prev;
-	pCurrent->prev = pNewElement;
+	pNewElement->_prev = pCurrent->_prev;
+	pCurrent->_prev = pNewElement;
 
-	pNewElement->idx = objIdx;
-	pNewElement->type = param2;
-	pNewElement->pathId = -1;
-	pNewElement->overlayNumber = overlay;
-	pNewElement->startDirection = param;
-	pNewElement->nextDirection = -1;
-	pNewElement->stepX = 5;
-	pNewElement->stepY = 2;
-	pNewElement->phase = ANIM_PHASE_WAIT;
-	pNewElement->flag = 0;
-	pNewElement->freeze = 0;
+	pNewElement->_idx = objIdx;
+	pNewElement->_type = param2;
+	pNewElement->_pathId = -1;
+	pNewElement->_overlayNumber = overlay;
+	pNewElement->_startDirection = param;
+	pNewElement->_nextDirection = -1;
+	pNewElement->_stepX = 5;
+	pNewElement->_stepY = 2;
+	pNewElement->_phase = ANIM_PHASE_WAIT;
+	pNewElement->_flag = 0;
+	pNewElement->_freeze = 0;
 
 	return pNewElement;
 }
 
-int removeAnimation(actorStruct * pHead, int overlay, int objIdx, int objType) {
-	actorStruct* pl;
-	actorStruct* pl2;
-	actorStruct* pl3;
-	actorStruct* pl4;
+int removeAnimation(Actor * pHead, int overlay, int objIdx, int objType) {
+	Actor* pl;
+	Actor* pl2;
+	Actor* pl3;
+	Actor* pl4;
 
 	int dir = 0;
 
 	pl = pHead;
 	pl2 = pl;
-	pl = pl2->next;
+	pl = pl2->_next;
 
 	while (pl) {
 		pl2 = pl;
 
-		if (((pl->overlayNumber == overlay) || (overlay == -1)) &&
-		        ((pl->idx == objIdx) || (objIdx == -1)) &&
-		        ((pl->type == objType) || (objType == -1))) {
-			pl->type = -1;
+		if (((pl->_overlayNumber == overlay) || (overlay == -1)) &&
+		        ((pl->_idx == objIdx) || (objIdx == -1)) &&
+		        ((pl->_type == objType) || (objType == -1))) {
+			pl->_type = -1;
 		}
 
-		pl = pl2->next;
+		pl = pl2->_next;
 	}
 
 	pl = pHead;
 	pl2 = pl;
-	pl = pl2->next;
+	pl = pl2->_next;
 
 	while (pl) {
-		if (pl->type == -1) {
-			pl4 = pl->next;
-			pl2->next = pl4;
+		if (pl->_type == -1) {
+			pl4 = pl->_next;
+			pl2->_next = pl4;
 			pl3 = pl4;
 
 			if (pl3 == NULL)
 				pl3 = pHead;
 
-			pl3->prev = pl->prev;
+			pl3->_prev = pl->_prev;
 
-			dir = pl->startDirection;
+			dir = pl->_startDirection;
 
-			if (pl->pathId >= 0)
-				freePerso(pl->pathId);
+			if (pl->_pathId >= 0)
+				freePerso(pl->_pathId);
 
 			MemFree(pl);
 			pl = pl4;
 		} else {
 			pl2 = pl;
-			pl = pl2->next;
+			pl = pl2->_next;
 		}
 	}
 
@@ -1206,7 +1206,7 @@ int16 Op_AddAnimation() {
 	}
 
 	if (direction >= 0 && direction <= 3) {
-		actorStruct *si;
+		Actor *si;
 
 		si = addAnimation(&actorHead, overlay, obj, direction, type);
 
@@ -1215,14 +1215,14 @@ int16 Op_AddAnimation() {
 
 			getMultipleObjectParam(overlay, obj, &params);
 
-			si->x = params.X;
-			si->y = params.Y;
-			si->x_dest = -1;
-			si->y_dest = -1;
-			si->endDirection = -1;
-			si->start = start;
-			si->stepX = stepX;
-			si->stepY = stepY;
+			si->_x = params.X;
+			si->_y = params.Y;
+			si->_xDest = -1;
+			si->_yDest = -1;
+			si->_endDirection = -1;
+			si->_start = start;
+			si->_stepX = stepX;
+			si->_stepY = stepY;
 
 			int newFrame = ABS(actor_end[direction][0]) - 1;
 
@@ -1304,7 +1304,7 @@ int16 Op_GetPixel() {
 }
 
 int16 Op_TrackAnim() {		// setup actor position
-	actorStruct *pActor;
+	Actor *pActor;
 
 	int var0 = popVar();
 	int actorY = popVar();
@@ -1325,10 +1325,10 @@ int16 Op_TrackAnim() {		// setup actor position
 
 	animationStart = false;
 
-	pActor->x_dest = actorX;
-	pActor->y_dest = actorY;
-	pActor->flag = 1;
-	pActor->endDirection = var0;
+	pActor->_xDest = actorX;
+	pActor->_yDest = actorY;
+	pActor->_flag = 1;
+	pActor->_endDirection = var0;
 
 	return 0;
 }
@@ -1479,12 +1479,12 @@ int16 Op_FreezeCell() {
 	return 0;
 }
 
-void Op_60Sub(int overlayIdx, actorStruct * pActorHead, int _var0, int _var1, int _var2, int _var3) {
-	actorStruct *pActor = findActor(pActorHead, overlayIdx, _var0, _var3);
+void Op_60Sub(int overlayIdx, Actor * pActorHead, int _var0, int _var1, int _var2, int _var3) {
+	Actor *pActor = findActor(pActorHead, overlayIdx, _var0, _var3);
 
 	if (pActor) {
-		if ((pActor->freeze == _var2) || (_var2 == -1)) {
-			pActor->freeze = _var1;
+		if ((pActor->_freeze == _var2) || (_var2 == -1)) {
+			pActor->_freeze = _var1;
 		}
 	}
 }
