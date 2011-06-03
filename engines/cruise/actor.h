@@ -40,7 +40,7 @@ enum ATP {
 
 class Actor {
 public:
-        Actor *_next;
+	Actor *_next;
 	Actor *_prev;
 	int16 _idx;
 	int16 _type;
