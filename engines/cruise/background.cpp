@@ -23,14 +23,13 @@
 #include "common/textconsole.h"
 
 #include "cruise/cruise_main.h"
+#include "cruise/background.h"
 
 namespace Cruise {
 
 uint8 colorMode = 0;
 
-uint8 *backgroundScreens[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };	// wasn't initialized in original, but it's probably better
-bool backgroundChanged[8] = { false, false, false, false, false, false, false, false };
-backgroundTableStruct backgroundTable[8];
+Background backgrounds[8];
 
 char hwPage[64000];
 
@@ -92,16 +91,17 @@ int loadBackground(const char *name, int idx) {
 
 	debug(1, "Loading BG: %s", name);
 
-	if (!backgroundScreens[idx]) {
-		backgroundScreens[idx] = (uint8 *)mallocAndZero(320 * 200);
+	if (!backgrounds[idx]._backgroundScreen) {
+	//if (!backgroundScreens[idx]) {
+		backgrounds[idx]._backgroundScreen = (uint8 *)mallocAndZero(320 * 200);
 	}
 
-	if (!backgroundScreens[idx]) {
-		backgroundTable[idx].name[0] = 0;
+	if (!backgrounds[idx]._backgroundScreen) {
+		backgrounds[idx]._backgroundTable.name[0] = 0;
 		return (-2);
 	}
 
-	backgroundChanged[idx] = true;
+	backgrounds[idx]._isChanged = true;
 
 	ptrToFree = gfxModuleData.pPage10;
 	if (loadFileSub1(&ptrToFree, name, NULL) < 0) {
@@ -186,19 +186,19 @@ int loadBackground(const char *name, int idx) {
 		gfxModuleData_setPal256(palScreen[idx]);
 
 		// read image data
-		gfxModuleData_gfxClearFrameBuffer(backgroundScreens[idx]);
+		gfxModuleData_gfxClearFrameBuffer(backgrounds[idx]._backgroundScreen);
 
 		switch (mode) {
 		case 0:
 		case 4:
-			convertGfxFromMode4(ptr2, 320, 200, backgroundScreens[idx]);
+			convertGfxFromMode4(ptr2, 320, 200, backgrounds[idx]._backgroundScreen);
 			ptr2 += 32000;
 			break;
 		case 5:
-			convertGfxFromMode5(ptr2, 320, 200, backgroundScreens[idx]);
+			convertGfxFromMode5(ptr2, 320, 200, backgrounds[idx]._backgroundScreen);
 			break;
 		case 8:
-			memcpy(backgroundScreens[idx], ptr2, 320 * 200);
+			memcpy(backgrounds[idx]._backgroundScreen, ptr2, 320 * 200);
 			ptr2 += 320 * 200;
 			break;
 		}
@@ -211,11 +211,11 @@ int loadBackground(const char *name, int idx) {
 
 	// NOTE: the following is really meant to compare pointers and not the actual
 	// strings. See r48092 and r48094.
-	if (name != backgroundTable[idx].name) {
-		if (strlen(name) >= sizeof(backgroundTable[idx].name))
+	if (name != backgrounds[idx]._backgroundTable.name) {
+		if (strlen(name) >= sizeof(backgrounds[idx]._backgroundTable.name))
 			warning("background name length exceeded allowable maximum");
 
-		Common::strlcpy(backgroundTable[idx].name, name, sizeof(backgroundTable[idx].name));
+		Common::strlcpy(backgrounds[idx]._backgroundTable.name, name, sizeof(backgrounds[idx]._backgroundTable.name));
 	}
 
 	return (0);

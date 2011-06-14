@@ -146,11 +146,11 @@ static void syncBasicInfo(Common::Serializer &s) {
 static void syncBackgroundTable(Common::Serializer &s) {
 	// restore backgroundTable
 	for (int i = 0; i < 8; i++) {
-		if (s.isSaving() && (strlen(backgroundTable[i].name) > 8))
+		if (s.isSaving() && (strlen(backgrounds[i]._backgroundTable.name) > 8))
 			warning("Saving a background resource that has too long a name");
 
-		s.syncBytes((byte *)backgroundTable[i].name, 9);
-		s.syncBytes((byte *)backgroundTable[i].extention, 6);
+		s.syncBytes((byte *)backgrounds[i]._backgroundTable.name, 9);
+		s.syncBytes((byte *)backgrounds[i]._backgroundTable.extention, 6);
 	}
 }
 
@@ -714,7 +714,7 @@ void initVars() {
 	}
 
 	for (unsigned long int i = 0; i < 8; i++) {
-		backgroundTable[i].name[0] = 0;
+		backgrounds[i]._backgroundTable.name[0] = 0;
 	}
 
 	for (unsigned long int i = 0; i < NUM_FILE_ENTRIES; i++) {
@@ -943,8 +943,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	//gfxModuleData.gfxFunction8();
 
 	for (int j = 0; j < 8; j++) {
-		if (strlen((char *)backgroundTable[j].name)) {
-			loadBackground(backgroundTable[j].name, j);
+		if (strlen((char *)backgrounds[j]._backgroundTable.name)) {
+			loadBackground(backgrounds[j]._backgroundTable.name, j);
 		}
 	}
 
