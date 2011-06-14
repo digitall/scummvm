@@ -786,10 +786,10 @@ int16 Op_ProtectionFlag() {
 int16 Op_ClearScreen() {
 	int bgIdx = popVar();
 
-	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && (backgroundScreens[bgIdx])) {
-		memset(backgroundScreens[bgIdx], 0, 320 * 200);
-		backgroundChanged[bgIdx] = true;
-		strcpy(backgroundTable[0].name, "");
+	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && (backgrounds[bgIdx]._backgroundScreen)) {
+		memset(backgrounds[bgIdx]._backgroundScreen, 0, 320 * 200);
+		backgrounds[bgIdx]._isChanged = true;
+		strcpy(backgrounds[0]._backgroundTable.name, "");
 	}
 
 	return 0;
@@ -921,9 +921,9 @@ int16 Op_SetActiveBackground() {
 	int newPlane = popVar();
 
 	if (newPlane >= 0 && newPlane < NBSCREENS) {
-		if (backgroundScreens[newPlane]) {
+		if (backgrounds[newPlane]._backgroundScreen) {
 			masterScreen = newPlane;
-			backgroundChanged[newPlane] = true;
+			backgrounds[newPlane]._isChanged = true;
 			switchPal = 1;
 		}
 	}
@@ -935,17 +935,17 @@ int16 Op_RemoveBackground() {
 	int backgroundIdx = popVar();
 
 	if (backgroundIdx > 0 && backgroundIdx < 8) {
-		if (backgroundScreens[backgroundIdx])
-			MemFree(backgroundScreens[backgroundIdx]);
+		if (backgrounds[backgroundIdx]._backgroundScreen)
+			MemFree(backgrounds[backgroundIdx]._backgroundScreen);
 
 		if (masterScreen == backgroundIdx) {
 			masterScreen = 0;
-			backgroundChanged[0] = true;
+			backgrounds[0]._isChanged = true;
 		}
 
-		strcpy(backgroundTable[backgroundIdx].name, "");
+		strcpy(backgrounds[backgroundIdx]._backgroundTable.name, "");
 	} else {
-		strcpy(backgroundTable[0].name, "");
+		strcpy(backgrounds[0]._backgroundTable.name, "");
 	}
 
 	return (0);
@@ -1338,7 +1338,7 @@ int16 Op_BgName() {
 	int bgIdx = popVar();
 
 	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && bgName) {
-		strcpy(bgName, backgroundTable[bgIdx].name);
+		strcpy(bgName, backgrounds[bgIdx]._backgroundTable.name);
 
 		if (strlen(bgName))
 			return 1;

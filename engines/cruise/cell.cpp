@@ -175,7 +175,7 @@ void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x
 	// WORKAROUND: This is needed for the new dirty rect handling so as to properly refresh the screen
 	// when the copy protection screen is being shown
 	if ((messageIdx == 0) && !strcmp(overlayTable[overlayIdx].overlayName, "XX2"))
-		backgroundChanged[0] = true;
+		backgrounds[0]._isChanged = true;
 }
 
 void removeCell(cellStruct *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane) {

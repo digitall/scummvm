@@ -30,11 +30,22 @@ struct backgroundTableStruct {
 	char extention[6];
 };
 
+class Background {
+public:
+    uint8 *_backgroundScreen;
+    bool _isChanged;
+    backgroundTableStruct _backgroundTable;
+
+    Background(){
+        _backgroundScreen = NULL; // just for being sure.
+        _isChanged = false;
+    }
+
+};
+
 extern short int cvtPalette[0x20];
 extern int CVTLoaded;
-extern uint8 *backgroundScreens[8];
-extern bool backgroundChanged[8];
-extern backgroundTableStruct backgroundTable[8];
+extern Background backgrounds[8];
 
 int loadBackground(const char *name, int idx);
 

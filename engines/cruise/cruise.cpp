@@ -124,9 +124,9 @@ void CruiseEngine::deinitialize() {
 
 	// Clear any backgrounds
 	for (int i = 0; i < 8; ++i) {
-		if (backgroundScreens[i]) {
-			MemFree(backgroundScreens[i]);
-			backgroundScreens[i] = NULL;
+		if (backgrounds[i]._backgroundScreen) {
+			MemFree(backgrounds[i]._backgroundScreen);
+			backgrounds[i]._backgroundScreen = NULL;
 		}
 	}
 }
