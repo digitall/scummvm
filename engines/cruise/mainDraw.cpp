@@ -1404,12 +1404,12 @@ void mainDraw(int16 param) {
 		return;
 	}*/
 
-	bgPtr = backgroundScreens[masterScreen];
+	bgPtr = backgrounds[masterScreen]._backgroundScreen;
 
 	if (bgPtr) {
 		gfxModuleData_gfxCopyScreen(bgPtr, gfxModuleData.pPage10);
-		if (backgroundChanged[masterScreen]) {
-			backgroundChanged[masterScreen] = false;
+		if (backgrounds[masterScreen]._isChanged) {
+			backgrounds[masterScreen]._isChanged = false;
 			switchBackground(bgPtr);
 		}
 	}
