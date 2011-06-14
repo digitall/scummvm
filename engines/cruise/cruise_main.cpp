@@ -462,7 +462,7 @@ void CruiseEngine::initAllData() {
 	}
 
 	for (i = 0; i < 8; i++) {
-		backgroundTable[i].name[0] = 0;
+		backgrounds[i]._backgroundTable.name[0] = 0;
 	}
 
 	for (i = 0; i < NUM_FILE_ENTRIES; i++) {
@@ -1910,16 +1910,16 @@ void CruiseEngine::mainLoop() {
 		int numIterations = 1;
 
 		while (numIterations-- > 0) {
-			bgChanged = backgroundChanged[masterScreen];
-
+			bgChanged = backgrounds[masterScreen]._isChanged;
+		
 			manageScripts(&relHead);
 			manageScripts(&procHead);
 
 			removeFinishedScripts(&relHead);
 			removeFinishedScripts(&procHead);
 
-			if (!bgChanged && backgroundChanged[masterScreen] &&
-					!strcmp(backgroundTable[0].name, "S06B.PI1")) {
+			if (!bgChanged && backgrounds[masterScreen]._isChanged &&
+					!strcmp(backgrounds[0]._backgroundTable.name, "S06B.PI1")) {
 				bgChanged = true;
 				numIterations += 2;
 			}

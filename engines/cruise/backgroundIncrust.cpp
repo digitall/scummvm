@@ -64,11 +64,11 @@ void restoreBackground(backgroundIncrustStruct *pIncrust) {
 	if (pIncrust->ptr == NULL)
 		return;
 
-	uint8* pBackground = backgroundScreens[pIncrust->backgroundIdx];
+	uint8* pBackground = backgrounds[pIncrust->backgroundIdx]._backgroundScreen;
 	if (pBackground == NULL)
 		return;
 
-	backgroundChanged[pIncrust->backgroundIdx] = true;
+	backgrounds[pIncrust->backgroundIdx]._isChanged = true;
 
 	int X = pIncrust->savedX;
 	int Y = pIncrust->savedY;
@@ -105,9 +105,9 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 		return NULL;
 	}
 
-	backgroundPtr = backgroundScreens[backgroundIdx];
+	backgroundPtr = backgrounds[backgroundIdx]._backgroundScreen;
 
-	backgroundChanged[backgroundIdx] = true;
+	backgrounds[backgroundIdx]._isChanged = true;
 
 	assert(backgroundPtr != NULL);
 
@@ -210,13 +210,13 @@ void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
 				int width = filesDatabase[frame].width;
 				int height = filesDatabase[frame].height;
 
-				drawSprite(width, height, NULL, filesDatabase[frame].subData.ptr, pl->Y, pl->X, backgroundScreens[pl->backgroundIdx], filesDatabase[frame].subData.ptrMask);
+				drawSprite(width, height, NULL, filesDatabase[frame].subData.ptr, pl->Y, pl->X, backgrounds[pl->backgroundIdx]._backgroundScreen, filesDatabase[frame].subData.ptrMask);
 			} else {
 				// Poly
-				addBackgroundIncrustSub1(frame, pl->X, pl->Y, NULL, pl->scale, (char *)backgroundScreens[pl->backgroundIdx], (char *)filesDatabase[frame].subData.ptr);
+				addBackgroundIncrustSub1(frame, pl->X, pl->Y, NULL, pl->scale, (char*)backgrounds[pl->backgroundIdx]._backgroundScreen, (char *)filesDatabase[frame].subData.ptr);
 			}
 
-			backgroundChanged[pl->backgroundIdx] = true;
+			backgrounds[pl->backgroundIdx]._isChanged = true;
 		}
 
 		pl = pl2;
