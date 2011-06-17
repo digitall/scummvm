@@ -57,6 +57,8 @@ public:
         _coordinateY = 0;
         _button = 0;
     }
+
+    void getStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 };
 
 void changeCursor(CursorType eType);
