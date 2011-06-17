@@ -232,7 +232,7 @@ void askDisk(int16 discNumber) {
 		}
 	}
 
-	changeCursor(currentCursor);
+	changeCursor(currentMouse._cursor);
 }
 
 int16 findFileInDisks(const char *name) {
