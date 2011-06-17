@@ -1573,7 +1573,7 @@ void mainDraw(int16 param) {
 		int16 mouseX;
 		int16 mouseY;
 		int16 button;
-		getMouseStatus(&main10, &mouseX, &button, &mouseY);
+		currentMouse.getStatus(&main10, &mouseX, &button, &mouseY);
 
 		if (mouseY > (linkedMsgList->height)*2)
 			drawMessage(linkedMsgList, 0, 0, 320, findHighColor(), gfxModuleData.pPage10);

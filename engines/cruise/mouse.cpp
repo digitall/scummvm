@@ -93,4 +93,10 @@ void mouseOn() {
 	g_system->updateScreen();
 }
 
+void Mouse::getStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY) {
+	*pMouseX = _coordinateX;
+	*pMouseY = _coordinateY;
+	*pMouseButton = _button;
+}
+
 } // End of namespace Cruise
