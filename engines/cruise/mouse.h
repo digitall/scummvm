@@ -39,6 +39,26 @@ enum CursorType {
 	CURSOR_MAX = 7
 };
 
+enum MouseButton {
+	CRS_MB_LEFT = 1,
+	CRS_MB_RIGHT = 2,
+	CRS_MB_MIDDLE = 4,
+	CRS_MB_BOTH = CRS_MB_LEFT | CRS_MB_RIGHT
+};
+
+class Mouse {
+public:
+    int _coordinateX;
+    int _coordinateY;
+    int _button;
+
+    Mouse(){
+        _coordinateX = 0;
+        _coordinateY = 0;
+        _button = 0;
+    }
+};
+
 void changeCursor(CursorType eType);
 bool isMouseOn();
 void mouseOff();

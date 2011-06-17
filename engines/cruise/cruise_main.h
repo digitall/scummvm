@@ -30,6 +30,7 @@
 #include "cruise/object.h"
 #include "cruise/ctp.h"
 #include "cruise/actor.h"
+#include "cruise/mouse.h"
 #include "cruise/vars.h"
 #include "cruise/font.h"
 #include "cruise/volume.h"
@@ -39,7 +40,6 @@
 #include "cruise/function.h"
 #include "cruise/saveload.h"
 #include "cruise/linker.h"
-#include "cruise/mouse.h"
 #include "cruise/gfxModule.h"
 #include "cruise/dataLoader.h"
 #include "cruise/perso.h"
@@ -51,13 +51,6 @@
 #include "cruise/mainDraw.h"
 
 namespace Cruise {
-
-enum MouseButton {
-	CRS_MB_LEFT = 1,
-	CRS_MB_RIGHT = 2,
-	CRS_MB_MIDDLE = 4,
-	CRS_MB_BOTH = CRS_MB_LEFT | CRS_MB_RIGHT
-};
 
 /*#define DUMP_SCRIPT
 #define DUMP_OBJECT*/
