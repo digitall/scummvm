@@ -84,7 +84,7 @@ Common::Error CruiseEngine::run() {
 
 	initialize();
 
-	Cruise::changeCursor(Cruise::CURSOR_NORMAL);
+	Cruise::currentMouse.changeCursor(Cruise::CURSOR_NORMAL);
 	CursorMan.showMouse(true);
 
 	lastTick = 0;
@@ -194,11 +194,11 @@ void CruiseEngine::pauseEngine(bool pause) {
 		gfxModuleData_flipScreen();
 
 		_savedCursor = currentMouse._cursor;
-		changeCursor(CURSOR_NOMOUSE);
+		currentMouse.changeCursor(CURSOR_NOMOUSE);
 	} else {
 		processAnimation();
 		flipScreen();
-		changeCursor(_savedCursor);
+		currentMouse.changeCursor(_savedCursor);
 	}
 
 	gfxModuleData_addDirtyRect(Common::Rect(64, 100, 256, 117));

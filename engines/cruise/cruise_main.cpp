@@ -101,7 +101,7 @@ void drawBlackSolidBoxSmall() {
 }
 
 void loadPackedFileToMem(int fileIdx, uint8 *buffer) {
-	changeCursor(CURSOR_DISK);
+	currentMouse.changeCursor(CURSOR_DISK);
 
 	_vm->_currentVolumeFile.seek(volumePtrToFileDescriptor[fileIdx].offset, SEEK_SET);
 	_vm->_currentVolumeFile.read(buffer, volumePtrToFileDescriptor[fileIdx].size);
@@ -1456,7 +1456,7 @@ int CruiseEngine::processInput() {
 
 	// Player Menu - test for both buttons or the F10 key
 	if (((button & CRS_MB_BOTH) == CRS_MB_BOTH) || (keyboardCode == Common::KEYCODE_F10)) {
-		changeCursor(CURSOR_NORMAL);
+		currentMouse.changeCursor(CURSOR_NORMAL);
 		keyboardCode = Common::KEYCODE_INVALID;
 		return (playerMenu(mouseX, mouseY));
 	}
@@ -1497,7 +1497,7 @@ int CruiseEngine::processInput() {
 			menuDown = 0;
 			selectDown = 0;
 			currentActiveMenu = -1;
-			changeCursor(CURSOR_NORMAL);
+			currentMouse.changeCursor(CURSOR_NORMAL);
 		}
 
 		if ((menuTable[0] == NULL) && (!buttonDown)) {
@@ -1530,7 +1530,7 @@ int CruiseEngine::processInput() {
 					linkedMsgList = NULL;
 					linkedRelation = NULL;
 
-					changeCursor(CURSOR_NORMAL);
+					currentMouse.changeCursor(CURSOR_NORMAL);
 					currentActiveMenu = -1;
 				}
 				buttonDown = 1;
@@ -1564,7 +1564,7 @@ int CruiseEngine::processInput() {
 				}
 				linkedMsgList = NULL;
 				linkedRelation = NULL;
-				changeCursor(CURSOR_NORMAL);
+				currentMouse.changeCursor(CURSOR_NORMAL);
 			} else { // call sub relation when clicking in inventory
 				if (menuTable[0] && menuTable[1]) {
 					menuElementSubStruct * p0 = getSelectedEntryInMenu(menuTable[1]);
@@ -1573,7 +1573,7 @@ int CruiseEngine::processInput() {
 						callSubRelation(linkedRelation, p0->ovlIdx, p0->header);
 
 					closeAllMenu();
-					changeCursor(CURSOR_NORMAL);
+					currentMouse.changeCursor(CURSOR_NORMAL);
 				}
 			}
 			selectDown = 0;
@@ -1626,14 +1626,14 @@ int CruiseEngine::processInput() {
 						if (!linkedRelation) {
 							freeMenu(menuTable[0]);
 							menuTable[0] = NULL;
-							changeCursor(CURSOR_NORMAL);
+							currentMouse.changeCursor(CURSOR_NORMAL);
 						} else { // else create the message for the linked relation
 							char text[80];
 							strcpy(text, menuTable[0]->stringPtr);
 							strcat(text, ":");
 							strcat(text, currentMenuElement->string);
 							linkedMsgList = renderText(320, (const char *)text);
-							changeCursor(CURSOR_CROSS);
+							currentMouse.changeCursor(CURSOR_CROSS);
 						}
 					}
 
@@ -1810,18 +1810,18 @@ void CruiseEngine::mainLoop() {
 						objectType = findObject(mouseX, mouseY, &newCursor1, &newCursor2);
 
 						if (objectType == 9) {
-							changeCursor(CURSOR_EXIT);
+							currentMouse.changeCursor(CURSOR_EXIT);
 						} else if (objectType != -1) {
-							changeCursor(CURSOR_MAGNIFYING_GLASS);
+							currentMouse.changeCursor(CURSOR_MAGNIFYING_GLASS);
 						} else {
-							changeCursor(CURSOR_WALK);
+							currentMouse.changeCursor(CURSOR_WALK);
 						}
 					}
 				} else {
-					changeCursor(CURSOR_NORMAL);
+					currentMouse.changeCursor(CURSOR_NORMAL);
 				}
 			} else {
-				changeCursor(CURSOR_NORMAL);
+				currentMouse.changeCursor(CURSOR_NORMAL);
 			}
 
 			g_system->updateScreen();

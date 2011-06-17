@@ -35,7 +35,6 @@ enum CursorType {
 	CURSOR_WALK = 4,
 	CURSOR_EXIT = 5,
 	CURSOR_MAGNIFYING_GLASS = 6,
-
 	CURSOR_MAX = 7
 };
 
@@ -61,14 +60,12 @@ public:
 	}
 
 	void getStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
+	void changeCursor(CursorType eType);
 };
 
-void changeCursor(CursorType eType);
 bool isMouseOn();
 void mouseOff();
 void mouseOn();
-
-extern CursorType currentCursor;
 
 } // End of namespace Cruise
 

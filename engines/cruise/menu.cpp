@@ -296,7 +296,7 @@ int playerMenu(int menuX, int menuY) {
 			memset(globalScreen, 0, 320 * 200);
 			initVars();
 			_vm->initAllData();
-			changeCursor(CURSOR_NORMAL);
+			currentMouse.changeCursor(CURSOR_NORMAL);
 			userEnabled = 0;
 			break;
 		case 7: // exit
