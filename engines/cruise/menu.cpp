@@ -167,7 +167,7 @@ int processMenu(menuStruct *pMenu) {
 	si = 0;
 
 	do {
-		getMouseStatus(&main10, &mouseX, &mouseButton, &mouseY);
+		currentMouse.getStatus(&main10, &mouseX, &mouseButton, &mouseY);
 
 		updateMenuMouse(mouseX, mouseY, pMenu);
 
