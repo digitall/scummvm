@@ -190,7 +190,7 @@ void CruiseEngine::pauseEngine(bool pause) {
 		drawString(10, 100, langString(ID_PAUSED), gfxModuleData.pPage00, itemColor, 300);
 		gfxModuleData_flipScreen();
 
-		_savedCursor = currentCursor;
+		_savedCursor = currentMouse._cursor;
 		changeCursor(CURSOR_NOMOUSE);
 	} else {
 		processAnimation();

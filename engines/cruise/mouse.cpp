@@ -46,7 +46,7 @@ static const MouseCursor mouseCursors[] = {
 	{ 10, 6, mouseCursorMagnifyingGlass }
 };
 
-CursorType currentCursor = CURSOR_NOMOUSE;
+
 
 static const byte cursorPalette[] = {
 	0, 0, 0,
@@ -55,7 +55,7 @@ static const byte cursorPalette[] = {
 
 void changeCursor(CursorType eType) {
 	assert(eType >= 0 && eType < CURSOR_MAX);
-	if (currentCursor != eType) {
+	if (currentMouse._cursor != eType) {
 		byte mouseCursor[16 * 16];
 		const MouseCursor *mc = &mouseCursors[eType];
 		const byte *src = mc->bitmap;
@@ -75,12 +75,12 @@ void changeCursor(CursorType eType) {
 		}
 		CursorMan.replaceCursor(mouseCursor, 16, 16, mc->hotspotX, mc->hotspotY, 0xFF);
 		CursorMan.replaceCursorPalette(cursorPalette, 0, 2);
-		currentCursor = eType;
+		currentMouse._cursor = eType;
 	}
 }
 
 bool isMouseOn() {
-	return (currentCursor != CURSOR_NOMOUSE) && CursorMan.isVisible();
+	return (currentMouse._cursor != CURSOR_NOMOUSE) && CursorMan.isVisible();
 }
 
 void mouseOff() {

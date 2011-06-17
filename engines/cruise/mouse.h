@@ -51,11 +51,13 @@ public:
     int _coordinateX;
     int _coordinateY;
     int _button;
+    CursorType _cursor;
 
     Mouse(){
         _coordinateX = 0;
         _coordinateY = 0;
         _button = 0;
+        _cursor = CURSOR_NOMOUSE;
     }
 
     void getStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
