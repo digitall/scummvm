@@ -167,6 +167,8 @@ int16 oldSpeedGame;
 
 uint8 globalScreen[320 * 200];
 
+Mouse currentMouse;
+
 //OSystem *osystem;
 
 } // End of namespace Cruise
