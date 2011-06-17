@@ -951,7 +951,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 
 	// to finish
 
-	changeCursor(CURSOR_NORMAL);
+	currentMouse.changeCursor(CURSOR_NORMAL);
 	mainDraw(1);
 	flipScreen();
 

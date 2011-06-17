@@ -102,7 +102,7 @@ int getVolumeDataEntry(volumeDataStruct *entry) {
 		return (-14);
 	}
 
-	changeCursor(CURSOR_DISK);
+	currentMouse.changeCursor(CURSOR_DISK);
 
 	volumeNumberOfEntry = _vm->_currentVolumeFile.readSint16BE();
 	volumeSizeOfEntry = _vm->_currentVolumeFile.readSint16BE();
@@ -232,7 +232,7 @@ void askDisk(int16 discNumber) {
 		}
 	}
 
-	changeCursor(currentMouse._cursor);
+	currentMouse.changeCursor(currentMouse._cursor);
 }
 
 int16 findFileInDisks(const char *name) {

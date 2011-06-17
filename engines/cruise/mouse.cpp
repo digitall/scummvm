@@ -53,9 +53,9 @@ static const byte cursorPalette[] = {
 	0xff, 0xff, 0xff
 };
 
-void changeCursor(CursorType eType) {
+void Mouse::changeCursor(CursorType eType) {
 	assert(eType >= 0 && eType < CURSOR_MAX);
-	if (currentMouse._cursor != eType) {
+	if (_cursor != eType) {
 		byte mouseCursor[16 * 16];
 		const MouseCursor *mc = &mouseCursors[eType];
 		const byte *src = mc->bitmap;
@@ -75,7 +75,7 @@ void changeCursor(CursorType eType) {
 		}
 		CursorMan.replaceCursor(mouseCursor, 16, 16, mc->hotspotX, mc->hotspotY, 0xFF);
 		CursorMan.replaceCursorPalette(cursorPalette, 0, 2);
-		currentMouse._cursor = eType;
+		_cursor = eType;
 	}
 }
 

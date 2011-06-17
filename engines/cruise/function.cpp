@@ -512,7 +512,7 @@ int16 Op_LoadBackground() {
 		gfxModuleData_addDirtyRect(Common::Rect(0, 0, 320, 200));
 	}
 
-	changeCursor(CURSOR_NORMAL);
+	currentMouse.changeCursor(CURSOR_NORMAL);
 
 	return result;
 }
@@ -561,7 +561,7 @@ int16 Op_LoadFrame() {
 		lastAni[0] = 0;
 	}
 
-	changeCursor(CURSOR_NORMAL);
+	currentMouse.changeCursor(CURSOR_NORMAL);
 	return 0;
 }
 
@@ -584,7 +584,7 @@ int16 Op_LoadAbs() {
 		result = loadFullBundle(name, slot);
 	}
 
-	changeCursor(CURSOR_NORMAL);
+	currentMouse.changeCursor(CURSOR_NORMAL);
 	return result;
 }
 
@@ -1357,7 +1357,7 @@ int16 Op_LoadSong() {
 	strToUpper(buffer);
 	_vm->sound().loadMusic(buffer);
 
-	changeCursor(CURSOR_NORMAL);
+	currentMouse.changeCursor(CURSOR_NORMAL);
 	return 0;
 }
 
@@ -1705,7 +1705,7 @@ int16 Op_DialogOff() {
 	if (menuTable[0]) {
 		freeMenu(menuTable[0]);
 		menuTable[0] = NULL;
-		changeCursor(CURSOR_NORMAL);
+		currentMouse.changeCursor(CURSOR_NORMAL);
 		currentActiveMenu = -1;
 	}
 

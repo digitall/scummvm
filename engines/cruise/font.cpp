@@ -156,8 +156,8 @@ void initSystem() {
 	switchPal = 0;
 	masterScreen = 0;
 
-	changeCursor(CURSOR_NOMOUSE);
-	changeCursor(CURSOR_NORMAL);
+	currentMouse.changeCursor(CURSOR_NOMOUSE);
+	currentMouse.changeCursor(CURSOR_NORMAL);
 	mouseOn();
 
 	strcpy(cmdLine, "");
