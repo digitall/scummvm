@@ -1682,10 +1682,6 @@ int CruiseEngine::processInput() {
 	return 0;
 }
 
-int currentMouseX = 0;
-int currentMouseY = 0;
-int currentMouseButton = 0;
-
 bool bFastMode = false;
 
 bool manageEvents() {
@@ -1697,20 +1693,20 @@ bool manageEvents() {
 
 		switch (event.type) {
 		case Common::EVENT_LBUTTONDOWN:
-			currentMouseButton |= CRS_MB_LEFT;
+			currentMouse._button |= CRS_MB_LEFT;
 			break;
 		case Common::EVENT_LBUTTONUP:
-			currentMouseButton &= ~CRS_MB_LEFT;
+			currentMouse._button &= ~CRS_MB_LEFT;
 			break;
 		case Common::EVENT_RBUTTONDOWN:
-			currentMouseButton |= CRS_MB_RIGHT;
+			currentMouse._button |= CRS_MB_RIGHT;
 			break;
 		case Common::EVENT_RBUTTONUP:
-			currentMouseButton &= ~CRS_MB_RIGHT;
+			currentMouse._button &= ~CRS_MB_RIGHT;
 			break;
 		case Common::EVENT_MOUSEMOVE:
-			currentMouseX = event.mouse.x;
-			currentMouseY = event.mouse.y;
+			currentMouse._coordinateX = event.mouse.x;
+			currentMouse._coordinateY = event.mouse.y;
 			abortFlag = false;
 			break;
 		case Common::EVENT_QUIT:
@@ -1720,7 +1716,7 @@ bool manageEvents() {
 		case Common::EVENT_KEYUP:
 			switch (event.kbd.keycode) {
 			case Common::KEYCODE_ESCAPE:
-				currentMouseButton &= ~CRS_MB_MIDDLE;
+				currentMouse._button &= ~CRS_MB_MIDDLE;
 				break;
 			default:
 				break;
@@ -1729,7 +1725,7 @@ bool manageEvents() {
 		case Common::EVENT_KEYDOWN:
 			switch (event.kbd.keycode) {
 			case Common::KEYCODE_ESCAPE:
-				currentMouseButton |= CRS_MB_MIDDLE;
+				currentMouse._button |= CRS_MB_MIDDLE;
 				break;
 			default:
 				keyboardCode = event.kbd.keycode;
@@ -1759,9 +1755,9 @@ bool manageEvents() {
 }
 
 void getMouseStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY) {
-	*pMouseX = currentMouseX;
-	*pMouseY = currentMouseY;
-	*pMouseButton = currentMouseButton;
+	*pMouseX = currentMouse._coordinateX;
+	*pMouseY = currentMouse._coordinateY;
+	*pMouseButton = currentMouse._button;
 }
 
 
@@ -1877,7 +1873,7 @@ void CruiseEngine::mainLoop() {
 		// hotspot after trying to open a locked door, which
 		// occurred with the original interpreter.
 		if (userDelay) {
-			currentMouseButton = 0;
+			currentMouse._button = 0;
 		}
 
 		playerDontAskQuit = processInput();
@@ -1899,7 +1895,7 @@ void CruiseEngine::mainLoop() {
 			changeScriptParamInList(-1, -1, &relHead, 9999, 0);
 
 			// Disable any mouse click used to end the user wait
-			currentMouseButton = 0;
+			currentMouse._button = 0;
 		}
 
 		// FIXME: I suspect that the original game does multiple script executions between game frames; the bug with

@@ -281,7 +281,7 @@ int playerMenu(int menuX, int menuY) {
 
 		freeMenu(menuTable[0]);
 		menuTable[0] = NULL;
-		currentMouseButton = 0;
+		currentMouse._button = 0;
 
 		switch (retourMenu) {
 		case 3: // select save drive
