@@ -97,7 +97,6 @@ void getFileExtention(const char *name, char *buffer);
 void *allocAndZero(int size);
 void freeStuff2();
 void mainLoop();
-void getMouseStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 bool testMask(int x, int y, unsigned char* pData, int stride);
 menuElementSubStruct *getSelectedEntryInMenu(menuStruct *pMenu);
 void closeAllMenu();

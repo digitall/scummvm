@@ -170,7 +170,7 @@ int16 Op_GetMouseX() {
 	int16 mouseY;
 	int16 mouseButton;
 
-	getMouseStatus(&dummy, &mouseX, &mouseButton, &mouseY);
+	currentMouse.getStatus(&dummy, &mouseX, &mouseButton, &mouseY);
 
 	return (mouseX);
 }
@@ -181,7 +181,7 @@ int16 Op_GetMouseY() {
 	int16 mouseY;
 	int16 mouseButton;
 
-	getMouseStatus(&dummy, &mouseX, &mouseButton, &mouseY);
+	currentMouse.getStatus(&dummy, &mouseX, &mouseButton, &mouseY);
 
 	return (mouseY);
 }
@@ -707,7 +707,7 @@ int16 Op_GetMouseButton() {
 	int16 mouseY;
 	int16 mouseButton;
 
-	getMouseStatus(&dummy, &mouseX, &mouseButton, &mouseY);
+	currentMouse.getStatus(&dummy, &mouseX, &mouseButton, &mouseY);
 
 	return mouseButton;
 }
@@ -1798,7 +1798,7 @@ int16 Op_MouseMove() {
 	int16 handle, button;
 	Common::Point pt;
 
-	getMouseStatus(&handle, &pt.x, &button, &pt.y);
+	currentMouse.getStatus(&handle, &pt.x, &button, &pt.y);
 
 	// x/y parameters aren't used
 	popVar();
