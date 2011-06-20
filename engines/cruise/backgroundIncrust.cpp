@@ -25,8 +25,6 @@
 
 namespace Cruise {
 
-backgroundIncrustListNode backgroundIncrustHead;
-
 void resetBackgroundIncrustList(backgroundIncrustListNode *pHead) {
 	pHead->next = NULL;
 	pHead->prev = NULL;
