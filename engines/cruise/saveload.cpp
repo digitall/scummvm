@@ -422,7 +422,7 @@ static void syncCell(Common::Serializer &s) {
 
 static void syncIncrust(Common::Serializer &s) {
 	int numEntries = 0;
-	backgroundIncrustListNode *pl, *pl1;
+	BackgroundIncrustListNode *pl, *pl1;
 	uint8 dummyByte = 0;
 	uint16 dummyWord = 0;
 	uint32 dummyLong = 0;
@@ -441,8 +441,8 @@ static void syncIncrust(Common::Serializer &s) {
 	pl1 = &backgroundIncrustListHead;
 
 	for (int i = 0; i < numEntries; ++i) {
-		backgroundIncrustListNode *t = s.isSaving() ? pl :
-			(backgroundIncrustListNode *)mallocAndZero(sizeof(backgroundIncrustListNode));
+		BackgroundIncrustListNode *t = s.isSaving() ? pl :
+			(BackgroundIncrustListNode *)mallocAndZero(sizeof(BackgroundIncrustListNode));
 
 		s.syncAsUint32LE(dummyLong);
 
