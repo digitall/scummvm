@@ -1258,7 +1258,7 @@ int16 Op_RemoveAnimation() {
 }
 
 int16 Op_regenerateBackgroundIncrust() {
-	regenerateBackgroundIncrust(&backgroundIncrustListHead);
+	backgroundIncrustListHead.regenerateBackgroundIncrustList();
 	return 0;
 }
 

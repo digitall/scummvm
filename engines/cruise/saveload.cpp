@@ -948,7 +948,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 		}
 	}
 
-	regenerateBackgroundIncrust(&backgroundIncrustListHead);
+	backgroundIncrustListHead.regenerateBackgroundIncrustList();
 
 	// to finish
 
