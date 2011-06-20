@@ -25,9 +25,10 @@
 
 namespace Cruise {
 
-struct backgroundIncrustStruct {
-	struct backgroundIncrustStruct *next;
-	struct backgroundIncrustStruct *prev;
+class backgroundIncrustListNode {
+public:
+	backgroundIncrustListNode *next;
+	backgroundIncrustListNode *prev;
 
 	uint16 objectIdx;
 	int16 type;
@@ -49,14 +50,14 @@ struct backgroundIncrustStruct {
 	uint16 spriteId;
 };
 
-extern backgroundIncrustStruct backgroundIncrustHead;
+extern backgroundIncrustListNode backgroundIncrustHead;
 
-void resetBackgroundIncrustList(backgroundIncrustStruct * pHead);
-backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx, int16 param2, backgroundIncrustStruct * pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
-void regenerateBackgroundIncrust(backgroundIncrustStruct * pHead);
-void freeBackgroundIncrustList(backgroundIncrustStruct * pHead);
-void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustStruct * pHead);
-void unmergeBackgroundIncrust(backgroundIncrustStruct * pHead, int ovl, int idx);
+void resetBackgroundIncrustList(backgroundIncrustListNode * pHead);
+backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, backgroundIncrustListNode * pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
+void regenerateBackgroundIncrust(backgroundIncrustListNode * pHead);
+void freeBackgroundIncrustList(backgroundIncrustListNode * pHead);
+void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * pHead);
+void unmergeBackgroundIncrust(backgroundIncrustListNode * pHead, int ovl, int idx);
 
 } // End of namespace Cruise
 
