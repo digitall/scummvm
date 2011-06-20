@@ -307,7 +307,7 @@ int16 Op_UnmergeBackgroundIncrust() {
 		ovl = currentScriptPtr->overlayNumber;
 	}
 
-	unmergeBackgroundIncrust(&backgroundIncrustListHead, ovl, obj);
+	backgroundIncrustListHead.unmergeBackgroundIncrustList(ovl, obj);
 
 	return (0);
 }

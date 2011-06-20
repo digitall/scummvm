@@ -296,7 +296,7 @@ void backgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 	}
 }
 
-void unmergeBackgroundIncrust(backgroundIncrustListNode * pHead, int ovl, int idx) {
+void backgroundIncrustListNode::unmergeBackgroundIncrustList(int ovl, int idx) {
 	backgroundIncrustListNode *pl;
 	backgroundIncrustListNode *pl2;
 
@@ -306,7 +306,7 @@ void unmergeBackgroundIncrust(backgroundIncrustListNode * pHead, int ovl, int id
 	int x = params.X;
 	int y = params.Y;
 
-	pl = pHead;
+	pl = this;
 	pl2 = pl;
 	pl = pl2->next;
 
