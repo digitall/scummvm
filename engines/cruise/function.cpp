@@ -294,7 +294,7 @@ int16 Op_FreeCell() {
 }
 
 int16 Op_freeBackgroundInscrustList() {
-	freeBackgroundIncrustList(&backgroundIncrustListHead);
+	backgroundIncrustListHead.freeBackgroundIncrustList();
 	return (0);
 }
 
