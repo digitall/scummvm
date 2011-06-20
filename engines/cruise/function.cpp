@@ -984,7 +984,7 @@ int16 Op_RemoveBackgroundIncrust() {
 		overlay = currentScriptPtr->overlayNumber;
 	}
 
-	removeBackgroundIncrust(overlay, idx, &backgroundIncrustListHead);
+	backgroundIncrustListHead.removeBackgroundIncrustNode(overlay, idx);
 
 	return 0;
 }
