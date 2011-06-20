@@ -25,9 +25,9 @@
 
 namespace Cruise {
 
-void resetBackgroundIncrustList(backgroundIncrustListNode *pHead) {
-	pHead->next = NULL;
-	pHead->prev = NULL;
+void backgroundIncrustListNode::resetBackgroundIncrustList() {
+	next = NULL;
+	prev = NULL;
 }
 
 // blit background to another one
@@ -237,7 +237,7 @@ void freeBackgroundIncrustList(backgroundIncrustListNode *pHead) {
 		pCurrent = pNext;
 	}
 
-	resetBackgroundIncrustList(pHead);
+	pHead->resetBackgroundIncrustList();
 }
 
 void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * pHead) {

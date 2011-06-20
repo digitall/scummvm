@@ -48,9 +48,10 @@ public:
 	int16 _savedY;
 	char _name[13];
 	uint16 _spriteId;
+
+	void resetBackgroundIncrustList();
 };
 
-void resetBackgroundIncrustList(backgroundIncrustListNode * pHead);
 backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, backgroundIncrustListNode * pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
 void regenerateBackgroundIncrust(backgroundIncrustListNode * pHead);
 void freeBackgroundIncrustList(backgroundIncrustListNode * pHead);
