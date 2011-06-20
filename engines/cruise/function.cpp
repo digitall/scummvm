@@ -734,7 +734,7 @@ int16 Op_AddBackgroundIncrust() {
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
 
-	addBackgroundIncrust(overlayIdx, objIdx, &backgroundIncrustListHead, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, masterScreen, objType);
+	backgroundIncrustListHead.addBackgroundIncrust(overlayIdx, objIdx, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, masterScreen, objType);
 
 	return 0;
 }

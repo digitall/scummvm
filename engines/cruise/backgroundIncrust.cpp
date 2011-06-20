@@ -84,7 +84,7 @@ void restoreBackground(backgroundIncrustListNode *pIncrust) {
 	}
 }
 
-backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx, backgroundIncrustListNode *pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 saveBuffer) {
+backgroundIncrustListNode *backgroundIncrustListNode::addBackgroundIncrust(int16 overlayIdx, int16 objectIdx, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 saveBuffer) {
 	uint8 *backgroundPtr;
 	uint8 *ptr;
 	objectParamsQuery params;
@@ -109,7 +109,7 @@ backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx,	int16 objectId
 
 	assert(backgroundPtr != NULL);
 
-	currentHead = pHead;
+	currentHead = this;
 	currentHead2 = currentHead->next;
 
 	while (currentHead2) {
@@ -126,7 +126,7 @@ backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx,	int16 objectId
 	currentHead->next = newElement;
 
 	if (!currentHead2) {
-		currentHead2 = pHead;
+		currentHead2 = this;
 	}
 
 	newElement->prev = currentHead2->prev;
