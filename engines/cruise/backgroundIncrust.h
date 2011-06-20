@@ -53,12 +53,11 @@ public:
 	void freeBackgroundIncrustList();
 	void removeBackgroundIncrustNode(int overlay, int idx);
 	void regenerateBackgroundIncrustList();
-
+	void unmergeBackgroundIncrustList(int ovl, int idx);
 
 };
 
 backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, backgroundIncrustListNode * pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
-void unmergeBackgroundIncrust(backgroundIncrustListNode * pHead, int ovl, int idx);
 
 } // End of namespace Cruise
 
