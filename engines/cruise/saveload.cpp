@@ -446,32 +446,32 @@ static void syncIncrust(Common::Serializer &s) {
 
 		s.syncAsUint32LE(dummyLong);
 
-		s.syncAsSint16LE(t->objectIdx);
-		s.syncAsSint16LE(t->type);
-		s.syncAsSint16LE(t->overlayIdx);
-		s.syncAsSint16LE(t->X);
-		s.syncAsSint16LE(t->Y);
-		s.syncAsSint16LE(t->frame);
-		s.syncAsSint16LE(t->scale);
-		s.syncAsSint16LE(t->backgroundIdx);
-		s.syncAsSint16LE(t->scriptNumber);
-		s.syncAsSint16LE(t->scriptOverlayIdx);
+		s.syncAsSint16LE(t->_objectIdx);
+		s.syncAsSint16LE(t->_type);
+		s.syncAsSint16LE(t->_overlayIdx);
+		s.syncAsSint16LE(t->_X);
+		s.syncAsSint16LE(t->_Y);
+		s.syncAsSint16LE(t->_frame);
+		s.syncAsSint16LE(t->_scale);
+		s.syncAsSint16LE(t->_backgroundIdx);
+		s.syncAsSint16LE(t->_scriptNumber);
+		s.syncAsSint16LE(t->_scriptOverlayIdx);
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(t->saveWidth);
-		s.syncAsSint16LE(t->saveHeight);
-		s.syncAsSint16LE(t->saveSize);
-		s.syncAsSint16LE(t->savedX);
-		s.syncAsSint16LE(t->savedY);
-		s.syncBytes((byte *)t->name, 13);
+		s.syncAsSint16LE(t->_saveWidth);
+		s.syncAsSint16LE(t->_saveHeight);
+		s.syncAsSint16LE(t->_saveSize);
+		s.syncAsSint16LE(t->_savedX);
+		s.syncAsSint16LE(t->_savedY);
+		s.syncBytes((byte *)t->_name, 13);
 		s.syncAsByte(dummyByte);
-		s.syncAsSint16LE(t->spriteId);
+		s.syncAsSint16LE(t->_spriteId);
 		s.syncAsUint16LE(dummyWord);
 
-		if (t->saveSize) {
+		if (t->_saveSize) {
 			if (s.isLoading())
-				t->ptr = (byte *)MemAlloc(t->saveSize);
+				t->_ptr = (byte *)MemAlloc(t->_saveSize);
 
-			s.syncBytes(t->ptr, t->saveSize);
+			s.syncBytes(t->_ptr, t->_saveSize);
 		}
 
 		if (s.isSaving())
