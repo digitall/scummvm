@@ -478,7 +478,7 @@ void CruiseEngine::initAllData() {
 	resetPtr(&cellHead);
 
 	resetActorPtr(&actorHead);
-	resetBackgroundIncrustList(&backgroundIncrustListHead);
+	backgroundIncrustListHead.resetBackgroundIncrustList();
 
 	bootOverlayNumber = loadOverlay("AUTO00");
 

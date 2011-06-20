@@ -729,7 +729,7 @@ void initVars() {
 	resetPtr(&cellHead);
 
 	resetActorPtr(&actorHead);
-	resetBackgroundIncrustList(&backgroundIncrustListHead);
+	backgroundIncrustListHead.resetBackgroundIncrustList();
 
 	vblLimit = 0;
 	remdo = 0;
