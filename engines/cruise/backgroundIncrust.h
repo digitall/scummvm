@@ -25,10 +25,10 @@
 
 namespace Cruise {
 
-class backgroundIncrustListNode {
+class BackgroundIncrustListNode {
 public:
-	backgroundIncrustListNode *next;
-	backgroundIncrustListNode *prev;
+	BackgroundIncrustListNode *next;
+	BackgroundIncrustListNode *prev;
 
 	uint16 _objectIdx;
 	int16 _type;
@@ -54,7 +54,7 @@ public:
 	void removeBackgroundIncrustNode(int overlay, int idx);
 	void regenerateBackgroundIncrustList();
 	void unmergeBackgroundIncrustList(int ovl, int idx);
-	backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
+	BackgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
 };
 
 
