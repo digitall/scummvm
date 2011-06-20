@@ -184,11 +184,11 @@ backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx,	int16 objectId
 	return newElement;
 }
 
-void regenerateBackgroundIncrust(backgroundIncrustListNode *pHead) {
+void backgroundIncrustListNode::regenerateBackgroundIncrustList() {
 
 	lastAni[0] = 0;
 
-	backgroundIncrustListNode* pl = pHead->next;
+	backgroundIncrustListNode* pl = next;
 
 	while (pl) {
 		backgroundIncrustListNode* pl2 = pl->next;
