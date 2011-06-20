@@ -223,8 +223,8 @@ void regenerateBackgroundIncrust(backgroundIncrustListNode *pHead) {
 	lastAni[0] = 0;
 }
 
-void freeBackgroundIncrustList(backgroundIncrustListNode *pHead) {
-	backgroundIncrustListNode *pCurrent = pHead->next;
+void backgroundIncrustListNode::freeBackgroundIncrustList() {
+	backgroundIncrustListNode *pCurrent = next;
 
 	while (pCurrent) {
 		backgroundIncrustListNode *pNext = pCurrent->next;
@@ -237,7 +237,7 @@ void freeBackgroundIncrustList(backgroundIncrustListNode *pHead) {
 		pCurrent = pNext;
 	}
 
-	pHead->resetBackgroundIncrustList();
+	resetBackgroundIncrustList();
 }
 
 void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * pHead) {

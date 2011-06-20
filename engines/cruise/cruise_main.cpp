@@ -1986,7 +1986,7 @@ void CruiseEngine::mainLoop() {
 	closeBase();
 	resetFileEntryRange(0, NUM_FILE_ENTRIES);
 	freeObjectList(&cellHead);
-	freeBackgroundIncrustList(&backgroundIncrustListHead);
+	backgroundIncrustListHead.freeBackgroundIncrustList();
 }
 
 } // End of namespace Cruise

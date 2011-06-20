@@ -50,11 +50,12 @@ public:
 	uint16 _spriteId;
 
 	void resetBackgroundIncrustList();
+	void freeBackgroundIncrustList();
+
 };
 
 backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, backgroundIncrustListNode * pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
 void regenerateBackgroundIncrust(backgroundIncrustListNode * pHead);
-void freeBackgroundIncrustList(backgroundIncrustListNode * pHead);
 void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * pHead);
 void unmergeBackgroundIncrust(backgroundIncrustListNode * pHead, int ovl, int idx);
 
