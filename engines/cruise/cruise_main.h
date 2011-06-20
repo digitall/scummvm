@@ -31,6 +31,7 @@
 #include "cruise/ctp.h"
 #include "cruise/actor.h"
 #include "cruise/mouse.h"
+#include "cruise/backgroundIncrust.h"
 #include "cruise/vars.h"
 #include "cruise/font.h"
 #include "cruise/volume.h"
@@ -46,7 +47,6 @@
 #include "cruise/menu.h"
 
 #include "cruise/background.h"
-#include "cruise/backgroundIncrust.h"
 
 #include "cruise/mainDraw.h"
 

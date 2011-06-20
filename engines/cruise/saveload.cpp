@@ -429,7 +429,7 @@ static void syncIncrust(Common::Serializer &s) {
 
 	if (s.isSaving()) {
 		// Figure out the number of entries to save
-		pl = backgroundIncrustHead.next;
+		pl = backgroundIncrustListHead.next;
 		while (pl) {
 			++numEntries;
 			pl = pl->next;
@@ -437,8 +437,8 @@ static void syncIncrust(Common::Serializer &s) {
 	}
 	s.syncAsSint16LE(numEntries);
 
-	pl = s.isSaving() ? backgroundIncrustHead.next : &backgroundIncrustHead;
-	pl1 = &backgroundIncrustHead;
+	pl = s.isSaving() ? backgroundIncrustListHead.next : &backgroundIncrustListHead;
+	pl1 = &backgroundIncrustListHead;
 
 	for (int i = 0; i < numEntries; ++i) {
 		backgroundIncrustListNode *t = s.isSaving() ? pl :
@@ -664,7 +664,7 @@ void initVars() {
 
 	resetPreload();
 	freeCTP();
-	freeBackgroundIncrustList(&backgroundIncrustHead);
+	freeBackgroundIncrustList(&backgroundIncrustListHead);
 
 	freezeCell(&cellHead, -1, -1, -1, -1, -1, 0);
 	// TODO: unfreeze anims
@@ -730,7 +730,7 @@ void initVars() {
 	resetPtr(&cellHead);
 
 	resetActorPtr(&actorHead);
-	resetBackgroundIncrustList(&backgroundIncrustHead);
+	resetBackgroundIncrustList(&backgroundIncrustListHead);
 
 	vblLimit = 0;
 	remdo = 0;
@@ -948,7 +948,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 		}
 	}
 
-	regenerateBackgroundIncrust(&backgroundIncrustHead);
+	regenerateBackgroundIncrust(&backgroundIncrustListHead);
 
 	// to finish
 

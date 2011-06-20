@@ -294,7 +294,7 @@ int16 Op_FreeCell() {
 }
 
 int16 Op_freeBackgroundInscrustList() {
-	freeBackgroundIncrustList(&backgroundIncrustHead);
+	freeBackgroundIncrustList(&backgroundIncrustListHead);
 	return (0);
 }
 
@@ -307,7 +307,7 @@ int16 Op_UnmergeBackgroundIncrust() {
 		ovl = currentScriptPtr->overlayNumber;
 	}
 
-	unmergeBackgroundIncrust(&backgroundIncrustHead, ovl, obj);
+	unmergeBackgroundIncrust(&backgroundIncrustListHead, ovl, obj);
 
 	return (0);
 }
@@ -734,7 +734,7 @@ int16 Op_AddBackgroundIncrust() {
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
 
-	addBackgroundIncrust(overlayIdx, objIdx, &backgroundIncrustHead, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, masterScreen, objType);
+	addBackgroundIncrust(overlayIdx, objIdx, &backgroundIncrustListHead, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, masterScreen, objType);
 
 	return 0;
 }
@@ -984,7 +984,7 @@ int16 Op_RemoveBackgroundIncrust() {
 		overlay = currentScriptPtr->overlayNumber;
 	}
 
-	removeBackgroundIncrust(overlay, idx, &backgroundIncrustHead);
+	removeBackgroundIncrust(overlay, idx, &backgroundIncrustListHead);
 
 	return 0;
 }
@@ -1258,7 +1258,7 @@ int16 Op_RemoveAnimation() {
 }
 
 int16 Op_regenerateBackgroundIncrust() {
-	regenerateBackgroundIncrust(&backgroundIncrustHead);
+	regenerateBackgroundIncrust(&backgroundIncrustListHead);
 	return 0;
 }
 
