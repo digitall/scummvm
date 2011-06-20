@@ -25,9 +25,9 @@
 
 namespace Cruise {
 
-backgroundIncrustStruct backgroundIncrustHead;
+backgroundIncrustListNode backgroundIncrustHead;
 
-void resetBackgroundIncrustList(backgroundIncrustStruct *pHead) {
+void resetBackgroundIncrustList(backgroundIncrustListNode *pHead) {
 	pHead->next = NULL;
 	pHead->prev = NULL;
 }
@@ -39,7 +39,7 @@ void addBackgroundIncrustSub1(int fileIdx, int X, int Y, char *ptr2, int16 scale
 	buildPolyModel(X, Y, scale, ptr2, destBuffer, dataPtr);
 }
 
-void backupBackground(backgroundIncrustStruct *pIncrust, int X, int Y, int width, int height, uint8* pBackground) {
+void backupBackground(backgroundIncrustListNode *pIncrust, int X, int Y, int width, int height, uint8* pBackground) {
 	pIncrust->saveWidth = width;
 	pIncrust->saveHeight = height;
 	pIncrust->saveSize = width * height;
@@ -58,7 +58,7 @@ void backupBackground(backgroundIncrustStruct *pIncrust, int X, int Y, int width
 	}
 }
 
-void restoreBackground(backgroundIncrustStruct *pIncrust) {
+void restoreBackground(backgroundIncrustListNode *pIncrust) {
 	if (pIncrust->type != 1)
 		return;
 	if (pIncrust->ptr == NULL)
@@ -86,13 +86,13 @@ void restoreBackground(backgroundIncrustStruct *pIncrust) {
 	}
 }
 
-backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx, backgroundIncrustStruct *pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 saveBuffer) {
+backgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx, backgroundIncrustListNode *pHead, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 saveBuffer) {
 	uint8 *backgroundPtr;
 	uint8 *ptr;
 	objectParamsQuery params;
-	backgroundIncrustStruct *newElement;
-	backgroundIncrustStruct *currentHead;
-	backgroundIncrustStruct *currentHead2;
+	backgroundIncrustListNode *newElement;
+	backgroundIncrustListNode *currentHead;
+	backgroundIncrustListNode *currentHead2;
 
 	getMultipleObjectParam(overlayIdx, objectIdx, &params);
 
@@ -119,7 +119,7 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 		currentHead2 = currentHead->next;
 	}
 
-	newElement = (backgroundIncrustStruct *)mallocAndZero(sizeof(backgroundIncrustStruct));
+	newElement = (backgroundIncrustListNode *)mallocAndZero(sizeof(backgroundIncrustListNode));
 
 	if (!newElement)
 		return NULL;
@@ -186,14 +186,14 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 	return newElement;
 }
 
-void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
+void regenerateBackgroundIncrust(backgroundIncrustListNode *pHead) {
 
 	lastAni[0] = 0;
 
-	backgroundIncrustStruct* pl = pHead->next;
+	backgroundIncrustListNode* pl = pHead->next;
 
 	while (pl) {
-		backgroundIncrustStruct* pl2 = pl->next;
+		backgroundIncrustListNode* pl2 = pl->next;
 
 		int frame = pl->frame;
 		//int screen = pl->backgroundIdx;
@@ -225,11 +225,11 @@ void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
 	lastAni[0] = 0;
 }
 
-void freeBackgroundIncrustList(backgroundIncrustStruct *pHead) {
-	backgroundIncrustStruct *pCurrent = pHead->next;
+void freeBackgroundIncrustList(backgroundIncrustListNode *pHead) {
+	backgroundIncrustListNode *pCurrent = pHead->next;
 
 	while (pCurrent) {
-		backgroundIncrustStruct *pNext = pCurrent->next;
+		backgroundIncrustListNode *pNext = pCurrent->next;
 
 		if (pCurrent->ptr)
 			MemFree(pCurrent->ptr);
@@ -242,13 +242,13 @@ void freeBackgroundIncrustList(backgroundIncrustStruct *pHead) {
 	resetBackgroundIncrustList(pHead);
 }
 
-void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustStruct * pHead) {
+void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * pHead) {
 	objectParamsQuery params;
 	int var_4;
 	int var_6;
 
-	backgroundIncrustStruct *pCurrent;
-	backgroundIncrustStruct *pCurrentHead;
+	backgroundIncrustListNode *pCurrent;
+	backgroundIncrustListNode *pCurrentHead;
 
 	getMultipleObjectParam(overlay, idx, &params);
 
@@ -270,9 +270,9 @@ void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustStruct * pHe
 
 	while (pCurrent) {
 		if (pCurrent->type == - 1) {
-			backgroundIncrustStruct *pNext = pCurrent->next;
-			backgroundIncrustStruct *bx = pCurrentHead;
-			backgroundIncrustStruct *cx;
+			backgroundIncrustListNode *pNext = pCurrent->next;
+			backgroundIncrustListNode *bx = pCurrentHead;
+			backgroundIncrustListNode *cx;
 
 			bx->next = pNext;
 			cx = pNext;
@@ -298,9 +298,9 @@ void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustStruct * pHe
 	}
 }
 
-void unmergeBackgroundIncrust(backgroundIncrustStruct * pHead, int ovl, int idx) {
-	backgroundIncrustStruct *pl;
-	backgroundIncrustStruct *pl2;
+void unmergeBackgroundIncrust(backgroundIncrustListNode * pHead, int ovl, int idx) {
+	backgroundIncrustListNode *pl;
+	backgroundIncrustListNode *pl2;
 
 	objectParamsQuery params;
 	getMultipleObjectParam(ovl, idx, &params);
