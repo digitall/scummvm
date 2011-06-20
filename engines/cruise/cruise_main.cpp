@@ -1810,18 +1810,18 @@ void CruiseEngine::mainLoop() {
 						objectType = findObject(mouseX, mouseY, &newCursor1, &newCursor2);
 
 						if (objectType == 9) {
-							changeCursor(CURSOR_EXIT);
+							currentMouse.changeCursor(CURSOR_EXIT);
 						} else if (objectType != -1) {
-							changeCursor(CURSOR_MAGNIFYING_GLASS);
+							currentMouse.changeCursor(CURSOR_MAGNIFYING_GLASS);
 						} else {
-							changeCursor(CURSOR_WALK);
+							currentMouse.changeCursor(CURSOR_WALK);
 						}
 					}
 				} else {
-					changeCursor(CURSOR_NORMAL);
+					currentMouse.changeCursor(CURSOR_NORMAL);
 				}
 			} else {
-				changeCursor(CURSOR_NORMAL);
+				currentMouse.changeCursor(CURSOR_NORMAL);
 			}
 
 			g_system->updateScreen();
