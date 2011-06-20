@@ -288,7 +288,7 @@ extern int16 oldSpeedGame;
 extern uint8 globalScreen[320 * 200];
 
 extern Mouse currentMouse;
-extern backgroundIncrustListNode backgroundIncrustListHead;
+extern BackgroundIncrustListNode backgroundIncrustListHead;
 
 //extern OSystem *osystem;
 
