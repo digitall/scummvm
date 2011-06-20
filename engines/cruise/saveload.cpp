@@ -664,7 +664,7 @@ void initVars() {
 
 	resetPreload();
 	freeCTP();
-	freeBackgroundIncrustList(&backgroundIncrustListHead);
+	backgroundIncrustListHead.freeBackgroundIncrustList();
 
 	freezeCell(&cellHead, -1, -1, -1, -1, -1, 0);
 	// TODO: unfreeze anims
