@@ -240,7 +240,7 @@ void backgroundIncrustListNode::freeBackgroundIncrustList() {
 	resetBackgroundIncrustList();
 }
 
-void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * pHead) {
+void backgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx) {
 	objectParamsQuery params;
 	int var_4;
 	int var_6;
@@ -253,7 +253,7 @@ void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * p
 	var_4 = params.X;
 	var_6 = params.Y;
 
-	pCurrent = pHead->next;
+	pCurrent = next;
 
 	while (pCurrent) {
 		if ((pCurrent->_overlayIdx == overlay || overlay == -1) && (pCurrent->_objectIdx == idx || idx == -1) && (pCurrent->_X == var_4) && (pCurrent->_Y == var_6)) {
@@ -263,8 +263,8 @@ void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * p
 		pCurrent = pCurrent->next;
 	}
 
-	pCurrentHead = pHead;
-	pCurrent = pHead->next;
+	pCurrentHead = this;
+	pCurrent = next;
 
 	while (pCurrent) {
 		if (pCurrent->_type == - 1) {
@@ -276,7 +276,7 @@ void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustListNode * p
 			cx = pNext;
 
 			if (!pNext) {
-				cx = pHead;
+				cx = this;
 			}
 
 			bx = cx;
