@@ -168,6 +168,7 @@ int16 oldSpeedGame;
 uint8 globalScreen[320 * 200];
 
 Mouse currentMouse;
+backgroundIncrustListNode backgroundIncrustListHead;
 
 //OSystem *osystem;
 
