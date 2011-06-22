@@ -25,11 +25,8 @@
 
 namespace Cruise {
 
-class BackgroundIncrustListNode {
+class BackgroundIncrust {
 public:
-	BackgroundIncrustListNode *next;
-	BackgroundIncrustListNode *prev;
-
 	uint16 _objectIdx;
 	int16 _type;
 	uint16 _overlayIdx;
@@ -48,6 +45,13 @@ public:
 	int16 _savedY;
 	char _name[13];
 	uint16 _spriteId;
+};
+
+class BackgroundIncrustListNode {
+public:
+	BackgroundIncrustListNode *next;
+	BackgroundIncrustListNode *prev;
+	BackgroundIncrust *backgroundIncrust;
 
         void resetBackgroundIncrustList();
         void freeBackgroundIncrustList();
