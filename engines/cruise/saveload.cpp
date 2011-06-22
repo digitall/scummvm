@@ -443,35 +443,35 @@ static void syncIncrust(Common::Serializer &s) {
 	for (int i = 0; i < numEntries; ++i) {
 		BackgroundIncrustListNode *t = s.isSaving() ? pl :
 			(BackgroundIncrustListNode *)mallocAndZero(sizeof(BackgroundIncrustListNode));
-
+		BackgroundIncrust *backgroundIncrust = t->backgroundIncrust;
 		s.syncAsUint32LE(dummyLong);
 
-		s.syncAsSint16LE(t->_objectIdx);
-		s.syncAsSint16LE(t->_type);
-		s.syncAsSint16LE(t->_overlayIdx);
-		s.syncAsSint16LE(t->_X);
-		s.syncAsSint16LE(t->_Y);
-		s.syncAsSint16LE(t->_frame);
-		s.syncAsSint16LE(t->_scale);
-		s.syncAsSint16LE(t->_backgroundIdx);
-		s.syncAsSint16LE(t->_scriptNumber);
-		s.syncAsSint16LE(t->_scriptOverlayIdx);
+		s.syncAsSint16LE(backgroundIncrust->_objectIdx);
+		s.syncAsSint16LE(backgroundIncrust->_type);
+		s.syncAsSint16LE(backgroundIncrust->_overlayIdx);
+		s.syncAsSint16LE(backgroundIncrust->_X);
+		s.syncAsSint16LE(backgroundIncrust->_Y);
+		s.syncAsSint16LE(backgroundIncrust->_frame);
+		s.syncAsSint16LE(backgroundIncrust->_scale);
+		s.syncAsSint16LE(backgroundIncrust->_backgroundIdx);
+		s.syncAsSint16LE(backgroundIncrust->_scriptNumber);
+		s.syncAsSint16LE(backgroundIncrust->_scriptOverlayIdx);
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(t->_saveWidth);
-		s.syncAsSint16LE(t->_saveHeight);
-		s.syncAsSint16LE(t->_saveSize);
-		s.syncAsSint16LE(t->_savedX);
-		s.syncAsSint16LE(t->_savedY);
-		s.syncBytes((byte *)t->_name, 13);
+		s.syncAsSint16LE(backgroundIncrust->_saveWidth);
+		s.syncAsSint16LE(backgroundIncrust->_saveHeight);
+		s.syncAsSint16LE(backgroundIncrust->_saveSize);
+		s.syncAsSint16LE(backgroundIncrust->_savedX);
+		s.syncAsSint16LE(backgroundIncrust->_savedY);
+		s.syncBytes((byte *)backgroundIncrust->_name, 13);
 		s.syncAsByte(dummyByte);
-		s.syncAsSint16LE(t->_spriteId);
+		s.syncAsSint16LE(backgroundIncrust->_spriteId);
 		s.syncAsUint16LE(dummyWord);
 
-		if (t->_saveSize) {
+		if (backgroundIncrust->_saveSize) {
 			if (s.isLoading())
-				t->_ptr = (byte *)MemAlloc(t->_saveSize);
+				backgroundIncrust->_ptr = (byte *)MemAlloc(backgroundIncrust->_saveSize);
 
-			s.syncBytes(t->_ptr, t->_saveSize);
+			s.syncBytes(backgroundIncrust->_ptr, backgroundIncrust->_saveSize);
 		}
 
 		if (s.isSaving())
