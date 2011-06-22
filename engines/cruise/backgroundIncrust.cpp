@@ -38,40 +38,42 @@ void addBackgroundIncrustSub1(int fileIdx, int X, int Y, char *ptr2, int16 scale
 }
 
 void backupBackground(BackgroundIncrustListNode *pIncrust, int X, int Y, int width, int height, uint8* pBackground) {
-	pIncrust->_saveWidth = width;
-	pIncrust->_saveHeight = height;
-	pIncrust->_saveSize = width * height;
-	pIncrust->_savedX = X;
-	pIncrust->_savedY = Y;
+	BackgroundIncrust *currentBackgroundIncrust = pIncrust->backgroundIncrust;
+	currentBackgroundIncrust->_saveWidth = width;
+	currentBackgroundIncrust->_saveHeight = height;
+	currentBackgroundIncrust->_saveSize = width * height;
+	currentBackgroundIncrust->_savedX = X;
+	currentBackgroundIncrust->_savedY = Y;
 
-	pIncrust->_ptr = (uint8 *)MemAlloc(width * height);
+	currentBackgroundIncrust->_ptr = (uint8 *)MemAlloc(width * height);
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
 			int xp = j + X;
 			int yp = i + Y;
 
-			pIncrust->_ptr[i * width + j] = ((xp < 0) || (yp < 0) || (xp >= 320) || (yp >= 200)) ?
+			currentBackgroundIncrust->_ptr[i * width + j] = ((xp < 0) || (yp < 0) || (xp >= 320) || (yp >= 200)) ?
 				0 : pBackground[yp * 320 + xp];
 		}
 	}
 }
 
 void restoreBackground(BackgroundIncrustListNode *pIncrust) {
-	if (pIncrust->_type != 1)
+	BackgroundIncrust *currentBackgroundIncrust = pIncrust->backgroundIncrust;
+	if (currentBackgroundIncrust->_type != 1)
 		return;
-	if (pIncrust->_ptr == NULL)
+	if (currentBackgroundIncrust->_ptr == NULL)
 		return;
 
-	uint8* pBackground = backgrounds[pIncrust->_backgroundIdx]._backgroundScreen;
+	uint8* pBackground = backgrounds[currentBackgroundIncrust->_backgroundIdx]._backgroundScreen;
 	if (pBackground == NULL)
 		return;
 
-	backgrounds[pIncrust->_backgroundIdx]._isChanged = true;
+	backgrounds[currentBackgroundIncrust->_backgroundIdx]._isChanged = true;
 
-	int X = pIncrust->_savedX;
-	int Y = pIncrust->_savedY;
-	int width = pIncrust->_saveWidth;
-	int height = pIncrust->_saveHeight;
+	int X = currentBackgroundIncrust->_savedX;
+	int Y = currentBackgroundIncrust->_savedY;
+	int width = currentBackgroundIncrust->_saveWidth;
+	int height = currentBackgroundIncrust->_saveHeight;
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
@@ -79,7 +81,7 @@ void restoreBackground(BackgroundIncrustListNode *pIncrust) {
 			int yp = i + Y;
 
 			if ((xp >= 0) && (yp >= 0) && (xp < 320) && (yp < 200))
-				pBackground[yp * 320 + xp] = pIncrust->_ptr[i * width + j];
+				pBackground[yp * 320 + xp] = currentBackgroundIncrust->_ptr[i * width + j];
 		}
 	}
 }
@@ -88,9 +90,10 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 	uint8 *backgroundPtr;
 	uint8 *ptr;
 	objectParamsQuery params;
-	BackgroundIncrustListNode *newElement;
+	BackgroundIncrustListNode *newListNode;
 	BackgroundIncrustListNode *currentHead;
 	BackgroundIncrustListNode *currentHead2;
+	BackgroundIncrust *newBackgroundIncrust;
 
 	getMultipleObjectParam(overlayIdx, objectIdx, &params);
 
@@ -117,45 +120,48 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 		currentHead2 = currentHead->next;
 	}
 
-	newElement = (BackgroundIncrustListNode *)mallocAndZero(sizeof(BackgroundIncrustListNode));
+	newListNode = (BackgroundIncrustListNode *)mallocAndZero(sizeof(BackgroundIncrustListNode));
 
-	if (!newElement)
+	if (!newListNode)
 		return NULL;
 
-	newElement->next = currentHead->next;
-	currentHead->next = newElement;
+	newListNode->next = currentHead->next;
+	currentHead->next = newListNode;
 
 	if (!currentHead2) {
 		currentHead2 = this;
 	}
 
-	newElement->prev = currentHead2->prev;
-	currentHead2->prev = newElement;
+	newListNode->prev = currentHead2->prev;
+	currentHead2->prev = newListNode;
+	newBackgroundIncrust = (BackgroundIncrust *)mallocAndZero(sizeof(BackgroundIncrust));
 
-	newElement->_objectIdx = objectIdx;
-	newElement->_type = saveBuffer;
-	newElement->_backgroundIdx = backgroundIdx;
-	newElement->_overlayIdx = overlayIdx;
-	newElement->_scriptNumber = scriptNumber;
-	newElement->_scriptOverlayIdx = scriptOverlay;
-	newElement->_X = params.X;
-	newElement->_Y = params.Y;
-	newElement->_scale = params.scale;
-	newElement->_frame = params.fileIdx;
-	newElement->_spriteId = filesDatabase[params.fileIdx].subData.index;
-	newElement->_ptr = NULL;
-	strcpy(newElement->_name, filesDatabase[params.fileIdx].subData.name);
+	newBackgroundIncrust->_objectIdx = objectIdx;
+	newBackgroundIncrust->_type = saveBuffer;
+	newBackgroundIncrust->_backgroundIdx = backgroundIdx;
+	newBackgroundIncrust->_overlayIdx = overlayIdx;
+	newBackgroundIncrust->_scriptNumber = scriptNumber;
+	newBackgroundIncrust->_scriptOverlayIdx = scriptOverlay;
+	newBackgroundIncrust->_X = params.X;
+	newBackgroundIncrust->_Y = params.Y;
+	newBackgroundIncrust->_scale = params.scale;
+	newBackgroundIncrust->_frame = params.fileIdx;
+	newBackgroundIncrust->_spriteId = filesDatabase[params.fileIdx].subData.index;
+	newBackgroundIncrust->_ptr = NULL;
+	strcpy(newBackgroundIncrust->_name, filesDatabase[params.fileIdx].subData.name);
+
+	newListNode->backgroundIncrust = newBackgroundIncrust;
 
 	if (filesDatabase[params.fileIdx].subData.resourceType == OBJ_TYPE_SPRITE) {
 		// sprite
 		int width = filesDatabase[params.fileIdx].width;
 		int height = filesDatabase[params.fileIdx].height;
 		if (saveBuffer == 1) {
-			backupBackground(newElement, newElement->_X, newElement->_Y, width, height, backgroundPtr);
+			backupBackground(newListNode, newBackgroundIncrust->_X, newBackgroundIncrust->_Y, width, height, backgroundPtr);
 		}
 
-		drawSprite(width, height, NULL, filesDatabase[params.fileIdx].subData.ptr, newElement->_Y,
-			newElement->_X, backgroundPtr, filesDatabase[params.fileIdx].subData.ptrMask);
+		drawSprite(width, height, NULL, filesDatabase[params.fileIdx].subData.ptr, newBackgroundIncrust->_Y,
+			newBackgroundIncrust->_X, backgroundPtr, filesDatabase[params.fileIdx].subData.ptrMask);
 	} else {
 		// poly
 		if (saveBuffer == 1) {
@@ -167,7 +173,7 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 			int sizeTable[4];	// 0 = left, 1 = right, 2 = bottom, 3 = top
 
 			// this function checks if the dataPtr is not 0, else it retrives the data for X, Y, scale and DataPtr again (OLD: mainDrawSub1Sub1)
-			flipPoly(params.fileIdx, (int16 *)filesDatabase[params.fileIdx].subData.ptr, params.scale, &newFrame, newElement->_X, newElement->_Y, &newX, &newY, &newScale);
+			flipPoly(params.fileIdx, (int16 *)filesDatabase[params.fileIdx].subData.ptr, params.scale, &newFrame, newBackgroundIncrust->_X, newBackgroundIncrust->_Y, &newX, &newY, &newScale);
 
 			// this function fills the sizeTable for the poly (OLD: mainDrawSub1Sub2)
 			getPolySize(newX, newY, newScale, sizeTable, (unsigned char*)newFrame);
@@ -175,13 +181,13 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 			int width = (sizeTable[1] + 2) - (sizeTable[0] - 2) + 1;
 			int height = sizeTable[3] - sizeTable[2] + 1;
 
-			backupBackground(newElement, sizeTable[0] - 2, sizeTable[2], width, height, backgroundPtr);
+			backupBackground(newListNode, sizeTable[0] - 2, sizeTable[2], width, height, backgroundPtr);
 		}
 
-		addBackgroundIncrustSub1(params.fileIdx, newElement->_X, newElement->_Y, NULL, params.scale, (char *)backgroundPtr, (char *)filesDatabase[params.fileIdx].subData.ptr);
+		addBackgroundIncrustSub1(params.fileIdx, newBackgroundIncrust->_X, newBackgroundIncrust->_Y, NULL, params.scale, (char *)backgroundPtr, (char *)filesDatabase[params.fileIdx].subData.ptr);
 	}
 
-	return newElement;
+	return newListNode;
 }
 
 void BackgroundIncrustListNode::regenerateBackgroundIncrustList() {
@@ -192,13 +198,13 @@ void BackgroundIncrustListNode::regenerateBackgroundIncrustList() {
 
 	while (pl) {
 		BackgroundIncrustListNode* pl2 = pl->next;
-
-		int frame = pl->_frame;
+		BackgroundIncrust *currentBackgroundIncrust = pl->backgroundIncrust;
+		int frame = currentBackgroundIncrust->_frame;
 		//int screen = pl->backgroundIdx;
 
-		if ((filesDatabase[frame].subData.ptr == NULL) || (strcmp(pl->_name, filesDatabase[frame].subData.name))) {
+		if ((filesDatabase[frame].subData.ptr == NULL) || (strcmp(currentBackgroundIncrust->_name, filesDatabase[frame].subData.name))) {
 			frame = NUM_FILE_ENTRIES - 1;
-			if (loadFile(pl->_name, frame, pl->_spriteId) < 0)
+			if (loadFile(currentBackgroundIncrust->_name, frame, currentBackgroundIncrust->_spriteId) < 0)
 				frame = -1;
 		}
 
@@ -208,13 +214,13 @@ void BackgroundIncrustListNode::regenerateBackgroundIncrustList() {
 				int width = filesDatabase[frame].width;
 				int height = filesDatabase[frame].height;
 
-				drawSprite(width, height, NULL, filesDatabase[frame].subData.ptr, pl->_Y, pl->_X, backgrounds[pl->_backgroundIdx]._backgroundScreen, filesDatabase[frame].subData.ptrMask);
+				drawSprite(width, height, NULL, filesDatabase[frame].subData.ptr, currentBackgroundIncrust->_Y, currentBackgroundIncrust->_X, backgrounds[currentBackgroundIncrust->_backgroundIdx]._backgroundScreen, filesDatabase[frame].subData.ptrMask);
 			} else {
 				// Poly
-				addBackgroundIncrustSub1(frame, pl->_X, pl->_Y, NULL, pl->_scale, (char*)backgrounds[pl->_backgroundIdx]._backgroundScreen, (char *)filesDatabase[frame].subData.ptr);
+				addBackgroundIncrustSub1(frame, currentBackgroundIncrust->_X, currentBackgroundIncrust->_Y, NULL, currentBackgroundIncrust->_scale, (char*)backgrounds[currentBackgroundIncrust->_backgroundIdx]._backgroundScreen, (char *)filesDatabase[frame].subData.ptr);
 			}
 
-			backgrounds[pl->_backgroundIdx]._isChanged = true;
+			backgrounds[currentBackgroundIncrust->_backgroundIdx]._isChanged = true;
 		}
 
 		pl = pl2;
@@ -228,10 +234,10 @@ void BackgroundIncrustListNode::freeBackgroundIncrustList() {
 
 	while (pCurrent) {
 		BackgroundIncrustListNode *pNext = pCurrent->next;
+		BackgroundIncrust *currentBackgroundIncrust = pCurrent->backgroundIncrust;
 
-		if (pCurrent->_ptr)
-			MemFree(pCurrent->_ptr);
-
+		if (currentBackgroundIncrust->_ptr)
+			MemFree(currentBackgroundIncrust->_ptr);
 		MemFree(pCurrent);
 
 		pCurrent = pNext;
@@ -247,6 +253,7 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 
 	BackgroundIncrustListNode *pCurrent;
 	BackgroundIncrustListNode *pCurrentHead;
+	BackgroundIncrust *currentBacgroundIncrust;
 
 	getMultipleObjectParam(overlay, idx, &params);
 
@@ -256,8 +263,9 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 	pCurrent = next;
 
 	while (pCurrent) {
-		if ((pCurrent->_overlayIdx == overlay || overlay == -1) && (pCurrent->_objectIdx == idx || idx == -1) && (pCurrent->_X == var_4) && (pCurrent->_Y == var_6)) {
-			pCurrent->_type = - 1;
+		currentBacgroundIncrust = pCurrent->backgroundIncrust;
+		if ((currentBacgroundIncrust->_overlayIdx == overlay || overlay == -1) && (currentBacgroundIncrust->_objectIdx == idx || idx == -1) && (currentBacgroundIncrust->_X == var_4) && (currentBacgroundIncrust->_Y == var_6)) {
+			currentBacgroundIncrust->_type = - 1;
 		}
 
 		pCurrent = pCurrent->next;
@@ -267,7 +275,8 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 	pCurrent = next;
 
 	while (pCurrent) {
-		if (pCurrent->_type == - 1) {
+		currentBacgroundIncrust = pCurrent->backgroundIncrust;
+		if (currentBacgroundIncrust->_type == - 1) {
 			BackgroundIncrustListNode *pNext = pCurrent->next;
 			BackgroundIncrustListNode *bx = pCurrentHead;
 			BackgroundIncrustListNode *cx;
@@ -282,8 +291,8 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 			bx = cx;
 			bx->prev = pCurrent->next;
 
-			if (pCurrent->_ptr) {
-				MemFree(pCurrent->_ptr);
+			if (currentBacgroundIncrust->_ptr) {
+				MemFree(currentBacgroundIncrust->_ptr);
 			}
 
 			MemFree(pCurrent);
@@ -299,6 +308,7 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 void BackgroundIncrustListNode::unmergeBackgroundIncrustList(int ovl, int idx) {
 	BackgroundIncrustListNode *pl;
 	BackgroundIncrustListNode *pl2;
+	BackgroundIncrust *currentBacgroundIncrust;
 
 	objectParamsQuery params;
 	getMultipleObjectParam(ovl, idx, &params);
@@ -312,9 +322,10 @@ void BackgroundIncrustListNode::unmergeBackgroundIncrustList(int ovl, int idx) {
 
 	while (pl) {
 		pl2 = pl;
-		if ((pl->_overlayIdx == ovl) || (ovl == -1))
-			if ((pl->_objectIdx == idx) || (idx == -1))
-				if ((pl->_X == x) && (pl->_Y == y))
+                currentBacgroundIncrust = pl->backgroundIncrust;
+		if ((currentBacgroundIncrust->_overlayIdx == ovl) || (ovl == -1))
+			if ((currentBacgroundIncrust->_objectIdx == idx) || (idx == -1))
+				if ((currentBacgroundIncrust->_X == x) && (currentBacgroundIncrust->_Y == y))
 					restoreBackground(pl);
 
 		pl = pl2->next;
