@@ -366,55 +366,55 @@ static void syncCell(Common::Serializer &s) {
 
 	if (s.isSaving()) {
 		// Figure out the number of chunks to save
-		t = cellHead.next;
+		t = cellHead._next;
 		while (t) {
 			++chunkCount;
-			t = t->next;
+			t = t->_next;
 		}
 	} else {
-		cellHead.next = NULL; // Not in ASM code, but I guess the variable is defaulted in the EXE
+		cellHead._next = NULL; // Not in ASM code, but I guess the variable is defaulted in the EXE
 	}
 	s.syncAsSint16LE(chunkCount);
 
-	t = s.isSaving() ? cellHead.next : &cellHead;
+	t = s.isSaving() ? cellHead._next : &cellHead;
 	for (int i = 0; i < chunkCount; ++i) {
 		p = s.isSaving() ? t : (CellListNode *)mallocAndZero(sizeof(CellListNode));
 
 		s.syncAsUint16LE(dummyWord);
 		s.syncAsUint16LE(dummyWord);
 
-		s.syncAsSint16LE(p->idx);
-		s.syncAsSint16LE(p->type);
-		s.syncAsSint16LE(p->overlay);
-		s.syncAsSint16LE(p->x);
-		s.syncAsSint16LE(p->field_C);
-		s.syncAsSint16LE(p->spriteIdx);
-		s.syncAsSint16LE(p->color);
-		s.syncAsSint16LE(p->backgroundPlane);
-		s.syncAsSint16LE(p->freeze);
-		s.syncAsSint16LE(p->parent);
-		s.syncAsSint16LE(p->parentOverlay);
-		s.syncAsSint16LE(p->parentType);
-		s.syncAsSint16LE(p->followObjectOverlayIdx);
-		s.syncAsSint16LE(p->followObjectIdx);
-		s.syncAsSint16LE(p->animStart);
-		s.syncAsSint16LE(p->animEnd);
-		s.syncAsSint16LE(p->animWait);
-		s.syncAsSint16LE(p->animStep);
-		s.syncAsSint16LE(p->animChange);
-		s.syncAsSint16LE(p->animType);
-		s.syncAsSint16LE(p->animSignal);
-		s.syncAsSint16LE(p->animCounter);
-		s.syncAsSint16LE(p->animLoop);
+		s.syncAsSint16LE(p->_idx);
+		s.syncAsSint16LE(p->_type);
+		s.syncAsSint16LE(p->_overlay);
+		s.syncAsSint16LE(p->_X);
+		s.syncAsSint16LE(p->_fieldC);
+		s.syncAsSint16LE(p->_spriteIdx);
+		s.syncAsSint16LE(p->_color);
+		s.syncAsSint16LE(p->_backgroundPlane);
+		s.syncAsSint16LE(p->_freeze);
+		s.syncAsSint16LE(p->_parent);
+		s.syncAsSint16LE(p->_parentOverlay);
+		s.syncAsSint16LE(p->_parentType);
+		s.syncAsSint16LE(p->_followObjectOverlayIdx);
+		s.syncAsSint16LE(p->_followObjectIdx);
+		s.syncAsSint16LE(p->_animStart);
+		s.syncAsSint16LE(p->_animEnd);
+		s.syncAsSint16LE(p->_animWait);
+		s.syncAsSint16LE(p->_animStep);
+		s.syncAsSint16LE(p->_animChange);
+		s.syncAsSint16LE(p->_animType);
+		s.syncAsSint16LE(p->_animSignal);
+		s.syncAsSint16LE(p->_animCounter);
+		s.syncAsSint16LE(p->_animLoop);
 		s.syncAsUint16LE(dummyWord);
 
 		if (s.isSaving())
-			t = t->next;
+			t = t->_next;
 		else {
-			p->next = NULL;
-			t->next = p;
-			p->prev = cellHead.prev;
-			cellHead.prev = p;
+			p->_next = NULL;
+			t->_next = p;
+			p->_prev = cellHead._prev;
+			cellHead._prev = p;
 			t = p;
 		}
 	}
@@ -914,11 +914,11 @@ Common::Error loadSavegameData(int saveGameIdx) {
 
 	lastAni[0] = 0;
 
-	currentcellHead = cellHead.next;
+	currentcellHead = cellHead._next;
 
 	while (currentcellHead) {
-		if (currentcellHead->type == 5) {
-			uint8 *ptr = mainProc14(currentcellHead->overlay, currentcellHead->idx);
+		if (currentcellHead->_type == 5) {
+			uint8 *ptr = mainProc14(currentcellHead->_overlay, currentcellHead->_idx);
 
 			ASSERT(0);
 
@@ -931,7 +931,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 			}
 		}
 
-		currentcellHead = currentcellHead->next;
+		currentcellHead = currentcellHead->_next;
 	}
 
 	if (strlen(currentCtpName)) {
