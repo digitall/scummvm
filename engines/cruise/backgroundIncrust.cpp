@@ -62,21 +62,20 @@ void addBackgroundIncrustSub1(int fileIdx, int X, int Y, char *ptr2, int16 scale
 	buildPolyModel(X, Y, scale, ptr2, destBuffer, dataPtr);
 }
 
-void backupBackground(BackgroundIncrustListNode *pIncrust, int X, int Y, int width, int height, uint8* pBackground) {
-	BackgroundIncrust *currentBackgroundIncrust = pIncrust->backgroundIncrust;
-	currentBackgroundIncrust->_saveWidth = width;
-	currentBackgroundIncrust->_saveHeight = height;
-	currentBackgroundIncrust->_saveSize = width * height;
-	currentBackgroundIncrust->_savedX = X;
-	currentBackgroundIncrust->_savedY = Y;
+void BackgroundIncrust::backup(int savedX, int savedY, int saveWidth, int saveHeight, uint8* pBackground) {
+	_saveWidth = saveWidth;
+	_saveHeight = saveHeight;
+	_saveSize = saveWidth * saveHeight;
+	_savedX = savedX;
+	_savedY = savedY;
 
-	currentBackgroundIncrust->_ptr = (uint8 *)MemAlloc(width * height);
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < width; j++) {
-			int xp = j + X;
-			int yp = i + Y;
+	_ptr = (uint8 *)MemAlloc(saveWidth * saveHeight);
+	for (int i = 0; i < saveHeight; i++) {
+		for (int j = 0; j < saveWidth; j++) {
+			int xp = j + savedX;
+			int yp = i + savedY;
 
-			currentBackgroundIncrust->_ptr[i * width + j] = ((xp < 0) || (yp < 0) || (xp >= 320) || (yp >= 200)) ?
+			_ptr[i * saveWidth + j] = ((xp < 0) || (yp < 0) || (xp >= 320) || (yp >= 200)) ?
 				0 : pBackground[yp * 320 + xp];
 		}
 	}
@@ -170,7 +169,7 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 		int width = filesDatabase[params.fileIdx].width;
 		int height = filesDatabase[params.fileIdx].height;
 		if (saveBuffer == 1) {
-			backupBackground(newListNode, newBackgroundIncrust->_X, newBackgroundIncrust->_Y, width, height, backgroundPtr);
+			newListNode->backgroundIncrust->backup(newBackgroundIncrust->_X, newBackgroundIncrust->_Y, width, height, backgroundPtr);
 		}
 
 		drawSprite(width, height, NULL, filesDatabase[params.fileIdx].subData.ptr, newBackgroundIncrust->_Y,
@@ -194,7 +193,7 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 			int width = (sizeTable[1] + 2) - (sizeTable[0] - 2) + 1;
 			int height = sizeTable[3] - sizeTable[2] + 1;
 
-			backupBackground(newListNode, sizeTable[0] - 2, sizeTable[2], width, height, backgroundPtr);
+			newListNode->backgroundIncrust->backup(sizeTable[0] - 2, sizeTable[2], width, height, backgroundPtr);
 		}
 
 		addBackgroundIncrustSub1(params.fileIdx, newBackgroundIncrust->_X, newBackgroundIncrust->_Y, NULL, params.scale, (char *)backgroundPtr, (char *)filesDatabase[params.fileIdx].subData.ptr);
