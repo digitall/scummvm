@@ -50,6 +50,7 @@ public:
                         uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
                         uint16 spriteId, char *name);
 	void backup(int savedX, int savedY, int saveWidth, int saveHeight, uint8* pBackground);
+	void restore();
 
 };
 
