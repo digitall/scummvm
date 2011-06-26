@@ -44,6 +44,12 @@ BackgroundIncrust::BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overla
         strcpy(_name, name);
 }
 
+BackgroundIncrustListNode::BackgroundIncrustListNode(){
+    next = NULL;
+    prev = NULL;
+    backgroundIncrust = NULL;
+}
+
 void BackgroundIncrustListNode::resetBackgroundIncrustList() {
 	next = NULL;
 	prev = NULL;
@@ -139,7 +145,7 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 		currentHead2 = currentHead->next;
 	}
 
-	newListNode = (BackgroundIncrustListNode *)mallocAndZero(sizeof(BackgroundIncrustListNode));
+	newListNode = new BackgroundIncrustListNode;
 
 	if (!newListNode)
 		return NULL;
