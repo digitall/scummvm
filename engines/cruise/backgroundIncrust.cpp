@@ -25,6 +25,25 @@
 
 namespace Cruise {
 
+BackgroundIncrust::BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overlayIdx, int16 X, int16 Y, uint16 frame,
+                                     uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
+                                     uint16 spriteId, char* name) {
+	_objectIdx = objectIdx;
+	_type = type;
+	_X = X;
+	_Y = Y;
+	_scale = scale;
+	_frame = frame;
+	_backgroundIdx = backgroundIdx;
+	_overlayIdx = overlayIdx;
+	_scriptNumber = scriptNumber;
+	_scriptOverlayIdx = scriptOverlayIdx;
+
+	_spriteId = spriteId;
+	_ptr = NULL;
+	strcpy(_name, name);
+}
+
 void BackgroundIncrustListNode::resetBackgroundIncrustList() {
 	next = NULL;
 	prev = NULL;
@@ -134,21 +153,9 @@ BackgroundIncrustListNode *BackgroundIncrustListNode::addBackgroundIncrust(int16
 
 	newListNode->prev = currentHead2->prev;
 	currentHead2->prev = newListNode;
-	newBackgroundIncrust = (BackgroundIncrust *)mallocAndZero(sizeof(BackgroundIncrust));
-
-	newBackgroundIncrust->_objectIdx = objectIdx;
-	newBackgroundIncrust->_type = saveBuffer;
-	newBackgroundIncrust->_backgroundIdx = backgroundIdx;
-	newBackgroundIncrust->_overlayIdx = overlayIdx;
-	newBackgroundIncrust->_scriptNumber = scriptNumber;
-	newBackgroundIncrust->_scriptOverlayIdx = scriptOverlay;
-	newBackgroundIncrust->_X = params.X;
-	newBackgroundIncrust->_Y = params.Y;
-	newBackgroundIncrust->_scale = params.scale;
-	newBackgroundIncrust->_frame = params.fileIdx;
-	newBackgroundIncrust->_spriteId = filesDatabase[params.fileIdx].subData.index;
-	newBackgroundIncrust->_ptr = NULL;
-	strcpy(newBackgroundIncrust->_name, filesDatabase[params.fileIdx].subData.name);
+	newBackgroundIncrust = new BackgroundIncrust(objectIdx, saveBuffer, overlayIdx, params.X, params.Y, params.fileIdx, params.scale,
+	                                             backgroundIdx, scriptNumber, scriptOverlay, filesDatabase[params.fileIdx].subData.index,
+	                                             filesDatabase[params.fileIdx].subData.name);
 
 	newListNode->backgroundIncrust = newBackgroundIncrust;
 
