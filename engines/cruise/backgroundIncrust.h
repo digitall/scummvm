@@ -57,6 +57,7 @@ public:
 	BackgroundIncrustListNode *prev;
 	BackgroundIncrust *backgroundIncrust;
 
+        BackgroundIncrustListNode();
         void resetBackgroundIncrustList();
         void freeBackgroundIncrustList();
         void removeBackgroundIncrustNode(int overlay, int idx);
