@@ -29,8 +29,8 @@ namespace Cruise {
 CellListNode cellHead;
 
 void resetPtr(CellListNode *ptr) {
-	ptr->next = NULL;
-	ptr->prev = NULL;
+	ptr->_next = NULL;
+	ptr->_prev = NULL;
 }
 
 void freeMessageList(CellListNode *objPtr) {
@@ -55,26 +55,26 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 	}
 
 	currentHead3 = currentHead;
-	currentHead2 = currentHead->next;
+	currentHead2 = currentHead->_next;
 
-	while (currentHead2 && (currentHead2->type != 3)) {
+	while (currentHead2 && (currentHead2->_type != 3)) {
 
-		if (currentHead2->type != 5) {
+		if (currentHead2->_type != 5) {
 			int16 lvar2;
 
-			if (getSingleObjectParam(currentHead2->overlay, currentHead2->idx, 2, &lvar2) >= 0 && lvar2 >= var)
+			if (getSingleObjectParam(currentHead2->_overlay, currentHead2->_idx, 2, &lvar2) >= 0 && lvar2 >= var)
 				break;
 		}
 
 		currentHead3 = currentHead2;
-		currentHead2 = currentHead2->next;
+		currentHead2 = currentHead2->_next;
 	}
 
 	if (currentHead2) {
-		if ((currentHead2->overlay == overlayIdx) &&
-		        (currentHead2->backgroundPlane == backgroundPlane) &&
-		        (currentHead2->idx == objIdx) &&
-		        (currentHead2->type == type))
+		if ((currentHead2->_overlay == overlayIdx) &&
+		        (currentHead2->_backgroundPlane == backgroundPlane) &&
+		        (currentHead2->_idx == objIdx) &&
+		        (currentHead2->_type == type))
 
 			return NULL;
 	}
@@ -86,36 +86,36 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 	if (!newElement)
 		return 0;
 
-	newElement->next = currentHead3->next;
-	currentHead3->next = newElement;
+	newElement->_next = currentHead3->_next;
+	currentHead3->_next = newElement;
 
-	newElement->idx = objIdx;
-	newElement->type = type;
-	newElement->backgroundPlane = backgroundPlane;
-	newElement->overlay = overlayIdx;
-	newElement->freeze = 0;
-	newElement->parent = scriptNumber;
-	newElement->parentOverlay = scriptOverlay;
-	newElement->gfxPtr = NULL;
-	newElement->followObjectIdx = objIdx;
-	newElement->followObjectOverlayIdx = overlayIdx;
-	newElement->parentType = scriptType;
+	newElement->_idx = objIdx;
+	newElement->_type = type;
+	newElement->_backgroundPlane = backgroundPlane;
+	newElement->_overlay = overlayIdx;
+	newElement->_freeze = 0;
+	newElement->_parent = scriptNumber;
+	newElement->_parentOverlay = scriptOverlay;
+	newElement->_gfxPtr = NULL;
+	newElement->_followObjectIdx = objIdx;
+	newElement->_followObjectOverlayIdx = overlayIdx;
+	newElement->_parentType = scriptType;
 
-	newElement->animStart = 0;
-	newElement->animEnd = 0;
-	newElement->animWait = 0;
-	newElement->animSignal = 0;
-	newElement->animCounter = 0;
-	newElement->animType = 0;
-	newElement->animStep = 0;
-	newElement->animLoop = 0;
+	newElement->_animStart = 0;
+	newElement->_animEnd = 0;
+	newElement->_animWait = 0;
+	newElement->_animSignal = 0;
+	newElement->_animCounter = 0;
+	newElement->_animType = 0;
+	newElement->_animStep = 0;
+	newElement->_animLoop = 0;
 
 	if (currentHead) {
-		newElement->prev = currentHead->prev;
-		currentHead->prev = newElement;
+		newElement->_prev = currentHead->_prev;
+		currentHead->_prev = newElement;
 	} else {
-		newElement->prev = pHead->prev;
-		pHead->prev = newElement;
+		newElement->_prev = pHead->_prev;
+		pHead->_prev = newElement;
 	}
 
 	return newElement;
@@ -128,12 +128,12 @@ void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int
 	CellListNode *cx;
 
 	CellListNode *pNewElement;
-	CellListNode *si = pObject->next;
+	CellListNode *si = pObject->_next;
 	CellListNode *var_2;
 
 	while (si) {
 		pObject = si;
-		si = si->next;
+		si = si->_next;
 	}
 
 	var_2 = si;
@@ -141,21 +141,21 @@ void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int
 	pNewElement = (CellListNode *) MemAlloc(sizeof(CellListNode));
 	memset(pNewElement, 0, sizeof(CellListNode));
 
-	pNewElement->next = pObject->next;
-	pObject->next = pNewElement;
+	pNewElement->_next = pObject->_next;
+	pObject->_next = pNewElement;
 
-	pNewElement->idx = messageIdx;
-	pNewElement->type = OBJ_TYPE_MESSAGE;
-	pNewElement->backgroundPlane = backgroundPlane;
-	pNewElement->overlay = overlayIdx;
-	pNewElement->x = x;
-	pNewElement->field_C = y;
-	pNewElement->spriteIdx = width;
-	pNewElement->color = color;
-	pNewElement->freeze = 0;
-	pNewElement->parent = parentIdx;
-	pNewElement->parentOverlay = parentOvl;
-	pNewElement->gfxPtr = NULL;
+	pNewElement->_idx = messageIdx;
+	pNewElement->_type = OBJ_TYPE_MESSAGE;
+	pNewElement->_backgroundPlane = backgroundPlane;
+	pNewElement->_overlay = overlayIdx;
+	pNewElement->_X = x;
+	pNewElement->_fieldC = y;
+	pNewElement->_spriteIdx = width;
+	pNewElement->_color = color;
+	pNewElement->_freeze = 0;
+	pNewElement->_parent = parentIdx;
+	pNewElement->_parentOverlay = parentOvl;
+	pNewElement->_gfxPtr = NULL;
 
 	if (var_2) {
 		cx = var_2;
@@ -163,13 +163,13 @@ void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int
 		cx = savePObject;
 	}
 
-	pNewElement->prev = cx->prev;
-	cx->prev = pNewElement;
+	pNewElement->_prev = cx->_prev;
+	cx->_prev = pNewElement;
 
 	ax = getText(messageIdx, overlayIdx);
 
 	if (ax) {
-		pNewElement->gfxPtr = renderText(width, ax);
+		pNewElement->_gfxPtr = renderText(width, ax);
 	}
 
 	// WORKAROUND: This is needed for the new dirty rect handling so as to properly refresh the screen
@@ -179,48 +179,48 @@ void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int
 }
 
 void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
-	CellListNode *currentObj = objPtr->next;
+	CellListNode *currentObj = objPtr->_next;
 	CellListNode *previous;
 
 	while (currentObj) {
-		if (((currentObj->overlay == ovlNumber) || (ovlNumber == -1)) &&
-		        ((currentObj->idx == objectIdx) || (objectIdx == -1)) &&
-		        ((currentObj->type == objType) || (objType == -1)) &&
-		        ((currentObj->backgroundPlane == backgroundPlane) || (backgroundPlane == -1))) {
-			currentObj->type = -1;
+		if (((currentObj->_overlay == ovlNumber) || (ovlNumber == -1)) &&
+		        ((currentObj->_idx == objectIdx) || (objectIdx == -1)) &&
+		        ((currentObj->_type == objType) || (objType == -1)) &&
+		        ((currentObj->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1))) {
+			currentObj->_type = -1;
 		}
 
-		currentObj = currentObj->next;
+		currentObj = currentObj->_next;
 	}
 
 	previous = objPtr;
-	currentObj = objPtr->next;
+	currentObj = objPtr->_next;
 
 	while (currentObj) {
 		CellListNode *si;
 
 		si = currentObj;
 
-		if (si->type == -1) {
+		if (si->_type == -1) {
 			CellListNode *dx;
-			previous->next = si->next;
+			previous->_next = si->_next;
 
-			dx = si->next;
+			dx = si->_next;
 
-			if (!si->next) {
+			if (!si->_next) {
 				dx = objPtr;
 			}
 
-			dx->prev = si->prev;
+			dx->_prev = si->_prev;
 
 			// Free the entry
-			if (si->gfxPtr)
-				freeGfx(si->gfxPtr);
+			if (si->_gfxPtr)
+				freeGfx(si->_gfxPtr);
 			MemFree(si);
 
 			currentObj = dx;
 		} else {
-			currentObj = si->next;
+			currentObj = si->_next;
 			previous = si;
 		}
 	}
@@ -228,34 +228,34 @@ void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType,
 
 void linkCell(CellListNode *pHead, int ovl, int obj, int type, int ovl2, int obj2) {
 	while (pHead) {
-		if ((pHead->overlay == ovl) || (ovl == -1)) {
-			if ((pHead->idx == obj) || (obj == -1)) {
-				if ((pHead->type == type) || (type == -1)) {
-					pHead->followObjectIdx = obj2;
-					pHead->followObjectOverlayIdx = ovl2;
+		if ((pHead->_overlay == ovl) || (ovl == -1)) {
+			if ((pHead->_idx == obj) || (obj == -1)) {
+				if ((pHead->_type == type) || (type == -1)) {
+					pHead->_followObjectIdx = obj2;
+					pHead->_followObjectOverlayIdx = ovl2;
 				}
 			}
 		}
 
-		pHead = pHead->next;
+		pHead = pHead->_next;
 	}
 }
 
 void freezeCell(CellListNode * pObject, int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze) {
 	while (pObject) {
-		if ((pObject->overlay == overlayIdx) || (overlayIdx == -1)) {
-			if ((pObject->idx == objIdx) || (objIdx == -1)) {
-				if ((pObject->type == objType) || (objType == -1)) {
-					if ((pObject->backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) {
-						if ((pObject->freeze == oldFreeze) || (oldFreeze == -1)) {
-							pObject->freeze = newFreeze;
+		if ((pObject->_overlay == overlayIdx) || (overlayIdx == -1)) {
+			if ((pObject->_idx == objIdx) || (objIdx == -1)) {
+				if ((pObject->_type == objType) || (objType == -1)) {
+					if ((pObject->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) {
+						if ((pObject->_freeze == oldFreeze) || (oldFreeze == -1)) {
+							pObject->_freeze = newFreeze;
 						}
 					}
 				}
 			}
 		}
 
-		pObject = pObject->next;
+		pObject = pObject->_next;
 	}
 }
 
@@ -268,44 +268,44 @@ void sortCells(int16 ovlIdx, int16 ovjIdx, CellListNode *objPtr) {
 
 	getSingleObjectParam(ovlIdx, ovjIdx, 2, &sobjz);
 	pl = objPtr;
-	prov.next = NULL;
-	prov.prev = NULL;
+	prov._next = NULL;
+	prov._prev = NULL;
 
-	pl2 = pl->next;
+	pl2 = pl->_next;
 	pllast = NULL;
 	plz = objPtr;
 
 	while (pl2) {
-		pl3 = pl2->next;
-		if ((pl2->overlay == ovlIdx) && (pl2->idx == ovjIdx)) {// found
-			pl->next = pl3;
+		pl3 = pl2->_next;
+		if ((pl2->_overlay == ovlIdx) && (pl2->_idx == ovjIdx)) {// found
+			pl->_next = pl3;
 
 			if (pl3) {
-				pl3->prev = pl2->prev;
+				pl3->_prev = pl2->_prev;
 			} else {
-				objPtr->prev = pl2->prev;
+				objPtr->_prev = pl2->_prev;
 			}
 
-			pl4 = prov.next;
+			pl4 = prov._next;
 
 			if (pl4) {
-				pl4->prev = pl2;
+				pl4->_prev = pl2;
 			} else {
-				prov.prev = pl2;
+				prov._prev = pl2;
 			}
 
-			pl2->prev = NULL;
-			pl2->next = prov.next;
-			prov.next = pl2;
+			pl2->_prev = NULL;
+			pl2->_next = prov._next;
+			prov._next = pl2;
 
 			if (pllast == NULL) {
 				pllast = pl2;
 			}
 		} else {
-			if (pl2->type == 5) {
+			if (pl2->_type == 5) {
 				newz = 32000;
 			} else {
-				getSingleObjectParam(pl2->overlay, pl2->idx, 2, &objz);
+				getSingleObjectParam(pl2->_overlay, pl2->_idx, 2, &objz);
 				newz = objz;
 			}
 
@@ -313,24 +313,24 @@ void sortCells(int16 ovlIdx, int16 ovjIdx, CellListNode *objPtr) {
 				plz = pl2;
 			}
 
-			pl = pl->next;
+			pl = pl->_next;
 		}
 
 		pl2 = pl3;
 	}
 
 	if (pllast) {
-		pl2 = prov.next;
-		pl4 = plz->next;
-		plz->next = pl2;
-		pllast->next = pl4;
+		pl2 = prov._next;
+		pl4 = plz->_next;
+		plz->_next = pl2;
+		pllast->_next = pl4;
 
 		if (plz != objPtr)
-			pl2->prev = plz;
+			pl2->_prev = plz;
 		if (!pl4)
-			objPtr->prev = pllast;
+			objPtr->_prev = pllast;
 		else
-			pl4->prev = pllast;
+			pl4->_prev = pllast;
 	}
 }
 

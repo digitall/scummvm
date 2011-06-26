@@ -646,21 +646,21 @@ int menuDown = 0;
 int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 	char objectName[80];
 
-	CellListNode *currentObject = cellHead.prev;
+	CellListNode *currentObject = cellHead._prev;
 
 	while (currentObject) {
-		if (currentObject->overlay > 0 && overlayTable[currentObject->overlay].alreadyLoaded &&
-				(currentObject->type == OBJ_TYPE_SPRITE || currentObject->type == OBJ_TYPE_MASK ||
-				currentObject->type == OBJ_TYPE_EXIT || currentObject->type == OBJ_TYPE_VIRTUAL)) {
-			const char* pObjectName = getObjectName(currentObject->idx, overlayTable[currentObject->overlay].ovlData->arrayNameObj);
+		if (currentObject->_overlay > 0 && overlayTable[currentObject->_overlay].alreadyLoaded &&
+				(currentObject->_type == OBJ_TYPE_SPRITE || currentObject->_type == OBJ_TYPE_MASK ||
+				currentObject->_type == OBJ_TYPE_EXIT || currentObject->_type == OBJ_TYPE_VIRTUAL)) {
+			const char* pObjectName = getObjectName(currentObject->_idx, overlayTable[currentObject->_overlay].ovlData->arrayNameObj);
 
 			strcpy(objectName, pObjectName);
 
-			if (strlen(objectName) && (currentObject->freeze == 0)) {
-				int objIdx = currentObject->idx;
-				int objOvl = currentObject->overlay;
-				int linkedObjIdx = currentObject->followObjectIdx;
-				int linkedObjOvl = currentObject->followObjectOverlayIdx;
+			if (strlen(objectName) && (currentObject->_freeze == 0)) {
+				int objIdx = currentObject->_idx;
+				int objOvl = currentObject->_overlay;
+				int linkedObjIdx = currentObject->_followObjectIdx;
+				int linkedObjOvl = currentObject->_followObjectOverlayIdx;
 
 				objectParamsQuery params;
 				getMultipleObjectParam(objOvl, objIdx, &params);
@@ -679,7 +679,7 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 				}
 
 				if (params.state >= 0 && params.fileIdx >= 0) {
-					if (currentObject->type == OBJ_TYPE_SPRITE || currentObject->type == OBJ_TYPE_MASK || currentObject->type == OBJ_TYPE_EXIT) {
+					if (currentObject->_type == OBJ_TYPE_SPRITE || currentObject->_type == OBJ_TYPE_MASK || currentObject->_type == OBJ_TYPE_EXIT) {
 						int x = params.X + x2;
 						int y = params.Y + y2;
 						int j = params.fileIdx;
@@ -727,7 +727,7 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 								*outObjOvl = linkedObjOvl;
 								*outObjIdx = linkedObjIdx;
 
-								return (currentObject->type);
+								return (currentObject->_type);
 							}
 						} else {
 							// int numBitPlanes = filesDatabase[j].resType;
@@ -745,11 +745,11 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 								if (testMask(offsetX, offsetY, filesDatabase[j].subData.ptrMask, filesDatabase[j].width / 8)) {
 									*outObjOvl = linkedObjOvl;
 									*outObjIdx = linkedObjIdx;
-									return currentObject->type;
+									return currentObject->_type;
 								}
 							}
 						}
-					} else if (currentObject->type == OBJ_TYPE_VIRTUAL) {
+					} else if (currentObject->_type == OBJ_TYPE_VIRTUAL) {
 						int x = params.X + x2;
 						int y = params.Y + y2;
 						int width = params.fileIdx;
@@ -759,14 +759,14 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 							*outObjOvl = linkedObjOvl;
 							*outObjIdx = linkedObjIdx;
 
-							return (currentObject->type);
+							return (currentObject->_type);
 						}
 					}
 				}
 			}
 		}
 
-		currentObject = currentObject->prev;
+		currentObject = currentObject->_prev;
 	}
 
 	*outObjOvl = 0;
