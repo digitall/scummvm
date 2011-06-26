@@ -265,12 +265,12 @@ int16 Op_FreeCT() {
 	return (0);
 }
 
-void freeObjectList(cellStruct *pListHead) {
+void freeObjectList(CellListNode *pListHead) {
 	int var_2 = 0;
-	cellStruct *pCurrent = pListHead->next;
+	CellListNode *pCurrent = pListHead->next;
 
 	while (pCurrent) {
-		cellStruct *pNext = pCurrent->next;
+		CellListNode *pNext = pCurrent->next;
 
 		if (pCurrent->freeze == 0) {
 			if (pCurrent->gfxPtr)
@@ -849,7 +849,7 @@ int16 Op_Protect() {
 }
 
 int16 Op_AutoCell() {
-	cellStruct *pObject;
+	CellListNode *pObject;
 
 	int signal = popVar();
 	int loop = popVar();

@@ -30,7 +30,7 @@ extern int vblLimit;
 int32 opcodeType8();
 int16 computeZoom(int param);
 int16 subOp23(int param1, int param2);
-void freeObjectList(cellStruct *pListHead);
+void freeObjectList(CellListNode *pListHead);
 int removeAnimation(Actor * pHead, int overlay, int objIdx, int objType);
 int16 Op_FadeOut();
 
