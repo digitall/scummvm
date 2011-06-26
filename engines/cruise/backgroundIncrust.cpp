@@ -81,23 +81,22 @@ void BackgroundIncrust::backup(int savedX, int savedY, int saveWidth, int saveHe
 	}
 }
 
-void restoreBackground(BackgroundIncrustListNode *pIncrust) {
-	BackgroundIncrust *currentBackgroundIncrust = pIncrust->backgroundIncrust;
-	if (currentBackgroundIncrust->_type != 1)
+void BackgroundIncrust::restore() {
+	if (_type != 1)
 		return;
-	if (currentBackgroundIncrust->_ptr == NULL)
+	if (_ptr == NULL)
 		return;
 
-	uint8* pBackground = backgrounds[currentBackgroundIncrust->_backgroundIdx]._backgroundScreen;
+	uint8* pBackground = backgrounds[_backgroundIdx]._backgroundScreen;
 	if (pBackground == NULL)
 		return;
 
-	backgrounds[currentBackgroundIncrust->_backgroundIdx]._isChanged = true;
+	backgrounds[_backgroundIdx]._isChanged = true;
 
-	int X = currentBackgroundIncrust->_savedX;
-	int Y = currentBackgroundIncrust->_savedY;
-	int width = currentBackgroundIncrust->_saveWidth;
-	int height = currentBackgroundIncrust->_saveHeight;
+	int X = _savedX;
+	int Y = _savedY;
+	int width = _saveWidth;
+	int height = _saveHeight;
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
@@ -105,7 +104,7 @@ void restoreBackground(BackgroundIncrustListNode *pIncrust) {
 			int yp = i + Y;
 
 			if ((xp >= 0) && (yp >= 0) && (xp < 320) && (yp < 200))
-				pBackground[yp * 320 + xp] = currentBackgroundIncrust->_ptr[i * width + j];
+				pBackground[yp * 320 + xp] = _ptr[i * width + j];
 		}
 	}
 }
@@ -338,7 +337,7 @@ void BackgroundIncrustListNode::unmergeBackgroundIncrustList(int ovl, int idx) {
 		if ((currentBacgroundIncrust->_overlayIdx == ovl) || (ovl == -1))
 			if ((currentBacgroundIncrust->_objectIdx == idx) || (idx == -1))
 				if ((currentBacgroundIncrust->_X == x) && (currentBacgroundIncrust->_Y == y))
-					restoreBackground(pl);
+					pl->backgroundIncrust->restore();
 
 		pl = pl2->next;
 	}
