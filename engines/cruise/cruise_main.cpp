@@ -646,7 +646,7 @@ int menuDown = 0;
 int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 	char objectName[80];
 
-	cellStruct *currentObject = cellHead.prev;
+	CellListNode *currentObject = cellHead.prev;
 
 	while (currentObject) {
 		if (currentObject->overlay > 0 && overlayTable[currentObject->overlay].alreadyLoaded &&

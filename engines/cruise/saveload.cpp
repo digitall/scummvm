@@ -360,7 +360,7 @@ void syncScript(Common::Serializer &s, scriptInstanceStruct *entry) {
 
 static void syncCell(Common::Serializer &s) {
 	int chunkCount = 0;
-	cellStruct *t, *p;
+	CellListNode *t, *p;
 	uint16 dummyWord = 0;
 
 	if (s.isSaving()) {
@@ -377,7 +377,7 @@ static void syncCell(Common::Serializer &s) {
 
 	t = s.isSaving() ? cellHead.next : &cellHead;
 	for (int i = 0; i < chunkCount; ++i) {
-		p = s.isSaving() ? t : (cellStruct *)mallocAndZero(sizeof(cellStruct));
+		p = s.isSaving() ? t : (CellListNode *)mallocAndZero(sizeof(CellListNode));
 
 		s.syncAsUint16LE(dummyWord);
 		s.syncAsUint16LE(dummyWord);
@@ -807,7 +807,7 @@ Common::Error saveSavegameData(int saveGameIdx, const Common::String &saveName) 
 Common::Error loadSavegameData(int saveGameIdx) {
 	int lowMemorySave;
 	Common::String saveName;
-	cellStruct *currentcellHead;
+	CellListNode *currentcellHead;
 
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	Common::InSaveFile *f = saveMan->openForLoading(_vm->getSavegameFile(saveGameIdx));
