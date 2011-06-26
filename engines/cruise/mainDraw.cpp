@@ -33,12 +33,12 @@ struct autoCellStruct {
 	short int objIdx;
 	short int type;
 	short int newValue;
-	cellStruct *pCell;
+	CellListNode *pCell;
 };
 
 autoCellStruct autoCellHead;
 
-void addAutoCell(int overlayIdx, int idx, int type, int newVal, cellStruct *pObject) {
+void addAutoCell(int overlayIdx, int idx, int type, int newVal, CellListNode *pObject) {
 	autoCellStruct *pNewEntry;
 
 	pNewEntry = new autoCellStruct;
@@ -1068,7 +1068,7 @@ void drawMask(unsigned char* workBuf, int wbWidth, int wbHeight, unsigned char* 
 unsigned char polygonMask[(320*200)/8];
 
 // draw poly sprite (OLD: mainDrawSub1)
-void mainDrawPolygons(int fileIndex, cellStruct *plWork, int X, int scale, int Y, char *destBuffer, char *dataPtr) {
+void mainDrawPolygons(int fileIndex, CellListNode *plWork, int X, int scale, int Y, char *destBuffer, char *dataPtr) {
 	int newX;
 	int newY;
 	int newScale;
@@ -1197,7 +1197,7 @@ void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int wi
 	}
 }
 
-void drawSprite(int width, int height, cellStruct *currentObjPtr, const uint8 *dataIn, int ys, int xs, uint8 *output, const uint8 *dataBuf) {
+void drawSprite(int width, int height, CellListNode *currentObjPtr, const uint8 *dataIn, int ys, int xs, uint8 *output, const uint8 *dataBuf) {
 	int x = 0;
 	int y = 0;
 
@@ -1208,7 +1208,7 @@ void drawSprite(int width, int height, cellStruct *currentObjPtr, const uint8 *d
 		// At least part of sprite is on-screen
 		gfxModuleData_addDirtyRect(Common::Rect(ps.x, ps.y, pe.x, pe.y));
 
-	cellStruct* plWork = currentObjPtr;
+	CellListNode* plWork = currentObjPtr;
 	int workBufferSize = height * (width / 8);
 
 	unsigned char* workBuf = (unsigned char*)MemAlloc(workBufferSize);
@@ -1390,7 +1390,7 @@ int getValueFromObjectQuerry(objectParamsQuery *params, int idx) {
 
 void mainDraw(int16 param) {
 	uint8 *bgPtr;
-	cellStruct *currentObjPtr;
+	CellListNode *currentObjPtr;
 	int16 currentObjIdx;
 	int16 objX1 = 0;
 	int16 objY1 = 0;

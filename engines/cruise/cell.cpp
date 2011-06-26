@@ -26,14 +26,14 @@
 
 namespace Cruise {
 
-cellStruct cellHead;
+CellListNode cellHead;
 
-void resetPtr(cellStruct *ptr) {
+void resetPtr(CellListNode *ptr) {
 	ptr->next = NULL;
 	ptr->prev = NULL;
 }
 
-void freeMessageList(cellStruct *objPtr) {
+void freeMessageList(CellListNode *objPtr) {
 	/*	if (objPtr) {
 			 if (objPtr->next)
 			 MemFree(objPtr->next);
@@ -42,13 +42,13 @@ void freeMessageList(cellStruct *objPtr) {
 		} */
 }
 
-cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
+CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
 	int16 var;
 
-	cellStruct *newElement;
-	cellStruct *currentHead = pHead;
-	cellStruct *currentHead2;
-	cellStruct *currentHead3;
+	CellListNode *newElement;
+	CellListNode *currentHead = pHead;
+	CellListNode *currentHead2;
+	CellListNode *currentHead3;
 
 	if (getSingleObjectParam(overlayIdx, objIdx, 2, &var) < 0) {
 		return 0;
@@ -81,7 +81,7 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 
 	currentHead = currentHead2;
 
-	newElement = (cellStruct *) mallocAndZero(sizeof(cellStruct));
+	newElement = (CellListNode *) mallocAndZero(sizeof(CellListNode));
 
 	if (!newElement)
 		return 0;
@@ -121,15 +121,15 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 	return newElement;
 }
 
-void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
+void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
 
 	const char *ax;
-	cellStruct *savePObject = pObject;
-	cellStruct *cx;
+	CellListNode *savePObject = pObject;
+	CellListNode *cx;
 
-	cellStruct *pNewElement;
-	cellStruct *si = pObject->next;
-	cellStruct *var_2;
+	CellListNode *pNewElement;
+	CellListNode *si = pObject->next;
+	CellListNode *var_2;
 
 	while (si) {
 		pObject = si;
@@ -138,8 +138,8 @@ void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x
 
 	var_2 = si;
 
-	pNewElement = (cellStruct *) MemAlloc(sizeof(cellStruct));
-	memset(pNewElement, 0, sizeof(cellStruct));
+	pNewElement = (CellListNode *) MemAlloc(sizeof(CellListNode));
+	memset(pNewElement, 0, sizeof(CellListNode));
 
 	pNewElement->next = pObject->next;
 	pObject->next = pNewElement;
@@ -178,9 +178,9 @@ void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x
 		backgrounds[0]._isChanged = true;
 }
 
-void removeCell(cellStruct *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
-	cellStruct *currentObj = objPtr->next;
-	cellStruct *previous;
+void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
+	CellListNode *currentObj = objPtr->next;
+	CellListNode *previous;
 
 	while (currentObj) {
 		if (((currentObj->overlay == ovlNumber) || (ovlNumber == -1)) &&
@@ -197,12 +197,12 @@ void removeCell(cellStruct *objPtr, int ovlNumber, int objectIdx, int objType, i
 	currentObj = objPtr->next;
 
 	while (currentObj) {
-		cellStruct *si;
+		CellListNode *si;
 
 		si = currentObj;
 
 		if (si->type == -1) {
-			cellStruct *dx;
+			CellListNode *dx;
 			previous->next = si->next;
 
 			dx = si->next;
@@ -226,7 +226,7 @@ void removeCell(cellStruct *objPtr, int ovlNumber, int objectIdx, int objType, i
 	}
 }
 
-void linkCell(cellStruct *pHead, int ovl, int obj, int type, int ovl2, int obj2) {
+void linkCell(CellListNode *pHead, int ovl, int obj, int type, int ovl2, int obj2) {
 	while (pHead) {
 		if ((pHead->overlay == ovl) || (ovl == -1)) {
 			if ((pHead->idx == obj) || (obj == -1)) {
@@ -241,7 +241,7 @@ void linkCell(cellStruct *pHead, int ovl, int obj, int type, int ovl2, int obj2)
 	}
 }
 
-void freezeCell(cellStruct * pObject, int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze) {
+void freezeCell(CellListNode * pObject, int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze) {
 	while (pObject) {
 		if ((pObject->overlay == overlayIdx) || (overlayIdx == -1)) {
 			if ((pObject->idx == objIdx) || (objIdx == -1)) {
@@ -259,9 +259,9 @@ void freezeCell(cellStruct * pObject, int overlayIdx, int objIdx, int objType, i
 	}
 }
 
-void sortCells(int16 ovlIdx, int16 ovjIdx, cellStruct *objPtr) {
-	cellStruct *pl, *pl2, *pl3, *pl4, *plz, *pllast;
-	cellStruct prov;
+void sortCells(int16 ovlIdx, int16 ovjIdx, CellListNode *objPtr) {
+	CellListNode *pl, *pl2, *pl3, *pl4, *plz, *pllast;
+	CellListNode prov;
 	int16 newz, objz, sobjz;
 
 	pl4 = NULL;

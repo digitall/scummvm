@@ -41,7 +41,7 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 	const char *pObjType;
 	objectParamsQuery params;
 
-	cellStruct *currentObject = cellHead.prev;
+	CellListNode *currentObject = cellHead.prev;
 
 	while (currentObject) {
 		if (currentObject->overlay > 0 && overlayTable[currentObject->overlay].alreadyLoaded &&
