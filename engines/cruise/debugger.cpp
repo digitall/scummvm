@@ -41,15 +41,15 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 	const char *pObjType;
 	objectParamsQuery params;
 
-	CellListNode *currentObject = cellHead.prev;
+	CellListNode *currentObject = cellHead._prev;
 
 	while (currentObject) {
-		if (currentObject->overlay > 0 && overlayTable[currentObject->overlay].alreadyLoaded &&
-			(currentObject->type == OBJ_TYPE_SPRITE || currentObject->type == OBJ_TYPE_MASK ||
-			currentObject->type == OBJ_TYPE_EXIT || currentObject->type == OBJ_TYPE_VIRTUAL)) {
-			const char *pObjectName = getObjectName(currentObject->idx, overlayTable[currentObject->overlay].ovlData->arrayNameObj);
+		if (currentObject->_overlay > 0 && overlayTable[currentObject->_overlay].alreadyLoaded &&
+			(currentObject->_type == OBJ_TYPE_SPRITE || currentObject->_type == OBJ_TYPE_MASK ||
+			currentObject->_type == OBJ_TYPE_EXIT || currentObject->_type == OBJ_TYPE_VIRTUAL)) {
+			const char *pObjectName = getObjectName(currentObject->_idx, overlayTable[currentObject->_overlay].ovlData->arrayNameObj);
 
-			switch (currentObject->type) {
+			switch (currentObject->_type) {
 			case OBJ_TYPE_SPRITE:
 				pObjType = "SPRITE";
 				break;
@@ -68,13 +68,13 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 			}
 
 			if (*pObjectName) {
-				getMultipleObjectParam(currentObject->overlay, currentObject->idx, &params);
+				getMultipleObjectParam(currentObject->_overlay, currentObject->_idx, &params);
 
 				DebugPrintf("%s %s - %d,%d\n", pObjectName, pObjType, params.X, params.Y);
 			}
 		}
 
-		currentObject = currentObject->prev;
+		currentObject = currentObject->_prev;
 	}
 
 	return true;

@@ -65,12 +65,12 @@ void freeAutoCell() {
 			setObjectPosition(pCurrent->ovlIdx, pCurrent->objIdx, pCurrent->type, pCurrent->newValue);
 		}
 
-		if (pCurrent->pCell->animWait < 0) {
+		if (pCurrent->pCell->_animWait < 0) {
 			objectParamsQuery params;
 
 			getMultipleObjectParam(pCurrent->ovlIdx, pCurrent->objIdx, &params);
 
-			pCurrent->pCell->animCounter = params.state2 - 1;
+			pCurrent->pCell->_animCounter = params.state2 - 1;
 		}
 
 		delete pCurrent;
@@ -1121,10 +1121,10 @@ void mainDrawPolygons(int fileIndex, CellListNode *plWork, int X, int scale, int
 	int numPasses = 0;
 
 	while (plWork) {
-		if (plWork->type == OBJ_TYPE_BGMASK && plWork->freeze == 0) {
+		if (plWork->_type == OBJ_TYPE_BGMASK && plWork->_freeze == 0) {
 			objectParamsQuery params;
 
-			getMultipleObjectParam(plWork->overlay, plWork->idx, &params);
+			getMultipleObjectParam(plWork->_overlay, plWork->_idx, &params);
 
 			int maskX = params.X;
 			int maskY = params.Y;
@@ -1139,7 +1139,7 @@ void mainDrawPolygons(int fileIndex, CellListNode *plWork, int X, int scale, int
 
 		}
 
-		plWork = plWork->next;
+		plWork = plWork->_next;
 	}
 
 	// this function builds the poly model and then calls the draw functions (OLD: mainDrawSub1Sub5)
@@ -1217,10 +1217,10 @@ void drawSprite(int width, int height, CellListNode *currentObjPtr, const uint8 
 	int numPasses = 0;
 
 	while (plWork) {
-		if (plWork->type == OBJ_TYPE_BGMASK && plWork->freeze == 0) {
+		if (plWork->_type == OBJ_TYPE_BGMASK && plWork->_freeze == 0) {
 			objectParamsQuery params;
 
-			getMultipleObjectParam(plWork->overlay, plWork->idx, &params);
+			getMultipleObjectParam(plWork->_overlay, plWork->_idx, &params);
 
 			int maskX = params.X;
 			int maskY = params.Y;
@@ -1235,7 +1235,7 @@ void drawSprite(int width, int height, CellListNode *currentObjPtr, const uint8 
 
 		}
 
-		plWork = plWork->next;
+		plWork = plWork->_next;
 	}
 
 	for (y = 0; y < height; y++) {
@@ -1416,7 +1416,7 @@ void mainDraw(int16 param) {
 
 	autoCellHead.next = NULL;
 
-	currentObjPtr = cellHead.next;
+	currentObjPtr = cellHead._next;
 
 #ifdef _DEBUG
 	/*	polyOutputBuffer = (char *)bgPtr;
@@ -1426,16 +1426,16 @@ void mainDraw(int16 param) {
 	//-------------------------------------------------- PROCESS SPRITES -----------------------------------------//
 
 	while (currentObjPtr) {
-		if ((masterScreen == currentObjPtr->backgroundPlane) && (currentObjPtr->freeze == 0) && (currentObjPtr->type == OBJ_TYPE_SPRITE)) {
+		if ((masterScreen == currentObjPtr->_backgroundPlane) && (currentObjPtr->_freeze == 0) && (currentObjPtr->_type == OBJ_TYPE_SPRITE)) {
 			objectParamsQuery params;
 
-			currentObjIdx = currentObjPtr->idx;
+			currentObjIdx = currentObjPtr->_idx;
 
-			if ((currentObjPtr->followObjectOverlayIdx != currentObjPtr->overlay) || (currentObjPtr->followObjectIdx != currentObjPtr->idx)) {
+			if ((currentObjPtr->_followObjectOverlayIdx != currentObjPtr->_overlay) || (currentObjPtr->_followObjectIdx != currentObjPtr->_idx)) {
 				// Declaring this twice ?
 				// objectParamsQuery params;
 
-				getMultipleObjectParam(currentObjPtr->followObjectOverlayIdx, currentObjPtr->followObjectIdx, &params);
+				getMultipleObjectParam(currentObjPtr->_followObjectOverlayIdx, currentObjPtr->_followObjectIdx, &params);
 
 				objX1 = params.X;
 				objY1 = params.Y;
@@ -1446,7 +1446,7 @@ void mainDraw(int16 param) {
 				objZ1 = 0;
 			}
 
-			getMultipleObjectParam(currentObjPtr->overlay, currentObjIdx, &params);
+			getMultipleObjectParam(currentObjPtr->_overlay, currentObjIdx, &params);
 
 			objX2 = objX1 + params.X;
 			objY2 = objY1 + params.Y;
@@ -1472,77 +1472,83 @@ void mainDraw(int16 param) {
 			}
 
 			// automatic animation process
-			if (currentObjPtr->animStep && !param) {
-				if (currentObjPtr->animCounter <= 0) {
+			if (currentObjPtr->_animStep && !param) {
+				if (currentObjPtr->_animCounter <= 0) {
 
 					bool change = true;
 
-					int newVal = getValueFromObjectQuerry(&params, currentObjPtr->animChange) + currentObjPtr->animStep;
+					int newVal = getValueFromObjectQuerry(&params, currentObjPtr->_animChange) + currentObjPtr->_animStep;
 
-					if (currentObjPtr->animStep > 0) {
-						if (newVal > currentObjPtr->animEnd) {
-							if (currentObjPtr->animLoop) {
-								newVal = currentObjPtr->animStart;
-								if (currentObjPtr->animLoop > 0)
-									currentObjPtr->animLoop--;
+					if (currentObjPtr->_animStep > 0) {
+						if (newVal > currentObjPtr->_animEnd) {
+							if (currentObjPtr->_animLoop) {
+								newVal = currentObjPtr->_animStart;
+								if (currentObjPtr->_animLoop > 0)
+									currentObjPtr->_animLoop--;
 							} else {
-								change = false;
-								currentObjPtr->animStep = 0;
+								int16 data2;
+								data2 = currentObjPtr->_animStart;
 
-								if (currentObjPtr->animType) {	// should we resume the script ?
-									if (currentObjPtr->parentType == 20) {
-										changeScriptParamInList(currentObjPtr->parentOverlay, currentObjPtr->parent, &procHead, -1, 0);
-									} else if (currentObjPtr->parentType == 30) {
-										changeScriptParamInList(currentObjPtr->parentOverlay, currentObjPtr->parent, &relHead, -1, 0);
+								change = false;
+								currentObjPtr->_animStep = 0;
+
+								if (currentObjPtr->_animType) {	// should we resume the script ?
+									if (currentObjPtr->_parentType == 20) {
+										changeScriptParamInList(currentObjPtr->_parentOverlay, currentObjPtr->_parent, &procHead, -1, 0);
+									} else if (currentObjPtr->_parentType == 30) {
+										changeScriptParamInList(currentObjPtr->_parentOverlay, currentObjPtr->_parent, &relHead, -1, 0);
 									}
 								}
 							}
 						}
 					} else {
-						if (newVal < currentObjPtr->animEnd) {
-							if (currentObjPtr->animLoop) {
-								newVal = currentObjPtr->animStart;
-								if (currentObjPtr->animLoop > 0)
-									currentObjPtr->animLoop--;
+						if (newVal < currentObjPtr->_animEnd) {
+							if (currentObjPtr->_animLoop) {
+								newVal = currentObjPtr->_animStart;
+								if (currentObjPtr->_animLoop > 0)
+									currentObjPtr->_animLoop--;
 							} else {
-								change = false;
-								currentObjPtr->animStep = 0;
+								int16 data2;
+								data2 = currentObjPtr->_animStart;
 
-								if (currentObjPtr->animType) {	// should we resume the script ?
-									if (currentObjPtr->parentType == 20) {
-										changeScriptParamInList(currentObjPtr->parentOverlay, currentObjPtr->parent, &procHead, -1, 0);
-									} else if (currentObjPtr->parentType == 30) {
-										changeScriptParamInList(currentObjPtr->parentOverlay, currentObjPtr->parent, &relHead, -1, 0);
+								change = false;
+								currentObjPtr->_animStep = 0;
+
+								if (currentObjPtr->_animType) {	// should we resume the script ?
+									if (currentObjPtr->_parentType == 20) {
+										changeScriptParamInList(currentObjPtr->_parentOverlay, currentObjPtr->_parent, &procHead, -1, 0);
+									} else if (currentObjPtr->_parentType == 30) {
+										changeScriptParamInList(currentObjPtr->_parentOverlay, currentObjPtr->_parent, &relHead, -1, 0);
 									}
 								}
 							}
 						}
 					}
 
-					if (currentObjPtr->animWait >= 0) {
-						currentObjPtr->animCounter = currentObjPtr->animWait;
+					if (currentObjPtr->_animWait >= 0) {
+						currentObjPtr->_animCounter = currentObjPtr->_animWait;
 					}
 
-					if ((currentObjPtr->animSignal >= 0) && (currentObjPtr->animSignal == newVal) && (currentObjPtr->animType != 0)) {
-						if (currentObjPtr->parentType == 20) {
-							changeScriptParamInList(currentObjPtr->parentOverlay, currentObjPtr->parent, &procHead, -1, 0);
-						} else if (currentObjPtr->parentType == 30) {
-							changeScriptParamInList(currentObjPtr->parentOverlay, currentObjPtr->parent, &relHead, -1, 0);
+					if ((currentObjPtr->_animSignal >= 0) && (currentObjPtr->_animSignal == newVal) && (currentObjPtr->_animType != 0)) {
+						if (currentObjPtr->_parentType == 20) {
+							changeScriptParamInList(currentObjPtr->_parentOverlay, currentObjPtr->_parent, &procHead, -1, 0);
+						} else if (currentObjPtr->_parentType == 30) {
+							changeScriptParamInList(currentObjPtr->_parentOverlay, currentObjPtr->_parent, &relHead, -1, 0);
 						}
 
-						currentObjPtr->animType = 0;
+						currentObjPtr->_animType = 0;
 					}
 
 					if (change) {
-						addAutoCell(currentObjPtr->overlay, currentObjPtr->idx, currentObjPtr->animChange, newVal, currentObjPtr);
+						addAutoCell(currentObjPtr->_overlay, currentObjPtr->_idx, currentObjPtr->_animChange, newVal, currentObjPtr);
 					}
 				} else {
-					currentObjPtr->animCounter--;
+					currentObjPtr->_animCounter--;
 				}
 			}
 		}
 
-		currentObjPtr = currentObjPtr->next;
+		currentObjPtr = currentObjPtr->_next;
 	}
 
 	//----------------------------------------------------------------------------------------------------------------//
@@ -1552,14 +1558,14 @@ void mainDraw(int16 param) {
 
 	//-------------------------------------------------- DRAW OBJECTS TYPE 5 (MSG)-----------------------------------------//
 
-	currentObjPtr = cellHead.next;
+	currentObjPtr = cellHead._next;
 
 	while (currentObjPtr) {
-		if (currentObjPtr->type == OBJ_TYPE_MESSAGE && currentObjPtr->freeze == 0) {
-			drawMessage(currentObjPtr->gfxPtr, currentObjPtr->x, currentObjPtr->field_C, currentObjPtr->spriteIdx, currentObjPtr->color, gfxModuleData.pPage10);
+		if (currentObjPtr->_type == OBJ_TYPE_MESSAGE && currentObjPtr->_freeze == 0) {
+			drawMessage(currentObjPtr->_gfxPtr, currentObjPtr->_X, currentObjPtr->_fieldC, currentObjPtr->_spriteIdx, currentObjPtr->_color, gfxModuleData.pPage10);
 			isMessage = 1;
 		}
-		currentObjPtr = currentObjPtr->next;
+		currentObjPtr = currentObjPtr->_next;
 	}
 
 	//----------------------------------------------------------------------------------------------------------------//
