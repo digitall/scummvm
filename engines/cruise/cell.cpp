@@ -219,6 +219,7 @@ void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType,
 			// Free the entry
 			if (si->_cell->_gfxPtr)
 				freeGfx(si->_cell->_gfxPtr);
+			delete si->_cell;
 			delete si;
 
 			currentObj = dx;
