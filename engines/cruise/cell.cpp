@@ -42,17 +42,13 @@ void freeMessageList(CellListNode *objPtr) {
 		} */
 }
 
-CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
+CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
 	int16 var;
 
 	CellListNode *newElement;
 	CellListNode *currentHead = pHead;
 	CellListNode *currentHead2;
 	CellListNode *currentHead3;
-
-	if (getSingleObjectParam(overlayIdx, objIdx, 2, &var) < 0) {
-		return 0;
-	}
 
 	currentHead3 = currentHead;
 	currentHead2 = currentHead->_next;
@@ -99,7 +95,6 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 	newElement->_gfxPtr = NULL;
 	newElement->_followObjectIdx = objIdx;
 	newElement->_followObjectOverlayIdx = overlayIdx;
-	newElement->_parentType = scriptType;
 
 	newElement->_animStart = 0;
 	newElement->_animEnd = 0;
@@ -120,6 +115,23 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 
 	return newElement;
 }
+
+CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
+	int16 var;
+        CellListNode *newCellListNode;
+
+        if (getSingleObjectParam(overlayIdx, objIdx, 2, &var) < 0) {
+            return 0;
+        }
+
+        newCellListNode = addCell(pHead, overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
+        if(!newCellListNode)
+            return 0;
+
+        newCellListNode->_parentType = scriptType;
+        return newCellListNode;
+}
+
 
 void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
 
