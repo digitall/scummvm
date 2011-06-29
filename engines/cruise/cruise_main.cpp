@@ -28,7 +28,6 @@
 
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
-#include "cruise/cell.h"
 #include "cruise/staticres.h"
 
 namespace Cruise {
