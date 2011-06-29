@@ -79,7 +79,7 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 
 	currentHead = currentHead2;
 
-	newElement = (CellListNode *) mallocAndZero(sizeof(CellListNode));
+	newElement = new CellListNode;
 
 	if (!newElement)
 		return 0;
@@ -91,19 +91,8 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 	newElement->_type = type;
 	newElement->_backgroundPlane = backgroundPlane;
 	newElement->_overlay = overlayIdx;
-	newElement->_freeze = 0;
 	newElement->_parent = scriptNumber;
 	newElement->_parentOverlay = scriptOverlay;
-	newElement->_gfxPtr = NULL;
-
-	newElement->_animStart = 0;
-	newElement->_animEnd = 0;
-	newElement->_animWait = 0;
-	newElement->_animSignal = 0;
-	newElement->_animCounter = 0;
-	newElement->_animType = 0;
-	newElement->_animStep = 0;
-	newElement->_animLoop = 0;
 
 	if (currentHead) {
 		newElement->_prev = currentHead->_prev;
