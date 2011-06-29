@@ -26,7 +26,7 @@
 
 namespace Cruise {
 
-CellListNode cellHead;
+
 
 void resetPtr(CellListNode *ptr) {
 	ptr->_next = NULL;

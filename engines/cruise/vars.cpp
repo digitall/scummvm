@@ -169,7 +169,7 @@ uint8 globalScreen[320 * 200];
 
 Mouse currentMouse;
 BackgroundIncrustListNode backgroundIncrustListHead;
-
+CellListNode cellHead;
 //OSystem *osystem;
 
 } // End of namespace Cruise
