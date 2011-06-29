@@ -62,6 +62,22 @@ public:
 	int16 _animCounter;
 	int16 _animLoop;
 	gfxEntryStruct *_gfxPtr;
+
+	CellListNode() {
+		_next = NULL;
+		_prev = NULL;
+		_gfxPtr = NULL;
+
+		_freeze = 0;
+		_animStart = 0;
+		_animEnd = 0;
+		_animWait = 0;
+		_animSignal = 0;
+		_animCounter = 0;
+		_animType = 0;
+		_animStep = 0;
+		_animLoop = 0;
+	}
 };
 
 extern CellListNode cellHead;
