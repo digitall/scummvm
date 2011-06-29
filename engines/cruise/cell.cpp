@@ -95,8 +95,6 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 	newElement->_parent = scriptNumber;
 	newElement->_parentOverlay = scriptOverlay;
 	newElement->_gfxPtr = NULL;
-	newElement->_followObjectIdx = objIdx;
-	newElement->_followObjectOverlayIdx = overlayIdx;
 
 	newElement->_animStart = 0;
 	newElement->_animEnd = 0;
@@ -131,6 +129,8 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 		return 0;
 
 	newCellListNode->_parentType = scriptType;
+	newCellListNode->_followObjectIdx = objIdx;
+	newCellListNode->_followObjectOverlayIdx = overlayIdx;
 	return newCellListNode;
 }
 
@@ -138,47 +138,13 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
 
 	const char *ax;
-	CellListNode *savePObject = pObject;
-	CellListNode *cx;
-
 	CellListNode *pNewElement;
-	CellListNode *si = pObject->_next;
-	CellListNode *var_2;
 
-	while (si) {
-		pObject = si;
-		si = si->_next;
-	}
-
-	var_2 = si;
-
-	pNewElement = (CellListNode *) MemAlloc(sizeof(CellListNode));
-	memset(pNewElement, 0, sizeof(CellListNode));
-
-	pNewElement->_next = pObject->_next;
-	pObject->_next = pNewElement;
-
-	pNewElement->_idx = messageIdx;
-	pNewElement->_type = OBJ_TYPE_MESSAGE;
-	pNewElement->_backgroundPlane = backgroundPlane;
-	pNewElement->_overlay = overlayIdx;
+	pNewElement = addCell(pObject, overlayIdx, messageIdx, OBJ_TYPE_MESSAGE, backgroundPlane, parentOvl, parentIdx);
 	pNewElement->_X = x;
 	pNewElement->_fieldC = y;
 	pNewElement->_spriteIdx = width;
 	pNewElement->_color = color;
-	pNewElement->_freeze = 0;
-	pNewElement->_parent = parentIdx;
-	pNewElement->_parentOverlay = parentOvl;
-	pNewElement->_gfxPtr = NULL;
-
-	if (var_2) {
-		cx = var_2;
-	} else {
-		cx = savePObject;
-	}
-
-	pNewElement->_prev = cx->_prev;
-	cx->_prev = pNewElement;
 
 	ax = getText(messageIdx, overlayIdx);
 
