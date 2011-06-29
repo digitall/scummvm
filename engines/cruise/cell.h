@@ -31,13 +31,7 @@ namespace Cruise {
 struct gfxEntryStruct;
 
 class Cell {
-
-};
-
-class CellListNode {
 public:
-	CellListNode *_next;
-	CellListNode *_prev;
 	int16 _idx;
 	int16 _type;
 	int16 _overlay;
@@ -62,6 +56,13 @@ public:
 	int16 _animCounter;
 	int16 _animLoop;
 	gfxEntryStruct *_gfxPtr;
+};
+
+class CellListNode {
+public:
+	CellListNode *_next;
+	CellListNode *_prev;
+	Cell *_cell;
 
 	CellListNode();
 };
