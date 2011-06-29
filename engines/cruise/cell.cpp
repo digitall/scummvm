@@ -26,22 +26,25 @@
 
 namespace Cruise {
 
+Cell::Cell(){
+        _gfxPtr = NULL;
+
+        _freeze = 0;
+        _animStart = 0;
+        _animEnd = 0;
+        _animWait = 0;
+        _animSignal = 0;
+        _animCounter = 0;
+        _animType = 0;
+        _animStep = 0;
+        _animLoop = 0;
+}
 
 CellListNode::CellListNode(){
         _next = NULL;
         _prev = NULL;
-        _cell = (Cell *) mallocAndZero(sizeof(Cell));
+        _cell = new Cell;
 
-
-        _cell->_freeze = 0;
-        _cell->_animStart = 0;
-        _cell->_animEnd = 0;
-        _cell->_animWait = 0;
-        _cell->_animSignal = 0;
-        _cell->_animCounter = 0;
-        _cell->_animType = 0;
-        _cell->_animStep = 0;
-        _cell->_animLoop = 0;
 }
 
 void resetPtr(CellListNode *ptr) {
