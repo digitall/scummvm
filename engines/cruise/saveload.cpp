@@ -378,7 +378,7 @@ static void syncCell(Common::Serializer &s) {
 
 	t = s.isSaving() ? cellHead._next : &cellHead;
 	for (int i = 0; i < chunkCount; ++i) {
-		p = s.isSaving() ? t : (CellListNode *)mallocAndZero(sizeof(CellListNode));
+		p = s.isSaving() ? t : new CellListNode;
 
 		s.syncAsUint16LE(dummyWord);
 		s.syncAsUint16LE(dummyWord);
