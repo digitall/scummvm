@@ -32,6 +32,7 @@
 #include "cruise/actor.h"
 #include "cruise/mouse.h"
 #include "cruise/backgroundIncrust.h"
+#include "cruise/cell.h"
 #include "cruise/vars.h"
 #include "cruise/font.h"
 #include "cruise/volume.h"
