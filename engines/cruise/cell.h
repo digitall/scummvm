@@ -56,6 +56,8 @@ public:
 	int16 _animCounter;
 	int16 _animLoop;
 	gfxEntryStruct *_gfxPtr;
+
+        Cell();
 };
 
 class CellListNode {
