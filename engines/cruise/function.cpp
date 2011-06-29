@@ -272,9 +272,9 @@ void freeObjectList(CellListNode *pListHead) {
 	while (pCurrent) {
 		CellListNode *pNext = pCurrent->_next;
 
-		if (pCurrent->_freeze == 0) {
-			if (pCurrent->_gfxPtr)
-				freeGfx(pCurrent->_gfxPtr);
+		if (pCurrent->_cell->_freeze == 0) {
+			if (pCurrent->_cell->_gfxPtr)
+				freeGfx(pCurrent->_cell->_gfxPtr);
 			MemFree(pCurrent);
 		}
 
@@ -870,14 +870,14 @@ int16 Op_AutoCell() {
 	if (!pObject)
 		return 0;
 
-	pObject->_animSignal = signal;
-	pObject->_animLoop = loop;
-	pObject->_animWait = wait;
-	pObject->_animStep = animStep;
-	pObject->_animEnd = end;
-	pObject->_animStart = start;
-	pObject->_animType = type;
-	pObject->_animChange = change;
+	pObject->_cell->_animSignal = signal;
+	pObject->_cell->_animLoop = loop;
+	pObject->_cell->_animWait = wait;
+	pObject->_cell->_animStep = animStep;
+	pObject->_cell->_animEnd = end;
+	pObject->_cell->_animStart = start;
+	pObject->_cell->_animType = type;
+	pObject->_cell->_animChange = change;
 
 	if (type) {
 		if (currentScriptPtr->type == scriptType_PROC) {
@@ -888,16 +888,16 @@ int16 Op_AutoCell() {
 	}
 
 	if (change == 5) {
-		objInit(pObject->_overlay, pObject->_idx, start);
+		objInit(pObject->_cell->_overlay, pObject->_cell->_idx, start);
 	} else {
-		setObjectPosition(pObject->_overlay, pObject->_idx, pObject->_animChange, start);
+		setObjectPosition(pObject->_cell->_overlay, pObject->_cell->_idx, pObject->_cell->_animChange, start);
 	}
 
 	if (wait < 0) {
 		objectParamsQuery params;
 
 		getMultipleObjectParam(overlay, obj, &params);
-		pObject->_animCounter = params.state2 - 1;
+		pObject->_cell->_animCounter = params.state2 - 1;
 	}
 
 	return 0;
