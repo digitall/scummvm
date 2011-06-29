@@ -383,29 +383,29 @@ static void syncCell(Common::Serializer &s) {
 		s.syncAsUint16LE(dummyWord);
 		s.syncAsUint16LE(dummyWord);
 
-		s.syncAsSint16LE(p->_idx);
-		s.syncAsSint16LE(p->_type);
-		s.syncAsSint16LE(p->_overlay);
-		s.syncAsSint16LE(p->_X);
-		s.syncAsSint16LE(p->_fieldC);
-		s.syncAsSint16LE(p->_spriteIdx);
-		s.syncAsSint16LE(p->_color);
-		s.syncAsSint16LE(p->_backgroundPlane);
-		s.syncAsSint16LE(p->_freeze);
-		s.syncAsSint16LE(p->_parent);
-		s.syncAsSint16LE(p->_parentOverlay);
-		s.syncAsSint16LE(p->_parentType);
-		s.syncAsSint16LE(p->_followObjectOverlayIdx);
-		s.syncAsSint16LE(p->_followObjectIdx);
-		s.syncAsSint16LE(p->_animStart);
-		s.syncAsSint16LE(p->_animEnd);
-		s.syncAsSint16LE(p->_animWait);
-		s.syncAsSint16LE(p->_animStep);
-		s.syncAsSint16LE(p->_animChange);
-		s.syncAsSint16LE(p->_animType);
-		s.syncAsSint16LE(p->_animSignal);
-		s.syncAsSint16LE(p->_animCounter);
-		s.syncAsSint16LE(p->_animLoop);
+		s.syncAsSint16LE(p->_cell->_idx);
+		s.syncAsSint16LE(p->_cell->_type);
+		s.syncAsSint16LE(p->_cell->_overlay);
+		s.syncAsSint16LE(p->_cell->_X);
+		s.syncAsSint16LE(p->_cell->_fieldC);
+		s.syncAsSint16LE(p->_cell->_spriteIdx);
+		s.syncAsSint16LE(p->_cell->_color);
+		s.syncAsSint16LE(p->_cell->_backgroundPlane);
+		s.syncAsSint16LE(p->_cell->_freeze);
+		s.syncAsSint16LE(p->_cell->_parent);
+		s.syncAsSint16LE(p->_cell->_parentOverlay);
+		s.syncAsSint16LE(p->_cell->_parentType);
+		s.syncAsSint16LE(p->_cell->_followObjectOverlayIdx);
+		s.syncAsSint16LE(p->_cell->_followObjectIdx);
+		s.syncAsSint16LE(p->_cell->_animStart);
+		s.syncAsSint16LE(p->_cell->_animEnd);
+		s.syncAsSint16LE(p->_cell->_animWait);
+		s.syncAsSint16LE(p->_cell->_animStep);
+		s.syncAsSint16LE(p->_cell->_animChange);
+		s.syncAsSint16LE(p->_cell->_animType);
+		s.syncAsSint16LE(p->_cell->_animSignal);
+		s.syncAsSint16LE(p->_cell->_animCounter);
+		s.syncAsSint16LE(p->_cell->_animLoop);
 		s.syncAsUint16LE(dummyWord);
 
 		if (s.isSaving())
@@ -917,8 +917,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	currentcellHead = cellHead._next;
 
 	while (currentcellHead) {
-		if (currentcellHead->_type == 5) {
-			uint8 *ptr = mainProc14(currentcellHead->_overlay, currentcellHead->_idx);
+		if (currentcellHead->_cell->_type == 5) {
+			uint8 *ptr = mainProc14(currentcellHead->_cell->_overlay, currentcellHead->_cell->_idx);
 
 			ASSERT(0);
 
