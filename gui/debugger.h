@@ -68,7 +68,6 @@ protected:
 		Common::String name;
 		void *variable;
 		int type;
-		/** Element count for DVAR_INTARRAY. */
 		int optional;
 	};
 
@@ -109,7 +108,7 @@ private:
 	bool tabComplete(const char *input, Common::String &completion) const;
 
 protected:
-	void DVar_Register(const Common::String &varname, void *pointer, int type, int optional = 0);
+	void DVar_Register(const Common::String &varname, void *pointer, int type, int optional);
 	void DCmd_Register(const Common::String &cmdname, Debuglet *debuglet);
 
 	bool Cmd_Exit(int argc, const char **argv);

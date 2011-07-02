@@ -340,7 +340,6 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 	Common::String val;
 
 /**
- * @def __PARSER_ASSIGN_INT(struct_name, key_name, force)
  * Helper macro to sanitize and assign an integer value from a key
  * to the draw step.
  *
