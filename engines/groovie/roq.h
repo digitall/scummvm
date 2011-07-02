@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_ROQ_H
@@ -84,9 +81,8 @@ private:
 	byte _codebook4[256 * 4];
 
 	// Buffers
-	Graphics::Surface *_currBuf;
-	Graphics::Surface *_prevBuf;
-	Graphics::Surface _showBuf;
+	Graphics::Surface *_fg, *_bg, *_thirdBuf;
+	Graphics::Surface *_currBuf, *_prevBuf;
 	void buildShowBuf();
 	byte _scaleX, _scaleY;
 	byte _offScale;

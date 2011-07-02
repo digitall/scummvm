@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef GRAPHICS_CURSORMAN_H
@@ -28,6 +25,7 @@
 #include "common/scummsys.h"
 #include "common/stack.h"
 #include "common/singleton.h"
+#include "graphics/pixelformat.h"
 
 namespace Graphics {
 
@@ -59,18 +57,20 @@ public:
 	 * safely freed afterwards.
 	 *
 	 * @param buf		the new cursor data
-	 * @param w		the width
-	 * @param h		the height
+	 * @param w			the width
+	 * @param h			the height
 	 * @param hotspotX	the hotspot X coordinate
 	 * @param hotspotY	the hotspot Y coordinate
-	 * @param keycolor	the index for the transparent color
+	 * @param keycolor	the color value for the transparent color. This may not exceed
+	 *                  the maximum color value as defined by format.
 	 * @param targetScale	the scale for which the cursor is designed
-	 *
+	 * @param format	a pointer to the pixel format which the cursor graphic uses,
+	 *					CLUT8 will be used if this is NULL or not specified.
 	 * @note It is ok for the buffer to be a NULL pointer. It is sometimes
 	 *       useful to push a "dummy" cursor and modify it later. The
 	 *       cursor will be added to the stack, but not to the backend.
 	 */
-	void pushCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor = 255, int targetScale = 1);
+	void pushCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int targetScale = 1, const Graphics::PixelFormat *format = NULL);
 
 	/**
 	 * Pop a cursor from the stack, and restore the previous one to the
@@ -88,10 +88,13 @@ public:
 	 * @param h		the height
 	 * @param hotspotX	the hotspot X coordinate
 	 * @param hotspotY	the hotspot Y coordinate
-	 * @param keycolor	the index for the transparent color
+	 * @param keycolor	the color value for the transparent color. This may not exceed
+	 *                  the maximum color value as defined by format.
 	 * @param targetScale	the scale for which the cursor is designed
+	 * @param format	a pointer to the pixel format which the cursor graphic uses,
+	 *					CLUT8 will be used if this is NULL or not specified.
 	 */
-	void replaceCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor = 255, int targetScale = 1);
+	void replaceCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int targetScale = 1, const Graphics::PixelFormat *format = NULL);
 
 	/**
 	 * Pop all of the cursors and cursor palettes from their respective stacks.
@@ -105,9 +108,9 @@ public:
 	 * Test whether cursor palettes are supported.
 	 *
 	 * This is just an convenience wrapper for checking for
-	 * OSystem::kFeatureCursorHasPalette to be supported by OSystem.
+	 * OSystem::kFeatureCursorPalette to be supported by OSystem.
 	 *
-	 * @see OSystem::kFeatureCursorHasPalette
+	 * @see OSystem::kFeatureCursorPalette
 	 * @see OSystem::hasFeature
 	 */
 	bool supportsCursorPalettes();
@@ -124,7 +127,7 @@ public:
 	 * The palette entries from 'start' till (start+num-1) will be replaced
 	 * so a full palette updated is accomplished via start=0, num=256.
 	 *
-	 * The palette data is specified in the same interleaved RGBA format as
+	 * The palette data is specified in the same interleaved RGB format as
 	 * used by all backends.
 	 *
 	 * @param colors	the new palette data, in interleaved RGB format
@@ -157,7 +160,11 @@ public:
 
 private:
 	friend class Common::Singleton<SingletonBaseType>;
-	CursorManager();
+	// Even though this is basically the default constructor we implement it
+	// ourselves, so it is private and thus there is no way to create this class
+	// except from the Singleton code.
+	CursorManager() {}
+	~CursorManager();
 
 	struct Cursor {
 		byte *_data;
@@ -166,27 +173,14 @@ private:
 		uint _height;
 		int _hotspotX;
 		int _hotspotY;
-		byte _keycolor;
-		byte _targetScale;
+		uint32 _keycolor;
+		Graphics::PixelFormat _format;
+		int _targetScale;
 
 		uint _size;
 
-		Cursor(const byte *data, uint w, uint h, int hotspotX, int hotspotY, byte keycolor = 255, int targetScale = 1) {
-			_size = w * h;
-			_data = new byte[_size];
-			if (data && _data)
-				memcpy(_data, data, _size);
-			_width = w;
-			_height = h;
-			_hotspotX = hotspotX;
-			_hotspotY = hotspotY;
-			_keycolor = keycolor;
-			_targetScale = targetScale;
-		}
-
-		~Cursor() {
-			delete[] _data;
-		}
+		Cursor(const byte *data, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int targetScale = 1, const Graphics::PixelFormat *format = NULL);
+		~Cursor();
 	};
 
 	struct Palette {
@@ -197,26 +191,9 @@ private:
 
 		bool _disabled;
 
-		Palette(const byte *colors, uint start, uint num) {
-			_start = start;
-			_num = num;
-			_size = 4 * num;
-
-			if (num) {
-				_data = new byte[_size];
-				memcpy(_data, colors, _size);
-			} else {
-				_data = NULL;
-			}
-
-			_disabled = false;
-		}
-
-		~Palette() {
-			delete[] _data;
-		}
+		Palette(const byte *colors, uint start, uint num);
+		~Palette();
 	};
-
 	Common::Stack<Cursor *> _cursorStack;
 	Common::Stack<Palette *> _cursorPaletteStack;
 };

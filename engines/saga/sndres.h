@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Sound resource class header
@@ -33,6 +30,11 @@
 
 namespace Saga {
 
+struct FxTable {
+	int16 res;
+	int16 vol;
+};
+
 class SndRes {
 public:
 
@@ -44,11 +46,9 @@ public:
 	int getVoiceLength(uint32 resourceId);
 	void setVoiceBank(int serial);
 
-	FxTable *_fxTable;
-	int _fxTableLen;
+	Common::Array<FxTable> _fxTable;
 
-	int16 *_fxTableIDs;
-	int _fxTableIDsLen;
+	Common::Array<int16> _fxTableIDs;
 
  private:
 	bool load(ResourceContext *context, uint32 resourceId, SoundBuffer &buffer, bool onlyHeader);

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Save and restore scene and game.
  */
 
@@ -36,6 +33,8 @@
 
 #include "common/serializer.h"
 #include "common/savefile.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "gui/message.h"
 
@@ -77,9 +76,6 @@ SRSTATE SRstate = SR_IDLE;
 // in DOS_DW.C
 extern void syncSCdata(Common::Serializer &s);
 
-// in DOS_MAIN.C
-//char HardDriveLetter(void);
-
 // in PCODE.C
 extern void syncGlobInfo(Common::Serializer &s);
 
@@ -95,7 +91,7 @@ struct SaveGameHeader {
 	uint32 size;
 	uint32 ver;
 	char desc[SG_DESC_LEN];
-	struct tm dateTime;
+	TimeDate dateTime;
 };
 
 enum {
@@ -106,7 +102,21 @@ enum {
 
 #define SAVEGAME_ID (TinselV2 ? (uint32)DW2_SAVEGAME_ID : (uint32)DW1_SAVEGAME_ID)
 
+enum {
+	// FIXME: Save file names in ScummVM can be longer than 8.3, overflowing the
+	// name field in savedFiles. Raising it to 256 as a preliminary fix.
+	FNAMELEN	= 256 // 8.3
+};
+
+struct SFILES {
+	char	name[FNAMELEN];
+	char	desc[SG_DESC_LEN + 2];
+	TimeDate dateTime;
+};
+
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static int	numSfiles = 0;
 static SFILES	savedFiles[MAX_SAVED_FILES];
@@ -118,24 +128,19 @@ static int RestoreGameNumber = 0;
 static char *SaveSceneName = 0;
 static const char *SaveSceneDesc = 0;
 static int *SaveSceneSsCount = 0;
-static char *SaveSceneSsData = 0;	// points to 'SAVED_DATA ssdata[MAX_NEST]'
+static SAVED_DATA *SaveSceneSsData = 0;	// points to 'SAVED_DATA ssdata[MAX_NEST]'
 
 //------------- SAVE/LOAD SUPPORT METHODS ----------------
 
 void setNeedLoad() { NeedLoad = true; }
 
-static void syncTime(Common::Serializer &s, struct tm &t) {
+static void syncTime(Common::Serializer &s, TimeDate &t) {
 	s.syncAsUint16LE(t.tm_year);
 	s.syncAsByte(t.tm_mon);
 	s.syncAsByte(t.tm_mday);
 	s.syncAsByte(t.tm_hour);
 	s.syncAsByte(t.tm_min);
 	s.syncAsByte(t.tm_sec);
-	if (s.isLoading()) {
-		t.tm_wday = 0;
-		t.tm_yday = 0;
-		t.tm_isdst = 0;
-	}
 }
 
 static bool syncSaveGameHeader(Common::Serializer &s, SaveGameHeader &hdr) {
@@ -158,8 +163,7 @@ static bool syncSaveGameHeader(Common::Serializer &s, SaveGameHeader &hdr) {
 }
 
 static void syncSavedMover(Common::Serializer &s, SAVED_MOVER &sm) {
-	SCNHANDLE *pList[3] = { (SCNHANDLE *)&sm.walkReels,
-		(SCNHANDLE *)&sm.standReels, (SCNHANDLE *)&sm.talkReels };
+	int i, j;
 
 	s.syncAsUint32LE(sm.bActive);
 	s.syncAsSint32LE(sm.actorID);
@@ -167,17 +171,27 @@ static void syncSavedMover(Common::Serializer &s, SAVED_MOVER &sm) {
 	s.syncAsSint32LE(sm.objY);
 	s.syncAsUint32LE(sm.hLastfilm);
 
-	for (int pIndex = 0; pIndex < 3; ++pIndex) {
-		SCNHANDLE *p = pList[pIndex];
-		for (int i = 0; i < TOTAL_SCALES * 4; ++i)
-			s.syncAsUint32LE(*p++);
-	}
+	// Sync walk reels
+	for (i = 0; i < TOTAL_SCALES; ++i)
+		for (j = 0; j < 4; ++j)
+			s.syncAsUint32LE(sm.walkReels[i][j]);
+
+	// Sync stand reels
+	for (i = 0; i < TOTAL_SCALES; ++i)
+		for (j = 0; j < 4; ++j)
+			s.syncAsUint32LE(sm.standReels[i][j]);
+
+	// Sync talk reels
+	for (i = 0; i < TOTAL_SCALES; ++i)
+		for (j = 0; j < 4; ++j)
+			s.syncAsUint32LE(sm.talkReels[i][j]);
+
 
 	if (TinselV2) {
 		s.syncAsByte(sm.bHidden);
 
 		s.syncAsSint32LE(sm.brightness);
-		s.syncAsSint32LE(sm.startColour);
+		s.syncAsSint32LE(sm.startColor);
 		s.syncAsSint32LE(sm.paletteLength);
 	}
 }
@@ -185,7 +199,8 @@ static void syncSavedMover(Common::Serializer &s, SAVED_MOVER &sm) {
 static void syncSavedActor(Common::Serializer &s, SAVED_ACTOR &sa) {
 	s.syncAsUint16LE(sa.actorID);
 	s.syncAsUint16LE(sa.zFactor);
-	s.syncAsUint32LE(sa.bAlive);
+	s.syncAsUint16LE(sa.bAlive);
+	s.syncAsUint16LE(sa.bHidden);
 	s.syncAsUint32LE(sa.presFilm);
 	s.syncAsUint16LE(sa.presRnum);
 	s.syncAsUint16LE(sa.presPlayX);
@@ -273,36 +288,32 @@ static void syncSavedData(Common::Serializer &s, SAVED_DATA &sd) {
 	}
 }
 
-
 /**
- * Called when saving a game to a new file.
- * Generates a new, unique, filename.
+ * Compare two TimeDate structs to see which one was earlier.
+ * Returns 0 if they are equal, a negative value if a is lower / first, and
+ * a positive value if b is lower / first.
  */
-static char *NewName(void) {
-	static char result[FNAMELEN];
-	int	i;
-	int	ano = 1;	// Allocated number
+static int cmpTimeDate(const TimeDate &a, const TimeDate &b) {
+	int tmp;
 
-	while (1) {
-		Common::String fname = _vm->getSavegameFilename(ano);
-		strcpy(result, fname.c_str());
+	#define CMP_ENTRY(x) tmp = a.x - b.x; if (tmp != 0) return tmp
 
-		for (i = 0; i < numSfiles; i++)
-			if (!strcmp(savedFiles[i].name, result))
-				break;
+	CMP_ENTRY(tm_year);
+	CMP_ENTRY(tm_mon);
+	CMP_ENTRY(tm_mday);
+	CMP_ENTRY(tm_hour);
+	CMP_ENTRY(tm_min);
+	CMP_ENTRY(tm_sec);
 
-		if (i == numSfiles)
-			break;
-		ano++;
-	}
+	#undef CMP_ENTRY
 
-	return result;
+	return 0;
 }
 
 /**
- * Interrogate the current DOS directory for saved game files.
+ * Compute a list of all available saved game files.
  * Store the file details, ordered by time, in savedFiles[] and return
- * the number of files found).
+ * the number of files found.
  */
 int getList(Common::SaveFileManager *saveFileMan, const Common::String &target) {
 	// No change since last call?
@@ -313,11 +324,11 @@ int getList(Common::SaveFileManager *saveFileMan, const Common::String &target) 
 	int i;
 
 	const Common::String pattern = target +  ".???";
-	Common::StringList files = saveFileMan->listSavefiles(pattern);
+	Common::StringArray files = saveFileMan->listSavefiles(pattern);
 
 	numSfiles = 0;
 
-	for (Common::StringList::const_iterator file = files.begin(); file != files.end(); ++file) {
+	for (Common::StringArray::const_iterator file = files.begin(); file != files.end(); ++file) {
 		if (numSfiles >= MAX_SAVED_FILES)
 			break;
 
@@ -341,16 +352,15 @@ int getList(Common::SaveFileManager *saveFileMan, const Common::String &target) 
 		i = numSfiles;
 #ifndef DISABLE_SAVEGAME_SORTING
 		for (i = 0; i < numSfiles; i++) {
-			if (difftime(mktime(&hdr.dateTime), mktime(&savedFiles[i].dateTime)) > 0) {
+			if (cmpTimeDate(hdr.dateTime, savedFiles[i].dateTime) > 0) {
 				Common::copy_backward(&savedFiles[i], &savedFiles[numSfiles], &savedFiles[numSfiles + 1]);
 				break;
 			}
 		}
 #endif
 
-		strncpy(savedFiles[i].name, fname.c_str(), FNAMELEN);
-		strncpy(savedFiles[i].desc, hdr.desc, SG_DESC_LEN);
-		savedFiles[i].desc[SG_DESC_LEN - 1] = 0;
+		Common::strlcpy(savedFiles[i].name, fname.c_str(), FNAMELEN);
+		Common::strlcpy(savedFiles[i].desc, hdr.desc, SG_DESC_LEN);
 		savedFiles[i].dateTime = hdr.dateTime;
 
 		++numSfiles;
@@ -362,7 +372,7 @@ int getList(Common::SaveFileManager *saveFileMan, const Common::String &target) 
 	return numSfiles;
 }
 
-int getList(void) {
+int getList() {
 	// No change since last call?
 	// TODO/FIXME: Just always reload this data? Be careful about slow downs!!!
 	if (!NeedLoad)
@@ -418,7 +428,7 @@ static void DoSync(Common::Serializer &s) {
 	s.syncAsSint32LE(*SaveSceneSsCount);
 
 	if (*SaveSceneSsCount != 0) {
-		SAVED_DATA *sdPtr = (SAVED_DATA *)SaveSceneSsData;
+		SAVED_DATA *sdPtr = SaveSceneSsData;
 		for (int i = 0; i < *SaveSceneSsCount; ++i, ++sdPtr)
 			syncSavedData(s, *sdPtr);
 	}
@@ -450,12 +460,12 @@ static bool DoRestore() {
 	if (id != (uint32)0xFEEDFACE)
 		error("Incompatible saved game");
 
-	bool failed = f->ioFailed();
+	bool failed = (f->eos() || f->err());
 
 	delete f;
 
 	if (failed) {
-		GUI::MessageDialog dialog("Failed to load game state from file.");
+		GUI::MessageDialog dialog(_("Failed to load game state from file."));
 		dialog.runModal();
 	}
 
@@ -465,21 +475,39 @@ static bool DoRestore() {
 /**
  * DoSave
  */
-static void DoSave(void) {
+static void DoSave() {
 	Common::OutSaveFile *f;
-	const char *fname;
+	char tmpName[FNAMELEN];
 
 	// Next getList() must do its stuff again
 	NeedLoad = true;
 
-	if (SaveSceneName == NULL)
-		SaveSceneName = NewName();
+	if (SaveSceneName == NULL) {
+		// Generate a new unique save name
+		int	i;
+		int	ano = 1;	// Allocated number
+
+		while (1) {
+			Common::String fname = _vm->getSavegameFilename(ano);
+			strcpy(tmpName, fname.c_str());
+
+			for (i = 0; i < numSfiles; i++)
+				if (!strcmp(savedFiles[i].name, tmpName))
+					break;
+
+			if (i == numSfiles)
+				break;
+			ano++;
+		}
+
+		SaveSceneName = tmpName;
+	}
+
+
 	if (SaveSceneDesc[0] == 0)
 		SaveSceneDesc = "unnamed";
 
-	fname = SaveSceneName;
-
-	f = _vm->getSaveFileMan()->openForSaving(fname);
+	f = _vm->getSaveFileMan()->openForSaving(SaveSceneName);
 	Common::Serializer s(0, f);
 
 	if (f == NULL)
@@ -506,21 +534,23 @@ static void DoSave(void) {
 
 	f->finalize();
 	delete f;
+	SaveSceneName = NULL;	// Invalidate save name
 	return;
 
 save_failure:
 	if (f) {
 		delete f;
-		_vm->getSaveFileMan()->removeSavefile(fname);
+		_vm->getSaveFileMan()->removeSavefile(SaveSceneName);
+		SaveSceneName = NULL;	// Invalidate save name
 	}
-	GUI::MessageDialog dialog("Failed to save game state to file.");
+	GUI::MessageDialog dialog(_("Failed to save game state to file."));
 	dialog.runModal();
 }
 
 /**
  * ProcessSRQueue
  */
-void ProcessSRQueue(void) {
+void ProcessSRQueue() {
 	switch (SRstate) {
 	case SR_DORESTORE:
 		// If a load has been done directly from title screens, set a larger value for scene ctr so the
@@ -549,7 +579,7 @@ void RequestSaveGame(char *name, char *desc, SAVED_DATA *sd, int *pSsCount, SAVE
 	SaveSceneName = name;
 	SaveSceneDesc = desc;
 	SaveSceneSsCount = pSsCount;
-	SaveSceneSsData = (char *)pSsData;
+	SaveSceneSsData = pSsData;
 	srsd = sd;
 	SRstate = SR_DOSAVE;
 }
@@ -568,7 +598,7 @@ void RequestRestoreGame(int num, SAVED_DATA *sd, int *pSsCount, SAVED_DATA *pSsD
 
 	RestoreGameNumber = num;
 	SaveSceneSsCount = pSsCount;
-	SaveSceneSsData = (char *)pSsData;
+	SaveSceneSsData = pSsData;
 	srsd = sd;
 	SRstate = SR_DORESTORE;
 }
@@ -577,10 +607,10 @@ void RequestRestoreGame(int num, SAVED_DATA *sd, int *pSsCount, SAVED_DATA *pSsD
  * Returns the index of the most recently saved savegame. This will always be
  * the file at the first index, since the list is sorted by date/time
  */
-int NewestSavedGame(void) {
+int NewestSavedGame() {
 	int numFiles = getList();
 
 	return (numFiles == 0) ? -1 : 0;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

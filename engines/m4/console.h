@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_CONSOLE_H
@@ -30,17 +27,15 @@
 
 namespace M4 {
 
-class M4Engine;
+class MadsM4Engine;
+class MadsEngine;
 
 class Console : public GUI::Debugger {
-public:
-	Console(M4Engine *vm);
-	virtual ~Console(void);
-
 private:
+	MadsM4Engine *_vm;
+
 	bool cmdLoadScene(int argc, const char **argv);
 	bool cmdStartingScene(int argc, const char **argv);
-	bool cmdSceneInfo(int argc, const char **argv);
 	bool cmdShowHotSpots(int argc, const char **argv);
 	bool cmdListHotSpots(int argc, const char **argv);
 	bool cmdPlaySound(int argc, const char **argv);
@@ -52,10 +47,34 @@ private:
 	bool cmdStartConversation(int argc, const char **argv);
 	bool cmdShowTextview(int argc, const char **argv);
 	bool cmdShowAnimview(int argc, const char **argv);
+
+public:
+	Console(MadsM4Engine *vm);
+	virtual ~Console();
+};
+
+class MadsConsole : public Console {
+private:
+	MadsEngine *_vm;
+
+	bool cmdObject(int argc, const char **argv);
+	bool cmdMessage(int argc, const char **argv);
+	bool cmdSceneInfo(int argc, const char **argv);
 	bool cmdPlayAnimation(int argc, const char **argv);
 
+public:
+	MadsConsole(MadsEngine *vm);
+	virtual ~MadsConsole() {}
+};
+
+class M4Console : public Console {
 private:
 	M4Engine *_vm;
+
+	bool cmdSceneInfo(int argc, const char **argv);
+public:
+	M4Console(M4Engine *vm);
+	virtual ~M4Console() {}
 };
 
 } // End of namespace M4

@@ -18,19 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_VIRTUAL_KEYBOARD_H
 #define COMMON_VIRTUAL_KEYBOARD_H
 
+#include "common/scummsys.h"
+
 #ifdef ENABLE_VKEYBD
 
 class OSystem;
 
-#include "common/scummsys.h"
 #include "common/events.h"
 #include "common/hashmap.h"
 #include "common/hash-str.h"
@@ -121,14 +119,20 @@ protected:
 		OverlayColor		displayFontColor;
 
 		Mode() : image(0) {}
-		~Mode() { delete image; }
+		~Mode() {
+			if (image) {
+				image->free();
+				delete image;
+				image = 0;
+			}
+		}
 	};
 
 	typedef HashMap<String, Mode, IgnoreCase_Hash, IgnoreCase_EqualTo> ModeMap;
 
 	enum HorizontalAlignment {
 		kAlignLeft,
-		kAlignCentre,
+		kAlignCenter,
 		kAlignRight
 	};
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -32,7 +29,8 @@
 #include "scumm/sound.h"
 #include "scumm/imuse/imuse.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
 
 
 namespace Scumm {
@@ -112,22 +110,22 @@ bool SmushMixer::handleFrame() {
 				int32 size = _channels[i].chan->getAvailableSoundDataSize();
 				byte *data = _channels[i].chan->getSoundData();
 
-				byte flags = stereo ? Audio::Mixer::FLAG_STEREO : 0;
+				byte flags = stereo ? Audio::FLAG_STEREO : 0;
 				if (is_16bit) {
-					flags |= Audio::Mixer::FLAG_16BITS;
+					flags |= Audio::FLAG_16BITS;
 				} else {
-					flags |= Audio::Mixer::FLAG_UNSIGNED;
+					flags |= Audio::FLAG_UNSIGNED;
 				}
 
 				if (_mixer->isReady()) {
 					// Stream the data
 					if (!_channels[i].stream) {
-						_channels[i].stream = Audio::makeAppendableAudioStream(_channels[i].chan->getRate(), flags);
-						_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_channels[i].handle, _channels[i].stream);
+						_channels[i].stream = Audio::makeQueuingAudioStream(_channels[i].chan->getRate(), stereo);
+						_mixer->playStream(Audio::Mixer::kSFXSoundType, &_channels[i].handle, _channels[i].stream);
 					}
 					_mixer->setChannelVolume(_channels[i].handle, vol);
 					_mixer->setChannelBalance(_channels[i].handle, pan);
-					_channels[i].stream->queueBuffer(data, size);	// The stream will free the buffer for us
+					_channels[i].stream->queueBuffer(data, size, DisposeAfterUse::YES, flags);	// The stream will free the buffer for us
 				} else
 					delete[] data;
 			}

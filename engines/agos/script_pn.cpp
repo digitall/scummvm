@@ -18,15 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#ifdef ENABLE_PN
 
 #include "agos/agos.h"
 #include "agos/vga.h"
+
+#include "common/textconsole.h"
 
 namespace AGOS {
 
@@ -261,7 +258,7 @@ void AGOSEngine_PN::opn_opcode14() {
 }
 
 void AGOSEngine_PN::opn_opcode15() {
-	int32 x = varval();;
+	int32 x = varval();
 	if ((x < 0) || (x > 4))
 		x = 0;
 
@@ -468,8 +465,8 @@ void AGOSEngine_PN::opn_opcode35() {
 void AGOSEngine_PN::opn_opcode36() {
 	for (int i = 0; i < _dataBase[57] + 1; ++i)
 		_wordcp[i] = 0;
-	if (isspace(*_inpp))
-		while ((*_inpp) && (isspace(*_inpp)))
+	if (isspace(static_cast<unsigned char>(*_inpp)))
+		while ((*_inpp) && (isspace(static_cast<unsigned char>(*_inpp))))
 			_inpp++;
 	if (*_inpp == 0) {
 		setScriptReturn(false);
@@ -483,7 +480,7 @@ void AGOSEngine_PN::opn_opcode36() {
 	}
 
 	int ct = 1;
-	while ((*_inpp != '.') && (*_inpp != ',') && (!isspace(*_inpp)) && (*_inpp != '\0') &&
+	while ((*_inpp != '.') && (*_inpp != ',') && (!isspace(static_cast<unsigned char>(*_inpp))) && (*_inpp != '\0') &&
 		(*_inpp!='"')) {
 		if (ct < _dataBase[57])
 			_wordcp[ct++] = *_inpp;
@@ -583,7 +580,7 @@ void AGOSEngine_PN::opn_opcode46() {
 		return;
 	}
 	x++;
-	while ((*x != '.') && (*x != ',') && (*x != '"') && (!isspace(*x)) && (*x != '\0'))
+	while ((*x != '.') && (*x != ',') && (*x != '"') && (!isspace(static_cast<unsigned char>(*x))) && (*x != '\0'))
 		pcf(*x++);
 	setScriptReturn(true);
 }
@@ -771,7 +768,6 @@ int AGOSEngine_PN::varval() {
 		case 249:
 			b = readfromline();
 			return (int)(b + 256 * readfromline());
-			break;
 		case 250:
 			return readfromline();
 		case 251:
@@ -893,7 +889,7 @@ int AGOSEngine_PN::doline(int needsave) {
 	int myTag = ++_tagOfActiveDoline;	// Obtain a unique tag for this doline invocation
 	_dolineReturnVal = 0;
 
-	if (needsave)
+	if (_stackbase && needsave)
 		_stackbase->tagOfParentDoline = myTag;
 
 	do {
@@ -1119,5 +1115,3 @@ void AGOSEngine_PN::popstack(int type) {
 }
 
 } // End of namespace AGOS
-
-#endif

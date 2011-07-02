@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "gui/KeysDialog.h"
 #include "gui/Actions.h"
+#include "common/translation.h"
 #include <SDL_keyboard.h>
 
 #ifdef _WIN32_WCE
@@ -34,28 +32,27 @@
 namespace GUI {
 
 enum {
-	kMapCmd	= 'map ',
-	kOKCmd	= 'ok  '
+	kMapCmd	= 'map '
 };
 
 KeysDialog::KeysDialog(const Common::String &title)
 	: GUI::Dialog("KeysDialog") {
 
-	new ButtonWidget(this, "KeysDialog.Map", "Map", kMapCmd, 0);
-	new ButtonWidget(this, "KeysDialog.Ok", "OK", kOKCmd, 0);
-	new ButtonWidget(this, "KeysDialog.Cancel", "Cancel", kCloseCmd, 0);
+	new ButtonWidget(this, "KeysDialog.Map", _("Map"), 0, kMapCmd);
+	new ButtonWidget(this, "KeysDialog.Ok", _("OK"), 0, kOKCmd);
+	new ButtonWidget(this, "KeysDialog.Cancel", _("Cancel"), 0, kCloseCmd);
 
 	_actionsList = new ListWidget(this, "KeysDialog.List");
 	_actionsList->setNumberingMode(kListNumberingZero);
 
 	_actionTitle = new StaticTextWidget(this, "KeysDialog.Action", title);
-	_keyMapping = new StaticTextWidget(this, "KeysDialog.Mapping", "Select an action and click 'Map'");
+	_keyMapping = new StaticTextWidget(this, "KeysDialog.Mapping", _("Select an action and click 'Map'"));
 
 	_actionTitle->setFlags(WIDGET_CLEARBG);
 	_keyMapping->setFlags(WIDGET_CLEARBG);
 
 	// Get actions names
-	Common::StringList l;
+	ListWidget::StringArray l;
 
 	for (int i = 0; i < Actions::Instance()->size(); i++)
 		l.push_back(Actions::Instance()->actionName((ActionType)i));
@@ -80,9 +77,9 @@ void KeysDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 				key = key - Common::ASCII_F1 + SDLK_F1;
 #endif
 			if (key != 0)
-				sprintf(selection, "Associated key : %s", SDL_GetKeyName((SDLKey)key));
+				sprintf(selection, _("Associated key : %s"), SDL_GetKeyName((SDLKey)key));
 			else
-				sprintf(selection, "Associated key : none");
+				sprintf(selection, _("Associated key : none"));
 
 			_keyMapping->setLabel(selection);
 			_keyMapping->draw();
@@ -90,7 +87,7 @@ void KeysDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 		break;
 	case kMapCmd:
 		if (_actionsList->getSelected() < 0) {
-				_actionTitle->setLabel("Please select an action");
+			_actionTitle->setLabel(_("Please select an action"));
 		} else {
 			char selection[100];
 
@@ -102,11 +99,11 @@ void KeysDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 				key = key - Common::ASCII_F1 + SDLK_F1;
 #endif
 			if (key != 0)
-				sprintf(selection, "Associated key : %s", SDL_GetKeyName((SDLKey)key));
+				sprintf(selection, _("Associated key : %s"), SDL_GetKeyName((SDLKey)key));
 			else
-				sprintf(selection, "Associated key : none");
+				sprintf(selection, _("Associated key : none"));
 
-			_actionTitle->setLabel("Press the key to associate");
+			_actionTitle->setLabel(_("Press the key to associate"));
 			_keyMapping->setLabel(selection);
 			_keyMapping->draw();
 			Actions::Instance()->beginMapping(true);
@@ -141,11 +138,11 @@ void KeysDialog::handleKeyUp(Common::KeyState state) {
 		Actions::Instance()->setMapping((ActionType)_actionSelected, state.ascii);
 
 		if (state.ascii != 0)
-			sprintf(selection, "Associated key : %s", SDL_GetKeyName((SDLKey) state.keycode));
+			sprintf(selection, _("Associated key : %s"), SDL_GetKeyName((SDLKey) state.keycode));
 		else
-			sprintf(selection, "Associated key : none");
+			sprintf(selection, _("Associated key : none"));
 
-		_actionTitle->setLabel("Choose an action to map");
+		_actionTitle->setLabel(_("Choose an action to map"));
 		_keyMapping->setLabel(selection);
 		_keyMapping->draw();
 		_actionTitle->draw();

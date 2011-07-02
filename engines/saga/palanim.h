@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Palette animation module header file
@@ -33,29 +30,24 @@ namespace Saga {
 #define PALANIM_CYCLETIME 100
 
 struct PalanimEntry {
-	uint16 pal_count;
-	uint16 color_count;
 	uint16 cycle;
-	byte *pal_index;
-	Color *colors;
+	ByteArray palIndex;
+	Common::Array<Color> colors;
 };
 
 class PalAnim {
  public:
 	PalAnim(SagaEngine *vm);
-	~PalAnim(void);
 
-	int loadPalAnim(const byte *, size_t);
-	int cycleStart();
-	int cycleStep(int vectortime);
-	int freePalAnim();
+	void loadPalAnim(const ByteArray &resourceData);
+	void cycleStart();
+	void cycleStep(int vectortime);
+	void clear();
 
  private:
 	SagaEngine *_vm;
 
-	bool _loaded;
-	uint16 _entryCount;
-	PalanimEntry *_entries;
+	Common::Array<PalanimEntry> _entries;
 };
 
 } // End of namespace Saga

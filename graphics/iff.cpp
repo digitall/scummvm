@@ -17,34 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "graphics/iff.h"
 #include "graphics/surface.h"
 
+#include "common/endian.h"
+#include "common/func.h"
+#include "common/iff_container.h"
+#include "common/textconsole.h"
 #include "common/util.h"
-
-
-namespace Common {
-
-// this really belongs to iff_container.cpp, but we don't want
-// to put only this in a source file
-char *ID2string(Common::IFF_ID id) {
-	static char str[] = "abcd";
-
-	str[0] = (char)(id >> 24 & 0xff);
-	str[1] = (char)(id >> 16 & 0xff);
-	str[2] = (char)(id >>  8 & 0xff);
-	str[3] = (char)(id >>  0 & 0xff);
-
-	return str;
-}
-
-}
-
 
 namespace Graphics {
 
@@ -154,6 +136,26 @@ void ILBMDecoder::planarToChunky(byte *out, uint32 outPitch, byte *in, uint32 in
 }
 
 
+//	handles PBM subtype of IFF FORM files
+//
+struct PBMDecoder {
+	/**
+	 * PBM header data, necessary for loadBitmap()
+	 */
+	Graphics::BMHD	_header;
+
+	/**
+	 * Fills the _header member from the given stream.
+	 */
+	void loadHeader(Common::ReadStream *stream);
+
+	/**
+	 * Loads and unpacks the PBM bitmap data from the stream into the buffer.
+	 * The functions assumes the buffer is large enough to contain all data.
+	 */
+	void loadBitmap(byte *buffer, Common::ReadStream *stream);
+};
+
 void PBMDecoder::loadHeader(Common::ReadStream *stream) {
 	_header.load(stream);
 }
@@ -203,7 +205,7 @@ struct PBMLoader {
 
 		case ID_BODY:
 			if (_surface) {
-				_surface->create(_decoder._header.width, _decoder._header.height, 1);
+				_surface->create(_decoder._header.width, _decoder._header.height, PixelFormat::createFormatCLUT8());
 				_decoder.loadBitmap((byte*)_surface->pixels, chunk._stream);
 			}
 			return true;	// stop the parser
@@ -266,5 +268,4 @@ uint32 PackBitsReadStream::read(void *dataPtr, uint32 dataSize) {
 	return dataSize - left;
 }
 
-
-}
+} // End of namespace Graphics

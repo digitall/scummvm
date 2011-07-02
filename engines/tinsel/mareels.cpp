@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Functions to set up moving actors' reels.
  */
 
@@ -28,6 +25,7 @@
 #include "tinsel/pcode.h"	// For D_UP, D_DOWN
 #include "tinsel/rince.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
@@ -47,6 +45,8 @@ struct SCIdataStruct {
 	int	direction;
 	SCNHANDLE reels[4];
 };
+
+// FIXME: Avoid non-const global vars
 
 static SCIdataStruct SCIdata[MAX_SCRENTRIES];
 
@@ -169,7 +169,7 @@ SCNHANDLE ScalingReel(int ano, int scale1, int scale2, DIRECTION reel) {
 /**
  * RebootScalingReels
  */
-void RebootScalingReels(void) {
+void RebootScalingReels() {
 	scrEntries = 0;
 	memset(SCIdata, 0, sizeof(SCIdata));
 }
@@ -177,7 +177,7 @@ void RebootScalingReels(void) {
 /**
  * Discourage them from being ditched.
  */
-void TouchMoverReels(void) {
+void TouchMoverReels() {
 	PMOVER	pMover;
 	int	scale;
 
@@ -190,4 +190,4 @@ void TouchMoverReels(void) {
 	} while ((pMover = NextMover(pMover)) != NULL);
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

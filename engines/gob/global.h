@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_GLOBAL_H
@@ -45,8 +42,8 @@ namespace Gob {
 #define INTERSOUND_FLAG 0x0002
 #define SPEAKER_FLAG    0x0001
 
-#define NO    0
-#define YES   1
+//#define NO    0
+//#define YES   1
 #define UNDEF 2
 
 #define F1_KEY 0x3B00
@@ -127,12 +124,11 @@ public:
 	bool _setAllPalette;
 	bool _dontSetPalette;
 
-	SurfaceDescPtr _primarySurfDesc;
+	SurfacePtr _primarySurfDesc;
 
 	int16 _debugFlag;
 	int16 _inVM;
 
-	byte *_inter_execPtr;
 	int16 _inter_animDataSize;
 
 	int16 _inter_mouseX;
@@ -144,6 +140,8 @@ public:
 	bool _doSubtitles;
 
 	bool _noCd;
+
+	int16 _curWinId;
 
 	Global(GobEngine *vm);
 	~Global();

@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
 #include "common/endian.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 namespace Cruise {
 
@@ -55,10 +54,10 @@ void decodeGfxUnified(dataFileEntry *pCurrentFileEntry, int16 format) {
 		break;
 
 	default:
-		error("Unkown gfx format %d", format);
+		error("Unknown gfx format %d", format);
 	}
 
-	uint8 *buffer = (uint8 *)malloc(spriteSize);
+	uint8 *buffer = (uint8 *)MemAlloc(spriteSize);
 
 	// Perform format specific decoding
 	switch (format) {
@@ -131,7 +130,7 @@ void decodeGfxUnified(dataFileEntry *pCurrentFileEntry, int16 format) {
 	}
 	}
 
-	free(pCurrentFileEntry->subData.ptr);
+	MemFree(pCurrentFileEntry->subData.ptr);
 	pCurrentFileEntry->subData.ptr = buffer;
 }
 
@@ -167,11 +166,13 @@ int updateResFileEntry(int height, int width, int size, int entryNumber, int res
 }
 
 int createResFileEntry(int width, int height, int size, int resType) {
+	error("Executing untested createResFileEntry");
+	return 0;	// for compilers that don't support NORETURN
+
+#if 0
 	int i;
 	int entryNumber;
 	int div = 0;
-
-	error("Executing untested createResFileEntry");
 
 	for (i = 0; i < NUM_FILE_ENTRIES; i++) {
 		if (!filesDatabase[i].subData.ptr)
@@ -206,6 +207,7 @@ int createResFileEntry(int width, int height, int size, int resType) {
 	filesDatabase[entryNumber].subData.index = -1;
 
 	return entryNumber;
+#endif
 }
 
 fileTypeEnum getFileType(const char *name) {
@@ -250,12 +252,9 @@ int loadFile(const char* name, int idx, int destIdx) {
 			return 0;	// exit if limit is reached
 		}
 		return loadSetEntry(name, ptr, destIdx, idx);
-
-		break;
 	}
 	case type_FNT: {
 		return loadFNTSub(ptr, idx);
-		break;
 	}
 	case type_SPL: {
 		// Sound file
@@ -304,6 +303,8 @@ int loadFileRange(const char *name, int startIdx, int currentEntryIdx, int numId
 		error("Unknown fileType in loadFileRange");
 	}
 
+	MemFree(ptr);
+
 	return 0;
 }
 
@@ -346,6 +347,8 @@ int loadFullBundle(const char *name, int startIdx) {
 		error("Unknown fileType in loadFullBundle");
 	}
 
+	MemFree(ptr);
+
 	return 0;
 }
 
@@ -353,7 +356,7 @@ int loadFNTSub(uint8 *ptr, int destIdx) {
 	uint8 *ptr2 = ptr;
 	uint8 *destPtr;
 	int fileIndex;
-	uint32 fontSize;
+	//uint32 fontSize;
 
 	ptr2 += 4;
 	loadFileVar1 = READ_BE_UINT32(ptr2);
@@ -368,7 +371,7 @@ int loadFNTSub(uint8 *ptr, int destIdx) {
 
 	memcpy(destPtr, ptr2, loadFileVar1);
 
-	fontSize = READ_BE_UINT32(ptr2);
+	//fontSize = READ_BE_UINT32(ptr2);
 
 	if (destPtr != NULL) {
 		int32 i;

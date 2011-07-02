@@ -18,11 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
 
 #ifndef PARALLACTION_SAVELOAD_H
 #define PARALLACTION_SAVELOAD_H
@@ -31,9 +27,7 @@ namespace Parallaction {
 
 struct Character;
 
-
 class SaveLoad {
-
 protected:
 	Common::SaveFileManager	*_saveFileMan;
 	Common::String _saveFilePrefix;
@@ -41,8 +35,8 @@ protected:
 	Common::String genSaveFileName(uint slot);
 	Common::InSaveFile *getInSaveFile(uint slot);
 	Common::OutSaveFile *getOutSaveFile(uint slot);
-	int selectSaveFile(Common::String &selectedName, const Common::String &caption, const Common::String &button);
-	int buildSaveFileList(Common::StringList& l);
+	int selectSaveFile(Common::String &selectedName, bool saveMode, const Common::String &caption, const Common::String &button);
+	int buildSaveFileList(Common::StringArray& l);
 	virtual void doLoadGame(uint16 slot) = 0;
 	virtual void doSaveGame(uint16 slot, const char* name) = 0;
 
@@ -60,7 +54,6 @@ public:
 };
 
 class SaveLoad_ns : public SaveLoad {
-
 	Parallaction_ns *_vm;
 
 protected:
@@ -78,7 +71,6 @@ public:
 };
 
 class SaveLoad_br : public SaveLoad {
-
 	Parallaction_br *_vm;
 	virtual void doLoadGame(uint16 slot);
 	virtual void doSaveGame(uint16 slot, const char* name);
@@ -89,7 +81,6 @@ public:
 	virtual void getGamePartProgress(bool *complete, int size);
 	virtual void setPartComplete(const char *part);
 };
-
 
 } // namespace Parallaction
 

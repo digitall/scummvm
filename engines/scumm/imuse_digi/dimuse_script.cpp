@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
@@ -33,8 +30,8 @@
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
 #include "scumm/imuse_digi/dimuse_track.h"
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 
 namespace Scumm {
 
@@ -203,6 +200,11 @@ void IMuseDigital::refreshScripts() {
 	debug(6, "refreshScripts()");
 
 	if (_stopingSequence) {
+		// prevent start new music, only fade out old one
+		if (_vm->isSmushActive()) {
+			fadeOutMusic(60);
+			return;
+		}
 		// small delay, it seems help for fix bug #1757010
 		if (_stopingSequence++ > 120) {
 			debug(5, "refreshScripts() Force restore music state");
@@ -216,6 +218,7 @@ void IMuseDigital::refreshScripts() {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->volGroupId == IMUSE_VOLGRP_MUSIC)) {
 			found = true;
+			break;
 		}
 	}
 

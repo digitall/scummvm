@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_hof.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -31,9 +30,9 @@ int KyraEngine_HoF::checkItemCollision(int x, int y) {
 	int itemPos = -1, yPos = -1;
 
 	for (int i = 0; i < 30; ++i) {
-		const Item &curItem = _itemList[i];
+		const ItemDefinition &curItem = _itemList[i];
 
-		if (curItem.id == 0xFFFF || curItem.sceneId != _mainCharacter.sceneId)
+		if (curItem.id == kItemNone || curItem.sceneId != _mainCharacter.sceneId)
 			continue;
 
 		int itemX1 = curItem.x - 8 - 3;
@@ -79,7 +78,7 @@ void KyraEngine_HoF::updateWaterFlasks() {
 	}
 }
 
-bool KyraEngine_HoF::dropItem(int unk1, uint16 item, int x, int y, int unk2) {
+bool KyraEngine_HoF::dropItem(int unk1, Item item, int x, int y, int unk2) {
 	if (_mouseState <= -1)
 		return false;
 
@@ -93,7 +92,7 @@ bool KyraEngine_HoF::dropItem(int unk1, uint16 item, int x, int y, int unk2) {
 	return success;
 }
 
-bool KyraEngine_HoF::processItemDrop(uint16 sceneId, uint16 item, int x, int y, int unk1, int unk2) {
+bool KyraEngine_HoF::processItemDrop(uint16 sceneId, Item item, int x, int y, int unk1, int unk2) {
 	int itemPos = checkItemCollision(x, y);
 
 	if (unk1)
@@ -108,7 +107,7 @@ bool KyraEngine_HoF::processItemDrop(uint16 sceneId, uint16 item, int x, int y, 
 
 	if (unk1 != 3) {
 		for (int i = 0; i < 30; ++i) {
-			if (_itemList[i].id == 0xFFFF) {
+			if (_itemList[i].id == kItemNone) {
 				freeItemSlot = i;
 				break;
 			}
@@ -200,7 +199,7 @@ bool KyraEngine_HoF::processItemDrop(uint16 sceneId, uint16 item, int x, int y, 
 	return true;
 }
 
-void KyraEngine_HoF::itemDropDown(int startX, int startY, int dstX, int dstY, int itemSlot, uint16 item) {
+void KyraEngine_HoF::itemDropDown(int startX, int startY, int dstX, int dstY, int itemSlot, Item item) {
 	uint8 *itemShape = getShapePtr(item + 64);
 
 	if (startX == dstX && startY == dstY) {
@@ -335,7 +334,7 @@ bool KyraEngine_HoF::pickUpItem(int x, int y) {
 		_screen->hideMouse();
 		deleteItemAnimEntry(itemPos);
 		int itemId = _itemList[itemPos].id;
-		_itemList[itemPos].id = 0xFFFF;
+		_itemList[itemPos].id = kItemNone;
 		snd_playSoundEffect(0x0b);
 		setMouseCursor(itemId);
 		int str2 = 7;
@@ -368,8 +367,8 @@ bool KyraEngine_HoF::isDropable(int x, int y) {
 	return true;
 }
 
-int KyraEngine_HoF::getItemCommandStringDrop(uint16 item) {
-	assert(item < _itemStringMapSize);
+int KyraEngine_HoF::getItemCommandStringDrop(Item item) {
+	assert(item >= 0 && item < _itemStringMapSize);
 	int stringId = _itemStringMap[item];
 
 	static const int dropStringIds[] = {
@@ -380,8 +379,8 @@ int KyraEngine_HoF::getItemCommandStringDrop(uint16 item) {
 	return dropStringIds[stringId];
 }
 
-int KyraEngine_HoF::getItemCommandStringPickUp(uint16 item) {
-	assert(item < _itemStringMapSize);
+int KyraEngine_HoF::getItemCommandStringPickUp(Item item) {
+	assert(item >= 0 && item < _itemStringMapSize);
 	int stringId = _itemStringMap[item];
 
 	static const int pickUpStringIds[] = {
@@ -392,8 +391,8 @@ int KyraEngine_HoF::getItemCommandStringPickUp(uint16 item) {
 	return pickUpStringIds[stringId];
 }
 
-int KyraEngine_HoF::getItemCommandStringInv(uint16 item) {
-	assert(item < _itemStringMapSize);
+int KyraEngine_HoF::getItemCommandStringInv(Item item) {
+	assert(item >= 0 && item < _itemStringMapSize);
 	int stringId = _itemStringMap[item];
 
 	static const int pickUpStringIds[] = {
@@ -404,8 +403,8 @@ int KyraEngine_HoF::getItemCommandStringInv(uint16 item) {
 	return pickUpStringIds[stringId];
 }
 
-bool KyraEngine_HoF::itemIsFlask(int item) {
-	for (int i = 0; _flaskTable[i] != -1; ++i) {
+bool KyraEngine_HoF::itemIsFlask(Item item) {
+	for (int i = 0; _flaskTable[i] != kItemNone; ++i) {
 		if (_flaskTable[i] == item)
 			return true;
 	}
@@ -413,12 +412,12 @@ bool KyraEngine_HoF::itemIsFlask(int item) {
 	return false;
 }
 
-void KyraEngine_HoF::setMouseCursor(uint16 item) {
+void KyraEngine_HoF::setMouseCursor(Item item) {
 	int shape = 0;
 	int hotX = 1;
 	int hotY = 1;
 
-	if (item != 0xFFFF) {
+	if (item != kItemNone) {
 		hotX = 8;
 		hotY = 15;
 		shape = item+64;
@@ -427,5 +426,5 @@ void KyraEngine_HoF::setMouseCursor(uint16 item) {
 	_screen->setMouseCursor(hotX, hotY, getShapePtr(shape));
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

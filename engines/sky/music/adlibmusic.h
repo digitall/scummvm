@@ -18,31 +18,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_MUSIC_ADLIBMUSIC_H
 #define SKY_MUSIC_ADLIBMUSIC_H
 
 #include "sky/music/musicbase.h"
-#include "sound/audiostream.h"
-#include "sound/fmopl.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/fmopl.h"
+#include "audio/mixer.h"
 
 namespace Sky {
 
-class AdlibMusic : public Audio::AudioStream, public MusicBase {
+class AdLibMusic : public Audio::AudioStream, public MusicBase {
 public:
-	AdlibMusic(Audio::Mixer *pMixer, Disk *pDisk);
-	~AdlibMusic(void);
+	AdLibMusic(Audio::Mixer *pMixer, Disk *pDisk);
+	~AdLibMusic();
 
 	// AudioStream API
 	int readBuffer(int16 *buffer, const int numSamples);
-	bool isStereo(void) const;
-	bool endOfData(void) const;
-	int getRate(void) const;
+	bool isStereo() const;
+	bool endOfData() const;
+	int getRate() const;
 	virtual void setVolume(uint16 param);
 
 private:
@@ -51,9 +48,9 @@ private:
 	Audio::SoundHandle _soundHandle;
 	uint8 *_initSequence;
 	uint32 _sampleRate, _nextMusicPoll;
-	virtual void setupPointers(void);
+	virtual void setupPointers();
 	virtual void setupChannels(uint8 *channelData);
-	virtual void startDriver(void);
+	virtual void startDriver();
 
 	void premixerCall(int16 *buf, uint len);
 };

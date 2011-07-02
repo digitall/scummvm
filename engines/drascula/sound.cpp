@@ -18,15 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "sound/mixer.h"
-#include "sound/voc.h"
-#include "sound/audiocd.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/voc.h"
+
 #include "common/config-manager.h"
+#include "common/textconsole.h"
+
+#include "backends/audiocd/audiocd.h"
 
 #include "drascula/drascula.h"
 
@@ -51,7 +53,7 @@ void DrasculaEngine::volumeControls() {
 	setCursor(kCursorCrosshair);
 	showCursor();
 
-	for (;;) {
+	while (!shouldQuit()) {
 		int masterVolume = CLIP((_mixer->getVolumeForSoundType(Audio::Mixer::kPlainSoundType) / 16), 0, 15);
 		int voiceVolume = CLIP((_mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType) / 16), 0, 15);
 		int musicVolume = CLIP((_mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) / 16), 0, 15);
@@ -120,20 +122,20 @@ void DrasculaEngine::finishSound() {
 }
 
 void DrasculaEngine::playMusic(int p) {
-	AudioCD.stop();
-	AudioCD.play(p - 1, 1, 0, 0);
+	_system->getAudioCDManager()->stop();
+	_system->getAudioCDManager()->play(p - 1, 1, 0, 0);
 }
 
 void DrasculaEngine::stopMusic() {
-	AudioCD.stop();
+	_system->getAudioCDManager()->stop();
 }
 
 void DrasculaEngine::updateMusic() {
-	AudioCD.updateCD();
+	_system->getAudioCDManager()->updateCD();
 }
 
 int DrasculaEngine::musicStatus() {
-	return AudioCD.isPlaying();
+	return _system->getAudioCDManager()->isPlaying();
 }
 
 void DrasculaEngine::stopSound() {
@@ -142,7 +144,7 @@ void DrasculaEngine::stopSound() {
 
 void DrasculaEngine::MusicFadeout() {
 	int org_vol = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
-	for (;;) {
+	while (!shouldQuit()) {
 		int vol = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
 		vol -= 10;
 			if (vol < 0)
@@ -154,36 +156,38 @@ void DrasculaEngine::MusicFadeout() {
 		_system->updateScreen();
 		_system->delayMillis(50);
 	}
-	AudioCD.stop();
+	_system->getAudioCDManager()->stop();
 	_system->delayMillis(100);
 	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, org_vol);
 }
 
 void DrasculaEngine::playFile(const char *fname) {
-	if (_arj.open(fname)) {
-		int soundSize = _arj.size();
+	Common::SeekableReadStream *stream = _archives.open(fname);
+	if (stream) {
+		int soundSize = stream->size();
 		byte *soundData = (byte *)malloc(soundSize);
 
 		if (!(!strcmp(fname, "3.als") && soundSize == 145166 && _lang != kSpanish)) {
-			_arj.seek(32);
+			stream->seek(32);
 		} else {
 			// WORKAROUND: File 3.als with English speech files has a big silence at
 			// its beginning and end. We seek past the silence at the beginning,
 			// and ignore the silence at the end
 			// Fixes bug #2111815 - "DRASCULA: Voice delayed"
-			_arj.seek(73959, SEEK_SET);
+			stream->seek(73959, SEEK_SET);
 			soundSize = 117158 - 73959;
 		}
 
-		_arj.read(soundData, soundSize);
-		_arj.close();
+		stream->read(soundData, soundSize);
+		delete stream;
 
 		_subtitlesDisabled = !ConfMan.getBool("subtitles");
 		if (ConfMan.getBool("speech_mute"))
 			memset(soundData, 0x80, soundSize); // Mute speech but keep the pause
 
-		_mixer->playRaw(Audio::Mixer::kSpeechSoundType, &_soundHandle, soundData, soundSize - 64,
-						11025, Audio::Mixer::FLAG_AUTOFREE | Audio::Mixer::FLAG_UNSIGNED);
+		Audio::AudioStream *sound = Audio::makeRawStream(soundData, soundSize - 64,
+						11025, Audio::FLAG_UNSIGNED);
+		_mixer->playStream(Audio::Mixer::kSpeechSoundType, &_soundHandle, sound);
 	} else
 		warning("playFile: Could not open %s", fname);
 }

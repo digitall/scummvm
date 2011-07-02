@@ -18,33 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/endian.h"
-#include "common/md5.h"
-#include "kyra/kyra_v1.h"
+#include "kyra/resource.h"
 #include "kyra/kyra_lok.h"
-#include "kyra/lol.h"
-#include "kyra/kyra_v2.h"
 #include "kyra/kyra_hof.h"
 #include "kyra/kyra_mr.h"
 #include "kyra/screen.h"
 #include "kyra/screen_lok.h"
-#include "kyra/screen_lol.h"
 #include "kyra/screen_hof.h"
 #include "kyra/screen_mr.h"
-#include "kyra/resource.h"
 #include "kyra/gui_lok.h"
-#include "kyra/gui_lol.h"
 #include "kyra/gui_hof.h"
 #include "kyra/gui_mr.h"
+#include "kyra/sound_intern.h"
+
+#include "common/endian.h"
+#include "common/md5.h"
 
 namespace Kyra {
 
-#define RESFILE_VERSION 48
+#define RESFILE_VERSION 74
 
 namespace {
 bool checkKyraDat(Common::SeekableReadStream *file) {
@@ -59,7 +53,7 @@ bool checkKyraDat(Common::SeekableReadStream *file) {
 
 	uint8 digestCalc[16];
 	file->seek(0, SEEK_SET);
-	if (!Common::md5_file(*file, digestCalc, size))
+	if (!Common::computeStreamMD5(*file, digestCalc, size))
 		return false;
 
 	for (int i = 0; i < 16; ++i)
@@ -67,72 +61,67 @@ bool checkKyraDat(Common::SeekableReadStream *file) {
 			return false;
 	return true;
 }
+
+struct IndexTable {
+	int type;
+	int value;
+
+	bool operator==(int t) const {
+		return (type == t);
+	}
+};
+
+const IndexTable iGameTable[] = {
+	{ GI_KYRA1, 0 },
+	{ GI_KYRA2, 1 },
+	{ GI_KYRA3, 2 },
+	{ GI_LOL, 3 },
+	{ -1, -1 }
+};
+
+byte getGameID(const GameFlags &flags) {
+	return Common::find(iGameTable, iGameTable + ARRAYSIZE(iGameTable) - 1, flags.gameID)->value;
+}
+
+const IndexTable iLanguageTable[] = {
+	{ Common::EN_ANY, 1 },
+	{ Common::FR_FRA, 2 },
+	{ Common::DE_DEU, 3 },
+	{ Common::ES_ESP, 4 },
+	{ Common::IT_ITA, 5 },
+	{ Common::JA_JPN, 6 },
+	{ -1, -1 }
+};
+
+byte getLanguageID(const GameFlags &flags) {
+	return Common::find(iLanguageTable, iLanguageTable + ARRAYSIZE(iLanguageTable) - 1, flags.lang)->value;
+}
+
+const IndexTable iPlatformTable[] = {
+	{ Common::kPlatformPC, 0 },
+	{ Common::kPlatformAmiga, 1 },
+	{ Common::kPlatformFMTowns, 2 },
+	{ Common::kPlatformPC98, 3 },
+	{ Common::kPlatformMacintosh, 0 }, // HACK: Should be type "4", but as long as we can't extract Macintosh data, we need to use DOS data.
+	{ -1, -1 }
+};
+
+byte getPlatformID(const GameFlags &flags) {
+	return Common::find(iPlatformTable, iPlatformTable + ARRAYSIZE(iPlatformTable) - 1, flags.platform)->value;
+}
+
+byte getSpecialID(const GameFlags &flags) {
+	if (flags.isDemo && flags.isTalkie)
+		return 3;
+	else if (flags.isDemo)
+		return 2;
+	else if (flags.isTalkie)
+		return 1;
+	else
+		return 0;
+}
+
 } // end of anonymous namespace
-
-// used for the KYRA.DAT file which still uses
-// the old flag system, we just convert it, which
-// is less work than to change KYRA.DAT again
-enum {
-	GF_FLOPPY	= 1 <<  0,
-	GF_TALKIE	= 1 <<  1,
-	GF_FMTOWNS	= 1 <<  2,
-	GF_DEMO		= 1 <<  3,
-	GF_ENGLISH	= 1 <<  4,
-	GF_FRENCH	= 1 <<  5,
-	GF_GERMAN	= 1 <<  6,
-	GF_SPANISH	= 1 <<  7,
-	GF_ITALIAN	= 1 <<  8,
-	GF_JAPANESE = 1 <<  9,
-	// other languages here
-	GF_LNGUNK	= 1 << 16,	// also used for multi language in kyra3
-	GF_AMIGA	= 1 << 17
-};
-
-#define GAME_FLAGS (GF_FLOPPY | GF_TALKIE | GF_DEMO | GF_FMTOWNS | GF_AMIGA)
-#define LANGUAGE_FLAGS (GF_ENGLISH | GF_FRENCH | GF_GERMAN | GF_SPANISH | GF_ITALIAN | GF_JAPANESE | GF_LNGUNK)
-
-uint32 createFeatures(const GameFlags &flags) {
-	if (flags.isTalkie)
-		return GF_TALKIE;
-	if (flags.isDemo)
-		return GF_DEMO;
-	if (flags.platform == Common::kPlatformFMTowns || flags.platform == Common::kPlatformPC98)
-		return GF_FMTOWNS;
-	if (flags.platform == Common::kPlatformAmiga)
-		return GF_AMIGA;
-	return GF_FLOPPY;
-}
-
-uint32 createLanguage(const GameFlags &flags) {
-	if (flags.lang == Common::EN_ANY)
-		return GF_ENGLISH;
-	if (flags.lang == Common::DE_DEU)
-		return GF_GERMAN;
-	if (flags.lang == Common::FR_FRA)
-		return GF_FRENCH;
-	if (flags.lang == Common::ES_ESP)
-		return GF_SPANISH;
-	if (flags.lang == Common::IT_ITA)
-		return GF_ITALIAN;
-	if (flags.lang == Common::JA_JPN)
-		return GF_JAPANESE;
-	return GF_LNGUNK;
-}
-
-struct LanguageTypes {
-	uint32 flags;
-	const char *ext;
-};
-
-static const LanguageTypes languages[] = {
-	{ GF_ENGLISH, "ENG" },	// this is the default language
-	{ GF_FRENCH, "FRE" },
-	{ GF_GERMAN, "GER" },
-	{ GF_SPANISH, "SPA" },
-	{ GF_ITALIAN, "ITA" },
-	{ GF_JAPANESE, "JPN" },
-	{ 0, 0 }
-};
 
 bool StaticResource::loadStaticResourceFile() {
 	Resource *res = _vm->resource();
@@ -175,30 +164,64 @@ bool StaticResource::loadStaticResourceFile() {
 }
 
 bool StaticResource::tryKyraDatLoad() {
-	Common::SeekableReadStream *index = getFile("INDEX");
+	Common::SeekableReadStream *index = _vm->resource()->createReadStream("INDEX");
 	if (!index)
 		return false;
 
-	if (index->size() != 3*4) {
+	const uint32 version = index->readUint32BE();
+
+	if (version != RESFILE_VERSION) {
 		delete index;
 		return false;
 	}
 
-	uint32 version = index->readUint32BE();
-	uint32 gameID = index->readUint32BE();
-	uint32 featuresValue = index->readUint32BE();
+	const uint32 includedGames = index->readUint32BE();
+
+	if (includedGames * 2 + 8 != (uint32)index->size()) {
+		delete index;
+		return false;
+	}
+
+	const GameFlags &flags = _vm->gameFlags();
+	const byte game = getGameID(flags) & 0xF;
+	const byte platform = getPlatformID(flags) & 0xF;
+	const byte special = getSpecialID(flags) & 0xF;
+	const byte lang = getLanguageID(flags) & 0xF;
+
+	const uint16 gameDef = (game << 12) | (platform << 8) | (special << 4) | (lang << 0);
+
+	bool found = false;
+	for (uint32 i = 0; i < includedGames; ++i) {
+		if (index->readUint16BE() == gameDef) {
+			found = true;
+			break;
+		}
+	}
 
 	delete index;
 	index = 0;
 
-	if (version != RESFILE_VERSION)
+	if (!found)
 		return false;
 
-	if (gameID != _vm->game())
+	// load the ID map for our game
+	const Common::String filenamePattern = Common::String::format("0%01X%01X%01X000%01X", game, platform, special, lang);
+	Common::SeekableReadStream *idMap = _vm->resource()->createReadStream(filenamePattern);
+	if (!idMap)
 		return false;
 
-	uint32 gameFeatures = createFeatures(_vm->gameFlags());
-	if ((featuresValue & GAME_FLAGS) != gameFeatures)
+	uint16 numIDs = idMap->readUint16BE();
+	while (numIDs--) {
+		uint16 id = idMap->readUint16BE();
+		uint8 type = idMap->readByte();
+		uint32 filename = idMap->readUint32BE();
+
+		_dataTable[id] = DataDescriptor(filename, type);
+	}
+
+	const bool fileError = idMap->err();
+	delete idMap;
+	if (fileError)
 		return false;
 
 	// load all tables for now
@@ -211,12 +234,11 @@ bool StaticResource::tryKyraDatLoad() {
 bool StaticResource::init() {
 #define proc(x) &StaticResource::x
 	static const FileType fileTypeTable[] = {
-		{ kLanguageList, proc(loadLanguageTable), proc(freeStringTable) },
 		{ kStringList, proc(loadStringTable), proc(freeStringTable) },
 		{ StaticResource::kRoomList, proc(loadRoomTable), proc(freeRoomTable) },
 		{ kShapeList, proc(loadShapeTable), proc(freeShapeTable) },
+		{ kAmigaSfxTable, proc(loadAmigaSfxTable), proc(freeAmigaSfxTable) },
 		{ kRawData, proc(loadRawData), proc(freeRawData) },
-		{ kPaletteTable, proc(loadPaletteTable), proc(freePaletteTable) },
 
 		{ k2SeqData, proc(loadHofSequenceData), proc(freeHofSequenceData) },
 		{ k2ShpAnimDataV1, proc(loadShapeAnimData_v1), proc(freeHofShapeAnimDataV1) },
@@ -237,248 +259,6 @@ bool StaticResource::init() {
 #undef proc
 	_fileLoader = fileTypeTable;
 
-	// Kyrandia 1 Filenames
-	static const FilenameTable kyra1StaticRes[] = {
-		// INTRO / OUTRO sequences
-		{ k1ForestSeq, kRawData, "FOREST.SEQ" },
-		{ k1KallakWritingSeq, kRawData, "KALLAK-WRITING.SEQ" },
-		{ k1KyrandiaLogoSeq, kRawData, "KYRANDIA-LOGO.SEQ" },
-		{ k1KallakMalcolmSeq, kRawData, "KALLAK-MALCOLM.SEQ" },
-		{ k1MalcolmTreeSeq, kRawData, "MALCOLM-TREE.SEQ" },
-		{ k1WestwoodLogoSeq, kRawData, "WESTWOOD-LOGO.SEQ" },
-		{ k1Demo1Seq, kRawData, "DEMO1.SEQ" },
-		{ k1Demo2Seq, kRawData, "DEMO2.SEQ" },
-		{ k1Demo3Seq, kRawData, "DEMO3.SEQ" },
-		{ k1Demo4Seq, kRawData, "DEMO4.SEQ" },
-		{ k1OutroReunionSeq, kRawData, "REUNION.SEQ" },
-
-		// INTRO / OUTRO strings
-		{ k1IntroCPSStrings, kStringList, "INTRO-CPS.TXT" },
-		{ k1IntroCOLStrings, kStringList, "INTRO-COL.TXT" },
-		{ k1IntroWSAStrings, kStringList, "INTRO-WSA.TXT" },
-		{ k1IntroStrings, kLanguageList, "INTRO-STRINGS." },
-		{ k1OutroHomeString, kLanguageList, "HOME." },
-
-		// INGAME strings
-		{ k1ItemNames, kLanguageList, "ITEMLIST." },
-		{ k1TakenStrings, kLanguageList, "TAKEN." },
-		{ k1PlacedStrings, kLanguageList, "PLACED." },
-		{ k1DroppedStrings, kLanguageList, "DROPPED." },
-		{ k1NoDropStrings, kLanguageList, "NODROP." },
-		{ k1PutDownString, kLanguageList, "PUTDOWN." },
-		{ k1WaitAmuletString, kLanguageList, "WAITAMUL." },
-		{ k1BlackJewelString, kLanguageList, "BLACKJEWEL." },
-		{ k1PoisonGoneString, kLanguageList, "POISONGONE." },
-		{ k1HealingTipString, kLanguageList, "HEALINGTIP." },
-		{ k1ThePoisonStrings, kLanguageList, "THEPOISON." },
-		{ k1FluteStrings, kLanguageList, "FLUTE." },
-		{ k1WispJewelStrings, kLanguageList, "WISPJEWEL." },
-		{ k1MagicJewelStrings, kLanguageList, "MAGICJEWEL." },
-		{ k1FlaskFullString, kLanguageList, "FLASKFULL." },
-		{ k1FullFlaskString, kLanguageList, "FULLFLASK." },
-		{ k1VeryCleverString, kLanguageList, "VERYCLEVER." },
-		{ k1NewGameString, kLanguageList, "NEWGAME." },
-
-		// GUI strings table
-		{ k1GUIStrings, kLanguageList, "GUISTRINGS." },
-		{ k1ConfigStrings, kLanguageList, "CONFIGSTRINGS." },
-
-		// ROOM table/filenames
-		{ k1RoomList, kRoomList, "ROOM-TABLE.ROOM" },
-		{ k1RoomFilenames, kStringList, "ROOM-FILENAMES.TXT" },
-
-		// SHAPE tables
-		{ k1DefaultShapes, kShapeList, "SHAPES-DEFAULT.SHP" },
-		{ k1Healing1Shapes, kShapeList, "HEALING.SHP" },
-		{ k1Healing2Shapes, kShapeList, "HEALING2.SHP" },
-		{ k1PoisonDeathShapes, kShapeList, "POISONDEATH.SHP" },
-		{ k1FluteShapes, kShapeList, "FLUTE.SHP" },
-		{ k1Winter1Shapes, kShapeList, "WINTER1.SHP" },
-		{ k1Winter2Shapes, kShapeList, "WINTER2.SHP" },
-		{ k1Winter3Shapes, kShapeList, "WINTER3.SHP" },
-		{ k1DrinkShapes, kShapeList, "DRINK.SHP" },
-		{ k1WispShapes, kShapeList, "WISP.SHP" },
-		{ k1MagicAnimShapes, kShapeList, "MAGICANIM.SHP" },
-		{ k1BranStoneShapes, kShapeList, "BRANSTONE.SHP" },
-
-		// IMAGE filename table
-		{ k1CharacterImageFilenames, kStringList, "CHAR-IMAGE.TXT" },
-
-		// AMULET anim
-		{ k1AmuleteAnimSeq, kRawData, "AMULETEANIM.SEQ" },
-
-		// PALETTE table
-		{ k1PaletteList, kPaletteTable, "1 33 PALTABLE" },
-
-		// AUDIO files
-		{ k1AudioTracks, kStringList, "TRACKS.TXT" },
-		{ k1AudioTracksIntro, kStringList, "TRACKSINT.TXT" },
-
-		// FM-TOWNS specific
-		{ k1TownsSFXwdTable, kRawData, "SFXWDTABLE" },
-		{ k1TownsSFXbtTable, kRawData, "SFXBTTABLE" },
-		{ k1TownsCDATable, kRawData, "CDATABLE" },
-		{ k1CreditsStrings, kRawData, "CREDITS" },
-
-		{ 0, 0, 0 }
-	};
-
-	static const FilenameTable kyra2StaticRes[] = {
-		// Sequence Player
-		{ k2SeqplayPakFiles, kStringList, "S_PAKFILES.TXT" },
-		{ k2SeqplayCredits, kRawData, "S_CREDITS.TXT" },
-		{ k2SeqplayCreditsSpecial, kStringList, "S_CREDITS2.TXT" },
-		{ k2SeqplayStrings, kLanguageList, "S_STRINGS." },
-		{ k2SeqplaySfxFiles, kStringList, "S_SFXFILES.TXT" },
-		{ k2SeqplayTlkFiles, kLanguageList, "S_TLKFILES." },
-		{ k2SeqplaySeqData, k2SeqData, "S_DATA.SEQ" },
-		{ k2SeqplayIntroTracks, kStringList, "S_INTRO.TRA" },
-		{ k2SeqplayFinaleTracks, kStringList, "S_FINALE.TRA" },
-		{ k2SeqplayIntroCDA, kRawData, "S_INTRO.CDA" },
-		{ k2SeqplayFinaleCDA, kRawData, "S_FINALE.CDA" },
-		{ k2SeqplayShapeAnimData, k2ShpAnimDataV1, "S_DEMO.SHP" },
-
-		// Ingame
-		{ k2IngamePakFiles, kStringList, "I_PAKFILES.TXT" },
-		{ k2IngameSfxFiles, kStringList, "I_SFXFILES.TRA" },
-		{ k2IngameSfxIndex, kRawData, "I_SFXINDEX.MAP" },
-		{ k2IngameTracks, kStringList, "I_TRACKS.TRA" },
-		{ k2IngameCDA, kRawData, "I_TRACKS.CDA" },
-		{ k2IngameTalkObjIndex, kRawData, "I_TALKOBJECTS.MAP" },
-		{ k2IngameTimJpStrings, kStringList, "I_TIMJPSTR.TXT" },
-		{ k2IngameShapeAnimData, k2ShpAnimDataV2, "I_INVANIM.SHP" },
-		{ k2IngameTlkDemoStrings, kLanguageList, "I_TLKDEMO.TXT." },
-
-		{ 0, 0, 0 }
-	};
-
-	static const FilenameTable kyra3StaticRes[] = {
-		{ k3MainMenuStrings, kStringList, "MAINMENU.TXT" },
-		{ k3MusicFiles, kStringList, "SCORE.TRA" },
-		{ k3ScoreTable, kRawData, "SCORE.MAP" },
-		{ k3SfxFiles, kStringList, "SFXFILES.TRA" },
-		{ k3SfxMap, kRawData, "SFXINDEX.MAP" },
-		{ k3ItemAnimData, k2ShpAnimDataV2, "INVANIM.SHP" },
-		{ k3ItemMagicTable, kRawData, "ITEMMAGIC.MAP" },
-		{ k3ItemStringMap, kRawData, "ITEMSTRINGS.MAP" },
-
-		{ 0, 0, 0 }
-	};
-
-#ifdef ENABLE_LOL
-	static const FilenameTable kLolStaticRes[] = {
-		// Demo Sequence Player
-		{ k2SeqplayPakFiles, kStringList, "S_PAKFILES.TXT" },
-		{ k2SeqplayStrings, kLanguageList, "S_STRINGS." },
-		{ k2SeqplaySfxFiles, kStringList, "S_SFXFILES.TXT" },
-		{ k2SeqplaySeqData, k2SeqData, "S_DATA.SEQ" },
-		{ k2SeqplayIntroTracks, kStringList, "S_INTRO.TRA" },
-
-		// Ingame
-		{ kLolCharacterDefs, kLolCharData, "CHARACTER.DEF" },
-		{ kLolIngameSfxFiles, kStringList, "SFXFILES.TRA" },
-		{ kLolIngameSfxIndex, kRawData, "SFXINDEX.MAP" },
-		{ kLolMusicTrackMap, kRawData, "MUSIC.MAP" },
-		{ kLolIngameGMSfxIndex, kRawData, "SFX_GM.MAP" },
-		{ kLolIngameMT32SfxIndex, kRawData, "SFX_MT32.MAP" },
-		{ kLolSpellProperties, kLolSpellData, "SPELLS.DEF" },
-		{ kLolGameShapeMap, kRawData, "GAMESHP.MAP" },
-		{ kLolSceneItemOffs, kRawData, "ITEMOFFS.DEF" },
-		{ kLolCharInvIndex, kRawData, "CHARINV.MAP" },
-		{ kLolCharInvDefs, kRawData, "CHARINV.DEF" },
-		{ kLolCharDefsMan, kLolRawDataBe16, "CHMAN.DEF" },
-		{ kLolCharDefsWoman, kLolRawDataBe16, "CHWOMAN.DEF" },
-		{ kLolCharDefsKieran, kLolRawDataBe16, "CHKIERAN.DEF" },
-		//{ kLolCharDefsUnk, kLolRawDataBe16, "CHUNK.DEF" },
-		{ kLolCharDefsAkshel, kLolRawDataBe16, "CHAKSHEL.DEF" },
-		{ kLolExpRequirements, kLolRawDataBe32, "EXPERIENCE.DEF" },
-		{ kLolMonsterModifiers, kLolRawDataBe16, "MONSTMOD.DEF" },
-		{ kLolMonsterShiftOffsets, kRawData, "MONSTLVL.DEF" },
-		{ kLolMonsterDirFlags, kRawData, "MONSTDIR.DEF" },
-		{ kLolMonsterScaleY, kRawData, "MONSTZY.DEF" },
-		{ kLolMonsterScaleX, kRawData, "MONSTZX.DEF" },
-		{ kLolMonsterScaleWH, kLolRawDataBe16, "MONSTSCL.DEF" },
-		{ kLolFlyingObjectShp, kLolFlightShpData, "THRWNSHP.DEF" },
-		{ kLolInventoryDesc, kLolRawDataBe16, "INVDESC.DEF" },
-
-		{ kLolLevelShpList, kStringList, "SHPFILES.TXT" },
-		{ kLolLevelDatList, kStringList, "DATFILES.TXT" },
-		{ kLolCompassDefs, kLolCompassData, "COMPASS.DEF" },
-		{ kLolItemPrices, kLolRawDataBe16, "ITEMCOST.DEF" },
-		{ kLolStashSetup, kRawData, "MONEYSTS.DEF" },
-
-		{ kLolDscUnk1, kRawData, "DSCSHPU1.DEF" },
-		{ kLolDscShapeIndex, kRawData, "DSCSHPI1.DEF" },
-		{ kLolDscOvlMap, kRawData, "DSCSHPI2.DEF" },
-		{ kLolDscScaleWidthData, kLolRawDataBe16, "DSCSHPW.DEF" },
-		{ kLolDscScaleHeightData, kLolRawDataBe16, "DSCSHPH.DEF" },
-		{ kLolDscX, kLolRawDataBe16, "DSCSHPX.DEF" },
-		{ kLolDscY, kRawData, "DSCSHPY.DEF" },
-		{ kLolDscTileIndex, kRawData, "DSCSHPT.DEF" },
-		{ kLolDscUnk2, kRawData, "DSCSHPU2.DEF" },
-		{ kLolDscDoorShapeIndex, kRawData, "DSCDOOR.DEF" },
-		{ kLolDscDimData1, kRawData, "DSCDIM1.DEF" },
-		{ kLolDscDimData2, kRawData, "DSCDIM2.DEF" },
-		{ kLolDscBlockMap, kRawData, "DSCBLOCK1.DEF" },
-		{ kLolDscDimMap, kRawData, "DSCDIM.DEF" },
-		{ kLolDscDoorScale, kLolRawDataBe16, "DSCDOOR3.DEF" },
-		{ kLolDscDoor4, kLolRawDataBe16, "DSCDOOR4.DEF" },
-		{ kLolDscOvlIndex, kRawData, "DSCBLOCK2.DEF" },
-		{ kLolDscBlockIndex, kRawData, "DSCBLOCKX.DEF" },
-		{ kLolDscDoor1, kRawData, "DSCDOOR1.DEF" },
-		{ kLolDscDoorX, kLolRawDataBe16, "DSCDOORX.DEF" },
-		{ kLolDscDoorY, kLolRawDataBe16, "DSCDOORY.DEF" },
-
-		{ kLolScrollXTop, kRawData, "SCROLLXT.DEF" },
-		{ kLolScrollYTop, kRawData, "SCROLLYT.DEF" },
-		{ kLolScrollXBottom, kRawData, "SCROLLXB.DEF" },
-		{ kLolScrollYBottom, kRawData, "SCROLLYB.DEF" },
-
-		{ kLolButtonDefs, kLolButtonData, "BUTTONS.DEF" },
-		{ kLolButtonList1, kLolRawDataBe16, "BUTTON1.LST" },
-		{ kLolButtonList2, kLolRawDataBe16, "BUTTON2.LST" },
-		{ kLolButtonList3, kLolRawDataBe16, "BUTTON3.LST" },
-		{ kLolButtonList4, kLolRawDataBe16, "BUTTON4.LST" },
-		{ kLolButtonList5, kLolRawDataBe16, "BUTTON5.LST" },
-		{ kLolButtonList6, kLolRawDataBe16, "BUTTON6.LST" },
-		{ kLolButtonList7, kLolRawDataBe16, "BUTTON7.LST" },
-		{ kLolButtonList8, kLolRawDataBe16, "BUTTON84.LST" },
-
-		{ lolLegendData, kRawData, "MAPLGND.DEF" },
-		{ lolMapCursorOvl, kRawData, "MAPCURSOR.PAL" },
-		{ lolMapStringId, kLolRawDataBe16, "MAPSTRID.LST" },
-		//{ lolMapPal, kRawData, "MAP.PAL" },
-
-		{ lolSpellbookAnim, kRawData, "MBOOKA.DEF" },
-		{ lolSpellbookCoords, kRawData, "MBOOKC.DEF" },
-		{ lolHealShapeFrames, kRawData, "MHEAL.SHP" },
-		{ lolLightningDefs, kRawData, "MLGHTNG.DEF" },
-		{ lolFireballCoords, kLolRawDataBe16, "MFIREBLL.DEF" },
-
-		{ 0, 0, 0 }
-	};
-#endif // ENABLE_LOL
-
-	if (_vm->game() == GI_KYRA1) {
-		_builtIn = 0;
-		_filenameTable = kyra1StaticRes;
-	} else if (_vm->game() == GI_KYRA2) {
-		_builtIn = 0;
-		_filenameTable = kyra2StaticRes;
-	} else if (_vm->game() == GI_KYRA3) {
-		_builtIn = 0;
-		_filenameTable = kyra3StaticRes;
-#ifdef ENABLE_LOL
-	} else if (_vm->game() == GI_LOL) {
-		if (!_vm->gameFlags().isDemo && !_vm->gameFlags().isTalkie)
-			return true;
-		_builtIn = 0;
-		_filenameTable = kLolStaticRes;
-#endif // ENABLE_LOL
-	} else {
-		error("StaticResource: Unknown game ID");
-	}
-
 	return loadStaticResourceFile();
 }
 
@@ -487,10 +267,7 @@ void StaticResource::deinit() {
 }
 
 const char * const *StaticResource::loadStrings(int id, int &strings) {
-	const char * const*temp = (const char* const *)getData(id, kStringList, strings);
-	if (temp)
-		return temp;
-	return (const char* const *)getData(id, kLanguageList, strings);
+	return (const char * const *)getData(id, kStringList, strings);
 }
 
 const uint8 *StaticResource::loadRawData(int id, int &size) {
@@ -501,12 +278,12 @@ const Shape *StaticResource::loadShapeTable(int id, int &entries) {
 	return (const Shape *)getData(id, kShapeList, entries);
 }
 
-const Room *StaticResource::loadRoomTable(int id, int &entries) {
-	return (const Room *)getData(id, StaticResource::kRoomList, entries);
+const AmigaSfxTable *StaticResource::loadAmigaSfxTable(int id, int &entries) {
+	return (const AmigaSfxTable *)getData(id, kAmigaSfxTable, entries);
 }
 
-const uint8 * const *StaticResource::loadPaletteTable(int id, int &entries) {
-	return (const uint8* const *)getData(id, kPaletteTable, entries);
+const Room *StaticResource::loadRoomTable(int id, int &entries) {
+	return (const Room *)getData(id, StaticResource::kRoomList, entries);
 }
 
 const HofSeqData *StaticResource::loadHofSequenceData(int id, int &entries) {
@@ -521,63 +298,41 @@ const ItemAnimData_v2 *StaticResource::loadShapeAnimData_v2(int id, int &entries
 	return (const ItemAnimData_v2 *)getData(id, k2ShpAnimDataV2, entries);
 }
 
-#ifdef ENABLE_LOL
-const LoLCharacter *StaticResource::loadCharData(int id, int &entries) {
-	return (const LoLCharacter *)getData(id, kLolCharData, entries);
-}
-
-const SpellProperty *StaticResource::loadSpellData(int id, int &entries) {
-	return (const SpellProperty *)getData(id, kLolSpellData, entries);
-}
-
-const CompassDef *StaticResource::loadCompassData(int id, int &entries) {
-	return (const CompassDef *)getData(id, kLolCompassData, entries);
-}
-
-const FlyingObjectShape *StaticResource::loadFlyingObjectData(int id, int &entries) {
-	return (const FlyingObjectShape *)getData(id, kLolFlightShpData, entries);
-}
-
-const uint16 *StaticResource::loadRawDataBe16(int id, int &entries) {
-	return (const uint16 *)getData(id, kLolRawDataBe16, entries);
-}
-
-const uint32 *StaticResource::loadRawDataBe32(int id, int &entries) {
-	return (const uint32 *)getData(id, kLolRawDataBe32, entries);
-}
-
-const ButtonDef *StaticResource::loadButtonDefs(int id, int &entries) {
-	return (const ButtonDef *)getData(id, kLolButtonData, entries);
-}
-#endif // ENABLE_LOL
-
 bool StaticResource::prefetchId(int id) {
 	if (id == -1) {
-		for (int i = 0; _filenameTable[i].filename; ++i)
-			prefetchId(_filenameTable[i].id);
+		for (DataMap::const_iterator i = _dataTable.begin(); i != _dataTable.end(); ++i) {
+			if (!prefetchId(i->_key))
+				return false;
+		}
 		return true;
 	}
+
 	const void *ptr = 0;
 	int type = -1, size = -1;
 
 	if (checkResList(id, type, ptr, size))
 		return true;
 
-	if (checkForBuiltin(id, type, size))
-		return true;
-
-	const FilenameTable *filename = searchFile(id);
-	if (!filename)
+	DataMap::const_iterator dDesc = _dataTable.find(id);
+	if (dDesc == _dataTable.end())
 		return false;
-	const FileType *filetype = getFiletype(filename->type);
+
+	const FileType *filetype = getFiletype(dDesc->_value.type);
 	if (!filetype)
 		return false;
 
 	ResData data;
 	data.id = id;
-	data.type = filetype->type;
-	if (!(this->*(filetype->load))(filename->filename, data.data, data.size))
+	data.type = dDesc->_value.type;
+	Common::SeekableReadStream *fileStream = _vm->resource()->createReadStream(Common::String::format("%08X", dDesc->_value.filename));
+	if (!fileStream)
 		return false;
+
+	if (!(this->*(filetype->load))(*fileStream, data.data, data.size)) {
+		delete fileStream;
+		return false;
+	}
+	delete fileStream;
 	_resList.push_back(data);
 
 	return true;
@@ -585,12 +340,15 @@ bool StaticResource::prefetchId(int id) {
 
 void StaticResource::unloadId(int id) {
 	Common::List<ResData>::iterator pos = _resList.begin();
-	for (; pos != _resList.end(); ++pos) {
+	for (; pos != _resList.end();) {
 		if (pos->id == id || id == -1) {
 			const FileType *filetype = getFiletype(pos->type);
 			(this->*(filetype->free))(pos->data, pos->size);
+			pos = _resList.erase(pos);
 			if (id != -1)
 				break;
+		} else {
+			++pos;
 		}
 	}
 }
@@ -606,33 +364,6 @@ bool StaticResource::checkResList(int id, int &type, const void *&ptr, int &size
 		}
 	}
 	return false;
-}
-
-const void *StaticResource::checkForBuiltin(int id, int &type, int &size) {
-	if (!_builtIn)
-		return 0;
-
-	for (int i = 0; _builtIn[i].data; ++i) {
-		if (_builtIn[i].id == id) {
-			size = _builtIn[i].size;
-			type = _builtIn[i].type;
-			return _builtIn[i].data;
-		}
-	}
-
-	return 0;
-}
-
-const StaticResource::FilenameTable *StaticResource::searchFile(int id) {
-	if (!_filenameTable)
-		return 0;
-
-	for (int i = 0; _filenameTable[i].filename; ++i) {
-		if (_filenameTable[i].id == id)
-			return &_filenameTable[i];
-	}
-
-	return 0;
 }
 
 const StaticResource::FileType *StaticResource::getFiletype(int type) {
@@ -658,13 +389,6 @@ const void *StaticResource::getData(int id, int requesttype, int &size) {
 		return 0;
 	}
 
-	ptr = checkForBuiltin(id, type, size);
-	if (ptr) {
-		if (type == requesttype)
-			return ptr;
-		return 0;
-	}
-
 	if (!prefetchId(id))
 		return 0;
 
@@ -676,113 +400,82 @@ const void *StaticResource::getData(int id, int requesttype, int &size) {
 	return 0;
 }
 
-bool StaticResource::loadLanguageTable(const char *filename, void *&ptr, int &size) {
-	static Common::String file;
-	for (int i = 0; languages[i].ext; ++i) {
-		if (languages[i].flags != createLanguage(_vm->gameFlags()))
-			continue;
-
-		file = filename;
-		file += languages[i].ext;
-		if (loadStringTable(file.c_str(), ptr, size))
-			return true;
-	}
-
-	file = filename;
-	file += languages[0].ext;
-	if (loadStringTable(file.c_str(), ptr, size)) {
-		static bool warned = false;
-		if (!warned) {
-			warned = true;
-			warning("couldn't find specific language table for your version, using English now");
-		}
-		return true;
-	}
-
-	return false;
-}
-
-bool StaticResource::loadStringTable(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-	if (!file)
-		return false;
-
-	uint32 count = file->readUint32BE();
+bool StaticResource::loadStringTable(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	uint32 count = stream.readUint32BE();
 	size = count;
-	char **output = new char*[count];
+	char **output = new char *[count];
 	assert(output);
 
 	for (uint32 i = 0; i < count; ++i) {
 		Common::String string;
 		char c = 0;
-		while ((c = (char)file->readByte()) != 0)
+		while ((c = (char)stream.readByte()) != 0)
 			string += c;
 
 		output[i] = new char[string.size()+1];
 		strcpy(output[i], string.c_str());
 	}
 
-	delete file;
 	ptr = output;
-
 	return true;
 }
 
-bool StaticResource::loadRawData(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-	if (!file)
-		return false;
-
-	ptr = new uint8[file->size()];
-	file->read(ptr, file->size());
-	size = file->size();
-	delete file;
-
+bool StaticResource::loadRawData(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	ptr = new uint8[stream.size()];
+	stream.read(ptr, stream.size());
+	size = stream.size();
 	return true;
 }
 
-bool StaticResource::loadShapeTable(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-	if (!file)
-		return false;
-
-	uint32 count = file->readUint32BE();
+bool StaticResource::loadShapeTable(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	uint32 count = stream.readUint32BE();
 	size = count;
 	Shape *loadTo = new Shape[count];
 	assert(loadTo);
 
 	for (uint32 i = 0; i < count; ++i) {
-		loadTo[i].imageIndex = file->readByte();
-		loadTo[i].x = file->readByte();
-		loadTo[i].y = file->readByte();
-		loadTo[i].w = file->readByte();
-		loadTo[i].h = file->readByte();
-		loadTo[i].xOffset = file->readSByte();
-		loadTo[i].yOffset = file->readSByte();
+		loadTo[i].imageIndex = stream.readByte();
+		loadTo[i].x = stream.readByte();
+		loadTo[i].y = stream.readByte();
+		loadTo[i].w = stream.readByte();
+		loadTo[i].h = stream.readByte();
+		loadTo[i].xOffset = stream.readSByte();
+		loadTo[i].yOffset = stream.readSByte();
 	}
 
-	delete file;
 	ptr = loadTo;
-
 	return true;
 }
 
-bool StaticResource::loadRoomTable(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-	if (!file)
-		return false;
+bool StaticResource::loadAmigaSfxTable(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	size = stream.readUint32BE();
+	AmigaSfxTable *loadTo = new AmigaSfxTable[size];
+	assert(loadTo);
 
-	uint32 count = file->readUint32BE();
+	for (int i = 0; i < size; ++i) {
+		loadTo[i].note = stream.readByte();
+		loadTo[i].patch = stream.readByte();
+		loadTo[i].duration = stream.readUint16BE();
+		loadTo[i].volume = stream.readByte();
+		loadTo[i].pan = stream.readByte();
+	}
+
+	ptr = loadTo;
+	return true;
+}
+
+bool StaticResource::loadRoomTable(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	uint32 count = stream.readUint32BE();
 	size = count;
 	Room *loadTo = new Room[count];
 	assert(loadTo);
 
 	for (uint32 i = 0; i < count; ++i) {
-		loadTo[i].nameIndex = file->readByte();
-		loadTo[i].northExit = file->readUint16BE();
-		loadTo[i].eastExit = file->readUint16BE();
-		loadTo[i].southExit = file->readUint16BE();
-		loadTo[i].westExit = file->readUint16BE();
+		loadTo[i].nameIndex = stream.readByte();
+		loadTo[i].northExit = stream.readUint16BE();
+		loadTo[i].eastExit = stream.readUint16BE();
+		loadTo[i].southExit = stream.readUint16BE();
+		loadTo[i].westExit = stream.readUint16BE();
 		memset(&loadTo[i].itemsTable[0], 0xFF, sizeof(byte)*6);
 		memset(&loadTo[i].itemsTable[6], 0, sizeof(byte)*6);
 		memset(loadTo[i].itemsXPos, 0, sizeof(uint16)*12);
@@ -790,119 +483,67 @@ bool StaticResource::loadRoomTable(const char *filename, void *&ptr, int &size) 
 		memset(loadTo[i].needInit, 0, sizeof(loadTo[i].needInit));
 	}
 
-	delete file;
 	ptr = loadTo;
-
 	return true;
 }
 
-bool StaticResource::loadPaletteTable(const char *filename, void *&ptr, int &size) {
-	const char *temp = filename;
-	int start = atoi(temp);
-	temp = strstr(temp, " ");
-	if (temp == NULL)
-		return false;
-	++temp;
-	int end = atoi(temp);
-
-	uint8 **table = new uint8*[end-start+1];
-	assert(table);
-
-	char baseFilename[64];
-	temp = filename;
-	temp = strstr(temp, " ");
-	++temp;
-	temp = strstr(temp, " ");
-	if (temp == NULL)
-		return false;
-	++temp;
-	strncpy(baseFilename, temp, 64);
-
-	char name[64];
-	for (int i = start; i <= end; ++i) {
-		snprintf(name, 64, "%s%d.PAL", baseFilename, i);
-
-		Common::SeekableReadStream *file = getFile(name);
-		if (!file) {
-			for (int j = start; j < i; ++i)
-				delete[] table[j-start];
-			delete[] table;
-
-			return false;
-		}
-
-		table[i-start] = new uint8[file->size()];
-		file->read(table[i-start], file->size());
-		delete file;
-	}
-
-	ptr = table;
-	size = end - start + 1;
-	return true;
-}
-
-bool StaticResource::loadHofSequenceData(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	int numSeq = file->readUint16BE();
+bool StaticResource::loadHofSequenceData(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	int numSeq = stream.readUint16BE();
 	uint32 offset = 2;
 	Sequence *tmp_s = new Sequence[numSeq];
 
 	size = sizeof(HofSeqData) + numSeq * (sizeof(Sequence) + 28);
 
 	for (int i = 0; i < numSeq; i++) {
-		file->seek(offset, SEEK_SET); offset += 2;
-		file->seek(file->readUint16BE(), SEEK_SET);
+		stream.seek(offset, SEEK_SET); offset += 2;
+		stream.seek(stream.readUint16BE(), SEEK_SET);
 
-		tmp_s[i].flags = file->readUint16BE();
+		tmp_s[i].flags = stream.readUint16BE();
 		tmp_s[i].wsaFile = new char[14];
-		file->read(const_cast<char*>(tmp_s[i].wsaFile), 14);
+		stream.read(const_cast<char *>(tmp_s[i].wsaFile), 14);
 		tmp_s[i].cpsFile = new char[14];
-		file->read(const_cast<char*>(tmp_s[i].cpsFile), 14);
-		tmp_s[i].startupCommand = file->readByte();
-		tmp_s[i].finalCommand = file->readByte();
-		tmp_s[i].stringIndex1 = file->readUint16BE();
-		tmp_s[i].stringIndex2 = file->readUint16BE();
-		tmp_s[i].startFrame = file->readUint16BE();
-		tmp_s[i].numFrames = file->readUint16BE();
-		tmp_s[i].frameDelay = file->readUint16BE();
-		tmp_s[i].xPos = file->readUint16BE();
-		tmp_s[i].yPos = file->readUint16BE();
-		tmp_s[i].duration = file->readUint16BE();
+		stream.read(const_cast<char *>(tmp_s[i].cpsFile), 14);
+		tmp_s[i].startupCommand = stream.readByte();
+		tmp_s[i].finalCommand = stream.readByte();
+		tmp_s[i].stringIndex1 = stream.readUint16BE();
+		tmp_s[i].stringIndex2 = stream.readUint16BE();
+		tmp_s[i].startFrame = stream.readUint16BE();
+		tmp_s[i].numFrames = stream.readUint16BE();
+		tmp_s[i].frameDelay = stream.readUint16BE();
+		tmp_s[i].xPos = stream.readUint16BE();
+		tmp_s[i].yPos = stream.readUint16BE();
+		tmp_s[i].duration = stream.readUint16BE();
 	}
 
-	file->seek(offset, SEEK_SET); offset += 2;
-	int numSeqN = file->readUint16BE();
+	stream.seek(offset, SEEK_SET); offset += 2;
+	int numSeqN = stream.readUint16BE();
 	NestedSequence *tmp_n = new NestedSequence[numSeqN];
 	size += (numSeqN * (sizeof(NestedSequence) + 14));
 
 	for (int i = 0; i < numSeqN; i++) {
-		file->seek(offset, SEEK_SET); offset += 2;
-		file->seek(file->readUint16BE(), SEEK_SET);
+		stream.seek(offset, SEEK_SET); offset += 2;
+		stream.seek(stream.readUint16BE(), SEEK_SET);
 
-		tmp_n[i].flags = file->readUint16BE();
+		tmp_n[i].flags = stream.readUint16BE();
 		tmp_n[i].wsaFile = new char[14];
-		file->read(const_cast<char*>(tmp_n[i].wsaFile), 14);
-		tmp_n[i].startframe = file->readUint16BE();
-		tmp_n[i].endFrame = file->readUint16BE();
-		tmp_n[i].frameDelay = file->readUint16BE();
-		tmp_n[i].x = file->readUint16BE();
-		tmp_n[i].y = file->readUint16BE();
-		uint16 ctrlOffs = file->readUint16BE();
-		tmp_n[i].startupCommand = file->readUint16BE();
-		tmp_n[i].finalCommand = file->readUint16BE();
+		stream.read(const_cast<char *>(tmp_n[i].wsaFile), 14);
+		tmp_n[i].startframe = stream.readUint16BE();
+		tmp_n[i].endFrame = stream.readUint16BE();
+		tmp_n[i].frameDelay = stream.readUint16BE();
+		tmp_n[i].x = stream.readUint16BE();
+		tmp_n[i].y = stream.readUint16BE();
+		uint16 ctrlOffs = stream.readUint16BE();
+		tmp_n[i].startupCommand = stream.readUint16BE();
+		tmp_n[i].finalCommand = stream.readUint16BE();
 
 		if (ctrlOffs) {
-			file->seek(ctrlOffs, SEEK_SET);
-			int num_c = file->readByte();
+			stream.seek(ctrlOffs, SEEK_SET);
+			int num_c = stream.readByte();
 			FrameControl *tmp_f = new FrameControl[num_c];
 
 			for (int ii = 0; ii < num_c; ii++) {
-				tmp_f[ii].index = file->readUint16BE();
-				tmp_f[ii].delay = file->readUint16BE();
+				tmp_f[ii].index = stream.readUint16BE();
+				tmp_f[ii].delay = stream.readUint16BE();
 			}
 
 			tmp_n[i].wsaControl = (const FrameControl *)tmp_f;
@@ -913,8 +554,6 @@ bool StaticResource::loadHofSequenceData(const char *filename, void *&ptr, int &
 		}
 	}
 
-	delete file;
-
 	HofSeqData *loadTo = new HofSeqData;
 	assert(loadTo);
 
@@ -924,256 +563,46 @@ bool StaticResource::loadHofSequenceData(const char *filename, void *&ptr, int &
 	loadTo->numSeqn = numSeqN;
 
 	ptr = loadTo;
-
 	return true;
 }
 
-bool StaticResource::loadShapeAnimData_v1(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->readByte();
+bool StaticResource::loadShapeAnimData_v1(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	size = stream.readByte();
 	ItemAnimData_v1 *loadTo = new ItemAnimData_v1[size];
 	assert(loadTo);
 
 	for (int i = 0; i < size; i++) {
-		loadTo[i].itemIndex = file->readSint16BE();
-		loadTo[i].y = file->readUint16BE();
+		loadTo[i].itemIndex = stream.readSint16BE();
+		loadTo[i].y = stream.readUint16BE();
 		uint16 *tmp_f = new uint16[20];
 		for (int ii = 0; ii < 20; ii++)
-			tmp_f[ii] = file->readUint16BE();
+			tmp_f[ii] = stream.readUint16BE();
 		loadTo[i].frames = tmp_f;
 	}
 
-	delete file;
 	ptr = loadTo;
-
 	return true;
 }
 
-bool StaticResource::loadShapeAnimData_v2(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->readByte();
+bool StaticResource::loadShapeAnimData_v2(Common::SeekableReadStream &stream, void *&ptr, int &size) {
+	size = stream.readByte();
 	ItemAnimData_v2 *loadTo = new ItemAnimData_v2[size];
 	assert(loadTo);
 
 	for (int i = 0; i < size; i++) {
-		loadTo[i].itemIndex = file->readSint16BE();
-		loadTo[i].numFrames = file->readByte();
+		loadTo[i].itemIndex = stream.readSint16BE();
+		loadTo[i].numFrames = stream.readByte();
 		FrameControl *tmp_f = new FrameControl[loadTo[i].numFrames];
 		for (int ii = 0; ii < loadTo[i].numFrames; ii++) {
-			tmp_f[ii].index = file->readUint16BE();
-			tmp_f[ii].delay = file->readUint16BE();
+			tmp_f[ii].index = stream.readUint16BE();
+			tmp_f[ii].delay = stream.readUint16BE();
 		}
 		loadTo[i].frames = tmp_f;
 	}
 
-	delete file;
 	ptr = loadTo;
 	return true;
 }
-
-#ifdef ENABLE_LOL
-bool StaticResource::loadCharData(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() / 130;
-	LoLCharacter *charData = new LoLCharacter[size];
-
-	for (int i = 0; i < size; i++) {
-		LoLCharacter *t = &charData[i];
-
-		t->flags = file->readUint16LE();
-		file->read(t->name, 11);
-		t->raceClassSex = file->readByte();
-		t->id = file->readSint16LE();
-		t->curFaceFrame = file->readByte();
-		t->defaultFaceFrame = file->readByte();
-		t->screamSfx = file->readByte();
-		file->readUint32LE();
-		for (int ii = 0; ii < 8; ii++)
-			t->itemsMight[ii] = file->readUint16LE();
-		for (int ii = 0; ii < 8; ii++)
-			t->protectionAgainstItems[ii] = file->readUint16LE();
-		t->itemProtection = file->readUint16LE();
-		t->hitPointsCur = file->readSint16LE();
-		t->hitPointsMax = file->readUint16LE();
-		t->magicPointsCur = file->readSint16LE();
-		t->magicPointsMax = file->readUint16LE();
-		t->field_41 = file->readByte();
-		t->damageSuffered = file->readUint16LE();
-		t->weaponHit = file->readUint16LE();
-		t->totalMightModifier = file->readUint16LE();
-		t->totalProtectionModifier = file->readUint16LE();
-		t->might = file->readUint16LE();
-		t->protection = file->readUint16LE();
-		t->nextAnimUpdateCountdown = file->readSint16LE();
-		for (int ii = 0; ii < 11; ii++)
-			t->items[ii] = file->readUint16LE();
-		for (int ii = 0; ii < 3; ii++)
-			t->skillLevels[ii] = file->readByte();
-		for (int ii = 0; ii < 3; ii++)
-			t->skillModifiers[ii] = file->readByte();
-		for (int ii = 0; ii < 3; ii++)
-			t->experiencePts[ii] = file->readUint32LE();
-		for (int ii = 0; ii < 5; ii++)
-			t->characterUpdateEvents[ii] = file->readByte();
-		for (int ii = 0; ii < 5; ii++)
-			t->characterUpdateDelay[ii] = file->readByte();
-	};
-
-	delete file;
-	ptr = charData;
-	return true;
-}
-
-bool StaticResource::loadSpellData(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() / 28;
-	SpellProperty *spellData = new SpellProperty[size];
-
-	for (int i = 0; i < size; i++) {
-		SpellProperty *t = &spellData[i];
-
-		t->spellNameCode = file->readUint16LE();
-		for (int ii = 0; ii < 4; ii++)
-			t->mpRequired[ii] = file->readUint16LE();
-		t->field_a = file->readUint16LE();
-		t->field_c = file->readUint16LE();
-		for (int ii = 0; ii < 4; ii++)
-			t->hpRequired[ii] = file->readUint16LE();
-		t->field_16 = file->readUint16LE();
-		t->field_18 = file->readUint16LE();
-		t->flags = file->readUint16LE();
-	};
-
-	delete file;
-	ptr = spellData;
-	return true;
-}
-
-bool StaticResource::loadCompassData(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() / 4;
-	CompassDef *defs = new CompassDef[size];
-
-	for (int i = 0; i < size; i++) {
-		CompassDef *t = &defs[i];
-		t->shapeIndex = file->readByte();
-		t->x = file->readByte();
-		t->y = file->readByte();
-		t->flags = file->readByte();
-	};
-
-
-	delete file;
-	ptr = defs;
-	return true;
-}
-
-bool StaticResource::loadFlyingObjectData(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() / 5;
-	FlyingObjectShape *defs = new FlyingObjectShape[size];
-
-	for (int i = 0; i < size; i++) {
-		FlyingObjectShape *t = &defs[i];
-		t->shapeFront = file->readByte();
-		t->shapeBack = file->readByte();
-		t->shapeLeft = file->readByte();
-		t->drawFlags = file->readByte();
-		t->flipFlags = file->readByte();
-	};
-
-	delete file;
-	ptr = defs;
-	return true;
-}
-
-bool StaticResource::loadRawDataBe16(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() >> 1;
-
-	uint16 *r = new uint16[size];
-
-	for (int i = 0; i < size; i++)
-		r[i] = file->readUint16BE();
-
-	delete file;
-	ptr = r;
-	return true;
-}
-
-bool StaticResource::loadRawDataBe32(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() >> 2;
-
-	uint32 *r = new uint32[size];
-
-	for (int i = 0; i < size; i++)
-		r[i] = file->readUint32BE();
-
-	delete file;
-	ptr = r;
-	return true;
-}
-
-bool StaticResource::loadButtonDefs(const char *filename, void *&ptr, int &size) {
-	Common::SeekableReadStream *file = getFile(filename);
-
-	if (!file)
-		return false;
-
-	size = file->size() / 18;
-
-	ButtonDef *r = new ButtonDef[size];
-
-	for (int i = 0; i < size; i++) {
-		r[i].buttonflags = file->readUint16BE();
-		r[i].keyCode = file->readUint16BE();
-		r[i].keyCode2 = file->readUint16BE();
-		r[i].x = file->readSint16BE();
-		r[i].y = file->readSint16BE();
-		r[i].w = file->readUint16BE();
-		r[i].h = file->readUint16BE();
-		r[i].index = file->readUint16BE();
-		r[i].screenDim = file->readUint16BE();
-	}
-
-	delete file;
-	ptr = r;
-	return true;
-}
-#endif // ENABLE_LOL
 
 void StaticResource::freeRawData(void *&ptr, int &size) {
 	uint8 *data = (uint8 *)ptr;
@@ -1193,6 +622,13 @@ void StaticResource::freeStringTable(void *&ptr, int &size) {
 
 void StaticResource::freeShapeTable(void *&ptr, int &size) {
 	Shape *data = (Shape *)ptr;
+	delete[] data;
+	ptr = 0;
+	size = 0;
+}
+
+void StaticResource::freeAmigaSfxTable(void *&ptr, int &size) {
+	AmigaSfxTable *data = (AmigaSfxTable *)ptr;
 	delete[] data;
 	ptr = 0;
 	size = 0;
@@ -1241,95 +677,6 @@ void StaticResource::freeHofShapeAnimDataV2(void *&ptr, int &size) {
 	delete[] d;
 	ptr = 0;
 	size = 0;
-}
-
-#ifdef ENABLE_LOL
-void StaticResource::freeCharData(void *&ptr, int &size) {
-	LoLCharacter *d = (LoLCharacter *)ptr;
-	delete[] d;
-	ptr = 0;
-	size = 0;
-}
-
-void StaticResource::freeSpellData(void *&ptr, int &size) {
-	SpellProperty *d = (SpellProperty *)ptr;
-	delete[] d;
-	ptr = 0;
-	size = 0;
-}
-
-void StaticResource::freeCompassData(void *&ptr, int &size) {
-	CompassDef *d = (CompassDef *)ptr;
-	delete[] d;
-	ptr = 0;
-	size = 0;
-}
-
-void StaticResource::freeFlyingObjectData(void *&ptr, int &size) {
-	FlyingObjectShape *d = (FlyingObjectShape *)ptr;
-	delete[] d;
-	ptr = 0;
-	size = 0;
-}
-
-
-void StaticResource::freeRawDataBe16(void *&ptr, int &size) {
-	uint16 *data = (uint16 *)ptr;
-	delete[] data;
-	ptr = 0;
-	size = 0;
-}
-
-void StaticResource::freeRawDataBe32(void *&ptr, int &size) {
-	uint32 *data = (uint32 *)ptr;
-	delete[] data;
-	ptr = 0;
-	size = 0;
-}
-
-void StaticResource::freeButtonDefs(void *&ptr, int &size) {
-	ButtonDef *d = (ButtonDef *)ptr;
-	delete[] d;
-	ptr = 0;
-	size = 0;
-}
-#endif // ENABLE_LOL
-
-void StaticResource::freePaletteTable(void *&ptr, int &size) {
-	uint8 **data = (uint8 **)ptr;
-	while (size--)
-		delete[] data[size];
-	delete[] data;
-	ptr = 0;
-	size = 0;
-}
-
-const char *StaticResource::getFilename(const char *name) {
-	static Common::String filename;
-
-	filename = name;
-
-	if (_vm->gameFlags().gameID == GI_KYRA2)
-		filename += ".K2";
-	else if (_vm->gameFlags().gameID == GI_KYRA3)
-		filename += ".K3";
-	else if (_vm->gameFlags().gameID == GI_LOL)
-		filename += ".LOL";
-
-	if (_vm->gameFlags().isTalkie && _vm->gameFlags().gameID != GI_KYRA3)
-		filename += ".CD";
-	else if (_vm->gameFlags().isDemo)
-		filename += ".DEM";
-	else if (_vm->gameFlags().platform == Common::kPlatformFMTowns || _vm->gameFlags().platform == Common::kPlatformPC98)
-		filename += ".TNS";
-	else if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		filename += ".AMG";
-
-	return filename.c_str();
-}
-
-Common::SeekableReadStream *StaticResource::getFile(const char *name) {
-	return _vm->resource()->createReadStream(getFilename(name));
 }
 
 #pragma mark -
@@ -1391,10 +738,15 @@ void KyraEngine_LoK::initStaticResource() {
 
 	_amuleteAnim = _staticres->loadRawData(k1AmuleteAnimSeq, temp);
 
-	_specialPalettes = _staticres->loadPaletteTable(k1PaletteList, temp);
+	const uint8 **palTable = new const uint8 *[k1SpecialPalette33 - k1SpecialPalette1 + 1];
+	for (int i = k1SpecialPalette1; i <= k1SpecialPalette33; ++i)
+		palTable[i - k1SpecialPalette1] = _staticres->loadRawData(i, temp);
+	_specialPalettes = palTable;
 
 	_guiStrings = _staticres->loadStrings(k1GUIStrings, _guiStringsSize);
 	_configStrings = _staticres->loadStrings(k1ConfigStrings, _configStringsSize);
+
+	_storyStrings = _staticres->loadStrings(k1PC98StoryStrings, _storyStringsSize);
 
 	_soundFiles = _staticres->loadStrings(k1AudioTracks, _soundFilesSize);
 	_soundFilesIntro = _staticres->loadStrings(k1AudioTracksIntro, _soundFilesIntroSize);
@@ -1429,8 +781,8 @@ void KyraEngine_LoK::initStaticResource() {
 	}
 
 	// audio data tables
-	static const char *tIntro98[] = { "intro%d.dat" };
-	static const char *tIngame98[] = { "kyram%d.dat" };
+	static const char *tIntro98[] = { "INTRO%d.DAT" };
+	static const char *tIngame98[] = { "KYRAM%d.DAT" };
 
 	// FIXME: It seems Kyra1 MAC CD includes AdLib and MIDI music and sfx, thus we enable
 	// support for those for now. (Based on patch #2767489 "Support for Mac Kyrandia 1 CD" by satz).
@@ -1452,7 +804,7 @@ void KyraEngine_LoK::initStaticResource() {
 	} else if (_flags.platform == Common::kPlatformPC98) {
 		_soundData[0].fileList = tIntro98;
 		_soundData[0].fileListLen = 1;
-		_soundData[0].extraOffset = -56;
+		_soundData[0].extraOffset = -1;
 		_soundData[1].fileList = tIngame98;
 		_soundData[1].fileListLen = 1;
 		_soundData[1].extraOffset = -1;
@@ -1522,7 +874,7 @@ void KyraEngine_LoK::loadItems() {
 
 	_shapes[323] = 0;
 
-	for (shape = 1; shape < 6; shape++ )
+	for (shape = 1; shape < 6; shape++)
 		_shapes[323 + shape] = _screen->encodeShape((shape - 1) * 32, 0, 32, 17, 0);
 
 	for (shape = 330; shape <= 334; shape++)
@@ -1556,16 +908,7 @@ void KyraEngine_LoK::loadItems() {
 			_shapes[216 + i] = _screen->encodeShape( (i % 20) * 16, i/20 * 16, 16, 16, 0);
 	}
 
-	uint32 size;
-	uint8 *fileData = _res->fileData("_ITEM_HT.DAT", &size);
-	assert(fileData);
-
-	for (int i = 0; i < 107; i++) {
-		_itemTable[i].height = fileData[i];
-		_itemTable[i].unk1 = _itemTable[i].unk2 = 0;
-	}
-
-	delete[] fileData;
+	_res->loadFileToBuf("_ITEM_HT.DAT", &_itemHtDat, sizeof(_itemHtDat));
 }
 
 void KyraEngine_LoK::loadButtonShapes() {
@@ -1583,7 +926,7 @@ void KyraEngine_LoK::loadButtonShapes() {
 void KyraEngine_LoK::loadMainScreen(int page) {
 	_screen->clearPage(page);
 
-	if (_flags.lang == Common::EN_ANY && !_flags.isTalkie && (_flags.platform == Common::kPlatformPC || _flags.platform == Common::kPlatformAmiga))
+	if ((_flags.lang == Common::EN_ANY && !_flags.isTalkie && _flags.platform == Common::kPlatformPC) || _flags.platform == Common::kPlatformAmiga)
 		_screen->loadBitmap("MAIN15.CPS", page, page, &_screen->getPalette(0));
 	else if (_flags.lang == Common::EN_ANY || _flags.lang == Common::JA_JPN || (_flags.isTalkie && _flags.lang == Common::IT_ITA))
 		_screen->loadBitmap("MAIN_ENG.CPS", page, page, 0);
@@ -1598,10 +941,15 @@ void KyraEngine_LoK::loadMainScreen(int page) {
 	else
 		warning("no main graphics file found");
 
-	if (_flags.platform == Common::kPlatformAmiga)
-		_screen->copyPalette(1, 0);
+	_screen->copyRegion(0, 0, 0, 0, 320, 200, page, 0, Screen::CR_NO_P_CHECK);
 
-	_screen->copyRegion(0, 0, 0, 0, 320, 200, page, 0);
+	if (_flags.platform == Common::kPlatformAmiga) {
+		_screen->copyPalette(1, 0);
+		_screen->setInterfacePalette(_screen->getPalette(1), 0x3F, 0x3F, 0x3F);
+
+		// TODO: Move this to a better place
+		_screen->enableInterfacePalette(true);
+	}
 }
 
 void KyraEngine_HoF::initStaticResource() {
@@ -1625,7 +973,7 @@ void KyraEngine_HoF::initStaticResource() {
 	// replace sequence talkie files with localized versions
 	const char *const *seqSoundList = _staticres->loadStrings(k2SeqplaySfxFiles, _sequenceSoundListSize);
 	const char *const *tlkfiles = _staticres->loadStrings(k2SeqplayTlkFiles, tmpSize);
-	char **tmpSndLst = new char*[_sequenceSoundListSize];
+	char **tmpSndLst = new char *[_sequenceSoundListSize];
 
 	for (int i = 0; i < _sequenceSoundListSize; i++) {
 		const int len = strlen(seqSoundList[i]);
@@ -1759,350 +1107,6 @@ void KyraEngine_MR::initStaticResource() {
 	_itemMagicTable = _staticres->loadRawData(k3ItemMagicTable, tmp);
 	_itemStringMap = _staticres->loadRawData(k3ItemStringMap, _itemStringMapSize);
 }
-
-#ifdef ENABLE_LOL
-// TODO: move this to lol.cpp maybe?
-void LoLEngine::initStaticResource() {
-	// assign music data
-	static const char *pcMusicFileListIntro[] = { "LOREINTR" };
-	static const char *pcMusicFileListFinale[] = { "LOREFINL" };
-	static const char *pcMusicFileListIngame[] = { "LORE%02d%c" };
-
-	static const char *pc98MusicFileListIntro[] = { 0, "lore84.86", "lore82.86", 0, 0, 0, "lore83.86", "lore81.86" };
-	static const char *pc98MusicFileListFinale[] = { "lore%02d.86" };
-	static const char *pc98MusicFileListIngame[] = { "lore%02d.86" };
-
-	memset(_soundData, 0, sizeof(_soundData));
-	if (_flags.platform == Common::kPlatformPC) {
-		_soundData[0].fileList = pcMusicFileListIntro;
-		_soundData[0].fileListLen = ARRAYSIZE(pcMusicFileListIntro);
-		_soundData[1].fileList = pcMusicFileListIngame;
-		_soundData[1].fileListLen = ARRAYSIZE(pcMusicFileListIngame);
-		_soundData[2].fileList = pcMusicFileListFinale;
-		_soundData[2].fileListLen = ARRAYSIZE(pcMusicFileListFinale);
-	} else if (_flags.platform == Common::kPlatformPC98) {
-		_soundData[0].fileList = pc98MusicFileListIntro;
-		_soundData[0].fileListLen = ARRAYSIZE(pc98MusicFileListIntro);
-		_soundData[1].fileList = pc98MusicFileListIngame;
-		_soundData[1].fileListLen = ARRAYSIZE(pc98MusicFileListIngame);
-		_soundData[2].fileList = pc98MusicFileListFinale;
-		_soundData[2].fileListLen = ARRAYSIZE(pc98MusicFileListFinale);
-	}
-
-	if (_flags.isDemo)
-		return;
-
-	_charDefaults = _staticres->loadCharData(kLolCharacterDefs, _charDefaultsSize);
-	_ingameSoundIndex = (const uint16 *)_staticres->loadRawData(kLolIngameSfxIndex, _ingameSoundIndexSize);
-	_musicTrackMap = _staticres->loadRawData(kLolMusicTrackMap, _musicTrackMapSize);
-	_ingameGMSoundIndex = _staticres->loadRawData(kLolIngameGMSfxIndex, _ingameGMSoundIndexSize);
-	_ingameMT32SoundIndex = _staticres->loadRawData(kLolIngameMT32SfxIndex, _ingameMT32SoundIndexSize);
-	//_ingameADLSoundIndex = _staticres->loadRawData(kLolIngameADLSfxIndex, _ingameADLSoundIndexSize);
-	_spellProperties = _staticres->loadSpellData(kLolSpellProperties, _spellPropertiesSize);
-	_gameShapeMap = (const int8 *)_staticres->loadRawData(kLolGameShapeMap, _gameShapeMapSize);
-	_sceneItemOffs = (const int8 *)_staticres->loadRawData(kLolSceneItemOffs, _sceneItemOffsSize);
-	_charInvIndex = _staticres->loadRawData(kLolCharInvIndex, _charInvIndexSize);
-	_charInvDefs = _staticres->loadRawData(kLolCharInvDefs, _charInvDefsSize);
-	_charDefsMan = _staticres->loadRawDataBe16(kLolCharDefsMan, _charDefsManSize);
-	_charDefsWoman = _staticres->loadRawDataBe16(kLolCharDefsWoman, _charDefsWomanSize);
-	_charDefsKieran = _staticres->loadRawDataBe16(kLolCharDefsKieran, _charDefsKieranSize);
-	_charDefsAkshel = _staticres->loadRawDataBe16(kLolCharDefsAkshel, _charDefsAkshelSize);
-	_expRequirements = (const int32 *)_staticres->loadRawDataBe32(kLolExpRequirements, _expRequirementsSize);
-	_monsterModifiers = _staticres->loadRawDataBe16(kLolMonsterModifiers, _monsterModifiersSize);
-	_monsterShiftOffs = (const int8 *)_staticres->loadRawData(kLolMonsterShiftOffsets, _monsterShiftOffsSize);
-	_monsterDirFlags = _staticres->loadRawData(kLolMonsterDirFlags, _monsterDirFlagsSize);
-	_monsterScaleX = _staticres->loadRawData(kLolMonsterScaleX, _monsterScaleXSize);
-	_monsterScaleY = _staticres->loadRawData(kLolMonsterScaleY, _monsterScaleYSize);
-	_monsterScaleWH = _staticres->loadRawDataBe16(kLolMonsterScaleWH, _monsterScaleWHSize);
-	_inventorySlotDesc = _staticres->loadRawDataBe16(kLolInventoryDesc, _inventorySlotDescSize);
-	_levelShpList = _staticres->loadStrings(kLolLevelShpList, _levelShpListSize);
-	_levelDatList = _staticres->loadStrings(kLolLevelDatList, _levelDatListSize);
-	_compassDefs = _staticres->loadCompassData(kLolCompassDefs, _compassDefsSize);
-	_flyingItemShapes = _staticres->loadFlyingObjectData(kLolFlyingObjectShp, _flyingItemShapesSize);
-	_itemCost = _staticres->loadRawDataBe16(kLolItemPrices, _itemCostSize);
-	_stashSetupData = _staticres->loadRawData(kLolStashSetup, _stashSetupDataSize);
-
-	_dscUnk1 = (const int8 *)_staticres->loadRawData(kLolDscUnk1, _dscUnk1Size);
-	_dscShapeIndex = (const int8 *)_staticres->loadRawData(kLolDscShapeIndex, _dscShapeIndexSize);
-	_dscOvlMap = _staticres->loadRawData(kLolDscOvlMap, _dscOvlMapSize);
-	_dscShapeScaleW = _staticres->loadRawDataBe16(kLolDscScaleWidthData, _dscShapeScaleWSize);
-	_dscShapeScaleH = _staticres->loadRawDataBe16(kLolDscScaleHeightData, _dscShapeScaleHSize);
-	_dscShapeX = (const int16 *)_staticres->loadRawDataBe16(kLolDscX, _dscShapeXSize);
-	_dscShapeY = (const int8 *)_staticres->loadRawData(kLolDscY, _dscShapeYSize);
-	_dscTileIndex = _staticres->loadRawData(kLolDscTileIndex, _dscTileIndexSize);
-	_dscUnk2 = _staticres->loadRawData(kLolDscUnk2, _dscUnk2Size);
-	_dscDoorShpIndex = _staticres->loadRawData(kLolDscDoorShapeIndex, _dscDoorShpIndexSize);
-	_dscDim1 = (const int8 *)_staticres->loadRawData(kLolDscDimData1, _dscDim1Size);
-	_dscDim2 = (const int8 *)_staticres->loadRawData(kLolDscDimData2, _dscDim2Size);
-	_dscBlockMap = _staticres->loadRawData(kLolDscBlockMap, _dscBlockMapSize);
-	_dscDimMap = _staticres->loadRawData(kLolDscDimMap, _dscDimMapSize);
-	_dscDoorMonsterScaleTable = _staticres->loadRawDataBe16(kLolDscDoorScale, _dscDoorMonsterScaleTableSize);
-	_dscShapeOvlIndex = _staticres->loadRawData(kLolDscOvlIndex, _dscShapeOvlIndexSize);
-	_dscDoor4 = _staticres->loadRawDataBe16(kLolDscDoor4, _dscDoor4Size);
-	_dscBlockIndex = (const int8 *)_staticres->loadRawData(kLolDscBlockIndex, _dscBlockIndexSize);
-	_dscDoor1 = _staticres->loadRawData(kLolDscDoor1, _dscDoor1Size);
-	_dscDoorMonsterX = (const int16 *)_staticres->loadRawDataBe16(kLolDscDoorX, _dscDoorMonsterXSize);
-	_dscDoorMonsterY = (const int16 *)_staticres->loadRawDataBe16(kLolDscDoorY, _dscDoorMonsterYSize);
-
-	_scrollXTop = _staticres->loadRawData(kLolScrollXTop, _scrollXTopSize);
-	_scrollYTop = _staticres->loadRawData(kLolScrollYTop, _scrollYTopSize);
-	_scrollXBottom = _staticres->loadRawData(kLolScrollXBottom, _scrollXBottomSize);
-	_scrollYBottom = _staticres->loadRawData(kLolScrollYBottom, _scrollYBottomSize);
-
-	const char *const *tmpSndList = _staticres->loadStrings(kLolIngameSfxFiles, _ingameSoundListSize);
-	if (tmpSndList) {
-		_ingameSoundList = new char*[_ingameSoundListSize];
-		for (int i = 0; i < _ingameSoundListSize; i++) {
-			_ingameSoundList[i] = new char[strlen(tmpSndList[i]) + 1];
-			strcpy(_ingameSoundList[i], tmpSndList[i]);
-		}
-		_staticres->unloadId(kLolIngameSfxFiles);
-	}
-
-	_buttonData = _staticres->loadButtonDefs(kLolButtonDefs, _buttonDataSize);
-	_buttonList1 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList1, _buttonList1Size);
-	_buttonList2 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList2, _buttonList2Size);
-	_buttonList3 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList3, _buttonList3Size);
-	_buttonList4 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList4, _buttonList4Size);
-	_buttonList5 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList5, _buttonList5Size);
-	_buttonList6 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList6, _buttonList6Size);
-	_buttonList7 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList7, _buttonList7Size);
-	_buttonList8 = (const int16 *)_staticres->loadRawDataBe16(kLolButtonList8, _buttonList8Size);
-
-	_autoMapStrings = _staticres->loadRawDataBe16(lolMapStringId, _autoMapStringsSize);
-
-	int tmpSize = 0;
-	const uint8 *tmp = _staticres->loadRawData(lolLegendData, tmpSize);
-	tmpSize /= 5;
-	if (tmp) {
-		_defaultLegendData = new MapLegendData[tmpSize];
-		for (int i = 0; i < tmpSize; i++) {
-			_defaultLegendData[i].shapeIndex = *tmp++;
-			_defaultLegendData[i].enable = *tmp++ ? true : false;
-			_defaultLegendData[i].x = (int8)*tmp++;
-			_defaultLegendData[i].stringId = READ_LE_UINT16(tmp);
-			tmp += 2;
-		}
-		_staticres->unloadId(lolLegendData);
-	}
-
-	tmp = _staticres->loadRawData(lolMapCursorOvl, tmpSize);
-	_mapCursorOverlay = new uint8[tmpSize];
-	memcpy(_mapCursorOverlay, tmp, tmpSize);
-	_staticres->unloadId(lolMapCursorOvl);
-
-	_updateSpellBookCoords = _staticres->loadRawData(lolSpellbookCoords, _updateSpellBookCoordsSize);
-	_updateSpellBookAnimData = _staticres->loadRawData(lolSpellbookAnim, _updateSpellBookAnimDataSize);
-	_healShapeFrames = _staticres->loadRawData(lolHealShapeFrames, _healShapeFramesSize);
-
-	tmp = _staticres->loadRawData(lolLightningDefs, tmpSize);
-	if (tmp) {
-		_lightningProps = new LightningProperty[5];
-		for (int i = 0; i < 5; i++) {
-			_lightningProps[i].lastFrame = tmp[i << 2];
-			_lightningProps[i].frameDiv = tmp[(i << 2) + 1];
-			_lightningProps[i].sfxId = READ_LE_UINT16(&tmp[(i << 2) + 2]);
-		}
-		_staticres->unloadId(lolLightningDefs);
-	}
-
-	_fireBallCoords = (const int16*)_staticres->loadRawDataBe16(lolFireballCoords, _fireBallCoordsSize);
-
-	_buttonCallbacks.clear();
-	_buttonCallbacks.reserve(95);
-#define cb(x) _buttonCallbacks.push_back(BUTTON_FUNCTOR(LoLEngine, this, &LoLEngine::x))
-	// 0x00
-	cb(clickedUpArrow);
-	cb(clickedDownArrow);
-	_buttonCallbacks.push_back(_buttonCallbacks[1]);
-	cb(clickedLeftArrow);
-
-	// 0x04
-	cb(clickedRightArrow);
-	cb(clickedTurnLeftArrow);
-	cb(clickedTurnRightArrow);
-	cb(clickedAttackButton);
-
-	// 0x08
-	for (int i = 0; i < 3; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[7]);
-	cb(clickedMagicButton);
-
-	// 0x0C
-	for (int i = 0; i < 3; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[11]);
-	cb(clickedMagicSubmenu);
-
-	// 0x10
-	cb(clickedScreen);
-	cb(clickedPortraitLeft);
-	for (int i = 0; i < 7; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[17]);
-
-	// 0x19
-	cb(clickedLiveMagicBarsLeft);
-	for (int i = 0; i < 3; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[25]);
-
-	// 0x1D
-	cb(clickedPortraitEtcRight);
-	for (int i = 0; i < 3; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[29]);
-
-	// 0x21
-	cb(clickedCharInventorySlot);
-	for (int i = 0; i < 10; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[33]);
-
-	// 0x2C
-	cb(clickedExitCharInventory);
-	cb(clickedSceneDropItem);
-	for (int i = 0; i < 3; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[45]);
-
-	// 0x31
-	cb(clickedScenePickupItem);
-	cb(clickedInventorySlot);
-	for (int i = 0; i < 9; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[50]);
-
-	// 0x3C
-	cb(clickedInventoryScroll);
-	cb(clickedInventoryScroll);
-	cb(clickedWall);
-	_buttonCallbacks.push_back(_buttonCallbacks[62]);
-
-	// 0x40
-	cb(clickedSequenceWindow);
-	_buttonCallbacks.push_back(_buttonCallbacks[0]);
-	_buttonCallbacks.push_back(_buttonCallbacks[1]);
-	_buttonCallbacks.push_back(_buttonCallbacks[3]);
-
-	// 0x44
-	_buttonCallbacks.push_back(_buttonCallbacks[4]);
-	_buttonCallbacks.push_back(_buttonCallbacks[5]);
-	_buttonCallbacks.push_back(_buttonCallbacks[6]);
-	cb(clickedScroll);
-
-	// 0x48
-	for (int i = 0; i < 9; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[71]);
-
-	// 0x51
-	cb(clickedSpellTargetCharacter);
-	for (int i = 0; i < 3; ++i)
-		_buttonCallbacks.push_back(_buttonCallbacks[81]);
-
-	// 0x55
-	cb(clickedSpellTargetScene);
-	cb(clickedSceneThrowItem);
-	_buttonCallbacks.push_back(_buttonCallbacks[86]);
-
-	// 0x58
-	cb(clickedOptions);
-	cb(clickedRestParty);
-	cb(clickedMoneyBox);
-	cb(clickedCompass);
-
-	// 0x5C
-	cb(clickedAutomap);
-	cb(clickedLamp);
-	cb(clickedStatusIcon);
-#undef cb
-}
-
-void GUI_LoL::initStaticData() {
-	GUI_V2_BUTTON(_scrollUpButton, 20, 96, 0, 1, 1, 1, 0x4487, 0, 0, 0, 25, 16, 0xfe, 0x01, 0xfe, 0x01, 0xfe, 0x01, 0);
-	GUI_V2_BUTTON(_scrollDownButton, 21, 98, 0, 1, 1, 1, 0x4487, 0, 0, 0, 25, 16, 0xfe, 0x01, 0xfe, 0x01, 0xfe, 0x01, 0);
-
-	for (uint i = 0; i < ARRAYSIZE(_menuButtons); ++i)
-		GUI_V2_BUTTON(_menuButtons[i], i, 0, 0, 0, 0, 0, 0x4487, 0, 0, 0, 0, 0, 0xfe, 0x01, 0xfe, 0x01, 0xfe, 0x01, 0);
-
-	GUI_LOL_MENU(_mainMenu, 9, 0x4000, 0, 7, -1, -1, -1, -1);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[0], 0x4001, 16, 23, 176, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[1], 0x4002, 16, 40, 176, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[2], 0x4003, 16, 57, 176, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[3], 0x4004, 16, 74, 176, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[4], 0x42D9, 16, 91, 176, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[5], 0x4006, 16, 108, 176, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_mainMenu.item[6], 0x4005, 88, 127, 104, 15, 0, 110);
-	Button::Callback mainMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedMainMenu);
-	for (int i = 0; i < 7; ++i)
-		_mainMenu.item[i].callback = mainMenuFunctor;
-
-	GUI_LOL_MENU(_loadMenu, 10, 0x400e, 1, 5, 128, 20, 128, 118);
-	GUI_LOL_MENU_ITEM(_loadMenu.item[0], 0xfffe, 8, 39, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_loadMenu.item[1], 0xfffd, 8, 56, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_loadMenu.item[2], 0xfffc, 8, 73, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_loadMenu.item[3], 0xfffb, 8, 90, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_loadMenu.item[4], 0x4011, 168, 118, 96, 15, 0, 110);
-	Button::Callback loadMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedLoadMenu);
-	for (int i = 0; i < 5; ++i)
-		_loadMenu.item[i].callback = loadMenuFunctor;
-
-	GUI_LOL_MENU(_saveMenu, 10, 0x400d, 1, 5, 128, 20, 128, 118);
-	GUI_LOL_MENU_ITEM(_saveMenu.item[0], 0xfffe, 8, 39, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_saveMenu.item[1], 0xfffd, 8, 56, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_saveMenu.item[2], 0xfffc, 8, 73, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_saveMenu.item[3], 0xfffb, 8, 90, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_saveMenu.item[4], 0x4011, 168, 118, 96, 15, 0, 110);
-	Button::Callback saveMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedSaveMenu);
-	for (int i = 0; i < 5; ++i)
-		_saveMenu.item[i].callback = saveMenuFunctor;
-
-	GUI_LOL_MENU(_deleteMenu, 10, 0x400f, 1, 5, 128, 20, 128, 118);
-	GUI_LOL_MENU_ITEM(_deleteMenu.item[0], 0xfffe, 8, 39, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_deleteMenu.item[1], 0xfffd, 8, 56, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_deleteMenu.item[2], 0xfffc, 8, 73, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_deleteMenu.item[3], 0xfffb, 8, 90, 256, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_deleteMenu.item[4], 0x4011, 168, 118, 96, 15, 0, 110);
-	Button::Callback deleteMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedDeleteMenu);
-	for (int i = 0; i < 5; ++i)
-		_deleteMenu.item[i].callback = deleteMenuFunctor;
-
-	GUI_LOL_MENU(_gameOptions, 17, 0x400c, 0, 6, -1, -1, -1, -1);
-	GUI_LOL_MENU_ITEM(_gameOptions.item[0], 0xfff7, 120, 22, 80, 15, 0x406e, 0);
-	GUI_LOL_MENU_ITEM(_gameOptions.item[1], 0xfff6, 120, 39, 80, 15, 0x406c, 0);
-	GUI_LOL_MENU_ITEM(_gameOptions.item[2], 0xfff5, 120, 56, 80, 15, 0x406d, 0);
-	GUI_LOL_MENU_ITEM(_gameOptions.item[3], 0xfff4, 120, 73, 80, 15, 0x42d5, 0);
-	GUI_LOL_MENU_ITEM(_gameOptions.item[4], 0xfff3, 120, 90, 80, 15, 0x42d2, 0);
-	GUI_LOL_MENU_ITEM(_gameOptions.item[5], 0x4072, 104, 110, 96, 15, 0, 110);
-	Button::Callback optionsMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedOptionsMenu);
-	for (int i = 0; i < 6; ++i)
-		_gameOptions.item[i].callback = optionsMenuFunctor;
-
-	GUI_LOL_MENU(_audioOptions, 18, 0x42d9, 2, 1, -1, -1, -1, -1);
-	GUI_LOL_MENU_ITEM(_audioOptions.item[0], 0x4072, 152, 76, 96, 15, 0, 110);
-	GUI_LOL_MENU_ITEM(_audioOptions.item[1], 3, 128, 22, 114, 14, 0x42db, 0);
-	GUI_LOL_MENU_ITEM(_audioOptions.item[2], 4, 128, 39, 114, 14, 0x42da, 0);
-	GUI_LOL_MENU_ITEM(_audioOptions.item[3], 5, 128, 56, 114, 14, 0x42dc, 0);
-	Button::Callback audioMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedAudioMenu);
-	for (int i = 0; i < 4; ++i)
-		_audioOptions.item[i].callback = audioMenuFunctor;
-
-	GUI_LOL_MENU(_deathMenu, 11, 0x4013, 0, 2, -1, -1, -1, -1);
-	GUI_LOL_MENU_ITEM(_deathMenu.item[0], 0x4006, 8, 30, 104, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_deathMenu.item[1], 0x4001, 176, 30, 104, 15, 0, 0);
-	Button::Callback deathMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedDeathMenu);
-	for (int i = 0; i < 2; ++i)
-		_deathMenu.item[i].callback = deathMenuFunctor;
-
-	GUI_LOL_MENU(_savenameMenu, 7, 0x4053, 0, 2, -1, -1, -1, -1);
-	GUI_LOL_MENU_ITEM(_savenameMenu.item[0], 0x4012, 8, 38, 72, 15, 0, 43);
-	GUI_LOL_MENU_ITEM(_savenameMenu.item[1], 0x4011, 176, 38, 72, 15, 0, 110);
-	Button::Callback savenameMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedSavenameMenu);
-	for (int i = 0; i < 2; ++i)
-		_savenameMenu.item[i].callback = savenameMenuFunctor;
-
-	GUI_LOL_MENU(_choiceMenu, 11, 0, 0, 2, -1, -1, -1, -1);
-	GUI_LOL_MENU_ITEM(_choiceMenu.item[0], 0x4007, 8, 30, 72, 15, 0, 0);
-	GUI_LOL_MENU_ITEM(_choiceMenu.item[1], 0x4008, 208, 30, 72, 15, 0, 0);
-	Button::Callback choiceMenuFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::clickedChoiceMenu);
-	for (int i = 0; i < 2; ++i)
-		_choiceMenu.item[i].callback = choiceMenuFunctor;
-}
-
-#endif // ENABLE_LOL
 
 const uint8 Screen_LoK_16::_palette16[48] = {
 	0x00, 0x00, 0x00, 0x02, 0x07, 0x0B, 0x0C, 0x06, 0x04,
@@ -2249,6 +1253,22 @@ void GUI_LoK::initStaticResource() {
 	_menu[5].item[2].callback = BUTTON_FUNCTOR(GUI_LoK, this, &GUI_LoK::controlsChangeWalk);
 	_menu[5].item[4].callback = BUTTON_FUNCTOR(GUI_LoK, this, &GUI_LoK::controlsChangeText);
 	_menu[5].item[5].callback = BUTTON_FUNCTOR(GUI_LoK, this, &GUI_LoK::controlsApply);
+
+	// The AMIGA version uses different colors, due to its 32 color nature. We did setup the 256 color version
+	// colors above, so we need to overwrite those with the correct values over here.
+	if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
+		for (int i = 0; i < 6; ++i) {
+			_menu[i].bkgdColor = 17;
+			_menu[i].color1 = 31;
+			_menu[i].color2 = 18;
+
+			for (int j = 0; j < _menu[i].numberOfItems; ++j) {
+				_menu[i].item[j].bkgdColor = 17;
+				_menu[i].item[j].color1 = 31;
+				_menu[i].item[j].color2 = 18;
+			}
+		}
+	}
 }
 
 void KyraEngine_LoK::setupButtonData() {
@@ -2257,7 +1277,7 @@ void KyraEngine_LoK::setupButtonData() {
 
 	_buttonData = new Button[15];
 	assert(_buttonData);
-	_buttonDataListPtr = new Button*[15];
+	_buttonDataListPtr = new Button *[15];
 	assert(_buttonDataListPtr);
 
 	GUI_V1_BUTTON(_buttonData[1], 0x01, 1, 1, 1, 0x0487, 0, 0x009, 0xA4, 0x36, 0x1E, 0);
@@ -2331,6 +1351,18 @@ const int8 KyraEngine_LoK::_dosTrackMap[] = {
 };
 
 const int KyraEngine_LoK::_dosTrackMapSize = ARRAYSIZE(KyraEngine_LoK::_dosTrackMap);
+
+const int8 KyraEngine_LoK::_amigaTrackMap[] = {
+	 0,  1, 32, 26, 31, 30, 33, 33,
+	32, 17, 27, 32, 25, 29, 25, 24,
+	23, 26, 26, 30, 28, 21, 21, 15,
+	 3, 15, 23, 25, 33, 21, 30, 22,
+	15,  3, 33, 11, 12, 13, 14, 22,
+	22, 22,  3,  3,  3, 23,  3,  3,
+	23,  3,  3,  3,  3,  3,  3, 33
+};
+
+const int KyraEngine_LoK::_amigaTrackMapSize = ARRAYSIZE(KyraEngine_LoK::_amigaTrackMap);
 
 // kyra engine v2 static data
 
@@ -2630,7 +1662,7 @@ void GUI_HoF::initStaticData() {
 		GUI_V2_MENU_ITEM(_gameOptions.item[1], 0, 0x2C, 0xA0, 0x2F, 0x74, 0x0F, 0xFC, 0xFD, 5, 0xF8, 0xF9, 0xFA, -1, 0x20, 0x10, 0x31, 0);
 		GUI_V2_MENU_ITEM(_gameOptions.item[2], 0, 0x2D, 0xA0, 0x40, 0x74, 0x0F, 0xFC, 0xFD, 5, 0xF8, 0xF9, 0xFA, -1, 0x1D, 0x10, 0x42, 0);
 		GUI_V2_MENU_ITEM(_gameOptions.item[3], 0, 0x2E, 0xA0, 0x51, 0x74, 0x0F, 0xFC, 0xFD, 5, 0xF8, 0xF9, 0xFA, -1, 0x1E, 0x10, 0x53, 0);
-		GUI_V2_MENU_ITEM(_gameOptions.item[4], 1, 0x18, 0xA0, 0x6E, 0x6C, 0x0F, 0xFC, 0xFD, 5, 0xF8, 0xF9, 0xFA, -1, 0, 0, 0, 0);
+		GUI_V2_MENU_ITEM(_gameOptions.item[4], 1, 0x18, -1, 0x6E, 0x6C, 0x0F, 0xFC, 0xFD, -1, 0xF8, 0xF9, 0xFA, -1, 0, 0, 0, 0);
 		_gameOptions.item[4].callback = clickQuitOptionsFunctor;
 	}
 
@@ -2821,9 +1853,9 @@ const uint8 KyraEngine_HoF::_cauldronStateTable[] = {
 	3, 3, 3, 3, 3, 3, 3
 };
 
-const int16 KyraEngine_HoF::_flaskTable[] = {
+const Item KyraEngine_HoF::_flaskTable[] = {
 	0x19, 0x14, 0x15, 0x16, 0x17, 0x18, 0x34,
-	0x1B, 0x39, 0x1A, 0x3A, 0x4D, 0x72, -1
+	0x1B, 0x39, 0x1A, 0x3A, 0x4D, 0x72, kItemNone
 };
 
 const uint8 KyraEngine_HoF::_rainbowRoomData[] = {
@@ -2919,10 +1951,10 @@ const uint8 KyraEngine_MR::_inventoryY[] = {
 	0xB2, 0xB2, 0xB2, 0xB2, 0xB2
 };
 
-const uint8 KyraEngine_MR::_trashItemList[] = {
+const Item KyraEngine_MR::_trashItemList[] = {
 	0x1E, 0x1D, 0x1C, 0x1F, 0x0F, 0x05, 0x04, 0x00,
 	0x03, 0x22, 0x0B, 0x20, 0x21, 0x10, 0x11, 0x3A,
-	0x39, 0x40, 0x3E, 0x3D, 0x3C, 0x3F, 0xFF
+	0x39, 0x40, 0x3E, 0x3D, 0x3C, 0x3F, kItemNone
 };
 
 const uint8 KyraEngine_MR::_itemStringPickUp[] = {
@@ -3096,251 +2128,5 @@ const int8 KyraEngine_MR::_albumWSAY[] = {
 	-1, -2, 2, 2, -6, -6, -6, 0
 };
 
-// lands of lore static res
-
-#ifdef ENABLE_LOL
-const ScreenDim Screen_LoL::_screenDimTable256C[] = {
-	{ 0x00, 0x00, 0x28, 0xC8, 0xC7, 0xCF, 0x00, 0x00 },	// Taken from Intro
-	{ 0x08, 0x48, 0x18, 0x38, 0xFE, 0x01, 0x00, 0x00 },
-	{ 0x0E, 0x00, 0x16, 0x78, 0xFE, 0x01, 0x00, 0x00 },
-	{ 0x0B, 0x7B, 0x1C, 0x12, 0xFE, 0xFC, 0x00, 0x00 },
-	{ 0x0B, 0x7B, 0x1C, 0x2D, 0xFE, 0xFC, 0x00, 0x00 },
-	{ 0x55, 0x7B, 0xE9, 0x37, 0xFE, 0xFC, 0x00, 0x00 },
-	{ 0x0B, 0x8C, 0x10, 0x2B, 0x3D, 0x01, 0x00, 0x00 },	// Main menu box (4 entries)
-	{ 0x04, 0x59, 0x20, 0x3C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x05, 0x6E, 0x1E, 0x0C, 0xFE, 0x01, 0x00, 0x00 },
-	{ 0x07, 0x19, 0x1A, 0x97, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x03, 0x1E, 0x22, 0x8C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x02, 0x48, 0x24, 0x34, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x0E, 0x00, 0x16, 0x78, 0xFE, 0x01, 0x00, 0x00 },
-	{ 0x0D, 0xA2, 0x18, 0x0C, 0xFE, 0x01, 0x00, 0x00 },
-	{ 0x0F, 0x06, 0x14, 0x6E, 0x01, 0x00, 0x00, 0x00 },
-	{ 0x1A, 0xBE, 0x0A, 0x07, 0xFE, 0x01, 0x00, 0x00 },
-	{ 0x07, 0x21, 0x1A, 0x85, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x03, 0x32, 0x22, 0x62, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x0B, 0x8C, 0x10, 0x33, 0x3D, 0x01, 0x00, 0x00 },	// Main menu box (5 entries, CD version only)
-	{ 0x0B, 0x8C, 0x10, 0x23, 0x3D, 0x01, 0x00, 0x00 },	// Main menu box (3 entries, floppy version only)
-
-	{ 0x01, 0x20, 0x26, 0x80, 0xDC, 0xFD, 0x00, 0x00 },	// Credits
-	{ 0x09, 0x29, 0x08, 0x2C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x19, 0x29, 0x08, 0x2C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x01, 0x02, 0x26, 0x14, 0x00, 0x0F, 0x0E, 0x00 }
-};
-
-const ScreenDim Screen_LoL::_screenDimTable16C[] = {
-	{ 0x00, 0x00, 0x28, 0xC8, 0x33, 0x44, 0x00, 0x00 },	// Taken from Intro
-	{ 0x08, 0x48, 0x18, 0x38, 0x33, 0x44, 0x00, 0x00 },
-	{ 0x0E, 0x00, 0x16, 0x78, 0x33, 0x44, 0x00, 0x00 },
-	{ 0x0B, 0x7B, 0x1C, 0x12, 0x33, 0x11, 0x00, 0x00 },
-	{ 0x0B, 0x7B, 0x1C, 0x2D, 0x33, 0x11, 0x00, 0x00 },
-	{ 0x55, 0x7B, 0xE9, 0x37, 0x33, 0x11, 0x00, 0x00 },
-	{ 0x0B, 0x8C, 0x10, 0x2B, 0x33, 0x44, 0x00, 0x00 },	// Main menu box (4 entries)
-	{ 0x04, 0x59, 0x20, 0x3C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x05, 0x6E, 0x1E, 0x0C, 0x33, 0x44, 0x00, 0x00 },
-	{ 0x07, 0x19, 0x1A, 0x97, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x03, 0x1E, 0x22, 0x8C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x02, 0x48, 0x24, 0x34, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x0E, 0x00, 0x16, 0x78, 0x33, 0x44, 0x00, 0x00 },
-	{ 0x0D, 0xA2, 0x18, 0x0C, 0x33, 0x44, 0x00, 0x00 },
-	{ 0x0F, 0x06, 0x14, 0x6E, 0x44, 0x00, 0x00, 0x00 },
-	{ 0x1A, 0xBE, 0x0A, 0x07, 0x33, 0x44, 0x00, 0x00 },
-	{ 0x07, 0x21, 0x1A, 0x85, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x03, 0x32, 0x22, 0x62, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x0B, 0x8C, 0x10, 0x33, 0x33, 0x44, 0x00, 0x00 },	// Main menu box (5 entries, not used here)
-	{ 0x0B, 0x8C, 0x10, 0x23, 0x33, 0x44, 0x00, 0x00 },	// Main menu box (3 entries)
-
-	{ 0x01, 0x20, 0x26, 0x80, 0xDC, 0xFD, 0x00, 0x00 },	// Credits (TODO: Check this!)
-	{ 0x09, 0x29, 0x08, 0x2C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x19, 0x29, 0x08, 0x2C, 0x00, 0x00, 0x00, 0x00 },
-	{ 0x01, 0x02, 0x26, 0x14, 0x00, 0x0F, 0x0E, 0x00 }
-};
-
-const int Screen_LoL::_screenDimTableCount = ARRAYSIZE(Screen_LoL::_screenDimTable256C);
-
-const char * const LoLEngine::_languageExt[] = {
-	"ENG",
-	"FRE",
-	"GER"
-};
-
-const LoLEngine::CharacterPrev LoLEngine::_charPreviews[] = {
-	{ "Ak\'shel", 0x060, 0x7F, { 0x0F, 0x08, 0x05 } },
-	{  "Michael", 0x09A, 0x7F, { 0x06, 0x0A, 0x0F } },
-	{   "Kieran", 0x0D4, 0x7F, { 0x08, 0x06, 0x08 } },
-	{   "Conrad", 0x10F, 0x7F, { 0x0A, 0x0C, 0x0A } }
-};
-
-const uint8 LoLEngine::_chargenFrameTableTalkie[] = {
-	0x00, 0x01, 0x02, 0x03, 0x04,
-	0x05, 0x04, 0x03, 0x02, 0x01,
-	0x00, 0x00, 0x01, 0x02, 0x03,
-	0x04, 0x05, 0x06, 0x07, 0x08,
-	0x09, 0x0A, 0x0B, 0x0C, 0x0D,
-	0x0E, 0x0F, 0x10, 0x11, 0x12
-};
-
-const uint8 LoLEngine::_chargenFrameTableFloppy[] = {
-	0,  1,  2,  3,  4,  5,  4,  3,  2,
-	1,  0,  0,  1,  2,  3,  4,  5,  6,
-	7,  8,  9, 10, 11, 12, 13, 14, 15
-};
-
-const uint16 LoLEngine::_selectionPosTable[] = {
-	0x6F, 0x00, 0x8F, 0x00, 0xAF, 0x00,  0xCF, 0x00,
-	0xEF, 0x00, 0x6F, 0x20, 0x8F, 0x20,  0xAF, 0x20,
-	0xCF, 0x20, 0xEF, 0x20, 0x6F, 0x40,  0x8F, 0x40,
-	0xAF, 0x40, 0xCF, 0x40, 0xEF, 0x40, 0x10F, 0x00
-};
-
-const uint8 LoLEngine::_selectionChar1IdxTable[] = {
-	0, 0, 5, 5, 5, 5, 5, 5,
-	5, 5, 5, 0, 0, 5, 5, 5,
-	5, 5, 5, 5, 0, 0, 5, 5,
-	5, 5, 5
-};
-
-const uint8 LoLEngine::_selectionChar2IdxTable[] = {
-	1, 1, 6, 6, 1, 1, 6, 6,
-	6, 6, 6, 6, 6, 1, 1, 6,
-	6, 6, 1, 1, 6, 6, 6, 6,
-	6, 6, 6
-};
-
-const uint8 LoLEngine::_selectionChar3IdxTable[] = {
-	2, 2, 7, 7, 7, 7, 2, 2,
-	7, 7, 7, 7, 7, 7, 7, 2,
-	2, 7, 7, 7, 7, 2, 2, 7,
-	7, 7, 7
-};
-
-const uint8 LoLEngine::_selectionChar4IdxTable[] = {
-	3, 3, 8, 8, 8, 8, 3, 3,
-	8, 8, 3, 3, 8, 8, 8, 8,
-	8, 8, 8, 8, 8, 3, 3, 8,
-	8, 8, 8
-};
-
-const uint8 LoLEngine::_reminderChar1IdxTable[] = {
-	4, 4, 4, 5, 5, 5, 5, 5,
-	5, 5, 5, 5, 5, 5, 5, 5,
-	5
-};
-
-const uint8 LoLEngine::_reminderChar2IdxTable[] = {
-	9, 9, 9, 6, 6, 6, 6, 6,
-	6, 6, 6, 6, 6, 6, 6, 6,
-	6
-};
-
-const uint8 LoLEngine::_reminderChar3IdxTable[] = {
-	0xE, 0xE, 0xE, 0x7, 0x7, 0x7, 0x7, 0x7,
-	0x7, 0x7, 0x7, 0x7, 0x7, 0x7, 0x7, 0x7,
-	0x7
-};
-
-const uint8 LoLEngine::_reminderChar4IdxTable[] = {
-	0xF, 0xF, 0xF, 0x8, 0x8, 0x8, 0x8, 0x8,
-	0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8,
-	0x8
-};
-
-const uint8 LoLEngine::_selectionAnimIndexTable[] = {
-	0, 5, 1, 6, 2, 7, 3, 8
-};
-
-const uint8 LoLEngine::_charInfoFrameTable[] = {
-	0x0, 0x7, 0x8, 0x9, 0xA, 0xB, 0xA, 0x9,
-	0x8, 0x7, 0x0, 0x0, 0x7, 0x8, 0x9, 0xA,
-	0xB, 0xA, 0x9, 0x8, 0x7, 0x0, 0x0, 0x7,
-	0x8, 0x9, 0xA, 0xB, 0xA, 0x9, 0x8, 0x7
-};
-
-const uint8 LoLEngine::_clock2Timers[] = {
-	0x00, 0x10, 0x11, 0x03, 0x04, 0x50,
-	0x51, 0x52, 0x08, 0x09, 0x0A
-};
-
-const uint8 LoLEngine::_numClock2Timers = ARRAYSIZE(LoLEngine::_clock2Timers);
-
-const int8 LoLEngine::_mapCoords[12][4] = {
-	{  0,  7,  0, -5 }, { -5,  0,  6,  0 }, {  7,  5,  7,  1 },
-	{  5,  6,  4,  6 }, {  0,  7,  0, -1 }, { -3,  0,  6,  0 },
-	{  6,  7,  6, -3 }, { -3,  5,  6,  5 }, {  1,  5,  1,  1 },
-	{  3,  1,  3,  1 }, { -1,  6, -1, -8 }, { -7, -1,  5, -1 }
-};
-
-const MistOfDoomAnimData LoLEngine::_mistAnimData[] = {
-	{  0,   7,   7,  13, 155 },
-	{  0,  16,  16,  17, 155 },
-	{  0,  24,  24,  24, 174 },
-	{  0,  19,  19,  19, 174 },
-	{  0,  16,  16,  17, 175 },
-};
-
-const char * const LoLEngine::_outroShapeFileTable[] = {
-	"AMAZON.SHP", "ARCHRSLG.SHP", "AVIANWRM.SHP", "BANDIT.SHP", "BOAR.SHP", "CABAL.SHP",
-	"GUARD.SHP", "HAG.SHP", "HORNET.SHP", "HURZELL.SHP", "IRONGRZR.SHP", "KNOWLES.SHP",
-	"LIZARD.SHP", "MANTHA.SHP", "MINOTAUR.SHP", "MORIBUND.SHP", "ORC.SHP", "ORCLDR.SHP",
-	"PENTROG.SHP", "RATMAN.SHP", "ROCKLING.SHP", "SCAVNGR.SHP", "STARK.SHP",
-	"SWAMPCIT.SHP", "SWAMPMON.SHP", "THUG.SHP", "VIPER.SHP", "XEOB.SHP"
-};
-
-const uint8 LoLEngine::_outroFrameTable[] = {
-	 0,  0,  0,  0,  0,  1,  2,  3,
-	 0,  1,  2,  3,  8,  9, 10, 11,
-	 8,  9, 10, 11,  4,  5,  6,  7
-};
-
-const int16 LoLEngine::_outroRightMonsterPos[] = {
-	205,  55, 205,  55, 205,  55, 205,  55,
-	205,  56, 207,  57, 208,  58, 210,  59,
-	213,  60, 216,  61, 220,  61, 225,  61,
-	230,  61, 235,  61, 240,  61, 240,  61,
-	240,  61, 240,  61, 240,  61, 240,  61,
-	240,  61, 265,  61, 290,  61, 315,  61
-};
-
-const int16 LoLEngine::_outroLeftMonsterPos[] = {
-	 92,  55,  92,  55,  92,  55,  92,  55,
-	 92,  56,  90,  57,  85,  58,  77,  59,
-	 67,  60,  57,  61,  47,  61,  35,  61,
-	 35,  61,  35,  61,  35,  61,  35,  61,
-	 35,  61,  35,  61,  35,  61,  35,  61,
-	 35,  61,  10,  61, -20,  61, -45,  61
-};
-
-const int16 LoLEngine::_outroRightDoorPos[] = {
-	200,  41, 200,  29, 200,  17, 200,   5,
-	200,  -7, 200,  -7, 200,  -7, 200,  -7,
-	200,   5, 200,  17, 200,  29, 200,  41,
-	200,  41, 200,  41, 200,  41, 200,  41,
-	200,  41, 200,  41, 200,  41, 200,  41,
-	200,  41, 200,  41, 200,  41, 200,  41
-};
-
-const int16 LoLEngine::_outroLeftDoorPos[] = {
-	 72,  41,  72,  29,  72,  17,  72,   5,
-	 72,  -7,  72,  -7,  72,  -7,  72,  -7,
-	 72,   5,  72,  17,  72,  29,  72,  41,
-	 72,  41,  72,  41,  72,  41,  72,  41,
-	 72,  41,  72,  41,  72,  41,  72,  41,
-	 72,  41,  72,  41,  72,  41,  72,  41
-};
-
-const int LoLEngine::_outroMonsterScaleTableX[] = {
-	0x050, 0x050, 0x050, 0x050, 0x050, 0x05D, 0x070, 0x085,
-	0x0A0, 0x0C0, 0x0E2, 0x100, 0x100, 0x100, 0x100, 0x100,
-	0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100
-};
-
-const int LoLEngine::_outroMonsterScaleTableY[] = {
-	0x04C, 0x04C, 0x04C, 0x04C, 0x04C, 0x059, 0x06B, 0x080,
-	0x099, 0x0B8, 0x0D9, 0x100, 0x100, 0x100, 0x100, 0x100,
-	0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100, 0x100
-};
-
-#endif // ENABLE_LOL
-
 } // End of namespace Kyra
+

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Save and restore scene and game.
  */
 
@@ -33,7 +30,6 @@
 #include "tinsel/faders.h"		// FadeOutFast()
 #include "tinsel/graphics.h"		// ClearScreen()
 #include "tinsel/handle.h"
-#include "tinsel/heapmem.h"
 #include "tinsel/dialogs.h"
 #include "tinsel/music.h"
 #include "tinsel/pid.h"
@@ -49,12 +45,14 @@
 #include "tinsel/tinlib.h"
 #include "tinsel/token.h"
 
+#include "common/textconsole.h"
+
 namespace Tinsel {
 
 //----------------- EXTERN FUNCTIONS --------------------
 
 // in BG.C
-extern SCNHANDLE GetBgroundHandle(void);
+extern SCNHANDLE GetBgroundHandle();
 extern void SetDoFadeIn(bool tf);
 
 // In DOS_DW.C
@@ -64,7 +62,7 @@ void RestoreMasterProcess(INT_CONTEXT *pic);
 void RestoreProcess(INT_CONTEXT *pic);
 
 // in SCENE.C
-extern SCNHANDLE GetSceneHandle(void);
+extern SCNHANDLE GetSceneHandle();
 
 
 //----------------- LOCAL DEFINES --------------------
@@ -82,6 +80,8 @@ extern int	restoreCD;
 extern SRSTATE SRstate;
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static bool ASceneIsSaved = false;
 
@@ -150,23 +150,21 @@ void DoRestoreScene(SAVED_DATA *sd, bool bFadeOut) {
 		RestoreSceneCount = RS_COUNT;	// Set restore scene count
 }
 
-void InitialiseSaveScenes(void) {
+void InitializeSaveScenes() {
 	if (ssData == NULL) {
 		ssData = (SAVED_DATA *)calloc(MAX_NEST, sizeof(SAVED_DATA));
 		if (ssData == NULL) {
 			error("Cannot allocate memory for scene changes");
 		}
 	} else {
-		// Re-initialise - no scenes saved
+		// Re-initialize - no scenes saved
 		savedSceneCount = 0;
 	}
 }
 
-void FreeSaveScenes(void) {
-	if (ssData) {
-		free(ssData);
-		ssData = NULL;
-	}
+void FreeSaveScenes() {
+	free(ssData);
+	ssData = NULL;
 }
 
 /**
@@ -227,7 +225,7 @@ static void SortMAProcess(CORO_PARAM, const void *) {
 		}
 
 		ActorPalette(rsd->SavedMoverInfo[_ctx->i].actorID,
-			rsd->SavedMoverInfo[_ctx->i].startColour, rsd->SavedMoverInfo[_ctx->i].paletteLength);
+			rsd->SavedMoverInfo[_ctx->i].startColor, rsd->SavedMoverInfo[_ctx->i].paletteLength);
 
 		if (rsd->SavedMoverInfo[_ctx->i].brightness != BOGUS_BRIGHTNESS)
 			ActorBrightness(rsd->SavedMoverInfo[_ctx->i].actorID, rsd->SavedMoverInfo[_ctx->i].brightness);
@@ -244,7 +242,7 @@ static void SortMAProcess(CORO_PARAM, const void *) {
 
 //---------------------------------------------------------------------------
 
-void ResumeInterprets(void) {
+void ResumeInterprets() {
 	// Master script only affected on restore game, not restore scene
 	if (!TinselV2 && (rsd == &sgData)) {
 		g_scheduler->killMatchingProcess(PID_MASTER_SCR, -1);
@@ -312,14 +310,15 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		_vm->_sound->stopAllSamples();
 		ClearScreen();
 
-		// Master script only affected on restore game, not restore scene
-		if (TinselV2 && (sd == &sgData)) {
-			g_scheduler->killMatchingProcess(PID_MASTER_SCR);
-			KillGlobalProcesses();
-			FreeMasterInterpretContext();
-		}
-
 		if (TinselV2) {
+
+			// Master script only affected on restore game, not restore scene
+			if (sd == &sgData) {
+				g_scheduler->killMatchingProcess(PID_MASTER_SCR);
+				KillGlobalProcesses();
+				FreeMasterInterpretContext();
+			}
+
 			RestorePolygonStuff(sd->SavedPolygonStuff);
 
 			// Abandon temporarily if different CD
@@ -474,4 +473,4 @@ void TinselSaveScene(CORO_PARAM) {
 	CORO_END_CODE;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

@@ -17,19 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "backends/keymapper/remap-dialog.h"
 
 #ifdef ENABLE_KEYMAPPER
 
-#include "gui/GuiManager.h"
-#include "gui/PopUpWidget.h"
-#include "gui/ScrollBarWidget.h"
+#include "common/system.h"
+#include "gui/gui-manager.h"
+#include "gui/widgets/popup.h"
+#include "gui/widgets/scrollbar.h"
 #include "gui/ThemeEval.h"
+
+#include "common/translation.h"
 
 namespace Common {
 
@@ -44,12 +44,12 @@ RemapDialog::RemapDialog()
 	_keymapper = g_system->getEventManager()->getKeymapper();
 	assert(_keymapper);
 
-	_kmPopUpDesc = new GUI::StaticTextWidget(this, "KeyMapper.PopupDesc", "Keymap:");
+	_kmPopUpDesc = new GUI::StaticTextWidget(this, "KeyMapper.PopupDesc", _("Keymap:"));
 	_kmPopUp = new GUI::PopUpWidget(this, "KeyMapper.Popup");
 
 	_scrollBar = new GUI::ScrollBarWidget(this, 0, 0, 0, 0);
 
-	new GUI::ButtonWidget(this, "KeyMapper.Close", "Close", kCloseCmd);
+	new GUI::ButtonWidget(this, "KeyMapper.Close", _("Close"), 0, kCloseCmd);
 }
 
 RemapDialog::~RemapDialog() {
@@ -61,7 +61,7 @@ void RemapDialog::open() {
 	const Stack<Keymapper::MapRecord> &activeKeymaps = _keymapper->getActiveStack();
 
 	if (!(activeKeymaps.size() > 0)) {
-		_kmPopUp->appendEntry(activeKeymaps.top().keymap->getName() + " (Active)");
+		_kmPopUp->appendEntry(activeKeymaps.top().keymap->getName() + _(" (Active)"));
 		divider = true;
 	}
 
@@ -94,8 +94,8 @@ void RemapDialog::open() {
 	if (_globalKeymaps) {
 		if (divider)
 			_kmPopUp->appendEntry("");
-		for (it = _globalKeymaps->begin(); it != _globalKeymaps->end(); it++) {
-			_kmPopUp->appendEntry(it->_value->getName() + " (Global)", idx);
+		for (it = _globalKeymaps->begin(); it != _globalKeymaps->end(); ++it) {
+			_kmPopUp->appendEntry(it->_value->getName() + _(" (Global)"), idx);
 			_keymapTable[idx++] = it->_value;
 		}
 		divider = true;
@@ -104,8 +104,8 @@ void RemapDialog::open() {
 	if (_gameKeymaps) {
 		if (divider)
 			_kmPopUp->appendEntry("");
-		for (it = _gameKeymaps->begin(); it != _gameKeymaps->end(); it++) {
-			_kmPopUp->appendEntry(it->_value->getName() + " (Game)", idx);
+		for (it = _gameKeymaps->begin(); it != _gameKeymaps->end(); ++it) {
+			_kmPopUp->appendEntry(it->_value->getName() + _(" (Game)"), idx);
 			_keymapTable[idx++] = it->_value;
 		}
 	}
@@ -168,7 +168,7 @@ void RemapDialog::reflowLayout() {
 			widg.actionText =
 				new GUI::StaticTextWidget(this, 0, 0, 0, 0, "", Graphics::kTextAlignRight);
 			widg.keyButton =
-				new GUI::ButtonWidget(this, 0, 0, 0, 0, "", kRemapCmd + i);
+				new GUI::ButtonWidget(this, 0, 0, 0, 0, "", 0, kRemapCmd + i);
 			_keymapWidgets.push_back(widg);
 		} else {
 			widg = _keymapWidgets[i];
@@ -211,7 +211,7 @@ void RemapDialog::startRemapping(uint i) {
 	if (_topAction + i >= _currentActions.size())
 		return;
 
-	_remapTimeout = getMillis() + kRemapTimeoutDelay;
+	_remapTimeout = g_system->getMillis() + kRemapTimeoutDelay;
 	_activeRemapAction = _currentActions[_topAction + i].action;
 	_keymapWidgets[i].keyButton->setLabel("...");
 	_keymapWidgets[i].keyButton->draw();
@@ -261,7 +261,7 @@ void RemapDialog::handleMouseDown(int x, int y, int button, int clickCount) {
 }
 
 void RemapDialog::handleTickle() {
-	if (_activeRemapAction && getMillis() > _remapTimeout)
+	if (_activeRemapAction && g_system->getMillis() > _remapTimeout)
 		stopRemapping();
 	Dialog::handleTickle();
 }
@@ -317,7 +317,7 @@ void RemapDialog::loadKeymap() {
 
 		List<Action*>::iterator it;
 
-		for (it = km->getActions().begin(); it != km->getActions().end(); it++) {
+		for (it = km->getActions().begin(); it != km->getActions().end(); ++it) {
 			ActionInfo info = {*it, false, (*it)->description};
 
 			_currentActions.push_back(info);
@@ -380,6 +380,6 @@ void RemapDialog::refreshKeymap() {
 }
 
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_KEYMAPPER

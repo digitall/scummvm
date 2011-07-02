@@ -18,19 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_H
 #define SWORD1_H
 
 #include "engines/engine.h"
-#include "common/events.h"
+#include "common/error.h"
+#include "common/keyboard.h"
+#include "common/rect.h"
 #include "common/util.h"
 #include "sword1/sworddefs.h"
+#include "sword1/console.h"
 
+/**
+ * This is the namespace of the Sword1 engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Broken Sword: The Shadow of the Templars
+ */
 namespace Sword1 {
 
 enum {
@@ -66,7 +74,6 @@ struct SystemVars {
 	uint8	showText;
 	uint8	language;
 	bool    isDemo;
-	uint32	engineStartTime;    // Used for playtime
 	Common::Platform platform;
 };
 
@@ -75,7 +82,7 @@ public:
 	SwordEngine(OSystem *syst);
 	virtual ~SwordEngine();
 	static SystemVars _systemVars;
-	void reinitialize(void);
+	void reinitialize();
 
 	uint32 _features;
 
@@ -92,29 +99,33 @@ protected:
 	virtual Common::Error run() {
 		Common::Error err;
 		err = init();
-		if (err != Common::kNoError)
+		if (err.getCode() != Common::kNoError)
 			return err;
 		return go();
 	}
 	virtual bool hasFeature(EngineFeature f) const;
 	virtual void syncSoundSettings();
 
+	GUI::Debugger *getDebugger() { return _console; }
+
 	Common::Error loadGameState(int slot);
 	bool canLoadGameStateCurrently();
-	Common::Error saveGameState(int slot, const char *desc);
+	Common::Error saveGameState(int slot, const Common::String &desc);
 	bool canSaveGameStateCurrently();
 
 private:
 	void delay(int32 amount);
 
-	void checkCdFiles(void);
-	void checkCd(void);
+	void checkCdFiles();
+	void checkCd();
 	void showFileErrorMsg(uint8 type, bool *fileExists);
 	void flagsToBool(bool *dest, uint8 flags);
 
-	void reinitRes(void); //Reinits the resources after a GMM load
+	void reinitRes(); //Reinits the resources after a GMM load
 
-	uint8 mainLoop(void);
+	SwordConsole *_console;
+
+	uint8 mainLoop();
 
 	Common::Point _mouseCoord;
 	uint16 _mouseState;

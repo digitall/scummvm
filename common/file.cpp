@@ -18,29 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/archive.h"
 #include "common/debug.h"
 #include "common/file.h"
 #include "common/fs.h"
-#include "common/util.h"
-#include "common/system.h"
+#include "common/textconsole.h"
 
 namespace Common {
-
-void File::addDefaultDirectory(const String &directory) {
-	FSNode dir(directory);
-	addDefaultDirectory(dir);
-}
-
-void File::addDefaultDirectory(const FSNode &dir) {
-	if (dir.exists() && dir.isDirectory())
-		SearchMan.addDirectory(dir.getPath(), dir);
-}
 
 File::File()
 	: _handle(0) {
@@ -61,11 +47,11 @@ bool File::open(const String &filename, Archive &archive) {
 	SeekableReadStream *stream = 0;
 
 	if ((stream = archive.createReadStreamForMember(filename))) {
-		debug(3, "Opening hashed: %s", filename.c_str());
+		debug(8, "Opening hashed: %s", filename.c_str());
 	} else if ((stream = archive.createReadStreamForMember(filename + "."))) {
 		// WORKAROUND: Bug #1458388: "SIMON1: Game Detection fails"
 		// sometimes instead of "GAMEPC" we get "GAMEPC." (note trailing dot)
-		debug(3, "Opening hashed: %s.", filename.c_str());
+		debug(8, "Opening hashed: %s.", filename.c_str());
 	}
 
 	return open(stream, filename);

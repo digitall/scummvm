@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 //
@@ -28,7 +25,8 @@
 //
 
 #include "agi/agi.h"
-#include "agi/keyboard.h"	// for clean_input()
+
+#include "common/textconsole.h"
 
 namespace Agi {
 
@@ -39,7 +37,7 @@ static uint32 wordsFlen;	// length of word memory
 // Local implementation to avoid problems with strndup() used by
 // gcc 3.2 Cygwin (see #635984)
 //
-static char *myStrndup(char *src, int n) {
+static char *myStrndup(const char *src, int n) {
 	char *tmp = strncpy((char *)malloc(n + 1), src, n);
 	tmp[n] = 0;
 	return tmp;
@@ -53,10 +51,10 @@ int AgiEngine::loadWords(const char *fname) {
 	words = NULL;
 
 	if (!fp.open(fname)) {
-		report("Warning: can't open %s\n", fname);
+		warning("loadWords: can't open %s", fname);
 		return errOK; // err_BadFileOpen
 	}
-	report("Loading dictionary: %s\n", fname);
+	debug(0, "Loading dictionary: %s", fname);
 
 	fp.seek(0, SEEK_END);
 	flen = fp.pos();
@@ -77,10 +75,8 @@ int AgiEngine::loadWords(const char *fname) {
 }
 
 void AgiEngine::unloadWords() {
-	if (words != NULL) {
-		free(words);
-		words = NULL;
-	}
+	free(words);
+	words = NULL;
 }
 
 /**
@@ -90,11 +86,11 @@ void AgiEngine::unloadWords() {
  *
  * Thomas Akesson, November 2001
  */
-int AgiEngine::findWord(char *word, int *flen) {
+int AgiEngine::findWord(const char *word, int *flen) {
 	int mchr = 0;		// matched chars
 	int len, fchr, id = -1;
-	uint8 *p = words;
-	uint8 *q = words + wordsFlen;
+	const uint8 *p = words;
+	const uint8 *q = words + wordsFlen;
 	*flen = 0;
 
 	debugC(2, kDebugLevelScripts, "find_word(%s)", word);

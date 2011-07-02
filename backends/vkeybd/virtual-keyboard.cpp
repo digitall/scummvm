@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/scummsys.h"
 
 #ifdef ENABLE_VKEYBD
 
@@ -31,6 +30,7 @@
 #include "backends/vkeybd/virtual-keyboard-parser.h"
 #include "backends/vkeybd/keycode-descriptions.h"
 #include "common/config-manager.h"
+#include "common/textconsole.h"
 #include "common/unzip.h"
 
 #define KEY_START_CHAR ('[')
@@ -58,9 +58,9 @@ VirtualKeyboard::~VirtualKeyboard() {
 void VirtualKeyboard::deleteEvents() {
 	ModeMap::iterator it_m;
 	VKEventMap::iterator it_e;
-	for (it_m = _modes.begin(); it_m != _modes.end(); it_m++) {
+	for (it_m = _modes.begin(); it_m != _modes.end(); ++it_m) {
 		VKEventMap *evt = &(it_m->_value.events);
-		for (it_e = evt->begin(); it_e != evt->end(); it_e++)
+		for (it_e = evt->begin(); it_e != evt->end(); ++it_e)
 			delete it_e->_value;
 	}
 }
@@ -69,7 +69,7 @@ void VirtualKeyboard::reset() {
 	deleteEvents();
 	_modes.clear();
 	_initialMode = _currentMode = 0;
-	_hAlignment = kAlignCentre;
+	_hAlignment = kAlignCenter;
 	_vAlignment = kAlignBottom;
 	_keyQueue.clear();
 	_loaded = false;
@@ -90,11 +90,10 @@ bool VirtualKeyboard::openPack(const String &packName, const FSNode &node) {
 		return true;
 	}
 
-#ifdef USE_ZLIB
 	if (node.getChild(packName + ".zip").exists()) {
 		// compressed keyboard pack
-		_fileArchive = new ZipArchive(node.getChild(packName + ".zip"));
-		if (_fileArchive->hasFile(packName + ".xml")) {
+		_fileArchive = makeZipArchive(node.getChild(packName + ".zip"));
+		if (_fileArchive && _fileArchive->hasFile(packName + ".xml")) {
 			if (!_parser->loadStream(_fileArchive->createReadStreamForMember(packName + ".xml"))) {
 				delete _fileArchive;
 				_fileArchive = 0;
@@ -109,7 +108,6 @@ bool VirtualKeyboard::openPack(const String &packName, const FSNode &node) {
 
 		return true;
 	}
-#endif
 
 	return false;
 }
@@ -136,7 +134,7 @@ bool VirtualKeyboard::loadKeyboardPack(const String &packName) {
 		_loaded = _parser->parse();
 
 		if (_loaded) {
-			printf("Keyboard pack '%s' loaded successfully!\n", packName.c_str());
+			debug("Keyboard pack '%s' loaded successfully", packName.c_str());
 		} else {
 			warning("Error parsing the keyboard pack '%s'", packName.c_str());
 
@@ -207,7 +205,7 @@ void VirtualKeyboard::switchMode(Mode *newMode) {
 	_currentMode = newMode;
 }
 
-void VirtualKeyboard::switchMode(const String& newMode) {
+void VirtualKeyboard::switchMode(const String &newMode) {
 	if (!_modes.contains(newMode)) {
 		warning("Keyboard mode '%s' unknown", newMode.c_str());
 	} else {
@@ -337,7 +335,7 @@ void VirtualKeyboard::KeyPressQueue::deleteKey() {
 	List<VirtualKeyPress>::iterator it = _keyPos;
 	it--;
 	_strPos -= it->strLen;
-	while((it->strLen)-- > 0)
+	while ((it->strLen)-- > 0)
 		_keysStr.deleteChar(_strPos);
 	_keys.erase(it);
 	_strChanged = true;
@@ -416,7 +414,7 @@ bool VirtualKeyboard::KeyPressQueue::hasStringChanged() {
 	return ret;
 }
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_VKEYBD
 

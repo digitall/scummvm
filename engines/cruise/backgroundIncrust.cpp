@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
@@ -49,7 +46,7 @@ void backupBackground(backgroundIncrustStruct *pIncrust, int X, int Y, int width
 	pIncrust->savedX = X;
 	pIncrust->savedY = Y;
 
-	pIncrust->ptr = (uint8*)malloc(width * height);
+	pIncrust->ptr = (uint8*)MemAlloc(width * height);
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
 			int xp = j + X;
@@ -70,6 +67,8 @@ void restoreBackground(backgroundIncrustStruct *pIncrust) {
 	uint8* pBackground = backgroundScreens[pIncrust->backgroundIdx];
 	if (pBackground == NULL)
 		return;
+
+	backgroundChanged[pIncrust->backgroundIdx] = true;
 
 	int X = pIncrust->savedX;
 	int Y = pIncrust->savedY;
@@ -107,6 +106,8 @@ backgroundIncrustStruct *addBackgroundIncrust(int16 overlayIdx,	int16 objectIdx,
 	}
 
 	backgroundPtr = backgroundScreens[backgroundIdx];
+
+	backgroundChanged[backgroundIdx] = true;
 
 	assert(backgroundPtr != NULL);
 
@@ -194,17 +195,13 @@ void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
 	while (pl) {
 		backgroundIncrustStruct* pl2 = pl->next;
 
-		bool bLoad = false;
 		int frame = pl->frame;
 		//int screen = pl->backgroundIdx;
 
 		if ((filesDatabase[frame].subData.ptr == NULL) || (strcmp(pl->name, filesDatabase[frame].subData.name))) {
 			frame = NUM_FILE_ENTRIES - 1;
-			if (loadFile(pl->name, frame, pl->spriteId) >= 0) {
-				bLoad = true;
-			} else {
+			if (loadFile(pl->name, frame, pl->spriteId) < 0)
 				frame = -1;
-			}
 		}
 
 		if (frame >= 0) {
@@ -218,6 +215,8 @@ void regenerateBackgroundIncrust(backgroundIncrustStruct *pHead) {
 				// Poly
 				addBackgroundIncrustSub1(frame, pl->X, pl->Y, NULL, pl->scale, (char*)backgroundScreens[pl->backgroundIdx], (char *)filesDatabase[frame].subData.ptr);
 			}
+
+			backgroundChanged[pl->backgroundIdx] = true;
 		}
 
 		pl = pl2;
@@ -233,9 +232,9 @@ void freeBackgroundIncrustList(backgroundIncrustStruct *pHead) {
 		backgroundIncrustStruct *pNext = pCurrent->next;
 
 		if (pCurrent->ptr)
-			free(pCurrent->ptr);
+			MemFree(pCurrent->ptr);
 
-		free(pCurrent);
+		MemFree(pCurrent);
 
 		pCurrent = pNext;
 	}
@@ -286,10 +285,10 @@ void removeBackgroundIncrust(int overlay, int idx, backgroundIncrustStruct * pHe
 			bx->prev = pCurrent->next;
 
 			if (pCurrent->ptr) {
-				free(pCurrent->ptr);
+				MemFree(pCurrent->ptr);
 			}
 
-			free(pCurrent);
+			MemFree(pCurrent);
 
 			pCurrent = pNext;
 		} else {

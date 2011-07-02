@@ -18,13 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
-#include "agi/sprite.h"
 #include "agi/graphics.h"
 #include "agi/keyboard.h"
 
@@ -67,15 +63,15 @@ namespace Agi {
 #define SELECT_MSG_RU	"ENTER - \xa2\xeb\xa1\xe0\xa0\xe2\xec, ESC - \xae\xe2\xac\xa5\xad\xa8\xe2\xec."
 
 void AgiEngine::printItem(int n, int fg, int bg) {
-	printText(objectName(_intobj[n]), 0, n % 2 ? 39 - strlen(objectName(_intobj[n])) : 1,
+	printText(objectName(_intobj[n]), 0, ((n % 2) ? 39 - strlen(objectName(_intobj[n])) : 1),
 			(n / 2) + 2, 40, fg, bg);
 }
 
 int AgiEngine::findItem() {
 	int r, c;
 
-	r = g_mouse.y / CHAR_LINES;
-	c = g_mouse.x / CHAR_COLS;
+	r = _mouse.y / CHAR_LINES;
+	c = _mouse.x / CHAR_COLS;
 
 	debugC(6, kDebugLevelInventory, "r = %d, c = %d", r, c);
 
@@ -115,7 +111,7 @@ void AgiEngine::selectItems(int n) {
 	int fsel = 0;
 	bool exit_select = false;
 
-	while (!exit_select) {
+	while (!exit_select && !(shouldQuit() || _restartGame)) {
 		if (n > 0)
 			printItem(fsel, STATUS_BG, STATUS_FG);
 

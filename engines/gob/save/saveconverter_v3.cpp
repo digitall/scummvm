@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -75,7 +72,7 @@ char *SaveConverter_v3::getDescription(Common::SeekableReadStream &save) const {
 
 	// Read the description
 	if (save.read(desc, kSlotNameLength) != kSlotNameLength) {
-		delete desc;
+		delete[] desc;
 		return 0;
 	}
 

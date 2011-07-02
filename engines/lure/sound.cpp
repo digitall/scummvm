@@ -1,4 +1,8 @@
-/* ScummVM - Scumm Interpreter
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/sound.h"
@@ -28,9 +29,11 @@
 #include "common/algorithm.h"
 #include "common/config-manager.h"
 #include "common/endian.h"
-#include "sound/midiparser.h"
+#include "audio/midiparser.h"
 
+namespace Common {
 DECLARE_SINGLETON(Lure::SoundManager);
+}
 
 namespace Lure {
 
@@ -46,21 +49,25 @@ SoundManager::SoundManager() {
 	_soundData = NULL;
 	_paused = false;
 
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-	_isRoland = midiDriver != MD_ADLIB;
-	_nativeMT32 = ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32"));
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MT32);
+	_isRoland = MidiDriver::getMusicType(dev) != MT_ADLIB;
+	_nativeMT32 = ((MidiDriver::getMusicType(dev) == MT_MT32) || ConfMan.getBool("native_mt32"));
 
 	Common::set_to(_channelsInUse, _channelsInUse + NUM_CHANNELS, false);
 
-	_driver = MidiDriver::createMidi(midiDriver);
+	_driver = MidiDriver::createMidi(dev);
 	int statusCode = _driver->open();
 	if (statusCode) {
 		warning("Sound driver returned error code %d", statusCode);
 		_driver = NULL;
 
 	} else {
-		if (_nativeMT32)
+		if (_nativeMT32) {
 			_driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
+			_driver->sendMT32Reset();
+		} else {
+			_driver->sendGMReset();
+		}
 
 		for (index = 0; index < NUM_CHANNELS; ++index) {
 			_channelsInner[index].midiChannel = _driver->allocateChannel();
@@ -68,6 +75,8 @@ SoundManager::SoundManager() {
 			_channelsInner[index].volume = 90;
 		}
 	}
+
+	syncSounds();
 }
 
 SoundManager::~SoundManager() {
@@ -82,19 +91,18 @@ SoundManager::~SoundManager() {
 	g_system->unlockMutex(_soundMutex);
 
 	delete _descs;
-	if (_soundData)
-		delete _soundData;
+	delete _soundData;
 
 	if (_driver) {
 		_driver->close();
 		delete _driver;
+		_driver = NULL;
 	}
-	_driver = NULL;
 
 	g_system->deleteMutex(_soundMutex);
 }
 
-void SoundManager::saveToStream(WriteStream *stream) {
+void SoundManager::saveToStream(Common::WriteStream *stream) {
 	debugC(ERROR_BASIC, kLureDebugSounds, "SoundManager::saveToStream");
 	SoundListIterator i;
 
@@ -105,7 +113,7 @@ void SoundManager::saveToStream(WriteStream *stream) {
 	stream->writeByte(0xff);
 }
 
-void SoundManager::loadFromStream(ReadStream *stream) {
+void SoundManager::loadFromStream(Common::ReadStream *stream) {
 	// Stop any existing sounds playing
 	killSounds();
 
@@ -223,8 +231,8 @@ void SoundManager::addSound(uint8 soundIndex, bool tidyFlag) {
 
 	if (_isRoland)
 		newEntry->volume = rec.volume;
-	else /* resource volumes do not seem to work well with our adlib emu */
-		newEntry->volume = 240; /* 255 causes clipping with adlib */
+	else /* resource volumes do not seem to work well with our AdLib emu */
+		newEntry->volume = 240; /* 255 causes clipping with AdLib */
 
 	_activeSounds.push_back(SoundList::value_type(newEntry));
 
@@ -285,16 +293,21 @@ uint8 SoundManager::descIndexOf(uint8 soundNumber) {
 // Used to sync the volume for all channels with the Config Manager
 //
 void SoundManager::syncSounds() {
-	Game &game = Game::getReference();
 	musicInterface_TidySounds();
+
+	bool mute = false;
+	if (ConfMan.hasKey("mute"))
+		mute = ConfMan.getBool("mute");
+	_musicVolume = mute ? 0 : MIN(255, ConfMan.getInt("music_volume"));
+	_sfxVolume = mute ? 0 : MIN(255, ConfMan.getInt("sfx_volume"));
 
 	g_system->lockMutex(_soundMutex);
 	MusicListIterator i;
 	for (i = _playingSounds.begin(); i != _playingSounds.end(); ++i) {
 		if ((*i)->isMusic())
-			(*i)->setVolume(game.musicVolume());
+			(*i)->setVolume(_musicVolume);
 		else
-			(*i)->setVolume(game.sfxVolume());
+			(*i)->setVolume(_sfxVolume);
 	}
 	g_system->unlockMutex(_soundMutex);
 }
@@ -583,6 +596,7 @@ void SoundManager::doTimer() {
 MidiMusic::MidiMusic(MidiDriver *driver, ChannelEntry channels[NUM_CHANNELS],
 					 uint8 channelNum, uint8 soundNum, bool isMus, uint8 numChannels, void *soundData, uint32 size) {
 	_driver = driver;
+	assert(_driver);
 	_channels = channels;
 	_soundNumber = soundNum;
 	_channelNumber = channelNum;
@@ -596,19 +610,15 @@ MidiMusic::MidiMusic(MidiDriver *driver, ChannelEntry channels[NUM_CHANNELS],
 	}
 
 	if (_isMusic)
-		setVolume(ConfMan.getInt("music_volume"));
+		setVolume(Sound.musicVolume());
 	else
-		setVolume(ConfMan.getInt("sfx_volume"));
-
-	_passThrough = false;
+		setVolume(Sound.sfxVolume());
 
 	_parser = MidiParser::createParser_SMF();
 	_parser->setMidiDriver(this);
 	_parser->setTimerRate(_driver->getBaseTempo());
 
-	this->open();
-
-	_soundData = (uint8 *) soundData;
+	_soundData = (uint8 *)soundData;
 	_soundSize = size;
 
 	// Check whether the music data is compressed - if so, decompress it for the duration
@@ -640,9 +650,7 @@ MidiMusic::MidiMusic(MidiDriver *driver, ChannelEntry channels[NUM_CHANNELS],
 MidiMusic::~MidiMusic() {
 	_parser->unloadMusic();
 	delete _parser;
-	this->close();
-	if (_decompressedSound != NULL)
-		delete _decompressedSound;
+	delete _decompressedSound;
 }
 
 void MidiMusic::setVolume(int volume) {
@@ -656,8 +664,7 @@ void MidiMusic::setVolume(int volume) {
 
 	_volume = volume;
 
-	Game &game = Game::getReference();
-	volume *= _isMusic ? game.musicVolume() : game.sfxVolume();
+	volume *= _isMusic ? Sound.musicVolume() : Sound.sfxVolume();
 
 	for (int i = 0; i < _numChannels; ++i) {
 		if (_channels[_channelNumber + i].midiChannel != NULL)
@@ -674,23 +681,7 @@ void MidiMusic::playMusic() {
 	_isPlaying = true;
 }
 
-int MidiMusic::open() {
-	// Don't ever call open without first setting the output driver!
-	if (!_driver)
-		return 255;
-
-	return 0;
-}
-
-void MidiMusic::close() {
-}
-
 void MidiMusic::send(uint32 b) {
-	if (_passThrough) {
-		_driver->send(b);
-		return;
-	}
-
 #ifdef SOUND_CROP_CHANNELS
 	if ((b & 0xF) >= _numChannels) return;
 	byte channel = _channelNumber + (byte)(b & 0x0F);
@@ -705,8 +696,7 @@ void MidiMusic::send(uint32 b) {
 		// Adjust volume changes by song and master volume
 		byte volume = (byte)((b >> 16) & 0x7F);
 		_channels[channel].volume = volume;
-		Game &game = Game::getReference();
-		int master_volume = _isMusic ? game.musicVolume() : game.sfxVolume();
+		int master_volume = _isMusic ? Sound.musicVolume() : Sound.sfxVolume();
 		volume = volume * _volume * master_volume / 65025;
 		b = (b & 0xFF00FFFF) | (volume << 16);
 	} else if ((b & 0xF0) == 0xC0) {
@@ -738,7 +728,6 @@ void MidiMusic::stopMusic() {
 	debugC(ERROR_DETAILED, kLureDebugSounds, "MidiMusic::stopMusic sound %d", _soundNumber);
 	_isPlaying = false;
 	_parser->unloadMusic();
-	close();
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

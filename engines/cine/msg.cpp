@@ -18,26 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/debug.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 #include "cine/msg.h"
 #include "cine/various.h"
 
 namespace Cine {
 
-Common::StringList messageTable;
-
 void loadMsg(char *pMsgName) {
 	uint32 sourceSize;
 
 	checkDataDisk(-1);
-	messageTable.clear();
+	g_cine->_messageTable.clear();
 	byte *dataPtr = readBundleFile(findFileInBundle(pMsgName), &sourceSize);
 
 	setMouseCursor(MOUSE_CURSOR_DISK);
@@ -56,7 +52,7 @@ void loadMsg(char *pMsgName) {
 		// This code works around input data that has empty strings residing outside the input
 		// buffer (e.g. message indexes 58-254 in BATEAU.MSG in PROCS08 in Operation Stealth).
 		if (messageDataPos < sourceSize) {
-			messageTable.push_back((const char *)(dataPtr + messageDataPos));
+			g_cine->_messageTable.push_back((const char *)(dataPtr + messageDataPos));
 		} else {
 			if (messageLen > 0) { // Only warn about overflowing non-empty strings
 				warning("loadMsg(%s): message (%d. / %d) is overflowing the input buffer. Replacing it with an empty string", pMsgName, i + 1, count);
@@ -64,7 +60,7 @@ void loadMsg(char *pMsgName) {
 				debugC(5, kCineDebugPart, "loadMsg(%s): empty message (%d. / %d) resides outside input buffer", pMsgName, i + 1, count);
 			}
 			// Message resides outside the input buffer so we replace it with an empty string
-			messageTable.push_back("");
+			g_cine->_messageTable.push_back("");
 		}
 		// Jump to the next message
 		messageDataPos += messageLen;

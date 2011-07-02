@@ -18,13 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CEGUI_PANELITEM
-#define CEGUI_PANELITEM
+#ifndef CEGUI_PANELITEM_H
+#define CEGUI_PANELITEM_H
 
 #include "common/scummsys.h"
 #include "common/system.h"
@@ -33,18 +30,19 @@
 
 namespace CEGUI {
 
-	class Panel;
+class Panel;
 
-	class PanelItem : public GUIElement {
+class PanelItem : public GUIElement {
 	friend class Panel;
-	public:
-		PanelItem(WORD reference);
-		virtual ~PanelItem();
-		virtual bool action(int x, int y, bool pushed);
-	protected:
-		void setPanel(Panel *panel);
-		Panel *_panel;
-	};
-}
+public:
+	PanelItem(WORD reference);
+	virtual ~PanelItem();
+	virtual bool action(int x, int y, bool pushed);
+protected:
+	void setPanel(Panel *panel);
+	Panel *_panel;
+};
+
+} // End of namespace CEGUI
 
 #endif

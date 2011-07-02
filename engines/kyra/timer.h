@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_TIMER_H
@@ -104,7 +101,7 @@ private:
 	TimerManager &_timer;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

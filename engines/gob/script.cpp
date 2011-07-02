@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/util.h"
@@ -43,7 +40,7 @@ Script::Script(GobEngine *vm) : _vm(vm) {
 	_totPtr = 0;
 	_totSize = 0;
 
-	_lomHandle = -1;
+	_lom = 0;
 
 	memset(&_totProperties, 0, sizeof(TOTFile::Properties));
 }
@@ -155,9 +152,11 @@ byte *Script::getData() {
 }
 
 byte Script::readByte() {
-	byte v;
+	byte v = 0;
+	uint32 n;
 
-	read(&v, 1);
+	n = read(&v, 1);
+	assert(n == 1);
 
 	return v;
 }
@@ -171,17 +170,21 @@ uint8 Script::readUint8() {
 }
 
 uint16 Script::readUint16() {
-	byte v[2];
+	byte v[2] = {0, 0};
+	uint32 n;
 
-	read(v, 2);
+	n = read(v, 2);
+	assert(n == 2);
 
 	return READ_LE_UINT16(v);
 }
 
 uint32 Script::readUint32() {
-	byte v[4];
+	byte v[4] = {0, 0, 0, 0};
+	uint32 n;
 
-	read(v, 4);
+	n = read(v, 4);
+	assert(n == 4);
 
 	return READ_LE_UINT32(v);
 }
@@ -204,7 +207,7 @@ char *Script::readString(int32 length) {
 		while (_totPtr[length++] != '\0') { }
 	}
 
-	char *string = (char *) _totPtr;
+	char *string = (char *)_totPtr;
 
 	_totPtr += length;
 
@@ -256,7 +259,7 @@ int32 Script::peekInt32(int32 offset) {
 }
 
 char *Script::peekString(int32 offset) {
-	return (char *) (_totPtr + offset);
+	return (char *)(_totPtr + offset);
 }
 
 int16 Script::readVarIndex(uint16 *size, uint16 *type) {
@@ -302,7 +305,7 @@ char Script::evalExpr(int16 *pRes) {
 	return type;
 }
 
-bool Script::evalBoolResult() {
+bool Script::evalBool() {
 	byte type;
 
 	_expression->printExpr(99);
@@ -313,6 +316,16 @@ bool Script::evalBoolResult() {
 		return true;
 	else
 		return false;
+}
+
+int32 Script::evalInt() {
+	evalExpr(0);
+	return getResultInt();
+}
+
+const char *Script::evalString() {
+	evalExpr(0);
+	return getResultStr();
 }
 
 int32 Script::getResultInt() const {
@@ -374,20 +387,16 @@ bool Script::loadTOT(const Common::String &fileName) {
 bool Script::loadLOM(const Common::String &fileName) {
 	warning("Stub: Script::loadLOM(%s)", _totFile.c_str());
 
-	_lomHandle = _vm->_dataIO->openData(_totFile.c_str());
-	if (_lomHandle < 0)
+	_lom = _vm->_dataIO->getFile(_totFile);
+	if (!_lom)
 		return false;
 
-	DataStream *stream = _vm->_dataIO->openAsStream(_lomHandle);
-
-	stream->seek(48);
-	_totSize = stream->readUint32LE();
-	stream->seek(0);
+	_lom->seek(48);
+	_totSize = _lom->readUint32LE();
+	_lom->seek(0);
 
 	_totData = new byte[_totSize];
-	stream->read(_totData, _totSize);
-
-	delete stream;
+	_lom->read(_totData, _totSize);
 
 	return false;
 }
@@ -397,8 +406,8 @@ void Script::unload() {
 }
 
 void Script::unloadTOT() {
-	if (_lomHandle >= 0)
-		_vm->_dataIO->closeData(_lomHandle);
+	delete _lom;
+	_lom = 0;
 
 	// Unwind the call stack
 	while (!_callStack.empty())
@@ -409,7 +418,6 @@ void Script::unloadTOT() {
 	_totData = 0;
 	_totSize = 0;
 	_totPtr = 0;
-	_lomHandle = -1;
 	_totFile.clear();
 
 	_finished = true;
@@ -512,7 +520,7 @@ uint16 Script::getFunctionOffset(uint8 function) const {
 }
 
 uint32 Script::getVariablesCount(const char *fileName, GobEngine *vm) {
-	DataStream *stream = vm->_dataIO->getDataStream(fileName);
+	Common::SeekableReadStream *stream = vm->_dataIO->getFile(fileName);
 	if (!stream)
 		return 0;
 

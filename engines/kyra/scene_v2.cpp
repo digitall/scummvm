@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_v2.h"
-#include "kyra/screen.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -86,15 +84,16 @@ int KyraEngine_v2::findWay(int x, int y, int toX, int toY, int *moveTable, int m
 	x &= ~3; toX &= ~3;
 	y &= ~1; toY &= ~1;
 	int size = KyraEngine_v1::findWay(x, y, toX, toY, moveTable, moveTableSize);
-	static bool usePostProcess = false;
-	if (size && !usePostProcess) {
-		usePostProcess = true;
+
+	if (size && !_smoothingPath) {
+		_smoothingPath = true;
 		int temp = pathfinderInitPositionTable(moveTable);
 		temp = pathfinderInitPositionIndexTable(temp, x, y);
 		pathfinderFinializePath(moveTable, temp, x, y, moveTableSize);
-		usePostProcess = false;
+		_smoothingPath = false;
 	}
-	return usePostProcess ? size : getMoveTableSize(moveTable);
+
+	return _smoothingPath ? size : getMoveTableSize(moveTable);
 }
 
 bool KyraEngine_v2::directLinePassable(int x, int y, int toX, int toY) {
@@ -225,5 +224,5 @@ void KyraEngine_v2::pathfinderFinializePath(int *moveTable, int tableLen, int x,
 	}
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

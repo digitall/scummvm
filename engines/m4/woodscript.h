@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_WOODSCRIPT_H
@@ -43,7 +40,7 @@
 
 namespace M4 {
 
-class M4Engine;
+class MadsM4Engine;
 class WoodScript;
 class Machine;
 class Sequence;
@@ -77,7 +74,7 @@ public:
 	uint32 pos() const { return _code->pos() / 4; }
 protected:
 	WoodScript *_ws;
-	Common::MemoryReadStream *_code;
+	Common::SeekableReadStream *_code;
 	Sequence *_sequence;
 	static int32 _dataFormats[];
 	bool decodeArgument(int32 format, int32 data, long *&arg, long &value);
@@ -278,7 +275,7 @@ protected:
 class WoodScript {
 public:
 
-	WoodScript(M4Engine *vm);
+	WoodScript(MadsM4Engine *vm);
 	~WoodScript();
 
 	Machine *createMachine(int32 machineHash, Sequence *parentSeq, int32 dataHash, int32 dataRowIndex, int callbackHandler, const char *machineName);
@@ -323,7 +320,7 @@ public:
 	byte *getInverseColorTable() const { return _inverseColorTable; }
 
 protected:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	AssetManager *_assets;
 
 	Common::Array<Sequence*> _sequences, _layers;

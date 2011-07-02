@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_LOGIC_H
 #define SKY_LOGIC_H
 
-
 #include "common/util.h"
+#include "common/random.h"
 
 namespace Sky {
 
@@ -144,7 +141,7 @@ public:
 		MusicBase *skyMusic,
 		Mouse *skyMouse,
 		Sound *skySound);
-	~Logic(void);
+	~Logic();
 	void engine();
 	void useControlInstance(Control *control) { _skyControl = control; }
 
@@ -154,7 +151,7 @@ public:
 	Grid *_skyGrid;
 
 	uint16 script(uint16 scriptNo, uint16 offset);
-	void initScreen0(void);
+	void initScreen0();
 	void parseSaveData(uint32 *data);
 
 private:
@@ -172,7 +169,7 @@ protected:
 	void mainAnim();
 	void runGetOff();
 	void stopAndWait();
-	bool checkProtection(void);
+	bool checkProtection();
 
 	void nop();
 	void logicScript();

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SAVE_SAVECONVERTER_H
@@ -77,7 +74,7 @@ protected:
 	Common::String _fileName;
 
 	byte *_data;
-	Common::MemoryReadStream *_stream;
+	Common::SeekableReadStream *_stream;
 
 	Common::InSaveFile *openSave() const;
 
@@ -180,25 +177,6 @@ private:
 
 	bool loadFail(SavePartInfo *info, SavePartVars *vars,
 			SavePartMem *props, Common::InSaveFile *save);
-};
-
-/** A wrapper for old v6-style saves (Urban Runner). */
-class SaveConverter_v6 : public SaveConverter {
-public:
-	SaveConverter_v6(GobEngine *vm, const Common::String &fileName = "");
-	~SaveConverter_v6();
-
-	int isOldSave(Common::InSaveFile **save = 0) const;
-	char *getDescription(Common::SeekableReadStream &save) const;
-
-	bool load();
-
-private:
-	static const uint32 kSlotCount = 15;
-	static const uint32 kSlotNameLength = 40;
-
-	bool loadFail(SavePartInfo *info, SavePartVars *vars,
-			Common::InSaveFile *save);
 };
 
 } // End of namespace Gob

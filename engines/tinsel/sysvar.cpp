@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * System variable handling.
  */
 
@@ -31,6 +28,8 @@
 #include "tinsel/sysvar.h"
 #include "tinsel/tinsel.h"
 
+#include "common/textconsole.h"
+
 namespace Tinsel {
 
 // Return for SYS_Platform
@@ -38,12 +37,11 @@ typedef enum { DOS_PC, WIN_PC, APPLE_MAC, SONY_PSX, SEGA_SATURN } platform;
 
 //----------------- GLOBAL GLOBAL DATA --------------------
 
-// To prevent assembler from needing to call SysVar()
-uint8 ghostColour;
-
-extern int NewestSavedGame(void);
+extern int NewestSavedGame();
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static int systemVars[SV_TOPVALID] = {
 
@@ -78,7 +76,7 @@ static int systemVars[SV_TOPVALID] = {
 		2,		// Speech Delay
 		2,		// Music dim factor
 
-		0,		// if set, default actor's text colour gets poked in here
+		0,		// if set, default actor's text color gets poked in here
 
 		0,		// user 1
 		0,		// user 2
@@ -104,17 +102,17 @@ static int systemVars[SV_TOPVALID] = {
 
 		0,		// ISV_GHOST_ACTOR
 		0,		// ISV_GHOST_BASE
-		0		// ISV_GHOST_COLOUR
+		0		// ISV_GHOST_COLOR
 };
 
-static SCNHANDLE systemStrings[SS_MAX_VALID];
+static SCNHANDLE systemStrings[SS_MAX_VALID];	// FIXME: Avoid non-const global vars
 
 //static bool bFlagNoBlocking = false;
 
 //----------------- FUNCTIONS --------------------------------
 
 /**
- * Initialises the system variable list
+ * Initializes the system variable list
  */
 
 void InitSysVars() {
@@ -141,10 +139,6 @@ void SetSysVar(int varId, int newValue) {
 
 	default:
 		systemVars[varId] = newValue;
-
-		if (varId == ISV_GHOST_COLOUR) {
-			ghostColour = (uint8)newValue;
-		}
 	}
 }
 
@@ -162,7 +156,7 @@ int SysVar(int varId) {
 	case SV_SUBTITLES:
 		// FIXME: This isn't currently defined
 		return false;
-		//return bSubtitles;
+		//return _vm->_config->_useSubtitles;
 
 	case SV_SAVED_GAME_EXISTS:
 		return NewestSavedGame() != -1;
@@ -183,8 +177,6 @@ void SaveSysVars(int *pSv) {
 
 void RestoreSysVars(int *pSv) {
 	memcpy(systemVars, pSv, sizeof(systemVars));
-
-	ghostColour = (uint8)SysVar(ISV_GHOST_COLOUR);
 }
 
 void SetSysString(int number, SCNHANDLE hString) {
@@ -200,19 +192,19 @@ SCNHANDLE SysString(int number) {
 }
 
 /**
- * Gets the no blocking flag. Note that for convenience, the systemVars arrray entry is
- * used even for Tinsel 1, which used a separate boolean variable
+ * Gets the no blocking flag. Note that for convenience, the systemVars array
+ * entry is used even for Tinsel 1, which originally used a separate variable.
  */
-bool GetNoBlocking(void) {
+bool GetNoBlocking() {
 	return SysVar(ISV_NO_BLOCKING);
 }
 
 /**
- * Sets the no blocking flag. Note that for convenience, the systemVars arrray entry is
- * used even for Tinsel 1, which used a separate boolean variable
+ * Sets the no blocking flag. Note that for convenience, the systemVars array
+ * entry is used even for Tinsel 1, which originally used a separate variable.
  */
 void SetNoBlocking(bool flag) {
 	SetSysVar(ISV_NO_BLOCKING, flag);
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

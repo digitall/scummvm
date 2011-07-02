@@ -17,13 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/endian.h"
 #include "graphics/dither.h"
+
+#include "common/endian.h"
+#include "common/stream.h"
 
 namespace Graphics {
 
@@ -172,7 +171,7 @@ bool PaletteLUT::save(Common::WriteStream &stream) {
 	while (_got < _dim1)
 		buildNext();
 
-	stream.writeUint32BE(MKID_BE('PLUT')); // Magic
+	stream.writeUint32BE(MKTAG('P','L','U','T')); // Magic
 	stream.writeUint32BE(kVersion);
 	stream.writeByte(_depth1);
 	if (stream.write(_realPal, 768) != 768)
@@ -198,7 +197,7 @@ bool PaletteLUT::load(Common::SeekableReadStream &stream) {
 		return false;
 
 	// Magic
-	if (stream.readUint32BE() != MKID_BE('PLUT'))
+	if (stream.readUint32BE() != MKTAG('P','L','U','T'))
 		return false;
 
 	if (stream.readUint32BE() != kVersion)

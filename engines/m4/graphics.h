@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_GRAPHICS_H
@@ -35,12 +32,19 @@
 
 namespace M4 {
 
+#define MADS_SURFACE_WIDTH 320
+#define MADS_SURFACE_HEIGHT 156
+#define MADS_SCREEN_HEIGHT 200
+#define MADS_Y_OFFSET ((MADS_SCREEN_HEIGHT - MADS_SURFACE_HEIGHT) / 2)
+
+#define TRANSPARENT_COLOR_INDEX 0xFF
+
 struct BGR8 {
 	uint8 b, g, r;
 };
 
 struct RGB8 {
-	uint8 r, g, b, u;
+	uint8 r, g, b;
 };
 
 //later use ScummVM's Rect?
@@ -66,6 +70,9 @@ public:
 	RGB8 *data() { return _data; }
 	byte *palIndexes() { return _palIndexes; }
 	int size() { return _size; }
+	RGB8 &operator[](int idx) { return _data[idx]; }
+	void setRange(int start, int count, const RGB8 *src);
+	RGBList *clone() const;
 };
 
 // M4Surface
@@ -83,20 +90,40 @@ struct SpriteInfo {
 	RGB8 *palette;
 };
 
-class M4Surface : public Graphics::Surface {
+class M4Surface : protected Graphics::Surface {
 private:
 	byte _color;
 	bool _isScreen;
+	RGBList *_rgbList;
+	bool _ownsData;
 
 	void rexLoadBackground(Common::SeekableReadStream *source, RGBList **palData = NULL);
 	void madsLoadBackground(int roomNumber, RGBList **palData = NULL);
 	void m4LoadBackground(Common::SeekableReadStream *source);
 public:
 	M4Surface(bool isScreen = false) {
-		create(g_system->getWidth(), g_system->getHeight(), 1);
+		create(g_system->getWidth(), isScreen ? g_system->getHeight() : MADS_SURFACE_HEIGHT, Graphics::PixelFormat::createFormatCLUT8());
 		_isScreen = isScreen;
+		_rgbList = NULL;
+		_ownsData = true;
 	}
-	M4Surface(int Width, int Height) { create(Width, Height, 1); _isScreen = false; }
+	M4Surface(int width_, int height_) {
+		create(width_, height_, Graphics::PixelFormat::createFormatCLUT8());
+		_isScreen = false;
+		_rgbList = NULL;
+		_ownsData = true;
+	}
+	M4Surface(int width_, int height_, byte *srcPixels, int pitch_) {
+		format = Graphics::PixelFormat::createFormatCLUT8();
+		w = width_;
+		h = height_;
+		pitch = pitch_;
+		pixels = srcPixels;
+		_rgbList = NULL;
+		_ownsData = false;
+	}
+
+	virtual ~M4Surface();
 
 	// loads a .COD file into the M4Surface
 	// TODO: maybe move this to the rail system? check where it makes sense
@@ -107,32 +134,44 @@ public:
 	// loads the specified background
 	void loadBackground(int sceneNumber, RGBList **palData = NULL);
 	void loadBackgroundRiddle(const char *sceneName);
-	void madsloadInterface(int index, RGBList **palData);
+	void madsLoadInterface(int index, RGBList **palData = NULL);
+	void madsLoadInterface(const Common::String &filename);
 
 	void setColor(byte value) { _color = value; }
-	byte getColor() { return _color; }
+	inline byte getColor() const { return _color; }
 	void vLine(int x, int y1, int y2);
 	void hLine(int x1, int x2, int y);
 	void vLineXor(int x, int y1, int y2);
 	void hLineXor(int x1, int x2, int y);
-	void line(int x1, int y1, int x2, int y2, byte color);
+	void drawLine(int x1, int y1, int x2, int y2, byte color);
 	void frameRect(int x1, int y1, int x2, int y2);
 	void fillRect(int x1, int y1, int x2, int y2);
 
 	void drawSprite(int x, int y, SpriteInfo &info, const Common::Rect &clipRect);
 
 	// Surface methods
-	int width() { return w; }
-	int height() { return h; }
-	void setSize(int sizeX, int sizeY) { create(sizeX, sizeY, 1); }
-	byte *getData();
-	byte *getBasePtr(int x, int y);
+	inline Common::Rect bounds() const { return Common::Rect(0, 0, width(), height()); }
+	inline int width() const { return w; }
+	inline int height() const { return h; }
+	inline int getPitch() const { return pitch; }
+	void setSize(int sizeX, int sizeY) { create(sizeX, sizeY, Graphics::PixelFormat::createFormatCLUT8()); }
+	inline byte *getBasePtr() {
+		return (byte *)pixels;
+	}
+	inline byte *getBasePtr(int x, int y) {
+		return (byte *)Graphics::Surface::getBasePtr(x, y);
+	}
+	inline const byte *getBasePtr(int x, int y) const {
+		return (const byte *)Graphics::Surface::getBasePtr(x, y);
+	}
 	void freeData();
 	void clear();
+	void reset();
 	void frameRect(const Common::Rect &r, uint8 color);
 	void fillRect(const Common::Rect &r, uint8 color);
-	void copyFrom(M4Surface *src, const Common::Rect &srcBounds, int destX, int destY,
-		int transparentColor = -1);
+	void copyFrom(M4Surface *src, const Common::Rect &srcBounds, int destX, int destY, int transparentColor = -1);
+	void copyFrom(M4Surface *src, int destX, int destY, int depth, M4Surface *depthSurface,
+			int scale, int transparentColor = -1);
 
 	void update() {
 		if (_isScreen) {
@@ -142,34 +181,42 @@ public:
 	}
 
 	// copyTo methods
-	void copyTo(M4Surface *dest, int transparentColor = -1) {
+	inline void copyTo(M4Surface *dest, int transparentColor = -1) {
 		dest->copyFrom(this, Common::Rect(width(), height()), 0, 0, transparentColor);
 	}
-	void copyTo(M4Surface *dest, int x, int y, int transparentColor = -1) {
+	inline void copyTo(M4Surface *dest, int x, int y, int transparentColor = -1) {
 		dest->copyFrom(this, Common::Rect(width(), height()), x, y, transparentColor);
 	}
-	void copyTo(M4Surface *dest, const Common::Rect &srcBounds, int destX, int destY,
+	inline void copyTo(M4Surface *dest, const Common::Rect &srcBounds, int destX, int destY,
 				int transparentColor = -1) {
 		dest->copyFrom(this, srcBounds, destX, destY, transparentColor);
 	}
+	inline void copyTo(M4Surface *dest, int destX, int destY, int depth, M4Surface *depthsSurface, int scale,
+				int transparentColor = -1) {
+		dest->copyFrom(this, destX, destY, depth, depthsSurface, scale, transparentColor);
+	}
+
+	void scrollX(int xAmount);
+	void scrollY(int yAmount);
 
 	void translate(RGBList *list, bool isTransparent = false);
+	M4Surface *flipHorizontal() const;
 };
 
 enum FadeType {FT_TO_GREY, FT_TO_COLOR, FT_TO_BLOCK};
 
 class Palette {
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	bool _colorsChanged;
 	bool _fading_in_progress;
-	byte _originalPalette[256 * 4];
-	byte _fadedPalette[256 * 4];
+	byte _originalPalette[256 * 3];
+	byte _fadedPalette[256 * 3];
 	int _usageCount[256];
 
 	void reset();
 public:
-	Palette(M4Engine *vm);
+	Palette(MadsM4Engine *vm);
 
 	void setPalette(const byte *colors, uint start, uint num);
 	void setPalette(const RGB8 *colors, uint start, uint num);
@@ -177,6 +224,7 @@ public:
 	void grabPalette(RGB8 *colors, uint start, uint num) {
 		grabPalette((byte *)colors, start, num);
 	}
+	void setEntry(uint index, uint8 r, uint8 g, uint8 b);
 	uint8 palIndexFromRgb(byte r, byte g, byte b, RGB8 *paletteData = NULL);
 
 	void fadeToGreen(int numSteps, uint delayAmount);

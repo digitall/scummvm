@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 #include "parallaction/objects.h"
@@ -204,6 +203,8 @@ Zone::Zone() {
 }
 
 Zone::~Zone() {
+	_vm->_gfx->unregisterLabel(_label);
+	delete _label;
 }
 
 void Zone::translate(int16 x, int16 y) {
@@ -256,6 +257,14 @@ Answer::Answer() {
 	_hasCounterCondition = false;
 }
 
+bool Answer::textIsNull() {
+	return (_text.equalsIgnoreCase("NULL"));
+}
+
+int Answer::speakerMood() {
+	return _mood & 0xF;
+}
+
 Question::Question(const Common::String &name) : _name(name), _mood(0) {
 	memset(_answers, 0, sizeof(_answers));
 }
@@ -265,6 +274,19 @@ Question::~Question() {
 		delete _answers[i];
 	}
 }
+
+bool Question::textIsNull() {
+	return (_text.equalsIgnoreCase("NULL"));
+}
+
+int Question::speakerMood() {
+	return _mood & 0xF;
+}
+
+int Question::balloonWinding() {
+	return _mood & 0x10;
+}
+
 
 Instruction::Instruction() {
 	_index = 0;
@@ -303,8 +325,7 @@ int16 ScriptVar::getValue() {
 	}
 
 	error("Parameter is not an r-value");
-
-	return 0;
+	return 0;	// for compilers that don't support NORETURN
 }
 
 void ScriptVar::setValue(int16 value) {

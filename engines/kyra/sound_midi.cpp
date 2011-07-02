@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/sound_intern.h"
@@ -28,12 +25,13 @@
 
 #include "common/system.h"
 #include "common/config-manager.h"
+#include "common/translation.h"
 
 #include "gui/message.h"
 
 namespace Kyra {
 
-class MidiOutput : public MidiDriver {
+class MidiOutput : public MidiDriver_BASE {
 public:
 	MidiOutput(OSystem *system, MidiDriver *output, bool isMT32, bool defaultMT32);
 	~MidiOutput();
@@ -46,19 +44,16 @@ public:
 
 	void setSoundSource(int source) { _curSource = source; }
 
-	void send(uint32 b);
-	void sysEx(const byte *msg, uint16 length);
-	void metaEvent(byte type, byte *data, uint16 length);
+	// MidiDriver_BASE interface
+	virtual void send(uint32 b);
+	virtual void sysEx(const byte *msg, uint16 length);
+	virtual void metaEvent(byte type, byte *data, uint16 length);
 
+	// TODO: Get rid of the following two methods
 	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { _output->setTimerCallback(timerParam, timerProc); }
-	uint32 getBaseTempo(void) { return _output->getBaseTempo(); }
+	uint32 getBaseTempo() { return _output->getBaseTempo(); }
 
-	// DUMMY
-	int open() { return 0; }
-	void close() {}
 
-	MidiChannel *allocateChannel()		{ return 0; }
-	MidiChannel *getPercussionChannel()	{ return 0; }
 private:
 	void sendIntern(const byte event, const byte channel, byte param1, const byte param2);
 	void sendSysEx(const byte p1, const byte p2, const byte p3, const byte *buffer, const int size);
@@ -66,7 +61,6 @@ private:
 	OSystem *_system;
 	MidiDriver *_output;
 
-	uint32 _lastSysEx;
 	bool _isMT32;
 	bool _defaultMT32;
 
@@ -113,7 +107,7 @@ private:
 	} _sources[4];
 };
 
-MidiOutput::MidiOutput(OSystem *system, MidiDriver *output, bool isMT32, bool defaultMT32) : _system(system), _output(output), _lastSysEx(0) {
+MidiOutput::MidiOutput(OSystem *system, MidiDriver *output, bool isMT32, bool defaultMT32) : _system(system), _output(output) {
 	_isMT32 = isMT32;
 	_defaultMT32 = defaultMT32;
 
@@ -135,10 +129,14 @@ MidiOutput::MidiOutput(OSystem *system, MidiDriver *output, bool isMT32, bool de
 	static const byte sysEx2[] = { 3, 4, 3, 4, 3, 4, 3, 4, 4 };
 	static const byte sysEx3[] = { 0, 3, 2 };
 
-	sendSysEx(0x7F, 0x00, 0x00, sysEx1, 1);
-	sendSysEx(0x10, 0x00, 0x0D, sysEx1, 9);
-	sendSysEx(0x10, 0x00, 0x04, sysEx2, 9);
-	sendSysEx(0x10, 0x00, 0x01, sysEx3, 3);
+	if (_isMT32) {
+		sendSysEx(0x7F, 0x00, 0x00, sysEx1, 1);
+		sendSysEx(0x10, 0x00, 0x0D, sysEx1, 9);
+		sendSysEx(0x10, 0x00, 0x04, sysEx2, 9);
+		sendSysEx(0x10, 0x00, 0x01, sysEx3, 3);
+	} else {
+		_output->sendGMReset();
+	}
 
 	memset(_channels, 0, sizeof(_channels));
 	for (int i = 0; i < 16; ++i) {
@@ -155,8 +153,8 @@ MidiOutput::MidiOutput(OSystem *system, MidiDriver *output, bool isMT32, bool de
 
 	for (int i = 1; i <= 9; ++i) {
 		sendIntern(0xE0, i, 0x00, 0x40);
-		if (defaultPrograms[i] != 0xFF)
-			sendIntern(0xC0, i, defaultPrograms[i-1], 0x00);
+		if (defaultPrograms[i - 1] != 0xFF)
+			sendIntern(0xC0, i, defaultPrograms[i - 1], 0x00);
 	}
 
 	for (int i = 0; i < 4; ++i) {
@@ -262,21 +260,22 @@ void MidiOutput::sendIntern(const byte event, const byte channel, byte param1, c
 	if (event == 0xC0) {
 		// MT32 -> GM conversion
 		if (!_isMT32 && _defaultMT32)
-			param1 = _mt32ToGm[param1];
+			param1 = MidiDriver::_mt32ToGm[param1];
 	}
 
 	_output->send(event | channel, param1, param2);
 }
 
 void MidiOutput::sysEx(const byte *msg, uint16 length) {
-	uint32 curTime = _system->getMillis();
+	// Wait the time it takes to send the SysEx data
+	uint32 delay = (length + 2) * 1000 / 3125;
 
-	if (_lastSysEx + 45 > curTime)
-		_system->delayMillis(_lastSysEx + 45 - curTime);
+	// Plus an additional delay for the MT-32 rev00
+	if (_isMT32)
+		delay += 40;
 
 	_output->sysEx(msg, length);
-
-	_lastSysEx = _system->getMillis();
+	_system->delayMillis(delay);
 }
 
 void MidiOutput::sendSysEx(const byte p1, const byte p2, const byte p3, const byte *buffer, const int size) {
@@ -473,11 +472,11 @@ SoundMidiPC::SoundMidiPC(KyraEngine_v1 *vm, Audio::Mixer *mixer, MidiDriver *dri
 	// (This will only happen in The Legend of Kyrandia 1 though, all other
 	// supported games include special General MIDI tracks).
 	if (_type == kMidiMT32 && !_nativeMT32) {
-		::GUI::MessageDialog dialog("You appear to be using a General MIDI device,\n"
+		::GUI::MessageDialog dialog(_("You appear to be using a General MIDI device,\n"
 									"but your game only supports Roland MT32 MIDI.\n"
 									"We try to map the Roland MT32 instruments to\n"
 									"General MIDI ones. After all it might happen\n"
-									"that a few tracks will not be correctly played.");
+									"that a few tracks will not be correctly played."));
 		dialog.runModal();
 	}
 }
@@ -519,22 +518,18 @@ bool SoundMidiPC::init() {
 	if (_nativeMT32 && _type == kMidiMT32) {
 		const char *midiFile = 0;
 		const char *pakFile = 0;
-		if (_vm->gameFlags().gameID == GI_KYRA1) {
+		if (_vm->game() == GI_KYRA1) {
 			midiFile = "INTRO";
-		} else if (_vm->gameFlags().gameID == GI_KYRA2) {
+		} else if (_vm->game() == GI_KYRA2) {
 			midiFile = "HOF_SYX";
 			pakFile = "AUDIO.PAK";
-		} else if (_vm->gameFlags().gameID == GI_LOL) {
+		} else if (_vm->game() == GI_LOL) {
 			midiFile = "LOREINTR";
 
 			if (_vm->gameFlags().isDemo) {
 				if (_vm->gameFlags().useAltShapeHeader) {
 					// Intro demo
 					pakFile = "INTROVOC.PAK";
-
-					// HACK: To prevent "Exc. Buffer overflow"
-					// we delay some time here.
-					_vm->_system->delayMillis(1000);
 				} else {
 					// Kyra2 SEQ player based demo
 					pakFile = "GENERAL.PAK";
@@ -543,8 +538,6 @@ bool SoundMidiPC::init() {
 			} else {
 				if (_vm->gameFlags().isTalkie)
 					pakFile = "ENG/STARTUP.PAK";
-				else if (_vm->gameFlags().useInstallerPackage)
-					pakFile = "INTROVOC.CMP";
 				else
 					pakFile = "INTROVOC.PAK";
 			}
@@ -579,8 +572,12 @@ void SoundMidiPC::updateVolumeSettings() {
 	if (!_output)
 		return;
 
-	int newMusVol = ConfMan.getInt("music_volume");
-	_sfxVolume = ConfMan.getInt("sfx_volume");
+	bool mute = false;
+	if (ConfMan.hasKey("mute"))
+		mute = ConfMan.getBool("mute");
+
+	const int newMusVol = (mute ? 0 : ConfMan.getInt("music_volume"));
+	_sfxVolume = (mute ? 0 : ConfMan.getInt("sfx_volume"));
 
 	_output->setSourceVolume(0, newMusVol, newMusVol != _musicVolume);
 	_musicVolume = newMusVol;
@@ -603,7 +600,7 @@ void SoundMidiPC::loadSoundFile(Common::String file) {
 	if (!_vm->resource()->exists(file.c_str()))
 		return;
 
-	// When loading a new file we stopp all notes
+	// When loading a new file we stop all notes
 	// still running on our own, just to prevent
 	// glitches
 	for (int i = 0; i < 16; ++i)
@@ -620,7 +617,7 @@ void SoundMidiPC::loadSoundFile(Common::String file) {
 
 	// Since KYRA1 uses the same file for SFX and Music
 	// we setup sfx to play from music file as well
-	if (_vm->gameFlags().gameID == GI_KYRA1) {
+	if (_vm->game() == GI_KYRA1) {
 		for (int i = 0; i < 3; ++i) {
 			_output->setSoundSource(i+1);
 			_sfx[i]->loadMusic(_musicFile, fileSize);
@@ -633,7 +630,7 @@ void SoundMidiPC::loadSfxFile(Common::String file) {
 	Common::StackLock lock(_mutex);
 
 	// Kyrandia 1 doesn't use a special sfx file
-	if (_vm->gameFlags().gameID == GI_KYRA1)
+	if (_vm->game() == GI_KYRA1)
 		return;
 
 	file = getFileName(file);
@@ -658,6 +655,9 @@ void SoundMidiPC::loadSfxFile(Common::String file) {
 }
 
 void SoundMidiPC::playTrack(uint8 track) {
+	if (!_musicEnabled)
+		return;
+
 	haltTrack();
 
 	Common::StackLock lock(_mutex);
@@ -678,13 +678,16 @@ void SoundMidiPC::haltTrack() {
 	_output->deinitSource(0);
 }
 
-bool SoundMidiPC::isPlaying() {
+bool SoundMidiPC::isPlaying() const {
 	Common::StackLock lock(_mutex);
 
 	return _music->isPlaying();
 }
 
 void SoundMidiPC::playSoundEffect(uint8 track) {
+	if (!_sfxEnabled)
+		return;
+
 	Common::StackLock lock(_mutex);
 	for (int i = 0; i < 3; ++i) {
 		if (!_sfx[i]->isPlaying()) {
@@ -710,6 +713,26 @@ void SoundMidiPC::beginFadeOut() {
 
 	_fadeMusicOut = true;
 	_fadeStartTime = _vm->_system->getMillis();
+}
+
+void SoundMidiPC::pause(bool paused) {
+	// Stop all mixer related sounds
+	Sound::pause(paused);
+
+	Common::StackLock lock(_mutex);
+
+	if (paused) {
+		_music->setMidiDriver(0);
+		for (int i = 0; i < 3; i++)
+			_sfx[i]->setMidiDriver(0);
+		for (int i = 0; i < 16; i++)
+			_output->stopNotesOnChannel(i);
+	} else {
+		_music->setMidiDriver(_output);
+		for (int i = 0; i < 3; ++i)
+			_sfx[i]->setMidiDriver(_output);
+		// Possible TODO (IMHO unnecessary): restore notes and/or update _fadeStartTime
+	}
 }
 
 void SoundMidiPC::onTimer(void *data) {
@@ -766,5 +789,5 @@ Common::String SoundMidiPC::getFileName(const Common::String &str) {
 	return str + ".XMI";
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_FONT_H
@@ -59,31 +56,62 @@ namespace M4 {
 
 class Font {
 public:
-	Font(M4Engine *vm);
+	Font(MadsM4Engine *vm, const char *filename);
 	~Font();
-	void setFont(const char *filename);
-	void setColor(uint8 color);
-	void setColors(uint8 alt1, uint8 alt2, uint8 foreground);
 
-	int32 getWidth(char *text, int spaceWidth = -1);
+	void setColor(uint8 color);
+	void setColors(uint8 col1, uint8 col2, uint8 col3);
+
+	int32 getWidth(const char *text, int spaceWidth = -1);
 	int32 getHeight() const { return _maxHeight; }
+	int32 getMaxWidth() const { return _maxWidth; }
 	int32 write(M4Surface *surface, const char *text, int x, int y, int width, int spaceWidth, uint8 colors[]);
 	int32 writeString(M4Surface *surface, const char *text, int x, int y, int width = 0, int spaceWidth = -1) {
 		return write(surface, text, x, y, width, spaceWidth, _fontColors);
 	}
-
+public:
+	char _filename[20];
 private:
 	void setFontM4(const char *filename);
 	void setFontMads(const char *filename);
 
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	uint8 _maxWidth, _maxHeight;
 	uint8 *_charWidths;
 	uint16 *_charOffs;
 	uint8 *_charData;
 	bool _sysFont;
-	const char *_filename;
 	uint8 _fontColors[4];
+};
+
+class FontEntry {
+public:
+	Font *_font;
+
+	FontEntry() {
+		_font = NULL;
+	}
+	~FontEntry() {
+		delete _font;
+	}
+};
+
+class FontManager {
+private:
+	MadsM4Engine *_vm;
+	Common::Array<Font *> _entries;
+	Font *_currentFont;
+public:
+	FontManager(MadsM4Engine *vm): _vm(vm) { _currentFont = NULL; }
+	~FontManager();
+
+	Font *getFont(const char *filename);
+	void setFont(const char *filename);
+
+	Font *current() {
+		assert(_currentFont);
+		return _currentFont;
+	}
 };
 
 } // End of namespace M4

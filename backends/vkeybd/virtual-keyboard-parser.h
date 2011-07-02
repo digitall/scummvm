@@ -18,17 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_VIRTUAL_KEYBOARD_PARSER_H
 #define COMMON_VIRTUAL_KEYBOARD_PARSER_H
 
+#include "common/scummsys.h"
+
 #ifdef ENABLE_VKEYBD
 
-#include "common/scummsys.h"
 #include "common/xmlparser.h"
 #include "backends/vkeybd/virtual-keyboard.h"
 
@@ -51,7 +49,7 @@ keyboard layouts for different screen resolutions.
                 ** Example keyboard pack description file **
                 ********************************************
 
-<keyboard modes="normal,caps" initial_mode="normal" v_align="bottom" h_align="centre">
+<keyboard modes="normal,caps" initial_mode="normal" v_align="bottom" h_align="center">
   <mode name="normal" resolutions="640x400,320x200">
     <layout resolution="640x400" bitmap="normal_640x400.bmp" transparent_color="255,0,255">
       <map>
@@ -265,7 +263,7 @@ protected:
 	bool parseRectAsPolygon(Polygon &poly, const String& coords);
 };
 
-} // end of namespace GUI
+} // End of namespace GUI
 
 #endif // #ifdef ENABLE_VKEYBD
 

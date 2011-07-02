@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef GUI_SAVELOAD_DIALOG_H
@@ -32,10 +29,14 @@ namespace GUI {
 
 class ListWidget;
 class GraphicsWidget;
+class ButtonWidget;
+class CommandSender;
+class ContainerWidget;
+class StaticTextWidget;
 
-class SaveLoadChooser : public GUI::Dialog {
+class SaveLoadChooser : GUI::Dialog {
 	typedef Common::String String;
-	typedef Common::StringList StringList;
+	typedef Common::Array<Common::String> StringArray;
 protected:
 	GUI::ListWidget		*_list;
 	GUI::ButtonWidget	*_chooseButton;
@@ -65,8 +66,8 @@ public:
 	~SaveLoadChooser();
 
 	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
-	void setList(const StringList& list);
-	int runModal(const EnginePlugin *plugin, const String &target);
+	void setList(const StringArray& list);
+	int runModalWithPluginAndTarget(const EnginePlugin *plugin, const String &target);
 	void open();
 
 	const Common::String &getResultString() const;

@@ -20,12 +20,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
+#include "common/memstream.h"
 #include "common/rect.h"
 #include "common/system.h"
 
@@ -122,6 +120,7 @@ Debugger::Debugger(Sword2Engine *vm)
 	DCmd_Register("english",  WRAP_METHOD(Debugger, Cmd_English));
 	DCmd_Register("finnish",  WRAP_METHOD(Debugger, Cmd_Finnish));
 	DCmd_Register("polish",   WRAP_METHOD(Debugger, Cmd_Polish));
+	DCmd_Register("fxq",      WRAP_METHOD(Debugger, Cmd_FxQueue));
 }
 
 void Debugger::varGet(int var) {
@@ -236,13 +235,15 @@ bool Debugger::Cmd_Mem(int argc, const char **argv) {
 			break;
 		}
 
-		DebugPrintf("%9ld %-3d %-4d %-20s %s\n", blocks[i]->size, blocks[i]->id, blocks[i]->uid, type, _vm->_resman->fetchName(blocks[i]->ptr));
+		DebugPrintf("%9d %-3d %-4d %-20s %s\n",
+				blocks[i]->size, blocks[i]->id, blocks[i]->uid,
+				type, _vm->_resman->fetchName(blocks[i]->ptr));
 	}
 
 	free(blocks);
 
 	DebugPrintf("---------------------------------------------------------------------------\n");
-	DebugPrintf("%9ld\n", _vm->_memory->getTotAlloc());
+	DebugPrintf("%9d\n", _vm->_memory->getTotAlloc());
 
 	return true;
 }
@@ -315,7 +316,7 @@ bool Debugger::Cmd_Starts(int argc, const char **argv) {
 }
 
 bool Debugger::Cmd_Start(int argc, const char **argv) {
-	uint8 pal[4] = { 255, 255, 255, 0 };
+	uint8 pal[3] = { 255, 255, 255 };
 
 	if (argc != 2) {
 		DebugPrintf("Usage: %s number\n", argv[0]);
@@ -778,20 +779,25 @@ bool Debugger::Cmd_Sfx(int argc, const char **argv) {
 }
 
 bool Debugger::Cmd_English(int argc, const char **argv) {
-	_vm->initialiseFontResourceFlags(DEFAULT_TEXT);
+	_vm->initializeFontResourceFlags(DEFAULT_TEXT);
 	DebugPrintf("Default fonts selected\n");
 	return true;
 }
 
 bool Debugger::Cmd_Finnish(int argc, const char **argv) {
-	_vm->initialiseFontResourceFlags(FINNISH_TEXT);
+	_vm->initializeFontResourceFlags(FINNISH_TEXT);
 	DebugPrintf("Finnish fonts selected\n");
 	return true;
 }
 
 bool Debugger::Cmd_Polish(int argc, const char **argv) {
-	_vm->initialiseFontResourceFlags(POLISH_TEXT);
+	_vm->initializeFontResourceFlags(POLISH_TEXT);
 	DebugPrintf("Polish fonts selected\n");
+	return true;
+}
+
+bool Debugger::Cmd_FxQueue(int argc, const char **argv) {
+	_vm->_sound->printFxQueue();
 	return true;
 }
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_MUSIC_H
@@ -29,10 +26,10 @@
 #include "common/util.h"
 #include "common/mutex.h"
 
-#include "sound/audiostream.h"
-#include "sound/iff_sound.h"
-#include "sound/mixer.h"
-#include "sound/mididrv.h"
+#include "audio/audiostream.h"
+#include "audio/decoders/iff_sound.h"
+#include "audio/mixer.h"
+#include "audio/mididrv.h"
 
 #define PATH_LEN 200
 
@@ -133,12 +130,14 @@ public:
 class DosSoundMan_ns : public SoundMan_ns {
 
 	MidiPlayer	*_midiPlayer;
-	int			_musicData1;
+	bool		_playing;
 
 	bool isLocationSilent(const char *locationName);
+	bool locationHasOwnSoftMusic(const char *locationName);
+
 
 public:
-	DosSoundMan_ns(Parallaction_ns *vm, MidiDriver *midiDriver);
+	DosSoundMan_ns(Parallaction_ns *vm);
 	~DosSoundMan_ns();
 	void playMusic();
 	void stopMusic();
@@ -155,6 +154,9 @@ class AmigaSoundMan_ns : public SoundMan_ns {
 
 	Audio::AudioStream *_musicStream;
 	Audio::SoundHandle	_musicHandle;
+
+	uint32 	beepSoundBufferSize;
+	int8	*beepSoundBuffer;
 
 	Channel _channels[NUM_SFX_CHANNELS];
 
@@ -223,7 +225,7 @@ class DosSoundMan_br : public SoundMan_br {
 	Audio::AudioStream *loadChannelData(const char *filename, Channel *ch, bool looping);
 
 public:
-	DosSoundMan_br(Parallaction_br *vm, MidiDriver *midiDriver);
+	DosSoundMan_br(Parallaction_br *vm);
 	~DosSoundMan_br();
 
 	void playMusic();

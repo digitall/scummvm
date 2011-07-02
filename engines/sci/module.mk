@@ -1,18 +1,16 @@
 MODULE := engines/sci
 
-MODULE_OBJS = \
+MODULE_OBJS := \
 	console.o \
 	decompressor.o \
 	detection.o \
-	exereader.o \
+	event.o \
 	resource.o \
+	resource_audio.o \
 	sci.o \
-	tools.o \
-	vocabulary.o \
-	engine/game.o \
+	util.o \
+	engine/features.o \
 	engine/gc.o \
-	engine/grammar.o \
-	engine/intmap.o \
 	engine/kernel.o \
 	engine/kevent.o \
 	engine/kfile.o \
@@ -22,50 +20,68 @@ MODULE_OBJS = \
 	engine/kmenu.o \
 	engine/kmisc.o \
 	engine/kmovement.o \
+	engine/kparse.o \
 	engine/kpathing.o \
 	engine/kscripts.o \
 	engine/ksound.o \
 	engine/kstring.o \
+	engine/kvideo.o \
 	engine/message.o \
-	engine/memobj.o \
-	engine/said.o \
+	engine/object.o \
 	engine/savegame.o \
 	engine/script.o \
 	engine/scriptdebug.o \
+	engine/script_patches.o \
+	engine/selector.o \
 	engine/seg_manager.o \
-	engine/static_selectors.o \
-	engine/stringfrag.o \
+	engine/segment.o \
 	engine/state.o \
+	engine/static_selectors.o \
 	engine/vm.o \
-	gfx/font.o \
-	gfx/gfx_driver.o \
-	gfx/gfx_gui.o \
-	gfx/gfx_pixmap_scale.o \
-	gfx/gfx_res_options.o \
-	gfx/gfx_resmgr.o \
-	gfx/gfx_resource.o \
-	gfx/gfx_support.o \
-	gfx/gfx_tools.o \
-	gfx/gfx_widgets.o \
-	gfx/menubar.o \
-	gfx/operations.o \
-	gfx/palette.o \
-	gfx/res_cursor.o \
-	gfx/res_font.o \
-	gfx/res_pal.o \
-	gfx/res_pic.o \
-	gfx/res_view.o \
-	gfx/seq_decoder.o \
-	sfx/core.o \
-	sfx/iterator.o \
-	sfx/songlib.o \
-	sfx/seq/gm.o \
-	sfx/seq/instrument-map.o \
-	sfx/seq/map-mt32-to-gm.o \
-	sfx/seq/sequencers.o \
-	sfx/softseq/adlib.o \
-	sfx/softseq/amiga.o \
-	sfx/softseq/pcjr.o
+	engine/vm_types.o \
+	engine/workarounds.o \
+	graphics/animate.o \
+	graphics/cache.o \
+	graphics/compare.o \
+	graphics/controls.o \
+	graphics/coordadjuster.o \
+	graphics/cursor.o \
+	graphics/font.o \
+	graphics/fontsjis.o \
+	graphics/maciconbar.o \
+	graphics/menu.o \
+	graphics/paint.o \
+	graphics/paint16.o \
+	graphics/palette.o \
+	graphics/picture.o \
+	graphics/portrait.o \
+	graphics/ports.o \
+	graphics/screen.o \
+	graphics/text16.o \
+	graphics/transitions.o \
+	graphics/view.o \
+	parser/grammar.o \
+	parser/said.o \
+	parser/vocabulary.o \
+	sound/audio.o \
+	sound/midiparser_sci.o \
+	sound/music.o \
+	sound/soundcmd.o \
+	sound/drivers/adlib.o \
+	sound/drivers/amigamac.o \
+	sound/drivers/cms.o \
+	sound/drivers/fb01.o \
+	sound/drivers/midi.o \
+	sound/drivers/pcjr.o \
+	video/seq_decoder.o
+	
+	
+ifdef ENABLE_SCI32
+MODULE_OBJS += \
+	graphics/frameout.o \
+	graphics/paint32.o \
+	video/robot_decoder.o
+endif
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_SCI), DYNAMIC_PLUGIN)

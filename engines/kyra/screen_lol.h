@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -43,11 +40,14 @@ public:
 
 	void setScreenDim(int dim);
 	const ScreenDim *getScreenDim(int dim);
-	int curDimIndex() { return _curDimIndex; }
+	int curDimIndex() const { return _curDimIndex; }
 	void modifyScreenDim(int dim, int x, int y, int w, int h);
+	int screenDimTableCount() const { return _screenDimTableCount; }
 
 	void fprintString(const char *format, int x, int y, uint8 col1, uint8 col2, uint16 flags, ...) GCC_PRINTF(2, 8);
 	void fprintStringIntro(const char *format, int x, int y, uint8 c1, uint8 c2, uint8 c3, uint16 flags, ...) GCC_PRINTF(2, 9);
+
+	void drawShadedBox(int x1, int y1, int x2, int y2, int color1, int color2);
 
 	void drawGridBox(int x, int y, int w, int h, int col);
 	void fadeClearSceneWindow(int delay);
@@ -72,13 +72,14 @@ public:
 	void fadeToPalette1(int delay);
 	void loadSpecialColors(Palette &dst);
 	void copyColor(int dstColorIndex, int srcColorIndex);
-	bool fadeColor(int dstColorIndex, int srcColorIndex, uint32 elapsedTime, uint32 targetTime);
+	bool fadeColor(int dstColorIndex, int srcColorIndex, uint32 elapsedTicks, uint32 totalTicks);
 	bool fadePaletteStep(uint8 *pal1, uint8 *pal2, uint32 elapsedTime, uint32 targetTime);
-	uint8 *generateFadeTable(uint8 *dst, uint8 *src1, uint8 *src2, int numTabs);
+	Palette **generateFadeTable(Palette **dst, Palette *src1, Palette *src2, int numTabs);
 
 	void generateGrayOverlay(const Palette &Pal, uint8 *grayOverlay, int factor, int addR, int addG, int addB, int lastColor, bool skipSpecialColors);
-	uint8 *generateLevelOverlay(const Palette &Pal, uint8 *ovl, int opColor, int weight);
 	uint8 *getLevelOverlay(int index) { return _levelOverlays[index]; }
+
+	void createTransparencyTablesIntern(const uint8 *ovl, int a, const uint8 *fxPal1, const uint8 *fxPal2, uint8 *outTable1, uint8 *outTable2, int b);
 
 	void copyBlockAndApplyOverlay(int page1, int x1, int y1, int page2, int x2, int y2, int w, int h, int dim, uint8 *ovl);
 	void applyOverlaySpecial(int page1, int x1, int y1, int page2, int x2, int y2, int w, int h, int dim, int flag, uint8 *ovl);
@@ -113,7 +114,7 @@ private:
 	void postProcessCursor(uint8 *data, int width, int height, int pitch);
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

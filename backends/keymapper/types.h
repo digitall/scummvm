@@ -18,13 +18,10 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
 
-#ifndef COMMON_TYPES_H
-#define COMMON_TYPES_H
+#ifndef KEYMAPPER_TYPES_H
+#define KEYMAPPER_TYPES_H
 
 #include "common/scummsys.h"
 
@@ -70,8 +67,8 @@ enum ActionType {
 	kActionTypeMax
 };
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_KEYMAPPER
 
-#endif // #ifndef COMMON_TYPES_H
+#endif // #ifndef KEYMAPPER_TYPES_H

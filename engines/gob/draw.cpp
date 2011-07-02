@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
+#include "common/str.h"
 
 #include "gob/gob.h"
 #include "gob/draw.h"
@@ -31,6 +29,7 @@
 #include "gob/util.h"
 #include "gob/dataio.h"
 #include "gob/game.h"
+#include "gob/resources.h"
 #include "gob/script.h"
 #include "gob/inter.h"
 #include "gob/video.h"
@@ -57,6 +56,7 @@ Draw::Draw(GobEngine *vm) : _vm(vm) {
 
 	_letterToPrint = 0;
 	_textToPrint = 0;
+	_hotspotText = 0;
 
 	_backDeltaX = 0;
 	_backDeltaY = 0;
@@ -64,7 +64,7 @@ Draw::Draw(GobEngine *vm) : _vm(vm) {
 	for (int i = 0; i < kFontCount; i++)
 		_fonts[i] = 0;
 
-	_spritesArray.resize(SPRITES_COUNT);
+	_spritesArray.resize(kSpriteCount);
 
 	_invalidatedCount = 0;
 	for (int i = 0; i < 30; i++) {
@@ -126,6 +126,8 @@ Draw::Draw(GobEngine *vm) : _vm(vm) {
 	_needAdjust = 2;
 	_scrollOffsetX = 0;
 	_scrollOffsetY = 0;
+
+	_pattern = 0;
 }
 
 Draw::~Draw() {
@@ -240,6 +242,9 @@ void Draw::blitInvalidated() {
 	if (_noInvalidated && !_applyPal)
 		return;
 
+	if (_vm->isTrueColor())
+		_applyPal = false;
+
 	if (_noInvalidated) {
 		setPalette();
 		_applyPal = false;
@@ -259,10 +264,10 @@ void Draw::blitInvalidated() {
 
 	_vm->_video->_doRangeClamp = false;
 	for (int i = 0; i < _invalidatedCount; i++) {
-		_vm->_video->drawSprite(*_backSurface, *_frontSurface,
+		_frontSurface->blit(*_backSurface,
 		    _invalidatedLefts[i], _invalidatedTops[i],
 		    _invalidatedRights[i], _invalidatedBottoms[i],
-		    _invalidatedLefts[i], _invalidatedTops[i], 0);
+		    _invalidatedLefts[i], _invalidatedTops[i]);
 		_vm->_video->dirtyRectsAdd(_invalidatedLefts[i], _invalidatedTops[i],
 				_invalidatedRights[i], _invalidatedBottoms[i]);
 	}
@@ -290,13 +295,22 @@ void Draw::clearPalette() {
 	}
 }
 
+uint32 Draw::getColor(uint8 index) const {
+	if (!_vm->isTrueColor())
+		return index;
+
+	return _vm->getPixelFormat().RGBToColor(_vgaPalette[index].red   << 2,
+	                                        _vgaPalette[index].green << 2,
+	                                        _vgaPalette[index].blue  << 2);
+}
+
 void Draw::dirtiedRect(int16 surface,
 		int16 left, int16 top, int16 right, int16 bottom) {
 
 	dirtiedRect(_spritesArray[surface], left, top, right, bottom);
 }
 
-void Draw::dirtiedRect(SurfaceDescPtr surface,
+void Draw::dirtiedRect(SurfacePtr surface,
 		int16 left, int16 top, int16 right, int16 bottom) {
 
 	if (surface == _backSurface)
@@ -310,9 +324,19 @@ void Draw::dirtiedRect(SurfaceDescPtr surface,
 void Draw::initSpriteSurf(int16 index, int16 width, int16 height,
 		int16 flags) {
 
-	_spritesArray[index] =
-		_vm->_video->initSurfDesc(_vm->_global->_videoMode, width, height, flags);
-	_vm->_video->clearSurf(*_spritesArray[index]);
+	_spritesArray[index] = _vm->_video->initSurfDesc(width, height, flags);
+	_spritesArray[index]->clear();
+}
+
+void Draw::freeSprite(int16 index) {
+	assert(index < kSpriteCount);
+
+	_spritesArray[index].reset();
+
+	if (index == kFrontSurface)
+		_spritesArray[index] = _frontSurface;
+	if (index == kBackSurface)
+		_spritesArray[index] = _backSurface;
 }
 
 void Draw::adjustCoords(char adjust, int16 *coord1, int16 *coord2) {
@@ -324,7 +348,7 @@ void Draw::adjustCoords(char adjust, int16 *coord1, int16 *coord2) {
 			if (coord2)
 				*coord2 *= 2;
 			if (coord1)
-				*coord2 *= 2;
+				*coord1 *= 2;
 			break;
 
 		case 1:
@@ -343,10 +367,15 @@ void Draw::adjustCoords(char adjust, int16 *coord1, int16 *coord2) {
 	}
 }
 
-int Draw::stringLength(const char *str, int16 fontIndex) {
+int Draw::stringLength(const char *str, uint16 fontIndex) {
 	static const int8 japaneseExtraCharLen[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-	if ((fontIndex < 0) || (fontIndex > 7) || !_fonts[fontIndex])
+	if (fontIndex >= kFontCount) {
+		warning("Draw::stringLength(): Font %d > Count %d", fontIndex, kFontCount);
+		return 0;
+	}
+
+	if (!_fonts[fontIndex])
 		return 0;
 
 	Font &font = *_fonts[fontIndex];
@@ -377,10 +406,15 @@ int Draw::stringLength(const char *str, int16 fontIndex) {
 }
 
 void Draw::drawString(const char *str, int16 x, int16 y, int16 color1, int16 color2,
-		int16 transp, SurfaceDesc &dest, const Font &font) {
+		int16 transp, Surface &dest, const Font &font) {
 
 	while (*str != '\0') {
-		_vm->_video->drawLetter(*str, x, y, font, transp, color1, color2, dest);
+		const int16 charRight  = x + font.getCharWidth(*str);
+		const int16 charBottom = y + font.getCharHeight();
+
+		if ((charRight <= dest.getWidth()) && (charBottom <= dest.getHeight()))
+			font.drawLetter(dest, *str, x, y, color1, color2, transp);
+
 		x += font.getCharWidth(*str);
 		str++;
 	}
@@ -409,6 +443,14 @@ void Draw::printTextCentered(int16 id, int16 left, int16 top, int16 right,
 	if (str[0] == '\0')
 		return;
 
+	if (fontIndex >= kFontCount) {
+		warning("Draw::printTextCentered(): Font %d > Count %d", fontIndex, kFontCount);
+		return;
+	}
+
+	if (!_fonts[fontIndex])
+		return;
+
 	_transparency = 1;
 	_destSpriteX = left;
 	_destSpriteY = top;
@@ -433,6 +475,100 @@ void Draw::printTextCentered(int16 id, int16 left, int16 top, int16 right,
 	spriteOperation(DRAW_PRINTTEXT);
 }
 
+void Draw::oPlaytoons_sub_F_1B(uint16 id, int16 left, int16 top, int16 right, int16 bottom,
+		char *paramStr, int16 fontIndex, int16 var4, int16 shortId) {
+
+	int16 width;
+	char tmpStr[128];
+
+	strcpy(tmpStr, paramStr);
+	adjustCoords(1, &left, &top);
+	adjustCoords(1, &right,  &bottom);
+
+	uint16 centerOffset = _vm->_game->_script->getFunctionOffset(TOTFile::kFunctionCenter);
+	if (centerOffset != 0) {
+		_vm->_game->_script->call(centerOffset);
+
+		WRITE_VAR(17, (uint32) id & 0x7FFF);
+		WRITE_VAR(18, (uint32) left);
+		WRITE_VAR(19, (uint32) top);
+		WRITE_VAR(20, (uint32) (right - left + 1));
+		WRITE_VAR(21, (uint32) (bottom - top + 1));
+
+		if (_vm->_game->_script->peekUint16(41) >= '4') {
+			WRITE_VAR(22, (uint32) fontIndex);
+			WRITE_VAR(23, (uint32) var4);
+			if (id & 0x8000)
+				WRITE_VAR(24, (uint32) 1);
+			else
+				WRITE_VAR(24, (uint32) 0);
+			WRITE_VAR(25, (uint32) shortId);
+			if (_hotspotText)
+				Common::strlcpy(_hotspotText, paramStr, 40);
+		}
+		_vm->_inter->funcBlock(0);
+		_vm->_game->_script->pop();
+	}
+
+	strcpy(paramStr, tmpStr);
+
+	if (fontIndex >= kFontCount) {
+		warning("Draw::oPlaytoons_sub_F_1B(): Font %d > Count %d", fontIndex, kFontCount);
+		return;
+	}
+
+	if (!_fonts[fontIndex])
+		return;
+
+	if (*paramStr) {
+		_transparency = 1;
+		_fontIndex = fontIndex;
+		_frontColor = var4;
+		if (_vm->_game->_script->peekUint16(41) >= '4' && strchr(paramStr, 92)) {
+			char str[80];
+			char *str2;
+			int16 strLen= 0;
+			int16 offY, deltaY;
+
+			str2 = paramStr;
+			do {
+				strLen++;
+				str2++;
+				str2 = strchr(str2, 92);
+			} while (str2);
+			deltaY = (bottom - right + 1 - (strLen * _fonts[fontIndex]->getCharHeight())) / (strLen + 1);
+			offY = right + deltaY;
+			for (int i = 0; paramStr[i]; i++) {
+				int j = 0;
+				while (paramStr[i] && paramStr[i] != 92)
+					str[j++] = paramStr[i++];
+				str[j] = 0;
+				_destSpriteX = left;
+				_destSpriteY = offY;
+				_textToPrint = str;
+				width = stringLength(str, fontIndex);
+				adjustCoords(1, &width, NULL);
+				_destSpriteX += (top - left + 1 - width) / 2;
+				spriteOperation(DRAW_PRINTTEXT);
+				offY += deltaY + _fonts[fontIndex]->getCharHeight();
+			}
+		} else {
+			_destSpriteX = left;
+			if (_vm->_game->_script->peekUint16(41) >= '4')
+				_destSpriteY = right + (bottom - right + 1 - _fonts[fontIndex]->getCharHeight()) / 2;
+			else
+				_destSpriteY = right;
+			_textToPrint = paramStr;
+			width = stringLength(paramStr, fontIndex);
+			adjustCoords(1, &width, NULL);
+			_destSpriteX += (top - left + 1 - width) / 2;
+			spriteOperation(DRAW_PRINTTEXT);
+		}
+	}
+
+	return;
+}
+
 int32 Draw::getSpriteRectSize(int16 index) {
 	if (!_spritesArray[index])
 		return 0;
@@ -445,20 +581,18 @@ void Draw::forceBlit(bool backwards) {
 		return;
 	if (_frontSurface == _backSurface)
 		return;
-	if (_spritesArray[20] != _frontSurface)
+	/*
+	if (_spritesArray[kFrontSurface] != _frontSurface)
 		return;
-	if (_spritesArray[21] != _backSurface)
+	if (_spritesArray[kBackSurface] != _backSurface)
 		return;
+	*/
 
 	if (!backwards) {
-		_vm->_video->drawSprite(*_backSurface, *_frontSurface, 0, 0,
-				_backSurface->getWidth() - 1, _backSurface->getHeight() - 1,
-				0, 0, 0);
+		_frontSurface->blit(*_backSurface);
 		_vm->_video->dirtyRectsAll();
 	} else
-		_vm->_video->drawSprite(*_frontSurface, *_backSurface, 0, 0,
-				_frontSurface->getWidth() - 1, _frontSurface->getHeight() - 1,
-				0, 0, 0);
+		_backSurface->blit(*_frontSurface);
 
 }
 
@@ -505,7 +639,7 @@ const int16 Draw::_wobbleTable[360] = {
 	-0x0A03, -0x08E8, -0x07CC, -0x06B0, -0x0593, -0x0476, -0x0359, -0x023B, -0x011D
 };
 
-void Draw::wobble(SurfaceDesc &surfDesc) {
+void Draw::wobble(Surface &surfDesc) {
 	int16 amplitude = 32;
 	uint16 curFrame = 0;
 	uint16 frameWobble = 0;
@@ -529,16 +663,14 @@ void Draw::wobble(SurfaceDesc &surfDesc) {
 			amplitude--;
 
 		for (uint16 y = 0; y < _vm->_height; y++)
-			_vm->_video->drawSprite(surfDesc, *_frontSurface,
-					0, y, _vm->_width - 1, y, offsets[y], y, 0);
+			_frontSurface->blit(surfDesc, 0, y, _vm->_width - 1, y, offsets[y], y);
 
 		_vm->_palAnim->fadeStep(0);
 		_vm->_video->dirtyRectsAll();
 		_vm->_video->waitRetrace();
 	}
 
-	_vm->_video->drawSprite(surfDesc, *_frontSurface,
-			0, 0, _vm->_width - 1, _vm->_height - 1, 0, 0, 0);
+	_frontSurface->blit(surfDesc);
 
 	_applyPal = false;
 	_invalidatedCount = 0;
@@ -549,17 +681,20 @@ void Draw::wobble(SurfaceDesc &surfDesc) {
 }
 
 Font *Draw::loadFont(const char *path) const {
-	if (!_vm->_dataIO->existData(path))
+	if (!_vm->_dataIO->hasFile(path))
 		return 0;
 
-	byte *data = _vm->_dataIO->getData(path);
+	int32 size;
+	byte *data = _vm->_dataIO->getFile(path, size);
 
 	return new Font(data);
 }
 
-bool Draw::loadFont(int fontIndex, const char *path) {
-	if ((fontIndex < 0) || (fontIndex >= kFontCount))
+bool Draw::loadFont(uint16 fontIndex, const char *path) {
+	if (fontIndex >= kFontCount) {
+		warning("Draw::loadFont(): Font %d > Count %d (\"%s\")", fontIndex, kFontCount, path);
 		return false;
+	}
 
 	delete _fonts[fontIndex];
 

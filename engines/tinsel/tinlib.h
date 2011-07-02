@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Text utility defines
  */
 
@@ -48,14 +45,14 @@ void TinGetVersion(WHICH_VER which, char *buffer, int length);
 // Library functions in TINLIB.C
 
 void ActorBrightness(int actor, int brightness);
-void ActorPalette(int actor, int startColour, int length);
+void ActorPalette(int actor, int startColor, int length);
 void Control(int param);
 void HookScene(SCNHANDLE scene, int entrance, int transition);
 void NewScene(CORO_PARAM, SCNHANDLE scene, int entrance, int transition);
 void Offset(EXTREME extreme, int x, int y);
-void FnRestartGame(void);
-void RestoreScene(void);
-void ResumeLastGame(void);
+void FnRestartGame();
+void RestoreScene();
+void ResumeLastGame();
 void SaveScene(CORO_PARAM);
 void Stand(CORO_PARAM, int actor, int x, int y, SCNHANDLE film);
 void SetTextPal(COLORREF col);
@@ -64,6 +61,6 @@ void KeepOnScreen(OBJECT *pText, int *pTextX, int *pTextY);
 
 enum SPEECH_TYPE { IS_SAY, IS_SAYAT, IS_TALK, IS_TALKAT };
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_TINLIB_H

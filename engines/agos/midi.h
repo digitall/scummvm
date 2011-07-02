@@ -18,20 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGOS_MIDI_H
 #define AGOS_MIDI_H
 
-#include "sound/mididrv.h"
-#include "sound/midiparser.h"
+#include "audio/mididrv.h"
+#include "audio/midiparser.h"
 #include "common/mutex.h"
 
 namespace Common {
-	class File;
+class File;
 }
 
 namespace AGOS {
@@ -55,12 +52,12 @@ struct MusicInfo {
 	}
 };
 
-class MidiPlayer : public MidiDriver {
+class MidiPlayer : public MidiDriver_BASE {
 protected:
 	Common::Mutex _mutex;
 	MidiDriver *_driver;
 	bool _map_mt32_to_gm;
-	bool _passThrough;
+	bool _nativeMT32;
 
 	MusicInfo _music;
 	MusicInfo _sfx;
@@ -96,7 +93,7 @@ public:
 	void loadXMIDI(Common::File *in, bool sfx = false);
 	void loadS1D(Common::File *in, bool sfx = false);
 
-	void mapMT32toGM(bool map);
+	bool hasNativeMT32() const { return _nativeMT32; }
 	void setLoop(bool loop);
 	void startTrack(int track);
 	void queueTrack(int track, bool loop);
@@ -105,27 +102,17 @@ public:
 	void stop();
 	void pause(bool b);
 
-	int  getMusicVolume() { return _musicVolume; }
-	int  getSFXVolume() { return _sfxVolume; }
+	int  getMusicVolume() const { return _musicVolume; }
+	int  getSFXVolume() const { return _sfxVolume; }
 	void setVolume(int musicVol, int sfxVol);
-	void setDriver(MidiDriver *md);
 
 public:
-	// MidiDriver interface implementation
-	int open();
-	void close();
-	void send(uint32 b);
+	int open(int gameType);
 
-	void metaEvent(byte type, byte *data, uint16 length);
-	void setPassThrough(bool b)		{ _passThrough = b; }
+	// MidiDriver_BASE interface implementation
+	virtual void send(uint32 b);
+	virtual void metaEvent(byte type, byte *data, uint16 length);
 
-	// Timing functions - MidiDriver now operates timers
-	void setTimerCallback(void *timer_param, void (*timer_proc) (void *)) { }
-	uint32 getBaseTempo(void) { return _driver ? _driver->getBaseTempo() : 0; }
-
-	// Channel allocation functions
-	MidiChannel *allocateChannel() { return 0; }
-	MidiChannel *getPercussionChannel() { return 0; }
 };
 
 } // End of namespace AGOS

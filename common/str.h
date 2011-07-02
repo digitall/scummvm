@@ -17,16 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_STRING_H
 #define COMMON_STRING_H
 
 #include "common/scummsys.h"
-#include "common/array.h"
+
+#include <stdarg.h>
 
 namespace Common {
 
@@ -40,6 +38,9 @@ namespace Common {
  * Instead, small strings are stored 'inside' the string object (i.e. on
  * the stack, for stack allocated objects), and only for strings exceeding
  * a certain length do we allocate a buffer on the heap.
+ *
+ * The presence of \0 characters in the string will cause undefined
+ * behavior in some operations.
  */
 class String {
 protected:
@@ -54,20 +55,20 @@ protected:
 	 * than 8 makes no sense, since that's the size of member _extern
 	 * (on 32 bit machines; 12 bytes on systems with 64bit pointers).
 	 */
-	static const uint32 _builtinCapacity = 32 - sizeof(uint32) - sizeof(char*);
+	static const uint32 _builtinCapacity = 32 - sizeof(uint32) - sizeof(char *);
 
 	/**
 	 * Length of the string. Stored to avoid having to call strlen
 	 * a lot. Yes, we limit ourselves to strings shorter than 4GB --
 	 * on purpose :-).
 	 */
-	uint32		_size;
+	uint32 _size;
 
 	/**
 	 * Pointer to the actual string storage. Either points to _storage,
 	 * or to a block allocated on the heap via malloc.
 	 */
-	char		*_str;
+	char  *_str;
 
 
 	union {
@@ -81,7 +82,7 @@ protected:
 		 */
 		struct {
 			mutable int *_refCount;
-			uint32		_capacity;
+			uint32       _capacity;
 		} _extern;
 	};
 
@@ -90,12 +91,6 @@ protected:
 	}
 
 public:
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
-	static const String emptyString;
-#else
-	static const char *emptyString;
-#endif
-
 	/** Construct a new empty string. */
 	String() : _size(0), _str(_storage) { _storage[0] = 0; }
 
@@ -116,32 +111,32 @@ public:
 
 	~String();
 
-	String &operator  =(const char *str);
-	String &operator  =(const String &str);
-	String &operator  =(char c);
-	String &operator +=(const char *str);
-	String &operator +=(const String &str);
-	String &operator +=(char c);
+	String &operator=(const char *str);
+	String &operator=(const String &str);
+	String &operator=(char c);
+	String &operator+=(const char *str);
+	String &operator+=(const String &str);
+	String &operator+=(char c);
 
-	bool operator ==(const String &x) const;
-	bool operator ==(const char *x) const;
-	bool operator !=(const String &x) const;
-	bool operator !=(const char *x) const;
+	bool operator==(const String &x) const;
+	bool operator==(const char *x) const;
+	bool operator!=(const String &x) const;
+	bool operator!=(const char *x) const;
 
-	bool operator <(const String &x) const;
-	bool operator <=(const String &x) const;
-	bool operator >(const String &x) const;
-	bool operator >=(const String &x) const;
+	bool operator<(const String &x) const;
+	bool operator<=(const String &x) const;
+	bool operator>(const String &x) const;
+	bool operator>=(const String &x) const;
 
 	bool equals(const String &x) const;
 	bool equalsIgnoreCase(const String &x) const;
-	int compareTo(const String &x) const;	// strcmp clone
-	int compareToIgnoreCase(const String &x) const;	// stricmp clone
+	int compareTo(const String &x) const;           // strcmp clone
+	int compareToIgnoreCase(const String &x) const; // stricmp clone
 
 	bool equals(const char *x) const;
 	bool equalsIgnoreCase(const char *x) const;
-	int compareTo(const char *x) const;	// strcmp clone
-	int compareToIgnoreCase(const char *x) const;	// stricmp clone
+	int compareTo(const char *x) const;             // strcmp clone
+	int compareToIgnoreCase(const char *x) const;   // stricmp clone
 
 	bool hasSuffix(const String &x) const;
 	bool hasSuffix(const char *x) const;
@@ -158,31 +153,32 @@ public:
 	 * Taken from exult/files/listfiles.cc
 	 *
 	 * Token meaning:
-	 *		"*": any character, any amount of times.
-	 *		"?": any character, only once.
+	 *      "*": any character, any amount of times.
+	 *      "?": any character, only once.
 	 *
 	 * Example strings/patterns:
-	 *		String: monkey.s01	 Pattern: monkey.s??	=> true
-	 *		String: monkey.s101	 Pattern: monkey.s??	=> false
-	 *		String: monkey.s99	 Pattern: monkey.s?1	=> false
-	 *		String: monkey.s101	 Pattern: monkey.s*		=> true
-	 *		String: monkey.s99	 Pattern: monkey.s*1	=> false
+	 *      String: monkey.s01   Pattern: monkey.s??    => true
+	 *      String: monkey.s101  Pattern: monkey.s??    => false
+	 *      String: monkey.s99   Pattern: monkey.s?1    => false
+	 *      String: monkey.s101  Pattern: monkey.s*     => true
+	 *      String: monkey.s99   Pattern: monkey.s*1    => false
 	 *
 	 * @param str Text to be matched against the given pattern.
 	 * @param pat Glob pattern.
+	 * @param ignoreCase Whether to ignore the case when doing pattern match
 	 * @param pathMode Whether to use path mode, i.e., whether slashes must be matched explicitly.
 	 *
 	 * @return true if str matches the pattern, false otherwise.
 	 */
-	bool matchString(const char *pat, bool pathMode = false) const;
-	bool matchString(const String &pat, bool pathMode = false) const;
+	bool matchString(const char *pat, bool ignoreCase = false, bool pathMode = false) const;
+	bool matchString(const String &pat, bool ignoreCase = false, bool pathMode = false) const;
 
 
-	inline const char *c_str() const		{ return _str; }
-	inline uint size() const				{ return _size; }
+	inline const char *c_str() const { return _str; }
+	inline uint size() const         { return _size; }
 
-	inline bool empty() const	{ return (_size == 0); }
-	char lastChar() const	{ return (_size > 0) ? _str[_size-1] : 0; }
+	inline bool empty() const { return (_size == 0); }
+	char lastChar() const     { return (_size > 0) ? _str[_size - 1] : 0; }
 
 	char operator[](int idx) const {
 		assert(_str && idx >= 0 && idx < (int)_size);
@@ -219,27 +215,42 @@ public:
 	uint hash() const;
 
 	/**
-	 * Printf-like function. Returns a formatted String.
+	 * Print formatted data into a String object. Similar to sprintf,
+	 * except that it stores the result in (variably sized) String
+	 * instead of a fixed size buffer.
 	 */
-	static Common::String printf(const char *fmt, ...) GCC_PRINTF(1,2);
+	static Common::String format(const char *fmt, ...) GCC_PRINTF(1,2);
+
+	/**
+	 * Print formatted data into a String object. Similar to vsprintf,
+	 * except that it stores the result in (variably sized) String
+	 * instead of a fixed size buffer.
+	 */
+	static Common::String vformat(const char *fmt, va_list args);
 
 public:
 	typedef char *        iterator;
 	typedef const char *  const_iterator;
 
-	iterator		begin() {
+	iterator begin() {
+		// Since the user could potentially
+		// change the string via the returned
+		// iterator we have to assure we are
+		// pointing to a unique storage.
+		makeUnique();
+
 		return _str;
 	}
 
-	iterator		end() {
+	iterator end() {
 		return begin() + size();
 	}
 
-	const_iterator	begin() const {
+	const_iterator begin() const {
 		return _str;
 	}
 
-	const_iterator	end() const {
+	const_iterator end() const {
 		return begin() + size();
 	}
 
@@ -252,17 +263,17 @@ protected:
 };
 
 // Append two strings to form a new (temp) string
-String operator +(const String &x, const String &y);
+String operator+(const String &x, const String &y);
 
-String operator +(const char *x, const String &y);
-String operator +(const String &x, const char *y);
+String operator+(const char *x, const String &y);
+String operator+(const String &x, const char *y);
 
-String operator +(const String &x, char y);
-String operator +(char x, const String &y);
+String operator+(const String &x, char y);
+String operator+(char x, const String &y);
 
 // Some useful additional comparison operators for Strings
-bool operator == (const char *x, const String &y);
-bool operator != (const char *x, const String &y);
+bool operator==(const char *x, const String &y);
+bool operator!=(const char *x, const String &y);
 
 // Utility functions to remove leading and trailing whitespaces
 extern char *ltrim(char *t);
@@ -274,9 +285,9 @@ extern char *trim(char *t);
  * Returns the last component of a given path.
  *
  * Examples:
- *			/foo/bar.txt would return 'bar.txt'
- *			/foo/bar/    would return 'bar'
- *			/foo/./bar//    would return 'bar'
+ *          /foo/bar.txt    would return 'bar.txt'
+ *          /foo/bar/       would return 'bar'
+ *          /foo/./bar//    would return 'bar'
  *
  * @param path the path of which we want to know the last component
  * @param sep character used to separate path components
@@ -285,16 +296,16 @@ extern char *trim(char *t);
 Common::String lastPathComponent(const Common::String &path, const char sep);
 
 /**
- * Normalize a gien path to a canonical form. In particular:
+ * Normalize a given path to a canonical form. In particular:
  * - trailing separators are removed:  /foo/bar/ -> /foo/bar
  * - double separators (= empty components) are removed:   /foo//bar -> /foo/bar
  * - dot components are removed:  /foo/./bar -> /foo/bar
  *
  * @todo remove double dot components:  /foo/baz/../bar -> /foo/bar
  *
- * @param path	the path to normalize
- * @param sep	the separator token (usually '/' on Unix-style systems, or '\\' on Windows based stuff)
- * @return	the normalized path
+ * @param path  the path to normalize
+ * @param sep   the separator token (usually '/' on Unix-style systems, or '\\' on Windows based stuff)
+ * @return      the normalized path
  */
 Common::String normalizePath(const Common::String &path, const char sep);
 
@@ -304,27 +315,81 @@ Common::String normalizePath(const Common::String &path, const char sep);
  * Taken from exult/files/listfiles.cc
  *
  * Token meaning:
- *		"*": any character, any amount of times.
- *		"?": any character, only once.
+ *      "*": any character, any amount of times.
+ *      "?": any character, only once.
  *
  * Example strings/patterns:
- *		String: monkey.s01	 Pattern: monkey.s??	=> true
- *		String: monkey.s101	 Pattern: monkey.s??	=> false
- *		String: monkey.s99	 Pattern: monkey.s?1	=> false
- *		String: monkey.s101	 Pattern: monkey.s*		=> true
- *		String: monkey.s99	 Pattern: monkey.s*1	=> false
+ *      String: monkey.s01   Pattern: monkey.s??    => true
+ *      String: monkey.s101  Pattern: monkey.s??    => false
+ *      String: monkey.s99   Pattern: monkey.s?1    => false
+ *      String: monkey.s101  Pattern: monkey.s*     => true
+ *      String: monkey.s99   Pattern: monkey.s*1    => false
  *
  * @param str Text to be matched against the given pattern.
  * @param pat Glob pattern.
+ * @param ignoreCase Whether to ignore the case when doing pattern match
  * @param pathMode Whether to use path mode, i.e., whether slashes must be matched explicitly.
  *
  * @return true if str matches the pattern, false otherwise.
  */
-bool matchString(const char *str, const char *pat, bool pathMode = false);
+bool matchString(const char *str, const char *pat, bool ignoreCase = false, bool pathMode = false);
 
 
-typedef Array<String> StringList;
+/**
+ * Take a 32 bit value and turn it into a four character string, where each of
+ * the four bytes is turned into one character. Most significant byte is printed
+ * first.
+ */
+String tag2string(uint32 tag);
 
-}	// End of namespace Common
+/**
+ * Copy up to size - 1 characters from src to dst and also zero terminate the
+ * result. Note that src must be a zero terminated string.
+ *
+ * In case size is zero this function just returns the length of the source
+ * string.
+ *
+ * @note This is modeled after OpenBSD's strlcpy. See the manpage here:
+ *       http://www.openbsd.org/cgi-bin/man.cgi?query=strlcpy
+ *
+ * @param dst The destination buffer.
+ * @param src The source string.
+ * @param size The size of the destination buffer.
+ * @return The length of the (non-truncated) result, i.e. strlen(src).
+ */
+size_t strlcpy(char *dst, const char *src, size_t size);
+
+/**
+ * Append the string src to the string dst. Note that both src and dst must be
+ * zero terminated. The result will be zero terminated. At most
+ * "size - strlen(dst) - 1" bytes will be appended.
+ *
+ * In case the dst string does not contain a zero within the first "size" bytes
+ * the dst string will not be changed and size + strlen(src) is returned.
+ *
+ * @note This is modeled after OpenBSD's strlcat. See the manpage here:
+ *       http://www.openbsd.org/cgi-bin/man.cgi?query=strlcat
+ *
+ * @param dst The string the source string should be appended to.
+ * @param src The source string.
+ * @param size The (total) size of the destination buffer.
+ * @return The length of the (non-truncated) result. That is
+ *         strlen(dst) + strlen(src). In case strlen(dst) > size
+ *         size + strlen(src) is returned.
+ */
+size_t strlcat(char *dst, const char *src, size_t size);
+
+/**
+ * Convenience wrapper for tag2string which "returns" a C string.
+ * Note: It is *NOT* safe to do anything with the return value other than directly
+ * copying or printing it.
+ */
+#define tag2str(x)	Common::tag2string(x).c_str()
+
+
+} // End of namespace Common
+
+extern int scumm_stricmp(const char *s1, const char *s2);
+extern int scumm_strnicmp(const char *s1, const char *s2, uint n);
 
 #endif

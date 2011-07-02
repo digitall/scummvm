@@ -18,56 +18,58 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sci/sci.h"
-#include "sci/console.h"	// for parse_reg_t
 #include "sci/resource.h"
+#include "sci/engine/features.h"
 #include "sci/engine/state.h"
+#include "sci/engine/selector.h"
 #include "sci/engine/kernel.h"
+#include "sci/graphics/animate.h"
+#include "sci/graphics/screen.h"
 
 namespace Sci {
 
-/*
-Compute "velocity" vector (xStep,yStep)=(vx,vy) for a jump from (0,0) to (dx,dy), with gravity gy.
-The gravity is assumed to be non-negative.
-
-If this was ordinary continuous physics, we would compute the desired (floating point!)
-velocity vector (vx,vy) as follows, under the assumption that vx and vy are linearly correlated
-by some constant factor c, i.e. vy = c * vx:
-   dx = t * vx
-   dy = t * vy + gy * t^2 / 2
-=> dy = c * dx + gy * (dx/vx)^2 / 2
-=> |vx| = sqrt( gy * dx^2 / (2 * (dy - c * dx)) )
-Here, the sign of vx must be chosen equal to the sign of dx, obviously.
-
-Clearly, this square root only makes sense in our context if the denominator is positive,
-or equivalently, (dy - c * dx) must be positive. For simplicity and by symmetry
-along the x-axis, we assume dx to be positive for all computations, and only adjust for
-its sign in the end. Switching the sign of c appropriately, we set tmp := (dy + c * dx)
-and compute c so that this term becomes positive.
-
-Remark #1: If the jump is straight up, i.e. dx == 0, then we should not assume the above
-linear correlation vy = c * vx of the velocities (as vx will be 0, but vy shouldn't be,
-unless we drop).
-
-
-Remark #2: We are actually in a discrete setup. The motion is computed iteratively: each iteration,
-we add vx and vy to the position, then add gy to vy. So the real formula is the following
-(where t is ideally close to an int):
-
-  dx = t * vx
-  dy = t * vy + gy * t*(t-1) / 2
-
-But the solution resulting from that is a lot more complicated, so we use the above approximation instead.
-
-Still, what we compute in the end is of course not a real velocity anymore, but an integer approximation,
-used in an iterative stepping algorithm
-*/
-reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+/**
+ * Compute "velocity" vector (xStep,yStep)=(vx,vy) for a jump from (0,0) to
+ * (dx,dy), with gravity constant gy. The gravity is assumed to be non-negative.
+ *
+ * If this was ordinary continuous physics, we would compute the desired
+ * (floating point!) velocity vector (vx,vy) as follows, under the assumption
+ * that vx and vy are linearly correlated by a constant c, i.e., vy = c * vx:
+ *    dx = t * vx
+ *    dy = t * vy + gy * t^2 / 2
+ * => dy = c * dx + gy * (dx/vx)^2 / 2
+ * => |vx| = sqrt( gy * dx^2 / (2 * (dy - c * dx)) )
+ * Here, the sign of vx must be chosen equal to the sign of dx, obviously.
+ *
+ * This square root only makes sense in our context if the denominator is
+ * positive, or equivalently, (dy - c * dx) must be positive. For simplicity
+ * and by symmetry along the x-axis, we assume dx to be positive for all
+ * computations, and only adjust for its sign in the end. Switching the sign of
+ * c appropriately, we set tmp := (dy + c * dx) and compute c so that this term
+ * becomes positive.
+ *
+ * Remark #1: If the jump is straight up, i.e. dx == 0, then we should not
+ * assume the above linear correlation vy = c * vx of the velocities (as vx
+ * will be 0, but vy shouldn't be, unless we drop down).
+ *
+ * Remark #2: We are actually in a discrete setup. The motion is computed
+ * iteratively: each iteration, we add vx and vy to the position, then add gy
+ * to vy. So the real formula is the following (where t ideally is close to an int):
+ *
+ *   dx = t * vx
+ *   dy = t * vy + gy * t*(t-1) / 2
+ *
+ * But the solution resulting from that is a lot more complicated, so we use
+ * the above approximation instead.
+ *
+ * Still, what we compute in the end is of course not a real velocity anymore,
+ * but an integer approximation, used in an iterative stepping algorithm.
+ */
+reg_t kSetJump(EngineState *s, int argc, reg_t *argv) {
+	SegManager *segMan = s->_segMan;
 	// Input data
 	reg_t object = argv[0];
 	int dx = argv[1].toSint16();
@@ -81,7 +83,7 @@ reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 	int vy = 0;  // y velocity
 
 	int dxWasNegative = (dx < 0);
-	dx = abs(dx);
+	dx = ABS(dx);
 
 	assert(gy >= 0);
 
@@ -99,8 +101,8 @@ reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 		// we ensure vx will be less than sqrt(gy * dx)).
 		if (dx + dy < 0) {
 			// dy is negative and |dy| > |dx|
-			c = (2 * abs(dy)) / dx;
-			//tmp = abs(dy);  // ALMOST the resulting value, except for obvious rounding issues
+			c = (2 * ABS(dy)) / dx;
+			//tmp = ABS(dy);  // ALMOST the resulting value, except for obvious rounding issues
 		} else {
 			// dy is either positive, or |dy| <= |dx|
 			c = (dx * 3 / 2 - dy) / dx;
@@ -112,19 +114,19 @@ reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 			//tmp = dx * 3 / 2;  // ALMOST the resulting value, except for obvious rounding issues
 
 			// FIXME: Where is the 3 coming from? Maybe they hard/coded, by "accident", that usually gy=3 ?
-			// Then this choice of will make t equal to roughly sqrt(dx)
+			// Then this choice of scalar will make t equal to roughly sqrt(dx)
 		}
 	}
 	// POST: c >= 1
 	tmp = c * dx + dy;
-	// POST: (dx != 0)  ==>  abs(tmp) > abs(dx)
-	// POST: (dx != 0)  ==>  abs(tmp) ~>=~ abs(dy)
+	// POST: (dx != 0)  ==>  ABS(tmp) > ABS(dx)
+	// POST: (dx != 0)  ==>  ABS(tmp) ~>=~ ABS(dy)
 
-	debugC(2, kDebugLevelBresen, "c: %d, tmp: %d\n", c, tmp);
+	debugC(kDebugLevelBresen, "c: %d, tmp: %d", c, tmp);
 
 	// Compute x step
-	if (tmp != 0)
-		vx = (int)(dx * sqrt(gy / (2.0 * tmp)));
+	if (tmp != 0 && dx != 0)
+		vx = (int16)((float)(dx * sqrt(gy / (2.0 * tmp))));
 	else
 		vx = 0;
 
@@ -140,7 +142,7 @@ reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 
 		// FIXME: This choice of vy makes t roughly (2+sqrt(2))/gy * sqrt(dy);
 		// so if gy==3, then t is roughly sqrt(dy)...
-		vy = (int)sqrt((double)gy * abs(2 * dy)) + 1;
+		vy = (int)sqrt((float)gy * ABS(2 * dy)) + 1;
 	} else {
 		// As stated above, the vertical direction is correlated to the horizontal by the
 		// (non-zero) factor c.
@@ -150,335 +152,436 @@ reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 	}
 
 	// Always force vy to be upwards
-	vy = -abs(vy);
+	vy = -ABS(vy);
 
-	debugC(2, kDebugLevelBresen, "SetJump for object at %04x:%04x\n", PRINT_REG(object));
-	debugC(2, kDebugLevelBresen, "xStep: %d, yStep: %d\n", vx, vy);
+	debugC(kDebugLevelBresen, "SetJump for object at %04x:%04x", PRINT_REG(object));
+	debugC(kDebugLevelBresen, "xStep: %d, yStep: %d", vx, vy);
 
-	PUT_SEL32V(object, xStep, vx);
-	PUT_SEL32V(object, yStep, vy);
-
-	return s->r_acc;
-}
-
-#define _K_BRESEN_AXIS_X 0
-#define _K_BRESEN_AXIS_Y 1
-
-static void initialize_bresen(EngineState *s, int argc, reg_t *argv, reg_t mover, int step_factor, int deltax, int deltay) {
-	reg_t client = GET_SEL32(mover, client);
-	int stepx = GET_SEL32SV(client, xStep) * step_factor;
-	int stepy = GET_SEL32SV(client, yStep) * step_factor;
-	int numsteps_x = stepx ? (abs(deltax) + stepx - 1) / stepx : 0;
-	int numsteps_y = stepy ? (abs(deltay) + stepy - 1) / stepy : 0;
-	int bdi, i1;
-	int numsteps;
-	int deltax_step;
-	int deltay_step;
-
-	if (numsteps_x > numsteps_y) {
-		numsteps = numsteps_x;
-		deltax_step = (deltax < 0) ? -stepx : stepx;
-		deltay_step = numsteps ? deltay / numsteps : deltay;
-	} else { // numsteps_x <= numsteps_y
-		numsteps = numsteps_y;
-		deltay_step = (deltay < 0) ? -stepy : stepy;
-		deltax_step = numsteps ? deltax / numsteps : deltax;
-	}
-
-/*	if (abs(deltax) > abs(deltay)) {*/ // Bresenham on y
-	if (numsteps_y < numsteps_x) {
-
-		PUT_SEL32V(mover, b_xAxis, _K_BRESEN_AXIS_Y);
-		PUT_SEL32V(mover, b_incr, (deltay < 0) ? -1 : 1);
-		//i1 = 2 * (abs(deltay) - abs(deltay_step * numsteps)) * abs(deltax_step);
-		//bdi = -abs(deltax);
-		i1 = 2 * (abs(deltay) - abs(deltay_step * (numsteps - 1))) * abs(deltax_step);
-		bdi = -abs(deltax);
-	} else { // Bresenham on x
-		PUT_SEL32V(mover, b_xAxis, _K_BRESEN_AXIS_X);
-		PUT_SEL32V(mover, b_incr, (deltax < 0) ? -1 : 1);
-		//i1= 2 * (abs(deltax) - abs(deltax_step * numsteps)) * abs(deltay_step);
-		//bdi = -abs(deltay);
-		i1 = 2 * (abs(deltax) - abs(deltax_step * (numsteps - 1))) * abs(deltay_step);
-		bdi = -abs(deltay);
-
-	}
-
-	PUT_SEL32V(mover, dx, deltax_step);
-	PUT_SEL32V(mover, dy, deltay_step);
-
-	debugC(2, kDebugLevelBresen, "Init bresen for mover %04x:%04x: d=(%d,%d)\n", PRINT_REG(mover), deltax, deltay);
-	debugC(2, kDebugLevelBresen, "    steps=%d, mv=(%d, %d), i1= %d, i2=%d\n",
-	          numsteps, deltax_step, deltay_step, i1, bdi*2);
-
-	//PUT_SEL32V(mover, b_movCnt, numsteps); // Needed for HQ1/Ogre?
-	PUT_SEL32V(mover, b_di, bdi);
-	PUT_SEL32V(mover, b_i1, i1);
-	PUT_SEL32V(mover, b_i2, bdi * 2);
-}
-
-reg_t kInitBresen(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	reg_t mover = argv[0];
-	reg_t client = GET_SEL32(mover, client);
-
-	int deltax = GET_SEL32SV(mover, x) - GET_SEL32SV(client, x);
-	int deltay = GET_SEL32SV(mover, y) - GET_SEL32SV(client, y);
-	int step_factor = (argc < 1) ? argv[1].toUint16() : 1;
-
-	initialize_bresen(s, argc, argv, mover, step_factor, deltax, deltay);
+	writeSelectorValue(segMan, object, SELECTOR(xStep), vx);
+	writeSelectorValue(segMan, object, SELECTOR(yStep), vy);
 
 	return s->r_acc;
 }
 
-#define MOVING_ON_X (((axis == _K_BRESEN_AXIS_X)&&bi1) || dx)
-#define MOVING_ON_Y (((axis == _K_BRESEN_AXIS_Y)&&bi1) || dy)
-
-enum Movecnt {
-	IGNORE_MOVECNT,
-	INCREMENT_MOVECNT,
-	UNINITIALIZED
-};
-
-static Movecnt handle_movecnt = UNINITIALIZED;	// FIXME: Avoid non-const global vars
-
-static int checksum_bytes(byte *data, int size) {
-	int result = 0;
-	int i;
-
-	for (i = 0; i < size; i++) {
-		result += *data;
-		data++;
-	}
-
-	return result;
-}
-
-static void bresenham_autodetect(EngineState *s) {
-	reg_t motion_class;
-
-	if (!parse_reg_t(s, "?Motion", &motion_class)) {
-		Object *obj = obj_get(s, motion_class);
-		reg_t fptr;
-		byte *buf;
-
-		if (obj == NULL) {
-			warning("bresenham_autodetect failed");
-			handle_movecnt = INCREMENT_MOVECNT; // Most games do this, so best guess
-			return;
-		}
-
-		if (lookup_selector(s, motion_class, ((SciEngine*)g_engine)->getKernel()->_selectorMap.doit, NULL, &fptr) != kSelectorMethod) {
-			warning("bresenham_autodetect failed");
-			handle_movecnt = INCREMENT_MOVECNT; // Most games do this, so best guess
-			return;
-		}
-
-		buf = s->seg_manager->getScript(fptr.segment)->buf + fptr.offset;
-		handle_movecnt = (s->_version <= SCI_VERSION_0 || checksum_bytes(buf, 8) == 0x216) ? INCREMENT_MOVECNT : IGNORE_MOVECNT;
-		printf("b-moveCnt action based on checksum: %s\n", handle_movecnt == IGNORE_MOVECNT ? "ignore" : "increment");
-	} else {
-		warning("bresenham_autodetect failed");
-		handle_movecnt = INCREMENT_MOVECNT; // Most games do this, so best guess
-	}
-}
-
-reg_t kDoBresen(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kInitBresen(EngineState *s, int argc, reg_t *argv) {
+	SegManager *segMan = s->_segMan;
 	reg_t mover = argv[0];
-	reg_t client = GET_SEL32(mover, client);
+	reg_t client = readSelector(segMan, mover, SELECTOR(client));
+	int16 stepFactor = (argc >= 2) ? argv[1].toUint16() : 1;
+	int16 mover_x = readSelectorValue(segMan, mover, SELECTOR(x));
+	int16 mover_y = readSelectorValue(segMan, mover, SELECTOR(y));
+	int16 client_xStep = readSelectorValue(segMan, client, SELECTOR(xStep)) * stepFactor;
+	int16 client_yStep = readSelectorValue(segMan, client, SELECTOR(yStep)) * stepFactor;
 
-	int x = GET_SEL32SV(client, x);
-	int y = GET_SEL32SV(client, y);
-	int oldx, oldy, destx, desty, dx, dy, bdi, bi1, bi2, movcnt, bdelta, axis;
-	uint16 signal = GET_SEL32V(client, signal);
-	int completed = 0;
-	int max_movcnt = GET_SEL32V(client, moveSpeed);
-
-	if (s->_version > SCI_VERSION_0)
-		signal &= ~_K_VIEW_SIG_FLAG_HIT_OBSTACLE;
-
-	if (handle_movecnt == UNINITIALIZED)
-		bresenham_autodetect(s);
-
-	PUT_SEL32(client, signal, make_reg(0, signal)); // This is a NOP for SCI0
-	oldx = x;
-	oldy = y;
-	destx = GET_SEL32SV(mover, x);
-	desty = GET_SEL32SV(mover, y);
-	dx = GET_SEL32SV(mover, dx);
-	dy = GET_SEL32SV(mover, dy);
-	bdi = GET_SEL32SV(mover, b_di);
-	bi1 = GET_SEL32SV(mover, b_i1);
-	bi2 = GET_SEL32SV(mover, b_i2);
-	movcnt = GET_SEL32V(mover, b_movCnt);
-	bdelta = GET_SEL32SV(mover, b_incr);
-	axis = GET_SEL32SV(mover, b_xAxis);
-
-	//printf("movecnt %d, move speed %d\n", movcnt, max_movcnt);
-
-	if (handle_movecnt) {
-		if (max_movcnt > movcnt) {
-			++movcnt;
-			PUT_SEL32V(mover, b_movCnt, movcnt); // Needed for HQ1/Ogre?
-			return NULL_REG;
-		} else {
-			movcnt = 0;
-			PUT_SEL32V(mover, b_movCnt, movcnt); // Needed for HQ1/Ogre?
-		}
-	}
-
-	if ((bdi += bi1) > 0) {
-		bdi += bi2;
-
-		if (axis == _K_BRESEN_AXIS_X)
-			dx += bdelta;
-		else
-			dy += bdelta;
-	}
-
-	PUT_SEL32V(mover, b_di, bdi);
-
-	x += dx;
-	y += dy;
-
-	if ((MOVING_ON_X && (((x < destx) && (oldx >= destx)) // Moving left, exceeded?
-	            || ((x > destx) && (oldx <= destx)) // Moving right, exceeded?
-	            || ((x == destx) && (abs(dx) > abs(dy))) // Moving fast, reached?
-	            // Treat this last case specially- when doing sub-pixel movements
-	            // on the other axis, we could still be far away from the destination
-				)) || (MOVING_ON_Y && (((y < desty) && (oldy >= desty)) /* Moving upwards, exceeded? */
-	                || ((y > desty) && (oldy <= desty)) /* Moving downwards, exceeded? */
-	                || ((y == desty) && (abs(dy) >= abs(dx))) /* Moving fast, reached? */
-				))) {
-		// Whew... in short: If we have reached or passed our target position
-		x = destx;
-		y = desty;
-		completed = 1;
-
-		debugC(2, kDebugLevelBresen, "Finished mover %04x:%04x\n", PRINT_REG(mover));
-	}
-
-	PUT_SEL32V(client, x, x);
-	PUT_SEL32V(client, y, y);
-
-	debugC(2, kDebugLevelBresen, "New data: (x,y)=(%d,%d), di=%d\n", x, y, bdi);
-
-	if (((SciEngine*)g_engine)->getKernel()->_selectorMap.cantBeHere != -1)
-		invoke_selector(INV_SEL(client, cantBeHere, kStopOnInvalidSelector), 0);
+	int16 client_step;
+	if (client_xStep < client_yStep)
+		client_step = client_yStep * 2;
 	else
-		invoke_selector(INV_SEL(client, canBeHere, kStopOnInvalidSelector), 0);
+		client_step = client_xStep * 2;
 
-	s->r_acc = not_register(s, s->r_acc);
+	int16 deltaX = mover_x - readSelectorValue(segMan, client, SELECTOR(x));
+	int16 deltaY = mover_y - readSelectorValue(segMan, client, SELECTOR(y));
+	int16 mover_dx = 0;
+	int16 mover_dy = 0;
+	int16 mover_i1 = 0;
+	int16 mover_i2 = 0;
+	int16 mover_di = 0;
+	int16 mover_incr = 0;
+	int16 mover_xAxis = 0;
 
-	if (!s->r_acc.offset) { // Contains the return value
-		signal = GET_SEL32V(client, signal);
+	while (1) {
+		mover_dx = client_xStep;
+		mover_dy = client_yStep;
+		mover_incr = 1;
 
-		PUT_SEL32V(client, x, oldx);
-		PUT_SEL32V(client, y, oldy);
-		PUT_SEL32V(client, signal, (signal | _K_VIEW_SIG_FLAG_HIT_OBSTACLE));
+		if (ABS(deltaX) >= ABS(deltaY)) {
+			mover_xAxis = 1;
+			if (deltaX < 0)
+				mover_dx = -mover_dx;
+			mover_dy = deltaX ? mover_dx * deltaY / deltaX : 0;
+			mover_i1 = ((mover_dx * deltaY) - (mover_dy * deltaX)) * 2;
+			if (deltaY < 0) {
+				mover_incr = -1;
+				mover_i1 = -mover_i1;
+			}
+			mover_i2 = mover_i1 - (deltaX * 2);
+			mover_di = mover_i1 - deltaX;
+			if (deltaX < 0) {
+				mover_i1 = -mover_i1;
+				mover_i2 = -mover_i2;
+				mover_di = -mover_di;
+			}
+		} else {
+			mover_xAxis = 0;
+			if (deltaY < 0)
+				mover_dy = -mover_dy;
+			mover_dx = deltaY ? mover_dy * deltaX / deltaY : 0;
+			mover_i1 = ((mover_dy * deltaX) - (mover_dx * deltaY)) * 2;
+			if (deltaX < 0) {
+				mover_incr = -1;
+				mover_i1 = -mover_i1;
+			}
+			mover_i2 = mover_i1 - (deltaY * 2);
+			mover_di = mover_i1 - deltaY;
+			if (deltaY < 0) {
+				mover_i1 = -mover_i1;
+				mover_i2 = -mover_i2;
+				mover_di = -mover_di;
+			}
+			break;
+		}
+		if (client_xStep <= client_yStep)
+			break;
+		if (!client_xStep)
+			break;
+		if (client_yStep >= ABS(mover_dy + mover_incr))
+			break;
 
-		debugC(2, kDebugLevelBresen, "Finished mover %04x:%04x by collision\n", PRINT_REG(mover));
-		completed = 1;
+		client_step--;
+		if (!client_step)
+			error("kInitBresen failed");
+		client_xStep--;
 	}
 
-	if (s->_version > SCI_VERSION_0)
-		if (completed)
-			invoke_selector(INV_SEL(mover, moveDone, kStopOnInvalidSelector), 0);
-
-	return make_reg(0, completed);
+	// set mover
+	writeSelectorValue(segMan, mover, SELECTOR(dx), mover_dx);
+	writeSelectorValue(segMan, mover, SELECTOR(dy), mover_dy);
+	writeSelectorValue(segMan, mover, SELECTOR(b_i1), mover_i1);
+	writeSelectorValue(segMan, mover, SELECTOR(b_i2), mover_i2);
+	writeSelectorValue(segMan, mover, SELECTOR(b_di), mover_di);
+	writeSelectorValue(segMan, mover, SELECTOR(b_incr), mover_incr);
+	writeSelectorValue(segMan, mover, SELECTOR(b_xAxis), mover_xAxis);
+	return s->r_acc;
 }
 
-extern void _k_dirloop(reg_t obj, uint16 angle, EngineState *s, int funct_nr, int argc, reg_t *argv);
-int is_heap_object(EngineState *s, reg_t pos);
-extern int get_angle(int xrel, int yrel);
+reg_t kDoBresen(EngineState *s, int argc, reg_t *argv) {
+	SegManager *segMan = s->_segMan;
+	reg_t mover = argv[0];
+	reg_t client = readSelector(segMan, mover, SELECTOR(client));
+	bool completed = false;
+	bool handleMoveCount = g_sci->_features->handleMoveCount();
 
-reg_t kDoAvoider(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+	if (getSciVersion() >= SCI_VERSION_1_EGA_ONLY) {
+		uint client_signal = readSelectorValue(segMan, client, SELECTOR(signal));
+		writeSelectorValue(segMan, client, SELECTOR(signal), client_signal & ~kSignalHitObstacle);
+	}
+
+	int16 mover_moveCnt = 1;
+	int16 client_moveSpeed = 0;
+	if (handleMoveCount) {
+		mover_moveCnt = readSelectorValue(segMan, mover, SELECTOR(b_movCnt));
+		client_moveSpeed = readSelectorValue(segMan, client, SELECTOR(moveSpeed));
+		mover_moveCnt++;
+	}
+
+	if (client_moveSpeed < mover_moveCnt) {
+		mover_moveCnt = 0;
+		int16 client_x = readSelectorValue(segMan, client, SELECTOR(x));
+		int16 client_y = readSelectorValue(segMan, client, SELECTOR(y));
+		int16 mover_x = readSelectorValue(segMan, mover, SELECTOR(x));
+		int16 mover_y = readSelectorValue(segMan, mover, SELECTOR(y));
+		int16 mover_xAxis = readSelectorValue(segMan, mover, SELECTOR(b_xAxis));
+		int16 mover_dx = readSelectorValue(segMan, mover, SELECTOR(dx));
+		int16 mover_dy = readSelectorValue(segMan, mover, SELECTOR(dy));
+		int16 mover_incr = readSelectorValue(segMan, mover, SELECTOR(b_incr));
+		int16 mover_i1 = readSelectorValue(segMan, mover, SELECTOR(b_i1));
+		int16 mover_i2 = readSelectorValue(segMan, mover, SELECTOR(b_i2));
+		int16 mover_di = readSelectorValue(segMan, mover, SELECTOR(b_di));
+		int16 mover_org_i1 = mover_i1;
+		int16 mover_org_i2 = mover_i2;
+		int16 mover_org_di = mover_di;
+
+		if ((getSciVersion() >= SCI_VERSION_1_EGA_ONLY)) {
+			// save current position into mover
+			writeSelectorValue(segMan, mover, SELECTOR(xLast), client_x);
+			writeSelectorValue(segMan, mover, SELECTOR(yLast), client_y);
+		}
+
+		// Store backups of all client selector variables. We will restore them
+		// in case of a collision.
+		Object* clientObject = segMan->getObject(client);
+		uint clientVarNum = clientObject->getVarCount();
+		reg_t* clientBackup = new reg_t[clientVarNum];
+		for (uint i = 0; i < clientVarNum; ++i)
+			clientBackup[i] = clientObject->getVariable(i);
+
+		if (mover_xAxis) {
+			if (ABS(mover_x - client_x) < ABS(mover_dx))
+				completed = true;
+		} else {
+			if (ABS(mover_y - client_y) < ABS(mover_dy))
+				completed = true;
+		}
+		if (completed) {
+			client_x = mover_x;
+			client_y = mover_y;
+		} else {
+			client_x += mover_dx;
+			client_y += mover_dy;
+			if (mover_di < 0) {
+				mover_di += mover_i1;
+			} else {
+				mover_di += mover_i2;
+				if (mover_xAxis == 0) {
+					client_x += mover_incr;
+				} else {
+					client_y += mover_incr;
+				}
+			}
+		}
+		writeSelectorValue(segMan, client, SELECTOR(x), client_x);
+		writeSelectorValue(segMan, client, SELECTOR(y), client_y);
+
+		// Now call client::canBeHere/client::cantBehere to check for collisions
+		bool collision = false;
+		reg_t cantBeHere = NULL_REG;
+
+		if (SELECTOR(cantBeHere) != -1) {
+			// adding this here for hoyle 3 to get happy. CantBeHere is a dummy in hoyle 3 and acc is != 0 so we would
+			//  get a collision otherwise
+			s->r_acc = NULL_REG;
+			invokeSelector(s, client, SELECTOR(cantBeHere), argc, argv);
+			if (!s->r_acc.isNull())
+				collision = true;
+			cantBeHere = s->r_acc;
+		} else {
+			invokeSelector(s, client, SELECTOR(canBeHere), argc, argv);
+			if (s->r_acc.isNull())
+				collision = true;
+		}
+
+		if (collision) {
+			// We restore the backup of the client variables
+			for (uint i = 0; i < clientVarNum; ++i)
+				clientObject->getVariableRef(i) = clientBackup[i];
+
+			mover_i1 = mover_org_i1;
+			mover_i2 = mover_org_i2;
+			mover_di = mover_org_di;
+
+			uint16 client_signal = readSelectorValue(segMan, client, SELECTOR(signal));
+			writeSelectorValue(segMan, client, SELECTOR(signal), client_signal | kSignalHitObstacle);
+		}
+		delete[] clientBackup;
+
+		writeSelectorValue(segMan, mover, SELECTOR(b_i1), mover_i1);
+		writeSelectorValue(segMan, mover, SELECTOR(b_i2), mover_i2);
+		writeSelectorValue(segMan, mover, SELECTOR(b_di), mover_di);
+
+		if (getSciVersion() >= SCI_VERSION_1_EGA_ONLY) {
+			// In sci1egaonly this block of code was outside of the main if,
+			// but client_x/client_y aren't set there, so it was an
+			// uninitialized read in SSCI. (This issue was fixed in sci1early.)
+			if (handleMoveCount)
+				writeSelectorValue(segMan, mover, SELECTOR(b_movCnt), mover_moveCnt);
+			// We need to compare directly in here, complete may have happened during
+			//  the current move
+			if ((client_x == mover_x) && (client_y == mover_y))
+				invokeSelector(s, mover, SELECTOR(moveDone), argc, argv);
+			return s->r_acc;
+		}
+	}
+
+	if (handleMoveCount)
+		writeSelectorValue(segMan, mover, SELECTOR(b_movCnt), mover_moveCnt);
+
+	return s->r_acc;
+}
+
+extern void kDirLoopWorker(reg_t obj, uint16 angle, EngineState *s, int argc, reg_t *argv);
+extern uint16 kGetAngleWorker(int16 x1, int16 y1, int16 x2, int16 y2);
+
+reg_t kDoAvoider(EngineState *s, int argc, reg_t *argv) {
+	SegManager *segMan = s->_segMan;
 	reg_t avoider = argv[0];
+	int16 timesStep = argc > 1 ? argv[1].toUint16() : 1;
+
+	if (!s->_segMan->isHeapObject(avoider)) {
+		error("DoAvoider() where avoider %04x:%04x is not an object", PRINT_REG(avoider));
+		return SIGNAL_REG;
+	}
+
+	reg_t client = readSelector(segMan, avoider, SELECTOR(client));
+	reg_t mover = readSelector(segMan, client, SELECTOR(mover));
+	if (mover.isNull())
+		return SIGNAL_REG;
+
+	// call mover::doit
+	invokeSelector(s, mover, SELECTOR(doit), argc, argv);
+
+	// Read mover again
+	mover = readSelector(segMan, client, SELECTOR(mover));
+	if (mover.isNull())
+		return SIGNAL_REG;
+
+	int16 clientX = readSelectorValue(segMan, client, SELECTOR(x));
+	int16 clientY = readSelectorValue(segMan, client, SELECTOR(y));
+	int16 moverX = readSelectorValue(segMan, mover, SELECTOR(x));
+	int16 moverY = readSelectorValue(segMan, mover, SELECTOR(y));
+	int16 avoiderHeading = readSelectorValue(segMan, avoider, SELECTOR(heading));
+
+	// call client::isBlocked
+	invokeSelector(s, client, SELECTOR(isBlocked), argc, argv);
+
+	if (s->r_acc.isNull()) {
+		// not blocked
+		if (avoiderHeading == -1)
+			return SIGNAL_REG;
+		avoiderHeading = -1;
+
+		uint16 angle = kGetAngleWorker(clientX, clientY, moverX, moverY);
+
+		reg_t clientLooper = readSelector(segMan, client, SELECTOR(looper));
+		if (clientLooper.isNull()) {
+			kDirLoopWorker(client, angle, s, argc, argv);
+		} else {
+			// call looper::doit
+			reg_t params[2] = { make_reg(0, angle), client };
+			invokeSelector(s, clientLooper, SELECTOR(doit), argc, argv, 2, params);
+		}
+		s->r_acc = SIGNAL_REG;
+
+	} else {
+		// is blocked
+		if (avoiderHeading == -1)
+			avoiderHeading = g_sci->getRNG().getRandomBit() ? 45 : -45;
+		int16 clientHeading = readSelectorValue(segMan, client, SELECTOR(heading));
+		clientHeading = (clientHeading / 45) * 45;
+
+		int16 clientXstep = readSelectorValue(segMan, client, SELECTOR(xStep)) * timesStep;
+		int16 clientYstep = readSelectorValue(segMan, client, SELECTOR(yStep)) * timesStep;
+		int16 newHeading = clientHeading;
+
+		while (1) {
+			int16 newX = clientX;
+			int16 newY = clientY;
+			switch (newHeading) {
+			case 45:
+			case 90:
+			case 135:
+				newX += clientXstep;
+				break;
+			case 225:
+			case 270:
+			case 315:
+				newX -= clientXstep;
+			}
+
+			switch (newHeading) {
+			case 0:
+			case 45:
+			case 315:
+				newY -= clientYstep;
+				break;
+			case 135:
+			case 180:
+			case 225:
+				newY += clientYstep;
+			}
+			writeSelectorValue(segMan, client, SELECTOR(x), newX);
+			writeSelectorValue(segMan, client, SELECTOR(y), newY);
+
+			// call client::canBeHere
+			invokeSelector(s, client, SELECTOR(canBeHere), argc, argv);
+
+			if (!s->r_acc.isNull()) {
+				s->r_acc = make_reg(0, newHeading);
+				break; // break out
+			}
+
+			newHeading += avoiderHeading;
+			if (newHeading >= 360)
+				newHeading -= 360;
+			if (newHeading < 0)
+				newHeading += 360;
+			if (newHeading == clientHeading) {
+				// tried everything
+				writeSelectorValue(segMan, client, SELECTOR(x), clientX);
+				writeSelectorValue(segMan, client, SELECTOR(y), clientY);
+				s->r_acc = SIGNAL_REG;
+				break; // break out
+			}
+		}
+	}
+	writeSelectorValue(segMan, avoider, SELECTOR(heading), avoiderHeading);
+	return s->r_acc;
+
+#if 0
 	reg_t client, looper, mover;
 	int angle;
 	int dx, dy;
 	int destx, desty;
 
-	s->r_acc = make_reg(0, -1);
+	s->r_acc = SIGNAL_REG;
 
-	if (!is_heap_object(s, avoider)) {
-		warning("DoAvoider() where avoider %04x:%04x is not an object", PRINT_REG(avoider));
+	if (!s->_segMan->isHeapObject(avoider)) {
+		error("DoAvoider() where avoider %04x:%04x is not an object", PRINT_REG(avoider));
 		return NULL_REG;
 	}
 
-	client = GET_SEL32(avoider, client);
+	client = readSelector(segMan, avoider, SELECTOR(client));
 
-	if (!is_heap_object(s, client)) {
-		warning("DoAvoider() where client %04x:%04x is not an object", PRINT_REG(client));
+	if (!s->_segMan->isHeapObject(client)) {
+		error("DoAvoider() where client %04x:%04x is not an object", PRINT_REG(client));
 		return NULL_REG;
 	}
 
-	looper = GET_SEL32(client, looper);
-	mover = GET_SEL32(client, mover);
+	looper = readSelector(segMan, client, SELECTOR(looper));
+	mover = readSelector(segMan, client, SELECTOR(mover));
 
-	if (!is_heap_object(s, mover)) {
+	if (!s->_segMan->isHeapObject(mover)) {
 		if (mover.segment) {
-			warning("DoAvoider() where mover %04x:%04x is not an object", PRINT_REG(mover));
+			error("DoAvoider() where mover %04x:%04x is not an object", PRINT_REG(mover));
 		}
 		return s->r_acc;
 	}
 
-	destx = GET_SEL32V(mover, x);
-	desty = GET_SEL32V(mover, y);
+	destx = readSelectorValue(segMan, mover, SELECTOR(x));
+	desty = readSelectorValue(segMan, mover, SELECTOR(y));
 
-	debugC(2, kDebugLevelBresen, "Doing avoider %04x:%04x (dest=%d,%d)\n", PRINT_REG(avoider), destx, desty);
+	debugC(kDebugLevelBresen, "Doing avoider %04x:%04x (dest=%d,%d)", PRINT_REG(avoider), destx, desty);
 
-	if (invoke_selector(INV_SEL(mover, doit, kContinueOnInvalidSelector) , 0)) {
-		error("Mover %04x:%04x of avoider %04x:%04x doesn't have a doit() funcselector", PRINT_REG(mover), PRINT_REG(avoider));
-		return NULL_REG;
-	}
+	invokeSelector(s, mover, SELECTOR(doit), argc, argv);
 
-	mover = GET_SEL32(client, mover);
+	mover = readSelector(segMan, client, SELECTOR(mover));
 	if (!mover.segment) // Mover has been disposed?
 		return s->r_acc; // Return gracefully.
 
-	if (invoke_selector(INV_SEL(client, isBlocked, kContinueOnInvalidSelector) , 0)) {
-		error("Client %04x:%04x of avoider %04x:%04x doesn't"
-		         " have an isBlocked() funcselector", PRINT_REG(client), PRINT_REG(avoider));
-		return NULL_REG;
-	}
+	invokeSelector(s, client, SELECTOR(isBlocked), argc, argv);
 
-	dx = destx - GET_SEL32V(client, x);
-	dy = desty - GET_SEL32V(client, y);
-	angle = get_angle(dx, dy);
+	dx = destx - readSelectorValue(segMan, client, SELECTOR(x));
+	dy = desty - readSelectorValue(segMan, client, SELECTOR(y));
+	angle = getAngle(dx, dy);
 
-	debugC(2, kDebugLevelBresen, "Movement (%d,%d), angle %d is %sblocked\n", dx, dy, angle, (s->r_acc.offset) ? " " : "not ");
+	debugC(kDebugLevelBresen, "Movement (%d,%d), angle %d is %sblocked", dx, dy, angle, (s->r_acc.offset) ? " " : "not ");
 
 	if (s->r_acc.offset) { // isBlocked() returned non-zero
-		int rotation = (rand() & 1) ? 45 : (360 - 45); // Clockwise/counterclockwise
-		int oldx = GET_SEL32V(client, x);
-		int oldy = GET_SEL32V(client, y);
-		int xstep = GET_SEL32V(client, xStep);
-		int ystep = GET_SEL32V(client, yStep);
+		int rotation = (g_sci->getRNG().getRandomBit() == 1) ? 45 : (360 - 45); // Clockwise/counterclockwise
+		int oldx = readSelectorValue(segMan, client, SELECTOR(x));
+		int oldy = readSelectorValue(segMan, client, SELECTOR(y));
+		int xstep = readSelectorValue(segMan, client, SELECTOR(xStep));
+		int ystep = readSelectorValue(segMan, client, SELECTOR(yStep));
 		int moves;
 
-		debugC(2, kDebugLevelBresen, " avoider %04x:%04x\n", PRINT_REG(avoider));
+		debugC(kDebugLevelBresen, " avoider %04x:%04x", PRINT_REG(avoider));
 
 		for (moves = 0; moves < 8; moves++) {
-			int move_x = (int)(sin(angle * PI / 180.0) * (xstep));
-			int move_y = (int)(-cos(angle * PI / 180.0) * (ystep));
+			int move_x = (int)(sin(angle * M_PI / 180.0) * (xstep));
+			int move_y = (int)(-cos(angle * M_PI / 180.0) * (ystep));
 
-			PUT_SEL32V(client, x, oldx + move_x);
-			PUT_SEL32V(client, y, oldy + move_y);
+			writeSelectorValue(segMan, client, SELECTOR(x), oldx + move_x);
+			writeSelectorValue(segMan, client, SELECTOR(y), oldy + move_y);
 
-			debugC(2, kDebugLevelBresen, "Pos (%d,%d): Trying angle %d; delta=(%d,%d)\n", oldx, oldy, angle, move_x, move_y);
+			debugC(kDebugLevelBresen, "Pos (%d,%d): Trying angle %d; delta=(%d,%d)", oldx, oldy, angle, move_x, move_y);
 
-			if (invoke_selector(INV_SEL(client, canBeHere, kContinueOnInvalidSelector) , 0)) {
-				error("Client %04x:%04x of avoider %04x:%04x doesn't"
-				         " have a canBeHere() funcselector", PRINT_REG(client), PRINT_REG(avoider));
-				return NULL_REG;
-			}
+			invokeSelector(s, client, SELECTOR(canBeHere), argc, argv);
 
-			PUT_SEL32V(client, x, oldx);
-			PUT_SEL32V(client, y, oldy);
+			writeSelectorValue(segMan, client, SELECTOR(x), oldx);
+			writeSelectorValue(segMan, client, SELECTOR(y), oldy);
 
 			if (s->r_acc.offset) { // We can be here
-				debugC(2, kDebugLevelBresen, "Success\n");
-				PUT_SEL32V(client, heading, angle);
+				debugC(kDebugLevelBresen, "Success");
+				writeSelectorValue(segMan, client, SELECTOR(heading), angle);
 
 				return make_reg(0, angle);
 			}
@@ -489,30 +592,29 @@ reg_t kDoAvoider(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 				angle -= 360;
 		}
 
-		warning("DoAvoider failed for avoider %04x:%04x", PRINT_REG(avoider));
+		error("DoAvoider failed for avoider %04x:%04x", PRINT_REG(avoider));
 	} else {
-		int heading = GET_SEL32V(client, heading);
+		int heading = readSelectorValue(segMan, client, SELECTOR(heading));
 
 		if (heading == -1)
 			return s->r_acc; // No change
 
-		PUT_SEL32V(client, heading, angle);
+		writeSelectorValue(segMan, client, SELECTOR(heading), angle);
 
 		s->r_acc = make_reg(0, angle);
 
 		if (looper.segment) {
-			if (invoke_selector(INV_SEL(looper, doit, kContinueOnInvalidSelector), 2, angle, client)) {
-				error("Looper %04x:%04x of avoider %04x:%04x doesn't"
-				         " have a doit() funcselector", PRINT_REG(looper), PRINT_REG(avoider));
-			} else
-				return s->r_acc;
+			reg_t params[2] = { make_reg(0, angle), client };
+			invokeSelector(s, looper, SELECTOR(doit), argc, argv, 2, params);
+			return s->r_acc;
 		} else {
 			// No looper? Fall back to DirLoop
-			_k_dirloop(client, (uint16)angle, s, funct_nr, argc, argv);
+			kDirLoopWorker(client, (uint16)angle, s, argc, argv);
 		}
 	}
 
 	return s->r_acc;
+#endif
 }
 
 } // End of namespace Sci

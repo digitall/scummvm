@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * This file contains the Sound Driver data structures etc.
  */
 
@@ -30,7 +27,7 @@
 #include "common/file.h"
 #include "common/file.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 #include "tinsel/dw.h"
 #include "tinsel/tinsel.h"
@@ -62,7 +59,7 @@ protected:
 		kVOCMode,
 		kMP3Mode,
 		kVorbisMode,
-		kFlacMode
+		kFLACMode
 	};
 
 	struct Channel {
@@ -92,7 +89,7 @@ protected:
 	uint32 *_sampleIndex;
 
 	/** Number of entries in the sample index */
-	long _sampleIndexLen;
+	int _sampleIndexLen;
 
 	/** Specifies if the sample-data is compressed and if yes, how */
 	SoundMode _soundMode;
@@ -112,7 +109,7 @@ public:
 	bool playSample(int id, int sub, bool bLooped, int x, int y, int priority,
 			Audio::Mixer::SoundType type, Audio::SoundHandle *handle = 0);
 
-	void stopAllSamples(void);                // Stops any currently playing sample
+	void stopAllSamples();                // Stops any currently playing sample
 	void stopSpecSample(int id, int sub = 0); // Stops a specific sample
 
 	void setSFXVolumes(uint8 volume);
@@ -121,10 +118,10 @@ public:
 	bool sampleIsPlaying(int id = -1);
 
 	// TODO: Internal method, make this protected?
-	void openSampleFiles(void);
-	void closeSampleStream(void);
+	void openSampleFiles();
+	void closeSampleStream();
 };
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	// TINSEL_SOUND_H

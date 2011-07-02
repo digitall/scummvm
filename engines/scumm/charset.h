@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_CHARSET_H
@@ -27,6 +24,7 @@
 
 #include "common/scummsys.h"
 #include "common/rect.h"
+#include "graphics/sjis.h"
 #include "scumm/gfx.h"
 #include "scumm/saveload.h"
 
@@ -37,9 +35,9 @@ class NutRenderer;
 struct VirtScreen;
 
 static inline bool checkSJISCode(byte c) {
-	if ((c > 0x84 && c < 0x88) || (c > 0x9f && c < 0xe0) || (c > 0xea /* && c <= 0xff */))
-		return false;
-	return true;
+	if ((c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfd))
+		return true;
+	return false;
 }
 
 
@@ -74,18 +72,22 @@ public:
 	virtual ~CharsetRenderer();
 
 	virtual void printChar(int chr, bool ignoreCharsetMask) = 0;
-	virtual void drawChar(int chr, const Graphics::Surface &s, int x, int y) {}
+	virtual void drawChar(int chr, Graphics::Surface &s, int x, int y) {}
 
 	int getStringWidth(int a, const byte *str);
 	void addLinebreaks(int a, byte *str, int pos, int maxwidth);
 	void translateColor();
+
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	void processTownsCharsetColors(uint8 bytesPerPixel);
+#endif
 
 	virtual void setCurID(int32 id) = 0;
 	int getCurID() { return _curId; }
 
 	virtual int getFontHeight() = 0;
 	virtual int getCharHeight(byte chr) { return getFontHeight(); }
-	virtual int getCharWidth(byte chr) = 0;
+	virtual int getCharWidth(uint16 chr) = 0;
 
 	virtual void setColor(byte color) { _color = color; translateColor(); }
 
@@ -95,7 +97,7 @@ public:
 class CharsetRendererCommon : public CharsetRenderer {
 protected:
 	const byte *_fontPtr;
-	int _bitDepth;
+	int _bytesPerPixel;
 	int _fontHeight;
 	int _numChars;
 
@@ -108,7 +110,8 @@ protected:
 	ShadowMode _shadowMode;
 
 	void enableShadow(bool enable);
-	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height);
+	virtual void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth, bool scale2x = false);
+
 
 public:
 	CharsetRendererCommon(ScummEngine *vm);
@@ -120,7 +123,7 @@ public:
 
 class CharsetRendererClassic : public CharsetRendererCommon {
 protected:
-	void drawBitsN(const Graphics::Surface &s, byte *dst, const byte *src, byte bpp, int drawTop, int width, int height);
+	void drawBitsN(const Graphics::Surface &s, byte *dst, const byte *src, byte bpp, int drawTop, int width, int height, bool scale2x = false);
 
 	void printCharIntern(bool is2byte, const byte *charPtr, int origWidth, int origHeight, int width, int height, VirtScreen *vs, bool ignoreCharsetMask);
 
@@ -128,26 +131,31 @@ public:
 	CharsetRendererClassic(ScummEngine *vm) : CharsetRendererCommon(vm) {}
 
 	void printChar(int chr, bool ignoreCharsetMask);
-	void drawChar(int chr, const Graphics::Surface &s, int x, int y);
+	void drawChar(int chr, Graphics::Surface &s, int x, int y);
 
-	int getCharWidth(byte chr);
+	int getCharWidth(uint16 chr);
+
+	// Some SCUMM 5 games contain hard coded logic to determine whether to use
+	// the SCUMM fonts or the FM-Towns font rom to draw a character. For the other
+	// games we will simply check for a character greater 127.
+	bool useTownsFontRomCharacter(uint16 chr);
 };
 
 class CharsetRendererNES : public CharsetRendererCommon {
 protected:
 	byte *_trTable;
 
-	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height);
+	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth, bool scale2x = false);
 
 public:
 	CharsetRendererNES(ScummEngine *vm) : CharsetRendererCommon(vm) {}
 
 	void setCurID(int32 id) {}
 	void printChar(int chr, bool ignoreCharsetMask);
-	void drawChar(int chr, const Graphics::Surface &s, int x, int y);
+	void drawChar(int chr, Graphics::Surface &s, int x, int y);
 
 	int getFontHeight() { return 8; }
-	int getCharWidth(byte chr) { return 8; }
+	int getCharWidth(uint16 chr) { return 8; }
 };
 
 class CharsetRendererV3 : public CharsetRendererCommon {
@@ -158,11 +166,23 @@ public:
 	CharsetRendererV3(ScummEngine *vm) : CharsetRendererCommon(vm) {}
 
 	void printChar(int chr, bool ignoreCharsetMask);
-	void drawChar(int chr, const Graphics::Surface &s, int x, int y);
+	void drawChar(int chr, Graphics::Surface &s, int x, int y);
 	void setCurID(int32 id);
 	void setColor(byte color);
-	int getCharWidth(byte chr);
+	int getCharWidth(uint16 chr);
 };
+
+#ifdef USE_RGB_COLOR
+class CharsetRendererPCE : public CharsetRendererV3 {
+protected:
+	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth, bool scale2x = false);
+
+public:
+	CharsetRendererPCE(ScummEngine *vm) : CharsetRendererV3(vm) {}
+
+	void setColor(byte color);
+};
+#endif
 
 class CharsetRendererV2 : public CharsetRendererV3 {
 protected:
@@ -173,7 +193,7 @@ public:
 	~CharsetRendererV2();
 
 	void setCurID(int32 id) {}
-	int getCharWidth(byte chr) { return 8; }
+	int getCharWidth(uint16 chr) { return 8; }
 };
 
 #ifdef ENABLE_SCUMM_7_8
@@ -192,7 +212,7 @@ public:
 
 	int getFontHeight();
 	int getCharHeight(byte chr);
-	int getCharWidth(byte chr);
+	int getCharWidth(uint16 chr);
 };
 #endif
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_KYRA_V1_H
@@ -29,20 +26,75 @@
 #include "engines/engine.h"
 
 #include "common/array.h"
+#include "common/error.h"
 #include "common/events.h"
-#include "common/system.h"
+#include "common/random.h"
+#include "common/hashmap.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 #include "kyra/script.h"
+#include "kyra/item.h"
 
 namespace Common {
 class SeekableReadStream;
 class WriteStream;
-} // end of namespace Common
+} // End of namespace Common
+
+namespace Graphics {
+struct Surface;
+}
 
 class KyraMetaEngine;
 
+/**
+ * This is the namespace of the Kyra engine.
+ *
+ * Status of this engine:
+ *
+ * The KYRA engine supports all three Kyrandia games by Westwood. It also supports Westwood's
+ * Lands of Lore. There are various platform ports of the different games, almost all of them are
+ * fully supported. Only the Macintosh port of Kyrandia 1 makes a difference here, which lacks
+ * support for sound effects and music.
+ *
+ * The different translations of the games are mostly supported, since every translation
+ * requires some work for kyra.dat for example, it is almost impossible to support translations,
+ * without owning them. There a currently a few reported unsupported translations:
+ *
+ * - Official translations
+ * None known.
+ * - Probably official translations (currently no sources are known to verify this)
+ * Kyrandia 2 Spanish (feature request #2499966 "KYRA2: Add support for Spanish floppy version")
+ * - Doubtful official translations (no sources here either, but less likely to be official)
+ * Kyrandia 1 Korean (feature request #1758252 "KYRA1: Add support for Korean/DOS version")
+ * Kyrandia 2 Polish (feature request #2146192 "KYRA2: Add support for Polish floppy version")
+ * - Fan translations:
+ * Kyrandia 1 Russian (no feature request)
+ * Kyrandia 2 Russian (no feature request)
+ * Kyrandia 3 Russian (feature request #2812792 "Kyrandia3 Russian")
+ *
+ * The engine is maintained by _athrxx.
+ *
+ * Other people who worked on this engine include cyx, who initially started to work on Kyrandia 1
+ * support, vinterstum, who did various things for Kyrandia 1 and started to work on the Kyrandia 2
+ * sequence player code and also on the TIM script code, and eriktorbjorn, who helped out naming
+ * our AdLib player code and also contributed a work around for a music bug in the "Pool of Sorrow"
+ * scene of Kyrandia 1, which is also present in the original. LordHoto worked on Kyrandia 1 to 3
+ * support and graphics output for 16 color PC98 games and was a maintainer of the Kyrandia part.
+ * All mentioned developers are not actively working on KYRA anymore.
+ *
+ * The engine is mostly finished code wise. A possible remaining task is proper refactoring,
+ * which might help in reducing binary size and along with it runtime memory use, but of course
+ * might lead to regressions (since the current code makes no problems on our low end ports, it
+ * is pretty minor priority though, since the benefit would be mostly nicer code). The biggest
+ * task left is the kyra.dat handling.
+ *
+ * Games using this engine:
+ * - The Legend of Kyrandia (fully supported, except for Macintosh port, which lacks sound)
+ * - (The) Hand of Fate (fully supported)
+ * - Malcolm's Revenge (fully supported)
+ * - Lands of Lore: The Throne of Chaos (fully supported)
+ */
 namespace Kyra {
 
 struct GameFlags {
@@ -54,15 +106,19 @@ struct GameFlags {
 
 	Common::Platform platform;
 
-	bool isDemo					: 1;
-	bool useAltShapeHeader		: 1;	// alternative shape header (uses 2 bytes more, those are unused though)
-	bool isTalkie				: 1;
-	bool useHiResOverlay		: 1;
-	bool use16ColorMode			: 1;
-	bool useDigSound			: 1;
-	bool useInstallerPackage	: 1;
+	bool isDemo               : 1;
+	bool useAltShapeHeader    : 1;    // alternative shape header (uses 2 bytes more, those are unused though)
+	bool isTalkie             : 1;
+	bool useHiResOverlay      : 1;
+	bool use16ColorMode       : 1;
+	bool useDigSound          : 1;
+	bool useInstallerPackage  : 1;
 
 	byte gameID;
+};
+
+struct KeyCodeHash : public Common::UnaryFunction<Common::KeyCode, uint> {
+	uint operator()(Common::KeyCode val) const { return (uint)val; }
 };
 
 enum {
@@ -82,21 +138,21 @@ struct AudioDataStruct {
 
 // TODO: this is just the start of makeing the debug output of the kyra engine a bit more useable
 // in the future we maybe merge some flags  and/or create new ones
-enum kDebugLevels {
-	kDebugLevelScriptFuncs = 1 << 0,		// prints debug output of o#_* functions
-	kDebugLevelScript = 1 << 1,				// prints debug output of "EMCInterpreter" functions
-	kDebugLevelSprites = 1 << 2,			// prints debug output of "Sprites" functions
-	kDebugLevelScreen = 1 << 3,				// prints debug output of "Screen" functions
-	kDebugLevelSound = 1 << 4,				// prints debug output of "Sound" functions
-	kDebugLevelAnimator = 1 << 5,			// prints debug output of "ScreenAnimator" functions
-	kDebugLevelMain = 1 << 6,				// prints debug output of common "KyraEngine(_v#)" functions && "TextDisplayer" functions
-	kDebugLevelGUI = 1 << 7,				// prints debug output of "KyraEngine*" gui functions
-	kDebugLevelSequence = 1 << 8,			// prints debug output of "SeqPlayer" functions
-	kDebugLevelMovie = 1 << 9,				// prints debug output of movie specific funtions
-	kDebugLevelTimer = 1 << 10				// prints debug output of "TimerManager" functions
+enum DebugLevels {
+	kDebugLevelScriptFuncs = 1 <<  0, ///< debug level for o#_* functions
+	kDebugLevelScript      = 1 <<  1, ///< debug level for "EMCInterpreter" functions
+	kDebugLevelSprites     = 1 <<  2, ///< debug level for "Sprites" functions
+	kDebugLevelScreen      = 1 <<  3, ///< debug level for "Screen" functions
+	kDebugLevelSound       = 1 <<  4, ///< debug level for "Sound" functions
+	kDebugLevelAnimator    = 1 <<  5, ///< debug level for "ScreenAnimator" functions
+	kDebugLevelMain        = 1 <<  6, ///< debug level for common "KyraEngine(_v#)" functions && "TextDisplayer" functions
+	kDebugLevelGUI         = 1 <<  7, ///< debug level for "KyraEngine*" gui functions
+	kDebugLevelSequence    = 1 <<  8, ///< debug level for "SeqPlayer" functions
+	kDebugLevelMovie       = 1 <<  9, ///< debug level for movie specific funtions
+	kDebugLevelTimer       = 1 << 10  ///< debug level for "TimerManager" functions
 };
 
-enum kMusicDataID {
+enum MusicDataID {
 	kMusicIntro = 0,
 	kMusicIngame,
 	kMusicFinale
@@ -105,7 +161,6 @@ enum kMusicDataID {
 class Screen;
 class Resource;
 class Sound;
-class Movie;
 class TextDisplayer;
 class StaticResource;
 class TimerManager;
@@ -118,7 +173,7 @@ class KyraEngine_v1 : public Engine {
 friend class Debugger;
 friend class ::KyraMetaEngine;
 friend class GUI;
-friend class SoundMidiPC;		// For _eventMan
+friend class SoundMidiPC;    // For _eventMan
 public:
 	KyraEngine_v1(OSystem *system, const GameFlags &flags);
 	virtual ~KyraEngine_v1();
@@ -186,7 +241,7 @@ protected:
 		Common::Error err;
 		registerDefaultSettings();
 		err = init();
-		if (err != Common::kNoError)
+		if (err.getCode() != Common::kNoError)
 			return err;
 		return go();
 	}
@@ -205,6 +260,7 @@ protected:
 	Debugger *_debugger;
 
 	// input
+	void setupKeyMap();
 	void updateInput();
 	int checkInput(Button *buttonList, bool mainLoop = false, int eventFlag = 0x8000);
 	void removeInputTop();
@@ -222,6 +278,8 @@ protected:
 		operator Common::Event() const { return event; }
 	};
 	Common::List<Event> _eventList;
+	typedef Common::HashMap<Common::KeyCode, int16, KeyCodeHash> KeyMap;
+	KeyMap _keyMap;
 
 	// config specific
 	virtual void registerDefaultSettings();
@@ -254,7 +312,7 @@ protected:
 
 	// opcode
 	virtual void setupOpcodeTable() = 0;
-	Common::Array<const Opcode*> _opcodes;
+	Common::Array<const Opcode *> _opcodes;
 
 	int o1_queryGameFlag(EMCState *script);
 	int o1_setGameFlag(EMCState *script);
@@ -276,11 +334,11 @@ protected:
 	// items
 	int _mouseState;
 
-	virtual void setHandItem(uint16 item) = 0;
+	virtual void setHandItem(Item item) = 0;
 	virtual void removeHandItem() = 0;
 
 	// game flags
-	uint8 _flagsTable[100];	// TODO: check this value
+	uint8 _flagsTable[100]; // TODO: check this value
 
 	// sound
 	Audio::SoundHandle _speechHandle;
@@ -324,6 +382,7 @@ protected:
 	bool canSaveGameStateCurrently() { return _isSaveAllowed; }
 
 	const char *getSavegameFilename(int num);
+	Common::String _savegameFilename;
 	static Common::String getSavegameFilename(const Common::String &target, int num);
 	bool saveFileLoadable(int slot);
 
@@ -333,8 +392,8 @@ protected:
 		byte gameID;
 		uint32 flags;
 
-		bool originalSave;	// savegame from original interpreter
-		bool oldHeader;		// old scummvm save header
+		bool originalSave;  // savegame from original interpreter
+		bool oldHeader;     // old scummvm save header
 
 		Graphics::Surface *thumbnail;
 	};
@@ -350,11 +409,14 @@ protected:
 
 	void loadGameStateCheck(int slot);
 	virtual Common::Error loadGameState(int slot) = 0;
-	Common::Error saveGameState(int slot, const char *saveName) { return saveGameState(slot, saveName, 0); }
-	virtual Common::Error saveGameState(int slot, const char *saveName, const Graphics::Surface *thumbnail) = 0;
+	Common::Error saveGameState(int slot, const Common::String &desc) { return saveGameStateIntern(slot, desc.c_str(), 0); }
+	virtual Common::Error saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail) = 0;
 
 	Common::SeekableReadStream *openSaveForReading(const char *filename, SaveHeader &header);
 	Common::WriteStream *openSaveForWriting(const char *filename, const char *saveName, const Graphics::Surface *thumbnail) const;
+
+	// TODO: Consider moving this to Screen
+	virtual Graphics::Surface *generateSaveThumbnail() const { return 0; }
 };
 
 } // End of namespace Kyra

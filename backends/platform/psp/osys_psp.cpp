@@ -18,47 +18,37 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/config-manager.h"
-#include "common/events.h"
-#include "common/rect.h"
-#include "common/scummsys.h"
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
-#include "osys_psp.h"
-
-#include "backends/saves/psp/psp-saves.h"
-#include "backends/timer/default/default-timer.h"
-#include "graphics/surface.h"
-#include "graphics/scaler.h"
-#include "sound/mixer_intern.h"
-
+#include <pspuser.h>
 #include <pspgu.h>
 #include <pspdisplay.h>
 
 #include <time.h>
+#include <zlib.h>
 
-#include "./trace.h"
+#include "common/config-manager.h"
+#include "common/events.h"
+#include "common/scummsys.h"
+
+#include "backends/platform/psp/psppixelformat.h"
+#include "backends/platform/psp/osys_psp.h"
+#include "backends/platform/psp/powerman.h"
+#include "backends/platform/psp/rtc.h"
+
+#include "backends/saves/psp/psp-saves.h"
+#include "backends/timer/default/default-timer.h"
+#include "graphics/surface.h"
+#include "audio/mixer_intern.h"
+
+//#define __PSP_DEBUG_FUNCS__	/* For debugging function calls */
+//#define __PSP_DEBUG_PRINT__	/* For debug printouts */
+
+#include "backends/platform/psp/trace.h"
 
 #define	SAMPLES_PER_SEC	44100
-
-#define	SCREEN_WIDTH	480
-#define	SCREEN_HEIGHT	272
-
-
-unsigned short *DrawBuffer = (unsigned short *)0x44044000;
-unsigned short *DisplayBuffer = (unsigned short *)0x44000000;
-
-unsigned long RGBToColour(unsigned long r, unsigned long g, unsigned long b) {
-	return (((b >> 3) << 10) | ((g >> 3) << 5) | ((r >> 3) << 0)) | 0x8000;
-}
-
-void putPixel(uint16 x, uint16 y, unsigned long colour) {
-	*(unsigned short *)(DrawBuffer + (y << 9) + x ) = colour;
-}
 
 static int timer_handler(int t) {
 	DefaultTimerManager *tm = (DefaultTimerManager *)g_system->getTimerManager();
@@ -66,501 +56,325 @@ static int timer_handler(int t) {
 	return t;
 }
 
-const OSystem::GraphicsMode OSystem_PSP::s_supportedGraphicsModes[] = {
-	{ "320x200 (centered)", "320x200 16-bit centered", CENTERED_320X200 },
-	{ "435x272 (best-fit, centered)", "435x272 16-bit centered", CENTERED_435X272 },
-	{ "480x272 (full screen)", "480x272 16-bit stretched", STRETCHED_480X272 },
-	{ "362x272 (4:3, centered)", "362x272 16-bit centered", CENTERED_362X272 },
-	{0, 0, 0}
-};
+OSystem_PSP::~OSystem_PSP() {}
 
-
-OSystem_PSP::OSystem_PSP() : _screenWidth(0), _screenHeight(0), _overlayWidth(0), _overlayHeight(0), _offscreen(0), _overlayBuffer(0), _overlayVisible(false), _shakePos(0), _mouseBuf(0), _prevButtons(0), _lastPadCheck(0), _padAccel(0), _mixer(0) {
-
-	memset(_palette, 0, sizeof(_palette));
-
-	_samplesPerSec = 0;
-
-	//init SDL
-	uint32	sdlFlags = SDL_INIT_AUDIO | SDL_INIT_TIMER;
-	SDL_Init(sdlFlags);
-
-	sceDisplaySetMode(0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	sceDisplaySetFrameBuf((char *)DisplayBuffer, 512, 1, 1);
-	sceDisplayWaitVblankStart();
-}
-
-OSystem_PSP::~OSystem_PSP() {
-	free(_offscreen);
-	free(_overlayBuffer);
-	free(_mouseBuf);
-}
-
+#define PSP_SCREEN_WIDTH 480
+#define PSP_SCREEN_HEIGHT 272
 
 void OSystem_PSP::initBackend() {
-	_savefile = new PSPSaveFileManager;
+	DEBUG_ENTER_FUNC();
 
-	_timer = new DefaultTimerManager();
+	// Instantiate real time clock
+	PspRtc::instance();
+
+	_cursor.enableCursorPalette(false);
+	_cursor.setXY(PSP_SCREEN_WIDTH >> 1, PSP_SCREEN_HEIGHT >> 1);	// Mouse in the middle of the screen
+
+	// Set pointers for display manager
+	_displayManager.setCursor(&_cursor);
+	_displayManager.setScreen(&_screen);
+	_displayManager.setOverlay(&_overlay);
+	_displayManager.setKeyboard(&_keyboard);
+	_displayManager.setImageViewer(&_imageViewer);
+	_displayManager.init();
+
+	// Set pointers for input handler
+	_inputHandler.setCursor(&_cursor);
+	_inputHandler.setKeyboard(&_keyboard);
+	_inputHandler.setImageViewer(&_imageViewer);
+	_inputHandler.init();
+
+	// Set pointers for image viewer
+	_imageViewer.setInputHandler(&_inputHandler);
+	_imageViewer.setDisplayManager(&_displayManager);
+
+	_savefileManager = new PSPSaveFileManager;
+
+	_timerManager = new DefaultTimerManager();
+
+	PSP_DEBUG_PRINT("calling keyboard.load()\n");
+	_keyboard.load();	// Load virtual keyboard files into memory
+
 	setTimerCallback(&timer_handler, 10);
 
 	setupMixer();
 
-	OSystem::initBackend();
+	EventsBaseBackend::initBackend();
 }
 
+// Let's us know an engine
+void OSystem_PSP::engineDone() {
+	// for now, all we need is to reset the image number on the viewer
+	_imageViewer.resetOnEngineDone();
+}
 
 bool OSystem_PSP::hasFeature(Feature f) {
-	return false;
+	return (f == kFeatureOverlaySupportsAlpha || f == kFeatureCursorPalette);
 }
 
 void OSystem_PSP::setFeatureState(Feature f, bool enable) {
+	if (f == kFeatureCursorPalette) {
+		_pendingUpdate = false;
+		_cursor.enableCursorPalette(enable);
+	}
 }
 
 bool OSystem_PSP::getFeatureState(Feature f) {
-	return (f == kFeatureOverlaySupportsAlpha);
+	if (f == kFeatureCursorPalette) {
+		return _cursor.isCursorPaletteEnabled();
+	}
+	return false;
 }
 
 const OSystem::GraphicsMode* OSystem_PSP::getSupportedGraphicsModes() const {
-	return s_supportedGraphicsModes;
+	return _displayManager.getSupportedGraphicsModes();
 }
 
-
 int OSystem_PSP::getDefaultGraphicsMode() const {
-	return -1;
+	DEBUG_ENTER_FUNC();
+	return _displayManager.getDefaultGraphicsMode();
 }
 
 bool OSystem_PSP::setGraphicsMode(int mode) {
-	return true;
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	return _displayManager.setGraphicsMode(mode);
 }
 
 bool OSystem_PSP::setGraphicsMode(const char *name) {
-	return true;
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	return _displayManager.setGraphicsMode(name);
 }
 
 int OSystem_PSP::getGraphicsMode() const {
-	return -1;
+	DEBUG_ENTER_FUNC();
+	return _displayManager.getGraphicsMode();
 }
 
-void OSystem_PSP::initSize(uint width, uint height) {
-	_overlayWidth = _screenWidth = width;
-	_overlayHeight = _screenHeight = height;
+#ifdef USE_RGB_COLOR
 
-	free(_offscreen);
+Graphics::PixelFormat OSystem_PSP::getScreenFormat() const {
+	return _screen.getScummvmPixelFormat();
+}
 
-	_offscreen = (byte *)malloc(width * height);
+Common::List<Graphics::PixelFormat> OSystem_PSP::getSupportedFormats() const {
+	return _displayManager.getSupportedPixelFormats();
+}
 
-	free(_overlayBuffer);
+#endif
 
-	_overlayBuffer = (OverlayColor *)malloc(_overlayWidth * _overlayHeight * sizeof(OverlayColor));
-	bzero(_offscreen, width * height);
-	clearOverlay();
+void OSystem_PSP::initSize(uint width, uint height, const Graphics::PixelFormat *format) {
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_displayManager.setSizeAndPixelFormat(width, height, format);
 
-	_mouseVisible = false;
+	_cursor.setVisible(false);
+	_cursor.setLimits(_screen.getWidth(), _screen.getHeight());
 }
 
 int16 OSystem_PSP::getWidth() {
-	return _screenWidth;
+	DEBUG_ENTER_FUNC();
+	return (int16)_screen.getWidth();
 }
 
 int16 OSystem_PSP::getHeight() {
-	return _screenHeight;
+	DEBUG_ENTER_FUNC();
+	return (int16)_screen.getHeight();
 }
 
 void OSystem_PSP::setPalette(const byte *colors, uint start, uint num) {
-	const byte *b = colors;
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_screen.setPartialPalette(colors, start, num);
+	_cursor.setScreenPalette(colors, start, num);
+	_cursor.clearKeyColor();
+}
 
-	for (uint i = 0; i < num; ++i) {
-		_palette[start + i] = RGBToColour(b[0], b[1], b[2]);
-		b += 4;
-	}
+void OSystem_PSP::setCursorPalette(const byte *colors, uint start, uint num) {
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_cursor.setCursorPalette(colors, start, num);
+	_cursor.enableCursorPalette(true);
+	_cursor.clearKeyColor();	// Do we need this?
 }
 
 void OSystem_PSP::copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {
-	//Clip the coordinates
-	if (x < 0) {
-		w += x;
-		buf -= x;
-		x = 0;
-	}
-
-	if (y < 0) {
-		h += y;
-		buf -= y * pitch;
-		y = 0;
-	}
-
-	if (w > _screenWidth - x) {
-		w = _screenWidth - x;
-	}
-
-	if (h > _screenHeight - y) {
-		h = _screenHeight - y;
-	}
-
-	if (w <= 0 || h <= 0)
-		return;
-
-
-	byte *dst = _offscreen + y * _screenWidth + x;
-	if (_screenWidth == pitch && pitch == w) {
-		memcpy(dst, buf, h * w);
-	} else {
-		do {
-			memcpy(dst, buf, w);
-			buf += pitch;
-			dst += _screenWidth;
-		} while (--h);
-	}
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_screen.copyFromRect(buf, pitch, x, y, w, h);
 }
 
 Graphics::Surface *OSystem_PSP::lockScreen() {
-	_framebuffer.pixels = _offscreen;
-	_framebuffer.w = _screenWidth;
-	_framebuffer.h = _screenHeight;
-	_framebuffer.pitch = _screenWidth;
-	_framebuffer.bytesPerPixel = 1;
-
-	return &_framebuffer;
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	return _screen.lockAndGetForEditing();
 }
 
 void OSystem_PSP::unlockScreen() {
-	// The screen is always completely update anyway, so we don't have to force a full update here.
+	DEBUG_ENTER_FUNC();
+	_pendingUpdate = false;
+	// The screen is always completely updated anyway, so we don't have to force a full update here.
+	_screen.unlock();
 }
 
 void OSystem_PSP::updateScreen() {
-	unsigned short *temp;
-
-	uint xStart = (SCREEN_WIDTH >> 1) - (_screenWidth >> 1);
-	uint yStart = (SCREEN_HEIGHT >> 1) - (_screenHeight >> 1);
-
-	for (int i = 0; i < _screenHeight; ++i) {
-		for (int j = 0; j < _screenWidth; ++j) {
-			putPixel(xStart + j, yStart + i, _palette[_offscreen[i * _screenWidth +j]]);
-		}
-	}
-
-	if (_overlayVisible) {
-		for (int i = 0; i < _screenHeight; ++i) {
-			for (int j = 0; j < _screenWidth; ++j) {
-
-				OverlayColor pixel = _overlayBuffer[(i * _overlayWidth +j)];
-
-				if (pixel & 0x8000)
-					putPixel(xStart + j, yStart + i, pixel);
-			}
-		}
-	}
-
-	//draw mouse on top
-	if (_mouseVisible) {
-		for (int y = 0; y < _mouseHeight; ++y) {
-			for (int x = 0; x < _mouseWidth; ++x) {
-				if (_mouseBuf[y * _mouseHeight + x] != _mouseKeyColour) {
-					int my = _mouseY + y; // + _mouseHotspotY;
-					int mx = _mouseX + x; // + _mouseHotspotX;
-
-					if (mx >= 0 && mx < _screenWidth && my >= 0 && my < _screenHeight)
-						putPixel(xStart + mx, yStart + my, _palette[_mouseBuf[y * _mouseHeight + x]]);
-				}
-			}
-		}
-	}
-
-
-	// switch buffers
-	temp = DrawBuffer;
-	DrawBuffer = DisplayBuffer;
-	DisplayBuffer = temp;
-	sceDisplayWaitVblankStart();
-	sceDisplaySetFrameBuf((char *)DisplayBuffer, 512, 1, 1);
-
+	DEBUG_ENTER_FUNC();
+	_pendingUpdate = !_displayManager.renderAll();	// if we didn't update, we have a pending update
 }
 
 void OSystem_PSP::setShakePos(int shakeOffset) {
-	_shakePos = shakeOffset;
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_screen.setShakePos(shakeOffset);
 }
 
 void OSystem_PSP::showOverlay() {
-	_overlayVisible = true;
+	DEBUG_ENTER_FUNC();
+	_pendingUpdate = false;
+	_overlay.setVisible(true);
+	_cursor.setLimits(_overlay.getWidth(), _overlay.getHeight());
+	_cursor.useGlobalScaler(false);	// mouse with overlay is 1:1
 }
 
 void OSystem_PSP::hideOverlay() {
-	PSPDebugTrace("OSystem_PSP::hideOverlay called\n");
-	_overlayVisible = false;
+	DEBUG_ENTER_FUNC();
+	_pendingUpdate = false;
+	_overlay.setVisible(false);
+	_cursor.setLimits(_screen.getWidth(), _screen.getHeight());
+	_cursor.useGlobalScaler(true);	// mouse needs to be scaled with screen
 }
 
 void OSystem_PSP::clearOverlay() {
-	PSPDebugTrace("clearOverlay\n");
-	bzero(_overlayBuffer, _overlayWidth * _overlayHeight * sizeof(OverlayColor));
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_overlay.clearBuffer();
 }
 
 void OSystem_PSP::grabOverlay(OverlayColor *buf, int pitch) {
-	int h = _overlayHeight;
-	OverlayColor *src = _overlayBuffer;
-
-	do {
-		memcpy(buf, src, _overlayWidth * sizeof(OverlayColor));
-		src += _overlayWidth;
-		buf += pitch;
-	} while (--h);
+	DEBUG_ENTER_FUNC();
+	_overlay.copyToArray(buf, pitch);
 }
 
 void OSystem_PSP::copyRectToOverlay(const OverlayColor *buf, int pitch, int x, int y, int w, int h) {
-	PSPDebugTrace("copyRectToOverlay\n");
-
-	//Clip the coordinates
-	if (x < 0) {
-		w += x;
-		buf -= x;
-		x = 0;
-	}
-
-	if (y < 0) {
-		h += y;
-		buf -= y * pitch;
-		y = 0;
-	}
-
-	if (w > _overlayWidth - x) {
-		w = _overlayWidth - x;
-	}
-
-	if (h > _overlayHeight - y) {
-		h = _overlayHeight - y;
-	}
-
-	if (w <= 0 || h <= 0)
-		return;
-
-
-	OverlayColor *dst = _overlayBuffer + (y * _overlayWidth + x);
-	if (_overlayWidth == pitch && pitch == w) {
-		memcpy(dst, buf, h * w * sizeof(OverlayColor));
-	} else {
-		do {
-			memcpy(dst, buf, w * sizeof(OverlayColor));
-			buf += pitch;
-			dst += _overlayWidth;
-		} while (--h);
-	}
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_overlay.copyFromRect(buf, pitch, x, y, w, h);
 }
 
 int16 OSystem_PSP::getOverlayWidth() {
-	return _overlayWidth;
+	return (int16)_overlay.getWidth();
 }
 
 int16 OSystem_PSP::getOverlayHeight() {
-	return _overlayHeight;
+	return (int16)_overlay.getHeight();
 }
-
 
 void OSystem_PSP::grabPalette(byte *colors, uint start, uint num) {
-	uint i;
-	uint16 color;
-
-	for (i = start; i < start + num; i++) {
-		color = _palette[i];
-		*colors++ = ((color & 0x1F) << 3);
-		*colors++ = (((color >> 5) & 0x1F) << 3);
-		*colors++ = (((color >> 10) & 0x1F) << 3);
-		*colors++ = (color & 0x8000 ? 255 : 0);
-	}
+	DEBUG_ENTER_FUNC();
+	_screen.getPartialPalette(colors, start, num);
 }
 
-bool OSystem_PSP::showMouse(bool visible) {
-	bool last = _mouseVisible;
-	_mouseVisible = visible;
+bool OSystem_PSP::showMouse(bool v) {
+	DEBUG_ENTER_FUNC();
+	_pendingUpdate = false;
+
+	PSP_DEBUG_PRINT("%s\n", v ? "true" : "false");
+	bool last = _cursor.isVisible();
+	_cursor.setVisible(v);
+
 	return last;
 }
 
 void OSystem_PSP::warpMouse(int x, int y) {
-	//assert(x > 0 && x < _screenWidth);
-	//assert(y > 0 && y < _screenHeight);
-	_mouseX = x;
-	_mouseY = y;
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
+	_cursor.setXY(x, y);
 }
 
-void OSystem_PSP::setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor, int cursorTargetScale) {
-	//TODO: handle cursorTargetScale
-	_mouseWidth = w;
-	_mouseHeight = h;
+void OSystem_PSP::setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int cursorTargetScale, const Graphics::PixelFormat *format) {
+	DEBUG_ENTER_FUNC();
+	_displayManager.waitUntilRenderFinished();
+	_pendingUpdate = false;
 
-	_mouseHotspotX = hotspotX;
-	_mouseHotspotY = hotspotY;
+	PSP_DEBUG_PRINT("pbuf[%p], w[%u], h[%u], hotspot:X[%d], Y[%d], keycolor[%d], scale[%d], pformat[%p]\n", buf, w, h, hotspotX, hotspotY, keycolor, cursorTargetScale, format);
+	if (format) {
+		PSP_DEBUG_PRINT("format: bpp[%d], rLoss[%d], gLoss[%d], bLoss[%d], aLoss[%d], rShift[%d], gShift[%d], bShift[%d], aShift[%d]\n", format->bytesPerPixel, format->rLoss, format->gLoss, format->bLoss, format->aLoss, format->rShift, format->gShift, format->bShift, format->aShift);
+	}
 
-	_mouseKeyColour = keycolor;
-
-	free(_mouseBuf);
-
-	_mouseBuf = (byte *)malloc(w * h);
-	memcpy(_mouseBuf, buf, w * h);
+	_cursor.setKeyColor(keycolor);
+	_cursor.setCursorTargetScale(cursorTargetScale);
+	_cursor.setSizeAndScummvmPixelFormat(w, h, format);
+	_cursor.setHotspot(hotspotX, hotspotY);
+	_cursor.clearKeyColor();
+	_cursor.copyFromArray(buf);
 }
-
-#define PAD_CHECK_TIME	40
-#define PAD_DIR_MASK	(PSP_CTRL_UP | PSP_CTRL_DOWN | PSP_CTRL_LEFT | PSP_CTRL_RIGHT)
 
 bool OSystem_PSP::pollEvent(Common::Event &event) {
-	s8 analogStepAmountX = 0;
-	s8 analogStepAmountY = 0;
-/*
-	SceCtrlData pad;
 
-	sceCtrlSetSamplingCycle(0);
-	sceCtrlSetSamplingMode(1);
-	sceCtrlReadBufferPositive(&pad, 1);
-*/
-	uint32 buttonsChanged = pad.Buttons ^ _prevButtons;
+	// If we're polling for events, we should check for pausing the engine
+	// Pausing the engine is a necessary fix for games that use the timer for music synchronization
+	// 	recovering many hours later causes the game to crash. We're polling without mutexes since it's not critical to
+	//  get it right now.
+	PowerMan.pollPauseEngine();
 
-	if (buttonsChanged & (PSP_CTRL_CROSS | PSP_CTRL_CIRCLE | PSP_CTRL_LTRIGGER | PSP_CTRL_RTRIGGER | PSP_CTRL_START | PSP_CTRL_SELECT | PSP_CTRL_SQUARE)) {
-		if (buttonsChanged & PSP_CTRL_CROSS) {
-			event.type = (pad.Buttons & PSP_CTRL_CROSS) ? Common::EVENT_LBUTTONDOWN : Common::EVENT_LBUTTONUP;
-		} else if (buttonsChanged & PSP_CTRL_CIRCLE) {
-			event.type = (pad.Buttons & PSP_CTRL_CIRCLE) ? Common::EVENT_RBUTTONDOWN : Common::EVENT_RBUTTONUP;
-		} else {
-			//any of the other buttons.
-			event.type = buttonsChanged & pad.Buttons ? Common::EVENT_KEYDOWN : Common::EVENT_KEYUP;
-			event.kbd.flags = 0;
+	// A hack:
+	// Check if we have a pending update that we missed for some reason (FPS throttling for example)
+	// Time between event polls is usually 5-10ms, so waiting for 4 calls before checking to update the screen should be fine
+	if (_pendingUpdate) {
+		_pendingUpdateCounter++;
 
-			if (buttonsChanged & PSP_CTRL_LTRIGGER) {
-				event.kbd.keycode = Common::KEYCODE_ESCAPE;
-				event.kbd.ascii = 27;
-			} else if (buttonsChanged & PSP_CTRL_RTRIGGER) {
-				event.kbd.keycode = Common::KEYCODE_RETURN;
-				event.kbd.ascii = 13;
-			} else if (buttonsChanged & PSP_CTRL_START) {
-				event.kbd.keycode = Common::KEYCODE_F5;
-				event.kbd.ascii = Common::ASCII_F5;
-/*			} else if (buttonsChanged & PSP_CTRL_SELECT) {
-				event.kbd.keycode = Common::KEYCODE_0;
-				event.kbd.ascii = '0';
-*/			} else if (buttonsChanged & PSP_CTRL_SQUARE) {
-				event.kbd.keycode = Common::KEYCODE_PERIOD;
-				event.kbd.ascii = '.';
-			}
-
+		if (_pendingUpdateCounter >= 4) {
+			PSP_DEBUG_PRINT("servicing pending update\n");
+			updateScreen();
+			if (!_pendingUpdate) 	// we handled the update
+				_pendingUpdateCounter = 0;
 		}
+	} else
+		_pendingUpdateCounter = 0;	// reset the counter, no pending
 
-		event.mouse.x = _mouseX;
-		event.mouse.y = _mouseY;
-		_prevButtons = pad.Buttons;
-		return true;
-	}
-
-	uint32 time = getMillis();
-	if (time - _lastPadCheck > PAD_CHECK_TIME) {
-		_lastPadCheck = time;
-		int16 newX = _mouseX;
-		int16 newY = _mouseY;
-
-		if (pad.Lx < 100) {
-			analogStepAmountX = pad.Lx - 100;
-		} else if (pad.Lx > 155) {
-			analogStepAmountX = pad.Lx - 155;
-		}
-
-		if (pad.Ly < 100) {
-			analogStepAmountY = pad.Ly - 100;
-		} else if (pad.Ly > 155) {
-			analogStepAmountY = pad.Ly - 155;
-		}
-
-		if (pad.Buttons & PAD_DIR_MASK ||
-		    analogStepAmountX != 0 || analogStepAmountY != 0) {
-			if (_prevButtons & PAD_DIR_MASK) {
-				if (_padAccel < 16)
-					_padAccel++;
-			} else
-				_padAccel = 0;
-
-			_prevButtons = pad.Buttons;
-
-			if (pad.Buttons & PSP_CTRL_LEFT)
-				newX -= _padAccel >> 2;
-			if (pad.Buttons & PSP_CTRL_RIGHT)
-				newX += _padAccel >> 2;
-			if (pad.Buttons & PSP_CTRL_UP)
-				newY -= _padAccel >> 2;
-			if (pad.Buttons & PSP_CTRL_DOWN)
-				newY += _padAccel >> 2;
-
-			// If no movement then this has no effect
-			if (pad.Buttons & PSP_CTRL_TRIANGLE) {
-				// Fine control mode for analog
-					if (analogStepAmountX != 0) {
-						if (analogStepAmountX > 0)
-							newX += analogStepAmountX - (analogStepAmountX - 1);
-						else
-							newX -= -analogStepAmountX - (-analogStepAmountX - 1);
-					}
-
-					if (analogStepAmountY != 0) {
-						if (analogStepAmountY > 0)
-							newY += analogStepAmountY - (analogStepAmountY - 1);
-						else
-							newY -= -analogStepAmountY - (-analogStepAmountY - 1);
-					}
-			} else {
-				newX += analogStepAmountX >> ((_screenWidth == 640) ? 2 : 3);
-				newY += analogStepAmountY >> ((_screenWidth == 640) ? 2 : 3);
-			}
-
-			if (newX < 0)
-				newX = 0;
-			if (newY < 0)
-				newY = 0;
-			if (_overlayVisible) {
-				if (newX >= _overlayWidth)
-					newX = _overlayWidth - 1;
-				if (newY >= _overlayHeight)
-					newY = _overlayHeight - 1;
-			} else {
-				if (newX >= _screenWidth)
-					newX = _screenWidth - 1;
-				if (newY >= _screenHeight)
-					newY = _screenHeight - 1;
-			}
-
-			if ((_mouseX != newX) || (_mouseY != newY)) {
-				event.type = Common::EVENT_MOUSEMOVE;
-				event.mouse.x = _mouseX = newX;
-				event.mouse.y = _mouseY = newY;
-				return true;
-			}
-		} else {
-			//reset pad acceleration
-			_padAccel = 0;
-		}
-	}
-
-	return false;
+	return _inputHandler.getAllInputs(event);
 }
 
 uint32 OSystem_PSP::getMillis() {
-	return SDL_GetTicks();
+	return PspRtc::instance().getMillis();
 }
 
 void OSystem_PSP::delayMillis(uint msecs) {
-	SDL_Delay(msecs);
+	PspThread::delayMillis(msecs);
 }
 
 void OSystem_PSP::setTimerCallback(TimerProc callback, int interval) {
-	SDL_SetTimer(interval, (SDL_TimerCallback)callback);
+	_pspTimer.setCallback((PspTimer::CallbackFunc)callback);
+	_pspTimer.setIntervalMs(interval);
+	_pspTimer.start();
 }
 
 OSystem::MutexRef OSystem_PSP::createMutex(void) {
-	return (MutexRef)SDL_CreateMutex();
+	return (MutexRef) new PspMutex(true);	// start with a full mutex
 }
 
 void OSystem_PSP::lockMutex(MutexRef mutex) {
-	SDL_mutexP((SDL_mutex *)mutex);
+	((PspMutex *)mutex)->lock();
 }
 
 void OSystem_PSP::unlockMutex(MutexRef mutex) {
-	SDL_mutexV((SDL_mutex *)mutex);
+	((PspMutex *)mutex)->unlock();
 }
 
 void OSystem_PSP::deleteMutex(MutexRef mutex) {
-	SDL_DestroyMutex((SDL_mutex *)mutex);
+	delete (PspMutex *)mutex;
 }
 
 void OSystem_PSP::mixCallback(void *sys, byte *samples, int len) {
@@ -572,77 +386,66 @@ void OSystem_PSP::mixCallback(void *sys, byte *samples, int len) {
 }
 
 void OSystem_PSP::setupMixer(void) {
-	SDL_AudioSpec desired;
-	SDL_AudioSpec obtained;
 
-	memset(&desired, 0, sizeof(desired));
-
+	// Determine the desired output sampling frequency.
+	uint32 samplesPerSec = 0;
 	if (ConfMan.hasKey("output_rate"))
-		_samplesPerSec = ConfMan.getInt("output_rate");
-	else
-		_samplesPerSec = SAMPLES_PER_SEC;
+		samplesPerSec = ConfMan.getInt("output_rate");
+	if (samplesPerSec <= 0)
+		samplesPerSec = SAMPLES_PER_SEC;
 
-	// Originally, we always used 2048 samples. This loop will produce the
-	// same result at 22050 Hz, and should hopefully produce something
-	// sensible for other frequencies. Note that it must be a power of two.
-
-	uint16 samples = 0x8000;
-
-	for (;;) {
-		if (samples / (_samplesPerSec / 1000) < 100)
-			break;
+	// Determine the sample buffer size. We want it to store enough data for
+	// at least 1/16th of a second (though at most 8192 samples). Note
+	// that it must be a power of two. So e.g. at 22050 Hz, we request a
+	// sample buffer size of 2048.
+	uint32 samples = 8192;
+	while (samples * 16 > samplesPerSec * 2)
 		samples >>= 1;
-	}
-
-	desired.freq = _samplesPerSec;
-	desired.format = AUDIO_S16SYS;
-	desired.channels = 2;
-	desired.samples = samples;
-	desired.callback = mixCallback;
-	desired.userdata = this;
 
 	assert(!_mixer);
-	_mixer = new Audio::MixerImpl(this);
-	assert(_mixer);
 
-	if (SDL_OpenAudio(&desired, &obtained) != 0) {
-		warning("Could not open audio: %s", SDL_GetError());
-		_samplesPerSec = 0;
-		_mixer->setReady(false);
-	} else {
-		// Note: This should be the obtained output rate, but it seems that at
-		// least on some platforms SDL will lie and claim it did get the rate
-		// even if it didn't. Probably only happens for "weird" rates, though.
-		_samplesPerSec = obtained.freq;
-
-		// Tell the mixer that we are ready and start the sound processing
-		_mixer->setOutputRate(_samplesPerSec);
-		_mixer->setReady(true);
-
-		SDL_PauseAudio(0);
+	if (!_audio.open(samplesPerSec, 2, samples, mixCallback, this)) {
+		PSP_ERROR("failed to open audio\n");
+		return;
 	}
+	samplesPerSec = _audio.getFrequency();	// may have been changed by audio system
+	_mixer = new Audio::MixerImpl(this, samplesPerSec);
+	assert(_mixer);
+	_mixer->setReady(true);
+	_audio.unpause();
 }
 
 void OSystem_PSP::quit() {
-	SDL_CloseAudio();
-	SDL_Quit();
-	sceGuTerm();
+	_audio.close();
 	sceKernelExitGame();
 }
 
-void OSystem_PSP::getTimeAndDate(struct tm &t) const {
+void OSystem_PSP::logMessage(LogMessageType::Type type, const char *message) {
+	FILE *output = 0;
+
+	if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
+		output = stdout;
+	else
+		output = stderr;
+
+	fputs(message, output);
+	fflush(output);
+
+	if (type == LogMessageType::kError)
+		PspDebugTrace(false, "%s", message);	// write to file
+}
+
+void OSystem_PSP::getTimeAndDate(TimeDate &td) const {
 	time_t curTime = time(0);
-	t = *localtime(&curTime);
+	struct tm t = *localtime(&curTime);
+	td.tm_sec = t.tm_sec;
+	td.tm_min = t.tm_min;
+	td.tm_hour = t.tm_hour;
+	td.tm_mday = t.tm_mday;
+	td.tm_mon = t.tm_mon;
+	td.tm_year = t.tm_year;
 }
 
-#define PSP_CONFIG_FILE "ms0:/scummvm.ini"
-
-Common::SeekableReadStream *OSystem_PSP::createConfigReadStream() {
-	Common::FSNode file(PSP_CONFIG_FILE);
-	return file.createReadStream();
-}
-
-Common::WriteStream *OSystem_PSP::createConfigWriteStream() {
-	Common::FSNode file(PSP_CONFIG_FILE);
-	return file.createWriteStream();
+Common::String OSystem_PSP::getDefaultConfigFileName() {
+	return "ms0:/scummvm.ini";
 }

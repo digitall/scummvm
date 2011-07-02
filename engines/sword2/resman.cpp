@@ -20,14 +20,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "common/file.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -106,7 +104,7 @@ bool ResourceManager::init() {
 	Common::File file;
 
 	if (!file.open("resource.inf")) {
-		GUIErrorMessage("Broken Sword 2: Cannot open resource.inf");
+		GUIErrorMessage("Broken Sword II: Cannot open resource.inf");
 		return false;
 	}
 
@@ -117,7 +115,7 @@ bool ResourceManager::init() {
 		char *buf = _resFiles[_totalClusters].fileName;
 		uint len = sizeof(_resFiles[_totalClusters].fileName);
 
-		if (!file.readLine_NEW(buf, len))
+		if (!file.readLine(buf, len))
 			break;
 
 		int pos = strlen(buf);
@@ -127,7 +125,7 @@ bool ResourceManager::init() {
 		_resFiles[_totalClusters].numEntries = -1;
 		_resFiles[_totalClusters].entryTab = NULL;
 		if (++_totalClusters >= MAX_res_files) {
-			GUIErrorMessage("Broken Sword 2: Too many entries in resource.inf");
+			GUIErrorMessage("Broken Sword II: Too many entries in resource.inf");
 			return false;
 		}
 	}
@@ -136,7 +134,7 @@ bool ResourceManager::init() {
 
 	// Now load in the binary id to res conversion table
 	if (!file.open("resource.tab")) {
-		GUIErrorMessage("Broken Sword 2: Cannot open resource.tab");
+		GUIErrorMessage("Broken Sword II: Cannot open resource.tab");
 		return false;
 	}
 
@@ -153,7 +151,7 @@ bool ResourceManager::init() {
 
 	if (file.eos() || file.err()) {
 		file.close();
-		GUIErrorMessage("Broken Sword 2: Cannot read resource.tab");
+		GUIErrorMessage("Broken Sword II: Cannot read resource.tab");
 		return false;
 	}
 
@@ -163,7 +161,7 @@ bool ResourceManager::init() {
 	// version, which has all files on one disc.
 
 	if (!file.open("cd.inf") && !Sword2Engine::isPsx()) {
-		GUIErrorMessage("Broken Sword 2: Cannot open cd.inf");
+		GUIErrorMessage("Broken Sword II: Cannot open cd.inf");
 		return false;
 	}
 
@@ -179,9 +177,9 @@ bool ResourceManager::init() {
 			cdInf[i].cd = file.readByte();
 
 			if (file.eos() || file.err()) {
-				delete cdInf;
+				delete[] cdInf;
 				file.close();
-				GUIErrorMessage("Broken Sword 2: Cannot read cd.inf");
+				GUIErrorMessage("Broken Sword II: Cannot read cd.inf");
 				return false;
 			}
 
@@ -209,7 +207,7 @@ bool ResourceManager::init() {
 		// the resource manager will print a fatal error.
 
 		if (cdInf[i].cd == 0 && !Common::File::exists((char *)cdInf[i].clusterName)) {
-			GUIErrorMessage("Broken Sword 2: Cannot find " + Common::String((char *)cdInf[i].clusterName));
+			GUIErrorMessage("Broken Sword II: Cannot find " + Common::String((char *)cdInf[i].clusterName));
 			delete[] cdInf;
 			return false;
 		}
@@ -301,6 +299,8 @@ byte *ResourceManager::openResource(uint32 res, bool dump) {
 			// we didn't read from this file before, get its index table
 			readCluIndex(cluFileNum, file);
 		}
+
+		assert(_resFiles[cluFileNum].entryTab);
 
 		uint32 pos = _resFiles[cluFileNum].entryTab[actual_res * 2 + 0];
 		uint32 len = _resFiles[cluFileNum].entryTab[actual_res * 2 + 1];
@@ -474,15 +474,18 @@ void ResourceManager::readCluIndex(uint16 fileNum, Common::File *file) {
 	file->seek(table_offset);
 
 	assert((tableSize % 8) == 0);
-	_resFiles[fileNum].entryTab = (uint32*)malloc(tableSize);
+	_resFiles[fileNum].entryTab = (uint32 *)malloc(tableSize);
 	_resFiles[fileNum].numEntries = tableSize / 8;
+
+	assert(_resFiles[fileNum].entryTab);
+
 	file->read(_resFiles[fileNum].entryTab, tableSize);
 	if (file->eos() || file->err())
 		error("unable to read index table from file %s", _resFiles[fileNum].fileName);
 
 #ifdef SCUMM_BIG_ENDIAN
 	for (int tabCnt = 0; tabCnt < _resFiles[fileNum].numEntries * 2; tabCnt++)
-	  _resFiles[fileNum].entryTab[tabCnt] = FROM_LE_32(_resFiles[fileNum].entryTab[tabCnt]);
+		_resFiles[fileNum].entryTab[tabCnt] = FROM_LE_32(_resFiles[fileNum].entryTab[tabCnt]);
 #endif
 }
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_RESOURCE_H
@@ -55,7 +52,7 @@ public:
 	bool reset();
 
 	bool loadPakFile(Common::String filename);
-	bool loadPakFile(Common::String name, Common::SharedPtr<Common::ArchiveMember> file);
+	bool loadPakFile(Common::String name, Common::ArchiveMemberPtr file);
 
 	void unloadPakFile(Common::String filename, bool remFromCache = false);
 
@@ -74,19 +71,19 @@ public:
 
 	bool exists(const char *file, bool errorOutOnFail=false);
 	uint32 getFileSize(const char *file);
-	uint8* fileData(const char *file, uint32 *size);
+	uint8 *fileData(const char *file, uint32 *size);
 	Common::SeekableReadStream *createReadStream(const Common::String &file);
 
 	bool loadFileToBuf(const char *file, void *buf, uint32 maxSize);
 protected:
-	typedef Common::HashMap<Common::String, Common::Archive*, Common::CaseSensitiveString_Hash, Common::CaseSensitiveString_EqualTo> ArchiveMap;
+	typedef Common::HashMap<Common::String, Common::Archive *, Common::CaseSensitiveString_Hash, Common::CaseSensitiveString_EqualTo> ArchiveMap;
 	ArchiveMap _archiveCache;
 
 	Common::SearchSet _files;
 	Common::SearchSet _archiveFiles;
 	Common::SearchSet _protectedFiles;
 
-	Common::Archive *loadArchive(const Common::String &name, Common::SharedPtr<Common::ArchiveMember> member);
+	Common::Archive *loadArchive(const Common::String &name, Common::ArchiveMemberPtr member);
 	Common::Archive *loadInstallerArchive(const Common::String &file, const Common::String &ext, const uint8 offset);
 
 	bool loadProtectedFiles(const char * const * list);
@@ -99,10 +96,11 @@ protected:
 	KyraEngine_v1 *_vm;
 };
 
-enum kKyraResources {
+enum KyraResources {
 	kLoadAll = -1,
 
-	k1ForestSeq,
+	// This list has to match orderwise (and thus value wise) the static data list of "devtools/create_kyradat/create_kyradat.h"!
+	k1ForestSeq = 1,
 	k1KallakWritingSeq,
 	k1KyrandiaLogoSeq,
 	k1KallakMalcolmSeq,
@@ -166,7 +164,39 @@ enum kKyraResources {
 	k1MagicAnimShapes,
 	k1BranStoneShapes,
 
-	k1PaletteList,
+	k1SpecialPalette1,
+	k1SpecialPalette2,
+	k1SpecialPalette3,
+	k1SpecialPalette4,
+	k1SpecialPalette5,
+	k1SpecialPalette6,
+	k1SpecialPalette7,
+	k1SpecialPalette8,
+	k1SpecialPalette9,
+	k1SpecialPalette10,
+	k1SpecialPalette11,
+	k1SpecialPalette12,
+	k1SpecialPalette13,
+	k1SpecialPalette14,
+	k1SpecialPalette15,
+	k1SpecialPalette16,
+	k1SpecialPalette17,
+	k1SpecialPalette18,
+	k1SpecialPalette19,
+	k1SpecialPalette20,
+	k1SpecialPalette21,
+	k1SpecialPalette22,
+	k1SpecialPalette23,
+	k1SpecialPalette24,
+	k1SpecialPalette25,
+	k1SpecialPalette26,
+	k1SpecialPalette27,
+	k1SpecialPalette28,
+	k1SpecialPalette29,
+	k1SpecialPalette30,
+	k1SpecialPalette31,
+	k1SpecialPalette32,
+	k1SpecialPalette33,
 
 	k1GUIStrings,
 	k1ConfigStrings,
@@ -174,10 +204,18 @@ enum kKyraResources {
 	k1AudioTracks,
 	k1AudioTracksIntro,
 
+	k1CreditsStrings,
+
+	k1TownsMusicFadeTable,
 	k1TownsSFXwdTable,
 	k1TownsSFXbtTable,
 	k1TownsCDATable,
-	k1CreditsStrings,
+
+	k1PC98StoryStrings,
+	k1PC98IntroSfx,
+
+	k1AmigaIntroSFXTable,
+	k1AmigaGameSFXTable,
 
 	k2SeqplayPakFiles,
 	k2SeqplayCredits,
@@ -212,13 +250,14 @@ enum kKyraResources {
 	k3ItemStringMap,
 
 #ifdef ENABLE_LOL
+	kLolIngamePakFiles,
 	kLolCharacterDefs,
 	kLolIngameSfxFiles,
 	kLolIngameSfxIndex,
 	kLolMusicTrackMap,
 	kLolIngameGMSfxIndex,
 	kLolIngameMT32SfxIndex,
-	//kLolIngameADLSfxIndex,
+	kLolIngamePcSpkSfxIndex,
 	kLolSpellProperties,
 	kLolGameShapeMap,
 	kLolSceneItemOffs,
@@ -227,7 +266,6 @@ enum kKyraResources {
 	kLolCharDefsMan,
 	kLolCharDefsWoman,
 	kLolCharDefsKieran,
-	//kLolCharDefsUnk,
 	kLolCharDefsAkshel,
 	kLolExpRequirements,
 	kLolMonsterModifiers,
@@ -282,29 +320,33 @@ enum kKyraResources {
 	kLolButtonList7,
 	kLolButtonList8,
 
-	lolLegendData,
-	lolMapCursorOvl,
-	lolMapStringId,
-	//lolMapPal,
+	kLolLegendData,
+	kLolMapCursorOvl,
+	kLolMapStringId,
 
-	lolSpellbookAnim,
-	lolSpellbookCoords,
-	lolHealShapeFrames,
-	lolLightningDefs,
-	lolFireballCoords,
-#endif // ENABLE_LOL
+	kLolSpellbookAnim,
+	kLolSpellbookCoords,
+	kLolHealShapeFrames,
+	kLolLightningDefs,
+	kLolFireballCoords,
+
+	kLolCredits,
+
+	kLolHistory,
+#endif
 
 	kMaxResIDs
 };
 
 struct Shape;
 struct Room;
+struct AmigaSfxTable;
 
 class StaticResource {
 public:
 	static const Common::String staticDataFilename() { return "KYRA.DAT"; }
 
-	StaticResource(KyraEngine_v1 *vm) : _vm(vm), _resList(), _fileLoader(0), _builtIn(0), _filenameTable(0) {}
+	StaticResource(KyraEngine_v1 *vm) : _vm(vm), _resList(), _fileLoader(0), _dataTable() {}
 	~StaticResource() { deinit(); }
 
 	bool loadStaticResourceFile();
@@ -315,8 +357,8 @@ public:
 	const char * const *loadStrings(int id, int &strings);
 	const uint8 *loadRawData(int id, int &size);
 	const Shape *loadShapeTable(int id, int &entries);
+	const AmigaSfxTable *loadAmigaSfxTable(int id, int &entries);
 	const Room *loadRoomTable(int id, int &entries);
-	const uint8 * const *loadPaletteTable(int id, int &entries);
 	const HofSeqData *loadHofSequenceData(int id, int &entries);
 	const ItemAnimData_v1 *loadShapeAnimData_v1(int id, int &entries);
 	const ItemAnimData_v2 *loadShapeAnimData_v2(int id, int &entries);
@@ -341,40 +383,35 @@ private:
 
 	KyraEngine_v1 *_vm;
 
-	struct FilenameTable;
-	struct ResData;
 	struct FileType;
 
 	bool checkResList(int id, int &type, const void *&ptr, int &size);
-	const void *checkForBuiltin(int id, int &type, int &size);
-	const FilenameTable *searchFile(int id);
 	const FileType *getFiletype(int type);
 	const void *getData(int id, int requesttype, int &size);
 
-	bool loadLanguageTable(const char *filename, void *&ptr, int &size);
-	bool loadStringTable(const char *filename, void *&ptr, int &size);
-	bool loadRawData(const char *filename, void *&ptr, int &size);
-	bool loadShapeTable(const char *filename, void *&ptr, int &size);
-	bool loadRoomTable(const char *filename, void *&ptr, int &size);
-	bool loadPaletteTable(const char *filename, void *&ptr, int &size);
-	bool loadHofSequenceData(const char *filename, void *&ptr, int &size);
-	bool loadShapeAnimData_v1(const char *filename, void *&ptr, int &size);
-	bool loadShapeAnimData_v2(const char *filename, void *&ptr, int &size);
+	bool loadStringTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadRawData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadShapeTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadAmigaSfxTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadRoomTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadHofSequenceData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadShapeAnimData_v1(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadShapeAnimData_v2(Common::SeekableReadStream &stream, void *&ptr, int &size);
 #ifdef ENABLE_LOL
-	bool loadCharData(const char *filename, void *&ptr, int &size);
-	bool loadSpellData(const char *filename, void *&ptr, int &size);
-	bool loadCompassData(const char *filename, void *&ptr, int &size);
-	bool loadFlyingObjectData(const char *filename, void *&ptr, int &size);
-	bool loadRawDataBe16(const char *filename, void *&ptr, int &size);
-	bool loadRawDataBe32(const char *filename, void *&ptr, int &size);
-	bool loadButtonDefs(const char *filename, void *&ptr, int &size);
+	bool loadCharData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadSpellData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadCompassData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadFlyingObjectData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadRawDataBe16(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadRawDataBe32(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadButtonDefs(Common::SeekableReadStream &stream, void *&ptr, int &size);
 #endif // ENABLE_LOL
 
 	void freeRawData(void *&ptr, int &size);
 	void freeStringTable(void *&ptr, int &size);
 	void freeShapeTable(void *&ptr, int &size);
+	void freeAmigaSfxTable(void *&ptr, int &size);
 	void freeRoomTable(void *&ptr, int &size);
-	void freePaletteTable(void *&ptr, int &size);
 	void freeHofSequenceData(void *&ptr, int &size);
 	void freeHofShapeAnimDataV1(void *&ptr, int &size);
 	void freeHofShapeAnimDataV2(void *&ptr, int &size);
@@ -388,46 +425,29 @@ private:
 	void freeButtonDefs(void *&ptr, int &size);
 #endif // ENABLE_LOL
 
-	const char *getFilename(const char *name);
-	Common::SeekableReadStream *getFile(const char *name);
+	enum ResTypes {
+		kStringList = 0,
+		kRawData = 1,
+		kRoomList = 2,
+		kShapeList = 3,
+		kAmigaSfxTable = 4,
 
-	enum kResTypes {
-		kLanguageList,
-		kStringList,
-		kRoomList,
-		kShapeList,
-		kRawData,
-		kPaletteTable,
+		k2SeqData = 5,
+		k2ShpAnimDataV1 = 6,
+		k2ShpAnimDataV2 = 7,
 
-		k2SeqData,
-		k2ShpAnimDataV1,
-		k2ShpAnimDataV2,
-
-		kLolCharData,
-		kLolSpellData,
-		kLolCompassData,
-		kLolFlightShpData,
-		kLolRawDataBe16,
-		kLolRawDataBe32,
-		kLolButtonData
-	};
-
-	struct BuiltinRes {
-		int id;
-		int type;
-		int size;
-		const void *data;
-	};
-
-	struct FilenameTable {
-		int id;
-		int type;
-		const char *filename;
+		kLolCharData = 8,
+		kLolSpellData = 9,
+		kLolCompassData = 10,
+		kLolFlightShpData = 11,
+		kLolButtonData = 12,
+		kLolRawDataBe16 = 13,
+		kLolRawDataBe32 = 14
 	};
 
 	struct FileType {
 		int type;
-		typedef bool (StaticResource::*LoadFunc)(const char *filename, void *&ptr, int &size);
+		typedef bool (StaticResource::*LoadFunc)(Common::SeekableReadStream &stream, void *&ptr, int &size);
 		typedef void (StaticResource::*FreeFunc)(void *&ptr, int &size);
 
 		LoadFunc load;
@@ -444,11 +464,19 @@ private:
 	Common::List<ResData> _resList;
 
 	const FileType *_fileLoader;
-	const BuiltinRes *_builtIn;
-	const FilenameTable *_filenameTable;
+
+	struct DataDescriptor {
+		DataDescriptor() : filename(0), type(0) {}
+		DataDescriptor(uint32 f, uint8 t) : filename(f), type(t) {}
+
+		uint32 filename;
+		uint8 type;
+	};
+	typedef Common::HashMap<uint16, DataDescriptor> DataMap;
+	DataMap _dataTable;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

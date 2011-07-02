@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/endian.h"
@@ -51,7 +48,7 @@ void Screen::mirrorSprite(byte *dst, byte *src, int16 w, int16 h) {
 }
 
 /**
- * This function takes a compressed frame of a sprite with up to 256 colours
+ * This function takes a compressed frame of a sprite with up to 256 colors
  * and decompresses it.
  * @param dst destination buffer
  * @param src source buffer
@@ -82,7 +79,7 @@ int32 Screen::decompressRLE256(byte *dst, byte *src, int32 decompSize) {
 				break;
 			}
 
-			// set the next 'headerByte' pixels to the next colour
+			// set the next 'headerByte' pixels to the next color
 			// at 'source'
 			memset(dst, *src, headerByte);
 
@@ -90,7 +87,7 @@ int32 Screen::decompressRLE256(byte *dst, byte *src, int32 decompSize) {
 			// block
 			dst += headerByte;
 
-			// increment source pointer to just after this colour
+			// increment source pointer to just after this color
 			src++;
 
 			// if we've decompressed all of the data
@@ -135,7 +132,7 @@ int32 Screen::decompressRLE256(byte *dst, byte *src, int32 decompSize) {
 }
 
 /**
- * Unwinds a run of 16-colour data into 256-colour palette data.
+ * Unwinds a run of 16-color data into 256-color palette data.
  */
 
 void Screen::unwindRaw16(byte *dst, byte *src, uint16 blockSize, byte *colTable) {
@@ -143,11 +140,11 @@ void Screen::unwindRaw16(byte *dst, byte *src, uint16 blockSize, byte *colTable)
 	while (blockSize > 1) {
 
 		if (Sword2Engine::isPsx()) {
-			// 1st colour = number in table at position given by upper
+			// 1st color = number in table at position given by upper
 			// nibble of source byte
 			*dst++ = colTable[(*src) & 0x0f];
 
-			// 2nd colour = number in table at position given by lower
+			// 2nd color = number in table at position given by lower
 			// nibble of source byte
 			*dst++ = colTable[(*src) >> 4];
 		} else {
@@ -165,19 +162,19 @@ void Screen::unwindRaw16(byte *dst, byte *src, uint16 blockSize, byte *colTable)
 
 	// if there's a final odd pixel
 	if (blockSize) {
-		// colour = number in table at position given by upper nibble
+		// color = number in table at position given by upper nibble
 		// of source byte
 		*dst++ = colTable[(*src) >> 4];
 	}
 }
 
 /**
- * This function takes a compressed frame of a sprite (with up to 16 colours)
+ * This function takes a compressed frame of a sprite (with up to 16 colors)
  * and decompresses it.
  * @param dst destination buffer
  * @param src source buffer
  * @param decompSize the expected size of the uncompressed sprite
- * @param colTable mapping from the 16 encoded colours to the current palette
+ * @param colTable mapping from the 16 encoded colors to the current palette
  */
 
 int32 Screen::decompressRLE16(byte *dst, byte *src, int32 decompSize, byte *colTable) {
@@ -199,14 +196,14 @@ int32 Screen::decompressRLE16(byte *dst, byte *src, int32 decompSize, byte *colT
 			}
 
 			// set the next 'headerByte' pixels to the next
-			// colour at 'source'
+			// color at 'source'
 			memset(dst, *src, headerByte);
 
 			// increment destination pointer to just after this
 			// block
 			dst += headerByte;
 
-			// increment source pointer to just after this colour
+			// increment source pointer to just after this color
 			src++;
 
 			// if we've decompressed all of the data
@@ -279,7 +276,7 @@ uint32 Screen::decompressHIF(byte *src, byte *dst, uint32 *skipData) {
 				}
 
 				int32 repeat_count = (info_word >> 12) + 2; // How many time data needs to be refetched
-				while(repeat_count >= 0) {
+				while (repeat_count >= 0) {
 					uint16 refetchData = (info_word & 0xFFF) + 1;
 					if (refetchData > decompSize) return 0; // We have a problem here...
 					uint8 *old_data_src = dst - refetchData;
@@ -341,7 +338,7 @@ void Screen::recomposeCompPsxSprite(SpriteInfo *s) {
 	uint16 noStripes = (s->w / 254) + ((s->w % 254) ? 1 : 0);
 	uint16 lastStripeSize = (s->w % 254) ? s->w % 254 : 254;
 	byte *buffer = (byte *)malloc(s->w * s->h / 2);
-	byte *stripeBuffer = (byte *)malloc(254 * s->h);;
+	byte *stripeBuffer = (byte *)malloc(254 * s->h);
 
 	memset(buffer, 0, s->w * s->h / 2);
 	uint32 skipData = 0;
@@ -470,13 +467,13 @@ void Screen::deleteSurface(byte *surface) {
  * RDSPR_DISPLAYALIGN	The sprite is drawn relative to the top left corner
  *			of the screen
  * RDSPR_FLIP		The sprite is mirrored
- * RDSPR_TRANS		The sprite has a transparent colour zero
+ * RDSPR_TRANS		The sprite has a transparent color zero
  * RDSPR_BLEND		The sprite is translucent
  * RDSPR_SHADOW		The sprite is affected by the light mask. (Scaled
  *			sprites always are.)
  * RDSPR_NOCOMPRESSION	The sprite data is not compressed
- * RDSPR_RLE16		The sprite data is a 16-colour compressed sprite
- * RDSPR_RLE256		The sprite data is a 256-colour compressed sprite
+ * RDSPR_RLE16		The sprite data is a 16-color compressed sprite
+ * RDSPR_RLE256		The sprite data is a 256-color compressed sprite
  * @param s all the information needed to draw the sprite
  * @warning Sprites will only be drawn onto the background, not over menubar
  * areas.
@@ -498,7 +495,7 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 	// Decompression and mirroring
 	// -----------------------------------------------------------------
 	if (s->type & RDSPR_NOCOMPRESSION) {
-		if(Sword2Engine::isPsx()) { // PSX Uncompressed sprites
+		if (Sword2Engine::isPsx()) { // PSX Uncompressed sprites
 			if (s->w > 254 && !s->isText) { // We need to recompose these frames
 				recomposePsxSprite(s);
 			}
@@ -528,18 +525,24 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 				decompData = decompressHIF(s->data, tempBuf);
 
 				// Check that we correctly decompressed data
-				if(!decompData)
+				if (!decompData) {
+					free(tempBuf);
+
 					return RDERR_DECOMPRESSION;
+				}
 
 				s->w = (decompData / (s->h / 2)) * 2;
 				byte *tempBuf2 = (byte *)malloc(s->w * s->h * 10);
 				memset(tempBuf2, 0, s->w * s->h * 2);
 
-				unwindRaw16(tempBuf2, tempBuf, (s->w * (s->h / 2)), s->colourTable);
+				unwindRaw16(tempBuf2, tempBuf, (s->w * (s->h / 2)), s->colorTable);
 				sprite = (byte *)malloc(s->w * s->h);
 
-				if (!sprite)
+				if (!sprite) {
+					free(tempBuf2);
+					free(tempBuf);
 					return RDERR_OUTOFMEMORY;
+				}
 
 				resizePsxSprite(sprite, tempBuf2, s->w, s->h);
 
@@ -551,7 +554,7 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 				if (!sprite)
 					return RDERR_OUTOFMEMORY;
 
-				if (decompressRLE16(sprite, s->data, s->w * s->h, s->colourTable)) {
+				if (decompressRLE16(sprite, s->data, s->w * s->h, s->colorTable)) {
 					free(sprite);
 					return RDERR_DECOMPRESSION;
 				}
@@ -568,8 +571,11 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 					uint32 decompData = decompressHIF(s->data, tempBuf);
 
 					// Check that we correctly decompressed data
-					if(!decompData)
+					if (!decompData) {
+						free(tempBuf);
+
 						return RDERR_DECOMPRESSION;
+					}
 
 					s->w = (decompData / (s->h / 2));
 					sprite = (byte *)malloc(s->w * s->h);
@@ -698,7 +704,7 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 		// We cannot use good scaling for PSX version, as we are missing
 		// some required data.
 		if (_renderCaps & RDBLTFX_EDGEBLEND && !Sword2Engine::isPsx())
-			scaleImageGood(newSprite, s->scaledWidth, s->scaledWidth, s->scaledHeight, sprite, s->w, s->w, s->h, _buffer + _screenWide * rd.top + rd.left);
+			scaleImageGood(newSprite, s->scaledWidth, s->scaledWidth, s->scaledHeight, sprite, s->w, s->w, s->h, _buffer, rd.left, rd.top);
 		else
 			scaleImageFast(newSprite, s->scaledWidth, s->scaledWidth, s->scaledHeight, sprite, s->w, s->w, s->h);
 
@@ -738,9 +744,9 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 		for (i = 0; i < rs.height(); i++) {
 			for (j = 0; j < rs.width(); j++) {
 				if (src[j] && lightMap[j]) {
-					uint8 r = ((32 - lightMap[j]) * _palette[src[j] * 4 + 0]) >> 5;
-					uint8 g = ((32 - lightMap[j]) * _palette[src[j] * 4 + 1]) >> 5;
-					uint8 b = ((32 - lightMap[j]) * _palette[src[j] * 4 + 2]) >> 5;
+					uint8 r = ((32 - lightMap[j]) * _palette[src[j] * 3 + 0]) >> 5;
+					uint8 g = ((32 - lightMap[j]) * _palette[src[j] * 3 + 1]) >> 5;
+					uint8 b = ((32 - lightMap[j]) * _palette[src[j] * 3 + 2]) >> 5;
 					src[j] = quickMatch(r, g, b);
 				}
 			}
@@ -778,12 +784,12 @@ int32 Screen::drawSprite(SpriteInfo *s) {
 			for (i = 0; i < rs.height(); i++) {
 				for (j = 0; j < rs.width(); j++) {
 					if (src[j]) {
-						uint8 r1 = _palette[src[j] * 4 + 0];
-						uint8 g1 = _palette[src[j] * 4 + 1];
-						uint8 b1 = _palette[src[j] * 4 + 2];
-						uint8 r2 = _palette[dst[j] * 4 + 0];
-						uint8 g2 = _palette[dst[j] * 4 + 1];
-						uint8 b2 = _palette[dst[j] * 4 + 2];
+						uint8 r1 = _palette[src[j] * 3 + 0];
+						uint8 g1 = _palette[src[j] * 3 + 1];
+						uint8 b1 = _palette[src[j] * 3 + 2];
+						uint8 r2 = _palette[dst[j] * 3 + 0];
+						uint8 g2 = _palette[dst[j] * 3 + 1];
+						uint8 b2 = _palette[dst[j] * 3 + 2];
 
 						uint8 r = (r1 * n + r2 * (8 - n)) >> 3;
 						uint8 g = (g1 * n + g2 * (8 - n)) >> 3;

@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "gob/sound/infogrames.h"
 
@@ -66,8 +65,8 @@ bool Infogrames::loadSong(const char *fileName) {
 void Infogrames::play() {
 	if (_song && !_mixer->isSoundHandleActive(_handle)) {
 		_song->restart();
-		_mixer->playInputStream(Audio::Mixer::kMusicSoundType,
-				&_handle, _song, -1, 255, 0, false);
+		_mixer->playStream(Audio::Mixer::kMusicSoundType,
+				&_handle, _song, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 	}
 }
 

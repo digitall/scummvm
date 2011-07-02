@@ -18,13 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/preagi.h"
-#include "agi/font.h"
 #include "agi/graphics.h"
 #include "agi/keyboard.h"
 
@@ -124,7 +120,7 @@ int PreAgiEngine::getSelection(SelectionTypes type) {
 
 	while (!shouldQuit()) {
 		while (_eventMan->pollEvent(event)) {
-			switch(event.type) {
+			switch (event.type) {
 			case Common::EVENT_RTL:
 			case Common::EVENT_QUIT:
 				return 0;

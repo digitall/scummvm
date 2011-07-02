@@ -18,18 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
+#include "common/str.h"
+#include "common/textconsole.h"
 #include "common/util.h"
-#include "sound/audiocd.h"
+
+#include "backends/audiocd/audiocd.h"
 
 #include "gob/gob.h"
 #include "gob/sound/cdrom.h"
-#include "gob/helper.h"
 #include "gob/dataio.h"
 
 namespace Gob {
@@ -46,9 +45,10 @@ CDROM::CDROM() {
 }
 
 CDROM::~CDROM() {
+	stop();
 }
 
-void CDROM::readLIC(DataStream &stream) {
+void CDROM::readLIC(Common::SeekableReadStream &stream) {
 	uint16 version, startChunk, pos;
 
 	freeLICBuffer();
@@ -91,7 +91,7 @@ void CDROM::startTrack(const char *trackName) {
 		return;
 	}
 
-	strncpy0(_curTrack, trackName, 15);
+	Common::strlcpy(_curTrack, trackName, 16);
 
 	stopPlaying();
 	_curTrackBuffer = matchPtr;
@@ -115,7 +115,7 @@ void CDROM::play(uint32 from, uint32 to) {
 	// HSG encodes frame information into a double word:
 	// minute multiplied by 4500, plus second multiplied by 75,
 	// plus frame, minus 150
-	AudioCD.play(1, 1, from, to - from + 1);
+	g_system->getAudioCDManager()->play(1, 1, from, to - from + 1);
 	_cdPlaying = true;
 }
 
@@ -160,7 +160,7 @@ void CDROM::stopPlaying() {
 
 void CDROM::stop() {
 	_curTrackBuffer = 0;
-	AudioCD.stop();
+	g_system->getAudioCDManager()->stop();
 	_cdPlaying = false;
 }
 
@@ -186,7 +186,7 @@ byte *CDROM::getTrackBuffer(const char *trackName) const {
 	byte *curPtr = _LICbuffer;
 
 	for (int i = 0; i < _numTracks; i++) {
-		if (!scumm_stricmp((char *) curPtr, trackName)) {
+		if (!scumm_stricmp((char *)curPtr, trackName)) {
 			matchPtr = curPtr;
 			break;
 		}

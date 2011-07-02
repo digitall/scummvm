@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_INTRO_H
@@ -28,7 +25,7 @@
 
 
 #include "common/scummsys.h"
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 namespace Sky {
 
@@ -41,7 +38,7 @@ class Text;
 class Intro {
 public:
 	Intro(Disk *disk, Screen *screen, MusicBase *music, Sound *sound, Text *text, Audio::Mixer *mixer, OSystem *system);
-	~Intro(void);
+	~Intro();
 	bool doIntro(bool floppyIntro);
 private:
 	static uint16 _mainIntroSeq[];
@@ -65,10 +62,10 @@ private:
 
 	bool escDelay(uint32 msecs);
 	bool nextPart(uint16 *&data);
-	bool floppyScrollFlirt(void);
+	bool floppyScrollFlirt();
 	bool commandFlirt(uint16 *&data);
-	void showTextBuf(void);
-	void restoreScreen(void);
+	void showTextBuf();
+	void restoreScreen();
 };
 
 } // End of namespace Sky

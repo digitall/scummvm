@@ -17,16 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "backends/fs/abstract-fs.h"
 
 const char *AbstractFSNode::lastPathComponent(const Common::String &str, const char sep) {
 	// TODO: Get rid of this eventually! Use Common::lastPathComponent instead
-	if(str.empty())
+	if (str.empty())
 		return "";
 
 	const char *start = str.c_str();

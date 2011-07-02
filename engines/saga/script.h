@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Scripting module private header
@@ -129,17 +126,7 @@ struct EntryPoint {
 	uint16 offset;
 };
 
-struct VoiceLUT {
-	uint16 voicesCount;
-	uint16 *voices;
-	void freeMem() {
-		voicesCount = 0;
-		free(voices);
-	}
-	VoiceLUT() {
-		memset(this, 0, sizeof(*this));
-	}
-};
+typedef Common::Array<uint16> VoiceLUT;
 
 struct ModuleData {
 	bool loaded;			// is it loaded or not?
@@ -147,28 +134,29 @@ struct ModuleData {
 	int stringsResourceId;
 	int voicesResourceId;
 
-	byte *moduleBase;				// all base module
-	uint16 moduleBaseSize;			// base module size
+	ByteArray moduleBase;	// all base module
 	uint16 staticSize;				// size of static data
 	uint staticOffset;				// offset of static data begining in _commonBuffer
-
-	uint16 entryPointsTableOffset;	// offset of entrypoint table in moduleBase
-	uint16 entryPointsCount;
-	EntryPoint *entryPoints;
+	Common::Array<EntryPoint> entryPoints;
 
 	StringsTable strings;
 	VoiceLUT voiceLUT;
-	void freeMem() {
-		strings.freeMem();
-		voiceLUT.freeMem();
-		free(moduleBase);
-		free(entryPoints);
+
+	void clear() {
+		loaded = false;
+		strings.clear();
+		voiceLUT.clear();
+		moduleBase.clear();
+		entryPoints.clear();
+	}
+
+	ModuleData() : loaded(false), scriptResourceId(0), stringsResourceId(0), voicesResourceId(0), staticSize(0), staticOffset(0) {
 	}
 };
 
 class ScriptThread {
 public:
-	int16 *_stackBuf;
+	Common::Array<int16> _stackBuf;
 
 	uint16 _stackTopIndex;
 	uint16 _frameIndex;
@@ -246,60 +234,39 @@ public:
 	}
 
 	void waitWalk(void *threadObj) {
+		debug(3, "waitWalk()");
 		wait(kWaitTypeWalk);
 		_threadObj = threadObj;
 	}
 
 	void waitDelay(int sleepTime) {
+		debug(3, "waitDelay(%d)", sleepTime);
 		wait(kWaitTypeDelay);
 		_sleepTime = sleepTime;
 	}
 
 	void waitFrames(int frames) {
+		debug(3, "waitFrames(%d)", frames);
 		wait(kWaitTypeWaitFrames);
 		_frameWait = frames;
 	}
 
 	ScriptThread() {
-		memset(this, 0xFE, sizeof(*this));
+		memset(&_frameIndex, 0xFE, sizeof(_frameIndex));
+		memset(_threadVars, 0xFE, sizeof(_threadVars));
+		memset(&_waitType, 0xFE, sizeof(_waitType));
+		memset(&_sleepTime, 0xFE, sizeof(_sleepTime));
+		memset(&_threadObj, 0xFE, sizeof(_threadObj));
+		memset(&_returnValue, 0xFE, sizeof(_threadObj));
+		memset(&_frameWait, 0xFE, sizeof(_frameWait));
+
 		_flags = kTFlagNone;
-		_stackBuf = 0;
-	}
-
-	// copy constructor
-	ScriptThread(const ScriptThread& s) {
-		memcpy(this, &s, sizeof(*this));
-
-		// Verify that s doesn't have a non-zero _stackBuf, for else
-		// we would have to clone  that buffer, too, which we currently
-		// don't do. This case should never occur anyway, though (at
-		// least as long as the thread handling code does not change).
-		assert(!_stackBuf);
-	}
-
-	// assignment operator
-	ScriptThread& operator=(const ScriptThread &s) {
-		if (this == &s)
-			return *this;
-
-		free(_stackBuf);
-		memcpy(this, &s, sizeof(*this));
-
-		// Verify that s doesn't have a non-zero _stackBuf, for else
-		// we would have to clone  that buffer, too, which we currently
-		// don't do. This case should never occur anyway, though (at
-		// least as long as the thread handling code does not change).
-		assert(!_stackBuf);
-	}
-
-	~ScriptThread() {
-		free(_stackBuf);
 	}
 };
 
 typedef Common::List<ScriptThread> ScriptThreadList;
 
-#define SCRIPTOP_PARAMS ScriptThread *thread, MemoryReadStream *scriptS, bool &stopParsing, bool &breakOut
+#define SCRIPTOP_PARAMS ScriptThread *thread, Common::SeekableReadStream *scriptS, bool &stopParsing, bool &breakOut
 #define SCRIPTFUNC_PARAMS ScriptThread *thread, int nArgs, bool &disContinue
 #define OPCODE(x) {&Script::x, #x}
 
@@ -308,10 +275,10 @@ public:
 	StringsTable _mainStrings;
 
 	Script(SagaEngine *vm);
-	~Script();
+	virtual ~Script();
 
-	void loadModule(int scriptModuleNumber);
-	void freeModules();
+	void loadModule(uint scriptModuleNumber);
+	void clearModules();
 
 	void doVerb();
 	void showVerb(int statusColor = -1);
@@ -333,11 +300,13 @@ public:
 	}
 	void setNoPendingVerb() {
 		_pendingVerb = getVerbType(kVerbNone);
-		_currentObject[0] = _currentObject[0] = ID_NOTHING;
+		_currentObject[0] = _currentObject[1] = ID_NOTHING;
 		setPointerVerb();
 	}
 	int getVerbType(VerbTypes verbType);
 	TextListEntry *getPlacardTextEntry() { return _placardTextEntry; }
+
+	bool isNonInteractiveDemo();
 
 protected:
 	// When reading or writing data to the common buffer, we have to use a
@@ -377,13 +346,11 @@ protected:
 	ResourceContext *_dataContext;
 
 	uint16 _modulesLUTEntryLen;
-	ModuleData *_modules;
-	int _modulesCount;
+	Common::Array<ModuleData> _modules;
 	TextListEntry *_placardTextEntry;
 
 	friend class SagaEngine;
-	byte *_commonBuffer;
-	uint _commonBufferSize;
+	ByteArray _commonBuffer;
 
 	uint _staticSize;
 	ScriptThreadList _threadList;
@@ -414,17 +381,17 @@ public:
 	ScriptThread &createThread(uint16 scriptModuleNumber, uint16 scriptEntryPointNumber);
 	int executeThread(ScriptThread *thread, int entrypointNumber);
 	void executeThreads(uint msec);
-	void completeThread(void);
-	void abortAllThreads(void);
+	void completeThread();
+	void abortAllThreads();
 
 	void wakeUpActorThread(int waitType, void *threadObj);
 	void wakeUpThreads(int waitType);
 	void wakeUpThreadsDelayed(int waitType, int sleepTime);
 
-	void loadVoiceLUT(VoiceLUT &voiceLUT, const byte *resourcePointer, size_t resourceLength);
+	void loadVoiceLUT(VoiceLUT &voiceLUT, const ByteArray &resourceData);
 
 protected:
-	void loadModuleBase(ModuleData &module, const byte *resourcePointer, size_t resourceLength);
+	void loadModuleBase(ModuleData &module, const ByteArray &resourceData);
 
 	// runThread returns true if we should break running of other threads
 	bool runThread(ScriptThread &thread);

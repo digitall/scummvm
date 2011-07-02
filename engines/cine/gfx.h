@@ -18,15 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_GFX_H
 #define CINE_GFX_H
 
 #include "common/noncopyable.h"
+#include "common/rect.h"
+#include "common/stack.h"
 #include "cine/object.h"
 
 namespace Cine {
@@ -34,7 +33,8 @@ namespace Cine {
 extern byte *collisionPage;
 static const int kCollisionPageBgIdxAlias = 8;
 
-/*! \brief Background with palette
+/**
+ * Background with palette
  */
 struct palBg {
 	byte *bg; ///< Background data
@@ -61,13 +61,67 @@ struct palBg {
 	}
 };
 
-/*! \brief Future Wars renderer
+class FWRenderer;
+
+class Menu {
+public:
+	enum Type {
+		kSelectionMenu,
+		kTextInputMenu
+	};
+
+	Menu(Type t) : _type(t) {}
+	virtual ~Menu() {}
+
+	Type getType() const { return _type; }
+
+	virtual void drawMenu(FWRenderer &r, bool top) = 0;
+private:
+	const Type _type;
+};
+
+class SelectionMenu : public Menu {
+public:
+	SelectionMenu(Common::Point p, int width, Common::StringArray elements);
+
+	int getElementCount() const { return _elements.size(); }
+
+	void setSelection(int selection);
+
+	void drawMenu(FWRenderer &r, bool top);
+private:
+	const Common::Point _pos;
+	const int _width;
+	const Common::StringArray _elements;
+
+	int _selection;
+};
+
+class TextInputMenu : public Menu {
+public:
+	TextInputMenu(Common::Point p, int width, const char *info);
+
+	void setInput(const char *input, int cursor);
+
+	void drawMenu(FWRenderer &r, bool top);
+private:
+	const Common::Point _pos;
+	const int _width;
+	const Common::String _info;
+
+	Common::String _input;
+	int _cursor;
+};
+
+/**
+ * Future Wars renderer
  *
- * Screen backbuffer is not cleared between frames, you can draw menus etc.
- * without calling drawFrame() all the time
+ * Screen backbuffer is not cleared between frames.
  */
 class FWRenderer : public Common::NonCopyable {
-protected:
+	// TODO: Consider getting rid of this
+	friend class SelectionMenu;
+	friend class TextInputMenu;
 private:
 	byte *_background; ///< Current background
 	char _bgName[13]; ///< Background filename
@@ -82,16 +136,18 @@ protected:
 	byte *_backBuffer; ///< Screen backbuffer
 	Cine::Palette _backupPal; ///< The backup color palette
 	Cine::Palette _activePal; ///< The active color palette
+	Common::Stack<Menu *> _menuStack; ///< All displayed menus
 	int _changePal; ///< Load active palette to video backend on next frame
 	bool _showCollisionPage; ///< Should we show the collision page instead of the back buffer? Used for debugging.
 
-	void fillSprite(const objectStruct &obj, uint8 color = 0);
-	void drawMaskedSprite(const objectStruct &obj, const byte *mask);
-	virtual void drawSprite(const objectStruct &obj);
+	void fillSprite(const ObjectStruct &obj, uint8 color = 0);
+	void drawMaskedSprite(const ObjectStruct &obj, const byte *mask);
+	virtual void drawSprite(const ObjectStruct &obj);
 
 	void drawCommand();
 	void drawMessage(const char *str, int x, int y, int width, int color);
 	void drawPlainBox(int x, int y, int width, int height, byte color);
+	void drawTransparentBox(int x, int y, int width, int height);
 	void drawBorder(int x, int y, int width, int height, byte color);
 	void drawDoubleBorder(int x, int y, int width, int height, byte color);
 	virtual int drawChar(char character, int x, int y);
@@ -102,6 +158,8 @@ protected:
 	virtual void renderOverlay(const Common::List<overlay>::iterator &it);
 	void drawOverlays();
 
+	void blit();
+
 public:
 	uint16 _messageBg; ///< Message box background color
 	uint16 _cmdY; ///< Player command string position on screen
@@ -109,17 +167,18 @@ public:
 	FWRenderer();
 	virtual ~FWRenderer();
 
-	/*! \brief Test if renderer is ready to draw */
+	virtual bool initialize();
+
+	/** Test if renderer is ready to draw */
 	virtual bool ready() { return _background != NULL; }
 
 	virtual void clear();
 
 	void drawFrame();
-	void blit();
 	void setCommand(Common::String cmd);
 
-	virtual void incrustMask(const objectStruct &obj, uint8 color = 0);
-	virtual void incrustSprite(const objectStruct &obj);
+	virtual void incrustMask(const ObjectStruct &obj, uint8 color = 0);
+	virtual void incrustSprite(const ObjectStruct &obj);
 
 	virtual void loadBg16(const byte *bg, const char *name, unsigned int idx = 0);
 	virtual void loadCt16(const byte *ct, const char *name);
@@ -135,19 +194,24 @@ public:
 
 	virtual void refreshPalette();
 	virtual void reloadPalette();
-	virtual void restorePalette(Common::SeekableReadStream &fHandle);
+	virtual void restorePalette(Common::SeekableReadStream &fHandle, int version);
 	virtual void savePalette(Common::OutSaveFile &fHandle);
 	virtual void rotatePalette(int a, int b, int c);
 	virtual void transformPalette(int first, int last, int r, int g, int b);
 
-	void drawMenu(const CommandeType *items, unsigned int height, int x, int y, int width, int selected);
-	void drawInputBox(const char *info, const char *input, int cursor, int x, int y, int width);
+	void pushMenu(Menu *menu);
+	Menu *popMenu();
+	void clearMenuStack();
 
 	virtual void fadeToBlack();
 	void showCollisionPage(bool state);
+
+	void drawString(const char *string, byte param);
+	int getStringWidth(const char *str);
 };
 
-/*! \brief Operation Stealth renderer
+/**
+ * Operation Stealth renderer
  */
 class OSRenderer : public FWRenderer {
 private:
@@ -158,7 +222,7 @@ private:
 
 protected:
 
-	void drawSprite(const objectStruct &obj);
+	void drawSprite(const ObjectStruct &obj);
 	int drawChar(char character, int x, int y);
 	void drawBackground();
 	void renderOverlay(const Common::List<overlay>::iterator &it);
@@ -167,13 +231,15 @@ public:
 	OSRenderer();
 	~OSRenderer();
 
-	/*! \brief Test if renderer is ready to draw */
+	bool initialize();
+
+	/** Test if renderer is ready to draw */
 	bool ready() { return _bgTable[_currentBg].bg != NULL; }
 
 	void clear();
 
-	void incrustMask(const objectStruct &obj, uint8 color = 0);
-	void incrustSprite(const objectStruct &obj);
+	void incrustMask(const ObjectStruct &obj, uint8 color = 0);
+	void incrustSprite(const ObjectStruct &obj);
 
 	void loadBg16(const byte *bg, const char *name, unsigned int idx = 0);
 	void loadCt16(const byte *ct, const char *name);
@@ -188,7 +254,7 @@ public:
 	const char *getBgName(uint idx = 0) const;
 
 	void reloadPalette();
-	void restorePalette(Common::SeekableReadStream &fHandle);
+	void restorePalette(Common::SeekableReadStream &fHandle, int version);
 	void savePalette(Common::OutSaveFile &fHandle);
 	void transformPalette(int first, int last, int r, int g, int b);
 
@@ -202,7 +268,7 @@ void setMouseCursor(int cursor);
 void gfxCopyPage(byte *source, byte *dest);
 
 void transformPaletteRange(byte startColor, byte numColor, int8 r, int8 g, int8 b);
-void gfxFlipPage(void);
+void gfxFlipPage();
 
 void gfxDrawMaskedSprite(const byte *ptr, const byte *msk, uint16 width, uint16 height, byte *page, int16 x, int16 y);
 void gfxFillSprite(const byte *src4, uint16 sw, uint16 sh, byte *dst4, int16 sx, int16 sy, uint8 fillColor = 0);
@@ -226,17 +292,17 @@ void gfxDrawPlainBoxRaw(int16 x1, int16 y1, int16 x2, int16 y2, byte color, byte
 void drawSpriteRaw2(const byte *spritePtr, byte transColor, int16 width, int16 height, byte *page, int16 x, int16 y);
 void maskBgOverlay(const byte *spritePtr, const byte *maskPtr, int16 width, int16 height, byte *page, int16 x, int16 y);
 
-void fadeFromBlack(void);
-void fadeToBlack(void);
+void fadeFromBlack();
+void fadeToBlack();
 
 // wtf?!
 //void gfxDrawMaskedSprite(byte *param1, byte *param2, byte *param3, byte *param4, int16 param5);
-void gfxWaitVBL(void);
-void gfxRedrawMouseCursor(void);
+void gfxWaitVBL();
+void gfxRedrawMouseCursor();
 
 void blitScreen(byte *frontBuffer, byte *backbuffer);
 void blitRawScreen(byte *frontBuffer);
-void flip(void);
+void flip();
 
 } // End of namespace Cine
 

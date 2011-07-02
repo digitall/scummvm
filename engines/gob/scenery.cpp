@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -65,7 +62,7 @@ Scenery::Scenery(GobEngine *vm) : _vm(vm) {
 
 	_pCaptureCounter = 0;
 
-	for (int i = 0; i < 70; i++ ) {
+	for (int i = 0; i < 70; i++) {
 		_staticPictToSprite[i] = 0;
 		_animPictToSprite[i]   = 0;
 	}
@@ -80,6 +77,10 @@ Scenery::~Scenery() {
 
 void Scenery::init() {
 	for (int i = 0; i < 10; i++) {
+		if (_vm->getGameType() == kGameTypeFascination) {
+			freeAnim(i);
+			freeStatic(i);
+		}
 		_animPictCount[i]   =  0;
 		_staticPictCount[i] = -1;
 	}
@@ -192,7 +193,7 @@ int16 Scenery::loadStatic(char search) {
 			_spriteResId[sprIndex] = sprResId;
 			_vm->_draw->initSpriteSurf(sprIndex, width, height, 2);
 
-			_vm->_video->clearSurf(*_vm->_draw->_spritesArray[sprIndex]);
+			_vm->_draw->_spritesArray[sprIndex]->clear();
 			_vm->_draw->_destSurface  = sprIndex;
 			_vm->_draw->_spriteLeft   = sprResId;
 			_vm->_draw->_transparency = 0;
@@ -261,10 +262,10 @@ void Scenery::renderStatic(int16 scenery, int16 layer) {
 
 	_vm->_draw->_spriteLeft = layerPtr->backResId;
 	if (_vm->_draw->_spriteLeft != -1) {
-		_vm->_draw->_destSpriteX  =  0;
-		_vm->_draw->_destSpriteY  =  0;
-		_vm->_draw->_destSurface  = 21;
-		_vm->_draw->_transparency =  0;
+		_vm->_draw->_destSpriteX  = 0;
+		_vm->_draw->_destSpriteY  = 0;
+		_vm->_draw->_destSurface  = Draw::kBackSurface;
+		_vm->_draw->_transparency = 0;
 		_vm->_draw->spriteOperation(DRAW_LOADSPRITE);
 	}
 
@@ -295,7 +296,7 @@ void Scenery::renderStatic(int16 scenery, int16 layer) {
 
 			_vm->_draw->_sourceSurface =
 			    _staticPictToSprite[scenery * 7 + pictIndex];
-			_vm->_draw->_destSurface   = 21;
+			_vm->_draw->_destSurface   = Draw::kBackSurface;
 			_vm->_draw->_spriteLeft    = left;
 			_vm->_draw->_spriteTop     = top;
 			_vm->_draw->_spriteRight   = right - left + 1;
@@ -392,7 +393,7 @@ void Scenery::updateStatic(int16 orderFrom, byte index, byte layer) {
 
 			_vm->_draw->_sourceSurface =
 			    _staticPictToSprite[index * 7 + pictIndex];
-			_vm->_draw->_destSurface   = 21;
+			_vm->_draw->_destSurface   = Draw::kBackSurface;
 			_vm->_draw->_transparency  = planePtr->transp ? 3 : 0;
 			_vm->_draw->spriteOperation(DRAW_BLITSURF);
 		}
@@ -522,7 +523,7 @@ int16 Scenery::loadAnim(char search) {
 			_spriteResId[sprIndex] = sprResId;
 			_vm->_draw->initSpriteSurf(sprIndex, width, height, 2);
 
-			_vm->_video->clearSurf(*_vm->_draw->_spritesArray[sprIndex]);
+			_vm->_draw->_spritesArray[sprIndex]->clear();
 			_vm->_draw->_destSurface  = sprIndex;
 			_vm->_draw->_spriteLeft   = sprResId;
 			_vm->_draw->_transparency = 0;
@@ -593,7 +594,9 @@ void Scenery::updateAnim(int16 layer, int16 frame, int16 animation, int16 flags,
 	int16 destX;
 	int16 destY;
 
-	if ((_vm->getGameType() == kGameTypeWoodruff) && (animation < 0)) {
+	if ((animation < 0) &&
+	    ((_vm->getGameType() == kGameTypeWoodruff) ||
+	     (_vm->getGameType() == kGameTypeAdibou2))) {
 		// Object video
 
 		if (flags & 1) { // Do capture
@@ -616,26 +619,39 @@ void Scenery::updateAnim(int16 layer, int16 frame, int16 animation, int16 flags,
 			return;
 		}
 
-		if (frame >= _vm->_vidPlayer->getFramesCount(obj.videoSlot - 1))
-			frame = _vm->_vidPlayer->getFramesCount(obj.videoSlot - 1) - 1;
+		if (frame >= (int32)_vm->_vidPlayer->getFrameCount(obj.videoSlot - 1))
+			frame = _vm->_vidPlayer->getFrameCount(obj.videoSlot - 1) - 1;
 
-		// Seek to frame
-		if (_vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) < 256) {
-			while (_vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) <= frame)
-				_vm->_vidPlayer->slotPlay(obj.videoSlot - 1);
-		} else {
-			int16 curFrame  = _vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1);
-			uint8 frameWrap = curFrame / 256;
-			frame = (frame + 1) % 256;
+		if (_vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) >= 255) {
+			// Allow for object videos with more than 255 frames, although the
+			// object frame counter is just a byte.
 
-			while (_vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) < (frameWrap * 256 + frame))
-				_vm->_vidPlayer->slotPlay(obj.videoSlot - 1);
+			uint32 curFrame  = _vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) + 1;
+			uint16 frameWrap = curFrame / 256;
+
+			frame = ((frame + 1) % 256) + frameWrap * 256;
 		}
 
-		// Subtitle
-		Graphics::CoktelVideo::State state = _vm->_vidPlayer->getState(obj.videoSlot - 1);
-		if (state.flags & Graphics::CoktelVideo::kStateSpeech)
-			_vm->_draw->printTotText(state.speechId);
+		if (frame != (int32)_vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1)) {
+			// Seek to frame
+
+			VideoPlayer::Properties props;
+
+			props.forceSeek    = true;
+			props.waitEndFrame = false;
+			props.lastFrame    = frame;
+
+			if ((int32)_vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) < frame)
+				props.startFrame = _vm->_vidPlayer->getCurrentFrame(obj.videoSlot - 1) + 1;
+			else
+				props.startFrame = frame;
+
+			_vm->_vidPlayer->play(obj.videoSlot - 1, props);
+		}
+
+		int32 subtitle = _vm->_vidPlayer->getSubtitleIndex(obj.videoSlot - 1);
+		if (subtitle != -1)
+			_vm->_draw->printTotText(subtitle);
 
 		destX  = 0;
 		destY  = 0;
@@ -716,23 +732,21 @@ void Scenery::updateAnim(int16 layer, int16 frame, int16 animation, int16 flags,
 				_vm->_draw->_spriteLeft = _vm->_vidPlayer->getWidth(obj.videoSlot - 1)  -
 					(destX + _vm->_draw->_spriteRight);
 
-			_vm->_vidPlayer->slotCopyFrame(obj.videoSlot - 1, _vm->_draw->_backSurface->getVidMem(),
+			_vm->_vidPlayer->copyFrame(obj.videoSlot - 1, *_vm->_draw->_backSurface,
 					_vm->_draw->_spriteLeft,  _vm->_draw->_spriteTop,
 					_vm->_draw->_spriteRight, _vm->_draw->_spriteBottom,
 					_vm->_draw->_destSpriteX, _vm->_draw->_destSpriteY,
-					_vm->_draw->_backSurface->getWidth(),
 					(_vm->_draw->_transparency != 0) ? 0 : -1);
 
 			_vm->_draw->invalidateRect(_vm->_draw->_destSpriteX, _vm->_draw->_destSpriteY,
 					_vm->_draw->_destSpriteX + _vm->_draw->_spriteRight  - 1,
 					_vm->_draw->_destSpriteY + _vm->_draw->_spriteBottom - 1);
-
 		}
 
 		if (!(flags & 4)) {
-			_animLeft   = _toRedrawLeft = left;
-			_animTop    = _toRedrawTop = top;
-			_animRight  = _toRedrawRight = right;
+			_animLeft   = _toRedrawLeft   = left;
+			_animTop    = _toRedrawTop    = top;
+			_animRight  = _toRedrawRight  = right;
 			_animBottom = _toRedrawBottom = bottom;
 		}
 
@@ -878,7 +892,7 @@ void Scenery::updateAnim(int16 layer, int16 frame, int16 animation, int16 flags,
 		if (doDraw) {
 			_vm->_draw->_sourceSurface =
 			    _animPictToSprite[animation * 7 + pictIndex];
-			_vm->_draw->_destSurface   = 21;
+			_vm->_draw->_destSurface   = Draw::kBackSurface;
 
 			_vm->_draw->_spriteLeft   = left;
 			_vm->_draw->_spriteTop    = top;
@@ -917,13 +931,24 @@ void Scenery::writeAnimLayerInfo(uint16 index, uint16 layer,
 		int16 varDX, int16 varDY, int16 varUnk0, int16 varFrames) {
 
 	assert(index < 10);
-	assert(layer < _animations[index].layersCount);
 
-	AnimLayer &animLayer = _animations[index].layers[layer];
-	WRITE_VAR_OFFSET(varDX, animLayer.animDeltaX);
-	WRITE_VAR_OFFSET(varDY, animLayer.animDeltaY);
-	WRITE_VAR_OFFSET(varUnk0, animLayer.unknown0);
-	WRITE_VAR_OFFSET(varFrames, animLayer.framesCount);
+// WORKAROUND - Fascination Hebrew is using scripts from the CD versions, but of course
+// no CD track, so the anim syncing failed, and the anims were suppressed. But they
+// didn't updated the scripts. Skipping the wrong anims is a solution.
+	if ((_vm->getGameType() == kGameTypeFascination) && (layer >= _animations[index].layersCount)) {
+		WRITE_VAR_OFFSET(varDX, 0);
+		WRITE_VAR_OFFSET(varDY, 0);
+		WRITE_VAR_OFFSET(varUnk0, 0);
+		WRITE_VAR_OFFSET(varFrames, 0);
+	} else {
+		assert(layer < _animations[index].layersCount);
+
+		AnimLayer &animLayer = _animations[index].layers[layer];
+		WRITE_VAR_OFFSET(varDX, animLayer.animDeltaX);
+		WRITE_VAR_OFFSET(varDY, animLayer.animDeltaY);
+		WRITE_VAR_OFFSET(varUnk0, animLayer.unknown0);
+		WRITE_VAR_OFFSET(varFrames, animLayer.framesCount);
+	}
 }
 
 int16 Scenery::getStaticLayersCount(uint16 index) {

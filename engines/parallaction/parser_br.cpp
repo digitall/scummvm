@@ -18,11 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 #include "parallaction/parser.h"
@@ -526,14 +524,14 @@ DECLARE_COMMAND_PARSER(location)  {
 	ctxt.cmd->_startPos.x = -1000;
 	ctxt.cmd->_startPos2.x = -1000;
 	if (_tokens[ctxt.nextToken][0] != '\0') {
-		if (isdigit(_tokens[ctxt.nextToken][0]) || _tokens[ctxt.nextToken][0] == '-') {
+		if (isdigit(static_cast<unsigned char>(_tokens[ctxt.nextToken][0])) || _tokens[ctxt.nextToken][0] == '-') {
 			ctxt.cmd->_startPos.x = atoi(_tokens[ctxt.nextToken]);
 			ctxt.nextToken++;
 			ctxt.cmd->_startPos.y = atoi(_tokens[ctxt.nextToken]);
 			ctxt.nextToken++;
 		}
 
-		if (isdigit(_tokens[ctxt.nextToken][0]) || _tokens[ctxt.nextToken][0] == '-') {
+		if (isdigit(static_cast<unsigned char>(_tokens[ctxt.nextToken][0])) || _tokens[ctxt.nextToken][0] == '-') {
 			ctxt.cmd->_startPos2.x = atoi(_tokens[ctxt.nextToken]);
 			ctxt.nextToken++;
 			ctxt.cmd->_startPos2.y = atoi(_tokens[ctxt.nextToken]);
@@ -679,7 +677,7 @@ DECLARE_COMMAND_PARSER(text)  {
 
 	createCommand(_parser->_lookup);
 
-	if (isdigit(_tokens[1][1])) {
+	if (isdigit(static_cast<unsigned char>(_tokens[1][1]))) {
 		ctxt.cmd->_zeta0 = atoi(_tokens[1]);
 		ctxt.nextToken++;
 	} else {
@@ -716,7 +714,7 @@ DECLARE_COMMAND_PARSER(unary)  {
 DECLARE_ZONE_PARSER(limits)  {
 	debugC(7, kDebugParser, "ZONE_PARSER(limits) ");
 
-	if (isalpha(_tokens[1][1])) {
+	if (isalpha(static_cast<unsigned char>(_tokens[1][1]))) {
 		ctxt.z->_flags |= kFlagsAnimLinked;
 		ctxt.z->_linkedName = _tokens[1];
 	} else {
@@ -786,7 +784,7 @@ void LocationParser_br::parseDoorData(ZonePtr z) {
 		_vm->_location._slideText[1] = _tokens[2];
 	} else
 	if (!scumm_stricmp(_tokens[0], "location")) {
-		data->_doorLocation = strdup(_tokens[1]);
+		data->_doorLocation = _tokens[1];
 	} else
 	if (!scumm_stricmp(_tokens[0], "file")) {
 		GfxObj *obj = _vm->_gfx->loadDoor(_tokens[1]);
@@ -808,6 +806,33 @@ void LocationParser_br::parseDoorData(ZonePtr z) {
 	}
 }
 
+void LocationParser_br::parseHearData(ZonePtr z) {
+	TypeData *data = &z->u;
+	if (!scumm_stricmp(_tokens[0], "sound")) {
+		assert(!data->_filename.size());
+		data->_filename = _tokens[1];
+		data->_hearChannel = atoi(_tokens[2]);
+	} else
+	if (!scumm_stricmp(_tokens[0], "freq")) {
+		data->_hearFreq = atoi(_tokens[1]);
+	} else
+	if (!scumm_stricmp(_tokens[0], "music")) {
+		assert(data->_hearChannel == FREE_HEAR_CHANNEL);
+		data->_filename = _tokens[1];
+		data->_hearChannel = MUSIC_HEAR_CHANNEL;
+	}
+}
+
+void LocationParser_br::parseNoneData(ZonePtr z) {
+	/* the only case we have to handle here is that of "scende2", which is the only Animation with
+	   a command list following the type marker.
+	*/
+	if (!scumm_stricmp(_tokens[0], "commands")) {
+		parseCommands(z->_commands);
+	}
+}
+
+
 typedef void (LocationParser_br::*ZoneTypeParser)(ZonePtr);
 static ZoneTypeParser parsers[] = {
 	0,	// no type
@@ -819,7 +844,7 @@ static ZoneTypeParser parsers[] = {
 	&LocationParser_br::parseHearData,
 	0,	// feel
 	&LocationParser_br::parseSpeakData,
-	0,	// none
+	&LocationParser_br::parseNoneData,
 	0,	// trap
 	0,	// you
 	0,	// command
@@ -864,7 +889,6 @@ DECLARE_ANIM_PARSER(moveto)  {
 	ctxt.a->_moveTo.y = atoi(_tokens[2]);
 //	ctxt.a->_moveTo.z = atoi(_tokens[3]);
 }
-
 
 DECLARE_ANIM_PARSER(endanimation)  {
 	debugC(7, kDebugParser, "ANIM_PARSER(endanimation) ");
@@ -979,7 +1003,7 @@ DECLARE_INSTRUCTION_PARSER(text)  {
 
 	int _si = 1;
 
-	if (isdigit(_tokens[1][1])) {
+	if (isdigit(static_cast<unsigned char>(_tokens[1][1]))) {
 		ctxt.inst->_y = atoi(_tokens[1]);
 		_si = 2;
 	} else {
@@ -1042,7 +1066,7 @@ DECLARE_INSTRUCTION_PARSER(endif)  {
 
 void ProgramParser_br::parseRValue(ScriptVar &v, const char *str) {
 
-	if (isdigit(str[0]) || str[0] == '-') {
+	if (isdigit(static_cast<unsigned char>(str[0])) || str[0] == '-') {
 		v.setImmediate(atoi(str));
 		return;
 	}

@@ -18,68 +18,66 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "backends/platform/sdl/sdl-sys.h"
 #include "SDL_ImageResource.h"
 
 namespace CEGUI {
 
-	SDL_ImageResource::SDL_ImageResource() :
-		_surface(0)
-	{
-	}
-
-	SDL_Surface* SDL_ImageResource::load(WORD resourceID) {
-		HRSRC resource;
-		HGLOBAL resourceGlobal;
-		LPVOID resourcePointer;
-		DWORD resourceSize;
-		SDL_RWops *surfaceData;
-		HMODULE moduleHandle;
-
-		moduleHandle = GetModuleHandle(NULL);
-		resource = FindResource(moduleHandle, MAKEINTRESOURCE(resourceID), TEXT("BINARY"));
-		if (!resource)
-			return NULL;
-		resourceSize = SizeofResource(moduleHandle, resource);
-		if (!resourceSize)
-			return NULL;
-		resourceGlobal = LoadResource(moduleHandle, resource);
-		if (!resourceGlobal)
-			return NULL;
-		resourcePointer = LockResource(resourceGlobal);
-		if (!resourcePointer)
-			return NULL;
-
-		surfaceData = SDL_RWFromMem(resourcePointer, resourceSize);
-		if (!surfaceData)
-			return NULL;
-		_surface = SDL_LoadBMP_RW(surfaceData, 1);
-
-		return _surface;
-	}
-
-	SDL_Surface* SDL_ImageResource::get() {
-		return _surface;
-	}
-
-	int SDL_ImageResource::height() {
-		if (_surface)
-			return _surface->h;
-		return 0;
-	}
-
-	int SDL_ImageResource::width() {
-		if (_surface)
-			return _surface->w;
-		return 0;
-	}
-
-	SDL_ImageResource::~SDL_ImageResource() {
-		if (_surface)
-			SDL_FreeSurface(_surface);
-	}
+SDL_ImageResource::SDL_ImageResource() :
+	_surface(0) {
 }
+
+SDL_Surface *SDL_ImageResource::load(WORD resourceID) {
+	HRSRC resource;
+	HGLOBAL resourceGlobal;
+	LPVOID resourcePointer;
+	DWORD resourceSize;
+	SDL_RWops *surfaceData;
+	HMODULE moduleHandle;
+
+	moduleHandle = GetModuleHandle(NULL);
+	resource = FindResource(moduleHandle, MAKEINTRESOURCE(resourceID), TEXT("BINARY"));
+	if (!resource)
+		return NULL;
+	resourceSize = SizeofResource(moduleHandle, resource);
+	if (!resourceSize)
+		return NULL;
+	resourceGlobal = LoadResource(moduleHandle, resource);
+	if (!resourceGlobal)
+		return NULL;
+	resourcePointer = LockResource(resourceGlobal);
+	if (!resourcePointer)
+		return NULL;
+
+	surfaceData = SDL_RWFromMem(resourcePointer, resourceSize);
+	if (!surfaceData)
+		return NULL;
+	_surface = SDL_LoadBMP_RW(surfaceData, 1);
+
+	return _surface;
+}
+
+SDL_Surface *SDL_ImageResource::get() {
+	return _surface;
+}
+
+int SDL_ImageResource::height() {
+	if (_surface)
+		return _surface->h;
+	return 0;
+}
+
+int SDL_ImageResource::width() {
+	if (_surface)
+		return _surface->w;
+	return 0;
+}
+
+SDL_ImageResource::~SDL_ImageResource() {
+	if (_surface)
+		SDL_FreeSurface(_surface);
+}
+
+} // End of namespace CEGUI

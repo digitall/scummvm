@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -28,6 +25,7 @@
 #include "common/util.h"
 #include "common/events.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "sky/disk.h"
 #include "sky/intro.h"
@@ -37,6 +35,9 @@
 #include "sky/sound.h"
 #include "sky/struc.h"
 #include "sky/text.h"
+
+#include "audio/audiostream.h"
+#include "audio/decoders/raw.h"
 
 namespace Sky {
 
@@ -638,11 +639,13 @@ Intro::Intro(Disk *disk, Screen *screen, MusicBase *music, Sound *sound, Text *t
 	_relDelay = 0;
 }
 
-Intro::~Intro(void) {
+Intro::~Intro() {
 	if (_skyScreen->sequenceRunning())
 		_skyScreen->stopSequence();
+
 	free(_textBuf);
 	free(_saveBuf);
+	_mixer->stopID(SOUND_BG);
 	free(_bgBuf);
 }
 
@@ -655,6 +658,7 @@ bool Intro::doIntro(bool floppyIntro) {
 
 	if (!escDelay(3000))
 		return false;
+
 	if (floppyIntro)
 		_skyMusic->startMusic(1);
 
@@ -677,6 +681,8 @@ bool Intro::doIntro(bool floppyIntro) {
 
 bool Intro::nextPart(uint16 *&data) {
 	uint8 *vData = NULL;
+	Audio::RewindableAudioStream *stream = 0;
+
 	// return false means cancel intro
 	uint16 command = *data++;
 	switch (command) {
@@ -730,11 +736,12 @@ bool Intro::nextPart(uint16 *&data) {
 			return false;
 		vData = _skyDisk->loadFile(*data++);
 		// HACK: Fill the header with silence. We should
-		// probably use _skySound instead of calling playRaw()
+		// probably use _skySound instead of calling playStream()
 		// directly, but this will have to do for now.
 		memset(vData, 127, sizeof(DataFileHeader));
-		_mixer->playRaw(Audio::Mixer::kSpeechSoundType, &_voice, vData, _skyDisk->_lastLoadedFileSize, 11025,
-				Audio::Mixer::FLAG_AUTOFREE | Audio::Mixer::FLAG_UNSIGNED, SOUND_VOICE);
+
+		stream = Audio::makeRawStream(vData, _skyDisk->_lastLoadedFileSize, 11025, Audio::FLAG_UNSIGNED);
+		_mixer->playStream(Audio::Mixer::kSpeechSoundType, &_voice, stream, SOUND_VOICE);
 		return true;
 	case WAITVOICE:
 		while (_mixer->isSoundHandleActive(_voice))
@@ -743,20 +750,19 @@ bool Intro::nextPart(uint16 *&data) {
 		return true;
 	case LOADBG:
 		_mixer->stopID(SOUND_BG);
-		if (_bgBuf)
-			free(_bgBuf);
+		free(_bgBuf);
 		_bgBuf = _skyDisk->loadFile(*data++);
 		_bgSize = _skyDisk->_lastLoadedFileSize;
 		return true;
 	case LOOPBG:
 		_mixer->stopID(SOUND_BG);
-		_mixer->playRaw(Audio::Mixer::kSFXSoundType, &_bgSfx, _bgBuf + 256, _bgSize - 768, 11025,
-				Audio::Mixer::FLAG_UNSIGNED | Audio::Mixer::FLAG_LOOP, SOUND_BG);
+		stream = Audio::makeRawStream(_bgBuf + 256, _bgSize - 768, 11025, Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
+		_mixer->playStream(Audio::Mixer::kSFXSoundType, &_bgSfx, Audio::makeLoopingAudioStream(stream, 0), SOUND_BG);
 		return true;
 	case PLAYBG:
 		_mixer->stopID(SOUND_BG);
-		_mixer->playRaw(Audio::Mixer::kSFXSoundType, &_bgSfx, _bgBuf + 256, _bgSize - 768, 11025,
-				Audio::Mixer::FLAG_UNSIGNED, SOUND_BG);
+		stream = Audio::makeRawStream(_bgBuf + 256, _bgSize - 768, 11025, Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
+		_mixer->playStream(Audio::Mixer::kSFXSoundType, &_bgSfx, stream, SOUND_BG);
 		return true;
 	case STOPBG:
 		_mixer->stopID(SOUND_BG);
@@ -767,7 +773,7 @@ bool Intro::nextPart(uint16 *&data) {
 	return true;
 }
 
-bool Intro::floppyScrollFlirt(void) {
+bool Intro::floppyScrollFlirt() {
 	uint8 *scrollScreen = (uint8*)malloc(FRAME_SIZE * 2);
 	memset(scrollScreen, 0, FRAME_SIZE);
 	memcpy(scrollScreen + FRAME_SIZE, _skyScreen->giveCurrent(), FRAME_SIZE);
@@ -812,6 +818,7 @@ bool Intro::floppyScrollFlirt(void) {
 
 bool Intro::commandFlirt(uint16 *&data) {
 	_skyScreen->startSequence(*data++);
+
 	while ((*data != COMMANDEND) || _skyScreen->sequenceRunning()) {
 		while ((_skyScreen->seqFramesLeft() < *data)) {
 			data++;
@@ -839,16 +846,18 @@ bool Intro::commandFlirt(uint16 *&data) {
 				error("Unknown FLIRT command %X", command);
 			}
 		}
+
 		if (!escDelay(50)) {
 			_skyScreen->stopSequence();
 			return false;
 		}
 	}
+
 	data++; // move pointer over "COMMANDEND"
 	return true;
 }
 
-void Intro::showTextBuf(void) {
+void Intro::showTextBuf() {
 	uint16 x = ((DataFileHeader*)_textBuf)->s_x;
 	uint16 y = ((DataFileHeader*)_textBuf)->s_y;
 	uint16 width = ((DataFileHeader*)_textBuf)->s_width;
@@ -870,7 +879,7 @@ void Intro::showTextBuf(void) {
 	_system->copyRectToScreen(screenBuf, GAME_SCREEN_WIDTH, x, y, width, height);
 }
 
-void Intro::restoreScreen(void) {
+void Intro::restoreScreen() {
 	uint16 x = ((DataFileHeader*)_saveBuf)->s_x;
 	uint16 y = ((DataFileHeader*)_saveBuf)->s_y;
 	uint16 width = ((DataFileHeader*)_saveBuf)->s_width;
@@ -888,6 +897,7 @@ void Intro::restoreScreen(void) {
 bool Intro::escDelay(uint32 msecs) {
 	Common::EventManager *eventMan = _system->getEventManager();
 	Common::Event event;
+
 	if (_relDelay == 0) // first call, init with system time
 		_relDelay = (int32)_system->getMillis();
 
@@ -906,11 +916,15 @@ bool Intro::escDelay(uint32 msecs) {
 		nDelay = _relDelay - _system->getMillis();
 		if (nDelay < 0)
 			nDelay = 0;
-		else if (nDelay > 40)
-			nDelay = 40;
+		else if (nDelay > 20)
+			nDelay = 20;
+
 		_system->delayMillis(nDelay);
+
+		_skyScreen->processSequence();
 		_system->updateScreen();
-	} while (nDelay == 40);
+	} while (nDelay == 20);
+
 	return true;
 }
 

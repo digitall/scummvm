@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "cruise/cruise_main.h"
 
@@ -30,6 +29,7 @@ namespace Cruise {
 uint8 colorMode = 0;
 
 uint8 *backgroundScreens[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };	// wasn't initialized in original, but it's probably better
+bool backgroundChanged[8] = { false, false, false, false, false, false, false, false };
 backgroundTableStruct backgroundTable[8];
 
 char hwPage[64000];
@@ -101,10 +101,12 @@ int loadBackground(const char *name, int idx) {
 		return (-2);
 	}
 
+	backgroundChanged[idx] = true;
+
 	ptrToFree = gfxModuleData.pPage10;
 	if (loadFileSub1(&ptrToFree, name, NULL) < 0) {
 		if (ptrToFree != gfxModuleData.pPage10)
-			free(ptrToFree);
+			MemFree(ptrToFree);
 
 		return (-18);
 	}
@@ -205,9 +207,16 @@ int loadBackground(const char *name, int idx) {
 		loadCVT(&ptr2);
 	}
 
+	MemFree(ptrToFree);
 
-	if (name != backgroundTable[idx].name)
-		strcpy(backgroundTable[idx].name, name);
+	// NOTE: the following is really meant to compare pointers and not the actual
+	// strings. See r48092 and r48094.
+	if (name != backgroundTable[idx].name) {
+		if (strlen(name) >= sizeof(backgroundTable[idx].name))
+			warning("background name length exceeded allowable maximum");
+
+		Common::strlcpy(backgroundTable[idx].name, name, sizeof(backgroundTable[idx].name));
+	}
 
 	return (0);
 }

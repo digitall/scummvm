@@ -18,38 +18,35 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/md5.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
 #include "common/file.h"
+#include "common/memstream.h"
 #include "common/savefile.h"
 #include "common/config-manager.h"
+#include "common/debug-channels.h"
+#include "common/random.h"
+#include "common/textconsole.h"
+
+#include "engines/util.h"
 
 #include "base/plugins.h"
 #include "base/version.h"
 
 #include "graphics/cursorman.h"
 
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "audio/mididrv.h"
+#include "audio/mixer.h"
 
 #include "agi/agi.h"
 #include "agi/graphics.h"
 #include "agi/sprite.h"
-#include "agi/opcodes.h"
 #include "agi/keyboard.h"
 #include "agi/menu.h"
-#include "agi/sound.h"
 
 namespace Agi {
-
-static uint32 g_tickTimer;
-struct Mouse g_mouse;
 
 void AgiEngine::allowSynthetic(bool allow) {
 	_allowSynthetic = allow;
@@ -81,17 +78,17 @@ void AgiEngine::processEvents() {
 			break;
 		case Common::EVENT_LBUTTONDOWN:
 			key = BUTTON_LEFT;
-			g_mouse.button = kAgiMouseButtonLeft;
+			_mouse.button = kAgiMouseButtonLeft;
 			keyEnqueue(key);
-			g_mouse.x = event.mouse.x;
-			g_mouse.y = event.mouse.y;
+			_mouse.x = event.mouse.x;
+			_mouse.y = event.mouse.y;
 			break;
 		case Common::EVENT_RBUTTONDOWN:
 			key = BUTTON_RIGHT;
-			g_mouse.button = kAgiMouseButtonRight;
+			_mouse.button = kAgiMouseButtonRight;
 			keyEnqueue(key);
-			g_mouse.x = event.mouse.x;
-			g_mouse.y = event.mouse.y;
+			_mouse.x = event.mouse.x;
+			_mouse.y = event.mouse.y;
 			break;
 		case Common::EVENT_WHEELUP:
 			key = WHEEL_UP;
@@ -102,31 +99,31 @@ void AgiEngine::processEvents() {
 			keyEnqueue(key);
 			break;
 		case Common::EVENT_MOUSEMOVE:
-			g_mouse.x = event.mouse.x;
-			g_mouse.y = event.mouse.y;
+			_mouse.x = event.mouse.x;
+			_mouse.y = event.mouse.y;
 
 			if (!_game.mouseFence.isEmpty()) {
-				if (g_mouse.x < _game.mouseFence.left)
-					g_mouse.x = _game.mouseFence.left;
-				if (g_mouse.x > _game.mouseFence.right)
-					g_mouse.x = _game.mouseFence.right;
-				if (g_mouse.y < _game.mouseFence.top)
-					g_mouse.y = _game.mouseFence.top;
-				if (g_mouse.y > _game.mouseFence.bottom)
-					g_mouse.y = _game.mouseFence.bottom;
+				if (_mouse.x < _game.mouseFence.left)
+					_mouse.x = _game.mouseFence.left;
+				if (_mouse.x > _game.mouseFence.right)
+					_mouse.x = _game.mouseFence.right;
+				if (_mouse.y < _game.mouseFence.top)
+					_mouse.y = _game.mouseFence.top;
+				if (_mouse.y > _game.mouseFence.bottom)
+					_mouse.y = _game.mouseFence.bottom;
 
-				g_system->warpMouse(g_mouse.x, g_mouse.y);
+				g_system->warpMouse(_mouse.x, _mouse.y);
 			}
 
 			break;
 		case Common::EVENT_LBUTTONUP:
 		case Common::EVENT_RBUTTONUP:
-			g_mouse.button = kAgiMouseButtonUp;
-			g_mouse.x = event.mouse.x;
-			g_mouse.y = event.mouse.y;
+			_mouse.button = kAgiMouseButtonUp;
+			_mouse.x = event.mouse.x;
+			_mouse.y = event.mouse.y;
 			break;
 		case Common::EVENT_KEYDOWN:
-			if (event.kbd.flags == Common::KBD_CTRL && event.kbd.keycode == Common::KEYCODE_d) {
+			if (event.kbd.hasFlags(Common::KBD_CTRL) && event.kbd.keycode == Common::KEYCODE_d) {
 				_console->attach();
 				break;
 			}
@@ -134,46 +131,65 @@ void AgiEngine::processEvents() {
 			switch (key = event.kbd.keycode) {
 			case Common::KEYCODE_LEFT:
 			case Common::KEYCODE_KP4:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP4)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_LEFT;
 				break;
 			case Common::KEYCODE_RIGHT:
 			case Common::KEYCODE_KP6:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP6)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_RIGHT;
 				break;
 			case Common::KEYCODE_UP:
 			case Common::KEYCODE_KP8:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP8)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_UP;
 				break;
 			case Common::KEYCODE_DOWN:
 			case Common::KEYCODE_KP2:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP2)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_DOWN;
 				break;
 			case Common::KEYCODE_PAGEUP:
 			case Common::KEYCODE_KP9:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP9)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_UP_RIGHT;
 				break;
 			case Common::KEYCODE_PAGEDOWN:
 			case Common::KEYCODE_KP3:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP3)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_DOWN_RIGHT;
 				break;
 			case Common::KEYCODE_HOME:
 			case Common::KEYCODE_KP7:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP7)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_UP_LEFT;
 				break;
 			case Common::KEYCODE_END:
 			case Common::KEYCODE_KP1:
-				if (_allowSynthetic || !event.synthetic)
+				if (_predictiveDialogRunning && key == Common::KEYCODE_KP1)
+					key = event.kbd.ascii;
+				else if (_allowSynthetic || !event.synthetic)
 					key = KEY_DOWN_LEFT;
 				break;
 			case Common::KEYCODE_KP5:
-				key = KEY_STATIONARY;
+				if (_predictiveDialogRunning)
+					key = event.kbd.ascii;
+				else
+					key = KEY_STATIONARY;
 				break;
 			case Common::KEYCODE_PLUS:
 				key = '+';
@@ -263,7 +279,7 @@ void AgiEngine::processEvents() {
 			break;
 
 		case Common::EVENT_KEYUP:
-			if (_egoHoldKey)	
+			if (_egoHoldKey)
 				_game.viewTable[0].direction = 0;
 
 		default:
@@ -272,25 +288,17 @@ void AgiEngine::processEvents() {
 	}
 }
 
-void AgiEngine::pollTimer(void) {
-	static uint32 m = 0;
-	uint32 dm;
+void AgiEngine::pollTimer() {
+	_lastTick += 50;
 
-	if (g_tickTimer < m)
-		m = 0;
-
-	while ((dm = g_tickTimer - m) < 5) {
+	while (_system->getMillis() < _lastTick) {
 		processEvents();
-		if (_console->isAttached())
-			_console->onFrame();
+		_console->onFrame();
 		_system->delayMillis(10);
 		_system->updateScreen();
 	}
-	m = g_tickTimer;
-}
 
-void AgiEngine::agiTimerFunctionLow(void *refCon) {
-	g_tickTimer++;
+	_lastTick = _system->getMillis();
 }
 
 void AgiEngine::pause(uint32 msec) {
@@ -345,7 +353,7 @@ int AgiEngine::agiInit() {
 
 	// clear view table
 	for (i = 0; i < MAX_VIEWTABLE; i++)
-		memset(&_game.viewTable[i], 0, sizeof(VtEntry));
+		memset(&_game.viewTable[i], 0, sizeof(struct VtEntry));
 
 	initWords();
 
@@ -362,12 +370,12 @@ int AgiEngine::agiInit() {
 
 	switch (getVersion() >> 12) {
 	case 2:
-		report("Emulating Sierra AGI v%x.%03x\n",
+		debug("Emulating Sierra AGI v%x.%03x",
 				(int)(getVersion() >> 12) & 0xF,
 				(int)(getVersion()) & 0xFFF);
 		break;
 	case 3:
-		report("Emulating Sierra AGI v%x.002.%03x\n",
+		debug("Emulating Sierra AGI v%x.002.%03x",
 				(int)(getVersion() >> 12) & 0xF,
 				(int)(getVersion()) & 0xFFF);
 		break;
@@ -384,10 +392,10 @@ int AgiEngine::agiInit() {
 		_game.sbuf = _game.sbuf256c;
 
 	if (_game.gameFlags & ID_AMIGA)
-		report("Amiga padded game detected.\n");
+		debug(1, "Amiga padded game detected.");
 
 	if (_game.gameFlags & ID_AGDS)
-		report("AGDS mode enabled.\n");
+		debug(1, "AGDS mode enabled.");
 
 	ec = _loader->init();	// load vol files, etc
 
@@ -461,9 +469,8 @@ int AgiEngine::agiLoadResource(int r, int n) {
 	if (i == errOK && getGameID() == GID_GOLDRUSH && r == rPICTURE && n == 147 && _game.dirPic[n].len == 1982) {
 		uint8 *pic = _game.pictures[n].rdata;
 		Common::MemoryReadStream picStream(pic, _game.dirPic[n].len);
-		char md5str[32+1];
-		Common::md5_file_string(picStream, md5str, _game.dirPic[n].len);
-		if (scumm_stricmp(md5str, "1c685eb048656cedcee4eb6eca2cecea") == 0) {
+		Common::String md5str = Common::computeStreamMD5AsString(picStream, _game.dirPic[n].len);
+		if (md5str == "1c685eb048656cedcee4eb6eca2cecea") {
 			pic[0x042] = 0x4B; // 0x49 -> 0x4B
 			pic[0x043] = 0x66; // 0x26 -> 0x66
 			pic[0x204] = 0x68; // 0x28 -> 0x68
@@ -496,43 +503,38 @@ static const GameSettings agiSettings[] = {
 AgiBase::AgiBase(OSystem *syst, const AGIGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
 	_noSaveLoadAllowed = false;
 
+	_rnd = new Common::RandomSource("agi");
+
 	initFeatures();
 	initVersion();
+}
+
+AgiBase::~AgiBase() {
+	delete _rnd;
 }
 
 AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBase(syst, gameDesc) {
 
 	// Setup mixer
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
-
-	const GameSettings *g;
-
-	const char *gameid = ConfMan.get("gameid").c_str();
-	for (g = agiSettings; g->gameid; ++g)
-		if (!scumm_stricmp(g->gameid, gameid))
-			_gameId = g->id;
+	syncSoundSettings();
 
 	parseFeatures();
 
-	_rnd = new Common::RandomSource();
-	g_eventRec.registerRandomSource(*_rnd, "agi");
-
-	Common::addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
-	Common::addDebugChannel(kDebugLevelResources, "Resources", "Resources debugging");
-	Common::addDebugChannel(kDebugLevelSprites, "Sprites", "Sprites debugging");
-	Common::addDebugChannel(kDebugLevelInventory, "Inventory", "Inventory debugging");
-	Common::addDebugChannel(kDebugLevelInput, "Input", "Input events debugging");
-	Common::addDebugChannel(kDebugLevelMenu, "Menu", "Menu debugging");
-	Common::addDebugChannel(kDebugLevelScripts, "Scripts", "Scripts debugging");
-	Common::addDebugChannel(kDebugLevelSound, "Sound", "Sound debugging");
-	Common::addDebugChannel(kDebugLevelText, "Text", "Text output debugging");
-	Common::addDebugChannel(kDebugLevelSavegame, "Savegame", "Saving & restoring game debugging");
+	DebugMan.addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
+	DebugMan.addDebugChannel(kDebugLevelResources, "Resources", "Resources debugging");
+	DebugMan.addDebugChannel(kDebugLevelSprites, "Sprites", "Sprites debugging");
+	DebugMan.addDebugChannel(kDebugLevelInventory, "Inventory", "Inventory debugging");
+	DebugMan.addDebugChannel(kDebugLevelInput, "Input", "Input events debugging");
+	DebugMan.addDebugChannel(kDebugLevelMenu, "Menu", "Menu debugging");
+	DebugMan.addDebugChannel(kDebugLevelScripts, "Scripts", "Scripts debugging");
+	DebugMan.addDebugChannel(kDebugLevelSound, "Sound", "Sound debugging");
+	DebugMan.addDebugChannel(kDebugLevelText, "Text", "Text output debugging");
+	DebugMan.addDebugChannel(kDebugLevelSavegame, "Savegame", "Saving & restoring game debugging");
 
 
 	memset(&_game, 0, sizeof(struct AgiGame));
 	memset(&_debug, 0, sizeof(struct AgiDebug));
-	memset(&g_mouse, 0, sizeof(struct Mouse));
+	memset(&_mouse, 0, sizeof(struct Mouse));
 
 	_game.clockEnabled = false;
 	_game.state = STATE_INIT;
@@ -541,8 +543,6 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 	_keyQueueEnd = 0;
 
 	_allowSynthetic = false;
-
-	g_tickTimer = 0;
 
 	_intobj = NULL;
 
@@ -556,7 +556,7 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 
 	_restartGame = false;
 
-	_oldMode = -1;
+	_oldMode = INPUT_NONE;
 
 	_predictiveDialogRunning = false;
 	_predictiveDictText = NULL;
@@ -569,6 +569,10 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 	_game.lastController = 0;
 	for (int i = 0; i < MAX_DIRS; i++)
 		_game.controllerOccured[i] = false;
+
+	setupOpcodes();
+	_curLogic = NULL;
+	_timerHack = 0;
 }
 
 void AgiEngine::initialize() {
@@ -582,13 +586,26 @@ void AgiEngine::initialize() {
 		_soundemu = SOUND_EMU_APPLE2GS;
 	} else if (getPlatform() == Common::kPlatformCoCo3) {
 		_soundemu = SOUND_EMU_COCO3;
+	} else if (ConfMan.get("music_driver") == "auto") {
+		// Default sound is the proper PCJr emulation
+		_soundemu = SOUND_EMU_PCJR;
 	} else {
-		switch (MidiDriver::detectMusicDriver(MDT_PCSPK)) {
-		case MD_PCSPK:
+		switch (MidiDriver::getMusicType(MidiDriver::detectDevice(MDT_PCSPK|MDT_AMIGA|MDT_ADLIB|MDT_PCJR|MDT_MIDI))) {
+		case MT_PCSPK:
 			_soundemu = SOUND_EMU_PC;
 			break;
-		default:
+		case MT_ADLIB:
 			_soundemu = SOUND_EMU_NONE;
+			break;
+		case MT_PCJR:
+			_soundemu = SOUND_EMU_PCJR;
+			break;
+		case MT_AMIGA:
+			_soundemu = SOUND_EMU_AMIGA;
+			break;
+		default:
+			debug(0, "DEF");
+			_soundemu = SOUND_EMU_MIDI;
 			break;
 		}
 	}
@@ -607,6 +624,8 @@ void AgiEngine::initialize() {
 			_renderMode = Common::kRenderEGA;
 			break;
 		}
+	} else {
+		_renderMode = Common::kRenderDefault;
 	}
 
 	_buttonStyle = AgiButtonStyle(_renderMode);
@@ -636,26 +655,26 @@ void AgiEngine::initialize() {
 
 	_lastSaveTime = 0;
 
-	_timer->installTimerProc(agiTimerFunctionLow, 10 * 1000, NULL);
+	_lastTick = _system->getMillis();
 
 	debugC(2, kDebugLevelMain, "Detect game");
-
 
 	if (agiDetectGame() == errOK) {
 		_game.state = STATE_LOADED;
 		debugC(2, kDebugLevelMain, "game loaded");
 	} else {
-		report("Could not open AGI game");
+		warning("Could not open AGI game");
 	}
 
 	debugC(2, kDebugLevelMain, "Init sound");
 }
 
 AgiEngine::~AgiEngine() {
-	// If the engine hasn't been initialized yet via AgiEngine::initialize(), don't attempt to free any resources,
-	// as they haven't been allocated. Fixes bug #1742432 - AGI: Engine crashes if no game is detected
+	// If the engine hasn't been initialized yet via
+	// AgiEngine::initialize(), don't attempt to free any resources, as
+	// they haven't been allocated. Fixes bug #1742432 - AGI: Engine
+	// crashes if no game is detected
 	if (_game.state == STATE_INIT) {
-		delete _rnd;	// delete _rnd, as it is allocated in the constructor, not in initialize()
 		return;
 	}
 
@@ -669,7 +688,6 @@ AgiEngine::~AgiEngine() {
 	free(_game.sbufOrig);
 	_gfx->deinitMachine();
 	delete _gfx;
-	delete _rnd;
 	delete _console;
 
 	free(_predictiveDictLine);
@@ -691,7 +709,6 @@ Common::Error AgiBase::init() {
 Common::Error AgiEngine::go() {
 	CursorMan.showMouse(true);
 
-	report(" \nAGI engine %s is ready.\n", gScummVMVersion);
 	if (_game.state < STATE_LOADED) {
 		do {
 			mainCycle();
@@ -703,19 +720,34 @@ Common::Error AgiEngine::go() {
 	return Common::kNoError;
 }
 
-void AgiEngine::syncSoundSettings() {
-	// FIXME/TODO: Please explain why we are using "music_volume" for all
-	// three different entries here.
-	int soundVolumeMusic = ConfMan.getInt("music_volume");
-	int soundVolumeSFX = ConfMan.getInt("music_volume");
-	int soundVolumeSpeech = ConfMan.getInt("music_volume");
+void AgiEngine::parseFeatures() {
 
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, soundVolumeMusic);
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, soundVolumeSFX);
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, soundVolumeSpeech);
-}
+	/* FIXME: Seems this method doesn't really do anything. It might
+	   be a leftover that could be removed, except that some of its
+	   intended purpose may still need to be reimplemented.
 
-void AgiEngine::parseFeatures(void) {
+	[0:29] <Fingolfin> can you tell me what the point behind AgiEngine::parseFeatures() is?
+	[0:30] <_sev> when games are created with WAGI studio
+	[0:31] <_sev> it creates .wag site with game-specific features such as full game title, whether to use AGIMOUSE etc
+	[0:32] <Fingolfin> ... and the "features" config key is created by our detector based on the wag file, I guess?
+	[0:33] <_sev> yes
+	[0:33] <Fingolfin> it's just that I cant seem to find a place we do that
+	[0:33] <_sev> it is used for fallback
+	[0:34] <_sev> ah, perhaps it was not updated
+	[0:34] <Fingolfin> I only see us check the value, but never set it
+	[0:34] <Fingolfin> maybe I am grepping wrong, who knows :)
+	[0:44] <Fingolfin> _sev: so, unless I miss something, it seem that function does nothing right now
+	[0:45] <_sev> Fingolfin: it could be unfinished. It was part of GSoC 3 years ago
+	[0:45] <Fingolfin> well
+	[0:45] <_sev> I just don't remember
+	[0:45] <Fingolfin> but don't we just re-parse the wag when the game is loaded anyway?
+	[0:45] <_sev> but it documents the format
+	[0:45] <Fingolfin> the advanced meta engine would re-run the detector, wouldn't it?
+	[0:45] <_sev> yep
+	[0:47] <Fingolfin> so... shouldn't we at least add a comment to the function explaining what it does and that it's unfinished etc.? maybe add a TODO to the wiki?
+	[0:47] <Fingolfin> otherwise it might stay as it is for another 3 years :)
+	*/
+
 	if (!ConfMan.hasKey("features"))
 		return;
 
@@ -747,13 +779,15 @@ void AgiEngine::parseFeatures(void) {
 	for (int i = 0; i < numFeatures; i++) {
 		for (const Flags *flag = flags; flag->name; flag++) {
 			if (!scumm_stricmp(feature[i], flag->name)) {
-				debug(0, "Added feature: %s", flag->name);
+				debug(2, "Added feature: %s", flag->name);
 
 				setFeature(flag->flag);
 				break;
 			}
 		}
 	}
+
+	free(features);
 }
 
 } // End of namespace Agi

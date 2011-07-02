@@ -18,24 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
-#include "common/endian.h"
-#include "common/system.h"
-
-#include "kyra/kyra_v1.h"
-#include "kyra/kyra_v2.h"
-#include "kyra/screen.h"
-#include "kyra/screen_v2.h"
 #include "kyra/wsamovie.h"
 #include "kyra/resource.h"
 
+#include "common/endian.h"
+
 namespace Kyra {
-WSAMovie_v1::WSAMovie_v1(KyraEngine_v1 *vm) : Movie(vm) {}
+
+WSAMovie_v1::WSAMovie_v1(KyraEngine_v1 *vm)
+    : Movie(vm), _frameData(0), _frameOffsTable(0), _offscreenBuffer(0), _deltaBuffer(0) {
+}
+
 WSAMovie_v1::~WSAMovie_v1() { close(); }
 
 int WSAMovie_v1::open(const char *filename, int offscreenDecode, Palette *palBuf) {
@@ -75,11 +70,10 @@ int WSAMovie_v1::open(const char *filename, int offscreenDecode, Palette *palBuf
 	}
 
 	if (_numFrames & 0x8000) {
-		// This is used in the Amiga version, the wsa playing code
-		// doesn't include any handling of it though, so we disable
-		// this warning for now.
-		//warning("Unhandled wsa flags 0x80");
-		_flags |= 0x80;
+		// This is used in the Amiga version.
+		if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+			warning("Unhandled wsa flags 0x8000");
+		_flags |= WF_FLIPPED;
 		_numFrames &= 0x7FFF;
 	}
 	_currentFrame = _numFrames;
@@ -262,7 +256,7 @@ void WSAMovieAmiga::displayFrame(int frameNum, int pageNum, int x, int y, uint16
 	if (_currentFrame == _numFrames) {
 		if (!(_flags & WF_NO_FIRST_FRAME)) {
 			Screen::decodeFrameDelta(dst, _deltaBuffer, true);
-			Screen::convertAmigaGfx(dst, _width, _height);
+			Screen::convertAmigaGfx(dst, _width, _height, 5, (_flags & WF_FLIPPED) != 0);
 
 			if (_flags & WF_OFFSCREEN_DECODE) {
 				dst = _offscreenBuffer;
@@ -341,7 +335,7 @@ void WSAMovieAmiga::processFrame(int frameNum, uint8 *dst) {
 	const uint8 *src = _frameData + _frameOffsTable[frameNum];
 	Screen::decodeFrame4(src, _deltaBuffer, _deltaBufferSize);
 	Screen::decodeFrameDelta(dst, _deltaBuffer, true);
-	Screen::convertAmigaGfx(dst, _width, _height);
+	Screen::convertAmigaGfx(dst, _width, _height, 5, (_flags & WF_FLIPPED) != 0);
 
 	src = dst;
 	dst = 0;
@@ -464,6 +458,6 @@ int WSAMovie_v2::open(const char *filename, int unk1, Palette *palBuf) {
 	return _numFrames;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 

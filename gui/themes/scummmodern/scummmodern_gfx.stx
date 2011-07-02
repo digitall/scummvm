@@ -19,9 +19,6 @@
  - along with this program; if not, write to the Free Software
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  -
- - $URL$
- - $Id$
- -
  -->
 <render_info>
 	<palette>
@@ -98,45 +95,87 @@
 		<bitmap filename = 'cursor_small.bmp'/>
 		<bitmap filename = 'checkbox.bmp'/>
 		<bitmap filename = 'checkbox_empty.bmp'/>
+		<bitmap filename = 'radiobutton.bmp'/>
+		<bitmap filename = 'radiobutton_empty.bmp'/>
 		<bitmap filename = 'logo_small.bmp'/>
 		<bitmap filename = 'search.bmp'/>
 	</bitmaps>
 
 	<fonts>
 		<font	id = 'text_default'
-				file = 'default'
-				color = 'black'
+				file = 'helvb12.bdf'
 		/>
-		<font	id = 'text_hover'
-				file = 'default'
-				color = 'bgreen'
-		/>
-		<font	id = 'text_disabled'
-				file = 'default'
-				color = '192, 192, 192'
-		/>
-		<font	id = 'text_inverted'
-				file = 'default'
-				color = 'black'
+		<font	resolution = 'y<400'
+		   		id = 'text_default'
+				file = 'clR6x12.bdf'
 		/>
 		<font	id = 'text_button'
-				file = 'default'
-				color = 'white'
+				file = 'helvb12.bdf'
 		/>
-		<font	id = 'text_button_hover'
-				file = 'default'
-				color = '255, 214, 84'
+		<font	resolution = 'y<400'
+		   		id = 'text_button'
+				file = 'clR6x12.bdf'
 		/>
 		<font	id = 'text_normal'
-				file = 'helvr12-l1.bdf'
+				file = 'helvb12.bdf'
+		/>
+		<font	resolution = 'y<400'
+		   		id = 'text_normal'
+				file = 'clR6x12.bdf'
+		/>
+		<font	id = 'tooltip_normal'
+				file = 'fixed5x8.bdf'
+		/>
+
+		<text_color	id = 'color_normal'
 				color = 'black'
+		/>
+
+		<text_color	id = 'color_normal_inverted'
+				color = 'black'
+		/>
+
+		<text_color	id = 'color_normal_hover'
+				color = 'bgreen'
+		/>
+
+		<text_color	id = 'color_normal_disabled'
+				color = '192, 192, 192'
+		/>
+
+		<text_color	id = 'color_alternative'
+				color = '128, 128, 128'
+		/>
+
+		<text_color	id = 'color_alternative_inverted'
+				color = 'white'
+		/>
+
+		<text_color	id = 'color_alternative_hover'
+				color = 'darkgray'
+		/>
+
+		<text_color	id = 'color_alternative_disabled'
+				color = '192, 192, 192'
+		/>
+
+		<text_color	id = 'color_button'
+				color = 'white'
+		/>
+
+		<text_color	id = 'color_button_hover'
+				color = '255, 214, 84'
+		/>
+
+		<text_color	id = 'color_button_disabled'
+				color = '192, 192, 192'
 		/>
 	</fonts>
 
 	<!-- <defaults fill = 'gradient' fg_color = 'white'/> -->
 
 	<cursor file = 'cursor.bmp' hotspot = '0, 0' scale = '3'/>
-	<cursor resolution = '320xY, 256x240' file = 'cursor_small.bmp' hotspot = '0, 0' scale = '3'/>
+	<cursor resolution = 'y<400' file = 'cursor_small.bmp' hotspot = '0, 0' scale = '3'/>
 
 	<!-- Selection (text or list items) -->
 	<drawdata id = 'text_selection' cache = 'false'>
@@ -263,6 +302,7 @@
 	<!-- Active tab in the tabs list -->
 	<drawdata id = 'tab_active' cache = 'false'>
 		<text	font = 'text_default'
+				text_color = 'color_normal'
 				vertical_align = 'center'
 				horizontal_align = 'center'
 		/>
@@ -279,6 +319,7 @@
 	<!-- Inactive tab in the tabs list -->
 	<drawdata id = 'tab_inactive' cache = 'false'>
 		<text	font = 'text_default'
+				text_color = 'color_normal'
 				vertical_align = 'center'
 				horizontal_align = 'center'
 		/>
@@ -370,6 +411,7 @@
 					orientation = 'bottom'
 		/>
 		<text	font = 'text_default'
+				text_color = 'color_normal'
 				vertical_align = 'center'
 				horizontal_align = 'left'
 		/>
@@ -392,7 +434,8 @@
 					ypos = 'center'
 					orientation = 'bottom'
 		/>
-		<text	font = 'text_disabled'
+		<text	font = 'text_default'
+				text_color = 'color_normal_disabled'
 				vertical_align = 'center'
 				horizontal_align = 'left'
 		/>
@@ -418,7 +461,8 @@
 					ypos = 'center'
 					orientation = 'bottom'
 		/>
-		<text	font = 'text_hover'
+		<text	font = 'text_default'
+				text_color = 'color_normal_hover'
 				vertical_align = 'center'
 				horizontal_align = 'left'
 		/>
@@ -469,9 +513,19 @@
 		/>
 	</drawdata>
 
+	<!-- Tooltip -->
+	<drawdata id = 'tooltip_bg' cache = 'false'>
+		<drawstep	func = 'square'
+					fill = 'foreground'
+					fg_color = 'blandyellow'
+					shadow = '3'
+		/>
+	</drawdata>
+
 	<!-- Idle button -->
 	<drawdata id = 'button_idle' cache = 'false'>
 		<text	font = 'text_button'
+				text_color = 'color_button'
 				vertical_align = 'center'
 				horizontal_align = 'center'
 		/>
@@ -490,7 +544,8 @@
 
 	<!-- Hovered button -->
 	<drawdata id = 'button_hover' cache = 'false'>
-		<text	font = 'text_button_hover'
+		<text	font = 'text_button'
+				text_color = 'color_button_hover'
 				vertical_align = 'center'
 				horizontal_align = 'center'
 		/>
@@ -509,7 +564,8 @@
 
 	<!-- Disabled button -->
 	<drawdata id = 'button_disabled' cache = 'false'>
-		<text	font = 'text_disabled'
+		<text	font = 'text_button'
+				text_color = 'color_button_disabled'
 				vertical_align = 'center'
 				horizontal_align = 'center'
 		/>
@@ -528,7 +584,8 @@
 
 	<!-- Disabled checkbox -->
 	<drawdata id = 'checkbox_disabled' cache = 'false'>
-		<text	font = 'text_disabled'
+		<text	font = 'text_default'
+				text_color = 'color_normal_disabled'
 				vertical_align = 'top'
 				horizontal_align = 'left'
 		/>
@@ -540,6 +597,7 @@
 	<!-- Selected checkbox -->
 	<drawdata id = 'checkbox_selected' cache = 'false'>
 		<text	font = 'text_default'
+				text_color = 'color_normal'
 				vertical_align = 'top'
 				horizontal_align = 'left'
 		/>
@@ -551,11 +609,48 @@
 	<!-- Idle checkbox -->
 	<drawdata id = 'checkbox_default' cache = 'false'>
 		<text	font = 'text_default'
+				text_color = 'color_normal'
 				vertical_align = 'top'
 				horizontal_align = 'left'
 		/>
 		<drawstep	func = 'bitmap'
 					file = 'checkbox_empty.bmp'
+		/>
+	</drawdata>
+
+	<!-- Idle radiobutton -->
+	<drawdata id = 'radiobutton_default' cache = 'false'>
+		<text	font = 'text_default'
+				text_color = 'color_normal'
+				vertical_align = 'center'
+				horizontal_align = 'left'
+		/>
+		<drawstep	func = 'bitmap'
+					file = 'radiobutton_empty.bmp'
+		/>
+	</drawdata>
+
+	<!-- Selected radiobutton -->
+	<drawdata id = 'radiobutton_selected' cache = 'false'>
+		<text	font = 'text_default'
+				text_color = 'color_normal'
+				vertical_align = 'center'
+				horizontal_align = 'left'
+		/>
+		<drawstep	func = 'bitmap'
+					file = 'radiobutton.bmp'
+		/>
+	</drawdata>
+
+	<!-- Disabled radiobutton -->
+	<drawdata id = 'radiobutton_disabled' cache = 'false'>
+		<text	font = 'text_default'
+				text_color = 'color_normal_disabled'
+				vertical_align = 'center'
+				horizontal_align = 'left'
+		/>
+		<drawstep	func = 'bitmap'
+					file = 'radiobutton_empty.bmp'
 		/>
 	</drawdata>
 
@@ -575,10 +670,8 @@
 		/>
 	</drawdata>
 
-	<!-- Where is it used? -->
 	<drawdata id = 'widget_small' cache = 'false'>
-		<drawstep	func = 'roundedsq'
-					radius = '6'
+		<drawstep	func = 'square'
 					stroke = '0'
 					gradient_start = 'blandyellow'
 					gradient_end = 'xtrabrightred'

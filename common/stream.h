@@ -18,20 +18,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_STREAM_H
 #define COMMON_STREAM_H
 
+#include "common/endian.h"
 #include "common/scummsys.h"
+#include "common/str.h"
 
 namespace Common {
 
-class String;
-class MemoryReadStream;
+class SeekableReadStream;
 
 /**
  * Virtual base class for both ReadStream and WriteStream.
@@ -44,12 +42,18 @@ public:
 	 * Returns true if an I/O failure occurred.
 	 * This flag is never cleared automatically. In order to clear it,
 	 * client code has to call clearErr() explicitly.
+	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C ferror().
 	 */
 	virtual bool err() const { return false; }
 
 	/**
 	 * Reset the I/O error status as returned by err().
 	 * For a ReadStream, also reset the end-of-stream status returned by eos().
+	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C clearerr().
 	 */
 	virtual void clearErr() {}
 };
@@ -63,6 +67,9 @@ public:
 	 * Write data into the stream. Subclasses must implement this
 	 * method; all other write methods are implemented using it.
 	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C fwrite().
+	 *
 	 * @param dataPtr	pointer to the data to be written
 	 * @param dataSize	number of bytes to be written
 	 * @return the number of bytes which were actually written.
@@ -73,6 +80,9 @@ public:
 	 * Commit any buffered data to the underlying channel or
 	 * storage medium; unbuffered streams can use the default
 	 * implementation.
+	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C fflush().
 	 *
 	 * @return true on success, false in case of a failure
 	 */
@@ -106,38 +116,38 @@ public:
 	}
 
 	void writeUint16LE(uint16 value) {
-		writeByte((byte)(value & 0xff));
-		writeByte((byte)(value >> 8));
+		value = TO_LE_16(value);
+		write(&value, 2);
 	}
 
 	void writeUint32LE(uint32 value) {
-		writeUint16LE((uint16)(value & 0xffff));
-		writeUint16LE((uint16)(value >> 16));
+		value = TO_LE_32(value);
+		write(&value, 4);
 	}
 
 	void writeUint16BE(uint16 value) {
-		writeByte((byte)(value >> 8));
-		writeByte((byte)(value & 0xff));
+		value = TO_BE_16(value);
+		write(&value, 2);
 	}
 
 	void writeUint32BE(uint32 value) {
-		writeUint16BE((uint16)(value >> 16));
-		writeUint16BE((uint16)(value & 0xffff));
+		value = TO_BE_32(value);
+		write(&value, 4);
 	}
 
-	void writeSint16LE(int16 value) {
+	FORCEINLINE void writeSint16LE(int16 value) {
 		writeUint16LE((uint16)value);
 	}
 
-	void writeSint32LE(int32 value) {
+	FORCEINLINE void writeSint32LE(int32 value) {
 		writeUint32LE((uint32)value);
 	}
 
-	void writeSint16BE(int16 value) {
+	FORCEINLINE void writeSint16BE(int16 value) {
 		writeUint16BE((uint16)value);
 	}
 
-	void writeSint32BE(int32 value) {
+	FORCEINLINE void writeSint32BE(int32 value) {
 		writeUint32BE((uint32)value);
 	}
 
@@ -148,22 +158,30 @@ public:
 	void writeString(const String &str);
 };
 
-
 /**
  * Generic interface for a readable data stream.
  */
 class ReadStream : virtual public Stream {
 public:
 	/**
-	 * Returns true if a read failed because the stream has been reached.
+	 * Returns true if a read failed because the stream end has been reached.
 	 * This flag is cleared by clearErr().
 	 * For a SeekableReadStream, it is also cleared by a successful seek.
+	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C feof(). In particular, in a stream
+	 * with N bytes, reading exactly N bytes from the start should *not*
+	 * set eos; only reading *beyond* the available data should set it.
 	 */
 	virtual bool eos() const = 0;
 
 	/**
 	 * Read data from the stream. Subclasses must implement this
 	 * method; all other read methods are implemented using it.
+	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C fread(), in particular where
+	 * it concerns setting error and end of file/stream flags.
 	 *
 	 * @param dataPtr	pointer to a buffer into which the data is read
 	 * @param dataSize	number of bytes to be read
@@ -176,19 +194,13 @@ public:
 	// in general should not overload them.
 
 	/**
-	 * DEPRECATED
-	 * Default implementation for backward compatibility
-	 */
-	inline bool ioFailed() { return (eos() || err()); }
-
-	/**
 	 * Read an unsigned byte from the stream and return it.
 	 * Performs no error checking. The return value is undefined
 	 * if a read error occurred (for which client code can check by
 	 * calling err() and eos() ).
 	 */
 	byte readByte() {
-		byte b = 0;
+		byte b = 0; // FIXME: remove initialisation
 		read(&b, 1);
 		return b;
 	}
@@ -199,10 +211,8 @@ public:
 	 * if a read error occurred (for which client code can check by
 	 * calling err() and eos() ).
 	 */
-	int8 readSByte() {
-		int8 b = 0;
-		read(&b, 1);
-		return b;
+	FORCEINLINE int8 readSByte() {
+		return (int8)readByte();
 	}
 
 	/**
@@ -213,9 +223,9 @@ public:
 	 * calling err() and eos() ).
 	 */
 	uint16 readUint16LE() {
-		uint16 a = readByte();
-		uint16 b = readByte();
-		return a | (b << 8);
+		uint16 val;
+		read(&val, 2);
+		return FROM_LE_16(val);
 	}
 
 	/**
@@ -226,9 +236,9 @@ public:
 	 * calling err() and eos() ).
 	 */
 	uint32 readUint32LE() {
-		uint32 a = readUint16LE();
-		uint32 b = readUint16LE();
-		return (b << 16) | a;
+		uint32 val;
+		read(&val, 4);
+		return FROM_LE_32(val);
 	}
 
 	/**
@@ -239,9 +249,9 @@ public:
 	 * calling err() and eos() ).
 	 */
 	uint16 readUint16BE() {
-		uint16 b = readByte();
-		uint16 a = readByte();
-		return a | (b << 8);
+		uint16 val;
+		read(&val, 2);
+		return FROM_BE_16(val);
 	}
 
 	/**
@@ -252,9 +262,9 @@ public:
 	 * calling err() and eos() ).
 	 */
 	uint32 readUint32BE() {
-		uint32 b = readUint16BE();
-		uint32 a = readUint16BE();
-		return (b << 16) | a;
+		uint32 val;
+		read(&val, 4);
+		return FROM_BE_32(val);
 	}
 
 	/**
@@ -264,7 +274,7 @@ public:
 	 * if a read error occurred (for which client code can check by
 	 * calling err() and eos() ).
 	 */
-	int16 readSint16LE() {
+	FORCEINLINE int16 readSint16LE() {
 		return (int16)readUint16LE();
 	}
 
@@ -275,7 +285,7 @@ public:
 	 * if a read error occurred (for which client code can check by
 	 * calling err() and eos() ).
 	 */
-	int32 readSint32LE() {
+	FORCEINLINE int32 readSint32LE() {
 		return (int32)readUint32LE();
 	}
 
@@ -286,7 +296,7 @@ public:
 	 * if a read error occurred (for which client code can check by
 	 * calling err() and eos() ).
 	 */
-	int16 readSint16BE() {
+	FORCEINLINE int16 readSint16BE() {
 		return (int16)readUint16BE();
 	}
 
@@ -297,7 +307,7 @@ public:
 	 * if a read error occurred (for which client code can check by
 	 * calling err() and eos() ).
 	 */
-	int32 readSint32BE() {
+	FORCEINLINE int32 readSint32BE() {
 		return (int32)readUint32BE();
 	}
 
@@ -309,7 +319,7 @@ public:
 	 * the end of the stream was reached. Which can be determined by
 	 * calling err() and eos().
 	 */
-	MemoryReadStream *readStream(uint32 dataSize);
+	SeekableReadStream *readStream(uint32 dataSize);
 
 };
 
@@ -346,6 +356,9 @@ public:
 	 * position indicator, or end-of-file, respectively. A successful call
 	 * to the seek() method clears the end-of-file indicator for the stream.
 	 *
+	 * @note The semantics of any implementation of this method are
+	 * supposed to match those of ISO C fseek().
+	 *
 	 * @param offset	the relative offset in bytes
 	 * @param whence	the seek reference: SEEK_SET, SEEK_CUR, or SEEK_END
 	 * @return true on success, false in case of a failure
@@ -381,7 +394,7 @@ public:
 	 * @param bufSize	the size of the buffer
 	 * @return a pointer to the read string, or NULL if an error occurred
 	 */
-	virtual char *readLine_NEW(char *s, size_t bufSize);
+	virtual char *readLine(char *s, size_t bufSize);
 
 
 	/**
@@ -391,291 +404,55 @@ public:
 	 *
 	 * Upon successful completion, return a string with the content
 	 * of the line, *without* the end of a line marker. This method
-	 * does not indicate whether an error occured. Callers must use
+	 * does not indicate whether an error occurred. Callers must use
 	 * err() or eos() to determine whether an exception occurred.
 	 */
 	virtual String readLine();
 };
 
 /**
- * SubReadStream provides access to a ReadStream restricted to the range
- * [currentPosition, currentPosition+end).
- * Manipulating the parent stream directly /will/ mess up a substream.
- * Likewise, manipulating two substreams of a parent stream will cause them to
- * step on each others toes.
+ * This is a ReadStream mixin subclass which adds non-endian read
+ * methods whose endianness is set during the stream creation.
  */
-class SubReadStream : virtual public ReadStream {
-protected:
-	ReadStream *_parentStream;
-	bool _disposeParentStream;
-	uint32 _pos;
-	uint32 _end;
-	bool _eos;
+class ReadStreamEndian : virtual public ReadStream {
+private:
+	const bool _bigEndian;
+
 public:
-	SubReadStream(ReadStream *parentStream, uint32 end, bool disposeParentStream = false)
-		: _parentStream(parentStream),
-		  _disposeParentStream(disposeParentStream),
-		  _pos(0),
-		  _end(end),
-		  _eos(false) {
-		assert(parentStream);
-	}
-	~SubReadStream() {
-		if (_disposeParentStream) delete _parentStream;
+	ReadStreamEndian(bool bigEndian) : _bigEndian(bigEndian) {}
+
+	bool isBE() const { return _bigEndian; }
+
+	uint16 readUint16() {
+		uint16 val;
+		read(&val, 2);
+		return (_bigEndian) ? TO_BE_16(val) : TO_LE_16(val);
 	}
 
-	virtual bool eos() const { return _eos; }
-	virtual bool err() const { return _parentStream->err(); }
-	virtual void clearErr() { _eos = false; _parentStream->clearErr(); }
-	virtual uint32 read(void *dataPtr, uint32 dataSize);
-};
-
-/*
- * SeekableSubReadStream provides access to a SeekableReadStream restricted to
- * the range [begin, end).
- * The same caveats apply to SeekableSubReadStream as do to SeekableReadStream.
- */
-class SeekableSubReadStream : public SubReadStream, public SeekableReadStream {
-protected:
-	SeekableReadStream *_parentStream;
-	uint32 _begin;
-public:
-	SeekableSubReadStream(SeekableReadStream *parentStream, uint32 begin, uint32 end, bool disposeParentStream = false);
-
-	virtual int32 pos() const { return _pos - _begin; }
-	virtual int32 size() const { return _end - _begin; }
-
-	virtual bool seek(int32 offset, int whence = SEEK_SET);
-};
-
-/**
- * This is a wrapper around SeekableSubReadStream, but it adds non-endian
- * read methods whose endianness is set on the stream creation.
- */
-class SeekableSubReadStreamEndian : public SeekableSubReadStream {
-public:
-	bool _bigEndian;
-
-	SeekableSubReadStreamEndian(SeekableReadStream *parentStream, uint32 begin, uint32 end, bool bigEndian = false, bool disposeParentStream = false)
-		: SeekableSubReadStream(parentStream, begin, end, disposeParentStream), _bigEndian(bigEndian) {
+	uint32 readUint32() {
+		uint32 val;
+		read(&val, 4);
+		return (_bigEndian) ? TO_BE_32(val) : TO_LE_32(val);
 	}
 
-	inline uint16 readUint16() {
-		return (_bigEndian) ? readUint16BE() : readUint16LE();
-	}
-
-	inline uint32 readUint32() {
-		return (_bigEndian) ? readUint32BE() : readUint32LE();
-	}
-
-	inline int16 readSint16() {
+	FORCEINLINE int16 readSint16() {
 		return (int16)readUint16();
 	}
 
-	inline int32 readSint32() {
+	FORCEINLINE int32 readSint32() {
 		return (int32)readUint32();
 	}
 };
 
 /**
- * Wrapper class which adds buffering to any given ReadStream.
- * Users can specify how big the buffer should be, and whether the
- * wrapped stream should be disposed when the wrapper is disposed.
+ * This is a SeekableReadStream subclass which adds non-endian read
+ * methods whose endianness is set during the stream creation.
  */
-class BufferedReadStream : virtual public ReadStream {
-protected:
-	ReadStream *_parentStream;
-	bool _disposeParentStream;
-	byte *_buf;
-	uint32 _pos;
-	uint32 _bufSize;
-	uint32 _realBufSize;
-
+class SeekableReadStreamEndian : public SeekableReadStream, public ReadStreamEndian {
 public:
-	BufferedReadStream(ReadStream *parentStream, uint32 bufSize, bool disposeParentStream = false);
-	~BufferedReadStream();
-
-	virtual bool eos() const { return (_pos == _bufSize) && _parentStream->eos(); }
-	virtual bool err() const { return _parentStream->err(); }
-	virtual void clearErr() { _parentStream->clearErr(); }
-
-	virtual uint32 read(void *dataPtr, uint32 dataSize);
+	SeekableReadStreamEndian(bool bigEndian) : ReadStreamEndian(bigEndian) {}
 };
 
-/**
- * Wrapper class which adds buffering to any given SeekableReadStream.
- * @see BufferedReadStream
- */
-class BufferedSeekableReadStream : public BufferedReadStream, public SeekableReadStream {
-protected:
-	SeekableReadStream *_parentStream;
-public:
-	BufferedSeekableReadStream(SeekableReadStream *parentStream, uint32 bufSize, bool disposeParentStream = false);
-
-	virtual int32 pos() const { return _parentStream->pos() - (_bufSize - _pos); }
-	virtual int32 size() const { return _parentStream->size(); }
-
-	virtual bool seek(int32 offset, int whence = SEEK_SET);
-};
-
-
-
-/**
- * Simple memory based 'stream', which implements the ReadStream interface for
- * a plain memory block.
- */
-class MemoryReadStream : public SeekableReadStream {
-private:
-	const byte * const _ptrOrig;
-	const byte *_ptr;
-	const uint32 _size;
-	uint32 _pos;
-	byte _encbyte;
-	bool _disposeMemory;
-	bool _eos;
-
-public:
-
-	/**
-	 * This constructor takes a pointer to a memory buffer and a length, and
-	 * wraps it. If disposeMemory is true, the MemoryReadStream takes ownership
-	 * of the buffer and hence free's it when destructed.
-	 */
-	MemoryReadStream(const byte *dataPtr, uint32 dataSize, bool disposeMemory = false) :
-		_ptrOrig(dataPtr),
-		_ptr(dataPtr),
-		_size(dataSize),
-		_pos(0),
-		_encbyte(0),
-		_disposeMemory(disposeMemory),
-		_eos(false) {}
-
-	~MemoryReadStream() {
-		if (_disposeMemory)
-			free(const_cast<byte *>(_ptrOrig));
-	}
-
-	void setEnc(byte value) { _encbyte = value; }
-
-	uint32 read(void *dataPtr, uint32 dataSize);
-
-	bool eos() const { return _eos; }
-	void clearErr() { _eos = false; }
-
-	int32 pos() const { return _pos; }
-	int32 size() const { return _size; }
-
-	bool seek(int32 offs, int whence = SEEK_SET);
-};
-
-
-/**
- * This is a wrapper around MemoryReadStream, but it adds non-endian
- * read methods whose endianness is set on the stream creation.
- */
-class MemoryReadStreamEndian : public Common::MemoryReadStream {
-private:
-public:
-	bool _bigEndian;
-	MemoryReadStreamEndian(const byte *buf, uint32 len, bool bigEndian = false) : MemoryReadStream(buf, len), _bigEndian(bigEndian) {}
-
-	inline uint16 readUint16() {
-		return (_bigEndian) ? readUint16BE() : readUint16LE();
-	}
-
-	inline uint32 readUint32() {
-		return (_bigEndian) ? readUint32BE() : readUint32LE();
-	}
-
-	inline int16 readSint16() {
-		return (int16)readUint16();
-	}
-
-	inline int32 readSint32() {
-		return (int32)readUint32();
-	}
-};
-
-/**
- * Simple memory based 'stream', which implements the WriteStream interface for
- * a plain memory block.
- */
-class MemoryWriteStream : public WriteStream {
-private:
-	byte *_ptr;
-	const uint32 _bufSize;
-	uint32 _pos;
-public:
-	MemoryWriteStream(byte *buf, uint32 len) : _ptr(buf), _bufSize(len), _pos(0) {}
-
-	uint32 write(const void *dataPtr, uint32 dataSize) {
-		// Write at most as many bytes as are still available...
-		if (dataSize > _bufSize - _pos)
-			dataSize = _bufSize - _pos;
-		memcpy(_ptr, dataPtr, dataSize);
-		_ptr += dataSize;
-		_pos += dataSize;
-		return dataSize;
-	}
-
-	uint32 pos() const { return _pos; }
-	uint32 size() const { return _bufSize; }
-};
-
-/**
- * A sort of hybrid between MemoryWriteStream and Array classes. A stream
- * that grows as it's written to.
- */
-class MemoryWriteStreamDynamic : public Common::WriteStream {
-private:
-	uint32 _capacity;
-	uint32 _size;
-	byte *_ptr;
-	byte *_data;
-	uint32 _pos;
-	bool _disposeMemory;
-
-	void ensureCapacity(uint32 new_len) {
-		if (new_len <= _capacity)
-			return;
-
-		byte *old_data = _data;
-
-		_capacity = new_len + 32;
-		_data = new byte[_capacity];
-		_ptr = _data + _pos;
-
-		if (old_data) {
-			// Copy old data
-			memcpy(_data, old_data, _size);
-			delete[] old_data;
-		}
-
-		_size = new_len;
-	}
-public:
-	MemoryWriteStreamDynamic(bool disposeMemory = false) : _capacity(0), _size(0), _ptr(0), _data(0), _pos(0), _disposeMemory(disposeMemory) {}
-
-	~MemoryWriteStreamDynamic() {
-		if (_disposeMemory)
-			delete[] _data;
-	}
-
-	uint32 write(const void *dataPtr, uint32 dataSize) {
-		ensureCapacity(_pos + dataSize);
-		memcpy(_ptr, dataPtr, dataSize);
-		_ptr += dataSize;
-		_pos += dataSize;
-		if (_pos > _size)
-			_size = _pos;
-		return dataSize;
-	}
-
-	uint32 pos() const { return _pos; }
-	uint32 size() const { return _size; }
-
-	byte *getData() { return _data; }
-};
 
 }	// End of namespace Common
 

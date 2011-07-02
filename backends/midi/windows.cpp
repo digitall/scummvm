@@ -17,19 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
+
+#include "common/scummsys.h"
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 // winnt.h defines ARRAYSIZE, but we want our own one...
 #undef ARRAYSIZE
 
-#include "sound/musicplugin.h"
-#include "sound/mpu401.h"
+#include "audio/musicplugin.h"
+#include "audio/mpu401.h"
+#include "common/config-manager.h"
+#include "common/translation.h"
+#include "common/textconsole.h"
+#include "common/error.h"
 
 #include <mmsystem.h>
 
@@ -46,12 +53,14 @@ private:
 	HANDLE _streamEvent;
 	HMIDIOUT _mo;
 	bool _isOpen;
+	int _device;
 
 	void check_error(MMRESULT result);
 
 public:
-	MidiDriver_WIN() : _isOpen(false) { }
+	MidiDriver_WIN(int deviceIndex) : _isOpen(false), _device(deviceIndex) { }
 	int open();
+	bool isOpen() const { return _isOpen; }
 	void close();
 	void send(uint32 b);
 	void sysEx(const byte *msg, uint16 length);
@@ -62,7 +71,7 @@ int MidiDriver_WIN::open() {
 		return MERR_ALREADY_OPEN;
 
 	_streamEvent = CreateEvent(NULL, true, true, NULL);
-	MMRESULT res = midiOutOpen((HMIDIOUT *)&_mo, MIDI_MAPPER, (DWORD_PTR)_streamEvent, 0, CALLBACK_EVENT);
+	MMRESULT res = midiOutOpen((HMIDIOUT *)&_mo, _device, (DWORD_PTR)_streamEvent, 0, CALLBACK_EVENT);
 	if (res != MMSYSERR_NOERROR) {
 		check_error(res);
 		CloseHandle(_streamEvent);
@@ -84,6 +93,8 @@ void MidiDriver_WIN::close() {
 }
 
 void MidiDriver_WIN::send(uint32 b) {
+	assert(_isOpen);
+
 	union {
 		DWORD dwData;
 		BYTE bData[4];
@@ -102,7 +113,7 @@ void MidiDriver_WIN::sysEx(const byte *msg, uint16 length) {
 		return;
 
 	if (WaitForSingleObject (_streamEvent, 2000) == WAIT_TIMEOUT) {
-		warning ("Could not send SysEx - MMSYSTEM is still trying to send data.");
+		warning ("Could not send SysEx - MMSYSTEM is still trying to send data");
 		return;
 	}
 
@@ -150,7 +161,7 @@ void MidiDriver_WIN::check_error(MMRESULT result) {
 class WindowsMusicPlugin : public MusicPluginObject {
 public:
 	const char *getName() const {
-		return "Windows MIDI";
+		return _s("Windows MIDI");
 	}
 
 	const char *getId() const {
@@ -158,30 +169,41 @@ public:
 	}
 
 	MusicDevices getDevices() const;
-	Common::Error createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
 };
 
 MusicDevices WindowsMusicPlugin::getDevices() const {
 	MusicDevices devices;
-	// TODO: Return a different music type depending on the configuration
-	// TODO: List the available devices
-	devices.push_back(MusicDevice(this, "", MT_GM));
+	int numDevs = midiOutGetNumDevs();
+	MIDIOUTCAPS tmp;
+
+	for (int i = 0; i < numDevs; i++) {
+		if (midiOutGetDevCaps(i, &tmp, sizeof(MIDIOUTCAPS)) != MMSYSERR_NOERROR)
+			break;
+		// There is no way to detect the "MusicType" so I just set it to MT_GM
+		// The user will have to manually select his MT32 type device and his GM type device.
+		devices.push_back(MusicDevice(this, tmp.szPname, MT_GM));
+	}
 	return devices;
 }
 
-Common::Error WindowsMusicPlugin::createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const {
-	*mididriver = new MidiDriver_WIN();
+Common::Error WindowsMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle dev) const {
+	int devIndex = 0;
+	bool found = false;
 
+	if (dev) {
+		MusicDevices i = getDevices();
+		for (MusicDevices::iterator d = i.begin(); d != i.end(); d++) {
+			if (d->getCompleteId().equals(MidiDriver::getDeviceString(dev, MidiDriver::kDeviceId))) {
+				found = true;
+				break;
+			}
+			devIndex++;
+		}
+	}
+
+	*mididriver = new MidiDriver_WIN(found ? devIndex : 0);
 	return Common::kNoError;
-}
-
-MidiDriver *MidiDriver_WIN_create(Audio::Mixer *mixer) {
-	MidiDriver *mididriver;
-
-	WindowsMusicPlugin p;
-	p.createInstance(mixer, &mididriver);
-
-	return mididriver;
 }
 
 //#if PLUGIN_ENABLED_DYNAMIC(WINDOWS)

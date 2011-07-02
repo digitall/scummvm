@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Misc. graphics routines
@@ -34,6 +31,8 @@
 
 #include "common/system.h"
 #include "graphics/cursorman.h"
+#include "graphics/palette.h"
+#include "engines/util.h"
 
 namespace Saga {
 
@@ -45,7 +44,7 @@ Gfx::Gfx(SagaEngine *vm, OSystem *system, int width, int height) : _vm(vm), _sys
 
 	debug(5, "Init screen %dx%d", width, height);
 	// Convert surface data to R surface data
-	_backBuffer.create(width, height, 1);
+	_backBuffer.create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 
 	// Start with the cursor shown. It will be hidden before the intro, if
 	// there is an intro. (With boot params, there may not be.)
@@ -172,21 +171,17 @@ void Gfx::initPalette() {
 		error("Resource::loadGlobalResources() resource context not found");
 	}
 
-	byte *resourcePointer;
-	size_t resourceLength;
+	ByteArray resourceData;
 
-	_vm->_resource->loadResource(resourceContext, RID_IHNM_DEFAULT_PALETTE,
-								 resourcePointer, resourceLength);
+	_vm->_resource->loadResource(resourceContext, RID_IHNM_DEFAULT_PALETTE, resourceData);
 
-	MemoryReadStream metaS(resourcePointer, resourceLength);
+	ByteArrayReadStreamEndian metaS(resourceData);
 
 	for (int i = 0; i < 256; i++) {
 		_globalPalette[i].red = metaS.readByte();
 		_globalPalette[i].green = metaS.readByte();
 		_globalPalette[i].blue = metaS.readByte();
 	}
-
-	free(resourcePointer);
 
 	setPalette(_globalPalette, true);
 }
@@ -204,22 +199,21 @@ void Gfx::setPalette(const PalEntry *pal, bool full) {
 		numcolors = 248;
 	}
 
-	for (i = 0, ppal = &_currentPal[from * 4]; i < numcolors; i++, ppal += 4) {
+	for (i = 0, ppal = &_currentPal[from * 3]; i < numcolors; i++, ppal += 3) {
 		ppal[0] = _globalPalette[i].red = pal[i].red;
 		ppal[1] = _globalPalette[i].green = pal[i].green;
 		ppal[2] = _globalPalette[i].blue = pal[i].blue;
-		ppal[3] = 0;
 	}
 
 	// Color 0 should always be black in IHNM
 	if (_vm->getGameId() == GID_IHNM)
-		memset(&_currentPal[0 * 4], 0, 4);
+		memset(&_currentPal[0 * 3], 0, 3);
 
 	// Make 256th color black. See bug #1256368
 	if ((_vm->getPlatform() == Common::kPlatformMacintosh) && !_vm->_scene->isInIntro())
-		memset(&_currentPal[255 * 4], 0, 4);
+		memset(&_currentPal[255 * 3], 0, 3);
 
-	_system->setPalette(_currentPal, 0, PAL_ENTRIES);
+	_system->getPaletteManager()->setPalette(_currentPal, 0, PAL_ENTRIES);
 }
 
 void Gfx::setPaletteColor(int n, int r, int g, int b) {
@@ -228,32 +222,28 @@ void Gfx::setPaletteColor(int n, int r, int g, int b) {
 	// This function may get called a lot. To avoid forcing full-screen
 	// updates, only update the palette if the color actually changes.
 
-	if (_currentPal[4 * n + 0] != r) {
-		_currentPal[4 * n + 0] = _globalPalette[n].red = r;
+	if (_currentPal[3 * n + 0] != r) {
+		_currentPal[3 * n + 0] = _globalPalette[n].red = r;
 		update = true;
 	}
-	if (_currentPal[4 * n + 1] != g) {
-		_currentPal[4 * n + 1] = _globalPalette[n].green = g;
+	if (_currentPal[3 * n + 1] != g) {
+		_currentPal[3 * n + 1] = _globalPalette[n].green = g;
 		update = true;
 	}
-	if (_currentPal[4 * n + 2] != b) {
-		_currentPal[4 * n + 2] = _globalPalette[n].blue = b;
-		update = true;
-	}
-	if (_currentPal[4 * n + 3] != 0) {
-		_currentPal[4 * n + 3] = 0;
+	if (_currentPal[3 * n + 2] != b) {
+		_currentPal[3 * n + 2] = _globalPalette[n].blue = b;
 		update = true;
 	}
 
 	if (update)
-		_system->setPalette(_currentPal, n, 1);
+		_system->getPaletteManager()->setPalette(_currentPal + n * 3, n, 1);
 }
 
 void Gfx::getCurrentPal(PalEntry *src_pal) {
 	int i;
 	byte *ppal;
 
-	for (i = 0, ppal = _currentPal; i < PAL_ENTRIES; i++, ppal += 4) {
+	for (i = 0, ppal = _currentPal; i < PAL_ENTRIES; i++, ppal += 3) {
 		src_pal[i].red = ppal[0];
 		src_pal[i].green = ppal[1];
 		src_pal[i].blue = ppal[2];
@@ -288,7 +278,7 @@ void Gfx::palToBlack(PalEntry *srcPal, double percent) {
 	fpercent = 1.0 - fpercent;
 
 	// Use the correct percentage change per frame for each palette entry
-	for (i = 0, ppal = _currentPal; i < PAL_ENTRIES; i++, ppal += 4) {
+	for (i = 0, ppal = _currentPal; i < PAL_ENTRIES; i++, ppal += 3) {
 		if (i < from || i >= from + numcolors)
 			palE = &_globalPalette[i];
 		else
@@ -317,18 +307,17 @@ void Gfx::palToBlack(PalEntry *srcPal, double percent) {
 		} else {
 			ppal[2] = (byte) new_entry;
 		}
-		ppal[3] = 0;
 	}
 
 	// Color 0 should always be black in IHNM
 	if (_vm->getGameId() == GID_IHNM)
-		memset(&_currentPal[0 * 4], 0, 4);
+		memset(&_currentPal[0 * 3], 0, 3);
 
 	// Make 256th color black. See bug #1256368
 	if ((_vm->getPlatform() == Common::kPlatformMacintosh) && !_vm->_scene->isInIntro())
-		memset(&_currentPal[255 * 4], 0, 4);
+		memset(&_currentPal[255 * 3], 0, 3);
 
-	_system->setPalette(_currentPal, 0, PAL_ENTRIES);
+	_system->getPaletteManager()->setPalette(_currentPal, 0, PAL_ENTRIES);
 }
 
 void Gfx::blackToPal(PalEntry *srcPal, double percent) {
@@ -355,7 +344,7 @@ void Gfx::blackToPal(PalEntry *srcPal, double percent) {
 	fpercent = percent * percent;
 
 	// Use the correct percentage change per frame for each palette entry
-	for (i = 0, ppal = _currentPal; i < PAL_ENTRIES; i++, ppal += 4) {
+	for (i = 0, ppal = _currentPal; i < PAL_ENTRIES; i++, ppal += 3) {
 		if (i < from || i >= from + numcolors)
 			palE = &_globalPalette[i];
 		else
@@ -384,18 +373,17 @@ void Gfx::blackToPal(PalEntry *srcPal, double percent) {
 		} else {
 			ppal[2] = (byte) new_entry;
 		}
-		ppal[3] = 0;
 	}
 
 	// Color 0 should always be black in IHNM
 	if (_vm->getGameId() == GID_IHNM)
-		memset(&_currentPal[0 * 4], 0, 4);
+		memset(&_currentPal[0 * 3], 0, 3);
 
 	// Make 256th color black. See bug #1256368
 	if ((_vm->getPlatform() == Common::kPlatformMacintosh) && !_vm->_scene->isInIntro())
-		memset(&_currentPal[255 * 4], 0, 4);
+		memset(&_currentPal[255 * 3], 0, 3);
 
-	_system->setPalette(_currentPal, 0, PAL_ENTRIES);
+	_system->getPaletteManager()->setPalette(_currentPal, 0, PAL_ENTRIES);
 }
 
 #ifdef ENABLE_IHNM
@@ -423,10 +411,10 @@ void Gfx::palFade(PalEntry *srcPal, int16 from, int16 to, int16 start, int16 num
 	if (from > to)
 		percent = 1.0 - percent;
 
-	byte fadePal[PAL_ENTRIES * 4];
+	byte fadePal[PAL_ENTRIES * 3];
 
 	// Use the correct percentage change per frame for each palette entry
-	for (i = start, ppal = fadePal + start * 4; i < start + numColors; i++, ppal += 4) {
+	for (i = start, ppal = fadePal + start * 3; i < start + numColors; i++, ppal += 3) {
 		palE = &srcPal[i];
 
 		new_entry = (int)(palE->red * percent);
@@ -452,13 +440,12 @@ void Gfx::palFade(PalEntry *srcPal, int16 from, int16 to, int16 start, int16 num
 		} else {
 			ppal[2] = (byte) new_entry;
 		}
-		ppal[3] = 0;
 	}
 
 	// Color 0 should always be black in IHNM
-	memset(&fadePal[0 * 4], 0, 4);
+	memset(&fadePal[0 * 3], 0, 3);
 
-	_system->setPalette(&fadePal[start * 4], start, numColors);
+	_system->getPaletteManager()->setPalette(&fadePal[start * 3], start, numColors);
 }
 
 #endif
@@ -493,7 +480,7 @@ void Gfx::setCursor(CursorType cursorType) {
 
 		switch (cursorType) {
 		case kCursorBusy:
-			if (!(_vm->getFeatures() & GF_IHNM_DEMO))
+			if (!_vm->isIHNMDemo())
 				resourceId = RID_IHNM_HOURGLASS_CURSOR;
 			else
 				resourceId = (uint32)-1;
@@ -503,22 +490,19 @@ void Gfx::setCursor(CursorType cursorType) {
 			break;
 		}
 
-		byte *resource;
-		size_t resourceLength;
-		byte *image;
-		size_t imageLength;
+		ByteArray resourceData;
+		ByteArray image;
 		int width, height;
 
 		if (resourceId != (uint32)-1) {
 			ResourceContext *context = _vm->_resource->getContext(GAME_RESOURCEFILE);
 
-			_vm->_resource->loadResource(context, resourceId, resource, resourceLength);
+			_vm->_resource->loadResource(context, resourceId, resourceData);
 
-			_vm->decodeBGImage(resource, resourceLength, &image, &imageLength, &width, &height);
+			_vm->decodeBGImage(resourceData, image, &width, &height);
 		} else {
-			resource = NULL;
 			width = height = 31;
-			image = (byte *)calloc(width, height);
+			image.resize(width * height);
 
 			for (int i = 0; i < 14; i++) {
 				image[15 * 31 + i] = 1;
@@ -529,10 +513,7 @@ void Gfx::setCursor(CursorType cursorType) {
 		}
 
 		// Note: Hard-coded hotspot
-		CursorMan.replaceCursor(image, width, height, 15, 15, 0);
-
-		free(image);
-		free(resource);
+		CursorMan.replaceCursor(image.getBuffer(), width, height, 15, 15, 0);
 	}
 }
 
@@ -563,8 +544,9 @@ bool hitTestPoly(const Point *points, unsigned int npoints, const Point& test_po
 
 // This method adds a dirty rectangle automatically
 void Gfx::drawFrame(const Common::Point &p1, const Common::Point &p2, int color) {
-	_backBuffer.drawFrame(p1, p2, color);
-	_vm->_render->addDirtyRect(Common::Rect(p1.x, p1.y, p2.x + 1, p2.y + 1));
+	Common::Rect rect(MIN(p1.x, p2.x), MIN(p1.y, p2.y), MAX(p1.x, p2.x) + 1, MAX(p1.y, p2.y) + 1);
+	_backBuffer.frameRect(rect, color);
+	_vm->_render->addDirtyRect(rect);
 }
 
 // This method adds a dirty rectangle automatically

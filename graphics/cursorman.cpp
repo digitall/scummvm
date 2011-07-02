@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "graphics/cursorman.h"
@@ -27,18 +24,19 @@
 #include "common/system.h"
 #include "common/stack.h"
 
+namespace Common {
 DECLARE_SINGLETON(Graphics::CursorManager);
+}
 
 namespace Graphics {
 
-static bool g_initialized = false;
-
-CursorManager::CursorManager() {
-	if (!g_initialized) {
-		g_initialized = true;
-		_cursorStack.clear();
-		_cursorPaletteStack.clear();
-	}
+CursorManager::~CursorManager() {
+	for (int i = 0; i < _cursorStack.size(); ++i)
+		delete _cursorStack[i];
+	_cursorStack.clear();
+	for (int i = 0; i < _cursorPaletteStack.size(); ++i)
+		delete _cursorPaletteStack[i];
+	_cursorPaletteStack.clear();
 }
 
 bool CursorManager::isVisible() {
@@ -57,14 +55,14 @@ bool CursorManager::showMouse(bool visible) {
 	return g_system->showMouse(visible);
 }
 
-void CursorManager::pushCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor, int targetScale) {
-	Cursor *cur = new Cursor(buf, w, h, hotspotX, hotspotY, keycolor, targetScale);
+void CursorManager::pushCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int targetScale, const Graphics::PixelFormat *format) {
+	Cursor *cur = new Cursor(buf, w, h, hotspotX, hotspotY, keycolor, targetScale, format);
 
 	cur->_visible = isVisible();
 	_cursorStack.push(cur);
 
 	if (buf) {
-		g_system->setMouseCursor(cur->_data, w, h, hotspotX, hotspotY, keycolor, targetScale);
+		g_system->setMouseCursor(cur->_data, w, h, hotspotX, hotspotY, keycolor, targetScale, format);
 	}
 }
 
@@ -77,7 +75,7 @@ void CursorManager::popCursor() {
 
 	if (!_cursorStack.empty()) {
 		cur = _cursorStack.top();
-		g_system->setMouseCursor(cur->_data, cur->_width, cur->_height, cur->_hotspotX, cur->_hotspotY, cur->_keycolor, cur->_targetScale);
+		g_system->setMouseCursor(cur->_data, cur->_width, cur->_height, cur->_hotspotX, cur->_hotspotY, cur->_keycolor, cur->_targetScale, &cur->_format);
 	}
 
 	g_system->showMouse(isVisible());
@@ -90,7 +88,7 @@ void CursorManager::popAllCursors() {
 		delete cur;
 	}
 
-	if (g_system->hasFeature(OSystem::kFeatureCursorHasPalette)) {
+	if (g_system->hasFeature(OSystem::kFeatureCursorPalette)) {
 		while (!_cursorPaletteStack.empty()) {
 			Palette *pal = _cursorPaletteStack.pop();
 			delete pal;
@@ -100,15 +98,24 @@ void CursorManager::popAllCursors() {
 	g_system->showMouse(isVisible());
 }
 
+void CursorManager::replaceCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int targetScale, const Graphics::PixelFormat *format) {
 
-void CursorManager::replaceCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor, int targetScale) {
 	if (_cursorStack.empty()) {
-		pushCursor(buf, w, h, hotspotX, hotspotY, keycolor, targetScale);
+		pushCursor(buf, w, h, hotspotX, hotspotY, keycolor, targetScale, format);
 		return;
 	}
 
 	Cursor *cur = _cursorStack.top();
+
+#ifdef USE_RGB_COLOR
+	uint size;
+	if (!format)
+		size = w * h;
+	else
+		size = w * h * format->bytesPerPixel;
+#else
 	uint size = w * h;
+#endif
 
 	if (cur->_size < size) {
 		delete[] cur->_data;
@@ -125,16 +132,22 @@ void CursorManager::replaceCursor(const byte *buf, uint w, uint h, int hotspotX,
 	cur->_hotspotY = hotspotY;
 	cur->_keycolor = keycolor;
 	cur->_targetScale = targetScale;
+#ifdef USE_RGB_COLOR
+	if (format)
+		cur->_format = *format;
+	else
+		cur->_format = Graphics::PixelFormat::createFormatCLUT8();
+#endif
 
-	g_system->setMouseCursor(cur->_data, w, h, hotspotX, hotspotY, keycolor, targetScale);
+	g_system->setMouseCursor(cur->_data, w, h, hotspotX, hotspotY, keycolor, targetScale, format);
 }
 
 bool CursorManager::supportsCursorPalettes() {
-	return g_system->hasFeature(OSystem::kFeatureCursorHasPalette);
+	return g_system->hasFeature(OSystem::kFeatureCursorPalette);
 }
 
 void CursorManager::disableCursorPalette(bool disable) {
-	if (!g_system->hasFeature(OSystem::kFeatureCursorHasPalette))
+	if (!g_system->hasFeature(OSystem::kFeatureCursorPalette))
 		return;
 
 	if (_cursorPaletteStack.empty())
@@ -143,11 +156,11 @@ void CursorManager::disableCursorPalette(bool disable) {
 	Palette *pal = _cursorPaletteStack.top();
 	pal->_disabled = disable;
 
-	g_system->disableCursorPalette(disable);
+	g_system->setFeatureState(OSystem::kFeatureCursorPalette, !disable);
 }
 
 void CursorManager::pushCursorPalette(const byte *colors, uint start, uint num) {
-	if (!g_system->hasFeature(OSystem::kFeatureCursorHasPalette))
+	if (!g_system->hasFeature(OSystem::kFeatureCursorPalette))
 		return;
 
 	Palette *pal = new Palette(colors, start, num);
@@ -156,11 +169,11 @@ void CursorManager::pushCursorPalette(const byte *colors, uint start, uint num) 
 	if (num)
 		g_system->setCursorPalette(colors, start, num);
 	else
-		g_system->disableCursorPalette(true);
+		g_system->setFeatureState(OSystem::kFeatureCursorPalette, false);
 }
 
 void CursorManager::popCursorPalette() {
-	if (!g_system->hasFeature(OSystem::kFeatureCursorHasPalette))
+	if (!g_system->hasFeature(OSystem::kFeatureCursorPalette))
 		return;
 
 	if (_cursorPaletteStack.empty())
@@ -170,7 +183,7 @@ void CursorManager::popCursorPalette() {
 	delete pal;
 
 	if (_cursorPaletteStack.empty()) {
-		g_system->disableCursorPalette(true);
+		g_system->setFeatureState(OSystem::kFeatureCursorPalette, false);
 		return;
 	}
 
@@ -179,11 +192,11 @@ void CursorManager::popCursorPalette() {
 	if (pal->_num && !pal->_disabled)
 		g_system->setCursorPalette(pal->_data, pal->_start, pal->_num);
 	else
-		g_system->disableCursorPalette(true);
+		g_system->setFeatureState(OSystem::kFeatureCursorPalette, false);
 }
 
 void CursorManager::replaceCursorPalette(const byte *colors, uint start, uint num) {
-	if (!g_system->hasFeature(OSystem::kFeatureCursorHasPalette))
+	if (!g_system->hasFeature(OSystem::kFeatureCursorPalette))
 		return;
 
 	if (_cursorPaletteStack.empty()) {
@@ -192,7 +205,7 @@ void CursorManager::replaceCursorPalette(const byte *colors, uint start, uint nu
 	}
 
 	Palette *pal = _cursorPaletteStack.top();
-	uint size = 4 * num;
+	uint size = 3 * num;
 
 	if (pal->_size < size) {
 		// Could not re-use the old buffer. Create a new one.
@@ -205,11 +218,57 @@ void CursorManager::replaceCursorPalette(const byte *colors, uint start, uint nu
 	pal->_num = num;
 
 	if (num) {
-		memcpy(pal->_data, colors, 4 * num);
+		memcpy(pal->_data, colors, size);
 		g_system->setCursorPalette(pal->_data, pal->_start, pal->_num);
 	} else {
-		g_system->disableCursorPalette(true);
+		g_system->setFeatureState(OSystem::kFeatureCursorPalette, false);
 	}
+}
+
+CursorManager::Cursor::Cursor(const byte *data, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int targetScale, const Graphics::PixelFormat *format) {
+#ifdef USE_RGB_COLOR
+	if (!format)
+		_format = Graphics::PixelFormat::createFormatCLUT8();
+	 else
+		_format = *format;
+	_size = w * h * _format.bytesPerPixel;
+	_keycolor = keycolor & ((1 << (_format.bytesPerPixel << 3)) - 1);
+#else
+	_format = Graphics::PixelFormat::createFormatCLUT8();
+	_size = w * h;
+	_keycolor = keycolor & 0xFF;
+#endif
+	_data = new byte[_size];
+	if (data && _data)
+		memcpy(_data, data, _size);
+	_width = w;
+	_height = h;
+	_hotspotX = hotspotX;
+	_hotspotY = hotspotY;
+	_targetScale = targetScale;
+}
+
+CursorManager::Cursor::~Cursor() {
+	delete[] _data;
+}
+
+CursorManager::Palette::Palette(const byte *colors, uint start, uint num) {
+	_start = start;
+	_num = num;
+	_size = 3 * num;
+
+	if (num) {
+		_data = new byte[_size];
+		memcpy(_data, colors, _size);
+	} else {
+		_data = NULL;
+	}
+
+	_disabled = false;
+}
+
+CursorManager::Palette::~Palette() {
+	delete[] _data;
 }
 
 } // End of namespace Graphics

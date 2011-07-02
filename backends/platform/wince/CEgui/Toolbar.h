@@ -18,34 +18,26 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CEGUI_TOOLBAR
-#define CEGUI_TOOLBAR
+#ifndef CEGUI_TOOLBAR_H
+#define CEGUI_TOOLBAR_H
 
 #include "common/scummsys.h"
-#include "common/system.h"
-
-//#include "common/map.h"
-#include "common/str.h"
 
 #include "GUIElement.h"
 
-
-
 namespace CEGUI {
 
-	class Toolbar : public GUIElement {
-	public:
-		virtual ~Toolbar();
-		virtual bool action(int x, int y, bool pushed) = 0;
-	protected:
-		Toolbar();
+class Toolbar : public GUIElement {
+public:
+	virtual ~Toolbar();
+	virtual bool action(int x, int y, bool pushed) = 0;
+protected:
+	Toolbar();
 
-	};
-}
+};
+
+} // End of namespace CEGUI
 
 #endif

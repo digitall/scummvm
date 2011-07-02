@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_SAGA2
@@ -42,64 +39,54 @@
 
 namespace Saga {
 
-void readElement(Common::File *file, Saga::ResourceData *element) {
-	element->id = file->readUint32BE();
-	element->offset = file->readUint32LE();
-	element->size = file->readUint32LE();
-	debug(3, "Entry: id %u, offset %u, size %u", element->id, (uint)element->offset, (uint)element->size);
+void readElement(Common::File &file, Saga::ResourceData &element) {
+	element.id = file.readUint32BE();
+	element.offset = file.readUint32LE();
+	element.size = file.readUint32LE();
+	debug(3, "Entry: id %u, offset %u, size %u", element.id, (uint)element.offset, (uint)element.size);
 }
 
-bool Resource_HRS::loadResContext_v2(ResourceContext *context, uint32 contextSize) {
-	ResourceData *origin = new ResourceData();
+bool ResourceContext_HRS::loadResV2(uint32 contextSize) {
+	ResourceData origin;
 	uint32 firstEntryOffset;
 	uint32 tableSize;
 	int i, count;
 	const uint32 resourceSize = 4 + 4 + 4;	// id, size, offset
 
-	debug(3, "Context %s =====", context->fileName);
-	context->file->seek(0, SEEK_SET);
+	debug(3, "Context %s =====", _fileName);
+	_file.seek(0, SEEK_SET);
 
-	readElement(context->file, origin);
+	readElement(_file, origin);
 
 	// Check if the file is valid
-	if (origin->id != MKID_BE('HRES')) {	// header
-		free(origin);
+	if (origin.id != MKTAG('H','R','E','S')) {	// header
 		return false;
 	}
 
 	// Read offset of first entry
-	context->file->seek(origin->offset - sizeof(uint32), SEEK_SET);
-	firstEntryOffset = context->file->readUint32LE();
+	_file.seek(origin.offset - sizeof(uint32), SEEK_SET);
+	firstEntryOffset = _file.readUint32LE();
 
 	// Allocate buffers for table, categories and data
-	context->categories = (ResourceData *) calloc(origin->size / resourceSize, sizeof(*context->categories));
-	tableSize = origin->offset - firstEntryOffset - sizeof(uint32);
-	context->table = (ResourceData *) calloc(tableSize / resourceSize, sizeof(*context->table));
-
-	if (context->categories == NULL || context->table == NULL) {
-		free(origin);
-		return false;
-	}
+	_categories.resize(origin.size / resourceSize);
+	tableSize = origin.offset - firstEntryOffset - sizeof(uint32);
+	_table.resize(tableSize / resourceSize);
 
 	// Read categories
-	count = origin->size / resourceSize;
+	count = origin.size / resourceSize;
 	debug(3, "Categories: %d =====", count);
 	for (i = 0; i < count; i++) {
-		readElement(context->file, &context->categories[i]);
+		readElement(_file, _categories[i]);
 	}
 
-	context->file->seek(firstEntryOffset, SEEK_SET);
+	_file.seek(firstEntryOffset, SEEK_SET);
 
 	// Read table entries
 	count = tableSize / resourceSize;
 	debug(3, "Entries: %d =====", count);
 	for (i = 0; i < count; i++) {
-		readElement(context->file, &context->table[i]);
+		readElement(_file, _table[i]);
 	}
-
-	context->count = tableSize / resourceSize;
-
-	free(origin);
 	return true;
 }
 

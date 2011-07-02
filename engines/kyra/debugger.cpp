@@ -18,22 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
-#include "common/config-manager.h"
-#include "common/system.h"
 #include "kyra/debugger.h"
 #include "kyra/kyra_lok.h"
-#include "kyra/kyra_v2.h"
 #include "kyra/kyra_hof.h"
-#include "kyra/screen.h"
 #include "kyra/timer.h"
 #include "kyra/resource.h"
 #include "kyra/lol.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -76,12 +70,19 @@ bool Debugger::cmd_loadPalette(int argc, const char **argv) {
 		return true;
 	}
 
-	if (_vm->gameFlags().gameID != GI_KYRA1 && _vm->resource()->getFileSize(argv[1]) != 768) {
-		uint8 buffer[320*200];
+	if (_vm->game() != GI_KYRA1 && _vm->resource()->getFileSize(argv[1]) != 768) {
+		uint8 *buffer = (uint8 *)malloc(320 * 200 * sizeof(uint8));
+		if (!buffer) {
+			DebugPrintf("ERROR: Cannot allocate buffer for screen region!\n");
+			return true;
+		}
+
 		_vm->screen()->copyRegionToBuffer(5, 0, 0, 320, 200, buffer);
 		_vm->screen()->loadBitmap(argv[1], 5, 5, 0);
 		palette.copy(_vm->screen()->getCPagePtr(5), 0, 256);
 		_vm->screen()->copyBlockToPage(5, 0, 0, 320, 200, buffer);
+
+		free(buffer);
 	} else if (!_vm->screen()->loadPalette(argv[1], palette)) {
 		DebugPrintf("ERROR: Palette '%s' not found!\n", argv[1]);
 		return true;
@@ -201,14 +202,6 @@ Debugger_LoK::Debugger_LoK(KyraEngine_LoK *vm)
 	DCmd_Register("birthstones",		WRAP_METHOD(Debugger_LoK, cmd_listBirthstones));
 }
 
-void Debugger_LoK::preEnter() {
-	//_vm->midi.pause(1);
-}
-
-void Debugger_LoK::postEnter() {
-	//_vm->midi.pause(0);
-}
-
 bool Debugger_LoK::cmd_enterRoom(int argc, const char **argv) {
 	uint direction = 0;
 	if (argc > 1) {
@@ -240,7 +233,7 @@ bool Debugger_LoK::cmd_enterRoom(int argc, const char **argv) {
 		while (!_vm->_screen->isMouseVisible())
 			_vm->_screen->showMouse();
 
-		_detach_now = true;
+		detach();
 		return false;
 	}
 
@@ -327,11 +320,11 @@ bool Debugger_v2::cmd_enterScene(int argc, const char **argv) {
 		while (!_vm->screen_v2()->isMouseVisible())
 			_vm->screen_v2()->showMouse();
 
-		_detach_now = true;
+		detach();
 		return false;
 	}
 
-	DebugPrintf("Syntax: %d <scenenum> <direction>\n", argv[0]);
+	DebugPrintf("Syntax: %s <scenenum> <direction>\n", argv[0]);
 	return true;
 }
 

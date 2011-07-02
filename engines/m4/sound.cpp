@@ -18,22 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "m4/m4.h"
 #include "m4/sound.h"
 #include "m4/compression.h"
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
 #include "common/stream.h"
+#include "common/textconsole.h"
+
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
 
 namespace M4 {
 
-Sound::Sound(M4Engine *vm, Audio::Mixer *mixer, int volume) :
+Sound::Sound(MadsM4Engine *vm, Audio::Mixer *mixer, int volume) :
 	_vm(vm), _mixer(mixer) {
 
 	for (int i = 0; i < SOUND_HANDLES; i++)
@@ -60,8 +60,7 @@ SndHandle *Sound::getHandle() {
 	}
 
 	error("Sound::getHandle(): Too many sound handles");
-
-	return NULL;
+	return NULL;	// for compilers that don't support NORETURN
 }
 
 bool Sound::isHandleActive(SndHandle *handle) {
@@ -69,7 +68,6 @@ bool Sound::isHandleActive(SndHandle *handle) {
 }
 
 void Sound::playSound(const char *soundName, int volume, bool loop, int channel) {
-	byte flags;
 	Common::SeekableReadStream *soundStream = _vm->res()->get(soundName);
 	SndHandle *handle;
 	if (channel < 0) {
@@ -89,16 +87,18 @@ void Sound::playSound(const char *soundName, int volume, bool loop, int channel)
 	_vm->res()->toss(soundName);
 
 	handle->type = kEffectHandle;
-	flags = Audio::Mixer::FLAG_AUTOFREE;
-	flags |= Audio::Mixer::FLAG_UNSIGNED;
-
-	if (loop)
-		flags |= Audio::Mixer::FLAG_LOOP;
 
 	_vm->res()->toss(soundName);
 
 	// Sound format is 8bit mono, unsigned, 11025kHz
-	_mixer->playRaw(Audio::Mixer::kSFXSoundType, &handle->handle, buffer, bufferSize, 11025, flags, -1, volume);
+	Audio::AudioStream *stream = Audio::makeLoopingAudioStream(
+				Audio::makeRawStream(buffer, bufferSize, 11025, Audio::FLAG_UNSIGNED),
+				loop ? 0 : 1);
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle->handle, stream, -1, volume);
+}
+
+void Sound::playSound(int soundNum) {
+	warning("TODO: playSound(%d)", soundNum);
 }
 
 void Sound::pauseSound() {
@@ -136,22 +136,20 @@ void Sound::stopSound(int channel) {
 }
 
 void Sound::playVoice(const char *soundName, int volume) {
-	byte flags;
 	Common::SeekableReadStream *soundStream = _vm->res()->get(soundName);
 	SndHandle *handle = getHandle();
 	byte *buffer;
 
-	buffer = new byte[soundStream->size()];
+	buffer = (byte *)malloc(soundStream->size());
 	soundStream->read(buffer, soundStream->size());
 
 	handle->type = kEffectHandle;
-	flags = Audio::Mixer::FLAG_AUTOFREE;
-	flags |= Audio::Mixer::FLAG_UNSIGNED;
 
 	_vm->res()->toss(soundName);
 
 	// Voice format is 8bit mono, unsigned, 11025kHz
-	_mixer->playRaw(Audio::Mixer::kSFXSoundType, &handle->handle, buffer, soundStream->size(), 11025, flags, -1, volume);
+	Audio::AudioStream *stream = Audio::makeRawStream(buffer, soundStream->size(), 11025, Audio::FLAG_UNSIGNED);
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle->handle, stream, -1, volume);
 }
 
 void Sound::pauseVoice() {
@@ -194,25 +192,25 @@ void Sound::loadDSRFile(const char *fileName) {
 
 	// Read header
 	_dsrFile.entryCount = fileStream->readUint16LE();
-	//printf("DSR has %i entries\n", _dsrFile.entryCount);
+	//warning(kDebugSound, "DSR has %i entries\n", _dsrFile.entryCount);
 
 	for (int i = 0; i < _dsrFile.entryCount; i++) {
-		DSREntry* newEntry = new DSREntry();
-		newEntry->frequency = fileStream->readUint16LE();
-		newEntry->channels = fileStream->readUint32LE();
-		newEntry->compSize = fileStream->readUint32LE();
-		newEntry->uncompSize = fileStream->readUint32LE();
-		newEntry->offset = fileStream->readUint32LE();
+		DSREntry newEntry;
+		newEntry.frequency = fileStream->readUint16LE();
+		newEntry.channels = fileStream->readUint32LE();
+		newEntry.compSize = fileStream->readUint32LE();
+		newEntry.uncompSize = fileStream->readUint32LE();
+		newEntry.offset = fileStream->readUint32LE();
 		_dsrFile.dsrEntries.push_back(newEntry);
 
 		/*
-		printf("%i: ", i);
-		printf("frequency: %i ", newEntry->frequency);
-		printf("channels: %i ", newEntry->channels);
-		printf("comp: %i ", newEntry->compSize);
-		printf("uncomp: %i ", newEntry->uncompSize);
-		printf("offset: %i ", newEntry->offset);
-		printf("\n");
+		warning(kDebugSound, "%i: ", i);
+		warning(kDebugSound, "frequency: %i ", newEntry->frequency);
+		warning(kDebugSound, "channels: %i ", newEntry->channels);
+		warning(kDebugSound, "comp: %i ", newEntry.compSize);
+		warning(kDebugSound, "uncomp: %i ", newEntry.uncompSize);
+		warning(kDebugSound, "offset: %i ", newEntry->offset);
+		warning(kDebugSound, "\n");
 		*/
 	}
 
@@ -225,9 +223,7 @@ void Sound::unloadDSRFile() {
 	if (!_dsrFileLoaded)
 		return;
 
-	for (int i = 0; i < _dsrFile.entryCount; i++) {
-		_dsrFile.dsrEntries.remove_at(0);
-	}
+	_dsrFile.dsrEntries.clear();
 
 	_dsrFile.entryCount = 0;
 	strcpy(_dsrFile.fileName, "");
@@ -245,37 +241,34 @@ void Sound::playDSRSound(int soundIndex, int volume, bool loop) {
 		return;
 	}
 
-	byte flags;
 	SndHandle *handle = getHandle();
 
 	handle->type = kEffectHandle;
-	flags = Audio::Mixer::FLAG_AUTOFREE;
-	flags |= Audio::Mixer::FLAG_UNSIGNED;
-
-	if (loop)
-		flags |= Audio::Mixer::FLAG_LOOP;
 
 	// Get sound data
 	FabDecompressor fab;
-	byte *compData = new byte[_dsrFile.dsrEntries[soundIndex]->compSize];
-	byte *buffer = new byte[_dsrFile.dsrEntries[soundIndex]->uncompSize];
+	byte *compData = new byte[_dsrFile.dsrEntries[soundIndex].compSize];
+	byte *buffer = new byte[_dsrFile.dsrEntries[soundIndex].uncompSize];
 	Common::SeekableReadStream *fileStream = _vm->res()->get(_dsrFile.fileName);
-	fileStream->seek(_dsrFile.dsrEntries[soundIndex]->offset, SEEK_SET);
-	fileStream->read(compData, _dsrFile.dsrEntries[soundIndex]->compSize);
+	fileStream->seek(_dsrFile.dsrEntries[soundIndex].offset, SEEK_SET);
+	fileStream->read(compData, _dsrFile.dsrEntries[soundIndex].compSize);
 	_vm->res()->toss(_dsrFile.fileName);
 
-	fab.decompress(compData, _dsrFile.dsrEntries[soundIndex]->compSize,
-				   buffer, _dsrFile.dsrEntries[soundIndex]->uncompSize);
+	fab.decompress(compData, _dsrFile.dsrEntries[soundIndex].compSize,
+				   buffer, _dsrFile.dsrEntries[soundIndex].uncompSize);
 
 	// Play sound
-	_mixer->playRaw(Audio::Mixer::kSFXSoundType, &handle->handle, buffer,
-					_dsrFile.dsrEntries[soundIndex]->uncompSize,
-					_dsrFile.dsrEntries[soundIndex]->frequency, flags, -1, volume);
+	Audio::AudioStream *stream = Audio::makeLoopingAudioStream(
+				Audio::makeRawStream(buffer,
+					_dsrFile.dsrEntries[soundIndex].uncompSize,
+					_dsrFile.dsrEntries[soundIndex].frequency, Audio::FLAG_UNSIGNED),
+				loop ? 0 : 1);
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle->handle, stream, -1, volume);
 
 	/*
 	// Dump the sound file
 	FILE *destFile = fopen("sound.raw", "wb");
-	fwrite(_dsrFile.dsrEntries[soundIndex]->data, _dsrFile.dsrEntries[soundIndex]->uncompSize, 1, destFile);
+	fwrite(_dsrFile.dsrEntries[soundIndex]->data, _dsrFile.dsrEntries[soundIndex].uncompSize, 1, destFile);
 	fclose(destFile);
 	*/
 }

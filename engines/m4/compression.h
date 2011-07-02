@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_COMPRESSION_H
@@ -48,26 +45,24 @@ private:
 	int _count;
 	int _dataOffset;
 
-	void initialise(Common::SeekableReadStream *stream);
+	void initialize(Common::SeekableReadStream *stream);
 public:
 	static bool isCompressed(Common::SeekableReadStream *stream);
 	MadsPack(Common::SeekableReadStream *stream);
-	MadsPack(const char *resourceName, M4Engine *vm);
+	MadsPack(const char *resourceName, MadsM4Engine *vm);
 	~MadsPack();
 
 	int getCount() const { return _count; }
 	MadsPackEntry &getItem(int index) const { return _items[index]; }
 	MadsPackEntry &operator[](int index) const { return _items[index]; }
-	Common::MemoryReadStream *getItemStream(int index) {
-		return new Common::MemoryReadStream(_items[index].data, _items[index].size, false);
-	}
+	Common::SeekableReadStream *getItemStream(int index);
 	int getDataOffset() const { return _dataOffset; }
 };
 
 class FabDecompressor {
 private:
-    int _bitsLeft;
-    uint32 _bitBuffer;
+	int _bitsLeft;
+	uint32 _bitBuffer;
 	const byte *_srcData, *_srcP;
 	int _srcSize;
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/game.h"
@@ -40,6 +37,10 @@ namespace Lure {
 
 static Game *int_game = NULL;
 
+bool Game::isCreated() {
+	return int_game != NULL;
+}
+
 Game &Game::getReference() {
 	return *int_game;
 }
@@ -52,8 +53,6 @@ Game::Game() {
 	_debugFlag = gDebugLevel >= ERROR_BASIC;
 
 	_soundFlag = true;
-	_musicVolume = ConfMan.getBool("music_mute") ? 0 : MIN(255, ConfMan.getInt("music_volume"));
-	_sfxVolume = ConfMan.getBool("sfx_mute") ? 0 : MIN(255, ConfMan.getInt("sfx_volume"));
 }
 
 Game::~Game() {
@@ -191,7 +190,7 @@ void Game::execute() {
 				if (events.type() == Common::EVENT_KEYDOWN) {
 					uint16 roomNum = room.roomNumber();
 
-					if ((events.event().kbd.flags == Common::KBD_CTRL) &&
+					if ((events.event().kbd.hasFlags(Common::KBD_CTRL)) &&
 						(events.event().kbd.keycode == Common::KEYCODE_d)) {
 						// Activate the debugger
 						_debugger->attach();
@@ -226,7 +225,8 @@ void Game::execute() {
 					case Common::KEYCODE_KP_MINUS:
 						if (_debugFlag) {
 							if (roomNum == 1) roomNum = 55;
-							while (res.getRoom(--roomNum) == NULL) ;
+							while (res.getRoom(--roomNum) == NULL)
+								;
 							room.setRoomNumber(roomNum);
 						}
 						break;
@@ -277,8 +277,7 @@ void Game::execute() {
 			system.updateScreen();
 			system.delayMillis(10);
 
-			if (_debugger->isAttached())
-				_debugger->onFrame();
+			_debugger->onFrame();
 		}
 
 		room.leaveRoom();
@@ -345,7 +344,7 @@ void Game::playerChangeRoom() {
 
 	uint16 roomNum = fields.playerNewPos().roomNumber;
 	fields.playerNewPos().roomNumber = 0;
-	Point &newPos = fields.playerNewPos().position;
+	Common::Point &newPos = fields.playerNewPos().position;
 
 	delayList.clear();
 
@@ -416,6 +415,7 @@ void Game::displayChuteAnimation() {
 
 void Game::displayBarrelAnimation() {
 	Mouse &mouse = Mouse::getReference();
+	Resources &res = Resources::getReference();
 
 	debugC(ERROR_INTERMEDIATE, kLureDebugAnimations, "Starting barrel animation");
 	Palette palette(BARREL_PALETTE_ID);
@@ -428,6 +428,16 @@ void Game::displayBarrelAnimation() {
 	anim->show();
 
 	delete anim;
+
+	// Disable town NPCs that are no longer needed
+	res.deactivateHotspot(SKORL_ID);
+	res.deactivateHotspot(BLACKSMITH_ID);
+	res.deactivateHotspot(GWEN_ID);
+	res.deactivateHotspot(MALLIN_ID);
+	res.deactivateHotspot(MONK1_ID);
+	res.deactivateHotspot(GOEWIN_ID);
+	res.deactivateHotspot(MONK2_ID);
+	res.deactivateHotspot(WAYNE_ID);
 
 	Sound.killSounds();
 	mouse.cursorOn();
@@ -687,7 +697,7 @@ bool Game::GetTellActions() {
 
 			switch (paramIndex) {
 			case 0:
-                // Prompt for selection of action to perform
+				// Prompt for selection of action to perform
 				action = PopupMenu::Show(0x6A07FD);
 				if (action == NONE) {
 					// Move backwards to prior specified action
@@ -987,9 +997,9 @@ bool Game::getYN() {
 
 	Common::Language l = LureEngine::getReference().getLanguage();
 	Common::KeyCode y = Common::KEYCODE_y;
-	if (l == FR_FRA) y = Common::KEYCODE_o;
-	else if ((l == DE_DEU) || (l == NL_NLD)) y = Common::KEYCODE_j;
-	else if ((l == ES_ESP) || (l == IT_ITA)) y = Common::KEYCODE_s;
+	if (l == Common::FR_FRA) y = Common::KEYCODE_o;
+	else if ((l == Common::DE_DEU) || (l == Common::NL_NLD)) y = Common::KEYCODE_j;
+	else if ((l == Common::ES_ESP) || (l == Common::IT_ITA)) y = Common::KEYCODE_s;
 
 	bool vKbdFlag = g_system->hasFeature(OSystem::kFeatureVirtualKeyboard);
 	if (!vKbdFlag)
@@ -1051,12 +1061,12 @@ bool Game::isMenuAvailable() {
 	return true;
 }
 
-void Game::saveToStream(WriteStream *stream) {
+void Game::saveToStream(Common::WriteStream *stream) {
 	stream->writeByte(_fastTextFlag);
 	stream->writeByte(_soundFlag);
 }
 
-void Game::loadFromStream(ReadStream *stream) {
+void Game::loadFromStream(Common::ReadStream *stream) {
 	Menu &menu = Menu::getReference();
 	StringList &sl = Resources::getReference().stringList();
 
@@ -1071,4 +1081,4 @@ void Game::loadFromStream(ReadStream *stream) {
 }
 
 
-} // end of namespace Lure
+} // End of namespace Lure

@@ -18,6 +18,9 @@
 //---------------------------------------------------------------
 // Includes
 
+// Allow use of stuff in <time.h>
+#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
+
 #include "gba_nds_fat.h"
 #include "disc_io.h"
 #include <string.h>
@@ -194,7 +197,8 @@ const char lfn_offset_table[13]={0x01,0x03,0x05,0x07,0x09,0x0E,0x10,0x12,0x14,0x
 // available: IWRAM on NDS ARM7, EWRAM on NDS ARM9 and GBA
 
 // Files
-_VARS_IN_RAM FAT_FILE openFiles[MAX_FILES_OPEN];
+FAT_FILE openFiles[MAX_FILES_OPEN] __attribute__((section(".itcm")));
+//_VARS_IN_RAM
 
 // Long File names
 _VARS_IN_RAM char lfnName[MAX_FILENAME_LENGTH];
@@ -294,9 +298,9 @@ u16 getRTCtoFileTime (void)
 {
 #ifdef NDS
 	return (
-		( ( (IPC->rtc_hours > 11 ? IPC->rtc_hours - 40 : IPC->rtc_hours) & 0x1F) << 11) |
-		( (IPC->rtc_minutes & 0x3F) << 5) |
-		( (IPC->rtc_seconds >> 1) & 0x1F) );
+		( ( (IPC->rtc.hours > 11 ? IPC->rtc.hours - 40 : IPC->rtc.hours) & 0x1F) << 11) |
+		( (IPC->rtc.minutes & 0x3F) << 5) |
+		( (IPC->rtc.seconds >> 1) & 0x1F) );
 #else
 	return 0;
 #endif
@@ -306,9 +310,9 @@ u16 getRTCtoFileDate (void)
 {
 #ifdef NDS
 	return (
-		( ((IPC->rtc_year + 20) & 0x7F) <<9) |
-		( (IPC->rtc_month & 0xF) << 5) |
-		(IPC->rtc_day & 0x1F) );
+		( ((IPC->rtc.year + 20) & 0x7F) <<9) |
+		( (IPC->rtc.month & 0xF) << 5) |
+		(IPC->rtc.day & 0x1F) );
 #else
 	return 0;
 #endif
@@ -1006,7 +1010,7 @@ DIR_ENT FAT_GetDirEntry ( u32 dirCluster, int entry, int origin)
 	dir.name[0] = FILE_FREE; // default to no file found
 	dir.attrib = 0x00;
 
-	// Check if fat has been initialised
+	// Check if fat has been initialized
 	if (filesysBytePerSec == 0)
 	{
 		return (dir);

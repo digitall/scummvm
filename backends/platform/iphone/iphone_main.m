@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #import <UIKit/UIKit.h>
@@ -103,13 +100,24 @@ int main(int argc, char** argv) {
 	[NSThread detachNewThreadSelector:@selector(mainLoop:) toTarget:self withObject:nil];
 }
 
+- (void)applicationDidResume
+{
+}
+
+- (void)applicationWillSuspend
+{
+}
+
+- (void)applicationWillTerminate
+{
+}
+
 - (void)applicationSuspend:(struct __GSEvent *)event {
 	//[self setApplicationBadge:NSLocalizedString(@"ON", nil)];
 	[_view applicationSuspend];
 }
 
 - (void)applicationResume:(struct __GSEvent *)event {
-	[self removeApplicationBadge];
 	[_view applicationResume];
 
 	// Workaround, need to "hide" and unhide the statusbar to properly remove it,

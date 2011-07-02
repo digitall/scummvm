@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Video script opcodes for Simon1/Simon2
@@ -32,6 +29,7 @@
 #include "common/system.h"
 
 #include "graphics/surface.h"
+#include "graphics/palette.h"
 
 namespace AGOS {
 
@@ -40,7 +38,7 @@ void AGOSEngine_Elvira2::setupVideoOpcodes(VgaOpcodeProc *op) {
 
 	op[17] = &AGOSEngine::vc17_waitEnd;
 	op[19] = &AGOSEngine::vc19_loop;
-	op[22] = &AGOSEngine::vc22_setPaletteOld;
+	op[22] = &AGOSEngine::vc22_setPalette;
 	op[28] = &AGOSEngine::vc28_playSFX;
 	op[32] = &AGOSEngine::vc32_saveScreen;
 	op[37] = &AGOSEngine::vc37_pokePalette;
@@ -115,7 +113,7 @@ void AGOSEngine::setPaletteSlot(uint16 srcOffs, uint8 dstOffs) {
 	byte *offs, *palptr, *src;
 	uint16 num;
 
-	palptr = _displayPalette + dstOffs * 64;
+	palptr = _displayPalette + dstOffs * 3 * 16;
 	offs = _curVgaFile1 + READ_BE_UINT16(_curVgaFile1 + 6);
 	src = offs + srcOffs * 32;
 	num = 16;
@@ -125,9 +123,8 @@ void AGOSEngine::setPaletteSlot(uint16 srcOffs, uint8 dstOffs) {
 		palptr[0] = ((color & 0xf00) >> 8) * 32;
 		palptr[1] = ((color & 0x0f0) >> 4) * 32;
 		palptr[2] = ((color & 0x00f) >> 0) * 32;
-		palptr[3] = 0;
 
-		palptr += 4;
+		palptr += 3;
 		src += 2;
 	} while (--num);
 
@@ -265,7 +262,7 @@ void AGOSEngine::vc53_dissolveIn() {
 		*dst &= color;
 		*dst |= *src & 0xF;
 
-		 _system->unlockScreen();
+		_system->unlockScreen();
 
 		dissolveCount--;
 		if (!dissolveCount) {
@@ -319,7 +316,7 @@ void AGOSEngine::vc54_dissolveOut() {
 		dst += xoffs;
 		*dst = color;
 
-		 _system->unlockScreen();
+		_system->unlockScreen();
 
 		dissolveCount--;
 		if (!dissolveCount) {
@@ -360,7 +357,7 @@ void AGOSEngine::fullFade() {
 	for (c = 64; c != 0; c --) {
 		srcPal = _curVgaFile2 + 32;
 		dstPal = _currentPalette;
-		for (p = 768; p !=0 ; p -= 3) {
+		for (p = 768; p !=0; p -= 3) {
 			uint8 r = srcPal[0] * 4;
 			if (dstPal[0] != r)
 				dstPal[0] += 4;
@@ -371,9 +368,9 @@ void AGOSEngine::fullFade() {
 			if (dstPal[2] != b)
 				dstPal[2] += 4;
 			srcPal += 3;
-			dstPal += 4;
+			dstPal += 3;
 		}
-		_system->setPalette(_currentPalette, 0, 256);
+		_system->getPaletteManager()->setPalette(_currentPalette, 0, 256);
 		delay(5);
 	}
 }
@@ -388,14 +385,14 @@ void AGOSEngine::vc56_fullScreen() {
 		src += 320;
 		dst += screen->pitch;
 	}
-	 _system->unlockScreen();
+	_system->unlockScreen();
 
 	fullFade();
 }
 
 void AGOSEngine::vc57_blackPalette() {
 	memset(_currentPalette, 0, sizeof(_currentPalette));
-	_system->setPalette(_currentPalette, 0, 256);
+	_system->getPaletteManager()->setPalette(_currentPalette, 0, 256);
 }
 
 void AGOSEngine::vc58_checkCodeWheel() {

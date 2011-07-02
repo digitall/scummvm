@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 // ---------------------------------------------------------------------------
@@ -37,17 +34,22 @@
 
 
 #include "common/file.h"
+#include "common/memstream.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
 #include "sword2/header.h"
+#include "sword2/console.h"
 #include "sword2/logic.h"
 #include "sword2/resman.h"
 #include "sword2/sound.h"
 
-#include "sound/wave.h"
-#include "sound/vag.h"
+#include "audio/decoders/wave.h"
+#include "audio/decoders/vag.h"
+
+#define Debug_Printf _vm->_debugger->DebugPrintf
 
 namespace Sword2 {
 
@@ -90,7 +92,7 @@ Sound::Sound(Sword2Engine *vm) {
 	_mixBuffer = NULL;
 	_mixBufferLen = 0;
 
-	_vm->_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_mixerSoundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, false, true);
+	_vm->_mixer->playStream(Audio::Mixer::kMusicSoundType, &_mixerSoundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
 
 Sound::~Sound() {
@@ -214,13 +216,38 @@ void Sound::playMovieSound(int32 res, int type) {
 
 	assert(_vm->_resman->fetchType(data) == WAV_FILE);
 
-	// In PSX version we have nothing to skip here, as data starts right away
-	if (!Sword2Engine::isPsx()) {
-		data += ResHeader::size();
-		len -= ResHeader::size();
+	// We want to close the resource right away, so to be safe we make a
+	// private copy of the sound;
+	byte *soundData = (byte *)malloc(len);
+
+	if (soundData) {
+		memcpy(soundData, data, len);
+
+		Common::MemoryReadStream *stream = new Common::MemoryReadStream(soundData, len, DisposeAfterUse::YES);
+
+		// In PSX version we have nothing to skip here, as data starts
+		// right away.
+		if (!Sword2Engine::isPsx()) {
+			stream->seek(ResHeader::size());
+		}
+
+		Audio::RewindableAudioStream *input = 0;
+
+		if (Sword2Engine::isPsx()) {
+			input = Audio::makeVagStream(stream);
+		} else {
+			input = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
+		}
+
+		_vm->_mixer->playStream(
+			Audio::Mixer::kMusicSoundType, handle, input,
+			-1, Audio::Mixer::kMaxChannelVolume, 0,
+			DisposeAfterUse::YES, false, isReverseStereo());
+	} else {
+		warning("Sound::playMovieSound: Could not allocate %d bytes\n", len);
 	}
 
-	_vm->_sound->playFx(handle, data, len, Audio::Mixer::kMaxChannelVolume, 0, false, Audio::Mixer::kMusicSoundType);
+	_vm->_resman->closeResource(res);
 }
 
 void Sound::stopMovieSounds() {
@@ -331,25 +358,18 @@ int32 Sound::playFx(Audio::SoundHandle *handle, byte *data, uint32 len, uint8 vo
 		return RDERR_FXALREADYOPEN;
 
 	Common::MemoryReadStream *stream = new Common::MemoryReadStream(data, len);
-	int rate, size;
-	byte flags;
+	Audio::RewindableAudioStream *input = 0;
 
-	if (Sword2Engine::isPsx()) {
-		_vm->_mixer->playInputStream(soundType, handle, new Audio::VagStream(stream, loop), -1, vol, pan, true, false, isReverseStereo());
-	} else {
-		if (!Audio::loadWAVFromStream(*stream, size, rate, flags)) {
-			warning("playFX: Not a valid WAV file");
-			return RDERR_INVALIDWAV;
-		}
+	if (Sword2Engine::isPsx())
+		input = Audio::makeVagStream(stream);
+	else
+		input = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
 
-		if (isReverseStereo())
-			flags |= Audio::Mixer::FLAG_REVERSE_STEREO;
+	assert(input);
 
-		if (loop)
-			flags |= Audio::Mixer::FLAG_LOOP;
-
-		_vm->_mixer->playRaw(soundType, handle, data + stream->pos(), size, rate, flags, -1, vol, pan, 0, 0);
-	}
+	_vm->_mixer->playStream(soundType, handle,
+	                             Audio::makeLoopingAudioStream(input, loop ? 0 : 1),
+	                             -1, vol, pan, DisposeAfterUse::YES, false, isReverseStereo());
 
 	return RD_OK;
 }
@@ -372,16 +392,44 @@ int32 Sound::stopFx(int32 i) {
 	return RD_OK;
 }
 
-void Sound::pauseAllSound() {
-	pauseMusic();
-	pauseSpeech();
-	pauseFx();
-}
+void Sound::printFxQueue() {
+	int freeSlots = 0;
 
-void Sound::unpauseAllSound() {
-	unpauseMusic();
-	unpauseSpeech();
-	unpauseFx();
+	for (int i = 0; i < FXQ_LENGTH; i++) {
+		if (_fxQueue[i].resource) {
+			const char *type;
+
+			switch (_fxQueue[i].type) {
+			case FX_SPOT:
+				type = "SPOT";
+				break;
+			case FX_LOOP:
+				type = "LOOP";
+				break;
+			case FX_RANDOM:
+				type = "RANDOM";
+				break;
+			case FX_SPOT2:
+				type = "SPOT2";
+				break;
+			case FX_LOOPING:
+				type = "LOOPING";
+				break;
+			default:
+				type = "UNKNOWN";
+				break;
+			}
+
+			Debug_Printf("%d: res: %d ('%s') %s (%d) delay: %d vol: %d pan: %d\n",
+				i, _fxQueue[i].resource,
+				_vm->_resman->fetchName(_fxQueue[i].resource),
+				type, _fxQueue[i].type, _fxQueue[i].delay,
+				_fxQueue[i].volume, _fxQueue[i].pan);
+		} else {
+			freeSlots++;
+		}
+	}
+	Debug_Printf("Free slots: %d\n", freeSlots);
 }
 
 } // End of namespace Sword2

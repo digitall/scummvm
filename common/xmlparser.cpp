@@ -18,19 +18,35 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+// FIXME: Avoid using fprintf
+#define FORBIDDEN_SYMBOL_EXCEPTION_fprintf
+#define FORBIDDEN_SYMBOL_EXCEPTION_stderr
+
+
 #include "common/xmlparser.h"
-#include "common/util.h"
 #include "common/archive.h"
 #include "common/fs.h"
+#include "common/memstream.h"
 
 namespace Common {
 
-bool XMLParser::loadFile(const Common::String &filename) {
+XMLParser::~XMLParser() {
+	while (!_activeKey.empty())
+		freeNode(_activeKey.pop());
+
+	delete _XMLkeys;
+	delete _stream;
+
+	for (List<XMLKeyLayout*>::iterator i = _layoutList.begin();
+		i != _layoutList.end(); ++i)
+		delete *i;
+
+	_layoutList.clear();
+}
+
+bool XMLParser::loadFile(const String &filename) {
 	_stream = SearchMan.createReadStreamForMember(filename);
 	if (!_stream)
 		return false;
@@ -48,13 +64,13 @@ bool XMLParser::loadFile(const FSNode &node) {
 	return true;
 }
 
-bool XMLParser::loadBuffer(const byte *buffer, uint32 size, bool disposable) {
+bool XMLParser::loadBuffer(const byte *buffer, uint32 size, DisposeAfterUse::Flag disposable) {
 	_stream = new MemoryReadStream(buffer, size, disposable);
 	_fileName = "Memory Stream";
 	return true;
 }
 
-bool XMLParser::loadStream(Common::SeekableReadStream *stream) {
+bool XMLParser::loadStream(SeekableReadStream *stream) {
 	_stream = stream;
 	_fileName = "File Stream";
 	return true;
@@ -65,7 +81,7 @@ void XMLParser::close() {
 	_stream = 0;
 }
 
-bool XMLParser::parserError(const char *errorString, ...) {
+bool XMLParser::parserError(const Common::String &errStr) {
 	_state = kParserError;
 
 	const int startPosition = _stream->pos();
@@ -116,12 +132,7 @@ bool XMLParser::parserError(const char *errorString, ...) {
 		fprintf(stderr, "%c", _stream->readByte());
 
 	fprintf(stderr, "\n\nParser error: ");
-
-	va_list args;
-	va_start(args, errorString);
-	vfprintf(stderr, errorString, args);
-	va_end(args);
-
+	fprintf(stderr, "%s", errStr.c_str());
 	fprintf(stderr, "\n\n");
 
 	return false;
@@ -158,21 +169,21 @@ bool XMLParser::parseActiveKey(bool closed) {
 	if (layout->children.contains(key->name)) {
 		key->layout = layout->children[key->name];
 
-		Common::StringMap localMap = key->values;
+		StringMap localMap = key->values;
 		int keyCount = localMap.size();
 
-		for (Common::List<XMLKeyLayout::XMLKeyProperty>::const_iterator i = key->layout->properties.begin(); i != key->layout->properties.end(); ++i) {
+		for (List<XMLKeyLayout::XMLKeyProperty>::const_iterator i = key->layout->properties.begin(); i != key->layout->properties.end(); ++i) {
 			if (i->required && !localMap.contains(i->name))
-				return parserError("Missing required property '%s' inside key '%s'", i->name.c_str(), key->name.c_str());
+				return parserError("Missing required property '" + i->name + "' inside key '" + key->name + "'");
 			else if (localMap.contains(i->name))
 				keyCount--;
 		}
 
 		if (keyCount > 0)
-			return parserError("Unhandled property inside key '%s'.", key->name.c_str());
+			return parserError("Unhandled property inside key '" + key->name + "'.");
 
 	} else {
-		return parserError("Unexpected key in the active scope ('%s').", key->name.c_str());
+		return parserError("Unexpected key in the active scope ('" + key->name + "').");
 	}
 
 	// check if any of the parents must be ignored.
@@ -187,7 +198,7 @@ bool XMLParser::parseActiveKey(bool closed) {
 		// when keyCallback() fails, a parserError() must be set.
 		// We set it manually in that case.
 		if (_state != kParserError)
-			parserError("Unhandled exception when parsing '%s' key.", key->name.c_str());
+			parserError("Unhandled exception when parsing '" + key->name + "' key.");
 
 		return false;
 	}
@@ -198,7 +209,7 @@ bool XMLParser::parseActiveKey(bool closed) {
 	return true;
 }
 
-bool XMLParser::parseKeyValue(Common::String keyName) {
+bool XMLParser::parseKeyValue(String keyName) {
 	assert(_activeKey.empty() == false);
 
 	if (_activeKey.top()->values.contains(keyName))
@@ -229,6 +240,47 @@ bool XMLParser::parseKeyValue(Common::String keyName) {
 	return true;
 }
 
+bool XMLParser::parseIntegerKey(const char *key, int count, ...) {
+	bool result;
+	va_list args;
+	va_start(args, count);
+	result = vparseIntegerKey(key, count, args);
+	va_end(args);
+	return result;
+}
+
+bool XMLParser::parseIntegerKey(const String &key, int count, ...) {
+	bool result;
+	va_list args;
+	va_start(args, count);
+	result = vparseIntegerKey(key.c_str(), count, args);
+	va_end(args);
+	return result;
+}
+
+bool XMLParser::vparseIntegerKey(const char *key, int count, va_list args) {
+	char *parseEnd;
+	int *num_ptr;
+
+	while (count--) {
+		while (isspace(static_cast<unsigned char>(*key)))
+			key++;
+
+		num_ptr = va_arg(args, int*);
+		*num_ptr = strtol(key, &parseEnd, 10);
+
+		key = parseEnd;
+
+		while (isspace(static_cast<unsigned char>(*key)))
+			key++;
+
+		if (count && *key++ != ',')
+			return false;
+	}
+
+	return (*key == 0);
+}
+
 bool XMLParser::closeKey() {
 	bool ignore = false;
 	bool result = true;
@@ -247,9 +299,11 @@ bool XMLParser::closeKey() {
 }
 
 bool XMLParser::parse() {
-
 	if (_stream == 0)
 		return parserError("XML stream not ready for reading.");
+
+	// Make sure we are at the start of the stream.
+	_stream->seek(0, SEEK_SET);
 
 	if (_XMLkeys == 0)
 		buildLayout();
@@ -334,7 +388,7 @@ bool XMLParser::parse() {
 		case kParserNeedPropertyName:
 			if (activeClosure) {
 				if (!closeKey()) {
-					parserError("Missing data when closing key '%s'.", _activeKey.top()->name.c_str());
+					parserError("Missing data when closing key '" + _activeKey.top()->name + "'.");
 					break;
 				}
 
@@ -408,5 +462,61 @@ bool XMLParser::parse() {
 	return true;
 }
 
+bool XMLParser::skipSpaces() {
+	if (!isspace(static_cast<unsigned char>(_char)))
+		return false;
+
+	while (_char && isspace(static_cast<unsigned char>(_char)))
+		_char = _stream->readByte();
+
+	return true;
 }
 
+bool XMLParser::skipComments() {
+	if (_char == '<') {
+		_char = _stream->readByte();
+
+		if (_char != '!') {
+			_stream->seek(-1, SEEK_CUR);
+			_char = '<';
+			return false;
+		}
+
+		if (_stream->readByte() != '-' || _stream->readByte() != '-')
+			return parserError("Malformed comment syntax.");
+
+		_char = _stream->readByte();
+
+		while (_char) {
+			if (_char == '-') {
+				if (_stream->readByte() == '-') {
+
+					if (_stream->readByte() != '>')
+						return parserError("Malformed comment (double-hyphen inside comment body).");
+
+					_char = _stream->readByte();
+					return true;
+				}
+			}
+
+			_char = _stream->readByte();
+		}
+
+		return parserError("Comment has no closure.");
+	}
+
+	return false;
+}
+
+bool XMLParser::parseToken() {
+	_token.clear();
+
+	while (isValidNameChar(_char)) {
+		_token += _char;
+		_char = _stream->readByte();
+	}
+
+	return isspace(static_cast<unsigned char>(_char)) != 0 || _char == '>' || _char == '=' || _char == '/';
+}
+
+} // End of namespace Common

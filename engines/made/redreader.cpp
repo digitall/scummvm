@@ -18,17 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "made/redreader.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 namespace Made {
 
-
-Common::MemoryReadStream *RedReader::load(const char *redFilename, const char *filename) {
+Common::SeekableReadStream *RedReader::load(const char *redFilename, const char *filename) {
 
 	Common::File fd;
 	FileEntry fileEntry;
@@ -41,16 +39,19 @@ Common::MemoryReadStream *RedReader::load(const char *redFilename, const char *f
 
 	byte *fileBuf = (byte *)malloc(fileEntry.origSize);
 
-	LzhDecompressor lzhDec;
-	lzhDec.decompress(fd, fileBuf, fileEntry.compSize, fileEntry.origSize);
+	LzhDecompressor* lzhDec = new LzhDecompressor();
+	lzhDec->decompress(fd, fileBuf, fileEntry.compSize, fileEntry.origSize);
+	delete lzhDec;
 
-	return new Common::MemoryReadStream(fileBuf, fileEntry.origSize, true);
+	return new Common::MemoryReadStream(fileBuf, fileEntry.origSize, DisposeAfterUse::YES);
 
 }
 
-Common::MemoryReadStream *RedReader::loadFromRed(const char *redFilename, const char *filename) {
-	RedReader redReader;
-	return redReader.load(redFilename, filename);
+Common::SeekableReadStream *RedReader::loadFromRed(const char *redFilename, const char *filename) {
+	RedReader* red = new RedReader();
+	Common::SeekableReadStream *stream = red->load(redFilename, filename);
+	delete red;
+	return stream;
 }
 
 bool RedReader::seekFile(Common::File &fd, FileEntry &fileEntry, const char *filename) {
@@ -82,7 +83,9 @@ LzhDecompressor::~LzhDecompressor() {
 int LzhDecompressor::decompress(Common::SeekableReadStream &source, byte *dest, uint32 sourceLen, uint32 destLen) {
 
 	int bufsize;
-	byte buffer[DICSIZ];
+	byte* buffer;
+
+	buffer = (byte *) malloc(DICSIZ);
 
 	_source = &source;
 	_compSize = sourceLen;
@@ -99,6 +102,8 @@ int LzhDecompressor::decompress(Common::SeekableReadStream &source, byte *dest, 
 		dest += bufsize;
 		destLen -= bufsize;
 	}
+
+	free(buffer);
 
 	return 0;
 }
@@ -232,7 +237,7 @@ void LzhDecompressor::read_c_len() {
 	}
 }
 
-unsigned int LzhDecompressor::decode_c(void) {
+unsigned int LzhDecompressor::decode_c() {
 	uint j, mask;
 	if (_blocksize == 0) {
 		_blocksize = getbits(16);

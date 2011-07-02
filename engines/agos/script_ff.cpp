@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+
+#ifdef ENABLE_AGOS2
 
 #include "common/system.h"
 
@@ -270,7 +269,7 @@ void AGOSEngine_Feeble::setupOpcodes() {
 		OPCODE(os1_unloadZone),
 		OPCODE(o_invalid),
 		OPCODE(os1_unfreezeZones),
-		OPCODE(off_centreScroll),
+		OPCODE(off_centerScroll),
 		/* 188 */
 		OPCODE(os2_isShortText),
 		OPCODE(os2_clearMarks),
@@ -280,7 +279,7 @@ void AGOSEngine_Feeble::setupOpcodes() {
 		OPCODE(off_setPathValues),
 		OPCODE(off_stopClock),
 		OPCODE(off_restartClock),
-		OPCODE(off_setColour),
+		OPCODE(off_setColor),
 		/* 196 */
 		OPCODE(off_b3Set),
 		OPCODE(off_b3Clear),
@@ -428,8 +427,7 @@ void AGOSEngine_Feeble::off_loadUserGame() {
 }
 
 void AGOSEngine_Feeble::off_listSaveGames() {
-	// 134: dummy opcode?
-	listSaveGames(1);
+	listSaveGamesFeeble();
 }
 
 void AGOSEngine_Feeble::off_checkCD() {
@@ -589,9 +587,9 @@ void AGOSEngine_Feeble::off_playVideo() {
 	}
 }
 
-void AGOSEngine_Feeble::off_centreScroll() {
+void AGOSEngine_Feeble::off_centerScroll() {
 	// 187
-	centreScroll();
+	centerScroll();
 }
 
 void AGOSEngine_Feeble::off_resetPVCount() {
@@ -636,9 +634,9 @@ void AGOSEngine_Feeble::off_restartClock() {
 	_clockStopped = 0;
 }
 
-void AGOSEngine_Feeble::off_setColour() {
-	// 195: set palette colour
-	uint16 c = getVarOrByte() * 4;
+void AGOSEngine_Feeble::off_setColor() {
+	// 195: set palette color
+	uint16 c = getVarOrByte() * 3;
 	uint8 r = getVarOrByte();
 	uint8 g = getVarOrByte();
 	uint8 b = getVarOrByte();
@@ -675,3 +673,5 @@ void AGOSEngine_Feeble::off_b3NotZero() {
 }
 
 } // End of namespace AGOS
+
+#endif // ENABLE_AGOS2

@@ -18,16 +18,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/debug.h"
+// NB: This is really only necessary if USE_READLINE is defined
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
+
+#include "common/debug-channels.h"
 #include "common/system.h"
 
+#include "engines/engine.h"
+
 #include "gui/debugger.h"
-#ifndef USE_TEXT_CONSOLE
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	#include "gui/console.h"
 #elif defined(USE_READLINE)
 	#include <readline/readline.h>
@@ -38,22 +40,26 @@
 namespace GUI {
 
 Debugger::Debugger() {
-	_frame_countdown = 0;
-	_detach_now = false;
-	_isAttached = false;
+	_frameCountdown = 0;
+	_isActive = false;
 	_errStr = NULL;
 	_firstTime = true;
-#ifndef USE_TEXT_CONSOLE
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	_debuggerDialog = new GUI::ConsoleDialog(1.0f, 0.67f);
 	_debuggerDialog->setInputCallback(debuggerInputCallback, this);
 	_debuggerDialog->setCompletionCallback(debuggerCompletionCallback, this);
 #endif
 
+	// Register variables
+	DVar_Register("debug_countdown", &_frameCountdown, DVAR_INT, 0);
+
+	// Register commands
 	//DCmd_Register("continue",			WRAP_METHOD(Debugger, Cmd_Exit));
 	DCmd_Register("exit",				WRAP_METHOD(Debugger, Cmd_Exit));
 	DCmd_Register("quit",				WRAP_METHOD(Debugger, Cmd_Exit));
 
 	DCmd_Register("help",				WRAP_METHOD(Debugger, Cmd_Help));
+	DCmd_Register("openlog",			WRAP_METHOD(Debugger, Cmd_OpenLog));
 
 	DCmd_Register("debugflag_list",		WRAP_METHOD(Debugger, Cmd_DebugFlagsList));
 	DCmd_Register("debugflag_enable",	WRAP_METHOD(Debugger, Cmd_DebugFlagEnable));
@@ -61,7 +67,7 @@ Debugger::Debugger() {
 }
 
 Debugger::~Debugger() {
-#ifndef USE_TEXT_CONSOLE
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	delete _debuggerDialog;
 #endif
 }
@@ -73,8 +79,8 @@ int Debugger::DebugPrintf(const char *format, ...) {
 
 	va_start(argptr, format);
 	int count;
-#ifndef USE_TEXT_CONSOLE
-	count = _debuggerDialog->vprintf(format, argptr);
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
+	count = _debuggerDialog->vprintFormat(1, format, argptr);
 #else
 	count = ::vprintf(format, argptr);
 #endif
@@ -82,45 +88,45 @@ int Debugger::DebugPrintf(const char *format, ...) {
 	return count;
 }
 
-void Debugger::attach(const char *entry) {
+void Debugger::preEnter() {
+	g_engine->pauseEngine(true);
+}
 
+void Debugger::postEnter() {
+	g_engine->pauseEngine(false);
+}
+
+void Debugger::attach(const char *entry) {
 	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 
-	if (entry) {
-		_errStr = strdup(entry);
-	}
+	// Set error string (if any)
+	free(_errStr);
+	_errStr = entry ? strdup(entry) : 0;
 
-	_frame_countdown = 1;
-	_detach_now = false;
-	_isAttached = true;
+	// Reset frame countdown (i.e. attach immediately)
+	_frameCountdown = 1;
 }
 
 void Debugger::detach() {
 	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
-
-	_detach_now = false;
-	_isAttached = false;
 }
 
 // Temporary execution handler
 void Debugger::onFrame() {
-	if (_frame_countdown == 0)
-		return;
-	--_frame_countdown;
-
-	if (!_frame_countdown) {
-
-		preEnter();
-		enter();
-		postEnter();
-
-		// Detach if we're finished with the debugger
-		if (_detach_now)
-			detach();
+	// Count down until 0 is reached
+	if (_frameCountdown > 0) {
+		--_frameCountdown;
+		if (_frameCountdown == 0) {
+			_isActive = true;
+			preEnter();
+			enter();
+			postEnter();
+			_isActive = false;
+		}
 	}
 }
 
-#if defined(USE_TEXT_CONSOLE) && defined(USE_READLINE)
+#if defined(USE_TEXT_CONSOLE_FOR_DEBUGGER) && defined(USE_READLINE)
 namespace {
 Debugger *g_readline_debugger;
 
@@ -135,7 +141,7 @@ void Debugger::enter() {
 	// TODO: Having three I/O methods #ifdef-ed in this file is not the
 	// cleanest approach to this...
 
-#ifndef USE_TEXT_CONSOLE
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	if (_firstTime) {
 		DebugPrintf("Debugger started, type 'exit' to return to the game.\n");
 		DebugPrintf("Type 'help' to see a little list of commands and variables.\n");
@@ -157,7 +163,7 @@ void Debugger::enter() {
 
 	g_readline_debugger = this;
 	rl_completion_entry_function = &readline_completionFunction;
-	
+
 	char *line_read = 0;
 	do {
 		free(line_read);
@@ -243,14 +249,14 @@ bool Debugger::parseCommand(const char *inputOrig) {
 					break;
 				// Integer Array
 				case DVAR_INTARRAY: {
-					char *chr = (char *)strchr(param[0], '[');
+					const char *chr = strchr(param[0], '[');
 					if (!chr) {
 						DebugPrintf("You must access this array as %s[element]\n", param[0]);
 					} else {
 						int element = atoi(chr+1);
 						int32 *var = *(int32 **)_dvars[i].variable;
-						if (element >= _dvars[i].optional) {
-							DebugPrintf("%s is out of range (array is %d elements big)\n", param[0], _dvars[i].optional);
+						if (element >= _dvars[i].arraySize) {
+							DebugPrintf("%s is out of range (array is %d elements big)\n", param[0], _dvars[i].arraySize);
 						} else {
 							var[element] = atoi(param[1]);
 							DebugPrintf("(int)%s = %d\n", param[0], var[element]);
@@ -280,8 +286,8 @@ bool Debugger::parseCommand(const char *inputOrig) {
 					} else {
 						int element = atoi(chr+1);
 						const int32 *var = *(const int32 **)_dvars[i].variable;
-						if (element >= _dvars[i].optional) {
-							DebugPrintf("%s is out of range (array is %d elements big)\n", param[0], _dvars[i].optional);
+						if (element >= _dvars[i].arraySize) {
+							DebugPrintf("%s is out of range (array is %d elements big)\n", param[0], _dvars[i].arraySize);
 						} else {
 							DebugPrintf("(int)%s = %d\n", param[0], var[element]);
 						}
@@ -358,7 +364,7 @@ bool Debugger::tabComplete(const char *input, Common::String &completion) const 
 	return true;
 }
 
-#if defined(USE_TEXT_CONSOLE) && defined(USE_READLINE)
+#if defined(USE_TEXT_CONSOLE_FOR_DEBUGGER) && defined(USE_READLINE)
 char *Debugger::readlineComplete(const char *input, int state) {
 	static CommandsMap::const_iterator iter;
 
@@ -375,14 +381,14 @@ char *Debugger::readlineComplete(const char *input, int state) {
 			char *ret = (char *)malloc(iter->_key.size() + 1);
 			strcpy(ret, iter->_key.c_str());
 			return ret;
-		}	
+		}
 	}
 	return 0;
 }
 #endif
 
 // Variable registration function
-void Debugger::DVar_Register(const Common::String &varname, void *pointer, int type, int optional) {
+void Debugger::DVar_Register(const Common::String &varname, void *pointer, VarType type, int arraySize) {
 	// TODO: Filter out duplicates
 	// TODO: Sort this list? Then we can do binary search later on when doing lookups.
 	assert(pointer);
@@ -391,7 +397,7 @@ void Debugger::DVar_Register(const Common::String &varname, void *pointer, int t
 	tmp.name = varname;
 	tmp.type = type;
 	tmp.variable = pointer;
-	tmp.optional = optional;
+	tmp.arraySize = arraySize;
 
 	_dvars.push_back(tmp);
 }
@@ -405,14 +411,14 @@ void Debugger::DCmd_Register(const Common::String &cmdname, Debuglet *debuglet) 
 
 // Detach ("exit") the debugger
 bool Debugger::Cmd_Exit(int argc, const char **argv) {
-	_detach_now = true;
+	detach();
 	return false;
 }
 
 // Print a list of all registered commands (and variables, if any),
 // nicely word-wrapped.
 bool Debugger::Cmd_Help(int argc, const char **argv) {
-#ifndef USE_TEXT_CONSOLE
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	const int charsPerLine = _debuggerDialog->getCharsPerLine();
 #elif defined(USE_READLINE)
 	int charsPerLine, rows;
@@ -427,7 +433,7 @@ bool Debugger::Cmd_Help(int argc, const char **argv) {
 	DebugPrintf("Commands are:\n");
 
 	// Obtain a list of sorted command names
-	Common::StringList cmds;
+	Common::Array<Common::String> cmds;
 	CommandsMap::const_iterator iter, e = _cmds.end();
 	for (iter = _cmds.begin(); iter != e; ++iter) {
 		cmds.push_back(iter->_key);
@@ -470,8 +476,17 @@ bool Debugger::Cmd_Help(int argc, const char **argv) {
 	return true;
 }
 
+bool Debugger::Cmd_OpenLog(int argc, const char **argv) {
+	if (g_system->hasFeature(OSystem::kFeatureDisplayLogFile))
+		g_system->displayLogFile();
+	else
+		DebugPrintf("Opening the log file not supported on this system\n");
+	return true;
+}
+
+
 bool Debugger::Cmd_DebugFlagsList(int argc, const char **argv) {
-	const Common::DebugChannelList &debugLevels = Common::listDebugChannels();
+	const Common::DebugManager::DebugChannelList &debugLevels = DebugMan.listDebugChannels();
 
 	DebugPrintf("Engine debug levels:\n");
 	DebugPrintf("--------------------\n");
@@ -479,7 +494,7 @@ bool Debugger::Cmd_DebugFlagsList(int argc, const char **argv) {
 		DebugPrintf("No engine debug levels\n");
 		return true;
 	}
-	for (Common::DebugChannelList::const_iterator i = debugLevels.begin(); i != debugLevels.end(); ++i) {
+	for (Common::DebugManager::DebugChannelList::const_iterator i = debugLevels.begin(); i != debugLevels.end(); ++i) {
 		DebugPrintf("%c%s - %s (%s)\n", i->enabled ? '+' : ' ',
 				i->name.c_str(), i->description.c_str(),
 				i->enabled ? "enabled" : "disabled");
@@ -492,7 +507,7 @@ bool Debugger::Cmd_DebugFlagEnable(int argc, const char **argv) {
 	if (argc < 2) {
 		DebugPrintf("debugflag_enable <flag>\n");
 	} else {
-		if (Common::enableDebugChannel(argv[1])) {
+		if (DebugMan.enableDebugChannel(argv[1])) {
 			DebugPrintf("Enabled debug flag '%s'\n", argv[1]);
 		} else {
 			DebugPrintf("Failed to enable debug flag '%s'\n", argv[1]);
@@ -505,7 +520,7 @@ bool Debugger::Cmd_DebugFlagDisable(int argc, const char **argv) {
 	if (argc < 2) {
 		DebugPrintf("debugflag_disable <flag>\n");
 	} else {
-		if (Common::disableDebugChannel(argv[1])) {
+		if (DebugMan.disableDebugChannel(argv[1])) {
 			DebugPrintf("Disabled debug flag '%s'\n", argv[1]);
 		} else {
 			DebugPrintf("Failed to disable debug flag '%s'\n", argv[1]);
@@ -515,7 +530,7 @@ bool Debugger::Cmd_DebugFlagDisable(int argc, const char **argv) {
 }
 
 // Console handler
-#ifndef USE_TEXT_CONSOLE
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 bool Debugger::debuggerInputCallback(GUI::ConsoleDialog *console, const char *input, void *refCon) {
 	Debugger *debugger = (Debugger *)refCon;
 

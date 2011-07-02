@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -35,6 +32,7 @@
 #ifdef ENABLE_HE
 #include "scumm/he/intern_he.h"
 #endif
+#include "scumm/resource.h"
 #include "scumm/scumm.h"
 #include "scumm/scumm_v6.h"
 #include "scumm/scumm_v8.h"
@@ -224,10 +222,7 @@ void ScummEngine_v6::removeBlastTexts() {
 void ScummEngine_v7::processSubtitleQueue() {
 	for (int i = 0; i < _subtitleQueuePos; ++i) {
 		SubtitleText *st = &_subtitleQueue[i];
-		if (!ConfMan.getBool("subtitles") || VAR(VAR_VOICE_MODE) == 0)
-			// subtitles are disabled, don't display the text
-			continue;
-		if (!ConfMan.getBool("subtitles") && (!st->actorSpeechMsg || _mixer->isSoundHandleActive(_sound->_talkChannelHandle)))
+		if (!st->actorSpeechMsg && (!ConfMan.getBool("subtitles") || VAR(VAR_VOICE_MODE) == 0))
 			// no subtitles and there's a speech variant of the message, don't display the text
 			continue;
 		enqueueText(st->text, st->xpos, st->ypos, st->color, st->charset, false);
@@ -357,7 +352,7 @@ bool ScummEngine::handleNextCharsetCode(Actor *a, int *code) {
 bool ScummEngine_v72he::handleNextCharsetCode(Actor *a, int *code) {
 	const int charsetCode = (_game.heversion >= 80) ? 127 : 64;
 	uint32 talk_sound_a = 0;
-	uint32 talk_sound_b = 0;
+	//uint32 talk_sound_b = 0;
 	int i, c = 0;
 	char value[32];
 	bool endLoop = false;
@@ -388,7 +383,7 @@ bool ScummEngine_v72he::handleNextCharsetCode(Actor *a, int *code) {
 				i++;
 			}
 			value[i] = 0;
-			talk_sound_b = atoi(value);
+			//talk_sound_b = atoi(value);
 			((SoundHE *)_sound)->startHETalkSound(talk_sound_a);
 			break;
 		case 104:
@@ -411,7 +406,7 @@ bool ScummEngine_v72he::handleNextCharsetCode(Actor *a, int *code) {
 			}
 			value[i] = 0;
 			talk_sound_a = atoi(value);
-			talk_sound_b = 0;
+			//talk_sound_b = 0;
 			((SoundHE *)_sound)->startHETalkSound(talk_sound_a);
 			break;
 		case 119:
@@ -428,6 +423,33 @@ bool ScummEngine_v72he::handleNextCharsetCode(Actor *a, int *code) {
 	return (endText == 0);
 }
 #endif
+
+bool ScummEngine::newLine() {
+	_nextLeft = _string[0].xpos;
+	if (_charset->_center) {
+		_nextLeft -= _charset->getStringWidth(0, _charsetBuffer + _charsetBufPos) / 2;
+		if (_nextLeft < 0)
+			_nextLeft = _game.version >= 6 ? _string[0].xpos : 0;
+	}
+
+	if (_game.version == 0) {
+		return false;
+	} else if (!(_game.platform == Common::kPlatformFMTowns) && _string[0].height) {
+		_nextTop += _string[0].height;
+	} else {
+		bool useCJK = _useCJKMode;
+		// SCUMM5 FM-Towns doesn't use the height of the ROM font here.
+		if (_game.platform == Common::kPlatformFMTowns && _game.version == 5)
+			_useCJKMode = false;
+		_nextTop += _charset->getFontHeight();
+		_useCJKMode = useCJK;
+	}
+	if (_game.version > 3) {
+		// FIXME: is this really needed?
+		_charset->_disableOffsX = true;
+	}
+	return true;
+}
 
 void ScummEngine::CHARSET_1() {
 	Actor *a;
@@ -508,6 +530,11 @@ void ScummEngine::CHARSET_1() {
 	if (_game.version >= 5)
 		memcpy(_charsetColorMap, _charsetData[_charset->getCurID()], 4);
 
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	if (_keepText && _game.platform == Common::kPlatformFMTowns)
+		memcpy(&_charset->_str, &_curStringRect, sizeof(Common::Rect));
+#endif
+
 	if (_talkDelay)
 		return;
 
@@ -539,7 +566,12 @@ void ScummEngine::CHARSET_1() {
 			_nextTop = _string[0].ypos + _screenTop;
 #endif
 		} else {
-			restoreCharsetBg();
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+			if (_game.platform == Common::kPlatformFMTowns)
+				towns_restoreCharsetBg();
+			else
+#endif
+				restoreCharsetBg();
 		}
 	}
 
@@ -572,31 +604,14 @@ void ScummEngine::CHARSET_1() {
 		}
 
 		if (c == 13) {
-		newLine:;
-			_nextLeft = _string[0].xpos;
 #ifdef ENABLE_SCUMM_7_8
 			if (_game.version >= 7 && subtitleLine != subtitleBuffer) {
 				((ScummEngine_v7 *)this)->addSubtitleToQueue(subtitleBuffer, subtitlePos, _charsetColor, _charset->getCurID());
 				subtitleLine = subtitleBuffer;
 			}
 #endif
-			if (_charset->_center) {
-				_nextLeft -= _charset->getStringWidth(0, _charsetBuffer + _charsetBufPos) / 2;
-				if (_nextLeft < 0)
-					_nextLeft = _game.version >= 6 ? _string[0].xpos : 0;
-			}
-
-			if (_game.version == 0) {
+			if (!newLine())
 				break;
-			} else if (!(_game.platform == Common::kPlatformFMTowns) && _string[0].height) {
-				_nextTop += _string[0].height;
-			} else {
-				_nextTop += _charset->getFontHeight();
-			}
-			if (_game.version > 3) {
-				// FIXME: is this really needed?
-				_charset->_disableOffsX = true;
-			}
 			continue;
 		}
 
@@ -606,7 +621,8 @@ void ScummEngine::CHARSET_1() {
 		}
 		// Handle line breaks for V1-V2
 		if (_game.version <= 2 && _nextLeft >= _screenWidth) {
-			goto newLine;
+			if (!newLine())
+				break;	// FIXME: Is this necessary? Only would be relevant for v0 games
 		}
 
 		_charset->_left = _nextLeft;
@@ -624,9 +640,7 @@ void ScummEngine::CHARSET_1() {
 #endif
 		} else {
 			if (c & 0x80 && _useCJKMode) {
-				if (_language == Common::JA_JPN && !checkSJISCode(c)) {
-					c = 0x20; //not in S-JIS
-				} else {
+				if (checkSJISCode(c)) {
 					byte *buffer = _charsetBuffer + _charsetBufPos;
 					c += *buffer++ * 256; //LE
 					_charsetBufPos = buffer - _charsetBuffer;
@@ -659,6 +673,11 @@ void ScummEngine::CHARSET_1() {
 			_talkDelay += (int)VAR(VAR_CHARINC);
 		}
 	}
+
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	if (_game.platform == Common::kPlatformFMTowns && (c == 0 || c == 2 || c == 3))
+		memcpy(&_curStringRect, &_charset->_str, sizeof(Common::Rect));
+#endif
 
 #ifdef ENABLE_SCUMM_7_8
 	if (_game.version >= 7 && subtitleLine != subtitleBuffer) {
@@ -978,11 +997,8 @@ void ScummEngine::drawString(int a, const byte *msg) {
 				}
 			}
 			if (c & 0x80 && _useCJKMode) {
-				if (_language == Common::JA_JPN && !checkSJISCode(c)) {
-					c = 0x20; //not in S-JIS
-				} else {
+				if (checkSJISCode(c))
 					c += buf[i++] * 256;
-				}
 			}
 			_charset->printChar(c, true);
 			_charset->_blitAlso = false;
@@ -1006,6 +1022,7 @@ int ScummEngine::convertMessageToString(const byte *msg, byte *dst, int dstSize)
 	uint num = 0;
 	uint32 val;
 	byte chr;
+	byte lastChr = 0;
 	const byte *src;
 	byte *end;
 	byte transBuf[384];
@@ -1031,6 +1048,25 @@ int ScummEngine::convertMessageToString(const byte *msg, byte *dst, int dstSize)
 		chr = src[num++];
 		if (chr == 0)
 			break;
+
+		if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+			// Code for TM character
+			if (chr == 0x0F && src[num] == 0x20) {
+				*dst++ = 0x5D;
+				*dst++ = 0x5E;
+				continue;
+			// Code for (C) character
+			} else if (chr == 0x1C && src[num] == 0x20) {
+				*dst++ = 0x3E;
+				*dst++ = 0x2A;
+				continue;
+			// Code for " character
+			} else if (chr == 0x19) {
+				*dst++ = 0x2F;
+				continue;
+			}
+		}
+
 		if (chr == 0xFF) {
 			chr = src[num++];
 
@@ -1091,11 +1127,15 @@ int ScummEngine::convertMessageToString(const byte *msg, byte *dst, int dstSize)
 				}
 				num += (_game.version == 8) ? 4 : 2;
 			}
+		} else if (_game.id == GID_DIG && (chr == 1 || chr == 2 || chr == 3 || chr == 8)) {
+			// Skip these characters
 		} else {
-			if (!(chr == '@' && _game.heversion <= 71) ||
-			    (_game.id == GID_CMI && _language == Common::ZH_TWN)) {
+			if ((chr != '@') || (_game.id == GID_CMI && _language == Common::ZH_TWN) ||
+				(_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine && _language == Common::JA_JPN) ||
+				(_game.platform == Common::kPlatformFMTowns && _language == Common::JA_JPN && checkSJISCode(lastChr))) {
 				*dst++ = chr;
 			}
+			lastChr = chr;
 		}
 
 		// Check for a buffer overflow
@@ -1170,7 +1210,8 @@ int ScummEngine::convertVerbMessage(byte *dst, int dstSize, int var) {
 	num = readVar(var);
 	if (num) {
 		for (k = 1; k < _numVerbs; k++) {
-			if (num == _verbs[k].verbid && !_verbs[k].type && !_verbs[k].saveid) {
+			// Fix ZAK FM-TOWNS bug #1013617 by emulating exact (inconsistant?) behavior of the original code
+			if (num == _verbs[k].verbid && !_verbs[k].type && (!_verbs[k].saveid || (_game.version == 3 && _game.platform == Common::kPlatformFMTowns))) {
 				const byte *ptr = getResourceAddress(rtVerb, k);
 				return convertMessageToString(ptr, dst, dstSize);
 			}
@@ -1331,6 +1372,8 @@ void ScummEngine_v7::loadLanguageBundle() {
 				// File contains Korean text (Hangul). just ignore it
 			} else if (*ptr == 'j') {
 				// File contains Japanese text. just ignore it
+			} else if (*ptr == 'c') {
+				// File contains Chinese text. just ignore it
 			} else if (*ptr == 'e') {
 				// File is encoded!
 				enc = 0x13;
@@ -1340,10 +1383,10 @@ void ScummEngine_v7::loadLanguageBundle() {
 			} else if (*ptr == '#') {
 				// Number of subtags following a given basetag. We don't need that
 				// information so we just skip it
-			} else if (isdigit(*ptr)) {
+			} else if (isdigit(static_cast<unsigned char>(*ptr))) {
 				int idx = 0;
 				// A number (up to three digits)...
-				while (isdigit(*ptr)) {
+				while (isdigit(static_cast<unsigned char>(*ptr))) {
 					idx = idx * 10 + (*ptr - '0');
 					ptr++;
 				}
@@ -1381,12 +1424,12 @@ void ScummEngine_v7::loadLanguageBundle() {
 		for (i = 0; i < _languageIndexSize; i++) {
 			// First 8 chars in the line give the string ID / 'tag'
 			int j;
-			for (j = 0; j < 8 && !isspace(*ptr); j++, ptr++)
+			for (j = 0; j < 8 && !isspace(static_cast<unsigned char>(*ptr)); j++, ptr++)
 				_languageIndex[i].tag[j] = toupper(*ptr);
 			_languageIndex[i].tag[j] = 0;
 
 			// After that follows a single space which we skip
-			assert(isspace(*ptr));
+			assert(isspace(static_cast<unsigned char>(*ptr)));
 			ptr++;
 
 			// Then comes the translated string: we record an offset to that.

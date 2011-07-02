@@ -18,18 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/file.h"
-
 #include "common/stream.h"
+#include "common/textconsole.h"
 
-#include "sound/mixer.h"
-#include "sound/midiparser.h"
-#include "sound/mods/protracker.h"
+#include "audio/mixer.h"
+#include "audio/midiparser.h"
+#include "audio/midiplayer.h"
+#include "audio/mods/protracker.h"
+#include "audio/decoders/raw.h"
 
 #include "parallaction/sound.h"
 #include "parallaction/parallaction.h"
@@ -37,206 +36,75 @@
 
 namespace Parallaction {
 
-class MidiPlayer : public MidiDriver {
+class MidiPlayer : public Audio::MidiPlayer {
 public:
 
-	enum {
-		NUM_CHANNELS = 16
-	};
-
-	MidiPlayer(MidiDriver *driver);
-	~MidiPlayer();
+	MidiPlayer();
 
 	void play(Common::SeekableReadStream *stream);
-	void stop();
 	void pause(bool p);
-	void updateTimer();
-	void adjustVolume(int diff);
-	void setVolume(int volume);
-	int getVolume() const { return _masterVolume; }
-	void setLooping(bool loop) { _isLooping = loop; }
-
-	// MidiDriver interface
-	int open();
-	void close();
-	void send(uint32 b);
-	void metaEvent(byte type, byte *data, uint16 length);
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
-	uint32 getBaseTempo() { return _driver ? _driver->getBaseTempo() : 0; }
-	MidiChannel *allocateChannel() { return 0; }
-	MidiChannel *getPercussionChannel() { return 0; }
+	virtual void onTimer();
 
 private:
-
-	static void timerCallback(void *p);
-
-	MidiDriver *_driver;
-	MidiParser *_parser;
-	uint8 *_midiData;
-	bool _isLooping;
-	bool _isPlaying;
 	bool _paused;
-	int _masterVolume;
-	MidiChannel *_channelsTable[NUM_CHANNELS];
-	uint8 _channelsVolume[NUM_CHANNELS];
-	Common::Mutex _mutex;
 };
 
-MidiPlayer::MidiPlayer(MidiDriver *driver)
-	: _driver(driver), _parser(0), _midiData(0), _isLooping(false), _isPlaying(false), _paused(false), _masterVolume(0) {
+MidiPlayer::MidiPlayer()
+	: _paused(false) {
+
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_GM);
+	_driver = MidiDriver::createMidi(dev);
 	assert(_driver);
-	memset(_channelsTable, 0, sizeof(_channelsTable));
-	for (int i = 0; i < NUM_CHANNELS; i++) {
-		_channelsVolume[i] = 127;
+
+	int ret = _driver->open();
+	if (ret == 0) {
+		_driver->setTimerCallback(this, &timerCallback);
 	}
-
-	open();
-}
-
-MidiPlayer::~MidiPlayer() {
-	close();
 }
 
 void MidiPlayer::play(Common::SeekableReadStream *stream) {
-	if (!stream) {
-		stop();
+	Common::StackLock lock(_mutex);
+
+	stop();
+	if (!stream)
 		return;
-	}
 
 	int size = stream->size();
-
 	_midiData = (uint8 *)malloc(size);
 	if (_midiData) {
 		stream->read(_midiData, size);
 		delete stream;
-		_mutex.lock();
+
+		_parser = MidiParser::createParser_SMF();
 		_parser->loadMusic(_midiData, size);
 		_parser->setTrack(0);
+		_parser->setMidiDriver(this);
+		_parser->setTimerRate(_driver->getBaseTempo());
 		_isLooping = true;
 		_isPlaying = true;
-		_mutex.unlock();
 	}
-}
-
-void MidiPlayer::stop() {
-	_mutex.lock();
-	if (_isPlaying) {
-		_isPlaying = false;
-		_parser->unloadMusic();
-		free(_midiData);
-		_midiData = 0;
-	}
-	_mutex.unlock();
 }
 
 void MidiPlayer::pause(bool p) {
 	_paused = p;
 
-	for (int i = 0; i < NUM_CHANNELS; ++i) {
+	for (int i = 0; i < kNumChannels; ++i) {
 		if (_channelsTable[i]) {
 			_channelsTable[i]->volume(_paused ? 0 : _channelsVolume[i] * _masterVolume / 255);
 		}
 	}
 }
 
-void MidiPlayer::updateTimer() {
-	if (_paused) {
-		return;
-	}
+void MidiPlayer::onTimer() {
+	Common::StackLock lock(_mutex);
 
-	_mutex.lock();
-	if (_isPlaying) {
+	if (!_paused && _isPlaying && _parser) {
 		_parser->onTimer();
 	}
-	_mutex.unlock();
 }
 
-void MidiPlayer::adjustVolume(int diff) {
-	setVolume(_masterVolume + diff);
-}
-
-void MidiPlayer::setVolume(int volume) {
-	_masterVolume = CLIP(volume, 0, 255);
-	_mutex.lock();
-	for (int i = 0; i < NUM_CHANNELS; ++i) {
-		if (_channelsTable[i]) {
-			_channelsTable[i]->volume(_channelsVolume[i] * _masterVolume / 255);
-		}
-	}
-	_mutex.unlock();
-}
-
-int MidiPlayer::open() {
-	int ret = _driver->open();
-	if (ret == 0) {
-		_parser = MidiParser::createParser_SMF();
-		_parser->setMidiDriver(this);
-		_parser->setTimerRate(_driver->getBaseTempo());
-		_driver->setTimerCallback(this, &timerCallback);
-	}
-	return ret;
-}
-
-void MidiPlayer::close() {
-	stop();
-	_mutex.lock();
-	_driver->setTimerCallback(NULL, NULL);
-	_driver->close();
-	delete _driver;
-	_driver = 0;
-	_parser->setMidiDriver(NULL);
-	delete _parser;
-	_mutex.unlock();
-}
-
-void MidiPlayer::send(uint32 b) {
-	byte volume, ch = (byte)(b & 0xF);
-	switch (b & 0xFFF0) {
-	case 0x07B0: // volume change
-		volume = (byte)((b >> 16) & 0x7F);
-		_channelsVolume[ch] = volume;
-		volume = volume * _masterVolume / 255;
-		b = (b & 0xFF00FFFF) | (volume << 16);
-		break;
-	case 0x7BB0: // all notes off
-		if (!_channelsTable[ch]) {
-			// channel not yet allocated, no need to send the event
-			return;
-		}
-		break;
-	}
-
-	if (!_channelsTable[ch]) {
-		_channelsTable[ch] = (ch == 9) ? _driver->getPercussionChannel() : _driver->allocateChannel();
-	}
-	if (_channelsTable[ch]) {
-		_channelsTable[ch]->send(b);
-	}
-}
-
-void MidiPlayer::metaEvent(byte type, byte *data, uint16 length) {
-	switch (type) {
-	case 0x2F: // end of Track
-		if (_isLooping) {
-			_parser->jumpToTick(0);
-		} else {
-			stop();
-		}
-		break;
-	default:
-//		warning("Unhandled meta event: %02x", type);
-		break;
-	}
-}
-
-void MidiPlayer::timerCallback(void *p) {
-	MidiPlayer *player = (MidiPlayer *)p;
-
-	player->updateTimer();
-}
-
-DosSoundMan_ns::DosSoundMan_ns(Parallaction_ns *vm, MidiDriver *midiDriver) : SoundMan_ns(vm), _musicData1(0) {
-	_midiPlayer = new MidiPlayer(midiDriver);
+DosSoundMan_ns::DosSoundMan_ns(Parallaction_ns *vm) : SoundMan_ns(vm), _playing(false) {
+	_midiPlayer = new MidiPlayer();
 }
 
 DosSoundMan_ns::~DosSoundMan_ns() {
@@ -272,10 +140,15 @@ void DosSoundMan_ns::playMusic() {
 	Common::SeekableReadStream *stream = _vm->_disk->loadMusic(_musicFile);
 	_midiPlayer->play(stream);
 	_midiPlayer->setVolume(255);
+
+	_playing = true;
 }
 
 void DosSoundMan_ns::stopMusic() {
+	_musicFile[0] = 0;
 	_midiPlayer->stop();
+
+	_playing = false;
 }
 
 void DosSoundMan_ns::pause(bool p) {
@@ -283,67 +156,58 @@ void DosSoundMan_ns::pause(bool p) {
 	_midiPlayer->pause(p);
 }
 
-void DosSoundMan_ns::playCharacterMusic(const char *character) {
-	if (character == NULL) {
-		return;
-	}
+bool DosSoundMan_ns::locationHasOwnSoftMusic(const char *locationName) {
+	return !scumm_stricmp(locationName, "night") || !scumm_stricmp(locationName, "intsushi");
+}
 
-	if (!scumm_stricmp(_vm->_location._name, "night") ||
-		!scumm_stricmp(_vm->_location._name, "intsushi")) {
+void DosSoundMan_ns::playCharacterMusic(const char *character) {
+	if (!character || locationHasOwnSoftMusic(_vm->_location._name)) {
 		return;
 	}
 
 	char *name = const_cast<char*>(character);
+	const char *newMusicFile = 0;
 
 	if (!scumm_stricmp(name, _dinoName)) {
-		setMusicFile("dino");
+		newMusicFile = "dino";
 	} else
 	if (!scumm_stricmp(name, _donnaName)) {
-		setMusicFile("donna");
+		newMusicFile = "donna";
 	} else
 	if (!scumm_stricmp(name, _doughName)) {
-		setMusicFile("nuts");
+		newMusicFile = "nuts";
 	} else {
 		warning("unknown character '%s' in DosSoundMan_ns_ns::playCharacterMusic", character);
 		return;
 	}
 
-	playMusic();
+	if (!_playing || (newMusicFile && scumm_stricmp(newMusicFile, _musicFile))) {
+		// avoid restarting the same piece
+		setMusicFile(newMusicFile);
+		playMusic();
+		debugC(2, kDebugExec, "changeLocation: started character specific music (%s)", newMusicFile);
+	}
 }
 
 void DosSoundMan_ns::playLocationMusic(const char *location) {
-	if (_musicData1 != 0) {
-		playCharacterMusic(_vm->_char.getBaseName());
-		_musicData1 = 0;
-		debugC(2, kDebugExec, "changeLocation: started character specific music");
-	}
-
-	if (!scumm_stricmp(location, "night") || !scumm_stricmp(location, "intsushi")) {
-		setMusicFile("nuts");
+	if (locationHasOwnSoftMusic(location)) {
+		setMusicFile("soft");
 		playMusic();
-
 		debugC(2, kDebugExec, "changeLocation: started music 'soft'");
-	}
-
+	} else
 	if (isLocationSilent(location)) {
 		stopMusic();
-		_musicData1 = 1;
-
 		debugC(2, kDebugExec, "changeLocation: music stopped");
+	} else {
+		playCharacterMusic(_vm->_char.getBaseName());
 	}
 }
 
-AmigaSoundMan_ns::AmigaSoundMan_ns(Parallaction_ns *vm) : SoundMan_ns(vm) {
-	_musicStream = 0;
-}
 
-AmigaSoundMan_ns::~AmigaSoundMan_ns() {
-	stopMusic();
-	stopSfx(0);
-	stopSfx(1);
-	stopSfx(2);
-	stopSfx(3);
-}
+
+
+#pragma mark Amiga sound manager code
+
 
 #define AMIGABEEP_SIZE	16
 #define NUM_REPEATS		60
@@ -352,21 +216,37 @@ static int8 res_amigaBeep[AMIGABEEP_SIZE] = {
 	0, 20, 40, 60, 80, 60, 40, 20, 0, -20, -40, -60, -80, -60, -40, -20
 };
 
+AmigaSoundMan_ns::AmigaSoundMan_ns(Parallaction_ns *vm) : SoundMan_ns(vm) {
+	_musicStream = 0;
+
+	// initialize the waveform for the 'beep' sound
+	beepSoundBufferSize = AMIGABEEP_SIZE * NUM_REPEATS;
+	beepSoundBuffer = new int8[beepSoundBufferSize];
+	int8 *odata = beepSoundBuffer;
+	for (int i = 0; i < NUM_REPEATS; i++) {
+		memcpy(odata, res_amigaBeep, AMIGABEEP_SIZE);
+		odata += AMIGABEEP_SIZE;
+	}
+
+}
+
+AmigaSoundMan_ns::~AmigaSoundMan_ns() {
+	stopMusic();
+	stopSfx(0);
+	stopSfx(1);
+	stopSfx(2);
+	stopSfx(3);
+
+	delete []beepSoundBuffer;
+}
+
 Audio::AudioStream *AmigaSoundMan_ns::loadChannelData(const char *filename, Channel *ch, bool looping) {
 	Audio::AudioStream *input = 0;
 
 	if (!scumm_stricmp("beep", filename)) {
-		// TODO: make a permanent stream out of this
-		uint32 dataSize = AMIGABEEP_SIZE * NUM_REPEATS;
-		int8 *data = (int8*)malloc(dataSize);
-		int8 *odata = data;
-		for (uint i = 0; i < NUM_REPEATS; i++) {
-			memcpy(odata, res_amigaBeep, AMIGABEEP_SIZE);
-			odata += AMIGABEEP_SIZE;
-		}
 		int rate = 11934;
 		ch->volume = 160;
-		input = Audio::makeLinearInputStream((byte *)data, dataSize, rate, Audio::Mixer::FLAG_AUTOFREE, 0, 0);
+		input = Audio::makeRawStream((byte *)beepSoundBuffer, beepSoundBufferSize, rate, 0, DisposeAfterUse::NO);
 	} else {
 		Common::SeekableReadStream *stream = _vm->_disk->loadSound(filename);
 		input = Audio::make8SVXStream(*stream, looping);
@@ -395,7 +275,7 @@ void AmigaSoundMan_ns::playSfx(const char *filename, uint channel, bool looping,
 		volume = ch->volume;
 	}
 
-	_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &ch->handle, input, -1, volume);
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, &ch->handle, input, -1, volume);
 }
 
 void AmigaSoundMan_ns::stopSfx(uint channel) {
@@ -420,7 +300,7 @@ void AmigaSoundMan_ns::playMusic() {
 
 	debugC(3, kDebugAudio, "AmigaSoundMan_ns::playMusic(): created new music stream");
 
-	_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_musicHandle, _musicStream, -1, 255, 0, false, false);
+	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle, _musicStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, false);
 }
 
 void AmigaSoundMan_ns::stopMusic() {

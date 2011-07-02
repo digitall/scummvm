@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef	SWORD2_CONSOLE_H
@@ -82,11 +79,12 @@ public:
 	void buildDebugText();
 	void drawDebugGraphics();
 
-protected:
-	Sword2Engine *_vm;
-
+private:
 	virtual void preEnter();
 	virtual void postEnter();
+
+private:
+	Sword2Engine *_vm;
 
 	// Commands
 	bool Cmd_Mem(int argc, const char **argv);
@@ -124,6 +122,7 @@ protected:
 	bool Cmd_English(int argc, const char **argv);
 	bool Cmd_Finnish(int argc, const char **argv);
 	bool Cmd_Polish(int argc, const char **argv);
+	bool Cmd_FxQueue(int argc, const char **argv);
 };
 
 } // End of namespace Sword2

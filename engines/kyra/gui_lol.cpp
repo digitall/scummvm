@@ -18,20 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
 
+#include "kyra/gui_lol.h"
 #include "kyra/lol.h"
 #include "kyra/screen_lol.h"
-#include "kyra/gui_lol.h"
 #include "kyra/resource.h"
 #include "kyra/util.h"
+#include "kyra/sound.h"
 
 #include "common/savefile.h"
+#include "common/system.h"
 #include "common/config-manager.h"
 #include "graphics/scaler.h"
 
@@ -45,13 +44,13 @@ void LoLEngine::gui_drawPlayField() {
 	if (_flagsTable[31] & 0x40) {
 		// copy compass shape
 		static const int cx[] = { 112, 152, 224 };
-		_screen->copyRegion(cx[_lang], 32, 288, 0, 32, 32, 2, 2, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(cx[_flags.isTalkie ? _lang : 0], 32, 288, 0, 32, 32, 2, 2, Screen::CR_NO_P_CHECK);
 		_compassDirection = -1;
 	}
 
 	if (_flagsTable[31] & 0x10)
 		// draw automap book
-		_screen->drawShape(2, _gameShapes[78], 290, 32, 0, 0);
+		_screen->drawShape(2, _gameShapes[_flags.isTalkie ? 78 : 76], 290, 32, 0, 0);
 
 	int cp = _screen->setCurPage(2);
 
@@ -104,6 +103,7 @@ void LoLEngine::gui_drawInventoryItem(int index) {
 
 void LoLEngine::gui_drawScroll() {
 	_screen->copyRegion(112, 0, 12, 0, 87, 15, 2, 2, Screen::CR_NO_P_CHECK);
+	Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
 	int h = 0;
 
 	for (int i = 0; i < 7; i++) {
@@ -117,7 +117,7 @@ void LoLEngine::gui_drawScroll() {
 	if (h) {
 		_screen->copyRegion(201, 1, 17, 15, 6, h, 2, 2, Screen::CR_NO_P_CHECK);
 		_screen->copyRegion(208, 1, 89, 15, 6, h, 2, 2, Screen::CR_NO_P_CHECK);
-		_screen->fillRect(21, 15, 89, h + 15, 206);
+		_screen->fillRect(21, 15, 89, h + 15, _flags.use16ColorMode ? 0xbb : 206);
 	}
 
 	_screen->copyRegion(112, 16, 12, h + 15, 87, 14, 2, 2, Screen::CR_NO_P_CHECK);
@@ -126,21 +126,24 @@ void LoLEngine::gui_drawScroll() {
 	for (int i = 0; i < 7; i++) {
 		if (_availableSpells[i] == -1)
 			continue;
-		uint8 col = (i == _selectedSpell) ? 132 : 1;
-		_screen->fprintString(getLangString(_spellProperties[_availableSpells[i]].spellNameCode), 24, y, col, 0, 0);
+		uint8 col = (i == _selectedSpell) ? (_flags.use16ColorMode ? 0x88 : 132) : (_flags.use16ColorMode ? 0x44 : 1);
+		_screen->fprintString("%s", 24, y, col, 0, 0, getLangString(_spellProperties[_availableSpells[i]].spellNameCode));
 		y += 9;
 	}
+	_screen->setFont(of);
 }
 
 void LoLEngine::gui_highlightSelectedSpell(bool mode) {
 	int y = 15;
+	Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
 	for (int i = 0; i < 7; i++) {
 		if (_availableSpells[i] == -1)
 			continue;
-		uint8 col = (mode && (i == _selectedSpell)) ? 132 : 1;
-		_screen->fprintString(getLangString(_spellProperties[_availableSpells[i]].spellNameCode), 24, y, col, 0, 0);
+		uint8 col = (mode && (i == _selectedSpell)) ? (_flags.use16ColorMode ? 0x88 : 132) : (_flags.use16ColorMode ? 0x44 : 1);
+		_screen->fprintString("%s", 24, y, col, 0, 0, getLangString(_spellProperties[_availableSpells[i]].spellNameCode));
 		y += 9;
 	}
+	_screen->setFont(of);
 }
 
 void LoLEngine::gui_displayCharInventory(int charNum) {
@@ -165,14 +168,19 @@ void LoLEngine::gui_displayCharInventory(int charNum) {
 	_screen->copyRegion(80, 143, 80, 143, 232, 35, 0, 2);
 	gui_drawAllCharPortraitsWithStats();
 
-	_screen->fprintString(l->name, 157, 9, 254, 0, 5);
+	if (_flags.use16ColorMode)
+		_screen->fprintString("%s", 156, 8, 0xe1, 0, 1, l->name);
+	else
+		_screen->fprintString("%s", 157, 9, 254, 0, 5, l->name);
 
 	gui_printCharInventoryStats(charNum);
 
 	for (int i = 0; i < 11; i++)
 		gui_drawCharInventoryItem(i);
 
-	_screen->fprintString(getLangString(0x4033), 182, 103, 172, 0, 5);
+	Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
+	_screen->fprintString("%s", 182, 103, _flags.use16ColorMode ? 0xbb : 172, 0, 5, getLangString(0x4033));
+	_screen->setFont(of);
 
 	static const uint16 statusFlags[] = { 0x0080, 0x0000, 0x1000, 0x0002, 0x100, 0x0001, 0x0000, 0x0000 };
 
@@ -204,7 +212,10 @@ void LoLEngine::gui_displayCharInventory(int charNum) {
 				b = 1;
 		}
 
-		gui_drawBarGraph(154, 64 + i * 10, 34, 5, b, e, 132, 0);
+		if (_flags.use16ColorMode)
+			gui_drawBarGraph(154, 66 + i * 8, 34, 5, b, e, 0x88, 0);
+		else
+			gui_drawBarGraph(154, 64 + i * 10, 34, 5, b, e, 132, 0);
 	}
 
 	_screen->drawClippedLine(14, 120, 194, 120, 1);
@@ -229,23 +240,40 @@ void LoLEngine::gui_printCharacterStats(int index, int redraw, int value) {
 	if (index < 2) {
 		// might
 		// protection
-		y = index * 10 + 22;
-		col = 158;
-		if (redraw)
-			_screen->fprintString(getLangString(0x4014 + index), offs + 108, y, col, 0, 4);
+		if (_flags.use16ColorMode) {
+			y = (index + 2) << 3;
+			col = 0xa1;
+			if (redraw)
+				_screen->fprintString("%s", offs + 108, y, col, 0, 0, getLangString(0x4014 + index));
+		} else {
+			y = index * 10 + 22;
+			col = 158;
+			if (redraw)
+				_screen->fprintString("%s", offs + 108, y, col, 0, 4, getLangString(0x4014 + index));
+		}
 	} else {
 		//skills
 		int s = index - 2;
 		y = s * 10 + 62;
-		col = _characters[_selectedCharacter].flags & (0x200 << s) ? 254 : 180;
-		if (redraw)
-			_screen->fprintString(getLangString(0x4014 + index), offs + 108, y, col, 0, 4);
+		if (_flags.use16ColorMode) {
+			y = (s + 8) << 3;
+			col = _characters[_selectedCharacter].flags & (0x200 << s) ? 0xe1 : 0x81;
+			if (redraw)
+				_screen->fprintString("%s", offs + 108, y, col, 0, 0, getLangString(0x4014 + index));
+		} else {
+			y = s * 10 + 62;
+			col = _characters[_selectedCharacter].flags & (0x200 << s) ? 254 : 180;
+			if (redraw)
+				_screen->fprintString("%s", offs + 108, y, col, 0, 4, getLangString(0x4014 + index));
+		}
 	}
 
 	if (offs)
 		_screen->copyRegion(294, y, 182 + offs, y, 18, 8, 6, _screen->_curPage, Screen::CR_NO_P_CHECK);
 
-	_screen->fprintString("%d", 200 + offs, y, col, 0, 6, value);
+	Screen::FontId of = _flags.use16ColorMode ? _screen->setFont(Screen::FID_SJIS_FNT) : _screen->_currentFont;
+	_screen->fprintString("%d", 200 + offs, y, col, 0, _flags.use16ColorMode ? 2 : 6, value);
+	_screen->setFont(of);
 }
 
 void LoLEngine::gui_changeCharacterStats(int charNum) {
@@ -303,7 +331,7 @@ void LoLEngine::gui_drawCharInventoryItem(int itemIndex) {
 		x += 112;
 
 	int i = _characters[_selectedCharacter].items[itemIndex];
-	int shapeNum = i ? ((itemIndex < 9) ? 4 : 5) : slotShapes[itemIndex];
+	int shapeNum = i ? ((itemIndex < 9) ? 4 : 5) : (_flags.isTalkie ? slotShapes[itemIndex] : slotShapes[itemIndex] - 2);
 	_screen->drawShape(_screen->_curPage, _gameShapes[shapeNum], x, y, 0, 0);
 
 	if (itemIndex > 8) {
@@ -359,11 +387,17 @@ void LoLEngine::gui_drawCharPortraitWithStats(int charNum) {
 	gui_drawBox(0, 0, 66, 34, 1, 1, -1);
 	gui_drawCharFaceShape(charNum, 0, 1, _screen->_curPage);
 
-	gui_drawLiveMagicBar(33, 32, _characters[charNum].magicPointsCur, 0, _characters[charNum].magicPointsMax, 5, 32, 162, 1, 0);
-	gui_drawLiveMagicBar(39, 32, _characters[charNum].hitPointsCur, 0, _characters[charNum].hitPointsMax, 5, 32, 154, 1, 1);
-
-	_screen->printText(getLangString(0x4253), 33, 1, 160, 0);
-	_screen->printText(getLangString(0x4254), 39, 1, 152, 0);
+	if (_flags.use16ColorMode) {
+		gui_drawLiveMagicBar(33, 32, _characters[charNum].magicPointsCur, 0, _characters[charNum].magicPointsMax, 5, 32, 0xaa, 0x44, 0);
+		gui_drawLiveMagicBar(39, 32, _characters[charNum].hitPointsCur, 0, _characters[charNum].hitPointsMax, 5, 32, 0x66, 0x44, 1);
+		_screen->printText(getLangString(0x4253), 33, 1, 0x99, 0);
+		_screen->printText(getLangString(0x4254), 39, 1, 0x55, 0);
+	} else {
+		gui_drawLiveMagicBar(33, 32, _characters[charNum].magicPointsCur, 0, _characters[charNum].magicPointsMax, 5, 32, 162, 1, 0);
+		gui_drawLiveMagicBar(39, 32, _characters[charNum].hitPointsCur, 0, _characters[charNum].hitPointsMax, 5, 32, 154, 1, 1);
+		_screen->printText(getLangString(0x4253), 33, 1, 160, 0);
+		_screen->printText(getLangString(0x4254), 39, 1, 152, 0);
+	}
 
 	int spellLevels = 0;
 	if (_availableSpells[_selectedSpell] != -1) {
@@ -376,7 +410,7 @@ void LoLEngine::gui_drawCharPortraitWithStats(int charNum) {
 
 	if (_characters[charNum].flags & 0x10) {
 		// magic submenu open
-		_screen->drawShape(_screen->_curPage, _gameShapes[73], 44, 0, 0, 0);
+		_screen->drawShape(_screen->_curPage, _gameShapes[_flags.isTalkie ? 73 : 71], 44, 0, 0, 0);
 		if (spellLevels < 4)
 			_screen->drawGridBox(44, (spellLevels << 3) + 1, 22, 32 - (spellLevels << 3), 1);
 	} else {
@@ -388,17 +422,17 @@ void LoLEngine::gui_drawCharPortraitWithStats(int charNum) {
 		}
 
 		handIndex =  _gameShapeMap[(_itemProperties[handIndex].shpIndex << 1) + 1];
-		if (handIndex == 0x5a) { // draw raceClassSex specific hand shape
+		if (handIndex == _gameShapeMap[1]) { // draw raceClassSex specific hand shape
 			handIndex = _characters[charNum].raceClassSex - 1;
 			if (handIndex < 0)
 				handIndex = 0;
-			handIndex += 68;
+			handIndex += (_flags.isTalkie ? 68 : 66);
 		}
 
 		// draw hand/weapon
 		_screen->drawShape(_screen->_curPage, _gameShapes[handIndex], 44, 0, 0, 0);
 		// draw magic symbol
-		_screen->drawShape(_screen->_curPage, _gameShapes[72 + _characters[charNum].field_41], 44, 17, 0, 0);
+		_screen->drawShape(_screen->_curPage, _gameShapes[(_flags.isTalkie ? 72 : 70) + _characters[charNum].field_41], 44, 17, 0, 0);
 
 		if (spellLevels == 0)
 			_screen->drawGridBox(44, 17, 22, 16, 1);
@@ -409,13 +443,15 @@ void LoLEngine::gui_drawCharPortraitWithStats(int charNum) {
 		_screen->drawGridBox(44, 0, 22, 34, 1);
 
 	if (_characters[charNum].weaponHit) {
-		_screen->drawShape(_screen->_curPage, _gameShapes[34], 44, 0, 0, 0);
-		_screen->fprintString("%d", 57, 7, 254, 0, 1, _characters[charNum].weaponHit);
+		_screen->drawShape(_screen->_curPage, _gameShapes[_flags.isTalkie ? 34 : 32], 44, 0, 0, 0);
+		_screen->fprintString("%d", 57, 7, _flags.use16ColorMode ? 0x33 : 254, 0, 1, _characters[charNum].weaponHit);
 	}
 	if (_characters[charNum].damageSuffered)
-		_screen->fprintString("%d", 17, 28, 254, 0, 1, _characters[charNum].damageSuffered);
+		_screen->fprintString("%d", 17, 28, _flags.use16ColorMode ? 0x33 : 254, 0, 1, _characters[charNum].damageSuffered);
 
 	uint8 col = (charNum != _selectedCharacter || countActiveCharacters() == 1) ? 1 : 212;
+	if (_flags.use16ColorMode)
+		col = (charNum != _selectedCharacter || countActiveCharacters() == 1) ? 0x44 : 0x22;
 	_screen->drawBox(0, 0, 65, 33, col);
 
 	_screen->copyRegion(0, 0, _activeCharsXpos[charNum], 143, 66, 34, _screen->_curPage, cp, Screen::CR_NO_P_CHECK);
@@ -436,11 +472,11 @@ void LoLEngine::gui_drawBox(int x, int y, int w, int h, int frameColor1, int fra
 }
 
 void LoLEngine::gui_drawCharFaceShape(int charNum, int x, int y, int pageNum) {
-	if (_characters[charNum].curFaceFrame < 7 && _characters[charNum].defaultFaceFrame)
-		_characters[charNum].curFaceFrame = _characters[charNum].defaultFaceFrame;
+	if (_characters[charNum].curFaceFrame < 7 && _characters[charNum].tempFaceFrame)
+		_characters[charNum].curFaceFrame = _characters[charNum].tempFaceFrame;
 
-	if (_characters[charNum].defaultFaceFrame == 0 && _characters[charNum].curFaceFrame > 1 && _characters[charNum].curFaceFrame < 7)
-		_characters[charNum].curFaceFrame = _characters[charNum].defaultFaceFrame;
+	if (_characters[charNum].tempFaceFrame == 0 && _characters[charNum].curFaceFrame > 1 && _characters[charNum].curFaceFrame < 7)
+		_characters[charNum].curFaceFrame = _characters[charNum].tempFaceFrame;
 
 	int frm = (_characters[charNum].flags & 0x1108 && _characters[charNum].curFaceFrame < 7) ? 1 : _characters[charNum].curFaceFrame;
 
@@ -485,15 +521,15 @@ void LoLEngine::gui_drawLiveMagicBar(int x, int y, int curPoints, int unk, int m
 	if (barHeight < 1 && curPoints > 0)
 		barHeight = 1;
 
-	_screen->drawClippedLine(x - 1, y - h, x - 1, y, 1);
+	_screen->drawClippedLine(x - 1, y - h, x - 1, y, _flags.use16ColorMode ? 0x44 : 1);
 
 	if (flag) {
 		t = maxPoints >> 1;
 		if (t > curPoints)
-			col1 = 144;
+			col1 = _flags.use16ColorMode ? 0xbb : 144;
 		t = maxPoints >> 2;
 		if (t > curPoints)
-			col1 = 132;
+			col1 = _flags.use16ColorMode ? 0x88 : 132;
 	}
 
 	if (barHeight > 0)
@@ -522,36 +558,53 @@ void LoLEngine::calcCharPortraitXpos() {
 }
 
 void LoLEngine::gui_drawMoneyBox(int pageNum) {
-	static const uint16 moneyX[] = { 0x128, 0x134, 0x12b, 0x131, 0x12e};
-	static const uint16 moneyY[] = { 0x73, 0x73, 0x74, 0x74, 0x75};
+	static const uint16 moneyX256[] = { 0x128, 0x134, 0x12b, 0x131, 0x12e};
+	static const uint16 moneyY256[] = { 0x73, 0x73, 0x74, 0x74, 0x75};
+	static const uint16 moneyX16[] = { 0x127, 0x133, 0x12a, 0x130, 0x12d};
+	static const uint16 moneyY16[] = { 0x74, 0x74, 0x75, 0x75, 0x76};
 
 	int backupPage = _screen->_curPage;
 	_screen->_curPage = pageNum;
 
-	_screen->fillRect(292, 97, 316, 118, 252, pageNum);
+	const uint16 *moneyX;
+	const uint16 *moneyY;
+
+	if (_flags.use16ColorMode) {
+		moneyX = moneyX16;
+		moneyY = moneyY16;
+		_screen->fillRect(291, 98, 315, 118, 0x11, pageNum);
+	} else {
+		moneyX = moneyX256;
+		moneyY = moneyY256;
+		_screen->fillRect(292, 97, 316, 118, 252, pageNum);
+	}
 
 	for (int i = 0; i < 5; i++) {
 		if (!_moneyColumnHeight[i])
 			continue;
 
 		uint8 h = _moneyColumnHeight[i] - 1;
-		_screen->drawClippedLine(moneyX[i], moneyY[i], moneyX[i], moneyY[i] - h, 0xd2);
-		_screen->drawClippedLine(moneyX[i] + 1, moneyY[i], moneyX[i] + 1, moneyY[i] - h, 0xd1);
-		_screen->drawClippedLine(moneyX[i] + 2, moneyY[i], moneyX[i] + 2, moneyY[i] - h, 0xd0);
-		_screen->drawClippedLine(moneyX[i] + 3, moneyY[i], moneyX[i] + 3, moneyY[i] - h, 0xd1);
-		_screen->drawClippedLine(moneyX[i] + 4, moneyY[i], moneyX[i] + 4, moneyY[i] - h, 0xd2);
+		_screen->drawClippedLine(moneyX[i], moneyY[i], moneyX[i], moneyY[i] - h, _flags.use16ColorMode ? 1 : 0xd2);
+		_screen->drawClippedLine(moneyX[i] + 1, moneyY[i], moneyX[i] + 1, moneyY[i] - h, _flags.use16ColorMode ? 2 : 0xd1);
+		_screen->drawClippedLine(moneyX[i] + 2, moneyY[i], moneyX[i] + 2, moneyY[i] - h, _flags.use16ColorMode ? 3 : 0xd0);
+		_screen->drawClippedLine(moneyX[i] + 3, moneyY[i], moneyX[i] + 3, moneyY[i] - h, _flags.use16ColorMode ? 2 : 0xd1);
+		_screen->drawClippedLine(moneyX[i] + 4, moneyY[i], moneyX[i] + 4, moneyY[i] - h, _flags.use16ColorMode ? 1 : 0xd2);
 	}
 
 	Screen::FontId backupFont = _screen->setFont(Screen::FID_6_FNT);
-	_screen->fprintString("%d", 305, 98, 254, 0, 1, _credits);
+	if (_flags.use16ColorMode)
+		_screen->fprintString("%d", 304, 99, 0x33, 0, 1, _credits);
+	else
+		_screen->fprintString("%d", 305, 98, 254, 0, 1, _credits);
 
 	_screen->setFont(backupFont);
 	_screen->_curPage = backupPage;
 
 	if (pageNum == 6) {
-		_screen->hideMouse();
-		_screen->copyRegion(292, 97, 292, 97, 25, 22, 6, 0);
-		_screen->showMouse();
+		if (_flags.use16ColorMode)
+			_screen->copyRegion(291, 98, 291, 98, 24, 20, 6, 0);
+		else
+			_screen->copyRegion(292, 97, 292, 97, 25, 22, 6, 0);
 	}
 }
 
@@ -576,9 +629,16 @@ void LoLEngine::gui_drawCompass() {
 
 	const CompassDef *c = &_compassDefs[t];
 
-	_screen->drawShape(_screen->_curPage, _gameShapes[22 + _lang], 294, 3, 0, 0);
-	_screen->drawShape(_screen->_curPage, _gameShapes[25 + c->shapeIndex], 298 + c->x, c->y + 9, 0, c->flags | 0x300, _screen->_paletteOverlay1, 1);
-	_screen->drawShape(_screen->_curPage, _gameShapes[25 + c->shapeIndex], 299 + c->x, c->y + 8, 0, c->flags);
+	int compassShp = 22;
+	int compassPtr = 23;
+	if (_flags.isTalkie) {
+		compassShp += _lang;
+		compassPtr = 25;
+	}
+
+	_screen->drawShape(_screen->_curPage, _gameShapes[compassShp], 294, 3, 0, 0);
+	_screen->drawShape(_screen->_curPage, _gameShapes[compassPtr + c->shapeIndex], 298 + c->x, c->y + 9, 0, c->flags | 0x300, _screen->_paletteOverlay1, 1);
+	_screen->drawShape(_screen->_curPage, _gameShapes[compassPtr + c->shapeIndex], 299 + c->x, c->y + 8, 0, c->flags);
 
 	if (!_screen->_curPage)
 		_screen->showMouse();
@@ -587,8 +647,16 @@ void LoLEngine::gui_drawCompass() {
 int LoLEngine::gui_enableControls() {
 	_floatingCursorControl = 0;
 
+	int start = 74;
+	int end = 83;
+
+	if (_flags.isTalkie) {
+		start = 76;
+		end = 85;
+	}
+
 	if (!_currentControlMode) {
-		for (int i = 76; i < 85; i++)
+		for (int i = start; i < end; i++)
 			gui_toggleButtonDisplayMode(i, 2);
 	}
 
@@ -604,8 +672,18 @@ int LoLEngine::gui_disableControls(int controlMode) {
 
 	gui_toggleFightButtons(true);
 
-	for (int i = 76; i < 85; i++)
-		gui_toggleButtonDisplayMode(i, ((controlMode & 2) && (i > 78)) ? 2 : 3);
+	int start = 74;
+	int end = 83;
+	int swtch = 76;
+
+	if (_flags.isTalkie) {
+		start = 76;
+		end = 85;
+		swtch = 78;
+	}
+
+	for (int i = start; i < end; i++)
+		gui_toggleButtonDisplayMode(i, ((controlMode & 2) && (i > swtch)) ? 2 : 3);
 
 	return 1;
 }
@@ -614,7 +692,15 @@ void LoLEngine::gui_toggleButtonDisplayMode(int shapeIndex, int mode) {
 	static const int16 buttonX[] = { 0x0056, 0x0128, 0x000C, 0x0021, 0x0122, 0x000C, 0x0021, 0x0036, 0x000C, 0x0021, 0x0036 };
 	static const int16 buttonY[] = { 0x00B4, 0x00B4, 0x00B4, 0x00B4, 0x0020, 0x0084, 0x0084, 0x0084, 0x0096, 0x0096, 0x0096 };
 
-	if (shapeIndex == 78 && !(_flagsTable[31] & 0x10))
+	int swtch = 76;
+	int subst = 72;
+
+	if (_flags.isTalkie) {
+		swtch = 78;
+		subst = 74;
+	}
+
+	if (shapeIndex == swtch && !(_flagsTable[31] & 0x10))
 		return;
 
 	if (_currentControlMode && _needSceneRestore)
@@ -625,8 +711,8 @@ void LoLEngine::gui_toggleButtonDisplayMode(int shapeIndex, int mode) {
 
 	int pageNum = 0;
 
-	int16 x1 = buttonX[shapeIndex - 74];
-	int16 y1 = buttonY[shapeIndex - 74];
+	int16 x1 = buttonX[shapeIndex - subst];
+	int16 y1 = buttonY[shapeIndex - subst];
 	int16 x2 = 0;
 	int16 y2 = 0;
 	uint32 t = 0;
@@ -729,13 +815,9 @@ void LoLEngine::gui_updateInput() {
 		inputFlag = 0;
 	}
 
-	switch (inputFlag) {
-	case 43:
-	case 61:
-		// space or enter
+	if (inputFlag == _keyMap[Common::KEYCODE_SPACE] || inputFlag == _keyMap[Common::KEYCODE_RETURN]) {
 		snd_stopSpeech(true);
-		break;
-	case 55:
+	} else if (inputFlag == _keyMap[Common::KEYCODE_SLASH]) {
 		if (_weaponsDisabled || _availableSpells[1] == -1)
 			return;
 
@@ -743,13 +825,7 @@ void LoLEngine::gui_updateInput() {
 		if (_availableSpells[++_selectedSpell] == -1)
 			_selectedSpell = 0;
 		gui_highlightSelectedSpell(true);
-
 		gui_drawAllCharPortraitsWithStats();
-			break;
-	case 0x71a:
-		break;
-	default:
-		break;
 	}
 }
 
@@ -766,54 +842,9 @@ void LoLEngine::gui_triggerEvent(int eventType) {
 	} else {
 		evt.type = Common::EVENT_KEYDOWN;
 
-		switch (eventType) {
-		case 96:
-			evt.kbd.keycode = Common::KEYCODE_UP;
-			break;
-		case 102:
-			evt.kbd.keycode = Common::KEYCODE_RIGHT;
-			break;
-		case 97:
-			evt.kbd.keycode = Common::KEYCODE_DOWN;
-			break;
-		case 92:
-			evt.kbd.keycode = Common::KEYCODE_LEFT;
-			break;
-		case 91:
-			evt.kbd.keycode = Common::KEYCODE_HOME;
-			break;
-		case 101:
-			evt.kbd.keycode = Common::KEYCODE_PAGEUP;
-			break;
-		case 112:
-			evt.kbd.keycode = Common::KEYCODE_F1;
-			break;
-		case 113:
-			evt.kbd.keycode = Common::KEYCODE_F2;
-			break;
-		case 114:
-			evt.kbd.keycode = Common::KEYCODE_F3;
-			break;
-		case 25:
-			evt.kbd.keycode = Common::KEYCODE_o;
-			break;
-		case 20:
-			evt.kbd.keycode = Common::KEYCODE_r;
-			break;
-		case 110:
-			evt.kbd.keycode = Common::KEYCODE_ESCAPE;
-			break;
-		case 43:
-			evt.kbd.keycode = Common::KEYCODE_SPACE;
-			break;
-		case 61:
-			evt.kbd.keycode = Common::KEYCODE_RETURN;
-			break;
-		case 55:
-			evt.kbd.keycode = Common::KEYCODE_SLASH;
-			break;
-		default:
-			break;
+		for (KeyMap::const_iterator c = _keyMap.begin(); c != _keyMap.end(); ++c) {
+			if (c->_value == eventType)
+				evt.kbd.keycode = (Common::KeyCode)c->_key;
 		}
 	}
 
@@ -990,7 +1021,7 @@ int LoLEngine::clickedUpArrow(Button *button) {
 	if (button->arg && !_floatingCursorsEnabled)
 		return 0;
 
-	moveParty(_currentDirection, ((button->flags2 & 0x1080) == 0x1080) ? 1 : 0, 0, 80);
+	moveParty(_currentDirection, ((button->flags2 & 0x1080) == 0x1080) ? 1 : 0, 0, _flags.isTalkie ? 80 : 78);
 
 	return 1;
 }
@@ -999,7 +1030,7 @@ int LoLEngine::clickedDownArrow(Button *button) {
 	if (button->arg && !_floatingCursorsEnabled)
 		return 0;
 
-	moveParty(_currentDirection ^ 2, 0, 1, 83);
+	moveParty(_currentDirection ^ 2, 0, 1, _flags.isTalkie ? 83 : 81);
 
 	return 1;
 }
@@ -1008,7 +1039,7 @@ int LoLEngine::clickedLeftArrow(Button *button) {
 	if (button->arg && !_floatingCursorsEnabled)
 		return 0;
 
-	moveParty((_currentDirection - 1) & 3, ((button->flags2 & 0x1080) == 0x1080) ? 1 : 0, 2, 82);
+	moveParty((_currentDirection - 1) & 3, ((button->flags2 & 0x1080) == 0x1080) ? 1 : 0, 2, _flags.isTalkie ? 82 : 80);
 
 	return 1;
 }
@@ -1017,7 +1048,7 @@ int LoLEngine::clickedRightArrow(Button *button) {
 	if (button->arg && !_floatingCursorsEnabled)
 		return 0;
 
-	moveParty((_currentDirection + 1) & 3, ((button->flags2 & 0x1080) == 0x1080) ? 1 : 0, 3, 84);
+	moveParty((_currentDirection + 1) & 3, ((button->flags2 & 0x1080) == 0x1080) ? 1 : 0, 3, _flags.isTalkie ? 84 : 82);
 
 	return 1;
 }
@@ -1026,8 +1057,8 @@ int LoLEngine::clickedTurnLeftArrow(Button *button) {
 	if (button->arg && !_floatingCursorsEnabled)
 		return 0;
 
-	gui_toggleButtonDisplayMode(79, 1);
-	_currentDirection = (--_currentDirection) & 3;
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 79 : 77, 1);
+	_currentDirection = (_currentDirection - 1) & 3;
 
 	_sceneDefaultUpdate = 1;
 
@@ -1039,7 +1070,7 @@ int LoLEngine::clickedTurnLeftArrow(Button *button) {
 	else
 		movePartySmoothScrollTurnLeft(1);
 
-	gui_toggleButtonDisplayMode(79, 0);
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 79 : 77, 0);
 	runLevelScript(_currentBlock, 0x10);
 	return 1;
 }
@@ -1048,8 +1079,8 @@ int LoLEngine::clickedTurnRightArrow(Button *button) {
 	if (button->arg && !_floatingCursorsEnabled)
 		return 0;
 
-	gui_toggleButtonDisplayMode(81, 1);
-	_currentDirection = (++_currentDirection) & 3;
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 81 : 79, 1);
+	_currentDirection = (_currentDirection + 1) & 3;
 
 	_sceneDefaultUpdate = 1;
 
@@ -1061,7 +1092,7 @@ int LoLEngine::clickedTurnRightArrow(Button *button) {
 	else
 		movePartySmoothScrollTurnRight(1);
 
-	gui_toggleButtonDisplayMode(81, 0);
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 81 : 79, 0);
 	runLevelScript(_currentBlock, 0x10);
 
 	return 1;
@@ -1185,6 +1216,10 @@ int LoLEngine::clickedPortraitLeft(Button *button) {
 
 	_selectedCharacter = button->arg;
 	_weaponsDisabled = true;
+
+	if (_flags.use16ColorMode)
+		_screen->fillRect(112, 0, 288, 120, 0, 2);
+
 	gui_displayCharInventory(_selectedCharacter);
 	gui_enableCharInventoryButtons(_selectedCharacter);
 
@@ -1215,7 +1250,7 @@ int LoLEngine::clickedPortraitEtcRight(Button *button) {
 		return 1;
 	}
 
-	_txt->printMessage(2, getLangString((flg & 8) ? 0x4029 : ((flg & 0x10) ? 0x402a : 0x402b)));
+	_txt->printMessage(2, "%s", getLangString((flg & 8) ? 0x4029 : ((flg & 0x10) ? 0x402a : 0x402b)));
 	return 1;
 }
 
@@ -1235,13 +1270,13 @@ int LoLEngine::clickedCharInventorySlot(Button *button) {
 			}
 
 			if (!f)
-				_txt->printMessage(_itemsInPlay[_itemInHand].itemPropertyIndex == 231 ? 2 : 0, getLangString(0x418C));
+				_txt->printMessage(_itemsInPlay[_itemInHand].itemPropertyIndex == 231 ? 2 : 0, "%s", getLangString(0x418C));
 
 			return 1;
 		}
 	} else {
 		if (!_characters[_selectedCharacter].items[button->arg]) {
-			_txt->printMessage(0, getLangString(_inventorySlotDesc[button->arg] + 8));
+			_txt->printMessage(0, "%s", getLangString(_inventorySlotDesc[button->arg] + 8));
 			return 1;
 		}
 	}
@@ -1414,6 +1449,9 @@ int LoLEngine::clickedInventorySlot(Button *button) {
 int LoLEngine::clickedInventoryScroll(Button *button) {
 	int8 inc = (int8)button->arg;
 	int shp = (inc == 1) ? 75 : 74;
+	if (!_flags.isTalkie)
+		shp -= 2;
+
 	if (button->flags2 & 0x1000)
 		inc *= 9;
 
@@ -1435,7 +1473,7 @@ int LoLEngine::clickedInventoryScroll(Button *button) {
 int LoLEngine::clickedWall(Button *button) {
 	int block = calcNewBlockPosition(_currentBlock, _currentDirection);
 	int dir = _currentDirection ^ 2;
-	uint8 type = _wllBuffer3[_levelBlockProperties[block].walls[dir]];
+	uint8 type = _specialWallTypes[_levelBlockProperties[block].walls[dir]];
 
 	int res = 0;
 	switch (type) {
@@ -1506,7 +1544,7 @@ int LoLEngine::clickedSpellTargetCharacter(Button *button) {
 
 int LoLEngine::clickedSpellTargetScene(Button *button) {
 	LoLCharacter *c = &_characters[_activeSpell.charNum];
-	_txt->printMessage(0, getLangString(0x4041));
+	_txt->printMessage(0, "%s", getLangString(0x4041));
 
 	c->magicPointsCur += _activeSpell.p->mpRequired[_activeSpell.level];
 	if (c->magicPointsCur > c->magicPointsMax)
@@ -1545,7 +1583,7 @@ int LoLEngine::clickedSceneThrowItem(Button *button) {
 
 int LoLEngine::clickedOptions(Button *button) {
 	removeInputTop();
-	gui_toggleButtonDisplayMode(76, 1);
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 76 : 74, 1);
 
 	_updateFlags |= 4;
 
@@ -1557,14 +1595,17 @@ int LoLEngine::clickedOptions(Button *button) {
 		clickedExitCharInventory(&b);
 
 	initTextFading(0, 1);
-	updatePortraits();
+	stopPortraitSpeechAnim();
 	setLampMode(true);
 	setMouseCursorToIcon(0);
 	disableSysTimer(2);
 
-	gui_toggleButtonDisplayMode(76, 0);
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 76 : 74, 0);
 
 	bool speechWasEnabled = speechEnabled();
+	if (_flags.isTalkie && getVolume(kVolumeSpeech) == 2)
+		_configVoice |= (textEnabled() ? 2 : 1);
+
 	_gui->runMenu(_gui->_mainMenu);
 
 	_updateFlags &= 0xfffb;
@@ -1576,7 +1617,10 @@ int LoLEngine::clickedOptions(Button *button) {
 
 	gui_drawPlayField();
 
-	if (speechWasEnabled && !textEnabled() && (!speechEnabled() || getVolume(kVolumeSpeech) == 2))
+	if (getVolume(kVolumeSpeech) == 2)
+		_configVoice &= (textEnabled() ? ~2 : ~1);
+
+	if (speechWasEnabled && !textEnabled() && !speechEnabled())
 		_configVoice = 0;
 
 	writeSettings();
@@ -1585,7 +1629,7 @@ int LoLEngine::clickedOptions(Button *button) {
 }
 
 int LoLEngine::clickedRestParty(Button *button) {
-	gui_toggleButtonDisplayMode(77, 1);
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 77 : 75, 1);
 
 	Button b;
 	b.data0Val2 = b.data1Val2 = b.data2Val2 = 0xfe;
@@ -1630,11 +1674,11 @@ int LoLEngine::clickedRestParty(Button *button) {
 	removeInputTop();
 
 	if (needHealingFlags || needMagicGainFlags) {
-		_screen->fillRect(112, 0, 288, 120, 1);
+		_screen->fillRect(112, 0, 288, 120, _flags.use16ColorMode ? 0x44 : 1);
 		gui_drawAllCharPortraitsWithStats();
 
-		_txt->printMessage(0x8000, getLangString(0x4057));
-		gui_toggleButtonDisplayMode(77, 0);
+		_txt->printMessage(0x8000, "%s", getLangString(0x4057));
+		gui_toggleButtonDisplayMode(_flags.isTalkie ? 77 : 75, 0);
 
 		int h = 600 / tHp;
 		if (h > 30)
@@ -1761,7 +1805,7 @@ int LoLEngine::clickedRestParty(Button *button) {
 		_partyAwake = true;
 		updateDrawPage2();
 		gui_drawScene(0);
-		_txt->printMessage(0x8000, getLangString(0x4059));
+		_txt->printMessage(0x8000, "%s", getLangString(0x4059));
 		_screen->fadeToPalette1(40);
 
 	} else {
@@ -1774,14 +1818,14 @@ int LoLEngine::clickedRestParty(Button *button) {
 				if (needPoisoningFlags & (1 << i))
 					setTemporaryFaceFrame(i, 3, 8, 0);
 			}
-			_txt->printMessage(0x8000, getLangString(0x405a));
+			_txt->printMessage(0x8000, "%s", getLangString(0x405a));
 			gui_drawAllCharPortraitsWithStats();
 
 		} else {
 			setTemporaryFaceFrameForAllCharacters(2, 4, 1);
-			_txt->printMessage(0x8000, getLangString(0x4058));
+			_txt->printMessage(0x8000, "%s", getLangString(0x4058));
 		}
-		gui_toggleButtonDisplayMode(77, 0);
+		gui_toggleButtonDisplayMode(_flags.isTalkie ? 77 : 75, 0);
 	}
 
 	return 1;
@@ -1798,9 +1842,9 @@ int LoLEngine::clickedCompass(Button *button) {
 
 	if (_compassBroken) {
 		if (characterSays(0x425b, -1, true))
-			_txt->printMessage(4, getLangString(0x425b));
+			_txt->printMessage(4, "%s", getLangString(0x425b));
 	} else {
-		_txt->printMessage(0, getLangString(0x402f + _currentDirection));
+		_txt->printMessage(0, "%s", getLangString(0x402f + _currentDirection));
 	}
 
 	return 1;
@@ -1824,11 +1868,11 @@ int LoLEngine::clickedLamp(Button *button) {
 
 	if (_itemsInPlay[_itemInHand].itemPropertyIndex == 248) {
 		if (_lampOilStatus >= 100) {
-			_txt->printMessage(0, getLangString(0x4061));
+			_txt->printMessage(0, "%s", getLangString(0x4061));
 			return 1;
 		}
 
-		_txt->printMessage(0, getLangString(0x4062));
+		_txt->printMessage(0, "%s", getLangString(0x4062));
 
 		deleteItem(_itemInHand);
 		snd_playSoundEffect(181, -1);
@@ -1860,13 +1904,14 @@ int LoLEngine::clickedStatusIcon(Button *button) {
 	if (str == 0 || str > 3)
 		return 1;
 
-	_txt->printMessage(0x8002, getLangString(str == 1 ? 0x424c : (str == 2 ? 0x424e : 0x424d)));
+	_txt->printMessage(0x8002, "%s", getLangString(str == 1 ? 0x424c : (str == 2 ? 0x424e : 0x424d)));
 	return 1;
 }
 
 GUI_LoL::GUI_LoL(LoLEngine *vm) : GUI(vm), _vm(vm), _screen(vm->_screen) {
 	_scrollUpFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::scrollUp);
 	_scrollDownFunctor = BUTTON_FUNCTOR(GUI_LoL, this, &GUI_LoL::scrollDown);
+
 	_redrawButtonFunctor = BUTTON_FUNCTOR(GUI, this, &GUI::redrawButtonCallback);
 	_redrawShadedButtonFunctor = BUTTON_FUNCTOR(GUI, this, &GUI::redrawShadedButtonCallback);
 
@@ -1875,6 +1920,8 @@ GUI_LoL::GUI_LoL(LoLEngine *vm) : GUI(vm), _vm(vm), _screen(vm->_screen) {
 	_mouseClick = 0;
 	_sliderSfx = 11;
 	_buttonListChanged = false;
+	_savegameList = 0;
+	_savegameListSize = 0;
 }
 
 void GUI_LoL::processButton(Button *button) {
@@ -2210,7 +2257,7 @@ int GUI_LoL::processButtonList(Button *buttonList, uint16 inputFlag, int8 mouseW
 }
 
 int GUI_LoL::redrawButtonCallback(Button *button) {
-	if (!_displayMenu)
+	if (!_displayMenu || _vm->gameFlags().use16ColorMode)
 		return 0;
 
 	_screen->drawBox(button->x + 1, button->y + 1, button->x + button->width - 1, button->y + button->height - 1, 225);
@@ -2218,10 +2265,10 @@ int GUI_LoL::redrawButtonCallback(Button *button) {
 }
 
 int GUI_LoL::redrawShadedButtonCallback(Button *button) {
-	if (!_displayMenu)
+	if (!_displayMenu || _vm->gameFlags().use16ColorMode)
 		return 0;
 
-	_screen->drawShadedBox(button->x, button->y, button->x + button->width, button->y + button->height, 223, 227, Screen::kShadeTypeLol);
+	_screen->drawShadedBox(button->x, button->y, button->x + button->width, button->y + button->height, 223, 227);
 	return 0;
 }
 
@@ -2237,7 +2284,10 @@ int GUI_LoL::runMenu(Menu &menu) {
 	const ScreenDim *d = _screen->getScreenDim(8);
 	uint32 textCursorTimer = 0;
 	uint8 textCursorStatus = 1;
+	Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
 	int wW = _screen->getCharWidth('W');
+	_screen->setFont(of);
+
 	int fW = (d->w << 3) - wW;
 	int fC = 0;
 
@@ -2246,14 +2296,14 @@ int GUI_LoL::runMenu(Menu &menu) {
 	// Instead, the respevtive struct entry is used to determine whether
 	// a menu has scroll buttons or slider bars.
 	uint8 hasSpecialButtons = 0;
+	_savegameListUpdateNeeded = true;
 
 	while (_displayMenu) {
 		_vm->_mouseX = _vm->_mouseY = 0;
 
 		if (_currentMenu == &_loadMenu || _currentMenu == &_saveMenu || _currentMenu == &_deleteMenu) {
-			updateSaveList(true);
-			Common::sort(_saveSlots.begin(), _saveSlots.end(), Common::Greater<int>());
-			setupSavegameNames(*_currentMenu, 4);
+			updateSavegameList();
+			setupSaveMenuSlots(*_currentMenu, 4);
 		}
 
 		hasSpecialButtons = _currentMenu->highlightedItem;
@@ -2261,30 +2311,35 @@ int GUI_LoL::runMenu(Menu &menu) {
 
 		if (_currentMenu == &_gameOptions) {
 			char *s = (char *)_vm->_tempBuffer5120;
-			strncpy(s, _vm->getLangString(0x406f + _vm->_monsterDifficulty), 30);
-			s[29] = 0;
-			_currentMenu->item[0].itemString = s;
+			Common::strlcpy(s, _vm->getLangString(0x406f + _vm->_monsterDifficulty), 30);
+			_currentMenu->item[_vm->gameFlags().isTalkie ? 0 : 2].itemString = s;
 			s += (strlen(s) + 1);
 
-			strncpy(s, _vm->getLangString(_vm->_smoothScrollingEnabled ? 0x4068 : 0x4069), 30);
-			s[29] = 0;
-			_currentMenu->item[1].itemString = s;
+			Common::strlcpy(s, _vm->getLangString(_vm->_smoothScrollingEnabled ? 0x4068 : 0x4069), 30);
+			_currentMenu->item[_vm->gameFlags().isTalkie ? 1 : 3].itemString = s;
 			s += (strlen(s) + 1);
 
-			strncpy(s, _vm->getLangString(_vm->_floatingCursorsEnabled ? 0x4068 : 0x4069), 30);
-			s[29] = 0;
-			_currentMenu->item[2].itemString = s;
+			Common::strlcpy(s, _vm->getLangString(_vm->_floatingCursorsEnabled ? 0x4068 : 0x4069), 30);
+			_currentMenu->item[_vm->gameFlags().isTalkie ? 2 : 4].itemString = s;
 			s += (strlen(s) + 1);
 
-			strncpy(s, _vm->getLangString(0x42d6 + _vm->_lang), 30);
-			s[29] = 0;
-			_currentMenu->item[3].itemString = s;
-			s += (strlen(s) + 1);
+			if (_vm->gameFlags().isTalkie) {
+				Common::strlcpy(s, _vm->getLangString(0x42d6 + _vm->_lang), 30);
+				_currentMenu->item[3].itemString = s;
+				s += (strlen(s) + 1);
 
-			strncpy(s, _vm->getLangString(_vm->textEnabled() ? 0x4068 : 0x4069), 30);
-			s[29] = 0;
-			_currentMenu->item[4].itemString = s;
-			s += (strlen(s) + 1);
+				Common::strlcpy(s, _vm->getLangString(_vm->textEnabled() ? 0x4068 : 0x4069), 30);
+				_currentMenu->item[4].itemString = s;
+				s += (strlen(s) + 1);
+			} else {
+				Common::strlcpy(s, _vm->getLangString(_vm->_configMusic ? 0x4068 : 0x4069), 30);
+				_currentMenu->item[0].itemString = s;
+				s += (strlen(s) + 1);
+
+				Common::strlcpy(s, _vm->getLangString(_vm->_configSounds ? 0x4068 : 0x4069), 30);
+				_currentMenu->item[1].itemString = s;
+				s += (strlen(s) + 1);
+			}
 		}
 
 		if (hasSpecialButtons == 1) {
@@ -2294,7 +2349,10 @@ int GUI_LoL::runMenu(Menu &menu) {
 				_scrollUpButton.data0ShapePtr = _vm->_gameShapes[17];
 				_scrollUpButton.data1ShapePtr = _scrollUpButton.data2ShapePtr = _vm->_gameShapes[19];
 			}
-			if ((uint)_savegameOffset == _saveSlots.size() - 4) {
+
+			int slotOffs = (_currentMenu == &_saveMenu) ? 1 : 0;
+
+			if (((uint)_savegameOffset == _saveSlots.size() - (4 - slotOffs)) || _saveSlots.size() < (uint)(5 - slotOffs)) {
 				_scrollDownButton.data0ShapePtr = _scrollDownButton.data1ShapePtr = _scrollDownButton.data2ShapePtr = 0;
 			} else {
 				_scrollDownButton.data0ShapePtr = _vm->_gameShapes[18];
@@ -2311,6 +2369,12 @@ int GUI_LoL::runMenu(Menu &menu) {
 		}
 
 		initMenu(*_currentMenu);
+
+		if (_currentMenu == &_loadMenu || _currentMenu == &_deleteMenu) {
+			if (_saveSlots.begin() == _saveSlots.end())
+				// "no savegames to load" message
+				_screen->fprintString("%s", _currentMenu->x + _currentMenu->width / 2, _currentMenu->y + 42, 204, 0, 9, _vm->getLangString(0x4009));
+		}
 
 		if (hasSpecialButtons == 2) {
 			static const uint8 oX[] = { 0, 10, 124 };
@@ -2362,7 +2426,7 @@ int GUI_LoL::runMenu(Menu &menu) {
 			_screen->updateScreen();
 		}
 
-		if (_currentMenu == &_mainMenu) {
+		if (_currentMenu == &_mainMenu && !_vm->gameFlags().use16ColorMode) {
 			Screen::FontId f = _screen->setFont(Screen::FID_6_FNT);
 			_screen->fprintString("%s", menu.x + 8, menu.y + menu.height - 12, 204, 0, 8, gScummVMVersion);
 			_screen->setFont(f);
@@ -2374,20 +2438,29 @@ int GUI_LoL::runMenu(Menu &menu) {
 			int my = d->sy - 1;
 			int mw = (d->w << 3) + 1;
 			int mh = d->h + 1;
-			_screen->drawShadedBox(mx, my, mx + mw, my + mh, 227, 223, Screen::kShadeTypeLol);
+			if (_vm->gameFlags().use16ColorMode) {
+				_screen->drawShadedBox(mx, my, mx + mw + 1, my + mh + 1, 0xdd, 0xff);
+				_screen->drawLine(true, mx + mw + 1, my, mh + 1, 0xcc);
+				_screen->drawLine(false, mx, my + mh + 1, mw + 2, 0xcc);
+			} else {
+				_screen->drawShadedBox(mx, my, mx + mw, my + mh, 227, 223);
+			}
+
 			int pg = _screen->setCurPage(0);
 			_vm->_txt->clearDim(8);
 			textCursorTimer = 0;
 			textCursorStatus = 0;
 
+			Screen::FontId f = _screen->setFont(Screen::FID_9_FNT);
 			fC = _screen->getTextWidth(_saveDescription);
 			while (fC >= fW) {
 				_saveDescription[strlen(_saveDescription) - 1] = 0;
 				fC = _screen->getTextWidth(_saveDescription);
 			}
 
-			_screen->fprintString(_saveDescription, (d->sx << 3), d->sy + 2, d->unk8, d->unkA, 0);
-			_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - 1, d->unk8, 0);
+			_screen->fprintString("%s", (d->sx << 3), d->sy + 2, d->unk8, d->unkA, 0, _saveDescription);
+			f = _screen->setFont(f);
+			_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - (_vm->gameFlags().use16ColorMode ? 2 : 1), d->unk8, 0);
 			_screen->setCurPage(pg);
 		}
 
@@ -2396,19 +2469,37 @@ int GUI_LoL::runMenu(Menu &menu) {
 
 			if (_currentMenu == &_savenameMenu) {
 				if (textCursorTimer <= _vm->_system->getMillis()) {
+					Screen::FontId f = _screen->setFont(Screen::FID_9_FNT);
 					fC = _screen->getTextWidth(_saveDescription);
 					textCursorStatus ^= 1;
 					textCursorTimer = _vm->_system->getMillis() + 20 * _vm->_tickLength;
-					_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - 1, textCursorStatus ? d->unk8 : d->unkA, 0);
+					_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - (_vm->gameFlags().use16ColorMode ? 2 : 1), textCursorStatus ? d->unk8 : d->unkA, 0);
 					_screen->updateScreen();
+					f = _screen->setFont(f);
 				}
 			}
 
 			if (getInput()) {
-				if (!_newMenu)
-					_newMenu = (_currentMenu != &_audioOptions) ? _currentMenu : 0;
-				else
+				if (!_newMenu) {
+					if (_currentMenu == &_savenameMenu) {
+						Screen::FontId f = _screen->setFont(Screen::FID_9_FNT);
+						_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - (_vm->gameFlags().use16ColorMode ? 2 : 1), d->unkA, 0);
+						fC = _screen->getTextWidth(_saveDescription);
+						while (fC >= fW) {
+							_saveDescription[strlen(_saveDescription) - 1] = 0;
+							fC = _screen->getTextWidth(_saveDescription);
+						}
+						_screen->fprintString("%s", (d->sx << 3), d->sy + 2, d->unk8, d->unkA, 0, _saveDescription);
+						_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - (_vm->gameFlags().use16ColorMode ? 2 : 1), textCursorStatus ? d->unk8 : d->unkA, 0);
+						f = _screen->setFont(f);
+						textCursorTimer = 0;
+						textCursorStatus = 0;
+					} else {
+						_newMenu = (_currentMenu != &_audioOptions) ? _currentMenu : 0;
+					}
+				} else {
 					_lastMenu = _menuResult == -1 ? _lastMenu : _currentMenu;
+				}
 			}
 
 			if (!_menuResult)
@@ -2426,13 +2517,32 @@ int GUI_LoL::runMenu(Menu &menu) {
 		_newMenu = 0;
 	}
 
+	if (_savegameList) {
+		for (int i = 0; i < _savegameListSize; i++)
+			delete[] _savegameList[i];
+		delete[] _savegameList;
+		_savegameList = 0;
+	}
+
 	return _menuResult;
 }
 
 void GUI_LoL::createScreenThumbnail(Graphics::Surface &dst) {
 	uint8 *screenPal = new uint8[768];
 	_screen->getRealPalette(1, screenPal);
-	::createThumbnail(&dst, _screen->getCPagePtr(7), Screen::SCREEN_W, Screen::SCREEN_H, screenPal);
+
+	if (_vm->gameFlags().platform == Common::kPlatformPC98) {
+		uint8 *screen = new uint8[Screen::SCREEN_W * Screen::SCREEN_H];
+		assert(screen);
+
+		_screen->copyRegionToBuffer(7, 0, 0, 320, 200, screen);
+		Screen_LoL::convertPC98Gfx(screen, Screen::SCREEN_W, Screen::SCREEN_H, Screen::SCREEN_W);
+		::createThumbnail(&dst, screen, Screen::SCREEN_W, Screen::SCREEN_H, screenPal);
+		delete[] screen;
+	} else {
+		::createThumbnail(&dst, _screen->getCPagePtr(7), Screen::SCREEN_W, Screen::SCREEN_H, screenPal);
+	}
+
 	delete[] screenPal;
 }
 
@@ -2445,7 +2555,7 @@ void GUI_LoL::restorePage0() {
 	_screen->updateScreen();
 }
 
-void GUI_LoL::setupSavegameNames(Menu &menu, int num) {
+void GUI_LoL::setupSaveMenuSlots(Menu &menu, int num) {
 	char *s = (char *)_vm->_tempBuffer5120;
 
 	for (int i = 0; i < num; ++i) {
@@ -2454,23 +2564,21 @@ void GUI_LoL::setupSavegameNames(Menu &menu, int num) {
 	}
 
 	int startSlot = 0;
-	if (&menu == &_saveMenu && _savegameOffset == 0)
-		startSlot = 1;
+	int slotOffs = 0;
 
-	KyraEngine_v1::SaveHeader header;
-	Common::InSaveFile *in;
-	for (int i = startSlot; i < num && uint(_savegameOffset + i) < _saveSlots.size(); ++i) {
-		if ((in = _vm->openSaveForReading(_vm->getSavegameFilename(_saveSlots[i + _savegameOffset - startSlot]), header)) != 0) {
-			strncpy(s, header.description.c_str(), 80);
-			s[79] = 0;
+	if (&menu == &_saveMenu) {
+		if (_savegameOffset == 0)
+			startSlot = 1;
+		slotOffs = 1;
+	}
 
-			Util::convertISOToDOS(s);
-
+	for (int i = startSlot; i < num && _savegameOffset + i - slotOffs < _savegameListSize; ++i) {
+		if (_savegameList[_saveSlots[i + _savegameOffset - slotOffs]]) {
+			Common::strlcpy(s, _savegameList[_saveSlots[i + _savegameOffset - slotOffs]], 80);
 			menu.item[i].itemString = s;
 			s += (strlen(s) + 1);
-			menu.item[i].saveSlot = _saveSlots[i + _savegameOffset];
+			menu.item[i].saveSlot = _saveSlots[i + _savegameOffset - slotOffs];
 			menu.item[i].enabled = true;
-			delete in;
 		}
 	}
 
@@ -2484,8 +2592,49 @@ void GUI_LoL::setupSavegameNames(Menu &menu, int num) {
 	}
 }
 
-void GUI_LoL::printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 flags, Screen::FontId font) {
-	_screen->fprintString(str, x, y, c0, c1, flags);
+void GUI_LoL::updateSavegameList() {
+	if (!_savegameListUpdateNeeded)
+		return;
+
+	_savegameListUpdateNeeded = false;
+
+	if (_savegameList) {
+		for (int i = 0; i < _savegameListSize; i++)
+			delete[] _savegameList[i];
+		delete[] _savegameList;
+	}
+
+	updateSaveList(true);
+	_savegameListSize = _saveSlots.size();
+
+	if (_savegameListSize) {
+		Common::sort(_saveSlots.begin(), _saveSlots.end(), Common::Greater<int>());
+
+		LoLEngine::SaveHeader header;
+		Common::InSaveFile *in;
+
+		_savegameList = new char *[_savegameListSize];
+
+		for (int i = 0; i < _savegameListSize; i++) {
+			in = _vm->openSaveForReading(_vm->getSavegameFilename(i), header);
+			if (in) {
+				_savegameList[i] = new char[header.description.size() + 1];
+				Common::strlcpy(_savegameList[i], header.description.c_str(), header.description.size() + 1);
+				Util::convertISOToDOS(_savegameList[i]);
+				delete in;
+			} else {
+				_savegameList[i] = 0;
+				error("GUI_LoL::updateSavegameList(): Unexpected missing save file for slot: %d.", i);
+			}
+		}
+
+	} else {
+		_savegameList = 0;
+	}
+}
+
+void GUI_LoL::printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 flags) {
+	_screen->fprintString("%s", x, y, c0, c1, _vm->gameFlags().use16ColorMode ? (flags & 3) : flags , str);
 }
 
 int GUI_LoL::getMenuCenterStringX(const char *str, int x1, int x2) {
@@ -2508,7 +2657,7 @@ int GUI_LoL::getInput() {
 	if (_currentMenu == &_savenameMenu) {
 		_vm->updateInput();
 
-		for (Common::List<KyraEngine_v1::Event>::const_iterator evt = _vm->_eventList.begin(); evt != _vm->_eventList.end(); evt++) {
+		for (Common::List<LoLEngine::Event>::const_iterator evt = _vm->_eventList.begin(); evt != _vm->_eventList.end(); ++evt) {
 			if (evt->event.type == Common::EVENT_KEYDOWN)
 				_keyPressed = evt->event.kbd;
 		}
@@ -2520,7 +2669,7 @@ int GUI_LoL::getInput() {
 		char inputKey = _keyPressed.ascii;
 		Util::convertISOToDOS(inputKey);
 
-		if ((uint8)inputKey > 31 && (uint8)inputKey < 226) {
+		if ((uint8)inputKey > 31 && (uint8)inputKey < (_vm->gameFlags().lang == Common::JA_JPN ? 128 : 226)) {
 			_saveDescription[strlen(_saveDescription) + 1] = 0;
 			_saveDescription[strlen(_saveDescription)] = inputKey;
 			inputFlag |= 0x8000;
@@ -2601,7 +2750,7 @@ int GUI_LoL::clickedSaveMenu(Button *button) {
 	_newMenu = &_savenameMenu;
 	int16 s = (int16)button->arg;
 	_menuResult = _saveMenu.item[-s - 2].saveSlot + 1;
-	_saveDescription = (char*)_vm->_tempBuffer5120 + 1000;
+	_saveDescription = (char *)_vm->_tempBuffer5120 + 1000;
 	_saveDescription[0] = 0;
 	if (_saveMenu.item[-s - 2].saveSlot != -3)
 		strcpy(_saveDescription, _saveMenu.item[-s - 2].itemString);
@@ -2629,8 +2778,21 @@ int GUI_LoL::clickedOptionsMenu(Button *button) {
 	updateMenuButton(button);
 
 	switch (button->arg) {
+	case 0xfff9:
+		_vm->_configMusic ^= 1;
+		_vm->sound()->enableMusic(_vm->_configMusic);
+
+		if (_vm->_configMusic)
+			_vm->snd_playTrack(_vm->_curMusicTheme);
+		else
+			_vm->_sound->beginFadeOut();
+		break;
+	case 0xfff8:
+		_vm->_configSounds ^= true;
+		_vm->sound()->enableSFX(_vm->_configSounds);
+		break;
 	case 0xfff7:
-		_vm->_monsterDifficulty = ++_vm->_monsterDifficulty % 3;
+		_vm->_monsterDifficulty = (_vm->_monsterDifficulty + 1) % 3;
 		break;
 	case 0xfff6:
 		_vm->_smoothScrollingEnabled ^= true;
@@ -2639,22 +2801,23 @@ int GUI_LoL::clickedOptionsMenu(Button *button) {
 		_vm->_floatingCursorsEnabled ^= true;
 		break;
 	case 0xfff4:
-		_vm->_lang = ++_vm->_lang % 3;
+		_vm->_lang = (_vm->_lang + 1) % 3;
 		break;
 	case 0xfff3:
-		_vm->_configVoice ^= 1;
+		_vm->_configVoice ^= 3;
 		break;
-	case 0x4072:
-		char filename[13];
-		snprintf(filename, sizeof(filename), "LEVEL%02d.%s", _vm->_currentLevel, _vm->_languageExt[_vm->_lang]);
-		if (_vm->_levelLangFile)
-			delete[] _vm->_levelLangFile;
-		_vm->_levelLangFile = _vm->resource()->fileData(filename, 0);
-		snprintf(filename, sizeof(filename), "LANDS.%s", _vm->_languageExt[_vm->_lang]);
-		if (_vm->_landsFile)
-			delete[] _vm->_landsFile;
-		_vm->_landsFile = _vm->resource()->fileData(filename, 0);
+	case 0x4072: {
+		Common::String filename;
+		filename = Common::String::format("LEVEL%02d.%s", _vm->_currentLevel, _vm->_languageExt[_vm->_lang]);
+		delete[] _vm->_levelLangFile;
+		_vm->_levelLangFile = _vm->resource()->fileData(filename.c_str(), 0);
+		filename = Common::String::format("LANDS.%s", _vm->_languageExt[_vm->_lang]);
+		delete[] _vm->_landsFile;
+		_vm->_landsFile = _vm->resource()->fileData(filename.c_str(), 0);
 		_newMenu = _lastMenu;
+		} break;
+	default:
+		// TODO: Is there anything we should do if we hit this case?
 		break;
 	}
 
@@ -2742,10 +2905,10 @@ int GUI_LoL::clickedSavenameMenu(Button *button) {
 
 		Util::convertDOSToISO(_saveDescription);
 
-		int slot = _menuResult == -2 ? getNextSavegameSlot() : _menuResult;
+		int slot = _menuResult == -2 ? getNextSavegameSlot() : _menuResult - 1;
 		Graphics::Surface thumb;
 		createScreenThumbnail(thumb);
-		_vm->saveGameState(slot, _saveDescription, &thumb);
+		_vm->saveGameStateIntern(slot, _saveDescription, &thumb);
 		thumb.free();
 
 		_displayMenu = false;
@@ -2764,20 +2927,18 @@ int GUI_LoL::clickedChoiceMenu(Button *button) {
 			_vm->quitGame();
 		} else if (_lastMenu == &_deleteMenu) {
 			_vm->_saveFileMan->removeSavefile(_vm->getSavegameFilename(_menuResult - 1));
-			Common::Array<int>::iterator i = Common::find(_saveSlots.begin(), _saveSlots.end(), _menuResult);
-			while (i != _saveSlots.end()) {
-				++i;
-				if (i == _saveSlots.end())
-					break;
-				// We are only renaming all savefiles until we get some slots missing
-				// Also not rename quicksave slot filenames
-				if (*(i-1) != *i || *i >= 990)
+			Common::Array<int>::iterator i = Common::find(_saveSlots.begin(), _saveSlots.end(), _menuResult - 1);
+			while (i != _saveSlots.begin()) {
+				--i;
+				// not rename quicksave slot filenames
+				if (*i >= 990)
 					break;
 				Common::String oldName = _vm->getSavegameFilename(*i);
 				Common::String newName = _vm->getSavegameFilename(*i-1);
 				_vm->_saveFileMan->renameSavefile(oldName, newName);
 			}
 			_newMenu = &_mainMenu;
+			_savegameListUpdateNeeded = true;
 		}
 	} else if (button->arg == _choiceMenu.item[1].itemId) {
 		_newMenu = &_mainMenu;
@@ -2786,6 +2947,9 @@ int GUI_LoL::clickedChoiceMenu(Button *button) {
 }
 
 int GUI_LoL::scrollUp(Button *button) {
+	if (!_scrollUpButton.data0ShapePtr)
+		return 0;
+
 	updateButton(button);
 	if (_savegameOffset > 0) {
 		_savegameOffset--;
@@ -2796,8 +2960,11 @@ int GUI_LoL::scrollUp(Button *button) {
 }
 
 int GUI_LoL::scrollDown(Button *button) {
+	if (!_scrollDownButton.data0ShapePtr)
+		return 0;
+
 	updateButton(button);
-	if ((uint)_savegameOffset < _saveSlots.size() - 4) {
+	if ((uint)_savegameOffset < _saveSlots.size() - (_currentMenu == &_saveMenu ? 3 : 4)) {
 		_savegameOffset++;
 		_newMenu = _currentMenu;
 		_menuResult = -1;
@@ -2827,7 +2994,7 @@ const char *GUI_LoL::getMenuItemLabel(const MenuItem &menuItem) {
 	return _vm->getLangString(menuItem.labelId);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

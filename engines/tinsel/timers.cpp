@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Handles timers.
  *
  * Note: As part of the transition to ScummVM, the ticks field of a timer has been changed
@@ -31,7 +28,7 @@
 #include "tinsel/timers.h"
 #include "tinsel/dw.h"
 #include "common/serializer.h"
-
+#include "common/textconsole.h"
 #include "common/system.h"
 
 namespace Tinsel {
@@ -52,7 +49,7 @@ struct TIMER {
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
-static TIMER timers[MAX_TIMERS];
+static TIMER timers[MAX_TIMERS];	// FIXME: Avoid non-const global vars
 
 
 //--------------------------------------------------------
@@ -74,7 +71,7 @@ uint32 DwGetCurrentTime() {
  * Resets all of the timer slots
  */
 
-void RebootTimers(void) {
+void RebootTimers() {
 	memset(timers, 0, sizeof(timers));
 }
 
@@ -124,7 +121,7 @@ static TIMER *allocateTimer(int num) {
 /**
  * Update all timers, as appropriate.
  */
-void FettleTimers(void) {
+void FettleTimers() {
 	for (int i = 0; i < MAX_TIMERS; i++) {
 		if (!timers[i].tno)
 			continue;
@@ -189,4 +186,4 @@ int Timer(int num) {
 		return pt->secs;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

@@ -17,13 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "common/endian.h"
+#include "common/textconsole.h"
 #include "common/util.h"
 
 /*
@@ -66,6 +64,11 @@ void sysexHandler_Scumm(Player *player, const byte *msg, uint16 len) {
 		//   BYTE 14: Pitchbend range(lower 4 bits) [bug #1088045]
 		//   BYTE 15: Program(upper 4 bits)
 		//   BYTE 16: Program(lower 4 bits)
+
+		// athrxx (05-21-2011):
+		// BYTE  9, 10: Transpose (if set to 0x80, this means that part->_transpose_eff will be 0 (also ignoring player->_transpose)
+		// BYTE 11, 12: Detune
+
 		part = player->getPart(p[0] & 0x0F);
 		if (part) {
 			part->set_onoff(p[2] & 0x01);
@@ -74,6 +77,8 @@ void sysexHandler_Scumm(Player *player, const byte *msg, uint16 len) {
 			part->volume((p[5] & 0x0F) << 4 |(p[6] & 0x0F));
 			part->set_pan((p[7] & 0x0F) << 4 | (p[8] & 0x0F));
 			part->_percussion = player->_isMIDI ? ((p[9] & 0x08) > 0) : false;
+			part->set_transpose((p[9] & 0x0F) << 4 | (p[10] & 0x0F));
+			part->set_detune((p[11] & 0x0F) << 4 | (p[12] & 0x0F));
 			part->pitchBendFactor((p[13] & 0x0F) << 4 | (p[14] & 0x0F));
 			if (part->_percussion) {
 				if (part->_mc) {
@@ -103,7 +108,7 @@ void sysexHandler_Scumm(Player *player, const byte *msg, uint16 len) {
 	case 2: // Start of song. Ignore for now.
 		break;
 
-	case 16: // Adlib instrument definition(Part)
+	case 16: // AdLib instrument definition(Part)
 		a = *p++ & 0x0F;
 		++p; // Skip hardware type
 		part = player->getPart(a);
@@ -118,11 +123,11 @@ void sysexHandler_Scumm(Player *player, const byte *msg, uint16 len) {
 		}
 		break;
 
-	case 17: // Adlib instrument definition(Global)
+	case 17: // AdLib instrument definition(Global)
 		p += 2; // Skip hardware type and... whatever came right before it
 		a = *p++;
 		player->decode_sysex_bytes(p, buf, len - 3);
-		se->setGlobalAdlibInstrument(a, buf);
+		se->setGlobalAdLibInstrument(a, buf);
 		break;
 
 	case 33: // Parameter adjust

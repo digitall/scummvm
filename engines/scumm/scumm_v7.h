@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SCRIPT_V7_H
@@ -97,6 +94,7 @@ public:
 	void addSubtitleToQueue(const byte *text, const Common::Point &pos, byte color, byte charset);
 	void clearSubtitleQueue();
 	virtual void CHARSET_1();
+	bool isSmushActive() { return _smushActive; }
 
 protected:
 	virtual int runDialog(Dialog &dialog);

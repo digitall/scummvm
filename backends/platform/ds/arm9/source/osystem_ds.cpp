@@ -20,6 +20,9 @@
  */
 
 
+// Allow use of stuff in <time.h>
+#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
+
 #include "common/scummsys.h"
 #include "common/system.h"
 
@@ -38,27 +41,66 @@
 #include "touchkeyboard.h"
 #include "backends/fs/ds/ds-fs-factory.h"
 
+#include "backends/audiocd/default/default-audiocd.h"
+#include "backends/timer/default/default-timer.h"
+
+#ifdef ENABLE_AGI
+#include "wordcompletion.h"
+#endif
+
 #include <time.h>
 
+#if defined(DS_BUILD_A)
+#define DEFAULT_CONFIG_FILE "scummvm.ini"
+#elif defined(DS_BUILD_B)
+#define DEFAULT_CONFIG_FILE "scummvmb.ini"
+#elif defined(DS_BUILD_C)
+#define DEFAULT_CONFIG_FILE "scummvmc.ini"
+#elif defined(DS_BUILD_D)
+#define DEFAULT_CONFIG_FILE "scummvmd.ini"
+#elif defined(DS_BUILD_E)
+#define DEFAULT_CONFIG_FILE "scummvme.ini"
+#elif defined(DS_BUILD_F)
+#define DEFAULT_CONFIG_FILE "scummvmf.ini"
+#elif defined(DS_BUILD_G)
+#define DEFAULT_CONFIG_FILE "scummvmg.ini"
+#elif defined(DS_BUILD_H)
+#define DEFAULT_CONFIG_FILE "scummvmh.ini"
+#elif defined(DS_BUILD_I)
+#define DEFAULT_CONFIG_FILE "scummvmi.ini"
+#elif defined(DS_BUILD_J)
+#define DEFAULT_CONFIG_FILE "scummvmj.ini"
+#elif defined(DS_BUILD_K)
+#define DEFAULT_CONFIG_FILE "scummvmk.ini"
+#else
+	// Use the "scummvm.ini" as config file if no build was specified. This
+	// currently only happens with builds made using the regular ScummVM build
+	// system (as opposed to the nds specific build system).
+#define DEFAULT_CONFIG_FILE "scummvm.ini"
+#endif
 
-OSystem_DS* OSystem_DS::_instance = NULL;
+OSystem_DS *OSystem_DS::_instance = NULL;
 
 OSystem_DS::OSystem_DS()
-	: eventNum(0), lastPenFrame(0), queuePos(0), _mixer(NULL), _timer(NULL), _frameBufferExists(false),
-	_disableCursorPalette(true), _graphicsEnable(true)
+	: eventNum(0), lastPenFrame(0), queuePos(0), _mixer(NULL), _frameBufferExists(false),
+	_disableCursorPalette(true), _graphicsEnable(true), _gammaValue(0)
 {
 //	eventNum = 0;
 //	lastPenFrame = 0;
 //	queuePos = 0;
 	_instance = this;
 //	_mixer = NULL;
-  //  _timer = NULL;
 	//_frameBufferExists = false;
 }
 
 OSystem_DS::~OSystem_DS() {
 	delete _mixer;
-	delete _timer;
+	_mixer = 0;
+
+	// If _savefileManager is not 0, then it points to the OSystem_DS
+	// member variable mpSaveManager. Hence we set _savefileManager to
+	// 0, to prevent the OSystem destructor from trying to delete it.
+	_savefileManager = 0;
 }
 
 int OSystem_DS::timerHandler(int t) {
@@ -71,8 +113,11 @@ void OSystem_DS::initBackend() {
 	ConfMan.setInt("autosave_period", 0);
 	ConfMan.setBool("FM_medium_quality", true);
 
-	_mixer = new Audio::MixerImpl(this);
-	_timer = new DefaultTimerManager();
+	if (DS::isGBAMPAvailable()) {
+		_savefileManager = &mpSaveManager;
+	}
+
+	_timerManager = new DefaultTimerManager();
     DS::setTimerCallback(&OSystem_DS::timerHandler, 10);
 
 	if (ConfMan.hasKey("22khzaudio", "ds") && ConfMan.getBool("22khzaudio", "ds")) {
@@ -81,28 +126,39 @@ void OSystem_DS::initBackend() {
 		DS::startSound(11025, 4096);
 	}
 
-	_mixer->setOutputRate(DS::getSoundFrequency());
+	_mixer = new Audio::MixerImpl(this, DS::getSoundFrequency());
 	_mixer->setReady(true);
 
-	OSystem::initBackend();
+	/* TODO/FIXME: The NDS should use a custom AudioCD manager instance!
+	if (!_audiocdManager)
+		_audiocdManager = new DSAudioCDManager();
+	*/
+
+	EventsBaseBackend::initBackend();
 }
 
 bool OSystem_DS::hasFeature(Feature f) {
-	return (f == kFeatureVirtualKeyboard) || (f == kFeatureCursorHasPalette);
+	return (f == kFeatureVirtualKeyboard) || (f == kFeatureCursorPalette);
 }
 
 void OSystem_DS::setFeatureState(Feature f, bool enable) {
 	if (f == kFeatureVirtualKeyboard)
 		DS::setKeyboardIcon(enable);
+	else if (f == kFeatureCursorPalette) {
+		_disableCursorPalette = !enable;
+		refreshCursor();
+	}
 }
 
 bool OSystem_DS::getFeatureState(Feature f) {
 	if (f == kFeatureVirtualKeyboard)
 		return DS::getKeyboardIcon();
+	if (f == kFeatureCursorPalette)
+		return !_disableCursorPalette;
 	return false;
 }
 
-const OSystem::GraphicsMode* OSystem_DS::getSupportedGraphicsModes() const {
+const OSystem::GraphicsMode *OSystem_DS::getSupportedGraphicsModes() const {
 	return s_supportedGraphicsModes;
 }
 
@@ -124,7 +180,7 @@ int OSystem_DS::getGraphicsMode() const {
 	return -1;
 }
 
-void OSystem_DS::initSize(uint width, uint height) {
+void OSystem_DS::initSize(uint width, uint height, const Graphics::PixelFormat *format) {
 	// For Lost in Time, the title screen is displayed in 640x400.
 	// In order to support this game, the screen mode is set, but
 	// all draw calls are ignored until the game switches to 320x200.
@@ -156,14 +212,16 @@ void OSystem_DS::setPalette(const byte *colors, uint start, uint num) {
 		green >>= 3;
 		blue >>= 3;
 
-		//if (r != 255)
+//		if (r != 255)
 		{
 			u16 paletteValue = red | (green << 5) | (blue << 10);
 
 			if (DS::getIsDisplayMode8Bit()) {
-				BG_PALETTE[r] = paletteValue;
+				int col = applyGamma(paletteValue);
+				BG_PALETTE[r] = col;
+
 				if (!DS::getKeyboardEnable()) {
-					BG_PALETTE_SUB[r] = paletteValue;
+					BG_PALETTE_SUB[r] = col;
 				}
 			}
 
@@ -171,19 +229,18 @@ void OSystem_DS::setPalette(const byte *colors, uint start, uint num) {
 		}
 	//	if (num == 255) consolePrintf("pal:%d r:%d g:%d b:%d\n", r, red, green, blue);
 
-		colors += 4;
+		colors += 3;
 	}
 }
 
-void OSystem_DS::restoreHardwarePalette()
-{
+void OSystem_DS::restoreHardwarePalette() {
 	// Set the hardware palette up based on the stored palette
 
 	for (int r = 0; r < 255; r++) {
-		BG_PALETTE[r] = _palette[r];
-
+		int col = applyGamma(_palette[r]);
+		BG_PALETTE[r] = col;
 		if (!DS::getKeyboardEnable()) {
-			BG_PALETTE_SUB[r] = _palette[r];
+			BG_PALETTE_SUB[r] = col;
 		}
 	}
 }
@@ -203,19 +260,20 @@ void OSystem_DS::setCursorPalette(const byte *colors, uint start, uint num) {
 		u16 paletteValue = red | (green << 5) | (blue << 10);
 		_cursorPalette[r] = paletteValue;
 
-		colors += 4;
+		colors += 3;
 	}
 
 	_disableCursorPalette = false;
+	refreshCursor();
 }
 
-bool OSystem_DS::grabRawScreen(Graphics::Surface* surf) {
-	surf->create(DS::getGameWidth(), DS::getGameHeight(), 1);
+bool OSystem_DS::grabRawScreen(Graphics::Surface *surf) {
+	surf->create(DS::getGameWidth(), DS::getGameHeight(), Graphics::PixelFormat::createFormatCLUT8());
 
 	// Ensure we copy using 16 bit quantities due to limitation of VRAM addressing
 
 
-	const u16* image = (const u16 *) DS::get8BitBackBuffer();
+	const u16 *image = (const u16 *) DS::get8BitBackBuffer();
 	for (int y = 0; y <  DS::getGameHeight(); y++) {
 		DC_FlushRange(image + (y << 8), DS::getGameWidth());
 		for (int x = 0; x < DS::getGameWidth() >> 1; x++) {
@@ -226,14 +284,13 @@ bool OSystem_DS::grabRawScreen(Graphics::Surface* surf) {
 	return true;
 }
 
-void OSystem_DS::grabPalette(unsigned char *colours, uint start, uint num) {
+void OSystem_DS::grabPalette(unsigned char *colors, uint start, uint num) {
 //	consolePrintf("Grabpalette");
 
 	for (unsigned int r = start; r < start + num; r++) {
-		*colours++ = (BG_PALETTE[r] & 0x001F) << 3;
-		*colours++ = (BG_PALETTE[r] & 0x03E0) >> 5 << 3;
-		*colours++ = (BG_PALETTE[r] & 0x7C00) >> 10 << 3;
-		colours++;
+		*colors++ = (BG_PALETTE[r] & 0x001F) << 3;
+		*colors++ = (BG_PALETTE[r] & 0x03E0) >> 5 << 3;
+		*colors++ = (BG_PALETTE[r] & 0x7C00) >> 10 << 3;
 	}
 }
 
@@ -241,15 +298,16 @@ void OSystem_DS::grabPalette(unsigned char *colours, uint start, uint num) {
 #define MISALIGNED16(ptr) (((u32) (ptr) & 1) != 0)
 
 void OSystem_DS::copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {
-	//consolePrintf("Copy rect %d, %d   %d, %d ", x, y, w, h);
 	if (!_graphicsEnable) return;
 	if (w <= 1) return;
 	if (h < 0) return;
 	if (!DS::getIsDisplayMode8Bit()) return;
 
-	u16* bg;
+//	consolePrintf("CopyRectToScreen %d\n", w * h);
+
+	u16 *bg;
 	s32 stride;
-	u16* bgSub = (u16 *)BG_GFX_SUB;
+	u16 *bgSub = (u16 *)BG_GFX_SUB;
 
 	// The DS video RAM doesn't support 8-bit writes because Nintendo wanted
 	// to save a few pennies/euro cents on the hardware.
@@ -271,65 +329,113 @@ void OSystem_DS::copyRectToScreen(const byte *buf, int pitch, int x, int y, int 
 
 		if (DS::getKeyboardEnable()) {
 			// When they keyboard is on screen, we don't update the subscreen because
-			// the keyboard image uses the same VRAM addresses.  In order to do this,
-			// I'm going to update the main screen twice.  This avoids putting a compare
-			// in the loop and slowing down the common case.
-			bgSub = bg;
-		}
+			// the keyboard image uses the same VRAM addresses.
 
-		for (int dy = y; dy < y + h; dy++) {
-			u8* dest = ((u8 *) (bg)) + (dy * stride) + x;
-			u8* destSub = ((u8 *) (bgSub)) + (dy * 512) + x;
-			u8* src = (u8 *) buf + (pitch * by);
+			for (int dy = y; dy < y + h; dy++) {
+				u8 *dest = ((u8 *) (bg)) + (dy * stride) + x;
+				const u8 *src = (const u8 *) buf + (pitch * by);
 
-			u32 dx;
+				u32 dx;
 
-			u32 pixelsLeft = w;
+				u32 pixelsLeft = w;
 
-			if (MISALIGNED16(dest))	{
-				// Read modify write
+				if (MISALIGNED16(dest)) {
+					// Read modify write
 
-				dest--;
-				u16 mix = *((u16 *) dest);
+					dest--;
+					u16 mix = *((u16 *) dest);
 
-				mix = (mix & 0x00FF) | (*src++ << 8);
+					mix = (mix & 0x00FF) | (*src++ << 8);
 
-				*dest = mix;
-				*destSub = mix;
+					*dest = mix;
 
-				dest += 2;
-				destSub += 2;
-				pixelsLeft--;
+					dest += 2;
+					pixelsLeft--;
+				}
+
+				// We can now assume dest is aligned
+				u16 *dest16 = (u16 *) dest;
+
+				for (dx = 0; dx < pixelsLeft; dx+=2) {
+					u16 mix;
+
+					mix = *src + (*(src + 1) << 8);
+					*dest16++ = mix;
+					src += 2;
+				}
+
+				pixelsLeft -= dx;
+
+				// At the end we may have one pixel left over
+
+				if (pixelsLeft != 0) {
+					u16 mix = *dest16;
+
+					mix = (mix & 0x00FF) | ((*src++) << 8);
+
+					*dest16 = mix;
+				}
+
+				by++;
 			}
 
-			// We can now assume dest is aligned
-			u16* dest16 = (u16 *) dest;
-			u16* destSub16 = (u16 *) destSub;
+		} else {
+			// When they keyboard is not on screen, update both vram copies
 
-			for (dx = 0; dx < pixelsLeft; dx+=2)	{
-				u16 mix;
+			for (int dy = y; dy < y + h; dy++) {
+				u8 *dest = ((u8 *) (bg)) + (dy * stride) + x;
+				u8 *destSub = ((u8 *) (bgSub)) + (dy * 512) + x;
+				const u8 *src = (const u8 *) buf + (pitch * by);
 
-				mix = *src + (*(src + 1) << 8);
-				*dest16++ = mix;
-				*destSub16++ = mix;
-				src += 2;
+				u32 dx;
+
+				u32 pixelsLeft = w;
+
+				if (MISALIGNED16(dest)) {
+					// Read modify write
+
+					dest--;
+					u16 mix = *((u16 *) dest);
+
+					mix = (mix & 0x00FF) | (*src++ << 8);
+
+					*dest = mix;
+					*destSub = mix;
+
+					dest += 2;
+					destSub += 2;
+					pixelsLeft--;
+				}
+
+				// We can now assume dest is aligned
+				u16 *dest16 = (u16 *) dest;
+				u16 *destSub16 = (u16 *) destSub;
+
+				for (dx = 0; dx < pixelsLeft; dx+=2) {
+					u16 mix;
+
+					mix = *src + (*(src + 1) << 8);
+					*dest16++ = mix;
+					*destSub16++ = mix;
+					src += 2;
+				}
+
+				pixelsLeft -= dx;
+
+				// At the end we may have one pixel left over
+
+				if (pixelsLeft != 0) {
+					u16 mix = *dest16;
+
+					mix = (mix & 0x00FF) | ((*src++) << 8);
+
+					*dest16 = mix;
+					*destSub16 = mix;
+				}
+
+				by++;
+
 			}
-
-			pixelsLeft -= dx;
-
-			// At the end we may have one pixel left over
-
-			if (pixelsLeft != 0) {
-				u16 mix = *dest16;
-
-				mix = (mix & 0x00FF) | ((*src++) << 8);
-
-				*dest16 = mix;
-				*destSub16 = mix;
-			}
-
-			by++;
-
 		}
 
 //		consolePrintf("Slow method used!\n");
@@ -339,12 +445,12 @@ void OSystem_DS::copyRectToScreen(const byte *buf, int pitch, int x, int y, int 
 
 		// Stuff is aligned to 16-bit boundaries, so it's safe to do DMA.
 
-		u16* src = (u16 *) buf;
+		u16 *src = (u16 *) buf;
 
 		if (DS::getKeyboardEnable()) {
 
 			for (int dy = y; dy < y + h; dy++) {
-				u16* dest = bg + (dy * (stride >> 1)) + (x >> 1);
+				u16 *dest = bg + (dy * (stride >> 1)) + (x >> 1);
 
 				DC_FlushRange(src, w << 1);
 				DC_FlushRange(dest, w << 1);
@@ -357,8 +463,8 @@ void OSystem_DS::copyRectToScreen(const byte *buf, int pitch, int x, int y, int 
 
 		} else {
 			for (int dy = y; dy < y + h; dy++) {
-				u16* dest1 = bg + (dy * (stride >> 1)) + (x >> 1);
-				u16* dest2 = bgSub + (dy << 8) + (x >> 1);
+				u16 *dest1 = bg + (dy * (stride >> 1)) + (x >> 1);
+				u16 *dest2 = bgSub + (dy << 8) + (x >> 1);
 
 				DC_FlushRange(src, w << 1);
 				DC_FlushRange(dest1, w << 1);
@@ -380,6 +486,8 @@ void OSystem_DS::copyRectToScreen(const byte *buf, int pitch, int x, int y, int 
 }
 
 void OSystem_DS::updateScreen() {
+//	static int cnt = 0;
+//	consolePrintf("updatescr %d\n", cnt++);
 
 	if ((_frameBufferExists) && (DS::getIsDisplayMode8Bit())) {
 		_frameBufferExists = false;
@@ -418,13 +526,13 @@ void OSystem_DS::clearOverlay() {
 //	consolePrintf("clearovl\n");
 }
 
-void OSystem_DS::grabOverlay(OverlayColor* buf, int pitch) {
+void OSystem_DS::grabOverlay(OverlayColor *buf, int pitch) {
 //	consolePrintf("grabovl\n")
-	u16* start = DS::get16BitBackBuffer();
+	u16 *start = DS::get16BitBackBuffer();
 
 	for (int y = 0; y < 200; y++) {
-		u16* src = start + (y * 320);
-		u16* dest = ((u16 *) (buf)) + (y * pitch);
+		u16 *src = start + (y * 320);
+		u16 *dest = ((u16 *) (buf)) + (y * pitch);
 
 		for (int x = 0; x < 320; x++) {
 			*dest++ =  *src++;
@@ -434,8 +542,8 @@ void OSystem_DS::grabOverlay(OverlayColor* buf, int pitch) {
 }
 
 void OSystem_DS::copyRectToOverlay(const OverlayColor *buf, int pitch, int x, int y, int w, int h) {
-	u16* bg = (u16 *) DS::get16BitBackBuffer();
-	const u16* src = (const u16 *) buf;
+	u16 *bg = (u16 *) DS::get16BitBackBuffer();
+	const u16 *src = (const u16 *) buf;
 
 //	if (x + w > 256) w = 256 - x;
 	//if (x + h > 256) h = 256 - y;
@@ -489,7 +597,7 @@ bool OSystem_DS::showMouse(bool visible) {
 void OSystem_DS::warpMouse(int x, int y) {
 }
 
-void OSystem_DS::setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor, int targetCursorScale) {
+void OSystem_DS::setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, u32 keycolor, int targetCursorScale, const Graphics::PixelFormat *format) {
 	if ((w > 0) && (w < 64) && (h > 0) && (h < 64)) {
 		memcpy(_cursorImage, buf, w * h);
 		_cursorW = w;
@@ -506,7 +614,7 @@ void OSystem_DS::refreshCursor() {
 	DS::setCursorIcon(_cursorImage, _cursorW, _cursorH, _cursorKey, _cursorHotX, _cursorHotY);
 }
 
-void OSystem_DS::addEvent(Common::Event& e) {
+void OSystem_DS::addEvent(const Common::Event& e) {
 	eventQueue[queuePos++] = e;
 }
 
@@ -583,14 +691,20 @@ void OSystem_DS::delayMillis(uint msecs) {
 }
 
 
-void OSystem_DS::getTimeAndDate(struct tm &t) const {
+void OSystem_DS::getTimeAndDate(TimeDate &td) const {
 	time_t curTime;
 #if 0
 	curTime = time(0);
 #else
 	curTime = 0xABCD1234 + DS::getMillis() / 1000;
 #endif
-	t = *localtime(&curTime);
+	struct tm t = *localtime(&curTime);
+	td.tm_sec = t.tm_sec;
+	td.tm_min = t.tm_min;
+	td.tm_hour = t.tm_hour;
+	td.tm_mday = t.tm_mday;
+	td.tm_mon = t.tm_mon;
+	td.tm_year = t.tm_year;
 }
 
 FilesystemFactory *OSystem_DS::getFilesystemFactory() {
@@ -610,9 +724,9 @@ void OSystem_DS::unlockMutex(MutexRef mutex) {
 void OSystem_DS::deleteMutex(MutexRef mutex) {
 }
 
-int OSystem_DS::getOutputSampleRate() const {
-	return DS::getSoundFrequency();
-}
+// FIXME/TODO: The CD API as follows is *obsolete*
+// and should be replaced by an AudioCDManager subclass,
+// see backends/audiocd/ and common/system.h
 
 bool OSystem_DS::openCD(int drive) {
 	return DS::CD::checkCD();
@@ -642,31 +756,7 @@ void OSystem_DS::quit() {
 	swiSoftReset();*/
 }
 
-Common::SaveFileManager* OSystem_DS::getSavefileManager() {
-	bool forceSram;
-
-	if (ConfMan.hasKey("forcesramsave", "ds")) {
-		forceSram = ConfMan.getBool("forcesramsave", "ds");
-	} else {
-		forceSram = false;
-	}
-	if (forceSram) {
-		consolePrintf("Using SRAM save method!\n");
-	}
-
-	if (DS::isGBAMPAvailable() && (!forceSram)) {
-		return &mpSaveManager;
-	} else {
-#ifdef GBA_SRAM_SAVE
-		return &saveManager;
-#else
-		return NULL;
-#endif
-	}
-}
-
-
-Graphics::Surface* OSystem_DS::createTempFrameBuffer() {
+Graphics::Surface *OSystem_DS::createTempFrameBuffer() {
 
 	// Ensure we copy using 16 bit quantities due to limitation of VRAM addressing
 
@@ -683,7 +773,7 @@ Graphics::Surface* OSystem_DS::createTempFrameBuffer() {
 		_framebuffer.w = DS::getGameWidth();
 		_framebuffer.h = DS::getGameHeight();
 		_framebuffer.pitch = DS::getGameWidth();
-		_framebuffer.bytesPerPixel = 1;
+		_framebuffer.format = Graphics::PixelFormat::createFormatCLUT8();
 
 	} else {
 
@@ -691,13 +781,13 @@ Graphics::Surface* OSystem_DS::createTempFrameBuffer() {
 		s32 width = DS::getGameWidth();
 		s32 stride = DS::get8BitBackBufferStride();
 
-		u16* src = DS::get8BitBackBuffer();
-		u16* dest = DS::getScalerBuffer();
+		u16 *src = DS::get8BitBackBuffer();
+		u16 *dest = DS::getScalerBuffer();
 
 		for (int y = 0; y < height; y++) {
 
-			u16* destLine = dest + (y * (width / 2));
-			u16* srcLine = src + (y * (stride / 2));
+			u16 *destLine = dest + (y * (width / 2));
+			u16 *srcLine = src + (y * (stride / 2));
 
 			DC_FlushRange(srcLine, width);
 
@@ -708,7 +798,7 @@ Graphics::Surface* OSystem_DS::createTempFrameBuffer() {
 		_framebuffer.w = width;
 		_framebuffer.h = height;
 		_framebuffer.pitch = width;
-		_framebuffer.bytesPerPixel = 1;
+		_framebuffer.format = Graphics::PixelFormat::createFormatCLUT8();
 
 	}
 
@@ -718,7 +808,7 @@ Graphics::Surface* OSystem_DS::createTempFrameBuffer() {
 	size_t imageStrideInBytes = DS::get8BitBackBufferStride();
 	size_t imageStrideInWords = imageStrideInBytes / 2;
 
-	u16* image = (u16 *) DS::get8BitBackBuffer();
+	u16 *image = (u16 *) DS::get8BitBackBuffer();
 	for (int y = 0; y <  DS::getGameHeight(); y++) {
 		DC_FlushRange(image + (y * imageStrideInWords), DS::getGameWidth());
 		for (int x = 0; x < DS::getGameWidth() >> 1; x++) {
@@ -763,3 +853,53 @@ void OSystem_DS::clearAutoComplete() {
 void OSystem_DS::setCharactersEntered(int count) {
 	DS::setCharactersEntered(count);
 }
+
+Common::String OSystem_DS::getDefaultConfigFileName() {
+	return DEFAULT_CONFIG_FILE;
+}
+
+void OSystem_DS::logMessage(LogMessageType::Type type, const char *message) {
+#ifndef DISABLE_TEXT_CONSOLE
+	nocashMessage((char *)message);
+//	consolePrintf((char *)message);
+#endif
+}
+
+u16 OSystem_DS::applyGamma(u16 color) {
+	// Attempt to do gamma correction (or something like it) to palette entries
+	// to improve the contrast of the image on the original DS screen.
+
+	// Split the color into it's component channels
+	int r = color & 0x001F;
+	int g = (color & 0x03E0) >> 5;
+	int b = (color & 0x7C00) >> 10;
+
+	// Caluclate the scaling factor for this color based on it's brightness
+	int scale = ((23 - ((r + g + b) >> 2)) * _gammaValue) >> 3;
+
+	// Scale the three components by the scaling factor, with clamping
+	r = r + ((r * scale) >> 4);
+	if (r > 31) r = 31;
+
+	g = g + ((g * scale) >> 4);
+	if (g > 31) g = 31;
+
+	b = b + ((b * scale) >> 4);
+	if (b > 31) b = 31;
+
+	// Stick them back together into a 555 color value
+	return 0x8000 | r | (g << 5) | (b << 10);
+}
+
+void OSystem_DS::engineDone() {
+	// Scumm games appear not to stop their CD audio, so I stop the CD here.
+	stopCD();
+	DS::exitGame();
+
+#ifdef ENABLE_AGI
+	DS::clearAutoCompleteWordList();
+#endif
+
+}
+
+

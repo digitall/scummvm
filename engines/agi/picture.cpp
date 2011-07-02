@@ -18,16 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
 #include "agi/graphics.h"
-#include "common/stack.h"
 
-#include "graphics/primitives.h"
+#include "common/textconsole.h"
 
 namespace Agi {
 
@@ -479,7 +475,7 @@ void PictureMgr::plotPattern(int x, int y) {
 
 	// new purpose for temp16
 
-	temp16 =( pen_size<<1) +1;	// pen size
+	temp16 = (pen_size << 1) + 1;	// pen size
 	pen_final_y += temp16;					// the last row of this shape
 	temp16 = temp16 << 1;
 	pen_width = temp16;					// width of shape?
@@ -498,7 +494,7 @@ void PictureMgr::plotPattern(int x, int y) {
 	} else {
 		circleCond = ((_patCode & 0x10) != 0);
 		counterStep = 4;
-		ditherCond = 0x02;
+		ditherCond = 0x01;
 	}
 
 	for (; pen_y < pen_final_y; pen_y++) {
@@ -506,10 +502,12 @@ void PictureMgr::plotPattern(int x, int y) {
 
 		for (counter = 0; counter <= pen_width; counter += counterStep) {
 			if (circleCond || ((binary_list[counter>>1] & circle_word) != 0)) {
-				temp8 = t % 2;
-				t = t >> 1;
-				if (temp8 != 0)
-					t = t ^ 0xB8;
+				if ((_patCode & 0x20) != 0) {
+					temp8 = t % 2;
+					t = t >> 1;
+					if (temp8 != 0)
+						t = t ^ 0xB8;
+				}
 
 				// == box plot, != circle plot
 				if ((_patCode & 0x20) == 0 || (t & 0x03) == ditherCond)
@@ -563,7 +561,7 @@ void PictureMgr::drawPicture() {
 	_patCode = 0;
 	_patNum = 0;
 	_priOn = _scrOn = false;
-	_scrColor = 0xf;
+	_scrColor = (_pictureVersion == AGIPIC_C64) ? 0x0 : 0xf;
 	_priColor = 0x4;
 
 	drawing = 1;
@@ -602,7 +600,7 @@ void PictureMgr::drawPicture() {
 			_patCode = nextByte();
 			plotBrush();
 			break;
-		case 0xf0:	// set colour on screen (AGI pic v2)
+		case 0xf0:	// set color on screen (AGI pic v2)
 			if (_pictureVersion == AGIPIC_V15)
 				break;
 
@@ -616,7 +614,7 @@ void PictureMgr::drawPicture() {
 				_scrColor &= 0xF;	// for v3 drawing diff
 				_scrOn = true;
 				_priOn = false;
-			} else if (_pictureVersion == AGIPIC_V15) {	// set colour on screen
+			} else if (_pictureVersion == AGIPIC_V15) {	// set color on screen
 				_scrColor = nextByte();
 				_scrColor &= 0xF;
 				_scrOn = true;
@@ -624,7 +622,7 @@ void PictureMgr::drawPicture() {
 				_scrOn = false;
 			}
 			break;
-		case 0xf2:	// set colour on priority (AGI pic v2)
+		case 0xf2:	// set color on priority (AGI pic v2)
 			if (_pictureVersion == AGIPIC_V15)
 				break;
 

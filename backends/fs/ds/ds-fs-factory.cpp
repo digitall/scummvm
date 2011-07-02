@@ -17,17 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
+
+// Disable symbol overrides for FILE as that is used in FLAC headers
+#define FORBIDDEN_SYMBOL_EXCEPTION_FILE
 
 #if defined(__DS__)
 #include "backends/fs/ds/ds-fs-factory.h"
 #include "backends/fs/ds/ds-fs.h"
 #include "dsmain.h" //for the isGBAMPAvailable() function
 
+namespace Common {
 DECLARE_SINGLETON(DSFilesystemFactory);
+}
 
 AbstractFSNode *DSFilesystemFactory::makeRootFileNode() const {
 	if (DS::isGBAMPAvailable()) {

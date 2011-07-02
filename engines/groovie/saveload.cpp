@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "groovie/saveload.h"
 
 #include "common/system.h"
+#include "common/substream.h"
 
 #define SUPPORTED_SAVEFILE_VERSION 1
 // 0 - Just script variables, compatible with the original
@@ -50,13 +48,13 @@ SaveStateList SaveLoad::listValidSaves(const Common::String &target) {
 
 	// Get the list of savefiles
 	Common::String pattern = target + ".00?";
-	Common::StringList savefiles = g_system->getSavefileManager()->listSavefiles(pattern);
+	Common::StringArray savefiles = g_system->getSavefileManager()->listSavefiles(pattern);
 
 	// Sort the list of filenames
 	sort(savefiles.begin(), savefiles.end());
 
 	// Fill the information for the existing savegames
-	Common::StringList::iterator it = savefiles.begin();
+	Common::StringArray::iterator it = savefiles.begin();
 	while (it != savefiles.end()) {
 		int slot = it->lastChar() - '0';
 		SaveStateDescriptor descriptor;
@@ -138,7 +136,7 @@ Common::InSaveFile *SaveLoad::openForLoading(const Common::String &target, int s
 	}
 
 	// Return a substream, skipping the metadata
-	Common::SeekableSubReadStream *sub = new Common::SeekableSubReadStream(savefile, metaDataSize, savefile->size(), true);
+	Common::SeekableSubReadStream *sub = new Common::SeekableSubReadStream(savefile, metaDataSize, savefile->size(), DisposeAfterUse::YES);
 
 	// Move to the beginning of the substream
 	sub->seek(0, SEEK_SET);

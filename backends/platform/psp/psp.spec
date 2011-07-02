@@ -1,3 +1,3 @@
 %rename lib	old_lib
 *lib:
-%(old_lib) -lpspdebug -lpspgu -lpspctrl -lpspge -lpspdisplay -lpsphprm -lpspsdk -lpsprtc -lpspaudio -lc -lpspuser -lpsputility -lpspkernel -lpspnet_inet -lz -lstdc++ -lc -lpspdisplay -lpspgu -lpspctrl -lpspsdk -lpspnet -lpspnet_inet -lpsputility -lpspsdk -lpspuser 
+%(old_lib) -lz -lstdc++ -lc -lm -lpspprof -lpspvfpu -lpspdebug -lpspgu -lpspge -lpspdisplay -lpspctrl -lpspsdk -lpsputility -lpspuser -lpsppower -lpsphprm  -lpsprtc -lpspaudio -lpspaudiocodec -lpspkernel -lpspnet_inet

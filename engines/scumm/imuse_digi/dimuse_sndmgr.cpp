@@ -17,25 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "common/scummsys.h"
 #include "common/util.h"
 
-#include "sound/flac.h"
-#include "sound/voc.h"
-#include "sound/vorbis.h"
-#include "sound/mp3.h"
+#include "audio/decoders/flac.h"
+#include "audio/decoders/voc.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/mp3.h"
 
+#include "scumm/resource.h"
 #include "scumm/scumm.h"
 #include "scumm/util.h"
 #include "scumm/imuse_digi/dimuse.h"
-#include "scumm/imuse_digi/dimuse_sndmgr.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_codecs.h"
+#include "scumm/imuse_digi/dimuse_sndmgr.h"
 
 namespace Scumm {
 
@@ -56,6 +55,7 @@ ImuseDigiSndMgr::~ImuseDigiSndMgr() {
 	}
 
 	delete _cacheBundleDir;
+	BundleCodecs::releaseImcTables();
 }
 
 void ImuseDigiSndMgr::countElements(byte *ptr, int &numRegions, int &numJumps, int &numSyncs, int &numMarkers) {
@@ -65,40 +65,40 @@ void ImuseDigiSndMgr::countElements(byte *ptr, int &numRegions, int &numJumps, i
 	do {
 		tag = READ_BE_UINT32(ptr); ptr += 4;
 		switch (tag) {
-		case MKID_BE('STOP'):
-		case MKID_BE('FRMT'):
-		case MKID_BE('DATA'):
+		case MKTAG('S','T','O','P'):
+		case MKTAG('F','R','M','T'):
+		case MKTAG('D','A','T','A'):
 			size = READ_BE_UINT32(ptr); ptr += size + 4;
 			break;
-		case MKID_BE('TEXT'):
+		case MKTAG('T','E','X','T'):
 			if (!scumm_stricmp((const char *)(ptr + 8), "exit"))
 				numMarkers++;
 			size = READ_BE_UINT32(ptr); ptr += size + 4;
 			break;
-		case MKID_BE('REGN'):
+		case MKTAG('R','E','G','N'):
 			numRegions++;
 			size = READ_BE_UINT32(ptr); ptr += size + 4;
 			break;
-		case MKID_BE('JUMP'):
+		case MKTAG('J','U','M','P'):
 			numJumps++;
 			size = READ_BE_UINT32(ptr); ptr += size + 4;
 			break;
-		case MKID_BE('SYNC'):
+		case MKTAG('S','Y','N','C'):
 			numSyncs++;
 			size = READ_BE_UINT32(ptr); ptr += size + 4;
 			break;
 		default:
 			error("ImuseDigiSndMgr::countElements() Unknown sfx header '%s'", tag2str(tag));
 		}
-	} while (tag != MKID_BE('DATA'));
+	} while (tag != MKTAG('D','A','T','A'));
 }
 
-void ImuseDigiSndMgr::prepareSoundFromRMAP(Common::File *file, SoundDesc *sound, int32 offset, int32 size) {
+void ImuseDigiSndMgr::prepareSoundFromRMAP(Common::SeekableReadStream *file, SoundDesc *sound, int32 offset, int32 size) {
 	int l;
 
 	file->seek(offset, SEEK_SET);
 	uint32 tag = file->readUint32BE();
-	assert(tag == MKID_BE('RMAP'));
+	assert(tag == MKTAG('R','M','A','P'));
 	int32 version = file->readUint32BE();
 	if (version != 3) {
 		if (version == 2) {
@@ -153,7 +153,7 @@ void ImuseDigiSndMgr::prepareSoundFromRMAP(Common::File *file, SoundDesc *sound,
 }
 
 void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound) {
-	if (READ_BE_UINT32(ptr) == MKID_BE('Crea')) {
+	if (READ_BE_UINT32(ptr) == MKTAG('C','r','e','a')) {
 		bool quit = false;
 		int len;
 
@@ -222,7 +222,7 @@ void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound) {
 			}
 			offset += len;
 		}
-	} else if (READ_BE_UINT32(ptr) == MKID_BE('iMUS')) {
+	} else if (READ_BE_UINT32(ptr) == MKTAG('i','M','U','S')) {
 		uint32 tag;
 		int32 size = 0;
 		byte *s_ptr = ptr;
@@ -250,13 +250,13 @@ void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound) {
 		do {
 			tag = READ_BE_UINT32(ptr); ptr += 4;
 			switch (tag) {
-			case MKID_BE('FRMT'):
+			case MKTAG('F','R','M','T'):
 				ptr += 12;
 				sound->bits = READ_BE_UINT32(ptr); ptr += 4;
 				sound->freq = READ_BE_UINT32(ptr); ptr += 4;
 				sound->channels = READ_BE_UINT32(ptr); ptr += 4;
 				break;
-			case MKID_BE('TEXT'):
+			case MKTAG('T','E','X','T'):
 				if (!scumm_stricmp((const char *)(ptr + 8), "exit")) {
 					sound->marker[curIndexMarker].pos = READ_BE_UINT32(ptr + 4);
 					sound->marker[curIndexMarker].length = strlen((const char *)(ptr + 8)) + 1;
@@ -267,16 +267,16 @@ void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound) {
 				}
 				size = READ_BE_UINT32(ptr); ptr += size + 4;
 				break;
-			case MKID_BE('STOP'):
+			case MKTAG('S','T','O','P'):
 				size = READ_BE_UINT32(ptr); ptr += size + 4;
 				break;
-			case MKID_BE('REGN'):
+			case MKTAG('R','E','G','N'):
 				ptr += 4;
 				sound->region[curIndexRegion].offset = READ_BE_UINT32(ptr); ptr += 4;
 				sound->region[curIndexRegion].length = READ_BE_UINT32(ptr); ptr += 4;
 				curIndexRegion++;
 				break;
-			case MKID_BE('JUMP'):
+			case MKTAG('J','U','M','P'):
 				ptr += 4;
 				sound->jump[curIndexJump].offset = READ_BE_UINT32(ptr); ptr += 4;
 				sound->jump[curIndexJump].dest = READ_BE_UINT32(ptr); ptr += 4;
@@ -284,7 +284,7 @@ void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound) {
 				sound->jump[curIndexJump].fadeDelay = READ_BE_UINT32(ptr); ptr += 4;
 				curIndexJump++;
 				break;
-			case MKID_BE('SYNC'):
+			case MKTAG('S','Y','N','C'):
 				size = READ_BE_UINT32(ptr); ptr += 4;
 				sound->sync[curIndexSync].size = size;
 				sound->sync[curIndexSync].ptr = new byte[size];
@@ -293,14 +293,14 @@ void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound) {
 				curIndexSync++;
 				ptr += size;
 				break;
-			case MKID_BE('DATA'):
+			case MKTAG('D','A','T','A'):
 				ptr += 4;
 				break;
 			default:
 				error("ImuseDigiSndMgr::prepareSound(%d/%s) Unknown sfx header '%s'", sound->soundId, sound->name, tag2str(tag));
 			}
-		} while (tag != MKID_BE('DATA'));
-		sound->offsetData =  ptr - s_ptr;
+		} while (tag != MKTAG('D','A','T','A'));
+		sound->offsetData = ptr - s_ptr;
 	} else {
 		error("ImuseDigiSndMgr::prepareSound(): Unknown sound format");
 	}
@@ -428,7 +428,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 			char fileName[24];
 			int32 offset = 0, size = 0;
 			sprintf(fileName, "%s.map", soundName);
-			Common::File *rmapFile = sound->bundle->getFile(fileName, offset, size);
+			Common::SeekableReadStream *rmapFile = sound->bundle->getFile(fileName, offset, size);
 			if (!rmapFile) {
 				closeSound(sound);
 				return NULL;
@@ -464,7 +464,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 	sound->disk = _disk;
 	prepareSound(ptr, sound);
 	if ((soundType == IMUSE_BUNDLE) && !sound->compressed) {
-		delete[] ptr;
+		free(ptr);
 	}
 	return sound;
 }
@@ -655,18 +655,18 @@ int32 ImuseDigiSndMgr::getDataFromRegion(SoundDesc *soundDesc, int region, byte 
 	if ((soundDesc->bundle) && (!soundDesc->compressed)) {
 		size = soundDesc->bundle->decompressSampleByCurIndex(start + offset, size, buf, header_size, header_outside);
 	} else if (soundDesc->resPtr) {
-		*buf = new byte[size];
+		*buf = (byte *)malloc(size);
 		assert(*buf);
 		memcpy(*buf, soundDesc->resPtr + start + offset + header_size, size);
 	} else if ((soundDesc->bundle) && (soundDesc->compressed)) {
-		*buf = new byte[size];
+		*buf = (byte *)malloc(size);
 		assert(*buf);
 		char fileName[24];
 		int offsetMs = (((offset * 8 * 10) / soundDesc->bits) / (soundDesc->channels * soundDesc->freq)) * 100;
 		sprintf(fileName, "%s_reg%03d", soundDesc->name, region);
 		if (scumm_stricmp(fileName, soundDesc->lastFileName) != 0) {
 			int32 offs = 0, len = 0;
-			Common::File *cmpFile;
+			Common::SeekableReadStream *cmpFile;
 			uint8 soundMode = 0;
 
 			sprintf(fileName, "%s_reg%03d.fla", soundDesc->name, region);
@@ -700,21 +700,22 @@ int32 ImuseDigiSndMgr::getDataFromRegion(SoundDesc *soundDesc, int region, byte 
 			assert(len);
 
 			if (!soundDesc->compressedStream) {
-				Common::MemoryReadStream *tmp = cmpFile->readStream(len);
+				Common::SeekableReadStream *tmp = cmpFile->readStream(len);
 				assert(tmp);
 #ifdef USE_FLAC
 				if (soundMode == 3)
-					soundDesc->compressedStream = Audio::makeFlacStream(tmp, true, offsetMs);
+					soundDesc->compressedStream = Audio::makeFLACStream(tmp, DisposeAfterUse::YES);
 #endif
 #ifdef USE_VORBIS
 				if (soundMode == 2)
-					soundDesc->compressedStream = Audio::makeVorbisStream(tmp, true, offsetMs);
+					soundDesc->compressedStream = Audio::makeVorbisStream(tmp, DisposeAfterUse::YES);
 #endif
 #ifdef USE_MAD
 				if (soundMode == 1)
-					soundDesc->compressedStream = Audio::makeMP3Stream(tmp, true, offsetMs);
+					soundDesc->compressedStream = Audio::makeMP3Stream(tmp, DisposeAfterUse::YES);
 #endif
 				assert(soundDesc->compressedStream);
+				soundDesc->compressedStream->seek(offsetMs);
 			}
 			strcpy(soundDesc->lastFileName, fileName);
 		}

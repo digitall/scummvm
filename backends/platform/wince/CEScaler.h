@@ -18,25 +18,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CESCALER
-#define CESCALER
+#ifndef CESCALER_H
+#define CESCALER_H
 
 #include "common/scummsys.h"
 #include "common/system.h"
 #include "graphics/scaler.h"
 #include "graphics/scaler/intern.h"
 
-DECLARE_SCALER(PocketPCPortrait);
-DECLARE_SCALER(PocketPCLandscapeAspect);
-DECLARE_SCALER(PocketPCHalf);
-DECLARE_SCALER(PocketPCHalfZoom);
-//#ifdef WIN32_PLATFORM_WFSP
+/**
+ * This filter (down)scales the source image horizontally by a factor of 11/16
+ * and vertically by 7/8. For example, a 320x200 image is scaled to 220x175.
+ */
 DECLARE_SCALER(SmartphoneLandscape);
-//#endif
 
 #endif

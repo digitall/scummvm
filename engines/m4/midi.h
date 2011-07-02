@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Music class
@@ -28,67 +25,31 @@
 #ifndef M4_MIDI_H
 #define M4_MIDI_H
 
-#include "sound/mididrv.h"
-#include "sound/midiparser.h"
-#include "common/mutex.h"
+#include "audio/midiplayer.h"
 
 namespace M4 {
 
-class MidiPlayer : public MidiDriver {
+class MidiPlayer : public Audio::MidiPlayer {
 public:
-	MidiPlayer(M4Engine *vm, MidiDriver *driver);
-	~MidiPlayer();
+	MidiPlayer(MadsM4Engine *vm);
 
-	bool isPlaying() { return _isPlaying; }
-
-	void setVolume(int volume);
-	int getVolume() { return _masterVolume; }
-
-	void setNativeMT32(bool b) { _nativeMT32 = b; }
-	bool hasNativeMT32() { return _nativeMT32; }
 	void playMusic(const char *name, int32 vol, bool loop, int32 trigger, int32 scene);
-	void stopMusic();
-	void setPassThrough(bool b) { _passThrough = b; }
 
 	void setGM(bool isGM) { _isGM = isGM; }
 
-	//MidiDriver interface implementation
-	int open();
-	void close();
-	void send(uint32 b);
-
-	void metaEvent(byte type, byte *data, uint16 length);
-
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
-	uint32 getBaseTempo(void)	{ return _driver ? _driver->getBaseTempo() : 0; }
-
-	//Channel allocation functions
-	MidiChannel *allocateChannel()		{ return 0; }
-	MidiChannel *getPercussionChannel()	{ return 0; }
+	// MidiDriver_BASE interface implementation
+	virtual void send(uint32 b);
 
 protected:
-	static void onTimer(void *data);
+	MadsM4Engine *_vm;
 
-	M4Engine *_vm;
-	byte *_midiData;
-
-	MidiChannel *_channel[16];
-	MidiDriver *_driver;
-	MidiParser *_parser;
-	byte _channelVolume[16];
-	bool _nativeMT32;
 	bool _isGM;
-	bool _passThrough;
 
-	bool _isPlaying;
 	bool _randomLoop;
-	byte _masterVolume;
 
 	byte *_musicData;
 	uint16 *_buf;
 	size_t _musicDataSize;
-
-	Common::Mutex _mutex;
 
 	byte *convertHMPtoSMF(byte *data, uint32 inSize, uint32 &outSize);
 };

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -71,16 +68,15 @@ void LoLEngine::loadMonsterShapes(const char *file, int monsterIndex, int animTy
 	}
 	_monsterAnimType[monsterIndex] = animType & 0xff;
 
-	uint8 *tsh = _screen->makeShapeCopy(p, 16);
+	uint8 *palShape = _screen->makeShapeCopy(p, 16);
 
 	_screen->clearPage(3);
-	_screen->drawShape(2, tsh, 0, 0, 0, 0);
+	_screen->drawShape(2, palShape, 0, 0, 0, 0);
 
 	uint8 *tmpPal1 = new uint8[64];
 	uint8 *tmpPal2 = new uint8[256];
 	uint16 *tmpPal3 = new uint16[256];
 	memset(tmpPal1, 0, 64);
-	memset(tmpPal2, 0, 256);
 
 	for (int i = 0; i < 64; i++) {
 		tmpPal1[i] = *p;
@@ -91,19 +87,22 @@ void LoLEngine::loadMonsterShapes(const char *file, int monsterIndex, int animTy
 
 	for (int i = 0; i < 16; i++) {
 		int pos = (monsterIndex << 4) + i;
-		memcpy(tmpPal2, _monsterShapes[pos] + 10, 256);
-		memset(tmpPal3, 0xff, 512);
+		uint16 sz = MIN(_screen->getShapeSize(_monsterShapes[pos]) - 10, 256);
+		memset(tmpPal2, 0, 256);
+		memcpy(tmpPal2, _monsterShapes[pos] + 10, sz);
+		memset(tmpPal3, 0xff, 256 * sizeof(uint16));
 		uint8 numCol = *tmpPal2;
 
 		for (int ii = 0; ii < numCol; ii++) {
-			uint8 *cl = (uint8*)memchr(tmpPal1, tmpPal2[1 + ii], 64);
+			uint8 *cl = (uint8 *)memchr(tmpPal1, tmpPal2[1 + ii], 64);
 			if (!cl)
 				continue;
 			tmpPal3[ii] = (uint16) (cl - tmpPal1);
 		}
 
 		for (int ii = 0; ii < 8; ii++) {
-			memcpy(tmpPal2, _monsterShapes[pos] + 10, 256);
+			memset(tmpPal2, 0, 256);
+			memcpy(tmpPal2, _monsterShapes[pos] + 10, sz);
 			for (int iii = 0; iii < numCol; iii++) {
 				if (tmpPal3[iii] == 0xffff)
 					continue;
@@ -117,7 +116,7 @@ void LoLEngine::loadMonsterShapes(const char *file, int monsterIndex, int animTy
 	delete[] tmpPal1;
 	delete[] tmpPal2;
 	delete[] tmpPal3;
-	delete[] tsh;
+	delete[] palShape;
 }
 
 void LoLEngine::releaseMonsterShapes(int monsterIndex) {
@@ -268,7 +267,7 @@ void LoLEngine::placeMonster(MonsterInPlay *monster, uint16 x, uint16 y) {
 	if (monster->x != x || monster->y != y) {
 		monster->x = x;
 		monster->y = y;
-		monster->currentSubFrame = (++monster->currentSubFrame) & 3;
+		monster->currentSubFrame = (monster->currentSubFrame + 1) & 3;
 	}
 
 	if (monster->block == 0)
@@ -348,7 +347,7 @@ void LoLEngine::monsterDropItems(MonsterInPlay *monster) {
 	}
 }
 
-void LoLEngine::removeAssignedObjectFromBlock(LevelBlockProperty *l, int id) {
+void LoLEngine::removeAssignedObjectFromBlock(LevelBlockProperty *l, uint16 id) {
 	uint16 *blockItemIndex = &l->assignedObjects;
 	ItemInPlay *i = 0;
 
@@ -365,7 +364,7 @@ void LoLEngine::removeAssignedObjectFromBlock(LevelBlockProperty *l, int id) {
 	}
 }
 
-void LoLEngine::removeDrawObjectFromBlock(LevelBlockProperty *l, int id) {
+void LoLEngine::removeDrawObjectFromBlock(LevelBlockProperty *l, uint16 id) {
 	uint16 *blockItemIndex = &l->drawObjects;
 	ItemInPlay *i = 0;
 
@@ -382,7 +381,7 @@ void LoLEngine::removeDrawObjectFromBlock(LevelBlockProperty *l, int id) {
 	}
 }
 
-void LoLEngine::assignMonsterToBlock(uint16 *assignedBlockObjects, int id) {
+void LoLEngine::assignMonsterToBlock(uint16 *assignedBlockObjects, uint16 id) {
 	ItemInPlay *t = findObject(id);
 	t->nextAssignedObject = *assignedBlockObjects;
 	*assignedBlockObjects = id;
@@ -496,9 +495,8 @@ int LoLEngine::checkBlockForWallsAndSufficientSpace(int block, int x, int y, int
 		_monsterCurBlock = block;
 		if (testWallFlag(block, -1, wallFlag))
 			return 1;
+		_monsterCurBlock = 0;
 	}
-
-	_monsterCurBlock = 0;
 
 	if (!(testFlag & 2))
 		return 0;
@@ -664,11 +662,11 @@ void LoLEngine::drawMonster(uint16 id) {
 		if (m->properties->flags & 0x800)
 			flg |= 0x20;
 
-		uint8 *ovl1 = d ? _monsterPalettes[(m->properties->shapeIndex << 4) + (curFrm & 0x0f)] + (shp[10] * (d - 1)) : 0;
-		uint8 *ovl2 = drawItemOrMonster(shp, ovl1, m->x + _monsterShiftOffs[m->shiftStep << 1], m->y + _monsterShiftOffs[(m->shiftStep << 1) + 1], 0, 0, flg | 1, -1, flip);
+		uint8 *monsterPalette = d ? _monsterPalettes[(m->properties->shapeIndex << 4) + (curFrm & 0x0f)] + (shp[10] * (d - 1)) : 0;
+		uint8 *brightnessOverlay = drawItemOrMonster(shp, monsterPalette, m->x + _monsterShiftOffs[m->shiftStep << 1], m->y + _monsterShiftOffs[(m->shiftStep << 1) + 1], 0, 0, flg | 1, -1, flip);
 
 		for (int i = 0; i <	4; i++) {
-			int v = m->field_2A[i] - 1;
+			int v = m->equipmentShapes[i] - 1;
 			if (v == -1)
 				break;
 
@@ -676,7 +674,7 @@ void LoLEngine::drawMonster(uint16 id) {
 			if (!shp2)
 				continue;
 
-			drawDoorOrMonsterShape(shp2, 0, _shpDmX, _shpDmY, flg | 1, ovl2);
+			drawDoorOrMonsterEquipment(shp2, 0, _shpDmX, _shpDmY, flg | 1, brightnessOverlay);
 		}
 	}
 
@@ -692,11 +690,11 @@ void LoLEngine::drawMonster(uint16 id) {
 
 	int bloodType = m->properties->flags & 0xc000;
 	if (bloodType == 0x4000)
-		bloodType = 63;
+		bloodType = _flags.use16ColorMode ? 0xbb : 63;
 	else if (bloodType == 0x8000)
-		bloodType = 15;
+		bloodType = _flags.use16ColorMode ? 0x55 : 15;
 	else if (bloodType == 0xc000)
-		bloodType = 74;
+		bloodType = _flags.use16ColorMode ? 0x33 : 74;
 	else
 		bloodType = 0;
 
@@ -772,7 +770,6 @@ int LoLEngine::getMonsterCurFrame(MonsterInPlay *m, uint16 dirFlags) {
 		break;
 	case 2:
 		return (m->fightCurTick >= 13) ? 13 : m->fightCurTick;
-		break;
 	case 3:
 		switch (m->mode) {
 		case 5:
@@ -900,7 +897,10 @@ void LoLEngine::calcSpriteRelPosition(uint16 x1, uint16 y1, int &x2, int &y2, ui
 	y2 = b;
 }
 
-void LoLEngine::drawDoor(uint8 *shape, uint8 *table, int index, int unk2, int w, int h, int flags) {
+void LoLEngine::drawDoor(uint8 *shape, uint8 *doorPalette, int index, int unk2, int w, int h, int flags) {
+	if (!shape)
+		return;
+
 	uint8 c = _dscDoor1[(_currentDirection << 5) + unk2];
 	int r = (c / 5) + 5 * _dscDimMap[index];
 	uint16 d = _dscShapeOvlIndex[r];
@@ -909,7 +909,7 @@ void LoLEngine::drawDoor(uint8 *shape, uint8 *table, int index, int unk2, int w,
 	_shpDmY = _dscDoorMonsterY[t] + 120;
 
 	if (flags & 1) {
-		//TODO
+		// TODO / UNUSED
 		flags |=1;
 	}
 
@@ -941,16 +941,24 @@ void LoLEngine::drawDoor(uint8 *shape, uint8 *table, int index, int unk2, int w,
 	if (d > 7)
 		d = 7;
 
-	uint8 *ovl = _screen->getLevelOverlay(d);
+	if (_flags.use16ColorMode) {
+		uint8 bb = _blockBrightness >> 4;
+		if (d > bb)
+			d -= bb;
+		else
+			d = 0;
+	}
+
+	uint8 *brightnessOverlay = _screen->getLevelOverlay(d);
 	int doorScaledWitdh = _screen->getShapeScaledWidth(shape, _dmScaleW);
 
 	_shpDmX -= (doorScaledWitdh >> 1);
 	_shpDmY -= s;
 
-	drawDoorOrMonsterShape(shape, table, _shpDmX, _shpDmY, flags, ovl);
+	drawDoorOrMonsterEquipment(shape, doorPalette, _shpDmX, _shpDmY, flags, brightnessOverlay);
 }
 
-void LoLEngine::drawDoorOrMonsterShape(uint8 *shape, uint8 *table, int x, int y, int flags, const uint8 *ovl) {
+void LoLEngine::drawDoorOrMonsterEquipment(uint8 *shape, uint8 *objectPalette, int x, int y, int flags, const uint8 *brightnessOverlay) {
 	int flg = 0;
 
 	if (flags & 0x10)
@@ -963,29 +971,29 @@ void LoLEngine::drawDoorOrMonsterShape(uint8 *shape, uint8 *table, int x, int y,
 		flg |= 2;
 
 	if (flg & 0x1000) {
-		if (table)
-			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x9104, table, ovl, 1, _trueLightTable1, _trueLightTable2, _dmScaleW, _dmScaleH);
+		if (objectPalette)
+			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x9104, objectPalette, brightnessOverlay, 1, _transparencyTable1, _transparencyTable2, _dmScaleW, _dmScaleH);
 		else
-			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x1104, ovl, 1, _trueLightTable1, _trueLightTable2, _dmScaleW, _dmScaleH);
+			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x1104, brightnessOverlay, 1, _transparencyTable1, _transparencyTable2, _dmScaleW, _dmScaleH);
 	} else {
-		if (table)
-			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x8104, table, ovl, 1, _dmScaleW, _dmScaleH);
+		if (objectPalette)
+			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x8104, objectPalette, brightnessOverlay, 1, _dmScaleW, _dmScaleH);
 		else
-			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x104, ovl, 1, _dmScaleW, _dmScaleH);
+			_screen->drawShape(_sceneDrawPage1, shape, x, y, 13, flg | 0x104, brightnessOverlay, 1, _dmScaleW, _dmScaleH);
 	}
 }
 
-uint8 *LoLEngine::drawItemOrMonster(uint8 *shape, uint8 *table, int x, int y, int fineX, int fineY, int flags, int tblValue, bool vflip) {
+uint8 *LoLEngine::drawItemOrMonster(uint8 *shape, uint8 *monsterPalette, int x, int y, int fineX, int fineY, int flags, int tblValue, bool vflip) {
 	uint8 *ovl2 = 0;
-	uint8 *ovl = 0;
+	uint8 *brightnessOverlay = 0;
 	uint8 tmpOvl[16];
 
 	if (flags & 0x80) {
 		flags &= 0xff7f;
-		ovl2 = table;
-		table = 0;
+		ovl2 = monsterPalette;
+		monsterPalette = 0;
 	} else {
-		ovl2 = _screen->getLevelOverlay(4);
+		ovl2 = _screen->getLevelOverlay(_flags.use16ColorMode ? 5 : 4);
 	}
 
 	int r = calcDrawingLayerParameters(x, y, _shpDmX, _shpDmY, _dmScaleW, _dmScaleH, shape, vflip);
@@ -993,12 +1001,19 @@ uint8 *LoLEngine::drawItemOrMonster(uint8 *shape, uint8 *table, int x, int y, in
 	if (tblValue == -1) {
 		r = 7 - ((r / 3) - 1);
 		r = CLIP(r, 0, 7);
-		ovl = _screen->getLevelOverlay(r);
+		if (_flags.use16ColorMode) {
+			uint8 bb = _blockBrightness >> 4;
+			if (r > bb)
+				r -= bb;
+			else
+				r = 0;
+		}
+		brightnessOverlay = _screen->getLevelOverlay(r);
 	} else {
 		memset(tmpOvl + 1, tblValue, 15);
 		tmpOvl[0] = 0;
-		table = tmpOvl;
-		ovl = _screen->getLevelOverlay(7);
+		monsterPalette = tmpOvl;
+		brightnessOverlay = _screen->getLevelOverlay(7);
 	}
 
 	int flg = flags & 0x10 ? 1 : 0;
@@ -1007,11 +1022,17 @@ uint8 *LoLEngine::drawItemOrMonster(uint8 *shape, uint8 *table, int x, int y, in
 	if (flags & 0x40)
 		flg |= 2;
 
-	if (_currentLevel == 22) {
-		if (ovl)
-			ovl[255] = 0;
+	if (_flags.use16ColorMode) {
+		if (_currentLevel != 22)
+			flg &= 0xdfff;
+
 	} else {
-		flg |= 0x2000;
+		if (_currentLevel == 22) {
+			if (brightnessOverlay)
+				brightnessOverlay[255] = 0;
+		} else {
+			flg |= 0x2000;
+		}
 	}
 
 	_shpDmX += ((_dmScaleW * fineX) >> 8);
@@ -1020,21 +1041,21 @@ uint8 *LoLEngine::drawItemOrMonster(uint8 *shape, uint8 *table, int x, int y, in
 	int dH = _screen->getShapeScaledHeight(shape, _dmScaleH) >> 1;
 
 	if (flg & 0x1000) {
-		if (table)
-			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x8124, table, ovl, 0, _trueLightTable1, _trueLightTable2, _dmScaleW, _dmScaleH, ovl2);
+		if (monsterPalette)
+			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x8124, monsterPalette, brightnessOverlay, 0, _transparencyTable1, _transparencyTable2, _dmScaleW, _dmScaleH, ovl2);
 		else
-			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x124, ovl, 0, _trueLightTable1, _trueLightTable2, _dmScaleW, _dmScaleH, ovl2);
+			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x124, brightnessOverlay, 0, _transparencyTable1, _transparencyTable2, _dmScaleW, _dmScaleH, ovl2);
 	} else {
-		if (table)
-			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x8124, table, ovl, 1, _dmScaleW, _dmScaleH, ovl2);
+		if (monsterPalette)
+			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x8124, monsterPalette, brightnessOverlay, 1, _dmScaleW, _dmScaleH, ovl2);
 		else
-			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x124, ovl, 1, _dmScaleW, _dmScaleH, ovl2);
+			_screen->drawShape(_sceneDrawPage1, shape, _shpDmX, _shpDmY, 13, flg | 0x124, brightnessOverlay, 1, _dmScaleW, _dmScaleH, ovl2);
 	}
 
 	_shpDmX -= (_screen->getShapeScaledWidth(shape, _dmScaleW) >> 1);
 	_shpDmY -= dH;
 
-	return ovl;
+	return brightnessOverlay;
 }
 
 int LoLEngine::calcDrawingLayerParameters(int x1, int y1, int &x2, int &y2, uint16 &w, uint16 &h, uint8 *shape, int vflip) {
@@ -1093,7 +1114,7 @@ void LoLEngine::updateMonster(MonsterInPlay *monster) {
 
 	if ((monster->mode != 11) && (monster->mode != 14)) {
 		if (!(_rnd.getRandomNumber(255) & 3)) {
-			monster->shiftStep = (++monster->shiftStep) & 0x0f;
+			monster->shiftStep = (monster->shiftStep + 1) & 0x0f;
 			checkSceneUpdateNeed(monster->block);
 		}
 	}
@@ -1308,7 +1329,7 @@ bool LoLEngine::chasePartyWithDistanceAttacks(MonsterInPlay *monster) {
 				if (getMonsterDistance(monster->block, _monsters[i].block) < 7)
 					setMonsterMode(monster, 7);
 			}
-			_txt->printMessage(2, getLangString(0x401a));
+			_txt->printMessage(2, "%s", getLangString(0x401a));
 
 		} else if (flyingObject == 4) {
 			launchMagicViper();
@@ -1372,12 +1393,12 @@ int LoLEngine::walkMonsterCalcNextStep(MonsterInPlay *monster) {
 	static const int8 walkMonsterTable1[] = { 7, -6, 5, -4, 3, -2, 1, 0 };
 	static const int8 walkMonsterTable2[] = { -7, 6, -5, 4, -3, 2, -1, 0 };
 
-	if (++_monsterCountUnk > 10) {
-		_monsterCountUnk = 0;
-		_monsterShiftAlt ^= 1;
+	if (++_monsterStepCounter > 10) {
+		_monsterStepCounter = 0;
+		_monsterStepMode ^= 1;
 	}
 
-	const int8 *tbl = _monsterShiftAlt ? walkMonsterTable2 : walkMonsterTable1;
+	const int8 *tbl = _monsterStepMode ? walkMonsterTable2 : walkMonsterTable1;
 
 	int sx = monster->x;
 	int sy = monster->y;
@@ -1411,8 +1432,10 @@ int LoLEngine::walkMonsterCalcNextStep(MonsterInPlay *monster) {
 		uint8 w = _levelBlockProperties[_monsterCurBlock].walls[(s >> 1) ^ 2];
 
 		if (_wllWallFlags[w] & 0x20) {
-			if (_wllBuffer3[w] == 5)
+			if (_specialWallTypes[w] == 5) {
 				openCloseDoor(_monsterCurBlock, 1);
+				return -1;
+			}
 		}
 
 		if (_wllWallFlags[w] & 8)
@@ -1423,10 +1446,10 @@ int LoLEngine::walkMonsterCalcNextStep(MonsterInPlay *monster) {
 }
 
 int LoLEngine::getMonsterDistance(uint16 block1, uint16 block2) {
-	int8 b1x = block1 & 0x1f;
-	int8 b1y = block1 >> 5;
-	int8 b2x = block2 & 0x1f;
-	int8 b2y = block2 >> 5;
+	int b1x = block1 & 0x1f;
+	int b1y = block1 >> 5;
+	int b2x = block2 & 0x1f;
+	int b2y = block2 >> 5;
 
 	uint8 dy = ABS(b2y - b1y);
 	uint8 dx = ABS(b2x - b1x);
@@ -1434,7 +1457,7 @@ int LoLEngine::getMonsterDistance(uint16 block1, uint16 block2) {
 	if (dx > dy)
 		SWAP(dx, dy);
 
-	return (dx << 1) + dy;
+	return (dx >> 1) + dy;
 }
 
 int LoLEngine::checkForPossibleDistanceAttack(uint16 monsterBlock, int direction, int distance, uint16 curBlock) {
@@ -1444,7 +1467,7 @@ int LoLEngine::checkForPossibleDistanceAttack(uint16 monsterBlock, int direction
 		return 5;
 
 	int dir = calcMonsterDirection(monsterBlock & 0x1f, monsterBlock >> 5, curBlock & 0x1f, curBlock >> 5);
-	if ((dir & 1) || (dir != direction << 1))
+	if ((dir & 1) || (dir != (direction << 1)))
 		return 5;
 
 	if (((monsterBlock & 0x1f) != (curBlock & 0x1f)) && ((monsterBlock & 0xffe0) != (curBlock & 0xffe0)))
@@ -1606,7 +1629,7 @@ void LoLEngine::killMonster(MonsterInPlay *monster) {
 	placeMonster(monster, 0, 0);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

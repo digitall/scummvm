@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise.h"
@@ -28,6 +25,8 @@
 #include "cruise/cell.h"
 #include "cruise/sound.h"
 #include "cruise/staticres.h"
+
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Cruise {
@@ -38,7 +37,7 @@ uint32 Period(uint32 hz) {
 
 //#define FUNCTION_DEBUG
 
-int16 Op_LoadOverlay(void) {
+int16 Op_LoadOverlay() {
 	char *pOverlayName;
 	char overlayName[38] = "";
 	int overlayLoadResult;
@@ -58,16 +57,14 @@ int16 Op_LoadOverlay(void) {
 
 	updateAllScriptsImports();
 
-	strcpy(nextOverlay, overlayName);
+	Common::strlcpy(nextOverlay, overlayName, sizeof(nextOverlay));
 
-	return(overlayLoadResult);
+	return overlayLoadResult;
 }
 
-int16 Op_Strcpy(void) {
+int16 Op_Strcpy() {
 	char *ptr1 = (char *)popPtr();
 	char *ptr2 = (char *)popPtr();
-
-	//printf("strcpy %s\n",ptr1);
 
 	while (*ptr1) {
 		*ptr2 = *ptr1;
@@ -81,7 +78,7 @@ int16 Op_Strcpy(void) {
 	return (0);
 }
 
-int16 Op_Exec(void) {
+int16 Op_Exec() {
 	int scriptIdx;
 	int ovlIdx;
 	uint8 *ptr;
@@ -122,7 +119,7 @@ int16 Op_Exec(void) {
 	return (0);
 }
 
-int16 Op_AddProc(void) {
+int16 Op_AddProc() {
 	int pop1 = popVar();
 	int pop2;
 	int overlay;
@@ -154,7 +151,7 @@ int16 Op_AddProc(void) {
 	return (0);
 }
 
-int16 Op_Narrator(void) {
+int16 Op_Narrator() {
 	int pop1 = popVar();
 	int pop2 = popVar();
 
@@ -167,7 +164,7 @@ int16 Op_Narrator(void) {
 	return (0);
 }
 
-int16 Op_GetMouseX(void) {
+int16 Op_GetMouseX() {
 	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
@@ -178,7 +175,7 @@ int16 Op_GetMouseX(void) {
 	return (mouseX);
 }
 
-int16 Op_GetMouseY(void) {
+int16 Op_GetMouseY() {
 	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
@@ -189,7 +186,7 @@ int16 Op_GetMouseY(void) {
 	return (mouseY);
 }
 
-int16 Op_Random(void) {
+int16 Op_Random() {
 	int var = popVar();
 
 	if (var < 2) {
@@ -199,7 +196,7 @@ int16 Op_Random(void) {
 	return (_vm->_rnd.getRandomNumber(var - 1));
 }
 
-int16 Op_PlayFX(void) {
+int16 Op_PlayFX() {
 	int volume = popVar();
 	int speed = popVar();
 	/*int channelNum = */popVar();
@@ -216,7 +213,7 @@ int16 Op_PlayFX(void) {
 	return (0);
 }
 
-int16 Op_LoopFX(void) {
+int16 Op_LoopFX() {
 	int volume = popVar();
 	int speed = popVar();
 	/*int channelNum = */popVar();
@@ -233,7 +230,7 @@ int16 Op_LoopFX(void) {
 	return (0);
 }
 
-int16 Op_StopFX(void) {
+int16 Op_StopFX() {
 	int channelNum = popVar();
 
 	if (channelNum == -1) {
@@ -248,7 +245,7 @@ int16 Op_StopFX(void) {
 	return 0;
 }
 
-int16 Op_FreqFX(void) {
+int16 Op_FreqFX() {
 	int volume = popVar();
 	int freq2 = popVar();
 	int channelNum = popVar();
@@ -256,14 +253,14 @@ int16 Op_FreqFX(void) {
 
 	if ((sampleNum >= 0) && (sampleNum < NUM_FILE_ENTRIES) && (filesDatabase[sampleNum].subData.ptr)) {
 		int freq = Period(freq2 * 1000);
-		
+
 		_vm->sound().startNote(channelNum, volume, freq);
 	}
 
 	return (0);
 }
 
-int16 Op_FreeCT(void) {
+int16 Op_FreeCT() {
 	freeCTP();
 	return (0);
 }
@@ -276,8 +273,9 @@ void freeObjectList(cellStruct *pListHead) {
 		cellStruct *pNext = pCurrent->next;
 
 		if (pCurrent->freeze == 0) {
-			free(pCurrent->gfxPtr);
-			free(pCurrent);
+			if (pCurrent->gfxPtr)
+				freeGfx(pCurrent->gfxPtr);
+			MemFree(pCurrent);
 		}
 
 		var_2 = 1;
@@ -290,18 +288,18 @@ void freeObjectList(cellStruct *pListHead) {
 	}
 }
 
-int16 Op_FreeCell(void) {
+int16 Op_FreeCell() {
 	freeObjectList(&cellHead);
 	return (0);
 }
 
-int16 Op_freeBackgroundInscrustList(void) {
+int16 Op_freeBackgroundInscrustList() {
 	freeBackgroundIncrustList(&backgroundIncrustHead);
 	return (0);
 }
 
 
-int16 Op_UnmergeBackgroundIncrust(void) {
+int16 Op_UnmergeBackgroundIncrust() {
 	int obj = popVar();
 	int ovl = popVar();
 
@@ -314,13 +312,13 @@ int16 Op_UnmergeBackgroundIncrust(void) {
 	return (0);
 }
 
-int16 Op_FreePreload(void) {
+int16 Op_FreePreload() {
 	// TODO: See if this is needed
 	debug(1, "Op_FreePreload not implemented");
 	return (0);
 }
 
-int16 Op_RemoveMessage(void) {
+int16 Op_RemoveMessage() {
 	int idx;
 	int overlay;
 
@@ -336,7 +334,7 @@ int16 Op_RemoveMessage(void) {
 	return (0);
 }
 
-int16 Op_FindSet(void) {
+int16 Op_FindSet() {
 	int16 i;
 	char name[36] = "";
 	char *ptr;
@@ -359,7 +357,7 @@ int16 Op_FindSet(void) {
 	return -1;
 }
 
-int16 Op_RemoveFrame(void) {
+int16 Op_RemoveFrame() {
 	int count = popVar();
 	int start = popVar();
 
@@ -368,7 +366,7 @@ int16 Op_RemoveFrame(void) {
 	return (0);
 }
 
-int16 Op_comment(void) {
+int16 Op_comment() {
 	char *var;
 
 	var = (char *)popPtr();
@@ -378,7 +376,7 @@ int16 Op_comment(void) {
 	return (0);
 }
 
-int16 Op_RemoveProc(void) {
+int16 Op_RemoveProc() {
 	int idx;
 	int overlay;
 
@@ -394,7 +392,7 @@ int16 Op_RemoveProc(void) {
 	return (0);
 }
 
-int16 Op_FreeOverlay(void) {
+int16 Op_FreeOverlay() {
 	char localName[36] = "";
 	char *namePtr;
 
@@ -410,7 +408,7 @@ int16 Op_FreeOverlay(void) {
 	return 0;
 }
 
-int16 Op_FindProc(void) {
+int16 Op_FindProc() {
 	char name[36] = "";
 	char *ptr;
 	int param;
@@ -424,13 +422,13 @@ int16 Op_FindProc(void) {
 	return param;
 }
 
-int16 Op_GetRingWord(void) {
+int16 Op_GetRingWord() {
 	// Original method had a ringed queue allowing this method to return words one at a time.
 	// But it never seemed to be used; no entries were ever added to the list
 	return 0;
 }
 
-int16 Op_KillMenu(void) {
+int16 Op_KillMenu() {
 	// Free menus, if active
 	if (menuTable[0]) {
 		freeMenu(menuTable[0]);
@@ -452,14 +450,14 @@ int16 Op_KillMenu(void) {
 	return 0;
 }
 
-int16 Op_UserMenu(void) {
+int16 Op_UserMenu() {
 	int oldValue = playerMenuEnabled;
 	playerMenuEnabled = popVar();
 
 	return oldValue;
 }
 
-int16 Op_UserOn(void) {
+int16 Op_UserOn() {
 	int oldValue = userEnabled;
 	int newValue = popVar();
 
@@ -470,7 +468,7 @@ int16 Op_UserOn(void) {
 	return oldValue;
 }
 
-int16 Op_Display(void) {
+int16 Op_Display() {
 	int oldValue = displayOn;
 	int newValue = popVar();
 
@@ -481,7 +479,7 @@ int16 Op_Display(void) {
 	return oldValue;
 }
 
-int16 Op_FreezeParent(void) {
+int16 Op_FreezeParent() {
 	if (currentScriptPtr->var1A == 20) {
 		changeScriptParamInList(currentScriptPtr->var18, currentScriptPtr->var16, &procHead, -1, 9997);
 	} else if (currentScriptPtr->var1A == 30) {
@@ -491,7 +489,7 @@ int16 Op_FreezeParent(void) {
 	return 0;
 }
 
-int16 Op_LoadBackground(void) {
+int16 Op_LoadBackground() {
 	int result = 0;
 	char bgName[36] = "";
 	char *ptr;
@@ -510,6 +508,8 @@ int16 Op_LoadBackground(void) {
 		gfxModuleData_gfxWaitVSync();
 
 		result = loadBackground(bgName, bgIdx);
+
+		gfxModuleData_addDirtyRect(Common::Rect(0, 0, 320, 200));
 	}
 
 	changeCursor(CURSOR_NORMAL);
@@ -517,7 +517,7 @@ int16 Op_LoadBackground(void) {
 	return result;
 }
 
-int16 Op_FrameExist(void) {
+int16 Op_FrameExist() {
 	int param;
 
 	param = popVar();
@@ -533,7 +533,7 @@ int16 Op_FrameExist(void) {
 	return 0;
 }
 
-int16 Op_LoadFrame(void) {
+int16 Op_LoadFrame() {
 	int param1;
 	int param2;
 	int param3;
@@ -565,7 +565,7 @@ int16 Op_LoadFrame(void) {
 	return 0;
 }
 
-int16 Op_LoadAbs(void) {
+int16 Op_LoadAbs() {
 	int slot;
 	char name[36] = "";
 	char *ptr;
@@ -588,7 +588,7 @@ int16 Op_LoadAbs(void) {
 	return result;
 }
 
-int16 Op_InitializeState(void) {
+int16 Op_InitializeState() {
 	int param1 = popVar();
 	int objIdx = popVar();
 	int ovlIdx = popVar();
@@ -605,11 +605,11 @@ int16 Op_InitializeState(void) {
 	return (0);
 }
 
-int16 Op_GetlowMemory(void) {
+int16 Op_GetlowMemory() {
 	return lowMemory;
 }
 
-int16 Op_AniDir(void) {
+int16 Op_AniDir() {
 	int type = popVar();
 	int objIdx = popVar();
 	int ovlIdx = popVar();
@@ -624,7 +624,7 @@ int16 Op_AniDir(void) {
 	return -1;
 }
 
-int16 Op_FadeOut(void) {
+int16 Op_FadeOut() {
 	for (long int i = 0; i < 256; i += 32) {
 		for (long int j = 0; j < 256; j++) {
 			int offsetTable[3];
@@ -658,7 +658,7 @@ int16 isOverlayLoaded(const char * name) {
 	return 0;
 }
 
-int16 Op_FindOverlay(void) {
+int16 Op_FindOverlay() {
 	char name[36] = "";
 	char *ptr;
 
@@ -670,7 +670,7 @@ int16 Op_FindOverlay(void) {
 	return (isOverlayLoaded(name));
 }
 
-int16 Op_WriteObject(void) {
+int16 Op_WriteObject() {
 	int16 returnParam;
 
 	int16 param1 = popVar();
@@ -684,7 +684,7 @@ int16 Op_WriteObject(void) {
 	return returnParam;
 }
 
-int16 Op_ReadObject(void) {
+int16 Op_ReadObject() {
 	int16 returnParam;
 
 	int member = popVar();
@@ -696,12 +696,12 @@ int16 Op_ReadObject(void) {
 	return returnParam;
 }
 
-int16 Op_FadeIn(void) {
+int16 Op_FadeIn() {
 	doFade = 1;
 	return 0;
 }
 
-int16 Op_GetMouseButton(void) {
+int16 Op_GetMouseButton() {
 	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
@@ -712,7 +712,7 @@ int16 Op_GetMouseButton(void) {
 	return mouseButton;
 }
 
-int16 Op_AddCell(void) {
+int16 Op_AddCell() {
 	int16 objType = popVar();
 	int16 objIdx = popVar();
 	int16 overlayIdx = popVar();
@@ -725,7 +725,7 @@ int16 Op_AddCell(void) {
 	return 0;
 }
 
-int16 Op_AddBackgroundIncrust(void) {
+int16 Op_AddBackgroundIncrust() {
 
 	int16 objType = popVar();
 	int16 objIdx = popVar();
@@ -739,7 +739,7 @@ int16 Op_AddBackgroundIncrust(void) {
 	return 0;
 }
 
-int16 Op_RemoveCell(void) {
+int16 Op_RemoveCell() {
 	int objType = popVar();
 	int objectIdx = popVar();
 	int ovlNumber = popVar();
@@ -755,13 +755,13 @@ int16 Op_RemoveCell(void) {
 
 int16 fontFileIndex = -1;
 
-int16 Op_SetFont(void) {
+int16 Op_SetFont() {
 	fontFileIndex = popVar();
 
 	return 0;
 }
 
-int16 Op_UnfreezeParent(void) {
+int16 Op_UnfreezeParent() {
 	if (currentScriptPtr->var1A == 0x14) {
 		changeScriptParamInList(currentScriptPtr->var18, currentScriptPtr->var16, &procHead, -1, 0);
 	} else if (currentScriptPtr->var1A == 0x1E) {
@@ -771,7 +771,7 @@ int16 Op_UnfreezeParent(void) {
 	return 0;
 }
 
-int16 Op_ProtectionFlag(void) {
+int16 Op_ProtectionFlag() {
 	int16 temp = protectionCode;
 	int16 newVar;
 
@@ -783,18 +783,19 @@ int16 Op_ProtectionFlag(void) {
 	return temp;
 }
 
-int16 Op_ClearScreen(void) {
+int16 Op_ClearScreen() {
 	int bgIdx = popVar();
 
 	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && (backgroundScreens[bgIdx])) {
 		memset(backgroundScreens[bgIdx], 0, 320 * 200);
+		backgroundChanged[bgIdx] = true;
 		strcpy(backgroundTable[0].name, "");
 	}
 
 	return 0;
 }
 
-int16 Op_AddMessage(void) {
+int16 Op_AddMessage() {
 	int16 color = popVar();
 	int16 var_2 = popVar();
 	int16 var_4 = popVar();
@@ -818,18 +819,18 @@ int16 Op_AddMessage(void) {
 	return 0;
 }
 
-int16 Op_Preload(void) {
+int16 Op_Preload() {
 	popPtr();
 	popVar();
 
 	return 0;
 }
 
-int16 Op_LoadCt(void) {
+int16 Op_LoadCt() {
 	return initCt((const char *)popPtr());
 }
 
-int16 Op_EndAnim(void) {
+int16 Op_EndAnim() {
 	int param1 = popVar();
 	int param2 = popVar();
 	int overlay = popVar();
@@ -840,14 +841,14 @@ int16 Op_EndAnim(void) {
 	return isAnimFinished(overlay, param2, &actorHead, param1);
 }
 
-int16 Op_Protect(void) {
+int16 Op_Protect() {
 	popPtr();
 	popVar();
 
 	return 0;
 }
 
-int16 Op_AutoCell(void) {
+int16 Op_AutoCell() {
 	cellStruct *pObject;
 
 	int signal = popVar();
@@ -902,7 +903,7 @@ int16 Op_AutoCell(void) {
 	return 0;
 }
 
-int16 Op_Sizeof(void) {
+int16 Op_Sizeof() {
 	objectParamsQuery params;
 	int index = popVar();
 	int overlay = popVar();
@@ -915,13 +916,14 @@ int16 Op_Sizeof(void) {
 	return params.nbState - 1;
 }
 
-int16 Op_SetActiveBackground(void) {
+int16 Op_SetActiveBackground() {
 	int currentPlane = masterScreen;
 	int newPlane = popVar();
 
 	if (newPlane >= 0 && newPlane < NBSCREENS) {
 		if (backgroundScreens[newPlane]) {
 			masterScreen = newPlane;
+			backgroundChanged[newPlane] = true;
 			switchPal = 1;
 		}
 	}
@@ -929,15 +931,17 @@ int16 Op_SetActiveBackground(void) {
 	return currentPlane;
 }
 
-int16 Op_RemoveBackground(void) {
+int16 Op_RemoveBackground() {
 	int backgroundIdx = popVar();
 
 	if (backgroundIdx > 0 && backgroundIdx < 8) {
 		if (backgroundScreens[backgroundIdx])
-			free(backgroundScreens[backgroundIdx]);
+			MemFree(backgroundScreens[backgroundIdx]);
 
-		if (masterScreen == backgroundIdx)
+		if (masterScreen == backgroundIdx) {
 			masterScreen = 0;
+			backgroundChanged[0] = true;
+		}
 
 		strcpy(backgroundTable[backgroundIdx].name, "");
 	} else {
@@ -949,14 +953,14 @@ int16 Op_RemoveBackground(void) {
 
 int vblLimit;
 
-int16 Op_VBL(void) {
+int16 Op_VBL() {
 	vblLimit = popVar();
 	return 0;
 }
 
 int op7BVar = 0;
 
-int16 Op_Sec(void) {
+int16 Op_Sec() {
 	int di = popVar();
 	int si = 1 - op7BVar;
 	int sign;
@@ -972,7 +976,7 @@ int16 Op_Sec(void) {
 	return si;
 }
 
-int16 Op_RemoveBackgroundIncrust(void) {
+int16 Op_RemoveBackgroundIncrust() {
 	int idx = popVar();
 	int overlay = popVar();
 
@@ -985,7 +989,7 @@ int16 Op_RemoveBackgroundIncrust(void) {
 	return 0;
 }
 
-int16 Op_SetColor(void)	{
+int16 Op_SetColor()	{
 	int colorB = popVar();
 	int colorG = popVar();
 	int colorR = popVar();
@@ -1016,7 +1020,7 @@ int16 Op_SetColor(void)	{
 	return 0;
 }
 
-int16 Op_Inventory(void) {
+int16 Op_Inventory() {
 	int si = var41;
 
 	var41 = popVar();
@@ -1024,7 +1028,7 @@ int16 Op_Inventory(void) {
 	return si;
 }
 
-int16 Op_RemoveOverlay(void) {
+int16 Op_RemoveOverlay() {
 	int overlayIdx;
 
 	overlayIdx = popVar();
@@ -1036,7 +1040,7 @@ int16 Op_RemoveOverlay(void) {
 	return 0;
 }
 
-int16 Op_ComputeLine(void) {
+int16 Op_ComputeLine() {
 	int y2 = popVar();
 	int x2 = popVar();
 	int y1 = popVar();
@@ -1051,14 +1055,14 @@ int16 Op_ComputeLine(void) {
 	return maxValue;
 }
 
-int16 Op_FindMsg(void) {
+int16 Op_FindMsg() {
 	int si = popVar();
 	popVar();
 
 	return si;
 }
 
-int16 Op_SetZoom(void) {
+int16 Op_SetZoom() {
 	var46 = popVar();
 	var45 = popVar();
 	var42 = popVar();
@@ -1074,14 +1078,14 @@ int16 subOp23(int param1, int param2) {
 	return (param1 * param2) >> 8;
 }
 
-int16 Op_GetStep(void) {
+int16 Op_GetStep() {
 	int si = popVar();
 	int dx = popVar();
 
 	return subOp23(dx, si);
 }
 
-int16 Op_GetZoom(void) {
+int16 Op_GetZoom() {
 	return (computeZoom(popVar()));
 }
 
@@ -1100,7 +1104,7 @@ actorStruct *addAnimation(actorStruct * pHead, int overlay, int objIdx, int para
 		return NULL;
 	}
 
-	actorStruct *pNewElement = (actorStruct *) malloc(sizeof(actorStruct));
+	actorStruct *pNewElement = (actorStruct *) MemAlloc(sizeof(actorStruct));
 	if (!pNewElement)
 		return NULL;
 
@@ -1174,7 +1178,7 @@ int removeAnimation(actorStruct * pHead, int overlay, int objIdx, int objType) {
 			if (pl->pathId >= 0)
 				freePerso(pl->pathId);
 
-			free(pl);
+			MemFree(pl);
 			pl = pl4;
 		} else {
 			pl2 = pl;
@@ -1188,7 +1192,7 @@ int removeAnimation(actorStruct * pHead, int overlay, int objIdx, int objType) {
 int flag_obstacle;		// numPolyBis
 
 // add animation
-int16 Op_AddAnimation(void) {
+int16 Op_AddAnimation() {
 	int stepY = popVar();
 	int stepX = popVar();
 	int direction = popVar();
@@ -1241,7 +1245,7 @@ int16 Op_AddAnimation(void) {
 	return 0;
 }
 
-int16 Op_RemoveAnimation(void) {
+int16 Op_RemoveAnimation() {
 	int objType = popVar();
 	int objIdx = popVar();
 	int ovlIdx = popVar();
@@ -1253,12 +1257,12 @@ int16 Op_RemoveAnimation(void) {
 	return removeAnimation(&actorHead, ovlIdx, objIdx, objType);
 }
 
-int16 Op_regenerateBackgroundIncrust(void) {
+int16 Op_regenerateBackgroundIncrust() {
 	regenerateBackgroundIncrust(&backgroundIncrustHead);
 	return 0;
 }
 
-int16 Op_SetStringColors(void) {
+int16 Op_SetStringColors() {
 	// TODO: here ignore if low color mode
 
 	subColor = (uint8) popVar();
@@ -1269,7 +1273,7 @@ int16 Op_SetStringColors(void) {
 	return 0;
 }
 
-int16 Op_XClick(void) {
+int16 Op_XClick() {
 	int x = popVar();
 
 	if (x != -1) {
@@ -1280,7 +1284,7 @@ int16 Op_XClick(void) {
 	return aniX;
 }
 
-int16 Op_YClick(void) {
+int16 Op_YClick() {
 	int y = popVar();
 
 	if (y != -1) {
@@ -1291,7 +1295,7 @@ int16 Op_YClick(void) {
 	return aniY;
 }
 
-int16 Op_GetPixel(void) {
+int16 Op_GetPixel() {
 	int x = popVar();
 	int y = popVar();
 
@@ -1299,7 +1303,7 @@ int16 Op_GetPixel(void) {
 	return numPoly;
 }
 
-int16 Op_TrackAnim(void) {		// setup actor position
+int16 Op_TrackAnim() {		// setup actor position
 	actorStruct *pActor;
 
 	int var0 = popVar();
@@ -1329,7 +1333,7 @@ int16 Op_TrackAnim(void) {		// setup actor position
 	return 0;
 }
 
-int16 Op_BgName(void) {
+int16 Op_BgName() {
 	char* bgName = (char*)popPtr();
 	int bgIdx = popVar();
 
@@ -1345,7 +1349,7 @@ int16 Op_BgName(void) {
 	return 0;
 }
 
-int16 Op_LoadSong(void) {
+int16 Op_LoadSong() {
 	const char *ptr = (const char *)popPtr();
 	char buffer[33];
 
@@ -1357,32 +1361,32 @@ int16 Op_LoadSong(void) {
 	return 0;
 }
 
-int16 Op_PlaySong(void) {
+int16 Op_PlaySong() {
 	if (_vm->sound().songLoaded() && !_vm->sound().songPlayed())
 		_vm->sound().playMusic();
 
 	return 0;
 }
 
-int16 Op_StopSong(void) {
+int16 Op_StopSong() {
 	if (_vm->sound().isPlaying())
 		_vm->sound().stopMusic();
 
 	return 0;
 }
 
-int16 Op_RestoreSong(void) {
+int16 Op_RestoreSong() {
 	// Used in the original to restore the contents of a song. Doesn't seem to be used,
 	// since the backup buffer it uses is never set
 	return 0;
 }
 
-int16 Op_SongSize(void) {
+int16 Op_SongSize() {
 	int size, oldSize;
 
 	if (_vm->sound().songLoaded()) {
 		oldSize = _vm->sound().numOrders();
-		
+
 		size = popVar();
 		if ((size >= 1) && (size < 128))
 			_vm->sound().setNumOrders(size);
@@ -1392,7 +1396,7 @@ int16 Op_SongSize(void) {
 	return oldSize;
 }
 
-int16 Op_SetPattern(void) {
+int16 Op_SetPattern() {
 	int value = popVar();
 	int offset = popVar();
 
@@ -1403,26 +1407,26 @@ int16 Op_SetPattern(void) {
 	return 0;
 }
 
-int16 Op_FadeSong(void) {
+int16 Op_FadeSong() {
 	_vm->sound().fadeSong();
 
 	return 0;
 }
 
-int16 Op_FreeSong(void) {
+int16 Op_FreeSong() {
 	_vm->sound().stopMusic();
 	_vm->sound().removeMusic();
 	return 0;
 }
 
-int16 Op_SongLoop(void) {
+int16 Op_SongLoop() {
 	bool oldLooping = _vm->sound().musicLooping();
 	_vm->sound().musicLoop(popVar() != 0);
 
 	return oldLooping;
 }
 
-int16 Op_SongPlayed(void) {
+int16 Op_SongPlayed() {
 	return _vm->sound().songPlayed();
 }
 
@@ -1430,17 +1434,17 @@ void setVar49Value(int value) {
 	flagCt = value;
 }
 
-int16 Op_CTOn(void) {
+int16 Op_CTOn() {
 	setVar49Value(1);
 	return 0;
 }
 
-int16 Op_CTOff(void) {
+int16 Op_CTOff() {
 	setVar49Value(0);
 	return 0;
 }
 
-int16 Op_FreezeOverlay(void) {
+int16 Op_FreezeOverlay() {
 	//int var0;
 	//int var1;
 	int temp;
@@ -1458,7 +1462,7 @@ int16 Op_FreezeOverlay(void) {
 	return temp;
 }
 
-int16 Op_FreezeCell(void) {
+int16 Op_FreezeCell() {
 	int newFreezz = popVar();
 	int oldFreeze = popVar();
 	int backgroundPlante = popVar();
@@ -1485,7 +1489,7 @@ void Op_60Sub(int overlayIdx, actorStruct * pActorHead, int _var0, int _var1, in
 	}
 }
 
-int16 Op_FreezeAni(void) {
+int16 Op_FreezeAni() {
 	/*
 	 * int var0;
 	 * int var1;
@@ -1509,7 +1513,7 @@ int16 Op_FreezeAni(void) {
 	return 0;
 }
 
-int16 Op_Itoa(void) {
+int16 Op_Itoa() {
 	int nbp = popVar();
 	int param[160];
 	char txt[40];
@@ -1539,7 +1543,7 @@ int16 Op_Itoa(void) {
 	return 0;
 }
 
-int16 Op_Strcat(void) {
+int16 Op_Strcat() {
 	char *pSource = (char *)popPtr();
 	char *pDest = (char *)popPtr();
 
@@ -1553,7 +1557,7 @@ int16 Op_Strcat(void) {
 	return 0;
 }
 
-int16 Op_FindSymbol(void) {
+int16 Op_FindSymbol() {
 	int var0 = popVar();
 	char *ptr = (char *)popPtr();
 	int var1 = popVar();
@@ -1564,7 +1568,7 @@ int16 Op_FindSymbol(void) {
 	return getProcParam(var1, var0, ptr);
 }
 
-int16 Op_FindObject(void) {
+int16 Op_FindObject() {
 	char var_26[36];
 	char *ptr = (char *)popPtr();
 	int overlayIdx;
@@ -1583,7 +1587,7 @@ int16 Op_FindObject(void) {
 	return getProcParam(overlayIdx, 40, var_26);
 }
 
-int16 Op_SetObjectAtNode(void) {
+int16 Op_SetObjectAtNode() {
 	int16 node = popVar();
 	int16 obj = popVar();
 	int16 ovl = popVar();
@@ -1603,7 +1607,7 @@ int16 Op_SetObjectAtNode(void) {
 	return 0;
 }
 
-int16 Op_GetNodeX(void) {
+int16 Op_GetNodeX() {
 	int16 node = popVar();
 
 	int nodeInfo[2];
@@ -1615,7 +1619,7 @@ int16 Op_GetNodeX(void) {
 	return nodeInfo[0];
 }
 
-int16 Op_GetNodeY(void) {
+int16 Op_GetNodeY() {
 	int16 node = popVar();
 
 	int nodeInfo[2];
@@ -1627,7 +1631,7 @@ int16 Op_GetNodeY(void) {
 	return nodeInfo[1];
 }
 
-int16 Op_SetVolume(void) {
+int16 Op_SetVolume() {
 	int oldVolume = _vm->sound().getVolume();
 	int newVolume = popVar();
 
@@ -1640,7 +1644,7 @@ int16 Op_SetVolume(void) {
 	return oldVolume >> 2;
 }
 
-int16 Op_SongExist(void) {
+int16 Op_SongExist() {
 	const char *songName = (char*)popPtr();
 
 	if (songName) {
@@ -1655,33 +1659,33 @@ int16 Op_SongExist(void) {
 	return 0;
 }
 
-int16 Op_TrackPos(void) {
+int16 Op_TrackPos() {
 	// This function returns a variable that never seems to change from 0
 	return 0;
 }
 
-int16 Op_SetNodeState(void) {
+int16 Op_SetNodeState() {
 	int16 state = popVar();
 	int16 node = popVar();
 
 	return setNodeState(node, state);
 }
 
-int16 Op_SetNodeColor(void) {
+int16 Op_SetNodeColor() {
 	int16 color = popVar();
 	int16 node = popVar();
 
 	return setNodeColor(node, color);
 }
 
-int16 Op_SetXDial(void) {
+int16 Op_SetXDial() {
 	int16 old = xdial;
 	xdial = popVar();
 
 	return old;
 }
 
-int16 Op_DialogOn(void) {
+int16 Op_DialogOn() {
 	dialogueObj = popVar();
 	dialogueOvl = popVar();
 
@@ -1693,7 +1697,7 @@ int16 Op_DialogOn(void) {
 	return 0;
 }
 
-int16 Op_DialogOff(void) {
+int16 Op_DialogOff() {
 	dialogueEnabled = false;
 
 	objectReset();
@@ -1708,7 +1712,7 @@ int16 Op_DialogOff(void) {
 	return 0;
 }
 
-int16 Op_LinkObjects(void) {
+int16 Op_LinkObjects() {
 	int type = popVar();
 	int obj2 = popVar();
 	int ovl2 = popVar();
@@ -1725,7 +1729,7 @@ int16 Op_LinkObjects(void) {
 	return 0;
 }
 
-int16 Op_UserClick(void) {
+int16 Op_UserClick() {
 	sysKey = popVar();
 	sysY = popVar();
 	sysX = popVar();
@@ -1733,7 +1737,7 @@ int16 Op_UserClick(void) {
 	return 0;
 }
 
-int16 Op_XMenuItem(void) {
+int16 Op_XMenuItem() {
 	int index = popVar();
 	int count = 0;
 
@@ -1753,7 +1757,7 @@ int16 Op_XMenuItem(void) {
 	return 0;
 }
 
-int16 Op_YMenuItem(void) {
+int16 Op_YMenuItem() {
 	int index = popVar();
 	int count = 0;
 
@@ -1778,7 +1782,7 @@ int16 Op_Menu() {
 	return (int16)(menuTable[0] != NULL);
 }
 
-int16 Op_AutoControl(void) {
+int16 Op_AutoControl() {
 	int oldValue = automaticMode;
 	int newValue = popVar();
 
@@ -1790,7 +1794,7 @@ int16 Op_AutoControl(void) {
 	return oldValue;
 }
 
-int16 Op_MouseMove(void) {
+int16 Op_MouseMove() {
 	int16 handle, button;
 	Common::Point pt;
 
@@ -1803,18 +1807,18 @@ int16 Op_MouseMove(void) {
 	return 0;
 }
 
-int16 Op_MouseEnd(void) {
+int16 Op_MouseEnd() {
 	if (automoveInc < automoveMax)
 		return (int16)false;
 
 	return (int16)true;
 }
 
-int16 Op_MsgExist(void) {
+int16 Op_MsgExist() {
 	return isMessage;
 }
 
-int16 Op_UserDelay(void) {
+int16 Op_UserDelay() {
 	int delay = popVar();
 
 	if (delay >= 0) {
@@ -1824,13 +1828,13 @@ int16 Op_UserDelay(void) {
 	return userDelay;
 }
 
-int16 Op_ThemeReset(void) {
+int16 Op_ThemeReset() {
 	objectReset();
 
 	return 0;
 }
 
-int16 Op_UserWait(void) {
+int16 Op_UserWait() {
 	userWait = 1;
 	if (currentScriptPtr->type == scriptType_PROC) {
 		changeScriptParamInList(currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, &procHead, -1, 9999);
@@ -1977,7 +1981,7 @@ opcodeFunction opcodeTablePtr[] = {
 	Op_KillMenu,
 };
 
-int32 opcodeType8(void) {
+int32 opcodeType8() {
 	int opcode = getByteFromScript();
 
 	if (!opcode)
@@ -1987,7 +1991,6 @@ int32 opcodeType8(void) {
 		return (-21);
 
 	if (opcode < ARRAYSIZE(opcodeTablePtr) && opcodeTablePtr[opcode]) {
-		//	printf("Function: %d\n",opcode);
 		pushVar(opcodeTablePtr[opcode]());
 		return (0);
 	} else {

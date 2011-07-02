@@ -18,25 +18,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/system.h"
-#include "common/config-manager.h"
-
-#include "kyra/resource.h"
 #include "kyra/sound.h"
+#include "kyra/resource.h"
 
-#include "sound/mixer.h"
-#include "sound/voc.h"
-#include "sound/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/audiostream.h"
 
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/flac.h"
+#include "audio/decoders/flac.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/voc.h"
+#include "audio/decoders/vorbis.h"
 
 namespace Kyra {
 
@@ -46,6 +41,10 @@ Sound::Sound(KyraEngine_v1 *vm, Audio::Mixer *mixer)
 }
 
 Sound::~Sound() {
+}
+
+void Sound::pause(bool paused) {
+	_mixer->pauseAll(paused);
 }
 
 bool Sound::voiceFileIsPresent(const char *file) {
@@ -74,21 +73,21 @@ bool Sound::isVoicePresent(const char *file) {
 }
 
 int32 Sound::voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx) {
-	Audio::AudioStream *audioStream = getVoiceStream(file);
+	Audio::SeekableAudioStream *audioStream = getVoiceStream(file);
 
 	if (!audioStream) {
 		return 0;
 	}
 
-	int playTime = audioStream->getTotalPlayTime();
+	int playTime = audioStream->getLength().msecs();
 	playVoiceStream(audioStream, handle, volume, isSfx);
 	return playTime;
 }
 
-Audio::AudioStream *Sound::getVoiceStream(const char *file) {
+Audio::SeekableAudioStream *Sound::getVoiceStream(const char *file) {
 	char filenamebuffer[25];
 
-	Audio::AudioStream *audioStream = 0;
+	Audio::SeekableAudioStream *audioStream = 0;
 	for (int i = 0; _supportedCodecs[i].fileext; ++i) {
 		strcpy(filenamebuffer, file);
 		strcat(filenamebuffer, _supportedCodecs[i].fileext);
@@ -97,7 +96,7 @@ Audio::AudioStream *Sound::getVoiceStream(const char *file) {
 		if (!stream)
 			continue;
 
-		audioStream = _supportedCodecs[i].streamFunc(stream, true, 0, 0, 1);
+		audioStream = _supportedCodecs[i].streamFunc(stream, DisposeAfterUse::YES);
 		break;
 	}
 
@@ -111,12 +110,13 @@ Audio::AudioStream *Sound::getVoiceStream(const char *file) {
 
 bool Sound::playVoiceStream(Audio::AudioStream *stream, Audio::SoundHandle *handle, uint8 volume, bool isSfx) {
 	int h = 0;
-	while (_mixer->isSoundHandleActive(_soundChannels[h]) && h < kNumChannelHandles)
-		h++;
+	while (h < kNumChannelHandles && _mixer->isSoundHandleActive(_soundChannels[h]))
+		++h;
+
 	if (h >= kNumChannelHandles)
 		return false;
 
-	_mixer->playInputStream(isSfx ? Audio::Mixer::kSFXSoundType : Audio::Mixer::kSpeechSoundType, &_soundChannels[h], stream, -1, volume);
+	_mixer->playStream(isSfx ? Audio::Mixer::kSFXSoundType : Audio::Mixer::kSpeechSoundType, &_soundChannels[h], stream, -1, volume);
 	if (handle)
 		*handle = _soundChannels[h];
 
@@ -125,7 +125,7 @@ bool Sound::playVoiceStream(Audio::AudioStream *stream, Audio::SoundHandle *hand
 
 void Sound::voiceStop(const Audio::SoundHandle *handle) {
 	if (!handle) {
-		for (int h = 0; h < kNumChannelHandles; h++) {
+		for (int h = 0; h < kNumChannelHandles; ++h) {
 			if (_mixer->isSoundHandleActive(_soundChannels[h]))
 				_mixer->stopHandle(_soundChannels[h]);
 		}
@@ -136,7 +136,7 @@ void Sound::voiceStop(const Audio::SoundHandle *handle) {
 
 bool Sound::voiceIsPlaying(const Audio::SoundHandle *handle) {
 	if (!handle) {
-		for (int h = 0; h < kNumChannelHandles; h++) {
+		for (int h = 0; h < kNumChannelHandles; ++h) {
 			if (_mixer->isSoundHandleActive(_soundChannels[h]))
 				return true;
 		}
@@ -215,6 +215,13 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 				_sound->playTrack(command);
 			}
 		}
+	} else if (_flags.platform == Common::kPlatformAmiga) {
+		if (_curMusicTheme != 1)
+			snd_playTheme(1, -1);
+
+		assert(command < _trackMapSize);
+		if (_trackMap[_lastMusicCommand] != _trackMap[command])
+			_sound->playTrack(_trackMap[command]);
 	}
 
 	_lastMusicCommand = command;
@@ -234,11 +241,16 @@ namespace {
 
 // A simple wrapper to create VOC streams the way like creating MP3, OGG/Vorbis and FLAC streams.
 // Possible TODO: Think of making this complete and moving it to sound/voc.cpp ?
-Audio::AudioStream *makeVOCStream(Common::SeekableReadStream *stream, bool disposeAfterUse, uint32 startTime, uint32 duration, uint numLoops) {
-	Audio::AudioStream *as = Audio::makeVOCStream(*stream, Audio::Mixer::FLAG_UNSIGNED);
+Audio::SeekableAudioStream *makeVOCStream(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeAfterUse) {
+
+#ifdef STREAM_AUDIO_FROM_DISK
+	Audio::SeekableAudioStream *as = Audio::makeVOCStream(stream, Audio::FLAG_UNSIGNED, disposeAfterUse);
+#else
+	Audio::SeekableAudioStream *as = Audio::makeVOCStream(stream, Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
 
 	if (disposeAfterUse)
 		delete stream;
+#endif
 
 	return as;
 }
@@ -260,13 +272,13 @@ const Sound::SpeechCodecs Sound::_supportedCodecs[] = {
 #endif // USE_VORBIS
 
 #ifdef USE_FLAC
-	{ ".VOF", Audio::makeFlacStream },
-	{ ".FLA", Audio::makeFlacStream },
+	{ ".VOF", Audio::makeFLACStream },
+	{ ".FLA", Audio::makeFLACStream },
 #endif // USE_FLAC
 
 	{ 0, 0 }
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 

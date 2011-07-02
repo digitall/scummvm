@@ -18,17 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/endian.h"
-#include "common/system.h"
-
 #include "kyra/kyra_lok.h"
-#include "kyra/script.h"
-#include "kyra/screen.h"
 #include "kyra/sprites.h"
 #include "kyra/wsamovie.h"
 #include "kyra/animator_lok.h"
@@ -36,7 +28,10 @@
 #include "kyra/timer.h"
 #include "kyra/sound.h"
 
+#include "common/system.h"
+
 namespace Kyra {
+
 int KyraEngine_LoK::o1_magicInMouseItem(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_magicInMouseItem(%p) (%d, %d)", (const void *)script, stackPos(0), stackPos(1));
 	magicInMouseItem(stackPos(0), stackPos(1), -1);
@@ -203,9 +198,7 @@ int KyraEngine_LoK::o1_getElapsedSeconds(EMCState *script) {
 
 int KyraEngine_LoK::o1_mouseIsPointer(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_mouseIsPointer(%p) ()", (const void *)script);
-	if (_itemInHand == -1)
-		return 1;
-	return 0;
+	return (_itemInHand == kItemNone);
 }
 
 int KyraEngine_LoK::o1_runSceneAnimUntilDone(EMCState *script) {
@@ -231,12 +224,13 @@ int KyraEngine_LoK::o1_fadeSpecialPalette(EMCState *script) {
 		debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_fadeSpecialPalette(%p) (%d, %d, %d)", (const void *)script, stackPos(0), stackPos(1), stackPos(2));
 		if (_currentCharacter->sceneId != 45) {
 			if (stackPos(0) == 13) {
-				// TODO: Check this!
 				_screen->copyPalette(0, 12);
 				_screen->setScreenPalette(_screen->getPalette(0));
 			}
 		} else {
-			warning("KyraEngine_LoK::o1_fadeSpecialPalette not implemented");
+			setupZanthiaPalette(stackPos(0));
+			_screen->getPalette(0).copy(_screen->getPalette(4), 12, 1);
+			_screen->fadePalette(_screen->getPalette(0), 2);
 		}
 	} else {
 		debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_fadeSpecialPalette(%p) (%d, %d, %d, %d)", (const void *)script, stackPos(0), stackPos(1), stackPos(2), stackPos(3));
@@ -428,22 +422,13 @@ int KyraEngine_LoK::o1_runWSAFromBeginningToEnd(EMCState *script) {
 	int wsaFrame = 0;
 
 	while (running) {
+		const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
+
 		_movieObjects[wsaIndex]->displayFrame(wsaFrame++, 0, xpos, ypos, 0, 0, 0);
-		_animator->_updateScreen = true;
 		if (wsaFrame >= _movieObjects[wsaIndex]->frames())
 			running = false;
 
-		uint32 continueTime = waitTime * _tickLength + _system->getMillis();
-		while (_system->getMillis() < continueTime) {
-			if (worldUpdate) {
-				_sprites->updateSceneAnims();
-				_animator->updateAllObjectShapes();
-			} else {
-				_screen->updateScreen();
-			}
-			if (continueTime - _system->getMillis() >= 10)
-				delay(10);
-		}
+		delayUntil(continueTime, false, worldUpdate != 0);
 	}
 
 	_screen->showMouse();
@@ -459,18 +444,9 @@ int KyraEngine_LoK::o1_displayWSAFrame(EMCState *script) {
 	int waitTime = stackPos(3);
 	int wsaIndex = stackPos(4);
 	_screen->hideMouse();
+	const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
 	_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, 0, 0);
-	_animator->_updateScreen = true;
-	uint32 continueTime = waitTime * _tickLength + _system->getMillis();
-	while (_system->getMillis() < continueTime) {
-		_sprites->updateSceneAnims();
-		_animator->updateAllObjectShapes();
-		if (skipFlag())
-			break;
-
-		if (continueTime - _system->getMillis() >= 10)
-			delay(10);
-	}
+	delayUntil(continueTime, false, true);
 	_screen->showMouse();
 	return 0;
 }
@@ -500,15 +476,9 @@ int KyraEngine_LoK::o1_runWSAFrames(EMCState *script) {
 	int wsaIndex = stackPos(5);
 	_screen->hideMouse();
 	for (; startFrame <= endFrame; ++startFrame) {
-		uint32 nextRun = _system->getMillis() + delayTime * _tickLength;
+		const uint32 nextRun = _system->getMillis() + delayTime * _tickLength;
 		_movieObjects[wsaIndex]->displayFrame(startFrame, 0, xpos, ypos, 0, 0, 0);
-		_animator->_updateScreen = true;
-		while (_system->getMillis() < nextRun) {
-			_sprites->updateSceneAnims();
-			_animator->updateAllObjectShapes();
-			if (nextRun - _system->getMillis() >= 10)
-				delay(10);
-		}
+		delayUntil(nextRun, false, true);
 	}
 	_screen->showMouse();
 	return 0;
@@ -579,14 +549,23 @@ int KyraEngine_LoK::o1_restoreAllObjectBackgrounds(EMCState *script) {
 
 int KyraEngine_LoK::o1_setCustomPaletteRange(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_setCustomPaletteRange(%p) (%d, %d, %d)", (const void *)script, stackPos(0), stackPos(1), stackPos(2));
-	_screen->getPalette(1).copy(_specialPalettes[stackPos(0)], 0, stackPos(2), stackPos(1));
+	if (_flags.platform == Common::kPlatformAmiga) {
+		if (_currentCharacter->sceneId == 45) {
+			setupZanthiaPalette(stackPos(0));
+		} else if (stackPos(0) == 29) {
+			_screen->copyPalette(0, 11);
+		} else if (stackPos(0) == 13) {
+			_screen->copyPalette(0, 12);
+		}
+	} else {
+		_screen->getPalette(1).copy(_specialPalettes[stackPos(0)], 0, stackPos(2), stackPos(1));
+	}
 	return 0;
 }
 
 int KyraEngine_LoK::o1_loadPageFromDisk(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_loadPageFromDisk(%p) ('%s', %d)", (const void *)script, stackPosString(0), stackPos(1));
 	_screen->loadPageFromDisk(stackPosString(0), stackPos(1));
-	_animator->_updateScreen = true;
 	return 0;
 }
 
@@ -654,7 +633,6 @@ int KyraEngine_LoK::o1_copyWSARegion(EMCState *script) {
 	int srcPage = stackPos(4);
 	int dstPage = stackPos(5);
 	_screen->copyRegion(xpos, ypos, xpos, ypos, width, height, srcPage, dstPage);
-	_animator->_updateScreen = true;
 	return 0;
 }
 
@@ -682,18 +660,9 @@ int KyraEngine_LoK::o1_displayWSAFrameOnHidPage(EMCState *script) {
 	int wsaIndex = stackPos(4);
 
 	_screen->hideMouse();
-	uint32 continueTime = waitTime * _tickLength + _system->getMillis();
+	const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
 	_movieObjects[wsaIndex]->displayFrame(frame, 2, xpos, ypos, 0, 0, 0);
-	_animator->_updateScreen = true;
-	while (_system->getMillis() < continueTime) {
-		_sprites->updateSceneAnims();
-		_animator->updateAllObjectShapes();
-		if (skipFlag())
-			break;
-
-		if (continueTime - _system->getMillis() >= 10)
-			delay(10);
-	}
+	delayUntil(continueTime, false, true);
 	_screen->showMouse();
 
 	return 0;
@@ -765,37 +734,17 @@ int KyraEngine_LoK::o1_displayWSASequentialFrames(EMCState *script) {
 		if (endFrame >= startFrame) {
 			int frame = startFrame;
 			while (endFrame >= frame) {
-				uint32 continueTime = waitTime * _tickLength + _system->getMillis();
+				const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
 				_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, 0, 0);
-				if (waitTime)
-					_animator->_updateScreen = true;
-				while (_system->getMillis() < continueTime) {
-					_sprites->updateSceneAnims();
-					_animator->updateAllObjectShapes();
-					if (skipFlag())
-						break;
-
-					if (continueTime - _system->getMillis() >= 10)
-						delay(10);
-				}
+				delayUntil(continueTime, false, true);
 				++frame;
 			}
 		} else {
 			int frame = startFrame;
 			while (endFrame <= frame) {
-				uint32 continueTime = waitTime * _tickLength + _system->getMillis();
+				const uint32 continueTime = waitTime * _tickLength + _system->getMillis();
 				_movieObjects[wsaIndex]->displayFrame(frame, 0, xpos, ypos, 0, 0, 0);
-				if (waitTime)
-					_animator->_updateScreen = true;
-				while (_system->getMillis() < continueTime) {
-					_sprites->updateSceneAnims();
-					_animator->updateAllObjectShapes();
-					if (skipFlag())
-						break;
-
-					if (continueTime - _system->getMillis() >= 10)
-						delay(10);
-				}
+				delayUntil(continueTime, false, true);
 				--frame;
 			}
 		}
@@ -1049,16 +998,7 @@ int KyraEngine_LoK::o1_walkCharacterToPoint(EMCState *script) {
 		setCharacterPosition(character, 0);
 		++curPos;
 
-		nextFrame = _timer->getDelay(5 + character) * _tickLength + _system->getMillis();
-		while (_system->getMillis() < nextFrame) {
-			_sprites->updateSceneAnims();
-			updateMousePointer();
-			_timer->update();
-			_animator->updateAllObjectShapes();
-			updateTextFade();
-			if ((nextFrame - _system->getMillis()) >= 10)
-				delay(10);
-		}
+		delayUntil(nextFrame = _timer->getDelay(5 + character) * _tickLength + _system->getMillis(), true, true);
 	}
 	return 0;
 }
@@ -1081,7 +1021,9 @@ int KyraEngine_LoK::o1_specialEventDisplayBrynnsNote(EMCState *script) {
 	_screen->copyRegion(63, 8, 63, 8, 194, 128, 2, 0);
 	_screen->updateScreen();
 	_screen->showMouse();
-	_screen->setFont(Screen::FID_6_FNT);
+
+	if (_flags.platform != Common::kPlatformAmiga && !_flags.isTalkie && _flags.lang != Common::JA_JPN)
+		_screen->setFont(Screen::FID_6_FNT);
 	return 0;
 }
 
@@ -1092,7 +1034,9 @@ int KyraEngine_LoK::o1_specialEventRemoveBrynnsNote(EMCState *script) {
 	_screen->loadPageFromDisk("HIDPAGE.TMP", 2);
 	_screen->updateScreen();
 	_screen->showMouse();
-	_screen->setFont(Screen::FID_8_FNT);
+
+	if (_flags.platform != Common::kPlatformAmiga && !_flags.isTalkie && _flags.lang != Common::JA_JPN)
+		_screen->setFont(Screen::FID_8_FNT);
 	return 0;
 }
 
@@ -1172,9 +1116,14 @@ int KyraEngine_LoK::o1_findBrightestFireberry(EMCState *script) {
 	if (_currentCharacter->sceneId >= 187 && _currentCharacter->sceneId <= 198)
 		return 29;
 
-	if (_currentCharacter->sceneId == 133 || _currentCharacter->sceneId == 137 ||
-		_currentCharacter->sceneId == 165 || _currentCharacter->sceneId == 173)
-		return 29;
+	// The following rooms are only a "A fireberry bush" scene in the CD version
+	// of Kyrandia 1. In all other versions they are a usual dark cave, thus we do only
+	// return a glow value of "29" over here, when we are running a CD version.
+	if (_flags.isTalkie) {
+		if (_currentCharacter->sceneId == 133 || _currentCharacter->sceneId == 137 ||
+			_currentCharacter->sceneId == 165 || _currentCharacter->sceneId == 173)
+			return 29;
+	}
 
 	if (_itemInHand == 28)
 		return 28;
@@ -1213,37 +1162,77 @@ int KyraEngine_LoK::o1_findBrightestFireberry(EMCState *script) {
 
 int KyraEngine_LoK::o1_setFireberryGlowPalette(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_setFireberryGlowPalette(%p) (%d)", (const void *)script, stackPos(0));
-	int palIndex = 0;
-	switch (stackPos(0)) {
-	case 0x1E:
-		palIndex = 9;
-		break;
 
-	case 0x1F:
-		palIndex = 10;
-		break;
+	if (_flags.platform == Common::kPlatformAmiga) {
+		int palIndex = 0;
 
-	case 0x20:
-		palIndex = 11;
-		break;
+		switch (stackPos(0)) {
+		case -1:
+			// The original seemed to draw some lines on page 2 here, which looks strange...
+			//if (!(_brandonStatusBit & 2))
+			//	warning("Unimplemented case for o1_setFireberryGlowPalette");
+			palIndex = 9;
+			break;
 
-	case 0x21:
-	case -1:
-		palIndex = 12;
-		break;
+		case 30:
+			palIndex = 7;
+			break;
 
-	default:
-		palIndex = 8;
-	}
-	if (_brandonStatusBit & 2) {
-		if (_currentCharacter->sceneId != 133 && _currentCharacter->sceneId != 137 &&
-			_currentCharacter->sceneId != 165 && _currentCharacter->sceneId != 173 &&
-			(_currentCharacter->sceneId < 187 || _currentCharacter->sceneId > 198)) {
-			palIndex = 14;
+		case 31:
+			palIndex = 8;
+			break;
+
+		case 32:
+		case 33:
+			palIndex = 9;
+			break;
+
+		case 28: case 29: default:
+			palIndex = 6;
 		}
+
+		if (_brandonStatusBit & 2) {
+			if (_currentCharacter->sceneId < 187 || _currentCharacter->sceneId > 198)
+				palIndex = 10;
+		}
+
+		_screen->copyPalette(0, palIndex);
+	} else {
+		int palIndex = 0;
+
+		switch (stackPos(0)) {
+		case 0x1E:
+			palIndex = 9;
+			break;
+
+		case 0x1F:
+			palIndex = 10;
+			break;
+
+		case 0x20:
+			palIndex = 11;
+			break;
+
+		case 0x21:
+		case -1:
+			palIndex = 12;
+			break;
+
+		default:
+			palIndex = 8;
+		}
+
+		if (_brandonStatusBit & 2) {
+			if (_currentCharacter->sceneId != 133 && _currentCharacter->sceneId != 137 &&
+				_currentCharacter->sceneId != 165 && _currentCharacter->sceneId != 173 &&
+				(_currentCharacter->sceneId < 187 || _currentCharacter->sceneId > 198)) {
+				palIndex = 14;
+			}
+		}
+
+		_screen->getPalette(1).copy(_specialPalettes[palIndex], 0, 15, 228);
 	}
 
-	_screen->getPalette(1).copy(_specialPalettes[palIndex], 0, 15, 228);
 	return 0;
 }
 
@@ -1255,15 +1244,16 @@ int KyraEngine_LoK::o1_drinkPotionAnimation(EMCState *script) {
 
 int KyraEngine_LoK::o1_makeAmuletAppear(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_LoK::o1_makeAmuletAppear(%p) ()", (const void *)script);
-	WSAMovie_v1 amulet(this);
-	amulet.open("AMULET.WSA", 1, 0);
-	if (amulet.opened()) {
+	Movie *amulet = createWSAMovie();
+	assert(amulet);
+	amulet->open("AMULET.WSA", 1, 0);
+
+	if (amulet->opened()) {
 		assert(_amuleteAnim);
 		_screen->hideMouse();
 		snd_playSoundEffect(0x70);
-		uint32 nextTime = 0;
 		for (int i = 0; _amuleteAnim[i] != 0xFF; ++i) {
-			nextTime = _system->getMillis() + 5 * _tickLength;
+			const uint32 nextTime = _system->getMillis() + 5 * _tickLength;
 
 			uint8 code = _amuleteAnim[i];
 			if (code == 3 || code == 7)
@@ -1275,18 +1265,13 @@ int KyraEngine_LoK::o1_makeAmuletAppear(EMCState *script) {
 			if (code == 14)
 				snd_playSoundEffect(0x73);
 
-			amulet.displayFrame(code, 0, 224, 152, 0, 0, 0);
-			_animator->_updateScreen = true;
-
-			while (_system->getMillis() < nextTime) {
-				_sprites->updateSceneAnims();
-				_animator->updateAllObjectShapes();
-				if (nextTime - _system->getMillis() >= 10)
-					delay(10);
-			}
+			amulet->displayFrame(code, 0, 224, 152, 0, 0, 0);
+			delayUntil(nextTime, false, true);
 		}
 		_screen->showMouse();
 	}
+
+	delete amulet;
 	setGameFlag(0x2D);
 	return 0;
 }
@@ -1335,7 +1320,7 @@ int KyraEngine_LoK::o1_waitForConfirmationMouseClick(EMCState *script) {
 
 		updateInput();
 
-		int input = checkInput(_buttonList, false) & 0xFF;
+		int input = checkInput(0, false) & 0xFF;
 		removeInputTop();
 		if (input == 200)
 			break;
@@ -1762,7 +1747,7 @@ int KyraEngine_LoK::o1_dummy(EMCState *script) {
 
 #pragma mark -
 
-typedef Common::Functor1Mem<EMCState*, int, KyraEngine_LoK> OpcodeV1;
+typedef Common::Functor1Mem<EMCState *, int, KyraEngine_LoK> OpcodeV1;
 #define SetOpcodeTable(x) table = &x;
 #define Opcode(x) table->push_back(new OpcodeV1(this, &KyraEngine_LoK::x))
 void KyraEngine_LoK::setupOpcodeTable() {
@@ -1970,5 +1955,5 @@ void KyraEngine_LoK::setupOpcodeTable() {
 }
 #undef Opcode
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

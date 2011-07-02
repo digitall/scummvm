@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#ifdef ENABLE_HE
 
 #include "common/system.h"
 
@@ -32,7 +31,6 @@
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
-#include "scumm/he/resource_he.h"
 #include "scumm/scumm.h"
 #include "scumm/he/sound_he.h"
 #include "scumm/he/sprite_he.h"
@@ -627,6 +625,7 @@ void ScummEngine_v100he::o100_arrayOps() {
 		}
 		break;
 	case 132:
+		debug(0, "o100_arrayOps: case 132");
 		// TODO: Used by Moonbase Commander
 		fetchScriptWord();
 		fetchScriptWord();
@@ -1574,7 +1573,10 @@ void ScummEngine_v100he::o100_roomOps() {
 	case 130:
 		a = pop();
 		b = pop();
-		copyPalColor(a, b);
+		if (_game.features & GF_16BIT_COLOR)
+			copyHEPaletteColor(1, a, b);
+		else
+			copyPalColor(a, b);
 		break;
 
 	case 131:		// SO_ROOM_FADE
@@ -1617,13 +1619,11 @@ void ScummEngine_v100he::o100_roomOps() {
 
 	case 137:
 		byte buffer[256];
-		int r;
 
 		copyScriptString((byte *)buffer, sizeof(buffer));
 
-		r = convertFilePath(buffer, sizeof(buffer));
-		memcpy(_saveLoadFileName, buffer + r, sizeof(buffer) - r);
-		debug(1, "o100_roomOps: case 137: filename %s", _saveLoadFileName);
+		_saveLoadFileName = (char *)buffer + convertFilePath(buffer, sizeof(buffer));
+		debug(1, "o100_roomOps: case 137: filename %s", _saveLoadFileName.c_str());
 
 		_saveLoadFlag = pop();
 		_saveLoadSlot = 255;
@@ -1678,7 +1678,7 @@ void ScummEngine_v100he::o100_setSystemMessage() {
 		//   one still would have to convert 'name' to the correct encoding.
 		//_system->setWindowCaption((const char *)name);
 		break;
-	case 131:  // Set Version
+	case 131: // Set Version
 		debug(1,"o100_setSystemMessage: (%d) %s", subOp, name);
 		break;
 	default:
@@ -2151,8 +2151,9 @@ void ScummEngine_v100he::o100_systemOps() {
 }
 
 void ScummEngine_v100he::o100_cursorCommand() {
-	int a, i;
+	int a, b, i;
 	int args[16];
+
 	byte subOp = fetchScriptByte();
 
 	switch (subOp) {
@@ -2167,12 +2168,12 @@ void ScummEngine_v100he::o100_cursorCommand() {
 	case 0x80:
 	case 0x81:
 		a = pop();
-		_wiz->loadWizCursor(a);
+		_wiz->loadWizCursor(a, 0);
 		break;
 	case 0x82:
-		pop();
+		b = pop();
 		a = pop();
-		_wiz->loadWizCursor(a);
+		_wiz->loadWizCursor(a, b);
 		break;
 	case 0x86:		// SO_CURSOR_ON Turn cursor on
 		_cursor.state = 1;
@@ -2247,7 +2248,7 @@ void ScummEngine_v100he::o100_videoOps() {
 			}
 		} else if (_videoParams.status == 19) {
 			// Stop video
-			_moviePlay->closeFile();
+			_moviePlay->close();
 		}
 		break;
 	default:
@@ -2349,10 +2350,10 @@ void ScummEngine_v100he::o100_debugInput() {
 
 void ScummEngine_v100he::o100_isResourceLoaded() {
 	// Reports percentage of resource loaded by queue
-	int type;
+	ResType type;
 
 	byte subOp = fetchScriptByte();
-	/* int idx = */ pop();
+	int idx = pop();
 
 	switch (subOp) {
 	case 25:
@@ -2373,13 +2374,15 @@ void ScummEngine_v100he::o100_isResourceLoaded() {
 	default:
 		error("o100_isResourceLoaded: default case %d", subOp);
 	}
+	debug(7, "o100_isResourceLoaded(%d,%d)", type, idx);
 
 	push(100);
 }
 
 void ScummEngine_v100he::o100_getResourceSize() {
 	const byte *ptr;
-	int size, type;
+	int size;
+	ResType type;
 
 	int resid = pop();
 	byte subOp = fetchScriptByte();
@@ -2398,7 +2401,7 @@ void ScummEngine_v100he::o100_getResourceSize() {
 		type = rtScript;
 		break;
 	case 72:
-		push (getSoundResourceSize(resid));
+		push(getSoundResourceSize(resid));
 		return;
 	default:
 		error("o100_getResourceSize: default type %d", subOp);
@@ -2575,7 +2578,8 @@ void ScummEngine_v100he::o100_getWizData() {
 }
 
 void ScummEngine_v100he::o100_getPaletteData() {
-	int b, c, d, e;
+	int c, d, e;
+	int r, g, b;
 	int palSlot, color;
 
 	byte subOp = fetchScriptByte();
@@ -2584,7 +2588,10 @@ void ScummEngine_v100he::o100_getPaletteData() {
 	case 13:
 		c = pop();
 		b = pop();
-		push(getHEPaletteColorComponent(1, b, c));
+		if (_game.features & GF_16BIT_COLOR)
+			push(getHEPalette16BitColorComponent(b, c));
+		else
+			push(getHEPaletteColorComponent(1, b, c));
 		break;
 	case 20:
 		color = pop();
@@ -2595,20 +2602,26 @@ void ScummEngine_v100he::o100_getPaletteData() {
 		e = pop();
 		d = pop();
 		palSlot = pop();
-		pop();
-		c = pop();
 		b = pop();
-		push(getHEPaletteSimilarColor(palSlot, b, c, d, e));
+		g = pop();
+		r = pop();
+		push(getHEPaletteSimilarColor(palSlot, r, g, d, e));
 		break;
 	case 53:
-		pop();
-		c = pop();
-		c = MAX(0, c);
-		c = MIN(c, 255);
 		b = pop();
 		b = MAX(0, b);
 		b = MIN(b, 255);
-		push(getHEPaletteSimilarColor(1, b, c, 10, 245));
+		g = pop();
+		g = MAX(0, g);
+		g = MIN(g, 255);
+		r = pop();
+		r = MAX(0, r);
+		r = MIN(r, 255);
+		if (_game.features & GF_16BIT_COLOR) {
+			push(get16BitColor(r, g, b));
+		} else {
+			push(getHEPaletteSimilarColor(1, r, g, 10, 245));
+		}
 		break;
 	case 73:
 		c = pop();
@@ -2920,7 +2933,7 @@ void ScummEngine_v100he::o100_getVideoData() {
 		break;
 	case 73:
 		pop();
-		push(_moviePlay->getCurFrame());
+		push(_moviePlay->endOfVideo() ? -1 : (_moviePlay->getCurFrame() + 1));
 		break;
 	case 84:
 		pop();
@@ -2985,7 +2998,7 @@ void ScummEngine_v100he::decodeParseString(int m, int n) {
 	case 78:
 		{
 		byte *dataPtr = getResourceAddress(rtTalkie, pop());
-		byte *text = findWrappedBlock(MKID_BE('TEXT'), dataPtr, 0, 0);
+		byte *text = findWrappedBlock(MKTAG('T','E','X','T'), dataPtr, 0, 0);
 		size = getResourceDataSize(text);
 		memcpy(name, text, size);
 		printString(m, name);
@@ -3014,3 +3027,5 @@ void ScummEngine_v100he::decodeParseString(int m, int n) {
 }
 
 } // End of namespace Scumm
+
+#endif // ENABLE_HE

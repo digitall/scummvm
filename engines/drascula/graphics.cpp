@@ -18,13 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "drascula/drascula.h"
 #include "graphics/surface.h"
+
+#include "common/stream.h"
+#include "common/textconsole.h"
 
 namespace Drascula {
 
@@ -52,6 +52,7 @@ void DrasculaEngine::allocMemory() {
 	assert(crosshairCursor);
 	mouseCursor = (byte *)malloc(OBJWIDTH * OBJHEIGHT);
 	assert(mouseCursor);
+	cursorSurface = (byte *)malloc(64000);
 }
 
 void DrasculaEngine::freeMemory() {
@@ -65,6 +66,7 @@ void DrasculaEngine::freeMemory() {
 	free(frontSurface);
 	free(crosshairCursor);
 	free(mouseCursor);
+	free(cursorSurface);
 }
 
 void DrasculaEngine::moveCursor() {
@@ -88,53 +90,59 @@ void DrasculaEngine::moveCursor() {
 }
 
 void DrasculaEngine::loadPic(const char *NamePcc, byte *targetSurface, int colorCount) {
+	debug(5, "loadPic(%s)", NamePcc);
+
 	uint dataSize = 0;
 	byte *pcxData;
 
-	_arj.open(NamePcc);
-	if (!_arj.isOpen())
+	Common::SeekableReadStream *stream = _archives.open(NamePcc);
+	if (!stream)
 		error("missing game data %s %c", NamePcc, 7);
 
-	dataSize = _arj.size() - 128 - (256 * 3);
+	dataSize = stream->size() - 128 - (256 * 3);
 	pcxData = (byte *)malloc(dataSize);
 
-	_arj.seek(128, SEEK_SET);
-	_arj.read(pcxData, dataSize);
+	stream->seek(128, SEEK_SET);
+	stream->read(pcxData, dataSize);
 
 	decodeRLE(pcxData, targetSurface);
 	free(pcxData);
 
 	for (int i = 0; i < 256; i++) {
-		cPal[i * 3 + 0] = _arj.readByte();
-		cPal[i * 3 + 1] = _arj.readByte();
-		cPal[i * 3 + 2] = _arj.readByte();
+		cPal[i * 3 + 0] = stream->readByte();
+		cPal[i * 3 + 1] = stream->readByte();
+		cPal[i * 3 + 2] = stream->readByte();
 	}
 
-	_arj.close();
+	delete stream;
 
 	setRGB((byte *)cPal, colorCount);
 }
 
-void DrasculaEngine::showFrame(bool firstFrame) {
-	int dataSize = _arj.readSint32LE();
+void DrasculaEngine::showFrame(Common::SeekableReadStream *stream, bool firstFrame) {
+	int dataSize = stream->readSint32LE();
 	byte *pcxData = (byte *)malloc(dataSize);
-	_arj.read(pcxData, dataSize);
+	stream->read(pcxData, dataSize);
 
 	for (int i = 0; i < 256; i++) {
-		cPal[i * 3 + 0] = _arj.readByte();
-		cPal[i * 3 + 1] = _arj.readByte();
-		cPal[i * 3 + 2] = _arj.readByte();
+		cPal[i * 3 + 0] = stream->readByte();
+		cPal[i * 3 + 1] = stream->readByte();
+		cPal[i * 3 + 2] = stream->readByte();
 	}
 
 	byte *prevFrame = (byte *)malloc(64000);
-	byte *screenBuffer = (byte *)_system->lockScreen()->pixels;
-	memcpy(prevFrame, screenBuffer, 64000);
+	Graphics::Surface *screenSurf = _system->lockScreen();
+	byte *screenBuffer = (byte *)screenSurf->pixels;
+	uint16 screenPitch = screenSurf->pitch;
+	for (int y = 0; y < 200; y++) {
+		memcpy(prevFrame+y*320, screenBuffer+y*screenPitch, 320);
+	}
 
-	decodeRLE(pcxData, screenBuffer);
+	decodeRLE(pcxData, screenBuffer, screenPitch);
 	free(pcxData);
 
 	if (!firstFrame)
-		mixVideo(screenBuffer, prevFrame);
+		mixVideo(screenBuffer, prevFrame, screenPitch);
 
 	_system->unlockScreen();
 	_system->updateScreen();
@@ -145,8 +153,7 @@ void DrasculaEngine::showFrame(bool firstFrame) {
 	free(prevFrame);
 }
 
-void DrasculaEngine::copyBackground(int xorg, int yorg, int xdes, int ydes, int width,
-								  int height, byte *src, byte *dest) {
+void DrasculaEngine::copyBackground(int xorg, int yorg, int xdes, int ydes, int width, int height, byte *src, byte *dest) {
 	dest += xdes + ydes * 320;
 	src += xorg + yorg * 320;
 	/* Unoptimized code
@@ -188,16 +195,20 @@ void DrasculaEngine::copyRect(int xorg, int yorg, int xdes, int ydes, int width,
 	dest += xdes + ydes * 320;
 	src += xorg + yorg * 320;
 
-	for (y = 0; y < height; y++)
-		for (x = 0; x < width; x++)
-			if (src[x + y * 320] != 255)
-				dest[x + y * 320] = src[x + y * 320];
+	int ptr = 0;
+	for (y = 0; y < height; y++) {
+		for (x = 0; x < width; x++) {
+			if (src[ptr] != 255)
+				dest[ptr] = src[ptr];
+			ptr++;
+		}
+		ptr += 320 - width;
+	}
+
 }
 
 void DrasculaEngine::updateScreen(int xorg, int yorg, int xdes, int ydes, int width, int height, byte *buffer) {
-	byte *screenBuffer = (byte *)_system->lockScreen()->pixels;
-	copyBackground(xorg, yorg, xdes, ydes, width, height, buffer, screenBuffer);
-	_system->unlockScreen();
+	_system->copyRectToScreen(buffer + xorg + yorg * 320, 320, xdes, ydes, width, height);
 	_system->updateScreen();
 }
 
@@ -333,6 +344,17 @@ void DrasculaEngine::centerText(const char *message, int textX, int textY) {
 		return;
 	}
 
+	// If it's a one-word message it can't be broken up. It's probably a
+	// mouse-over text, so try just sliding it to the side a bit to make it
+	// fit. This happens with the word "TOTENKOPF" in the very first room
+	// with the German translation.
+	if (!strchr(msg, ' ')) {
+		int len = strlen(msg);
+		x = CLIP<int>(textX - len * CHAR_WIDTH / 2, 0, 319 - len * CHAR_WIDTH);
+		print_abc(msg, x, y);
+		return;
+	}
+
 	// Message doesn't fit on screen, split it
 
 	// Get a word from the message
@@ -386,18 +408,18 @@ void DrasculaEngine::screenSaver() {
 	ghost = (byte *)malloc(65536);
 
 	// carga_ghost();
-	_arj.open("ghost.drv");
-	if (!_arj.isOpen())
+	Common::SeekableReadStream *stream = _archives.open("ghost.drv");
+	if (!stream)
 		error("Cannot open file ghost.drv");
 
-	_arj.read(ghost, 65536);
-	_arj.close();
+	stream->read(ghost, 65536);
+	delete stream;
 
 	updateEvents();
 	xr = mouseX;
 	yr = mouseY;
 
-	for (;;) {
+	while (!shouldQuit()) {
 		// efecto(bgSurface);
 
 		memcpy(copia, bgSurface, 64000);
@@ -425,7 +447,9 @@ void DrasculaEngine::screenSaver() {
 
 		int x1_, y1_, off1, off2;
 
-		byte *screenBuffer = (byte *)_system->lockScreen()->pixels;
+		Graphics::Surface *screenSurf = _system->lockScreen();
+		byte *screenBuffer = (byte *)screenSurf->pixels;
+		uint16 screenPitch = screenSurf->pitch;
 		for (int i = 0; i < 200; i++) {
 			for (int j = 0; j < 320; j++) {
 				x1_ = j + tempRow[i];
@@ -443,7 +467,7 @@ void DrasculaEngine::screenSaver() {
 				y1_ = checkWrapY(y1_);
 				off2 = 320 * y1_ + x1_;
 
-				screenBuffer[320 * i + j] = ghost[bgSurface[off2] + (copia[off1] << 8)];
+				screenBuffer[screenPitch * i + j] = ghost[bgSurface[off2] + (copia[off1] << 8)];
 			}
 		}
 
@@ -474,99 +498,71 @@ void DrasculaEngine::playFLI(const char *filefli, int vel) {
 	// Open file
 	globalSpeed = 1000 / vel;
 	FrameSSN = 0;
-	_useMemForArj = false;
-	_arj.open(filefli);
-	mSession = TryInMem();
+	Common::SeekableReadStream *stream = _archives.open(filefli);
 	LastFrame = _system->getMillis();
 
-	while (playFrameSSN() && (!term_int)) {
+	while (playFrameSSN(stream) && (!term_int) && !shouldQuit()) {
 		if (getScan() == Common::KEYCODE_ESCAPE)
 			term_int = 1;
 	}
 
-	if (_useMemForArj)
-		free(memPtr);
-	else
-		_arj.close();
+	delete stream;
 }
 
-int DrasculaEngine::playFrameSSN() {
+int DrasculaEngine::playFrameSSN(Common::SeekableReadStream *stream) {
 	int Exit = 0;
 	uint32 length;
 	byte *BufferSSN;
 
-	if (!_useMemForArj)
-		CHUNK = _arj.readByte();
-	else {
-		memcpy(&CHUNK, mSession, 1);
-		mSession += 1;
-	}
+	byte CHUNK = stream->readByte();
 
 	switch (CHUNK) {
-	case kFrameSetPal:
-		if (!_useMemForArj) {
-			for (int i = 0; i < 256; i++) {
-				dacSSN[i * 3 + 0] = _arj.readByte();
-				dacSSN[i * 3 + 1] = _arj.readByte();
-				dacSSN[i * 3 + 2] = _arj.readByte();
-			}
-		} else {
-			memcpy(dacSSN, mSession, 768);
-			mSession += 768;
-		}
+	case kFrameSetPal: {
+		byte dacSSN[768];
+		stream->read(dacSSN, 768);
 		setPalette(dacSSN);
 		break;
+		}
 	case kFrameEmptyFrame:
 		waitFrameSSN();
 		break;
-	case kFrameInit:
-		if (!_useMemForArj) {
-			CMP = _arj.readByte();
-			length = _arj.readUint32LE();
-		} else {
-			memcpy(&CMP, mSession, 1);
-			mSession += 1;
-			length = READ_LE_UINT32(mSession);
-			mSession += 4;
-		}
+	case kFrameInit: {
+		byte CMP = stream->readByte();
+		length = stream->readUint32LE();
 		if (CMP == kFrameCmpRle) {
 			BufferSSN = (byte *)malloc(length);
-			if (!_useMemForArj) {
-				_arj.read(BufferSSN, length);
-			} else {
-				memcpy(BufferSSN, mSession, length);
-				mSession += length;
-			}
+			stream->read(BufferSSN, length);
 			decodeRLE(BufferSSN, screenSurface);
 			free(BufferSSN);
 			waitFrameSSN();
 
-			byte *screenBuffer = (byte *)_system->lockScreen()->pixels;
+			Graphics::Surface *screenSurf = _system->lockScreen();
+			byte *screenBuffer = (byte *)screenSurf->pixels;
+			uint16 screenPitch = screenSurf->pitch;
 			if (FrameSSN)
-				mixVideo(screenBuffer, screenSurface);
+				mixVideo(screenBuffer, screenSurface, screenPitch);
 			else
-				memcpy(screenBuffer, screenSurface, 64000);
-			
+				for (int y = 0; y < 200; y++)
+					memcpy(screenBuffer+y*screenPitch, screenSurface+y*320, 320);
+
 			_system->unlockScreen();
 			_system->updateScreen();
 			FrameSSN++;
 		} else {
 			if (CMP == kFrameCmpOff) {
 				BufferSSN = (byte *)malloc(length);
-				if (!_useMemForArj) {
-					_arj.read(BufferSSN, length);
-				} else {
-					memcpy(BufferSSN, mSession, length);
-					mSession += length;
-				}
+				stream->read(BufferSSN, length);
 				decodeOffset(BufferSSN, screenSurface, length);
 				free(BufferSSN);
 				waitFrameSSN();
-				byte *screenBuffer = (byte *)_system->lockScreen()->pixels;
+				Graphics::Surface *screenSurf = _system->lockScreen();
+				byte *screenBuffer = (byte *)screenSurf->pixels;
+				uint16 screenPitch = screenSurf->pitch;
 				if (FrameSSN)
-					mixVideo(screenBuffer, screenSurface);
+					mixVideo(screenBuffer, screenSurface, screenPitch);
 				else
-					memcpy(screenBuffer, screenSurface, 64000);
+					for (int y = 0; y < 200; y++)
+						memcpy(screenBuffer+y*screenPitch, screenSurface+y*320, 320);
 
 				_system->unlockScreen();
 				_system->updateScreen();
@@ -574,6 +570,7 @@ int DrasculaEngine::playFrameSSN() {
 			}
 		}
 		break;
+		}
 	case kFrameEndAnim:
 		Exit = 1;
 		break;
@@ -583,22 +580,6 @@ int DrasculaEngine::playFrameSSN() {
 	}
 
 	return (!Exit);
-}
-
-byte *DrasculaEngine::TryInMem() {
-	int length;
-
-	_arj.seek(0, SEEK_END);
-	length = _arj.pos();
-	_arj.seek(0, SEEK_SET);
-	memPtr = (byte *)malloc(length);
-	if (memPtr == NULL)
-		return NULL;
-	_arj.read(memPtr, length);
-	_useMemForArj = true;
-	_arj.close();
-
-	return memPtr;
 }
 
 void DrasculaEngine::decodeOffset(byte *BufferOFF, byte *MiVideoOFF, int length) {
@@ -617,11 +598,12 @@ void DrasculaEngine::decodeOffset(byte *BufferOFF, byte *MiVideoOFF, int length)
 	}
 }
 
-void DrasculaEngine::decodeRLE(byte* srcPtr, byte* dstPtr) {
+  void DrasculaEngine::decodeRLE(byte* srcPtr, byte* dstPtr, uint16 pitch) {
 	bool stopProcessing = false;
 	byte pixel;
 	uint repeat;
-	int curByte = 0;
+	int curByte = 0, curLine = 0;
+	pitch -= 320;
 
 	while (!stopProcessing) {
 		pixel = *srcPtr++;
@@ -632,17 +614,25 @@ void DrasculaEngine::decodeRLE(byte* srcPtr, byte* dstPtr) {
 		}
 		for (uint j = 0; j < repeat; j++) {
 			*dstPtr++ = pixel;
-			if (++curByte >= 64000) {
-				stopProcessing = true;
-				break;
+			if (++curByte >= 320) {
+				curByte = 0;
+				dstPtr += pitch;
+				if (++curLine >= 200) {
+					stopProcessing = true;
+					break;
+				}
 			}
 		}
 	}
 }
 
-void DrasculaEngine::mixVideo(byte *OldScreen, byte *NewScreen) {
-	for (int x = 0; x < 64000; x++)
-		OldScreen[x] ^= NewScreen[x];
+void DrasculaEngine::mixVideo(byte *OldScreen, byte *NewScreen, uint16 oldPitch) {
+	for (int y = 0; y < 200; y++) {
+		for (int x = 0; x < 320; x++)
+			OldScreen[x] ^= NewScreen[x];
+		OldScreen += oldPitch;
+		NewScreen += 320;
+	}
 }
 
 void DrasculaEngine::waitFrameSSN() {
@@ -656,17 +646,17 @@ bool DrasculaEngine::animate(const char *animationFile, int FPS) {
 	int NFrames = 1;
 	int cnt = 2;
 
-	_arj.open(animationFile);
+	Common::SeekableReadStream *stream = _archives.open(animationFile);
 
-	if (!_arj.isOpen()) {
+	if (!stream) {
 		error("Animation file %s not found", animationFile);
 	}
 
-	NFrames = _arj.readSint32LE();
-	showFrame(true);
+	NFrames = stream->readSint32LE();
+	showFrame(stream, true);
 	_system->delayMillis(1000 / FPS);
 	while (cnt < NFrames) {
-		showFrame();
+		showFrame(stream);
 		_system->delayMillis(1000 / FPS);
 		cnt++;
 		byte key = getScan();
@@ -675,11 +665,9 @@ bool DrasculaEngine::animate(const char *animationFile, int FPS) {
 		if (key != 0)
 			break;
 	}
-	_arj.close();
+	delete stream;
 
 	return ((term_int == 1) || (getScan() == Common::KEYCODE_ESCAPE));
 }
-
-
 
 } // End of namespace Drascula

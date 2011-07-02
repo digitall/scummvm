@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/error.h"
 #include "common/events.h"
 #include "common/system.h"
 #include "queen/journal.h"
@@ -380,35 +378,56 @@ void Journal::handleMouseDown(int x, int y) {
 	update();
 }
 
+static void removeLeadingAndTrailingSpaces(char *dst, size_t dstSize, const char* src) {
+	assert(dstSize > 0);
+	size_t srcLen = strlen(src);
+	if (0 == srcLen) {
+		dst[0] = '\0';
+		return;
+	}
+
+	size_t firstNonSpaceIndex;
+	for (firstNonSpaceIndex = 0; firstNonSpaceIndex < srcLen; ++firstNonSpaceIndex) {
+		if (src[firstNonSpaceIndex] != ' ')
+			break;
+	}
+	if (firstNonSpaceIndex == srcLen) {
+		dst[0] = '\0';
+		return;
+	}
+
+	size_t lastNonSpaceIndex = srcLen - 1;
+	while (src[lastNonSpaceIndex] == ' ')
+		--lastNonSpaceIndex;
+
+	size_t newLen = lastNonSpaceIndex - firstNonSpaceIndex + 1;
+	assert(newLen < dstSize);
+	for (size_t i = 0; i < newLen; ++i) {
+		dst[i] = src[firstNonSpaceIndex + i];
+	}
+	dst[newLen] = '\0';
+}
+
 void Journal::drawPanelText(int y, const char *text) {
 	debug(7, "Journal::drawPanelText(%d, '%s')", y, text);
-	char s[128];
-	strncpy(s, text, 127);
-	s[127] = 0;
-	char *p;
 
-	// remove leading and trailing spaces (necessary for spanish version)
-	for (p = s + strlen(s) - 1; p >= s && *p == ' '; --p) {
-		*p = 0;
-	}
-	text = s;
-	for (p = s; *p == ' '; ++p) {
-		text = p + 1;
-	}
+	char s[128];
+	removeLeadingAndTrailingSpaces(s, 128, text); // necessary for spanish version
+
 	// draw the substrings
-	p = (char *)strchr(text, ' ');
+	char *p = strchr(s, ' ');
 	if (!p) {
-		int x = (128 - _vm->display()->textWidth(text)) / 2;
-		_vm->display()->setText(x, y, text, false);
+		int x = (128 - _vm->display()->textWidth(s)) / 2;
+		_vm->display()->setText(x, y, s, false);
 		assert(_panelTextCount < MAX_PANEL_TEXTS);
 		_panelTextY[_panelTextCount++] = y;
 	} else {
 		*p++ = '\0';
-		if (_vm->resource()->getLanguage() == Common::HB_ISR) {
+		if (_vm->resource()->getLanguage() == Common::HE_ISR) {
 			drawPanelText(y - 5, p);
-			drawPanelText(y + 5, text);
+			drawPanelText(y + 5, s);
 		} else {
-			drawPanelText(y - 5, text);
+			drawPanelText(y - 5, s);
 			drawPanelText(y + 5, p);
 		}
 	}

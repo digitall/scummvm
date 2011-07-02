@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_BACKGROUND_H
@@ -29,13 +26,14 @@
 namespace Cruise {
 
 struct backgroundTableStruct {
-	char name[9];
+	char name[16];
 	char extention[6];
 };
 
 extern short int cvtPalette[0x20];
 extern int CVTLoaded;
 extern uint8 *backgroundScreens[8];
+extern bool backgroundChanged[8];
 extern backgroundTableStruct backgroundTable[8];
 
 int loadBackground(const char *name, int idx);

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_DISK_H
@@ -28,13 +25,12 @@
 
 
 #include "common/scummsys.h"
-#include "common/str.h"
 #include "sky/rnc_deco.h"
 
 #define MAX_FILES_IN_LIST 60
 
 namespace Common {
-	class File;
+class File;
 }
 
 namespace Sky {
@@ -42,7 +38,7 @@ namespace Sky {
 class Disk {
 public:
 	Disk();
-	~Disk(void);
+	~Disk();
 
 	uint8 *loadFile(uint16 fileNr);
 	uint16 *loadScriptFile(uint16 fileNr);
@@ -55,9 +51,9 @@ public:
 	void fnMiniLoad(uint16 fileNum);
 	void fnCacheFast(uint16 *fList);
 	void fnCacheChip(uint16 *fList);
-	void fnCacheFiles(void);
-	void fnFlushBuffers(void);
-	uint32 *giveLoadedFilesList(void) { return _loadedFilesList; }
+	void fnCacheFiles();
+	void fnFlushBuffers();
+	uint32 *giveLoadedFilesList() { return _loadedFilesList; }
 	void refreshFilesList(uint32 *list);
 
 protected:

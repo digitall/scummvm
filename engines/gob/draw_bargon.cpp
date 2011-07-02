@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "gob/gob.h"
@@ -33,7 +30,7 @@ namespace Gob {
 Draw_Bargon::Draw_Bargon(GobEngine *vm) : Draw_v2(vm) {
 }
 
-void Draw_Bargon::initScreen(void) {
+void Draw_Bargon::initScreen() {
 	_vm->_global->_videoMode = 0x14;
 	_vm->_video->_surfWidth = 640;
 	_vm->_video->initPrimary(_vm->_global->_videoMode);

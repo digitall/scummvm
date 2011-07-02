@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
 #include "common/savefile.h"
+#include "common/substream.h"
 #include "common/system.h"
 
 #include "kyra/kyra_mr.h"
@@ -32,7 +30,7 @@
 
 namespace Kyra {
 
-Common::Error KyraEngine_MR::saveGameState(int slot, const char *saveName, const Graphics::Surface *thumb) {
+Common::Error KyraEngine_MR::saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumb) {
 	const char *fileName = getSavegameFilename(slot);
 
 	Common::OutSaveFile *out = openSaveForWriting(fileName, saveName, thumb);
@@ -55,7 +53,7 @@ Common::Error KyraEngine_MR::saveGameState(int slot, const char *saveName, const
 		out->write(_conversationState[i], 30);
 	out->write(_newSceneDlgState, 40);
 	for (int i = 0; i < 100; ++i)
-		out->writeUint16BE(_hiddenItems[i]);
+		out->writeSint16BE(_hiddenItems[i]);
 	out->write(_scoreFlagTable, 26);
 
 	out->writeUint16BE(_mainCharacter.sceneId);
@@ -74,7 +72,7 @@ Common::Error KyraEngine_MR::saveGameState(int slot, const char *saveName, const
 	out->writeSint16BE(_mainCharacter.y3);
 
 	for (int i = 0; i < 50; ++i) {
-		out->writeUint16BE(_itemList[i].id);
+		out->writeSint16BE(_itemList[i].id);
 		out->writeUint16BE(_itemList[i].sceneId);
 		out->writeSint16BE(_itemList[i].x);
 		out->writeSint16BE(_itemList[i].y);
@@ -150,7 +148,7 @@ Common::Error KyraEngine_MR::loadGameState(int slot) {
 
 	int curShapes = _characterShapeFile;
 
-	Common::SeekableSubReadStreamEndian in(saveFile, saveFile->pos(), saveFile->size(), !header.originalSave, true);
+	Common::SeekableSubReadStreamEndian in(saveFile, saveFile->pos(), saveFile->size(), !header.originalSave, DisposeAfterUse::YES);
 
 	_screen->hideMouse();
 
@@ -189,7 +187,7 @@ Common::Error KyraEngine_MR::loadGameState(int slot) {
 	}
 
 	for (int i = 0; i < 100; ++i)
-		_hiddenItems[i] = in.readUint16();
+		_hiddenItems[i] = in.readSint16();
 
 	if (header.originalSave)
 		in.read(_flagsTable, 69);
@@ -216,7 +214,7 @@ Common::Error KyraEngine_MR::loadGameState(int slot) {
 	_mainCharacter.y3 = in.readSint16();
 
 	for (int i = 0; i < 50; ++i) {
-		_itemList[i].id = in.readUint16();
+		_itemList[i].id = in.readSint16();
 		_itemList[i].sceneId = in.readUint16();
 		_itemList[i].x = in.readSint16();
 		_itemList[i].y = in.readSint16();
@@ -328,5 +326,5 @@ Common::Error KyraEngine_MR::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

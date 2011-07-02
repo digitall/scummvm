@@ -18,17 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/system.h"
-#include "common/EventRecorder.h"
 #include "common/events.h"
 
 #include "graphics/cursorman.h"
+#include "graphics/palette.h"
 
 #include "queen/display.h"
 #include "queen/input.h"
@@ -40,7 +37,7 @@ namespace Queen {
 
 Display::Display(QueenEngine *vm, OSystem *system)
 	: _fullscreen(true), _horizontalScroll(0), _bdWidth(0), _bdHeight(0),
-	_system(system), _vm(vm) {
+	_system(system), _vm(vm), _rnd("queenDisplay") {
 
 	initFont();
 
@@ -75,7 +72,6 @@ Display::Display(QueenEngine *vm, OSystem *system)
 	memset(&_dynalum, 0, sizeof(_dynalum));
 
 	setupInkColors();
-	g_eventRec.registerRandomSource(_rnd, "queenDisplay");
 }
 
 Display::~Display() {
@@ -159,15 +155,7 @@ void Display::palSet(const uint8 *pal, int start, int end, bool updateScreen) {
 	debug(9, "Display::palSet(%d, %d)", start, end);
 	const int numColors = end - start + 1;
 	assert(numColors <= 256);
-	uint8 tempPal[256 * 4];
-	pal += start * 3;
-	for (int i = 0; i < numColors; i++) {
-		tempPal[4 * i + 0] = *pal++;
-		tempPal[4 * i + 1] = *pal++;
-		tempPal[4 * i + 2] = *pal++;
-		tempPal[4 * i + 3] = 0;
-	}
-	_system->setPalette(tempPal, start, numColors);
+	_system->getPaletteManager()->setPalette(pal + start * 3, start, numColors);
 	if (updateScreen) {
 		_vm->input()->delay(20);
 	}
@@ -851,19 +839,19 @@ void Display::decodeLBM(const uint8 *src, uint32 srcSize, uint8 *dst, uint16 dst
 		uint32 size = READ_BE_UINT32(src + 4);
 		src += 8;
 		switch (type) {
-		case MKID_BE('BMHD'): {
+		case MKTAG('B','M','H','D'): {
 				*w = READ_BE_UINT16(src + 0);
 				*h = READ_BE_UINT16(src + 2);
 				planeCount = src[8];
 				planePitch = ((*w + 15) >> 4) * 2;
 			}
 			break;
-		case MKID_BE('CMAP'): {
+		case MKTAG('C','M','A','P'): {
 				assert(palStart <= palEnd && palEnd <= size / 3);
 				memcpy(pal, src + palStart * 3, (palEnd - palStart) * 3);
 			}
 			break;
-		case MKID_BE('BODY'): {
+		case MKTAG('B','O','D','Y'): {
 				uint32 planarSize = (*h) * planeCount * planePitch;
 				uint8 *planarBuf = new uint8[planarSize];
 				uint8 *dstPlanar = planarBuf;
@@ -967,7 +955,7 @@ void Display::showMouseCursor(bool show) {
 
 void Display::initFont() {
 	switch (_vm->resource()->getLanguage()) {
-	case Common::HB_ISR:
+	case Common::HE_ISR:
 		_font = _fontHebrew;
 		break;
 	case Common::RU_RUS:

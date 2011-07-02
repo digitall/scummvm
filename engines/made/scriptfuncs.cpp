@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/endian.h"
 #include "common/util.h"
-#include "common/events.h"
+
+#include "backends/audiocd/audiocd.h"
 #include "graphics/cursorman.h"
-#include "sound/audiocd.h"
+#include "audio/softsynth/pcspk.h"
 
 #include "made/made.h"
 #include "made/resource.h"
@@ -40,6 +37,22 @@
 #include "made/music.h"
 
 namespace Made {
+
+ScriptFunctions::ScriptFunctions(MadeEngine *vm) : _vm(vm), _soundStarted(false) {
+	// Initialize the two tone generators
+	_pcSpeaker1 = new Audio::PCSpeaker();
+	_pcSpeaker2 = new Audio::PCSpeaker();
+	_vm->_system->getMixer()->playStream(Audio::Mixer::kMusicSoundType, &_pcSpeakerHandle1, _pcSpeaker1);
+	_vm->_system->getMixer()->playStream(Audio::Mixer::kMusicSoundType, &_pcSpeakerHandle2, _pcSpeaker2);
+}
+
+ScriptFunctions::~ScriptFunctions() {
+	for (uint i = 0; i < _externalFuncs.size(); ++i)
+			delete _externalFuncs[i];
+
+	_vm->_system->getMixer()->stopHandle(_pcSpeakerHandle1);
+	_vm->_system->getMixer()->stopHandle(_pcSpeakerHandle2);
+}
 
 typedef Common::Functor2Mem<int16, int16*, int16, ScriptFunctions> ExternalScriptFunc;
 #define External(x) \
@@ -187,7 +200,7 @@ int16 ScriptFunctions::sfClearScreen(int16 argc, int16 *argv) {
 	if (_vm->_screen->isScreenLocked())
 		return 0;
 	if (_vm->_autoStopSound) {
-		_vm->_mixer->stopHandle(_audioStreamHandle);
+		stopSound();
 		_vm->_autoStopSound = false;
 	}
 	_vm->_screen->clearScreen();
@@ -232,17 +245,19 @@ int16 ScriptFunctions::sfSetVisualEffect(int16 argc, int16 *argv) {
 int16 ScriptFunctions::sfPlaySound(int16 argc, int16 *argv) {
 	int16 soundNum = argv[0];
 	_vm->_autoStopSound = false;
-	_vm->_mixer->stopHandle(_audioStreamHandle);
+	stopSound();
 	if (argc > 1) {
 		soundNum = argv[1];
 		_vm->_autoStopSound = (argv[0] == 1);
 	}
 	if (soundNum > 0) {
 		SoundResource *soundRes = _vm->_res->getSound(soundNum);
-		_vm->_mixer->playInputStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle,
+		_vm->_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle,
 			soundRes->getAudioStream(_vm->_soundRate, false));
 		_vm->_soundEnergyArray = soundRes->getSoundEnergyArray();
 		_vm->_soundEnergyIndex = 0;
+		_soundStarted = true;
+		_soundResource = soundRes;
 	}
 	return 0;
 }
@@ -306,36 +321,78 @@ int16 ScriptFunctions::sfFlashScreen(int16 argc, int16 *argv) {
 }
 
 int16 ScriptFunctions::sfPlayNote(int16 argc, int16 *argv) {
-	// TODO: Used in Manhole:NE, Manhole EGA
-	// This is used when using the piano in the desk screen inside the ship.
+	// This is used when using the piano in the desk screen inside the ship
+	// in The Manhole (EGA/NE).
+
 	// It takes 2 parameters:
-	// The first parameter is the key pressed
+	// The first parameter is the note number of the key pressed + 1
 	// The second parameter is some sort of modifier (volume, perhaps?),
-	// depending on which of the 3 keys on the right has been pressed (12 - 14)
-	warning("Unimplemented opcode: sfPlayNote");
+	// depending on which of the 3 keys on the right has been pressed.
+	// This value seems to be [12, 14] in NE and [1, 3] in EGA.
+
+	// Note frequencies based on http://www.phy.mtu.edu/~suits/notefreqs.html
+	static const int freqTable[] = {
+		16, 17, 18, 19, 21, 22, 23, 24, 26, 28, 29,
+		30, 32, 35, 37, 39, 41, 44, 46, 49, 52, 55,
+		58, 62, 65, 69, 73, 77, 82, 87, 93, 98, 104,
+		110, 117, 123, 131, 139, 147, 156, 165, 175, 195,
+		196, 208, 220, 233, 247, 262, 277, 294, 311, 330,
+		349, 370, 392, 415, 440, 466, 494, 523, 554, 587,
+		622, 659, 698, 740, 784, 831, 880, 932, 988, 1047,
+		1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760,
+		1865, 1976, 2093, 2217, 2349, 2489, 2637, 2794, 2960,
+		3136, 3322, 3529, 3729, 3951, 4186, 4435, 4697, 4978
+	};
+
+	debug(4, "sfPlayNote: Note = %d, Volume(?) = %d", argv[0] - 1, argv[1]);
+
+	_pcSpeaker1->play(Audio::PCSpeaker::kWaveFormSine, freqTable[argv[0] - 1], -1);
+
+	// TODO: Figure out what to do with the second parameter
+	//_pcSpeaker1->setVolume(argv[1]);
+
 	return 0;
 }
 
 int16 ScriptFunctions::sfStopNote(int16 argc, int16 *argv) {
-	// TODO: Used in Manhole:NE, Manhole EGA
 	// Used in the same place as sfPlayNote, with the same parameters
-	warning("Unimplemented opcode: sfStopNote");
+	// We just stop the wave generator here
+	_pcSpeaker1->stop();
 	return 0;
 }
 
 int16 ScriptFunctions::sfPlayTele(int16 argc, int16 *argv) {
-	// TODO: Used in Manhole:NE, Manhole EGA
 	// This is used when pressing the phone keys while using the phone in
-	// the desk screen inside the ship.
+	// the desk screen inside the ship in The Manhole (EGA/NE).
 	// It takes 1 parameter, the key pressed (0-9, 10 for asterisk, 11 for hash)
-	warning("Unimplemented opcode: sfPlayTele");
+
+	// A telephone keypad uses a two tones for each key.
+	// See http://en.wikipedia.org/wiki/Telephone_keypad for more info
+
+	static const int freqTable1[] = {
+		1336, 1209, 1336, 1477,
+		1209, 1336, 1477, 1209,
+		1336, 1477, 1209, 1477
+	};
+
+	static const int freqTable2[] = {
+		941, 697, 697, 697,
+		770, 770, 770, 852,
+		852, 852, 941, 941
+	};
+
+	debug(4, "sfPlayTele: Button = %d", argv[0]);
+
+	_pcSpeaker1->play(Audio::PCSpeaker::kWaveFormSine, freqTable1[argv[0]], -1);
+	_pcSpeaker2->play(Audio::PCSpeaker::kWaveFormSine, freqTable2[argv[0]], -1);
 	return 0;
 }
 
 int16 ScriptFunctions::sfStopTele(int16 argc, int16 *argv) {
-	// TODO: Used in Manhole:NE, Manhole EGA
 	// Used in the same place as sfPlayTele, with the same parameters
-	warning("Unimplemented opcode: sfStopTele");
+	// We just stop both wave generators here
+	_pcSpeaker1->stop();
+	_pcSpeaker2->stop();
 	return 0;
 }
 
@@ -445,28 +502,28 @@ int16 ScriptFunctions::sfDrawText(int16 argc, int16 *argv) {
 	}
 
 	if (text) {
-		char finalText[1024];
+		Common::String finalText;
 		switch (argc) {
 		case 1:
-			snprintf(finalText, 1024, "%s", text);
+			finalText = text;
 			break;
 		case 2:
-			snprintf(finalText, 1024, text, argv[0]);
+			finalText = Common::String::format(text, argv[0]);
 			break;
 		case 3:
-			snprintf(finalText, 1024, text, argv[1], argv[0]);
+			finalText = Common::String::format(text, argv[1], argv[0]);
 			break;
 		case 4:
-			snprintf(finalText, 1024, text, argv[2], argv[1], argv[0]);
+			finalText = Common::String::format(text, argv[2], argv[1], argv[0]);
 			break;
 		case 5:
-			snprintf(finalText, 1024, text, argv[3], argv[2], argv[1], argv[0]);
+			finalText = Common::String::format(text, argv[3], argv[2], argv[1], argv[0]);
 			break;
 		default:
-			finalText[0] = '\0';
+			// Leave it empty
 			break;
 		}
-		_vm->_screen->printText(finalText);
+		_vm->_screen->printText(finalText.c_str());
 	}
 
 	return 0;
@@ -563,27 +620,39 @@ int16 ScriptFunctions::sfSoundPlaying(int16 argc, int16 *argv) {
 		return 0;
 }
 
-int16 ScriptFunctions::sfStopSound(int16 argc, int16 *argv) {
+void ScriptFunctions::stopSound() {
 	_vm->_mixer->stopHandle(_audioStreamHandle);
+	if (_soundStarted) {
+		_vm->_res->freeResource(_soundResource);
+		_soundStarted = false;
+	}
+
+}
+
+
+int16 ScriptFunctions::sfStopSound(int16 argc, int16 *argv) {
+	stopSound();
 	_vm->_autoStopSound = false;
 	return 0;
 }
 
 int16 ScriptFunctions::sfPlayVoice(int16 argc, int16 *argv) {
 	int16 soundNum = argv[0];
-	_vm->_mixer->stopHandle(_audioStreamHandle);
+	stopSound();
 	if (soundNum > 0) {
-		_vm->_mixer->playInputStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle,
-			_vm->_res->getSound(soundNum)->getAudioStream(_vm->_soundRate, false));
+		_soundResource = _vm->_res->getSound(soundNum);
+		_vm->_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle,
+			_soundResource->getAudioStream(_vm->_soundRate, false));
 		_vm->_autoStopSound = true;
+		_soundStarted = true;
 	}
 	return 0;
 }
 
 int16 ScriptFunctions::sfPlayCd(int16 argc, int16 *argv) {
-	AudioCD.play(argv[0] - 1, 1, 0, 0);
+	g_system->getAudioCDManager()->play(argv[0] - 1, 1, 0, 0);
 	_vm->_cdTimeStart = _vm->_system->getMillis();
-	if (AudioCD.isPlaying()) {
+	if (g_system->getAudioCDManager()->isPlaying()) {
 		return 1;
 	} else {
 		return 0;
@@ -591,8 +660,8 @@ int16 ScriptFunctions::sfPlayCd(int16 argc, int16 *argv) {
 }
 
 int16 ScriptFunctions::sfStopCd(int16 argc, int16 *argv) {
-	if (AudioCD.isPlaying()) {
-		AudioCD.stop();
+	if (g_system->getAudioCDManager()->isPlaying()) {
+		g_system->getAudioCDManager()->stop();
 		return 1;
 	} else {
 		return 0;
@@ -600,11 +669,11 @@ int16 ScriptFunctions::sfStopCd(int16 argc, int16 *argv) {
 }
 
 int16 ScriptFunctions::sfGetCdStatus(int16 argc, int16 *argv) {
-	return AudioCD.isPlaying() ? 1 : 0;
+	return g_system->getAudioCDManager()->isPlaying() ? 1 : 0;
 }
 
 int16 ScriptFunctions::sfGetCdTime(int16 argc, int16 *argv) {
-	if (AudioCD.isPlaying()) {
+	if (g_system->getAudioCDManager()->isPlaying()) {
 		uint32 deltaTime = _vm->_system->getMillis() - _vm->_cdTimeStart;
 		// This basically converts the time from milliseconds to MSF format to MADE's format
 		return (deltaTime / 1000 * 30) + (deltaTime % 1000 / 75 * 30 / 75);
@@ -638,7 +707,8 @@ int16 ScriptFunctions::sfGetSoundEnergy(int16 argc, int16 *argv) {
 	if (_vm->_mixer->isSoundHandleActive(_audioStreamHandle) && _vm->_soundEnergyArray) {
 		while (_vm->_soundEnergyIndex < _vm->_soundEnergyArray->size()) {
 			SoundEnergyItem *soundEnergyItem = &(*_vm->_soundEnergyArray)[_vm->_soundEnergyIndex];
-			if (((_vm->_soundRate / 1000) * _vm->_mixer->getSoundElapsedTime(_audioStreamHandle)) < soundEnergyItem->position) {
+			const Audio::Timestamp ts = _vm->_mixer->getElapsedTime(_audioStreamHandle);
+			if (ts.convertToFramerate(_vm->_soundRate).totalNumberOfFrames() < (int)soundEnergyItem->position) {
 				result = soundEnergyItem->energy;
 				break;
 			}
@@ -863,6 +933,7 @@ int16 ScriptFunctions::sfDrawMenu(int16 argc, int16 *argv) {
 		const char *text = menu->getString(textIndex);
 		if (text)
 			_vm->_screen->printText(text);
+
 		_vm->_res->freeResource(menu);
 	}
 	return 0;

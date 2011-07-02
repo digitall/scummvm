@@ -18,14 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/debug.h"
 #include "common/endian.h"
 #include "common/config-manager.h"
+#include "common/substream.h"
+#include "common/textconsole.h"
 #include "queen/resource.h"
 
 namespace Queen {
@@ -96,18 +95,7 @@ ResourceEntry *Resource::resourceEntry(const char *filename) const {
 	entryName.toUppercase();
 
 	ResourceEntry *re = NULL;
-#ifndef PALMOS_MODE
 	re = (ResourceEntry *)bsearch(entryName.c_str(), _resourceTable, _resourceEntries, sizeof(ResourceEntry), compareResourceEntry);
-#else
-	// PALMOS FIXME (?) : still doesn't work for me (????) use this instead
-	uint32 cur = 0;
-	do {
-		if (!strcmp(entryName.c_str(), _resourceTable[cur].filename)) {
-			re = &_resourceTable[cur];
-			break;
-		}
-	} while (++cur < _resourceEntries);
-#endif
 	return re;
 }
 
@@ -125,7 +113,7 @@ uint8 *Resource::loadFile(const char *filename, uint32 skipBytes, uint32 *size) 
 	return dstBuf;
 }
 
-void Resource::loadTextFile(const char *filename, Common::StringList &stringList) {
+void Resource::loadTextFile(const char *filename, Common::StringArray &stringList) {
 	debug(7, "Resource::loadTextFile('%s')", filename);
 	ResourceEntry *re = resourceEntry(filename);
 	assert(re != NULL);
@@ -142,7 +130,7 @@ void Resource::loadTextFile(const char *filename, Common::StringList &stringList
 bool Resource::detectVersion(DetectedGameVersion *ver, Common::File *f) {
 	memset(ver, 0, sizeof(DetectedGameVersion));
 
-	if (f->readUint32BE() == MKID_BE('QTBL')) {
+	if (f->readUint32BE() == MKTAG('Q','T','B','L')) {
 		f->read(ver->str, 6);
 		f->skip(2);
 		ver->compression = f->readByte();
@@ -194,7 +182,7 @@ bool Resource::detectVersion(DetectedGameVersion *ver, Common::File *f) {
 		ver->language = Common::DE_DEU;
 		break;
 	case 'H':
-		ver->language = Common::HB_ISR;
+		ver->language = Common::HE_ISR;
 		break;
 	case 'I':
 		ver->language = Common::IT_ITA;
@@ -279,7 +267,7 @@ void Resource::seekResourceFile(int num, uint32 offset) {
 void Resource::readTableFile(uint8 version, uint32 offset) {
 	Common::File tableFile;
 	tableFile.open(_tableFilename);
-	if (tableFile.isOpen() && tableFile.readUint32BE() == MKID_BE('QTBL')) {
+	if (tableFile.isOpen() && tableFile.readUint32BE() == MKTAG('Q','T','B','L')) {
 		uint32 tableVersion = tableFile.readUint32BE();
 		if (version > tableVersion) {
 			error("The game you are trying to play requires version %d of queen.tbl, "

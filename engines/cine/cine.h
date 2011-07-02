@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_H
@@ -33,6 +30,7 @@
 #include "common/str.h"
 #include "common/hashmap.h"
 #include "common/hash-str.h"
+#include "common/random.h"
 
 #include "engines/engine.h"
 
@@ -46,9 +44,40 @@
 #include "cine/pal.h"
 #include "cine/gfx.h"
 #include "cine/anim.h"
+#include "cine/bg_list.h"
+#include "cine/various.h"
+#include "cine/console.h"
 
 //#define DUMP_SCRIPTS
 
+/**
+ * This is the namespace of the Cine engine.
+ *
+ * Status of this engine:
+ *
+ * This enigne has 2 generations Cinematique evo.1 and Cinematique evo.2
+ * first generation is fairly complete, and second one is under development
+ *
+ * Cinematique evo.1 status:
+ * The engine supports Future Wars and is basically complete with support of
+ * all known game variants. Based on Yaz0r's engine.
+ *
+ * Cinematique evo.2 status:
+ * This generation supports Operation Stealth, originally developed by Yaz0r for
+ * French variant of the game which heared to be completable.
+ * Later the work was renewed as part of GSoC'08, by Kari Salminen, but it has not
+ * yet been finished. The game is not completable.
+ *
+ *
+ * Games using this engine:
+ *
+ * Cinematique evo.1
+ * - Future Wars
+ *
+ * Cinematique evo.2
+ * - Operation Stealth
+ *
+ */
 namespace Cine {
 
 enum CineGameType {
@@ -64,8 +93,11 @@ enum CineGameFeatures {
 };
 
 struct CINEGameDescription;
+struct SeqListElement;
 
 typedef Common::HashMap<Common::String, const char *> StringPtrHashMap;
+
+class CineConsole;
 
 class CineEngine : public Engine {
 
@@ -82,17 +114,19 @@ public:
 	CineEngine(OSystem *syst, const CINEGameDescription *gameDesc);
 	virtual ~CineEngine();
 
+	virtual void syncSoundSettings();
+
 	int getGameType() const;
 	uint32 getFeatures() const;
 	Common::Language getLanguage() const;
 	Common::Platform getPlatform() const;
 
-	bool loadSaveDirectory(void);
-	void makeSystemMenu(void);
+	bool loadSaveDirectory();
+	void makeSystemMenu();
 	int modifyGameSpeed(int speedChange);
 	int getTimerDelay() const;
 	Common::Error loadGameState(int slot);
-	Common::Error saveGameState(int slot, const char *desc);
+	Common::Error saveGameState(int slot, const Common::String &desc);
 	bool canLoadGameStateCurrently();
 	bool canSaveGameStateCurrently();
 
@@ -101,24 +135,59 @@ public:
 
 	Common::RandomSource _rnd;
 
-	Common::StringList _volumeResourceFiles;
+	Common::StringArray _volumeResourceFiles;
 	StringPtrHashMap _volumeEntriesMap;
 	TextHandler _textHandler;
 
+	GUI::Debugger *getDebugger() { return _console; }
+
+	bool _restartRequested;
+
 private:
-	void initialize(void);
+	void initialize();
 	void resetEngine();
 	bool loadPlainSaveFW(Common::SeekableReadStream &in, CineSaveGameFormat saveGameFormat);
 	bool loadTempSaveOS(Common::SeekableReadStream &in);
-	bool makeLoad(char *saveName);
+	bool makeLoad(const Common::String &saveName);
 	void makeSaveFW(Common::OutSaveFile &out);
 	void makeSaveOS(Common::OutSaveFile &out);
 	void makeSave(char *saveFileName);
 	void mainLoop(int bootScriptIdx);
 	void readVolCnf();
 
+	CineConsole *_console;
 	bool _preLoad;
 	int _timerDelayMultiplier;
+
+ public:
+	// TODO: These are pseudo-global vars
+	// They better belong to appropriate classes
+	Common::Array<AnimData> _animDataTable;
+	Common::List<BGIncrust> _bgIncrustList;
+	Common::StringArray _messageTable;
+	Common::Array<ObjectStruct> _objectTable;
+	Common::List<overlay> _overlayList;
+	Common::Array<PalEntry> _palArray;
+	Common::Array<PartBuffer> _partBuffer;
+	ScriptList _globalScripts;
+	ScriptList _objectScripts;
+	RawObjectScriptArray _relTable; ///< Object script bytecode table
+
+	/**
+	 * Global variables.
+	 * 255 of these are saved, but there's one more that's used for bypassing the copy protection.
+	 * In CineEngine::mainLoop(int bootScriptIdx) there's this code: globalVars[VAR_BYPASS_PROTECTION] = 0;
+	 * And as VAR_BYPASS_PROTECTION is 255 that's why we're allocating one more than we otherwise would.
+	 */
+	ScriptVars _globalVars;
+	RawScriptArray _scriptTable; ///< Table of script bytecode
+
+	Common::Array<uint16> _zoneData;
+	Common::Array<uint16> _zoneQuery; ///< Only exists in Operation Stealth
+
+	Common::List<SeqListElement> _seqList;
+
+	Common::String _commandBuffer;
 };
 
 extern CineEngine *g_cine;
@@ -147,9 +216,10 @@ enum {
 };
 
 enum {
-	kCineDebugScript = 1 << 0,
-	kCineDebugPart   = 1 << 1,
-	kCineDebugSound  = 1 << 2
+	kCineDebugScript    = 1 << 0,
+	kCineDebugPart      = 1 << 1,
+	kCineDebugSound     = 1 << 2,
+	kCineDebugCollision = 1 << 3
 };
 
 enum {
@@ -158,8 +228,6 @@ enum {
 	kCmpLT = (1 << 2)
 };
 
-
-extern Common::SaveFileManager *g_saveFileMan; // TEMP
 
 } // End of namespace Cine
 

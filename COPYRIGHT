@@ -1,5 +1,5 @@
 ScummVM
-Copyright (C) 2001-2009 by the following:
+Copyright (C) 2001-2011 by the following:
 
 If you have contributed to this project then you deserve to be on this
 list.  Contact us (see: AUTHORS) and we'll add you.
@@ -9,6 +9,9 @@ Torbjorn Andersson
 Chris Apers
 Ori Avtalion
 Nicolas Bacca
+Fabio Battaglia
+Bastien Bouclet
+Arnaud Boutonne
 Jurgen Braam
 Ralph Brorsen
 James Brown
@@ -37,21 +40,25 @@ Travis Howell
 Janne Huttunen
 Felix Jakschitsch
 Jeroen Janssen
-Willem Jan Palenstijn
 Florian Kagerer
 Filippos Karapetis
 Andreas Karlsson
+Ismail Khatib
 Oliver Kiehl
+Martin Kiewitz
 Pawel Kolodziejski
 Mutwin Kraus
 Andrew Kurushin
+Angus Lees
 Claudio Matsuoka
 Thomas Mayer
+Alyssa Milburn
 Neil Millstone
 Gregory Montoir
 Kostas Nakos
 Mikesch Nepomuk
 Nicolas Noble
+Willem Jan Palenstijn
 Lars Persson
 Joost Peters
 Tim Phillips
@@ -83,7 +90,6 @@ Bodo Bellut "bellut"
 Bramvandijk "bramvandijk"
 Andreas Bierfert "awjb"
 Elio Blanca "eblanca76"
-Bastien Bouclet "bgk"
 David Breakey "dbreakey"
 Robert Buchholz "prendi"
 Rainer Canavan "canavan"
@@ -95,11 +101,11 @@ Thomas Combeleran "hibernatus"
 Kees Cook "keescook"
 Carlos Corbacho "cathectic"
 Roberto Costa "fiix76"
-Thiery Crozat "criezy"
 dc france "erwan2004"
 dewt "mncl"
 Martin Doucha "next_ghost"
 Michael Drueing "doc_wagon"
+Michael du Breuil "WickedShell"
 dubsdj
 Matthew Duggan "stauff1"
 Olivier Duverne "richiefs"
@@ -142,14 +148,15 @@ Mark Lodato "itsr0y"
 Fridvin Logi "phillip_j_fry"
 Lostech "lostech"
 Georg Lukas "ge0rg"
+Michael Madsen "pidgeot"
 Dmitry Marakasov "amdmi3"
+Alejandro Marzini "vgvgf"
 Connor McLeod "mcleod2032"
 Mickey McMurray "metafox"
 Vladimir Menshakov "megath"
 Adam Metcalf "gamblore"
 Frank Meyering "frank_m24"
 Gael Le Migno "kilobug"
-Alyssa Anne Milburn "fuzzie"
 Andy Molloy "maloi"
 Sean Murrau "lightcast"
 Armin Mueller "arm_in"
@@ -206,3 +213,4 @@ Robert Wohlrab "moshroum"
 Xanathar "xanathar"
 Grant Yeager "glo_kidd"
 Benjamin W. Zale "junior_aepi"
+Yotam Barnoy "bluddy"

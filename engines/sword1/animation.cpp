@@ -18,24 +18,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
 #include "common/file.h"
+#include "common/events.h"
+#include "common/keyboard.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 #include "sword1/sword1.h"
 #include "sword1/animation.h"
 #include "sword1/text.h"
-#include "sound/vorbis.h"
 
-#include "common/config-manager.h"
-#include "common/endian.h"
 #include "common/str.h"
-#include "common/events.h"
 #include "common/system.h"
-#include "common/list.h"
+#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 #include "gui/message.h"
@@ -43,41 +39,45 @@
 namespace Sword1 {
 
 static const char *sequenceList[20] = {
-    "ferrari",  // 0  CD2   ferrari running down fitz in sc19
-    "ladder",   // 1  CD2   george walking down ladder to dig sc24->sc$
-    "steps",    // 2  CD2   george walking down steps sc23->sc24
-    "sewer",    // 3  CD1   george entering sewer sc2->sc6
-    "intro",    // 4  CD1   intro sequence ->sc1
-    "river",    // 5  CD1   george being thrown into river by flap & g$
-    "truck",    // 6  CD2   truck arriving at bull's head sc45->sc53/4
-    "grave",    // 7  BOTH  george's grave in scotland, from sc73 + from sc38 $
-    "montfcon", // 8  CD2   monfaucon clue in ireland dig, sc25
-    "tapestry", // 9  CD2   tapestry room beyond spain well, sc61
-    "ireland",  // 10 CD2   ireland establishing shot europe_map->sc19
-    "finale",   // 11 CD2   grand finale at very end, from sc73
-    "history",  // 12 CD1   George's history lesson from Nico, in sc10
-    "spanish",  // 13 CD2   establishing shot for 1st visit to Spain, europe_m$
-    "well",     // 14 CD2   first time being lowered down well in Spai$
-    "candle",   // 15 CD2   Candle burning down in Spain mausoleum sc59
-    "geodrop",  // 16 CD2   from sc54, George jumping down onto truck
-    "vulture",  // 17 CD2   from sc54, vultures circling George's dead body
-    "enddemo",  // 18 ---   for end of single CD demo
-    "credits",  // 19 CD2   credits, to follow "finale" sequence
+	"ferrari",  // 0  CD2   ferrari running down fitz in sc19
+	"ladder",   // 1  CD2   george walking down ladder to dig sc24->sc$
+	"steps",    // 2  CD2   george walking down steps sc23->sc24
+	"sewer",    // 3  CD1   george entering sewer sc2->sc6
+	"intro",    // 4  CD1   intro sequence ->sc1
+	"river",    // 5  CD1   george being thrown into river by flap & g$
+	"truck",    // 6  CD2   truck arriving at bull's head sc45->sc53/4
+	"grave",    // 7  BOTH  george's grave in scotland, from sc73 + from sc38 $
+	"montfcon", // 8  CD2   monfaucon clue in ireland dig, sc25
+	"tapestry", // 9  CD2   tapestry room beyond spain well, sc61
+	"ireland",  // 10 CD2   ireland establishing shot europe_map->sc19
+	"finale",   // 11 CD2   grand finale at very end, from sc73
+	"history",  // 12 CD1   George's history lesson from Nico, in sc10
+	"spanish",  // 13 CD2   establishing shot for 1st visit to Spain, europe_m$
+	"well",     // 14 CD2   first time being lowered down well in Spai$
+	"candle",   // 15 CD2   Candle burning down in Spain mausoleum sc59
+	"geodrop",  // 16 CD2   from sc54, George jumping down onto truck
+	"vulture",  // 17 CD2   from sc54, vultures circling George's dead body
+	"enddemo",  // 18 ---   for end of single CD demo
+	"credits",  // 19 CD2   credits, to follow "finale" sequence
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Basic movie player
 ///////////////////////////////////////////////////////////////////////////////
 
-MoviePlayer::MoviePlayer(SwordEngine *vm, Text *textMan, Audio::Mixer *snd, OSystem *system, Audio::SoundHandle *bgSoundHandle, Graphics::VideoDecoder *decoder, DecoderType decoderType)
-	: _vm(vm), _textMan(textMan), _snd(snd), _bgSoundHandle(bgSoundHandle), _system(system), VideoPlayer(decoder) {
+MoviePlayer::MoviePlayer(SwordEngine *vm, Text *textMan, Audio::Mixer *snd, OSystem *system, Audio::SoundHandle *bgSoundHandle, Video::VideoDecoder *decoder, DecoderType decoderType)
+	: _vm(vm), _textMan(textMan), _snd(snd), _bgSoundHandle(bgSoundHandle), _system(system) {
 	_bgSoundStream = NULL;
 	_decoderType = decoderType;
+	_decoder = decoder;
+
+	_white = 255;
+	_black = 0;
 }
 
-MoviePlayer::~MoviePlayer(void) {
-	delete _decoder;
+MoviePlayer::~MoviePlayer() {
 	delete _bgSoundHandle;
+	delete _decoder;
 }
 
 /**
@@ -86,16 +86,15 @@ MoviePlayer::~MoviePlayer(void) {
  */
 bool MoviePlayer::load(uint32 id) {
 	Common::File f;
-	char filename[20];
+	Common::String filename;
 
-	if (_decoderType == kVideoDecoderDXA) {
-		_bgSoundStream = Audio::AudioStream::openStreamFile(sequenceList[id]);
-	} else {
+	if (_decoderType == kVideoDecoderDXA)
+		_bgSoundStream = Audio::SeekableAudioStream::openStreamFile(sequenceList[id]);
+	else
 		_bgSoundStream = NULL;
-	}
 
 	if (SwordEngine::_systemVars.showText) {
-		sprintf(filename, "%s.txt", sequenceList[id]);
+		filename = Common::String::format("%s.txt", sequenceList[id]);
 		if (f.open(filename)) {
 			Common::String line;
 			int lineNo = 0;
@@ -115,20 +114,20 @@ bool MoviePlayer::load(uint32 id) {
 				int startFrame = strtoul(ptr, const_cast<char **>(&ptr), 10);
 				int endFrame = strtoul(ptr, const_cast<char **>(&ptr), 10);
 
-				while (*ptr && isspace(*ptr))
+				while (*ptr && isspace(static_cast<unsigned char>(*ptr)))
 					ptr++;
 
 				if (startFrame > endFrame) {
-					warning("%s:%d: startFrame (%d) > endFrame (%d)", filename, lineNo, startFrame, endFrame);
+					warning("%s:%d: startFrame (%d) > endFrame (%d)", filename.c_str(), lineNo, startFrame, endFrame);
 					continue;
 				}
 
 				if (startFrame <= lastEnd) {
-					warning("%s:%d startFrame (%d) <= lastEnd (%d)", filename, lineNo, startFrame, lastEnd);
+					warning("%s:%d startFrame (%d) <= lastEnd (%d)", filename.c_str(), lineNo, startFrame, lastEnd);
 					continue;
 				}
 
-				_movieTexts.push_back(new MovieText(startFrame, endFrame, ptr));
+				_movieTexts.push_back(MovieText(startFrame, endFrame, ptr));
 				lastEnd = endFrame;
 			}
 			f.close();
@@ -137,41 +136,33 @@ bool MoviePlayer::load(uint32 id) {
 
 	switch (_decoderType) {
 	case kVideoDecoderDXA:
-		snprintf(filename, sizeof(filename), "%s.dxa", sequenceList[id]);
+		filename = Common::String::format("%s.dxa", sequenceList[id]);
 		break;
 	case kVideoDecoderSMK:
-		snprintf(filename, sizeof(filename), "%s.smk", sequenceList[id]);
+		filename = Common::String::format("%s.smk", sequenceList[id]);
 		break;
 	}
 
-	return _decoder->loadFile(filename);
+	return _decoder->loadFile(filename.c_str());
 }
 
-void MoviePlayer::play(void) {
-	if (_bgSoundStream) {
-		_snd->playInputStream(Audio::Mixer::kSFXSoundType, _bgSoundHandle, _bgSoundStream);
-	}
-	bool terminated = false;
+void MoviePlayer::play() {
+	if (_bgSoundStream)
+		_snd->playStream(Audio::Mixer::kSFXSoundType, _bgSoundHandle, _bgSoundStream);
 
-	Common::List<Common::Event> stopEvents;
-	Common::Event stopEvent;
-	stopEvents.clear();
-	stopEvent.type = Common::EVENT_KEYDOWN;
-	stopEvent.kbd = Common::KEYCODE_ESCAPE;
-	stopEvents.push_back(stopEvent);
+	bool terminated = false;
 
 	_textX = 0;
 	_textY = 0;
 
-	terminated = !playVideo(stopEvents);
+	terminated = !playVideo();
 
 	if (terminated)
 		_snd->stopHandle(*_bgSoundHandle);
 
 	_textMan->releaseText(2, false);
 
-	while (!_movieTexts.empty())
-		delete _movieTexts.remove_at(_movieTexts.size() - 1);
+	_movieTexts.clear();
 
 	while (_snd->isSoundHandleActive(*_bgSoundHandle))
 		_system->delayMillis(100);
@@ -181,15 +172,15 @@ void MoviePlayer::play(void) {
 	// previous location would be momentarily drawn, before switching to
 	// the new one. Work around this by setting the palette to black.
 
-	byte pal[4 * 256];
+	byte pal[3 * 256];
 	memset(pal, 0, sizeof(pal));
-	_system->setPalette(pal, 0, 256);
+	_system->getPaletteManager()->setPalette(pal, 0, 256);
 }
 
 void MoviePlayer::performPostProcessing(byte *screen) {
 	if (!_movieTexts.empty()) {
-		if (_decoder->getCurFrame() == _movieTexts[0]->_startFrame) {
-			_textMan->makeTextSprite(2, (uint8 *)_movieTexts[0]->_text, 600, LETTER_COL);
+		if (_decoder->getCurFrame() == _movieTexts.front()._startFrame) {
+			_textMan->makeTextSprite(2, (const uint8 *)_movieTexts.front()._text.c_str(), 600, LETTER_COL);
 
 			FrameHeader *frame = _textMan->giveSpriteData(2);
 			_textWidth = frame->width;
@@ -197,9 +188,9 @@ void MoviePlayer::performPostProcessing(byte *screen) {
 			_textX = 320 - _textWidth / 2;
 			_textY = 420 - _textHeight;
 		}
-		if (_decoder->getCurFrame() == _movieTexts[0]->_endFrame) {
+		if (_decoder->getCurFrame() == _movieTexts.front()._endFrame) {
 			_textMan->releaseText(2, false);
-			delete _movieTexts.remove_at(0);
+			_movieTexts.pop_front();
 		}
 	}
 
@@ -214,10 +205,10 @@ void MoviePlayer::performPostProcessing(byte *screen) {
 			for (x = 0; x < _textWidth; x++) {
 				switch (src[x]) {
 				case BORDER_COL:
-					dst[x] = _decoder->getBlack();
+					dst[x] = findBlackPalIndex();
 					break;
 				case LETTER_COL:
-					dst[x] = _decoder->getWhite();
+					dst[x] = findWhitePalIndex();
 					break;
 				}
 			}
@@ -237,12 +228,12 @@ void MoviePlayer::performPostProcessing(byte *screen) {
 
 		for (y = 0; y < _textHeight; y++) {
 			if (_textY + y < frameY || _textY + y >= frameY + frameHeight) {
-				memset(dst + _textX, _decoder->getBlack(), _textWidth);
+				memset(dst + _textX, findBlackPalIndex(), _textWidth);
 			} else {
 				if (frameX > _textX)
-					memset(dst + _textX, _decoder->getBlack(), frameX - _textX);
+					memset(dst + _textX, findBlackPalIndex(), frameX - _textX);
 				if (frameX + frameWidth < _textX + _textWidth)
-					memset(dst + frameX + frameWidth, _decoder->getBlack(), _textX + _textWidth - (frameX + frameWidth));
+					memset(dst + frameX + frameWidth, findBlackPalIndex(), _textX + _textWidth - (frameX + frameWidth));
 			}
 
 			dst += _system->getWidth();
@@ -253,24 +244,79 @@ void MoviePlayer::performPostProcessing(byte *screen) {
 	}
 }
 
+bool MoviePlayer::playVideo() {
+	uint16 x = (g_system->getWidth() - _decoder->getWidth()) / 2;
+	uint16 y = (g_system->getHeight() - _decoder->getHeight()) / 2;
+
+	while (!_vm->shouldQuit() && !_decoder->endOfVideo()) {
+		if (_decoder->needsUpdate()) {
+			const Graphics::Surface *frame = _decoder->decodeNextFrame();
+			if (frame)
+				_vm->_system->copyRectToScreen((byte *)frame->pixels, frame->pitch, x, y, frame->w, frame->h);
+
+			if (_decoder->hasDirtyPalette()) {
+				_decoder->setSystemPalette();
+
+				uint32 maxWeight = 0;
+				uint32 minWeight = 0xFFFFFFFF;
+				uint32 weight;
+				byte r, g, b;
+
+				const byte *palette = _decoder->getPalette();
+
+				for (int i = 0; i < 256; i++) {
+					r = *palette++;
+					g = *palette++;
+					b = *palette++;
+
+					weight = 3 * r * r + 6 * g * g + 2 * b * b;
+
+					if (weight >= maxWeight) {
+						maxWeight = weight;
+						_white = i;
+					}
+
+					if (weight <= minWeight) {
+						minWeight = weight;
+						_black = i;
+					}
+				}
+			}
+
+			Graphics::Surface *screen = _vm->_system->lockScreen();
+			performPostProcessing((byte *)screen->pixels);
+			_vm->_system->unlockScreen();
+			_vm->_system->updateScreen();
+		}
+
+		Common::Event event;
+		while (_vm->_system->getEventManager()->pollEvent(event))
+			if ((event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_ESCAPE) || event.type == Common::EVENT_LBUTTONUP)
+				return false;
+
+		_vm->_system->delayMillis(10);
+	}
+
+	return !_vm->shouldQuit();
+}
+
+byte MoviePlayer::findBlackPalIndex() {
+	return _black;
+}
+
+byte MoviePlayer::findWhitePalIndex() {
+	return _white;
+}
+
 DXADecoderWithSound::DXADecoderWithSound(Audio::Mixer *mixer, Audio::SoundHandle *bgSoundHandle)
 	: _mixer(mixer), _bgSoundHandle(bgSoundHandle)  {
 }
 
-int32 DXADecoderWithSound::getAudioLag() {
-	if (!_fileStream)
-		return 0;
+uint32 DXADecoderWithSound::getElapsedTime() const {
+	if (_mixer->isSoundHandleActive(*_bgSoundHandle))
+		return _mixer->getSoundElapsedTime(*_bgSoundHandle);
 
-	if (!_mixer->isSoundHandleActive(*_bgSoundHandle))
-		return 0;
-
-	int32 frameDelay = getFrameDelay();
-	int32 videoTime = _videoInfo.currentFrame * frameDelay;
-	int32 audioTime;
-
-	audioTime = (((int32) _mixer->getSoundElapsedTime(*_bgSoundHandle)) * 100);
-
-	return videoTime - audioTime;
+	return DXADecoder::getElapsedTime();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -278,41 +324,40 @@ int32 DXADecoderWithSound::getAudioLag() {
 ///////////////////////////////////////////////////////////////////////////////
 
 MoviePlayer *makeMoviePlayer(uint32 id, SwordEngine *vm, Text *textMan, Audio::Mixer *snd, OSystem *system) {
-	char filename[20];
-	char buf[60];
+	Common::String filename;
 	Audio::SoundHandle *bgSoundHandle = new Audio::SoundHandle;
 
-	snprintf(filename, sizeof(filename), "%s.smk", sequenceList[id]);
+	filename = Common::String::format("%s.smk", sequenceList[id]);
 
 	if (Common::File::exists(filename)) {
-		Graphics::SmackerDecoder *smkDecoder = new Graphics::SmackerDecoder(snd);
+		Video::SmackerDecoder *smkDecoder = new Video::SmackerDecoder(snd);
 		return new MoviePlayer(vm, textMan, snd, system, bgSoundHandle, smkDecoder, kVideoDecoderSMK);
 	}
 
-	snprintf(filename, sizeof(filename), "%s.dxa", sequenceList[id]);
+	filename = Common::String::format("%s.dxa", sequenceList[id]);
 
 	if (Common::File::exists(filename)) {
 #ifdef USE_ZLIB
 		DXADecoderWithSound *dxaDecoder = new DXADecoderWithSound(snd, bgSoundHandle);
 		return new MoviePlayer(vm, textMan, snd, system, bgSoundHandle, dxaDecoder, kVideoDecoderDXA);
 #else
-		GUI::MessageDialog dialog("DXA cutscenes found but ScummVM has been built without zlib support", "OK");
+		GUI::MessageDialog dialog(_("DXA cutscenes found but ScummVM has been built without zlib support"), _("OK"));
 		dialog.runModal();
 		return NULL;
 #endif
 	}
 
 	// Old MPEG2 cutscenes
-	snprintf(filename, sizeof(filename), "%s.mp2", sequenceList[id]);
+	filename = Common::String::format("%s.mp2", sequenceList[id]);
 
 	if (Common::File::exists(filename)) {
-		GUI::MessageDialog dialog("MPEG2 cutscenes are no longer supported", "OK");
+		GUI::MessageDialog dialog(_("MPEG2 cutscenes are no longer supported"), _("OK"));
 		dialog.runModal();
 		return NULL;
 	}
 
-	sprintf(buf, "Cutscene '%s' not found", sequenceList[id]);
-	GUI::MessageDialog dialog(buf, "OK");
+	Common::String buf = Common::String::format(_("Cutscene '%s' not found"), sequenceList[id]);
+	GUI::MessageDialog dialog(buf, _("OK"));
 	dialog.runModal();
 
 	return NULL;

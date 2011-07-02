@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_SAVEFILE_H
@@ -29,10 +26,11 @@
 #include "common/noncopyable.h"
 #include "common/scummsys.h"
 #include "common/stream.h"
-#include "common/str.h"
+#include "common/str-array.h"
 #include "common/error.h"
 
 namespace Common {
+
 
 /**
  * A class which allows game engines to load game state data.
@@ -108,14 +106,14 @@ public:
 	/**
 	 * Open the savefile with the specified name in the given directory for saving.
 	 * @param name	the name of the savefile
-	 * @return pointer to an OutSaveFile, or NULL if an error occured.
+	 * @return pointer to an OutSaveFile, or NULL if an error occurred.
 	 */
 	virtual OutSaveFile *openForSaving(const String &name) = 0;
 
 	/**
 	 * Open the file with the specified name in the given directory for loading.
 	 * @param name	the name of the savefile
-	 * @return pointer to an InSaveFile, or NULL if an error occured.
+	 * @return pointer to an InSaveFile, or NULL if an error occurred.
 	 */
 	virtual InSaveFile *openForLoading(const String &name) = 0;
 
@@ -135,14 +133,22 @@ public:
 	virtual bool renameSavefile(const String &oldName, const String &newName);
 
 	/**
+	 * Copy the given savefile.
+	 * @param oldName Old name.
+	 * @param newName New name.
+	 * @return true if no error occurred. false otherwise.
+	 */
+	virtual bool copySavefile(const String &oldName, const String &newName);
+
+	/**
 	 * Request a list of available savegames with a given DOS-style pattern,
-	 * also known as "glob" in the UNIX world. Refer to the Common::matchString()
+	 * also known as "glob" in the POSIX world. Refer to the Common::matchString()
 	 * function to learn about the precise pattern format.
 	 * @param pattern Pattern to match. Wildcards like * or ? are available.
 	 * @return list of strings for all present file names.
 	 * @see Common::matchString()
 	 */
-	virtual StringList listSavefiles(const String &pattern) = 0;
+	virtual StringArray listSavefiles(const String &pattern) = 0;
 };
 
 } // End of namespace Common

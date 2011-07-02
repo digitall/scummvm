@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_GAME_H
@@ -48,8 +45,6 @@ class Game {
 private:
 	Debugger *_debugger;
 	bool _fastTextFlag, _soundFlag;
-	uint8 _sfxVolume;
-	uint8 _musicVolume;
 	uint8 _state;
 	uint16 _tellCommands[MAX_TELL_COMMANDS * 3 + 1];
 	int _numTellCommands;
@@ -73,9 +68,10 @@ public:
 	Game();
 	virtual ~Game();
 
+	static bool isCreated();
 	static Game &getReference();
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 
 	void tick();
 	void tickCheck();
@@ -86,8 +82,6 @@ public:
 	bool &debugFlag() { return _debugFlag; }
 	bool fastTextFlag() { return _fastTextFlag; }
 	bool soundFlag() { return _soundFlag; }
-	uint8 sfxVolume() { return ConfMan.getInt("sfx_volume"); }
-	uint8 musicVolume() { return ConfMan.getInt("music_volume"); }
 	Debugger &debugger() { return *_debugger; }
 
 	// Menu item support methods

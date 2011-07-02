@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef ScummVMapph
-#define ScummVMapph
+#ifndef SCUMMVMAPP_H
+#define SCUMMVMAPP_H
 
 #include <eikapp.h>
 #include <e32base.h>

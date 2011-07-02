@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_DIALOGS_H
@@ -27,17 +24,14 @@
 
 #include "common/str.h"
 #include "gui/dialog.h"
-#include "gui/options.h"
 #include "gui/widget.h"
+#include "engines/dialogs.h"
 
 #include "scumm/detection.h"
-#ifndef DISABLE_HELP
-#include "scumm/help.h"
-#endif
 
 namespace GUI {
-	class ListWidget;
-	class CommandSender;
+class ListWidget;
+class CommandSender;
 }
 
 
@@ -47,108 +41,24 @@ class ScummEngine;
 
 class ScummDialog : public GUI::Dialog {
 public:
+	ScummDialog(int x, int y, int w, int h);
 	ScummDialog(Common::String name);
 
 protected:
 	typedef Common::String String;
 };
 
-class SaveLoadChooser : public GUI::Dialog {
-	typedef Common::String String;
-	typedef Common::StringList StringList;
-protected:
-	bool _saveMode;
-	GUI::ListWidget		*_list;
-	GUI::ButtonWidget	*_chooseButton;
-	GUI::GraphicsWidget	*_gfxWidget;
-	GUI::StaticTextWidget	*_date;
-	GUI::StaticTextWidget	*_time;
-	GUI::StaticTextWidget	*_playtime;
-	GUI::ContainerWidget	*_container;
-	ScummEngine			*_vm;
-
-	uint8 _fillR, _fillG, _fillB;
-
-	void updateInfos(bool redraw);
-public:
-	SaveLoadChooser(const String &title, const String &buttonLabel, bool saveMode, ScummEngine *engine);
-	~SaveLoadChooser();
-
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
-	const String &getResultString() const;
-	void setList(const StringList& list);
-	int runModal();
-
-	virtual void reflowLayout();
-};
-
-class ScummMenuDialog : public ScummDialog {
+#ifndef DISABLE_HELP
+class ScummMenuDialog : public MainMenuDialog {
 public:
 	ScummMenuDialog(ScummEngine *scumm);
 	~ScummMenuDialog();
 	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
 
-	virtual void reflowLayout();
-
 protected:
-	ScummEngine		*_vm;
-
-	GUI::Dialog		*_aboutDialog;
-	GUI::Dialog		*_optionsDialog;
-#ifndef DISABLE_HELP
 	GUI::Dialog		*_helpDialog;
-#endif
-	SaveLoadChooser	*_saveDialog;
-	SaveLoadChooser	*_loadDialog;
-
-	GUI::ButtonWidget *_saveButton;
-
-	void save();
-	void load();
 };
-
-#ifndef DISABLE_HELP
-
-class HelpDialog : public ScummDialog {
-public:
-	HelpDialog(const GameSettings &game);
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
-
-	virtual void reflowLayout();
-
-protected:
-	typedef Common::String String;
-
-	GUI::ButtonWidget *_nextButton;
-	GUI::ButtonWidget *_prevButton;
-
-	GUI::StaticTextWidget *_title;
-	GUI::StaticTextWidget *_key[HELP_NUM_LINES];
-	GUI::StaticTextWidget *_dsc[HELP_NUM_LINES];
-
-	int _page;
-	int _numPages;
-	int _numLines;
-
-	const GameSettings _game;
-
-	void displayKeyBindings();
-};
-
 #endif
-
-class ConfigDialog : public GUI::OptionsDialog {
-protected:
-#ifdef SMALL_SCREEN_DEVICE
-	GUI::Dialog		*_keysDialog;
-#endif
-
-public:
-	ConfigDialog();
-	~ConfigDialog();
-
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
-};
 
 /**
  * A dialog which displays an arbitrary message to the user and returns
@@ -205,6 +115,9 @@ class ConfirmDialog : public InfoDialog {
 public:
 	ConfirmDialog(ScummEngine *scumm, int res);
 	virtual void handleKeyDown(Common::KeyState state);
+
+protected:
+	char _yesKey, _noKey;
 };
 
 /**

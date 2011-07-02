@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_COSTUME_H
@@ -28,7 +25,6 @@
 #include "scumm/base-costume.h"
 
 namespace Scumm {
-
 class ClassicCostumeLoader : public BaseCostumeLoader {
 public:
 	int _id;
@@ -84,7 +80,7 @@ protected:
 	void actorSpeak(ActorC64 *a, int &cmd);
 	int dirToDirStop(int oldDir);
 	void frameUpdate(ActorC64 *A, int cmd);
-	
+
 };
 
 class ClassicCostumeRenderer : public BaseCostumeRenderer {
@@ -93,12 +89,12 @@ protected:
 
 	byte _scaleIndexX;						/* must wrap at 256 */
 	byte _scaleIndexY;
-	byte _palette[32];
+	uint16 _palette[32];
 
 public:
 	ClassicCostumeRenderer(ScummEngine *vm) : BaseCostumeRenderer(vm), _loaded(vm) {}
 
-	void setPalette(byte *palette);
+	void setPalette(uint16 *palette);
 	void setFacing(const Actor *a);
 	void setCostume(int costume, int shadow);
 
@@ -110,6 +106,8 @@ protected:
 
 	void procC64(Codec1 &v1, int actor);
 
+	void procPCEngine(Codec1 &v1);
+
 	byte mainRoutine(int xmoveCur, int ymoveCur);
 };
 
@@ -120,13 +118,22 @@ protected:
 public:
 	NESCostumeRenderer(ScummEngine *vm) : BaseCostumeRenderer(vm), _loaded(vm) {}
 
-	void setPalette(byte *palette);
+	void setPalette(uint16 *palette);
 	void setFacing(const Actor *a);
 	void setCostume(int costume, int shadow);
 
 protected:
 	byte drawLimb(const Actor *a, int limb);
 };
+
+#ifdef USE_RGB_COLOR
+class PCEngineCostumeRenderer : public ClassicCostumeRenderer {
+public:
+	PCEngineCostumeRenderer(ScummEngine *vm) : ClassicCostumeRenderer(vm) {}
+
+	void setPalette(uint16 *palette);
+};
+#endif
 
 class C64CostumeRenderer : public BaseCostumeRenderer {
 protected:
@@ -135,7 +142,7 @@ protected:
 public:
 	C64CostumeRenderer(ScummEngine *vm) : BaseCostumeRenderer(vm), _loaded(vm) {}
 
-	void setPalette(byte *palette) {}
+	void setPalette(uint16 *palette) {}
 	void setFacing(const Actor *a) {}
 	void setCostume(int costume, int shadow);
 

@@ -1,7 +1,5 @@
 # ScummVM Makefile for Windows CE port
 # Uses the cegcc toolchain. For build info check out the wiki: http://wiki.scummvm.org
-# $URL$
-# $Id$
 
 ########################################################################
 ## Do you want a debug build or not?
@@ -43,17 +41,15 @@ ENABLE_TINSEL = STATIC_PLUGIN
 ENABLE_CRUISE = STATIC_PLUGIN
 ENABLE_MADE = STATIC_PLUGIN
 #ENABLE_SCI = STATIC_PLUGIN
-#ENABLE_IGOR = STATIC_PLUGIN
 #ENABLE_M4 = STATIC_PLUGIN
 
 ########################################################################
 ## Pick which libraries you want to use here
 
 USE_MAD           = 1
-USE_MPEG2         = 1
 #USE_TREMOR        = 1
 USE_TREMOLO       = 1
-USE_FLAC          = 1
+#USE_FLAC          = 1
 USE_ZLIB          = 1
 
 ########################################################################
@@ -71,7 +67,8 @@ REMOTE_DIRECTORY = \Storage Card\Program Files\Scummvm
 ########################################################################
 ## You're probably not going to want to change these defines...
 
-#DISABLE_HQ_SCALERS = 1
+USE_SCALERS = 1
+USE_HQ_SCALERS = 1
 USE_ARM_SOUND_ASM = 1
 USE_ARM_SMUSH_ASM = 1
 USE_ARM_GFX_ASM   = 1
@@ -113,7 +110,7 @@ INCLUDES := -I$(srcdir) -I. -I$(srcdir)/engines -Imissing/gcc -Ilibs/include -Il
 
 CFLAGS :=
 ifndef UNOPTIMIZED_BUILD
-CFLAGS += -O3 -march=armv4 -mtune=xscale
+CFLAGS += -O3 -fno-inline-functions -march=armv4 -mtune=xscale
 endif
 
 LDFLAGS := -Wl,-Map,scummvm.exe.map -Wl,--stack,65536
@@ -135,11 +132,6 @@ DEFINES += -DUSE_MAD
 LIBS += -lmad
 endif
 
-ifdef USE_MPEG2
-DEFINES += -DUSE_MPEG2
-LIBS += -lmpeg2
-endif
-
 ifdef USE_TREMOR
 DEFINES += -DUSE_TREMOR -DUSE_VORBIS
 LIBS += -ltremorce
@@ -154,6 +146,14 @@ endif
 ifdef USE_FLAC
 DEFINES += -DUSE_FLAC
 LIBS += -lFLAC
+endif
+
+ifdef USE_SCALERS
+DEFINES += -DUSE_SCALERS
+endif
+
+ifdef USE_HQ_SCALERS
+DEFINES += -DUSE_HQ_SCALERS
 endif
 
 ifdef USE_ARM_SMUSH_ASM
@@ -190,7 +190,6 @@ OBJS += CEkeys/EventsBuffer.o
 OBJS += $(srcdir)/gui/Actions.o $(srcdir)/gui/Key.o $(srcdir)/gui/KeysDialog.o
 OBJS += ../sdl/sdl.o ../sdl/graphics.o ../sdl/events.o ../sdl/hardwarekeys.o
 OBJS += missing/missing.o
-OBJS += ARMscaler.o
 OBJS += smartLandScale.o
 ifndef DYNAMIC_MODULES
 OBJS += PocketSCUMM.o
@@ -226,7 +225,7 @@ deploy: deploy-exe
 
 endif
 
-dist: ARMscaler.o PocketSCUMM.o $(EXECUTABLE)
+dist: PocketSCUMM.o $(EXECUTABLE)
 
 dist-plugins: $(EXECUTABLE) plugins PocketSCUMM.o plugins-stub
 
@@ -236,11 +235,8 @@ plugins-stub: stub.o
 PocketSCUMM.o: PocketSCUMM.rc
 	$(WINDRES) $*.rc $@
 
-ARMscaler.o: ARMscaler.s
-	$(AS) $*.s -o $@
-
 all-clean: clean
-	$(RM) ARMscaler.o PocketSCUMM.o stub.o
+	$(RM) PocketSCUMM.o stub.o
 
 deploy-plugins: dist-plugins
 	@echo Deploying DLLs

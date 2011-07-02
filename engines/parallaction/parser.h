@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_PARSER_H
@@ -179,6 +176,7 @@ public:
 	virtual void parseMergeData(ZonePtr z);
 	virtual void parseHearData(ZonePtr z);
 	virtual void parseSpeakData(ZonePtr z);
+	virtual void parseNoneData(ZonePtr z);
 protected:
 	Common::String	parseComment();
 	Common::String	parseDialogueString();
@@ -293,6 +291,8 @@ public:
 	virtual void	parsePathData(ZonePtr z);
 	virtual void	parseGetData(ZonePtr z);
 	virtual void	parseDoorData(ZonePtr z);
+	virtual void	parseHearData(ZonePtr z);
+	virtual void 	parseNoneData(ZonePtr z);
 protected:
 	void	parseAnswerCounter(Answer *answer);
 	virtual Answer *parseAnswer();
@@ -407,13 +407,6 @@ public:
 	virtual void parse(Script *script, ProgramPtr program);
 };
 
-
-} // namespace Parallaction
+} // End of namespace Parallaction
 
 #endif
-
-
-
-
-
-

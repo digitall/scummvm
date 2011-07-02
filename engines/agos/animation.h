@@ -18,29 +18,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#ifdef ENABLE_AGOS2
 
 #ifndef AGOS_ANIMATION_H
 #define AGOS_ANIMATION_H
 
-#include "common/file.h"
-#include "common/stream.h"
-
-#include "graphics/video/dxa_decoder.h"
-#include "graphics/video/smk_decoder.h"
-#include "sound/mixer.h"
+#include "video/dxa_decoder.h"
+#include "video/smk_decoder.h"
+#include "audio/mixer.h"
 
 namespace AGOS {
 
 class AGOSEngine_Feeble;
 
 class MoviePlayer {
-	friend class MoviePlayerDXA;
-	friend class MoviePlayerSMK;
-
+protected:
 	AGOSEngine_Feeble *_vm;
 
 	Audio::Mixer *_mixer;
@@ -69,13 +63,16 @@ public:
 	virtual void nextFrame() = 0;
 	virtual void stopVideo() = 0;
 
-private:
+protected:
 	virtual void handleNextFrame();
 	virtual bool processFrame() = 0;
-	virtual void startSound() {};
+	virtual void startSound() {}
+
+protected:
+	uint32 _firstFrameOffset;
 };
 
-class MoviePlayerDXA : public MoviePlayer, ::Graphics::DXADecoder {
+class MoviePlayerDXA : public MoviePlayer, Video::DXADecoder {
 	static const char *_sequenceList[90];
 	uint8 _sequenceNum;
 public:
@@ -85,16 +82,15 @@ public:
 	void playVideo();
 	void nextFrame();
 	virtual void stopVideo();
-protected:
-	void setPalette(byte *pal);
 
 private:
 	void handleNextFrame();
 	bool processFrame();
 	void startSound();
+	void copyFrameToBuffer(byte *dst, uint x, uint y, uint pitch);
 };
 
-class MoviePlayerSMK : public MoviePlayer, ::Graphics::SmackerDecoder {
+class MoviePlayerSMK : public MoviePlayer, Video::SmackerDecoder {
 public:
 	MoviePlayerSMK(AGOSEngine_Feeble *vm, const char *name);
 
@@ -102,12 +98,12 @@ public:
 	void playVideo();
 	void nextFrame();
 	virtual void stopVideo();
-protected:
-	void setPalette(byte *pal);
+
 private:
 	void handleNextFrame();
 	bool processFrame();
 	void startSound();
+	void copyFrameToBuffer(byte *dst, uint x, uint y, uint pitch);
 };
 
 MoviePlayer *makeMoviePlayer(AGOSEngine_Feeble *vm, const char *name);
@@ -115,3 +111,5 @@ MoviePlayer *makeMoviePlayer(AGOSEngine_Feeble *vm, const char *name);
 } // End of namespace AGOS
 
 #endif
+
+#endif // ENABLE_AGOS2

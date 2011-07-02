@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_COROUTINE_H
 #define TINSEL_COROUTINE_H
 
 #include "common/scummsys.h"
+#include "common/util.h"	// for SCUMMVM_CURRENT_FUNCTION
 
 namespace Tinsel {
 
@@ -58,6 +56,10 @@ namespace Tinsel {
  */
 //@{
 
+
+// Enable this macro to enable some debugging support in the coroutine code.
+//#define COROUTINE_DEBUG	1
+
 /**
  * The core of any coroutine context which captures the 'state' of a coroutine.
  * Private use only.
@@ -66,8 +68,11 @@ struct CoroBaseContext {
 	int _line;
 	int _sleep;
 	CoroBaseContext *_subctx;
-	CoroBaseContext() : _line(0), _sleep(0), _subctx(0) {}
-	~CoroBaseContext() { delete _subctx; }
+#if COROUTINE_DEBUG
+	const char *_funcName;
+#endif
+	CoroBaseContext(const char *func);
+	~CoroBaseContext();
 };
 
 typedef CoroBaseContext *CoroContext;
@@ -101,9 +106,7 @@ public:
 };
 
 
-#define CORO_PARAM     CoroContext &coroParam
-
-#define CORO_SUBCTX   coroParam->_subctx
+#define CORO_PARAM    CoroContext &coroParam
 
 
 /**
@@ -124,10 +127,13 @@ public:
  *
  * @see CORO_END_CONTEXT
  *
- * @note We always declare a variable 'DUMMY' to allow the user to specify
- * an 'empty' context.
+ * @note We declare a variable 'DUMMY' to allow the user to specify an 'empty'
+ * context, and so compilers won't complain about ";" following the macro.
  */
-#define CORO_BEGIN_CONTEXT  struct CoroContextTag : CoroBaseContext { int DUMMY
+#define CORO_BEGIN_CONTEXT  \
+	struct CoroContextTag : CoroBaseContext { \
+		CoroContextTag() : CoroBaseContext(SCUMMVM_CURRENT_FUNCTION) {} \
+		int DUMMY
 
 /**
  * End the declaration of a coroutine context.
@@ -145,14 +151,17 @@ public:
 		if (&coroParam == &nullContext) assert(!nullContext);\
 		if (!x) {coroParam = x = new CoroContextTag();}\
 		CoroContextHolder tmpHolder(coroParam);\
-		switch(coroParam->_line) { case 0:;
+		switch (coroParam->_line) { case 0:;
 
 /**
  * End the code section of a coroutine.
  * @see CORO_END_CODE
  */
 #define CORO_END_CODE \
-			if (&coroParam == &nullContext) nullContext = NULL; \
+			if (&coroParam == &nullContext) { \
+				delete nullContext; \
+				nullContext = NULL; \
+			} \
 		}
 
 /**
@@ -169,16 +178,42 @@ public:
 #define CORO_RESCHEDULE do { g_scheduler->reschedule(); CORO_SLEEP(1); } while (0)
 
 /**
- * Stop the currently running coroutine.
+ * Stop the currently running coroutine and all calling coroutines.
+ *
+ * This sets _sleep to -1 rather than 0 so that the context doesn't get
+ * deleted by CoroContextHolder, since we want CORO_INVOKE_ARGS to
+ * propogate the _sleep value and return immediately (the scheduler will
+ * then delete the entire coroutine's state, including all subcontexts).
  */
 #define CORO_KILL_SELF() \
 		do { if (&coroParam != &nullContext) { coroParam->_sleep = -1; } return; } while (0)
 
+
+/**
+ * This macro is to be used in conjunction with CORO_INVOKE_ARGS and
+ * similar macros for calling coroutines-enabled subroutines.
+ */
+#define CORO_SUBCTX   coroParam->_subctx
+
 /**
  * Invoke another coroutine.
  *
- * What makes this tricky is that the coroutine we called my yield/sleep,
- * and we need to deal with this adequately.
+ * If the subcontext still exists after the coroutine is invoked, it has
+ * either yielded/slept or killed itself, and so we copy the _sleep value
+ * to our own context and return (execution will continue at the case
+ * statement below, where we loop and call the coroutine again).
+ * If the subcontext is null, the coroutine ended normally, and we can
+ * simply break out of the loop and continue execution.
+ *
+ * @param subCoro	name of the coroutine-enabled function to invoke
+ * @param ARGS		list of arguments to pass to subCoro
+ *
+ * @note ARGS must be surrounded by parentheses, and the first argument
+ *       in this list must always be CORO_SUBCTX. For example, the
+ *       regular function call
+ *          myFunc(a, b);
+ *       becomes the following:
+ *          CORO_INVOKE_ARGS(myFunc, (CORO_SUBCTX, a, b));
  */
 #define CORO_INVOKE_ARGS(subCoro, ARGS)  \
 		do {\
@@ -242,6 +277,6 @@ public:
 
 //@}
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_COROUTINE_H

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -123,7 +120,7 @@ void Insane::turnBen(bool controllable) {
 	}
 }
 
-int32 Insane::actionBen(void) {
+int32 Insane::actionBen() {
 	int32 buttons, tmp;
 	bool doDamage = false;
 	int sound;
@@ -472,7 +469,7 @@ void Insane::drawSpeedyActor(int32 buttons) {
 					 _smlayer_room2);
 }
 
-bool Insane::weaponBenIsEffective(void) {
+bool Insane::weaponBenIsEffective() {
 	if ((_actor[1].x - _actor[0].x > weaponMaxRange(0)) ||
 		(_actor[1].x - _actor[0].x < weaponMinRange(0)) ||
 		!_actor[1].kicking)
@@ -1163,7 +1160,7 @@ void Insane::actor02Reaction(int32 buttons) {
 			setBenState();
 			_actor[0].act[2].tilt = 0;
 			// for some reason there is no break at this
-			// place, so tilt gets overriden on next line
+			// place, so tilt gets overridden on next line
 		}
 		_actor[0].act[2].tilt = calcTilt(_actor[0].tilt);
 		break;
@@ -1894,7 +1891,7 @@ void Insane::chooseBenWeaponAnim(int buttons) {
 	}
 }
 
-void Insane::switchBenWeapon(void) {
+void Insane::switchBenWeapon() {
 	do {
 		_actor[0].weapon++;
 		if (_actor[0].weapon > 7)
@@ -1967,7 +1964,7 @@ void Insane::switchBenWeapon(void) {
 	}
 }
 
-int32 Insane::setBenState(void) {
+int32 Insane::setBenState() {
 	_actor[0].act[2].animTilt = -1000;
 
 	switch (_actor[0].weapon) {
@@ -2003,7 +2000,7 @@ int32 Insane::setBenState(void) {
 	return _actor[0].act[2].state;
 }
 
-void Insane::ouchSoundBen(void) {
+void Insane::ouchSoundBen() {
 	_actor[0].act[3].state = 52;
 
 	if ((_vm->_game.features & GF_DEMO) && (_vm->_game.platform == Common::kPlatformPC)) {

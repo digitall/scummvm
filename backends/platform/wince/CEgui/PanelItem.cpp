@@ -18,30 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "PanelItem.h"
 
 namespace CEGUI {
 
-	PanelItem::PanelItem(WORD reference) : GUIElement() {
-		setBackground(reference);
-		_panel = NULL;
-	}
-
-
-	PanelItem::~PanelItem() {
-	}
-
-	bool PanelItem::action(int x, int y, bool pushed) {
-		return false;
-	}
-
-	void PanelItem::setPanel(Panel *panel) {
-		_panel = panel;
-	}
+PanelItem::PanelItem(WORD reference) : GUIElement() {
+	setBackground(reference);
+	_panel = NULL;
 }
 
+
+PanelItem::~PanelItem() {
+}
+
+bool PanelItem::action(int x, int y, bool pushed) {
+	return false;
+}
+
+void PanelItem::setPanel(Panel *panel) {
+	_panel = panel;
+}
+
+} // End of namespace CEGUI

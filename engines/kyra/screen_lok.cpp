@@ -18,21 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "kyra/kyra_lok.h"
 #include "kyra/screen_lok.h"
+#include "kyra/kyra_lok.h"
 
-#include "graphics/cursorman.h"
+#include "common/system.h"
+
+#include "graphics/palette.h"
 
 namespace Kyra {
 
 Screen_LoK::Screen_LoK(KyraEngine_LoK *vm, OSystem *system)
 	: Screen(vm, system) {
 	_vm = vm;
+	_unkPtr1 = _unkPtr2 = 0;
+	_bitBlitNum = 0;
 }
 
 Screen_LoK::~Screen_LoK() {
@@ -80,6 +81,9 @@ const ScreenDim *Screen_LoK::getScreenDim(int dim) {
 }
 
 void Screen_LoK::fadeSpecialPalette(int palIndex, int startIndex, int size, int fadeTime) {
+	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
+		return;
+
 	assert(_vm->palTable1()[palIndex]);
 
 	Palette tempPal(getPalette(0).getNumColors());
@@ -240,6 +244,22 @@ int Screen_LoK::getRectSize(int x, int y) {
 	return ((x*y) << 3);
 }
 
+void Screen_LoK::postProcessCursor(uint8 *data, int width, int height, int pitch) {
+	if (_vm->gameFlags().platform == Common::kPlatformAmiga && _interfacePaletteEnabled) {
+		pitch -= width;
+
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				if (*data != _cursorColorKey)
+					*data += 32;
+				++data;
+			}
+
+			data += pitch;
+		}
+	}
+}
+
 #pragma mark -
 
 Screen_LoK_16::Screen_LoK_16(KyraEngine_LoK *vm, OSystem *system) : Screen_LoK(vm, system) {
@@ -253,6 +273,7 @@ void Screen_LoK_16::setScreenPalette(const Palette &pal) {
 		paletteMap(i, pal[i * 3 + 0] << 2, pal[i * 3 + 1] << 2, pal[i * 3 + 2] << 2);
 
 	set16ColorPalette(_palette16);
+	_forceFullUpdate = true;
 }
 
 void Screen_LoK_16::fadePalette(const Palette &pal, int delay, const UpdateFunctor *upFunc) {
@@ -321,7 +342,7 @@ void Screen_LoK_16::getFadeParams(const Palette &pal, int delay, int &delayInc, 
 
 int Screen_LoK_16::fadePalStep(const Palette &pal, int diff) {
 	error("Screen_LoK_16::fadePalStep called");
-	return 0;
+	return 0;	// for compilers that don't support NORETURN
 }
 
 void Screen_LoK_16::paletteMap(uint8 idx, int r, int g, int b) {
@@ -425,15 +446,14 @@ void Screen_LoK_16::mergeOverlay(int x, int y, int w, int h) {
 }
 
 void Screen_LoK_16::set16ColorPalette(const uint8 *pal) {
-	uint8 palette[16 * 4];
+	uint8 palette[16 * 3];
 	for (int i = 0; i < 16; ++i) {
-		palette[i * 4 + 0] = (pal[i * 3 + 0] * 0xFF) / 0x0F;
-		palette[i * 4 + 1] = (pal[i * 3 + 1] * 0xFF) / 0x0F;
-		palette[i * 4 + 2] = (pal[i * 3 + 2] * 0xFF) / 0x0F;
-		palette[i * 4 + 3] = 0;
+		palette[i * 3 + 0] = (pal[i * 3 + 0] * 0xFF) / 0x0F;
+		palette[i * 3 + 1] = (pal[i * 3 + 1] * 0xFF) / 0x0F;
+		palette[i * 3 + 2] = (pal[i * 3 + 2] * 0xFF) / 0x0F;
 	}
 
-	_system->setPalette(palette, 0, 16);
+	_system->getPaletteManager()->setPalette(palette, 0, 16);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -110,10 +107,10 @@ void LoLEngine::takeCredits(int credits, int redraw) {
 	}
 }
 
-int LoLEngine::makeItem(int itemType, int curFrame, int flags) {
+Item LoLEngine::makeItem(int itemType, int curFrame, int flags) {
 	int cnt = 0;
 	int r = 0;
-	int i = 1;
+	Item i = 1;
 
 	for (; i < 400; i++) {
 		if (_itemsInPlay[i].shpCurFrame_flg & 0x8000) {
@@ -130,7 +127,7 @@ int LoLEngine::makeItem(int itemType, int curFrame, int flags) {
 			continue;
 
 		bool t = false;
-		int ii = i;
+		Item ii = i;
 		while (ii && !t) {
 			t = testUnkItemFlags(ii);
 			if (t)
@@ -145,7 +142,7 @@ int LoLEngine::makeItem(int itemType, int curFrame, int flags) {
 		}
 	}
 
-	int slot = i;
+	Item slot = i;
 	if (cnt) {
 		slot = r;
 		if (testUnkItemFlags(r)) {
@@ -154,7 +151,7 @@ int LoLEngine::makeItem(int itemType, int curFrame, int flags) {
 			deleteItem(r);
 			slot = r;
 		} else {
-			int ii = _itemsInPlay[slot].nextAssignedObject;
+			uint16 ii = _itemsInPlay[slot].nextAssignedObject;
 			while (ii) {
 				if (testUnkItemFlags(ii)) {
 					_itemsInPlay[slot].nextAssignedObject = _itemsInPlay[ii].nextAssignedObject;
@@ -178,7 +175,7 @@ int LoLEngine::makeItem(int itemType, int curFrame, int flags) {
 	return slot;
 }
 
-void LoLEngine::placeMoveLevelItem(int itemIndex, int level, int block, int xOffs, int yOffs, int flyingHeight) {
+void LoLEngine::placeMoveLevelItem(Item itemIndex, int level, int block, int xOffs, int yOffs, int flyingHeight) {
 	calcCoordinates(_itemsInPlay[itemIndex].x, _itemsInPlay[itemIndex].y, block, xOffs, yOffs);
 
 	if (_itemsInPlay[itemIndex].block)
@@ -194,7 +191,7 @@ void LoLEngine::placeMoveLevelItem(int itemIndex, int level, int block, int xOff
 	}
 }
 
-bool LoLEngine::addItemToInventory(int itemIndex) {
+bool LoLEngine::addItemToInventory(Item itemIndex) {
 	int pos = 0;
 	int i = 0;
 
@@ -222,7 +219,7 @@ bool LoLEngine::addItemToInventory(int itemIndex) {
 	return true;
 }
 
-bool LoLEngine::testUnkItemFlags(int itemIndex) {
+bool LoLEngine::testUnkItemFlags(Item itemIndex) {
 	if (!(_itemsInPlay[itemIndex].shpCurFrame_flg & 0x4000))
 		return false;
 
@@ -233,7 +230,7 @@ bool LoLEngine::testUnkItemFlags(int itemIndex) {
 
 }
 
-void LoLEngine::deleteItem(int itemIndex) {
+void LoLEngine::deleteItem(Item itemIndex) {
 	memset(&_itemsInPlay[itemIndex], 0, sizeof(ItemInPlay));
 	_itemsInPlay[itemIndex].shpCurFrame_flg |= 0x8000;
 }
@@ -245,7 +242,7 @@ ItemInPlay *LoLEngine::findObject(uint16 index) {
 		return &_itemsInPlay[index];
 }
 
-void LoLEngine::runItemScript(int charNum, int item, int sub, int next, int reg4) {
+void LoLEngine::runItemScript(int charNum, Item item, int flags, int next, int reg4) {
 	EMCState scriptState;
 	memset(&scriptState, 0, sizeof(EMCState));
 
@@ -256,21 +253,21 @@ void LoLEngine::runItemScript(int charNum, int item, int sub, int next, int reg4
 	_emc->init(&scriptState, &_itemScript);
 	_emc->start(&scriptState, func);
 
-	scriptState.regs[0] = sub;
+	scriptState.regs[0] = flags;
 	scriptState.regs[1] = charNum;
 	scriptState.regs[2] = item;
 	scriptState.regs[3] = next;
 	scriptState.regs[4] = reg4;
 
 	if (_emc->isValid(&scriptState)) {
-		if (*(scriptState.ip - 1) & sub) {
+		if (*(scriptState.ip - 1) & flags) {
 			while (_emc->isValid(&scriptState))
 				_emc->run(&scriptState);
 		}
 	}
 }
 
-void LoLEngine::setHandItem(uint16 itemIndex) {
+void LoLEngine::setHandItem(Item itemIndex) {
 	if (itemIndex && _itemProperties[_itemsInPlay[itemIndex].itemPropertyIndex].flags & 0x80) {
 		runItemScript(-1, itemIndex, 0x400, 0, 0);
 		if (_itemsInPlay[itemIndex].shpCurFrame_flg & 0x8000)
@@ -307,7 +304,7 @@ bool LoLEngine::itemEquipped(int charNum, uint16 itemType) {
 	return false;
 }
 
-void LoLEngine::setItemPosition(int item, uint16 x, uint16 y, int flyingHeight, int b) {
+void LoLEngine::setItemPosition(Item item, uint16 x, uint16 y, int flyingHeight, int b) {
 	if (!flyingHeight) {
 		x = (x & 0xffc0) | 0x40;
 		y = (y & 0xffc0) | 0x40;
@@ -334,7 +331,7 @@ void LoLEngine::setItemPosition(int item, uint16 x, uint16 y, int flyingHeight, 
 	checkSceneUpdateNeed(block);
 }
 
-void LoLEngine::removeLevelItem(int item, int block) {
+void LoLEngine::removeLevelItem(Item item, int block) {
 	removeAssignedObjectFromBlock(&_levelBlockProperties[block], item);
 	removeDrawObjectFromBlock(&_levelBlockProperties[block], item);
 	runLevelScriptCustom(block, 0x100, -1, item, 0, 0);
@@ -342,7 +339,7 @@ void LoLEngine::removeLevelItem(int item, int block) {
 	_itemsInPlay[item].level = 0;
 }
 
-bool LoLEngine::launchObject(int objectType, int item, int startX, int startY, int flyingHeight, int direction, int, int attackerId, int c) {
+bool LoLEngine::launchObject(int objectType, Item item, int startX, int startY, int flyingHeight, int direction, int, int attackerId, int c) {
 	int sp = checkDrawObjectSpace(_partyPosX, _partyPosY, startX, startY);
 	FlyingObject *t = _flyingObjects;
 	int slot = -1;
@@ -399,20 +396,20 @@ bool LoLEngine::launchObject(int objectType, int item, int startX, int startY, i
 	return true;
 }
 
-void LoLEngine::endObjectFlight(FlyingObject *t, int x, int y, int objectOnNextBlock) {
+void LoLEngine::endObjectFlight(FlyingObject *t, int x, int y, int collisionObject) {
 	int cx = x;
 	int cy = y;
 	uint16 block = calcBlockIndex(t->x, t->y);
 	removeAssignedObjectFromBlock(&_levelBlockProperties[block], t->item);
 	removeDrawObjectFromBlock(&_levelBlockProperties[block], t->item);
 
-	if (objectOnNextBlock == 1) {
+	if (collisionObject == 1) {
 		cx = t->x;
 		cy = t->y;
 	}
 
 	if (t->objectType == 0 || t->objectType == 1) {
-		objectFlightProcessHits(t, cx, cy, objectOnNextBlock);
+		objectFlightProcessHits(t, cx, cy, collisionObject);
 		t->x = (cx & 0xffc0) | 0x40;
 		t->y = (cy & 0xffc0) | 0x40;
 		t->flyingHeight = 0;
@@ -484,8 +481,24 @@ void LoLEngine::updateFlyingObject(FlyingObject *t) {
 	int x = 0;
 	int y = 0;
 	getNextStepCoords(t->x, t->y, x, y, t->direction);
-	// WORKAROUND: The next line seems to be bugged in the original code. I have fixed it in a way that at least seems to work fine.
-	int objectOnNextBlock = checkBlockBeforeObjectPlacement(x, y, _itemProperties[_itemsInPlay[t->item].itemPropertyIndex].flags & 0x4000 ? 127 : 63,  t->flags, t->wallFlags);
+	/* WORKAROUND:
+	Large fireballs cast by the "birds" in white tower level 2 and by the "wraith knights" in castle cimmeria
+	level 1	(or possible other objects with flag 0x4000) could not fly through corridors in ScummVM and would
+	be terminated prematurely. The original code (all versions) involuntarily circumvents this via a bug in the
+	next line of code.
+	The original checks for _itemProperties[t->item].flags instead of _itemProperties[_itemsInPlay[t->item].itemPropertyIndex].flags.
+	This leads to more or less unpredictable object widths. The large fireballs will usually get a width of 63
+	instead of 256 making them work just fine in the original.
+
+	I have fixed this by setting an object width of 63 of here. This produces results faithful to the original
+	at least.
+
+	Other methods of working around this issue don't make too much sense. An object with a width of 256
+	could never	fly through corridors, since 256 is also the width of a block. Aligning the fireballs to the
+	middle of a block (or making the monsters align to the middle before casting them) wouldn't help here
+	(and wouldn't be faithful to the original either).
+	*/
+	int objectOnNextBlock = checkBlockBeforeObjectPlacement(x, y, /*_itemProperties[_itemsInPlay[t->item].itemPropertyIndex].flags & 0x4000 ? 256 :*/ 63,  t->flags, t->wallFlags);
 	if (objectOnNextBlock) {
 		endObjectFlight(t, x, y, objectOnNextBlock);
 	} else {
@@ -521,10 +534,10 @@ int LoLEngine::checkDrawObjectSpace(int itemX, int itemY, int partyX, int partyY
 	return a + b;
 }
 
-int LoLEngine::checkSceneForItems(uint16 *blockDrawObjects, int colour) {
+int LoLEngine::checkSceneForItems(uint16 *blockDrawObjects, int color) {
 	while (*blockDrawObjects) {
 		if (!(*blockDrawObjects & 0x8000)) {
-			if (!--colour)
+			if (!--color)
 				return *blockDrawObjects;
 		}
 
@@ -535,7 +548,7 @@ int LoLEngine::checkSceneForItems(uint16 *blockDrawObjects, int colour) {
 	return -1;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

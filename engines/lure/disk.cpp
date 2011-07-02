@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -49,7 +46,7 @@ Disk::Disk() {
 }
 
 Disk::~Disk() {
-	if (_fileHandle) delete _fileHandle;
+	delete _fileHandle;
 	int_disk = NULL;
 }
 
@@ -101,7 +98,6 @@ void Disk::openFile(uint8 fileNum) {
 		error("Could not open %s", sFilename);
 
 	char buffer[7];
-	uint32 bytesRead;
 
 	// If it's the support file, then move to the correct language area
 
@@ -115,7 +111,7 @@ void Disk::openFile(uint8 fileNum) {
 			error("The file %s is not a valid Lure support file", sFilename);
 
 		// Scan for the correct language block
-		Common::Language language = LureEngine::getReference().getLanguage();
+		LureLanguage language = LureEngine::getReference().getLureLanguage();
 		bool foundFlag = false;
 
 		while (!foundFlag) {
@@ -123,7 +119,7 @@ void Disk::openFile(uint8 fileNum) {
 			if ((byte)buffer[0] == 0xff)
 				error("Could not find language data in support file");
 
-			if ((language == (Common::Language)buffer[0]) || (language == UNK_LANG)) {
+			if ((language == (LureLanguage)buffer[0]) || (language == LANG_UNKNOWN)) {
 				foundFlag = true;
 				_dataOffset = READ_LE_UINT32(&buffer[1]);
 				_fileHandle->seek(_dataOffset);
@@ -133,7 +129,7 @@ void Disk::openFile(uint8 fileNum) {
 
 	// Validate the header
 
-	bytesRead = _fileHandle->read(buffer, 6);
+	_fileHandle->read(buffer, 6);
 	buffer[6] = '\0';
 	if (strcmp(buffer, HEADER_IDENT_STRING) != 0)
 		error("The file %s was not a valid VGA file", sFilename);
@@ -225,4 +221,4 @@ FileEntry *Disk::getIndex(uint8 entryIndex) {
 	return &_entries[entryIndex];
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

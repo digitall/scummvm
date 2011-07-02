@@ -18,25 +18,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
 #include "agos/agos.h"
+#include "agos/animation.h"
 #include "agos/debugger.h"
 #include "agos/intern.h"
 
 #include "common/events.h"
 #include "common/system.h"
+#include "common/textconsole.h"
+
+#include "backends/audiocd/audiocd.h"
 
 #include "gui/about.h"
 
 #include "graphics/surface.h"
 
-#include "sound/audiocd.h"
 
 namespace AGOS {
 
@@ -175,9 +175,9 @@ void AGOSEngine::haltAnimation() {
 
 	_videoLockOut |= 0x10;
 
-	if (_displayScreen) {
+	if (_displayFlag) {
 		displayScreen();
-		_displayScreen = false;
+		_displayFlag = 0;
 	}
 }
 
@@ -429,10 +429,9 @@ void AGOSEngine::delay(uint amount) {
 	uint32 cur = start;
 	uint this_delay, vgaPeriod;
 
-	AudioCD.updateCD();
+	_system->getAudioCDManager()->updateCD();
 
-	if (_debugger->isAttached())
-		_debugger->onFrame();
+	_debugger->onFrame();
 
 	vgaPeriod = (_fastMode) ? 10 : _vgaPeriod;
 	if (getGameType() == GType_PP && getGameId() != GID_DIMP) {
@@ -459,8 +458,8 @@ void AGOSEngine::delay(uint amount) {
 			switch (event.type) {
 			case Common::EVENT_KEYDOWN:
 				if (event.kbd.keycode >= Common::KEYCODE_0 && event.kbd.keycode <= Common::KEYCODE_9
-					&& (event.kbd.flags == Common::KBD_ALT ||
-						event.kbd.flags == Common::KBD_CTRL)) {
+					&& (event.kbd.hasFlags(Common::KBD_ALT) ||
+						event.kbd.hasFlags(Common::KBD_CTRL))) {
 					_saveLoadSlot = event.kbd.keycode - Common::KEYCODE_0;
 
 					// There is no save slot 0
@@ -469,19 +468,19 @@ void AGOSEngine::delay(uint amount) {
 
 					memset(_saveLoadName, 0, sizeof(_saveLoadName));
 					sprintf(_saveLoadName, "Quick %d", _saveLoadSlot);
-					_saveLoadType = (event.kbd.flags == Common::KBD_ALT) ? 1 : 2;
+					_saveLoadType = (event.kbd.hasFlags(Common::KBD_ALT)) ? 1 : 2;
 
 					// We should only allow a load or save when it was possible in original
 					// This stops load/save during copy protection, conversations and cut scenes
 					if (!_mouseHideCount && !_showPreposition)
 						quickLoadOrSave();
-				} else if (event.kbd.flags == Common::KBD_CTRL) {
+				} else if (event.kbd.hasFlags(Common::KBD_CTRL)) {
 					if (event.kbd.keycode == Common::KEYCODE_a) {
 						GUI::Dialog *_aboutDialog;
 						_aboutDialog = new GUI::AboutDialog();
 						_aboutDialog->runModal();
 					} else if (event.kbd.keycode == Common::KEYCODE_f) {
-						_fastMode ^= 1;
+						_fastMode = !_fastMode;
 					} else if (event.kbd.keycode == Common::KEYCODE_d) {
 						_debugger->attach();
 					} else if (event.kbd.keycode == Common::KEYCODE_s) {
@@ -492,13 +491,12 @@ void AGOSEngine::delay(uint amount) {
 				}
 
 				if (getGameType() == GType_PP) {
-					if (event.kbd.flags == Common::KBD_SHIFT)
+					if (event.kbd.hasFlags(Common::KBD_SHIFT))
 						_variableArray[41] = 0;
 					else
 						_variableArray[41] = 1;
 				}
 
-				// Make sure backspace works right (this fixes a small issue on OS X)
 				_keyPressed = event.kbd;
 				break;
 			case Common::EVENT_MOUSEMOVE:
@@ -536,7 +534,7 @@ void AGOSEngine::delay(uint amount) {
 		if (_leftButton == 1)
 			_leftButtonCount++;
 
-		AudioCD.updateCD();
+		_system->getAudioCDManager()->updateCD();
 
 		_system->updateScreen();
 
@@ -552,7 +550,8 @@ void AGOSEngine::delay(uint amount) {
 	} while (cur < start + amount && !shouldQuit());
 }
 
-void AGOSEngine_PuzzlePack::timerProc() {
+#ifdef ENABLE_AGOS2
+void AGOSEngine_DIMP::timerProc() {
 	_lastTickCount = _system->getMillis();
 
 	AGOSEngine_Feeble::timerProc();
@@ -568,7 +567,7 @@ void AGOSEngine_Feeble::timerProc() {
 	_videoLockOut |= 2;
 
 	if (!(_videoLockOut & 0x10)) {
-		_syncFlag2 ^= 1;
+		_syncFlag2 = !_syncFlag2;
 		if (!_syncFlag2) {
 			processVgaEvents();
 		} else {
@@ -593,7 +592,7 @@ void AGOSEngine_Feeble::timerProc() {
 		animateSprites();
 	}
 
-	if (_displayScreen) {
+	if (_displayFlag) {
 		if (getGameType() == GType_FF && !(getFeatures() & GF_DEMO)) {
 			if (!getBitFlag(78)) {
 				oracleLogo();
@@ -604,13 +603,13 @@ void AGOSEngine_Feeble::timerProc() {
 		}
 		handleMouseMoved();
 		displayScreen();
-		_displayScreen = false;
+		_displayFlag = 0;
 	}
 
 	_videoLockOut &= ~2;
 }
+#endif
 
-#ifdef ENABLE_PN
 void AGOSEngine_PN::timerProc() {
 	if (_videoLockOut & 0x80E9 || _videoLockOut & 2)
 		return;
@@ -637,19 +636,18 @@ void AGOSEngine_PN::timerProc() {
 
 		processVgaEvents();
 		processVgaEvents();
-		_cepeFlag ^= 1;
+		_cepeFlag = !_cepeFlag;
 		if (!_cepeFlag)
 			processVgaEvents();
 	}
 
-	if (_displayScreen) {
+	if (_displayFlag) {
 		displayScreen();
-		_displayScreen = false;
+		_displayFlag = 0;
 	}
 
 	_videoLockOut &= ~2;
 }
-#endif
 
 void AGOSEngine::timerProc() {
 	if (_videoLockOut & 0x80E9 || _videoLockOut & 2)
@@ -664,20 +662,21 @@ void AGOSEngine::timerProc() {
 	if (!(_videoLockOut & 0x10)) {
 		processVgaEvents();
 		processVgaEvents();
-		_cepeFlag ^= 1;
+		_cepeFlag = !_cepeFlag;
 		if (!_cepeFlag)
 			processVgaEvents();
 	}
 
-	if (_displayScreen) {
+	if (_displayFlag) {
 		displayScreen();
-		_displayScreen = false;
+		_displayFlag = 0;
 	}
 
 	_videoLockOut &= ~2;
 }
 
-void AGOSEngine_PuzzlePack::dimpIdle() {
+#ifdef ENABLE_AGOS2
+void AGOSEngine_DIMP::dimpIdle() {
 	int z, n;
 
 	_iconToggleCount++;
@@ -695,7 +694,7 @@ void AGOSEngine_PuzzlePack::dimpIdle() {
 								if (_variableArray[110] > 2)
 									break;
 								n = _rnd.getRandomNumber(6);
-								switch(n) {
+								switch (n) {
 									case(0): loadSoundFile("And01.wav");break;
 									case(1): loadSoundFile("And02.wav");break;
 									case(2): loadSoundFile("And03.wav");break;
@@ -710,7 +709,7 @@ void AGOSEngine_PuzzlePack::dimpIdle() {
 								if (_variableArray[111] > 2)
 									break;
 								n = _rnd.getRandomNumber(6);
-								switch(n) {
+								switch (n) {
 									case(0): loadSoundFile("And08.wav");break;
 									case(1): loadSoundFile("And09.wav");break;
 									case(2): loadSoundFile("And0a.wav");break;
@@ -725,7 +724,7 @@ void AGOSEngine_PuzzlePack::dimpIdle() {
 								if (_variableArray[112] > 2)
 									break;
 								n = _rnd.getRandomNumber(4);
-								switch(n) {
+								switch (n) {
 									case(0): loadSoundFile("And0f.wav");break;
 									case(1): loadSoundFile("And0g.wav");break;
 									case(2): loadSoundFile("And0h.wav");break;
@@ -758,5 +757,6 @@ void AGOSEngine_PuzzlePack::dimpIdle() {
 		}
 	}
 }
+#endif
 
 } // End of namespace AGOS

@@ -18,16 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_v2.h"
 #include "kyra/screen_v2.h"
-#include "kyra/wsamovie.h"
-
-#include "common/endian.h"
 
 namespace Kyra {
 
@@ -141,7 +135,7 @@ void KyraEngine_v2::flagAnimObjsSpecialRefresh() {
 }
 
 void KyraEngine_v2::addItemToAnimList(int item) {
-	assert(item < _itemListSize);
+	assert(item >= 0 && item < _itemListSize);
 
 	restorePage3();
 
@@ -190,5 +184,5 @@ void KyraEngine_v2::deleteItemAnimEntry(int item) {
 	_animList = deleteAnimListEntry(_animList, animObj);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

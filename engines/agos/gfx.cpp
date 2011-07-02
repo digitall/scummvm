@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "graphics/surface.h"
 
@@ -226,6 +224,7 @@ bool AGOSEngine::drawImage_clip(VC10_state *state) {
 	return (state->draw_width != 0 && state->draw_height != 0);
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::scaleClip(int16 h, int16 w, int16 y, int16 x, int16 scrollY) {
 	Common::Rect srcRect, dstRect;
 	float factor, xscale;
@@ -461,6 +460,7 @@ void AGOSEngine_Feeble::drawImage(VC10_state *state) {
 		} while (--state->draw_height);
 	}
 }
+#endif
 
 void AGOSEngine_Simon1::drawMaskedImage(VC10_state *state) {
 	if (getGameType() == GType_SIMON1 && (_windowNum == 3 || _windowNum == 4 || _windowNum >= 10)) {
@@ -728,7 +728,7 @@ void AGOSEngine_Simon1::drawImage(VC10_state *state) {
 		state->paletteMod = 208;
 	}
 
-	if (_backFlag == 1) {
+	if (_backFlag) {
 		drawBackGroundImage(state);
 	} else if (state->flags & kDFMasked) {
 		drawMaskedImage(state);
@@ -776,7 +776,7 @@ void AGOSEngine::drawVertImage(VC10_state *state) {
 }
 
 void AGOSEngine::drawVertImageUncompressed(VC10_state *state) {
-	assert ((state->flags & kDFCompressed) == 0) ;
+	assert((state->flags & kDFCompressed) == 0);
 
 	const byte *src;
 	byte *dst;
@@ -802,7 +802,7 @@ void AGOSEngine::drawVertImageUncompressed(VC10_state *state) {
 }
 
 void AGOSEngine::drawVertImageCompressed(VC10_state *state) {
-	assert (state->flags & kDFCompressed) ;
+	assert(state->flags & kDFCompressed);
 	uint w, h;
 
 	state->x_skip *= 4;				/* reached */
@@ -945,7 +945,7 @@ void AGOSEngine::drawImage(VC10_state *state) {
 	if (getGameType() == GType_ELVIRA2 && getPlatform() == Common::kPlatformAtariST && yoffs > 133)
 		state->palette = 208;
 
-	if (_backFlag == 1) {
+	if (_backFlag) {
 		drawBackGroundImage(state);
 	} else {
 		drawVertImage(state);
@@ -1039,7 +1039,7 @@ void AGOSEngine::paletteFadeOut(byte *palPtr, uint num, uint size) {
 			p[2] -= size;
 		else
 			p[2] = 0;
-		p += 4;
+		p += 3;
 	} while (--num);
 }
 
@@ -1260,7 +1260,6 @@ void AGOSEngine::setImage(uint16 vgaSpriteId, bool vgaScript) {
 	_vcPtr = vc_ptr_org;
 }
 
-#ifdef ENABLE_PN
 void AGOSEngine_PN::setWindowImageEx(uint16 mode, uint16 vga_res) {
 	if (!_initMouse) {
 		_initMouse = 1;
@@ -1268,7 +1267,6 @@ void AGOSEngine_PN::setWindowImageEx(uint16 mode, uint16 vga_res) {
 	}
 	setWindowImage(mode, vga_res);
 }
-#endif
 
 void AGOSEngine::setWindowImageEx(uint16 mode, uint16 vgaSpriteId) {
 	_window3Flag = 0;
@@ -1351,7 +1349,7 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 
 	if (getGameType() == GType_FF || getGameType() == GType_PP) {
 		fillBackGroundFromBack();
-		_syncFlag2 = 1;
+		_syncFlag2 = true;
 	} else {
 		_copyScnFlag = 2;
 		_vgaSpriteChanged++;

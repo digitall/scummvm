@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_DISK_H
@@ -29,13 +26,20 @@
 #define PATH_LEN 200
 
 #include "common/archive.h"
-#include "common/fs.h"
-#include "common/file.h"
+#include "common/str.h"
 
-#include "graphics/surface.h"
 #include "graphics/iff.h"
 
+namespace Common {
+class FSDirectory;
+class ReadStream;
+class SeekableReadStream;
+struct IFFChunk;
+}
 
+namespace Graphics {
+struct Surface;
+}
 
 namespace Parallaction {
 
@@ -184,8 +188,8 @@ protected:
 	void unpackBitmap(byte *dst, byte *src, uint16 numFrames, uint16 bytesPerPlane, uint16 height);
 	Common::SeekableReadStream *tryOpenFile(const char* name);
 	Font *createFont(const char *name, Common::SeekableReadStream &stream);
-	void loadMask(BackgroundInfo& info, const char *name);
-	void loadPath(BackgroundInfo& info, const char *name);
+	void loadMask_internal(BackgroundInfo& info, const char *name);
+	void loadPath_internal(BackgroundInfo& info, const char *name);
 	void loadBackground(BackgroundInfo& info, const char *name);
 	void buildMask(byte* buf);
 
@@ -224,8 +228,8 @@ protected:
 	uint16			_language;
 	Common::String		_currentPart;
 
-	Common::SeekableReadStream *tryOpenFile(const Common::String &name, const Common::String &ext = Common::String::emptyString);
-	Common::SeekableReadStream *openFile(const Common::String &name, const Common::String &ext = Common::String::emptyString);
+	Common::SeekableReadStream *tryOpenFile(const Common::String &name, const Common::String &ext = Common::String());
+	Common::SeekableReadStream *openFile(const Common::String &name, const Common::String &ext = Common::String());
 	void errorFileNotFound(const Common::String &filename);
 
 public:

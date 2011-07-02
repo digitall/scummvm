@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Music class
@@ -28,11 +25,12 @@
 #ifndef TINSEL_MUSIC_H
 #define TINSEL_MUSIC_H
 
-#include "sound/mididrv.h"
-#include "sound/midiparser.h"
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/midiplayer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 #include "common/mutex.h"
+
+class MidiParser;
 
 namespace Tinsel {
 
@@ -40,9 +38,9 @@ bool PlayMidiSequence(		// Plays the specified MIDI sequence through the sound d
 	uint32 dwFileOffset,		// handle of MIDI sequence data
 	bool bLoop);			// Whether to loop the sequence
 
-bool MidiPlaying(void);		// Returns TRUE if a Midi tune is currently playing
+bool MidiPlaying();		// Returns TRUE if a Midi tune is currently playing
 
-bool StopMidi(void);		// Stops any currently playing midi
+bool StopMidi();		// Stops any currently playing midi
 
 void SetMidiVolume(		// Sets the volume of the MIDI music. Returns the old volume
 	int vol);		// new volume - 0..MAXMIDIVOL
@@ -60,57 +58,24 @@ SCNHANDLE GetTrackOffset(int trackNumber);
 
 void dumpMusic();
 
-class MidiMusicPlayer : public MidiDriver {
+class MidiMusicPlayer : public Audio::MidiPlayer {
 public:
-	MidiMusicPlayer(MidiDriver *driver);
-	~MidiMusicPlayer();
+	MidiMusicPlayer();
 
-	bool isPlaying() { return _isPlaying; }
-	void setPlaying(bool playing) { _isPlaying = playing; }
-
-	void setVolume(int volume);
-	int getVolume() { return _masterVolume; }
+	virtual void setVolume(int volume);
 
 	void playXMIDI(byte *midiData, uint32 size, bool loop);
 
-	void stop();
+//	void stop();
 	void pause();
 	void resume();
-	void setLoop(bool loop) { _looping = loop; }
 
-	//MidiDriver interface implementation
-	int open();
-	void close();
-	void send(uint32 b);
-
-	void metaEvent(byte type, byte *data, uint16 length);
-
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
+	// MidiDriver_BASE interface implementation
+	virtual void send(uint32 b);
 
 	// The original sets the "sequence timing" to 109 Hz, whatever that
 	// means. The default is 120.
-
-	uint32 getBaseTempo(void)	{ return _driver ? (109 * _driver->getBaseTempo()) / 120 : 0; }
-
-	//Channel allocation functions
-	MidiChannel *allocateChannel()		{ return 0; }
-	MidiChannel *getPercussionChannel()	{ return 0; }
-
-	MidiParser *_parser;
-	Common::Mutex _mutex;
-
-protected:
-
-	static void onTimer(void *data);
-
-	MidiChannel *_channel[16];
-	MidiDriver *_driver;
-	MidiParser *_xmidiParser;
-	byte _channelVolume[16];
-
-	bool _isPlaying;
-	bool _looping;
-	byte _masterVolume;
+	uint32 getBaseTempo()	{ return _driver ? (109 * _driver->getBaseTempo()) / 120 : 0; }
 };
 
 class PCMMusicPlayer : public Audio::AudioStream {
@@ -180,7 +145,7 @@ protected:
 	int32 _scriptIndex;
 	SCNHANDLE _hScript;
 	SCNHANDLE _hSegment;
-	char *_fileName;
+	Common::String _filename;
 
 	uint8 _volume;
 

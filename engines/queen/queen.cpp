@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "base/plugins.h"
@@ -31,7 +28,9 @@
 #include "common/savefile.h"
 #include "common/system.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
+#include "common/textconsole.h"
+
+#include "engines/util.h"
 
 #include "queen/queen.h"
 #include "queen/bankman.h"
@@ -70,7 +69,7 @@ public:
 };
 
 const char *QueenMetaEngine::getName() const {
-	return "Flight of the Amazon Queen";
+	return "Queen";
 }
 
 const char *QueenMetaEngine::getOriginalCopyright() const {
@@ -141,7 +140,7 @@ GameList QueenMetaEngine::detectGames(const Common::FSList &fslist) const {
 
 SaveStateList QueenMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringList filenames;
+	Common::StringArray filenames;
 	char saveDesc[32];
 	Common::String pattern("queen.s??");
 
@@ -149,7 +148,7 @@ SaveStateList QueenMetaEngine::listSaves(const char *target) const {
 	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
 
 	SaveStateList saveList;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 2 digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + file->size() - 2);
 
@@ -169,11 +168,8 @@ SaveStateList QueenMetaEngine::listSaves(const char *target) const {
 }
 
 void QueenMetaEngine::removeSaveState(const char *target, int slot) const {
-	char extension[6];
-	snprintf(extension, sizeof(extension), ".s%02d", slot);
-
 	Common::String filename = target;
-	filename += extension;
+	filename += Common::String::format(".s%02d", slot);
 
 	g_system->getSavefileManager()->removeSavefile(filename);
 }
@@ -193,8 +189,7 @@ Common::Error QueenMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 namespace Queen {
 
 QueenEngine::QueenEngine(OSystem *syst)
-	: Engine(syst), _debugger(0) {
-	g_eventRec.registerRandomSource(randomizer, "queen");
+	: Engine(syst), _debugger(0), randomizer("queen") {
 }
 
 QueenEngine::~QueenEngine() {
@@ -238,14 +233,20 @@ void QueenEngine::checkOptionSettings() {
 }
 
 void QueenEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
 	readOptionSettings();
 }
 
 void QueenEngine::readOptionSettings() {
+	bool mute = false;
+	if (ConfMan.hasKey("mute"))
+		mute = ConfMan.getBool("mute");
+
 	_sound->setVolume(ConfMan.getInt("music_volume"));
-	_sound->musicToggle(!ConfMan.getBool("music_mute"));
-	_sound->sfxToggle(!ConfMan.getBool("sfx_mute"));
-	_sound->speechToggle(!ConfMan.getBool("speech_mute"));
+	_sound->musicToggle(!(mute || ConfMan.getBool("music_mute")));
+	_sound->sfxToggle(!(mute || ConfMan.getBool("sfx_mute")));
+	_sound->speechToggle(!(mute || ConfMan.getBool("speech_mute")));
 	_talkSpeed = (ConfMan.getInt("talkspeed") * (MAX_TEXT_SPEED - MIN_TEXT_SPEED) + 255 / 2) / 255 + MIN_TEXT_SPEED;
 	_subtitles = ConfMan.getBool("subtitles");
 	checkOptionSettings();
@@ -262,9 +263,7 @@ void QueenEngine::writeOptionSettings() {
 }
 
 void QueenEngine::update(bool checkPlayerInput) {
-	if (_debugger->isAttached()) {
-		_debugger->onFrame();
-	}
+	_debugger->onFrame();
 
 	_graphics->update(_logic->currentRoom());
 	_logic->update();
@@ -316,7 +315,7 @@ bool QueenEngine::canLoadOrSave() const {
 	return !_input->cutawayRunning() && !(_resource->isDemo() || _resource->isInterview());
 }
 
-Common::Error QueenEngine::saveGameState(int slot, const char *desc) {
+Common::Error QueenEngine::saveGameState(int slot, const Common::String &desc) {
 	debug(3, "Saving game to slot %d", slot);
 	char name[20];
 	Common::Error err = Common::kNoError;
@@ -339,9 +338,8 @@ Common::Error QueenEngine::saveGameState(int slot, const char *desc) {
 		file->writeUint32BE(0);
 		file->writeUint32BE(dataSize);
 		char description[32];
-		memset(description, 0, 32);
-		strncpy(description, desc, 31);
-		file->write(description, 32);
+		Common::strlcpy(description, desc.c_str(), sizeof(description));
+		file->write(description, sizeof(description));
 
 		// write save data
 		file->write(saveData, dataSize);
@@ -398,7 +396,7 @@ Common::InSaveFile *QueenEngine::readGameStateHeader(int slot, GameStateHeader *
 	char name[20];
 	makeGameStateName(slot, name);
 	Common::InSaveFile *file = _saveFileMan->openForLoading(name);
-	if (file && file->readUint32BE() == MKID_BE('SCVM')) {
+	if (file && file->readUint32BE() == MKTAG('S','C','V','M')) {
 		gsh->version = file->readUint32BE();
 		gsh->flags = file->readUint32BE();
 		gsh->dataSize = file->readUint32BE();
@@ -423,7 +421,7 @@ void QueenEngine::makeGameStateName(int slot, char *buf) const {
 int QueenEngine::getGameStateSlot(const char *filename) const {
 	int i = -1;
 	const char *slot = strrchr(filename, '.');
-	if (slot && slot[1] == 's') {
+	if (slot && (slot[1] == 's' || slot[1] == 'S')) {
 		i = atoi(slot + 2);
 	}
 	return i;
@@ -432,8 +430,8 @@ int QueenEngine::getGameStateSlot(const char *filename) const {
 void QueenEngine::findGameStateDescriptions(char descriptions[100][32]) {
 	char prefix[20];
 	makeGameStateName(SLOT_LISTPREFIX, prefix);
-	Common::StringList filenames = _saveFileMan->listSavefiles(prefix);
-	for (Common::StringList::const_iterator it = filenames.begin(); it != filenames.end(); ++it) {
+	Common::StringArray filenames = _saveFileMan->listSavefiles(prefix);
+	for (Common::StringArray::const_iterator it = filenames.begin(); it != filenames.end(); ++it) {
 		int i = getGameStateSlot(it->c_str());
 		if (i >= 0 && i < SAVESTATE_MAX_NUM) {
 			GameStateHeader header;
@@ -471,11 +469,14 @@ Common::Error QueenEngine::run() {
 	}
 
 	_sound = Sound::makeSoundInstance(_mixer, this, _resource->getCompression());
+
 	_walk = new Walk(this);
 	//_talkspeedScale = (MAX_TEXT_SPEED - MIN_TEXT_SPEED) / 255.0;
 
 	registerDefaultSettings();
-	readOptionSettings();
+
+	// Setup mixer
+	syncSoundSettings();
 
 	_logic->start();
 	if (ConfMan.hasKey("save_slot") && canLoadOrSave()) {

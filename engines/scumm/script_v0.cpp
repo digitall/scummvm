@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
 #include "scumm/object.h"
+#include "scumm/resource.h"
 #include "scumm/scumm_v0.h"
 #include "scumm/verbs.h"
 
@@ -357,8 +355,6 @@ void ScummEngine_v0::setupOpcodes() {
 	OPCODE(0xff, o2_ifState02);
 }
 
-#define SENTENCE_SCRIPT 2
-
 int ScummEngine_v0::getVarOrDirectWord(byte mask) {
 	return getVarOrDirectByte(mask);
 }
@@ -413,7 +409,7 @@ void ScummEngine_v0::decodeParseString() {
 void ScummEngine_v0::drawSentenceWord(int object, bool usePrep, bool objInInventory) {
 	const byte *temp;
 	int sentencePrep = 0;
-	
+
 	// If object not in inventory, we except an index
 	if (!objInInventory)
 		_v0ObjectIndex = true;
@@ -427,8 +423,8 @@ void ScummEngine_v0::drawSentenceWord(int object, bool usePrep, bool objInInvent
 
 	// Append the 'object-name'
 	if (temp) {
-		strcat(_sentenceBuf, " ");
-		strcat(_sentenceBuf, (const char*)temp);
+		_sentenceBuf += " ";
+		_sentenceBuf += (const char *)temp;
 	}
 
 	// Append the modifier? (With / On / To / In)
@@ -471,7 +467,7 @@ void ScummEngine_v0::drawSentenceWord(int object, bool usePrep, bool objInInvent
 			lang = 0;	// Default to english
 		}
 
-		strcat(_sentenceBuf, prepositions[lang][sentencePrep]);
+		_sentenceBuf += prepositions[lang][sentencePrep];
 	}
 }
 
@@ -484,7 +480,7 @@ void ScummEngine_v0::drawSentence() {
 
 	// Current Verb, Walk/Use
 	if (getResourceAddress(rtVerb, _activeVerb)) {
-		strcpy(_sentenceBuf, (char*)getResourceAddress(rtVerb, _activeVerb));
+		_sentenceBuf = (char *)getResourceAddress(rtVerb, _activeVerb);
 	} else {
 		return;
 	}
@@ -499,7 +495,7 @@ void ScummEngine_v0::drawSentence() {
 		else
 			inventoryFirst = true;
 	}
-		
+
 
 	// Draw the inventory?
 	if (_activeInventory > 0 && _activeObject2 == 0) {
@@ -513,8 +509,8 @@ void ScummEngine_v0::drawSentence() {
 			} else // Room based
 				drawSentenceWord(_activeObjectIndex, inventoryFirst, false);
 		}
-	
-	// Draw the 2nd active object 
+
+	// Draw the 2nd active object
 	} else if (_activeObject2) {
 
 		// 2nd Object is in inventory
@@ -529,9 +525,9 @@ void ScummEngine_v0::drawSentence() {
 	// Draw the active actor
 	if (_activeActor) {
 		Actor *a = derefActor(_activeActor, "");
-		
-		strcat(_sentenceBuf, " ");
-		strcat(_sentenceBuf, (const char*)a->getActorName());
+
+		_sentenceBuf += " ";
+		_sentenceBuf += (const char *)a->getActorName();
 	}
 
 	_string[2].charset = 1;
@@ -541,7 +537,7 @@ void ScummEngine_v0::drawSentence() {
 	_string[2].color = 16;
 
 	byte string[80];
-	char *ptr = _sentenceBuf;
+	const char *ptr = _sentenceBuf.c_str();
 	int i = 0, len = 0;
 
 	// Maximum length of printable characters
@@ -564,7 +560,7 @@ void ScummEngine_v0::drawSentence() {
 	sentenceline.right = _virtscr[kVerbVirtScreen].w - 1;
 	restoreBackground(sentenceline);
 
-	drawString(2, (byte*)string);
+	drawString(2, (byte *)string);
 }
 
 void ScummEngine_v0::o_stopCurrentScript() {
@@ -637,7 +633,18 @@ void ScummEngine_v0::o_loadRoomWithEgo() {
 
 	a = derefActor(VAR(VAR_EGO), "o_loadRoomWithEgo");
 
-	a->putActor(0, 0, room);
+	//0x634F
+	if (((ActorC64 *)a)->_miscflags & 0x40) {
+		// TODO: Check if this is the correct function
+		// to be calling here
+		stopObjectCode();
+		return;
+	}
+
+	// The original interpreter seems to set the actors new room X/Y to the last rooms X/Y
+	// This fixes a problem with MM: script 158 in room 12, the 'Oompf!' script
+	// This scripts runs before the actor position is set to the correct location
+	a->putActor(a->getPos().x, a->getPos().y, room);
 	_egoPositioned = false;
 
 	startScene(a->_room, a, obj);
@@ -655,7 +662,7 @@ void ScummEngine_v0::o_loadRoomWithEgo() {
 
 	_fullRedraw = true;
 
-	resetSentence();
+	resetSentence(false);
 
 	if (x >= 0 && y >= 0) {
 		a->startWalkActor(x, y, -1);
@@ -782,7 +789,7 @@ void ScummEngine_v0::o_pickupObject() {
 
 	if (whereIsObjectInventory(_activeObject2) == WIO_INVENTORY)	/* Don't take an */
 		return;					/* object twice */
-	
+
 	addObjectToInventory(obj, _roomResource);
 	markObjectRectAsDirty(obj);
 	putOwner(obj, VAR(VAR_EGO));
@@ -805,7 +812,7 @@ void ScummEngine_v0::o_setActorBitVar() {
 	byte act = getVarOrDirectByte(PARAM_1);
 	byte mask = getVarOrDirectByte(PARAM_2);
 	byte mod = getVarOrDirectByte(PARAM_3);
-	
+
 	// 0x63ED
 	if (act >= _numActors)
 		return;
@@ -816,6 +823,12 @@ void ScummEngine_v0::o_setActorBitVar() {
 		a->_miscflags |= mask;
 	else
 		a->_miscflags &= ~mask;
+
+	// This flag causes the actor to stop moving (used by script #158, Green Tentacle 'Oomph!')
+	if (a->_miscflags & 0x40)
+		a->stopActorMoving();
+	if (a->_miscflags & 0x80)
+		a->setActorCostume(0);
 
 	debug(0, "o_setActorBitVar(%d, %d, %d)", act, mask, mod);
 }
@@ -919,8 +932,7 @@ void ScummEngine_v0::o_cutscene() {
 	setUserState(15);
 
 	_sentenceNum = 0;
-	stopScript(SENTENCE_SCRIPT);
-	resetSentence();
+	resetSentence(false);
 
 	vm.cutScenePtr[0] = 0;
 }
@@ -975,7 +987,10 @@ void ScummEngine_v0::o_setOwnerOf() {
 void ScummEngine_v0::resetSentence(bool walking) {
 	_activeVerb = 13;
 
-	if (!walking) {
+	// If the actor is walking, or the screen is a keypad (no sentence verbs/objects are drawn)
+	// Then reset all active objects (stops the radio crash, bug #3077966)
+	if (!walking || !(_userState & 32)) {
+		_v0ObjectFlag = 0;
 		_activeInventory = 0;
 		_activeObject = 0;
 		_activeObject2 = 0;

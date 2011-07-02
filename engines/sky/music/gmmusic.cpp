@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sky/music/gmmusic.h"
@@ -28,7 +25,8 @@
 #include "sky/sky.h"
 #include "common/util.h"
 #include "common/endian.h"
-#include "sound/mididrv.h"
+#include "common/textconsole.h"
+#include "audio/mididrv.h"
 
 namespace Sky {
 
@@ -44,16 +42,17 @@ GmMusic::GmMusic(MidiDriver *pMidiDrv, Disk *pDisk) : MusicBase(pDisk) {
 		error("Can't open midi device. Errorcode: %d", midiRes);
 	_timerCount = 0;
 	_midiDrv->setTimerCallback(this, passTimerFunc);
+	_midiDrv->sendGMReset();
 }
 
-GmMusic::~GmMusic(void) {
+GmMusic::~GmMusic() {
 	_midiDrv->setTimerCallback(NULL, NULL);
 	if (_currentMusic)
 		stopMusic();
 	// Send All Sound Off and All Notes Off (for external synths)
 	for (int i = 0; i < 16; i++) {
-		_midiDrv->send ((120 << 8) | 0xB0 | i);
-		_midiDrv->send ((123 << 8) | 0xB0 | i);
+		_midiDrv->send((120 << 8) | 0xB0 | i);
+		_midiDrv->send((123 << 8) | 0xB0 | i);
 	}
 	_midiDrv->close();
 	delete _midiDrv;
@@ -65,7 +64,7 @@ void GmMusic::setVolume(uint16 param) {
 		_channels[cnt]->updateVolume(_musicVolume);
 }
 
-void GmMusic::timerCall(void) {
+void GmMusic::timerCall() {
 	_timerCount += _midiDrv->getBaseTempo();
 	if (_timerCount > (1000 * 1000 / 50)) {
 		// call pollMusic() 50 times per second
@@ -75,7 +74,7 @@ void GmMusic::timerCall(void) {
 	}
 }
 
-void GmMusic::setupPointers(void) {
+void GmMusic::setupPointers() {
 	if (SkyEngine::_systemVars.gameVersion == 109) {
 		_musicDataLoc = READ_LE_UINT16(_musicData + 0x79B);
 		_sysExSequence = _musicData + 0x1EF2;
@@ -95,7 +94,7 @@ void GmMusic::setupChannels(uint8 *channelData) {
 	}
 }
 
-void GmMusic::startDriver(void) {
+void GmMusic::startDriver() {
 	// Send GM System On to reset channel parameters etc.
 	uint8 sysEx[] = { 0x7e, 0x7f, 0x09, 0x01 };
 	_midiDrv->sysEx(sysEx, sizeof(sysEx));

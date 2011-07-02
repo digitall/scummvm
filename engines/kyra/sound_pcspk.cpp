@@ -18,15 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/sound_intern.h"
 
-#include "sound/mixer.h"
-#include "sound/softsynth/pcspk.h"
+#include "audio/mixer.h"
+#include "audio/softsynth/pcspk.h"
 
 namespace Kyra {
 
@@ -41,7 +38,7 @@ MidiDriver_PCSpeaker::MidiDriver_PCSpeaker(Audio::Mixer *mixer)
 
 	_speaker = new Audio::PCSpeaker(_rate);
 	assert(_speaker);
-	_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_mixerSoundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, false, true);
+	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_mixerSoundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 
 	_countdown = 0xFFFF;
 	_hardwareChannel[0] = 0xFF;
@@ -366,5 +363,5 @@ const uint8 MidiDriver_PCSpeaker::_noteTable2[] = {
 	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

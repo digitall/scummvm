@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -29,10 +26,12 @@
 
 #include "common/util.h"
 #include "common/system.h"
+#include "common/endian.h"
 
 #include "scumm/imuse/imuse.h"
 #include "scumm/imuse/imuse_internal.h"
 #include "scumm/imuse/instrument.h"
+#include "scumm/resource.h"
 #include "scumm/saveload.h"
 #include "scumm/scumm.h"
 
@@ -50,14 +49,12 @@ _enable_gs(false),
 _sc55(false),
 _midi_adlib(NULL),
 _midi_native(NULL),
-_base_sounds(NULL),
 _sysex(NULL),
 _paused(false),
 _initialized(false),
 _tempoFactor(0),
 _player_limit(ARRAYSIZE(_players)),
 _recycle_players(false),
-_direct_passthrough(false),
 _queue_end(0),
 _queue_pos(0),
 _queue_sound(0),
@@ -73,12 +70,47 @@ _snm_trigger_index(0) {
 	memset(_volchan_table,0,sizeof(_volchan_table));
 }
 
-byte *IMuseInternal::findStartOfSound(int sound) {
-	byte *ptr = NULL;
+IMuseInternal::~IMuseInternal() {
+	// Do just enough stuff inside the mutex to
+	// make sure any MIDI timing threads won't
+	// interrupt us, and then do the rest outside
+	// the mutex.
+	{
+		Common::StackLock lock(_mutex, "IMuseInternal::~IMuseInternal()");
+		_initialized = false;
+		stopAllSounds_internal();
+	}
+
+	if (_midi_adlib) {
+		_midi_adlib->close();
+		delete _midi_adlib;
+		_midi_adlib = 0;
+	}
+
+	if (_midi_native) {
+		if (_native_mt32) {
+			// Reset the MT-32
+			_midi_native->sysEx((const byte *) "\x41\x10\x16\x12\x7f\x00\x00\x01\x00", 9);
+			_system->delayMillis(250);
+		}
+
+		_midi_native->close();
+		delete _midi_native;
+		_midi_native = 0;
+	}
+}
+
+byte *IMuseInternal::findStartOfSound(int sound, int ct) {
 	int32 size, pos;
 
-	if (_base_sounds)
-		ptr = _base_sounds[sound];
+	static const uint32 id[] = {
+		MKTAG('M', 'T', 'h', 'd'),
+		MKTAG('F', 'O', 'R', 'M'),
+		MKTAG('M', 'D', 'h', 'd'),
+		MKTAG('M', 'D', 'p', 'g')
+	};
+
+	byte *ptr = g_scumm->_res->_types[rtSound][sound]._address;
 
 	if (ptr == NULL) {
 		debug(1, "IMuseInternal::findStartOfSound(): Sound %d doesn't exist", sound);
@@ -86,12 +118,13 @@ byte *IMuseInternal::findStartOfSound(int sound) {
 	}
 
 	// Check for old-style headers first, like 'RO'
-	if (ptr[4] == 'R' && ptr[5] == 'O'&& ptr[6] != 'L')
-		return ptr + 4;
-	if (ptr[8] == 'S' && ptr[9] == 'O')
-		return ptr + 8;
+	int trFlag = (kMThd | kFORM);
+	if (ptr[0] == 'R' && ptr[1] == 'O'&& ptr[2] != 'L')
+		return ct == trFlag ? ptr : 0;
+	if (ptr[4] == 'S' && ptr[5] == 'O')
+		return ct == trFlag ? ptr + 4 : 0;
 
-	ptr += 8;
+	ptr += 4;
 	size = READ_BE_UINT32(ptr);
 	ptr += 4;
 
@@ -100,55 +133,54 @@ byte *IMuseInternal::findStartOfSound(int sound) {
 	size = 48; // Arbitrary; we should find our tag within the first 48 bytes of the resource
 	pos = 0;
 	while (pos < size) {
-		if (!memcmp(ptr + pos, "MThd", 4) || !memcmp(ptr + pos, "FORM", 4))
-			return ptr + pos;
+		for (int i = 0; i < ARRAYSIZE(id); ++i) {
+			if ((ct & (1 << i)) && (READ_BE_UINT32(ptr + pos) == id[i]))
+				return ptr + pos;
+		}
 		++pos; // We could probably iterate more intelligently
 	}
 
-	debug(3, "IMuseInternal::findStartOfSound(): Failed to align on sound %d", sound);
+	if (ct == (kMThd | kFORM))
+		debug(3, "IMuseInternal::findStartOfSound(): Failed to align on sound %d", sound);
+
 	return 0;
 }
 
 bool IMuseInternal::isMT32(int sound) {
-	byte *ptr = NULL;
-	uint32 tag;
-
-	if (_base_sounds)
-		ptr = _base_sounds[sound];
-
+	byte *ptr = g_scumm->_res->_types[rtSound][sound]._address;
 	if (ptr == NULL)
 		return false;
 
-	tag = READ_BE_UINT32(ptr + 4);
+	uint32 tag = READ_BE_UINT32(ptr);
 	switch (tag) {
-	case MKID_BE('ADL '):
-	case MKID_BE('ASFX'): // Special AD class for old Adlib sound effects
-	case MKID_BE('SPK '):
+	case MKTAG('A','D','L',' '):
+	case MKTAG('A','S','F','X'): // Special AD class for old AdLib sound effects
+	case MKTAG('S','P','K',' '):
 		return false;
 
-	case MKID_BE('AMI '):
-	case MKID_BE('ROL '):
+	case MKTAG('A','M','I',' '):
+	case MKTAG('R','O','L',' '):
 		return true;
 
-	case MKID_BE('MAC '):	// Occurs in the Mac version of FOA and MI2
+	case MKTAG('M','A','C',' '):	// Occurs in the Mac version of FOA and MI2
 		return true;
 
-	case MKID_BE('GMD '):
+	case MKTAG('G','M','D',' '):
 		return false;
 
-	case MKID_BE('MIDI'):	// Occurs in Sam & Max
+	case MKTAG('M','I','D','I'):	// Occurs in Sam & Max
 		// HE games use Roland music
-		if (ptr[12] == 'H' && ptr[13] == 'S')
+		if (ptr[8] == 'H' && ptr[9] == 'S')
 			return true;
 		else
 			return false;
 	}
 
 	// Old style 'RO' has equivalent properties to 'ROL'
-	if (ptr[4] == 'R' && ptr[5] == 'O')
+	if (ptr[0] == 'R' && ptr[1] == 'O')
 		return true;
 	// Euphony tracks show as 'SO' and have equivalent properties to 'ADL'
-	if (ptr[8] == 'S' && ptr[9] == 'O')
+	if (ptr[4] == 'S' && ptr[5] == 'O')
 		return false;
 
 	error("Unknown music type: '%c%c%c%c'", (char)tag >> 24, (char)tag >> 16, (char)tag >> 8, (char)tag);
@@ -157,40 +189,35 @@ bool IMuseInternal::isMT32(int sound) {
 }
 
 bool IMuseInternal::isMIDI(int sound) {
-	byte *ptr = NULL;
-	uint32 tag;
-
-	if (_base_sounds)
-		ptr = _base_sounds[sound];
-
+	byte *ptr = g_scumm->_res->_types[rtSound][sound]._address;
 	if (ptr == NULL)
 		return false;
 
-	tag = READ_BE_UINT32(ptr + 4);
+	uint32 tag = READ_BE_UINT32(ptr);
 	switch (tag) {
-	case MKID_BE('ADL '):
-	case MKID_BE('ASFX'): // Special AD class for old Adlib sound effects
-	case MKID_BE('SPK '):
+	case MKTAG('A','D','L',' '):
+	case MKTAG('A','S','F','X'): // Special AD class for old AdLib sound effects
+	case MKTAG('S','P','K',' '):
 		return false;
 
-	case MKID_BE('AMI '):
-	case MKID_BE('ROL '):
+	case MKTAG('A','M','I',' '):
+	case MKTAG('R','O','L',' '):
 		return true;
 
-	case MKID_BE('MAC '):	// Occurs in the Mac version of FOA and MI2
+	case MKTAG('M','A','C',' '):	// Occurs in the Mac version of FOA and MI2
 		return true;
 
-	case MKID_BE('GMD '):
-	case MKID_BE('MIDI'):	// Occurs in Sam & Max
+	case MKTAG('G','M','D',' '):
+	case MKTAG('M','I','D','I'):	// Occurs in Sam & Max
 		return true;
 	}
 
 	// Old style 'RO' has equivalent properties to 'ROL'
-	if (ptr[4] == 'R' && ptr[5] == 'O')
+	if (ptr[0] == 'R' && ptr[1] == 'O')
 		return true;
 	// Euphony tracks show as 'SO' and have equivalent properties to 'ADL'
 	// FIXME: Right now we're pretending it's GM.
-	if (ptr[8] == 'S' && ptr[9] == 'O')
+	if (ptr[4] == 'S' && ptr[5] == 'O')
 		return true;
 
 	error("Unknown music type: '%c%c%c%c'", (char)tag >> 24, (char)tag >> 16, (char)tag >> 8, (char)tag);
@@ -205,7 +232,7 @@ MidiDriver *IMuseInternal::getBestMidiDriver(int sound) {
 		if (_midi_native) {
 			driver = _midi_native;
 		} else {
-			// Route it through Adlib anyway.
+			// Route it through AdLib anyway.
 			driver = _midi_adlib;
 		}
 	} else {
@@ -397,11 +424,6 @@ int32 IMuseInternal::doCommand(int numargs, int a[]) {
 	return doCommand_internal(numargs, a);
 }
 
-void IMuseInternal::setBase(byte **base) {
-	Common::StackLock lock(_mutex, "IMuseInternal::setBase()");
-	_base_sounds = base;
-}
-
 uint32 IMuseInternal::property(int prop, uint32 value) {
 	Common::StackLock lock(_mutex, "IMuseInternal::property()");
 	switch (prop) {
@@ -442,10 +464,6 @@ uint32 IMuseInternal::property(int prop, uint32 value) {
 		_recycle_players = (value != 0);
 		break;
 
-	case IMuse::PROP_DIRECT_PASSTHROUGH:
-		_direct_passthrough = (value != 0);
-		break;
-
 	case IMuse::PROP_GAME_ID:
 		_game_id = value;
 		break;
@@ -461,7 +479,10 @@ void IMuseInternal::addSysexHandler(byte mfgID, sysexfunc handler) {
 	_sysex = handler;
 }
 
-
+void IMuseInternal::startSoundWithNoteOffset(int sound, int offset) {
+	Common::StackLock lock(_mutex, "IMuseInternal::startSound()");
+	startSound_internal(sound, offset);
+}
 
 ////////////////////////////////////////
 //
@@ -504,7 +525,7 @@ int IMuseInternal::getSoundStatus(int sound) const {
 	return getSoundStatus_internal (sound, true);
 }
 
-int IMuseInternal::getMusicTimer() const {
+int IMuseInternal::getMusicTimer() {
 	Common::StackLock lock(_mutex, "IMuseInternal::getMusicTimer()");
 	int best_time = 0;
 	const Player *player = _players;
@@ -518,36 +539,6 @@ int IMuseInternal::getMusicTimer() const {
 	return best_time;
 }
 
-void IMuseInternal::terminate() {
-	// Do just enough stuff inside the mutex to
-	// make sure any MIDI timing threads won't
-	// interrupt us, and then do the rest outside
-	// the mutex.
-	{
-		Common::StackLock lock(_mutex, "IMuseInternal::terminate()");
-		_initialized = false;
-		stopAllSounds_internal();
-	}
-
-	if (_midi_adlib) {
-		_midi_adlib->close();
-		delete _midi_adlib;
-		_midi_adlib = 0;
-	}
-
-	if (_midi_native) {
-		if (_native_mt32) {
-			// Reset the MT-32
-			_midi_native->sysEx((const byte *) "\x41\x10\x16\x12\x7f\x00\x00\x01\x00", 9);
-			_system->delayMillis(250);
-		}
-
-		_midi_native->close();
-		delete _midi_native;
-		_midi_native = 0;
-	}
-}
-
 ////////////////////////////////////////
 //
 // Internal versions of the IMuse and
@@ -559,7 +550,7 @@ void IMuseInternal::terminate() {
 //
 ////////////////////////////////////////
 
-bool IMuseInternal::startSound_internal(int sound) {
+bool IMuseInternal::startSound_internal(int sound, int offset) {
 	// Do not start a sound if it is already set to start on an ImTrigger
 	// event. This fixes carnival music problems where a sound has been set
 	// to trigger at the right time, but then is started up immediately
@@ -578,7 +569,7 @@ bool IMuseInternal::startSound_internal(int sound) {
 			return false;
 	}
 
-	void *ptr = findStartOfSound(sound);
+	byte *ptr = findStartOfSound(sound);
 	if (!ptr) {
 		debug(2, "IMuseInternal::startSound(): Couldn't find sound %d", sound);
 		return false;
@@ -598,8 +589,11 @@ bool IMuseInternal::startSound_internal(int sound) {
 	// Bug #590511 and Patch #607175 (which was reversed to fix
 	// an FOA regression: Bug #622606).
 	Player *player = findActivePlayer(sound);
-	if (!player)
-		player = allocate_player(128);
+	if (!player) {
+		ptr = findStartOfSound(sound, IMuseInternal::kMDhd);
+		player = allocate_player(ptr ? (READ_BE_UINT32(&ptr[4]) && ptr[10] ? ptr[10] : 128) : 128);
+	}
+
 	if (!player)
 		return false;
 
@@ -632,7 +626,8 @@ bool IMuseInternal::startSound_internal(int sound) {
 		ImClearTrigger(81, 1);
 
 	player->clear();
-	return player->startSound(sound, driver, _direct_passthrough);
+	player->setOffsetNote(offset);
+	return player->startSound(sound, driver);
 }
 
 int IMuseInternal::stopSound_internal(int sound) {
@@ -646,6 +641,7 @@ int IMuseInternal::stopSound_internal(int sound) {
 }
 
 int IMuseInternal::stopAllSounds_internal() {
+	clear_queue();
 	Player *player = _players;
 	for (int i = ARRAYSIZE(_players); i; i--, player++) {
 		if (player->isActive())
@@ -695,11 +691,11 @@ int32 IMuseInternal::doCommand_internal(int numargs, int a[]) {
 		return -1;
 
 	{
-		char string[128];
-		sprintf(string, "doCommand - %d (%d/%d)", a[0], (int)param, (int)cmd);
+		Common::String string = "doCommand - ";
+		string += Common::String::format("%d (%d/%d)", a[0], (int)param, (int)cmd);
 		for (i = 1; i < numargs; ++i)
-			sprintf(string + strlen(string), ", %d", a[i]);
-		debugC(DEBUG_IMUSE, string);
+			string += Common::String::format(", %d", a[i]);
+		debugC(DEBUG_IMUSE, "%s", string.c_str());
 	}
 
 	if (param == 0) {
@@ -946,54 +942,22 @@ void IMuseInternal::sequencer_timers(MidiDriver *midi) {
 }
 
 void IMuseInternal::handle_marker(uint id, byte data) {
-	uint16 *p = 0;
-	uint pos;
-
-	if (_queue_adding && _queue_sound == id && data == _queue_marker)
+	if ((_queue_end == _queue_pos) || (_queue_adding && _queue_sound == id && data == _queue_marker))
 		return;
 
-	// Fix for bug #733401, revised for bug #761637:
-	// It would seem that sometimes a marker is in the queue
-	// but not at the head position. In the case of our bug,
-	// this seems to be the result of commands in the queue
-	// for songs that are no longer playing. So we skip
-	// ahead to the appropriate marker, effectively chomping
-	// anything in the queue before it. This fixes the FOA
-	// end credits music, but needs to be tested for inappopriate
-	// behavior elsewhere.
-	pos = _queue_end;
-	while (pos != _queue_pos) {
-		p = _cmd_queue[pos].array;
-		if (p[0] == TRIGGER_ID && p[1] == id && p[2] == data)
-			break;
-		pos = (pos + 1) % ARRAYSIZE(_cmd_queue);
-	}
-
-	if (pos == _queue_pos)
+	uint16 *p = _cmd_queue[_queue_end].array;
+	if (p[0] != TRIGGER_ID || id != p[1] || data != p[2])
 		return;
-
-	if (pos != _queue_end)
-		debug(0, "Skipping entries in iMuse command queue to reach marker");
 
 	_trigger_count--;
 	_queue_cleared = false;
-	do {
-		pos = (pos + 1) % ARRAYSIZE(_cmd_queue);
-		if (_queue_pos == pos)
-			break;
-		p = _cmd_queue[pos].array;
-		if (*p++ != COMMAND_ID)
-			break;
-		_queue_end = pos;
+	_queue_end = (_queue_end + 1) % ARRAYSIZE(_cmd_queue);
 
-		doCommand_internal(p[0], p[1], p[2], p[3], p[4], p[5], p[6], 0);
-
-		if (_queue_cleared)
-			return;
-		pos = _queue_end;
-	} while (1);
-
-	_queue_end = pos;
+	while (_queue_end != _queue_pos && _cmd_queue[_queue_end].array[0] == COMMAND_ID && !_queue_cleared) {
+		p = _cmd_queue[_queue_end].array;
+		doCommand_internal(p[1], p[2], p[3], p[4], p[5], p[6], p[7], 0);
+		_queue_end = (_queue_end + 1) % ARRAYSIZE(_cmd_queue);
+	}
 }
 
 int IMuseInternal::get_channel_volume(uint a) {
@@ -1479,12 +1443,11 @@ void IMuseInternal::initGM(MidiDriver *midi) {
 	// General MIDI System On message
 	// Resets all GM devices to default settings
 	memcpy(&buffer[0], "\x7E\x7F\x09\x01", 4);
-	midi->sysEx(buffer, 6);
+	midi->sysEx(buffer, 4);
 	debug(2, "GM SysEx: GM System On");
 	_system->delayMillis(200);
 
 	if (_enable_gs) {
-
 		// All GS devices recognize the GS Reset command,
 		// even with Roland's ID. It is impractical to
 		// support other manufacturers' devices for
@@ -1705,13 +1668,13 @@ void IMuseInternal::reallocateMidiChannels(MidiDriver *midi) {
 	}
 }
 
-void IMuseInternal::setGlobalAdlibInstrument(byte slot, byte *data) {
+void IMuseInternal::setGlobalAdLibInstrument(byte slot, byte *data) {
 	if (slot < 32) {
 		_global_adlib_instruments[slot].adlib(data);
 	}
 }
 
-void IMuseInternal::copyGlobalAdlibInstrument(byte slot, Instrument *dest) {
+void IMuseInternal::copyGlobalAdLibInstrument(byte slot, Instrument *dest) {
 	if (slot >= 32)
 		return;
 	_global_adlib_instruments[slot].copy_to(dest);

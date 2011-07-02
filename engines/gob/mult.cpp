@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -109,7 +106,7 @@ Mult::~Mult() {
 	delete _multData;
 }
 
-void Mult::initAll(void) {
+void Mult::initAll() {
 	_objects = 0;
 	_animSurf.reset();
 	_renderData = 0;
@@ -117,7 +114,7 @@ void Mult::initAll(void) {
 	_vm->_scenery->init();
 }
 
-void Mult::freeAll(void) {
+void Mult::freeAll() {
 	freeMult();
 
 	for (int i = 0; i < 10; i++) {
@@ -146,15 +143,15 @@ void Mult::freeMult() {
 	_orderArray = 0;
 
 	_animSurf.reset();
-	_vm->_draw->freeSprite(22);
+	_vm->_draw->freeSprite(Draw::kAnimSurface);
 }
 
-void Mult::checkFreeMult(void) {
+void Mult::checkFreeMult() {
 	if (_multData)
 		freeMultKeys();
 }
 
-void Mult::zeroMultData(void) {
+void Mult::zeroMultData() {
 	_multData = 0;
 }
 
@@ -238,7 +235,7 @@ void Mult::playMult(int16 startFrame, int16 endFrame, char checkEscape,
 			_orderArray = 0;
 
 			_animSurf.reset();
-			_vm->_draw->freeSprite(22);
+			_vm->_draw->freeSprite(Draw::kAnimSurface);
 
 			_animDataAllocated = false;
 		}
@@ -295,8 +292,8 @@ void Mult::prepPalAnim(bool &stop) {
 		_multData->palAnimIndices[2] = 0;
 		_multData->palAnimIndices[3] = 0;
 
-		memcpy((char *) _palAnimPalette,
-				(char *) _vm->_global->_pPaletteDesc->vgaPal, 768);
+		memcpy((char *)_palAnimPalette,
+				(char *)_vm->_global->_pPaletteDesc->vgaPal, 768);
 		_vm->_global->_pPaletteDesc->vgaPal = _palAnimPalette;
 	}
 }
@@ -452,7 +449,7 @@ void Mult::clearObjectVideos() {
 
 	for (int i = 0; i < _objCount; i++)
 		if (_objects[i].videoSlot > 0)
-			_vm->_vidPlayer->slotClose(_objects[i].videoSlot - 1);
+			_vm->_vidPlayer->closeVideo(_objects[i].videoSlot - 1);
 }
 
 } // End of namespace Gob

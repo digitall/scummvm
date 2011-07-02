@@ -18,18 +18,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "backends/base-backend.h"
 #include <graphics/surface.h>
 #include <graphics/colormasks.h>
+#include <graphics/palette.h>
 #include <ronin/soundcommon.h>
 #include "backends/timer/default/default-timer.h"
+#include "backends/audiocd/default/default-audiocd.h"
 #include "backends/fs/fs-factory.h"
-#include "sound/mixer_intern.h"
+#include "audio/mixer_intern.h"
+#ifdef DYNAMIC_MODULES
+#include "backends/plugins/dynamic-plugin.h"
+#endif
 
 #define NUM_BUFFERS 4
 #define SOUND_BUFFER_SHIFT 3
@@ -50,7 +52,29 @@ class DCHardware {
   DCHardware() { dc_init_hardware(); }
 };
 
-class OSystem_Dreamcast : private DCHardware, public BaseBackend, public FilesystemFactory {
+class DCCDManager : public DefaultAudioCDManager {
+  // Initialize the specified CD drive for audio playback.
+  bool openCD(int drive);
+
+  // Poll cdrom status
+  // Returns true if cd audio is playing
+  bool pollCD();
+
+  // Play cdrom audio track
+  void playCD(int track, int num_loops, int start_frame, int duration);
+
+  // Stop cdrom audio track
+  void stopCD();
+
+  // Update cdrom audio status
+  void updateCD();
+};
+
+class OSystem_Dreamcast : private DCHardware, public EventsBaseBackend, public PaletteManager, public FilesystemFactory
+#ifdef DYNAMIC_MODULES
+  , public FilePluginProvider
+#endif
+ {
 
  public:
   OSystem_Dreamcast();
@@ -79,12 +103,23 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
   int getGraphicsMode() const;
 
   // Set colors of the palette
+  PaletteManager *getPaletteManager() { return this; }
+protected:
+	// PaletteManager API
   void setPalette(const byte *colors, uint start, uint num);
   void grabPalette(byte *colors, uint start, uint num);
 
+public:
+
+  // Determine the pixel format currently in use for screen rendering.
+  Graphics::PixelFormat getScreenFormat() const;
+
+  // Returns a list of all pixel formats supported by the backend.
+  Common::List<Graphics::PixelFormat> getSupportedFormats() const;
+
   // Set the size of the video bitmap.
   // Typically, 320x200
-  void initSize(uint w, uint h);
+  void initSize(uint w, uint h, const Graphics::PixelFormat *format);
   int16 getHeight() { return _screen_h; }
   int16 getWidth() { return _screen_w; }
 
@@ -105,13 +140,10 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
   void warpMouse(int x, int y);
 
   // Set the bitmap that's used when drawing the cursor.
-  void setMouseCursor(const byte *buf, uint w, uint h, int hotspot_x, int hotspot_y, byte keycolor, int cursorTargetScale);
+  void setMouseCursor(const byte *buf, uint w, uint h, int hotspot_x, int hotspot_y, uint32 keycolor, int cursorTargetScale, const Graphics::PixelFormat *format);
 
   // Replace the specified range of cursor the palette with new colors.
   void setCursorPalette(const byte *colors, uint start, uint num);
-
-  // Disable or enable cursor palette.
-  void disableCursorPalette(bool disable);
 
   // Shaking is used in SCUMM. Set current shake position.
   void setShakePos(int shake_pos);
@@ -123,31 +155,11 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
   void delayMillis(uint msecs);
 
   // Get the current time and date. Correspond to time()+localtime().
-  void getTimeAndDate(struct tm &t) const;
+  void getTimeAndDate(TimeDate &t) const;
 
   // Get the next event.
   // Returns true if an event was retrieved.
   bool pollEvent(Common::Event &event);
-
-  // Determine the output sample rate. Audio data provided by the sound
-  // callback will be played using this rate.
-  int getOutputSampleRate() const;
-
-  // Initialise the specified CD drive for audio playback.
-  bool openCD(int drive);
-
-  // Poll cdrom status
-  // Returns true if cd audio is playing
-  bool pollCD();
-
-  // Play cdrom audio track
-  void playCD(int track, int num_loops, int start_frame, int duration);
-
-  // Stop cdrom audio track
-  void stopCD();
-
-  // Update cdrom audio status
-  void updateCD();
 
   // Quit
   void quit();
@@ -173,24 +185,19 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
   void setWindowCaption(const char *caption);
 
   // Modulatized backend
-  Common::SaveFileManager *getSavefileManager() { return _savefile; }
   Audio::Mixer *getMixer() { return _mixer; }
-  Common::TimerManager *getTimerManager() { return _timer; }
 
   // Extra SoftKbd support
   void mouseToSoftKbd(int x, int y, int &rx, int &ry) const;
 
   // Filesystem
-  FilesystemFactory *getFilesystemFactory() { return this; }
   AbstractFSNode *makeRootFileNode() const;
   AbstractFSNode *makeCurrentDirectoryFileNode() const;
   AbstractFSNode *makeFileNodePath(const Common::String &path) const;
 
  private:
 
-  Common::SaveFileManager *_savefile;
   Audio::MixerImpl *_mixer;
-  DefaultTimerManager *_timer;
   SoftKeyboard _softkbd;
 
   int _ms_cur_x, _ms_cur_y, _ms_cur_w, _ms_cur_h, _ms_old_x, _ms_old_y;
@@ -198,7 +205,7 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
   int _current_shake_pos, _screen_w, _screen_h;
   int _overlay_x, _overlay_y;
   unsigned char *_ms_buf;
-  unsigned char _ms_keycolor;
+  uint32 _ms_keycolor;
   bool _overlay_visible, _overlay_dirty, _screen_dirty;
   int _screen_buffer, _overlay_buffer, _mouse_buffer;
   bool _aspect_stretch, _softkbd_on, _enable_cursor_palette;
@@ -214,6 +221,7 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
   unsigned short palette[256], cursor_palette[256];
 
   Graphics::Surface _framebuffer;
+  int _screenFormat, _mouseFormat;
 
   int temp_sound_buffer[RING_BUFFER_SAMPLES>>SOUND_BUFFER_SHIFT];
 
@@ -230,6 +238,20 @@ class OSystem_Dreamcast : private DCHardware, public BaseBackend, public Filesys
 
 
   Common::SaveFileManager *createSavefileManager();
+
+  Common::SeekableReadStream *createConfigReadStream();
+  Common::WriteStream *createConfigWriteStream();
+
+  void logMessage(LogMessageType::Type type, const char *message);
+  Common::String getSystemLanguage() const;
+
+#ifdef DYNAMIC_MODULES
+  class DCPlugin;
+
+ protected:
+  Plugin* createPlugin(const Common::FSNode &node) const;
+  bool isPluginFilename(const Common::FSNode &node) const;
+#endif
 };
 
 

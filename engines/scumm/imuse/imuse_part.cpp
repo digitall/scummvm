@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
+#include "common/debug.h"
+#include "common/textconsole.h"
 #include "common/util.h"
 #include "scumm/imuse/imuse_internal.h"
 #include "scumm/saveload.h"
@@ -112,14 +111,12 @@ void Part::saveLoadWithSerializer(Serializer *ser) {
 
 void Part::set_detune(int8 detune) {
 	_detune_eff = clamp((_detune = detune) + _player->getDetune(), -128, 127);
-	if (_mc)
-		sendPitchBend();
+	sendPitchBend();
 }
 
 void Part::pitchBend(int16 value) {
 	_pitchbend = value;
-	if (_mc)
-		sendPitchBend();
+	sendPitchBend();
 }
 
 void Part::volume(byte value) {
@@ -136,14 +133,13 @@ void Part::set_pri(int8 pri) {
 
 void Part::set_pan(int8 pan) {
 	_pan_eff = clamp((_pan = pan) + _player->getPan(), -64, 63);
-	if (_mc)
-		_mc->panPosition(_pan_eff + 0x40);
+	sendPanPosition(_pan_eff + 0x40);
 }
 
 void Part::set_transpose(int8 transpose) {
-	_transpose_eff = transpose_clamp((_transpose = transpose) + _player->getTranspose(), -24, 24);
-	if (_mc)
-		sendPitchBend();
+	_transpose = transpose;
+	_transpose_eff = (_transpose == -128) ? 0 : transpose_clamp(_transpose + _player->getTranspose(), -24, 24);
+	sendPitchBend();
 }
 
 void Part::sustain(bool value) {
@@ -164,11 +160,9 @@ void Part::chorusLevel(byte value) {
 		_mc->chorusLevel(value);
 }
 
-void Part::effectLevel(byte value)
-{
+void Part::effectLevel(byte value) {
 	_effect_level = value;
-	if (_mc)
-		_mc->effectLevel(value);
+	sendEffectLevel(value);
 }
 
 void Part::fix_after_load() {
@@ -206,7 +200,7 @@ void Part::set_instrument(byte * data) {
 }
 
 void Part::load_global_instrument(byte slot) {
-	_player->_se->copyGlobalAdlibInstrument(slot, &_instrument);
+	_player->_se->copyGlobalAdLibInstrument(slot, &_instrument);
 	if (clearToTransmit())
 		_instrument.send(_mc);
 }
@@ -288,7 +282,7 @@ void Part::setup(Player *player) {
 	_detune_eff = player->getDetune();
 	_pitchbend_factor = 2;
 	_pitchbend = 0;
-	_effect_level = 64;
+	_effect_level = player->_se->isNativeMT32() ? 127 : 64;
 	_instrument.clear();
 	_unassigned_instrument = true;
 	_chorus = 0;
@@ -325,20 +319,29 @@ bool Part::clearToTransmit() {
 void Part::sendAll() {
 	if (!clearToTransmit())
 		return;
+
 	_mc->pitchBendFactor(_pitchbend_factor);
 	sendPitchBend();
 	_mc->volume(_vol_eff);
 	_mc->sustain(_pedal);
 	_mc->modulationWheel(_modwheel);
-	_mc->panPosition(_pan_eff + 0x40);
-	_mc->effectLevel(_effect_level);
+	sendPanPosition(_pan_eff + 0x40);
+
 	if (_instrument.isValid())
 		_instrument.send(_mc);
+
+	// We need to send the effect level after setting up the instrument
+	// otherwise the reverb setting for MT-32 will be overwritten.
+	sendEffectLevel(_effect_level);
+
 	_mc->chorusLevel(_chorus);
 	_mc->priority(_pri_eff);
 }
 
 void Part::sendPitchBend() {
+	if (!_mc)
+		return;
+
 	int16 bend = _pitchbend;
 	// RPN-based pitchbend range doesn't work for the MT32,
 	// so we'll do the scaling ourselves.
@@ -367,6 +370,47 @@ void Part::allNotesOff() {
 	if (!_mc)
 		return;
 	_mc->allNotesOff();
+}
+
+void Part::sendPanPosition(uint8 value) {
+	if (!_mc)
+		return;
+
+	// As described in bug report #1088045 "MI2: Minor problems in native MT-32 mode"
+	// the original iMuse MT-32 driver did revert the panning. So we do the same
+	// here in our code to have correctly panned sound output.
+	if (_player->_se->isNativeMT32())
+		value = 127 - value;
+
+	_mc->panPosition(value);
+}
+
+void Part::sendEffectLevel(uint8 value) {
+	if (!_mc)
+		return;
+
+	// As described in bug report #1088045 "MI2: Minor problems in native MT-32 mode"
+	// for the MT-32 one has to use a sysEx event to change the effect level (rather
+	// the reverb setting).
+	if (_player->_se->isNativeMT32()) {
+		if (value != 127 && value != 0) {
+			warning("Trying to use unsupported effect level value %d in native MT-32 mode.", value);
+
+			if (value >= 64)
+				value = 127;
+			else
+				value = 0;
+		}
+
+		byte message[9];
+		memcpy(message, "\x41\x00\x16\x12\x00\x00\x06\x00\x00", 9);
+		message[1] = _mc->getNumber();
+		message[7] = (value == 127) ? 1 : 0;
+		message[8] = 128 - (6 + message[7]);
+		_player->getMidiDriver()->sysEx(message, 9);
+	} else {
+		_mc->effectLevel(value);
+	}
 }
 
 } // End of namespace Scumm

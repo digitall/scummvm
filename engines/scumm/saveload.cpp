@@ -18,14 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include <time.h>	// for ScummEngine::saveInfos / ScummEngine::loadInfos
-
 #include "common/config-manager.h"
+#include "common/memstream.h"
 #include "common/savefile.h"
 #include "common/system.h"
 #include "common/zlib.h"
@@ -34,6 +30,7 @@
 #include "scumm/charset.h"
 #include "scumm/imuse_digi/dimuse.h"
 #include "scumm/imuse/imuse.h"
+#include "player_towns.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
@@ -44,8 +41,9 @@
 #include "scumm/he/sprite_he.h"
 #include "scumm/verbs.h"
 
-#include "sound/audiocd.h"
-#include "sound/mixer.h"
+#include "audio/mixer.h"
+
+#include "backends/audiocd/audiocd.h"
 
 #include "graphics/thumbnail.h"
 
@@ -89,7 +87,10 @@ bool ScummEngine::canLoadGameStateCurrently() {
 
 	// HE games are limited to original load and save interface only,
 	// due to numerous glitches (see bug #1726909) that can occur.
-	if (_game.heversion >= 60)
+	//
+	// Except the earliest HE Games (3DO and initial DOS version of
+	// puttputt), which didn't offer scripted load/save screens.
+	if (_game.heversion >= 62)
 		return false;
 
 	// COMI always disables saving/loading (to tell the truth:
@@ -102,7 +103,7 @@ bool ScummEngine::canLoadGameStateCurrently() {
 	return (VAR_MAINMENU_KEY == 0xFF || VAR(VAR_MAINMENU_KEY) != 0);
 }
 
-Common::Error ScummEngine::saveGameState(int slot, const char *desc) {
+Common::Error ScummEngine::saveGameState(int slot, const Common::String &desc) {
 	requestSave(slot, desc);
 	return Common::kNoError;
 }
@@ -115,7 +116,10 @@ bool ScummEngine::canSaveGameStateCurrently() {
 
 	// HE games are limited to original load and save interface only,
 	// due to numerous glitches (see bug #1726909) that can occur.
-	if (_game.heversion >= 60)
+	//
+	// Except the earliest HE Games (3DO and initial DOS version of
+	// puttputt), which didn't offer scripted load/save screens.
+	if (_game.heversion >= 62)
 		return false;
 
 	// COMI always disables saving/loading (to tell the truth:
@@ -125,19 +129,17 @@ bool ScummEngine::canSaveGameStateCurrently() {
 	if (_game.id == GID_CMI)
 		return true;
 
-	// SCUMM v4+ doesn't allow saving in room 0 or if  
+	// SCUMM v4+ doesn't allow saving in room 0 or if
 	// VAR(VAR_MAINMENU_KEY) to set to zero.
 	return (VAR_MAINMENU_KEY == 0xFF || (VAR(VAR_MAINMENU_KEY) != 0 && _currentRoom != 0));
 }
 
 
-void ScummEngine::requestSave(int slot, const char *name) {
+void ScummEngine::requestSave(int slot, const Common::String &name) {
 	_saveLoadSlot = slot;
 	_saveTemporaryState = false;
 	_saveLoadFlag = 1;		// 1 for save
-	assert(name);
-	strncpy(_saveLoadName, name, sizeof(_saveLoadName));
-	_saveLoadName[sizeof(_saveLoadName) -  1] = 0;
+	_saveLoadDescription = name;
 }
 
 void ScummEngine::requestLoad(int slot) {
@@ -147,7 +149,7 @@ void ScummEngine::requestLoad(int slot) {
 }
 
 static bool saveSaveGameHeader(Common::OutSaveFile *out, SaveGameHeader &hdr) {
-	hdr.type = MKID_BE('SCVM');
+	hdr.type = MKTAG('S','C','V','M');
 	hdr.size = 0;
 	hdr.ver = CURRENT_VER;
 
@@ -162,10 +164,10 @@ bool ScummEngine::saveState(Common::OutSaveFile *out, bool writeHeader) {
 	SaveGameHeader hdr;
 
 	if (writeHeader) {
-		memcpy(hdr.name, _saveLoadName, sizeof(hdr.name));
+		Common::strlcpy(hdr.name, _saveLoadDescription.c_str(), sizeof(hdr.name));
 		saveSaveGameHeader(out, hdr);
 	}
-#if !defined(__DS__) /* && !defined(__PLAYSTATION2__) */
+#if !defined(__DS__) && !defined(__N64__) /* && !defined(__PLAYSTATION2__) */
 	Graphics::saveThumbnail(*out);
 #endif
 	saveInfos(out);
@@ -179,6 +181,8 @@ bool ScummEngine::saveState(int slot, bool compat) {
 	bool saveFailed;
 	Common::String filename;
 	Common::OutSaveFile *out;
+
+	pauseEngine(true);
 
 	if (_saveLoadSlot == 255) {
 		// Allow custom filenames for save game system in HE Games
@@ -203,6 +207,9 @@ bool ScummEngine::saveState(int slot, bool compat) {
 		return false;
 	}
 	debug(1, "State saved as '%s'", filename.c_str());
+
+	pauseEngine(false);
+
 	return true;
 }
 
@@ -225,7 +232,7 @@ void ScummEngine_v4::prepareSavegame() {
 		if (!writeStream->err()) {
 			// wrap uncompressing MemoryReadStream around the savegame data
 			_savePreparedSavegame = Common::wrapCompressedReadStream(
-				new Common::MemoryReadStream(memStream->getData(), memStream->size(), true));
+				new Common::MemoryReadStream(memStream->getData(), memStream->size(), DisposeAfterUse::YES));
 		}
 	}
 	// free the CompressedWriteStream and MemoryWriteStreamDynamic
@@ -296,13 +303,12 @@ static bool loadSaveGameHeader(Common::SeekableReadStream *in, SaveGameHeader &h
 	hdr.size = in->readUint32LE();
 	hdr.ver = in->readUint32LE();
 	in->read(hdr.name, sizeof(hdr.name));
-	return !in->err() && hdr.type == MKID_BE('SCVM');
+	return !in->err() && hdr.type == MKTAG('S','C','V','M');
 }
 
 bool ScummEngine::loadState(int slot, bool compat) {
 	Common::String filename;
 	Common::SeekableReadStream *in;
-	int i, j;
 	SaveGameHeader hdr;
 	int sb, sh;
 
@@ -355,23 +361,23 @@ bool ScummEngine::loadState(int slot, bool compat) {
 			}
 		}
 
-		Graphics::skipThumbnailHeader(*in);
+		Graphics::skipThumbnail(*in);
 	}
 
 	// Since version 56 we save additional information about the creation of
 	// the save game and the save time.
 	if (hdr.ver >= VER(56)) {
-		InfoStuff infos;
+		SaveStateMetaInfos infos;
 		if (!loadInfos(in, &infos)) {
 			warning("Info section could not be found");
 			delete in;
 			return false;
 		}
 
-		_engineStartTime = _system->getMillis() / 1000 - infos.playtime;
+		setTotalPlayTime(infos.playtime * 1000);
 	} else {
 		// start time counting
-		_engineStartTime = _system->getMillis() / 1000;
+		setTotalPlayTime();
 	}
 
 	// Due to a bug in scummvm up to and including 0.3.0, save games could be saved
@@ -379,7 +385,8 @@ bool ScummEngine::loadState(int slot, bool compat) {
 	if (hdr.ver == VER(7))
 		hdr.ver = VER(8);
 
-	memcpy(_saveLoadName, hdr.name, sizeof(hdr.name));
+	hdr.name[sizeof(hdr.name)-1] = 0;
+	_saveLoadDescription = hdr.name;
 
 	// Unless specifically requested with _saveSound, we do not save the iMUSE
 	// state for temporary state saves - such as certain cutscenes in DOTT,
@@ -417,10 +424,10 @@ bool ScummEngine::loadState(int slot, bool compat) {
 	memset(gfxUsageBits, 0, sizeof(gfxUsageBits));
 
 	// Nuke all resources
-	for (i = rtFirst; i <= rtLast; i++)
-		if (i != rtTemp && i != rtBuffer && (i != rtSound || _saveSound || !compat))
-			for (j = 0; j < _res->num[i]; j++) {
-				_res->nukeResource(i, j);
+	for (ResType type = rtFirst; type <= rtLast; type = ResType(type + 1))
+		if (type != rtTemp && type != rtBuffer && (type != rtSound || _saveSound || !compat))
+			for (ResId idx = 0; idx < _res->_types[type].size(); idx++) {
+				_res->nukeResource(type, idx);
 			}
 
 	resetScummVars();
@@ -438,6 +445,9 @@ bool ScummEngine::loadState(int slot, bool compat) {
 	// Update volume settings
 	syncSoundSettings();
 
+	if (_townsPlayer && (hdr.ver >= VER(81)))
+		_townsPlayer->restoreAfterLoad();
+
 	// Init NES costume data
 	if (_game.platform == Common::kPlatformNES) {
 		if (hdr.ver < VER(47))
@@ -453,7 +463,7 @@ bool ScummEngine::loadState(int slot, bool compat) {
 	// WORKAROUND bug #795214: For unknown reasons, object 819 sometimes is in
 	// state 1 in old save games, implying it should be drawn. This in turn
 	// results in a crash when entering the church, as object 819 is part of the
-	//  exitof the church and there are no graphics assigned to it.
+	// exitof the church and there are no graphics assigned to it.
 	if (_game.id == GID_MONKEY_VGA) {
 		putState(819, 0);
 	}
@@ -505,8 +515,8 @@ bool ScummEngine::loadState(int slot, bool compat) {
 	// loading such an old save game, try to upgrade the old to new format.
 	if (hdr.ver < VER(22)) {
 		// Convert all rtScaleTable resources to matching scale items
-		for (i = 1; i < _res->num[rtScaleTable]; i++) {
-			convertScaleTableToScaleSlot(i);
+		for (ResId idx = 1; idx < _res->_types[rtScaleTable].size(); idx++) {
+			convertScaleTableToScaleSlot(idx);
 		}
 	}
 
@@ -568,15 +578,19 @@ bool ScummEngine::loadState(int slot, bool compat) {
 	// Fixes bug #1766072: MANIACNES: Music Doesn't Start On Load Game
 	if (_game.platform == Common::kPlatformNES) {
 		runScript(5, 0, 0, 0);
+
+		if (VAR(224)) {
+			_sound->addSoundToQueue(VAR(224));
+		}
 	}
 
 	return true;
 }
 
 Common::String ScummEngine::makeSavegameName(const Common::String &target, int slot, bool temporary) {
-	char extension[6];
-	snprintf(extension, sizeof(extension), ".%c%02d", temporary ? 'c' : 's', slot);
-	return (target + extension);
+	Common::String extension;
+	extension = Common::String::format(".%c%02d", temporary ? 'c' : 's', slot);
+	return target + extension;
 }
 
 void ScummEngine::listSavegames(bool *marks, int num) {
@@ -584,7 +598,7 @@ void ScummEngine::listSavegames(bool *marks, int num) {
 
 	char slot[3];
 	int slotNum;
-	Common::StringList files;
+	Common::StringArray files;
 
 	Common::String prefix = makeSavegameName(99, false);
 	prefix.setChar('*', prefix.size()-2);
@@ -592,7 +606,7 @@ void ScummEngine::listSavegames(bool *marks, int num) {
 	memset(marks, false, num * sizeof(bool));	//assume no savegames for this title
 	files = _saveFileMan->listSavefiles(prefix);
 
-	for (Common::StringList::const_iterator file = files.begin(); file != files.end(); ++file) {
+	for (Common::StringArray::const_iterator file = files.begin(); file != files.end(); ++file) {
 		//Obtain the last 2 digits of the filename, since they correspond to the save slot
 		slot[0] = file->c_str()[file->size()-2];
 		slot[1] = file->c_str()[file->size()-1];
@@ -651,7 +665,7 @@ Graphics::Surface *ScummEngine::loadThumbnailFromSlot(const char *target, int sl
 	SaveGameHeader hdr;
 
 	if (slot < 0)
-		return  0;
+		return 0;
 
 	Common::String filename = ScummEngine::makeSavegameName(target, slot, false);
 	if (!(in = g_system->getSavefileManager()->openForLoading(filename))) {
@@ -684,12 +698,12 @@ Graphics::Surface *ScummEngine::loadThumbnailFromSlot(const char *target, int sl
 	return thumb;
 }
 
-bool ScummEngine::loadInfosFromSlot(const char *target, int slot, InfoStuff *stuff) {
+bool ScummEngine::loadInfosFromSlot(const char *target, int slot, SaveStateMetaInfos *stuff) {
 	Common::SeekableReadStream *in;
 	SaveGameHeader hdr;
 
 	if (slot < 0)
-		return  0;
+		return 0;
 
 	Common::String filename = makeSavegameName(target, slot, false);
 	if (!(in = g_system->getSavefileManager()->openForLoading(filename))) {
@@ -708,7 +722,7 @@ bool ScummEngine::loadInfosFromSlot(const char *target, int slot, InfoStuff *stu
 		return false;
 	}
 
-	if (!Graphics::skipThumbnailHeader(*in)) {
+	if (!Graphics::skipThumbnail(*in)) {
 		delete in;
 		return false;
 	}
@@ -722,12 +736,12 @@ bool ScummEngine::loadInfosFromSlot(const char *target, int slot, InfoStuff *stu
 	return true;
 }
 
-bool ScummEngine::loadInfos(Common::SeekableReadStream *file, InfoStuff *stuff) {
-	memset(stuff, 0, sizeof(InfoStuff));
+bool ScummEngine::loadInfos(Common::SeekableReadStream *file, SaveStateMetaInfos *stuff) {
+	memset(stuff, 0, sizeof(SaveStateMetaInfos));
 
 	SaveInfoSection section;
 	section.type = file->readUint32BE();
-	if (section.type != MKID_BE('INFO')) {
+	if (section.type != MKTAG('I','N','F','O')) {
 		return false;
 	}
 
@@ -774,15 +788,15 @@ bool ScummEngine::loadInfos(Common::SeekableReadStream *file, InfoStuff *stuff) 
 
 void ScummEngine::saveInfos(Common::WriteStream* file) {
 	SaveInfoSection section;
-	section.type = MKID_BE('INFO');
+	section.type = MKTAG('I','N','F','O');
 	section.version = INFOSECTION_VERSION;
 	section.size = SaveInfoSectionSize;
 
 	// still save old format for older versions
-	section.timeTValue = time(0);
-	section.playtime = _system->getMillis() / 1000 - _engineStartTime;
+	section.timeTValue = 0;
+	section.playtime = getTotalPlayTime() / 1000;
 
-	tm curTime;
+	TimeDate curTime;
 	_system->getTimeAndDate(curTime);
 
 	section.date = ((curTime.tm_mday & 0xFF) << 24) | (((curTime.tm_mon + 1) & 0xFF) << 16) | ((curTime.tm_year + 1900) & 0xFFFF);
@@ -1090,7 +1104,7 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	// as AudioCDManager::Status::playing, and MSVC6 has
 	// a fit with that. This typedef simplifies the notation
 	// to something MSVC6 can grasp.
-	typedef Audio::AudioCDManager::Status AudioCDManager_Status;
+	typedef AudioCDManager::Status AudioCDManager_Status;
 	const SaveLoadEntry audioCDEntries[] = {
 		MKLINE(AudioCDManager_Status, playing, sleUint32, VER(24)),
 		MKLINE(AudioCDManager_Status, track, sleInt32, VER(24)),
@@ -1100,7 +1114,7 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 		MKEND()
 	};
 
-	int i, j;
+	int i;
 	int var120Backup;
 	int var98Backup;
 	uint8 md5Backup[16];
@@ -1118,9 +1132,9 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	// MD5 Operations: Backup on load, compare, and reset.
 	if (s->isLoading()) {
 		char md5str1[32+1], md5str2[32+1];
-		for (j = 0; j < 16; j++) {
-			sprintf(md5str1 + j*2, "%02x", (int)_gameMD5[j]);
-			sprintf(md5str2 + j*2, "%02x", (int)md5Backup[j]);
+		for (i = 0; i < 16; i++) {
+			sprintf(md5str1 + i*2, "%02x", (int)_gameMD5[i]);
+			sprintf(md5str2 + i*2, "%02x", (int)md5Backup[i]);
 		}
 
 		debug(2, "Save version: %d", s->getVersion());
@@ -1220,18 +1234,19 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	//
 	// Save/load resources
 	//
-	int type, idx;
+	ResType type;
+	ResId idx;
 	if (s->getVersion() >= VER(26)) {
 		// New, more robust resource save/load system. This stores the type
 		// and index of each resource. Thus if we increase e.g. the maximum
 		// number of script resources, savegames won't break.
 		if (s->isSaving()) {
-			for (type = rtFirst; type <= rtLast; type++) {
-				if (_res->mode[type] != 1 && type != rtTemp && type != rtBuffer) {
+			for (type = rtFirst; type <= rtLast; type = ResType(type + 1)) {
+				if (_res->_types[type]._mode != kStaticResTypeMode && type != rtTemp && type != rtBuffer) {
 					s->saveUint16(type);	// Save the res type...
-					for (idx = 0; idx < _res->num[type]; idx++) {
+					for (idx = 0; idx < _res->_types[type].size(); idx++) {
 						// Only save resources which actually exist...
-						if (_res->address[type][idx]) {
+						if (_res->_types[type][idx]._address) {
 							s->saveUint16(idx);	// Save the index of the resource
 							saveResource(s, type, idx);
 						}
@@ -1241,9 +1256,9 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 			}
 			s->saveUint16(0xFFFF);	// End marker
 		} else {
-			while ((type = s->loadUint16()) != 0xFFFF) {
+			while ((type = (ResType)s->loadUint16()) != 0xFFFF) {
 				while ((idx = s->loadUint16()) != 0xFFFF) {
-					assert(0 <= idx && idx < _res->num[type]);
+					assert(idx < _res->_types[type].size());
 					loadResource(s, type, idx);
 				}
 			}
@@ -1252,15 +1267,15 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 		// Old, fragile resource save/load system. Doesn't save resources
 		// with index 0, and breaks whenever we change the limit on a given
 		// resource type.
-		for (type = rtFirst; type <= rtLast; type++)
-			if (_res->mode[type] != 1 && type != rtTemp && type != rtBuffer) {
+		for (type = rtFirst; type <= rtLast; type = ResType(type + 1))
+			if (_res->_types[type]._mode != kStaticResTypeMode && type != rtTemp && type != rtBuffer) {
 				// For V1-V5 games, there used to be no object name resources.
 				// At some point this changed. But since old savegames rely on
 				// unchanged resource counts, we have to hard code the following check
 				if (_game.version < 6 && type == rtObjectName)
 					continue;
-				for (idx = 1; idx < _res->num[type]; idx++)
-					saveLoadResource(s, type, idx);
+				for (idx = 1; idx < _res->_types[type].size(); idx++)
+					loadResourceOLD(s, type, idx);
 			}
 	}
 
@@ -1277,6 +1292,38 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	//
 	// Save/load palette data
 	//
+	if (_16BitPalette && !(_game.platform == Common::kPlatformFMTowns && s->isLoading() && s->getVersion() < VER(82))) {
+		s->saveLoadArrayOf(_16BitPalette, 512, sizeof(_16BitPalette[0]), sleUint16);
+	}
+
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	// FM-Towns specific (extra palette data, color cycle data, etc.)
+	if (s->getVersion() >= VER(82)) {
+		const SaveLoadEntry townsFields[] = {
+			MKLINE(Common::Rect, left, sleInt16, VER(82)),
+			MKLINE(Common::Rect, top, sleInt16, VER(82)),
+			MKLINE(Common::Rect, right, sleInt16, VER(82)),
+			MKLINE(Common::Rect, bottom, sleInt16, VER(82)),
+			MKEND()
+		};
+
+		const SaveLoadEntry townsExtraEntries[] = {
+			MKLINE(ScummEngine, _townsOverrideShadowColor, sleUint8, VER(82)),
+			MKLINE(ScummEngine, _numCyclRects, sleUint8, VER(82)),
+			MKLINE(ScummEngine, _townsPaletteFlags, sleUint8, VER(82)),
+			MKLINE(ScummEngine, _townsClearLayerFlag, sleUint8, VER(82)),
+			MKLINE(ScummEngine, _townsActiveLayerFlags, sleUint8, VER(82)),
+			MKEND()
+		};
+
+		s->saveLoadArrayOf(_textPalette, 48, sizeof(_textPalette[0]), sleUint8);
+		s->saveLoadArrayOf(_cyclRects, 10, sizeof(_cyclRects[0]), townsFields);
+		s->saveLoadArrayOf(&_curStringRect, 1, sizeof(_curStringRect), townsFields);
+		s->saveLoadArrayOf(_townsCharsetColorMap, 16, sizeof(_townsCharsetColorMap[0]), sleUint8);
+		s->saveLoadEntries(this, townsExtraEntries);
+	}
+#endif
+
 	if (_shadowPaletteSize) {
 		s->saveLoadArrayOf(_shadowPalette, _shadowPaletteSize, 1, sleByte);
 		// _roomPalette didn't show up until V21 save games
@@ -1339,18 +1386,18 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	// Save/load a list of the locked objects
 	//
 	if (s->isSaving()) {
-		for (i = rtFirst; i <= rtLast; i++)
-			for (j = 1; j < _res->num[i]; j++) {
-				if (_res->isLocked(i, j)) {
-					s->saveByte(i);
-					s->saveUint16(j);
+		for (type = rtFirst; type <= rtLast; type = ResType(type + 1))
+			for (idx = 1; idx < _res->_types[type].size(); idx++) {
+				if (_res->isLocked(type, idx)) {
+					s->saveByte(type);
+					s->saveUint16(idx);
 				}
 			}
 		s->saveByte(0xFF);
 	} else {
-		while ((i = s->loadByte()) != 0xFF) {
-			j = s->loadUint16();
-			_res->lock(i, j);
+		while ((type = (ResType)s->loadByte()) != 0xFF) {
+			idx = s->loadUint16();
+			_res->lock(type, idx);
 		}
 	}
 
@@ -1359,15 +1406,15 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	// Save/load the Audio CD status
 	//
 	if (s->getVersion() >= VER(24)) {
-		Audio::AudioCDManager::Status info;
+		AudioCDManager::Status info;
 		if (s->isSaving())
-			info = AudioCD.getStatus();
+			info = _system->getAudioCDManager()->getStatus();
 		s->saveLoadArrayOf(&info, 1, sizeof(info), audioCDEntries);
 		// If we are loading, and the music being loaded was supposed to loop
 		// forever, then resume playing it. This helps a lot when the audio CD
 		// is used to provide ambient music (see bug #788195).
 		if (s->isLoading() && info.playing && info.numLoops < 0)
-			AudioCD.play(info.track, info.numLoops, info.start, info.duration);
+			_system->getAudioCDManager()->play(info.track, info.numLoops, info.start, info.duration);
 	}
 
 
@@ -1377,6 +1424,11 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 	if (_imuse && (_saveSound || !_saveTemporaryState)) {
 		_imuse->save_or_load(s, this);
 	}
+
+
+	// Save/load FM-Towns audio status
+	if (_townsPlayer)
+		_townsPlayer->saveLoadWithSerializer(s);
 
 	//
 	// Save/load the charset renderer state
@@ -1434,6 +1486,27 @@ void ScummEngine_v5::saveOrLoad(Serializer *s) {
 
 	// This is probably only needed for Loom.
 	s->saveLoadEntries(this, cursorEntries);
+
+	// Reset cursors for old FM-Towns savegames saved with 256 color setting.
+	// Otherwise the cursor will be messed up when displayed in the new hi color setting.
+	if (_game.platform == Common::kPlatformFMTowns && _outputPixelFormat.bytesPerPixel == 2 && s->isLoading() && s->getVersion() < VER(82)) {
+		if (_game.id == GID_LOOM) {
+			redefineBuiltinCursorFromChar(1, 1);
+			redefineBuiltinCursorHotspot(1, 0, 0);
+		} else {
+			resetCursors();
+		}
+	}
+
+	// Regenerate 16bit palette after loading.
+	// This avoids color issues when loading savegames that have been saved with a different ScummVM port
+	// that uses a different 16bit color mode than the ScummVM port which is currently used.
+#ifdef USE_RGB_COLOR
+	if (_game.platform == Common::kPlatformPCEngine && s->isLoading()) {
+		for (int i = 0; i < 256; ++i)
+			_16BitPalette[i] = get16BitColor(_currentPalette[i * 3 + 0], _currentPalette[i * 3 + 1], _currentPalette[i * 3 + 2]);
+	}
+#endif
 }
 
 #ifdef ENABLE_SCUMM_7_8
@@ -1553,7 +1626,7 @@ void ScummEngine_v90he::saveOrLoad(Serializer *s) {
 void ScummEngine_v99he::saveOrLoad(Serializer *s) {
 	ScummEngine_v90he::saveOrLoad(s);
 
-	s->saveLoadArrayOf(_hePalettes, (_numPalettes + 1) * 1024, sizeof(_hePalettes[0]), sleUint8);
+	s->saveLoadArrayOf(_hePalettes, (_numPalettes + 1) * _hePaletteSlot, sizeof(_hePalettes[0]), sleUint8);
 }
 
 void ScummEngine_v100he::saveOrLoad(Serializer *s) {
@@ -1569,69 +1642,44 @@ void ScummEngine_v100he::saveOrLoad(Serializer *s) {
 }
 #endif
 
-void ScummEngine::saveLoadResource(Serializer *ser, int type, int idx) {
-	byte *ptr;
+void ScummEngine::loadResourceOLD(Serializer *ser, ResType type, ResId idx) {
 	uint32 size;
 
-	if (!_res->mode[type]) {
-		if (ser->isSaving()) {
-			ptr = _res->address[type][idx];
-			if (ptr == NULL) {
-				ser->saveUint32(0);
-				return;
-			}
-
-			size = ((MemBlkHeader *)ptr)->size;
-
-			ser->saveUint32(size);
-			ser->saveBytes(ptr + sizeof(MemBlkHeader), size);
-
+	if (type == rtSound && ser->getVersion() >= VER(23)) {
+		// Save/load only a list of resource numbers that need to be reloaded.
+		if (ser->loadUint16())
+			ensureResourceLoaded(rtSound, idx);
+	} else if (_res->_types[type]._mode == kDynamicResTypeMode) {
+		size = ser->loadUint32();
+		if (size) {
+			_res->createResource(type, idx, size);
+			ser->loadBytes(getResourceAddress(type, idx), size);
 			if (type == rtInventory) {
-				ser->saveUint16(_inventory[idx]);
+				_inventory[idx] = ser->loadUint16();
 			}
 			if (type == rtObjectName && ser->getVersion() >= VER(25)) {
-				ser->saveUint16(_newNames[idx]);
+				// Paranoia: We increased the possible number of new names
+				// to fix bugs #933610 and #936323. The savegame format
+				// didn't change, but at least during the transition
+				// period there is a slight chance that we try to load
+				// more names than we have allocated space for. If so,
+				// discard them.
+				if (idx < _numNewNames)
+					_newNames[idx] = ser->loadUint16();
 			}
-		} else {
-			size = ser->loadUint32();
-			if (size) {
-				_res->createResource(type, idx, size);
-				ser->loadBytes(getResourceAddress(type, idx), size);
-				if (type == rtInventory) {
-					_inventory[idx] = ser->loadUint16();
-				}
-				if (type == rtObjectName && ser->getVersion() >= VER(25)) {
-					// Paranoia: We increased the possible number of new names
-					// to fix bugs #933610 and #936323. The savegame format
-					// didn't change, but at least during the transition
-					// period there is a slight chance that we try to load
-					// more names than we have allocated space for. If so,
-					// discard them.
-					if (idx < _numNewNames)
-						_newNames[idx] = ser->loadUint16();
-				}
-			}
-		}
-	} else if (_res->mode[type] == 2 && ser->getVersion() >= VER(23)) {
-		// Save/load only a list of resource numbers that need to be reloaded.
-		if (ser->isSaving()) {
-			ser->saveUint16(_res->address[type][idx] ? 1 : 0);
-		} else {
-			if (ser->loadUint16())
-				ensureResourceLoaded(type, idx);
 		}
 	}
 }
 
-void ScummEngine::saveResource(Serializer *ser, int type, int idx) {
-	assert(_res->address[type][idx]);
+void ScummEngine::saveResource(Serializer *ser, ResType type, ResId idx) {
+	assert(_res->_types[type][idx]._address);
 
-	if (_res->mode[type] == 0) {
-		byte *ptr = _res->address[type][idx];
-		uint32 size = ((MemBlkHeader *)ptr)->size;
+	if (_res->_types[type]._mode == kDynamicResTypeMode) {
+		byte *ptr = _res->_types[type][idx]._address;
+		uint32 size = _res->_types[type][idx]._size;
 
 		ser->saveUint32(size);
-		ser->saveBytes(ptr + sizeof(MemBlkHeader), size);
+		ser->saveBytes(ptr, size);
 
 		if (type == rtInventory) {
 			ser->saveUint16(_inventory[idx]);
@@ -1642,18 +1690,24 @@ void ScummEngine::saveResource(Serializer *ser, int type, int idx) {
 	}
 }
 
-void ScummEngine::loadResource(Serializer *ser, int type, int idx) {
+void ScummEngine::loadResource(Serializer *ser, ResType type, ResId idx) {
 	if (_game.heversion >= 60 && ser->getVersion() <= VER(65) &&
 		((type == rtSound && idx == 1) || (type == rtSpoolBuffer))) {
 		uint32 size = ser->loadUint32();
 		assert(size);
 		_res->createResource(type, idx, size);
 		ser->loadBytes(getResourceAddress(type, idx), size);
-	} else if (_res->mode[type] == 0) {
+	} else if (type == rtSound) {
+		// HE Games use sound resource 1 for speech
+		if (_game.heversion >= 60 && idx == 1)
+			return;
+
+		ensureResourceLoaded(rtSound, idx);
+	} else if (_res->_types[type]._mode == kDynamicResTypeMode) {
 		uint32 size = ser->loadUint32();
 		assert(size);
-		_res->createResource(type, idx, size);
-		ser->loadBytes(getResourceAddress(type, idx), size);
+		byte *ptr = _res->createResource(type, idx, size);
+		ser->loadBytes(ptr, size);
 
 		if (type == rtInventory) {
 			_inventory[idx] = ser->loadUint16();
@@ -1661,12 +1715,6 @@ void ScummEngine::loadResource(Serializer *ser, int type, int idx) {
 		if (type == rtObjectName) {
 			_newNames[idx] = ser->loadUint16();
 		}
-	} else if (_res->mode[type] == 2) {
-		// HE Games use sound resource 1 for speech
-		if (_game.heversion >= 60 && idx == 1)
-			return;
-
-		ensureResourceLoaded(type, idx);
 	}
 }
 

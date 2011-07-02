@@ -18,27 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
-#include "common/endian.h"
-#include "common/stream.h"
-#include "common/util.h"
-#include "common/system.h"
-#include "common/EventRecorder.h"
-
-#include "kyra/screen.h"
-#include "kyra/kyra_lok.h"
 #include "kyra/sprites.h"
 #include "kyra/resource.h"
 #include "kyra/animator_lok.h"
 
+#include "common/system.h"
+
 namespace Kyra {
 
-Sprites::Sprites(KyraEngine_LoK *vm, OSystem *system) {
+Sprites::Sprites(KyraEngine_LoK *vm, OSystem *system) : _rnd("kyraSprites") {
 	_vm = vm;
 	_res = vm->resource();
 	_screen = vm->screen();
@@ -49,7 +39,6 @@ Sprites::Sprites(KyraEngine_LoK *vm, OSystem *system) {
 	_spriteDefStart = 0;
 	memset(_drawLayerTable, 0, sizeof(_drawLayerTable));
 	_sceneAnimatorBeaconFlag = 0;
-	g_eventRec.registerRandomSource(_rnd, "kyraSprites");
 }
 
 Sprites::~Sprites() {
@@ -65,15 +54,13 @@ void Sprites::setupSceneAnims() {
 	uint8 *data;
 
 	for (int i = 0; i < MAX_NUM_ANIMS; i++) {
-		if (_anims[i].background) {
-			delete[] _anims[i].background;
-			_anims[i].background = 0;
-		}
+		delete[] _anims[i].background;
+		_anims[i].background = 0;
 
 		if (_anims[i].script != 0) {
 			data = _anims[i].script;
 
-			assert( READ_LE_UINT16(data) == 0xFF86 );
+			assert(READ_LE_UINT16(data) == 0xFF86);
 			data += 4;
 
 			_anims[i].disable = READ_LE_UINT16(data) != 0;
@@ -407,6 +394,9 @@ void Sprites::loadDat(const char *filename, SceneExits &exits) {
 	_res->exists(filename, true);
 	_dat = _res->fileData(filename, &fileSize);
 
+	for (uint i = 0; i < MAX_NUM_ANIMS; ++i)
+		delete[] _anims[i].background;
+
 	memset(_anims, 0, sizeof(_anims));
 	uint8 nextAnim = 0;
 
@@ -508,7 +498,7 @@ void Sprites::loadDat(const char *filename, SceneExits &exits) {
 }
 
 void Sprites::freeSceneShapes() {
-	for (int i = 0; i < ARRAYSIZE(_sceneShapes); i++ ) {
+	for (int i = 0; i < ARRAYSIZE(_sceneShapes); i++) {
 		delete[] _sceneShapes[i];
 		_sceneShapes[i] = 0;
 	}
@@ -582,5 +572,5 @@ int Sprites::getDrawLayer(int y) {
 
 	return returnValue;
 }
-} // end of namespace Kyra
+} // End of namespace Kyra
 

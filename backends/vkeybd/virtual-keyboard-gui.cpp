@@ -18,22 +18,22 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
+
+#include "common/scummsys.h"
 
 #ifdef ENABLE_VKEYBD
 
 #include "backends/vkeybd/virtual-keyboard-gui.h"
 
 #include "graphics/cursorman.h"
-#include "gui/GuiManager.h"
+#include "graphics/fontman.h"
+#include "gui/gui-manager.h"
 
 namespace Common {
 
 static void blit(Graphics::Surface *surf_dst, Graphics::Surface *surf_src, int16 x, int16 y, OverlayColor transparent) {
-	if (surf_dst->bytesPerPixel != sizeof(OverlayColor) || surf_src->bytesPerPixel != sizeof(OverlayColor))
+	if (surf_dst->format.bytesPerPixel != sizeof(OverlayColor) || surf_src->format.bytesPerPixel != sizeof(OverlayColor))
 		return;
 
 	const OverlayColor *src = (const OverlayColor *)surf_src->pixels;
@@ -130,7 +130,7 @@ void VirtualKeyboardGUI::setupDisplayArea(Rect& r, OverlayColor forecolor) {
 	_dispI = 0;
 	_dispForeColor = forecolor;
 	_dispBackColor = _dispForeColor + 0xFF;
-	_dispSurface.create(r.width(), _dispFont->getFontHeight(), sizeof(OverlayColor));
+	_dispSurface.create(r.width(), _dispFont->getFontHeight(), _system->getOverlayFormat());
 	_dispSurface.fillRect(Rect(_dispSurface.w, _dispSurface.h), _dispBackColor);
 	_displayEnabled = true;
 }
@@ -160,7 +160,7 @@ void VirtualKeyboardGUI::run() {
 		_system->showOverlay();
 		_system->clearOverlay();
 	}
-	_overlayBackup.create(_screenW, _screenH, sizeof(OverlayColor));
+	_overlayBackup.create(_screenW, _screenH, _system->getOverlayFormat());
 	_system->grabOverlay((OverlayColor*)_overlayBackup.pixels, _overlayBackup.w);
 
 	setupCursor();
@@ -200,7 +200,7 @@ void VirtualKeyboardGUI::moveToDefaultPosition()
 		case VirtualKeyboard::kAlignLeft:
 			x = 0;
 			break;
-		case VirtualKeyboard::kAlignCentre:
+		case VirtualKeyboard::kAlignCenter:
 			x = (_screenW - kbdW) / 2;
 			break;
 		case VirtualKeyboard::kAlignRight:
@@ -262,7 +262,7 @@ void VirtualKeyboardGUI::screenChanged() {
 		_screenW = newScreenW;
 		_screenH = newScreenH;
 
-		_overlayBackup.create(_screenW, _screenH, sizeof(OverlayColor));
+		_overlayBackup.create(_screenW, _screenH, _system->getOverlayFormat());
 		_system->grabOverlay((OverlayColor*)_overlayBackup.pixels, _overlayBackup.w);
 
 		if (!_kbd->checkModeResolutions()) {
@@ -355,7 +355,7 @@ void VirtualKeyboardGUI::redraw() {
 	if (w <= 0 || h <= 0) return;
 
 	Graphics::Surface surf;
-	surf.create(w, h, sizeof(OverlayColor));
+	surf.create(w, h, _system->getOverlayFormat());
 
 	OverlayColor *dst = (OverlayColor *)surf.pixels;
 	const OverlayColor *src = (OverlayColor *) _overlayBackup.getBasePtr(_dirtyRect.left, _dirtyRect.top);
@@ -443,7 +443,7 @@ void VirtualKeyboardGUI::setupCursor() {
 	};
 
 	CursorMan.pushCursorPalette(palette, 0, 4);
-	CursorMan.pushCursor(NULL, 0, 0, 0, 0);
+	CursorMan.pushCursor(NULL, 0, 0, 0, 0, 0);
 	CursorMan.showMouse(true);
 }
 
@@ -457,7 +457,7 @@ void VirtualKeyboardGUI::animateCursor() {
 			}
 		}
 
-		CursorMan.replaceCursor(_cursor, 16, 16, 7, 7);
+		CursorMan.replaceCursor(_cursor, 16, 16, 7, 7, 255);
 
 		_cursorAnimateTimer = time;
 		_cursorAnimateCounter = (_cursorAnimateCounter + 1) % 4;
@@ -469,6 +469,6 @@ void VirtualKeyboardGUI::removeCursor() {
 	CursorMan.popCursorPalette();
 }
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_VKEYBD

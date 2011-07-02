@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/debug.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 #include "sky/disk.h"
 #include "sky/logic.h"
@@ -71,19 +70,16 @@ Text::Text(Disk *skyDisk, SkyCompact *skyCompact) {
 	}
 }
 
-Text::~Text(void) {
+Text::~Text() {
 	for (int i = FIRST_TEXT_BUFFER; i <= LAST_TEXT_BUFFER; i++)
 		if (SkyEngine::_itemList[i]) {
 			free(SkyEngine::_itemList[i]);
 			SkyEngine::_itemList[i] = NULL;
 		}
 
-	if (_mainCharacterSet.addr)
-		free(_mainCharacterSet.addr);
-	if (_controlCharacterSet.addr)
-		free(_controlCharacterSet.addr);
-	if (_linkCharacterSet.addr)
-		free(_linkCharacterSet.addr);
+	free(_mainCharacterSet.addr);
+	free(_controlCharacterSet.addr);
+	free(_linkCharacterSet.addr);
 }
 
 void Text::fnSetFont(uint32 fontNr) {
@@ -234,13 +230,13 @@ char Text::getTextChar(uint8 **data, uint32 *bitPos) {
 	}
 }
 
-DisplayedText Text::displayText(uint32 textNum, uint8 *dest, bool centre, uint16 pixelWidth, uint8 color) {
+DisplayedText Text::displayText(uint32 textNum, uint8 *dest, bool center, uint16 pixelWidth, uint8 color) {
 	//Render text into buffer *dest
 	getText(textNum);
-	return displayText(_textBuffer, dest, centre, pixelWidth, color);
+	return displayText(_textBuffer, dest, center, pixelWidth, color);
 }
 
-DisplayedText Text::displayText(char *textPtr, uint8 *dest, bool centre, uint16 pixelWidth, uint8 color) {
+DisplayedText Text::displayText(char *textPtr, uint8 *dest, bool center, uint16 pixelWidth, uint8 color) {
 	//Render text pointed to by *textPtr in buffer *dest
 	uint32 centerTable[10];
 	uint16 lineWidth = 0;
@@ -322,7 +318,7 @@ DisplayedText Text::displayText(char *textPtr, uint8 *dest, bool centre, uint16 
 	uint32 *centerTblPtr = centerTable;
 
 	do {
-		if (centre) {
+		if (center) {
 			uint32 width = (pixelWidth - *centerTblPtr) >> 1;
 			centerTblPtr++;
 			curDest += width;
@@ -382,9 +378,9 @@ void Text::makeGameCharacter(uint8 textChar, uint8 *charSetPtr, uint8 *&dest, ui
 	dest = startPos + charWidth + _dtCharSpacing * 2 - 1;
 }
 
-DisplayedText Text::lowTextManager(uint32 textNum, uint16 width, uint16 logicNum, uint8 color, bool centre) {
+DisplayedText Text::lowTextManager(uint32 textNum, uint16 width, uint16 logicNum, uint8 color, bool center) {
 	getText(textNum);
-	DisplayedText textInfo = displayText(_textBuffer, NULL, centre, width, color);
+	DisplayedText textInfo = displayText(_textBuffer, NULL, center, width, color);
 
 	uint32 compactNum = FIRST_TEXT_COMPACT;
 	Compact *cpt = _skyCompact->fetchCpt(compactNum);
@@ -408,7 +404,7 @@ DisplayedText Text::lowTextManager(uint32 textNum, uint16 width, uint16 logicNum
 	return textInfo;
 }
 
-void Text::changeTextSpriteColour(uint8 *sprData, uint8 newCol) {
+void Text::changeTextSpriteColor(uint8 *sprData, uint8 newCol) {
 	DataFileHeader *header = (DataFileHeader *)sprData;
 	sprData += sizeof(DataFileHeader);
 	for (uint16 cnt = 0; cnt < header->s_sp_size; cnt++)
@@ -416,7 +412,7 @@ void Text::changeTextSpriteColour(uint8 *sprData, uint8 newCol) {
 			sprData[cnt] = newCol;
 }
 
-uint32 Text::giveCurrentCharSet(void) {
+uint32 Text::giveCurrentCharSet() {
 	return _curCharSet;
 }
 

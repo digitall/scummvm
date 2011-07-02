@@ -18,22 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "scumm/player_mod.h"
-#include "sound/mixer.h"
-#include "sound/rate.h"
+#include "audio/mixer.h"
+#include "audio/rate.h"
+#include "audio/decoders/raw.h"
 
 namespace Scumm {
 
-Player_MOD::Player_MOD(Audio::Mixer *mixer) {
+Player_MOD::Player_MOD(Audio::Mixer *mixer)
+	: _mixer(mixer), _sampleRate(mixer->getOutputRate()) {
 	int i;
-	_mixer = mixer;
-	_samplerate = _mixer->getOutputRate();
 	_mixamt = 0;
 	_mixpos = 0;
 
@@ -49,7 +46,7 @@ Player_MOD::Player_MOD(Audio::Mixer *mixer) {
 	_playproc = NULL;
 	_playparam = NULL;
 
-	_mixer->playInputStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, false, true);
+	_mixer->playStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
 
 Player_MOD::~Player_MOD() {
@@ -68,7 +65,7 @@ void Player_MOD::setMusicVolume(int vol) {
 void Player_MOD::setUpdateProc(ModUpdateProc *proc, void *param, int freq) {
 	_playproc = proc;
 	_playparam = param;
-	_mixamt = _samplerate / freq;
+	_mixamt = _sampleRate / freq;
 }
 void Player_MOD::clearUpdateProc() {
 	_playproc = NULL;
@@ -94,7 +91,14 @@ void Player_MOD::startChannel(int id, void *data, int size, int rate, uint8 vol,
 	_channels[i].pan = pan;
 	_channels[i].freq = rate;
 	_channels[i].ctr = 0;
-	_channels[i].input = Audio::makeLinearInputStream((const byte*)data, size, rate, Audio::Mixer::FLAG_AUTOFREE | (loopStart != loopEnd ? Audio::Mixer::FLAG_LOOP : 0), loopStart, loopEnd);
+
+	Audio::SeekableAudioStream *stream = Audio::makeRawStream((const byte *)data, size, rate, 0);
+	if (loopStart != loopEnd) {
+		_channels[i].input = new Audio::SubLoopingAudioStream(stream, 0, Audio::Timestamp(0, loopStart, rate), Audio::Timestamp(0, loopEnd, rate));
+	} else {
+		_channels[i].input = stream;
+	}
+
 	// read the first sample
 	_channels[i].input->readBuffer(&_channels[i].pos, 1);
 }
@@ -177,7 +181,7 @@ void Player_MOD::do_mix(int16 *data, uint len) {
 				Audio::st_volume_t vol_r = (127 + _channels[i].pan) * _channels[i].vol / 127;
 				for (uint j = 0; j < dlen; j++) {
 					// simple linear resample, unbuffered
-					int delta = (uint32)(_channels[i].freq * 0x10000) / _samplerate;
+					int delta = (uint32)(_channels[i].freq * 0x10000) / _sampleRate;
 					uint16 cfrac = ~_channels[i].ctr & 0xFFFF;
 					if (_channels[i].ctr + delta < 0x10000)
 						cfrac = delta;

@@ -1,4 +1,8 @@
-/* ScummVM - Scumm Interpreter
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_SOUND_H
@@ -26,10 +27,11 @@
 #include "lure/disk.h"
 #include "lure/memory.h"
 
+#include "common/mutex.h"
 #include "common/singleton.h"
 #include "common/ptr.h"
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "audio/mididrv.h"
+#include "audio/mixer.h"
 
 class MidiParser;
 
@@ -42,7 +44,7 @@ struct ChannelEntry {
 	uint8 volume;
 };
 
-class MidiMusic: public MidiDriver {
+class MidiMusic: public MidiDriver_BASE {
 private:
 	uint8 _soundNumber;
 	uint8 _channelNumber;
@@ -62,14 +64,12 @@ private:
 	uint32 songOffset(uint16 songNum) const;
 	uint32 songLength(uint16 songNum) const;
 
-	bool _passThrough;
-
 public:
 	MidiMusic(MidiDriver *driver, ChannelEntry channels[NUM_CHANNELS],
 		 uint8 channelNum, uint8 soundNum, bool isMus, uint8 numChannels, void *soundData, uint32 size);
 	~MidiMusic();
 	void setVolume(int volume);
-	int getVolume() { return _volume; }
+	int getVolume() const { return _volume; }
 
 	void playSong(uint16 songNum);
 	void stopSong() { stopMusic(); }
@@ -77,31 +77,21 @@ public:
 	void stopMusic();
 	void queueTuneList(int16 tuneList);
 	bool queueSong(uint16 songNum);
-	void setPassThrough(bool b) { _passThrough = b; }
 	void toggleVChange();
 
-	//MidiDriver interface implementation
-	int open();
-	void close();
-	void send(uint32 b);
+	// MidiDriver_BASE interface implementation
+	virtual void send(uint32 b);
+	virtual void metaEvent(byte type, byte *data, uint16 length);
+
 	void onTimer();
 
-	void metaEvent(byte type, byte *data, uint16 length);
-
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
-	uint32 getBaseTempo(void) { return _driver ? _driver->getBaseTempo() : 0; }
-
-	//Channel allocation functions
-	MidiChannel *allocateChannel() { return 0; }
-	MidiChannel *getPercussionChannel() { return 0; }
-
-	uint8 channelNumber() { return _channelNumber; }
-	uint8 soundNumber() { return _soundNumber; }
-	bool isPlaying() { return _isPlaying; }
-	bool isMusic() {return _isMusic; }
+	uint8 channelNumber() const { return _channelNumber; }
+	uint8 soundNumber() const { return _soundNumber; }
+	bool isPlaying() const { return _isPlaying; }
+	bool isMusic() const { return _isMusic; }
 };
 
-class SoundManager: public Common::Singleton<SoundManager> {
+class SoundManager : public Common::Singleton<SoundManager> {
 private:
 	// Outer sound interface properties
 	MemoryBlock *_descs;
@@ -124,17 +114,21 @@ private:
 	Common::MutexRef _soundMutex;
 	bool _paused;
 
+	uint _musicVolume;
+	uint _sfxVolume;
+
 	// Internal support methods
 	void bellsBodge();
 	void musicInterface_TidySounds();
 	static void onTimer(void *data);
 	void doTimer();
+
 public:
 	SoundManager();
 	~SoundManager();
 
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 
 	void loadSection(uint16 sectionId);
 	void killSounds();
@@ -152,12 +146,14 @@ public:
 	void fadeOut();
 	void pause() { _paused = true; }
 	void resume() { _paused = false; }
-	bool getPaused() { return _paused; }
-	bool hasNativeMT32() { return _nativeMT32; }
-	bool isRoland() { return _isRoland; }
+	bool getPaused() const { return _paused; }
+	bool hasNativeMT32() const { return _nativeMT32; }
+	bool isRoland() const { return _isRoland; }
+	uint musicVolume() const { return _musicVolume; }
+	uint sfxVolume() const { return _sfxVolume; }
 
 	// The following methods implement the external sound player module
-	void musicInterface_Initialise();
+	void musicInterface_Initialize();
 	void musicInterface_Play(uint8 soundNumber, uint8 channelNumber, uint8 numChannels = 4);
 	void musicInterface_Stop(uint8 soundNumber);
 	bool musicInterface_CheckPlaying(uint8 soundNumber);

@@ -18,11 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
 #include "common/endian.h"
 #include "common/util.h"
@@ -30,11 +28,6 @@
 namespace Cruise {
 
 uint8 *ctpVar17;
-
-Common::Array<CtStruct> polyStructNorm;
-Common::Array<CtStruct> polyStructExp;
-Common::Array<CtStruct> *polyStructs = NULL;
-Common::Array<CtStruct> *polyStruct = NULL;
 
 int currentWalkBoxCenterX;
 int currentWalkBoxCenterY;
@@ -171,7 +164,7 @@ void makeCtStruct(Common::Array<CtStruct> &lst, int16 table[][40], int num, int 
 	}
 
 	ct.num = num;
-	ct.colour = walkboxColor[num];
+	ct.color = walkboxColor[num];
 	ct.bounds.left = minX;
 	ct.bounds.right = maxX;
 	ct.bounds.top = minY;
@@ -228,7 +221,7 @@ int initCt(const char *ctpName) {
 	}
 	uint8* ptr = NULL;
 	if (!loadFileSub1(&ptr, ctpName, 0)) {
-		free(ptr);
+		MemFree(ptr);
 		return (-18);
 	}
 
@@ -239,7 +232,7 @@ int initCt(const char *ctpName) {
 	dataPointer += 4;
 
 	if (strcmp(fileType, "CTP ")) {
-		free(ptr);
+		MemFree(ptr);
 		return (0);
 	}
 
@@ -312,7 +305,7 @@ int initCt(const char *ctpName) {
 		walkboxZoom[i] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 	}
-	free(ptr);
+	MemFree(ptr);
 
 	if (ctpName != currentCtpName)
 		strcpy(currentCtpName, ctpName);
@@ -324,16 +317,16 @@ int initCt(const char *ctpName) {
 	// Load the polyStructNorm list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(polyStructNorm, ctp_walkboxTable, i, 0);
+		makeCtStruct(_vm->_polyStructNorm, ctp_walkboxTable, i, 0);
 	}
 
 	// Load the polyStructExp list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(polyStructExp, ctp_walkboxTable, i, walkboxZoom[i] * 20);
+		makeCtStruct(_vm->_polyStructExp, ctp_walkboxTable, i, walkboxZoom[i] * 20);
 	}
 
-	polyStruct = polyStructs = &polyStructNorm;
+	_vm->_polyStruct = _vm->_polyStructs = &_vm->_polyStructNorm;
 
 	return (1);
 }

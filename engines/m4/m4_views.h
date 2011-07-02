@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_M4_VIEWS_H
@@ -42,11 +39,11 @@ public:
 	int iconIndex;
 
 	GUIInventoryItem(const char *_name, const char *_verb, M4Surface *_icon, int _iconIndex) {
-		name = _name; _verb = verb; icon = _icon; iconIndex = _iconIndex;
+		name = _name; verb = _verb; icon = _icon; iconIndex = _iconIndex;
 	}
 };
 
-class GUIInventory: public GUIRect {
+class GUIInventory : public GUIRect {
 	typedef Common::List<Common::SharedPtr<GUIInventoryItem> > InventoryList;
 	typedef InventoryList::iterator ItemsIterator;
 private:
@@ -58,13 +55,13 @@ private:
 	int _scrollPosition;
 	int _highlightedIndex;
 	int _selectedIndex;
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 public:
-	GUIInventory(View *owner, M4Engine *vm, const Common::Rect &bounds,
+	GUIInventory(View *owner, MadsM4Engine *vm, const Common::Rect &bounds,
 				 int horizCells, int vertCells, int cellWidth, int cellHeight, int tag);
 
 	void onRefresh();
-	bool onEvent(M4EventType eventType, int param, int x, int y, GUIObject *&currentItem);
+	bool onEvent(M4EventType eventType, int32 param, int x, int y, GUIObject *&currentItem);
 
 	void add(const char *name, const char *verb, M4Surface *icon, int iconIndex);
 	bool remove(const char *name);
@@ -87,7 +84,7 @@ public:
 	void setVisible(bool value) { _visible = value; }
 };
 
-class GameInterfaceView: public View {
+class M4InterfaceView : public GameInterfaceView {
 	typedef Common::List<Common::SharedPtr<GUIButton> > ButtonList;
 	typedef ButtonList::iterator ButtonsIterator;
 public:
@@ -100,11 +97,11 @@ public:
 private:
 	void setHighlightedButton(int index);
 public:
-	GameInterfaceView(M4Engine *vm);
-	~GameInterfaceView();
+	M4InterfaceView(MadsM4Engine *vm);
+	~M4InterfaceView();
 
 	void onRefresh(RectList *rects, M4Surface *destSurface);
-	bool onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents);
+	bool onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents);
 	void setStatusText(const char *text) { _statusText.setText(text); }
 	void cancelSentence() { setStatusText(NULL); }
 	void inventoryAdd(const char *name, const char *verb, int iconIndex) {

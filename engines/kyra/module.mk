@@ -5,6 +5,7 @@ MODULE_OBJS := \
 	animator_v2.o \
 	animator_hof.o \
 	animator_mr.o \
+	animator_tim.o \
 	debugger.o \
 	detection.o \
 	gui.o \
@@ -50,6 +51,7 @@ MODULE_OBJS := \
 	sequences_hof.o \
 	sequences_mr.o \
 	sound_adlib.o \
+	sound_amiga.o \
 	sound_digital.o \
 	sound_midi.o \
 	sound_pcspk.o \
@@ -82,6 +84,7 @@ MODULE_OBJS += \
 	sequences_lol.o \
 	sound_lol.o \
 	sprites_lol.o \
+	staticres_lol.o \
 	text_lol.o \
 	timer_lol.o
 endif

@@ -18,13 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/endian.h"
+#include "common/debug.h"
 #include "common/util.h"
 
 #include "sky/debug.h"
@@ -1071,11 +1068,11 @@ void Debug::logic(uint32 logic) {
 void Debug::script(uint32 command, uint16 *scriptData) {
 	debug(6, "SCRIPT: %s", opcodes[command]);
 	if (command == 0 || command == 6)
-		debug(6, " %s", scriptVars[READ_LE_UINT16(scriptData)/4]);
+		debug(6, " %s", scriptVars[(*scriptData)/4]);
 	else {
 		int i;
 		for (i = 0; i < opcode_par[command]; i++) {
-			debug(6, " %d", READ_LE_UINT16(scriptData + i));
+			debug(6, " %d", *(scriptData + i));
 		}
 	}
 	debug(6, " ");	// Print an empty line as separator
@@ -1103,10 +1100,11 @@ Debugger::Debugger(Logic *logic, Mouse *mouse, Screen *screen, SkyCompact *skyCo
 Debugger::~Debugger() {} // we need this here for __SYMBIAN32__
 
 void Debugger::preEnter() {
-
+	::GUI::Debugger::preEnter();
 }
 
 void Debugger::postEnter() {
+	::GUI::Debugger::postEnter();
 	_mouse->resetCursor();
 }
 

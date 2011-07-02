@@ -18,20 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/config-manager.h"
-#include "common/events.h"
-#include "common/EventRecorder.h"
-#include "common/file.h"
-#include "common/util.h"
+#include "common/debug-channels.h"
 #include "common/system.h"
-
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "common/textconsole.h"
 
 #include "parallaction/exec.h"
 #include "parallaction/input.h"
@@ -41,39 +32,34 @@
 #include "parallaction/sound.h"
 #include "parallaction/walk.h"
 
-
-
 namespace Parallaction {
-
 Parallaction *_vm = NULL;
 // public stuff
 
 char		_saveData1[30] = { '\0' };
 uint32		_engineFlags = 0;
-
 uint32		_globalFlags = 0;
 
 // private stuff
 
-
 Parallaction::Parallaction(OSystem *syst, const PARALLACTIONGameDescription *gameDesc) :
-	Engine(syst), _gameDescription(gameDesc), _location(getGameType()) {
+	Engine(syst), _gameDescription(gameDesc), _location(getGameType()),
+	_dialogueMan(0), _rnd("parallaction") {
+	// Setup mixer
+	syncSoundSettings();
 
 	_vm = this;
-	Common::addDebugChannel(kDebugDialogue, "dialogue", "Dialogues debug level");
-	Common::addDebugChannel(kDebugParser, "parser", "Parser debug level");
-	Common::addDebugChannel(kDebugDisk, "disk", "Disk debug level");
-	Common::addDebugChannel(kDebugWalk, "walk", "Walk debug level");
-	Common::addDebugChannel(kDebugGraphics, "gfx", "Gfx debug level");
-	Common::addDebugChannel(kDebugExec, "exec", "Execution debug level");
-	Common::addDebugChannel(kDebugInput, "input", "Input debug level");
-	Common::addDebugChannel(kDebugAudio, "audio", "Audio debug level");
-	Common::addDebugChannel(kDebugMenu, "menu", "Menu debug level");
-	Common::addDebugChannel(kDebugInventory, "inventory", "Inventory debug level");
-
-	g_eventRec.registerRandomSource(_rnd, "parallaction");
+	DebugMan.addDebugChannel(kDebugDialogue, "dialogue", "Dialogues debug level");
+	DebugMan.addDebugChannel(kDebugParser, "parser", "Parser debug level");
+	DebugMan.addDebugChannel(kDebugDisk, "disk", "Disk debug level");
+	DebugMan.addDebugChannel(kDebugWalk, "walk", "Walk debug level");
+	DebugMan.addDebugChannel(kDebugGraphics, "gfx", "Gfx debug level");
+	DebugMan.addDebugChannel(kDebugExec, "exec", "Execution debug level");
+	DebugMan.addDebugChannel(kDebugInput, "input", "Input debug level");
+	DebugMan.addDebugChannel(kDebugAudio, "audio", "Audio debug level");
+	DebugMan.addDebugChannel(kDebugMenu, "menu", "Menu debug level");
+	DebugMan.addDebugChannel(kDebugInventory, "inventory", "Inventory debug level");
 }
-
 
 Parallaction::~Parallaction() {
 	delete _debugger;
@@ -81,6 +67,7 @@ Parallaction::~Parallaction() {
 	delete _callableNames;
 	delete _cmdExec;
 	delete _programExec;
+	destroyDialogueManager();
 	delete _saveLoad;
 
 	cleanupGui();
@@ -91,15 +78,15 @@ Parallaction::~Parallaction() {
 	_balloonMan = 0;
 
 	delete _localFlagNames;
+	_char._ani.reset();
 	delete _gfx;
 	delete _soundMan;
 	delete _disk;
 	delete _input;
 }
 
-
 Common::Error Parallaction::init() {
-
+	_gameType = getGameType();
 	_engineFlags = 0;
 	_objectsNames = NULL;
 	_globalFlagsNames = NULL;
@@ -117,6 +104,7 @@ Common::Error Parallaction::init() {
 
 	strcpy(_characterName1, "null");
 
+	memset(_localFlags, 0, sizeof(_localFlags));
 	memset(_locationNames, 0, NUM_LOCATIONS * 32);
 
 	// this needs _disk to be already setup
@@ -156,8 +144,6 @@ void Parallaction::updateView() {
 	_system->delayMillis(30);
 }
 
-
-
 void Parallaction::pauseJobs() {
 	debugC(9, kDebugExec, "pausing jobs execution");
 
@@ -180,7 +166,6 @@ AnimationPtr Location::findAnimation(const char *name) {
 	return AnimationPtr();
 }
 
-
 void Parallaction::allocateLocationSlot(const char *name) {
 	// WORKAROUND: the original code erroneously incremented
 	// _currentLocationIndex, thus producing inconsistent
@@ -197,7 +182,7 @@ void Parallaction::allocateLocationSlot(const char *name) {
 	}
 
 	if (_di == 120)
-		error("No more location slots available. Please report this immediately to ScummVM team.");
+		error("No more location slots available. Please report this immediately to ScummVM team");
 
 	if (_currentLocationIndex  == -1) {
 		strcpy(_locationNames[_numLocations], name);
@@ -210,7 +195,6 @@ void Parallaction::allocateLocationSlot(const char *name) {
 		setLocationFlags(kFlagsVisited);	// 'visited'
 	}
 }
-
 
 Location::Location(int gameType) : _gameType(gameType) {
 	cleanup(true);
@@ -251,7 +235,6 @@ int Location::getScale(int z) const {
 	return scale;
 }
 
-
 void Parallaction::showSlide(const char *name, int x, int y) {
 	BackgroundInfo *info = new BackgroundInfo;
 	_disk->loadSlide(*info, name);
@@ -262,9 +245,8 @@ void Parallaction::showSlide(const char *name, int x, int y) {
 	_gfx->setBackground(kBackgroundSlide, info);
 }
 
-
 void Parallaction::showLocationComment(const Common::String &text, bool end) {
-	_balloonMan->setLocationBalloon(text.c_str(), end);
+	_balloonMan->setLocationBalloon(text, end);
 }
 
 void Parallaction::runGameFrame(int event) {
@@ -294,7 +276,6 @@ void Parallaction::runGameFrame(int event) {
 }
 
 void Parallaction::runGame() {
-
 	int event = _input->updateInput();
 	if (shouldQuit())
 		return;
@@ -323,9 +304,6 @@ void Parallaction::runGame() {
 	// change this to endFrame?
 	updateView();
 }
-
-
-
 
 //	displays transition before a new location
 //
@@ -369,8 +347,6 @@ void Parallaction::doLocationEnterTransition() {
 	_gfx->setPalette(_gfx->_palette);
 
 	debugC(2, kDebugExec, "doLocationEnterTransition completed");
-
-	return;
 }
 
 void Parallaction::setLocationFlags(uint32 flags) {
@@ -389,8 +365,6 @@ uint32 Parallaction::getLocationFlags() {
 	return _localFlags[_currentLocationIndex];
 }
 
-
-
 void Parallaction::drawAnimation(AnimationPtr anim) {
 	if ((anim->_flags & kFlagsActive) == 0)   {
 		return;
@@ -405,7 +379,7 @@ void Parallaction::drawAnimation(AnimationPtr anim) {
 	uint16 layer = LAYER_FOREGROUND;
 	uint16 scale = 100;
 
-	switch (getGameType()) {
+	switch (_gameType) {
 	case GType_Nippon:
 		if ((anim->_flags & kFlagsNoMasked) == 0) {
 			// Layer in NS depends on where the animation is on the screen, for each animation.
@@ -483,7 +457,6 @@ void Parallaction::updateZones() {
 	debugC(9, kDebugExec, "Parallaction::updateZones done()\n");
 }
 
-
 void Parallaction::showZone(ZonePtr z, bool visible) {
 	if (!z) {
 		return;
@@ -501,10 +474,7 @@ void Parallaction::showZone(ZonePtr z, bool visible) {
 	}
 }
 
-
-//
 //	ZONE TYPE: EXAMINE
-//
 
 void Parallaction::enterCommentMode(ZonePtr z) {
 	if (!z) {
@@ -516,29 +486,30 @@ void Parallaction::enterCommentMode(ZonePtr z) {
 	TypeData *data = &_commentZone->u;
 
 	if (data->_examineText.empty()) {
+		exitCommentMode();
 		return;
 	}
 
 	// TODO: move this balloons stuff into DialogueManager and BalloonManager
-	if (getGameType() == GType_Nippon) {
+	if (_gameType == GType_Nippon) {
 		if (!data->_filename.empty()) {
 			if (data->_gfxobj == 0) {
 				data->_gfxobj = _disk->loadStatic(data->_filename.c_str());
 			}
 
 			_gfx->setHalfbriteMode(true);
-			_balloonMan->setSingleBalloon(data->_examineText.c_str(), 0, 90, 0, BalloonManager::kNormalColor);
+			_balloonMan->setSingleBalloon(data->_examineText, 0, 90, 0, BalloonManager::kNormalColor);
 			Common::Rect r;
 			data->_gfxobj->getRect(0, r);
 			_gfx->setItem(data->_gfxobj, 140, (_screenHeight - r.height())/2);
 			_gfx->setItem(_char._head, 100, 152);
 		} else {
-			_balloonMan->setSingleBalloon(data->_examineText.c_str(), 140, 10, 0, BalloonManager::kNormalColor);
+			_balloonMan->setSingleBalloon(data->_examineText, 140, 10, 0, BalloonManager::kNormalColor);
 			_gfx->setItem(_char._talk, 190, 80);
 		}
 	} else
-	if (getGameType() == GType_BRA) {
-		_balloonMan->setSingleBalloon(data->_examineText.c_str(), 0, 0, 1, BalloonManager::kNormalColor);
+	if (_gameType == GType_BRA) {
+		_balloonMan->setSingleBalloon(data->_examineText, 0, 0, 1, BalloonManager::kNormalColor);
 		_gfx->setItem(_char._talk, 10, 80);
 	}
 
@@ -565,14 +536,13 @@ void Parallaction::runCommentFrame() {
 	}
 }
 
-
 void Parallaction::runZone(ZonePtr z) {
 	debugC(3, kDebugExec, "runZone (%s)", z->_name);
 
 	uint16 actionType = ACTIONTYPE(z);
 
 	debugC(3, kDebugExec, "actionType = %x, itemType = %x", actionType, ITEMTYPE(z));
-	switch(actionType) {
+	switch (actionType) {
 
 	case kZoneExamine:
 		enterCommentMode(z);
@@ -588,15 +558,23 @@ void Parallaction::runZone(ZonePtr z) {
 		break;
 
 	case kZoneHear:
-		_soundMan->execute(SC_SETSFXCHANNEL, z->u._hearChannel);
-		_soundMan->execute(SC_SETSFXLOOPING, (int)((z->_flags & kFlagsLooping) == kFlagsLooping));
-		_soundMan->execute(SC_SETSFXVOLUME, 60);
-		_soundMan->execute(SC_PLAYSFX, z->u._filename.c_str());
+		if (z->u._hearChannel == MUSIC_HEAR_CHANNEL) {
+			_soundMan->execute(SC_SETMUSICFILE, z->u._filename.c_str());
+			_soundMan->execute(SC_PLAYMUSIC);
+		} else {
+			_soundMan->execute(SC_SETSFXCHANNEL, z->u._hearChannel);
+			_soundMan->execute(SC_SETSFXLOOPING, (int)((z->_flags & kFlagsLooping) == kFlagsLooping));
+			_soundMan->execute(SC_SETSFXVOLUME, 60);
+			_soundMan->execute(SC_PLAYSFX, z->u._filename.c_str());
+		}
 		break;
 
 	case kZoneSpeak:
-		enterDialogueMode(z);
-		return;
+		if (z->u._speakDialogue) {
+			enterDialogueMode(z);
+			return;
+		}
+		break;
 	}
 
 	debugC(3, kDebugExec, "runZone completed");
@@ -606,9 +584,8 @@ void Parallaction::runZone(ZonePtr z) {
 	return;
 }
 
-//
 //	ZONE TYPE: DOOR
-//
+
 void Parallaction::updateDoor(ZonePtr z, bool close) {
 	z->_flags = close ? (z->_flags |= kFlagsClosed) : (z->_flags &= ~kFlagsClosed);
 
@@ -621,11 +598,7 @@ void Parallaction::updateDoor(ZonePtr z, bool close) {
 	return;
 }
 
-
-
-//
 //	ZONE TYPE: GET
-//
 
 bool Parallaction::pickupItem(ZonePtr z) {
 	if (z->_flags & kFlagsFixed) {
@@ -640,11 +613,19 @@ bool Parallaction::pickupItem(ZonePtr z) {
 	return (slot != -1);
 }
 
-// FIXME: input coordinates must be offseted to handle scrolling!
 bool Parallaction::checkSpecialZoneBox(ZonePtr z, uint32 type, uint x, uint y) {
-	// not a special zone
-	if ((z->getX() != -2) && (z->getX() != -3)) {
-		return false;
+	// check if really a special zone
+	if (_gameType == GType_Nippon) {
+		// so-called special zones in NS have special x coordinates
+		if ((z->getX() != -2) && (z->getX() != -3)) {
+			return false;
+		}
+	}
+	if (_gameType == GType_BRA) {
+		// so far, special zones in BRA are only merge zones
+		if (ACTIONTYPE(z) != kZoneMerge) {
+			return false;
+		}
 	}
 
 	// WORKAROUND: this huge condition is needed because we made TypeData a collection of structs
@@ -670,28 +651,25 @@ bool Parallaction::checkSpecialZoneBox(ZonePtr z, uint32 type, uint x, uint y) {
 	return false;
 }
 
-// FIXME: input coordinates must be offseted to handle scrolling!
-bool Parallaction::checkZoneBox(ZonePtr z, uint32 type, uint x, uint y) {
-	if (z->_flags & kFlagsRemove)
-		return false;
-
-	debugC(5, kDebugExec, "checkZoneBox for %s (type = %x, x = %i, y = %i)", z->_name, type, x, y);
-
-	if (!z->hitRect(x, y)) {
-
-		// check for special zones (items defined in common.loc)
-		if (checkSpecialZoneBox(z, type, x, y))
+bool Parallaction::checkZoneType(ZonePtr z, uint32 type) {
+	if (_gameType == GType_Nippon) {
+		if ((type == 0) && (ITEMTYPE(z) == 0))
 			return true;
-
-		if (z->getX() != -1)
-			return false;
-		if (!_char._ani->hitFrameRect(x, y))
-			return false;
 	}
 
-	// normal Zone
-	if ((type == 0) && (ITEMTYPE(z) == 0))
-		return true;
+	if (_gameType == GType_BRA) {
+		if (type == 0) {
+			if (ITEMTYPE(z) == 0) {
+				if (ACTIONTYPE(z) != kZonePath) {
+					return true;
+				}
+			}
+			if (ACTIONTYPE(z) == kZoneDoor) {
+				return true;
+			}
+		}
+	}
+
 	if (z->_type == type)
 		return true;
 	if (ITEMTYPE(z) == type)
@@ -700,7 +678,37 @@ bool Parallaction::checkZoneBox(ZonePtr z, uint32 type, uint x, uint y) {
 	return false;
 }
 
-// FIXME: input coordinates must be offseted to handle scrolling!
+bool Parallaction::checkZoneBox(ZonePtr z, uint32 type, uint x, uint y) {
+	if (z->_flags & kFlagsRemove)
+		return false;
+
+	debugC(5, kDebugExec, "checkZoneBox for %s (type = %x, x = %i, y = %i)", z->_name, type, x, y);
+
+	if (!z->hitRect(x, y)) {
+		// check for special zones (items defined in common.loc)
+		if (checkSpecialZoneBox(z, type, x, y))
+			return true;
+
+		// check if self-use zone (nothing to do with kFlagsSelfuse)
+		if (_gameType == GType_Nippon) {
+			if (z->getX() != -1) {	// no explicit self-use flag in NS
+				return false;
+			}
+		}
+		if (_gameType == GType_BRA) {
+			if (!(z->_flags & kFlagsYourself)) {
+				return false;
+			}
+		}
+		if (!_char._ani->hitFrameRect(x, y)) {
+			return false;
+		}
+		// we get here only if (x,y) hits the character and the zone is marked as self-use
+	}
+
+	return checkZoneType(z, type);
+}
+
 bool Parallaction::checkLinkedAnimBox(ZonePtr z, uint32 type, uint x, uint y) {
 	if (z->_flags & kFlagsRemove)
 		return false;
@@ -716,18 +724,13 @@ bool Parallaction::checkLinkedAnimBox(ZonePtr z, uint32 type, uint x, uint y) {
 		return false;
 	}
 
-	// NOTE: the implementation of the following lines is a different in the
-	// original... it is working so far, though
-	if ((type == 0) && (ITEMTYPE(z) == 0))
-		return true;
-	if (z->_type == type)
-		return true;
-	if (ITEMTYPE(z) == type)
-		return true;
-
-	return false;
+	return checkZoneType(z, type);
 }
 
+// NOTE: hitZone needs to be passed absolute game coordinates to work.
+//
+// When type is kZoneMerge, then x and y are the identifiers of the objects to merge,
+// and the above requirement does not apply.
 ZonePtr Parallaction::hitZone(uint32 type, uint16 x, uint16 y) {
 	uint16 _di = y;
 	uint16 _si = x;
@@ -741,14 +744,20 @@ ZonePtr Parallaction::hitZone(uint32 type, uint16 x, uint16 y) {
 		}
 	}
 
-
 	int16 _a, _b, _c, _d;
 	bool _ef;
 	for (AnimationList::iterator ait = _location._animations.begin(); ait != _location._animations.end(); ++ait) {
 
 		AnimationPtr a = *ait;
 
-		_a = (a->_flags & kFlagsActive) ? 1 : 0;															   // _a: active Animation
+		_a = (a->_flags & kFlagsActive) ? 1 : 0;	// _a: active Animation
+
+		if (!_a) {
+			if (_gameType == GType_BRA && ACTIONTYPE(a) != kZoneTrap) {
+				continue;
+			}
+		}
+
 		_ef = a->hitFrameRect(_si, _di);
 
 		_b = ((type != 0) || (a->_type == kZoneYou)) ? 0 : 1;										 // _b: (no type specified) AND (Animation is not the character)
@@ -762,7 +771,6 @@ ZonePtr Parallaction::hitZone(uint32 type, uint16 x, uint16 y) {
 
 	return ZonePtr();
 }
-
 
 ZonePtr Location::findZone(const char *name) {
 	for (ZoneList::iterator it = _zones.begin(); it != _zones.end(); ++it) {
@@ -786,7 +794,6 @@ bool Location::keepZone_br(ZonePtr z) {
 bool Location::keepAnimation_br(AnimationPtr a) {
 	return keepZone_br(a);
 }
-
 
 template <class T>
 void Location::freeList(Common::List<T> &list, bool removeAll, Common::MemFunc1<bool, T, Location> filter) {
@@ -819,8 +826,6 @@ void Location::freeZones(bool removeAll) {
 	}
 }
 
-
-
 Character::Character() : _ani(new Animation) {
 	_talk = NULL;
 	_head = NULL;
@@ -833,7 +838,6 @@ Character::Character() : _ani(new Animation) {
 	_ani->_type = kZoneYou;
 	strncpy(_ani->_name, "yourself", ZONENAME_LENGTH);
 }
-
 
 void Character::setName(const char *name) {
 	_name.bind(name);
@@ -854,8 +858,6 @@ const char *Character::getFullName() const {
 bool Character::dummy() const {
 	return _name.dummy();
 }
-
-
 
 // Various ways of detecting character modes used to exist
 // inside the engine, so they have been unified in the two
@@ -886,7 +888,6 @@ CharacterName::CharacterName() {
 CharacterName::CharacterName(const char *name) {
 	bind(name);
 }
-
 
 void CharacterName::bind(const char *name) {
 	const char *begin = name;
@@ -940,7 +941,7 @@ bool CharacterName::dummy() const {
 }
 
 void Parallaction::beep() {
-	if (getGameType() == GType_Nippon) {
+	if (_gameType == GType_Nippon) {
 		_soundMan->execute(SC_SETSFXCHANNEL, 3);
 		_soundMan->execute(SC_SETSFXVOLUME, 127);
 		_soundMan->execute(SC_SETSFXLOOPING, (int32)0);
@@ -954,5 +955,4 @@ void Parallaction::scheduleLocationSwitch(const char *location) {
 	_engineFlags |= kEngineChangeLocation;
 }
 
-
-} // namespace Parallaction
+} // End of namespace Parallaction

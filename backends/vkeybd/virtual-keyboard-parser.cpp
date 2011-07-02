@@ -18,11 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/scummsys.h"
 
 #ifdef ENABLE_VKEYBD
 
@@ -33,6 +31,8 @@
 #include "common/util.h"
 #include "common/system.h"
 #include "common/archive.h"
+#include "common/tokenizer.h"
+#include "common/stream.h"
 
 #include "graphics/imagedec.h"
 
@@ -59,8 +59,7 @@ bool VirtualKeyboardParser::closedKeyCallback(ParserNode *node) {
 			return parserError("Initial mode of keyboard pack not defined");
 	} else if (node->name.equalsIgnoreCase("mode")) {
 		if (!_layoutParsed) {
-			return parserError("'%s' layout missing from '%s' mode",
-				_mode->resolution.c_str(), _mode->name.c_str());
+			return parserError("'" + _mode->resolution + "' layout missing from '" + _mode->name + "' mode");
 		}
 	}
 	return true;
@@ -81,7 +80,7 @@ bool VirtualKeyboardParser::parserCallback_keyboard(ParserNode *node) {
 		if (h.equalsIgnoreCase("left"))
 			_keyboard->_hAlignment = VirtualKeyboard::kAlignLeft;
 		else if (h.equalsIgnoreCase("centre") || h.equalsIgnoreCase("center"))
-			_keyboard->_hAlignment = VirtualKeyboard::kAlignCentre;
+			_keyboard->_hAlignment = VirtualKeyboard::kAlignCenter;
 		else if (h.equalsIgnoreCase("right"))
 			_keyboard->_hAlignment = VirtualKeyboard::kAlignRight;
 	}
@@ -105,7 +104,7 @@ bool VirtualKeyboardParser::parserCallback_mode(ParserNode *node) {
 	if (_parseMode == kParseFull) {
 		// if full parse then add new mode to keyboard
 		if (_keyboard->_modes.contains(name))
-			return parserError("Mode '%s' has already been defined", name.c_str());
+			return parserError("Mode '" + name + "' has already been defined");
 
 		VirtualKeyboard::Mode mode;
 		mode.name = name;
@@ -154,8 +153,11 @@ bool VirtualKeyboardParser::parserCallback_mode(ParserNode *node) {
 		} else {
 			// remove data relating to old resolution
 			_mode->bitmapName.clear();
-			delete _mode->image;
-			_mode->image = 0;
+			if (_mode->image) {
+				_mode->image->free();
+				delete _mode->image;
+				_mode->image = 0;
+			}
 			_mode->imageMap.removeAllAreas();
 			_mode->displayArea = Rect();
 		}
@@ -174,7 +176,7 @@ bool VirtualKeyboardParser::parserCallback_event(ParserNode *node) {
 
 	String name = node->values["name"];
 	if (_mode->events.contains(name))
-		return parserError("Event '%s' has already been defined", name.c_str());
+		return parserError("Event '" + name + "' has already been defined");
 
 	VirtualKeyboard::VKEvent *evt = new VirtualKeyboard::VKEvent();
 	evt->name = name;
@@ -203,6 +205,9 @@ bool VirtualKeyboardParser::parserCallback_event(ParserNode *node) {
 
 		evt->type = VirtualKeyboard::kVKEventModifier;
 		byte *flags = (byte*) malloc(sizeof(byte));
+		if (!flags)
+			error("[VirtualKeyboardParser::parserCallback_event] Cannot allocate memory");
+
 		*(flags) = parseFlags(node->values["modifiers"]);
 		evt->data = flags;
 
@@ -215,6 +220,9 @@ bool VirtualKeyboardParser::parserCallback_event(ParserNode *node) {
 		evt->type = VirtualKeyboard::kVKEventSwitchMode;
 		String& mode = node->values["mode"];
 		char *str = (char*) malloc(sizeof(char) * mode.size() + 1);
+		if (!str)
+			error("[VirtualKeyboardParser::parserCallback_event] Cannot allocate memory");
+
 		memcpy(str, mode.c_str(), sizeof(char) * mode.size());
 		str[mode.size()] = 0;
 		evt->data = str;
@@ -232,7 +240,7 @@ bool VirtualKeyboardParser::parserCallback_event(ParserNode *node) {
 		evt->type = VirtualKeyboard::kVKEventMoveRight;
 	} else {
 		delete evt;
-		return parserError("Event type '%s' not known", type.c_str());
+		return parserError("Event type '" + type + "' not known");
 	}
 
 	_mode->events[name] = evt;
@@ -254,7 +262,7 @@ bool VirtualKeyboardParser::parserCallback_layout(ParserNode *node) {
 
 	SeekableReadStream *file = _keyboard->_fileArchive->createReadStreamForMember(_mode->bitmapName);
 	if (!file)
-		return parserError("Bitmap '%s' not found", _mode->bitmapName.c_str());
+		return parserError("Bitmap '" + _mode->bitmapName + "' not found");
 
 	const Graphics::PixelFormat format = g_system->getOverlayFormat();
 
@@ -262,11 +270,11 @@ bool VirtualKeyboardParser::parserCallback_layout(ParserNode *node) {
 	delete file;
 
 	if (!_mode->image)
-		return parserError("Error loading bitmap '%s'", _mode->bitmapName.c_str());
+		return parserError("Error loading bitmap '" + _mode->bitmapName + "'");
 
 	int r, g, b;
 	if (node->values.contains("transparent_color")) {
-		if (!parseIntegerKey(node->values["transparent_color"].c_str(), 3, &r, &g, &b))
+		if (!parseIntegerKey(node->values["transparent_color"], 3, &r, &g, &b))
 			return parserError("Could not parse color value");
 	} else {
 		// default to purple
@@ -277,7 +285,7 @@ bool VirtualKeyboardParser::parserCallback_layout(ParserNode *node) {
 	_mode->transparentColor = format.RGBToColor(r, g, b);
 
 	if (node->values.contains("display_font_color")) {
-		if (!parseIntegerKey(node->values["display_font_color"].c_str(), 3, &r, &g, &b))
+		if (!parseIntegerKey(node->values["display_font_color"], 3, &r, &g, &b))
 			return parserError("Could not parse color value");
 	} else {
 		r = g = b = 0; // default to black
@@ -310,7 +318,7 @@ bool VirtualKeyboardParser::parserCallback_area(ParserNode *node) {
 		Polygon *poly = _mode->imageMap.createArea(target);
 		return parsePolygon(*poly, coords);
 	}
-	return parserError("Area shape '%s' not known", shape.c_str());
+	return parserError("Area shape '" + shape + "' not known");
 }
 
 byte VirtualKeyboardParser::parseFlags(const String& flags) {
@@ -332,7 +340,7 @@ byte VirtualKeyboardParser::parseFlags(const String& flags) {
 
 bool VirtualKeyboardParser::parseRect(Rect &rect, const String& coords) {
 	int x1, y1, x2, y2;
-	if (!parseIntegerKey(coords.c_str(), 4, &x1, &y1, &x2, &y2))
+	if (!parseIntegerKey(coords, 4, &x1, &y1, &x2, &y2))
 		return parserError("Invalid coords for rect area");
 	rect.left = x1;
 	rect.top = y1;
@@ -371,6 +379,6 @@ bool VirtualKeyboardParser::parseRectAsPolygon(Polygon &poly, const String& coor
 	return true;
 }
 
-} // end of namespace GUI
+} // End of namespace GUI
 
 #endif // #ifdef ENABLE_VKEYBD

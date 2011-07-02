@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Actor management module header file
@@ -183,8 +180,8 @@ enum DragonMoveTypes {
 
 struct PathDirectionData {
 	int8 direction;
-	int x;
-	int y;
+	int16 x;
+	int16 y;
 };
 
 struct ActorFrameRange {
@@ -195,6 +192,8 @@ struct ActorFrameRange {
 struct ActorFrameSequence {
 	ActorFrameRange directions[ACTOR_DIRECTIONS_COUNT];
 };
+
+typedef Common::Array<ActorFrameSequence> ActorFrameSequences;
 
 uint pathLine(PointList &pointList, uint idx, const Point &point1, const Point &point2);
 
@@ -265,7 +264,7 @@ struct Location {
 		screenPoint.x = x / ACTOR_LMULT;
 		screenPoint.y = y / ACTOR_LMULT - z;
 	}
-	void fromStream(MemoryReadStream &stream) {
+	void fromStream(Common::ReadStream &stream) {
 		x = stream.readUint16LE();
 		y = stream.readUint16LE();
 		z = stream.readUint16LE();
@@ -285,7 +284,6 @@ struct Location {
 class CommonObjectData {
 public:
 //constant
-	bool _disabled;					// disabled in init section
 	int32 _index;					// index in local array
 	uint16 _id;						// object id
 	int32 _scriptEntrypointNumber;	// script entrypoint number
@@ -323,6 +321,20 @@ public:
 		_screenDepth = in->readSint32LE();
 		_screenScale = in->readSint32LE();
 	}
+
+	CommonObjectData() {
+		_index = 0;
+		_id = 0;
+		_scriptEntrypointNumber = 0;
+
+		_flags = 0;
+		_nameIndex = 0;
+		_sceneNumber = 0;
+		_spriteListResourceId = 0;
+
+		_screenDepth = 0;
+		_screenScale = 0;
+	}
 };
 
 typedef CommonObjectData *CommonObjectDataPointer;
@@ -333,19 +345,21 @@ class ObjectData: public CommonObjectData {
 public:
 	//constant
 	uint16 _interactBits;
+
 	ObjectData() {
-		memset(this, 0, sizeof(*this));
+		_interactBits = 0;
 	}
 };
+
+typedef Common::Array<ObjectData> ObjectDataArray;
 
 class ActorData: public CommonObjectData {
 public:
 	//constant
 	SpriteList _spriteList;		// sprite list data
 
-	bool _shareFrames;
-	ActorFrameSequence *_frames;	// Actor's frames
-	int _framesCount;			// Actor's frames count
+	ActorFrameSequences *_frames;	// Actor's frames
+	ActorFrameSequences _framesContainer;	// Actor's frames
 	int _frameListResourceId;	// Actor's frame list resource id
 
 	byte _speechColor;			// Actor dialogue color
@@ -376,11 +390,9 @@ public:
 
 	int32 _frameNumber;			// current frame number
 
-	int32 _tileDirectionsAlloced;
-	byte *_tileDirections;
+	ByteArray _tileDirections;
 
-	int32 _walkStepsAlloced;
-	Point *_walkStepsPoints;
+	Common::Array<Point> _walkStepsPoints;
 
 	int32 _walkStepsCount;
 	int32 _walkStepIndex;
@@ -391,21 +403,21 @@ public:
 
 public:
 	ActorData();
-	~ActorData();
 
 	void saveState(Common::OutSaveFile *out);
 	void loadState(uint32 version, Common::InSaveFile *in);
 
-	void setTileDirectionsSize(int size, bool forceRealloc);
 	void cycleWrap(int cycleLimit);
-	void setWalkStepsPointsSize(int size, bool forceRealloc);
 	void addWalkStepPoint(const Point &point);
-	void freeSpriteList();
+	bool shareFrames() {
+		return ((_frames != NULL) && (_frames != &_framesContainer));
+	}
 };
 
+typedef Common::Array<ActorData> ActorDataArray;
+
 struct ProtagStateData {
-	ActorFrameSequence *_frames;	// Actor's frames
-	int	_framesCount;			// Actor's frames count
+	ActorFrameSequences _frames;	// Actor's frames
 };
 
 
@@ -450,15 +462,17 @@ public:
 
 	void cmdActorWalkTo(int argc, const char **argv);
 
-	bool validActorId(uint16 id) { return (id == ID_PROTAG) || ((id >= objectIndexToId(kGameObjectActor, 0)) && (id < objectIndexToId(kGameObjectActor, _actorsCount))); }
-	int actorIdToIndex(uint16 id) { return (id == ID_PROTAG ) ? 0 : objectIdToIndex(id); }
-	uint16 actorIndexToId(int index) { return (index == 0 ) ? ID_PROTAG : objectIndexToId(kGameObjectActor, index); }
+	bool validActorId(uint16 id) {
+		return (id == ID_PROTAG) || ((id >= objectIndexToId(kGameObjectActor, 0)) && (id < objectIndexToId(kGameObjectActor, _actors.size())));
+	}
+	int actorIdToIndex(uint16 id) { return (id == ID_PROTAG) ? 0 : objectIdToIndex(id); }
+	uint16 actorIndexToId(int index) { return (index == 0) ? ID_PROTAG : objectIndexToId(kGameObjectActor, index); }
 	ActorData *getActor(uint16 actorId);
-	ActorData *getFirstActor() { return _actors[0]; }
+	ActorData *getFirstActor() { return &_actors.front(); }
 
 // clarification: Obj - means game object, such Hat, Spoon etc,  Object - means Actor,Obj,HitZone,StepZone
 
-	bool validObjId(uint16 id) { return (id >= objectIndexToId(kGameObjectObject, 0)) && (id < objectIndexToId(kGameObjectObject, _objsCount)); }
+	bool validObjId(uint16 id) { return (id >= objectIndexToId(kGameObjectObject, 0)) && (id < objectIndexToId(kGameObjectObject, _objs.size())); }
 	int objIdToIndex(uint16 id) { return objectIdToIndex(id); }
 	uint16 objIndexToId(int index) { return objectIndexToId(kGameObjectObject, index); }
 	ObjectData *getObj(uint16 objId);
@@ -525,18 +539,14 @@ public:
 	void setProtagState(int state);
 	int getProtagState() { return _protagState; }
 
-	void freeProtagStates();
-
-	void freeActorList();
 	void loadActorList(int protagonistIdx, int actorCount, int actorsResourceID,
 				  int protagStatesCount, int protagStatesResourceID);
-	void freeObjList();
 	void loadObjList(int objectCount, int objectsResourceID);
 
 protected:
 	friend class Script;
-	bool loadActorResources(ActorData *actor);
-	void loadFrameList(int frameListResourceId, ActorFrameSequence *&framesPointer, int &framesCount);
+	void loadActorResources(ActorData *actor);
+	void loadFrameList(int frameListResourceId, ActorFrameSequences &frames);
 private:
 	void stepZoneAction(ActorData *actor, const HitZone *hitZone, bool exit, bool stopped);
 	void loadActorSpriteList(ActorData *actor);
@@ -584,11 +594,9 @@ private:
 
 protected:
 //constants
-	int _actorsCount;
-	ActorData **_actors;
+	ActorDataArray _actors;
 
-	int _objsCount;
-	ObjectData **_objs;
+	ObjectDataArray _objs;
 
 	SagaEngine *_vm;
 	ResourceContext *_actorContext;
@@ -613,8 +621,7 @@ protected:
 	bool _dragonHunt;
 
 private:
-	ProtagStateData *_protagStates;
-	int _protagStatesCount;
+	Common::Array<ProtagStateData> _protagStates;
 
 //path stuff
 	struct PathNode {
@@ -629,7 +636,7 @@ private:
 
 	Rect _barrierList[ACTOR_BARRIERS_MAX];
 	int _barrierCount;
-	int8 *_pathCell;
+	Common::Array<int8> _pathCell;
 
 	int _xCellCount;
 	int _yCellCount;

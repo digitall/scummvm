@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_PLAYER_V3A_H
@@ -48,7 +45,7 @@ public:
 	virtual void startSound(int sound);
 	virtual void stopSound(int sound);
 	virtual void stopAllSounds();
-	virtual int  getMusicTimer() const;
+	virtual int  getMusicTimer();
 	virtual int  getSoundStatus(int sound) const;
 
 private:

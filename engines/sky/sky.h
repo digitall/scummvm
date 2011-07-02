@@ -18,18 +18,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_H
 #define SKY_H
 
 
-#include "common/events.h"
+#include "common/error.h"
+#include "common/keyboard.h"
 #include "engines/engine.h"
 
+/**
+ * This is the namespace of the Sky engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Beneath a Steel Sky
+ */
 namespace Sky {
 
 struct SystemVars {
@@ -44,7 +50,6 @@ struct SystemVars {
 	bool paused;
 };
 
-struct Compact;
 class Sound;
 class Disk;
 class Text;
@@ -76,11 +81,13 @@ public:
 	SkyEngine(OSystem *syst);
 	virtual ~SkyEngine();
 
-	static bool isDemo(void);
-	static bool isCDVersion(void);
+	virtual void syncSoundSettings();
+
+	static bool isDemo();
+	static bool isCDVersion();
 
 	Common::Error loadGameState(int slot);
-	Common::Error saveGameState(int slot, const char *desc);
+	Common::Error saveGameState(int slot, const Common::String &desc);
 	bool canLoadGameStateCurrently();
 	bool canSaveGameStateCurrently();
 
@@ -96,7 +103,7 @@ protected:
 	virtual Common::Error run() {
 		Common::Error err;
 		err = init();
-		if (err != Common::kNoError)
+		if (err.getCode() != Common::kNoError)
 			return err;
 		return go();
 	}
@@ -106,15 +113,13 @@ protected:
 	byte _fastMode;
 
 	void delay(int32 amount);
-	void handleKey(void);
+	void handleKey();
 
 	uint32 _lastSaveTime;
 
 	void initItemList();
 
 	void initVirgin();
-	static void timerHandler(void *ptr);
-	void gotTimerTick();
 	void loadFixedItems();
 };
 

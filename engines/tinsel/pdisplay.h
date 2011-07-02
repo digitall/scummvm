@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Tag related methods
  */
 
@@ -29,9 +26,12 @@
 
 namespace Tinsel {
 
-void EnableTags(void);
-void DisableTags(void);
+void EnableTags();
+void DisableTags();
 
-} // end of namespace Tinsel
+void DisablePointing();
+void EnablePointing();
+
+} // End of namespace Tinsel
 
 #endif		/* TINSEL_PDISPLAY_H */

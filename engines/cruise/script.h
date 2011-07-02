@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_SCRIPT_H
@@ -39,8 +36,8 @@ struct scriptInstanceStruct {
 	struct scriptInstanceStruct *nextScriptPtr;
 	int16 ccr;
 	int16 scriptOffset;
-	uint8 *var6;
-	int16 varA;
+	uint8 *data;
+	int16 dataSize;
 	int16 scriptNumber;
 	int16 overlayNumber;
 	int16 sysKey;
@@ -55,8 +52,8 @@ extern scriptInstanceStruct relHead;
 extern scriptInstanceStruct procHead;
 extern scriptInstanceStruct *currentScriptPtr;
 
-void setupFuncArray(void);
-int8 getByteFromScript(void);
+void setupFuncArray();
+int8 getByteFromScript();
 
 int removeScript(int overlay, int idx, scriptInstanceStruct * headPtr);
 uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);

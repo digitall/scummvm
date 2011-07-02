@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
+#include "common/str.h"
 
 #include "gob/gob.h"
 #include "gob/variables.h"
-#include "gob/helper.h"
 
 namespace Gob {
 
@@ -68,19 +65,28 @@ void Variables::writeVarString(uint32 var, const char *value) {
 }
 
 void Variables::writeOff8(uint32 offset, uint8 value) {
+	assert(offset < _size);
+
 	write8(_vars + offset, value);
 }
 
 void Variables::writeOff16(uint32 offset, uint16 value) {
+	assert((offset + 1) < _size);
+
 	write16(_vars + offset, value);
 }
 
 void Variables::writeOff32(uint32 offset, uint32 value) {
+	assert((offset + 3) < _size);
+
 	write32(_vars + offset, value);
 }
 
 void Variables::writeOffString(uint32 offset, const char *value) {
-	strcpy((char *) (_vars + offset), value);
+	uint32 length = strlen(value);
+	assert((offset + length + 1) < _size);
+
+	strcpy((char *)(_vars + offset), value);
 }
 
 uint8 Variables::readVar8(uint32 var) const {
@@ -100,19 +106,27 @@ void Variables::readVarString(uint32 var, char *value, uint32 length) {
 }
 
 uint8 Variables::readOff8(uint32 offset) const {
+	assert(offset < _size);
+
 	return read8(_vars + offset);
 }
 
 uint16 Variables::readOff16(uint32 offset) const {
+	assert((offset + 1) < _size);
+
 	return read16(_vars + offset);
 }
 
 uint32 Variables::readOff32(uint32 offset) const {
+	assert((offset + 3) < _size);
+
 	return read32(_vars + offset);
 }
 
 void Variables::readOffString(uint32 offset, char *value, uint32 length) {
-	strncpy0(value, (const char *) (_vars + offset), length - 1);
+	assert(offset < _size);
+
+	Common::strlcpy(value, (const char *)(_vars + offset), MIN<int>(length, _size - offset));
 }
 
 const uint8 *Variables::getAddressVar8(uint32 var) const {
@@ -132,19 +146,19 @@ char *Variables::getAddressVarString(uint32 var) {
 }
 
 const uint8 *Variables::getAddressOff8(uint32 offset) const {
-	return ((const uint8 *) (_vars + offset));
+	return ((const uint8 *)(_vars + offset));
 }
 
 uint8 *Variables::getAddressOff8(uint32 offset) {
-	return ((uint8 *) (_vars + offset));
+	return ((uint8 *)(_vars + offset));
 }
 
 const char *Variables::getAddressOffString(uint32 offset) const {
-	return ((const char *) (_vars + offset));
+	return ((const char *)(_vars + offset));
 }
 
 char *Variables::getAddressOffString(uint32 offset) {
-	return ((char *) (_vars + offset));
+	return ((char *)(_vars + offset));
 }
 
 bool Variables::copyTo(uint32 offset, byte *variables, uint32 n) const {
@@ -284,6 +298,67 @@ VariableReference &VariableReference::operator+=(uint32 value) {
 
 VariableReference &VariableReference::operator*=(uint32 value) {
 	return (*this = (*this * value));
+}
+
+
+VariableStack::VariableStack(uint32 size) : _size(size), _position(0) {
+	_stack = new byte[_size];
+
+	memset(_stack, 0, _size);
+}
+
+VariableStack::~VariableStack() {
+	delete[] _stack;
+}
+
+void VariableStack::pushData(const Variables &vars, uint32 offset, uint32 size) {
+	// Sanity checks
+	assert(size < 256);
+	assert((_position + size) < _size);
+
+	vars.copyTo(offset, _stack + _position, size);
+
+	_position += size;
+	_stack[_position++] = size;
+	_stack[_position++] = 0;
+}
+
+void VariableStack::pushInt(uint32 value) {
+	// Sanity check
+	assert((_position + 4) < _size);
+
+	memcpy(_stack + _position, &value, 4);
+
+	_position += 4;
+	_stack[_position++] = 4;
+	_stack[_position++] = 1;
+}
+
+void VariableStack::pop(Variables &vars, uint32 offset) {
+	// Sanity check
+	assert(_position >= 2);
+
+	bool   isInt = _stack[--_position] == 1;
+	uint32 size  = _stack[--_position];
+
+	// Sanity check
+	assert(_position >= size);
+
+	_position -= size;
+
+	if (isInt) {
+		// If it's an int, explicitely call the int variable writing method,
+		// to make sure the variable space endianness is preserved.
+
+		assert(size == 4);
+
+		uint32 value;
+		memcpy(&value, _stack + _position, 4);
+
+		vars.writeOff32(offset, value);
+	} else
+		// Otherwise, use do a raw copy
+		vars.copyFrom(offset, _stack + _position, size);
 }
 
 } // End of namespace Gob

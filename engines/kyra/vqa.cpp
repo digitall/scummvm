@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Player for Kyrandia 3 VQA movies, based on the information found at
@@ -33,14 +30,13 @@
 
 
 #include "kyra/vqa.h"
+#include "kyra/resource.h"
 
 #include "common/system.h"
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
 
-#include "kyra/sound.h"
-#include "kyra/screen.h"
-#include "kyra/resource.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
 
 namespace Kyra {
 
@@ -50,6 +46,15 @@ VQAMovie::VQAMovie(KyraEngine_v1 *vm, OSystem *system) {
 	_screen = _vm->screen();
 	_opened = false;
 	_x = _y = _drawPage = -1;
+	_frame = 0;
+	_vectorPointers = 0;
+	_numPartialCodeBooks = 0;
+	_partialCodeBookSize = 0;
+	_compressedCodeBook = 0;
+	_partialCodeBook = 0;
+	_codeBook = 0;
+	_frameInfo = 0;
+	memset(_buffers, 0, sizeof(_buffers));
 }
 
 VQAMovie::~VQAMovie() {
@@ -95,6 +100,9 @@ uint32 VQAMovie::readTag() {
 	// zero byte. Skip that.
 
 	uint32 tag = _file->readUint32BE();
+
+	if (_file->eos())
+		return 0;
 
 	if (!(tag & 0xFF000000)) {
 		tag = (tag << 8) | _file->readByte();
@@ -191,7 +199,7 @@ bool VQAMovie::open(const char *filename) {
 	if (!_file)
 		return false;
 
-	if (_file->readUint32BE() != MKID_BE('FORM')) {
+	if (_file->readUint32BE() != MKTAG('F','O','R','M')) {
 		warning("VQAMovie::open: Cannot find `FORM' tag");
 		return false;
 	}
@@ -199,7 +207,7 @@ bool VQAMovie::open(const char *filename) {
 	// For now, we ignore the size of the FORM chunk.
 	_file->readUint32BE();
 
-	if (_file->readUint32BE() != MKID_BE('WVQA')) {
+	if (_file->readUint32BE() != MKTAG('W','V','Q','A')) {
 		warning("WQAMovie::open: Cannot find `WVQA' tag");
 		return false;
 	}
@@ -215,7 +223,7 @@ bool VQAMovie::open(const char *filename) {
 		uint32 size = _file->readUint32BE();
 
 		switch (tag) {
-		case MKID_BE('VQHD'):	// VQA header
+		case MKTAG('V','Q','H','D'):	// VQA header
 			_header.version     = _file->readUint16LE();
 			_header.flags       = _file->readUint16LE();
 			_header.numFrames   = _file->readUint16LE();
@@ -250,8 +258,8 @@ bool VQAMovie::open(const char *filename) {
 					_header.bits = 8;
 			}
 
-			setX((Screen::SCREEN_W - _header.width) / 2);
-			setY((Screen::SCREEN_H - _header.height) / 2);
+			_x = (Screen::SCREEN_W - _header.width) / 2;
+			_y = (Screen::SCREEN_H - _header.height) / 2;
 
 			_frameInfo = new uint32[_header.numFrames];
 			_frame = new byte[_header.width * _header.height];
@@ -283,7 +291,7 @@ bool VQAMovie::open(const char *filename) {
 				assert(_header.bits == 8);
 				assert(_header.channels == 1);
 
-				_stream = Audio::makeAppendableAudioStream(_header.freq, Audio::Mixer::FLAG_UNSIGNED);
+				_stream = Audio::makeQueuingAudioStream(_header.freq, false);
 			} else {
 				_stream = NULL;
 			}
@@ -291,7 +299,7 @@ bool VQAMovie::open(const char *filename) {
 			foundHeader = true;
 			break;
 
-		case MKID_BE('FINF'):	// Frame info
+		case MKTAG('F','I','N','F'):	// Frame info
 			if (!foundHeader) {
 				warning("VQAMovie::open: Found `FINF' before `VQHD'");
 				return false;
@@ -330,7 +338,7 @@ bool VQAMovie::open(const char *filename) {
 					if (_file->eos())
 						break;
 
-					if (scanTag == MKID_BE('VQFR')) {
+					if (scanTag == MKTAG('V','Q','F','R')) {
 						_frameInfo[0] = (_file->pos() - 8) | 0x80000000;
 						break;
 					}
@@ -408,41 +416,41 @@ void VQAMovie::displayFrame(uint frameNum) {
 		int32 end;
 
 		switch (tag) {
-		case MKID_BE('SND0'):	// Uncompressed sound
+		case MKTAG('S','N','D','0'):	// Uncompressed sound
 			foundSound = true;
-			inbuf = new byte[size];
+			inbuf = (byte *)malloc(size);
 			_file->read(inbuf, size);
 			assert(_stream);
-			_stream->queueBuffer(inbuf, size);
+			_stream->queueBuffer(inbuf, size, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 			break;
 
-		case MKID_BE('SND1'):	// Compressed sound, almost like AUD
+		case MKTAG('S','N','D','1'):	// Compressed sound, almost like AUD
 			foundSound = true;
 			outsize = _file->readUint16LE();
 			insize = _file->readUint16LE();
 
-			inbuf = new byte[insize];
+			inbuf = (byte *)malloc(insize);
 			_file->read(inbuf, insize);
 
 			if (insize == outsize) {
 				assert(_stream);
-				_stream->queueBuffer(inbuf, insize);
+				_stream->queueBuffer(inbuf, insize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 			} else {
-				outbuf = new byte[outsize];
+				outbuf = (byte *)malloc(outsize);
 				decodeSND1(inbuf, insize, outbuf, outsize);
 				assert(_stream);
-				_stream->queueBuffer(outbuf, outsize);
-				delete[] inbuf;
+				_stream->queueBuffer(outbuf, outsize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
+				free(inbuf);
 			}
 			break;
 
-		case MKID_BE('SND2'):	// Compressed sound
+		case MKTAG('S','N','D','2'):	// Compressed sound
 			foundSound = true;
 			warning("VQAMovie::displayFrame: `SND2' is not implemented");
 			_file->seek(size, SEEK_CUR);
 			break;
 
-		case MKID_BE('VQFR'):
+		case MKTAG('V','Q','F','R'):
 			foundFrame = true;
 			end = _file->pos() + size - 8;
 
@@ -451,49 +459,49 @@ void VQAMovie::displayFrame(uint frameNum) {
 				size = _file->readUint32BE();
 
 				switch (tag) {
-				case MKID_BE('CBF0'):	// Full codebook
+				case MKTAG('C','B','F','0'):	// Full codebook
 					_file->read(_codeBook, size);
 					break;
 
-				case MKID_BE('CBFZ'):	// Full codebook
+				case MKTAG('C','B','F','Z'):	// Full codebook
 					inbuf = (byte *)allocBuffer(0, size);
 					_file->read(inbuf, size);
 					Screen::decodeFrame4(inbuf, _codeBook, _codeBookSize);
 					break;
 
-				case MKID_BE('CBP0'):	// Partial codebook
+				case MKTAG('C','B','P','0'):	// Partial codebook
 					_compressedCodeBook = false;
 					_file->read(_partialCodeBook + _partialCodeBookSize, size);
 					_partialCodeBookSize += size;
 					_numPartialCodeBooks++;
 					break;
 
-				case MKID_BE('CBPZ'):	// Partial codebook
+				case MKTAG('C','B','P','Z'):	// Partial codebook
 					_compressedCodeBook = true;
 					_file->read(_partialCodeBook + _partialCodeBookSize, size);
 					_partialCodeBookSize += size;
 					_numPartialCodeBooks++;
 					break;
 
-				case MKID_BE('CPL0'):	// Palette
+				case MKTAG('C','P','L','0'):	// Palette
 					assert(size <= 3 * 256);
 					_file->read(_screen->getPalette(0).getData(), size);
 					break;
 
-				case MKID_BE('CPLZ'):	// Palette
+				case MKTAG('C','P','L','Z'):	// Palette
 					inbuf = (byte *)allocBuffer(0, size);
 					_file->read(inbuf, size);
 					Screen::decodeFrame4(inbuf, _screen->getPalette(0).getData(), 768);
 					break;
 
-				case MKID_BE('VPT0'):	// Frame data
+				case MKTAG('V','P','T','0'):	// Frame data
 					assert(size / 2 <= _numVectorPointers);
 
 					for (i = 0; i < size / 2; i++)
 						_vectorPointers[i] = _file->readUint16LE();
 					break;
 
-				case MKID_BE('VPTZ'):	// Frame data
+				case MKTAG('V','P','T','Z'):	// Frame data
 					inbuf = (byte *)allocBuffer(0, size);
 					outbuf = (byte *)allocBuffer(1, 2 * _numVectorPointers);
 
@@ -600,35 +608,35 @@ void VQAMovie::play() {
 			}
 
 			switch (tag) {
-			case MKID_BE('SND0'):	// Uncompressed sound
-				inbuf = new byte[size];
+			case MKTAG('S','N','D','0'):	// Uncompressed sound
+				inbuf = (byte *)malloc(size);
 				_file->read(inbuf, size);
-				_stream->queueBuffer(inbuf, size);
+				_stream->queueBuffer(inbuf, size, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 				break;
 
-			case MKID_BE('SND1'):	// Compressed sound
+			case MKTAG('S','N','D','1'):	// Compressed sound
 				outsize = _file->readUint16LE();
 				insize = _file->readUint16LE();
 
-				inbuf = new byte[insize];
+				inbuf = (byte *)malloc(insize);
 				_file->read(inbuf, insize);
 
 				if (insize == outsize) {
-					_stream->queueBuffer(inbuf, insize);
+					_stream->queueBuffer(inbuf, insize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 				} else {
-					outbuf = new byte[outsize];
+					outbuf = (byte *)malloc(outsize);
 					decodeSND1(inbuf, insize, outbuf, outsize);
-					_stream->queueBuffer(outbuf, outsize);
-					delete[] inbuf;
+					_stream->queueBuffer(outbuf, outsize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
+					free(inbuf);
 				}
 				break;
 
-			case MKID_BE('SND2'):	// Compressed sound
+			case MKTAG('S','N','D','2'):	// Compressed sound
 				warning("VQAMovie::play: `SND2' is not implemented");
 				_file->seek(size, SEEK_CUR);
 				break;
 
-			case MKID_BE('CMDS'):	// Unused tag, always empty in kyra3
+			case MKTAG('C','M','D','S'):	// Unused tag, always empty in kyra3
 				_file->seek(size, SEEK_CUR);
 				break;
 
@@ -639,7 +647,7 @@ void VQAMovie::play() {
 		}
 	}
 
-	_vm->_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_sound, _stream);
+	_vm->_mixer->playStream(Audio::Mixer::kSFXSoundType, &_sound, _stream);
 	Common::EventManager *eventMan = _vm->getEventManager();
 
 	for (uint i = 0; i < _header.numFrames; i++) {
@@ -684,4 +692,4 @@ void VQAMovie::play() {
 	// TODO: Wait for the sound to finish?
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

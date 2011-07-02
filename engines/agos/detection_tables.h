@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 namespace AGOS {
@@ -1600,7 +1597,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 			Common::RU_RUS,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NOSUBTITLES
+			GUIO_NONE
 		},
 
 		GType_SIMON1,
@@ -1625,7 +1622,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NOSUBTITLES
+			GUIO_NONE
 		},
 
 		GType_SIMON1,
@@ -1672,10 +1669,10 @@ static const AGOSGameDescription gameDescriptions[] = {
 	{ "tbllist",		GAME_TBLFILE,	"d198a80de2c59e4a0cd24b98814849e8", 711},
 	{ NULL, 0, NULL, 0}
 			},
-			Common::HB_ISR,
+			Common::HE_ISR,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NOSUBTITLES
+			GUIO_NONE
 		},
 
 		GType_SIMON1,
@@ -1700,7 +1697,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NOSUBTITLES
+			GUIO_NONE
 		},
 
 		GType_SIMON1,
@@ -1726,7 +1723,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			GUIO_NOSUBTITLES
+			GUIO_NONE
 		},
 
 		GType_SIMON1,
@@ -1751,7 +1748,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NOSUBTITLES
+			GUIO_NONE
 		},
 
 		GType_SIMON1,
@@ -2148,7 +2145,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 	{ "tbllist",		GAME_TBLFILE,	"2082f8d02075e590300478853a91ffd9", 513},
 	{ NULL, 0, NULL, 0}
 			},
-			Common::HB_ISR,
+			Common::HE_ISR,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
 			GUIO_NONE
@@ -2335,6 +2332,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 		GF_TALKIE
 	},
 
+#ifdef ENABLE_AGOS2
 	// The Feeble Files - English DOS Demo
 	{
 		{
@@ -2659,6 +2657,29 @@ static const AGOSGameDescription gameDescriptions[] = {
 		GF_OLD_BUNDLE | GF_TALKIE
 	},
 
+	// The Feeble Files - Polish Windows 4CD
+	{
+		{
+			"feeble",
+			"4CD",
+
+			{
+	{ "game22",		GAME_BASEFILE,	"c498f892a5dbcbc968e0dbb8697884fc", 258660},
+	{ "save.999",		GAME_RESTFILE,	"71512fc98501a8071a26b683a31dde78", 3360},
+	{ "tbllist",		GAME_TBLFILE,	"0bbfee8e69739111eb36b0d138da8ddf", 668},
+	{ NULL, 0, NULL, 0}
+			},
+			Common::PL_POL,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO_NOSUBTITLES | GUIO_NOMUSIC
+		},
+
+		GType_FF,
+		GID_FEEBLEFILES,
+		GF_OLD_BUNDLE | GF_TALKIE
+	},
+
 	// The Feeble Files - Spanish Windows 4CD
 	{
 		{
@@ -2787,6 +2808,27 @@ static const AGOSGameDescription gameDescriptions[] = {
 		GF_OLD_BUNDLE | GF_TALKIE
 	},
 
+	// Simon the Sorcerer's Puzzle Pack - Swampy Adventures - Polish
+	{
+		{
+			"swampy",
+			"CD",
+
+			{
+	{ "Gswampy",		GAME_BASEFILE,	"31bfb5169b47ccc19177e61bd31d4391", -1},
+	{ NULL, 0, NULL, 0}
+			},
+			Common::PL_POL,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO_NOSUBTITLES
+		},
+
+		GType_PP,
+		GID_SWAMPY,
+		GF_OLD_BUNDLE | GF_TALKIE
+	},
+
 	// Simon the Sorcerer's Puzzle Pack - Swampy Adventures - Spanish
 	{
 		{
@@ -2807,6 +2849,7 @@ static const AGOSGameDescription gameDescriptions[] = {
 		GID_SWAMPY,
 		GF_OLD_BUNDLE | GF_TALKIE
 	},
+#endif
 	{ AD_TABLE_END_MARKER, 0, 0, 0 }
 };
 

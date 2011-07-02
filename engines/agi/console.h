@@ -18,23 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGI_CONSOLE_H
 #define AGI_CONSOLE_H
 
-#include "gui/debugger.h"
-
-#include "agi/preagi_mickey.h"
-#include "agi/preagi_winnie.h"
-
 namespace Agi {
 
 class AgiEngine;
 class PreAgiEngine;
+class Winnie;
+class Mickey;
 
 struct AgiDebug {
 	int enabled;
@@ -49,11 +43,6 @@ struct AgiDebug {
 class Console : public GUI::Debugger {
 public:
 	Console(AgiEngine *vm);
-	virtual ~Console(void);
-
-protected:
-	virtual void preEnter();
-	virtual void postEnter();
 
 private:
 	bool Cmd_SetVar(int argc, const char **argv);
@@ -81,11 +70,7 @@ private:
 class PreAGI_Console : public GUI::Debugger {
 public:
 	PreAGI_Console(PreAgiEngine *vm);
-	virtual ~PreAGI_Console(void) {}
-
-protected:
-	virtual void preEnter() {}
-	virtual void postEnter() {}
+	virtual ~PreAGI_Console() {}
 
 private:
 	PreAgiEngine *_vm;
@@ -95,11 +80,7 @@ private:
 class Mickey_Console : public PreAGI_Console {
 public:
 	Mickey_Console(PreAgiEngine *vm, Mickey *mickey);
-	virtual ~Mickey_Console(void) {}
-
-protected:
-	virtual void preEnter() {}
-	virtual void postEnter() {}
+	virtual ~Mickey_Console() {}
 
 private:
 	Mickey *_mickey;
@@ -113,11 +94,7 @@ private:
 class Winnie_Console : public PreAGI_Console {
 public:
 	Winnie_Console(PreAgiEngine *vm, Winnie *winnie);
-	virtual ~Winnie_Console(void) {}
-
-protected:
-	virtual void preEnter() {}
-	virtual void postEnter() {}
+	virtual ~Winnie_Console() {}
 
 private:
 	Winnie *_winnie;

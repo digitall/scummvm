@@ -18,27 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-
-#include "common/endian.h"
-#include "common/system.h"
-
-#include "graphics/cursorman.h"
-#include "graphics/sjis.h"
 
 #include "kyra/screen.h"
 #include "kyra/kyra_v1.h"
 #include "kyra/resource.h"
 
+#include "common/endian.h"
+#include "common/memstream.h"
+#include "common/system.h"
+
+#include "engines/util.h"
+
+#include "graphics/cursorman.h"
+#include "graphics/palette.h"
+#include "graphics/sjis.h"
+
 namespace Kyra {
 
 Screen::Screen(KyraEngine_v1 *vm, OSystem *system)
 	: _system(system), _vm(vm), _sjisInvisibleColor(0),
-	_cursorColorKey((vm->gameFlags().gameID == GI_KYRA1) ? 0xFF : 0x00) {
+	_cursorColorKey((vm->game() == GI_KYRA1) ? 0xFF : 0x00) {
 	_debugEnabled = false;
 	_maskMinY = _maskMaxY = -1;
 
@@ -47,7 +47,10 @@ Screen::Screen(KyraEngine_v1 *vm, OSystem *system)
 	_drawShapeVar4 = 0;
 	_drawShapeVar5 = 0;
 
-	_sjisFont = 0;
+	memset(_fonts, 0, sizeof(_fonts));
+
+	_currentFont = FID_8_FNT;
+	_paletteChanged = true;
 }
 
 Screen::~Screen() {
@@ -56,12 +59,9 @@ Screen::~Screen() {
 
 	delete[] _pagePtrs[0];
 
-	for (int f = 0; f < ARRAYSIZE(_fonts); ++f) {
-		delete[] _fonts[f].fontData;
-		_fonts[f].fontData = NULL;
-	}
+	for (int f = 0; f < ARRAYSIZE(_fonts); ++f)
+		delete _fonts[f];
 
-	delete _sjisFont;
 	delete _screenPalette;
 	delete _internFadePalette;
 	delete[] _decodeShapeBuffer;
@@ -69,8 +69,6 @@ Screen::~Screen() {
 
 	for (uint i = 0; i < _palettes.size(); ++i)
 		delete _palettes[i];
-
-	CursorMan.popAllCursors();
 }
 
 bool Screen::init() {
@@ -80,11 +78,13 @@ bool Screen::init() {
 	_useOverlays = false;
 	_useSJIS = false;
 	_use16ColorMode = _vm->gameFlags().use16ColorMode;
+	_isAmiga = (_vm->gameFlags().platform == Common::kPlatformAmiga);
+	memset(_fonts, 0, sizeof(_fonts));
 
 	if (_vm->gameFlags().useHiResOverlay) {
 		_useOverlays = true;
 		_useSJIS = (_vm->gameFlags().lang == Common::JA_JPN);
-		_sjisInvisibleColor = (_vm->gameFlags().gameID == GI_KYRA1) ? 0x80 : 0xF6;
+		_sjisInvisibleColor = (_vm->game() == GI_KYRA1) ? 0x80 : 0xF6;
 
 		for (int i = 0; i < SCREEN_OVLS_NUM; ++i) {
 			if (!_sjisOverlayPtrs[i]) {
@@ -95,14 +95,14 @@ bool Screen::init() {
 		}
 
 		if (_useSJIS) {
-			_sjisFont = Graphics::FontSJIS::createFont(_vm->gameFlags().platform);
+			Graphics::FontSJIS *font = Graphics::FontSJIS::createFont(_vm->gameFlags().platform);
 
-			if (!_sjisFont)
+			if (!font)
 				error("Could not load any SJIS font, neither the original nor ScummVM's 'SJIS.FNT'");
-			_sjisFont->enableOutline(!_use16ColorMode);
+
+			_fonts[FID_SJIS_FNT] = new SJISFont(this, font, _sjisInvisibleColor, _use16ColorMode, !_use16ColorMode);
 		}
 	}
-
 
 	_curPage = 0;
 	uint8 *pagePtr = new uint8[SCREEN_PAGE_SIZE * 8];
@@ -112,8 +112,10 @@ bool Screen::init() {
 
 	memset(_shapePages, 0, sizeof(_shapePages));
 
-	const int paletteCount = (_vm->gameFlags().platform == Common::kPlatformAmiga) ? 12 : 4;
-	const int numColors = _use16ColorMode ? 16 : ((_vm->gameFlags().platform == Common::kPlatformAmiga) ? 32 : 256);
+	const int paletteCount = _isAmiga ? 13 : 4;
+	const int numColors = _use16ColorMode ? 16 : (_isAmiga ? 32 : 256);
+
+	_interfacePaletteEnabled = false;
 
 	_screenPalette = new Palette(numColors);
 	assert(_screenPalette);
@@ -132,22 +134,20 @@ bool Screen::init() {
 	// We setup the PC98 text mode palette at [16, 24], since that will be used
 	// for KANJI characters in Lands of Lore.
 	if (_use16ColorMode && _vm->gameFlags().platform == Common::kPlatformPC98) {
-		uint8 palette[8 * 4];
+		uint8 palette[8 * 3];
 
 		for (int i = 0; i < 8; ++i) {
-			palette[i * 4 + 0] = ((i >> 1) & 1) * 0xFF;
-			palette[i * 4 + 1] = ((i >> 2) & 1)	* 0xFF;
-			palette[i * 4 + 2] = ((i >> 0) & 1) * 0xFF;
-			palette[i * 4 + 3] = 0;
-
-			_system->setPalette(palette, 16, 8);
+			palette[i * 3 + 0] = ((i >> 1) & 1) * 0xFF;
+			palette[i * 3 + 1] = ((i >> 2) & 1) * 0xFF;
+			palette[i * 3 + 2] = ((i >> 0) & 1) * 0xFF;
 		}
+
+		_system->getPaletteManager()->setPalette(palette, 16, 8);
 	}
 
 	_curDim = 0;
 	_charWidth = 0;
 	_charOffset = 0;
-	memset(_fonts, 0, sizeof(_fonts));
 	for (int i = 0; i < ARRAYSIZE(_textColorsMap); ++i)
 		_textColorsMap[i] = i;
 	_decodeShapeBuffer = NULL;
@@ -176,8 +176,8 @@ bool Screen::enableScreenDebug(bool enable) {
 }
 
 void Screen::setResolution() {
-	byte palette[4*256];
-	_system->grabPalette(palette, 0, 256);
+	byte palette[3*256];
+	_system->getPaletteManager()->grabPalette(palette, 0, 256);
 
 	int width = 320, height = 200;
 	bool defaultTo1xScaler = false;
@@ -199,23 +199,31 @@ void Screen::setResolution() {
 
 	initGraphics(width, height, defaultTo1xScaler);
 
-	_system->setPalette(palette, 0, 256);
+	_system->getPaletteManager()->setPalette(palette, 0, 256);
 }
 
 void Screen::updateScreen() {
+	bool needRealUpdate = _forceFullUpdate || !_dirtyRects.empty() || _paletteChanged;
+	_paletteChanged = false;
+
 	if (_useOverlays)
 		updateDirtyRectsOvl();
+	else if (_isAmiga && _interfacePaletteEnabled)
+		updateDirtyRectsAmiga();
 	else
 		updateDirtyRects();
 
 	if (_debugEnabled) {
+		needRealUpdate = true;
+
 		if (!_useOverlays)
 			_system->copyRectToScreen(getPagePtr(2), SCREEN_W, 320, 0, SCREEN_W, SCREEN_H);
 		else
 			_system->copyRectToScreen(getPagePtr(2), SCREEN_W, 640, 0, SCREEN_W, SCREEN_H);
 	}
 
-	_system->updateScreen();
+	if (needRealUpdate)
+		_system->updateScreen();
 }
 
 void Screen::updateDirtyRects() {
@@ -228,6 +236,77 @@ void Screen::updateDirtyRects() {
 			_system->copyRectToScreen(page0 + it->top * SCREEN_W + it->left, SCREEN_W, it->left, it->top, it->width(), it->height());
 		}
 	}
+	_forceFullUpdate = false;
+	_dirtyRects.clear();
+}
+
+void Screen::updateDirtyRectsAmiga() {
+	if (_forceFullUpdate) {
+		_system->copyRectToScreen(getCPagePtr(0), SCREEN_W, 0, 0, SCREEN_W, 136);
+
+		// Page 8 is not used by Kyra 1 AMIGA, thus we can use it to adjust the colors
+		copyRegion(0, 136, 0, 0, 320, 64, 0, 8, CR_NO_P_CHECK);
+
+		uint8 *dst = getPagePtr(8);
+		for (int y = 0; y < 64; ++y)
+			for (int x = 0; x < 320; ++x)
+				*dst++ += 32;
+
+		_system->copyRectToScreen(getCPagePtr(8), SCREEN_W, 0, 136, SCREEN_W, 64);
+	} else {
+		const byte *page0 = getCPagePtr(0);
+		Common::List<Common::Rect>::iterator it;
+
+		for (it = _dirtyRects.begin(); it != _dirtyRects.end(); ++it) {
+			if (it->bottom <= 136) {
+				_system->copyRectToScreen(page0 + it->top * SCREEN_W + it->left, SCREEN_W, it->left, it->top, it->width(), it->height());
+			} else {
+				// Check whether the rectangle is part of both the screen and the interface
+				if (it->top < 136) {
+					// The rectangle covers both screen part and interface part
+
+					const int screenHeight = 136 - it->top;
+					const int interfaceHeight = it->bottom - 136;
+
+					const int width = it->width();
+					const int lineAdd = SCREEN_W - width;
+
+					// Copy the screen part verbatim
+					_system->copyRectToScreen(page0 + it->top * SCREEN_W + it->left, SCREEN_W, it->left, it->top, width, screenHeight);
+
+					// Adjust the interface part
+					copyRegion(it->left, 136, 0, 0, width, interfaceHeight, 0, 8, Screen::CR_NO_P_CHECK);
+
+					uint8 *dst = getPagePtr(8);
+					for (int y = 0; y < interfaceHeight; ++y) {
+						for (int x = 0; x < width; ++x)
+							*dst++ += 32;
+						dst += lineAdd;
+					}
+
+					_system->copyRectToScreen(getCPagePtr(8), SCREEN_W, it->left, 136, width, interfaceHeight);
+				} else {
+					// The rectangle only covers the interface part
+
+					const int width = it->width();
+					const int height = it->height();
+					const int lineAdd = SCREEN_W - width;
+
+					copyRegion(it->left, it->top, 0, 0, width, height, 0, 8, Screen::CR_NO_P_CHECK);
+
+					uint8 *dst = getPagePtr(8);
+					for (int y = 0; y < height; ++y) {
+						for (int x = 0; x < width; ++x)
+							*dst++ += 32;
+						dst += lineAdd;
+					}
+
+					_system->copyRectToScreen(getCPagePtr(8), SCREEN_W, it->left, it->top, width, height);
+				}
+			}
+		}
+	}
+
 	_forceFullUpdate = false;
 	_dirtyRects.clear();
 }
@@ -254,6 +333,7 @@ void Screen::updateDirtyRectsOvl() {
 			_system->copyRectToScreen(dst, 640, it->left<<1, it->top<<1, it->width()<<1, it->height()<<1);
 		}
 	}
+
 	_forceFullUpdate = false;
 	_dirtyRects.clear();
 }
@@ -269,8 +349,8 @@ void Screen::scale2x(byte *dst, int dstPitch, const byte *src, int srcPitch, int
 		for (int x = 0; x < w; ++x, dstL1 += 2, dstL2 += 2) {
 			uint16 col = *src++;
 			col |= col << 8;
-			*(uint16*)(dstL1) = col;
-			*(uint16*)(dstL2) = col;
+			*(uint16 *)(dstL1) = col;
+			*(uint16 *)(dstL2) = col;
 		}
 		dstL1 += dstAdd; dstL2 += dstAdd;
 		src += srcAdd;
@@ -392,7 +472,8 @@ void Screen::copyWsaRect(int x, int y, int w, int h, int dimState, int plotFunc,
 	if (_curPage == 0 || _curPage == 1)
 		addDirtyRect(x, y, w, h);
 
-	clearOverlayRect(_curPage, x, y, w, h);
+	if (!_use16ColorMode)
+		clearOverlayRect(_curPage, x, y, w, h);
 
 	temp = h;
 	int curY = y;
@@ -486,6 +567,12 @@ void Screen::setPagePixel(int pageNum, int x, int y, uint8 color) {
 	assert(x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H);
 	if (pageNum == 0 || pageNum == 1)
 		addDirtyRect(x, y, 1, 1);
+
+	if (_use16ColorMode) {
+		color &= 0x0F;
+		color |= (color << 4);
+	}
+
 	_pagePtrs[pageNum][y * SCREEN_W + x] = color;
 }
 
@@ -520,14 +607,6 @@ void Screen::fadePalette(const Palette &pal, int delay, const UpdateFunctor *upF
 
 		_vm->delay((delayAcc >> 8) * 1000 / 60);
 		delayAcc &= 0xFF;
-	}
-
-	if (_vm->shouldQuit()) {
-		setScreenPalette(pal);
-		if (upFunc && upFunc->isValid())
-			(*upFunc)();
-		else
-			_system->updateScreen();
 	}
 }
 
@@ -584,14 +663,22 @@ int Screen::fadePalStep(const Palette &pal, int diff) {
 }
 
 void Screen::setPaletteIndex(uint8 index, uint8 red, uint8 green, uint8 blue) {
-	getPalette(0)[index * 3 + 0] = red;
-	getPalette(0)[index * 3 + 1] = green;
-	getPalette(0)[index * 3 + 2] = blue;
-	setScreenPalette(getPalette(0));
+	Palette &pal = getPalette(0);
+
+	const int offset = index * 3;
+
+	if (pal[offset + 0] == red && pal[offset + 1] == green && pal[offset + 2] == blue)
+		return;
+
+	pal[offset + 0] = red;
+	pal[offset + 1] = green;
+	pal[offset + 2] = blue;
+
+	setScreenPalette(pal);
 }
 
 void Screen::getRealPalette(int num, uint8 *dst) {
-	const int colors = (_vm->gameFlags().platform == Common::kPlatformAmiga ? 32 : 256);
+	const int colors = _use16ColorMode ? 16 : (_isAmiga ? 32 : 256);
 	const uint8 *palData = getPalette(num).getData();
 
 	if (!palData) {
@@ -609,17 +696,52 @@ void Screen::getRealPalette(int num, uint8 *dst) {
 }
 
 void Screen::setScreenPalette(const Palette &pal) {
-	uint8 screenPal[256 * 4];
+	uint8 screenPal[256 * 3];
 	_screenPalette->copy(pal);
 
 	for (int i = 0; i < pal.getNumColors(); ++i) {
-		screenPal[4 * i + 0] = (pal[i * 3 + 0] * 0xFF) / 0x3F;
-		screenPal[4 * i + 1] = (pal[i * 3 + 1] * 0xFF) / 0x3F;
-		screenPal[4 * i + 2] = (pal[i * 3 + 2] * 0xFF) / 0x3F;
-		screenPal[4 * i + 3] = 0;
+		screenPal[3 * i + 0] = (pal[i * 3 + 0] * 0xFF) / 0x3F;
+		screenPal[3 * i + 1] = (pal[i * 3 + 1] * 0xFF) / 0x3F;
+		screenPal[3 * i + 2] = (pal[i * 3 + 2] * 0xFF) / 0x3F;
 	}
 
-	_system->setPalette(screenPal, 0, pal.getNumColors());
+	_paletteChanged = true;
+	_system->getPaletteManager()->setPalette(screenPal, 0, pal.getNumColors());
+}
+
+void Screen::enableInterfacePalette(bool e) {
+	_interfacePaletteEnabled = e;
+
+	_forceFullUpdate = true;
+	_dirtyRects.clear();
+
+	// TODO: We might need to reset the mouse cursor
+
+	updateScreen();
+}
+
+void Screen::setInterfacePalette(const Palette &pal, uint8 r, uint8 g, uint8 b) {
+	if (!_isAmiga)
+		return;
+
+	uint8 screenPal[32 * 3];
+
+	assert(32 <= pal.getNumColors());
+
+	for (int i = 0; i < pal.getNumColors(); ++i) {
+		if (i != 0x10) {
+			screenPal[3 * i + 0] = (pal[i * 3 + 0] * 0xFF) / 0x3F;
+			screenPal[3 * i + 1] = (pal[i * 3 + 1] * 0xFF) / 0x3F;
+			screenPal[3 * i + 2] = (pal[i * 3 + 2] * 0xFF) / 0x3F;
+		} else {
+			screenPal[3 * i + 0] = (r * 0xFF) / 0x3F;
+			screenPal[3 * i + 1] = (g * 0xFF) / 0x3F;
+			screenPal[3 * i + 2] = (b * 0xFF) / 0x3F;
+		}
+	}
+
+	_paletteChanged = true;
+	_system->getPaletteManager()->setPalette(screenPal, 32, pal.getNumColors());
 }
 
 void Screen::copyToPage0(int y, int h, uint8 page, uint8 *seqBuf) {
@@ -660,7 +782,7 @@ void Screen::copyRegion(int x1, int y1, int x2, int y2, int w, int h, int srcPag
 	}
 
 	if (y2 < 0) {
-		if (y2 <= -h )
+		if (y2 <= -h)
 			return;
 		h += y2;
 		y1 -= y2;
@@ -835,6 +957,11 @@ void Screen::fillRect(int x1, int y1, int x2, int y2, uint8 color, int pageNum, 
 
 	clearOverlayRect(pageNum, x1, y1, x2-x1+1, y2-y1+1);
 
+	if (_use16ColorMode) {
+		color &= 0x0F;
+		color |= (color << 4);
+	}
+
 	if (xored) {
 		for (; y1 <= y2; ++y1) {
 			for (int x = x1; x <= x2; ++x)
@@ -856,25 +983,16 @@ void Screen::drawBox(int x1, int y1, int x2, int y2, int color) {
 	drawClippedLine(x1, y2, x2, y2, color);
 }
 
-void Screen::drawShadedBox(int x1, int y1, int x2, int y2, int color1, int color2, ShadeType shadeType) {
+void Screen::drawShadedBox(int x1, int y1, int x2, int y2, int color1, int color2) {
 	assert(x1 >= 0 && y1 >= 0);
 	hideMouse();
 
 	fillRect(x1, y1, x2, y1 + 1, color1);
-	if (shadeType == kShadeTypeLol)
-		fillRect(x1, y1, x1 + 1, y2, color1);
-	else
-		fillRect(x2 - 1, y1, x2, y2, color1);
+	fillRect(x2 - 1, y1, x2, y2, color1);
 
-	if (shadeType == kShadeTypeLol) {
-		drawClippedLine(x2, y1, x2, y2, color2);
-		drawClippedLine(x2 - 1, y1 + 1, x2 - 1, y2 - 1, color2);
-		drawClippedLine(x1 + 1, y2 - 1, x2, y2 - 1, color2);
-	} else {
-		drawClippedLine(x1, y1, x1, y2, color2);
-		drawClippedLine(x1 + 1, y1 + 1, x1 + 1, y2 - 1, color2);
-		drawClippedLine(x1, y2 - 1, x2 - 1, y2 - 1, color2);
-	}
+	drawClippedLine(x1, y1, x1, y2, color2);
+	drawClippedLine(x1 + 1, y1 + 1, x1 + 1, y2 - 1, color2);
+	drawClippedLine(x1, y2 - 1, x2 - 1, y2 - 1, color2);
 	drawClippedLine(x1, y2, x2, y2, color2);
 
 	showMouse();
@@ -916,6 +1034,11 @@ void Screen::drawClippedLine(int x1, int y1, int x2, int y2, int color) {
 void Screen::drawLine(bool vertical, int x, int y, int length, int color) {
 	uint8 *ptr = getPagePtr(_curPage) + y * SCREEN_W + x;
 
+	if (_use16ColorMode) {
+		color &= 0x0F;
+		color |= (color << 4);
+	}
+
 	if (vertical) {
 		assert((y + length) <= SCREEN_H);
 		int currLine = 0;
@@ -945,89 +1068,70 @@ void Screen::setAnimBlockPtr(int size) {
 
 void Screen::setTextColor(const uint8 *cmap, int a, int b) {
 	memcpy(&_textColorsMap[a], cmap, b-a+1);
+
+	// We need to update the color tables of all fonts, we
+	// setup so far here.
+	for (int i = 0; i < FID_NUM; ++i) {
+		if (_fonts[i])
+			_fonts[i]->setColorMap(_textColorsMap);
+	}
 }
 
 bool Screen::loadFont(FontId fontId, const char *filename) {
-	Font *fnt = &_fonts[fontId];
-
-	// FIXME: add font support for amiga version
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
+	if (fontId == FID_SJIS_FNT) {
+		warning("Trying to replace system SJIS font");
 		return true;
+	}
 
-	if (!fnt)
-		error("fontId %d is invalid", fontId);
+	Font *&fnt = _fonts[fontId];
 
-	if (fnt->fontData)
-		delete[] fnt->fontData;
+	if (!fnt) {
+		if (_isAmiga)
+			fnt = new AMIGAFont();
+		else
+			fnt = new DOSFont();
 
-	uint32 sz = 0;
-	uint8 *fontData = fnt->fontData = _vm->resource()->fileData(filename, &sz);
+		assert(fnt);
+	}
 
-	if (!fontData || !sz)
-		error("Couldn't load font file '%s'", filename);
+	Common::SeekableReadStream *file = _vm->resource()->createReadStream(filename);
+	if (!file)
+		error("Font file '%s' is missing", filename);
 
-	uint16 fontSig = READ_LE_UINT16(fontData + 2);
-
-	if (fontSig != 0x500)
-		error("Invalid font data (file '%s', fontSig: %.04X)", filename, fontSig);
-
-	fnt->charWidthTable = fontData + READ_LE_UINT16(fontData + 8);
-	fnt->fontDescOffset = READ_LE_UINT16(fontData + 4);
-	fnt->charBitmapOffset = READ_LE_UINT16(fontData + 6);
-	fnt->charWidthTableOffset = READ_LE_UINT16(fontData + 8);
-	fnt->charHeightTableOffset = READ_LE_UINT16(fontData + 0xC);
-
-	fnt->lastGlyph = *(fnt->fontData + fnt->fontDescOffset + 3);
-
-	return true;
+	bool ret = fnt->load(*file);
+	fnt->setColorMap(_textColorsMap);
+	delete file;
+	return ret;
 }
 
 Screen::FontId Screen::setFont(FontId fontId) {
 	FontId prev = _currentFont;
 	_currentFont = fontId;
+
+	assert(_fonts[_currentFont]);
 	return prev;
 }
 
 int Screen::getFontHeight() const {
-	// FIXME: add font support for amiga version
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return 0;
-
-	return *(_fonts[_currentFont].fontData + _fonts[_currentFont].fontDescOffset + 4);
+	return _fonts[_currentFont]->getHeight();
 }
 
 int Screen::getFontWidth() const {
-	// FIXME: add font support for amiga version
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return 0;
-
-	return *(_fonts[_currentFont].fontData + _fonts[_currentFont].fontDescOffset + 5);
+	return _fonts[_currentFont]->getWidth();
 }
 
 int Screen::getCharWidth(uint16 c) const {
-	// FIXME: add font support for amiga version
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return 0;
-
-	if ((c & 0xFF00) && _sjisFont)
-		return _sjisFont->getFontWidth() >> 1;
-
-	if (_fonts[_currentFont].lastGlyph < c)
-		return 0;
-	else
-		return (int)_fonts[_currentFont].charWidthTable[c] + _charWidth;
+	const int width = _fonts[_currentFont]->getCharWidth(c);
+	return width + ((_currentFont != FID_SJIS_FNT) ? _charWidth : 0);
 }
 
 int Screen::getTextWidth(const char *str) const {
-	// FIXME: add font support for amiga version
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return 0;
-
 	int curLineLen = 0;
 	int maxLineLen = 0;
+
 	while (1) {
-		uint c = *str++;
-		c &= 0xFF;
+		uint c = fetchChar(str);
+
 		if (c == 0) {
 			break;
 		} else if (c == '\r') {
@@ -1036,13 +1140,7 @@ int Screen::getTextWidth(const char *str) const {
 			else
 				curLineLen = 0;
 		} else {
-			if (c <= 0x7F || !_useSJIS) {
-				curLineLen += getCharWidth(c);
-			} else {
-				c = READ_LE_UINT16(str - 1);
-				++str;
-				curLineLen += getCharWidth(c);
-			}
+			curLineLen += getCharWidth(c);
 		}
 	}
 
@@ -1050,16 +1148,12 @@ int Screen::getTextWidth(const char *str) const {
 }
 
 void Screen::printText(const char *str, int x, int y, uint8 color1, uint8 color2) {
-	// FIXME: add font support for amiga version
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return;
 	uint8 cmap[2];
 	cmap[0] = color2;
 	cmap[1] = color1;
 	setTextColor(cmap, 0, 1);
 
 	const uint8 charHeightFnt = getFontHeight();
-	uint8 charHeight = 0;
 
 	if (x < 0)
 		x = 0;
@@ -1073,107 +1167,70 @@ void Screen::printText(const char *str, int x, int y, uint8 color1, uint8 color2
 		return;
 
 	while (1) {
-		uint c = *str++;
-		c &= 0xFF;
+		uint c = fetchChar(str);
 
 		if (c == 0) {
 			break;
 		} else if (c == '\r') {
 			x = x_start;
-			y += charHeight + _charOffset;
+			y += charHeightFnt + _charOffset;
 		} else {
 			int charWidth = getCharWidth(c);
 			if (x + charWidth > SCREEN_W) {
 				x = x_start;
-				y += charHeight + _charOffset;
+				y += charHeightFnt + _charOffset;
 				if (y >= SCREEN_H)
 					break;
 			}
 
-			if (c <= 0x7F || !_useSJIS) {
-				drawCharANSI(c, x, y);
-				charHeight = charHeightFnt;
-			} else {
-				c = READ_LE_UINT16(str - 1);
-				++str;
-				charWidth = getCharWidth(c);
-				charHeight = _sjisFont->getFontHeight() >> 1;
-				drawCharSJIS(c, x, y);
-			}
-
+			drawChar(c, x, y);
 			x += charWidth;
 		}
 	}
 }
 
-void Screen::drawCharANSI(uint8 c, int x, int y) {
-	Font *fnt = &_fonts[_currentFont];
+uint16 Screen::fetchChar(const char *&s) const {
+	if (_currentFont != FID_SJIS_FNT)
+		return (uint8)*s++;
 
-	if (c > fnt->lastGlyph)
+	uint16 ch = (uint8)*s++;
+
+	if (ch <= 0x7F || (ch >= 0xA1 && ch <= 0xDF))
+		return ch;
+
+	ch |= (uint8)(*s++) << 8;
+	return ch;
+}
+
+void Screen::drawChar(uint16 c, int x, int y) {
+	Font *fnt = _fonts[_currentFont];
+	assert(fnt);
+
+	const bool useOverlay = fnt->usesOverlay();
+	const int charWidth = fnt->getCharWidth(c);
+	const int charHeight = fnt->getHeight();
+
+	if (x < 0 || y < 0)
+		return;
+	if (x + charWidth > SCREEN_W || y + charHeight > SCREEN_H)
 		return;
 
-	uint8 *dst = getPagePtr(_curPage) + y * SCREEN_W + x;
-
-	uint16 bitmapOffset = READ_LE_UINT16(fnt->fontData + fnt->charBitmapOffset + c * 2);
-	if (bitmapOffset == 0)
-		return;
-
-	uint8 charWidth = *(fnt->fontData + fnt->charWidthTableOffset + c);
-	if (!charWidth || charWidth + x > SCREEN_W)
-		return;
-
-	uint8 charH0 = getFontHeight();
-	if (!charH0 || charH0 + y > SCREEN_H)
-		return;
-
-	uint8 charH1 = *(fnt->fontData + fnt->charHeightTableOffset + c * 2);
-	uint8 charH2 = *(fnt->fontData + fnt->charHeightTableOffset + c * 2 + 1);
-
-	charH0 -= charH1 + charH2;
-
-	const uint8 *src = fnt->fontData + bitmapOffset;
-	const int pitch = SCREEN_W - charWidth;
-
-	while (charH1--) {
-		uint8 col = _textColorsMap[0];
-		for (int i = 0; i < charWidth; ++i) {
-			if (col != 0)
-				*dst = col;
-			++dst;
+	if (useOverlay) {
+		uint8 *destPage = getOverlayPtr(_curPage);
+		if (!destPage) {
+			warning("trying to draw SJIS char on unsupported page %d", _curPage);
+			return;
 		}
-		dst += pitch;
-	}
 
-	while (charH2--) {
-		uint8 b = 0;
-		for (int i = 0; i < charWidth; ++i) {
-			uint8 col;
-			if (i & 1) {
-				col = _textColorsMap[b >> 4];
-			} else {
-				b = *src++;
-				col = _textColorsMap[b & 0xF];
-			}
-			if (col != 0) {
-				*dst = col;
-			}
-			++dst;
-		}
-		dst += pitch;
-	}
+		destPage += (y * 2) * 640 + (x * 2);
 
-	while (charH0--) {
-		uint8 col = _textColorsMap[0];
-		for (int i = 0; i < charWidth; ++i) {
-			if (col != 0)
-				*dst = col;
-			++dst;
-		}
-		dst += pitch;
+		fnt->drawChar(c, destPage, 640);
+	} else {
+		fnt->drawChar(c, getPagePtr(_curPage) + y * SCREEN_W + x, SCREEN_W);
 	}
 
 	if (_curPage == 0 || _curPage == 1)
-		addDirtyRect(x, y, charWidth, getFontHeight());
+		addDirtyRect(x, y, charWidth, charHeight);
 }
 
 void Screen::drawShape(uint8 pageNum, const uint8 *shapeData, int x, int y, int sd, int flags, ...) {
@@ -1202,24 +1259,23 @@ void Screen::drawShape(uint8 pageNum, const uint8 *shapeData, int x, int y, int 
 	_dsDrawLayer = 0;
 
 	if (flags & 0x8000) {
-		_dsTable2 = va_arg(args, uint8*);
+		_dsTable2 = va_arg(args, uint8 *);
 	}
 
 	if (flags & 0x100) {
-		_dsTable = va_arg(args, uint8*);
+		_dsTable = va_arg(args, uint8 *);
 		_dsTableLoopCount = va_arg(args, int);
 		if (!_dsTableLoopCount)
 			flags &= ~0x100;
 	}
 
 	if (flags & 0x1000) {
-		_dsTable3 = va_arg(args, uint8*);
-		_dsTable4 = va_arg(args, uint8*);
+		_dsTable3 = va_arg(args, uint8 *);
+		_dsTable4 = va_arg(args, uint8 *);
 	}
 
 	if (flags & 0x200) {
-		++_drawShapeVar1;
-		_drawShapeVar1 &= (_vm->gameFlags().gameID == GI_KYRA1) ? 0x7 : 0xF;
+		_drawShapeVar1 = (_drawShapeVar1 + 1) & 0x7;
 		_drawShapeVar3 = drawShapeVar2[_drawShapeVar1];
 		_drawShapeVar4 = 0;
 		_drawShapeVar5 = 256;
@@ -1239,8 +1295,8 @@ void Screen::drawShape(uint8 pageNum, const uint8 *shapeData, int x, int y, int 
 		_dsScaleH = 0x100;
 	}
 
-	if ((flags & 0x2000) && _vm->gameFlags().gameID != GI_KYRA1)
-		_dsTable5 = va_arg(args,  uint8*);
+	if ((flags & 0x2000) && _vm->game() != GI_KYRA1)
+		_dsTable5 = va_arg(args, uint8 *);
 
 	static const DsMarginSkipFunc dsMarginFunc[] = {
 		&Screen::drawShapeMarginNoScaleUpwind,
@@ -1292,7 +1348,8 @@ void Screen::drawShape(uint8 pageNum, const uint8 *shapeData, int x, int y, int 
 		&Screen::drawShapePlotType13,		// used by Kyra 1
 		&Screen::drawShapePlotType14,		// used by Kyra 1 (invisibility)
 		&Screen::drawShapePlotType11_15,	// used by Kyra 1 (invisibility)
-		0, 0, 0, 0,
+		&Screen::drawShapePlotType16,		// used by LoL PC-98/16 Colors (teleporters),
+		0, 0, 0,
 		&Screen::drawShapePlotType20,		// used by LoL (heal spell effect)
 		&Screen::drawShapePlotType21,		// used by LoL (white tower spirits)
 		0, 0, 0, 0,	0, 0, 0, 0, 0, 0,
@@ -1374,7 +1431,7 @@ void Screen::drawShape(uint8 pageNum, const uint8 *shapeData, int x, int y, int 
 
 	uint16 frameSize = READ_LE_UINT16(src); src += 2;
 
-	int colorTableColors = ((_vm->gameFlags().gameID != GI_KYRA1) && (shapeFlags & 4)) ? *src++ : 16;
+	int colorTableColors = ((_vm->game() != GI_KYRA1) && (shapeFlags & 4)) ? *src++ : 16;
 
 	if (!(flags & 0x8000) && (shapeFlags & 1))
 		_dsTable2 = src;
@@ -1866,6 +1923,13 @@ void Screen::drawShapePlotType14(uint8 *dst, uint8 cmd) {
 	*dst = cmd;
 }
 
+void Screen::drawShapePlotType16(uint8 *dst, uint8 cmd) {
+	uint8 tOffs = _dsTable3[cmd];
+	if (!(tOffs & 0x80))
+		cmd = _dsTable4[tOffs << 8 | *dst];
+	*dst = cmd;
+}
+
 void Screen::drawShapePlotType20(uint8 *dst, uint8 cmd) {
 	cmd = _dsTable2[cmd];
 	uint8 tOffs = _dsTable3[cmd];
@@ -2068,85 +2132,94 @@ void Screen::decodeFrameDeltaPage(uint8 *dst, const uint8 *src, int pitch, bool 
 		wrapped_decodeFrameDeltaPage<false>(dst, src, pitch);
 }
 
-void Screen::convertAmigaGfx(uint8 *data, int w, int h, bool offscreen) {
-	static uint8 tmp[320*200];
+void Screen::convertAmigaGfx(uint8 *data, int w, int h, int depth, bool wsa, int bytesPerPlane) {
+	const int planeWidth = (bytesPerPlane == -1) ? (w + 7) / 8 : bytesPerPlane;
+	const int planeSize = planeWidth * h;
+	const uint imageSize = planeSize * depth;
 
-	if (offscreen) {
-		uint8 *curLine = tmp;
-		const uint8 *src = data;
-		int hC = h;
-		while (hC--) {
-			uint8 *dst1 = curLine;
-			uint8 *dst2 = dst1 + 8000;
-			uint8 *dst3 = dst2 + 8000;
-			uint8 *dst4 = dst3 + 8000;
-			uint8 *dst5 = dst4 + 8000;
+	// Our static buffer which holds the plane data. We need this
+	// because the "data" pointer is both source and destination pointer.
+	// The buffer has enough space to fit the AMIGA MSC files, which are
+	// the biggest graphics files found in the AMIGA version.
+	static uint8 temp[40320];
+	assert(imageSize <= sizeof(temp));
 
-			int width = w >> 3;
-			while (width--) {
-				*dst1++ = *src++;
-				*dst2++ = *src++;
-				*dst3++ = *src++;
-				*dst4++ = *src++;
-				*dst5++ = *src++;
-			}
-
-			curLine += 40;
+	// WSA files store their graphics data in a little different format, than
+	// the usual AMIGA graphics format used in BitMaps. Thus we need to do
+	// some special handling for them here. Means we convert them into
+	// the usual format.
+	//
+	// TODO: We might think of moving this conversion into the WSAMovieAmiga
+	// class.
+	if (wsa) {
+		const byte *src = data;
+		for (int y = 0; y < h; ++y) {
+			for (int x = 0; x < planeWidth; ++x)
+				for (int i = 0; i < depth; ++i)
+					temp[y * planeWidth + x + planeSize * i] = *src++;
 		}
 	} else {
-		memcpy(tmp, data, w*h);
+		memcpy(temp, data, imageSize);
 	}
 
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
-			int bytePos = x/8+y*40;
-			int bitPos = 7-(x&7);
+			const int bytePos = x / 8 + y * planeWidth;
+			const int bitPos = 7 - (x & 7); // x & 7 == x % 8
 
-			byte colorIndex = 0;
-			colorIndex |= (((tmp[bytePos + 8000 * 0] & (1 << bitPos)) >> bitPos) & 0x1) << 0;
-			colorIndex |= (((tmp[bytePos + 8000 * 1] & (1 << bitPos)) >> bitPos) & 0x1) << 1;
-			colorIndex |= (((tmp[bytePos + 8000 * 2] & (1 << bitPos)) >> bitPos) & 0x1) << 2;
-			colorIndex |= (((tmp[bytePos + 8000 * 3] & (1 << bitPos)) >> bitPos) & 0x1) << 3;
-			colorIndex |= (((tmp[bytePos + 8000 * 4] & (1 << bitPos)) >> bitPos) & 0x1) << 4;
-			*data++ = colorIndex;
+			byte col = 0;
+
+			for (int i = 0; i < depth; ++i)
+				col |= ((temp[bytePos + planeSize * i] >> bitPos) & 1) << i;
+
+			*data++ = col;
 		}
 	}
 }
 
 void Screen::convertAmigaMsc(uint8 *data) {
-	byte *plane1 = data + 5760 * 1;
-	byte *plane2 = data + 5760 * 2;
-	byte *plane3 = data + 5760 * 3;
-	byte *plane4 = data + 5760 * 4;
-	byte *plane5 = data + 5760 * 5;
-	byte *plane6 = data + 5760 * 6;
-	for (int i = 0; i < 5760; ++i) {
-		byte d = plane6[i];
-		d = (plane5[i] |= d);
-		d = (plane4[i] |= d);
-		d = (plane3[i] |= d);
-		d = (plane2[i] |= d);
-		d = (plane1[i] |= d);
-	}
-	byte dst[320*144];
-	memset(dst, 0, sizeof(dst));
-	static const byte flagTable[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-	for (int y = 0; y < 144; ++y) {
-		for (int x = 0; x < 320; ++x) {
-			if (!(flagTable[x&7] & data[y*40+(x>>3)]))
-				dst[y*320+x] |= 0x80;
+	// MSC files are always 320x144, thus we can safely assume
+	// this to be correct. Also they contain 7 planes instead
+	// of the normal 5 planes, which is used in 32 color mode.
+	// The need for 7 planes can be explained, because the MSC
+	// files have 6 bits for the layer number (bits 1 to 6)
+	// and one bit for the "blocked" flag (bit 0), and every
+	// plane contains one bit per pixel.
+	convertAmigaGfx(data, 320, 144, 7);
 
-			int layer = 0;
-			for (int i = 0; i < 7; ++i) {
-				if (flagTable[x&7] & data[y*40+(x>>3)+i*5760])
-					layer = i;
-			}
+	// We need to do some post conversion, since
+	// the AMIGA MSC format is different from the DOS
+	// one we use internally for our code.That is even
+	// after converting it from the AMIGA plane based
+	// approach to one byte per pixel approach.
+	for (int i = 0; i < 320 * 144; ++i) {
+		// The lowest bit indicates, whether the position
+		// is walkable or not. If the bit is set, the
+		// position is walkable, elsewise it is blocked.
+		if (data[i] & 1)
+			data[i] &= 0xFE;
+		else
+			data[i] |= 0x80;
 
-			if (layer)
-				dst[y*320+x] |= (layer+1);
-		}
+		// The graphics layer for the pixel is saved
+		// in the following format:
+		// The highest bit set indicates the number of
+		// the graphics layer. We count the first
+		// bit as 0 here, thus we need to add one,
+		// to get the correct number.
+		//
+		// Funnily since the first bit (bit 0) is
+		// resevered for testing whether the position
+		// is walkable or not, there is no possibility
+		// for layer 1 to be present.
+		int layer = 0;
+		for (int k = 0; k < 7; ++k)
+			if (data[i] & (1 << k))
+				layer = k + 1;
+
+		data[i] &= 0x80;
+		data[i] |= layer;
 	}
-	memcpy(data, dst, 320*144);
 }
 
 template<bool noXor>
@@ -2299,7 +2372,7 @@ uint8 *Screen::encodeShape(int x, int y, int w, int h, int flags) {
 	if (flags & 1)
 		shapeSize += 16;
 
-	static uint8 table[274];
+	uint8 table[274];
 	int tableIndex = 0;
 
 	uint8 *newShape = 0;
@@ -2321,7 +2394,7 @@ uint8 *Screen::encodeShape(int x, int y, int w, int h, int flags) {
 	byte *src = srcPtr;
 	if (flags & 1) {
 		dst += 16;
-		memset(table, 0, sizeof(uint8)*274);
+		memset(table, 0, sizeof(table));
 		tableIndex = 1;
 	}
 
@@ -2794,6 +2867,7 @@ void Screen::loadBitmap(const char *filename, int tempPage, int dstPage, Palette
 
 	uint8 *srcPtr = srcData + 10 + palSize;
 	uint8 *dstData = getPagePtr(dstPage);
+	memset(dstData, 0, SCREEN_PAGE_SIZE);
 	if (dstPage == 0 || tempPage == 0)
 		_forceFullUpdate = true;
 
@@ -2811,11 +2885,11 @@ void Screen::loadBitmap(const char *filename, int tempPage, int dstPage, Palette
 		error("Unhandled bitmap compression %d", compType);
 	}
 
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
+	if (_isAmiga) {
 		if (!scumm_stricmp(ext, "MSC"))
 			Screen::convertAmigaMsc(dstData);
 		else
-			Screen::convertAmigaGfx(dstData, 320, 200, false);
+			Screen::convertAmigaGfx(dstData, 320, 200);
 	}
 
 	if (skip)
@@ -2832,12 +2906,22 @@ bool Screen::loadPalette(const char *filename, Palette &pal) {
 
 	debugC(3, kDebugLevelScreen, "Screen::loadPalette('%s', %p)", filename, (const void *)&pal);
 
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		pal.loadAmigaPalette(*stream, 0, stream->size() / Palette::kAmigaBytesPerColor);
-	else if (_vm->gameFlags().platform == Common::kPlatformPC98 && _use16ColorMode)
-		pal.loadPC98Palette(*stream, 0, stream->size() / Palette::kPC98BytesPerColor);
-	else
-		pal.loadVGAPalette(*stream, 0, stream->size() / Palette::kVGABytesPerColor);
+	const int maxCols = pal.getNumColors();
+	int numCols = 0;
+
+	if (_isAmiga) {
+		numCols = stream->size() / Palette::kAmigaBytesPerColor;
+		pal.loadAmigaPalette(*stream, 0, MIN(maxCols, numCols));
+	} else if (_vm->gameFlags().platform == Common::kPlatformPC98 && _use16ColorMode) {
+		numCols = stream->size() / Palette::kPC98BytesPerColor;
+		pal.loadPC98Palette(*stream, 0, MIN(maxCols, numCols));
+	} else {
+		numCols = stream->size() / Palette::kVGABytesPerColor;
+		pal.loadVGAPalette(*stream, 0, MIN(maxCols, numCols));
+	}
+
+	if (numCols > maxCols)
+		warning("Palette file '%s' includes %d colors, but the target palette only support %d colors", filename, numCols, maxCols);
 
 	delete stream;
 	return true;
@@ -2851,7 +2935,7 @@ bool Screen::loadPaletteTable(const char *filename, int firstPalette) {
 
 	debugC(3, kDebugLevelScreen, "Screen::loadPaletteTable('%s', %d)", filename, firstPalette);
 
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
+	if (_isAmiga) {
 		const int numColors = getPalette(firstPalette).getNumColors();
 		const int palSize = getPalette(firstPalette).getNumColors() * Palette::kAmigaBytesPerColor;
 		const int numPals = stream->size() / palSize;
@@ -2872,9 +2956,9 @@ bool Screen::loadPaletteTable(const char *filename, int firstPalette) {
 }
 
 void Screen::loadPalette(const byte *data, Palette &pal, int bytes) {
-	Common::MemoryReadStream stream(data, bytes, false);
+	Common::MemoryReadStream stream(data, bytes, DisposeAfterUse::NO);
 
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
+	if (_isAmiga)
 		pal.loadAmigaPalette(stream, 0, stream.size() / Palette::kAmigaBytesPerColor);
 	else if (_vm->gameFlags().platform == Common::kPlatformPC98 && _use16ColorMode)
 		pal.loadPC98Palette(stream, 0, stream.size() / Palette::kPC98BytesPerColor);
@@ -2927,9 +3011,16 @@ byte *Screen::getOverlayPtr(int page) {
 	else if (page == 2 || page == 3)
 		return _sjisOverlayPtrs[2];
 
-	if (_vm->gameFlags().gameID == GI_KYRA2) {
+	if (_vm->game() == GI_KYRA2) {
 		if (page == 12 || page == 13)
 			return _sjisOverlayPtrs[3];
+	} else if (_vm->game() == GI_LOL) {
+		if (page == 4 || page == 5)
+			return _sjisOverlayPtrs[3];
+		if (page == 6 || page == 7)
+			return _sjisOverlayPtrs[4];
+		if (page == 12 || page == 13)
+			return _sjisOverlayPtrs[5];
 	}
 
 	return 0;
@@ -2989,39 +3080,286 @@ void Screen::copyOverlayRegion(int x, int y, int x2, int y2, int w, int h, int s
 	}
 }
 
-void Screen::drawCharSJIS(uint16 c, int x, int y) {
-	int color1, color2;
+#pragma mark -
 
-	if (_use16ColorMode) {
+DOSFont::DOSFont() {
+	_data = _widthTable = _heightTable = 0;
+	_colorMap = 0;
+	_width = _height = _numGlyphs = 0;
+	_bitmapOffsets = 0;
+}
+
+bool DOSFont::load(Common::SeekableReadStream &file) {
+	unload();
+
+	_data = new uint8[file.size()];
+	assert(_data);
+
+	file.read(_data, file.size());
+	if (file.err())
+		return false;
+
+	const uint16 fontSig = READ_LE_UINT16(_data + 2);
+
+	if (fontSig != 0x0500) {
+		warning("DOSFont: invalid font: %.04X)", fontSig);
+		return false;
+	}
+
+	const uint16 descOffset = READ_LE_UINT16(_data + 4);
+
+	_width = _data[descOffset + 5];
+	_height = _data[descOffset + 4];
+	_numGlyphs = _data[descOffset + 3] + 1;
+
+	_bitmapOffsets = (uint16 *)(_data + READ_LE_UINT16(_data + 6));
+	_widthTable = _data + READ_LE_UINT16(_data + 8);
+	_heightTable = _data + READ_LE_UINT16(_data + 12);
+
+	for (int i = 0; i < _numGlyphs; ++i)
+		_bitmapOffsets[i] = READ_LE_UINT16(&_bitmapOffsets[i]);
+
+	return true;
+}
+
+int DOSFont::getCharWidth(uint16 c) const {
+	if (c >= _numGlyphs)
+		return 0;
+	return _widthTable[c];
+}
+
+void DOSFont::drawChar(uint16 c, byte *dst, int pitch) const {
+	if (c >= _numGlyphs)
+		return;
+
+	if (!_bitmapOffsets[c])
+		return;
+
+	const uint8 *src = _data + _bitmapOffsets[c];
+	const uint8 charWidth = _widthTable[c];
+
+	if (!charWidth)
+		return;
+
+	pitch -= charWidth;
+
+	uint8 charH1 = _heightTable[c * 2 + 0];
+	uint8 charH2 = _heightTable[c * 2 + 1];
+	uint8 charH0 = _height - (charH1 + charH2);
+
+	while (charH1--) {
+		uint8 col = _colorMap[0];
+		for (int i = 0; i < charWidth; ++i) {
+			if (col != 0)
+				*dst = col;
+			++dst;
+		}
+		dst += pitch;
+	}
+
+	while (charH2--) {
+		uint8 b = 0;
+		for (int i = 0; i < charWidth; ++i) {
+			uint8 col;
+			if (i & 1) {
+				col = _colorMap[b >> 4];
+			} else {
+				b = *src++;
+				col = _colorMap[b & 0xF];
+			}
+			if (col != 0) {
+				*dst = col;
+			}
+			++dst;
+		}
+		dst += pitch;
+	}
+
+	while (charH0--) {
+		uint8 col = _colorMap[0];
+		for (int i = 0; i < charWidth; ++i) {
+			if (col != 0)
+				*dst = col;
+			++dst;
+		}
+		dst += pitch;
+	}
+}
+
+void DOSFont::unload() {
+	delete[] _data;
+	_data = _widthTable = _heightTable = 0;
+	_colorMap = 0;
+	_width = _height = _numGlyphs = 0;
+	_bitmapOffsets = 0;
+}
+
+
+AMIGAFont::AMIGAFont() {
+	_width = _height = 0;
+	memset(_chars, 0, sizeof(_chars));
+}
+
+bool AMIGAFont::load(Common::SeekableReadStream &file) {
+	const uint16 dataSize = file.readUint16BE();
+	if (dataSize + 2 != file.size())
+		return false;
+
+	_width = file.readByte();
+	_height = file.readByte();
+
+	// Read the character definition offset table
+	uint16 offsets[ARRAYSIZE(_chars)];
+	for (int i = 0; i < ARRAYSIZE(_chars); ++i)
+		offsets[i] = file.readUint16BE() + 4;
+
+	if (file.err())
+		return false;
+
+	for (int i = 0; i < ARRAYSIZE(_chars); ++i) {
+		file.seek(offsets[i], SEEK_SET);
+
+		_chars[i].yOffset = file.readByte();
+		_chars[i].xOffset = file.readByte();
+		_chars[i].width = file.readByte();
+		file.readByte(); // unused
+
+		// If the y offset is 255, then the character
+		// does not have any bitmap representation
+		if (_chars[i].yOffset != 255) {
+			Character::Graphics &g = _chars[i].graphics;
+
+			g.width = file.readUint16BE();
+			g.height = file.readUint16BE();
+
+			int depth = file.readByte();
+			int specialWidth = file.readByte();
+			int flags = file.readByte();
+			int bytesPerPlane = file.readByte();
+
+			assert(depth != 0 && specialWidth == 0 && flags == 0 && bytesPerPlane != 0);
+
+			// Allocate a temporary buffer to store the plane data
+			const int planesSize = bytesPerPlane * g.height * depth;
+			uint8 *tempData = new uint8[MAX(g.width * g.height, planesSize)];
+			assert(tempData);
+
+			file.read(tempData, planesSize);
+
+			// Convert the plane based graphics to our graphic format
+			Screen::convertAmigaGfx(tempData, g.width, g.height, depth, false, bytesPerPlane);
+
+			// Create a buffer perfectly fitting the character
+			g.bitmap = new uint8[g.width * g.height];
+			assert(g.bitmap);
+
+			memcpy(g.bitmap, tempData, g.width * g.height);
+			delete[] tempData;
+		}
+
+		if (file.err())
+			return false;
+	}
+
+	return !file.err();
+}
+
+int AMIGAFont::getCharWidth(uint16 c) const {
+	if (c >= 255)
+		return 0;
+	return _chars[c].width;
+}
+
+void AMIGAFont::drawChar(uint16 c, byte *dst, int pitch) const {
+	if (c >= 255)
+		return;
+
+	if (_chars[c].yOffset == 255)
+		return;
+
+	dst += _chars[c].yOffset * pitch;
+	dst += _chars[c].xOffset;
+
+	pitch -= _chars[c].graphics.width;
+
+	const uint8 *src = _chars[c].graphics.bitmap;
+	assert(src);
+
+	for (int y = 0; y < _chars[c].graphics.height; ++y) {
+		for (int x = 0; x < _chars[c].graphics.width; ++x) {
+			if (*src)
+				*dst = *src;
+			++src;
+			++dst;
+		}
+
+		dst += pitch;
+	}
+}
+
+void AMIGAFont::unload() {
+	_width = _height = 0;
+	for (int i = 0; i < ARRAYSIZE(_chars); ++i)
+		delete[] _chars[i].graphics.bitmap;
+	memset(_chars, 0, sizeof(_chars));
+}
+
+SJISFont::SJISFont(Screen *s, Graphics::FontSJIS *font, const uint8 invisColor, bool is16Color, bool outlineSize)
+    : _colorMap(0), _font(font), _invisColor(invisColor), _is16Color(is16Color), _screen(s) {
+	assert(_font);
+
+	_font->setDrawingMode(outlineSize ? Graphics::FontSJIS::kOutlineMode : Graphics::FontSJIS::kDefaultMode);
+
+	_sjisWidth = _font->getMaxFontWidth() >> 1;
+	_fontHeight = _font->getFontHeight() >> 1;
+	_asciiWidth = _font->getCharWidth('a') >> 1;
+}
+
+void SJISFont::unload() {
+	delete _font;
+	_font = 0;
+}
+
+int SJISFont::getHeight() const {
+	return _fontHeight;
+}
+
+int SJISFont::getWidth() const {
+	return _sjisWidth;
+}
+
+int SJISFont::getCharWidth(uint16 c) const {
+	if (c <= 0x7F || (c >= 0xA1 && c <= 0xDF))
+		return _asciiWidth;
+	else
+		return _sjisWidth;
+}
+
+void SJISFont::setColorMap(const uint8 *src) {
+	_colorMap = src;
+
+	if (!_is16Color) {
+		if (_colorMap[0] == _invisColor)
+			_font->setDrawingMode(Graphics::FontSJIS::kDefaultMode);
+		else
+			_font->setDrawingMode(Graphics::FontSJIS::kOutlineMode);
+	}
+}
+
+void SJISFont::drawChar(uint16 c, byte *dst, int pitch) const {
+	uint8 color1, color2;
+
+	if (_is16Color) {
 		// PC98 16 color games specify a color value which is for the
 		// PC98 text mode palette, thus we need to remap it.
-		color1 = ((_textColorsMap[1] >> 5) & 0x7) + 16; 
-		color2 = ((_textColorsMap[0] >> 5) & 0x7) + 16;
+		color1 = ((_colorMap[1] >> 5) & 0x7) + 16;
+		color2 = ((_colorMap[0] >> 5) & 0x7) + 16;
 	} else {
-		color1 = _textColorsMap[1];
-		color2 = _textColorsMap[0];
-
-		if (color2 == _sjisInvisibleColor)
-			_sjisFont->enableOutline(false);
+		color1 = _colorMap[1];
+		color2 = _colorMap[0];
 	}
 
-	if (_curPage == 0 || _curPage == 1)
-		addDirtyRect(x, y, _sjisFont->getFontWidth() >> 1, _sjisFont->getFontHeight() >> 1);
-
-	x <<= 1;
-	y <<= 1;
-
-	uint8 *destPage = getOverlayPtr(_curPage);
-	if (!destPage) {
-		warning("trying to draw SJIS char on unsupported page %d", _curPage);
-		return;
-	}
-
-	destPage += y * 640 + x;
-
-	_sjisFont->drawChar(destPage, c, 640, 1, color1, color2);
-
-	_sjisFont->enableOutline(!_use16ColorMode);
+	_font->drawChar(dst, c, 640, 1, color1, color2, 640, 400);
 }
 
 #pragma mark -
@@ -3049,9 +3387,9 @@ void Palette::loadAmigaPalette(Common::ReadStream &stream, int startIndex, int c
 
 	for (int i = 0; i < colors; ++i) {
 		uint16 col = stream.readUint16BE();
-		_palData[(i + startIndex) * 3 + 2] = ((col & 0xF) * 0xFF) / 0x3F; col >>= 4;
-		_palData[(i + startIndex) * 3 + 1] = ((col & 0xF) * 0xFF) / 0x3F; col >>= 4;
-		_palData[(i + startIndex) * 3 + 0] = ((col & 0xF) * 0xFF) / 0x3F; col >>= 4;
+		_palData[(i + startIndex) * 3 + 2] = ((col & 0xF) * 0x3F) / 0xF; col >>= 4;
+		_palData[(i + startIndex) * 3 + 1] = ((col & 0xF) * 0x3F) / 0xF; col >>= 4;
+		_palData[(i + startIndex) * 3 + 0] = ((col & 0xF) * 0x3F) / 0xF; col >>= 4;
 	}
 }
 
@@ -3061,9 +3399,9 @@ void Palette::loadPC98Palette(Common::ReadStream &stream, int startIndex, int co
 	for (int i = 0; i < colors; ++i) {
 		const byte g = stream.readByte(), r = stream.readByte(), b = stream.readByte();
 
-		_palData[(i + startIndex) * 3 + 0] = ((r & 0x0F) * 0x3F) / 0x0F;
-		_palData[(i + startIndex) * 3 + 1] = ((g & 0x0F) * 0x3F) / 0x0F;
-		_palData[(i + startIndex) * 3 + 2] = ((b & 0x0F) * 0x3F) / 0x0F;
+		_palData[(i + startIndex) * 3 + 0] = ((r & 0xF) * 0x3F) / 0xF;
+		_palData[(i + startIndex) * 3 + 1] = ((g & 0xF) * 0x3F) / 0xF;
+		_palData[(i + startIndex) * 3 + 2] = ((b & 0xF) * 0x3F) / 0xF;
 	}
 }
 
@@ -3087,13 +3425,10 @@ void Palette::copy(const Palette &source, int firstCol, int numCols, int dstStar
 	assert(firstCol >= 0 && firstCol <= source.getNumColors());
 	assert(dstStart >= 0 && dstStart + numCols <= _numColors);
 
-	memcpy(_palData + dstStart * 3, source._palData + firstCol * 3, numCols * 3);
+	memmove(_palData + dstStart * 3, source._palData + firstCol * 3, numCols * 3);
 }
 
 void Palette::copy(const uint8 *source, int firstCol, int numCols, int dstStart) {
-	if (source == _palData)
-		return;
-
 	if (dstStart == -1)
 		dstStart = firstCol;
 
@@ -3101,7 +3436,7 @@ void Palette::copy(const uint8 *source, int firstCol, int numCols, int dstStart)
 	assert(firstCol >= 0);
 	assert(dstStart >= 0 && dstStart + numCols <= _numColors);
 
-	memcpy(_palData + dstStart * 3, source + firstCol * 3, numCols * 3);
+	memmove(_palData + dstStart * 3, source + firstCol * 3, numCols * 3);
 }
 
 uint8 *Palette::fetchRealPalette() const {

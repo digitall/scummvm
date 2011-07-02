@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/stream.h"
+
+namespace Groovie {
 
 class LzssReadStream : public Common::ReadStream {
 private:
@@ -40,3 +39,5 @@ public:
 	bool eos() const;
 	uint32 read(void *buf, uint32 size);
 };
+
+} // End of Groovie namespace

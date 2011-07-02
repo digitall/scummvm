@@ -18,25 +18,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/resource.h"
 #include "kyra/resource_intern.h"
 
 #include "common/config-manager.h"
-#include "common/endian.h"
-#include "common/file.h"
 #include "common/fs.h"
-#include "common/func.h"
-#include "common/system.h"
 
 namespace Kyra {
 
 Resource::Resource(KyraEngine_v1 *vm) : _archiveCache(), _files(), _archiveFiles(), _protectedFiles(), _loaders(), _vm(vm) {
 	initializeLoaders();
+
+	// Initialize directories for playing from CD or with original
+	// directory structure
+	if (_vm->game() == GI_KYRA3)
+		SearchMan.addSubDirectoryMatching(Common::FSNode(ConfMan.get("path")), "malcolm");
 
 	_files.add("global_search", &Common::SearchManager::instance(), 3, false);
 	// compressed installer archives are added at level '2',
@@ -63,14 +61,14 @@ bool Resource::reset() {
 
 	if (_vm->game() == GI_KYRA1) {
 		// We only need kyra.dat for the demo.
-		if (_vm->gameFlags().isDemo)
+		if (_vm->gameFlags().isDemo && !_vm->gameFlags().isTalkie)
 			return true;
 
-		if (_vm->gameFlags().isTalkie) {
+		if (!_vm->gameFlags().isDemo && _vm->gameFlags().isTalkie) {
 			// List of files in the talkie version, which can never be unload.
 			static const char * const list[] = {
 				"ADL.PAK", "CHAPTER1.VRM", "COL.PAK", "FINALE.PAK", "INTRO1.PAK", "INTRO2.PAK",
-				"INTRO3.PAK", "INTRO4.PAK", "MISC.PAK",	"SND.PAK", "STARTUP.PAK", "XMI.PAK",
+				"INTRO3.PAK", "INTRO4.PAK", "MISC.PAK", "SND.PAK", "STARTUP.PAK", "XMI.PAK",
 				"CAVE.APK", "DRAGON1.APK", "DRAGON2.APK", "LAGOON.APK", 0
 			};
 
@@ -132,7 +130,7 @@ bool Resource::reset() {
 		}
 	} else {
 		error("Unknown game id: %d", _vm->game());
-		return false;
+		return false;	// for compilers that don't support NORETURN
 	}
 
 	return true;
@@ -148,7 +146,7 @@ bool Resource::loadPakFile(Common::String filename) {
 	return loadPakFile(filename, file);
 }
 
-bool Resource::loadPakFile(Common::String name, Common::SharedPtr<Common::ArchiveMember> file) {
+bool Resource::loadPakFile(Common::String name, Common::ArchiveMemberPtr file) {
 	name.toUppercase();
 
 	if (_archiveFiles.hasArchive(name) || _protectedFiles.hasArchive(name))
@@ -191,7 +189,7 @@ bool Resource::loadFileList(const Common::String &filedata) {
 			} else if (!loadPakFile(filename)) {
 				delete f;
 				error("couldn't load file '%s'", filename.c_str());
-				return false;
+				return false;	// for compilers that don't support NORETURN
 			}
 		}
 	}
@@ -207,7 +205,7 @@ bool Resource::loadFileList(const char * const *filelist, uint32 numFiles) {
 	while (numFiles--) {
 		if (!loadPakFile(filelist[numFiles])) {
 			error("couldn't load file '%s'", filelist[numFiles]);
-			return false;
+			return false;	// for compilers that don't support NORETURN
 		}
 	}
 
@@ -314,7 +312,7 @@ Common::SeekableReadStream *Resource::createReadStream(const Common::String &fil
 	return _files.createReadStreamForMember(file);
 }
 
-Common::Archive *Resource::loadArchive(const Common::String &name, Common::SharedPtr<Common::ArchiveMember> member) {
+Common::Archive *Resource::loadArchive(const Common::String &name, Common::ArchiveMemberPtr member) {
 	ArchiveMap::iterator cachedArchive = _archiveCache.find(name);
 	if (cachedArchive != _archiveCache.end())
 		return cachedArchive->_value;
@@ -367,7 +365,7 @@ void Resource::initializeLoaders() {
 	_loaders.push_back(LoaderList::value_type(new ResLoaderTlk()));
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 
 

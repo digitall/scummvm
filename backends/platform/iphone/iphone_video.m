@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "iphone_video.h"
@@ -29,20 +26,93 @@
 static iPhoneView *sharedInstance = nil;
 static int _width = 0;
 static int _height = 0;
+static int _fullWidth;
+static int _fullHeight;
 static CGRect _screenRect;
+
 static char* _textureBuffer = 0;
 static int _textureWidth = 0;
 static int _textureHeight = 0;
+
+static char* _overlayTexBuffer = 0;
+static int _overlayTexWidth = 0;
+static int _overlayTexHeight = 0;
+static int _overlayWidth = 0;
+static int _overlayHeight = 0;
+static float _overlayPortraitRatio = 1.0f;
+
 NSLock* _lock = nil;
 static int _needsScreenUpdate = 0;
+static int _overlayIsEnabled = 0;
 
 static UITouch* _firstTouch = NULL;
 static UITouch* _secondTouch = NULL;
 
+static short* _mouseCursor = NULL;
+static int _mouseCursorHeight = 0;
+static int _mouseCursorWidth = 0;
+static int _mouseX = 0;
+static int _mouseY = 0;
+
 // static long lastTick = 0;
 // static int frames = 0;
 
-void iPhone_updateScreen() {
+#define printOpenGLError() printOglError(__FILE__, __LINE__)
+
+int printOglError(const char *file, int line)
+{
+	int     retCode = 0;
+
+	// returns 1 if an OpenGL error occurred, 0 otherwise.
+	GLenum glErr = glGetError();
+	while( glErr != GL_NO_ERROR)
+	{
+		fprintf(stderr, "glError: %u (%s: %d)\n", glErr, file, line );
+		retCode = 1;
+		glErr = glGetError();
+	}
+	return retCode;
+}
+
+void iPhone_setMouseCursor(short* buffer, int width, int height) {
+	_mouseCursor = buffer;
+
+	_mouseCursorWidth = width;
+	_mouseCursorHeight = height;
+
+	[sharedInstance performSelectorOnMainThread:@selector(updateMouseCursor) withObject:nil waitUntilDone: YES];
+}
+
+void iPhone_enableOverlay(int state) {
+	_overlayIsEnabled = state;
+
+	[sharedInstance performSelectorOnMainThread:@selector(clearColorBuffer) withObject:nil waitUntilDone: YES];
+}
+
+int iPhone_getScreenHeight() {
+	return _overlayHeight;
+}
+
+int iPhone_getScreenWidth() {
+	return _overlayWidth;
+}
+
+bool iPhone_isHighResDevice() {
+	return _fullHeight > 480;
+}
+
+void iPhone_updateScreen(int mouseX, int mouseY) {
+	//printf("Mouse: (%i, %i)\n", mouseX, mouseY);
+
+	//_mouseX = _overlayHeight - (float)mouseX / _width * _overlayHeight;
+	//_mouseY = (float)mouseY / _height * _overlayWidth;
+
+	//_mouseX = _overlayHeight - mouseX;
+	//_mouseY = mouseY;
+
+	_mouseX = (_overlayWidth - mouseX) / (float)_overlayWidth * _overlayHeight;
+	_mouseY = mouseY / (float)_overlayHeight * _overlayWidth;
+
 	if (!_needsScreenUpdate) {
 		_needsScreenUpdate = 1;
 		[sharedInstance performSelectorOnMainThread:@selector(updateSurface) withObject:nil waitUntilDone: NO];
@@ -50,16 +120,17 @@ void iPhone_updateScreen() {
 }
 
 void iPhone_updateScreenRect(unsigned short* screen, int x1, int y1, int x2, int y2) {
-	//[_lock lock];
-
 	int y;
-	for (y = y1; y < y2; ++y) {
+	for (y = y1; y < y2; ++y)
 		memcpy(&_textureBuffer[(y * _textureWidth + x1 )* 2], &screen[y * _width + x1], (x2 - x1) * 2);
-	}
-
-	//[_lock unlock];
 }
 
+void iPhone_updateOverlayRect(unsigned short* screen, int x1, int y1, int x2, int y2) {
+	int y;
+	//printf("Overlaywidth: %u, fullwidth %u\n", _overlayWidth, _fullWidth);
+	for (y = y1; y < y2; ++y)
+		memcpy(&_overlayTexBuffer[(y * _overlayTexWidth + x1 )* 2], &screen[y * _overlayWidth + x1], (x2 - x1) * 2);
+}
 
 void iPhone_initSurface(int width, int height) {
 	_width = width;
@@ -86,24 +157,6 @@ bool iPhone_fetchEvent(int *outEvent, float *outX, float *outY) {
 	return true;
 }
 
-const char* iPhone_getDocumentsDir() {
-	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-	NSString *documentsDirectory = [paths objectAtIndex:0];
-	return [documentsDirectory UTF8String];
-}
-
-bool getLocalMouseCoords(CGPoint *point) {
-	if (point->x < _screenRect.origin.x || point->x >= _screenRect.origin.x + _screenRect.size.width ||
-		point->y < _screenRect.origin.y || point->y >= _screenRect.origin.y + _screenRect.size.height) {
-			return false;
-	}
-
-	point->x = (point->x - _screenRect.origin.x) / _screenRect.size.width;
-	point->y = (point->y - _screenRect.origin.y) / _screenRect.size.height;
-
-	return true;
-}
-
 uint getSizeNextPOT(uint size) {
     if ((size & (size - 1)) || !size) {
         int log = 0;
@@ -117,6 +170,30 @@ uint getSizeNextPOT(uint size) {
     return size;
 }
 
+const char* iPhone_getDocumentsDir() {
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+	NSString *documentsDirectory = [paths objectAtIndex:0];
+	return [documentsDirectory UTF8String];
+}
+
+bool getLocalMouseCoords(CGPoint *point) {
+	if (_overlayIsEnabled) {
+		point->x = point->x / _overlayHeight;
+		point->y = point->y / _overlayWidth;
+	} else {
+		if (point->x < _screenRect.origin.x || point->x >= _screenRect.origin.x + _screenRect.size.width ||
+			point->y < _screenRect.origin.y || point->y >= _screenRect.origin.y + _screenRect.size.height) {
+				return false;
+		}
+
+		point->x = (point->x - _screenRect.origin.x) / _screenRect.size.width;
+		point->y = (point->y - _screenRect.origin.y) / _screenRect.size.height;
+	}
+
+	return true;
+}
+
+
 @implementation iPhoneView
 
 + (Class) layerClass
@@ -125,7 +202,15 @@ uint getSizeNextPOT(uint size) {
 }
 
 - (id)initWithFrame:(struct CGRect)frame {
-	[super initWithFrame: frame];
+	self = [super initWithFrame: frame];
+
+	if([[UIScreen mainScreen] respondsToSelector: NSSelectorFromString(@"scale")])
+	{
+		if([self respondsToSelector: NSSelectorFromString(@"contentScaleFactor")])
+		{
+			//self.contentScaleFactor = [[UIScreen mainScreen] scale];
+		}
+	}
 
 	_fullWidth = frame.size.width;
 	_fullHeight = frame.size.height;
@@ -137,6 +222,8 @@ uint getSizeNextPOT(uint size) {
 	_keyboardView = nil;
 	_context = nil;
 	_screenTexture = 0;
+	_overlayTexture = 0;
+	_mouseCursorTexture = 0;
 
 	return self;
 }
@@ -150,6 +237,8 @@ uint getSizeNextPOT(uint size) {
 
 	if (_screenTexture)
 		free(_textureBuffer);
+
+	free(_overlayTexBuffer);
 }
 
 - (void *)getSurface {
@@ -175,6 +264,38 @@ uint getSizeNextPOT(uint size) {
 	}
 	_needsScreenUpdate = 0;
 
+	if (_overlayIsEnabled) {
+		glClear(GL_COLOR_BUFFER_BIT); printOpenGLError();
+	}
+
+	[self updateMainSurface];
+
+	if (_overlayIsEnabled) {
+		[self updateOverlaySurface];
+		[self updateMouseSurface];
+	}
+
+	glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer); printOpenGLError();
+	[_context presentRenderbuffer:GL_RENDERBUFFER_OES];
+
+}
+
+-(void)updateMouseCursor {
+	if (_mouseCursorTexture == 0) {
+		glGenTextures(1, &_mouseCursorTexture); printOpenGLError();
+		glBindTexture(GL_TEXTURE_2D, _mouseCursorTexture); printOpenGLError();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); printOpenGLError();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); printOpenGLError();
+	}
+
+	glBindTexture(GL_TEXTURE_2D, _mouseCursorTexture); printOpenGLError();
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, getSizeNextPOT(_mouseCursorWidth), getSizeNextPOT(_mouseCursorHeight), 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, _mouseCursor); printOpenGLError();
+
+	free(_mouseCursor);
+	_mouseCursor = NULL;
+}
+
+- (void)updateMainSurface {
 	GLfloat vertices[] = {
 		0.0f + _heightOffset, 0.0f + _widthOffset,
 		_visibleWidth - _heightOffset, 0.0f + _widthOffset,
@@ -182,7 +303,7 @@ uint getSizeNextPOT(uint size) {
 		_visibleWidth - _heightOffset,  _visibleHeight - _widthOffset
 	};
 
-	float texWidth = _width / (float)_textureWidth;;
+	float texWidth = _width / (float)_textureWidth;
 	float texHeight = _height / (float)_textureHeight;
 
 	const GLfloat texCoords[] = {
@@ -192,20 +313,76 @@ uint getSizeNextPOT(uint size) {
 		0.0f, texHeight
 	};
 
-	glVertexPointer(2, GL_FLOAT, 0, vertices);
-	glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+	glVertexPointer(2, GL_FLOAT, 0, vertices); printOpenGLError();
+	glTexCoordPointer(2, GL_FLOAT, 0, texCoords); printOpenGLError();
 
-	//[_lock lock];
+	glBindTexture(GL_TEXTURE_2D, _screenTexture); printOpenGLError();
+
 	// Unfortunately we have to update the whole texture every frame, since glTexSubImage2D is actually slower in all cases
 	// due to the iPhone internals having to convert the whole texture back from its internal format when used.
 	// In the future we could use several tiled textures instead.
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureWidth, _textureHeight, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, _textureBuffer);
-	//[_lock unlock];
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureWidth, _textureHeight, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, _textureBuffer); printOpenGLError();
+	glDisable(GL_BLEND);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); printOpenGLError();
+}
 
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer);
-	[_context presentRenderbuffer:GL_RENDERBUFFER_OES];
+- (void)updateOverlaySurface {
+	GLfloat vertices[] = {
+		0.0f, 0.0f,
+		_overlayHeight, 0.0f,
+		0.0f,  _overlayWidth * _overlayPortraitRatio,
+		_overlayHeight,  _overlayWidth * _overlayPortraitRatio
+	};
 
+	float texWidth = _overlayWidth / (float)_overlayTexWidth;
+	float texHeight = _overlayHeight / (float)_overlayTexHeight;
+
+	const GLfloat texCoords[] = {
+		texWidth, 0.0f,
+		0.0f, 0.0f,
+		texWidth, texHeight,
+		0.0f, texHeight
+	};
+
+	glVertexPointer(2, GL_FLOAT, 0, vertices); printOpenGLError();
+	glTexCoordPointer(2, GL_FLOAT, 0, texCoords); printOpenGLError();
+
+	glBindTexture(GL_TEXTURE_2D, _overlayTexture); printOpenGLError();
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _overlayTexWidth, _overlayTexHeight, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, _overlayTexBuffer); printOpenGLError();
+	glEnable(GL_BLEND);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); printOpenGLError();
+}
+
+- (void)updateMouseSurface {
+
+	int width = _mouseCursorWidth / (float)_backingWidth * _backingHeight;
+	int height = _mouseCursorHeight / (float)_backingHeight * _backingWidth;
+
+	GLfloat vertices[] = {
+		_mouseX, _mouseY,
+		_mouseX + height, _mouseY,
+		_mouseX, _mouseY + width,
+		_mouseX + height,  _mouseY + width
+	};
+
+	//printf("Cursor: width %u height %u\n", _mouseCursorWidth, _mouseCursorHeight);
+
+	float texWidth = _mouseCursorWidth / (float)getSizeNextPOT(_mouseCursorWidth);
+	float texHeight = _mouseCursorHeight / (float)getSizeNextPOT(_mouseCursorHeight);
+
+	const GLfloat texCoords[] = {
+		texWidth, 0.0f,
+		0.0f, 0.0f,
+		texWidth, texHeight,
+		0.0f, texHeight
+	};
+
+	glVertexPointer(2, GL_FLOAT, 0, vertices); printOpenGLError();
+	glTexCoordPointer(2, GL_FLOAT, 0, texCoords); printOpenGLError();
+
+	glBindTexture(GL_TEXTURE_2D, _mouseCursorTexture); printOpenGLError();
+	glEnable(GL_BLEND);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); printOpenGLError();
 }
 
 - (void)initSurface {
@@ -226,28 +403,39 @@ uint getSizeNextPOT(uint size) {
 
 		_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
 		if (!_context || [EAGLContext setCurrentContext:_context]) {
-			glGenFramebuffersOES(1, &_viewFramebuffer);
-			glGenRenderbuffersOES(1, &_viewRenderbuffer);
+			glGenFramebuffersOES(1, &_viewFramebuffer); printOpenGLError();
+			glGenRenderbuffersOES(1, &_viewRenderbuffer); printOpenGLError();
 
-			glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer);
-			glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer);
+			glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer); printOpenGLError();
+			glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer); printOpenGLError();
 			[_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(id<EAGLDrawable>)self.layer];
-			glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, _viewRenderbuffer);
+			glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, _viewRenderbuffer); printOpenGLError();
 
-			glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &_backingWidth);
-			glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &_backingHeight);
+			glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &_backingWidth); printOpenGLError();
+			glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &_backingHeight); printOpenGLError();
 
 			if (glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES) {
 				NSLog(@"Failed to make complete framebuffer object %x.", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
 				return;
 			}
 
-			glViewport(0, 0, _backingWidth, _backingHeight);
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			_overlayHeight = _backingWidth;
+			_overlayWidth = _backingHeight;
+			_overlayTexWidth = getSizeNextPOT(_overlayHeight);
+			_overlayTexHeight = getSizeNextPOT(_overlayWidth);
 
-			glEnable(GL_TEXTURE_2D);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glEnableClientState(GL_VERTEX_ARRAY);
+			int textureSize = _overlayTexWidth * _overlayTexHeight * 2;
+			_overlayTexBuffer = (char *)malloc(textureSize);
+			memset(_overlayTexBuffer, 0, textureSize);
+
+			glViewport(0, 0, _backingWidth, _backingHeight); printOpenGLError();
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f); printOpenGLError();
+
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			glEnable(GL_TEXTURE_2D); printOpenGLError();
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY); printOpenGLError();
+			glEnableClientState(GL_VERTEX_ARRAY); printOpenGLError();
 		}
 	}
 
@@ -255,22 +443,32 @@ uint getSizeNextPOT(uint size) {
 	glLoadIdentity();
 
 	if (orientation ==  UIDeviceOrientationLandscapeRight) {
-		glRotatef(-90, 0, 0, 1);
+		glRotatef(-90, 0, 0, 1); printOpenGLError();
 	} else if (orientation == UIDeviceOrientationLandscapeLeft) {
-		glRotatef(90, 0, 0, 1);
+		glRotatef(90, 0, 0, 1); printOpenGLError();
 	} else {
-		glRotatef(180, 0, 0, 1);
+		glRotatef(180, 0, 0, 1); printOpenGLError();
 	}
 
-	glOrthof(0, _backingWidth, 0, _backingHeight, 0, 1);
+	glOrthof(0, _backingWidth, 0, _backingHeight, 0, 1); printOpenGLError();
 
 	if (_screenTexture > 0) {
-		glDeleteTextures(1, &_screenTexture);
+		glDeleteTextures(1, &_screenTexture); printOpenGLError();
 	}
 
-	glGenTextures(1, &_screenTexture);
-	glBindTexture(GL_TEXTURE_2D, _screenTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glGenTextures(1, &_screenTexture); printOpenGLError();
+	glBindTexture(GL_TEXTURE_2D, _screenTexture); printOpenGLError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); printOpenGLError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); printOpenGLError();
+
+	if (_overlayTexture > 0) {
+		glDeleteTextures(1, &_overlayTexture); printOpenGLError();
+	}
+
+	glGenTextures(1, &_overlayTexture); printOpenGLError();
+	glBindTexture(GL_TEXTURE_2D, _overlayTexture); printOpenGLError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); printOpenGLError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); printOpenGLError();
 
 	if (_textureBuffer) {
 		free(_textureBuffer);
@@ -280,14 +478,9 @@ uint getSizeNextPOT(uint size) {
 	_textureBuffer = (char*)malloc(textureSize);
 	memset(_textureBuffer, 0, textureSize);
 
-	glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer);
+	glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer); printOpenGLError();
 
-	// The color buffer is triple-buffered, so we clear it multiple times right away to avid doing any glClears later.
-	int clearCount = 5;
-	while (clearCount-- > 0) {
-		glClear(GL_COLOR_BUFFER_BIT);
-		[_context presentRenderbuffer:GL_RENDERBUFFER_OES];
-	}
+	[self clearColorBuffer];
 
 	if (_keyboardView != nil) {
 		[_keyboardView removeFromSuperview];
@@ -314,6 +507,7 @@ uint getSizeNextPOT(uint size) {
 
 		//printf("Rect: %i, %i, %i, %i\n", _widthOffset, _heightOffset, rectWidth, rectHeight);
 		_screenRect = CGRectMake(_widthOffset, _heightOffset, rectWidth, rectHeight);
+		_overlayPortraitRatio = 1.0f;
 	} else {
 		float ratio = (float)_height / (float)_width;
 		int height = _fullWidth * ratio;
@@ -334,6 +528,16 @@ uint getSizeNextPOT(uint size) {
 		[self addSubview:[_keyboardView inputView]];
 		[self addSubview: _keyboardView];
 		[[_keyboardView inputView] becomeFirstResponder];
+		_overlayPortraitRatio = (_overlayHeight * ratio) / _overlayWidth;
+	}
+}
+
+- (void)clearColorBuffer {
+	// The color buffer is triple-buffered, so we clear it multiple times right away to avid doing any glClears later.
+	int clearCount = 5;
+	while (clearCount-- > 0) {
+		glClear(GL_COLOR_BUFFER_BIT); printOpenGLError();
+		[_context presentRenderbuffer:GL_RENDERBUFFER_OES];
 	}
 }
 
@@ -352,7 +556,7 @@ uint getSizeNextPOT(uint size) {
 
 - (void)addEvent:(NSDictionary*)event {
 
-	if(_events == nil)
+	if (_events == nil)
 		_events = [[NSMutableArray alloc] init];
 
 	[_events addObject: event];
@@ -415,7 +619,7 @@ uint getSizeNextPOT(uint size) {
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	NSSet *allTouches = [event allTouches];
+	//NSSet *allTouches = [event allTouches];
 
 	for (UITouch* touch in touches) {
 		if (touch == _firstTouch) {
@@ -423,7 +627,7 @@ uint getSizeNextPOT(uint size) {
 			CGPoint point = [touch locationInView:self];
 			if (!getLocalMouseCoords(&point))
 				return;
-			
+
 			[self addEvent:
 			 [[NSDictionary alloc] initWithObjectsAndKeys:
 			  [NSNumber numberWithInt:kInputMouseDragged], @"type",
@@ -432,13 +636,13 @@ uint getSizeNextPOT(uint size) {
 			  nil
 			  ]
 			 ];
-			
+
 		} else if (touch == _secondTouch) {
 
 			CGPoint point = [touch locationInView:self];
 			if (!getLocalMouseCoords(&point))
 				return;
-			
+
 			[self addEvent:
 			 [[NSDictionary alloc] initWithObjectsAndKeys:
 			  [NSNumber numberWithInt:kInputMouseSecondDragged], @"type",
@@ -447,7 +651,7 @@ uint getSizeNextPOT(uint size) {
 			  nil
 			  ]
 			 ];
-			
+
 		}
 	}
 }

@@ -18,18 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
 
-#include "kyra/sound.h"
 #include "kyra/lol.h"
+#include "kyra/sound.h"
 #include "kyra/resource.h"
 
-#include "sound/audiostream.h"
+#include "common/system.h"
+
+#include "audio/audiostream.h"
 
 namespace Kyra {
 
@@ -51,36 +50,34 @@ bool LoLEngine::snd_playCharacterSpeech(int id, int8 speaker, int) {
 	_lastSpeaker = speaker;
 	_nextSpeechId = _nextSpeaker = -1;
 
-	char pattern1[8];
-	char pattern2[5];
-	char file1[13];
-	char file2[13];
-	char file3[13];
-	file3[0] = 0;
+	Common::String pattern1;
+	Common::String file1;
+	Common::String file2;
+	Common::String file3;
 
-	Common::List<Audio::AudioStream *> newSpeechList;
+	SpeechList newSpeechList;
 
-	snprintf(pattern2, sizeof(pattern2), "%02d", id & 0x4000 ? 0 : _curTlkFile);
+	Common::String pattern2 = Common::String::format("%02d", id & 0x4000 ? 0 : _curTlkFile);
 
 	if (id & 0x4000) {
-		snprintf(pattern1, sizeof(pattern1), "%03X", id & 0x3fff);
+		pattern1 = Common::String::format("%03X", id & 0x3fff);
 	} else if (id < 1000) {
-		snprintf(pattern1, sizeof(pattern1), "%03d", id);
+		pattern1 = Common::String::format("%03d", id);
 	} else {
-		snprintf(file3, sizeof(file3), "@%04d%c.%s", id - 1000, (char)speaker, pattern2);
-		if (_sound->isVoicePresent(file3))
-			newSpeechList.push_back(_sound->getVoiceStream(file3));
+		file3 = Common::String::format("@%04d%c.%s", id - 1000, (char)speaker, pattern2.c_str());
+		if (_sound->isVoicePresent(file3.c_str()))
+			newSpeechList.push_back(_sound->getVoiceStream(file3.c_str()));
 	}
 
-	if (!file3[0]) {
+	if (file3.empty()) {
 		for (char i = 0; ; i++) {
 			char symbol = '0' + i;
-			snprintf(file1, sizeof(file1), "%s%c%c.%s", pattern1, (char)speaker, symbol, pattern2);
-			snprintf(file2, sizeof(file2), "%s%c%c.%s", pattern1, '_', symbol, pattern2);
-			if (_sound->isVoicePresent(file1))
-				newSpeechList.push_back(_sound->getVoiceStream(file1));
-			else if (_sound->isVoicePresent(file2))
-				newSpeechList.push_back(_sound->getVoiceStream(file2));
+			file1 = Common::String::format("%s%c%c.%s", pattern1.c_str(), (char)speaker, symbol, pattern2.c_str());
+			file2 = Common::String::format("%s%c%c.%s", pattern1.c_str(), '_', symbol, pattern2.c_str());
+			if (_sound->isVoicePresent(file1.c_str()))
+				newSpeechList.push_back(_sound->getVoiceStream(file1.c_str()));
+			else if (_sound->isVoicePresent(file2.c_str()))
+				newSpeechList.push_back(_sound->getVoiceStream(file2.c_str()));
 			else
 				break;
 		}
@@ -95,18 +92,18 @@ bool LoLEngine::snd_playCharacterSpeech(int id, int8 speaker, int) {
 	while (_sound->allVoiceChannelsPlaying())
 		delay(_tickLength);
 
-	for (Common::List<Audio::AudioStream *>::iterator i = _speechList.begin(); i != _speechList.end(); ++i)
+	for (SpeechList::iterator i = _speechList.begin(); i != _speechList.end(); ++i)
 		delete *i;
 	_speechList.clear();
 	_speechList = newSpeechList;
 
 	_activeVoiceFileTotalTime = 0;
-	for (Common::List<Audio::AudioStream *>::iterator i = _speechList.begin(); i != _speechList.end(); ++i) {
+	for (SpeechList::iterator i = _speechList.begin(); i != _speechList.end(); ++i) {
 		// Just in case any file loading failed: Remove the bad streams here.
 		if (!*i)
 			i = _speechList.erase(i);
 		else
-			_activeVoiceFileTotalTime += (*i)->getTotalPlayTime();
+			_activeVoiceFileTotalTime += (*i)->getLength().msecs();
 	}
 
 	_sound->playVoiceStream(*_speechList.begin(), &_speechHandle);
@@ -151,7 +148,7 @@ void LoLEngine::snd_stopSpeech(bool setFlag) {
 	_activeVoiceFileTotalTime = 0;
 	_nextSpeechId = _nextSpeaker = -1;
 
-	for (Common::List<Audio::AudioStream *>::iterator i = _speechList.begin(); i != _speechList.end(); ++i)
+	for (SpeechList::iterator i = _speechList.begin(); i != _speechList.end(); ++i)
 		delete *i;
 	_speechList.clear();
 
@@ -164,18 +161,14 @@ void LoLEngine::snd_playSoundEffect(int track, int volume) {
 		return;
 
 	_lastSfxTrack = track;
-	if (track == -1)
+	if (track == -1 || track >= _ingameSoundListSize)
 		return;
 
+	volume &= 0xff;
 	int16 volIndex = (int16)READ_LE_UINT16(&_ingameSoundIndex[track * 2 + 1]);
 
-	if (volIndex > 0)
-		volume = (volIndex * volume) >> 8;
-	else if (volIndex < 0)
-		volume = -volIndex;
-
-	// volume TODO
-	volume = 254 - volume;
+	volume = (volIndex > 0) ? (volIndex * volume) >> 8 : -volIndex;
+	volume = CLIP(volume >> 4, 2, 13) * 7 + 164;
 
 	int16 vocIndex = (int16)READ_LE_UINT16(&_ingameSoundIndex[track * 2]);
 
@@ -193,6 +186,8 @@ void LoLEngine::snd_playSoundEffect(int track, int volume) {
 			track = (track < _ingameMT32SoundIndexSize) ? (_ingameMT32SoundIndex[track] - 1) : -1;
 		else if (_sound->getSfxType() == Sound::kMidiGM)
 			track = (track < _ingameGMSoundIndexSize) ? (_ingameGMSoundIndex[track] - 1) : -1;
+		else if (_sound->getSfxType() == Sound::kPCSpkr)
+			track = (track < _ingamePCSpeakerSoundIndexSize) ? (_ingamePCSpeakerSoundIndex[track] - 1) : -1;
 
 		if (track == 168)
 			track = 167;
@@ -227,7 +222,7 @@ void LoLEngine::snd_processEnvironmentalSoundEffect(int soundId, int block) {
 
 		for (int i = 3; i > 0; i--) {
 			int dir = calcMonsterDirection(cbl & 0x1f, cbl >> 5, block & 0x1f, block >> 5);
-			cbl += blockShiftTable[dir];
+			cbl = (cbl + blockShiftTable[dir]) & 0x3ff;
 			if (cbl != block) {
 				if (testWallFlag(cbl, 0, 1))
 					_environmentSfxVol >>= 1;
@@ -259,20 +254,17 @@ void LoLEngine::snd_playQueuedEffects() {
 
 void LoLEngine::snd_loadSoundFile(int track) {
 	if (_sound->musicEnabled()) {
-		char filename[13];
-		int t = (track - 250) * 3;
-
-		if (_curMusicFileIndex != _musicTrackMap[t] || _curMusicFileExt != (char)_musicTrackMap[t + 1]) {
-			snd_stopMusic();
-			snprintf(filename, sizeof(filename), "LORE%02d%c", _musicTrackMap[t], (char)_musicTrackMap[t + 1]);
-			_sound->loadSoundFile(filename);
-			_curMusicFileIndex = _musicTrackMap[t];
-			_curMusicFileExt = (char)_musicTrackMap[t + 1];
-		} else {
-			snd_stopMusic();
+		if (_flags.platform != Common::kPlatformPC98) {
+			int t = (track - 250) * 3;
+			if (_curMusicFileIndex != _musicTrackMap[t] || _curMusicFileExt != (char)_musicTrackMap[t + 1]) {
+				snd_stopMusic();
+				_sound->loadSoundFile(Common::String::format("LORE%02d%c", _musicTrackMap[t], (char)_musicTrackMap[t + 1]));
+				_curMusicFileIndex = _musicTrackMap[t];
+				_curMusicFileExt = (char)_musicTrackMap[t + 1];
+			} else {
+				snd_stopMusic();
+			}
 		}
-	} else {
-		//XXX
 	}
 }
 
@@ -284,9 +276,13 @@ int LoLEngine::snd_playTrack(int track) {
 	_lastMusicTrack = track;
 
 	if (_sound->musicEnabled()) {
-		snd_loadSoundFile(track);
-		int t = (track - 250) * 3;
-		_sound->playTrack(_musicTrackMap[t + 2]);
+		if (_flags.platform == Common::kPlatformPC98) {
+			_sound->playTrack(track - 249);
+		} else {
+			snd_loadSoundFile(track);
+			int t = (track - 250) * 3;
+			_sound->playTrack(_musicTrackMap[t + 2]);
+		}
 	}
 
 	return res;
@@ -313,7 +309,7 @@ int LoLEngine::convertVolumeFromMixer(int value) {
 	return (value * 100) / Audio::Mixer::kMaxMixerVolume + 2;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

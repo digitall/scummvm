@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
@@ -51,8 +48,8 @@ int32 volumeDataLoaded = 0;
 
 int16 numOfDisks;
 
-char lastOverlay[15];
-char nextOverlay[15];
+char lastOverlay[38];
+char nextOverlay[38];
 
 int16 currentActiveMenu;
 int16 autoMsg;
@@ -63,12 +60,6 @@ int16 userWait;
 int16 autoTrack;
 
 int16 currentDiskNumber = 1;
-
-#ifdef PALMOS_MODE
-Common::File *_currentVolumeFile;
-#else
-Common::File currentVolumeFile;
-#endif
 
 int16 volumeNumEntry;
 fileEntry *volumePtrToFileDescriptor = NULL;

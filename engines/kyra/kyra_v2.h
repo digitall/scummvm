@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_KYRA_V2_H
@@ -29,6 +26,7 @@
 #include "kyra/kyra_v1.h"
 #include "kyra/gui.h"
 #include "kyra/wsamovie.h"
+#include "kyra/item.h"
 
 #include "common/list.h"
 #include "common/hashmap.h"
@@ -41,7 +39,7 @@ struct FrameControl {
 };
 
 struct ItemAnimData_v2 {
-	int16 itemIndex;
+	Item itemIndex;
 	uint8 numFrames;
 	const FrameControl *frames;
 };
@@ -59,17 +57,17 @@ friend class GUI_v2;
 public:
 	struct EngineDesc {
 		// Generic shape related
-		const int itemShapeStart;
+		int itemShapeStart;
 		const uint8 *characterFrameTable;
 
 		// Scene script
-		const int firstAnimSceneScript;
+		int firstAnimSceneScript;
 
 		// Animation script specific
-		const int animScriptFrameAdd;
+		int animScriptFrameAdd;
 
 		// Item specific
-		const int maxItemId;
+		Item maxItemId;
 	};
 
 	KyraEngine_v2(OSystem *system, const GameFlags &flags, const EngineDesc &desc);
@@ -95,9 +93,6 @@ protected:
 
 	// detection
 	int _lang;
-
-	// MainMenu
-	MainMenu *_menu;
 
 	// Input
 	virtual int inputSceneChange(int x, int y, int unk1, int unk2) = 0;
@@ -182,7 +177,7 @@ protected:
 
 	uint16 _sceneExit1, _sceneExit2, _sceneExit3, _sceneExit4;
 	int _sceneEnterX1, _sceneEnterY1, _sceneEnterX2, _sceneEnterY2,
-		_sceneEnterX3, _sceneEnterY3, _sceneEnterX4, _sceneEnterY4;
+	    _sceneEnterX3, _sceneEnterY3, _sceneEnterX4, _sceneEnterY4;
 	int _specialExitCount;
 	uint16 _specialExitTable[25];
 	bool checkSpecialSceneExit(int num, int x, int y);
@@ -257,7 +252,7 @@ protected:
 	virtual void uninitAnimationShapes(int count, uint8 *filedata) = 0;
 
 	// Shapes
-	typedef Common::HashMap<int, uint8*> ShapeMap;
+	typedef Common::HashMap<int, uint8 *> ShapeMap;
 	ShapeMap _gameShapes;
 
 	uint8 *getShapePtr(int index) const;
@@ -271,6 +266,7 @@ protected:
 	// pathfinder
 	int _movFacingTable[600];
 	int _pathfinderFlag;
+	bool _smoothingPath;
 
 	int findWay(int curX, int curY, int dstX, int dstY, int *moveTable, int moveTableSize);
 
@@ -286,8 +282,8 @@ protected:
 	int _pathfinderPositionIndexTable[200];
 
 	// items
-	struct Item {
-		uint16 id;
+	struct ItemDefinition {
+		Item id;
 		uint16 sceneId;
 		int16 x;
 		uint8 y;
@@ -295,25 +291,26 @@ protected:
 
 	void initItemList(int size);
 
-	uint16 _hiddenItems[100];
+	Item _hiddenItems[100];
 
-	Item *_itemList;
+	ItemDefinition *_itemList;
 	int _itemListSize;
 
 	int _itemInHand;
+	int _savedMouseState;
 
 	int findFreeItem();
 	int countAllItems();
 
-	int findItem(uint16 sceneId, uint16 id);
-	int findItem(uint16 item);
+	int findItem(uint16 sceneId, Item id);
+	int findItem(Item item);
 
 	void resetItemList();
 	void resetItem(int index);
 
-	virtual void setMouseCursor(uint16 item) = 0;
+	virtual void setMouseCursor(Item item) = 0;
 
-	void setHandItem(uint16 item);
+	void setHandItem(Item item);
 	void removeHandItem();
 
 	// character
@@ -324,7 +321,7 @@ protected:
 		uint8 facing;
 		uint16 animFrame;
 		byte walkspeed;
-		uint16 inventory[20];
+		Item inventory[20];
 		int16 x1, y1;
 		int16 x2, y2;
 		int16 x3, y3;
@@ -341,7 +338,7 @@ protected:
 	uint32 _updateCharPosNextUpdate;
 
 	virtual int getCharacterWalkspeed() const = 0;
-	virtual void updateCharAnimFrame(int num, int *table) = 0;
+	virtual void updateCharAnimFrame(int *table) = 0;
 
 	// chat
 	int _vocHigh;
@@ -350,6 +347,7 @@ protected:
 	int _chatObject;
 	uint32 _chatEndTime;
 	int _chatVocHigh, _chatVocLow;
+	bool _chatTextEnabled;
 
 	EMCData _chatScriptData;
 	EMCState _chatScriptState;
@@ -359,7 +357,7 @@ protected:
 	virtual void randomSceneChat() = 0;
 
 	// unknown
-	int _unk3, _unk4, _unk5;
+	int _unk4, _unk5;
 	bool _unkSceneScreenFlag1;
 	bool _unkHandleSceneChangeFlag;
 
@@ -397,7 +395,7 @@ protected:
 	int o2_getVocHigh(EMCState *script);
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

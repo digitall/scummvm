@@ -18,19 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "kyra/kyra_v1.h"
 #include "kyra/kyra_hof.h"
-#include "kyra/screen.h"
-#include "kyra/wsamovie.h"
-#include "kyra/sound.h"
-#include "kyra/text_hof.h"
 #include "kyra/timer.h"
 #include "kyra/resource.h"
+#include "kyra/sound.h"
 
 #include "common/system.h"
 
@@ -107,7 +100,7 @@ void KyraEngine_HoF::seq_playSequences(int startSeq, int endSeq) {
 
 		if (cseq.flags & 4) {
 			int cp = _screen->setCurPage(2);
-			Screen::FontId cf =	_screen->setFont(Screen::FID_GOLDFONT_FNT);
+			Screen::FontId cf =	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_GOLDFONT_FNT);
 			if (cseq.stringIndex1 != -1) {
 				int sX = (320 - _screen->getTextWidth(_sequenceStrings[cseq.stringIndex1])) / 2;
 				_screen->printText(_sequenceStrings[cseq.stringIndex1], sX, 100 - _screen->getFontHeight(), 1, 0);
@@ -133,8 +126,6 @@ void KyraEngine_HoF::seq_playSequences(int startSeq, int endSeq) {
 		}
 
 		if (cseq.flags & 1) {
-			int w2 = _seqWsa->width();
-			int h2 = _seqWsa->height();
 			int x = cseq.xPos;
 			int y = cseq.yPos;
 
@@ -142,13 +133,13 @@ void KyraEngine_HoF::seq_playSequences(int startSeq, int endSeq) {
 
 			if (_seqWsa) {
 				if (x < 0) {
+					_seqWsa->setWidth(_seqWsa->width() + x);
 					x = 0;
-					w2 = 0;
 				}
 
 				if (y < 0) {
+					_seqWsa->setHeight(_seqWsa->height() + y);
 					y = 0;
-					h2 = 0;
 				}
 
 				if (cseq.xPos + _seqWsa->width() > 319)
@@ -1218,7 +1209,7 @@ int KyraEngine_HoF::seq_finaleFuards(WSAMovie_v2 *wsaObj, int x, int y, int frm)
 	int chatW = 0;
 	int chatFirstFrame = 0;
 	int chatLastFrame = 0;
-	int textCol = 0;
+	//int textCol = 0;
 
 	uint16 voiceIndex = 0;
 
@@ -1259,13 +1250,13 @@ int KyraEngine_HoF::seq_finaleFuards(WSAMovie_v2 *wsaObj, int x, int y, int frm)
 
 		if (_flags.isTalkie) {
 			chatX = 82;
-			textCol = 143;
+			//textCol = 143;
 			chatFirstFrame = 16;
 			chatLastFrame = 21;
 			voiceIndex = 41;
 		} else {
 			chatX = 62;
-			textCol = 137;
+			//textCol = 137;
 			chatFirstFrame = 9;
 			chatLastFrame = 13;
 		}
@@ -1283,7 +1274,7 @@ int KyraEngine_HoF::seq_finaleFuards(WSAMovie_v2 *wsaObj, int x, int y, int frm)
 			if (frm == 16)
 				break;
 			chatX = 64;
-			textCol = 137;
+			//textCol = 137;
 			chatFirstFrame = 9;
 			chatLastFrame = 13;
 			voiceIndex = 42;
@@ -1291,7 +1282,7 @@ int KyraEngine_HoF::seq_finaleFuards(WSAMovie_v2 *wsaObj, int x, int y, int frm)
 			if (frm == 9)
 				break;
 			chatX = 80;
-			textCol = 143;
+			//textCol = 143;
 			chatFirstFrame = 16;
 			chatLastFrame = 21;
 		}
@@ -1987,7 +1978,6 @@ void KyraEngine_HoF::seq_processWSAs() {
 }
 
 void KyraEngine_HoF::seq_processText() {
-	Screen::FontId curFont = _screen->setFont(Screen::FID_GOLDFONT_FNT);
 	int curPage = _screen->setCurPage(2);
 	char outputStr[70];
 
@@ -2005,7 +1995,7 @@ void KyraEngine_HoF::seq_processText() {
 					outputStr[linePos] = *srcStr;
 					srcStr++;
 				}
-                outputStr[linePos] = 0;
+				outputStr[linePos] = 0;
 				if (*srcStr == 0x0d)
 					srcStr++;
 
@@ -2019,7 +2009,6 @@ void KyraEngine_HoF::seq_processText() {
 	}
 
 	_screen->setCurPage(curPage);
-	_screen->setFont(curFont);
 }
 
 char *KyraEngine_HoF::seq_preprocessString(const char *srcStr, int width) {
@@ -2134,7 +2123,7 @@ void KyraEngine_HoF::seq_cmpFadeFrame(const char *cmpFile) {
 		_screen->cmpFadeFrameStep(4, 320, 200, 0, 0, 2, 320, 200, 0, 0, 320, 200, 6);
 		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
 		_screen->updateScreen();
-        delayUntil(endtime);
+		delayUntil(endtime);
 	}
 
 	_screen->copyPage(4, 0);
@@ -2417,6 +2406,8 @@ void KyraEngine_HoF::seq_printCreditsString(uint16 strIndex, int x, int y, const
 	if (skipFlag() || shouldQuit() || _abortIntroFlag || _menuChoice)
 		return;
 
+	Screen::FontId of = _screen->setFont(Screen::FID_8_FNT);
+
 	memset(&_screen->getPalette(0)[0x2fa], 0x3f, 6);
 	_screen->getPalette(0)[0x2f6] = 0x3f;
 	_screen->getPalette(0)[0x2f5] = 0x20;
@@ -2451,12 +2442,16 @@ void KyraEngine_HoF::seq_printCreditsString(uint16 strIndex, int x, int y, const
 	seq_resetAllTextEntries();
 
 	_seqTextColor[0] = seqTextColor0;
+
+	_screen->setFont(of);
 }
 
 void KyraEngine_HoF::seq_playWsaSyncDialogue(uint16 strIndex, uint16 vocIndex, int textColor, int x, int y, int width, WSAMovie_v2 *wsa, int firstframe, int lastframe, int wsaXpos, int wsaYpos) {
 	int dur = int(strlen(_sequenceStrings[strIndex])) * (_flags.isTalkie ? 7 : 15);
-	int entry = textEnabled() ? seq_setTextEntry(strIndex, x, y, dur, width) : strIndex;
-	_activeText[entry].textcolor = textColor;
+	if (textEnabled()) {
+		int entry = seq_setTextEntry(strIndex, x, y, dur, width);
+		_activeText[entry].textcolor = textColor;
+	}
 	_seqWsaChatTimeout = _system->getMillis() + dur * _tickLength;
 	int curframe = firstframe;
 
@@ -2556,9 +2551,9 @@ void KyraEngine_HoF::seq_displayScrollText(uint8 *data, const ScreenDim *d, int 
 
 			char *str = (char *)ptr;
 
-			ptr = (uint8*)strpbrk(str, mark);
+			ptr = (uint8 *)strpbrk(str, mark);
 			if (!ptr)
-				ptr = (uint8*)strchr(str, 0);
+				ptr = (uint8 *)strchr(str, 0);
 
 			textData[cnt + 1].unk1 = *ptr;
 			*ptr = 0;
@@ -2596,7 +2591,7 @@ void KyraEngine_HoF::seq_displayScrollText(uint8 *data, const ScreenDim *d, int 
 				cH -= (textData[cnt].height + (textData[cnt].height >> 3));
 
 			textData[cnt + 1].y = cH;
-			textData[cnt + 1].text = (uint8*)str;
+			textData[cnt + 1].text = (uint8 *)str;
 			cnt++;
 		}
 
@@ -2714,7 +2709,7 @@ void KyraEngine_HoF::seq_scrollPage(int bottom, int top) {
 				_screen->fillRect(12, def->y - 8, 28, def->y + 8, 0, 4);
 				_screen->drawShape(4, getShapePtr(def->itemIndex + def->frames[a->currentFrame]), 12, def->y - 8, 0, 0);
 				if (_seqFrameCounter % 2 == 0)
-					a->currentFrame = ++a->currentFrame % 20;
+					a->currentFrame = (a->currentFrame + 1) % 20;
 			}
 		}
 		_screen->copyRegionEx(4, 0, srcH, 2, 2, dstY + bottom, 320, dstH, &d);
@@ -2770,9 +2765,9 @@ void KyraEngine_HoF::seq_init() {
 	_res->loadFileList(_sequencePakList, _sequencePakListSize);
 
 	if (_flags.platform == Common::kPlatformPC98)
-		_sound->loadSoundFile("sound.dat");
+		_sound->loadSoundFile("SOUND.DAT");
 
-	int numShp = -1;
+	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_GOLDFONT_FNT);
 
 	if (_flags.gameID == GI_LOL)
 		return;
@@ -2785,17 +2780,16 @@ void KyraEngine_HoF::seq_init() {
 		Screen::decodeFrame4(shp + 10, _animShapeFiledata, outsize);
 		delete[] shp;
 
-		do {
-			numShp++;
+		for (int numShp = 0; getShapePtr(numShp); ++numShp)
 			addShapeToPool(_screen->getPtrToShape(_animShapeFiledata, numShp), numShp);
-		} while (getShapePtr(numShp));
 	} else {
-		MainMenu::StaticData data = {
+		const MainMenu::StaticData data = {
 			{ _sequenceStrings[97], _sequenceStrings[96], _sequenceStrings[95], _sequenceStrings[98], 0 },
 			{ 0x01, 0x04, 0x0C, 0x04, 0x00, 0xd7, 0xd6 },
 			{ 0xd8, 0xda, 0xd9, 0xd8 },
-			Screen::FID_8_FNT, 240
+			(_flags.lang == Common::JA_JPN) ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT, 240
 		};
+
 		_menu = new MainMenu(this);
 		_menu->init(data, MainMenu::Animation());
 	}
@@ -2817,11 +2811,9 @@ void KyraEngine_HoF::seq_uninit() {
 	delete[] _animShapeFiledata;
 	_animShapeFiledata = 0;
 
-	if (_flags.isDemo && !_flags.isTalkie)
-		_staticres->unloadId(k2SeqplayShapeAnimData);
-
 	delete _menu;
 	_menu = 0;
+	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
 }
 
 #pragma mark -
@@ -2927,6 +2919,6 @@ void KyraEngine_HoF::seq_makeBookAppear() {
 	_screen->showMouse();
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 

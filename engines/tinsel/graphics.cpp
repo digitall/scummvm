@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Low level graphics interface.
  */
 
@@ -32,6 +29,8 @@
 #include "tinsel/tinsel.h"
 #include "tinsel/scn.h"
 
+#include "common/textconsole.h"
+
 namespace Tinsel {
 
 //----------------- LOCAL DEFINES --------------------
@@ -41,7 +40,7 @@ namespace Tinsel {
 #define CHAR_WIDTH 4
 #define CHAR_HEIGHT 4
 
-extern uint8 transPalette[MAX_COLOURS];
+extern uint8 transPalette[MAX_COLORS];
 
 //----------------- SUPPORT FUNCTIONS ---------------------
 
@@ -66,8 +65,8 @@ uint8* psxPJCRLEUnwinder(uint16 imageWidth, uint16 imageHeight, uint8 *srcIdx) {
 		return NULL;
 
 	// Calculate needed index numbers, align width and height not next multiple of four
-	imageWidth = imageWidth % 4 ? ((imageWidth / 4) + 1) * 4 : imageWidth;
-	imageHeight = imageHeight % 4 ? ((imageHeight / 4) + 1) * 4 : imageHeight;
+	imageWidth = (imageWidth % 4) ? ((imageWidth / 4) + 1) * 4 : imageWidth;
+	imageHeight = (imageHeight % 4) ? ((imageHeight / 4) + 1) * 4 : imageHeight;
 	destinationBuffer = (uint8*)malloc((imageWidth * imageHeight) / 8);
 	dstIdx = destinationBuffer;
 	remainingBlocks = (imageWidth * imageHeight) / 16;
@@ -175,14 +174,14 @@ static void t0WrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool apply
 			x += clipAmount;
 
 			if (repeatFlag) {
-				// Repeat of a given colour
-				uint8 colour = (numBytes >> 8) & 0xff;
+				// Repeat of a given color
+				uint8 color = (numBytes >> 8) & 0xff;
 				int runLength = (numBytes & 0xff) - clipAmount;
 
 				int rptLength = MAX(MIN(runLength, pObj->width - rightClip - x), 0);
 				if (yClip == 0) {
-					if (colour != 0)
-						memset(tempDest, colour, rptLength);
+					if (color != 0)
+						memset(tempDest, color, rptLength);
 					tempDest += rptLength;
 				}
 
@@ -286,7 +285,7 @@ static void PsxDrawTiles(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool apply
 
 			p += boxBounds.top * (fourBitClut ? sizeof(uint16) : sizeof(uint32));
 			for (int yp = boxBounds.top; yp <= boxBounds.bottom; ++yp, p += (fourBitClut ? sizeof(uint16) : sizeof(uint32))) {
-				if(!fourBitClut) {
+				if (!fourBitClut) {
 					if (!transparency)
 						Common::copy(p + boxBounds.left, p + boxBounds.right + 1, tempDest + (SCREEN_WIDTH * (yp - boxBounds.top)));
 					else
@@ -297,7 +296,7 @@ static void PsxDrawTiles(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool apply
 				} else {
 					for (int xp = boxBounds.left; xp <= boxBounds.right; ++xp) {
 						// Extract pixel value from byte
-						byte pixValue =  (*(p + (xp / 2)) & (xp % 2 ? 0xf0 : 0x0f)) >> (xp % 2 ? 4 : 0);
+						byte pixValue =  (*(p + (xp / 2)) & ((xp % 2) ? 0xf0 : 0x0f)) >> ((xp % 2) ? 4 : 0);
 						if (pixValue || !transparency)
 							*(tempDest + SCREEN_WIDTH * (yp - boxBounds.top) + (xp - boxBounds.left)) = psxMapperTable[pixValue];
 					}
@@ -443,6 +442,12 @@ static void t2WrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool apply
 	int numBytes;
 	int clipAmount;
 
+	// WORKAROUND: One of the mortician frames has several corrupt bytes in the Russian version
+	if ((pObj->hBits == 2517583660UL) && (_vm->getLanguage() == Common::RU_RUS)) {
+		uint8 correctBytes[5] = {0xA3, 0x00, 0x89, 0xC0, 0xA6};
+		Common::copy(&correctBytes[0], &correctBytes[5], srcP);
+	}
+
 	for (int y = 0; y < pObj->height; ++y) {
 		// Get the position to start writing out from
 		uint8 *tempP = !horizFlipped ? destP :
@@ -464,18 +469,18 @@ static void t2WrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool apply
 				x+= clipAmount;
 
 				int runLength = numBytes - clipAmount;
-				uint8 colour = *srcP++;
+				uint8 color = *srcP++;
 
-				if ((yClip == 0) && (runLength > 0) && (colour != 0)) {
+				if ((yClip == 0) && (runLength > 0) && (color != 0)) {
 					runLength = MIN(runLength, pObj->width - rightClip - x);
 
 					if (runLength > 0) {
 						// Non-transparent run length
-						colour += pObj->constant;
+						color += pObj->constant;
 						if (horizFlipped)
-							Common::set_to(tempP - runLength + 1, tempP + 1, colour);
+							Common::set_to(tempP - runLength + 1, tempP + 1, color);
 						else
-							Common::set_to(tempP, tempP + runLength, colour);
+							Common::set_to(tempP, tempP + runLength, color);
 					}
 				}
 
@@ -515,7 +520,7 @@ static void t2WrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool apply
 }
 
 /**
- * Fill the destination area with a constant colour
+ * Fill the destination area with a constant color
  */
 static void WrtConst(DRAWOBJECT *pObj, uint8 *destP, bool applyClipping) {
 	if (applyClipping) {
@@ -589,12 +594,29 @@ static void WrtAll(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP, bool applyClippi
  */
 static void PackedWrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP,
 							 bool applyClipping, bool horizFlipped, int packingType) {
-	uint8 numColours = 0;
-	uint8 *colourTable = NULL;
+	uint8 numColors = 0;
+	uint8 *colorTable = NULL;
 	int topClip = 0;
 	int xOffset = 0;
-	int numBytes, colour;
+	int numBytes, color;
 	int v;
+
+	if (_vm->getLanguage() == Common::RU_RUS) {
+		// WORKAROUND: One of the mortician frames has several corrupt bytes in the Russian version
+		if (pObj->hBits == 2517583393UL) {
+			uint8 correctBytes[5] = {0x00, 0x00, 0x17, 0x01, 0x00};
+			Common::copy(&correctBytes[0], &correctBytes[5], srcP + 267);
+		}
+		// WORKAROUND: One of Dibbler's frames in the end sequence has corrupt bytes in the Russian version
+		if (pObj->hBits == 33651742) {
+			uint8 correctBytes[40] = {
+				0x06, 0xc0, 0xd6, 0xc1, 0x09, 0xce, 0x0d, 0x24, 0x02, 0x12, 0x01, 0x00, 0x00, 0x23, 0x21, 0x32,
+				0x12, 0x00, 0x00, 0x20, 0x01, 0x11, 0x32, 0x12, 0x01, 0x00, 0x00, 0x1b, 0x02, 0x11, 0x34, 0x11,
+				0x00, 0x00, 0x18, 0x01, 0x11, 0x35, 0x21, 0x01
+			};
+			Common::copy(&correctBytes[0], &correctBytes[40], srcP);
+		}
+	}
 
 	if (applyClipping) {
 		pObj->height -= pObj->botClip;
@@ -602,10 +624,10 @@ static void PackedWrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP,
 	}
 
 	if (packingType == 3) {
-		// Variable colours
-		numColours = *srcP++;
-		colourTable = srcP;
-		srcP += numColours;
+		// Variable colors
+		numColors = *srcP++;
+		colorTable = srcP;
+		srcP += numColors;
 	}
 
 	for (int y = 0; y < pObj->height; ++y) {
@@ -623,7 +645,7 @@ static void PackedWrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP,
 
 		int x = 0;
 		while (x < pObj->width) {
-			// Get next run size and colour to use
+			// Get next run size and color to use
 			for (;;) {
 				if (xOffset > 0) {
 					x += xOffset;
@@ -640,9 +662,9 @@ static void PackedWrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP,
 				v = *srcP++;
 				numBytes = v & 0xf;	// No. bytes 1-15
 				if (packingType == 3)
-					colour = colourTable[v >> 4];
+					color = colorTable[v >> 4];
 				else
-					colour = pObj->baseCol + (v >> 4);
+					color = pObj->baseCol + (v >> 4);
 
 				if (numBytes != 0)
 					break;
@@ -670,7 +692,7 @@ static void PackedWrtNonZero(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP,
 
 			while (numBytes-- > 0) {
 				if ((topClip == 0) && (x < (pObj->width - rightClip))) {
-					*tempP = colour;
+					*tempP = color;
 					if (horizFlipped) --tempP; else ++tempP;
 				}
 				++x;
@@ -713,7 +735,6 @@ void UpdateScreenRect(const Common::Rect &pClip) {
 	byte *pSrc = (byte *)_vm->screen().getBasePtr(pClip.left, pClip.top);
 	g_system->copyRectToScreen(pSrc, _vm->screen().pitch, pClip.left, pClip.top + yOffset,
 		pClip.width(), pClip.height());
-	g_system->updateScreen();
 }
 
 /**
@@ -808,7 +829,7 @@ void DrawObject(DRAWOBJECT *pObj) {
 		int packType = pObj->flags >> 14;
 
 		if (packType == 0) {
-			// No colour packing
+			// No color packing
 			switch (typeId) {
 			case 0x01:
 			case 0x11:
@@ -843,7 +864,7 @@ void DrawObject(DRAWOBJECT *pObj) {
 		} else {
 			// 1 = 16 from 240
 			// 2 = 16 from 224
-			// 3 = variable colour
+			// 3 = variable color
 			if (packType == 1) pObj->baseCol = 0xF0;
 			else if (packType == 2) pObj->baseCol = 0xE0;
 

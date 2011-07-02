@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_TEXTE_H
@@ -63,7 +60,7 @@ extern const char **commandPrepositionTable;
 
 void loadTextData(const char *filename);
 void loadErrmessDat(const char *fname);
-void freeErrmessDat(void);
+void freeErrmessDat();
 void loadPoldatDat(const char *fname);
 
 int fitLine(const char *ptr, int maxWidth, int &words, int &width);

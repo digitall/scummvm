@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Glitter library functions.
  *
  * In the main called only from PCODE.C
@@ -33,6 +30,7 @@
 
 #include "tinsel/actors.h"
 #include "tinsel/background.h"
+#include "tinsel/bmv.h"
 #include "tinsel/config.h"
 #include "tinsel/coroutine.h"
 #include "tinsel/cursor.h"
@@ -69,6 +67,7 @@
 #include "tinsel/tinsel.h"
 #include "tinsel/token.h"
 
+#include "common/textconsole.h"
 
 namespace Tinsel {
 
@@ -83,48 +82,45 @@ extern bool bNoPause;
 
 // In DOS_MAIN.C
 // TODO/FIXME: From dos_main.c: "Only used on PSX so far"
-int clRunMode = 0;
+//int clRunMode = 0;
 
 //----------------- EXTERNAL FUNCTIONS ---------------------
 
 // in BG.CPP
 extern void ChangePalette(SCNHANDLE hPal);
 
-// in BMV.CPP
-void PlayBMV(CORO_PARAM, SCNHANDLE hFileStem, int myEscape);
-bool MoviePlaying(void);
-void AbortMovie(void);
-
 // in PDISPLAY.CPP
-extern void EnableTags(void);
-extern void DisableTags(void);
-bool DisableTagsIfEnabled(void);
-extern void setshowstring(void);
+extern void EnableTags();
+extern void DisableTags();
+bool DisableTagsIfEnabled();
+extern void setshowstring();
 
 // in SAVELOAD.CPP
-extern int NewestSavedGame(void);
+extern int NewestSavedGame();
 
 // in SCENE.CPP
-extern void setshowpos(void);
+extern void setshowpos();
 extern int sceneCtr;
 
 // in TINSEL.CPP
 extern void SetCdChangeScene(SCNHANDLE hScene);
 extern void SetHookScene(SCNHANDLE scene, int entrance, int transition);
 extern void SetNewScene(SCNHANDLE scene, int entrance, int transition);
-extern void UnHookScene(void);
-extern void SuspendHook(void);
-extern void UnSuspendHook(void);
+extern void UnHookScene();
+extern void SuspendHook();
+extern void UnSuspendHook();
 
 #ifdef BODGE
 // In HANDLE.CPP
 bool ValidHandle(SCNHANDLE offset);
 
 // In SCENE.CPP
-SCNHANDLE GetSceneHandle(void);
+SCNHANDLE GetSceneHandle();
 #endif
 
 //----------------- GLOBAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 bool bEnableMenu;
 
@@ -176,7 +172,7 @@ enum MASTER_LIB_CODES {
 	HIGHEST_LIBCODE
 };
 
-const MASTER_LIB_CODES DW1DEMO_CODES[] = {
+static const MASTER_LIB_CODES DW1DEMO_CODES[] = {
 	ACTORREF, ACTORXPOS, ACTORYPOS, ADDTOPIC, ADDINV1, ADDINV2, AUXSCALE, BACKGROUND,
 	CAMERA, CONTROL, CONVERSATION, CONVTOPIC, HIGHEST_LIBCODE, CURSORXPOS, CURSORYPOS,
 	DECCONVW, DECCURSOR, DECTAGFONT, DECINVW, DECINV1, DECINV2, DECLEAD, DELICON,
@@ -190,7 +186,7 @@ const MASTER_LIB_CODES DW1DEMO_CODES[] = {
 	WALKTAG, RANDOM, TIMER
 };
 
-const MASTER_LIB_CODES DW1_CODES[] = {
+static const MASTER_LIB_CODES DW1_CODES[] = {
 	ACTORATTR, ACTORDIRECTION, ACTORREF, ACTORSCALE, ACTORXPOS,
 	ACTORYPOS, ADDTOPIC, ADDINV1, ADDINV2, ADDOPENINV, AUXSCALE,
 	BACKGROUND, CAMERA, CLOSEINVENTORY, CONTROL, CONVERSATION,
@@ -217,7 +213,44 @@ const MASTER_LIB_CODES DW1_CODES[] = {
 	HIGHEST_LIBCODE
 };
 
-const MASTER_LIB_CODES DW2_CODES[] = {
+static const MASTER_LIB_CODES DW2DEMO_CODES[] = {
+	ACTORBRIGHTNESS, ACTORDIRECTION, ACTORPALETTE, ACTORPRIORITY,
+	ACTORREF, ACTORRGB, ACTORSCALE, ACTORXPOS, ACTORYPOS,
+	ADDHIGHLIGHT, ADDINV, ADDINV1, ADDINV2, ADDOPENINV, ADDTOPIC,
+	BACKGROUND, CALLACTOR, CALLGLOBALPROCESS, CALLOBJECT,
+	CALLPROCESS, CALLSCENE, CALLTAG, CAMERA, CDCHANGESCENE,
+	CDDOCHANGE, CDLOAD, CDPLAY, CLEARHOOKSCENE, CLOSEINVENTORY,
+	CONTROL, CONVERSATION, CURSOR, CURSORXPOS, CURSORYPOS,
+	DECCONVW, DECCURSOR, DECFLAGS, DECINV1, DECINV2, DECINVW,
+	DECLEAD, DECSCALE, DECTAGFONT, DECTALKFONT, DELTOPIC,
+	DIMMUSIC, DROP, DROPOUT, EFFECTACTOR, ENABLEMENU, ENDACTOR,
+	ESCAPEOFF, ESCAPEON, EVENT, FACETAG, FADEIN, FADEOUT, FRAMEGRAB,
+	FREEZECURSOR, GETINVLIMIT, GHOST, GLOBALVAR, HASRESTARTED,
+	HAVE, HELDOBJECT, HIDEACTOR, HIDEBLOCK, HIDEEFFECT, HIDEPATH,
+	HIDEREFER, HIDETAG, HOLD, HOOKSCENE, IDLETIME, INSTANTSCROLL,
+	INVENTORY, INVPLAY, INWHICHINV, KILLACTOR, KILLGLOBALPROCESS,
+	KILLPROCESS, LOCALVAR, MOVECURSOR, MOVETAG, MOVETAGTO, NEWSCENE,
+	NOBLOCKING, NOPAUSE, NOSCROLL, OFFSET, OTHEROBJECT, PAUSE, PLAY,
+	PLAYMUSIC, PLAYRTF, PLAYSAMPLE, POINTACTOR, POINTTAG, POSTACTOR,
+	POSTGLOBALPROCESS, POSTOBJECT, POSTPROCESS, POSTTAG, PRINT,
+	PRINTCURSOR, PRINTOBJ, PRINTTAG, QUITGAME, RANDOM, RESETIDLETIME,
+	RESTARTGAME, RESTORESCENE, RUNMODE, SAVESCENE, SAY, SAYAT,
+	SCALINGREELS, SCREENXPOS, SCREENYPOS, SCROLL, SCROLLPARAMETERS,
+	SENDACTOR, SENDGLOBALPROCESS, SENDOBJECT, SENDPROCESS, SENDTAG,
+	SETBRIGHTNESS, SETINVLIMIT, SETINVSIZE, SETLANGUAGE, SETPALETTE,
+	SETSYSTEMSTRING, SETSYSTEMVAR, SHELL, SHOWACTOR, SHOWBLOCK,
+	SHOWEFFECT, SHOWPATH, SHOWREFER, SHOWTAG, STAND, STANDTAG,
+	STARTGLOBALPROCESS, STARTPROCESS, STARTTIMER, STOPWALK, SUBTITLES,
+	SWALK, SYSTEMVAR, TAGTAGXPOS, TAGTAGYPOS, TAGWALKXPOS, TAGWALKYPOS,
+	TALK, TALKAT, TALKPALETTEINDEX, TALKRGB, TALKVIA, THISOBJECT,
+	THISTAG, TIMER, TOPIC, TOPPLAY, TOPWINDOW, TRANSLUCENTINDEX,
+	UNDIMMUSIC, UNHOOKSCENE, WAITFRAME, WAITKEY, WAITSCROLL, WAITTIME,
+	WALK, WALKED, WALKEDPOLY, WALKEDTAG, WALKINGACTOR, WALKPOLY,
+	WALKTAG, WALKXPOS, WALKYPOS, WHICHCD, WHICHINVENTORY,
+	HIGHEST_LIBCODE
+};
+
+static const MASTER_LIB_CODES DW2_CODES[] = {
 	ACTORBRIGHTNESS, ACTORDIRECTION, ACTORPALETTE, ACTORPRIORITY,
 	ACTORREF, ACTORRGB, ACTORSCALE, ACTORXPOS, ACTORYPOS,
 	ADDHIGHLIGHT, ADDINV, ADDINV1, ADDINV2, ADDOPENINV, ADDTOPIC,
@@ -259,6 +292,8 @@ const MASTER_LIB_CODES DW2_CODES[] = {
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
+// FIXME: Avoid non-const global vars
+
 // Saved cursor co-ordinates for control(on) to restore cursor position
 // as it was at control(off).
 // They are global so that MoveCursor(..) has a net effect if it
@@ -271,16 +306,14 @@ static int scrollNumber = 0;	// used by scroll()
 
 static bool bNotPointedRunning = false;	// Used in Printobj and PrintObjPointed
 
-static COLORREF s_talkfontColor = 0;
-
 //----------------- FORWARD REFERENCES --------------------
 
-static int HeldObject(void);
+static int HeldObject();
 static void PostTag(CORO_PARAM, int tagno, TINSEL_EVENT event, HPOLYGON hp, int myEscape);
-void ResetIdleTime(void);
+void ResetIdleTime();
 static void SendTag(CORO_PARAM, int tagno, TINSEL_EVENT event, HPOLYGON hp, int myEscape, bool *result);
 static void StandTag(int actor, HPOLYGON hp);
-void StopMidiFn(void);
+void StopMidiFn();
 void StopSample(int sample = -1);
 static void StopWalk(int actor);
 static void WaitScroll(CORO_PARAM, int myescEvent);
@@ -359,7 +392,7 @@ typedef SCROLL_MONITOR *PSCROLL_MONITOR;
  */
 static void ScrollMonitorProcess(CORO_PARAM, const void *param) {
 	int		Loffset, Toffset;
-	const SCROLL_MONITOR *psm = (const SCROLL_MONITOR *)param;;
+	const SCROLL_MONITOR *psm = (const SCROLL_MONITOR *)param;
 
 	// COROUTINE
 	CORO_BEGIN_CONTEXT;
@@ -375,8 +408,7 @@ static void ScrollMonitorProcess(CORO_PARAM, const void *param) {
 			break;
 
 		// If ESCAPE is pressed...
-		if (psm->myEscape != GetEscEvents())
-		{
+		if (psm->myEscape != GetEscEvents()) {
 			// Instant completion!
 			Offset(EX_USEXY, psm->x, psm->y);
 			break;
@@ -392,12 +424,11 @@ static void ScrollMonitorProcess(CORO_PARAM, const void *param) {
 /**
  * NOT A LIBRARY FUNCTION
  *
- * Poke supplied colour into the DAC queue.
+ * Poke supplied color into the DAC queue.
  */
 void SetTextPal(COLORREF col) {
-	s_talkfontColor = col;
-	SetTalkColourRef(col);
-	UpdateDACqueue(TalkColour(), 1, &s_talkfontColor);
+	SetTalkColorRef(col);
+	UpdateDACqueue(TalkColor(), col);
 }
 
 /**
@@ -407,10 +438,10 @@ void SetTextPal(COLORREF col) {
 static int TextTime(char *pTstring) {
 	if (isJapanMode())
 		return JAP_TEXT_TIME;
-	else if (!speedText)
+	else if (!_vm->_config->_textSpeed)
 		return strlen(pTstring) + ONE_SECOND;
 	else
-		return strlen(pTstring) + ONE_SECOND + (speedText * 5 * ONE_SECOND) / 100;
+		return strlen(pTstring) + ONE_SECOND + (_vm->_config->_textSpeed * 5 * ONE_SECOND) / 100;
 }
 
 /**
@@ -489,7 +520,7 @@ void TinGetVersion(WHICH_VER which, char *buffer, int length) {
 
 /**
  * Set actor's attributes.
- * - currently only the text colour.
+ * - currently only the text color.
  */
 static void ActorAttr(int actor, int r1, int g1, int b1) {
 	storeActorAttr(actor, r1, g1, b1);
@@ -520,11 +551,11 @@ static int ActorDirection(int actor) {
 /**
  * Set actor's palette details for path brightnesses
  */
-void ActorPalette(int actor, int startColour, int length) {
+void ActorPalette(int actor, int startColor, int length) {
 	PMOVER pMover = GetMover(actor);
 	assert(pMover);
 
-	StoreMoverPalette(pMover, startColour, length);
+	StoreMoverPalette(pMover, startColor, length);
 }
 
 /**
@@ -535,10 +566,10 @@ static void ActorPriority(int actor, int zFactor) {
 }
 
 /**
- * Set actor's text colour.
+ * Set actor's text color.
  */
-static void ActorRGB(int actor, COLORREF colour) {
-	SetActorRGB(actor, colour);
+static void ActorRGB(int actor, COLORREF color) {
+	SetActorRGB(actor, color);
 }
 
 /**
@@ -564,7 +595,7 @@ static int ActorPos(int xory, int actor) {
 /**
  * Make all actors alive at the start of each scene.
  */
-static void ActorsOn(void) {
+static void ActorsOn() {
 	setactorson();
 }
 
@@ -693,7 +724,7 @@ static void ClearHookScene() {
 /**
  * Guess what.
  */
-static void CloseInventory(void) {
+static void CloseInventory() {
 	KillInventory();
 }
 
@@ -978,8 +1009,7 @@ static void DecLead(uint32 id, SCNHANDLE *rp = 0, SCNHANDLE text = 0) {
 static void DecScale(int actor, int scale,
 		SCNHANDLE wkl, SCNHANDLE wkr, SCNHANDLE wkf, SCNHANDLE wka,
 		SCNHANDLE stl, SCNHANDLE str, SCNHANDLE stf, SCNHANDLE sta,
-		SCNHANDLE tal, SCNHANDLE tar, SCNHANDLE taf, SCNHANDLE taa)
-{
+		SCNHANDLE tal, SCNHANDLE tar, SCNHANDLE taf, SCNHANDLE taa) {
 	PMOVER pMover = GetMover(actor);
 	assert(pMover);
 
@@ -1031,7 +1061,7 @@ static void DelTopic(int icon) {
 /**
  * DimMusic
  */
-static void DimMusic(void) {
+static void DimMusic() {
 	_vm->_pcmMusic->dim(true);
 }
 
@@ -1051,7 +1081,7 @@ static void Drop(int object) {
 /**
  * Delete all objects from inventory 1 and 2.
  */
-static void DropEverything(void) {
+static void DropEverything() {
 	HoldItem(NOOBJECT, false);
 
 	ClearInventory(INV_1);
@@ -1061,7 +1091,7 @@ static void DropEverything(void) {
 /**
  * EnableMenu
  */
-static void EnableMenu(void) {
+static void EnableMenu() {
 	bEnableMenu = true;
 }
 
@@ -1120,14 +1150,14 @@ static void FaceTag(int actor, HPOLYGON hp) {
 /**
  * FadeIn
  */
-static void FadeIn(void) {
+static void FadeIn() {
 	FadeInMedium(NULL);
 }
 
 /**
  * FadeOut
  */
-static void FadeOut(void) {
+static void FadeOut() {
 	FadeOutMedium(NULL);
 }
 
@@ -1164,9 +1194,9 @@ static int GetInvLimit(int invno) {
 /**
  * Ghost
  */
-static void Ghost(int actor, int tColour, int tPalOffset) {
+static void Ghost(int actor, int tColor, int tPalOffset) {
 	SetSysVar(ISV_GHOST_ACTOR, actor);
-	SetSysVar(ISV_GHOST_COLOUR,  tColour);
+	SetSysVar(ISV_GHOST_COLOR,  tColor);
 	SetSysVar(ISV_GHOST_BASE, tPalOffset);
 	CreateGhostPalette(BgPal());
 }
@@ -1181,7 +1211,7 @@ static void HailScene(SCNHANDLE scene) {
 /**
  * Returns TRUE if the game has been restarted, FALSE if not.
  */
-static bool HasRestarted(void) {
+static bool HasRestarted() {
 	return bHasRestarted;
 }
 
@@ -1195,7 +1225,7 @@ int Have(int object) {
 /**
  * Returns which object is currently held.
  */
-static int HeldObject(void) {
+static int HeldObject() {
 	return WhichItemHeld();
 }
 
@@ -1259,7 +1289,7 @@ void HookScene(SCNHANDLE scene, int entrance, int transition) {
 /**
  * IdleTime
  */
-static int IdleTime(void) {
+static int IdleTime() {
 	// If control is off, system is not idle
 	if (!ControlIsOn()) {
 		// Player doesn't currently have control
@@ -1420,8 +1450,8 @@ void NewScene(CORO_PARAM, SCNHANDLE scene, int entrance, int transition) {
 	CORO_BEGIN_CODE(_ctx);
 
 	if (TinselV2) {
-		if (MoviePlaying()) {
-			AbortMovie();
+		if (_vm->_bmv->MoviePlaying()) {
+			_vm->_bmv->AbortMovie();
 			CORO_SLEEP(2);
 		}
 	}
@@ -1446,7 +1476,7 @@ void NewScene(CORO_PARAM, SCNHANDLE scene, int entrance, int transition) {
 /**
  * Disable dynamic blocking for current scene.
  */
-static void NoBlocking(void) {
+static void NoBlocking() {
 	SetNoBlocking(true);
 }
 
@@ -1650,11 +1680,11 @@ static void PlayMovie(CORO_PARAM, SCNHANDLE hFileStem, int myEscape) {
 	}
 
 	// They claim to be getting "Can't play two movies at once!" error
-	while (MoviePlaying())
+	while (_vm->_bmv->MoviePlaying())
 		CORO_SLEEP(1);
 
 	// Play the movie
-	CORO_INVOKE_2(PlayBMV, hFileStem, myEscape);
+	CORO_INVOKE_2(_vm->_bmv->PlayBMV, hFileStem, myEscape);
 
 	CORO_END_CODE;
 }
@@ -1686,7 +1716,7 @@ static void PlaySample(CORO_PARAM, int sample, bool bComplete, bool escOn, int m
 		return;
 	}
 
-	if (volSound != 0 && _vm->_sound->sampleExists(sample)) {
+	if (_vm->_config->_soundVolume != 0 && _vm->_sound->sampleExists(sample)) {
 		_vm->_sound->playSample(sample, Audio::Mixer::kSFXSoundType, &_ctx->handle);
 
 		if (bComplete) {
@@ -1734,7 +1764,7 @@ static void PlaySample(CORO_PARAM, int sample, int x, int y, int flags, int myEs
 	if (_ctx->myEscape && _ctx->myEscape != GetEscEvents())
 		return;
 
-	if (volSound != 0 && _vm->_sound->sampleExists(sample)) {
+	if (_vm->_config->_soundVolume != 0 && _vm->_sound->sampleExists(sample)) {
 		if (x == 0)
 			x = -1;
 
@@ -1890,7 +1920,7 @@ static void Print(CORO_PARAM, int x, int y, SCNHANDLE text, int time, bool bSust
 
 	if (!TinselV2) {
 		// Kick off the voice sample
-		if (volVoice != 0 && _vm->_sound->sampleExists(text)) {
+		if (_vm->_config->_voiceVolume != 0 && _vm->_sound->sampleExists(text)) {
 			_vm->_sound->playSample(text, Audio::Mixer::kSpeechSoundType, &_ctx->handle);
 			_ctx->bSample = _vm->_mixer->isSoundHandleActive(_ctx->handle);
 		}
@@ -1918,9 +1948,9 @@ static void Print(CORO_PARAM, int x, int y, SCNHANDLE text, int time, bool bSust
 	if (TinselV2) {
 		int Loffset, Toffset;
 		PlayfieldGetPos(FIELD_WORLD, &Loffset, &Toffset);
-		_ctx->pText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS),
+		_ctx->pText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS),
 			TextBufferAddr(), 0, x - Loffset, y - Toffset, GetTagFontHandle(),
-			TXT_CENTRE, 0);
+			TXT_CENTER, 0);
 		assert(_ctx->pText);
 
 		// Adjust x, y, or z if necessary
@@ -1928,12 +1958,12 @@ static void Print(CORO_PARAM, int x, int y, SCNHANDLE text, int time, bool bSust
 		if (IsTopWindow())
 			MultiSetZPosition(_ctx->pText, Z_TOPW_TEXT);
 
-	} else if (bJapDoPrintText || (!isJapanMode() && (bSubtitles || !_ctx->bSample))) {
+	} else if (bJapDoPrintText || (!isJapanMode() && (_vm->_config->_useSubtitles || !_ctx->bSample))) {
 		int Loffset, Toffset;	// Screen position
 		PlayfieldGetPos(FIELD_WORLD, &Loffset, &Toffset);
-		_ctx->pText = ObjectTextOut(coroParam, GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
+		_ctx->pText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
 					0, x - Loffset, y - Toffset,
-					TinselV2 ? GetTagFontHandle() : GetTalkFontHandle(), TXT_CENTRE);
+					TinselV2 ? GetTagFontHandle() : GetTalkFontHandle(), TXT_CENTER);
 		assert(_ctx->pText); // string produced NULL text
 		if (IsTopWindow())
 			MultiSetZPosition(_ctx->pText, Z_TOPW_TEXT);
@@ -1986,7 +2016,7 @@ static void Print(CORO_PARAM, int x, int y, SCNHANDLE text, int time, bool bSust
 			if (_ctx->bSample) {
 				// Wait for sample to end whether or not
 				if (!_vm->_mixer->isSoundHandleActive(_ctx->handle)) {
-					if (_ctx->pText == NULL || speedText == DEFTEXTSPEED)				{
+					if (_ctx->pText == NULL || _vm->_config->_textSpeed == DEFTEXTSPEED)				{
 						// No text or speed modification - just depends on sample
 						break;
 					} else {
@@ -2086,7 +2116,7 @@ static void PrintObj(CORO_PARAM, const SCNHANDLE hText, const INV_OBJECT *pinvo,
 		}
 
 		// Display the text and set it's Z position
-		if (event == POINTED || (!isJapanMode() && (bSubtitles || !_ctx->bSample))) {
+		if (event == POINTED || (!isJapanMode() && (_vm->_config->_useSubtitles || !_ctx->bSample))) {
 			int	xshift;
 
 			// Get the text string
@@ -2095,8 +2125,8 @@ static void PrintObj(CORO_PARAM, const SCNHANDLE hText, const INV_OBJECT *pinvo,
 			else
 				LoadStringRes(hText, TextBufferAddr(), TBUFSZ);
 
-			_ctx->pText = ObjectTextOut(coroParam, GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
-						0, _ctx->textx, _ctx->texty, GetTagFontHandle(), TXT_CENTRE);
+			_ctx->pText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
+						0, _ctx->textx, _ctx->texty, GetTagFontHandle(), TXT_CENTER);
 			assert(_ctx->pText); // PrintObj() string produced NULL text
 
 			MultiSetZPosition(_ctx->pText, Z_INV_ITEXT);
@@ -2147,9 +2177,9 @@ static void PrintObj(CORO_PARAM, const SCNHANDLE hText, const INV_OBJECT *pinvo,
 
 						// Re-display in the same place
 						LoadStringRes(hText, TextBufferAddr(), TBUFSZ);
-						_ctx->pText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS),
+						_ctx->pText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS),
 							TextBufferAddr(), 0, _ctx->textx, _ctx->texty, GetTagFontHandle(),
-							TXT_CENTRE, 0);
+							TXT_CENTER, 0);
 						assert(_ctx->pText);
 
 						KeepOnScreen(_ctx->pText, &_ctx->textx, &_ctx->texty);
@@ -2188,7 +2218,7 @@ static void PrintObj(CORO_PARAM, const SCNHANDLE hText, const INV_OBJECT *pinvo,
 					if (_ctx->bSample) {
 						// Wait for sample to end whether or not
 						if (!_vm->_mixer->isSoundHandleActive(_ctx->handle)) {
-							if (_ctx->pText == NULL || speedText == DEFTEXTSPEED) {
+							if (_ctx->pText == NULL || _vm->_config->_textSpeed == DEFTEXTSPEED) {
 								// No text or speed modification - just depends on sample
 								break;
 							} else {
@@ -2196,6 +2226,10 @@ static void PrintObj(CORO_PARAM, const SCNHANDLE hText, const INV_OBJECT *pinvo,
 								_ctx->bSample = false;
 							}
 						}
+
+						// Decrement the subtitles timeout counter
+						if (_ctx->ticks > 0) --_ctx->ticks;
+
 					} else {
 						// No sample - just depends on time
 						if (_ctx->ticks-- <= 0)
@@ -2260,8 +2294,8 @@ static void PrintObjPointed(CORO_PARAM, const SCNHANDLE text, const INV_OBJECT *
 
 				// Re-display in the same place
 				LoadStringRes(text, TextBufferAddr(), TBUFSZ);
-				pText = ObjectTextOut(coroParam, GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
-							0, textx, texty, GetTagFontHandle(), TXT_CENTRE);
+				pText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
+							0, textx, texty, GetTagFontHandle(), TXT_CENTER);
 				assert(pText); // PrintObj() string produced NULL text
 				MultiSetZPosition(pText, Z_INV_ITEXT);
 			}
@@ -2288,7 +2322,7 @@ static void PrintObjNonPointed(CORO_PARAM, const SCNHANDLE text, const OBJECT *p
 
 	CORO_BEGIN_CODE(_ctx);
 		// Kick off the voice sample
-		if (volVoice != 0 && _vm->_sound->sampleExists(text)) {
+		if (_vm->_config->_voiceVolume != 0 && _vm->_sound->sampleExists(text)) {
 			_vm->_sound->playSample(text, Audio::Mixer::kSpeechSoundType, &_ctx->handle);
 			_ctx->bSample = _vm->_mixer->isSoundHandleActive(_ctx->handle);
 		} else
@@ -2319,7 +2353,7 @@ static void PrintObjNonPointed(CORO_PARAM, const SCNHANDLE text, const OBJECT *p
 			if (_ctx->bSample) {
 				// Wait for sample to end whether or not
 				if (!_vm->_mixer->isSoundHandleActive(_ctx->handle)) {
-					if (pText == NULL || speedText == DEFTEXTSPEED) {
+					if (pText == NULL || _vm->_config->_textSpeed == DEFTEXTSPEED) {
 						// No text or speed modification - just depends on sample
 						break;
 					} else {
@@ -2327,6 +2361,10 @@ static void PrintObjNonPointed(CORO_PARAM, const SCNHANDLE text, const OBJECT *p
 						_ctx->bSample = false;
 					}
 				}
+
+				// Decrement the subtitles timeout counter
+				if (_ctx->ticks > 0) --_ctx->ticks;
+
 			} else {
 				// No sample - just depends on time
 				if (_ctx->ticks-- <= 0)
@@ -2369,7 +2407,7 @@ static void PrintTag(HPOLYGON hp, SCNHANDLE text, int actor = 0, bool bCursor = 
 /**
  * Quits the game
  */
-static void QuitGame(void) {
+static void QuitGame() {
 	StopMidi();
 	StopSample();
 	_vm->quitGame();
@@ -2396,14 +2434,14 @@ static int RandomFn(int n1, int n2, int norpt) {
 /**
  * ResetIdleTime
  */
-void ResetIdleTime(void) {
+void ResetIdleTime() {
 	resetUserEventTime();
 }
 
 /**
  * FnRestartGame
  */
-void FnRestartGame(void) {
+void FnRestartGame() {
 	// TODO: Tinsel 2 comments out the 2 calls, but I'm not sure that this should be done
 	StopMidi();
 	StopSample();
@@ -2423,8 +2461,8 @@ static void RestoreScene(CORO_PARAM, TRANSITS transition) {
 	CORO_BEGIN_CODE(_ctx);
 
 	if (TinselV2) {
-		if (MoviePlaying()) {
-			AbortMovie();
+		if (_vm->_bmv->MoviePlaying()) {
+			_vm->_bmv->AbortMovie();
 			CORO_SLEEP(2);
 		}
 
@@ -2442,15 +2480,15 @@ static void RestoreScene(CORO_PARAM, TRANSITS transition) {
 /**
  * Resumes the last game
  */
-void ResumeLastGame(void) {
+void ResumeLastGame() {
 	RestoreGame(NewestSavedGame());
 }
 
 /**
  * Returns the current run mode
  */
-static int RunMode(void) {
-	return clRunMode;
+static int RunMode() {
+	return 0;	//clRunMode;
 }
 
 /**
@@ -2501,7 +2539,7 @@ static void ScalingReels(int actor, int scale, int direction,
 /**
  * Return the icon that caused the CONVERSE event.
  */
-static int ScanIcon(void) {
+static int ScanIcon() {
 	return GetIcon();
 }
 
@@ -2549,7 +2587,7 @@ static void Scroll(CORO_PARAM, EXTREME extreme, int xp, int yp, int xIter, int y
 				PlayfieldGetPos(FIELD_WORLD, &Loffset, &Toffset);
 			} while (Loffset != _ctx->x || Toffset != _ctx->y);
 		} else if (TinselV2 && myEscape) {
-			static SCROLL_MONITOR sm;
+			SCROLL_MONITOR sm;
 
 			// Scroll is escapable even though we're not waiting for it
 			sm.x = _ctx->x;
@@ -2711,7 +2749,7 @@ static void SetTag(CORO_PARAM, int tagno) {
 }
 
 /**
- * Initialise a timer.
+ * Initialize a timer.
  */
 static void SetTimer(int timerno, int start, bool up, bool frame) {
 	StartTimer(timerno, start, up != 0, frame != 0);
@@ -2750,14 +2788,14 @@ void ShowEffect(int effect) {
 /**
  * Enable display of diagnostic co-ordinates.
  */
-static void showpos(void) {
+static void showpos() {
 	setshowpos();
 }
 
 /**
  * Enable display of diagnostic co-ordinates.
  */
-static void showstring(void) {
+static void showstring() {
 	setshowstring();
 }
 #endif
@@ -2765,7 +2803,7 @@ static void showstring(void) {
 /**
  * Shows the main menu
  */
-static void ShowMenu(void) {
+static void ShowMenu() {
 	OpenMenu(MAIN_MENU);
 }
 
@@ -2961,13 +2999,13 @@ static void StartProcess(CORO_PARAM, uint32 procID) {
 }
 
 /**
- * Initialise a timer.
+ * Initialize a timer.
  */
 static void StartTimerFn(int timerno, int start, bool up, int fs) {
 	StartTimer(timerno, start, up, fs);
 }
 
-void StopMidiFn(void) {
+void StopMidiFn() {
 	StopMidi();		// Stop any currently playing midi
 }
 
@@ -3011,10 +3049,7 @@ static void Subtitles(int onoff) {
 	if (isJapanMode())
 		return;	// Subtitles are always off in JAPAN version (?)
 
-	if (onoff == ST_ON)
-		bSubtitles = true;
-	else
-		bSubtitles = false;
+	_vm->_config->_useSubtitles = (onoff == ST_ON);
 }
 
 /**
@@ -3247,7 +3282,7 @@ static void TalkOrSay(CORO_PARAM, SPEECH_TYPE speechType, SCNHANDLE hText, int x
 	/*
 	 * Kick off the voice sample
 	 */
-	if (volVoice != 0 && _vm->_sound->sampleExists(hText)) {
+	if (_vm->_config->_voiceVolume != 0 && _vm->_sound->sampleExists(hText)) {
 		if (!TinselV2) {
 			_vm->_sound->playSample(hText, Audio::Mixer::kSpeechSoundType, &_ctx->handle);
 			_ctx->bSamples = _vm->_mixer->isSoundHandleActive(_ctx->handle);
@@ -3308,7 +3343,7 @@ static void TalkOrSay(CORO_PARAM, SPEECH_TYPE speechType, SCNHANDLE hText, int x
 
 		if (isJapanMode()) {
 			_ctx->ticks = JAP_TEXT_TIME;
-		} else if (bSubtitles || !_ctx->bSample) {
+		} else if (_vm->_config->_useSubtitles || !_ctx->bSample) {
 			/*
 			 * Work out where to display the text
 			 */
@@ -3328,9 +3363,9 @@ static void TalkOrSay(CORO_PARAM, SPEECH_TYPE speechType, SCNHANDLE hText, int x
 				_ctx->y -= _ctx->Toffset;
 			}
 
-			_ctx->pText = ObjectTextOut(coroParam, GetPlayfieldList(FIELD_STATUS),
+			_ctx->pText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS),
 					TextBufferAddr(), 0, _ctx->x - _ctx->Loffset, _ctx->y - _ctx->Toffset,
-					GetTalkFontHandle(), TXT_CENTRE);
+					GetTalkFontHandle(), TXT_CENTER);
 			assert(_ctx->pText); // talk() string produced NULL text;
 
 			if (IsTopWindow())
@@ -3377,7 +3412,7 @@ static void TalkOrSay(CORO_PARAM, SPEECH_TYPE speechType, SCNHANDLE hText, int x
 			// Kick off the sample now (perhaps with a delay)
 			if (bNoPause)
 				bNoPause = false;
-			else
+			else if (!IsDemo)
 				CORO_SLEEP(SysVar(SV_SPEECHDELAY));
 
 			//SamplePlay(VOICE, hText, _ctx->sub, false, -1, -1, PRIORITY_TALK);
@@ -3425,7 +3460,7 @@ static void TalkOrSay(CORO_PARAM, SPEECH_TYPE speechType, SCNHANDLE hText, int x
 			if (_ctx->bSample) {
 				// Wait for sample to end whether or not
 				if (!_vm->_mixer->isSoundHandleActive(_ctx->handle)) {
-					if (_ctx->pText == NULL || speedText == DEFTEXTSPEED) {
+					if (_ctx->pText == NULL || _vm->_config->_textSpeed == DEFTEXTSPEED) {
 						// No text or speed modification - just depends on sample
 						break;
 					} else {
@@ -3437,6 +3472,10 @@ static void TalkOrSay(CORO_PARAM, SPEECH_TYPE speechType, SCNHANDLE hText, int x
 						_ctx->bSample = false;
 					}
 				}
+
+				// Decrement the subtitles timeout counter
+				if (_ctx->ticks > 0) --_ctx->ticks;
+
 			} else {
 				// No sample - just depends on time
 				if (_ctx->ticks-- <= 0)
@@ -3499,7 +3538,7 @@ static void TalkAt(CORO_PARAM, int actor, int x, int y, SCNHANDLE text, bool esc
 		if (escOn && myEscape != GetEscEvents())
 			return;
 
-		if (!isJapanMode() && (bSubtitles || !_vm->_sound->sampleExists(text)))
+		if (!isJapanMode() && (_vm->_config->_useSubtitles || !_vm->_sound->sampleExists(text)))
 			SetTextPal(GetActorRGB(actor));
 	}
 
@@ -3554,12 +3593,12 @@ static void TalkPaletteIndex(unsigned index) {
 /**
  * Set talk font's palette entry.
  */
-static void TalkRGB(COLORREF colour, int myescEvent) {
+static void TalkRGB(COLORREF color, int myescEvent) {
 	// Don't do it if it's not wanted
 	if (myescEvent && myescEvent != GetEscEvents())
 		return;
 
-	SetTextPal(colour);
+	SetTextPal(color);
 }
 
 /**
@@ -3618,7 +3657,7 @@ static int TimerFn(int timerno) {
 /**
  * Return the icon that caused the CONVERSE event.
  */
-int Topic(void) {
+int Topic() {
 	return GetIcon();
 }
 
@@ -3675,14 +3714,14 @@ static void TryPlaySample(CORO_PARAM, int sample, bool bComplete, bool escOn, in
 /**
  * UnDimMusic
  */
-static void UnDimMusic(void) {
+static void UnDimMusic() {
 	_vm->_pcmMusic->unDim(true);
 }
 
 /**
  * unhookscene
  */
-static void UnHookSceneFn(void) {
+static void UnHookSceneFn() {
 	UnHookScene();
 }
 
@@ -3696,7 +3735,7 @@ static void UnTagActorFn(int actor) {
 /**
  * vibrate
  */
-static void Vibrate(void) {
+static void Vibrate() {
 }
 
 /**
@@ -3830,7 +3869,7 @@ void Walk(CORO_PARAM, int actor, int x, int y, SCNHANDLE hFilm, int hold, bool i
 
 	bool bQuick = hold != 0;
 	PMOVER pMover = GetMover(actor);
-	
+
 	assert(pMover); // Can't walk a non-moving actor
 
 	CORO_BEGIN_CODE(_ctx);
@@ -4162,28 +4201,28 @@ static void WalkTag(CORO_PARAM, int actor, SCNHANDLE film, HPOLYGON hp, bool esc
 /**
  * Returns the X co-ordinateof lead actor's last walk.
  */
-int WalkXPos(void) {
+int WalkXPos() {
 	return GetLastLeadXdest();
 }
 
 /**
  * Returns the Y co-ordinateof lead actor's last walk.
  */
-int WalkYPos(void) {
+int WalkYPos() {
 	return GetLastLeadYdest();
 }
 
 /**
  * Return which is the current CD, counting from 1.
  */
-int WhichCd(void) {
+int WhichCd() {
 	return GetCurrentCD();
 }
 
 /**
  * whichinventory
  */
-int WhichInventory(void) {
+int WhichInventory() {
 	return WhichInventoryOpen();
 }
 
@@ -4205,6 +4244,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 	int libCode;
 	if (TinselV0) libCode = DW1DEMO_CODES[operand];
 	else if (!TinselV2) libCode = DW1_CODES[operand];
+	else if (_vm->getFeatures() & GF_DEMO) libCode = DW2DEMO_CODES[operand];
 	else libCode = DW2_CODES[operand];
 
 	debug(7, "CallLibraryRoutine op %d (escOn %d, myEscape %d)", operand, pic->escOn, pic->myEscape);
@@ -4904,9 +4944,6 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 			else {
 				Play(coroParam, pp[0], pp[1], pp[2], pp[3], pic->myEscape, false,
 						pic->event, pic->hPoly, pic->idActor);
-
-				if (coroParam)
-					return 0;
 			}
 			return -4;
 
@@ -5554,7 +5591,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 	case WALKED: {
 		// Common to both DW1 & DW2
 		pp -= 3;			// 4 parameters
-		bool tmp;
+		bool tmp = false;
 		Walked(coroParam, pp[0], pp[1], pp[2], pp[3], pic->escOn, pic->myEscape, tmp);
 		if (!coroParam) {
 			// Only write the result to the stack if walked actually completed running.
@@ -5627,7 +5664,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 		error("Unsupported library function");
 	}
 
-	error("Can't possibly get here");
+	//error("Can't possibly get here");
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

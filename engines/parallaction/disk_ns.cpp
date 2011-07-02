@@ -18,12 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
+#include "common/fs.h"
+#include "common/memstream.h"
+#include "common/substream.h"
+#include "common/textconsole.h"
 #include "parallaction/parser.h"
 #include "parallaction/parallaction.h"
 
@@ -88,7 +89,7 @@ NSArchive::NSArchive(Common::SeekableReadStream *stream, Common::Platform platfo
 		if (features & GF_DEMO) {
 			isSmallArchive = stream->size() == SIZEOF_SMALL_ARCHIVE;
 		} else if (features & GF_LANG_MULT) {
-			isSmallArchive = (stream->readUint32BE() != MKID_BE('NDOS'));
+			isSmallArchive = (stream->readUint32BE() != MKTAG('N','D','O','S'));
 		}
 	}
 
@@ -133,7 +134,7 @@ Common::SeekableReadStream *NSArchive::createReadStreamForMember(const Common::S
 
 	int offset = _archiveOffsets[index];
 	int endOffset = _archiveOffsets[index] + _archiveLenghts[index];
-	return new Common::SeekableSubReadStream(_stream, offset, endOffset, false);
+	return new Common::SeekableSubReadStream(_stream, offset, endOffset, DisposeAfterUse::NO);
 }
 
 bool NSArchive::hasFile(const Common::String &name) {
@@ -161,7 +162,7 @@ Common::ArchiveMemberPtr NSArchive::getMember(const Common::String &name) {
 }
 
 
-#define HIGHEST_PRIORITY			9
+#define HIGHEST_PRIORITY		9
 #define NORMAL_ARCHIVE_PRIORITY		5
 #define LOW_ARCHIVE_PRIORITY		2
 #define LOWEST_ARCHIVE_PRIORITY		1
@@ -209,7 +210,7 @@ Common::String Disk_ns::selectArchive(const Common::String& name) {
 		_sset.remove(_resArchiveName);
 	}
 	_resArchiveName = name;
-	addArchive(name, LOW_ARCHIVE_PRIORITY);
+	addArchive(name, NORMAL_ARCHIVE_PRIORITY);
 
 	return oldName;
 }
@@ -244,7 +245,7 @@ DosDisk_ns::~DosDisk_ns() {
 
 void DosDisk_ns::init() {
 	// setup permament archives
-	addArchive("disk1", NORMAL_ARCHIVE_PRIORITY);
+	addArchive("disk1", LOW_ARCHIVE_PRIORITY);
 }
 
 Common::SeekableReadStream *DosDisk_ns::tryOpenFile(const char* name) {
@@ -470,7 +471,7 @@ void DosDisk_ns::loadBackground(BackgroundInfo& info, const char *filename) {
 	}
 
 	// read bitmap, mask and path data and extract them into the 3 buffers
-	info.bg.create(info.width, info.height, 1);
+	info.bg.create(info.width, info.height, Graphics::PixelFormat::createFormatCLUT8());
 	createMaskAndPathBuffers(info);
 	unpackBackground(stream, (byte*)info.bg.pixels, info._mask->data, info._path->data);
 
@@ -620,7 +621,7 @@ private:
 
 	uint16 getCrunchType(uint32 signature) {
 
-		byte eff;
+		byte eff = 0;
 
 		switch (signature) {
 		case 0x50503230: /* PP20 */
@@ -628,12 +629,16 @@ private:
 			break;
 		case 0x50504C53: /* PPLS */
 			error("PPLS crunched files are not supported");
+#if 0
 			eff = 8;
 			break;
+#endif
 		case 0x50583230: /* PX20 */
 			error("PX20 crunched files are not supported");
+#if 0
 			eff = 6;
 			break;
+#endif
 		default:
 			eff = 0;
 
@@ -666,7 +671,7 @@ public:
 		ppDecrunchBuffer(src, dest, crlen-8, decrlen);
 
 		free(src);
-		_stream = new Common::MemoryReadStream(dest, decrlen, true);
+		_stream = new Common::MemoryReadStream(dest, decrlen, DisposeAfterUse::YES);
 		_dispose = true;
 	}
 
@@ -709,10 +714,10 @@ AmigaDisk_ns::~AmigaDisk_ns() {
 void AmigaDisk_ns::init() {
 	// setup permament archives
 	if (_vm->getFeatures() & GF_DEMO) {
-		addArchive("disk0", NORMAL_ARCHIVE_PRIORITY);
+		addArchive("disk0", LOW_ARCHIVE_PRIORITY);
 	} else {
-		addArchive("disk0", NORMAL_ARCHIVE_PRIORITY);
-		addArchive("disk1", NORMAL_ARCHIVE_PRIORITY);
+		addArchive("disk0", LOW_ARCHIVE_PRIORITY);
+		addArchive("disk1", LOW_ARCHIVE_PRIORITY);
 	}
 }
 
@@ -794,7 +799,7 @@ void AmigaDisk_ns::unpackBitmap(byte *dst, byte *src, uint16 numFrames, uint16 b
 	uint16 planeSize = bytesPerPlane * height;
 
 	for (uint32 i = 0; i < numFrames; i++) {
-		if (READ_BE_UINT32(src) == MKID_BE('DLTA')) {
+		if (READ_BE_UINT32(src) == MKTAG('D','L','T','A')) {
 
 			uint size = READ_BE_UINT32(src + 4);
 
@@ -847,6 +852,7 @@ GfxObj* AmigaDisk_ns::loadStatic(const char* name) {
 Common::SeekableReadStream *AmigaDisk_ns::tryOpenFile(const char* name) {
 	debugC(3, kDebugDisk, "AmigaDisk_ns::tryOpenFile(%s)", name);
 
+	PowerPackerStream *ret;
 	Common::SeekableReadStream *stream = _sset.createReadStreamForMember(name);
 	if (stream)
 		return stream;
@@ -854,13 +860,19 @@ Common::SeekableReadStream *AmigaDisk_ns::tryOpenFile(const char* name) {
 	char path[PATH_LEN];
 	sprintf(path, "%s.pp", name);
 	stream = _sset.createReadStreamForMember(path);
-	if (stream)
-		return new PowerPackerStream(*stream);
+	if (stream) {
+		ret = new PowerPackerStream(*stream);
+		delete stream;
+		return ret;
+	}
 
 	sprintf(path, "%s.dd", name);
 	stream = _sset.createReadStreamForMember(path);
-	if (stream)
-		return new PowerPackerStream(*stream);
+	if (stream) {
+		ret = new PowerPackerStream(*stream);
+		delete stream;
+		return ret;
+	}
 
 	return 0;
 }
@@ -921,8 +933,8 @@ void AmigaDisk_ns::loadBackground(BackgroundInfo& info, const char *name) {
 	}
 }
 
-void AmigaDisk_ns::loadMask(BackgroundInfo& info, const char *name) {
-	debugC(5, kDebugDisk, "AmigaDisk_ns::loadMask(%s)", name);
+void AmigaDisk_ns::loadMask_internal(BackgroundInfo& info, const char *name) {
+	debugC(5, kDebugDisk, "AmigaDisk_ns::loadMask_internal(%s)", name);
 
 	char path[PATH_LEN];
 	sprintf(path, "%s.mask", name);
@@ -948,7 +960,7 @@ void AmigaDisk_ns::loadMask(BackgroundInfo& info, const char *name) {
 	info._mask = loader._maskBuffer;
 }
 
-void AmigaDisk_ns::loadPath(BackgroundInfo& info, const char *name) {
+void AmigaDisk_ns::loadPath_internal(BackgroundInfo& info, const char *name) {
 
 	char path[PATH_LEN];
 	sprintf(path, "%s.path", name);
@@ -973,11 +985,11 @@ void AmigaDisk_ns::loadScenery(BackgroundInfo& info, const char* background, con
 	loadBackground(info, filename);
 
 	if (mask == 0) {
-		loadMask(info, background);
-		loadPath(info, background);
+		loadMask_internal(info, background);
+		loadPath_internal(info, background);
 	} else {
-		loadMask(info, mask);
-		loadPath(info, mask);
+		loadMask_internal(info, mask);
+		loadPath_internal(info, mask);
 	}
 
 	return;
@@ -1082,4 +1094,4 @@ Common::SeekableReadStream* AmigaDisk_ns::loadSound(const char* name) {
 	return tryOpenFile(path);
 }
 
-} // namespace Parallaction
+} // End of namespace Parallaction

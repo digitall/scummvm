@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGOS_DEBUGGER_H
@@ -37,11 +34,8 @@ public:
 	Debugger(AGOSEngine *vm);
 	virtual ~Debugger() {}  // we need this for __SYMBIAN32__ archaic gcc/UIQ
 
-protected:
+private:
 	AGOSEngine *_vm;
-
-	virtual void preEnter();
-	virtual void postEnter();
 
 	bool Cmd_DebugLevel(int argc, const char **argv);
 	bool Cmd_PlayMusic(int argc, const char **argv);

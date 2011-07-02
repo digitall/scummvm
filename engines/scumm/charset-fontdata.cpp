@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
@@ -589,21 +586,21 @@ CharsetRendererV2::CharsetRendererV2(ScummEngine *vm, Common::Language language)
 			b = data[offset+3];
 			len = data[offset+4];
 			while (len--) {
-				printf("0x%02x, ", b);
+				debugN("0x%02x, ", b);
 				count++;
 				if (count % 8 == 0)
-					printf("\n");
+					debugN("\n");
 			}
 			offset += 6;
 		} else {
-			printf("0x%02x, ", data[offset]);
+			debugN("0x%02x, ", data[offset]);
 			count++;
 			if (count % 8 == 0)
-				printf("\n");
+				debugN("\n");
 		}
 	}
-	printf("\n");
-	_vm->_system->quit();
+	debugN("\n");
+	_vm->quitGame();
 #endif
 }
 

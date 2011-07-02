@@ -18,15 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
+#include "common/config-manager.h"
 #include "common/file.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "agos/agos.h"
 
@@ -44,7 +43,6 @@ MidiPlayer::MidiPlayer() {
 	// between songs.
 	_driver = 0;
 	_map_mt32_to_gm = false;
-	_passThrough = false;
 
 	_enable_sfx = true;
 	_current = 0;
@@ -62,47 +60,50 @@ MidiPlayer::MidiPlayer() {
 }
 
 MidiPlayer::~MidiPlayer() {
-	_mutex.lock();
-	close();
-	_mutex.unlock();
+	stop();
+
+	Common::StackLock lock(_mutex);
+	if (_driver) {
+		_driver->close();
+		delete _driver;
+	}
+	_driver = NULL;
+	clearConstructs();
 }
 
-int MidiPlayer::open() {
-	// Don't ever call open without first setting the output driver!
+int MidiPlayer::open(int gameType) {
+	// Don't call open() twice!
+	assert(!_driver);
+
+	// Setup midi driver
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_ADLIB | MDT_MIDI | (gameType == GType_SIMON1 ? MDT_PREFER_MT32 : MDT_PREFER_GM));
+	_nativeMT32 = ((MidiDriver::getMusicType(dev) == MT_MT32) || ConfMan.getBool("native_mt32"));
+
+	_driver = MidiDriver::createMidi(dev);
 	if (!_driver)
 		return 255;
+
+	if (_nativeMT32)
+		_driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
+
+	_map_mt32_to_gm = (gameType != GType_SIMON2 && !_nativeMT32);
 
 	int ret = _driver->open();
 	if (ret)
 		return ret;
 	_driver->setTimerCallback(this, &onTimer);
 
-	// General MIDI System On message
-	// Resets all GM devices to default settings
-	_driver->sysEx((const byte *)"\x7E\x7F\x09\x01", 4);
-	g_system->delayMillis(20);
+	if (_nativeMT32)
+		_driver->sendMT32Reset();
+	else
+		_driver->sendGMReset();
 
 	return 0;
-}
-
-void MidiPlayer::close() {
-	stop();
-//	_system->lockMutex(_mutex);
-	if (_driver)
-		_driver->close();
-	_driver = NULL;
-	clearConstructs();
-//	_system->unlockMutex(_mutex);
 }
 
 void MidiPlayer::send(uint32 b) {
 	if (!_current)
 		return;
-
-	if (_passThrough) {
-		_driver->send(b);
-		return;
-	}
 
 	byte channel = (byte)(b & 0x0F);
 	if ((b & 0xFFF0) == 0x07B0) {
@@ -130,7 +131,7 @@ void MidiPlayer::send(uint32 b) {
 		// If I understand it correctly, the current standard indicates
 		// that the volume should be reset, but the next revision will
 		// exclude it. On my system, both ALSA and FluidSynth seem to
-		// reset it, while Adlib does not. Let's follow the majority.
+		// reset it, while AdLib does not. Let's follow the majority.
 
 		_current->volume[channel] = 127;
 	}
@@ -149,7 +150,7 @@ void MidiPlayer::send(uint32 b) {
 			// We have received a "Reset All Controllers" message
 			// and passed it on to the MIDI driver. This may or may
 			// not have affected the volume controller. To ensure
-			// consistent behaviour, explicitly set the volume to
+			// consistent behavior, explicitly set the volume to
 			// what we think it should be.
 
 			if (_current == &_sfx)
@@ -205,14 +206,14 @@ void MidiPlayer::onTimer(void *data) {
 }
 
 void MidiPlayer::startTrack(int track) {
+	Common::StackLock lock(_mutex);
+
 	if (track == _currentTrack)
 		return;
 
 	if (_music.num_songs > 0) {
 		if (track >= _music.num_songs)
 			return;
-
-		_mutex.lock();
 
 		if (_music.parser) {
 			_current = &_music;
@@ -226,7 +227,7 @@ void MidiPlayer::startTrack(int track) {
 		parser->setMidiDriver(this);
 		parser->setTimerRate(_driver->getBaseTempo());
 		if (!parser->loadMusic(_music.songs[track], _music.song_sizes[track])) {
-			printf ("Error reading track!\n");
+			warning("Error reading track %d", track);
 			delete parser;
 			parser = 0;
 		}
@@ -234,9 +235,7 @@ void MidiPlayer::startTrack(int track) {
 		_currentTrack = (byte)track;
 		_music.parser = parser; // That plugs the power cord into the wall
 	} else if (_music.parser) {
-		_mutex.lock();
 		if (!_music.parser->setTrack(track)) {
-			_mutex.unlock();
 			return;
 		}
 		_currentTrack = (byte)track;
@@ -244,8 +243,6 @@ void MidiPlayer::startTrack(int track) {
 		_music.parser->jumpToTick(0);
 		_current = 0;
 	}
-
-	_mutex.unlock();
 }
 
 void MidiPlayer::stop() {
@@ -301,19 +298,6 @@ void MidiPlayer::setVolume(int musicVol, int sfxVol) {
 	}
 }
 
-void MidiPlayer::setDriver(MidiDriver *md) {
-	// Don't try to set this more than once.
-	if (_driver)
-		return;
-	_driver = md;
-}
-
-void MidiPlayer::mapMT32toGM(bool map) {
-	Common::StackLock lock(_mutex);
-
-	_map_mt32_to_gm = map;
-}
-
 void MidiPlayer::setLoop(bool loop) {
 	Common::StackLock lock(_mutex);
 
@@ -346,15 +330,11 @@ void MidiPlayer::clearConstructs(MusicInfo &info) {
 		info.num_songs = 0;
 	}
 
-	if (info.data) {
-		free(info.data);
-		info.data = 0;
-	} // end if
+	free(info.data);
+	info.data = 0;
 
-	if (info.parser) {
-		delete info.parser;
-		info.parser = 0;
-	}
+	delete info.parser;
+	info.parser = 0;
 
 	if (_driver) {
 		for (i = 0; i < 16; ++i) {
@@ -459,7 +439,7 @@ void MidiPlayer::loadSMF(Common::File *in, int song, bool sfx) {
 	parser->setMidiDriver(this);
 	parser->setTimerRate(timerRate);
 	if (!parser->loadMusic(p->data, size)) {
-		printf("Error reading track!\n");
+		warning("Error reading track");
 		delete parser;
 		parser = 0;
 	}
@@ -488,7 +468,7 @@ void MidiPlayer::loadMultipleSMF(Common::File *in, bool sfx) {
 
 	p->num_songs = in->readByte();
 	if (p->num_songs > 16) {
-		printf ("playMultipleSMF: %d is too many songs to keep track of!\n", (int)p->num_songs);
+		warning("playMultipleSMF: %d is too many songs to keep track of", (int)p->num_songs);
 		return;
 	}
 
@@ -500,7 +480,7 @@ void MidiPlayer::loadMultipleSMF(Common::File *in, bool sfx) {
 		// Make sure there's a MThd
 		in->read(buf, 4);
 		if (memcmp(buf, "MThd", 4)) {
-			printf("Expected MThd but found '%c%c%c%c' instead!\n", buf[0], buf[1], buf[2], buf[3]);
+			warning("Expected MThd but found '%c%c%c%c' instead", buf[0], buf[1], buf[2], buf[3]);
 			return;
 		}
 		in->seek(in->readUint32BE(), SEEK_CUR);

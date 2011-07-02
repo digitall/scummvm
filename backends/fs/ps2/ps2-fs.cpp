@@ -17,17 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "backends/fs/abstract-fs.h"
-#include "backends/fs/stdiostream.h"
+#if defined(__PLAYSTATION2__)
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
+
+
+#include "backends/fs/ps2/ps2-fs.h"
+
 #include <kernel.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "backends/platform/ps2/asyncfio.h"
 #include "backends/platform/ps2/fileio.h"
 #include "backends/platform/ps2/systemps2.h"
@@ -35,87 +37,12 @@
 
 #include <fileXio_rpc.h>
 
-#include "ps2temp.h"
+#include "backends/platform/ps2/ps2temp.h"
 
 #define DEFAULT_MODE (FIO_S_IRUSR | FIO_S_IWUSR | FIO_S_IRGRP | FIO_S_IWGRP | FIO_S_IROTH | FIO_S_IWOTH)
 
 extern AsyncFio fio;
 extern OSystem_PS2 *g_systemPs2;
-
-/**
- * Implementation of the ScummVM file system API based on the Ps2SDK.
- *
- * Parts of this class are documented in the base interface class, AbstractFSNode.
- */
-class Ps2FilesystemNode : public AbstractFSNode {
-
-friend class Ps2FilesystemFactory;
-
-protected:
-	Common::String _displayName;
-	Common::String _path;
-	bool _isDirectory;
-	bool _isRoot;
-	bool _isHere;
-	bool _verified;
-
-private:
-	char *getDeviceDescription() const;
-	void doverify();
-
-public:
-	/**
-	 * Creates a PS2FilesystemNode with the root node as path.
-	 */
-	Ps2FilesystemNode();
-
-	/**
-	 * Creates a PS2FilesystemNode for a given path.
-	 *
-	 * @param path Common::String with the path the new node should point to.
-	 */
-	Ps2FilesystemNode(const Common::String &path);
-	Ps2FilesystemNode(const Common::String &path, bool verify);
-
-	/**
-	 * Copy constructor.
-	 */
-	Ps2FilesystemNode(const Ps2FilesystemNode *node);
-
-	virtual Common::String getDisplayName() const { return _displayName; }
-	virtual Common::String getName() const { return _displayName; }
-	virtual Common::String getPath() const { return _path; }
-
-	virtual bool exists() const {
-		// printf("%s : is %d\n", _path.c_str(), _isHere);
-		return _isHere;
-	}
-
-	virtual bool isDirectory() const {
-		// printf("%s : dir %d\n", _path.c_str(), _isDirectory);
-		return _isDirectory;
-	}
-
-	virtual bool isReadable() const {
-		return _isHere;
-	}
-
-	virtual bool isWritable() const {
-		if (strncmp(_path.c_str(), "cdfs", 4)==0)
-			return false;
-		return true; // exists(); // creating ?
-	}
-
-	virtual AbstractFSNode *clone() const { return new Ps2FilesystemNode(this); }
-	virtual AbstractFSNode *getChild(const Common::String &n) const;
-	virtual bool getChildren(AbstractFSList &list, ListMode mode, bool hidden) const;
-	virtual AbstractFSNode *getParent() const;
-
-	virtual Common::SeekableReadStream *createReadStream();
-	virtual Common::WriteStream *createWriteStream();
-
-	int getDev() { return 0; };
-};
 
 const char *_lastPathComponent(const Common::String &str) {
 	if (str.empty())
@@ -488,7 +415,7 @@ AbstractFSNode *Ps2FilesystemNode::getParent() const {
 	return new Ps2FilesystemNode(str, true);
 }
 
-char *Ps2FilesystemNode::getDeviceDescription() const {
+const char *Ps2FilesystemNode::getDeviceDescription() const {
 	if (strncmp(_path.c_str(), "cdfs", 4) == 0)
 		return "DVD Drive";
 	else if (strncmp(_path.c_str(), "pfs0", 4) == 0)
@@ -504,10 +431,12 @@ char *Ps2FilesystemNode::getDeviceDescription() const {
 }
 
 Common::SeekableReadStream *Ps2FilesystemNode::createReadStream() {
-	Common::SeekableReadStream *ss = StdioStream::makeFromPath(getPath().c_str(), false);
+	Common::SeekableReadStream *ss = PS2FileStream::makeFromPath(getPath(), false);
 	return ss;
 }
 
 Common::WriteStream *Ps2FilesystemNode::createWriteStream() {
-	return StdioStream::makeFromPath(getPath().c_str(), true);
+	return PS2FileStream::makeFromPath(getPath(), true);
 }
+
+#endif

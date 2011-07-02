@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 #include "saga/saga.h"
 
@@ -44,7 +41,7 @@ int SagaEngine::processInput() {
 	while (_eventMan->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_KEYDOWN:
-			if (event.kbd.flags == Common::KBD_CTRL) {
+			if (event.kbd.hasFlags(Common::KBD_CTRL)) {
 				if (event.kbd.keycode == Common::KEYCODE_d)
 					_console->attach();
 			}
@@ -56,7 +53,7 @@ int SagaEngine::processInput() {
 			switch (event.kbd.keycode) {
 			case Common::KEYCODE_HASH:
 			case Common::KEYCODE_BACKQUOTE:
-			case Common::KEYCODE_QUOTE: // tilde ("~")
+			case Common::KEYCODE_TILDE: // tilde ("~")
 				_console->attach();
 				break;
 			case Common::KEYCODE_r:

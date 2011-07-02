@@ -18,15 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/util.h"
-#include "common/stream.h"
-#include "sound/mixer.h"
-#include "sound/wave.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
+
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/wave.h"
 
 #include "gob/sound/sounddesc.h"
 #include "gob/resources.h"
@@ -50,6 +50,19 @@ SoundDesc::SoundDesc() {
 
 SoundDesc::~SoundDesc() {
 	free();
+}
+
+void SoundDesc::swap(SoundDesc &desc) {
+	SWAP(_repCount  , desc._repCount);
+	SWAP(_frequency , desc._frequency);
+	SWAP(_flag      , desc._flag);
+	SWAP(_id        , desc._id);
+	SWAP(_mixerFlags, desc._mixerFlags);
+	SWAP(_resource  , desc._resource);
+	SWAP(_data      , desc._data);
+	SWAP(_dataPtr   , desc._dataPtr);
+	SWAP(_size      , desc._size);
+	SWAP(_type      , desc._type);
 }
 
 void SoundDesc::set(SoundType type, byte *data, uint32 dSize) {
@@ -120,7 +133,7 @@ void SoundDesc::convToSigned() {
 	if (!_data || !_dataPtr)
 		return;
 
-	if (_mixerFlags & Audio::Mixer::FLAG_16BITS) {
+	if (_mixerFlags & Audio::FLAG_16BITS) {
 		byte *data = _dataPtr;
 		for (uint32 i = 0; i < _size; i++, data += 2)
 			WRITE_LE_UINT16(data, READ_LE_UINT16(data) ^ 0x8000);
@@ -163,12 +176,12 @@ bool SoundDesc::loadWAV(byte *data, uint32 dSize) {
 	if (!Audio::loadWAVFromStream(stream, wavSize, wavRate, wavFlags, &wavtype, 0))
 		return false;
 
-	if (wavFlags & Audio::Mixer::FLAG_16BITS) {
-		_mixerFlags |= Audio::Mixer::FLAG_16BITS;
+	if (wavFlags & Audio::FLAG_16BITS) {
+		_mixerFlags |= Audio::FLAG_16BITS;
 		wavSize >>= 1;
 	}
 
-	if (wavFlags & Audio::Mixer::FLAG_STEREO) {
+	if (wavFlags & Audio::FLAG_STEREO) {
 		warning("TODO: SoundDesc::loadWAV() - stereo");
 		return false;
 	}
@@ -178,7 +191,7 @@ bool SoundDesc::loadWAV(byte *data, uint32 dSize) {
 	_size = wavSize;
 	_frequency = wavRate;
 
-	if (wavFlags & Audio::Mixer::FLAG_UNSIGNED)
+	if (wavFlags & Audio::FLAG_UNSIGNED)
 		convToSigned();
 
 	return true;

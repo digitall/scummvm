@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 /*! \mainpage %ScummVM Source Reference
@@ -31,6 +28,9 @@
  * of almost all the classes, methods and variables, and how they interact.
  */
 
+// FIXME: Avoid using printf
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf
+
 #include "engines/engine.h"
 #include "engines/metaengine.h"
 #include "base/commandLine.h"
@@ -40,13 +40,20 @@
 #include "common/archive.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
+#include "common/debug-channels.h" /* for debug manager */
 #include "common/events.h"
 #include "common/EventRecorder.h"
-#include "common/file.h"
 #include "common/fs.h"
 #include "common/system.h"
-#include "gui/GuiManager.h"
-#include "gui/message.h"
+#include "common/textconsole.h"
+#include "common/tokenizer.h"
+#include "common/translation.h"
+
+#include "gui/gui-manager.h"
+#include "gui/error.h"
+
+#include "audio/mididrv.h"
+#include "audio/musicplugin.h"  /* for music manager */
 
 #include "backends/keymapper/keymapper.h"
 
@@ -84,7 +91,7 @@ static const EnginePlugin *detectPlugin() {
 	assert(!gameid.empty());
 	if (ConfMan.hasKey("gameid")) {
 		gameid = ConfMan.get("gameid");
-		
+
 		// Set last selected game, that the game will be highlighted
 		// on RTL
 		ConfMan.set("lastselectedgame", ConfMan.getActiveDomainName(), Common::ConfigManager::kApplicationDomain);
@@ -96,19 +103,19 @@ static const EnginePlugin *detectPlugin() {
 
 	// Query the plugins and find one that will handle the specified gameid
 	printf("User picked target '%s' (gameid '%s')...\n", ConfMan.getActiveDomainName().c_str(), gameid.c_str());
-	printf("  Looking for a plugin supporting this gameid... ");
-	GameDescriptor game = EngineMan.findGame(gameid, &plugin);
+	printf("%s", "  Looking for a plugin supporting this gameid... ");
+
+ 	GameDescriptor game = EngineMan.findGame(gameid, &plugin);
 
 	if (plugin == 0) {
 		printf("failed\n");
 		warning("%s is an invalid gameid. Use the --list-games option to list supported gameid", gameid.c_str());
-		return 0;
 	} else {
 		printf("%s\n", plugin->getName());
-	}
 
-	// FIXME: Do we really need this one?
-	printf("  Starting '%s'\n", game.description().c_str());
+		// FIXME: Do we really need this one?
+		printf("  Starting '%s'\n", game.description().c_str());
+	}
 
 	return plugin;
 }
@@ -122,33 +129,20 @@ static Common::Error runGame(const EnginePlugin *plugin, OSystem &system, const 
 
 	// Verify that the game path refers to an actual directory
 	if (!(dir.exists() && dir.isDirectory()))
-		err = Common::kInvalidPathError;
+		err = Common::kPathNotDirectory;
 
 	// Create the game engine
-	if (err == Common::kNoError)
+	if (err.getCode() == Common::kNoError)
 		err = (*plugin)->createInstance(&system, &engine);
 
 	// Check for errors
-	if (!engine || err != Common::kNoError) {
-		// TODO: Show an error dialog or so?
-		// TODO: Also take 'err' into consideration...
-		//GUI::MessageDialog alert("ScummVM could not find any game in the specified directory!");
-		//alert.runModal();
-		const char *errMsg = 0;
-		switch (err) {
-		case Common::kInvalidPathError:
-			errMsg = "Invalid game path";
-			break;
-		case Common::kNoGameDataFoundError:
-			errMsg = "Unable to locate game data";
-			break;
-		default:
-			errMsg = "Unknown error";
-		}
+	if (!engine || err.getCode() != Common::kNoError) {
 
+		// Print a warning; note that scummvm_main will also
+		// display an error dialog, so we don't have to do this here.
 		warning("%s failed to instantiate engine: %s (target '%s', path '%s')",
 			plugin->getName(),
-			errMsg,
+			err.getDesc().c_str(),
 			ConfMan.getActiveDomainName().c_str(),
 			dir.getPath().c_str()
 			);
@@ -202,8 +196,8 @@ static Common::Error runGame(const EnginePlugin *plugin, OSystem &system, const 
 	Common::StringTokenizer tokenizer(edebuglevels, " ,");
 	while (!tokenizer.empty()) {
 		Common::String token = tokenizer.nextToken();
-		if (!enableDebugChannel(token))
-			warning("Engine does not support debug level '%s'", token.c_str());
+		if (!DebugMan.enableDebugChannel(token))
+			warning(_("Engine does not support debug level '%s'"), token.c_str());
 	}
 
 	// Inform backend that the engine is about to be run
@@ -215,11 +209,11 @@ static Common::Error runGame(const EnginePlugin *plugin, OSystem &system, const 
 	// Inform backend that the engine finished
 	system.engineDone();
 
-	// We clear all debug levels again even though the engine should do it
-	Common::clearAllDebugChannels();
-
 	// Free up memory
 	delete engine;
+
+	// We clear all debug levels again even though the engine should do it
+	DebugMan.clearAllDebugChannels();
 
 	// Reset the file/directory mappings
 	SearchMan.clear();
@@ -271,22 +265,22 @@ static void setupKeymapper(OSystem &system) {
 	mapper->registerHardwareKeySet(keySet);
 
 	// Now create the global keymap
-	act = new Action(globalMap, "MENU", "Menu", kGenericActionType, kSelectKeyType);
+	act = new Action(globalMap, "MENU", _("Menu"), kGenericActionType, kSelectKeyType);
 	act->addKeyEvent(KeyState(KEYCODE_F5, ASCII_F5, 0));
 
-	act = new Action(globalMap, "SKCT", "Skip", kGenericActionType, kActionKeyType);
+	act = new Action(globalMap, "SKCT", _("Skip"), kGenericActionType, kActionKeyType);
 	act->addKeyEvent(KeyState(KEYCODE_ESCAPE, ASCII_ESCAPE, 0));
 
-	act = new Action(globalMap, "PAUS", "Pause", kGenericActionType, kStartKeyType);
+	act = new Action(globalMap, "PAUS", _("Pause"), kGenericActionType, kStartKeyType);
 	act->addKeyEvent(KeyState(KEYCODE_SPACE, ' ', 0));
 
-	act = new Action(globalMap, "SKLI", "Skip line", kGenericActionType, kActionKeyType);
+	act = new Action(globalMap, "SKLI", _("Skip line"), kGenericActionType, kActionKeyType);
 	act->addKeyEvent(KeyState(KEYCODE_PERIOD, '.', 0));
 
-	act = new Action(globalMap, "VIRT", "Display keyboard", kVirtualKeyboardActionType);
+	act = new Action(globalMap, "VIRT", _("Display keyboard"), kVirtualKeyboardActionType);
 	act->addKeyEvent(KeyState(KEYCODE_F7, ASCII_F7, 0));
 
-	act = new Action(globalMap, "REMP", "Remap keys", kKeyRemapActionType);
+	act = new Action(globalMap, "REMP", _("Remap keys"), kKeyRemapActionType);
 	act->addKeyEvent(KeyState(KEYCODE_F8, ASCII_F8, 0));
 
 	mapper->addGlobalKeymap(globalMap);
@@ -311,7 +305,7 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	Common::StringMap settings;
 	command = Base::parseCommandLine(settings, argc, argv);
 
-	// Load the config file (possibly overriden via command line):
+	// Load the config file (possibly overridden via command line):
 	if (settings.contains("config")) {
 		ConfMan.loadConfigFile(settings["config"]);
 		settings.erase("config");
@@ -321,7 +315,6 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 
 	// Update the config file
 	ConfMan.set("versioninfo", gScummVMVersion, Common::ConfigManager::kApplicationDomain);
-
 
 	// Load and setup the debuglevel and the debug flags. We do this at the
 	// soonest possible moment to ensure debug output starts early on, if
@@ -338,19 +331,60 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 		settings.erase("debugflags");
 	}
 
-	// Load the plugins.
-	PluginManager::instance().loadPlugins();
+	PluginManager::instance().init();
+ 	PluginManager::instance().loadAllPlugins(); // load plugins for cached plugin manager
+
+	// If we received an invalid music parameter via command line we check this here.
+	// We can't check this before loading the music plugins.
+	// On the other hand we cannot load the plugins before we know the file paths (in case of external plugins).
+	if (settings.contains("music-driver")) {
+		if (MidiDriver::getMusicType(MidiDriver::getDeviceHandle(settings["music-driver"])) == MT_INVALID) {
+			warning("Unrecognized music driver '%s'. Switching to default device", settings["music-driver"].c_str());
+			settings["music-driver"] = "auto";
+		}
+	}
 
 	// Process the remaining command line settings. Must be done after the
 	// config file and the plugins have been loaded.
-	if (!Base::processSettings(command, settings))
-		return 0;
+	Common::Error res;
+
+	// TODO: deal with settings that require plugins to be loaded
+	if (Base::processSettings(command, settings, res)) {
+		if (res.getCode() != Common::kNoError)
+			warning("%s", res.getDesc().c_str());
+		return res.getCode();
+	}
 
 	// Init the backend. Must take place after all config data (including
 	// the command line params) was read.
 	system.initBackend();
 
+	// If we received an invalid graphics mode parameter via command line
+	// we check this here. We can't do it until after the backend is inited,
+	// or there won't be a graphics manager to ask for the supported modes.
+
+	if (settings.contains("gfx-mode")) {
+		const OSystem::GraphicsMode *gm = g_system->getSupportedGraphicsModes();
+		Common::String option = settings["gfx-mode"];
+		bool isValid = false;
+
+		while (gm->name && !isValid) {
+			isValid = !scumm_stricmp(gm->name, option.c_str());
+			gm++;
+		}
+		if (!isValid) {
+			warning("Unrecognized graphics mode '%s'. Switching to default mode", option.c_str());
+			settings["gfx-mode"] = "default";
+		}
+	}
+
 	setupGraphics(system);
+
+	// Init the different managers that are used by the engines.
+	// Do it here to prevent fragmentation later
+	system.getAudioCDManager();
+	MusicManager::instance();
+	Common::DebugManager::instance();
 
 	// Init the event manager. As the virtual keyboard is loaded here, it must
 	// take place after the backend is initiated and the screen has been setup
@@ -385,14 +419,22 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 			// Try to run the game
 			Common::Error result = runGame(plugin, system, specialDebug);
 
+		#if defined(UNCACHED_PLUGINS) && defined(DYNAMIC_MODULES)
+			// do our best to prevent fragmentation by unloading as soon as we can
+			PluginManager::instance().unloadPluginsExcept(PLUGIN_TYPE_ENGINE, NULL, false);
+			// reallocate the config manager to get rid of any fragmentation
+			ConfMan.defragment();
+		#endif
+
 			// Did an error occur ?
-			if (result != Common::kNoError) {
-				// TODO: Show an informative error dialog if starting the selected game failed.
+			if (result.getCode() != Common::kNoError && result.getCode() != Common::kUserCanceled) {
+				// Shows an informative error dialog if starting the selected game failed.
+				GUI::displayErrorDialog(result, _("Error running game:"));
 			}
 
 			// Quit unless an error occurred, or Return to launcher was requested
 			#ifndef FORCE_RTL
-			if (result == 0 && !g_system->getEventManager()->shouldRTL())
+			if (result.getCode() == Common::kNoError && !g_system->getEventManager()->shouldRTL())
 				break;
 			#endif
 			// Reset RTL flag in case we want to load another engine
@@ -408,23 +450,24 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 			// Clear the active config domain
 			ConfMan.setActiveDomain("");
 
-			// PluginManager::instance().unloadPlugins();
-			PluginManager::instance().loadPlugins();
+			PluginManager::instance().loadAllPlugins(); // only for cached manager
+
 		} else {
-			// A dialog would be nicer, but we don't have any
-			// screen to draw on yet.
-			warning("Could not find any engine capable of running the selected game");
+			GUI::displayErrorDialog(_("Could not find any engine capable of running the selected game"));
 		}
 
 		// reset the graphics to default
 		setupGraphics(system);
 		launcherDialog();
 	}
-	PluginManager::instance().unloadPlugins();
+	PluginManager::instance().unloadAllPlugins();
 	PluginManager::destroy();
+	GUI::GuiManager::destroy();
 	Common::ConfigManager::destroy();
 	Common::SearchManager::destroy();
-	GUI::GuiManager::destroy();
+#ifdef USE_TRANSLATION
+	Common::TranslationManager::destroy();
+#endif
 
 	return 0;
 }

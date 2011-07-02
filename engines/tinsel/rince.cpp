@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Should really be called "moving actors.c"
  */
 
@@ -47,21 +44,22 @@
 #include "tinsel/tinsel.h"
 #include "tinsel/token.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
-static MOVER Movers[MAX_MOVERS];
+static MOVER Movers[MAX_MOVERS];	// FIXME: Avoid non-const global vars
 
 //----------------- FUNCTIONS ----------------------------
 
 /**
  * Called from ActorPalette(), normally once just after the beginning of time.
  */
-void StoreMoverPalette(PMOVER pMover, int startColour, int length) {
-	pMover->startColour = startColour;
+void StoreMoverPalette(PMOVER pMover, int startColor, int length) {
+	pMover->startColor = startColor;
 	pMover->paletteLength = length;
 }
 
@@ -88,7 +86,7 @@ static void CheckBrightness(PMOVER pMover) {
 			pMover->brightness--;			// ramp down
 
 		DimPartPalette(BgPal(),
-				pMover->startColour,
+				pMover->startColor,
 				pMover->paletteLength,
 				pMover->brightness);
 	}
@@ -107,7 +105,7 @@ void MoverBrightness(PMOVER pMover, int brightness) {
 	assert(BgPal());
 
 	// Do it all immediately
-	DimPartPalette(BgPal(), pMover->startColour, pMover->paletteLength, brightness);
+	DimPartPalette(BgPal(), pMover->startColor, pMover->paletteLength, brightness);
 
 	// The actor is probably hidden at this point,
 	pMover->brightness = brightness;
@@ -116,7 +114,7 @@ void MoverBrightness(PMOVER pMover, int brightness) {
 /**
  * RebootMovers
  */
-void RebootMovers(void) {
+void RebootMovers() {
 	memset(Movers, 0, sizeof(Movers));
 }
 
@@ -361,8 +359,8 @@ static void InitMover(PMOVER pMover) {
 
 	pMover->Tline = 0;
 
-	if (pMover->direction != FORWARD || pMover->direction != AWAY
-	|| pMover->direction != LEFTREEL || pMover->direction != RIGHTREEL)
+	if (pMover->direction != FORWARD && pMover->direction != AWAY
+			&& pMover->direction != LEFTREEL && pMover->direction != RIGHTREEL)
 		pMover->direction = FORWARD;
 
 	if (pMover->scale < 0 || pMover->scale > TOTAL_SCALES)
@@ -392,7 +390,7 @@ static void InitMover(PMOVER pMover) {
  * Get it into our heads that there's nothing doing.
  * Called at the end of a scene.
  */
-void DropMovers(void) {
+void DropMovers() {
 	for (int i = 0; i < MAX_MOVERS; i++)
 		InitMover(&Movers[i]);
 }
@@ -853,7 +851,7 @@ void T2MoverProcess(CORO_PARAM, const void *param) {
  */
 void MoverProcessCreate(int X, int Y, int id, PMOVER pMover) {
 	if (TinselV2) {
-		static MAINIT iStruct;
+		MAINIT iStruct;
 		iStruct.X = X;
 		iStruct.Y = Y;
 		iStruct.pMover = pMover;
@@ -924,7 +922,7 @@ void SaveMovers(SAVED_MOVER *sMoverInfo) {
 		if (TinselV2) {
 			sMoverInfo[i].bHidden = Movers[i].bHidden;
 			sMoverInfo[i].brightness = Movers[i].brightness;
-			sMoverInfo[i].startColour = Movers[i].startColour;
+			sMoverInfo[i].startColor = Movers[i].startColor;
 			sMoverInfo[i].paletteLength = Movers[i].paletteLength;
 		}
 
@@ -965,4 +963,4 @@ void StopMover(PMOVER pMover) {
 	DoMoveActor(pMover);
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

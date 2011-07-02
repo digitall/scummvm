@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Starts up new scenes.
  */
 
@@ -51,13 +48,14 @@
 #include "tinsel/sysvar.h"
 #include "tinsel/token.h"
 
+#include "common/textconsole.h"
 
 namespace Tinsel {
 
 //----------------- EXTERNAL FUNCTIONS ---------------------
 
 // in BG.C
-extern void DropBackground(void);
+extern void DropBackground();
 
 // in EFFECT.C
 extern void EffectPolyProcess(CORO_PARAM, const void *);
@@ -68,7 +66,7 @@ extern void CursorPositionProcess(CORO_PARAM, const void *);
 #endif
 extern void TagProcess(CORO_PARAM, const void *);
 extern void PointProcess(CORO_PARAM, const void *);
-extern void EnableTags(void);
+extern void EnableTags();
 
 
 //----------------- LOCAL DEFINES --------------------
@@ -94,8 +92,8 @@ struct SCENE_STRUC {
 
 /** entrance structure - one per entrance */
 struct ENTRANCE_STRUC {
-	int32 eNumber;		//!< entrance number
-	SCNHANDLE hScript;	//!< handle to entrance script
+	int32 eNumber;		///< entrance number
+	SCNHANDLE hScript;	///< handle to entrance script
 	// Tinsel 2 fields
 	SCNHANDLE hEntDesc;	// handle to entrance description
 	uint32 flags;
@@ -106,18 +104,16 @@ struct ENTRANCE_STRUC {
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
+// FIXME: Avoid non-const global vars
+
 #ifdef DEBUG
 static bool ShowPosition = false;	// Set when showpos() has been called
 #endif
-
-SCNHANDLE newestScene = 0;
 
 int sceneCtr = 0;
 static int initialMyEscape;
 
 static SCNHANDLE SceneHandle = 0;	// Current scene handle - stored in case of Save_Scene()
-
-static bool bWatchingOut = false;
 
 SCENE_STRUC tempStruc;
 
@@ -132,7 +128,7 @@ const SCENE_STRUC *GetSceneStruc(const byte *pStruc) {
 
 	// Copy appropriate fields into tempStruc, and return a pointer to it
 	const byte *p = pStruc;
-	memset(&tempStruc, sizeof(SCENE_STRUC), 0);
+	memset(&tempStruc, 0, sizeof(SCENE_STRUC));
 
 	tempStruc.numEntrance = READ_UINT32(p); p += sizeof(uint32);
 	tempStruc.numPoly = READ_UINT32(p); p += sizeof(uint32);
@@ -178,9 +174,6 @@ static void SceneTinselProcess(CORO_PARAM, const void *param) {
 		_ctx->myEscape);
 	CORO_INVOKE_1(Interpret, _ctx->pic);
 
-	if (_ctx->pInit->event == CLOSEDOWN || _ctx->pInit->event == LEAVE_T2)
-		bWatchingOut = false;
-
 	CORO_END_CODE;
 }
 
@@ -190,9 +183,6 @@ static void SceneTinselProcess(CORO_PARAM, const void *param) {
  */
 void SendSceneTinselProcess(TINSEL_EVENT event) {
 	SCENE_STRUC	*ss;
-
-	if (event == CLOSEDOWN || event == LEAVE_T2)
-		bWatchingOut = true;
 
 	if (SceneHandle != (SCNHANDLE)NULL) {
 		ss = (SCENE_STRUC *) FindChunk(SceneHandle, CHUNK_SCENE);
@@ -204,18 +194,15 @@ void SendSceneTinselProcess(TINSEL_EVENT event) {
 			init.hTinselCode = ss->hSceneScript;
 
 			g_scheduler->createProcess(PID_TCODE, SceneTinselProcess, &init, sizeof(init));
-		} else if (event == CLOSEDOWN)
-			bWatchingOut = false;
+		}
 	}
-	else if (event == CLOSEDOWN)
-		bWatchingOut = false;
 }
 
 
 /**
  * Get the SCENE_STRUC
- * Initialise polygons for the scene
- * Initialise the actors for this scene
+ * Initialize polygons for the scene
+ * Initialize the actors for this scene
  * Run the appropriate entrance code (if any)
  * Get the default refer type
  */
@@ -247,9 +234,6 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 	assert(ss != NULL);
 
 	if (TinselV2) {
-		// Handle to scene description
-		newestScene = FROM_LE_32(ss->hSceneDesc);
-
 		// Music stuff
 		char *cptr = (char *)FindChunk(scene, CHUNK_MUSIC_FILENAME);
 		assert(cptr);
@@ -260,10 +244,10 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 	if (entry == NO_ENTRY_NUM) {
 		// Restoring scene
 
-		// Initialise all the polygons for this scene
+		// Initialize all the polygons for this scene
 		InitPolygons(FROM_LE_32(ss->hPoly), FROM_LE_32(ss->numPoly), true);
 
-		// Initialise the actors for this scene
+		// Initialize the actors for this scene
 		StartTaggedActors(FROM_LE_32(ss->hTaggedActor), FROM_LE_32(ss->numTaggedActor), false);
 
 		if (TinselV2)
@@ -273,10 +257,10 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 	} else {
 		// Genuine new scene
 
-		// Initialise all the polygons for this scene
+		// Initialize all the polygons for this scene
 		InitPolygons(FROM_LE_32(ss->hPoly), FROM_LE_32(ss->numPoly), false);
 
-		// Initialise the actors for this scene
+		// Initialize the actors for this scene
 		StartTaggedActors(FROM_LE_32(ss->hTaggedActor), FROM_LE_32(ss->numTaggedActor), true);
 
 		// Run the appropriate entrance code (if any)
@@ -322,7 +306,7 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 /**
  * Wrap up the last scene.
  */
-void EndScene(void) {
+void EndScene() {
 	if (SceneHandle != 0) {
 		UnlockScene(SceneHandle);
 		SceneHandle = 0;
@@ -366,8 +350,12 @@ void EndScene(void) {
 /**
  *
  */
-void PrimeBackground(void) {
+void PrimeBackground() {
 	// structure for playfields
+	// FIXME: Avoid non-const global vars
+	// TODO: We should simply merge this function with InitBackground
+	//   in order to avoid the static var and the problems associate
+	//   with it.
 	static PLAYFIELD playfield[] = {
 		{	// FIELD WORLD
 			NULL,		// display list
@@ -390,8 +378,8 @@ void PrimeBackground(void) {
 	};
 
 	// structure for background
-	static BACKGND backgnd = {
-		BLACK,			// sky colour
+	static const BACKGND backgnd = {
+		BLACK,			// sky color
 		Common::Point(0, 0),	// initial world pos
 		Common::Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),	// scroll limits
 		0,				// no background update process
@@ -409,7 +397,7 @@ void PrimeBackground(void) {
  * Start up the standard stuff for the next scene.
  */
 
-void PrimeScene(void) {
+void PrimeScene() {
 	SetNoBlocking(false);
 	SetSysVar(SYS_SceneFxDimFactor, SysVar(SYS_DefaultFxDimFactor));
 
@@ -456,7 +444,7 @@ void StartNewScene(SCNHANDLE scene, int entry) {
  * created in each scene.
  */
 
-void setshowpos(void) {
+void setshowpos() {
 	ShowPosition = true;
 }
 #endif
@@ -465,7 +453,7 @@ void setshowpos(void) {
  * Return the current scene handle.
  */
 
-SCNHANDLE GetSceneHandle(void) {
+SCNHANDLE GetSceneHandle() {
 	return SceneHandle;
 }
 
@@ -490,8 +478,8 @@ void DoHailScene(SCNHANDLE scene) {
 /**
  * WrapScene
  */
-void WrapScene(void) {
+void WrapScene() {
 	SendSceneTinselProcess(CLOSEDOWN);
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

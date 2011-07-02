@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Verb and hitarea handling
@@ -203,13 +200,15 @@ static const char *const czech_verb_prep_names[] = {
 	"", "", "", "komu ?"
 };
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::clearName() {
 	stopAnimateSimon2(2, 6);
 	_lastNameOn = NULL;
-	_animatePointer = 0;
+	_animatePointer = false;
 	_mouseAnim = 1;
 	return;
 }
+#endif
 
 void AGOSEngine_Simon2::clearName() {
 	if (getBitFlag(79)) {
@@ -256,7 +255,7 @@ void AGOSEngine::printVerbOf(uint hitarea_id) {
 		case Common::RU_RUS:
 			verb_prep_names = russian_verb_prep_names;
 			break;
-		case Common::HB_ISR:
+		case Common::HE_ISR:
 			verb_prep_names = hebrew_verb_prep_names;
 			break;
 		case Common::ES_ESP:
@@ -285,7 +284,7 @@ void AGOSEngine::printVerbOf(uint hitarea_id) {
 		case Common::RU_RUS:
 			verb_names = russian_verb_names;
 			break;
-		case Common::HB_ISR:
+		case Common::HE_ISR:
 			verb_names = hebrew_verb_names;
 			break;
 		case Common::ES_ESP:
@@ -330,7 +329,7 @@ void AGOSEngine::showActionString(const byte *string) {
 
 	window->textColumn = x / 8;
 	window->textColumnOffset = x & 7;
-	if (_language == Common::HB_ISR && window->textColumnOffset != 0) {
+	if (_language == Common::HE_ISR && window->textColumnOffset != 0) {
 		window->textColumnOffset = 8 - window->textColumnOffset;
 		window->textColumn++;
 	}
@@ -530,6 +529,7 @@ void AGOSEngine::defineBox(int id, int x, int y, int width, int height, int flag
 	_needHitAreaRecalc++;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_PuzzlePack::resetVerbs() {
 	_verbHitArea = 300;
 }
@@ -559,6 +559,7 @@ void AGOSEngine_Feeble::resetVerbs() {
 		setVerb(NULL);
 	}
 }
+#endif
 
 void AGOSEngine::resetVerbs() {
 	if (getGameType() == GType_ELVIRA1 || getGameType() == GType_ELVIRA2)
@@ -590,6 +591,7 @@ void AGOSEngine::resetVerbs() {
 	}
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::setVerb(HitArea *ha) {
 	int cursor = _mouseCursor;
 	if (_noRightClick)
@@ -616,6 +618,7 @@ void AGOSEngine_Feeble::setVerb(HitArea *ha) {
 	_needHitAreaRecalc++;
 	_verbHitArea = cursor + 300;
 }
+#endif
 
 void AGOSEngine::setVerb(HitArea *ha) {
 	HitArea *tmp = _currentVerbBox;
@@ -654,9 +657,11 @@ void AGOSEngine::setVerb(HitArea *ha) {
 	_currentVerbBox = ha;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::hitarea_leave(HitArea *ha, bool state) {
 	invertBox(ha, state);
 }
+#endif
 
 void AGOSEngine::hitarea_leave(HitArea *ha, bool state) {
 	if (getGameType() == GType_SIMON2) {
@@ -890,7 +895,7 @@ void AGOSEngine::displayName(HitArea *ha) {
 		if (getBitFlag(99))
 			_animatePointer = ((ha->flags & kBFTextBox) == 0);
 		else
-			_animatePointer = 1;
+			_animatePointer = true;
 
 		if (!getBitFlag(73))
 			return;
@@ -917,6 +922,7 @@ void AGOSEngine::displayName(HitArea *ha) {
 		_lastNameOn = ha;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::invertBox(HitArea *ha, bool state) {
 	if (getBitFlag(205) || getBitFlag(206)) {
 		if (state != 0) {
@@ -924,7 +930,7 @@ void AGOSEngine_Feeble::invertBox(HitArea *ha, bool state) {
 			_mouseCursor = _oldMouseCursor;
 		} else if (_mouseCursor != 18) {
 			_oldMouseCursor = _mouseCursor;
-			_animatePointer = 0;
+			_animatePointer = false;
 			_oldMouseAnimMax = _mouseAnimMax;
 			_mouseAnimMax = 2;
 			_mouseCursor = 18;
@@ -959,6 +965,7 @@ void AGOSEngine_Feeble::invertBox(HitArea *ha, bool state) {
 		}
 	}
 }
+#endif
 
 void AGOSEngine::invertBox(HitArea *ha, byte a, byte b, byte c, byte d) {
 	byte *src, color;
@@ -1026,258 +1033,5 @@ void AGOSEngine::invertBox(HitArea *ha, byte a, byte b, byte c, byte d) {
 
 	_videoLockOut &= ~0x8000;
 }
-
-#ifdef ENABLE_PN
-// Personal Nightmare specific
-void AGOSEngine_PN::boxController(uint x, uint y, uint mode) {
-	HitArea *best_ha;
-	HitArea *ha = _hitAreaList;
-
-	best_ha = NULL;
-
-	do {
-		if (!(ha->flags & kOBFBoxDisabled)) {
-			if (x >= ha->x && y >= ha->y && x - ha->x < ha->width && y - ha->y < ha->height &&
-				best_ha == NULL) {
-				best_ha = ha;
-			} else {
-				if (ha->flags & kOBFBoxSelected) {
-					hitarea_leave(ha , true);
-					ha->flags &= ~kOBFBoxSelected;
-				}
-			}
-		} else {
-			ha->flags &= ~kOBFBoxSelected;
-		}
-	} while (ha++, ha->id != 0xFFFF);
-
-	if (mode != 0) {
-		_lastHitArea = best_ha;
-	}
-
-	if (best_ha == NULL) {
-		return;
-	}
-
-	if (best_ha->flags & kOBFInvertTouch && !(best_ha->flags & kOBFBoxSelected)) {
-		hitarea_leave(best_ha, false);
-		best_ha->flags |= kOBFBoxSelected;
-	}
-}
-
-void AGOSEngine_PN::mouseHit() {
-	if (_hitCalled == 5) {
-		execMouseHit(NULL);
-	} else {
-		boxController(_mouse.x, _mouse.y, 1);
-		if (_hitCalled == 4 || _lastHitArea != 0) {
-			execMouseHit(_lastHitArea);
-		}
-	}
-	_hitCalled = 0;
-	_oneClick = 0;
-}
-
-void AGOSEngine_PN::execMouseHit(HitArea *ha) {
-	if (_hitCalled == 1) {
-		if (ha->flags & kOBFUseMessageList)
-			hitBox11(ha);
-		else if (ha->flags & kOBFMoreBox)
-			hitBox9(ha);
-		else if (ha->flags & kOBFExit)
-			hitBox7(ha);
-		else if (ha->flags & kOBFUseEmptyLine)
-			hitBox2(ha);
-		else
-			hitBox1(ha);
-	} else if (_hitCalled == 2) {
-		if (ha->flags & (kOBFObject | kOBFInventoryBox | kOBFRoomBox))
-			hitBox3(ha);
-		else if (ha->flags & kOBFUseMessageList)
-			hitBox11(ha);
-		else if (ha->flags & kOBFMoreBox)
-			hitBox9(ha);
-		else if (ha->flags & kOBFExit)
-			hitBox7(ha);
-		else if (ha->flags & kOBFUseEmptyLine)
-			hitBox2(ha);
-		else
-			hitBox1(ha);
-	} else if (_hitCalled == 3) {
-		if ((ha->flags & kOBFDraggable) && !_dragFlag) {
-			_dragFlag = true;
-			_dragStore = ha;
-			_needHitAreaRecalc++;
-		}
-	} else if (_hitCalled == 4) {
-		_dragFlag = false;
-		_hitCalled = 0;
-		_oneClick = 0;
-		_dragCount = 0;
-		_needHitAreaRecalc++;
-		if (ha != 0) {
-			if (ha->flags & kOBFInventoryBox)
-				hitBox5(ha);
-			else if (ha->flags & kOBFRoomBox)
-				hitBox6(ha);
-			else if (_videoLockOut & 10)
-				hitBox8(ha);
-		}
-	} else {
-		_hitCalled = 0;
-		if (_mouseString == 0) {
-			_mouseString = (const char *)"\r";
-		}
-	}
-}
-
-void AGOSEngine_PN::hitBox1(HitArea *ha) {
-	if (_mouseString)
-		return;
-
-	_mouseString = getMessage(_objectName1, ha->msg1);
-	if (_intputCounter) {
-		char *msgPtr = getMessage(_objectName1, ha->msg1);
-		while (*msgPtr != 13)
-			msgPtr++;
-		*msgPtr = 0;
-	} else if (!(ha->flags & kOBFNoShowName)) {
-		_mousePrintFG++;
-		_mouseString1 = _mouseString;
-		_mouseString = (const char*)"showname \0";
-
-	}
-}
-
-void AGOSEngine_PN::hitBox2(HitArea *ha) {
-	if (!_intputCounter)
-		hitBox1(ha);
-}
-
-void AGOSEngine_PN::hitBox3(HitArea *ha) {
-	if (!_intputCounter)
-		hitBox4(ha);
-}
-
-void AGOSEngine_PN::hitBox4(HitArea *ha) {
-	if (_mouseString)
-		return;
-
-	uint16 num = ha->msg1 & ~0x8000;
-	if ((_videoLockOut & 0x10) && !(ha->flags & (kOBFInventoryBox | kOBFRoomBox)) &&
-		!testContainer(num)) {
-		return;
-	}
-
-	_mouseString = getMessage(_objectName2, ha->msg2);
-	_mouseString1 = getMessage(_objectName1, ha->msg1);
-	_mousePrintFG++;
-}
-
-void AGOSEngine_PN::hitBox5(HitArea *ha) {
-	if (_intputCounter || _mouseString)
-		return;
-
-	if (_dragStore && (_dragStore->flags & kOBFInventoryBox))
-		return;
-
-	_mousePrintFG++;
-	_mouseString = (const char *)"take \0";
-	_mouseString1 = getMessage(_objectName1, _dragStore->msg1);
-
-	if (_dragStore->flags & kOBFRoomBox)
-		_mouseString1 = (const char *)"all\r";
-}
-
-void AGOSEngine_PN::hitBox6(HitArea *ha) {
-	if (_intputCounter || _mouseString)
-		return;
-
-	if (_dragStore->flags & kOBFRoomBox)
-		return;
-
-	_mousePrintFG++;
-	_mouseString = (const char *)"drop \0";
-	_mouseString1 = getMessage(_objectName1, _dragStore->msg1);
-
-	if (_dragStore->flags & kOBFInventoryBox)
-		_mouseString1 = (const char *)"all\r";
-}
-
-void AGOSEngine_PN::hitBox7(HitArea *ha) {
-	if (_intputCounter) {
-		if (!(ha->flags & kOBFUseEmptyLine)) {
-			hitBox1(ha);
-		}
-		return;
-	}
-
-	if (_mouseString)
-		return;
-
-	_mousePrintFG++;
-	_mouseString1 = getMessage(_objectName1, ha->msg1);
-
-	uint16 num = ha->msg1 & ~0x8000;
-	uint16 state = getptr(_quickptr[0] + num * _quickshort[0] + 2);
-	if (state == 3) {
-		_mouseString = (const char *)"unlock \0";
-	} else if (state == 2) {
-		_mouseString = (const char *)"open \0";
-	} else {
-		_mouseString = (const char *)"go through \0";
-	}
-}
-
-void AGOSEngine_PN::hitBox8(HitArea *ha) {
-	char *msgPtr, *tmpPtr;
-
-	if (_intputCounter || _mouseString)
-		return;
-
-	if (_dragStore == ha)
-		return;
-
-	uint16 num = ha->msg1 & ~0x8000;
-	if (!testSeen(num))
-		return;
-
-	msgPtr = getMessage(_objectName1, ha->msg1);
-	sprintf(_inMessage, " in %s", msgPtr);
-	_mouseString1 = _inMessage;
-
-	msgPtr = getMessage(_objectName1, _dragStore->msg1);
-	*(tmpPtr = strchr(msgPtr, 13)) = 0;
-	sprintf(_placeMessage, "put %s", msgPtr);
-	_mouseString = _placeMessage;
-}
-
-void AGOSEngine_PN::hitBox9(HitArea *ha) {
-	if (_objectCountS == _objects) {
-		_objectCountS = -1;
-	}
-	iconPage();
-}
-
-static const char *messageList[9] = {
-	"North\r",
-	"East\r",
-	"South\r",
-	"West\r",
-	"Up\r",
-	"Down\r",
-	"Push grey button\r",
-	"Push red button\r",
-	"Go under car\r"
-};
-
-void AGOSEngine_PN::hitBox11(HitArea *ha) {
-	if (_intputCounter || _mouseString)
-		return;
-
-	_mouseString = messageList[ha->msg1];
-	_mousePrintFG++;
-}
-#endif
 
 } // End of namespace AGOS

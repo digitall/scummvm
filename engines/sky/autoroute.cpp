@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/endian.h"
+#include "common/textconsole.h"
 #include "common/util.h"
 
 #include "sky/autoroute.h"
@@ -50,7 +48,7 @@ AutoRoute::AutoRoute(Grid *pGrid, SkyCompact *compact) {
 	_routeBuf = (uint16 *)malloc(ROUTE_SPACE);
 }
 
-AutoRoute::~AutoRoute(void) {
+AutoRoute::~AutoRoute() {
 	free(_routeGrid);
 	free(_routeBuf);
 }

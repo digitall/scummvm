@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Handles scrolling
  */
 
@@ -48,6 +45,9 @@ namespace Tinsel {
 
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
+
 
 static int LeftScroll = 0, DownScroll = 0;	// Number of iterations outstanding
 
@@ -90,14 +90,14 @@ static int scrollPixelsY = SCROLLPIXELS;
 /**
  * Reset the ScrollCursor flag
  */
-void DontScrollCursor(void) {
+void DontScrollCursor() {
 	ScrollCursor = false;
 }
 
 /**
  * Set the ScrollCursor flag
  */
-void DoScrollCursor(void) {
+void DoScrollCursor() {
 	ScrollCursor = true;
 }
 
@@ -238,7 +238,7 @@ static void NeedScroll(int direction) {
 /**
  * Called from scroll process - Scrolls the image as appropriate.
  */
-static void ScrollImage(void) {
+static void ScrollImage() {
 	int OldLoffset = 0, OldToffset = 0;	// Used when keeping cursor on a tag
 	int Loffset, Toffset;
 	int curX, curY;
@@ -338,7 +338,7 @@ static void ScrollImage(void) {
  * See if the actor on whom the camera is is approaching an edge.
  * Request a scroll if he is.
  */
-static void MonitorScroll(void) {
+static void MonitorScroll() {
 	int newx, newy;
 	int Loffset, Toffset;
 
@@ -381,7 +381,7 @@ static void MonitorScroll(void) {
 	oldy = newy;
 }
 
-static void RestoreScrollDefaults(void) {
+static void RestoreScrollDefaults() {
 	sd.xTrigger		= SysVar(SV_SCROLL_XTRIGGER);
 	sd.xDistance	= SysVar(SV_SCROLL_XDISTANCE);
 	sd.xSpeed		= SysVar(SV_SCROLL_XSPEED);
@@ -394,7 +394,7 @@ static void RestoreScrollDefaults(void) {
 /**
  * Does the obvious - called at the end of a scene.
  */
-void DropScroll(void) {
+void DropScroll() {
 	sd.NumNoH = sd.NumNoV = 0;
 	if (TinselV2) {
 		LeftScroll = DownScroll = 0;		// No iterations outstanding
@@ -416,7 +416,7 @@ void ScrollProcess(CORO_PARAM, const void *) {
 	CORO_BEGIN_CODE(_ctx);
 
 	// In Tinsel v2, scenes may play movies, so the background may not always
-	// already be initialised like it is in v1
+	// already be initialized like it is in v1
 	while (!GetBgObject())
 		CORO_SLEEP(1);
 
@@ -465,7 +465,7 @@ void ScrollFocus(int ano) {
 /**
  * Returns the actor which the camera is following
  */
-int GetScrollFocus(void) {
+int GetScrollFocus() {
 	return scrollActor;
 }
 
@@ -488,7 +488,7 @@ void ScrollTo(int x, int y, int xIter, int yIter) {
 /**
  * Kill of any current scroll.
  */
-void KillScroll(void) {
+void KillScroll() {
 	LeftScroll = DownScroll = 0;
 }
 
@@ -528,8 +528,8 @@ void SetScrollParameters(int xTrigger, int xDistance, int xSpeed, int yTriggerTo
 	}
 }
 
-bool IsScrolling(void) {
+bool IsScrolling() {
 	return (LeftScroll || DownScroll);
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -91,14 +88,13 @@ int32 Insane::enemyHandler(int num, int32 actor1, int32 actor2, int32 probabilit
 }
 
 int32 Insane::enemy0handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act2damage, act1x, act2x, retval;
 	int32 dist;
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act2damage = _actor[actor2].damage; // ebp
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // edi
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act2damage = _actor[actor2].damage; // ebp
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // edi
 
 	if (!_actor[actor1].defunct) {
 		if (_enHdlVar[EN_ROTT1][1] > _enHdlVar[EN_ROTT1][2]) {
@@ -255,14 +251,13 @@ int32 Insane::enemy0initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy1handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act2damage, act1x, act2x, retval;
 	int32 dist;
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act2damage = _actor[actor2].damage; // ebp
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // edi
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act2damage = _actor[actor2].damage; // ebp
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // edi
 
 	if (!_actor[actor1].defunct) {
 		if (_enHdlVar[EN_ROTT2][1] > _enHdlVar[EN_ROTT2][2]) {
@@ -400,14 +395,13 @@ int32 Insane::enemy1initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy2handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act2damage, act1x, act2x, retval;
 	int32 dist;
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act2damage = _actor[actor2].damage; // ebp
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // edi
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act2damage = _actor[actor2].damage; // ebp
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // edi
 
 	if (!_actor[actor1].defunct) {
 		if (_enHdlVar[EN_ROTT3][1] > _enHdlVar[EN_ROTT3][2]) {
@@ -549,14 +543,13 @@ int32 Insane::enemy2initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy3handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act2damage, act1x, act2x, retval;
 	int32 dist;
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act2damage = _actor[actor2].damage; // ebp
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // edi
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act2damage = _actor[actor2].damage; // ebp
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // edi
 
 	if (!_actor[actor1].defunct) {
 		if (_enHdlVar[EN_VULTF1][1] > _enHdlVar[EN_VULTF1][2]) {
@@ -706,14 +699,13 @@ int32 Insane::enemy3initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy4handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act2damage, act1x, act2x, retval;
 	int32 dist;
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act2damage = _actor[actor2].damage; // ebp
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // edi
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act2damage = _actor[actor2].damage; // ebp
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // edi
 
 	if (!_actor[actor1].defunct) {
 		if (_enHdlVar[EN_VULTM1][1] > _enHdlVar[EN_VULTM1][2]) {
@@ -876,15 +868,12 @@ int32 Insane::enemy4initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy5handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act1x, act2x, retval;
-	int32 dist;
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // ebp
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // ebp
-
-	dist = ABS(act1x - act2x);
+	int32 dist = ABS(act1x - act2x);
 
 	if (weaponMaxRange(actor1) >= dist) {
 		if (!_enHdlVar[EN_VULTF2][2])
@@ -1022,19 +1011,16 @@ int32 Insane::enemy5initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy6handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act2damage, act1x, act2x, retval;
-	int32 dist;
-
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx //ebx
-	act2damage = _actor[actor2].damage; // ebp // edi
-	act1x = _actor[actor1].x; // esi
-	act2x = _actor[actor2].x; // edi
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx //ebx
+	//int32 act2damage = _actor[actor2].damage; // ebp // edi
+	int32 act1x = _actor[actor1].x; // esi
+	int32 act2x = _actor[actor2].x; // edi
 
 	if (_actor[actor2].weapon == INV_CHAINSAW)
 		retval = 1;
 
-	dist = ABS(act1x - act2x);
+	int32 dist = ABS(act1x - act2x);
 
 	if (_actor[actor1].defunct) {
 		/*                       scenePropIdx[18] */
@@ -1163,15 +1149,12 @@ int32 Insane::enemy6initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 int32 Insane::enemy7handler(int32 actor1, int32 actor2, int32 probability) {
-	int32 act1damage, act1x, act2x, retval;
-	int32 dist;
+	int32 retval = 0;
+	int32 act1damage = _actor[actor1].damage; // ebx
+	int32 act1x = _actor[actor1].x; // ebp, esi
+	int32 act2x = _actor[actor2].x; // edi
 
-	retval = 0;
-	act1damage = _actor[actor1].damage; // ebx
-	act1x = _actor[actor1].x; // ebp, esi
-	act2x = _actor[actor2].x; // edi
-
-	dist = ABS(act1x - act2x);
+	int32 dist = ABS(act1x - act2x);
 
 	if (_enHdlVar[EN_CAVEFISH][1] >= 600) {
 		_enHdlVar[EN_CAVEFISH][2] = 1;
@@ -1246,7 +1229,7 @@ int32 Insane::enemy8initializer(int32 actor1, int32 actor2, int32 probability) {
 }
 
 
-void Insane::ouchSoundEnemy(void) {
+void Insane::ouchSoundEnemy() {
 	int32 tmp;
 
 	_actor[1].act[3].state = 52;
@@ -1328,7 +1311,7 @@ void Insane::turnEnemy(bool battle) {
 	if (_actor[1].damage < _actor[1].maxdamage) {
 		_actor[1].lost = false;
 	} else {
-		if (!_actor[1].lost && !_actor[1].lost) {
+		if (!_actor[1].lost && !_actor[0].lost) {
 			_actor[1].lost = true;
 			_actor[1].act[2].state = 36;
 			_actor[1].act[1].state = 36;
@@ -1538,7 +1521,7 @@ void Insane::chooseEnemyWeaponAnim(int32 buttons) {
 	}
 }
 
-void Insane::switchEnemyWeapon(void) {
+void Insane::switchEnemyWeapon() {
 	do {
 		_actor[1].weapon++;
 		if (_actor[1].weapon > 7)
@@ -1573,7 +1556,7 @@ void Insane::switchEnemyWeapon(void) {
 	}
 }
 
-void Insane::setEnemyState(void) {
+void Insane::setEnemyState() {
 	if (_actor[1].lost)
 		return;
 
@@ -2072,7 +2055,7 @@ void Insane::actor12Reaction(int32 buttons) {
 			setEnemyState();
 			_actor[1].act[2].tilt = 0;
 			// for some reason there is no break at this
-			// place, so tilt gets overriden on next line
+			// place, so tilt gets overridden on next line
 		}
 		_actor[1].act[2].tilt = calcTilt(_actor[1].tilt);
 		break;
@@ -2589,7 +2572,7 @@ int32 Insane::calcEnemyDamage(bool arg_0, bool arg_4) {
 	return 1;
 }
 
-bool Insane::weaponEnemyIsEffective(void) {
+bool Insane::weaponEnemyIsEffective() {
 	if ((_actor[1].x - _actor[0].x > weaponMaxRange(1)) ||
 		(_actor[1].x - _actor[0].x < weaponMinRange(1)) ||
 		!_actor[0].kicking)
@@ -2739,7 +2722,7 @@ void Insane::actor10Reaction(int32 buttons) {
 		smlayer_putActor(1, 0, tmpx, tmpy, _smlayer_room);
 }
 
-int32 Insane::actionEnemy(void) {
+int32 Insane::actionEnemy() {
 	int32 buttons;
 
 	if (_actor[1].enemyHandler != -1)

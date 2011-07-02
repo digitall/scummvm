@@ -18,11 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
 #include "common/util.h"
 
@@ -34,25 +32,25 @@ int16 numPoly;
 
 void freePerso(int persoIdx) {
 	if (persoTable[persoIdx]) {
-		free(persoTable[persoIdx]);
+		MemFree(persoTable[persoIdx]);
 		persoTable[persoIdx] = NULL;
 	}
 }
 
-void freeCTP(void) {
+void freeCTP() {
 
 	for (unsigned long int i = 0; i < NUM_PERSONS; i++) {
 		freePerso(i);
 	}
 
-	if (polyStruct) {
-		polyStructNorm.clear();
-		polyStructExp.clear();
-		polyStruct = NULL;
+	if (_vm->_polyStruct) {
+		_vm->_polyStructNorm.clear();
+		_vm->_polyStructExp.clear();
+		_vm->_polyStruct = NULL;
 	}
 
 	ctpVar17 = NULL;
-	polyStruct = NULL;
+	_vm->_polyStruct = NULL;
 
 	strcpy((char *)currentCtpName, "");
 }

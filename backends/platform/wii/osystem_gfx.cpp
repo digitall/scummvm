@@ -19,43 +19,54 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf
+#define FORBIDDEN_SYMBOL_EXCEPTION_abort
+
 #include <malloc.h>
 
+#include <gxflux/gfx_con.h>
+
+#include "common/config-manager.h"
+#include "graphics/conversion.h"
+#include "backends/fs/wii/wii-fs-factory.h"
+
 #include "osystem.h"
-#include "gx_supp.h"
 
+#define ROUNDUP(x,n) (-(-(x) & -(n)))
 #define MAX_FPS 30
+#define TLUT_GAME GX_TLUT0
+#define TLUT_MOUSE GX_TLUT1
 
-enum GraphicModeID {
-	GM_DEFAULT = 0,
-	GM_OVERSCAN1,
-	GM_OVERSCAN2,
-	GM_OVERSCAN3,
-	GM_OVERSCAN4,
-	GM_OVERSCAN5
-};
-
-static const OSystem::GraphicsMode s_supportedGraphicsModes[] = {
-	{ "standard", "Standard", GM_DEFAULT },
-	{ "overscan1", "Overscan 1", GM_OVERSCAN1 },
-	{ "overscan2", "Overscan 2", GM_OVERSCAN2 },
-	{ "overscan3", "Overscan 3", GM_OVERSCAN3 },
-	{ "overscan4", "Overscan 4", GM_OVERSCAN4 },
-	{ "overscan5", "Overscan 5", GM_OVERSCAN5 },
+static const OSystem::GraphicsMode _supportedGraphicsModes[] = {
+	{
+		"default",
+		"Default",
+		OSystem_Wii::gmStandard
+	},
+	{
+		"defaultbilinear",
+		"Default, bilinear filtering",
+		OSystem_Wii::gmStandardFiltered
+	},
+	{
+		"ds",
+		"Double-strike",
+		OSystem_Wii::gmDoubleStrike
+	},
+	{
+		"dsbilinear",
+		"Double-strike, bilinear filtering",
+		OSystem_Wii::gmDoubleStrikeFiltered
+	},
 	{ 0, 0, 0 }
 };
 
 void OSystem_Wii::initGfx() {
-	_surface.w = 0;
-	_surface.h = 0;
-	_surface.pitch = 0;
-	_surface.pixels = NULL;
-	_surface.bytesPerPixel = 0;
+	gfx_set_underscan(ConfMan.getInt("wii_video_default_underscan_x"),
+						ConfMan.getInt("wii_video_default_underscan_y"));
 
-	GX_InitVideo();
-
-	_overlayWidth = 640;
-	_overlayHeight = 480;
+	_overlayWidth = gfx_video_get_width();
+	_overlayHeight = gfx_video_get_height();
 
 #ifndef GAMECUBE
 	if (CONF_GetAspectRatio() && _fullscreen)
@@ -65,106 +76,240 @@ void OSystem_Wii::initGfx() {
 	_overlaySize = _overlayWidth * _overlayHeight * 2;
 	_overlayPixels = (OverlayColor *) memalign(32, _overlaySize);
 
-	_palette = (u16 *) memalign(32, 256 * 2);
-	memset(_palette, 0, 256 * 2);
+	memset(&_texMouse, 0, sizeof(gfx_tex_t));
+	memset(&_texOverlay, 0, sizeof(gfx_tex_t));
+	memset(&_texGame, 0, sizeof(gfx_tex_t));
 
-	_cursorPalette = (u16 *) memalign(32, 256 * 2);
+	_cursorPalette = (u16 *) malloc(256 * 2);
+	if (!_cursorPalette) {
+		printf("could not alloc palette buffer\n");
+		::abort();
+	}
+
 	memset(_cursorPalette, 0, 256 * 2);
 
-	_texture = (u16 *) memalign(32, 640 * 480 * 2);
+	if (!gfx_tex_init(&_texOverlay, GFX_TF_RGB5A3, 0,
+						_overlayWidth, _overlayHeight)) {
+		printf("could not init the overlay texture\n");
+		::abort();
+	}
 
-	setGraphicsMode(_activeGraphicsMode);
+	gfx_coords(&_coordsOverlay, &_texOverlay, GFX_COORD_FULLSCREEN);
 }
 
 void OSystem_Wii::deinitGfx() {
-	GX_AbortFrame();
+	gfx_tex_deinit(&_texMouse);
+	gfx_tex_deinit(&_texGame);
+	gfx_tex_deinit(&_texOverlay);
 
-	if (_gamePixels) {
-		free(_gamePixels);
-		_gamePixels = NULL;
+	free(_cursorPalette);
+	_cursorPalette = NULL;
+
+	free(_gamePixels);
+	_gamePixels = NULL;
+
+	free(_overlayPixels);
+	_overlayPixels = NULL;
+}
+
+void OSystem_Wii::updateScreenResolution() {
+	if (_overlayVisible) {
+		_currentWidth = _overlayWidth;
+		_currentHeight = _overlayHeight;
+	} else {
+		_currentWidth = _gameWidth;
+		_currentHeight = _gameHeight;
 	}
 
-	if (_palette) {
-		free(_palette);
-		_palette = NULL;
+	if (_currentWidth > 0)
+		_currentXScale = f32(gfx_video_get_width()) / f32(_currentWidth);
+	else
+		_currentXScale = 1.0;
+
+	if (_currentHeight > 0)
+		_currentYScale = f32(gfx_video_get_height()) / f32(_currentHeight);
+	else
+		_currentYScale = 1.0;
+
+	updateEventScreenResolution();
+}
+
+void OSystem_Wii::switchVideoMode(int mode) {
+	static const struct {
+		gfx_video_mode_t mode;
+		bool filter;
+	} map[] = {
+		{ GFX_MODE_DEFAULT, false },
+		{ GFX_MODE_DEFAULT, true },
+		{ GFX_MODE_DS, false },
+		{ GFX_MODE_DS, true }
+	};
+
+	if (_gameHeight > 240) {
+		if (mode == gmDoubleStrike)
+			mode = gmStandard;
+		else if (mode == gmDoubleStrikeFiltered)
+			mode = gmStandardFiltered;
 	}
 
-	if (_overlayPixels) {
-		free(_overlayPixels);
-		_overlayPixels = NULL;
+	printf("switchVideoMode %d\n", mode);
+
+	if (map[_actualGraphicsMode].mode != map[mode].mode) {
+		GXRModeObj obj;
+
+		gfx_video_deinit();
+		gfx_video_get_modeobj(&obj, GFX_STANDARD_AUTO, map[mode].mode);
+		gfx_video_init(&obj);
+		gfx_init();
+		gfx_con_init(NULL);
 	}
 
-	if (_mouseCursor) {
-		free(_mouseCursor);
-		_mouseCursor = NULL;
+	_actualGraphicsMode = mode;
+
+	_bilinearFilter = map[mode].filter;
+	gfx_tex_set_bilinear_filter(&_texGame, _bilinearFilter);
+	gfx_tex_set_bilinear_filter(&_texMouse, _bilinearFilter);
+
+	u16 usx, usy;
+	if (map[mode].mode == GFX_MODE_DS) {
+		usx = ConfMan.getInt("wii_video_ds_underscan_x",
+								Common::ConfigManager::kApplicationDomain);
+		usy = ConfMan.getInt("wii_video_ds_underscan_y",
+								Common::ConfigManager::kApplicationDomain);
+	} else {
+		usx = ConfMan.getInt("wii_video_default_underscan_x",
+								Common::ConfigManager::kApplicationDomain);
+		usy = ConfMan.getInt("wii_video_default_underscan_y",
+								Common::ConfigManager::kApplicationDomain);
 	}
 
-	if (_cursorPalette) {
-		free(_cursorPalette);
-		_cursorPalette = NULL;
-	}
-
-	if (_texture) {
-		free(_texture);
-		_texture = NULL;
-	}
+	gfx_set_underscan(usx, usy);
+	gfx_coords(&_coordsOverlay, &_texOverlay, GFX_COORD_FULLSCREEN);
+	gfx_coords(&_coordsGame, &_texGame, GFX_COORD_FULLSCREEN);
+	updateScreenResolution();
 }
 
 const OSystem::GraphicsMode* OSystem_Wii::getSupportedGraphicsModes() const {
-	return s_supportedGraphicsModes;
+	return _supportedGraphicsModes;
 }
 
 int OSystem_Wii::getDefaultGraphicsMode() const {
-	return GM_DEFAULT;
+	return gmStandard;
 }
 
 bool OSystem_Wii::setGraphicsMode(int mode) {
-	s16 xar, yar;
-
-	printf("setGraphicsMode %d\n", mode);
-
-	xar = vmode->viWidth / 2;
-	yar = vmode->xfbHeight / 2;
-
-#ifndef GAMECUBE
-	if (CONF_GetAspectRatio() && !_fullscreen)
-		xar = s16(float(xar) / 1.33f);
-#endif
-
-	GX_SetCamPosZ(400 - mode * 10);
-	GX_Start(640, 480, xar, yar);
-
-	_activeGraphicsMode = mode;
-
+	_configGraphicsMode = mode;
 	return true;
 }
 
 int OSystem_Wii::getGraphicsMode() const {
-	return _activeGraphicsMode;
+	return _configGraphicsMode;
 }
 
-void OSystem_Wii::initSize(uint width, uint height) {
-	if (_gameWidth != width || _gameHeight != height) {
-		printf("initSize %u %u\n", width, height);
+#ifdef USE_RGB_COLOR
+Graphics::PixelFormat OSystem_Wii::getScreenFormat() const {
+	return _pfGame;
+}
 
-		assert((width <= 640) && (height <= 480));
+Common::List<Graphics::PixelFormat> OSystem_Wii::getSupportedFormats() const {
+	Common::List<Graphics::PixelFormat> res;
+	res.push_back(_pfRGB565);
+	res.push_back(Graphics::PixelFormat::createFormatCLUT8());
 
-		_gameWidth = width;
-		_gameHeight = height;
+	return res;
+}
+#endif
 
-		if(_gamePixels)
-			free(_gamePixels);
+void OSystem_Wii::initSize(uint width, uint height,
+							const Graphics::PixelFormat *format) {
+	bool update = false;
+	gfx_tex_format_t tex_format;
+
+#ifdef USE_RGB_COLOR
+	Graphics::PixelFormat newFormat;
+
+	if (format)
+		newFormat = *format;
+	else
+		newFormat = Graphics::PixelFormat::createFormatCLUT8();
+
+	if (newFormat.bytesPerPixel > 2)
+		newFormat = Graphics::PixelFormat::createFormatCLUT8();
+
+	if (_pfGame != newFormat) {
+		_pfGame = newFormat;
+		update = true;
+	}
+#endif
+
+	uint newWidth, newHeight;
+	if (_pfGame.bytesPerPixel > 1) {
+		newWidth = ROUNDUP(width, 4);
+		newHeight = ROUNDUP(height, 4);
+	} else {
+		newWidth = ROUNDUP(width, 8);
+		newHeight = ROUNDUP(height, 4);
+	}
+
+	if (_gameWidth != newWidth || _gameHeight != newHeight) {
+		assert((newWidth <= 640) && (newHeight <= 480));
+
+		if (width != newWidth || height != newHeight)
+			printf("extending texture for compability: %ux%u -> %ux%u\n",
+					width, height, newWidth, newHeight);
+
+		_gameWidth = newWidth;
+		_gameHeight = newHeight;
+		update = true;
+	}
+
+	if (_gameRunning) {
+		switchVideoMode(_configGraphicsMode);
+
+		if (_arCorrection && (_gameWidth == 320) && (_gameHeight == 200))
+			gfx_set_ar(320.0 / 240.0);
+		else
+			gfx_set_ar(f32(_gameWidth) / f32(_gameHeight));
+	}
+
+	if (update) {
+		free(_gamePixels);
+
+		tex_format = GFX_TF_PALETTE_RGB565;
+
+#ifdef USE_RGB_COLOR
+		if (_pfGame.bytesPerPixel > 1) {
+			tex_format = GFX_TF_RGB565;
+			_pfGameTexture = _pfRGB565;
+		}
+
+		printf("initSize %u*%u*%u (%u%u%u -> %u%u%u match: %d)\n",
+				_gameWidth, _gameHeight, _pfGame.bytesPerPixel * 8,
+				8 - _pfGame.rLoss, 8 - _pfGame.gLoss, 8 - _pfGame.bLoss,
+				8 - _pfGameTexture.rLoss, 8 - _pfGameTexture.gLoss,
+				8 - _pfGameTexture.bLoss, _pfGame == _pfGameTexture);
+
+		_gamePixels = (u8 *) memalign(32, _gameWidth * _gameHeight *
+										_pfGame.bytesPerPixel);
+		memset(_gamePixels, 0, _gameWidth * _gameHeight *
+				_pfGame.bytesPerPixel);
+#else
+		printf("initSize %u*%u\n", _gameWidth, _gameHeight);
 
 		_gamePixels = (u8 *) memalign(32, _gameWidth * _gameHeight);
 		memset(_gamePixels, 0, _gameWidth * _gameHeight);
+#endif
 
-		if (!_overlayVisible) {
-			_currentWidth = _gameWidth;
-			_currentHeight = _gameHeight;
-			updateEventScreenResolution();
+		if (!gfx_tex_init(&_texGame, tex_format, TLUT_GAME,
+					_gameWidth, _gameHeight)) {
+			printf("could not init the game texture\n");
+			::abort();
 		}
 
-		setGraphicsMode(_activeGraphicsMode);
+		gfx_tex_set_bilinear_filter(&_texGame, _bilinearFilter);
+		gfx_coords(&_coordsGame, &_texGame, GFX_COORD_FULLSCREEN);
+
+		updateScreenResolution();
 	}
 }
 
@@ -177,202 +322,252 @@ int16 OSystem_Wii::getHeight() {
 }
 
 void OSystem_Wii::setPalette(const byte *colors, uint start, uint num) {
-	const byte *p = colors;
-	for (uint i = 0; i < num; ++i) {
-		_palette[start + i] = Graphics::RGBToColor<Graphics::ColorMasks<565> >(p[0], p[1], p[2]);
-		p += 4;
+#ifdef USE_RGB_COLOR
+	assert(_pfGame.bytesPerPixel == 1);
+#endif
+
+	const byte *s = colors;
+	u16 *d = _texGame.palette;
+
+	for (uint i = 0; i < num; ++i, s +=3)
+		d[start + i] = Graphics::RGBToColor<Graphics::ColorMasks<565> >(s[0], s[1], s[2]);
+
+	gfx_tex_flush_palette(&_texGame);
+
+	s = colors;
+	d = _cursorPalette;
+
+	for (uint i = 0; i < num; ++i, s += 3) {
+		d[start + i] = Graphics::ARGBToColor<Graphics::ColorMasks<3444> >(0xff, s[0], s[1], s[2]);
+	}
+
+	if (_cursorPaletteDisabled) {
+		assert(_texMouse.palette);
+
+		memcpy((u8 *)_texMouse.palette + start * 2,
+			(u8 *)_cursorPalette + start * 2, num * 2);
+
+		_cursorPaletteDirty = true;
 	}
 }
 
 void OSystem_Wii::grabPalette(byte *colors, uint start, uint num) {
-	byte *p = colors;
+#ifdef USE_RGB_COLOR
+	assert(_pfGame.bytesPerPixel == 1);
+#endif
+
+	u16 *s = _texGame.palette;
+	byte *d = colors;
+
 	u8 r, g, b;
-	for (uint i = 0; i < num; ++i) {
-		Graphics::colorToRGB<Graphics::ColorMasks<565> >(_palette[start + i], r, g, b);
-		p[0] = r;
-		p[1] = g;
-		p[2] = b;
-		p[3] = 0xff;
-		p += 4;
+	for (uint i = 0; i < num; ++i, d += 3) {
+		Graphics::colorToRGB<Graphics::ColorMasks<565> >(s[start + i], r, g, b);
+		d[0] = r;
+		d[1] = g;
+		d[2] = b;
 	}
 }
 
 void OSystem_Wii::setCursorPalette(const byte *colors, uint start, uint num) {
-	const byte *p = colors;
-	for (uint i = 0; i < num; ++i) {
-		_cursorPalette[start + i] = Graphics::RGBToColor<Graphics::ColorMasks<565> >(p[0], p[1], p[2]);
-		p += 4;
+	if (!_texMouse.palette) {
+		printf("switching to palette based cursor\n");
+
+		if (!gfx_tex_init(&_texMouse, GFX_TF_PALETTE_RGB5A3, TLUT_MOUSE,
+							16, 16)) {
+			printf("could not init the mouse texture\n");
+			::abort();
+		}
+
+		gfx_tex_set_bilinear_filter(&_texMouse, _bilinearFilter);
 	}
 
-	_cursorPaletteDisabled = false;
-}
+	if (_cursorPaletteDisabled) {
+		memcpy(_cursorPalette, _texMouse.palette, 256 * 2);
+		_cursorPaletteDisabled = false;
+	}
 
-void OSystem_Wii::disableCursorPalette(bool disable) {
-	_cursorPaletteDisabled = disable;
+	const byte *s = colors;
+	u16 *d = _texMouse.palette;
+
+	for (uint i = 0; i < num; ++i, s += 3)
+		d[start + i] = Graphics::ARGBToColor<Graphics::ColorMasks<3444> >(0xff, s[0], s[1], s[2]);
+
+	_cursorPaletteDirty = true;
 }
 
 void OSystem_Wii::copyRectToScreen(const byte *buf, int pitch, int x, int y,
 									int w, int h) {
-	if (x < 0) {
-		w += x;
-		buf -= x;
-		x = 0;
-	}
+	assert(x >= 0 && x < _gameWidth);
+	assert(y >= 0 && y < _gameHeight);
+	assert(w > 0 && x + w <= _gameWidth);
+	assert(h > 0 && y + h <= _gameHeight);
 
-	if (y < 0) {
-		h += y;
-		buf -= y * pitch;
-		y = 0;
-	}
-
-	if (w > _gameWidth - x)
-		w = _gameWidth - x;
-
-	if (h > _gameHeight - y)
-		h = _gameHeight - y;
-
-	if (w <= 0 || h <= 0)
-		return;
-
-	byte *dst = _gamePixels + y * _gameWidth + x;
-	if (_gameWidth == pitch && pitch == w) {
-		memcpy(dst, buf, h * w);
+#ifdef USE_RGB_COLOR
+	if (_pfGame.bytesPerPixel > 1) {
+		if (!Graphics::crossBlit(_gamePixels +
+									y * _gameWidth * _pfGame.bytesPerPixel +
+									x * _pfGame.bytesPerPixel,
+									buf, _gameWidth * _pfGame.bytesPerPixel,
+									pitch, w, h, _pfGameTexture, _pfGame)) {
+			printf("crossBlit failed\n");
+			::abort();
+		}
 	} else {
-		do {
-			memcpy(dst, buf, w);
-			buf += pitch;
-			dst += _gameWidth;
-		} while (--h);
+#endif
+		byte *dst = _gamePixels + y * _gameWidth + x;
+		if (_gameWidth == pitch && pitch == w) {
+			memcpy(dst, buf, h * w);
+		} else {
+			do {
+				memcpy(dst, buf, w);
+				buf += pitch;
+				dst += _gameWidth;
+			} while (--h);
+		}
+#ifdef USE_RGB_COLOR
 	}
+#endif
+
+	_gameDirty = true;
+}
+
+bool OSystem_Wii::needsScreenUpdate() {
+	if (getMillis() - _lastScreenUpdate < 1000 / MAX_FPS)
+		return false;
+
+	if (_gameRunning && _gameDirty)
+		return true;
+
+	if (_overlayVisible && _overlayDirty)
+		return true;
+
+	if (_mouseVisible && _texMouse.palette && _cursorPaletteDirty)
+		return true;
+
+	return false;
 }
 
 void OSystem_Wii::updateScreen() {
-	static u32 x, y, h, skip;
-	static s16 msx, msy, mox, moy, mskip;
-	static u16 mpx, mpy;
-	static u8 *s;
-	static u16 *d, *p;
+	static f32 ar;
+	static gfx_screen_coords_t cc;
+	static int cs;
 
 	u32 now = getMillis();
 	if (now - _lastScreenUpdate < 1000 / MAX_FPS)
 		return;
 
+	if (!gfx_frame_start()) {
+		printf("last frame not done!\n");
+		return;
+	}
+
 #ifdef DEBUG_WII_MEMSTATS
 	wii_memstats();
 #endif
 
+	cs = _cursorScale;
 	_lastScreenUpdate = now;
 
-	h = 0;
-	if (_overlayVisible) {
-		memcpy(_texture, _overlayPixels, _overlaySize);
-	} else {
-		for (y = 0; y < _gameHeight; ++y) {
-			for (x = 0; x < _gameWidth; ++x)
-				_texture[h + x] = _palette[_gamePixels[h + x]];
+	if (_overlayVisible || _consoleVisible)
+		gfx_set_colorop(COLOROP_SIMPLEFADE, gfx_color_none, gfx_color_none);
 
-			h += _gameWidth;
+	if (_gameRunning) {
+		if (_gameDirty) {
+			gfx_tex_convert(&_texGame, _gamePixels);
+			_gameDirty = false;
 		}
+
+		gfx_draw_tex(&_texGame, &_coordsGame);
+	}
+
+	if (_overlayVisible) {
+		if (!_consoleVisible)
+			gfx_set_colorop(COLOROP_NONE, gfx_color_none, gfx_color_none);
+
+		if (_gameRunning)
+			ar = gfx_set_ar(4.0 / 3.0);
+
+		// ugly, but the modern theme sets a factor of 3, only god knows why
+		if (cs > 2)
+			cs = 1;
+		else
+			cs *= 2;
+
+		if (_overlayDirty) {
+			gfx_tex_convert(&_texOverlay, _overlayPixels);
+			_overlayDirty = false;
+		}
+
+		gfx_draw_tex(&_texOverlay, &_coordsOverlay);
 	}
 
 	if (_mouseVisible) {
-		msx = _mouseX - _mouseHotspotX;
-		msy = _mouseY - _mouseHotspotY;
-		mox = 0;
-		moy = 0;
-		mpx = _mouseWidth;
-		mpy = _mouseHeight;
+		cc.x = f32(_mouseX - cs * _mouseHotspotX) * _currentXScale;
+		cc.y = f32(_mouseY - cs * _mouseHotspotY) * _currentYScale;
+		cc.w = f32(_texMouse.width) * _currentXScale * cs;
+		cc.h = f32(_texMouse.height) * _currentYScale * cs;
 
-		if (msx < 0) {
-			mox = -msx;
-			mpx -= mox;
-			msx = 0;
-		} else
-			if (msx + mpx > _currentWidth - 1)
-				mpx = _currentWidth - msx - 1;
-
-		if (msy < 0) {
-			moy = -msy;
-			mpy -= moy;
-			msy = 0;
-		} else
-			if (msy + mpy + 1 > _currentHeight - 1)
-				mpy = _currentHeight - msy - 1;
-
-
-		if (_cursorPaletteDisabled)
-			p = _palette;
-		else
-			p = _cursorPalette;
-
-		skip = _currentWidth - mpx;
-		mskip = _mouseWidth - mpx;
-
-		s = _mouseCursor + moy * _mouseWidth + mox;
-		d = _texture + (msy * _currentWidth + msx);
-
-		for (y = 0; y < mpy; ++y) {
-			for (x = 0; x < mpx; ++x) {
-				if (*s == _mouseKeyColor) {
-					s++;
-					d++;
-
-					continue;
-				}
-
-				*d++ = p[*s];
-				s++;
-			}
-
-			d += skip;
-			s += mskip;
+		if (_texMouse.palette && _cursorPaletteDirty) {
+			_texMouse.palette[_mouseKeyColor] = 0;
+			gfx_tex_flush_palette(&_texMouse);
+			_cursorPaletteDirty = false;
 		}
+
+		gfx_draw_tex(&_texMouse, &cc);
 	}
 
-	GX_Render(_currentWidth, _currentHeight, (u8 *) _texture,
-				_currentWidth * 2);
+	if (_consoleVisible)
+		gfx_con_draw();
+
+	if (_overlayVisible && _gameRunning)
+		gfx_set_ar(ar);
+
+	gfx_frame_end();
 }
 
 Graphics::Surface *OSystem_Wii::lockScreen() {
 	_surface.pixels = _gamePixels;
 	_surface.w = _gameWidth;
 	_surface.h = _gameHeight;
+#ifdef USE_RGB_COLOR
+	_surface.pitch = _gameWidth * _pfGame.bytesPerPixel;
+	_surface.format = _pfGame;
+#else
 	_surface.pitch = _gameWidth;
-	_surface.bytesPerPixel = 1;
+	_surface.format = Graphics::PixelFormat::createFormatCLUT8();
+#endif
 
 	return &_surface;
 }
 
 void OSystem_Wii::unlockScreen() {
+	_gameDirty = true;
 }
 
 void OSystem_Wii::setShakePos(int shakeOffset) {
-	GX_SetTexTrans(0, (float) -shakeOffset * ((float) vmode->efbHeight /
-												(float) _currentHeight));
+	gfx_coords(&_coordsGame, &_texGame, GFX_COORD_FULLSCREEN);
+	_coordsGame.y -= f32(shakeOffset) * _currentYScale;
 }
 
 void OSystem_Wii::showOverlay() {
 	_mouseX = _overlayWidth / 2;
 	_mouseY = _overlayHeight / 2;
 	_overlayVisible = true;
-	_currentWidth = _overlayWidth;
-	_currentHeight = _overlayHeight;
-
-	updateEventScreenResolution();
+	updateScreenResolution();
+	gfx_tex_set_bilinear_filter(&_texMouse, true);
 }
 
 void OSystem_Wii::hideOverlay() {
 	_mouseX = _gameWidth / 2;
 	_mouseY = _gameHeight / 2;
 	_overlayVisible = false;
-	_currentWidth = _gameWidth;
-	_currentHeight = _gameHeight;
-
-	updateEventScreenResolution();
+	updateScreenResolution();
+	gfx_tex_set_bilinear_filter(&_texMouse, _bilinearFilter);
 }
 
 void OSystem_Wii::clearOverlay() {
 	memset(_overlayPixels, 0, _overlaySize);
+	_overlayDirty = true;
 }
 
 void OSystem_Wii::grabOverlay(OverlayColor *buf, int pitch) {
@@ -419,6 +614,8 @@ void OSystem_Wii::copyRectToOverlay(const OverlayColor *buf, int pitch, int x,
 			dst += _overlayWidth;
 		} while (--h);
 	}
+
+	_overlayDirty = true;
 }
 
 int16 OSystem_Wii::getOverlayWidth() {
@@ -427,6 +624,10 @@ int16 OSystem_Wii::getOverlayWidth() {
 
 int16 OSystem_Wii::getOverlayHeight() {
 	return _overlayHeight;
+}
+
+Graphics::PixelFormat OSystem_Wii::getOverlayFormat() const {
+	return Graphics::createPixelFormat<3444>();
 }
 
 bool OSystem_Wii::showMouse(bool visible) {
@@ -442,20 +643,108 @@ void OSystem_Wii::warpMouse(int x, int y) {
 }
 
 void OSystem_Wii::setMouseCursor(const byte *buf, uint w, uint h, int hotspotX,
-									int hotspotY, byte keycolor,
-									int cursorTargetScale) {
-	(void) cursorTargetScale; // TODO
+									int hotspotY, uint32 keycolor,
+									int cursorTargetScale,
+									const Graphics::PixelFormat *format) {
+	gfx_tex_format_t tex_format = GFX_TF_PALETTE_RGB5A3;
+	uint tw, th;
+	bool tmpBuf = false;
+	uint32 oldKeycolor = _mouseKeyColor;
 
-	_mouseWidth = w;
-	_mouseHeight = h;
+#ifdef USE_RGB_COLOR
+	if (!format)
+		_pfCursor = Graphics::PixelFormat::createFormatCLUT8();
+	else
+		_pfCursor = *format;
+
+	if (_pfCursor.bytesPerPixel > 1) {
+		tex_format = GFX_TF_RGB5A3;
+		_mouseKeyColor = keycolor & 0xffff;
+		tw = ROUNDUP(w, 4);
+		th = ROUNDUP(h, 4);
+
+		if (_pfCursor != _pfRGB3444)
+			tmpBuf = true;
+	} else {
+#endif
+		_mouseKeyColor = keycolor & 0xff;
+		tw = ROUNDUP(w, 8);
+		th = ROUNDUP(h, 4);
+#ifdef USE_RGB_COLOR
+	}
+#endif
+
+	if (!gfx_tex_init(&_texMouse, tex_format, TLUT_MOUSE, tw, th)) {
+		printf("could not init the mouse texture\n");
+		::abort();
+	}
+
+	gfx_tex_set_bilinear_filter(&_texMouse, _bilinearFilter);
+
+	if ((tw != w) || (th != h))
+		tmpBuf = true;
+
+	if (!tmpBuf) {
+		gfx_tex_convert(&_texMouse, buf);
+	} else {
+		u8 bpp = _texMouse.bpp >> 3;
+		byte *tmp = (byte *) malloc(tw * th * bpp);
+
+		if (!tmp) {
+			printf("could not alloc temp cursor buffer\n");
+			::abort();
+		}
+
+		if (bpp > 1)
+			memset(tmp, 0, tw * th * bpp);
+		else
+			memset(tmp, _mouseKeyColor, tw * th);
+
+#ifdef USE_RGB_COLOR
+		if (bpp > 1) {
+			if (!Graphics::crossBlit(tmp, buf,
+										tw * _pfRGB3444.bytesPerPixel,
+										w * _pfCursor.bytesPerPixel,
+										tw, th, _pfRGB3444, _pfCursor)) {
+				printf("crossBlit failed (cursor)\n");
+				::abort();
+			}
+
+			// nasty, shouldn't the frontend set the alpha channel?
+			u16 *s = (u16 *) buf;
+			u16 *d = (u16 *) tmp;
+			for (u16 y = 0; y < h; ++y) {
+				for (u16 x = 0; x < w; ++x) {
+					if (*s++ != _mouseKeyColor)
+						*d++ |= 7 << 12;
+					else
+						d++;
+				}
+
+				d += tw - w;
+			}
+		} else {
+#endif
+			byte *dst = tmp;
+
+			do {
+				memcpy(dst, buf, w * bpp);
+				buf += w * bpp;
+				dst += tw * bpp;
+			} while (--h);
+#ifdef USE_RGB_COLOR
+		}
+#endif
+
+		gfx_tex_convert(&_texMouse, tmp);
+		free(tmp);
+	}
+
 	_mouseHotspotX = hotspotX;
 	_mouseHotspotY = hotspotY;
-	_mouseKeyColor = keycolor;
+	_cursorScale = cursorTargetScale;
 
-	if (_mouseCursor)
-		free(_mouseCursor);
-
-	_mouseCursor = (u8 *) memalign(32, w * h);
-	memcpy(_mouseCursor, buf, w * h);
+	if ((_texMouse.palette) && (oldKeycolor != _mouseKeyColor))
+		_cursorPaletteDirty = true;
 }
 

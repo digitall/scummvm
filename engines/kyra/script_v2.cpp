@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_v2.h"
 #include "kyra/screen_v2.h"
 #include "kyra/timer.h"
 
-#include "common/endian.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -69,7 +66,7 @@ int KyraEngine_v2::o2_trySceneChange(EMCState *script) {
 	if (success) {
 		_emc->init(script, script->dataPtr);
 		_unk4 = 0;
-		_unk3 = -1;
+		_savedMouseState = -1;
 		_unk5 = 1;
 		return 0;
 	} else {
@@ -342,5 +339,5 @@ int KyraEngine_v2::o2a_setResetFrame(EMCState *script) {
 	return 0;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

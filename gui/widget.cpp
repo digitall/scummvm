@@ -17,29 +17,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/util.h"
-#include "graphics/fontman.h"
+#include "common/scummsys.h"
+#include "common/system.h"
+#include "common/rect.h"
+#include "common/textconsole.h"
+#include "graphics/pixelformat.h"
 #include "gui/widget.h"
-#include "gui/dialog.h"
-#include "gui/GuiManager.h"
+#include "gui/gui-manager.h"
 
 #include "gui/ThemeEval.h"
 
 namespace GUI {
 
-Widget::Widget(GuiObject *boss, int x, int y, int w, int h)
-	: GuiObject(x, y, w, h), _type(0), _boss(boss),
+Widget::Widget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip)
+	: GuiObject(x, y, w, h), _type(0), _boss(boss), _tooltip(tooltip),
 	  _id(0), _flags(0), _hasFocus(false), _state(ThemeEngine::kStateEnabled) {
 	init();
 }
 
-Widget::Widget(GuiObject *boss, const Common::String &name)
-	: GuiObject(name), _type(0), _boss(boss),
+Widget::Widget(GuiObject *boss, const Common::String &name, const char *tooltip)
+	: GuiObject(name), _type(0), _boss(boss), _tooltip(tooltip),
 	  _id(0), _flags(0), _hasFocus(false), _state(ThemeEngine::kStateDisabled) {
 	init();
 }
@@ -177,17 +176,62 @@ bool Widget::isVisible() const {
 	return !(_flags & WIDGET_INVISIBLE);
 }
 
+uint8 Widget::parseHotkey(const Common::String &label) {
+	if (!label.contains('~'))
+		return 0;
+
+	int state = 0;
+	uint8 hotkey = 0;
+
+	for (uint i = 0; i < label.size() && state != 3; i++) {
+		switch (state) {
+		case 0:
+			if (label[i] == '~')
+				state = 1;
+			break;
+		case 1:
+			if (label[i] != '~') {
+				state = 2;
+				hotkey = label[i];
+			} else
+				state = 0;
+			break;
+		case 2:
+			if (label[i] == '~')
+				state = 3;
+			else
+				state = 0;
+			break;
+		}
+	}
+
+	if (state == 3)
+		return hotkey;
+
+	return 0;
+}
+
+Common::String Widget::cleanupHotkey(const Common::String &label) {
+	Common::String res;
+
+	for (uint i = 0; i < label.size(); i++)
+		if (label[i] != '~')
+			res = res + label[i];
+
+	return res;
+}
+
 #pragma mark -
 
-StaticTextWidget::StaticTextWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &text, Graphics::TextAlign align)
-	: Widget(boss, x, y, w, h), _align(align) {
+StaticTextWidget::StaticTextWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &text, Graphics::TextAlign align, const char *tooltip)
+	: Widget(boss, x, y, w, h, tooltip), _align(align) {
 	setFlags(WIDGET_ENABLED);
 	_type = kStaticTextWidget;
 	_label = text;
 }
 
-StaticTextWidget::StaticTextWidget(GuiObject *boss, const Common::String &name, const Common::String &text)
-	: Widget(boss, name) {
+StaticTextWidget::StaticTextWidget(GuiObject *boss, const Common::String &name, const Common::String &text, const char *tooltip)
+	: Widget(boss, name, tooltip) {
 	setFlags(WIDGET_ENABLED);
 	_type = kStaticTextWidget;
 	_label = text;
@@ -196,9 +240,7 @@ StaticTextWidget::StaticTextWidget(GuiObject *boss, const Common::String &name, 
 }
 
 void StaticTextWidget::setValue(int value) {
-	char buf[256];
-	sprintf(buf, "%d", value);
-	_label = buf;
+	_label = Common::String::format("%d", value);
 }
 
 void StaticTextWidget::setLabel(const Common::String &label) {
@@ -227,16 +269,22 @@ void StaticTextWidget::drawWidget() {
 
 #pragma mark -
 
-ButtonWidget::ButtonWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &label, uint32 cmd, uint8 hotkey)
-	: StaticTextWidget(boss, x, y, w, h, label, Graphics::kTextAlignCenter), CommandSender(boss),
+ButtonWidget::ButtonWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey)
+	: StaticTextWidget(boss, x, y, w, h, cleanupHotkey(label), Graphics::kTextAlignCenter, tooltip), CommandSender(boss),
 	  _cmd(cmd), _hotkey(hotkey) {
+
+	if (hotkey == 0)
+		_hotkey = parseHotkey(label);
+
 	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
 	_type = kButtonWidget;
 }
 
-ButtonWidget::ButtonWidget(GuiObject *boss, const Common::String &name, const Common::String &label, uint32 cmd, uint8 hotkey)
-	: StaticTextWidget(boss, name, label), CommandSender(boss),
-	  _cmd(cmd), _hotkey(hotkey) {
+ButtonWidget::ButtonWidget(GuiObject *boss, const Common::String &name, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey)
+	: StaticTextWidget(boss, name, cleanupHotkey(label), tooltip), CommandSender(boss),
+	  _cmd(cmd) {
+	if (hotkey == 0)
+		_hotkey = parseHotkey(label);
 	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
 	_type = kButtonWidget;
 }
@@ -252,14 +300,66 @@ void ButtonWidget::drawWidget() {
 
 #pragma mark -
 
-CheckboxWidget::CheckboxWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &label, uint32 cmd, uint8 hotkey)
-	: ButtonWidget(boss, x, y, w, h, label, cmd, hotkey), _state(false) {
+PicButtonWidget::PicButtonWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip, uint32 cmd, uint8 hotkey)
+	: Widget(boss, x, y, w, h, tooltip), CommandSender(boss),
+	  _cmd(cmd), _hotkey(hotkey), _gfx(), _alpha(256), _transparency(false) {
+
+	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
+	_type = kButtonWidget;
+}
+
+PicButtonWidget::PicButtonWidget(GuiObject *boss, const Common::String &name, const char *tooltip, uint32 cmd, uint8 hotkey)
+	: Widget(boss, name, tooltip), CommandSender(boss),
+	  _cmd(cmd), _gfx(), _alpha(256), _transparency(false) {
+	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
+	_type = kButtonWidget;
+}
+
+PicButtonWidget::~PicButtonWidget() {
+	_gfx.free();
+}
+
+void PicButtonWidget::handleMouseUp(int x, int y, int button, int clickCount) {
+	if (isEnabled() && x >= 0 && x < _w && y >= 0 && y < _h)
+		sendCommand(_cmd, 0);
+}
+
+void PicButtonWidget::setGfx(const Graphics::Surface *gfx) {
+	_gfx.free();
+
+	if (!gfx || !gfx->pixels)
+		return;
+
+	if (gfx->w > _w || gfx->h > _h) {
+		warning("PicButtonWidget has size %dx%d, but a surface with %dx%d is to be set", _w, _h, gfx->w, gfx->h);
+		return;
+	}
+
+	// TODO: add conversion to OverlayColor
+	_gfx.copyFrom(*gfx);
+}
+
+void PicButtonWidget::drawWidget() {
+	g_gui.theme()->drawButton(Common::Rect(_x, _y, _x+_w, _y+_h), "", _state, getFlags());
+
+	if (sizeof(OverlayColor) == _gfx.format.bytesPerPixel && _gfx.pixels) {
+		const int x = _x + (_w - _gfx.w) / 2;
+		const int y = _y + (_h - _gfx.h) / 2;
+
+		g_gui.theme()->drawSurface(Common::Rect(x, y, x + _gfx.w,  y + _gfx.h), _gfx, _state, _alpha, _transparency);
+	}
+}
+
+#pragma mark -
+
+CheckboxWidget::CheckboxWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey)
+	: ButtonWidget(boss, x, y, w, h, label, tooltip, cmd, hotkey), _state(false) {
 	setFlags(WIDGET_ENABLED);
 	_type = kCheckboxWidget;
 }
 
-CheckboxWidget::CheckboxWidget(GuiObject *boss, const Common::String &name, const Common::String &label, uint32 cmd, uint8 hotkey)
-	: ButtonWidget(boss, name, label, cmd, hotkey), _state(false) {
+CheckboxWidget::CheckboxWidget(GuiObject *boss, const Common::String &name, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey)
+	: ButtonWidget(boss, name, label, tooltip, cmd, hotkey), _state(false) {
 	setFlags(WIDGET_ENABLED);
 	_type = kCheckboxWidget;
 }
@@ -284,16 +384,84 @@ void CheckboxWidget::drawWidget() {
 }
 
 #pragma mark -
+RadiobuttonGroup::RadiobuttonGroup(GuiObject *boss, uint32 cmd) : CommandSender(boss) {
+	_value = -1;
+	_cmd = cmd;
+}
 
-SliderWidget::SliderWidget(GuiObject *boss, int x, int y, int w, int h, uint32 cmd)
-	: Widget(boss, x, y, w, h), CommandSender(boss),
+void RadiobuttonGroup::setValue(int value) {
+	Common::Array<RadiobuttonWidget *>::iterator button = _buttons.begin();
+	while (button != _buttons.end()) {
+		(*button)->setState((*button)->getValue() == value, false);
+
+		button++;
+	}
+
+	_value = value;
+
+	sendCommand(_cmd, _value);
+}
+
+void RadiobuttonGroup::setEnabled(bool ena) {
+	Common::Array<RadiobuttonWidget *>::iterator button = _buttons.begin();
+	while (button != _buttons.end()) {
+		(*button)->setEnabled(ena);
+
+		button++;
+	}
+}
+
+#pragma mark -
+
+RadiobuttonWidget::RadiobuttonWidget(GuiObject *boss, int x, int y, int w, int h, RadiobuttonGroup *group, int value, const Common::String &label, const char *tooltip, uint8 hotkey)
+	: ButtonWidget(boss, x, y, w, h, label, tooltip, 0, hotkey), _state(false), _value(value), _group(group) {
+	setFlags(WIDGET_ENABLED);
+	_type = kRadiobuttonWidget;
+	_group->addButton(this);
+}
+
+RadiobuttonWidget::RadiobuttonWidget(GuiObject *boss, const Common::String &name, RadiobuttonGroup *group, int value, const Common::String &label, const char *tooltip, uint8 hotkey)
+	: ButtonWidget(boss, name, label, tooltip, 0, hotkey), _state(false), _value(value), _group(group) {
+	setFlags(WIDGET_ENABLED);
+	_type = kRadiobuttonWidget;
+	_group->addButton(this);
+}
+
+void RadiobuttonWidget::handleMouseUp(int x, int y, int button, int clickCount) {
+	if (isEnabled() && x >= 0 && x < _w && y >= 0 && y < _h) {
+		toggleState();
+	}
+}
+
+void RadiobuttonWidget::setState(bool state, bool setGroup) {
+	if (setGroup) {
+		_group->setValue(_value);
+		return;
+	}
+
+	if (_state != state) {
+		_state = state;
+		//_flags ^= WIDGET_INV_BORDER;
+		draw();
+	}
+	sendCommand(_cmd, _state);
+}
+
+void RadiobuttonWidget::drawWidget() {
+	g_gui.theme()->drawRadiobutton(Common::Rect(_x, _y, _x+_w, _y+_h), _label, _state, Widget::_state);
+}
+
+#pragma mark -
+
+SliderWidget::SliderWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip, uint32 cmd)
+	: Widget(boss, x, y, w, h, tooltip), CommandSender(boss),
 	  _cmd(cmd), _value(0), _oldValue(0), _valueMin(0), _valueMax(100), _isDragging(false) {
 	setFlags(WIDGET_ENABLED | WIDGET_TRACK_MOUSE | WIDGET_CLEARBG);
 	_type = kSliderWidget;
 }
 
-SliderWidget::SliderWidget(GuiObject *boss, const Common::String &name, uint32 cmd)
-	: Widget(boss, name), CommandSender(boss),
+SliderWidget::SliderWidget(GuiObject *boss, const Common::String &name, const char *tooltip, uint32 cmd)
+	: Widget(boss, name, tooltip), CommandSender(boss),
 	  _cmd(cmd), _value(0), _oldValue(0), _valueMin(0), _valueMax(100), _isDragging(false) {
 	setFlags(WIDGET_ENABLED | WIDGET_TRACK_MOUSE | WIDGET_CLEARBG);
 	_type = kSliderWidget;
@@ -365,14 +533,14 @@ int SliderWidget::posToValue(int pos) {
 
 #pragma mark -
 
-GraphicsWidget::GraphicsWidget(GuiObject *boss, int x, int y, int w, int h)
-	: Widget(boss, x, y, w, h), _gfx(), _alpha(256), _transparency(false) {
+GraphicsWidget::GraphicsWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip)
+	: Widget(boss, x, y, w, h, tooltip), _gfx(), _alpha(256), _transparency(false) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG);
 	_type = kGraphicsWidget;
 }
 
-GraphicsWidget::GraphicsWidget(GuiObject *boss, const Common::String &name)
-	: Widget(boss, name), _gfx(), _alpha(256), _transparency(false) {
+GraphicsWidget::GraphicsWidget(GuiObject *boss, const Common::String &name, const char *tooltip)
+	: Widget(boss, name, tooltip), _gfx(), _alpha(256), _transparency(false) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG);
 	_type = kGraphicsWidget;
 }
@@ -387,6 +555,11 @@ void GraphicsWidget::setGfx(const Graphics::Surface *gfx) {
 	if (!gfx || !gfx->pixels)
 		return;
 
+	if (gfx->w > _w || gfx->h > _h) {
+		warning("GraphicsWidget has size %dx%d, but a surface with %dx%d is to be set", _w, _h, gfx->w, gfx->h);
+		return;
+	}
+
 	// TODO: add conversion to OverlayColor
 	_gfx.copyFrom(*gfx);
 }
@@ -397,11 +570,12 @@ void GraphicsWidget::setGfx(int w, int h, int r, int g, int b) {
 	if (h == -1)
 		h = _h;
 
-	_gfx.free();
-	_gfx.create(w, h, sizeof(OverlayColor));
-
-	OverlayColor *dst = (OverlayColor*)_gfx.pixels;
 	Graphics::PixelFormat overlayFormat = g_system->getOverlayFormat();
+
+	_gfx.free();
+	_gfx.create(w, h, overlayFormat);
+
+	OverlayColor *dst = (OverlayColor *)_gfx.pixels;
 	OverlayColor fillCol = overlayFormat.RGBToColor(r, g, b);
 	while (h--) {
 		for (int i = 0; i < w; ++i) {
@@ -411,8 +585,12 @@ void GraphicsWidget::setGfx(int w, int h, int r, int g, int b) {
 }
 
 void GraphicsWidget::drawWidget() {
-	if (sizeof(OverlayColor) == _gfx.bytesPerPixel && _gfx.pixels)
-		g_gui.theme()->drawSurface(Common::Rect(_x, _y, _x+_w, _y+_h), _gfx, _state, _alpha, _transparency);
+	if (sizeof(OverlayColor) == _gfx.format.bytesPerPixel && _gfx.pixels) {
+		const int x = _x + (_w - _gfx.w) / 2;
+		const int y = _y + (_h - _gfx.h) / 2;
+
+		g_gui.theme()->drawSurface(Common::Rect(x, y, x + _gfx.w,  y + _gfx.h), _gfx, _state, _alpha, _transparency);
+	}
 }
 
 #pragma mark -

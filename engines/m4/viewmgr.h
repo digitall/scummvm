@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_VIEWMGR_H
@@ -32,6 +29,7 @@
 #include "common/events.h"
 #include "common/rect.h"
 
+#include "m4/font.h"
 #include "m4/globals.h"
 #include "m4/events.h"
 #include "m4/graphics.h"
@@ -41,11 +39,24 @@ namespace M4 {
 class View;
 class ViewManager;
 
+enum SceneTransition {
+	kTransitionNone = 0,
+	kTransitionFadeIn = 1,
+	kTransitionFadeIn2 = 2,
+	kTransitionBoxInBottomLeft = 3,
+	kTransitionBoxInBottomRight = 4,
+	kTransitionBoxInTopLeft = 5,
+	kTransitionBoxInTopRight = 6,
+	kTransitionPanLeftToRight = 7,
+	kTransitionPanRightToLeft = 8,
+	kTransitionCircleIn = 9
+};
+
 enum {SCREEN_DIALOG, SCREEN_BUFFER, SCREEN_TEXT, SCREEN_TRANSPARENT};
 enum ScreenEventType {SCREVENT_NONE = 0, SCREVENT_KEY = 1, SCREVENT_MOUSE = 2, SCREVENT_ALL = 3};
 enum ScreenLayers {
 	LAYER_BACKGROUND = 0, LAYER_DRIFTER = 1, LAYER_INTERFACE = 1, LAYER_FLOATER = 2,
-	LAYER_SURFACE = 3, LAYER_MENU = 9, LAYER_MOUSE = 15
+	LAYER_SURFACE = 3, LAYER_MENU = 9, LAYER_DIALOG = 10, LAYER_MOUSE = 15
 };
 
 enum ViewIds {
@@ -76,7 +87,7 @@ struct ScreenFlags {
 	_screenFlags.get = SCREVENT_ALL; _screenFlags.blocks = SCREVENT_ALL; \
 	_screenFlags.visible = true;
 
-class RectList: public Common::Array<Common::Rect> {
+class RectList : public Common::Array<Common::Rect> {
 public:
 	RectList();
 	~RectList();
@@ -84,12 +95,13 @@ public:
 	void addRect(const Common::Rect &rect);
 
 //	Common::Rect& operator [](int idx) { return _rects[idx]; }
+	int find(const Common::Point &pt);
 };
 
 struct Hotkey {
 public:
-	typedef void (*Callback)(M4Engine *vm, View *view, uint32 key);
-	Hotkey(uint32 keyVal, Hotkey::Callback callbackFn) : key(keyVal), callback(callbackFn) {};
+	typedef void (*Callback)(MadsM4Engine *vm, View *view, uint32 key);
+	Hotkey(uint32 keyVal, Hotkey::Callback callbackFn) : key(keyVal), callback(callbackFn) {}
 	uint32 key;
 	Hotkey::Callback callback;
 };
@@ -106,10 +118,10 @@ private:
 	View *_view;
 };
 
-class View: public M4Surface {
+class View : public M4Surface {
 public:
-	View(M4Engine *vm, const Common::Rect &viewBounds, bool transparent = false);
-	View(M4Engine *vm, int x = 0, int y = 0, bool transparent = false);
+	View(MadsM4Engine *vm, const Common::Rect &viewBounds, bool transparent = false);
+	View(MadsM4Engine *vm, int x = 0, int y = 0, bool transparent = false);
 	virtual ~View() {}
 
 	void getCoordinates(Common::Rect &rect);
@@ -134,11 +146,11 @@ public:
 	HotkeyList &hotkeys() { return _hotkeys; }
 
 	virtual void onRefresh(RectList *rects, M4Surface *destSurface);
-	virtual bool onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents) { return false; }
-	virtual void updateState() {};
+	virtual bool onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents) { return false; }
+	virtual void updateState() {}
 
 protected:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	Common::Rect _coords;
 	HotkeyList _hotkeys;
 	int _screenType;
@@ -148,7 +160,7 @@ protected:
 
 class ViewManager {
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	HotkeyList _systemHotkeys;
 	Common::List<View *> _views;
 	View *_captureScreen;
@@ -156,7 +168,7 @@ private:
 public:
 	typedef Common::List<View *>::iterator ListIterator;
 
-	ViewManager(M4Engine *vm);
+	ViewManager(MadsM4Engine *vm);
 	~ViewManager();
 
 	void addView(View *view);

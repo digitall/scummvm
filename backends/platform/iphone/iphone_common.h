@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -52,20 +49,34 @@ typedef enum
 	kUIViewSwipeRight = 8
 } UIViewSwipeDirection;
 
+#ifdef IPHONE_OFFICIAL
+void iphone_main(int argc, char **argv);
+#endif
+
 // We need this to be able to call functions from/in Objective-C.
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
 // On the C++ side
+#ifndef IPHONE_OFFICIAL
 void iphone_main(int argc, char *argv[]);
+#endif
 
 // On the ObjC side
-void iPhone_updateScreen();
+void iPhone_updateScreen(int mouseX, int mouseY);
 void iPhone_updateScreenRect(unsigned short* screen, int x1, int y1, int x2, int y2);
+void iPhone_updateOverlayRect(unsigned short* screen, int x1, int y1, int x2, int y2);
 void iPhone_initSurface(int width, int height);
 bool iPhone_fetchEvent(int *outEvent, float *outX, float *outY);
 const char* iPhone_getDocumentsDir();
+bool iPhone_isHighResDevice();
+int iPhone_getScreenHeight();
+int iPhone_getScreenWidth();
+void iPhone_enableOverlay(int state);
+void iPhone_setMouseCursor(short* buffer, int width, int height);
+
+uint getSizeNextPOT(uint size);
 
 #ifdef __cplusplus
 }

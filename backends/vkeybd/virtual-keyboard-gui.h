@@ -18,21 +18,19 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
 
 #ifndef COMMON_VIRTUAL_KEYBOARD_GUI_H
 #define COMMON_VIRTUAL_KEYBOARD_GUI_H
 
+#include "common/scummsys.h"
+
 #ifdef ENABLE_VKEYBD
 
 #include "backends/vkeybd/virtual-keyboard.h"
-#include "common/scummsys.h"
 #include "common/rect.h"
 #include "common/system.h"
-#include "graphics/fontman.h"
+#include "graphics/font.h"
 #include "graphics/surface.h"
 
 namespace Common {
@@ -151,7 +149,7 @@ private:
 
 };
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_VKEYBD
 

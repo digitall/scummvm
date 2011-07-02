@@ -18,12 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/file.h"
+#include "common/textconsole.h"
 
 #include "agi/agi.h"
 
@@ -45,7 +42,7 @@ int AgiLoader_v2::loadDir(AgiDir *agid, const char *fname) {
 	uint32 flen;
 	uint i;
 
-	report("Loading directory: %s\n", fname);
+	debug(0, "Loading directory: %s", fname);
 
 	if (!fp.open(fname)) {
 		return errBadFileOpen;
@@ -152,15 +149,14 @@ uint8 *AgiLoader_v2::loadVolRes(struct AgiDir *agid) {
 		fp.read(&x, 5);
 		if ((sig = READ_BE_UINT16((uint8 *) x)) == 0x1234) {
 			agid->len = READ_LE_UINT16((uint8 *) x + 3);
-			data = (uint8 *) calloc(1, agid->len + 32);
+			data = (uint8 *)calloc(1, agid->len + 32);
 			if (data != NULL) {
 				fp.read(data, agid->len);
 			} else {
-				exit(1);
+				error("AgiLoader_v2::loadVolRes out of memory");
 			}
 		} else {
-			report("Error: bad signature %04x\n", sig);
-			// fprintf (stderr, "ACK! BAD RESOURCE!!!\n");
+			warning("AgiLoader_v2::loadVolRes: bad signature %04x", sig);
 			return 0;
 		}
 		fp.close();
@@ -234,7 +230,7 @@ int AgiLoader_v2::loadResource(int t, int n) {
 
 		if (data != NULL) {
 			// Freeing of the raw resource from memory is delegated to the createFromRawResource-function
-			_vm->_game.sounds[n] = AgiSound::createFromRawResource(data, _vm->_game.dirSound[n].len, n, *_vm->_sound);
+			_vm->_game.sounds[n] = AgiSound::createFromRawResource(data, _vm->_game.dirSound[n].len, n, *_vm->_sound, _vm->_soundemu);
 			_vm->_game.dirSound[n].flags |= RES_LOADED;
 		} else {
 			ec = errBadResource;

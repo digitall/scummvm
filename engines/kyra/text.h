@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_TEXT_H
@@ -50,14 +47,13 @@ public:
 	virtual void calcWidestLineBounds(int &x1, int &x2, int w, int cx);
 	virtual void restoreTalkTextMessageBkgd(int srcPage, int dstPage);
 	void printTalkTextMessage(const char *text, int x, int y, uint8 color, int srcPage, int dstPage);
-	void printIntroTextMessage(const char *text, int x, int y, uint8 col1, uint8 col2, uint8 col3,
-			int dstPage, Screen::FontId font=Screen::FID_8_FNT);
-	virtual void printText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2, Screen::FontId font=Screen::FID_8_FNT);
+	virtual void printText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2);
 	void printCharacterText(const char *text, int8 charNum, int charX);
 
 	uint16 _talkMessageY;
 	uint16 _talkMessageH;
 	bool printed() const { return _talkMessagePrinted; }
+
 protected:
 	Screen *_screen;
 	KyraEngine_v1 *_vm;
@@ -65,6 +61,9 @@ protected:
 	struct TalkCoords {
 		uint16 y, x, w;
 	};
+
+	// TODO: AMIGA and LoK specific, move to a better location
+	void setTextColor(uint8 color);
 
 	enum {
 		TALK_SUBSTRING_LEN = 80,
@@ -76,7 +75,8 @@ protected:
 	TalkCoords _talkCoords;
 	bool _talkMessagePrinted;
 };
-} // end of namespace Kyra
+
+} // End of namespace Kyra
 
 #endif
 

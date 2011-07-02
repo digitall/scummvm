@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -147,8 +144,6 @@ int updateScriptImport(int ovlIdx) {
 				const char *ptrImportName;
 				uint8 *ptrData;
 
-				int var_22 = 0;
-
 				if (param == 0) {
 					pScript = getOvlData3Entry(ovlIdx, i);
 				} else {
@@ -158,8 +153,6 @@ int updateScriptImport(int ovlIdx) {
 				ptrImportData = (importScriptStruct *)(pScript->dataPtr + pScript->offsetToImportData);	// import data
 				ptrImportName = (const char*)(pScript->dataPtr + pScript->offsetToImportName);	// import name
 				ptrData = pScript->dataPtr;
-
-				var_22 = 0;
 
 				if (pScript->numRelocGlob > 0) {
 					int counter = pScript->numRelocGlob;
@@ -270,7 +263,7 @@ int updateScriptImport(int ovlIdx) {
 }
 
 // check that the newly loaded isn't used by the already loaded overlays
-void updateAllScriptsImports(void) {
+void updateAllScriptsImports() {
 	int i;
 
 	for (i = 0; i < 90; i++) {

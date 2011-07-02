@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_SAVELOAD_H
@@ -38,12 +35,12 @@ typedef SaveGameList::iterator SaveGameIterator;
 
 class SaveLoad {
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	bool _emulateOriginal;
 
 	const char *generateSaveName(int slotNumber);
 public:
-	SaveLoad(M4Engine *vm);
+	SaveLoad(MadsM4Engine *vm);
 
 	bool hasSaves();
 	SaveGameList *getSaves();

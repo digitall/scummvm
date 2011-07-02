@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * String resource managment routines
  */
 
@@ -28,7 +25,7 @@
 #define TINSEL_STRRES_H
 
 #include "common/scummsys.h"
-#include "tinsel/scn.h"
+#include "tinsel/dw.h"
 
 namespace Tinsel {
 
@@ -83,20 +80,20 @@ void LanguageFacts(int language, SCNHANDLE hDescription, SCNHANDLE hFlagFilm);
 /**
  * Gets the current subtitles language
  */
-LANGUAGE TextLanguage(void);
+LANGUAGE TextLanguage();
 
 /**
  * Gets the current voice language
  */
-LANGUAGE SampleLanguage(void);
+LANGUAGE SampleLanguage();
 
-int NumberOfLanguages(void);
+int NumberOfLanguages();
 LANGUAGE NextLanguage(LANGUAGE thisOne);
 LANGUAGE PrevLanguage(LANGUAGE thisOne);
 SCNHANDLE LanguageDesc(LANGUAGE thisOne);
 SCNHANDLE LanguageFlag(LANGUAGE thisOne);
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif
 

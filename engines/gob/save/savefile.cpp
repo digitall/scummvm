@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/util.h"
 #include "common/endian.h"
+#include "common/memstream.h"
 #include "common/system.h"
 #include "common/savefile.h"
 
@@ -82,6 +80,16 @@ bool SaveHeader::verify(Common::ReadStream &stream) const {
 		return false;
 
 	return !stream.err();
+}
+
+bool SaveHeader::operator==(const SaveHeader &header) const {
+	return (_type    == header._type)    &&
+	       (_version == header._version) &&
+	       (_size    == header._size);
+}
+
+bool SaveHeader::operator!=(const SaveHeader &header) const {
+	return !(*this == header);
 }
 
 bool SaveHeader::verifyReadSize(Common::ReadStream &stream) {
@@ -262,21 +270,29 @@ bool SavePartVars::writeInto(uint32 var, uint32 offset, uint32 size) const {
 	return true;
 }
 
-SavePartSprite::SavePartSprite(uint32 width, uint32 height) {
+SavePartSprite::SavePartSprite(uint32 width, uint32 height, bool trueColor) {
 	assert((width > 0) && (height > 0));
 
 	_width = width;
 	_height = height;
 
+	_oldFormat = false;
+	_trueColor = trueColor;
+
 	_header.setType(kID);
 	_header.setVersion(kVersion);
-	//            width + height +      sprite      + palette
-	_header.setSize(4   +   4    + _width * _height +  768);
 
-	_dataSprite  = new byte[_width * _height];
+	_spriteSize = _width * _height;
+	if (_trueColor)
+		_spriteSize *= 3;
+
+		//          width + height + color +    sprite   + palette
+	_header.setSize(4   +   4    +   1   + _spriteSize + 768);
+
+	_dataSprite  = new byte[_spriteSize];
 	_dataPalette = new byte[768];
 
-	memset(_dataSprite,  0, _width * _height);
+	memset(_dataSprite,  0, _spriteSize);
 	memset(_dataPalette, 0, 768);
 }
 
@@ -286,8 +302,28 @@ SavePartSprite::~SavePartSprite() {
 }
 
 bool SavePartSprite::read(Common::ReadStream &stream) {
-	if (!_header.verify(stream))
-		return false;
+	SaveHeader header;
+	header.read(stream);
+
+	if (_header != header) {
+		if (!_trueColor) {
+			// Header validation failed, trying again with the old version
+
+			_header.setVersion(1);
+			_header.setSize(_header.getSize() - 1);
+
+			if (_header != header)
+				// Nope, isn't it either
+				return false;
+
+			_oldFormat = true;
+
+			_header.setVersion(kVersion);
+			_header.setSize(_header.getSize() + 1);
+
+		} else
+			return false;
+	}
 
 	// The sprite's dimensions have to fit
 	if (stream.readUint32LE() != _width)
@@ -295,8 +331,13 @@ bool SavePartSprite::read(Common::ReadStream &stream) {
 	if (stream.readUint32LE() != _height)
 		return false;
 
+	// If it's in the current format, the true color flag has to be the same too
+	if (!_oldFormat)
+		if ((stream.readByte() != 0) != _trueColor)
+			return false;
+
 	// Sprite data
-	if (stream.read(_dataSprite, _width * _height) != (_width * _height))
+	if (stream.read(_dataSprite, _spriteSize) != _spriteSize)
 		return false;
 
 	// Palette data
@@ -313,9 +354,10 @@ bool SavePartSprite::write(Common::WriteStream &stream) const {
 	// The sprite's dimensions
 	stream.writeUint32LE(_width);
 	stream.writeUint32LE(_height);
+	stream.writeByte(_trueColor);
 
 	// Sprite data
-	if (stream.write(_dataSprite, _width * _height) != (_width * _height))
+	if (stream.write(_dataSprite, _spriteSize) != _spriteSize)
 		return false;
 
 	// Palette data
@@ -331,20 +373,36 @@ bool SavePartSprite::readPalette(const byte *palette) {
 	return true;
 }
 
-bool SavePartSprite::readSprite(const SurfaceDesc &sprite) {
+bool SavePartSprite::readSprite(const Surface &sprite) {
 	// The sprite's dimensions have to fit
 	if (((uint32)sprite.getWidth()) != _width)
 		return false;
 	if (((uint32)sprite.getHeight()) != _height)
 		return false;
 
-	memcpy(_dataSprite, sprite.getVidMem(), _width * _height);
+	if (_trueColor) {
+		if (sprite.getBPP() <= 1)
+			return false;
+
+		Graphics::PixelFormat pixelFormat = g_system->getScreenFormat();
+
+		byte *data = _dataSprite;
+		ConstPixel pixel = sprite.get();
+		for (uint32 i = 0; i < (_width * _height); i++, ++pixel, data += 3)
+			pixelFormat.colorToRGB(pixel.get(), data[0], data[1], data[2]);
+
+	} else {
+		if (sprite.getBPP() != 1)
+			return false;
+
+		memcpy(_dataSprite, sprite.getData(), _width * _height);
+	}
 
 	return true;
 }
 
 bool SavePartSprite::readSpriteRaw(const byte *data, uint32 size) {
-	if (size != (_width * _height))
+	if (size != _spriteSize)
 		return false;
 
 	memcpy(_dataSprite, data, size);
@@ -357,14 +415,30 @@ bool SavePartSprite::writePalette(byte *palette) const {
 	return true;
 }
 
-bool SavePartSprite::writeSprite(SurfaceDesc &sprite) const {
+bool SavePartSprite::writeSprite(Surface &sprite) const {
 	// The sprite's dimensions have to fit
 	if (((uint32)sprite.getWidth()) != _width)
 		return false;
 	if (((uint32)sprite.getHeight()) != _height)
 		return false;
 
-	memcpy(sprite.getVidMem(), _dataSprite, _width * _height);
+	if (_trueColor) {
+		if (sprite.getBPP() <= 1)
+			return false;
+
+		Graphics::PixelFormat pixelFormat = g_system->getScreenFormat();
+
+		const byte *data = _dataSprite;
+		Pixel pixel = sprite.get();
+		for (uint32 i = 0; i < (_width * _height); i++, ++pixel, data += 3)
+			pixel.set(pixelFormat.RGBToColor(data[0], data[1], data[2]));
+
+	} else {
+		if (sprite.getBPP() != 1)
+			return false;
+
+		memcpy(sprite.getData(), _dataSprite, _spriteSize);
+	}
 
 	return true;
 }

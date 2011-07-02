@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Item script opcodes for Simon1/Simon2
@@ -28,12 +25,13 @@
 
 
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "agos/animation.h"
 #include "agos/agos.h"
 
 #ifdef _WIN32_WCE
-extern bool isSmartphone(void);
+extern bool isSmartphone();
 #endif
 
 namespace AGOS {
@@ -110,7 +108,8 @@ void AGOSEngine::o_eq() {
 #ifdef __DS__
 	// HACK: Skip attempt to read Calypso's letter manually,
 	// due to speech segment been too large to fit into memory
-	if (getGameType() == GType_SIMON1 && (getFeatures() & GF_TALKIE) && _currentTable) {
+	if (getGameType() == GType_SIMON1 && (getFeatures() & GF_TALKIE) &&
+		getPlatform() == Common::kPlatformWindows && _currentTable) {
 		if (_currentTable->id == 71 && tmp == 1 && tmp2 == 1) {
 			setScriptCondition(false);
 			return;
@@ -444,7 +443,8 @@ void AGOSEngine::o_process() {
 #ifdef __DS__
 		// HACK: Skip scene of Simon reading letter from Calypso
 		// due to speech segment been too large to fit into memory
-		if (getGameType() == GType_SIMON1 && (getFeatures() & GF_TALKIE) && sub->id == 2922) {
+		if (getGameType() == GType_SIMON1 && (getFeatures() & GF_TALKIE) &&
+			getPlatform() == Common::kPlatformWindows && sub->id == 2922) {
 			// set parent special
 			_noParentNotify = true;
 			setItemParent(derefItem(16), me());
@@ -785,7 +785,7 @@ void AGOSEngine::o_doClassIcons() {
 }
 
 void AGOSEngine::o_playTune() {
-	// 127:  play tune
+	// 127: play tune
 	uint16 music = getVarOrWord();
 	uint16 track = getVarOrWord();
 
@@ -1029,7 +1029,7 @@ int AGOSEngine::runScript() {
 			error("Invalid opcode '%d' encountered", _opcode);
 
 		executeOpcode(_opcode);
-	} while  (getScriptCondition() != flag && !getScriptReturn() && !shouldQuit());
+	} while (getScriptCondition() != flag && !getScriptReturn() && !shouldQuit());
 
 	return (shouldQuit()) ? 1 : getScriptReturn();
 }

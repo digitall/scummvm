@@ -18,13 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "groovie/groovie.h"
+#include "common/archive.h"
+#include "common/debug.h"
+#include "common/file.h"
+#include "common/macresman.h"
+#include "common/substream.h"
+#include "common/textconsole.h"
+
 #include "groovie/resource.h"
+#include "groovie/groovie.h"
 
 namespace Groovie {
 
@@ -65,7 +69,7 @@ Common::SeekableReadStream *ResMan::open(uint32 fileRef) {
 	}
 
 	// Returning the resource substream
-	return new Common::SeekableSubReadStream(gjdFile, resInfo.offset, resInfo.offset + resInfo.size, true);
+	return new Common::SeekableSubReadStream(gjdFile, resInfo.offset, resInfo.offset + resInfo.size, DisposeAfterUse::YES);
 }
 
 
@@ -73,35 +77,45 @@ Common::SeekableReadStream *ResMan::open(uint32 fileRef) {
 
 static const char t7g_gjds[][0x15] = {"at", "b", "ch", "d", "dr", "fh", "ga", "hdisk", "htbd", "intro", "jhek", "k", "la", "li", "mb", "mc", "mu", "n", "p", "xmi", "gamwav"};
 
-ResMan_t7g::ResMan_t7g() {
+ResMan_t7g::ResMan_t7g(Common::MacResManager *macResFork) : _macResFork(macResFork) {
 	for (int i = 0; i < 0x15; i++) {
 		// Prepare the filename
 		Common::String filename = t7g_gjds[i];
 		filename += ".gjd";
+
+		// Handle the special case of Mac's hdisk.gjd
+		if (_macResFork && i == 7)
+			filename = "T7GData";
 
 		// Append it to the list of GJD files
 		_gjds.push_back(filename);
 	}
 }
 
-uint16 ResMan_t7g::getRef(Common::String name, Common::String scriptname) {
+uint32 ResMan_t7g::getRef(Common::String name, Common::String scriptname) {
 	// Get the name of the RL file
 	Common::String rlFileName(t7g_gjds[_lastGjd]);
 	rlFileName += ".rl";
 
-	// Open the RL file
-	Common::File rlFile;
-	if (!rlFile.open(rlFileName)) {
-		error("Groovie::Resource: Couldn't open %s", rlFileName.c_str());
-		return false;
+	Common::SeekableReadStream *rlFile = 0;
+
+	if (_macResFork) {
+		// Open the RL file from the resource fork
+		rlFile = _macResFork->getResource(rlFileName);
+	} else {
+		// Open the RL file
+		rlFile = SearchMan.createReadStreamForMember(rlFileName);
 	}
 
-	uint16 resNum;
+	if (!rlFile)
+		error("Groovie::Resource: Couldn't open %s", rlFileName.c_str());
+
+	uint32 resNum;
 	bool found = false;
-	for (resNum = 0; !found && !rlFile.err() && !rlFile.eos(); resNum++) {
+	for (resNum = 0; !found && !rlFile->err() && !rlFile->eos(); resNum++) {
 		// Read the resource name
 		char readname[12];
-		rlFile.read(readname, 12);
+		rlFile->read(readname, 12);
 
 		// Test whether it's the resource we're searching
 		Common::String resname(readname, 12);
@@ -111,16 +125,16 @@ uint16 ResMan_t7g::getRef(Common::String name, Common::String scriptname) {
 		}
 
 		// Skip the rest of resource information
-		rlFile.read(readname, 8);
+		rlFile->read(readname, 8);
 	}
 
 	// Close the RL file
-	rlFile.close();
+	delete rlFile;
 
 	// Verify we really found the resource
 	if (!found) {
 		error("Groovie::Resource: Couldn't find resource %s in %s", name.c_str(), rlFileName.c_str());
-		return (uint16)-1;
+		return (uint32)-1;
 	}
 
 	return (_lastGjd << 10) | (resNum - 1);
@@ -135,32 +149,39 @@ bool ResMan_t7g::getResInfo(uint32 fileRef, ResInfo &resInfo) {
 	Common::String rlFileName(t7g_gjds[resInfo.gjd]);
 	rlFileName += ".rl";
 
-	// Open the RL file
-	Common::File rlFile;
-	if (!rlFile.open(rlFileName)) {
-		error("Groovie::Resource: Couldn't open %s", rlFileName.c_str());
-		return false;
+	Common::SeekableReadStream *rlFile = 0;
+
+	if (_macResFork) {
+		// Open the RL file from the resource fork
+		rlFile = _macResFork->getResource(rlFileName);
+	} else {
+		// Open the RL file
+		rlFile = SearchMan.createReadStreamForMember(rlFileName);
 	}
+
+	if (!rlFile)
+		error("Groovie::Resource: Couldn't open %s", rlFileName.c_str());
 
 	// Seek to the position of the desired resource
-	rlFile.seek(resNum * 20);
-	if (rlFile.eos()) {
-		rlFile.close();
+	rlFile->seek(resNum * 20);
+	if (rlFile->eos()) {
+		delete rlFile;
 		error("Groovie::Resource: Invalid resource number: 0x%04X (%s)", resNum, rlFileName.c_str());
-		return false;
 	}
 
-	// Read the resource name (just for debugging purposes)
-	char resname[12];
-	rlFile.read(resname, 12);
+	// Read the resource name
+	char resname[13];
+	rlFile->read(resname, 12);
+	resname[12] = 0;
 	debugC(2, kGroovieDebugResource | kGroovieDebugAll, "Groovie::Resource: Resource name: %12s", resname);
+	resInfo.filename = resname;
 
 	// Read the resource information
-	resInfo.offset = rlFile.readUint32LE();
-	resInfo.size = rlFile.readUint32LE();
+	resInfo.offset = rlFile->readUint32LE();
+	resInfo.size = rlFile->readUint32LE();
 
 	// Close the resource RL file
-	rlFile.close();
+	delete rlFile;
 
 	return true;
 }
@@ -198,8 +219,42 @@ ResMan_v2::ResMan_v2() {
 	indexfile.close();
 }
 
-uint16 ResMan_v2::getRef(Common::String name, Common::String scriptname) {
-	return 0;
+uint32 ResMan_v2::getRef(Common::String name, Common::String scriptname) {
+	// Open the RL file
+	Common::File rlFile;
+	if (!rlFile.open("dir.rl")) {
+		error("Groovie::Resource: Couldn't open dir.rl");
+		return false;
+	}
+
+	uint32 resNum;
+	bool found = false;
+	for (resNum = 0; !found && !rlFile.err() && !rlFile.eos(); resNum++) {
+		// Seek past metadata
+		rlFile.seek(14, SEEK_CUR);
+
+		// Read the resource name
+		char readname[18];
+		rlFile.read(readname, 18);
+
+		// Test whether it's the resource we're searching
+		Common::String resname(readname, 18);
+		if (resname.hasPrefix(name.c_str())) {
+			debugC(2, kGroovieDebugResource | kGroovieDebugAll, "Groovie::Resource: Resource %18s matches %s", readname, name.c_str());
+			found = true;
+		}
+	}
+
+	// Close the RL file
+	rlFile.close();
+
+	// Verify we really found the resource
+	if (!found) {
+		error("Groovie::Resource: Couldn't find resource %s", name.c_str());
+		return (uint32)-1;
+	}
+
+	return resNum;
 }
 
 bool ResMan_v2::getResInfo(uint32 fileRef, ResInfo &resInfo) {
@@ -224,10 +279,12 @@ bool ResMan_v2::getResInfo(uint32 fileRef, ResInfo &resInfo) {
 	resInfo.size = rlFile.readUint32LE();
 	resInfo.gjd = rlFile.readUint16LE();
 
-	// Read the resource name (just for debugging purposes)
-	char resname[12];
-	rlFile.read(resname, 12);
-	debugC(2, kGroovieDebugResource | kGroovieDebugAll, "Groovie::Resource: Resource name: %12s", resname);
+	// Read the resource name
+	char resname[19];
+	resname[18] = 0;
+	rlFile.read(resname, 18);
+	debugC(2, kGroovieDebugResource | kGroovieDebugAll, "Groovie::Resource: Resource name: %18s", resname);
+	resInfo.filename = resname;
 
 	// 6 padding bytes? (it looks like they're always 0)
 

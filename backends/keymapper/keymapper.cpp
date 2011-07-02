@@ -18,9 +18,6 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
 
 #include "backends/keymapper/keymapper.h"
@@ -41,7 +38,7 @@ void Keymapper::Domain::addKeymap(Keymap *map) {
 }
 
 void Keymapper::Domain::deleteAllKeyMaps() {
-	for (iterator it = begin(); it != end(); it++)
+	for (iterator it = begin(); it != end(); ++it)
 		delete it->_value;
 
 	clear();
@@ -272,6 +269,6 @@ const HardwareKey *Keymapper::findHardwareKey(const KeyState& key) {
 	return (_hardwareKeys) ? _hardwareKeys->findHardwareKey(key) : 0;
 }
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_KEYMAPPER

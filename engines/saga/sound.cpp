@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
@@ -28,14 +25,15 @@
 #include "saga/saga.h"
 #include "saga/sound.h"
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
-#include "sound/adpcm.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/adpcm.h"
+#include "audio/decoders/raw.h"
 
 namespace Saga {
 
 Sound::Sound(SagaEngine *vm, Audio::Mixer *mixer) :
-	_vm(vm), _mixer(mixer), _voxStream(0) {
+	_vm(vm), _mixer(mixer) {
 
 	for (int i = 0; i < SOUND_HANDLES; i++)
 		_handles[i].type = kFreeHandle;
@@ -44,7 +42,6 @@ Sound::Sound(SagaEngine *vm, Audio::Mixer *mixer) :
 }
 
 Sound::~Sound() {
-	delete _voxStream;
 }
 
 SndHandle *Sound::getHandle() {
@@ -60,96 +57,64 @@ SndHandle *Sound::getHandle() {
 
 	error("Sound::getHandle(): Too many sound handles");
 
-	return NULL;
+	return NULL;	// for compilers that don't support NORETURN
 }
 
-void Sound::playSoundBuffer(Audio::SoundHandle *handle, SoundBuffer &buffer, int volume,
+void Sound::playSoundBuffer(Audio::SoundHandle *handle, const SoundBuffer &buffer, int volume,
 				sndHandleType handleType, bool loop) {
-	byte flags;
 
-	flags = Audio::Mixer::FLAG_AUTOFREE;
+	Audio::RewindableAudioStream *stream = 0;
 
-	if (loop)
-		flags |= Audio::Mixer::FLAG_LOOP;
-
-	if (buffer.sampleBits == 16) {
-		flags |= Audio::Mixer::FLAG_16BITS;
-
-		if (!buffer.isBigEndian)
-			flags |= Audio::Mixer::FLAG_LITTLE_ENDIAN;
-	}
-	if (buffer.stereo)
-		flags |= Audio::Mixer::FLAG_STEREO;
-	if (!buffer.isSigned)
-		flags |= Audio::Mixer::FLAG_UNSIGNED;
+	Audio::Mixer::SoundType soundType = (handleType == kVoiceHandle) ?
+				Audio::Mixer::kSpeechSoundType : Audio::Mixer::kSFXSoundType;
 
 	if (!buffer.isCompressed) {
-		if (handleType == kVoiceHandle)
-			_mixer->playRaw(Audio::Mixer::kSpeechSoundType, handle, buffer.buffer,
-					buffer.size, buffer.frequency, flags, -1, volume);
-		else
-			_mixer->playRaw(Audio::Mixer::kSFXSoundType, handle, buffer.buffer,
-					buffer.size, buffer.frequency, flags, -1, volume);
+		stream = Audio::makeRawStream(buffer.buffer, buffer.size, buffer.frequency, buffer.flags);
 	} else {
-		Audio::AudioStream *stream = NULL;
-#if defined(USE_MAD) || defined(USE_VORBIS) || defined(USE_FLAC)
-		MemoryReadStream *tmp = NULL;
-#endif
+		Common::SeekableReadStream *memStream = new Common::MemoryReadStream(buffer.buffer, buffer.size, DisposeAfterUse::YES);
 
 		switch (buffer.soundType) {
 #ifdef USE_MAD
-			case kSoundMP3:
-				debug(1, "Playing MP3 compressed sound");
-				buffer.soundFile->seek((long)buffer.fileOffset, SEEK_SET);
-				tmp = buffer.soundFile->readStream(buffer.size);
-				assert(tmp);
-				stream = Audio::makeMP3Stream(tmp, true);
-				break;
+		case kSoundMP3:
+			stream = Audio::makeMP3Stream(memStream, DisposeAfterUse::YES);
+			break;
 #endif
 #ifdef USE_VORBIS
-			case kSoundOGG:
-				debug(1, "Playing OGG compressed sound");
-				buffer.soundFile->seek((long)buffer.fileOffset, SEEK_SET);
-				tmp = buffer.soundFile->readStream(buffer.size);
-				assert(tmp);
-				stream = Audio::makeVorbisStream(tmp, true);
-				break;
+		case kSoundOGG:
+			stream = Audio::makeVorbisStream(memStream, DisposeAfterUse::YES);
+			break;
 #endif
 #ifdef USE_FLAC
-			case kSoundFLAC:
-				debug(1, "Playing FLAC compressed sound");
-				buffer.soundFile->seek((long)buffer.fileOffset, SEEK_SET);
-				tmp = buffer.soundFile->readStream(buffer.size);
-				assert(tmp);
-				stream = Audio::makeFlacStream(tmp, true);
-				break;
+		case kSoundFLAC:
+			stream = Audio::makeFLACStream(memStream, DisposeAfterUse::YES);
+			break;
 #endif
-			default:
-				// No compression, play it as raw sound
-				if (handleType == kVoiceHandle)
-					_mixer->playRaw(Audio::Mixer::kSpeechSoundType, handle, buffer.buffer,
-							buffer.size, buffer.frequency, flags, -1, volume);
-				else
-					_mixer->playRaw(Audio::Mixer::kSFXSoundType, handle, buffer.buffer,
-							buffer.size, buffer.frequency, flags, -1, volume);
-				break;
-		}
-
-		if (stream != NULL) {
-			if (handleType == kVoiceHandle)
-				_mixer->playInputStream(Audio::Mixer::kSpeechSoundType, handle, stream, -1,
-							volume, 0, true, false);
-			else
-				_mixer->playInputStream(Audio::Mixer::kSFXSoundType, handle, stream, -1,
-							volume, 0, true, false);
+		default:
+			// Unknown compression, ignore sample
+			delete memStream;
+			warning("Unknown compression, ignoring sound");
+			break;
 		}
 	}
+
+	if (stream != NULL)
+		_mixer->playStream(soundType, handle, Audio::makeLoopingAudioStream(stream, loop ? 0 : 1), -1, volume);
 }
 
-void Sound::playSound(SoundBuffer &buffer, int volume, bool loop) {
+void Sound::playSound(SoundBuffer &buffer, int volume, bool loop, int resId) {
+	// WORKAROUND
+	// Prevent playing same looped sound for several times
+	// Fixes bug #2886141: "ITE: Cumulative Snoring sounds in Prince's Bedroom"
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kEffectHandle && _handles[i].resId == resId) {
+			debug(1, "Skipped playing SFX #%d", resId);
+			return;
+		}
+
 	SndHandle *handle = getHandle();
 
 	handle->type = kEffectHandle;
+	handle->resId = resId;
 	playSoundBuffer(&handle->handle, buffer, 2 * volume, handle->type, loop);
 }
 
@@ -170,6 +135,7 @@ void Sound::stopSound() {
 		if (_handles[i].type == kEffectHandle) {
 			_mixer->stopHandle(_handles[i].handle);
 			_handles[i].type = kFreeHandle;
+			_handles[i].resId = -1;
 		}
 }
 
@@ -206,8 +172,12 @@ void Sound::stopAll() {
 }
 
 void Sound::setVolume() {
-	_vm->_soundVolume = ConfMan.getInt("sfx_volume");
-	_vm->_speechVolume = ConfMan.getInt("speech_volume");
+	bool mute = false;
+	if (ConfMan.hasKey("mute"))
+		mute = ConfMan.getBool("mute");
+
+	_vm->_soundVolume = mute ? 0 : ConfMan.getInt("sfx_volume");
+	_vm->_speechVolume = mute ? 0 : ConfMan.getInt("speech_volume");
 	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, _vm->_soundVolume);
 	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, _vm->_speechVolume);
 }

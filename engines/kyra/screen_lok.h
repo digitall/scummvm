@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SCREEN_LOK_H
@@ -43,6 +40,7 @@ public:
 
 	void setScreenDim(int dim);
 	const ScreenDim *getScreenDim(int dim);
+	int screenDimTableCount() const { return _screenDimTableCount; }
 
 	void setTextColorMap(const uint8 *cmap);
 
@@ -58,6 +56,9 @@ public:
 
 	void addBitBlitRect(int x, int y, int w, int h);
 	void bitBlitRects();
+
+	// AMIGA specific
+	virtual void postProcessCursor(uint8 *data, int width, int height, int pitch);
 
 protected:
 	enum {
@@ -109,6 +110,6 @@ private:
 	static const uint8 _palette16[48];
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif

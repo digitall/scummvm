@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Sound class
@@ -29,10 +26,10 @@
 #define SAGA_SOUND_H
 
 #include "common/file.h"
-#include "sound/mixer.h"
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/flac.h"
+#include "audio/mixer.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/flac.h"
 
 namespace Saga {
 
@@ -44,17 +41,13 @@ enum SOUND_FLAGS {
 
 struct SoundBuffer {
 	uint16 frequency;
-	int sampleBits;
-	bool stereo;
-	bool isSigned;
 	bool isCompressed;
+	byte flags;
 
 	byte *buffer;
 	size_t size;
 	size_t originalSize;
-	bool isBigEndian;
 	GameSoundTypes soundType;
-	Common::File *soundFile;
 	size_t fileOffset;
 };
 
@@ -67,6 +60,7 @@ enum sndHandleType {
 struct SndHandle {
 	Audio::SoundHandle handle;
 	sndHandleType type;
+	int resId;
 };
 
 class Sound {
@@ -75,7 +69,7 @@ public:
 	Sound(SagaEngine *vm, Audio::Mixer *mixer);
 	~Sound();
 
-	void playSound(SoundBuffer &buffer, int volume, bool loop);
+	void playSound(SoundBuffer &buffer, int volume, bool loop, int resId);
 	void pauseSound();
 	void resumeSound();
 	void stopSound();
@@ -91,14 +85,13 @@ public:
 
  private:
 
-	void playSoundBuffer(Audio::SoundHandle *handle, SoundBuffer &buffer, int volume,
+	void playSoundBuffer(Audio::SoundHandle *handle, const SoundBuffer &buffer, int volume,
 				sndHandleType handleType, bool loop);
 
 	SndHandle *getHandle();
 
 	SagaEngine *_vm;
 	Audio::Mixer *_mixer;
-	MemoryReadStream *_voxStream;
 
 	SndHandle _handles[SOUND_HANDLES];
 };

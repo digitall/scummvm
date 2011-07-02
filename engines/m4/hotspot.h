@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_HOTSPOT_H
@@ -59,6 +56,7 @@ public:
 	void setRect(int x1, int y1, int x2, int y2);
 	void setFeet(int x, int y);
 	void setFacing(uint8 facing) { _facing = facing; }
+	void setArticle(int8 v) { _articleNumber = v; }
 	char *getVocab() const { return _vocab; }
 	int32 getVocabID() { return _vocabID; }
 	char *getVerb() const { return _verb; }
@@ -70,7 +68,10 @@ public:
 	uint8 getFacing() const { return _facing; }
 	int getFeetX() { return _feetX; }
 	int getFeetY() { return _feetY; }
+	int8 getArticle() const { return _articleNumber; }
 	Common::Rect getRect() const;
+	int getIndex() const { return _index; }
+	void setIndex(int index) { _index = index; }
 
 	int32 area() const { return (_rect.width() - 1) * (_rect.height() - 1); }
 	bool pointInside(int x, int y) { return _rect.contains(x, y); }
@@ -81,10 +82,13 @@ private:
 	bool _active;
 	int _feetX, _feetY;
 	uint8 _facing, _cursor;
+	int _index;
 
 	// Unused in Orion Burger, used in MADS games
 	uint8 _syntax;
 	int32 _vocabID, _verbID;
+	int8 _articleNumber;
+
 	//TODO: check if this is actually needed by the game
 	int16 _hash;
 };
@@ -96,6 +100,8 @@ public:
 
 	int add(HotSpot *hotspot, bool head = false);
 	HotSpot *get(int index) { return _hotspots[index]; }
+	HotSpot &operator[](int idx) { return *get(idx); }
+	int size() const { return _hotspots.size(); }
 	void remove(HotSpot *hotspot);
 	void unlinkItem(HotSpot *hotspot);
 	void clear();

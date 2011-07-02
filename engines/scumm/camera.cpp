@@ -17,9 +17,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "scumm/scumm.h"
@@ -76,7 +73,7 @@ void ScummEngine::setCameraFollows(Actor *a, bool setCamera) {
 
 	t = a->getPos().x / 8 - _screenStartStrip;
 
-	if (t < camera._leftTrigger || t  > camera._rightTrigger || setCamera == true)
+	if (t < camera._leftTrigger || t > camera._rightTrigger || setCamera == true)
 		setCameraAt(a->getPos().x, 0);
 
 	for (i = 1; i < _numActors; i++) {

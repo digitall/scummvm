@@ -18,15 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGI_SPRITE_H
 #define AGI_SPRITE_H
-
-#include "common/list.h"
 
 namespace Agi {
 
@@ -67,7 +62,7 @@ private:
 	void buildUpdBlitlist();
 	void buildNonupdBlitlist();
 	void freeList(SpriteList &l);
-	void commitSprites(SpriteList &l);
+	void commitSprites(SpriteList &l, bool immediate = false);
 	void eraseSprites(SpriteList &l);
 	void blitSprites(SpriteList &l);
 	static bool testUpdating(VtEntry *v, AgiEngine *);
@@ -90,7 +85,7 @@ public:
 	void commitBoth();
 	void addToPic(int, int, int, int, int, int, int);
 	void showObj(int);
-	void commitBlock(int, int, int, int);
+	void commitBlock(int x1, int y1, int x2, int y2, bool immediate = false);
 };
 
 } // End of namespace Agi

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_PART_H
@@ -37,10 +34,8 @@ struct PartBuffer {
 
 #define NUM_MAX_PARTDATA 255
 
-extern Common::Array<PartBuffer> partBuffer;
-
 void loadPart(const char *partName);
-void closePart(void);
+void closePart();
 
 int16 findFileInBundle(const char *fileName);
 

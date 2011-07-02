@@ -18,15 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
+#include "common/textconsole.h"
 
-#include "sound/audiostream.h"
-#include "sound/wave.h"
+#include "audio/audiostream.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/wave.h"
+
+#include "graphics/palette.h"
 
 #include "tucker/tucker.h"
 #include "tucker/graphics.h"
@@ -35,7 +36,7 @@ namespace Tucker {
 
 void TuckerEngine::handleIntroSequence() {
 	const int firstSequence = (_gameFlags & kGameFlagDemo) != 0 ? kFirstAnimationSequenceDemo : kFirstAnimationSequenceGame;
-	_player = new AnimationSequencePlayer(_system, _mixer, _eventMan, firstSequence);
+	_player = new AnimationSequencePlayer(_system, _mixer, _eventMan, &_compressedSound, firstSequence);
 	_player->mainLoop();
 	delete _player;
 	_player = 0;
@@ -57,12 +58,8 @@ void TuckerEngine::handleCreditsSequence() {
 	_flagsTable[236] = 74;
 	uint8 *imgBuf = (uint8 *)malloc(16 * 64000);
 	loadSprC02_01();
+	clearSprites();
 	_spritesCount = _creditsSequenceSpriteCounts[num];
-	for (int i = 0; i < _spritesCount; ++i) {
-		memset(&_spritesTable[i], 0, sizeof(Sprite));
-		_spritesTable[i].state = -1;
-		_spritesTable[i].stateIndex = -1;
-	}
 	loadFile("credits.txt", _ptTextBuf);
 	loadImage("loc74.pcx", _quadBackgroundGfxBuf, 1);
 	startSpeechSound(9001, 120);
@@ -84,7 +81,7 @@ void TuckerEngine::handleCreditsSequence() {
 			Graphics::copyRect(_locationBackgroundGfxBuf, 640, _quadBackgroundGfxBuf, 320, 320, 200);
 		} else {
 			Graphics::copyRect(_locationBackgroundGfxBuf, 640, imgBuf + imgNum * 64000, 320, 320, 200);
-			static const int yPosTable[] = { 48, 60, 80, 92, 140, 116 };
+			static const int yPosTable[] = { 48, 60, 80, 92, 104, 116 };
 			for (int i = 0; i < 6; ++i) {
 				drawCreditsString(5, yPosTable[i], counter2 * 6 + i);
 			}
@@ -96,10 +93,10 @@ void TuckerEngine::handleCreditsSequence() {
 			}
 			if (counter1 > 116) {
 				counter1 = 0;
-			}
-			++counter2;
-			if (counter2 > 17) {
-				counter2 = 0;
+				++counter2;
+				if (counter2 > 17) {
+					counter2 = 0;
+				}
 			}
 		}
 		_fullRedraw = true;
@@ -113,42 +110,36 @@ void TuckerEngine::handleCreditsSequence() {
 		}
 		redrawScreen(0);
 		waitForTimer(3);
-		_timerCounter1 = 0;
 		counter4 = _timerCounter2 / 3;
 		if (counter4 == _creditsSequenceTimecounts[num]) {
 			_fadePaletteCounter = 0;
-			_spritesCount = _creditsSequenceSpriteCounts[num];
-			for (int i = 0; i < _spritesCount; ++i) {
-				memset(&_spritesTable[i], 0, sizeof(Sprite));
-				_spritesTable[i].state = -1;
-				_spritesTable[i].stateIndex = -1;
-			}
+			clearSprites();
 			++num;
-			char filename[40];
+			Common::String filename;
 			if (num == 6) {
 				for (int i = 0; i < 16; ++i) {
-					sprintf(filename, "cogs%04d.pcx", i);
-					loadImage(filename, imgBuf + i * 64000, 2);
+					filename = Common::String::format("cogs%04d.pcx", i + 1);
+					loadImage(filename.c_str(), imgBuf + i * 64000, 2);
 				}
 			} else {
 				switch (num) {
 				case 1:
-					strcpy(filename, "loc75.pcx");
+					filename = "loc75.pcx";
 					break;
 				case 2:
-					strcpy(filename, "loc76.pcx");
+					filename = "loc76.pcx";
 					break;
 				case 3:
-					strcpy(filename, "paper-3.pcx");
+					filename = "paper-3.pcx";
 					break;
 				case 4:
-					strcpy(filename, "loc77.pcx");
+					filename = "loc77.pcx";
 					break;
 				case 5:
-					strcpy(filename, "loc78.pcx");
+					filename = "loc78.pcx";
 					break;
 				}
-				loadImage(filename, _quadBackgroundGfxBuf, 2);
+				loadImage(filename.c_str(), _quadBackgroundGfxBuf, 2);
 			}
 			_spritesCount = _creditsSequenceSpriteCounts[num];
 			++_flagsTable[236];
@@ -215,9 +206,7 @@ void TuckerEngine::handleNewPartSequence() {
 	}
 	loadImage(filename, _quadBackgroundGfxBuf, 1);
 	_spritesCount = 1;
-	memset(&_spritesTable[0], 0, sizeof(Sprite));
-	_spritesTable[0].state = -1;
-	_spritesTable[0].stateIndex = -1;
+	clearSprites();
 	int currentLocation = _locationNum;
 	_locationNum = 98;
 	unloadSprA02_01();
@@ -492,8 +481,8 @@ int TuckerEngine::handleSpecialObjectSelectionSequence() {
 	return 1;
 }
 
-AnimationSequencePlayer::AnimationSequencePlayer(OSystem *system, Audio::Mixer *mixer, Common::EventManager *event, int num)
-	: _system(system), _mixer(mixer), _event(event), _seqNum(num) {
+AnimationSequencePlayer::AnimationSequencePlayer(OSystem *system, Audio::Mixer *mixer, Common::EventManager *event, CompressedSound *sound, int num)
+	: _system(system), _mixer(mixer), _event(event), _compressedSound(sound), _seqNum(num) {
 	memset(_animationPalette, 0, sizeof(_animationPalette));
 	_soundSeqDataCount = 0;
 	_soundSeqDataIndex = 0;
@@ -501,7 +490,6 @@ AnimationSequencePlayer::AnimationSequencePlayer(OSystem *system, Audio::Mixer *
 	_offscreenBuffer = (uint8 *)malloc(kScreenWidth * kScreenHeight);
 	_updateScreenWidth = 0;
 	_updateScreenPicture = false;
-	_updateScreenOffset = 0;
 	_picBufPtr = _pic2BufPtr = 0;
 }
 
@@ -545,6 +533,12 @@ void AnimationSequencePlayer::mainLoop() {
 			if (_seqNum == 1) {
 				break;
 			}
+			// budttle2.flc is shorter in french version ; start the background music
+			// earlier and skip any sounds effects
+			if (_seqNum == 19 && _flicPlayer[0].getFrameCount() == 126) {
+				_soundSeqDataIndex = 6;
+				_frameCounter = 80;
+			}
 		}
 		(this->*(_updateFunc[_updateFuncIndex].play))();
 		if (_changeToNextSequence) {
@@ -555,7 +549,7 @@ void AnimationSequencePlayer::mainLoop() {
 			updateSounds();
 		}
 		_system->copyRectToScreen(_offscreenBuffer, kScreenWidth, 0, 0, kScreenWidth, kScreenHeight);
-		_system->setPalette(_animationPalette, 0, 256);
+		_system->getPaletteManager()->setPalette(_animationPalette, 0, 256);
 		_system->updateScreen();
 		syncTime();
 	} while (_seqNum != 1);
@@ -585,10 +579,12 @@ void AnimationSequencePlayer::syncTime() {
 	} while (_lastFrameTime <= end);
 }
 
-Audio::AudioStream *AnimationSequencePlayer::loadSoundFileAsStream(int index, AnimationSoundType type) {
-	Audio::AudioStream *stream = 0;
-	char fileName[64];
-	snprintf(fileName, sizeof(fileName), "audio/%s", _audioFileNamesTable[index]);
+Audio::RewindableAudioStream *AnimationSequencePlayer::loadSound(int index, AnimationSoundType type) {
+	Audio::RewindableAudioStream *stream = _compressedSound->load(kSoundTypeIntro, index);
+	if (stream)
+		return stream;
+
+	Common::String fileName = Common::String::format("audio/%s", _audioFileNamesTable[index]);
 	Common::File f;
 	if (f.open(fileName)) {
 		int size = 0, rate = 0;
@@ -598,27 +594,23 @@ Audio::AudioStream *AnimationSequencePlayer::loadSoundFileAsStream(int index, An
 		case kAnimationSoundType16BitsRAW:
 			size = f.size();
 			rate = 22050;
-			flags = Audio::Mixer::FLAG_UNSIGNED;
-			if (type == kAnimationSoundType16BitsRAW) {
-				flags = Audio::Mixer::FLAG_LITTLE_ENDIAN | Audio::Mixer::FLAG_16BITS;
+			flags = Audio::FLAG_UNSIGNED;
+			if (type == kAnimationSoundType16BitsRAW)
+				flags = Audio::FLAG_LITTLE_ENDIAN | Audio::FLAG_16BITS;
+
+			if (size != 0) {
+				uint8 *sampleData = (uint8 *)malloc(size);
+				if (sampleData) {
+					f.read(sampleData, size);
+					stream = Audio::makeRawStream(sampleData, size, rate, flags);
+				}
 			}
 			break;
 		case kAnimationSoundTypeWAV:
-		case kAnimationSoundTypeLoopingWAV:
-			Audio::loadWAVFromStream(f, size, rate, flags);
-			if (type == kAnimationSoundTypeLoopingWAV) {
-				flags |= Audio::Mixer::FLAG_LOOP;
-			}
+			stream = Audio::makeWAVStream(&f, DisposeAfterUse::NO);
 			break;
 		}
-		if (size != 0) {
-			uint8 *sampleData = (uint8 *)malloc(size);
-			if (sampleData) {
-				f.read(sampleData, size);
-				flags |= Audio::Mixer::FLAG_AUTOFREE;
-				stream = Audio::makeLinearInputStream(sampleData, size, rate, flags, 0, 0);
-			}
-		}
+
 	}
 	return stream;
 }
@@ -626,8 +618,8 @@ Audio::AudioStream *AnimationSequencePlayer::loadSoundFileAsStream(int index, An
 void AnimationSequencePlayer::loadSounds(int num) {
 	if (_soundSeqDataList[num].musicVolume != 0) {
 		Audio::AudioStream *s;
-		if ((s = loadSoundFileAsStream(_soundSeqDataList[num].musicIndex, kAnimationSoundType8BitsRAW)) != 0) {
-			_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_musicHandle, s, -1, scaleMixerVolume(_soundSeqDataList[num].musicVolume));
+		if ((s = loadSound(_soundSeqDataList[num].musicIndex, kAnimationSoundType8BitsRAW)) != 0) {
+			_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle, s, -1, scaleMixerVolume(_soundSeqDataList[num].musicVolume));
 		}
 	}
 	_soundSeqDataIndex = 0;
@@ -636,18 +628,19 @@ void AnimationSequencePlayer::loadSounds(int num) {
 }
 
 void AnimationSequencePlayer::updateSounds() {
-	Audio::AudioStream *s = 0;
+	Audio::RewindableAudioStream *s = 0;
 	const SoundSequenceData *p = &_soundSeqData[_soundSeqDataIndex];
 	while (_soundSeqDataIndex < _soundSeqDataCount && p->timestamp <= _frameCounter) {
 		switch (p->opcode) {
 		case 0:
-			if ((s = loadSoundFileAsStream(p->num, kAnimationSoundTypeWAV)) != 0) {
-				_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_soundsHandle[p->index], s, -1, scaleMixerVolume(p->volume));
+			if ((s = loadSound(p->num, kAnimationSoundTypeWAV)) != 0) {
+				_mixer->playStream(Audio::Mixer::kSFXSoundType, &_soundsHandle[p->index], s, -1, scaleMixerVolume(p->volume));
 			}
 			break;
 		case 1:
-			if ((s = loadSoundFileAsStream(p->num, kAnimationSoundTypeLoopingWAV)) != 0) {
-				_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_soundsHandle[p->index], s, -1, scaleMixerVolume(p->volume));
+			if ((s = loadSound(p->num, kAnimationSoundTypeWAV)) != 0) {
+				_mixer->playStream(Audio::Mixer::kSFXSoundType, &_soundsHandle[p->index], Audio::makeLoopingAudioStream(s, 0),
+				                        -1, scaleMixerVolume(p->volume));
 			}
 			break;
 		case 2:
@@ -658,19 +651,19 @@ void AnimationSequencePlayer::updateSounds() {
 			break;
 		case 4:
 			_mixer->stopHandle(_musicHandle);
-			if ((s = loadSoundFileAsStream(p->num, kAnimationSoundType8BitsRAW)) != 0) {
-				_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_musicHandle, s, -1, scaleMixerVolume(p->volume));
+			if ((s = loadSound(p->num, kAnimationSoundType8BitsRAW)) != 0) {
+				_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle, s, -1, scaleMixerVolume(p->volume));
 			}
 			break;
 		case 5:
-			if ((s = loadSoundFileAsStream(p->num, kAnimationSoundTypeWAV)) != 0) {
-				_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_sfxHandle, s, -1, scaleMixerVolume(p->volume));
+			if ((s = loadSound(p->num, kAnimationSoundTypeWAV)) != 0) {
+				_mixer->playStream(Audio::Mixer::kSFXSoundType, &_sfxHandle, s, -1, scaleMixerVolume(p->volume));
 			}
 			break;
 		case 6:
 			_mixer->stopHandle(_musicHandle);
-			if ((s = loadSoundFileAsStream(p->num, kAnimationSoundType16BitsRAW)) != 0) {
-				_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_musicHandle, s, -1, scaleMixerVolume(p->volume));
+			if ((s = loadSound(p->num, kAnimationSoundType16BitsRAW)) != 0) {
+				_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle, s, -1, scaleMixerVolume(p->volume));
 			}
 			break;
 		default:
@@ -683,20 +676,20 @@ void AnimationSequencePlayer::updateSounds() {
 }
 
 void AnimationSequencePlayer::fadeInPalette() {
-	uint8 paletteBuffer[256 * 4];
+	uint8 paletteBuffer[256 * 3];
 	memset(paletteBuffer, 0, sizeof(paletteBuffer));
 	bool fadeColors = true;
 	for (int step = 0; step < 64; ++step) {
 		if (fadeColors) {
 			fadeColors = false;
-			for (int i = 0; i < 1024; ++i) {
-				if ((i & 3) != 3 && paletteBuffer[i] < _animationPalette[i]) {
+			for (int i = 0; i < 3*256; ++i) {
+				if (paletteBuffer[i] < _animationPalette[i]) {
 					const int color = paletteBuffer[i] + 4;
 					paletteBuffer[i] = MIN<int>(color, _animationPalette[i]);
 					fadeColors = true;
 				}
 			}
-			_system->setPalette(paletteBuffer, 0, 256);
+			_system->getPaletteManager()->setPalette(paletteBuffer, 0, 256);
 			_system->updateScreen();
 		}
 		_system->delayMillis(1000 / 60);
@@ -704,20 +697,20 @@ void AnimationSequencePlayer::fadeInPalette() {
 }
 
 void AnimationSequencePlayer::fadeOutPalette() {
-	uint8 paletteBuffer[256 * 4];
-	memcpy(paletteBuffer, _animationPalette, 1024);
+	uint8 paletteBuffer[256 * 3];
+	memcpy(paletteBuffer, _animationPalette, 3*256);
 	bool fadeColors = true;
 	for (int step = 0; step < 64; ++step) {
 		if (fadeColors) {
 			fadeColors = false;
-			for (int i = 0; i < 1024; ++i) {
-				if ((i & 3) != 3 && paletteBuffer[i] > 0) {
+			for (int i = 0; i < 3*256; ++i) {
+				if (paletteBuffer[i] > 0) {
 					const int color = paletteBuffer[i] - 4;
 					paletteBuffer[i] = MAX<int>(0, color);
 					fadeColors = true;
 				}
 			}
-			_system->setPalette(paletteBuffer, 0, 256);
+			_system->getPaletteManager()->setPalette(paletteBuffer, 0, 256);
 			_system->updateScreen();
 		}
 		_system->delayMillis(1000 / 60);
@@ -747,13 +740,7 @@ uint8 *AnimationSequencePlayer::loadPicture(const char *fileName) {
 }
 
 void AnimationSequencePlayer::getRGBPalette(int index) {
-	const byte *rgbPalette = _flicPlayer[index].getPalette();
-	for (int i = 0; i < 256; i++) {
-		_animationPalette[i * 4 + 0] = rgbPalette[i * 3 + 0];
-		_animationPalette[i * 4 + 1] = rgbPalette[i * 3 + 1];
-		_animationPalette[i * 4 + 2] = rgbPalette[i * 3 + 2];
-		_animationPalette[i * 4 + 3] = 0;
-	}
+	memcpy(_animationPalette, _flicPlayer[index].getPalette(), 3 * 256);
 }
 
 void AnimationSequencePlayer::openAnimation(int index, const char *fileName) {
@@ -769,20 +756,22 @@ void AnimationSequencePlayer::openAnimation(int index, const char *fileName) {
 	}
 }
 
-bool AnimationSequencePlayer::decodeNextAnimationFrame(int index) {
-	bool framesLeft = _flicPlayer[index].decodeNextFrame();
-	if (_seqNum == 19) {
-		_flicPlayer[index].copyFrameToBuffer(_offscreenBuffer, 0, 0, kScreenWidth);
+bool AnimationSequencePlayer::decodeNextAnimationFrame(int index, bool copyDirtyRects) {
+	const ::Graphics::Surface *surface = _flicPlayer[index].decodeNextFrame();
+
+	if (!copyDirtyRects) {
+		for (uint16 y = 0; (y < surface->h) && (y < kScreenHeight); y++)
+			memcpy(_offscreenBuffer + y * kScreenWidth, (byte *)surface->pixels + y * surface->pitch, surface->w);
 	} else {
 		_flicPlayer[index].copyDirtyRectsToBuffer(_offscreenBuffer, kScreenWidth);
-		++_frameCounter;
 	}
-	if (index == 0) {
-		if (_flicPlayer[index].paletteChanged()) {
-			getRGBPalette(index);
-		}
-	}
-	return framesLeft;
+
+	++_frameCounter;
+
+	if (index == 0 && _flicPlayer[index].hasDirtyPalette())
+		getRGBPalette(index);
+
+	return !_flicPlayer[index].endOfVideo();
 }
 
 void AnimationSequencePlayer::loadIntroSeq17_18() {
@@ -807,20 +796,23 @@ void AnimationSequencePlayer::playIntroSeq19_20() {
 	// The intro credits animation. This uses 2 animations: the foreground one, which
 	// is the actual intro credits, and the background one, which is an animation of
 	// cogs, and is being replayed when an intro credit appears
-	if (_flicPlayer[0].getCurFrame() >= 116) {
-		if (!_flicPlayer[1].decodeNextFrame()) {
+	const ::Graphics::Surface *surface = 0;
+
+	if (_flicPlayer[0].getCurFrame() >= 115) {
+		surface = _flicPlayer[1].decodeNextFrame();
+		if (_flicPlayer[1].endOfVideo())
 			_flicPlayer[1].reset();
-		}
 	}
-	bool framesLeft = decodeNextAnimationFrame(0);
-	for (int i = 0; i < kScreenWidth * kScreenHeight; ++i) {
-		if (_offscreenBuffer[i] == 0) {
-			_offscreenBuffer[i] = _flicPlayer[1].getPixel(i);
-		}
-	}
-	if (!framesLeft) {
+
+	bool framesLeft = decodeNextAnimationFrame(0, false);
+
+	if (surface)
+		for (int i = 0; i < kScreenWidth * kScreenHeight; ++i)
+			if (_offscreenBuffer[i] == 0)
+				_offscreenBuffer[i] = *((byte *)surface->pixels + i);
+
+	if (!framesLeft)
 		_changeToNextSequence = true;
-	}
 }
 
 void AnimationSequencePlayer::displayLoadingScreen() {
@@ -828,9 +820,7 @@ void AnimationSequencePlayer::displayLoadingScreen() {
 	if (f.open("graphics/loading.pic")) {
 		fadeOutPalette();
 		f.seek(32);
-		for (int i = 0; i < 1024; i += 4) {
-			f.read(_animationPalette + i, 3);
-		}
+		f.read(_animationPalette, 3 * 256);
 		f.read(_offscreenBuffer, 64000);
 		_system->copyRectToScreen(_offscreenBuffer, 320, 0, 0, kScreenWidth, kScreenHeight);
 		fadeInPalette();
@@ -840,19 +830,23 @@ void AnimationSequencePlayer::displayLoadingScreen() {
 void AnimationSequencePlayer::initPicPart4() {
 	_updateScreenWidth = 320;
 	_updateScreenPicture = true;
-	_updateScreenOffset = 0;
+	_updateScreenCounter = 0;
+	_updateScreenIndex = -1;
 }
 
 void AnimationSequencePlayer::drawPicPart4() {
-	static const uint8 offsetsTable[77] = {
-		1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,
-		5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-		6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-		6, 6, 6, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3,
-		3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1
-	};
-	_updateScreenWidth = _updateScreenWidth - offsetsTable[_updateScreenOffset];
-	++_updateScreenOffset;
+	static const uint8 offsets[] = { 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1 };
+	if (_updateScreenIndex == -1) {
+		memcpy(_animationPalette, _picBufPtr + 32, 3 * 256);
+	}
+	if (_updateScreenCounter == 0) {
+		static const uint8 counter[] = { 1, 2, 3, 4, 5, 35, 5, 4, 3, 2, 1 };
+		++_updateScreenIndex;
+		assert(_updateScreenIndex < ARRAYSIZE(counter));
+		_updateScreenCounter = counter[_updateScreenIndex];
+	}
+	--_updateScreenCounter;
+	_updateScreenWidth -= offsets[_updateScreenIndex];
 	for (int y = 0; y < 200; ++y) {
 		memcpy(_offscreenBuffer + y * 320, _picBufPtr + 800 + y * 640 + _updateScreenWidth, 320);
 	}
@@ -874,7 +868,7 @@ void AnimationSequencePlayer::loadIntroSeq3_4() {
 void AnimationSequencePlayer::playIntroSeq3_4() {
 	if (!_updateScreenPicture) {
 		bool framesLeft = decodeNextAnimationFrame(0);
-		if (_flicPlayer[0].getCurFrame() == 706) {
+		if (_flicPlayer[0].getCurFrame() == 705) {
 			initPicPart4();
 		}
 		if (!framesLeft) {
@@ -916,10 +910,11 @@ void AnimationSequencePlayer::drawPic1Part10() {
 	int offset = 0;
 	for (int y = 0; y < kScreenHeight; ++y) {
 		for (int x = 0; x < kScreenWidth; ++x) {
-			byte color = _flicPlayer[0].getPixel(offset);
-			if (color == 0) {
+			byte color = _offscreenBuffer[offset];
+
+			if (color == 0)
 				color = _picBufPtr[800 + y * 640 + _updateScreenWidth + x];
-			}
+
 			_offscreenBuffer[offset++] = color;
 		}
 	}
@@ -934,20 +929,22 @@ void AnimationSequencePlayer::loadIntroSeq9_10() {
 }
 
 void AnimationSequencePlayer::playIntroSeq9_10() {
-	bool framesLeft = decodeNextAnimationFrame(0);
-	if (_flicPlayer[0].getCurFrame() >= 264 && _flicPlayer[0].getCurFrame() <= 295) {
+	const int nextFrame = _flicPlayer[0].getCurFrame() + 1;
+	if (nextFrame >= 263 && nextFrame <= 294) {
+		decodeNextAnimationFrame(0, false);
 		drawPic1Part10();
 		_updateScreenWidth += 6;
-	} else if (_flicPlayer[0].getCurFrame() == 984) {
+	} else if (nextFrame == 983) {
+		decodeNextAnimationFrame(0);
 		drawPic2Part10();
-	} else if (_flicPlayer[0].getCurFrame() >= 988 && _flicPlayer[0].getCurFrame() <= 996) {
+	} else if (nextFrame >= 987 && nextFrame <= 995) {
+		decodeNextAnimationFrame(0, false);
 		drawPic1Part10();
 		_updateScreenWidth -= 25;
 		if (_updateScreenWidth < 0) {
 			_updateScreenWidth = 0;
 		}
-	}
-	if (!framesLeft) {
+	} else if (!decodeNextAnimationFrame(0)) {
 		_changeToNextSequence = true;
 	}
 }

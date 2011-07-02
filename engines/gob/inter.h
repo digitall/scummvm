@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_INTER_H
@@ -31,18 +28,20 @@
 
 #include "gob/goblin.h"
 #include "gob/variables.h"
+#include "gob/iniconfig.h"
+#include "gob/databases.h"
 
 namespace Gob {
 
 // This is to help devices with small memory (PDA, smartphones, ...)
-// to save abit of memory used by opcode names in the Scumm engine.
+// to save a bit of memory used by opcode names in the Gob engine.
 #ifndef REDUCE_MEMORY_USAGE
 	#define _OPCODEDRAW(ver, x)  setProc(new Common::Functor0Mem<void, ver>(this, &ver::x), #x)
-	#define _OPCODEFUNC(ver, x)  setProc(new Common::Functor1Mem<OpFuncParams &, bool, ver>(this, &ver::x), #x)
+	#define _OPCODEFUNC(ver, x)  setProc(new Common::Functor1Mem<OpFuncParams &, void, ver>(this, &ver::x), #x)
 	#define _OPCODEGOB(ver, x)   setProc(new Common::Functor1Mem<OpGobParams &, void, ver>(this, &ver::x), #x)
 #else
 	#define _OPCODEDRAW(ver, x)  setProc(new Common::Functor0Mem<void, ver>(this, &ver::x), "")
-	#define _OPCODEFUNC(ver, x)  setProc(new Common::Functor1Mem<OpFuncParams &, bool, ver>(this, &ver::x), "")
+	#define _OPCODEFUNC(ver, x)  setProc(new Common::Functor1Mem<OpFuncParams &, void, ver>(this, &ver::x), "")
 	#define _OPCODEGOB(ver, x)   setProc(new Common::Functor1Mem<OpGobParams &, void, ver>(this, &ver::x), "")
 #endif
 
@@ -51,13 +50,14 @@ namespace Gob {
 #define CLEAROPCODEGOB(i)  _opcodesGob.erase(i)
 
 typedef Common::Functor0<void> OpcodeDraw;
-typedef Common::Functor1<struct OpFuncParams &, bool> OpcodeFunc;
+typedef Common::Functor1<struct OpFuncParams &, void> OpcodeFunc;
 typedef Common::Functor1<struct OpGobParams &, void> OpcodeGob;
 
 struct OpFuncParams {
 	byte cmdCount;
 	byte counter;
 	int16 retFlag;
+	bool doReturn;
 };
 struct OpGobParams {
 	int16 extraData;
@@ -129,8 +129,7 @@ protected:
 	int16 _animPalHighIndex[8];
 	int16 _animPalDir[8];
 
-	byte _varStack[300];
-	int16 _varStackPos;
+	VariableStack _varStack;
 
 	// The busy-wait detection in o1_keyFunc breaks fast scrolling in Ween
 	bool _noBusyWait;
@@ -138,7 +137,7 @@ protected:
 	GobEngine *_vm;
 
 	void executeOpcodeDraw(byte i);
-	bool executeOpcodeFunc(byte i, byte j, OpFuncParams &params);
+	void executeOpcodeFunc(byte i, byte j, OpFuncParams &params);
 	void executeOpcodeGob(int i, OpGobParams &params);
 
 	const char *getDescOpcodeDraw(byte i);
@@ -152,8 +151,16 @@ protected:
 	virtual void checkSwitchTable(uint32 &offset) = 0;
 
 	void o_drawNOP() {}
-	bool o_funcNOP(OpFuncParams &params) { return false; }
+	void o_funcNOP(OpFuncParams &params) {}
 	void o_gobNOP(OpGobParams &params) {}
+
+	void storeValue(uint16 index, uint16 type, uint32 value);
+	void storeValue(uint32 value);
+
+	void storeString(uint16 index, uint16 type, const char *value);
+	void storeString(const char *value);
+
+	uint32 readValue(uint16 index, uint16 type);
 };
 
 class Inter_v1 : public Inter {
@@ -196,63 +203,63 @@ protected:
 	void o1_stopCD();
 	void o1_loadFontToSprite();
 	void o1_freeFontToSprite();
-	bool o1_callSub(OpFuncParams &params);
-	bool o1_printTotText(OpFuncParams &params);
-	bool o1_loadCursor(OpFuncParams &params);
-	bool o1_switch(OpFuncParams &params);
-	bool o1_repeatUntil(OpFuncParams &params);
-	bool o1_whileDo(OpFuncParams &params);
-	bool o1_if(OpFuncParams &params);
-	bool o1_assign(OpFuncParams &params);
-	bool o1_loadSpriteToPos(OpFuncParams &params);
-	bool o1_printText(OpFuncParams &params);
-	bool o1_loadTot(OpFuncParams &params);
-	bool o1_palLoad(OpFuncParams &params);
-	bool o1_keyFunc(OpFuncParams &params);
-	bool o1_capturePush(OpFuncParams &params);
-	bool o1_capturePop(OpFuncParams &params);
-	bool o1_animPalInit(OpFuncParams &params);
-	bool o1_drawOperations(OpFuncParams &params);
-	bool o1_setcmdCount(OpFuncParams &params);
-	bool o1_return(OpFuncParams &params);
-	bool o1_renewTimeInVars(OpFuncParams &params);
-	bool o1_speakerOn(OpFuncParams &params);
-	bool o1_speakerOff(OpFuncParams &params);
-	bool o1_putPixel(OpFuncParams &params);
-	bool o1_goblinFunc(OpFuncParams &params);
-	bool o1_createSprite(OpFuncParams &params);
-	bool o1_freeSprite(OpFuncParams &params);
-	bool o1_returnTo(OpFuncParams &params);
-	bool o1_loadSpriteContent(OpFuncParams &params);
-	bool o1_copySprite(OpFuncParams &params);
-	bool o1_fillRect(OpFuncParams &params);
-	bool o1_drawLine(OpFuncParams &params);
-	bool o1_strToLong(OpFuncParams &params);
-	bool o1_invalidate(OpFuncParams &params);
-	bool o1_setBackDelta(OpFuncParams &params);
-	bool o1_playSound(OpFuncParams &params);
-	bool o1_stopSound(OpFuncParams &params);
-	bool o1_loadSound(OpFuncParams &params);
-	bool o1_freeSoundSlot(OpFuncParams &params);
-	bool o1_waitEndPlay(OpFuncParams &params);
-	bool o1_playComposition(OpFuncParams &params);
-	bool o1_getFreeMem(OpFuncParams &params);
-	bool o1_checkData(OpFuncParams &params);
-	bool o1_cleanupStr(OpFuncParams &params);
-	bool o1_insertStr(OpFuncParams &params);
-	bool o1_cutStr(OpFuncParams &params);
-	bool o1_strstr(OpFuncParams &params);
-	bool o1_istrlen(OpFuncParams &params);
-	bool o1_setMousePos(OpFuncParams &params);
-	bool o1_setFrameRate(OpFuncParams &params);
-	bool o1_animatePalette(OpFuncParams &params);
-	bool o1_animateCursor(OpFuncParams &params);
-	bool o1_blitCursor(OpFuncParams &params);
-	bool o1_loadFont(OpFuncParams &params);
-	bool o1_freeFont(OpFuncParams &params);
-	bool o1_readData(OpFuncParams &params);
-	bool o1_writeData(OpFuncParams &params);
-	bool o1_manageDataFile(OpFuncParams &params);
+	void o1_callSub(OpFuncParams &params);
+	void o1_printTotText(OpFuncParams &params);
+	void o1_loadCursor(OpFuncParams &params);
+	void o1_switch (OpFuncParams &params);
+	void o1_repeatUntil(OpFuncParams &params);
+	void o1_whileDo(OpFuncParams &params);
+	void o1_if(OpFuncParams &params);
+	void o1_assign(OpFuncParams &params);
+	void o1_loadSpriteToPos(OpFuncParams &params);
+	void o1_printText(OpFuncParams &params);
+	void o1_loadTot(OpFuncParams &params);
+	void o1_palLoad(OpFuncParams &params);
+	void o1_keyFunc(OpFuncParams &params);
+	void o1_capturePush(OpFuncParams &params);
+	void o1_capturePop(OpFuncParams &params);
+	void o1_animPalInit(OpFuncParams &params);
+	void o1_drawOperations(OpFuncParams &params);
+	void o1_setcmdCount(OpFuncParams &params);
+	void o1_return(OpFuncParams &params);
+	void o1_renewTimeInVars(OpFuncParams &params);
+	void o1_speakerOn(OpFuncParams &params);
+	void o1_speakerOff(OpFuncParams &params);
+	void o1_putPixel(OpFuncParams &params);
+	void o1_goblinFunc(OpFuncParams &params);
+	void o1_createSprite(OpFuncParams &params);
+	void o1_freeSprite(OpFuncParams &params);
+	void o1_returnTo(OpFuncParams &params);
+	void o1_loadSpriteContent(OpFuncParams &params);
+	void o1_copySprite(OpFuncParams &params);
+	void o1_fillRect(OpFuncParams &params);
+	void o1_drawLine(OpFuncParams &params);
+	void o1_strToLong(OpFuncParams &params);
+	void o1_invalidate(OpFuncParams &params);
+	void o1_setBackDelta(OpFuncParams &params);
+	void o1_playSound(OpFuncParams &params);
+	void o1_stopSound(OpFuncParams &params);
+	void o1_loadSound(OpFuncParams &params);
+	void o1_freeSoundSlot(OpFuncParams &params);
+	void o1_waitEndPlay(OpFuncParams &params);
+	void o1_playComposition(OpFuncParams &params);
+	void o1_getFreeMem(OpFuncParams &params);
+	void o1_checkData(OpFuncParams &params);
+	void o1_cleanupStr(OpFuncParams &params);
+	void o1_insertStr(OpFuncParams &params);
+	void o1_cutStr(OpFuncParams &params);
+	void o1_strstr(OpFuncParams &params);
+	void o1_istrlen(OpFuncParams &params);
+	void o1_setMousePos(OpFuncParams &params);
+	void o1_setFrameRate(OpFuncParams &params);
+	void o1_animatePalette(OpFuncParams &params);
+	void o1_animateCursor(OpFuncParams &params);
+	void o1_blitCursor(OpFuncParams &params);
+	void o1_loadFont(OpFuncParams &params);
+	void o1_freeFont(OpFuncParams &params);
+	void o1_readData(OpFuncParams &params);
+	void o1_writeData(OpFuncParams &params);
+	void o1_manageDataFile(OpFuncParams &params);
 	void o1_setState(OpGobParams &params);
 	void o1_setCurFrame(OpGobParams &params);
 	void o1_setNextState(OpGobParams &params);
@@ -377,18 +384,18 @@ protected:
 	void o2_closeItk();
 	void o2_setImdFrontSurf();
 	void o2_resetImdFrontSurf();
-	bool o2_assign(OpFuncParams &params);
-	bool o2_printText(OpFuncParams &params);
-	bool o2_animPalInit(OpFuncParams &params);
-	bool o2_addHotspot(OpFuncParams &params);
-	bool o2_removeHotspot(OpFuncParams &params);
-	bool o2_goblinFunc(OpFuncParams &params);
-	bool o2_stopSound(OpFuncParams &params);
-	bool o2_loadSound(OpFuncParams &params);
-	bool o2_getFreeMem(OpFuncParams &params);
-	bool o2_checkData(OpFuncParams &params);
-	bool o2_readData(OpFuncParams &params);
-	bool o2_writeData(OpFuncParams &params);
+	void o2_assign(OpFuncParams &params);
+	void o2_printText(OpFuncParams &params);
+	void o2_animPalInit(OpFuncParams &params);
+	void o2_addHotspot(OpFuncParams &params);
+	void o2_removeHotspot(OpFuncParams &params);
+	void o2_goblinFunc(OpFuncParams &params);
+	void o2_stopSound(OpFuncParams &params);
+	void o2_loadSound(OpFuncParams &params);
+	void o2_getFreeMem(OpFuncParams &params);
+	void o2_checkData(OpFuncParams &params);
+	void o2_readData(OpFuncParams &params);
+	void o2_writeData(OpFuncParams &params);
 	void o2_loadInfogramesIns(OpGobParams &params);
 	void o2_playInfogrames(OpGobParams &params);
 	void o2_startInfogrames(OpGobParams &params);
@@ -432,29 +439,31 @@ protected:
 
 	void oFascin_playProtracker(OpGobParams &params);
 
-	void oFascin_geUnknown0(OpGobParams &params);
-	void oFascin_geUnknown1(OpGobParams &params);
-	void oFascin_geUnknown2(OpGobParams &params);
-	void oFascin_geUnknown3(OpGobParams &params);
-	void oFascin_geUnknown4(OpGobParams &params);
-	void oFascin_geUnknown5(OpGobParams &params);
-	void oFascin_geUnknown6(OpGobParams &params);
-	void oFascin_geUnknown7(OpGobParams &params);
-	void oFascin_geUnknown8(OpGobParams &params);
-	void oFascin_geUnknown9(OpGobParams &params);
-	void oFascin_geUnknown10(OpGobParams &params);
-	void oFascin_geUnknown11(OpGobParams &params);
-	void oFascin_geUnknown1000(OpGobParams &params);
-	void oFascin_geUnknown1001(OpGobParams &params);
-	void oFascin_geUnknown1002(OpGobParams &params);
-	bool oFascin_feUnknown4(OpFuncParams &params);
-	bool oFascin_feUnknown27(OpFuncParams &params);
-	void oFascin_cdUnknown3();
-	void oFascin_cdUnknown4();
-	void oFascin_cdUnknown5();
-	void oFascin_cdUnknown6();
+	void oFascin_repeatUntil(OpFuncParams &params);
+	void oFascin_assign(OpFuncParams &params);
+	void oFascin_copySprite(OpFuncParams &params);
+	void oFascin_keyFunc(OpFuncParams &params);
+
+	void oFascin_playTirb(OpGobParams &params);
+	void oFascin_playTira(OpGobParams &params);
+	void oFascin_loadExtasy(OpGobParams &params);
+	void oFascin_adlibPlay(OpGobParams &params);
+	void oFascin_adlibStop(OpGobParams &params);
+	void oFascin_adlibUnload(OpGobParams &params);
+	void oFascin_loadMus1(OpGobParams &params);
+	void oFascin_loadMus2(OpGobParams &params);
+	void oFascin_loadMus3(OpGobParams &params);
+	void oFascin_loadBatt1(OpGobParams &params);
+	void oFascin_loadBatt2(OpGobParams &params);
+	void oFascin_loadBatt3(OpGobParams &params);
+	void oFascin_loadMod(OpGobParams &params);
+	void oFascin_setWinSize();
+	void oFascin_closeWin();
+	void oFascin_activeWin();
+	void oFascin_openWin();
+	void oFascin_initCursorAnim();
 	void oFascin_setRenderFlags();
-	void oFascin_cdUnknown11();
+	void oFascin_setWinFlags();
 };
 
 class Inter_v3 : public Inter_v2 {
@@ -467,10 +476,23 @@ protected:
 	virtual void setupOpcodesFunc();
 	virtual void setupOpcodesGob();
 
-	bool o3_getTotTextItemPart(OpFuncParams &params);
-	bool o3_copySprite(OpFuncParams &params);
+	void o3_getTotTextItemPart(OpFuncParams &params);
+	void o3_copySprite(OpFuncParams &params);
 
 	void o3_wobble(OpGobParams &params);
+};
+
+class Inter_Inca2 : public Inter_v3 {
+public:
+	Inter_Inca2(GobEngine *vm);
+	virtual ~Inter_Inca2() {}
+
+protected:
+	virtual void setupOpcodesDraw();
+	virtual void setupOpcodesFunc();
+	virtual void setupOpcodesGob();
+
+	void oInca2_spaceShooter(OpFuncParams &params);
 };
 
 class Inter_v4 : public Inter_v3 {
@@ -502,7 +524,7 @@ protected:
 	void o5_deleteFile();
 	void o5_initScreen();
 
-	bool o5_istrlen(OpFuncParams &params);
+	void o5_istrlen(OpFuncParams &params);
 
 	void o5_spaceShooter(OpGobParams &params);
 	void o5_getSystemCDSpeed(OpGobParams &params);
@@ -536,15 +558,85 @@ protected:
 
 	void o6_totSub();
 	void o6_playVmdOrMusic();
-	void o6_openItk();
 
-	bool o6_loadCursor(OpFuncParams &params);
-	bool o6_assign(OpFuncParams &params);
-	bool o6_palLoad(OpFuncParams &params);
-	bool o6_removeHotspot(OpFuncParams &params);
-	bool o6_fillRect(OpFuncParams &params);
+	void o6_loadCursor(OpFuncParams &params);
+	void o6_assign(OpFuncParams &params);
+	void o6_removeHotspot(OpFuncParams &params);
+	void o6_fillRect(OpFuncParams &params);
 
-	void probe16bitMusic(char *fileName);
+	void probe16bitMusic(Common::String &fileName);
+};
+
+class Inter_Playtoons : public Inter_v6 {
+public:
+	Inter_Playtoons(GobEngine *vm);
+	virtual ~Inter_Playtoons() {}
+
+protected:
+	virtual void setupOpcodesDraw();
+	virtual void setupOpcodesFunc();
+	virtual void setupOpcodesGob();
+
+	void oPlaytoons_printText(OpFuncParams &params);
+	void oPlaytoons_F_1B(OpFuncParams &params);
+	void oPlaytoons_putPixel(OpFuncParams &params);
+	void oPlaytoons_freeSprite(OpFuncParams &params);
+	void oPlaytoons_checkData(OpFuncParams &params);
+	void oPlaytoons_readData(OpFuncParams &params);
+
+	void oPlaytoons_loadMultObject();
+	void oPlaytoons_getObjAnimSize();
+	void oPlaytoons_CD_20_23();
+	void oPlaytoons_CD_25();
+	void oPlaytoons_copyFile();
+	void oPlaytoons_openItk();
+
+	Common::String getFile(const char *path);
+
+private:
+	bool readSprite(Common::String file, int32 dataVar, int32 size, int32 offset);
+};
+
+class Inter_v7 : public Inter_Playtoons {
+public:
+	Inter_v7(GobEngine *vm);
+	virtual ~Inter_v7() {}
+
+protected:
+	virtual void setupOpcodesDraw();
+	virtual void setupOpcodesFunc();
+	virtual void setupOpcodesGob();
+
+	void o7_draw0x0C();
+	void o7_loadCursor();
+	void o7_displayWarning();
+	void o7_logString();
+	void o7_intToString();
+	void o7_callFunction();
+	void o7_loadFunctions();
+	void o7_playVmdOrMusic();
+	void o7_draw0x89();
+	void o7_findFile();
+	void o7_findCDFile();
+	void o7_getSystemProperty();
+	void o7_loadImage();
+	void o7_setVolume();
+	void o7_zeroVar();
+	void o7_getINIValue();
+	void o7_setINIValue();
+	void o7_loadLBMPalette();
+	void o7_opendBase();
+	void o7_closedBase();
+	void o7_getDBString();
+
+	void o7_oemToANSI(OpGobParams &params);
+	void o7_gob0x201(OpGobParams &params);
+
+private:
+	INIConfig _inis;
+	Databases _databases;
+
+	Common::String findFile(const Common::String &mask);
 };
 
 } // End of namespace Gob

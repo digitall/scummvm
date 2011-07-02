@@ -18,14 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "graphics/iff.h"
 
 #include "common/config-manager.h"
+#include "common/fs.h"
+#include "common/textconsole.h"
 #include "parallaction/parallaction.h"
 #include "parallaction/parser.h"
 
@@ -190,7 +189,7 @@ GfxObj* DosDisk_br::loadTalk(const char *name) {
 Script* DosDisk_br::loadLocation(const char *name) {
 	debugC(5, kDebugDisk, "DosDisk_br::loadLocation");
 
-	static const Common::String langs[4] = { "it/", "fr/", "en/", "ge/" };
+	static const char * const langs[4] = { "it/", "fr/", "en/", "ge/" };
 
 	Common::String fullName(name);
 	if (!fullName.hasSuffix(".slf")) {
@@ -226,7 +225,7 @@ void DosDisk_br::loadBitmap(Common::SeekableReadStream &stream, Graphics::Surfac
 		stream.skip(768);
 	}
 
-	surf.create(width, height, 1);
+	surf.create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 	stream.read(surf.pixels, width * height);
 }
 
@@ -442,7 +441,7 @@ void AmigaDisk_br::init() {
 	_sset.add("base", _baseDir, 5, false);
 
 	const Common::String subDirNames[3] = { "fonts", "backs", "common" };
-	const Common::String subDirPrefixes[3] = { "fonts", "backs", Common::String::emptyString };
+	const Common::String subDirPrefixes[3] = { "fonts", "backs", "" };
 	// The common sub directory, doesn't exist in the Amiga demo
 	uint numDir = (_vm->getFeatures() & GF_DEMO) ? 2 : 3;
 	for (uint i = 0; i < numDir; i++)

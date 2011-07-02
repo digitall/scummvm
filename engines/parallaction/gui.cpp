@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "parallaction/gui.h"
 
@@ -47,7 +46,7 @@ bool MenuInputHelper::run() {
 
 MenuInputHelper::~MenuInputHelper() {
 	StateMap::iterator b = _map.begin();
-	for ( ; b != _map.end(); b++) {
+	for ( ; b != _map.end(); ++b) {
 		delete b->_value;
 	}
 	_map.clear();

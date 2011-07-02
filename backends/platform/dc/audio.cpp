@@ -18,14 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include <common/scummsys.h>
 #include "engines/engine.h"
-#include "sound/mixer_intern.h"
+#include "audio/mixer_intern.h"
 #include "dc.h"
 
 EXTERN_C void *memcpy4s(void *s1, const void *s2, unsigned int n);

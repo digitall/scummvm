@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_hof.h"
@@ -97,6 +94,9 @@ void KyraEngine_HoF::setTimer1DelaySecs(int secs) {
 }
 
 void KyraEngine_HoF::setWalkspeed(uint8 newSpeed) {
+	if (!_timer)
+		return;
+
 	if (newSpeed < 5)
 		newSpeed = 3;
 	else
@@ -107,4 +107,4 @@ void KyraEngine_HoF::setWalkspeed(uint8 newSpeed) {
 }
 
 
-} // end of namespace Kyra
+} // End of namespace Kyra

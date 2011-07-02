@@ -18,183 +18,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/endian.h"
 #include "common/file.h"
 #include "common/util.h"
-#include "common/system.h"
+#include "common/textconsole.h"
 
 #include "sword1/sword1.h"
 #include "sword1/music.h"
 
-#include "sound/aiff.h"
-#include "sound/flac.h"
-#include "sound/mixer.h"
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/wave.h"
-#include "sound/vag.h"
+#include "audio/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/decoders/aiff.h"
+#include "audio/decoders/flac.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/wave.h"
+#include "audio/decoders/vag.h"
 
 #define SMP_BUFSIZE 8192
 
 namespace Sword1 {
-
-class BaseAudioStream : public Audio::AudioStream {
-public:
-	BaseAudioStream(Common::SeekableReadStream *source, bool loop);
-	virtual ~BaseAudioStream();
-	virtual int readBuffer(int16 *buffer, const int numSamples);
-	virtual bool isStereo() const { return _isStereo; }
-	virtual bool endOfData() const { return (_samplesLeft == 0); }
-	virtual int getRate() const { return _rate; }
-protected:
-	Common::SeekableReadStream	*_sourceStream;
-	uint8	*_sampleBuf;
-	uint32	_rate;
-	bool	_isStereo;
-	uint32	_samplesLeft;
-	uint16	_bitsPerSample;
-	bool	_loop;
-
-	virtual void rewind() = 0;
-	virtual void reinit(int size, int rate, byte flags);
-};
-
-BaseAudioStream::BaseAudioStream(Common::SeekableReadStream *source, bool loop) {
-	_sourceStream = source;
-	_sampleBuf = (uint8*)malloc(SMP_BUFSIZE);
-
-	_samplesLeft = 0;
-	_isStereo = false;
-	_bitsPerSample = 16;
-	_rate = 22050;
-	_loop = loop;
-}
-
-BaseAudioStream::~BaseAudioStream() {
-	free(_sampleBuf);
-}
-
-void BaseAudioStream::reinit(int size, int rate, byte flags) {
-	_isStereo = (flags & Audio::Mixer::FLAG_STEREO) != 0;
-	_rate = rate;
-	assert(size <= (_sourceStream->size() - _sourceStream->pos()));
-	_bitsPerSample = ((flags & Audio::Mixer::FLAG_16BITS) != 0) ? 16 : 8;
-	_samplesLeft = (size * 8) / _bitsPerSample;
-	if ((_bitsPerSample != 16) && (_bitsPerSample != 8))
-		error("BaseAudioStream: unknown sound type");
-}
-
-int BaseAudioStream::readBuffer(int16 *buffer, const int numSamples) {
-	int retVal = 0;
-
-	while (retVal < numSamples && _samplesLeft > 0) {
-		int samples = MIN((int)_samplesLeft, numSamples - retVal);
-		retVal += samples;
-		_samplesLeft -= samples;
-		while (samples > 0) {
-			int readBytes = MIN(samples * (_bitsPerSample >> 3), SMP_BUFSIZE);
-			_sourceStream->read(_sampleBuf, readBytes);
-			if (_bitsPerSample == 16) {
-				samples -= (readBytes / 2);
-				memcpy(buffer, _sampleBuf, readBytes);
-				buffer += (readBytes / 2);
-			} else {
-				samples -= readBytes;
-				int8 *src = (int8*)_sampleBuf;
-				while (readBytes--)
-					*buffer++ = (int16)*src++ << 8;
-			}
-		}
-
-		if (!_samplesLeft && _loop) {
-			rewind();
-		}
-	}
-
-	return retVal;
-}
-
-class WaveAudioStream : public BaseAudioStream {
-public:
-	WaveAudioStream(Common::SeekableReadStream *source, bool loop);
-	virtual int readBuffer(int16 *buffer, const int numSamples);
-private:
-	virtual void rewind();
-};
-
-WaveAudioStream::WaveAudioStream(Common::SeekableReadStream *source, bool loop) : BaseAudioStream(source, loop) {
-	rewind();
-
-	if (_samplesLeft == 0)
-		_loop = false;
-}
-
-void WaveAudioStream::rewind() {
-	int rate, size;
-	byte flags;
-
-	_sourceStream->seek(0);
-
-	if (Audio::loadWAVFromStream(*_sourceStream, size, rate, flags)) {
-		reinit(size, rate, flags);
-	}
-}
-
-int WaveAudioStream::readBuffer(int16 *buffer, const int numSamples) {
-	int retVal = BaseAudioStream::readBuffer(buffer, numSamples);
-
-	if (_bitsPerSample == 16) {
-		for (int i = 0; i < retVal; i++) {
-			buffer[i] = (int16)READ_LE_UINT16(buffer + i);
-		}
-	}
-
-	return retVal;
-}
-
-class AiffAudioStream : public BaseAudioStream {
-public:
-	AiffAudioStream(Common::SeekableReadStream *source, bool loop);
-	virtual int readBuffer(int16 *buffer, const int numSamples);
-private:
-	void rewind();
-};
-
-AiffAudioStream::AiffAudioStream(Common::SeekableReadStream *source, bool loop) : BaseAudioStream(source, loop) {
-	rewind();
-
-	if (_samplesLeft == 0)
-		_loop = false;
-}
-
-void AiffAudioStream::rewind() {
-	int rate, size;
-	byte flags;
-
-	_sourceStream->seek(0);
-
-	if (Audio::loadAIFFFromStream(*_sourceStream, size, rate, flags)) {
-		reinit(size, rate, flags);
-	}
-}
-
-int AiffAudioStream::readBuffer(int16 *buffer, const int numSamples) {
-	int retVal = BaseAudioStream::readBuffer(buffer, numSamples);
-
-	if (_bitsPerSample == 16) {
-		for (int i = 0; i < retVal; i++) {
-			buffer[i] = (int16)READ_BE_UINT16(buffer + i);
-		}
-	}
-
-	return retVal;
-}
 
 // This means fading takes 3 seconds.
 #define FADE_LENGTH 3
@@ -202,54 +47,64 @@ int AiffAudioStream::readBuffer(int16 *buffer, const int numSamples) {
 // These functions are only called from Music, so I'm just going to
 // assume that if locking is needed it has already been taken care of.
 
-bool MusicHandle::play(const char *fileBase, bool loop) {
-	char fileName[30];
+bool MusicHandle::play(const Common::String &filename, bool loop) {
 	stop();
 
 	// FIXME: How about using AudioStream::openStreamFile instead of the code below?
 	// I.e.:
 	//_audioSource = Audio::AudioStream::openStreamFile(fileBase, 0, 0, loop ? 0 : 1);
 
+	Audio::RewindableAudioStream *stream = 0;
+
 #ifdef USE_FLAC
-	if (!_audioSource) {
-		sprintf(fileName, "%s.flac", fileBase);
-		if (_file.open(fileName))
-			_audioSource = Audio::makeFlacStream(&_file, false, 0, 0, loop ? 0 : 1);
+	if (!stream) {
+		if (_file.open(filename + ".flac")) {
+			stream = Audio::makeFLACStream(&_file, DisposeAfterUse::NO);
+			if (!stream)
+				_file.close();
+		}
 	}
-	if (!_audioSource) {
-		sprintf(fileName, "%s.fla", fileBase);
-		if (_file.open(fileName))
-			_audioSource = Audio::makeFlacStream(&_file, false, 0, 0, loop ? 0 : 1);
+
+	if (!stream) {
+		if (_file.open(filename + ".fla")) {
+			stream = Audio::makeFLACStream(&_file, DisposeAfterUse::NO);
+			if (!stream)
+				_file.close();
+		}
 	}
 #endif
 #ifdef USE_VORBIS
-	if (!_audioSource) {
-		sprintf(fileName, "%s.ogg", fileBase);
-		if (_file.open(fileName))
-			_audioSource = Audio::makeVorbisStream(&_file, false, 0, 0, loop ? 0 : 1);
+	if (!stream) {
+		if (_file.open(filename + ".ogg")) {
+			stream = Audio::makeVorbisStream(&_file, DisposeAfterUse::NO);
+			if (!stream)
+				_file.close();
+		}
 	}
 #endif
 #ifdef USE_MAD
-	if (!_audioSource) {
-		sprintf(fileName, "%s.mp3", fileBase);
-		if (_file.open(fileName))
-			_audioSource = Audio::makeMP3Stream(&_file, false, 0, 0, loop ? 0 : 1);
+	if (!stream) {
+		if (_file.open(filename + ".mp3")) {
+			stream = Audio::makeMP3Stream(&_file, DisposeAfterUse::NO);
+			if (!stream)
+				_file.close();
+		}
 	}
 #endif
-	if (!_audioSource) {
-		sprintf(fileName, "%s.wav", fileBase);
-		if (_file.open(fileName))
-			_audioSource = new WaveAudioStream(&_file, loop);
+	if (!stream) {
+		if (_file.open(filename + ".wav"))
+			stream = Audio::makeWAVStream(&_file, DisposeAfterUse::NO);
 	}
 
-	if (!_audioSource) {
-		sprintf(fileName, "%s.aif", fileBase);
-		if (_file.open(fileName))
-			_audioSource = new AiffAudioStream(&_file, loop);
+	if (!stream) {
+		if (_file.open(filename + ".aif"))
+			stream = Audio::makeAIFFStream(&_file, DisposeAfterUse::NO);
 	}
 
-	if (!_audioSource)
+	if (!stream)
 		return false;
+
+	_audioSource = Audio::makeLoopingAudioStream(stream, loop ? 0 : 1);
 
 	fadeUp();
 	return true;
@@ -272,9 +127,11 @@ bool MusicHandle::playPSX(uint16 id, bool loop) {
 
 	tableFile.close();
 
-	if ((size != 0) && (size != 0xffffffff)) {
+	// Because of broken tunes.dat/tab in psx demo, also check that tune offset is
+	// not over file size
+	if ((size != 0) && (size != 0xffffffff) && ((int32)(offset + size) <= _file.size())) {
 		_file.seek(offset, SEEK_SET);
-		_audioSource = new Audio::VagStream(_file.readStream(size), loop);
+		_audioSource = Audio::makeLoopingAudioStream(Audio::makeVagStream(_file.readStream(size)), loop ? 0 : 1);
 		fadeUp();
 	} else {
 		_audioSource = NULL;
@@ -309,15 +166,15 @@ bool MusicHandle::endOfData() const {
 }
 
 // if we don't have an audiosource, return some dummy values.
-bool MusicHandle::streaming(void) const {
+bool MusicHandle::streaming() const {
 	return (_audioSource) ? (!_audioSource->endOfStream()) : false;
 }
 
-bool MusicHandle::isStereo(void) const {
+bool MusicHandle::isStereo() const {
 	return (_audioSource) ? _audioSource->isStereo() : false;
 }
 
-int MusicHandle::getRate(void) const {
+int MusicHandle::getRate() const {
 	return (_audioSource) ? _audioSource->getRate() : 11025;
 }
 
@@ -359,12 +216,9 @@ int MusicHandle::readBuffer(int16 *buffer, const int numSamples) {
 }
 
 void MusicHandle::stop() {
-	if (_audioSource) {
-		delete _audioSource;
-		_audioSource = NULL;
-	}
-	if (_file.isOpen())
-		_file.close();
+	delete _audioSource;
+	_audioSource = NULL;
+	_file.close();
 	_fading = 0;
 }
 
@@ -374,7 +228,7 @@ Music::Music(Audio::Mixer *pMixer) {
 	_converter[0] = NULL;
 	_converter[1] = NULL;
 	_volumeL = _volumeR = 192;
-	_mixer->playInputStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, false, true);
+	_mixer->playStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
 
 Music::~Music() {
@@ -442,7 +296,7 @@ void Music::startMusic(int32 tuneId, int32 loopFlag) {
 		/* The handle will load the music file now. It can take a while, so unlock
 		   the mutex before, to have the soundthread playing normally.
 		   As the corresponding _converter is NULL, the handle will be ignored by the playing thread */
-		if (SwordEngine::isPsx()) { ;
+		if (SwordEngine::isPsx()) {
 			if (_handles[newStream].playPSX(tuneId, loopFlag != 0)) {
 				_mutex.lock();
 				_converter[newStream] = Audio::makeRateConverter(_handles[newStream].getRate(), _mixer->getOutputRate(), _handles[newStream].isStereo(), false);

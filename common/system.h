@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_SYSTEM_H
@@ -28,30 +25,64 @@
 
 #include "common/scummsys.h"
 #include "common/noncopyable.h"
-#include "common/rect.h"
-
+#include "common/list.h" // For OSystem::getSupportedFormats()
 #include "graphics/pixelformat.h"
 
 namespace Audio {
-	class Mixer;
+class Mixer;
 }
 
 namespace Graphics {
-	struct Surface;
+struct Surface;
 }
 
 namespace Common {
-	struct Event;
-	class EventManager;
-	class SaveFileManager;
-	class SearchSet;
-	class TimerManager;
-	class SeekableReadStream;
-	class WriteStream;
-	class HardwareKeySet;
+class EventManager;
+struct Rect;
+class SaveFileManager;
+class SearchSet;
+class String;
+#if defined(USE_TASKBAR)
+class TaskbarManager;
+#endif
+class TimerManager;
+class SeekableReadStream;
+class WriteStream;
+class HardwareKeySet;
 }
 
+class AudioCDManager;
 class FilesystemFactory;
+class PaletteManager;
+
+/**
+ * A structure describing time and date. This is a clone of struct tm
+ * from time.h. We roll our own since not all systems provide time.h.
+ * We also do not imitate all files of struct tm, only those we
+ * actually need.
+ *
+ * @note For now, the members are named exactly as in struct tm to ease
+ * the transition.
+ */
+struct TimeDate {
+	int tm_sec;     ///< seconds (0 - 60)
+	int tm_min;     ///< minutes (0 - 59)
+	int tm_hour;    ///< hours (0 - 23)
+	int tm_mday;    ///< day of month (1 - 31)
+	int tm_mon;     ///< month of year (0 - 11)
+	int tm_year;    ///< year - 1900
+};
+
+namespace LogMessageType {
+
+enum Type {
+	kInfo,
+	kError,
+	kWarning,
+	kDebug
+};
+
+} // End of namespace LogMessageType
 
 /**
  * Interface for ScummVM backends. If you want to port ScummVM to a system
@@ -68,6 +99,81 @@ protected:
 	OSystem();
 	virtual ~OSystem();
 
+protected:
+	/**
+	 * @name Module slots
+	 *
+	 * For backend authors only, the following pointers (= "slots) to various
+	 * subsystem managers / factories / etc. can and should be set to
+	 * a suitable instance of the respective type.
+	 *
+	 * For some of the slots, a default instance is set if your backend
+	 * does not do so. For details, please look at the documentation of
+	 * each slot.
+	 *
+	 * A backend may setup slot values in its initBackend() method,
+	 * its constructor or somewhere in between. But it must a slot's value
+	 * no later than in its initBackend() implementation, because
+	 * OSystem::initBackend() will create any default instances if
+	 * none has been set yet (and for other slots, will verify that
+	 * one has been set; if not, an error may be generated).
+	 */
+	//@{
+
+	/**
+	 * No default value is provided for _audiocdManager by OSystem.
+	 * However, BaseBackend::initBackend() does set a default value
+	 * if none has been set before.
+	 *
+	 * @note _audiocdManager is deleted by the OSystem destructor.
+	 */
+	AudioCDManager *_audiocdManager;
+
+	/**
+	 * No default value is provided for _eventManager by OSystem.
+	 * However, BaseBackend::initBackend() does set a default value
+	 * if none has been set before.
+	 *
+	 * @note _eventManager is deleted by the OSystem destructor.
+	 */
+	Common::EventManager *_eventManager;
+
+	/**
+	 * No default value is provided for _timerManager by OSystem.
+	 *
+	 * @note _timerManager is deleted by the OSystem destructor.
+	 */
+	Common::TimerManager *_timerManager;
+
+	/**
+	 * No default value is provided for _savefileManager by OSystem.
+	 *
+	 * @note _savefileManager is deleted by the OSystem destructor.
+	 */
+	Common::SaveFileManager *_savefileManager;
+
+#if defined(USE_TASKBAR)
+	/**
+	 * No default value is provided for _savefileManager by OSystem.
+	 *
+	 * @note _savefileManager is deleted by the OSystem destructor.
+	 */
+	Common::TaskbarManager *_taskbarManager;
+#endif
+
+	/**
+	 * No default value is provided for _fsFactory by OSystem.
+	 *
+	 * Note that _fsFactory is typically required very early on,
+	 * so it usually should be set in the backends constructor or shortly
+	 * thereafter, and before initBackend() is called.
+	 *
+	 * @note _fsFactory is deleted by the OSystem destructor.
+	 */
+	FilesystemFactory *_fsFactory;
+
+	//@}
+
 public:
 
 	/**
@@ -78,7 +184,7 @@ public:
 	 *       parent class. They should do so near the end of their own
 	 *       implementation.
 	 */
-	virtual void initBackend() { }
+	virtual void initBackend();
 
 	/**
 	 * Allows the backend to perform engine specific init.
@@ -101,11 +207,19 @@ public:
 	 *  - fullscreen mode
 	 *  - aspect ration correction
 	 *  - a virtual keyboard for text entry (on PDAs)
+	 *
+	 * One has to distinguish between the *availability* of a feature,
+	 * which can be checked using hasFeature(), and its *state*.
+	 * For example, the SDL backend *has* the kFeatureFullscreenMode,
+	 * so hasFeature returns true for it. On the other hand,
+	 * fullscreen mode may be active or not; this can be determined
+	 * by checking the state via getFeatureState(). Finally, to
+	 * switch between fullscreen and windowed mode, use setFeatureState().
 	 */
 	enum Feature {
 		/**
-		 * If your backend supports both a windowed and a fullscreen mode,
-		 * then this feature flag can be used to switch between the two.
+		 * If supported, this feature flag can be used to switch between
+		 * windowed and fullscreen mode.
 		 */
 		kFeatureFullscreenMode,
 
@@ -117,10 +231,10 @@ public:
 		 * pixels). When the backend support this, then games running at
 		 * 320x200 pixels should be scaled up to 320x240 pixels. For all other
 		 * resolutions, ignore this feature flag.
-		 * @note You can find utility functions in common/scaler.h which can
-		 *       be used to implement aspect ratio correction. In particular,
+		 * @note Backend implementors can find utility functions in common/scaler.h
+		 *       which can be used to implement aspect ratio correction. In
 		 *       stretch200To240() can stretch a rect, including (very fast)
-		 *       interpolation, and works in-place.
+		 *       particular, interpolation, and works in-place.
 		 */
 		kFeatureAspectRatioCorrection,
 
@@ -132,55 +246,58 @@ public:
 		kFeatureVirtualKeyboard,
 
 		/**
-		 * This flag is a bit more obscure: it gives a hint to the backend that
-		 * the frontend code is very inefficient in doing screen updates. So
-		 * the frontend might do a lot of fullscreen blits even though only a
-		 * tiny portion of the actual screen data changed. In that case, it
-		 * might pay off for the backend to compute which parts actually changed,
-		 * and then only mark those as dirty.
-		 * Implementing this is purely optional, and no harm should arise
-		 * when not doing so (except for decreased speed in said frontends).
-		 */
-		kFeatureAutoComputeDirtyRects,
-
-		/**
-		 * This flag determines whether or not the cursor can have its own palette.
-		 * It is currently used only by some Macintosh versions of Humongous
-		 * Entertainment games. If the backend doesn't implement this feature then
-		 * the engine switches to b/w versions of cursors.
-		 * The GUI also relies on this feature for mouse cursors.
+		 * Backends supporting this feature allow specifying a custom palette
+		 * for the cursor. The custom palette is used if the feature state
+		 * is set to true by the client code via setFeatureState().
 		 *
-		 * To enable the cursor palette call "disableCursorPalette" with false.
-		 * @see disableCursorPalette
+		 * It is currently used only by some Macintosh versions of Humongous
+		 * Entertainment games. If the backend doesn't implement this feature
+		 * then the engine switches to b/w versions of cursors.
+		 * The GUI also relies on this feature for mouse cursors.
 		 */
-		kFeatureCursorHasPalette,
+		kFeatureCursorPalette,
 
 		/**
-		 * Set to true if the overlay pixel format has an alpha channel.
-		 * This should only be set if it offers at least 3-4 bits of accuracy,
-		 * as opposed to a single alpha bit.
+		 * A backend have this feature if its overlay pixel format has an alpha
+		 * channel which offers at least 3-4 bits of accuracy (as opposed to
+		 * just a single alpha bit).
+		 *
+		 * This feature has no associated state.
 		 */
 		kFeatureOverlaySupportsAlpha,
 
 		/**
-		 * Set to true to iconify the window.
+		 * Client code can set the state of this feature to true in order to
+		 * iconify the application window.
 		 */
 		kFeatureIconifyWindow,
 
 		/**
-		 * This feature, set to true, is a hint toward the backend to disable all
-		 * key filtering/mapping, in cases where it would be beneficial to do so.
-		 * As an example case, this is used in the agi engine's predictive dialog.
+		 * Setting the state of this feature to true tells the backend to disable
+		 * all key filtering/mapping, in cases where it would be beneficial to do so.
+		 * As an example case, this is used in the AGI engine's predictive dialog.
 		 * When the dialog is displayed this feature is set so that backends with
 		 * phone-like keypad temporarily unmap all user actions which leads to
 		 * comfortable word entry. Conversely, when the dialog exits the feature
 		 * is set to false.
+		 *
+		 * TODO: The word 'beneficial' above is very unclear. Beneficial to
+		 * whom and for what??? Just giving an example is not enough.
+		 *
 		 * TODO: Fingolfin suggests that the way the feature is used can be
 		 * generalized in this sense: Have a keyboard mapping feature, which the
 		 * engine queries for to assign keys to actions ("Here's my default key
 		 * map for these actions, what do you want them set to?").
 		 */
-		kFeatureDisableKeyFiltering
+		kFeatureDisableKeyFiltering,
+
+		/**
+		 * The presence of this feature indicates whether the displayLogFile()
+		 * call is supported.
+		 *
+		 * This feature has no associated state.
+		 */
+		kFeatureDisplayLogFile
 	};
 
 	/**
@@ -218,12 +335,12 @@ public:
 	 * composed in three layers: the game graphics, the overlay
 	 * graphics, and the mouse.
 	 *
-	 * First, there are the game graphics. They are always 8bpp, and
-	 * the methods in this section deal with them exclusively. In
-	 * particular, the size of the game graphics is defined by a call
-	 * to initSize(), and copyRectToScreen() blits 8bpp data into the
-	 * game layer. Let W and H denote the width and height of the
-	 * game graphics.
+	 * First, there are the game graphics. The methods in this section
+	 * deal with them exclusively. In particular, the size of the game
+	 * graphics is defined by a call to initSize(), and
+	 * copyRectToScreen() blits the data in the current pixel format
+	 * into the game layer. Let W and H denote the width and height of
+	 * the game graphics.
 	 *
 	 * Before the user sees these graphics, the backend may apply some
 	 * transformations to it; for example, the may be scaled to better
@@ -264,16 +381,16 @@ public:
 	 * Finally, there is the mouse layer. This layer doesn't have to
 	 * actually exist within the backend -- it all depends on how a
 	 * backend chooses to implement mouse cursors, but in the default
-	 * SDL backend, it really is a separate layer. The mouse is
-	 * always in 8bpp but can have a palette of its own, if the
-	 * backend supports it. The scale of the mouse cursor is called
-	 * 'cursorTargetScale'. This is meant as a hint to the backend.
-	 * For example, let us assume the overlay is not visible, and the
-	 * game graphics are displayed using a 2x scaler. If a mouse
-	 * cursor with a cursorTargetScale of 1 is set, then it should be
-	 * scaled by factor 2x, too, just like the game graphics. But if
-	 * it has a cursorTargetScale of 2, then it shouldn't be scaled
-	 * again by the game graphics scaler.
+	 * SDL backend, it really is a separate layer. The mouse can
+	 * have a palette of its own, if the backend supports it.
+	 * The scale of the mouse cursor is called 'cursorTargetScale'.
+	 * This is meant as a hint to the backend. For example, let us
+	 * assume the overlay is not visible, and the game graphics are
+	 * displayed using a 2x scaler. If a mouse cursor with a
+	 * cursorTargetScale of 1 is set, then it should be scaled by
+	 * factor 2x, too, just like the game graphics. But if it has a
+	 * cursorTargetScale of 2, then it shouldn't be scaled again by
+	 * the game graphics scaler.
 	 */
 	//@{
 
@@ -343,12 +460,61 @@ public:
 
 	/**
 	 * Determine which graphics mode is currently active.
-	 * @return the active graphics mode
+	 * @return the ID of the active graphics mode
 	 */
 	virtual int getGraphicsMode() const = 0;
 
 	/**
-	 * Set the size of the virtual screen. Typical sizes include:
+	 * Sets the graphics scale factor to x1. Games with large screen sizes
+	 * reset the scale to x1 so the screen will not be too big when starting
+	 * the game.
+	 */
+	virtual void resetGraphicsScale() {}
+
+#ifdef USE_RGB_COLOR
+	/**
+	 * Determine the pixel format currently in use for screen rendering.
+	 * @return the active screen pixel format.
+	 * @see Graphics::PixelFormat
+	 */
+	virtual Graphics::PixelFormat getScreenFormat() const = 0;
+
+	/**
+	 * Returns a list of all pixel formats supported by the backend.
+	 * The first item in the list must be directly supported by hardware,
+	 * and provide the largest color space of those formats with direct
+	 * hardware support. It is also strongly recommended that remaining
+	 * formats should be placed in order of descending preference for the
+	 * backend to use.
+	 *
+	 * EG: a backend that supports 32-bit ABGR and 16-bit 555 BGR in hardware
+	 * and provides conversion from equivalent RGB(A) modes should order its list
+	 *    1) Graphics::PixelFormat(4, 0, 0, 0, 0, 0, 8, 16, 24)
+	 *    2) Graphics::PixelFormat(2, 3, 3, 3, 8, 0, 5, 10, 0)
+	 *    3) Graphics::PixelFormat(4, 0, 0, 0, 0, 24, 16, 8, 0)
+	 *    4) Graphics::PixelFormat(2, 3, 3, 3, 8, 10, 5, 0, 0)
+	 *    5) Graphics::PixelFormat::createFormatCLUT8()
+	 *
+	 * @see Graphics::PixelFormat
+	 *
+	 * @note Backends supporting RGB color should accept game data in RGB color
+	 *       order, even if hardware uses BGR or some other color order.
+	 */
+	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const = 0;
+#else
+	inline Graphics::PixelFormat getScreenFormat() const {
+		return Graphics::PixelFormat::createFormatCLUT8();
+	};
+
+	inline Common::List<Graphics::PixelFormat> getSupportedFormats() const {
+		Common::List<Graphics::PixelFormat> list;
+		list.push_back(Graphics::PixelFormat::createFormatCLUT8());
+		return list;
+	};
+#endif
+
+	/**
+	 * Set the size and color format of the virtual screen. Typical sizes include:
 	 *  - 320x200 (e.g. for most SCUMM games, and Simon)
 	 *  - 320x240 (e.g. for FM-TOWN SCUMM games)
 	 *  - 640x480 (e.g. for Curse of Monkey Island)
@@ -359,10 +525,21 @@ public:
 	 * GraphicsMode); stretch the data to perform aspect ratio correction;
 	 * or shrink it to fit on small screens (in cell phones).
 	 *
+	 * Typical formats include:
+	 *  CLUT8 (e.g. 256 color, for most games)
+	 *  RGB555 (e.g. 16-bit color, for later SCUMM HE games)
+	 *  RGB565 (e.g. 16-bit color, for Urban Runner)
+	 *
+	 * This is the pixel format for which the client code generates data;
+	 * this is not necessarily equal to the hardware pixel format. For example,
+	 * a backend may perform color lookup of 8-bit graphics before pushing
+	 * a screen to hardware, or correct the ARGB color order.
+	 *
 	 * @param width		the new virtual screen width
 	 * @param height	the new virtual screen height
+	 * @param format	the new virtual screen pixel format
 	 */
-	virtual void initSize(uint width, uint height) = 0;
+	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format = NULL) = 0;
 
 	/**
 	 * Return an int value which is changed whenever any screen
@@ -411,7 +588,8 @@ public:
 		kTransactionAspectRatioFailed = (1 << 0),	/**< Failed switching aspect ratio correction mode */
 		kTransactionFullscreenFailed = (1 << 1),	/**< Failed switching fullscreen mode */
 		kTransactionModeSwitchFailed = (1 << 2),	/**< Failed switching the GFX graphics mode (setGraphicsMode) */
-		kTransactionSizeChangeFailed = (1 << 3)		/**< Failed switching the screen dimensions (initSize) */
+		kTransactionSizeChangeFailed = (1 << 3),	/**< Failed switching the screen dimensions (initSize) */
+		kTransactionFormatNotSupported = (1 << 4)	/**< Failed setting the color format */
 	};
 
 	/**
@@ -438,38 +616,10 @@ public:
 	virtual int16 getWidth() = 0;
 
 	/**
-	 * Replace the specified range of the palette with new colors.
-	 * The palette entries from 'start' till (start+num-1) will be replaced - so
-	 * a full palette update is accomplished via start=0, num=256.
-	 *
-	 * The palette data is specified in interleaved RGBA format. That is, the
-	 * first byte of the memory block 'colors' points at is the red component
-	 * of the first new color; the second byte the green component of the first
-	 * new color; the third byte the blue component, the last byte to the alpha
-	 * (transparency) value. Then the second color starts, and so on. So memory
-	 * looks like this: R1-G1-B1-A1-R2-G2-B2-A2-R3-...
-	 *
-	 * @param colors	the new palette data, in interleaved RGBA format
-	 * @param start		the first palette entry to be updated
-	 * @param num		the number of palette entries to be updated
-	 *
-	 * @note It is an error if start+num exceeds 256, behaviour is undefined
-	 *       in that case (the backend may ignore it silently or assert).
-	 * @note The alpha value is not actually used, and future revisions of this
-	 *       API are probably going to remove it.
+	 * Return the palette manager singleton. For more information, refer
+	 * to the PaletteManager documentation.
 	 */
-	virtual void setPalette(const byte *colors, uint start, uint num) = 0;
-
-	/**
-	 * Grabs a specified part of the currently active palette.
-	 * The format is the same as for setPalette.
-	 *
-	 * @see setPalette
-	 * @param colors	the palette data, in interleaved RGBA format
-	 * @param start		the first platte entry to be read
-	 * @param num		the number of palette entries to be read
-	 */
-	virtual void grabPalette(byte *colors, uint start, uint num) = 0;
+	virtual PaletteManager *getPaletteManager() = 0;
 
 	/**
 	 * Blit a bitmap to the virtual screen.
@@ -477,8 +627,10 @@ public:
 	 * Client code has to to call updateScreen to ensure any changes are
 	 * visible to the user. This can be used to optimize drawing and reduce
 	 * flicker.
-	 * The graphics data uses 8 bits per pixel, using the palette specified
-	 * via setPalette.
+	 * If the current pixel format has one byte per pixel, the graphics data
+	 * uses 8 bits per pixel, using the palette specified via setPalette.
+	 * If more than one byte per pixel is in use, the graphics data uses the
+	 * pixel format returned by getScreenFormat.
 	 *
 	 * @param buf		the buffer containing the graphics data source
 	 * @param pitch		the pitch of the buffer (number of bytes in a scanline)
@@ -493,6 +645,7 @@ public:
 	 *       silently corrupt memory.
 	 *
 	 * @see updateScreen
+	 * @see getScreenFormat
 	 */
 	virtual void copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) = 0;
 
@@ -504,9 +657,12 @@ public:
 	 * should make sure to only lock the framebuffer for the briefest
 	 * periods of time possible, as the whole system is potentially stalled
 	 * while the lock is active.
-	 * Returns 0 if an error occurred. Otherwise an 8bit surface is returned.
+	 * Returns 0 if an error occurred. Otherwise a surface with the pixel
+	 * format described by getScreenFormat is returned.
 	 *
 	 * The returned surface must *not* be deleted by the client code.
+	 *
+	 * @see getScreenFormat
 	 */
 	virtual Graphics::Surface *lockScreen() = 0;
 
@@ -531,8 +687,8 @@ public:
 	 *
 	 * This method could be called very often by engines. Backends are hence
 	 * supposed to only perform any redrawing if it is necessary, and otherwise
-	 * return immediately. For a discussion of the subject, see
-	 * <http://www.nabble.com/ATTN-porters%3A-updateScreen%28%29-OSystem-method-tt3960261.html#a3960261>
+	 * return immediately. See
+	 * <http://wiki.scummvm.org/index.php/HOWTO-Backends#updateScreen.28.29_method>
 	 */
 	virtual void updateScreen() = 0;
 
@@ -581,8 +737,8 @@ public:
 	 * In order to be able to display dialogs atop the game graphics, backends
 	 * must provide an overlay mode.
 	 *
-	 * While the game graphics are always 8 bpp, the overlay can be 8 or 16 bpp.
-	 * Depending on which it is, OverlayColor is 8 or 16 bit.
+	 * The overlay can be 8 or 16 bpp. Depending on which it is, OverlayColor
+	 * is 8 or 16 bit.
 	 *
 	 * For 'coolness' we usually want to have an overlay which is blended over
 	 * the game graphics. On backends which support alpha blending, this is
@@ -698,39 +854,30 @@ public:
 	/**
 	 * Set the bitmap used for drawing the cursor.
 	 *
-	 * @param buf				the pixmap data to be used (8bit/pixel)
+	 * @param buf				the pixmap data to be used
 	 * @param w					width of the mouse cursor
 	 * @param h					height of the mouse cursor
 	 * @param hotspotX			horizontal offset from the left side to the hotspot
 	 * @param hotspotY			vertical offset from the top side to the hotspot
-	 * @param keycolor			transparency color index
+	 * @param keycolor			transparency color value. This should not exceed the maximum color value of the specified format.
+	 *                          In case it does the behavior is undefined. The backend might just error out or simply ignore the
+	 *                          value. (The SDL backend will just assert to prevent abuse of this).
 	 * @param cursorTargetScale	scale factor which cursor is designed for
+	 * @param format			pointer to the pixel format which cursor graphic uses (0 means CLUT8)
 	 */
-	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor = 255, int cursorTargetScale = 1) = 0;
+	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int cursorTargetScale = 1, const Graphics::PixelFormat *format = NULL) = 0;
 
 	/**
 	 * Replace the specified range of cursor the palette with new colors.
 	 * The palette entries from 'start' till (start+num-1) will be replaced - so
 	 * a full palette update is accomplished via start=0, num=256.
 	 *
-	 * Backends which implement it should have kFeatureCursorHasPalette flag set
+	 * Backends which implement it should have kFeatureCursorPalette flag set
 	 *
 	 * @see setPalette
-	 * @see kFeatureCursorHasPalette
+	 * @see kFeatureCursorPalette
 	 */
 	virtual void setCursorPalette(const byte *colors, uint start, uint num) {}
-
-	/**
-	 * Disable or enable cursor palette.
-	 *
-	 * Backends which implement it should have kFeatureCursorHasPalette flag set
-	 *
-	 * @param disable  True to disable, false to enable.
-	 *
-	 * @see setPalette
-	 * @see kFeatureCursorHasPalette
-	 */
-	virtual void disableCursorPalette(bool disable) {}
 
 	//@}
 
@@ -750,19 +897,23 @@ public:
 	 * Corresponds on many systems to the combination of time()
 	 * and localtime().
 	 */
-	virtual void getTimeAndDate(struct tm &t) const = 0;
+	virtual void getTimeAndDate(TimeDate &t) const = 0;
 
 	/**
 	 * Return the timer manager singleton. For more information, refer
 	 * to the TimerManager documentation.
 	 */
-	virtual Common::TimerManager *getTimerManager() = 0;
+	inline Common::TimerManager *getTimerManager() {
+		return _timerManager;
+	}
 
 	/**
 	 * Return the event manager singleton. For more information, refer
 	 * to the EventManager documentation.
 	 */
-	virtual Common::EventManager *getEventManager() = 0;
+	inline Common::EventManager *getEventManager() {
+		return _eventManager;
+	}
 
 	/**
 	 * Register hardware keys with keymapper
@@ -798,7 +949,7 @@ public:
 
 	/**
 	 * Create a new mutex.
-	 * @return the newly created mutex, or 0 if an error occured.
+	 * @return the newly created mutex, or 0 if an error occurred.
 	 */
 	virtual MutexRef createMutex() = 0;
 
@@ -845,46 +996,16 @@ public:
 
 
 
-	/**
-	 * @name Audio CD
-	 * The methods in this group deal with Audio CD playback.
-	 * The default implementation simply does nothing.
-	 * This is the lower level implementation as provided by the
-	 * backends. The engines should use the Audio::AudioCDManager
-	 * class instead of using it directly.
-	 */
+	/** @name Audio CD */
 	//@{
 
 	/**
-	 * Initialise the specified CD drive for audio playback.
-	 * @return true if the CD drive was inited succesfully
+	 * Return the audio cd manager. For more information, refer to the
+	 * AudioCDManager documentation.
 	 */
-	virtual bool openCD(int drive);
-
-	/**
-	 * Poll CD status.
-	 * @return true if CD audio is playing
-	 */
-	virtual bool pollCD();
-
-	/**
-	 * Start audio CD playback.
-	 * @param track			the track to play.
-	 * @param num_loops		how often playback should be repeated (-1 = infinitely often).
-	 * @param start_frame	the frame at which playback should start (75 frames = 1 second).
-	 * @param duration		the number of frames to play.
-	 */
-	virtual void playCD(int track, int num_loops, int start_frame, int duration) {}
-
-	/**
-	 * Stop audio CD playback.
-	 */
-	virtual void stopCD() {}
-
-	/**
-	 * Update cdrom audio status.
-	 */
-	virtual void updateCD() {}
+	inline AudioCDManager *getAudioCDManager() {
+		return _audiocdManager;
+	}
 
 	//@}
 
@@ -894,6 +1015,13 @@ public:
 	//@{
 	/** Quit (exit) the application. */
 	virtual void quit() = 0;
+
+	/**
+	 * Signals that a fatal error inside the client code has happened.
+	 *
+	 * This should quit the application.
+	 */
+	virtual void fatalError();
 
 	/**
 	 * Set a window caption or any other comparable status display to the
@@ -911,10 +1039,12 @@ public:
 	 * rectangle over the regular screen content; or in a message box beneath
 	 * it; etc.).
 	 *
-	 * Currently, only pure ASCII messages can be expected to show correctly.
+	 * The message is expected to be provided in the current TranslationManager
+	 * charset.
 	 *
-	 * @note There is a default implementation which uses a TimedMessageDialog
-	 *       to display the message. Hence implementing this is optional.
+	 * @note There is a default implementation in BaseBackend which uses a
+	 *       TimedMessageDialog to display the message. Hence implementing
+	 *       this is optional.
 	 *
 	 * @param msg	the message to display on screen
 	 */
@@ -925,14 +1055,28 @@ public:
 	 * and other modifiable persistent game data. For more information,
 	 * refer to the SaveFileManager documentation.
 	 */
-	virtual Common::SaveFileManager *getSavefileManager() = 0;
+	inline Common::SaveFileManager *getSavefileManager() {
+		return _savefileManager;
+	}
+
+#if defined(USE_TASKBAR)
+	/**
+	 * Returns the TaskbarManager, used to handle progress bars,
+	 * icon overlay, tasks and recent items list on the taskbar.
+	 *
+	 * @return the TaskbarManager for the current architecture
+	 */
+	virtual Common::TaskbarManager *getTaskbarManager() {
+		return _taskbarManager;
+	}
+#endif
 
 	/**
 	 * Returns the FilesystemFactory object, depending on the current architecture.
 	 *
 	 * @return the FSNode factory for the current architecture
 	 */
-	virtual FilesystemFactory *getFilesystemFactory() = 0;
+	virtual FilesystemFactory *getFilesystemFactory();
 
 	/**
 	 * Add system specific Common::Archive objects to the given SearchSet.
@@ -951,7 +1095,7 @@ public:
 	 * ReadStream instance. It is the callers responsiblity to delete
 	 * the stream after use.
 	 */
-	virtual Common::SeekableReadStream *createConfigReadStream() = 0;
+	virtual Common::SeekableReadStream *createConfigReadStream();
 
 	/**
 	 * Open the default config file for writing, by returning a suitable
@@ -960,13 +1104,79 @@ public:
 	 *
 	 * May return 0 to indicate that writing to config file is not possible.
 	 */
-	virtual Common::WriteStream *createConfigWriteStream() = 0;
+	virtual Common::WriteStream *createConfigWriteStream();
+
+	/**
+	 * Get the default file name (or even path) where the user configuration
+	 * of ScummVM will be saved.
+	 * Note that not all ports may use this.
+	 */
+	virtual Common::String getDefaultConfigFileName();
+
+	/**
+	 * Logs a given message.
+	 *
+	 * It is up to the backend where to log the different messages.
+	 * The backend should aim at using a non-buffered output for it
+	 * so that no log data is lost in case of a crash.
+	 *
+	 * The default implementation outputs them on stdout/stderr.
+	 *
+	 * @param type    the type of the message
+	 * @param message the message itself
+	 */
+	virtual void logMessage(LogMessageType::Type type, const char *message) = 0;
+
+	/**
+	 * Open the log file in a way that allows the user to review it,
+	 * and possibly email it (or parts of it) to the ScummVM team,
+	 * e.g. as part of a bug report.
+	 *
+	 * On a desktop operating system, this would typically launch
+	 * some kind of (external) text editor / viewer.
+	 * On a phone, it might also cause a context switch to another
+	 * application. Finally, on some ports, it might not be supported
+	 * at all, and so do nothing.
+	 *
+	 * The kFeatureDisplayLogFile feature flag can be used to
+	 * test whether this call has been implemented by the active
+	 * backend.
+	 *
+	 * @return true if all seems to have gone fine, false if an error occurred
+	 *
+	 * @note An error could mean that the log file did not exist,
+	 * or the editor could not launch. However, a return value of true does
+	 * not guarantee that the user actually will see the log file.
+	 *
+	 * @note It is up to the backend to ensure that the system is in a state
+	 * that allows the user to actually see the displayed log files. This
+	 * might for example require leaving fullscreen mode.
+	 */
+	virtual bool displayLogFile() { return false; }
+
+	/**
+	 * Returns the locale of the system.
+	 *
+	 * This returns the currently set up locale of the system, on which
+	 * ScummVM is run.
+	 *
+	 * The format of the locale is language_country. These should match
+	 * the POSIX locale values.
+	 *
+	 * For information about POSIX locales read here:
+	 * http://en.wikipedia.org/wiki/Locale#POSIX-type_platforms
+	 *
+	 * The default implementation returns "en_US".
+	 *
+	 * @return locale of the system
+	 */
+	virtual Common::String getSystemLanguage() const;
 
 	//@}
 };
 
 
-/** The global OSystem instance. Initialised in main(). */
+/** The global OSystem instance. Initialized in main(). */
 extern OSystem *g_system;
 
 #endif

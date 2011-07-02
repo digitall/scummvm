@@ -18,22 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_RESSTRUCT_H
 #define LURE_RESSTRUCT_H
 
 #include "lure/luredefs.h"
+#include "common/rect.h"
 #include "common/list.h"
 #include "common/file.h"
 #include "common/ptr.h"
+#include "common/textconsole.h"
 
 namespace Lure {
-
-using namespace Common;
 
 /*-------------------------------------------------------------------------*/
 /* Structure definitions                                                   */
@@ -90,7 +87,7 @@ struct HotspotResource {
 	uint16 walkY;
 	int8 talkX;
 	int8 talkY;
-	uint16 colourOffset;
+	uint16 colorOffset;
 	uint16 animRecordId;
 	uint16 hotspotScriptOffset;
 	uint16 talkScriptOffset;
@@ -337,8 +334,8 @@ public:
 
 class RoomDataList: public Common::List<Common::SharedPtr<RoomData> > {
 public:
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 };
 
 struct RoomExitJoinStruct {
@@ -360,8 +357,8 @@ public:
 
 class RoomExitJoinList: public Common::List<Common::SharedPtr<RoomExitJoinData> > {
 public:
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 };
 
 class HotspotActionData {
@@ -447,12 +444,16 @@ public:
 	void setRoomNumber(uint16 roomNum) { _roomNumber = roomNum; }
 	void setSupportData(CharacterScheduleEntry *newRec) {
 		assert((newRec == NULL) || (newRec->parent() != NULL));
+		if (_dynamicSupportData) {
+			delete _supportData;
+			_dynamicSupportData = false;
+		}
 		_supportData = newRec;
 	}
 	void setSupportData(uint16 entryId);
 
-	void saveToStream(WriteStream *stream);
-	static CurrentActionEntry *loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	static CurrentActionEntry *loadFromStream(Common::ReadStream *stream);
 };
 
 class CurrentActionStack {
@@ -466,14 +467,18 @@ private:
 public:
 	CurrentActionStack() { _actions.clear(); }
 
-	bool isEmpty() { return _actions.begin() == _actions.end(); }
+	bool isEmpty() const { return _actions.begin() == _actions.end(); }
 	void clear() { _actions.clear(); }
 	CurrentActionEntry &top() { return **_actions.begin(); }
+	CurrentActionEntry &bottom() {
+		ActionsList::iterator i = _actions.end();
+		--i;
+		return **i;
+	}
 	CurrentAction action() { return isEmpty() ? NO_ACTION : top().action(); }
 	void pop() { _actions.erase(_actions.begin()); }
-	int size() { return _actions.size(); }
-	void list(char *buffer);
-	void list() { list(NULL); }
+	int size() const { return _actions.size(); }
+	Common::String getDebugInfo() const;
 
 	void addBack(CurrentAction newAction, uint16 roomNum) {
 		_actions.push_back(ActionsList::value_type(new CurrentActionEntry(newAction, roomNum)));
@@ -500,8 +505,8 @@ public:
 		validateStack();
 	}
 
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 	void copyFrom(CurrentActionStack &stack);
 };
 
@@ -532,7 +537,7 @@ public:
 	uint16 walkY;
 	int8 talkX;
 	int8 talkY;
-	uint16 colourOffset;
+	uint16 colorOffset;
 	uint16 animRecordId;
 	uint16 hotspotScriptOffset;
 	uint16 talkScriptOffset;
@@ -564,14 +569,14 @@ public:
 	void enable() { flags |= 0x80; }
 	void disable() { flags &= 0x7F; }
 	Direction nonVisualDirection() { return (Direction) scriptLoadFlag; }
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 };
 
 class HotspotDataList: public Common::List<Common::SharedPtr<HotspotData> > {
 public:
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 };
 
 class HotspotOverrideData {
@@ -658,8 +663,8 @@ public:
 
 class TalkDataList: public Common::List<Common::SharedPtr<TalkData> > {
 public:
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 };
 
 struct RoomExitCoordinateData {
@@ -701,7 +706,7 @@ public:
 
 class SequenceDelayData {
 private:
-	SequenceDelayData() {};
+	SequenceDelayData() {}
 public:
 	SequenceDelayData(uint16 delay, uint16 seqOffset, bool canClearFlag);
 	static SequenceDelayData *load(uint32 delay, uint16 seqOffset, bool canClearFlag);
@@ -717,8 +722,8 @@ public:
 	void tick();
 	void clear(bool forceClear = false);
 
-	void saveToStream(WriteStream *stream);
-	void loadFromStream(ReadStream *stream);
+	void saveToStream(Common::WriteStream *stream);
+	void loadFromStream(Common::ReadStream *stream);
 };
 
 // The following classes holds the data for NPC schedules
@@ -739,7 +744,7 @@ public:
 	CharacterScheduleEntry *getEntry(uint16 id, CharacterScheduleSet *currentSet = NULL);
 };
 
-typedef List<uint16> CharacterScheduleOffsets;
+typedef Common::List<uint16> CharacterScheduleOffsets;
 
 // The follow classes are used to store the NPC schedule Ids for the random actions a follower can do in each room
 
@@ -889,7 +894,7 @@ enum FieldName {
 };
 
 struct PlayerNewPosition {
-	Point position;
+	Common::Point position;
 	uint16 roomNumber;
 };
 

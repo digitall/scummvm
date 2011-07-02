@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "scumm/actor.h"
@@ -68,34 +65,43 @@ static const VerbSettings v0VerbTable_English[] = {
 
 // FIXME: Replace * with the correct character
 static const VerbSettings v0VerbTable_German[] = {
-	{ 1,  0, 1,   0, "Ziehe"},
-	{ 2,  0, 0,   0, "Dr<cke"},
-	{ 3,  7, 2,   4, "Lese"},
-	{ 4, 23, 0,   0, "Schlie*e auf"},
-	{ 5, 37, 1,   0, "Ein"},
-	{ 6, 37, 0,   0, "Aus"},
+	{ 1,  7, 0,   0, "$ffne"},
+	{ 2, 13, 1,   0, "Schlie*e"},
+	{ 3,  0, 2,   4, "Gebe"},
+	{ 4, 37, 1,   0, "Ein"},
+	{ 5, 37, 0,   0, "Aus"},
+	{ 6, 23, 1,   2, "Repariere"},
 	{ 7, 34, 2,   0, "Person"},
-	{ 8, 13, 1,   2, "Schlie*e"},
-	{ 9,  7, 1,   0, "Nimm"},
-	{10,  0, 2,   0, "Gebe"},
-	{11, 23, 1, 255, "Repariere"},
-	{12,  7, 0,   0, "$ffne"},
+	{ 8, 23, 0,   2, "Schlie*e auf"},
+	{ 9,  0, 0,   0, "Dr<cke"},
+	{10,  0, 1,   0, "Ziehe"},
+	{11, 23, 2, 255, "Benutz"},
+	{12,  7, 2,   0, "Lese"},
 	{13, 13, 0,   0, "Gehe zu"},
-	{14, 13, 2,   0, "Was ist"},
-	{15, 23, 2,   0, "Benutz"}
+	{14,  7, 1,   0, "Nimm"},
+	{15, 13, 2,   0, "Was ist"}
 };
 
 void ScummEngine_v0::resetVerbs() {
 	VirtScreen *virt = &_virtscr[kVerbVirtScreen];
 	VerbSlot *vs;
+	const VerbSettings *vtable;
 	int i;
+
+	switch (_language) {
+	case Common::DE_DEU:
+		vtable = (const VerbSettings*)v0VerbTable_German;
+		break;
+	default:
+		vtable = (const VerbSettings*)v0VerbTable_English;
+	}
 
 	for (i = 1; i < 16; i++)
 		killVerb(i);
 
 	for (i = 1; i < 16; i++) {
 		vs = &_verbs[i];
-		vs->verbid = v0VerbTable_English[i - 1].id;
+		vs->verbid = vtable[i - 1].id;
 		vs->color = 5;
 		vs->hicolor = 7;
 		vs->dimcolor = 11;
@@ -106,17 +112,10 @@ void ScummEngine_v0::resetVerbs() {
 		vs->key = 0;
 		vs->center = 0;
 		vs->imgindex = 0;
-		vs->prep = v0VerbTable_English[i - 1].prep;
-
-		if (_language == Common::DE_DEU) {
-			vs->curRect.left = v0VerbTable_German[i - 1].x_pos * 8;
-			vs->curRect.top = v0VerbTable_German[i - 1].y_pos * 8 + virt->topline + 8;
-			loadPtrToResource(rtVerb, i, (const byte*)v0VerbTable_German[i - 1].name);
-		} else {
-			vs->curRect.left = v0VerbTable_English[i - 1].x_pos * 8;
-			vs->curRect.top = v0VerbTable_English[i - 1].y_pos * 8 + virt->topline + 8;
-			loadPtrToResource(rtVerb, i, (const byte*)v0VerbTable_English[i - 1].name);
-		}
+		vs->prep = vtable[i - 1].prep;
+		vs->curRect.left = vtable[i - 1].x_pos * 8;
+		vs->curRect.top = vtable[i - 1].y_pos * 8 + virt->topline + 8;
+		loadPtrToResource(rtVerb, i, (const byte*)vtable[i - 1].name);
 	}
 }
 
@@ -152,10 +151,22 @@ void ScummEngine_v0::setNewKidVerbs() {
 }
 
 void ScummEngine_v0::switchActor(int slot) {
-	VAR(VAR_EGO) = VAR(97 + slot);
-	actorFollowCamera(VAR(VAR_EGO));
-	resetVerbs();
 	resetSentence(false);
+
+	if (_currentRoom == 45)
+		return;
+
+	// radiation suit? don't let the player switch
+	if (VAR(VAR_EGO) == 8)
+		return;
+
+	// verbs disabled? or just new kid button?
+	if (_currentMode == 0 || _currentMode == 1 || _currentMode == 2)
+		return;
+
+	VAR(VAR_EGO) = VAR(97 + slot);
+	resetVerbs();
+	actorFollowCamera(VAR(VAR_EGO));
 	setUserState(247);
 }
 
@@ -304,7 +315,7 @@ void ScummEngine_v2::checkV2MouseOver(Common::Point pos) {
 		}
 	}
 
-	if (new_box != _mouseOverBoxV2) {
+	if ((new_box != _mouseOverBoxV2) || (_game.version == 0)) {
 		if (_mouseOverBoxV2 != -1) {
 			rect = _mouseOverBoxesV2[_mouseOverBoxV2].rect;
 
@@ -505,9 +516,8 @@ void ScummEngine_v2::handleMouseOver(bool updateInventory) {
 }
 
 void ScummEngine_v0::handleMouseOver(bool updateInventory) {
-	ScummEngine_v2::handleMouseOver(updateInventory);
-
 	drawSentence();
+	ScummEngine_v2::handleMouseOver(updateInventory);
 }
 
 #ifdef ENABLE_HE
@@ -632,6 +642,50 @@ void ScummEngine_v2::checkExecVerbs() {
 			}
 		}
 
+		// Simulate inventory picking and scrolling keys
+		int object = -1;
+
+		switch (_mouseAndKeyboardStat) {
+		case 'u': // arrow up
+			if (_inventoryOffset >= 2) {
+				_inventoryOffset -= 2;
+				redrawV2Inventory();
+			}
+			return;
+		case 'j': // arrow down
+			if (_inventoryOffset + 4 < getInventoryCount(_scummVars[VAR_EGO])) {
+				_inventoryOffset += 2;
+				redrawV2Inventory();
+			}
+			return;
+		case 'i': // object
+			object = 0;
+			break;
+		case 'o':
+			object = 1;
+			break;
+		case 'k':
+			object = 2;
+			break;
+		case 'l':
+			object = 3;
+			break;
+		}
+
+		if (object != -1) {
+			object = findInventory(_scummVars[VAR_EGO], object + 1 + _inventoryOffset);
+
+			if (object > 0) {
+				if (_game.version == 0) {
+					_activeInventory = object;
+
+				} else {
+					runInputScript(kInventoryClickArea, object, 0);
+				}
+			}
+			return;
+		}
+
 		// Generic keyboard input
 		runInputScript(kKeyClickArea, _mouseAndKeyboardStat, 1);
 	} else if (_mouseAndKeyboardStat & MBS_MOUSE_MASK) {
@@ -664,72 +718,70 @@ void ScummEngine_v2::checkExecVerbs() {
 }
 
 void ScummEngine_v0::runObject(int obj, int entry) {
-	int prev = _v0ObjectInInventory;
+	bool prev = _v0ObjectInInventory;
+
+	if (getVerbEntrypoint(obj, entry) == 0) {
+		// If nothing was found, attempt to find the 'WHAT-IS' verb script
+		// (which is not really the what-is script, as this verb never actually executes
+		//  it merely seems to be some type of fallback)
+		if (getVerbEntrypoint(obj, 0x0F) != 0) {
+			entry = 0x0F;
+		}
+	}
+
+	_v0ObjectInInventory = prev;
 
 	if (getVerbEntrypoint(obj, entry) != 0) {
 		_v0ObjectInInventory = prev;
 		runObjectScript(obj, entry, false, false, NULL);
 	} else if (entry != 13 && entry != 15) {
 		if (_activeVerb != 3) {
-			VAR(9) = entry;
+			VAR(VAR_ACTIVE_VERB) = entry;
 			runScript(3, 0, 0, 0);
 
 		// For some reasons, certain objects don't have a "give" script
-		} else if (VAR(5) > 0 && VAR(5) < 8) {
+		} else if (VAR(VAR_ACTIVE_ACTOR) > 0 && VAR(VAR_ACTIVE_ACTOR) < 8) {
 			if (_activeInventory)
-				setOwnerOf(_activeInventory, VAR(5));
+				setOwnerOf(_activeInventory, VAR(VAR_ACTIVE_ACTOR));
 		}
 	}
 }
 
-void ScummEngine_v2::runObject(int obj, int entry) {
-	if (getVerbEntrypoint(obj, entry) != 0) {
-		runObjectScript(obj, entry, false, false, NULL);
-	} else if (entry != 13 && entry != 15) {
-		VAR(9) = entry;
-		runScript(3, 0, 0, 0);
-	}
-
-	_activeInventory = 0;
-	_activeObject = 0;
-	_activeVerb = 13;
-}
-
 bool ScummEngine_v0::verbMoveToActor(int actor) {
-	Actor *a = derefActor(VAR(VAR_EGO), "checkExecVerbs");
-	Actor *a2 =derefActor(actor, "checkExecVerbs");
+	Actor *a = derefActor(VAR(VAR_EGO), "verbMoveToActor");
+	Actor *a2 = derefActor(actor, "verbMoveToActor");
+	int dist = getDist(a->getRealPos().x, a->getRealPos().y, a2->getRealPos().x, a2->getRealPos().y);
 
-	if (!a->_moving) {
-		int dist =  getDist(a->getRealPos().x, a->getRealPos().y, a2->getRealPos().x, a2->getRealPos().y);
-		if (dist > 5)
-			a->startWalkActor(a2->getRealPos().x, a2->getRealPos().y, 1);
-		else
+	if (!a->_moving && dist > 4) {
+		a->startWalkActor(a2->getRealPos().x, a2->getRealPos().y, -1);
+	} else {
+		if (dist <= 4) {
+			a->stopActorMoving();
 			return false;
-
-		return true;
-	} 
+		}
+	}
 
 	return true;
 }
 
 bool ScummEngine_v0::verbMove(int object, int objectIndex, bool invObject) {
 	int x, y, dir;
-	Actor *a = derefActor(VAR(VAR_EGO), "checkExecVerbs");
+	Actor *a = derefActor(VAR(VAR_EGO), "verbMove");
 
 	if (_currentMode != 3 && _currentMode != 2)
 		return false;
 
-	if (a->_moving)
-		return true;
-
 	_v0ObjectIndex = true;
 	getObjectXYPos(objectIndex, x, y, dir);
 	_v0ObjectIndex = false;
+
 	// Detect distance from target object
 	int dist =  getDist(a->getRealPos().x, a->getRealPos().y, x, y);
 
-	// FIXME: This should be changed once the walkbox problem is fixed
-	if (dist > 0x5) {
+	if (a->_moving)
+		return true;
+
+	if (dist > 5) {
 		a->startWalkActor(x, y, dir);
 		VAR(6) = x;
 		VAR(7) = y;
@@ -742,8 +794,8 @@ bool ScummEngine_v0::verbMove(int object, int objectIndex, bool invObject) {
 			_activeObjectIndex = objectIndex;
 
 			_v0ObjectIndex = true;
-			// Execute pickup 
-			runObject(objectIndex, 14);			
+			// Execute pickup
+			runObject(objectIndex, 14);
 			_v0ObjectIndex = false;
 
 			_activeObject = oldActive;
@@ -751,7 +803,7 @@ bool ScummEngine_v0::verbMove(int object, int objectIndex, bool invObject) {
 
 			// Finished picking up
 			_verbPickup = false;
-		}	
+		}
 	}
 
 	return false;
@@ -765,6 +817,7 @@ bool ScummEngine_v0::verbObtain(int obj, int objIndex) {
 	if (objIndex == 0)
 		return false;
 
+	// Object in inventory ?
 	if (where != WIO_INVENTORY) {
 		_v0ObjectIndex = true;
 		prep = verbPrep(objIndex);
@@ -778,22 +831,39 @@ bool ScummEngine_v0::verbObtain(int obj, int objIndex) {
 			_verbPickup = false;
 		}
 
+		// Ignore verbs?
+		Actor *a = derefActor(VAR(VAR_EGO), "verbObtain");
+		if (((ActorC64 *)a)->_miscflags & 0x40) {
+			resetSentence(false);
+			return false;
+		}
+
+		//attempt move to object
 		if (verbMove(obj, objIndex, false))
 			return true;
 
 		if (didPickup && (prep == 1 || prep == 4))
-			if (_activeVerb != 13 && _activeVerb != 14)
-				_activeInventory = obj;
+			if (_activeVerb != 13 && _activeVerb != 14) {
+				_v0ObjectInInventory = true;
+
+				if (whereIsObject(obj) == WIO_INVENTORY)
+					_activeInventory = obj;
+				else
+					resetSentence(false);
+
+				_v0ObjectInInventory = false;
+			}
 	}
 
 	return false;
 }
 
 int ScummEngine_v0::verbPrep(int object) {
-	if (!_v0ObjectInInventory) 	
+	if (!_v0ObjectInInventory)
 		_v0ObjectIndex = true;
 	else
 		_v0ObjectIndex = false;
+
 	byte *ptr = getOBCDFromObject(object);
 	_v0ObjectIndex = false;
 	assert(ptr);
@@ -816,27 +886,28 @@ bool ScummEngine_v0::verbExec() {
 	int entry = (_currentMode != 0 && _currentMode != 1) ? _activeVerb : 15;
 
 	if ((!_activeInvExecute && _activeObject && getObjectIndex(_activeObject) == -1)) {
-		resetSentence();
+		resetSentence(false);
 		return false;
 	}
 
 	// Lets try walk to the object
 	if (_activeObject && _activeObjectIndex && !_activeObjectObtained && _currentMode != 0) {
 		prep = verbPrep(_activeObjectIndex);
-		
+
 		if (verbObtain(_activeObject, _activeObjectIndex))
 			return true;
 
 		_activeObjectObtained = true;
 	}
 
+	// Attempt to obtain/reach object2
 	if (_activeObject2 && _activeObject2Index && !_activeObject2Obtained && _currentMode != 0) {
 		prep = verbPrep(_activeObject2Index);
 
 		_v0ObjectInInventory = false;
 		if (verbObtain(_activeObject2, _activeObject2Index))
 			return true;
-		
+
 		if (prep != 1 && prep != 4) {
 			_activeInventory = _activeObject;
 			_activeObject = _activeObject2;
@@ -851,26 +922,33 @@ bool ScummEngine_v0::verbExec() {
 	// Give-To
 	if (_activeVerb == 3 && _activeInventory && _activeActor) {
 		// FIXME: Actors need to turn and face each other
-		// And walk to each other
-		if (verbMoveToActor(_activeActor))
-			return true;
+		if (verbMoveToActor(_activeActor)) {
+			// Ignore verbs?
+			Actor *a = derefActor(VAR(VAR_EGO), "verbExec");
+			if (((ActorC64 *)a)->_miscflags & 0x40) {
+				resetSentence(false);
+				return false;
+			}
 
+			return true;
+		}
 		_v0ObjectInInventory = true;
-		VAR(5) = _activeActor;
+		VAR(VAR_ACTIVE_ACTOR) = _activeActor;
 		runObject(_activeInventory , 3);
 		_v0ObjectInInventory = false;
 
-		resetSentence();
+		resetSentence(false);
 		return false;
 	}
 
+	// Where we performing an action on an actor?
 	if (_activeActor) {
 		_v0ObjectIndex = true;
 		runObject(_activeActor, entry);
 		_v0ObjectIndex = false;
 		_verbExecuting = false;
 
-		resetSentence();
+		resetSentence(false);
 		return false;
 	}
 
@@ -884,13 +962,14 @@ bool ScummEngine_v0::verbExec() {
 		if ((_currentMode == 3 || _currentMode == 2) && _activeVerb == 13)
 			return false;
 
-		resetSentence();
+		resetSentence(false);
 		return false;
 	}
 
 	// We acted on an inventory item
 	if (_activeInventory && verbExecutes(_activeInventory, true) && _activeVerb != 3) {
 		_v0ObjectInInventory = true;
+		_activeObject = _activeInventory;
 		runObject(_activeInventory, _activeVerb);
 
 		_verbExecuting = false;
@@ -899,31 +978,40 @@ bool ScummEngine_v0::verbExec() {
 			resetSentence(true);
 			return false;
 		}
-		
-		resetSentence();
+
+		resetSentence(false);
 		return false;
 	}
 
+	// Item not in inventory is executed
 	if (_activeObject) {
 		_v0ObjectIndex = true;
 		runObject(_activeObjectIndex, entry);
 		_v0ObjectIndex = false;
 	} else if (_activeInventory) {
+		// Not sure this is the correct way to do this,
+		// however its working for most situations - segra
 		if (verbExecutes(_activeInventory, true) == false) {
-			if (_activeObject2 && verbExecutes(_activeObject2, true)) {
+			if (_activeObject2 && _activeObject2Inv && verbExecutes(_activeObject2, true)) {
 				_v0ObjectInInventory = true;
-				
+
 				_activeObject = _activeInventory;
 				_activeInventory = _activeObject2;
-				
+
 				runObject(_activeObject, _activeVerb);
 			} else {
 				_v0ObjectInInventory = true;
-				runObject(_activeInventory, _activeVerb);
+
+				if (_activeObject2) {
+					_activeObject = _activeObject2;
+
+					runObject(_activeObject, _activeVerb);
+				} else
+					runObject(_activeInventory, _activeVerb);
 			}
 		} else {
-			runObject(_activeInventory, _activeVerb);
 			_v0ObjectInInventory = true;
+			runObject(_activeInventory, _activeVerb);
 		}
 	}
 
@@ -934,13 +1022,13 @@ bool ScummEngine_v0::verbExec() {
 		return false;
 	}
 
-	resetSentence();
+	resetSentence(false);
 
 	return false;
 }
 
 void ScummEngine_v0::checkExecVerbs() {
-	Actor *a;
+	ActorC64 *a = (ActorC64 *)derefActor(VAR(VAR_EGO), "checkExecVerbs");
 	VirtScreen *zone = findVirtScreen(_mouse.y);
 
 	// Is a verb currently executing
@@ -950,7 +1038,7 @@ void ScummEngine_v0::checkExecVerbs() {
 			int over = findVerbAtPos(_mouse.x, _mouse.y);
 			int act  = getActorFromPos(_virtualMouse.x, _virtualMouse.y);
 			int obj  = findObject(_virtualMouse.x, _virtualMouse.y);
-			
+
 			if (over && over != _activeVerb) {
 				_activeVerb = over;
 				_verbExecuting = false;
@@ -958,12 +1046,12 @@ void ScummEngine_v0::checkExecVerbs() {
 			}
 
 			if (!obj && !act && !over) {
-				resetSentence(false);	
+				resetSentence(false);
 			} else {
-				a = derefActor(VAR(VAR_EGO), "checkExecVerbs");
 				a->stopActorMoving();
 			}
 		} else {
+
 			if (_verbExecuting && !verbExec())
 				return;
 		}
@@ -993,14 +1081,37 @@ void ScummEngine_v0::checkExecVerbs() {
 			// TODO
 		} else if (zone->number == kVerbVirtScreen && _mouse.y > zone->topline + 32) {
 			int prevInventory = _activeInventory;
+			int invOff = _inventoryOffset;
 
 			// Click into V2 inventory
 			checkV2Inventory(_mouse.x, _mouse.y);
+
+			// Did the Inventory position changed (arrows pressed, do nothing)
+			if (invOff != _inventoryOffset)
+				return;
+
+			// No inventory selected?
 			if (!_activeInventory)
 				return;
-			
+
 			// Did we just change the selected inventory item?
 			if (prevInventory && prevInventory != _activeInventory && _activeInventory != _activeObject2) {
+				_v0ObjectInInventory = true;
+				int prep = verbPrep(_activeInventory);
+				_v0ObjectInInventory = true;
+				int prep2 = verbPrep(prevInventory);
+
+				// Should the new inventory object remain as the secondary selected object
+				// Or should the new inventory object become primary?
+				if (prep != prep2 || prep != 1) {
+					if (prep == 1 || prep == 3) {
+						int tmp = _activeInventory;
+						_activeInventory = prevInventory;
+						prevInventory = tmp;
+					}
+				}
+
+				// Setup object2
 				_activeObject = 0;
 				_activeInvExecute = true;
 				_activeObject2Inv = true;
@@ -1018,7 +1129,7 @@ void ScummEngine_v0::checkExecVerbs() {
 				if (!_activeObject2 || prevInventory != _activeObject2)
 					return;
 
-			if (_activeVerb == 11 && !((!(_activeObject || _activeInventory)) || !_activeObject2))
+			if (_activeVerb == 11 && !(((_activeObject || _activeInventory)) || !_activeObject2))
 				return;
 		} else {
 			int over = findVerbAtPos(_mouse.x, _mouse.y);
@@ -1026,9 +1137,18 @@ void ScummEngine_v0::checkExecVerbs() {
 			int obj  = findObject(_virtualMouse.x, _virtualMouse.y);
 			int objIdx = findObjectIndex(_virtualMouse.x, _virtualMouse.y);
 
+			// If we already have an object selected, and we just clicked an actor
+			// Clear any object we may of also clicked on
 			if ((_activeObject || _activeInventory) && act) {
 				obj = 0;
 				objIdx = 0;
+			}
+
+			if (a->_miscflags & 0x80) {
+				if (_activeVerb != 7 && over != 7) {
+					_activeVerb = 0;
+					over = 0;
+				}
 			}
 
 			// Handle New Kid verb options
@@ -1037,35 +1157,36 @@ void ScummEngine_v0::checkExecVerbs() {
 				if (_currentMode == 2 || _currentMode == 0)
 					return;
 
-				if (_activeVerb != 7) {
-					_activeVerb = over;
-					over = 0;
-				} 
-
-				if (over) {
+				if (_activeVerb == 7 && over) {
 					_activeVerb = 13;
 					switchActor(_verbs[over].verbid - 1);
 					return;
 				}
 
 				setNewKidVerbs();
+				_activeVerb = 7;
 
 				return;
 			}
-			
+
 			// Clicked on nothing, walk here?
 			if (!over && !act && _activeVerb == 13 && !obj && _currentMode != 0) {
 				// Clear all selected
-				resetSentence();
+				resetSentence(false);
 
 				// 0xB31
 				VAR(6) = _virtualMouse.x / V12_X_MULTIPLIER;
 				VAR(7) = _virtualMouse.y / V12_Y_MULTIPLIER;
 
 				if (zone->number == kMainVirtScreen) {
-					a = derefActor(VAR(VAR_EGO), "checkExecVerbs");
+					// Ignore verbs?
+					if (a->_miscflags & 0x40) {
+						resetSentence(false);
+						return;
+					}
 					a->stopActorMoving();
-					a->startWalkActor(_virtualMouse.x / V12_X_MULTIPLIER, _virtualMouse.y / V12_Y_MULTIPLIER, -1);
+					a->startWalkActor(VAR(6), VAR(7), -1);
+					_verbExecuting = true;
 				}
 				return;
 			}
@@ -1082,7 +1203,7 @@ void ScummEngine_v0::checkExecVerbs() {
 			if (_activeVerb != over) {
 				_activeVerb = over;
 				if (_activeVerb == 13) {
-					resetSentence();
+					resetSentence(false);
 				}
 				return;
 			}
@@ -1119,12 +1240,14 @@ void ScummEngine_v0::checkExecVerbs() {
 						}
 					}
 				} else {
+					a->stopActorMoving();
+
 					_activeObject = obj;
 					_activeObjectIndex = objIdx;
-						
+
 					if (_activeVerb != 13)
 						return;
-					
+
 					//return;
 				}
 			}
@@ -1321,16 +1444,21 @@ void ScummEngine::restoreVerbBG(int verb) {
 	VerbSlot *vs;
 
 	vs = &_verbs[verb];
+	uint8 col =
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+		((_game.platform == Common::kPlatformFMTowns) && (_game.id == GID_MONKEY2 || _game.id == GID_INDY4) && (vs->bkcolor == _townsOverrideShadowColor)) ? 0 :
+#endif
+		vs->bkcolor;
 
 	if (vs->oldRect.left != -1) {
-		restoreBackground(vs->oldRect, vs->bkcolor);
+		restoreBackground(vs->oldRect, col);
 		vs->oldRect.left = -1;
 	}
 }
 
 void ScummEngine::drawVerbBitmap(int verb, int x, int y) {
+	VerbSlot *vst = &_verbs[verb];
 	VirtScreen *vs;
-	VerbSlot *vst;
 	bool twobufs;
 	const byte *imptr = 0;
 	int ydiff, xstrip;
@@ -1359,11 +1487,16 @@ void ScummEngine::drawVerbBitmap(int verb, int x, int y) {
 	} else if (_game.features & GF_SMALL_HEADER) {
 		size = READ_LE_UINT32(obim);
 
-		imgw = (*(obim + size + 11));
-		imgh = (*(obim + size + 17)) / 8;
+		if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+			imgw = (*(obim + size + 10));
+			imgh = (*(obim + size + 15)) / 8;
+		} else {
+			imgw = (*(obim + size + 11));
+			imgh = (*(obim + size + 17)) / 8;
+		}
 		imptr = getObjectImage(obim, 1);
 	} else {
-		const ImageHeader *imhd = (const ImageHeader *)findResourceData(MKID_BE('IMHD'), obim);
+		const ImageHeader *imhd = (const ImageHeader *)findResourceData(MKTAG('I','M','H','D'), obim);
 		if (_game.version >= 7) {
 			imgw = READ_LE_UINT16(&imhd->v7.width) / 8;
 			imgh = READ_LE_UINT16(&imhd->v7.height) / 8;
@@ -1374,12 +1507,20 @@ void ScummEngine::drawVerbBitmap(int verb, int x, int y) {
 		imptr = getObjectImage(obim, 1);
 	}
 	assert(imptr);
+
+	if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+		_gdi->_distaff = (vst->verbid != 54);
+	}
+
 	for (i = 0; i < imgw; i++) {
 		tmp = xstrip + i;
 		_gdi->drawBitmap(imptr, vs, tmp, ydiff, imgw * 8, imgh * 8, i, 1, Gdi::dbAllowMaskOr | Gdi::dbObjectMode);
 	}
 
-	vst = &_verbs[verb];
+	if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+		_gdi->_distaff = false;
+	}
+
 	vst->curRect.right = vst->curRect.left + imgw * 8;
 	vst->curRect.bottom = vst->curRect.top + imgh * 8;
 	vst->oldRect = vst->curRect;

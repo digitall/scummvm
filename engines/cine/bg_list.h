@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_BGLIST_H
@@ -42,14 +39,13 @@ struct BGIncrust {
 	int16 part;
 };
 
-extern Common::List<BGIncrust> bgIncrustList;
 extern uint32 var8;
 
 void addToBGList(int16 objIdx);
 void addSpriteFilledToBGList(int16 idx);
 
 void createBgIncrustListElement(int16 objIdx, int16 param);
-void resetBgIncrustList(void);
+void resetBgIncrustList();
 void loadBgIncrustFromSave(Common::SeekableReadStream &fHandle);
 
 } // End of namespace Cine

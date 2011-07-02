@@ -18,28 +18,44 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_H
 #define GROOVIE_H
 
-#include "engines/advancedDetector.h"
-#include "engines/engine.h"
-#include "graphics/surface.h"
-
-#include "groovie/cursor.h"
 #include "groovie/debug.h"
-#include "groovie/graphics.h"
-#include "groovie/player.h"
-#include "groovie/resource.h"
-#include "groovie/script.h"
+#include "groovie/font.h"
 
+#include "engines/engine.h"
+#include "graphics/pixelformat.h"
+
+namespace Common {
+class MacResManager;
+}
+
+/**
+ * This is the namespace of the Groovie engine.
+ *
+ * Status of this engine: This engine supports both versions of the Groovie
+ * game engine.  The 7th Guest uses the first revision of Groovie, and is
+ * now fully completable.  All remaining Groovie games use V2 of the engine,
+ * which is under slow development.
+ *
+ * Games using this engine:
+ * - The 7th Guest (completable)
+ * - The 11th Hour
+ * - Clandestiny
+ * - Uncle Henry's Playhouse
+ * - Tender Loving Care
+ */
 namespace Groovie {
 
+class GraphicsMan;
+class GrvCursorMan;
 class MusicPlayer;
+class ResMan;
+class Script;
+class VideoPlayer;
 
 enum DebugLevels {
 	kGroovieDebugAll = 1 << 0,
@@ -56,23 +72,25 @@ enum DebugLevels {
 		// the current limitation is 32 debug levels (1 << 31 is the last one)
 };
 
-struct GroovieGameDescription {
-	ADGameDescription desc;
-
-	EngineVersion version; // Version of the engine
-	int indexEntry; // The index of the entry in disk.1 for V2 games
+enum GameSpeed {
+	kGroovieSpeedNormal,
+	kGroovieSpeediOS,
+	kGroovieSpeedTweaked
 };
+
+struct GroovieGameDescription;
 
 class GroovieEngine : public Engine {
 public:
 	GroovieEngine(OSystem *syst, const GroovieGameDescription *gd);
 	~GroovieEngine();
 
+	Common::Platform getPlatform() const;
+
 protected:
 
 	// Engine APIs
 	Common::Error run();
-	virtual void errorString(const char *buf_input, char *buf_output, int buf_output_size);
 
 	virtual bool hasFeature(EngineFeature f) const;
 
@@ -85,17 +103,25 @@ protected:
 public:
 	void waitForInput();
 
-	Script _script;
+	Graphics::PixelFormat _pixelFormat;
+	bool _mode8bit;
+	Script *_script;
 	ResMan *_resMan;
 	GrvCursorMan *_grvCursorMan;
 	VideoPlayer *_videoPlayer;
 	MusicPlayer *_musicPlayer;
 	GraphicsMan *_graphicsMan;
+	const Graphics::Font *_font;
+
+	Common::MacResManager *_macResFork;
+
+	GameSpeed _modeSpeed;
 
 private:
 	const GroovieGameDescription *_gameDescription;
 	Debugger *_debugger;
 	bool _waitingForInput;
+	T7GFont _sphinxFont;
 };
 
 } // End of namespace Groovie

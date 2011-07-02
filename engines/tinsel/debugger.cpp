@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "tinsel/tinsel.h"
@@ -38,11 +35,11 @@ namespace Tinsel {
 //----------------- EXTERNAL FUNCTIONS ---------------------
 
 // In PDISPLAY.CPP
-extern void TogglePathDisplay(void);
+extern void TogglePathDisplay();
 // In tinsel.cpp
 extern void SetNewScene(SCNHANDLE scene, int entrance, int transition);
 // In scene.cpp
-extern SCNHANDLE GetSceneHandle(void);
+extern SCNHANDLE GetSceneHandle();
 
 //----------------- SUPPORT FUNCTIONS ---------------------
 
@@ -57,7 +54,8 @@ int strToInt(const char *s) {
 
 	// Hexadecimal string
 	uint tmp;
-	sscanf(s, "%xh", &tmp);
+	if (!sscanf(s, "%xh", &tmp))
+		tmp = 0;
 	return (int)tmp;
 }
 
@@ -116,7 +114,7 @@ bool Console::cmd_music(int argc, const char **argv) {
 
 	int param = strToInt(argv[1]);
 	if (param == 0) {
-		DebugPrintf("Track number/offset can't be 0!\n", argv[0]);
+		DebugPrintf("Track number/offset can't be 0!\n");
 	} else if (param > 0) {
 		// Track provided
 		PlayMidiSequence(GetTrackOffset(param - 1), false);

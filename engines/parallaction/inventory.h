@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_INVENTORY_H
@@ -64,10 +61,10 @@ protected:
 
 	InventoryItem	*_items;
 	uint16			_numItems;
-	InventoryProperties *_props;
+	int				_maxItems;
 
 public:
-	Inventory(InventoryProperties *props, InventoryItem *verbs);
+	Inventory(int maxItems, InventoryItem *verbs);
 	virtual ~Inventory();
 
 	ItemPosition addItem(ItemName name, uint32 value);
@@ -101,11 +98,8 @@ protected:
 	void refresh();
 
 public:
-	InventoryRenderer(Parallaction *vm, InventoryProperties *props);
+	InventoryRenderer(Parallaction *vm, InventoryProperties *props, Inventory *inv);
 	virtual ~InventoryRenderer();
-
-	void bindInventory(Inventory *inv) { _inv = inv; }
-	Inventory *getBoundInventory() const { return _inv; }
 
 	void showInventory();
 	void hideInventory();

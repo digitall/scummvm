@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include <common/scummsys.h>
 #include <engines/engine.h>
@@ -31,9 +30,9 @@
 #include "icon.h"
 #include "DCLauncherDialog.h"
 #include <common/config-manager.h>
+#include <common/memstream.h>
 
-#include "backends/plugins/dc/dc-provider.h"
-#include "sound/mixer_intern.h"
+#include "audio/mixer_intern.h"
 
 
 Icon icon;
@@ -42,23 +41,29 @@ const char *gGameName;
 
 OSystem_Dreamcast::OSystem_Dreamcast()
   : _devpoll(0), screen(NULL), mouse(NULL), overlay(NULL), _softkbd(this),
-    _ms_buf(NULL), _timer(NULL), _mixer(NULL), _savefile(NULL),
+    _ms_buf(NULL), _mixer(NULL),
     _current_shake_pos(0), _aspect_stretch(false), _softkbd_on(false),
-    _softkbd_motion(0), _enable_cursor_palette(false)
+    _softkbd_motion(0), _enable_cursor_palette(false), _screenFormat(0)
 {
   memset(screen_tx, 0, sizeof(screen_tx));
   memset(mouse_tx, 0, sizeof(mouse_tx));
   memset(ovl_tx, 0, sizeof(ovl_tx));
+  _fsFactory = this;
 }
 
 void OSystem_Dreamcast::initBackend()
 {
   ConfMan.setInt("autosave_period", 0);
-  _savefile = createSavefileManager();
-  _mixer = new Audio::MixerImpl(this);
-  _timer = new DefaultTimerManager();
-  _mixer->setOutputRate(initSound());
+  _savefileManager = createSavefileManager();
+  _timerManager = new DefaultTimerManager();
+
+  uint sampleRate = initSound();
+  _mixer = new Audio::MixerImpl(this, sampleRate);
   _mixer->setReady(true);
+
+  _audiocdManager = new DCCDManager();
+
+  EventsBaseBackend::initBackend();
 }
 
 
@@ -84,7 +89,7 @@ static bool find_track(int track, int &first_sec, int &last_sec)
   return false;
 }
 
-void OSystem_Dreamcast::playCD(int track, int num_loops, int start_frame, int duration)
+void DCCDManager::playCD(int track, int num_loops, int start_frame, int duration)
 {
   int first_sec, last_sec;
 #if 1
@@ -101,23 +106,23 @@ void OSystem_Dreamcast::playCD(int track, int num_loops, int start_frame, int du
   play_cdda_sectors(first_sec, last_sec, num_loops);
 }
 
-void OSystem_Dreamcast::stopCD()
+void DCCDManager::stopCD()
 {
   stop_cdda();
 }
 
-bool OSystem_Dreamcast::pollCD()
+bool DCCDManager::pollCD()
 {
   extern int getCdState();
   return getCdState() == 3;
 }
 
-void OSystem_Dreamcast::updateCD()
+void DCCDManager::updateCD()
 {
   // Dummy.  The CD drive takes care of itself.
 }
 
-bool OSystem_Dreamcast::openCD(int drive)
+bool DCCDManager::openCD(int drive)
 {
   // Dummy.
   return true;
@@ -158,7 +163,7 @@ bool OSystem_Dreamcast::hasFeature(Feature f)
   case kFeatureAspectRatioCorrection:
   case kFeatureVirtualKeyboard:
   case kFeatureOverlaySupportsAlpha:
-  case kFeatureCursorHasPalette:
+  case kFeatureCursorPalette:
     return true;
   default:
     return false;
@@ -176,6 +181,9 @@ void OSystem_Dreamcast::setFeatureState(Feature f, bool enable)
   case kFeatureVirtualKeyboard:
     _softkbd_on = enable;
     break;
+  case kFeatureCursorPalette:
+    _enable_cursor_palette = enable;
+    break;
   default:
     break;
   }
@@ -188,16 +196,127 @@ bool OSystem_Dreamcast::getFeatureState(Feature f)
     return _aspect_stretch;
   case kFeatureVirtualKeyboard:
     return _softkbd_on;
+  case kFeatureCursorPalette:
+    return _enable_cursor_palette;
   default:
     return false;
   }
 }
 
-void OSystem_Dreamcast::getTimeAndDate(struct tm &t) const {
+void OSystem_Dreamcast::getTimeAndDate(TimeDate &td) const {
   time_t curTime;
   time(&curTime);
-  t = *localtime(&curTime);
+  struct tm t = *localtime(&curTime);
+  td.tm_sec = t.tm_sec;
+  td.tm_min = t.tm_min;
+  td.tm_hour = t.tm_hour;
+  td.tm_mday = t.tm_mday;
+  td.tm_mon = t.tm_mon;
+  td.tm_year = t.tm_year;
 }
+
+Common::SeekableReadStream *OSystem_Dreamcast::createConfigReadStream() {
+  Common::FSNode file("/scummvm.ini");
+  Common::SeekableReadStream *s = file.createReadStream();
+  return s? s : new Common::MemoryReadStream((const byte *)"", 0);
+}
+
+Common::WriteStream *OSystem_Dreamcast::createConfigWriteStream() {
+  return 0;
+}
+
+void OSystem_Dreamcast::logMessage(LogMessageType::Type type, const char *message) {
+#ifndef NOSERIAL
+  report(message);
+#endif
+}
+
+namespace DC_Flash {
+  static int syscall_info_flash(int sect, int *info)
+  {
+    return (*(int (**)(int, void*, int, int))0x8c0000b8)(sect,info,0,0);
+  }
+
+  static int syscall_read_flash(int offs, void *buf, int cnt)
+  {
+    return (*(int (**)(int, void*, int, int))0x8c0000b8)(offs,buf,cnt,1);
+  }
+
+  static int flash_crc(const char *buf, int size)
+  {
+    int i, c, n = -1;
+    for(i=0; i<size; i++) {
+      n ^= (buf[i]<<8);
+      for(c=0; c<8; c++)
+	if(n & 0x8000)
+	  n = (n << 1) ^ 4129;
+	else
+	  n <<= 1;
+    }
+    return (unsigned short)~n;
+  }
+
+  static int flash_read_sector(int partition, int sec, unsigned char *dst)
+  {
+    int s, r, n, b, bmb, got=0;
+    int info[2];
+    char buf[64];
+    char bm[64];
+
+    if((r = syscall_info_flash(partition, info))<0)
+      return r;
+
+    if((r = syscall_read_flash(info[0], buf, 64))<0)
+      return r;
+
+    if(memcmp(buf, "KATANA_FLASH", 12) ||
+       buf[16] != partition || buf[17] != 0)
+      return -2;
+
+    n = (info[1]>>6)-1-((info[1] + 0x7fff)>>15);
+    bmb = n+1;
+    for(b = 0; b < n; b++) {
+      if(!(b&511)) {
+	if((r = syscall_read_flash(info[0] + (bmb++ << 6), bm, 64))<0)
+	  return r;
+      }
+      if(!(bm[(b>>3)&63] & (0x80>>(b&7))))
+	if((r = syscall_read_flash(info[0] + ((b+1) << 6), buf, 64))<0)
+	  return r;
+	else if((s=*(unsigned short *)(buf+0)) == sec &&
+		flash_crc(buf, 62) == *(unsigned short *)(buf+62)) {
+	  memcpy(dst+(s-sec)*60, buf+2, 60);
+	  got=1;
+	}
+    }
+    return got;
+  }
+
+  static int get_locale_setting()
+  {
+    unsigned char data[60];
+    if (flash_read_sector(2,5,data) == 1)
+      return data[5];
+    else
+      return -1;
+  }
+} // End of namespace DC_Flash
+
+Common::String OSystem_Dreamcast::getSystemLanguage() const {
+  static const char *languages[] = {
+    "ja_JP",
+    "en_US",
+    "de_DE",
+    "fr_FR",
+    "es_ES",
+    "it_IT"
+  };
+  int l = DC_Flash::get_locale_setting();
+  if (l<0 || ((unsigned)l)>=sizeof(languages)/sizeof(languages[0]))
+    l = 1;
+  return Common::String(languages[l]);
+}
+
 
 void DCHardware::dc_init_hardware()
 {
@@ -223,7 +342,7 @@ int main()
   g_system = &osys_dc;
 
 #ifdef DYNAMIC_MODULES
-  PluginManager::instance().addPluginProvider(new DCPluginProvider());
+  PluginManager::instance().addPluginProvider(&osys_dc);
 #endif
 
   scummvm_main(argc, argv);

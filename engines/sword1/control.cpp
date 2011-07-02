@@ -18,12 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include <time.h>	// for extended infos
 
 #include "common/file.h"
 #include "common/util.h"
@@ -31,7 +26,10 @@
 #include "common/events.h"
 #include "common/system.h"
 #include "common/config-manager.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 
+#include "graphics/palette.h"
 #include "graphics/thumbnail.h"
 #include "gui/message.h"
 
@@ -124,22 +122,22 @@ ControlButton::ControlButton(uint16 x, uint16 y, uint32 resId, uint8 id, uint8 f
 	_width = (_width > SCREEN_WIDTH) ? SCREEN_WIDTH : _width;
 	_height = _resMan->getUint16(tmp->height);
 	if ((x == 0) && (y == 0)) { // center the frame (used for panels);
-		_x = (((640 - _width) / 2) < 0)? 0 : ((640 - _width) / 2) ;
+		_x = (((640 - _width) / 2) < 0)? 0 : ((640 - _width) / 2);
 		_y = (((480 - _height) / 2) < 0)? 0 : ((480 - _height) / 2);
 	}
 	_dstBuf = screenBuf + _y * SCREEN_WIDTH + _x;
 	_system = system;
 }
 
-ControlButton::~ControlButton(void) {
+ControlButton::~ControlButton() {
 	_resMan->resClose(_resId);
 }
 
-bool ControlButton::isSaveslot(void) {
+bool ControlButton::isSaveslot() {
 	return ((_resId >= SR_SLAB1) && (_resId <= SR_SLAB4));
 }
 
-void ControlButton::draw(void) {
+void ControlButton::draw() {
 	FrameHeader *fHead = _resMan->fetchFrame(_resMan->fetchRes(_resId), _frameIdx);
 	uint8 *src = (uint8*)fHead + sizeof(FrameHeader);
 	uint8 *dst = _dstBuf;
@@ -243,22 +241,22 @@ Control::Control(Common::SaveFileManager *saveFileMan, ResMan *pResMan, ObjectMa
 	_panelShown = false;
 }
 
-void Control::askForCd(void) {
+void Control::askForCd() {
 	_screenBuf = (uint8*)malloc(640 * 480);
 	uint32 fontId = SR_FONT;
 	if (SwordEngine::_systemVars.language == BS1_CZECH)
 		fontId = CZECH_SR_FONT;
 	_font = (uint8*)_resMan->openFetchRes(fontId);
 	uint8 *pal = (uint8*)_resMan->openFetchRes(SR_PALETTE);
-	uint8 *palOut = (uint8*)malloc(256 * 4);
+	uint8 *palOut = (uint8*)malloc(256 * 3);
 	for (uint16 cnt = 1; cnt < 256; cnt++) {
-		palOut[cnt * 4 + 0] = pal[cnt * 3 + 0] << 2;
-		palOut[cnt * 4 + 1] = pal[cnt * 3 + 1] << 2;
-		palOut[cnt * 4 + 2] = pal[cnt * 3 + 2] << 2;
+		palOut[cnt * 3 + 0] = pal[cnt * 3 + 0] << 2;
+		palOut[cnt * 3 + 1] = pal[cnt * 3 + 1] << 2;
+		palOut[cnt * 3 + 2] = pal[cnt * 3 + 2] << 2;
 	}
-	palOut[0] = palOut[1] = palOut[2] = palOut[3] = 0;
+	palOut[0] = palOut[1] = palOut[2] = 0;
 	_resMan->resClose(SR_PALETTE);
-	_system->setPalette(palOut, 0, 256);
+	_system->getPaletteManager()->setPalette(palOut, 0, 256);
 	free(palOut);
 
 	char fName[10];
@@ -300,7 +298,7 @@ static int volToBalance(int volL, int volR) {
 	}
 }
 
-uint8 Control::runPanel(void) {
+uint8 Control::runPanel() {
 	_panelShown = true;
 	_mouseDown = false;
 	_restoreBuf = NULL;
@@ -320,15 +318,15 @@ uint8 Control::runPanel(void) {
 	_redFont = (uint8*)_resMan->openFetchRes(redFontId);
 
 	uint8 *pal = (uint8*)_resMan->openFetchRes(SR_PALETTE);
-	uint8 *palOut = (uint8*)malloc(256 * 4);
+	uint8 *palOut = (uint8*)malloc(256 * 3);
 	for (uint16 cnt = 1; cnt < 256; cnt++) {
-		palOut[cnt * 4 + 0] = pal[cnt * 3 + 0] << 2;
-		palOut[cnt * 4 + 1] = pal[cnt * 3 + 1] << 2;
-		palOut[cnt * 4 + 2] = pal[cnt * 3 + 2] << 2;
+		palOut[cnt * 3 + 0] = pal[cnt * 3 + 0] << 2;
+		palOut[cnt * 3 + 1] = pal[cnt * 3 + 1] << 2;
+		palOut[cnt * 3 + 2] = pal[cnt * 3 + 2] << 2;
 	}
-	palOut[0] = palOut[1] = palOut[2] = palOut[3] = 0;
+	palOut[0] = palOut[1] = palOut[2] = 0;
 	_resMan->resClose(SR_PALETTE);
-	_system->setPalette(palOut, 0, 256);
+	_system->getPaletteManager()->setPalette(palOut, 0, 256);
 	free(palOut);
 	uint8 mode = 0, newMode = BUTTON_MAIN_PANEL;
 	bool fullRefresh = false;
@@ -416,7 +414,9 @@ uint8 Control::runPanel(void) {
 	_system->copyRectToScreen(_screenBuf, 640, 0, 0, 640, 480);
 	free(_screenBuf);
 	_mouse->controlPanel(false);
+	// Can also be used to end the control panel music.
 	_music->startMusic(Logic::_scriptVars[CURRENT_MUSIC], 1);
+	_sound->newScreen(Logic::_scriptVars[SCREEN]);
 	_panelShown = false;
 	return retVal;
 }
@@ -530,12 +530,12 @@ uint8 Control::handleButtonClick(uint8 id, uint8 mode, uint8 *retVal) {
 	return 0;
 }
 
-void Control::deselectSaveslots(void) {
+void Control::deselectSaveslots() {
 	for (uint8 cnt = 0; cnt < 8; cnt++)
 		_buttons[cnt]->setSelected(0);
 }
 
-void Control::setupMainPanel(void) {
+void Control::setupMainPanel() {
 	uint32 panelId;
 
 	if (SwordEngine::_systemVars.controlPanelMode == CP_DEATHSCREEN)
@@ -602,7 +602,7 @@ void Control::setupSaveRestorePanel(bool saving) {
 	showSavegameNames();
 }
 
-void Control::setupVolumePanel(void) {
+void Control::setupVolumePanel() {
 	ControlButton *panel = new ControlButton(0, 0, SR_VOLUME, 0, 0, _resMan, _screenBuf, _system);
 	panel->draw();
 	delete panel;
@@ -623,7 +623,7 @@ void Control::setupVolumePanel(void) {
 	renderVolumeBar(3, volL, volR);
 }
 
-void Control::handleVolumeClicks(void) {
+void Control::handleVolumeClicks() {
 	if (_mouseDown) {
 		uint8 clickedId = 0;
 		for (uint8 cnt = 1; cnt < 4; cnt++)
@@ -774,31 +774,31 @@ void Control::handleSaveKey(Common::KeyState kbd) {
 	}
 }
 
-bool Control::saveToFile(void) {
+bool Control::saveToFile() {
 	if ((_selectedSavegame == 255) || _saveNames[_selectedSavegame].size() == 0)
 		return false; // no saveslot selected or no name entered
 	saveGameToFile(_selectedSavegame);
 	return true;
 }
 
-bool Control::restoreFromFile(void) {
+bool Control::restoreFromFile() {
 	if (_selectedSavegame < 255) {
 		return restoreGameFromFile(_selectedSavegame);
 	} else
 		return false;
 }
 
-void Control::readSavegameDescriptions(void) {
+void Control::readSavegameDescriptions() {
 	char saveName[40];
 	Common::String pattern = "sword1.???";
-	Common::StringList filenames = _saveFileMan->listSavefiles(pattern);
+	Common::StringArray filenames = _saveFileMan->listSavefiles(pattern);
 	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
 
 	_saveNames.clear();
 
 	int num = 0;
 	int slotNum = 0;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 3 digits of the filename, since they correspond to the save slot
 		slotNum = atoi(file->c_str() + file->size() - 3);
 
@@ -827,7 +827,7 @@ void Control::readSavegameDescriptions(void) {
 	_saveFiles = _numSaves = _saveNames.size();
 }
 
-bool Control::isPanelShown(void) {
+bool Control::isPanelShown() {
 	return _panelShown;
 }
 
@@ -845,9 +845,9 @@ int Control::displayMessage(const char *altButton, const char *message, ...) {
 	return result;
 }
 
-bool Control::savegamesExist(void) {
+bool Control::savegamesExist() {
 	Common::String pattern = "sword1.???";
-	Common::StringList saveNames = _saveFileMan->listSavefiles(pattern);
+	Common::StringArray saveNames = _saveFileMan->listSavefiles(pattern);
 	return saveNames.size() > 0;
 }
 
@@ -860,9 +860,9 @@ void Control::checkForOldSaveGames() {
 	}
 
 	GUI::MessageDialog dialog0(
-		"ScummVM found that you have old savefiles for Broken Sword 1 that should be converted.\n"
+		_("ScummVM found that you have old savefiles for Broken Sword 1 that should be converted.\n"
 		"The old save game format is no longer supported, so you will not be able to load your games if you don't convert them.\n\n"
-		"Press OK to convert them now, otherwise you will be asked again the next time you start the game.\n", "OK", "Cancel");
+		"Press OK to convert them now, otherwise you will be asked again the next time you start the game.\n"), _("OK"), _("Cancel"));
 
 	int choice = dialog0.runModal();
 	if (choice == GUI::kMessageCancel) {
@@ -900,7 +900,7 @@ void Control::checkForOldSaveGames() {
 	_saveFileMan->removeSavefile("SAVEGAME.INF");
 }
 
-void Control::showSavegameNames(void) {
+void Control::showSavegameNames() {
 	for (uint8 cnt = 0; cnt < 8; cnt++) {
 		_buttons[cnt]->draw();
 		uint8 textMode = TEXT_LEFT_ALIGN;
@@ -981,7 +981,7 @@ void Control::createButtons(const ButtonInfo *buttons, uint8 num) {
 	_numButtons = num;
 }
 
-void Control::destroyButtons(void) {
+void Control::destroyButtons() {
 	for (uint8 cnt = 0; cnt < _numButtons; cnt++)
 		delete _buttons[cnt];
 	_numButtons = 0;
@@ -1029,7 +1029,7 @@ void Control::renderText(const uint8 *str, uint16 x, uint16 y, uint8 mode) {
 					dst[cntx] = sprData[cntx];
 			}
 
-			if(SwordEngine::isPsx()) { //On PSX version we need to double horizontal lines
+			if (SwordEngine::isPsx()) { //On PSX version we need to double horizontal lines
 				dst += SCREEN_WIDTH;
 				for (uint16 cntx = 0; cntx < _resMan->getUint16(chSpr->width); cntx++)
 					if (sprData[cntx])
@@ -1071,7 +1071,7 @@ void Control::renderVolumeBar(uint8 id, uint8 volL, uint8 volR) {
 		for (uint16 cnty = 0; cnty < barHeight; cnty++) {
 			memcpy(destMem, srcMem, _resMan->getUint16(frHead->width));
 
-			if(SwordEngine::isPsx()) { //linedoubling
+			if (SwordEngine::isPsx()) { //linedoubling
 				destMem += SCREEN_WIDTH;
 				memcpy(destMem, srcMem, _resMan->getUint16(frHead->width));
 			}
@@ -1109,7 +1109,7 @@ void Control::saveGameToFile(uint8 slot) {
 		Graphics::saveThumbnail(*outf);
 
 	// Date / time
-	tm curTime;
+	TimeDate curTime;
 	_system->getTimeAndDate(curTime);
 
 	uint32 saveDate = (curTime.tm_mday & 0xFF) << 24 | ((curTime.tm_mon + 1) & 0xFF) << 16 | ((curTime.tm_year + 1900) & 0xFFFF);
@@ -1118,8 +1118,7 @@ void Control::saveGameToFile(uint8 slot) {
 	outf->writeUint32BE(saveDate);
 	outf->writeUint16BE(saveTime);
 
-	uint32 currentTime = _system->getMillis() / 1000;
-	outf->writeUint32BE(currentTime - SwordEngine::_systemVars.engineStartTime);
+	outf->writeUint32BE(g_engine->getTotalPlayTime() / 1000);
 
 	_objMan->saveLiveList(liveBuf);
 	for (cnt = 0; cnt < TOTAL_SECTIONS; cnt++)
@@ -1175,17 +1174,15 @@ bool Control::restoreGameFromFile(uint8 slot) {
 	if (saveVersion < 2) // These older version of the savegames used a flag to signal presence of thumbnail
 		inf->skip(1);
 
-	if (Graphics::checkThumbnailHeader(*inf))
-		Graphics::skipThumbnailHeader(*inf);
+	Graphics::skipThumbnail(*inf);
 
 	inf->readUint32BE();	// save date
 	inf->readUint16BE();	// save time
 
 	if (saveVersion < 2) { // Before version 2 we didn't had play time feature
-		SwordEngine::_systemVars.engineStartTime =	_system->getMillis() / 1000; // Start counting
+		g_engine->setTotalPlayTime(0);
 	} else {
-		uint32 currentTime = _system->getMillis() / 1000;
-		SwordEngine::_systemVars.engineStartTime = currentTime - inf->readUint32BE(); // Engine start time
+		g_engine->setTotalPlayTime(inf->readUint32BE() * 1000);
 	}
 
 	_restoreBuf = (uint8*)malloc(
@@ -1232,11 +1229,10 @@ bool Control::convertSaveGame(uint8 slot, char* desc) {
 	if (testSave) {
 		delete testSave;
 
-		char msg[200];
-		sprintf(msg, "Target new save game already exists!\n"
-					 "Would you like to keep the old save game (%s) or the new one (%s)?\n",
+		Common::String msg = Common::String::format(_("Target new save game already exists!\n"
+					 "Would you like to keep the old save game (%s) or the new one (%s)?\n"),
 					 oldFileName, newFileName);
-		GUI::MessageDialog dialog0(msg, "Keep the old one", "Keep the new one");
+		GUI::MessageDialog dialog0(msg, _("Keep the old one"), _("Keep the new one"));
 
 		int choice = dialog0.runModal();
 		if (choice == GUI::kMessageCancel) {
@@ -1265,7 +1261,7 @@ bool Control::convertSaveGame(uint8 slot, char* desc) {
 	if (!newSave) {
 		// Display a warning message and do nothing
 		warning("Unable to create file '%s'. (%s)", newFileName, _saveFileMan->popErrorDesc().c_str());
-		free(saveData);
+		delete[] saveData;
 		saveData = NULL;
 		return false;
 	}
@@ -1275,7 +1271,7 @@ bool Control::convertSaveGame(uint8 slot, char* desc) {
 	newSave->writeByte(SAVEGAME_VERSION);
 
 	// Date / time
-	tm curTime;
+	TimeDate curTime;
 	_system->getTimeAndDate(curTime);
 
 	uint32 saveDate = (curTime.tm_mday & 0xFF) << 24 | ((curTime.tm_mon + 1) & 0xFF) << 16 | ((curTime.tm_year + 1900) & 0xFFFF);
@@ -1296,12 +1292,12 @@ bool Control::convertSaveGame(uint8 slot, char* desc) {
 	_saveFileMan->removeSavefile(oldFileName);
 
 	// Cleanup
-	free(saveData);
+	delete[] saveData;
 	saveData = NULL;
 	return true;
 }
 
-void Control::doRestore(void) {
+void Control::doRestore() {
 	uint8 *bufPos = _restoreBuf;
 	_objMan->loadLiveList((uint16*)bufPos);
 	bufPos += TOTAL_SECTIONS * 2;

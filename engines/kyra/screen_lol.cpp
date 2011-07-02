@@ -18,16 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
 
 #include "kyra/screen_lol.h"
 #include "kyra/lol.h"
-#include "kyra/resource.h"
+
+#include "common/system.h"
+
+#include "graphics/palette.h"
 
 namespace Kyra {
 
@@ -108,14 +108,21 @@ void Screen_LoL::fprintString(const char *format, int x, int y, uint8 col1, uint
 	if (flags & 2)
 		x -= getTextWidth(string);
 
-	if (flags & 4) {
-		printText(string, x - 1, y, 1, col2);
-		printText(string, x, y + 1, 1, col2);
-	}
+	if (_use16ColorMode) {
+		if (flags & 12) {
+			printText(string, x - 1, y, 0x44, col2);
+			printText(string, x, y + 1, 0x44, col2);
+		}
+	} else {
+		if (flags & 4) {
+			printText(string, x - 1, y, 1, col2);
+			printText(string, x, y + 1, 1, col2);
+		}
 
-	if (flags & 8) {
-		printText(string, x - 1, y, 227, col2);
-		printText(string, x, y + 1, 227, col2);
+		if (flags & 8) {
+			printText(string, x - 1, y, 227, col2);
+			printText(string, x, y + 1, 227, col2);
+		}
 	}
 
 	printText(string, x, y, col1, col2);
@@ -142,6 +149,24 @@ void Screen_LoL::fprintStringIntro(const char *format, int x, int y, uint8 c1, u
 	printText(buffer, x, y, c1, c2);
 }
 
+void Screen_LoL::drawShadedBox(int x1, int y1, int x2, int y2, int color1, int color2) {
+	assert(x1 >= 0 && y1 >= 0);
+	hideMouse();
+
+	fillRect(x1, y1, x2, y1 + 1, color1);
+	fillRect(x1, y1, x1 + 1, y2, color1);
+
+	drawClippedLine(x2, y1, x2, y2, color2);
+	drawClippedLine(x2 - 1, y1 + 1, x2 - 1, y2 - 1, color2);
+	drawClippedLine(x1 + 1, y2 - 1, x2, y2 - 1, color2);
+	drawClippedLine(x1, y2, x2, y2, color2);
+
+	if (_use16ColorMode && color1 > color2)
+		drawBox(x1, y1, x2, y2, 0x44);
+
+	showMouse();
+}
+
 void Screen_LoL::generateGrayOverlay(const Palette &srcPal, uint8 *grayOverlay, int factor, int addR, int addG, int addB, int lastColor, bool skipSpecialColors) {
 	Palette tmpPal(lastColor);
 
@@ -158,62 +183,47 @@ void Screen_LoL::generateGrayOverlay(const Palette &srcPal, uint8 *grayOverlay, 
 		grayOverlay[i] = findLeastDifferentColor(tmpPal.getData() + 3 * i, srcPal, 0, lastColor, skipSpecialColors);
 }
 
-uint8 *Screen_LoL::generateLevelOverlay(const Palette &srcPal, uint8 *ovl, int opColor, int weight) {
-	if (!ovl)
-		return ovl;
+void Screen_LoL::createTransparencyTablesIntern(const uint8 *ovl, int a, const uint8 *fxPal1, const uint8 *fxPal2, uint8 *outTable1, uint8 *outTable2, int b) {
+	Palette screenPal(256);
+	screenPal.copy(fxPal2, 0, 256);
 
-	if (weight > 255)
-		weight = 255;
+	memset(outTable1, 0xff, 256);
 
-	uint16 r = srcPal[opColor * 3];
-	uint16 g = srcPal[opColor * 3 + 1];
-	uint16 b = srcPal[opColor * 3 + 2];
+	for (int i = 0; i < a; i++)
+		outTable1[ovl[i]] = i;
 
-	uint8 *d = ovl;
-	*d++ = 0;
+	for (int i = 0; i < a; i++) {
+		if (ovl[i]) {
+			uint8 tcol[3];
+			uint16 fcol[3];
+			uint16 scol[3];
 
-	for (int i = 1; i != 255; i++) {
-		uint16 a = srcPal[i * 3];
-		uint8 dr = a - ((((a - r) * (weight >> 1)) << 1) >> 8);
-		a = srcPal[i * 3 + 1];
-		uint8 dg = a - ((((a - g) * (weight >> 1)) << 1) >> 8);
-		a = srcPal[i * 3 + 2];
-		uint8 db = a - ((((a - b) * (weight >> 1)) << 1) >> 8);
+			uint16 t1 = (b << 6) / 100;
+			uint16 t2 = 64 - t1;
 
-		int l = opColor;
-		int m = 0x7fff;
-		int ii = 127;
-		int x = 1;
-		const uint8 *s = srcPal.getData() + 3;
+			uint8 c = ovl[i];
+			fcol[0] = fxPal1[3 * c];
+			fcol[1] = fxPal1[3 * c + 1];
+			fcol[2] = fxPal1[3 * c + 2];
 
-		do {
-			if (i == x) {
-				s += 3;
-			} else {
-				int t = *s++ - dr;
-				int c = t * t;
-				t = *s++ - dg;
-				c += (t * t);
-				t = *s++ - db;
-				c += (t * t);
+			uint8 *o = &outTable2[i << 8];
 
-				if (!c) {
-					l = x;
-					break;
-				}
+			for (int ii = 0; ii < 256; ii++) {
+				scol[0] = screenPal[3 * ii];
+				scol[1] = screenPal[3 * ii + 1];
+				scol[2] = screenPal[3 * ii + 2];
 
-				if (c <= m) {
-					m = c;
-					l = x;
-				}
+				tcol[0] = CLIP(((fcol[0] * t2) >> 6) + ((scol[0] * t1) >> 6), 0, 63);
+				tcol[1] = CLIP(((fcol[1] * t2) >> 6) + ((scol[1] * t1) >> 6), 0, 63);
+				tcol[2] = CLIP(((fcol[2] * t2) >> 6) + ((scol[2] * t1) >> 6), 0, 63);
+
+				o[ii] = findLeastDifferentColor(tcol, screenPal, 0, 255);
 			}
-			x++;
-		} while (--ii);
 
-		*d++ = l & 0xff;
+		} else {
+			memset(&outTable2[i << 8], 0, 256);
+		}
 	}
-
-	return ovl;
 }
 
 void Screen_LoL::drawGridBox(int x, int y, int w, int h, int col) {
@@ -280,13 +290,18 @@ void Screen_LoL::fadeClearSceneWindow(int delay) {
 	if (_fadeFlag == 1)
 		return;
 
-	Palette tpal(getPalette(0).getNumColors());
-	tpal.copy(getPalette(0), 128);
+	if (_use16ColorMode) {
+		fadeToBlack(delay);
+		fillRect(112, 0, 288, 120, 0x44);
+	} else {
+		Palette tpal(getPalette(0).getNumColors());
+		tpal.copy(getPalette(0), 128);
 
-	loadSpecialColors(tpal);
-	fadePalette(tpal, delay);
+		loadSpecialColors(tpal);
+		fadePalette(tpal, delay);
 
-	fillRect(112, 0, 288, 120, 0);
+		fillRect(112, 0, 288, 120, 0);
+	}
 
 	_fadeFlag = 1;
 }
@@ -581,8 +596,8 @@ void Screen_LoL::copyRegionSpecial(int page1, int w1, int h1, int x1, int y1, in
 	if (mode == 2) {
 		va_list args;
 		va_start(args, mode);
-		table1 = va_arg(args, uint8*);
-		table2 = va_arg(args, uint8*);
+		table1 = va_arg(args, uint8 *);
+		table2 = va_arg(args, uint8 *);
 		va_end(args);
 	}
 
@@ -622,7 +637,7 @@ void Screen_LoL::copyRegionSpecial(int page1, int w1, int h1, int x1, int y1, in
 				d++;
 			}
 
-			for (int ii = (i & 1) ^ 1; ii < ibw_2; ii += 2 ) {
+			for (int ii = (i & 1) ^ 1; ii < ibw_2; ii += 2) {
 				*d = *s;
 				d += 2;
 				s += 2;
@@ -769,6 +784,9 @@ void Screen_LoL::fadeToPalette1(int delay) {
 }
 
 void Screen_LoL::loadSpecialColors(Palette &dst) {
+	if (_use16ColorMode)
+		return;
+
 	dst.copy(*_screenPalette, 192, 4);
 }
 
@@ -777,46 +795,46 @@ void Screen_LoL::copyColor(int dstColorIndex, int srcColorIndex) {
 	uint8 *d = _screenPalette->getData() + dstColorIndex * 3;
 	memcpy(d, s, 3);
 
-	uint8 ci[4];
+	uint8 ci[3];
 	ci[0] = (d[0] << 2) | (d[0] & 3);
 	ci[1] = (d[1] << 2) | (d[1] & 3);
 	ci[2] = (d[2] << 2) | (d[2] & 3);
-	ci[3] = 0;
 
-	_system->setPalette(ci, dstColorIndex, 1);
+	_system->getPaletteManager()->setPalette(ci, dstColorIndex, 1);
 }
 
-bool Screen_LoL::fadeColor(int dstColorIndex, int srcColorIndex, uint32 elapsedTime, uint32 targetTime) {
+bool Screen_LoL::fadeColor(int dstColorIndex, int srcColorIndex, uint32 elapsedTicks, uint32 totalTicks) {
+	if (_use16ColorMode)
+		return false;
+
 	const uint8 *dst = _screenPalette->getData() + 3 * dstColorIndex;
 	const uint8 *src = _screenPalette->getData() + 3 * srcColorIndex;
 	uint8 *p = getPalette(1).getData() + 3 * dstColorIndex;
 
 	bool res = false;
 
-	int16 t1 = 0;
-	int16 t2 = 0;
-	int32 t3 = 0;
+	int16 srcV = 0;
+	int16 dstV = 0;
+	int32 outV = 0;
 
 	uint8 tmpPalEntry[3];
 
 	for (int i = 0; i < 3; i++) {
-		if (elapsedTime < targetTime) {
-			t1 = *src & 0x3f;
-			t2 = *dst & 0x3f;
+		if (elapsedTicks < totalTicks) {
+			srcV = *src & 0x3f;
+			dstV = *dst & 0x3f;
 
-			t3 = t1 - t2;
-			if (t3)
+			outV = srcV - dstV;
+			if (outV)
 				res = true;
 
-			t3 = (((t3 << 8) / (int)targetTime) * (int)elapsedTime) >> 8;
-			t3 =  t2 + t3;
+			outV = dstV + ((((outV << 8) / (int32)totalTicks) * (int32)elapsedTicks) >> 8);
 		} else {
-			t1 = *dst & 0x3f;
-			*p = t3 = t1;
+			*p = outV = *src;
 			res = false;
 		}
 
-		tmpPalEntry[i] = t3 & 0xff;
+		tmpPalEntry[i] = outV & 0xff;
 		src++;
 		dst++;
 		p++;
@@ -834,7 +852,7 @@ bool Screen_LoL::fadePaletteStep(uint8 *pal1, uint8 *pal2, uint32 elapsedTime, u
 	Palette &p1 = getPalette(1);
 
 	bool res = false;
-	for (int i = 0; i < 768; i++) {
+	for (int i = 0; i < p1.getNumColors() * 3; i++) {
 		uint8 out = 0;
 
 		if (elapsedTime < targetTime) {
@@ -858,38 +876,41 @@ bool Screen_LoL::fadePaletteStep(uint8 *pal1, uint8 *pal2, uint32 elapsedTime, u
 	return res;
 }
 
-uint8 *Screen_LoL::generateFadeTable(uint8 *dst, uint8 *src1, uint8 *src2, int numTabs) {
+Palette **Screen_LoL::generateFadeTable(Palette **dst, Palette *src1, Palette *src2, int numTabs) {
+	int len = _use16ColorMode ? 48 : 768;
 	if (!src1)
-		src1 = _screenPalette->getData();
+		src1 = _screenPalette;
 
-	uint8 *p1 = dst;
-	uint8 *p2 = src1;
-	uint8 *p3 = src2;
+	uint8 *p1 = (*dst++)->getData();
+	uint8 *p2 = src1->getData();
+	uint8 *p3 = src2->getData();
+	uint8 *p4 = p1;
+	uint8 *p5 = p2;
 
-	for (int i = 0; i < 768; i++) {
+	for (int i = 0; i < len; i++) {
 		int8 val = (int8)*p3++ - (int8)*p2++;
-		*dst++ = (uint8)val;
+		*p4++ = (uint8)val;
 	}
 
 	int16 t = 0;
 	int16 d = 256 / numTabs;
 
 	for (int i = 1; i < numTabs - 1; i++) {
-		p2 = src1;
+		p2 = p5;
 		p3 = p1;
 		t += d;
+		p4 = (*dst++)->getData();
 
-		for (int ii = 0; ii < 768; ii++) {
+		for (int ii = 0; ii < len; ii++) {
 			int16 val = (((int8)*p3++ * t) >> 8) + (int8)*p2++;
-			*dst++ = (uint8)val;
+			*p4++ = (uint8)val;
 		}
 	}
 
-	memcpy(p1, src1, 768);
-	memcpy(dst, src2, 768);
+	memcpy(p1, p5, len);
+	(*dst)->copy(*src2);
 
-	dst += 768;
-	return dst;
+	return ++dst;
 }
 
 uint8 Screen_LoL::getShapePaletteSize(const uint8 *shp) {
@@ -935,7 +956,7 @@ void Screen_LoL::postProcessCursor(uint8 *data, int w, int h, int pitch) {
 	}
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

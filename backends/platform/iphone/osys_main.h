@@ -18,18 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "graphics/surface.h"
 #include "iphone_common.h"
 #include "backends/base-backend.h"
 #include "common/events.h"
-#include "sound/mixer_intern.h"
+#include "audio/mixer_intern.h"
 #include "backends/fs/posix/posix-fs-factory.h"
 #include "graphics/colormasks.h"
+#include "graphics/palette.h"
 
 #include <AudioToolbox/AudioQueue.h>
 
@@ -51,7 +49,7 @@ typedef struct AQCallbackStruct {
     AudioStreamBasicDescription dataFormat;
 } AQCallbackStruct;
 
-class OSystem_IPHONE : public BaseBackend {
+class OSystem_IPHONE : public EventsBaseBackend, public PaletteManager {
 protected:
 
 	static const OSystem::GraphicsMode s_supportedGraphicsModes[];
@@ -59,13 +57,14 @@ protected:
 	static SoundProc s_soundCallback;
 	static void *s_soundParam;
 
-	Common::SaveFileManager *_savefile;
 	Audio::MixerImpl *_mixer;
-	Common::TimerManager *_timer;
 
 	Graphics::Surface _framebuffer;
 	byte *_offscreen;
 	OverlayColor  *_overlayBuffer;
+	uint16 _overlayHeight;
+	uint16 _overlayWidth;
+
 	uint16 *_fullscreen;
 
 	uint16  _palette[256];
@@ -78,16 +77,16 @@ protected:
 
 	bool _mouseVisible;
 	byte *_mouseBuf;
-	byte _mouseKeyColour;
+	byte _mouseKeyColor;
 	uint _mouseWidth, _mouseHeight;
 	uint _mouseX, _mouseY;
 	int _mouseHotspotX, _mouseHotspotY;
 	bool _mouseDirty;
 	long _lastMouseDown;
 	long _lastMouseTap;
+	long _queuedEventTime;
 	Common::Rect _lastDrawnMouseRect;
 	Common::Event _queuedInputEvent;
-	bool _needEventRestPeriod;
 	bool _secondaryTapped;
 	long _lastSecondaryDown;
 	long _lastSecondaryTap;
@@ -109,7 +108,6 @@ protected:
 	bool _fullScreenIsDirty;
 	bool _fullScreenOverlayIsDirty;
 	int _screenChangeCount;
-	FilesystemFactory *_fsFactory;
 
 public:
 
@@ -126,11 +124,17 @@ public:
 	bool setGraphicsMode(const char *name);
 	virtual bool setGraphicsMode(int mode);
 	virtual int getGraphicsMode() const;
-	virtual void initSize(uint width, uint height);
+	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format);
 	virtual int16 getHeight();
 	virtual int16 getWidth();
+
+	virtual PaletteManager *getPaletteManager() { return this; }
+protected:
+	// PaletteManager API
 	virtual void setPalette(const byte *colors, uint start, uint num);
 	virtual void grabPalette(byte *colors, uint start, uint num);
+
+public:
 	virtual void copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h);
 	virtual void updateScreen();
 	virtual Graphics::Surface *lockScreen();
@@ -144,12 +148,12 @@ public:
 	virtual void copyRectToOverlay(const OverlayColor *buf, int pitch, int x, int y, int w, int h);
 	virtual int16 getOverlayHeight();
 	virtual int16 getOverlayWidth();
-	virtual Graphics::PixelFormat getOverlayFormat() const { return Graphics::createPixelFormat<565>(); }
+	virtual Graphics::PixelFormat getOverlayFormat() const { return Graphics::createPixelFormat<5551>(); }
 
 	virtual bool showMouse(bool visible);
 
 	virtual void warpMouse(int x, int y);
-	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, byte keycolor = 255, int cursorTargetScale = 1);
+	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor = 255, int cursorTargetScale = 1, const Graphics::PixelFormat *format = NULL);
 
 	virtual bool pollEvent(Common::Event &event);
 	virtual uint32 getMillis();
@@ -162,24 +166,21 @@ public:
 
 	static void mixCallback(void *sys, byte *samples, int len);
 	virtual void setupMixer(void);
-	virtual int getOutputSampleRate() const;
 	virtual void setTimerCallback(TimerProc callback, int interval);
  	virtual int getScreenChangeID() const { return _screenChangeCount; }
 	virtual void quit();
 
-	FilesystemFactory *getFilesystemFactory() { return _fsFactory; }
 	virtual void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0);
-	virtual void getTimeAndDate(struct tm &t) const;
+	virtual void getTimeAndDate(TimeDate &t) const;
 
-	virtual Common::SaveFileManager *getSavefileManager();
 	virtual Audio::Mixer *getMixer();
-	virtual Common::TimerManager *getTimerManager();
 
 	void startSoundsystem();
 	void stopSoundsystem();
 
-	virtual Common::SeekableReadStream *createConfigReadStream();
-	virtual Common::WriteStream *createConfigWriteStream();
+	virtual Common::String getDefaultConfigFileName();
+
+	virtual void logMessage(LogMessageType::Type type, const char *message);
 
 protected:
 	void internUpdateScreen();

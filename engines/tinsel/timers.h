@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Handles timers.
  */
 
@@ -31,25 +28,25 @@
 #include "tinsel/dw.h"
 
 namespace Common {
-	class Serializer;
+class Serializer;
 }
 
 namespace Tinsel {
 
 #define ONE_SECOND 24
 
-uint32 DwGetCurrentTime(void);
+uint32 DwGetCurrentTime();
 
-void RebootTimers(void);
+void RebootTimers();
 
 void syncTimerInfo(Common::Serializer &s);
 
-void FettleTimers(void);
+void FettleTimers();
 
 void StartTimer(int num, int sval, bool up, bool frame);
 
 int Timer(int num);
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_WALK_H
@@ -31,36 +28,33 @@
 
 #include "parallaction/objects.h"
 
-
 namespace Parallaction {
 
 struct Character;
 
-
 class PathWalker_NS {
-    AnimationPtr _a;
+	AnimationPtr _a;
 	PointList	_walkPath;
 	int16		_direction, _step;
 
-    // builder routines
+	// builder routines
 	PointList	_subPath;
 	void correctPathPoint(Common::Point &to);
 	uint32 buildSubPath(const Common::Point& pos, const Common::Point& stop);
 	uint16 walkFunc1(const Common::Point &to, Common::Point& node);
 
-    // walker routines
+	// walker routines
 	void finalizeWalk();
 	void clipMove(Common::Point& pos, const Common::Point& to);
 	void checkDoor(const Common::Point &foot);
-    void updateDirection(const Common::Point& pos, const Common::Point& to);
+	void updateDirection(const Common::Point& pos, const Common::Point& to);
 
 public:
 	PathWalker_NS();
 
-    void buildPath(AnimationPtr a, uint16 x, uint16 y);
+	void buildPath(AnimationPtr a, uint16 x, uint16 y);
 	void walk();
 };
-
 
 class PathWalker_BR {
 
@@ -68,7 +62,7 @@ class PathWalker_BR {
 		bool			_active;
 		AnimationPtr	_a;
 		int				_walkDelay;
-		int				_fieldC;
+		bool			_stillWalkingTowardsNode;
 		Common::Point	_startFoot;
 		bool			_first;
 		int				_step;

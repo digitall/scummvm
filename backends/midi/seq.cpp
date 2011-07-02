@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 /*
@@ -28,14 +25,22 @@
  *    both the QuickTime support and (vkeybd http://www.alsa-project.org/~iwai/alsa.html)
  */
 
-#if defined(UNIX) && !defined(__BEOS__) && !defined(__MAEMO__) && !defined(__MINT__)
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
+#include "common/scummsys.h"
+
+#if defined(USE_SEQ_MIDI)
+
+#include "common/error.h"
+#include "common/textconsole.h"
 #include "common/util.h"
-#include "sound/musicplugin.h"
-#include "sound/mpu401.h"
+#include "audio/musicplugin.h"
+#include "audio/mpu401.h"
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 ////////////////////////////////////////
 //
@@ -49,6 +54,7 @@ class MidiDriver_SEQ : public MidiDriver_MPU401 {
 public:
 	MidiDriver_SEQ();
 	int open();
+	bool isOpen() const { return _isOpen; }
 	void close();
 	void send(uint32 b);
 	void sysEx(const byte *msg, uint16 length);
@@ -80,7 +86,7 @@ int MidiDriver_SEQ::open() {
 		device_name = dev_seq;
 	}
 
-	device = (::open((device_name), O_RDWR, 0));
+	device = ::open((device_name), O_RDWR, 0);
 
 	if ((device_name == NULL) || (device < 0)) {
 		if (device_name == NULL)
@@ -142,10 +148,11 @@ void MidiDriver_SEQ::send(uint32 b) {
 		warning("MidiDriver_SEQ::send: unknown : %08x", (int)b);
 		break;
 	}
-	(void)write(device, buf, position);
+	if (write(device, buf, position) == -1)
+		warning("MidiDriver_SEQ::send: write failed (%s)", strerror(errno));
 }
 
-void MidiDriver_SEQ::sysEx (const byte *msg, uint16 length) {
+void MidiDriver_SEQ::sysEx(const byte *msg, uint16 length) {
 	unsigned char buf [266*4];
 	int position = 0;
 	const byte *chr = msg;
@@ -167,7 +174,8 @@ void MidiDriver_SEQ::sysEx (const byte *msg, uint16 length) {
 	buf[position++] = _device_num;
 	buf[position++] = 0;
 
-	(void)write(device, buf, position);
+	if (write(device, buf, position) == -1)
+		warning("MidiDriver_SEQ::send: write failed (%s)", strerror(errno));
 }
 
 
@@ -184,7 +192,7 @@ public:
 	}
 
 	MusicDevices getDevices() const;
-	Common::Error createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
 };
 
 MusicDevices SeqMusicPlugin::getDevices() const {
@@ -195,19 +203,10 @@ MusicDevices SeqMusicPlugin::getDevices() const {
 	return devices;
 }
 
-Common::Error SeqMusicPlugin::createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const {
+Common::Error SeqMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
 	*mididriver = new MidiDriver_SEQ();
 
 	return Common::kNoError;
-}
-
-MidiDriver *MidiDriver_SEQ_create(Audio::Mixer *mixer) {
-	MidiDriver *mididriver;
-
-	SeqMusicPlugin p;
-	p.createInstance(mixer, &mididriver);
-
-	return mididriver;
 }
 
 //#if PLUGIN_ENABLED_DYNAMIC(SEQ)

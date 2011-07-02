@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
@@ -88,11 +85,11 @@ void Screen::blitBlockSurface(BlockSurface *s, Common::Rect *r, Common::Rect *cl
 // There are two different separate functions for scaling the image - one fast
 // and one good. Or at least that's the theory. I'm sure there are better ways
 // to scale an image than this. The latter is used at the highest graphics
-// quality setting. Note that the "good" scaler takes an extra parameter, a
-// pointer to the area of the screen where the sprite will be drawn.
+// quality setting. Note that the "good" scaler takes extra parameters so that
+// it can use the background image when calculating the average pixel value.
 //
-// This code isn't quite like the original DrawSprite(), but should be close
-// enough.
+// This code isn't quite like the original DrawSprite(), but the result should
+// be close enough, I hope.
 
 void Screen::scaleImageFast(byte *dst, uint16 dstPitch, uint16 dstWidth, uint16 dstHeight, byte *src, uint16 srcPitch, uint16 srcWidth, uint16 srcHeight) {
 	int x, y;
@@ -111,7 +108,7 @@ void Screen::scaleImageFast(byte *dst, uint16 dstPitch, uint16 dstWidth, uint16 
 	}
 }
 
-void Screen::scaleImageGood(byte *dst, uint16 dstPitch, uint16 dstWidth, uint16 dstHeight, byte *src, uint16 srcPitch, uint16 srcWidth, uint16 srcHeight, byte *backbuf) {
+void Screen::scaleImageGood(byte *dst, uint16 dstPitch, uint16 dstWidth, uint16 dstHeight, byte *src, uint16 srcPitch, uint16 srcWidth, uint16 srcHeight, byte *backBuf, int16 bbXPos, int16 bbYPos) {
 	for (int y = 0; y < dstHeight; y++) {
 		for (int x = 0; x < dstWidth; x++) {
 			uint8 c1, c2, c3, c4;
@@ -122,59 +119,93 @@ void Screen::scaleImageGood(byte *dst, uint16 dstPitch, uint16 dstWidth, uint16 
 			uint32 yFrac = dstHeight - (y * srcHeight) % dstHeight;
 
 			byte *srcPtr = src + yPos * srcPitch + xPos;
-			byte *backPtr = backbuf + y * _screenWide + x;
 
 			bool transparent = true;
 
 			if (*srcPtr) {
 				c1 = *srcPtr;
 				transparent = false;
-			} else
-				c1 = *backPtr;
+			} else {
+				if (bbXPos + x >= 0 &&
+				    bbXPos + x < RENDERWIDE &&
+				    bbYPos + y >= MENUDEEP &&
+				    bbYPos + y < MENUDEEP + RENDERDEEP) {
+					c1 = *(backBuf + _screenWide * (bbYPos + y) + bbXPos + x);
+				} else {
+					c1 = 0;
+				}
+			}
 
 			if (x < dstWidth - 1) {
 				if (*(srcPtr + 1)) {
 					c2 = *(srcPtr + 1);
 					transparent = false;
-				} else
-					c2 = *(backPtr + 1);
-			} else
+				} else {
+					if (bbXPos + x + 1 >= 0 &&
+					    bbXPos + x + 1 < RENDERWIDE &&
+					    bbYPos + y >= MENUDEEP &&
+					    bbYPos + y + 1 < MENUDEEP + RENDERDEEP) {
+						c2 = *(backBuf + _screenWide * (bbYPos + y) + bbXPos + x + 1);
+					} else {
+						c2 = c1;
+					}
+				}
+			} else {
 				c2 = c1;
+			}
 
 			if (y < dstHeight - 1) {
 				if (*(srcPtr + srcPitch)) {
 					c3 = *(srcPtr + srcPitch);
 					transparent = false;
-				} else
-					c3 = *(backPtr + _screenWide);
-			} else
+				} else {
+					if (bbXPos + x >= 0 &&
+					    bbXPos + x < RENDERWIDE &&
+					    bbYPos + y + 1 >= MENUDEEP &&
+					    bbYPos + y + 1 < MENUDEEP + RENDERDEEP) {
+						c3 = *(backBuf + _screenWide * (bbYPos + y + 1) + bbXPos);
+					} else {
+						c3 = c1;
+					}
+				}
+			} else {
 				c3 = c1;
+			}
 
 			if (x < dstWidth - 1 && y < dstHeight - 1) {
 				if (*(srcPtr + srcPitch + 1)) {
 					c4 = *(srcPtr + srcPitch + 1);
 					transparent = false;
-				} else
-					c4 = *(backPtr + _screenWide + 1);
-			} else
+				} else {
+					if (bbXPos + x + 1 >= 0 &&
+					    bbXPos + x + 1 < RENDERWIDE &&
+					    bbYPos + y + 1 >= MENUDEEP &&
+					    bbYPos + y + 1 < MENUDEEP + RENDERDEEP) {
+						c4 = *(backBuf + _screenWide * (bbYPos + y + 1) + bbXPos + x + 1);
+					} else {
+						c4 = c3;
+					}
+				}
+			} else {
 				c4 = c3;
+			}
 
 			if (!transparent) {
-				uint32 r1 = _palette[c1 * 4 + 0];
-				uint32 g1 = _palette[c1 * 4 + 1];
-				uint32 b1 = _palette[c1 * 4 + 2];
+				uint32 r1 = _palette[c1 * 3 + 0];
+				uint32 g1 = _palette[c1 * 3 + 1];
+				uint32 b1 = _palette[c1 * 3 + 2];
 
-				uint32 r2 = _palette[c2 * 4 + 0];
-				uint32 g2 = _palette[c2 * 4 + 1];
-				uint32 b2 = _palette[c2 * 4 + 2];
+				uint32 r2 = _palette[c2 * 3 + 0];
+				uint32 g2 = _palette[c2 * 3 + 1];
+				uint32 b2 = _palette[c2 * 3 + 2];
 
-				uint32 r3 = _palette[c3 * 4 + 0];
-				uint32 g3 = _palette[c3 * 4 + 1];
-				uint32 b3 = _palette[c3 * 4 + 2];
+				uint32 r3 = _palette[c3 * 3 + 0];
+				uint32 g3 = _palette[c3 * 3 + 1];
+				uint32 b3 = _palette[c3 * 3 + 2];
 
-				uint32 r4 = _palette[c4 * 4 + 0];
-				uint32 g4 = _palette[c4 * 4 + 1];
-				uint32 b4 = _palette[c4 * 4 + 2];
+				uint32 r4 = _palette[c4 * 3 + 0];
+				uint32 g4 = _palette[c4 * 3 + 1];
+				uint32 b4 = _palette[c4 * 3 + 2];
 
 				uint32 r5 = (r1 * xFrac + r2 * (dstWidth - xFrac)) / dstWidth;
 				uint32 g5 = (g1 * xFrac + g2 * (dstWidth - xFrac)) / dstWidth;
@@ -200,24 +231,24 @@ void Screen::scaleImageGood(byte *dst, uint16 dstPitch, uint16 dstWidth, uint16 
  * used for debugging.
  * @param x x-coordinate of the point
  * @param y y-coordinate of the point
- * @param colour colour of the point
+ * @param color color of the point
  */
 
-void Screen::plotPoint(int x, int y, uint8 colour) {
+void Screen::plotPoint(int x, int y, uint8 color) {
 	byte *buf = _buffer + MENUDEEP * RENDERWIDE;
 
 	x -= _scrollX;
 	y -= _scrollY;
 
 	if (x >= 0 && x < RENDERWIDE && y >= 0 && y < RENDERDEEP) {
-		buf[y * RENDERWIDE + x] = colour;
+		buf[y * RENDERWIDE + x] = color;
 		markAsDirty(x, y + MENUDEEP, x, y + MENUDEEP);
 	}
 }
 
-static void plot(int x, int y, int colour, void *data) {
+static void plot(int x, int y, int color, void *data) {
 	Screen *screen = (Screen *)data;
-	screen->plotPoint(x, y, (uint8) colour);
+	screen->plotPoint(x, y, (uint8) color);
 }
 
 /**
@@ -226,11 +257,11 @@ static void plot(int x, int y, int colour, void *data) {
  * @param y0 y-coordinate of the start point
  * @param x1 x-coordinate of the end point
  * @param y1 y-coordinate of the end point
- * @param colour colour of the line
+ * @param color color of the line
  */
 
-void Screen::drawLine(int x0, int y0, int x1, int y1, uint8 colour) {
-	Graphics::drawLine(x0, y0, x1, y1, colour, &plot, this);
+void Screen::drawLine(int x0, int y0, int x1, int y1, uint8 color) {
+	Graphics::drawLine(x0, y0, x1, y1, color, &plot, this);
 }
 
 /**
@@ -311,10 +342,10 @@ void Screen::renderParallax(byte *ptr, int16 l) {
 #define LIMIT_FRAME_RATE
 
 /**
- * Initialises the timers before the render loop is entered.
+ * Initializes the timers before the render loop is entered.
  */
 
-void Screen::initialiseRenderCycle() {
+void Screen::initializeRenderCycle() {
 	_initialTime = _vm->_system->getMillis();
 	_totalTime = _initialTime + (1000 / _vm->getFramesPerSecond());
 }
@@ -368,7 +399,7 @@ bool Screen::endRenderCycle() {
 		renderCountIndex = 0;
 
 	if (_renderTooSlow) {
-		initialiseRenderCycle();
+		initializeRenderCycle();
 		return true;
 	}
 
@@ -430,13 +461,13 @@ void Screen::resetRenderEngine() {
  * or a NULL pointer in order of background parallax to foreground parallax.
  */
 
-int32 Screen::initialiseBackgroundLayer(byte *parallax) {
+int32 Screen::initializeBackgroundLayer(byte *parallax) {
 	Parallax p;
 	uint16 i, j, k;
 	byte *data;
 	byte *dst;
 
-	debug(2, "initialiseBackgroundLayer");
+	debug(2, "initializeBackgroundLayer");
 
 	assert(_layer < MAXLAYERS);
 
@@ -557,14 +588,14 @@ int32 Screen::initialiseBackgroundLayer(byte *parallax) {
  * ratio correction), while PC backgrounds are in tiles of 64x64.
  */
 
-int32 Screen::initialisePsxBackgroundLayer(byte *parallax) {
+int32 Screen::initializePsxBackgroundLayer(byte *parallax) {
 	uint16 bgXres, bgYres;
 	uint16 trueXres, stripeNumber, totStripes;
 	uint32 baseAddress, stripePos;
 	uint16 i, j;
 	byte *dst;
 
-	debug(2, "initialisePsxBackgroundLayer");
+	debug(2, "initializePsxBackgroundLayer");
 
 	assert(_layer < MAXLAYERS);
 
@@ -596,8 +627,10 @@ int32 Screen::initialisePsxBackgroundLayer(byte *parallax) {
 		return RDERR_OUTOFMEMORY;
 
 	_blockSurfaces[_layer] = (BlockSurface **)calloc(_xBlocks[_layer] * _yBlocks[_layer], sizeof(BlockSurface *));
-	if (!_blockSurfaces[_layer])
+	if (!_blockSurfaces[_layer]) {
+		free(tileChunk);
 		return RDERR_OUTOFMEMORY;
+	}
 
 	// Group PSX background (64x32, when stretched vertically) tiles together,
 	// to make them compatible with pc version (composed by 64x64 tiles)
@@ -618,7 +651,7 @@ int32 Screen::initialisePsxBackgroundLayer(byte *parallax) {
 		if (!(remLines && posY == _yBlocks[_layer] - 1))
 			remLines = 32;
 
-		for(j = 0; j < remLines; j++) {
+		for (j = 0; j < remLines; j++) {
 			memcpy(tileChunk + j * BLOCKWIDTH * 2, parallax + stripeOffset + j * BLOCKWIDTH, BLOCKWIDTH);
 			memcpy(tileChunk + j * BLOCKWIDTH * 2 + BLOCKWIDTH, parallax + stripeOffset + j * BLOCKWIDTH, BLOCKWIDTH);
 		}
@@ -665,14 +698,14 @@ int32 Screen::initialisePsxBackgroundLayer(byte *parallax) {
  * can be understood by renderParallax functions.
  */
 
-int32 Screen::initialisePsxParallaxLayer(byte *parallax) {
+int32 Screen::initializePsxParallaxLayer(byte *parallax) {
 	uint16 plxXres, plxYres;
 	uint16 xTiles, yTiles;
 	uint16 i, j, k;
 	byte *data;
 	byte *dst;
 
-	debug(2, "initialisePsxParallaxLayer");
+	debug(2, "initializePsxParallaxLayer");
 
 	assert(_layer < MAXLAYERS);
 
@@ -695,8 +728,8 @@ int32 Screen::initialisePsxParallaxLayer(byte *parallax) {
 	data = parallax + xTiles * yTiles * 4;
 
 	_xBlocks[_layer] = xTiles;
-	_yBlocks[_layer] = (yTiles / 2) + (yTiles % 2 ? 1 : 0);
-	bool oddTiles = (yTiles % 2 ? true : false);
+	_yBlocks[_layer] = (yTiles / 2) + ((yTiles % 2) ? 1 : 0);
+	bool oddTiles = ((yTiles % 2) ? true : false);
 
 	_blockSurfaces[_layer] = (BlockSurface **)calloc(_xBlocks[_layer] * _yBlocks[_layer], sizeof(BlockSurface *));
 	if (!_blockSurfaces[_layer])
@@ -728,7 +761,7 @@ int32 Screen::initialisePsxParallaxLayer(byte *parallax) {
 			block_has_data = true;
 
 			// If one of the two grouped blocks is without data, then we also have transparency
-			if(!firstTilePresent || !secondTilePresent)
+			if (!firstTilePresent || !secondTilePresent)
 				block_is_transparent = true;
 		}
 
@@ -737,7 +770,7 @@ int32 Screen::initialisePsxParallaxLayer(byte *parallax) {
 			byte *block = data;
 			if (firstTilePresent) {
 				for (k = 0; k < 0x400; k++) {
-					if ( *(block + k) == 0) {
+					if (*(block + k) == 0) {
 						block_is_transparent = true;
 						break;
 					}
@@ -749,7 +782,7 @@ int32 Screen::initialisePsxParallaxLayer(byte *parallax) {
 			// a second tile, check it
 			if (secondTilePresent && !block_is_transparent) {
 				for (k = 0; k < 0x400; k++) {
-					if ( *(block + k) == 0) {
+					if (*(block + k) == 0) {
 						block_is_transparent = true;
 						break;
 					}

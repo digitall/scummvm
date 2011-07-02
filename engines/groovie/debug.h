@@ -18,21 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_DEBUG_H
 #define GROOVIE_DEBUG_H
 
 #include "gui/debugger.h"
-#include "engines/engine.h"
 
 namespace Groovie {
 
-class Script;
 class GroovieEngine;
+class Script;
 
 class Debugger : public GUI::Debugger {
 public:
@@ -42,7 +38,6 @@ public:
 private:
 	GroovieEngine *_vm;
 	Script *_script;
-	OSystem *_syst;
 
 	int getNumber(const char *arg);
 

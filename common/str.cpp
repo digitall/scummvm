@@ -17,34 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/str.h"
 #include "common/hash-str.h"
-#include "common/util.h"
-
+#include "common/list.h"
 #include "common/memorypool.h"
-
-#include <stdarg.h>
-
-#if !defined(__SYMBIAN32__)
-#include <new>
-#endif
-
+#include "common/str.h"
+#include "common/util.h"
 
 namespace Common {
 
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
-const String String::emptyString;
-#else
-const char *String::emptyString = "";
-#endif
-
-
-MemoryPool *g_refCountPool = 0;	// FIXME: This is never freed right now
+MemoryPool *g_refCountPool = 0; // FIXME: This is never freed right now
 
 static uint32 computeCapacity(uint32 len) {
 	// By default, for the capacity we use the next multiple of 32
@@ -91,7 +74,7 @@ void String::initWithCStr(const char *str, uint32 len) {
 }
 
 String::String(const String &str)
- : _size(str._size) {
+    : _size(str._size) {
 	if (str.isStorageIntern()) {
 		// String in internal storage: just copy it
 		memcpy(_storage, str._storage, _builtinCapacity);
@@ -107,13 +90,11 @@ String::String(const String &str)
 }
 
 String::String(char c)
-: _size(0), _str(_storage) {
+    : _size(0), _str(_storage) {
 
 	_storage[0] = c;
 	_storage[1] = 0;
 
-	// TODO/FIXME: There is no reason for the following check -- we *do*
-	// allow strings to contain 0 bytes!
 	_size = (c == 0) ? 0 : 1;
 }
 
@@ -158,7 +139,11 @@ void String::ensureCapacity(uint32 new_size, bool keep_old) {
 		// We need to allocate storage on the heap!
 
 		// Compute a suitable new capacity limit
-		newCapacity = MAX(curCapacity * 2, computeCapacity(new_size+1));
+		// If the current capacity is sufficient we use the same capacity
+		if (new_size < curCapacity)
+			newCapacity = curCapacity;
+		else
+			newCapacity = MAX(curCapacity * 2, computeCapacity(new_size+1));
 
 		// Allocate new storage
 		newStorage = new char[newCapacity];
@@ -226,7 +211,7 @@ void String::decRefCount(int *oldRefCount) {
 	}
 }
 
-String& String::operator  =(const char *str) {
+String &String::operator=(const char *str) {
 	uint32 len = strlen(str);
 	ensureCapacity(len, false);
 	_size = len;
@@ -234,7 +219,7 @@ String& String::operator  =(const char *str) {
 	return *this;
 }
 
-String &String::operator  =(const String &str) {
+String &String::operator=(const String &str) {
 	if (&str == this)
 		return *this;
 
@@ -256,18 +241,20 @@ String &String::operator  =(const String &str) {
 	return *this;
 }
 
-String& String::operator  =(char c) {
+String &String::operator=(char c) {
 	decRefCount(_extern._refCount);
 	_str = _storage;
-	_size = 1;
+
 	_str[0] = c;
 	_str[1] = 0;
+
+	_size = (c == 0) ? 0 : 1;
 	return *this;
 }
 
-String &String::operator +=(const char *str) {
+String &String::operator+=(const char *str) {
 	if (_str <= str && str <= _str + _size)
-		return operator+=(Common::String(str));
+		return operator+=(String(str));
 
 	int len = strlen(str);
 	if (len > 0) {
@@ -279,9 +266,9 @@ String &String::operator +=(const char *str) {
 	return *this;
 }
 
-String &String::operator +=(const String &str) {
+String &String::operator+=(const String &str) {
 	if (&str == this)
-		return operator+=(Common::String(str));
+		return operator+=(String(str));
 
 	int len = str._size;
 	if (len > 0) {
@@ -293,7 +280,7 @@ String &String::operator +=(const String &str) {
 	return *this;
 }
 
-String &String::operator +=(char c) {
+String &String::operator+=(char c) {
 	ensureCapacity(_size + 1, true);
 
 	_str[_size++] = c;
@@ -352,12 +339,12 @@ bool String::contains(char x) const {
 	return strchr(c_str(), x) != NULL;
 }
 
-bool String::matchString(const char *pat, bool pathMode) const {
-	return Common::matchString(c_str(), pat, pathMode);
+bool String::matchString(const char *pat, bool ignoreCase, bool pathMode) const {
+	return Common::matchString(c_str(), pat, ignoreCase, pathMode);
 }
 
-bool String::matchString(const String &pat, bool pathMode) const {
-	return Common::matchString(c_str(), pat.c_str(), pathMode);
+bool String::matchString(const String &pat, bool ignoreCase, bool pathMode) const {
+	return Common::matchString(c_str(), pat.c_str(), ignoreCase, pathMode);
 }
 
 void String::deleteLastChar() {
@@ -370,7 +357,7 @@ void String::deleteChar(uint32 p) {
 
 	makeUnique();
 	while (p++ < _size)
-		_str[p-1] = _str[p];
+		_str[p - 1] = _str[p];
 	_size--;
 }
 
@@ -395,7 +382,7 @@ void String::insertChar(char c, uint32 p) {
 	ensureCapacity(_size + 1, true);
 	_size++;
 	for (uint32 i = _size; i > p; --i)
-		_str[i] = _str[i-1];
+		_str[i] = _str[i - 1];
 	_str[p] = c;
 }
 
@@ -418,13 +405,13 @@ void String::trim() {
 	makeUnique();
 
 	// Trim trailing whitespace
-	while (_size >= 1 && isspace(_str[_size-1]))
-		_size--;
+	while (_size >= 1 && isspace(static_cast<unsigned char>(_str[_size - 1])))
+		--_size;
 	_str[_size] = 0;
 
 	// Trim leading whitespace
 	char *t = _str;
-	while (isspace(*t))
+	while (isspace((unsigned char)*t))
 		t++;
 
 	if (t != _str) {
@@ -438,22 +425,60 @@ uint String::hash() const {
 }
 
 // static
-String String::printf(const char *fmt, ...) {
+String String::format(const char *fmt, ...) {
+	String output;
+
+	va_list va;
+	va_start(va, fmt);
+	output = String::vformat(fmt, va);
+	va_end(va);
+
+	return output;
+}
+
+// static
+String String::vformat(const char *fmt, va_list args) {
 	String output;
 	assert(output.isStorageIntern());
 
 	va_list va;
-	va_start(va, fmt);
+	scumm_va_copy(va, args);
 	int len = vsnprintf(output._str, _builtinCapacity, fmt, va);
 	va_end(va);
 
-	if (len < (int)_builtinCapacity) {
+	if (len == -1 || len == _builtinCapacity - 1) {
+		// MSVC and IRIX don't return the size the full string would take up.
+		// MSVC returns -1, IRIX returns the number of characters actually written,
+		// which is at the most the size of the buffer minus one, as the string is
+		// truncated to fit.
+
+		// We assume MSVC failed to output the correct, null-terminated string
+		// if the return value is either -1 or size.
+		// For IRIX, because we lack a better mechanism, we assume failure
+		// if the return value equals size - 1.
+		// The downside to this is that whenever we try to format a string where the
+		// size is 1 below the built-in capacity, the size is needlessly increased.
+
+		// Try increasing the size of the string until it fits.
+		int size = _builtinCapacity;
+		do {
+			size *= 2;
+			output.ensureCapacity(size - 1, false);
+			assert(!output.isStorageIntern());
+			size = output._extern._capacity;
+
+			scumm_va_copy(va, args);
+			len = vsnprintf(output._str, size, fmt, va);
+			va_end(va);
+		} while (len == -1 || len >= size - 1);
+		output._size = len;
+	} else if (len < (int)_builtinCapacity) {
 		// vsnprintf succeeded
 		output._size = len;
 	} else {
 		// vsnprintf didn't have enough space, so grow buffer
 		output.ensureCapacity(len, false);
-		va_start(va, fmt);
+		scumm_va_copy(va, args);
 		int len2 = vsnprintf(output._str, len+1, fmt, va);
 		va_end(va);
 		assert(len == len2);
@@ -466,16 +491,16 @@ String String::printf(const char *fmt, ...) {
 
 #pragma mark -
 
-bool String::operator ==(const String &x) const {
+bool String::operator==(const String &x) const {
 	return equals(x);
 }
 
-bool String::operator ==(const char *x) const {
+bool String::operator==(const char *x) const {
 	assert(x != 0);
 	return equals(x);
 }
 
-bool String::operator !=(const String &x) const {
+bool String::operator!=(const String &x) const {
 	return !equals(x);
 }
 
@@ -484,29 +509,29 @@ bool String::operator !=(const char *x) const {
 	return !equals(x);
 }
 
-bool String::operator < (const String &x) const {
+bool String::operator<(const String &x) const {
 	return compareTo(x) < 0;
 }
 
-bool String::operator <= (const String &x) const {
+bool String::operator<=(const String &x) const {
 	return compareTo(x) <= 0;
 }
 
-bool String::operator > (const String &x) const {
+bool String::operator>(const String &x) const {
 	return compareTo(x) > 0;
 }
 
-bool String::operator >= (const String &x) const {
+bool String::operator>=(const String &x) const {
 	return compareTo(x) >= 0;
 }
 
 #pragma mark -
 
-bool operator == (const char* y, const String &x) {
+bool operator==(const char* y, const String &x) {
 	return (x == y);
 }
 
-bool operator != (const char* y, const String &x) {
+bool operator!=(const char* y, const String &x) {
 	return x != y;
 }
 
@@ -550,45 +575,45 @@ int String::compareToIgnoreCase(const char *x) const {
 
 #pragma mark -
 
-String operator +(const String &x, const String &y) {
+String operator+(const String &x, const String &y) {
 	String temp(x);
 	temp += y;
 	return temp;
 }
 
-String operator +(const char *x, const String &y) {
+String operator+(const char *x, const String &y) {
 	String temp(x);
 	temp += y;
 	return temp;
 }
 
-String operator +(const String &x, const char *y) {
+String operator+(const String &x, const char *y) {
 	String temp(x);
 	temp += y;
 	return temp;
 }
 
-String operator +(char x, const String &y) {
+String operator+(char x, const String &y) {
 	String temp(x);
 	temp += y;
 	return temp;
 }
 
-String operator +(const String &x, char y) {
+String operator+(const String &x, char y) {
 	String temp(x);
 	temp += y;
 	return temp;
 }
 
 char *ltrim(char *t) {
-	while (isspace(*t))
+	while (isspace(static_cast<unsigned char>(*t)))
 		t++;
 	return t;
 }
 
 char *rtrim(char *t) {
 	int l = strlen(t) - 1;
-	while (l >= 0 && isspace(t[l]))
+	while (l >= 0 && isspace(static_cast<unsigned char>(t[l])))
 		t[l--] = 0;
 	return t;
 }
@@ -597,7 +622,7 @@ char *trim(char *t) {
 	return rtrim(ltrim(t));
 }
 
-Common::String lastPathComponent(const Common::String &path, const char sep) {
+String lastPathComponent(const String &path, const char sep) {
 	const char *str = path.c_str();
 	const char *last = str + path.size();
 
@@ -607,34 +632,36 @@ Common::String lastPathComponent(const Common::String &path, const char sep) {
 
 	// Path consisted of only slashes -> return empty string
 	if (last == str)
-		return Common::String();
+		return String();
 
 	// Now scan the whole component
 	const char *first = last - 1;
-	while (first >= str && *first != sep)
+	while (first > str && *first != sep)
 		--first;
 
 	if (*first == sep)
 		first++;
 
-	return Common::String(first, last);
+	return String(first, last);
 }
 
-Common::String normalizePath(const Common::String &path, const char sep) {
+String normalizePath(const String &path, const char sep) {
 	if (path.empty())
 		return path;
 
 	const char *cur = path.c_str();
-	Common::String result;
+	String result;
 
 	// If there is a leading slash, preserve that:
 	if (*cur == sep) {
 		result += sep;
+		// Skip over multiple leading slashes, so "//" equals "/"
 		while (*cur == sep)
 			++cur;
 	}
 
-	// Scan till the end of the String
+	// Scan for path components till the end of the String
+	List<String> comps;
 	while (*cur != 0) {
 		const char *start = cur;
 
@@ -642,18 +669,16 @@ Common::String normalizePath(const Common::String &path, const char sep) {
 		while (*cur != sep && *cur != 0)
 			cur++;
 
-		const Common::String component(start, cur);
+		const String component(start, cur);
 
-		// Skip empty components and dot components, add all others
-		if (!component.empty() && component != ".") {
-			// Add a separator before the component, unless the result
-			// string already ends with one (which happens only if the
-			// path *starts* with a separator).
-			if (!result.empty() && result.lastChar() != sep)
-				result += sep;
-
-			// Add the component
-			result += component;
+		if (component.empty() || component == ".") {
+			// Skip empty components and dot components
+		} else if (!comps.empty() && component == ".." && comps.back() != "..") {
+			// If stack is non-empty and top is not "..", remove top
+			comps.pop_back();
+		} else {
+			// Add the component to the stack
+			comps.push_back(component);
 		}
 
 		// Skip over separator chars
@@ -661,10 +686,18 @@ Common::String normalizePath(const Common::String &path, const char sep) {
 			cur++;
 	}
 
+	// Finally, assemble all components back into a path
+	while (!comps.empty()) {
+		result += comps.front();
+		comps.pop_front();
+		if (!comps.empty())
+			result += sep;
+	}
+
 	return result;
 }
 
-bool matchString(const char *str, const char *pat, bool pathMode) {
+bool matchString(const char *str, const char *pat, bool ignoreCase, bool pathMode) {
 	assert(str);
 	assert(pat);
 
@@ -681,16 +714,26 @@ bool matchString(const char *str, const char *pat, bool pathMode) {
 
 		switch (*pat) {
 		case '*':
-			// Record pattern / string possition for backtracking
-			p = ++pat;
-			q = str;
+			if (*str) {
+				// Record pattern / string position for backtracking
+				p = ++pat;
+				q = str;
+			} else {
+				// If we've reached the end of str, we can't backtrack further
+				// NB: We can't simply check if pat also ended here, because
+				// the pattern might end with any number of *s.
+				++pat;
+				p = 0;
+				q = 0;
+			}
 			// If pattern ended with * -> match
 			if (!*pat)
 				return true;
 			break;
 
 		default:
-			if (*pat != *str) {
+			if ((!ignoreCase && *pat != *str) ||
+				(ignoreCase && tolower(*pat) != tolower(*str))) {
 				if (p) {
 					// No match, oops -> try to backtrack
 					pat = p;
@@ -712,4 +755,132 @@ bool matchString(const char *str, const char *pat, bool pathMode) {
 	}
 }
 
+String tag2string(uint32 tag) {
+	char str[5];
+	str[0] = (char)(tag >> 24);
+	str[1] = (char)(tag >> 16);
+	str[2] = (char)(tag >> 8);
+	str[3] = (char)tag;
+	str[4] = '\0';
+	// Replace non-printable chars by dot
+	for (int i = 0; i < 4; ++i) {
+		if (!isprint((unsigned char)str[i]))
+			str[i] = '.';
+	}
+	return String(str);
+}
+
+size_t strlcpy(char *dst, const char *src, size_t size) {
+	// Our backup of the source's start, we need this
+	// to calculate the source's length.
+	const char * const srcStart = src;
+
+	// In case a non-empty size was specified we
+	// copy over (size - 1) bytes at max.
+	if (size != 0) {
+		// Copy over (size - 1) bytes at max.
+		while (--size != 0) {
+			if ((*dst++ = *src) == 0)
+				break;
+			++src;
+		}
+
+		// In case the source string was longer than the
+		// destination, we need to add a terminating
+		// zero.
+		if (size == 0)
+			*dst = 0;
+	}
+
+	// Move to the terminating zero of the source
+	// string, we need this to determin the length
+	// of the source string.
+	while (*src)
+		++src;
+
+	// Return the source string's length.
+	return src - srcStart;
+}
+
+size_t strlcat(char *dst, const char *src, size_t size) {
+	// In case the destination buffer does not contain
+	// space for at least 1 character, we will just
+	// return the source string's length.
+	if (size == 0)
+		return strlen(src);
+
+	// Our backup of the source's start, we need this
+	// to calculate the source's length.
+	const char * const srcStart = src;
+
+	// Our backup of the destination's start, we need
+	// this to calculate the destination's length.
+	const char * const dstStart = dst;
+
+	// Search the end of the destination, but do not
+	// move past the terminating zero.
+	while (size-- != 0 && *dst != 0)
+		++dst;
+
+	// Calculate the destination's length;
+	const size_t dstLength = dst - dstStart;
+
+	// In case we reached the end of the destination
+	// buffer before we had a chance to append any
+	// characters we will just return the destination
+	// length plus the source string's length.
+	if (size == 0)
+		return dstLength + strlen(srcStart);
+
+	// Copy over all of the source that fits
+	// the destination buffer. We also need
+	// to take the terminating zero we will
+	// add into consideration.
+	while (size-- != 0 && *src != 0)
+		*dst++ = *src++;
+	*dst = 0;
+
+	// Move to the terminating zero of the source
+	// string, we need this to determin the length
+	// of the source string.
+	while (*src)
+		++src;
+
+	// Return the total length of the result string
+	return dstLength + (src - srcStart);
+}
+
 }	// End of namespace Common
+
+// Portable implementation of stricmp / strcasecmp / strcmpi.
+// TODO: Rename this to Common::strcasecmp
+int scumm_stricmp(const char *s1, const char *s2) {
+	byte l1, l2;
+	do {
+		// Don't use ++ inside tolower, in case the macro uses its
+		// arguments more than once.
+		l1 = (byte)*s1++;
+		l1 = tolower(l1);
+		l2 = (byte)*s2++;
+		l2 = tolower(l2);
+	} while (l1 == l2 && l1 != 0);
+	return l1 - l2;
+}
+
+// Portable implementation of strnicmp / strncasecmp / strncmpi.
+// TODO: Rename this to Common::strncasecmp
+int scumm_strnicmp(const char *s1, const char *s2, uint n) {
+	byte l1, l2;
+	do {
+		if (n-- == 0)
+			return 0;	// no difference found so far -> signal equality
+
+		// Don't use ++ inside tolower, in case the macro uses its
+		// arguments more than once.
+		l1 = (byte)*s1++;
+		l1 = tolower(l1);
+		l2 = (byte)*s2++;
+		l2 = tolower(l2);
+	} while (l1 == l2 && l1 != 0);
+	return l1 - l2;
+}

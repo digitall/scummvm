@@ -1,13 +1,15 @@
 MODULE := engines/tinsel
 
-MODULE_OBJS = \
+MODULE_OBJS := \
 	actors.o \
+	adpcm.o \
 	anim.o \
 	background.o \
 	bg.o \
 	bmv.o \
 	cliprect.o \
 	config.o \
+	coroutine.o \
 	cursor.o \
 	debugger.o \
 	detection.o \

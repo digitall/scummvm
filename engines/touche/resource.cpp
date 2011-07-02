@@ -18,18 +18,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/textconsole.h"
 
-#include "sound/flac.h"
-#include "sound/mixer.h"
-#include "sound/mp3.h"
-#include "sound/voc.h"
-#include "sound/vorbis.h"
+#include "audio/decoders/flac.h"
+#include "audio/mixer.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/voc.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/raw.h"
+#include "audio/audiostream.h"
 
 #include "touche/midi.h"
 #include "touche/touche.h"
@@ -44,17 +44,14 @@ enum {
 
 struct CompressedSpeechFile {
 	const char *filename;
-	Audio::AudioStream *(*makeStream)(
+	Audio::SeekableAudioStream *(*makeStream)(
 			Common::SeekableReadStream *stream,
-			bool disposeAfterUse,
-			uint32 startTime,
-			uint32 duration,
-			uint numLoops);
+			DisposeAfterUse::Flag disposeAfterUse);
 };
 
 static const CompressedSpeechFile compressedSpeechFilesTable[] = {
 #ifdef USE_FLAC
-	{ "TOUCHE.SOF", Audio::makeFlacStream },
+	{ "TOUCHE.SOF", Audio::makeFLACStream },
 #endif
 #ifdef USE_VORBIS
 	{ "TOUCHE.SOG", Audio::makeVorbisStream },
@@ -424,10 +421,7 @@ void ToucheEngine::res_loadRoom(int num) {
 	_fData.skip(2);
 	const int roomImageNum = _fData.readUint16LE();
 	_fData.skip(2);
-	for (int i = 0; i < 256; ++i) {
-		_fData.read(&_paletteBuffer[i * 4], 3);
-		_paletteBuffer[i * 4 + 3] = 0;
-	}
+	_fData.read(_paletteBuffer, 3 * 256);
 
 	const uint32 offsImage = res_getDataOffset(kResourceTypeRoomImage, roomImageNum);
 	_fData.seek(offsImage);
@@ -474,14 +468,22 @@ void ToucheEngine::res_loadSprite(int num, int index) {
 	if (size > spr->size) {
 		debug(8, "Reallocating memory for sprite %d (index %d), %d bytes needed", num, index, size - spr->size);
 		spr->size = size;
-		if (spr->ptr) {
-			spr->ptr = (uint8 *)realloc(spr->ptr, size);
-		} else {
-			spr->ptr = (uint8 *)malloc(size);
+
+		uint8 *buffer = NULL;
+		if (spr->ptr)
+			buffer = (uint8 *)realloc(spr->ptr, size);
+
+		if (!buffer) {
+			// Free previously allocated sprite (when realloc failed)
+			free(spr->ptr);
+
+			buffer = (uint8 *)malloc(size);
 		}
-		if (!spr->ptr) {
-			error("Unable to reallocate memory for sprite %d (%d bytes)", num, size);
-		}
+
+		if (!buffer)
+			error("[ToucheEngine::res_loadSprite] Unable to reallocate memory for sprite %d (%d bytes)", num, size);
+
+		spr->ptr = buffer;
 	}
 	for (int i = 0; i < _currentImageHeight; ++i) {
 		res_decodeScanLineImageRLE(spr->ptr + _currentImageWidth * i, _currentImageWidth);
@@ -589,9 +591,9 @@ void ToucheEngine::res_loadSound(int priority, int num) {
 		uint32 size;
 		const uint32 offs = res_getDataOffset(kResourceTypeSound, num, &size);
 		_fData.seek(offs);
-		Audio::AudioStream *stream = Audio::makeVOCStream(_fData, Audio::Mixer::FLAG_UNSIGNED);
+		Audio::AudioStream *stream = Audio::makeVOCStream(&_fData, Audio::FLAG_UNSIGNED);
 		if (stream) {
-			_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_sfxHandle, stream);
+			_mixer->playStream(Audio::Mixer::kSFXSoundType, &_sfxHandle, stream);
 		}
 	}
 }
@@ -647,7 +649,7 @@ void ToucheEngine::res_loadSpeechSegment(int num) {
 				return;
 			}
 			_fSpeech[i].seek(offs);
-			stream = Audio::makeVOCStream(_fSpeech[i], Audio::Mixer::FLAG_UNSIGNED);
+			stream = Audio::makeVOCStream(&_fSpeech[i], Audio::FLAG_UNSIGNED);
 		} else {
 			if (num >= 750) {
 				num -= 750;
@@ -667,14 +669,13 @@ void ToucheEngine::res_loadSpeechSegment(int num) {
 				return;
 			}
 			_fSpeech[0].seek(offs);
-			Common::MemoryReadStream *tmp = _fSpeech[0].readStream(size);
-			if (tmp) {
-				stream = (compressedSpeechFilesTable[_compressedSpeechData].makeStream)(tmp, true, 0, 0, 1);
-			}
+			Common::SeekableReadStream *tmp = _fSpeech[0].readStream(size);
+			if (tmp)
+				stream = (compressedSpeechFilesTable[_compressedSpeechData].makeStream)(tmp, DisposeAfterUse::YES);
 		}
 		if (stream) {
 			_speechPlaying = true;
-			_mixer->playInputStream(Audio::Mixer::kSpeechSoundType, &_speechHandle, stream);
+			_mixer->playStream(Audio::Mixer::kSpeechSoundType, &_speechHandle, stream);
 		}
 	}
 }

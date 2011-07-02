@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_KYRA_LOK_H
@@ -30,6 +27,11 @@
 #include "kyra/script.h"
 #include "kyra/screen_lok.h"
 #include "kyra/gui_lok.h"
+#include "kyra/item.h"
+
+namespace Graphics {
+struct Surface;
+}
 
 namespace Kyra {
 
@@ -46,7 +48,7 @@ struct Character {
 	uint8 height;
 	uint8 facing;
 	uint16 currentAnimFrame;
-	uint8 inventoryItems[10];
+	int8 inventoryItems[10];
 	int16 x1, y1, x2, y2;
 };
 
@@ -62,17 +64,10 @@ struct Room {
 	uint16 eastExit;
 	uint16 southExit;
 	uint16 westExit;
-	uint8 itemsTable[12];
+	int8 itemsTable[12];
 	uint16 itemsXPos[12];
 	uint8 itemsYPos[12];
 	uint8 needInit[12];
-};
-
-struct Item {
-	uint8 unk1;
-	uint8 height;
-	uint8 unk2;
-	uint8 unk3;
 };
 
 struct SeqLoop {
@@ -132,16 +127,16 @@ public:
 	int _paletteChanged;
 	int16 _northExitHeight;
 
-	typedef void (KyraEngine_LoK::*IntroProc)();
+	typedef bool (KyraEngine_LoK::*IntroProc)();
 
 	// static data access
-	const char * const*seqWSATable() { return _seq_WSATable; }
-	const char * const*seqCPSTable() { return _seq_CPSTable; }
-	const char * const*seqCOLTable() { return _seq_COLTable; }
-	const char * const*seqTextsTable() { return _seq_textsTable; }
+	const char * const *seqWSATable() { return _seq_WSATable; }
+	const char * const *seqCPSTable() { return _seq_CPSTable; }
+	const char * const *seqCOLTable() { return _seq_COLTable; }
+	const char * const *seqTextsTable() { return _seq_textsTable; }
 
-	const uint8 * const*palTable1() { return &_specialPalettes[0]; }
-	const uint8 * const*palTable2() { return &_specialPalettes[29]; }
+	const uint8 * const *palTable1() { return &_specialPalettes[0]; }
+	const uint8 * const *palTable2() { return &_specialPalettes[29]; }
 
 protected:
 	virtual Common::Error go();
@@ -157,11 +152,12 @@ protected:
 
 	// -> intro
 	void seq_intro();
-	void seq_introLogos();
-	void seq_introStory();
-	void seq_introMalcolmTree();
-	void seq_introKallakWriting();
-	void seq_introKallakMalcolm();
+	bool seq_introPublisherLogos();
+	bool seq_introLogos();
+	bool seq_introStory();
+	bool seq_introMalcolmTree();
+	bool seq_introKallakWriting();
+	bool seq_introKallakMalcolm();
 
 	// -> ingame animations
 	void seq_createAmuletJewel(int jewel, int page, int noSound, int drawOnly);
@@ -192,6 +188,7 @@ protected:
 
 	// -> credits
 	void seq_playCredits();
+	void seq_playCreditsAmiga();
 
 public:
 	// delay
@@ -200,6 +197,7 @@ public:
 	void delayWithTicks(int ticks);
 
 	bool skipFlag() const;
+	void resetSkipFlag(bool removeEvent = true);
 
 	// TODO
 	void registerDefaultSettings();
@@ -215,7 +213,7 @@ public:
 protected:
 	int32 _speechPlayTime;
 
-	Common::Error saveGameState(int slot, const char *saveName, const Graphics::Surface *thumbnail);
+	Common::Error saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail);
 	Common::Error loadGameState(int slot);
 protected:
 	// input
@@ -285,9 +283,11 @@ protected:
 	void placeItemInGenericMapScene(int item, int index);
 
 	// -> mouse item
-	void setHandItem(uint16 item);
+	void setHandItem(Item item);
 	void removeHandItem();
-	void setMouseItem(uint16 item);
+	void setMouseItem(Item item);
+
+	int getItemListIndex(Item item);
 
 	// -> graphics effects
 	void wipeDownMouseItem(int xpos, int ypos);
@@ -314,7 +314,7 @@ protected:
 	// chat
 	// -> process
 	void characterSays(int vocFile, const char *chatStr, int8 charNum, int8 chatDuration);
-	void waitForChatToFinish(int vocFile, int16 chatDuration, const char *str, uint8 charNum);
+	void waitForChatToFinish(int vocFile, int16 chatDuration, const char *str, uint8 charNum, const bool printText);
 
 	// -> initialization
 	int initCharacterChat(int8 charNum);
@@ -369,19 +369,23 @@ protected:
 	//void setTimer19();
 	void setupTimers();
 	void timerUpdateHeadAnims(int timerNum);
-	void timerSetFlags1(int timerNum);
-	void timerSetFlags2(int timerNum);
-	void timerSetFlags3(int timerNum);
-	void timerCheckAnimFlag1(int timerNum);
-	void timerCheckAnimFlag2(int timerNum);
+	void timerTulipCreator(int timerNum);
+	void timerRubyCreator(int timerNum);
+	void timerAsInvisibleTimeout(int timerNum);
+	void timerAsWillowispTimeout(int timerNum);
 	void checkAmuletAnimFlags();
 	void timerRedrawAmulet(int timerNum);
+	void timerLavenderRoseCreator(int timerNum);
+	void timerAcornCreator(int timerNum);
+	void timerBlueberryCreator(int timerNum);
 	void timerFadeText(int timerNum);
-	void updateAnimFlag1(int timerNum);
-	void updateAnimFlag2(int timerNum);
+	void timerWillowispFrameTimer(int timerNum);
+	void timerInvisibleFrameTimer(int timerNum);
 	void drawAmulet();
 	void setTextFadeTimerCountdown(int16 countdown);
 	void setWalkspeed(uint8 newSpeed);
+
+	void setItemCreationFlags(int offset, int count);
 
 	int buttonInventoryCallback(Button *caller);
 	int buttonAmuletCallback(Button *caller);
@@ -393,7 +397,7 @@ protected:
 	bool _menuDirectlyToLoad;
 	uint8 *_itemBkgBackUp[2];
 	uint8 *_shapes[373];
-	int8 _itemInHand;
+	Item _itemInHand;
 	bool _changedScene;
 	int _unkScreenVar1, _unkScreenVar2, _unkScreenVar3;
 	int _beadStateVar;
@@ -444,9 +448,12 @@ protected:
 	uint16 _currentChatPartnerBackupFrame;
 	uint16 _currentCharAnimFrame;
 
+	int _characterFacingZeroCount[8];
+	int _characterFacingFourCount[8];
+
 	int8 *_sceneAnimTable[50];
 
-	Item _itemTable[145];
+	uint8 _itemHtDat[145];
 	int _lastProcessedItem;
 	int _lastProcessedItemHeight;
 
@@ -468,6 +475,9 @@ protected:
 	int8 _charSayUnk2;
 	int8 _charSayUnk3;
 	int8 _currHeadShape;
+	int _currentHeadFrameTableIndex;
+	int8 _disabledTalkAnimObject;
+	int8 _enabledTalkAnimObject;
 	uint8 _currSentenceColor[3];
 	int8 _startSentencePalIndex;
 	bool _fadeText;
@@ -493,6 +503,15 @@ protected:
 	Button *_buttonList;
 	GUI_LoK *_gui;
 
+	uint16 _malcolmFrame;
+	uint32 _malcolmTimer1;
+	uint32 _malcolmTimer2;
+
+	uint32 _beadStateTimer1;
+	uint32 _beadStateTimer2;
+	BeadState _beadState1;
+	BeadState _beadState2;
+
 	struct KyragemState {
 		uint16 nextOperation;
 		uint16 rOffset;
@@ -503,6 +522,9 @@ protected:
 
 	static const int8 _dosTrackMap[];
 	static const int _dosTrackMapSize;
+
+	static const int8 _amigaTrackMap[];
+	static const int _amigaTrackMapSize;
 
 	// TODO: get rid of all variables having pointers to the static resources if possible
 	// i.e. let them directly use the _staticres functions
@@ -520,35 +542,39 @@ protected:
 	const uint8 *_seq_Demo4;
 	const uint8 *_seq_Reunion;
 
-	const char * const*_seq_WSATable;
-	const char * const*_seq_CPSTable;
-	const char * const*_seq_COLTable;
-	const char * const*_seq_textsTable;
+	const char * const *_seq_WSATable;
+	const char * const *_seq_CPSTable;
+	const char * const *_seq_COLTable;
+	const char * const *_seq_textsTable;
+
+	const char * const *_storyStrings;
 
 	int _seq_WSATable_Size;
 	int _seq_CPSTable_Size;
 	int _seq_COLTable_Size;
 	int _seq_textsTable_Size;
 
-	const char * const*_itemList;
-	const char * const*_takenList;
-	const char * const*_placedList;
-	const char * const*_droppedList;
-	const char * const*_noDropList;
-	const char * const*_putDownFirst;
-	const char * const*_waitForAmulet;
-	const char * const*_blackJewel;
-	const char * const*_poisonGone;
-	const char * const*_healingTip;
-	const char * const*_thePoison;
-	const char * const*_fluteString;
-	const char * const*_wispJewelStrings;
-	const char * const*_magicJewelString;
-	const char * const*_flaskFull;
-	const char * const*_fullFlask;
-	const char * const*_veryClever;
-	const char * const*_homeString;
-	const char * const*_newGameString;
+	int _storyStringsSize;
+
+	const char * const *_itemList;
+	const char * const *_takenList;
+	const char * const *_placedList;
+	const char * const *_droppedList;
+	const char * const *_noDropList;
+	const char * const *_putDownFirst;
+	const char * const *_waitForAmulet;
+	const char * const *_blackJewel;
+	const char * const *_poisonGone;
+	const char * const *_healingTip;
+	const char * const *_thePoison;
+	const char * const *_fluteString;
+	const char * const *_wispJewelStrings;
+	const char * const *_magicJewelString;
+	const char * const *_flaskFull;
+	const char * const *_fullFlask;
+	const char * const *_veryClever;
+	const char * const *_homeString;
+	const char * const *_newGameString;
 
 	int _itemList_Size;
 	int _takenList_Size;
@@ -570,13 +596,13 @@ protected:
 	int _homeString_Size;
 	int _newGameString_Size;
 
-	const char * const*_characterImageTable;
+	const char * const *_characterImageTable;
 	int _characterImageTableSize;
 
-	const char * const*_guiStrings;
+	const char * const *_guiStrings;
 	int _guiStringsSize;
 
-	const char * const*_configStrings;
+	const char * const *_configStrings;
 	int _configStringsSize;
 
 	Shape *_defaultShapeTable;
@@ -614,16 +640,16 @@ protected:
 
 	Room *_roomTable;
 	int _roomTableSize;
-	const char * const*_roomFilenameTable;
+	const char * const *_roomFilenameTable;
 	int _roomFilenameTableSize;
 
 	const uint8 *_amuleteAnim;
 
-	const uint8 * const*_specialPalettes;
+	const uint8 * const *_specialPalettes;
 
-	const char *const *_soundFiles;
+	const char * const *_soundFiles;
 	int _soundFilesSize;
-	const char *const *_soundFilesIntro;
+	const char * const *_soundFilesIntro;
 	int _soundFilesIntroSize;
 	const int32 *_cdaTrackTable;
 	int _cdaTrackTableSize;
@@ -646,6 +672,9 @@ protected:
 	static const uint16 _amuletY[];
 	static const uint16 _amuletX2[];
 	static const uint16 _amuletY2[];
+
+	// special palette handling for AMIGA
+	void setupZanthiaPalette(int pal);
 protected:
 	void setupOpcodeTable();
 
@@ -794,7 +823,7 @@ protected:
 	int o1_dummy(EMCState *script);
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

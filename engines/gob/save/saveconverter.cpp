@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
+#include "common/memstream.h"
 #include "common/savefile.h"
 
 #include "gob/gob.h"
@@ -303,7 +301,7 @@ bool SaveConverter::createStream(SaveWriter &writer) {
 }
 
 /* Stream functions. If the new save data stream is available, redirect the stream
- * operations to that stream. Normal stream error behaviour if not. */
+ * operations to that stream. Normal stream error behavior if not. */
 
 bool SaveConverter::err() const {
 	if (!_data || !_stream)

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -33,35 +30,39 @@
 
 namespace Sci {
 
-struct reg_t_EqualTo {
-	bool operator()(const reg_t& x, const reg_t& y) const {
-		return (x.segment == y.segment) && (x.offset == y.offset);
-	}
-};
-
 struct reg_t_Hash {
 	uint operator()(const reg_t& x) const {
-		return (x.segment << 3) | x.offset;
+		return (x.segment << 3) ^ x.offset ^ (x.offset << 16);
 	}
 };
 
 /*
- * The reg_t_hash_map is actually really a hashset
+ * The AddrSet is a "set" of reg_t values.
+ * We don't have a HashSet type, so we abuse a HashMap for this.
  */
-typedef Common::HashMap<reg_t, bool, reg_t_Hash, reg_t_EqualTo> reg_t_hash_map;
+typedef Common::HashMap<reg_t, bool, reg_t_Hash> AddrSet;
 
 /**
  * Finds all used references and normalises them to their memory addresses
  * @param s The state to gather all information from
  * @return A hash map containing entries for all used references
  */
-reg_t_hash_map *find_all_used_references(EngineState *s);
+AddrSet *findAllActiveReferences(EngineState *s);
 
 /**
  * Runs garbage collection on the current system state
  * @param s The state in which we should gc
  */
 void run_gc(EngineState *s);
+
+struct WorklistManager {
+	Common::Array<reg_t> _worklist;
+	AddrSet _map;	// used for 2 contains() calls, inside push() and run_gc()
+
+	void push(reg_t reg);
+	void pushArray(const Common::Array<reg_t> &tmp);
+};
+
 
 } // End of namespace Sci
 

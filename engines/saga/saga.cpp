@@ -18,20 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
-
 #include "common/file.h"
+#include "common/fs.h"
 #include "common/config-manager.h"
 #include "common/system.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 #include "saga/saga.h"
 
@@ -60,62 +55,83 @@ namespace Saga {
 #define MAX_TIME_DELTA 100
 
 SagaEngine::SagaEngine(OSystem *syst, const SAGAGameDescription *gameDesc)
-	: Engine(syst), _gameDescription(gameDesc) {
+	: Engine(syst), _gameDescription(gameDesc), _rnd("saga") {
 
-	_leftMouseButtonPressed = _rightMouseButtonPressed = false;
+	_framesEsc = 0;
 
-	_console = NULL;
+	_globalFlags = 0;
+	memset(_ethicsPoints, 0, sizeof(_ethicsPoints));
+	_spiritualBarometer = 0;
 
-	_resource = NULL;
+	_soundVolume = 0;
+	_musicVolume = 0;
+	_speechVolume = 0;
+	_subtitlesEnabled = false;
+	_voicesEnabled = false;
+	_voiceFilesExist = false;
+	_readingSpeed = 0;
+
+	_copyProtection = false;
+	_gf_wyrmkeep = false;
+	_musicWasPlaying = false;
+
+
 	_sndRes = NULL;
-	_events = NULL;
-	_font = NULL;
-	_sprite = NULL;
+	_sound = NULL;
+	_music = NULL;
 	_anim = NULL;
-	_script = NULL;
-	_interface = NULL;
-	_actor = NULL;
-	_palanim = NULL;
-	_scene = NULL;
+	_render = NULL;
 	_isoMap = NULL;
 	_gfx = NULL;
-	_driver = NULL;
+	_script = NULL;
+	_actor = NULL;
+	_font = NULL;
+	_sprite = NULL;
+	_scene = NULL;
+	_interface = NULL;
 	_console = NULL;
-	_render = NULL;
-	_music = NULL;
-	_sound = NULL;
+	_events = NULL;
+	_palanim = NULL;
 	_puzzle = NULL;
+	_resource = NULL;
+
+	_previousTicks = 0;
+
+	_saveFilesCount = 0;
+
+	_leftMouseButtonPressed = _rightMouseButtonPressed = false;
+	_mouseClickCount = 0;
+
+	_gameNumber = 0;
 
 	_frameCount = 0;
-	_globalFlags = 0;
-	_mouseClickCount = 0;
-	memset(_ethicsPoints, 0, sizeof(_ethicsPoints));
+
+	const Common::FSNode gameDataDir(ConfMan.get("path"));
 
 	// The Linux version of Inherit the Earth puts all data files in an
 	// 'itedata' sub-directory, except for voices.rsc
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("itedata"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "itedata");
 
 	// The Windows version of Inherit the Earth puts various data files in
 	// other subdirectories.
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("graphics"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("music"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("sound"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "graphics");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "music");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "sound");
 
 	// The Multi-OS version puts the voices file in the root directory of
 	// the CD. The rest of the data files are in game/itedata
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("game").getChild("itedata"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "game/itedata");
 
 	// Mac CD Wyrmkeep
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("patch"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "patch");
 
 	// Dinotopia
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("smack"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "smack");
 
 	// FTA2
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("video"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "video");
 
 	_displayClip.left = _displayClip.top = 0;
-	g_eventRec.registerRandomSource(_rnd, "saga");
 }
 
 SagaEngine::~SagaEngine() {
@@ -127,31 +143,63 @@ SagaEngine::~SagaEngine() {
 
 	if (getGameId() == GID_ITE) {
 		delete _isoMap;
+		_isoMap = NULL;
+
 		delete _puzzle;
+		_puzzle = NULL;
 	}
 
 	delete _sndRes;
+	_sndRes = NULL;
+
 	delete _events;
+	_events = NULL;
 
 	if (!isSaga2()) {
 		delete _font;
+		_font = NULL;
+
 		delete _sprite;
+		_sprite = NULL;
 	}
 
 	delete _anim;
+	_anim = NULL;
+
 	delete _script;
-	if (!isSaga2())
+	_script = NULL;
+
+	if (!isSaga2()) {
 		delete _interface;
+		_interface = NULL;
+	}
+
 	delete _actor;
+	_actor = NULL;
+
 	delete _palanim;
+	_palanim = NULL;
+
 	delete _scene;
+	_scene = NULL;
+
 	delete _render;
+	_render = NULL;
+
 	delete _music;
+	_music = NULL;
+
 	delete _sound;
-	delete _driver;
+	_sound = NULL;
+
 	delete _gfx;
+	_gfx = NULL;
+
 	delete _console;
+	_console = NULL;
+
 	delete _resource;
+	_resource = NULL;
 }
 
 Common::Error SagaEngine::run() {
@@ -165,11 +213,12 @@ Common::Error SagaEngine::run() {
 	_copyProtection = ConfMan.getBool("copy_protection");
 	_gf_wyrmkeep = false;
 	_musicWasPlaying = false;
+	_isIHNMDemo = Common::File::exists("music.res");
 
 	if (_readingSpeed > 3)
 		_readingSpeed = 0;
 
-	switch(getGameId()) {
+	switch (getGameId()) {
 		case GID_ITE:
 			_resource = new Resource_RSC(this);
 			break;
@@ -227,17 +276,7 @@ Common::Error SagaEngine::run() {
 	_console = new Console(this);
 
 	// Graphics should be initialized before music
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-	bool native_mt32 = ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32"));
-	bool adlib = (midiDriver == MD_ADLIB);
-
-	_driver = MidiDriver::createMidi(midiDriver);
-	if (native_mt32)
-		_driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
-
-	_music = new Music(this, _mixer, _driver);
-	_music->setNativeMT32(native_mt32);
-	_music->setAdlib(adlib);
+	_music = new Music(this, _mixer);
 	_render = new Render(this, _system);
 	if (!_render->initialized()) {
 		return Common::kUnknownError;
@@ -247,7 +286,7 @@ Common::Error SagaEngine::run() {
 	_sound = new Sound(this, _mixer);
 
 	if (!isSaga2()) {
-		_interface->converseInit();
+		_interface->converseClear();
 		_script->setVerb(_script->getVerbType(kVerbWalkTo));
 	}
 
@@ -271,20 +310,6 @@ Common::Error SagaEngine::run() {
 	}
 
 	syncSoundSettings();
-
-
-#if 0
-	// FIXME: Disabled this code for now. We want to get rid of OSystem::kFeatureAutoComputeDirtyRects
-	// and this is the last place to make use of it. We need to find out whether doing
-	// so causes any regressions. If it does, we can reenable it, if not, we can remove
-	// this code in 0.13.0.
-
-	// FIXME: This is the ugly way of reducing redraw overhead. It works
-	//        well for 320x200 but it's unclear how well it will work for
-	//        640x480.
-	if (getGameId() == GID_ITE)
-		_system->setFeatureState(OSystem::kFeatureAutoComputeDirtyRects, true);
-#endif
 
 	int msec = 0;
 
@@ -322,8 +347,7 @@ Common::Error SagaEngine::run() {
 	uint32 currentTicks;
 
 	while (!shouldQuit()) {
-		if (_console->isAttached())
-			_console->onFrame();
+		_console->onFrame();
 
 		if (_render->getFlags() & RF_RENDERPAUSE) {
 			// Freeze time while paused
@@ -364,57 +388,75 @@ Common::Error SagaEngine::run() {
 	return Common::kNoError;
 }
 
-void SagaEngine::loadStrings(StringsTable &stringsTable, const byte *stringsPointer, size_t stringsLength) {
+void SagaEngine::loadStrings(StringsTable &stringsTable, const ByteArray &stringsData) {
 	uint16 stringsCount;
 	size_t offset;
 	size_t prevOffset = 0;
-	int i;
+	Common::Array<size_t> tempOffsets;
+	uint ui;
 
-	if (stringsLength == 0) {
+	if (stringsData.empty()) {
 		error("SagaEngine::loadStrings() Error loading strings list resource");
 	}
 
-	stringsTable.stringsPointer = (byte*)malloc(stringsLength);
-	memcpy(stringsTable.stringsPointer, stringsPointer, stringsLength);
 
-
-	MemoryReadStreamEndian scriptS(stringsTable.stringsPointer, stringsLength, isBigEndian()); //TODO: get endianess from context
+	ByteArrayReadStreamEndian scriptS(stringsData, isBigEndian()); //TODO: get endianess from context
 
 	offset = scriptS.readUint16();
 	stringsCount = offset / 2;
-	stringsTable.strings = (const char **)malloc(stringsCount * sizeof(*stringsTable.strings));
-	i = 0;
+	ui = 0;
 	scriptS.seek(0);
-	while (i < stringsCount) {
+	tempOffsets.resize(stringsCount);
+	while (ui < stringsCount) {
 		offset = scriptS.readUint16();
 		// In some rooms in IHNM, string offsets can be greater than the maximum value than a 16-bit integer can hold
 		// We detect this by checking the previous offset, and if it was bigger than the current one, an overflow
-		// occured (since the string offsets are sequential), so we're adding the missing part of the number
+		// occurred (since the string offsets are sequential), so we're adding the missing part of the number
 		// Fixes bug #1895205 - "IHNM: end game text/caption error"
 		if (prevOffset > offset)
 			offset += 65536;
 		prevOffset = offset;
-		if (offset == stringsLength) {
-			stringsCount = i;
-			stringsTable.strings = (const char **)realloc(stringsTable.strings, stringsCount * sizeof(*stringsTable.strings));
+		if (offset == stringsData.size()) {
+			stringsCount = ui;
+			tempOffsets.resize(stringsCount);
 			break;
 		}
-		if (offset > stringsLength) {
+		if (offset > stringsData.size()) {
 			// This case should never occur, but apparently it does in the Italian fan
 			// translation of IHNM
 			warning("SagaEngine::loadStrings wrong strings table");
-			stringsCount = i;
-			stringsTable.strings = (const char **)realloc(stringsTable.strings, stringsCount * sizeof(*stringsTable.strings));
+			stringsCount = ui;
+			tempOffsets.resize(stringsCount);
 			break;
 		}
-		stringsTable.strings[i] = (const char *)stringsTable.stringsPointer + offset;
-		debug(9, "string[%i]=%s", i, stringsTable.strings[i]);
-		i++;
+		tempOffsets[ui] = offset;
+		ui++;
 	}
-	stringsTable.stringsCount = stringsCount;
+
+	prevOffset = scriptS.pos();
+	int32 left = scriptS.size() - prevOffset;
+	if (left < 0) {
+		error("SagaEngine::loadStrings() Error loading strings buffer");
+	}
+
+	stringsTable.buffer.resize(left);
+	if (left > 0) {
+		scriptS.read(&stringsTable.buffer.front(), left);
+	}
+
+	stringsTable.strings.resize(tempOffsets.size());
+	for (ui = 0; ui < tempOffsets.size(); ui++) {
+		offset = tempOffsets[ui] - prevOffset;
+		if (offset >= stringsTable.buffer.size()) {
+			error("SagaEngine::loadStrings() Wrong offset");
+		}
+		stringsTable.strings[ui] = &stringsTable.buffer[offset];
+
+		debug(9, "string[%i]=%s", ui, stringsTable.strings[ui]);
+	}
 }
 
-const char *SagaEngine::getObjectName(uint16 objectId) {
+const char *SagaEngine::getObjectName(uint16 objectId) const {
 	ActorData *actor;
 	ObjectData *obj;
 	const HitZone *hitZone;
@@ -569,7 +611,7 @@ void SagaEngine::setTalkspeed(int talkspeed) {
 	ConfMan.setInt("talkspeed", (talkspeed * 255 + 3 / 2) / 3);
 }
 
-int SagaEngine::getTalkspeed() {
+int SagaEngine::getTalkspeed() const {
 	return (ConfMan.getInt("talkspeed") * 3 + 255 / 2) / 255;
 }
 
@@ -578,6 +620,8 @@ GUI::Debugger *SagaEngine::getDebugger() {
 }
 
 void SagaEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
 	_subtitlesEnabled = ConfMan.getBool("subtitles");
 	_readingSpeed = getTalkspeed();
 

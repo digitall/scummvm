@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/preagi.h"
@@ -30,8 +27,9 @@
 #include "graphics/cursorman.h"
 
 #include "common/events.h"
+#include "common/memstream.h"
 #include "common/savefile.h"
-#include "common/stream.h"
+#include "common/textconsole.h"
 
 namespace Agi {
 
@@ -216,15 +214,9 @@ int Winnie::getObjInRoom(int iRoom) {
 	return 0;
 }
 
-#define setTakeDrop() {\
-	if (getObjInRoom(_room))\
-		fCanSel[IDI_WTP_SEL_TAKE] = true;\
-	else\
-		fCanSel[IDI_WTP_SEL_TAKE] = false;\
-	if (_game.iObjHave)\
-		fCanSel[IDI_WTP_SEL_DROP] = true;\
-	else\
-		fCanSel[IDI_WTP_SEL_DROP] = false;\
+void Winnie::setTakeDrop(int fCanSel[]) {
+	fCanSel[IDI_WTP_SEL_TAKE] = getObjInRoom(_room);
+	fCanSel[IDI_WTP_SEL_DROP] = _game.iObjHave;
 }
 
 void Winnie::setFlag(int iFlag) {
@@ -266,7 +258,7 @@ int Winnie::parser(int pc, int index, uint8 *buffer) {
 		// extract text from block
 
 		opcode = *(buffer + pc);
-		switch(opcode) {
+		switch (opcode) {
 		case 0:
 		case IDO_WTP_OPTION_0:
 		case IDO_WTP_OPTION_1:
@@ -280,7 +272,7 @@ int Winnie::parser(int pc, int index, uint8 *buffer) {
 				fCanSel[IDI_WTP_SEL_EAST] = fCanSel[IDI_WTP_SEL_WEST] = true;
 
 			// check if object in room or player carrying one
-			setTakeDrop();
+			setTakeDrop(fCanSel);
 
 			// check which rows have a menu option
 			for (iSel = 0; iSel < IDI_WTP_MAX_OPTION; iSel++) {
@@ -331,9 +323,9 @@ int Winnie::parser(int pc, int index, uint8 *buffer) {
 			}
 
 			// process selection
-			switch(iSel) {
+			switch (iSel) {
 			case IDI_WTP_SEL_HOME:
-				switch(_room) {
+				switch (_room) {
 				case IDI_WTP_ROOM_HOME:
 				case IDI_WTP_ROOM_MIST:
 				case IDI_WTP_ROOM_TIGGER:
@@ -366,11 +358,11 @@ int Winnie::parser(int pc, int index, uint8 *buffer) {
 				break;
 			case IDI_WTP_SEL_TAKE:
 				takeObj(_room);
-				setTakeDrop();
+				setTakeDrop(fCanSel);
 				break;
 			case IDI_WTP_SEL_DROP:
 				dropObj(_room);
-				setTakeDrop();
+				setTakeDrop(fCanSel);
 				break;
 			}
 		}
@@ -384,7 +376,7 @@ int Winnie::parser(int pc, int index, uint8 *buffer) {
 		// process script
 		do {
 			opcode = *(buffer + pc++);
-			switch(opcode) {
+			switch (opcode) {
 			case IDO_WTP_GOTO_ROOM:
 				opcode = *(buffer + pc++);
 				iNewRoom = opcode;
@@ -726,7 +718,7 @@ void Winnie::drawMenu(char *szMenu, int iSel, int fCanSel[]) {
 	if (fCanSel[IDI_WTP_SEL_DROP])
 		_vm->drawStr(IDI_WTP_ROW_OPTION_4, IDI_WTP_COL_DROP, IDA_DEFAULT, IDS_WTP_DROP);
 
-	switch(iSel) {
+	switch (iSel) {
 	case IDI_WTP_SEL_OPT_1:
 	case IDI_WTP_SEL_OPT_2:
 	case IDI_WTP_SEL_OPT_3:
@@ -778,7 +770,7 @@ void Winnie::decMenuSel(int *iSel, int fCanSel[]) {
 }
 
 void Winnie::getMenuMouseSel(int *iSel, int fCanSel[], int x, int y) {
-	switch(y) {
+	switch (y) {
 	case IDI_WTP_ROW_OPTION_1:
 	case IDI_WTP_ROW_OPTION_2:
 	case IDI_WTP_ROW_OPTION_3:
@@ -795,13 +787,12 @@ void Winnie::getMenuMouseSel(int *iSel, int fCanSel[], int x, int y) {
 	}
 }
 
-#define makeSel() {\
-	if (fCanSel[*iSel]) {\
-		return;\
-	} else {\
-		keyHelp();\
-		clrMenuSel(iSel, fCanSel);\
-	}\
+void Winnie::makeSel(int *iSel, int fCanSel[]) {
+	if (fCanSel[*iSel])
+		return;
+
+	keyHelp();
+	clrMenuSel(iSel, fCanSel);
 }
 
 void Winnie::getMenuSel(char *szMenu, int *iSel, int fCanSel[]) {
@@ -816,7 +807,7 @@ void Winnie::getMenuSel(char *szMenu, int *iSel, int fCanSel[]) {
 
 	while (!_vm->shouldQuit()) {
 		while (_vm->_system->getEventManager()->pollEvent(event)) {
-			switch(event.type) {
+			switch (event.type) {
 			case Common::EVENT_RTL:
 			case Common::EVENT_QUIT:
 				return;
@@ -843,29 +834,29 @@ void Winnie::getMenuSel(char *szMenu, int *iSel, int fCanSel[]) {
 				// Click to move
 				if (fCanSel[IDI_WTP_SEL_NORTH] && hotspotNorth.contains(event.mouse.x, event.mouse.y)) {
 					*iSel = IDI_WTP_SEL_NORTH;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					_vm->_gfx->setCursorPalette(false);
 					return;
 				} else if (fCanSel[IDI_WTP_SEL_SOUTH] && hotspotSouth.contains(event.mouse.x, event.mouse.y)) {
 					*iSel = IDI_WTP_SEL_SOUTH;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					_vm->_gfx->setCursorPalette(false);
 					return;
 				} else if (fCanSel[IDI_WTP_SEL_WEST] && hotspotWest.contains(event.mouse.x, event.mouse.y)) {
 					*iSel = IDI_WTP_SEL_WEST;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					_vm->_gfx->setCursorPalette(false);
 					return;
 				} else if (fCanSel[IDI_WTP_SEL_EAST] && hotspotEast.contains(event.mouse.x, event.mouse.y)) {
 					*iSel = IDI_WTP_SEL_EAST;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					_vm->_gfx->setCursorPalette(false);
 					return;
 				} else {
 					_vm->_gfx->setCursorPalette(false);
 				}
 
-				switch(*iSel) {
+				switch (*iSel) {
 					case IDI_WTP_SEL_OPT_1:
 					case IDI_WTP_SEL_OPT_2:
 					case IDI_WTP_SEL_OPT_3:
@@ -943,34 +934,34 @@ void Winnie::getMenuSel(char *szMenu, int *iSel, int fCanSel[]) {
 					break;
 				case Common::KEYCODE_n:
 					*iSel = IDI_WTP_SEL_NORTH;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					break;
 				case Common::KEYCODE_s:
 					if (event.kbd.flags & Common::KBD_CTRL) {
 						_vm->flipflag(fSoundOn);
 					} else {
 						*iSel = IDI_WTP_SEL_SOUTH;
-						makeSel();
+						makeSel(iSel, fCanSel);
 					}
 					break;
 				case Common::KEYCODE_e:
 					*iSel = IDI_WTP_SEL_EAST;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					break;
 				case Common::KEYCODE_w:
 					*iSel = IDI_WTP_SEL_WEST;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					break;
 				case Common::KEYCODE_t:
 					*iSel = IDI_WTP_SEL_TAKE;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					break;
 				case Common::KEYCODE_d:
 					*iSel = IDI_WTP_SEL_DROP;
-					makeSel();
+					makeSel(iSel, fCanSel);
 					break;
 				case Common::KEYCODE_RETURN:
-					switch(*iSel) {
+					switch (*iSel) {
 					case IDI_WTP_SEL_OPT_1:
 					case IDI_WTP_SEL_OPT_2:
 					case IDI_WTP_SEL_OPT_3:
@@ -1036,7 +1027,7 @@ phase2:
 
 	while (!_vm->shouldQuit()) {
 		for (iBlock = 0; iBlock < IDI_WTP_MAX_BLOCK; iBlock++) {
-			switch(parser(hdr.ofsBlock[iBlock] - _roomOffset, iBlock, roomdata)) {
+			switch (parser(hdr.ofsBlock[iBlock] - _roomOffset, iBlock, roomdata)) {
 			case IDI_WTP_PAR_GOTO:
 				goto phase0;
 				break;
@@ -1053,7 +1044,6 @@ phase2:
 void Winnie::drawPic(const char *szName) {
 	char szFile[256] = {0};
 	Common::File file;
-	uint8 *buffer = (uint8 *)malloc(4096);
 
 	// construct filename
 	if (_vm->getPlatform() != Common::kPlatformAmiga)
@@ -1065,6 +1055,7 @@ void Winnie::drawPic(const char *szName) {
 		return;
 	}
 
+	uint8 *buffer = (uint8 *)malloc(4096);
 	uint32 size = file.size();
 	file.read(buffer, size);
 	file.close();
@@ -1159,7 +1150,7 @@ void Winnie::saveGame() {
 	if (!(outfile = _vm->getSaveFileMan()->openForSaving(szFile)))
 		return;
 
-	outfile->writeUint32BE(MKID_BE('WINN'));	// header
+	outfile->writeUint32BE(MKTAG('W','I','N','N'));	// header
 	outfile->writeByte(WTP_SAVEGAME_VERSION);
 
 	outfile->writeByte(_game.fSound);
@@ -1195,7 +1186,7 @@ void Winnie::loadGame() {
 	if (!(infile = _vm->getSaveFileMan()->openForLoading(szFile)))
 		return;
 
-	if (infile->readUint32BE() == MKID_BE('WINN')) {
+	if (infile->readUint32BE() == MKTAG('W','I','N','N')) {
 		saveVersion = infile->readByte();
 		if (saveVersion != WTP_SAVEGAME_VERSION)
 			warning("Old save game version (%d, current version is %d). Will try and read anyway, but don't be surprised if bad things happen", saveVersion, WTP_SAVEGAME_VERSION);

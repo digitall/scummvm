@@ -18,10 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include <unistd.h>
 #include <pthread.h>
@@ -38,8 +38,8 @@
 
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
-#include "sound/mixer.h"
-#include "sound/mixer_intern.h"
+#include "audio/mixer.h"
+#include "audio/mixer_intern.h"
 
 #include "osys_main.h"
 
@@ -53,28 +53,26 @@ SoundProc OSystem_IPHONE::s_soundCallback = NULL;
 void *OSystem_IPHONE::s_soundParam = NULL;
 
 OSystem_IPHONE::OSystem_IPHONE() :
-	_savefile(NULL), _mixer(NULL), _timer(NULL), _offscreen(NULL),
-	_overlayVisible(false), _overlayBuffer(NULL), _fullscreen(NULL),
-	_mouseHeight(0), _mouseWidth(0), _mouseBuf(NULL), _lastMouseTap(0),
-	_secondaryTapped(false), _lastSecondaryTap(0), _screenOrientation(kScreenOrientationFlippedLandscape),
-	_needEventRestPeriod(false), _mouseClickAndDragEnabled(false), _touchpadModeEnabled(true),
+	_mixer(NULL), _offscreen(NULL),
+	_overlayVisible(false), _fullscreen(NULL),
+	_mouseHeight(0), _mouseWidth(0), _mouseBuf(NULL), _lastMouseTap(0), _queuedEventTime(0),
+	_secondaryTapped(false), _lastSecondaryTap(0),
+	_screenOrientation(kScreenOrientationFlippedLandscape), _mouseClickAndDragEnabled(false),
 	_gestureStartX(-1), _gestureStartY(-1), _fullScreenIsDirty(false), _fullScreenOverlayIsDirty(false),
-	_mouseDirty(false), _timeSuspended(0), _lastDragPosX(-1), _lastDragPosY(-1), _screenChangeCount(0)
-
+	_mouseDirty(false), _timeSuspended(0), _lastDragPosX(-1), _lastDragPosY(-1), _screenChangeCount(0),
+	_overlayHeight(0), _overlayWidth(0), _overlayBuffer(0)
 {
 	_queuedInputEvent.type = (Common::EventType)0;
 	_lastDrawnMouseRect = Common::Rect(0, 0, 0, 0);
 
+	_touchpadModeEnabled = !iPhone_isHighResDevice();
 	_fsFactory = new POSIXFilesystemFactory();
 }
 
 OSystem_IPHONE::~OSystem_IPHONE() {
 	AudioQueueDispose(s_AudioQueue.queue, true);
 
-	delete _fsFactory;
-	delete _savefile;
 	delete _mixer;
-	delete _timer;
 	delete _offscreen;
 	delete _fullscreen;
 }
@@ -87,12 +85,12 @@ int OSystem_IPHONE::timerHandler(int t) {
 
 void OSystem_IPHONE::initBackend() {
 #ifdef IPHONE_OFFICIAL
-	_savefile = new DefaultSaveFileManager(iPhone_getDocumentsDir());
+	_savefileManager = new DefaultSaveFileManager(iPhone_getDocumentsDir());
 #else
-	_savefile = new DefaultSaveFileManager(SCUMMVM_SAVE_PATH);
+	_savefileManager = new DefaultSaveFileManager(SCUMMVM_SAVE_PATH);
 #endif
 
-	_timer = new DefaultTimerManager();
+	_timerManager = new DefaultTimerManager();
 
 	gettimeofday(&_startTime, NULL);
 
@@ -100,7 +98,7 @@ void OSystem_IPHONE::initBackend() {
 
 	setTimerCallback(&OSystem_IPHONE::timerHandler, 10);
 
-	OSystem::initBackend();
+	EventsBaseBackend::initBackend();
 }
 
 bool OSystem_IPHONE::hasFeature(Feature f) {
@@ -198,14 +196,15 @@ void OSystem_IPHONE::setTimerCallback(TimerProc callback, int interval) {
 void OSystem_IPHONE::quit() {
 }
 
-void OSystem_IPHONE::getTimeAndDate(struct tm &t) const {
+void OSystem_IPHONE::getTimeAndDate(TimeDate &td) const {
 	time_t curTime = time(0);
-	t = *localtime(&curTime);
-}
-
-Common::SaveFileManager *OSystem_IPHONE::getSavefileManager() {
-	assert(_savefile);
-	return _savefile;
+	struct tm t = *localtime(&curTime);
+	td.tm_sec = t.tm_sec;
+	td.tm_min = t.tm_min;
+	td.tm_hour = t.tm_hour;
+	td.tm_mday = t.tm_mday;
+	td.tm_mon = t.tm_mon;
+	td.tm_year = t.tm_year;
 }
 
 Audio::Mixer *OSystem_IPHONE::getMixer() {
@@ -213,38 +212,20 @@ Audio::Mixer *OSystem_IPHONE::getMixer() {
 	return _mixer;
 }
 
-Common::TimerManager *OSystem_IPHONE::getTimerManager() {
-	assert(_timer);
-	return _timer;
-}
-
 OSystem *OSystem_IPHONE_create() {
 	return new OSystem_IPHONE();
 }
 
-Common::SeekableReadStream *OSystem_IPHONE::createConfigReadStream() {
+Common::String OSystem_IPHONE::getDefaultConfigFileName() {
 #ifdef IPHONE_OFFICIAL
-	char buf[256];
-	strncpy(buf, iPhone_getDocumentsDir(), 256);
-	strncat(buf, "/Preferences", 256 - strlen(buf) );
-	Common::FSNode file(buf);
+	Common::String path = iPhone_getDocumentsDir();
+	path += "/Preferences";
+	return path;
 #else
-	Common::FSNode file(SCUMMVM_PREFS_PATH);
+	return SCUMMVM_PREFS_PATH;
 #endif
-	return file.createReadStream();
 }
 
-Common::WriteStream *OSystem_IPHONE::createConfigWriteStream() {
-#ifdef IPHONE_OFFICIAL
-	char buf[256];
-	strncpy(buf, iPhone_getDocumentsDir(), 256);
-	strncat(buf, "/Preferences", 256 - strlen(buf) );
-	Common::FSNode file(buf);
-#else
-	Common::FSNode file(SCUMMVM_PREFS_PATH);
-#endif
-	return file.createWriteStream();
-}
 
 void OSystem_IPHONE::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 	// Get URL of the Resource directory of the .app bundle
@@ -259,6 +240,18 @@ void OSystem_IPHONE::addSysArchivesToSearchSet(Common::SearchSet &s, int priorit
 		}
 		CFRelease(fileUrl);
 	}
+}
+
+void OSystem_IPHONE::logMessage(LogMessageType::Type type, const char *message) {
+	FILE *output = 0;
+
+	if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
+		output = stdout;
+	else
+		output = stderr;
+
+	fputs(message, output);
+	fflush(output);
 }
 
 void iphone_main(int argc, char *argv[]) {

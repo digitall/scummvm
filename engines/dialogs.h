@@ -17,27 +17,36 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef GLOBAL_DIALOGS_H
 #define GLOBAL_DIALOGS_H
 
-#include "common/str.h"
 #include "gui/dialog.h"
-#include "gui/options.h"
 
 class Engine;
 
 namespace GUI {
-	class ButtonWidget;
-	class GraphicsWidget;
-	class SaveLoadChooser;
+class ButtonWidget;
+class CommandSender;
+class GraphicsWidget;
+class SaveLoadChooser;
 }
 
 class MainMenuDialog : public GUI::Dialog {
+public:
+	enum {
+		kSaveCmd = 'SAVE',
+		kLoadCmd = 'LOAD',
+		kPlayCmd = 'PLAY',
+		kOptionsCmd = 'OPTN',
+		kHelpCmd = 'HELP',
+		kAboutCmd = 'ABOU',
+		kQuitCmd = 'QUIT',
+		kRTLCmd = 'RTL ',
+		kChooseCmd = 'CHOS'
+	};
+
 public:
 	MainMenuDialog(Engine *engine);
 	~MainMenuDialog();
@@ -47,29 +56,24 @@ public:
 	virtual void reflowLayout();
 
 protected:
-	Engine			*_engine;
+	void save();
+	void load();
 
-	GUI::GraphicsWidget *_logo;
-	GUI::ButtonWidget	*_rtlButton;
-	GUI::ButtonWidget	*_loadButton;
-	GUI::ButtonWidget	*_saveButton;
-	GUI::Dialog		*_aboutDialog;
-	GUI::Dialog		*_optionsDialog;
-	GUI::SaveLoadChooser	*_loadDialog;
-	GUI::SaveLoadChooser	*_saveDialog;
-};
-
-class ConfigDialog : public GUI::OptionsDialog {
 protected:
-#ifdef SMALL_SCREEN_DEVICE
-	GUI::Dialog		*_keysDialog;
-#endif
+	Engine *_engine;
 
-public:
-	ConfigDialog(bool subtitleControls);
-	~ConfigDialog();
+	GUI::GraphicsWidget  *_logo;
 
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
+	GUI::ButtonWidget    *_rtlButton;
+	GUI::ButtonWidget    *_loadButton;
+	GUI::ButtonWidget    *_saveButton;
+	GUI::ButtonWidget    *_helpButton;
+
+	GUI::Dialog          *_aboutDialog;
+	GUI::Dialog          *_optionsDialog;
+
+	GUI::SaveLoadChooser *_loadDialog;
+	GUI::SaveLoadChooser *_saveDialog;
 };
 
 #endif

@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "m4/m4.h"
 #include "m4/globals.h"
@@ -34,7 +33,7 @@
 
 namespace M4 {
 
-Kernel::Kernel(M4Engine *vm) : _vm(vm) {
+Kernel::Kernel(MadsM4Engine *vm) : _vm(vm) {
 	daemonTriggerAvailable = true;
 	firstFadeColorIndex = 0;
 	paused = false;
@@ -75,7 +74,7 @@ bool Kernel::sendTrigger(int32 triggerNum) {
 
 bool Kernel::handleTrigger(int32 triggerNum) {
 
-	printf("betweenRooms = %d; triggerNum = %08X\n", betweenRooms, (uint)triggerNum);
+	debugCN(kDebugScript, "betweenRooms = %d; triggerNum = %08X\n", betweenRooms, (uint)triggerNum);
 
 	if (betweenRooms)
 		return true;
@@ -89,10 +88,10 @@ bool Kernel::handleTrigger(int32 triggerNum) {
 
 	int room = (triggerNum >> 16) & 0xFFF;
 
-	printf("room = %d; currentRoom = %d\n", room, currentRoom); fflush(stdout);
+	debugCN(kDebugScript, "room = %d; currentRoom = %d\n", room, currentRoom);
 
 	if (room != currentRoom) {
-		printf("Kernel::handleTrigger() Trigger from another room\n");
+		debugCN(kDebugScript, "Kernel::handleTrigger() Trigger from another room\n");
 		return false;
 	}
 
@@ -123,8 +122,7 @@ bool Kernel::handleTrigger(int32 triggerNum) {
 		break;
 
 	case KT_DAEMON:
-		printf("KT_DAEMON\n");
-		fflush(stdout);
+		debugCN(kDebugScript, "KT_DAEMON\n");
 		triggerMode = KT_DAEMON;
 		daemonTriggerAvailable = false;
 		roomDaemon();
@@ -140,7 +138,7 @@ bool Kernel::handleTrigger(int32 triggerNum) {
 		break;
 
 	default:
-		printf("Kernel::handleTrigger() Unknown trigger mode %d\n", mode);
+		debugCN(kDebugScript, "Kernel::handleTrigger() Unknown trigger mode %d\n", mode);
 
 	}
 
@@ -156,24 +154,24 @@ void Kernel::loadGlobalScriptFunctions() {
 }
 
 void Kernel::loadSectionScriptFunctions() {
-	char tempFnName[128];
-	snprintf(tempFnName, 128, "section_init_%d", currentSection);
+	Common::String tempFnName;
+	tempFnName = Common::String::format("section_init_%d", currentSection);
 	_sectionInitFn = _vm->_script->loadFunction(tempFnName);
-	snprintf(tempFnName, 128, "section_daemon_%d", currentSection);
+	tempFnName = Common::String::format("section_daemon_%d", currentSection);
 	_sectionDaemonFn = _vm->_script->loadFunction(tempFnName);
-	snprintf(tempFnName, 128, "section_parser_%d", currentSection);
+	tempFnName = Common::String::format("section_parser_%d", currentSection);
 	_sectionParserFn = _vm->_script->loadFunction(tempFnName);
 }
 
 void Kernel::loadRoomScriptFunctions() {
-	char tempFnName[128];
-	snprintf(tempFnName, 128, "room_init_%d", currentRoom);
+	Common::String tempFnName;
+	tempFnName = Common::String::format("room_init_%d", currentRoom);
 	_roomInitFn = _vm->_script->loadFunction(tempFnName);
-	snprintf(tempFnName, 128, "room_daemon_%d", currentRoom);
+	tempFnName = Common::String::format("room_daemon_%d", currentRoom);
 	_roomDaemonFn = _vm->_script->loadFunction(tempFnName);
-	snprintf(tempFnName, 128, "room_pre_parser_%d", currentRoom);
+	tempFnName = Common::String::format("room_pre_parser_%d", currentRoom);
 	_roomPreParserFn = _vm->_script->loadFunction(tempFnName);
-	snprintf(tempFnName, 128, "room_parser_%d", currentRoom);
+	tempFnName = Common::String::format("room_parser_%d", currentRoom);
 	_roomParserFn = _vm->_script->loadFunction(tempFnName);
 }
 
@@ -181,7 +179,7 @@ void Kernel::globalDaemon() {
 	if (_globalDaemonFn)
 		_vm->_script->runFunction(_globalDaemonFn);
 	else {
-		printf("Kernel::globalDaemon() _globalDaemonFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::globalDaemon() _globalDaemonFn is NULL\n");
 	}
 }
 
@@ -189,7 +187,7 @@ void Kernel::globalParser() {
 	if (_globalParserFn)
 		_vm->_script->runFunction(_globalParserFn);
 	else {
-		printf("Kernel::globalParser() _globalParserFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::globalParser() _globalParserFn is NULL\n");
 	}
 }
 
@@ -197,7 +195,7 @@ void Kernel::sectionInit() {
 	if (_sectionInitFn)
 		_vm->_script->runFunction(_sectionInitFn);
 	else {
-		printf("Kernel::sectionInit() _sectionInitFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::sectionInit() _sectionInitFn is NULL\n");
 	}
 }
 
@@ -205,7 +203,7 @@ void Kernel::sectionDaemon() {
 	if (_sectionDaemonFn)
 		_vm->_script->runFunction(_sectionDaemonFn);
 	else {
-		printf("Kernel::sectionDaemon() _sectionDaemonFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::sectionDaemon() _sectionDaemonFn is NULL\n");
 	}
 }
 
@@ -213,7 +211,7 @@ void Kernel::sectionParser() {
 	if (_sectionParserFn)
 		_vm->_script->runFunction(_sectionParserFn);
 	else {
-		printf("Kernel::sectionParser() _sectionParserFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::sectionParser() _sectionParserFn is NULL\n");
 	}
 }
 
@@ -221,7 +219,7 @@ void Kernel::roomInit() {
 	if (_roomInitFn)
 		_vm->_script->runFunction(_roomInitFn);
 	else {
-		printf("Kernel::roomInit() _roomInitFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::roomInit() _roomInitFn is NULL\n");
 	}
 }
 
@@ -229,7 +227,7 @@ void Kernel::roomDaemon() {
 	if (_roomDaemonFn)
 		_vm->_script->runFunction(_roomDaemonFn);
 	else {
-		printf("Kernel::roomDaemon() _roomDaemonFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::roomDaemon() _roomDaemonFn is NULL\n");
 	}
 }
 
@@ -237,7 +235,7 @@ void Kernel::roomPreParser() {
 	if (_roomPreParserFn)
 		_vm->_script->runFunction(_roomPreParserFn);
 	else {
-		printf("Kernel::roomPreParser() _roomPreParserFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::roomPreParser() _roomPreParserFn is NULL\n");
 	}
 }
 
@@ -245,7 +243,7 @@ void Kernel::roomParser() {
 	if (_roomParserFn)
 		_vm->_script->runFunction(_roomParserFn);
 	else {
-		printf("Kernel::roomParser() _roomParserFn is NULL\n");
+		debugCN(kDebugScript, "Kernel::roomParser() _roomParserFn is NULL\n");
 	}
 }
 
@@ -265,12 +263,29 @@ void Kernel::unpauseEngines() {
 	// TODO: A proper implementation of game unpausing
 }
 
-//--------------------------------------------------------------------------
+/*--------------------------------------------------------------------------*/
 
-Globals::Globals(M4Engine *vm): _vm(vm) {
+Globals::Globals(MadsM4Engine *vm): _vm(vm) {
 }
 
-Globals::~Globals() {
+bool Globals::isInterfaceVisible() {
+	return _m4Vm->scene()->getInterface()->isVisible();
+}
+
+/*--------------------------------------------------------------------------*/
+
+MadsGlobals::MadsGlobals(MadsEngine *vm): Globals(vm) {
+	_vm = vm;
+
+	playerSpriteChanged = false;
+	dialogType = DIALOG_NONE;
+	sceneNumber = -1;
+	for (int i = 0; i < 3; ++i)
+		actionNouns[i] = 0;
+	_difficultyLevel = 0;
+}
+
+MadsGlobals::~MadsGlobals() {
 	uint32 i;
 
 	for (i = 0; i < _madsVocab.size(); i++)
@@ -284,11 +299,7 @@ Globals::~Globals() {
 	_madsMessages.clear();
 }
 
-bool Globals::isInterfaceVisible() {
-	return _vm->_interfaceView->isVisible();
-}
-
-void Globals::loadMadsVocab() {
+void MadsGlobals::loadMadsVocab() {
 	Common::SeekableReadStream *vocabS = _vm->res()->get("vocab.dat");
 	int curPos = 0;
 
@@ -311,7 +322,7 @@ void Globals::loadMadsVocab() {
 	_vm->res()->toss("vocab.dat");
 }
 
-void Globals::loadMadsQuotes() {
+void MadsGlobals::loadQuotes() {
 	Common::SeekableReadStream *quoteS = _vm->res()->get("quotes.dat");
 	int curPos = 0;
 
@@ -334,57 +345,106 @@ void Globals::loadMadsQuotes() {
 	_vm->res()->toss("quotes.dat");
 }
 
-void Globals::loadMadsMessagesInfo() {
+void MadsGlobals::loadMadsMessagesInfo() {
 	Common::SeekableReadStream *messageS = _vm->res()->get("messages.dat");
 
 	int16 count = messageS->readUint16LE();
-	//printf("%i messages\n", count);
+	//debugCN(kDebugScript, "%i messages\n", count);
 
 	for (int i = 0; i < count; i++) {
-		MessageItem *curMessage = new MessageItem();
-		curMessage->id = messageS->readUint32LE();
-		curMessage->offset = messageS->readUint32LE();
-		curMessage->uncompSize = messageS->readUint16LE();
+		MessageItem curMessage;
+		curMessage.id = messageS->readUint32LE();
+		curMessage.offset = messageS->readUint32LE();
+		curMessage.uncompSize = messageS->readUint16LE();
 
 		if (i > 0)
-			_madsMessages[i - 1]->compSize = curMessage->offset - _madsMessages[i - 1]->offset;
+			_madsMessages[i - 1].compSize = curMessage.offset - _madsMessages[i - 1].offset;
 
 		if (i == count - 1)
-			curMessage->compSize = messageS->size() - curMessage->offset;
+			curMessage.compSize = messageS->size() - curMessage.offset;
 
-		//printf("id: %i, offset: %i, uncomp size: %i\n", curMessage->id, curMessage->offset, curMessage->uncompSize);
+		//debugCN(kDebugScript, "id: %i, offset: %i, uncomp size: %i\n", curMessage->id, curMessage->offset, curMessage->uncompSize);
 		_madsMessages.push_back(curMessage);
 	}
 
 	_vm->res()->toss("messages.dat");
 }
 
-char* Globals::loadMessage(uint index) {
+void MadsGlobals::loadMadsObjects() {
+	Common::SeekableReadStream *objList = _vm->res()->get("objects.dat");
+	int numObjects = objList->readUint16LE();
+
+	for (int i = 0; i < numObjects; ++i)
+		_madsObjects.push_back(MadsObjectArray::value_type(new MadsObject(objList)));
+
+	_vm->res()->toss("objects.dat");
+}
+
+int MadsGlobals::messageIndexOf(uint32 messageId) {
+	for (uint i = 0; i < _madsMessages.size(); ++i)
+	{
+		if (_madsMessages[i].id == messageId)
+			return i;
+	}
+	return -1;
+}
+
+const char *MadsGlobals::loadMessage(uint index) {
 	if (index > _madsMessages.size() - 1) {
 		warning("Invalid message index: %i", index);
 		return NULL;
 	}
 
 	FabDecompressor fab;
-	byte *compData = new byte[_madsMessages[index]->compSize];
-	byte *buffer = new byte[_madsMessages[index]->uncompSize];
+	byte *compData = new byte[_madsMessages[index].compSize];
+	byte *buffer = new byte[_madsMessages[index].uncompSize];
 
 	Common::SeekableReadStream *messageS = _vm->res()->get("messages.dat");
-	messageS->seek(_madsMessages[index]->offset, SEEK_SET);
-	messageS->read(compData, _madsMessages[index]->compSize);
-	fab.decompress(compData, _madsMessages[index]->compSize, buffer, _madsMessages[index]->uncompSize);
+	messageS->seek(_madsMessages[index].offset, SEEK_SET);
+	messageS->read(compData, _madsMessages[index].compSize);
+	fab.decompress(compData, _madsMessages[index].compSize, buffer, _madsMessages[index].uncompSize);
 
-	for (int i = 0; i < _madsMessages[index]->uncompSize - 1; i++)
+	for (int i = 0; i < _madsMessages[index].uncompSize - 1; i++)
 		if (buffer[i] == '\0') buffer[i] = '\n';
 
 	_vm->res()->toss("messages.dat");
+	delete[] compData;
 
 	return (char*)buffer;
 }
 
-//--------------------------------------------------------------------------
+/**
+ * Adds the specified scene number to list of scenes previously visited
+ */
+void MadsGlobals::addVisitedScene(int newSceneNumber) {
+	if (!isSceneVisited(newSceneNumber))
+		_visitedScenes.push_back(newSceneNumber);
+}
 
-Player::Player(M4Engine *vm) : _vm(vm) {
+/**
+ * Returns true if the specified scene has been previously visited
+ */
+bool MadsGlobals::isSceneVisited(int checkSceneNumber) {
+	Common::List<int>::iterator i;
+	for (i = _visitedScenes.begin(); i != _visitedScenes.end(); ++i)
+		if (*i == checkSceneNumber)
+			return true;
+	return false;
+}
+
+void MadsGlobals::removeVisitedScene(int oldSceneNumber) {
+	_visitedScenes.remove(oldSceneNumber);
+}
+
+/*--------------------------------------------------------------------------*/
+
+M4Globals::M4Globals(M4Engine *vm): Globals(vm) {
+	_vm = vm;
+}
+
+/*--------------------------------------------------------------------------*/
+
+Player::Player(MadsM4Engine *vm) : _vm(vm) {
 	commandsAllowed = true;
 	needToWalk = false;
 	readyToWalk = false;
@@ -402,7 +462,7 @@ void Player::setCommandsAllowed(bool value) {
 	if (value) {
 		// Player commands are enabled again
 		_vm->_mouse->lockCursor(CURSOR_ARROW);
-		//_vm->_interfaceView->cancelSentence();
+		//_m4Vm->scene()->getInterface()->cancelSentence();
 	} else {
 		// Player commands are disabled, so show hourglass cursor
 		_vm->_mouse->lockCursor(CURSOR_HOURGLASS);
@@ -451,5 +511,35 @@ bool Player::saidAny(const char *word1, const char *word2, const char *word3,
 	return false;
 }
 
+/*--------------------------------------------------------------------------*/
+
+MadsObject::MadsObject(Common::SeekableReadStream *stream) {
+	load(stream);
+}
+
+void MadsObject::load(Common::SeekableReadStream *stream) {
+	// Get the next data block
+	uint8 obj[0x30];
+	stream->read(obj, 0x30);
+
+	// Extract object data fields
+	_descId = READ_LE_UINT16(&obj[0]);
+	_roomNumber = READ_LE_UINT16(&obj[2]);
+	_article = (MADSArticles)obj[4];
+	_vocabCount = obj[5] & 0x7f;
+	// Phantom / Dragon
+	if (_vocabCount > 3)
+		warning("MadsObject::load(), vocab cound > 3 (it's %d)", _vocabCount);
+
+	for (int i = 0; i < _vocabCount; ++i) {
+		_vocabList[i].flags1 = obj[6 + i * 4];
+		_vocabList[i].flags2 = obj[7 + i * 4];
+		_vocabList[i].vocabId = READ_LE_UINT16(&obj[8 + i * 4]);
+	}
+}
+
+void MadsObject::setRoom(int roomNumber) {
+
+}
 
 } // End of namespace M4

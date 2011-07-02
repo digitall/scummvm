@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Main rendering loop - private header
@@ -55,9 +52,9 @@ enum RENDER_DEBUG_FLAGS {
 class Render {
 public:
 	Render(SagaEngine *vm, OSystem *system);
-	~Render(void);
+	~Render();
 	bool initialized();
-	void drawScene(void);
+	void drawScene();
 
 	unsigned int getFlags() const {
 		return _flags;
@@ -99,7 +96,7 @@ public:
 private:
 #ifdef SAGA_DEBUG
 	static void fpsTimerCallback(void *refCon);
-	void fpsTimer(void);
+	void fpsTimer();
 	unsigned int _fps;
 	unsigned int _renderedFrameCount;
 #endif

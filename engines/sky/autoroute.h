@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_AUTOROUTE_H
@@ -38,7 +35,7 @@ class SkyCompact;
 class AutoRoute {
 public:
 	AutoRoute(Grid *pGrid, SkyCompact *compact);
-	~AutoRoute(void);
+	~AutoRoute();
 	uint16 autoRoute(Compact *cpt);
 private:
 	uint16 checkBlock(uint16 *blockPos);

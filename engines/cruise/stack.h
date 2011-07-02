@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_STACK_H
@@ -46,11 +43,11 @@ struct stackElementStruct {
 	} data;
 };
 
-int16 popVar(void);
+int16 popVar();
 void pushVar(int16 var);
 
 void pushPtr(void *ptr);
-void *popPtr(void);
+void *popPtr();
 
 } // End of namespace Cruise
 

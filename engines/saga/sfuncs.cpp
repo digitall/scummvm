@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Scripting module script function component
@@ -226,7 +223,7 @@ void Script::sfMainMode(SCRIPTFUNC_PARAMS) {
 	// exit the game. Therefore, once this opcode is called in the older ITE demos,
 	// exit the game. Known non-interactive demos are GID_ITE_MACDEMO1 and
 	// GID_ITE_WINDEMO1
-	if (_vm->getFeatures() & GF_NON_INTERACTIVE)
+	if (_vm->_script->isNonInteractiveDemo())
 		_vm->quitGame();
 }
 
@@ -327,7 +324,7 @@ void Script::sfScriptDoAction(SCRIPTFUNC_PARAMS) {
 	event.param4 = theObject;	// Object
 	event.param5 = withObject;	// With Object
 	event.param6 = objectId;
-	_vm->_events->queue(&event);
+	_vm->_events->queue(event);
 }
 
 // Script function #8 (0x08) nonblocking
@@ -370,12 +367,15 @@ void Script::sfStopBgdAnim(SCRIPTFUNC_PARAMS) {
 // reenabled.
 // Param1: boolean
 void Script::sfLockUser(SCRIPTFUNC_PARAMS) {
-	if (thread->pop()) {
+	int16 param = thread->pop();
+
+	if (param != 0) {
 		_vm->_interface->deactivate();
 	} else {
 		_vm->_interface->activate();
 	}
 
+	debug(1, "sfLockUser(%d)", param);
 }
 
 // Script function #12 (0x0C)
@@ -779,11 +779,11 @@ void Script::sfSimulSpeech(SCRIPTFUNC_PARAMS) {
 	for (i = 0; i < actorsCount; i++)
 		actorsIds[i] = thread->pop();
 
-	if (thread->_voiceLUT->voices) {
+	if (!thread->_voiceLUT->empty()) {
 		if (_vm->getGameId() == GID_IHNM && stringId >= 338) {
 			sampleResourceId = -1;
 		} else {
-			sampleResourceId = thread->_voiceLUT->voices[stringId];
+			sampleResourceId = (*thread->_voiceLUT)[stringId];
 			if (sampleResourceId <= 0 || sampleResourceId > 4000)
 				sampleResourceId = -1;
 		}
@@ -950,7 +950,7 @@ void Script::sfPlaceActor(SCRIPTFUNC_PARAMS) {
 	int frameOffset = thread->pop();
 	ActorFrameRange *frameRange;
 
-	debug(1, "sfPlaceActor(id = 0x%x, x=%d, y=%d, dir=%d, frameType=%d, frameOffset=%d)", actorId, actor->_location.x,
+	debug(1, "sfPlaceActor(id = 0x%X, x=%d, y=%d, dir=%d, frameType=%d, frameOffset=%d)", actorId, actor->_location.x,
 		  actor->_location.y, actor->_facingDirection, frameType, frameOffset);
 
 	if (frameType >= 0) {
@@ -1039,8 +1039,8 @@ void Script::sfSimulSpeech2(SCRIPTFUNC_PARAMS) {
 	for (i = 0; i < actorsCount; i++)
 		actorsIds[i] = thread->pop();
 
-	if (thread->_voiceLUT->voices) {
-		sampleResourceId = thread->_voiceLUT->voices[stringId];
+	if (!thread->_voiceLUT->empty()) {
+		sampleResourceId = (*thread->_voiceLUT)[stringId];
 		if (sampleResourceId <= 0 || sampleResourceId > 4000)
 			sampleResourceId = -1;
 	}
@@ -1057,7 +1057,7 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	static PalEntry cur_pal[PAL_ENTRIES];
 	PalEntry *pal;
 	Event event;
-	Event *q_event;
+	EventColumns *eventColumns;
 
 	thread->wait(kWaitTypePlacard);
 
@@ -1067,7 +1067,7 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	event.type = kEvTOneshot;
 	event.code = kCursorEvent;
 	event.op = kEventHide;
-	q_event = _vm->_events->queue(&event);
+	eventColumns = _vm->_events->queue(event);
 
 	_vm->_interface->setFadeMode(kFadeOut);
 
@@ -1079,7 +1079,7 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	event.time = 0;
 	event.duration = kNormalFadeDuration;
 	event.data = cur_pal;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 	// set fade mode
 	event.type = kEvTImmediate;
@@ -1088,12 +1088,12 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	event.param = kNoFade;
 	event.time = 0;
 	event.duration = 0;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 	event.type = kEvTOneshot;
 	event.code = kInterfaceEvent;
 	event.op = kEventClearStatus;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 	event.type = kEvTOneshot;
 	event.code = kGraphicsEvent;
@@ -1103,7 +1103,7 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	event.param3 = _vm->_scene->getHeight();
 	event.param4 = 0;
 	event.param5 = _vm->getDisplayInfo().width;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 	// Put the text in the center of the viewport, assuming it will fit on
 	// one line. If we cannot make that assumption we'll need to extend
@@ -1127,7 +1127,7 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	event.code = kTextEvent;
 	event.op = kEventDisplay;
 	event.data = _placardTextEntry;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 	_vm->_scene->getBGPal(pal);
 	event.type = kEvTImmediate;
@@ -1136,13 +1136,13 @@ void Script::sfPlacard(SCRIPTFUNC_PARAMS) {
 	event.time = 0;
 	event.duration = kNormalFadeDuration;
 	event.data = pal;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 	event.type = kEvTOneshot;
 	event.code = kScriptEvent;
 	event.op = kEventThreadWake;
 	event.param = kWaitTypePlacard;
-	q_event = _vm->_events->chain(q_event, &event);
+	_vm->_events->chain(eventColumns, event);
 
 }
 
@@ -1151,18 +1151,6 @@ void Script::sfPlacardOff(SCRIPTFUNC_PARAMS) {
 	thread->wait(kWaitTypePlacard);
 
 	_vm->_scene->clearPlacard();
-}
-
-void Script::sfPsychicProfile(SCRIPTFUNC_PARAMS) {
-	thread->wait(kWaitTypePlacard);
-
-	_vm->_scene->showPsychicProfile(thread->_strings->getString(thread->pop()));
-}
-
-void Script::sfPsychicProfileOff(SCRIPTFUNC_PARAMS) {
-	// This is called a while after the psychic profile is
-	// opened, to close it automatically
-	_vm->_scene->clearPsychicProfile();
 }
 
 // Script function #50 (0x32)
@@ -1358,8 +1346,8 @@ void Script::sfPlayMusic(SCRIPTFUNC_PARAMS) {
 			return;
 		}
 
-		if (param1 >= _vm->_music->_songTableLen) {
-			warning("sfPlayMusic: Wrong song number (%d > %d)", param1, _vm->_music->_songTableLen - 1);
+		if (uint(param1) >= _vm->_music->_songTable.size()) {
+			warning("sfPlayMusic: Wrong song number (%d > %d)", param1, _vm->_music->_songTable.size() - 1);
 		} else {
 			_vm->_music->setVolume(_vm->_musicVolume, 1);
 			_vm->_music->play(_vm->_music->_songTable[param1], param2 ? MUSIC_LOOP : MUSIC_NORMAL);
@@ -1449,7 +1437,7 @@ void Script::sfPlaySound(SCRIPTFUNC_PARAMS) {
 	int16 param = thread->pop();
 	int res;
 
-	if (param >= 0 && param < _vm->_sndRes->_fxTableLen) {
+	if (uint(param) < _vm->_sndRes->_fxTable.size()) {
 		res = _vm->_sndRes->_fxTable[param].res;
 		if (_vm->getGameId() == GID_ITE && !(_vm->getFeatures() & GF_ITE_FLOPPY))
 			res -= 14;
@@ -1464,7 +1452,7 @@ void Script::sfPlayLoopedSound(SCRIPTFUNC_PARAMS) {
 	int16 param = thread->pop();
 	int res;
 
-	if (param >= 0 && param < _vm->_sndRes->_fxTableLen) {
+	if (uint(param) < _vm->_sndRes->_fxTable.size()) {
 		res = _vm->_sndRes->_fxTable[param].res;
 		if (_vm->getGameId() == GID_ITE && !(_vm->getFeatures() & GF_ITE_FLOPPY))
 			res -= 14;
@@ -1473,6 +1461,8 @@ void Script::sfPlayLoopedSound(SCRIPTFUNC_PARAMS) {
 	} else {
 		_vm->_sound->stopSound();
 	}
+
+	debug(1, "sfPlayLoopedSound(%d)", param);
 }
 
 // Script function #72 (0x48)
@@ -1534,7 +1524,7 @@ void Script::finishDialog(int strID, int replyID, int flags, int bitOffset) {
 			const char *str = _conversingThread->_strings->getString(strID);
 			if (*str != '[') {
 				int sampleResourceId = -1;
-				sampleResourceId = _conversingThread->_voiceLUT->voices[strID];
+				sampleResourceId = (*_conversingThread->_voiceLUT)[strID];
 				if (sampleResourceId < 0 || sampleResourceId > 4000)
 					sampleResourceId = -1;
 
@@ -1563,18 +1553,15 @@ void Script::sfNull(SCRIPTFUNC_PARAMS) {
 }
 
 void Script::sfStub(const char *name, ScriptThread *thread, int nArgs) {
-	char buf[256], buf1[100];
-
-	snprintf(buf, 256, "STUB: %s(", name);
+	debugN(0, "STUB: %s(", name);
 
 	for (int i = 0; i < nArgs; i++) {
-		snprintf(buf1, 100, "%d", thread->pop());
-		strncat(buf, buf1, sizeof(buf) - strlen(buf) - 1);
+		debugN(0, "%d", thread->pop());
 		if (i + 1 < nArgs)
-			strncat(buf, ", ", sizeof(buf) - strlen(buf) - 1);
+			debugN(0, ", ");
 	}
 
-	debug(0, "%s)", buf);
+	debug(0, ")");
 }
 
 } // End of namespace Saga

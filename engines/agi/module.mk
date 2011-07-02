@@ -1,6 +1,6 @@
 MODULE := engines/agi
 
-MODULE_OBJS = \
+MODULE_OBJS := \
 	agi.o \
 	checks.o \
 	console.o \
@@ -30,6 +30,11 @@ MODULE_OBJS = \
 	predictive.o \
 	saveload.o \
 	sound.o \
+	sound_2gs.o \
+	sound_coco3.o \
+	sound_midi.o \
+	sound_pcjr.o \
+	sound_sarien.o \
 	sprite.o \
 	text.o \
 	view.o \

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_ROUTER_H
@@ -118,14 +115,10 @@ private:
 
 	int32 megaId;
 
-	/*RouteData _route[O_ROUTE_SIZE];
-	//int32 _routeLength;
-	PathData  _smoothPath[O_ROUTE_SIZE];
-	PathData  _modularPath[O_ROUTE_SIZE];*/
-	RouteData			_route[O_ROUTE_SIZE];
-	PathData			_smoothPath[O_ROUTE_SIZE];
-	PathData			_modularPath[O_ROUTE_SIZE];
-	int32				_routeLength;
+	RouteData	_route[O_ROUTE_SIZE];
+	PathData	_smoothPath[O_ROUTE_SIZE];
+	PathData	_modularPath[O_ROUTE_SIZE];
+	int32		_routeLength;
 
 	int32		_framesPerStep, _framesPerChar;
 	uint8		_nWalkFrames, _nTurnFrames;
@@ -139,9 +132,10 @@ private:
 	int32		walkFramesLeft, walkFramesRight; // left/right walking turn
 	int32		slowInFrames, slowOutFrames;
 
+	bool		_slidyWalkAnimatorState;
 
 	int32 LoadWalkResources(Object *mega, int32 x, int32 y, int32 dir);
-	int32 getRoute(void);
+	int32 getRoute();
 	int32 checkTarget(int32 x, int32 y);
 
 	bool scan(int32 level);
@@ -157,7 +151,7 @@ private:
 	void slidyWalkAnimator(WalkData *walkAnim);
 
 	int32 smoothestPath();
-	int32 smoothCheck(int32 best, int32 p, int32 dirS, int32 dirD);
+	void smoothCheck(int32 &steps, int32 best, int32 p, int32 dirS, int32 dirD);
 
 	void solidPath();
 	int32 solidWalkAnimator(WalkData *walkAnim);

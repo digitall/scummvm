@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_GRAPHICS_H
 #define GROOVIE_GRAPHICS_H
+
+#include "graphics/surface.h"
 
 namespace Groovie {
 
@@ -56,7 +55,7 @@ private:
 	// Palette fading
 	void applyFading(int step);
 	int _fading;
-	byte _paletteFull[256 * 4];
+	byte _paletteFull[256 * 3];
 	uint32 _fadeStartTime;
 };
 

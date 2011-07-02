@@ -1,4 +1,8 @@
-/* ScummVM - Scumm Interpreter
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_FIGHT_H
@@ -25,8 +26,10 @@
 #include "lure/luredefs.h"
 #include "lure/hotspots.h"
 #include "lure/palette.h"
+
 #include "common/singleton.h"
 #include "common/endian.h"
+#include "common/random.h"
 
 namespace Lure {
 
@@ -66,7 +69,7 @@ enum KeyStatus {KS_UP, KS_KEYDOWN_1, KS_KEYDOWN_2};
 class FightsManager {
 private:
 	MemoryBlock *_fightData;
-	Common::RandomSource _rnd;
+	Common::RandomSource &_rnd;
 	uint8 _mouseFlags;
 	KeyStatus _keyDown;
 	FighterRecord _fighterList[3];

@@ -18,13 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/endian.h"
-#include "common/savefile.h"
 
 #include "gob/gob.h"
 #include "gob/save/saveload.h"
@@ -114,6 +108,30 @@ bool SaveLoad::save(const char *fileName, int16 dataVar, int32 size, int32 offse
 	}
 
 	debugC(3, kDebugSaveLoad, "Successfully saved game");
+	return true;
+}
+
+bool SaveLoad::deleteFile(const char *fileName) {
+	debugC(3, kDebugSaveLoad, "Requested deletion save file \"%s\"", fileName);
+
+	SaveHandler *handler = getHandler(fileName);
+
+	if (!handler) {
+		warning("No save handler for \"%s\"", fileName);
+		return false;
+	}
+
+	if (!handler->deleteFile()) {
+		const char *desc = getDescription(fileName);
+
+		if (!desc)
+			desc = "Unknown";
+
+		warning("Could not delete %s (\"%s\")", desc, fileName);
+		return false;
+	}
+
+	debugC(3, kDebugSaveLoad, "Successfully deleted file");
 	return true;
 }
 

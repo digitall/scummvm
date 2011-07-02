@@ -18,21 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/util.h"
 #include "common/savefile.h"
-
-#include <stdio.h>
-#include <string.h>
+#include "common/str.h"
 
 namespace Common {
 
-bool SaveFileManager::renameSavefile(const String &oldFilename, const String &newFilename) {
-
+bool SaveFileManager::copySavefile(const String &oldFilename, const String &newFilename) {
 	InSaveFile *inFile = 0;
 	OutSaveFile *outFile = 0;
 	uint32 size = 0;
@@ -57,9 +51,8 @@ bool SaveFileManager::renameSavefile(const String &oldFilename, const String &ne
 			if (!error) {
 				outFile->write(buffer, size);
 				outFile->finalize();
-				if (!outFile->err()) {
-					success = removeSavefile(oldFilename);
-				}
+
+				success = !outFile->err();
 			}
 		}
 
@@ -69,6 +62,13 @@ bool SaveFileManager::renameSavefile(const String &oldFilename, const String &ne
 	}
 
 	return success;
+}
+
+bool SaveFileManager::renameSavefile(const String &oldFilename, const String &newFilename) {
+	if (!copySavefile(oldFilename, newFilename))
+		return false;
+
+	return removeSavefile(oldFilename);
 }
 
 String SaveFileManager::popErrorDesc() {

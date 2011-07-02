@@ -18,17 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
 #include "scumm/object.h"
+#include "scumm/resource.h"
 #include "scumm/scumm_v3.h"
 #include "scumm/scumm_v5.h"
 #include "scumm/sound.h"
+#include "scumm/player_towns.h"
 #include "scumm/util.h"
 #include "scumm/verbs.h"
 
@@ -377,6 +376,25 @@ int ScummEngine_v5::getVarOrDirectWord(byte mask) {
 	return fetchScriptWordSigned();
 }
 
+void ScummEngine_v5::getResultPos() {
+	int a;
+
+	_resultVarNumber = fetchScriptWord();
+	if (_resultVarNumber & 0x2000) {
+		a = fetchScriptWord();
+		if (a & 0x2000) {
+			_resultVarNumber += readVar(a & ~0x2000);
+		} else {
+			_resultVarNumber += a & 0xFFF;
+		}
+		_resultVarNumber &= ~0x2000;
+	}
+}
+
+void ScummEngine_v5::setResult(int value) {
+	writeVar(_resultVarNumber, value);
+}
+
 void ScummEngine_v5::jumpRelative(bool cond) {
 	// We explicitly call ScummEngine::fetchScriptWord()
 	// to make this method work also in v0, which overloads
@@ -510,11 +528,20 @@ void ScummEngine_v5::o5_actorOps() {
 
 void ScummEngine_v5::o5_setClass() {
 	int obj = getVarOrDirectWord(PARAM_1);
-	int newClass;
+	int cls;
 
 	while ((_opcode = fetchScriptByte()) != 0xFF) {
-		newClass = getVarOrDirectWord(PARAM_1);
-		if (newClass == 0) {
+		cls = getVarOrDirectWord(PARAM_1);
+
+		// WORKAROUND bug #1668393: Due to a script bug, the wrong opcode is
+		// used to test and set the state of various objects (e.g. the inside
+		// door (object 465) of the of the Hostel on Mars), when opening the
+		// Hostel door from the outside.
+		if (_game.id == GID_ZAK && _game.platform == Common::kPlatformFMTowns &&
+		    vm.slot[_currentScript].number == 205 && _currentRoom == 185 &&
+		    (cls == 0 || cls == 1)) {
+			putState(obj, cls);
+		} else if (cls == 0) {
 			// Class '0' means: clean all class data
 			_classData[obj] = 0;
 			if ((_game.features & GF_SMALL_HEADER) && obj <= _numActors) {
@@ -523,7 +550,7 @@ void ScummEngine_v5::o5_setClass() {
 				a->_forceClip = 0;
 			}
 		} else
-			putClass(obj, newClass, (newClass & 0x80) ? true : false);
+			putClass(obj, cls, (cls & 0x80) ? true : false);
 	}
 }
 
@@ -980,17 +1007,6 @@ void ScummEngine_v5::o5_getActorRoom() {
 void ScummEngine_v5::o5_getActorScale() {
 	Actor *a;
 
-	// INDY3 uses this opcode for waitForActor
-	if (_game.id == GID_INDY3) {
-		const byte *oldaddr = _scriptPointer - 1;
-		a = derefActor(getVarOrDirectByte(PARAM_1), "o5_getActorScale (wait)");
-		if (a->_moving) {
-			_scriptPointer = oldaddr;
-			o5_breakHere();
-		}
-		return;
-	}
-
 	getResultPos();
 	int act = getVarOrDirectByte(PARAM_1);
 	a = derefActor(act, "o5_getActorScale");
@@ -1090,7 +1106,7 @@ void ScummEngine_v5::o5_getDist() {
 		r = 60;
 
 	// WORKAROUND bug #795937
-	if ((_game.id == GID_MONKEY_EGA || _game.id == GID_PASS) && o1 == 1 && o2 == 307  && vm.slot[_currentScript].number == 205 && r == 2)
+	if ((_game.id == GID_MONKEY_EGA || _game.id == GID_PASS) && o1 == 1 && o2 == 307 && vm.slot[_currentScript].number == 205 && r == 2)
 		r = 3;
 
 	setResult(r);
@@ -1139,9 +1155,10 @@ void ScummEngine_v5::o5_ifClassOfIs() {
 	while ((_opcode = fetchScriptByte()) != 0xFF) {
 		cls = getVarOrDirectWord(PARAM_1);
 
-		// WORKAROUND bug #1668393: Due to a script bug, the wrong opcode is used
-		// to check the state of the inside door (object 465) of the Hostel on Mars,
-		// when opening the Hostel door from the outside.
+		// WORKAROUND bug #1668393: Due to a script bug, the wrong opcode is
+		// used to test and set the state of various objects (e.g. the inside
+		// door (object 465) of the of the Hostel on Mars), when opening the
+		// Hostel door from the outside.
 		if (_game.id == GID_ZAK && _game.platform == Common::kPlatformFMTowns &&
 		    vm.slot[_currentScript].number == 205 && _currentRoom == 185 &&
 		    obj == 465 && cls == 0) {
@@ -1473,7 +1490,7 @@ void ScummEngine_v5::o5_systemOps() {
 }
 
 void ScummEngine_v5::o5_resourceRoutines() {
-	const ResTypes resType[4] = { rtScript, rtSound, rtCostume, rtRoom };
+	const ResType resType[4] = { rtScript, rtSound, rtCostume, rtRoom };
 	int resid = 0;
 	int foo, bar;
 
@@ -1580,28 +1597,25 @@ void ScummEngine_v5::o5_resourceRoutines() {
 	// TODO: For the following see also Hibarnatus' information on bug #805691.
 	case 32:
 		// TODO (apparently never used in FM-TOWNS)
-		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op,  vm.slot[_currentScript].number);
+		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op, vm.slot[_currentScript].number);
 		break;
 	case 33:
 		// TODO (apparently never used in FM-TOWNS)
-		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op,  vm.slot[_currentScript].number);
+		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op, vm.slot[_currentScript].number);
 		break;
 	case 35:
-		// TODO: Might be used to set CD volume in FM-TOWNS Loom
-		foo = getVarOrDirectByte(PARAM_2);
-		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op,  vm.slot[_currentScript].number);
+		if (_townsPlayer)
+			_townsPlayer->setVolumeCD(getVarOrDirectByte(PARAM_2), resid);
 		break;
 	case 36:
-		// TODO: Sets the loudness of a sound resource. Used in Indy3 and Zak.
 		foo = getVarOrDirectByte(PARAM_2);
 		bar = fetchScriptByte();
-		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op,  vm.slot[_currentScript].number);
+		if (_townsPlayer)
+			_townsPlayer->setSoundVolume(resid, foo, bar);
 		break;
 	case 37:
-		// TODO: Sets the pitch of a sound resource (pitch = foo - center semitones.
-		// "center" is at 0x32 in the sfx resource (always 0x3C in zak256, but sometimes different in Indy3).
-		foo = getVarOrDirectByte(PARAM_2);
-		debug(0, "o5_resourceRoutines %d not yet handled (script %d)", op,  vm.slot[_currentScript].number);
+		if (_townsPlayer)
+			_townsPlayer->setSoundNote(resid, getVarOrDirectByte(PARAM_2));
 		break;
 
 	default:
@@ -1611,7 +1625,7 @@ void ScummEngine_v5::o5_resourceRoutines() {
 
 void ScummEngine_v5::o5_roomOps() {
 	int a = 0, b = 0, c, d, e;
-	const bool paramsBeforeOpcode = (_game.version == 3 && _game.platform != Common::kPlatformPCEngine);
+	const bool paramsBeforeOpcode = ((_game.version == 3) && (_game.platform != Common::kPlatformPCEngine));
 
 	if (paramsBeforeOpcode) {
 		a = getVarOrDirectWord(PARAM_1);
@@ -1706,26 +1720,58 @@ void ScummEngine_v5::o5_roomOps() {
 	case 10:	// SO_ROOM_FADE
 		a = getVarOrDirectWord(PARAM_1);
 		if (a) {
+	#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
 			if (_game.platform == Common::kPlatformFMTowns) {
 				switch (a) {
-				case 8: // compose kMainVirtScreen over a screen buffer
-				case 9: // call 0x110:0x20 _ax=0x601 _edx=2
-				case 10: // call 0x110:0x20 _ax=0x601 _edx=3
-				case 11: // clear screen 0x1C:0x45000 sizeof(640 * 320)
-				case 12: // call 0x110:0x20 _ax=0x601 _edx=0
-				case 13: // call 0x110:0x20 _ax=0x601 _edx=1
-				case 16: // enable clearing of a screen buffer in drawBitmap()
-				case 17: // disable clearing of a screen buffer in drawBitmap()
-				case 18: // clear a screen buffer
+				case 8:
+					towns_drawStripToScreen(&_virtscr[kMainVirtScreen], 0, _virtscr[kMainVirtScreen].topline, 0, 0, _virtscr[kMainVirtScreen].w, _virtscr[kMainVirtScreen].topline + _virtscr[kMainVirtScreen].h);
+					_townsScreen->update();
+					return;
+				case 9:
+					_townsActiveLayerFlags = 2;
+					_townsScreen->toggleLayers(_townsActiveLayerFlags);
+					return;
+				case 10:
+					_townsActiveLayerFlags = 3;
+					_townsScreen->toggleLayers(_townsActiveLayerFlags);
+					return;
+				case 11:
+					_townsScreen->clearLayer(1);
+					return;
+				case 12:
+					_townsActiveLayerFlags = 0;
+					_townsScreen->toggleLayers(_townsActiveLayerFlags);
+					return;
+				case 13:
+					_townsActiveLayerFlags = 1;
+					_townsScreen->toggleLayers(_townsActiveLayerFlags);
+					return;
+				case 16: // enable clearing of layer 2 buffer in drawBitmap()
+					_townsPaletteFlags |= 2;
+					return;
+				case 17: // disable clearing of layer 2 buffer in drawBitmap()
+					_townsPaletteFlags &= ~2;
+					return;
+				case 18: // clear kMainVirtScreen layer 2 buffer
+					_textSurface.fillRect(Common::Rect(0, _virtscr[kMainVirtScreen].topline * _textSurfaceMultiplier, _textSurface.pitch, (_virtscr[kMainVirtScreen].topline + _virtscr[kMainVirtScreen].h) * _textSurfaceMultiplier), 0);
 				case 19: // enable palette operations (palManipulate(), cyclePalette() etc.)
+					_townsPaletteFlags |= 1;
+					return;
 				case 20: // disable palette operations
-				case 21: // disable clearing of screen 0x1C:0x5000 sizeof(640 * 320) in initScreens()
-				case 22: // enable clearing of screen 0x1C:0x5000 sizeof(640 * 320) in initScreens()
+					_townsPaletteFlags &= ~1;
+					return;
+				case 21: // disable clearing of layer 0 in initScreens()
+					_townsClearLayerFlag = 1;
+					return;
+				case 22: // enable clearing of layer 0 in initScreens()
+					_townsClearLayerFlag = 0;
+					return;
 				case 30:
-					debug(0, "o5_roomOps: unhandled FM-TOWNS fadeEffect %d", a);
+					_townsOverrideShadowColor = 3;
 					return;
 				}
 			}
+#endif // DISABLE_TOWNS_DUAL_LAYER_MODE
 			_switchRoomEffect = (byte)(a & 0xFF);
 			_switchRoomEffect2 = (byte)(a >> 8);
 		} else {
@@ -1753,6 +1799,12 @@ void ScummEngine_v5::o5_roomOps() {
 
 	case 13:	// SO_SAVE_STRING
 		{
+			// This subopcode is used in Indy 4 to save the IQ points data.
+			// No other game uses it. We use this to replace the given filename by
+			// one based on the targetname ("TARGET.iq").
+			// This way, the iq data of each Indy 4 variant a user might have stays
+			// separate. Moreover, the filename now clearly reflects to which target
+			// it belongs (as it should).
 			Common::String filename;
 			char chr;
 
@@ -1760,7 +1812,7 @@ void ScummEngine_v5::o5_roomOps() {
 			while ((chr = fetchScriptByte()))
 				filename += chr;
 
-			if (filename.hasPrefix("iq-") || filename.hasPrefix("IQ-") || filename.hasSuffix("-iq") || filename.hasSuffix("-IQ")) {
+			if (_game.id == GID_INDY4) {
 				filename = _targetName + ".iq";
 			} else {
 				error("SO_SAVE_STRING: Unsupported filename %s", filename.c_str());
@@ -1778,6 +1830,8 @@ void ScummEngine_v5::o5_roomOps() {
 		}
 	case 14:	// SO_LOAD_STRING
 		{
+			// This subopcode is used in Indy 4 to load the IQ points data.
+			// See SO_SAVE_STRING for details
 			Common::String filename;
 			char chr;
 
@@ -1785,7 +1839,7 @@ void ScummEngine_v5::o5_roomOps() {
 			while ((chr = fetchScriptByte()))
 				filename += chr;
 
-			if (filename.hasPrefix("iq-") || filename.hasPrefix("IQ-") || filename.hasSuffix("-iq") || filename.hasSuffix("-IQ")) {
+			if (_game.id == GID_INDY4) {
 				filename = _targetName + ".iq";
 			} else {
 				error("SO_LOAD_STRING: Unsupported filename %s", filename.c_str());
@@ -1794,17 +1848,12 @@ void ScummEngine_v5::o5_roomOps() {
 			Common::InSaveFile *file = _saveFileMan->openForLoading(filename);
 			if (file != NULL) {
 				byte *ptr;
-				int len = 256, cnt = 0;
-				ptr = (byte *)malloc(len);
-				while (ptr) {
-					int r = file->read(ptr + cnt, len - cnt);
-					cnt += r;
-					if (cnt < len)
-						break;
-					len *= 2;
-					ptr = (byte *)realloc(ptr, len);
-				}
-				ptr[cnt] = '\0';
+				const int len = file->size();
+				ptr = (byte *)malloc(len + 1);
+				assert(ptr);
+				int r = file->read(ptr, len);
+				assert(r == len);
+				ptr[len] = '\0';
 				loadPtrToResource(rtString, a, ptr);
 				free(ptr);
 				delete file;
@@ -1964,7 +2013,7 @@ void ScummEngine_v5::o5_startMusic() {
 			result = _sound->getCurrentCDSound();
 			break;
 		case 0xFF:
-			// TODO: Might return current CD volume in FM-TOWNS Loom. See also bug #805691.
+			result = _townsPlayer->getCurrentCdaVolume();
 			break;
 		default:
 			// TODO: return track length in seconds. We'll have to extend Sound and OSystem for this.
@@ -2017,19 +2066,6 @@ void ScummEngine_v5::o5_isSoundRunning() {
 
 void ScummEngine_v5::o5_soundKludge() {
 	int items[16];
-
-	if (_game.features & GF_SMALL_HEADER) {	// Is WaitForSentence in SCUMM V3
-		if (_sentenceNum) {
-			if (_sentence[_sentenceNum - 1].freezeCount && !isScriptInUse(VAR(VAR_SENTENCE_SCRIPT)))
-				return;
-		} else if (!isScriptInUse(VAR(VAR_SENTENCE_SCRIPT)))
-			return;
-
-		_scriptPointer--;
-		o5_breakHere();
-		return;
-	}
-
 	int num = getWordVararg(items);
 	_sound->soundKludge(items, num);
 }
@@ -2123,6 +2159,7 @@ void ScummEngine_v5::o5_stringOps() {
 	case 2:											/* copystring */
 		a = getVarOrDirectByte(PARAM_1);
 		b = getVarOrDirectByte(PARAM_2);
+		assert(a != b);
 		_res->nukeResource(rtString, a);
 		ptr = getResourceAddress(rtString, b);
 		if (ptr)
@@ -2279,6 +2316,10 @@ void ScummEngine_v5::o5_verbOps() {
 			break;
 		case 9:		// SO_VERB_NEW
 			slot = getVerbSlot(verb, 0);
+
+			if (_game.platform == Common::kPlatformFMTowns && _game.version == 3 && slot)
+				continue;
+
 			if (slot == 0) {
 				for (slot = 1; slot < _numVerbs; slot++) {
 					if (_verbs[slot].verbid == 0)
@@ -2455,6 +2496,10 @@ void ScummEngine_v5::o5_walkActorToActor() {
 		y = abr.y;
 	}
 	a->startWalkActor(x, y, -1);
+
+	// WORKAROUND: See bug #2971126 for details on why this is here.
+	if (_game.version == 0)
+		o5_breakHere();
 }
 
 void ScummEngine_v5::o5_walkActorToObject() {
@@ -2582,6 +2627,17 @@ void ScummEngine_v5::decodeParseString() {
 					else
 						strcpy((char *)tmpBuf+16, "^19^");
 					printString(textSlot, tmpBuf);
+				} else if (_game.id == GID_MONKEY_EGA && _roomResource == 30 && vm.slot[_currentScript].number == 411 &&
+							strstr((const char *)_scriptPointer, "NCREDIT-NOTE-AMOUNT")) {
+					// WORKAROUND for bug #3003643 (MI1EGA German: Credit text incorrect)
+					// The script contains buggy text.
+					const char *tmp = strstr((const char *)_scriptPointer, "NCREDIT-NOTE-AMOUNT");
+					char tmpBuf[256];
+					const int diff = tmp - (const char *)_scriptPointer;
+					memcpy(tmpBuf, _scriptPointer, diff);
+					strcpy(tmpBuf + diff, "5000");
+					strcpy(tmpBuf + diff + 4, tmp + sizeof("NCREDIT-NOTE-AMOUNT") - 1);
+					printString(textSlot, (byte *)tmpBuf);
 				} else {
 					printString(textSlot, _scriptPointer);
 				}
@@ -2590,7 +2646,7 @@ void ScummEngine_v5::decodeParseString() {
 
 
 			// In SCUMM V1-V3, there were no 'default' values for the text slot
-			// values. Hence to achieve correct behaviour, we have to keep the
+			// values. Hence to achieve correct behavior, we have to keep the
 			// 'default' values in sync with the active values.
 			//
 			// Note: This is needed for Indy3 (Grail Diary). It's also needed

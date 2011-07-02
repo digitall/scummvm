@@ -22,21 +22,20 @@
 #ifndef _WII_OSYSTEM_H_
 #define _WII_OSYSTEM_H_
 
+#include <gctypes.h>
+#include <gccore.h>
+
+#include <gxflux/gfx.h>
+
 #include "base/main.h"
 #include "common/fs.h"
 #include "common/rect.h"
 #include "common/events.h"
-
 #include "backends/base-backend.h"
-#include "backends/saves/default/default-saves.h"
-#include "backends/timer/default/default-timer.h"
 #include "graphics/colormasks.h"
+#include "graphics/palette.h"
 #include "graphics/surface.h"
-#include "sound/mixer_intern.h"
-
-#include <gctypes.h>
-#include <gccore.h>
-#include <ogcsys.h>
+#include "audio/mixer_intern.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,46 +52,70 @@ extern void wii_memstats(void);
 }
 #endif
 
-class OSystem_Wii : public BaseBackend {
+class OSystem_Wii : public EventsBaseBackend, public PaletteManager {
 private:
 	s64 _startup_time;
 
-	u16 *_palette;
-	u16 *_cursorPalette;
+	int _cursorScale;
 	bool _cursorPaletteDisabled;
+	u16 *_cursorPalette;
+	bool _cursorPaletteDirty;
 
+	bool _gameRunning;
 	u16 _gameWidth, _gameHeight;
 	u8 *_gamePixels;
 	Graphics::Surface _surface;
+	gfx_screen_coords_t _coordsGame;
+	gfx_tex_t _texGame;
+	bool _gameDirty;
 
 	bool _overlayVisible;
 	u16 _overlayWidth, _overlayHeight;
 	u32 _overlaySize;
 	OverlayColor *_overlayPixels;
+	gfx_screen_coords_t _coordsOverlay;
+	gfx_tex_t _texOverlay;
+	bool _overlayDirty;
 
 	u32 _lastScreenUpdate;
-	u16 *_texture;
 	u16 _currentWidth, _currentHeight;
+	f32 _currentXScale, _currentYScale;
 
-	s32 _activeGraphicsMode;
+	s32 _configGraphicsMode;
+	s32 _actualGraphicsMode;
+	bool _bilinearFilter;
+#ifdef USE_RGB_COLOR
+	const Graphics::PixelFormat _pfRGB565;
+	const Graphics::PixelFormat _pfRGB3444;
+	Graphics::PixelFormat _pfGame;
+	Graphics::PixelFormat _pfGameTexture;
+	Graphics::PixelFormat _pfCursor;
+#endif
 
+	bool _consoleVisible;
+	bool _optionsDlgActive;
 	bool _fullscreen;
+	bool _arCorrection;
 
 	bool _mouseVisible;
 	s32 _mouseX, _mouseY;
-	u32 _mouseWidth, _mouseHeight;
 	s32 _mouseHotspotX, _mouseHotspotY;
-	u8 _mouseKeyColor;
-	u8 *_mouseCursor;
+	u16 _mouseKeyColor;
+	gfx_tex_t _texMouse;
 
 	bool _kbd_active;
 
 	bool _event_quit;
 
 	u32 _lastPadCheck;
+	u8 _padSensitivity;
+	u8 _padAcceleration;
 
 	void initGfx();
 	void deinitGfx();
+	void updateScreenResolution();
+	void switchVideoMode(int mode);
+	bool needsScreenUpdate();
 
 	void initSfx();
 	void deinitSfx();
@@ -102,16 +125,25 @@ private:
 	void updateEventScreenResolution();
 	bool pollKeyboard(Common::Event &event);
 
+	void showOptionsDialog();
+
 protected:
-	Common::SaveFileManager *_savefile;
 	Audio::MixerImpl *_mixer;
-	DefaultTimerManager *_timer;
 
 public:
+	enum {
+		gmStandard = 0,
+		gmStandardFiltered,
+		gmDoubleStrike,
+		gmDoubleStrikeFiltered
+	};
+
 	OSystem_Wii();
 	virtual ~OSystem_Wii();
 
 	virtual void initBackend();
+	virtual void engineInit();
+	virtual void engineDone();
 
 	virtual bool hasFeature(Feature f);
 	virtual void setFeatureState(Feature f, bool enable);
@@ -119,14 +151,22 @@ public:
 	virtual const GraphicsMode *getSupportedGraphicsModes() const;
 	virtual int getDefaultGraphicsMode() const;
 	virtual bool setGraphicsMode(int mode);
+#ifdef USE_RGB_COLOR
+	virtual Graphics::PixelFormat getScreenFormat() const;
+	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const;
+#endif
 	virtual int getGraphicsMode() const;
-	virtual void initSize(uint width, uint height);
+	virtual void initSize(uint width, uint height,
+							const Graphics::PixelFormat *format);
 	virtual int16 getWidth();
 	virtual int16 getHeight();
+
+	virtual PaletteManager *getPaletteManager() { return this; }
+protected:
 	virtual void setPalette(const byte *colors, uint start, uint num);
 	virtual void grabPalette(byte *colors, uint start, uint num);
+public:
 	virtual void setCursorPalette(const byte *colors, uint start, uint num);
-	virtual void disableCursorPalette(bool disable);
 	virtual void copyRectToScreen(const byte *buf, int pitch, int x, int y,
 									int w, int h);
 	virtual void updateScreen();
@@ -142,14 +182,15 @@ public:
 									int x, int y, int w, int h);
 	virtual int16 getOverlayWidth();
 	virtual int16 getOverlayHeight();
-	virtual Graphics::PixelFormat getOverlayFormat() const { return Graphics::createPixelFormat<565>(); }
+	virtual Graphics::PixelFormat getOverlayFormat() const;
 
 	virtual bool showMouse(bool visible);
 
 	virtual void warpMouse(int x, int y);
 	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspotX,
-								int hotspotY, byte keycolor = 255,
-								int cursorTargetScale = 1);
+								int hotspotY, uint32 keycolor,
+								int cursorTargetScale,
+								const Graphics::PixelFormat *format);
 
 	virtual bool pollEvent(Common::Event &event);
 	virtual uint32 getMillis();
@@ -166,14 +207,15 @@ public:
 
 	virtual void setWindowCaption(const char *caption);
 
-	virtual Common::SaveFileManager *getSavefileManager();
 	virtual Audio::Mixer *getMixer();
-	virtual Common::TimerManager *getTimerManager();
 	virtual FilesystemFactory *getFilesystemFactory();
-	virtual void getTimeAndDate(struct tm &t) const;
+	virtual void getTimeAndDate(TimeDate &t) const;
 
-	virtual void engineInit();
+	virtual void logMessage(LogMessageType::Type type, const char *message);
+
+#ifndef GAMECUBE
+	virtual Common::String getSystemLanguage() const;
+#endif // GAMECUBE
 };
 
 #endif
-

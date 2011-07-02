@@ -18,23 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_WSAMOVIE_H
 #define KYRA_WSAMOVIE_H
 
-
-namespace Audio {
-class AppendableAudioStream;
-class SoundHandle;
-} // end of namespace Audio
+#include "kyra/kyra_v1.h"
 
 namespace Kyra {
-class KyraEngine_v1;
-class Screen_v2;
+
 class Palette;
 
 class Movie {
@@ -85,6 +77,7 @@ public:
 		WF_OFFSCREEN_DECODE = 0x10,
 		WF_NO_LAST_FRAME = 0x20,
 		WF_NO_FIRST_FRAME = 0x40,
+		WF_FLIPPED = 0x80,
 		WF_HAS_PALETTE = 0x100,
 		WF_XOR = 0x200
 	};
@@ -136,7 +129,7 @@ protected:
 	int16 _yAdd;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

@@ -18,13 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/file.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "gui/about.h"
 #include "gui/message.h"
@@ -35,8 +35,8 @@
 namespace AGOS {
 
 int AGOSEngine::countSaveGames() {
-	Common::InSaveFile *f;
-	Common::StringList filenames;
+	Common::InSaveFile *f = NULL;
+	Common::StringArray filenames;
 	uint i = 1;
 	char slot[4];
 	int slotNum;
@@ -48,7 +48,7 @@ int AGOSEngine::countSaveGames() {
 	memset(marks, false, 256 * sizeof(bool));	//assume no savegames for this title
 	filenames = _saveFileMan->listSavefiles(prefix);
 
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); file++){
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file){
 		//Obtain the last 3 digits of the filename, since they correspond to the save slot
 		slot[0] = file->c_str()[file->size()-3];
 		slot[1] = file->c_str()[file->size()-2];
@@ -72,6 +72,7 @@ int AGOSEngine::countSaveGames() {
 	return i;
 }
 
+#ifdef ENABLE_AGOS2
 char *AGOSEngine_PuzzlePack::genSaveName(int slot) {
 	static char buf[20];
 
@@ -88,6 +89,7 @@ char *AGOSEngine_Feeble::genSaveName(int slot) {
 	sprintf(buf, "feeble.%.3d", slot);
 	return buf;
 }
+#endif
 
 char *AGOSEngine_Simon2::genSaveName(int slot) {
 	static char buf[20];
@@ -143,14 +145,14 @@ void AGOSEngine::quickLoadOrSave() {
 	}
 
 	bool success;
-	char buf[60];
+	Common::String buf;
 
 	char *filename = genSaveName(_saveLoadSlot);
 	if (_saveLoadType == 2) {
 		Subroutine *sub;
 		success = loadGame(genSaveName(_saveLoadSlot));
 		if (!success) {
-			sprintf(buf, "Failed to load game state to file:\n\n%s", filename);
+			buf = Common::String::format(_("Failed to load game state from file:\n\n%s"), filename);
 		} else if (getGameType() == GType_SIMON1 || getGameType() == GType_SIMON2) {
 			drawIconArray(2, me(), 0, 0);
 			setBitFlag(97, true);
@@ -185,7 +187,7 @@ void AGOSEngine::quickLoadOrSave() {
 	} else {
 		success = saveGame(_saveLoadSlot, _saveLoadName);
 		if (!success)
-			sprintf(buf, "Failed to save game state to file:\n\n%s", filename);
+			buf = Common::String::format(_("Failed to save game state to file:\n\n%s"), filename);
 	}
 
 	if (!success) {
@@ -193,7 +195,7 @@ void AGOSEngine::quickLoadOrSave() {
 		dialog.runModal();
 
 	} else if (_saveLoadType == 1) {
-		sprintf(buf, "Successfully saved game state in file:\n\n%s", filename);
+		buf = Common::String::format(_("Successfully saved game state in file:\n\n%s"), filename);
 		GUI::TimedMessageDialog dialog(buf, 1500);
 		dialog.runModal();
 
@@ -283,7 +285,7 @@ void AGOSEngine::userGame(bool load) {
 	const char *message1;
 	int i = 0, numSaveGames;
 	char *name;
-	char buf[8];
+	char buf[10];
 
 	numSaveGames = countSaveGames();
 
@@ -312,7 +314,7 @@ restart:
 	for (; *message1; message1++)
 		windowPutChar(window, *message1);
 
-	memset(buf, 0, 8);
+	memset(buf, 0, 10);
 	name = buf;
 	_saveGameNameLen = 0;
 
@@ -351,7 +353,7 @@ restart:
 				goto restart;
 
 			if (slot < 0)
-				slot =  numSaveGames;
+				slot = numSaveGames;
 
 			if (!saveGame(slot, name))
 				fileError(_windowArray[4], true);
@@ -605,13 +607,13 @@ void AGOSEngine_Simon1::listSaveGames(char *dst) {
 		lastSlot = slot;
 		if (slot < 10) {
 			showMessageFormat(" ");
-		} else if (_language == Common::HB_ISR) {
+		} else if (_language == Common::HE_ISR) {
 			lastSlot = (slot % 10) * 10;
 			lastSlot += slot / 10;
 		}
 
 		showMessageFormat("%d", lastSlot);
-		if (_language == Common::HB_ISR && !(slot % 10))
+		if (_language == Common::HE_ISR && !(slot % 10))
 			showMessageFormat("0");
 		showMessageFormat(".%s\n", dst);
 		dst += 18;
@@ -669,7 +671,7 @@ void AGOSEngine_Simon1::userGame(bool load) {
 	char *name;
 	bool b;
 	char buf[108];
-	int maxChar = (_language == Common::HB_ISR) ? 155: 128;
+	int maxChar = (_language == Common::HE_ISR) ? 155: 128;
 
 	_saveOrLoad = load;
 
@@ -708,7 +710,7 @@ restart:;
 		window->textRow = result;
 
 		// init x offset with a 2 character savegame number + a period (18 pix)
-		if (_language == Common::HB_ISR) {
+		if (_language == Common::HE_ISR) {
 			window->textColumn = 3;
 			window->textColumnOffset = 6;
 		} else {
@@ -722,7 +724,7 @@ restart:;
 		// now process entire savegame name to get correct x offset for cursor
 		_saveGameNameLen = 0;
 		while (name[_saveGameNameLen]) {
-			if (_language == Common::HB_ISR) {
+			if (_language == Common::HE_ISR) {
 				byte width = 6;
 				if (name[_saveGameNameLen] >= 64 && name[_saveGameNameLen] < 91)
 					width = _hebrewCharWidths [name[_saveGameNameLen] - 64];
@@ -767,7 +769,7 @@ restart:;
 				goto restart;
 			}
 
-			if (_language == Common::HB_ISR) {
+			if (_language == Common::HE_ISR) {
 				if (i >= 128)
 					i -= 64;
 				else if (i >= 32)
@@ -785,7 +787,7 @@ restart:;
 					_saveGameNameLen--;
 					m = name[_saveGameNameLen];
 
-					if (_language == Common::HB_ISR)
+					if (_language == Common::HE_ISR)
 						x = 8;
 					else
 						x = (name[_saveGameNameLen] == 'i' || name[_saveGameNameLen] == 'l') ? 1 : 8;
@@ -886,7 +888,7 @@ void AGOSEngine::userGameBackSpace(WindowBlock *window, int x, byte b) {
 	oldTextColor = window->textColor;
 	window->textColor = window->fillColor;
 
-	if (_language == Common::HB_ISR) {
+	if (_language == Common::HE_ISR) {
 		x = 128;
 	} else {
 		x += 120;
@@ -1249,23 +1251,38 @@ bool AGOSEngine_Elvira2::loadGame(const char *filename, bool restartMode) {
 
 		if (_roomsListPtr) {
 			byte *p = _roomsListPtr;
-			for (;;) {
-				uint16 minNum = READ_BE_UINT16(p); p += 2;
-				if (minNum == 0)
-					break;
+			if (room == _currentRoom) {
+				for (;;) {
+					uint16 minNum = READ_BE_UINT16(p); p += 2;
+					if (minNum == 0)
+						break;
 
-				uint16 maxNum = READ_BE_UINT16(p); p += 2;
+					uint16 maxNum = READ_BE_UINT16(p); p += 2;
 
-				 for (uint16 z = minNum; z <= maxNum; z++) {
-					uint16 itemNum = z + 2;
-					Item *item = derefItem(itemNum);
-					item->parent = 0;
+					 for (uint16 z = minNum; z <= maxNum; z++) {
+						uint16 itemNum = z + 2;
+						Item *item = derefItem(itemNum);
 
-					num = (itemNum - _itemArrayInited);
-					item->state = _roomStates[num].state;
-					item->classFlags = _roomStates[num].classFlags;
-					SubRoom *subRoom = (SubRoom *)findChildOfType(item, kRoomType);
-					subRoom->roomExitStates = _roomStates[num].roomExitStates;
+						num = (itemNum - _itemArrayInited);
+						item->state = _roomStates[num].state;
+						item->classFlags = _roomStates[num].classFlags;
+						SubRoom *subRoom = (SubRoom *)findChildOfType(item, kRoomType);
+						subRoom->roomExitStates = _roomStates[num].roomExitStates;
+					}
+				}
+			} else {
+				for (;;) {
+					uint16 minNum = READ_BE_UINT16(p); p += 2;
+					if (minNum == 0)
+						break;
+
+					uint16 maxNum = READ_BE_UINT16(p); p += 2;
+
+					 for (uint16 z = minNum; z <= maxNum; z++) {
+						uint16 itemNum = z + 2;
+						Item *item = derefItem(itemNum);
+						item->parent = 0;
+					}
 				}
 			}
 		}
@@ -1436,7 +1453,6 @@ bool AGOSEngine_Elvira2::saveGame(uint slot, const char *caption) {
 				 for (uint16 z = minNum; z <= maxNum; z++) {
 					uint16 itemNum = z + 2;
 					Item *item = derefItem(itemNum);
-					item->parent = 0;
 
 					uint16 num = (itemNum - _itemArrayInited);
 					_roomStates[num].state = item->state;
@@ -1548,7 +1564,6 @@ bool AGOSEngine_Elvira2::saveGame(uint slot, const char *caption) {
 	return result;
 }
 
-#ifdef ENABLE_PN
 // Personal Nightmare specific
 bool AGOSEngine_PN::badload(int8 errorNum) {
 	if (errorNum == -2)
@@ -1641,7 +1656,7 @@ int AGOSEngine_PN::saveFile(char *name) {
 		delete f;
 		restartAnimation();
 		error("Couldn't save ");
-		return 0;
+		return 0;	// for compilers that don't support NORETURN
 	}
 	f->finalize();
 	delete f;
@@ -1672,6 +1687,5 @@ void AGOSEngine_PN::dbtosysf() {
 		ct++;
 	}
 }
-#endif
 
 } // End of namespace AGOS

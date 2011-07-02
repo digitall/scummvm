@@ -18,10 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+// FIXME: Avoid using printf
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf
 
 #include "base/plugins.h"
 
@@ -38,6 +38,9 @@
 #include "scumm/he/intern_he.h"
 #include "scumm/scumm_v0.h"
 #include "scumm/scumm_v8.h"
+#include "scumm/file.h"
+#include "scumm/file_nes.h"
+#include "scumm/resource.h"
 
 #include "engines/metaengine.h"
 
@@ -65,82 +68,27 @@ static const MD5Table *findInMD5Table(const char *md5) {
 }
 
 Common::String ScummEngine::generateFilename(const int room) const {
-	const int diskNumber = (room > 0) ? _res->roomno[rtRoom][room] : 0;
-	char buf[128];
+	const int diskNumber = (room > 0) ? _res->_types[rtRoom][room]._roomno : 0;
+	Common::String result;
 
 	if (_game.version == 4) {
 		if (room == 0 || room >= 900) {
-			snprintf(buf, sizeof(buf), "%03d.lfl", room);
+			result = Common::String::format("%03d.lfl", room);
 		} else {
-			snprintf(buf, sizeof(buf), "disk%02d.lec", diskNumber);
+			result = Common::String::format("disk%02d.lec", diskNumber);
 		}
 	} else {
-		char id = 0;
-
 		switch (_filenamePattern.genMethod) {
 		case kGenDiskNum:
-			snprintf(buf, sizeof(buf), _filenamePattern.pattern, diskNumber);
+			result = Common::String::format(_filenamePattern.pattern, diskNumber);
 			break;
 
 		case kGenRoomNum:
-			snprintf(buf, sizeof(buf), _filenamePattern.pattern, room);
-			break;
-
-		case kGenHEMac:
-		case kGenHEMacNoParens:
-		case kGenHEPC:
-			if (room < 0) {
-				id = '0' - room;
-			} else if (_game.heversion >= 98) {
-				int disk = 0;
-				if (_heV7DiskOffsets)
-					disk = _heV7DiskOffsets[room];
-
-				switch (disk) {
-				case 2:
-					id = 'b';
-					// Special cases for Blue's games, which share common (b) files
-					if (_game.id == GID_BIRTHDAY)
-						strcpy(buf, "Blue'sBirthday.(b)");
-					else if (_game.id == GID_TREASUREHUNT)
-						strcpy(buf, "Blue'sTreasureHunt.(b)");
-					else
-						snprintf(buf, sizeof(buf), "%s.(b)", _filenamePattern.pattern);
-					break;
-				case 1:
-					id = 'a';
-					snprintf(buf, sizeof(buf), "%s.(a)", _filenamePattern.pattern);
-					break;
-				default:
-					id = '0';
-					snprintf(buf, sizeof(buf), "%s.he0", _filenamePattern.pattern);
-				}
-			} else if (_game.heversion >= 70) {
-				id = (room == 0) ? '0' : '1';
-			} else {
-				id = diskNumber + '0';
-			}
-
-			if (_filenamePattern.genMethod == kGenHEPC) {
-				// For HE >= 98, we already called snprintf above.
-				if (_game.heversion < 98 || room < 0)
-					snprintf(buf, sizeof(buf), "%s.he%c", _filenamePattern.pattern, id);
-			} else {
-				if (id == '3') { // special case for cursors
-					// For mac they're stored in game binary
-					strncpy(buf, _filenamePattern.pattern, sizeof(buf));
-				} else {
-					if (_filenamePattern.genMethod == kGenHEMac)
-						snprintf(buf, sizeof(buf), "%s (%c)", _filenamePattern.pattern, id);
-					else
-						snprintf(buf, sizeof(buf), "%s %c", _filenamePattern.pattern, id);
-				}
-			}
-
+			result = Common::String::format(_filenamePattern.pattern, room);
 			break;
 
 		case kGenUnchanged:
-			strncpy(buf, _filenamePattern.pattern, sizeof(buf));
+			result = _filenamePattern.pattern;
 			break;
 
 		default:
@@ -148,39 +96,142 @@ Common::String ScummEngine::generateFilename(const int room) const {
 		}
 	}
 
-	return buf;
+	return result;
+}
+
+Common::String ScummEngine_v60he::generateFilename(const int room) const {
+	Common::String result;
+	char id = 0;
+
+	switch (_filenamePattern.genMethod) {
+	case kGenHEMac:
+	case kGenHEMacNoParens:
+	case kGenHEPC:
+		if (room < 0) {
+			id = '0' - room;
+		} else {
+			const int diskNumber = (room > 0) ? _res->_types[rtRoom][room]._roomno : 0;
+			id = diskNumber + '0';
+		}
+
+		if (_filenamePattern.genMethod == kGenHEPC) {
+			result = Common::String::format("%s.he%c", _filenamePattern.pattern, id);
+		} else {
+			if (id == '3') { // special case for cursors
+				// For mac they're stored in game binary
+				result = _filenamePattern.pattern;
+			} else {
+				if (_filenamePattern.genMethod == kGenHEMac)
+					result = Common::String::format("%s (%c)", _filenamePattern.pattern, id);
+				else
+					result = Common::String::format("%s %c", _filenamePattern.pattern, id);
+			}
+		}
+
+		break;
+
+	default:
+		// Fallback to parent method
+		return ScummEngine::generateFilename(room);
+	}
+
+	return result;
+}
+
+Common::String ScummEngine_v70he::generateFilename(const int room) const {
+	Common::String result;
+	char id = 0;
+
+	switch (_filenamePattern.genMethod) {
+	case kGenHEMac:
+	case kGenHEMacNoParens:
+	case kGenHEPC:
+		if (_game.heversion >= 98 && room >= 0) {
+			int disk = 0;
+			if (_heV7DiskOffsets)
+				disk = _heV7DiskOffsets[room];
+
+			switch (disk) {
+			case 2:
+				id = 'b';
+				// Special cases for Blue's games, which share common (b) files
+				if (_game.id == GID_BIRTHDAY && !(_game.features & GF_DEMO))
+					result = "Blue'sBirthday.(b)";
+				else if (_game.id == GID_TREASUREHUNT)
+					result = "Blue'sTreasureHunt.(b)";
+				else
+					result = Common::String::format("%s.(b)", _filenamePattern.pattern);
+				break;
+			case 1:
+				id = 'a';
+				result = Common::String::format("%s.(a)", _filenamePattern.pattern);
+				break;
+			default:
+				id = '0';
+				result = Common::String::format("%s.he0", _filenamePattern.pattern);
+			}
+		} else if (room < 0) {
+			id = '0' - room;
+		} else {
+			id = (room == 0) ? '0' : '1';
+		}
+
+		if (_filenamePattern.genMethod == kGenHEPC) {
+			// For HE >= 98, we already called snprintf above.
+			if (_game.heversion < 98 || room < 0)
+				result = Common::String::format("%s.he%c", _filenamePattern.pattern, id);
+		} else {
+			if (id == '3') { // special case for cursors
+				// For mac they're stored in game binary
+				result = _filenamePattern.pattern;
+			} else {
+				if (_filenamePattern.genMethod == kGenHEMac)
+					result = Common::String::format("%s (%c)", _filenamePattern.pattern, id);
+				else
+					result = Common::String::format("%s %c", _filenamePattern.pattern, id);
+			}
+		}
+
+		break;
+
+	default:
+		// Fallback to parent method
+		return ScummEngine_v60he::generateFilename(room);
+	}
+
+	return result;
 }
 
 static Common::String generateFilenameForDetection(const char *pattern, FilenameGenMethod genMethod) {
-	char buf[128];
+	Common::String result;
 
 	switch (genMethod) {
 	case kGenDiskNum:
 	case kGenRoomNum:
-		snprintf(buf, sizeof(buf), pattern, 0);
+		result = Common::String::format(pattern, 0);
 		break;
 
 	case kGenHEPC:
-		snprintf(buf, sizeof(buf), "%s.he0", pattern);
+		result = Common::String::format("%s.he0", pattern);
 		break;
 
 	case kGenHEMac:
-		snprintf(buf, sizeof(buf), "%s (0)", pattern);
+		result = Common::String::format("%s (0)", pattern);
 		break;
 
 	case kGenHEMacNoParens:
-		snprintf(buf, sizeof(buf), "%s 0", pattern);
+		result = Common::String::format("%s 0", pattern);
 		break;
 
 	case kGenUnchanged:
-		strncpy(buf, pattern, sizeof(buf));
+		result = pattern;
 		break;
 
 	default:
 		error("generateFilenameForDetection: Unsupported genMethod");
 	}
 
-	return buf;
+	return result;
 }
 
 struct DetectorDesc {
@@ -208,9 +259,63 @@ static bool searchFSNode(const Common::FSList &fslist, const Common::String &nam
 	return false;
 }
 
+static BaseScummFile *openDiskImage(const Common::FSNode &node, const GameFilenamePattern *gfp) {
+	Common::String disk1 = node.getName();
+	BaseScummFile *diskImg;
+
+	SearchMan.addDirectory("tmpDiskImgDir", node.getParent());
+
+	if (disk1.hasSuffix(".prg")) { // NES
+		diskImg = new ScummNESFile();
+	} else { // C64 or Apple //gs
+		// setup necessary game settings for disk image reader
+		GameSettings gs;
+		memset(&gs, 0, sizeof(GameSettings));
+		gs.gameid = gfp->gameid;
+		gs.id = (Common::String(gfp->gameid) == "maniac" ? GID_MANIAC : GID_ZAK);
+		gs.platform = gfp->platform;
+
+		// determine second disk file name
+		Common::String disk2(disk1);
+		for (Common::String::iterator it = disk2.begin(); it != disk2.end(); ++it) {
+			// replace "xyz1.(d64|dsk)" by "xyz2.(d64|dsk)"
+			if (*it == '1') {
+				*it = '2';
+				break;
+			}
+		}
+
+		// open image
+		diskImg = new ScummDiskImage(disk1.c_str(), disk2.c_str(), gs);
+	}
+
+	if (diskImg->open(disk1.c_str()) && diskImg->openSubFile("00.LFL")) {
+		debug(0, "Success");
+		return diskImg;
+	}
+	delete diskImg;
+	return 0;
+}
+
+static void closeDiskImage(ScummDiskImage *img) {
+	if (img)
+		img->close();
+	SearchMan.remove("tmpDiskImgDir");
+}
+
 // The following function tries to detect the language for COMI and DIG
 static Common::Language detectLanguage(const Common::FSList &fslist, byte id) {
-	assert(id == GID_CMI || id == GID_DIG);
+	// First try to detect Chinese translation
+	Common::FSNode fontFile;
+
+	if (searchFSNode(fslist, "chinese_gb16x12.fnt", fontFile)) {
+		debug(0, "Chinese detected");
+		return Common::ZH_CNA;
+	}
+
+	// Now try to detect COMI and Dig by language files
+	if (id != GID_CMI && id != GID_DIG)
+		return Common::UNK_LANG;
 
 	// Check for LANGUAGE.BND (Dig) resp. LANGUAGE.TAB (CMI).
 	// These are usually inside the "RESOURCE" subdirectory.
@@ -257,7 +362,7 @@ static Common::Language detectLanguage(const Common::FSList &fslist, byte id) {
 			case 449787:	// 64f3fe479d45b52902cf88145c41d172
 				return Common::ES_ESP;
 			}
-		} else {
+		} else { // The DIG
 			switch (size) {
 			case 248627:	// 1fd585ac849d57305878c77b2f6c74ff
 				return Common::DE_DEU;
@@ -271,6 +376,8 @@ static Common::Language detectLanguage(const Common::FSList &fslist, byte id) {
 				return Common::ES_ESP;
 			case 223107:	// 64f3fe479d45b52902cf88145c41d172
 				return Common::JA_JPN;
+			case 180730:	// 424fdd60822722cdc75356d921dad9bf
+				return Common::ZH_TWN;
 			}
 		}
 	}
@@ -314,8 +421,8 @@ static void computeGameSettingsFromMD5(const Common::FSList &fslist, const GameF
 					dr.game.features |= GF_DEMO;
 				}
 
-				// HACK: Detect COMI & Dig languages
-				if (dr.language == UNK_LANG && (dr.game.id == GID_CMI || dr.game.id == GID_DIG)) {
+				// HACK: Try to detect languages for translated games
+				if (dr.language == UNK_LANG) {
 					dr.language = detectLanguage(fslist, dr.game.id);
 				}
 				break;
@@ -324,10 +431,12 @@ static void computeGameSettingsFromMD5(const Common::FSList &fslist, const GameF
 	}
 }
 
-static void detectGames(const Common::FSList &fslist, Common::List<DetectorResult> &results, const char *gameid) {
-	DescMap fileMD5Map;
-	DetectorResult dr;
-	char md5str[32+1];
+static void composeFileHashMap(DescMap &fileMD5Map, const Common::FSList &fslist, int depth, const char **globs) {
+	if (depth <= 0)
+		return;
+
+	if (fslist.empty())
+		return;
 
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
 		if (!file->isDirectory()) {
@@ -335,8 +444,34 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 			d.node = *file;
 			d.md5Entry = 0;
 			fileMD5Map[file->getName()] = d;
+		} else {
+			if (!globs)
+				continue;
+
+			bool matched = false;
+			for (const char **glob = globs; *glob; glob++)
+				if (file->getName().matchString(*glob, true)) {
+					matched = true;
+					break;
+				}
+
+			if (!matched)
+				continue;
+
+			Common::FSList files;
+			if (file->getChildren(files, Common::FSNode::kListAll)) {
+				composeFileHashMap(fileMD5Map, files, depth - 1, globs);
+			}
 		}
 	}
+}
+
+static void detectGames(const Common::FSList &fslist, Common::List<DetectorResult> &results, const char *gameid) {
+	DescMap fileMD5Map;
+	DetectorResult dr;
+
+	// Dive one level down since mac indy3/loom has its files split into directories. See Bug #1438631
+	composeFileHashMap(fileMD5Map, fslist, 2, directoryGlobs);
 
 	// Iterate over all filename patterns.
 	for (const GameFilenamePattern *gfp = gameFilenamesTable; gfp->gameid; ++gfp) {
@@ -378,16 +513,36 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 		//
 		DetectorDesc &d = fileMD5Map[file];
 		if (d.md5.empty()) {
-			if (Common::md5_file_string(d.node, md5str, kMD5FileSizeLimit)) {
+			Common::SeekableReadStream *tmp = 0;
+			bool isDiskImg = (file.hasSuffix(".d64") || file.hasSuffix(".dsk") || file.hasSuffix(".prg"));
+
+			if (isDiskImg) {
+				tmp = openDiskImage(d.node, gfp);
+
+				debug(2, "Falling back to disk-based detection");
+			} else {
+				tmp = d.node.createReadStream();
+			}
+
+			Common::String md5str;
+			if (tmp)
+				md5str = computeStreamMD5AsString(*tmp, kMD5FileSizeLimit);
+			if (!md5str.empty()) {
 
 				d.md5 = md5str;
-				d.md5Entry = findInMD5Table(md5str);
+				d.md5Entry = findInMD5Table(md5str.c_str());
 
 				dr.md5 = d.md5;
 
 				if (d.md5Entry) {
 					// Exact match found. Compute the precise game settings.
 					computeGameSettingsFromMD5(fslist, gfp, d.md5Entry, dr);
+
+					// Print some debug info
+					int filesize = tmp->size();
+					if (d.md5Entry->filesize != filesize)
+					debug(1, "SCUMM detector found matching file '%s' with MD5 %s, size %d\n",
+						file.c_str(), md5str.c_str(), filesize);
 
 					// Sanity check: We *should* have found a matching gameid / variant at this point.
 					// If not, then there's a bug in our data tables...
@@ -397,6 +552,10 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 					results.push_back(dr);
 				}
 			}
+
+			if (isDiskImg)
+				closeDiskImage((ScummDiskImage*)tmp);
+			delete tmp;
 		}
 
 		// If an exact match for this file has already been found, don't bother
@@ -441,6 +600,8 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 				continue;
 			}
 
+			// HACK: Perhaps it is some modified translation?
+			dr.language = detectLanguage(fslist, g->id);
 
 			// Add the game/variant to the candidates list if it is consistent
 			// with the file(s) we are seeing.
@@ -595,7 +756,7 @@ static bool testGame(const GameSettings *g, const DescMap &fileMD5Map, const Com
 				return false;
 
 			// All versions of Indy3 and ZakTOWNS have 98.LFL, but no other game
-			if (g->id == GID_LOOM && fileMD5Map.contains("98.LFL"))
+			if (g->id == GID_LOOM && g->platform != Common::kPlatformPCEngine && fileMD5Map.contains("98.LFL"))
 				return false;
 
 
@@ -720,7 +881,7 @@ GameList ScummMetaEngine::getSupportedGames() const {
 }
 
 GameDescriptor ScummMetaEngine::findGame(const char *gameid) const {
-	return AdvancedDetector::findGameID(gameid, gameDescriptions, obsoleteGameIDsTable);
+	return Engines::findGameID(gameid, gameDescriptions, obsoleteGameIDsTable);
 }
 
 static Common::String generatePreferredTarget(const DetectorResult &x) {
@@ -791,7 +952,8 @@ GameList ScummMetaEngine::detectGames(const Common::FSList &fslist) const {
 			}
 		}
 
-		dg.setGUIOptions(x->game.guioptions);
+		dg.setGUIOptions(x->game.guioptions | MidiDriver::musicType2GUIO(x->game.midi));
+		dg.appendGUIOptions(getGameGUIOptionsDescriptionLanguage(x->language));
 
 		detectedGames.push_back(dg);
 	}
@@ -812,26 +974,13 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 	// We start by checking whether the specified game ID is obsolete.
 	// If that is the case, we automatically upgrade the target to use
 	// the correct new game ID (and platform, if specified).
-	for (const ADObsoleteGameID *o = obsoleteGameIDsTable; o->from; ++o) {
-		if (!scumm_stricmp(gameid, o->from)) {
-			// Match found, perform upgrade
-			gameid = o->to;
-			ConfMan.set("gameid", o->to);
-
-			if (o->platform != Common::kPlatformUnknown)
-				ConfMan.set("platform", Common::getPlatformCode(o->platform));
-
-			warning("Target upgraded from game ID %s to %s", o->from, o->to);
-			ConfMan.flushToDisk();
-			break;
-		}
-	}
+	Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
 
 	// Fetch the list of files in the current directory
 	Common::FSList fslist;
 	Common::FSNode dir(ConfMan.get("path"));
 	if (!dir.isDirectory())
-		return Common::kInvalidPathError;
+		return Common::kPathNotDirectory;
 	if (!dir.getChildren(fslist, Common::FSNode::kListFilesOnly))
 		return Common::kNoGameDataFoundError;
 
@@ -873,6 +1022,7 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 	// Simply use the first match
 	DetectorResult res(*(results.begin()));
 	debug(1, "Using gameid %s, variant %s, extra %s", res.game.gameid, res.game.variant, res.extra);
+	debug(1, "  SCUMM version %d, HE version %d", res.game.version, res.game.heversion);
 
 	// Print the MD5 of the game; either verbose using printf, in case of an
 	// unknown MD5, or with a medium debug level in case of a known MD5 (for
@@ -891,6 +1041,10 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 		debug(1, "Using MD5 '%s'", res.md5.c_str());
 	}
 
+	// If the GUI options were updated, we catch this here and update them in the users config
+	// file transparently.
+	Common::updateGameGUIOptions(res.game.guioptions, getGameGUIOptionsDescriptionLanguage(res.language));
+
 	// Check for a user override of the platform. We allow the user to override
 	// the platform, to make it possible to add games which are not yet in
 	// our MD5 database but require a specific platform setting.
@@ -907,11 +1061,6 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 	// TODO: Maybe allow the null driver, too?
 	if (res.game.platform == Common::kPlatformFMTowns && res.game.version == 3)
 		res.game.midi = MDT_TOWNS;
-
-	// If the GUI options were updated, we catch this here and update them in the users config
-	// file transparently.
-	Common::updateGameGUIOptions(res.game.guioptions);
-
 	// Finally, we have massaged the GameDescriptor to our satisfaction, and can
 	// instantiate the appropriate game engine. Hooray!
 	switch (res.game.version) {
@@ -923,7 +1072,7 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 		*engine = new ScummEngine_v2(syst, res);
 		break;
 	case 3:
-		if ((res.game.features & GF_OLD256) || res.game.platform == Common::kPlatformPCEngine)
+		if (res.game.features & GF_OLD256)
 			*engine = new ScummEngine_v3(syst, res);
 		else
 			*engine = new ScummEngine_v3old(syst, res);
@@ -955,6 +1104,7 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 		case 80:
 			*engine = new ScummEngine_v80he(syst, res);
 			break;
+		case 74:
 		case 73:
 		case 72:
 			*engine = new ScummEngine_v72he(syst, res);
@@ -966,7 +1116,9 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 		case 70:
 			*engine = new ScummEngine_v70he(syst, res);
 			break;
+		case 62:
 		case 61:
+		case 60:
 			*engine = new ScummEngine_v60he(syst, res);
 			break;
 		default:
@@ -989,7 +1141,7 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 }
 
 const char *ScummMetaEngine::getName() const {
-	return "SCUMM Engine ["
+	return "SCUMM ["
 
 #if defined(ENABLE_SCUMM_7_8) && defined(ENABLE_HE)
 		"all games"
@@ -1021,7 +1173,7 @@ int ScummMetaEngine::getMaximumSaveSlot() const { return 99; }
 
 SaveStateList ScummMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringList filenames;
+	Common::StringArray filenames;
 	Common::String saveDesc;
 	Common::String pattern = target;
 	pattern += ".s??";
@@ -1030,7 +1182,7 @@ SaveStateList ScummMetaEngine::listSaves(const char *target) const {
 	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
 
 	SaveStateList saveList;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 2 digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + file->size() - 2);
 
@@ -1070,7 +1222,7 @@ SaveStateDescriptor ScummMetaEngine::querySaveMetaInfos(const char *target, int 
 	desc.setDeletableFlag(true);
 	desc.setThumbnail(thumbnail);
 
-	InfoStuff infos;
+	SaveStateMetaInfos infos;
 	memset(&infos, 0, sizeof(infos));
 	if (ScummEngine::loadInfosFromSlot(target, slot, &infos)) {
 		int day = (infos.date >> 24) & 0xFF;
@@ -1083,12 +1235,7 @@ SaveStateDescriptor ScummMetaEngine::querySaveMetaInfos(const char *target, int 
 		int minutes = infos.time & 0xFF;
 
 		desc.setSaveTime(hour, minutes);
-
-		minutes = infos.playtime / 60;
-		hour = minutes / 60;
-		minutes %= 60;
-
-		desc.setPlayTime(hour, minutes);
+		desc.setPlayTime(infos.playtime * 1000);
 	}
 
 	return desc;

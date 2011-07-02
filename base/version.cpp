@@ -18,14 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/scummsys.h"
-#include "base/internal_version.h"
 #include "base/version.h"
+
+#define INCLUDED_FROM_BASE_VERSION_CPP
+#include "base/internal_version.h"
 
 /*
  * Version string and build date string. These can be used by anything that
@@ -61,6 +60,11 @@ const char *gScummVMBuildDate = __DATE__ " " __TIME__;
 const char *gScummVMVersionDate = SCUMMVM_VERSION " (" __DATE__ " " __TIME__ ")";
 const char *gScummVMFullVersion = "ScummVM " SCUMMVM_VERSION " (" __DATE__ " " __TIME__ ")";
 const char *gScummVMFeatures = ""
+#ifdef TAINTED_BUILD
+	// TAINTED means the build contains engines/subengines not enabled by default
+	"TAINTED "
+#endif
+
 #ifdef USE_TREMOR
 #ifdef USE_TREMOLO
 	// libTremolo is used on WinCE for better ogg performance
@@ -86,6 +90,18 @@ const char *gScummVMFeatures = ""
 	"ALSA "
 #endif
 
+#ifdef USE_SEQ_MIDI
+	"SEQ "
+#endif
+
+#ifdef USE_TIMIDITY
+	"TiMidity "
+#endif
+
+#ifdef USE_RGB_COLOR
+	"RGB "
+#endif
+
 #ifdef USE_ZLIB
 	"zLib "
 #endif
@@ -96,6 +112,14 @@ const char *gScummVMFeatures = ""
 
 #ifdef USE_FLUIDSYNTH
 	"FluidSynth "
+#endif
+
+#ifdef USE_THEORADEC
+	"Theora "
+#endif
+
+#ifdef USE_FAAD
+	"AAC "
 #endif
 	;
 

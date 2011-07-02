@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Console module
@@ -39,9 +36,6 @@ Console::Console(SagaEngine *vm) : GUI::Debugger() {
 	_vm = vm;
 
 	DCmd_Register("continue",			WRAP_METHOD(Console, Cmd_Exit));
-
-	// CVAR_Register_I(&_soundEnabled, "sound", NULL, CVAR_CFG, 0, 1);
-	// CVAR_Register_I(&_musicEnabled, "music", NULL, CVAR_CFG, 0, 1);
 
 	// Actor commands
 	DCmd_Register("actor_walk_to",		WRAP_METHOD(Console, cmdActorWalkTo));

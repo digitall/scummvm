@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_IMUSE_DIGI_BUNDLE_MGR_H
@@ -101,19 +98,11 @@ public:
 
 	bool open(const char *filename, bool &compressed, bool errorFlag = false);
 	void close();
-	Common::File *getFile(const char *filename, int32 &offset, int32 &size);
+	Common::SeekableReadStream *getFile(const char *filename, int32 &offset, int32 &size);
 	int32 decompressSampleByName(const char *name, int32 offset, int32 size, byte **compFinal, bool headerOutside);
 	int32 decompressSampleByIndex(int32 index, int32 offset, int32 size, byte **compFinal, int header_size, bool headerOutside);
 	int32 decompressSampleByCurIndex(int32 offset, int32 size, byte **compFinal, int headerSize, bool headerOutside);
 };
-
-namespace BundleCodecs {
-
-uint32 decode12BitsSample(const byte *src, byte **dst, uint32 size);
-void initializeImcTables();
-int32 decompressCodec(int32 codec, byte *compInput, byte *compOutput, int32 inputSize);
-
-} // End of namespace BundleCodecs
 
 } // End of namespace Scumm
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
@@ -52,8 +49,8 @@ static const MouseCursor mouseCursors[] = {
 CursorType currentCursor = CURSOR_NOMOUSE;
 
 static const byte cursorPalette[] = {
-	0, 0, 0, 0xff,
-	0xff, 0xff, 0xff, 0xff
+	0, 0, 0,
+	0xff, 0xff, 0xff
 };
 
 void changeCursor(CursorType eType) {
@@ -76,7 +73,7 @@ void changeCursor(CursorType eType) {
 			}
 			++src;
 		}
-		CursorMan.replaceCursor(mouseCursor, 16, 16, mc->hotspotX, mc->hotspotY);
+		CursorMan.replaceCursor(mouseCursor, 16, 16, mc->hotspotX, mc->hotspotY, 0xFF);
 		CursorMan.replaceCursorPalette(cursorPalette, 0, 2);
 		currentCursor = eType;
 	}

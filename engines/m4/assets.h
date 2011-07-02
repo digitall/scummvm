@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 #ifndef M4_ASSETS_H
 #define M4_ASSETS_H
@@ -33,32 +30,35 @@
 namespace M4 {
 
 // Sequence chunks
-#define CHUNK_SCEN MKID_BE('SCEN')
-#define CHUNK_MACH MKID_BE('MACH')
-#define CHUNK_SEQU MKID_BE('SEQU')
-#define CHUNK_DATA MKID_BE('DATA')
-#define CHUNK_CELS MKID_BE('CELS')
+#define CHUNK_SCEN MKTAG('S','C','E','N')
+#define CHUNK_MACH MKTAG('M','A','C','H')
+#define CHUNK_SEQU MKTAG('S','E','Q','U')
+#define CHUNK_DATA MKTAG('D','A','T','A')
+#define CHUNK_CELS MKTAG('C','E','L','S')
 
 // Sprite chunks
-#define HEAD_M4SS MKID_BE('M4SS')	//'M4SS'
-#define CELS__PAL MKID_BE(' PAL')	//' PAL'
-#define CELS___SS MKID_BE('  SS')	//'  SS'
+#define HEAD_M4SS MKTAG('M','4','S','S')	//'M4SS'
+#define CELS__PAL MKTAG(' ','P','A','L')	//' PAL'
+#define CELS___SS MKTAG(' ',' ','S','S')	//'  SS'
 
-class M4Engine;
+#define SPRITE_SET_CHAR_INFO 4
+
+class MadsM4Engine;
+class Palette;
 
 class BaseAsset {
 public:
-	BaseAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
+	BaseAsset(MadsM4Engine *vm);
 	~BaseAsset();
 	const Common::String getName() const { return _name; }
 protected:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	Common::String _name;
 };
 
 class MachineAsset : public BaseAsset {
 public:
-	MachineAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
+	MachineAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
 	~MachineAsset();
 	void getCode(byte *&code, uint32 &codeSize);
 	uint32 getStateOffset(uint32 state);
@@ -70,7 +70,7 @@ protected:
 
 class SequenceAsset : public BaseAsset {
 public:
-	SequenceAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
+	SequenceAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
 	~SequenceAsset();
 	void getCode(byte *&code, uint32 &codeSize);
 	int localVarCount() const { return _localVarCount; }
@@ -82,7 +82,7 @@ protected:
 
 class DataAsset : public BaseAsset {
 public:
-	DataAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
+	DataAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name);
 	~DataAsset();
 	int getCount() const { return _recCount; }
 	long *getRow(int index);
@@ -99,12 +99,28 @@ struct SpriteAssetFrame {
 	M4Sprite *frame;
 };
 
+class MadsSpriteSetCharInfo {
+public:
+	MadsSpriteSetCharInfo(Common::SeekableReadStream *s);
+
+	int _totalFrames;
+	int _numEntries;
+	int _frameList2[16];
+	int _frameList[16];
+	int _ticksList[16];
+	int _unk1;
+	int _ticksAmount;
+	int _yScale;
+};
+
 class SpriteAsset : public BaseAsset {
 public:
-	SpriteAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name, bool asStream = false);
+	SpriteAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name,
+		bool asStream = false, int flags = 0);
+	SpriteAsset(MadsM4Engine *vm, const char *name);
 	~SpriteAsset();
-	void loadM4SpriteAsset(M4Engine *vm, Common::SeekableReadStream* stream, bool asStream);
-	void loadMadsSpriteAsset(M4Engine *vm, Common::SeekableReadStream* stream);
+	void loadM4SpriteAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, bool asStream);
+	void loadMadsSpriteAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int flags);
 	int32 getCount() { return _frameCount; }
 	int32 getFrameRate() const { return _frameRate; }
 	int32 getPixelSpeed() const { return _pixelSpeed; }
@@ -112,15 +128,20 @@ public:
 	int32 getFrameHeight(int index);
 	int32 getMaxFrameWidth() const { return _maxWidth; }
 	int32 getMaxFrameHeight() const { return _maxHeight; }
+	bool isBackground() const { return _isBackground; }
 	M4Sprite *getFrame(int frameIndex);
 	void loadStreamingFrame(M4Sprite *frame, int frameIndex, int destX, int destY);
 	RGB8* getPalette() { return _palette; }
 	int getColorCount() { return _colorCount; }
 	RGBList *getRgbList();
 	void translate(RGBList *list, bool isTransparent = false);
+	void translate(Palette *palette);
 	int32 getFrameSize(int index);
 	M4Sprite *operator[](int index) { return getFrame(index); }
+public:
+	MadsSpriteSetCharInfo *_charInfo;
 protected:
+	Common::SeekableReadStream *_stream;
 	RGB8 _palette[256];
 	uint32 _colorCount;
 	uint32 _srcSize;
@@ -130,9 +151,16 @@ protected:
 	Common::Array<uint32> _frameOffsets;
 	Common::Array<SpriteAssetFrame> _frames;
 	uint32 _frameStartOffset;
-	Common::SeekableReadStream *_stream;
+
+	// MADS sprite set fields
+	uint8 _mode;
+	bool _isBackground;
+
 	int32 parseSprite(bool isBigEndian = false);
 	void loadFrameHeader(SpriteAssetFrame &frameHeader, bool isBigEndian = false);
+private:
+	RGBList *_paletteData;
+	Palette *_palInterface;
 };
 
 enum AssetType {
@@ -149,7 +177,7 @@ enum CallbackHandlers {
 class AssetManager {
 public:
 
-	AssetManager(M4Engine *vm);
+	AssetManager(MadsM4Engine *vm);
 	~AssetManager();
 
 	bool clearAssets(AssetType assetType, int32 minHash, int32 maxHash);
@@ -168,7 +196,7 @@ public:
 
 protected:
 	// TODO: Check if we need _vm
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 
 	MachineAsset *_MACH[256];
 	SequenceAsset *_SEQU[256];

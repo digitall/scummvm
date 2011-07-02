@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCI_ENGINE_KERNEL_H
@@ -29,114 +26,187 @@
 #include "common/scummsys.h"
 #include "common/debug.h"
 #include "common/rect.h"
+#include "common/str-array.h"
 
-#include "sci/uinput.h"
-#include "sci/vocabulary.h"
+#include "sci/engine/selector.h"
+#include "sci/engine/vm_types.h"	// for reg_t
+#include "sci/engine/vm.h"
 
 namespace Sci {
 
-struct Node;	// from vm.h
-struct List;	// from vm.h
+struct Node;	// from segment.h
+struct List;	// from segment.h
+struct SelectorCache;	// from selector.h
+struct SciWorkaroundEntry;	// from workarounds.h
 
-#define AVOIDPATH_DYNMEM_STRING "AvoidPath polyline"
+/**
+ * @defgroup VocabularyResources	Vocabulary resources in SCI
+ *
+ * vocab.999 / 999.voc (unneeded) contains names of the kernel functions which
+ * are implemented by the interpreter. In Sierra SCI, they are used exclusively
+ * by the debugger, which is why keeping the file up to date was less important.
+ * This resource is notoriously unreliable, and should not be used. Fortunately,
+ * kernel names are the same in major SCI revisions, which is why we have them
+ * hardcoded.
+ *
+ * vocab.998 / 998.voc (unneeded) contains opcode names. Opcodes have remained
+ * the same from SCI0 to SCI2.1, and have changed in SCI3, so this is only used
+ * on demand for debugging purposes, for showing the opcode names
+ *
+ * vocab.997 / 997.voc (usually needed) contains the names of every selector in
+ * the class hierarchy. Each method and property '''name''' consumes one id, but
+ * if a name is shared between classes, one id will do. Some demos do not contain
+ * a selector vocabulary, but the selectors used by the engine have stayed more or
+ * less static, so we add the selectors we need inside static_selectors.cpp
+ * The SCI engine loads vocab.997 on startup, and fills in an internal structure
+ * that allows interpreter code to access these selectors via #defined macros. It
+ * does not use the file after this initial stage.
+ *
+ * vocab.996 / 996.voc (required) contains the classes which are used in each
+ * script, and is required by the segment manager
+ *
+ * vocab.995 / 995.voc (unneeded) contains strings for the embedded SCI debugger
+ *
+ * vocab.994 / 994.voc (unneeded) contains offsets into certain classes of certain
+ * properties. This enables the interpreter to update these properties in O(1) time,
+ * which was important in the era when SCI was initially conceived. In SCI, we
+ * figured out what '''property''' a certain offset refers to (which requires one to
+ * guess what class a pointer points to) and then simply use the property name and
+ * vocab.997. This results in much more readable code. Thus, this vocabulary isn't
+ * used at all.
+ *
+ * SCI0 parser vocabularies:
+ * - vocab.901 / 901.voc - suffix vocabulary
+ * - vocab.900 / 900.voc - parse tree branches
+ * - vocab.0 / 0.voc - main vocabulary, containing words and their attributes
+ *                     (e.g. "onto" - "position")
+ *
+ * SCI01 parser vocabularies:
+ * - vocab.902 / 902.voc - suffix vocabulary
+ * - vocab.901 / 901.voc - parse tree branches
+ * - vocab.900 / 900.voc - main vocabulary, containing words and their attributes
+ *                        (e.g. "onto" - "position")
+ *
+ */
+//@{
+
 //#define DEBUG_PARSER	// enable for parser debugging
 
-struct opcode {
-	int type;
-	Common::String name;
+// ---- Kernel signatures -----------------------------------------------------
+
+// internal kernel signature data
+enum {
+	SIG_TYPE_NULL          =  0x01, // may be 0:0       [0]
+	SIG_TYPE_INTEGER       =  0x02, // may be 0:*       [i], automatically also allows null
+	SIG_TYPE_UNINITIALIZED =  0x04, // may be FFFF:*    -> not allowable, only used for comparison
+	SIG_TYPE_OBJECT        =  0x08, // may be object    [o]
+	SIG_TYPE_REFERENCE     =  0x10, // may be reference [r]
+	SIG_TYPE_LIST          =  0x20, // may be list      [l]
+	SIG_TYPE_NODE          =  0x40, // may be node      [n]
+	SIG_TYPE_ERROR         =  0x80, // happens, when there is a identification error - only used for comparison
+	SIG_IS_INVALID         = 0x100, // ptr is invalid   [!] -> invalid offset
+	SIG_IS_OPTIONAL        = 0x200, // is optional
+	SIG_NEEDS_MORE         = 0x400, // needs at least one additional parameter following
+	SIG_MORE_MAY_FOLLOW    = 0x800  // may have more parameters of the same type following
 };
+
+// this does not include SIG_TYPE_UNINITIALIZED, because we can not allow uninitialized values anywhere
+#define SIG_MAYBE_ANY    (SIG_TYPE_NULL | SIG_TYPE_INTEGER | SIG_TYPE_OBJECT | SIG_TYPE_REFERENCE | SIG_TYPE_LIST | SIG_TYPE_NODE)
+
+// ----------------------------------------------------------------------------
 
 /* Generic description: */
-typedef reg_t KernelFunc(EngineState *s, int funct_nr, int argc, reg_t *argv);
+typedef reg_t KernelFunctionCall(EngineState *s, int argc, reg_t *argv);
 
-struct KernelFuncWithSignature {
-	KernelFunc *fun; /**< The actual function */
-	const char *signature;  /**< KernelFunc signature */
-	Common::String orig_name; /**< Original name, in case we couldn't map it */
+struct KernelSubFunction {
+	KernelFunctionCall *function;
+	const char *name;
+	uint16 *signature;
+	const SciWorkaroundEntry *workarounds;
+	bool debugLogging;
+	bool debugBreakpoint;
 };
 
-enum AutoDetectedFeatures {
-	kFeatureOldScriptHeader = 1 << 0,
-	kFeatureOldGfxFunctions = 1 << 1,
-	kFeatureLofsAbsolute    = 1 << 2,
-	kFeatureSci01Sound      = 1 << 3,
-	kFeatureSci1Sound       = 1 << 4,
-	kFeatureSci0Sci1Table   = 1 << 5
+struct KernelFunction {
+	KernelFunctionCall *function;
+	const char *name;
+	uint16 *signature;
+	const SciWorkaroundEntry *workarounds;
+	KernelSubFunction *subFunctions;
+	uint16 subFunctionCount;
+	bool debugLogging;
+	bool debugBreakpoint;
 };
 
 class Kernel {
 public:
-	Kernel(ResourceManager *resmgr);
+	/**
+	 * Initializes the SCI kernel.
+	 */
+	Kernel(ResourceManager *resMan, SegManager *segMan);
 	~Kernel();
 
-	uint getOpcodesSize() const { return _opcodes.size(); }
-	const opcode &getOpcode(uint opcode) const { return _opcodes[opcode]; }
+	uint getSelectorNamesSize() const;
+	const Common::String &getSelectorName(uint selector);
+	int findKernelFuncPos(Common::String kernelFuncName);
 
-	uint getSelectorNamesSize() const { return _selectorNames.size(); }
-	const Common::String &getSelectorName(uint selector) const { return _selectorNames[selector]; }
-
-	uint getKernelNamesSize() const { return _kernelNames.size(); }
-	const Common::String &getKernelName(uint number) const { return _kernelNames[number]; }
+	uint getKernelNamesSize() const;
+	const Common::String &getKernelName(uint number) const;
 
 	/**
-	 * Determines the selector ID of a selector by its name
+	 * Determines the selector ID of a selector by its name.
 	 * @param selectorName Name of the selector to look up
 	 * @return The appropriate selector ID, or -1 on error
 	 */
 	int findSelector(const char *selectorName) const;
-
-	/**
-	 * Detects whether a particular kernel function is required in the game
-	 * @param functionName The name of the desired kernel function
-	 * @return True if the kernel function is listed in the kernel table, false otherwise
-	*/
-	bool hasKernelFunction(const char *functionName) const;
-
-	/**
-	 * Applies to all versions before 0.000.395 (i.e. KQ4 old, XMAS 1988 and LSL2).
-	 * Old SCI versions used two word header for script blocks (first word equal
-	 * to 0x82, meaning of the second one unknown). New SCI versions used one
-	 * word header.
-	 * Also, old SCI versions assign 120 degrees to left & right, and 60 to up
-	 * and down. Later versions use an even 90 degree distribution.
-	 */
-	bool hasOldScriptHeader() const { return (features & kFeatureOldScriptHeader); }
-
-	/**
-	 * Applies to all versions before 0.000.502
-	 * Old SCI versions used to interpret the third DrawPic() parameter inversely,
-	 * with the opposite default value (obviously).
-	 * Also, they used 15 priority zones from 42 to 200 instead of 14 priority
-	 * zones from 42 to 190.
-	 */
-	bool usesOldGfxFunctions() const { return (features & kFeatureOldGfxFunctions); }
-
-	/**
-	 * Applies to all SCI1 versions after 1.000.200
-	 * In late SCI1 versions, the argument of lofs[as] instructions
-	 * is absolute rather than relative.
-	 */
-	bool hasLofsAbsolute() const { return (features & kFeatureLofsAbsolute); }
-
-	/**
-	 * Determines if the game is using SCI01 sound functions
-	 */
-	bool usesSci01SoundFunctions() const { return (features & kFeatureSci01Sound); }
-
-	/**
-	 * Determines if the game is using SCI1 sound functions
-	 */
-	bool usesSci1SoundFunctions() const { return (features & kFeatureSci1Sound); }
 
 	// Script dissection/dumping functions
 	void dissectScript(int scriptNumber, Vocabulary *vocab);
 	void dumpScriptObject(char *data, int seeker, int objsize);
 	void dumpScriptClass(char *data, int seeker, int objsize);
 
-	selector_map_t _selectorMap; /**< Shortcut list for important selectors */
-	Common::Array<KernelFuncWithSignature> _kernelFuncs; /**< Table of kernel functions */
+	SelectorCache _selectorCache; /**< Shortcut list for important selectors. */
+	typedef Common::Array<KernelFunction> KernelFunctionArray;
+	KernelFunctionArray _kernelFuncs; /**< Table of kernel functions. */
 
-private:
+	/**
+	 * Determines whether a list of registers matches a given signature.
+	 * If no signature is given (i.e., if sig is NULL), this is always
+	 * treated as a match.
+	 *
+	 * @param sig	 signature to test against
+	 * @param argc	 number of arguments to test
+	 * @param argv	 argument list
+	 * @return true if the signature was matched, false otherwise
+	 */
+	bool signatureMatch(const uint16 *sig, int argc, const reg_t *argv);
+
+	// Prints out debug information in case a signature check fails
+	void signatureDebug(const uint16 *sig, int argc, const reg_t *argv);
+
+	/**
+	 * Determines the type of the object indicated by reg.
+	 * @param reg				register to check
+	 * @return one of KSIG_* below KSIG_NULL.
+	 *	       KSIG_INVALID set if the type of reg can be determined, but is invalid.
+	 *	       0 on error.
+	 */
+	uint16 findRegType(reg_t reg);
+
+	/******************** Text functionality ********************/
+	/**
+	 * Looks up text referenced by scripts.
+	 * SCI uses two values to reference to text: An address, and an index. The
+	 * address determines whether the text should be read from a resource file,
+	 * or from the heap, while the index either refers to the number of the
+	 * string in the specified source, or to a relative position inside the text.
+	 *
+	 * @param address The address to look up
+	 * @param index The relative index
+	 * @return The referenced text, or empty string on error.
+	 */
+	Common::String lookupText(reg_t address, int index);
+
 	/**
 	 * Loads the kernel function names.
 	 *
@@ -144,411 +214,346 @@ private:
 	 * and fills the _kernelNames array with them.
 	 * The resulting list has the same format regardless of the format of the
 	 * name table of the resource (the format changed between version 0 and 1).
-	 * @return true on success, false on failure
 	 */
-	bool loadKernelNames();
+	void loadKernelNames(GameFeatures *features);
 
 	/**
-	 * Sets the default kernel function names, based on the SCI version used
+	 * Sets debug flags for a kernel function
 	 */
-	void setDefaultKernelNames();
+	bool debugSetFunction(const char *kernelName, int logging, int breakpoint);
+
+private:
+	/**
+	 * Sets the default kernel function names, based on the SCI version used.
+	 */
+	void setDefaultKernelNames(GameFeatures *features);
+
+#ifdef ENABLE_SCI32
+	/**
+	 * Sets the default kernel function names to the SCI2 kernel functions.
+	 */
+	void setKernelNamesSci2();
+
+	/**
+	 * Sets the default kernel function names to the SCI2.1 kernel functions.
+	 */
+	void setKernelNamesSci21(GameFeatures *features);
+#endif
 
 	/**
 	 * Loads the kernel selector names.
 	 */
 	void loadSelectorNames();
-	
+
 	/**
 	 * Check for any hardcoded selector table we might have that can be used
 	 * if a game is missing the selector names.
 	 */
-	Common::StringList checkStaticSelectorNames();
+	Common::StringArray checkStaticSelectorNames();
 
 	/**
-	 * Maps special selectors
+	 * Automatically find specific selectors
+	 */
+	void findSpecificSelectors(Common::StringArray &selectorNames);
+
+	/**
+	 * Maps special selectors.
 	 */
 	void mapSelectors();
 
 	/**
-	 * Detects SCI features based on the existence of certain selectors
-	 */
-	void detectSciFeatures();
-
-	/**
-	 * Maps kernel functions
+	 * Maps kernel functions.
 	 */
 	void mapFunctions();
 
-	/**
-	 * Loads the opcode names (only used for debugging).
-	 * @return true on success, false on failure
-	 */
-	bool loadOpcodes();
-
-	ResourceManager *_resmgr;
-	uint32 features;
+	ResourceManager *_resMan;
+	SegManager *_segMan;
 
 	// Kernel-related lists
-	/**
-	 * List of opcodes, loaded from vocab.998. This list is only used for debugging
-	 * purposes, as we hardcode the list of opcodes in the sci_opcodes enum (script.h)
-	 */
-	Common::Array<opcode> _opcodes;
-	Common::StringList _selectorNames;
-	Common::StringList _kernelNames;
+	Common::StringArray _selectorNames;
+	Common::StringArray _kernelNames;
+
+	const Common::String _invalid;
 };
 
-/******************** Selector functionality ********************/
-
-enum SelectorInvocation {
-	kStopOnInvalidSelector = 0,
-	kContinueOnInvalidSelector = 1
-};
-
-#define GET_SEL32(_o_, _slc_) read_selector(s, _o_, ((SciEngine*)g_engine)->getKernel()->_selectorMap._slc_, __FILE__, __LINE__)
-#define GET_SEL32V(_o_, _slc_) (GET_SEL32(_o_, _slc_).offset)
-#define GET_SEL32SV(_o_, _slc_) ((int16)(GET_SEL32(_o_, _slc_).offset))
-/* Retrieves a selector from an object
-** Parameters: (reg_t) object: The address of the object which the selector should be read from
-**             (selector_name) selector: The selector to read
-** Returns   : (int16/uint16/reg_t) The selector value
-** This macro halts on error. 'selector' must be a selector name registered in vm.h's
-** selector_map_t and mapped in script.c.
-*/
-
-#define PUT_SEL32(_o_, _slc_, _val_) write_selector(s, _o_, ((SciEngine*)g_engine)->getKernel()->_selectorMap._slc_, _val_, __FILE__, __LINE__)
-#define PUT_SEL32V(_o_, _slc_, _val_) write_selector(s, _o_, ((SciEngine*)g_engine)->getKernel()->_selectorMap._slc_, make_reg(0, _val_), __FILE__, __LINE__)
-/* Writes a selector value to an object
-** Parameters: (reg_t) object: The address of the object which the selector should be written to
-**             (selector_name) selector: The selector to read
-**             (int16) value: The value to write
-** Returns   : (void)
-** This macro halts on error. 'selector' must be a selector name registered in vm.h's
-** selector_map_t and mapped in script.c.
-*/
-
-
-#define INV_SEL(_object_, _selector_, _noinvalid_) \
-	s, _object_,  ((SciEngine*)g_engine)->getKernel()->_selectorMap._selector_, _noinvalid_, funct_nr, argv, argc, __FILE__, __LINE__
-/* Kludge for use with invoke_selector(). Used for compatibility with compilers that can't
-** handle vararg macros.
-*/
-
-
-reg_t read_selector(EngineState *s, reg_t object, Selector selector_id, const char *fname, int line);
-void write_selector(EngineState *s, reg_t object, Selector selector_id, reg_t value, const char *fname, int line);
-int invoke_selector(EngineState *s, reg_t object, int selector_id, SelectorInvocation noinvalid, int kfunct,
-	StackPtr k_argp, int k_argc, const char *fname, int line, int argc, ...);
-
-
-/******************** Text functionality ********************/
-/**
- * Looks up text referenced by scripts
- * SCI uses two values to reference to text: An address, and an index. The address
- * determines whether the text should be read from a resource file, or from the heap,
- * while the index either refers to the number of the string in the specified source,
- * or to a relative position inside the text.
- *
- * @param s The current state
- * @param address The address to look up
- * @param index The relative index
- * @return The referenced text, or NULL on error.
- */
-char *kernel_lookup_text(EngineState *s, reg_t address, int index);
-
-
-/******************** Debug functionality ********************/
-/**
- * Checks whether a heap address contains an object
- * @param s The current state
- * @parm obj The address to check
- * @return True if it is an object, false otherwise
- */
-bool is_object(EngineState *s, reg_t obj);
-
-/******************** Kernel function parameter macros ********************/
-
-/* Returns the parameter value or (alt) if not enough parameters were supplied */
-/**
- * Dereferences a heap pointer
- * @param s The state to operate on
- * @param pointer The pointer to dereference
- * @parm entries The number of values expected (for checking; use 0 for strings)
- * @return A physical reference to the address pointed to, or NULL on error or
- * if not enugh entries were available.
- * reg_t dereferenciation also assures alignedness of data.
- */
-reg_t *kernel_dereference_reg_pointer(EngineState *s, reg_t pointer, int entries);
-byte *kernel_dereference_bulk_pointer(EngineState *s, reg_t pointer, int entries);
-#define kernel_dereference_char_pointer(state, pointer, entries) (char*)kernel_dereference_bulk_pointer(state, pointer, entries)
-
-/******************** Priority macros/functions ********************/
-/**
- * Finds the position of the priority band specified
- * Parameters: (EngineState *) s: State to search in
- * (int) band: Band to look for
- * Returns   : (int) Offset at which the band starts
- */
-int _find_priority_band(EngineState *s, int band);
-
-/**
- * Does the opposite of _find_priority_band
- * @param s Engine state
- * @param y Coordinate to check
- * @return The priority band y belongs to
- */
-int _find_view_priority(EngineState *s, int y);
-
-#define SCI0_VIEW_PRIORITY_14_ZONES(y) (((y) < s->priority_first)? 0 : (((y) >= s->priority_last)? 14 : 1\
-	+ ((((y) - s->priority_first) * 14) / (s->priority_last - s->priority_first))))
-
-#define SCI0_PRIORITY_BAND_FIRST_14_ZONES(nr) ((((nr) == 0)? 0 :  \
-	((s->priority_first) + (((nr)-1) * (s->priority_last - s->priority_first)) / 14)))
-
-#define SCI0_VIEW_PRIORITY(y) (((y) < s->priority_first)? 0 : (((y) >= s->priority_last)? 14 : 1\
-	+ ((((y) - s->priority_first) * 15) / (s->priority_last - s->priority_first))))
-
-#define SCI0_PRIORITY_BAND_FIRST(nr) ((((nr) == 0)? 0 :  \
-	((s->priority_first) + (((nr)-1) * (s->priority_last - s->priority_first)) / 15)))
-
-
-
-/******************** Dynamic view list functions ********************/
-/**
- * Determines the base rectangle of the specified view object
- * @param s The state to use
- * @param object The object to set
- * @return The absolute base rectangle
- */
-Common::Rect set_base(EngineState *s, reg_t object);
-
-/**
- * Determines the now-seen rectangle of a view object
- * @param s The state to use
- * @param object The object to check
- * @param clip Flag to determine wheter priority band clipping 
- * should be performed
- * @return The absolute rectangle describing the now-seen area.
- */
-extern Common::Rect get_nsrect(EngineState *s, reg_t object, byte clip);
-
-/**
- * Removes all views in anticipation of a new window or text 
- */
-void _k_dyn_view_list_prepare_change(EngineState *s);
-
-/**
- * Redraws all views after a new window or text was added 
- */
-void _k_dyn_view_list_accept_change(EngineState *s);
-
-
-
-
-/******************** Misc functions ********************/
-
-/**
- * Get all sound events, apply their changes to the heap 
- */
-void process_sound_events(EngineState *s);
-
-/**
- * Resolves an address into a list node
- * @param s The state to operate on
- * @param addr The address to resolve
- * @return The list node referenced, or NULL on error
- */
-Node *lookup_node(EngineState *s, reg_t addr);
-
-/**
- * Resolves a list pointer to a list
- * @param s The state to operate on
- * @param addr The address to resolve
- * @return The list referenced, or NULL on error
- */
-List *lookup_list(EngineState *s, reg_t addr);
-
-
-/******************** Constants ********************/
-
-/* Maximum length of a savegame name (including terminator character) */
+/* Maximum length of a savegame name (including terminator character). */
 #define SCI_MAX_SAVENAME_LENGTH 0x24
-
-/* Flags for the signal selector */
-#define _K_VIEW_SIG_FLAG_STOP_UPDATE    0x0001
-#define _K_VIEW_SIG_FLAG_UPDATED        0x0002
-#define _K_VIEW_SIG_FLAG_NO_UPDATE      0x0004
-#define _K_VIEW_SIG_FLAG_HIDDEN         0x0008
-#define _K_VIEW_SIG_FLAG_FIX_PRI_ON     0x0010
-#define _K_VIEW_SIG_FLAG_ALWAYS_UPDATE  0x0020
-#define _K_VIEW_SIG_FLAG_FORCE_UPDATE   0x0040
-#define _K_VIEW_SIG_FLAG_REMOVE         0x0080
-#define _K_VIEW_SIG_FLAG_FROZEN         0x0100
-#define _K_VIEW_SIG_FLAG_IS_EXTRA       0x0200
-#define _K_VIEW_SIG_FLAG_HIT_OBSTACLE   0x0400
-#define _K_VIEW_SIG_FLAG_DOESNT_TURN    0x0800
-#define _K_VIEW_SIG_FLAG_NO_CYCLER      0x1000
-#define _K_VIEW_SIG_FLAG_IGNORE_HORIZON 0x2000
-#define _K_VIEW_SIG_FLAG_IGNORE_ACTOR   0x4000
-#define _K_VIEW_SIG_FLAG_DISPOSE_ME     0x8000
-
-#define _K_VIEW_SIG_FLAG_STOPUPD 0x20000000 /* View has been stop-updated */
-
-
-/* Sound status */
-#define _K_SOUND_STATUS_STOPPED 0
-#define _K_SOUND_STATUS_INITIALIZED 1
-#define _K_SOUND_STATUS_PAUSED 2
-#define _K_SOUND_STATUS_PLAYING 3
-
-
-
-/* Kernel optimization flags */
-#define KERNEL_OPT_FLAG_GOT_EVENT (1<<0)
-#define KERNEL_OPT_FLAG_GOT_2NDEVENT (1<<1)
-
 
 /******************** Kernel functions ********************/
 
-// New kernel functions
-reg_t kStrLen(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetFarText(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kReadNumber(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kStrCat(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kStrCmp(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetSynonyms(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kLock(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kPalette(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNumCels(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNumLoops(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDrawCel(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCoordPri(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kPriCoord(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kShakeScreen(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetCursor(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kMoveCursor(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kShow(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kPicNotValid(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kOnControl(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDrawPic(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetPort(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetPort(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNewWindow(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDisposeWindow(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCelWide(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCelHigh(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetJump(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDirLoop(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDoAvoider(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetAngle(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetDistance(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kRandom(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAbs(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSqrt(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kTimesSin(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kTimesCos(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCosMult(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSinMult(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kTimesTan(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kTimesCot(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCosDiv(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSinDiv(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kValidPath(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFOpen(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFPuts(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFGets(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFClose(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kMapKeyToDir(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGlobalToLocal(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kLocalToGlobal(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kWait(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kRestartGame(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDeviceInfo(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetEvent(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCheckFreeSpace(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFlushResources(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetSaveFiles(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetDebug(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCheckSaveGame(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSaveGame(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kRestoreGame(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFileIO(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetTime(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kHaveMouse(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kJoystick(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGameIsRestarting(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetCWD(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSort(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kStrEnd(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kMemory(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAvoidPath(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kParse(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSaid(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kStrCpy(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kStrAt(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kEditControl(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDrawControl(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kHiliteControl(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kClone(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDisposeClone(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kCanBeHere(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetNowSeen(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kInitBresen(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDoBresen(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kBaseSetter(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAddToPic(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAnimate(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDisplay(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGraph(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFormat(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDoSound(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAddMenu(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetMenu(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetMenu(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDrawStatus(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDrawMenuBar(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kMenuSelect(EngineState *s, int funct_nr, int argc, reg_t *argv);
+reg_t kStrLen(EngineState *s, int argc, reg_t *argv);
+reg_t kGetFarText(EngineState *s, int argc, reg_t *argv);
+reg_t kReadNumber(EngineState *s, int argc, reg_t *argv);
+reg_t kStrCat(EngineState *s, int argc, reg_t *argv);
+reg_t kStrCmp(EngineState *s, int argc, reg_t *argv);
+reg_t kSetSynonyms(EngineState *s, int argc, reg_t *argv);
+reg_t kLock(EngineState *s, int argc, reg_t *argv);
+reg_t kPalette(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVary(EngineState *s, int argc, reg_t *argv);
+reg_t kAssertPalette(EngineState *s, int argc, reg_t *argv);
+reg_t kPortrait(EngineState *s, int argc, reg_t *argv);
+reg_t kNumCels(EngineState *s, int argc, reg_t *argv);
+reg_t kNumLoops(EngineState *s, int argc, reg_t *argv);
+reg_t kDrawCel(EngineState *s, int argc, reg_t *argv);
+reg_t kCoordPri(EngineState *s, int argc, reg_t *argv);
+reg_t kPriCoord(EngineState *s, int argc, reg_t *argv);
+reg_t kShakeScreen(EngineState *s, int argc, reg_t *argv);
+reg_t kSetCursor(EngineState *s, int argc, reg_t *argv);
+reg_t kMoveCursor(EngineState *s, int argc, reg_t *argv);
+reg_t kPicNotValid(EngineState *s, int argc, reg_t *argv);
+reg_t kOnControl(EngineState *s, int argc, reg_t *argv);
+reg_t kDrawPic(EngineState *s, int argc, reg_t *argv);
+reg_t kGetPort(EngineState *s, int argc, reg_t *argv);
+reg_t kSetPort(EngineState *s, int argc, reg_t *argv);
+reg_t kNewWindow(EngineState *s, int argc, reg_t *argv);
+reg_t kDisposeWindow(EngineState *s, int argc, reg_t *argv);
+reg_t kCelWide(EngineState *s, int argc, reg_t *argv);
+reg_t kCelHigh(EngineState *s, int argc, reg_t *argv);
+reg_t kSetJump(EngineState *s, int argc, reg_t *argv);
+reg_t kDirLoop(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAvoider(EngineState *s, int argc, reg_t *argv);
+reg_t kGetAngle(EngineState *s, int argc, reg_t *argv);
+reg_t kGetDistance(EngineState *s, int argc, reg_t *argv);
+reg_t kRandom(EngineState *s, int argc, reg_t *argv);
+reg_t kAbs(EngineState *s, int argc, reg_t *argv);
+reg_t kSqrt(EngineState *s, int argc, reg_t *argv);
+reg_t kTimesSin(EngineState *s, int argc, reg_t *argv);
+reg_t kTimesCos(EngineState *s, int argc, reg_t *argv);
+reg_t kCosMult(EngineState *s, int argc, reg_t *argv);
+reg_t kSinMult(EngineState *s, int argc, reg_t *argv);
+reg_t kTimesTan(EngineState *s, int argc, reg_t *argv);
+reg_t kTimesCot(EngineState *s, int argc, reg_t *argv);
+reg_t kCosDiv(EngineState *s, int argc, reg_t *argv);
+reg_t kSinDiv(EngineState *s, int argc, reg_t *argv);
+reg_t kValidPath(EngineState *s, int argc, reg_t *argv);
+reg_t kFOpen(EngineState *s, int argc, reg_t *argv);
+reg_t kFPuts(EngineState *s, int argc, reg_t *argv);
+reg_t kFGets(EngineState *s, int argc, reg_t *argv);
+reg_t kFClose(EngineState *s, int argc, reg_t *argv);
+reg_t kMapKeyToDir(EngineState *s, int argc, reg_t *argv);
+reg_t kGlobalToLocal(EngineState *s, int argc, reg_t *argv);
+reg_t kLocalToGlobal(EngineState *s, int argc, reg_t *argv);
+reg_t kWait(EngineState *s, int argc, reg_t *argv);
+reg_t kRestartGame(EngineState *s, int argc, reg_t *argv);
+reg_t kDeviceInfo(EngineState *s, int argc, reg_t *argv);
+reg_t kGetEvent(EngineState *s, int argc, reg_t *argv);
+reg_t kCheckFreeSpace(EngineState *s, int argc, reg_t *argv);
+reg_t kFlushResources(EngineState *s, int argc, reg_t *argv);
+reg_t kGetSaveFiles(EngineState *s, int argc, reg_t *argv);
+reg_t kSetDebug(EngineState *s, int argc, reg_t *argv);
+reg_t kCheckSaveGame(EngineState *s, int argc, reg_t *argv);
+reg_t kSaveGame(EngineState *s, int argc, reg_t *argv);
+reg_t kRestoreGame(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIO(EngineState *s, int argc, reg_t *argv);
+reg_t kGetTime(EngineState *s, int argc, reg_t *argv);
+reg_t kHaveMouse(EngineState *s, int argc, reg_t *argv);
+reg_t kJoystick(EngineState *s, int argc, reg_t *argv);
+reg_t kGameIsRestarting(EngineState *s, int argc, reg_t *argv);
+reg_t kGetCWD(EngineState *s, int argc, reg_t *argv);
+reg_t kSort(EngineState *s, int argc, reg_t *argv);
+reg_t kStrEnd(EngineState *s, int argc, reg_t *argv);
+reg_t kMemory(EngineState *s, int argc, reg_t *argv);
+reg_t kAvoidPath(EngineState *s, int argc, reg_t *argv);
+reg_t kParse(EngineState *s, int argc, reg_t *argv);
+reg_t kSaid(EngineState *s, int argc, reg_t *argv);
+reg_t kStrCpy(EngineState *s, int argc, reg_t *argv);
+reg_t kStrAt(EngineState *s, int argc, reg_t *argv);
+reg_t kEditControl(EngineState *s, int argc, reg_t *argv);
+reg_t kDrawControl(EngineState *s, int argc, reg_t *argv);
+reg_t kHiliteControl(EngineState *s, int argc, reg_t *argv);
+reg_t kClone(EngineState *s, int argc, reg_t *argv);
+reg_t kDisposeClone(EngineState *s, int argc, reg_t *argv);
+reg_t kCanBeHere(EngineState *s, int argc, reg_t *argv);
+reg_t kCantBeHere(EngineState *s, int argc, reg_t *argv);
+reg_t kSetNowSeen(EngineState *s, int argc, reg_t *argv);
+reg_t kInitBresen(EngineState *s, int argc, reg_t *argv);
+reg_t kDoBresen(EngineState *s, int argc, reg_t *argv);
+reg_t kBaseSetter(EngineState *s, int argc, reg_t *argv);
+reg_t kAddToPic(EngineState *s, int argc, reg_t *argv);
+reg_t kAnimate(EngineState *s, int argc, reg_t *argv);
+reg_t kDisplay(EngineState *s, int argc, reg_t *argv);
+reg_t kGraph(EngineState *s, int argc, reg_t *argv);
+reg_t kFormat(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSound(EngineState *s, int argc, reg_t *argv);
+reg_t kAddMenu(EngineState *s, int argc, reg_t *argv);
+reg_t kSetMenu(EngineState *s, int argc, reg_t *argv);
+reg_t kGetMenu(EngineState *s, int argc, reg_t *argv);
+reg_t kDrawStatus(EngineState *s, int argc, reg_t *argv);
+reg_t kDrawMenuBar(EngineState *s, int argc, reg_t *argv);
+reg_t kMenuSelect(EngineState *s, int argc, reg_t *argv);
 
-reg_t kLoad(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kUnLoad(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kScriptID(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDisposeScript(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kIsObject(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kRespondsTo(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNewList(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDisposeList(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNewNode(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFirstNode(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kLastNode(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kEmptyList(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNextNode(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kPrevNode(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kNodeValue(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAddAfter(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAddToFront(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kAddToEnd(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kFindKey(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDeleteKey(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kMemoryInfo(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kGetSaveDir(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kTextSize(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kIsItSkip(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kMessage(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDoAudio(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kDoSync(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kResCheck(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetQuitStr(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kShowMovie(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t kSetVideoMode(EngineState *s, int funct_nr, int argc, reg_t *argv);
-reg_t k_Unknown(EngineState *s, int funct_nr, int argc, reg_t *argv);
+reg_t kLoad(EngineState *s, int argc, reg_t *argv);
+reg_t kUnLoad(EngineState *s, int argc, reg_t *argv);
+reg_t kScriptID(EngineState *s, int argc, reg_t *argv);
+reg_t kDisposeScript(EngineState *s, int argc, reg_t *argv);
+reg_t kIsObject(EngineState *s, int argc, reg_t *argv);
+reg_t kRespondsTo(EngineState *s, int argc, reg_t *argv);
+reg_t kNewList(EngineState *s, int argc, reg_t *argv);
+reg_t kDisposeList(EngineState *s, int argc, reg_t *argv);
+reg_t kNewNode(EngineState *s, int argc, reg_t *argv);
+reg_t kFirstNode(EngineState *s, int argc, reg_t *argv);
+reg_t kLastNode(EngineState *s, int argc, reg_t *argv);
+reg_t kEmptyList(EngineState *s, int argc, reg_t *argv);
+reg_t kNextNode(EngineState *s, int argc, reg_t *argv);
+reg_t kPrevNode(EngineState *s, int argc, reg_t *argv);
+reg_t kNodeValue(EngineState *s, int argc, reg_t *argv);
+reg_t kAddAfter(EngineState *s, int argc, reg_t *argv);
+reg_t kAddToFront(EngineState *s, int argc, reg_t *argv);
+reg_t kAddToEnd(EngineState *s, int argc, reg_t *argv);
+reg_t kFindKey(EngineState *s, int argc, reg_t *argv);
+reg_t kDeleteKey(EngineState *s, int argc, reg_t *argv);
+reg_t kMemoryInfo(EngineState *s, int argc, reg_t *argv);
+reg_t kGetSaveDir(EngineState *s, int argc, reg_t *argv);
+reg_t kTextSize(EngineState *s, int argc, reg_t *argv);
+reg_t kIsItSkip(EngineState *s, int argc, reg_t *argv);
+reg_t kGetMessage(EngineState *s, int argc, reg_t *argv);
+reg_t kMessage(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudio(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSync(EngineState *s, int argc, reg_t *argv);
+reg_t kMemorySegment(EngineState *s, int argc, reg_t *argv);
+reg_t kIntersections(EngineState *s, int argc, reg_t *argv);
+reg_t kMergePoly(EngineState *s, int argc, reg_t *argv);
+reg_t kResCheck(EngineState *s, int argc, reg_t *argv);
+reg_t kSetQuitStr(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovie(EngineState *s, int argc, reg_t *argv);
+reg_t kSetVideoMode(EngineState *s, int argc, reg_t *argv);
+reg_t kStrSplit(EngineState *s, int argc, reg_t *argv);
+reg_t kPlatform(EngineState *s, int argc, reg_t *argv);
+reg_t kTextColors(EngineState *s, int argc, reg_t *argv);
+reg_t kTextFonts(EngineState *s, int argc, reg_t *argv);
+reg_t kShow(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColors(EngineState *s, int argc, reg_t *argv);
+reg_t kDummy(EngineState *s, int argc, reg_t *argv);
+reg_t kEmpty(EngineState *s, int argc, reg_t *argv);
+reg_t kStub(EngineState *s, int argc, reg_t *argv);
+reg_t kStubNull(EngineState *s, int argc, reg_t *argv);
 
-// The Unknown/Unnamed kernel function
-reg_t kStub(EngineState *s, int funct_nr, int argc, reg_t *argv);
-// for unimplemented kernel functions
-reg_t kNOP(EngineState *s, int funct_nr, int argc, reg_t *argv);
-// for kernel functions that don't do anything
+#ifdef ENABLE_SCI32
+// SCI2 Kernel Functions
+reg_t kIsHiRes(EngineState *s, int argc, reg_t *argv);
+reg_t kArray(EngineState *s, int argc, reg_t *argv);
+reg_t kListAt(EngineState *s, int argc, reg_t *argv);
+reg_t kString(EngineState *s, int argc, reg_t *argv);
+reg_t kMulDiv(EngineState *s, int argc, reg_t *argv);
+reg_t kCantBeHere32(EngineState *s, int argc, reg_t *argv);
+// "Screen items" in SCI32 are views
+reg_t kAddScreenItem(EngineState *s, int argc, reg_t *argv);
+reg_t kUpdateScreenItem(EngineState *s, int argc, reg_t *argv);
+reg_t kDeleteScreenItem(EngineState *s, int argc, reg_t *argv);
+// Text
+reg_t kCreateTextBitmap(EngineState *s, int argc, reg_t *argv);
+// "Planes" in SCI32 are pictures
+reg_t kAddPlane(EngineState *s, int argc, reg_t *argv);
+reg_t kDeletePlane(EngineState *s, int argc, reg_t *argv);
+reg_t kUpdatePlane(EngineState *s, int argc, reg_t *argv);
+reg_t kRepaintPlane(EngineState *s, int argc, reg_t *argv);
+reg_t kSetShowStyle(EngineState *s, int argc, reg_t *argv);
+reg_t kGetHighPlanePri(EngineState *s, int argc, reg_t *argv);
+reg_t kFrameOut(EngineState *s, int argc, reg_t *argv);
+reg_t kIsOnMe(EngineState *s, int argc, reg_t *argv); // kOnMe for SCI2, kIsOnMe for SCI2.1
+reg_t kListIndexOf(EngineState *s, int argc, reg_t *argv);
+reg_t kListEachElementDo(EngineState *s, int argc, reg_t *argv);
+reg_t kListFirstTrue(EngineState *s, int argc, reg_t *argv);
+reg_t kListAllTrue(EngineState *s, int argc, reg_t *argv);
+reg_t kInPolygon(EngineState *s, int argc, reg_t *argv);
 
+// SCI2.1 Kernel Functions
+reg_t kText(EngineState *s, int argc, reg_t *argv);
+reg_t kSave(EngineState *s, int argc, reg_t *argv);
+reg_t kList(EngineState *s, int argc, reg_t *argv);
+reg_t kRobot(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv);
+reg_t kCD(EngineState *s, int argc, reg_t *argv);
+reg_t kAddPicAt(EngineState *s, int argc, reg_t *argv);
+reg_t kAddBefore(EngineState *s, int argc, reg_t *argv);
+reg_t kMoveToFront(EngineState *s, int argc, reg_t *argv);
+reg_t kMoveToEnd(EngineState *s, int argc, reg_t *argv);
+reg_t kGetWindowsOption(EngineState *s, int argc, reg_t *argv);
+reg_t kWinHelp(EngineState *s, int argc, reg_t *argv);
+reg_t kGetConfig(EngineState *s, int argc, reg_t *argv);
+reg_t kCelInfo(EngineState *s, int argc, reg_t *argv);
+reg_t kSetLanguage(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindow(EngineState *s, int argc, reg_t *argv);
+reg_t kSetFontRes(EngineState *s, int argc, reg_t *argv);
+reg_t kFont(EngineState *s, int argc, reg_t *argv);
+#endif
+
+reg_t kDoSoundInit(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundPlay(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundRestore(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundDispose(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundStopAll(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundResumeAfterRestore(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundUpdate(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundFade(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundGetPolyphony(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundUpdateCues(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundSetHold(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundDummy(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundSetVolume(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundSetPriority(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundSetLoop(EngineState *s, int argc, reg_t *argv);
+
+reg_t kGraphGetColorCount(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphDrawLine(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphSaveBox(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphRestoreBox(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphFillBoxBackground(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphFillBoxForeground(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphFillBoxAny(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphUpdateBox(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphRedrawBox(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphAdjustPriority(EngineState *s, int argc, reg_t *argv);
+reg_t kGraphSaveUpscaledHiresBox(EngineState *s, int argc, reg_t *argv);
+
+reg_t kPalVaryInit(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryReverse(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryGetCurrentStep(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryDeinit(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryChangeTarget(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryChangeTicks(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryPauseResume(EngineState *s, int argc, reg_t *argv);
+reg_t kPalVaryUnknown(EngineState *s, int argc, reg_t *argv);
+
+reg_t kPaletteSetFromResource(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteSetFlag(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteUnsetFlag(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteSetIntensity(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteFindColor(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteAnimate(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteSave(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteRestore(EngineState *s, int argc, reg_t *argv);
+
+reg_t kFileIOOpen(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOClose(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOReadRaw(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOWriteRaw(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOUnlink(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOReadString(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOWriteString(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOSeek(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOFindFirst(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOFindNext(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOExists(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIORename(EngineState *s, int argc, reg_t *argv);
+#ifdef ENABLE_SCI32
+reg_t kFileIOReadByte(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOWriteByte(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOReadWord(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOWriteWord(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOCreateSaveSlot(EngineState *s, int argc, reg_t *argv);
+#endif
+
+//@}
 
 } // End of namespace Sci
 
-#endif // SCI_ENGIENE_KERNEL_H
+#endif // SCI_ENGINE_KERNEL_H

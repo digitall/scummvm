@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/animseq.h"
@@ -213,8 +210,7 @@ AnimationSequence::AnimationSequence(uint16 screenId, Palette &palette,  bool fa
 }
 
 AnimationSequence::~AnimationSequence() {
-	if (_lineRefs != NULL)
-		delete _lineRefs;
+	delete _lineRefs;
 	delete _decodedData;
 
 	// Renable GMM saving/loading now that the animation is done
@@ -281,4 +277,4 @@ bool AnimationSequence::step() {
 	return true;
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

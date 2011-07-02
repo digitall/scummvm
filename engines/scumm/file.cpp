@@ -18,16 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "scumm/file.h"
 
 #include "scumm/scumm.h"
 
-using Common::File;
+#include "common/memstream.h"
+#include "common/substream.h"
 
 namespace Scumm {
 
@@ -35,11 +33,7 @@ namespace Scumm {
 #pragma mark --- ScummFile ---
 #pragma mark -
 
-ScummFile::ScummFile() : _encbyte(0), _subFileStart(0), _subFileLen(0) {
-}
-
-void ScummFile::setEnc(byte value) {
-	_encbyte = value;
+ScummFile::ScummFile() : _subFileStart(0), _subFileLen(0) {
 }
 
 void ScummFile::setSubfileRange(int32 start, int32 len) {
@@ -248,10 +242,6 @@ ScummDiskImage::ScummDiskImage(const char *disk1, const char *disk2, GameSetting
 	}
 }
 
-void ScummDiskImage::setEnc(byte enc) {
-	_stream->setEnc(enc);
-}
-
 byte ScummDiskImage::fileReadByte() {
 	byte b = 0;
 	File::read(&b, 1);
@@ -399,9 +389,7 @@ bool ScummDiskImage::generateIndex() {
 
 	extractIndex(&out);
 
-	if (_stream)
-		delete _stream;
-
+	delete _stream;
 	_stream = new Common::MemoryReadStream(_buf, bufsize);
 
 	return true;
@@ -433,8 +421,12 @@ uint16 ScummDiskImage::extractResource(Common::WriteStream *out, int res) {
 	}
 
 	for (i = 0; i < _resourcesPerFile[res]; i++) {
-		uint16 len = fileReadUint16LE();
-		reslen += write_word(out, len);
+		uint16 len;
+		do {
+			// Note: len might be 0xFFFF for padding in zak-c64-german
+			len = fileReadUint16LE();
+			reslen += write_word(out, len);
+		} while (len == 0xFFFF);
 
 		for (len -= 2; len > 0; len--)
 			reslen += write_byte(out, fileReadByte());
@@ -495,6 +487,19 @@ bool ScummDiskImage::openSubFile(const Common::String &filename) {
 	}
 
 	return true;
+}
+
+uint32 ScummDiskImage::read(void *dataPtr, uint32 dataSize) {
+	uint32 realLen = _stream->read(dataPtr, dataSize);
+
+	if (_encbyte) {
+		byte *p = (byte *)dataPtr;
+		byte *end = p + realLen;
+		while (p < end)
+			*p++ ^= _encbyte;
+	}
+
+	return realLen;
 }
 
 } // End of namespace Scumm

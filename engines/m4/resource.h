@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_RESOURCE_H
@@ -90,11 +87,11 @@ protected:
 	typedef Common::List<Common::SharedPtr<Resource> > ResourceList;
 	typedef ResourceList::iterator ResourceIterator;
 	ResourceList _resources;
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 
 	virtual Common::SeekableReadStream *loadResource(const char *resourceName, bool loadFlag) = 0;
 public:
-	ResourceManager(M4Engine *vm): _vm(vm) {};
+	ResourceManager(MadsM4Engine *vm): _vm(vm) {}
 	virtual ~ResourceManager();
 
 	Common::SeekableReadStream *get(const char *resourceName, bool loadFlag = true);
@@ -112,22 +109,31 @@ public:
 enum ResourceType {RESTYPE_ROOM, RESTYPE_SC, RESTYPE_TEXT, RESTYPE_QUO, RESTYPE_I,
 	RESTYPE_OB, RESTYPE_FONT, RESTYPE_SOUND, RESTYPE_SPEECH, RESTYPE_HAS_EXT, RESTYPE_NO_EXT};
 
-class MADSResourceManager: public ResourceManager {
+enum ExtensionType {EXTTYPE_SS = 1, EXTTYPE_AA = 2, EXTTYPE_DAT = 3, EXTTYPE_HH = 4, EXTTYPE_ART = 5,
+	EXTTYPE_INT = 6, EXTTYPE_NONE = -1};
+
+enum ResourcePrefixType {RESPREFIX_GL = 1, RESPREFIX_SC = 2, RESPREFIX_RM = 3};
+
+class MADSResourceManager : public ResourceManager {
 private:
 	ResourceType getResourceType(const char *resourceName);
 	const char *getResourceFilename(const char *resourceName);
 protected:
 	Common::SeekableReadStream *loadResource(const char *resourceName, bool loadFlag);
 public:
-	MADSResourceManager(M4Engine *vm): ResourceManager(vm) {};
+	MADSResourceManager(MadsM4Engine *vm): ResourceManager(vm) {}
 	bool resourceExists(const char *resourceName);
+
+	static const char *getResourceName(char asciiCh, int prefix, ExtensionType extType, const char *suffix, int index);
+	static const char *getResourceName(ResourcePrefixType prefixType, int idx, const char *extension);
+	static const char *getAAName(int index);
 };
 
-class M4ResourceManager: public ResourceManager {
+class M4ResourceManager : public ResourceManager {
 protected:
 	Common::SeekableReadStream *loadResource(const char *resourceName, bool loadFlag);
 public:
-	M4ResourceManager(M4Engine *vm);
+	M4ResourceManager(MadsM4Engine *vm);
 	~M4ResourceManager();
 	bool resourceExists(const char *resourceName);
 

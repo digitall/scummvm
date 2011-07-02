@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // TODO: There is a 'please_hyperwalk' variable that gets accessed that is meant to be global, but
@@ -44,12 +41,21 @@ bool please_hyperwalk = false;
  * Implements an interface to the event system								*
  *--------------------------------------------------------------------------*/
 
-Events::Events(M4Engine *vm) : _vm(vm) {
+Events::Events(MadsM4Engine *vm) : _vm(vm) {
 	_mouseState = MSTATE_NO_EVENT;
 	quitFlag = false;
 	_keyCode = 0;
-	_console = new Console(_vm);
 	_mouseButtons = 0;
+	_ctrlFlag = false;
+
+	if (_vm->isM4())
+		_console = new M4Console(_m4Vm);
+	else
+		_console = new MadsConsole(_madsVm);
+}
+
+Events::~Events() {
+	delete _console;
 }
 
 M4EventType Events::handleEvents() {
@@ -63,12 +69,20 @@ M4EventType Events::handleEvents() {
 			quitFlag = true;
 			break;
 		case Common::EVENT_KEYDOWN:
-			if (_event.kbd.flags == Common::KBD_CTRL) {
-				if (_event.kbd.keycode == Common::KEYCODE_d)
+			// Note: The Ctrl-D ScummVM shortcut has been specialised so it will only activate the debugger
+			// if it's the first key pressed after the Ctrl key is held down
+			if ((_event.kbd.keycode == Common::KEYCODE_LCTRL) || (_event.kbd.keycode == Common::KEYCODE_RCTRL))
+				_ctrlFlag = true;
+
+			else if (_event.kbd.hasFlags(Common::KBD_CTRL)) {
+				if ((_event.kbd.keycode == Common::KEYCODE_d) && _ctrlFlag) {
 					_console->attach();
 					_console->onFrame();
+				}
+				_ctrlFlag = false;
 			}
-			_keyCode = (int)_event.kbd.keycode;
+			_keyCode = (int32)_event.kbd.keycode | ((_event.kbd.flags & (Common::KBD_CTRL | Common::KBD_ALT | Common::KBD_SHIFT)) << 24);
+
 
 			break;
 		case Common::EVENT_LBUTTONDOWN:
@@ -168,7 +182,7 @@ bool Events::kbdCheck(uint32 &keyCode) {
  * Implements an interface to the mouse										*
  *--------------------------------------------------------------------------*/
 
-Mouse::Mouse(M4Engine *vm) : _vm(vm) {
+Mouse::Mouse(MadsM4Engine *vm) : _vm(vm) {
 	_locked = false;
 	_cursorOn = false;
 	_cursor = NULL;
@@ -177,8 +191,7 @@ Mouse::Mouse(M4Engine *vm) : _vm(vm) {
 }
 
 Mouse::~Mouse() {
-	if (_cursorSprites)
-		delete _cursorSprites;
+	delete _cursorSprites;
 }
 
 bool Mouse::init(const char *seriesName, RGB8 *palette) {
@@ -219,7 +232,7 @@ bool Mouse::init(const char *seriesName, RGB8 *palette) {
 	cursorPalette = _cursorSprites->getPalette();
 	_vm->_palette->setPalette(cursorPalette, 0, colorCount);
 
-	//printf("Cursor count: %d\n", _cursorSprites->getCount());
+	//debugCN(kDebugCore, "Cursor count: %d\n", _cursorSprites->getCount());
 
 	_vm->res()->toss(seriesName);
 
@@ -240,7 +253,8 @@ bool Mouse::setCursorNum(int cursorIndex) {
 	_cursor = _cursorSprites->getFrame(cursorIndex);
 
 	// Set the cursor to the sprite
-	CursorMan.replaceCursor((const byte *)_cursor->getData(), _cursor->w, _cursor->h, _cursor->xOffset, _cursor->yOffset, 0);
+	CursorMan.replaceCursor((const byte *)_cursor->getBasePtr(), _cursor->width(), _cursor->height(),
+		_cursor->xOffset, _cursor->yOffset, TRANSPARENT_COLOR_INDEX);
 
 	return true;
 }

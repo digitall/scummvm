@@ -18,31 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_lok.h"
-
-#include "common/file.h"
-#include "common/system.h"
-#include "common/savefile.h"
-#include "common/config-manager.h"
-
-#include "gui/message.h"
-
 #include "kyra/resource.h"
-#include "kyra/screen.h"
-#include "kyra/script.h"
 #include "kyra/seqplayer.h"
-#include "kyra/sound.h"
 #include "kyra/sprites.h"
-#include "kyra/wsamovie.h"
 #include "kyra/animator_lok.h"
-#include "kyra/text.h"
 #include "kyra/debugger.h"
 #include "kyra/timer.h"
+#include "kyra/sound.h"
+
+#include "common/system.h"
+#include "common/config-manager.h"
+#include "common/debug-channels.h"
+
+#include "gui/message.h"
 
 namespace Kyra {
 
@@ -75,11 +66,12 @@ KyraEngine_LoK::KyraEngine_LoK(OSystem *system, const GameFlags &flags)
 	_winterScrollTableSize = _winterScroll1TableSize = _winterScroll2TableSize = 0;
 	_drinkAnimationTable = _brandonToWispTable = _magicAnimationTable = _brandonStoneTable = 0;
 	_drinkAnimationTableSize = _brandonToWispTableSize = _magicAnimationTableSize = _brandonStoneTableSize = 0;
-	memset(&_specialPalettes, 0, sizeof(_specialPalettes));
+	_specialPalettes = 0;
 	_sprites = 0;
 	_animator = 0;
 	_seq = 0;
 	_characterList = 0;
+	_roomTable = 0;
 	_movFacingTable = 0;
 	_buttonData = 0;
 	_buttonDataListPtr = 0;
@@ -90,10 +82,22 @@ KyraEngine_LoK::KyraEngine_LoK(OSystem *system, const GameFlags &flags)
 	memset(_panPagesTable, 0, sizeof(_panPagesTable));
 	memset(_sceneAnimTable, 0, sizeof(_sceneAnimTable));
 	_currHeadShape = 0;
+	_currentHeadFrameTableIndex = 0;
 	_speechPlayTime = 0;
 	_seqPlayerFlag = false;
 
+	memset(&_characterFacingZeroCount, 0, sizeof(_characterFacingZeroCount));
+	memset(&_characterFacingFourCount, 0, sizeof(_characterFacingFourCount));
+
 	memset(&_itemBkgBackUp, 0, sizeof(_itemBkgBackUp));
+
+	_beadStateTimer1 = _beadStateTimer2 = 0;
+	memset(&_beadState1, 0, sizeof(_beadState1));
+	_beadState1.x = -1;
+	memset(&_beadState2, 0, sizeof(_beadState2));
+
+	_malcolmFrame = 0;
+	_malcolmTimer1 = _malcolmTimer2 = 0;
 }
 
 KyraEngine_LoK::~KyraEngine_LoK() {
@@ -110,7 +114,7 @@ KyraEngine_LoK::~KyraEngine_LoK() {
 		_emc->unload(&_scriptClickData);
 	}
 
-	Common::clearAllDebugChannels();
+	DebugMan.clearAllDebugChannels();
 
 	delete _screen;
 	delete _sprites;
@@ -124,6 +128,8 @@ KyraEngine_LoK::~KyraEngine_LoK() {
 	delete[] _movFacingTable;
 
 	delete[] _defaultShapeTable;
+
+	delete[] _specialPalettes;
 
 	delete[] _gui->_scrollUpButton.data0ShapePtr;
 	delete[] _gui->_scrollUpButton.data1ShapePtr;
@@ -183,8 +189,13 @@ Common::Error KyraEngine_LoK::init() {
 
 	_sound->setSoundList(&_soundData[kMusicIntro]);
 
-	_trackMap = _dosTrackMap;
-	_trackMapSize = _dosTrackMapSize;
+	if (_flags.platform == Common::kPlatformAmiga) {
+		_trackMap = _amigaTrackMap;
+		_trackMapSize = _amigaTrackMapSize;
+	} else {
+		_trackMap = _dosTrackMap;
+		_trackMapSize = _dosTrackMapSize;
+	}
 
 	if (!_sound->init())
 		error("Couldn't init sound");
@@ -225,6 +236,7 @@ Common::Error KyraEngine_LoK::init() {
 
 	_talkingCharNum = -1;
 	_charSayUnk3 = -1;
+	_disabledTalkAnimObject = _enabledTalkAnimObject = 0;
 	memset(_currSentenceColor, 0, 3);
 	_startSentencePalIndex = -1;
 	_fadeText = false;
@@ -237,7 +249,7 @@ Common::Error KyraEngine_LoK::init() {
 	_brandonPosX = _brandonPosY = -1;
 	_poisonDeathCounter = 0;
 
-	memset(_itemTable, 0, sizeof(_itemTable));
+	memset(_itemHtDat, 0, sizeof(_itemHtDat));
 	memset(_exitList, 0xFFFF, sizeof(_exitList));
 	_exitListPtr = 0;
 	_pathfinderFlag = _pathfinderFlag2 = 0;
@@ -250,7 +262,7 @@ Common::Error KyraEngine_LoK::init() {
 
 	_marbleVaseItem = -1;
 	memset(_foyerItemTable, -1, sizeof(_foyerItemTable));
-	_itemInHand = -1;
+	_itemInHand = kItemNone;
 
 	_currentRoom = 0xFFFF;
 	_scenePhasingFlag = 0;
@@ -288,11 +300,14 @@ Common::Error KyraEngine_LoK::go() {
 	if (_res->getFileSize("6.FNT"))
 		_screen->loadFont(Screen::FID_6_FNT, "6.FNT");
 	_screen->loadFont(Screen::FID_8_FNT, "8FAT.FNT");
+
+	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+
 	_screen->setScreenDim(0);
 
 	_abortIntroFlag = false;
 
-	if (_flags.isDemo) {
+	if (_flags.isDemo && !_flags.isTalkie) {
 		_seqPlayerFlag = true;
 		seq_demo();
 		_seqPlayerFlag = false;
@@ -303,11 +318,18 @@ Common::Error KyraEngine_LoK::go() {
 			setGameFlag(0xEF);
 			_seqPlayerFlag = true;
 			seq_intro();
+			_seqPlayerFlag = false;
+
+			if (_flags.isDemo) {
+				_screen->fadeToBlack();
+				return Common::kNoError;
+			}
+
 			if (shouldQuit())
 				return Common::kNoError;
-			if (_skipIntroFlag && _abortIntroFlag)
+
+			if (_skipIntroFlag && _abortIntroFlag && saveFileLoadable(0))
 				resetGameFlag(0xEF);
-			_seqPlayerFlag = false;
 		}
 		_eventList.clear();
 		startup();
@@ -321,8 +343,13 @@ Common::Error KyraEngine_LoK::go() {
 void KyraEngine_LoK::startup() {
 	static const uint8 colorMap[] = { 0, 0, 0, 0, 12, 12, 12, 0, 0, 0, 0, 0 };
 	_screen->setTextColorMap(colorMap);
+
 	_sound->setSoundList(&_soundData[kMusicIngame]);
-	_sound->loadSoundFile(0);
+	if (_flags.platform == Common::kPlatformPC98)
+		_sound->loadSoundFile("SE.DAT");
+	else
+		_sound->loadSoundFile(0);
+
 //	_screen->setFont(Screen::FID_6_FNT);
 	_screen->setAnimBlockPtr(3750);
 	memset(_sceneAnimTable, 0, sizeof(_sceneAnimTable));
@@ -348,7 +375,7 @@ void KyraEngine_LoK::startup() {
 
 	for (int i = 0; i < _roomTableSize; ++i) {
 		for (int item = 0; item < 12; ++item) {
-			_roomTable[i].itemsTable[item] = 0xFF;
+			_roomTable[i].itemsTable[item] = kItemNone;
 			_roomTable[i].itemsXPos[item] = 0xFFFF;
 			_roomTable[i].itemsYPos[item] = 0xFF;
 			_roomTable[i].needInit[item] = 0;
@@ -362,6 +389,9 @@ void KyraEngine_LoK::startup() {
 	initMainButtonList();
 	loadMainScreen();
 	_screen->loadPalette("PALETTE.COL", _screen->getPalette(0));
+
+	if (_flags.platform == Common::kPlatformAmiga)
+		_screen->loadPaletteTable("PALETTE.DAT", 6);
 
 	// XXX
 	_animator->initAnimStateList();
@@ -385,16 +415,17 @@ void KyraEngine_LoK::startup() {
 	snd_playTheme(1, -1);
 	if (_gameToLoad == -1) {
 		enterNewScene(_currentCharacter->sceneId, _currentCharacter->facing, 0, 0, 1);
-		if (_abortIntroFlag && _skipIntroFlag) {
+		if (_abortIntroFlag && _skipIntroFlag && saveFileLoadable(0)) {
 			_menuDirectlyToLoad = true;
 			_screen->setMouseCursor(1, 1, _shapes[0]);
 			_screen->showMouse();
 			_gui->buttonMenuCallback(0);
 			_menuDirectlyToLoad = false;
-		} else
-			saveGameState(0, "New game", 0);
+		} else if (!shouldQuit()) {
+			saveGameStateIntern(0, "New game", 0);
+		}
 	} else {
-		_screen->setFont(Screen::FID_8_FNT);
+		_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
 		loadGameStateCheck(_gameToLoad);
 		_gameToLoad = -1;
 	}
@@ -453,7 +484,7 @@ void KyraEngine_LoK::mainLoop() {
 }
 
 void KyraEngine_LoK::delayUntil(uint32 timestamp, bool updateTimers, bool update, bool isMainLoop) {
-	while (_system->getMillis() < timestamp && !shouldQuit()) {
+	while (_system->getMillis() < timestamp && !shouldQuit() && !skipFlag()) {
 		if (updateTimers)
 			_timer->update();
 
@@ -463,8 +494,6 @@ void KyraEngine_LoK::delayUntil(uint32 timestamp, bool updateTimers, bool update
 }
 
 void KyraEngine_LoK::delay(uint32 amount, bool update, bool isMainLoop) {
-	Common::Event event;
-
 	uint32 start = _system->getMillis();
 	do {
 		if (update) {
@@ -472,6 +501,8 @@ void KyraEngine_LoK::delay(uint32 amount, bool update, bool isMainLoop) {
 			_animator->updateAllObjectShapes();
 			updateTextFade();
 			updateMousePointer();
+		} else {
+			_screen->updateScreen();
 		}
 
 		_isSaveAllowed = isMainLoop;
@@ -503,6 +534,14 @@ void KyraEngine_LoK::delay(uint32 amount, bool update, bool isMainLoop) {
 
 bool KyraEngine_LoK::skipFlag() const {
 	return KyraEngine_v1::skipFlag() || shouldQuit();
+}
+
+void KyraEngine_LoK::resetSkipFlag(bool removeEvent) {
+	if (removeEvent) {
+		_eventList.clear();
+	} else {
+		KyraEngine_v1::resetSkipFlag(false);
+	}
 }
 
 void KyraEngine_LoK::delayWithTicks(int ticks) {
@@ -635,12 +674,13 @@ void KyraEngine_LoK::processInput(int xpos, int ypos) {
 				runNpcScript(script);
 				return;
 			}
-			if (_itemInHand != -1) {
+			if (_itemInHand != kItemNone) {
 				if (ypos < 155) {
 					if (hasClickedOnExit(xpos, ypos)) {
 						handleSceneChange(xpos, ypos, 1, 1);
 						return;
 					}
+
 					dropItem(0, _itemInHand, xpos, ypos, 1);
 				}
 			} else {
@@ -654,17 +694,17 @@ void KyraEngine_LoK::processInput(int xpos, int ypos) {
 int KyraEngine_LoK::processInputHelper(int xpos, int ypos) {
 	uint8 item = findItemAtPos(xpos, ypos);
 	if (item != 0xFF) {
-		if (_itemInHand == -1) {
+		if (_itemInHand == kItemNone) {
 			_screen->hideMouse();
 			_animator->animRemoveGameItem(item);
 			snd_playSoundEffect(53);
 			assert(_currentCharacter->sceneId < _roomTableSize);
 			Room *currentRoom = &_roomTable[_currentCharacter->sceneId];
 			int item2 = currentRoom->itemsTable[item];
-			currentRoom->itemsTable[item] = 0xFF;
+			currentRoom->itemsTable[item] = kItemNone;
 			setMouseItem(item2);
 			assert(_itemList && _takenList);
-			updateSentenceCommand(_itemList[item2], _takenList[0], 179);
+			updateSentenceCommand(_itemList[getItemListIndex(item2)], _takenList[0], 179);
 			_itemInHand = item2;
 			_screen->showMouse();
 			clickEventHandler2();
@@ -793,7 +833,7 @@ void KyraEngine_LoK::updateMousePointer(bool forceUpdate) {
 			if (mouse.y > 158 || (mouse.x >= 12 && mouse.x < 308 && mouse.y < 136 && mouse.y >= 12) || forceUpdate) {
 				_mouseState = _itemInHand;
 				_screen->hideMouse();
-				if (_itemInHand == -1)
+				if (_itemInHand == kItemNone)
 					_screen->setMouseCursor(1, 1, _shapes[0]);
 				else
 					_screen->setMouseCursor(8, 15, _shapes[216+_itemInHand]);
@@ -953,4 +993,4 @@ void KyraEngine_LoK::writeSettings() {
 	KyraEngine_v1::writeSettings();
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

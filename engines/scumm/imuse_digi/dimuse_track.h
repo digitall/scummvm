@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #if !defined(SCUMM_IMUSE_DIGI_TRACK_H) && defined(ENABLE_SCUMM_7_8)
@@ -38,13 +35,7 @@ namespace Scumm {
 enum {
 	kFlagUnsigned = 1 << 0,
 	kFlag16Bits = 1 << 1,
-	kFlagLittleEndian = 1 << 2,
-	kFlagStereo = 1 << 3,
-	kFlagReverseStereo = 1 << 4
-
-	// Not used by Digital iMUSE
-	// kFlagAutoFree = 1 << 5,
-	// kFlagLoop = 1 << 6
+	kFlagStereo = 1 << 3
 };
 
 struct Track {
@@ -72,11 +63,11 @@ struct Track {
 	int32 soundType;	// type of sound data (kSpeechSoundType, kSFXSoundType, kMusicSoundType)
 	int32 feedSize;		// size of sound data needed to be filled at each callback iteration
 	int32 dataMod12Bit;	// value used between all callback to align 12 bit source of data
-	int32 mixerFlags;	// flags for sound mixer's channel (kFlagStereo, kFlag16Bits, kFlagReverseStereo, kFlagUnsigned, kFlagLittleEndian)
+	int32 mixerFlags;	// flags for sound mixer's channel (kFlagStereo, kFlag16Bits, kFlagUnsigned)
 
 	ImuseDigiSndMgr::SoundDesc *soundDesc;	// sound handle used by iMuse sound manager
 	Audio::SoundHandle mixChanHandle;					// sound mixer's channel handle
-	Audio::AppendableAudioStream *stream;		// sound mixer's audio stream handle for *.la1 and *.bun
+	Audio::QueuingAudioStream *stream;		// sound mixer's audio stream handle for *.la1 and *.bun
 
 	Track() : soundId(-1), used(false), stream(NULL) {
 	}

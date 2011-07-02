@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "drascula/drascula.h"
 
@@ -131,13 +130,14 @@ void DrasculaEngine::cleanupString(char *string) {
 }
 
 void DrasculaEngine::converse(int index) {
+	debug(4, "converse(%d)", index);
+
 	char fileName[20];
 	sprintf(fileName, "op_%d.cal", index);
-	_arj.open(fileName);
-	if (!_arj.isOpen())
+	Common::SeekableReadStream *stream = _archives.open(fileName);
+	if (!stream)
 		error("missing data file %s", fileName);
 
-	int size = _arj.size();
 	int game1 = kDialogOptionUnselected,
 		game2 = kDialogOptionUnselected,
 		game3 = kDialogOptionUnselected;
@@ -145,25 +145,28 @@ void DrasculaEngine::converse(int index) {
 	char sound1[13], sound2[13], sound3[13], sound4[13];
 	int phrase1_bottom, phrase2_bottom, phrase3_bottom, phrase4_bottom;
 	int answer1, answer2, answer3;
-	char buffer[256];
 
 	breakOut = 0;
 
 	selectVerb(kVerbNone);
 
-	getStringFromLine(buffer, size, phrase1);
-	getStringFromLine(buffer, size, phrase2);
-	getStringFromLine(buffer, size, phrase3);
-	getStringFromLine(buffer, size, phrase4);
-	getStringFromLine(buffer, size, sound1);
-	getStringFromLine(buffer, size, sound2);
-	getStringFromLine(buffer, size, sound3);
-	getStringFromLine(buffer, size, sound4);
-	getIntFromLine(buffer, size, &answer1);
-	getIntFromLine(buffer, size, &answer2);
-	getIntFromLine(buffer, size, &answer3);
+	TextResourceParser p(stream, DisposeAfterUse::YES);
 
-	_arj.close();
+	p.parseString(phrase1);
+	p.parseString(phrase2);
+	p.parseString(phrase3);
+	p.parseString(phrase4);
+	p.parseString(sound1);
+	p.parseString(sound2);
+	p.parseString(sound3);
+	p.parseString(sound4);
+	p.parseInt(answer1);
+	p.parseInt(answer2);
+	p.parseInt(answer3);
+
+	// no need to delete the stream, since TextResourceParser takes ownership
+	// delete stream;
+
 
 	if (currentChapter == 2 && !strcmp(fileName, "op_5.cal") && flags[38] == 1 && flags[33] == 1) {
 		strcpy(phrase3, _text[405]);
@@ -207,6 +210,7 @@ void DrasculaEngine::converse(int index) {
 		}
 
 		updateEvents();
+		flushKeyBuffer();
 
 		phrase1_bottom = 8 * print_abc_opc(phrase1, 2, game1);
 		phrase2_bottom = phrase1_bottom + 8 * print_abc_opc(phrase2, phrase1_bottom + 2, game2);
@@ -277,9 +281,19 @@ void DrasculaEngine::converse(int index) {
 }
 
 void DrasculaEngine::response(int function) {
-	playTalkSequence(function);
+	debug(4, "response(%d)", function);
+
+	if (function != 31)
+		playTalkSequence(function);
 
 	if (currentChapter == 2) {
+		bool reloadConversationCharset = false;
+
+		if (function == 16 || function == 20 || function == 23 || function == 29 || function == 31) {
+			reloadConversationCharset = true;
+			loadPic(menuBackground, backSurface);
+		}
+
 		if (function == 16)
 			animation_16_2();
 		else if (function == 20)
@@ -290,6 +304,9 @@ void DrasculaEngine::response(int function) {
 			animation_29_2();
 		else if (function == 31)
 			animation_31_2();
+
+		if (reloadConversationCharset)
+			loadPic("car.alg", backSurface);
 	} else if (currentChapter == 3) {
 		grr();
 	}

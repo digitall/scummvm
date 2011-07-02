@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sky/music/mt32music.h"
@@ -28,7 +25,8 @@
 #include "common/util.h"
 #include "common/system.h"
 #include "common/endian.h"
-#include "sound/mididrv.h"
+#include "common/textconsole.h"
+#include "audio/mididrv.h"
 
 namespace Sky {
 
@@ -44,15 +42,16 @@ MT32Music::MT32Music(MidiDriver *pMidiDrv, Disk *pDisk) : MusicBase(pDisk) {
 		error("Can't open midi device. Errorcode: %d",midiRes);
 	_timerCount = 0;
 	_midiDrv->setTimerCallback(this, passTimerFunc);
+	_midiDrv->sendMT32Reset();
 }
 
-MT32Music::~MT32Music(void) {
+MT32Music::~MT32Music() {
 	_midiDrv->close();
 	_midiDrv->setTimerCallback(NULL, NULL);
 	delete _midiDrv;
 }
 
-void MT32Music::timerCall(void) {
+void MT32Music::timerCall() {
 	_timerCount += _midiDrv->getBaseTempo();
 	if (_timerCount > (1000000 / 50)) {
 		// call pollMusic() 50 times per second
@@ -73,7 +72,7 @@ void MT32Music::setVolume(uint16 volume) {
 	_midiDrv->sysEx(sysEx, 9);
 }
 
-void MT32Music::setupPointers(void) {
+void MT32Music::setupPointers() {
 	_musicDataLoc = READ_LE_UINT16(_musicData + 0x7DC);
 	_sysExSequence = READ_LE_UINT16(_musicData + 0x7E0) + _musicData;
 }
@@ -113,11 +112,14 @@ bool MT32Music::processPatchSysEx(uint8 *sysExData) {
 		crc -= sysExBuf[cnt];
 	sysExBuf[14] = crc & 0x7F;					// crc
 	_midiDrv->sysEx(sysExBuf, 15);
-	g_system->delayMillis(40);
+	// We delay the time it takes to send the sysEx plus an
+	// additional 40ms, which is required for MT-32 rev00,
+	// to assure no buffer overflow or missing bytes
+	g_system->delayMillis(17 * 1000 / 3125 + 40);
 	return true;
 }
 
-void MT32Music::startDriver(void) {
+void MT32Music::startDriver() {
 	// setup timbres and patches using SysEx data
 	uint8* sysExData = _sysExSequence;
 	uint8 timbreNum = sysExData[0];
@@ -162,7 +164,10 @@ void MT32Music::startDriver(void) {
 		sendBuf[len] = crc & 0x7F;
 		len++;
 		_midiDrv->sysEx(sendBuf, len);
-		g_system->delayMillis(40);
+		// We delay the time it takes to send the sysEx plus an
+		// additional 40ms, which is required for MT-32 rev00,
+		// to assure no buffer overflow or missing bytes
+		g_system->delayMillis((len + 2) * 1000 / 3125 + 40);
 	}
 
 	while (processPatchSysEx(sysExData))

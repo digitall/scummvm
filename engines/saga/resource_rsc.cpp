@@ -18,195 +18,94 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // RSC Resource file management module (SAGA 1, used in ITE)
 
 #include "saga/saga.h"
-
-#include "saga/actor.h"
-#include "saga/animation.h"
-#include "saga/interface.h"
-#include "saga/music.h"
 #include "saga/resource.h"
-#include "saga/scene.h"
-#include "saga/sndres.h"
-
-#include "engines/advancedDetector.h"
 
 namespace Saga {
 
-struct MacResMap {
-	int16 resAttr;
-	int16 typeOffset;
-	int16 nameOffset;
-	int16 numTypes;
-};
+#define ID_MIDI     MKTAG('M','i','d','i')
 
-struct MacResource {
-	int16 id;
-	int16 nameOffset;
-	byte attr;
-	int32 dataOffset;
-	byte name[255];
-};
+bool ResourceContext_RSC::loadMacMIDI() {
+	// Sanity check
+	if (_fileSize < RSC_MIN_FILESIZE + MAC_BINARY_HEADER_SIZE)
+		return false;
 
-struct MacResType {
-	uint32 id;
-	int16 items;
-	int16 maxItemId;
-	int16 offset;
-	MacResource *resources;
-};
+	_file.seek(83);
+	int macDataSize = _file.readSint32BE();
+	int macResOffset = MAC_BINARY_HEADER_SIZE + (((macDataSize + 127) >> 7) << 7);
 
-#define ID_MIDI     MKID_BE('Midi')
+	_file.seek(macResOffset);
+	uint32 macDataOffset = _file.readUint32BE() + macResOffset;
+	uint32 macMapOffset = _file.readUint32BE() + macResOffset;
 
-uint32 Resource_RSC::convertResourceId(uint32 resourceId) {
+	_file.seek(macMapOffset + 22);
+	_file.readUint16BE();	// resAttr
+	int16 typeOffset = _file.readUint16BE();
+	_file.readUint16BE();	// nameOffset
+	uint16 numTypes = _file.readUint16BE() + 1;
 
-	if (_vm->isMacResources()) {
-		if (resourceId > 1537) {
-			return resourceId - 2;
-		} else {
-			if (resourceId == 1535 || resourceId == 1536) {
-				error("Wrong resource number %d for Mac ITE", resourceId);
+	_file.seek(macMapOffset + typeOffset + 2);
+
+	// Find the MIDI files
+	for (uint16 i = 0; i < numTypes; i++) {
+		uint32 id = _file.readUint32BE();
+		uint16 items = _file.readUint16BE() + 1;
+		uint16 offset = _file.readUint16BE();
+
+		if (id == ID_MIDI) {
+			for (uint16 curMidi = 0; curMidi < items; curMidi++) {
+				// Jump to the header of the entry and read its fields
+				_file.seek(offset + macMapOffset + typeOffset + curMidi * 12);
+				uint16 midiID = _file.readUint16BE();
+				_file.readUint16BE();	// nameOffset
+				uint32 midiOffset = _file.readUint32BE() & 0xFFFFFF;
+				_file.readUint32BE();	// macResSize
+
+				// Jump to the actual data and read the file size
+				_file.seek(macDataOffset + midiOffset);
+				uint32 midiSize = _file.readUint32BE();
+
+				// Add the entry
+				if (_table.size() <= midiID)
+					_table.resize(midiID + 1);
+				_table[midiID].offset = macDataOffset + midiOffset + 4;
+				_table[midiID].size = midiSize;
 			}
 		}
-	}
-
-	return resourceId;
-}
-
-bool Resource_RSC::loadMacContext(ResourceContext *context) {
-	int32 macDataSize, macDataSizePad;
-	int32 macResSize, macResSizePad;
-	int32 macResOffset;
-
-	uint32 macMapLength;
-	uint32 macDataLength;
-	uint32 macMapOffset;
-	uint32 macDataOffset;
-
-	MacResMap macResMap;
-	MacResType *macResTypes;
-
-	MacResType *macResType;
-	MacResource *macResource;
-	int i, j;
-	byte macNameLen;
-	bool notSagaContext = false;
-
-	if (context->file->size() < RSC_MIN_FILESIZE + MAC_BINARY_HEADER_SIZE) {
-		return false;
-	}
-
-	if (context->file->readByte() != 0) {
-		return false;
-	}
-	context->file->readByte(); //MAX Name Len
-	context->file->seek(74);
-	if (context->file->readByte() != 0) {
-		return false;
-	}
-	context->file->seek(82);
-	if (context->file->readByte() != 0) {
-		return false;
-	}
-
-	macDataSize = context->file->readSint32BE();
-	macResSize = context->file->readSint32BE();
-	macDataSizePad = (((macDataSize + 127) >> 7) << 7);
-	macResSizePad = (((macResSize + 127) >> 7) << 7);
-
-	macResOffset = MAC_BINARY_HEADER_SIZE + macDataSizePad;
-	context->file->seek(macResOffset);
-
-	macDataOffset = context->file->readUint32BE() + macResOffset;
-	macMapOffset = context->file->readUint32BE() + macResOffset;
-	macDataLength = context->file->readUint32BE();
-	macMapLength = context->file->readUint32BE();
-
-	if (macDataOffset >= (uint)context->file->size() || macMapOffset >= (uint)context->file->size() ||
-		macDataLength + macMapLength > (uint)context->file->size()) {
-			return false;
-	}
-
-	context->file->seek(macMapOffset + 22);
-
-	macResMap.resAttr = context->file->readUint16BE();
-	macResMap.typeOffset = context->file->readUint16BE();
-	macResMap.nameOffset = context->file->readUint16BE();
-	macResMap.numTypes = context->file->readUint16BE();
-	macResMap.numTypes++;
-
-	context->file->seek(macMapOffset + macResMap.typeOffset + 2);
-
-	macResTypes = (MacResType *)calloc(macResMap.numTypes, sizeof(*macResTypes));
-
-	for (i = macResMap.numTypes, macResType = macResTypes; i > 0; i--, macResType++) {
-		macResType->id = context->file->readUint32BE();
-		macResType->items = context->file->readUint16BE();
-		macResType->offset = context->file->readUint16BE();
-		macResType->items++;
-		macResType->resources = (MacResource*)calloc(macResType->items, sizeof(*macResType->resources));
-	}
-
-	for (i = macResMap.numTypes, macResType = macResTypes; i > 0; i--, macResType++) {
-		context->file->seek(macResType->offset + macMapOffset + macResMap.typeOffset);
-
-		for (j = macResType->items, macResource = macResType->resources; j > 0; j--, macResource++) {
-			macResource->id = context->file->readUint16BE();
-			macResource->nameOffset = context->file->readUint16BE();
-			macResource->dataOffset = context->file->readUint32BE();
-			macResSize = context->file->readUint32BE();
-
-			macResource->attr = macResource->dataOffset >> 24;
-			macResource->dataOffset &= 0xFFFFFF;
-			if (macResource->id > macResType->maxItemId) {
-				macResType->maxItemId = macResource->id;
-			}
-		}
-
-		for (j = macResType->items, macResource = macResType->resources; j > 0; j--, macResource++) {
-			if (macResource->nameOffset != -1) {
-				context->file->seek(macResource->nameOffset + macMapOffset + macResMap.nameOffset);
-				macNameLen = context->file->readByte();
-				context->file->read(macResource->name, macNameLen);
-			}
-		}
-	}
-
-//
-	for (i = macResMap.numTypes, macResType = macResTypes; i > 0; i--, macResType++) {
-		//getting offsets & sizes of midi
-		if (((context->fileType & GAME_MUSICFILE_GM) > 0) && (macResType->id == ID_MIDI)) {
-
-			context->count = macResType->maxItemId + 1;
-			context->table = (ResourceData *)calloc(context->count, sizeof(*context->table));
-			for (j = macResType->items, macResource = macResType->resources; j > 0; j--, macResource++) {
-				context->file->seek(macDataOffset + macResource->dataOffset);
-				context->table[macResource->id].size = context->file->readUint32BE();
-				context->table[macResource->id].offset = context->file->pos();
-			}
-			notSagaContext = true;
-			break;
-		}
-	}
-
-//free
-	for (i = 0; i < macResMap.numTypes; i++) {
-		free(macResTypes[i].resources);
-	}
-	free(macResTypes);
-
-	if ((!notSagaContext) && (!loadResContext(context, MAC_BINARY_HEADER_SIZE, macDataSize))) {
-		return false;
 	}
 
 	return true;
 }
 
+void ResourceContext_RSC::processPatches(Resource *resource, const GamePatchDescription *patchFiles) {
+	const GamePatchDescription *patchDescription;
+	ResourceData *resourceData;
+
+	// Process external patch files
+	for (patchDescription = patchFiles; patchDescription && patchDescription->fileName; ++patchDescription) {
+		if ((patchDescription->fileType & _fileType) != 0) {
+			if (patchDescription->resourceId < _table.size()) {
+				resourceData = &_table[patchDescription->resourceId];
+				// Check if we've already found a patch for this resource. One is enough.
+				if (!resourceData->patchData) {
+					resourceData->patchData = new PatchData(patchDescription->fileName);
+					if (resourceData->patchData->_patchFile->open(patchDescription->fileName)) {
+						resourceData->offset = 0;
+						resourceData->size = resourceData->patchData->_patchFile->size();
+						// The patched ITE file is in memory, so close the patch file
+						resourceData->patchData->_patchFile->close();
+					} else {
+						delete resourceData->patchData;
+						resourceData->patchData = NULL;
+					}
+				}
+			}
+		}
+	}
+}
 
 } // End of namespace Saga

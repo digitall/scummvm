@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef QUEEN_DEBUG_H
@@ -34,7 +31,6 @@ class QueenEngine;
 
 class Debugger : public GUI::Debugger {
 public:
-
 	Debugger(QueenEngine *vm);
 	virtual ~Debugger(); // we need this here for __SYMBIAN32__ archaic gcc/UIQ
 
@@ -44,11 +40,11 @@ public:
 		DF_DRAW_AREAS = 1 << 0
 	};
 
-protected:
-
+private:
 	virtual void preEnter();
 	virtual void postEnter();
 
+private:
 	bool Cmd_Areas(int argc, const char **argv);
 	bool Cmd_Asm(int argc, const char **argv);
 	bool Cmd_Bob(int argc, const char **argv);
@@ -60,7 +56,6 @@ protected:
 	bool Cmd_Song(int argc, const char **argv);
 
 private:
-
 	QueenEngine *_vm;
 	int _flags;
 };

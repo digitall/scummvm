@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
@@ -62,7 +59,7 @@ unsigned long int currentOffset;
 
 unsigned long int dumpIdx = 0;
 
-FILE *fHandle = NULL;
+FILE *fHandle = NULL;	// FIXME: Use Common::DumpFile instead of FILE
 
 #define DECOMPILER_STACK_DEPTH 100
 #define DECOMPILER_STACK_ENTRY_SIZE 5000
@@ -234,7 +231,7 @@ void getByteFromDecompScript(char *buffer) {
 	sprintf(buffer, "%d", var);
 }
 
-char getByteFromDecompScriptReal(void) {
+char getByteFromDecompScriptReal() {
 	short int var = currentDecompScript[currentDecompScriptPtr->var4];
 
 	currentDecompScriptPtr->var4 = currentDecompScriptPtr->var4 + 1;
@@ -257,7 +254,7 @@ void getShortFromDecompScript(char *buffer) {
 	sprintf(buffer, "%d", var);
 }
 
-int16 getShortFromDecompScriptReal(void) {
+int16 getShortFromDecompScriptReal() {
 	int16 var = (int16)READ_BE_UINT16(currentDecompScript + currentDecompScriptPtr->var4);
 
 	currentDecompScriptPtr->var4 = currentDecompScriptPtr->var4 + 2;
@@ -345,7 +342,7 @@ void resolveVarName(char *ovlIdxString, int varType, char *varIdxString,
 	}
 }
 
-int decompLoadVar(void) {
+int decompLoadVar() {
 	switch (currentScriptOpcodeType) {
 	case 0: {
 		char buffer[256];
@@ -409,14 +406,14 @@ int decompLoadVar(void) {
 		return (0);
 	}
 	default: {
-		printf("Unsupported type %d in opcodeType0\n",
+		debug("Unsupported type %d in opcodeType0",
 		       currentScriptOpcodeType);
 		failed = 1;
 	}
 	}
 }
 
-int decompSaveVar(void) {
+int decompSaveVar() {
 //      int var = popVar();
 
 	switch (currentScriptOpcodeType) {
@@ -483,7 +480,7 @@ int decompSaveVar(void) {
 		break;
 	}
 	default: {
-		printf("Unsupported type %d in opcodeType1\n",
+		debug("Unsupported type %d in opcodeType1",
 		       currentScriptOpcodeType);
 		failed = 1;
 	}
@@ -492,7 +489,7 @@ int decompSaveVar(void) {
 	return (0);
 }
 
-int decompOpcodeType2(void) {
+int decompOpcodeType2() {
 	switch (currentScriptOpcodeType) {
 	case 1: {
 		char buffer3[256];
@@ -521,14 +518,14 @@ int decompOpcodeType2(void) {
 			pushDecomp("freeString[%d][%s]", short1,
 			           decompSaveOpcodeVar);
 		} else {
-			printf("Unsupported type %d in opcodeType2\n",
+			debug("Unsupported type %d in opcodeType2",
 			       byte1 & 7);
 			failed = 1;
 		}
 		break;
 	}
 	default: {
-		printf("Unsupported type %d in opcodeType2\n",
+		debug("Unsupported type %d in opcodeType2",
 		       currentScriptOpcodeType);
 		failed = 1;
 	}
@@ -536,7 +533,7 @@ int decompOpcodeType2(void) {
 	return (0);
 }
 
-int decompMath(void) {
+int decompMath() {
 	char *param1 = popDecomp();
 	char *param2 = popDecomp();
 
@@ -588,7 +585,7 @@ int decompMath(void) {
 	return (0);
 }
 
-int decompBoolCompare(void) {
+int decompBoolCompare() {
 	char *param1;
 	char *param2;
 
@@ -601,7 +598,7 @@ int decompBoolCompare(void) {
 	return 0;
 }
 
-int decompTest(void) {
+int decompTest() {
 	unsigned long int oldOffset = currentDecompScriptPtr->var4;
 	short int offset = getShortFromDecompScriptReal();
 
@@ -659,7 +656,7 @@ int decompTest(void) {
 	return 0;
 }
 
-int decompCompare(void) {
+int decompCompare() {
 	char *param;
 
 	param = popDecomp();
@@ -684,7 +681,7 @@ int decompCompare(void) {
 	return 0;
 }
 
-int decompSwapStack(void) {
+int decompSwapStack() {
 	char *stack1;
 	char *stack2;
 	char buffer1[4000];
@@ -702,7 +699,7 @@ int decompSwapStack(void) {
 	return 0;
 }
 
-int decompFunction(void) {
+int decompFunction() {
 	currentScriptOpcodeType = getByteFromDecompScriptReal();
 //    addDecomp("OP_%X", currentScriptOpcodeType);
 	switch (currentScriptOpcodeType) {
@@ -760,8 +757,6 @@ int decompFunction(void) {
 		char *var1;
 		char *objIdxStr;
 		char *ovlStr;
-		char varName[256];
-		int i;
 
 		var1 = popDecomp();
 		objIdxStr = popDecomp();
@@ -1266,7 +1261,7 @@ int decompFunction(void) {
 	}
 	default: {
 		addDecomp("OP_%X", currentScriptOpcodeType);
-		printf("OPCODE: %X\n", currentScriptOpcodeType);
+		debug("OPCODE: %X", currentScriptOpcodeType);
 		failed = 1;
 		break;
 	}
@@ -1279,18 +1274,18 @@ int decompFunction(void) {
 
 uint8 stop = 0;
 
-int decompStop(void) {
+int decompStop() {
 	stop = 1;
 	addDecomp("stop\n");
 	return 0;
 }
 
-int decompBreak(void) {
+int decompBreak() {
 	addDecomp("break");
 	return 0;
 }
 
-void generateIndentation(void) {
+void generateIndentation() {
 	int i, j;
 
 	for (i = 0; i < positionInDecompileLineTable; i++) {
@@ -1356,7 +1351,7 @@ void dumpScript(uint8 *ovlName, ovlDataStruct *ovlData, int idx) {
 
 	resolveVarName("0", 0x20, temp, scriptName);
 
-	printf("decompiling script %d - %s\n", idx, scriptName);
+	debug("decompiling script %d - %s", idx, scriptName);
 
 	// return;
 
@@ -1396,17 +1391,17 @@ void dumpScript(uint8 *ovlName, ovlDataStruct *ovlData, int idx) {
 		currentScriptOpcodeType = opcodeType & 7;
 
 		if (!decompOpcodeTypeTable[(opcodeType & 0xFB) >> 3]) {
-			printf("Unsupported opcode type %d in decomp\n",
+			debug("Unsupported opcode type %d in decomp",
 			       (opcodeType & 0xFB) >> 3);
 			return;
 		}
 
-		//printf("Optype: %d\n",(opcodeType&0xFB)>>3);
+		//debug("Optype: %d",(opcodeType&0xFB)>>3);
 
 		decompOpcodeTypeTable[(opcodeType & 0xFB) >> 3]();
 
 		if (failed) {
-			printf("Aborting decompilation..\n");
+			debug("Aborting decompilation..");
 			fclose(fHandle);
 			return;
 		}

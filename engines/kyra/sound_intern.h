@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SOUND_INTERN_H
@@ -31,13 +28,16 @@
 
 #include "common/mutex.h"
 
-#include "sound/softsynth/ym2612.h"
-#include "sound/softsynth/emumidi.h"
-#include "sound/midiparser.h"
+#include "audio/softsynth/fmtowns_pc98/towns_pc98_driver.h"
+#include "audio/softsynth/fmtowns_pc98/towns_euphony.h"
+
+#include "audio/softsynth/emumidi.h"
+#include "audio/midiparser.h"
 
 namespace Audio {
 class PCSpeaker;
-} // end of namespace Audio
+class MaxTrax;
+} // End of namespace Audio
 
 namespace Kyra {
 class MidiOutput;
@@ -65,12 +65,14 @@ public:
 
 	void playTrack(uint8 track);
 	void haltTrack();
-	bool isPlaying();
+	bool isPlaying() const;
 
 	void playSoundEffect(uint8 track);
 	void stopAllSoundEffects();
 
 	void beginFadeOut();
+
+	void pause(bool paused);
 private:
 	static void onTimer(void *data);
 
@@ -98,10 +100,7 @@ private:
 	Common::Mutex _mutex;
 };
 
-class Towns_EuphonyDriver;
-class TownsPC98_OpnDriver;
-
-class SoundTowns : public MidiDriver, public Sound {
+class SoundTowns : public Sound {
 public:
 	SoundTowns(KyraEngine_v1 *vm, Audio::Mixer *mixer);
 	~SoundTowns();
@@ -118,43 +117,33 @@ public:
 	void haltTrack();
 
 	void playSoundEffect(uint8);
+	void stopAllSoundEffects();
 
 	void beginFadeOut();
 
-	//MidiDriver interface implementation
-	int open();
-	void close();
-	void send(uint32 b);
-	void metaEvent(byte type, byte *data, uint16 length) {}
-
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
-	uint32 getBaseTempo(void);
-
-	//Channel allocation functions
-	MidiChannel *allocateChannel()		{ return 0; }
-	MidiChannel *getPercussionChannel()	{ return 0; }
-
-	static float calculatePhaseStep(int8 semiTone, int8 semiToneRootkey,
-		uint32 sampleRate, uint32 outputRate, int32 pitchWheel);
+	void updateVolumeSettings();
 
 private:
 	bool loadInstruments();
 	void playEuphonyTrack(uint32 offset, int loop);
 
-	static void onTimer(void *data);
+	void fadeOutSoundEffects();
 
 	int _lastTrack;
 	Audio::AudioStream *_currentSFX;
 	Audio::SoundHandle _sfxHandle;
 
+	uint8 *_musicTrackData;
+
 	uint _sfxFileIndex;
 	uint8 *_sfxFileData;
+	uint8 _sfxChannel;
 
-	Towns_EuphonyDriver * _driver;
-	MidiParser * _parser;
+	TownsEuphonyDriver *_driver;
 
-	Common::Mutex _mutex;
+	bool _cdaPlaying;
 
+	const uint8 *_musicFadeTable;
 	const uint8 *_sfxBTTable;
 	const uint8 *_sfxWDTable;
 };
@@ -169,8 +158,8 @@ public:
 	bool init();
 
 	void process() {}
-	void loadSoundFile(uint file) {}
-	void loadSoundFile(Common::String) {}
+	void loadSoundFile(uint file);
+	void loadSoundFile(Common::String file);
 
 	void playTrack(uint8 track);
 	void haltTrack();
@@ -179,11 +168,13 @@ public:
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx) { return -1; }
 	void playSoundEffect(uint8);
 
+	void updateVolumeSettings();
+
 protected:
 	int _lastTrack;
 	uint8 *_musicTrackData;
 	uint8 *_sfxTrackData;
-	TownsPC98_OpnDriver *_driver;
+	TownsPC98_AudioDriver *_driver;
 };
 
 class SoundTownsPC98_v2 : public Sound {
@@ -206,6 +197,8 @@ public:
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx);
 	void playSoundEffect(uint8 track);
 
+	void updateVolumeSettings();
+
 protected:
 	Audio::AudioStream *_currentSFX;
 	int _lastTrack;
@@ -213,7 +206,7 @@ protected:
 
 	uint8 *_musicTrackData;
 	uint8 *_sfxTrackData;
-	TownsPC98_OpnDriver *_driver;
+	TownsPC98_AudioDriver *_driver;
 };
 
 // PC Speaker MIDI driver
@@ -223,12 +216,12 @@ public:
 	~MidiDriver_PCSpeaker();
 
 	// MidiDriver interface
-	void close() {}
+	virtual void close() {}
 
-	void send(uint32 data);
+	virtual void send(uint32 data);
 
-	MidiChannel *allocateChannel() { return 0; }
-	MidiChannel *getPercussionChannel() { return 0; }
+	virtual MidiChannel *allocateChannel() { return 0; }
+	virtual MidiChannel *getPercussionChannel() { return 0; }
 
 	// MidiDriver_Emulated interface
 	void generateSamples(int16 *buffer, int numSamples);
@@ -284,7 +277,47 @@ private:
 	static const uint8 _noteTable2[];
 };
 
-} // end of namespace Kyra
+// for StaticResource (maybe we can find a nicer way to handle it)
+struct AmigaSfxTable {
+	uint8 note;
+	uint8 patch;
+	uint16 duration;
+	uint8 volume;
+	uint8 pan;
+};
+
+class SoundAmiga : public Sound {
+public:
+	SoundAmiga(KyraEngine_v1 *vm, Audio::Mixer *mixer);
+	~SoundAmiga();
+
+	virtual kType getMusicType() const { return kAmiga; } //FIXME
+
+	bool init();
+
+	void process() {}
+	void loadSoundFile(uint file);
+	void loadSoundFile(Common::String) {}
+
+	void playTrack(uint8 track);
+	void haltTrack();
+	void beginFadeOut();
+
+	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx) { return -1; }
+	void playSoundEffect(uint8);
+
+protected:
+	Audio::MaxTrax *_driver;
+	Audio::SoundHandle _musicHandle;
+	enum FileType { kFileNone = -1, kFileIntro = 0, kFileGame = 1, kFileFinal = 2 } _fileLoaded;
+
+	const AmigaSfxTable *_tableSfxIntro;
+	int _tableSfxIntro_Size;
+
+	const AmigaSfxTable *_tableSfxGame;
+	int _tableSfxGame_Size;
+};
+
+} // End of namespace Kyra
 
 #endif
-

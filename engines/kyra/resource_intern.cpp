@@ -18,16 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/resource_intern.h"
 #include "kyra/resource.h"
 
-#include "common/stream.h"
 #include "common/endian.h"
+#include "common/memstream.h"
+#include "common/substream.h"
 
 namespace Kyra {
 
@@ -35,16 +33,8 @@ namespace Kyra {
 
 // -> PlainArchive implementation
 
-PlainArchive::PlainArchive(Common::SharedPtr<Common::ArchiveMember> file, const FileInputList &files)
+PlainArchive::PlainArchive(Common::ArchiveMemberPtr file)
 	: _file(file), _files() {
-	for (FileInputList::const_iterator i = files.begin(); i != files.end(); ++i) {
-		Entry entry;
-
-		entry.offset = i->offset;
-		entry.size = i->size;
-
-		_files[i->name] = entry;
-	}
 }
 
 bool PlainArchive::hasFile(const Common::String &name) {
@@ -78,7 +68,100 @@ Common::SeekableReadStream *PlainArchive::createReadStreamForMember(const Common
 	if (!parent)
 		return 0;
 
-	return new Common::SeekableSubReadStream(parent, fDesc->_value.offset, fDesc->_value.offset + fDesc->_value.size, true);
+	return new Common::SeekableSubReadStream(parent, fDesc->_value.offset, fDesc->_value.offset + fDesc->_value.size, DisposeAfterUse::YES);
+}
+
+void PlainArchive::addFileEntry(const Common::String &name, const Entry entry) {
+	_files[name] = entry;
+}
+
+PlainArchive::Entry PlainArchive::getFileEntry(const Common::String &name) const {
+	FileMap::const_iterator fDesc = _files.find(name);
+	if (fDesc == _files.end())
+		return Entry();
+	return fDesc->_value;
+}
+
+// -> TlkArchive implementation
+
+TlkArchive::TlkArchive(Common::ArchiveMemberPtr file, uint16 entryCount, const uint32 *fileEntries)
+	: _file(file), _entryCount(entryCount), _fileEntries(fileEntries) {
+}
+
+TlkArchive::~TlkArchive() {
+	delete[] _fileEntries;
+}
+
+bool TlkArchive::hasFile(const Common::String &name) {
+	return (findFile(name) != 0);
+}
+
+int TlkArchive::listMembers(Common::ArchiveMemberList &list) {
+	uint count = 0;
+
+	for (; count < _entryCount; ++count) {
+		const Common::String name = Common::String::format("%08u.AUD", _fileEntries[count * 2 + 0]);
+		list.push_back(Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(name, this)));
+	}
+
+	return count;
+}
+
+Common::ArchiveMemberPtr TlkArchive::getMember(const Common::String &name) {
+	if (!hasFile(name))
+		return Common::ArchiveMemberPtr();
+
+	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
+}
+
+Common::SeekableReadStream *TlkArchive::createReadStreamForMember(const Common::String &name) const {
+	const uint32 *fileDesc = findFile(name);
+	if (!fileDesc)
+		return 0;
+
+	Common::SeekableReadStream *parent = _file->createReadStream();
+	if (!parent)
+		return 0;
+
+	parent->seek(fileDesc[1], SEEK_SET);
+	const uint32 size = parent->readUint32LE();
+	const uint32 fileStart = fileDesc[1] + 4;
+
+	return new Common::SeekableSubReadStream(parent, fileStart, fileStart + size, DisposeAfterUse::YES);
+}
+
+const uint32 *TlkArchive::findFile(const Common::String &name) const {
+	Common::String uppercaseName = name;
+	uppercaseName.toUppercase();
+
+	if (!uppercaseName.hasSuffix(".AUD"))
+		return 0;
+
+	uint32 id;
+	if (sscanf(uppercaseName.c_str(), "%08u.AUD", &id) != 1)
+		return 0;
+
+	// Binary search for the file entry
+	int leftIndex = 0;
+	int rightIndex = _entryCount - 1;
+
+	while (leftIndex <= rightIndex) {
+		int mid = (leftIndex + rightIndex) / 2;
+
+		const uint32 key = _fileEntries[mid * 2];
+		if (key == id) {
+			// Found
+			return &_fileEntries[mid * 2];
+		} else if (key > id) {
+			// Take the left sub-tree
+			rightIndex = mid - 1;
+		} else {
+			// Take the right sub-tree
+			leftIndex = mid + 1;
+		}
+	}
+
+	return 0;
 }
 
 // -> CachedArchive implementation
@@ -130,7 +213,7 @@ Common::SeekableReadStream *CachedArchive::createReadStreamForMember(const Commo
 	if (fDesc == _files.end())
 		return 0;
 
-	return new Common::MemoryReadStream(fDesc->_value.data, fDesc->_value.size, false);
+	return new Common::MemoryReadStream(fDesc->_value.data, fDesc->_value.size, DisposeAfterUse::NO);
 }
 
 // ResFileLoader implementations
@@ -141,6 +224,20 @@ bool ResLoaderPak::checkFilename(Common::String filename) const {
 	filename.toUppercase();
 	return (filename.hasSuffix(".PAK") || filename.hasSuffix(".APK") || filename.hasSuffix(".VRM") || filename.hasSuffix(".CMP") || filename.hasSuffix(".TLK") || filename.equalsIgnoreCase(StaticResource::staticDataFilename()));
 }
+
+namespace {
+
+Common::String readString(Common::SeekableReadStream &stream) {
+	Common::String result;
+	char c = 0;
+
+	while ((c = stream.readByte()) != 0)
+		result += c;
+
+	return result;
+}
+
+} // end of anonymous namespace
 
 bool ResLoaderPak::isLoadable(const Common::String &filename, Common::SeekableReadStream &stream) const {
 	int32 filesize = stream.size();
@@ -163,12 +260,7 @@ bool ResLoaderPak::isLoadable(const Common::String &filename, Common::SeekableRe
 		if (offset < stream.pos() || offset > filesize || offset < 0)
 			return false;
 
-		byte c = 0;
-
-		file.clear();
-
-		while (!stream.eos() && (c = stream.readByte()) != 0)
-			file += c;
+		file = readString(stream);
 
 		if (stream.eos())
 			return false;
@@ -191,32 +283,13 @@ bool ResLoaderPak::isLoadable(const Common::String &filename, Common::SeekableRe
 	return true;
 }
 
-namespace {
-
-Common::String readString(Common::SeekableReadStream &stream) {
-	Common::String result;
-	char c = 0;
-
-	while ((c = stream.readByte()) != 0)
-			result += c;
-
-	return result;
-}
-
-struct PlainArchiveListSearch {
-	PlainArchiveListSearch(const Common::String &search) : _search(search) {}
-
-	bool operator()(const PlainArchive::InputEntry &entry) {
-		return _search.equalsIgnoreCase(entry.name);
-	}
-	Common::String _search;
-};
-
-} // end of anonymous namespace
-
-Common::Archive *ResLoaderPak::load(Common::SharedPtr<Common::ArchiveMember> memberFile, Common::SeekableReadStream &stream) const {
+Common::Archive *ResLoaderPak::load(Common::ArchiveMemberPtr memberFile, Common::SeekableReadStream &stream) const {
 	int32 filesize = stream.size();
 	if (filesize < 0)
+		return 0;
+
+	Common::ScopedPtr<PlainArchive> result(new PlainArchive(memberFile));
+	if (!result)
 		return 0;
 
 	int32 startoffset = 0, endoffset = 0;
@@ -229,8 +302,6 @@ Common::Archive *ResLoaderPak::load(Common::SharedPtr<Common::ArchiveMember> mem
 		startoffset = SWAP_BYTES_32(startoffset);
 	}
 
-	PlainArchive::FileInputList files;
-
 	Common::String file;
 	while (!stream.eos()) {
 		// The start offset of a file should never be in the filelist
@@ -239,11 +310,7 @@ Common::Archive *ResLoaderPak::load(Common::SharedPtr<Common::ArchiveMember> mem
 			return 0;
 		}
 
-		file.clear();
-		byte c = 0;
-
-		while (!stream.eos() && (c = stream.readByte()) != 0)
-			file += c;
+		file = readString(stream);
 
 		if (stream.eos()) {
 			warning("PAK file '%s' is corrupted", memberFile->getDisplayName().c_str());
@@ -271,14 +338,8 @@ Common::Archive *ResLoaderPak::load(Common::SharedPtr<Common::ArchiveMember> mem
 		if (!endoffset)
 			endoffset = filesize;
 
-		if (startoffset != endoffset) {
-			PlainArchive::InputEntry entry;
-			entry.size = endoffset - startoffset;
-			entry.offset = startoffset;
-			entry.name = file;
-
-			files.push_back(entry);
-		}
+		if (startoffset != endoffset)
+			result->addFileEntry(file, PlainArchive::Entry(startoffset, endoffset - startoffset));
 
 		if (endoffset == filesize)
 			break;
@@ -286,38 +347,32 @@ Common::Archive *ResLoaderPak::load(Common::SharedPtr<Common::ArchiveMember> mem
 		startoffset = endoffset;
 	}
 
-	PlainArchive::FileInputList::const_iterator iter = Common::find_if(files.begin(), files.end(), PlainArchiveListSearch("LINKLIST"));
-	if (iter != files.end()) {
-		stream.seek(iter->offset, SEEK_SET);
+	PlainArchive::Entry linklistFile = result->getFileEntry("LINKLIST");
+	if (linklistFile.size != 0) {
+		stream.seek(linklistFile.offset, SEEK_SET);
 
-		uint32 magic = stream.readUint32BE();
+		const uint32 magic = stream.readUint32BE();
 
-		if (magic != MKID_BE('SCVM'))
+		if (magic != MKTAG('S','C','V','M'))
 			error("LINKLIST file does not contain 'SCVM' header");
 
-		uint32 links = stream.readUint32BE();
-		for (uint i = 0; i < links; ++i) {
-			Common::String linksTo = readString(stream);
-			uint32 sources = stream.readUint32BE();
+		const uint32 links = stream.readUint32BE();
+		for (uint32 i = 0; i < links; ++i) {
+			const Common::String linksTo = readString(stream);
+			const uint32 sources = stream.readUint32BE();
 
-			iter = Common::find_if(files.begin(), files.end(), PlainArchiveListSearch(linksTo));
-			if (iter == files.end())
+			PlainArchive::Entry destination = result->getFileEntry(linksTo);
+			if (destination.size == 0)
 				error("PAK file link destination '%s' not found", linksTo.c_str());
 
-			for (uint j = 0; j < sources; ++j) {
-				Common::String dest = readString(stream);
-
-				PlainArchive::InputEntry link = *iter;
-				link.name = dest;
-				files.push_back(link);
-
-				// Better safe than sorry, we update the 'iter' value, in case push_back invalidated it
-				iter = Common::find_if(files.begin(), files.end(), PlainArchiveListSearch(linksTo));
+			for (uint32 j = 0; j < sources; ++j) {
+				const Common::String dest = readString(stream);
+				result->addFileEntry(dest, destination);
 			}
 		}
 	}
 
-	return new PlainArchive(memberFile, files);
+	return result.release();
 }
 
 // -> ResLoaderInsMalcolm implementation
@@ -343,9 +398,11 @@ bool ResLoaderInsMalcolm::isLoadable(const Common::String &filename, Common::See
 	return (buffer[0] == 0x0D && buffer[1] == 0x0A);
 }
 
-Common::Archive *ResLoaderInsMalcolm::load(Common::SharedPtr<Common::ArchiveMember> memberFile, Common::SeekableReadStream &stream) const {
+Common::Archive *ResLoaderInsMalcolm::load(Common::ArchiveMemberPtr memberFile, Common::SeekableReadStream &stream) const {
 	Common::List<Common::String> filenames;
-	PlainArchive::FileInputList files;
+	Common::ScopedPtr<PlainArchive> result(new PlainArchive(memberFile));
+	if (!result)
+		return 0;
 
 	// thanks to eriktorbjorn for this code (a bit modified though)
 	stream.seek(3, SEEK_SET);
@@ -374,17 +431,14 @@ Common::Archive *ResLoaderInsMalcolm::load(Common::SharedPtr<Common::ArchiveMemb
 	stream.seek(3, SEEK_SET);
 
 	for (Common::List<Common::String>::iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		PlainArchive::InputEntry entry;
-		entry.size = stream.readUint32LE();
-		entry.offset = stream.pos();
-		entry.name = *file;
-		entry.name.toLowercase();
-		stream.seek(entry.size, SEEK_CUR);
+		const uint32 fileSize = stream.readUint32LE();
+		const uint32 fileOffset = stream.pos();
 
-		files.push_back(entry);
+		result->addFileEntry(*file, PlainArchive::Entry(fileOffset, fileSize));
+		stream.seek(fileSize, SEEK_CUR);
 	}
 
-	return new PlainArchive(memberFile, files);
+	return result.release();
 }
 
 bool ResLoaderTlk::checkFilename(Common::String filename) const {
@@ -412,31 +466,20 @@ bool ResLoaderTlk::isLoadable(const Common::String &filename, Common::SeekableRe
 	return true;
 }
 
-Common::Archive *ResLoaderTlk::load(Common::SharedPtr<Common::ArchiveMember> file, Common::SeekableReadStream &stream) const {
-	uint16 entries = stream.readUint16LE();
-	PlainArchive::FileInputList files;
+Common::Archive *ResLoaderTlk::load(Common::ArchiveMemberPtr file, Common::SeekableReadStream &stream) const {
+	const uint16 entryCount = stream.readUint16LE();
 
-	for (uint i = 0; i < entries; ++i) {
-		PlainArchive::InputEntry entry;
+	uint32 *fileEntries = new uint32[entryCount * 2];
+	assert(fileEntries);
+	stream.read(fileEntries, sizeof(uint32) * entryCount * 2);
 
-		uint32 resFilename = stream.readUint32LE();
-		uint32 resOffset = stream.readUint32LE();
-
-		entry.offset = resOffset+4;
-
-		char realFilename[20];
-		snprintf(realFilename, 20, "%.08u.AUD", resFilename);
-		entry.name = realFilename;
-
-		uint32 curOffset = stream.pos();
-		stream.seek(resOffset, SEEK_SET);
-		entry.size = stream.readUint32LE();
-		stream.seek(curOffset, SEEK_SET);
-
-		files.push_back(entry);
+	for (uint i = 0; i < entryCount; ++i) {
+		fileEntries[i * 2 + 0] = READ_LE_UINT32(&fileEntries[i * 2 + 0]);
+		fileEntries[i * 2 + 1] = READ_LE_UINT32(&fileEntries[i * 2 + 1]);
 	}
 
-	return new PlainArchive(file, files);
+
+	return new TlkArchive(file, entryCount, fileEntries);
 }
 
 // InstallerLoader implementation
@@ -469,7 +512,7 @@ void FileExpanderSource::advSrcBitsBy1() {
 	_key >>= 1;
 	if (!--_bitsLeft) {
 		if (_dataPtr < _endofBuffer)
-			_key = ((*_dataPtr++) << 8 ) | (_key & 0xff);
+			_key = ((*_dataPtr++) << 8) | (_key & 0xff);
 		_bitsLeft = 8;
 	}
 }
@@ -678,7 +721,7 @@ bool FileExpander::process(uint8 *dst, const uint8 *src, uint32 outsize, uint32 
 		int16 cmd = 0;
 
 		do  {
-			cmd = ((int16*)_tables[2])[_src->getKeyLower()];
+			cmd = ((int16 *)_tables[2])[_src->getKeyLower()];
 			_src->advSrcBitsByIndex(cmd < 0 ? calcCmdAndIndex(_tables[3], cmd) : _tables[0][cmd]);
 
 			if (cmd == 0x11d) {
@@ -691,7 +734,7 @@ bool FileExpander::process(uint8 *dst, const uint8 *src, uint32 outsize, uint32 
 				*d++ = cmd & 0xff;
 			} else if (cmd != 0x100) {
 				cmd -= 0xfe;
-				int16 offset = ((int16*)_tables[4])[_src->getKeyLower()];
+				int16 offset = ((int16 *)_tables[4])[_src->getKeyLower()];
 				_src->advSrcBitsByIndex(offset < 0 ? calcCmdAndIndex(_tables[5], offset) : _tables[1][offset]);
 				if ((offset & 0xff) >= 4) {
 					uint8 newIndex = ((offset & 0xff) >> 1) - 1;
@@ -798,13 +841,13 @@ void FileExpander::generateTables(uint8 srcIndex, uint8 dstIndex, uint8 dstIndex
 	cnt--;
 	s = tbl1 + cnt;
 	d = &_tables16[2][cnt];
-	uint16 * bt = (uint16*)tbl3;
+	uint16 * bt = (uint16 *)tbl3;
 	uint16 inc = 0;
 	uint16 cnt2 = 0;
 
 	do {
 		uint8 t = *s--;
-		uint16 *s2 = (uint16*)tbl2;
+		uint16 *s2 = (uint16 *)tbl2;
 
 		if (t && t < 9) {
 			inc = 1 << t;
@@ -822,12 +865,12 @@ void FileExpander::generateTables(uint8 srcIndex, uint8 dstIndex, uint8 dstIndex
 			t -= 8;
 			uint8 shiftCnt = 1;
 			uint8 v = (*d) >> 8;
-			s2 = &((uint16*)tbl2)[*d & 0xff];
+			s2 = &((uint16 *)tbl2)[*d & 0xff];
 
 			do {
 				if (!*s2) {
 					*s2 = (uint16)(~cnt2);
-					*(uint32*)&bt[cnt2] = 0;
+					*(uint32 *)&bt[cnt2] = 0;
 					cnt2 += 2;
 				}
 
@@ -844,7 +887,7 @@ void FileExpander::generateTables(uint8 srcIndex, uint8 dstIndex, uint8 dstIndex
 }
 
 uint8 FileExpander::calcCmdAndIndex(const uint8 *tbl, int16 &para) {
-	const uint16 *t = (const uint16*)tbl;
+	const uint16 *t = (const uint16 *)tbl;
 	_src->advSrcBitsByIndex(8);
 	uint8 newIndex = 0;
 	uint16 v = _src->getKeyLower();
@@ -870,6 +913,20 @@ struct InsArchive {
 };
 
 } // end of anonymouse namespace
+
+class CmpVocDecoder {
+public:
+	CmpVocDecoder();
+	~CmpVocDecoder();
+	uint8 *process(uint8 *src, uint32 insize, uint32 *outsize, bool disposeInput = true);
+
+private:
+	void decodeHelper(int p);
+
+	int32 *_vtbl;
+	int32 *_tbl1, *_p1, *_tbl2, *_p2, *_tbl3, *_p3, *_tbl4, *_p4, *_floatArray, *_stTbl;
+	uint8 *_sndArray;
+};
 
 Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &filename, const Common::String &extension, const uint8 containerOffset) {
 	uint32 pos = 0;
@@ -945,6 +1002,7 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 	}
 
 	FileExpander exp;
+	CmpVocDecoder cvdec;
 	CachedArchive::InputEntry newEntry;
 	uint32 insize = 0;
 	uint32 outsize = 0;
@@ -998,9 +1056,22 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 
 					delete[] inbuffer;
 					inbuffer = 0;
+
 					newEntry.data = outbuffer;
 					newEntry.size = outsize;
 					newEntry.name = entryStr;
+
+					entryStr.toUppercase();
+					if (entryStr.hasSuffix(".CMP")) {
+						entryStr.deleteLastChar();
+						entryStr.deleteLastChar();
+						entryStr.deleteLastChar();
+						entryStr += "PAK";
+						newEntry.data = cvdec.process(outbuffer, outsize, &outsize);
+						newEntry.size = outsize;
+						newEntry.name = entryStr;
+					}
+
 					fileList.push_back(newEntry);
 				}
 				pos++;
@@ -1078,6 +1149,18 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 						newEntry.data = outbuffer;
 						newEntry.size = outsize;
 						newEntry.name = entryStr;
+
+						entryStr.toUppercase();
+						if (entryStr.hasSuffix(".CMP")) {
+							entryStr.deleteLastChar();
+							entryStr.deleteLastChar();
+							entryStr.deleteLastChar();
+							entryStr += "PAK";
+							newEntry.data = cvdec.process(outbuffer, outsize, &outsize);
+							newEntry.size = outsize;
+							newEntry.name = entryStr;
+						}
+
 						fileList.push_back(newEntry);
 					}
 
@@ -1100,4 +1183,166 @@ Common::Archive *InstallerLoader::load(Resource *owner, const Common::String &fi
 	return new CachedArchive(fileList);
 }
 
-} // end of namespace Kyra
+CmpVocDecoder::CmpVocDecoder() {
+	_tbl1 = new int32[4000];
+	_p1 = _tbl1 + 2000;
+	_tbl2 = new int32[4000];
+	_p2 = _tbl2 + 2000;
+	_tbl3 = new int32[4000];
+	_p3 = _tbl3 + 2000;
+	_tbl4 = new int32[4000];
+	_p4 = _tbl4 + 2000;
+
+	_vtbl = new int32[8193];
+	_floatArray = new int32[8193];
+	_sndArray = new uint8[8192];
+	_stTbl = new int32[256];
+
+	assert(_tbl1);
+	assert(_tbl2);
+	assert(_tbl3);
+	assert(_tbl4);
+	assert(_vtbl);
+	assert(_floatArray);
+	assert(_sndArray);
+	assert(_stTbl);
+
+	for (int32 i = -2000; i < 2000; i++) {
+		int32 x = i + 2000;
+		_tbl1[x] = (int32)(0.4829629131445341 * (double)i * 256.0);
+		_tbl2[x] = (int32)(0.8365163037378079 * (double)i * 256.0);
+		_tbl3[x] = (int32)(0.2241438680420134 * (double)i * 256.0);
+		_tbl4[x] = (int32)(-0.1294095225512604 * (double)i * 256.0);
+	}
+}
+
+CmpVocDecoder::~CmpVocDecoder() {
+	delete[] _stTbl;
+	delete[] _sndArray;
+	delete[] _floatArray;
+	delete[] _vtbl;
+	delete[] _tbl1;
+	delete[] _tbl2;
+	delete[] _tbl3;
+	delete[] _tbl4;
+}
+
+uint8 *CmpVocDecoder::process(uint8 *src, uint32 insize, uint32 *outsize, bool disposeInput) {
+	*outsize = 0;
+	uint8 *outTemp = new uint8[insize];
+
+	uint8 *inPosH = src;
+	uint8 *outPosH = outTemp;
+	uint8 *outPosD = outTemp + READ_LE_UINT32(src);
+	uint8 *end = outPosD;
+
+	while (outPosH < end) {
+		uint8 *spos = inPosH;
+		uint32 offset = READ_LE_UINT32(inPosH);
+		inPosH += 4;
+		char *name = (char *)inPosH;
+		inPosH += strlen(name) + 1;
+
+		if (!name[0]) {
+			*outsize = outPosD - outTemp;
+			WRITE_LE_UINT32(outPosH, *outsize);
+			memset(outPosH + 4, 0, 5);
+			break;
+		}
+
+		uint32 fileSize = READ_LE_UINT32(inPosH) - offset;
+		int headerEntryLen = inPosH - spos;
+
+		if (scumm_stricmp(name + strlen(name) - 4, ".voc")) {
+			memcpy(outPosH, spos, headerEntryLen);
+			WRITE_LE_UINT32(outPosH, outPosD - outTemp);
+			outPosH += headerEntryLen;
+			memcpy(outPosD, src + offset, fileSize);
+			outPosD += fileSize;
+			continue;
+		}
+
+		uint8 *vocPtr = src + offset;
+		uint32 vocLen = (vocPtr[27] | (vocPtr[28] << 8) | (vocPtr[29] << 16)) - 2;
+
+		uint8 *vocOutEnd = outPosD + vocLen + 32;
+		uint8 *vocInEnd = src + offset + fileSize;
+		memcpy(outPosD, vocPtr, 32);
+		uint8 *dst = outPosD + 32;
+		vocPtr += 32;
+		float t = 0.0f;
+
+		while (dst < vocOutEnd) {
+			memcpy(&t, vocPtr, 4);
+			vocPtr += 4;
+			uint32 readSize = MIN<uint32>(8192, vocInEnd - vocPtr);
+			memcpy(_sndArray, vocPtr, readSize);
+			vocPtr += readSize;
+
+			for (int i = -128; i < 128; i++)
+				_stTbl[i + 128] = (int32)((float)i / t + 0.5f);
+
+			int8 *ps = (int8 *)_sndArray;
+			for (int i = 0; i < 8192; i++)
+				_floatArray[i + 1] = _stTbl[128 + *ps++];
+
+			for (int i = 4; i <= 8192; i <<= 1)
+				decodeHelper(i);
+
+			for (int i = 1; i <= 8192; i++) {
+				int32 v = CLIP<int32>(_floatArray[i] + 128, 0, 255);
+				_sndArray[i - 1] = v;
+			}
+
+			uint32 numBytesOut = MIN<uint32>(vocOutEnd - dst, 8192);
+			memcpy(dst, _sndArray, numBytesOut);
+			dst += numBytesOut;
+		}
+
+		*dst++ = 0;
+		memcpy(outPosH, spos, headerEntryLen);
+		WRITE_LE_UINT32(outPosH, outPosD - outTemp);
+		outPosH += headerEntryLen;
+		outPosD += (vocLen + 33);
+	}
+
+	if (disposeInput)
+		delete[] src;
+
+	uint8 *outFinal = new uint8[*outsize];
+	memcpy(outFinal, outTemp, *outsize);
+	delete[] outTemp;
+
+	return outFinal;
+}
+
+void CmpVocDecoder::decodeHelper(int p1) {
+	int p2 = p1 >> 1;
+	int p3 = p2 + 1;
+
+	int16 fi1 = _floatArray[1];
+	int16 fi2 = _floatArray[p2];
+	int16 fi3 = _floatArray[p3];
+	int16 fi4 = _floatArray[p1];
+
+	_vtbl[1] = (*(_p3 + fi2) + *(_p2 + fi4) + *(_p1 + fi1) + *(_p4 + fi3)) >> 8;
+	_vtbl[2] = (*(_p4 + fi2) - *(_p1 + fi4) + *(_p2 + fi1) - *(_p3 + fi3)) >> 8;
+
+	int d = 3;
+	int s = 1;
+
+	while (s < p2) {
+		fi2 = _floatArray[s];
+		fi1 = _floatArray[s + 1];
+		fi4 = _floatArray[s + p2];
+		fi3 = _floatArray[s + p3];
+
+		_vtbl[d++] = (*(_p3 + fi2) + *(_p2 + fi4) + *(_p1 + fi1) + *(_p4 + fi3)) >> 8;
+		_vtbl[d++] = (*(_p4 + fi2) - *(_p1 + fi4) + *(_p2 + fi1) - *(_p3 + fi3)) >> 8;
+		s++;
+	}
+
+	memcpy(&_floatArray[1], &_vtbl[1], p1 * sizeof(int32));
+}
+
+} // End of namespace Kyra

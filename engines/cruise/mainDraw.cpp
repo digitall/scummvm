@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
@@ -56,7 +53,7 @@ void addAutoCell(int overlayIdx, int idx, int type, int newVal, cellStruct *pObj
 	pNewEntry->pCell = pObject;
 }
 
-void freeAutoCell(void) {
+void freeAutoCell() {
 	autoCellStruct *pCurrent = autoCellHead.next;
 
 	while (pCurrent) {
@@ -107,7 +104,9 @@ void fadeIn() {
 			calcRGB(&palScreen[masterScreen][3*j], &workpal[3*j], offsetTable);
 		}
 		gfxModuleData_setPal256(workpal);
-		gfxModuleData_flipScreen();
+
+		gfxModuleData_updatePalette();
+		gfxModuleData_updateScreen();
 	}
 
 	for (long int j = 0; j < 256; j++) {
@@ -124,7 +123,7 @@ void fadeIn() {
 	PCFadeFlag = 0;
 }
 
-void flipScreen(void) {
+void flipScreen() {
 	if (switchPal) {
 		for (unsigned long int i = 0; i < 256*3; i++) {
 			workpal[i] = palScreen[masterScreen][i];
@@ -206,13 +205,13 @@ int m_first_Y;
 int m_scaleValue;
 int m_color;
 
-/* 
+/*
    FIXME: Whether intentional or not, the game often seems to use negative indexing
    of one or more of the arrays below and expects(?) to end up in the preceding one.
    This "worked" on many platforms so far, but on OSX apparently the buffers don't
    occupy contiguous memory, and this causes severe corruption and subsequent crashes.
    Since I'm not really familiar with how the strange drawing code is supposed to work,
-   or whether this behaviour is intentional or not, the short-term fix is to allocate a big
+   or whether this behavior is intentional or not, the short-term fix is to allocate a big
    buffer and setup pointers within it.  This fixes the crashes I'm seeing without causing any
    (visual) side-effects.
    If anyone wants to look, this is easily reproduced by starting the game and examining the rug.
@@ -339,7 +338,7 @@ int16 *A2ptr;
 
 
 
-void buildSegment(void) {
+void buildSegment() {
 	int16* pOut = XMIN_XMAX;
 
 	if ((polyXMin >= 320) || (polyXMax < 0) || (polyYMax < 0) || (polyYMin >= 200)) {
@@ -441,7 +440,6 @@ void buildSegment(void) {
 
 		// is segment on screen ?
 		if (!((tempAX > 199) || (tempDX < 0))) {
-			int dx = Y1;
 			int cx = X2 - X1;
 			if (cx == 0) {
 				// vertical line
@@ -474,7 +472,6 @@ void buildSegment(void) {
 			} else {
 				if (cx < 0) {
 					cx = -cx;
-					dx = Y2;
 
 					SWAP(X1, X2);
 					SWAP(Y1, Y2);
@@ -1079,8 +1076,6 @@ void mainDrawPolygons(int fileIndex, cellStruct *plWork, int X, int scale, int Y
 	int newScale;
 	char *newFrame;
 
-	int var_8;		// unused
-
 	int sizeTable[4];	// 0 = left, 1 = right, 2 = bottom, 3 = top
 
 	// this function checks if the dataPtr is not 0, else it retrives the data for X, Y, scale and DataPtr again (OLD: mainDrawSub1Sub1)
@@ -1121,7 +1116,7 @@ void mainDrawPolygons(int fileIndex, cellStruct *plWork, int X, int scale, int Y
 	if (spriteY1 == spriteY2)
 		return;
 
-	var_8 = 0;
+	gfxModuleData_addDirtyRect(Common::Rect(spriteX2, spriteY2, spriteX1, spriteY1));
 
 	memset(polygonMask, 0xFF, (320*200) / 8);
 
@@ -1177,6 +1172,8 @@ void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int wi
 			globalY = 198 - pGfxPtr->height;
 		}
 
+		gfxModuleData_addDirtyRect(Common::Rect(globalX, globalY, globalX + width, globalY + height));
+
 		initialOuput = ouputPtr + (globalY * 320) + globalX;
 
 		for (yp = 0; yp < height; yp++) {
@@ -1206,10 +1203,17 @@ void drawSprite(int width, int height, cellStruct *currentObjPtr, const uint8 *d
 	int x = 0;
 	int y = 0;
 
+	// Flag the given area as having been changed
+	Common::Point ps = Common::Point(MAX(MIN(xs, 320), 0), MAX(MIN(ys, 200), 0));
+	Common::Point pe = Common::Point(MAX(MIN(xs + width, 320), 0), MAX(MIN(ys + height, 200), 0));
+	if ((ps.x != pe.x) && (ps.y != pe.y))
+		// At least part of sprite is on-screen
+		gfxModuleData_addDirtyRect(Common::Rect(ps.x, ps.y, pe.x, pe.y));
+
 	cellStruct* plWork = currentObjPtr;
 	int workBufferSize = height * (width / 8);
 
-	unsigned char* workBuf = (unsigned char*)malloc(workBufferSize);
+	unsigned char* workBuf = (unsigned char*)MemAlloc(workBufferSize);
 	memcpy(workBuf, dataBuf, workBufferSize);
 
 	int numPasses = 0;
@@ -1248,11 +1252,11 @@ void drawSprite(int width, int height, cellStruct *currentObjPtr, const uint8 *d
 		}
 	}
 
-	free(workBuf);
+	MemFree(workBuf);
 }
 
 #ifdef _DEBUG
-void drawCtp(void) {
+void drawCtp() {
 	/*	int i;
 
 		if (ctp_walkboxTable) {
@@ -1406,6 +1410,10 @@ void mainDraw(int16 param) {
 
 	if (bgPtr) {
 		gfxModuleData_gfxCopyScreen(bgPtr, gfxModuleData.pPage10);
+		if (backgroundChanged[masterScreen]) {
+			backgroundChanged[masterScreen] = false;
+			switchBackground(bgPtr);
+		}
 	}
 
 	autoCellHead.next = NULL;
@@ -1480,9 +1488,6 @@ void mainDraw(int16 param) {
 								if (currentObjPtr->animLoop > 0)
 									currentObjPtr->animLoop--;
 							} else {
-								int16 data2;
-								data2 = currentObjPtr->animStart;
-
 								change = false;
 								currentObjPtr->animStep = 0;
 
@@ -1502,9 +1507,6 @@ void mainDraw(int16 param) {
 								if (currentObjPtr->animLoop > 0)
 									currentObjPtr->animLoop--;
 							} else {
-								int16 data2;
-								data2 = currentObjPtr->animStart;
-
 								change = false;
 								currentObjPtr->animStep = 0;
 

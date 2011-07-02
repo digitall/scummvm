@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise_main.h"
@@ -39,9 +36,9 @@ void resetPtr(cellStruct *ptr) {
 void freeMessageList(cellStruct *objPtr) {
 	/*	if (objPtr) {
 			 if (objPtr->next)
-			 free(objPtr->next);
+			 MemFree(objPtr->next);
 
-			free(objPtr);
+			MemFree(objPtr);
 		} */
 }
 
@@ -65,9 +62,7 @@ cellStruct *addCell(cellStruct *pHead, int16 overlayIdx, int16 objIdx, int16 typ
 		if (currentHead2->type != 5) {
 			int16 lvar2;
 
-			getSingleObjectParam(currentHead2->overlay, currentHead2->idx, 2, &lvar2);
-
-			if (lvar2 >= var)
+			if (getSingleObjectParam(currentHead2->overlay, currentHead2->idx, 2, &lvar2) >= 0 && lvar2 >= var)
 				break;
 		}
 
@@ -143,7 +138,7 @@ void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x
 
 	var_2 = si;
 
-	pNewElement = (cellStruct *) malloc(sizeof(cellStruct));
+	pNewElement = (cellStruct *) MemAlloc(sizeof(cellStruct));
 	memset(pNewElement, 0, sizeof(cellStruct));
 
 	pNewElement->next = pObject->next;
@@ -176,6 +171,11 @@ void createTextObject(cellStruct *pObject, int overlayIdx, int messageIdx, int x
 	if (ax) {
 		pNewElement->gfxPtr = renderText(width, ax);
 	}
+
+	// WORKAROUND: This is needed for the new dirty rect handling so as to properly refresh the screen
+	// when the copy protection screen is being shown
+	if ((messageIdx == 0) && !strcmp(overlayTable[overlayIdx].overlayName, "XX2"))
+		backgroundChanged[0] = true;
 }
 
 void removeCell(cellStruct *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
@@ -213,10 +213,10 @@ void removeCell(cellStruct *objPtr, int ovlNumber, int objectIdx, int objType, i
 
 			dx->prev = si->prev;
 
-			// TODO: complelty wrong
-			//freeMessageList(si);
-
-			free(si);
+			// Free the entry
+			if (si->gfxPtr)
+				freeGfx(si->gfxPtr);
+			MemFree(si);
 
 			currentObj = dx;
 		} else {

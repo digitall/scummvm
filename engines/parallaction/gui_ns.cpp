@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
 #include "common/hashmap.h"
+#include "common/textconsole.h"
 
 #include "parallaction/gui.h"
 #include "parallaction/input.h"
@@ -107,8 +105,9 @@ class ChooseLanguageInputState_NS : public MenuInputState {
 	bool	_allowChoice;
 	Common::String _nextState;
 
-	static const Common::Rect _dosLanguageSelectBlocks[4];
-	static const Common::Rect _amigaLanguageSelectBlocks[4];
+	GfxObj *_label;
+	Common::Rect _dosLanguageSelectBlocks[4];
+	Common::Rect _amigaLanguageSelectBlocks[4];
 	const Common::Rect *_blocks;
 
 	Parallaction *_vm;
@@ -117,6 +116,18 @@ public:
 	ChooseLanguageInputState_NS(Parallaction *vm, MenuInputHelper *helper) : MenuInputState("chooselanguage", helper), _vm(vm) {
 		_allowChoice = false;
 		_nextState = "selectgame";
+		_label = 0;
+
+		_dosLanguageSelectBlocks[0] = Common::Rect(  80, 110, 128, 180 );	// Italian
+		_dosLanguageSelectBlocks[1] = Common::Rect( 129,  85, 177, 155 );	// French
+		_dosLanguageSelectBlocks[2] = Common::Rect( 178,  60, 226, 130 );	// English
+		_dosLanguageSelectBlocks[3] = Common::Rect( 227,  35, 275, 105 );	// German
+
+		_amigaLanguageSelectBlocks[0] = Common::Rect(  -1,  -1,  -1,  -1 );	// Italian: not supported by Amiga multi-lingual version
+		_amigaLanguageSelectBlocks[1] = Common::Rect( 129,  85, 177, 155 );	// French
+		_amigaLanguageSelectBlocks[2] = Common::Rect( 178,  60, 226, 130 );	// English
+		_amigaLanguageSelectBlocks[3] = Common::Rect( 227,  35, 275, 105 );	// German
+
 
 		if (_vm->getPlatform() == Common::kPlatformAmiga) {
 			if (!(_vm->getFeatures() & GF_LANG_MULT)) {
@@ -139,6 +150,16 @@ public:
 		_allowChoice = true;
 	}
 
+	~ChooseLanguageInputState_NS() {
+		destroyLabels();
+	}
+
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_label);
+		delete _label;
+		_label = 0;
+	}
+
 	virtual MenuInputState* run() {
 		if (!_allowChoice) {
 			_vm->setInternLanguage(_language);
@@ -157,7 +178,7 @@ public:
 			if (_blocks[i].contains(p)) {
 				_vm->setInternLanguage(i);
 				_vm->beep();
-				_vm->_gfx->freeLabels();
+				destroyLabels();
 				return _helper->getState(_nextState);
 			}
 		}
@@ -175,25 +196,11 @@ public:
 		// user can choose language in this version
 		_vm->showSlide("lingua");
 
-		uint id = _vm->_gfx->createLabel(_vm->_introFont, "SELECT LANGUAGE", 1);
-		_vm->_gfx->showLabel(id, 60, 30);
+		_label = _vm->_gfx->createLabel(_vm->_introFont, "SELECT LANGUAGE", 1);
+		_vm->_gfx->showLabel(_label, 60, 30);
 
 		_vm->_input->setArrowCursor();
 	}
-};
-
-const Common::Rect ChooseLanguageInputState_NS::_dosLanguageSelectBlocks[4] = {
-	Common::Rect(  80, 110, 128, 180 ),	// Italian
-	Common::Rect( 129,  85, 177, 155 ),	// French
-	Common::Rect( 178,  60, 226, 130 ),	// English
-	Common::Rect( 227,  35, 275, 105 )	// German
-};
-
-const Common::Rect ChooseLanguageInputState_NS::_amigaLanguageSelectBlocks[4] = {
-	Common::Rect(  -1,  -1,  -1,  -1 ),	// Italian: not supported by Amiga multi-lingual version
-	Common::Rect( 129,  85, 177, 155 ),	// French
-	Common::Rect( 178,  60, 226, 130 ),	// English
-	Common::Rect( 227,  35, 275, 105 )	// German
 };
 
 class SelectGameInputState_NS : public MenuInputState {
@@ -201,7 +208,7 @@ class SelectGameInputState_NS : public MenuInputState {
 	int _choice, _oldChoice;
 	Common::String _nextState[2];
 
-	uint	_labels[2];
+	GfxObj	*_labels[2];
 
 	Parallaction *_vm;
 
@@ -215,6 +222,22 @@ public:
 
 		_nextState[0] = "newgame";
 		_nextState[1] = "loadgame";
+
+		_labels[0] = 0;
+		_labels[1] = 0;
+	}
+
+	~SelectGameInputState_NS() {
+		destroyLabels();
+	}
+
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_labels[0]);
+		_vm->_gfx->unregisterLabel(_labels[1]);
+		delete _labels[0];
+		delete _labels[1];
+		_labels[0] = 0;
+		_labels[1] = 0;
 	}
 
 
@@ -222,7 +245,7 @@ public:
 		int event = _vm->_input->getLastButtonEvent();
 
 		if (event == kMouseLeftUp) {
-			_vm->_gfx->freeLabels();
+			destroyLabels();
 			return _helper->getState(_nextState[_choice]);
 		}
 
@@ -293,10 +316,19 @@ public:
 class NewGameInputState_NS : public MenuInputState {
 	Parallaction_ns *_vm;
 
+	GfxObj *_labels[4];
 	static const char *introMsg3[4];
 
 public:
 	NewGameInputState_NS(Parallaction_ns *vm, MenuInputHelper *helper) : MenuInputState("newgame", helper), _vm(vm) {
+		_labels[0] = 0;
+		_labels[1] = 0;
+		_labels[2] = 0;
+		_labels[3] = 0;
+	}
+
+	~NewGameInputState_NS() {
+		destroyLabels();
 	}
 
 	virtual MenuInputState* run() {
@@ -304,7 +336,7 @@ public:
 
 		if (event == kMouseLeftUp || event == kMouseRightUp) {
 			_vm->_input->setMouseState(MOUSE_ENABLED_SHOW);
-			_vm->_gfx->freeLabels();
+			destroyLabels();
 
 			if (event == kMouseLeftUp) {
 				_vm->scheduleLocationSwitch("fogne.dough");
@@ -317,19 +349,33 @@ public:
 		return this;
 	}
 
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_labels[0]);
+		_vm->_gfx->unregisterLabel(_labels[1]);
+		_vm->_gfx->unregisterLabel(_labels[2]);
+		_vm->_gfx->unregisterLabel(_labels[3]);
+		delete _labels[0];
+		delete _labels[1];
+		delete _labels[2];
+		delete _labels[3];
+		_labels[0] = 0;
+		_labels[1] = 0;
+		_labels[2] = 0;
+		_labels[3] = 0;
+	}
+
 	virtual void enter() {
 		_vm->changeBackground("test");
 		_vm->_input->setMouseState(MOUSE_ENABLED_HIDE);
 
-		uint id[4];
-		id[0] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[0], 1);
-		id[1] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[1], 1);
-		id[2] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[2], 1);
-		id[3] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[3], 1);
-		_vm->_gfx->showLabel(id[0], CENTER_LABEL_HORIZONTAL, 50);
-		_vm->_gfx->showLabel(id[1], CENTER_LABEL_HORIZONTAL, 70);
-		_vm->_gfx->showLabel(id[2], CENTER_LABEL_HORIZONTAL, 100);
-		_vm->_gfx->showLabel(id[3], CENTER_LABEL_HORIZONTAL, 120);
+		_labels[0] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[0], 1);
+		_labels[1] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[1], 1);
+		_labels[2] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[2], 1);
+		_labels[3] = _vm->_gfx->createLabel(_vm->_menuFont, introMsg3[3], 1);
+		_vm->_gfx->showLabel(_labels[0], CENTER_LABEL_HORIZONTAL, 50);
+		_vm->_gfx->showLabel(_labels[1], CENTER_LABEL_HORIZONTAL, 70);
+		_vm->_gfx->showLabel(_labels[2], CENTER_LABEL_HORIZONTAL, 100);
+		_vm->_gfx->showLabel(_labels[3], CENTER_LABEL_HORIZONTAL, 120);
 	}
 };
 
@@ -368,8 +414,8 @@ class SelectCharacterInputState_NS : public MenuInputState {
 	#define CHAR_DONNA	1
 	#define CHAR_DOUGH	2
 
-	static const Common::Rect codeSelectBlocks[9];
-	static const Common::Rect codeTrueBlocks[9];
+ 	Common::Rect _codeSelectBlocks[9];
+	Common::Rect _codeTrueBlocks[9];
 
 	Parallaction_ns *_vm;
 
@@ -378,18 +424,18 @@ class SelectCharacterInputState_NS : public MenuInputState {
 		int selection = -1;
 
 		for (uint16 i = 0; i < 9; i++) {
-			if (codeSelectBlocks[i].contains(p)) {
+			if (_codeSelectBlocks[i].contains(p)) {
 				selection = i;
 				break;
 			}
 		}
 
 		if ((selection != -1) && (_vm->getPlatform() == Common::kPlatformAmiga)) {
-			_vm->_gfx->invertBackground(codeTrueBlocks[selection]);
+			_vm->_gfx->invertBackground(_codeTrueBlocks[selection]);
 			_vm->_gfx->updateScreen();
 			_vm->beep();
 			_vm->_system->delayMillis(100);
-			_vm->_gfx->invertBackground(codeTrueBlocks[selection]);
+			_vm->_gfx->invertBackground(_codeTrueBlocks[selection]);
 			_vm->_gfx->updateScreen();
 		}
 
@@ -402,7 +448,7 @@ class SelectCharacterInputState_NS : public MenuInputState {
 	Graphics::Surface _block;
 	Graphics::Surface _emptySlots;
 
-	uint	_labels[2];
+	GfxObj	*_labels[2];
 	uint	_len;
 	uint32	_startTime;
 
@@ -426,12 +472,45 @@ class SelectCharacterInputState_NS : public MenuInputState {
 public:
 	SelectCharacterInputState_NS(Parallaction_ns *vm, MenuInputHelper *helper) : MenuInputState("selectcharacter", helper), _vm(vm) {
 		_keys = (_vm->getPlatform() == Common::kPlatformAmiga && (_vm->getFeatures() & GF_LANG_MULT)) ? _amigaKeys : _pcKeys;
-		_block.create(BLOCK_WIDTH, BLOCK_HEIGHT, 1);
+		_block.create(BLOCK_WIDTH, BLOCK_HEIGHT, Graphics::PixelFormat::createFormatCLUT8());
+		_labels[0] = 0;
+		_labels[1] = 0;
+
+		_codeSelectBlocks[0] = Common::Rect( 111, 129, 127, 153 );	// na
+		_codeSelectBlocks[1] = Common::Rect( 128, 120, 144, 144 );	// wa
+		_codeSelectBlocks[2] = Common::Rect( 145, 111, 161, 135 );	// ra
+		_codeSelectBlocks[3] = Common::Rect( 162, 102, 178, 126 );	// ri
+		_codeSelectBlocks[4] = Common::Rect( 179, 93, 195, 117 );	// i
+		_codeSelectBlocks[5] = Common::Rect( 196, 84, 212, 108 );	// ne
+		_codeSelectBlocks[6] = Common::Rect( 213, 75, 229, 99 );		// ho
+		_codeSelectBlocks[7] = Common::Rect( 230, 66, 246, 90 );		// ki
+		_codeSelectBlocks[8] = Common::Rect( 247, 57, 263, 81 );		// ka
+
+		_codeTrueBlocks[0] = Common::Rect( 112, 130, 128, 154 );
+		_codeTrueBlocks[1] = Common::Rect( 129, 121, 145, 145 );
+		_codeTrueBlocks[2] = Common::Rect( 146, 112, 162, 136 );
+		_codeTrueBlocks[3] = Common::Rect( 163, 103, 179, 127 );
+		_codeTrueBlocks[4] = Common::Rect( 180, 94, 196, 118 );
+		_codeTrueBlocks[5] = Common::Rect( 197, 85, 213, 109 );
+		_codeTrueBlocks[6] = Common::Rect( 214, 76, 230, 100 );
+		_codeTrueBlocks[7] = Common::Rect( 231, 67, 247, 91 );
+		_codeTrueBlocks[8] = Common::Rect( 248, 58, 264, 82 );
 	}
 
 	~SelectCharacterInputState_NS() {
 		_block.free();
 		_emptySlots.free();
+
+		destroyLabels();
+	}
+
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_labels[0]);
+		_vm->_gfx->unregisterLabel(_labels[1]);
+		delete _labels[0];
+		delete _labels[1];
+		_labels[0] = 0;
+		_labels[1] = 0;
 	}
 
 	void cleanup() {
@@ -461,7 +540,7 @@ public:
 		int _si = guiGetSelectedBlock(p);
 
 		if (_si != -1) {
-			_vm->_gfx->grabBackground(codeTrueBlocks[_si], _block);
+			_vm->_gfx->grabBackground(_codeTrueBlocks[_si], _block);
 			_vm->_gfx->patchBackground(_block, _len * SLOT_WIDTH + SLOT_X, SLOT_Y, false);
 
 			if (_keys[0][_len] != _si && _keys[1][_len] != _si && _keys[2][_len] != _si) {
@@ -490,7 +569,7 @@ public:
 	}
 
 	void success() {
-		_vm->_gfx->freeLabels();
+		destroyLabels();
 		_vm->_gfx->setBlackPalette();
 		_emptySlots.free();
 
@@ -505,7 +584,7 @@ public:
 		if (_points[2] >= _points[0] && _points[2] >= _points[1]) {
 			character = CHAR_DOUGH;
 		} else {
-			error("If you read this, either your CPU or transivity is broken (we believe the former).");
+			error("If you read this, either your CPU or transivity is broken (we believe the former)");
 		}
 
 		_vm->cleanupGame();
@@ -544,7 +623,7 @@ public:
 		_vm->_soundManI->stopMusic();
 		_vm->showSlide("password");
 
-		_emptySlots.create(BLOCK_WIDTH * 8, BLOCK_HEIGHT, 1);
+		_emptySlots.create(BLOCK_WIDTH * 8, BLOCK_HEIGHT, Graphics::PixelFormat::createFormatCLUT8());
 		Common::Rect rect(SLOT_X, SLOT_Y, SLOT_X + BLOCK_WIDTH * 8, SLOT_Y + BLOCK_HEIGHT);
 		_vm->_gfx->grabBackground(rect, _emptySlots);
 
@@ -592,31 +671,6 @@ const char *SelectCharacterInputState_NS::_charStartLocation[] = {
 };
 
 
-const Common::Rect SelectCharacterInputState_NS::codeSelectBlocks[9] = {
-	Common::Rect( 111, 129, 127, 153 ),		// na
-	Common::Rect( 128, 120, 144, 144 ),		// wa
-	Common::Rect( 145, 111, 161, 135 ),		// ra
-	Common::Rect( 162, 102, 178, 126 ),		// ri
-	Common::Rect( 179, 93, 195, 117 ),		// i
-	Common::Rect( 196, 84, 212, 108 ),		// ne
-	Common::Rect( 213, 75, 229, 99 ),		// ho
-	Common::Rect( 230, 66, 246, 90 ),		// ki
-	Common::Rect( 247, 57, 263, 81 )		// ka
-};
-
-const Common::Rect SelectCharacterInputState_NS::codeTrueBlocks[9] = {
-	Common::Rect( 112, 130, 128, 154 ),
-	Common::Rect( 129, 121, 145, 145 ),
-	Common::Rect( 146, 112, 162, 136 ),
-	Common::Rect( 163, 103, 179, 127 ),
-	Common::Rect( 180, 94, 196, 118 ),
-	Common::Rect( 197, 85, 213, 109 ),
-	Common::Rect( 214, 76, 230, 100 ),
-	Common::Rect( 231, 67, 247, 91 ),
-	Common::Rect( 248, 58, 264, 82 )
-};
-
-
 class ShowCreditsInputState_NS : public MenuInputState {
 	Parallaction *_vm;
 	int	_current;
@@ -628,17 +682,34 @@ class ShowCreditsInputState_NS : public MenuInputState {
 	};
 
 	static const Credit _credits[6];
+	GfxObj *_labels[2];
 
 public:
 	ShowCreditsInputState_NS(Parallaction *vm, MenuInputHelper *helper) : MenuInputState("showcredits", helper), _vm(vm) {
+		_labels[0] = 0;
+		_labels[1] = 0;
+	}
+
+	~ShowCreditsInputState_NS() {
+		destroyLabels();
+	}
+
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_labels[0]);
+		_vm->_gfx->unregisterLabel(_labels[1]);
+		delete _labels[0];
+		delete _labels[1];
+		_labels[0] = 0;
+		_labels[1] = 0;
 	}
 
 	void drawCurrentLabel() {
-		uint id[2];
-		id[0] = _vm->_gfx->createLabel(_vm->_menuFont, _credits[_current]._role, 1);
-		id[1] = _vm->_gfx->createLabel(_vm->_menuFont, _credits[_current]._name, 1);
-		_vm->_gfx->showLabel(id[0], CENTER_LABEL_HORIZONTAL, 80);
-		_vm->_gfx->showLabel(id[1], CENTER_LABEL_HORIZONTAL, 100);
+		destroyLabels();
+
+		_labels[0] = _vm->_gfx->createLabel(_vm->_menuFont, _credits[_current]._role, 1);
+		_labels[1] = _vm->_gfx->createLabel(_vm->_menuFont, _credits[_current]._name, 1);
+		_vm->_gfx->showLabel(_labels[0], CENTER_LABEL_HORIZONTAL, 80);
+		_vm->_gfx->showLabel(_labels[1], CENTER_LABEL_HORIZONTAL, 100);
 	}
 
 
@@ -655,7 +726,7 @@ public:
 		if ((event == kMouseLeftUp) || (curTime - _startTime > 5500)) {
 			_current++;
 			_startTime = curTime;
-			_vm->_gfx->freeLabels();
+			destroyLabels();
 
 			if (_current == 6) {
 				return _helper->getState("endintro");
@@ -685,10 +756,22 @@ const ShowCreditsInputState_NS::Credit ShowCreditsInputState_NS::_credits[6] = {
 class EndIntroInputState_NS : public MenuInputState {
 	Parallaction_ns *_vm;
 	bool _isDemo;
+	GfxObj *_label;
 
 public:
 	EndIntroInputState_NS(Parallaction_ns *vm, MenuInputHelper *helper) : MenuInputState("endintro", helper), _vm(vm) {
 		_isDemo = (_vm->getFeatures() & GF_DEMO) != 0;
+		_label = 0;
+	}
+
+	~EndIntroInputState_NS() {
+		destroyLabels();
+	}
+
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_label);
+		delete _label;
+		_label = 0;
 	}
 
 	virtual MenuInputState* run() {
@@ -703,7 +786,8 @@ public:
 			return 0;
 		}
 
-		_vm->_gfx->freeLabels();
+		destroyLabels();
+		_engineFlags &= ~kEngineBlockInput;
 		return _helper->getState("selectcharacter");
 	}
 
@@ -712,8 +796,8 @@ public:
 
 		if (!_isDemo) {
 			_vm->_soundManI->stopMusic();
-			int label = _vm->_gfx->createLabel(_vm->_menuFont, "CLICK MOUSE BUTTON TO START", 1);
-			_vm->_gfx->showLabel(label, CENTER_LABEL_HORIZONTAL, 80);
+			_label = _vm->_gfx->createLabel(_vm->_menuFont, "CLICK MOUSE BUTTON TO START", 1);
+			_vm->_gfx->showLabel(_label, CENTER_LABEL_HORIZONTAL, 80);
 		}
 	}
 };
@@ -734,9 +818,31 @@ class EndPartInputState_NS : public MenuInputState {
 	static const char *endMsg6[4];
 	static const char *endMsg7[4];
 
+	GfxObj *_labels[4];
 
 public:
 	EndPartInputState_NS(Parallaction *vm, MenuInputHelper *helper) : MenuInputState("endpart", helper), _vm(vm) {
+		_labels[0] = 0;
+		_labels[1] = 0;
+		_labels[2] = 0;
+		_labels[3] = 0;
+	}
+
+	void destroyLabels() {
+		_vm->_gfx->unregisterLabel(_labels[0]);
+		_vm->_gfx->unregisterLabel(_labels[1]);
+		_vm->_gfx->unregisterLabel(_labels[2]);
+		_vm->_gfx->unregisterLabel(_labels[3]);
+
+		delete _labels[0];
+		delete _labels[1];
+		delete _labels[2];
+		delete _labels[3];
+
+		_labels[0] = 0;
+		_labels[1] = 0;
+		_labels[2] = 0;
+		_labels[3] = 0;
 	}
 
 	virtual MenuInputState* run() {
@@ -745,7 +851,7 @@ public:
 			return this;
 		}
 
-		_vm->_gfx->freeLabels();
+		destroyLabels();
 
 		if (_allPartsComplete) {
 			_vm->scheduleLocationSwitch("estgrotta.drki");
@@ -762,23 +868,22 @@ public:
 		_vm->_input->setMouseState(MOUSE_DISABLED);
 
 		uint16 language = _vm->getInternLanguage();
-		uint id[4];
 		if (_allPartsComplete) {
-			id[0] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg4[language], 1);
-			id[1] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg5[language], 1);
-			id[2] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg6[language], 1);
-			id[3] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg7[language], 1);
+			_labels[0] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg4[language], 1);
+			_labels[1] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg5[language], 1);
+			_labels[2] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg6[language], 1);
+			_labels[3] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg7[language], 1);
 		} else {
-			id[0] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg0[language], 1);
-			id[1] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg1[language], 1);
-			id[2] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg2[language], 1);
-			id[3] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg3[language], 1);
+			_labels[0] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg0[language], 1);
+			_labels[1] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg1[language], 1);
+			_labels[2] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg2[language], 1);
+			_labels[3] = _vm->_gfx->createLabel(_vm->_menuFont, endMsg3[language], 1);
 		}
 
-		_vm->_gfx->showLabel(id[0], CENTER_LABEL_HORIZONTAL, 70);
-		_vm->_gfx->showLabel(id[1], CENTER_LABEL_HORIZONTAL, 100);
-		_vm->_gfx->showLabel(id[2], CENTER_LABEL_HORIZONTAL, 130);
-		_vm->_gfx->showLabel(id[3], CENTER_LABEL_HORIZONTAL, 160);
+		_vm->_gfx->showLabel(_labels[0], CENTER_LABEL_HORIZONTAL, 70);
+		_vm->_gfx->showLabel(_labels[1], CENTER_LABEL_HORIZONTAL, 100);
+		_vm->_gfx->showLabel(_labels[2], CENTER_LABEL_HORIZONTAL, 130);
+		_vm->_gfx->showLabel(_labels[3], CENTER_LABEL_HORIZONTAL, 160);
 	}
 };
 

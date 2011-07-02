@@ -18,26 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-
 
 #include "common/config-manager.h"
 #include "common/file.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 #include "agos/intern.h"
 #include "agos/agos.h"
 #include "agos/vga.h"
 
-#include "sound/audiocd.h"
-#include "sound/audiostream.h"
-#include "sound/mididrv.h"
-#include "sound/mods/protracker.h"
+#include "backends/audiocd/audiocd.h"
 
-using Common::File;
+#include "audio/audiostream.h"
+#include "audio/mididrv.h"
+#include "audio/mods/protracker.h"
 
 namespace AGOS {
 
@@ -80,7 +76,7 @@ void AGOSEngine_Simon2::playSpeech(uint16 speech_id, uint16 vgaSpriteId) {
 		}
 		_skipVgaWait = true;
 	} else {
-		if (getGameType() == GType_SIMON2 && _subtitles && _language != Common::HB_ISR) {
+		if (getGameType() == GType_SIMON2 && _subtitles && _language != Common::HE_ISR) {
 			loadVoice(speech_id);
 			return;
 		}
@@ -177,7 +173,7 @@ static const ModuleOffs amigaWaxworksOffs[20] = {
 
 void AGOSEngine::playModule(uint16 music) {
 	char filename[15];
-	File f;
+	Common::File f;
 	uint32 offs = 0;
 
 	if (getPlatform() == Common::kPlatformAmiga && getGameType() == GType_WW) {
@@ -223,16 +219,16 @@ void AGOSEngine::playModule(uint16 music) {
 		audioStream = Audio::makeProtrackerStream(&f);
 	}
 
-	_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_modHandle, audioStream);
+	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_modHandle, audioStream);
 }
 
 void AGOSEngine_Simon1::playMusic(uint16 music, uint16 track) {
 	stopMusic();
 
 	// Support for compressed music from the ScummVM Music Enhancement Project
-	AudioCD.stop();
-	AudioCD.play(music + 1, -1, 0, 0);
-	if (AudioCD.isPlaying())
+	_system->getAudioCDManager()->stop();
+	_system->getAudioCDManager()->play(music + 1, -1, 0, 0);
+	if (_system->getAudioCDManager()->isPlaying())
 		return;
 
 	if (getPlatform() == Common::kPlatformAmiga) {
@@ -264,7 +260,7 @@ void AGOSEngine_Simon1::playMusic(uint16 music, uint16 track) {
 		// TODO: Add support for Desktop Tracker format in Acorn disk version
 	} else {
 		char filename[15];
-		File f;
+		Common::File f;
 		sprintf(filename, "MOD%d.MUS", music);
 		f.open(filename);
 		if (f.isOpen() == false)
@@ -293,7 +289,7 @@ void AGOSEngine::playMusic(uint16 music, uint16 track) {
 		_midi.setLoop(true); // Must do this BEFORE loading music.
 
 		char filename[15];
-		File f;
+		Common::File f;
 		sprintf(filename, "MOD%d.MUS", music);
 		f.open(filename);
 		if (f.isOpen() == false)
@@ -318,7 +314,7 @@ void AGOSEngine::playSting(uint16 soundId) {
 
 	char filename[15];
 
-	File mus_file;
+	Common::File mus_file;
 	uint16 mus_offset;
 
 	sprintf(filename, "STINGS%i.MUS", _soundFileId);
@@ -349,7 +345,7 @@ static const byte elvira1_soundTable[100] = {
 };
 
 bool AGOSEngine::loadVGASoundFile(uint16 id, uint8 type) {
-	File in;
+	Common::File in;
 	char filename[15];
 	byte *dst;
 	uint32 srcSize, dstSize;
@@ -454,7 +450,7 @@ static const char *dimpSoundList[32] = {
 
 
 void AGOSEngine::loadSoundFile(const char* filename) {
-	File in;
+	Common::File in;
 
 	in.open(filename);
 	if (in.isOpen() == false)
@@ -473,7 +469,7 @@ void AGOSEngine::loadSound(uint16 sound, int16 pan, int16 vol, uint16 type) {
 	byte *dst;
 
 	if (getGameId() == GID_DIMP) {
-		File in;
+		Common::File in;
 		char filename[15];
 
 		assert(sound >= 1 && sound <= 32);

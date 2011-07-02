@@ -18,15 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/util.h"
 
 #include "parallaction/graphics.h"
 #include "parallaction/parallaction.h"
+
+#include "common/tokenizer.h"
 
 namespace Parallaction {
 
@@ -61,7 +58,7 @@ public:
 	WrappedLineFormatter(Font *font) : _font(font) { }
 	virtual ~WrappedLineFormatter() { }
 
-	virtual void calc(const char *text, uint16 maxwidth) {
+	virtual void calc(const Common::String &text, uint16 maxwidth) {
 		setup();
 
 		_lineWidth = 0;
@@ -194,7 +191,7 @@ protected:
 public:
 	StringWriter_NS(Parallaction_ns *vm, Font *font) : WrappedLineFormatter(font), _vm(vm) { }
 
-	void write(const char *text, uint maxWidth, byte color, Graphics::Surface *surf) {
+	void write(const Common::String &text, uint maxWidth, byte color, Graphics::Surface *surf) {
 		StringExtent_NS	se(_font);
 		se.calc(text, maxWidth);
 		_width = se.width() + 10;
@@ -248,7 +245,7 @@ class BalloonManager_ns : public BalloonManager {
 	Parallaction_ns *_vm;
 	static int16 _dialogueBalloonX[5];
 
-	byte _textColors[2];
+	byte _textColors[3];
 
 	struct Balloon {
 		Common::Rect outerBox;
@@ -270,10 +267,10 @@ public:
 	~BalloonManager_ns();
 
 	void reset();
-	int setLocationBalloon(const char *text, bool endGame);
-	int setDialogueBalloon(const char *text, uint16 winding, TextColor textColor);
-	int setSingleBalloon(const char *text, uint16 x, uint16 y, uint16 winding, TextColor textColor);
-	void setBalloonText(uint id, const char *text, TextColor textColor);
+	int setLocationBalloon(const Common::String &text, bool endGame);
+	int setDialogueBalloon(const Common::String &text, uint16 winding, TextColor textColor);
+	int setSingleBalloon(const Common::String &text, uint16 x, uint16 y, uint16 winding, TextColor textColor);
+	void setBalloonText(uint id, const Common::String &text, TextColor textColor);
 	int hitTestDialogueBalloon(int x, int y);
 };
 
@@ -304,7 +301,7 @@ int BalloonManager_ns::createBalloon(int16 w, int16 h, int16 winding, uint16 bor
 
 	int16 real_h = (winding == -1) ? h : h + 9;
 	balloon->surface = new Graphics::Surface;
-	balloon->surface->create(w, real_h, 1);
+	balloon->surface->create(w, real_h, Graphics::PixelFormat::createFormatCLUT8());
 	balloon->surface->fillRect(Common::Rect(w, real_h), BALLOON_TRANSPARENT_COLOR_NS);
 
 	Common::Rect r(w, h);
@@ -330,7 +327,7 @@ int BalloonManager_ns::createBalloon(int16 w, int16 h, int16 winding, uint16 bor
 }
 
 
-int BalloonManager_ns::setSingleBalloon(const char *text, uint16 x, uint16 y, uint16 winding, TextColor textColor) {
+int BalloonManager_ns::setSingleBalloon(const Common::String &text, uint16 x, uint16 y, uint16 winding, TextColor textColor) {
 
 	int16 w, h;
 
@@ -352,7 +349,7 @@ int BalloonManager_ns::setSingleBalloon(const char *text, uint16 x, uint16 y, ui
 	return id;
 }
 
-int BalloonManager_ns::setDialogueBalloon(const char *text, uint16 winding, TextColor textColor) {
+int BalloonManager_ns::setDialogueBalloon(const Common::String &text, uint16 winding, TextColor textColor) {
 
 	int16 w, h;
 
@@ -380,7 +377,7 @@ int BalloonManager_ns::setDialogueBalloon(const char *text, uint16 winding, Text
 	return id;
 }
 
-void BalloonManager_ns::setBalloonText(uint id, const char *text, TextColor textColor) {
+void BalloonManager_ns::setBalloonText(uint id, const Common::String &text, TextColor textColor) {
 	Balloon *balloon = getBalloon(id);
 	balloon->surface->fillRect(balloon->innerBox, 1);
 
@@ -388,7 +385,7 @@ void BalloonManager_ns::setBalloonText(uint id, const char *text, TextColor text
 }
 
 
-int BalloonManager_ns::setLocationBalloon(const char *text, bool endGame) {
+int BalloonManager_ns::setLocationBalloon(const Common::String &text, bool endGame) {
 
 	int16 w, h;
 
@@ -509,7 +506,7 @@ protected:
 public:
 	StringWriter_BR(Font *font) : WrappedLineFormatter(font) { }
 
-	void write(const char *text, uint maxWidth, byte color, Graphics::Surface *surf) {
+	void write(const Common::String &text, uint maxWidth, byte color, Graphics::Surface *surf) {
 		StringExtent_BR	se(_font);
 		se.calc(text, maxWidth);
 		_width = se.width() + 10;
@@ -530,7 +527,7 @@ public:
 class BalloonManager_br : public BalloonManager {
 
 	Parallaction_br *_vm;
-	byte _textColors[2];
+	byte _textColors[3];
 
 	struct Balloon {
 		Common::Rect box;
@@ -544,7 +541,6 @@ class BalloonManager_br : public BalloonManager {
 	Frames *_rightBalloon;
 
 	void cacheAnims();
-	void drawWrappedText(Font *font, Graphics::Surface* surf, char *text, byte color, int16 wrapwidth);
 	int createBalloon(int16 w, int16 h, uint16 borderThickness);
 	Balloon *getBalloon(uint id);
 	Graphics::Surface *expandBalloon(Frames *data, int frameNum);
@@ -557,10 +553,10 @@ public:
 	~BalloonManager_br();
 
 	void reset();
-	int setLocationBalloon(const char *text, bool endGame);
-	int setDialogueBalloon(const char *text, uint16 winding, TextColor textColor);
-	int setSingleBalloon(const char *text, uint16 x, uint16 y, uint16 winding, TextColor textColor);
-	void setBalloonText(uint id, const char *text, TextColor textColor);
+	int setLocationBalloon(const Common::String &text, bool endGame);
+	int setDialogueBalloon(const Common::String &text, uint16 winding, TextColor textColor);
+	int setSingleBalloon(const Common::String &text, uint16 x, uint16 y, uint16 winding, TextColor textColor);
+	void setBalloonText(uint id, const Common::String &text, TextColor textColor);
 	int hitTestDialogueBalloon(int x, int y);
 };
 
@@ -579,14 +575,14 @@ Graphics::Surface *BalloonManager_br::expandBalloon(Frames *data, int frameNum) 
 	rect.translate(-rect.left, -rect.top);
 
 	Graphics::Surface *surf = new Graphics::Surface;
-	surf->create(rect.width(), rect.height(), 1);
+	surf->create(rect.width(), rect.height(), Graphics::PixelFormat::createFormatCLUT8());
 
 	_vm->_gfx->unpackBlt(rect, data->getData(frameNum), data->getRawSize(frameNum), surf, LAYER_FOREGROUND, 100, BALLOON_TRANSPARENT_COLOR_BR);
 
 	return surf;
 }
 
-int BalloonManager_br::setSingleBalloon(const char *text, uint16 x, uint16 y, uint16 winding, TextColor textColor) {
+int BalloonManager_br::setSingleBalloon(const Common::String &text, uint16 x, uint16 y, uint16 winding, TextColor textColor) {
 	cacheAnims();
 
 	int id = _numBalloons;
@@ -622,7 +618,7 @@ int BalloonManager_br::setSingleBalloon(const char *text, uint16 x, uint16 y, ui
 	return id;
 }
 
-int BalloonManager_br::setDialogueBalloon(const char *text, uint16 winding, TextColor textColor) {
+int BalloonManager_br::setDialogueBalloon(const Common::String &text, uint16 winding, TextColor textColor) {
 	cacheAnims();
 
 	int id = _numBalloons;
@@ -659,7 +655,7 @@ int BalloonManager_br::setDialogueBalloon(const char *text, uint16 winding, Text
 	return id;
 }
 
-void BalloonManager_br::setBalloonText(uint id, const char *text, TextColor textColor) {
+void BalloonManager_br::setBalloonText(uint id, const Common::String &text, TextColor textColor) {
 	Balloon *balloon = getBalloon(id);
 	_sw.write(text, 216, _textColors[textColor], balloon->surface);
 }
@@ -671,7 +667,7 @@ int BalloonManager_br::createBalloon(int16 w, int16 h, uint16 borderThickness) {
 	Balloon *balloon = &_intBalloons[id];
 
 	balloon->surface = new Graphics::Surface;
-	balloon->surface->create(w, h, 1);
+	balloon->surface->create(w, h, Graphics::PixelFormat::createFormatCLUT8());
 
 	Common::Rect rect(w, h);
 	balloon->surface->fillRect(rect, 1);
@@ -683,7 +679,7 @@ int BalloonManager_br::createBalloon(int16 w, int16 h, uint16 borderThickness) {
 	return id;
 }
 
-int BalloonManager_br::setLocationBalloon(const char *text, bool endGame) {
+int BalloonManager_br::setLocationBalloon(const Common::String &text, bool endGame) {
 	_se.calc(text, 240);
 
 	int id = createBalloon(_se.width() + 20, _se.height() + 30, 2);
@@ -694,13 +690,12 @@ int BalloonManager_br::setLocationBalloon(const char *text, bool endGame) {
 	balloon->obj = _vm->_gfx->registerBalloon(new SurfaceToFrames(balloon->surface), 0);
 	balloon->obj->x = 5;
 	balloon->obj->y = 5;
+	balloon->obj->transparentKey = BALLOON_TRANSPARENT_COLOR_BR;
 
 	return 0;
 }
 
 int BalloonManager_br::hitTestDialogueBalloon(int x, int y) {
-
-	Common::Point p;
 
 	for (uint i = 0; i < _numBalloons; i++) {
 		if (_intBalloons[i].box.contains(x, y)) {
@@ -753,7 +748,7 @@ void Parallaction_ns::setupBalloonManager() {
 }
 
 void Parallaction_br::setupBalloonManager() {
-    _balloonMan = new BalloonManager_br(this, _dialogueFont);
+	_balloonMan = new BalloonManager_br(this, _dialogueFont);
 }
 
 

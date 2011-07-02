@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef DC_ICON_H
@@ -33,7 +30,7 @@ class Icon
   unsigned int palette[16];
   void *texture;
 
-  int find_unused_pixel();
+  int find_unused_pixel(const unsigned char *);
   bool load_image1(const void *data, int len, int offs);
   bool load_image2(const void *data, int len);
 

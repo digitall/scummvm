@@ -17,22 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "gui/console.h"
-#include "gui/ScrollBarWidget.h"
+#include "gui/widgets/scrollbar.h"
 #include "gui/ThemeEval.h"
+#include "gui/gui-manager.h"
 
-#include "engines/engine.h"
 #include "base/version.h"
 
-#include "common/events.h"
 #include "common/system.h"
 
-#include "graphics/font.h"
+#include "graphics/fontman.h"
 
 namespace GUI {
 
@@ -156,7 +152,9 @@ void ConsoleDialog::open() {
 	_slideMode = kDownSlideMode;
 
 	Dialog::open();
-	if (_promptStartPos == -1) {
+	if ((_promptStartPos == -1) || (_currentPos > _promptEndPos)) {
+		// we print a prompt, if this is the first time we are called or if the
+		//  engine wrote onto us since the last call
 		print(PROMPT);
 		_promptStartPos = _promptEndPos = _currentPos;
 	}
@@ -302,9 +300,11 @@ void ConsoleDialog::handleKeyDown(Common::KeyState state) {
 			slideUpAndClose();
 		break;
 		}
+
 	case Common::KEYCODE_ESCAPE:
 		slideUpAndClose();
 		break;
+
 	case Common::KEYCODE_BACKSPACE:
 		if (_caretVisible)
 			drawCaret(true);
@@ -316,8 +316,8 @@ void ConsoleDialog::handleKeyDown(Common::KeyState state) {
 		scrollToCurrent();
 		drawLine(pos2line(_currentPos));
 		break;
-	case Common::KEYCODE_TAB:
-	{
+
+	case Common::KEYCODE_TAB: {
 		if (_completionCallbackProc) {
 			int len = _currentPos - _promptStartPos;
 			assert(len >= 0);
@@ -339,22 +339,64 @@ void ConsoleDialog::handleKeyDown(Common::KeyState state) {
 			delete[] str;
 		}
 		break;
-	}
-	case Common::KEYCODE_DELETE:
-		killChar();
-		drawLine(pos2line(_currentPos));
+		}
+
+	// Keypad & special keys
+	//   - if num lock is set, we always go to the default case
+	//   - if num lock is not set, we either fall down to the special key case
+	//     or ignore the key press in case of 0 (INSERT) or 5
+
+	case Common::KEYCODE_KP0:
+	case Common::KEYCODE_KP5:
+		if (state.flags & Common::KBD_NUM)
+			defaultKeyDownHandler(state);
 		break;
-	case Common::KEYCODE_PAGEUP:
-		if (state.flags == Common::KBD_SHIFT) {
-			_scrollLine -= _linesPerPage - 1;
-			if (_scrollLine < _firstLineInBuffer + _linesPerPage - 1)
-				_scrollLine = _firstLineInBuffer + _linesPerPage - 1;
-			updateScrollBuffer();
-			draw();
+
+	case Common::KEYCODE_KP_PERIOD:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
+	case Common::KEYCODE_DELETE:
+		if (_currentPos < _promptEndPos) {
+			killChar();
+			drawLine(pos2line(_currentPos));
 		}
 		break;
+
+	case Common::KEYCODE_KP1:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
+	case Common::KEYCODE_END:
+		if (state.hasFlags(Common::KBD_SHIFT)) {
+			_scrollLine = _promptEndPos / kCharsPerLine;
+			if (_scrollLine < _linesPerPage - 1)
+				_scrollLine = _linesPerPage - 1;
+			updateScrollBuffer();
+		} else {
+			_currentPos = _promptEndPos;
+		}
+		draw();
+		break;
+
+	case Common::KEYCODE_KP2:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
+	case Common::KEYCODE_DOWN:
+		historyScroll(-1);
+		break;
+
+	case Common::KEYCODE_KP3:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
 	case Common::KEYCODE_PAGEDOWN:
-		if (state.flags == Common::KBD_SHIFT) {
+		if (state.hasFlags(Common::KBD_SHIFT)) {
 			_scrollLine += _linesPerPage - 1;
 			if (_scrollLine > _promptEndPos / kCharsPerLine) {
 				_scrollLine = _promptEndPos / kCharsPerLine;
@@ -365,8 +407,36 @@ void ConsoleDialog::handleKeyDown(Common::KeyState state) {
 			draw();
 		}
 		break;
+
+	case Common::KEYCODE_KP4:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
+	case Common::KEYCODE_LEFT:
+		if (_currentPos > _promptStartPos)
+			_currentPos--;
+		drawLine(pos2line(_currentPos));
+		break;
+
+	case Common::KEYCODE_KP6:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
+	case Common::KEYCODE_RIGHT:
+		if (_currentPos < _promptEndPos)
+			_currentPos++;
+		drawLine(pos2line(_currentPos));
+		break;
+
+	case Common::KEYCODE_KP7:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
+		}
 	case Common::KEYCODE_HOME:
-		if (state.flags == Common::KBD_SHIFT) {
+		if (state.hasFlags(Common::KBD_SHIFT)) {
 			_scrollLine = _firstLineInBuffer + _linesPerPage - 1;
 			updateScrollBuffer();
 		} else {
@@ -374,45 +444,47 @@ void ConsoleDialog::handleKeyDown(Common::KeyState state) {
 		}
 		draw();
 		break;
-	case Common::KEYCODE_END:
-		if (state.flags == Common::KBD_SHIFT) {
-			_scrollLine = _promptEndPos / kCharsPerLine;
-			if (_scrollLine < _linesPerPage - 1)
-				_scrollLine = _linesPerPage - 1;
-			updateScrollBuffer();
-		} else {
-			_currentPos = _promptEndPos;
+
+	case Common::KEYCODE_KP8:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
 		}
-		draw();
-		break;
 	case Common::KEYCODE_UP:
 		historyScroll(+1);
 		break;
-	case Common::KEYCODE_DOWN:
-		historyScroll(-1);
-		break;
-	case Common::KEYCODE_RIGHT:
-		if (_currentPos < _promptEndPos)
-			_currentPos++;
-		drawLine(pos2line(_currentPos));
-		break;
-	case Common::KEYCODE_LEFT:
-		if (_currentPos > _promptStartPos)
-			_currentPos--;
-		drawLine(pos2line(_currentPos));
-		break;
-	default:
-		if (state.ascii == '~' || state.ascii == '#') {
-			slideUpAndClose();
-		} else if (state.flags == Common::KBD_CTRL) {
-			specialKeys(state.keycode);
-		} else if ((state.ascii >= 32 && state.ascii <= 127) || (state.ascii >= 160 && state.ascii <= 255)) {
-			for (i = _promptEndPos - 1; i >= _currentPos; i--)
-				buffer(i + 1) = buffer(i);
-			_promptEndPos++;
-			putchar((byte)state.ascii);
-			scrollToCurrent();
+
+	case Common::KEYCODE_KP9:
+		if (state.flags & Common::KBD_NUM) {
+			defaultKeyDownHandler(state);
+			break;
 		}
+	case Common::KEYCODE_PAGEUP:
+		if (state.hasFlags(Common::KBD_SHIFT)) {
+			_scrollLine -= _linesPerPage - 1;
+			if (_scrollLine < _firstLineInBuffer + _linesPerPage - 1)
+				_scrollLine = _firstLineInBuffer + _linesPerPage - 1;
+			updateScrollBuffer();
+			draw();
+		}
+		break;
+
+	default:
+		defaultKeyDownHandler(state);
+	}
+}
+
+void ConsoleDialog::defaultKeyDownHandler(Common::KeyState &state) {
+	if (state.ascii == '~' || state.ascii == '#') {
+		slideUpAndClose();
+	} else if (state.hasFlags(Common::KBD_CTRL)) {
+		specialKeys(state.keycode);
+	} else if ((state.ascii >= 32 && state.ascii <= 127) || (state.ascii >= 160 && state.ascii <= 255)) {
+		for (int i = _promptEndPos - 1; i >= _currentPos; i--)
+			buffer(i + 1) = buffer(i);
+		_promptEndPos++;
+		printChar((byte)state.ascii);
+		scrollToCurrent();
 	}
 }
 
@@ -422,7 +494,7 @@ void ConsoleDialog::insertIntoPrompt(const char* str) {
 		buffer(i + l) = buffer(i);
 	for (unsigned int j = 0; j < l; ++j) {
 		_promptEndPos++;
-		putcharIntern(str[j]);
+		printCharIntern(str[j]);
 	}
 }
 
@@ -468,8 +540,10 @@ void ConsoleDialog::specialKeys(int keycode) {
 void ConsoleDialog::killChar() {
 	for (int i = _currentPos; i < _promptEndPos; i++)
 		buffer(i) = buffer(i + 1);
-	buffer(_promptEndPos) = ' ';
-	_promptEndPos--;
+	if (_promptEndPos > _promptStartPos) {
+		buffer(_promptEndPos) = ' ';
+		_promptEndPos--;
+	}
 }
 
 void ConsoleDialog::killLine() {
@@ -493,8 +567,10 @@ void ConsoleDialog::killLastWord() {
 
 	for (int i = _currentPos; i < _promptEndPos; i++)
 		buffer(i) = buffer(i + cnt);
-	buffer(_promptEndPos) = ' ';
-	_promptEndPos -= cnt;
+	if (_promptEndPos > _promptStartPos) {
+		buffer(_promptEndPos) = ' ';
+		_promptEndPos -= cnt;
+	}
 }
 
 void ConsoleDialog::addToHistory(const char *str) {
@@ -540,7 +616,7 @@ void ConsoleDialog::historyScroll(int direction) {
 	else
 		idx = _historyIndex;
 	for (int i = 0; i < kLineBufferSize && _history[idx][i] != '\0'; i++)
-		putcharIntern(_history[idx][i]);
+		printCharIntern(_history[idx][i]);
 	_promptEndPos = _currentPos;
 
 	// Ensure once more the caret is visible (in case of very long history entries)
@@ -579,42 +655,33 @@ void ConsoleDialog::updateScrollBuffer() {
 	_scrollBar->recalc();
 }
 
-int ConsoleDialog::printf(const char *format, ...) {
+int ConsoleDialog::printFormat(int dummy, const char *format, ...) {
 	va_list	argptr;
 
 	va_start(argptr, format);
-	int count = this->vprintf(format, argptr);
+	int count = this->vprintFormat(dummy, format, argptr);
 	va_end (argptr);
 	return count;
 }
 
-int ConsoleDialog::vprintf(const char *format, va_list argptr) {
-#ifdef PALMOS_MODE
-	char	buf[256];
-#else
+int ConsoleDialog::vprintFormat(int dummy, const char *format, va_list argptr) {
 	char	buf[2048];
-#endif
 
-#if defined(WIN32)
-	int count = _vsnprintf(buf, sizeof(buf), format, argptr);
-#elif defined(__SYMBIAN32__)
-	int count = vsprintf(buf, format, argptr);
-#else
 	int count = vsnprintf(buf, sizeof(buf), format, argptr);
-#endif
+	buf[sizeof(buf)-1] = 0;	// ensure termination
 	print(buf);
 	return count;
 }
 
-void ConsoleDialog::putchar(int c) {
+void ConsoleDialog::printChar(int c) {
 	if (_caretVisible)
 		drawCaret(true);
 
-	putcharIntern(c);
+	printCharIntern(c);
 	drawLine(pos2line(_currentPos));
 }
 
-void ConsoleDialog::putcharIntern(int c) {
+void ConsoleDialog::printCharIntern(int c) {
 	if (c == '\n')
 		nextLine();
 	else {
@@ -632,7 +699,7 @@ void ConsoleDialog::print(const char *str) {
 		drawCaret(true);
 
 	while (*str)
-		putcharIntern(*str++);
+		printCharIntern(*str++);
 
 	draw();
 }

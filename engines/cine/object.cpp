@@ -18,14 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/endian.h"
-#include "common/scummsys.h"
+#include "common/memstream.h"
 #include "common/util.h"
 
 #include "cine/cine.h"
@@ -35,17 +32,15 @@
 
 namespace Cine {
 
-Common::Array<objectStruct> objectTable;
-Common::List<overlay> overlayList;
-
-/*! \brief Resets all elements in the object table. */
+/** Resets all elements in the object table. */
 void resetObjectTable() {
-	for (Common::Array<objectStruct>::iterator it = objectTable.begin(); it != objectTable.end(); it++) {
+	for (Common::Array<ObjectStruct>::iterator it = g_cine->_objectTable.begin(); it != g_cine->_objectTable.end(); ++it) {
 		it->clear();
 	}
 }
 
 void loadObject(char *pObjectName) {
+	debug(5, "loadObject(\"%s\")", pObjectName);
 	uint16 numEntry;
 	uint16 entrySize;
 	uint16 i;
@@ -64,39 +59,40 @@ void loadObject(char *pObjectName) {
 	assert(numEntry <= NUM_MAX_OBJECT);
 
 	for (i = 0; i < numEntry; i++) {
-		if (objectTable[i].costume != -2) {	// flag is keep ?
+		if (g_cine->_objectTable[i].costume != -2 && g_cine->_objectTable[i].costume != -3) {	// flag is keep ?
 			Common::MemoryReadStream readS(ptr, entrySize);
 
-			objectTable[i].x = readS.readSint16BE();
-			objectTable[i].y = readS.readSint16BE();
-			objectTable[i].mask = readS.readUint16BE();
-			objectTable[i].frame = readS.readSint16BE();
-			objectTable[i].costume = readS.readSint16BE();
-			readS.read(objectTable[i].name, 20);
-			objectTable[i].part = readS.readUint16BE();
+			g_cine->_objectTable[i].x = readS.readSint16BE();
+			g_cine->_objectTable[i].y = readS.readSint16BE();
+			g_cine->_objectTable[i].mask = readS.readUint16BE();
+			g_cine->_objectTable[i].frame = readS.readSint16BE();
+			g_cine->_objectTable[i].costume = readS.readSint16BE();
+			readS.read(g_cine->_objectTable[i].name, 20);
+			g_cine->_objectTable[i].part = readS.readUint16BE();
 		}
 		ptr += entrySize;
 	}
 
 	if (!strcmp(pObjectName, "INTRO.OBJ")) {
 		for (i = 0; i < 10; i++) {
-			objectTable[i].costume = 0;
+			g_cine->_objectTable[i].costume = 0;
 		}
 	}
 
 	free(dataPtr);
 }
 
-/*! \brief Remove overlay sprite from the list
- * \param objIdx Remove overlay associated with this object
- * \param param Remove overlay of this type
+/**
+ * Remove overlay sprite from the list
+ * @param objIdx Remove overlay associated with this object
+ * @param param Remove overlay of this type
  */
 int removeOverlay(uint16 objIdx, uint16 param) {
 	Common::List<overlay>::iterator it;
 
-	for (it = overlayList.begin(); it != overlayList.end(); ++it) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ++it) {
 		if (it->objIdx == objIdx && it->type == param) {
-			overlayList.erase(it);
+			g_cine->_overlayList.erase(it);
 			return 1;
 		}
 	}
@@ -104,18 +100,19 @@ int removeOverlay(uint16 objIdx, uint16 param) {
 	return 0;
 }
 
-/*! \brief Add new overlay sprite to the list
- * \param objIdx Associate the overlay with this object
- * \param type Type of new overlay
- * \todo Why are x, y, width and color left uninitialized?
+/**
+ * Add new overlay sprite to the list
+ * @param objIdx Associate the overlay with this object
+ * @param type Type of new overlay
+ * @todo Why are x, y, width and color left uninitialized?
  */
 void addOverlay(uint16 objIdx, uint16 type) {
 	Common::List<overlay>::iterator it;
 	overlay tmp;
 
-	for (it = overlayList.begin(); it != overlayList.end(); ++it) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ++it) {
 		// This is done for both Future Wars and Operation Stealth
-		if (objectTable[it->objIdx].mask >= objectTable[objIdx].mask) {
+		if (g_cine->_objectTable[it->objIdx].mask >= g_cine->_objectTable[objIdx].mask) {
 			break;
 		}
 
@@ -126,7 +123,7 @@ void addOverlay(uint16 objIdx, uint16 type) {
 	}
 
 	// In Operation Stealth's implementation we might bail out early
-	if (g_cine->getGameType() == Cine::GType_OS && it != overlayList.end() && it->objIdx == objIdx && it->type == type) {
+	if (g_cine->getGameType() == Cine::GType_OS && it != g_cine->_overlayList.end() && it->objIdx == objIdx && it->type == type) {
 		return;
 	}
 
@@ -137,24 +134,25 @@ void addOverlay(uint16 objIdx, uint16 type) {
 	tmp.width = 0;
 	tmp.color = 0;
 
-	overlayList.insert(it, tmp);
+	g_cine->_overlayList.insert(it, tmp);
 }
 
-/*! \brief Add new background mask overlay
- * \param objIdx Associate the overlay with this object
- * \param param source background index
+/**
+ * Add new background mask overlay
+ * @param objIdx Associate the overlay with this object
+ * @param param source background index
  */
 void addGfxElement(int16 objIdx, int16 param, int16 type) {
 	Common::List<overlay>::iterator it;
 	overlay tmp;
 
-	for (it = overlayList.begin(); it != overlayList.end(); ++it) {
-		if (objectTable[it->objIdx].mask >= objectTable[objIdx].mask || it->type == 2 || it->type == 3) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ++it) {
+		if (g_cine->_objectTable[it->objIdx].mask >= g_cine->_objectTable[objIdx].mask || it->type == 2 || it->type == 3) {
 			break;
 		}
 	}
 
-	if (it != overlayList.end() && it->objIdx == objIdx && it->type == type && it->x == param) {
+	if (it != g_cine->_overlayList.end() && it->objIdx == objIdx && it->type == type && it->x == param) {
 		return;
 	}
 
@@ -165,30 +163,31 @@ void addGfxElement(int16 objIdx, int16 param, int16 type) {
 	tmp.width = 0;
 	tmp.color = 0;
 
-	overlayList.insert(it, tmp);
+	g_cine->_overlayList.insert(it, tmp);
 }
 
-/*! \brief Remove background mask overlay
- * \param objIdx Remove overlay associated with this object
- * \param param Remove overlay using this background
- * \todo Check that it works
+/**
+ * Remove background mask overlay
+ * @param objIdx Remove overlay associated with this object
+ * @param param Remove overlay using this background
+ * @todo Check that it works
  */
 void removeGfxElement(int16 objIdx, int16 param, int16 type) {
 	Common::List<overlay>::iterator it;
 
-	for (it = overlayList.begin(); it != overlayList.end(); ++it) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ++it) {
 		if (it->objIdx == objIdx && it->type == type && it->x == param) {
-			overlayList.erase(it);
+			g_cine->_overlayList.erase(it);
 			return;
 		}
 	}
 }
 
 void setupObject(byte objIdx, uint16 param1, uint16 param2, uint16 param3, uint16 param4) {
-	objectTable[objIdx].x = param1;
-	objectTable[objIdx].y = param2;
-	objectTable[objIdx].mask = param3;
-	objectTable[objIdx].frame = param4;
+	g_cine->_objectTable[objIdx].x = param1;
+	g_cine->_objectTable[objIdx].y = param2;
+	g_cine->_objectTable[objIdx].mask = param3;
+	g_cine->_objectTable[objIdx].frame = param4;
 
 	if (g_cine->getGameType() == Cine::GType_OS) {
 		resetGfxEntityEntry(objIdx);
@@ -215,13 +214,13 @@ void modifyObjectParam(byte objIdx, byte paramIdx, int16 newValue) {
 
 	switch (paramIdx) {
 	case 1:
-		objectTable[objIdx].x = newValue;
+		g_cine->_objectTable[objIdx].x = newValue;
 		break;
 	case 2:
-		objectTable[objIdx].y = newValue;
+		g_cine->_objectTable[objIdx].y = newValue;
 		break;
 	case 3:
-		objectTable[objIdx].mask = newValue;
+		g_cine->_objectTable[objIdx].mask = newValue;
 
 		if (g_cine->getGameType() == Cine::GType_OS) { // Operation Stealth specific
 			resetGfxEntityEntry(objIdx);
@@ -232,18 +231,18 @@ void modifyObjectParam(byte objIdx, byte paramIdx, int16 newValue) {
 		}
 		break;
 	case 4:
-		objectTable[objIdx].frame = newValue;
+		g_cine->_objectTable[objIdx].frame = newValue;
 		break;
 	case 5:
 		// TODO: Test if this really breaks the newspaper machine on the airport in Operation Stealth.
 		if (g_cine->getGameType() == Cine::GType_FW && newValue == -1) {
-			objectTable[objIdx].costume = globalVars[0];
+			g_cine->_objectTable[objIdx].costume = g_cine->_globalVars[0];
 		} else {
-			objectTable[objIdx].costume = newValue;
+			g_cine->_objectTable[objIdx].costume = newValue;
 		}
 		break;
 	case 6:
-		objectTable[objIdx].part = newValue;
+		g_cine->_objectTable[objIdx].part = newValue;
 		break;
 	}
 }
@@ -259,8 +258,8 @@ bool compareRanges(uint16 aStart, uint16 aEnd, uint16 bStart, uint16 bEnd) {
 
 uint16 compareObjectParamRanges(uint16 objIdx1, uint16 xAdd1, uint16 yAdd1, uint16 maskAdd1, uint16 objIdx2, uint16 xAdd2, uint16 yAdd2, uint16 maskAdd2) {
 	assert(objIdx1 < NUM_MAX_OBJECT && objIdx2 < NUM_MAX_OBJECT);
-	const objectStruct &obj1 = objectTable[objIdx1];
-	const objectStruct &obj2 = objectTable[objIdx2];
+	const ObjectStruct &obj1 = g_cine->_objectTable[objIdx1];
+	const ObjectStruct &obj2 = g_cine->_objectTable[objIdx2];
 
 	if (compareRanges(obj1.x,    obj1.x    + xAdd1,    obj2.x,    obj2.x    + xAdd2) &&
 		compareRanges(obj1.y,    obj1.y    + yAdd1,    obj2.y,    obj2.y    + yAdd2) &&
@@ -286,7 +285,8 @@ uint16 compareObjectParam(byte objIdx, byte type, int16 value) {
 	return compareResult;
 }
 
-/*! \bug In Operation Stealth, if you try to go downstairs to the sea in the
+/**
+ * @bug In Operation Stealth, if you try to go downstairs to the sea in the
  * location between bank and hotel, getObjectParam is called with paramIdx 16
  * and crashes
  */
@@ -299,17 +299,17 @@ int16 getObjectParam(uint16 objIdx, uint16 paramIdx) {
 
 	switch (paramIdx) {
 	case 0:
-		return objectTable[objIdx].x;
+		return g_cine->_objectTable[objIdx].x;
 	case 1:
-		return objectTable[objIdx].y;
+		return g_cine->_objectTable[objIdx].y;
 	case 2:
-		return objectTable[objIdx].mask;
+		return g_cine->_objectTable[objIdx].mask;
 	case 3:
-		return objectTable[objIdx].frame;
+		return g_cine->_objectTable[objIdx].frame;
 	case 4:
-		return objectTable[objIdx].costume;
+		return g_cine->_objectTable[objIdx].costume;
 	case 5:
-		return objectTable[objIdx].part;
+		return g_cine->_objectTable[objIdx].part;
 	}
 
 	return 0;

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Clipping rectangle defines
  */
 
@@ -38,23 +35,23 @@ void GetCursorXY(int *x, int *y, bool absolute);
 bool GetCursorXYNoWait(int *x, int *y, bool absolute);
 bool isCursorShown();
 
-void RestoreMainCursor(void);
+void RestoreMainCursor();
 void SetTempCursor(SCNHANDLE pScript);
-void DwHideCursor(void);
-void UnHideCursor(void);
-void FreezeCursor(void);
+void DwHideCursor();
+void UnHideCursor();
+void FreezeCursor();
 void DoFreezeCursor(bool bFreeze);
-void HideCursorTrails(void);
-void UnHideCursorTrails(void);
-void DelAuxCursor(void);
+void HideCursorTrails();
+void UnHideCursorTrails();
+void DelAuxCursor();
 void SetAuxCursor(SCNHANDLE hFilm);
 void DwInitCursor(SCNHANDLE bfilm);
-void DropCursor(void);
-void RestartCursor(void);
-void RebootCursor(void);
-void StartCursorFollowed(void);
-void EndCursorFollowed(void);
+void DropCursor();
+void RestartCursor();
+void RebootCursor();
+void StartCursorFollowed();
+void EndCursorFollowed();
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	// TINSEL_CURSOR_H

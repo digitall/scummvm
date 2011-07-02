@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_MULT_H
@@ -232,7 +229,7 @@ public:
 
 	int8 *_orderArray;
 
-	SurfaceDescPtr _animSurf;
+	SurfacePtr _animSurf;
 	int16 _animLeft;
 	int16 _animTop;
 	int16 _animWidth;

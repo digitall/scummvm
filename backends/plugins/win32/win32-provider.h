@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef BACKENDS_PLUGINS_WIN32_H
@@ -35,8 +32,6 @@ protected:
 	Plugin* createPlugin(const Common::FSNode &node) const;
 
 	bool isPluginFilename(const Common::FSNode &node) const;
-
-	virtual void addCustomDirectories(Common::StringList &dirs) const {}
 };
 
 #endif // defined(DYNAMIC_MODULES) && defined(_WIN32)

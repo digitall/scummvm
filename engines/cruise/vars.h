@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_VARS_H
@@ -51,8 +48,8 @@ struct menuElementStruct {
 	menuElementSubStruct *ptrSub;
 };
 
-typedef int32(*opcodeTypeFunction)(void);
-typedef int16(*opcodeFunction)(void);
+typedef int32(*opcodeTypeFunction)();
+typedef int16(*opcodeFunction)();
 
 extern uint8 *_systemFNT;
 extern int16 fontFileIndex;
@@ -154,8 +151,8 @@ extern int32 volumeDataLoaded;
 
 extern int16 numOfDisks;
 
-extern char lastOverlay[15];
-extern char nextOverlay[15];
+extern char lastOverlay[38];
+extern char nextOverlay[38];
 
 extern int16 currentActiveMenu;
 extern int16 autoMsg;
@@ -166,13 +163,6 @@ extern int16 userWait;
 extern int16 autoTrack;
 
 extern int16 currentDiskNumber;
-
-#ifdef PALMOS_MODE
-extern Common::File *_currentVolumeFile;
-#define currentVolumeFile	(*_currentVolumeFile)
-#else
-extern Common::File currentVolumeFile;
-#endif
 
 extern int16 volumeNumEntry;
 extern fileEntry *volumePtrToFileDescriptor;

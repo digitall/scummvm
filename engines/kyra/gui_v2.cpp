@@ -18,18 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/gui_v2.h"
-#include "kyra/kyra_v2.h"
 #include "kyra/screen_v2.h"
 #include "kyra/text.h"
 #include "kyra/util.h"
 
 #include "common/savefile.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -452,13 +449,12 @@ void GUI_v2::setupSavegameNames(Menu &menu, int num) {
 	if (_isSaveMenu && _savegameOffset == 0)
 		startSlot = 1;
 
-	KyraEngine_v1::SaveHeader header;
+	KyraEngine_v2::SaveHeader header;
 	Common::InSaveFile *in;
 	for (int i = startSlot; i < num && uint(_savegameOffset + i) < _saveSlots.size(); ++i) {
 		if ((in = _vm->openSaveForReading(_vm->getSavegameFilename(_saveSlots[i + _savegameOffset]), header)) != 0) {
 			char *s = getTableString(menu.item[i].itemId);
-			strncpy(s, header.description.c_str(), 80);
-			s[79] = 0;
+			Common::strlcpy(s, header.description.c_str(), 80);
 			Util::convertISOToDOS(s);
 
 			menu.item[i].saveSlot = _saveSlots[i + _savegameOffset];
@@ -626,7 +622,7 @@ int GUI_v2::saveMenu(Button *caller) {
 	Graphics::Surface thumb;
 	createScreenThumbnail(thumb);
 	Util::convertDOSToISO(_saveDescription);
-	_vm->saveGameState(_saveSlot, _saveDescription, &thumb);
+	_vm->saveGameStateIntern(_saveSlot, _saveDescription, &thumb);
 	thumb.free();
 
 	_displayMenu = false;
@@ -661,7 +657,9 @@ int GUI_v2::clickSaveSlot(Button *caller) {
 
 	initMenu(_savenameMenu);
 	_screen->fillRect(0x26, 0x5B, 0x11F, 0x66, textFieldColor2());
+	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 	const char *desc = nameInputProcess(_saveDescription, 0x27, 0x5C, textFieldColor1(), textFieldColor2(), textFieldColor3(), 0x50);
+	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
 	restorePage1(_vm->_screenBuffer);
 	backUpPage1(_vm->_screenBuffer);
 	if (desc) {
@@ -744,17 +742,21 @@ const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8
 	int curPos = strlen(buffer);
 
 	int x2 = x, y2 = y;
+	Screen::FontId of = _screen->setFont(Screen::FID_8_FNT);
 	_text->printText(buffer, x, y, c1, c2, c2);
 
 	for (int i = 0; i < curPos; ++i)
 		x2 += getCharWidth(buffer[i]);
 
 	drawTextfieldBlock(x2, y2, c3);
+	_screen->setFont(of);
 
 	_keyPressed.reset();
 	_cancelNameInput = _finishNameInput = false;
 	while (running && !_vm->shouldQuit()) {
+		of = _screen->setFont(Screen::FID_8_FNT);
 		checkTextfieldInput();
+		_screen->setFont(of);
 		processHighlights(_savenameMenu);
 
 		char inputKey = _keyPressed.ascii;
@@ -777,7 +779,8 @@ const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8
 			drawTextfieldBlock(x2, y2, c3);
 			_screen->updateScreen();
 			_lastScreenUpdate = _vm->_system->getMillis();
-		} else if ((uint8)inputKey > 31 && (uint8)inputKey < 226 && curPos < bufferSize) {
+		} else if ((uint8)inputKey > 31 && (uint8)inputKey < (_vm->gameFlags().lang == Common::JA_JPN ? 128 : 226) && curPos < bufferSize) {
+			of = _screen->setFont(Screen::FID_8_FNT);
 			if (x2 + getCharWidth(inputKey) + 7 < 0x11F) {
 				buffer[curPos] = inputKey;
 				const char text[2] = { buffer[curPos], 0 };
@@ -788,6 +791,7 @@ const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8
 				_screen->updateScreen();
 				_lastScreenUpdate = _vm->_system->getMillis();
 			}
+			_screen->setFont(of);
 		}
 
 		_keyPressed.reset();
@@ -873,5 +877,5 @@ int GUI_v2::choiceNo(Button *caller) {
 	return 0;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

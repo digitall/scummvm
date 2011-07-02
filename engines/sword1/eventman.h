@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_EVENTMAN_H
@@ -39,8 +36,8 @@ struct GlobalEvent {
 
 class EventManager {
 public:
-	EventManager(void);
-	void serviceGlobalEventList(void);
+	EventManager();
+	void serviceGlobalEventList();
 	void checkForEvent(Object *compact);
 	int fnCheckForEvent(Object *cpt, int32 id, int32 pause);
 	void fnIssueEvent(Object *compact, int32 id, int32 event, int32 delay);

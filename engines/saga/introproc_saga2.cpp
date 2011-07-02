@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_SAGA2
@@ -31,34 +28,19 @@
 #include "saga/scene.h"
 #include "saga/gfx.h"
 
-#include "sound/mixer.h"
-#include "graphics/surface.h"
-#include "graphics/video/smk_decoder.h"
-
 #include "common/events.h"
+#include "common/keyboard.h"
 #include "common/system.h"
-#include "common/list.h"
+#include "common/textconsole.h"
+#include "graphics/surface.h"
+#include "video/smk_decoder.h"
 
 namespace Saga {
-
-Common::List<Common::Event> stopEvents;
 
 int Scene::DinoStartProc() {
 	_vm->_gfx->showCursor(false);
 
-	Common::Event stopEvent;
-	stopEvents.clear();
-	stopEvent.type = Common::EVENT_KEYDOWN;
-	stopEvent.kbd = Common::KEYCODE_ESCAPE;
-	stopEvents.push_back(stopEvent);
-
-	Graphics::SmackerDecoder *smkDecoder = new Graphics::SmackerDecoder(_vm->_mixer);
-	Graphics::VideoPlayer *player = new Graphics::VideoPlayer(smkDecoder);
-	if (smkDecoder->loadFile("testvid.smk"))
-		player->playVideo(stopEvents);        // Play introduction
-	smkDecoder->closeFile();
-	delete player;
-	delete smkDecoder;
+	playMovie("testvid.smk");
 
 	// HACK: Forcibly quit here
 	_vm->quitGame();
@@ -69,22 +51,8 @@ int Scene::DinoStartProc() {
 int Scene::FTA2StartProc() {
 	_vm->_gfx->showCursor(false);
 
-	Common::Event stopEvent;
-	stopEvents.clear();
-	stopEvent.type = Common::EVENT_KEYDOWN;
-	stopEvent.kbd = Common::KEYCODE_ESCAPE;
-	stopEvents.push_back(stopEvent);
-
-	Graphics::SmackerDecoder *smkDecoder = new Graphics::SmackerDecoder(_vm->_mixer);
-	Graphics::VideoPlayer *player = new Graphics::VideoPlayer(smkDecoder);
-	if (smkDecoder->loadFile("trimark.smk"))
-		player->playVideo(stopEvents);      // Show Ignite logo
-	smkDecoder->closeFile();
-	if (smkDecoder->loadFile("intro.smk"))
-		player->playVideo(stopEvents);        // Play introduction
-	smkDecoder->closeFile();
-	delete player;
-	delete smkDecoder;
+	playMovie("trimark.smk");
+	playMovie("intro.smk");
 
 	// HACK: Forcibly quit here
 	_vm->quitGame();
@@ -117,24 +85,43 @@ int Scene::FTA2EndProc(FTA2Endings whichEnding) {
 
 	_vm->_gfx->showCursor(false);
 
-
-	Common::Event stopEvent;
-	stopEvents.clear();
-	stopEvent.type = Common::EVENT_KEYDOWN;
-	stopEvent.kbd = Common::KEYCODE_ESCAPE;
-	stopEvents.push_back(stopEvent);
-
 	// Play ending
-	Graphics::SmackerDecoder *smkDecoder = new Graphics::SmackerDecoder(_vm->_mixer);
-	Graphics::VideoPlayer *player = new Graphics::VideoPlayer(smkDecoder);
-	if (smkDecoder->loadFile(videoName)) {
-		player->playVideo(stopEvents);
-		smkDecoder->closeFile();
-	}
-	delete player;
-	delete smkDecoder;
+	playMovie(videoName);
 
 	return SUCCESS;
+}
+
+void Scene::playMovie(const char *filename) {
+	Video::SmackerDecoder *smkDecoder = new Video::SmackerDecoder(_vm->_mixer);
+
+	if (!smkDecoder->loadFile(filename))
+		return;
+
+	uint16 x = (g_system->getWidth() - smkDecoder->getWidth()) / 2;
+	uint16 y = (g_system->getHeight() - smkDecoder->getHeight()) / 2;
+	bool skipVideo = false;
+
+	while (!_vm->shouldQuit() && !smkDecoder->endOfVideo() && !skipVideo) {
+		if (smkDecoder->needsUpdate()) {
+			const Graphics::Surface *frame = smkDecoder->decodeNextFrame();
+			if (frame) {
+				_vm->_system->copyRectToScreen((byte *)frame->pixels, frame->pitch, x, y, frame->w, frame->h);
+
+				if (smkDecoder->hasDirtyPalette())
+					smkDecoder->setSystemPalette();
+
+				_vm->_system->updateScreen();
+			}
+		}
+
+		Common::Event event;
+		while (_vm->_system->getEventManager()->pollEvent(event)) {
+			if ((event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_ESCAPE) || event.type == Common::EVENT_LBUTTONUP)
+				skipVideo = true;
+		}
+
+		_vm->_system->delayMillis(10);
+	}
 }
 
 } // End of namespace Saga

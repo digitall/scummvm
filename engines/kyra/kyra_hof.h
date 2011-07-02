@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_KYRA_HOF_H
@@ -38,7 +35,7 @@
 
 namespace Kyra {
 
-enum kSequences {
+enum Sequences {
 	kSequenceVirgin = 0,
 	kSequenceWestwood,
 	kSequenceTitle,
@@ -60,7 +57,7 @@ enum kSequences {
 	kSequenceArraySize
 };
 
-enum kNestedSequences {
+enum NestedSequences {
 	kSequenceFiggle = 0,
 	kSequenceOver1,
 	kSequenceOver2,
@@ -78,7 +75,7 @@ enum kNestedSequences {
 	kSequenceHand4
 };
 
-enum kSequencesDemo {
+enum SequencesDemo {
 	kSequenceDemoVirgin = 0,
 	kSequenceDemoWestwood,
 	kSequenceDemoTitle,
@@ -89,7 +86,7 @@ enum kSequencesDemo {
 	kSequenceDemoFisher
 };
 
-enum kNestedSequencesDemo {
+enum NestedSequencesDemo {
 	kSequenceDemoWharf2 = 0,
 	kSequenceDemoDinob2,
 	kSequenceDemoWater,
@@ -98,7 +95,7 @@ enum kNestedSequencesDemo {
 };
 
 #ifdef ENABLE_LOL
-enum kSequencesLolDemo {
+enum SequencesLolDemo {
 	kSequenceLolDemoScene1 = 0,
 	kSequenceLolDemoText1,
 	kSequenceLolDemoScene2,
@@ -119,21 +116,21 @@ class TextDisplayer_HoF;
 
 struct TIM;
 
-typedef int (KyraEngine_HoF::*SeqProc)(WSAMovie_v2*, int, int, int);
+typedef int (KyraEngine_HoF::*SeqProc)(WSAMovie_v2 *, int, int, int);
 
 struct ActiveWSA {
-	int16 flags;
+	SeqProc callback;
 	WSAMovie_v2 *movie;
+	const FrameControl *control;
+	int16 flags;
 	uint16 startFrame;
 	uint16 endFrame;
 	uint16 frameDelay;
-	SeqProc callback;
 	uint32 nextFrame;
 	uint16 currentFrame;
 	uint16 lastFrame;
 	uint16 x;
 	uint16 y;
-	const FrameControl *control;
 	uint16 startupCommand;
 	uint16 finalCommand;
 };
@@ -142,16 +139,16 @@ struct ActiveText {
 	uint16 strIndex;
 	uint16 x;
 	uint16 y;
-	int duration;
 	uint16 width;
+	int32 duration;
 	uint32 startTime;
 	int16 textcolor;
 };
 
 struct Sequence {
+	const char *wsaFile;
+	const char *cpsFile;
 	uint16 flags;
-	const char * wsaFile;
-	const char * cpsFile;
 	uint8 startupCommand;
 	uint8 finalCommand;
 	int16 stringIndex1;
@@ -165,14 +162,14 @@ struct Sequence {
 };
 
 struct NestedSequence {
+	const char *wsaFile;
+	const FrameControl *wsaControl;
 	uint16 flags;
-	const char * wsaFile;
 	uint16 startframe;
 	uint16 endFrame;
 	uint16 frameDelay;
 	uint16 x;
 	uint16 y;
-	const FrameControl *wsaControl;
 	uint16 startupCommand;
 	uint16 finalCommand;
 };
@@ -272,7 +269,7 @@ protected:
 	void seq_loadNestedSequence(int wsaNum, int seqNum);
 	void seq_nestedSequenceFrame(int command, int wsaNum);
 	void seq_animatedSubFrame(int srcPage, int dstPage, int delaytime,
-		int steps, int x, int y, int w, int h, int openClose, int directionFlags);
+	    int steps, int x, int y, int w, int h, int openClose, int directionFlags);
 	bool seq_processNextSubFrame(int wsaNum);
 	void seq_resetActiveWSA(int wsaNum);
 	void seq_unloadWSA(int wsaNum);
@@ -287,11 +284,13 @@ protected:
 	char *seq_preprocessString(const char *str, int width);
 	void seq_printCreditsString(uint16 strIndex, int x, int y, const uint8 *colorMap, uint8 textcolor);
 	void seq_playWsaSyncDialogue(uint16 strIndex, uint16 vocIndex, int textColor, int x, int y, int width,
-		WSAMovie_v2 * wsa, int firstframe, int lastframe, int wsaXpos, int wsaYpos);
+	    WSAMovie_v2 * wsa, int firstframe, int lastframe, int wsaXpos, int wsaYpos);
 	void seq_finaleActorScreen();
 	void seq_displayScrollText(uint8 *data, const ScreenDim *d, int tempPage1, int tempPage2, int speed, int step, Screen::FontId fid1, Screen::FontId fid2, const uint8 *shapeData = 0, const char *const *specialData = 0);
 	void seq_scrollPage(int bottom, int top);
 	void seq_showStarcraftLogo();
+
+	MainMenu *_menu;
 
 	void seq_init();
 	void seq_uninit();
@@ -443,16 +442,16 @@ protected:
 	bool lineIsPassable(int x, int y);
 
 	// item
-	void setMouseCursor(uint16 item);
+	void setMouseCursor(Item item);
 
 	uint8 _itemHtDat[176];
 
 	int checkItemCollision(int x, int y);
 	void updateWaterFlasks();
 
-	bool dropItem(int unk1, uint16 item, int x, int y, int unk2);
-	bool processItemDrop(uint16 sceneId, uint16 item, int x, int y, int unk1, int unk2);
-	void itemDropDown(int startX, int startY, int dstX, int dstY, int itemSlot, uint16 item);
+	bool dropItem(int unk1, Item item, int x, int y, int unk2);
+	bool processItemDrop(uint16 sceneId, Item item, int x, int y, int unk1, int unk2);
+	void itemDropDown(int startX, int startY, int dstX, int dstY, int itemSlot, Item item);
 	void exchangeMouseItem(int itemPos);
 	bool pickUpItem(int x, int y);
 
@@ -461,18 +460,18 @@ protected:
 	static const byte _itemStringMap[];
 	static const int _itemStringMapSize;
 
-	static const int16 _flaskTable[];
-	bool itemIsFlask(int item);
+	static const Item _flaskTable[];
+	bool itemIsFlask(Item item);
 
 	// inventory
 	static const int _inventoryX[];
 	static const int _inventoryY[];
 	static const uint16 _itemMagicTable[];
 
-	int getInventoryItemSlot(uint16 item);
+	int getInventoryItemSlot(Item item);
 	void removeSlotFromInventory(int slot);
-	bool checkInventoryItemExchange(uint16 item, int slot);
-	void drawInventoryShape(int page, uint16 item, int slot);
+	bool checkInventoryItemExchange(Item item, int slot);
+	void drawInventoryShape(int page, Item item, int slot);
 	void clearInventorySlot(int slot, int page);
 	void redrawInventory(int page);
 	void scrollInventoryWheel();
@@ -561,9 +560,9 @@ protected:
 	void changeFileExtension(char *buffer);
 
 	// - Just used in French version
-	int getItemCommandStringDrop(uint16 item);
-	int getItemCommandStringPickUp(uint16 item);
-	int getItemCommandStringInv(uint16 item);
+	int getItemCommandStringDrop(Item item);
+	int getItemCommandStringPickUp(Item item);
+	int getItemCommandStringInv(Item item);
 	// -
 
 	char _internStringBuf[200];
@@ -572,13 +571,16 @@ protected:
 
 	// character
 	bool _useCharPal;
+	bool _setCharPalFinal;
 	int _charPalEntry;
 	uint8 _charPalTable[16];
 	void updateCharPal(int unk1);
 	void setCharPalEntry(int entry, int value);
 
+	int _characterFacingCountTable[2];
+
 	int getCharacterWalkspeed() const;
-	void updateCharAnimFrame(int num, int *table);
+	void updateCharAnimFrame(int *table);
 
 	bool checkCharCollision(int x, int y);
 
@@ -654,7 +656,7 @@ protected:
 	int t2_resetChat(const TIM *tim, const uint16 *param);
 	int t2_playSoundEffect(const TIM *tim, const uint16 *param);
 
-	Common::Array<const TIMOpcode*> _timOpcodes;
+	Common::Array<const TIMOpcode *> _timOpcodes;
 
 	// sound
 	int _oldTalkFile;
@@ -679,6 +681,7 @@ protected:
 
 	uint32 _nextIdleAnim;
 	int _lastIdleScript;
+	bool _useSceneIdleAnim;
 
 	void setNextIdleAnimTimer();
 	void showIdleAnim();
@@ -841,16 +844,16 @@ protected:
 	ActiveWSA *_activeWSA;
 	ActiveText *_activeText;
 
-	const char *const *_sequencePakList;
+	const char * const *_sequencePakList;
 	int _sequencePakListSize;
-	const char *const *_ingamePakList;
+	const char * const *_ingamePakList;
 	int _ingamePakListSize;
 
-	const char *const *_musicFileListIntro;
+	const char * const *_musicFileListIntro;
 	int _musicFileListIntroSize;
-	const char *const *_musicFileListFinale;
+	const char * const *_musicFileListFinale;
 	int _musicFileListFinaleSize;
-	const char *const *_musicFileListIngame;
+	const char * const *_musicFileListIngame;
 	int _musicFileListIngameSize;
 	const uint8 *_cdaTrackTableIntro;
 	int _cdaTrackTableIntroSize;
@@ -858,17 +861,17 @@ protected:
 	int _cdaTrackTableIngameSize;
 	const uint8 *_cdaTrackTableFinale;
 	int _cdaTrackTableFinaleSize;
-	const char *const *_sequenceSoundList;
+	const char * const *_sequenceSoundList;
 	int _sequenceSoundListSize;
-	const char *const *_ingameSoundList;
+	const char * const *_ingameSoundList;
 	int _ingameSoundListSize;
 	const uint16 *_ingameSoundIndex;
 	int _ingameSoundIndexSize;
-	const char *const *_sequenceStrings;
+	const char * const *_sequenceStrings;
 	int _sequenceStringsSize;
 	const uint16 *_ingameTalkObjIndex;
 	int _ingameTalkObjIndexSize;
-	const char *const *_ingameTimJpStr;
+	const char * const *_ingameTimJpStr;
 	int _ingameTimJpStrSize;
 	const HofSeqData *_sequences;
 	const ItemAnimData_v2 *_itemAnimData;
@@ -915,11 +918,11 @@ protected:
 	int _dbgPass;
 
 	// save/load specific
-	Common::Error saveGameState(int slot, const char *saveName, const Graphics::Surface *thumbnail);
+	Common::Error saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail);
 	Common::Error loadGameState(int slot);
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

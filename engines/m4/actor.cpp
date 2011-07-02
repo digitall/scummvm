@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
 #include "common/array.h"
+#include "common/textconsole.h"
 #include "m4/actor.h"
 #include "m4/m4_views.h"
 #include "m4/assets.h"
@@ -33,7 +31,7 @@ namespace M4 {
 
 #define WALKER_BURGER "Wilbur0%i"	// wilbur, with a number denoting his current direction
 
-Actor::Actor(M4Engine *vm) : _vm(vm) {
+Actor::Actor(MadsM4Engine *vm) : _vm(vm) {
 	_scaling = 100;
 	_direction = 5;
 	_walkerSprites.resize(10);
@@ -44,8 +42,8 @@ Actor::~Actor() {
 	unloadWalkers();
 }
 
-int Actor::getWalkerWidth() { return _walkerSprites[kFacingSouth]->getFrame(0)->w; }
-int Actor::getWalkerHeight() { return _walkerSprites[kFacingSouth]->getFrame(0)->h; }
+int Actor::getWalkerWidth() { return _walkerSprites[kFacingSouth]->getFrame(0)->width(); }
+int Actor::getWalkerHeight() { return _walkerSprites[kFacingSouth]->getFrame(0)->height(); }
 
 void Actor::placeWalkerSpriteAt(int spriteNum, int x, int y) {
 	if (_direction < 1 || _direction > 9) {
@@ -55,11 +53,11 @@ void Actor::placeWalkerSpriteAt(int spriteNum, int x, int y) {
 	SpriteInfo info;
 	info.sprite = _walkerSprites[_direction]->getFrame(spriteNum);
 	info.hotX = info.hotY = 0;
-	info.width = info.sprite->w;
-	info.height = info.sprite->h;
+	info.width = info.sprite->width();
+	info.height = info.sprite->height();
 	info.scaleX = info.scaleY = _scaling;
 	info.palette = _walkerSprites[_direction]->getPalette();
-	info.inverseColorTable = _vm->_scene->getInverseColorTable();
+	info.inverseColorTable = _m4Vm->scene()->getInverseColorTable();
 
 	_vm->_scene->drawSprite(x, y, info, Common::Rect(640, 400));
 }
@@ -95,8 +93,7 @@ void Actor::unloadWalkers() {
 			continue;	// walker sprite 6 is unused
 		SpriteAsset *tempSprite = _walkerSprites[i];
 		_walkerSprites.remove_at(i);
-		if (tempSprite)
-			delete tempSprite;
+		delete tempSprite;
 	}
 }
 
@@ -105,7 +102,7 @@ void Actor::setWalkerPalette() {
 							  _walkerSprites[kFacingSouthEast]->getColorCount());
 }
 
-Inventory::Inventory(M4Engine *vm) : _vm(vm) {
+Inventory::Inventory(MadsM4Engine *vm) : _vm(vm) {
 }
 
 Inventory::~Inventory() {
@@ -150,11 +147,11 @@ void Inventory::moveObject(char* name, int32 scene) {
 }
 
 void Inventory::addToBackpack(uint32 objectIndex) {
-	_vm->_interfaceView->inventoryAdd(_inventory[objectIndex]->name, "", _inventory[objectIndex]->icon);
+	_m4Vm->scene()->getInterface()->inventoryAdd(_inventory[objectIndex]->name, "", _inventory[objectIndex]->icon);
 }
 
 void Inventory::removeFromBackpack(uint32 objectIndex) {
-	_vm->_interfaceView->inventoryRemove(_inventory[objectIndex]->name);
+	_m4Vm->scene()->getInterface()->inventoryRemove(_inventory[objectIndex]->name);
 }
 
 bool Inventory::isInCurrentScene(char* name) {

@@ -18,33 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "graphics/scaler/intern.h"
 #include "graphics/scaler/scalebit.h"
 #include "common/util.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 int gBitFormat = 565;
 
-static const Graphics::PixelFormat gPixelFormat555 = {
-	2,
-	3, 3, 3, 8,
-	10, 5, 0, 0
-	};
-
-static const Graphics::PixelFormat gPixelFormat565 = {
-	2,
-	3, 2, 3, 8,
-	11, 5, 0, 0
-	};
-
-
-
-#ifndef DISABLE_HQ_SCALERS
+#ifdef USE_HQ_SCALERS
 // RGB-to-YUV lookup table
 extern "C" {
 
@@ -63,8 +47,6 @@ extern "C" {
 #define hqx_green_redBlue_Mask _hqx_green_redBlue_Mask
 #endif
 
-#endif
-
 uint32 hqx_highbits = 0xF7DEF7DE;
 uint32 hqx_lowbits = 0x0821;
 uint32 hqx_low2bits = 0x0C63;
@@ -73,22 +55,29 @@ uint32 hqx_greenMask = 0;
 uint32 hqx_redBlueMask = 0;
 uint32 hqx_green_redBlue_Mask = 0;
 
-// FIXME/TODO: The RGBtoYUV table sucks up 256 KB. This is bad.
-// In addition we never free it...
-//
-// Note: a memory lookup table is *not* necessarily faster than computing
-// these things on the fly, because of its size. The table together with
-// the code, plus the input/output GFX data, may not fit in the cache on some
-// systems, so main memory has to be accessed, which is about the worst thing
-// that can happen to code which tries to be fast...
-//
-// So we should think about ways to get this smaller / removed. Maybe we can
-// use the same technique employed by our MPEG code to reduce the size of the
-// lookup table at the cost of some additional computations?
-//
-// Of course, the above is largely a conjecture, and the actual speed
-// differences are likely to vary a lot between different architectures and
-// CPUs.
+#endif
+
+/**
+ * 16bit RGB to YUV conversion table. This table is setup by InitLUT().
+ * Used by the hq scaler family.
+ *
+ * FIXME/TODO: The RGBtoYUV table sucks up 256 KB. This is bad.
+ * In addition we never free it...
+ *
+ * Note: a memory lookup table is *not* necessarily faster than computing
+ * these things on the fly, because of its size. The table together with
+ * the code, plus the input/output GFX data, may not fit in the cache on some
+ * systems, so main memory has to be accessed, which is about the worst thing
+ * that can happen to code which tries to be fast...
+ *
+ * So we should think about ways to get this smaller / removed. Maybe we can
+ * use the same technique employed by our MPEG code to reduce the size of the
+ * lookup table at the cost of some additional computations?
+ *
+ * Of course, the above is largely a conjecture, and the actual speed
+ * differences are likely to vary a lot between different architectures and
+ * CPUs.
+ */
 uint32 *RGBtoYUV = 0;
 }
 
@@ -101,6 +90,9 @@ void InitLUT(Graphics::PixelFormat format) {
 	// Allocate the YUV/LUT buffers on the fly if needed.
 	if (RGBtoYUV == 0)
 		RGBtoYUV = (uint32 *)malloc(65536 * sizeof(uint32));
+
+	if (!RGBtoYUV)
+		error("[InitLUT] Cannot allocate memory for YUV/LUT buffers");
 
 	for (int color = 0; color < 65536; ++color) {
 		format.colorToRGB(color, r, g, b);
@@ -148,7 +140,7 @@ void InitScalers(uint32 BitFormat) {
 		format = g_system->getOverlayFormat();
 	}
 
-#ifndef DISABLE_HQ_SCALERS
+#ifdef USE_HQ_SCALERS
 	InitLUT(format);
 #endif
 
@@ -161,7 +153,7 @@ void InitScalers(uint32 BitFormat) {
 }
 
 void DestroyScalers(){
-#ifndef DISABLE_HQ_SCALERS
+#ifdef USE_HQ_SCALERS
 	free(RGBtoYUV);
 	RGBtoYUV = 0;
 #endif
@@ -186,41 +178,10 @@ void Normal1x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPit
 	}
 }
 
-#ifndef DISABLE_SCALERS
-#ifdef USE_ARM_SCALER_ASM
-extern "C" void Normal2xAspectMask(const uint8  *srcPtr,
-                                         uint32  srcPitch,
-                                         uint8  *dstPtr,
-                                         uint32  dstPitch,
-                                         int     width,
-                                         int     height,
-                                         uint32  mask);
-                                   
-void Normal2xAspect(const uint8  *srcPtr,
-                          uint32  srcPitch,
-                          uint8  *dstPtr,
-                          uint32  dstPitch,
-                          int     width,
-                          int     height) {
-	if (gBitFormat == 565) {
-		Normal2xAspectMask(srcPtr,
-		                   srcPitch,
-		                   dstPtr,
-		                   dstPitch,
-		                   width,
-		                   height,
-		                   0x07e0F81F);
-	} else {
-		Normal2xAspectMask(srcPtr,
-		                   srcPitch,
-		                   dstPtr,
-		                   dstPitch,
-		                   width,
-		                   height,
-		                   0x03e07C1F);
-	}
-}
+#ifdef USE_SCALERS
 
+
+#ifdef USE_ARM_SCALER_ASM
 extern "C" void Normal2xARM(const uint8  *srcPtr,
                                   uint32  srcPitch,
                                   uint8  *dstPtr,
@@ -239,7 +200,7 @@ void Normal2x(const uint8  *srcPtr,
 
 #else
 /**
- * Trivial nearest-neighbour 2x scaler.
+ * Trivial nearest-neighbor 2x scaler.
  */
 void Normal2x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
 							int width, int height) {
@@ -264,7 +225,7 @@ void Normal2x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPit
 #endif
 
 /**
- * Trivial nearest-neighbour 3x scaler.
+ * Trivial nearest-neighbor 3x scaler.
  */
 void Normal3x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
 							int width, int height) {
@@ -293,13 +254,13 @@ void Normal3x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPit
 	}
 }
 
-#define interpolate_1_1		interpolate16_1_1<Graphics::ColorMasks<bitFormat> >
-#define interpolate_1_1_1_1	interpolate16_1_1_1_1<Graphics::ColorMasks<bitFormat> >
+#define interpolate_1_1		interpolate16_1_1<ColorMask>
+#define interpolate_1_1_1_1	interpolate16_1_1_1_1<ColorMask>
 
 /**
- * Trivial nearest-neighbour 1.5x scaler.
+ * Trivial nearest-neighbor 1.5x scaler.
  */
-template<int bitFormat>
+template<typename ColorMask>
 void Normal1o5xTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
 							int width, int height) {
 	uint8 *r;
@@ -331,7 +292,13 @@ void Normal1o5xTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uin
 		height -= 2;
 	}
 }
-MAKE_WRAPPER(Normal1o5x)
+
+void Normal1o5x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+	if (gBitFormat == 565)
+		Normal1o5xTemplate<Graphics::ColorMasks<565> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+	else
+		Normal1o5xTemplate<Graphics::ColorMasks<555> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+}
 
 /**
  * The Scale2x filter, also known as AdvMame2x.
@@ -351,7 +318,7 @@ void AdvMame3x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPi
 	scale(3, dstPtr, dstPitch, srcPtr - srcPitch, srcPitch, 2, width, height);
 }
 
-template<int bitFormat>
+template<typename ColorMask>
 void TV2xTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch,
 					int width, int height) {
 	const uint32 nextlineSrc = srcPitch / sizeof(uint16);
@@ -365,8 +332,8 @@ void TV2xTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 ds
 			uint16 p1 = *(p + i);
 			uint32 pi;
 
-			pi = (((p1 & redblueMask) * 7) >> 3) & redblueMask;
-			pi |= (((p1 & greenMask) * 7) >> 3) & greenMask;
+			pi = (((p1 & ColorMask::kRedBlueMask) * 7) >> 3) & ColorMask::kRedBlueMask;
+			pi |= (((p1 & ColorMask::kGreenMask) * 7) >> 3) & ColorMask::kGreenMask;
 
 			*(q + j) = p1;
 			*(q + j + 1) = p1;
@@ -377,7 +344,13 @@ void TV2xTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 ds
 		q += nextlineDst << 1;
 	}
 }
-MAKE_WRAPPER(TV2x)
+
+void TV2x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+	if (gBitFormat == 565)
+		TV2xTemplate<Graphics::ColorMasks<565> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+	else
+		TV2xTemplate<Graphics::ColorMasks<555> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+}
 
 static inline uint16 DOT_16(const uint16 *dotmatrix, uint16 c, int j, int i) {
 	return c - ((c >> 2) & dotmatrix[((j & 3) << 2) + (i & 3)]);
@@ -414,4 +387,4 @@ void DotMatrix(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPi
 	}
 }
 
-#endif
+#endif // #ifdef USE_SCALERS

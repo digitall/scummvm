@@ -1,5 +1,8 @@
-@ ScummVM Scumm Interpreter
-@ Copyright (C) 2009 The ScummVM project
+@ ScummVM - Graphic Adventure Engine
+@
+@ ScummVM is the legal property of its developers, whose names
+@ are too numerous to list here. Please refer to the COPYRIGHT
+@ file distributed with this source distribution.
 @
 @ This program is free software; you can redistribute it and/or
 @ modify it under the terms of the GNU General Public License
@@ -14,9 +17,6 @@
 @ You should have received a copy of the GNU General Public License
 @ along with this program; if not, write to the Free Software
 @ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-@
-@ $URL$
-@ $Id$
 @
 @ @author Robin Watts (robin@wss.co.uk)
 
@@ -174,7 +174,7 @@ x_loop:
 	SUBS	r6,r6,#16		@ width -= 16
 	STRH	r12,[r9],#2		@ store dA
 	BGT	x_loop
-	
+
 	ADD	r0, r0, r8		@ srcPtr += srcSpan
 	ADD	r2, r2, r3		@ dstPtr += dstSpan
 	SUBS	r7, r7, #1

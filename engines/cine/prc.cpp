@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -35,13 +32,11 @@
 
 namespace Cine {
 
-ScriptList globalScripts;
-ScriptList objectScripts;
-
 //char currentPrcName[20];
 
-/*! \todo Is script size of 0 valid?
- * \todo Fix script dump code
+/**
+ * @todo Is script size of 0 valid?
+ * @todo Fix script dump code
  * @return Was the loading successful?
  */
 bool loadPrc(const char *pPrcName) {
@@ -51,8 +46,8 @@ bool loadPrc(const char *pPrcName) {
 
 	assert(pPrcName);
 
-	globalScripts.clear();
-	scriptTable.clear();
+	g_cine->_globalScripts.clear();
+	g_cine->_scriptTable.clear();
 
 	// This is copy protection. Used to hang the machine
 	if (!scumm_stricmp(pPrcName, COPY_PROT_FAIL_PRC_NAME)) {
@@ -82,14 +77,14 @@ bool loadPrc(const char *pPrcName) {
 		RawScriptPtr tmp(new RawScript(READ_BE_UINT16(scriptPtr)));
 		scriptPtr += 2;
 		assert(tmp);
-		scriptTable.push_back(tmp);
+		g_cine->_scriptTable.push_back(tmp);
 	}
 
 	for (i = 0; i < numScripts; i++) {
-		uint16 size = scriptTable[i]->_size;
+		uint16 size = g_cine->_scriptTable[i]->_size;
 		// TODO: delete the test?
 		if (size) {
-			scriptTable[i]->setData(*scriptInfo, scriptPtr);
+			g_cine->_scriptTable[i]->setData(*scriptInfo, scriptPtr);
 			scriptPtr += size;
 		}
 	}
@@ -103,10 +98,10 @@ bool loadPrc(const char *pPrcName) {
 		char buffer[256];
 
 		for (s = 0; s < numScripts; s++) {
-			if (scriptTable[s]->_size) {
+			if (g_cine->_scriptTable[s]->_size) {
 				sprintf(buffer, "%s_%03d.txt", pPrcName, s);
 
-				decompileScript((const byte *)scriptTable[s]->getString(0), scriptTable[s]->_size, s);
+				decompileScript((const byte *)g_cine->_scriptTable[s]->getString(0), g_cine->_scriptTable[s]->_size, s);
 				dumpScript(buffer);
 			}
 		}

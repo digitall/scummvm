@@ -18,38 +18,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
+#include "common/debug.h"
 #include "common/file.h"
 #include "common/fs.h"
-#include "common/util.h"
 #include "common/system.h"
-
-DECLARE_SINGLETON(Common::ConfigManager);
+#include "common/textconsole.h"
 
 static bool isValidDomainName(const Common::String &domName) {
 	const char *p = domName.c_str();
-	while (*p && (isalnum(*p) || *p == '-' || *p == '_'))
+	while (*p && (isalnum(static_cast<unsigned char>(*p)) || *p == '-' || *p == '_'))
 		p++;
 	return *p == 0;
 }
 
 namespace Common {
 
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
-
-const String ConfigManager::kApplicationDomain("scummvm");
-const String ConfigManager::kTransientDomain("__TRANSIENT");
-
-#ifdef ENABLE_KEYMAPPER
-const String ConfigManager::kKeymapperDomain("keymapper");
-#endif
-
-#else
+DECLARE_SINGLETON(ConfigManager);
 
 const char *ConfigManager::kApplicationDomain = "scummvm";
 const char *ConfigManager::kTransientDomain = "__TRANSIENT";
@@ -58,13 +45,32 @@ const char *ConfigManager::kTransientDomain = "__TRANSIENT";
 const char *ConfigManager::kKeymapperDomain = "keymapper";
 #endif
 
-#endif
-
 #pragma mark -
 
 
-ConfigManager::ConfigManager()
- : _activeDomain(0) {
+ConfigManager::ConfigManager() : _activeDomain(0) {
+}
+
+void ConfigManager::defragment() {
+	ConfigManager *newInstance = new ConfigManager();
+	newInstance->copyFrom(*_singleton);
+	delete _singleton;
+	_singleton = newInstance;
+}
+
+void ConfigManager::copyFrom(ConfigManager &source) {
+	_transientDomain = source._transientDomain;
+	_gameDomains = source._gameDomains;
+	_miscDomains = source._miscDomains;
+	_appDomain = source._appDomain;
+	_defaultsDomain = source._defaultsDomain;
+#ifdef ENABLE_KEYMAPPER
+	_keymapperDomain = source._keymapperDomain;
+#endif
+	_domainSaveOrder = source._domainSaveOrder;
+	_activeDomainName = source._activeDomainName;
+	_activeDomain = &_gameDomains[_activeDomainName];
+	_filename = source._filename;
 }
 
 
@@ -72,16 +78,21 @@ void ConfigManager::loadDefaultConfigFile() {
 	// Open the default config file
 	assert(g_system);
 	SeekableReadStream *stream = g_system->createConfigReadStream();
-	_filename.clear();	// clear the filename to indicate that we are using the default config file
+	_filename.clear();  // clear the filename to indicate that we are using the default config file
 
 	// ... load it, if available ...
-	if (stream)
+	if (stream) {
 		loadFromStream(*stream);
 
-	// ... and close it again.
-	delete stream;
+		// ... and close it again.
+		delete stream;
 
-	flushToDisk();
+	} else {
+		// No config file -> create new one!
+		debug("Default configuration file missing, creating a new one");
+
+		flushToDisk();
+	}
 }
 
 void ConfigManager::loadConfigFile(const String &filename) {
@@ -90,20 +101,59 @@ void ConfigManager::loadConfigFile(const String &filename) {
 	FSNode node(filename);
 	File cfg_file;
 	if (!cfg_file.open(node)) {
-		printf("Creating configuration file: %s\n", filename.c_str());
+		debug("Creating configuration file: %s", filename.c_str());
 	} else {
-		printf("Using configuration file: %s\n", _filename.c_str());
+		debug("Using configuration file: %s", _filename.c_str());
 		loadFromStream(cfg_file);
 	}
 }
 
+/**
+ * Add a ready-made domain based on its name and contents
+ * The domain name should not already exist in the ConfigManager.
+ **/
+void ConfigManager::addDomain(const Common::String &domainName, const ConfigManager::Domain &domain) {
+	if (domainName.empty())
+		return;
+	if (domainName == kApplicationDomain) {
+		_appDomain = domain;
+#ifdef ENABLE_KEYMAPPER
+	} else if (domainName == kKeymapperDomain) {
+		_keymapperDomain = domain;
+#endif
+	} else if (domain.contains("gameid")) {
+		// If the domain contains "gameid" we assume it's a game domain
+		if (_gameDomains.contains(domainName))
+			warning("Game domain %s already exists in ConfigManager", domainName.c_str());
+
+		_gameDomains[domainName] = domain;
+
+		_domainSaveOrder.push_back(domainName);
+
+		// Check if we have the same misc domain. For older config files
+		// we could have 'ghost' domains with the same name, so delete
+		// the ghost domain
+		if (_miscDomains.contains(domainName))
+			_miscDomains.erase(domainName);
+	} else {
+		// Otherwise it's a miscellaneous domain
+		if (_miscDomains.contains(domainName))
+			warning("Misc domain %s already exists in ConfigManager", domainName.c_str());
+
+		_miscDomains[domainName] = domain;
+	}
+}
+
+
 void ConfigManager::loadFromStream(SeekableReadStream &stream) {
-	String domain;
+	String domainName;
 	String comment;
+	Domain domain;
 	int lineno = 0;
 
 	_appDomain.clear();
 	_gameDomains.clear();
+	_miscDomains.clear();
 	_transientDomain.clear();
 	_domainSaveOrder.clear();
 
@@ -130,11 +180,14 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 			comment += "\n";
 		} else if (line[0] == '[') {
 			// It's a new domain which begins here.
+			// Determine where the previously accumulated domain goes, if we accumulated anything.
+			addDomain(domainName, domain);
+			domain.clear();
 			const char *p = line.c_str() + 1;
 			// Get the domain name, and check whether it's valid (that
 			// is, verify that it only consists of alphanumerics,
 			// dashes and underscores).
-			while (*p && (isalnum(*p) || *p == '-' || *p == '_'))
+			while (*p && (isalnum(static_cast<unsigned char>(*p)) || *p == '-' || *p == '_'))
 				p++;
 
 			if (*p == '\0')
@@ -142,27 +195,17 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 			else if (*p != ']')
 				error("Config file buggy: Invalid character '%c' occurred in section name in line %d", *p, lineno);
 
-			domain = String(line.c_str() + 1, p);
+			domainName = String(line.c_str() + 1, p);
 
-			// Store domain comment
-			if (domain == kApplicationDomain) {
-				_appDomain.setDomainComment(comment);
-#ifdef ENABLE_KEYMAPPER
-			} else if (domain == kKeymapperDomain) {
-				_keymapperDomain.setDomainComment(comment);
-#endif
-			} else {
-				_gameDomains[domain].setDomainComment(comment);
-			}
+			domain.setDomainComment(comment);
 			comment.clear();
 
-			_domainSaveOrder.push_back(domain);
 		} else {
 			// This line should be a line with a 'key=value' pair, or an empty one.
 
 			// Skip leading whitespaces
 			const char *t = line.c_str();
-			while (isspace(*t))
+			while (isspace(static_cast<unsigned char>(*t)))
 				t++;
 
 			// Skip empty lines / lines with only whitespace
@@ -170,7 +213,7 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 				continue;
 
 			// If no domain has been set, this config file is invalid!
-			if (domain.empty()) {
+			if (domainName.empty()) {
 				error("Config file buggy: Key/value pair found outside a domain in line %d", lineno);
 			}
 
@@ -188,21 +231,15 @@ void ConfigManager::loadFromStream(SeekableReadStream &stream) {
 			value.trim();
 
 			// Finally, store the key/value pair in the active domain
-			set(key, value, domain);
+			domain[key] = value;
 
 			// Store comment
-			if (domain == kApplicationDomain) {
-				_appDomain.setKVComment(key, comment);
-#ifdef ENABLE_KEYMAPPER
-			} else if (domain == kKeymapperDomain) {
-				_keymapperDomain.setKVComment(key, comment);
-#endif
-			} else {
-				_gameDomains[domain].setKVComment(key, comment);
-			}
+			domain.setKVComment(key, comment);
 			comment.clear();
 		}
 	}
+
+	addDomain(domainName, domain); // Add the last domain found
 }
 
 void ConfigManager::flushToDisk() {
@@ -213,7 +250,7 @@ void ConfigManager::flushToDisk() {
 		// Write to the default config file
 		assert(g_system);
 		stream = g_system->createConfigWriteStream();
-		if (!stream)	// If writing to the config file is not possible, do nothing
+		if (!stream)    // If writing to the config file is not possible, do nothing
 			return;
 	} else {
 		DumpFile *dump = new DumpFile();
@@ -228,32 +265,32 @@ void ConfigManager::flushToDisk() {
 		stream = dump;
 	}
 
+	// Write the application domain
+	writeDomain(*stream, kApplicationDomain, _appDomain);
+
+#ifdef ENABLE_KEYMAPPER
+	// Write the keymapper domain
+	writeDomain(*stream, kKeymapperDomain, _keymapperDomain);
+#endif
+
+	DomainMap::const_iterator d;
+
+	// Write the miscellaneous domains next
+	for (d = _miscDomains.begin(); d != _miscDomains.end(); ++d) {
+		writeDomain(*stream, d->_key, d->_value);
+	}
+
 	// First write the domains in _domainSaveOrder, in that order.
 	// Note: It's possible for _domainSaveOrder to list domains which
-	// are not present anymore.
-	StringList::const_iterator i;
+	// are not present anymore, so we validate each name.
+	Array<String>::const_iterator i;
 	for (i = _domainSaveOrder.begin(); i != _domainSaveOrder.end(); ++i) {
-		if (kApplicationDomain == *i) {
-			writeDomain(*stream, *i, _appDomain);
-#ifdef ENABLE_KEYMAPPER
-		} else if (kKeymapperDomain == *i) {
-			writeDomain(*stream, *i, _keymapperDomain);
-#endif
-		} else if (_gameDomains.contains(*i)) {
+		if (_gameDomains.contains(*i)) {
 			writeDomain(*stream, *i, _gameDomains[*i]);
 		}
 	}
 
-	DomainMap::const_iterator d;
-
-
 	// Now write the domains which haven't been written yet
-	if (find(_domainSaveOrder.begin(), _domainSaveOrder.end(), kApplicationDomain) == _domainSaveOrder.end())
-		writeDomain(*stream, kApplicationDomain, _appDomain);
-#ifdef ENABLE_KEYMAPPER
-	if (find(_domainSaveOrder.begin(), _domainSaveOrder.end(), kKeymapperDomain) == _domainSaveOrder.end())
-		writeDomain(*stream, kKeymapperDomain, _keymapperDomain);
-#endif
 	for (d = _gameDomains.begin(); d != _gameDomains.end(); ++d) {
 		if (find(_domainSaveOrder.begin(), _domainSaveOrder.end(), d->_key) == _domainSaveOrder.end())
 			writeDomain(*stream, d->_key, d->_value);
@@ -266,7 +303,7 @@ void ConfigManager::flushToDisk() {
 
 void ConfigManager::writeDomain(WriteStream &stream, const String &name, const Domain &domain) {
 	if (domain.empty())
-		return;		// Don't bother writing empty domains.
+		return;     // Don't bother writing empty domains.
 
 	// WORKAROUND: Fix for bug #1972625 "ALL: On-the-fly targets are
 	// written to the config file": Do not save domains that came from
@@ -324,6 +361,8 @@ const ConfigManager::Domain *ConfigManager::getDomain(const String &domName) con
 #endif
 	if (_gameDomains.contains(domName))
 		return &_gameDomains[domName];
+	if (_miscDomains.contains(domName))
+		return &_miscDomains[domName];
 
 	return 0;
 }
@@ -342,6 +381,8 @@ ConfigManager::Domain *ConfigManager::getDomain(const String &domName) {
 #endif
 	if (_gameDomains.contains(domName))
 		return &_gameDomains[domName];
+	if (_miscDomains.contains(domName))
+		return &_miscDomains[domName];
 
 	return 0;
 }
@@ -388,7 +429,7 @@ void ConfigManager::removeKey(const String &key, const String &domName) {
 
 	if (!domain)
 		error("ConfigManager::removeKey(%s, %s) called on non-existent domain",
-					key.c_str(), domName.c_str());
+		      key.c_str(), domName.c_str());
 
 	domain->erase(key);
 }
@@ -397,24 +438,18 @@ void ConfigManager::removeKey(const String &key, const String &domName) {
 #pragma mark -
 
 
-const String & ConfigManager::get(const String &key) const {
+const String &ConfigManager::get(const String &key) const {
 	if (_transientDomain.contains(key))
 		return _transientDomain[key];
 	else if (_activeDomain && _activeDomain->contains(key))
 		return (*_activeDomain)[key];
 	else if (_appDomain.contains(key))
 		return _appDomain[key];
-	else if (_defaultsDomain.contains(key))
-		return _defaultsDomain[key];
 
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
-	return String::emptyString;
-#else
-	return ConfMan._emptyString;
-#endif
+	return _defaultsDomain.getVal(key);
 }
 
-const String & ConfigManager::get(const String &key, const String &domName) const {
+const String &ConfigManager::get(const String &key, const String &domName) const {
 	// FIXME: For now we continue to allow empty domName to indicate
 	// "use 'default' domain". This is mainly needed for the SCUMM ConfigDialog
 	// and should be removed ASAP.
@@ -425,27 +460,12 @@ const String & ConfigManager::get(const String &key, const String &domName) cons
 
 	if (!domain)
 		error("ConfigManager::get(%s,%s) called on non-existent domain",
-								key.c_str(), domName.c_str());
+		      key.c_str(), domName.c_str());
 
 	if (domain->contains(key))
 		return (*domain)[key];
 
-	return _defaultsDomain.get(key);
-
-	if (!domain->contains(key)) {
-#if 1
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
-	return String::emptyString;
-#else
-	return ConfMan._emptyString;
-#endif
-#else
-		error("ConfigManager::get(%s,%s) called on non-existent key",
-					key.c_str(), domName.c_str());
-#endif
-	}
-
-	return (*domain)[key];
+	return _defaultsDomain.getVal(key);
 }
 
 int ConfigManager::getInt(const String &key, const String &domName) const {
@@ -464,21 +484,19 @@ int ConfigManager::getInt(const String &key, const String &domName) const {
 	int ivalue = (int)strtol(value.c_str(), &errpos, 0);
 	if (value.c_str() == errpos)
 		error("ConfigManager::getInt(%s,%s): '%s' is not a valid integer",
-					key.c_str(), domName.c_str(), errpos);
+		      key.c_str(), domName.c_str(), errpos);
 
 	return ivalue;
 }
 
 bool ConfigManager::getBool(const String &key, const String &domName) const {
 	String value(get(key, domName));
-
-	if ((value == "true") || (value == "yes") || (value == "1"))
-		return true;
-	if ((value == "false") || (value == "no") || (value == "0"))
-		return false;
+	bool val;
+	if (Common::parseBool(value, val))
+		return val;
 
 	error("ConfigManager::getBool(%s,%s): '%s' is not a valid bool",
-				key.c_str(), domName.c_str(), value.c_str());
+	      key.c_str(), domName.c_str(), value.c_str());
 }
 
 
@@ -510,7 +528,7 @@ void ConfigManager::set(const String &key, const String &value, const String &do
 
 	if (!domain)
 		error("ConfigManager::set(%s,%s,%s) called on non-existent domain",
-					key.c_str(), value.c_str(), domName.c_str());
+		      key.c_str(), value.c_str(), domName.c_str());
 
 	(*domain)[key] = value;
 
@@ -525,7 +543,7 @@ void ConfigManager::set(const String &key, const String &value, const String &do
 	// But doing this here seems rather evil... need to comb the options dialog
 	// code to find out if it's still necessary, and if that's the case, how
 	// to replace it in a clean fashion...
-/*
+#if 0
 	if (domName == kTransientDomain)
 		_transientDomain[key] = value;
 	else {
@@ -539,13 +557,11 @@ void ConfigManager::set(const String &key, const String &value, const String &do
 				_transientDomain.erase(key);
 		}
 	}
-*/
+#endif
 }
 
 void ConfigManager::setInt(const String &key, int value, const String &domName) {
-	char tmp[128];
-	snprintf(tmp, sizeof(tmp), "%i", value);
-	set(key, String(tmp), domName);
+	set(key, String::format("%i", value), domName);
 }
 
 void ConfigManager::setBool(const String &key, bool value, const String &domName) {
@@ -565,9 +581,7 @@ void ConfigManager::registerDefault(const String &key, const char *value) {
 }
 
 void ConfigManager::registerDefault(const String &key, int value) {
-	char tmp[128];
-	snprintf(tmp, sizeof(tmp), "%i", value);
-	registerDefault(key, tmp);
+	registerDefault(key, String::format("%i", value));
 }
 
 void ConfigManager::registerDefault(const String &key, bool value) {
@@ -602,13 +616,38 @@ void ConfigManager::addGameDomain(const String &domName) {
 		_domainSaveOrder.push_back(domName);
 }
 
+void ConfigManager::addMiscDomain(const String &domName) {
+	assert(!domName.empty());
+	assert(isValidDomainName(domName));
+
+	_miscDomains[domName];
+}
+
 void ConfigManager::removeGameDomain(const String &domName) {
 	assert(!domName.empty());
 	assert(isValidDomainName(domName));
 	_gameDomains.erase(domName);
 }
 
+void ConfigManager::removeMiscDomain(const String &domName) {
+	assert(!domName.empty());
+	assert(isValidDomainName(domName));
+	_miscDomains.erase(domName);
+}
+
+
 void ConfigManager::renameGameDomain(const String &oldName, const String &newName) {
+	renameDomain(oldName, newName, _gameDomains);
+}
+
+void ConfigManager::renameMiscDomain(const String &oldName, const String &newName) {
+	renameDomain(oldName, newName, _miscDomains);
+}
+
+/**
+ * Common private function to rename both game and misc domains
+ **/
+void ConfigManager::renameDomain(const String &oldName, const String &newName, DomainMap &map) {
 	if (oldName == newName)
 		return;
 
@@ -618,13 +657,13 @@ void ConfigManager::renameGameDomain(const String &oldName, const String &newNam
 	assert(isValidDomainName(newName));
 
 //	_gameDomains[newName].merge(_gameDomains[oldName]);
-	Domain &oldDom = _gameDomains[oldName];
-	Domain &newDom = _gameDomains[newName];
+	Domain &oldDom = map[oldName];
+	Domain &newDom = map[newName];
 	Domain::const_iterator iter;
 	for (iter = oldDom.begin(); iter != oldDom.end(); ++iter)
 		newDom[iter->_key] = iter->_value;
 
-	_gameDomains.erase(oldName);
+	map.erase(oldName);
 }
 
 bool ConfigManager::hasGameDomain(const String &domName) const {
@@ -632,21 +671,12 @@ bool ConfigManager::hasGameDomain(const String &domName) const {
 	return isValidDomainName(domName) && _gameDomains.contains(domName);
 }
 
+bool ConfigManager::hasMiscDomain(const String &domName) const {
+	assert(!domName.empty());
+	return isValidDomainName(domName) && _miscDomains.contains(domName);
+}
 
 #pragma mark -
-
-
-const String &ConfigManager::Domain::get(const String &key) const {
-	const_iterator iter(find(key));
-	if (iter != end())
-		return iter->_value;
-
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
-	return String::emptyString;
-#else
-	return ConfMan._emptyString;
-#endif
-}
 
 void ConfigManager::Domain::setDomainComment(const String &comment) {
 	_domainComment = comment;
@@ -665,4 +695,5 @@ bool ConfigManager::Domain::hasKVComment(const String &key) const {
 	return _keyValueComments.contains(key);
 }
 
-}	// End of namespace Common
+} // End of namespace Common
+

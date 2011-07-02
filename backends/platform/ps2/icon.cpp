@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "Gs2dScreen.h"
@@ -938,9 +935,9 @@ const uint8 _rleIcoData[14018] = {
 
 uint16 PS2Icon::decompressData(uint16 **data) {
 	uint16 inPos = 1;
-	uint16 *rleData = (uint16*)_rleIcoData;
+	const uint16 *rleData = (const uint16 *)_rleIcoData;
 	uint16 resSize = rleData[0];
-	uint16 *resData = (uint16*)malloc(resSize * sizeof(uint16));
+	uint16 *resData = (uint16 *)malloc(resSize * sizeof(uint16));
 	uint16 outPos = 0;
 
 	while (outPos < resSize) {

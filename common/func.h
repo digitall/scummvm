@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_FUNC_H
@@ -423,7 +420,7 @@ private:
  *     warning("Unimplemented opcode %d", opcodeNum);
  *
  * If you want to see an real world example check the kyra engine.
- * Files: engines/kyra/script.cpp and .h and engine/kyra/script_*.cpp
+ * Files: engines/kyra/script.cpp and .h and engines/kyra/script_*.cpp
  * are interesting for that matter.
  */
 template<class Arg, class Res>

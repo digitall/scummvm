@@ -18,17 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
 
 #include "common/endian.h"
 #include "common/rect.h"
-#include "common/events.h"
-#include "common/EventRecorder.h"
-#include "common/system.h"
+#include "common/textconsole.h"
 
 #include "sky/autoroute.h"
 #include "sky/compact.h"
@@ -73,8 +67,8 @@ void Logic::setupLogicTable() {
 	_logicTable = logicTable;
 }
 
-Logic::Logic(SkyCompact *skyCompact, Screen *skyScreen, Disk *skyDisk, Text *skyText, MusicBase *skyMusic, Mouse *skyMouse, Sound *skySound) {
-	g_eventRec.registerRandomSource(_rnd, "sky");
+Logic::Logic(SkyCompact *skyCompact, Screen *skyScreen, Disk *skyDisk, Text *skyText, MusicBase *skyMusic, Mouse *skyMouse, Sound *skySound)
+	: _rnd("sky") {
 
 	_skyCompact = skyCompact;
 	_skyScreen = skyScreen;
@@ -99,7 +93,7 @@ Logic::Logic(SkyCompact *skyCompact, Screen *skyScreen, Disk *skyDisk, Text *sky
 	initScriptVariables();
 }
 
-Logic::~Logic(void) {
+Logic::~Logic() {
 	delete _skyGrid;
 	delete _skyAutoRoute;
 
@@ -108,7 +102,7 @@ Logic::~Logic(void) {
 			free(_moduleList[i]);
 }
 
-void Logic::initScreen0(void) {
+void Logic::initScreen0() {
 	fnEnterSection(0, 0, 0);
 	_skyMusic->startMusic(2);
 	SkyEngine::_systemVars.currentMusic = 2;
@@ -122,7 +116,7 @@ void Logic::parseSaveData(uint32 *data) {
 	fnEnterSection(_scriptVariables[CUR_SECTION], 0, 0);
 }
 
-bool Logic::checkProtection(void) {
+bool Logic::checkProtection() {
 	if (_scriptVariables[ENTER_DIGITS]) {
 		if (_scriptVariables[CONSOLE_TYPE] == 5) // reactor code
 			_scriptVariables[FS_COMMAND] = 240;
@@ -1824,7 +1818,7 @@ bool Logic::fnHighlight(uint32 itemNo, uint32 pen, uint32 c) {
 	pen += 241;
 	Compact *textCompact = _skyCompact->fetchCpt(itemNo);
 	uint8 *sprData = (uint8 *)SkyEngine::fetchItem(textCompact->flag);
-	_skyText->changeTextSpriteColour(sprData, (uint8)pen);
+	_skyText->changeTextSpriteColor(sprData, (uint8)pen);
 	return true;
 }
 
@@ -1896,7 +1890,7 @@ bool Logic::fnCheckRequest(uint32 a, uint32 b, uint32 c) {
 }
 
 bool Logic::fnStartMenu(uint32 firstObject, uint32 b, uint32 c) {
-	/// initialise the top menu bar
+	/// initialize the top menu bar
 	// firstObject is o0 for game menu, k0 for linc
 
 	uint i;
@@ -1918,7 +1912,7 @@ bool Logic::fnStartMenu(uint32 firstObject, uint32 b, uint32 c) {
 
 	uint32 menuLength = 0;
 	for (i = firstObject; i < firstObject + ARRAYSIZE(_objectList); i++) {
-		if ( _scriptVariables[i] )
+		if (_scriptVariables[i])
 			_objectList[menuLength++] = _scriptVariables[i];
 	}
 	_scriptVariables[MENU_LENGTH] = menuLength;
@@ -1945,7 +1939,7 @@ bool Logic::fnStartMenu(uint32 firstObject, uint32 b, uint32 c) {
 	else if (menuLength < _scriptVariables[SCROLL_OFFSET] + 11)
 		_scriptVariables[SCROLL_OFFSET] = menuLength - 11;
 
-	// (6) AND FINALLY, INITIALISE THE 11 OBJECTS SO THEY APPEAR ON SCREEEN
+	// (6) AND FINALLY, INITIALIZE THE 11 OBJECTS SO THEY APPEAR ON SCREEEN
 
 	uint16 rollingX = TOP_LEFT_X + 28;
 	for (i = 0; i < 11; i++) {
@@ -2511,7 +2505,7 @@ bool Logic::fnUnPauseFx(uint32 a, uint32 b, uint32 c) {
 }
 
 bool Logic::fnPrintf(uint32 a, uint32 b, uint32 c) {
-	printf("fnPrintf: %d\n", a);
+	debug("fnPrintf(%d, %d, %d)", a, b, c);
 	return true;
 }
 
@@ -2548,7 +2542,7 @@ void Logic::stdSpeak(Compact *target, uint32 textNum, uint32 animNum, uint32 bas
 		// form the text sprite, if player wants subtitles or
 		// if we couldn't find the speech file
 		DisplayedText textInfo;
-		textInfo = _skyText->lowTextManager(textNum, FIXED_TEXT_WIDTH, 0, (uint8)target->spColour, true);
+		textInfo = _skyText->lowTextManager(textNum, FIXED_TEXT_WIDTH, 0, (uint8)target->spColor, true);
 		Compact *textCompact = _skyCompact->fetchCpt(textInfo.compactNum);
 		target->spTextId = textInfo.compactNum;	//So we know what text to kill
 		byte *textGfx = textInfo.textData;

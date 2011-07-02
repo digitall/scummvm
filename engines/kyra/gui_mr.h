@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_GUI_MR_H
@@ -50,8 +47,6 @@ public:
 
 	void createScreenThumbnail(Graphics::Surface &dst);
 private:
-	void getInput();
-
 	const char *getMenuTitle(const Menu &menu);
 	const char *getMenuItemTitle(const MenuItem &menuItem);
 	const char *getMenuItemLabel(const MenuItem &menuItem);
@@ -87,7 +82,7 @@ private:
 	Screen_MR *_screen;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

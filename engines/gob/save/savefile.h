@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SAVE_SAVEFILE_H
@@ -33,24 +30,28 @@
 namespace Gob {
 
 class GobEngine;
-class SurfaceDesc;
+class Surface;
 
-/** A class wrapping a save part header.
-  *
-  * A save part header consists of 4 fields:
-  * ID      : The 8 character ID \0SCVMGOB
-  * Type    : The 4 character ID for this part's type
-  * Version : This part's version. Each type has its own version counter
-  * Size    : The size of the contents, i.e. excluding this header
+/**
+ * A class wrapping a save part header.
+ *
+ * A save part header consists of 4 fields:
+ * ID      : The 8 character ID \0SCVMGOB
+ * Type    : The 4 character ID for this part's type
+ * Version : This part's version. Each type has its own version counter
+ * Size    : The size of the contents, i.e. excluding this header
 */
 class SaveHeader {
 public:
 	/** The size of the header. */
 	static const int kSize = 20;
-	static const uint32 kID1 = MKID_BE('\0SCV');
-	static const uint32 kID2 = MKID_BE('MGOB');
+	static const uint32 kID1 = MKTAG(0,'S','C','V');
+	static const uint32 kID2 = MKTAG('M','G','O','B');
 
 	SaveHeader(uint32 type = 0, uint32 version = 0, uint32 size = 0);
+
+	bool operator==(const SaveHeader &header) const;
+	bool operator!=(const SaveHeader &header) const;
 
 	/** Read the header out of a stream into this class. */
 	bool read(Common::ReadStream &stream);
@@ -102,7 +103,7 @@ protected:
 class SavePartMem : public SavePart {
 public:
 	static const uint32 kVersion = 1;
-	static const uint32 kID = MKID_BE('PMEM');
+	static const uint32 kID = MKTAG('P','M','E','M');
 
 	SavePartMem(uint32 size);
 	~SavePartMem();
@@ -124,7 +125,7 @@ private:
 class SavePartVars : public SavePart {
 public:
 	static const uint32 kVersion = 1;
-	static const uint32 kID = MKID_BE('VARS');
+	static const uint32 kID = MKTAG('V','A','R','S');
 
 	SavePartVars(GobEngine *vm, uint32 size);
 	~SavePartVars();
@@ -150,10 +151,10 @@ private:
 /** A save part holding a sprite. */
 class SavePartSprite : public SavePart {
 public:
-	static const uint32 kVersion = 1;
-	static const uint32 kID = MKID_BE('SPRT');
+	static const uint32 kVersion = 2;
+	static const uint32 kID = MKTAG('S','P','R','T');
 
-	SavePartSprite(uint32 width, uint32 height);
+	SavePartSprite(uint32 width, uint32 height, bool trueColor = false);
 	~SavePartSprite();
 
 	bool read(Common::ReadStream &stream);
@@ -162,7 +163,7 @@ public:
 	/** Read a palette into the part. */
 	bool readPalette(const byte *palette);
 	/** Read a sprite into the part. */
-	bool readSprite(const SurfaceDesc &sprite);
+	bool readSprite(const Surface &sprite);
 
 	/** Read size bytes of raw data into the sprite. */
 	bool readSpriteRaw(const byte *data, uint32 size);
@@ -170,11 +171,16 @@ public:
 	/** Write a palette out of the part. */
 	bool writePalette(byte *palette) const;
 	/** Write a sprite out of the part. */
-	bool writeSprite(SurfaceDesc &sprite) const;
+	bool writeSprite(Surface &sprite) const;
 
 private:
 	uint32 _width;
 	uint32 _height;
+
+	uint32 _spriteSize;
+
+	bool _oldFormat;
+	bool _trueColor;
 
 	byte *_dataSprite;
 	byte *_dataPalette;
@@ -184,15 +190,15 @@ private:
 class SavePartInfo : public SavePart {
 public:
 	static const uint32 kVersion = 1;
-	static const uint32 kID = MKID_BE('INFO');
+	static const uint32 kID = MKTAG('I','N','F','O');
 
-	/** The constructor.
-	 *
-	 *  @param descMaxLength The maximal number of bytes that fit into the description.
-	 *  @param gameID An ID for the game (Gob1, Gob2, Gob3, ...).
-	 *  @param gameVersion An ID for game specific versioning
-	 *  @param endian Endianness of the platform the game originally ran on.
-	 *  @param varCount The number of script variables.
+	/**
+	 * The constructor.
+	 * @param descMaxLength The maximal number of bytes that fit into the description.
+	 * @param gameID An ID for the game (Gob1, Gob2, Gob3, ...).
+	 * @param gameVersion An ID for game specific versioning
+	 * @param endian Endianness of the platform the game originally ran on.
+	 * @param varCount The number of script variables.
 	 */
 	SavePartInfo(uint32 descMaxLength, uint32 gameID,
 			uint32 gameVersion, byte endian, uint32 varCount);
@@ -226,12 +232,12 @@ private:
 class SaveContainer {
 public:
 	static const uint32 kVersion = 1;
-	static const uint32 kID = MKID_BE('CONT');
+	static const uint32 kID = MKTAG('C','O','N','T');
 
-	/** The constructor.
-	 *
-	 *  @param partCount The number parts this container shall hold.
-	 *  @param slot The save slot this save's for.
+	/**
+	 * The constructor.
+	 * @param partCount The number parts this container shall hold.
+	 * @param slot The save slot this save's for.
 	 */
 	SaveContainer(uint32 partCount, uint32 slot);
 	~SaveContainer();

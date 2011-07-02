@@ -18,19 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/events.h"
 #include "common/savefile.h"
-#include "common/stream.h"
+#include "common/textconsole.h"
 
 #include "graphics/cursorman.h"
 
 #include "agi/preagi.h"
-#include "agi/preagi_common.h"
 #include "agi/preagi_mickey.h"
 #include "agi/graphics.h"
 
@@ -210,8 +206,6 @@ void Mickey::printDatString(int iStr) {
 }
 
 void Mickey::printDesc(int iRoom) {
-	char *buffer = (char *)malloc(256);
-
 	MSA_DAT_HEADER hdr;
 	char szFile[256] = {0};
 
@@ -223,6 +217,7 @@ void Mickey::printDesc(int iRoom) {
 	if (!infile.open(szFile))
 		return;
 
+	char *buffer = (char *)malloc(256);
 	memset(buffer, 0, 256);
 
 	infile.seek(hdr.ofsDesc[iRoom - 1] + IDI_MSA_OFS_DAT, SEEK_SET);
@@ -234,7 +229,6 @@ void Mickey::printDesc(int iRoom) {
 }
 
 bool Mickey::checkMenu() {
-	char *buffer = new char[sizeof(MSA_MENU)];
 	MSA_MENU menu;
 	int iSel0, iSel1;
 	MSA_DAT_HEADER hdr;
@@ -245,6 +239,8 @@ bool Mickey::checkMenu() {
 	readDatHdr(szFile, &hdr);
 	if (!infile.open(szFile))
 		return false;
+
+	char *buffer = new char[sizeof(MSA_MENU)];
 	infile.seek(hdr.ofsRoom[_game.iRoom - 1] + IDI_MSA_OFS_DAT, SEEK_SET);
 	infile.read((uint8 *)buffer, sizeof(MSA_MENU));
 	infile.close();
@@ -295,7 +291,7 @@ void Mickey::getMouseMenuSelRow(MSA_MENU menu, int *sel0, int *sel1, int iRow, i
 	int iWord;
 	int *sel = 0;
 
-	switch(iRow) {
+	switch (iRow) {
 	case 0:
 		if (y != IDI_MSA_ROW_MENU_0) return;
 		sel = sel0;
@@ -304,6 +300,8 @@ void Mickey::getMouseMenuSelRow(MSA_MENU menu, int *sel0, int *sel1, int iRow, i
 		if (y != IDI_MSA_ROW_MENU_1) return;
 		sel = sel1;
 		break;
+	default:
+		return;
 	}
 
 	for (iWord = 0; iWord < menu.row[iRow].count; iWord++) {
@@ -323,7 +321,7 @@ bool Mickey::getMenuSelRow(MSA_MENU menu, int *sel0, int *sel1, int iRow) {
 	int x, y;
 	int goIndex = -1, northIndex = -1, southIndex = -1, eastIndex = -1, westIndex = -1;
 
-	switch(iRow) {
+	switch (iRow) {
 	case 0:
 		sel = sel0;
 		break;
@@ -361,7 +359,7 @@ bool Mickey::getMenuSelRow(MSA_MENU menu, int *sel0, int *sel1, int iRow) {
 
 	while (!_vm->shouldQuit()) {
 		while (_vm->_system->getEventManager()->pollEvent(event)) {
-			switch(event.type) {
+			switch (event.type) {
 			case Common::EVENT_RTL:
 			case Common::EVENT_QUIT:
 				return 0;
@@ -679,7 +677,7 @@ void Mickey::playSound(ENUM_MSA_SOUND iSound) {
 	uint8 *buffer = new uint8[1024];
 	int pBuf = 1;
 
-	switch(iSound) {
+	switch (iSound) {
 	case IDI_MSA_SND_XL30:
 		for (int iNote = 0; iNote < 6; iNote++) {
 			note.counter = _vm->rnd(59600) + 59;
@@ -701,7 +699,7 @@ void Mickey::playSound(ENUM_MSA_SOUND iSound) {
 
 			if (iSound == IDI_MSA_SND_THEME) {
 				while (_vm->_system->getEventManager()->pollEvent(event)) {
-					switch(event.type) {
+					switch (event.type) {
 					case Common::EVENT_RTL:
 					case Common::EVENT_QUIT:
 					case Common::EVENT_LBUTTONUP:
@@ -725,7 +723,6 @@ void Mickey::playSound(ENUM_MSA_SOUND iSound) {
 // Graphics
 
 void Mickey::drawObj(ENUM_MSA_OBJECT iObj, int x0, int y0) {
-	uint8* buffer = new uint8[4096];
 	char szFile[255] = {0};
 	sprintf(szFile, IDS_MSA_PATH_OBJ, IDS_MSA_NAME_OBJ[iObj]);
 
@@ -733,6 +730,7 @@ void Mickey::drawObj(ENUM_MSA_OBJECT iObj, int x0, int y0) {
 	if (!file.open(szFile))
 		return;
 
+	uint8* buffer = new uint8[4096];
 	uint32 size = file.size();
 	file.read(buffer, size);
 	file.close();
@@ -747,7 +745,6 @@ void Mickey::drawObj(ENUM_MSA_OBJECT iObj, int x0, int y0) {
 }
 
 void Mickey::drawPic(int iPic) {
-	uint8* buffer = new uint8[4096];
 	char szFile[255] = {0};
 	sprintf(szFile, IDS_MSA_PATH_PIC, iPic);
 
@@ -755,6 +752,7 @@ void Mickey::drawPic(int iPic) {
 	if (!file.open(szFile))
 		return;
 
+	uint8* buffer = new uint8[4096];
 	uint32 size = file.size();
 	file.read(buffer, size);
 	file.close();
@@ -769,7 +767,7 @@ void Mickey::drawRoomAnimation() {
 		0xF0, 1, 0xF9, 2, 43, 45, 0xFF
 	};
 
-	switch(_game.iRoom) {
+	switch (_game.iRoom) {
 	case IDI_MSA_PIC_EARTH_SHIP:
 	case IDI_MSA_PIC_VENUS_SHIP:
 	case IDI_MSA_PIC_NEPTUNE_SHIP:
@@ -835,7 +833,7 @@ void Mickey::drawRoomAnimation() {
 		// draw crystal
 		if (_game.iRoom == IDI_MSA_XTAL_ROOM_XY[_game.iPlanet][0]) {
 			if (!_game.fHasXtal) {
-				switch(_game.iPlanet) {
+				switch (_game.iPlanet) {
 				case IDI_MSA_PLANET_VENUS:
 					if (_game.iRmMenu[_game.iRoom] != 2)
 						break;
@@ -918,8 +916,7 @@ const uint8 colorBCG[16][2] = {
 
 void Mickey::drawLogo() {
 	// TODO: clean this up and make it work properly, the logo is drawn way off to the right
-	return;	// remove this once the code below is done
-
+#if 0
 	char szFile[256] = {0};
 	uint8 *buffer = new uint8[16384];
 	const int w = 150;
@@ -964,6 +961,7 @@ void Mickey::drawLogo() {
 	_vm->_picture->showPic(10, 10, w, h);
 
 	delete[] buffer;
+#endif
 }
 
 void Mickey::animate() {
@@ -1003,7 +1001,7 @@ bool Mickey::loadGame() {
 			if (_vm->getSelection(kSelAnyKey) == 0)
 				return false;
 		} else {
-			if (infile->readUint32BE() != MKID_BE('MICK')) {
+			if (infile->readUint32BE() != MKTAG('M','I','C','K')) {
 				warning("Mickey::loadGame wrong save game format");
 				return false;
 			}
@@ -1120,7 +1118,7 @@ void Mickey::saveGame() {
 			if (_vm->getSelection(kSelAnyKey) == 0)
 				return;
 		} else {
-			outfile->writeUint32BE(MKID_BE('MICK'));	// header
+			outfile->writeUint32BE(MKTAG('M','I','C','K'));	// header
 			outfile->writeByte(MSA_SAVEGAME_VERSION);
 
 			outfile->writeByte(_game.iRoom);
@@ -1236,7 +1234,7 @@ int Mickey::getPlanet() {
 	if (!_game.nButtons)
 		return -1;
 
-	for (int iPlanet = 0; iPlanet < IDI_MSA_MAX_DAT; iPlanet++) {
+	for (int iPlanet = 0; iPlanet < IDI_MSA_MAX_DAT - 1; iPlanet++) {
 		if (!strcmp(IDS_MSA_ADDR_PLANET[iPlanet], _game.szAddr)) {
 			return iPlanet;
 		}
@@ -1315,7 +1313,7 @@ void Mickey::flipSwitch() {
 			_game.iPlanetXtal[0] = IDI_MSA_PLANET_EARTH;
 			_game.iPlanetXtal[8] = IDI_MSA_PLANET_URANUS;
 
-			for (int i = 1; i < 9; i++) {
+			for (int i = 1; i < IDI_MSA_MAX_PLANET; i++) {
 				if (i < 8) {
 					do {
 						// Earth (planet 0) and Uranus (planet 8) are excluded
@@ -1488,7 +1486,7 @@ void Mickey::getXtal(int iStr) {
 }
 
 bool Mickey::parse(int cmd, int arg) {
-	switch(cmd) {
+	switch (cmd) {
 
 	// BASIC
 
@@ -2211,7 +2209,7 @@ void Mickey::waitAnyKey(bool anim) {
 
 	while (!_vm->shouldQuit()) {
 		while (_vm->_system->getEventManager()->pollEvent(event)) {
-			switch(event.type) {
+			switch (event.type) {
 			case Common::EVENT_RTL:
 			case Common::EVENT_QUIT:
 			case Common::EVENT_KEYDOWN:

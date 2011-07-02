@@ -17,16 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef CONSOLE_DIALOG_H
 #define CONSOLE_DIALOG_H
 
 #include "gui/dialog.h"
-#include "gui/GuiManager.h"
 
 namespace GUI {
 
@@ -35,7 +31,7 @@ class ScrollBarWidget;
 /*
  FIXME #1: The console dialog code has some fundamental problems.
  First of, note the conflict between the (constant) value kCharsPerLine, and the
- (variable) value _pageWidth. Look a bit at the code get familiar with them,
+ (variable) value _pageWidth. Look a bit at the code to get familiar with them,
  then return...
  Now, why don't we just drop kCharsPerLine? Because of the problem of resizing!
  When the user changes the scaler, the console will get resized. If the dialog
@@ -51,7 +47,7 @@ class ScrollBarWidget;
  of making things like scrolling, drawing etc. more complicated.
 
  Either way, the current situation is bad, and we should resolve it one way
- or the other (and if you can think of a thirds, feel free to suggest it).
+ or the other (and if you can think of a third, feel free to suggest it).
 
 
 
@@ -143,10 +139,10 @@ public:
 	void handleKeyDown(Common::KeyState state);
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data);
 
-	int printf(const char *format, ...) GCC_PRINTF(2, 3);
-	int vprintf(const char *format, va_list argptr);
-#undef putchar
-	void putchar(int c);
+	int printFormat(int dummy, const char *format, ...) GCC_PRINTF(3, 4);
+	int vprintFormat(int dummy, const char *format, va_list argptr);
+
+	void printChar(int c);
 
 	void setInputCallback(InputCallbackProc proc, void *refCon) {
 		_callbackProc = proc;
@@ -172,11 +168,13 @@ protected:
 
 	void drawLine(int line, bool restoreBg = true);
 	void drawCaret(bool erase);
-	void putcharIntern(int c);
+	void printCharIntern(int c);
 	void insertIntoPrompt(const char *str);
 	void print(const char *str);
 	void updateScrollBuffer();
 	void scrollToCurrent();
+
+	void defaultKeyDownHandler(Common::KeyState &state);
 
 	// Line editing
 	void specialKeys(int keycode);

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_SCREEN_H
@@ -42,6 +39,8 @@ private:
 	Disk &_disk;
 	Surface *_screen;
 	Palette *_palette;
+
+	void setSystemPalette(Palette *p, uint16 start, uint16 num);
 public:
 	Screen(OSystem &system);
 	~Screen();

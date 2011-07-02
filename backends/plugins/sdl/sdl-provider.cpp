@@ -18,25 +18,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#if defined(DYNAMIC_MODULES) && defined(SDL_BACKEND)
+#include "common/scummsys.h"
+
+#if defined(DYNAMIC_MODULES) && defined(SDL_BACKEND) && !defined(_WIN32_WCE)
 
 #include "backends/plugins/sdl/sdl-provider.h"
 #include "backends/plugins/dynamic-plugin.h"
 #include "common/fs.h"
 
-#include "SDL.h"
-#include "SDL_loadso.h"
-
+#include "backends/platform/sdl/sdl-sys.h"
 
 class SDLPlugin : public DynamicPlugin {
 protected:
 	void *_dlHandle;
-	Common::String _filename;
 
 	virtual VoidFunc findSymbol(const char *symbol) {
 		void *func = SDL_LoadFunction(_dlHandle, symbol);
@@ -55,7 +51,7 @@ protected:
 
 public:
 	SDLPlugin(const Common::String &filename)
-		: _dlHandle(0), _filename(filename) {}
+		: DynamicPlugin(filename), _dlHandle(0) {}
 
 	bool loadPlugin() {
 		assert(!_dlHandle);

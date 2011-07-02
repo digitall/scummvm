@@ -18,153 +18,102 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sci/sci.h"
 #include "sci/resource.h"
+#include "sci/engine/seg_manager.h"
+#include "sci/engine/script.h"
 #include "sci/engine/state.h"
-#include "sci/engine/kernel_types.h"
+#include "sci/engine/selector.h"
 #include "sci/engine/kernel.h"
+
+#include "common/file.h"
 
 namespace Sci {
 
-reg_t read_selector(EngineState *s, reg_t object, Selector selector_id, const char *file, int line) {
-	ObjVarRef address;
-
-	if (lookup_selector(s, object, selector_id, &address, NULL) != kSelectorVariable)
-		return NULL_REG;
-	else
-		return *address.getPointer(s);
-}
-
-void write_selector(EngineState *s, reg_t object, Selector selector_id, reg_t value, const char *fname, int line) {
-	ObjVarRef address;
-
-	if ((selector_id < 0) || (selector_id > (int)((SciEngine*)g_engine)->getKernel()->getSelectorNamesSize())) {
-		warning("Attempt to write to invalid selector %d of"
-		         " object at %04x:%04x (%s L%d).", selector_id, PRINT_REG(object), fname, line);
-		return;
-	}
-
-	if (lookup_selector(s, object, selector_id, &address, NULL) != kSelectorVariable)
-		warning("Selector '%s' of object at %04x:%04x could not be"
-		         " written to (%s L%d)", ((SciEngine*)g_engine)->getKernel()->getSelectorName(selector_id).c_str(), PRINT_REG(object), fname, line);
-	else
-		*address.getPointer(s) = value;
-}
-
-int invoke_selector(EngineState *s, reg_t object, int selector_id, SelectorInvocation noinvalid, int kfunct,
-	StackPtr k_argp, int k_argc, const char *fname, int line, int argc, ...) {
-	va_list argp;
-	int i;
-	int framesize = 2 + 1 * argc;
-	reg_t address;
-	int slc_type;
-	StackPtr stackframe = k_argp + k_argc;
-
-	stackframe[0] = make_reg(0, selector_id);  // The selector we want to call
-	stackframe[1] = make_reg(0, argc); // Argument count
-
-	slc_type = lookup_selector(s, object, selector_id, NULL, &address);
-
-	if (slc_type == kSelectorNone) {
-		warning("Selector '%s' of object at %04x:%04x could not be invoked (%s L%d)",
-		         ((SciEngine*)g_engine)->getKernel()->getSelectorName(selector_id).c_str(), PRINT_REG(object), fname, line);
-		if (noinvalid == kStopOnInvalidSelector)
-			error("[Kernel] Not recoverable: VM was halted\n");
-		return 1;
-	}
-	if (slc_type == kSelectorVariable) // Swallow silently
-		return 0;
-
-	va_start(argp, argc);
-	for (i = 0; i < argc; i++) {
-		reg_t arg = va_arg(argp, reg_t);
-		stackframe[2 + i] = arg; // Write each argument
-	}
-	va_end(argp);
-
-	// Write "kernel" call to the stack, for debugging:
-	ExecStack *xstack;
-	xstack = add_exec_stack_entry(s, NULL_REG, NULL, NULL_REG, k_argc, k_argp - 1, 0, NULL_REG,
-	                              s->_executionStack.size()-1, SCI_XS_CALLEE_LOCALS);
-	xstack->selector = -42 - kfunct; // Evil debugging hack to identify kernel function
-	xstack->type = EXEC_STACK_TYPE_KERNEL;
-
-	// Now commit the actual function:
-	xstack = send_selector(s, object, object, stackframe, framesize, stackframe);
-
-	xstack->sp += argc + 2;
-	xstack->fp += argc + 2;
-
-	run_vm(s, 0); // Start a new vm
-
-	s->_executionStack.pop_back(); // Get rid of the extra stack entry
-
-	return 0;
-}
-
-bool is_object(EngineState *s, reg_t object) {
-	return obj_get(s, object) != NULL;
-}
-
 // Loads arbitrary resources of type 'restype' with resource numbers 'resnrs'
 // This implementation ignores all resource numbers except the first one.
-reg_t kLoad(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	int restype = argv[0].toUint16();
+reg_t kLoad(EngineState *s, int argc, reg_t *argv) {
+	ResourceType restype = g_sci->getResMan()->convertResType(argv[0].toUint16());
 	int resnr = argv[1].toUint16();
 
 	// Request to dynamically allocate hunk memory for later use
 	if (restype == kResourceTypeMemory)
-		return kalloc(s, "kLoad()", resnr);
+		return s->_segMan->allocateHunkEntry("kLoad()", resnr);
 
 	return make_reg(0, ((restype << 11) | resnr)); // Return the resource identifier as handle
 }
 
-reg_t kLock(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+// Unloads an arbitrary resource of type 'restype' with resource numbber 'resnr'
+//  behavior of this call didn't change between sci0->sci1.1 parameter wise, which means getting called with
+//  1 or 3+ parameters is not right according to sierra sci
+reg_t kUnLoad(EngineState *s, int argc, reg_t *argv) {
+	if (argc >= 2) {
+		ResourceType restype = g_sci->getResMan()->convertResType(argv[0].toUint16());
+		reg_t resnr = argv[1];
+
+		if (restype == kResourceTypeMemory)
+			s->_segMan->freeHunkEntry(resnr);
+	}
+
+	return s->r_acc;
+}
+
+reg_t kLock(EngineState *s, int argc, reg_t *argv) {
 	int state = argc > 2 ? argv[2].toUint16() : 1;
-	ResourceType type = (ResourceType)(argv[0].toUint16() & 0x7f);
+	ResourceType type = g_sci->getResMan()->convertResType(argv[0].toUint16());
 	ResourceId id = ResourceId(type, argv[1].toUint16());
 
 	Resource *which;
 
 	switch (state) {
 	case 1 :
-		s->resmgr->findResource(id, 1);
+		g_sci->getResMan()->findResource(id, 1);
 		break;
 	case 0 :
-		which = s->resmgr->findResource(id, 0);
+		if (id.getNumber() == 0xFFFF) {
+			// Unlock all resources of the requested type
+			Common::List<ResourceId> *resources = g_sci->getResMan()->listResources(type);
+			Common::List<ResourceId>::iterator itr = resources->begin();
 
-		if (which)
-			s->resmgr->unlockResource(which);
-		else {
-			if (id.type == kResourceTypeInvalid)
-				warning("[Resmgr] Attempt to unlock resource %i of invalid type %i", id.number, type);
-			else
-				warning("[Resmgr] Attempt to unlock non-existant resource %s", id.toString().c_str());
+			while (itr != resources->end()) {
+				Resource *res = g_sci->getResMan()->testResource(*itr);
+				if (res->isLocked())
+					g_sci->getResMan()->unlockResource(res);
+				++itr;
+			}
+
+			delete resources;
+		} else {
+			which = g_sci->getResMan()->findResource(id, 0);
+
+			if (which)
+				g_sci->getResMan()->unlockResource(which);
+			else {
+				if (id.getType() == kResourceTypeInvalid)
+				  warning("[resMan] Attempt to unlock resource %i of invalid type %i", id.getNumber(), argv[0].toUint16());
+				else
+					// Happens in CD games (e.g. LSL6CD) with the message
+					// resource. It isn't fatal, and it's usually caused
+					// by leftover scripts.
+					debugC(kDebugLevelResMan, "[resMan] Attempt to unlock non-existant resource %s", id.toString().c_str());
+			}
 		}
 		break;
 	}
 	return s->r_acc;
 }
 
-// Unloads an arbitrary resource of type 'restype' with resource numbber 'resnr'
-reg_t kUnLoad(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	int restype = argv[0].toUint16();
-	reg_t resnr = argv[1];
-
-	if (restype == kResourceTypeMemory)
-		kfree(s, resnr);
-
-	return s->r_acc;
-}
-
-reg_t kResCheck(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kResCheck(EngineState *s, int argc, reg_t *argv) {
 	Resource *res = NULL;
-	ResourceType restype = (ResourceType)(argv[0].toUint16() & 0x7f);
+	ResourceType restype = g_sci->getResMan()->convertResType(argv[0].toUint16());
+
+	if (restype == kResourceTypeVMD) {
+		char fileName[10];
+		sprintf(fileName, "%d.vmd", argv[1].toUint16());
+		return make_reg(0, Common::File::exists(fileName));
+	}
 
 	if ((restype == kResourceTypeAudio36) || (restype == kResourceTypeSync36)) {
 		if (argc >= 6) {
@@ -173,154 +122,172 @@ reg_t kResCheck(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 			uint cond = argv[4].toUint16() & 0xff;
 			uint seq = argv[5].toUint16() & 0xff;
 
-			res = s->resmgr->testResource(ResourceId(restype, argv[1].toUint16(), noun, verb, cond, seq));
+			res = g_sci->getResMan()->testResource(ResourceId(restype, argv[1].toUint16(), noun, verb, cond, seq));
 		}
 	} else {
-		res = s->resmgr->testResource(ResourceId(restype, argv[1].toUint16()));
+		res = g_sci->getResMan()->testResource(ResourceId(restype, argv[1].toUint16()));
 	}
 
 	return make_reg(0, res != NULL);
 }
 
-reg_t kClone(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	reg_t parent_addr = argv[0];
-	Object *parent_obj = obj_get(s, parent_addr);
-	reg_t clone_addr;
-	Clone *clone_obj; // same as Object*
+reg_t kClone(EngineState *s, int argc, reg_t *argv) {
+	reg_t parentAddr = argv[0];
+	const Object *parentObj = s->_segMan->getObject(parentAddr);
+	reg_t cloneAddr;
+	Clone *cloneObj; // same as Object*
 
-	if (!parent_obj) {
-		error("Attempt to clone non-object/class at %04x:%04x failed", PRINT_REG(parent_addr));
+	if (!parentObj) {
+		error("Attempt to clone non-object/class at %04x:%04x failed", PRINT_REG(parentAddr));
 		return NULL_REG;
 	}
 
-	debugC(2, kDebugLevelMemory, "Attempting to clone from %04x:%04x\n", PRINT_REG(parent_addr));
+	debugC(kDebugLevelMemory, "Attempting to clone from %04x:%04x", PRINT_REG(parentAddr));
 
-	clone_obj = s->seg_manager->alloc_Clone(&clone_addr);
+	uint16 infoSelector = parentObj->getInfoSelector().offset;
+	cloneObj = s->_segMan->allocateClone(&cloneAddr);
 
-	if (!clone_obj) {
-		error("Cloning %04x:%04x failed-- internal error", PRINT_REG(parent_addr));
+	if (!cloneObj) {
+		error("Cloning %04x:%04x failed-- internal error", PRINT_REG(parentAddr));
 		return NULL_REG;
 	}
 
-	*clone_obj = *parent_obj;
-	clone_obj->flags = 0;
+	// In case the parent object is a clone itself we need to refresh our
+	// pointer to it here. This is because calling allocateClone might
+	// invalidate all pointers, references and iterators to data in the clones
+	// segment.
+	//
+	// The reason why it might invalidate those is, that the segment code
+	// (Table) uses Common::Array for internal storage. Common::Array now
+	// might invalidate references to its contained data, when it has to
+	// extend the internal storage size.
+	if (infoSelector & kInfoFlagClone)
+		parentObj = s->_segMan->getObject(parentAddr);
+
+	*cloneObj = *parentObj;
 
 	// Mark as clone
-	clone_obj->_variables[SCRIPT_INFO_SELECTOR].offset = SCRIPT_INFO_CLONE;
-	clone_obj->_variables[SCRIPT_SPECIES_SELECTOR] = clone_obj->pos;
-	if (IS_CLASS(parent_obj))
-		clone_obj->_variables[SCRIPT_SUPERCLASS_SELECTOR] = parent_obj->pos;
-	s->seg_manager->getScript(parent_obj->pos.segment)->incrementLockers();
-	s->seg_manager->getScript(clone_obj->pos.segment)->incrementLockers();
+	infoSelector &= ~kInfoFlagClass; // remove class bit
+	cloneObj->setInfoSelector(make_reg(0, infoSelector | kInfoFlagClone));
 
-	return clone_addr;
+	cloneObj->setSpeciesSelector(cloneObj->getPos());
+	if (parentObj->isClass())
+		cloneObj->setSuperClassSelector(parentObj->getPos());
+	s->_segMan->getScript(parentObj->getPos().segment)->incrementLockers();
+	s->_segMan->getScript(cloneObj->getPos().segment)->incrementLockers();
+
+	return cloneAddr;
 }
 
 extern void _k_view_list_mark_free(EngineState *s, reg_t off);
 
-reg_t kDisposeClone(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	reg_t victim_addr = argv[0];
-	Clone *victim_obj = obj_get(s, victim_addr);
-	uint16 underBits;
+reg_t kDisposeClone(EngineState *s, int argc, reg_t *argv) {
+	reg_t obj = argv[0];
+	Clone *object = s->_segMan->getObject(obj);
 
-	if (!victim_obj) {
+	if (!object) {
 		error("Attempt to dispose non-class/object at %04x:%04x",
-		         PRINT_REG(victim_addr));
+		         PRINT_REG(obj));
 		return s->r_acc;
 	}
 
-	if (victim_obj->_variables[SCRIPT_INFO_SELECTOR].offset != SCRIPT_INFO_CLONE) {
-		//warning("Attempt to dispose something other than a clone at %04x", offset);
-		// SCI silently ignores this behaviour; some games actually depend on it
-		return s->r_acc;
-	}
-
-	underBits = GET_SEL32V(victim_addr, underBits);
-	if (underBits) {
-		warning("Clone %04x:%04x was cleared with underBits set", PRINT_REG(victim_addr));
-	}
-#if 0
-	if (s->dyn_views) {  // Free any widget associated with the clone
-		GfxWidget *widget = gfxw_set_id(gfxw_remove_ID(s->dyn_views, offset), GFXW_NO_ID);
-
-		if (widget && s->bg_widgets)
-			s->bg_widgets->add(GFXWC(s->bg_widgets), widget);
-	}
-#endif
-
-	victim_obj->flags |= OBJECT_FLAG_FREED;
-
-	_k_view_list_mark_free(s, victim_addr); // Free on view list, if neccessary
+	// SCI uses this technique to find out, if it's a clone and if it's supposed to get freed
+	//  At least kq4early relies on this behavior. The scripts clone "Sound", then set bit 1 manually
+	//  and call kDisposeClone later. In that case we may not free it, otherwise we will run into issues
+	//  later, because kIsObject would then return false and Sound object wouldn't get checked.
+	uint16 infoSelector = object->getInfoSelector().offset;
+	if ((infoSelector & 3) == kInfoFlagClone)
+		object->markAsFreed();
 
 	return s->r_acc;
 }
 
 // Returns script dispatch address index in the supplied script
-reg_t kScriptID(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kScriptID(EngineState *s, int argc, reg_t *argv) {
 	int script = argv[0].toUint16();
-	int index = (argc > 1) ? argv[1].toUint16() : 0;
-
-	SegmentId scriptid = script_get_segment(s, script, SCRIPT_GET_LOAD);
-	Script *scr;
+	uint16 index = (argc > 1) ? argv[1].toUint16() : 0;
 
 	if (argv[0].segment)
 		return argv[0];
 
-	if (!scriptid)
+	SegmentId scriptSeg = s->_segMan->getScriptSegment(script, SCRIPT_GET_LOAD);
+
+	if (!scriptSeg)
 		return NULL_REG;
 
-	scr = s->seg_manager->getScript(scriptid);
+	Script *scr = s->_segMan->getScript(scriptSeg);
 
-	if (!scr->exports_nr) {
-		// FIXME: Is this fatal? This occurs in SQ4CD
-		warning("Script 0x%x does not have a dispatch table", script);
+	if (!scr->getExportsNr()) {
+		// This is normal. Some scripts don't have a dispatch (exports) table,
+		// and this call is probably used to load them in memory, ignoring
+		// the return value. If only one argument is passed, this call is done
+		// only to load the script in memory. Thus, don't show any warning,
+		// as no return value is expected. If an export is requested, then
+		// it will most certainly fail with OOB access.
+		if (argc == 2)
+			error("Script 0x%x does not have a dispatch table and export %d "
+					"was requested from it", script, index);
 		return NULL_REG;
 	}
 
-	if (index > scr->exports_nr) {
-		error("Dispatch index too big: %d > %d", index, scr->exports_nr);
+	if (index > scr->getExportsNr()) {
+		error("Dispatch index too big: %d > %d", index, scr->getExportsNr());
 		return NULL_REG;
 	}
 
-	return make_reg(scriptid, s->seg_manager->validateExportFunc(index, scriptid));
+	uint16 address = scr->validateExportFunc(index, true);
+
+	// Point to the heap for SCI1.1 - SCI2.1 games
+	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1)
+		address += scr->getScriptSize();
+
+	// Bugfix for the intro speed in PQ2 version 1.002.011.
+	// This is taken from the patch by NewRisingSun(NRS) / Belzorash. Global 3
+	// is used for timing during the intro, and in the problematic version it's
+	// initialized to 0, whereas it's 6 in other versions. Thus, we assign it
+	// to 6 here, fixing the speed of the introduction. Refer to bug #3102071.
+	if (g_sci->getGameId() == GID_PQ2 && script == 200 &&
+		s->variables[VAR_GLOBAL][3].isNull()) {
+		s->variables[VAR_GLOBAL][3] = make_reg(0, 6);
+	}
+
+	return make_reg(scriptSeg, address);
 }
 
-reg_t kDisposeScript(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kDisposeScript(EngineState *s, int argc, reg_t *argv) {
 	int script = argv[0].offset;
 
-	// Work around QfG1 graveyard bug
-	if (argv[0].segment)
-		return s->r_acc;
-
-	int id = s->seg_manager->segGet(script);
-	Script *scr = s->seg_manager->getScriptIfLoaded(id);
-	if (scr) {
+	SegmentId id = s->_segMan->getScriptSegment(script);
+	Script *scr = s->_segMan->getScriptIfLoaded(id);
+	if (scr && !scr->isMarkedAsDeleted()) {
 		if (s->_executionStack.back().addr.pc.segment != id)
 			scr->setLockers(1);
 	}
 
-	script_uninstantiate(s, script);
-	s->_executionStackPosChanged = true;
-	return s->r_acc;
+	s->_segMan->uninstantiateScript(script);
+
+	if (argc != 2) {
+		return s->r_acc;
+	} else {
+		// This exists in the KQ5CD and GK1 interpreter. We know it is used
+		// when GK1 starts up, before the Sierra logo.
+		warning("kDisposeScript called with 2 parameters, still untested");
+		return argv[1];
+	}
 }
 
-int is_heap_object(EngineState *s, reg_t pos) {
-	Object *obj = obj_get(s, pos);
-	return (obj != NULL && (!(obj->flags & OBJECT_FLAG_FREED)) && (!s->seg_manager->scriptIsMarkedAsDeleted(pos.segment)));
-}
-
-reg_t kIsObject(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	if (argv[0].offset == 0xffff) // Treated specially
+reg_t kIsObject(EngineState *s, int argc, reg_t *argv) {
+	if (argv[0].offset == SIGNAL_OFFSET) // Treated specially
 		return NULL_REG;
 	else
-		return make_reg(0, is_heap_object(s, argv[0]));
+		return make_reg(0, s->_segMan->isHeapObject(argv[0]));
 }
 
-reg_t kRespondsTo(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kRespondsTo(EngineState *s, int argc, reg_t *argv) {
 	reg_t obj = argv[0];
 	int selector = argv[1].toUint16();
 
-	return make_reg(0, is_heap_object(s, obj) && lookup_selector(s, obj, selector, NULL, NULL) != kSelectorNone);
+	return make_reg(0, s->_segMan->isHeapObject(obj) && lookupSelector(s->_segMan, obj, selector, NULL, NULL) != kSelectorNone);
 }
 
 } // End of namespace Sci

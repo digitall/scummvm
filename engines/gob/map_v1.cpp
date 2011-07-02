@@ -18,12 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/stream.h"
+#include "common/memstream.h"
 
 #include "gob/gob.h"
 #include "gob/map.h"
@@ -40,11 +37,12 @@ Map_v1::Map_v1(GobEngine *vm) : Map(vm) {
 Map_v1::~Map_v1() {
 }
 
-void Map_v1::init(void) {
+void Map_v1::init() {
 	if (_passMap || _itemsMap)
 		return;
 
-	_mapWidth = 26;
+	_passWidth = 26;
+	_mapWidth  = 26;
 	_mapHeight = 28;
 
 	_passMap = new int8[_mapHeight * _mapWidth];
@@ -56,9 +54,9 @@ void Map_v1::init(void) {
 		memset(_itemsMap[i], 0, _mapWidth * sizeof(int16));
 	}
 
-	_wayPointsCount = 40;
-	_wayPoints = new Point[40];
-	memset(_wayPoints, 0, sizeof(Point));
+	_wayPointCount = 40;
+	_wayPoints = new WayPoint[40];
+	memset(_wayPoints, 0, sizeof(WayPoint));
 }
 
 void Map_v1::loadMapObjects(const char *avjFile) {
@@ -74,13 +72,13 @@ void Map_v1::loadMapObjects(const char *avjFile) {
 	strcpy(avoName, _sourceFile);
 	strcat(avoName, ".avo");
 
-	if (_vm->_dataIO->existData(avoName)) {
-		_loadFromAvo = true;
-		dataBuf = _vm->_dataIO->getData(avoName);
-	} else {
+	int32 size;
+	dataBuf = _vm->_dataIO->getFile(avoName, size);
+	if (!dataBuf) {
+		dataBuf = _vm->_dataIO->getFile(avjFile, size);
 		_loadFromAvo = false;
-		dataBuf = _vm->_dataIO->getData(avjFile);
-	}
+	} else
+		_loadFromAvo = true;
 
 	Common::MemoryReadStream mapData(dataBuf, 4294967295U);
 
@@ -97,7 +95,12 @@ void Map_v1::loadMapObjects(const char *avjFile) {
 			_wayPoints[i].x = mapData.readUint16LE();
 			_wayPoints[i].y = mapData.readUint16LE();
 		}
-		mapData.read(_itemPoses, szMap_ItemPos * 20);
+
+		for (int i = 0; i < 20; i++) {
+			_itemPoses[i].x      = mapData.readByte();
+			_itemPoses[i].y      = mapData.readByte();
+			_itemPoses[i].orient = mapData.readByte();
+		}
 	}
 
 	mapData.skip(32 + 76 + 4 + 20);
@@ -159,7 +162,7 @@ void Map_v1::loadSounds(Common::SeekableReadStream &data) {
 	_vm->_sound->sampleLoad(&_vm->_goblin->_soundData[14], SOUND_SND, "diamant1.snd");
 
 	for (int i = 0; i < count; i++) {
-		if (!_vm->_dataIO->existData(sndNames[i]))
+		if (!_vm->_dataIO->hasFile(sndNames[i]))
 			continue;
 
 		_vm->_sound->sampleLoad(&_vm->_goblin->_soundData[i], SOUND_SND, sndNames[i]);

@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "graphics/surface.h"
 
@@ -42,7 +40,7 @@ uint AGOSEngine::getWindowNum(WindowBlock *window) {
 			return i;
 
 	error("getWindowNum: not found");
-	return 0;
+	return 0;	// for compilers that don't support NORETURN
 }
 
 WindowBlock *AGOSEngine::openWindow(uint x, uint y, uint w, uint h, uint flags, uint fillColor, uint textColor) {
@@ -122,6 +120,7 @@ void AGOSEngine::clearWindow(WindowBlock *window) {
 	window->scrollY = 0;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::colorWindow(WindowBlock *window) {
 	byte *dst;
 	uint16 h, w;
@@ -140,6 +139,7 @@ void AGOSEngine_Feeble::colorWindow(WindowBlock *window) {
 
 	_videoLockOut &= ~0x8000;
 }
+#endif
 
 void AGOSEngine::colorWindow(WindowBlock *window) {
 	uint16 y, h;
@@ -149,13 +149,13 @@ void AGOSEngine::colorWindow(WindowBlock *window) {
 
 	if (getGameType() == GType_ELVIRA2 && window->y == 146) {
 		if (window->fillColor == 1) {
-			_displayPalette[33 * 4 + 0] = 48 * 4;
-			_displayPalette[33 * 4 + 1] = 40 * 4;
-			_displayPalette[33 * 4 + 2] = 32 * 4;
+			_displayPalette[33 * 3 + 0] = 48 * 4;
+			_displayPalette[33 * 3 + 1] = 40 * 4;
+			_displayPalette[33 * 3 + 2] = 32 * 4;
 		} else {
-			_displayPalette[33 * 4 + 0] = 56 * 4;
-			_displayPalette[33 * 4 + 1] = 56 * 4;
-			_displayPalette[33 * 4 + 2] = 40 * 4;
+			_displayPalette[33 * 3 + 0] = 56 * 4;
+			_displayPalette[33 * 3 + 1] = 56 * 4;
+			_displayPalette[33 * 3 + 2] = 40 * 4;
 		}
 
 		y--;

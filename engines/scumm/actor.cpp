@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"	// for setFocusRectangle/clearFocusRectangle
 #include "scumm/scumm.h"
 #include "scumm/actor.h"
+#include "scumm/actor_he.h"
 #include "scumm/akos.h"
 #include "scumm/boxes.h"
 #include "scumm/charset.h"
@@ -75,7 +73,7 @@ void ActorHE::initActor(int mode) {
 	if (_vm->_game.heversion >= 61)
 		_flip = 0;
 
-	_clipOverride = _vm->_actorClipOverride;
+	_clipOverride = ((ScummEngine_v60he *)_vm)->_actorClipOverride;
 
 	_auxBlock.reset();
 }
@@ -176,9 +174,21 @@ void Actor::setBox(int box) {
 }
 
 void Actor_v3::setupActorScale() {
-	// TODO: The following could probably be removed
-	_scalex = 0xFF;
-	_scaley = 0xFF;
+	// WORKAROUND bug #1463598: Under certain circumstances, it is possible
+	// for Henry Sr. to reach the front side of Castle Brunwald (following
+	// Indy there). But it seems the game has no small costume for Henry,
+	// hence he is shown as a giant, triple in size compared to Indy.
+	// To workaround this, we override the scale of Henry. Since V3 games
+	// like Indy3 don't use the costume scale otherwise, this works fine.
+	// The scale factor 0x50 was determined by some guess work.
+	if (_number == 2 && _costume == 7 && _vm->_game.id == GID_INDY3 && _vm->_currentRoom == 12) {
+		_scalex = 0x50;
+		_scaley = 0x50;
+	} else {
+		// TODO: The following could probably be removed
+		_scalex = 0xFF;
+		_scaley = 0xFF;
+	}
 }
 
 void Actor::setupActorScale() {
@@ -215,6 +225,12 @@ void ScummEngine::walkActors() {
 void Actor::stopActorMoving() {
 	if (_walkScript)
 		_vm->stopScript(_walkScript);
+
+	// V0 Games will walk on the spot if the actor is stopped mid-walk
+	// So we must set the stand still frame
+	if (_vm->_game.version == 0)
+		startWalkAnim(3, -1);
+
 	_moving = 0;
 }
 
@@ -235,7 +251,7 @@ void Actor::setActorWalkSpeed(uint newSpeedX, uint newSpeedY) {
 int getAngleFromPos(int x, int y, bool useATAN) {
 	if (useATAN) {
 		double temp = atan2((double)x, (double)-y);
-		return normalizeAngle((int)(temp * 180 / PI));
+		return normalizeAngle((int)(temp * 180 / M_PI));
 	} else {
 		if (ABS(y) * 2 < ABS(x)) {
 			if (x > 0)
@@ -528,11 +544,11 @@ void Actor_v2::walkActor() {
 		new_dir = updateActorDirection(false);
 		// FIXME: is this correct?
 		if (_facing != new_dir) {
-			
+
 			// Actor never stops walking when an object has been selected without this
 			if (_vm->_game.version ==0)
 				_moving = 0;
-			
+
 			setDirection(new_dir);
 
 		} else
@@ -572,8 +588,17 @@ void Actor_v2::walkActor() {
 
 				_walkdata.curbox = next_box;
 
-				getClosestPtOnBox(_vm->getBoxCoordinates(_walkdata.curbox), _pos.x, _pos.y, tmp.x, tmp.y);
-				getClosestPtOnBox(_vm->getBoxCoordinates(_walkbox), tmp.x, tmp.y, foundPath.x, foundPath.y);
+				// WORKAROUND: The route of the meteor landing in the introduction isn't correct.
+				// MM V0 in contrast to MM V2 uses two walkboxes instead of just one. Hence a route
+				// from walkbox 1 to 0 is calculated first. This causes the meteor to fly on a
+				// horizontal line to walkbox 0 then vertically to the ground.
+				// To fix this problem, the box-to-box routing has been disabled in room 33.
+				if (_vm->_game.version == 0 && _vm->_currentRoom == 33) {
+					foundPath = _walkdata.dest;
+				} else {
+					getClosestPtOnBox(_vm->getBoxCoordinates(_walkdata.curbox), _pos.x, _pos.y, tmp.x, tmp.y);
+					getClosestPtOnBox(_vm->getBoxCoordinates(_walkbox), tmp.x, tmp.y, foundPath.x, foundPath.y);
+				}
 			}
 			calcMovementFactor(foundPath);
 		}
@@ -676,6 +701,7 @@ void Actor_v3::walkActor() {
 int Actor::remapDirection(int dir, bool is_walking) {
 	int specdir;
 	byte flags;
+	byte mask;
 	bool flipX;
 	bool flipY;
 
@@ -753,6 +779,14 @@ int Actor::remapDirection(int dir, bool is_walking) {
 			return 0;
 		case 6:
 			return 180;
+		}
+
+		// MM C64 stores flags as a part of the mask
+		if (_vm->_game.version == 0) {
+			mask = _vm->getMaskFromBox(_walkbox);
+			// face the wall if climbing/descending a ladder
+			if ((mask & 0x8C) == 0x84)
+				return 0;
 		}
 	}
 	// OR 1024 in to signal direction interpolation should be done
@@ -1028,8 +1062,16 @@ static int checkXYInBoxBounds(int boxnum, int x, int y, int &destX, int &destY) 
 	// yDist must be divided by 4, as we are using 8x2 pixels
 	// blocks for actor coordinates).
 	int xDist = ABS(x - destX);
-	int yDist = ABS(y - destY) / 4;
+	int yDist;
 	int dist;
+
+	// MM C64: This fixes the trunk bug (#3070065), as well
+	// as the fruit bowl, however im not sure if its
+	// the proper solution or not.
+	if( g_scumm->_game.version == 0 )
+		yDist = ABS(y - destY);
+	else
+		yDist = ABS(y - destY) / 4;
 
 	if (xDist < yDist)
 		dist = (xDist >> 1) + yDist;
@@ -1058,6 +1100,7 @@ AdjustBoxResult Actor_v2::adjustXYToBeInBox(const int dstX, const int dstY) {
 			abr.x = foundX;
 			abr.y = foundY;
 			abr.box = box;
+
 			break;
 		}
 		if (dist < bestDist) {
@@ -1164,6 +1207,7 @@ void Actor::adjustActorPos() {
 
 	stopActorMoving();
 	_cost.soundCounter = 0;
+	_cost.soundPos = 0;
 
 	if (_walkbox != kInvalidBox) {
 		byte flags = _vm->getBoxFlags(_walkbox);
@@ -1223,6 +1267,7 @@ void Actor::hideActor() {
 	}
 	_visible = false;
 	_cost.soundCounter = 0;
+	_cost.soundPos = 0;
 	_needRedraw = false;
 	_needBgReset = true;
 }
@@ -1269,16 +1314,50 @@ void ScummEngine::showActors() {
 	}
 }
 
+// bits 0..5: sound, bit 6: ???
+static const byte v0ActorSounds[24] = {
+	0x06, // Syd
+	0x06, // Razor
+	0x06, // Dave
+	0x06, // Michael
+	0x06, // Bernard
+	0x06, // Wendy
+	0x00, // Jeff
+	0x46, // ???
+	0x06, // Dr Fred
+	0x06, // Nurse Edna
+	0x06, // Weird Ed
+	0x06, // Dead Cousin Ted
+	0xFF, // Purple Tentacle
+	0xFF, // Green Tentacle
+	0x06, // Meteor
+	0xC0, // Plant
+	0x06, // ???
+	0x06, // ???
+	0x00, // ???
+	0xC0, // ???
+	0xC0, // ???
+	0x00, // ???
+	0x06, // Sandy
+	0x06, // ???
+};
+
 /* Used in Scumm v5 only. Play sounds associated with actors */
 void ScummEngine::playActorSounds() {
-	int i;
+	int i, j;
+	int sound;
 
 	for (i = 1; i < _numActors; i++) {
 		if (_actors[i]->_cost.soundCounter && _actors[i]->isInCurrentRoom() && _actors[i]->_sound) {
 			_currentScript = 0xFF;
-			_sound->addSoundToQueue(_actors[i]->_sound[0]);
-			for (i = 1; i < _numActors; i++) {
-				_actors[i]->_cost.soundCounter = 0;
+			if (_game.version == 0) {
+				sound = v0ActorSounds[i - 1] & 0x3F;
+			} else {
+				sound = _actors[i]->_sound[0];
+			}
+			_sound->addSoundToQueue(sound);
+			for (j = 1; j < _numActors; j++) {
+				_actors[j]->_cost.soundCounter = 0;
 			}
 			return;
 		}
@@ -1399,7 +1478,7 @@ void ScummEngine::processActors() {
 	Actor** end = _sortedActors + numactors;
 	for (Actor** ac = _sortedActors; ac != end; ++ac) {
 		Actor* a = *ac;
-		
+
 		// V0 MM: 0x057B
 		if (_game.version == 0) {
 			ActorC64 *A = (ActorC64*) a;
@@ -1536,6 +1615,8 @@ void Actor::prepareDrawActorCostume(BaseCostumeRenderer *bcr) {
 			bcr->_zbuf = 0;
 		else {
 			bcr->_zbuf = _vm->getMaskFromBox(_walkbox);
+			if (_vm->_game.version == 0)
+				bcr->_zbuf &= 0x03;
 			if (bcr->_zbuf > _vm->_gdi->_numZBuffer-1)
 				bcr->_zbuf = _vm->_gdi->_numZBuffer-1;
 		}
@@ -1781,8 +1862,8 @@ void Actor::animateLimb(int limb, int f) {
 		byte *akos = _vm->getResourceAddress(rtCostume, _costume);
 		assert(akos);
 
-		aksq = _vm->findResourceData(MKID_BE('AKSQ'), akos);
-		akfo = _vm->findResourceData(MKID_BE('AKFO'), akos);
+		aksq = _vm->findResourceData(MKTAG('A','K','S','Q'), akos);
+		akfo = _vm->findResourceData(MKTAG('A','K','F','O'), akos);
 
 		size = _vm->getResourceDataSize(akfo) / 2;
 
@@ -1966,7 +2047,7 @@ void ScummEngine_v7::actorTalk(const byte *msg) {
 	_haveMsg = 1;
 	if (_game.id == GID_FT)
 		VAR(VAR_HAVE_MSG) = 0xFF;
-	_haveActorSpeechMsg = true;
+	_haveActorSpeechMsg = (_game.id == GID_FT) ? true : (!_sound->isSoundRunning(kTalkSoundID));
 	if (_game.id == GID_DIG || _game.id == GID_CMI) {
 		stringWrap = _string[0].wrapping;
 		_string[0].wrapping = true;
@@ -2106,7 +2187,12 @@ void ScummEngine::stopTalk() {
 		((ScummEngine_v7 *)this)->clearSubtitleQueue();
 #endif
 	} else {
-		restoreCharsetBg();
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+		if (_game.platform == Common::kPlatformFMTowns)
+			towns_restoreCharsetBg();
+		else
+#endif
+			restoreCharsetBg();
 	}
 }
 
@@ -2125,7 +2211,7 @@ void ActorHE::setActorCostume(int c) {
 
 	// Based on disassembly. It seems that high byte is not used at all, though
 	// it is attached to all horizontally flipped object, like left eye.
-	if (_vm->_game.heversion == 61)
+	if (_vm->_game.heversion >= 61 && _vm->_game.heversion <= 62)
 		c &= 0xff;
 
 	if (_vm->_game.features & GF_NEW_COSTUMES) {
@@ -2201,7 +2287,7 @@ void Actor::setActorCostume(int c) {
 	}
 }
 
-static const char* v0ActorNames[0x19] = {
+static const char* v0ActorNames_English[25] = {
 	"Syd",
 	"Razor",
 	"Dave",
@@ -2217,10 +2303,36 @@ static const char* v0ActorNames[0x19] = {
 	"Purple Tentacle",
 	"Green Tentacle",
 	"Meteor",
+	"",
+	"",
+	"",
 	"Plant",
 	"",
 	"",
 	"",
+	"Sandy"
+};
+
+static const char* v0ActorNames_German[25] = {
+	"Syd",
+	"Razor",
+	"Dave",
+	"Michael",
+	"Bernard",
+	"Wendy",
+	"Jeff",
+	"",
+	"Dr.Fred",
+	"Schwester Edna",
+	"Weird Ed",
+	"Ted",
+	"Lila Tentakel",
+	"Gr<nes Tentakel",
+	"Meteor",
+	"",
+	"",
+	"",
+	"Pflanze",
 	"",
 	"",
 	"",
@@ -2231,8 +2343,15 @@ const byte *Actor::getActorName() {
 	const byte *ptr = NULL;
 
 	if (_vm->_game.version == 0) {
-		if (_number)
-			ptr = (const byte *)v0ActorNames[_number - 1];
+		if (_number) {
+			switch (_vm->_language) {
+			case Common::DE_DEU:
+				ptr = (const byte *)v0ActorNames_German[_number - 1];
+				break;
+			default:
+				ptr = (const byte *)v0ActorNames_English[_number - 1];
+			}
+		}
 	} else {
 		ptr = _vm->getResourceAddress(rtActorName, _number);
 	}
@@ -2264,7 +2383,7 @@ void Actor::remapActorPaletteColor(int color, int new_color) {
 		return;
 	}
 
-	akpl = _vm->findResourceData(MKID_BE('AKPL'), akos);
+	akpl = _vm->findResourceData(MKTAG('A','K','P','L'), akos);
 	if (!akpl) {
 		debugC(DEBUG_ACTORS, "Actor::remapActorPaletteColor: Can't remap actor %d, costume %d doesn't contain an AKPL block", _number, _costume);
 		return;
@@ -2299,7 +2418,7 @@ void Actor::remapActorPalette(int r_fact, int g_fact, int b_fact, int threshold)
 		return;
 	}
 
-	akpl = _vm->findResourceData(MKID_BE('AKPL'), akos);
+	akpl = _vm->findResourceData(MKTAG('A','K','P','L'), akos);
 	if (!akpl) {
 		debugC(DEBUG_ACTORS, "Actor::remapActorPalette: Can't remap actor %d, costume %d doesn't contain an AKPL block", _number, _costume);
 		return;
@@ -2308,7 +2427,7 @@ void Actor::remapActorPalette(int r_fact, int g_fact, int b_fact, int threshold)
 	// Get the number palette entries
 	akpl_size = _vm->getResourceDataSize(akpl);
 
-	rgbs = _vm->findResourceData(MKID_BE('RGBS'), akos);
+	rgbs = _vm->findResourceData(MKTAG('R','G','B','S'), akos);
 
 	if (!rgbs) {
 		debugC(DEBUG_ACTORS, "Actor::remapActorPalette: Can't remap actor %d costume %d doesn't contain an RGB block", _number, _costume);
@@ -2425,19 +2544,19 @@ void ScummEngine_v71he::postProcessAuxQueue() {
 				if (_game.heversion >= 72)
 					dy -= a->getElevation();
 
-				const uint8 *akax = findResource(MKID_BE('AKAX'), cost);
+				const uint8 *akax = findResource(MKTAG('A','K','A','X'), cost);
 				assert(akax);
 				const uint8 *auxd = findPalInPals(akax, ae->subIndex) - _resourceHeaderSize;
 				assert(auxd);
-				const uint8 *frel = findResourceData(MKID_BE('FREL'), auxd);
+				const uint8 *frel = findResourceData(MKTAG('F','R','E','L'), auxd);
 				if (frel) {
 					error("unhandled FREL block");
 				}
-				const uint8 *disp = findResourceData(MKID_BE('DISP'), auxd);
+				const uint8 *disp = findResourceData(MKTAG('D','I','S','P'), auxd);
 				if (disp) {
 					error("unhandled DISP block");
 				}
-				const uint8 *axfd = findResourceData(MKID_BE('AXFD'), auxd);
+				const uint8 *axfd = findResourceData(MKTAG('A','X','F','D'), auxd);
 				assert(axfd);
 
 				uint16 comp = READ_LE_UINT16(axfd);
@@ -2451,13 +2570,13 @@ void ScummEngine_v71he::postProcessAuxQueue() {
 					uint8 *dst2 = pvs->getBackPixels(0, pvs->topline);
 					switch (comp) {
 					case 1:
-						Wiz::copyAuxImage(dst1, dst2, axfd + 10, pvs->w, pvs->h, x, y, w, h);
+						Wiz::copyAuxImage(dst1, dst2, axfd + 10, pvs->pitch, pvs->h, x, y, w, h, _bytesPerPixel);
 						break;
 					default:
 						error("unimplemented compression type %d", comp);
 					}
 				}
-				const uint8 *axur = findResourceData(MKID_BE('AXUR'), auxd);
+				const uint8 *axur = findResourceData(MKTAG('A','X','U','R'), auxd);
 				if (axur) {
 					uint16 n = READ_LE_UINT16(axur); axur += 2;
 					while (n--) {
@@ -2469,7 +2588,7 @@ void ScummEngine_v71he::postProcessAuxQueue() {
 						axur += 8;
 					}
 				}
-				const uint8 *axer = findResourceData(MKID_BE('AXER'), auxd);
+				const uint8 *axer = findResourceData(MKTAG('A','X','E','R'), auxd);
 				if (axer) {
 					a->_auxBlock.visible  = true;
 					a->_auxBlock.r.left   = (int16)READ_LE_UINT16(axer + 0) + dx;
@@ -2502,6 +2621,21 @@ void ScummEngine_v71he::queueAuxEntry(int actorNum, int subIndex) {
 }
 #endif
 
+
+void ActorC64::saveLoadWithSerializer(Serializer *ser) {
+	Actor::saveLoadWithSerializer(ser);
+
+	static const SaveLoadEntry actorEntries[] = {
+		MKLINE(ActorC64, _costCommand, sleByte, VER(84)),
+		MKLINE(ActorC64, _costFrame, sleByte, VER(84)),
+		MKLINE(ActorC64, _miscflags, sleByte, VER(84)),
+		MKLINE(ActorC64, _speaking, sleByte, VER(84)),
+		MKLINE(ActorC64, _speakingPrev, sleByte, VER(84)),
+		MKEND()
+	};
+
+	ser->saveLoadEntries(this, actorEntries);
+}
 
 void Actor::saveLoadWithSerializer(Serializer *ser) {
 	static const SaveLoadEntry actorEntries[] = {
@@ -2551,9 +2685,10 @@ void Actor::saveLoadWithSerializer(Serializer *ser) {
 		MKLINE(Actor, _flip, sleByte, VER(32)),
 		MKLINE(Actor, _heSkipLimbs, sleByte, VER(32)),
 
-		// Actor palette grew from 64 to 256 bytes
+		// Actor palette grew from 64 to 256 bytes and switched to uint16 in HE games
 		MKARRAY_OLD(Actor, _palette[0], sleByte, 64, VER(8), VER(9)),
-		MKARRAY(Actor, _palette[0], sleByte, 256, VER(10)),
+		MKARRAY_OLD(Actor, _palette[0], sleByte, 256, VER(10), VER(79)),
+		MKARRAY(Actor, _palette[0], sleUint16, 256, VER(80)),
 
 		MK_OBSOLETE(Actor, _mask, sleByte, VER(8), VER(9)),
 		MKLINE(Actor, _shadowMode, sleByte, VER(8)),
@@ -2612,7 +2747,7 @@ void Actor::saveLoadWithSerializer(Serializer *ser) {
 
 	if (ser->isLoading()) {
 		// Not all actor data is saved; so when loading, we first reset
-		// the actor, to ensure completely reproducible behaviour (else,
+		// the actor, to ensure completely reproducible behavior (else,
 		// some not saved value in the actor class can cause odd things)
 		initActor(-1);
 	}

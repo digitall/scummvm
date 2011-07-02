@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "drascula/drascula.h"
@@ -77,6 +74,7 @@ void DrasculaEngine::hiccup(int counter) {
 	do {
 		counter--;
 
+		updateEvents();
 		updateRoom();
 		if (currentChapter == 3)
 			updateScreen(0, 0, 0, y, 320, 200, screenSurface);
@@ -99,6 +97,7 @@ void DrasculaEngine::hiccup(int counter) {
 			if (y == 0)
 				trackCharacter = 0;
 		}
+		pause(3);
 	} while (counter > 0);
 
 	updateRoom();
@@ -310,9 +309,9 @@ void DrasculaEngine::quadrant_2() {
 	float distanceX, distanceY;
 
 	if (currentChapter == 2)
-		distanceX = abs(curX + curWidth - roomX);
+		distanceX = ABS(curX + curWidth - roomX);
 	else
-		distanceX = abs(curX + curWidth / 2 - roomX);
+		distanceX = ABS(curX + curWidth / 2 - roomX);
 
 	distanceY = (curY + curHeight) - roomY;
 
@@ -352,9 +351,9 @@ void DrasculaEngine::quadrant_4() {
 	float distanceX, distanceY;
 
 	if (currentChapter == 2)
-		distanceX = abs(curX + curWidth - roomX);
+		distanceX = ABS(curX + curWidth - roomX);
 	else
-		distanceX = abs(curX + curWidth / 2 - roomX);
+		distanceX = ABS(curX + curWidth / 2 - roomX);
 
 	distanceY = roomY - (curY + curHeight);
 
@@ -448,7 +447,8 @@ void DrasculaEngine::placeVonBraun(int pointX) {
 	trackVonBraun = (pointX < vonBraunX) ? 0 : 1;
 	vonBraunHasMoved = 1;
 
-	for (;;) {
+	while (!shouldQuit()) {
+		updateEvents();
 		updateRoom();
 		updateScreen();
 		if (trackVonBraun == 0) {

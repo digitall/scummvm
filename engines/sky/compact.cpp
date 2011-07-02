@@ -18,15 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/debug.h"
 #include "common/endian.h"
-#include "common/util.h"
 #include "common/file.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 #include "sky/compact.h"
 #include "gui/message.h"
 #include <stddef.h>	// for ptrdiff_t
@@ -85,7 +84,7 @@ static const uint32 compactOffsets[] = {
 	MK16(Compact, alt),
 	MK16(Compact, request),
 	MK16(Compact, spWidth_xx),
-	MK16(Compact, spColour),
+	MK16(Compact, spColor),
 	MK16(Compact, spTextId),
 	MK16(Compact, spTime),
 	MK16(Compact, arAnimIndex),
@@ -125,11 +124,11 @@ static const uint32 turnTableOffsets[] = {
 #define MEGASET_SIZE (sizeof(megaSetOffsets)/sizeof(uint32))
 #define TURNTABLE_SIZE (sizeof(turnTableOffsets)/sizeof(uint32))
 
-SkyCompact::SkyCompact(void) {
+SkyCompact::SkyCompact() {
 	_cptFile = new Common::File();
 	if (!_cptFile->open("sky.cpt")) {
-		GUI::MessageDialog dialog("Unable to find \"sky.cpt\" file!\n"
-								  "Please download it from www.scummvm.org", "OK", NULL);
+		GUI::MessageDialog dialog(_("Unable to find \"sky.cpt\" file!\n"
+								  "Please download it from www.scummvm.org"), _("OK"), NULL);
 		dialog.runModal();
 		error("Unable to find \"sky.cpt\" file\nPlease download it from www.scummvm.org");
 	}
@@ -139,7 +138,7 @@ SkyCompact::SkyCompact(void) {
 		error("unknown \"sky.cpt\" version");
 
 	if (SKY_CPT_SIZE != _cptFile->size()) {
-		GUI::MessageDialog dialog("The \"sky.cpt\" file has an incorrect size.\nPlease (re)download it from www.scummvm.org", "OK", NULL);
+		GUI::MessageDialog dialog(_("The \"sky.cpt\" file has an incorrect size.\nPlease (re)download it from www.scummvm.org"), _("OK"), NULL);
 		dialog.runModal();
 		error("Incorrect sky.cpt size (%d, expected: %d)", _cptFile->size(), SKY_CPT_SIZE);
 	}
@@ -239,7 +238,7 @@ SkyCompact::SkyCompact(void) {
 	_resetDataPos = _cptFile->pos();
 }
 
-SkyCompact::~SkyCompact(void) {
+SkyCompact::~SkyCompact() {
 	free(_rawBuf);
 	free(_asciiBuf);
 	free(_saveIds);
@@ -461,7 +460,7 @@ uint16 SkyCompact::findCptId(const char *cptName) {
 	return 0;
 }
 
-uint16 SkyCompact::giveNumDataLists(void) {
+uint16 SkyCompact::giveNumDataLists() {
 	return _numDataLists;
 }
 

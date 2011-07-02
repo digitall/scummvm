@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_HE_INTERN_HE_H
@@ -31,6 +28,7 @@
 #include "scumm/he/floodfill_he.h"
 #include "scumm/he/wiz_he.h"
 #endif
+#include "scumm/actor_he.h"	// For AuxBlock & AuxEntry
 
 namespace Common {
 class SeekableReadStream;
@@ -55,13 +53,18 @@ public:
 	Common::SeekableReadStream *_hInFileTable[17];
 	Common::WriteStream *_hOutFileTable[17];
 
+	Common::Rect _actorClipOverride;	// HE specific
+
 	int _heTimers[16];
+
 	int getHETimer(int timer);
 	void setHETimer(int timer);
 
 public:
 	ScummEngine_v60he(OSystem *syst, const DetectorResult &dr);
 	~ScummEngine_v60he();
+
+	virtual Common::String generateFilename(const int room) const;
 
 	virtual void resetScumm();
 
@@ -107,7 +110,9 @@ class ScummEngine_v70he : public ScummEngine_v60he {
 protected:
 	ResExtractor *_resExtractor;
 
+	byte *_heV7DiskOffsets;
 	byte *_heV7RoomOffsets;
+	uint32 *_heV7RoomIntOffsets;
 
 	int32 _heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags, _heSndSoundFreq;
 
@@ -118,9 +123,14 @@ public:
 	ScummEngine_v70he(OSystem *syst, const DetectorResult &dr);
 	~ScummEngine_v70he();
 
+	virtual Common::String generateFilename(const int room) const;
+
 	void restoreBackgroundHE(Common::Rect rect, int dirtybit = 0);
 
 protected:
+	virtual void allocateArrays();
+	virtual int readResTypeList(ResType type);
+	virtual uint32 getResourceRoomOffset(ResType type, ResId idx);
 	virtual void setupOpcodes();
 
 	virtual void setupScummVars();
@@ -255,7 +265,7 @@ protected:
 	virtual void resetScummVars();
 	virtual void readArrayFromIndexFile();
 
-	virtual byte *getStringAddress(int i);
+	virtual byte *getStringAddress(ResId idx);
 	virtual void readMAXS(int blockSize);
 
 	virtual void redrawBGAreas();
@@ -279,7 +289,7 @@ protected:
 	void copyScriptString(byte *dst, int dstSize);
 
 	int findObject(int x, int y, int num, int *args);
-	int getSoundResourceSize(int id);
+	int getSoundResourceSize(ResId idx);
 
 	virtual bool handleNextCharsetCode(Actor *a, int *c);
 	virtual int convertMessageToString(const byte *msg, byte *dst, int dstSize);
@@ -341,9 +351,12 @@ protected:
 	byte VAR_NUM_IMAGES;
 	byte VAR_NUM_CHARSETS;
 
+	byte VAR_SOUND_ENABLED;
+
 	byte VAR_POLYGONS_ONLY;
 
 	byte VAR_MOUSE_STATE;			// Used in checkExecVerbs();
+	byte VAR_PLATFORM;
 };
 
 class ScummEngine_v80he : public ScummEngine_v72he {
@@ -385,7 +398,6 @@ protected:
 	void o80_drawLine();
 	void o80_pickVarRandom();
 
-	byte VAR_PLATFORM;
 	byte VAR_PLATFORM_VERSION;
 	byte VAR_CURRENT_CHARSET;
 	byte VAR_KEY_STATE;
@@ -458,6 +470,7 @@ protected:
 	uint8 *getHEPaletteIndex(int palSlot);
 	int getHEPaletteColor(int palSlot, int color);
 	int getHEPaletteSimilarColor(int palSlot, int red, int green, int start, int end);
+	int getHEPalette16BitColorComponent(int component, int type);
 	int getHEPaletteColorComponent(int palSlot, int color, int component);
 	void setHEPaletteColor(int palSlot, uint8 color, uint8 r, uint8 g, uint8 b);
 	void setHEPaletteFromPtr(int palSlot, const uint8 *palData);
@@ -466,7 +479,7 @@ protected:
 	void setHEPaletteFromRoom(int palSlot, int resId, int state);
 	void restoreHEPalette(int palSlot);
 	void copyHEPalette(int dstPalSlot, int srcPalSlot);
-	void copyHEPaletteColor(int palSlot, uint8 dstColor, uint8 srcColor);
+	void copyHEPaletteColor(int palSlot, uint8 dstColor, uint16 srcColor);
 
 protected:
 	/* HE version 90 script opcodes */
@@ -541,7 +554,8 @@ protected:
 
 class ScummEngine_v100he : public ScummEngine_v99he {
 protected:
-	int32 _heResId, _heResType;
+	ResType _heResType;
+	int32 _heResId;
 
 	byte _debugInputBuffer[256];
 public:

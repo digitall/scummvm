@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Process scheduler.
  */
 
@@ -30,6 +27,7 @@
 #include "tinsel/polygons.h"
 #include "tinsel/sched.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
@@ -45,9 +43,9 @@ struct PROCESS_STRUC {
 
 #include "common/pack-end.h"	// END STRUCT PACKING
 
-CoroContext nullContext = NULL;
-
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static uint32 numSceneProcess;
 static SCNHANDLE hSceneProcess;
@@ -72,11 +70,20 @@ Scheduler::Scheduler() {
 
 	active = new PROCESS;
 	active->pPrevious = NULL;
+	active->pNext = NULL;
 
 	g_scheduler = this;	// FIXME HACK
 }
 
 Scheduler::~Scheduler() {
+	// Kill all running processes (i.e. free memory allocated for their state).
+	PROCESS *pProc = active->pNext;
+	while (pProc != NULL) {
+		delete pProc->state;
+		pProc->state = 0;
+		pProc = pProc->pNext;
+	}
+
 	free(processList);
 	processList = NULL;
 
@@ -107,6 +114,14 @@ void Scheduler::reset() {
 		memset(processList, 'S', MAX_PROCESSES * sizeof(PROCESS));
 	}
 
+	// Kill all running processes (i.e. free memory allocated for their state).
+	PROCESS *pProc = active->pNext;
+	while (pProc != NULL) {
+		delete pProc->state;
+		pProc->state = 0;
+		pProc = pProc->pNext;
+	}
+
 	// no active processes
 	pCurrent = active->pNext = NULL;
 
@@ -125,8 +140,8 @@ void Scheduler::reset() {
 /**
  * Shows the maximum number of process used at once.
  */
-void Scheduler::printStats(void) {
-	printf("%i process of %i used.\n", maxProcs, NUM_PROCESS);
+void Scheduler::printStats() {
+	debug("%i process of %i used", maxProcs, NUM_PROCESS);
 }
 #endif
 
@@ -172,7 +187,7 @@ void Scheduler::CheckStack() {
 /**
  * Give all active processes a chance to run
  */
-void Scheduler::schedule(void) {
+void Scheduler::schedule() {
 	// start dispatching active process list
 	PROCESS *pNext;
 	PROCESS *pProc = active->pNext;
@@ -280,7 +295,8 @@ void Scheduler::giveWay(PPROCESS pReSchedProc) {
 	PPROCESS pEnd;
 
 	// Find the last process in the list.
-	for (pEnd = pCurrent; pEnd->pNext != NULL; pEnd = pEnd->pNext) ;
+	for (pEnd = pCurrent; pEnd->pNext != NULL; pEnd = pEnd->pNext)
+		;
 	assert(pEnd->pNext == NULL);
 
 
@@ -392,6 +408,7 @@ void Scheduler::killProcess(PROCESS *pKillProc) {
 		(pRCfunction)(pKillProc);
 
 	delete pKillProc->state;
+	pKillProc->state = 0;
 
 	// Take the process out of the active chain list
 	pKillProc->pPrevious->pNext = pKillProc->pNext;
@@ -413,7 +430,7 @@ void Scheduler::killProcess(PROCESS *pKillProc) {
 /**
  * Returns a pointer to the currently running process.
  */
-PROCESS *Scheduler::getCurrentProcess(void) {
+PROCESS *Scheduler::getCurrentProcess() {
 	return pCurrent;
 }
 
@@ -458,6 +475,7 @@ int Scheduler::killMatchingProcess(int pidKill, int pidMask) {
 					(pRCfunction)(pProc);
 
 				delete pProc->state;
+				pProc->state = 0;
 
 				// make prev point to next to unlink pProc
 				pPrev->pNext = pProc->pNext;
@@ -508,21 +526,18 @@ void Scheduler::setResourceCallback(VFPTRPP pFunc) {
 /**
  * The code for for restored scene processes.
  */
-static void RestoredProcessProcess(CORO_PARAM, const void *) {
+static void RestoredProcessProcess(CORO_PARAM, const void *param) {
 	CORO_BEGIN_CONTEXT;
 		INT_CONTEXT *pic;
 	CORO_END_CONTEXT(_ctx);
 
 	CORO_BEGIN_CODE(_ctx);
 
-	PROCESS *pProc;		// this process pointer
-
 	// get the stuff copied to process when it was created
-	pProc = g_scheduler->getCurrentProcess();
-	_ctx->pic = *((INT_CONTEXT **) pProc->param);
+	_ctx->pic = *(const PINT_CONTEXT *)param;
 
 	_ctx->pic = RestoreInterpretContext(_ctx->pic);
-	AttachInterpret(_ctx->pic, pProc);
+	AttachInterpret(_ctx->pic, g_scheduler->getCurrentProcess());
 
 	CORO_INVOKE_1(Interpret, _ctx->pic);
 
@@ -532,9 +547,8 @@ static void RestoredProcessProcess(CORO_PARAM, const void *) {
 /**
  * Process Tinsel Process
  */
-static void ProcessTinselProcess(CORO_PARAM, const void *) {
-	PPROCESS pProc = g_scheduler->getCurrentProcess();
-	PINT_CONTEXT *pPic = (PINT_CONTEXT *) pProc->param;
+static void ProcessTinselProcess(CORO_PARAM, const void *param) {
+	const PINT_CONTEXT *pPic = (const PINT_CONTEXT *)param;
 
 	CORO_BEGIN_CONTEXT;
 	CORO_END_CONTEXT(_ctx);
@@ -669,7 +683,7 @@ void RestoreGlobalProcess(INT_CONTEXT *pic) {
 /**
  * Kill them all (restore game).
  */
-void KillGlobalProcesses(void) {
+void KillGlobalProcesses() {
 
 	for (uint32 i = 0; i < numGlobalProcess; ++i)	{
 		g_scheduler->killMatchingProcess(PID_GPROCESS + i, -1);
@@ -756,7 +770,8 @@ void GlobalProcesses(uint32 numProcess, byte *pProcess) {
  */
 void FreeGlobalProcesses() {
 	delete[] pGlobalProcess;
+	pGlobalProcess = 0;
 	numGlobalProcess = 0;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

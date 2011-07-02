@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef BACKENDS_PLUGINS_DYNAMICPLUGIN_H
 #define BACKENDS_PLUGINS_DYNAMICPLUGIN_H
 
 #include "base/plugins.h"
+#include "common/textconsole.h"
 
 
 class DynamicPlugin : public Plugin {
@@ -37,7 +35,12 @@ protected:
 
 	virtual VoidFunc findSymbol(const char *symbol) = 0;
 
+	const Common::String _filename;
+
 public:
+	DynamicPlugin(const Common::String &filename) :
+		_filename(filename) {}
+
 	virtual bool loadPlugin() {
 		// Validate the plugin API version
 		IntFunc verFunc = (IntFunc)findSymbol("PLUGIN_getVersion");
@@ -96,6 +99,10 @@ public:
 
 	virtual void unloadPlugin() {
 		delete _pluginObject;
+	}
+
+	virtual const char *getFileName() const {
+		return _filename.c_str();
 	}
 };
 

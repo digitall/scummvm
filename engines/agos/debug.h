@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGOS_DEBUG_H
@@ -2058,7 +2055,7 @@ static const char *const feeblefiles_opcodeNameTable[256] = {
 	"W|UNLOAD_ZONE",
 	NULL,
 	"|UNFREEZE_ZONES",
-	"|CENTRE_SCROLL",
+	"|CENTER_SCROLL",
 	/* 188 */
 	"BSJ|STRING2_IS",
 	"|CLEAR_MARKS",

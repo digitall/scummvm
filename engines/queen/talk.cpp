@@ -18,15 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/events.h"
-#include "common/system.h"
 #include "common/rect.h"
+#include "common/textconsole.h"
 
 #include "queen/talk.h"
 
@@ -551,11 +547,11 @@ bool Talk::speak(const char *sentence, Person *person, const char *voiceFilePref
 		return personWalking;
 	}
 
-	if (0 == strcmp(person->name, "FAYE-H" ) ||
+	if (0 == strcmp(person->name, "FAYE-H") ||
 		0 == strcmp(person->name, "FRANK-H") ||
 		0 == strcmp(person->name, "AZURA-H") ||
 		0 == strcmp(person->name, "X3_RITA") ||
-		(0 == strcmp(person->name, "JOE") && _vm->logic()->currentRoom() == FAYE_HEAD ) ||
+		(0 == strcmp(person->name, "JOE") && _vm->logic()->currentRoom() == FAYE_HEAD) ||
 		(0 == strcmp(person->name, "JOE") && _vm->logic()->currentRoom() == AZURA_HEAD) ||
 		(0 == strcmp(person->name, "JOE") && _vm->logic()->currentRoom() == FRANK_HEAD))
 		_talkHead = true;
@@ -662,7 +658,7 @@ void Talk::stringAnimation(const SpeechParameters *parameters, int startFrame, i
 	} else if (parameters->animation[0] == 'E') {
 		// Talking head animation
 		return;
-	} else if (!isdigit(parameters->animation[0])) {
+	} else if (!isdigit(static_cast<unsigned char>(parameters->animation[0]))) {
 		debug(6, "Error in speak string animation: '%s'", parameters->animation);
 		return;
 	} else
@@ -777,7 +773,7 @@ void Talk::defaultAnimation(
 	}
 
 	// Make sure that Person closes their mouth
-	if (!isJoe && parameters->ff > 0)
+	if (!isJoe && parameters && parameters->ff > 0)
 		_vm->bankMan()->overpack(parameters->ff, startFrame, bankNum);
 }
 
@@ -1089,7 +1085,7 @@ int Talk::splitOption(const char *str, char optionText[5][MAX_STRING_SIZE]) {
 	if (_vm->resource()->getLanguage() == Common::EN_ANY || _vm->display()->textWidth(option) <= MAX_TEXT_WIDTH) {
 		strcpy(optionText[0], option);
 		lines = 1;
-	} else if (_vm->resource()->getLanguage() == Common::HB_ISR) {
+	} else if (_vm->resource()->getLanguage() == Common::HE_ISR) {
 		lines = splitOptionHebrew(option, optionText);
 	} else {
 		lines = splitOptionDefault(option, optionText);

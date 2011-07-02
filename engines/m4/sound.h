@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Sound class
@@ -30,10 +27,10 @@
 
 #include "common/file.h"
 #include "common/array.h"
-#include "sound/mixer.h"
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/flac.h"
+#include "audio/mixer.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/flac.h"
 
 namespace M4 {
 
@@ -65,18 +62,19 @@ struct DSREntry {
 struct DSRFile {
 	char fileName[20];
 	int entryCount;
-	Common::Array<DSREntry *> dsrEntries;
+	Common::Array<DSREntry> dsrEntries;
 };
 
-class M4Engine;
+class MadsM4Engine;
 
 class Sound {
 public:
 
-	Sound(M4Engine *vm, Audio::Mixer *mixer, int volume);
+	Sound(MadsM4Engine *vm, Audio::Mixer *mixer, int volume);
 	~Sound();
 
 	void playSound(const char *soundName, int volume, bool loop, int channel = -1);
+	void playSound(int soundNum);
 	void pauseSound();
 	void resumeSound();
 	void stopSound(int channel = -1);
@@ -99,7 +97,7 @@ public:
 
  private:
 
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	Audio::Mixer *_mixer;
 	SndHandle _handles[SOUND_HANDLES];
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -28,8 +25,11 @@
 #include "kyra/lol.h"
 #include "kyra/screen_lol.h"
 #include "kyra/resource.h"
+#include "kyra/sound.h"
 
 #include "base/version.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -64,7 +64,7 @@ int LoLEngine::processPrologue() {
 		// Original version: (260|193) "V CD1.02 D"
 		const int width = _screen->getTextWidth(gScummVMVersion);
 		_screen->fprintString("SVM %s", 300 - width, 193, 0x67, 0x00, 0x04, gScummVMVersion);
-		_screen->setFont(Screen::FID_9_FNT);
+		_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_9_FNT);
 
 		_screen->fadePalette(_screen->getPalette(0), 0x1E);
 		_screen->updateScreen();
@@ -81,6 +81,13 @@ int LoLEngine::processPrologue() {
 		}
 
 		switch (selection) {
+		case -1:
+			// This is sent on RTL for example, if we would not have any
+			// special case for this the default path would call quitGame
+			// and thus make the next game launched from the launcher
+			// quit instantly.
+			break;
+
 		case 0:		// New game
 			processSelection = 0;
 			break;
@@ -89,8 +96,10 @@ int LoLEngine::processPrologue() {
 			showIntro();
 			break;
 
-		case 2:		// "Lore of the Lands" (only CD version)
-			break;
+		case 2: {	// "Lore of the Lands" (only CD version)
+			HistoryPlayer history(this);
+			history.play();
+			} break;
 
 		case 3:		// Load game
 			if (_gui->runMenu(_gui->_loadMenu))
@@ -121,19 +130,14 @@ void LoLEngine::setupPrologueData(bool load) {
 	static const char * const fileListCD[] = {
 		"GENERAL.PAK", "INTROVOC.PAK", "STARTUP.PAK", "INTRO1.PAK",
 		"INTRO2.PAK", "INTRO3.PAK", "INTRO4.PAK", "INTRO5.PAK",
-		"INTRO6.PAK", "INTRO7.PAK", "INTRO8.PAK", "INTRO9.PAK", 0
-	};
-
-	static const char * const fileListFloppyExtracted[] = {
-		"INTRO.PAK", "INTROVOC.PAK", 0
+		"INTRO6.PAK", "INTRO7.PAK", "INTRO8.PAK", "INTRO9.PAK",
+		"HISTORY.PAK", 0
 	};
 
 	static const char * const fileListFloppy[] = {
-		"INTRO.PAK", "INTROVOC.CMP", 0
+		"INTRO.PAK", "INTROVOC.PAK", 0
 	};
-
-	const char * const *fileList = _flags.isTalkie ? fileListCD :
-		(_flags.useInstallerPackage ? fileListFloppy : fileListFloppyExtracted);
+	const char * const *fileList = _flags.isTalkie ? fileListCD : fileListFloppy;
 
 	char filename[32];
 	for (uint i = 0; fileList[i]; ++i) {
@@ -213,7 +217,7 @@ void LoLEngine::showIntro() {
 
 	_screen->loadFont(Screen::FID_8_FNT, "NEW8P.FNT");
 	_screen->loadFont(Screen::FID_INTRO_FNT, "INTRO.FNT");
-	_screen->setFont(Screen::FID_8_FNT);
+	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
 
 	_tim->resetFinishedFlag();
 	_tim->setLangData("LOLINTRO.DIP");
@@ -283,21 +287,46 @@ int LoLEngine::chooseCharacter() {
 
 	_chargenWSA->displayFrame(0, 2, 113, 0, 0, 0, 0);
 
-	_screen->setFont(Screen::FID_9_FNT);
+	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_9_FNT);
 	_screen->_curPage = 2;
 
-	for (int i = 0; i < 4; ++i)
-		_screen->fprintStringIntro(_charPreviews[i].name, _charPreviews[i].x + 16, _charPreviews[i].y + 36, 0xC0, 0x00, 0x9C, 0x120);
+	if (_flags.platform == Common::kPlatformPC98) {
+		_screen->fillRect(17, 29, 94, 97, 17);
+		_screen->fillRect(68, 167, 310, 199, 17);
+		_screen->drawClippedLine(68, 166, 311, 166, 238);
+		_screen->drawClippedLine(68, 166, 68, 199, 238);
+		_screen->drawClippedLine(311, 166, 311, 199, 238);
 
-	for (int i = 0; i < 4; ++i) {
-		_screen->fprintStringIntro("%d", _charPreviews[i].x + 21, _charPreviews[i].y + 48, 0x98, 0x00, 0x9C, 0x220, _charPreviews[i].attrib[0]);
-		_screen->fprintStringIntro("%d", _charPreviews[i].x + 21, _charPreviews[i].y + 56, 0x98, 0x00, 0x9C, 0x220, _charPreviews[i].attrib[1]);
-		_screen->fprintStringIntro("%d", _charPreviews[i].x + 21, _charPreviews[i].y + 64, 0x98, 0x00, 0x9C, 0x220, _charPreviews[i].attrib[2]);
+		_screen->_curPage = 4;
+		_screen->fillRect(17, 29, 94, 97, 17);
+		_screen->_curPage = 2;
+
+		for (int i = 0; i < 4; ++i) {
+			_screen->printText((const char *)_charNamesPC98[i], _charPosXPC98[i], 168, 0xC1, 0x00);
+
+			Screen::FontId old = _screen->setFont(Screen::FID_SJIS_FNT);
+			for (int j = 0; j < 3; ++j) {
+				Common::String attribString = Common::String::format("%2d", _charPreviews[i].attrib[j]);
+				_screen->printText(attribString.c_str(), _charPosXPC98[i] + 16, 176 + j * 8, 0x81, 0x00);
+			}
+			_screen->setFont(old);
+		}
+
+		_screen->printText(_tim->getCTableEntry(51), 72, 176, 0x81, 0x00);
+		_screen->printText(_tim->getCTableEntry(53), 72, 184, 0x81, 0x00);
+		_screen->printText(_tim->getCTableEntry(55), 72, 192, 0x81, 0x00);
+	} else {
+		for (int i = 0; i < 4; ++i) {
+			_screen->fprintStringIntro("%s", _charPreviews[i].x + 16, _charPreviews[i].y + 36, 0xC0, 0x00, 0x9C, 0x120, _charPreviews[i].name);
+			_screen->fprintStringIntro("%d", _charPreviews[i].x + 21, _charPreviews[i].y + 48, 0x98, 0x00, 0x9C, 0x220, _charPreviews[i].attrib[0]);
+			_screen->fprintStringIntro("%d", _charPreviews[i].x + 21, _charPreviews[i].y + 56, 0x98, 0x00, 0x9C, 0x220, _charPreviews[i].attrib[1]);
+			_screen->fprintStringIntro("%d", _charPreviews[i].x + 21, _charPreviews[i].y + 64, 0x98, 0x00, 0x9C, 0x220, _charPreviews[i].attrib[2]);
+		}
+
+		_screen->fprintStringIntro("%s", 36, 173, 0x98, 0x00, 0x9C, 0x20, _tim->getCTableEntry(51));
+		_screen->fprintStringIntro("%s", 36, 181, 0x98, 0x00, 0x9C, 0x20, _tim->getCTableEntry(53));
+		_screen->fprintStringIntro("%s", 36, 189, 0x98, 0x00, 0x9C, 0x20, _tim->getCTableEntry(55));
 	}
-
-	_screen->fprintStringIntro(_tim->getCTableEntry(51), 36, 173, 0x98, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(53), 36, 181, 0x98, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(55), 36, 189, 0x98, 0x00, 0x9C, 0x20);
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
 	_screen->_curPage = 0;
@@ -334,6 +363,8 @@ int LoLEngine::chooseCharacter() {
 		} else {
 			break;
 		}
+
+		delay(10);
 	}
 
 	if (shouldQuit())
@@ -360,13 +391,16 @@ void LoLEngine::kingSelectionIntro() {
 	_screen->copyRegion(0, 0, 0, 0, 112, 120, 4, 0, Screen::CR_NO_P_CHECK);
 	int y = 38;
 
-	_screen->fprintStringIntro(_tim->getCTableEntry(57), 8, y, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(58), 8, y + 10, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(59), 8, y + 20, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(60), 8, y + 30, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(61), 8, y + 40, 0x32, 0x00, 0x9C, 0x20);
+	if (_flags.platform == Common::kPlatformPC98) {
+		for (int i = 0; i < 5; ++i)
+			_screen->printText(_tim->getCTableEntry(57 + i), 16, 32 + i * 8, 0xC1, 0x00);
+	} else {
+		for (int i = 0; i < 5; ++i)
+			_screen->fprintStringIntro("%s", 8, y + i * 10, 0x32, 0x00, 0x9C, 0x20, _tim->getCTableEntry(57 + i));
+	}
 
-	_sound->voicePlay("KING01", &_speechHandle);
+	if (_flags.isTalkie)
+		_sound->voicePlay("KING01", &_speechHandle);
 
 	int index = 4;
 	while ((!speechEnabled() || (speechEnabled() && _sound->voiceIsPlaying(&_speechHandle))) && _charSelection == -1 && !shouldQuit() && !skipFlag()) {
@@ -402,10 +436,16 @@ void LoLEngine::kingSelectionReminder() {
 	_screen->copyRegion(0, 0, 0, 0, 112, 120, 4, 0, Screen::CR_NO_P_CHECK);
 	int y = 48;
 
-	_screen->fprintStringIntro(_tim->getCTableEntry(62), 8, y, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(63), 8, y + 10, 0x32, 0x00, 0x9C, 0x20);
+	if (_flags.platform == Common::kPlatformPC98) {
+		_screen->printText(_tim->getCTableEntry(62), 16, 32, 0xC1, 0x00);
+		_screen->printText(_tim->getCTableEntry(63), 16, 40, 0xC1, 0x00);
+	} else {
+		_screen->fprintStringIntro("%s", 8, y, 0x32, 0x00, 0x9C, 0x20, _tim->getCTableEntry(62));
+		_screen->fprintStringIntro("%s", 8, y + 10, 0x32, 0x00, 0x9C, 0x20, _tim->getCTableEntry(63));
+	}
 
-	_sound->voicePlay("KING02", &_speechHandle);
+	if (_flags.isTalkie)
+		_sound->voicePlay("KING02", &_speechHandle);
 
 	int index = 0;
 	while ((!speechEnabled() || (speechEnabled() && _sound->voiceIsPlaying(&_speechHandle))) && _charSelection == -1 && !shouldQuit() && index < 15) {
@@ -432,7 +472,8 @@ void LoLEngine::kingSelectionReminder() {
 }
 
 void LoLEngine::kingSelectionOutro() {
-	_sound->voicePlay("KING03", &_speechHandle);
+	if (_flags.isTalkie)
+		_sound->voicePlay("KING03", &_speechHandle);
 
 	int index = 0;
 	while ((!speechEnabled() || (speechEnabled() && _sound->voiceIsPlaying(&_speechHandle))) && !shouldQuit() && !skipFlag()) {
@@ -537,13 +578,17 @@ int LoLEngine::selectionCharInfo(int character) {
 	static const uint8 charSelectInfoIdx[] = { 0x1D, 0x22, 0x27, 0x2C };
 	const int idx = charSelectInfoIdx[character];
 
-	_screen->fprintStringIntro(_tim->getCTableEntry(idx+0), 50, 127, 0x53, 0x00, 0xCF, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(idx+1), 50, 137, 0x53, 0x00, 0xCF, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(idx+2), 50, 147, 0x53, 0x00, 0xCF, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(idx+3), 50, 157, 0x53, 0x00, 0xCF, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(idx+4), 50, 167, 0x53, 0x00, 0xCF, 0x20);
+	if (_flags.platform == Common::kPlatformPC98) {
+		for (int i = 0; i < 5; ++i)
+			_screen->printText(_tim->getCTableEntry(idx+i), 60, 128 + i * 8, 0x41, 0x00);
 
-	_screen->fprintStringIntro(_tim->getCTableEntry(69), 100, 168, 0x32, 0x00, 0xCF, 0x20);
+		_screen->printText(_tim->getCTableEntry(69), 112, 168, 0x01, 0x00);
+	} else {
+		for (int i = 0; i < 5; ++i)
+			_screen->fprintStringIntro("%s", 50, 127 + i * 10, 0x53, 0x00, 0xCF, 0x20, _tim->getCTableEntry(idx+i));
+
+		_screen->fprintStringIntro("%s", 100, 168, 0x32, 0x00, 0xCF, 0x20, _tim->getCTableEntry(69));
+	}
 
 	selectionCharInfoIntro(vocFilename);
 	if (_charSelectionInfoResult == -1) {
@@ -565,11 +610,13 @@ int LoLEngine::selectionCharInfo(int character) {
 	_screen->copyRegion(48, 127, 48, 160, 272, 35, 4, 0, Screen::CR_NO_P_CHECK);
 	_screen->copyRegion(0, 0, 0, 0, 112, 120, 4, 0, Screen::CR_NO_P_CHECK);
 
-	_screen->fprintStringIntro(_tim->getCTableEntry(64), 3, 28, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(65), 3, 38, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(66), 3, 48, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(67), 3, 58, 0x32, 0x00, 0x9C, 0x20);
-	_screen->fprintStringIntro(_tim->getCTableEntry(68), 3, 68, 0x32, 0x00, 0x9C, 0x20);
+	if (_flags.platform == Common::kPlatformPC98) {
+		for (int i = 0; i < 5; ++i)
+			_screen->printText(_tim->getCTableEntry(64+i), 16, 32 + i * 8, 0xC1, 0x00);
+	} else {
+		for (int i = 0; i < 5; ++i)
+			_screen->fprintStringIntro("%s", 3, 28 + i * 10, 0x32, 0x00, 0x9C, 0x20, _tim->getCTableEntry(64+i));
+	}
 
 	resetSkipFlag();
 	kingSelectionOutro();
@@ -585,7 +632,8 @@ void LoLEngine::selectionCharInfoIntro(char *file) {
 		if (speechEnabled() && !_sound->isVoicePresent(file))
 			break;
 
-		_sound->voicePlay(file, &_speechHandle);
+		if (_flags.isTalkie)
+			_sound->voicePlay(file, &_speechHandle);
 
 		int i = 0;
 		while ((!speechEnabled() || (speechEnabled() && _sound->voiceIsPlaying(&_speechHandle))) && _charSelectionInfoResult == -1 && !shouldQuit()) {
@@ -670,7 +718,7 @@ void LoLEngine::showStarcraftLogo() {
 
 	if (!(shouldQuit() || inputFlag)) {
 		_sound->voicePlay("star2", &_speechHandle);
-		while(_sound->voiceIsPlaying(&_speechHandle) && !(shouldQuit() || inputFlag)) {
+		while (_sound->voiceIsPlaying(&_speechHandle) && !(shouldQuit() || inputFlag)) {
 			inputFlag = checkInput(0) & 0xff;
 			delay(_tickLength);
 		}
@@ -683,6 +731,269 @@ void LoLEngine::showStarcraftLogo() {
 	delete ci;
 }
 
+// history player
+
+HistoryPlayer::HistoryPlayer(LoLEngine *vm) : _system(vm->_system), _vm(vm), _screen(vm->screen()) {
+	_x = _y = _width = _height = 0;
+	_frame = _fireFrame = 0;
+	_nextFireTime = 0;
+
+	_wsa = new WSAMovie_v2(vm);
+	assert(_wsa);
+	_fireWsa = new WSAMovie_v2(vm);
+	assert(_fireWsa);
+}
+
+HistoryPlayer::~HistoryPlayer() {
+	delete _wsa;
+	delete _fireWsa;
+}
+
+void HistoryPlayer::play() {
+	int dataSize = 0;
+	const char *data = (const char *)_vm->staticres()->loadRawData(kLolHistory, dataSize);
+
+	if (!data)
+		error("Could not load history data");
+
+	_screen->loadFont(Screen::FID_9_FNT, "FONT9P.FNT");
+
+	Palette pal(256);
+	pal.fill(0, 256, 0);
+	_screen->fadePalette(pal, 0x1E);
+
+	_screen->loadBitmap("BACKGND.CPS", 8, 8, &pal);
+	_screen->copyRegion(0, 0, 0, 0, 320, 200, 8, 0, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, 0, 0, 0, 320, 200, 8, 2, Screen::CR_NO_P_CHECK);
+	_screen->updateScreen();
+
+	_screen->fadePalette(pal, 0x82);
+
+	_screen->copyRegion(_x, _y, _x, _y, _width, _height, 2, 0);
+	_screen->updateScreen();
+
+	pal.fill(0, 256, 0);
+	_screen->setFont(Screen::FID_9_FNT);
+
+	char tempWsaFilename[16];
+	char voiceFilename[13];
+	// the 'a' *has* to be lowercase
+	strcpy(voiceFilename, "PS_1a");
+
+	int part = 0;
+	Sound *sound = _vm->sound();
+
+	Common::Functor0Mem<void, HistoryPlayer> palFade(this, &HistoryPlayer::updateFire);
+
+	for (; voiceFilename[3] <= '9' && !_vm->shouldQuit() && !_vm->skipFlag(); ++voiceFilename[3], voiceFilename[4] = 'a') {
+		while (!_vm->shouldQuit() && !_vm->skipFlag()) {
+			if (!sound->voiceFileIsPresent(voiceFilename))
+				break;
+
+			if (data[part * 15] == voiceFilename[3] && data[part * 15 + 1] == voiceFilename[4]) {
+				switch (part) {
+				case 0:
+					loadWsa(&data[part * 15 + 2]);
+					playWsa(true);
+					sound->voicePlay(voiceFilename);
+					break;
+
+				case 1: case 2: case 8:
+				case 16: case 25:
+					sound->voicePlay(voiceFilename);
+					playWsa(true);
+					break;
+
+				case 3: case 7: case 10:
+				case 17: case 23: case 26:
+					sound->voicePlay(voiceFilename);
+					playWsa(true);
+					restoreWsaBkgd();
+					loadWsa(&data[part * 15 + 2]);
+					playWsa(true);
+					break;
+
+				case 6:
+					sound->voicePlay(voiceFilename);
+					playWsa(false);
+					restoreWsaBkgd();
+					loadWsa(&data[part * 15 + 2]);
+					playWsa(true);
+					_vm->delayWithTicks(30);
+					playWsa(true);
+					break;
+
+				case 9:
+					sound->voicePlay(voiceFilename);
+					loadWsa(&data[part * 15 + 2]);
+					playWsa(true);
+					break;
+
+				case 22:
+					playWsa(false);
+					restoreWsaBkgd();
+					loadWsa(&data[part * 15 + 2]);
+					_vm->delayWithTicks(30);
+					sound->voicePlay(voiceFilename);
+					playWsa(true);
+
+					strcpy(tempWsaFilename, &data[part * 15]);
+
+					for (int i = 1; i < 4 && !_vm->shouldQuit(); ++i) {
+						uint32 nextTime = _system->getMillis() + 30 * _vm->tickLength();
+						tempWsaFilename[8] = 'a' + i;
+
+						loadWsa(&tempWsaFilename[2]);
+						_vm->delayUntil(nextTime);
+
+						playWsa(true);
+					}
+
+					tempWsaFilename[8] = 'e';
+					loadWsa(&tempWsaFilename[2]);
+					break;
+
+				case 29:
+					sound->voicePlay(voiceFilename);
+					playWsa(false);
+					restoreWsaBkgd();
+					loadWsa(&data[part * 15 + 2]);
+
+					_fireWsa->open("FIRE.WSA", 0, 0);
+					playWsa(true);
+					_fireFrame = 0;
+
+					for (int i = 0; i < 12 && !_vm->shouldQuit(); ++i, ++_fireFrame) {
+						uint32 nextTime = _system->getMillis() + 3 * _vm->tickLength();
+
+						if (_fireFrame > 4)
+							_fireFrame = 0;
+
+						_fireWsa->displayFrame(_fireFrame, 0, 75, 51, 0, 0, 0);
+						_screen->updateScreen();
+						_vm->delayUntil(nextTime);
+					}
+
+					_screen->loadPalette("DRACPAL.PAL", pal);
+					_screen->fadePalette(pal, 0x78, &palFade);
+
+					while (sound->voiceIsPlaying() && !_vm->shouldQuit()) {
+						uint32 nextTime = _system->getMillis() + 3 * _vm->tickLength();
+
+						++_fireFrame;
+						if (_fireFrame > 4)
+							_fireFrame = 0;
+
+						_fireWsa->displayFrame(_fireFrame, 0, 75, 51, 0, 0, 0);
+						_screen->updateScreen();
+						_vm->delayUntil(nextTime);
+					}
+
+					_fireFrame = 0;
+					for (int i = 0; i < 10; ++i, ++_fireFrame) {
+						uint32 nextTime = _system->getMillis() + 3 * _vm->tickLength();
+
+						if (_fireFrame > 4)
+							_fireFrame = 0;
+
+						_fireWsa->displayFrame(_fireFrame, 0, 75, 51, 0, 0, 0);
+						_screen->updateScreen();
+						_vm->delayUntil(nextTime);
+					}
+
+					break;
+
+				default:
+					sound->voicePlay(voiceFilename);
+					playWsa(false);
+					restoreWsaBkgd();
+					loadWsa(&data[part * 15 + 2]);
+					playWsa(true);
+					break;
+				}
+
+				++part;
+			} else {
+				sound->voicePlay(voiceFilename);
+			}
+
+			while (sound->voiceIsPlaying() && !_vm->shouldQuit() && !_vm->skipFlag())
+				_vm->delay(10);
+
+			if (_vm->skipFlag())
+				sound->voiceStop();
+
+			++voiceFilename[4];
+		}
+	}
+
+	if (_vm->skipFlag())
+		_vm->_eventList.clear();
+
+	pal.fill(0, 256, 63);
+	if (_fireWsa->opened())
+		_screen->fadePalette(pal, 0x3C, &palFade);
+	else
+		_screen->fadePalette(pal, 0x3C);
+
+	_screen->clearPage(0);
+	pal.fill(0, 256, 0);
+	_screen->fadePalette(pal, 0x3C);
+
+	if (_vm->skipFlag())
+		_vm->_eventList.clear();
+}
+
+void HistoryPlayer::loadWsa(const char *filename) {
+	if (_wsa->opened())
+		_wsa->close();
+
+	Palette pal(256);
+	if (!_wsa->open(filename, 3, &pal))
+		error("Could not load WSA file: '%s'", filename);
+	_screen->setScreenPalette(pal);
+
+	_x = _wsa->xAdd();
+	_y = _wsa->yAdd();
+	_width = _wsa->width();
+	_height = _wsa->height();
+	_frame = 1;
+}
+
+void HistoryPlayer::playWsa(bool direction) {
+	const int tickLength = _vm->tickLength();
+
+	for (int i = 0; i < 15 && !_vm->shouldQuit(); ++i) {
+		uint32 nextTime = _system->getMillis() + 3 * tickLength;
+
+		_wsa->displayFrame(_frame, 2, 0, 0, 0, 0, 0);
+		_screen->copyRegion(_x, _y, _x, _y, _width, _height, 2, 0);
+		_screen->updateScreen();
+		_vm->delayUntil(nextTime);
+
+		if (direction)
+			++_frame;
+		else
+			--_frame;
+	}
+}
+
+void HistoryPlayer::restoreWsaBkgd() {
+	_screen->copyRegion(_x, _y, _x, _y, _width, _height, 8, 0);
+	_screen->copyRegion(_x, _y, _x, _y, _width, _height, 8, 2);
+	_screen->updateScreen();
+}
+
+void HistoryPlayer::updateFire() {
+	if (_system->getMillis() > _nextFireTime) {
+		_fireWsa->displayFrame(_fireFrame, 0, 75, 51, 0, 0, 0);
+		_fireFrame = (_fireFrame + 1) % 5;
+		_nextFireTime = _system->getMillis() + 4 * _vm->tickLength();
+	}
+
+	_screen->updateScreen();
+}
+
 // outro
 
 void LoLEngine::setupEpilogueData(bool load) {
@@ -691,7 +1002,11 @@ void LoLEngine::setupEpilogueData(bool load) {
 		"FINALE.PAK", "FINALE1.PAK", "FINALE2.PAK", 0
 	};
 
-	const char * const *fileList = _flags.isTalkie ? fileListCD : 0;
+	static const char * const fileListFloppy[] = {
+		"GENERAL.PAK", "INTRO.PAK", "FINALE1.PAK", "FINALE2.PAK", 0
+	};
+
+	const char * const *fileList = _flags.isTalkie ? fileListCD : fileListFloppy;
 	assert(fileList);
 
 	char filename[32];
@@ -796,53 +1111,62 @@ void LoLEngine::showOutro(int character, bool maxDifficulty) {
 
 	_screen->fadeToBlack(30);
 
-	showCredits();
+	if (!shouldQuit())
+		showCredits();
 
 	_eventList.clear();
 
-	switch (character) {
-	case 0:
-		_screen->loadBitmap("KIERAN.CPS", 3, 3, &_screen->getPalette(0));
-		break;
+	if (!shouldQuit()) {
+		switch (character) {
+		case 0:
+			_screen->loadBitmap("KIERAN.CPS", 3, 3, &_screen->getPalette(0));
+			break;
 
-	case 1:
-		_screen->loadBitmap("AK'SHEL.CPS", 3, 3, &_screen->getPalette(0));
-		break;
+		case 1:
+			_screen->loadBitmap("AK'SHEL.CPS", 3, 3, &_screen->getPalette(0));
+			break;
 
-	case 2:
-		_screen->loadBitmap("MICHAEL.CPS", 3, 3, &_screen->getPalette(0));
-		break;
+		case 2:
+			_screen->loadBitmap("MICHAEL.CPS", 3, 3, &_screen->getPalette(0));
+			break;
 
-	case 3:
-		_screen->loadBitmap("CONRAD.CPS", 3, 3, &_screen->getPalette(0));
-		break;
+		case 3:
+			_screen->loadBitmap("CONRAD.CPS", 3, 3, &_screen->getPalette(0));
+			break;
 
-	default:
-		_screen->clearPage(3);
-		_screen->getPalette(0).clear();
+		default:
+			_screen->clearPage(3);
+			_screen->getPalette(0).clear();
+		}
+
+		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
+		if (maxDifficulty && !_flags.use16ColorMode)
+			_tim->displayText(0x8000, 0, 0xDC);
+		_screen->updateScreen();
+		_screen->fadePalette(_screen->getPalette(0), 30, 0);
+
+		while (!checkInput(0) && !shouldQuit())
+			delay(_tickLength);
+
+		_screen->fadeToBlack(30);
 	}
-
-	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
-	if (maxDifficulty)
-		_tim->displayText(0x8000, 0, 0xDC);
-	_screen->updateScreen();
-	_screen->fadePalette(_screen->getPalette(0), 30, 0);
-
-	while (!checkInput(0) && !shouldQuit())
-		delay(_tickLength);
-
-	_screen->fadeToBlack(30);
 
 	_tim->clearLangData();
 	delete _tim;
 	_tim = timBackUp;
+
 	setupEpilogueData(false);
 }
 
 void LoLEngine::showCredits() {
 	for (int i = 0; i < 255; ++i)
 		_outroShapeTable[i] = i;
-	_outroShapeTable[255] = 0;
+
+	if (_flags.use16ColorMode)
+		for (int i = 1; i < 16; ++i)
+			_outroShapeTable[i] = (i << 4) | i;
+	else
+		_outroShapeTable[255] = 0;
 
 	_sound->haltTrack();
 	_sound->loadSoundFile("LOREFINL");
@@ -851,18 +1175,37 @@ void LoLEngine::showCredits() {
 	_screen->hideMouse();
 
 	static const uint8 colorMap[] = { 0x00, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x72, 0x6F, 0x6F, 0x6D };
-	_screen->setTextColorMap(colorMap);
 	_screen->_charWidth = 0;
 
 	_screen->loadBitmap("ROOM.CPS", 2, 2, &_screen->getPalette(0));
-	_screen->getPalette(0).fill(255, 1, 0);
+
+	if (!_flags.use16ColorMode) {
+		_screen->setTextColorMap(colorMap);
+		_screen->getPalette(0).fill(_screen->getPalette(0).getNumColors() - 1, 1, 0);
+	}
+
 	_screen->fadeToBlack(30);
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
 
 	_screen->_charOffset = 0;
 
-	char *credits = (char *)_res->fileData("CREDITS.TXT", 0);
+	char *credits = 0;
+
+	if (_flags.platform == Common::kPlatformPC98) {
+		int size = 0;
+		const uint8 *internCredits = _staticres->loadRawData(kLolCredits, size);
+		assert(size > 0);
+
+		credits = new char[size];
+		assert(credits);
+
+		memcpy(credits, internCredits, size);
+		_staticres->unloadId(kLolCredits);
+	} else {
+		credits = (char *)_res->fileData("CREDITS.TXT", 0);
+	}
+
 	processCredits(credits, 21, 4, 5);
 	delete[] credits;
 
@@ -901,10 +1244,16 @@ void LoLEngine::processCredits(char *t, int dimState, int page, int delayTime) {
 	memset(shapes, 0, sizeof(shapes));
 
 	loadOutroShapes(curShapeFile++, shapes);
-	uint8 *monsterPal = _res->fileData("MONSTERS.PAL", 0);
-	assert(monsterPal);
+	uint8 *monsterPal = 0;
 
-	_screen->getPalette(0).copy(monsterPal, 0, 40, 88);
+	if (_flags.use16ColorMode) {
+		_screen->loadPalette("LOL.NOL", _screen->getPalette(0));
+	} else {
+		monsterPal = _res->fileData("MONSTERS.PAL", 0);
+		assert(monsterPal);
+		_screen->getPalette(0).copy(monsterPal, 0, 40, 88);
+	}
+
 	_screen->fadePalette(_screen->getPalette(0), 30);
 
 	uint32 waitTimer = _system->getMillis();
@@ -1082,7 +1431,7 @@ void LoLEngine::processCredits(char *t, int dimState, int page, int delayTime) {
 				if (monsterAnimFrame >= 8)
 					_screen->drawShape(page, doorShape, doorX, doorY, doorSD, (doorSD == 22) ? 0 : 1);
 
-				_screen->drawShape(page, monsterShape, monsterX, monsterY, 0, 0x104 | ((!isRightMonster | (monsterAnimFrame < 20)) ? 0 : 1), _outroShapeTable, 1, _outroMonsterScaleTableX[monsterAnimFrame], _outroMonsterScaleTableY[monsterAnimFrame]);
+				_screen->drawShape(page, monsterShape, monsterX, monsterY, 0, 0x104 | ((!isRightMonster || monsterAnimFrame < 20) ? 0 : 1), _outroShapeTable, 1, _outroMonsterScaleTableX[monsterAnimFrame], _outroMonsterScaleTableY[monsterAnimFrame]);
 
 				if (monsterAnimFrame < 8)
 					_screen->drawShape(page, doorShape, doorX, doorY, doorSD, (doorSD == 22) ? 0 : 1);
@@ -1102,7 +1451,12 @@ void LoLEngine::processCredits(char *t, int dimState, int page, int delayTime) {
 			if (y < _screen->_curDim->h) {
 				_screen->_curPage = page;
 				_screen->setFont(Screen::FID_6_FNT);
-				_screen->printText(s.str, (_screen->_curDim->sx << 3) + x, _screen->_curDim->sy + y, 0xDC, 0x00);
+				if (_flags.use16ColorMode) {
+					_screen->printText(s.str, (_screen->_curDim->sx << 3) + x + 1, _screen->_curDim->sy + y + 1, 0x44, 0x00);
+					_screen->printText(s.str, (_screen->_curDim->sx << 3) + x, _screen->_curDim->sy + y, 0x33, 0x00);
+				} else {
+					_screen->printText(s.str, (_screen->_curDim->sx << 3) + x, _screen->_curDim->sy + y, 0xDC, 0x00);
+				}
 				_screen->_curPage = 0;
 			}
 
@@ -1127,8 +1481,11 @@ void LoLEngine::processCredits(char *t, int dimState, int page, int delayTime) {
 			curShapeFile = curShapeFile % 28;
 
 			loadOutroShapes(curShapeFile, shapes);
-			_screen->getPalette(0).copy(monsterPal, curShapeFile * 40, 40, 88);
-			_screen->setScreenPalette(_screen->getPalette(0));
+
+			if (!_flags.use16ColorMode) {
+				_screen->getPalette(0).copy(monsterPal, curShapeFile * 40, 40, 88);
+				_screen->setScreenPalette(_screen->getPalette(0));
+			}
 
 			needNewShape = false;
 		}
@@ -1158,7 +1515,7 @@ void LoLEngine::loadOutroShapes(int file, uint8 **storage) {
 	}
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

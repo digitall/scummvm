@@ -18,13 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CEGUI_ITEMSWITCH
-#define CEGUI_ITEMSWITCH
+#ifndef CEGUI_ITEMSWITCH_H
+#define CEGUI_ITEMSWITCH_H
 
 #include "common/scummsys.h"
 #include "common/system.h"
@@ -36,20 +33,23 @@ using GUI::Key;
 
 namespace CEGUI {
 
-	class ItemSwitch : public PanelItem {
-	public:
-		ItemSwitch(WORD referenceTrue, WORD referenceFalse, bool *item);
-		ItemSwitch(WORD referenceTrue, WORD referenceFalse, int *item, int max);
-		virtual ~ItemSwitch();
-		virtual bool action(int x, int y, bool pushed);
-	private:
-		void init(WORD referenceTrue, WORD referenceFalse);
-		bool *_item;
-		static bool _itemdummy;
-		int  *_itemmultiple, _itemmax;
-		SDL_ImageResource *_backgroundTrue;
-		SDL_ImageResource *_backgroundFalse;
-	};
-}
+class SDL_ImageResource;
+
+class ItemSwitch : public PanelItem {
+public:
+	ItemSwitch(WORD referenceTrue, WORD referenceFalse, bool *item);
+	ItemSwitch(WORD referenceTrue, WORD referenceFalse, int *item, int max);
+	virtual ~ItemSwitch();
+	virtual bool action(int x, int y, bool pushed);
+private:
+	void init(WORD referenceTrue, WORD referenceFalse);
+	bool *_item;
+	static bool _itemdummy;
+	int  *_itemmultiple, _itemmax;
+	SDL_ImageResource *_backgroundTrue;
+	SDL_ImageResource *_backgroundFalse;
+};
+
+} // End of namespace CEGUI
 
 #endif

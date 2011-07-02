@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Virtual processor.
  */
 
@@ -36,6 +33,7 @@
 #include "tinsel/tinlib.h"	// Library routines
 #include "tinsel/tinsel.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
@@ -46,63 +44,67 @@ extern int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONT
 
 //----------------- LOCAL DEFINES --------------------
 
+#define	GLOBALS_FILENAME	"gdata"		// name of globals file
+
 /** list of all opcodes */
 enum OPCODE {
-	OP_HALT = 0,	//!< end of program
-	OP_IMM = 1,		//!< loads signed immediate onto stack
-	OP_ZERO = 2,	//!< loads zero onto stack
-	OP_ONE = 3,		//!< loads one onto stack
-	OP_MINUSONE = 4,	//!< loads minus one onto stack
-	OP_STR = 5,		//!< loads string offset onto stack
-	OP_FILM = 6,	//!< loads film offset onto stack
-	OP_FONT = 7,	//!< loads font offset onto stack
-	OP_PAL = 8,		//!< loads palette offset onto stack
-	OP_LOAD = 9,	//!< loads local variable onto stack
-	OP_GLOAD = 10,	//!< loads global variable onto stack - long offset to variable
-	OP_STORE = 11,	//!< pops stack and stores in local variable - long offset to variable
-	OP_GSTORE = 12,	//!< pops stack and stores in global variable - long offset to variable
-	OP_CALL = 13,	//!< procedure call
-	OP_LIBCALL = 14,	//!< library procedure call - long offset to procedure
-	OP_RET = 15,		//!< procedure return
-	OP_ALLOC = 16,	//!< allocate storage on stack
-	OP_JUMP = 17,	//!< unconditional jump	- signed word offset
-	OP_JMPFALSE = 18,	//!< conditional jump	- signed word offset
-	OP_JMPTRUE = 19,	//!< conditional jump	- signed word offset
-	OP_EQUAL = 20,	//!< tests top two items on stack for equality
-	OP_LESS,	//!< tests top two items on stack
-	OP_LEQUAL,	//!< tests top two items on stack
-	OP_NEQUAL,	//!< tests top two items on stack
-	OP_GEQUAL,	//!< tests top two items on stack
-	OP_GREAT = 25,	//!< tests top two items on stack
-	OP_PLUS,	//!< adds top two items on stack and replaces with result
-	OP_MINUS,	//!< subs top two items on stack and replaces with result
-	OP_LOR,		//!< logical or of top two items on stack and replaces with result
-	OP_MULT,	//!< multiplies top two items on stack and replaces with result
-	OP_DIV = 30,		//!< divides top two items on stack and replaces with result
-	OP_MOD,		//!< divides top two items on stack and replaces with modulus
-	OP_AND,		//!< bitwise ands top two items on stack and replaces with result
-	OP_OR,		//!< bitwise ors top two items on stack and replaces with result
-	OP_EOR,		//!< bitwise exclusive ors top two items on stack and replaces with result
-	OP_LAND = 35,	//!< logical ands top two items on stack and replaces with result
-	OP_NOT,		//!< logical nots top item on stack
-	OP_COMP,	//!< complements top item on stack
-	OP_NEG,		//!< negates top item on stack
-	OP_DUP,		//!< duplicates top item on stack
-	OP_ESCON = 40,	//!< start of escapable sequence
-	OP_ESCOFF = 41,	//!< end of escapable sequence
-	OP_CIMM,	//!< loads signed immediate onto stack (special to case statements)
-	OP_CDFILM	//!< loads film offset onto stack but not in current scene
+	OP_HALT = 0,	///< end of program
+	OP_IMM = 1,		///< loads signed immediate onto stack
+	OP_ZERO = 2,	///< loads zero onto stack
+	OP_ONE = 3,		///< loads one onto stack
+	OP_MINUSONE = 4,	///< loads minus one onto stack
+	OP_STR = 5,		///< loads string offset onto stack
+	OP_FILM = 6,	///< loads film offset onto stack
+	OP_FONT = 7,	///< loads font offset onto stack
+	OP_PAL = 8,		///< loads palette offset onto stack
+	OP_LOAD = 9,	///< loads local variable onto stack
+	OP_GLOAD = 10,	///< loads global variable onto stack - long offset to variable
+	OP_STORE = 11,	///< pops stack and stores in local variable - long offset to variable
+	OP_GSTORE = 12,	///< pops stack and stores in global variable - long offset to variable
+	OP_CALL = 13,	///< procedure call
+	OP_LIBCALL = 14,	///< library procedure call - long offset to procedure
+	OP_RET = 15,		///< procedure return
+	OP_ALLOC = 16,	///< allocate storage on stack
+	OP_JUMP = 17,	///< unconditional jump	- signed word offset
+	OP_JMPFALSE = 18,	///< conditional jump	- signed word offset
+	OP_JMPTRUE = 19,	///< conditional jump	- signed word offset
+	OP_EQUAL = 20,	///< tests top two items on stack for equality
+	OP_LESS,	///< tests top two items on stack
+	OP_LEQUAL,	///< tests top two items on stack
+	OP_NEQUAL,	///< tests top two items on stack
+	OP_GEQUAL,	///< tests top two items on stack
+	OP_GREAT = 25,	///< tests top two items on stack
+	OP_PLUS,	///< adds top two items on stack and replaces with result
+	OP_MINUS,	///< subs top two items on stack and replaces with result
+	OP_LOR,		///< logical or of top two items on stack and replaces with result
+	OP_MULT,	///< multiplies top two items on stack and replaces with result
+	OP_DIV = 30,		///< divides top two items on stack and replaces with result
+	OP_MOD,		///< divides top two items on stack and replaces with modulus
+	OP_AND,		///< bitwise ands top two items on stack and replaces with result
+	OP_OR,		///< bitwise ors top two items on stack and replaces with result
+	OP_EOR,		///< bitwise exclusive ors top two items on stack and replaces with result
+	OP_LAND = 35,	///< logical ands top two items on stack and replaces with result
+	OP_NOT,		///< logical nots top item on stack
+	OP_COMP,	///< complements top item on stack
+	OP_NEG,		///< negates top item on stack
+	OP_DUP,		///< duplicates top item on stack
+	OP_ESCON = 40,	///< start of escapable sequence
+	OP_ESCOFF = 41,	///< end of escapable sequence
+	OP_CIMM,	///< loads signed immediate onto stack (special to case statements)
+	OP_CDFILM	///< loads film offset onto stack but not in current scene
 };
 
 // modifiers for the above opcodes
-#define	OPSIZE8		0x40	//!< when this bit is set - the operand size is 8 bits
-#define	OPSIZE16	0x80	//!< when this bit is set - the operand size is 16 bits
+#define	OPSIZE8		0x40	///< when this bit is set - the operand size is 8 bits
+#define	OPSIZE16	0x80	///< when this bit is set - the operand size is 16 bits
 
-#define	OPMASK		0x3F	//!< mask to isolate the opcode
+#define	OPMASK		0x3F	///< mask to isolate the opcode
 
 bool bNoPause = false;
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static int32 *pGlobals = 0;		// global vars
 
@@ -114,35 +116,104 @@ static uint32 hMasterScript;
 
 //----------------- SCRIPT BUGS WORKAROUNDS --------------
 
-const byte fragment1[] = {OP_ZERO, OP_GSTORE | OPSIZE16, 206, 0};
-const int fragment1_size = 4;
-const byte fragment2[] = {OP_LIBCALL | OPSIZE8, 110};
-const int fragment2_size = 2;
-const byte fragment3[] = {OP_ZERO, OP_GSTORE | OPSIZE16, 490 % 256, 490 / 256};
-const int fragment3_size = 4;
+/**
+ * This structure is used to introduce bug fixes into the scripts used by the games.
+ */
+struct WorkaroundEntry {
+	TinselEngineVersion version;	///< Engine version this workaround applies to
+	bool scnFlag;					///< Only applicable for Tinsel 1 (DW 1)
+	SCNHANDLE hCode;				///< Script to apply fragment to
+	int ip;							///< Script offset to run this fragment before
+	int numBytes;					///< Number of bytes in the script
+	const byte *script;				///< Instruction(s) to execute
+};
+
+#define FRAGMENT_WORD(x)	(byte)(x & 0xFF), (byte)(x >> 8)
+
+static const byte fragment1[] = {OP_ZERO, OP_GSTORE | OPSIZE16, 206, 0};
+static const byte fragment2[] = {OP_LIBCALL | OPSIZE8, 110};
+static const byte fragment3[] = {OP_ZERO, OP_GSTORE | OPSIZE16, FRAGMENT_WORD(490)};
+static const byte fragment4[] = {OP_IMM | OPSIZE16, FRAGMENT_WORD(900), OP_JUMP | OPSIZE16, FRAGMENT_WORD(466)};
+static const byte fragment5[] = {OP_IMM | OPSIZE16, FRAGMENT_WORD(901), OP_JUMP | OPSIZE16, FRAGMENT_WORD(488)};
+static const byte fragment6[] = {OP_IMM | OPSIZE16, FRAGMENT_WORD(903), OP_JUMP | OPSIZE16, FRAGMENT_WORD(516)};
+static const byte fragment7[] = {OP_IMM | OPSIZE16, FRAGMENT_WORD(908), OP_JUMP | OPSIZE16, FRAGMENT_WORD(616)};
+static const byte fragment8[] = {OP_IMM | OPSIZE16, FRAGMENT_WORD(910), OP_JUMP | OPSIZE16, FRAGMENT_WORD(644)};
+static const byte fragment9[] = {OP_JUMP | OPSIZE8, 123};
+static const byte fragment10[] = {OP_IMM | OPSIZE16, FRAGMENT_WORD(160), OP_JUMP | OPSIZE16, FRAGMENT_WORD(136)};
+static const byte fragment11[] = {OP_JMPTRUE | OPSIZE16, FRAGMENT_WORD(1572),
+		OP_ONE, OP_LIBCALL | OPSIZE8, 14,									// Re-show the cursor
+		OP_IMM | OPSIZE16, FRAGMENT_WORD(322), OP_LIBCALL | OPSIZE8, 46,	// Give back the whistle
+		OP_JUMP | OPSIZE16, FRAGMENT_WORD(1661)};
+static const byte fragment12[] = {OP_JMPTRUE | OPSIZE16, FRAGMENT_WORD(1491),
+		OP_ONE, OP_LIBCALL | OPSIZE8, 14,									// Re-show the cursor
+		OP_IMM | OPSIZE16, FRAGMENT_WORD(322), OP_LIBCALL | OPSIZE8, 46,	// Give back the whistle
+		OP_JUMP | OPSIZE16, FRAGMENT_WORD(1568)};
+static const byte fragment13[] = {OP_ZERO, OP_GSTORE | OPSIZE16, FRAGMENT_WORD(306)};
+
+#undef FRAGMENT_WORD
 
 const WorkaroundEntry workaroundList[] = {
-	// DW1-SCN: Global 206 is whether Rincewind is trying to take the book back to the present.
-	// In the GRA version, it was global 373, and was reset when he is returned to the past, but 
-	// was forgotten in the SCN version, so this ensures the flag is properly reset
-	{TINSEL_V1, true, 427942095, 1, fragment1_size, fragment1},
+	// DW1-SCN: Global 206 is whether Rincewind is trying to take the
+	// book back to the present. In the GRA version, it was global 373,
+	// and was reset when he is returned to the past, but was forgotten
+	// in the SCN version, so this ensures the flag is properly reset.
+	{TINSEL_V1, true, 427942095, 1, sizeof(fragment1), fragment1},
 
-	// DW1-GRA: Rincewind exiting the Inn is blocked by the luggage. Whilst you can then move
-	// into walkable areas, saving and restoring the game, it will error if you try to move. 
-	// This fragment turns off NPC blocking for the Outside Inn rooms so that the luggage won't block
-	// Past Outside Inn
-	{TINSEL_V1, false, 444622076, 0,  fragment2_size, fragment2},
+	// DW1-GRA: Rincewind exiting the Inn is blocked by the luggage.
+	// Whilst you can then move into walkable areas, saving and
+	// restoring the game, it will error if you try to move. This
+	// fragment turns off NPC blocking for the Outside Inn rooms so that
+	// the luggage won't block Past Outside Inn.
+	// See bug report #2525010.
+	{TINSEL_V1, false, 444622076, 0,  sizeof(fragment2), fragment2},
 	// Present Outside Inn
-	{TINSEL_V1, false, 352600876, 0,  fragment2_size, fragment2},
+	{TINSEL_V1, false, 352600876, 0,  sizeof(fragment2), fragment2},
 
-	// DW2: In the garden, global #490 is set when the bees begin their 'out of hive' animation, and reset when done.
-	// But if the game is saved/restored during it, the animation sequence is reset without the global being cleared.
-	// This causes bugs in several actions which try to disable the bees animation, since they wait indefinitely for
-	// the global to be cleared, incorrectly believing the animation is currently playing. This includes
-	// * Giving the brochure to the beekeeper
-	// * Stealing the mallets from the wizards
-	// This fix ensures that the global is reset when the Garden scene is loaded (both entering and restoring a game)
-	{TINSEL_V2, true, 2888147476U, 0, fragment3_size, fragment3},
+	// DW1-GRA: Talking to palace guards in Act 2 gives !!!HIGH
+	// STRING||| - this happens if you initiate dialog with one of the
+	// guards, but not the other. So these fragments provide the correct
+	// talk parameters where needed.
+	// See bug report #2831159.
+	{TINSEL_V1, false, 310506872, 463, sizeof(fragment4), fragment4},
+	{TINSEL_V1, false, 310506872, 485, sizeof(fragment5), fragment5},
+	{TINSEL_V1, false, 310506872, 513, sizeof(fragment6), fragment6},
+	{TINSEL_V1, false, 310506872, 613, sizeof(fragment7), fragment7},
+	{TINSEL_V1, false, 310506872, 641, sizeof(fragment8), fragment8},
+
+	// DW1-SCN: The script for the lovable street-Starfish does a
+	// 'StopSample' after flicking the coin to ensure it's sound is
+	// stopped, but which also accidentally can stop any active
+	// conversation with the Amazon.
+	{TINSEL_V1, true, 394640351, 121, sizeof(fragment9), fragment9},
+
+	// DW2: In the garden, global #490 is set when the bees begin their
+	// 'out of hive' animation, and reset when done. But if the game is
+	// saved/restored during it, the animation sequence is reset without
+	// the global being cleared. This causes bugs in several actions
+	// which try to disable the bees animation, since they wait
+	// indefinitely for the global to be cleared, incorrectly believing
+	// the animation is currently playing. This includes:
+	//  * Giving the brochure to the beekeeper (bug #2680397)
+	//  * Stealing the mallets from the wizards (bug #2820788).
+	// This fix ensures that the global is reset when the Garden scene
+	// is loaded (both entering and restoring a game).
+	{TINSEL_V2, true, 2888147476U, 0, sizeof(fragment3), fragment3},
+
+	// DW1-GRA: Corrects text being drawn partially off-screen during
+	// the blackboard description of the Librarian.
+	{TINSEL_V1, false, 293831402, 133, sizeof(fragment10), fragment10},
+
+	// DW1-GRA/SCN: Corrects the dead-end of being able to give the
+	// whistle back to the pirate before giving him the parrot.
+	// See bug report #2934211.
+	{TINSEL_V1, true, 352601285, 1569, sizeof(fragment11), fragment11},
+	{TINSEL_V1, false, 352602304, 1488, sizeof(fragment12), fragment12},
+
+	// DW2: Corrects a bug with global 306 not being cleared if you leave
+	// the marketplace scene whilst D'Blah is talking (even if it's not
+	// actually audible); returning to the scene and clicking on him multiple
+	// times would cause the game to crash
+	{TINSEL_V2, true, 1109294728, 0, sizeof(fragment13), fragment13},
 
 	{TINSEL_V0, false, 0, 0, 0, NULL}
 };
@@ -248,7 +319,7 @@ void FreeInterpretContextPr(PROCESS *pProc) {
 /**
  * Free all interpret contexts except for the master script's
  */
-void FreeMostInterpretContexts(void) {
+void FreeMostInterpretContexts() {
 	INT_CONTEXT *pic;
 	int	i;
 
@@ -263,7 +334,7 @@ void FreeMostInterpretContexts(void) {
 /**
  * Free the master script's interpret context.
  */
-void FreeMasterInterpretContext(void) {
+void FreeMasterInterpretContext() {
 	INT_CONTEXT *pic;
 	int	i;
 
@@ -277,7 +348,7 @@ void FreeMasterInterpretContext(void) {
 }
 
 /**
- * Allocate and initialise an interpret context.
+ * Allocate and initialize an interpret context.
  * Called from a process prior to Interpret().
  * @param gsort			which sort of code
  * @param hCode			Handle to code to execute
@@ -314,7 +385,7 @@ INT_CONTEXT *InitInterpretContext(GSORT gsort, SCNHANDLE hCode,	TINSEL_EVENT eve
 }
 
 /**
- * Allocate and initialise an interpret context with restored data.
+ * Allocate and initialize an interpret context with restored data.
  */
 INT_CONTEXT *RestoreInterpretContext(INT_CONTEXT *ric) {
 	INT_CONTEXT *ic;
@@ -375,14 +446,14 @@ void RegisterGlobals(int num) {
 		for (int i = 0; i < length; ++i)
 			pGlobals[i] = f.readSint32LE();
 
-		if (f.ioFailed())
+		if (f.eos() || f.err())
 			error(FILE_IS_CORRUPT, GLOBALS_FILENAME);
 
 		f.close();
 	}
 }
 
-void FreeGlobals(void) {
+void FreeGlobals() {
 	free(pGlobals);
 	pGlobals = NULL;
 
@@ -492,7 +563,7 @@ static int32 Fetch(byte opcode, const byte *code, const WorkaroundEntry* &wkEntr
 		return GetBytes(code, wkEntry, ip, 1);
 	else if (opcode & OPSIZE16)
 		return GetBytes(code, wkEntry, ip, 2);
-	
+
 	return GetBytes(code, wkEntry, ip, 4);
 }
 
@@ -508,7 +579,7 @@ void Interpret(CORO_PARAM, INT_CONTEXT *ic) {
 		if (wkEntry == NULL) {
 			// Check to see if a workaround fragment needs to be executed
 			for (wkEntry = workaroundList; wkEntry->script != NULL; ++wkEntry) {
-				if ((wkEntry->version == TinselVersion) && 
+				if ((wkEntry->version == TinselVersion) &&
 					(wkEntry->hCode == ic->hCode) &&
 					(wkEntry->ip == ip) &&
 					(!TinselV1 || (wkEntry->scnFlag == ((_vm->getFeatures() & GF_SCNFILES) != 0)))) {
@@ -636,6 +707,7 @@ void Interpret(CORO_PARAM, INT_CONTEXT *ic) {
 		case OP_JUMP:	// unconditional jump
 
 			ip = Fetch(opcode, ic->code, wkEntry, ip);
+			wkEntry = NULL;					// In case a jump occurs from a workaround
 			break;
 
 		case OP_JMPFALSE:	// conditional jump
@@ -644,6 +716,7 @@ void Interpret(CORO_PARAM, INT_CONTEXT *ic) {
 			if (ic->stack[ic->sp--] == 0) {
 				// condition satisfied - do the jump
 				ip = tmp;
+				wkEntry = NULL;					// In case a jump occurs from a workaround
 			}
 			break;
 
@@ -653,6 +726,7 @@ void Interpret(CORO_PARAM, INT_CONTEXT *ic) {
 			if (ic->stack[ic->sp--] != 0) {
 				// condition satisfied - do the jump
 				ip = tmp;
+				wkEntry = NULL;					// In case a jump occurs from a workaround
 			}
 			break;
 
@@ -773,7 +847,7 @@ void AttachInterpret(INT_CONTEXT *pic, PROCESS *pProc) {
 /**
  * Generate a number that isn't being used.
  */
-static uint32 UniqueWaitNumber(void) {
+static uint32 UniqueWaitNumber() {
 	uint32 retval;
 	int i;
 
@@ -851,7 +925,7 @@ void WaitInterpret(CORO_PARAM, PPROCESS pWaitProc, bool *result) {
 /**
  * CheckOutWaiters
  */
-void CheckOutWaiters(void) {
+void CheckOutWaiters() {
 	int i, j;
 
 	// Check all waited for have someone waiting
@@ -885,4 +959,4 @@ void CheckOutWaiters(void) {
 	}
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

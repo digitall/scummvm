@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/endian.h"
-#include "common/file.h"
+#include "common/translation.h"
+
+#include "gui/message.h"
 
 #include "gob/gob.h"
 #include "gob/inter.h"
@@ -32,6 +30,7 @@
 #include "gob/game.h"
 #include "gob/script.h"
 #include "gob/draw.h"
+#include "gob/save/saveload.h"
 
 namespace Gob {
 
@@ -64,6 +63,9 @@ void Inter_v5::setupOpcodesGob() {
 
 	OPCODEGOB( 33, o5_spaceShooter);
 
+	OPCODEGOB( 34, o5_spaceShooter);
+	OPCODEGOB( 37, o5_spaceShooter);
+
 	OPCODEGOB( 80, o5_getSystemCDSpeed);
 	OPCODEGOB( 81, o5_getSystemRAM);
 	OPCODEGOB( 82, o5_getSystemCPUSpeed);
@@ -94,9 +96,20 @@ void Inter_v5::setupOpcodesGob() {
 }
 
 void Inter_v5::o5_deleteFile() {
-	_vm->_game->_script->evalExpr(0);
+	const char *file =_vm->_game->_script->evalString();
 
-	warning("Dynasty Stub: deleteFile \"%s\"", _vm->_game->_script->getResultStr());
+	debugC(2, kDebugFileIO, "Delete file \"%s\"", file);
+
+	SaveLoad::SaveMode mode = _vm->_saveLoad->getSaveMode(file);
+	if (mode == SaveLoad::kSaveModeSave) {
+
+		if (!_vm->_saveLoad->deleteFile(file)) {
+			GUI::MessageDialog dialog(_("Failed to delete file."));
+			dialog.runModal();
+		}
+
+	} else if (mode == SaveLoad::kSaveModeNone)
+		warning("Attempted to delete file \"%s\"", file);
 }
 
 void Inter_v5::o5_initScreen() {
@@ -112,7 +125,8 @@ void Inter_v5::o5_initScreen() {
 	width = _vm->_game->_script->readValExpr();
 	height = _vm->_game->_script->readValExpr();
 
-	warning("initScreen: %d, %d, %d, %d", width, height, offY, videoMode);
+	if (videoMode == 0)
+		videoMode = 0x14;
 
 	_vm->_video->clearScreen();
 
@@ -194,13 +208,13 @@ void Inter_v5::o5_initScreen() {
 	_vm->_util->setScrollOffset();
 
 	if (offY > 0) {
-		_vm->_draw->_spritesArray[24] = SurfaceDescPtr(new SurfaceDesc(videoMode, _vm->_width, offY));
-		_vm->_draw->_spritesArray[25] = SurfaceDescPtr(new SurfaceDesc(videoMode, _vm->_width, offY));
+		_vm->_draw->_spritesArray[24] = SurfacePtr(new Surface(_vm->_width, offY, _vm->getPixelFormat().bytesPerPixel));
+		_vm->_draw->_spritesArray[25] = SurfacePtr(new Surface(_vm->_width, offY, _vm->getPixelFormat().bytesPerPixel));
 		_vm->_video->_splitSurf = _vm->_draw->_spritesArray[25];
 	}
 }
 
-bool Inter_v5::o5_istrlen(OpFuncParams &params) {
+void Inter_v5::o5_istrlen(OpFuncParams &params) {
 	int16 strVar1, strVar2;
 	int16 len;
 	uint16 type;
@@ -230,13 +244,11 @@ bool Inter_v5::o5_istrlen(OpFuncParams &params) {
 	}
 
 	writeVar(strVar2, type, (int32) len);
-
-	return false;
 }
 
 void Inter_v5::o5_spaceShooter(OpGobParams &params) {
 	warning("Dynasty Stub: Space shooter: %d, %d, %s",
-			params.extraData, params.paramCount, _vm->_game->_curTotFile);
+			params.extraData, params.paramCount, _vm->_game->_curTotFile.c_str());
 
 	if (params.paramCount < 4) {
 		warning("Space shooter variable counter < 4");
@@ -251,8 +263,9 @@ void Inter_v5::o5_spaceShooter(OpGobParams &params) {
 	_vm->_game->_script->readInt16();
 
 	if (params.extraData != 0) {
-		WRITE_VARO_UINT32(var1, 2);
-		WRITE_VARO_UINT32(var2, 0);
+		// we need to return 1 for the shooter mission 34. There is only one planet to choose from in the map.
+		WRITE_VARO_UINT32(var1,(params.extraData == 34) ? 1 : 2);
+		WRITE_VARO_UINT32(var2,0);
 	} else {
 		if (params.paramCount < 5) {
 			warning("Space shooter variable counter < 5");

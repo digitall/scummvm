@@ -18,21 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_GLOBALS_H
 #define M4_GLOBALS_H
 
-#include "common/array.h"
-#include "common/rect.h"
 #include "common/scummsys.h"
+#include "common/array.h"
+#include "common/hashmap.h"
+#include "common/rect.h"
+#include "common/list.h"
+#include "common/ptr.h"
+
+namespace Common {
+class SeekableReadStream;
+}
 
 namespace M4 {
 
+class MadsM4Engine;
 class M4Engine;
+class MadsEngine;
 class ScriptInterpreter;
 class ScriptFunction;
 
@@ -97,14 +103,14 @@ enum KernelTriggerType {
 
 class Kernel {
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	ScriptFunction *_globalDaemonFn, *_globalParserFn;
 	ScriptFunction *_sectionInitFn, *_sectionDaemonFn, *_sectionParserFn;
 	ScriptFunction *_roomInitFn, *_roomDaemonFn, *_roomPreParserFn, *_roomParserFn;
 	void pauseEngines();
 	void unpauseEngines();
 public:
-	Kernel(M4Engine *vm);
+	Kernel(MadsM4Engine *vm);
 
 	// TODO: Move to some palette/fading class
 	int fadeUpDuration, firstFadeColorIndex;
@@ -144,9 +150,98 @@ public:
 	void pauseGame(bool value);
 };
 
-#define TOTAL_NUM_VARIABLES 256
+#define TOTAL_NUM_VARIABLES 210
+
+#define PLAYER_INVENTORY 2
+
+enum MADSArticles {
+	kArticleNone	= 0,
+	kArticleWith	= 1,
+	kArticleTo		= 2,
+	kArticleAt		= 3,
+	kArticleFrom	= 4,
+	kArticleOn		= 5,
+	kArticleIn		= 6,
+	kArticleUnder	= 7,
+	kArticleBehind	= 8
+};
+
+struct VocabEntry {
+	uint8 flags1;
+	uint8 flags2;
+	uint16 vocabId;
+};
+
+class MadsObject {
+public:
+	MadsObject() {}
+	MadsObject(Common::SeekableReadStream *stream);
+	void load(Common::SeekableReadStream *stream);
+	bool isInInventory() const { return _roomNumber == PLAYER_INVENTORY; }
+	void setRoom(int roomNumber);
+
+	uint16 _descId;
+	uint16 _roomNumber;
+	MADSArticles _article;
+	uint8 _vocabCount;
+	VocabEntry _vocabList[3];
+};
+
+typedef Common::Array<Common::SharedPtr<MadsObject> > MadsObjectArray;
 
 class Globals {
+private:
+	MadsM4Engine *_vm;
+public:
+	Globals(MadsM4Engine *vm);
+	virtual ~Globals() {}
+
+	bool isInterfaceVisible();
+
+};
+
+class M4Globals : public Globals {
+private:
+	M4Engine *_vm;
+public:
+	M4Globals(M4Engine *vm);
+	virtual ~M4Globals() {}
+
+	bool invSuppressClickSound;
+};
+
+enum RexPlayerSex { SEX_MALE = 0, SEX_FEMALE = 2, SEX_UNKNOWN = 1};
+
+enum MadsDialogType { DIALOG_NONE = 0, DIALOG_GAME_MENU = 1, DIALOG_SAVE = 2, DIALOG_RESTORE = 3, DIALOG_OPTIONS = 4,
+		DIALOG_DIFFICULTY = 5, DIALOG_ERROR = 6};
+
+struct MadsConfigData {
+	bool musicFlag;
+	bool soundFlag;
+	bool easyMouse;
+	bool invObjectsStill;
+	bool textWindowStill;
+	int storyMode;
+	int screenFades;
+};
+
+#define GET_GLOBAL(x) (_madsVm->globals()->_globals[x])
+#define GET_GLOBAL32(x) (((uint32)_madsVm->globals()->_globals[x + 1] << 16) | _madsVm->globals()->_globals[x])
+#define SET_GLOBAL(x,y) _madsVm->globals()->_globals[x] = y
+#define SET_GLOBAL32(x,y) { _madsVm->globals()->_globals[x] = (y) & 0xffff; _madsVm->globals()->_globals[(x) + 1] = (y) >> 16; }
+
+typedef int (*IntFunctionPtr)();
+
+union DataMapEntry {
+	bool *boolValue;
+	uint16 *uint16Value;
+	int *intValue;
+	IntFunctionPtr fnPtr;
+};
+
+typedef Common::HashMap<uint16, uint16> DataMapHash;
+
+class MadsGlobals : public Globals {
 private:
 	struct MessageItem {
 		uint32 id;
@@ -155,36 +250,64 @@ private:
 		uint16 compSize;
 	};
 
-	M4Engine *_vm;
+	MadsEngine *_vm;
 	Common::Array<char* > _madsVocab;
 	Common::Array<char* > _madsQuotes;
-	Common::Array<MessageItem* > _madsMessages;
+	Common::Array<MessageItem> _madsMessages;
+	MadsObjectArray _madsObjects;
+	Common::List<int> _visitedScenes;
 public:
-	Globals(M4Engine *vm);
-	~Globals();
-	bool isInterfaceVisible();
+	MadsGlobals(MadsEngine *vm);
+	~MadsGlobals();
 
-	// M4 variables
-	bool invSuppressClickSound;
+	// MADS variables
+	uint16 _globals[TOTAL_NUM_VARIABLES];
+	MadsConfigData _config;
+	bool playerSpriteChanged;
+	MadsDialogType dialogType;
+	int sceneNumber;
+	int previousScene;
+	int16 _nextSceneId;
+	uint16 actionNouns[3];
+	DataMapHash _dataMap;
+	int _difficultyLevel;
 
 	void loadMadsVocab();
 	uint32 getVocabSize() { return _madsVocab.size(); }
-	char* getVocab(uint32 index) { return _madsVocab[index]; }
+	const char *getVocab(uint32 index) {
+		// Vocab list is 1-based, so always subtract one from index provided
+		assert((index > 0) && (index <= _madsVocab.size()));
+		return _madsVocab[index - 1];
+	}
 
-	void loadMadsQuotes();
+	void loadQuotes();
 	uint32 getQuotesSize() { return _madsQuotes.size(); }
-	char* getQuote(uint32 index) { return _madsQuotes[index]; }
+	const char *getQuote(uint32 index) { return _madsQuotes[index - 1]; }
+	// DEPRECATED: ScummVM re-implementation keeps all the quotes loaded, so the methods below are stubs
+	void clearQuotes() {}
+	void loadQuoteRange(int startNum, int endNum) {}
+	void loadQuoteSet(...) {}
+	void loadQuote(int quoteNum) {}
 
 	void loadMadsMessagesInfo();
 	uint32 getMessagesSize() { return _madsMessages.size(); }
-	char* loadMessage(uint index);
+	int messageIndexOf(uint32 messageId);
+	const char *loadMessage(uint index);
+
+	void loadMadsObjects();
+	uint32 getObjectsSize() { return _madsObjects.size(); }
+	MadsObject *getObject(uint32 index) { return _madsObjects[index].get(); }
+
+	void addVisitedScene(int sceneNumber);
+	bool isSceneVisited(int sceneNumber);
+	void removeVisitedScene(int sceneNumber);
 };
 
 #define PLAYER_FIELD_LENGTH 40
 
 class Player {
 public:
-	Player(M4Engine *vm);
+	Player(MadsM4Engine *vm);
 	void setCommandsAllowed(bool value);
 
 	// Variables
@@ -213,7 +336,7 @@ public:
 		const char *word8, const char *word9, const char *word10);
 
 private:
-	 M4Engine *_vm;
+	 MadsM4Engine *_vm;
 };
 
 } // End of namespace M4

@@ -18,87 +18,37 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#if defined(WIN32) && !defined(__SYMBIAN32__)
-#include <windows.h>
-// winnt.h defines ARRAYSIZE, but we want our own one...
-#undef ARRAYSIZE
-#endif
+#include "common/scummsys.h"
+
+// Several SDL based ports use a custom main, and hence do not want to compile
+// of this file. The following "#if" ensures that.
+#if !defined(POSIX) && \
+    !defined(WIN32) && \
+    !defined(__MAEMO__) && \
+    !defined(__SYMBIAN32__) && \
+    !defined(_WIN32_WCE) && \
+    !defined(__amigaos4__) && \
+    !defined(DINGUX) && \
+    !defined(CAANOO) && \
+    !defined(LINUXMOTO) && \
+    !defined(SAMSUNGTV) && \
+    !defined(PLAYSTATION3) && \
+    !defined(OPENPANDORA)
 
 #include "backends/platform/sdl/sdl.h"
 #include "backends/plugins/sdl/sdl-provider.h"
 #include "base/main.h"
 
-#if defined(__SYMBIAN32__)
-#include "SymbianOs.h"
-#endif
-
-#if !defined(__MAEMO__) && !defined(_WIN32_WCE) && !defined(GP2XWIZ)
-
-#if defined (WIN32)
-int __stdcall WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,  LPSTR /*lpCmdLine*/, int /*iShowCmd*/) {
-	SDL_SetModuleHandle(GetModuleHandle(NULL));
-	return main(__argc, __argv);
-}
-#endif
-
 int main(int argc, char *argv[]) {
 
-#if defined(__SYMBIAN32__)
-	//
-	// Set up redirects for stdout/stderr under Windows and Symbian.
-	// Code copied from SDL_main.
-	//
-
-	// Symbian does not like any output to the console through any *print* function
-	char STDOUT_FILE[256], STDERR_FILE[256]; // shhh, don't tell anybody :)
-	strcpy(STDOUT_FILE, Symbian::GetExecutablePath());
-	strcpy(STDERR_FILE, Symbian::GetExecutablePath());
-	strcat(STDOUT_FILE, "scummvm.stdout.txt");
-	strcat(STDERR_FILE, "scummvm.stderr.txt");
-
-	/* Flush the output in case anything is queued */
-	fclose(stdout);
-	fclose(stderr);
-
-	/* Redirect standard input and standard output */
-	FILE *newfp = freopen(STDOUT_FILE, "w", stdout);
-	if (newfp == NULL) {	/* This happens on NT */
-#if !defined(stdout)
-		stdout = fopen(STDOUT_FILE, "w");
-#else
-		newfp = fopen(STDOUT_FILE, "w");
-		if (newfp) {
-			*stdout = *newfp;
-		}
-#endif
-	}
-	newfp = freopen(STDERR_FILE, "w", stderr);
-	if (newfp == NULL) {	/* This happens on NT */
-#if !defined(stderr)
-		stderr = fopen(STDERR_FILE, "w");
-#else
-		newfp = fopen(STDERR_FILE, "w");
-		if (newfp) {
-			*stderr = *newfp;
-		}
-#endif
-	}
-	setbuf(stderr, NULL);			/* No buffering */
-
-#endif // defined(__SYMBIAN32__)
-
 	// Create our OSystem instance
-#if defined(__SYMBIAN32__)
-	g_system = new OSystem_SDL_Symbian();
-#else
 	g_system = new OSystem_SDL();
-#endif
 	assert(g_system);
+
+	// Pre initialize the backend
+	((OSystem_SDL *)g_system)->init();
 
 #ifdef DYNAMIC_MODULES
 	PluginManager::instance().addPluginProvider(new SDLPluginProvider());
@@ -106,7 +56,10 @@ int main(int argc, char *argv[]) {
 
 	// Invoke the actual ScummVM main entry point:
 	int res = scummvm_main(argc, argv);
-	g_system->quit();	// TODO: Consider removing / replacing this!
+
+	// Free OSystem
+	delete (OSystem_SDL *)g_system;
+
 	return res;
 }
 

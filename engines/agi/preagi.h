@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGI_PREAGI_H
@@ -29,7 +26,7 @@
 #include "agi/agi.h"
 #include "agi/preagi_common.h"
 
-#include "sound/softsynth/pcspk.h"
+#include "audio/softsynth/pcspk.h"
 
 namespace Agi {
 
@@ -41,10 +38,10 @@ protected:
 	void initialize();
 
 public:
-	void pollTimer(void) {}
-	int getKeypress(void) { return 0; }
-	bool isKeypress(void) { return false; }
-	void clearKeyQueue(void) {}
+	void pollTimer() {}
+	int getKeypress() { return 0; }
+	bool isKeypress() { return false; }
+	void clearKeyQueue() {}
 
 	PreAgiEngine(OSystem *syst, const AGIGameDescription *gameDesc);
 	virtual ~PreAgiEngine();
@@ -55,6 +52,7 @@ public:
 	//SoundMgr *_sound;
 	PictureMgr *_picture;
 	PreAGI_Console *_console;
+	GUI::Debugger *getDebugger() { return _console; }
 
 	void clearImageStack() {}
 	void recordImageStackCall(uint8 type, int16 p1, int16 p2, int16 p3,
@@ -76,7 +74,7 @@ public:
 	// Keyboard
 	int getSelection(SelectionTypes type);
 
-	int rnd(int hi) { return (_rnd->getRandomNumber(hi - 1) + 1); }
+	int rnd(int hi);
 
 	// Text
 	void drawStr(int row, int col, int attr, const char *buffer);

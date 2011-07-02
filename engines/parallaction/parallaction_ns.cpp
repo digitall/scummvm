@@ -18,14 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
-
 #include "common/config-manager.h"
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 #include "parallaction/exec.h"
@@ -94,19 +91,19 @@ public:
 /*
 	bind accept the following input formats:
 
-    1 - [S].slide.[L]{.[C]}
+	1 - [S].slide.[L]{.[C]}
 	2 - [L]{.[C]}
 
-    where:
+	where:
 
 	[S] is the slide to be shown
-    [L] is the location to switch to (immediately in case 2, or right after slide [S] in case 1)
-    [C] is the character to be selected, and is optional
+	[L] is the location to switch to (immediately in case 2, or right after slide [S] in case 1)
+	[C] is the character to be selected, and is optional
 
-    The routine tells one form from the other by searching for the '.slide.'
+	The routine tells one form from the other by searching for the '.slide.'
 
-    NOTE: there exists one script in which [L] is not used in the case 1, but its use
-		  is commented out, and would definitely crash the current implementation.
+	NOTE: there exists one script in which [L] is not used in the case 1, but its use
+	is commented out, and would definitely crash the current implementation.
 */
 void LocationName::bind(const char *s) {
 
@@ -116,7 +113,7 @@ void LocationName::bind(const char *s) {
 	_hasSlide = false;
 	_hasCharacter = false;
 
-	Common::StringList list;
+	Common::StringArray list;
 	char *tok = strtok(_buf, ".");
 	while (tok) {
 		list.push_back(tok);
@@ -167,9 +164,7 @@ Common::Error Parallaction_ns::init() {
 	_disk->init();
 
 	if (getPlatform() == Common::kPlatformPC) {
-		int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-		MidiDriver *driver = MidiDriver::createMidi(midiDriver);
-		_soundManI = new DosSoundMan_ns(this, driver);
+		_soundManI = new DosSoundMan_ns(this);
 		_soundManI->setMusicVolume(ConfMan.getInt("music_volume"));
 	} else {
 		_soundManI = new AmigaSoundMan_ns(this);
@@ -207,6 +202,9 @@ Common::Error Parallaction_ns::init() {
 
 	_score = 1;
 
+	_testResultLabels[0] = 0;
+	_testResultLabels[1] = 0;
+
 	Parallaction::init();
 
 	return Common::kNoError;
@@ -214,7 +212,10 @@ Common::Error Parallaction_ns::init() {
 
 Parallaction_ns::~Parallaction_ns() {
 	freeFonts();
+
+	// TODO: we may want to add a ~Character instead
 	freeCharacter();
+	_char._ani.reset();
 
 	destroyInventory();
 
@@ -225,8 +226,17 @@ Parallaction_ns::~Parallaction_ns() {
 	_location._animations.remove(_char._ani);
 
 	delete _walker;
+
+	destroyTestResultLabels();
 }
 
+void Parallaction_ns::destroyTestResultLabels() {
+	for (int i = 0; i < 2; ++i) {
+		_gfx->unregisterLabel(_testResultLabels[i]);
+		delete _testResultLabels[i];
+		_testResultLabels[i] = 0;
+	}
+}
 
 void Parallaction_ns::freeFonts() {
 
@@ -256,7 +266,7 @@ bool Parallaction_ns::processGameEvent(int event) {
 	bool c = true;
 	_input->stopHovering();
 
-	switch(event) {
+	switch (event) {
 	case kEvSaveGame:
 		_saveLoad->saveGame();
 		break;
@@ -267,6 +277,7 @@ bool Parallaction_ns::processGameEvent(int event) {
 	}
 
 	_input->setArrowCursor();
+	_input->setMouseState(MOUSE_ENABLED_SHOW);
 
 	return c;
 }
@@ -323,22 +334,26 @@ void Parallaction_ns::runPendingZones() {
 //	between one and the other.
 //
 void Parallaction_ns::changeLocation() {
-    if (_newLocationName.empty()) {
-        return;
-    }
+	if (_newLocationName.empty()) {
+		return;
+	}
 
-    char location[200];
-    strcpy(location, _newLocationName.c_str());
-    strcpy(_location._name, _newLocationName.c_str());
+	char location[200];
+	strcpy(location, _newLocationName.c_str());
+	strcpy(_location._name, _newLocationName.c_str());
 
 	debugC(1, kDebugExec, "changeLocation(%s)", location);
 
 	MouseTriState oldMouseState = _input->getMouseState();
 	_input->setMouseState(MOUSE_DISABLED);
 
-	_soundManI->playLocationMusic(location);
+	if (!_intro) {
+		// prevent music changes during the introduction
+		_soundManI->playLocationMusic(location);
+	}
 
 	_input->stopHovering();
+	// this is still needed to remove the floatingLabel
 	_gfx->freeLabels();
 
 	_zoneTrap.reset();
@@ -350,27 +365,17 @@ void Parallaction_ns::changeLocation() {
 	LocationName locname;
 	locname.bind(location);
 
-	bool fullCleanup = false;
-	if (locname.hasCharacter()) {
-		CharacterName newName(locname.character());
-		fullCleanup = (strcmp(newName.getBaseName(), _char.getBaseName()));
-	}
-
-	if (fullCleanup) {
-		cleanupGame();
-	} else {
-		freeLocation(false);
-	}
-
+	freeLocation(false);
 
 	if (locname.hasSlide()) {
 		showSlide(locname.slide());
-		uint id = _gfx->createLabel(_menuFont, _location._slideText[0].c_str(), 1);
-		_gfx->showLabel(id, CENTER_LABEL_HORIZONTAL, 14);
+		GfxObj *label = _gfx->createLabel(_menuFont, _location._slideText[0].c_str(), 1);
+		_gfx->showLabel(label, CENTER_LABEL_HORIZONTAL, 14);
 		_gfx->updateScreen();
 
 		_input->waitForButtonEvent(kMouseLeftUp);
-		_gfx->freeLabels();
+		_gfx->unregisterLabel(label);
+		delete label;
 	}
 
 	if (locname.hasCharacter()) {
@@ -462,7 +467,10 @@ void Parallaction_ns::changeCharacter(const char *name) {
 		_objects = _disk->loadObjects(_char.getBaseName());
 		_objectsNames = _disk->loadTable(_char.getBaseName());
 
-		_soundManI->playCharacterMusic(_char.getBaseName());
+		if (!_intro) {
+			// prevent music changes during the introduction
+			_soundManI->playCharacterMusic(_char.getBaseName());
+		}
 
 		// The original engine used to reload 'common' only on loadgames. We are reloading here since 'common'
 		// contains character specific stuff. This causes crashes like bug #1816899, because parseLocation tries
@@ -525,7 +533,7 @@ void Parallaction_ns::cleanupGame() {
 	memset(_localFlags, 0, sizeof(_localFlags));
 	memset(_locationNames, 0, sizeof(_locationNames));
 
-	freeLocation(true);
+	_location.freeZones(true);
 
 	_score = 0;
 	_freeSarcophagusSlotX = INITIAL_FREE_SARCOPHAGUS_SLOT_X;

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_ANIMATOR_LOK_H
@@ -95,7 +92,6 @@ public:
 	int16 fetchAnimHeight(const uint8 *shape, int16 mult);
 
 	int _noDrawShapesFlag;
-	bool _updateScreen;
 	uint16 _brandonDrawFrame;
 	int _brandonScaleX;
 	int _brandonScaleY;
@@ -124,9 +120,9 @@ protected:
 
 	int _brandonAnimSeqSizeWidth;
 	int _brandonAnimSeqSizeHeight;
-
 };
-} // end of namespace Kyra
+
+} // End of namespace Kyra
 
 #endif
 

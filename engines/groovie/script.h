@@ -18,19 +18,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_SCRIPT_H
 #define GROOVIE_SCRIPT_H
 
-#include "common/file.h"
+#include "common/random.h"
 #include "common/rect.h"
 
-#include "groovie/font.h"
-#include "groovie/cell.h"
+namespace Common {
+class SeekableReadStream;
+}
+
+namespace Graphics {
+struct Surface;
+}
 
 namespace Groovie {
 
@@ -39,8 +41,9 @@ enum EngineVersion {
 	kGroovieV2
 };
 
-class GroovieEngine;
 class CellGame;
+class Debugger;
+class GroovieEngine;
 
 class Script {
 	friend class Debugger;
@@ -58,7 +61,7 @@ public:
 	void directGameLoad(int slot);
 	void step();
 
-	void setMouseClick();
+	void setMouseClick(uint8 button);
 	void setKbdChar(uint8 c);
 
 	Common::String &getContext();
@@ -69,6 +72,9 @@ private:
 	Common::RandomSource _random;
 
 	bool _firstbit;
+	uint8 _lastCursor;
+
+	EngineVersion _version;
 
 	// Script filename (for debugging purposes)
 	Common::String _scriptFile;
@@ -96,7 +102,7 @@ private:
 
 	// Input
 	bool _mouseClicked;
-	bool _eventMouseClicked;
+	uint8 _eventMouseClicked;
 	uint8 _kbdChar;
 	uint8 _eventKbdChar;
 	uint16 _inputLoopAddress;
@@ -111,10 +117,10 @@ private:
 	uint16 _hotspotSlot;
 
 	// Video
-	Font *_font;
 	Common::SeekableReadStream *_videoFile;
 	uint32 _videoRef;
 	uint16 _bitflags;
+	uint16 _videoSkipAddress;
 
 	// Debugging
 	Debugger *_debugger;
@@ -131,13 +137,14 @@ private:
 	uint16 readScript8or16bits();
 	uint8 readScriptChar(bool allow7C, bool limitVal, bool limitVar);
 	uint8 readScriptVar();
-	uint16 getVideoRefString();
+	uint32 getVideoRefString();
 
 	bool hotspot(Common::Rect rect, uint16 addr, uint8 cursor);
 
 	void loadgame(uint slot);
 	void savegame(uint slot);
 	bool playvideofromref(uint32 fileref);
+	void printString(Graphics::Surface *surface, const char *str);
 
 	// Opcodes
 	typedef void (Script::*OpcodeFunc)();
@@ -228,7 +235,11 @@ private:
 	void o2_setbackgroundsong();
 	void o2_videofromref();
 	void o2_vdxtransition();
+	void o2_setvideoskip();
+	void o2_copyscreentobg();
+	void o2_copybgtoscreen();
 	void o2_stub52();
+	void o2_setscriptend();
 };
 
 } // End of Groovie namespace

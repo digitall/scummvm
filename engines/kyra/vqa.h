@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_VQA_H
@@ -28,17 +25,17 @@
 
 #include "common/scummsys.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 class OSystem;
 
 namespace Audio {
-class AppendableAudioStream;
-} // end of namespace Audio
+class QueuingAudioStream;
+} // End of namespace Audio
 
 namespace Common {
 class SeekableReadStream;
-} // end of namespace Common
+} // End of namespace Common
 
 namespace Kyra {
 
@@ -55,9 +52,6 @@ public:
 
 	// It's unlikely that we ever want to change the movie position from
 	// its default.
-
-	void setX(int x) { _x = x; }
-	void setY(int y) { _y = y; }
 
 	void setDrawPage(int page) { _drawPage = page; }
 
@@ -127,12 +121,12 @@ protected:
 
 	byte *_frame;
 
-	Audio::AppendableAudioStream *_stream;
+	Audio::QueuingAudioStream *_stream;
 	Audio::SoundHandle _sound;
 
 	uint32 readTag();
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif

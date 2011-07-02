@@ -18,18 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/endian.h"
-#include "common/savefile.h"
-#include "common/system.h"
-#include "graphics/thumbnail.h"
 
 #include "kyra/kyra_v1.h"
 #include "kyra/util.h"
+
+#include "common/savefile.h"
+#include "common/system.h"
+
+#include "graphics/thumbnail.h"
+#include "graphics/surface.h"
 
 #define CURRENT_SAVE_VERSION 16
 
@@ -46,13 +44,13 @@ KyraEngine_v1::kReadSaveHeaderError KyraEngine_v1::readSaveHeader(Common::Seekab
 	header.flags = 0;
 	header.thumbnail = 0;
 
-	if (type == MKID_BE('KYRA') || type == MKID_BE('ARYK')) { // old Kyra1 header ID
+	if (type == MKTAG('K','Y','R','A') || type == MKTAG('A','R','Y','K')) { // old Kyra1 header ID
 		header.gameID = GI_KYRA1;
 		header.oldHeader = true;
-	} else if (type == MKID_BE('HOFS')) { // old Kyra2 header ID
+	} else if (type == MKTAG('H','O','F','S')) { // old Kyra2 header ID
 		header.gameID = GI_KYRA2;
 		header.oldHeader = true;
-	} else if (type == MKID_BE('WWSV')) {
+	} else if (type == MKTAG('W','W','S','V')) {
 		header.gameID = in->readByte();
 	} else {
 		// try checking for original save header
@@ -70,12 +68,12 @@ KyraEngine_v1::kReadSaveHeaderError KyraEngine_v1::readSaveHeader(Common::Seekab
 
 			type = in->readUint32BE();
 			header.version = in->readUint16LE();
-			if (type == MKID_BE('MBL3') && header.version == 100) {
+			if (type == MKTAG('M','B','L','3') && header.version == 100) {
 				saveOk = true;
 				header.description = descriptionBuffer;
 				header.gameID = GI_KYRA2;
 				break;
-			} else if (type == MKID_BE('MBL4') && header.version == 102) {
+			} else if (type == MKTAG('M','B','L','4') && header.version == 102) {
 				saveOk = true;
 				header.description = descriptionBuffer;
 				header.gameID = GI_KYRA3;
@@ -93,7 +91,7 @@ KyraEngine_v1::kReadSaveHeaderError KyraEngine_v1::readSaveHeader(Common::Seekab
 	}
 
 	header.version = in->readUint32BE();
-	if (header.version > CURRENT_SAVE_VERSION || (header.oldHeader && header.version > 8) || (type == MKID_BE('ARYK') && header.version > 3))
+	if (header.version > CURRENT_SAVE_VERSION || (header.oldHeader && header.version > 8) || (type == MKTAG('A','R','Y','K') && header.version > 3))
 		return kRSHEInvalidVersion;
 
 	// Versions prior to 9 are using a fixed length description field
@@ -122,7 +120,7 @@ KyraEngine_v1::kReadSaveHeaderError KyraEngine_v1::readSaveHeader(Common::Seekab
 				header.thumbnail = 0;
 			}
 		} else {
-			Graphics::skipThumbnailHeader(*in);
+			Graphics::skipThumbnail(*in);
 		}
 	}
 
@@ -137,7 +135,7 @@ Common::SeekableReadStream *KyraEngine_v1::openSaveForReading(const char *filena
 	kReadSaveHeaderError errorCode = KyraEngine_v1::readSaveHeader(in, false, header);
 	if (errorCode != kRSHENoError) {
 		if (errorCode == kRSHEInvalidType)
-			warning("No ScummVM Kyra engine savefile header.");
+			warning("No ScummVM Kyra engine savefile header");
 		else if (errorCode == kRSHEInvalidVersion)
 			warning("Savegame is not the right version (%u, '%s')", header.version, header.oldHeader ? "true" : "false");
 		else if (errorCode == kRSHEIoError)
@@ -189,7 +187,7 @@ Common::WriteStream *KyraEngine_v1::openSaveForWriting(const char *filename, con
 	}
 
 	// Savegame version
-	out->writeUint32BE(MKID_BE('WWSV'));
+	out->writeUint32BE(MKTAG('W','W','S','V'));
 	out->writeByte(_flags.gameID);
 	out->writeUint32BE(CURRENT_SAVE_VERSION);
 	out->write(saveName, strlen(saveName)+1);
@@ -206,23 +204,31 @@ Common::WriteStream *KyraEngine_v1::openSaveForWriting(const char *filename, con
 		return 0;
 	}
 
+	Graphics::Surface *genThumbnail = 0;
+	if (!thumbnail)
+		thumbnail = genThumbnail = generateSaveThumbnail();
+
 	if (thumbnail)
 		Graphics::saveThumbnail(*out, *thumbnail);
 	else
 		Graphics::saveThumbnail(*out);
 
+	if (genThumbnail) {
+		genThumbnail->free();
+		delete genThumbnail;
+	}
+
 	return out;
 }
 
 const char *KyraEngine_v1::getSavegameFilename(int num) {
-	static Common::String filename;
-	filename = getSavegameFilename(_targetName, num);
-	return filename.c_str();
+	_savegameFilename = getSavegameFilename(_targetName, num);
+	return _savegameFilename.c_str();
 }
 
 Common::String KyraEngine_v1::getSavegameFilename(const Common::String &target, int num) {
 	assert(num >= 0 && num <= 999);
-	return target + Common::String::printf(".%03d", num);
+	return target + Common::String::format(".%03d", num);
 }
 
 bool KyraEngine_v1::saveFileLoadable(int slot) {
@@ -242,13 +248,15 @@ bool KyraEngine_v1::saveFileLoadable(int slot) {
 
 void KyraEngine_v1::checkAutosave() {
 	if (shouldPerformAutoSave(_lastAutosave)) {
-		saveGameState(999, "Autosave", 0);
+		saveGameStateIntern(999, "Autosave", 0);
 		_lastAutosave = _system->getMillis();
 	}
 }
 
 void KyraEngine_v1::loadGameStateCheck(int slot) {
-	if (loadGameState(slot) != Common::kNoError) {
+	// FIXME: Instead of throwing away the error returned by
+	// loadGameState, we should use it / augment it.
+	if (loadGameState(slot).getCode() != Common::kNoError) {
 		const char *filename = getSavegameFilename(slot);
 		Common::String errorMessage = "Could not load savegame: '";
 		errorMessage += filename;
@@ -259,5 +267,5 @@ void KyraEngine_v1::loadGameStateCheck(int slot) {
 	}
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

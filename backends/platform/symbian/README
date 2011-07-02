@@ -1,21 +1,20 @@
 
  ScummVM - ScummVM ported to EPOC/SymbianOS
 
- Copyright (C) 2008 ScummVM Team
+ Copyright (C) 2008-2011 ScummVM Team
  Copyright (C) 2003-2008 Lars 'AnotherGuest' Persson
- Copyright (C) 2002008 Jurgen 'SumthinWicked' Braam
+ Copyright (C) 2002-2008 Jurgen 'SumthinWicked' Braam
 
  Copyright (C) 2003-2005 Andreas 'Sprawl' Karlsson
- $Id$
 
-Using parts of snprintf.c by 
+Using parts of snprintf.c by
 Mark Martinec <mark.martinec@ijs.si>, April 1999, June 2000
-Copyright © 1999,2000,2001,2002 Mark Martinec. All rights reserved. 
+Copyright © 1999,2000,2001,2002 Mark Martinec. All rights reserved.
 under these conditions:
 "Terms and conditions ...
-This program is free software; it is dual licensed, the terms of the "Frontier Artistic License" or 
-the "GNU General Public License" can be chosen at your discretion. 
-The chosen license then applies solely and in its entirety. 
+This program is free software; it is dual licensed, the terms of the "Frontier Artistic License" or
+the "GNU General Public License" can be chosen at your discretion.
+The chosen license then applies solely and in its entirety.
 Both licenses come with this Kit."
 
 About ScummVM
@@ -23,6 +22,41 @@ About ScummVM
 	The original ports (uptil 0.7.1) were made by Andreas Karlsson and Lars Persson.
 	The main transition to 0.8.0CVS and all relevant changes were done by Jurgen Braam.
 	Jurgen and Lars have successfully transfered all needed changes into CVS/SVN, with additional helpful tools for Symbian OS
+
+Release History:
+	Release version: 1.2.1
+	* Symbian port now split in two parts, ScummVM 1 and ScummVM 2 to keep the exe size down.
+	  ScummVM 1 contains the following engines:
+	    scumm queen groovie saga drascula
+	    touche parallaction cine
+	    cruise made tucker
+
+	  ScummVM 2 contains the following engines:
+	    agos sky gob
+	    kyra lure agi tinsel
+	    sword1 sword2 draci sci teenagent
+
+	* See main readme for general ScummVM improvements, minor update
+	Release version: 1.2.0
+	* Nothing significant in the Symbian port, except SDL improvements (new SDL version used)
+	* See main readme for general ScummVM improvements, major update
+
+	Release version: 1.1.0
+	* Nothing significant in the Symbian port, except SDL improvements.
+	* See main readme for general ScummVM improvements, minor update
+
+	Release version: 1.0.0
+	* Nothing significant in the Symbian port, except SDL improvements.
+	* See main readme for general ScummVM improvements, minor update
+
+	Release version: 0.13.1
+	* Nothing significant in the Symbian port, except SDL improvements.
+	* See main readme for general ScummVM improvements, minor update
+
+	Release version: 0.13.1
+	* Nothing significant in the Symbian port, except SDL improvements
+	Release version: 0.13.0
+	* Nothing significant in the Symbian port, except SDL improvements
 
 	Release version: 0.12.0
 	* This version is only supported on Symbian OS 9 devices due to compiler constraints for older devices. (That means UIQ3 and S60V3 devices)
@@ -35,7 +69,7 @@ About ScummVM
 
 Games supported
 ---------------
-	The Symbian port of ScummVM supports all but Sword1 & 2 games. Some games might not run properly due to screenresolution or memory constraints.
+	The Symbian port of ScummVM supports all games. Some games might not run properly due to screenresolution or memory constraints.
 	Minimum free memory requirement is about 12MB to be able to start and run ScummVM, this is enough for most older games, but newer more resource hungry games, might require more.
 
 Building ScummVM
@@ -72,16 +106,13 @@ Building ScummVM
 
 	- libogg, the free media file container format
 	  http://www.xiph.org/ogg/
-	
+
 	- libvorbis, the free audio codec
 	  http://www.vorbis.com/
 	These are probably too heavy-duty for your phone:
 
 	- flac, the Free Lossless Audio Codec
 	  http://flac.sourceforge.net/
-
-	- libmpeg2, a free MPEG-2 video stream decoder
-	  http://libmpeg2.sourceforge.net
 
 	Compiling ScummVM
 	-----------------

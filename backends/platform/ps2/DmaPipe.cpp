@@ -18,17 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // minimalistic gfx pipe implementation based on Vzzrzzn's GfxPipe.
 
 #include <kernel.h>
 #include <malloc.h>
-#include "DmaPipe.h"
-#include "GsDefs.h"
+#include "backends/platform/ps2/DmaPipe.h"
+#include "backends/platform/ps2/GsDefs.h"
 
 class SinglePipe {
 public:

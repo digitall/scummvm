@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_IMUSE_INTERNAL
@@ -29,7 +26,7 @@
 #include "scumm/imuse/imuse.h"
 #include "scumm/imuse/instrument.h"
 #include "scumm/saveload.h"
-#include "sound/mididrv.h"
+#include "audio/mididrv.h"
 
 class MidiParser;
 class OSystem;
@@ -155,7 +152,7 @@ struct CommandQueue {
 //
 //////////////////////////////////////////////////
 
-class Player : public MidiDriver {
+class Player : public MidiDriver_BASE {
 /*
  * External SysEx handler functions shall each be defined in
  * a separate file. This header file shall be included at the
@@ -174,7 +171,6 @@ protected:
 protected:
 	MidiDriver *_midi;
 	MidiParser *_parser;
-	bool _passThrough; // Only respond to EOT, all else direct to MidiDriver
 
 	Part *_parts;
 	bool _active;
@@ -185,6 +181,7 @@ protected:
 	int8 _pan;
 	int8 _transpose;
 	int8 _detune;
+	int _note_offset;
 	byte _vol_eff;
 
 	uint _track_index;
@@ -232,6 +229,7 @@ protected:
 
 	// Sequencer part
 	int start_seq_sound(int sound, bool reset_vars = true);
+	void loadStartParameters(int sound);
 	int query_param(int param);
 
 public:
@@ -270,27 +268,21 @@ public:
 	void saveLoadWithSerializer(Serializer *ser);
 	int setHook(byte cls, byte value, byte chan) { return _hook.set(cls, value, chan); }
 	void setDetune(int detune);
+	void setOffsetNote(int offset);
 	bool setLoop(uint count, uint tobeat, uint totick, uint frombeat, uint fromtick);
 	void setPan(int pan);
 	void setPriority(int pri);
 	void setSpeed(byte speed);
 	int setTranspose(byte relative, int b);
 	int setVolume(byte vol);
-	bool startSound(int sound, MidiDriver *midi, bool passThrough);
+	bool startSound(int sound, MidiDriver *midi);
 	int getMusicTimer() const;
 
 public:
 	// MidiDriver interface
-	int open() { return 0; }
-	void close() { }
 	void send(uint32 b);
-	const char *getErrorName(int error_code) { return "Unknown"; }
 	void sysEx(const byte *msg, uint16 length);
 	void metaEvent(byte type, byte *data, uint16 length);
-	void setTimerCallback(void *timer_param, void(*timer_proc)(void *)) { }
-	uint32 getBaseTempo();
-	MidiChannel *allocateChannel() { return 0; }
-	MidiChannel *getPercussionChannel() { return 0; }
 };
 
 
@@ -361,12 +353,16 @@ struct Part : public Serializable {
 	void fix_after_load();
 
 	void sendAll();
-	void sendPitchBend();
 	bool clearToTransmit();
 
 	Part();
 
 	void saveLoadWithSerializer(Serializer *ser);
+
+private:
+	void sendPitchBend();
+	void sendPanPosition(uint8 value);
+	void sendEffectLevel(uint8 value);
 };
 
 
@@ -399,7 +395,6 @@ protected:
 	TimerCallbackInfo _timer_info_native;
 
 	uint32 _game_id;
-	byte **_base_sounds;
 
 	// Plug-in SysEx handling. Right now this only supports one
 	// custom SysEx handler for the hardcoded IMUSE_SYSEX_ID
@@ -418,7 +413,6 @@ protected:
 
 	int  _player_limit;       // Limits how many simultaneous music tracks are played
 	bool _recycle_players;    // Can we stop a player in order to start another one?
-	bool _direct_passthrough; // Pass data direct to MidiDriver (no interactivity)
 
 	uint _queue_end, _queue_pos, _queue_sound;
 	byte _queue_adding;
@@ -445,12 +439,21 @@ protected:
 
 protected:
 	IMuseInternal();
+	virtual ~IMuseInternal();
+
 	int initialize(OSystem *syst, MidiDriver *nativeMidiDriver, MidiDriver *adlibMidiDriver);
 
 	static void midiTimerCallback(void *data);
 	void on_timer(MidiDriver *midi);
 
-	byte *findStartOfSound(int sound);
+	enum ChunkType {
+		kMThd = 1,
+		kFORM = 2,
+		kMDhd = 4,	// Used in MI2 and INDY4. Contain certain start parameters (priority, volume, etc. ) for the player.
+		kMDpg = 8	// These chunks exist in DOTT and SAMNMAX. They don't get processed, however.
+	};
+
+	byte *findStartOfSound(int sound, int ct = (kMThd | kFORM));
 	bool isMT32(int sound);
 	bool isMIDI(int sound);
 	int get_queue_sound_status(int sound) const;
@@ -495,13 +498,13 @@ protected:
 	int setImuseMasterVolume(uint vol);
 
 	void reallocateMidiChannels(MidiDriver *midi);
-	void setGlobalAdlibInstrument(byte slot, byte *data);
-	void copyGlobalAdlibInstrument(byte slot, Instrument *dest);
+	void setGlobalAdLibInstrument(byte slot, byte *data);
+	void copyGlobalAdLibInstrument(byte slot, Instrument *dest);
 	bool isNativeMT32() { return _native_mt32; }
 
 protected:
 	// Internal mutex-free versions of the IMuse and MusicEngine methods.
-	bool startSound_internal(int sound);
+	bool startSound_internal(int sound, int offset = 0);
 	int stopSound_internal(int sound);
 	int stopAllSounds_internal();
 	int getSoundStatus_internal(int sound, bool ignoreFadeouts) const;
@@ -514,19 +517,19 @@ public:
 	int save_or_load(Serializer *ser, ScummEngine *scumm);
 	bool get_sound_active(int sound) const;
 	int32 doCommand(int numargs, int args[]);
-	void setBase(byte **base);
 	uint32 property(int prop, uint32 value);
 	virtual void addSysexHandler(byte mfgID, sysexfunc handler);
 
 public:
+	void startSoundWithNoteOffset(int sound, int offset);
+
 	// MusicEngine interface
 	void setMusicVolume(int vol);
 	void startSound(int sound);
 	void stopSound(int sound);
 	void stopAllSounds();
 	int getSoundStatus(int sound) const;
-	int getMusicTimer() const;
-	void terminate();
+	int getMusicTimer();
 
 public:
 	// Factory function

@@ -18,24 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KEYSDIALOG_H
 #define KEYSDIALOG_H
 
-#include "gui/GuiManager.h"
+#include "gui/gui-manager.h"
 #include "gui/dialog.h"
-#include "gui/ListWidget.h"
+#include "gui/widgets/list.h"
 #include "common/str.h"
+#include "common/translation.h"
 
 namespace GUI {
 
 class KeysDialog : public GUI::Dialog {
 public:
-	KeysDialog(const Common::String &title = "Choose an action to map");
+	KeysDialog(const Common::String &title = _("Choose an action to map"));
 
 	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
 	virtual void handleKeyUp(Common::KeyState state);

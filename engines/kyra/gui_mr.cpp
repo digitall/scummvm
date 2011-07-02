@@ -18,20 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/gui_mr.h"
 #include "kyra/kyra_mr.h"
 #include "kyra/text_mr.h"
-#include "kyra/wsamovie.h"
 #include "kyra/resource.h"
-#include "kyra/sound.h"
 #include "kyra/timer.h"
+#include "kyra/sound.h"
 
-#include "common/savefile.h"
+#include "common/system.h"
 
 #include "graphics/scaler.h"
 
@@ -130,7 +126,7 @@ void KyraEngine_MR::showMessageFromCCode(int string, uint8 c0, int) {
 	showMessage((const char *)getTableEntry(_cCodeFile, string), c0, 0xF0);
 }
 
-void KyraEngine_MR::updateItemCommand(int item, int str, uint8 c0) {
+void KyraEngine_MR::updateItemCommand(Item item, int str, uint8 c0) {
 	char buffer[100];
 	char *src = (char *)getTableEntry(_itemFile, item);
 
@@ -449,7 +445,7 @@ void KyraEngine_MR::redrawInventory(int page) {
 
 	for (int i = 0; i < 10; ++i) {
 		clearInventorySlot(i, page);
-		if (_mainCharacter.inventory[i] != 0xFFFF) {
+		if (_mainCharacter.inventory[i] != kItemNone) {
 			_screen->drawShape(page, getShapePtr(_mainCharacter.inventory[i]+248), _inventoryX[i], _inventoryY[i] + yOffset, 0, 0);
 			drawInventorySlot(page, _mainCharacter.inventory[i], i);
 		}
@@ -472,7 +468,7 @@ void KyraEngine_MR::clearInventorySlot(int slot, int page) {
 	_screen->drawShape(page, getShapePtr(slot+422), _inventoryX[slot], _inventoryY[slot] + yOffset, 0, 0);
 }
 
-void KyraEngine_MR::drawInventorySlot(int page, int item, int slot) {
+void KyraEngine_MR::drawInventorySlot(int page, Item item, int slot) {
 	int yOffset = 0;
 	if (page == 30) {
 		page = 2;
@@ -488,9 +484,9 @@ int KyraEngine_MR::buttonInventory(Button *button) {
 		return 0;
 
 	const int slot = button->index - 5;
-	const int16 slotItem = (int16)_mainCharacter.inventory[slot];
-	if (_itemInHand == -1) {
-		if (slotItem == -1)
+	const Item slotItem = _mainCharacter.inventory[slot];
+	if (_itemInHand == kItemNone) {
+		if (slotItem == kItemNone)
 			return 0;
 
 		_screen->hideMouse();
@@ -499,7 +495,7 @@ int KyraEngine_MR::buttonInventory(Button *button) {
 		setMouseCursor(slotItem);
 		updateItemCommand(slotItem, (_lang == 1) ? getItemCommandStringPickUp(slotItem) : 0, 0xFF);
 		_itemInHand = slotItem;
-		_mainCharacter.inventory[slot] = 0xFFFF;
+		_mainCharacter.inventory[slot] = kItemNone;
 		_screen->showMouse();
 	} else if (_itemInHand == 27) {
 		if (_chatText)
@@ -528,7 +524,7 @@ int KyraEngine_MR::buttonInventory(Button *button) {
 			updateItemCommand(_itemInHand, (_lang == 1) ? getItemCommandStringInv(_itemInHand) : 2, 0xFF);
 			_screen->showMouse();
 			_mainCharacter.inventory[slot] = _itemInHand;
-			_itemInHand = -1;
+			_itemInHand = kItemNone;
 		}
 	}
 
@@ -635,7 +631,7 @@ int KyraEngine_MR::buttonJesterStaff(Button *button) {
 		updateItemCommand(27, 2, 0xFF);
 		setGameFlag(0x97);
 		_screen->showMouse();
-	} else if (_itemInHand == -1) {
+	} else if (_itemInHand == kItemNone) {
 		if (queryGameFlag(0x97)) {
 			_screen->hideMouse();
 			snd_playSoundEffect(0x0B, 0xC8);
@@ -721,25 +717,25 @@ void KyraEngine_MR::showAlbum() {
 }
 
 void KyraEngine_MR::loadAlbumPage() {
-	char filename[16];
+	Common::String filename;
 	int num = _album.curPage / 2;
 
 	if (num == 0) {
-		strcpy(filename, "ALBUM0.CPS");
+		filename = "ALBUM0.CPS";
 	} else if (num >= 1 && num <= 6) {
 		--num;
 		num %= 2;
-		snprintf(filename, 16, "ALBUM%d.CPS", num+1);
+		filename = Common::String::format("ALBUM%d.CPS", num+1);
 	} else {
-		strcpy(filename, "ALBUM3.CPS");
+		filename = "ALBUM3.CPS";
 	}
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 4, Screen::CR_NO_P_CHECK);
-	_screen->loadBitmap(filename, 3, 3, 0);
+	_screen->loadBitmap(filename.c_str(), 3, 3, 0);
 }
 
 void KyraEngine_MR::loadAlbumPageWSA() {
-	char filename[16];
+	Common::String filename;
 
 	_album.leftPage.curFrame = 0;
 	_album.leftPage.maxFrame = 0;
@@ -750,14 +746,14 @@ void KyraEngine_MR::loadAlbumPageWSA() {
 	_album.rightPage.wsa->close();
 
 	if (_album.curPage) {
-		snprintf(filename, 16, "PAGE%x.WSA", _album.curPage);
-		_album.leftPage.wsa->open(filename, 1, 0);
+		filename = Common::String::format("PAGE%x.WSA", _album.curPage);
+		_album.leftPage.wsa->open(filename.c_str(), 1, 0);
 		_album.leftPage.maxFrame = _album.leftPage.wsa->frames()-1;
 	}
 
 	if (_album.curPage != 14) {
-		snprintf(filename, 16, "PAGE%x.WSA", _album.curPage+1);
-		_album.rightPage.wsa->open(filename, 1, 0);
+		filename = Common::String::format("PAGE%x.WSA", _album.curPage+1);
+		_album.rightPage.wsa->open(filename.c_str(), 1, 0);
 		_album.rightPage.maxFrame = _album.leftPage.wsa->frames()-1;
 	}
 }
@@ -829,8 +825,6 @@ void KyraEngine_MR::processAlbum() {
 		updateInput();
 		checkInput(buttonList);
 		removeInputTop();
-
-		musicUpdate(0);
 
 		if (_album.curPage != _album.nextPage) {
 			int oldPage = _album.curPage;
@@ -1085,11 +1079,6 @@ void GUI_MR::flagButtonDisable(Button *button) {
 	}
 }
 
-void GUI_MR::getInput() {
-	_vm->musicUpdate(0);
-	GUI_v2::getInput();
-}
-
 const char *GUI_MR::getMenuTitle(const Menu &menu) {
 	if (!menu.menuNameId)
 		return 0;
@@ -1141,7 +1130,7 @@ void GUI_MR::resetState(int item) {
 	_vm->setNextIdleAnimTimer();
 	_isDeathMenu = false;
 	if (!_loadedSave) {
-		_vm->_itemInHand = -1;
+		_vm->_itemInHand = kItemNone;
 		_vm->setHandItem(item);
 	} else {
 		_vm->setHandItem(_vm->_itemInHand);
@@ -1173,8 +1162,6 @@ int GUI_MR::quitGame(Button *caller) {
 int GUI_MR::optionsButton(Button *button) {
 	PauseTimer pause(*_vm->_timer);
 
-	_vm->musicUpdate(0);
-
 	_screen->hideMouse();
 	updateButton(&_vm->_mainButtonData[0]);
 	_screen->showMouse();
@@ -1200,7 +1187,6 @@ int GUI_MR::optionsButton(Button *button) {
 
 	int oldHandItem = _vm->_itemInHand;
 	_screen->setMouseCursor(0, 0, _vm->getShapePtr(0));
-	_vm->musicUpdate(0);
 
 	_displayMenu = true;
 	for (int i = 0; i < 4; ++i) {
@@ -1226,8 +1212,6 @@ int GUI_MR::optionsButton(Button *button) {
 
 	_currentMenu = &_mainMenu;
 
-	_vm->musicUpdate(0);
-
 	if (_vm->_menuDirectlyToLoad) {
 		backUpPage1(_vm->_screenBuffer);
 
@@ -1239,7 +1223,7 @@ int GUI_MR::optionsButton(Button *button) {
 
 		if (_loadedSave) {
 			if (_restartGame)
-				_vm->_itemInHand = -1;
+				_vm->_itemInHand = kItemNone;
 		} else {
 			restorePage1(_vm->_screenBuffer);
 		}
@@ -1256,7 +1240,6 @@ int GUI_MR::optionsButton(Button *button) {
 		_isDeathMenu = false;
 	}
 
-	_vm->musicUpdate(0);
 	backUpPage1(_vm->_screenBuffer);
 	initMenu(*_currentMenu);
 	_madeSave = false;
@@ -1380,7 +1363,7 @@ int GUI_MR::gameOptions(Button *caller) {
 
 		Graphics::Surface thumb;
 		createScreenThumbnail(thumb);
-		_vm->saveGameState(999, "Autosave", &thumb);
+		_vm->saveGameStateIntern(999, "Autosave", &thumb);
 		thumb.free();
 
 		_vm->_lastAutosave = _vm->_system->getMillis();
@@ -1407,7 +1390,6 @@ int GUI_MR::gameOptions(Button *caller) {
 }
 
 void GUI_MR::setupOptionsButtons() {
-	_vm->musicUpdate(0);
 	if (_vm->_configWalkspeed == 3)
 		_gameOptions.item[0].itemId = 28;
 	else
@@ -1624,5 +1606,5 @@ void GUI_MR::drawSliderBar(int slider, const uint8 *shape) {
 	_screen->drawShape(0, shape, x+position, y, 0, 0);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

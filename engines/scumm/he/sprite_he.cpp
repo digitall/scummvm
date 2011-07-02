@@ -18,12 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
+#ifdef ENABLE_HE
 
 #include "scumm/he/intern_he.h"
 #include "scumm/resource.h"
@@ -46,7 +43,7 @@ Sprite::~Sprite() {
 }
 
 void ScummEngine_v90he::allocateArrays() {
-	ScummEngine::allocateArrays();
+	ScummEngine_v70he::allocateArrays();
 	_sprite->allocTables(_numSprites, MAX(64, _numSprites / 4), 64);
 }
 
@@ -1442,3 +1439,5 @@ void Sprite::saveOrLoadSpriteData(Serializer *s) {
 }
 
 } // End of namespace Scumm
+
+#endif // ENABLE_HE

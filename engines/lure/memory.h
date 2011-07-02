@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_MEMORY_H
@@ -56,7 +53,7 @@ class Memory {
 public:
 	static MemoryBlock *allocate(uint32 size);
 	static MemoryBlock *duplicate(MemoryBlock *src);
-	static uint8 *alloc(uint32 size);
+	static void *alloc(uint32 size);
 	static void dealloc(void *block);
 };
 

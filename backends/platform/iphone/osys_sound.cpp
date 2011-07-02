@@ -18,10 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include "osys_main.h"
 
@@ -46,8 +46,7 @@ void OSystem_IPHONE::mixCallback(void *sys, byte *samples, int len) {
 }
 
 void OSystem_IPHONE::setupMixer() {
-	//printf("setSoundCallback()\n");
-	_mixer = new Audio::MixerImpl(this);
+	_mixer = new Audio::MixerImpl(this, AUDIO_SAMPLE_RATE);
 
 	s_soundCallback = mixCallback;
 	s_soundParam = this;
@@ -91,7 +90,6 @@ void OSystem_IPHONE::startSoundsystem() {
 		return;
 	}
 
-	_mixer->setOutputRate(AUDIO_SAMPLE_RATE);
 	_mixer->setReady(true);
 }
 
@@ -104,8 +102,4 @@ void OSystem_IPHONE::stopSoundsystem() {
 
 	AudioQueueDispose(s_AudioQueue.queue, true);
 	_mixer->setReady(false);
-}
-
-int OSystem_IPHONE::getOutputSampleRate() const {
-	return AUDIO_SAMPLE_RATE;
 }

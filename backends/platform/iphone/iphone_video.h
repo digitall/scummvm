@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef _IPHONE_VIDEO__H
@@ -43,8 +40,6 @@
 	SoftKeyboard* _keyboardView;
 	CALayer* _screenLayer;
 
-	int _fullWidth;
-	int _fullHeight;
 	int _widthOffset;
 	int _heightOffset;
 
@@ -56,6 +51,8 @@
 	GLint _visibleWidth;
 	GLint _visibleHeight;
 	GLuint _screenTexture;
+	GLuint _overlayTexture;
+	GLuint _mouseCursorTexture;
 }
 
 - (id)initWithFrame:(struct CGRect)frame;
@@ -67,6 +64,12 @@
 - (void)initSurface;
 
 - (void)updateSurface;
+- (void)updateMainSurface;
+- (void)updateOverlaySurface;
+- (void)updateMouseSurface;
+- (void)clearColorBuffer;
+
+-(void)updateMouseCursor;
 
 - (id)getEvent;
 

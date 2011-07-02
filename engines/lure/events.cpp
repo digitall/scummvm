@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -141,7 +138,8 @@ void Mouse::waitForRelease() {
 	LureEngine &engine = LureEngine::getReference();
 
 	do {
-		while (e.pollEvent() && !engine.shouldQuit()) ;
+		while (e.pollEvent() && !engine.shouldQuit())
+			;
 		g_system->delayMillis(20);
 	} while (!engine.shouldQuit() && (lButton() || rButton() || mButton()));
 }
@@ -226,4 +224,4 @@ bool Events::interruptableDelay(uint32 milliseconds) {
 	return false;
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

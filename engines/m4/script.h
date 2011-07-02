@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_SCRIPT_H
@@ -88,10 +85,10 @@ struct ScriptValue {
 		int value;
 	};
 
-	ScriptValue() : type(kInteger), value(0) {};
-	ScriptValue(ScriptValueType itype, int ivalue) : type(itype), value(ivalue) {};
+	ScriptValue() : type(kInteger), value(0) {}
+	ScriptValue(ScriptValueType itype, int ivalue) : type(itype), value(ivalue) {}
 
-	ScriptValue(const int intValue) : type(kInteger), value(intValue) {};
+	ScriptValue(const int intValue) : type(kInteger), value(intValue) {}
 
 	ScriptValue& operator=(const int intValue) {
 		type = kInteger;
@@ -119,9 +116,17 @@ public:
 	~ScriptDataCache() {
 		clear();
 	}
+
+	// WORKAROUND: The old prototype for this function was:
+	// template<class T> T *load(Common::File *fd, uint32 ofs);
+	// that caused a parser error in g++ 3.3.6 used by our
+	// "motoezx" target of our buildbot. The actual parser
+	// error happended, when calling the function like this:
+	// "T *result = _dataCache->load<T>(_scriptFile, _data[value.value]->offset);"
+	// in ScriptInterpreter::toData. To work around this
+	// we moved the return value as parameter instead.
 	template<class T>
-	T *load(Common::File *fd, uint32 ofs) {
-		T *item;
+	void load(Common::File *fd, uint32 ofs, T *&item) {
 		if (_cache.contains(ofs)) {
 			item = (T*)(_cache[ofs]);
 		} else {
@@ -130,7 +135,6 @@ public:
 			item->load(fd);
 			_cache[ofs] = item;
 		}
-		return item;
 	}
 	void clear() {
 		// TODO: Free all cached items
@@ -216,7 +220,7 @@ public:
 	uint32 readUint32();
 protected:
 	ScriptInterpreter *_inter;
-	Common::MemoryReadStream *_code;
+	Common::SeekableReadStream *_code;
 };
 
 struct ScriptFunctionEntry {
@@ -269,7 +273,7 @@ enum ScriptKernelVariable {
 
 class ScriptInterpreter {
 public:
-	ScriptInterpreter(M4Engine *vm);
+	ScriptInterpreter(MadsM4Engine *vm);
 	~ScriptInterpreter();
 	/* Opens a M4 program file */
 	void open(const char *filename);
@@ -298,9 +302,10 @@ public:
 	// Is this ok?
 	template<class T>
 	const T& toData(const ScriptValue &value) {
-		printf("ScriptInterpreter::toData() index = %d; type = %d; max = %d\n", value.value, _data[value.value]->type, _data.size());
+		debugCN(kDebugScript, "ScriptInterpreter::toData() index = %d; type = %d; max = %d\n", value.value, _data[value.value]->type, _data.size());
 		assert((uint32)value.value < _data.size());
-		T *result = _dataCache->load<T>(_scriptFile, _data[value.value]->offset);
+		T *result = 0;
+		_dataCache->load(_scriptFile, _data[value.value]->offset, result);
 		return *result;
 	}
 
@@ -314,7 +319,7 @@ public:
 
 protected:
 
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 
 	typedef Common::HashMap<Common::String, uint32, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> FunctionNameMap;
 	Common::File *_scriptFile;

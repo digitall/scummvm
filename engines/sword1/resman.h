@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_RESMAN_H
@@ -67,8 +64,8 @@ struct Prj {
 class ResMan {
 public:
 	ResMan(const char *fileName, bool isMacFile);
-	~ResMan(void);
-	void flush(void);
+	~ResMan();
+	void flush();
 	void resClose(uint32 id);
 	void resOpen(uint32 id);
 	void *fetchRes(uint32 id);
@@ -120,7 +117,7 @@ private:
 	void openScriptResourceLittleEndian(uint32 id);
 
 	void loadCluDescript(const char *fileName);
-	void freeCluDescript(void);
+	void freeCluDescript();
 	Prj _prj;
 	MemMan *_memMan;
 	static const uint32 _scriptList[TOTAL_SECTIONS];	//a table of resource tags

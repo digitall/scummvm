@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/scummsys.h"
@@ -34,7 +31,7 @@ struct TimerSlot {
 	uint32 interval;	// in microseconds
 
 	uint32 nextFireTime;	// in milliseconds
-	uint32 nextFireTimeMicro;	// mircoseconds part of nextFire
+	uint32 nextFireTimeMicro;	// microseconds part of nextFire
 
 	TimerSlot *next;
 };
@@ -124,6 +121,12 @@ bool DefaultTimerManager::installTimerProc(TimerProc callback, int32 interval, v
 	slot->nextFireTimeMicro = interval % 1000;
 	slot->next = 0;
 
+	// FIXME: It seems we do allow the client to add one callback multiple times over here,
+	// but "removeTimerProc" will remove *all* added instances. We should either prevent
+	// multiple additions of a timer proc OR we should change removeTimerProc to only remove
+	// a specific timer proc entry.
+	// Probably we can safely just allow a single addition of a specific function once
+	// and just update our Timer documentation accordingly.
 	insertPrioQueue(_head, slot);
 
 	return true;

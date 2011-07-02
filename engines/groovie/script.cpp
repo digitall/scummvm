@@ -18,22 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "groovie/debug.h"
-#include "groovie/music.h"
 #include "groovie/script.h"
-#include "groovie/groovie.h"
 #include "groovie/cell.h"
+#include "groovie/cursor.h"
+#include "groovie/graphics.h"
+#include "groovie/groovie.h"
+#include "groovie/music.h"
+#include "groovie/player.h"
+#include "groovie/resource.h"
 #include "groovie/saveload.h"
 
+#include "common/archive.h"
 #include "common/config-manager.h"
-#include "common/endian.h"
+#include "common/debug-channels.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
+#include "common/file.h"
+#include "common/macresman.h"
+#include "common/translation.h"
+
+#include "gui/message.h"
 
 #define NUM_OPCODES 90
 
@@ -45,8 +50,8 @@ static void debugScript(int level, bool nl, const char *s, ...) {
 	char buf[STRINGBUFLEN];
 	va_list va;
 
-	if (!Common::isDebugChannelEnabled(kGroovieDebugScript) &&
-	    !Common::isDebugChannelEnabled(kGroovieDebugAll))
+	if (!DebugMan.isDebugChannelEnabled(kGroovieDebugScript) &&
+	    !DebugMan.isDebugChannelEnabled(kGroovieDebugAll))
 		return;
 
 	va_start(va, s);
@@ -60,9 +65,10 @@ static void debugScript(int level, bool nl, const char *s, ...) {
 }
 
 Script::Script(GroovieEngine *vm, EngineVersion version) :
-	_code(NULL), _savedCode(NULL), _stacktop(0),
-	_debugger(NULL), _vm(vm),
-	_videoFile(NULL), _videoRef(0), _font(NULL), _staufsMove(NULL) {
+	_code(NULL), _savedCode(NULL), _stacktop(0), _debugger(NULL), _vm(vm),
+	_videoFile(NULL), _videoRef(0), _staufsMove(NULL), _lastCursor(0xff),
+	_version(version), _random("GroovieScripts") {
+
 	// Initialize the opcode set depending on the engine version
 	switch (version) {
 	case kGroovieT7G:
@@ -73,9 +79,6 @@ Script::Script(GroovieEngine *vm, EngineVersion version) :
 		break;
 	}
 
-	// Initialize the random source
-	g_eventRec.registerRandomSource(_random, "GroovieScripts");
-
 	// Prepare the variables
 	_bitflags = 0;
 	for (int i = 0; i < 0x400; i++) {
@@ -83,11 +86,11 @@ Script::Script(GroovieEngine *vm, EngineVersion version) :
 	}
 
 	// Initialize the music type variable
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-	if (midiDriver == MD_ADLIB) {
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_GM);
+	if (MidiDriver::getMusicType(dev) == MT_ADLIB) {
 		// MIDI through AdLib
 		setVariable(0x100, 0);
-	} else if ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32")) {
+	} else if ((MidiDriver::getMusicType(dev) == MT_MT32) || ConfMan.getBool("native_mt32")) {
 		// MT-32
 		setVariable(0x100, 2);
 	} else {
@@ -102,13 +105,13 @@ Script::Script(GroovieEngine *vm, EngineVersion version) :
 	_hotspotSlot = (uint16)-1;
 
 	_oldInstruction = (uint16)-1;
+	_videoSkipAddress = 0;
 }
 
 Script::~Script() {
 	delete[] _code;
 	delete[] _savedCode;
 
-	delete _font;
 	delete _videoFile;
 }
 
@@ -126,22 +129,29 @@ void Script::timerTick() {
 }
 
 bool Script::loadScript(Common::String filename) {
-	// Try to open the script file
-	Common::File scriptfile;
-	if (!scriptfile.open(filename)) {
-		return false;
+	Common::SeekableReadStream *scriptfile = 0;
+
+	if (_vm->_macResFork) {
+		// Try to open the script file from the resource fork
+		scriptfile = _vm->_macResFork->getResource(filename);
+	} else {
+		// Try to open the script file
+		scriptfile = SearchMan.createReadStreamForMember(filename);
 	}
+
+	if (!scriptfile)
+		return false;
 
 	// Save the script filename
 	_scriptFile = filename;
 
 	// Load the code
-	_codeSize = scriptfile.size();
+	_codeSize = scriptfile->size();
 	_code = new byte[_codeSize];
 	if (!_code)
 		return false;
-	scriptfile.read(_code, _codeSize);
-	scriptfile.close();
+	scriptfile->read(_code, _codeSize);
+	delete scriptfile;
 
 	// Patch the loaded code for known script bugs
 	if (filename.equals("dr.grv")) {
@@ -204,9 +214,7 @@ void Script::directGameLoad(int slot) {
 
 void Script::step() {
 	// Prepare the base debug string
-	char debugstring[10];
-	sprintf(debugstring, "@0x%04X: ", _currentInstruction);
-	_debugString = _scriptFile + debugstring;
+	_debugString = _scriptFile + Common::String::format("@0x%04X: ", _currentInstruction);
 
 	// Get the current opcode
 	byte opcode = readScript8bits();
@@ -214,12 +222,11 @@ void Script::step() {
 	opcode = opcode & 0x7F;
 
 	// Show the opcode debug string
-	sprintf(debugstring, "op 0x%02X: ", opcode);
-	_debugString += debugstring;
+	_debugString += Common::String::format("op 0x%02X: ", opcode);
 
 	// Only output if we're not re-doing the previous instruction
 	if (_currentInstruction != _oldInstruction) {
-		debugScript(1, false, _debugString.c_str());
+		debugScript(1, false, "%s", _debugString.c_str());
 
 		_oldInstruction = _currentInstruction;
 	}
@@ -235,8 +242,8 @@ void Script::step() {
 	(this->*op)();
 }
 
-void Script::setMouseClick() {
-	_eventMouseClicked = true;
+void Script::setMouseClick(uint8 button) {
+	_eventMouseClicked = button;
 }
 
 void Script::setKbdChar(uint8 c) {
@@ -266,11 +273,15 @@ uint8 Script::readScriptVar() {
 }
 
 uint16 Script::readScript16bits() {
-	return readScript8bits() | (readScript8bits() << 8);
+	uint8 lower = readScript8bits();
+	uint8 upper = readScript8bits();
+	return lower | (upper << 8);
 }
 
 uint32 Script::readScript32bits() {
-	return readScript16bits() | (readScript16bits() << 16);
+	uint16 lower = readScript16bits();
+	uint16 upper = readScript16bits();
+	return lower | (upper << 16);
 }
 
 uint16 Script::readScript8or16bits() {
@@ -309,7 +320,7 @@ uint8 Script::readScriptChar(bool allow7C, bool limitVal, bool limitVar) {
 	return result;
 }
 
-uint16 Script::getVideoRefString() {
+uint32 Script::getVideoRefString() {
 	Common::String str;
 	byte c;
 
@@ -355,11 +366,11 @@ bool Script::hotspot(Common::Rect rect, uint16 address, uint8 cursor) {
 	bool contained = rect.contains(mousepos);
 
 	// Show hotspots when debugging
-	if (Common::isDebugChannelEnabled(kGroovieDebugHotspots) ||
-	    Common::isDebugChannelEnabled(kGroovieDebugAll)) {
+	if (DebugMan.isDebugChannelEnabled(kGroovieDebugHotspots) ||
+	    DebugMan.isDebugChannelEnabled(kGroovieDebugAll)) {
 		rect.translate(0, -80);
 		_vm->_graphicsMan->_foreground.frameRect(rect, 250);
-		_vm->_system->copyRectToScreen((byte*)_vm->_graphicsMan->_foreground.getBasePtr(0, 0), 640, 0, 80, 640, 320);
+		_vm->_system->copyRectToScreen((byte*)_vm->_graphicsMan->_foreground.getBasePtr(0, 0), _vm->_graphicsMan->_foreground.pitch, 0, 80, 640, 320);
 		_vm->_system->updateScreen();
 	}
 
@@ -376,6 +387,7 @@ bool Script::hotspot(Common::Rect rect, uint16 address, uint8 cursor) {
 
 		// If clicked with the mouse, jump to the specified address
 		if (_mouseClicked) {
+			_lastCursor = cursor;
 			_inputAction = address;
 		}
 	}
@@ -400,6 +412,13 @@ void Script::savegame(uint slot) {
 	char newchar;
 	Common::OutSaveFile *file = SaveLoad::openForSaving(ConfMan.getActiveDomainName(), slot);
 
+	if (!file) {
+		debugC(9, kGroovieDebugScript, "Save file pointer is null");
+		GUI::MessageDialog dialog(_("Failed to save game"), _("OK"));
+		dialog.runModal();
+		return;
+	}
+
 	// Saving the variables. It is endian safe because they're byte variables
 	file->write(_variables, 0x400);
 	delete file;
@@ -415,6 +434,22 @@ void Script::savegame(uint slot) {
 		}
 	}
 	_saveNames[slot] = save;
+}
+
+void Script::printString(Graphics::Surface *surface, const char *str) {
+	char message[15];
+	memset(message, 0, 15);
+
+	// Preprocess the string
+	for (int i = 0; i < 14; i++) {
+		if (str[i] <= 0x00 || str[i] == 0x24)
+			break;
+		message[i] = str[i];
+	}
+	Common::rtrim(message);
+
+	// Draw the string
+	_vm->_font->drawString(surface, message, 0, 16, 640, 0xE2, Graphics::kTextAlignCenter);
 }
 
 // OPCODES
@@ -552,6 +587,10 @@ bool Script::playvideofromref(uint32 fileref) {
 
 		if (_videoFile) {
 			_videoRef = fileref;
+			// If teeth cursor, and in main script, mark video prefer low-speed
+			// filename check as sometimes teeth used for puzzle movements (bishops)
+			if (_version == kGroovieT7G && _lastCursor == 7 && _scriptFile == "script.grv")
+				_bitflags |= (1 << 15);
 			_vm->_videoPlayer->load(_videoFile, _bitflags);
 		} else {
 			error("Couldn't open file");
@@ -559,6 +598,21 @@ bool Script::playvideofromref(uint32 fileref) {
 		}
 
 		_bitflags = 0;
+
+		// Reset the clicked mouse events
+		_eventMouseClicked = 0;
+	}
+
+	// Check if the user wants to skip the video
+	if ((_eventMouseClicked == 2) && (_videoSkipAddress != 0)) {
+		// Jump to the given address
+		_currentInstruction = _videoSkipAddress;
+
+		// Reset the skip address
+		_videoSkipAddress = 0;
+
+		// End the playback
+		return true;
 	}
 
 	// Video available, play one frame
@@ -573,7 +627,7 @@ bool Script::playvideofromref(uint32 fileref) {
 			_videoRef = 0;
 
 			// Clear the input events while playing the video
-			_eventMouseClicked = false;
+			_eventMouseClicked = 0;
 			_eventKbdChar = 0;
 
 			// Newline
@@ -604,8 +658,8 @@ void Script::o_inputloopstart() {	//0x0B
 	_inputLoopAddress = _currentInstruction - 1;
 
 	// Save the current mouse state for the whole loop
-	_mouseClicked = _eventMouseClicked;
-	_eventMouseClicked = false;
+	_mouseClicked = (_eventMouseClicked == 1);
+	_eventMouseClicked = 0;
 
 	// Save the current pressed character for the whole loop
 	_kbdChar = _eventKbdChar;
@@ -675,7 +729,7 @@ void Script::o_hotspot_center() {
 
 	debugScript(5, true, "HOTSPOT-CENTER @0x%04X", address);
 
-	// Mark the centremost 240 pixels of the game area
+	// Mark the centermost 240 pixels of the game area
 	Common::Rect rect(200, 80, 440, 400);
 	hotspot(rect, address, 0);
 }
@@ -810,13 +864,12 @@ void Script::o_sleep() {
 
 void Script::o_strcmpnejmp() {			// 0x1A
 	uint16 varnum = readScript8or16bits();
-	uint8 val;
 	uint8 result = 1;
 
 	debugScript(1, false, "STRCMP-NEJMP: var[0x%04X..],", varnum);
 
 	do {
-		val = readScriptChar(true, true, true);
+		uint8 val = readScriptChar(true, true, true);
 
 		if (_variables[varnum] != val) {
 			result = 0;
@@ -932,12 +985,11 @@ void Script::o_copybgtofg() {			// 0x22
 
 void Script::o_strcmpeqjmp() {			// 0x23
 	uint16 varnum = readScript8or16bits();
-	uint8 val;
 	uint8 result = 1;
 
 	debugScript(1, false, "STRCMP-EQJMP: var[0x%04X..],", varnum);
 	do {
-		val = readScriptChar(true, true, true);
+		uint8 val = readScriptChar(true, true, true);
 
 		if (_variables[varnum] != val) {
 			result = 0;
@@ -975,7 +1027,7 @@ void Script::o_add() {
 
 void Script::o_videofromstring1() {
 	uint16 instStart = _currentInstruction;
-	uint16 fileref = getVideoRefString();
+	uint32 fileref = getVideoRefString();
 
 	// Show the debug information just when starting the playback
 	if (fileref != _videoRef) {
@@ -991,7 +1043,7 @@ void Script::o_videofromstring1() {
 
 void Script::o_videofromstring2() {
 	uint16 instStart = _currentInstruction;
-	uint16 fileref = getVideoRefString();
+	uint32 fileref = getVideoRefString();
 
 	// Show the debug information just when starting the playback
 	if (fileref != _videoRef) {
@@ -1108,12 +1160,11 @@ void Script::o_loadstringvar() {
 
 void Script::o_chargreatjmp() {
 	uint16 varnum = readScript8or16bits();
-	uint8 val;
 	uint8 result = 0;
 
 	debugScript(1, false, "CHARGREAT-JMP: var[0x%04X..],", varnum);
 	do {
-		val = readScriptChar(true, true, true);
+		uint8 val = readScriptChar(true, true, true);
 
 		if (val < _variables[varnum]) {
 			result = 1;
@@ -1138,12 +1189,11 @@ void Script::o_bf7off() {
 
 void Script::o_charlessjmp() {
 	uint16 varnum = readScript8or16bits();
-	uint8 val;
 	uint8 result = 0;
 
 	debugScript(1, false, "CHARLESS-JMP: var[0x%04X..],", varnum);
 	do {
-		val = readScriptChar(true, true, true);
+		uint8 val = readScriptChar(true, true, true);
 
 		if (val > _variables[varnum]) {
 			result = 1;
@@ -1206,14 +1256,14 @@ void Script::o_obscureswap() {
 }
 
 void Script::o_printstring() {
-	char stringstorage[15], newchar;
+	char stringstorage[15];
 	uint8 counter = 0;
 
 	debugScript(1, true, "PRINTSTRING");
 
 	memset(stringstorage, 0, 15);
 	do {
-		newchar = readScriptChar(true, true, true) + 0x30;
+		char newchar = readScriptChar(true, true, true) + 0x30;
 		if (newchar < 0x30 || newchar > 0x39) {		// If character is invalid, chuck a space in
 			if (newchar < 0x41 || newchar > 0x7A) {
 				newchar = 0x20;
@@ -1226,11 +1276,16 @@ void Script::o_printstring() {
 
 	stringstorage[counter] = 0;
 
-	// Load the font if required
-	if (!_font) {
-		_font = new Font(_vm->_system);
-	}
-	_font->printstring(stringstorage);
+	Common::Rect topbar(640, 80);
+	Graphics::Surface *gamescreen = _vm->_system->lockScreen();
+
+	// Clear the top bar
+	gamescreen->fillRect(topbar, 0);
+
+	// Draw the string
+	printString(gamescreen, stringstorage);
+
+	_vm->_system->unlockScreen();
 }
 
 void Script::o_hotspot_slot() {
@@ -1250,11 +1305,15 @@ void Script::o_hotspot_slot() {
 			return;
 		}
 
-		// Load the font if required
-		if (!_font) {
-			_font = new Font(_vm->_system);
-		}
-		_font->printstring(_saveNames[slot].c_str());
+		Common::Rect topbar(640, 80);
+		Graphics::Surface *gamescreen = _vm->_system->lockScreen();
+
+		// Clear the top bar
+		gamescreen->fillRect(topbar, 0);
+
+		printString(gamescreen, _saveNames[slot].c_str());
+
+		_vm->_system->unlockScreen();
 
 		// Save the currently highlighted slot
 		_hotspotSlot = slot;
@@ -1435,7 +1494,7 @@ void Script::o_returnscript() {
 	// Restore the filename of the script
 	_scriptFile = _savedScriptFile;
 
-	//TODO: reset script flags and previous video's flag1?
+	_vm->_videoPlayer->resetFlags();
 	_vm->_videoPlayer->setOrigin(0, 0);
 }
 
@@ -1535,20 +1594,19 @@ void Script::o_stub59() {
 	debugScript(1, true, "STUB59: 0x%04X 0x%02X", val1, val2);
 }
 
-void Script::o2_playsong(){
+void Script::o2_playsong() {
 	uint32 fileref = readScript32bits();
 	debugScript(1, true, "PlaySong(0x%08X): Play xmidi file", fileref);
 	_vm->_musicPlayer->playSong(fileref);
-
 }
 
-void Script::o2_setbackgroundsong(){
+void Script::o2_setbackgroundsong() {
 	uint32 fileref = readScript32bits();
 	debugScript(1, true, "SetBackgroundSong(0x%08X)", fileref);
 	_vm->_musicPlayer->setBackgroundSong(fileref);
 }
 
-void Script::o2_videofromref(){
+void Script::o2_videofromref() {
 	uint32 fileref = readScript32bits();
 
 	// Show the debug information just when starting the playback
@@ -1556,6 +1614,7 @@ void Script::o2_videofromref(){
 		debugScript(1, true, "VIDEOFROMREF(0x%08X) (Not fully imp): Play video file from ref", fileref);
 		debugC(5, kGroovieDebugVideo | kGroovieDebugAll, "Playing video 0x%08X via 0x09", fileref);
 	}
+
 	// Play the video
 	if (!playvideofromref(fileref)) {
 		// Move _currentInstruction back
@@ -1563,7 +1622,7 @@ void Script::o2_videofromref(){
 	}
 }
 
-void Script::o2_vdxtransition(){
+void Script::o2_vdxtransition() {
 	uint32 fileref = readScript32bits();
 
 	// Show the debug information just when starting the playback
@@ -1587,9 +1646,33 @@ void Script::o2_vdxtransition(){
 	}
 }
 
-void Script::o2_stub52(){
+void Script::o2_copyscreentobg() {
+	uint16 val = readScript16bits();
+
+	debugScript(1, true, "CopyScreenToBG3: 0x%04X", val);
+	error("Unimplemented Opcode 0x4F");
+}
+
+void Script::o2_copybgtoscreen() {
+	uint16 val = readScript16bits();
+
+	debugScript(1, true, "CopyBG3ToScreen: 0x%04X", val);
+	error("Unimplemented Opcode 0x50");
+}
+
+void Script::o2_setvideoskip() {
+	_videoSkipAddress = readScript16bits();
+	debugScript(1, true, "SetVideoSkip (0x%04X)", _videoSkipAddress);
+}
+
+void Script::o2_stub52() {
 	uint8 arg = readScript8bits();
 	debugScript(1, true, "STUB52 (0x%02X)", arg);
+}
+
+void Script::o2_setscriptend() {
+	uint16 arg = readScript16bits();
+	debugScript(1, true, "SetScriptEnd (0x%04X)", arg);
 }
 
 Script::OpcodeFunc Script::_opcodesT7G[NUM_OPCODES] = {
@@ -1692,11 +1775,11 @@ Script::OpcodeFunc Script::_opcodesV2[NUM_OPCODES] = {
 	&Script::o_invalid, // 0x00
 	&Script::o_nop,
 	&Script::o2_playsong,
-	&Script::o_bf9on,
-	&Script::o_palfadeout, // 0x04
-	&Script::o_bf8on,
-	&Script::o_bf6on,
-	&Script::o_bf7on,
+	&Script::o_nop,
+	&Script::o_nop, // 0x04
+	&Script::o_nop,
+	&Script::o_nop,
+	&Script::o_nop,
 	&Script::o2_setbackgroundsong, // 0x08
 	&Script::o2_videofromref,
 	&Script::o_bf5on,
@@ -1719,7 +1802,7 @@ Script::OpcodeFunc Script::_opcodesV2[NUM_OPCODES] = {
 	&Script::o_xor_obfuscate,
 	&Script::o2_vdxtransition, // 0x1C
 	&Script::o_swap,
-	&Script::o_nop8,
+	&Script::o_invalid,
 	&Script::o_inc,
 	&Script::o_dec, // 0x20
 	&Script::o_strcmpnejmp_var,
@@ -1729,10 +1812,10 @@ Script::OpcodeFunc Script::_opcodesV2[NUM_OPCODES] = {
 	&Script::o_add,
 	&Script::o_videofromstring1,
 	&Script::o_videofromstring2,
-	&Script::o_nop16, // 0x28
-	&Script::o_stopmidi,
-	&Script::o_endscript,
+	&Script::o_invalid, // 0x28
 	&Script::o_nop,
+	&Script::o_endscript,
+	&Script::o_invalid,
 	&Script::o_sethotspottop, // 0x2C
 	&Script::o_sethotspotbottom,
 	&Script::o_loadgame,
@@ -1759,22 +1842,22 @@ Script::OpcodeFunc Script::_opcodesV2[NUM_OPCODES] = {
 	&Script::o_returnscript,
 	&Script::o_sethotspotright, // 0x44
 	&Script::o_sethotspotleft,
-	&Script::o_nop,
-	&Script::o_nop,
-	&Script::o_nop8, // 0x48
-	&Script::o_nop,
+	&Script::o_invalid,
+	&Script::o_invalid,
+	&Script::o_invalid, // 0x48
+	&Script::o_invalid,
 	&Script::o_nop16,
-	&Script::o_nop8,
-	&Script::o_getcd, // 0x4C
-	&Script::o_playcd,
-	&Script::o_nop16,
-	&Script::o_nop16,
-	&Script::o_nop16, // 0x50
-	&Script::o_nop16,
+	&Script::o_invalid,
+	&Script::o_invalid, // 0x4C
+	&Script::o_invalid,
+	&Script::o_invalid,
+	&Script::o2_copyscreentobg,
+	&Script::o2_copybgtoscreen, // 0x50
+	&Script::o2_setvideoskip,
 	&Script::o2_stub52,
 	&Script::o_hotspot_outrect,
-	&Script::o_nop, // 0x54
-	&Script::o_nop16,
+	&Script::o_invalid, // 0x54
+	&Script::o2_setscriptend,
 	&Script::o_stub56,
 	&Script::o_invalid,
 	&Script::o_invalid, // 0x58

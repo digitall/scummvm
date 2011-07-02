@@ -8,6 +8,7 @@ MODULE_OBJS = \
 	console.o \
 	converse.o \
 	detection.o \
+	dialogs.o \
 	events.o \
 	font.o \
 	globals.o \
@@ -16,9 +17,14 @@ MODULE_OBJS = \
 	hotspot.o \
 	m4.o \
 	m4_menus.o \
+	m4_scene.o \
 	m4_views.o \
 	mads_anim.o \
+	mads_logic.o \
 	mads_menus.o \
+	mads_player.o \
+	mads_scene.o \
+	mads_views.o \
 	midi.o \
 	rails.o \
 	resource.o \
@@ -27,6 +33,7 @@ MODULE_OBJS = \
 	script.o \
 	sound.o \
 	sprite.o \
+	staticres.o \
 	viewmgr.o \
 	woodscript.o \
 	ws_machine.o \

@@ -18,33 +18,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
 
 #include "scumm/actor.h"
 #include "scumm/file.h"
 #include "scumm/imuse/imuse.h"
+#include "scumm/resource.h"
 #include "scumm/scumm.h"
 #include "scumm/he/sound_he.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/util.h"
 
 #include "common/config-manager.h"
+#include "common/memstream.h"
 #include "common/timer.h"
 #include "common/util.h"
 
-#include "sound/adpcm.h"
-#include "sound/audiocd.h"
-#include "sound/flac.h"
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
-#include "sound/mp3.h"
-#include "sound/voc.h"
-#include "sound/vorbis.h"
-#include "sound/wave.h"
+#include "audio/decoders/adpcm.h"
+#include "audio/decoders/flac.h"
+#include "audio/mididrv.h"
+#include "audio/mixer.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/voc.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/wave.h"
 
 namespace Scumm {
 
@@ -241,7 +239,7 @@ int SoundHE::isSoundCodeUsed(int sound) {
 			chan = i;
 	}
 
-	if (_mixer->isSoundHandleActive(_heSoundChannels[chan]) && chan != -1) {
+	if (chan != -1 && _mixer->isSoundHandleActive(_heSoundChannels[chan])) {
 		return _heChannel[chan].sbngBlock;
 	} else {
 		return 0;
@@ -255,7 +253,7 @@ int SoundHE::getSoundPos(int sound) {
 			chan = i;
 	}
 
-	if (_mixer->isSoundHandleActive(_heSoundChannels[chan]) && chan != -1) {
+	if (chan != -1 && _mixer->isSoundHandleActive(_heSoundChannels[chan])) {
 		int time =  _vm->getHETimer(chan + 4) * _heChannel[chan].rate / 1000;
 		return time;
 	} else {
@@ -276,7 +274,7 @@ int SoundHE::getSoundVar(int sound, int var) {
 			chan = i;
 	}
 
-	if (_mixer->isSoundHandleActive(_heSoundChannels[chan]) && chan != -1) {
+	if (chan != -1 && _mixer->isSoundHandleActive(_heSoundChannels[chan])) {
 		debug(5, "getSoundVar: sound %d var %d result %d", sound, var, _heChannel[chan].soundVars[var]);
 		return _heChannel[chan].soundVars[var];
 	} else {
@@ -304,13 +302,13 @@ void SoundHE::setOverrideFreq(int freq) {
 }
 
 void SoundHE::setupHEMusicFile() {
-	int i, total_size;
+	int i;
 	Common::File musicFile;
 	Common::String buf(_vm->generateFilename(-4));
 
 	if (musicFile.open(buf) == true) {
 		musicFile.seek(4, SEEK_SET);
-		total_size = musicFile.readUint32BE();
+		/*int total_size =*/ musicFile.readUint32BE();
 		musicFile.seek(16, SEEK_SET);
 		_heMusicTracks = musicFile.readUint32LE();
 		debug(5, "Total music tracks %d", _heMusicTracks);
@@ -499,11 +497,11 @@ byte *findSoundTag(uint32 tag, byte *ptr) {
 	byte *endPtr;
 	uint32 offset, size;
 
-	if (READ_BE_UINT32(ptr) == MKID_BE('WSOU')) {
+	if (READ_BE_UINT32(ptr) == MKTAG('W','S','O','U')) {
 		ptr += 8;
 	}
 
-	if (READ_BE_UINT32(ptr) != MKID_BE('RIFF'))
+	if (READ_BE_UINT32(ptr) != MKTAG('R','I','F','F'))
 		return NULL;
 
 	endPtr = (ptr + 12);
@@ -528,10 +526,11 @@ byte *findSoundTag(uint32 tag, byte *ptr) {
 }
 
 void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags) {
+	Audio::RewindableAudioStream *stream = 0;
 	byte *ptr, *spoolPtr;
 	int size = -1;
 	int priority, rate;
-	byte flags = Audio::Mixer::FLAG_UNSIGNED;
+	byte flags = Audio::FLAG_UNSIGNED;
 
 	Audio::Mixer::SoundType type = Audio::Mixer::kSFXSoundType;
 	if (soundID > _vm->_numSounds)
@@ -573,7 +572,8 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 		musicFile.close();
 
 		if (_vm->_game.heversion == 70) {
-			_mixer->playRaw(type, &_heSoundChannels[heChannel], spoolPtr, size, 11025, flags, soundID);
+			stream = Audio::makeRawStream(spoolPtr, size, 11025, flags, DisposeAfterUse::NO);
+			_mixer->playStream(type, &_heSoundChannels[heChannel], stream, soundID);
 			return;
 		}
 	}
@@ -589,15 +589,14 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 	}
 
 	// Support for sound in later HE games
-	if (READ_BE_UINT32(ptr) == MKID_BE('RIFF') || READ_BE_UINT32(ptr) == MKID_BE('WSOU')) {
+	if (READ_BE_UINT32(ptr) == MKTAG('R','I','F','F') || READ_BE_UINT32(ptr) == MKTAG('W','S','O','U')) {
 		uint16 compType;
 		int blockAlign;
-		char *sound;
 		int codeOffs = -1;
 
 		priority = (soundID > _vm->_numSounds) ? 255 : *(ptr + 18);
 
-		byte *sbngPtr = findSoundTag(MKID_BE('SBNG'), ptr);
+		byte *sbngPtr = findSoundTag(MKTAG('S','B','N','G'), ptr);
 		if (sbngPtr != NULL) {
 			codeOffs = sbngPtr - ptr + 8;
 		}
@@ -610,13 +609,13 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 				return;
 		}
 
-		if (READ_BE_UINT32(ptr) == MKID_BE('WSOU'))
+		if (READ_BE_UINT32(ptr) == MKTAG('W','S','O','U'))
 			ptr += 8;
 
 		size = READ_LE_UINT32(ptr + 4);
-		Common::MemoryReadStream stream(ptr, size);
+		Common::MemoryReadStream memStream(ptr, size);
 
-		if (!Audio::loadWAVFromStream(stream, size, rate, flags, &compType, &blockAlign)) {
+		if (!Audio::loadWAVFromStream(memStream, size, rate, flags, &compType, &blockAlign)) {
 			error("playHESound: Not a valid WAV file (%d)", soundID);
 		}
 
@@ -635,7 +634,6 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 
 		// TODO: Extra sound flags
 		if (heFlags & 1) {
-			flags |= Audio::Mixer::FLAG_LOOP;
 			_heChannel[heChannel].timer = 0;
 		} else {
 			_heChannel[heChannel].timer = size * 1000 / rate;
@@ -643,10 +641,18 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 
 		_mixer->stopHandle(_heSoundChannels[heChannel]);
 		if (compType == 17) {
-			Audio::AudioStream *voxStream = Audio::makeADPCMStream(&stream, false, size, Audio::kADPCMMSIma, rate, (flags & Audio::Mixer::FLAG_STEREO) ? 2 : 1, blockAlign);
+			Audio::AudioStream *voxStream = Audio::makeADPCMStream(&memStream, DisposeAfterUse::NO, size, Audio::kADPCMMSIma, rate, (flags & Audio::FLAG_STEREO) ? 2 : 1, blockAlign);
 
-			sound = (char *)malloc(size * 4);
-			size = voxStream->readBuffer((int16*)sound, size * 2);
+			// FIXME: Get rid of this crude hack to turn a ADPCM stream into a raw stream.
+			// It seems it is only there to allow looping -- if that is true, we certainly
+			// can do without it, using a LoopingAudioStream.
+
+			byte *sound = (byte *)malloc(size * 4);
+			/* On systems where it matters, malloc will return
+			 * even addresses, so the use of (void *) in the
+			 * following cast shuts the compiler from warning
+			 * unnecessarily. */
+			size = voxStream->readBuffer((int16*)(void *)sound, size * 2);
 			size *= 2; // 16bits.
 			delete voxStream;
 
@@ -654,14 +660,20 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 			if (_heChannel[heChannel].timer)
 				_heChannel[heChannel].timer = size * 1000 / rate;
 
-			flags |= Audio::Mixer::FLAG_AUTOFREE;
-			_mixer->playRaw(type, &_heSoundChannels[heChannel], sound + heOffset, size - heOffset, rate, flags, soundID);
+			// makeADPCMStream returns a stream in native endianness, but RawMemoryStream
+			// defaults to big endian. If we're on a little endian system, set the LE flag.
+#ifdef SCUMM_LITTLE_ENDIAN
+			flags |= Audio::FLAG_LITTLE_ENDIAN;
+#endif
+			stream = Audio::makeRawStream(sound + heOffset, size - heOffset, rate, flags);
 		} else {
-			_mixer->playRaw(type, &_heSoundChannels[heChannel], ptr + stream.pos() + heOffset, size - heOffset, rate, flags, soundID);
+			stream = Audio::makeRawStream(ptr + memStream.pos() + heOffset, size - heOffset, rate, flags, DisposeAfterUse::NO);
 		}
+		_mixer->playStream(type, &_heSoundChannels[heChannel],
+						Audio::makeLoopingAudioStream(stream, (heFlags & 1) ? 0 : 1), soundID);
 	}
 	// Support for sound in Humongous Entertainment games
-	else if (READ_BE_UINT32(ptr) == MKID_BE('DIGI') || READ_BE_UINT32(ptr) == MKID_BE('TALK')) {
+	else if (READ_BE_UINT32(ptr) == MKTAG('D','I','G','I') || READ_BE_UINT32(ptr) == MKTAG('T','A','L','K')) {
 		byte *sndPtr = ptr;
 		int codeOffs = -1;
 
@@ -679,12 +691,12 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 				return;
 		}
 
-		if (READ_BE_UINT32(ptr) == MKID_BE('SBNG')) {
+		if (READ_BE_UINT32(ptr) == MKTAG('S','B','N','G')) {
 			codeOffs = ptr - sndPtr + 8;
 			ptr += READ_BE_UINT32(ptr + 4);
 		}
 
-		assert(READ_BE_UINT32(ptr) == MKID_BE('SDAT'));
+		assert(READ_BE_UINT32(ptr) == MKTAG('S','D','A','T'));
 		size = READ_BE_UINT32(ptr + 4) - 8;
 		if (heOffset < 0 || heOffset > size) {
 			// Occurs when making fireworks in puttmoon
@@ -708,39 +720,45 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 
 		// TODO: Extra sound flags
 		if (heFlags & 1) {
-			flags |= Audio::Mixer::FLAG_LOOP;
 			_heChannel[heChannel].timer = 0;
 		} else {
 			_heChannel[heChannel].timer = size * 1000 / rate;
 		}
 
 		_mixer->stopHandle(_heSoundChannels[heChannel]);
-		_mixer->playRaw(type, &_heSoundChannels[heChannel], ptr + heOffset + 8, size, rate, flags, soundID);
+
+		stream = Audio::makeRawStream(ptr + heOffset + 8, size, rate, flags, DisposeAfterUse::NO);
+		_mixer->playStream(type, &_heSoundChannels[heChannel],
+						Audio::makeLoopingAudioStream(stream, (heFlags & 1) ? 0 : 1), soundID);
 	}
 	// Support for PCM music in 3DO versions of Humongous Entertainment games
-	else if (READ_BE_UINT32(ptr) == MKID_BE('MRAW')) {
+	else if (READ_BE_UINT32(ptr) == MKTAG('M','R','A','W')) {
 		priority = *(ptr + 18);
 		rate = READ_LE_UINT16(ptr + 22);
 
 		// Skip DIGI (8) and HSHD (24) blocks
 		ptr += 32;
 
-		assert(READ_BE_UINT32(ptr) == MKID_BE('SDAT'));
+		assert(READ_BE_UINT32(ptr) == MKTAG('S','D','A','T'));
 		size = READ_BE_UINT32(ptr + 4) - 8;
 
-		flags = Audio::Mixer::FLAG_AUTOFREE;
 		byte *sound = (byte *)malloc(size);
 		memcpy(sound, ptr + 8, size);
 
 		_mixer->stopID(_currentMusic);
 		_currentMusic = soundID;
-		_mixer->playRaw(Audio::Mixer::kMusicSoundType, NULL, sound, size, rate, flags, soundID);
+
+		stream = Audio::makeRawStream(sound, size, rate, 0);
+		_mixer->playStream(Audio::Mixer::kMusicSoundType, NULL, stream, soundID);
 	}
-	else if (READ_BE_UINT32(ptr) == MKID_BE('MIDI')) {
+	else if (READ_BE_UINT32(ptr) == MKTAG('M','I','D','I')) {
 		if (_vm->_imuse) {
+			// This is used in the DOS version of Fatty Bear's
+			// Birthday Surprise to change the note on the piano
+			// when not using a digitized instrument.
 			_vm->_imuse->stopSound(_currentMusic);
 			_currentMusic = soundID;
-			_vm->_imuse->startSound(soundID);
+			_vm->_imuse->startSoundWithNoteOffset(soundID, heOffset);
 		}
 	}
 }
@@ -813,9 +831,9 @@ void ScummEngine_v80he::createSound(int snd1id, int snd2id) {
 			chan =  i;
 	}
 
-	if (!findSoundTag(MKID_BE('data'), snd1Ptr)) {
-		sbng1Ptr = heFindResource(MKID_BE('SBNG'), snd1Ptr);
-		sbng2Ptr = heFindResource(MKID_BE('SBNG'), snd2Ptr);
+	if (!findSoundTag(MKTAG('d','a','t','a'), snd1Ptr)) {
+		sbng1Ptr = heFindResource(MKTAG('S','B','N','G'), snd1Ptr);
+		sbng2Ptr = heFindResource(MKTAG('S','B','N','G'), snd2Ptr);
 	}
 
 	if (sbng1Ptr != NULL && sbng2Ptr != NULL) {
@@ -859,10 +877,10 @@ void ScummEngine_v80he::createSound(int snd1id, int snd2id) {
 		}
 	}
 
-	if (findSoundTag(MKID_BE('data'), snd1Ptr)) {
-		sdat1Ptr = findSoundTag(MKID_BE('data'), snd1Ptr);
+	if (findSoundTag(MKTAG('d','a','t','a'), snd1Ptr)) {
+		sdat1Ptr = findSoundTag(MKTAG('d','a','t','a'), snd1Ptr);
 		assert(sdat1Ptr);
-		sdat2Ptr = findSoundTag(MKID_BE('data'), snd2Ptr);
+		sdat2Ptr = findSoundTag(MKTAG('d','a','t','a'), snd2Ptr);
 		assert(sdat2Ptr);
 
 		if (!_sndDataSize)
@@ -870,9 +888,9 @@ void ScummEngine_v80he::createSound(int snd1id, int snd2id) {
 
 		sdat2size = READ_LE_UINT32(sdat2Ptr + 4) - 8;
 	} else {
-		sdat1Ptr = heFindResource(MKID_BE('SDAT'), snd1Ptr);
+		sdat1Ptr = heFindResource(MKTAG('S','D','A','T'), snd1Ptr);
 		assert(sdat1Ptr);
-		sdat2Ptr = heFindResource(MKID_BE('SDAT'), snd2Ptr);
+		sdat2Ptr = heFindResource(MKTAG('S','D','A','T'), snd2Ptr);
 		assert(sdat2Ptr);
 
 		_sndDataSize = READ_BE_UINT32(sdat1Ptr + 4) - 8;

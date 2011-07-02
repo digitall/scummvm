@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_DW_H
@@ -42,8 +39,6 @@ typedef int HPOLYGON;
 #define	LF_CHAR			'\x0a'		// line feed
 
 // file names
-#define	SAMPLE_FILE		"english.smp"	// all samples
-#define	SAMPLE_INDEX		"english.idx"	// sample index filename
 #define	MIDI_FILE		"midi.dat"	// all MIDI sequences
 #define	INDEX_FILENAME		"index"		// name of index file
 #define PSX_INDEX_FILENAME	"index.dat" // name of index file in psx version
@@ -100,7 +95,7 @@ typedef int HPOLYGON;
 #define NO_ENTRY_NUM	(-3458)	// Magic unlikely number
 
 
-#define SAMPLETIMEOUT	(15*ONE_SECOND)
+#define SAMPLETIMEOUT	(20*ONE_SECOND)
 
 // Language for the resource strings
 enum LANGUAGE {
@@ -117,6 +112,6 @@ enum LANGUAGE {
 #define CANNOT_FIND_FILE "Cannot find file %s"
 #define NO_MEM "Cannot allocate memory for %s!"
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	// TINSEL_DW_H

@@ -17,247 +17,307 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
+#include "common/textconsole.h"
 #include "common/util.h"
+
+#include "graphics/palette.h"
 
 #include "scumm/resource.h"
 #include "scumm/scumm.h"
 #include "scumm/scumm_v6.h"
 #include "scumm/scumm_v8.h"
 #include "scumm/util.h"
+#include "scumm/charset.h"
 
 namespace Scumm {
 
+uint8 *ScummEngine::getHEPaletteSlot(uint16 palSlot) {
+	assertRange(0, palSlot, _numPalettes, "palette");
+
+	if (_game.heversion >= 99) {
+		if (palSlot)
+			return _hePalettes + palSlot * _hePaletteSlot + 768;
+		else
+			return _hePalettes + _hePaletteSlot + 768;
+	}
+
+	return NULL;
+}
+
+uint16 ScummEngine::get16BitColor(uint8 r, uint8 g, uint8 b) {
+	return _outputPixelFormat.RGBToColor(r, g, b);
+}
+
 void ScummEngine::resetPalette() {
+	static const byte tableC64Palette[] = {
+#if 1  // VICE-based palette. See bug #2847001
+		0x00, 0x00, 0x00,	0xFF, 0xFF, 0xFF,	0x7E, 0x35, 0x2B,	0x6E, 0xB7, 0xC1,
+		0x7F, 0x3B, 0xA6,	0x5C, 0xA0, 0x35,	0x33, 0x27, 0x99,	0xCB, 0xD7, 0x65,
+		0x85, 0x53, 0x1C,	0x50, 0x3C, 0x00,	0xB4, 0x6B, 0x61,	0x4A, 0x4A, 0x4A,
+		0x75, 0x75, 0x75,	0xA3, 0xE7, 0x7C,	0x70, 0x64, 0xD6,	0xA3, 0xA3, 0xA3,
+#else
+		0x00, 0x00, 0x00, 	0xFD, 0xFE, 0xFC, 	0xBE, 0x1A, 0x24, 	0x30, 0xE6, 0xC6,
+		0xB4, 0x1A, 0xE2, 	0x1F, 0xD2, 0x1E, 	0x21, 0x1B, 0xAE, 	0xDF, 0xF6, 0x0A,
+		0xB8, 0x41, 0x04, 	0x6A, 0x33, 0x04, 	0xFE, 0x4A, 0x57, 	0x42, 0x45, 0x40,
+		0x70, 0x74, 0x6F, 	0x59, 0xFE, 0x59, 	0x5F, 0x53, 0xFE, 	0xA4, 0xA7, 0xA2,
+#endif
+		// Use 17 color table for v1 games to allow correct color for inventory and
+		// sentence line. Original games used some kind of dynamic color table
+		// remapping between rooms.
+		0x7F, 0x3B, 0xA6
+	};
+
+	static const byte tableNESPalette[] = {
+		/*    0x1D     */
+		0x24, 0x24, 0x24, 	0x00, 0x24, 0x92, 	0x00, 0x00, 0xDB, 	0x6D, 0x49, 0xDB,
+		0x92, 0x00, 0x6D, 	0xB6, 0x00, 0x6D, 	0xB6, 0x24, 0x00, 	0x92, 0x49, 0x00,
+		0x6D, 0x49, 0x00, 	0x24, 0x49, 0x00, 	0x00, 0x6D, 0x24, 	0x00, 0x92, 0x00,
+		0x00, 0x49, 0x49, 	0x00, 0x00, 0x00, 	0x00, 0x00, 0x00, 	0x00, 0x00, 0x00,
+
+		0xB6, 0xB6, 0xB6, 	0x00, 0x6D, 0xDB, 	0x00, 0x49, 0xFF, 	0x92, 0x00, 0xFF,
+		0xB6, 0x00, 0xFF, 	0xFF, 0x00, 0x92, 	0xFF, 0x00, 0x00, 	0xDB, 0x6D, 0x00,
+		0x92, 0x6D, 0x00, 	0x24, 0x92, 0x00, 	0x00, 0x92, 0x00, 	0x00, 0xB6, 0x6D,
+							/*    0x00     */
+		0x00, 0x92, 0x92, 	0x6D, 0x6D, 0x6D, 	0x00, 0x00, 0x00, 	0x00, 0x00, 0x00,
+
+		0xFF, 0xFF, 0xFF, 	0x6D, 0xB6, 0xFF, 	0x92, 0x92, 0xFF, 	0xDB, 0x6D, 0xFF,
+		0xFF, 0x00, 0xFF, 	0xFF, 0x6D, 0xFF, 	0xFF, 0x92, 0x00, 	0xFF, 0xB6, 0x00,
+		0xDB, 0xDB, 0x00, 	0x6D, 0xDB, 0x00, 	0x00, 0xFF, 0x00, 	0x49, 0xFF, 0xDB,
+		0x00, 0xFF, 0xFF, 	0x49, 0x49, 0x49, 	0x00, 0x00, 0x00, 	0x00, 0x00, 0x00,
+
+		0xFF, 0xFF, 0xFF, 	0xB6, 0xDB, 0xFF, 	0xDB, 0xB6, 0xFF, 	0xFF, 0xB6, 0xFF,
+		0xFF, 0x92, 0xFF, 	0xFF, 0xB6, 0xB6, 	0xFF, 0xDB, 0x92, 	0xFF, 0xFF, 0x49,
+		0xFF, 0xFF, 0x6D, 	0xB6, 0xFF, 0x49, 	0x92, 0xFF, 0x6D, 	0x49, 0xFF, 0xDB,
+		0x92, 0xDB, 0xFF, 	0x92, 0x92, 0x92, 	0x00, 0x00, 0x00, 	0x00, 0x00, 0x00
+	};
+
+	static const byte tableAmigaPalette[] = {
+		0x00, 0x00, 0x00, 	0x00, 0x00, 0xBB, 	0x00, 0xBB, 0x00, 	0x00, 0xBB, 0xBB,
+		0xBB, 0x00, 0x00, 	0xBB, 0x00, 0xBB, 	0xBB, 0x77, 0x00, 	0xBB, 0xBB, 0xBB,
+		0x77, 0x77, 0x77, 	0x77, 0x77, 0xFF, 	0x00, 0xFF, 0x00, 	0x00, 0xFF, 0xFF,
+		0xFF, 0x88, 0x88, 	0xFF, 0x00, 0xFF, 	0xFF, 0xFF, 0x00, 	0xFF, 0xFF, 0xFF
+	};
+
+	static const byte tableAmigaMIPalette[] = {
+		0x00, 0x00, 0x00, 	0x00, 0x00, 0xAA, 	0x00, 0x88, 0x22, 	0x00, 0x66, 0x77,
+		0xBB, 0x66, 0x66, 	0xAA, 0x22, 0xAA, 	0x88, 0x55, 0x22, 	0x77, 0x77, 0x77,
+		0x33, 0x33, 0x33, 	0x22, 0x55, 0xDD, 	0x22, 0xDD, 0x44, 	0x00, 0xCC, 0xFF,
+		0xFF, 0x99, 0x99, 	0xFF, 0x55, 0xFF, 	0xFF, 0xFF, 0x77, 	0xFF, 0xFF, 0xFF
+	};
+
+	static const byte tableEGAPalette[] = {
+		0x00, 0x00, 0x00, 	0x00, 0x00, 0xAA, 	0x00, 0xAA, 0x00, 	0x00, 0xAA, 0xAA,
+		0xAA, 0x00, 0x00, 	0xAA, 0x00, 0xAA, 	0xAA, 0x55, 0x00, 	0xAA, 0xAA, 0xAA,
+		0x55, 0x55, 0x55, 	0x55, 0x55, 0xFF, 	0x55, 0xFF, 0x55, 	0x55, 0xFF, 0xFF,
+		0xFF, 0x55, 0x55, 	0xFF, 0x55, 0xFF, 	0xFF, 0xFF, 0x55, 	0xFF, 0xFF, 0xFF
+	};
+
+	static const byte tableV1Palette[] = {
+		0x00, 0x00, 0x00, 	0xFF, 0xFF, 0xFF, 	0xAA, 0x00, 0x00, 	0x00, 0xAA, 0xAA,
+		0xAA, 0x00, 0xAA, 	0x00, 0xAA, 0x00, 	0x00, 0x00, 0xAA, 	0xFF, 0xFF, 0x55,
+		0xFF, 0x55, 0x55, 	0xAA, 0x55, 0x00, 	0xFF, 0x55, 0x55, 	0x55, 0x55, 0x55,
+		0xAA, 0xAA, 0xAA, 	0x55, 0xFF, 0x55, 	0x55, 0x55, 0xFF, 	0x55, 0x55, 0x55,
+
+		0xFF, 0x55, 0xFF
+	};
+
+	static const byte tableCGAPalette[] = {
+		0x00, 0x00, 0x00, 	0x00, 0xA8, 0xA8,	0xA8, 0x00, 0xA8, 	0xA8, 0xA8, 0xA8
+	};
+
+	static const byte tableHercAPalette[] = {
+		0x00, 0x00, 0x00, 	0xAE, 0x69, 0x38
+	};
+
+	static const byte tableHercGPalette[] = {
+		0x00, 0x00, 0x00, 	0x00, 0xFF, 0x00
+	};
+
+#ifdef USE_RGB_COLOR
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	static const byte tableTownsV3Palette[] = {
+		0x00, 0x00, 0x00,	0x00, 0x00, 0xA0,	0x00, 0xA0, 0x00,	0x00, 0xA0, 0xA0,
+		0xA0, 0x00, 0x00,	0xA0, 0x00, 0xA0,	0xA0, 0x60, 0x00,	0xA0, 0xA0, 0xA0,
+		0x60, 0x60, 0x60,	0x60, 0x60, 0xE0,	0x00, 0xE0, 0x00,	0x00, 0xE0, 0xE0,
+		0xE0, 0x80, 0x80,	0xE0, 0x00, 0xE0,	0xE0, 0xE0, 0x00,	0xE0, 0xE0, 0xE0
+	};
+
+	static const byte tableTownsLoomPalette[] = {
+		0x00, 0x00, 0x00,	0x00, 0x00, 0xAB,	0x00, 0xAB, 0x00,	0x00, 0xAB, 0xAB,
+		0xAB, 0x00, 0x00,	0x69, 0x29, 0x45,	0x8C, 0x4D, 0x14,	0xAB, 0xAB, 0xAB,
+		0x57, 0x3F, 0x57,	0x57, 0x57, 0xFF,	0x57, 0xFF, 0x57,	0x57, 0xFF, 0xFF,
+		0xFF, 0x57, 0x57,	0xD6, 0x94, 0x40,	0xFF, 0xFF, 0x57,	0xFF, 0xFF, 0xFF
+	};
+#endif
+#endif
+
 	if (_game.version <= 1) {
 		if (_game.platform == Common::kPlatformApple2GS) {
 			// TODO: unique palette?
-			setC64Palette();
+			setPaletteFromTable(tableC64Palette, sizeof(tableC64Palette) / 3);
 		} else if (_game.platform == Common::kPlatformC64) {
-			setC64Palette();
+			setPaletteFromTable(tableC64Palette, sizeof(tableC64Palette) / 3);
 		} else if (_game.platform == Common::kPlatformNES) {
-			setNESPalette();
+			setPaletteFromTable(tableNESPalette, sizeof(tableNESPalette) / 3);
 		} else {
-			setV1Palette();
+			setPaletteFromTable(tableV1Palette, sizeof(tableV1Palette) / 3);
+			if (_game.id == GID_ZAK)
+				setPalColor(15, 170, 170, 170);
 		}
 	} else if (_game.features & GF_16COLOR) {
+		bool setupCursor = false;
+
 		switch (_renderMode) {
 		case Common::kRenderEGA:
-			setEGAPalette();
+			setPaletteFromTable(tableEGAPalette, sizeof(tableEGAPalette) / 3);
 			break;
 
 		case Common::kRenderAmiga:
-			setAmigaPalette();
+			setPaletteFromTable(tableAmigaPalette, sizeof(tableAmigaPalette) / 3);
 			break;
 
 		case Common::kRenderCGA:
-			setCGAPalette();
+			setPaletteFromTable(tableCGAPalette, sizeof(tableCGAPalette) / 3);
+			setupCursor = true;
 			break;
 
 		case Common::kRenderHercA:
+			setPaletteFromTable(tableHercAPalette, sizeof(tableHercAPalette) / 3);
+			setupCursor = true;
+			break;
+
 		case Common::kRenderHercG:
-			setHercPalette();
+			setPaletteFromTable(tableHercGPalette, sizeof(tableHercGPalette) / 3);
+			setupCursor = true;
 			break;
 
 		default:
 			if ((_game.platform == Common::kPlatformAmiga) || (_game.platform == Common::kPlatformAtariST))
-				setAmigaPalette();
+				setPaletteFromTable(tableAmigaPalette, sizeof(tableAmigaPalette) / 3);
 			else
-				setEGAPalette();
+				setPaletteFromTable(tableEGAPalette, sizeof(tableEGAPalette) / 3);
 		}
-	} else
+		if (setupCursor) {
+			// Setup cursor palette
+			setPalColor( 7, 170, 170, 170);
+			setPalColor( 8,  85,  85,  85);
+			setPalColor(15, 255, 255, 255);
+		}
+
+	} else {
+		if ((_game.platform == Common::kPlatformAmiga) && _game.version == 4) {
+			// if rendermode is set to EGA we use the full palette from the resources
+			// else we initialize and then lock down the first 16 colors.
+			if (_renderMode != Common::kRenderEGA)
+				setPaletteFromTable(tableAmigaMIPalette, sizeof(tableAmigaMIPalette) / 3);
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+		} else if (_game.platform == Common::kPlatformFMTowns) {
+			if (_game.id == GID_INDY4 || _game.id == GID_MONKEY2)
+				_townsClearLayerFlag = 0;
+#ifdef USE_RGB_COLOR
+			else if (_game.id == GID_LOOM)
+				towns_setTextPaletteFromPtr(tableTownsLoomPalette);
+			else if (_game.version == 3)
+				towns_setTextPaletteFromPtr(tableTownsV3Palette);
+#endif
+
+			_townsScreen->toggleLayers(_townsActiveLayerFlags);
+#endif // DISABLE_TOWNS_DUAL_LAYER_MODE
+		}
 		setDirtyColors(0, 255);
+	}
 }
 
-void ScummEngine::setC64Palette() {
-	setPalColor( 0, 0x00, 0x00, 0x00);
-	setPalColor( 1, 0xFD, 0xFE, 0xFC);
-	setPalColor( 2, 0xBE, 0x1A, 0x24);
-	setPalColor( 3, 0x30, 0xE6, 0xC6);
-	setPalColor( 4, 0xB4, 0x1A, 0xE2);
-	setPalColor( 5, 0x1F, 0xD2, 0x1E);
-	setPalColor( 6, 0x21, 0x1B, 0xAE);
-	setPalColor( 7, 0xDF, 0xF6, 0x0A);
-	setPalColor( 8, 0xB8, 0x41, 0x04);
-	setPalColor( 9, 0x6A, 0x33, 0x04);
-	setPalColor(10, 0xFE, 0x4A, 0x57);
-	setPalColor(11, 0x42, 0x45, 0x40);
-	setPalColor(12, 0x70, 0x74, 0x6F);
-	setPalColor(13, 0x59, 0xFE, 0x59);
-	setPalColor(14, 0x5F, 0x53, 0xFE);
-	setPalColor(15, 0xA4, 0xA7, 0xA2);
-
-	// Use 17 color table for v1 games to allow correct color for inventory and
-	// sentence line. Original games used some kind of dynamic color table
-	// remapping between rooms.
-	setPalColor(16, 255,  85, 255);
+void ScummEngine::setPaletteFromTable(const byte *ptr, int numcolor, int index) {
+	for ( ; numcolor > 0; --numcolor, ++index, ptr += 3)
+		setPalColor( index, ptr[0], ptr[1], ptr[2]);
 }
 
-void ScummEngine::setNESPalette() {
-	setPalColor(0x00,0x00,0x00,0x00); // 0x1D
-	setPalColor(0x01,0x00,0x24,0x92);
-	setPalColor(0x02,0x00,0x00,0xDB);
-	setPalColor(0x03,0x6D,0x49,0xDB);
-	setPalColor(0x04,0x92,0x00,0x6D);
-	setPalColor(0x05,0xB6,0x00,0x6D);
-	setPalColor(0x06,0xB6,0x24,0x00);
-	setPalColor(0x07,0x92,0x49,0x00);
-	setPalColor(0x08,0x6D,0x49,0x00);
-	setPalColor(0x09,0x24,0x49,0x00);
-	setPalColor(0x0A,0x00,0x6D,0x24);
-	setPalColor(0x0B,0x00,0x92,0x00);
-	setPalColor(0x0C,0x00,0x49,0x49);
-	setPalColor(0x0D,0x00,0x00,0x00);
-	setPalColor(0x0E,0x00,0x00,0x00);
-	setPalColor(0x0F,0x00,0x00,0x00);
-
-	setPalColor(0x10,0xB6,0xB6,0xB6);
-	setPalColor(0x11,0x00,0x6D,0xDB);
-	setPalColor(0x12,0x00,0x49,0xFF);
-	setPalColor(0x13,0x92,0x00,0xFF);
-	setPalColor(0x14,0xB6,0x00,0xFF);
-	setPalColor(0x15,0xFF,0x00,0x92);
-	setPalColor(0x16,0xFF,0x00,0x00);
-	setPalColor(0x17,0xDB,0x6D,0x00);
-	setPalColor(0x18,0x92,0x6D,0x00);
-	setPalColor(0x19,0x24,0x92,0x00);
-	setPalColor(0x1A,0x00,0x92,0x00);
-	setPalColor(0x1B,0x00,0xB6,0x6D);
-	setPalColor(0x1C,0x00,0x92,0x92);
-	setPalColor(0x1D,0x6D,0x6D,0x6D); // 0x00
-	setPalColor(0x1E,0x00,0x00,0x00);
-	setPalColor(0x1F,0x00,0x00,0x00);
-
-	setPalColor(0x20,0xFF,0xFF,0xFF);
-	setPalColor(0x21,0x6D,0xB6,0xFF);
-	setPalColor(0x22,0x92,0x92,0xFF);
-	setPalColor(0x23,0xDB,0x6D,0xFF);
-	setPalColor(0x24,0xFF,0x00,0xFF);
-	setPalColor(0x25,0xFF,0x6D,0xFF);
-	setPalColor(0x26,0xFF,0x92,0x00);
-	setPalColor(0x27,0xFF,0xB6,0x00);
-	setPalColor(0x28,0xDB,0xDB,0x00);
-	setPalColor(0x29,0x6D,0xDB,0x00);
-	setPalColor(0x2A,0x00,0xFF,0x00);
-	setPalColor(0x2B,0x49,0xFF,0xDB);
-	setPalColor(0x2C,0x00,0xFF,0xFF);
-	setPalColor(0x2D,0x49,0x49,0x49);
-	setPalColor(0x2E,0x00,0x00,0x00);
-	setPalColor(0x2F,0x00,0x00,0x00);
-
-	setPalColor(0x30,0xFF,0xFF,0xFF);
-	setPalColor(0x31,0xB6,0xDB,0xFF);
-	setPalColor(0x32,0xDB,0xB6,0xFF);
-	setPalColor(0x33,0xFF,0xB6,0xFF);
-	setPalColor(0x34,0xFF,0x92,0xFF);
-	setPalColor(0x35,0xFF,0xB6,0xB6);
-	setPalColor(0x36,0xFF,0xDB,0x92);
-	setPalColor(0x37,0xFF,0xFF,0x49);
-	setPalColor(0x38,0xFF,0xFF,0x6D);
-	setPalColor(0x39,0xB6,0xFF,0x49);
-	setPalColor(0x3A,0x92,0xFF,0x6D);
-	setPalColor(0x3B,0x49,0xFF,0xDB);
-	setPalColor(0x3C,0x92,0xDB,0xFF);
-	setPalColor(0x3D,0x92,0x92,0x92);
-	setPalColor(0x3E,0x00,0x00,0x00);
-	setPalColor(0x3F,0x00,0x00,0x00);
+void ScummEngine::colorPCEToRGB(uint16 color, byte *r, byte *g, byte *b) {
+	// 3 bits for each color component: 0xgggrrrbbb
+	*b = ((color)      & 0x7) * 0xFF / 0x7;
+	*r = ((color >> 3) & 0x7) * 0xFF / 0x7;
+	*g = ((color >> 6) & 0x7) * 0xFF / 0x7;
 }
 
-void ScummEngine::setAmigaPalette() {
-	setPalColor( 0,   0,   0,   0);
-	setPalColor( 1,   0,   0, 187);
-	setPalColor( 2,   0, 187,   0);
-	setPalColor( 3,   0, 187, 187);
-	setPalColor( 4, 187,   0,   0);
-	setPalColor( 5, 187,   0, 187);
-	setPalColor( 6, 187, 119,   0);
-	setPalColor( 7, 187, 187, 187);
-	setPalColor( 8, 119, 119, 119);
-	setPalColor( 9, 119, 119, 255);
-	setPalColor(10,   0, 255,   0);
-	setPalColor(11,   0, 255, 255);
-	setPalColor(12, 255, 136, 136);
-	setPalColor(13, 255,   0, 255);
-	setPalColor(14, 255, 255,   0);
-	setPalColor(15, 255, 255, 255);
+void ScummEngine::setPCETextPalette(uint8 color) {
+	const uint16 CHARSET_COLORS[16] = {
+		0x0000, 0x0096, 0x0140, 0x0145, 0x0059, 0x002D, 0x00A8, 0x016D,
+		0x0092, 0x016F, 0x01CD, 0x01DF, 0x00F7, 0x00B6, 0x01B0, 0x01B6
+	};
+
+	byte r, g, b;
+	colorPCEToRGB(CHARSET_COLORS[color], &r, &g, &b);
+	setPalColor(15, r, g, b);
 }
 
-void ScummEngine::setHercPalette() {
-	setPalColor( 0,   0,   0,   0);
+void ScummEngine::readPCEPalette(const byte **ptr, byte **dest, int numEntries) {
+	byte r, g, b;
+	byte msbs = 0;
 
-	if (_renderMode == Common::kRenderHercA)
-		setPalColor( 1, 0xAE, 0x69, 0x38);
-	else
-		setPalColor( 1, 0x00, 0xFF, 0x00);
-
-	// Setup cursor palette
-	setPalColor( 7, 170, 170, 170);
-	setPalColor( 8,  85,  85,  85);
-	setPalColor(15, 255, 255, 255);
+	for (int i = 0; i < numEntries; ++i) {
+		if (i % 8 == 0) {
+			// byte contains MSBs (bit 8) for the next 8 bytes
+			msbs = *(*ptr)++;
+		}
+		uint16 msb = (msbs & 0x1) << 8;
+		uint16 paletteEntry = msb | *(*ptr)++;
+		colorPCEToRGB(paletteEntry, &r, &g, &b);
+		*(*dest)++ = r;
+		*(*dest)++ = g;
+		*(*dest)++ = b;
+		msbs >>= 1;
+	}
 }
 
-void ScummEngine::setCGAPalette() {
-	setPalColor( 0,   0,   0,   0);
-	setPalColor( 1,   0, 168, 168);
-	setPalColor( 2, 168,   0, 168);
-	setPalColor( 3, 168, 168, 168);
+void ScummEngine::setPCEPaletteFromPtr(const byte *ptr) {
+	byte *dest;
+	byte bgSpriteR, bgSpriteG, bgSpriteB;
+	byte charsetR, charsetG, charsetB;
 
-	// Setup cursor palette
-	setPalColor( 7, 170, 170, 170);
-	setPalColor( 8,  85,  85,  85);
-	setPalColor(15, 255, 255, 255);
-}
+	int paletteOffset = *ptr++;
+	int numPalettes = *ptr++;
 
-void ScummEngine::setEGAPalette() {
-	setPalColor( 0,   0,   0,   0);
-	setPalColor( 1,   0,   0, 170);
-	setPalColor( 2,   0, 170,   0);
-	setPalColor( 3,   0, 170, 170);
-	setPalColor( 4, 170,   0,   0);
-	setPalColor( 5, 170,   0, 170);
-	setPalColor( 6, 170,  85,   0);
-	setPalColor( 7, 170, 170, 170);
-	setPalColor( 8,  85,  85,  85);
-	setPalColor( 9,  85,  85, 255);
-	setPalColor(10,  85, 255,  85);
-	setPalColor(11,  85, 255, 255);
-	setPalColor(12, 255,  85,  85);
-	setPalColor(13, 255,  85, 255);
-	setPalColor(14, 255, 255,  85);
-	setPalColor(15, 255, 255, 255);
-}
+	int firstIndex = paletteOffset * 16;
+	int numcolor = numPalettes * 16;
 
-void ScummEngine::setV1Palette() {
-	setPalColor( 0,   0,   0,   0);
-	setPalColor( 1, 255, 255, 255);
-	setPalColor( 2, 170,   0,   0);
-	setPalColor( 3,   0, 170, 170);
-	setPalColor( 4, 170,   0, 170);
-	setPalColor( 5,   0, 170,   0);
-	setPalColor( 6,   0,   0, 170);
-	setPalColor( 7, 255, 255,  85);
-	setPalColor( 8, 255,  85,  85);
-	setPalColor( 9, 170,  85,   0);
-	setPalColor(10, 255,  85,  85);
-	setPalColor(11,  85,  85,  85);
-	setPalColor(12, 170, 170, 170);
-	setPalColor(13,  85, 255,  85);
-	setPalColor(14,  85,  85, 255);
+	// the only color over which a background sprite
+	// (bit 7 of the sprite attributes) will be visible
+	colorPCEToRGB(READ_LE_UINT16(ptr), &bgSpriteR, &bgSpriteG, &bgSpriteB);
+	ptr += 2;
 
-	if (_game.id == GID_ZAK)
-		setPalColor(15, 170, 170, 170);
-	else
-		setPalColor(15,  85,  85,  85);
+	// CHARSET_COLORS[_curTextColor] (unused?)
+	colorPCEToRGB(0x01B6, &charsetR, &charsetG, &charsetB);
 
-	setPalColor(16, 255,  85, 255);
+	dest = _currentPalette + firstIndex * 3;
+
+	for (int i = 0; i < numPalettes; ++i) {
+		// entry 0
+		*dest++ = bgSpriteR;
+		*dest++ = bgSpriteG;
+		*dest++ = bgSpriteB;
+
+		// entry 1 - 14
+		readPCEPalette(&ptr, &dest, 14);
+
+		// entry 15
+		*dest++ = charsetR;
+		*dest++ = charsetG;
+		*dest++ = charsetB;
+	}
+
+	if (_game.features & GF_16BIT_COLOR) {
+		for (int i = firstIndex; i < firstIndex + numcolor; ++i)
+			_16BitPalette[i] = get16BitColor(_currentPalette[i * 3 + 0], _currentPalette[i * 3 + 1], _currentPalette[i * 3 + 2]);
+	}
+	setDirtyColors(firstIndex, firstIndex + numcolor - 1);
 }
 
 void ScummEngine::setPaletteFromPtr(const byte *ptr, int numcolor) {
+	int firstIndex = 0;
 	int i;
 	byte *dest, r, g, b;
 
@@ -277,14 +337,21 @@ void ScummEngine::setPaletteFromPtr(const byte *ptr, int numcolor) {
 
 	dest = _currentPalette;
 
-	for (i = 0; i < numcolor; i++) {
+	// Test for Amiga Monkey Island and EGA Mode unset, if true then skip the first 16 colors.
+	if ((_game.platform == Common::kPlatformAmiga) && _game.version == 4 && _renderMode != Common::kRenderEGA) {
+		firstIndex = 16;
+		dest += 3 * 16;
+		ptr += 3 * 16;
+	}
+
+	for (i = firstIndex; i < numcolor; i++) {
 		r = *ptr++;
 		g = *ptr++;
 		b = *ptr++;
 
 		// Only SCUMM 5/6 games use 6/6/6 style palettes
 		if (_game.version >= 5 && _game.version <= 6) {
-			if ((_game.heversion <= 73 && i < 15) || i == 15 || r < 252 || g < 252 || b < 252) {
+			if ((_game.heversion <= 74 && i < 15) || i == 15 || r < 252 || g < 252 || b < 252) {
 				*dest++ = r;
 				*dest++ = g;
 				*dest++ = b;
@@ -302,7 +369,7 @@ void ScummEngine::setPaletteFromPtr(const byte *ptr, int numcolor) {
 		memcpy(_darkenPalette, _currentPalette, 768);
 	}
 
-	setDirtyColors(0, numcolor - 1);
+	setDirtyColors(firstIndex, numcolor - 1);
 }
 
 void ScummEngine::setDirtyColors(int min, int max) {
@@ -310,9 +377,6 @@ void ScummEngine::setDirtyColors(int min, int max) {
 		_palDirtyMin = min;
 	if (_palDirtyMax < max)
 		_palDirtyMax = max;
-
-	if (_hePaletteCache)
-		memset(_hePaletteCache, -1, 65536);
 }
 
 void ScummEngine::initCycl(const byte *ptr) {
@@ -429,6 +493,11 @@ void ScummEngine::cyclePalette() {
 	int valueToAdd;
 	int i, j;
 
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	if (_game.platform == Common::kPlatformFMTowns && !(_townsPaletteFlags & 1))
+		return;
+#endif
+
 	valueToAdd = VAR(VAR_TIMER);
 	if (valueToAdd < VAR(VAR_TIMER_NEXT))
 		valueToAdd = VAR(VAR_TIMER_NEXT);
@@ -470,6 +539,11 @@ void ScummEngine::moveMemInPalRes(int start, int end, byte direction) {
 }
 
 void ScummEngine::palManipulateInit(int resID, int start, int end, int time) {
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	if (_game.platform == Common::kPlatformFMTowns && !(_townsPaletteFlags & 1))
+		return;
+#endif
+
 	byte *string1 = getStringAddress(resID);
 	byte *string2 = getStringAddress(resID + 1);
 	byte *string3 = getStringAddress(resID + 2);
@@ -697,6 +771,9 @@ void ScummEngine::darkenPalette(int redScale, int greenScale, int blueScale, int
 			if (color > max)
 				color = max;
 			_currentPalette[idx * 3 + 2] = color;
+
+			if (_game.features & GF_16BIT_COLOR)
+				_16BitPalette[idx] = get16BitColor(_currentPalette[idx * 3 + 0], _currentPalette[idx * 3 + 1], _currentPalette[idx * 3 + 2]);
 		}
 		if (_game.heversion != 70)
 			setDirtyColors(startColor, endColor);
@@ -799,16 +876,6 @@ void ScummEngine_v8::desaturatePalette(int hueScale, int satScale, int lightScal
 #endif
 
 
-int ScummEngine::convert16BitColor(uint16 color, uint8 r, uint8 g, uint8 b) {
-	// HACK: Find the closest matching color, and store in
-	// cache for faster access.
-	if (_hePaletteCache[color] == -1) {
-		_hePaletteCache[color] = remapPaletteColor(r, g, b, -1);
-	}
-
-	return _hePaletteCache[color];
-}
-
 int ScummEngine::remapPaletteColor(int r, int g, int b, int threshold) {
 	byte *pal;
 	int ar, ag, ab, i;
@@ -887,6 +954,11 @@ void ScummEngine::swapPalColors(int a, int b) {
 	ap[2] = bp[2];
 	bp[2] = t;
 
+	if (_game.features & GF_16BIT_COLOR) {
+		_16BitPalette[a] = get16BitColor(ap[0], ap[1], ap[2]);
+		_16BitPalette[b] = get16BitColor(bp[0], bp[1], bp[2]);
+	}
+
 	setDirtyColors(a, a);
 	setDirtyColors(b, b);
 }
@@ -904,6 +976,9 @@ void ScummEngine::copyPalColor(int dst, int src) {
 	dp[1] = sp[1];
 	dp[2] = sp[2];
 
+	if (_game.features & GF_16BIT_COLOR)
+		_16BitPalette[dst] = get16BitColor(sp[0], sp[1], sp[2]);
+
 	setDirtyColors(dst, dst);
 }
 
@@ -919,24 +994,35 @@ void ScummEngine::setPalColor(int idx, int r, int g, int b) {
 		_darkenPalette[idx * 3 + 1] = g;
 		_darkenPalette[idx * 3 + 2] = b;
 	}
+
+	if (_game.features & GF_16BIT_COLOR)
+		_16BitPalette[idx] = get16BitColor(r, g, b);
+
 	setDirtyColors(idx, idx);
 }
 
 void ScummEngine::setCurrentPalette(int palindex) {
-	// TODO: This method could almost be moved to ScummEngin_v6, the only
-	// problem is that it is called by ScummEngine::resetRoomSubBlocks().
-	// But it should be possible to get rid of that, too (with some care).
 	const byte *pals;
 
 	_curPalIndex = palindex;
 	pals = getPalettePtr(_curPalIndex, _roomResource);
-	setPaletteFromPtr(pals);
+	if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+		setPCEPaletteFromPtr(pals);
+#ifdef USE_RGB_COLOR
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	} else if (_game.platform == Common::kPlatformFMTowns) {
+		towns_setPaletteFromPtr(pals);
+#endif
+#endif
+	} else {
+		setPaletteFromPtr(pals);
+	}
 }
 
 void ScummEngine::setRoomPalette(int palindex, int room) {
 	const byte *roomptr = getResourceAddress(rtRoom, room);
 	assert(roomptr);
-	const byte *pals = findResource(MKID_BE('PALS'), roomptr);
+	const byte *pals = findResource(MKTAG('P','A','L','S'), roomptr);
 	assert(pals);
 	const byte *rgbs = findPalInPals(pals, palindex);
 	assert(rgbs);
@@ -947,11 +1033,11 @@ const byte *ScummEngine::findPalInPals(const byte *pal, int idx) {
 	const byte *offs;
 	uint32 size;
 
-	pal = findResource(MKID_BE('WRAP'), pal);
+	pal = findResource(MKTAG('W','R','A','P'), pal);
 	if (pal == NULL)
 		return NULL;
 
-	offs = findResourceData(MKID_BE('OFFS'), pal);
+	offs = findResourceData(MKTAG('O','F','F','S'), pal);
 	if (offs == NULL)
 		return NULL;
 
@@ -977,6 +1063,9 @@ const byte *ScummEngine::getPalettePtr(int palindex, int room) {
 }
 
 void ScummEngine::updatePalette() {
+	if (_game.features & GF_16BIT_COLOR)
+		return;
+
 	if (_palDirtyMax == -1)
 		return;
 
@@ -985,7 +1074,7 @@ void ScummEngine::updatePalette() {
 	int num = _palDirtyMax - first + 1;
 	int i;
 
-	byte palette_colors[1024];
+	byte palette_colors[3 * 256];
 	byte *p = palette_colors;
 
 	for (i = _palDirtyMin; i <= _palDirtyMax; i++) {
@@ -996,7 +1085,7 @@ void ScummEngine::updatePalette() {
 		else
 			data = _currentPalette + i * 3;
 
-		// Sam & Max film noir mode. Convert the colours to grayscale
+		// Sam & Max film noir mode. Convert the colors to grayscale
 		// before uploading them to the backend.
 
 		if (noir_mode) {
@@ -1012,19 +1101,30 @@ void ScummEngine::updatePalette() {
 			*p++ = brightness;
 			*p++ = brightness;
 			*p++ = brightness;
-			*p++ = 0;
 		} else {
 			*p++ = data[0];
 			*p++ = data[1];
 			*p++ = data[2];
-			*p++ = 0;
 		}
 	}
 
-	_system->setPalette(palette_colors, first, num);
-
 	_palDirtyMax = -1;
 	_palDirtyMin = 256;
+
+#ifdef USE_RGB_COLOR
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	if (_game.platform == Common::kPlatformFMTowns) {
+		p = palette_colors;
+		for (i = first; i < first + num; ++i) {
+			_16BitPalette[i] = get16BitColor(p[0], p[1], p[2]);
+			p += 3;
+		}
+		return;
+	}
+#endif
+#endif
+
+	_system->getPaletteManager()->setPalette(palette_colors, first, num);
 }
 
 } // End of namespace Scumm

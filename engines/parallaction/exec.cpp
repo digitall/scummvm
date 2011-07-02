@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "parallaction/exec.h"
@@ -193,8 +190,10 @@ void CommandExec::runSuspended() {
 		debugC(3, kDebugExec, "CommandExec::runSuspended()");
 
 		_execZone = _suspendedCtxt._zone;
-		runList(_suspendedCtxt._first, _suspendedCtxt._last);
+		CommandList::iterator first = _suspendedCtxt._first;
+		CommandList::iterator last = _suspendedCtxt._last;
 		cleanSuspendedList();
+		runList(first, last);
 	}
 }
 

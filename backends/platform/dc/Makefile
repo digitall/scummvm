@@ -1,5 +1,3 @@
-# $URL$
-# $Id$
 
 ronindir = /usr/local/ronin
 
@@ -10,24 +8,30 @@ VPATH = $(srcdir)
 
 CC      = sh-elf-gcc -ml -m4-single-only
 CXX     = sh-elf-g++ -ml -m4-single-only
+LD      = $(CXX)
 CXXFLAGS= -O3 -Wno-multichar -funroll-loops -fschedule-insns2 -fomit-frame-pointer -fdelete-null-pointer-checks -fno-exceptions
-DEFINES = -D__DC__ -DNONSTANDARD_PORT -DUSE_MAD -DUSE_ZLIB -DDISABLE_DEFAULT_SAVEFILEMANAGER -DDISABLE_TEXT_CONSOLE -DDISABLE_COMMAND_LINE
+DEFINES = -D__DC__ -DNONSTANDARD_PORT -DUSE_MAD -DUSE_ZLIB -DDISABLE_DEFAULT_SAVEFILEMANAGER -DDISABLE_TEXT_CONSOLE -DDISABLE_COMMAND_LINE -DUSE_RGB_COLOR
+# For release builds:
+#DEFINES += -DNOSERIAL
 LDFLAGS = -Wl,-Ttext,0x8c010000 -nostartfiles $(ronindir)/lib/crt0.o
 INCLUDES= -I./ -I$(srcdir) -I$(ronindir)/include/ -I$(srcdir)/engines
 LIBS	= -L$(ronindir)/lib -lmad -lronin -lz -lm
+# For release builds:
+#LIBS	= -L$(ronindir)/lib -lmad -lronin-noserial -lz -lm
 EXECUTABLE = scummvm.elf
 DEPDIR = .deps
+CXX_UPDATE_DEP_FLAG = -Wp,-MMD,"$(*D)/$(DEPDIR)/$(*F).d",-MQ,"$@",-MP
 PLUGIN_PREFIX =
 PLUGIN_SUFFIX = .plg
-PLUGIN_EXTRA_DEPS = plugin.x plugin.syms scummvm.elf
-PLUGIN_LDFLAGS = -nostartfiles -Wl,-q,-Tplugin.x,--just-symbols,scummvm.elf,--retain-symbols-file,plugin.syms -L$(ronindir)/lib
+PLUGIN_EXTRA_DEPS = plugin.x plugin.syms scummvm.elf plugin_head.o
+PLUGIN_LDFLAGS = -nostartfiles -Wl,-q,-Tplugin.x,--just-symbols,scummvm.elf,--retain-symbols-file,plugin.syms -L$(ronindir)/lib plugin_head.o
 MKDIR = mkdir -p
 RM = rm -f
 RM_REC = rm -rf
 AR = sh-elf-ar cru
 RANLIB = sh-elf-ranlib
 HAVE_GCC3 = true
-DISABLE_SCALERS = true
+USE_RGB_COLOR = true
 
 ifdef DYNAMIC_MODULES
 DEFINES += -DDYNAMIC_MODULES
@@ -48,7 +52,6 @@ ENABLE_CRUISE = $(ENABLED)
 ENABLE_DRASCULA = $(ENABLED)
 ENABLE_GOB = $(ENABLED)
 ENABLE_GROOVIE = $(ENABLED)
-ENABLE_IGOR = $(ENABLED)
 ENABLE_IHNM = $(ENABLED)
 ENABLE_KYRA = $(ENABLED)
 ENABLE_LURE = $(ENABLED)
@@ -64,9 +67,11 @@ ENABLE_TOUCHE = $(ENABLED)
 ENABLE_TUCKER = $(ENABLED)
 
 OBJS :=	dcmain.o time.o display.o audio.o input.o selector.o icon.o \
-	label.o vmsave.o softkbd.o dcloader.o cache.o dc-fs.o
+	label.o vmsave.o softkbd.o dcloader.o cache.o dc-fs.o plugins.o
 
 MODULE_DIRS += ./
+
+BACKEND := dc
 
 include $(srcdir)/Makefile.common
 
@@ -78,7 +83,9 @@ SCUMMVM.BIN : scummvm.bin
 
 plugin_dist : plugins
 	for p in $(PLUGINS); do \
-	  sh-elf-strip -g -o "`basename \"$$p\" | LC_CTYPE=C tr '[:lower:]' '[:upper:]'`" "$$p"; \
+	  t="`basename \"$$p\" | LC_CTYPE=C tr '[:lower:]' '[:upper:]'`"; \
+	  sh-elf-strip -g -o "$$t" "$$p"; \
+	  ./check_plugin_symbols "$$t"; \
 	done
 
 dist : SCUMMVM.BIN plugin_dist

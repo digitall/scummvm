@@ -78,6 +78,64 @@ class ArrayTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(array.size(), (unsigned int)5);
 	}
 
+	void test_insert_at_array() {
+		Common::Array<int> array;
+		Common::Array<int> array2;
+
+		// First of all some data
+		array.push_back(-12);
+		array.push_back(17);
+		array.push_back(25);
+		array.push_back(-11);
+
+		array2.push_back(42);
+		array2.push_back(105);
+		array2.push_back(-1);
+
+		// Insert some data
+		array.insert_at(2, array2);
+
+		TS_ASSERT_EQUALS(array.size(), (unsigned int)7);
+
+		TS_ASSERT_EQUALS(array[0], -12);
+		TS_ASSERT_EQUALS(array[1], 17);
+		TS_ASSERT_EQUALS(array[2], 42);
+		TS_ASSERT_EQUALS(array[3], 105);
+		TS_ASSERT_EQUALS(array[4], -1);
+		TS_ASSERT_EQUALS(array[5], 25);
+		TS_ASSERT_EQUALS(array[6], -11);
+
+	}
+
+	void test_self_insert() {
+		Common::Array<int> array;
+		int i;
+
+		// Insert some data -- and make sure we have enough space for
+		// *twice* as much data. This way, there is no need to allocate
+		// new storage, so if the insert() operation is "clever", it
+		// will try to reuse the existing storage.
+		// This in turn may uncover bugs if the insertion code does not
+		// expect self-insertions.
+		array.reserve(128);
+		for (i = 0; i < 64; ++i)
+			array.push_back(i);
+
+		// Now insert the array into the middle of itself
+		array.insert_at(12, array);
+
+		// Verify integrity
+		TS_ASSERT_EQUALS(array.size(), 128UL);
+
+		for (i = 0; i < 12; ++i)
+			TS_ASSERT_EQUALS(array[i], i);
+		for (i = 0; i < 64; ++i)
+			TS_ASSERT_EQUALS(array[i+12], i);
+		for (i = 12; i < 64; ++i)
+			TS_ASSERT_EQUALS(array[i+64], i);
+	}
+
+
 	void test_remove_at() {
 		Common::Array<int> array;
 
@@ -164,6 +222,23 @@ class ArrayTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(array2.size(), (unsigned int)3);
 	}
 
+	void test_equals() {
+		Common::Array<int> array1;
+
+		// Some data for both
+		array1.push_back(-3);
+		array1.push_back(5);
+		array1.push_back(9);
+
+		Common::Array<int> array2(array1);
+
+		TS_ASSERT(array1 == array2);
+		array1.push_back(42);
+		TS_ASSERT(array1 != array2);
+		array2.push_back(42);
+		TS_ASSERT(array1 == array2);
+	}
+
 	void test_array_constructor() {
 		const int array1[] = { -3, 5, 9 };
 
@@ -179,7 +254,7 @@ class ArrayTestSuite : public CxxTest::TestSuite
 	void test_array_constructor_str() {
 		const char *array1[] = { "a", "b", "c" };
 
-		Common::StringList array2(array1, 3);
+		Common::Array<Common::String> array2(array1, 3);
 
 		TS_ASSERT_EQUALS(array2[0], "a");
 		TS_ASSERT_EQUALS(array2[1], "b");

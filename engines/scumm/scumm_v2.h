@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SCRIPT_V2_H
@@ -44,7 +41,7 @@ protected:
 	V2MouseoverBox _mouseOverBoxesV2[7];
 	int8 _mouseOverBoxV2;
 
-	char _sentenceBuf[256];
+	Common::String _sentenceBuf;
 	uint16 _inventoryOffset;
 
 	int _activeInventory;
@@ -93,7 +90,7 @@ protected:
 	void setStateCommon(byte type);
 	void clearStateCommon(byte type);
 
-	virtual void resetSentence();
+	virtual void resetSentence(bool walking);
 	void setUserState(byte state);
 
 	virtual void handleMouseOver(bool updateInventory);
@@ -102,8 +99,6 @@ protected:
 	void initNESMouseOver();
 
 	virtual void setBuiltinCursor(int index);
-
-	virtual void runObject(int obj, int entry);
 
 	/* Version 2 script opcodes */
 	void o2_actorFromPos();

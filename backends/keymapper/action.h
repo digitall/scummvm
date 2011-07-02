@@ -18,9 +18,6 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
 
 #ifndef COMMON_ACTION_H
@@ -119,7 +116,7 @@ struct ActionPriorityComp : public BinaryFunction<Action, Action, bool> {
 	}
 };
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_KEYMAPPER
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/res.h"
@@ -30,11 +27,8 @@
 #include "lure/lure.h"
 #include "common/endian.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
 
 namespace Lure {
-
-using namespace Common;
 
 static Resources *int_resources = NULL;
 
@@ -42,8 +36,7 @@ Resources &Resources::getReference() {
 	return *int_resources;
 }
 
-Resources::Resources() {
-	g_eventRec.registerRandomSource(_rnd, "lureResources");
+Resources::Resources() : _rnd(LureEngine::getReference().rnd()) {
 	int_resources = this;
 	reloadData();
 
@@ -352,7 +345,7 @@ void Resources::reloadData() {
 	}
 	delete mb;
 
-	// Initialise delay list
+	// Initialize delay list
 	_delayList.clear(true);
 
 	// Load miscellaneous data
@@ -436,7 +429,7 @@ byte *Resources::getCursor(uint8 cursorNum) {
 		}
 	}
 
-	// Post-process the cells to adjust the colour
+	// Post-process the cells to adjust the color
 	for (int index = 0; index < CURSOR_SIZE; ++index) {
 		if (_cursor[index] == 3) _cursor[index] = 15;
 	}
@@ -550,6 +543,7 @@ void Resources::setTalkingCharacter(uint16 id) {
 uint16 englishLoadOffsets[] = {0x3afe, 0x41BD, 0x7167, 0x7172, 0x8617, 0x88ac, 0};
 
 Hotspot *Resources::activateHotspot(uint16 hotspotId) {
+	Resources &resources = Resources::getReference();
 	HotspotData *res = getHotspot(hotspotId);
 	if (!res) return NULL;
 	res->roomNumber &= 0x7fff; // clear any suppression bit in room #
@@ -561,7 +555,6 @@ Hotspot *Resources::activateHotspot(uint16 hotspotId) {
 
 	// If it's NPC with a schedule, then activate the schedule
 	if ((res->npcScheduleId != 0) && (res->npcSchedule.isEmpty())) {
-		Resources &resources = Resources::getReference();
 		CharacterScheduleEntry *entry = resources.charSchedules().getEntry(res->npcScheduleId);
 		res->npcSchedule.addFront(DISPATCH_ACTION, entry, res->roomNumber);
 	}
@@ -621,9 +614,21 @@ Hotspot *Resources::activateHotspot(uint16 hotspotId) {
 			// Special post-load handling
 			if (res->loadOffset == 3) hotspot->setPersistant(true);
 			if (res->loadOffset == 5) hotspot->handleTalkDialog();
-			if (hotspotId == CASTLE_SKORL_ID)
+			if (hotspotId == CASTLE_SKORL_ID) {
 				// The Castle skorl has a default room #99, so it needs to be adjusted dynamically
-				res->npcSchedule.top().setRoomNumber(res->roomNumber);
+				res->npcSchedule.clear();
+				CharacterScheduleEntry *entry = resources.charSchedules().getEntry(res->npcScheduleId);
+				res->npcSchedule.addFront(DISPATCH_ACTION, entry, res->roomNumber);
+			}
+			if ((hotspotId == GOEWIN_ID) && (hotspot->roomNumber() == 39)) {
+				// WORKAROUND: When you re-join Goewin in the caves, clear her schedule. This may prevent a
+				// situation where you could close the left door, and she'd be permanently stuck trying to go
+				// the next room on the left, since her old schedule still had her following your old path
+				hotspot->currentActions().clear();
+
+				// Since she's no longer a follower, clear her start room field
+				hotspot->setStartRoomNumber(0);
+			}
 
 			// TODO: Figure out why there's a room set in the animation decode for a range of characters,
 			// particularly since it doesn't seem to match what happens in-game
@@ -655,6 +660,11 @@ Hotspot *Resources::addHotspot(uint16 hotspotId) {
 		// Default characters to facing upwards until they start moving
 		hotspot->setDirection(UP);
 		hotspot->setCharRectY(0);
+
+		// When reactivating an NPC, ensure that their previous state wasn't PROCESSING_PATH, since
+		// the pause has destroyed the previously decided destination position
+		if (!hData->npcSchedule.isEmpty() && (hData->npcSchedule.top().action() == PROCESSING_PATH))
+			hData->npcSchedule.top().setAction(DISPATCH_ACTION);
 	}
 
 	return hotspot;
@@ -816,4 +826,4 @@ void Resources::loadFromStream(Common::ReadStream *stream) {
 	debugC(ERROR_DETAILED, kLureDebugScripts, "Finished loading");
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

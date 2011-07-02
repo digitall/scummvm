@@ -18,31 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * This file contains the handle based Memory Manager code
  */
 
 #define BODGE
 
 #include "common/file.h"
+#include "common/textconsole.h"
 
 #include "tinsel/drives.h"
 #include "tinsel/dw.h"
-#include "tinsel/scn.h"			// name of "index" file
 #include "tinsel/handle.h"
 #include "tinsel/heapmem.h"			// heap memory manager
-
-
-// these are included only so the relevant structs can be used in convertLEStructToNative()
-#include "tinsel/anim.h"
-#include "tinsel/multiobj.h"
-#include "tinsel/film.h"
-#include "tinsel/object.h"
-#include "tinsel/palette.h"
-#include "tinsel/text.h"
-#include "tinsel/timers.h"
+#include "tinsel/timers.h"	// for DwGetCurrentTime()
 #include "tinsel/tinsel.h"
 #include "tinsel/scene.h"
 
@@ -51,34 +39,34 @@ namespace Tinsel {
 //----------------- EXTERNAL GLOBAL DATA --------------------
 
 #ifdef DEBUG
-bool bLockedScene = 0;
+static uint32 s_lockedScene = 0;
 #endif
 
 
 //----------------- LOCAL DEFINES --------------------
 
 struct MEMHANDLE {
-	char szName[12];	//!< 00 - file name of graphics file
-	int32 filesize;		//!< 12 - file size and flags
-	MEM_NODE *pNode;	//!< 16 - memory node for the graphics
+	char szName[12];	///< file name of graphics file
+	int32 filesize;		///< file size and flags
+	MEM_NODE *_node;	///< memory node for the graphics
 	uint32 flags2;
 };
 
 
 /** memory allocation flags - stored in the top bits of the filesize field */
 enum {
-	fPreload	= 0x01000000L,	//!< preload memory
-	fDiscard	= 0x02000000L,	//!< discard memory
-	fSound		= 0x04000000L,	//!< sound data
-	fGraphic	= 0x08000000L,	//!< graphic data
-	fCompressed	= 0x10000000L,	//!< compressed data
-	fLoaded		= 0x20000000L	//!< set when file data has been loaded
+	fPreload	= 0x01000000L,	///< preload memory
+	fDiscard	= 0x02000000L,	///< discard memory
+	fSound		= 0x04000000L,	///< sound data
+	fGraphic	= 0x08000000L,	///< graphic data
+	fCompressed	= 0x10000000L,	///< compressed data
+	fLoaded		= 0x20000000L	///< set when file data has been loaded
 };
-#define	FSIZE_MASK	0x00FFFFFFL	//!< mask to isolate the filesize
-#define	MALLOC_MASK	0xFF000000L	//!< mask to isolate the memory allocation flags
-//#define	HANDLEMASK		0xFF800000L	//!< get handle of address
+#define	FSIZE_MASK	0x00FFFFFFL	///< mask to isolate the filesize
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 // handle table gets loaded from index file at runtime
 static MEMHANDLE *handleTable = 0;
@@ -88,29 +76,28 @@ static uint numHandles = 0;
 
 static uint32 cdPlayHandle = (uint32)-1;
 
-static int	cdPlayFileNum, cdPlaySceneNum;
 static SCNHANDLE cdBaseHandle = 0, cdTopHandle = 0;
-static Common::File cdGraphStream;
+static Common::File *cdGraphStream = 0;
 
 static char szCdPlayFile[100];
 
 //----------------- FORWARD REFERENCES --------------------
 
-static void LoadFile(MEMHANDLE *pH, bool bWarn);	// load a memory block as a file
+static void LoadFile(MEMHANDLE *pH);	// load a memory block as a file
 
 
 /**
  * Loads the graphics handle table index file and preloads all the
  * permanent graphics etc.
  */
-void SetupHandleTable(void) {
+void SetupHandleTable() {
 	bool t2Flag = (TinselVersion == TINSEL_V2);
 	int RECORD_SIZE = t2Flag ? 24 : 20;
 
 	int len;
 	uint i;
 	MEMHANDLE *pH;
-	Common::File f;
+	TinselFile f;
 
 	if (f.open(TinselV1PSX? PSX_INDEX_FILENAME : INDEX_FILENAME)) {
 		// get size of index file
@@ -134,16 +121,16 @@ void SetupHandleTable(void) {
 			// load data
 			for (i = 0; i < numHandles; i++) {
 				f.read(handleTable[i].szName, 12);
-				handleTable[i].filesize = f.readUint32LE();
+				handleTable[i].filesize = f.readUint32();
 				// The pointer should always be NULL. We don't
 				// need to read that from the file.
-				handleTable[i].pNode = NULL;
+				handleTable[i]._node = NULL;
 				f.seek(4, SEEK_CUR);
 				// For Discworld 2, read in the flags2 field
-				handleTable[i].flags2 = t2Flag ? f.readUint32LE() : 0;
+				handleTable[i].flags2 = t2Flag ? f.readUint32() : 0;
 			}
 
-			if (f.ioFailed()) {
+			if (f.eos() || f.err()) {
 				// index file is corrupt
 				error(FILE_IS_CORRUPT, (TinselV1PSX? PSX_INDEX_FILENAME : INDEX_FILENAME));
 			}
@@ -161,53 +148,47 @@ void SetupHandleTable(void) {
 	for (i = 0, pH = handleTable; i < numHandles; i++, pH++) {
 		if (pH->filesize & fPreload) {
 			// allocate a fixed memory node for permanent files
-			pH->pNode = MemoryAlloc(DWM_FIXED, sizeof(MEM_NODE) + (pH->filesize & FSIZE_MASK));
+			pH->_node = MemoryAllocFixed((pH->filesize & FSIZE_MASK));
 
 			// make sure memory allocated
-			assert(pH->pNode);
-
-			// Initialise the MEM_NODE structure
-			memset(pH->pNode, 0, sizeof(MEM_NODE));
+			assert(pH->_node);
 
 			// load the data
-			LoadFile(pH, true);
+			LoadFile(pH);
 		}
 #ifdef BODGE
 		else if ((pH->filesize & FSIZE_MASK) == 8) {
-			pH->pNode = NULL;
+			pH->_node = NULL;
 		}
 #endif
 		else {
 			// allocate a discarded memory node for other files
-			pH->pNode = MemoryAlloc(
-				DWM_MOVEABLE | DWM_DISCARDABLE | DWM_NOALLOC,
-				pH->filesize & FSIZE_MASK);
+			pH->_node = MemoryNoAlloc();
 
 			// make sure memory allocated
-			assert(pH->pNode);
+			assert(pH->_node);
 		}
 	}
 }
 
-void FreeHandleTable(void) {
-	if (handleTable) {
-		free(handleTable);
-		handleTable = NULL;
-	}
-	if (cdGraphStream.isOpen())
-		cdGraphStream.close();
+void FreeHandleTable() {
+	free(handleTable);
+	handleTable = NULL;
+
+	delete cdGraphStream;
+	cdGraphStream = NULL;
 }
 
 /**
  * Loads a memory block as a file.
  */
-void OpenCDGraphFile(void) {
-	if (cdGraphStream.isOpen())
-		cdGraphStream.close();
+void OpenCDGraphFile() {
+	delete cdGraphStream;
 
 	// As the theory goes, the right CD will be in there!
 
-	if (!cdGraphStream.open(szCdPlayFile))
+	cdGraphStream = new Common::File;
+	if (!cdGraphStream->open(szCdPlayFile))
 		error(CANNOT_FIND_FILE, szCdPlayFile);
 }
 
@@ -223,24 +204,25 @@ void LoadCDGraphData(MEMHANDLE *pH) {
 	assert(!(pH->filesize & fPreload));
 
 	// discardable - lock the memory
-	addr = (byte *)MemoryLock(pH->pNode);
+	addr = (byte *)MemoryLock(pH->_node);
 
 	// make sure address is valid
 	assert(addr);
 
 	// Move to correct place in file and load the required data
-	cdGraphStream.seek(cdBaseHandle & OFFSETMASK, SEEK_SET);
-	bytes = cdGraphStream.read(addr, (cdTopHandle - cdBaseHandle) & OFFSETMASK);
+	assert(cdGraphStream);
+	cdGraphStream->seek(cdBaseHandle & OFFSETMASK, SEEK_SET);
+	bytes = cdGraphStream->read(addr, (cdTopHandle - cdBaseHandle) & OFFSETMASK);
 
 	// New code to try and handle CD read failures 24/2/97
 	while (bytes != ((cdTopHandle - cdBaseHandle) & OFFSETMASK) && retries++ < MAX_READ_RETRIES)	{
 		// Try again
-		cdGraphStream.seek(cdBaseHandle & OFFSETMASK, SEEK_SET);
-		bytes = cdGraphStream.read(addr, (cdTopHandle - cdBaseHandle) & OFFSETMASK);
+		cdGraphStream->seek(cdBaseHandle & OFFSETMASK, SEEK_SET);
+		bytes = cdGraphStream->read(addr, (cdTopHandle - cdBaseHandle) & OFFSETMASK);
 	}
 
 	// discardable - unlock the memory
-	MemoryUnlock(pH->pNode);
+	MemoryUnlock(pH->_node);
 
 	// set the loaded flag
 	pH->filesize |= fLoaded;
@@ -248,7 +230,7 @@ void LoadCDGraphData(MEMHANDLE *pH) {
 	// clear the loading flag
 //	pH->filesize &= ~fLoading;
 
-	if (bytes != ((cdTopHandle-cdBaseHandle) & OFFSETMASK))
+	if (bytes != ((cdTopHandle - cdBaseHandle) & OFFSETMASK))
 		// file is corrupt
 		error(FILE_READ_ERROR, "CD play file");
 }
@@ -261,13 +243,9 @@ void LoadCDGraphData(MEMHANDLE *pH) {
  * @param next			Handle of end of range + 1
  */
 void LoadExtraGraphData(SCNHANDLE start, SCNHANDLE next) {
-	if (cdPlayFileNum == cdPlaySceneNum && start == cdBaseHandle)
-		return;
-
 	OpenCDGraphFile();
 
-	if ((handleTable + cdPlayHandle)->pNode->pBaseAddr != NULL)
-		MemoryDiscard((handleTable + cdPlayHandle)->pNode); // Free it
+	MemoryDiscard((handleTable + cdPlayHandle)->_node); // Free it
 
 	// It must always be the same
 	assert(cdPlayHandle == (start >> SCNHANDLE_SHIFT));
@@ -278,7 +256,6 @@ void LoadExtraGraphData(SCNHANDLE start, SCNHANDLE next) {
 }
 
 void SetCdPlaySceneDetails(int fileNum, const char *fileName) {
-	cdPlaySceneNum = fileNum;
 	strcpy(szCdPlayFile, fileName);
 }
 
@@ -290,9 +267,8 @@ void SetCdPlayHandle(int fileNum) {
 /**
  * Loads a memory block as a file.
  * @param pH			Memory block pointer
- * @param bWarn			If set, treat warnings as errors
  */
-void LoadFile(MEMHANDLE *pH, bool bWarn) {
+void LoadFile(MEMHANDLE *pH) {
 	Common::File f;
 	char szFilename[sizeof(pH->szName) + 1];
 
@@ -301,7 +277,7 @@ void LoadFile(MEMHANDLE *pH, bool bWarn) {
 	}
 
 	// extract and zero terminate the filename
-	strncpy(szFilename, pH->szName, sizeof(pH->szName));
+	memcpy(szFilename, pH->szName, sizeof(pH->szName));
 	szFilename[sizeof(pH->szName)] = 0;
 
 	if (f.open(szFilename)) {
@@ -309,24 +285,8 @@ void LoadFile(MEMHANDLE *pH, bool bWarn) {
 		int bytes;
 		uint8 *addr;
 
-		if (pH->filesize & fPreload)
-			// preload - no need to lock the memory
-			addr = (uint8 *)pH->pNode + sizeof(MEM_NODE);
-		else {
-			// discardable - lock the memory
-			addr = (uint8 *)MemoryLock(pH->pNode);
-		}
-#ifdef DEBUG
-		if (addr == NULL) {
-			if (pH->filesize & fPreload)
-				// preload - no need to lock the memory
-				addr = (uint8 *)pH->pNode;
-			else {
-				// discardable - lock the memory
-				addr = (uint8 *)MemoryLock(pH->pNode);
-			}
-		}
-#endif
+		// lock the memory
+		addr = (uint8 *)MemoryLock(pH->_node);
 
 		// make sure address is valid
 		assert(addr);
@@ -336,10 +296,8 @@ void LoadFile(MEMHANDLE *pH, bool bWarn) {
 		// close the file
 		f.close();
 
-		if ((pH->filesize & fPreload) == 0) {
-			// discardable - unlock the memory
-			MemoryUnlock(pH->pNode);
-		}
+		// discardable - unlock the memory
+		MemoryUnlock(pH->_node);
 
 		// set the loaded flag
 		pH->filesize |= fLoaded;
@@ -348,18 +306,16 @@ void LoadFile(MEMHANDLE *pH, bool bWarn) {
 			return;
 		}
 
-		if (bWarn)
-			// file is corrupt
-			error(FILE_IS_CORRUPT, szFilename);
+		// file is corrupt
+		error(FILE_IS_CORRUPT, szFilename);
 	}
 
-	if (bWarn)
-		// cannot find file
-		error(CANNOT_FIND_FILE, szFilename);
+	// cannot find file
+	error(CANNOT_FIND_FILE, szFilename);
 }
 
 /**
- * Returns the address of a image, given its memory handle.
+ * Compute and return the address specified by a SCNHANDLE.
  * @param offset			Handle and offset to data
  */
 byte *LockMem(SCNHANDLE offset) {
@@ -369,70 +325,56 @@ byte *LockMem(SCNHANDLE offset) {
 	// range check the memory handle
 	assert(handle < numHandles);
 
+#ifdef DEBUG
+	if (handle != s_lockedScene)
+		warning("  Calling LockMem(0x%x), handle %d differs from active scene %d", offset, handle, s_lockedScene);
+#endif
+
 	pH = handleTable + handle;
 
 	if (pH->filesize & fPreload) {
-		if (TinselV2)
-			// update the LRU time (new in this file)
-			pH->pNode->lruTime = DwGetCurrentTime();
-
-		// permanent files are already loaded
-		return (uint8 *)pH->pNode + sizeof(MEM_NODE) + (offset & OFFSETMASK);
+		// permanent files are already loaded, nothing to be done
 	} else if (handle == cdPlayHandle) {
 		// Must be in currently loaded/loadable range
 		if (offset < cdBaseHandle || offset >= cdTopHandle)
 			error("Overlapping (in time) CD-plays");
 
-		if (pH->pNode->pBaseAddr && (pH->filesize & fLoaded))
-			// already allocated and loaded
-			return pH->pNode->pBaseAddr + ((offset - cdBaseHandle) & OFFSETMASK);
+		// May have been discarded, if so, we have to reload
+		if (!MemoryDeref(pH->_node)) {
+			// Data was discarded, we have to reload
+			MemoryReAlloc(pH->_node, cdTopHandle - cdBaseHandle);
 
-		if (pH->pNode->pBaseAddr == NULL)
-			// must have been discarded - reallocate the memory
-			MemoryReAlloc(pH->pNode, cdTopHandle-cdBaseHandle,
-				DWM_MOVEABLE | DWM_DISCARDABLE);
+			LoadCDGraphData(pH);
 
-		if (pH->pNode->pBaseAddr == NULL)
-			error("Out of memory");
-
-		LoadCDGraphData(pH);
-
-		// make sure address is valid
-		assert(pH->pNode->pBaseAddr);
-
-		// update the LRU time (new in this file)
-		pH->pNode->lruTime = DwGetCurrentTime();
-
-		return pH->pNode->pBaseAddr + ((offset - cdBaseHandle) & OFFSETMASK);
-
-	} else {
-		if (pH->pNode->pBaseAddr && (pH->filesize & fLoaded))
-			// already allocated and loaded
-			return pH->pNode->pBaseAddr + (offset & OFFSETMASK);
-
-		if (pH->pNode->pBaseAddr == NULL)
-			// must have been discarded - reallocate the memory
-			MemoryReAlloc(pH->pNode, pH->filesize & FSIZE_MASK,
-				DWM_MOVEABLE | DWM_DISCARDABLE);
-
-		if (pH->pNode->pBaseAddr == NULL)
-			error("Out of memory");
-
-		if (TinselV2) {
-			SetCD(pH->flags2 & fAllCds);
-			CdCD(nullContext);
+			// update the LRU time (new in this file)
+			MemoryTouch(pH->_node);
 		}
-		LoadFile(pH, true);
 
 		// make sure address is valid
-		assert(pH->pNode->pBaseAddr);
+		assert(pH->filesize & fLoaded);
 
-		return pH->pNode->pBaseAddr + (offset & OFFSETMASK);
+		offset -= cdBaseHandle;
+	} else {
+		if (!MemoryDeref(pH->_node)) {
+			// Data was discarded, we have to reload
+			MemoryReAlloc(pH->_node, pH->filesize & FSIZE_MASK);
+
+			if (TinselV2) {
+				SetCD(pH->flags2 & fAllCds);
+				CdCD(nullContext);
+			}
+			LoadFile(pH);
+		}
+
+		// make sure address is valid
+		assert(pH->filesize & fLoaded);
 	}
+
+	return MemoryDeref(pH->_node) + (offset & OFFSETMASK);
 }
 
 /**
- * Called to make the current scene non-discardable.
+ * Called to lock the current scene and make it non-discardable.
  * @param offset			Handle and offset to data
  */
 void LockScene(SCNHANDLE offset) {
@@ -441,7 +383,7 @@ void LockScene(SCNHANDLE offset) {
 	MEMHANDLE *pH;					// points to table entry
 
 #ifdef DEBUG
-	assert(!bLockedScene); // Trying to lock more than one scene
+	assert(0 == s_lockedScene); // Trying to lock more than one scene
 #endif
 
 	// range check the memory handle
@@ -449,17 +391,15 @@ void LockScene(SCNHANDLE offset) {
 
 	pH = handleTable + handle;
 
-	// compact the heap to avoid fragmentation while scene is non-discardable
-	HeapCompact(MAX_INT, false);
-
 	if ((pH->filesize & fPreload) == 0) {
-		// change the flags for the node
-		// WORKAROUND: The original didn't include the DWM_LOCKED flag. It's being
-		// included because the method is 'LockScene' so it's presumed that the
-		// point of this was that the scene's memory block be locked
-		MemoryReAlloc(pH->pNode, pH->filesize & FSIZE_MASK, DWM_MOVEABLE | DWM_LOCKED);
+		// Ensure the scene handle is allocated.
+		MemoryReAlloc(pH->_node, pH->filesize & FSIZE_MASK);
+
+		// Now lock it to make sure it stays allocated and in a fixed position.
+		MemoryLock(pH->_node);
+
 #ifdef DEBUG
-		bLockedScene = true;
+		s_lockedScene = handle;
 #endif
 	}
 }
@@ -479,10 +419,11 @@ void UnlockScene(SCNHANDLE offset) {
 	pH = handleTable + handle;
 
 	if ((pH->filesize & fPreload) == 0) {
-		// change the flags for the node
-		MemoryReAlloc(pH->pNode, pH->filesize & FSIZE_MASK, DWM_MOVEABLE | DWM_DISCARDABLE);
+		// unlock the scene data
+		MemoryUnlock(pH->_node);
+
 #ifdef DEBUG
-		bLockedScene = false;
+		s_lockedScene = 0;
 #endif
 	}
 }
@@ -520,7 +461,8 @@ void TouchMem(SCNHANDLE offset) {
 		pH = handleTable + handle;
 
 		// update the LRU time whether its loaded or not!
-		pH->pNode->lruTime = DwGetCurrentTime();
+		if (pH->_node)
+			MemoryTouch(pH->_node);
 	}
 }
 
@@ -554,4 +496,4 @@ int CdNumber(SCNHANDLE offset) {
 	return GetCD(pH->flags2 & fAllCds);
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

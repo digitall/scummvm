@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 /*
@@ -64,9 +61,7 @@ void Rails::clearRails() {
 		delete tempNode;
 	}
 
-	for (i = 0; i < _edges.size(); i++) {
-		_edges.remove_at(i);
-	}
+	_edges.clear();
 
 	for (j = _noWalkRects.begin(); j != _noWalkRects.end(); ++j)
 		delete (*j);
@@ -79,7 +74,7 @@ static void checkPoint(int x, int y, int color, void *data) {
 		return;
 	else {
 	   M4Surface *codes = isWalkableData->codes;
-	   if (x >= 0 && x < codes->w && y >= 0 && y < codes->h) {
+	   if (x >= 0 && x < codes->width() && y >= 0 && y < codes->height()) {
 			isWalkableData->result = !((*((uint8*)codes->getBasePtr(x, y))) & 0x10);
 		} else {
 			isWalkableData->result = false;
@@ -93,6 +88,12 @@ bool Rails::isLineWalkable(int x0, int y0, int x1, int y1) {
 	isWalkableData.result = true;
 	Graphics::drawLine(x0, y0, x1, y1, 0, &checkPoint, &isWalkableData);
 	return isWalkableData.result;
+}
+
+uint8 Rails::getDepth(const Common::Point &pt) {
+	// TODO: Check based on sceneResources
+	const byte *b = _walkCodes->getBasePtr(pt.x, pt.y);
+	return *b & 0xf;
 }
 
 // helper function
@@ -173,7 +174,7 @@ long SqrtF16(long n) {
 	uint32 r = 0, s;
 	uint32 v = (uint32)n;
 
-	for (int i = 15; i <= 0; i--) {
+	for (int i = 15; i >= 0; --i) {
 		s = r + (1L << i * 2);
 		r >>= 1;
 		if (s <= v) {
@@ -188,9 +189,8 @@ long SqrtF16(long n) {
 void Rails::createEdge(int32 node1, int32 node2) {
 	uint32		index;
 	int32		x1, y1, x2, y2;
-	bool		valid, finished;
+	bool		valid;
 	long		deltaX, deltaY, distance;
-	uint8		*walkCodePtr;
 
 	if ((node1 < 0) || (node1 >= MAXRAILNODES) || (node2 < 0) || (node2 >= MAXRAILNODES))
 		return;
@@ -208,8 +208,6 @@ void Rails::createEdge(int32 node1, int32 node2) {
 		_edges.resize(index + 1);
 	_edges.insert_at(index, 0);
 	valid = true;
-	walkCodePtr = NULL;
-	finished = false;
 
 	if (_nodes.size() <= (uint32)node1 || _nodes.size() <= (uint32)node2)
 		return;
@@ -227,7 +225,7 @@ void Rails::createEdge(int32 node1, int32 node2) {
 
 	valid = isLineWalkable(_nodes[node1]->x, _nodes[node1]->y,
 		_nodes[node2]->x, _nodes[node2]->y);
-	printf("test code says: %d\n", valid);
+	debugCN(kDebugCore, "test code says: %d\n", valid);
 
 	// Check if the line passes through a forbidden rectangle
 	if (valid) {
@@ -246,10 +244,10 @@ void Rails::createEdge(int32 node1, int32 node2) {
 		} else {
 			distance = SqrtF16(FixedMul(deltaX, deltaX) + FixedMul(deltaY, deltaY)) << 8;
 		}
-		_edges.insert_at(index, (int16*)(distance >> 16));
+		_edges.insert_at(index, distance >> 16);
 	}
 
-	printf("node1 = %d, node2 = %d, valid = %d\n", node1, node2, valid);
+	debugCN(kDebugCore, "node1 = %d, node2 = %d, valid = %d\n", node1, node2, valid);
 
 }
 
@@ -312,7 +310,7 @@ int16 Rails::getEdgeLength(int32 node1, int32 node2) {
 	// Find the table entry i.e. tableWidth * node1 + node2 and then subtract
 	// n(n+1)/2, since only the upper triangle of the table is stored
 	index = (MAXRAILNODES-1)*node1 + node2 - 1 - (node1*(node1+1)>>1);
-	return *_edges[index];
+	return _edges[index];
 }
 
 void Rails::disposePath(RailNode *pathStart) {

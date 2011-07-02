@@ -1,8 +1,12 @@
-/* ScummVM - Scumm Interpreter
+/* ScummVM - Graphic Adventure Engine
  * Copyright (C) 2003-2005 Andreas 'Sprawl' Karlsson - Original EPOC port, ESDL
  * Copyright (C) 2003-2005 Lars 'AnotherGuest' Persson - Original EPOC port, Audio System
  * Copyright (C) 2005 Jurgen 'SumthinWicked' Braam - EPOC/CVS maintainer
- * Copyright (C) 2005-2006 The ScummVM project
+ * Copyright (C) 2005-2011 The ScummVM project
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -57,8 +61,8 @@ START BITMAP    ScummVM.mbm
 TARGETPATH              \Resource\Apps
 SOURCEPATH              ..\res
 // Source Color-depth Source-bitmap-list
-// c denotes whether the bitmap is a colour bitmap and the digits represent the
-// colour-depth of the bitmap and the bitmap mask respectively
+// c denotes whether the bitmap is a color bitmap and the digits represent the
+// color-depth of the bitmap and the bitmap mask respectively
 SOURCE  c24             ScummSmall.bmp
 SOURCE  8               ScummSmallMask.bmp
 SOURCE  c24             ScummLarge.bmp
@@ -103,22 +107,27 @@ SOURCEPATH ..\..\..\..\base
 
 //STOP_AUTO_OBJECTS_BASE_//
 
-SOURCEPATH ..\..\..\..\
+SOURCEPATH ..\..\..\..
 
 // backend EPOC/SDL/ESDL specific includes
-SOURCE backends\platform\sdl\events.cpp
-SOURCE backends\platform\sdl\graphics.cpp
-SOURCE backends\platform\sdl\sdl.cpp
 SOURCE backends\platform\sdl\hardwarekeys.cpp
+SOURCE backends\platform\sdl\sdl.cpp
+SOURCE backends\audiocd\sdl\sdl-audiocd.cpp
+SOURCE backends\audiocd\default\default-audiocd.cpp
+SOURCE backends\fs\symbian\symbian-fs.cpp
 SOURCE backends\fs\symbian\symbian-fs-factory.cpp
 SOURCE backends\platform\symbian\src\SymbianOS.cpp
 SOURCE backends\platform\symbian\src\SymbianActions.cpp
 SOURCE backends\platform\symbian\src\ScummApp.cpp
+SOURCE backends\platform\symbian\src\SymbianMain.cpp
 
 SOURCE gui\Key.cpp
 SOURCE gui\KeysDialog.cpp
 SOURCE gui\Actions.cpp
 SOURCE gui\Dialog.cpp
+
+// Common error
+source common\error.cpp
 
 // Special for graphics
 source graphics\iff.cpp
@@ -131,3 +140,4 @@ LIBRARY gdi.lib hal.lib bitgdi.lib
 LIBRARY mediaclientaudiostream.lib efsrv.lib ws32.lib
 LIBRARY qikctl.lib
 library qikcore.lib bafl.lib eikcoctl.lib
+MACRO SDL_BACKEND

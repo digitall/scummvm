@@ -18,9 +18,6 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
 
 #include "backends/keymapper/action.h"
@@ -38,7 +35,7 @@ Action::Action(Keymap *boss, const char *i,	String des, ActionType typ,
 	assert(i);
 	assert(_boss);
 
-	strncpy(id, i, ACTION_ID_SIZE);
+	Common::strlcpy(id, i, ACTION_ID_SIZE);
 
 	_boss->addAction(this);
 }
@@ -57,6 +54,6 @@ const HardwareKey *Action::getMappedKey() const {
 	return _hwKey;
 }
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_KEYMAPPER

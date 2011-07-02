@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/endian.h"
-#include "common/stream.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 #include "cine/cine.h"
 #include "cine/various.h"
@@ -38,7 +36,7 @@ byte *additionalBgTable[9];
 int16 currentAdditionalBgIdx = 0, currentAdditionalBgIdx2 = 0;
 
 byte loadCtFW(const char *ctName) {
-	uint16 header[32];
+	debugC(1, kCineDebugCollision, "loadCtFW(\"%s\")", ctName);
 	byte *ptr, *dataPtr;
 
 	int16 foundFileIdx = findFileInBundle(ctName);
@@ -58,12 +56,6 @@ byte loadCtFW(const char *ctName) {
 
 	assert(strstr(ctName, ".NEO"));
 
-	Common::MemoryReadStream readS(ptr, 32);
-
-	for (int i = 0; i < 16; i++) {
-		header[i] = readS.readUint16BE();
-	}
-
 	gfxConvertSpriteToRaw(collisionPage, ptr + 0x80, 160, 200);
 
 	free(dataPtr);
@@ -71,12 +63,21 @@ byte loadCtFW(const char *ctName) {
 }
 
 byte loadCtOS(const char *ctName) {
+	debugC(1, kCineDebugCollision, "loadCtOS(\"%s\")", ctName);
 	byte *ptr, *dataPtr;
+
+	int16 foundFileIdx = findFileInBundle(ctName);
+	if (foundFileIdx == -1) {
+		warning("loadCtOS: Unable to find collision data file '%s'", ctName);
+		// FIXME: Rework this function's return value policy and return an appropriate value here.
+		// The return value isn't yet used for anything so currently it doesn't really matter.
+		return 0;
+	}
 
 	if (currentCtName != ctName)
 		strcpy(currentCtName, ctName);
 
-	ptr = dataPtr = readBundleFile(findFileInBundle(ctName));
+	ptr = dataPtr = readBundleFile(foundFileIdx);
 
 	uint16 bpp = READ_BE_UINT16(ptr);
 	ptr += 2;

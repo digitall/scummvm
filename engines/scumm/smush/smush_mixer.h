@@ -18,15 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SMUSH_MIXER_H
 #define SCUMM_SMUSH_MIXER_H
 
 
+#include "audio/mixer.h"
+#include "common/mutex.h"
 #include "scumm/sound.h"
 
 namespace Scumm {
@@ -44,7 +43,7 @@ private:
 		int id;
 		SmushChannel *chan;
 		Audio::SoundHandle handle;
-		Audio::AppendableAudioStream *stream;
+		Audio::QueuingAudioStream *stream;
 	} _channels[NUM_CHANNELS];
 
 	int _soundFrequency;

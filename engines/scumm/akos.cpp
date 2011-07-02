@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "scumm/scumm.h"
@@ -30,6 +27,7 @@
 #include "scumm/imuse/imuse.h"
 #include "scumm/imuse_digi/dimuse.h"
 #include "scumm/he/intern_he.h"
+#include "scumm/resource.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
 #include "scumm/util.h"
@@ -146,7 +144,7 @@ void AkosCostumeLoader::loadCostume(int id) {
 bool AkosCostumeLoader::hasManyDirections() {
 	const AkosHeader *akhd;
 
-	akhd = (const AkosHeader *)_vm->findResourceData(MKID_BE('AKHD'), _akos);
+	akhd = (const AkosHeader *)_vm->findResourceData(MKTAG('A','K','H','D'), _akos);
 	return (akhd->flags & 2) != 0;
 }
 
@@ -170,12 +168,12 @@ void AkosCostumeLoader::costumeDecodeData(Actor *a, int frame, uint usemask) {
 	else
 		anim = newDirToOldDir(a->getFacing()) + frame * 4;
 
-	akhd = (const AkosHeader *)_vm->findResourceData(MKID_BE('AKHD'), _akos);
+	akhd = (const AkosHeader *)_vm->findResourceData(MKTAG('A','K','H','D'), _akos);
 
 	if (anim >= READ_LE_UINT16(&akhd->num_anims))
 		return;
 
-	r = _vm->findResourceData(MKID_BE('AKCH'), _akos);
+	r = _vm->findResourceData(MKTAG('A','K','C','H'), _akos);
 	assert(r);
 
 	offs = READ_LE_UINT16(r + anim * sizeof(uint16));
@@ -183,8 +181,8 @@ void AkosCostumeLoader::costumeDecodeData(Actor *a, int frame, uint usemask) {
 		return;
 	r += offs;
 
-	const uint8 *akstPtr = _vm->findResourceData(MKID_BE('AKST'), _akos);
-	const uint8 *aksfPtr = _vm->findResourceData(MKID_BE('AKSF'), _akos);
+	const uint8 *akstPtr = _vm->findResourceData(MKTAG('A','K','S','T'), _akos);
+	const uint8 *aksfPtr = _vm->findResourceData(MKTAG('A','K','S','F'), _akos);
 
 	i = 0;
 	mask = READ_LE_UINT16(r); r += 2;
@@ -289,7 +287,7 @@ void AkosCostumeLoader::costumeDecodeData(Actor *a, int frame, uint usemask) {
 	} while ((uint16)mask);
 }
 
-void AkosRenderer::setPalette(byte *new_palette) {
+void AkosRenderer::setPalette(uint16 *new_palette) {
 	uint size, i;
 
 	size = _vm->getResourceDataSize(akpl);
@@ -299,22 +297,23 @@ void AkosRenderer::setPalette(byte *new_palette) {
 	if (size > 256)
 		error("akos_setPalette: %d is too many colors", size);
 
-	if (_vm->_game.heversion >= 99 && _paletteNum) {
-		for (i = 0; i < size; i++)
-			_palette[i] = (byte)_vm->_hePalettes[_paletteNum * 1024 + 768 + akpl[i]];
-	} else if ((_vm->_game.features & GF_16BIT_COLOR) && rgbs) {
-		for (i = 0; i < size; i++) {
-			if (new_palette[i] == 0xFF) {
-				uint8 col = akpl[i];
-				uint8 r = rgbs[col * 3 + 0];
-				uint8 g = rgbs[col * 3 + 1];
-				uint8 b = rgbs[col * 3 + 2];
-
-				_palette[i] = _vm->remapPaletteColor(r, g, b, -1);
-			} else {
-				_palette[i] = new_palette[i];
+	if (_vm->_game.features & GF_16BIT_COLOR) {
+		if (_paletteNum) {
+			for (i = 0; i < size; i++)
+				_palette[i] = READ_LE_UINT16(_vm->_hePalettes + _paletteNum * _vm->_hePaletteSlot + 768 + akpl[i] * 2);
+		} else if (rgbs) {
+			for (i = 0; i < size; i++) {
+				if (new_palette[i] == 0xFF) {
+					uint8 col = akpl[i];
+					_palette[i] = _vm->get16BitColor(rgbs[col * 3 + 0], rgbs[col * 3 + 1], rgbs[col * 3 + 2]);
+				} else {
+					_palette[i] = new_palette[i];
+				}
 			}
 		}
+	} else if (_vm->_game.heversion >= 99 && _paletteNum) {
+		for (i = 0; i < size; i++)
+			_palette[i] = (byte)_vm->_hePalettes[_paletteNum * _vm->_hePaletteSlot + 768 + akpl[i]];
 	} else {
 		for (i = 0; i < size; i++) {
 			_palette[i] = new_palette[i] != 0xFF ? new_palette[i] : akpl[i];
@@ -340,21 +339,21 @@ void AkosRenderer::setCostume(int costume, int shadow) {
 	const byte *akos = _vm->getResourceAddress(rtCostume, costume);
 	assert(akos);
 
-	akhd = (const AkosHeader *) _vm->findResourceData(MKID_BE('AKHD'), akos);
-	akof = (const AkosOffset *) _vm->findResourceData(MKID_BE('AKOF'), akos);
-	akci = _vm->findResourceData(MKID_BE('AKCI'), akos);
-	aksq = _vm->findResourceData(MKID_BE('AKSQ'), akos);
-	akcd = _vm->findResourceData(MKID_BE('AKCD'), akos);
-	akpl = _vm->findResourceData(MKID_BE('AKPL'), akos);
+	akhd = (const AkosHeader *) _vm->findResourceData(MKTAG('A','K','H','D'), akos);
+	akof = (const AkosOffset *) _vm->findResourceData(MKTAG('A','K','O','F'), akos);
+	akci = _vm->findResourceData(MKTAG('A','K','C','I'), akos);
+	aksq = _vm->findResourceData(MKTAG('A','K','S','Q'), akos);
+	akcd = _vm->findResourceData(MKTAG('A','K','C','D'), akos);
+	akpl = _vm->findResourceData(MKTAG('A','K','P','L'), akos);
 	_codec = READ_LE_UINT16(&akhd->codec);
-	akct = _vm->findResourceData(MKID_BE('AKCT'), akos);
-	rgbs = _vm->findResourceData(MKID_BE('RGBS'), akos);
+	akct = _vm->findResourceData(MKTAG('A','K','C','T'), akos);
+	rgbs = _vm->findResourceData(MKTAG('R','G','B','S'), akos);
 
 	xmap = 0;
 	if (shadow) {
 		const uint8 *xmapPtr = _vm->getResourceAddress(rtImage, shadow);
 		assert(xmapPtr);
-		xmap = _vm->findResourceData(MKID_BE('XMAP'), xmapPtr);
+		xmap = _vm->findResourceData(MKTAG('X','M','A','P'), xmapPtr);
 		assert(xmap);
 	}
 }
@@ -545,7 +544,7 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 	byte *dst;
 	byte len, maskbit;
 	int y;
-	uint color, height, pcolor;
+	uint16 color, height, pcolor;
 	const byte *scaleytab;
 	bool masked;
 	bool skip_column = false;
@@ -589,7 +588,11 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 						} else if (_shadow_mode == 2) {
 							error("codec1_spec2"); // TODO
 						} else if (_shadow_mode == 3) {
-							if (_vm->_game.heversion >= 90) {
+							if (_vm->_game.features & GF_16BIT_COLOR) {
+								uint16 srcColor = (pcolor >> 1) & 0x7DEF;
+								uint16 dstColor = (READ_UINT16(dst) >> 1) & 0x7DEF;
+								pcolor = srcColor + dstColor;
+							} else if (_vm->_game.heversion >= 90) {
 								pcolor = (pcolor << 8) + *dst;
 								pcolor = xmap[pcolor];
 							} else if (pcolor < 8) {
@@ -597,7 +600,11 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 								pcolor = _shadow_table[pcolor];
 							}
 						}
-						*dst = pcolor;
+						if (_vm->_bytesPerPixel == 2) {
+							WRITE_UINT16(dst, pcolor);
+						} else {
+							*dst = pcolor;
+						}
 					}
 				}
 				dst += _out.pitch;
@@ -617,7 +624,7 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 					if (v1.x < 0 || v1.x >= v1.boundsRect.right)
 						return;
 					maskbit = revBitMask(v1.x & 7);
-					v1.destptr += v1.scaleXstep;
+					v1.destptr += v1.scaleXstep * _vm->_bytesPerPixel;
 					skip_column = false;
 				} else
 					skip_column = true;
@@ -987,7 +994,7 @@ byte AkosRenderer::codec1(int xmoveCur, int ymoveCur) {
 	if (_draw_bottom < rect.bottom)
 		_draw_bottom = rect.bottom;
 
-	v1.destptr = (byte *)_out.pixels + v1.y * _out.pitch + v1.x;
+	v1.destptr = (byte *)_out.pixels + v1.y * _out.pitch + v1.x * _vm->_bytesPerPixel;
 
 	codec1_genericDecode(v1);
 
@@ -1057,6 +1064,7 @@ byte AkosRenderer::codec5(int xmoveCur, int ymoveCur) {
 	bdd.shadowPalette = _vm->_shadowPalette;
 
 	bdd.actorPalette = _useBompPalette ? _palette : 0;
+
 	bdd.mirror = !_mirror;
 
 	drawBomp(bdd);
@@ -1077,10 +1085,10 @@ void AkosRenderer::akos16SetupBitReader(const byte *src) {
 }
 
 #define AKOS16_FILL_BITS()                                        \
-        if (_akos16.numbits <= 8) {                                \
-          _akos16.bits |= (*_akos16.dataptr++) << _akos16.numbits;   \
-          _akos16.numbits += 8;                                    \
-        }
+		if (_akos16.numbits <= 8) {                                \
+		  _akos16.bits |= (*_akos16.dataptr++) << _akos16.numbits;   \
+		  _akos16.numbits += 8;                                    \
+		}
 
 #define AKOS16_EAT_BITS(n)                                        \
 		_akos16.numbits -= (n);                                    \
@@ -1176,6 +1184,8 @@ void AkosRenderer::akos16Decompress(byte *dest, int32 pitch, const byte *src, in
 }
 
 byte AkosRenderer::codec16(int xmoveCur, int ymoveCur) {
+	assert(_vm->_bytesPerPixel == 1);
+
 	Common::Rect clip;
 	int32 minx, miny, maxw, maxh;
 	int32 skip_x, skip_y, cur_x, cur_y;
@@ -1278,7 +1288,7 @@ byte AkosRenderer::codec16(int xmoveCur, int ymoveCur) {
 	int32 numskip_before = skip_x + (skip_y * _width);
 	int32 numskip_after = _width - cur_x;
 
-	byte *dst = (byte *)_out.pixels + width_unk + height_unk * _out.pitch;
+	byte *dst = (byte *)_out.pixels + height_unk * _out.pitch + width_unk * _vm->_bytesPerPixel;
 
 	akos16Decompress(dst, _out.pitch, _srcptr, cur_x, out_height, dir, numskip_before, numskip_after, transparency, clip.left, clip.top, _zbuf);
 	return 0;
@@ -1335,18 +1345,27 @@ byte AkosRenderer::codec32(int xmoveCur, int ymoveCur) {
 		_draw_bottom = dst.bottom;
 
 	const uint8 *palPtr = NULL;
-	if (_vm->_game.heversion >= 99) {
-		palPtr = _vm->_hePalettes + 1792;
+	if (_vm->_game.features & GF_16BIT_COLOR) {
+		palPtr = _vm->_hePalettes + _vm->_hePaletteSlot + 768;
+		if (_paletteNum) {
+			palPtr = _vm->_hePalettes + _paletteNum * _vm->_hePaletteSlot + 768;
+		} else if (rgbs) {
+			for (uint i = 0; i < 256; i++)
+				WRITE_LE_UINT16(_palette + i, _vm->get16BitColor(rgbs[i * 3 + 0], rgbs[i * 3 + 1], rgbs[i * 3 + 2]));
+			palPtr = (uint8 *)_palette;
+		}
+	} else if (_vm->_game.heversion >= 99) {
+		palPtr = _vm->_hePalettes + _vm->_hePaletteSlot + 768;
 	}
 
-	byte *dstPtr = (byte *)_out.pixels + dst.left + dst.top * _out.pitch;
+	byte *dstPtr = (byte *)_out.pixels + dst.top * _out.pitch + dst.left * _vm->_bytesPerPixel;
 	if (_shadow_mode == 3) {
-		Wiz::decompressWizImage<kWizXMap>(dstPtr, _out.pitch, _srcptr, src, 0, palPtr, xmap);
+		Wiz::decompressWizImage<kWizXMap>(dstPtr, _out.pitch, kDstScreen, _srcptr, src, 0, palPtr, xmap, _vm->_bytesPerPixel);
 	} else {
 		if (palPtr != NULL) {
-			Wiz::decompressWizImage<kWizRMap>(dstPtr, _out.pitch, _srcptr, src, 0, palPtr);
+			Wiz::decompressWizImage<kWizRMap>(dstPtr, _out.pitch, kDstScreen, _srcptr, src, 0, palPtr, NULL, _vm->_bytesPerPixel);
 		} else {
-			Wiz::decompressWizImage<kWizCopy>(dstPtr, _out.pitch, _srcptr, src, 0);
+			Wiz::decompressWizImage<kWizCopy>(dstPtr, _out.pitch, kDstScreen, _srcptr, src, 0, NULL, NULL, _vm->_bytesPerPixel);
 		}
 	}
 #endif
@@ -1363,8 +1382,8 @@ bool ScummEngine_v6::akos_increaseAnims(const byte *akos, Actor *a) {
 	uint size;
 	bool result;
 
-	aksq = findResourceData(MKID_BE('AKSQ'), akos);
-	akfo = findResourceData(MKID_BE('AKFO'), akos);
+	aksq = findResourceData(MKTAG('A','K','S','Q'), akos);
+	akfo = findResourceData(MKTAG('A','K','F','O'), akos);
 
 	size = getResourceDataSize(akfo) / 2;
 

@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+
+#ifdef ENABLE_AGOS2
 
 #include "agos/agos.h"
 #include "agos/intern.h"
@@ -66,6 +65,57 @@ int AGOSEngine::getScale(int16 y, int16 x) {
 
 		return(z);
 	}
+}
+
+void AGOSEngine_Feeble::vc36_setWindowImage() {
+	_displayFlag = 0;
+	vcReadNextWord();
+	vcReadNextWord();
+	fillBackGroundFromFront();
+}
+
+void AGOSEngine_Feeble::vc48_setPathFinder() {
+	uint16 a = (uint16)_variableArrayPtr[12];
+	const uint16 *p = _pathFindArray[a - 1];
+
+	VgaSprite *vsp = findCurSprite();
+	int16 x, y, ydiff;
+	int16 x1, y1, x2, y2;
+	uint pos = 0;
+
+	x = vsp->x;
+	while (x >= (int16)readUint16Wrapper(p + 2)) {
+		p += 2;
+		pos++;
+	}
+
+	x1 = readUint16Wrapper(p);
+	y1 = readUint16Wrapper(p + 1);
+	x2 = readUint16Wrapper(p + 2);
+	y2 = readUint16Wrapper(p + 3);
+
+	if (x2 != 9999) {
+		ydiff = y2 - y1;
+		if (ydiff < 0) {
+			ydiff = -ydiff;
+			x = vsp->x & 7;
+			ydiff *= x;
+			ydiff /= 8;
+			ydiff = -ydiff;
+		} else {
+			x = vsp->x & 7;
+			ydiff *= x;
+			ydiff /= 8;
+		}
+		y1 += ydiff;
+	}
+
+	y = vsp->y;
+	vsp->y = y1;
+	checkScrollY(y1 - y, y1);
+
+	_variableArrayPtr[11] = x1;
+	_variableArrayPtr[13] = pos;
 }
 
 void AGOSEngine::vc75_setScale() {
@@ -148,7 +198,7 @@ void AGOSEngine::vc78_computeXY() {
 	if (getGameType() == GType_FF) {
 		setBitFlag(85, false);
 		if (getBitFlag(74)) {
-			centreScroll();
+			centerScroll();
 		}
 	}
 }
@@ -295,7 +345,7 @@ void AGOSEngine::checkScrollY(int16 y, int16 ypos) {
 	}
 }
 
-void AGOSEngine::centreScroll() {
+void AGOSEngine::centerScroll() {
 	int16 x, y, tmp;
 
 	if (_scrollXMax != 0) {
@@ -334,7 +384,7 @@ void AGOSEngine::centreScroll() {
 // Puzzle Pack specific code
 
 void AGOSEngine_PuzzlePack::vc3_loadSprite() {
-	if (getBitFlag(100)) {
+	if (getGameId() != GID_DIMP && getBitFlag(100)) {
 		startAnOverlayAnim();
 		return;
 	}
@@ -344,14 +394,18 @@ void AGOSEngine_PuzzlePack::vc3_loadSprite() {
 
 void AGOSEngine_PuzzlePack::vc63_fastFadeIn() {
 	_fastFadeInFlag = 256;
+	_fastFadeOutFlag = false;
+
+	if (getGameId() == GID_DIMP)
+		return;
+
 	if (getBitFlag(100)) {
 		startOverlayAnims();
 	} else if (getBitFlag(103)) {
-		printf("NameAndTime\n");
+		debug("vc63_fastFadeIn: NameAndTime");
 	} else if (getBitFlag(104)) {
-		printf("HiScoreTable\n");
+		debug("vc63_fastFadeIn: HiScoreTable");
 	}
-	_fastFadeOutFlag = false;
 }
 
 void AGOSEngine_PuzzlePack::startOverlayAnims() {
@@ -435,3 +489,5 @@ void AGOSEngine_PuzzlePack::startAnOverlayAnim() {
 }
 
 } // End of namespace AGOS
+
+#endif // ENABLE_AGOS2

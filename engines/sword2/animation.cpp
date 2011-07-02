@@ -20,13 +20,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/file.h"
+#include "common/mutex.h"
 #include "common/system.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -46,13 +46,17 @@ namespace Sword2 {
 // Basic movie player
 ///////////////////////////////////////////////////////////////////////////////
 
-MoviePlayer::MoviePlayer(Sword2Engine *vm, Audio::Mixer *snd, OSystem *system, Audio::SoundHandle *bgSoundHandle, Graphics::VideoDecoder *decoder, DecoderType decoderType)
-	: _vm(vm), _snd(snd), _bgSoundHandle(bgSoundHandle), _system(system), VideoPlayer(decoder) {
+MoviePlayer::MoviePlayer(Sword2Engine *vm, Audio::Mixer *snd, OSystem *system, Audio::SoundHandle *bgSoundHandle, Video::VideoDecoder *decoder, DecoderType decoderType)
+	: _vm(vm), _snd(snd), _bgSoundHandle(bgSoundHandle), _system(system) {
 	_bgSoundStream = NULL;
 	_decoderType = decoderType;
+	_decoder = decoder;
+
+	_white = 255;
+	_black = 0;
 }
 
-MoviePlayer:: ~MoviePlayer(void) {
+MoviePlayer::~MoviePlayer() {
 	delete _bgSoundHandle;
 	delete _decoder;
 }
@@ -62,25 +66,24 @@ MoviePlayer:: ~MoviePlayer(void) {
  * @param id the id of the file
  */
 bool MoviePlayer::load(const char *name) {
-	if (_decoderType == kVideoDecoderDXA) {
-		_bgSoundStream = Audio::AudioStream::openStreamFile(name);
-	} else {
+	if (_decoderType == kVideoDecoderDXA)
+		_bgSoundStream = Audio::SeekableAudioStream::openStreamFile(name);
+	else
 		_bgSoundStream = NULL;
-	}
 
 	_textSurface = NULL;
 
-	char filename[20];
+	Common::String filename;
 	switch (_decoderType) {
 	case kVideoDecoderDXA:
-		snprintf(filename, sizeof(filename), "%s.dxa", name);
+		filename = Common::String::format("%s.dxa", name);
 		break;
 	case kVideoDecoderSMK:
-		snprintf(filename, sizeof(filename), "%s.smk", name);
+		filename = Common::String::format("%s.smk", name);
 		break;
 	}
 
-	return _decoder->loadFile(filename);
+	return _decoder->loadFile(filename.c_str());
 }
 
 void MoviePlayer::play(MovieText *movieTexts, uint32 numMovieTexts, uint32 leadIn, uint32 leadOut) {
@@ -97,26 +100,17 @@ void MoviePlayer::play(MovieText *movieTexts, uint32 numMovieTexts, uint32 leadI
 	_currentMovieText = 0;
 	_leadOut = leadOut;
 
-	if (leadIn) {
+	if (leadIn)
 		_vm->_sound->playMovieSound(leadIn, kLeadInSound);
-	}
 
-	if (_bgSoundStream) {
-		_snd->playInputStream(Audio::Mixer::kSFXSoundType, _bgSoundHandle, _bgSoundStream);
-	}
+	if (_bgSoundStream)
+		_snd->playStream(Audio::Mixer::kSFXSoundType, _bgSoundHandle, _bgSoundStream);
 
 	bool terminated = false;
 
-	Common::List<Common::Event> stopEvents;
-	Common::Event stopEvent;
-	stopEvents.clear();
-	stopEvent.type = Common::EVENT_KEYDOWN;
-	stopEvent.kbd = Common::KEYCODE_ESCAPE;
-	stopEvents.push_back(stopEvent);
+	terminated = !playVideo();
 
-	terminated = !playVideo(stopEvents);
-
-	closeTextObject(_currentMovieText, NULL);
+	closeTextObject(_currentMovieText, NULL, 0);
 
 	if (terminated) {
 		_snd->stopHandle(*_bgSoundHandle);
@@ -171,7 +165,7 @@ void MoviePlayer::openTextObject(uint32 index) {
 	}
 }
 
-void MoviePlayer::closeTextObject(uint32 index, byte *screen) {
+void MoviePlayer::closeTextObject(uint32 index, byte *screen, uint16 pitch) {
 	if (index < _numMovieTexts) {
 		MovieText *text = &_movieTexts[index];
 
@@ -188,20 +182,21 @@ void MoviePlayer::closeTextObject(uint32 index, byte *screen) {
 				int frameHeight = _decoder->getHeight();
 				int frameX = (_system->getWidth() - frameWidth) / 2;
 				int frameY = (_system->getHeight() - frameHeight) / 2;
+				byte black = findBlackPalIndex();
 
-				byte *dst = screen + _textY * _system->getWidth();
+				byte *dst = screen + _textY * pitch;
 
 				for (int y = 0; y < text->_textSprite.h; y++) {
 					if (_textY + y < frameY || _textY + y >= frameY + frameHeight) {
-						memset(dst + _textX, _decoder->getBlack(), text->_textSprite.w);
+						memset(dst + _textX, black, text->_textSprite.w);
 					} else {
 						if (frameX > _textX)
-							memset(dst + _textX, _decoder->getBlack(), frameX - _textX);
+							memset(dst + _textX, black, frameX - _textX);
 						if (frameX + frameWidth < _textX + text->_textSprite.w)
-							memset(dst + frameX + frameWidth, _decoder->getBlack(), _textX + text->_textSprite.w - (frameX + frameWidth));
+							memset(dst + frameX + frameWidth, black, _textX + text->_textSprite.w - (frameX + frameWidth));
 					}
 
-					dst += _system->getWidth();
+					dst += pitch;
 				}
 			}
 
@@ -211,11 +206,11 @@ void MoviePlayer::closeTextObject(uint32 index, byte *screen) {
 	}
 }
 
-void MoviePlayer::drawTextObject(uint32 index, byte *screen) {
+void MoviePlayer::drawTextObject(uint32 index, byte *screen, uint16 pitch) {
 	MovieText *text = &_movieTexts[index];
 
-	byte white = _decoder->getWhite();
-	byte black = _decoder->getBlack();
+	byte white = findWhitePalIndex();
+	byte black = findBlackPalIndex();
 
 	if (text->_textMem && _textSurface) {
 		byte *src = text->_textSprite.data;
@@ -223,14 +218,15 @@ void MoviePlayer::drawTextObject(uint32 index, byte *screen) {
 		uint16 height = text->_textSprite.h;
 
 		// Resize text sprites for PSX version
+		byte *psxSpriteBuffer = 0;
 		if (Sword2Engine::isPsx()) {
 			height *= 2;
-			byte *buffer = (byte *)malloc(width * height);
-			Screen::resizePsxSprite(buffer, src, width, height);
-			src = buffer;
+			psxSpriteBuffer = (byte *)malloc(width * height);
+			Screen::resizePsxSprite(psxSpriteBuffer, src, width, height);
+			src = psxSpriteBuffer;
 		}
 
-		byte *dst = screen + _textY * RENDERWIDE + _textX;
+		byte *dst = screen + _textY * pitch + _textX;
 
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
@@ -240,12 +236,16 @@ void MoviePlayer::drawTextObject(uint32 index, byte *screen) {
 					dst[x] = white;
 			}
 			src += width;
-			dst += RENDERWIDE;
+			dst += pitch;
 		}
+
+		// Free buffer used to resize psx sprite
+		if (Sword2Engine::isPsx())
+			free(psxSpriteBuffer);
 	}
 }
 
-void MoviePlayer::performPostProcessing(byte *screen) {
+void MoviePlayer::performPostProcessing(byte *screen, uint16 pitch) {
 	MovieText *text;
 	int frame = _decoder->getCurFrame();
 
@@ -266,10 +266,10 @@ void MoviePlayer::performPostProcessing(byte *screen) {
 			text->_played = true;
 			_vm->_sound->playCompSpeech(text->_speechId, 16, 0);
 		}
-		if (frame <= text->_endFrame) {
-			drawTextObject(_currentMovieText, screen);
+		if (frame < text->_endFrame) {
+			drawTextObject(_currentMovieText, screen, pitch);
 		} else {
-			closeTextObject(_currentMovieText, screen);
+			closeTextObject(_currentMovieText, screen, pitch);
 			_currentMovieText++;
 		}
 	}
@@ -279,24 +279,79 @@ void MoviePlayer::performPostProcessing(byte *screen) {
 	}
 }
 
+bool MoviePlayer::playVideo() {
+	uint16 x = (g_system->getWidth() - _decoder->getWidth()) / 2;
+	uint16 y = (g_system->getHeight() - _decoder->getHeight()) / 2;
+
+	while (!_vm->shouldQuit() && !_decoder->endOfVideo()) {
+		if (_decoder->needsUpdate()) {
+			const Graphics::Surface *frame = _decoder->decodeNextFrame();
+			if (frame)
+				_vm->_system->copyRectToScreen((byte *)frame->pixels, frame->pitch, x, y, frame->w, frame->h);
+
+			if (_decoder->hasDirtyPalette()) {
+				_decoder->setSystemPalette();
+
+				uint32 maxWeight = 0;
+				uint32 minWeight = 0xFFFFFFFF;
+				uint32 weight;
+				byte r, g, b;
+
+				const byte *palette = _decoder->getPalette();
+
+				for (int i = 0; i < 256; i++) {
+					r = *palette++;
+					g = *palette++;
+					b = *palette++;
+
+					weight = 3 * r * r + 6 * g * g + 2 * b * b;
+
+					if (weight >= maxWeight) {
+						maxWeight = weight;
+						_white = i;
+					}
+
+					if (weight <= minWeight) {
+						minWeight = weight;
+						_black = i;
+					}
+				}
+			}
+
+			Graphics::Surface *screen = _vm->_system->lockScreen();
+			performPostProcessing((byte *)screen->pixels, screen->pitch);
+			_vm->_system->unlockScreen();
+			_vm->_system->updateScreen();
+		}
+
+		Common::Event event;
+		while (_vm->_system->getEventManager()->pollEvent(event))
+			if ((event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_ESCAPE) || event.type == Common::EVENT_LBUTTONUP)
+				return false;
+
+		_vm->_system->delayMillis(10);
+	}
+
+	return !_vm->shouldQuit();
+}
+
+byte MoviePlayer::findBlackPalIndex() {
+	return _black;
+}
+
+byte MoviePlayer::findWhitePalIndex() {
+	return _white;
+}
+
 DXADecoderWithSound::DXADecoderWithSound(Audio::Mixer *mixer, Audio::SoundHandle *bgSoundHandle)
 	: _mixer(mixer), _bgSoundHandle(bgSoundHandle)  {
 }
 
-int32 DXADecoderWithSound::getAudioLag() {
-	if (!_fileStream)
-		return 0;
+uint32 DXADecoderWithSound::getElapsedTime() const {
+	if (_mixer->isSoundHandleActive(*_bgSoundHandle))
+		return _mixer->getSoundElapsedTime(*_bgSoundHandle);
 
-	if (!_mixer->isSoundHandleActive(*_bgSoundHandle))
-		return 0;
-
-	int32 frameDelay = getFrameDelay();
-	int32 videoTime = _videoInfo.currentFrame * frameDelay;
-	int32 audioTime;
-
-	audioTime = (((int32) _mixer->getSoundElapsedTime(*_bgSoundHandle)) * 100);
-
-	return videoTime - audioTime;
+	return DXADecoder::getElapsedTime();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -304,55 +359,48 @@ int32 DXADecoderWithSound::getAudioLag() {
 ///////////////////////////////////////////////////////////////////////////////
 
 MoviePlayer *makeMoviePlayer(const char *name, Sword2Engine *vm, Audio::Mixer *snd, OSystem *system) {
-	char filename[20];
-	char buf[60];
+	Common::String filename;
 	Audio::SoundHandle *bgSoundHandle = new Audio::SoundHandle;
 
-	snprintf(filename, sizeof(filename), "%s.smk", name);
+	filename = Common::String::format("%s.smk", name);
 
 	if (Common::File::exists(filename)) {
-		Graphics::SmackerDecoder *smkDecoder = new Graphics::SmackerDecoder(snd);
+		Video::SmackerDecoder *smkDecoder = new Video::SmackerDecoder(snd);
 		return new MoviePlayer(vm, snd, system, bgSoundHandle, smkDecoder, kVideoDecoderSMK);
 	}
 
-	snprintf(filename, sizeof(filename), "%s.dxa", name);
+	filename = Common::String::format("%s.dxa", name);
 
 	if (Common::File::exists(filename)) {
 #ifdef USE_ZLIB
 		DXADecoderWithSound *dxaDecoder = new DXADecoderWithSound(snd, bgSoundHandle);
 		return new MoviePlayer(vm, snd, system, bgSoundHandle, dxaDecoder, kVideoDecoderDXA);
 #else
-		GUI::MessageDialog dialog("DXA cutscenes found but ScummVM has been built without zlib support", "OK");
+		GUI::MessageDialog dialog(_("DXA cutscenes found but ScummVM has been built without zlib support"), _("OK"));
 		dialog.runModal();
 		return NULL;
 #endif
 	}
 
 	// Old MPEG2 cutscenes
-	snprintf(filename, sizeof(filename), "%s.mp2", name);
+	filename = Common::String::format("%s.mp2", name);
 
 	if (Common::File::exists(filename)) {
-		GUI::MessageDialog dialog("MPEG2 cutscenes are no longer supported", "OK");
+		GUI::MessageDialog dialog(_("MPEG2 cutscenes are no longer supported"), _("OK"));
 		dialog.runModal();
 		return NULL;
 	}
 
-	// The demo tries to play some cutscenes that aren't there, so make
-	// those warnings more discreet.
-	if (!vm->_logic->readVar(DEMO)) {
-		sprintf(buf, "Cutscene '%s' not found", name);
-		GUI::MessageDialog dialog(buf, "OK");
+	// The demo tries to play some cutscenes that aren't there, so make those warnings more discreet.
+	// In addition, some of the later re-releases of the game don't have the "eye" Virgin logo movie.
+	if (!vm->_logic->readVar(DEMO) && strcmp(name, "eye") != 0) {
+		Common::String buf = Common::String::format(_("Cutscene '%s' not found"), name);
+		GUI::MessageDialog dialog(buf, _("OK"));
 		dialog.runModal();
 	} else
 		warning("Cutscene '%s' not found", name);
 
 	return NULL;
-}
-
-void MoviePlayer::pauseMovie(bool pause) {
-	if (_bgSoundHandle) {
-		_snd->pauseHandle(*_bgSoundHandle, pause);
-	}
 }
 
 } // End of namespace Sword2

@@ -18,16 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/file.h"
-#include "common/endian.h"
 #include "common/system.h"
 #include "common/util.h"
 #include "common/ptr.h"
+#include "common/textconsole.h"
+
+#include "graphics/palette.h"
 
 #include "m4/globals.h"
 #include "m4/graphics.h"
@@ -59,9 +57,33 @@ RGBList::~RGBList() {
 	delete[] _palIndexes;
 }
 
+void RGBList::setRange(int start, int count, const RGB8 *src) {
+	assert((start + count) <= _size);
+
+	Common::copy(&src[0], &src[count], &_data[start]);
+}
+
+/**
+ * Creates a duplicate of the given rgb list
+ */
+RGBList *RGBList::clone() const {
+	RGBList *dest = new RGBList(_size, _data, false);
+	_madsVm->_palette->addRange(dest);
+	return dest;
+}
+
 //--------------------------------------------------------------------------
 
 #define VGA_COLOR_TRANS(x) (x == 0x3f ? 255 : x << 2)
+
+M4Surface::~M4Surface() {
+	if (_rgbList) {
+		_madsVm->_palette->deleteRange(_rgbList);
+		delete _rgbList;
+	}
+	if (_ownsData)
+		free();
+}
 
 void M4Surface::loadCodesM4(Common::SeekableReadStream *source) {
 	if (!source) {
@@ -72,7 +94,7 @@ void M4Surface::loadCodesM4(Common::SeekableReadStream *source) {
 	uint16 widthVal = source->readUint16LE();
 	uint16 heightVal = source->readUint16LE();
 
-	create(widthVal, heightVal, 1);
+	create(widthVal, heightVal, Graphics::PixelFormat::createFormatCLUT8());
 	source->read(pixels, widthVal * heightVal);
 }
 
@@ -86,7 +108,7 @@ void M4Surface::loadCodesMads(Common::SeekableReadStream *source) {
 	uint16 heightVal = 156;
 	byte *walkMap = new byte[source->size()];
 
-	create(widthVal, heightVal, 1);
+	create(widthVal, heightVal, Graphics::PixelFormat::createFormatCLUT8());
 	source->read(walkMap, source->size());
 
 	byte *ptr = (byte *)getBasePtr(0, 0);
@@ -100,6 +122,8 @@ void M4Surface::loadCodesMads(Common::SeekableReadStream *source) {
 				*ptr++ = 0;
 		}
 	}
+
+	delete[] walkMap;
 }
 
 // Sprite related methods
@@ -155,7 +179,7 @@ void M4Surface::hLineXor(int x1, int x2, int y) {
 
 }
 
-void M4Surface::line(int x1, int y1, int x2, int y2, byte color) {
+void M4Surface::drawLine(int x1, int y1, int x2, int y2, byte color) {
 	Graphics::Surface::drawLine(x1, y1, x2, y2, color);
 }
 
@@ -187,8 +211,8 @@ void M4Surface::drawSprite(int x, int y, SpriteInfo &info, const Common::Rect &c
 	int scaledHeight = scaleValue(info.height, info.scaleY, errY);
 
 	/*
-	printf("M4Surface::drawSprite() info.width = %d; info.scaleX = %d; info.height = %d; info.scaleY = %d; scaledWidth = %d; scaledHeight = %d\n",
-		info.width, info.scaleX, info.height, info.scaleY, scaledWidth, scaledHeight); fflush(stdout);
+	debugCN(kDebugGraphics, "M4Surface::drawSprite() info.width = %d; info.scaleX = %d; info.height = %d; info.scaleY = %d; scaledWidth = %d; scaledHeight = %d\n",
+		info.width, info.scaleX, info.height, info.scaleY, scaledWidth, scaledHeight);
 	*/
 
 	int clipX = 0, clipY = 0;
@@ -207,7 +231,7 @@ void M4Surface::drawSprite(int x, int y, SpriteInfo &info, const Common::Rect &c
 		scaledHeight = y + scaledHeight;
 	}
 
-	//printf("M4Surface::drawSprite() width = %d; height = %d; scaledWidth = %d; scaledHeight = %d\n", info.width, info.height, scaledWidth, scaledHeight); fflush(stdout);
+	//debugCN(kDebugGraphics, "M4Surface::drawSprite() width = %d; height = %d; scaledWidth = %d; scaledHeight = %d\n", info.width, info.height, scaledWidth, scaledHeight);
 
 	// Check if sprite is inside the screen. If it's not, there's no need to draw it
 	if (scaledWidth + x <= 0 || scaledHeight + y <= 0)	// check left and top (in case x,y are negative)
@@ -216,7 +240,7 @@ void M4Surface::drawSprite(int x, int y, SpriteInfo &info, const Common::Rect &c
 		return;
 	int heightAmt = scaledHeight;
 
-	byte *src = info.sprite->getData();
+	byte *src = info.sprite->getBasePtr();
 	byte *dst = getBasePtr(x - info.hotX - clipX, y - info.hotY - clipY);
 
 	int status = kStatusSkip;
@@ -309,19 +333,21 @@ void M4Surface::drawSprite(int x, int y, SpriteInfo &info, const Common::Rect &c
 
 // Surface methods
 
-byte *M4Surface::getData() {
-	return (byte *)pixels;
-}
-
-byte *M4Surface::getBasePtr(int x, int y) {
-	return (byte *)Graphics::Surface::getBasePtr(x, y);
-}
-
 void M4Surface::freeData() {
 }
 
 void M4Surface::clear() {
-	Common::set_to((byte *) pixels, (byte *) pixels + w * h, _vm->_palette->BLACK);
+	Common::set_to((byte *)pixels, (byte *)pixels + w * h, _vm->_palette->BLACK);
+}
+
+void M4Surface::reset() {
+	::free(pixels);
+	pixels = NULL;
+	if (_rgbList) {
+		_vm->_palette->deleteRange(_rgbList);
+		delete _rgbList;
+		_rgbList = NULL;
+	}
 }
 
 void M4Surface::frameRect(const Common::Rect &r, uint8 color) {
@@ -357,7 +383,7 @@ void M4Surface::copyFrom(M4Surface *src, const Common::Rect &srcBounds, int dest
 
 	// Copy the specified area
 
-	byte *data = src->getData();
+	byte *data = src->getBasePtr();
 	byte *srcPtr = data + (src->width() * copyRect.top + copyRect.left);
 	byte *destPtr = (byte *)pixels + (destY * width()) + destX;
 
@@ -378,6 +404,174 @@ void M4Surface::copyFrom(M4Surface *src, const Common::Rect &srcBounds, int dest
 	src->freeData();
 }
 
+/**
+ * Copies a given image onto a destination surface with scaling, transferring only pixels that meet
+ * the specified depth requirement on a secondary surface contain depth information
+ */
+void M4Surface::copyFrom(M4Surface *src, int destX, int destY, int depth,
+						 M4Surface *depthsSurface, int scale, int transparentColor) {
+
+	if (scale == 100) {
+		// Copy the specified area
+		Common::Rect copyRect(0, 0, src->width(), src->height());
+
+		if (destX < 0) {
+			copyRect.left += -destX;
+			destX = 0;
+		} else if (destX + copyRect.width() > w) {
+			copyRect.right -= destX + copyRect.width() - w;
+		}
+		if (destY < 0) {
+			copyRect.top += -destY;
+			destY = 0;
+		} else if (destY + copyRect.height() > h) {
+			copyRect.bottom -= destY + copyRect.height() - h;
+		}
+
+		if (!copyRect.isValidRect())
+			return;
+
+		byte *data = src->getBasePtr();
+		byte *srcPtr = data + (src->width() * copyRect.top + copyRect.left);
+		byte *depthsData = depthsSurface->getBasePtr();
+		byte *depthsPtr = depthsData + (depthsSurface->pitch * destY) + destX;
+		byte *destPtr = (byte *)pixels + (destY * pitch) + destX;
+
+		// 100% scaling variation
+		for (int rowCtr = 0; rowCtr < copyRect.height(); ++rowCtr) {
+			// Copy each byte one at a time checking against the depth
+			for (int xCtr = 0; xCtr < copyRect.width(); ++xCtr) {
+				if ((depth <= (depthsPtr[xCtr] & 0x7f)) && (srcPtr[xCtr] != transparentColor))
+					destPtr[xCtr] = srcPtr[xCtr];
+			}
+
+			srcPtr += src->width();
+			depthsPtr += depthsSurface->width();
+			destPtr += width();
+		}
+
+		src->freeData();
+		depthsSurface->freeData();
+		return;
+	}
+
+	// Start of draw logic for scaled sprites
+	const byte *srcPixelsP = src->getBasePtr();
+
+	int destRight = this->width() - 1;
+	int destBottom = this->height() - 1;
+	bool normalFrame = true;	// TODO: false for negative frame numbers
+	int frameWidth = src->width();
+	int frameHeight = src->height();
+
+	int highestDim = MAX(frameWidth, frameHeight);
+	bool lineDist[MADS_SURFACE_WIDTH];
+	int distIndex = 0;
+	int distXCount = 0, distYCount = 0;
+
+	int distCtr = 0;
+	do {
+		distCtr += scale;
+		if (distCtr < 100) {
+			lineDist[distIndex] = false;
+		} else {
+			lineDist[distIndex] = true;
+			distCtr -= 100;
+
+			if (distIndex < frameWidth)
+				++distXCount;
+
+			if (distIndex < frameHeight)
+				++distYCount;
+		}
+	} while (++distIndex < highestDim);
+
+	destX -= distXCount / 2;
+	destY -= distYCount - 1;
+
+	// Check x bounding area
+	int spriteLeft = 0;
+	int spriteWidth = distXCount;
+	int widthAmount = destX + distXCount - 1;
+
+	if (destX < 0) {
+		spriteWidth += destX;
+		spriteLeft -= destX;
+	}
+	widthAmount -= destRight;
+	if (widthAmount > 0)
+		spriteWidth -= widthAmount;
+
+	int spriteRight = spriteLeft + spriteWidth;
+	if (spriteWidth <= 0)
+		return;
+	if (!normalFrame) {
+		destX += distXCount - 1;
+		spriteLeft = -(distXCount - spriteRight);
+		spriteRight = (-spriteLeft + spriteWidth);
+	}
+
+	// Check y bounding area
+	int spriteTop = 0;
+	int spriteHeight = distYCount;
+	int heightAmount = destY + distYCount - 1;
+
+	if (destY < 0) {
+		spriteHeight += destY;
+		spriteTop -= destY;
+	}
+	heightAmount -= destBottom;
+	if (heightAmount > 0)
+		spriteHeight -= heightAmount;
+	int spriteBottom = spriteTop + spriteHeight;
+
+	if (spriteHeight <= 0)
+		return;
+
+	byte *destPixelsP = this->getBasePtr(destX + spriteLeft, destY + spriteTop);
+	const byte *depthPixelsP = depthsSurface->getBasePtr(destX + spriteLeft, destY + spriteTop);
+
+	spriteLeft = (spriteLeft * (normalFrame ? 1 : -1));
+
+	// Loop through the lines of the sprite
+	for (int yp = 0, sprY = -1; yp < frameHeight; ++yp, srcPixelsP += src->pitch) {
+		if (!lineDist[yp])
+			// Not a display line, so skip it
+			continue;
+		// Check whether the sprite line is in the display range
+		++sprY;
+		if ((sprY >= spriteBottom) || (sprY < spriteTop))
+			continue;
+
+		// Found a line to display. Loop through the pixels
+		const byte *srcP = srcPixelsP;
+		const byte *depthP = depthPixelsP;
+		byte *destP = destPixelsP;
+		for (int xp = 0, sprX = 0; xp < frameWidth; ++xp, ++srcP) {
+			if (xp < spriteLeft)
+				// Not yet reached start of display area
+				continue;
+			if (!lineDist[sprX++])
+				// Not a display pixel
+				continue;
+
+			if ((*srcP != transparentColor) && (depth <= (*depthP & 0x7f)))
+				*destP = *srcP;
+
+			++destP;
+			++depthP;
+		}
+
+		// Move to the next destination line
+		destPixelsP += this->pitch;
+		depthPixelsP += depthsSurface->pitch;
+	}
+
+	src->freeData();
+	depthsSurface->freeData();
+	this->freeData();
+}
+
 void M4Surface::loadBackgroundRiddle(const char *sceneName) {
 	char resourceName[20];
 	Common::SeekableReadStream *stream;
@@ -389,17 +583,24 @@ void M4Surface::loadBackgroundRiddle(const char *sceneName) {
 }
 
 void M4Surface::loadBackground(int sceneNumber, RGBList **palData) {
-	clear();		// clear previous scene
-
 	if (_vm->isM4() || (_vm->getGameType() == GType_RexNebular)) {
 		char resourceName[20];
 		Common::SeekableReadStream *stream;
 
 		if (_vm->getGameType() == GType_RexNebular) {
 			// Load Rex Nebular screen
+			bool hasPalette = palData != NULL;
+			if (!hasPalette)
+				palData = &_rgbList;
+
 			sprintf(resourceName, "rm%d.art", sceneNumber);
 			stream = _vm->_resourceManager->get(resourceName);
 			rexLoadBackground(stream, palData);
+
+			if (!hasPalette) {
+				_vm->_palette->addRange(_rgbList);
+				this->translate(_rgbList);
+			}
 		} else {
 			// Loads M4 game scene
 			if (palData)
@@ -500,7 +701,7 @@ void M4Surface::madsLoadBackground(int roomNumber, RGBList **palData) {
 		else
 			compressedTileDataSize = tileDataUncomp->readUint32LE() - tileOfs;
 
-		//printf("Tile: %i, compressed size: %i\n", i, compressedTileDataSize);
+		//debugCN(kDebugGraphics, "Tile: %i, compressed size: %i\n", i, compressedTileDataSize);
 
 		newTile->clear();
 
@@ -537,21 +738,11 @@ void M4Surface::madsLoadBackground(int roomNumber, RGBList **palData) {
 
 void M4Surface::rexLoadBackground(Common::SeekableReadStream *source, RGBList **palData) {
 	MadsPack packData(source);
-	Common::MemoryReadStream *sourceUnc = packData.getItemStream(0);
+	Common::SeekableReadStream *sourceUnc = packData.getItemStream(0);
 
 	int sceneWidth = sourceUnc->readUint16LE();
 	int sceneHeight = sourceUnc->readUint16LE();
 	int sceneSize = sceneWidth * sceneHeight;
-	if (sceneWidth > this->width()) {
-		warning("Background width is %i, too large to fit in screen. Setting it to %i", sceneWidth, this->width());
-		sceneWidth = this->width();
-		sceneSize = sceneWidth * sceneHeight;
-	}
-	if (sceneHeight > this->height()) {
-		warning("Background height is %i, too large to fit in screen.Setting it to %i", sceneHeight, this->height());
-		sceneHeight = this->height();
-		sceneSize = sceneWidth * sceneHeight;
-	}
 
 	// Set palette
 	if (!palData) {
@@ -567,6 +758,7 @@ void M4Surface::rexLoadBackground(Common::SeekableReadStream *source, RGBList **
 	sourceUnc = packData.getItemStream(1);
 	assert((int)sourceUnc->size() >= sceneSize);
 
+	create(sceneWidth, sceneHeight, Graphics::PixelFormat::createFormatCLUT8());
 	byte *pData = (byte *)pixels;
 	sourceUnc->read(pData, sceneSize);
 
@@ -593,7 +785,7 @@ void M4Surface::m4LoadBackground(Common::SeekableReadStream *source) {
 	uint8 blackIndex = 0;
 
 	// Debug
-	//printf("loadBackground(): %dx%d picture (%d bytes) - %dx%d tiles of size %dx%d\n",
+	//debugCN(kDebugGraphics, "loadBackground(): %dx%d picture (%d bytes) - %dx%d tiles of size %dx%d\n",
 	//	   widthVal, heightVal, size, tilesX, tilesY, tileWidth, tileHeight);
 
 	// BGR data, which is converted to RGB8
@@ -601,7 +793,11 @@ void M4Surface::m4LoadBackground(Common::SeekableReadStream *source) {
 		palette[i].b = source->readByte() << 2;
 		palette[i].g = source->readByte() << 2;
 		palette[i].r = source->readByte() << 2;
-		palette[i].u = source->readByte() << 2;
+		// FIXME - Removed u field from RGB8 as the OSystem palette is now RGB.
+		//         If this is needed, then the system setPalette() call will need changing to skip this.
+		uint8 u = source->readByte() << 2;
+		if (u != 0)
+			debugC(1, kDebugGraphics, "Unused u field in Palette data non-zero: %d", u);
 
 		if ((blackIndex == 0) && !palette[i].r && !palette[i].g && !palette[i].b)
 			blackIndex = i;
@@ -613,9 +809,9 @@ void M4Surface::m4LoadBackground(Common::SeekableReadStream *source) {
 	// note that the height of the scene in game scenes is smaller than 480, as the bottom part of the
 	// screen is the inventory
 	assert(width() == (int)widthVal);
-	//printf("width(): %d, widthVal: %d, height(): %d, heightVal: %d\n", width(), widthVal, height(), heightVal);
+	//debugCN(kDebugGraphics, "width(): %d, widthVal: %d, height(): %d, heightVal: %d\n", width(), widthVal, height(), heightVal);
 
-	tileBuffer->create(tileWidth, tileHeight, 1);
+	tileBuffer->create(tileWidth, tileHeight, Graphics::PixelFormat::createFormatCLUT8());
 
 	for (curTileY = 0; curTileY < tilesY; curTileY++) {
 		clipY = MIN(heightVal, (1 + curTileY) * tileHeight) - (curTileY * tileHeight);
@@ -636,10 +832,8 @@ void M4Surface::m4LoadBackground(Common::SeekableReadStream *source) {
 	delete tileBuffer;
 }
 
-void M4Surface::madsloadInterface(int index, RGBList **palData) {
-	char resourceName[20];
-	sprintf(resourceName, "i%d.int", index);
-	MadsPack intFile(resourceName, _vm);
+void M4Surface::madsLoadInterface(const Common::String &filename) {
+	MadsPack intFile(filename.c_str(), _vm);
 	RGB8 *palette = new RGB8[16];
 
 	// Chunk 0, palette
@@ -653,28 +847,114 @@ void M4Surface::madsloadInterface(int index, RGBList **palData) {
 		intStream->readByte();
 		intStream->readByte();
 	}
-	*palData = new RGBList(16, palette, true);
+	_rgbList = new RGBList(16, palette, true);
 	delete intStream;
 
 	// Chunk 1, data
 	intStream = intFile.getItemStream(1);
-	create(320, 44, 1);
+	create(320, 44, Graphics::PixelFormat::createFormatCLUT8());
 	intStream->read(pixels, 320 * 44);
 	delete intStream;
+
+	// Translate the interface palette
+	_vm->_palette->addRange(_rgbList);
+	this->translate(_rgbList);
 }
+
+void M4Surface::scrollX(int xAmount) {
+	if (xAmount == 0)
+		return;
+
+	byte buffer[80];
+	int direction = (xAmount > 0) ? -1 : 1;
+	int xSize = ABS(xAmount);
+	assert(xSize <= 80);
+
+	byte *srcP = (byte *)getBasePtr(0, 0);
+
+	for (int y = 0; y < height(); ++y, srcP += pitch) {
+		if (direction < 0) {
+			// Copy area to be overwritten
+			Common::copy(srcP, srcP + xSize, &buffer[0]);
+			// Shift the remainder of the line over the given area
+			Common::copy(srcP + xSize, srcP + width(), srcP);
+			// Move buffered area to the end of the line
+			Common::copy(&buffer[0], &buffer[xSize], srcP + width() - xSize);
+		} else {
+			// Copy area to be overwritten
+			Common::copy_backward(srcP + width() - xSize, srcP + width(), &buffer[80]);
+			// Shift the remainder of the line over the given area
+			Common::copy_backward(srcP, srcP + width() - xSize, srcP + width());
+			// Move buffered area to the start of the line
+			Common::copy_backward(&buffer[80 - xSize], &buffer[80], srcP + xSize);
+		}
+	}
+}
+
+void M4Surface::scrollY(int yAmount) {
+	if (yAmount == 0)
+		return;
+
+	int direction = (yAmount > 0) ? 1 : -1;
+	int ySize = ABS(yAmount);
+	assert(ySize < (height() / 2));
+	assert(width() == pitch);
+
+	int blockSize = ySize * width();
+	byte *tempData = (byte *)malloc(blockSize);
+	byte *pixelsP = (byte *)getBasePtr(0, 0);
+
+	if (direction > 0) {
+		// Buffer the lines to be overwritten
+		byte *srcP = (byte *)getBasePtr(0, height() - ySize);
+		Common::copy(srcP, srcP + (pitch * ySize), tempData);
+		// Vertically shift all the lines
+		Common::copy_backward(pixelsP, pixelsP + (pitch * (height() - ySize)),
+			pixelsP + (pitch * height()));
+		// Transfer the buffered lines top the top of the screen
+		Common::copy(tempData, tempData + blockSize, pixelsP);
+	} else {
+		// Buffer the lines to be overwritten
+		Common::copy(pixelsP, pixelsP + (pitch * ySize), tempData);
+		// Vertically shift all the lines
+		Common::copy(pixelsP + (pitch * ySize), pixelsP + (pitch * height()), pixelsP);
+		// Transfer the buffered lines to the bottom of the screen
+		Common::copy(tempData, tempData + blockSize, pixelsP + (pitch * (height() - ySize)));
+	}
+
+	::free(tempData);
+}
+
 
 void M4Surface::translate(RGBList *list, bool isTransparent) {
 	byte *p = getBasePtr(0, 0);
 	byte *palIndexes = list->palIndexes();
 
 	for (int i = 0; i < width() * height(); ++i, ++p) {
-		if (!isTransparent || (*p != 0)) {
-			assert(*p < list->size());
-			*p = palIndexes[*p];
+		if (!isTransparent || (*p != TRANSPARENT_COLOR_INDEX)) {
+			if (*p < list->size())
+				*p = palIndexes[*p];
+			else
+				warning("Pal index %d exceeds list size %d", *p, list->size());
 		}
 	}
 
 	freeData();
+}
+
+M4Surface *M4Surface::flipHorizontal() const {
+	M4Surface *dest = new M4Surface(width(), height());
+	dest->_rgbList = (this->_rgbList == NULL) ? NULL : this->_rgbList->clone();
+
+	byte *destP = dest->getBasePtr();
+
+	for (int y = 0; y < height(); ++y) {
+		const byte *srcP = getBasePtr(width() - 1, y);
+		for (int x = 0; x < width(); ++x)
+			*destP++ = *srcP--;
+	}
+
+	return dest;
 }
 
 //--------------------------------------------------------------------------
@@ -718,7 +998,7 @@ static void makeTranslationList(RGB8 *palData, byte transList[NUM_GREENS]) {
 
 // Support function for fading in or out
 
-static void fadeRange(M4Engine *vm, RGB8 *srcPal, RGB8 *destPal,  int startIndex, int endIndex,
+static void fadeRange(MadsM4Engine *vm, RGB8 *srcPal, RGB8 *destPal,  int startIndex, int endIndex,
 					 int numSteps, uint delayAmount) {
 	RGB8 tempPal[256];
 
@@ -746,25 +1026,32 @@ static void fadeRange(M4Engine *vm, RGB8 *srcPal, RGB8 *destPal,  int startIndex
 	vm->_palette->setPalette(&destPal[startIndex], startIndex, endIndex - startIndex + 1);
 }
 
-Palette::Palette(M4Engine *vm) : _vm(vm) {
+Palette::Palette(MadsM4Engine *vm) : _vm(vm) {
 	reset();
 	_fading_in_progress = false;
 	Common::set_to(&_usageCount[0], &_usageCount[256], 0);
 }
 
 void Palette::setPalette(const byte *colors, uint start, uint num) {
-	g_system->setPalette(colors, start, num);
+	g_system->getPaletteManager()->setPalette(colors, start, num);
 	reset();
 }
 
 void Palette::setPalette(const RGB8 *colors, uint start, uint num) {
-	g_system->setPalette((const byte *)colors, start, num);
+	g_system->getPaletteManager()->setPalette((const byte *)colors, start, num);
 	reset();
 }
 
 void Palette::grabPalette(byte *colors, uint start, uint num) {
-	g_system->grabPalette(colors, start, num);
-	reset();
+	g_system->getPaletteManager()->grabPalette(colors, start, num);
+}
+
+void Palette::setEntry(uint index, uint8 r, uint8 g, uint8 b) {
+	RGB8 c;
+	c.r = r;
+	c.g = g;
+	c.b = b;
+	g_system->getPaletteManager()->setPalette((const byte *)&c, index, 1);
 }
 
 uint8 Palette::palIndexFromRgb(byte r, byte g, byte b, RGB8 *paletteData) {
@@ -774,7 +1061,7 @@ uint8 Palette::palIndexFromRgb(byte r, byte g, byte b, RGB8 *paletteData) {
 	int Rdiff, Gdiff, Bdiff;
 
 	if (paletteData == NULL) {
-		g_system->grabPalette((byte *)palData, 0, 256);
+		g_system->getPaletteManager()->grabPalette((byte *)palData, 0, 256);
 		paletteData = &palData[0];
 	}
 
@@ -794,7 +1081,7 @@ uint8 Palette::palIndexFromRgb(byte r, byte g, byte b, RGB8 *paletteData) {
 
 void Palette::reset() {
 	RGB8 palData[256];
-	g_system->grabPalette((byte *)palData, 0, 256);
+	g_system->getPaletteManager()->grabPalette((byte *)palData, 0, 256);
 
 	BLACK = palIndexFromRgb(0, 0, 0, palData);
 	BLUE = palIndexFromRgb(0, 0, 255, palData);
@@ -855,7 +1142,7 @@ void Palette::fadeToGreen(int numSteps, uint delayAmount) {
 
 	// Remap all pixels into the #32-63 range
 
-	tempP = _vm->_scene->getData();
+	tempP = _vm->_scene->getBasePtr();
 	for (int pixelCtr = 0; pixelCtr < _vm->_scene->width() * _vm->_scene->height();
 			++pixelCtr, ++tempP) {
 		// If pixel is in #32-63 range already, remap to higher palette entries
@@ -974,7 +1261,7 @@ void Palette::addRange(RGBList *list) {
 	RGB8 *data = list->data();
 	byte *palIndexes = list->palIndexes();
 	RGB8 palData[256];
-	g_system->grabPalette((byte *)&palData[0], 0, 256);
+	g_system->getPaletteManager()->grabPalette((byte *)&palData[0], 0, 256);
 	bool paletteChanged = false;
 
 	for (int colIndex = 0; colIndex < list->size(); ++colIndex) {
@@ -1014,7 +1301,7 @@ void Palette::addRange(RGBList *list) {
 	}
 
 	if (paletteChanged) {
-		g_system->setPalette((byte *)&palData[0], 0, 256);
+		g_system->getPaletteManager()->setPalette((byte *)&palData[0], 0, 256);
 		reset();
 	}
 }
@@ -1054,7 +1341,7 @@ void decompressRle(byte *rleData, int rleSize, byte *celData, int w, int h) {
 		} else {
 			while (len--)
 				*dst++ = *src;
-			*src++;
+			src++;
 		}
 	}
 }

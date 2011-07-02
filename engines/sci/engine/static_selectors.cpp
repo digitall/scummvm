@@ -18,412 +18,280 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // We place selector vocab name tables here for any game that doesn't have
 // them. This includes the King's Quest IV Demo and LSL3 Demo.
 
-#ifndef SCI_STATIC_SELECTORS_H
-#define SCI_STATIC_SELECTORS_H
-
 #include "sci/engine/kernel.h"
+#include "sci/engine/seg_manager.h"
+#include "sci/engine/vm.h"
 
 namespace Sci {
-	
+
 struct SelectorRemap {
+	SciVersion minVersion;
+	SciVersion maxVersion;
 	const char *name;
 	uint32 slot;
 };
-	
-// Taken from King's Quest IV (Full Game)
-static const SelectorRemap kq4_demo_selectors[] = {
-	{ "init", 87 },
-	{ "play", 42 },
-	{ "replay", 65 },
-	{ "x", 4 },
-	{ "y", 3 },
-	{ "z", 85 },
-	{ "priority", 63 },
-	{ "view", 5 },
-	{ "loop", 6 },
-	{ "cel", 7 },
-	{ "brLeft", 20 },
-	{ "brRight", 22 },
-	{ "brTop", 19 },
-	{ "brBottom", 21 },
-	{ "xStep", 54 },
-	{ "yStep", 55 },
-	{ "nsBottom", 11 },
-	{ "nsTop", 9 },
-	{ "nsLeft", 10 },
-	{ "nsRight", 12 },
-	{ "font", 33 },
-	{ "text", 26 },
-	{ "type", 34 },
-	{ "state", 32 },
-	{ "doit", 60 },
-	{ "delete", 84 },
-	{ "signal", 17 },
-	{ "underBits", 8 },
-	{ "canBeHere", 57 },
-	{ "client", 45 },
-	{ "dx", 46 },
-	{ "dy", 47 },
-	{ "xStep", 54 },
-	{ "yStep", 55 },
-	{ "b-moveCnt", 48 },
-	{ "b-i1", 49 },
-	{ "b-i2", 50 },
-	{ "b-di", 51 },
-	{ "b-xAxis", 52 },
-	{ "b-incr", 53 },
-	{ "completed", 158 },
-	{ "illegalBits", 18 },
-	{ "dispose", 88 },
-	{ "prevSignal", 129 },
-	{ "message", 40 },
-	{ "modifiers", 64 },
-	{ "cue", 121 },
-	{ "owner", 130 },
-	{ "handle", 44 },
-	{ "number", 43 },
-	{ "max", 37 },
-	{ "cursor", 36 },
-	{ "claimed", 76 },
-	{ "edgeHit", 225 },
-	{ "wordFail", 71 },
-	{ "syntaxFail", 72 },
-	{ "semanticFail", 73 },
-	{ "cycler", 165 },
-	{ "elements", 27 },
-	{ "lsTop", 13 },
-	{ "lsBottom", 15 },
-	{ "lsLeft", 14 },
-	{ "lsRight", 16 },
-	{ "baseSetter", 208 },
-	{ "who", 39 },
-	{ "distance", 173 },
-	{ "mover", 59 },
-	{ "looper", 62 },
-	{ "isBlocked", 61 },
-	{ "heading", 58 },
-	{ "mode", 30 },
-	{ "caller", 119 },
-	{ "moveDone", 169 },
-	{ "size", 96 },
-	{ "moveSpeed", 56 },
-	{ "motionCue", 161 },
-	{ "setTarget", 171 }
-};
-	
-// Taken from EcoQuest 2 (Demo)
-static const SelectorRemap christmas1992_selectors[] = {
-	{ "init", 110 },
-	{ "play", 39 },
-	{ "replay", 62 },
-	{ "x", 1 },
-	{ "y", 0 },
-	{ "z", 82 },
-	{ "priority", 60 },
-	{ "view", 2 },
-	{ "loop", 3 },
-	{ "cel", 4 },
-	{ "brLeft", 17 },
-	{ "brRight", 19 },
-	{ "brTop", 16 },
-	{ "brBottom", 18 },
-	{ "xStep", 51 },
-	{ "yStep", 52 },
-	{ "nsBottom", 8 },
-	{ "nsTop", 6 },
-	{ "nsLeft", 7 },
-	{ "nsRight", 9 },
-	{ "font", 30 },
-	{ "text", 23 },
-	{ "type", 31 },
-	{ "state", 29 },
-	{ "doit", 57 },
-	{ "delete", 81 },
-	{ "signal", 14 },
-	{ "underBits", 5 },
-	{ "canBeHere", 450 },
-	{ "client", 42 },
-	{ "dx", 43 },
-	{ "dy", 44 },
-	{ "xStep", 51 },
-	{ "yStep", 52 },
-	{ "b-moveCnt", 45 },
-	{ "b-i1", 46 },
-	{ "b-i2", 47 },
-	{ "b-di", 48 },
-	{ "b-xAxis", 49 },
-	{ "b-incr", 50 },
-	{ "completed", 250 },
-	{ "illegalBits", 15 },
-	{ "dispose", 111 },
-	{ "prevSignal", 171 },
-	{ "message", 37 },
-	{ "modifiers", 61 },
-	{ "cue", 145 },
-	{ "owner", 172 },
-	{ "handle", 90 },
-	{ "number", 40 },
-	{ "max", 34 },
-	{ "cursor", 33 },
-	{ "claimed", 73 },
-	{ "edgeHit", 333 },
-	{ "wordFail", 68 },
-	{ "syntaxFail", 69 },
-	{ "semanticFail", 70 },
-	{ "cycler", 255 },
-	{ "elements", 24 },
-	{ "lsTop", 10 },
-	{ "lsBottom", 12 },
-	{ "lsLeft", 11 },
-	{ "lsRight", 13 },
-	{ "baseSetter", 310 },
-	{ "who", 36 },
-	{ "distance", 264 },
-	{ "mover", 56 },
-	{ "looper", 59 },
-	{ "isBlocked", 58 },
-	{ "heading", 55 },
-	{ "mode", 27 },
-	{ "caller", 143 },
-	{ "moveDone", 97 },
-	{ "vol", 94 },
-	{ "pri", 95 },
-	{ "min", 91 },
-	{ "sec", 92 },
-	{ "frame", 93 },
-	{ "dataInc", 89 },
-	{ "size", 86 },
-	{ "palette", 88 },
-	{ "moveSpeed", 53 },
-	{ "cantBeHere", 54 },
-	{ "nodePtr", 41 },
-	{ "flags", 99 },
-	{ "points", 87 },
-	{ "syncCue", 271 },
-	{ "syncTime", 270 },
-	{ "printLang", 84 },
-	{ "subtitleLang", 85 },
-	{ "parseLang", 83 },
-	{ "setVol", 178 }
+
+static const char * const sci0Selectors[] = {
+	           "y",          "x",         "view",      "loop",        "cel", //  0 -  4
+	   "underBits",      "nsTop",       "nsLeft",  "nsBottom",    "nsRight", //  5 -  9
+	       "lsTop",     "lsLeft",     "lsBottom",   "lsRight",     "signal", // 10 - 14
+	 "illegalBits",      "brTop",       "brLeft",  "brBottom",    "brRight", // 15 - 19
+	        "name",        "key",         "time",      "text",   "elements", // 20 - 25
+	       "color",       "back",         "mode",     "style",      "state", // 25 - 29
+	        "font",       "type",       "window",    "cursor",        "max", // 30 - 34
+	        "mark",        "who",      "message",      "edit",       "play", // 35 - 39
+	      "number",     "handle",       "client",        "dx",         "dy", // 40 - 44
+	   "b-moveCnt",       "b-i1",         "b-i2",      "b-di",    "b-xAxis", // 45 - 49
+	      "b-incr",      "xStep",        "yStep", "moveSpeed",  "canBeHere", // 50 - 54
+	     "heading",      "mover",         "doit", "isBlocked",     "looper", // 55 - 59
+	    "priority",  "modifiers",       "replay",    "setPri",         "at", // 60 - 64
+	        "next",       "done",        "width",  "wordFail", "syntaxFail", // 65 - 69
+	"semanticFail", "pragmaFail",         "said",   "claimed",      "value", // 70 - 74
+	        "save",    "restore",        "title",    "button",       "icon", // 75 - 79
+	        "draw",     "delete",            "z"                             // 80 - 82
 };
 
-// Taken from Leisure Suit Larry 1 VGA (Full Game)
-static const SelectorRemap lsl1_demo_selectors[] = {
-	{ "init", 104 },
-	{ "play", 42 },
-	{ "replay", 65 },
-	{ "x", 4 },
-	{ "y", 3 },
-	{ "z", 85 },
-	{ "priority", 63 },
-	{ "view", 5 },
-	{ "loop", 6 },
-	{ "cel", 7 },
-	{ "brLeft", 20 },
-	{ "brRight", 22 },
-	{ "brTop", 19 },
-	{ "brBottom", 21 },
-	{ "xStep", 54 },
-	{ "yStep", 55 },
-	{ "nsBottom", 11 },
-	{ "nsTop", 9 },
-	{ "nsLeft", 10 },
-	{ "nsRight", 12 },
-	{ "font", 33 },
-	{ "text", 26 },
-	{ "type", 34 },
-	{ "state", 32 },
-	{ "doit", 60 },
-	{ "delete", 84 },
-	{ "signal", 17 },
-	{ "underBits", 8 },
-	{ "canBeHere", 232 },
-	{ "client", 45 },
-	{ "dx", 46 },
-	{ "dy", 47 },
-	{ "xStep", 54 },
-	{ "yStep", 55 },
-	{ "b-moveCnt", 48 },
-	{ "b-i1", 49 },
-	{ "b-i2", 50 },
-	{ "b-di", 51 },
-	{ "b-xAxis", 52 },
-	{ "b-incr", 53 },
-	{ "completed", 210 },
-	{ "illegalBits", 18 },
-	{ "dispose", 105 },
-	{ "prevSignal", 149 },
-	{ "message", 40 },
-	{ "modifiers", 64 },
-	{ "cue", 136 },
-	{ "owner", 150 },
-	{ "handle", 93 },
-	{ "number", 43 },
-	{ "max", 37 },
-	{ "cursor", 36 },
-	{ "claimed", 76 },
-	{ "edgeHit", 321 },
-	{ "wordFail", 71 },
-	{ "syntaxFail", 72 },
-	{ "semanticFail", 73 },
-	{ "cycler", 215 },
-	{ "elements", 27 },
-	{ "lsTop", 13 },
-	{ "lsBottom", 15 },
-	{ "lsLeft", 14 },
-	{ "lsRight", 16 },
-	{ "baseSetter", 290 },
-	{ "who", 39 },
-	{ "distance", 224 },
-	{ "mover", 59 },
-	{ "looper", 62 },
-	{ "isBlocked", 61 },
-	{ "heading", 58 },
-	{ "mode", 30 },
-	{ "caller", 134 },
-	{ "moveDone", 100 },
-	{ "vol", 97 },
-	{ "pri", 98 },
-	{ "min", 94 },
-	{ "sec", 95 },
-	{ "frame", 96 },
-	{ "dataInc", 92 },
-	{ "size", 89 },
-	{ "palette", 91 },
-	{ "moveSpeed", 56 },
-	{ "cantBeHere", 57 },
-	{ "nodePtr", 44 },
-	{ "flags", 102 },
-	{ "points", 90 },
-	{ "syncCue", 248 },
-	{ "syncTime", 247 },
-	{ "printLang", 87 },
-	{ "subtitleLang", 88 },
-	{ "parseLang", 86 },
-	{ "setVol", 156 },
-	{ "motionCue", 213 },
-	{ "setTarget", 221 },
-	{ "egoMoveSpeed", 370 }
-};
-	
-// Taken from Codename: Iceman (Full Game)
-static const SelectorRemap iceman_demo_selectors[] = {
-	{ "init", 87 },
-	{ "play", 42 },
-	{ "replay", 65 },
-	{ "x", 4 },
-	{ "y", 3 },
-	{ "z", 85 },
-	{ "priority", 63 },
-	{ "view", 5 },
-	{ "loop", 6 },
-	{ "cel", 7 },
-	{ "brLeft", 20 },
-	{ "brRight", 22 },
-	{ "brTop", 19 },
-	{ "brBottom", 21 },
-	{ "xStep", 54 },
-	{ "yStep", 55 },
-	{ "nsBottom", 11 },
-	{ "nsTop", 9 },
-	{ "nsLeft", 10 },
-	{ "nsRight", 12 },
-	{ "font", 33 },
-	{ "text", 26 },
-	{ "type", 34 },
-	{ "state", 32 },
-	{ "doit", 60 },
-	{ "delete", 84 },
-	{ "signal", 17 },
-	{ "underBits", 8 },
-	{ "canBeHere", 57 },
-	{ "client", 45 },
-	{ "dx", 46 },
-	{ "dy", 47 },
-	{ "xStep", 54 },
-	{ "yStep", 55 },
-	{ "b-moveCnt", 48 },
-	{ "b-i1", 49 },
-	{ "b-i2", 50 },
-	{ "b-di", 51 },
-	{ "b-xAxis", 52 },
-	{ "b-incr", 53 },
-	{ "completed", 159 },
-	{ "illegalBits", 18 },
-	{ "dispose", 88 },
-	{ "prevSignal", 129 },
-	{ "message", 40 },
-	{ "modifiers", 64 },
-	{ "cue", 121 },
-	{ "owner", 130 },
-	{ "handle", 44 },
-	{ "number", 43 },
-	{ "max", 37 },
-	{ "cursor", 36 },
-	{ "claimed", 76 },
-	{ "edgeHit", 236 },
-	{ "wordFail", 71 },
-	{ "syntaxFail", 72 },
-	{ "semanticFail", 73 },
-	{ "cycler", 164 },
-	{ "elements", 27 },
-	{ "lsTop", 13 },
-	{ "lsBottom", 15 },
-	{ "lsLeft", 14 },
-	{ "lsRight", 16 },
-	{ "baseSetter", 207 },
-	{ "who", 39 },
-	{ "distance", 173 },
-	{ "mover", 59 },
-	{ "looper", 62 },
-	{ "isBlocked", 61 },
-	{ "heading", 58 },
-	{ "mode", 30 },
-	{ "caller", 119 },
-	{ "moveDone", 170 },
-	{ "size", 96 },
-	{ "moveSpeed", 56 },
-	{ "flags", 368 },
-	{ "points", 316 },
-	{ "motionCue", 162 },
-	{ "setTarget", 171 }
+static const char * const sci1Selectors[] = {
+	  "parseLang",  "printLang", "subtitleLang",       "size",    "points", // 83 - 87
+	    "palette",    "dataInc",       "handle",        "min",       "sec", // 88 - 92
+	      "frame",        "vol",          "pri",    "perform",  "moveDone"  // 93 - 97
 };
 
-// A macro for loading one of the above tables in the function below
-#define USE_SELECTOR_TABLE(x) \
-	do { \
-		for (uint32 i = 0; i < ARRAYSIZE(x); i++) { \
-			if (x[i].slot >= names.size()) \
-				names.resize(x[i].slot + 1); \
-			names[x[i].slot] = x[i].name; \
-		} \
-	} while (0)
+static const char * const sci11Selectors[] = {
+	  "topString",      "flags",    "quitGame",     "restart",      "hide", // 98 - 102
+	"scaleSignal",     "scaleX",      "scaleY",    "maxScale","vanishingX", // 103 - 107
+	 "vanishingY"                                                           // 108
+};
 
-Common::StringList Kernel::checkStaticSelectorNames() {
-	Common::String gameID = ((SciEngine*)g_engine)->getGameID();
-	
-	Common::StringList names;
-	
-	if (gameID == "kq4sci")
-		USE_SELECTOR_TABLE(kq4_demo_selectors);
-	else if (gameID == "lsl3" || gameID == "iceman") // identical, except iceman has "flags" 
-		USE_SELECTOR_TABLE(iceman_demo_selectors);
-	else if (gameID == "christmas1992")
-		USE_SELECTOR_TABLE(christmas1992_selectors);
-	else if (gameID == "lsl1sci")
-		USE_SELECTOR_TABLE(lsl1_demo_selectors);
-	
+#ifdef ENABLE_SCI32
+static const char * const sci2Selectors[] = {
+	    "plane",           "x",           "y",            "z",     "scaleX", //  0 -  4
+	   "scaleY",    "maxScale",    "priority",  "fixPriority",     "inLeft", //  5 -  9
+	    "inTop",     "inRight",    "inBottom", "useInsetRect",       "view", // 10 - 14
+	     "loop",         "cel",      "bitmap",       "nsLeft",      "nsTop", // 15 - 19
+	  "nsRight",    "nsBottom",      "lsLeft",        "lsTop",    "lsRight", // 20 - 25
+	 "lsBottom",      "signal", "illegalBits",       "brLeft",      "brTop", // 25 - 29
+	  "brRight",    "brBottom",        "name",          "key",       "time", // 30 - 34
+	     "text",    "elements",        "fore",         "back",       "mode", // 35 - 39
+	    "style",       "state",        "font",         "type",     "window", // 40 - 44
+	   "cursor",         "max",        "mark",          "who",    "message", // 45 - 49
+	     "edit",        "play",      "number",      "nodePtr",     "client", // 50 - 54
+	       "dx",          "dy",   "b-moveCnt",         "b-i1",       "b-i2", // 55 - 59
+	     "b-di",     "b-xAxis",      "b-incr",        "xStep",      "yStep", // 60 - 64
+	"moveSpeed",  "cantBeHere",     "heading",        "mover",       "doit", // 65 - 69
+	"isBlocked",      "looper",   "modifiers",       "replay",     "setPri", // 70 - 74
+	       "at",        "next",        "done",        "width", "pragmaFail", // 75 - 79
+	  "claimed",       "value",        "save",      "restore",      "title", // 80 - 84
+	   "button",        "icon",        "draw",       "delete",  "printLang", // 85 - 89
+	     "size",      "points",     "palette",      "dataInc",     "handle", // 90 - 94
+	      "min",         "sec",       "frame",          "vol",    "perform", // 95 - 99
+	 "moveDone",   "topString",       "flags",     "quitGame",    "restart", // 100 - 104
+	     "hide", "scaleSignal",  "vanishingX",   "vanishingY",    "picture", // 105 - 109
+	     "resX",        "resY",   "coordType",         "data",       "skip", // 110 - 104
+	   "center",         "all",        "show",     "textLeft",    "textTop", // 115 - 119
+	"textRight",  "textBottom", "borderColor",    "titleFore",  "titleBack", // 120 - 124
+	"titleFont",      "dimmed",    "frameOut",      "lastKey",  "magnifier", // 125 - 129
+	 "magPower",    "mirrored",       "pitch",         "roll",        "yaw", // 130 - 134
+	     "left",       "right",         "top",       "bottom",   "numLines"  // 135 - 139
+};
+#endif
+
+static const SelectorRemap sciSelectorRemap[] = {
+	{    SCI_VERSION_0_EARLY,     SCI_VERSION_0_LATE,   "moveDone", 170 },
+	{    SCI_VERSION_0_EARLY,     SCI_VERSION_0_LATE,     "points", 316 },
+	{    SCI_VERSION_0_EARLY,     SCI_VERSION_0_LATE,      "flags", 368 },
+	{    SCI_VERSION_1_EARLY,     SCI_VERSION_1_LATE,    "nodePtr",  44 },
+	{     SCI_VERSION_1_LATE,     SCI_VERSION_1_LATE, "cantBeHere",  57 },
+	{    SCI_VERSION_1_EARLY,     SCI_VERSION_1_LATE,  "topString", 101 },
+	{    SCI_VERSION_1_EARLY,     SCI_VERSION_1_LATE,      "flags", 102 },
+	// SCI1.1
+	{        SCI_VERSION_1_1,        SCI_VERSION_1_1,    "nodePtr",  41 },
+	{        SCI_VERSION_1_1,        SCI_VERSION_1_1, "cantBeHere",  54 },
+	{        SCI_VERSION_1_1,        SCI_VERSION_2_1,     "-info-",4103 },
+	{ SCI_VERSION_NONE,             SCI_VERSION_NONE,            0,   0 }
+};
+
+struct ClassReference {
+	int script;
+	const char *className;
+	const char *selectorName;
+	SelectorType selectorType;
+	uint selectorOffset;
+};
+
+// For variable selectors, we ignore the global selectors and start off from
+// the object's selectors (i.e. from the name selector onwards). Thus, the
+// following are not taken into consideration when calculating the indices of
+// variable selectors in this array:
+// SCI0 - SCI1: species, superClass, -info-
+// SCI1.1: -objID-, -size-, -propDict-, -methDict-, -classScript-, -script-,
+//         -super-, -info-
+static const ClassReference classReferences[] = {
+	{   0, "Character",         "say",   kSelectorMethod,  5 },	// Crazy Nick's Soft Picks
+	{ 928,  "Narrator",         "say",   kSelectorMethod,  4 },
+	{ 928,  "Narrator",   "startText",   kSelectorMethod,  5 },
+	{ 929,      "Sync",    "syncTime", kSelectorVariable,  1 },
+	{ 929,      "Sync",     "syncCue", kSelectorVariable,  2 },
+	{ 981, "SysWindow",        "open",   kSelectorMethod,  1 },
+	{ 999,    "Script",        "init",   kSelectorMethod,  0 },
+	{ 999,    "Script",     "dispose",   kSelectorMethod,  2 },
+	{ 999,    "Script", "changeState",   kSelectorMethod,  3 }
+};
+
+Common::StringArray Kernel::checkStaticSelectorNames() {
+	Common::StringArray names;
+	const int offset = (getSciVersion() < SCI_VERSION_1_1) ? 3 : 0;
+
+#ifdef ENABLE_SCI32
+	const int count = (getSciVersion() <= SCI_VERSION_1_1) ? ARRAYSIZE(sci0Selectors) + offset : ARRAYSIZE(sci2Selectors);
+#else
+	const int count = ARRAYSIZE(sci0Selectors) + offset;
+#endif
+	int countSci1 = ARRAYSIZE(sci1Selectors);
+	int countSci11 = ARRAYSIZE(sci11Selectors);
+
+	// Resize the list of selector names and fill in the SCI 0 names.
+	names.resize(count);
+	if (getSciVersion() <= SCI_VERSION_1_LATE) {
+		// Fill selectors 0 - 2 for SCI0 - SCI1 late
+		names[0] = "species";
+		names[1] = "superClass";
+		names[2] = "-info-";
+	}
+
+	if (getSciVersion() <= SCI_VERSION_1_1) {
+		// SCI0 - SCI11
+		for (int i = offset; i < count; i++)
+			names[i] = sci0Selectors[i - offset];
+
+		if (getSciVersion() > SCI_VERSION_01) {
+			// Several new selectors were added in SCI 1 and later.
+			names.resize(count + countSci1);
+			for (int i = count; i < count + countSci1; i++)
+				names[i] = sci1Selectors[i - count];
+		}
+
+		if (getSciVersion() >= SCI_VERSION_1_1) {
+			// Several new selectors were added in SCI 1.1
+			names.resize(count + countSci1 + countSci11);
+			for (int i = count + countSci1; i < count + countSci1 + countSci11; i++)
+				names[i] = sci11Selectors[i - count - countSci1];
+		}
+
+		findSpecificSelectors(names);
+
+#ifdef ENABLE_SCI32
+	} else {
+		// SCI2+
+		for (int i = 0; i < count; i++)
+			names[i] = sci2Selectors[i];
+#endif
+	}
+
+	for (const SelectorRemap *selectorRemap = sciSelectorRemap; selectorRemap->slot; ++selectorRemap) {
+		if (getSciVersion() >= selectorRemap->minVersion && getSciVersion() <= selectorRemap->maxVersion) {
+			const uint32 slot = selectorRemap->slot;
+			if (slot >= names.size())
+				names.resize(slot + 1);
+			names[slot] = selectorRemap->name;
+		}
+	}
+
 	return names;
 }
-	
-} // End of namespace Sci
 
-#endif // SCI_STATIC_SELECTORS_H
+void Kernel::findSpecificSelectors(Common::StringArray &selectorNames) {
+	// Now, we need to find out selectors which keep changing place...
+	// We do that by dissecting game objects, and looking for selectors at
+	// specified locations.
+
+	// We need to initialize script 0 here, to make sure that it's always
+	// located at segment 1.
+	_segMan->instantiateScript(0);
+
+	// The Actor class contains the init, xLast and yLast selectors, which
+	// we reference directly. It's always in script 998, so we need to
+	// explicitly load it here.
+	if ((getSciVersion() >= SCI_VERSION_1_EGA_ONLY)) {
+		if (_resMan->testResource(ResourceId(kResourceTypeScript, 998))) {
+			_segMan->instantiateScript(998);
+
+			const Object *actorClass = _segMan->getObject(_segMan->findObjectByName("Actor"));
+
+			if (actorClass) {
+				// Find the xLast and yLast selectors, used in kDoBresen
+
+				const int offset = (getSciVersion() < SCI_VERSION_1_1) ? 3 : 0;
+				// xLast and yLast always come between illegalBits and xStep
+				int illegalBitsSelectorPos = actorClass->locateVarSelector(_segMan, 15 + offset);	// illegalBits
+				int xStepSelectorPos = actorClass->locateVarSelector(_segMan, 51 + offset);	// xStep
+				if (xStepSelectorPos - illegalBitsSelectorPos != 3) {
+					error("illegalBits and xStep selectors aren't found in "
+							"known locations. illegalBits = %d, xStep = %d",
+							illegalBitsSelectorPos, xStepSelectorPos);
+				}
+
+				int xLastSelectorPos = actorClass->getVarSelector(illegalBitsSelectorPos + 1);
+				int yLastSelectorPos = actorClass->getVarSelector(illegalBitsSelectorPos + 2);
+
+				if (selectorNames.size() < (uint32)yLastSelectorPos + 1)
+					selectorNames.resize((uint32)yLastSelectorPos + 1);
+
+				selectorNames[xLastSelectorPos] = "xLast";
+				selectorNames[yLastSelectorPos] = "yLast";
+			}	// if (actorClass)
+
+			_segMan->uninstantiateScript(998);
+		}	// if (_resMan->testResource(ResourceId(kResourceTypeScript, 998)))
+	}	// if ((getSciVersion() >= SCI_VERSION_1_EGA_ONLY))
+
+	// Find selectors from specific classes
+
+	for (int i = 0; i < ARRAYSIZE(classReferences); i++) {
+		if (!_resMan->testResource(ResourceId(kResourceTypeScript, classReferences[i].script)))
+			continue;
+
+		_segMan->instantiateScript(classReferences[i].script);
+
+		const Object *targetClass = _segMan->getObject(_segMan->findObjectByName(classReferences[i].className));
+		int targetSelectorPos = 0;
+		uint selectorOffset = classReferences[i].selectorOffset;
+
+		if (targetClass) {
+			if (classReferences[i].selectorType == kSelectorMethod) {
+				if (targetClass->getMethodCount() < selectorOffset + 1)
+					error("The %s class has less than %d methods (%d)",
+							classReferences[i].className, selectorOffset + 1,
+							targetClass->getMethodCount());
+
+				targetSelectorPos = targetClass->getFuncSelector(selectorOffset);
+			} else {
+				// Add the global selectors to the selector ID
+				selectorOffset += (getSciVersion() <= SCI_VERSION_1_LATE) ? 3 : 8;
+
+				if (targetClass->getVarCount() < selectorOffset + 1)
+					error("The %s class has less than %d variables (%d)",
+							classReferences[i].className, selectorOffset + 1,
+							targetClass->getVarCount());
+
+				targetSelectorPos = targetClass->getVarSelector(selectorOffset);
+			}
+
+			if (selectorNames.size() < (uint32)targetSelectorPos + 1)
+				selectorNames.resize((uint32)targetSelectorPos + 1);
+
+
+			selectorNames[targetSelectorPos] = classReferences[i].selectorName;
+		}
+	}
+
+	// Reset the segment manager
+	_segMan->resetSegMan();
+}
+
+} // End of namespace Sci

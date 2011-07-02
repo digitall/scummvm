@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGOS_SOUND_H
 #define AGOS_SOUND_H
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 #include "agos/intern.h"
 #include "common/str.h"
 
@@ -78,12 +75,14 @@ public:
 		TYPE_SFX5    = 1 << 2
 	};
 
+protected:
 	void loadVoiceFile(const GameSpecificSettings *gss);
 	void loadSfxFile(const GameSpecificSettings *gss);
 
-	void readSfxFile(const char *filename);
+public:
+	void readSfxFile(const Common::String &filename);
 	void loadSfxTable(Common::File *gameFile, uint32 base);
-	void readVoiceFile(const char *filename);
+	void readVoiceFile(const Common::String &filename);
 
 	void playVoice(uint sound);
 	void playEffects(uint sound);

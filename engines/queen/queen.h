@@ -18,18 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef QUEEN_H
 #define QUEEN_H
 
 #include "engines/engine.h"
+#include "common/random.h"
 
 namespace Common {
-	class SeekableReadStream;
+class SeekableReadStream;
 }
 
 #if defined(_WIN32_WCE) && (_WIN32_WCE <= 300)
@@ -50,6 +48,14 @@ FORCEINLINE int16 READ_BE_INT16(const void *ptr) {
 
 #endif
 
+/**
+ * This is the namespace of the Queen engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Flight of the Amazon Queen
+ */
 namespace Queen {
 
 struct GameStateHeader {
@@ -106,7 +112,7 @@ public:
 	void update(bool checkPlayerInput = false);
 
 	bool canLoadOrSave() const;
-	Common::Error saveGameState(int slot, const char *desc);
+	Common::Error saveGameState(int slot, const Common::String &desc);
 	Common::Error loadGameState(int slot);
 	void makeGameStateName(int slot, char *buf) const;
 	int getGameStateSlot(const char *filename) const;

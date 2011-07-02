@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TUCKER_GRAPHICS_H
@@ -52,12 +49,12 @@ public:
 
 	static void decodeRLE(uint8 *dst, const uint8 *src, int w, int h);
 	static void decodeRLE_224(uint8 *dst, const uint8 *src, int w, int h);
-	static void decodeRLE_248(uint8 *dst, const uint8 *src, int w, int h, int y1, int y2, bool xflip);
+	static void decodeRLE_248(uint8 *dst, const uint8 *src, int w, int h, int y1, int y2, bool xflip, bool color248Only = false);
 	static void decodeRLE_320(uint8 *dst, const uint8 *src, int w, int h);
 
 	static void copyRect(uint8 *dst, int dstPitch, uint8 *src, int srcPitch, int w, int h);
 
-	static void drawStringChar(uint8 *dst, uint8 chr, int pitch, uint8 chrColor, const uint8 *src);
+	static void drawStringChar(uint8 *dst, int xDst, int yDst, int pitch, uint8 chr, uint8 chrColor, const uint8 *src);
 
 	static void setCharset(CharsetType type);
 

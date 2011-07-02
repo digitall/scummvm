@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "saga/saga.h"
@@ -232,7 +229,7 @@ int Actor::fillPathArray(const Point &fromPoint, const Point &toPoint, Point &be
 	int directionCount;
 	int16 compressX = (_vm->getGameId() == GID_ITE) ? 2 : 1;
 
-	Common::Array<PathDirectionData> pathDirectionList;
+	Common::List<PathDirectionData> pathDirectionQueue;
 
 	pointCounter = 0;
 	bestRating = quickDistance(fromPoint, toPoint, compressX);
@@ -240,7 +237,7 @@ int Actor::fillPathArray(const Point &fromPoint, const Point &toPoint, Point &be
 
 	for (startDirection = 0; startDirection < 4; startDirection++) {
 		PathDirectionData tmp = { startDirection, fromPoint.x, fromPoint.y };
-		pathDirectionList.push_back(tmp);
+		pathDirectionQueue.push_back(tmp);
 	}
 
 	if (validPathCellPoint(fromPoint)) {
@@ -251,10 +248,12 @@ int Actor::fillPathArray(const Point &fromPoint, const Point &toPoint, Point &be
 #endif
 	}
 
-	for (uint i = 0; i < pathDirectionList.size(); ++i) {
+	while (!pathDirectionQueue.empty()) {
+		PathDirectionData curPathDirection = pathDirectionQueue.front();
+		pathDirectionQueue.pop_front();
 		for (directionCount = 0; directionCount < 3; directionCount++) {
-			samplePathDirection = &pathDirectionLUT[pathDirectionList[i].direction][directionCount];
-			nextPoint = Point(pathDirectionList[i].x, pathDirectionList[i].y);
+			samplePathDirection = &pathDirectionLUT[curPathDirection.direction][directionCount];
+			nextPoint = Point(curPathDirection.x, curPathDirection.y);
 			nextPoint.x += samplePathDirection->x;
 			nextPoint.y += samplePathDirection->y;
 
@@ -274,7 +273,7 @@ int Actor::fillPathArray(const Point &fromPoint, const Point &toPoint, Point &be
 			PathDirectionData tmp = {
 				samplePathDirection->direction,
 				nextPoint.x, nextPoint.y };
-			pathDirectionList.push_back(tmp);
+			pathDirectionQueue.push_back(tmp);
 			++pointCounter;
 			if (nextPoint == toPoint) {
 				bestPoint = toPoint;
@@ -462,7 +461,7 @@ void Actor::removeNodes() {
 	// directly reached from the first node. If we find any, skip directly
 	// from the first node to that node (by marking all nodes in between as
 	// empty).
-	for (i = _pathNodeList.size() - 2; i > 1 ; i--) {
+	for (i = _pathNodeList.size() - 2; i > 1; i--) {
 		if (_pathNodeList[i].point.x == PATH_NODE_EMPTY) {
 			continue;
 		}

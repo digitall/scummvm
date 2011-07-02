@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "sky/control.h"
 #include "sky/debug.h"
@@ -44,8 +42,11 @@
 #include "sky/text.h"
 #include "sky/compact.h"
 
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "audio/mididrv.h"
+#include "audio/mixer.h"
+
+#include "engines/util.h"
+
 
 #ifdef _WIN32_WCE
 
@@ -81,8 +82,6 @@ SkyEngine::SkyEngine(OSystem *syst)
 }
 
 SkyEngine::~SkyEngine() {
-	_timer->removeTimerProc(&timerHandler);
-
 	delete _skyLogic;
 	delete _skySound;
 	delete _skyMusic;
@@ -99,6 +98,22 @@ SkyEngine::~SkyEngine() {
 			free(_itemList[i]);
 }
 
+void SkyEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
+	bool mute = false;
+	if (ConfMan.hasKey("mute"))
+		mute = ConfMan.getBool("mute");
+
+	if (ConfMan.getBool("sfx_mute"))
+		SkyEngine::_systemVars.systemFlags |= SF_FX_OFF;
+
+	if (ConfMan.getBool("music_mute"))
+		SkyEngine::_systemVars.systemFlags |= SF_MUS_OFF;
+
+	_skyMusic->setVolume(mute ? 0: ConfMan.getInt("music_volume") >> 1);
+}
+
 GUI::Debugger *SkyEngine::getDebugger() {
 	return _debugger;
 }
@@ -108,17 +123,17 @@ void SkyEngine::initVirgin() {
 	_skyScreen->showScreen(60110);
 }
 
-void SkyEngine::handleKey(void) {
+void SkyEngine::handleKey() {
 	if (_keyPressed.keycode && _systemVars.paused) {
 		_skySound->fnUnPauseFx();
 		_systemVars.paused = false;
 		_skyScreen->setPaletteEndian((uint8 *)_skyCompact->fetchCpt(SkyEngine::_systemVars.currentPalette));
-	} else if (_keyPressed.flags == Common::KBD_CTRL) {
-		if (_keyPressed.keycode == 'f')
+	} else if (_keyPressed.hasFlags(Common::KBD_CTRL)) {
+		if (_keyPressed.keycode == Common::KEYCODE_f)
 			_fastMode ^= 1;
-		else if (_keyPressed.keycode == 'g')
+		else if (_keyPressed.keycode == Common::KEYCODE_g)
 			_fastMode ^= 2;
-		else if (_keyPressed.keycode == 'd')
+		else if (_keyPressed.keycode == Common::KEYCODE_d)
 			_debugger->attach();
 	} else if (_keyPressed.keycode) {
 		switch (_keyPressed.keycode) {
@@ -182,8 +197,7 @@ Common::Error SkyEngine::go() {
 
 	uint32 delayCount = _system->getMillis();
 	while (!shouldQuit()) {
-		if (_debugger->isAttached())
-			_debugger->onFrame();
+		_debugger->onFrame();
 
 		if (shouldPerformAutoSave(_lastSaveTime)) {
 			if (_skyControl->loadSaveAllowed()) {
@@ -205,6 +219,7 @@ Common::Error SkyEngine::go() {
 		}
 
 		_skyLogic->engine();
+		_skyScreen->processSequence();
 		_skyScreen->recreate();
 		_skyScreen->spriteEngine();
 		if (_debugger->showGrid()) {
@@ -241,31 +256,21 @@ Common::Error SkyEngine::go() {
 Common::Error SkyEngine::init() {
 	initGraphics(320, 200, false);
 
-	if (ConfMan.getBool("sfx_mute")) {
-		SkyEngine::_systemVars.systemFlags |= SF_FX_OFF;
-	}
-	if (ConfMan.getBool("music_mute")) {
-		SkyEngine::_systemVars.systemFlags |= SF_MUS_OFF;
-	}
-	 _mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	 _mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, ConfMan.getInt("speech_volume"));
-	 _mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
-
 	_skyDisk = new Disk();
 	_skySound = new Sound(_mixer, _skyDisk, Audio::Mixer::kMaxChannelVolume);
 
 	_systemVars.gameVersion = _skyDisk->determineGameVersion();
 
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_ADLIB | MDT_MIDI | MDT_PREFER_MIDI);
-	if (midiDriver == MD_ADLIB) {
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_ADLIB | MDT_MIDI | MDT_PREFER_MT32);
+	if (MidiDriver::getMusicType(dev) == MT_ADLIB) {
 		_systemVars.systemFlags |= SF_SBLASTER;
-		_skyMusic = new AdlibMusic(_mixer, _skyDisk);
+		_skyMusic = new AdLibMusic(_mixer, _skyDisk);
 	} else {
 		_systemVars.systemFlags |= SF_ROLAND;
-		if ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32"))
-			_skyMusic = new MT32Music(MidiDriver::createMidi(midiDriver), _skyDisk);
+		if ((MidiDriver::getMusicType(dev) == MT_MT32) || ConfMan.getBool("native_mt32"))
+			_skyMusic = new MT32Music(MidiDriver::createMidi(dev), _skyDisk);
 		else
-			_skyMusic = new GmMusic(MidiDriver::createMidi(midiDriver), _skyDisk);
+			_skyMusic = new GmMusic(MidiDriver::createMidi(dev), _skyDisk);
 	}
 
 	if (isCDVersion()) {
@@ -297,9 +302,6 @@ Common::Error SkyEngine::init() {
 	loadFixedItems();
 	_skyLogic = new Logic(_skyCompact, _skyScreen, _skyDisk, _skyText, _skyMusic, _skyMouse, _skySound);
 	_skyMouse->useLogicInstance(_skyLogic);
-
-	// initialize timer *after* _skyScreen has been initialized.
-	_timer->installTimerProc(&timerHandler, 1000000 / 50, this); //call 50 times per second
 
 	_skyControl = new Control(_saveFileMan, _skyScreen, _skyDisk, _skyMouse, _skyText, _skyMusic, _skyLogic, _skySound, _skyCompact, _system);
 	_skyLogic->useControlInstance(_skyControl);
@@ -335,7 +337,7 @@ Common::Error SkyEngine::init() {
 	}
 
 	if (!_skyDisk->fileExists(60600 + SkyEngine::_systemVars.language * 8)) {
-		warning("The language you selected does not exist in your BASS version.");
+		warning("The language you selected does not exist in your BASS version");
 		if (_skyDisk->fileExists(60600))
 			SkyEngine::_systemVars.language = SKY_ENGLISH; // default to GB english if it exists..
 		else if (_skyDisk->fileExists(60600 + SKY_USA * 8))
@@ -348,7 +350,8 @@ Common::Error SkyEngine::init() {
 				}
 	}
 
-	_skyMusic->setVolume(ConfMan.getInt("music_volume") >> 1);
+	// Setup mixer
+	syncSoundSettings();
 
 	_debugger = new Debugger(_skyLogic, _skyMouse, _skyScreen, _skyCompact);
 	return Common::kNoError;
@@ -361,7 +364,7 @@ void SkyEngine::initItemList() {
 		_itemList[i] = NULL;
 }
 
-void SkyEngine::loadFixedItems(void) {
+void SkyEngine::loadFixedItems() {
 	_itemList[49] = _skyDisk->loadFile(49);
 	_itemList[50] = _skyDisk->loadFile(50);
 	_itemList[73] = _skyDisk->loadFile(73);
@@ -382,14 +385,6 @@ void SkyEngine::loadFixedItems(void) {
 
 void *SkyEngine::fetchItem(uint32 num) {
 	return _itemList[num];
-}
-
-void SkyEngine::timerHandler(void *refCon) {
-	((SkyEngine *)refCon)->gotTimerTick();
-}
-
-void SkyEngine::gotTimerTick(void) {
-	_skyScreen->handleTimer();
 }
 
 void SkyEngine::delay(int32 amount) {
@@ -434,7 +429,7 @@ void SkyEngine::delay(int32 amount) {
 	} while (_system->getMillis() < start + amount);
 }
 
-bool SkyEngine::isDemo(void) {
+bool SkyEngine::isDemo() {
 	switch (_systemVars.gameVersion) {
 	case 109: // PC Gamer demo
 	case 267: // English floppy demo
@@ -453,7 +448,7 @@ bool SkyEngine::isDemo(void) {
 	}
 }
 
-bool SkyEngine::isCDVersion(void) {
+bool SkyEngine::isCDVersion() {
 	switch (_systemVars.gameVersion) {
 	case 109:
 	case 267:

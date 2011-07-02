@@ -18,14 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
+#include "common/debug-channels.h"
 #include "common/system.h"
 #include "common/savefile.h"
+
+#include "engines/util.h"
 
 #include "lure/luredefs.h"
 #include "lure/surface.h"
@@ -38,19 +38,20 @@ namespace Lure {
 
 static LureEngine *int_engine = NULL;
 
-LureEngine::LureEngine(OSystem *system, const LureGameDescription *gameDesc): Engine(system), _gameDescription(gameDesc) {
+LureEngine::LureEngine(OSystem *system, const LureGameDescription *gameDesc)
+	: Engine(system), _gameDescription(gameDesc), _rnd("lure") {
 
-	Common::addDebugChannel(kLureDebugScripts, "scripts", "Scripts debugging");
-	Common::addDebugChannel(kLureDebugAnimations, "animations", "Animations debugging");
-	Common::addDebugChannel(kLureDebugHotspots, "hotspots", "Hotspots debugging");
-	Common::addDebugChannel(kLureDebugFights, "fights", "Fights debugging");
-	Common::addDebugChannel(kLureDebugSounds, "sounds", "Sounds debugging");
-	Common::addDebugChannel(kLureDebugStrings, "strings", "Strings debugging");
+	DebugMan.addDebugChannel(kLureDebugScripts, "scripts", "Scripts debugging");
+	DebugMan.addDebugChannel(kLureDebugAnimations, "animations", "Animations debugging");
+	DebugMan.addDebugChannel(kLureDebugHotspots, "hotspots", "Hotspots debugging");
+	DebugMan.addDebugChannel(kLureDebugFights, "fights", "Fights debugging");
+	DebugMan.addDebugChannel(kLureDebugSounds, "sounds", "Sounds debugging");
+	DebugMan.addDebugChannel(kLureDebugStrings, "strings", "Strings debugging");
 }
 
 Common::Error LureEngine::init() {
 	int_engine = this;
-	_initialised = false;
+	_initialized = false;
 	_saveLoadAllowed = false;
 
 	initGraphics(FULL_SCREEN_WIDTH, FULL_SCREEN_HEIGHT, false);
@@ -84,22 +85,26 @@ Common::Error LureEngine::init() {
 	_mouse = new Mouse();
 	_events = new Events();
 	_menu = new Menu();
-	Surface::initialise();
+	Surface::initialize();
 	_room = new Room();
 	_fights = new FightsManager();
 
 	_gameToLoad = -1;
-	_initialised = true;
+	_initialized = true;
+
+	// Setup mixer
+	syncSoundSettings();
+
 	return Common::kNoError;
 }
 
 LureEngine::~LureEngine() {
 	// Remove all of our debug levels here
-	Common::clearAllDebugChannels();
+	DebugMan.clearAllDebugChannels();
 
-	if (_initialised) {
-		// Delete and deinitialise subsystems
-		Surface::deinitialise();
+	if (_initialized) {
+		// Delete and deinitialize subsystems
+		Surface::deinitialize();
 		Sound.destroy();
 		delete _fights;
 		delete _room;
@@ -132,8 +137,10 @@ Common::Error LureEngine::go() {
 			CopyProtectionDialog *dialog = new CopyProtectionDialog();
 			bool result = dialog->show();
 			delete dialog;
-			if (shouldQuit())
+			if (shouldQuit()) {
+				delete gameInstance;
 				return Common::kNoError;
+			}
 
 			if (!result)
 				error("Sorry - copy protection failed");
@@ -184,7 +191,7 @@ bool LureEngine::saveGame(uint8 slotNumber, Common::String &caption) {
 		return false;
 
 	f->write("lure", 5);
-	f->writeByte(getLanguage());
+	f->writeByte(getLureLanguage());
 	f->writeByte(LURE_SAVEGAME_MINOR);
 	f->writeString(caption);
 	f->writeByte(0); // End of string terminator
@@ -219,14 +226,15 @@ bool LureEngine::loadGame(uint8 slotNumber) {
 	// Check language version
 	uint8 language = f->readByte();
 	_saveVersion = f->readByte();
-	if ((language != getLanguage()) || (_saveVersion < LURE_MIN_SAVEGAME_MINOR)) {
+	if ((language != getLureLanguage()) || (_saveVersion < LURE_MIN_SAVEGAME_MINOR)) {
 		warning("loadGame: Failed to load slot %d - incorrect version", slotNumber);
 		delete f;
 		return false;
 	}
 
 	// Read in and discard the savegame caption
-	while (f->readByte() != 0) ;
+	while (f->readByte() != 0)
+		;
 
 	// Load in the data
 	Resources::getReference().loadFromStream(f);
@@ -252,10 +260,12 @@ void LureEngine::GUIError(const char *msg, ...) {
 }
 
 GUI::Debugger *LureEngine::getDebugger() {
-	return &Game::getReference().debugger();
+	return !Game::isCreated() ? NULL : &Game::getReference().debugger();
 }
 
 void LureEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
 	Sound.syncSounds();
 }
 
@@ -272,7 +282,7 @@ Common::String *LureEngine::detectSave(int slotNumber) {
 		// Check language version
 		uint8 language = f->readByte();
 		uint8 version = f->readByte();
-		if ((language == getLanguage()) && (version >= LURE_MIN_SAVEGAME_MINOR)) {
+		if ((language == getLureLanguage()) && (version >= LURE_MIN_SAVEGAME_MINOR)) {
 			// Read in the savegame title
 			char saveName[MAX_DESC_SIZE];
 			char *p = saveName;

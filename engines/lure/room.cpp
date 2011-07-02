@@ -1,4 +1,8 @@
-/* ScummVM - Scumm Interpreter
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  *
  */
 
@@ -116,10 +117,9 @@ Room::Room(): _screen(Screen::getReference()) {
 
 Room::~Room() {
 	for (int layerNum = 0; layerNum < _numLayers; ++layerNum)
-		if (_layers[layerNum])
-			delete _layers[layerNum];
+		delete _layers[layerNum];
 
-	if (_talkDialog) delete _talkDialog;
+	delete _talkDialog;
 	int_room = NULL;
 }
 
@@ -429,7 +429,7 @@ void Room::update() {
 	Surface &s = _screen.screen();
 	Resources &res = Resources::getReference();
 	HotspotList &hotspots = res.activeHotspots();
-	byte white = LureEngine::getReference().isEGA() ?  EGA_DIALOG_WHITE_COLOUR : VGA_DIALOG_WHITE_COLOUR;
+	byte white = LureEngine::getReference().isEGA() ?  EGA_DIALOG_WHITE_COLOR : VGA_DIALOG_WHITE_COLOR;
 	HotspotList::iterator i;
 
 	// Copy the background to the temporary screen surface
@@ -446,8 +446,8 @@ void Room::update() {
 	}
 
 	// Handle second layer (layer 1) - do in order of Y axis
-	List<Hotspot *> tempList;
-	List<Hotspot *>::iterator iTemp;
+	Common::List<Hotspot *> tempList;
+	Common::List<Hotspot *>::iterator iTemp;
 	for (i = hotspots.begin(); i != hotspots.end(); ++i) {
 		Hotspot *h = (i.operator*()).get();
 		if ((h->layer() != 1) || (h->roomNumber() != _roomNumber) ||
@@ -527,7 +527,7 @@ void Room::update() {
 					s.writeString(xctr * 8, yctr * 8 + 8, buffer, true);
 //				} else if (v == 0xffff) {
 				} else if (_roomData->paths.isOccupied(xctr, yctr)) {
-					s.fillRect(Rect(xctr * 8, yctr * 8 + 8, xctr * 8 + 7, yctr * 8 + 15), 255);
+					s.fillRect(Common::Rect(xctr * 8, yctr * 8 + 8, xctr * 8 + 7, yctr * 8 + 15), 255);
 				}
 			}
 		}
@@ -561,9 +561,9 @@ void Room::setRoomNumber(uint16 newRoomNumber, bool showOverlay) {
 		if (isEGA)
 			_screen.setPaletteEmpty();
 		else
-			// Fade out all the colours except the high index 0FFh, which is used to show the
+			// Fade out all the colors except the high index 0FFh, which is used to show the
 			// disk cursor as a room changes
-			_screen.paletteFadeOut(GAME_COLOURS - 1);
+			_screen.paletteFadeOut(GAME_COLORS - 1);
 
 		// Deallocate graphical layers from the room
 		for (int layerNum = 0; layerNum < _numLayers; ++layerNum) {
@@ -808,4 +808,4 @@ void Room::reset() {
 	_statusLine[0] = '\0';
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

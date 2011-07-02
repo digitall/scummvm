@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
@@ -92,8 +89,11 @@ void AgiEngine::printText2(int l, const char *msg, int foff, int xoff, int yoff,
 				x1++;
 
 				// DF: changed the len-1 to len...
-				if (x1 == len && m[len] != '\n')
-					y1++, x1 = foff = 0;
+				// FIXME: m[len] doesn't make sense and may read out of bounds?
+				if (x1 == len && m[len] != '\n') {
+					y1++;
+					x1 = foff = 0;
+				}
 			} else {
 				y1++;
 				x1 = foff = 0;
@@ -135,8 +135,8 @@ void AgiEngine::blitTextbox(const char *p, int y, int x, int len) {
 	if (x == 0 && y == 0 && len == 0)
 		x = y = -1;
 
-	if (len <= 0 || len >= 40)
-		len = 32;
+	if (len <= 0)
+		len = 30;
 
 	xoff = x * CHAR_COLS;
 	yoff = y * CHAR_LINES;
@@ -166,7 +166,7 @@ void AgiEngine::blitTextbox(const char *p, int y, int x, int len) {
 	drawWindow(xoff, yoff, xoff + w - 1, yoff + h - 1);
 
 	printText2(2, msg, 0, CHAR_COLS + xoff, CHAR_LINES + yoff,
-			len + 1, MSG_BOX_TEXT, MSG_BOX_COLOUR);
+			len + 1, MSG_BOX_TEXT, MSG_BOX_COLOR);
 
 	free(msg);
 
@@ -214,6 +214,7 @@ void AgiEngine::printTextConsole(const char *msg, int x, int y, int len, int fg,
 	x *= CHAR_COLS;
 	y *= 10;
 
+	debugC(4, kDebugLevelText, "printTextConsole(): %s, %d, %d, %d, %d, %d", msg, x, y, len, fg, bg);
 	printText2(1, msg, 0, x, y, len, fg, bg);
 }
 
@@ -488,7 +489,7 @@ int AgiEngine::print(const char *p, int lin, int col, int len) {
 			_game.keypress = 0;
 			break;
 		}
-	} while (_game.msgBoxTicks > 0);
+	} while (_game.msgBoxTicks > 0 && !(shouldQuit() || _restartGame));
 
 	setvar(vWindowReset, 0);
 
@@ -503,24 +504,21 @@ int AgiEngine::print(const char *p, int lin, int col, int len) {
  *
  */
 void AgiEngine::printStatus(const char *message, ...) {
-	char x[42];
 	va_list args;
 
 	va_start(args, message);
 
-	vsprintf(x, message, args);
+	Common::String x = Common::String::vformat(message, args);
 
 	va_end(args);
 
 	debugC(4, kDebugLevelText, "fg=%d, bg=%d", STATUS_FG, STATUS_BG);
-	printText(x, 0, 0, _game.lineStatus, 40, STATUS_FG, STATUS_BG);
+	printText(x.c_str(), 0, 0, _game.lineStatus, 40, STATUS_FG, STATUS_BG);
 }
 
-char *AgiEngine::safeStrcat(char *s, const char *t) {
+static void safeStrcat(Common::String &p, const char *t) {
 	if (t != NULL)
-		strcat(s, t);
-
-	return s;
+		p += t;
 }
 
 /**
@@ -530,20 +528,15 @@ char *AgiEngine::safeStrcat(char *s, const char *t) {
  * @param s  string containing the format specifier
  * @param n  logic number
  */
-#define MAX_LEN 768
 char *AgiEngine::agiSprintf(const char *s) {
-	static char y[MAX_LEN];
-	char x[MAX_LEN];
-	char z[16], *p;
+	static char agiSprintf_buf[768];
+	Common::String p;
+	char z[16];
 
 	debugC(3, kDebugLevelText, "logic %d, '%s'", _game.lognum, s);
-	p = x;
 
-	for (*p = 0; *s;) {
+	while (*s) {
 		switch (*s) {
-		case '\\':
-			s++;
-			goto literal;
 		case '%':
 			s++;
 			switch (*s++) {
@@ -566,7 +559,7 @@ char *AgiEngine::agiSprintf(const char *s) {
 					// remove all leading 0
 					// don't remove the 3rd zero if 000
 					for (i = 0; z[i] == '0' && i < 14; i++)
-					    ;
+						;
 				} else {
 					i = 15 - i;
 				}
@@ -591,27 +584,27 @@ char *AgiEngine::agiSprintf(const char *s) {
 			case 'm':
 				i = strtoul(s, NULL, 10) - 1;
 				if (_game.logics[_game.lognum].numTexts > i)
-					safeStrcat(p, agiSprintf(_game. logics[_game.lognum].texts[i]));
+					safeStrcat(p, agiSprintf(_game.logics[_game.lognum].texts[i]));
 				break;
 			}
 
 			while (*s >= '0' && *s <= '9')
 				s++;
-			while (*p)
-				p++;
 			break;
 
+		case '\\':
+			s++;
+			// FALL THROUGH
+
 		default:
-literal:
-			assert(p < x + MAX_LEN);
-			*p++ = *s++;
-			*p = 0;
+			p += *s++;
 			break;
 		}
 	}
 
-	strcpy(y, x);
-	return y;
+	assert(p.size() < sizeof(agiSprintf_buf));
+	strcpy(agiSprintf_buf, p.c_str());
+	return agiSprintf_buf;
 }
 
 /**
@@ -623,8 +616,8 @@ void AgiEngine::writeStatus() {
 	if (_debug.statusline) {
 		printStatus("%3d(%03d) %3d,%3d(%3d,%3d)               ",
 				getvar(0), getvar(1), _game.viewTable[0].xPos,
-				_game.viewTable[0].yPos, WIN_TO_PIC_X(g_mouse.x),
-				WIN_TO_PIC_Y(g_mouse.y));
+				_game.viewTable[0].yPos, WIN_TO_PIC_X(_mouse.x),
+				WIN_TO_PIC_Y(_mouse.y));
 		return;
 	}
 
@@ -662,11 +655,8 @@ void AgiEngine::writePrompt() {
 	int l, fg, bg, pos;
 	int promptLength = strlen(agiSprintf(_game.strings[0]));
 
-	if (!_game.inputEnabled || _game.inputMode != INPUT_NORMAL) {
-		clearPrompt();
-
+	if (!_game.inputEnabled || _game.inputMode != INPUT_NORMAL)
 		return;
-	}
 
 	l = _game.lineUserInput;
 	fg = _game.colorFg;
@@ -706,6 +696,8 @@ void AgiEngine::clearLines(int l1, int l2, int c) {
 	// inc for endline so it matches the correct num
 	// ie, from 22 to 24 is 3 lines, not 2 lines.
 
+	debugC(4, kDebugLevelText, "clearLines(%d, %d, %d)", l1, l2, c);
+
 	l1 *= CHAR_LINES;
 	l2 *= CHAR_LINES;
 	l2 += CHAR_LINES - 1;
@@ -737,7 +729,7 @@ void AgiEngine::drawWindow(int x1, int y1, int x2, int y2) {
 
 	debugC(4, kDebugLevelText, "x1=%d, y1=%d, x2=%d, y2=%d", x1, y1, x2, y2);
 	_gfx->saveBlock(x1, y1, x2, y2, _game.window.buffer);
-	_gfx->drawBox(x1, y1, x2, y2, MSG_BOX_COLOUR, MSG_BOX_LINE, 2);
+	_gfx->drawBox(x1, y1, x2, y2, MSG_BOX_COLOR, MSG_BOX_LINE, 2);
 }
 
 } // End of namespace Agi

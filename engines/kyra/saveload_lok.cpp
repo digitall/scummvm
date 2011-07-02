@@ -18,21 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/endian.h"
-#include "common/savefile.h"
-#include "common/system.h"
 
 #include "kyra/kyra_lok.h"
 #include "kyra/animator_lok.h"
-#include "kyra/screen.h"
 #include "kyra/resource.h"
 #include "kyra/sound.h"
 #include "kyra/timer.h"
+
+#include "common/savefile.h"
 
 namespace Kyra {
 
@@ -53,7 +47,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	snd_playSoundEffect(0x0A);
 	snd_playWanderScoreViaMap(0, 1);
 
-	// unload the current voice file should fix some problems with voices
+	// unloading the current voice file should fix some problems with voices
 	if (_currentRoom != 0xFFFF && _flags.isTalkie) {
 		char file[32];
 		assert(_currentRoom < _roomTableSize);
@@ -64,7 +58,6 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 		_res->unloadPakFile(file);
 	}
 
-	int brandonX = 0, brandonY = 0;
 	for (int i = 0; i < 11; i++) {
 		_characterList[i].sceneId = in->readUint16BE();
 		_characterList[i].height = in->readByte();
@@ -76,16 +69,12 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 		_characterList[i].y1 = in->readSint16BE();
 		_characterList[i].x2 = in->readSint16BE();
 		_characterList[i].y2 = in->readSint16BE();
-		if (i == 0) {
-			brandonX = _characterList[i].x1;
-			brandonY = _characterList[i].y1;
-		}
 		//_characterList[i].field_20 = in->readUint16BE();
 		//_characterList[i].field_23 = in->readUint16BE();
 	}
 
 	_marbleVaseItem = in->readSint16BE();
-	_itemInHand = in->readByte();
+	_itemInHand = (int8)in->readByte();
 
 	for (int i = 0; i < 4; ++i)
 		_birthstoneGemTable[i] = in->readByte();
@@ -114,7 +103,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 
 	for (int i = 0; i < _roomTableSize; ++i) {
 		for (int item = 0; item < 12; ++item) {
-			_roomTable[i].itemsTable[item] = 0xFF;
+			_roomTable[i].itemsTable[item] = kItemNone;
 			_roomTable[i].itemsXPos[item] = 0xFFFF;
 			_roomTable[i].itemsYPos[item] = 0xFF;
 			_roomTable[i].needInit[item] = 0;
@@ -177,15 +166,48 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 					seq_createAmuletJewel(i-0x55, 10, 1, 1);
 			}
 		}
-		_screen->copyRegion(0, 0, 0, 0, 320, 200, 10, 8);
-		_screen->copyRegion(0, 0, 0, 0, 320, 200, 8, 0);
+
+		_screen->copyRegion(8, 8, 8, 8, 304, 212, 10, 0);
 	}
 
 	setHandItem(_itemInHand);
-	_animator->setBrandonAnimSeqSize(3, 48);
+
+	// Will-O-Wisp uses a different shape size than Brandon's usual
+	// shape, thus we need to setup the correct size depending on
+	// his state over here. This fixes graphics glitches when loading
+	// saves, where Brandon is transformed into the Will-O-Wisp.
+	if (_brandonStatusBit & 2)
+		_animator->setBrandonAnimSeqSize(5, 48);
+	else
+		_animator->setBrandonAnimSeqSize(3, 48);
+
 	redrawInventory(0);
-	_brandonPosX = brandonX;
-	_brandonPosY = brandonY;
+
+	// Original hardcoded Brandon position for certain scenes:
+	// - SceneId 7 ("A ruined bridge") and flag 0x39 set, which seems
+	//  to indicate that Herman is still in the scene.
+	// - SceneId 2 ("Inside the temple") and flag 0x2D not set, which
+	//  indicates that the amulet is not obtained yet and thus Brynn
+	//  is still inside the temple
+	if (_currentCharacter->sceneId == 7 && queryGameFlag(0x39)) {
+		_currentCharacter->x1 = 282;
+		_currentCharacter->y1 = 108;
+		_currentCharacter->facing = 5;
+	} else if (_currentCharacter->sceneId == 2 && !queryGameFlag(0x2D)) {
+		_currentCharacter->x1 = 294;
+		_currentCharacter->y1 = 132;
+		_currentCharacter->facing = 5;
+	}
+
+	_brandonPosX = _currentCharacter->x2 = _currentCharacter->x1;
+	_brandonPosY = _currentCharacter->y2 = _currentCharacter->y1;
+
+	// We need to reset the "_noDrawShapesFlag" flag of Animator_LoK
+	// over here. Else in certain cases restoring an savegame might
+	// result in no shapes being drawn at all. See bug report
+	// #2868581 "KYRA1: Invisible Brandon" for an example of this.
+	_animator->_noDrawShapesFlag = 0;
+
 	enterNewScene(_currentCharacter->sceneId, _currentCharacter->facing, 0, 0, 1);
 
 	_animator->animRefreshNPC(0);
@@ -196,7 +218,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	_screen->copyRegion(8, 8, 8, 8, 304, 128, 2, 0);
 	_screen->updateScreen();
 
-	setMousePos(brandonX, brandonY);
+	setMousePos(_currentCharacter->x1, _currentCharacter->y1);
 
 	if (in->err() || in->eos()) {
 		warning("Load failed ('%s', '%s').", fileName, header.description.c_str());
@@ -213,7 +235,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-Common::Error KyraEngine_LoK::saveGameState(int slot, const char *saveName, const Graphics::Surface *thumb) {
+Common::Error KyraEngine_LoK::saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumb) {
 	const char *fileName = getSavegameFilename(slot);
 
 	if (shouldQuit())
@@ -294,5 +316,5 @@ Common::Error KyraEngine_LoK::saveGameState(int slot, const char *saveName, cons
 	delete out;
 	return Common::kNoError;
 }
-} // end of namespace Kyra
+} // End of namespace Kyra
 

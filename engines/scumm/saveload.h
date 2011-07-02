@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SAVELOAD_H
@@ -30,8 +27,8 @@
 #include <stddef.h>	// for ptrdiff_t
 
 namespace Common {
-	class SeekableReadStream;
-	class WriteStream;
+class SeekableReadStream;
+class WriteStream;
 }
 
 namespace Scumm {
@@ -50,7 +47,7 @@ namespace Scumm {
  * only saves/loads those which are valid for the version of the savegame
  * which is being loaded/saved currently.
  */
-#define CURRENT_VER 79
+#define CURRENT_VER 84
 
 /**
  * An auxillary macro, used to specify savegame versions. We use this instead

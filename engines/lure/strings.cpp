@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/strings.h"
@@ -178,7 +175,7 @@ char StringData::readCharacter() {
 
 	error("Unknown bit sequence encountered when decoding string");
 
-	return 0;
+	return 0;	// for compilers that don't support NORETURN
 }
 
 void StringData::getString(uint16 stringId, char *dest, const char *hotspotName,
@@ -235,7 +232,7 @@ void StringData::getString(uint16 stringId, char *dest, const char *hotspotName,
 
 		// WORKAROUND: Italian version had an unterminated Look description for Prisoner after cutting sack
 		if ((charOffset == 0x1a08) && (charBitMask == 1) &&
-			(LureEngine::getReference().getLanguage() == IT_ITA))
+			(LureEngine::getReference().getLanguage() == Common::IT_ITA))
 			// Hardcode for end of string
 			ch = '\0';
 		else

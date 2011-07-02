@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/lure.h"
@@ -131,8 +128,13 @@ bool Introduction::show() {
 		anim = new AnimationSequence(curr_anim->resourceId,
 			isEGA ? EgaPalette : coll.getPalette(curr_anim->paletteIndex), fadeIn,
 			(curr_anim->resourceId == 0x44) ? 4 : 7);
-		if (curr_anim->initialPause != 0)
-			if (interruptableDelay(curr_anim->initialPause * 1000 / 50)) return true;
+
+		if (curr_anim->initialPause != 0) {
+			if (interruptableDelay(curr_anim->initialPause * 1000 / 50)) {
+				delete anim;
+				return true;
+			}
+		}
 
 		result = false;
 		switch (anim->show()) {
@@ -185,4 +187,4 @@ bool Introduction::show() {
 	return false;
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

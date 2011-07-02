@@ -18,15 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_hof.h"
 #include "kyra/wsamovie.h"
 
-#include "common/endian.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -123,7 +120,7 @@ void KyraEngine_HoF::updateItemAnimations() {
 
 	const ItemAnimData_v2 *s = &_itemAnimData[_nextAnimItem];
 	ActiveItemAnim *a = &_activeItemAnim[_nextAnimItem];
-	_nextAnimItem = ++_nextAnimItem % _itemAnimDataSize;
+	_nextAnimItem = (_nextAnimItem + 1) % _itemAnimDataSize;
 
 	uint32 ctime = _system->getMillis();
 	if (ctime < a->nextFrame)
@@ -168,7 +165,7 @@ void KyraEngine_HoF::updateItemAnimations() {
 
 	if (nextFrame) {
 		a->nextFrame = _system->getMillis() + (s->frames[a->currentFrame].delay * _tickLength);
-		a->currentFrame = ++a->currentFrame % s->numFrames;
+		a->currentFrame = (a->currentFrame + 1) % s->numFrames;
 	}
 }
 
@@ -316,5 +313,5 @@ void KyraEngine_HoF::resetCharacterAnimDim() {
 	_animObjects[0].height = _animObj0Height;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // RSC Resource file management module
@@ -39,21 +36,12 @@
 
 namespace Saga {
 
-Resource::Resource(SagaEngine *vm): _vm(vm) {
-	_contexts = NULL;
-	_contextsCount = 0;
-}
-
-Resource::~Resource() {
-	clearContexts();
-}
-
-bool Resource::loadResContext_v1(ResourceContext *context, uint32 contextOffset, uint32 contextSize) {
+bool ResourceContext::loadResV1(uint32 contextOffset, uint32 contextSize) {
 	size_t i;
 	bool result;
 	byte tableInfo[RSC_TABLEINFO_SIZE];
-	byte *tableBuffer;
-	size_t tableSize;
+	ByteArray tableBuffer;
+	uint32 count;
 	uint32 resourceTableOffset;
 	ResourceData *resourceData;
 
@@ -61,433 +49,251 @@ bool Resource::loadResContext_v1(ResourceContext *context, uint32 contextOffset,
 		return false;
 	}
 
-	context->file->seek(contextOffset + contextSize - RSC_TABLEINFO_SIZE);
+	_file.seek(contextOffset + contextSize - RSC_TABLEINFO_SIZE);
 
-	if (context->file->read(tableInfo, RSC_TABLEINFO_SIZE) != RSC_TABLEINFO_SIZE) {
+	if (_file.read(tableInfo, RSC_TABLEINFO_SIZE) != RSC_TABLEINFO_SIZE) {
 		return false;
 	}
 
-	MemoryReadStreamEndian readS(tableInfo, RSC_TABLEINFO_SIZE, context->isBigEndian);
+	Common::MemoryReadStreamEndian readS(tableInfo, RSC_TABLEINFO_SIZE, _isBigEndian);
 
 	resourceTableOffset = readS.readUint32();
-	context->count = readS.readUint32();
+	count = readS.readUint32();
 
 	// Check for sane table offset
-	if (resourceTableOffset != contextSize - RSC_TABLEINFO_SIZE - RSC_TABLEENTRY_SIZE * context->count) {
+	if (resourceTableOffset != contextSize - RSC_TABLEINFO_SIZE - RSC_TABLEENTRY_SIZE * count) {
 		return false;
 	}
 
 	// Load resource table
-	tableSize = RSC_TABLEENTRY_SIZE * context->count;
+	tableBuffer.resize(RSC_TABLEENTRY_SIZE * count);
 
-	tableBuffer = (byte *)malloc(tableSize);
+	_file.seek(resourceTableOffset + contextOffset, SEEK_SET);
 
-	context->file->seek(resourceTableOffset + contextOffset, SEEK_SET);
-
-	result = (context->file->read(tableBuffer, tableSize) == tableSize);
+	result = (_file.read(tableBuffer.getBuffer(), tableBuffer.size()) == tableBuffer.size());
 	if (result) {
-		context->table = (ResourceData *)calloc(context->count, sizeof(*context->table));
+		_table.resize(count);
 
-		MemoryReadStreamEndian readS1(tableBuffer, tableSize, context->isBigEndian);
+		Common::MemoryReadStreamEndian readS1(tableBuffer.getBuffer(), tableBuffer.size(), _isBigEndian);
 
-		for (i = 0; i < context->count; i++) {
-			resourceData = &context->table[i];
+		for (i = 0; i < count; i++) {
+			resourceData = &_table[i];
 			resourceData->offset = contextOffset + readS1.readUint32();
 			resourceData->size = readS1.readUint32();
-			//sanity check
-			if ((resourceData->offset > (uint)context->file->size()) || (resourceData->size > contextSize)) {
+			// Sanity check
+			if ((resourceData->offset > (uint)_fileSize) || (resourceData->size > contextSize)) {
 				result = false;
 				break;
 			}
 		}
 	}
 
-	free(tableBuffer);
 	return result;
 }
 
-bool Resource::loadContext(ResourceContext *context) {
-	size_t i;
-	const GamePatchDescription *patchDescription;
-	ResourceData *resourceData;
-	uint16 subjectResourceType;
-	ResourceContext *subjectContext;
-	uint32 subjectResourceId;
-	uint32 patchResourceId;
-	ResourceData *subjectResourceData;
-	byte *tableBuffer;
-	size_t tableSize;
-	bool isMacBinary;
+bool ResourceContext::load(SagaEngine *vm, Resource *resource) {
+	if (_fileName == NULL) // IHNM special case
+		return true;
 
-	if (!context->file->open(context->fileName)) {
+	if (!_file.open(_fileName))
 		return false;
-	}
 
-	context->isBigEndian = _vm->isBigEndian();
+	_fileSize = _file.size();
+	_isBigEndian = vm->isBigEndian();
 
-	if (context->fileType & GAME_SWAPENDIAN)
-		context->isBigEndian = !context->isBigEndian;
+	if (_fileType & GAME_SWAPENDIAN)
+		_isBigEndian = !_isBigEndian;
 
-	isMacBinary = (context->fileType & GAME_MACBINARY) > 0;
-	context->fileType &= ~GAME_MACBINARY;
-
-	if (!isMacBinary) {
-		if (!loadResContext(context, 0, context->file->size())) {
-			return false;
-		}
-	} else {
-		if (!loadMacContext(context)) {
-			return false;
-		}
-	}
-
-	//process internal patch files
-	if (context->fileType & GAME_PATCHFILE) {
-		subjectResourceType = ~GAME_PATCHFILE & context->fileType;
-		subjectContext = getContext((GameFileTypes)subjectResourceType);
-		if (subjectContext == NULL) {
-			error("Resource::loadContext() Subject context not found");
-		}
-		loadResource(context, context->count - 1, tableBuffer, tableSize);
-
-		MemoryReadStreamEndian readS2(tableBuffer, tableSize, context->isBigEndian);
-		for (i = 0; i < tableSize / 8; i++) {
-			subjectResourceId = readS2.readUint32();
-			patchResourceId = readS2.readUint32();
-			subjectResourceData = subjectContext->getResourceData(subjectResourceId);
-			resourceData = context->getResourceData(patchResourceId);
-			subjectResourceData->patchData = new PatchData(context->file);
-			subjectResourceData->offset = resourceData->offset;
-			subjectResourceData->size = resourceData->size;
-		}
-		free(tableBuffer);
-	}
-
-	//process external patch files
-	for (patchDescription = _vm->getPatchDescriptions(); patchDescription && patchDescription->fileName; ++patchDescription) {
-		if ((patchDescription->fileType & context->fileType) != 0) {
-			if (patchDescription->resourceId < context->count) {
-				resourceData = &context->table[patchDescription->resourceId];
-				resourceData->patchData = new PatchData(patchDescription);
-				if (resourceData->patchData->_patchFile->open(patchDescription->fileName)) {
-					resourceData->offset = 0;
-					resourceData->size = resourceData->patchData->_patchFile->size();
-					// ITE uses several patch files which are loaded and then not needed
-					// anymore (as they're in memory), so close them here. IHNM uses only
-					// 1 patch file, which is reused, so don't close it
-					if (_vm->getGameId() == GID_ITE)
-						resourceData->patchData->_patchFile->close();
-				} else {
-					delete resourceData->patchData;
-					resourceData->patchData = NULL;
-				}
-			}
+	if (_fileType & GAME_MACBINARY) {
+		// Special case for the MacBinary packed files in the old Mac ITE
+		// release. There are no patch files in this case.
+		if (!(_fileType & GAME_MUSICFILE_GM)) {
+			// Find the actual size, as there may be padded data in the end.
+			_file.seek(83);
+			uint32 macDataSize = _file.readSint32BE();
+			// Skip the MacBinary headers, and read the resource data.
+			return loadRes(MAC_BINARY_HEADER_SIZE, macDataSize);
+		} else {
+			// Unpack MacBinary packed MIDI files
+			return loadMacMIDI();
 		}
 	}
 
-	// Close the file if it's part of a series of files
+	if (!loadRes(0, _fileSize))
+		return false;
+
+	processPatches(resource, vm->getPatchDescriptions());
+
+	// Close the file if it's part of a series of files.
 	// This prevents having all voice files open in IHNM for no reason, as each chapter uses
-	// a different voice file
-	if (context->serial > 0)
-		context->file->close();
+	// a different voice file.
+	if (_serial > 0)
+		_file.close();
 
 	return true;
 }
 
-bool Resource::createContexts() {
-	int i;
+Resource::Resource(SagaEngine *vm): _vm(vm) {
+}
+
+Resource::~Resource() {
+	clearContexts();
+}
+
+void Resource::addContext(const char *fileName, uint16 fileType, bool isCompressed, int serial) {
 	ResourceContext *context;
-	int soundFileIndex = 0;
-	int voicesFileIndex = 0;
-	bool digitalMusic = false;
+	context = createContext();
+	context->_fileName = fileName;
+	context->_fileType = fileType;
+	context->_isCompressed = isCompressed;
+	context->_serial = serial;
+	_contexts.push_back(context);
+}
+
+bool Resource::createContexts() {
 	bool soundFileInArray = false;
-	bool multipleVoices = false;
-	bool censoredVersion = false;
-	bool compressedSounds = false;
-	bool compressedMusic = false;
-	uint16 voiceFileType = GAME_VOICEFILE;
-	bool fileFound = false;
-	int maxFile = 0;
 
 	_vm->_voiceFilesExist = true;
 
 	struct SoundFileInfo {
+		int gameId;
 		char fileName[40];
 		bool isCompressed;
+		uint16 voiceFileAddType;
 	};
 
-	SoundFileInfo *curSoundfiles = 0;
 
 	// If the Wyrmkeep credits file is found, set the Wyrmkeep version flag to true
-	if (Common::File::exists("graphics/credit3n.dlt")) {
+	if (Common::File::exists("credit3n.dlt")) {
 		_vm->_gf_wyrmkeep = true;
 	}
 
-	_contextsCount = 0;
-	for (i = 0; _vm->getFilesDescriptions()[i].fileName; i++) {
-		_contextsCount++;
-		if (_vm->getFilesDescriptions()[i].fileType == GAME_SOUNDFILE)
+	for (const ADGameFileDescription *gameFileDescription = _vm->getFilesDescriptions();
+		gameFileDescription->fileName; gameFileDescription++) {
+		addContext(gameFileDescription->fileName, gameFileDescription->fileType);
+		if (gameFileDescription->fileType == GAME_SOUNDFILE) {
 			soundFileInArray = true;
+		}
 	}
 
 	//// Detect and add SFX files ////////////////////////////////////////////////
-	SoundFileInfo sfxFilesITE[] = {
-		{	"sounds.rsc",		false	},
-		{	"sounds.cmp",		true	},
-		{	"soundsd.rsc",		false	},
-		{	"soundsd.cmp",		true	}
-	};
-
+	SoundFileInfo sfxFiles[] = {
+		{	GID_ITE,	"sounds.rsc",		false,	0	},
+		{	GID_ITE,	"sounds.cmp",		true,	0	},
+		{	GID_ITE,	"soundsd.rsc",		false,	0	},
+		{	GID_ITE,	"soundsd.cmp",		true,	0	},
 #ifdef ENABLE_IHNM
-	SoundFileInfo sfxFilesIHNM[] = {
-		{	"sfx.res",			false	},
-		{	"sfx.cmp",			true	}
-	};
+		{	GID_IHNM,	"sfx.res",			false,	0	},
+		{	GID_IHNM,	"sfx.cmp",			true,	0	},
 #endif
-
 #ifdef ENABLE_SAGA2
-	SoundFileInfo sfxFilesFTA2[] = {
-		{	"ftasound.hrs",		false	}
-	};
-
-	SoundFileInfo sfxFilesDino[] = {
-		{	"dinosnd.hrs",		false	},
-	};
+		{	GID_FTA2,	"ftasound.hrs",		false,	0	},
+		{	GID_DINO,	"dinosnd.hrs",		false,	0	},
 #endif
+		{	-1,			"",				false,	0	}
+	};
 
+	_soundFileName[0] = 0;
 	if (!soundFileInArray) {
-		// If the sound file is not specified in the detector table, add it here
-		fileFound = false;
-
-		switch (_vm->getGameId()) {
-			case GID_ITE:
-				curSoundfiles = sfxFilesITE;
-				maxFile = 4;
-				break;
-#ifdef ENABLE_IHNM
-			case GID_IHNM:
-				curSoundfiles = sfxFilesIHNM;
-				maxFile = 2;
-				break;
-#endif
-#ifdef ENABLE_SAGA2
-			case GID_DINO:
-				curSoundfiles = sfxFilesDino;
-				maxFile = 1;
-				break;
-			case GID_FTA2:
-				curSoundfiles = sfxFilesFTA2;
-				maxFile = 1;
-				break;
-#endif
-		}
-
-		for (i = 0; i < maxFile; i++) {
-			if (Common::File::exists(curSoundfiles[i].fileName)) {
-				_contextsCount++;
-				soundFileIndex = _contextsCount - 1;
-				strcpy(_soundFileName, curSoundfiles[i].fileName);
-				compressedSounds = curSoundfiles[i].isCompressed;
-				fileFound = true;
-				break;
-			}
-		}
-
-		if (!fileFound) {
-			// No sound file found, don't add any file to the array
-			soundFileInArray = true;
-			if (_vm->getGameId() == GID_ITE) {
-				// ITE floppy versions have both voices and sounds in voices.rsc
-				voiceFileType = GAME_SOUNDFILE | GAME_VOICEFILE;
-			}
+		for (SoundFileInfo *curSoundFile = sfxFiles; (curSoundFile->gameId != -1); curSoundFile++) {
+			if (curSoundFile->gameId != _vm->getGameId()) continue;
+			if (!Common::File::exists(curSoundFile->fileName)) continue;
+			strcpy(_soundFileName, curSoundFile->fileName);
+			addContext(_soundFileName, GAME_SOUNDFILE, curSoundFile->isCompressed);
+			break;
 		}
 	}
 
 	//// Detect and add voice files /////////////////////////////////////////////
-	SoundFileInfo voiceFilesITE[] = {
-		{	"voices.rsc",					false	},
-		{	"voices.cmp",					true	},
-		{	"voicesd.rsc",					false	},
-		{	"voicesd.cmp",					true	},
-		{	"inherit the earth voices",		false	},
-		{	"inherit the earth voices.cmp",	true	},
-		{	"ite voices.bin",				false	}
-	};
-
+	SoundFileInfo voiceFiles[] = {
+		{	GID_ITE,	"voices.rsc",					false	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
+		{	GID_ITE,	"voices.cmp",					true	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
+		{	GID_ITE,	"voicesd.rsc",					false	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
+		{	GID_ITE,	"voicesd.cmp",					true	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
+		// The resources in the Wyrmkeep combined Windows/Mac/Linux CD version are little endian, but
+		// the voice file is big endian. If we got such a version with mixed files, mark this voice file
+		// as big endian
+		{	GID_ITE,	"inherit the earth voices",		false	,	_vm->isBigEndian() ? 0 : GAME_SWAPENDIAN},
+		{	GID_ITE,	"inherit the earth voices.cmp",	true	,	_vm->isBigEndian() ? 0 : GAME_SWAPENDIAN},
+		{	GID_ITE,	"ite voices.bin",				false	,	GAME_MACBINARY},
 #ifdef ENABLE_IHNM
-	SoundFileInfo voiceFilesIHNM[] = {
-		{	"voicess.res",					false	},
-		{	"voicess.cmp",					true	},
-		{	"voicesd.res",					false	},
-		{	"voicesd.cmp",					true	},
-	};
+		{	GID_IHNM,	"voicess.res",					false	,	0},
+		{	GID_IHNM,	"voicess.cmp",					true	,	0},
+		{	GID_IHNM,	"voicesd.res",					false	,	0},
+		{	GID_IHNM,	"voicesd.cmp",					true	,	0},
 #endif
-
 #ifdef ENABLE_SAGA2
-	SoundFileInfo voiceFilesFTA2[] = {
-		{	"ftavoice.hrs",					false	},
-	};
+		{	GID_FTA2,	"ftavoice.hrs",					false	,	0},
 #endif
+		{	-1,			"",							false	,	0}
+	};
 
 	// Detect and add voice files
-	fileFound = false;
+	_voicesFileName[0][0] = 0;
+	for (SoundFileInfo *curSoundFile = voiceFiles; (curSoundFile->gameId != -1); curSoundFile++) {
+		if (curSoundFile->gameId != _vm->getGameId()) continue;
+		if (!Common::File::exists(curSoundFile->fileName)) continue;
 
-	switch (_vm->getGameId()) {
-		case GID_ITE:
-			curSoundfiles = voiceFilesITE;
-			maxFile = 7;
-			break;
-#ifdef ENABLE_IHNM
-		case GID_IHNM:
-			curSoundfiles = voiceFilesIHNM;
-			maxFile = 4;
-			break;
-#endif
-#ifdef ENABLE_SAGA2
-		/*
-		case GID_DINO:
-			// TODO
-			curSoundfiles = NULL;
-			maxFile = 0;
-			break;
-		*/
-		case GID_FTA2:
-			curSoundfiles = voiceFilesFTA2;
-			maxFile = 1;
-			break;
-#endif
-	}
+		strcpy(_voicesFileName[0], curSoundFile->fileName);
+		addContext(_voicesFileName[0], GAME_VOICEFILE | curSoundFile->voiceFileAddType, curSoundFile->isCompressed);
 
-	for (i = 0; i < maxFile; i++) {
-		if (Common::File::exists(curSoundfiles[i].fileName)) {
-			_contextsCount++;
-			voicesFileIndex = _contextsCount - 1;
-			strcpy(_voicesFileName[0], curSoundfiles[i].fileName);
-			compressedSounds = curSoundfiles[i].isCompressed;
-			fileFound = true;
-
-			// Special cases
-			if (!scumm_stricmp(curSoundfiles[i].fileName, "inherit the earth voices") ||
-				!scumm_stricmp(curSoundfiles[i].fileName, "inherit the earth voices.cmp")) {
-				// The resources in the Wyrmkeep combined Windows/Mac/Linux CD version are little endian, but
-				// the voice file is big endian. If we got such a version with mixed files, mark this voice file
-				// as big endian
-				if (!_vm->isBigEndian())
-					voiceFileType = GAME_VOICEFILE | GAME_SWAPENDIAN;	// This file is big endian
-			}
-
-			if (!scumm_stricmp(curSoundfiles[i].fileName, "ite voices.bin")) {
-				voiceFileType = GAME_VOICEFILE | GAME_MACBINARY;
-			}
-
-			if (!scumm_stricmp(curSoundfiles[i].fileName, "voicess.res") ||
-				!scumm_stricmp(curSoundfiles[i].fileName, "voicess.cmp")) {
+		// Special cases
+		if (!scumm_stricmp(curSoundFile->fileName, "voicess.res") ||
+			!scumm_stricmp(curSoundFile->fileName, "voicess.cmp")) {
 				// IHNM has multiple voice files
-				multipleVoices = true;
-				// Note: it is assumed that the voice files are always last in the list
-				if (Common::File::exists("voices4.res") || Common::File::exists("voices4.cmp")) {
-					_contextsCount += 6;	// voices1-voices6
-				} else {
-					// The German and French versions of IHNM don't have Nimdok's chapter,
-					// therefore the voices file for that chapter is missing
-					_contextsCount += 5;	// voices1-voices3, voices4-voices5
-					censoredVersion = true;
+				for (size_t i = 1; i <= 6; i++) { // voices1-voices6
+					sprintf(_voicesFileName[i], "voices%i.%s", (uint)i, curSoundFile->isCompressed ? "cmp" : "res");
+					if (i == 4) {
+						// The German and French versions of IHNM don't have Nimdok's chapter,
+						// therefore the voices file for that chapter is missing
+						if (!Common::File::exists(_voicesFileName[i])) {
+							continue;
+						}
+					}
+					addContext(_voicesFileName[i], GAME_VOICEFILE, curSoundFile->isCompressed, i);
 				}
-			}
-
-			break;
 		}
+		break;
 	}
 
-	if (!fileFound) {
+	if (_voicesFileName[0][0] == 0) {
+#ifdef ENABLE_IHNM
 		if (_vm->getGameId() == GID_IHNM && _vm->isMacResources()) {
 			// The Macintosh version of IHNM has no voices.res, and it has all
 			// its voice files in subdirectories, so don't do anything here
+			_contexts.push_back(new VoiceResourceContext_RES());
 		} else {
+#endif
 			warning("No voice file found, voices will be disabled");
 			_vm->_voicesEnabled = false;
 			_vm->_subtitlesEnabled = true;
 			_vm->_voiceFilesExist = false;
+#ifdef ENABLE_IHNM
 		}
+#endif
 	}
 
-	//// Detect and add ITE music files /////////////////////////////////////////
-	SoundFileInfo musicFilesITE[] = {
-		{	"music.rsc",	false	},
-		{	"music.cmp",	true	},
-		{	"musicd.rsc",	false	},
-		{	"musicd.cmp",	true	},
+	//// Detect and add music files /////////////////////////////////////////
+	SoundFileInfo musicFiles[] = {
+		{	GID_ITE,	"music.rsc",	false,	0	},
+		{	GID_ITE,	"music.cmp",	true,	0	},
+		{	GID_ITE,	"musicd.rsc",	false,	0	},
+		{	GID_ITE,	"musicd.cmp",	true,	0	},
+		{	-1,			"",			false	,	0}
 	};
 
 	// Check for digital music in ITE
-	if (_vm->getGameId() == GID_ITE) {
-		fileFound = false;
 
-		for (i = 0; i < 4; i++) {
-			if (Common::File::exists(musicFilesITE[i].fileName)) {
-				_contextsCount++;
-				digitalMusic = true;
-				compressedMusic = musicFilesITE[i].isCompressed;
-				fileFound = true;
-				strcpy(_musicFileName, musicFilesITE[i].fileName);
-				break;
-			}
-		}
-
-		if (!fileFound) {
-			// No sound file found, don't add any file to the array
-			digitalMusic = false;
-		}
+	for (SoundFileInfo *curSoundFile = musicFiles; (curSoundFile->gameId != -1); curSoundFile++) {
+		if (curSoundFile->gameId != _vm->getGameId()) continue;
+		if (!Common::File::exists(curSoundFile->fileName)) continue;
+		strcpy(_musicFileName, curSoundFile->fileName);
+		addContext(_musicFileName, GAME_DIGITALMUSICFILE, curSoundFile->isCompressed);
+		break;
 	}
 
-	_contexts = (ResourceContext*)calloc(_contextsCount, sizeof(*_contexts));
-
-	for (i = 0; i < _contextsCount; i++) {
-		context = &_contexts[i];
-		context->file = new Common::File();
-		context->serial = 0;
-
-		// For ITE, add the digital music file and sfx file information here
-		if (_vm->getGameId() == GID_ITE && digitalMusic && i == _contextsCount - 1) {
-			context->fileName = _musicFileName;
-			context->fileType = GAME_DIGITALMUSICFILE;
-			context->isCompressed = compressedMusic;
-		} else if (!soundFileInArray && i == soundFileIndex) {
-			context->fileName = _soundFileName;
-			context->fileType = GAME_SOUNDFILE;
-			context->isCompressed = compressedSounds;
-		} else if (_vm->_voiceFilesExist && i == voicesFileIndex && !(_vm->getGameId() == GID_IHNM && _vm->isMacResources())) {
-			context->fileName = _voicesFileName[0];
-			// can be GAME_VOICEFILE or GAME_SOUNDFILE | GAME_VOICEFILE or GAME_VOICEFILE | GAME_SWAPENDIAN
-			context->fileType = voiceFileType;
-			context->isCompressed = compressedSounds;
-		} else {
-			if (!(_vm->_voiceFilesExist && multipleVoices && (i > voicesFileIndex))) {
-				context->fileName = _vm->getFilesDescriptions()[i].fileName;
-				context->fileType = _vm->getFilesDescriptions()[i].fileType;
-				context->isCompressed = compressedSounds;
-			} else {
-				int token = (censoredVersion && (i - voicesFileIndex >= 4)) ? 1 : 0;	// censored versions don't have voice4
-
-				if (compressedSounds)
-					sprintf(_voicesFileName[i - voicesFileIndex + token], "voices%i.cmp", i - voicesFileIndex + token);
-				else
-					sprintf(_voicesFileName[i - voicesFileIndex + token], "voices%i.res", i - voicesFileIndex + token);
-
-				context->fileName = _voicesFileName[i - voicesFileIndex + token];
-				context->fileType = GAME_VOICEFILE;
-				context->isCompressed = compressedSounds;
-
-				// IHNM has several different voice files, so we need to allow
-				// multiple resource contexts of the same type. We tell them
-				// apart by assigning each of the duplicates a unique serial
-				// number. The default behaviour when requesting a context will
-				// be to look for serial number 0.
-				context->serial = i - voicesFileIndex + token;
-			}
-		}
-
-		if (!loadContext(context)) {
+	for (ResourceContextList::iterator i = _contexts.begin(); i != _contexts.end(); ++i) {
+		if (!(*i)->load(_vm, this)) {
 			return false;
 		}
 	}
@@ -495,48 +301,33 @@ bool Resource::createContexts() {
 }
 
 void Resource::clearContexts() {
-	int i;
-	size_t j;
-	ResourceContext *context;
-	if (_contexts == NULL) {
-		return;
+	ResourceContextList::iterator i = _contexts.begin();
+	while (i != _contexts.end()) {
+		ResourceContext * context = *i;
+		i = _contexts.erase(i);
+		delete context;
 	}
-	for (i = 0; i < _contextsCount; i++) {
-		context = &_contexts[i];
-		delete context->file;
-		if (context->table != NULL) {
-			for (j = 0; j < context->count; j++) {
-				delete context->table[j].patchData;
-			}
-		}
-		if (_vm->isSaga2()) {
-			free(context->categories);
-		}
-		free(context->table);
-	}
-	free(_contexts);
-	_contexts = NULL;
 }
 
-void Resource::loadResource(ResourceContext *context, uint32 resourceId, byte*&resourceBuffer, size_t &resourceSize) {
+void Resource::loadResource(ResourceContext *context, uint32 resourceId, ByteArray &resourceBuffer) {
 	Common::File *file;
 	uint32 resourceOffset;
 	ResourceData *resourceData;
 
-	debug(8, "loadResource %d", resourceId);
 
 	resourceData = context->getResourceData(resourceId);
 
 	file = context->getFile(resourceData);
 
 	resourceOffset = resourceData->offset;
-	resourceSize = resourceData->size;
 
-	resourceBuffer = (byte*)malloc(resourceSize);
+	debug(8, "loadResource %d 0x%X:0x%X", resourceId, resourceOffset, uint(resourceData->size));
+	resourceBuffer.resize(resourceData->size);
+
 
 	file->seek((long)resourceOffset, SEEK_SET);
 
-	if (file->read(resourceBuffer, resourceSize) != resourceSize) {
+	if (file->read(resourceBuffer.getBuffer(), resourceBuffer.size()) != resourceBuffer.size()) {
 		error("Resource::loadResource() failed to read");
 	}
 
@@ -545,6 +336,16 @@ void Resource::loadResource(ResourceContext *context, uint32 resourceId, byte*&r
 	// 1 patch file, which is reused, so don't close it
 	if (resourceData->patchData != NULL && _vm->getGameId() == GID_ITE)
 		file->close();
+}
+
+ResourceContext *Resource::getContext(uint16 fileType, int serial) {
+	for (ResourceContextList::const_iterator i = _contexts.begin(); i != _contexts.end(); ++i) {
+		ResourceContext * context = *i;
+		if ((context->fileType() & fileType) && (context->serial() == serial)) {
+			return context;
+		}
+	}
+	return NULL;
 }
 
 } // End of namespace Saga

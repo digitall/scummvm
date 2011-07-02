@@ -20,12 +20,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -47,6 +45,9 @@ Logic::Logic(Sword2Engine *vm) :
 	memset(_eventList, 0, sizeof(_eventList));
 	memset(_syncList, 0, sizeof(_syncList));
 	_router = new Router(_vm);
+
+	_cycleSkip = false;
+	_speechRunning = false;
 
 	setupOpcodes();
 }
@@ -272,16 +273,6 @@ void Logic::logicReplace(uint32 new_script) {
 
 void Logic::resetKillList() {
 	_kills = 0;
-}
-
-/**
- * Pause or unpause the currently playing cutscene movie, if any.
- * @param pause		true if pausing, false if unpausing
- */
-
-void Logic::pauseMovie(bool pause) {
-	if (_moviePlayer)
-		_moviePlayer->pauseMovie(pause);
 }
 
 /**

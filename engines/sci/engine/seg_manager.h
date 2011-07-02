@@ -18,175 +18,133 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef SCI_ENGINE_SEG_MANAGER_H
-#define SCI_ENGINE_SEG_MANAGER_H
+#ifndef SCI_ENGINE_SEGMAN_H
+#define SCI_ENGINE_SEGMAN_H
 
 #include "common/scummsys.h"
 #include "common/serializer.h"
+#include "sci/engine/script.h"
 #include "sci/engine/vm.h"
-#include "sci/engine/memobj.h"
+#include "sci/engine/vm_types.h"
+#include "sci/engine/segment.h"
 
 namespace Sci {
 
-#define GET_SEGMENT(mgr, index, rtype) (((index) > 0 && (int)(mgr)._heap.size() > index) ?		\
-		(((mgr)._heap[index] && (mgr)._heap[index]->getType() == rtype)? (mgr)._heap[index]	: NULL) : NULL)
+/**
+ * Parameters for getScriptSegment().
+ */
+enum ScriptLoadType {
+	SCRIPT_GET_DONT_LOAD = 0, /**< Fail if not loaded */
+	SCRIPT_GET_LOAD = 1, /**< Load, if neccessary */
+	SCRIPT_GET_LOCK = 3 /**< Load, if neccessary, and lock */
+};
 
-#define GET_SEGMENT_ANY(mgr, index) (((index) > 0 && (int)(mgr)._heap.size() > index) ?			\
-		(((mgr)._heap[index])? (mgr)._heap[index]	: NULL) : NULL)
-
-#define GET_OBJECT_SEGMENT(mgr, index) (((index) > 0 && (int)(mgr)._heap.size() > index) ?		\
-		(((mgr)._heap[index]	&& ((mgr)._heap[index]->getType() == MEM_OBJ_SCRIPT || (mgr)._heap[index]->getType() == MEM_OBJ_CLONES))? (mgr)._heap[index]	\
-		: NULL): NULL)
+class Script;
 
 class SegManager : public Common::Serializable {
+	friend class Console;
 public:
 	/**
-	 * Initialize the segment manager
+	 * Initialize the segment manager.
 	 */
-	SegManager(bool sci1_1);
+	SegManager(ResourceManager *resMan);
 
 	/**
-	 * Deallocate all memory associated with the segment manager
+	 * Deallocate all memory associated with the segment manager.
 	 */
 	~SegManager();
+
+	void resetSegMan();
 
 	virtual void saveLoadWithSerializer(Common::Serializer &ser);
 
 	// 1. Scripts
 
 	/**
-	 * Allocate a script into the segment manager
-	 * @param s				The state containing resource manager 
-	 * 						handlers to load the script data
+	 * Allocate a script into the segment manager.
 	 * @param script_nr		The number of the script to load
 	 * @param seg_id		The segment ID of the newly allocated segment,
 	 * 						on success
 	 * @return				0 on failure, 1 on success
 	 */
-	Script *allocateScript(EngineState *s, int script_nr, SegmentId *seg_id);
+	Script *allocateScript(int script_nr, SegmentId *seg_id);
 
-	// The script must then be initialised; see section (1b.), below.
+	// The script must then be initialized; see section (1b.), below.
 
 	/**
-	 * Forcefully deallocate a previously allocated script
+	 * Forcefully deallocate a previously allocated script.
 	 * @param script_nr		number of the script to deallocate
-	 * @return				1 on success, 0 on failure
 	 */
-	int deallocateScript(int script_nr);
+	void deallocateScript(int script_nr);
 
 	/**
-	 * Determines whether a script has been loaded yet.
-	 * @param seg	ID of the script segment to check for
+	 * Reconstructs the stack. Used when restoring saved games
 	 */
-	bool scriptIsLoaded(SegmentId seg);
+	void reconstructStack(EngineState *s);
 
 	/**
-	 * Validate whether the specified public function is exported by 
-	 * the script in the specified segment
-	 * @param pubfunct		Index of the function to validate
-	 * @param seg			Segment ID of the script the check is to 
-	 * 						be performed for
-	 * @return				NULL if the public function is invalid, its 
-	 * 						offset into the script's segment otherwise
-	 */
-	uint16 validateExportFunc(int pubfunct, SegmentId seg);
-
-	/**
-	 * Get the segment ID associated with a script number
+	 * Determines the segment occupied by a certain script, if any.
 	 * @param script_nr		Number of the script to look up
-	 * @return				The associated segment ID, or -1 if no 
-	 * 						matching segment exists
+	 * @return				The script's segment ID, or 0 on failure
 	 */
-	SegmentId segGet(int script_nr) const;
+	SegmentId getScriptSegment(int script_nr) const;
+
+	/**
+	 * Determines the segment occupied by a certain script. Optionally
+	 * load it, or load & lock it.
+	 * @param[in] script_nr	Number of the script to look up
+	 * @param[in] load		flag determining whether to load/lock the script
+	 * @return				The script's segment ID, or 0 on failure
+	 */
+	SegmentId getScriptSegment(int script_nr, ScriptLoadType load);
+
+	/**
+	 * Makes sure that a script and its superclasses get loaded to the heap.
+	 * If the script already has been loaded, only the number of lockers is
+	 * increased. All scripts containing superclasses of this script are loaded
+	 * recursively as well, unless 'recursive' is set to zero. The
+	 * complementary function is "uninstantiateScript()" below.
+	 * @param[in] script_nr		The script number to load
+	 * @return					The script's segment ID or 0 if out of heap
+	 */
+	int instantiateScript(int script_nr);
+
+	/**
+	 * Decreases the numer of lockers of a script and unloads it if that number
+	 * reaches zero.
+	 * This function will recursively unload scripts containing its
+	 * superclasses, if those aren't locked by other scripts as well.
+	 * @param[in] script_nr	The script number that is requestet to be unloaded
+	 */
+	void uninstantiateScript(int script_nr);
+
+private:
+	void uninstantiateScriptSci0(int script_nr);
+
+public:
+	// TODO: document this
+	reg_t getClassAddress(int classnr, ScriptLoadType lock, reg_t caller);
 
 	/**
 	 * Return a pointer to the specified script.
-	 * If the id is invalid, does not refer to a script or the script is 
+	 * If the id is invalid, does not refer to a script or the script is
 	 * not loaded, this will invoke error().
 	 * @param seg	ID of the script segment to check for
 	 * @return		A pointer to the Script object
 	 */
 	Script *getScript(SegmentId seg);
 
+
 	/**
 	 * Return a pointer to the specified script.
-	 * If the id is invalid, does not refer to a script, or 
+	 * If the id is invalid, does not refer to a script, or
 	 * the script is not loaded, this will return NULL
 	 * @param seg	ID of the script segment to check for
 	 * @return		A pointer to the Script object, or NULL
 	 */
-	Script *getScriptIfLoaded(SegmentId seg);
-
-
-
-
-	// 1b. Script Initialisation
-
-	// The set of functions below are intended
-	// to be used during script instantiation,
-	// i.e. loading and linking.
-
-	/**
-	 * Initializes a script's local variable block
-	 * All variables are initialized to zero.
-	 * @param seg	Segment containing the script to initialize
-	 * @param nr	Number of local variables to allocate
-	 */
-	void scriptInitialiseLocalsZero(SegmentId seg, int nr);
-
-	/**
-	 * Initializes a script's local variable block according to a prototype
-	 * @param location	Location to initialize from
-	 */
-	void scriptInitialiseLocals(reg_t location);
-
-	/**
-	 * Initializes an object within the segment manager
-	 * @param obj_pos	Location (segment, offset) of the object. It must
-	 * 					point to the beginning of the script/class block 
-	 * 					(as opposed to what the VM considers to be the 
-	 * 					object location)
-	 * @returns			A newly created Object describing the object,
-	 * 					stored within the relevant script
-	 */
-	Object *scriptObjInit(EngineState *s, reg_t obj_pos);
-
-	/**
-	 * Informs the segment manager that a code block must be relocated
-	 * @param location	Start of block to relocate
-	 */
-	void scriptAddCodeBlock(reg_t location);
-
-	/**
-	 * Tells the segment manager whether exports are wide (32-bit) or not.
-	 * @param flag	1 if exports are wide, 0 otherwise
-	 */
-	void setExportWidth(int flag);
-
-	/**
-	 * Processes a relocation block witin a script
-	 *  This function is idempotent, but it must only be called after all
-	 *  objects have been instantiated, or a run-time error will occur.
-	 * @param obj_pos	Location (segment, offset) of the block
-	 * @return			Location of the relocation block
-	 */
-	void scriptRelocate(reg_t block);
-
-	/**
-	 * Determines whether the script referenced by the indicated segment 
-	 * is marked as being deleted.
-	 * Will return 0 when applied to an invalid or non-script seg.
-	 * @param seg	Segment ID of the script to investigate
-	 * @return		1 iff seg points to a script and the segment is 
-	 * 				deleted, 0 otherwise
-	 */
-	bool scriptIsMarkedAsDeleted(SegmentId seg);
-
+	Script *getScriptIfLoaded(SegmentId seg) const;
 
 	// 2. Clones
 
@@ -195,12 +153,12 @@ public:
 	 * @param addr The offset of the freshly allocated clone
 	 * @return	Reference to the memory allocated for the clone
 	 */
-	Clone *alloc_Clone(reg_t *addr);
+	Clone *allocateClone(reg_t *addr);
 
-
-	// 3. Objects (static, from Scripts, and dynmic, from Clones)
-
-
+	/**
+	 * Reconstructs clones. Used when restoring saved games
+	 */
+	void reconstructClones();
 
 	// 4. Stack
 
@@ -216,22 +174,9 @@ public:
 	// 5. System Strings
 
 	/**
-	 * Allocates a system string table
-	 * See also sys_string_acquire();
-	 * @param[in] segid	Segment ID of the stack
-	 * @returns			The physical stack
-	 */            
-	SystemStrings *allocateSysStrings(SegmentId *segid);
-
-
-	// 5. System Strings
-
-	/**
-	 * Allocates a string fragments segment
-	 * See also stringfrag.h
-	 * @return	Segment ID to use for string fragments
+	 * Initializes the system string table.
 	 */
-	SegmentId allocateStringFrags();
+	void initSysStrings();
 
 
 	// 6, 7. Lists and Nodes
@@ -241,14 +186,36 @@ public:
 	 * @param[in] addr	The offset of the freshly allocated list
 	 * @return			Reference to the memory allocated for the list
 	 */
-	List *alloc_List(reg_t *addr);
+	List *allocateList(reg_t *addr);
 
 	/**
 	 * Allocate a fresh node
 	 * @param[in] addr	The offset of the freshly allocated node
 	 * @return			Reference to the memory allocated for the node
 	 */
-	Node *alloc_Node(reg_t *addr);
+	Node *allocateNode(reg_t *addr);
+
+	/**
+	 * Allocate and initialize a new list node.
+	 * @param[in] value		The value to set the node to
+	 * @param[in] key		The key to set
+	 * @return				Pointer to the newly initialized list node
+	 */
+	reg_t newNode(reg_t value, reg_t key);
+
+	/**
+	 * Resolves a list pointer to a list.
+	 * @param addr The address to resolve
+	 * @return The list referenced, or NULL on error
+	 */
+	List *lookupList(reg_t addr);
+
+	/**
+	 * Resolves an address into a list node.
+	 * @param addr The address to resolve
+	 * @return The list node referenced, or NULL on error
+	 */
+	Node *lookupNode(reg_t addr, bool stopOnDiscarded = true);
 
 
 	// 8. Hunk Memory
@@ -256,20 +223,23 @@ public:
 	/**
 	 * Allocate a fresh chunk of the hunk
 	 * @param[in] size		Number of bytes to allocate for the hunk entry
-	 * @param[in] hunk_type	A descriptive string for the hunk entry, for 
+	 * @param[in] hunk_type	A descriptive string for the hunk entry, for
 	 *	 					debugging purposes
-	 * @param[out] addr		The offset of the freshly allocated hunk entry
-	 * @return				Reference to the memory allocated for the hunk
-	 * 						piece
+	 * @return				The offset of the freshly allocated hunk entry
 	 */
-	Hunk *alloc_hunk_entry(const char *hunk_type, int size, reg_t *addr);
+	reg_t allocateHunkEntry(const char *hunk_type, int size);
 
 	/**
 	 * Deallocates a hunk entry
 	 * @param[in] addr	Offset of the hunk entry to delete
 	 */
-	void free_hunk_entry(reg_t addr);
+	void freeHunkEntry(reg_t addr);
 
+	/**
+	 * Gets a pointer to the hunk memory referenced by a specified handle
+	 * @param[in] addr	Offset of the hunk entry
+	 */
+	byte *getHunkPointer(reg_t addr);
 
 	// 9. Dynamic Memory
 
@@ -278,33 +248,16 @@ public:
 	 * @param[in]  size			Number of bytes to allocate
 	 * @param[in]  description	A descriptive string for debugging purposes
 	 * @param[out] addr			The offset of the freshly allocated X
-	 * @return					Raw pointer into the allocated dynamic 
+	 * @return					Raw pointer into the allocated dynamic
 	 * 							memory
 	 */
-	unsigned char *allocDynmem(int size, const char *description, reg_t *addr);
+	byte *allocDynmem(int size, const char *description, reg_t *addr);
 
 	/**
 	 * Deallocates a piece of dynamic memory
 	 * @param[in] addr	Offset of the dynmem chunk to free
 	 */
-	int freeDynmem(reg_t addr);
-
-	/**
-	 * Gets the description of a dynmem segment
-	 * @param[in] addr	Segment to describe
-	 * @return			Pointer to the descriptive string set in allocDynmem
-	 */
-	const char *getDescription(reg_t addr);
-
-
-	// 10. Reserved segments
-
-	// Reserves a special-purpose segment
-	// Parameters: (char *) name: A string name identifying the segment (the string is cloned and retained)
-	// Returns   : A fresh segment ID for the segment in question
-	// Reserved segments are never used by the segment manager.  They can be used to tag special-purpose addresses.
-	// Segment 0 is implicitly reserved for numbers.
-	//SegmentId sm_allocate_reserved_segment(char *name);
+	bool freeDynmem(reg_t addr);
 
 
 	// Generic Operations on Segments and Addresses
@@ -312,48 +265,210 @@ public:
 	/**
 	 * Dereferences a raw memory pointer
 	 * @param[in]  reg	The reference to dereference
-	 * @param[out] size	(optional) The theoretical maximum size
 	 * @return			The data block referenced
 	 */
-	byte *dereference(reg_t reg, int *size);
+	SegmentRef dereference(reg_t pointer);
+
+	/**
+	 * Dereferences a heap pointer pointing to raw memory.
+	 * @param pointer The pointer to dereference
+	 * @parm entries The number of values expected (for checkingO
+	 * @return A physical reference to the address pointed to, or NULL on error or
+	 * if not enough entries were available.
+	 */
+	byte *derefBulkPtr(reg_t pointer, int entries);
+
+	/**
+	 * Dereferences a heap pointer pointing to a (list of) register(s).
+	 * Ensures alignedness of data.
+	 * @param pointer The pointer to dereference
+	 * @parm entries The number of values expected (for checking)
+	 * @return A physical reference to the address pointed to, or NULL on error or
+	 * if not enough entries were available.
+	 */
+	reg_t *derefRegPtr(reg_t pointer, int entries);
+
+	/**
+	 * Dereferences a heap pointer pointing to raw memory.
+	 * @param pointer The pointer to dereference
+	 * @parm entries The number of values expected (for checking)
+	 * @return A physical reference to the address pointed to, or NULL on error or
+	 * if not enough entries were available.
+	 */
+	char *derefString(reg_t pointer, int entries = 0);
+
+	/**
+	 * Return the string referenced by pointer.
+	 * pointer can point to either a raw or non-raw segment.
+	 * @param pointer The pointer to dereference
+	 * @parm entries The number of values expected (for checking)
+	 * @return The string referenced, or an empty string if not enough
+	 * entries were available.
+	 */
+	Common::String getString(reg_t pointer, int entries = 0);
 
 
+	/**
+	 * Copies a string from src to dest.
+	 * src and dest can point to raw and non-raw segments.
+	 * Conversion is performed as required.
+	 */
+	void strcpy(reg_t dest, reg_t src);
 
+	/**
+	 * Copies a string from src to dest.
+	 * dest can point to a raw or non-raw segment.
+	 * Conversion is performed as required.
+	 */
+	void strcpy(reg_t dest, const char *src);
 
-	void heapRelocate(reg_t block);
-	void scriptRelocateExportsSci11(SegmentId seg);
-	void scriptInitialiseObjectsSci11(EngineState *s, SegmentId seg);
-	int initialiseScript(Script &scr, EngineState *s, int script_nr);
+	/**
+	 * Copies a string from src to dest.
+	 * src and dest can point to raw and non-raw segments.
+	 * Conversion is performed as required. At most n characters are copied.
+	 * TODO: determine if dest should always be null-terminated.
+	 */
+	void strncpy(reg_t dest, reg_t src, size_t n);
+
+	/**
+	 * Copies a string from src to dest.
+	 * dest can point to a raw or non-raw segment.
+	 * Conversion is performed as required. At most n characters are copied.
+	 * TODO: determine if dest should always be null-terminated.
+	 */
+	void strncpy(reg_t dest, const char *src, size_t n);
+
+	/**
+	 * Copies n bytes of data from src to dest.
+	 * src and dest can point to raw and non-raw segments.
+	 * Conversion is performed as required.
+	 */
+	void memcpy(reg_t dest, reg_t src, size_t n);
+
+	/**
+	 * Copies n bytes of data from src to dest.
+	 * dest can point to a raw or non-raw segment.
+	 * Conversion is performed as required.
+	 */
+	void memcpy(reg_t dest, const byte* src, size_t n);
+
+	/**
+	 * Copies n bytes of data from src to dest.
+	 * src can point to raw and non-raw segments.
+	 * Conversion is performed as required.
+	 */
+	void memcpy(byte *dest, reg_t src, size_t n);
+
+	/**
+	 * Determine length of string at str.
+	 * str can point to a raw or non-raw segment.
+	 */
+	size_t strlen(reg_t str);
+
+	/**
+	 * Finds a unique segment by type
+	 * @param type	The type of the segment to find
+	 * @return		The segment number, or -1 if the segment wasn't found
+	 */
+	SegmentId findSegmentByType(int type) const;
+
+	// TODO: document this
+	SegmentObj *getSegmentObj(SegmentId seg) const;
+
+	// TODO: document this
+	SegmentType getSegmentType(SegmentId seg) const;
+
+	// TODO: document this
+	SegmentObj *getSegment(SegmentId seg, SegmentType type) const;
+
+	/**
+	 * Retrieves an object from the specified location
+	 * @param[in] offset	Location (segment, offset) of the object
+	 * @return				The object in question, or NULL if there is none
+	 */
+	Object *getObject(reg_t pos) const;
+
+	/**
+	 * Checks whether a heap address contains an object
+	 * @parm obj The address to check
+	 * @return True if it is an object, false otherwise
+	 */
+	bool isObject(reg_t obj) const { return getObject(obj) != NULL; }
+
+	// TODO: document this
+	bool isHeapObject(reg_t pos) const;
+
+	/**
+	 * Determines the name of an object
+	 * @param[in] pos	Location (segment, offset) of the object
+	 * @return			A name for that object, or a string describing an error
+	 * 					that occurred while looking it up. The string is stored
+	 * 					in a static buffer and need not be freed (neither may
+	 * 					it be modified).
+	 */
+	const char *getObjectName(reg_t pos);
+
+	/**
+	 * Find the address of an object by its name. In case multiple objects
+	 * with the same name occur, the optional index parameter can be used
+	 * to distinguish between them. If index is -1, then if there is a
+	 * unique object with the specified name, its address is returned;
+	 * if there are multiple matches, or none, then NULL_REG is returned.
+	 *
+	 * @param name		the name of the object we are looking for
+	 * @param index		the index of the object in case there are multiple
+	 * @return the address of the object, or NULL_REG
+	 */
+	reg_t findObjectByName(const Common::String &name, int index = -1);
+
+	uint32 classTableSize() const { return _classTable.size(); }
+	Class getClass(int index) const { return _classTable[index]; }
+	void setClassOffset(int index, reg_t offset) { _classTable[index].reg = offset;	}
+	void resizeClassTable(uint32 size) { _classTable.resize(size); }
+
+	reg_t getSaveDirPtr() const { return _saveDirPtr; }
+	reg_t getParserPtr() const { return _parserPtr; }
+
+#ifdef ENABLE_SCI32
+	SciArray<reg_t> *allocateArray(reg_t *addr);
+	SciArray<reg_t> *lookupArray(reg_t addr);
+	void freeArray(reg_t addr);
+	SciString *allocateString(reg_t *addr);
+	SciString *lookupString(reg_t addr);
+	void freeString(reg_t addr);
+	SegmentId getStringSegmentId() { return _stringSegId; }
+#endif
+
+	const Common::Array<SegmentObj *> &getSegments() const { return _heap; }
 
 private:
-	IntMapper *id_seg_map; ///< id - script id; seg - index of heap
-public: // TODO: make private
-	Common::Array<MemObject *> _heap;
-	int reserved_id;
-	int exports_wide;
-	bool isSci1_1;
+	Common::Array<SegmentObj *> _heap;
+	Common::Array<Class> _classTable; /**< Table of all classes */
+	/** Map script ids to segment ids. */
+	Common::HashMap<int, SegmentId> _scriptSegMap;
 
-	SegmentId Clones_seg_id; ///< ID of the (a) clones segment
-	SegmentId Lists_seg_id; ///< ID of the (a) list segment
-	SegmentId Nodes_seg_id; ///< ID of the (a) node segment
-	SegmentId Hunks_seg_id; ///< ID of the (a) hunk segment
+	ResourceManager *_resMan;
+
+	SegmentId _clonesSegId; ///< ID of the (a) clones segment
+	SegmentId _listsSegId; ///< ID of the (a) list segment
+	SegmentId _nodesSegId; ///< ID of the (a) node segment
+	SegmentId _hunksSegId; ///< ID of the (a) hunk segment
+
+	// Statically allocated memory for system strings
+	reg_t _saveDirPtr;
+	reg_t _parserPtr;
+
+#ifdef ENABLE_SCI32
+	SegmentId _arraysSegId;
+	SegmentId _stringSegId;
+#endif
 
 private:
-	MemObject *allocNonscriptSegment(MemObjectType type, SegmentId *segid);
-	LocalVariables *allocLocalsSegment(Script *scr, int count);
-	MemObject *memObjAllocate(SegmentId segid, int hash_id, MemObjectType type);
-	int deallocate(SegmentId seg, bool recursive);
+	SegmentObj *allocSegment(SegmentObj *mem, SegmentId *segid);
+	void deallocate(SegmentId seg);
+	void createClassTable();
 
-	Hunk *alloc_Hunk(reg_t *);
-
-	int relocateLocal(Script *scr, SegmentId segment, int location);
-	int relocateBlock(Common::Array<reg_t> &block, int block_location, SegmentId segment, int location);
-	int relocateObject(Object *obj, SegmentId segment, int location);
-
-	int findFreeId(int *id);
-	static void setScriptSize(Script &scr, EngineState *s, int script_nr);
-	Object *scriptObjInit0(EngineState *s, reg_t obj_pos);
-	Object *scriptObjInit11(EngineState *s, reg_t obj_pos);
+	SegmentId findFreeSegment() const;
 
 	/**
 	 * Check segment validity
@@ -362,8 +477,11 @@ private:
 	 * 					'seg' is a valid segment
 	 */
 	bool check(SegmentId seg);
+
+public:
+	LocalVariables *allocLocalsSegment(Script *scr);
 };
 
 } // End of namespace Sci
 
-#endif // SCI_ENGINE_SEG_MANAGER
+#endif // SCI_ENGINE_SEGMAN_H

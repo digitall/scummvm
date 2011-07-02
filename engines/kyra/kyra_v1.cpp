@@ -18,30 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/config-manager.h"
-#include "common/EventRecorder.h"
-
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
 
 #include "kyra/kyra_v1.h"
 #include "kyra/sound_intern.h"
 #include "kyra/resource.h"
-#include "kyra/screen.h"
-#include "kyra/text.h"
 #include "kyra/timer.h"
-#include "kyra/script.h"
 #include "kyra/debugger.h"
+
+#include "common/error.h"
+#include "common/config-manager.h"
+#include "common/debug-channels.h"
 
 namespace Kyra {
 
 KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
-	: Engine(system), _flags(flags) {
+	: Engine(system), _flags(flags), _rnd("kyra") {
 	_res = 0;
 	_sound = 0;
 	_text = 0;
@@ -50,7 +42,10 @@ KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 	_emc = 0;
 	_debugger = 0;
 
-	_gameSpeed = 60;
+	if (_flags.platform == Common::kPlatformAmiga)
+		_gameSpeed = 50;
+	else
+		_gameSpeed = 60;
 	_tickLength = (uint8)(1000.0 / _gameSpeed);
 
 	_trackMap = 0;
@@ -70,19 +65,17 @@ KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 	_mouseX = _mouseY = 0;
 
 	// sets up all engine specific debug levels
-	Common::addDebugChannel(kDebugLevelScriptFuncs, "ScriptFuncs", "Script function debug level");
-	Common::addDebugChannel(kDebugLevelScript, "Script", "Script interpreter debug level");
-	Common::addDebugChannel(kDebugLevelSprites, "Sprites", "Sprite debug level");
-	Common::addDebugChannel(kDebugLevelScreen, "Screen", "Screen debug level");
-	Common::addDebugChannel(kDebugLevelSound, "Sound", "Sound debug level");
-	Common::addDebugChannel(kDebugLevelAnimator, "Animator", "Animator debug level");
-	Common::addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
-	Common::addDebugChannel(kDebugLevelGUI, "GUI", "GUI debug level");
-	Common::addDebugChannel(kDebugLevelSequence, "Sequence", "Sequence debug level");
-	Common::addDebugChannel(kDebugLevelMovie, "Movie", "Movie debug level");
-	Common::addDebugChannel(kDebugLevelTimer, "Timer", "Timer debug level");
-
-	g_eventRec.registerRandomSource(_rnd, "kyra");
+	DebugMan.addDebugChannel(kDebugLevelScriptFuncs, "ScriptFuncs", "Script function debug level");
+	DebugMan.addDebugChannel(kDebugLevelScript, "Script", "Script interpreter debug level");
+	DebugMan.addDebugChannel(kDebugLevelSprites, "Sprites", "Sprite debug level");
+	DebugMan.addDebugChannel(kDebugLevelScreen, "Screen", "Screen debug level");
+	DebugMan.addDebugChannel(kDebugLevelSound, "Sound", "Sound debug level");
+	DebugMan.addDebugChannel(kDebugLevelAnimator, "Animator", "Animator debug level");
+	DebugMan.addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
+	DebugMan.addDebugChannel(kDebugLevelGUI, "GUI", "GUI debug level");
+	DebugMan.addDebugChannel(kDebugLevelSequence, "Sequence", "Sequence debug level");
+	DebugMan.addDebugChannel(kDebugLevelMovie, "Movie", "Movie debug level");
+	DebugMan.addDebugChannel(kDebugLevelTimer, "Timer", "Timer debug level");
 }
 
 ::GUI::Debugger *KyraEngine_v1::getDebugger() {
@@ -90,20 +83,15 @@ KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 }
 
 void KyraEngine_v1::pauseEngineIntern(bool pause) {
-	Engine::pauseEngineIntern(pause);
+	_sound->pause(pause);
 	_timer->pause(pause);
 }
 
 Common::Error KyraEngine_v1::init() {
 	// Setup mixer
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, ConfMan.getInt("speech_volume"));
+	syncSoundSettings();
 
 	if (!_flags.useDigSound) {
-		// We prefer AdLib over MIDI, since generally AdLib is better supported
-		int midiDriver = MidiDriver::detectMusicDriver(MDT_PCSPK | MDT_MIDI | MDT_ADLIB);
-
 		if (_flags.platform == Common::kPlatformFMTowns) {
 			if (_flags.gameID == GI_KYRA1)
 				_sound = new SoundTowns(this, _mixer);
@@ -114,42 +102,55 @@ Common::Error KyraEngine_v1::init() {
 				_sound = new SoundPC98(this, _mixer);
 			else
 				_sound = new SoundTownsPC98_v2(this, _mixer);
-		} else if (midiDriver == MD_ADLIB) {
-			_sound = new SoundAdlibPC(this, _mixer);
+		} else if (_flags.platform == Common::kPlatformAmiga) {
+			_sound = new SoundAmiga(this, _mixer);
 		} else {
-			Sound::kType type;
-
-			if (midiDriver == MD_PCSPK)
-				type = Sound::kPCSpkr;
-			else if (midiDriver == MD_MT32 || ConfMan.getBool("native_mt32"))
-				type = Sound::kMidiMT32;
-			else
-				type = Sound::kMidiGM;
-
-			MidiDriver *driver = 0;
-
-			if (midiDriver == MD_PCSPK) {
-				driver = new MidiDriver_PCSpeaker(_mixer);
+			// In Kyra 1 users who have specified a default MT-32 device in the launcher settings
+			// will get MT-32 music, otherwise AdLib. In Kyra 2 and LoL users who have specified a
+			// default GM device in the launcher will get GM music, otherwise AdLib. Users who want
+			// MT-32 music in Kyra2 or LoL have to select this individually (since we assume that
+			// most users rather have a GM device than a MT-32 device).
+			// Users who want PC speaker sound always have to select this individually for all
+			// Kyra games.
+			MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_PCSPK | MDT_MIDI | MDT_ADLIB | ((_flags.gameID == GI_KYRA2 || _flags.gameID == GI_LOL) ? MDT_PREFER_GM : MDT_PREFER_MT32));
+			if (MidiDriver::getMusicType(dev) == MT_ADLIB) {
+				_sound = new SoundAdLibPC(this, _mixer);
 			} else {
-				driver = MidiDriver::createMidi(midiDriver);
-				if (type == Sound::kMidiMT32)
-					driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
-			}
+				Sound::kType type;
+				const MusicType midiType = MidiDriver::getMusicType(dev);
 
-			assert(driver);
+				if (midiType == MT_PCSPK || midiType == MT_NULL)
+					type = Sound::kPCSpkr;
+				else if (midiType == MT_MT32 || ConfMan.getBool("native_mt32"))
+					type = Sound::kMidiMT32;
+				else
+					type = Sound::kMidiGM;
 
-			SoundMidiPC *soundMidiPc = new SoundMidiPC(this, _mixer, driver, type);
-			_sound = soundMidiPc;
-			assert(_sound);
+				MidiDriver *driver = 0;
 
-			// Unlike some SCUMM games, it's not that the MIDI sounds are
-			// missing. It's just that at least at the time of writing they
-			// are decidedly inferior to the Adlib ones.
-			if (ConfMan.getBool("multi_midi")) {
-				SoundAdlibPC *adlib = new SoundAdlibPC(this, _mixer);
-				assert(adlib);
+				if (MidiDriver::getMusicType(dev) == MT_PCSPK) {
+					driver = new MidiDriver_PCSpeaker(_mixer);
+				} else {
+					driver = MidiDriver::createMidi(dev);
+					if (type == Sound::kMidiMT32)
+						driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
+				}
 
-				_sound = new MixedSoundDriver(this, _mixer, soundMidiPc, adlib);
+				assert(driver);
+
+				SoundMidiPC *soundMidiPc = new SoundMidiPC(this, _mixer, driver, type);
+				_sound = soundMidiPc;
+				assert(_sound);
+
+				// Unlike some SCUMM games, it's not that the MIDI sounds are
+				// missing. It's just that at least at the time of writing they
+				// are decidedly inferior to the AdLib ones.
+				if (ConfMan.getBool("multi_midi")) {
+					SoundAdLibPC *adlib = new SoundAdLibPC(this, _mixer);
+					assert(adlib);
+
+					_sound = new MixedSoundDriver(this, _mixer, soundMidiPc, adlib);
+				}
 			}
 		}
 
@@ -172,7 +173,7 @@ Common::Error KyraEngine_v1::init() {
 #ifdef ENABLE_LOL
 			_flags.gameID = GI_LOL;
 #else
-			error("Lands of Lore demo is not supported in this build.");
+			error("Lands of Lore demo is not supported in this build");
 #endif // !ENABLE_LOL
 	}
 
@@ -197,6 +198,8 @@ Common::Error KyraEngine_v1::init() {
 			_gameToLoad = -1;
 	}
 
+	setupKeyMap();
+
 	// Prevent autosave on game startup
 	_lastAutosave = _system->getMillis();
 
@@ -204,9 +207,10 @@ Common::Error KyraEngine_v1::init() {
 }
 
 KyraEngine_v1::~KyraEngine_v1() {
-	for (Common::Array<const Opcode*>::iterator i = _opcodes.begin(); i != _opcodes.end(); ++i)
+	for (Common::Array<const Opcode *>::iterator i = _opcodes.begin(); i != _opcodes.end(); ++i)
 		delete *i;
 	_opcodes.clear();
+	_keyMap.clear();
 
 	delete _res;
 	delete _staticres;
@@ -247,88 +251,40 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 	int keys = 0;
 	int8 mouseWheel = 0;
 
-	while (_eventList.size()) {
+	while (!_eventList.empty()) {
 		Common::Event event = *_eventList.begin();
 		bool breakLoop = false;
 
 		switch (event.type) {
 		case Common::EVENT_KEYDOWN:
-			if (event.kbd.keycode >= '1' && event.kbd.keycode <= '9' &&
-					(event.kbd.flags == Common::KBD_CTRL || event.kbd.flags == Common::KBD_ALT) && mainLoop) {
-				int saveLoadSlot = 9 - (event.kbd.keycode - '0') + 990;
+			if (event.kbd.keycode >= Common::KEYCODE_1 && event.kbd.keycode <= Common::KEYCODE_9 &&
+					(event.kbd.hasFlags(Common::KBD_CTRL) || event.kbd.hasFlags(Common::KBD_ALT)) && mainLoop) {
+				int saveLoadSlot = 9 - (event.kbd.keycode - Common::KEYCODE_0) + 990;
 
-				if (event.kbd.flags == Common::KBD_CTRL) {
-					loadGameStateCheck(saveLoadSlot);
+				if (event.kbd.hasFlags(Common::KBD_CTRL)) {
+					if (saveFileLoadable(saveLoadSlot))
+						loadGameStateCheck(saveLoadSlot);
 					_eventList.clear();
 					breakLoop = true;
 				} else {
 					char savegameName[14];
-					sprintf(savegameName, "Quicksave %d", event.kbd.keycode - '0');
-					saveGameState(saveLoadSlot, savegameName, 0);
+					sprintf(savegameName, "Quicksave %d", event.kbd.keycode - Common::KEYCODE_0);
+					saveGameStateIntern(saveLoadSlot, savegameName, 0);
 				}
-			} else if (event.kbd.flags == Common::KBD_CTRL) {
-				if (event.kbd.keycode == 'd') {
+			} else if (event.kbd.hasFlags(Common::KBD_CTRL)) {
+				if (event.kbd.keycode == Common::KEYCODE_d) {
 					if (_debugger)
 						_debugger->attach();
-				} else if (event.kbd.keycode == 'q') {
+					breakLoop = true;
+				} else if (event.kbd.keycode == Common::KEYCODE_q) {
 					quitGame();
 				}
 			} else {
-				switch(event.kbd.keycode) {
-				case Common::KEYCODE_SPACE:
-					keys = 61;
-					break;
-				case Common::KEYCODE_RETURN:
-					keys = 43;
-					break;
-				case Common::KEYCODE_UP:
-				case Common::KEYCODE_KP8:
-					keys = 96;
-					break;
-				case Common::KEYCODE_RIGHT:
-				case Common::KEYCODE_KP6:
-					keys = 102;
-					break;
-				case Common::KEYCODE_DOWN:
-				case Common::KEYCODE_KP2:
-					keys = 97;
-					break;
-				case Common::KEYCODE_LEFT:
-				case Common::KEYCODE_KP4:
-					keys = 92;
-					break;
-				case Common::KEYCODE_HOME:
-				case Common::KEYCODE_KP7:
-					keys = 91;
-					break;
-				case Common::KEYCODE_PAGEUP:
-				case Common::KEYCODE_KP9:
-					keys = 101;
-					break;
-				case Common::KEYCODE_F1:
-					keys = 112;
-					break;
-				case Common::KEYCODE_F2:
-					keys = 113;
-					break;
-				case Common::KEYCODE_F3:
-					keys = 114;
-					break;
-				case Common::KEYCODE_o:
-					keys = 25;
-					break;
-				case Common::KEYCODE_r:
-					keys = 20;
-					break;
-				case Common::KEYCODE_SLASH:
-					keys = 55;
-					break;
-				case Common::KEYCODE_ESCAPE:
-					keys = 110;
-					break;
-				default:
+				KeyMap::const_iterator keycode = _keyMap.find(event.kbd.keycode);
+				if (keycode != _keyMap.end())
+					keys = keycode->_value;
+				else
 					keys = 0;
-				}
 
 				// When we got an keypress, which we might need to handle,
 				// break the event loop and pass it to GUI code.
@@ -373,7 +329,7 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 			break;
 		}
 
-		if (_debugger && _debugger->isAttached())
+		if (_debugger)
 			_debugger->onFrame();
 
 		if (breakLoop)
@@ -393,6 +349,46 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 	}
 }
 
+void KyraEngine_v1::setupKeyMap() {
+	struct KeyMapEntry {
+		Common::KeyCode kcScummVM;
+		int16 kcDOS;
+		int16 kcPC98;
+	};
+
+#define KC(x) Common::KEYCODE_##x
+	static const KeyMapEntry keys[] = {
+		{ KC(SPACE), 61, 53 },
+		{ KC(RETURN), 43, 29 },
+		{ KC(UP), 96, 68 },
+		{ KC(KP8), 96, 68 },
+		{ KC(RIGHT), 102, 73 },
+		{ KC(KP6), 102, 73 },
+		{ KC(DOWN), 98, 76 },
+		{ KC(KP2), 98, 76 },
+		{ KC(KP5), 97, 72 },
+		{ KC(LEFT), 92, 71 },
+		{ KC(KP4), 92, 71 },
+		{ KC(HOME), 91, 67 },
+		{ KC(KP7), 91, 67 },
+		{ KC(PAGEUP), 101, 69 },
+		{ KC(KP9), 101, 69 },
+		{ KC(F1), 112, 99 },
+		{ KC(F2), 113, 100 },
+		{ KC(F3), 114, 101 },
+		{ KC(o), 25, 25 },
+		{ KC(r), 20, 20 },
+		{ KC(SLASH), 55, 55 },
+		{ KC(ESCAPE), 110, 1 },
+	};
+#undef KC
+
+	_keyMap.clear();
+
+	for (int i = 0; i < ARRAYSIZE(keys); i++)
+		_keyMap[keys[i].kcScummVM] = (_flags.platform == Common::kPlatformPC98) ? keys[i].kcPC98 : keys[i].kcDOS;
+}
+
 void KyraEngine_v1::updateInput() {
 	Common::Event event;
 
@@ -401,12 +397,12 @@ void KyraEngine_v1::updateInput() {
 	while (_eventMan->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_KEYDOWN:
-			if (event.kbd.keycode == '.' || event.kbd.keycode == Common::KEYCODE_ESCAPE ||
+			if (event.kbd.keycode == Common::KEYCODE_PERIOD || event.kbd.keycode == Common::KEYCODE_ESCAPE ||
 				event.kbd.keycode == Common::KEYCODE_SPACE || event.kbd.keycode == Common::KEYCODE_RETURN ||
 				event.kbd.keycode == Common::KEYCODE_UP || event.kbd.keycode == Common::KEYCODE_RIGHT ||
 				event.kbd.keycode == Common::KEYCODE_DOWN || event.kbd.keycode == Common::KEYCODE_LEFT)
 					_eventList.push_back(Event(event, true));
-			else if (event.kbd.keycode == 'q' && event.kbd.flags == Common::KBD_CTRL)
+			else if (event.kbd.keycode == Common::KEYCODE_q && event.kbd.hasFlags(Common::KBD_CTRL))
 				quitGame();
 			else
 				_eventList.push_back(event);
@@ -434,11 +430,8 @@ void KyraEngine_v1::updateInput() {
 		}
 	}
 
-	// TODO: Check whether we should really call Screen::updateScreen here.
-	// We might simply want to call OSystem::updateScreen instead, since Screen::updateScreen
-	// copies changed screen parts to the screen buffer, which might not be desired.
 	if (updateScreen)
-		screen()->updateScreen();
+		_system->updateScreen();
 }
 
 void KyraEngine_v1::removeInputTop() {
@@ -513,7 +506,7 @@ void KyraEngine_v1::registerDefaultSettings() {
 		// the global subtitles settings, we're using this hack to enable subtitles
 		// for fan translations
 		const Common::ConfigManager::Domain *cur = ConfMan.getActiveDomain();
-		if (!cur || (cur && cur->get("subtitles").empty()))
+		if (!cur || (cur && cur->getVal("subtitles").empty()))
 			ConfMan.setBool("subtitles", true);
 	}
 }
@@ -628,11 +621,9 @@ uint8 KyraEngine_v1::getVolume(kVolumeEntry vol) {
 	switch (vol) {
 	case kVolumeMusic:
 		return convertVolumeFromMixer(ConfMan.getInt("music_volume"));
-		break;
 
 	case kVolumeSfx:
 		return convertVolumeFromMixer(ConfMan.getInt("sfx_volume"));
-		break;
 
 	case kVolumeSpeech:
 		if (speechEnabled())
@@ -647,6 +638,10 @@ uint8 KyraEngine_v1::getVolume(kVolumeEntry vol) {
 
 void KyraEngine_v1::syncSoundSettings() {
 	Engine::syncSoundSettings();
+
+	// We need to use this here to allow the subtitle options to be changed
+	// through the GMM's options dialog.
+	readSettings();
 
 	if (_sound)
 		_sound->updateVolumeSettings();

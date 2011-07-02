@@ -18,13 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "m4/mads_anim.h"
 #include "m4/m4.h"
+#include "m4/compression.h"
 
 namespace M4 {
 
@@ -33,10 +33,10 @@ namespace M4 {
 #define TV_NUM_FADE_STEPS 40
 #define TV_FADE_DELAY_MILLI 50
 
-TextviewView::TextviewView(M4Engine *vm):
+TextviewView::TextviewView(MadsM4Engine *vm):
 		View(vm, Common::Rect(0, 0, vm->_screen->width(), vm->_screen->height())),
 		_bgSurface(vm->_screen->width(), MADS_SURFACE_HEIGHT),
-		_textSurface(vm->_screen->width(), MADS_SURFACE_HEIGHT + vm->_font->getHeight() +
+		_textSurface(vm->_screen->width(), MADS_SURFACE_HEIGHT + vm->_font->current()->getHeight() +
 			TEXTVIEW_LINE_SPACING) {
 
 	_screenType = VIEWID_TEXTVIEW;
@@ -59,7 +59,7 @@ TextviewView::TextviewView(M4Engine *vm):
 	_vm->_palette->setPalette(&palData[0], 4, 3);
 	_vm->_palette->blockRange(4, 3);
 
-	_vm->_font->setColors(5, 6, 4);
+	_vm->_font->current()->setColors(5, 6, 4);
 
 	clear();
 	_bgSurface.clear();
@@ -74,12 +74,9 @@ TextviewView::TextviewView(M4Engine *vm):
 TextviewView::~TextviewView() {
 	if (_script)
 		_vm->res()->toss(_resourceName);
-	if (_spareScreen)
-		delete _spareScreen;
-	if (_bgCurrent)
-		delete _bgCurrent;
-	if (_bgSpare)
-		delete _bgSpare;
+	delete _spareScreen;
+	delete _bgCurrent;
+	delete _bgSpare;
 }
 
 void TextviewView::reset() {
@@ -119,7 +116,7 @@ void TextviewView::setScript(const char *resourceName, TextviewCallback callback
 	processLines();
 }
 
-bool TextviewView::onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents) {
+bool TextviewView::onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents) {
 	if (!_processEvents)
 		return false;
 
@@ -205,13 +202,13 @@ void TextviewView::updateState() {
 				Common::copy(srcP, srcP + _bgSurface.width(), destP);
 			}
 
-			Common::copy(linesTemp, linesTemp + _panY * _bgSurface.width(), (byte *)_bgSurface.pixels);
+			Common::copy(linesTemp, linesTemp + _panY * _bgSurface.width(), _bgSurface.getBasePtr(0, 0));
 			delete[] linesTemp;
 		}
 	}
 
 	// Scroll the text surface up by one row
-	byte *pixelsP = (byte *)_textSurface.pixels;
+	byte *pixelsP = _textSurface.getBasePtr(0, 0);
 	Common::copy(pixelsP + width(),  pixelsP + _textSurface.width() * _textSurface.height(), pixelsP);
 	pixelsP = _textSurface.getBasePtr(0, _textSurface.height() - 1);
 	Common::set_to(pixelsP, pixelsP + _textSurface.width(), _vm->_palette->BLACK);
@@ -224,7 +221,7 @@ void TextviewView::updateState() {
 		}
 	} else {
 		// Handling a text row
-		if (++_lineY == (_vm->_font->getHeight() + TEXTVIEW_LINE_SPACING))
+		if (++_lineY == (_vm->_font->current()->getHeight() + TEXTVIEW_LINE_SPACING))
 			processLines();
 	}
 
@@ -237,7 +234,7 @@ void TextviewView::updateState() {
 
 void TextviewView::scriptDone() {
 	TextviewCallback fn = _callback;
-	M4Engine *vm = _vm;
+	MadsM4Engine *vm = _vm;
 
 	// Remove this view from manager and destroy it
 	_vm->_viewManager->deleteView(this);
@@ -406,7 +403,7 @@ void TextviewView::processText() {
 
 	if (!strcmp(_currentLine, "***")) {
 		// Special signifier for end of script
-		_scrollCount = _vm->_font->getHeight() * 13;
+		_scrollCount = _vm->_font->current()->getHeight() * 13;
 		_lineY = -1;
 		return;
 	}
@@ -418,7 +415,7 @@ void TextviewView::processText() {
 	char *centerP = strchr(_currentLine, '@');
 	if (centerP) {
 		*centerP = '\0';
-		xStart = (width() / 2) - _vm->_font->getWidth(_currentLine);
+		xStart = (width() / 2) - _vm->_font->current()->getWidth(_currentLine);
 
 		// Delete the @ character and shift back the remainder of the string
 		char *p = centerP + 1;
@@ -426,24 +423,29 @@ void TextviewView::processText() {
 		strcpy(centerP, p);
 
 	} else {
-		lineWidth = _vm->_font->getWidth(_currentLine);
+		lineWidth = _vm->_font->current()->getWidth(_currentLine);
 		xStart = (width() - lineWidth) / 2;
 	}
 
 	// Copy the text line onto the bottom of the textSurface surface, which will allow it
 	// to gradually scroll onto the screen
-	int yp = _textSurface.height() - _vm->_font->getHeight() - TEXTVIEW_LINE_SPACING;
+	int yp = _textSurface.height() - _vm->_font->current()->getHeight() - TEXTVIEW_LINE_SPACING;
 	_textSurface.fillRect(Common::Rect(0, yp, _textSurface.width(), _textSurface.height()),
 		_vm->_palette->BLACK);
-	_vm->_font->writeString(&_textSurface, _currentLine, xStart, yp);
+	_vm->_font->current()->writeString(&_textSurface, _currentLine, xStart, yp);
 }
 
 
 //--------------------------------------------------------------------------
 
-AnimviewView::AnimviewView(M4Engine *vm):
+AnimviewView::AnimviewView(MadsM4Engine *vm):
 		View(vm, Common::Rect(0, 0, vm->_screen->width(), vm->_screen->height())),
-		_bgSurface(vm->_screen->width(), MADS_SURFACE_HEIGHT) {
+		MadsView(this), _backgroundSurface(MADS_SURFACE_WIDTH, MADS_SURFACE_HEIGHT),
+		_codeSurface(MADS_SURFACE_WIDTH, MADS_SURFACE_HEIGHT) {
+
+	MadsView::_bgSurface = &_backgroundSurface;
+	MadsView::_depthSurface = &_codeSurface;
+	MadsView::setViewport(Common::Rect(0, MADS_Y_OFFSET, MADS_SURFACE_WIDTH, MADS_Y_OFFSET + MADS_SURFACE_HEIGHT));
 
 	_screenType = VIEWID_ANIMVIEW;
 	_screenFlags.layer = LAYER_BACKGROUND;
@@ -454,27 +456,36 @@ AnimviewView::AnimviewView(M4Engine *vm):
 	_palData = NULL;
 	_previousUpdate = 0;
 	_transition = kTransitionNone;
+	_activeAnimation = NULL;
+	_bgLoadFlag = true;
+	_startFrame = -1;
+	_scriptDone = false;
+
 	reset();
 
 	// Set up system palette colors
 	_vm->_palette->setMadsSystemPalette();
 
-	clear();
-	_bgSurface.clear();
+	// Block reserved palette ranges
+	_vm->_palette->blockRange(16, 2);
+	_vm->_palette->blockRange(250, 4);
 
-	int y = (height() - MADS_SURFACE_HEIGHT) / 2;
+	clear();
+	_backgroundSurface.clear();
+
 	setColor(2);
-	hLine(0, width() - 1, y - 2);
-	hLine(0, width() - 1, height() - y + 1);
+	hLine(0, width() - 1, MADS_Y_OFFSET - 2);
+	hLine(0, width() - 1, MADS_Y_OFFSET + MADS_SURFACE_HEIGHT + 2);
 }
 
 AnimviewView::~AnimviewView() {
 	if (_script)
 		_vm->res()->toss(_resourceName);
+	delete _activeAnimation;
 }
 
 void AnimviewView::reset() {
-	_bgSurface.clear();
+	_backgroundSurface.clear();
 	_soundDriverLoaded = false;
 }
 
@@ -491,11 +502,9 @@ void AnimviewView::setScript(const char *resourceName, AnimviewCallback callback
 		strcat(_resourceName, ".res");
 
 	_script = _vm->res()->get(_resourceName);
-
-	processLines();
 }
 
-bool AnimviewView::onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents) {
+bool AnimviewView::onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents) {
 	// Wait for the Escape key or a mouse press
 	if (((eventType == KEVENT_KEY) && (param == Common::KEYCODE_ESCAPE)) ||
 		(eventType == MEVENT_LEFT_RELEASE) || (eventType == MEVENT_RIGHT_RELEASE)) {
@@ -508,45 +517,99 @@ bool AnimviewView::onEvent(M4EventType eventType, int param, int x, int y, bool 
 }
 
 void AnimviewView::updateState() {
-	char bgFile[10];
-	int bgNumber = 0;
+	MadsView::update();
 
-	// Only update state if wait period has expired
-	if (_previousUpdate > 0) {
-		if (g_system->getMillis() - _previousUpdate < 3000) {
+	if (!_script || _scriptDone)
+		return;
+
+	if (!_activeAnimation) {
+		readNextCommand();
+		assert(_activeAnimation);
+	}
+
+	// Update the current animation
+	_activeAnimation->update();
+	if (_activeAnimation->freeFlag()) {
+		delete _activeAnimation;
+		_activeAnimation = NULL;
+
+		// Clear up current background and sprites
+		_backgroundSurface.reset();
+		clearLists();
+
+		// Reset flags
+		_startFrame = -1;
+
+		readNextCommand();
+
+		// Check if script is finished
+		if (_scriptDone) {
+			scriptDone();
 			return;
-		} else {
-			// time for an update
-			_previousUpdate = g_system->getMillis();
 		}
-	} else {
-		_previousUpdate = g_system->getMillis();
+	}
+
+	refresh();
+}
+
+void AnimviewView::readNextCommand() {
+static bool tempFlag = true;//****DEBUG - Temporarily allow me to skip several intro scenes ****
+
+	while (!_script->eos() && !_script->err()) {
+		if (!tempFlag) {
+			tempFlag = true;
+			strncpy(_currentLine, _script->readLine().c_str(), 79);
+			strncpy(_currentLine, _script->readLine().c_str(), 79);
+		}
+
+		strncpy(_currentLine, _script->readLine().c_str(), 79);
+
+		// Process any switches on the line
+		char *cStart = strchr(_currentLine, '-');
+		while (cStart) {
+			// Loop for possible multiple commands on one line
+			char *cEnd = strchr(_currentLine, ' ');
+			if (!cEnd)
+				error("Unterminated command '%s' in response file", _currentLine);
+
+			*cEnd = '\0';
+			processCommand();
+
+			// Copy rest of line (if any) to start of buffer
+			// Don't use strcpy() here, because if the
+			// rest of the line is the longer of the two
+			// strings, the memory areas will overlap.
+			memmove(_currentLine, cEnd + 1, strlen(cEnd + 1) + 1);
+
+			cStart = strchr(_currentLine, '-');
+		}
+
+		// If there's something left, presume it's a resource name to process
+		if (_currentLine[0])
+			break;
+	}
+
+	if (!_currentLine[0]) {
+		// A blank line at this point means that the end of the animation has been reached
+		_scriptDone = true;
 		return;
 	}
 
-	strncpy(bgFile, _currentFile, 5);
-	bgFile[0] = bgFile[2];
-	bgFile[1] = bgFile[3];
-	bgFile[2] = bgFile[4];
-	bgFile[3] = '\0';
-	bgNumber = atoi(bgFile);
-	sprintf(bgFile, "rm%i.art", bgNumber);
+	if (strchr(_currentLine, '.') == NULL)
+		strcat(_currentLine, ".aa");
 
-	// Not all scenes have a background. If there is one, refresh it
-	if (_vm->_resourceManager->resourceExists(bgFile)) {
-		if (_palData) {
-			_vm->_palette->deleteRange(_palData);
-			delete _palData;
-		}
-		_bgSurface.loadBackground(bgNumber, &_palData);
-		_vm->_palette->addRange(_palData);
-		_bgSurface.translate(_palData);
-	}
+	uint16 flags = 0;
+	if (_bgLoadFlag)
+		flags |= 0x100;
 
-	// Grab what the final palete will be
-	RGB8 destPalette[256];
-	_vm->_palette->grabPalette(destPalette, 0, 256);
+	_activeAnimation = new MadsAnimation(_vm, this);
+	_activeAnimation->initialize(_currentLine, flags, &_backgroundSurface, &_codeSurface);
 
+	if (_startFrame != -1)
+		_activeAnimation->setCurrentFrame(_startFrame);
+
+	_spriteSlots.fullRefresh();
+/*
 	// Handle scene transition
 	switch (_transition) {
 		case kTransitionNone:
@@ -576,18 +639,16 @@ void AnimviewView::updateState() {
 			// nothing to do
 			break;
 	}
+*/
 
-	// Refresh the view
-	int yp = (height() - _bgSurface.height()) / 2;
-	_bgSurface.copyTo(this, 0, yp);
-
-	// Read next line
-	processLines();
+	_vm->_resourceManager->toss(_currentLine);
 }
 
+
 void AnimviewView::scriptDone() {
+return;
 	AnimviewCallback fn = _callback;
-	M4Engine *vm = _vm;
+	MadsM4Engine *vm = _vm;
 
 	// Remove this view from manager and destroy it
 	_vm->_viewManager->deleteView(this);
@@ -596,56 +657,11 @@ void AnimviewView::scriptDone() {
 		fn(vm);
 }
 
-void AnimviewView::processLines() {
-	strncpy(_currentLine, _script->readLine().c_str(), 79);
-	if (_script->eos() || _script->err()) {
-		// end of script, end animation
-		scriptDone();
-		return;
-	}
-
-	while (!_script->eos() && !_script->err()) {
-		// Process the line
-		char *cStart = strchr(_currentLine, '-');
-		if (cStart) {
-			while (cStart) {
-				// Loop for possible multiple commands on one line
-				char *cEnd = strchr(_currentLine, ' ');
-				if (!cEnd)
-					error("Unterminated command '%s' in response file", _currentLine);
-
-				*cEnd = '\0';
-				processCommand();
-
-				// Copy rest of line (if any) to start of buffer
-				// Don't use strcpy() here, because if the
-				// rest of the line is the longer of the two
-				// strings, the memory areas will overlap.
-				memmove(_currentLine, cEnd + 1, strlen(cEnd + 1) + 1);
-
-				cStart = strchr(_currentLine, '-');
-			}
-
-			if (_currentLine[0]) {
-				sprintf(_currentFile, "%s", _currentLine);
-				//printf("File: %s\n", _currentLine);
-				break;
-			}
-
-		} else {
-			sprintf(_currentFile, "%s", _currentLine);
-			//printf("File: %s\n", _currentLine);
-			break;
-		}
-
-		strncpy(_currentLine, _script->readLine().c_str(), 79);
-	}
-}
-
 /*
 Switches are: (taken from the help of the original executable)
   -b       Toggle background load status off/on.
   -c:char  Specify sound card id letter.
+  -f:num   Specify a specific starting frame number
   -g       Stay in graphics mode on exit.
   -h[:ex]  Disable EMS/XMS high memory support.
   -i       Switch sound interrupts mode off/on.
@@ -689,18 +705,39 @@ void AnimviewView::processCommand() {
 	str_upper(commandStr);
 	char *param = commandStr;
 
-	if (!strncmp(commandStr, "X", 1)) {
-		//printf("X ");
-	} else if (!strncmp(commandStr, "W", 1)) {
-		//printf("W ");
-	} else if (!strncmp(commandStr, "R", 1)) {
+	switch (commandStr[0]) {
+	case 'B':
+		// Toggle background load flag
+		_bgLoadFlag = !_bgLoadFlag;
+		break;
+
+	case 'F':
+		// Start animation at a specific frame
+		++param;
+		assert(*param == ':');
+		_startFrame = atoi(++param);
+		break;
+
+	case 'O':
 		param = param + 2;
-		//printf("R:%s ", param);
-	} else if (!strncmp(commandStr, "O", 1)) {
-		param = param + 2;
-		//printf("O:%i ", atoi(param));
+		//warning(kDebugGraphics, "O:%i ", atoi(param));
 		_transition = atoi(param);
-	} else {
+		break;
+
+	case 'R':
+		param = param + 2;
+		//warning(kDebugGraphics, "R:%s ", param);
+		break;
+
+	case 'W':
+		//warning(kDebugGraphics, "W ");
+		break;
+
+	case 'X':
+		//warning(kDebugGraphics, "X ");
+		break;
+
+	default:
 		error("Unknown response command: '%s'", commandStr);
 	}
 }

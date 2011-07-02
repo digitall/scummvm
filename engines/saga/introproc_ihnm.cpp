@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_IHNM
@@ -54,7 +51,7 @@ int Scene::IHNMStartProc() {
 
 	IHNMLoadCutaways();
 
-	if (!(_vm->getFeatures() & GF_IHNM_DEMO)) {
+	if (!_vm->isIHNMDemo()) {
 		int logoLength = -168;
 
 		if (_vm->getLanguage() == Common::DE_DEU || _vm->getLanguage() == Common::ES_ESP)
@@ -83,19 +80,18 @@ int Scene::IHNMStartProc() {
 	}
 
 	_vm->_music->setVolume(0, 1000);
-	_vm->_anim->freeCutawayList();
+	_vm->_anim->clearCutawayList();
 
 	// Queue first scene
 	firstScene.loadFlag = kLoadBySceneNumber;
 	firstScene.sceneDescriptor = -1;
-	firstScene.sceneDescription = NULL;
 	firstScene.sceneSkipTarget = false;
 	firstScene.sceneProc = NULL;
 	firstScene.transitionType = kTransitionFade;
 	firstScene.actorsEntrance = 0;
 	firstScene.chapter = -1;
 
-	_vm->_scene->queueScene(&firstScene);
+	_vm->_scene->queueScene(firstScene);
 
 	return SUCCESS;
 }
@@ -105,7 +101,7 @@ int Scene::IHNMCreditsProc() {
 
 	_vm->_music->play(0, MUSIC_NORMAL);
 
-	if (!(_vm->getFeatures() & GF_IHNM_DEMO)) {
+	if (!_vm->isIHNMDemo()) {
 		// Display the credits for 400 frames
 		playTitle(4, -400, true);
 	} else {
@@ -114,7 +110,7 @@ int Scene::IHNMCreditsProc() {
 	}
 
 	_vm->_music->setVolume(0, 1000);
-	_vm->_anim->freeCutawayList();
+	_vm->_anim->clearCutawayList();
 
 	return SUCCESS;
 }
@@ -122,27 +118,24 @@ int Scene::IHNMCreditsProc() {
 void Scene::IHNMLoadCutaways() {
 	ResourceContext *resourceContext;
 	//ResourceContext *soundContext;
-	byte *resourcePointer;
-	size_t resourceLength;
+	ByteArray resourceData;
 
 	resourceContext = _vm->_resource->getContext(GAME_RESOURCEFILE);
 	if (resourceContext == NULL) {
 		error("Scene::IHNMStartProc() resource context not found");
 	}
 
-	if (!(_vm->getFeatures() & GF_IHNM_DEMO))
-		_vm->_resource->loadResource(resourceContext, RID_IHNM_INTRO_CUTAWAYS, resourcePointer, resourceLength);
+	if (!_vm->isIHNMDemo())
+		_vm->_resource->loadResource(resourceContext, RID_IHNM_INTRO_CUTAWAYS, resourceData);
 	else
-		_vm->_resource->loadResource(resourceContext, RID_IHNMDEMO_INTRO_CUTAWAYS, resourcePointer, resourceLength);
+		_vm->_resource->loadResource(resourceContext, RID_IHNMDEMO_INTRO_CUTAWAYS, resourceData);
 
-	if (resourceLength == 0) {
+	if (resourceData.empty()) {
 		error("Scene::IHNMStartProc() Can't load cutaway list");
 	}
 
 	// Load the cutaways for the title screens
-	_vm->_anim->loadCutawayList(resourcePointer, resourceLength);
-
-	free(resourcePointer);
+	_vm->_anim->loadCutawayList(resourceData);
 }
 
 bool Scene::checkKey() {

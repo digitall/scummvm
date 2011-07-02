@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -161,6 +158,12 @@ static void processEvent(Common::Event &event) {
 		case Common::KEYCODE_KP3:
 			moveUsingKeyboard(+1, -1); // Down & Right
 			break;
+		case Common::KEYCODE_d:
+			if (event.kbd.hasFlags(Common::KBD_CTRL)) {
+				g_cine->getDebugger()->attach();
+				g_cine->getDebugger()->onFrame();
+			}
+			// No Break to allow fallthrough to process 'd' without CTRL
 		default:
 			lastKeyStroke = event.kbd.keycode;
 			break;
@@ -241,11 +244,11 @@ int getKeyData() {
 
 /** Removes elements from seqList that have their member variable var4 set to value -1. */
 void purgeSeqList() {
-	Common::List<SeqListElement>::iterator it = seqList.begin();
-	while (it != seqList.end()) {
+	Common::List<SeqListElement>::iterator it = g_cine->_seqList.begin();
+	while (it != g_cine->_seqList.end()) {
 		if (it->var4 == -1) {
 			// Erase the element and jump to the next element
-			it = seqList.erase(it);
+			it = g_cine->_seqList.erase(it);
 		} else {
 			// Let the element be and jump to the next element
 			it++;
@@ -283,15 +286,15 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 		menuCommandLen = 0;
 
 		playerCommand = -1;
-		commandBuffer = "";
+		g_cine->_commandBuffer = "";
 
-		globalVars[VAR_MOUSE_X_POS] = 0;
-		globalVars[VAR_MOUSE_Y_POS] = 0;
+		g_cine->_globalVars[VAR_MOUSE_X_POS] = 0;
+		g_cine->_globalVars[VAR_MOUSE_Y_POS] = 0;
 		if (g_cine->getGameType() == Cine::GType_OS) {
-			globalVars[VAR_MOUSE_X_POS_2ND] = 0;
-			globalVars[VAR_MOUSE_Y_POS_2ND] = 0;
-			globalVars[VAR_BYPASS_PROTECTION] = 0; // set to 1 to bypass the copy protection
-			globalVars[VAR_LOW_MEMORY] = 0; // set to 1 to disable some animations, sounds etc.
+			g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = 0;
+			g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = 0;
+			g_cine->_globalVars[VAR_BYPASS_PROTECTION] = 0; // set to 1 to bypass the copy protection
+			g_cine->_globalVars[VAR_LOW_MEMORY] = 0; // set to 1 to disable some animations, sounds etc.
 		}
 
 		strcpy(newPrcName, "");
@@ -315,7 +318,7 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 			if (bgName == "28.PI1" || bgName == "29.PI1" || bgName == "30.PI1") {
 				static const uint oxygenObjNum = 202, maxOxygen = 264;
 				// Force the amount of oxygen left to the maximum.
-				objectTable[oxygenObjNum].x = maxOxygen;
+				g_cine->_objectTable[oxygenObjNum].x = maxOxygen;
 			}
 		}
 
@@ -332,8 +335,8 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 		// flower shop scene is AIRPORT.PRC's 13th script.
 		// FIXME: Remove the hack and solve what's really causing the problem in the first place.
 		if (g_cine->getGameType() == Cine::GType_OS) {
-			if (scumm_stricmp(renderer->getBgName(), "21.PI1") == 0 && objectTable[1].x == 204 && objectTable[1].y == 110) {
-				objectTable[1].y--; // Move the player character upward on-screen by one pixel
+			if (scumm_stricmp(renderer->getBgName(), "21.PI1") == 0 && g_cine->_objectTable[1].x == 204 && g_cine->_objectTable[1].y == 110) {
+				g_cine->_objectTable[1].y--; // Move the player character upward on-screen by one pixel
 			}
 		}
 
@@ -342,7 +345,7 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 
 		// Clear the zoneQuery table (Operation Stealth specific)
 		if (g_cine->getGameType() == Cine::GType_OS) {
-			Common::set_to(zoneQuery.begin(), zoneQuery.end(), 0);
+			Common::set_to(g_cine->_zoneQuery.begin(), g_cine->_zoneQuery.end(), 0);
 		}
 
 		if (g_cine->getGameType() == Cine::GType_OS) {
@@ -382,7 +385,7 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 			do {
 				manageEvents();
 				getMouseData(mouseUpdateStatus, &mouseButton, &dummyU16, &dummyU16);
-			} while (mouseButton != 0);
+			} while (mouseButton != 0 && !shouldQuit());
 
 			menuVar = 0;
 
@@ -391,14 +394,14 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 				getMouseData(mouseUpdateStatus, &mouseButton, &dummyU16, &dummyU16);
 				playerAction = (mouseButton != 0) || processKeyboard(menuVar);
 				mainLoopSub6();
-			} while (!playerAction);
+			} while (!playerAction && !shouldQuit());
 
 			menuVar = 0;
 
 			do {
 				manageEvents();
 				getMouseData(mouseUpdateStatus, &mouseButton, &dummyU16, &dummyU16);
-			} while (mouseButton != 0);
+			} while (mouseButton != 0 && !shouldQuit());
 
 			waitForPlayerClick = 0;
 		}
@@ -422,7 +425,7 @@ void CineEngine::mainLoop(int bootScriptIdx) {
 
 		manageEvents();
 
-	} while (!shouldQuit() && _danKeysPressed != 7);
+	} while (!shouldQuit() && !_restartRequested);
 
 	hideMouse();
 	g_sound->stopMusic();

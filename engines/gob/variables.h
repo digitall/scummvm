@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_VARIABLES_H
@@ -95,7 +92,7 @@ private:
 	uint32 _size;
 	byte *_vars;
 
-  void clear();
+	void clear();
 };
 
 class VariablesLE : public Variables {
@@ -146,6 +143,23 @@ private:
 	Variables *_vars;
 	uint32 _offset;
 	Variables::Type _type;
+};
+
+class VariableStack {
+public:
+	VariableStack(uint32 size);
+	~VariableStack();
+
+	void pushData(const Variables &vars, uint32 offset, uint32 size);
+	void pushInt(uint32 value);
+
+	void pop(Variables &vars, uint32 offset);
+
+private:
+	byte *_stack;
+
+	uint32 _size;
+	uint32 _position;
 };
 
 } // End of namespace Gob

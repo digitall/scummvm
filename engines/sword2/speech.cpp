@@ -20,13 +20,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "common/file.h"
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -104,16 +102,16 @@ void Logic::locateTalker(int32 *params) {
 
 		uint16 scale = obMega.calcScale();
 
-		// Calc suitable centre point above the head, based on scaled
+		// Calc suitable center point above the head, based on scaled
 		// height
 
-		// just use 'feet_x' as centre
+		// just use 'feet_x' as center
 		_textX = obMega.getFeetX();
 
 		// Add scaled y-offset to feet_y coord to get top of sprite
 		_textY = obMega.getFeetY() + (cdt_entry.y * scale) / 256;
 	} else {
-		// It's a non-scaling anim - calc suitable centre point above
+		// It's a non-scaling anim - calc suitable center point above
 		// the head, based on scaled width
 
 		// x-coord + half of width
@@ -185,7 +183,7 @@ void Logic::formText(int32 *params) {
 		text + 2, _textX, _textY,
 		textWidth, obSpeech.getPen(),
 		RDSPR_TRANS | RDSPR_DISPLAYALIGN,
-		_vm->_speechFontId, POSITION_AT_CENTRE_OF_BASE);
+		_vm->_speechFontId, POSITION_AT_CENTER_OF_BASE);
 
 	_vm->_resman->closeResource(text_res);
 

@@ -18,19 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "groovie/debug.h"
+#include "groovie/graphics.h"
 #include "groovie/groovie.h"
 #include "groovie/script.h"
+
+#include "common/debug-channels.h"
+#include "common/system.h"
+
+#include "graphics/palette.h"
 
 namespace Groovie {
 
 Debugger::Debugger(GroovieEngine *vm) :
-	_vm (vm), _script(&_vm->_script), _syst(_vm->_system) {
+	_vm(vm), _script(_vm->_script) {
 
 	// Register the debugger comands
 	DCmd_Register("step", WRAP_METHOD(Debugger, cmd_step));
@@ -46,7 +49,7 @@ Debugger::Debugger(GroovieEngine *vm) :
 }
 
 Debugger::~Debugger() {
-	Common::clearAllDebugChannels();
+	DebugMan.clearAllDebugChannels();
 }
 
 int Debugger::getNumber(const char *arg) {
@@ -133,11 +136,11 @@ bool Debugger::cmd_playref(int argc, const char **argv) {
 
 bool Debugger::cmd_dumppal(int argc, const char **argv) {
 	uint16 i;
-	byte palettedump[256 * 4];
-	_syst->grabPalette(palettedump, 0, 256);
+	byte palettedump[256 * 3];
+	_vm->_system->getPaletteManager()->grabPalette(palettedump, 0, 256);
 
 	for (i = 0; i < 256; i++) {
-		DebugPrintf("%3d: %3d,%3d,%3d,%3d\n", i, palettedump[(i * 4)], palettedump[(i * 4) + 1], palettedump[(i * 4) + 2], palettedump[(i * 4) + 3]);
+		DebugPrintf("%3d: %3d,%3d,%3d\n", i, palettedump[(i * 3)], palettedump[(i * 3) + 1], palettedump[(i * 3) + 2]);
 	}
 	return true;
 }

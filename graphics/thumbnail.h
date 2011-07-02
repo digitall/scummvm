@@ -17,18 +17,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef GRAPHICS_THUMBNAIL_H
 #define GRAPHICS_THUMBNAIL_H
 
-#include "common/stream.h"
-#include "graphics/surface.h"
+#include "common/scummsys.h"
+
+namespace Common{
+class SeekableReadStream;
+class WriteStream;
+}
 
 namespace Graphics {
+
+struct Surface;
 
 /**
  * Checks for presence of the thumbnail save header.
@@ -39,14 +42,14 @@ namespace Graphics {
 bool checkThumbnailHeader(Common::SeekableReadStream &in);
 
 /**
- * Skips a thumbnail header, if present.
+ * Skips a thumbnail, if present.
  *
  * @param in	stream to process
  */
-bool skipThumbnailHeader(Common::SeekableReadStream &in);
+bool skipThumbnail(Common::SeekableReadStream &in);
 
 /**
- * Lodas a thumbnail from the given input stream.
+ * Loads a thumbnail from the given input stream.
  * The loaded thumbnail will be automatically converted to the
  * current overlay pixelformat.
  */
@@ -63,7 +66,7 @@ bool saveThumbnail(Common::WriteStream &out);
  */
 bool saveThumbnail(Common::WriteStream &out, const Graphics::Surface &thumb);
 
-} // end of namespace Graphics
+} // End of namespace Graphics
 
 #endif
 

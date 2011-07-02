@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/file.h"
 #include "common/util.h"
 #include "common/fs.h"
 #include "common/debug.h"
+#include "common/textconsole.h"
 
 #include "agi/wagparser.h"
 
@@ -100,10 +98,8 @@ void WagProperty::setDefaults() {
 }
 
 void WagProperty::deleteData() {
-	if (_propData != NULL) {
-		delete _propData;
-		_propData = NULL;
-	}
+	delete _propData;
+	_propData = NULL;
 }
 
 WagFileParser::WagFileParser() :
@@ -116,11 +112,11 @@ WagFileParser::~WagFileParser() {
 bool WagFileParser::checkAgiVersionProperty(const WagProperty &version) const {
 	if (version.getCode() == WagProperty::PC_INTVERSION && // Must be AGI interpreter version property
 		version.getSize() >= 3 && // Need at least three characters for a version number like "X.Y"
-		isdigit(version.getData()[0]) && // And the first character must be a digit
+		isdigit(static_cast<unsigned char>(version.getData()[0])) && // And the first character must be a digit
 		(version.getData()[1] == ',' || version.getData()[1] == '.')) { // And the second a comma or a period
 
 		for (int i = 2; i < version.getSize(); i++) // And the rest must all be digits
-			if (!isdigit(version.getData()[i]))
+			if (!isdigit(static_cast<unsigned char>(version.getData()[i])))
 				return false; // Bail out if found a non-digit after the decimal point
 
 		return true;
@@ -213,7 +209,7 @@ bool WagFileParser::parse(const Common::FSNode &node) {
 }
 
 const WagProperty *WagFileParser::getProperty(const WagProperty::WagPropertyCode code) const {
-	for (PropertyList::const_iterator iter = _propList.begin(); iter != _propList.end(); iter++)
+	for (PropertyList::const_iterator iter = _propList.begin(); iter != _propList.end(); ++iter)
 		if (iter->getCode() == code) return iter;
 	return NULL;
 }

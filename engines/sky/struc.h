@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_STRUC_H
@@ -37,9 +34,9 @@ struct DisplayedText {
 #include "common/pack-start.h"	// START STRUCT PACKING
 
 struct DataFileHeader {
-	uint16 flag; // bit 0: set for colour data, clear for not
+	uint16 flag; // bit 0: set for color data, clear for not
 	// bit 1: set for compressed, clear for uncompressed
-	// bit 2: set for 32 colours, clear for 16 colours
+	// bit 2: set for 32 colors, clear for 16 colors
 	uint16 s_x;
 	uint16 s_y;
 	uint16 s_width;
@@ -139,7 +136,7 @@ struct Compact {
 	uint16 request;		 // 42
 
 	uint16 spWidth_xx;	 // 43
-	uint16 spColour;	 // 44
+	uint16 spColor;	 // 44
 	uint16 spTextId;	 // 45
 	uint16 spTime;		 // 46
 

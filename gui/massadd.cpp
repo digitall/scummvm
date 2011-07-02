@@ -17,24 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "engines/metaengine.h"
 #include "common/algorithm.h"
-#include "common/events.h"
-#include "common/func.h"
 #include "common/config-manager.h"
+#include "common/debug.h"
+#include "common/system.h"
+#include "common/taskbar.h"
+#include "common/translation.h"
 
 #include "gui/launcher.h"	// For addGameToConf()
 #include "gui/massadd.h"
-#include "gui/GuiManager.h"
 #include "gui/widget.h"
-#include "gui/ListWidget.h"
+#include "gui/widgets/list.h"
 
-
+#ifndef DISABLE_MASS_ADD
 namespace GUI {
 
 /*
@@ -62,23 +60,25 @@ enum {
 MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	: Dialog("MassAdd"),
 	_dirsScanned(0),
+	_oldGamesCount(0),
+	_dirTotal(0),
 	_okButton(0),
 	_dirProgressText(0),
 	_gameProgressText(0) {
 
-	Common::StringList l;
+	StringArray l;
 
 	// The dir we start our scan at
 	_scanStack.push(startDir);
 
-//	Removed for now... Why would you put a title on mass add dialog called "Mass Add Dialog"?
-//	new StaticTextWidget(this, "massadddialog_caption",	"Mass Add Dialog");
+	// Removed for now... Why would you put a title on mass add dialog called "Mass Add Dialog"?
+	// new StaticTextWidget(this, "massadddialog_caption", "Mass Add Dialog");
 
 	_dirProgressText = new StaticTextWidget(this, "MassAdd.DirProgressText",
-											"... progress ...");
+	                                       _("... progress ..."));
 
 	_gameProgressText = new StaticTextWidget(this, "MassAdd.GameProgressText",
-											 "... progress ...");
+	                                         _("... progress ..."));
 
 	_dirProgressText->setAlign(Graphics::kTextAlignCenter);
 	_gameProgressText->setAlign(Graphics::kTextAlignCenter);
@@ -88,10 +88,10 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	_list->setNumberingMode(kListNumberingOff);
 	_list->setList(l);
 
-	_okButton = new ButtonWidget(this, "MassAdd.Ok", "OK", kOkCmd, Common::ASCII_RETURN);
+	_okButton = new ButtonWidget(this, "MassAdd.Ok", _("OK"), 0, kOkCmd, Common::ASCII_RETURN);
 	_okButton->setEnabled(false);
 
-	new ButtonWidget(this, "MassAdd.Cancel", "Cancel", kCancelCmd, Common::ASCII_ESCAPE);
+	new ButtonWidget(this, "MassAdd.Cancel", _("Cancel"), 0, kCancelCmd, Common::ASCII_ESCAPE);
 
 	// Build a map from all configured game paths to the targets using them
 	const Common::ConfigManager::DomainMap &domains = ConfMan.getGameDomains();
@@ -106,7 +106,7 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 		}
 #endif
 
-		Common::String path(iter->_value.get("path"));
+		Common::String path(iter->_value.getVal("path"));
 		// Remove trailing slash, so that "/foo" and "/foo/" match.
 		// This works around a bug in the POSIX FS code (and others?)
 		// where paths are not normalized (so FSNodes refering to identical
@@ -132,6 +132,12 @@ struct GameDescLess {
 
 
 void MassAddDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
+#if defined(USE_TASKBAR)
+	// Remove progress bar and count from taskbar
+	g_system->getTaskbarManager()->setProgressState(Common::TaskbarManager::kTaskbarNoProgress);
+	g_system->getTaskbarManager()->setCount(0);
+#endif
+
 	// FIXME: It's a really bad thing that we use two arbitrary constants
 	if (cmd == kOkCmd) {
 		// Sort the detected games. This is not strictly necessary, but nice for
@@ -139,7 +145,7 @@ void MassAddDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		sort(_games.begin(), _games.end(), GameTargetLess());
 		// Add all the detected games to the config
 		for (GameList::iterator iter = _games.begin(); iter != _games.end(); ++iter) {
-			printf("  Added gameid '%s', desc '%s'\n",
+			debug(1, "  Added gameid '%s', desc '%s'\n",
 				(*iter)["gameid"].c_str(),
 				(*iter)["description"].c_str());
 			(*iter)["gameid"] = addGameToConf(*iter);
@@ -149,12 +155,15 @@ void MassAddDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		ConfMan.flushToDisk();
 
 		// And scroll to first detected game
-		sort(_games.begin(), _games.end(), GameDescLess());
-		ConfMan.set("temp_selection", _games.front().gameid());
+		if (!_games.empty()) {
+			sort(_games.begin(), _games.end(), GameDescLess());
+			ConfMan.set("temp_selection", _games.front().gameid());
+		}
 
 		close();
 	} else if (cmd == kCancelCmd) {
 		// User cancelled, so we don't do anything and just leave.
+		_games.clear();
 		close();
 	} else {
 		Dialog::handleCommand(sender, cmd, data);
@@ -196,8 +205,8 @@ void MassAddDialog::handleTickle() {
 			// Check for existing config entries for this path/gameid/lang/platform combination
 			if (_pathToTargets.contains(path)) {
 				bool duplicate = false;
-				const Common::StringList &targets = _pathToTargets[path];
-				for (Common::StringList::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+				const StringArray &targets = _pathToTargets[path];
+				for (StringArray::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
 					// If the gameid, platform and language match -> skip it
 					Common::ConfigManager::Domain *dom = ConfMan.getDomain(*iter);
 					assert(dom);
@@ -209,8 +218,10 @@ void MassAddDialog::handleTickle() {
 						break;
 					}
 				}
-				if (duplicate)
+				if (duplicate) {
+					_oldGamesCount++;
 					break;	// Skip duplicates
+				}
 			}
 			result["path"] = path;
 			_games.push_back(result);
@@ -223,31 +234,38 @@ void MassAddDialog::handleTickle() {
 		for (Common::FSList::const_iterator file = files.begin(); file != files.end(); ++file) {
 			if (file->isDirectory()) {
 				_scanStack.push(*file);
+
+				_dirTotal++;
 			}
 		}
 
 		_dirsScanned++;
+
+#if defined(USE_TASKBAR)
+		g_system->getTaskbarManager()->setProgressValue(_dirsScanned, _dirTotal);
+		g_system->getTaskbarManager()->setCount(_games.size());
+#endif
 	}
 
 
 	// Update the dialog
-	char buf[256];
+	Common::String buf;
 
 	if (_scanStack.empty()) {
 		// Enable the OK button
 		_okButton->setEnabled(true);
 
-		snprintf(buf, sizeof(buf), "Scan complete!");
+		buf = _("Scan complete!");
 		_dirProgressText->setLabel(buf);
 
-		snprintf(buf, sizeof(buf), "Discovered %d new games.", _games.size());
+		buf = Common::String::format(_("Discovered %d new games, ignored %d previously added games."), _games.size(), _oldGamesCount);
 		_gameProgressText->setLabel(buf);
 
 	} else {
-		snprintf(buf, sizeof(buf), "Scanned %d directories ...", _dirsScanned);
+		buf = Common::String::format(_("Scanned %d directories ..."), _dirsScanned);
 		_dirProgressText->setLabel(buf);
 
-		snprintf(buf, sizeof(buf), "Discovered %d new games ...", _games.size());
+		buf = Common::String::format(_("Discovered %d new games, ignored %d previously added games ..."), _games.size(), _oldGamesCount);
 		_gameProgressText->setLabel(buf);
 	}
 
@@ -259,5 +277,6 @@ void MassAddDialog::handleTickle() {
 }
 
 
-} // end of namespace GUI
+} // End of namespace GUI
 
+#endif // DISABLE_MASS_ADD

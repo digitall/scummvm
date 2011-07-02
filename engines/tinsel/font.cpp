@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "tinsel/actors.h"
@@ -34,6 +31,8 @@
 namespace Tinsel {
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static char tBuffer[TBUFSZ];
 
@@ -85,7 +84,7 @@ void SetTempTalkFontHandle(SCNHANDLE hFont) {
 	hTalkFont = hFont;
 }
 
-void ResetFontHandles(void) {
+void ResetFontHandles() {
 	hTagFont = hRegularTagFont;
 	hTalkFont = hRegularTalkFont;
 }
@@ -116,10 +115,10 @@ void FettleFontPal(SCNHANDLE fontPal) {
 	else
 		pImg->hImgPal = 0;
 
-	if (TinselV2 && SysVar(SV_TAGCOLOUR)) {
-		static COLORREF c = GetActorRGB(-1);
+	if (TinselV2 && SysVar(SV_TAGCOLOR)) {
+		const COLORREF c = GetActorRGB(-1);
 		SetTagColorRef(c);
-		UpdateDACqueue(SysVar(SV_TAGCOLOUR), 1, &c);
+		UpdateDACqueue(SysVar(SV_TAGCOLOR), c);
 	}
 }
 

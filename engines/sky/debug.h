@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_DEBUG_H
@@ -43,10 +40,11 @@ public:
 	virtual ~Debugger(); // we need this here for __SYMBIAN32__ archaic gcc/UIQ
 	bool showGrid()	{	return _showGrid; }
 
-protected:
+private:
 	virtual void preEnter();
 	virtual void postEnter();
 
+private:
 	bool Cmd_ShowGrid(int argc, const char **argv);
 	bool Cmd_ReloadGrid(int argc, const char **argv);
 	bool Cmd_ShowCompact(int argc, const char **argv);

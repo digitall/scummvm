@@ -18,16 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_ARCHIVE_H
 #define COMMON_ARCHIVE_H
 
 #include "common/str.h"
-#include "common/hash-str.h"
 #include "common/list.h"
 #include "common/ptr.h"
 #include "common/singleton.h"
@@ -79,7 +75,8 @@ public:
 
 
 /**
- * Archive allows searches of (file)names into an arbitrary container.
+ * Archive allows managing of member of arbitrary containers in a uniform
+ * fashion, allowing lookup by (file)names.
  * It also supports opening a file and returning an usable input stream.
  */
 class Archive {
@@ -87,24 +84,23 @@ public:
 	virtual ~Archive() { }
 
 	/**
-	 * Check if a name is present in the Archive. Patterns are not allowed,
-	 * as this is meant to be a quick File::exists() replacement.
+	 * Check if a member with the given name is present in the Archive.
+	 * Patterns are not allowed, as this is meant to be a quick File::exists()
+	 * replacement.
 	 */
 	virtual bool hasFile(const String &name) = 0;
 
 	/**
-	 * Add all the names present in the Archive which match pattern to
-	 * list. Returned names can be used as parameters to createReadStreamForMember.
-	 * Must not remove elements from the list.
+	 * Add all members of the Archive matching the specified pattern to list.
+	 * Must only append to list, and not remove elements from it.
 	 *
-	 * @return the number of names added to list
+	 * @return the number of members added to list
 	 */
 	virtual int listMatchingMembers(ArchiveMemberList &list, const String &pattern);
 
 	/**
-	 * Add all the names present in the Archive to list. Returned
-	 * names can be used as parameters to createReadStreamForMember.
-	 * Must not remove elements from the list.
+	 * Add all members of the Archive to list.
+	 * Must only append to list, and not remove elements from it.
 	 *
 	 * @return the number of names added to list
 	 */
@@ -116,8 +112,8 @@ public:
 	virtual ArchiveMemberPtr getMember(const String &name) = 0;
 
 	/**
-	 * Create a stream bound to a member in the archive. If no member with the
-	 * specified name exists, then 0 is returned.
+	 * Create a stream bound to a member with the specified name in the
+	 * archive. If no member with this name exists, 0 is returned.
 	 * @return the newly created input stream
 	 */
 	virtual SeekableReadStream *createReadStreamForMember(const String &name) const = 0;
@@ -147,7 +143,7 @@ class SearchSet : public Archive {
 	ArchiveNodeList::iterator find(const String &name);
 	ArchiveNodeList::const_iterator find(const String &name) const;
 
-	// Add an archive keeping the list sorted by ascending priorities.
+	// Add an archive keeping the list sorted by descending priority.
 	void insert(const Node& node);
 
 public:
@@ -167,6 +163,52 @@ public:
 	 * Create and add a FSDirectory by FSNode
 	 */
 	void addDirectory(const String &name, const FSNode &directory, int priority = 0, int depth = 1, bool flat = false);
+
+	/**
+	 * Create and add a sub directory by name (caseless).
+	 *
+	 * It is also possible to add sub directories of sub directories (of any depth) with this function.
+	 * The path seperator for this case is SLASH for *all* systems.
+	 *
+	 * An example would be:
+	 *
+	 *   "game/itedata"
+	 *
+	 * In this example the code would first try to search for all directories matching
+	 * "game" (case insensitive) in the path "directory" first and search through all
+	 * of the matches for "itedata" (case insensitive too).
+	 *
+	 * Note that it will add *all* matches found!
+	 *
+	 * Even though this method is currently implemented via addSubDirectoriesMatching it is not safe
+	 * to assume that this method is using anything other than a simple case insensitive compare.
+	 * Thus do not use any tokens like '*' or '?' in the "caselessName" parameter of this function!
+	 */
+	void addSubDirectoryMatching(const FSNode &directory, const String &caselessName, int priority = 0) {
+		addSubDirectoriesMatching(directory, caselessName, true, priority);
+	}
+
+	/**
+	 * Create and add sub directories by pattern.
+	 *
+	 * It is also possible to add sub directories of sub directories (of any depth) with this function.
+	 * The path seperator for this case is SLASH for *all* systems.
+	 *
+	 * An example would be:
+	 *
+	 *   "game/itedata"
+	 *
+	 * In this example the code would first try to search for all directories matching
+	 * "game" in the path "directory" first and search through all of the matches for
+	 * "itedata". If "ingoreCase" is set to true, the code would do a case insensitive
+	 * match, otherwise it is doing a case sensitive match.
+	 *
+	 * This method works of course also with tokens. For a list of available tokens
+	 * see the documentation for Common::matchString.
+	 *
+	 * @see Common::matchString
+	 */
+	void addSubDirectoriesMatching(const FSNode &directory, String origPattern, bool ignoreCase, int priority = 0);
 
 	/**
 	 * Remove an archive from the searchable set.

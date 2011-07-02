@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_CONTROL_H
@@ -28,11 +25,12 @@
 
 #include "common/scummsys.h"
 #include "common/events.h"
+#include "common/str-array.h"
 #include "sword1/sworddefs.h"
 
 class OSystem;
 namespace Common {
-	class SaveFileManager;
+class SaveFileManager;
 }
 
 namespace Sword1 {
@@ -43,7 +41,7 @@ class Mouse;
 class Music;
 class Sound;
 
-#define SAVEGAME_HEADER MKID_BE('BS_1')
+#define SAVEGAME_HEADER MKTAG('B','S','_','1')
 #define SAVEGAME_VERSION 2
 
 #define MAX_BUTTONS 16
@@ -55,11 +53,11 @@ class Sound;
 class ControlButton {
 public:
 	ControlButton(uint16 x, uint16 y, uint32 resId, uint8 id, uint8 flag, ResMan *pResMan, uint8 *screenBuf, OSystem *system);
-	~ControlButton(void);
-	void draw(void);
+	~ControlButton();
+	void draw();
 	bool wasClicked(uint16 mouseX, uint16 mouseY);
 	void setSelected(uint8 selected);
-	bool isSaveslot(void);
+	bool isSaveslot();
 	uint8 _id;
 	uint8 _flag;
 private:
@@ -86,15 +84,15 @@ struct ButtonInfo {
 class Control {
 public:
 	Control(Common::SaveFileManager *saveFileMan, ResMan *pResMan, ObjectMan *pObjMan, OSystem *system, Mouse *pMouse, Sound *pSound, Music *pMusic);
-	uint8 runPanel(void);
-	void doRestore(void);
-	void askForCd(void);
-	bool savegamesExist(void);
-	void readSavegameDescriptions(void);
+	uint8 runPanel();
+	void doRestore();
+	void askForCd();
+	bool savegamesExist();
+	void readSavegameDescriptions();
 	void saveGameToFile(uint8 slot);
 	bool restoreGameFromFile(uint8 slot);
-	void checkForOldSaveGames(void);
-	bool isPanelShown(void);
+	void checkForOldSaveGames();
+	bool isPanelShown();
 
 	void setSaveDescription(int slot, const char *desc) {
 		_saveNames[slot] = desc;
@@ -104,14 +102,14 @@ private:
 	int displayMessage(const char *altButton, const char *message, ...) GCC_PRINTF(3, 4);
 
 	bool convertSaveGame(uint8 slot, char* desc);
-	void showSavegameNames(void);
-	void deselectSaveslots(void);
+	void showSavegameNames();
+	void deselectSaveslots();
 	uint8 *_restoreBuf;
 	uint8 _saveFiles;
 	uint8 _numSaves;
 	uint8 _saveScrollPos;
 	uint8 _selectedSavegame;
-	Common::StringList _saveNames;
+	Common::StringArray _saveNames;
 	Common::String _oldName;
 	uint8 _cursorTick;
 	bool _cursorVisible;
@@ -119,18 +117,18 @@ private:
 
 	uint8 getClicks(uint8 mode, uint8 *retVal);
 	uint8 handleButtonClick(uint8 id, uint8 mode, uint8 *retVal);
-	void handleVolumeClicks(void);
+	void handleVolumeClicks();
 	void changeVolume(uint8 id, uint8 action);
 
-	void setupMainPanel(void);
+	void setupMainPanel();
 	void setupSaveRestorePanel(bool saving);
-	void setupVolumePanel(void);
+	void setupVolumePanel();
 	bool getConfirm(const uint8 *title);
 
 	void saveNameScroll(uint8 scroll, bool saving);
 	void saveNameSelect(uint8 id, bool saving);
-	bool saveToFile(void);
-	bool restoreFromFile(void);
+	bool saveToFile();
+	bool restoreFromFile();
 	bool keyAccepted(uint16 ascii);
 	void handleSaveKey(Common::KeyState kbd);
 
@@ -140,7 +138,7 @@ private:
 	uint8 _numButtons;
 	uint8 _selectedButton;
 	void createButtons(const ButtonInfo *buttons, uint8 num);
-	void destroyButtons(void);
+	void destroyButtons();
 	ControlButton *_buttons[MAX_BUTTONS];
 	static const ButtonInfo _deathButtons[3], _panelButtons[7], _saveButtons[16], _volumeButtons[4];
 	static const uint8 _languageStrings[8 * 20][43];

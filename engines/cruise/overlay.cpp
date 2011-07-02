@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/stream.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
@@ -33,7 +31,7 @@ namespace Cruise {
 overlayStruct overlayTable[90];
 int numOfLoadedOverlay;
 
-void initOverlayTable(void) {
+void initOverlayTable() {
 	int i;
 
 	for (i = 0; i < 90; i++) {
@@ -44,6 +42,84 @@ void initOverlayTable(void) {
 	}
 
 	numOfLoadedOverlay = 1;
+}
+
+void freeOverlayTable() {
+	for (int i = 0; i < 90; i++) {
+		if (overlayTable[i].alreadyLoaded)
+			freeOverlay(i);
+	}
+}
+
+int freeOverlay(int overlayIdx) {
+	ovlDataStruct *ovlDataPtr;
+	int i;
+
+	if (overlayTable[overlayIdx].alreadyLoaded == 0)
+		return -4;
+
+	overlayTable[overlayIdx].alreadyLoaded = 0;
+
+	ovlDataPtr = overlayTable[overlayIdx].ovlData;
+
+	if (!ovlDataPtr)
+		return -4;
+
+
+	/*
+	  if (overlayTable[overlayIdx].var1E) {
+	    MemFree(overlayTable[overlayIdx].var1E);
+	    overlayTable[overlayIdx].var1E = NULL;
+	  }
+
+	  if (overlayTable[overlayIdx].var16) {
+	    MemFree(overlayTable[overlayIdx].var16);
+	    overlayTable[overlayIdx].var16 = NULL;
+	  } */
+
+	removeScript(overlayIdx, -1, &procHead);
+	removeScript(overlayIdx, -1, &procHead);
+
+	removeScript(overlayIdx, -1, &relHead);
+	removeScript(overlayIdx, -1, &relHead);
+
+	if (ovlDataPtr->stringTable) {
+		for (i = 0; i < ovlDataPtr->numStrings; ++i)
+			MemFree(ovlDataPtr->stringTable[i].string);
+		MemFree(ovlDataPtr->stringTable);
+	}
+	if (ovlDataPtr->arrayProc) {
+		ovlData3Struct *tempPtr = ovlDataPtr->arrayProc;
+		for (i = 0; i < ovlDataPtr->numProc; ++i, ++tempPtr)
+			MemFree(tempPtr->dataPtr);
+		MemFree(ovlDataPtr->arrayProc);
+	}
+	if (ovlDataPtr->ptr1) {
+		ovlData3Struct *tempPtr = (ovlData3Struct *)ovlDataPtr->ptr1;
+		for (i = 0; i < ovlDataPtr->numRel; ++i, ++tempPtr)
+			MemFree(tempPtr->dataPtr);
+		MemFree(ovlDataPtr->ptr1);
+	}
+
+	MemFree(ovlDataPtr->arraySymbGlob);
+	MemFree(ovlDataPtr->arrayNameSymbGlob);
+	MemFree(ovlDataPtr->data4Ptr);
+	MemFree(ovlDataPtr->arrayMsgRelHeader);
+	MemFree(ovlDataPtr->ptr8);
+	MemFree(ovlDataPtr->arrayObject);
+	MemFree(ovlDataPtr->arrayObjVar);
+	MemFree(ovlDataPtr->arrayStates);
+	MemFree(ovlDataPtr->nameVerbGlob);
+	MemFree(ovlDataPtr->arrayNameObj);
+	MemFree(ovlDataPtr->arrayRelocGlob);
+	MemFree(ovlDataPtr->arrayNameRelocGlob);
+
+	MemFree(ovlDataPtr);
+	overlayTable[overlayIdx].ovlData = NULL;
+
+	debug(1, "freeOverlay: finish !");
+
+	return 0;
 }
 
 int loadOverlay(const char *scriptName) {
@@ -107,8 +183,9 @@ int loadOverlay(const char *scriptName) {
 
 	unpackedSize = volumePtrToFileDescriptor[fileIdx].extSize + 2;
 
-	// TODO: here, can unpack in gfx module buffer
-	unpackedBuffer = (byte *)mallocAndZero(unpackedSize);
+	// This memory block will be later passed to a MemoryReadStream, which will dispose of it
+	unpackedBuffer = (byte *)malloc(unpackedSize);
+	memset(unpackedBuffer, 0, unpackedSize);
 
 	if (!unpackedBuffer) {
 		return (-2);
@@ -123,14 +200,15 @@ int loadOverlay(const char *scriptName) {
 
 		delphineUnpack((uint8 *)unpackedBuffer, (const uint8 *)pakedBuffer, volumePtrToFileDescriptor[fileIdx].size);
 
-		free(pakedBuffer);
+		MemFree(pakedBuffer);
 	} else {
 		loadPackedFileToMem(fileIdx, (uint8 *) unpackedBuffer);
 	}
 
 	debug(1, "OVL loading done...");
 
-	Common::MemoryReadStream s(unpackedBuffer, unpackedSize);
+	Common::MemoryReadStream s(unpackedBuffer, unpackedSize, DisposeAfterUse::YES);
+	unpackedBuffer = NULL;
 
 	ovlData = overlayTable[scriptIdx].ovlData;
 
@@ -486,8 +564,9 @@ int loadOverlay(const char *scriptName) {
 
 		unpackedSize = volumePtrToFileDescriptor[fileIdx].extSize + 2;
 
-		// TODO: here, can unpack in gfx module buffer
-		unpackedBuffer = (byte *)mallocAndZero(unpackedSize);
+		// This memory block will be later passed to a MemoryReadStream, which will dispose of it
+		unpackedBuffer = (byte *)malloc(unpackedSize);
+		memset(unpackedBuffer, 0, unpackedSize);
 
 		if (!unpackedBuffer) {
 			return (-2);
@@ -504,12 +583,13 @@ int loadOverlay(const char *scriptName) {
 
 			delphineUnpack((uint8 *) unpackedBuffer, (const uint8 *)pakedBuffer, volumePtrToFileDescriptor[fileIdx].size);
 
-			free(pakedBuffer);
+			MemFree(pakedBuffer);
 		} else {
 			loadPackedFileToMem(fileIdx, (uint8 *) unpackedBuffer);
 		}
 
-		Common::MemoryReadStream s2(unpackedBuffer, unpackedSize);
+		Common::MemoryReadStream s2(unpackedBuffer, unpackedSize, DisposeAfterUse::YES);
+		unpackedBuffer = NULL;
 
 		ovlData->specialString1Length = s2.readUint16BE();
 		if (ovlData->specialString1Length) {
@@ -580,6 +660,7 @@ int loadOverlay(const char *scriptName) {
 #endif
 #ifdef DUMP_OBJECT
 	{
+		// TODO: Rewrite this to use Common::DumpFile
 		int i;
 		FILE *fHandle;
 		char nameBundle[100];
@@ -612,43 +693,12 @@ int loadOverlay(const char *scriptName) {
 }
 
 int releaseOverlay(const char *name) {
-	int overlayIdx;
-	ovlDataStruct *ovlDataPtr;
-
-	overlayIdx = findOverlayByName(name);
+	int overlayIdx = findOverlayByName(name);
 
 	if (overlayIdx == -4)
 		return -4;
 
-	if (overlayTable[overlayIdx].alreadyLoaded == 0)
-		return -4;
-
-	overlayTable[overlayIdx].alreadyLoaded = 0;
-
-	ovlDataPtr = overlayTable[overlayIdx].ovlData;
-
-	if (!ovlDataPtr)
-		return -4;
-	/*
-	  if (overlayTable[overlayIdx].var1E) {
-	    free(overlayTable[overlayIdx].var1E);
-	    overlayTable[overlayIdx].var1E = NULL;
-	  }
-
-	  if (overlayTable[overlayIdx].var16) {
-	    free(overlayTable[overlayIdx].var16);
-	    overlayTable[overlayIdx].var16 = NULL;
-	  } */
-
-	removeScript(overlayIdx, -1, &procHead);
-	removeScript(overlayIdx, -1, &procHead);
-
-	removeScript(overlayIdx, -1, &relHead);
-	removeScript(overlayIdx, -1, &relHead);
-
-	debug(1, "releaseOverlay: finish !");
-
-	return 0;
+	return freeOverlay(overlayIdx);
 }
 
 int32 findOverlayByName2(const char *name) {

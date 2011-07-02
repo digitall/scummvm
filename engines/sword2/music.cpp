@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 // One feature still missing is the original's DipMusic() function which, as
@@ -33,14 +30,17 @@
 
 
 #include "common/file.h"
+#include "common/memstream.h"
+#include "common/substream.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/flac.h"
-#include "sound/rate.h"
-#include "sound/wave.h"
-#include "sound/vag.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/flac.h"
+#include "audio/decoders/wave.h"
+#include "audio/decoders/vag.h"
+#include "audio/rate.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -49,39 +49,6 @@
 #include "sword2/sound.h"
 
 namespace Sword2 {
-
-// This class behaves like SeekableSubReadStream, except it remembers where the
-// previous read() or seek() took it, so that it can continue from that point
-// the next time. This is because we're frequently streaming two pieces of
-// music from the same file.
-
-class SafeSubReadStream : public Common::SeekableSubReadStream {
-protected:
-	uint32 _previousPos;
-public:
-	SafeSubReadStream(SeekableReadStream *parentStream, uint32 begin, uint32 end, bool disposeParentStream);
-	virtual uint32 read(void *dataPtr, uint32 dataSize);
-	virtual bool seek(int32 offset, int whence = SEEK_SET);
-};
-
-SafeSubReadStream::SafeSubReadStream(SeekableReadStream *parentStream, uint32 begin, uint32 end, bool disposeParentStream)
-	: SeekableSubReadStream(parentStream, begin, end, disposeParentStream) {
-	_previousPos = 0;
-}
-
-uint32 SafeSubReadStream::read(void *dataPtr, uint32 dataSize) {
-	uint32 result;
-	SeekableSubReadStream::seek(_previousPos);
-	result = SeekableSubReadStream::read(dataPtr, dataSize);
-	_previousPos = pos();
-	return result;
-}
-
-bool SafeSubReadStream::seek(int32 offset, int whence) {
-	bool result = SeekableSubReadStream::seek(offset, whence);
-	_previousPos = pos();
-	return result;
-}
 
 static Audio::AudioStream *makeCLUStream(Common::File *fp, int size);
 static Audio::AudioStream *makePSXCLUStream(Common::File *fp, int size);
@@ -96,15 +63,15 @@ static Audio::AudioStream *getAudioStream(SoundFileHandle *fh, const char *base,
 			const char *ext;
 			int mode;
 		} file_types[] = {
-	#ifdef USE_FLAC
-			{ "clf", kFlacMode },
-	#endif
-	#ifdef USE_VORBIS
+#ifdef USE_FLAC
+			{ "clf", kFLACMode },
+#endif
+#ifdef USE_VORBIS
 			{ "clg", kVorbisMode },
-	#endif
-	#ifdef USE_MAD
+#endif
+#ifdef USE_MAD
 			{ "cl3", kMP3Mode },
-	#endif
+#endif
 			{ "clu", kCLUMode }
 		};
 
@@ -135,10 +102,8 @@ static Audio::AudioStream *getAudioStream(SoundFileHandle *fh, const char *base,
 			return NULL;
 		}
 		if (fh->fileSize != fh->file.size()) {
-			if (fh->idxTab) {
-				free(fh->idxTab);
-				fh->idxTab = NULL;
-			}
+			free(fh->idxTab);
+			fh->idxTab = NULL;
 		}
 	} else
 		alreadyOpen = true;
@@ -187,8 +152,6 @@ static Audio::AudioStream *getAudioStream(SoundFileHandle *fh, const char *base,
 
 	fh->file.seek(pos, SEEK_SET);
 
-	SafeSubReadStream *tmp = 0;
-
 	switch (fh->fileType) {
 	case kCLUMode:
 		if (Sword2Engine::isPsx())
@@ -196,19 +159,22 @@ static Audio::AudioStream *getAudioStream(SoundFileHandle *fh, const char *base,
 		else
 			return makeCLUStream(&fh->file, enc_len);
 #ifdef USE_MAD
-	case kMP3Mode:
-		tmp = new SafeSubReadStream(&fh->file, pos, pos + enc_len, false);
-		return Audio::makeMP3Stream(tmp, true);
+	case kMP3Mode: {
+		Common::SafeSubReadStream *tmp = new Common::SafeSubReadStream(&fh->file, pos, pos + enc_len);
+		return Audio::makeMP3Stream(tmp, DisposeAfterUse::YES);
+		}
 #endif
 #ifdef USE_VORBIS
-	case kVorbisMode:
-		tmp = new SafeSubReadStream(&fh->file, pos, pos + enc_len, false);
-		return Audio::makeVorbisStream(tmp, true);
+	case kVorbisMode: {
+		Common::SafeSubReadStream *tmp = new Common::SafeSubReadStream(&fh->file, pos, pos + enc_len);
+		return Audio::makeVorbisStream(tmp, DisposeAfterUse::YES);
+		}
 #endif
 #ifdef USE_FLAC
-	case kFlacMode:
-		tmp = new SafeSubReadStream(&fh->file, pos, pos + enc_len, false);
-		return Audio::makeFlacStream(tmp, true);
+	case kFLACMode: {
+		Common::SafeSubReadStream *tmp = new Common::SafeSubReadStream(&fh->file, pos, pos + enc_len);
+		return Audio::makeFLACStream(tmp, DisposeAfterUse::YES);
+		}
 #endif
 	default:
 		return NULL;
@@ -301,7 +267,7 @@ Audio::AudioStream *makePSXCLUStream(Common::File *file, int size) {
 
 	byte *buffer = (byte *)malloc(size);
 	file->read(buffer, size);
-	return new Audio::VagStream(new Common::MemoryReadStream(buffer, size, true));
+	return Audio::makeVagStream(new Common::MemoryReadStream(buffer, size, DisposeAfterUse::YES));
 }
 
 // ----------------------------------------------------------------------------
@@ -496,9 +462,16 @@ int Sound::readBuffer(int16 *buffer, const int numSamples) {
 	memset(buffer, 0, 2 * numSamples);
 
 	if (!_mixBuffer || numSamples > _mixBufferLen) {
-		if (_mixBuffer)
-			_mixBuffer = (int16 *)realloc(_mixBuffer, 2 * numSamples);
-		else
+		if (_mixBuffer) {
+			int16 *newBuffer = (int16 *)realloc(_mixBuffer, 2 * numSamples);
+			if (newBuffer) {
+				_mixBuffer = newBuffer;
+			} else {
+				// We can't use the old buffer any more. It's too small.
+				free(_mixBuffer);
+				_mixBuffer = 0;
+			}
+		} else
 			_mixBuffer = (int16 *)malloc(2 * numSamples);
 
 		_mixBufferLen = numSamples;
@@ -798,7 +771,7 @@ int32 Sound::playCompSpeech(uint32 speechId, uint8 vol, int8 pan) {
 		p = -p;
 
 	// Start the speech playing
-	_vm->_mixer->playInputStream(Audio::Mixer::kSpeechSoundType, &_soundHandleSpeech, input, -1, volume, p);
+	_vm->_mixer->playStream(Audio::Mixer::kSpeechSoundType, &_soundHandleSpeech, input, -1, volume, p);
 	return RD_OK;
 }
 

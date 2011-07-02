@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "base/plugins.h"
@@ -28,6 +25,7 @@
 #include "common/config-manager.h"
 #include "engines/advancedDetector.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 
@@ -222,33 +220,14 @@ static const PARALLACTIONGameDescription gameDescriptions[] = {
 
 }
 
-static const ADParams detectionParams = {
-	// Pointer to ADGameDescription or its superset structure
-	(const byte *)Parallaction::gameDescriptions,
-	// Size of that superset structure
-	sizeof(Parallaction::PARALLACTIONGameDescription),
-	// Number of bytes to compute MD5 sum for
-	5000,
-	// List of all engine targets
-	parallactionGames,
-	// Structure for autoupgrading obsolete targets
-	0,
-	// Name of single gameid (optional)
-	"parallaction",
-	// List of files for file-based fallback detection (optional)
-	0,
-	// Flags
-	0,
-	// Additional GUI options (for every game}
-	Common::GUIO_NONE
-};
-
 class ParallactionMetaEngine : public AdvancedMetaEngine {
 public:
-	ParallactionMetaEngine() : AdvancedMetaEngine(detectionParams) {}
+	ParallactionMetaEngine() : AdvancedMetaEngine(Parallaction::gameDescriptions, sizeof(Parallaction::PARALLACTIONGameDescription), parallactionGames) {
+		_guioptions = Common::GUIO_NOLAUNCHLOAD;
+	}
 
 	virtual const char *getName() const {
-		return "Parallaction engine";
+		return "Parallaction";
 	}
 
 	virtual const char *getOriginalCopyright() const {
@@ -265,7 +244,6 @@ public:
 bool ParallactionMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
 		(f == kSupportsListSaves) ||
-		(f == kSupportsLoadingDuringStartup) ||
 		(f == kSupportsDeleteSave);
 }
 
@@ -295,15 +273,13 @@ bool ParallactionMetaEngine::createInstance(OSystem *syst, Engine **engine, cons
 
 SaveStateList ParallactionMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringList filenames;
-	Common::String pattern = target;
-	pattern += ".0??";
 
-	filenames = saveFileMan->listSavefiles(pattern);
+	Common::String pattern(ConfMan.getDomain(target)->getVal("gameid") + ".0??");
+	Common::StringArray filenames = saveFileMan->listSavefiles(pattern);
 	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
 
 	SaveStateList saveList;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 2 digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + file->size() - 2);
 
@@ -323,11 +299,8 @@ SaveStateList ParallactionMetaEngine::listSaves(const char *target) const {
 int ParallactionMetaEngine::getMaximumSaveSlot() const { return 99; }
 
 void ParallactionMetaEngine::removeSaveState(const char *target, int slot) const {
-	char extension[6];
-	snprintf(extension, sizeof(extension), ".0%02d", slot);
-
-	Common::String filename = target;
-	filename += extension;
+	Common::String filename = ConfMan.getDomain(target)->getVal("gameid");
+	filename += Common::String::format(".0%02d", slot);
 
 	g_system->getSavefileManager()->removeSavefile(filename);
 }

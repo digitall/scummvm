@@ -18,34 +18,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "ItemAction.h"
 
 namespace CEGUI {
 
-	ItemAction::ItemAction(WORD reference, GUI::ActionType action) :
+ItemAction::ItemAction(WORD reference, GUI::ActionType action) :
 	PanelItem(reference) {
-		_action = action;
-		if (!GUI::Actions::Instance()->isEnabled(_action))
-			_visible = false;
-	}
-
-
-	ItemAction::~ItemAction() {
-	}
-
-	bool ItemAction::action(int x, int y, bool pushed) {
-
-		if (checkInside(x, y) && _visible && pushed) {
-			GUI::Actions::Instance()->perform(_action, true);
-			GUI::Actions::Instance()->perform(_action, false);
-			return true;
-		}
-		else
-			return false;
-	}
+	_action = action;
+	if (!GUI::Actions::Instance()->isEnabled(_action))
+		_visible = false;
 }
+
+
+ItemAction::~ItemAction() {
+}
+
+bool ItemAction::action(int x, int y, bool pushed) {
+
+	if (checkInside(x, y) && _visible && pushed) {
+		GUI::Actions::Instance()->perform(_action, true);
+		GUI::Actions::Instance()->perform(_action, false);
+		return true;
+	} else
+		return false;
+}
+
+} // End of namespace CEGUI

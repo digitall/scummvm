@@ -18,11 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#ifdef ENABLE_HE
+
+#include "common/archive.h"
 #include "common/config-file.h"
 #include "common/config-manager.h"
 #include "common/savefile.h"
@@ -33,7 +33,6 @@
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
-#include "scumm/he/resource_he.h"
 #include "scumm/scumm.h"
 #include "scumm/he/sound_he.h"
 
@@ -93,14 +92,9 @@ void ScummEngine_v80he::o80_getFileSize() {
 
 	Common::SeekableReadStream *f = 0;
 	if (!_saveFileMan->listSavefiles(filename).empty()) {
-		f = _saveFileMan->openForLoading((const char *)filename);
+		f = _saveFileMan->openForLoading(filename);
 	} else {
-		Common::File *file = new Common::File();
-		file->open((const char *)filename);
-		if (!file->isOpen())
-			delete file;
-		else
-			f = file;
+		f = SearchMan.createReadStreamForMember(filename);
 	}
 
 	if (!f) {
@@ -241,7 +235,7 @@ void ScummEngine_v80he::o80_writeConfigFile() {
 }
 
 void ScummEngine_v80he::o80_cursorCommand() {
-	int a, i;
+	int a, b, i;
 	int args[16];
 
 	byte subOp = fetchScriptByte();
@@ -250,12 +244,12 @@ void ScummEngine_v80he::o80_cursorCommand() {
 	case 0x13:
 	case 0x14:
 		a = pop();
-		_wiz->loadWizCursor(a);
+		_wiz->loadWizCursor(a, 0);
 		break;
 	case 0x3C:
-		pop();
+		b = pop();
 		a = pop();
-		_wiz->loadWizCursor(a);
+		_wiz->loadWizCursor(a, b);
 		break;
 	case 0x90:		// SO_CURSOR_ON Turn cursor on
 		_cursor.state = 1;
@@ -529,3 +523,5 @@ void ScummEngine_v80he::o80_pickVarRandom() {
 }
 
 } // End of namespace Scumm
+
+#endif // ENABLE_HE

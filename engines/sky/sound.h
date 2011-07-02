@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_SOUND_H
@@ -28,7 +25,7 @@
 
 
 #include "common/scummsys.h"
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 namespace Sky {
 
@@ -67,19 +64,19 @@ protected:
 
 public:
 	Sound(Audio::Mixer *mixer, Disk *pDisk, uint8 pVolume);
-	~Sound(void);
+	~Sound();
 
 	void loadSection(uint8 pSection);
 	void playSound(uint16 sound, uint16 volume, uint8 channel);
 	void fnStartFx(uint32 sound, uint8 channel);
 	bool startSpeech(uint16 textNum);
-	bool speechFinished(void) { return !_mixer->isSoundHandleActive(_ingameSpeech); }
-	void fnPauseFx(void);
-	void fnUnPauseFx(void);
-	void fnStopFx(void);
-	void stopSpeech(void);
-	void checkFxQueue(void);
-	void restoreSfx(void);
+	bool speechFinished() { return !_mixer->isSoundHandleActive(_ingameSpeech); }
+	void fnPauseFx();
+	void fnUnPauseFx();
+	void fnStopFx();
+	void stopSpeech();
+	void checkFxQueue();
+	void restoreSfx();
 	uint8 _soundsTotal;
 
 private:

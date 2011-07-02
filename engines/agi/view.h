@@ -18,16 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGI_VIEW_H
 #define AGI_VIEW_H
-
-
-#include "common/scummsys.h"
 
 namespace Agi {
 
@@ -66,6 +60,7 @@ struct VtEntry {
 	int16 xPos;
 	int16 yPos;
 	uint8 currentView;
+	bool viewReplaced;
 	struct AgiView *viewData;
 	uint8 currentLoop;
 	uint8 numLoops;

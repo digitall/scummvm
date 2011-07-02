@@ -18,20 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_hof.h"
-#include "kyra/text_hof.h"
-#include "kyra/wsamovie.h"
-#include "kyra/sound.h"
 #include "kyra/timer.h"
-#include "kyra/script_tim.h"
 #include "kyra/resource.h"
+#include "kyra/sound.h"
 
-#include "common/endian.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -152,7 +146,7 @@ int KyraEngine_HoF::o2_meanWhileScene(EMCState *script) {
 	_screen->setScreenPalette(_screen->getPalette(2));
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
 	if (!scumm_stricmp(cpsfile, "_MEANWIL.CPS") && _flags.lang == Common::JA_JPN) {
-		Screen::FontId o = _screen->setFont(Screen::FID_6_FNT);
+		Screen::FontId o = _screen->setFont(Screen::FID_SJIS_FNT);
 		_screen->printText((const char *)jpSubtitle, 140, 176, 255, 132);
 		_screen->setFont(o);
 	}
@@ -186,20 +180,14 @@ int KyraEngine_HoF::o2_displayWsaFrame(EMCState *script) {
 	int backUp = stackPos(8);
 
 	_screen->hideMouse();
-	uint32 endTime = _system->getMillis() + waitTime * _tickLength;
+	const uint32 endTime = _system->getMillis() + waitTime * _tickLength;
 	_wsaSlots[slot]->displayFrame(frame, dstPage, x, y, copyParam | 0xC000, 0, 0);
 	_screen->updateScreen();
 
 	if (backUp)
 		memcpy(_gamePlayBuffer, _screen->getCPagePtr(3), 46080);
 
-	while (_system->getMillis() < endTime) {
-		if (doUpdate)
-			update();
-
-		if (endTime - _system->getMillis() >= 10)
-			delay(10);
-	}
+	delayUntil(endTime, false, doUpdate != 0);
 	_screen->showMouse();
 	return 0;
 }
@@ -224,34 +212,22 @@ int KyraEngine_HoF::o2_displayWsaSequentialFramesLooping(EMCState *script) {
 	while (curTime < maxTimes) {
 		if (startFrame < endFrame) {
 			for (int i = startFrame; i <= endFrame; ++i) {
-				uint32 endTime = _system->getMillis() + waitTime * _tickLength;
+				const uint32 endTime = _system->getMillis() + waitTime * _tickLength;
 				_wsaSlots[slot]->displayFrame(i, 0, x, y, 0xC000 | copyFlags, 0, 0);
 
 				if (!skipFlag()) {
 					_screen->updateScreen();
-
-					do {
-						update();
-
-						if (endTime - _system->getMillis() >= 10)
-							delay(10);
-					} while (_system->getMillis() < endTime);
+					delayUntil(endTime, false, true);
 				}
 			}
 		} else {
 			for (int i = startFrame; i >= endFrame; --i) {
-				uint32 endTime = _system->getMillis() + waitTime * _tickLength;
+				const uint32 endTime = _system->getMillis() + waitTime * _tickLength;
 				_wsaSlots[slot]->displayFrame(i, 0, x, y, 0xC000 | copyFlags, 0, 0);
 
 				if (!skipFlag()) {
 					_screen->updateScreen();
-
-					do {
-						update();
-
-						if (endTime - _system->getMillis() >= 10 && !skipFlag())
-							delay(10);
-					} while (_system->getMillis() < endTime && !skipFlag());
+					delayUntil(endTime, false, true);
 				}
 			}
 		}
@@ -282,7 +258,7 @@ int KyraEngine_HoF::o2_displayWsaSequentialFrames(EMCState *script) {
 	_screen->hideMouse();
 
 	while (currentFrame <= lastFrame) {
-		uint32 endTime = _system->getMillis() + frameDelay;
+		const uint32 endTime = _system->getMillis() + frameDelay;
 		_wsaSlots[index]->displayFrame(currentFrame++, 0, stackPos(0), stackPos(1), copyParam, 0, 0);
 		if (!skipFlag()) {
 			_screen->updateScreen();
@@ -310,7 +286,7 @@ int KyraEngine_HoF::o2_displayWsaSequence(EMCState *script) {
 	const int lastFrame = _wsaSlots[index]->frames();
 
 	while (currentFrame <= lastFrame) {
-		uint32 endTime = _system->getMillis() + frameDelay;
+		const uint32 endTime = _system->getMillis() + frameDelay;
 		_wsaSlots[index]->displayFrame(currentFrame++, 0, stackPos(0), stackPos(1), copyParam, 0, 0);
 		if (!skipFlag()) {
 			if (doUpdate)
@@ -428,7 +404,7 @@ int KyraEngine_HoF::o2_countItemsInScene(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_countItemsInScene(%p) (%d)", (const void *)script, stackPos(0));
 	int count = 0;
 	for (int i = 0; i < 30; ++i) {
-		if (_itemList[i].sceneId == stackPos(0) && _itemList[i].id != 0xFFFF)
+		if (_itemList[i].sceneId == stackPos(0) && _itemList[i].id != kItemNone)
 			++count;
 	}
 	return count;
@@ -745,6 +721,22 @@ int KyraEngine_HoF::o2_showItemString(EMCState *script) {
 
 int KyraEngine_HoF::o2_isAnySoundPlaying(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_isAnySoundPlaying(%p) ()", (const void *)script);
+
+	// WORKAROUND
+	//
+	// The input script function in the skull scene does busy wait
+	// for the sound effect, which is played after completing the
+	// song, to finish. To avoid too much CPU use, we add some slight
+	// delay here.
+	//
+	// Also the Nintendo DS backend seems only to update the sound, when
+	// either OSystem::updateScreen or OSystem::delayMillis is called.
+	// So we have to call delay here, since otherwise the game would hang.
+#ifndef __DS__
+	if (_currentScene == 16 && _currentChapter == 1)
+#endif
+		delay(_tickLength);
+
 	return _sound->voiceIsPlaying() ? 1 : 0;
 }
 
@@ -829,7 +821,7 @@ int KyraEngine_HoF::o2_showLetter(EMCState *script) {
 
 int KyraEngine_HoF::o2_playFireflyScore(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_playFireflyScore(%p) ()", (const void *)script);
-	if (_sound->getSfxType() == Sound::kAdlib || _sound->getSfxType() == Sound::kPCSpkr ||
+	if (_sound->getSfxType() == Sound::kAdLib || _sound->getSfxType() == Sound::kPCSpkr ||
 			_sound->getSfxType() == Sound::kMidiMT32 || _sound->getSfxType() == Sound::kMidiGM) {
 		snd_playWanderScoreViaMap(86, 1);
 		return 1;
@@ -1041,7 +1033,7 @@ int KyraEngine_HoF::o2_setColorCodeValue(EMCState *script) {
 
 int KyraEngine_HoF::o2_countItemInstances(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_countItemInstances(%p) (%d)", (const void *)script, stackPos(0));
-	uint16 item = stackPos(0);
+	Item item = stackPos(0);
 
 	int count = 0;
 	for (int i = 0; i < 20; ++i) {
@@ -1049,7 +1041,7 @@ int KyraEngine_HoF::o2_countItemInstances(EMCState *script) {
 			++count;
 	}
 
-	if (_itemInHand == int16(item))
+	if (_itemInHand == item)
 		++count;
 
 	for (int i = 0; i < 30; ++i) {
@@ -1077,7 +1069,7 @@ int KyraEngine_HoF::o2_removeItemFromScene(EMCState *script) {
 	const uint16 item = stackPos(1);
 	for (int i = 0; i < 30; ++i) {
 		if (_itemList[i].sceneId == scene && _itemList[i].id == item)
-			_itemList[i].id = 0xFFFF;
+			_itemList[i].id = kItemNone;
 	}
 	return 0;
 }
@@ -1331,7 +1323,7 @@ int KyraEngine_HoF::o2_midiSoundFadeout(EMCState *script) {
 
 int KyraEngine_HoF::o2_getSfxDriver(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_getSfxDriver(%p) ()", (const void *)script);
-	if (_sound->getSfxType() == Sound::kAdlib)
+	if (_sound->getSfxType() == Sound::kAdLib)
 		return 1;
 	else if (_sound->getSfxType() == Sound::kPCSpkr)
 		return 4;
@@ -1351,7 +1343,7 @@ int KyraEngine_HoF::o2_getVocSupport(EMCState *script) {
 
 int KyraEngine_HoF::o2_getMusicDriver(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_HoF::o2_getMusicDriver(%p) ()", (const void *)script);
-	if (_sound->getMusicType() == Sound::kAdlib)
+	if (_sound->getMusicType() == Sound::kAdLib)
 		return 1;
 	else if (_sound->getMusicType() == Sound::kPCSpkr)
 		return 4;
@@ -1479,17 +1471,17 @@ int KyraEngine_HoF::t2_playSoundEffect(const TIM *tim, const uint16 *param) {
 
 #pragma mark -
 
-typedef Common::Functor1Mem<EMCState*, int, KyraEngine_HoF> OpcodeV2;
+typedef Common::Functor1Mem<EMCState *, int, KyraEngine_HoF> OpcodeV2;
 #define SetOpcodeTable(x) table = &x;
 #define Opcode(x) table->push_back(new OpcodeV2(this, &KyraEngine_HoF::x))
 #define OpcodeUnImpl() table->push_back(new OpcodeV2(this, 0))
 
-typedef Common::Functor2Mem<const TIM*, const uint16*, int, KyraEngine_HoF> TIMOpcodeV2;
+typedef Common::Functor2Mem<const TIM *, const uint16 *, int, KyraEngine_HoF> TIMOpcodeV2;
 #define OpcodeTim(x) _timOpcodes.push_back(new TIMOpcodeV2(this, &KyraEngine_HoF::x))
 #define OpcodeTimUnImpl() _timOpcodes.push_back(new TIMOpcodeV2(this, 0))
 
 void KyraEngine_HoF::setupOpcodeTable() {
-	Common::Array<const Opcode*> *table = 0;
+	Common::Array<const Opcode *> *table = 0;
 
 	_opcodes.reserve(176);
 	SetOpcodeTable(_opcodes);
@@ -1737,5 +1729,5 @@ void KyraEngine_HoF::setupOpcodeTable() {
 	OpcodeTim(t2_playSoundEffect);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

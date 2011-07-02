@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+
+#ifdef ENABLE_AGOS2
 
 #include "common/savefile.h"
 #include "common/system.h"
@@ -251,7 +250,7 @@ void AGOSEngine_Feeble::scrollOracleUp() {
 
 	for (h = 0; h < 21; h++) {
 		for (w = 0; w < 360; w++) {
-			if (dst[w] == 0 || dst[w] == 113  || dst[w] == 116 || dst[w] == 252)
+			if (dst[w] == 0 || dst[w] == 113 || dst[w] == 116 || dst[w] == 252)
 				dst[w] = src[w];
 		}
 		dst += _backGroundBuf->pitch;
@@ -289,7 +288,7 @@ void AGOSEngine_Feeble::scrollOracleDown() {
 			if (src[w] == 0)
 				dst[w] = src[w];
 
-			if (src[w] == 113  || src[w] == 116 || src[w] == 252) {
+			if (src[w] == 113 || src[w] == 116 || src[w] == 252) {
 				dst[w] = src[w];
 				src[w] = 0;
 			}
@@ -367,7 +366,7 @@ void AGOSEngine_Feeble::swapCharacterLogo() {
 	}
 }
 
-void AGOSEngine_Feeble::listSaveGames(int n) {
+void AGOSEngine_Feeble::listSaveGamesFeeble() {
 	char b[108];
 	Common::InSaveFile *in;
 	uint16 j, k, z, maxFiles;
@@ -375,8 +374,8 @@ void AGOSEngine_Feeble::listSaveGames(int n) {
 	memset(b, 0, 108);
 
 	maxFiles = countSaveGames() - 1;
-	j = maxFiles - n + 1;
-	k = maxFiles - j + 1;
+	j = maxFiles;
+	k = 1;
 	z = maxFiles;
 	if (getBitFlag(95)) {
 		j++;
@@ -510,7 +509,7 @@ void AGOSEngine_Feeble::windowBackSpace(WindowBlock *window) {
 
 	for (h = 0; h < 13; h++) {
 		for (w = 0; w < 8; w++) {
-			if (dst[w] == 113  || dst[w] == 116 || dst[w] == 252)
+			if (dst[w] == 113 || dst[w] == 116 || dst[w] == 252)
 				dst[w] = 0;
 		}
 		dst += _backGroundBuf->pitch;
@@ -520,3 +519,5 @@ void AGOSEngine_Feeble::windowBackSpace(WindowBlock *window) {
 }
 
 } // End of namespace AGOS
+
+#endif // ENABLE_AGOS2

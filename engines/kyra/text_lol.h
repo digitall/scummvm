@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -28,9 +25,11 @@
 #ifndef KYRA_TEXT_LOL_H
 #define KYRA_TEXT_LOL_H
 
+#include "common/scummsys.h"
+
 namespace Kyra {
 
-class Screen_v2;
+class Screen_LoL;
 class LoLEngine;
 struct EMCState;
 
@@ -49,7 +48,7 @@ public:
 	void printDialogueText(int dim, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex);
 	void printMessage(uint16 type, const char *str, ...) GCC_PRINTF(3, 4);
 
-	int16 _scriptParameter;
+	int16 _scriptTextParameter;
 
 private:
 	void displayText(char *str, ...);
@@ -78,6 +77,7 @@ private:
 	uint32 _numCharsPrinted;
 
 	bool _printFlag;
+	bool _sjisLineBreakFlag;
 
 	LoLEngine *_vm;
 	Screen_LoL *_screen;
@@ -89,10 +89,10 @@ private:
 		uint8 line;
 	};
 
-	TextDimData _textDimData[14];
+	TextDimData *_textDimData;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

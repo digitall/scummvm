@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SCREEN_H
@@ -37,13 +34,14 @@ class OSystem;
 
 namespace Graphics {
 class FontSJIS;
-} // end of namespace Graphics
+} // End of namespace Graphics
 
 namespace Kyra {
 
 typedef Common::Functor0<void> UpdateFunctor;
 
 class KyraEngine_v1;
+class Screen;
 
 struct ScreenDim {
 	uint16 sx;
@@ -56,15 +54,149 @@ struct ScreenDim {
 	uint16 unkE;
 };
 
-struct Font {
-	uint8 *fontData;
-	uint8 *charWidthTable;
-	uint16 fontDescOffset;
-	uint16 charBitmapOffset;
-	uint16 charWidthTableOffset;
-	uint16 charHeightTableOffset;
+/**
+ * A class that handles KYRA fonts.
+ */
+class Font {
+public:
+	virtual ~Font() {}
 
-	uint8 lastGlyph;
+	/**
+	 * Tries to load a file from the given stream
+	 */
+	virtual bool load(Common::SeekableReadStream &file) = 0;
+
+	/**
+	 * Whether the font draws on the overlay.
+	 */
+	virtual bool usesOverlay() const { return false; }
+
+	/**
+	 * The font height.
+	 */
+	virtual int getHeight() const = 0;
+
+	/**
+	 * The font width, this is the maximal character
+	 * width.
+	 */
+	virtual int getWidth() const = 0;
+
+	/**
+	 * Gets the width of a specific character.
+	 */
+	virtual int getCharWidth(uint16 c) const = 0;
+
+	/**
+	 * Sets a text palette map. The map contains 16 entries.
+	 */
+	virtual void setColorMap(const uint8 *src) = 0;
+
+	/**
+	 * Draws a specific character.
+	 *
+	 * TODO/FIXME: Replace this with a nicer API. Currently
+	 * the user has to assure that the character fits.
+	 * We use this API, since it's hard to assure dirty rect
+	 * handling from outside Screen.
+	 */
+	virtual void drawChar(uint16 c, byte *dst, int pitch) const = 0;
+};
+
+/**
+ * Implementation of the Font interface for DOS fonts.
+ *
+ * TODO: Clean up the implementation. For example we might be able
+ * to not to keep the whole font in memory.
+ */
+class DOSFont : public Font {
+public:
+	DOSFont();
+	~DOSFont() { unload(); }
+
+	bool load(Common::SeekableReadStream &file);
+	int getHeight() const { return _height; }
+	int getWidth() const { return _width; }
+	int getCharWidth(uint16 c) const;
+	void setColorMap(const uint8 *src) { _colorMap = src; }
+	void drawChar(uint16 c, byte *dst, int pitch) const;
+
+private:
+	void unload();
+
+	const uint8 *_colorMap;
+
+	uint8 *_data;
+
+	int _width, _height;
+
+	int _numGlyphs;
+
+	uint8 *_widthTable;
+	uint8 *_heightTable;
+	uint16 *_bitmapOffsets;
+};
+
+/**
+ * Implementation of the Font interface for AMIGA fonts.
+ */
+class AMIGAFont : public Font {
+public:
+	AMIGAFont();
+	~AMIGAFont() { unload(); }
+
+	bool load(Common::SeekableReadStream &file);
+	int getHeight() const { return _height; }
+	int getWidth() const { return _width; }
+	int getCharWidth(uint16 c) const;
+	void setColorMap(const uint8 *src) {}
+	void drawChar(uint16 c, byte *dst, int pitch) const;
+
+private:
+	void unload();
+
+	int _width, _height;
+
+	struct Character {
+		uint8 yOffset, xOffset, width;
+
+		struct Graphics {
+			uint16 width, height;
+			uint8 *bitmap;
+		} graphics;
+	};
+
+	Character _chars[255];
+};
+
+/**
+ * Implementation of the Font interface for FM-Towns/PC98 fonts
+ */
+class SJISFont : public Font {
+public:
+	SJISFont(Screen *s, Graphics::FontSJIS *font, const uint8 invisColor, bool is16Color, bool outlineSize);
+	~SJISFont() { unload(); }
+
+	bool usesOverlay() const { return true; }
+
+	bool load(Common::SeekableReadStream &) { return true; }
+	int getHeight() const;
+	int getWidth() const;
+	int getCharWidth(uint16 c) const;
+	void setColorMap(const uint8 *src);
+	void drawChar(uint16 c, byte *dst, int pitch) const;
+private:
+	void unload();
+
+	const uint8 *_colorMap;
+
+	Graphics::FontSJIS *_font;
+	const uint8 _invisColor;
+	const bool _is16Color;
+
+	const Screen *_screen;
+	int _sjisWidth, _asciiWidth;
+	int _fontHeight;
 };
 
 /**
@@ -111,29 +243,29 @@ public:
 	/**
 	 * Fill the given indexes with the given component value.
 	 *
-	 * @param firstCol	the first color, which should be overwritten.
-	 * @param numCols	number of colors, which schould be overwritten.
-	 * @param value		color component value, which should be stored.
+	 * @param firstCol  the first color, which should be overwritten.
+	 * @param numCols   number of colors, which schould be overwritten.
+	 * @param value     color component value, which should be stored.
 	 */
 	void fill(int firstCol, int numCols, uint8 value);
 
 	/**
 	 * Copy data from another palette.
 	 *
-	 * @param source	palette to copy data from.
-	 * @param firstCol	the first color of the source which should be copied.
-	 * @param numCols	number of colors, which should be copied. -1 all remaining colors.
-	 * @param dstStart	the first color, which should be ovewritten. If -1 firstCol will be used as start.
+	 * @param source    palette to copy data from.
+	 * @param firstCol  the first color of the source which should be copied.
+	 * @param numCols   number of colors, which should be copied. -1 all remaining colors.
+	 * @param dstStart  the first color, which should be ovewritten. If -1 firstCol will be used as start.
 	 */
 	void copy(const Palette &source, int firstCol = 0, int numCols = -1, int dstStart = -1);
 
 	/**
 	 * Copy data from a raw VGA palette.
 	 *
-	 * @param source	source buffer
-	 * @param firstCol	the first color of the source which should be copied.
-	 * @param numCols	number of colors, which should be copied.
-	 * @param dstStart	the first color, which should be ovewritten. If -1 firstCol will be used as start.
+	 * @param source    source buffer
+	 * @param firstCol  the first color of the source which should be copied.
+	 * @param numCols   number of colors, which should be copied.
+	 * @param dstStart  the first color, which should be ovewritten. If -1 firstCol will be used as start.
 	 */
 	void copy(const uint8 *source, int firstCol, int numCols, int dstStart = -1);
 
@@ -175,7 +307,7 @@ public:
 		SCREEN_PAGE_SIZE = 320 * 200 + 1024,
 		SCREEN_OVL_SJIS_SIZE = 640 * 400,
 		SCREEN_PAGE_NUM = 16,
-		SCREEN_OVLS_NUM = 4
+		SCREEN_OVLS_NUM = 6
 	};
 
 	enum CopyRegionFlags {
@@ -199,6 +331,7 @@ public:
 		FID_BOOKFONT_FNT,
 		FID_GOLDFONT_FNT,
 		FID_INTRO_FNT,
+		FID_SJIS_FNT,
 		FID_NUM
 	};
 
@@ -208,7 +341,6 @@ public:
 	// init
 	virtual bool init();
 	virtual void setResolution();
-
 
 	void updateScreen();
 
@@ -221,7 +353,7 @@ public:
 	void clearCurPage();
 
 	void copyWsaRect(int x, int y, int w, int h, int dimState, int plotFunc, const uint8 *src,
-					int unk1, const uint8 *unkPtr1, const uint8 *unkPtr2);
+	                 int unk1, const uint8 *unkPtr1, const uint8 *unkPtr2);
 
 	// page 0 functions
 	void copyToPage0(int y, int h, uint8 page, uint8 *seqBuf);
@@ -256,18 +388,19 @@ public:
 	void setPaletteIndex(uint8 index, uint8 red, uint8 green, uint8 blue);
 	virtual void setScreenPalette(const Palette &pal);
 
+	// AMIGA version only
+	bool isInterfacePaletteEnabled() const { return _interfacePaletteEnabled; }
+	void enableInterfacePalette(bool e);
+	void setInterfacePalette(const Palette &pal, uint8 r, uint8 g, uint8 b);
+
 	void getRealPalette(int num, uint8 *dst);
 	Palette &getPalette(int num);
 	void copyPalette(const int dst, const int src);
 
 	// gui specific (processing on _curPage)
-	enum ShadeType {
-		kShadeTypeKyra,
-		kShadeTypeLol
-	};
 	void drawLine(bool vertical, int x, int y, int length, int color);
 	void drawClippedLine(int x1, int y1, int x2, int y2, int color);
-	void drawShadedBox(int x1, int y1, int x2, int y2, int color1, int color2, ShadeType shadeType = kShadeTypeKyra);
+	virtual void drawShadedBox(int x1, int y1, int x2, int y2, int color1, int color2);
 	void drawBox(int x1, int y1, int x2, int y2, int color);
 
 	// font/text handling
@@ -287,6 +420,7 @@ public:
 
 	virtual void setScreenDim(int dim) = 0;
 	virtual const ScreenDim *getScreenDim(int dim) = 0;
+	virtual int screenDimTableCount() const = 0;
 
 	const ScreenDim *_curDim;
 
@@ -342,12 +476,13 @@ public:
 	static void decodeFrameDelta(uint8 *dst, const uint8 *src, bool noXor = false);
 	static void decodeFrameDeltaPage(uint8 *dst, const uint8 *src, const int pitch, bool noXor);
 
-	static void convertAmigaGfx(uint8 *data, int w, int h, bool offscreen = true);
+	static void convertAmigaGfx(uint8 *data, int w, int h, int depth = 5, bool wsa = false, int bytesPerPlane = -1);
 	static void convertAmigaMsc(uint8 *data);
 
 protected:
 	uint8 *getPagePtr(int pageNum);
 	void updateDirtyRects();
+	void updateDirtyRectsAmiga();
 	void updateDirtyRectsOvl();
 
 	void scale2x(byte *dst, int dstPitch, const byte *src, int srcPitch, int w, int h);
@@ -360,8 +495,8 @@ protected:
 	void copyOverlayRegion(int x, int y, int x2, int y2, int w, int h, int srcPage, int dstPage);
 
 	// font/text specific
-	void drawCharANSI(uint8 c, int x, int y);
-	void drawCharSJIS(uint16 c, int x, int y);
+	uint16 fetchChar(const char *&s) const;
+	void drawChar(uint16 c, int x, int y);
 
 	int16 encodeShapeAndCalculateSize(uint8 *from, uint8 *to, int size);
 
@@ -374,15 +509,15 @@ protected:
 	bool _useOverlays;
 	bool _useSJIS;
 	bool _use16ColorMode;
+	bool _isAmiga;
 
-	Graphics::FontSJIS *_sjisFont;
 	uint8 _sjisInvisibleColor;
 
 	Palette *_screenPalette;
 	Common::Array<Palette *> _palettes;
 	Palette *_internFadePalette;
 
-	Font _fonts[FID_NUM];
+	Font *_fonts[FID_NUM];
 	uint8 _textColorsMap[16];
 
 	uint8 *_decodeShapeBuffer;
@@ -395,13 +530,14 @@ protected:
 	int _mouseLockCount;
 	const uint8 _cursorColorKey;
 
-	virtual void postProcessCursor(uint8 *data, int w, int h, int pitch) {};
+	virtual void postProcessCursor(uint8 *data, int w, int h, int pitch) {}
 
 	enum {
 		kMaxDirtyRects = 50
 	};
 
 	bool _forceFullUpdate;
+	bool _paletteChanged;
 	Common::List<Common::Rect> _dirtyRects;
 
 	void addDirtyRect(int x, int y, int w, int h);
@@ -433,6 +569,7 @@ protected:
 	void drawShapePlotType12(uint8 *dst, uint8 cmd);
 	void drawShapePlotType13(uint8 *dst, uint8 cmd);
 	void drawShapePlotType14(uint8 *dst, uint8 cmd);
+	void drawShapePlotType16(uint8 *dst, uint8 cmd);
 	void drawShapePlotType20(uint8 *dst, uint8 cmd);
 	void drawShapePlotType21(uint8 *dst, uint8 cmd);
 	void drawShapePlotType33(uint8 *dst, uint8 cmd);
@@ -468,6 +605,9 @@ protected:
 	int _drawShapeVar3;
 	int _drawShapeVar4;
 	int _drawShapeVar5;
+
+	// AMIGA version
+	bool _interfacePaletteEnabled;
 
 	// debug
 	bool _debugEnabled;

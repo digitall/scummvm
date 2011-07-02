@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_DRAW_H
@@ -29,8 +26,6 @@
 #include "gob/video.h"
 
 namespace Gob {
-
-#define SPRITES_COUNT 50
 
 #define RENDERFLAG_NOINVALIDATE      0x0001
 #define RENDERFLAG_CAPTUREPUSH       0x0002
@@ -45,7 +40,13 @@ namespace Gob {
 
 class Draw {
 public:
-	static const int kFontCount = 8;
+	static const int kSpriteCount    = 100;
+	static const int kFontCount      =  16;
+	static const int kFrontSurface   =  20;
+	static const int kBackSurface    =  21;
+	static const int kAnimSurface    =  22;
+	static const int kCursorSurface  =  23;
+	static const int kCaptureSurface =  30;
 
 	struct FontToSprite {
 		int8 sprite;
@@ -55,9 +56,18 @@ public:
 		FontToSprite() : sprite(0), base(0), width(0), height(0) {}
 	};
 
+	struct fascinWin {
+		int16 id;
+		int16 left;
+		int16 top;
+		int16 width;
+		int16 height;
+		SurfacePtr savedSurface;
+	};
+
 	int16 _renderFlags;
 
-	int16 _fontIndex;
+	uint16 _fontIndex;
 	int16 _spriteLeft;
 	int16 _spriteTop;
 	int16 _spriteRight;
@@ -73,6 +83,7 @@ public:
 
 	char _letterToPrint;
 	const char *_textToPrint;
+	char *_hotspotText;
 
 	int16 _backDeltaX;
 	int16 _backDeltaY;
@@ -83,11 +94,11 @@ public:
 	FontToSprite _fontToSprite[4];
 	Font *_fonts[kFontCount];
 
-	Common::Array<SurfaceDescPtr> _spritesArray;
+	Common::Array<SurfacePtr> _spritesArray;
 
 	int16 _invalidatedCount;
-	int16 _invalidatedTops[30];
 	int16 _invalidatedLefts[30];
+	int16 _invalidatedTops[30];
 	int16 _invalidatedRights[30];
 	int16 _invalidatedBottoms[30];
 
@@ -97,8 +108,8 @@ public:
 	bool _paletteCleared;
 	bool _applyPal;
 
-	SurfaceDescPtr _backSurface;
-	SurfaceDescPtr _frontSurface;
+	SurfacePtr _backSurface;
+	SurfacePtr _frontSurface;
 
 	int16 _unusedPalette1[18];
 	int16 _unusedPalette2[16];
@@ -119,12 +130,12 @@ public:
 	int16 _cursorWidth;
 	int16 _cursorHeight;
 
-	int16 _cursorHotspotXVar;
-	int16 _cursorHotspotYVar;
+	int32 _cursorHotspotXVar;
+	int32 _cursorHotspotYVar;
 
-	SurfaceDescPtr _cursorSprites;
-	SurfaceDescPtr _cursorSpritesBack;
-	SurfaceDescPtr _scummvmCursor;
+	SurfacePtr _cursorSprites;
+	SurfacePtr _cursorSpritesBack;
+	SurfacePtr _scummvmCursor;
 
 	int16 _cursorAnim;
 	int8 _cursorAnimLow[40];
@@ -138,36 +149,52 @@ public:
 	int16 _scrollOffsetY;
 	int16 _scrollOffsetX;
 
+	int16 _pattern;
+
+	fascinWin _fascinWin[10];
+	int16 _winMaxWidth;
+	int16 _winMaxHeight;
+	int16 _winCount;
+	int16 _winVarArrayLeft;
+	int16 _winVarArrayTop;
+	int16 _winVarArrayWidth;
+	int16 _winVarArrayHeight;
+	int16 _winVarArrayStatus;
+	int16 _winVarArrayLimitsX;
+	int16 _winVarArrayLimitsY;
+
+
 	void invalidateRect(int16 left, int16 top, int16 right, int16 bottom);
 	void blitInvalidated();
 	void setPalette();
 	void clearPalette();
 
+	uint32 getColor(uint8 index) const;
+
 	void dirtiedRect(int16 surface, int16 left, int16 top, int16 right, int16 bottom);
-	void dirtiedRect(SurfaceDescPtr surface, int16 left, int16 top, int16 right, int16 bottom);
+	void dirtiedRect(SurfacePtr surface, int16 left, int16 top, int16 right, int16 bottom);
 
 	void initSpriteSurf(int16 index, int16 width, int16 height, int16 flags);
-	void freeSprite(int16 index) {
-		assert(index < SPRITES_COUNT);
-		_spritesArray[index].reset();
-	}
+	void freeSprite(int16 index);
 	void adjustCoords(char adjust, int16 *coord1, int16 *coord2);
 	void adjustCoords(char adjust, uint16 *coord1, uint16 *coord2) {
-		adjustCoords(adjust, (int16 *) coord1, (int16 *) coord2);
+		adjustCoords(adjust, (int16 *)coord1, (int16 *)coord2);
 	}
-	int stringLength(const char *str, int16 fontIndex);
+	int stringLength(const char *str, uint16 fontIndex);
 	void drawString(const char *str, int16 x, int16 y, int16 color1, int16 color2,
-			int16 transp, SurfaceDesc &dest, const Font &font);
+			int16 transp, Surface &dest, const Font &font);
 	void printTextCentered(int16 id, int16 left, int16 top, int16 right,
 			int16 bottom, const char *str, int16 fontIndex, int16 color);
+	void oPlaytoons_sub_F_1B( uint16 id, int16 left, int16 top, int16 right, int16 bottom, char *paramStr, int16 var3, int16 var4, int16 shortId);
+
 	int32 getSpriteRectSize(int16 index);
 	void forceBlit(bool backwards = false);
 
 	static const int16 _wobbleTable[360];
-	void wobble(SurfaceDesc &surfDesc);
+	void wobble(Surface &surfDesc);
 
 	Font *loadFont(const char *path) const;
-	bool loadFont(int fontIndex, const char *path);
+	bool loadFont(uint16 fontIndex, const char *path);
 
 	virtual void initScreen() = 0;
 	virtual void closeScreen() = 0;
@@ -175,6 +202,15 @@ public:
 	virtual void animateCursor(int16 cursor) = 0;
 	virtual void printTotText(int16 id) = 0;
 	virtual void spriteOperation(int16 operation) = 0;
+
+	virtual int16 openWin(int16 id) { return 0; }
+	virtual void closeWin(int16 id) {}
+	virtual int16 handleCurWin() { return 0; }
+	virtual int16 getWinFromCoord(int16 &dx, int16 &dy) { return -1; }
+	virtual void moveWin(int16 id) {}
+	virtual bool overlapWin(int16 idWin1, int16 idWin2) { return false; }
+	virtual void closeAllWin() {}
+	virtual void activeWin(int16 id) {}
 
 	Draw(GobEngine *vm);
 	virtual ~Draw();
@@ -220,12 +256,35 @@ public:
 	virtual ~Draw_Bargon() {}
 };
 
-class Draw_Fascin: public Draw_v2 {
+class Draw_Fascination: public Draw_v2 {
 public:
-	virtual void initScreen();
+	Draw_Fascination(GobEngine *vm);
+	virtual ~Draw_Fascination() {}
+	virtual void spriteOperation(int16 operation);
 
-	Draw_Fascin(GobEngine *vm);
-	virtual ~Draw_Fascin() {}
+	void decompWin(int16 x, int16 y, SurfacePtr destPtr);
+	void drawWin(int16 fct);
+	void saveWin(int16 id);
+	void restoreWin(int16 id);
+	void handleWinBorder(int16 id);
+	void drawWinTrace(int16 left, int16 top, int16 width, int16 height);
+
+	virtual int16 openWin(int16 id);
+	virtual void closeWin(int16 id);
+	virtual int16 getWinFromCoord(int16 &dx, int16 &dy);
+	virtual int16 handleCurWin();
+	virtual void activeWin(int16 id);
+	virtual void moveWin(int16 id);
+	virtual bool overlapWin(int16 idWin1, int16 idWin2);
+	virtual void closeAllWin();
+
+};
+
+class Draw_Playtoons: public Draw_v2 {
+public:
+	Draw_Playtoons(GobEngine *vm);
+	virtual ~Draw_Playtoons() {}
+	virtual void spriteOperation(int16 operation);
 };
 
 // Draw operations

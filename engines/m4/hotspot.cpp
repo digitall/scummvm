@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "m4/m4.h"
@@ -51,6 +48,7 @@ HotSpot::HotSpot(int x1, int y1, int x2, int y2) :
 }
 
 HotSpot::~HotSpot() {
+	free(_vocab);
 }
 
 void HotSpot::setRect(int x1, int y1, int x2, int y2) {
@@ -184,9 +182,9 @@ void HotSpotList::dump() {
 
 uint32 HotSpotList::readHotSpotInteger(Common::SeekableReadStream* hotspotStream) {
 	if (_vm->isM4())
-		return hotspotStream->readUint32LE();
+		return hotspotStream->readSint32LE();
 	else
-		return hotspotStream->readUint16LE();
+		return hotspotStream->readSint16LE();
 }
 
 void HotSpotList::loadHotSpots(Common::SeekableReadStream* hotspotStream, int hotspotCount) {
@@ -195,7 +193,7 @@ void HotSpotList::loadHotSpots(Common::SeekableReadStream* hotspotStream, int ho
 	char buffer[256];
 	uint32 strLength = 0;
 	uint32 index = 0;
-	uint32 feetX, feetY;
+	int feetX, feetY;
 	int cursorOffset = (_vm ->isM4()) ? 0 : 1;
 
 	for (int i = 0; i < hotspotCount; i++) {
@@ -205,6 +203,7 @@ void HotSpotList::loadHotSpots(Common::SeekableReadStream* hotspotStream, int ho
 		y2 = readHotSpotInteger(hotspotStream);
 		index = add(new HotSpot(x1, y1, x2, y2), i == 0);
 		currentHotSpot = get(index);
+		currentHotSpot->setIndex(index);
 		feetX = readHotSpotInteger(hotspotStream);
 		feetY = readHotSpotInteger(hotspotStream);
 		currentHotSpot->setFeet(feetX, feetY);
@@ -225,7 +224,7 @@ void HotSpotList::loadHotSpots(Common::SeekableReadStream* hotspotStream, int ho
 			// This looks to be some sort of bitmask. Perhaps it signifies
 			// the valid verbs for this hotspot
 			index = hotspotStream->readUint16LE();		// unknown
-			//printf("%i ", index);
+			//debugC(kDebugCore, "%i ", index);
 		}
 
 		if (_vm->isM4())
@@ -273,10 +272,10 @@ void HotSpotList::loadHotSpots(Common::SeekableReadStream* hotspotStream, int ho
 			currentHotSpot->setVerb("");
 
 			if (currentHotSpot->getVocabID() > 0)
-				currentHotSpot->setVocab(_vm->_globals->getVocab(currentHotSpot->getVocabID() - 1));
+				currentHotSpot->setVocab(_madsVm->globals()->getVocab(currentHotSpot->getVocabID()));
 
 			if (currentHotSpot->getVerbID() > 0)
-				currentHotSpot->setVerb(_vm->_globals->getVocab(currentHotSpot->getVerbID() - 1));
+				currentHotSpot->setVerb(_madsVm->globals()->getVocab(currentHotSpot->getVerbID()));
 		}
 	}
 }

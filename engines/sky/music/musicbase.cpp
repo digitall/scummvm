@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sky/music/musicbase.h"
 #include "sky/disk.h"
 #include "common/util.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 namespace Sky {
 
@@ -38,18 +36,16 @@ MusicBase::MusicBase(Disk *pDisk) {
 	_numberOfChannels = _currentMusic = 0;
 }
 
-MusicBase::~MusicBase(void) {
+MusicBase::~MusicBase() {
 	stopMusic();
-	if (_musicData)
-		free(_musicData);
+	free(_musicData);
 }
 
 void MusicBase::loadSection(uint8 pSection) {
-	_mutex.lock();
+	Common::StackLock lock(_mutex);
 	if (_currentMusic)
 		stopMusicInternal();
-	if (_musicData)
-		free(_musicData);
+	free(_musicData);
 	_currentSection = pSection;
 	_musicData = _skyDisk->loadFile(_driverFileBase + FILES_PER_SECTION * pSection);
 
@@ -60,36 +56,34 @@ void MusicBase::loadSection(uint8 pSection) {
 	_numberOfChannels = _currentMusic = 0;
 	setupPointers();
 	startDriver();
-	_mutex.unlock();
 }
 
-bool MusicBase::musicIsPlaying(void) {
+bool MusicBase::musicIsPlaying() {
 	for (uint8 cnt = 0; cnt < _numberOfChannels; cnt++)
 		if (_channels[cnt]->isActive())
 			return true;
 	return false;
 }
 
-void MusicBase::stopMusic(void) {
-	_mutex.lock();
+void MusicBase::stopMusic() {
+	Common::StackLock lock(_mutex);
 	stopMusicInternal();
-	_mutex.unlock();
 }
 
-void MusicBase::stopMusicInternal(void) {
+void MusicBase::stopMusicInternal() {
 	for (uint8 cnt = 0; cnt < _numberOfChannels; cnt++)
 		delete _channels[cnt];
 	_numberOfChannels = 0;
 }
 
-void MusicBase::updateTempo(void) {
+void MusicBase::updateTempo() {
 	uint16 tempoMul = _musicTempo0 * _musicTempo1;
 	uint16 divisor = 0x4446390/ 23864;
 	_tempo = (tempoMul / divisor) << 16;
 	_tempo |= (((tempoMul % divisor) << 16) | (tempoMul / divisor)) / divisor;
 }
 
-void MusicBase::loadNewMusic(void) {
+void MusicBase::loadNewMusic() {
 	uint16 musicPos;
 	if (_onNextPoll.musicToProcess > _musicData[_musicDataLoc]) {
 		error("Music %d requested but doesn't exist in file.", _onNextPoll.musicToProcess);
@@ -114,8 +108,8 @@ void MusicBase::loadNewMusic(void) {
 	}
 }
 
-void MusicBase::pollMusic(void) {
-	_mutex.lock();
+void MusicBase::pollMusic() {
+	Common::StackLock lock(_mutex);
 	uint8 newTempo;
 	if (_onNextPoll.musicToProcess != _currentMusic)
 		loadNewMusic();
@@ -129,7 +123,6 @@ void MusicBase::pollMusic(void) {
 			updateTempo();
 		}
 	}
-	_mutex.unlock();
 	_aktTime &= 0xFFFF;
 }
 
@@ -137,11 +130,11 @@ void MusicBase::startMusic(uint16 param) {
 	_onNextPoll.musicToProcess = param & 0xF;
 }
 
-uint8 MusicBase::giveVolume(void) {
+uint8 MusicBase::giveVolume() {
 	return (uint8)_musicVolume;
 }
 
-uint8 MusicBase::giveCurrentMusic(void) {
+uint8 MusicBase::giveCurrentMusic() {
 	return _currentMusic;
 }
 

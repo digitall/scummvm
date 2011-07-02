@@ -18,19 +18,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_GFX_H
 #define SCUMM_GFX_H
+
+#include "common/system.h"
+#include "common/list.h"
 
 #include "graphics/surface.h"
 
 namespace Scumm {
 
 class ScummEngine;
+
+enum HerculesDimensions {
+	kHercWidth = 720,
+	kHercHeight = 350
+};
 
 /** Camera modes */
 enum {
@@ -155,11 +160,11 @@ struct VirtScreen : Graphics::Surface {
 	}
 
 	byte *getPixels(int x, int y) const {
-		return (byte *)pixels + xstart + y * pitch + x;
+		return (byte *)pixels + y * pitch + (xstart + x) * format.bytesPerPixel;
 	}
 
 	byte *getBackPixels(int x, int y) const {
-		return (byte *)backBuf + xstart + y * pitch + x;
+		return (byte *)backBuf + y * pitch + (xstart + x) * format.bytesPerPixel;
 	}
 };
 
@@ -193,6 +198,9 @@ protected:
 	bool _objectMode;
 
 public:
+	/** Flag which is true when loading objects or titles for distaff, in PCEngine version of Loom. */
+	bool _distaff;
+
 	int _numZBuffer;
 	int _imgBufOffs[8];
 	int32 _numStrips;
@@ -215,9 +223,9 @@ protected:
 	void drawStrip3DO(byte *dst, int dstPitch, const byte *src, int height, const bool transpCheck) const;
 
 	void drawStripHE(byte *dst, int dstPitch, const byte *src, int width, int height, const bool transpCheck) const;
+	virtual void writeRoomColor(byte *dst, byte color) const;
 
 	/* Mask decompressors */
-	void decompressTMSK(byte *dst, const byte *tmsk, const byte *src, int height) const;
 	void decompressMaskImgOr(byte *dst, const byte *src, int height) const;
 	void decompressMaskImg(byte *dst, const byte *src, int height) const;
 
@@ -230,7 +238,7 @@ protected:
 
 	virtual void decodeMask(int x, int y, const int width, const int height,
 	                int stripnr, int numzbuf, const byte *zplane_list[9],
-	                bool transpStrip, byte flag, const byte *tmsk_ptr);
+	                bool transpStrip, byte flag);
 
 	virtual void prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
 					const int x, const int y, const int width, const int height,
@@ -242,6 +250,7 @@ public:
 
 	virtual void init();
 	virtual void roomChanged(byte *roomptr);
+	virtual void loadTiles(byte *roomptr);
 	void setTransparentColor(byte transparentColor) { _transparentColor = transparentColor; }
 
 	void drawBitmap(const byte *ptr, VirtScreen *vs, int x, int y, const int width, const int height,
@@ -263,6 +272,24 @@ public:
 		dbDrawMaskOnAll = 1 << 1,
 		dbObjectMode    = 2 << 2
 	};
+};
+
+class GdiHE : public Gdi {
+protected:
+	const byte *_tmskPtr;
+
+protected:
+	void decompressTMSK(byte *dst, const byte *tmsk, const byte *src, int height) const;
+
+	virtual void decodeMask(int x, int y, const int width, const int height,
+	                int stripnr, int numzbuf, const byte *zplane_list[9],
+	                bool transpStrip, byte flag);
+
+	virtual void prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
+					const int x, const int y, const int width, const int height,
+	                int stripnr, int numstrip);
+public:
+	GdiHE(ScummEngine *vm);
 };
 
 class GdiNES : public Gdi {
@@ -288,7 +315,7 @@ protected:
 
 	virtual void decodeMask(int x, int y, const int width, const int height,
 	                int stripnr, int numzbuf, const byte *zplane_list[9],
-	                bool transpStrip, byte flag, const byte *tmsk_ptr);
+	                bool transpStrip, byte flag);
 
 	virtual void prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
 					const int x, const int y, const int width, const int height,
@@ -299,6 +326,52 @@ public:
 
 	virtual void roomChanged(byte *roomptr);
 };
+
+#ifdef USE_RGB_COLOR
+class GdiPCEngine : public Gdi {
+protected:
+	struct {
+		uint16 nametable[4096], nametableObj[512];
+		byte colortable[4096], colortableObj[512];
+		uint16 masktable[4096], masktableObj[512];
+		int maskIDSize;
+		int numTiles;
+		int numMasks;
+		byte *roomTiles, *staffTiles;
+		byte *masks;
+	} _PCE;
+
+protected:
+	void decodePCEngineGfx(const byte *room);
+	void decodeStrip(const byte *ptr, uint16 *tiles, byte *colors, uint16 *masks, int numRows, bool isObject);
+	void setTileData(byte *tile, int index, byte byte0, byte byte1);
+	void decodePCEngineTileData(const byte *ptr);
+	void decodePCEngineMaskData(const byte *ptr);
+	void decodePCEngineObject(const byte *ptr, int xpos, int ypos, int width, int height);
+
+	void drawStripPCEngine(byte *dst, byte *mask, int dstPitch, int stripnr, int top, int height);
+	void drawStripPCEngineMask(byte *dst, int stripnr, int top, int height) const;
+
+	virtual bool drawStrip(byte *dstPtr, VirtScreen *vs,
+					int x, int y, const int width, const int height,
+					int stripnr, const byte *smap_ptr);
+
+	virtual void decodeMask(int x, int y, const int width, const int height,
+	                int stripnr, int numzbuf, const byte *zplane_list[9],
+	                bool transpStrip, byte flag);
+
+	virtual void prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
+					const int x, const int y, const int width, const int height,
+	                int stripnr, int numstrip);
+
+public:
+	GdiPCEngine(ScummEngine *vm);
+	~GdiPCEngine();
+
+	virtual void loadTiles(byte *roomptr);
+	virtual void roomChanged(byte *roomptr);
+};
+#endif
 
 class GdiV1 : public Gdi {
 protected:
@@ -322,7 +395,7 @@ protected:
 
 	virtual void decodeMask(int x, int y, const int width, const int height,
 	                int stripnr, int numzbuf, const byte *zplane_list[9],
-	                bool transpStrip, byte flag, const byte *tmsk_ptr);
+	                bool transpStrip, byte flag);
 
 	virtual void prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
 					const int x, const int y, const int width, const int height,
@@ -348,7 +421,7 @@ protected:
 
 	virtual void decodeMask(int x, int y, const int width, const int height,
 	                int stripnr, int numzbuf, const byte *zplane_list[9],
-	                bool transpStrip, byte flag, const byte *tmsk_ptr);
+	                bool transpStrip, byte flag);
 
 	virtual void prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
 					const int x, const int y, const int width, const int height,
@@ -360,6 +433,75 @@ public:
 
 	virtual void roomChanged(byte *roomptr);
 };
+
+#ifdef USE_RGB_COLOR
+class GdiHE16bit : public GdiHE {
+protected:
+	virtual void writeRoomColor(byte *dst, byte color) const;
+public:
+	GdiHE16bit(ScummEngine *vm);
+};
+#endif
+
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+// Helper class for FM-Towns output (required for specific hardware effects like
+// switching graphics layers on and off).
+class TownsScreen {
+public:
+	TownsScreen(OSystem *system, int width, int height, Graphics::PixelFormat &format);
+	~TownsScreen();
+
+	void setupLayer(int layer, int width, int height, int numCol, void *srcPal = 0);
+	void clearLayer(int layer);
+	void fillLayerRect(int layer, int x, int y, int w, int h, int col);
+	//void copyRectToLayer(int layer, int x, int y, int w, int h, const uint8 *src);
+
+	uint8 *getLayerPixels(int layer, int x, int y);
+	int getLayerPitch(int layer);
+	int getLayerHeight(int layer);
+	int getLayerBpp(int layer);
+	int getLayerScaleW(int layer);
+	int getLayerScaleH(int layer);
+
+	void addDirtyRect(int x, int y, int w, int h);
+	void toggleLayers(int flag);
+	void update();
+
+private:
+	void updateOutputBuffer();
+	void outputToScreen();
+	uint16 calc16BitColor(const uint8 *palEntry);
+
+	struct TownsScreenLayer {
+		uint8 *pixels;
+		uint8 *palette;
+		int pitch;
+		int height;
+		int bpp;
+		int numCol;
+		uint8 scaleW;
+		uint8 scaleH;
+		bool onBottom;
+		bool enabled;
+		bool ready;
+
+		uint16 *bltInternX;
+		uint8 **bltInternY;
+		uint16 *bltTmpPal;
+	} _layers[2];
+
+	uint8 *_outBuffer;
+
+	int _height;
+	int _width;
+	int _pitch;
+	Graphics::PixelFormat _pixelFormat;
+
+	int _numDirtyRects;
+	Common::List<Common::Rect> _dirtyRects;
+	OSystem *_system;
+};
+#endif // DISABLE_TOWNS_DUAL_LAYER_MODE
 
 } // End of namespace Scumm
 

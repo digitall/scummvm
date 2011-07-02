@@ -18,16 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "graphics/palette.h"
 
 #include "drascula/drascula.h"
 
 namespace Drascula {
 
-const char colorTable[][3] = {
+static const char colorTable[][3] = {
 	{    0,    0,    0 }, { 0x10, 0x3E, 0x28 },
 	{    0,    0,    0 },	// unused
 	{ 0x16, 0x3F, 0x16 }, { 0x09, 0x3F, 0x12 },
@@ -65,16 +64,13 @@ void DrasculaEngine::black() {
 }
 
 void DrasculaEngine::setPalette(byte *PalBuf) {
-	byte pal[256 * 4];
-	int i;
+	byte pal[256 * 3];
 
-	for (i = 0; i < 256; i++) {
-		pal[i * 4 + 0] = PalBuf[i * 3 + 0] * 4;
-		pal[i * 4 + 1] = PalBuf[i * 3 + 1] * 4;
-		pal[i * 4 + 2] = PalBuf[i * 3 + 2] * 4;
-		pal[i * 4 + 3] = 0;
+	for (int i = 0; i < 3 * 256; ++i) {
+		pal[i] = PalBuf[i] * 4;
 	}
-	_system->setPalette(pal, 0, 256);
+
+	_system->getPaletteManager()->setPalette(pal, 0, 256);
 	_system->updateScreen();
 }
 
@@ -106,6 +102,8 @@ void DrasculaEngine::fadeToBlack(int fadeSpeed) {
 		pause(fadeSpeed);
 
 		setPalette((byte *)&palFade);
+
+		updateEvents();
 	}
 }
 
@@ -124,6 +122,8 @@ void DrasculaEngine::fadeFromBlack(int fadeSpeed) {
 		pause(fadeSpeed);
 
 		setPalette((byte *)&palFade);
+
+		updateEvents();
 	}
 }
 

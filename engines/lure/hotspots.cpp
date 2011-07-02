@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/hotspots.h"
@@ -38,7 +35,6 @@
 #include "lure/sound.h"
 #include "lure/lure.h"
 #include "common/endian.h"
-#include "common/EventRecorder.h"
 
 namespace Lure {
 
@@ -51,6 +47,7 @@ Hotspot::Hotspot(HotspotData *res): _pathFinder(this) {
 	_frames = NULL;
 	_numFrames = 0;
 	_persistant = false;
+	_direction = NO_DIRECTION;
 
 	_hotspotId = res->hotspotId;
 	_originalId = res->hotspotId;
@@ -73,11 +70,11 @@ Hotspot::Hotspot(HotspotData *res): _pathFinder(this) {
 	_hotspotScriptOffset = res->hotspotScriptOffset;
 	_frameCtr = res->tickTimeout;
 	_tempDest.counter = 0;
-	_colourOffset = isEGA ? 0 : res->colourOffset;
+	_colorOffset = isEGA ? 0 : res->colorOffset;
 
 	_override = resources.getHotspotOverride(res->hotspotId);
 	setAnimation(_data->animRecordId);
-	_tickHandler = HotspotTickHandlers::getHandler(_data->tickProcId);
+	_tickHandler = _tickHandlers.getHandler(_data->tickProcId);
 	_nameBuffer[0] = '\0';
 
 	_skipFlag = false;
@@ -103,13 +100,14 @@ Hotspot::Hotspot(Hotspot *character, uint16 objType): _pathFinder(this) {
 	_persistant = false;
 	_hotspotId = 0xffff;
 	_override = NULL;
-	_colourOffset = 0;
+	_colorOffset = 0;
 	_destHotspotId = character->hotspotId();
 	_blockedOffset = 0;
 	_exitCtr = 0;
 	_voiceCtr = 0;
 	_walkFlag = false;
 	_skipFlag = false;
+	_direction = NO_DIRECTION;
 
 	switch (objType) {
 	case VOICE_ANIM_IDX:
@@ -129,7 +127,7 @@ Hotspot::Hotspot(Hotspot *character, uint16 objType): _pathFinder(this) {
 		_frameCtr = 0;
 		_voiceCtr = 40;
 
-		_tickHandler = HotspotTickHandlers::getHandler(VOICE_TICK_PROC_ID);
+		_tickHandler = _tickHandlers.getHandler(VOICE_TICK_PROC_ID);
 		setAnimationIndex(VOICE_ANIM_INDEX);
 		break;
 
@@ -149,7 +147,7 @@ Hotspot::Hotspot(Hotspot *character, uint16 objType): _pathFinder(this) {
 		_voiceCtr = CONVERSE_COUNTDOWN_SIZE;
 
 		_destHotspotId = character->hotspotId();
-		_tickHandler = HotspotTickHandlers::getHandler(PUZZLED_TICK_PROC_ID);
+		_tickHandler = _tickHandlers.getHandler(PUZZLED_TICK_PROC_ID);
 		setAnimationIndex(VOICE_ANIM_INDEX);
 		setFrameNumber(objType == PUZZLED_ANIM_IDX ? 1 : 2);
 
@@ -173,7 +171,7 @@ Hotspot::Hotspot(): _pathFinder(NULL) {
 	_persistant = false;
 	_hotspotId = 0xffff;
 	_override = NULL;
-	_colourOffset = 0;
+	_colorOffset = 0;
 	_destHotspotId = 0;
 	_blockedOffset = 0;
 	_exitCtr = 0;
@@ -197,10 +195,11 @@ Hotspot::Hotspot(): _pathFinder(NULL) {
 	_frameWidth = _width;
 	_frameStartsUsed = false;
 	_tempDest.counter = 0;
+	_direction = NO_DIRECTION;
 }
 
 Hotspot::~Hotspot() {
-	if (_frames) delete _frames;
+	delete _frames;
 }
 
 void Hotspot::setAnimation(uint16 newAnimId) {
@@ -301,7 +300,7 @@ void Hotspot::setAnimation(HotspotAnimData *newRecord) {
 		_frames = new Surface(_width * _numFrames, _height);
 		_frameStartsUsed = false;
 	}
-	_frames->data().setBytes(_colourOffset, 0, _frames->data().size());
+	_frames->data().setBytes(_colorOffset, 0, _frames->data().size());
 
 	byte *pSrc = dest->data() + 0x40;
 	byte *pDest;
@@ -351,13 +350,13 @@ void Hotspot::setAnimation(HotspotAnimData *newRecord) {
 			xStart = frameNumCtr * _width;
 		}
 
-		// Copy over the frame, applying the colour offset to each nibble
+		// Copy over the frame, applying the color offset to each nibble
 		for (uint16 yPos = 0; yPos < tempHeight; ++yPos) {
 			pDest = mDest.data() + yPos * _frames->width() + xStart;
 
 			for (uint16 xPos = 0; xPos < tempWidth / 2; ++xPos) {
-				*pDest++ = _colourOffset + (*pSrc >> 4);
-				*pDest++ = _colourOffset + (*pSrc & 0xf);
+				*pDest++ = _colorOffset + (*pSrc >> 4);
+				*pDest++ = _colorOffset + (*pSrc & 0xf);
 				++pSrc;
 			}
 		}
@@ -376,7 +375,7 @@ void Hotspot::copyTo(Surface *dest) {
 	uint16 hWidth = _frameWidth;
 	uint16 hHeight = _height;
 
-	Rect r(_frameNumber * hWidth, 0, (_frameNumber + 1) * hWidth - 1, hHeight - 1);
+	Common::Rect r(_frameNumber * hWidth, 0, (_frameNumber + 1) * hWidth - 1, hHeight - 1);
 	if (_frameStartsUsed) {
 		assert(_frameNumber < MAX_NUM_FRAMES);
 		r.left = _frameStarts[_frameNumber];
@@ -419,7 +418,7 @@ void Hotspot::copyTo(Surface *dest) {
 	if ((r.top >= r.bottom) || (r.left >= r.right))
 		return;
 
-	_frames->copyTo(dest, r, (uint16) xPos, (uint16) yPos, _colourOffset);
+	_frames->copyTo(dest, r, (uint16) xPos, (uint16) yPos, _colorOffset);
 }
 
 void Hotspot::incFrameNumber() {
@@ -472,7 +471,7 @@ bool Hotspot::executeScript() {
 void Hotspot::tick() {
 	uint16 id = _hotspotId;
 	debugC(ERROR_BASIC, kLureDebugAnimations, "Hotspot %xh tick begin", id);
-	_tickHandler(*this);
+	(_tickHandlers.*_tickHandler)(*this);
 	debugC(ERROR_BASIC, kLureDebugAnimations, "Hotspot %xh tick end", id);
 }
 
@@ -480,7 +479,7 @@ void Hotspot::setTickProc(uint16 newVal) {
 	if (_data)
 		_data->tickProcId = newVal;
 
-	_tickHandler = HotspotTickHandlers::getHandler(newVal);
+	_tickHandler = _tickHandlers.getHandler(newVal);
 }
 
 void Hotspot::walkTo(int16 endPosX, int16 endPosY, uint16 destHotspot) {
@@ -598,10 +597,8 @@ void Hotspot::setRandomDest() {
 	Resources &res = Resources::getReference();
 	RoomData *roomData = res.getRoom(roomNumber());
 	Common::Rect &rect = roomData->walkBounds;
-	Common::RandomSource rnd;
+	Common::RandomSource &rnd = LureEngine::getReference().rnd();
 	int16 xp, yp;
-
-	g_eventRec.registerRandomSource(rnd, "lureHotspots");
 
 	if (currentActions().isEmpty())
 		currentActions().addFront(START_WALKING, roomNumber());
@@ -765,17 +762,25 @@ void Hotspot::showMessage(uint16 messageId, uint16 destCharacterId) {
 	char nameBuffer[MAX_HOTSPOT_NAME_SIZE];
 	MemoryBlock *data = res.messagesData();
 	Hotspot *hotspot;
-	uint16 *v = (uint16 *) data->data();
-	uint16 v2, idVal;
+	uint8 *msgData = (uint8 *) data->data();
+	uint16 idVal;
 	messageId &= 0x7fff;
 
 	// Skip through header to find table for given character
-	while (READ_LE_UINT16(v) != hotspotId()) v += 2;
+	uint headerEnd = READ_LE_UINT16(msgData + 2);
+	uint idx = 0;
+	while ((idx < headerEnd) && (READ_LE_UINT16(msgData + idx) != hotspotId()))
+		idx += 2 * sizeof(uint16);
+
+	if (idx == headerEnd) {
+		// Given character doesn't have a message set, so fall back on a simple puzzled animation
+		hotspot = new Hotspot(this, PUZZLED_ANIM_IDX);
+		res.addHotspot(hotspot);
+		return;
+	}
 
 	// Scan through secondary list
-	++v;
-	v = (uint16 *) (data->data() + READ_LE_UINT16(v));
-	v2 = 0;
+	uint16 *v = (uint16 *) (msgData + READ_LE_UINT16(msgData + idx + sizeof(uint16)));
 	while ((idVal = READ_LE_UINT16(v)) != 0xffff) {
 		++v;
 		if (READ_LE_UINT16(v) == messageId) break;
@@ -1156,7 +1161,7 @@ bool Hotspot::doorCloseCheck(uint16 doorId) {
 		return true;
 	}
 
-	Rect bounds(doorHotspot->x(), doorHotspot->y() + doorHotspot->heightCopy()
+	Common::Rect bounds(doorHotspot->x(), doorHotspot->y() + doorHotspot->heightCopy()
 		- doorHotspot->yCorrection() - doorHotspot->charRectY(),
 		doorHotspot->x() + doorHotspot->widthCopy(),
 		doorHotspot->y() + doorHotspot->heightCopy() + doorHotspot->charRectY());
@@ -1242,8 +1247,9 @@ void Hotspot::doAction() {
 
 void Hotspot::doAction(Action action, HotspotData *hotspot) {
 	StringList &stringList = Resources::getReference().stringList();
+	int charId = _hotspotId;
 	debugC(ERROR_INTERMEDIATE, kLureDebugHotspots,  "Action charId=%xh Action=%d/%s",
-		_hotspotId, (int)action, (action > EXAMINE) ? NULL : stringList.getString((int)action));
+		charId, (int)action, (action > EXAMINE) ? NULL : stringList.getString((int)action));
 
 	// Set the ACTIVE_HOTSPOT_ID and USE_HOTSPOT_ID fields
 	if (hotspot != NULL) {
@@ -1365,7 +1371,7 @@ void Hotspot::doAction(Action action, HotspotData *hotspot) {
 	}
 
 	debugC(ERROR_DETAILED, kLureDebugHotspots,  "Action charId=%xh Action=%d/%s Complete",
-		_hotspotId, (int)action, (action > EXAMINE) ? NULL : stringList.getString((int)action));
+		charId, (int)action, (action > EXAMINE) ? NULL : stringList.getString((int)action));
 }
 
 void Hotspot::doNothing(HotspotData *hotspot) {
@@ -2229,7 +2235,7 @@ uint16 Hotspot::getTalkId(HotspotData *charHotspot) {
 	Resources &res = Resources::getReference();
 	uint16 talkIndex;
 	TalkHeaderData *headerEntry;
-	bool isEnglish = LureEngine::getReference().getLanguage() == EN_ANY;
+	bool isEnglish = LureEngine::getReference().getLanguage() == Common::EN_ANY;
 
 	// If the hotspot has a talk data override, return it
 	if (charHotspot->talkOverride != 0) {
@@ -2303,7 +2309,7 @@ void Hotspot::saveToStream(Common::WriteStream *stream) {
 	stream->writeUint16LE(_talkY);
 	stream->writeByte(_layer);
 	stream->writeUint16LE(_hotspotScriptOffset);
-	stream->writeByte(_colourOffset);
+	stream->writeByte(_colorOffset);
 	stream->writeByte((byte)_direction);
 	stream->writeUint16LE(_animId);
 	stream->writeUint16LE(_frameNumber);
@@ -2348,7 +2354,7 @@ void Hotspot::loadFromStream(Common::ReadStream *stream) {
 	_talkY = stream->readUint16LE();
 	_layer = stream->readByte();
 	_hotspotScriptOffset = stream->readUint16LE();
-	_colourOffset = stream->readByte();
+	_colorOffset = stream->readByte();
 	_direction = (Direction)stream->readByte();
 	setAnimation(stream->readUint16LE());
 	setFrameNumber(stream->readUint16LE());
@@ -2367,79 +2373,84 @@ void Hotspot::loadFromStream(Common::ReadStream *stream) {
 
 /*------------------------------------------------------------------------*/
 
+HotspotTickHandlers::HotspotTickHandlers() {
+	countdownCtr = 0;
+	ewanXOffset = false;
+}
+
 HandlerMethodPtr HotspotTickHandlers::getHandler(uint16 procIndex) {
 	switch (procIndex) {
 	case 1:
-		return defaultHandler;
+		return &HotspotTickHandlers::defaultHandler;
 	case STANDARD_CHARACTER_TICK_PROC:
-		return standardCharacterAnimHandler;
+		return &HotspotTickHandlers::standardCharacterAnimHandler;
 	case PLAYER_TICK_PROC_ID:
-		return playerAnimHandler;
+		return &HotspotTickHandlers::playerAnimHandler;
 	case VOICE_TICK_PROC_ID:
-		return voiceBubbleAnimHandler;
+		return &HotspotTickHandlers::voiceBubbleAnimHandler;
 	case PUZZLED_TICK_PROC_ID:
-		return puzzledAnimHandler;
+		return &HotspotTickHandlers::puzzledAnimHandler;
 	case 6:
-		return roomExitAnimHandler;
+		return &HotspotTickHandlers::roomExitAnimHandler;
 	case 7:
 	case FOLLOWER_TICK_PROC_2:
-		return followerAnimHandler;
+		return &HotspotTickHandlers::followerAnimHandler;
 	case JAILOR_TICK_PROC_ID:
 	case 10:
-		return jailorAnimHandler;
+		return &HotspotTickHandlers::jailorAnimHandler;
 	case STANDARD_ANIM_2_TICK_PROC:
-		return standardAnimHandler2;
+		return &HotspotTickHandlers::standardAnimHandler2;
 	case STANDARD_ANIM_TICK_PROC:
-		return standardAnimHandler;
+		return &HotspotTickHandlers::standardAnimHandler;
 	case 13:
-		return sonicRatAnimHandler;
+		return &HotspotTickHandlers::sonicRatAnimHandler;
 	case 14:
-		return droppingTorchAnimHandler;
+		return &HotspotTickHandlers::droppingTorchAnimHandler;
 	case 15:
-		return playerSewerExitAnimHandler;
+		return &HotspotTickHandlers::playerSewerExitAnimHandler;
 	case 16:
-		return fireAnimHandler;
+		return &HotspotTickHandlers::fireAnimHandler;
 	case 17:
-		return sparkleAnimHandler;
+		return &HotspotTickHandlers::sparkleAnimHandler;
 	case 18:
-		return teaAnimHandler;
+		return &HotspotTickHandlers::teaAnimHandler;
 	case 19:
-		return goewinCaptiveAnimHandler;
+		return &HotspotTickHandlers::goewinCaptiveAnimHandler;
 	case 20:
-		return prisonerAnimHandler;
+		return &HotspotTickHandlers::prisonerAnimHandler;
 	case 21:
-		return catrionaAnimHandler;
+		return &HotspotTickHandlers::catrionaAnimHandler;
 	case 22:
-		return morkusAnimHandler;
+		return &HotspotTickHandlers::morkusAnimHandler;
 	case 23:
-		return grubAnimHandler;
+		return &HotspotTickHandlers::grubAnimHandler;
 	case 24:
-		return barmanAnimHandler;
+		return &HotspotTickHandlers::barmanAnimHandler;
 	case 25:
-		return skorlAnimHandler;
+		return &HotspotTickHandlers::skorlAnimHandler;
 	case 26:
-		return gargoyleAnimHandler;
+		return &HotspotTickHandlers::gargoyleAnimHandler;
 	case GOEWIN_SHOP_TICK_PROC:
-		return goewinShopAnimHandler;
+		return &HotspotTickHandlers::goewinShopAnimHandler;
 	case 28:
 	case 29:
 	case 30:
 	case 31:
 	case 32:
 	case 33:
-		return skullAnimHandler;
+		return &HotspotTickHandlers::skullAnimHandler;
 	case 34:
-		return dragonFireAnimHandler;
+		return &HotspotTickHandlers::dragonFireAnimHandler;
 	case 35:
-		return castleSkorlAnimHandler;
+		return &HotspotTickHandlers::castleSkorlAnimHandler;
 	case 36:
-		return rackSerfAnimHandler;
+		return &HotspotTickHandlers::rackSerfAnimHandler;
 	case TALK_TICK_PROC_ID:
-		return talkAnimHandler;
+		return &HotspotTickHandlers::talkAnimHandler;
 	case 38:
-		return fighterAnimHandler;
+		return &HotspotTickHandlers::fighterAnimHandler;
 	case PLAYER_FIGHT_TICK_PROC_ID:
-		return playerFightAnimHandler;
+		return &HotspotTickHandlers::playerFightAnimHandler;
 	default:
 		error("Unknown tick proc Id %xh for hotspot", procIndex);
 	}
@@ -2481,10 +2492,9 @@ void HotspotTickHandlers::standardCharacterAnimHandler(Hotspot &h) {
 	bool bumpedPlayer;
 
 	if (h.currentActions().action() != WALKING) {
-		char buffer[MAX_DESC_SIZE];
-		h.currentActions().list(buffer);
+		Common::String buffer = h.currentActions().getDebugInfo();
 		debugC(ERROR_DETAILED, kLureDebugAnimations, "Hotspot standard character p=(%d,%d,%d) bs=%d\n%s",
-			h.x(), h.y(), h.roomNumber(), h.blockedState(), buffer);
+			h.x(), h.y(), h.roomNumber(), h.blockedState(), buffer.c_str());
 	}
 
 	// Handle any active talk dialog
@@ -2887,12 +2897,12 @@ void HotspotTickHandlers::playerAnimHandler(Hotspot &h) {
 	Action hsAction;
 	uint16 hotspotId;
 	HotspotData *hotspot;
-	char buffer[MAX_DESC_SIZE];
+	Common::String buffer;
 
-	h.currentActions().list(buffer);
+	buffer = h.currentActions().getDebugInfo();
 	debugC(ERROR_DETAILED, kLureDebugAnimations,
 		"Hotspot player anim handler p=(%d,%d,%d) bs=%d\n%s",
-		h.x(), h.y(), h.roomNumber(), h.blockedState(), buffer);
+		h.x(), h.y(), h.roomNumber(), h.blockedState(), buffer.c_str());
 
 	h.handleTalkDialog();
 
@@ -3022,10 +3032,10 @@ void HotspotTickHandlers::playerAnimHandler(Hotspot &h) {
 		if (pfResult == PF_UNFINISHED) break;
 
 		// Pathfinding is now complete
-		pathFinder.list(buffer);
+		buffer = pathFinder.getDebugInfo();
 		debugC(ERROR_DETAILED, kLureDebugAnimations,
 			"Pathfind processing done; result=%d, walkFlag=%d\n%s",
-			pfResult, h.walkFlag(), buffer);
+			pfResult, h.walkFlag(), buffer.c_str());
 
 		if ((pfResult != PF_OK) && (h.walkFlag() || (pfResult != PF_DEST_OCCUPIED))) {
 
@@ -3104,7 +3114,6 @@ void HotspotTickHandlers::playerAnimHandler(Hotspot &h) {
 }
 
 void HotspotTickHandlers::followerAnimHandler(Hotspot &h) {
-	static int countdownCtr = 0;
 	Resources &res = Resources::getReference();
 	ValueTableData &fields = res.fieldList();
 	Hotspot *player = res.getActiveHotspot(PLAYER_ID);
@@ -3119,8 +3128,14 @@ void HotspotTickHandlers::followerAnimHandler(Hotspot &h) {
 				const RoomTranslationRecord *p = &roomTranslations[0];
 				while ((p->srcRoom != 0) && (p->srcRoom != player->roomNumber()))
 					++p;
-				h.currentActions().addFront(DISPATCH_ACTION,
-					(p->srcRoom != 0) ? p->destRoom : player->roomNumber());
+
+				if (p->destRoom == h.roomNumber())
+					// Character is already in destination room, so set a random dest
+					h.setRandomDest();
+				else
+					// Move character to either the player's room, or found alternate destination
+					h.currentActions().addFront(DISPATCH_ACTION,
+						(p->srcRoom != 0) ? p->destRoom : player->roomNumber());
 			}
 		}
 	}
@@ -3145,10 +3160,9 @@ void HotspotTickHandlers::followerAnimHandler(Hotspot &h) {
 		return;
 	}
 
-	Common::RandomSource rnd;
+	Common::RandomSource &rnd = LureEngine::getReference().rnd();
 	RandomActionType actionType;
 	uint16 scheduleId;
-	g_eventRec.registerRandomSource(rnd, "lureHotspots");
 
 	int actionIndex = rnd.getRandomNumber(set->numActions() - 1);
 	set->getEntry(actionIndex, actionType, scheduleId);
@@ -3336,9 +3350,7 @@ void HotspotTickHandlers::goewinCaptiveAnimHandler(Hotspot &h) {
 
 void HotspotTickHandlers::prisonerAnimHandler(Hotspot &h) {
 	ValueTableData &fields = Resources::getReference().fieldList();
-	Common::RandomSource rnd;
-
-	g_eventRec.registerRandomSource(rnd, "lureHotspots");
+	Common::RandomSource &rnd = LureEngine::getReference().rnd();
 
 	h.handleTalkDialog();
 	if (h.frameCtr() > 0) {
@@ -3380,17 +3392,12 @@ void HotspotTickHandlers::morkusAnimHandler(Hotspot &h) {
 
 	if (h.executeScript()) {
 		// Script is done - set new script to one of two alternates randomly
-		Common::RandomSource rnd;
-		g_eventRec.registerRandomSource(rnd, "lureHotspots");
+		Common::RandomSource &rnd = LureEngine::getReference().rnd();
 
 		h.setHotspotScript(rnd.getRandomNumber(100) >= 50 ? 0x54 : 0);
 		h.setFrameCtr(20 + rnd.getRandomNumber(63));
 	}
 }
-
-// Special variables used across multiple calls to talkAnimHandler
-static TalkEntryData *_talkResponse;
-static uint16 talkDestCharacter;
 
 void HotspotTickHandlers::talkAnimHandler(Hotspot &h) {
 	// Talk handler
@@ -3404,7 +3411,7 @@ void HotspotTickHandlers::talkAnimHandler(Hotspot &h) {
 	TalkEntryList &entries = data->entries;
 	Hotspot *charHotspot;
 	char buffer[MAX_DESC_SIZE];
-	Rect r;
+	Common::Rect r;
 	int lineNum, numLines;
 	int selectedLine, responseNumber;
 	bool showSelections, keepTalkingFlag;
@@ -3494,10 +3501,10 @@ void HotspotTickHandlers::talkAnimHandler(Hotspot &h) {
 			screen.screen().fillRect(r, 0);
 
 			// Display line
-			byte colour = LureEngine::getReference().isEGA() ?
-				((lineNum + 1 == selectedLine) ? EGA_DIALOG_WHITE_COLOUR : EGA_DIALOG_TEXT_COLOUR) :
-				((lineNum + 1 == selectedLine) ? VGA_DIALOG_WHITE_COLOUR : VGA_DIALOG_TEXT_COLOUR);
-			screen.screen().writeString(r.left, r.top, buffer, false, colour);
+			byte color = LureEngine::getReference().isEGA() ?
+				((lineNum + 1 == selectedLine) ? EGA_DIALOG_WHITE_COLOR : EGA_DIALOG_TEXT_COLOR) :
+				((lineNum + 1 == selectedLine) ? VGA_DIALOG_WHITE_COLOR : VGA_DIALOG_TEXT_COLOR);
+			screen.screen().writeString(r.left, r.top, buffer, false, color);
 		}
 
 		if (mouse.mButton() || mouse.rButton()) {
@@ -3678,10 +3685,7 @@ void HotspotTickHandlers::barmanAnimHandler(Hotspot &h) {
 	Resources &res = Resources::getReference();
 	Room &room = Room::getReference();
 	BarEntry &barEntry = res.barmanLists().getDetails(h.roomNumber());
-	Common::RandomSource rnd;
-	static bool ewanXOffset = false;
-
-	g_eventRec.registerRandomSource(rnd, "lureHotspots");
+	Common::RandomSource &rnd = LureEngine::getReference().rnd();
 
 	h.handleTalkDialog();
 	if (h.delayCtr() > 0) {
@@ -3816,10 +3820,11 @@ void HotspotTickHandlers::barmanAnimHandler(Hotspot &h) {
 
 				if (h.hotspotId() == EWAN_ID) {
 					HotspotData *player = res.getHotspot(PLAYER_ID);
-					HotspotData *gwyn = res.getHotspot(GOEWIN_ID);
+					HotspotData *gwyn = res.getHotspot(GWEN_ID);
 					HotspotData *wayne = res.getHotspot(WAYNE_ID);
 
 					if ((player->roomNumber != 35) && (gwyn->roomNumber != 35) && (wayne->roomNumber != 35)) {
+						h.setAnimationIndex(EWAN_ANIM_INDEX);
 						if (rnd.getRandomNumber(1) == 1)
 							id = BG_EXTRA1 << 8;
 						else {
@@ -4025,20 +4030,24 @@ void HotspotTickHandlers::npcRoomChange(Hotspot &h) {
 	if (h.exitCtr() >= 5) {
 		// Failed to exit room too many times
 		h.setExitCtr(0);
-		if (h.currentActions().size() > 1) {
-			// Pending items on stack
+
+		if (!h.currentActions().isEmpty()) {
 			if (h.startRoomNumber() != 0) {
-				if (h.currentActions().top().supportData().id() != RETURN_SUPPORT_ID) {
-					h.currentActions().top().supportData().setDetails(RETURN, 0);
+				// If character isn't already returning to starting room, redirect them to the
+				// player's current room
+				if (!h.currentActions().bottom().hasSupportData() ||
+					(h.currentActions().bottom().supportData().action() != RETURN)) {
+					// Start follower returning
+					Hotspot *playerHotspot = res.getActiveHotspot(PLAYER_ID);
+					h.currentActions().clear();
+					h.currentActions().addFront(RETURN, playerHotspot->roomNumber(), 0, 0);
 				}
 			}
-			h.currentActions().top().setRoomNumber(h.roomNumber());
 
 		} else if ((h.blockedOffset() != 0) && (h.blockedOffset() != 0xffff)) {
 			// Only current action on stack - and there is a block handler
 			CharacterScheduleEntry *entry = res.charSchedules().getEntry(h.blockedOffset());
-			h.currentActions().top().setSupportData(entry);
-			h.currentActions().top().setRoomNumber(h.roomNumber());
+			h.currentActions().addFront(DISPATCH_ACTION, entry, h.roomNumber());
 		}
 
 		return;
@@ -4156,6 +4165,7 @@ PathFinderResult PathFinder::process() {
 		_inProgress = true;
 		initVars();
 
+		Common::Point diff(_destX - _xCurrent, _destY - _yCurrent);
 		_xCurrent >>= 3; _yCurrent >>= 3;
 		_xDestCurrent >>= 3; _yDestCurrent >>= 3;
 		if ((_xCurrent == _xDestCurrent) && (_yCurrent == _yDestCurrent)) {
@@ -4164,6 +4174,10 @@ PathFinderResult PathFinder::process() {
 				add(RIGHT, _xDestPos);
 			else if (_xDestPos < 0)
 				add(LEFT, -_xDestPos);
+			else if (diff.y > 0)
+				add(DOWN, diff.y);
+			else
+				add(UP, -diff.y);
 
 			_inProgress = false;
 			result = PF_OK;
@@ -4339,7 +4353,7 @@ PathFinderResult PathFinder::process() {
 			break;
 	}
 
-	// Add a final move if necessary
+	// Add final movement if necessary
 
 	if (result == PF_OK) {
 		if (_xDestPos < 0)
@@ -4355,25 +4369,17 @@ final_step:
 	return result;
 }
 
-void PathFinder::list(char *buffer) {
-	if (buffer) {
-		sprintf(buffer, "Pathfinder::list\n");
-		buffer += strlen(buffer);
-	}
-	else {
-		printf("Pathfinder::list\n");
-	}
+Common::String PathFinder::getDebugInfo() const {
+	Common::String buffer;
+	buffer += "Pathfinder::list(\n";
 
-	WalkingActionList::iterator i;
+	WalkingActionList::const_iterator i;
 	for (i = _list.begin(); i != _list.end(); ++i) {
 		WalkingActionEntry *e = (*i).get();
-		if (buffer) {
-			sprintf(buffer, "Direction=%d, numSteps=%d\n", e->direction(), e->numSteps());
-			buffer += strlen(buffer);
-		}
-		else
-			printf("Direction=%d, numSteps=%d\n", e->direction(), e->numSteps());
+		buffer += Common::String::format("Direction=%d, numSteps=%d\n", e->direction(), e->numSteps());
 	}
+
+	return buffer;
 }
 
 void PathFinder::processCell(uint16 *p) {
@@ -4527,7 +4533,7 @@ void PathFinder::loadFromStream(Common::ReadStream *stream) {
 int Support::findIntersectingCharacters(Hotspot &h, uint16 *charList, int16 xp, int16 yp, int roomNumber) {
 	int numImpinging = 0;
 	Resources &res = Resources::getReference();
-	Rect r;
+	Common::Rect r;
 	uint16 hotspotY;
 
 	// If a specific x/y/room isn't provided, use the specified hotspot's current location
@@ -4667,7 +4673,7 @@ bool Support::isCharacterInList(uint16 *lst, int numEntries, uint16 charId) {
 	return false;
 }
 
-void HotspotList::saveToStream(WriteStream *stream) {
+void HotspotList::saveToStream(Common::WriteStream *stream) {
 	HotspotList::iterator i;
 	for (i = begin(); i != end(); ++i) {
 		Hotspot *hotspot = (*i).get();
@@ -4683,7 +4689,7 @@ void HotspotList::saveToStream(WriteStream *stream) {
 	stream->writeUint16LE(0);
 }
 
-void HotspotList::loadFromStream(ReadStream *stream) {
+void HotspotList::loadFromStream(Common::ReadStream *stream) {
 	Resources &res = Resources::getReference();
 	Hotspot *hotspot;
 
@@ -4716,4 +4722,4 @@ void HotspotList::loadFromStream(ReadStream *stream) {
 	}
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

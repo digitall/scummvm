@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_PLAYER_H
 #define GROOVIE_PLAYER_H
 
 #include "common/system.h"
-#include "sound/audiostream.h"
+#include "audio/audiostream.h"
 
 namespace Groovie {
 
@@ -40,22 +37,29 @@ public:
 
 	bool load(Common::SeekableReadStream *file, uint16 flags);
 	bool playFrame();
-	virtual void setOrigin(int16 x, int16 y) {};
+	virtual void resetFlags() {}
+	virtual void setOrigin(int16 x, int16 y) {}
 
 protected:
 	// To be implemented by subclasses
 	virtual uint16 loadInternal() = 0;
 	virtual bool playFrameInternal() = 0;
 
+	void setOverrideSpeed(bool isOverride);
+	bool getOverrideSpeed() const { return _overrideSpeed; }
+
 	GroovieEngine *_vm;
 	OSystem *_syst;
 	Common::SeekableReadStream *_file;
 	uint16 _flags;
-	Audio::AppendableAudioStream *_audioStream;
+	Audio::QueuingAudioStream *_audioStream;
+
 
 private:
 	// Synchronization stuff
 	bool _begunPlaying;
+	bool _overrideSpeed;
+	uint16 _fps;
 	uint16 _millisBetweenFrames;
 	uint32 _lastFrameTime;
 

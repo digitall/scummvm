@@ -18,15 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCI_DECOMPRESSOR_H
 #define SCI_DECOMPRESSOR_H
 
-#include "common/file.h"
+#include "common/scummsys.h"
+
+namespace Common {
+class ReadStream;
+}
 
 namespace Sci {
 
@@ -108,12 +109,12 @@ protected:
 		return (_dwWrote == _szUnpacked) && (_dwRead >= _szPacked);
 	}
 
-	uint32 _dwBits;		//!< bits buffer
-	byte _nBits;		//!< number of unread bits in _dwBits
-	uint32 _szPacked;	//!< size of the compressed data
-	uint32 _szUnpacked;	//!< size of the decompressed data
-	uint32 _dwRead;		//!< number of bytes read from _src
-	uint32 _dwWrote;	//!< number of bytes written to _dest
+	uint32 _dwBits;		///< bits buffer
+	byte _nBits;		///< number of unread bits in _dwBits
+	uint32 _szPacked;	///< size of the compressed data
+	uint32 _szUnpacked;	///< size of the decompressed data
+	uint32 _dwRead;		///< number of bytes read from _src
+	uint32 _dwWrote;	///< number of bytes written to _dest
 	Common::ReadStream *_src;
 	byte *_dest;
 };
@@ -177,10 +178,6 @@ protected:
 class DecompressorDCL : public Decompressor {
 public:
 	int unpack(Common::ReadStream *src, byte *dest, uint32 nPacked, uint32 nUnpacked);
-
-protected:
-	int unpackDCL(byte *dest);
-	int huffman_lookup(const int *tree);
 };
 
 #ifdef ENABLE_SCI32
@@ -192,8 +189,8 @@ public:
 	int unpack(Common::ReadStream *src, byte *dest, uint32 nPacked, uint32 nUnpacked);
 protected:
 	int unpackLZS();
-	uint16 getCompLen();
-	void copyComp(int offs, int clen);
+	uint32 getCompLen();
+	void copyComp(int offs, uint32 clen);
 };
 #endif
 

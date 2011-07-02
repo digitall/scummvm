@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_ANIM_H
@@ -99,9 +96,7 @@ public:
 
 #define NUM_MAX_ANIMDATA 255
 
-extern Common::Array<AnimData> animDataTable;
-
-void freeAnimDataTable(void);
+void freeAnimDataTable();
 void freeAnimDataRange(byte startIdx, byte numIdx);
 int loadResource(const char *resourceName, int16 idx = -1);
 void loadResourcesFromSave(Common::SeekableReadStream &fHandle, enum CineSaveGameFormat saveGameFormat);

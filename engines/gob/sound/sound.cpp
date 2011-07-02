@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "gob/gob.h"
@@ -51,7 +48,7 @@ Sound::Sound(GobEngine *vm) : _vm(vm) {
 	_cdrom = 0;
 	_bgatmos = 0;
 
-	_hasAdLib = (!_vm->_noMusic && _vm->hasAdlib());
+	_hasAdLib = (!_vm->_noMusic && _vm->hasAdLib());
 
 	if (!_vm->_noMusic && (_vm->getPlatform() == Common::kPlatformAmiga)) {
 		_infogrames = new Infogrames(*_vm->_mixer);
@@ -61,7 +58,8 @@ Sound::Sound(GobEngine *vm) : _vm(vm) {
 		_cdrom = new CDROM;
 	if (_vm->getGameType() == kGameTypeWoodruff)
 		_bgatmos = new BackgroundAtmosphere(*_vm->_mixer);
-	if (_vm->getGameType() == kGameTypeUrban) {
+	if ((_vm->getGameType() == kGameTypeUrban) ||
+	    (_vm->getGameType() == kGameTypeAdibou2)) {
 		_bgatmos = new BackgroundAtmosphere(*_vm->_mixer);
 		_bgatmos->setShadable(false);
 	}
@@ -114,29 +112,23 @@ bool Sound::sampleLoad(SoundDesc *sndDesc, SoundType type, const char *fileName,
 
 	debugC(2, kDebugSound, "Loading sample \"%s\"", fileName);
 
-	if (!_vm->_dataIO->existData(fileName)) {
+	int32 size;
+	byte *data = _vm->_dataIO->getFile(fileName, size);
+	if (!data) {
 		warning("Can't open sample file \"%s\"", fileName);
 		return false;
 	}
 
-	byte *data;
-	uint32 size;
-
-	data = (byte *) _vm->_dataIO->getData(fileName);
-	if (!data)
-		return false;
-
-	size = _vm->_dataIO->getDataSize(fileName);
 	return sndDesc->load(type, data, size);
 }
 
-void Sound::sampleFree(SoundDesc *sndDesc, bool noteAdlib, int index) {
+void Sound::sampleFree(SoundDesc *sndDesc, bool noteAdLib, int index) {
 	if (!sndDesc || sndDesc->empty())
 		return;
 
 	if (sndDesc->getType() == SOUND_ADL) {
 
-		if (noteAdlib) {
+		if (noteAdLib) {
 			if (_adlPlayer)
 				if ((index == -1) || (_adlPlayer->getIndex() == index))
 					_adlPlayer->stopPlay();
@@ -241,7 +233,7 @@ bool Sound::adlibLoadADL(const char *fileName) {
 	if (!_adlPlayer)
 		_adlPlayer = new ADLPlayer(*_vm->_mixer);
 
-	debugC(1, kDebugSound, "Adlib: Loading ADL data (\"%s\")", fileName);
+	debugC(1, kDebugSound, "AdLib: Loading ADL data (\"%s\")", fileName);
 
 	return _adlPlayer->load(fileName);
 }
@@ -253,7 +245,7 @@ bool Sound::adlibLoadADL(byte *data, uint32 size, int index) {
 	if (!_adlPlayer)
 		_adlPlayer = new ADLPlayer(*_vm->_mixer);
 
-	debugC(1, kDebugSound, "Adlib: Loading ADL data (%d)", index);
+	debugC(1, kDebugSound, "AdLib: Loading ADL data (%d)", index);
 
 	return _adlPlayer->load(data, size, index);
 }
@@ -262,7 +254,7 @@ void Sound::adlibUnload() {
 	if (!_hasAdLib)
 		return;
 
-	debugC(1, kDebugSound, "Adlib: Unloading data");
+	debugC(1, kDebugSound, "AdLib: Unloading data");
 
 	if (_adlPlayer)
 		_adlPlayer->unload();
@@ -277,14 +269,13 @@ bool Sound::adlibLoadMDY(const char *fileName) {
 	if (!_mdyPlayer)
 		_mdyPlayer = new MDYPlayer(*_vm->_mixer);
 
-	debugC(1, kDebugSound, "Adlib: Loading MDY data (\"%s\")", fileName);
+	debugC(1, kDebugSound, "AdLib: Loading MDY data (\"%s\")", fileName);
 
-	if (!_vm->_dataIO->existData(fileName)) {
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(fileName);
+	if (!stream) {
 		warning("Can't open MDY file \"%s\"", fileName);
 		return false;
 	}
-
-	DataStream *stream = _vm->_dataIO->getDataStream(fileName);
 
 	bool loaded = _mdyPlayer->loadMDY(*stream);
 
@@ -300,14 +291,13 @@ bool Sound::adlibLoadTBR(const char *fileName) {
 	if (!_mdyPlayer)
 		_mdyPlayer = new MDYPlayer(*_vm->_mixer);
 
-	if (!_vm->_dataIO->existData(fileName)) {
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(fileName);
+	if (!stream) {
 		warning("Can't open TBR file \"%s\"", fileName);
 		return false;
 	}
 
-	debugC(1, kDebugSound, "Adlib: Loading MDY instruments (\"%s\")", fileName);
-
-	DataStream *stream = _vm->_dataIO->getDataStream(fileName);
+	debugC(1, kDebugSound, "AdLib: Loading MDY instruments (\"%s\")", fileName);
 
 	bool loaded = _mdyPlayer->loadTBR(*stream);
 
@@ -326,7 +316,7 @@ void Sound::adlibPlayTrack(const char *trackname) {
 	if (_adlPlayer->isPlaying())
 		return;
 
-	debugC(1, kDebugSound, "Adlib: Playing ADL track \"%s\"", trackname);
+	debugC(1, kDebugSound, "AdLib: Playing ADL track \"%s\"", trackname);
 
 	_adlPlayer->unload();
 	_adlPlayer->load(trackname);
@@ -370,7 +360,7 @@ void Sound::adlibPlay() {
 	if (!_hasAdLib)
 		return;
 
-	debugC(1, kDebugSound, "Adlib: Starting playback");
+	debugC(1, kDebugSound, "AdLib: Starting playback");
 
 	if (_adlPlayer)
 		_adlPlayer->startPlay();
@@ -382,7 +372,7 @@ void Sound::adlibStop() {
 	if (!_hasAdLib)
 		return;
 
-	debugC(1, kDebugSound, "Adlib: Stopping playback");
+	debugC(1, kDebugSound, "AdLib: Stopping playback");
 
 	if (_adlPlayer)
 		_adlPlayer->stopPlay();
@@ -516,18 +506,15 @@ void Sound::blasterWaitEndPlay(bool interruptible, bool stopComp) {
 	_blaster->stopSound(0);
 }
 
-void Sound::cdLoadLIC(const char *fname) {
+void Sound::cdLoadLIC(const Common::String &fname) {
 	if (!_cdrom)
 		return;
 
-	debugC(1, kDebugSound, "CDROM: Loading LIC \"%s\"", fname);
+	debugC(1, kDebugSound, "CDROM: Loading LIC \"%s\"", fname.c_str());
 
-	if (!_vm->_dataIO->existData(fname))
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(fname);
+	if (!stream)
 		return;
-
-	_vm->_dataIO->getUnpackedData(fname);
-
-	DataStream *stream = _vm->_dataIO->getDataStream(fname);
 
 	_cdrom->readLIC(*stream);
 
@@ -573,10 +560,8 @@ void Sound::cdPlayBgMusic() {
 	};
 
 	for (int i = 0; i < ARRAYSIZE(tracks); i++)
-		if (!scumm_stricmp(_vm->_game->_curTotFile, tracks[i][0])) {
-			debugC(1, kDebugSound, "CDROM: Playing background music \"%s\" (\"%s\")",
-					tracks[i][1], _vm->_game->_curTotFile);
-
+		if (_vm->isCurrentTot(tracks[i][0])) {
+			debugC(1, kDebugSound, "CDROM: Playing background music \"%s\" (\"%s\")", tracks[i][1], tracks[i][0]);
 			_cdrom->startTrack(tracks[i][1]);
 			break;
 		}
@@ -598,21 +583,24 @@ void Sound::cdPlayMultMusic() {
 	// Default to "ang?" for other languages (including EN_USA)
 	int language = _vm->_global->_language <= 4 ? _vm->_global->_language : 2;
 	for (int i = 0; i < ARRAYSIZE(tracks); i++)
-		if (!scumm_stricmp(_vm->_game->_curTotFile, tracks[i][0])) {
-			debugC(1, kDebugSound, "CDROM: Playing mult music \"%s\" (\"%s\")",
-					tracks[i][language + 1], _vm->_game->_curTotFile);
-
+		if (_vm->isCurrentTot(tracks[i][0])) {
+			debugC(1, kDebugSound, "CDROM: Playing mult music \"%s\" (\"%s\")", tracks[i][language + 1], tracks[i][0]);
 			_cdrom->startTrack(tracks[i][language + 1]);
 			break;
 		}
 }
 
-void Sound::cdPlay(const char *trackName) {
+void Sound::cdPlay(const Common::String &trackName) {
 	if (!_cdrom)
 		return;
+	debugC(1, kDebugSound, "CDROM: Playing track \"%s\"", trackName.c_str());
 
-	debugC(1, kDebugSound, "CDROM: Playing track \"%s\"", trackName);
-	_cdrom->startTrack(trackName);
+// WORKAROUND - In Fascination CD, in the storage room, a track has the wrong
+// name in the scripts, and therefore doesn't play. This fixes the problem.
+	if ((_vm->getGameType() == kGameTypeFascination) && trackName.equalsIgnoreCase("boscle"))
+		_cdrom->startTrack("bosscle");
+	else
+		_cdrom->startTrack(trackName.c_str());
 }
 
 void Sound::cdStop() {
@@ -657,7 +645,7 @@ void Sound::bgPlay(const char *file, SoundType type) {
 
 	debugC(1, kDebugSound, "BackgroundAtmosphere: Playing \"%s\"", file);
 
-	_bgatmos->stop();
+	_bgatmos->stopBA();
 	_bgatmos->queueClear();
 
 	SoundDesc *sndDesc = new SoundDesc;
@@ -667,7 +655,7 @@ void Sound::bgPlay(const char *file, SoundType type) {
 	}
 
 	_bgatmos->queueSample(*sndDesc);
-	_bgatmos->play();
+	_bgatmos->playBA();
 }
 
 void Sound::bgPlay(const char *base, const char *ext, SoundType type, int count) {
@@ -676,24 +664,22 @@ void Sound::bgPlay(const char *base, const char *ext, SoundType type, int count)
 
 	debugC(1, kDebugSound, "BackgroundAtmosphere: Playing \"%s\" (%d)", base, count);
 
-	_bgatmos->stop();
+	_bgatmos->stopBA();
 	_bgatmos->queueClear();
 
-	int length = strlen(base) + 7;
-	char *fileName = new char[length];
 	SoundDesc *sndDesc;
 
 	for (int i = 1; i <= count; i++) {
-		snprintf(fileName, length, "%s%02d.%s", base, i, ext);
+		Common::String fileName = Common::String::format("%s%02d.%s", base, i, ext);
 
 		sndDesc = new SoundDesc;
-		if (sampleLoad(sndDesc, type, fileName))
+		if (sampleLoad(sndDesc, type, fileName.c_str()))
 			_bgatmos->queueSample(*sndDesc);
 		else
 			delete sndDesc;
 	}
 
-	_bgatmos->play();
+	_bgatmos->playBA();
 }
 
 void Sound::bgStop() {
@@ -702,7 +688,7 @@ void Sound::bgStop() {
 
 	debugC(1, kDebugSound, "BackgroundAtmosphere: Stopping playback");
 
-	_bgatmos->stop();
+	_bgatmos->stopBA();
 	_bgatmos->queueClear();
 }
 

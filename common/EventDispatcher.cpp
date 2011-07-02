@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/events.h"
@@ -72,8 +69,7 @@ void EventDispatcher::dispatch() {
 }
 
 void EventDispatcher::registerMapper(EventMapper *mapper) {
-	if (_mapper)
-		delete _mapper;
+	delete _mapper;
 	_mapper = mapper;
 }
 
@@ -134,5 +130,5 @@ void EventDispatcher::dispatchEvent(const Event &event) {
 	}
 }
 
-} // end of namespace Common
+} // End of namespace Common
 

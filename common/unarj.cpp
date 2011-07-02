@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 //
@@ -30,11 +27,14 @@
 #include "common/scummsys.h"
 #include "common/archive.h"
 #include "common/debug.h"
-#include "common/util.h"
 #include "common/unarj.h"
+#include "common/file.h"
+#include "common/hash-str.h"
+#include "common/memstream.h"
+#include "common/bufferedstream.h"
+#include "common/textconsole.h"
 
 namespace Common {
-
 
 #define ARJ_UCHAR_MAX 255
 #define ARJ_CHAR_BIT 8
@@ -61,7 +61,7 @@ namespace Common {
 #define ARJ_CTABLESIZE 4096
 #define ARJ_PTABLESIZE 256
 
-
+// these struct represents a file inside an Arj archive
 struct ArjHeader {
 	int32 pos;
 	uint16 id;
@@ -105,7 +105,7 @@ public:
 	void decode(int32 origsize);
 	void decode_f(int32 origsize);
 
-	BufferedReadStream *_compressed;
+	ReadStream *_compressed;
 	MemoryWriteStream *_outstream;
 
 //protected:
@@ -145,7 +145,6 @@ private:
 	uint16 _blocksize;
 };
 
-
 #define HEADER_ID     0xEA60
 #define HEADER_ID_HI    0xEA
 #define HEADER_ID_LO    0x60
@@ -159,83 +158,48 @@ private:
 #define PBIT		 5
 #define TBIT		 5
 
-//
-// Source for InitCRC, GetCRC: crc32.c
-//
+// Source for CRC32::init, CRC32::checksum : crc32.c
+class CRC32 {
+	static uint32 	_table[256];
+	static bool _initialized;
 
-static uint32 CRCtable[256];
+private:
+	static void init() {
+		const uint32 poly = 0xEDB88320;
+		int i, j;
+		uint32 r;
 
-static void	InitCRC(void) {
-	const uint32 poly = 0xEDB88320;
-	int i, j;
-	uint32 r;
+		for (i = 0; i < 256; i++) {
+			r = i;
+			for (j = 0; j < 8; j++)
+				if (r & 1)
+					r = (r >> 1) ^ poly;
+				else
+					r >>= 1;
+			_table[i] = r;
+		}
 
-	for (i = 0; i < 256; i++) {
-		r = i;
-		for (j = 0; j < 8; j++)
-			if (r & 1)
-				r = (r >> 1) ^ poly;
-			else
-				r >>= 1;
-		CRCtable[i] = r;
-	}
-}
-
-static uint32 GetCRC(byte *data, int len) {
-	uint32 CRC = 0xFFFFFFFF;
-	int i;
-	for (i = 0; i < len; i++)
-		CRC = (CRC >> 8) ^ CRCtable[(CRC ^ data[i]) & 0xFF];
-	return CRC ^ 0xFFFFFFFF;
-}
-
-ArjFile::ArjFile() : _uncompressed(0) {
-	InitCRC();
-	_fallBack = false;
-}
-
-ArjFile::~ArjFile() {
-	close();
-
-	for (uint i = 0; i < _headers.size(); i++)
-		delete _headers[i];
-}
-
-void ArjFile::registerArchive(const String &filename) {
-	int32 first_hdr_pos;
-	ArjHeader *header;
-	File archiveFile;
-
-	if (!archiveFile.open(filename))
-		return;
-
-	first_hdr_pos = findHeader(archiveFile);
-
-	if (first_hdr_pos < 0) {
-		warning("ArjFile::registerArchive(): Could not find a valid header");
-		return;
+		_initialized = true;
 	}
 
-	archiveFile.seek(first_hdr_pos, SEEK_SET);
-	if (readHeader(archiveFile) == NULL)
-		return;
+public:
+	static uint32 checksum(byte *data, int len) {
+		if (!_initialized) {
+			init();
+		}
 
-	while ((header = readHeader(archiveFile)) != NULL) {
-		_headers.push_back(header);
-
-		archiveFile.seek(header->compSize, SEEK_CUR);
-
-		_fileMap[header->filename] = _headers.size() - 1;
-		_archMap[header->filename] = filename;
+		uint32 CRC = 0xFFFFFFFF;
+		int i;
+		for (i = 0; i < len; i++)
+			CRC = (CRC >> 8) ^ _table[(CRC ^ data[i]) & 0xFF];
+		return CRC ^ 0xFFFFFFFF;
 	}
+};
 
-	debug(0, "ArjFile::registerArchive(%s): Located %d files", filename.c_str(), _headers.size());
-}
+bool CRC32::_initialized = false;
+uint32 CRC32::_table[256];
 
-//
 // Source for findHeader and readHeader: arj_arcv.c
-//
-
 int32 findHeader(SeekableReadStream &stream) {
 	long end_pos, tmp_pos;
 	int id;
@@ -264,7 +228,7 @@ int32 findHeader(SeekableReadStream &stream) {
 			return -1;
 		if ((basic_hdr_size = stream.readUint16LE()) <= HEADERSIZE_MAX) {
 			stream.read(header, basic_hdr_size);
-			crc = GetCRC(header, basic_hdr_size);
+			crc = CRC32::checksum(header, basic_hdr_size);
 			if (crc == stream.readUint32LE()) {
 				stream.seek(tmp_pos, SEEK_SET);
 				return tmp_pos;
@@ -302,7 +266,7 @@ ArjHeader *readHeader(SeekableReadStream &stream) {
 	MemoryReadStream readS(headData, rSize);
 
 	header.headerCrc = stream.readUint32LE();
-	if (GetCRC(headData, header.headerSize) != header.headerCrc) {
+	if (CRC32::checksum(headData, header.headerSize) != header.headerCrc) {
 		warning("ArjFile::readHeader(): Bad header CRC");
 		return NULL;
 	}
@@ -329,9 +293,8 @@ ArjHeader *readHeader(SeekableReadStream &stream) {
 		return NULL;
 	}
 
-	strncpy(header.filename, (const char *)&headData[header.firstHdrSize], ARJ_FILENAME_MAX);
-
-	strncpy(header.comment, (const char *)&headData[header.firstHdrSize + strlen(header.filename) + 1], ARJ_COMMENT_MAX);
+	Common::strlcpy(header.filename, (const char *)&headData[header.firstHdrSize], ARJ_FILENAME_MAX);
+	Common::strlcpy(header.comment, (const char *)&headData[header.firstHdrSize + strlen(header.filename) + 1], ARJ_COMMENT_MAX);
 
 	// Process extended headers, if any
 	uint16 extHeaderSize;
@@ -345,92 +308,7 @@ ArjHeader *readHeader(SeekableReadStream &stream) {
 	return head;
 }
 
-
-bool ArjFile::open(const Common::String &filename) {
-	if (_uncompressed)
-		error("Attempt to open another instance of archive");
-
-	if (_fallBack) {
-		_uncompressed = SearchMan.createReadStreamForMember(filename);
-		if (_uncompressed)
-			return true;
-	}
-
-	if (!_fileMap.contains(filename))
-		return false;
-
-	ArjHeader *hdr = _headers[_fileMap[filename]];
-
-	// TODO: It would be good if ArjFile could decompress files in a streaming
-	// mode, so it would not need to pre-allocate the entire output.
-	byte *uncompressedData = (byte *)malloc(hdr->origSize);
-
-	File archiveFile;
-	archiveFile.open(_archMap[filename]);
-	archiveFile.seek(hdr->pos, SEEK_SET);
-
-	if (hdr->method == 0) { // store
-		int32 len = archiveFile.read(uncompressedData, hdr->origSize);
-		assert(len == hdr->origSize);
-	} else {
-		ArjDecoder *decoder = new ArjDecoder(hdr);
-
-		// TODO: It might not be appropriate to use this wrapper inside ArjFile.
-		// If reading from archiveFile directly is too slow to be usable,
-		// maybe the filesystem code should instead wrap its files
-		// in a BufferedReadStream.
-		decoder->_compressed = new BufferedReadStream(&archiveFile, 4096, false);
-		decoder->_outstream = new MemoryWriteStream(uncompressedData, hdr->origSize);
-
-		if (hdr->method == 1 || hdr->method == 2 || hdr->method == 3)
-			decoder->decode(hdr->origSize);
-		else if (hdr->method == 4)
-			decoder->decode_f(hdr->origSize);
-
-		delete decoder;
-	}
-
-
-	_uncompressed = new MemoryReadStream(uncompressedData, hdr->origSize, true);
-	assert(_uncompressed);
-
-	return true;
-}
-
-void ArjFile::close() {
-	delete _uncompressed;
-	_uncompressed = NULL;
-}
-
-uint32 ArjFile::read(void *dataPtr, uint32 dataSize) {
-	assert(_uncompressed);
-	return _uncompressed->read(dataPtr, dataSize);
-}
-
-bool ArjFile::eos() const {
-	assert(_uncompressed);
-	return _uncompressed->eos();
-}
-
-int32 ArjFile::pos() const {
-	assert(_uncompressed);
-	return _uncompressed->pos();
-}
-
-int32 ArjFile::size() const {
-	assert(_uncompressed);
-	return _uncompressed->size();
-}
-
-bool ArjFile::seek(int32 offset, int whence) {
-	assert(_uncompressed);
-	return _uncompressed->seek(offset, whence);
-}
-
-//
 // Source for init_getbits: arj_file.c (decode_start_stub)
-//
-
 void ArjDecoder::init_getbits() {
 	_bitbuf = 0;
 	_bytebuf = 0;
@@ -438,10 +316,7 @@ void ArjDecoder::init_getbits() {
 	fillbuf(ARJ_CHAR_BIT * 2);
 }
 
-//
 // Source for fillbuf, getbits: decode.c
-//
-
 void ArjDecoder::fillbuf(int n) {
 	while (_bitcount < n) {
 		_bitbuf = (_bitbuf << _bitcount) | (_bytebuf >> (8 - _bitcount));
@@ -468,12 +343,8 @@ uint16 ArjDecoder::getbits(int n) {
 	return rc;
 }
 
-
-
-//
 // Huffman decode routines
 // Source: decode.c
-//
 
 // Creates a table for decoding
 void ArjDecoder::make_table(int nchar, byte *bitlen, int tablebits, uint16 *table, int tablesize) {
@@ -817,5 +688,128 @@ void ArjDecoder::decode_f(int32 origsize) {
 		_outstream->write(_ntext, r);
 }
 
+#pragma mark ArjArchive implementation
+
+typedef HashMap<String, ArjHeader*, IgnoreCase_Hash, IgnoreCase_EqualTo> ArjHeadersMap;
+
+class ArjArchive : public Common::Archive {
+	ArjHeadersMap _headers;
+	Common::String _arjFilename;
+
+public:
+	ArjArchive(const String &name);
+	virtual ~ArjArchive();
+
+	// Common::Archive implementation
+	virtual bool hasFile(const String &name);
+	virtual int listMembers(ArchiveMemberList &list);
+	virtual ArchiveMemberPtr getMember(const String &name);
+	virtual SeekableReadStream *createReadStreamForMember(const String &name) const;
+};
+
+ArjArchive::ArjArchive(const String &filename) : _arjFilename(filename) {
+	Common::File arjFile;
+
+	if (!arjFile.open(_arjFilename)) {
+		warning("ArjArchive::ArjArchive(): Could not find the archive file");
+		return;
+	}
+
+	int32 firstHeaderOffset = findHeader(arjFile);
+
+	if (firstHeaderOffset < 0) {
+		warning("ArjArchive::ArjArchive(): Could not find a valid header");
+		return;
+	}
+
+	ArjHeader *header = NULL;
+
+	arjFile.seek(firstHeaderOffset, SEEK_SET);
+	if ((header = readHeader(arjFile)) == NULL)
+		return;
+	delete header;
+
+	while ((header = readHeader(arjFile)) != NULL) {
+		_headers[header->filename] = header;
+		arjFile.seek(header->compSize, SEEK_CUR);
+	}
+
+	debug(0, "ArjArchive::ArjArchive(%s): Located %d files", filename.c_str(), _headers.size());
+}
+
+ArjArchive::~ArjArchive() {
+	debug(0, "ArjArchive Destructor Called");
+	ArjHeadersMap::iterator it = _headers.begin();
+	for ( ; it != _headers.end(); ++it) {
+		delete it->_value;
+	}
+}
+
+bool ArjArchive::hasFile(const String &name) {
+	return _headers.contains(name);
+}
+
+int ArjArchive::listMembers(ArchiveMemberList &list) {
+	int matches = 0;
+
+	ArjHeadersMap::iterator it = _headers.begin();
+	for ( ; it != _headers.end(); ++it) {
+		list.push_back(ArchiveMemberList::value_type(new GenericArchiveMember(it->_value->filename, this)));
+		matches++;
+	}
+
+	return matches;
+}
+
+ArchiveMemberPtr ArjArchive::getMember(const String &name) {
+	if (!hasFile(name))
+		return ArchiveMemberPtr();
+
+	return ArchiveMemberPtr(new GenericArchiveMember(name, this));
+}
+
+SeekableReadStream *ArjArchive::createReadStreamForMember(const String &name) const {
+	if (!_headers.contains(name)) {
+		return 0;
+	}
+
+	ArjHeader *hdr = _headers[name];
+
+	Common::File archiveFile;
+	archiveFile.open(_arjFilename);
+	archiveFile.seek(hdr->pos, SEEK_SET);
+
+	// TODO: It would be good if ArjFile could decompress files in a streaming
+	// mode, so it would not need to pre-allocate the entire output.
+	byte *uncompressedData = (byte *)malloc(hdr->origSize);
+	assert(uncompressedData);
+
+	if (hdr->method == 0) { // store
+		int32 len = archiveFile.read(uncompressedData, hdr->origSize);
+		assert(len == hdr->origSize);
+	} else {
+		ArjDecoder *decoder = new ArjDecoder(hdr);
+
+		// TODO: It might not be appropriate to use this wrapper inside ArjFile.
+		// If reading from archiveFile directly is too slow to be usable,
+		// maybe the filesystem code should instead wrap its files
+		// in a BufferedReadStream.
+		decoder->_compressed = Common::wrapBufferedReadStream(&archiveFile, 4096, DisposeAfterUse::NO);
+		decoder->_outstream = new Common::MemoryWriteStream(uncompressedData, hdr->origSize);
+
+		if (hdr->method == 1 || hdr->method == 2 || hdr->method == 3)
+			decoder->decode(hdr->origSize);
+		else if (hdr->method == 4)
+			decoder->decode_f(hdr->origSize);
+
+		delete decoder;
+	}
+
+	return new Common::MemoryReadStream(uncompressedData, hdr->origSize, DisposeAfterUse::YES);
+}
+
+Archive *makeArjArchive(const String &name) {
+	return new ArjArchive(name);
+}
 
 } // End of namespace Common

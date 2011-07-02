@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/array.h"
+#include "common/textconsole.h"
 
 #include "drascula/drascula.h"
 
@@ -35,7 +33,7 @@ struct doorInfo {
 	int flag;
 };
 
-doorInfo doors[] = {
+static const doorInfo doors[] = {
 	{	2,	138,	 0 },	{	2,	136,	 8 },
 	{	2,	156,	16 },	{	2,	163,	17 },
 	{	2,	177,	15 },	{	2,	175,	40 },
@@ -63,15 +61,19 @@ struct DrasculaUpdater {
 	Updater proc;
 };
 
-Common::Array<DrasculaRoomParser*> _roomParsers;
-Common::Array<DrasculaUpdater*> _roomPreupdaters;
-Common::Array<DrasculaUpdater*> _roomUpdaters;
+struct RoomHandlers {
+	Common::Array<DrasculaRoomParser *> roomParsers;
+	Common::Array<DrasculaUpdater *> roomPreupdaters;
+	Common::Array<DrasculaUpdater *> roomUpdaters;
+};
 
-#define ROOM(x) _roomParsers.push_back(new DrasculaRoomParser(#x, &DrasculaEngine::x))
-#define PREUPDATEROOM(x) _roomPreupdaters.push_back(new DrasculaUpdater(#x, &DrasculaEngine::x))
-#define UPDATEROOM(x) _roomUpdaters.push_back(new DrasculaUpdater(#x, &DrasculaEngine::x))
+#define ROOM(x) _roomHandlers->roomParsers.push_back(new DrasculaRoomParser(#x, &DrasculaEngine::x))
+#define PREUPDATEROOM(x) _roomHandlers->roomPreupdaters.push_back(new DrasculaUpdater(#x, &DrasculaEngine::x))
+#define UPDATEROOM(x) _roomHandlers->roomUpdaters.push_back(new DrasculaUpdater(#x, &DrasculaEngine::x))
 
 void DrasculaEngine::setupRoomsTable() {
+	_roomHandlers = new RoomHandlers();
+
 	ROOM(room_0);	// default
 	ROOM(room_1);
 	ROOM(room_3);
@@ -135,6 +137,26 @@ void DrasculaEngine::setupRoomsTable() {
 	UPDATEROOM(update_102);
 }
 
+void DrasculaEngine::freeRoomsTable() {
+	if (_roomHandlers == 0)
+		return;
+
+	for (uint32 i = 0; i < _roomHandlers->roomParsers.size(); i++)
+		delete _roomHandlers->roomParsers[i];
+	_roomHandlers->roomParsers.clear();
+
+	for (uint32 i = 0; i < _roomHandlers->roomPreupdaters.size(); i++)
+		delete _roomHandlers->roomPreupdaters[i];
+	_roomHandlers->roomPreupdaters.clear();
+
+	for (uint32 i = 0; i < _roomHandlers->roomUpdaters.size(); i++)
+		delete _roomHandlers->roomUpdaters[i];
+	_roomHandlers->roomUpdaters.clear();
+
+	delete _roomHandlers;
+	_roomHandlers = 0;
+}
+
 bool DrasculaEngine::roomParse(int rN, int fl) {
 	bool seen = false;
 
@@ -161,10 +183,10 @@ bool DrasculaEngine::roomParse(int rN, int fl) {
 }
 
 bool DrasculaEngine::room_0(int fl) {
+	(void)fl;
+
 	static const int lookExcuses[3] = {100, 101, 54};
 	static const int actionExcuses[6] = {11, 109, 111, 110, 115, 116};
-
-	fl = -1; // avoid warning
 
 	// non-default actions
 	if (currentChapter == 2 || currentChapter == 4 ||
@@ -1080,10 +1102,10 @@ void DrasculaEngine::updateRefresh() {
 	// Call room-specific updater
 	char rm[20];
 	sprintf(rm, "update_%d", roomNumber);
-	for (uint i = 0; i < _roomUpdaters.size(); i++) {
-		if (!strcmp(rm, _roomUpdaters[i]->desc)) {
-			debug(4, "Calling room updater %d", roomNumber);
-			(this->*(_roomUpdaters[i]->proc))();
+	for (uint i = 0; i < _roomHandlers->roomUpdaters.size(); i++) {
+		if (!strcmp(rm, _roomHandlers->roomUpdaters[i]->desc)) {
+			debug(8, "Calling room updater %d", roomNumber);
+			(this->*(_roomHandlers->roomUpdaters[i]->proc))();
 			break;
 		}
 	}
@@ -1118,10 +1140,10 @@ void DrasculaEngine::updateRefresh_pre() {
 	// Call room-specific preupdater
 	char rm[20];
 	sprintf(rm, "update_%d_pre", roomNumber);
-	for (uint i = 0; i < _roomPreupdaters.size(); i++) {
-		if (!strcmp(rm, _roomPreupdaters[i]->desc)) {
-			debug(4, "Calling room preupdater %d", roomNumber);
-			(this->*(_roomPreupdaters[i]->proc))();
+	for (uint i = 0; i < _roomHandlers->roomPreupdaters.size(); i++) {
+		if (!strcmp(rm, _roomHandlers->roomPreupdaters[i]->desc)) {
+			debug(8, "Calling room preupdater %d", roomNumber);
+			(this->*(_roomHandlers->roomPreupdaters[i]->proc))();
 			break;
 		}
 	}
@@ -1619,11 +1641,11 @@ bool DrasculaEngine::room(int rN, int fl) {
 		// Call room-specific parser
 		char rm[20];
 		sprintf(rm, "room_%d", rN);
-		for (uint i = 0; i < _roomParsers.size(); i++) {
-			if (!strcmp(rm, _roomParsers[i]->desc)) {
+		for (uint i = 0; i < _roomHandlers->roomParsers.size(); i++) {
+			if (!strcmp(rm, _roomHandlers->roomParsers[i]->desc)) {
 				debug(4, "Calling room parser %d", rN);
 
-				return (this->*(_roomParsers[i]->proc))(fl);
+				return (this->*(_roomHandlers->roomParsers[i]->proc))(fl);
 			}
 		}
 
@@ -1643,76 +1665,77 @@ void DrasculaEngine::enterRoom(int roomIndex) {
 	int soc, l, martin = 0, objIsExit = 0;
 	float chiquez = 0, pequegnez = 0;
 	char pant1[20], pant2[20], pant3[20], pant4[20];
-	char buffer[256];
 	int palLevel = 0;
 
 	_hasName = false;
 
 	strcpy(currentData, fileName);
 
-	_arj.open(fileName);
-	if (!_arj.isOpen()) {
+	Common::SeekableReadStream *stream = _archives.open(fileName);
+	if (!stream) {
 		error("missing data file %s", fileName);
 	}
-	int size = _arj.size();
 
-	getIntFromLine(buffer, size, &roomNumber);
-	getIntFromLine(buffer, size, &roomMusic);
-	getStringFromLine(buffer, size, roomDisk);
-	getIntFromLine(buffer, size, &palLevel);
+	TextResourceParser p(stream, DisposeAfterUse::YES);
+
+	p.parseInt(roomNumber);
+	p.parseInt(roomMusic);
+	p.parseString(roomDisk);
+	p.parseInt(palLevel);
 
 	if (currentChapter == 2)
-		getIntFromLine(buffer, size, &martin);
+		p.parseInt(martin);
 
 	if (currentChapter == 2 && martin != 0) {
 		curWidth = martin;
-		getIntFromLine(buffer, size, &curHeight);
-		getIntFromLine(buffer, size, &feetHeight);
-		getIntFromLine(buffer, size, &stepX);
-		getIntFromLine(buffer, size, &stepY);
+		p.parseInt(curHeight);
+		p.parseInt(feetHeight);
+		p.parseInt(stepX);
+		p.parseInt(stepY);
 
-		getStringFromLine(buffer, size, pant1);
-		getStringFromLine(buffer, size, pant2);
-		getStringFromLine(buffer, size, pant3);
-		getStringFromLine(buffer, size, pant4);
+		p.parseString(pant1);
+		p.parseString(pant2);
+		p.parseString(pant3);
+		p.parseString(pant4);
 
 		strcpy(menuBackground, pant4);
 	}
 
-	getIntFromLine(buffer, size, &numRoomObjs);
+	p.parseInt(numRoomObjs);
 
 	for (l = 0; l < numRoomObjs; l++) {
-		getIntFromLine(buffer, size, &objectNum[l]);
-		getStringFromLine(buffer, size, objName[l]);
-		getIntFromLine(buffer, size, &x1[l]);
-		getIntFromLine(buffer, size, &y1[l]);
-		getIntFromLine(buffer, size, &x2[l]);
-		getIntFromLine(buffer, size, &y2[l]);
-		getIntFromLine(buffer, size, &roomObjX[l]);
-		getIntFromLine(buffer, size, &roomObjY[l]);
-		getIntFromLine(buffer, size, &trackObj[l]);
-		getIntFromLine(buffer, size, &visible[l]);
-		getIntFromLine(buffer, size, &isDoor[l]);
+		p.parseInt(objectNum[l]);
+		p.parseString(objName[l]);
+		p.parseInt(x1[l]);
+		p.parseInt(y1[l]);
+		p.parseInt(x2[l]);
+		p.parseInt(y2[l]);
+		p.parseInt(roomObjX[l]);
+		p.parseInt(roomObjY[l]);
+		p.parseInt(trackObj[l]);
+		p.parseInt(visible[l]);
+		p.parseInt(isDoor[l]);
 		if (isDoor[l] != 0) {
-			getStringFromLine(buffer, size, _targetSurface[l]);
-			getIntFromLine(buffer, size, &_destX[l]);
-			getIntFromLine(buffer, size, &_destY[l]);
-			getIntFromLine(buffer, size, &trackCharacter_alkeva[l]);
-			getIntFromLine(buffer, size, &roomExits[l]);
+			p.parseString(_targetSurface[l]);
+			p.parseInt(_destX[l]);
+			p.parseInt(_destY[l]);
+			p.parseInt(trackCharacter_alkeva[l]);
+			p.parseInt(roomExits[l]);
 			updateDoor(l);
 		}
 	}
 
-	getIntFromLine(buffer, size, &floorX1);
-	getIntFromLine(buffer, size, &floorY1);
-	getIntFromLine(buffer, size, &floorX2);
-	getIntFromLine(buffer, size, &floorY2);
+	p.parseInt(floorX1);
+	p.parseInt(floorY1);
+	p.parseInt(floorX2);
+	p.parseInt(floorY2);
 
 	if (currentChapter != 2) {
-		getIntFromLine(buffer, size, &upperLimit);
-		getIntFromLine(buffer, size, &lowerLimit);
+		p.parseInt(upperLimit);
+		p.parseInt(lowerLimit);
 	}
-	_arj.close();
+	// no need to delete the stream, since TextResourceParser takes ownership
+	// delete stream;
 
 	if (currentChapter == 2 && martin != 0) {
 		loadPic(pant2, extraSurface);
@@ -1935,7 +1958,9 @@ bool DrasculaEngine::exitRoom(int doorNumber) {
 			hare_se_ve = 1;
 
 		clearRoom();
-		sscanf(_targetSurface[doorNumber], "%d", &roomNum);
+		if (!sscanf(_targetSurface[doorNumber], "%d", &roomNum)) {
+			error("Malformed roomNum in targetSurface (%s)", _targetSurface[doorNumber]);
+		}
 		curX = -1;
 		enterRoom(roomNum);
 

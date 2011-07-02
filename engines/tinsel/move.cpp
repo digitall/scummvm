@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Handles walking and use of the path system.
  *
  * Contains the dodgiest code in the whole system.
@@ -76,6 +73,8 @@ HPOLYGON InitExtraBlock(PMOVER ca, PMOVER ta);
 #define STEPS_MAX (TinselV2 ? 12 : 6)
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 #if SLOW_RINCE_DOWN
 static int Interlude = 0;	// For slowing down walking, for testing
@@ -579,10 +578,10 @@ static void SetMoverUltDest(PMOVER pActor, int x, int y) {
  * Set intermediate destination.
  *
  * If in final destination path, go straight to target.
- * If in a neighbouring path to the final destination, if the target path
+ * If in a neighboring path to the final destination, if the target path
  * is a follow nodes path, head for the end node, otherwise head straight
  * for the target.
- * Otherwise, head towards the pseudo-centre or end node of the first
+ * Otherwise, head towards the pseudo-center or end node of the first
  * en-route path.
  */
 static void SetMoverIntDest(PMOVER pMover, int x, int y) {
@@ -634,7 +633,7 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 		} else if (hIpath != NOPOLY) {
 			/* Head for an en-route path */
 			if (PolySubtype(hIpath) != NODE) {
-				/* En-route path is normal - head for pseudo centre. */
+				/* En-route path is normal - head for pseudo center. */
 				if (CanGetThere(pMover, x, y) == GT_OK) {
 					pMover->ItargetX = x;
 					pMover->ItargetY = y;
@@ -642,8 +641,8 @@ static void SetMoverIntDest(PMOVER pMover, int x, int y) {
 						// make damn sure that Itarget is in hIpath
 						pMover->hIpath = InPolygon(x, y, PATH);
 				} else {
-					pMover->ItargetX = PolyCentreX(hIpath);
-					pMover->ItargetY = PolyCentreY(hIpath);
+					pMover->ItargetX = PolyCenterX(hIpath);
+					pMover->ItargetY = PolyCenterY(hIpath);
 					if (TinselV2)
 						// make damn sure that Itarget is in hIpath
 						pMover->hIpath = InPolygon(pMover->ItargetX, pMover->ItargetY, PATH);
@@ -941,12 +940,12 @@ static void SetNextDest(PMOVER pMover) {
 				assert(hPath == pMover->hIpath);
 
 				if (pMover->InDifficulty == NO_PROB) {
-					x = PolyCentreX(hPath);
-					y = PolyCentreY(hPath);
+					x = PolyCenterX(hPath);
+					y = PolyCenterY(hPath);
 					SetMoverDest(pMover, x, y);
-					pMover->InDifficulty = TRY_CENTRE;
+					pMover->InDifficulty = TRY_CENTER;
 					pMover->over = false;
-				} else if (pMover->InDifficulty == TRY_CENTRE) {
+				} else if (pMover->InDifficulty == TRY_CENTER) {
 					NearestCorner(&x, &y, pMover->hCpath, pMover->hIpath);
 					SetMoverDest(pMover, x, y);
 					pMover->InDifficulty = TRY_CORNER;
@@ -984,7 +983,7 @@ static void SetNextDest(PMOVER pMover) {
 			   !IsAdjacentPath(pMover->hCpath, pMover->hIpath)) {
 				/*----------------------------------------------------------
 				 If just entering a follow nodes polygon, go to first node.|
-				 Else if just going to pass through, go to pseudo-centre.  |
+				 Else if just going to pass through, go to pseudo-center.  |
 				 ----------------------------------------------------------*/
 				if (PolySubtype(hPath) == NODE && pMover->hFnpath != hPath && pMover->npstatus != LEAVING) {
 					int node = NearestEndNode(hPath, x, y);
@@ -993,7 +992,7 @@ static void SetNextDest(PMOVER pMover) {
 					pMover->over = true;
 				} else if (!IsInPolygon(pMover->ItargetX, pMover->ItargetY, hPath) &&
 					!IsInPolygon(pMover->ItargetX, pMover->ItargetY, pMover->hCpath)) {
-					SetMoverDest(pMover, PolyCentreX(hPath), PolyCentreY(hPath));
+					SetMoverDest(pMover, PolyCenterX(hPath), PolyCenterY(hPath));
 					pMover->over = true;
 				} else {
 					SetMoverDest(pMover, pMover->ItargetX, pMover->ItargetY);
@@ -1256,8 +1255,8 @@ static void SetOffWithinNodePath(PMOVER pMover, HPOLYGON StartPath, HPOLYGON Des
 			endnode = NearestEndNode(StartPath, targetX, targetY);
 		} else {
 			if (PolySubtype(hIpath) != NODE) {
-				x = PolyCentreX(hIpath);
-				y = PolyCentreY(hIpath);
+				x = PolyCenterX(hIpath);
+				y = PolyCenterY(hIpath);
 				endnode = NearestEndNode(StartPath, x, y);
 			} else {
 				endnode = NearEndNode(StartPath, hIpath);
@@ -1276,7 +1275,7 @@ static void SetOffWithinNodePath(PMOVER pMover, HPOLYGON StartPath, HPOLYGON Des
 				{
 					// could go for its end node if it's an NPATH
 					// but we probably will when we hit it anyway!
-					SetMoverDest(pMover, PolyCentreX(hIpath), PolyCentreY(hIpath));
+					SetMoverDest(pMover, PolyCenterX(hIpath), PolyCenterY(hIpath));
 				}
 			}
 		} else
@@ -1498,7 +1497,7 @@ static void EnteringNewPath(PMOVER pMover, HPOLYGON hPath, int x, int y) {
 				assert(hIpath != NOPOLY); // No path on the way
 
 				if (PolySubtype(hIpath) != NODE) {
-					lastnode = NearestEndNode(hPath, PolyCentreX(hIpath), PolyCentreY(hIpath));
+					lastnode = NearestEndNode(hPath, PolyCenterX(hIpath), PolyCenterY(hIpath));
 				} else {
 					lastnode = NearEndNode(hPath, hIpath);
 				}
@@ -1709,11 +1708,11 @@ void SetDefaultRefer(int32 defRefer) {
 	DefaultRefer = defRefer;
 }
 
-int GetLastLeadXdest(void) {
+int GetLastLeadXdest() {
 	return lastLeadXdest;
 }
 
-int GetLastLeadYdest(void) {
+int GetLastLeadYdest() {
 	return lastLeadYdest;
 }
 
@@ -1745,4 +1744,4 @@ void DoMoveActor(PMOVER pActor) {
 	}
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

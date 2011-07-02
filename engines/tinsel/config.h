@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_CONFIG_H
@@ -32,25 +29,37 @@ namespace Tinsel {
 
 // double click timer initial value
 enum {
-	DOUBLE_CLICK_TIME	= 6,	// 6 @ 18Hz = .33 sec
+	DOUBLE_CLICK_TIME	= 10,	// 10 @ 18Hz = .55 sec
 	DEFTEXTSPEED		= 0
 };
 
-extern int dclickSpeed;
-extern int volMusic;
-extern int volSound;
-extern int volVoice;
-extern int speedText;
-extern int bSubtitles;
-extern int bSwapButtons;
-extern LANGUAGE g_language;
-extern int bAmerica;
+class TinselEngine;
 
-void WriteConfig(void);
-void ReadConfig(void);
+class Config {
+private:
+	TinselEngine *_vm;
+
+public:
+	int _dclickSpeed;
+	int _musicVolume;
+	int _soundVolume;
+	int _voiceVolume;
+	int _textSpeed;
+	int _useSubtitles;
+	int _swapButtons;
+	LANGUAGE _language;
+	int _isAmericanEnglishVersion;
+
+public:
+	Config(TinselEngine *vm);
+
+	void writeToDisk();
+	void readFromDisk();
+};
+
 
 extern bool isJapanMode();
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif

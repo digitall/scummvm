@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -77,10 +74,10 @@ int32 Expression::encodePtr(byte *ptr, int type) {
 		offset = _vm->_game->_script->getOffset(ptr);
 		break;
 	case kInterVar:
-		offset = ptr - ((byte *) _vm->_inter->_variables->getAddressOff8(0));
+		offset = ptr - ((byte *)_vm->_inter->_variables->getAddressOff8(0));
 		break;
 	case kResStr:
-		offset = ptr - ((byte *) _resultStr);
+		offset = ptr - ((byte *)_resultStr);
 		break;
 	default:
 		error("Expression::encodePtr(): Unknown pointer type");
@@ -96,10 +93,10 @@ byte *Expression::decodePtr(int32 n) {
 	case kExecPtr:
 		return _vm->_game->_script->getData((n & 0x0FFFFFFF));
 	case kInterVar:
-		ptr = (byte *) _vm->_inter->_variables->getAddressOff8(0);
+		ptr = (byte *)_vm->_inter->_variables->getAddressOff8(0);
 		break;
 	case kResStr:
-		ptr = (byte *) _resultStr;
+		ptr = (byte *)_resultStr;
 		break;
 	default:
 		error("Expression::decodePtr(): Unknown pointer type");
@@ -204,13 +201,14 @@ void Expression::skipExpr(char stopToken) {
 
 void Expression::printExpr(char stopToken) {
 	// Expression printing disabled by default
-	return;
+#if 0
 
 	int32 savedPos = _vm->_game->_script->pos();
 	printExpr_internal(stopToken);
 
 	// restore IP to start of expression
 	_vm->_game->_script->seek(savedPos);
+#endif
 }
 
 void Expression::printExpr_internal(char stopToken) {
@@ -494,7 +492,7 @@ int Expression::cmpHelper(const StackFrame &stackFrame) {
 	} else if (type == OP_LOAD_IMM_STR) {
 		if ((char *)decodePtr(stackFrame.values[-3]) != _resultStr) {
 			strcpy(_resultStr, (char *)decodePtr(stackFrame.values[-3]));
-			stackFrame.values[-3] = encodePtr((byte *) _resultStr, kResStr);
+			stackFrame.values[-3] = encodePtr((byte *)_resultStr, kResStr);
 		}
 		cmpTemp = strcmp(_resultStr, (char *)decodePtr(stackFrame.values[-1]));
 	}
@@ -623,15 +621,15 @@ int16 Expression::parseVarIndex(uint16 *size, uint16 *type) {
 		return varBase + offset * _vm->_global->_inter_animDataSize + temp;
 
 	case OP_LOAD_VAR_INT16:
-		return varBase + _vm->_game->_script->readInt16() * 2;
+		return varBase + _vm->_game->_script->readUint16() * 2;
 
 	case OP_LOAD_VAR_INT8:
-		return varBase + _vm->_game->_script->readInt16();
+		return varBase + _vm->_game->_script->readUint16();
 
 	case OP_LOAD_VAR_INT32:
 	case OP_LOAD_VAR_INT32_AS_INT16:
 	case OP_LOAD_VAR_STR:
-		temp = _vm->_game->_script->readInt16() * 4;
+		temp = _vm->_game->_script->readUint16() * 4;
 		debugC(5, kDebugExpression, "oper = %d", _vm->_game->_script->peekInt16());
 		if ((operation == OP_LOAD_VAR_STR) && (_vm->_game->_script->peekByte() == 13)) {
 			_vm->_game->_script->skip(1);
@@ -655,7 +653,7 @@ int16 Expression::parseValExpr(byte stopToken) {
 // Load a value according to the operation
 void Expression::loadValue(byte operation, uint32 varBase, const StackFrame &stackFrame) {
 	int16 dimCount;
-	int16 temp;
+	uint16 temp;
 	int16 temp2;
 	int16 offset;
 	int16 dim;
@@ -701,12 +699,12 @@ void Expression::loadValue(byte operation, uint32 varBase, const StackFrame &sta
 
 	case OP_LOAD_VAR_INT16:
 		*stackFrame.opers = OP_LOAD_IMM_INT16;
-		*stackFrame.values = (int16) READ_VARO_UINT16(varBase + _vm->_game->_script->readInt16() * 2);
+		*stackFrame.values = (int16) READ_VARO_UINT16(varBase + _vm->_game->_script->readUint16() * 2);
 		break;
 
 	case OP_LOAD_VAR_INT8:
 		*stackFrame.opers = OP_LOAD_IMM_INT16;
-		*stackFrame.values = (int8) READ_VARO_UINT8(varBase + _vm->_game->_script->readInt16());
+		*stackFrame.values = (int8) READ_VARO_UINT8(varBase + _vm->_game->_script->readUint16());
 		break;
 
 	case OP_LOAD_IMM_INT32:
@@ -726,22 +724,22 @@ void Expression::loadValue(byte operation, uint32 varBase, const StackFrame &sta
 
 	case OP_LOAD_IMM_STR:
 		*stackFrame.opers = OP_LOAD_IMM_STR;
-		*stackFrame.values = encodePtr((byte *) _vm->_game->_script->readString(), kExecPtr);
+		*stackFrame.values = encodePtr((byte *)_vm->_game->_script->readString(), kExecPtr);
 		break;
 
 	case OP_LOAD_VAR_INT32:
 		*stackFrame.opers = OP_LOAD_IMM_INT16;
-		*stackFrame.values = READ_VARO_UINT32(varBase + _vm->_game->_script->readInt16() * 4);
+		*stackFrame.values = READ_VARO_UINT32(varBase + _vm->_game->_script->readUint16() * 4);
 		break;
 
 	case OP_LOAD_VAR_INT32_AS_INT16:
 		*stackFrame.opers = OP_LOAD_IMM_INT16;
-		*stackFrame.values = (int16) READ_VARO_UINT16(varBase + _vm->_game->_script->readInt16() * 4);
+		*stackFrame.values = (int16) READ_VARO_UINT16(varBase + _vm->_game->_script->readUint16() * 4);
 		break;
 
 	case OP_LOAD_VAR_STR:
 		*stackFrame.opers = OP_LOAD_IMM_STR;
-		temp = _vm->_game->_script->readInt16() * 4;
+		temp = _vm->_game->_script->readUint16() * 4;
 		*stackFrame.values = encodePtr(_vm->_inter->_variables->getAddressOff8(varBase + temp), kInterVar);
 		if (_vm->_game->_script->peekByte() == 13) {
 			_vm->_game->_script->skip(1);
@@ -796,11 +794,11 @@ void Expression::simpleArithmetic1(StackFrame &stackFrame) {
 	switch (stackFrame.opers[-1]) {
 	case OP_ADD:
 		if (stackFrame.opers[-2] == OP_LOAD_IMM_STR) {
-			if ((char *) decodePtr(stackFrame.values[-2]) != _resultStr) {
-				strcpy(_resultStr, (char *) decodePtr(stackFrame.values[-2]));
-				stackFrame.values[-2] = encodePtr((byte *) _resultStr, kResStr);
+			if ((char *)decodePtr(stackFrame.values[-2]) != _resultStr) {
+				strcpy(_resultStr, (char *)decodePtr(stackFrame.values[-2]));
+				stackFrame.values[-2] = encodePtr((byte *)_resultStr, kResStr);
 			}
-			strcat(_resultStr, (char *) decodePtr(stackFrame.values[0]));
+			strcat(_resultStr, (char *)decodePtr(stackFrame.values[0]));
 			stackFrame.pop(2);
 		}
 		break;
@@ -872,12 +870,12 @@ bool Expression::complexArithmetic(Stack &stack, StackFrame &stackFrame, int16 b
 		if (stack.opers[brackStart] == OP_LOAD_IMM_INT16) {
 			stack.values[brackStart] += stackFrame.values[-1];
 		} else if (stack.opers[brackStart] == OP_LOAD_IMM_STR) {
-			if ((char *) decodePtr(stack.values[brackStart]) != _resultStr) {
-				strcpy(_resultStr, (char *) decodePtr(stack.values[brackStart]));
+			if ((char *)decodePtr(stack.values[brackStart]) != _resultStr) {
+				strcpy(_resultStr, (char *)decodePtr(stack.values[brackStart]));
 				stack.values[brackStart] =
-					encodePtr((byte *) _resultStr, kResStr);
+					encodePtr((byte *)_resultStr, kResStr);
 			}
-			strcat(_resultStr, (char *) decodePtr(stackFrame.values[-1]));
+			strcat(_resultStr, (char *)decodePtr(stackFrame.values[-1]));
 		}
 		stackFrame.pop(2);
 		break;
@@ -981,8 +979,8 @@ void Expression::getResult(byte operation, int32 value, byte *type) {
 		break;
 
 	case OP_LOAD_IMM_STR:
-		if ((char *) decodePtr(value) != _resultStr)
-			strcpy(_resultStr, (char *) decodePtr(value));
+		if ((char *)decodePtr(value) != _resultStr)
+			strcpy(_resultStr, (char *)decodePtr(value));
 		break;
 
 	case OP_LOAD_VAR_INT32:
@@ -1001,7 +999,6 @@ int16 Expression::parseExpr(byte stopToken, byte *type) {
 	Stack stack;
 	StackFrame stackFrame(stack);
 	byte operation;
-	bool escape;
 	int16 brackStart;
 	uint32 varBase;
 
@@ -1036,7 +1033,6 @@ int16 Expression::parseExpr(byte stopToken, byte *type) {
 		if ((operation == stopToken) || (operation == OP_OR) ||
 				(operation == OP_AND) || (operation == OP_END_EXPR)) {
 			while (stackFrame.pos >= 2) {
-				escape = false;
 				if ((stackFrame.opers[-2] == OP_BEGIN_EXPR) &&
 						((operation == OP_END_EXPR) || (operation == stopToken))) {
 					stackFrame.opers[-2] = stackFrame.opers[-1];
@@ -1112,11 +1108,11 @@ int16 Expression::parseExpr(byte stopToken, byte *type) {
 					if (stackFrame.opers[-3] == OP_LOAD_IMM_INT16) {
 						stackFrame.values[-3] += stackFrame.values[-1];
 					} else if (stackFrame.opers[-3] == OP_LOAD_IMM_STR) {
-						if ((char *) decodePtr(stackFrame.values[-3]) != _resultStr) {
-							strcpy(_resultStr, (char *) decodePtr(stackFrame.values[-3]));
-							stackFrame.values[-3] = encodePtr((byte *) _resultStr, kResStr);
+						if ((char *)decodePtr(stackFrame.values[-3]) != _resultStr) {
+							strcpy(_resultStr, (char *)decodePtr(stackFrame.values[-3]));
+							stackFrame.values[-3] = encodePtr((byte *)_resultStr, kResStr);
 						}
-						strcat(_resultStr, (char *) decodePtr(stackFrame.values[-1]));
+						strcat(_resultStr, (char *)decodePtr(stackFrame.values[-1]));
 					}
 					stackFrame.pop(2);
 

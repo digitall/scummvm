@@ -18,18 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/gui.h"
 
-#include "kyra/screen.h"
 #include "kyra/text.h"
 #include "kyra/wsamovie.h"
 
 #include "common/savefile.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -83,7 +80,7 @@ void GUI::initMenu(Menu &menu) {
 	int menu_y2 = menu.height + menu.y - 1;
 
 	_screen->fillRect(menu.x + 2, menu.y + 2, menu_x2 - 2, menu_y2 - 2, menu.bkgdColor);
-	_screen->drawShadedBox(menu.x, menu.y, menu_x2, menu_y2, menu.color1, menu.color2, _vm->gameFlags().gameID == GI_LOL ? Screen::kShadeTypeLol : Screen::kShadeTypeKyra);
+	_screen->drawShadedBox(menu.x, menu.y, menu_x2, menu_y2, menu.color1, menu.color2);
 
 	if (menu.titleX != -1)
 		textX = menu.titleX;
@@ -92,10 +89,11 @@ void GUI::initMenu(Menu &menu) {
 
 	textY = menu.y + menu.titleY;
 
-	if (_vm->gameFlags().gameID == GI_LOL) {
+	if (_vm->game() == GI_LOL) {
 		printMenuText(getMenuTitle(menu), textX, textY, menu.textColor, 0, 9);
 	} else {
-		printMenuText(getMenuTitle(menu), textX - 1, textY + 1, defaultColor1(), defaultColor2(), 0);
+		if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+			printMenuText(getMenuTitle(menu), textX - 1, textY + 1, defaultColor1(), defaultColor2(), 0);
 		printMenuText(getMenuTitle(menu), textX, textY, menu.textColor, 0, 0);
 	}
 
@@ -126,7 +124,7 @@ void GUI::initMenu(Menu &menu) {
 		}
 
 		_screen->fillRect(x1, y1, x2, y2, menu.item[i].bkgdColor);
-		_screen->drawShadedBox(x1, y1, x2, y2, menu.item[i].color1, menu.item[i].color2, _vm->gameFlags().gameID == GI_LOL ? Screen::kShadeTypeLol : Screen::kShadeTypeKyra);
+		_screen->drawShadedBox(x1, y1, x2, y2, menu.item[i].color1, menu.item[i].color2);
 
 		if (getMenuItemTitle(menu.item[i])) {
 			if (menu.item[i].titleX != -1)
@@ -135,30 +133,39 @@ void GUI::initMenu(Menu &menu) {
 				textX = getMenuCenterStringX(getMenuItemTitle(menu.item[i]), x1, x2);
 
 			textY = y1 + 2;
-			if (_vm->gameFlags().gameID == GI_LOL) {
+			if (_vm->game() == GI_LOL) {
 				textY++;
 				if (i == menu.highlightedItem)
 					printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].highlightColor, 0, 8);
 				else
 					printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].textColor, 0, 8);
 			} else {
-				printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
+				Screen::FontId of = _screen->_currentFont;
+				if (menu.item[i].saveSlot > 0)
+					_screen->setFont(Screen::FID_8_FNT);
+
+				if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+					printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
+
 				if (i == menu.highlightedItem)
 					printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].highlightColor, 0, 0);
 				else
 					printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].textColor, 0, 0);
+
+				_screen->setFont(of);
 			}
 		}
 	}
 
 	for (int i = 0; i < menu.numberOfItems; ++i) {
 		if (getMenuItemLabel(menu.item[i])) {
-			if (_vm->gameFlags().gameID == GI_LOL) {
+			if (_vm->game() == GI_LOL) {
 				menu.item[i].labelX = menu.item[i].x - 1;
 				menu.item[i].labelY = menu.item[i].y + 3;
 				printMenuText(getMenuItemLabel(menu.item[i]), menu.x + menu.item[i].labelX, menu.y + menu.item[i].labelY, menu.item[i].textColor, 0, 10);
 			} else {
-				printMenuText(getMenuItemLabel(menu.item[i]), menu.x + menu.item[i].labelX - 1, menu.y + menu.item[i].labelY + 1, defaultColor1(), 0, 0);
+				if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+					printMenuText(getMenuItemLabel(menu.item[i]), menu.x + menu.item[i].labelX - 1, menu.y + menu.item[i].labelY + 1, defaultColor1(), 0, 0);
 				printMenuText(getMenuItemLabel(menu.item[i]), menu.x + menu.item[i].labelX, menu.y + menu.item[i].labelY, menu.item[i].textColor, 0, 0);
 			}
 		}
@@ -196,7 +203,7 @@ void GUI::processHighlights(Menu &menu) {
 	int mouseX = p.x;
 	int mouseY = p.y;
 
-	if (_vm->_flags.gameID == GI_LOL && menu.highlightedItem != 255) {
+	if (_vm->game() == GI_LOL && menu.highlightedItem != 255) {
 		// LoL doesnt't have default highlighted items.
 		// We use a highlightedItem value of 255 for this.
 
@@ -220,18 +227,19 @@ void GUI::processHighlights(Menu &menu) {
 		if (mouseX > x1 && mouseX < x2 &&
 			mouseY > y1 && mouseY < y2) {
 
-			if (menu.highlightedItem != i || _vm->_flags.gameID == GI_LOL) {
-				if (_vm->_flags.gameID != GI_LOL) {
+			if (menu.highlightedItem != i || _vm->game() == GI_LOL) {
+				if (_vm->game() != GI_LOL) {
 					if (menu.item[menu.highlightedItem].enabled)
 						redrawText(menu);
 				}
 
 				menu.highlightedItem = i;
 				redrawHighlight(menu);
-				_screen->updateScreen();
 			}
 		}
 	}
+
+	_screen->updateScreen();
 }
 
 void GUI::redrawText(const Menu &menu) {
@@ -249,12 +257,17 @@ void GUI::redrawText(const Menu &menu) {
 		textX = getMenuCenterStringX(getMenuItemTitle(menu.item[i]), x1, x2);
 
 	int textY = y1 + 2;
-	if (_vm->gameFlags().gameID == GI_LOL) {
+	if (_vm->game() == GI_LOL) {
 		textY++;
 		printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].textColor, 0, 8);
 	} else {
-		printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
+		Screen::FontId of = _screen->_currentFont;
+		if (menu.item[i].saveSlot > 0)
+			_screen->setFont(Screen::FID_8_FNT);
+		if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+			printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
 		printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].textColor, 0, 0);
+		_screen->setFont(of);
 	}
 }
 
@@ -274,12 +287,17 @@ void GUI::redrawHighlight(const Menu &menu) {
 
 	int textY = y1 + 2;
 
-	if (_vm->gameFlags().gameID == GI_LOL) {
+	if (_vm->game() == GI_LOL) {
 		textY++;
 		printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].highlightColor, 0, 8);
 	} else {
-		printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
+		Screen::FontId of = _screen->_currentFont;
+		if (menu.item[i].saveSlot > 0)
+			_screen->setFont(Screen::FID_8_FNT);
+		if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+			printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
 		printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].highlightColor, 0, 0);
+		_screen->setFont(of);
 	}
 }
 
@@ -324,7 +342,10 @@ int GUI::redrawButtonCallback(Button *button) {
 		return 0;
 
 	_screen->hideMouse();
-	_screen->drawBox(button->x + 1, button->y + 1, button->x + button->width - 1, button->y + button->height - 1, 0xF8);
+	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
+		_screen->drawBox(button->x + 1, button->y + 1, button->x + button->width - 1, button->y + button->height - 1, 17);
+	else
+		_screen->drawBox(button->x + 1, button->y + 1, button->x + button->width - 1, button->y + button->height - 1, 0xF8);
 	_screen->showMouse();
 
 	return 0;
@@ -335,7 +356,10 @@ int GUI::redrawShadedButtonCallback(Button *button) {
 		return 0;
 
 	_screen->hideMouse();
-	_screen->drawShadedBox(button->x, button->y, button->x + button->width, button->y + button->height, 0xF9, 0xFA);
+	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
+		_screen->drawShadedBox(button->x, button->y, button->x + button->width, button->y + button->height, 31, 18);
+	else
+		_screen->drawShadedBox(button->x, button->y, button->x + button->width, button->y + button->height, 0xF9, 0xFA);
 	_screen->showMouse();
 
 	return 0;
@@ -343,15 +367,15 @@ int GUI::redrawShadedButtonCallback(Button *button) {
 
 void GUI::updateSaveList(bool excludeQuickSaves) {
 	Common::String pattern = _vm->_targetName + ".???";
-	Common::StringList saveFileList = _vm->_saveFileMan->listSavefiles(pattern);
+	Common::StringArray saveFileList = _vm->_saveFileMan->listSavefiles(pattern);
 	_saveSlots.clear();
 
-	for (Common::StringList::const_iterator i = saveFileList.begin(); i != saveFileList.end(); ++i) {
+	for (Common::StringArray::const_iterator i = saveFileList.begin(); i != saveFileList.end(); ++i) {
 		char s1 = 0, s2 = 0, s3 = 0;
 		s1 = (*i)[i->size()-3];
 		s2 = (*i)[i->size()-2];
 		s3 = (*i)[i->size()-1];
-		if (!isdigit(s1) || !isdigit(s2) || !isdigit(s3))
+		if (!isdigit(static_cast<unsigned char>(s1)) || !isdigit(static_cast<unsigned char>(s2)) || !isdigit(static_cast<unsigned char>(s3)))
 			continue;
 		s1 -= '0';
 		s2 -= '0';
@@ -372,7 +396,9 @@ void GUI::updateSaveList(bool excludeQuickSaves) {
 int GUI::getNextSavegameSlot() {
 	Common::InSaveFile *in;
 
-	for (int i = 1; i < 990; i++) {
+	int start = _vm->game() == GI_LOL ? 0 : 1;
+
+	for (int i = start; i < 990; i++) {
 		if ((in = _vm->_saveFileMan->openForLoading(_vm->getSavegameFilename(i))))
 			delete in;
 		else
@@ -392,7 +418,7 @@ void GUI::checkTextfieldInput() {
 	while (_vm->_eventMan->pollEvent(event) && running) {
 		switch (event.type) {
 		case Common::EVENT_KEYDOWN:
-			if (event.kbd.keycode == 'q' && event.kbd.flags == Common::KBD_CTRL)
+			if (event.kbd.keycode == Common::KEYCODE_q && event.kbd.hasFlags(Common::KBD_CTRL))
 				_vm->quitGame();
 			else
 				_keyPressed = event.kbd;
@@ -412,7 +438,8 @@ void GUI::checkTextfieldInput() {
 			Common::Point pos = _vm->getMousePos();
 			_vm->_mouseX = pos.x;
 			_vm->_mouseY = pos.y;
-			_screen->updateScreen();
+
+			_vm->_system->updateScreen();
 			_lastScreenUpdate = now;
 			} break;
 
@@ -430,8 +457,8 @@ void GUI::checkTextfieldInput() {
 	_vm->_system->delayMillis(3);
 }
 
-void GUI::printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2, Screen::FontId font) {
-	_text->printText(str, x, y, c0, c1, c2, font);
+void GUI::printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2) {
+	_text->printText(str, x, y, c0, c1, c2);
 }
 
 int GUI::getMenuCenterStringX(const char *str, int x1, int x2) {
@@ -460,7 +487,7 @@ void MainMenu::updateAnimation() {
 			_nextUpdate = now + _anim.delay * _vm->tickLength();
 
 			_anim.anim->displayFrame(_animIntern.curFrame, 0, 0, 0, 0, 0, 0);
-			_animIntern.curFrame += _animIntern.direction ;
+			_animIntern.curFrame += _animIntern.direction;
 			if (_animIntern.curFrame < _anim.startFrame) {
 				_animIntern.curFrame = _anim.startFrame;
 				_animIntern.direction = 1;
@@ -478,14 +505,24 @@ bool MainMenu::getInput() {
 	Common::Event event;
 	Common::EventManager *eventMan = _vm->getEventManager();
 
+	bool updateScreen = false;
+
 	while (eventMan->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_LBUTTONUP:
 			return true;
+
+		case Common::EVENT_MOUSEMOVE:
+			updateScreen = true;
+			break;
+
 		default:
 			break;
 		}
 	}
+
+	if (updateScreen)
+		_system->updateScreen();
 	return false;
 }
 
@@ -525,6 +562,9 @@ int MainMenu::handle(int dim) {
 		_screen->showMouse();
 
 	int fh = _screen->getFontHeight();
+	if (_vm->gameFlags().lang == Common::JA_JPN)
+		fh++;
+
 	int textPos = ((_screen->_curDim->w >> 1) + _screen->_curDim->sx) << 3;
 
 	Common::Rect menuRect(x + 16, y + 4, x + width - 16, y + 4 + fh * _static.menuTable[3]);
@@ -573,9 +613,12 @@ int MainMenu::handle(int dim) {
 void MainMenu::draw(int select) {
 	int top = _screen->_curDim->sy;
 	top += _static.menuTable[1];
+	int fh = _screen->getFontHeight();
+	if (_vm->gameFlags().lang == Common::JA_JPN)
+		fh++;
 
 	for (int i = 0; i < _static.menuTable[3]; ++i) {
-		int curY = top + i * _screen->getFontHeight();
+		int curY = top + i * fh;
 		int color = (i == select) ? _static.menuTable[6] : _static.menuTable[5];
 		printString("%s", ((_screen->_curDim->w >> 1) + _screen->_curDim->sx) << 3, curY, color, 0, 5, _static.strings[i]);
 	}
@@ -600,30 +643,32 @@ void MainMenu::printString(const char *format, int x, int y, int col1, int col2,
 	if (!format)
 		return;
 
-	char string[512];
 	va_list vaList;
 	va_start(vaList, flags);
-	vsprintf(string, format, vaList);
+	Common::String string = Common::String::vformat(format, vaList);
 	va_end(vaList);
 
 	if (flags & 1)
-		x -= _screen->getTextWidth(string) >> 1;
+		x -= _screen->getTextWidth(string.c_str()) >> 1;
 
 	if (flags & 2)
-		x -= _screen->getTextWidth(string);
+		x -= _screen->getTextWidth(string.c_str());
+
+	if (_vm->gameFlags().use16ColorMode)
+		flags &= 3;
 
 	if (flags & 4) {
-		_screen->printText(string, x - 1, y, _static.altColor, col2);
-		_screen->printText(string, x, y + 1, _static.altColor, col2);
+		_screen->printText(string.c_str(), x - 1, y, _static.altColor, col2);
+		_screen->printText(string.c_str(), x, y + 1, _static.altColor, col2);
 	}
 
 	if (flags & 8) {
-		_screen->printText(string, x - 1, y, 227, col2);
-		_screen->printText(string, x, y + 1, 227, col2);
+		_screen->printText(string.c_str(), x - 1, y, 227, col2);
+		_screen->printText(string.c_str(), x, y + 1, 227, col2);
 	}
 
-	_screen->printText(string, x, y, col1, col2);
+	_screen->printText(string.c_str(), x, y, col1, col2);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

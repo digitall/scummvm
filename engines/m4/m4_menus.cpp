@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/algorithm.h"		// for find()
+#include "common/textconsole.h"
+#include "common/translation.h"
 #include "gui/dialog.h"
 #include "gui/message.h"
 
@@ -136,7 +135,7 @@ void OrionCallbacks::saveLoadSaveFn(DialogView *view, MenuObject *item) {
 	bool succeeded = view->vm()->_saveLoad->save(view->_selectedSlot + 1, textItem->getText());
 
 	if (!succeeded) {
-		GUI::MessageDialog dialog("Save game failed!");
+		GUI::MessageDialog dialog(_("Save game failed!"));
 		dialog.runModal();
 	}
 
@@ -306,7 +305,7 @@ void OrionCallbacks::saveLoadReturnFn(OrionMenuView *view) {
 
 //--------------------------------------------------------------------------
 
-OrionMenuView::OrionMenuView(M4Engine *Vm, int x, int y, MenuType menuType, bool calledFromMainMenu,
+OrionMenuView::OrionMenuView(MadsM4Engine *Vm, int x, int y, MenuType menuType, bool calledFromMainMenu,
 		bool loadSaveFromHotkey): DialogView(Vm, x, y, true) {
 	_menuType = menuType;
 	_screenType = VIEWID_MENU;
@@ -328,9 +327,9 @@ OrionMenuView::OrionMenuView(M4Engine *Vm, int x, int y, MenuType menuType, bool
 	_calledFromMainMenu = calledFromMainMenu;
 	_loadSaveFromHotkey = loadSaveFromHotkey;
 
-	_interfaceWasVisible = _vm->_interfaceView->isVisible();
+	_interfaceWasVisible = _m4Vm->scene()->getInterface()->isVisible();
 	if (_interfaceWasVisible)
-		_vm->_interfaceView->hide();
+		_m4Vm->scene()->getInterface()->hide();
 
 	_vm->_mouse->setCursorNum(CURSOR_ARROW);
 
@@ -433,10 +432,8 @@ OrionMenuView::~OrionMenuView() {
 		delete *i;
 	_menuObjects.clear();
 
-	if (_saveNames)
-		delete _saveNames;
-	if (_savegameThumbnail)
-		delete _savegameThumbnail;
+	delete _saveNames;
+	delete _savegameThumbnail;
 }
 
 bool OrionMenuView::loadSprites(const char *seriesName) {
@@ -472,8 +469,8 @@ M4Surface *OrionMenuView::createThumbnail() {
 	// Translate the scene data
 
 	_vm->_scene->onRefresh(NULL, &srcSurface);
-	byte *srcP = (byte *)srcSurface.pixels;
-	byte *destP = (byte *)result->pixels;
+	byte *srcP = srcSurface.getBasePtr(0, 0);
+	byte *destP = result->getBasePtr(0, 0);
 
 	for (int yCtr = 0; yCtr < _vm->_scene->height() / 3; ++yCtr, srcP += g_system->getWidth() * 3) {
 		byte *src0P = srcP;
@@ -498,13 +495,13 @@ M4Surface *OrionMenuView::createThumbnail() {
 	// Translate the game interface view - since it's using standard colors that can't be
 	// averaged, simply take the top left pixel of every 3x3 pixel block
 
-	_vm->_interfaceView->onRefresh(NULL, &srcSurface);
-	destP = (byte *)result->pixels + (_vm->_screen->width() / 3) * (_vm->_interfaceView->bounds().top / 3);
+	_m4Vm->scene()->getInterface()->onRefresh(NULL, &srcSurface);
+	destP = result->getBasePtr(0, 0) + (_vm->_screen->width() / 3) * (_m4Vm->scene()->getInterface()->bounds().top / 3);
 
-	int yStart = _vm->_interfaceView->bounds().top;
-	int yEnd = MIN(_vm->_screen->height() - 1, (int) _vm->_interfaceView->bounds().bottom - 1);
+	int yStart = _m4Vm->scene()->getInterface()->bounds().top;
+	int yEnd = MIN(_vm->_screen->height() - 1, (int) _m4Vm->scene()->getInterface()->bounds().bottom - 1);
 	for (int yCtr = yStart; yCtr <= yEnd; yCtr += 3) {
-		srcP = (byte *)srcSurface.pixels + (yCtr * _vm->_screen->width());
+		srcP = (byte *)srcSurface.getBasePtr(0, yCtr) + (yCtr * _vm->_screen->width());
 
 		for (int xCtr = 0; xCtr < result->width(); ++xCtr, srcP += 3)
 			*destP++ = *srcP;
@@ -514,7 +511,7 @@ M4Surface *OrionMenuView::createThumbnail() {
 }
 
 void OrionMenuView::destroyView() {
-	M4Engine *engine = _vm;
+	MadsM4Engine *engine = _vm;
 	bool interfaceVisible = _interfaceWasVisible;
 	engine->_viewManager->deleteView(this);
 
@@ -528,11 +525,11 @@ void OrionMenuView::destroyView() {
 		engine->_palette->fadeFromGreen(M4_DIALOG_FADE_STEPS, M4_DIALOG_FADE_DELAY, fadeToBlack);
 
 		if (interfaceVisible)
-			engine->_interfaceView->show();
+			engine->scene()->showInterface();
 	}
 }
 
-bool OrionMenuView::onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents) {
+bool OrionMenuView::onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents) {
 	static Common::Point movingPos(0, 0);
 	static bool movingFlag = false;
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_SAVELOAD_H
@@ -71,14 +68,14 @@ enum CineSaveGameFormat {
 };
 
 /** Identifier for the temporary Operation Stealth savegame format. */
-static const uint32 TEMP_OS_FORMAT_ID = MKID_BE('TEMP');
+static const uint32 TEMP_OS_FORMAT_ID = MKTAG('T','E','M','P');
 
 /** The current version number of Operation Stealth's savegame format. */
-static const uint32 CURRENT_OS_SAVE_VER = 0;
+static const uint32 CURRENT_OS_SAVE_VER = 1;
 
 /** Chunk header used by the temporary Operation Stealth savegame format. */
 struct ChunkHeader {
-	uint32 id;      ///< Identifier (e.g. MKID_BE('TEMP'))
+	uint32 id;      ///< Identifier (e.g. MKTAG('T','E','M','P'))
 	uint32 version; ///< Version number
 	uint32 size;    ///< Size of the chunk after this header in bytes
 };

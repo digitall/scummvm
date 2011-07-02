@@ -18,15 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_GAME_H
 #define GOB_GAME_H
 
+#include "common/str.h"
+
 #include "gob/util.h"
+#include "gob/video.h"
+#include "gob/sound/sounddesc.h"
 
 namespace Gob {
 
@@ -37,7 +38,7 @@ class Hotspots;
 
 class Environments {
 public:
-	static const uint8 kEnvironmentCount = 5;
+	static const uint8 kEnvironmentCount = 20;
 
 	Environments(GobEngine *vm);
 	~Environments();
@@ -45,27 +46,83 @@ public:
 	void set(uint8 env);
 	void get(uint8 env) const;
 
-	const char *getTotFile(uint8 env) const;
+	const Common::String &getTotFile(uint8 env) const;
 
 	bool has(Variables *variables, uint8 startEnv = 0, int16 except = -1) const;
-	bool has(Script *script      , uint8 startEnv = 0, int16 except = -1) const;
+	bool has(Script    *script   , uint8 startEnv = 0, int16 except = -1) const;
 	bool has(Resources *resources, uint8 startEnv = 0, int16 except = -1) const;
 
 	void clear();
 
+	bool setMedia(uint8 env);
+	bool getMedia(uint8 env);
+	bool clearMedia(uint8 env);
+
 private:
 	struct Environment {
-		int16      cursorHotspotX;
-		int16      cursorHotspotY;
-		char       curTotFile[14];
-		Variables *variables;
+		int32          cursorHotspotX;
+		int32          cursorHotspotY;
+		Common::String totFile;
+		Variables     *variables;
+		Script        *script;
+		Resources     *resources;
+	};
+
+	struct Media {
+		SurfacePtr sprites[10];
+		SoundDesc  sounds[10];
+		Font      *fonts[17];
+	};
+
+	GobEngine *_vm;
+
+	Environment _environments[kEnvironmentCount];
+	Media       _media[kEnvironmentCount];
+};
+
+class TotFunctions {
+public:
+	TotFunctions(GobEngine *vm);
+	~TotFunctions();
+
+	int find(const Common::String &totFile) const;
+
+	bool load(const Common::String &totFile);
+	bool unload(const Common::String &totFile);
+
+	bool call(const Common::String &totFile, const Common::String &function) const;
+	bool call(const Common::String &totFile, uint16 offset) const;
+
+private:
+	static const uint8 kTotCount = 100;
+
+	struct Function {
+		Common::String name;
+		byte type;
+		uint16 offset;
+	};
+
+	struct Tot {
+		Common::String file;
+
+		Common::List<Function> functions;
+
 		Script    *script;
 		Resources *resources;
 	};
 
 	GobEngine *_vm;
 
-	Environment *_environments;
+	Tot _tots[kTotCount];
+
+	bool loadTot(Tot &tot, const Common::String &file);
+	void freeTot(Tot &tot);
+
+	bool loadIDE(Tot &tot);
+
+	int findFree() const;
+
+	bool call(const Tot &tot, uint16 offset) const;
 };
 
 class Game {
@@ -74,15 +131,18 @@ public:
 	Resources *_resources;
 	Hotspots  *_hotspots;
 
-	char _curTotFile[14];
-	char _totToLoad[20];
+	Common::String _curTotFile;
+	Common::String _totToLoad;
 
 	int32 _startTimeKey;
 	MouseButtons _mouseButtons;
 
 	bool _noScroll;
 	bool _preventScroll;
-	bool _scrollHandleMouse;
+
+	bool  _wantScroll;
+	int16 _wantScrollX;
+	int16 _wantScrollY;
 
 	byte _handleMouse;
 	char _forceHandleMouse;
@@ -92,24 +152,28 @@ public:
 
 	void prepareStart();
 
-	void playTot(int16 skipPlay);
+	void playTot(int16 function);
 
 	void capturePush(int16 left, int16 top, int16 width, int16 height);
 	void capturePop(char doDraw);
 
 	void freeSoundSlot(int16 slot);
 
-	void evaluateScroll(int16 x, int16 y);
+	void wantScroll(int16 x, int16 y);
+	void evaluateScroll();
 
 	int16 checkKeys(int16 *pMousex = 0, int16 *pMouseY = 0,
 			MouseButtons *pButtons = 0, char handleMouse = 0);
 	void start();
 
-	void totSub(int8 flags, const char *newTotFile);
-	void switchTotSub(int16 index, int16 skipPlay);
+	void totSub(int8 flags, const Common::String &totFile);
+	void switchTotSub(int16 index, int16 function);
+
+	bool loadFunctions(const Common::String &tot, uint16 flags);
+	bool callFunction(const Common::String &tot, const Common::String &function, int16 param);
 
 protected:
-	uint32 _menuLevel;
+	GobEngine *_vm;
 
 	char _tempStr[256];
 
@@ -120,9 +184,9 @@ protected:
 	// For totSub()
 	int8 _curEnvironment;
 	int8 _numEnvironments;
-	Environments *_environments;
+	Environments _environments;
 
-	GobEngine *_vm;
+	TotFunctions _totFunctions;
 
 	void clearUnusedEnvironment();
 };

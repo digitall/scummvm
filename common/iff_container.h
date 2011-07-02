@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_IFF_CONTAINER_H
@@ -29,121 +26,118 @@
 #include "common/endian.h"
 #include "common/func.h"
 #include "common/stream.h"
-#include "common/util.h"
+#include "common/textconsole.h"
 
 namespace Common {
 
 typedef uint32 IFF_ID;
 
-#define ID_FORM     MKID_BE('FORM')
+#define ID_FORM     MKTAG('F','O','R','M')
 /* EA IFF 85 group identifier */
-#define ID_CAT      MKID_BE('CAT ')
+#define ID_CAT      MKTAG('C','A','T',' ')
 /* EA IFF 85 group identifier */
-#define ID_LIST     MKID_BE('LIST')
+#define ID_LIST     MKTAG('L','I','S','T')
 /* EA IFF 85 group identifier */
-#define ID_PROP     MKID_BE('PROP')
+#define ID_PROP     MKTAG('P','R','O','P')
 /* EA IFF 85 group identifier */
-#define ID_END      MKID_BE('END ')
+#define ID_END      MKTAG('E','N','D',' ')
 /* unofficial END-of-FORM identifier (see Amiga RKM Devices Ed.3
 page 376) */
-#define ID_ILBM     MKID_BE('ILBM')
+#define ID_ILBM     MKTAG('I','L','B','M')
 /* EA IFF 85 raster bitmap form */
-#define ID_DEEP     MKID_BE('DEEP')
+#define ID_DEEP     MKTAG('D','E','E','P')
 /* Chunky pixel image files (Used in TV Paint) */
-#define ID_RGB8     MKID_BE('RGB8')
+#define ID_RGB8     MKTAG('R','G','B','8')
 /* RGB image forms, Turbo Silver (Impulse) */
-#define ID_RGBN     MKID_BE('RGBN')
+#define ID_RGBN     MKTAG('R','G','B','N')
 /* RGB image forms, Turbo Silver (Impulse) */
-#define ID_PBM      MKID_BE('PBM ')
+#define ID_PBM      MKTAG('P','B','M',' ')
 /* 256-color chunky format (DPaint 2 ?) */
-#define ID_ACBM     MKID_BE('ACBM')
+#define ID_ACBM     MKTAG('A','C','B','M')
 /* Amiga Contiguous Bitmap (AmigaBasic) */
-#define ID_8SVX     MKID_BE('8SVX')
+#define ID_8SVX     MKTAG('8','S','V','X')
 /* Amiga 8 bits voice */
 
 /* generic */
 
-#define ID_FVER     MKID_BE('FVER')
+#define ID_FVER     MKTAG('F','V','E','R')
 /* AmigaOS version string */
-#define ID_JUNK     MKID_BE('JUNK')
+#define ID_JUNK     MKTAG('J','U','N','K')
 /* always ignore this chunk */
-#define ID_ANNO     MKID_BE('ANNO')
+#define ID_ANNO     MKTAG('A','N','N','O')
 /* EA IFF 85 Generic Annotation chunk */
-#define ID_AUTH     MKID_BE('AUTH')
+#define ID_AUTH     MKTAG('A','U','T','H')
 /* EA IFF 85 Generic Author chunk */
-#define ID_CHRS     MKID_BE('CHRS')
+#define ID_CHRS     MKTAG('C','H','R','S')
 /* EA IFF 85 Generic character string chunk */
-#define ID_NAME     MKID_BE('NAME')
+#define ID_NAME     MKTAG('N','A','M','E')
 /* EA IFF 85 Generic Name of art, music, etc. chunk */
-#define ID_TEXT     MKID_BE('TEXT')
+#define ID_TEXT     MKTAG('T','E','X','T')
 /* EA IFF 85 Generic unformatted ASCII text chunk */
-#define ID_copy     MKID_BE('(c) ')
+#define ID_copy     MKTAG('(','c',')',' ')
 /* EA IFF 85 Generic Copyright text chunk */
 
 /* ILBM chunks */
 
-#define ID_BMHD     MKID_BE('BMHD')
+#define ID_BMHD     MKTAG('B','M','H','D')
 /* ILBM BitmapHeader */
-#define ID_CMAP     MKID_BE('CMAP')
+#define ID_CMAP     MKTAG('C','M','A','P')
 /* ILBM 8bit RGB colormap */
-#define ID_GRAB     MKID_BE('GRAB')
+#define ID_GRAB     MKTAG('G','R','A','B')
 /* ILBM "hotspot" coordiantes */
-#define ID_DEST     MKID_BE('DEST')
+#define ID_DEST     MKTAG('D','E','S','T')
 /* ILBM destination image info */
-#define ID_SPRT     MKID_BE('SPRT')
+#define ID_SPRT     MKTAG('S','P','R','T')
 /* ILBM sprite identifier */
-#define ID_CAMG     MKID_BE('CAMG')
+#define ID_CAMG     MKTAG('C','A','M','G')
 /* Amiga viewportmodes */
-#define ID_BODY     MKID_BE('BODY')
+#define ID_BODY     MKTAG('B','O','D','Y')
 /* ILBM image data */
-#define ID_CRNG     MKID_BE('CRNG')
+#define ID_CRNG     MKTAG('C','R','N','G')
 /* color cycling */
-#define ID_CCRT     MKID_BE('CCRT')
+#define ID_CCRT     MKTAG('C','C','R','T')
 /* color cycling */
-#define ID_CLUT     MKID_BE('CLUT')
+#define ID_CLUT     MKTAG('C','L','U','T')
 /* Color Lookup Table chunk */
-#define ID_DPI      MKID_BE('DPI ')
+#define ID_DPI      MKTAG('D','P','I',' ')
 /* Dots per inch chunk */
-#define ID_DPPV     MKID_BE('DPPV')
+#define ID_DPPV     MKTAG('D','P','P','V')
 /* DPaint perspective chunk (EA) */
-#define ID_DRNG     MKID_BE('DRNG')
+#define ID_DRNG     MKTAG('D','R','N','G')
 /* DPaint IV enhanced color cycle chunk (EA) */
-#define ID_EPSF     MKID_BE('EPSF')
+#define ID_EPSF     MKTAG('E','P','S','F')
 /* Encapsulated Postscript chunk */
-#define ID_CMYK     MKID_BE('CMYK')
+#define ID_CMYK     MKTAG('C','M','Y','K')
 /* Cyan, Magenta, Yellow, & Black color map (Soft-Logik) */
-#define ID_CNAM     MKID_BE('CNAM')
+#define ID_CNAM     MKTAG('C','N','A','M')
 /* Color naming chunk (Soft-Logik) */
-#define ID_PCHG     MKID_BE('PCHG')
+#define ID_PCHG     MKTAG('P','C','H','G')
 /* Line by line palette control information (Sebastiano Vigna) */
-#define ID_PRVW     MKID_BE('PRVW')
+#define ID_PRVW     MKTAG('P','R','V','W')
 /* A mini duplicate ILBM used for preview (Gary Bonham) */
-#define ID_XBMI     MKID_BE('XBMI')
+#define ID_XBMI     MKTAG('X','B','M','I')
 /* eXtended BitMap Information (Soft-Logik) */
-#define ID_CTBL     MKID_BE('CTBL')
+#define ID_CTBL     MKTAG('C','T','B','L')
 /* Newtek Dynamic Ham color chunk */
-#define ID_DYCP     MKID_BE('DYCP')
+#define ID_DYCP     MKTAG('D','Y','C','P')
 /* Newtek Dynamic Ham chunk */
-#define ID_SHAM     MKID_BE('SHAM')
+#define ID_SHAM     MKTAG('S','H','A','M')
 /* Sliced HAM color chunk */
-#define ID_ABIT     MKID_BE('ABIT')
+#define ID_ABIT     MKTAG('A','B','I','T')
 /* ACBM body chunk */
-#define ID_DCOL     MKID_BE('DCOL')
+#define ID_DCOL     MKTAG('D','C','O','L')
 /* unofficial direct color */
-#define ID_DPPS     MKID_BE('DPPS')
+#define ID_DPPS     MKTAG('D','P','P','S')
 /* ? */
-#define ID_TINY     MKID_BE('TINY')
+#define ID_TINY     MKTAG('T','I','N','Y')
 /* ? */
-#define ID_DPPV     MKID_BE('DPPV')
+#define ID_DPPV     MKTAG('D','P','P','V')
 /* ? */
 
 /* 8SVX chunks */
 
-#define ID_VHDR     MKID_BE('VHDR')
+#define ID_VHDR     MKTAG('V','H','D','R')
 /* 8SVX Voice8Header */
-
-
-char * ID2string(Common::IFF_ID id);
 
 
 /**
@@ -217,8 +211,8 @@ class IFFParser {
 	};
 
 protected:
-	IFFChunkNav _formChunk;	//!< The root chunk of the file.
-	IFFChunkNav _chunk; 	//!< The current chunk.
+	IFFChunkNav _formChunk;	///< The root chunk of the file.
+	IFFChunkNav _chunk; 	///< The current chunk.
 
 	uint32 _formSize;
 	Common::IFF_ID _formType;
@@ -226,41 +220,11 @@ protected:
 	Common::ReadStream *_stream;
 	bool _disposeStream;
 
-	void setInputStream(Common::ReadStream *stream) {
-		assert(stream);
-		_formChunk.setInputStream(stream);
-		_chunk.setInputStream(stream);
-
-		_formChunk.readHeader();
-		if (_formChunk.id != ID_FORM) {
-			error("IFFParser input is not a FORM type IFF file");
-		}
-		_formSize = _formChunk.size;
-		_formType = _formChunk.readUint32BE();
-	}
+	void setInputStream(Common::ReadStream *stream);
 
 public:
-	IFFParser(Common::ReadStream *stream, bool disposeStream = false) : _stream(stream), _disposeStream(disposeStream) {
-		setInputStream(stream);
-	}
-	~IFFParser() {
-		if (_disposeStream) {
-			delete _stream;
-		}
-		_stream = 0;
-	}
-
-	/**
-	 * Returns the IFF FORM type.
-	 * @return the IFF FORM type of the stream, or 0 if FORM header is not found.
-	 */
-	Common::IFF_ID getFORMType() const;
-
-	/**
-	 * Returns the size of the data.
-	 * @return the size of the data in file, or -1 if FORM header is not found.
-	 */
-	uint32 getFORMSize() const;
+	IFFParser(Common::ReadStream *stream, bool disposeStream = false);
+	~IFFParser();
 
 	/**
 	 * Callback type for the parser.
@@ -271,31 +235,7 @@ public:
 	 * Parse the IFF container, invoking the callback on each chunk encountered.
 	 * The callback can interrupt the parsing by returning 'true'.
 	 */
-	void parse(IFFCallback &callback) {
-		bool stop;
-		do {
-			_chunk.feed();
-			_formChunk.incBytesRead(_chunk.size);
-
-			if (_formChunk.hasReadAll()) {
-				break;
-			}
-
-			_formChunk.incBytesRead(8);
-			_chunk.readHeader();
-
-			// invoke the callback
-			Common::SubReadStream stream(&_chunk, _chunk.size);
-			IFFChunk chunk(_chunk.id, _chunk.size, &stream);
-			stop = callback(chunk);
-
-			// eats up all the remaining data in the chunk
-			while (!stream.eos()) {
-				stream.readByte();
-			}
-
-		} while (!stop);
-	}
+	void parse(IFFCallback &callback);
 };
 
 

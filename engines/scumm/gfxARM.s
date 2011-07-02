@@ -1,5 +1,8 @@
-@ ScummVM Scumm Interpreter
-@ Copyright (C) 2007 The ScummVM project
+@ ScummVM - Graphic Adventure Engine
+@
+@ ScummVM is the legal property of its developers, whose names
+@ are too numerous to list here. Please refer to the COPYRIGHT
+@ file distributed with this source distribution.
 @
 @ This program is free software@ you can redistribute it and/or
 @ modify it under the terms of the GNU General Public License
@@ -15,15 +18,12 @@
 @ along with this program@ if not, write to the Free Software
 @ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 @
-@ $URL$
-@ $Id$
-@
 @ @author Robin Watts (robin@wss.co.uk)
 
 	.text
 
-	.global	asmDrawStripToScreen
-	.global	asmCopy8Col
+	.global	_asmDrawStripToScreen
+	.global	_asmCopy8Col
 
 	@ ARM implementation of asmDrawStripToScreen.
 	@
@@ -41,7 +41,7 @@
 	@ In addition, we assume that text, src and dst are all word (4 byte)
 	@ aligned. This is the same assumption that the old 'inline' version
 	@ made.
-asmDrawStripToScreen:
+_asmDrawStripToScreen:
 	@ r0 = height
 	@ r1 = width
 	@ r2 = text
@@ -116,19 +116,24 @@ end:
 	@ extern "C" void asmCopy8Col(byte       *dst,
 	@                             int         dstPitch,
 	@                             const byte *src,
-	@                             int         height);
+	@                             int         height,
+	@                             uint8       bitdepth);
 	@
 	@ In addition, we assume that src and dst are both word (4 byte)
 	@ aligned. This is the same assumption that the old 'inline' version
 	@ made.
-asmCopy8Col:
+_asmCopy8Col:
 	@ r0 = dst
 	@ r1 = dstPitch
 	@ r2 = src
 	@ r3 = height
-	STMFD	r13!,{r14}
-	SUB	r1,r1,#4
+	@ <> = bitdepth (badly named, should be bytedepth, 1 or 2)
+	LDR	r12,[r13]
+	STR	r14,[r13,#-4]!
+	CMP	r12,#1
+	BNE	copy8Col16
 
+	SUB	r1,r1,#4
 	TST	r3,#1
 	ADDNE   r3,r3,#1
 	BNE	roll2
@@ -145,4 +150,33 @@ roll2:
 	STR	r14,[r0],r1
 	BNE	yLoop2
 
-	LDMFD	r13!,{PC}
+	LDR	PC,[r13],#4
+
+copy8Col16:
+	STMFD	r13!,{r4-r5}
+	SUB	r1,r1,#12
+	TST	r3,#1
+	ADDNE   r3,r3,#1
+	BNE	roll3
+yLoop3:
+	LDR	r4, [r2],#4
+	LDR	r5, [r2],#4
+	LDR	r12,[r2],#4
+	LDR	r14,[r2],r1
+	STR	r4, [r0],#4
+	STR	r5, [r0],#4
+	STR	r12,[r0],#4
+	STR	r14,[r0],r1
+roll3:
+	LDR	r4, [r2],#4
+	LDR	r5, [r2],#4
+	LDR	r12,[r2],#4
+	LDR	r14,[r2],r1
+	SUBS	r3,r3,#2
+	STR	r4, [r0],#4
+	STR	r5, [r0],#4
+	STR	r12,[r0],#4
+	STR	r14,[r0],r1
+	BNE	yLoop3
+
+	LDMFD	r13!,{r4,r5,PC}

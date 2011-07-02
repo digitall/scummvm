@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -53,19 +50,16 @@ Init::~Init() {
 }
 
 void Init::cleanup() {
-	_vm->_video->freeDriver();
 	_vm->_global->_primarySurfDesc.reset();
 
 	_vm->_sound->speakerOff();
 	_vm->_sound->blasterStop(0);
-	_vm->_dataIO->closeDataFile();
+	_vm->_dataIO->closeArchive(true);
 }
 
 void Init::doDemo() {
 	if (_vm->isSCNDemo()) {
 		// This is a non-interactive demo with a SCN script and VMD videos
-
-		_vm->_video->setPrePalette();
 
 		SCNPlayer scnPlayer(_vm);
 
@@ -84,17 +78,12 @@ void Init::doDemo() {
 }
 
 void Init::initGame() {
-	byte *infBuf;
-	char *infPtr;
-	char *infEnd;
-	char buffer[128];
-
 	initVideo();
 	updateConfig();
 
 	if (!_vm->isDemo()) {
-		if (_vm->_dataIO->existData(_vm->_startStk.c_str()))
-			_vm->_dataIO->openDataFile(_vm->_startStk.c_str());
+		if (_vm->_dataIO->hasFile(_vm->_startStk))
+			_vm->_dataIO->openArchive(_vm->_startStk, true);
 	}
 
 	_vm->_util->initInput();
@@ -113,6 +102,11 @@ void Init::initGame() {
 	_palDesc->unused2 = _vm->_draw->_unusedPalette2;
 	_vm->_video->setFullPalette(_palDesc);
 
+	for (int i = 0; i < 10; i++)
+		_vm->_draw->_fascinWin[i].id = -1;
+
+	_vm->_draw->_winCount = 0;
+
 	for (int i = 0; i < 8; i++)
 		_vm->_draw->_fonts[i] = 0;
 
@@ -124,77 +118,75 @@ void Init::initGame() {
 		return;
 	}
 
-	if (!_vm->_dataIO->existData("intro.inf")) {
+	Common::SeekableReadStream *infFile = _vm->_dataIO->getFile("intro.inf");
+	if (!infFile) {
 
 		for (int i = 0; i < 4; i++)
 			_vm->_draw->loadFont(i, _fontNames[i]);
 
 	} else {
-		infBuf = _vm->_dataIO->getData("intro.inf");
-		infPtr = (char *) infBuf;
 
-		infEnd = (char *) (infBuf + _vm->_dataIO->getDataSize("intro.inf"));
-
-		for (int i = 0; i < 8; i++, infPtr++) {
-			int j;
-
-			for (j = 0; infPtr < infEnd && *infPtr >= ' '; j++, infPtr++)
-				buffer[j] = *infPtr;
-			buffer[j] = 0;
-
-			strcat(buffer, ".let");
-
-			_vm->_draw->loadFont(i, buffer);
-
-			if ((infPtr + 1) >= infEnd)
+		for (int i = 0; i < 8; i++) {
+			if (infFile->eos())
 				break;
 
-			infPtr++;
+			Common::String font = infFile->readLine();
+			if (infFile->eos() && font.empty())
+				break;
+
+			font += ".let";
+
+			_vm->_draw->loadFont(i, font.c_str());
 		}
-		delete[] infBuf;
+
+		delete infFile;
 	}
 
-	if (_vm->_dataIO->existData(_vm->_startTot.c_str())) {
+	if (_vm->_dataIO->hasFile(_vm->_startTot)) {
 		_vm->_inter->allocateVars(Script::getVariablesCount(_vm->_startTot.c_str(), _vm));
 
-		strcpy(_vm->_game->_curTotFile, _vm->_startTot.c_str());
+		_vm->_game->_curTotFile = _vm->_startTot;
 
 		_vm->_sound->cdTest(1, "GOB");
 		_vm->_sound->cdLoadLIC("gob.lic");
 
 		// Search for a Coktel logo animation or image to display
-		if (_vm->_dataIO->existData("coktel.imd")) {
+		if (_vm->_dataIO->hasFile("coktel.imd")) {
 			_vm->_draw->initScreen();
 			_vm->_draw->_cursorIndex = -1;
 
 			_vm->_util->longDelay(200); // Letting everything settle
 
-			if (_vm->_vidPlayer->primaryOpen("coktel.imd")) {
-				_vm->_vidPlayer->primaryPlay();
-				_vm->_vidPlayer->primaryClose();
+			VideoPlayer::Properties props;
+			int slot;
+			if ((slot = _vm->_vidPlayer->openVideo(true, "coktel.imd", props)) >= 0) {
+				_vm->_vidPlayer->play(slot, props);
+				_vm->_vidPlayer->closeVideo(slot);
 			}
 
 			_vm->_draw->closeScreen();
-		} else if (_vm->_dataIO->existData("coktel.clt")) {
-			_vm->_draw->initScreen();
-			_vm->_util->clearPalette();
+		} else if (_vm->_dataIO->hasFile("coktel.clt")) {
+			Common::SeekableReadStream *stream = _vm->_dataIO->getFile("coktel.clt");
+			if (stream) {
+				_vm->_draw->initScreen();
+				_vm->_util->clearPalette();
 
-			DataStream *stream = _vm->_dataIO->getDataStream("coktel.clt");
-			stream->read((byte *) _vm->_draw->_vgaPalette, 768);
-			delete stream;
+				stream->read((byte *)_vm->_draw->_vgaPalette, 768);
+				delete stream;
 
-			if (_vm->_dataIO->existData("coktel.ims")) {
-				byte *sprBuf;
+				int32 size;
+				byte *sprite = _vm->_dataIO->getFile("coktel.ims", size);
+				if (sprite) {
+					_vm->_video->drawPackedSprite(sprite, 320, 200, 0, 0, 0,
+							*_vm->_draw->_frontSurface);
+					_vm->_palAnim->fade(_palDesc, 0, 0);
+					_vm->_util->delay(500);
 
-				sprBuf = _vm->_dataIO->getData("coktel.ims");
-				_vm->_video->drawPackedSprite(sprBuf, 320, 200, 0, 0, 0,
-						*_vm->_draw->_frontSurface);
-				_vm->_palAnim->fade(_palDesc, 0, 0);
-				_vm->_util->delay(500);
+					delete[] sprite;
+				}
 
-				delete[] sprBuf;
+				_vm->_draw->closeScreen();
 			}
-			_vm->_draw->closeScreen();
 		}
 
 		_vm->_game->start();
@@ -205,7 +197,7 @@ void Init::initGame() {
 	}
 
 	delete _palDesc;
-	_vm->_dataIO->closeDataFile();
+	_vm->_dataIO->closeArchive(true);
 	_vm->_video->initPrimary(-1);
 	cleanup();
 }

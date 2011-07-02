@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SYSTEMPS2_H
@@ -28,13 +25,10 @@
 
 #include "common/system.h"
 #include "backends/base-backend.h"
-
-class DefaultTimerManager;
-class DefaultSaveFileManager;
+#include "graphics/palette.h"
 
 class Gs2dScreen;
 class Ps2Input;
-class Ps2SaveFileManager;
 // class Ps2FilesystemFactory;
 struct IrxReference;
 
@@ -46,36 +40,35 @@ struct Ps2Mutex {
 	int count;
 };
 
-namespace Common {
-	class TimerManager;
-};
-
 namespace Audio {
-	class MixerImpl;
+class MixerImpl;
 };
 
-class OSystem_PS2 : public BaseBackend {
+class OSystem_PS2 : public EventsBaseBackend, public PaletteManager {
 public:
 	OSystem_PS2(const char *elfPath);
 	virtual ~OSystem_PS2(void);
-	virtual void initSize(uint width, uint height);
+	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format);
 
 	void init(void);
 
 	virtual int16 getHeight(void);
 	virtual int16 getWidth(void);
+
+	virtual PaletteManager *getPaletteManager() { return this; }
+protected:
+	// PaletteManager API
 	virtual void setPalette(const byte *colors, uint start, uint num);
+	virtual void grabPalette(byte *colors, uint start, uint num);
+public:
+
 	virtual void copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h);
 	virtual void setShakePos(int shakeOffset);
-	virtual void grabPalette(byte *colors, uint start, uint num);
 	virtual bool grabRawScreen(Graphics::Surface *surf);
 	virtual Graphics::Surface *lockScreen();
 	virtual void unlockScreen();
 	virtual void updateScreen();
-	virtual void fillScreen(uint32);
-	/* TODO : check */
-	virtual void displayMessageOnOSD(const char *msg) { printf("displayMessageOnOSD: %s\n", msg); };
-	/* */
+	virtual void displayMessageOnOSD(const char *msg);
 
 	virtual void showOverlay();
 	virtual void hideOverlay();
@@ -88,21 +81,13 @@ public:
 	virtual bool showMouse(bool visible);
 
 	virtual void warpMouse(int x, int y);
-	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspot_x, int hotspot_y, byte keycolor, int cursorTargetScale = 1);
+	virtual void setMouseCursor(const byte *buf, uint w, uint h, int hotspot_x, int hotspot_y, uint32 keycolor, int cursorTargetScale = 1, const Graphics::PixelFormat *format = 0);
 
 	virtual uint32 getMillis();
 	virtual void delayMillis(uint msecs);
-	virtual Common::TimerManager *getTimerManager();
-//	virtual Common::EventManager *getEventManager();
 	virtual bool pollEvent(Common::Event &event);
 
 	virtual Audio::Mixer *getMixer();
-
-	virtual bool openCD(int drive);
-	virtual bool pollCD();
-	virtual void playCD(int track, int num_loops, int start_frame, int duration);
-	virtual void stopCD();
-	virtual void updateCD();
 
 	virtual MutexRef createMutex(void);
 	virtual void lockMutex(MutexRef mutex);
@@ -117,18 +102,18 @@ public:
 
 	virtual void quit();
 
-	virtual Common::SeekableReadStream *createConfigReadStream();
-	virtual Common::WriteStream *createConfigWriteStream();
+	virtual Common::String getDefaultConfigFileName();
 
-	virtual Graphics::PixelFormat getOverlayFormat() const; 
-	virtual Common::SaveFileManager *getSavefileManager();
+	virtual void logMessage(LogMessageType::Type type, const char *message);
+
+	virtual Graphics::PixelFormat getOverlayFormat() const;
 	virtual FilesystemFactory *getFilesystemFactory();
 
-	virtual void getTimeAndDate(struct tm &t) const;
+	virtual void getTimeAndDate(TimeDate &t) const;
 
-	void timerThread(void);
-	void soundThread(void);
-	void msgPrintf(int millis, char *format, ...);
+	void timerThreadCallback(void);
+	void soundThreadCallback(void);
+	void msgPrintf(int millis, const char *format, ...) GCC_PRINTF(3, 4);
 	void makeConfigPath(void);
 	bool prepMC();
 
@@ -149,14 +134,10 @@ private:
 	void initTimer(void);
 	void readRtcTime(void);
 
-	DefaultTimerManager *_scummTimerManager;
 	Audio::MixerImpl *_scummMixer;
 
 	bool _mouseVisible;
 	bool _useMouse, _useKbd, _useHdd, _usbMassLoaded, _useNet;
-
-	Ps2SaveFileManager *_saveManager;
-	// DefaultSaveFileManager *_saveManager;
 
 	Gs2dScreen	*_screen;
 	Ps2Input	*_input;

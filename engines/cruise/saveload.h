@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_SAVELOAD_H
@@ -42,7 +39,7 @@ struct CruiseSavegameHeader {
 Common::Error saveSavegameData(int saveGameIdx, const Common::String &saveName);
 Common::Error loadSavegameData(int saveGameIdx);
 bool readSavegameHeader(Common::InSaveFile *in, CruiseSavegameHeader &header);
-void initVars(void);
+void initVars();
 
 } // End of namespace Cruise
 

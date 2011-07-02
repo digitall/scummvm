@@ -19,14 +19,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
 #include "common/file.h"
+#include "common/textconsole.h"
+#include "graphics/palette.h"
 #include "graphics/primitives.h"
+#include "engines/util.h"
 
 #include "parallaction/input.h"
 #include "parallaction/parallaction.h"
@@ -151,34 +151,32 @@ void Palette::fadeTo(const Palette& target, uint step) {
 		if (_data[i] == target._data[i]) continue;
 
 		if (_data[i] < target._data[i])
-			_data[i] = CLIP(_data[i] + step, (uint)0, (uint)target._data[i]);
+			_data[i] = CLIP(_data[i] + (int)step, (int)0, (int)target._data[i]);
 		else
-			_data[i] = CLIP(_data[i] - step, (uint)target._data[i], (uint)255);
+			_data[i] = CLIP(_data[i] - (int)step, (int)target._data[i], (int)255);
 	}
 
 	return;
 }
 
-uint Palette::fillRGBA(byte *rgba) {
+uint Palette::fillRGB(byte *rgb) {
 
 	byte r, g, b;
-	byte *hbPal = rgba + _colors * 4;
+	byte *hbPal = rgb + _colors * 3;
 
 	for (uint32 i = 0; i < _colors; i++) {
 		r = (_data[i*3]   << 2) | (_data[i*3]   >> 4);
 		g = (_data[i*3+1] << 2) | (_data[i*3+1] >> 4);
 		b = (_data[i*3+2] << 2) | (_data[i*3+2] >> 4);
 
-		rgba[i*4]   = r;
-		rgba[i*4+1] = g;
-		rgba[i*4+2] = b;
-		rgba[i*4+3] = 0;
+		rgb[i*3]   = r;
+		rgb[i*3+1] = g;
+		rgb[i*3+2] = b;
 
 		if (_hb) {
-			hbPal[i*4]   = r >> 1;
-			hbPal[i*4+1] = g >> 1;
-			hbPal[i*4+2] = b >> 1;
-			hbPal[i*4+3] = 0;
+			hbPal[i*3]   = r >> 1;
+			hbPal[i*3+1] = g >> 1;
+			hbPal[i*3+2] = b >> 1;
 		}
 
 	}
@@ -221,10 +219,10 @@ void Palette::rotate(uint first, uint last, bool forward) {
 
 
 void Gfx::setPalette(Palette pal) {
-	byte sysPal[256*4];
+	byte sysPal[256*3];
 
-	uint n = pal.fillRGBA(sysPal);
-	_vm->_system->setPalette(sysPal, 0, n);
+	uint n = pal.fillRGB(sysPal);
+	_vm->_system->getPaletteManager()->setPalette(sysPal, 0, n);
 }
 
 void Gfx::setBlackPalette() {
@@ -316,8 +314,10 @@ void Gfx::drawList(Graphics::Surface &surface, GfxObjArray &list) {
 
 void Gfx::copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {
 	if (_doubleBuffering) {
-		if (_overlayMode)
+		if (_overlayMode) {
 			x += _scrollPosX;
+			y += _scrollPosY;
+		}
 
 		byte *dst = (byte*)_backBuffer.getBasePtr(x, y);
 		for (int i = 0; i < h; i++) {
@@ -357,7 +357,7 @@ void Gfx::unlockScreen() {
 
 void Gfx::updateScreenIntern() {
 	if (_doubleBuffering) {
-		byte *data = (byte*)_backBuffer.getBasePtr(_scrollPosX, 0);
+		byte *data = (byte*)_backBuffer.getBasePtr(_scrollPosX, _scrollPosY);
 		_vm->_system->copyRectToScreen(data, _backBuffer.pitch, 0, 0, _vm->_screenWidth, _vm->_screenHeight);
 	}
 
@@ -520,11 +520,11 @@ void Gfx::invertBackground(const Common::Rect& r) {
 
 
 void setupLabelSurface(Graphics::Surface &surf, uint w, uint h) {
-	surf.create(w, h, 1);
+	surf.create(w, h, Graphics::PixelFormat::createFormatCLUT8());
 	surf.fillRect(Common::Rect(w,h), LABEL_TRANSPARENT_COLOR);
 }
 
-uint Gfx::renderFloatingLabel(Font *font, char *text) {
+GfxObj *Gfx::renderFloatingLabel(Font *font, char *text) {
 
 	Graphics::Surface *cnv = new Graphics::Surface;
 
@@ -535,12 +535,12 @@ uint Gfx::renderFloatingLabel(Font *font, char *text) {
 
 		setupLabelSurface(*cnv, w, h);
 
-		font->setColor((_vm->getGameType() == GType_BRA) ? 0 : 7);
+		font->setColor((_gameType == GType_BRA) ? 0 : 7);
 		font->drawString((byte*)cnv->pixels + 1, cnv->w, text);
 		font->drawString((byte*)cnv->pixels + 1 + cnv->w * 2, cnv->w, text);
 		font->drawString((byte*)cnv->pixels + cnv->w, cnv->w, text);
 		font->drawString((byte*)cnv->pixels + 2 + cnv->w, cnv->w, text);
-		font->setColor((_vm->getGameType() == GType_BRA) ? 11 : 1);
+		font->setColor((_gameType == GType_BRA) ? 11 : 1);
 		font->drawString((byte*)cnv->pixels + 1 + cnv->w, cnv->w, text);
 	} else {
 		w = font->getStringWidth(text);
@@ -555,34 +555,32 @@ uint Gfx::renderFloatingLabel(Font *font, char *text) {
 	obj->transparentKey = LABEL_TRANSPARENT_COLOR;
 	obj->layer = LAYER_FOREGROUND;
 
-	uint id = _labels.size();
-	_labels.insert_at(id, obj);
-
-	return id;
+	return obj;
 }
 
-void Gfx::showFloatingLabel(uint label) {
-	assert(label < _labels.size());
-
+void Gfx::showFloatingLabel(GfxObj *label) {
 	hideFloatingLabel();
 
-	_labels[label]->x = -1000;
-	_labels[label]->y = -1000;
-	_labels[label]->setFlags(kGfxObjVisible);
+	if (label) {
+		label->x = -1000;
+		label->y = -1000;
+		label->setFlags(kGfxObjVisible);
 
-	_floatingLabel = label;
+		_floatingLabel = label;
+		_labels.push_back(label);
+	}
 }
 
 void Gfx::hideFloatingLabel() {
-	if (_floatingLabel != NO_FLOATING_LABEL) {
-		_labels[_floatingLabel]->clearFlags(kGfxObjVisible);
+	if (_floatingLabel != 0) {
+		_floatingLabel->clearFlags(kGfxObjVisible);
 	}
-	_floatingLabel = NO_FLOATING_LABEL;
+	_floatingLabel = 0;
 }
 
 
 void Gfx::updateFloatingLabel() {
-	if (_floatingLabel == NO_FLOATING_LABEL) {
+	if (_floatingLabel == 0) {
 		return;
 	}
 
@@ -596,7 +594,7 @@ void Gfx::updateFloatingLabel() {
 	} *traits;
 
 	Common::Rect r;
-	_labels[_floatingLabel]->getRect(0, r);
+	_floatingLabel->getRect(0, r);
 
 	if (_gameType == GType_Nippon) {
 		FloatingLabelTraits traits_NS = {
@@ -619,14 +617,14 @@ void Gfx::updateFloatingLabel() {
 	_vm->_input->getCursorPos(cursor);
 	Common::Point offset = (_vm->_input->_activeItem._id) ? traits->_offsetWithItem : traits->_offsetWithoutItem;
 
-	_labels[_floatingLabel]->x = CLIP(cursor.x + offset.x, traits->_minX, traits->_maxX);
-	_labels[_floatingLabel]->y = CLIP(cursor.y + offset.y, traits->_minY, traits->_maxY);
+	_floatingLabel->x = CLIP(cursor.x + offset.x, traits->_minX, traits->_maxX);
+	_floatingLabel->y = CLIP(cursor.y + offset.y, traits->_minY, traits->_maxY);
 }
 
 
 
 
-uint Gfx::createLabel(Font *font, const char *text, byte color) {
+GfxObj *Gfx::createLabel(Font *font, const char *text, byte color) {
 	Graphics::Surface *cnv = new Graphics::Surface;
 
 	uint w, h;
@@ -652,19 +650,18 @@ uint Gfx::createLabel(Font *font, const char *text, byte color) {
 	obj->transparentKey = LABEL_TRANSPARENT_COLOR;
 	obj->layer = LAYER_FOREGROUND;
 
-	int id = _labels.size();
-
-	_labels.insert_at(id, obj);
-
-	return id;
+	return obj;
 }
 
-void Gfx::showLabel(uint id, int16 x, int16 y) {
-	assert(id < _labels.size());
-	_labels[id]->setFlags(kGfxObjVisible);
+void Gfx::showLabel(GfxObj *label, int16 x, int16 y) {
+	if (!label) {
+		return;
+	}
+
+	label->setFlags(kGfxObjVisible);
 
 	Common::Rect r;
-	_labels[id]->getRect(0, r);
+	label->getRect(0, r);
 
 	if (x == CENTER_LABEL_HORIZONTAL) {
 		x = CLIP<int16>((_backgroundInfo->width - r.width()) / 2, 0, _backgroundInfo->width/2);
@@ -674,23 +671,32 @@ void Gfx::showLabel(uint id, int16 x, int16 y) {
 		y = CLIP<int16>((_vm->_screenHeight - r.height()) / 2, 0, _vm->_screenHeight/2);
 	}
 
-	_labels[id]->x = x;
-	_labels[id]->y = y;
+	label->x = x;
+	label->y = y;
+
+	_labels.push_back(label);
 }
 
-void Gfx::hideLabel(uint id) {
-	assert(id < _labels.size());
-	_labels[id]->clearFlags(kGfxObjVisible);
+void Gfx::hideLabel(GfxObj *label) {
+	if (label) {
+		label->clearFlags(kGfxObjVisible);
+		unregisterLabel(label);
+	}
 }
 
 void Gfx::freeLabels() {
-	for (uint i = 0; i < _labels.size(); i++) {
-		delete _labels[i];
-	}
 	_labels.clear();
-	_floatingLabel = NO_FLOATING_LABEL;
+	_floatingLabel = 0;
 }
 
+void Gfx::unregisterLabel(GfxObj *label) {
+	for (uint i = 0; i < _labels.size(); i++) {
+		if (_labels[i] == label) {
+			_labels.remove_at(i);
+			break;
+		}
+	}
+}
 
 
 void Gfx::copyRect(const Common::Rect &r, Graphics::Surface &src, Graphics::Surface &dst) {
@@ -714,8 +720,11 @@ void Gfx::grabBackground(const Common::Rect& r, Graphics::Surface &dst) {
 
 
 Gfx::Gfx(Parallaction* vm) :
-	_vm(vm), _disk(vm->_disk), _backgroundInfo(0), _scrollPosX(0), _minScrollX(0), _maxScrollX(0),
-	_minScrollY(0), _maxScrollY(0), _requestedHScrollSteps(0), _requestedVScrollSteps(0) {
+	_vm(vm), _disk(vm->_disk), _backgroundInfo(0),
+	_scrollPosX(0), _scrollPosY(0),_minScrollX(0), _maxScrollX(0),
+	_minScrollY(0), _maxScrollY(0),
+	_requestedHScrollSteps(0), _requestedVScrollSteps(0),
+	_requestedHScrollDir(0), _requestedVScrollDir(0) {
 
 	_gameType = _vm->getGameType();
 	_doubleBuffering = _gameType != GType_Nippon;
@@ -724,7 +733,7 @@ Gfx::Gfx(Parallaction* vm) :
 
 	setPalette(_palette);
 
-	_floatingLabel = NO_FLOATING_LABEL;
+	_floatingLabel = 0;
 
 	_backgroundInfo = 0;
 
@@ -799,7 +808,7 @@ GfxObj* Gfx::registerBalloon(Frames *frames, const char *text) {
 void Gfx::freeDialogueObjects() {
 	_items.clear();
 
-    _vm->_balloonMan->reset();
+	_vm->_balloonMan->reset();
 
 	for (uint i = 0; i < _balloons.size(); i++) {
 		delete _balloons[i];
@@ -823,7 +832,7 @@ void Gfx::setBackground(uint type, BackgroundInfo *info) {
 		// The PC version of BRA needs the entries 20-31 of the palette to be constant, but
 		// the background resource files are screwed up. The right colors come from an unused
 		// bitmap (pointer.bmp). Nothing is known about the Amiga version so far.
-		if ((_vm->getGameType() == GType_BRA) && (_vm->getPlatform() == Common::kPlatformPC)) {
+		if ((_gameType == GType_BRA) && (_vm->getPlatform() == Common::kPlatformPC)) {
 			int r, g, b;
 			for (uint i = 16; i < 32; i++) {
 				_backupPal.getEntry(i, r, g, b);
@@ -847,12 +856,14 @@ void Gfx::setBackground(uint type, BackgroundInfo *info) {
 		int height = CLIP(info->height, (int)_vm->_screenHeight, info->height);
 
 		if (width != _backBuffer.w || height != _backBuffer.h) {
-			_backBuffer.create(width, height, 1);
+			_backBuffer.create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 		}
 	}
 
 	_minScrollX = 0;
 	_maxScrollX = MAX<int>(0, _backgroundInfo->width - _vm->_screenWidth);
+	_minScrollY = 0;
+	_maxScrollY = MAX<int>(0, _backgroundInfo->height - _vm->_screenHeight);
 }
 
 
@@ -1096,7 +1107,15 @@ void PathBuffer::free() {
 }
 
 byte PathBuffer::getValue(uint16 x, uint16 y) const {
-	byte m = data[(x >> 3) + y * internalWidth];
+	byte m = 0;
+	if (data) {
+		uint index = (x >> 3) + y * internalWidth;
+		if (index < size)
+			m = data[index];
+		else
+			warning("PathBuffer::getValue(x: %d, y: %d) outside of data buffer of size %d", x, y, size);
+	} else
+		warning("PathBuffer::getValue() attempted to use NULL data buffer");
 	uint bit = bigEndian ? (x & 7) : (7 - (x & 7));
 	return ((1 << bit) & m) >> bit;
 }

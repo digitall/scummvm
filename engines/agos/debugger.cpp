@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -50,16 +47,6 @@ Debugger::Debugger(AGOSEngine *vm)
 	DCmd_Register("dumpimage",      WRAP_METHOD(Debugger, Cmd_dumpImage));
 	DCmd_Register("dumpscript",     WRAP_METHOD(Debugger, Cmd_dumpScript));
 
-}
-
-
-void Debugger::preEnter() {
-	//_vm->_midi.pause(1);
-}
-
-
-void Debugger::postEnter() {
-	//_vm->_midi.pause(0);
 }
 
 

@@ -18,63 +18,72 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCI_ENGINE_MESSAGE_H
 #define SCI_ENGINE_MESSAGE_H
 
 #include "sci/resource.h"
+#include "sci/engine/vm_types.h"
 #include "common/stack.h"
 
 namespace Sci {
 
+class SegManager;
+struct MessageRecord;
+
 struct MessageTuple {
-	int noun;
-	int verb;
-	int cond;
-	int seq;
+	byte noun;
+	byte verb;
+	byte cond;
+	byte seq;
+
+	MessageTuple(byte noun_ = 0, byte verb_ = 0, byte cond_ = 0, byte seq_ = 1)
+		: noun(noun_), verb(verb_), cond(cond_), seq(seq_) { }
 };
 
-struct IndexRecordCursor {
-	byte *index_record;
-	int index;
-	int nextSeq;
+class CursorStack : public Common::Stack<MessageTuple> {
+public:
+	void init(int module, MessageTuple t) {
+		clear();
+		push(t);
+		_module = module;
+	}
+
+	int getModule() const { return _module; }
+
+private:
+	int _module;
 };
 
-typedef Common::Stack<IndexRecordCursor> CursorStack;
+typedef Common::Stack<CursorStack> CursorStackStack;
 
 class MessageState {
 public:
-	MessageState() : _module(-1), _locked(false) { }
-	int findTuple(MessageTuple &t);
-	MessageTuple getTuple();
-	MessageTuple getRefTuple();
-	int getMessage();
-	void gotoNext();
-	Common::String getText();
-	int getTalker();
-	int getLength();
-	MessageTuple &getLastTuple();
-	int getLastModule();
-	int loadRes(ResourceManager *resmgr, int module, bool lock);
+	MessageState(SegManager *segMan) : _segMan(segMan) { }
+	int getMessage(int module, MessageTuple &t, reg_t buf);
+	int nextMessage(reg_t buf);
+	int messageSize(int module, MessageTuple &t);
+	bool messageRef(int module, const MessageTuple &t, MessageTuple &ref);
+	void lastQuery(int &module, MessageTuple &tuple);
+	void pushCursorStack();
+	void popCursorStack();
 
 private:
-	void initCursor();
-	void advanceCursor(bool increaseSeq);
+	bool getRecord(CursorStack &stack, bool recurse, MessageRecord &record);
+	void outputString(reg_t buf, const Common::String &str);
+	Common::String processString(const char *s);
+	int hexDigitToInt(char h);
+	bool stringHex(Common::String &outStr, const Common::String &inStr, uint &index);
+	bool stringLit(Common::String &outStr, const Common::String &inStr, uint &index);
+	bool stringStage(Common::String &outStr, const Common::String &inStr, uint &index);
 
-	Resource *_currentResource;
-	int _module;
-	bool _locked;
-	int _recordCount;
-	byte *_indexRecords;
 	CursorStack _cursorStack;
-	IndexRecordCursor _engineCursor;
+	CursorStackStack _cursorStackStack;
 	MessageTuple _lastReturned;
 	int _lastReturnedModule;
-	int _version;
+
+	SegManager *_segMan;
 };
 
 } // End of namespace Sci

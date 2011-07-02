@@ -18,24 +18,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_lok.h"
 #include "kyra/seqplayer.h"
-#include "kyra/screen_lok.h"
 #include "kyra/resource.h"
-#include "kyra/sound.h"
 #include "kyra/sprites.h"
 #include "kyra/wsamovie.h"
 #include "kyra/animator_lok.h"
-#include "kyra/text.h"
 #include "kyra/timer.h"
+#include "kyra/sound.h"
 
 #include "common/system.h"
 #include "common/savefile.h"
+#include "common/list.h"
 
 namespace Kyra {
 
@@ -92,6 +88,7 @@ void KyraEngine_LoK::seq_intro() {
 		_res->loadPakFile("INTRO.VRM");
 
 	static const IntroProc introProcTable[] = {
+		&KyraEngine_LoK::seq_introPublisherLogos,
 		&KyraEngine_LoK::seq_introLogos,
 		&KyraEngine_LoK::seq_introStory,
 		&KyraEngine_LoK::seq_introMalcolmTree,
@@ -104,17 +101,22 @@ void KyraEngine_LoK::seq_intro() {
 		delete in;
 		_skipIntroFlag = true;
 	} else {
-		_skipIntroFlag = false;
+		_skipIntroFlag = !_flags.isDemo;
 	}
 
 	_seq->setCopyViewOffs(true);
-	_screen->setFont(Screen::FID_8_FNT);
-	if (_flags.platform != Common::kPlatformFMTowns && _flags.platform != Common::kPlatformPC98)
+	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+	if (_flags.platform != Common::kPlatformFMTowns && _flags.platform != Common::kPlatformPC98 && _flags.platform != Common::kPlatformAmiga)
 		snd_playTheme(0, 2);
 	_text->setTalkCoords(144);
 
-	for (int i = 0; i < ARRAYSIZE(introProcTable) && !seq_skipSequence(); ++i)
-		(this->*introProcTable[i])();
+	for (int i = 0; i < ARRAYSIZE(introProcTable) && !seq_skipSequence(); ++i) {
+		if ((this->*introProcTable[i])() && !shouldQuit()) {
+			resetSkipFlag();
+			_screen->fadeToBlack();
+			_screen->clearPage(0);
+		}
+	}
 
 	_text->setTalkCoords(136);
 	delay(30 * _tickLength);
@@ -126,18 +128,32 @@ void KyraEngine_LoK::seq_intro() {
 		_res->unloadPakFile("INTRO.VRM");
 }
 
-void KyraEngine_LoK::seq_introLogos() {
+bool KyraEngine_LoK::seq_introPublisherLogos() {
 	if (_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98) {
 		_screen->loadBitmap("LOGO.CPS", 3, 3, &_screen->getPalette(0));
 		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
 		_screen->updateScreen();
 		_screen->fadeFromBlack();
 		delay(90 * _tickLength);
-		_screen->fadeToBlack();
+		if (!_abortIntroFlag) {
+			_screen->fadeToBlack();
+			snd_playWanderScoreViaMap(_flags.platform == Common::kPlatformFMTowns ? 57 : 2, 0);
+		}
+	} else if (_flags.platform == Common::kPlatformMacintosh && _res->exists("MP_GOLD.CPS")) {
+		_screen->loadPalette("MP_GOLD.COL", _screen->getPalette(0));
+		_screen->loadBitmap("MP_GOLD.CPS", 3, 3, 0);
+		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
+		_screen->updateScreen();
+		_screen->fadeFromBlack();
+		delay(120 * _tickLength);
 		if (!_abortIntroFlag)
-			snd_playWanderScoreViaMap(57, 0);
+			_screen->fadeToBlack();
 	}
 
+	return _abortIntroFlag;
+}
+
+bool KyraEngine_LoK::seq_introLogos() {
 	_screen->clearPage(0);
 
 	if (_flags.platform == Common::kPlatformAmiga) {
@@ -158,11 +174,9 @@ void KyraEngine_LoK::seq_introLogos() {
 	_screen->updateScreen();
 	_screen->fadeFromBlack();
 
-	if (_seq->playSequence(_seq_WestwoodLogo, skipFlag()) || shouldQuit()) {
-		_screen->fadeToBlack();
-		_screen->clearPage(0);
-		return;
-	}
+	if (_seq->playSequence(_seq_WestwoodLogo, skipFlag()) || shouldQuit())
+		return true;
+
 	delay(60 * _tickLength);
 
 	if (_flags.platform == Common::kPlatformAmiga) {
@@ -170,15 +184,16 @@ void KyraEngine_LoK::seq_introLogos() {
 		_screen->setScreenPalette(_screen->getPalette(0));
 	}
 
-	if ((_seq->playSequence(_seq_KyrandiaLogo, skipFlag()) && !seq_skipSequence()) || shouldQuit()) {
-		_screen->fadeToBlack();
-		_screen->clearPage(0);
-		return;
-	}
+	Screen::FontId of = _screen->setFont(Screen::FID_8_FNT);
+
+	if (_seq->playSequence(_seq_KyrandiaLogo, skipFlag()) || shouldQuit())
+		return true;
+
+	_screen->setFont(of);
 	_screen->fillRect(0, 179, 319, 199, 0);
 
 	if (shouldQuit())
-		return;
+		return false;
 
 	if (_flags.platform == Common::kPlatformAmiga) {
 		_screen->copyPalette(0, 2);
@@ -220,22 +235,22 @@ void KyraEngine_LoK::seq_introLogos() {
 		} while (!doneFlag && !shouldQuit() && !_abortIntroFlag);
 	}
 
-	if (shouldQuit())
-		return;
+	if (_abortIntroFlag || shouldQuit())
+		return true;
 
-	_seq->playSequence(_seq_Forest, true);
+	return _seq->playSequence(_seq_Forest, true);
 }
 
-void KyraEngine_LoK::seq_introStory() {
+bool KyraEngine_LoK::seq_introStory() {
 	_screen->clearPage(3);
 	_screen->clearPage(0);
 
 	// HACK: The Italian fan translation uses an special text screen here
 	// so we show it even when text is disabled
 	if (!textEnabled() && speechEnabled() && _flags.lang != Common::IT_ITA)
-		return;
+		return false;
 
-	if (_flags.lang == Common::EN_ANY && !_flags.isTalkie && (_flags.platform == Common::kPlatformPC || _flags.platform == Common::kPlatformAmiga))
+	if ((_flags.lang == Common::EN_ANY && !_flags.isTalkie && _flags.platform == Common::kPlatformPC) || _flags.platform == Common::kPlatformAmiga)
 		_screen->loadBitmap("TEXT.CPS", 3, 3, &_screen->getPalette(0));
 	else if (_flags.lang == Common::EN_ANY || _flags.lang == Common::JA_JPN)
 		_screen->loadBitmap("TEXT_ENG.CPS", 3, 3, &_screen->getPalette(0));
@@ -251,44 +266,66 @@ void KyraEngine_LoK::seq_introStory() {
 		_screen->loadBitmap("TEXT_ENG.CPS", 3, 3, &_screen->getPalette(0));
 	else
 		warning("no story graphics file found");
-	_screen->setScreenPalette(_screen->getPalette(0));
-	_screen->copyRegion(0, 0, 0, 0, 320, 200, 3, 0);
+
+	if (_flags.platform == Common::kPlatformAmiga)
+		_screen->setScreenPalette(_screen->getPalette(4));
+	else
+		_screen->setScreenPalette(_screen->getPalette(0));
+	_screen->copyPage(3, 0);
 
 	if (_flags.lang == Common::JA_JPN) {
-		const int x1 = (Screen::SCREEN_W - _screen->getTextWidth(_seq_textsTable[18])) / 2;
-		const int x2 = (Screen::SCREEN_W - _screen->getTextWidth(_seq_textsTable[19])) / 2;
 		const int y1 = 175;
-		const int y2 = 184;
+		int x1, x2, y2, col1;
+		const char *s1, *s2;
 
-		uint8 colorMap[] = { 0, 15, 12, 12 };
-		_screen->setTextColor(colorMap, 0, 3);
+		if (_flags.platform == Common::kPlatformFMTowns) {
+			s1 = _seq_textsTable[18];
+			s2 = _seq_textsTable[19];
+			x1 = (Screen::SCREEN_W - _screen->getTextWidth(s1)) / 2;
+			x2 = (Screen::SCREEN_W - _screen->getTextWidth(s2)) / 2;
+			uint8 colorMap[] = { 0, 15, 12, 12 };
+			_screen->setTextColor(colorMap, 0, 3);
+			y2 = 184;
+			col1 = 5;
 
-		_screen->printText(_seq_textsTable[18], x1, y1, 5, 8);
-		_screen->printText(_seq_textsTable[19], x2, y2, 5, 8);
+		} else {
+			s1 = _storyStrings[0];
+			s2 = _storyStrings[1];
+			x1 = x2 = 54;
+			y2 = 185;
+			col1 = 15;
+		}
+
+		_screen->printText(s1, x1, y1, col1, 8);
+		_screen->printText(s2, x2, y2, col1, 8);
 	}
 
 	_screen->updateScreen();
-	//debugC(0, kDebugLevelMain, "skipFlag %i, %i", skipFlag(), _tickLength);
 	delay(360 * _tickLength);
+
+	return _abortIntroFlag;
 }
 
-void KyraEngine_LoK::seq_introMalcolmTree() {
+bool KyraEngine_LoK::seq_introMalcolmTree() {
 	_screen->_curPage = 0;
 	_screen->clearPage(3);
-	_seq->playSequence(_seq_MalcolmTree, true);
+	return _seq->playSequence(_seq_MalcolmTree, true);
 }
 
-void KyraEngine_LoK::seq_introKallakWriting() {
+bool KyraEngine_LoK::seq_introKallakWriting() {
 	_seq->makeHandShapes();
 	_screen->setAnimBlockPtr(5060);
 	_screen->_charWidth = -2;
 	_screen->clearPage(3);
-	_seq->playSequence(_seq_KallakWriting, true);
+	const bool skipped = _seq->playSequence(_seq_KallakWriting, true);
+	_seq->freeHandShapes();
+
+	return skipped;
 }
 
-void KyraEngine_LoK::seq_introKallakMalcolm() {
+bool KyraEngine_LoK::seq_introKallakMalcolm() {
 	_screen->clearPage(3);
-	_seq->playSequence(_seq_KallakMalcolm, true);
+	return _seq->playSequence(_seq_KallakMalcolm, true);
 }
 
 void KyraEngine_LoK::seq_createAmuletJewel(int jewel, int page, int noSound, int drawOnly) {
@@ -555,7 +592,9 @@ void KyraEngine_LoK::seq_winterScroll1() {
 		_animator->sprites()[0].active = 0;
 		_sprites->_anims[1].play = true;
 		_animator->sprites()[1].active = 1;
-		setGameFlag(0xA2);
+
+		if (_flags.platform != Common::kPlatformAmiga)
+			setGameFlag(0xA2);
 	}
 
 	for (int i = midpoint; i < 123 + numFrames; ++i) {
@@ -569,10 +608,15 @@ void KyraEngine_LoK::seq_winterScroll1() {
 			_sprites->_anims[i].play = false;
 			_animator->sprites()[i].active = 0;
 		}
-		_screen->getPalette(0).copy(palTable2()[0], 0, 20, 228);
-		_screen->fadePalette(_screen->getPalette(0), 72);
-		_screen->setScreenPalette(_screen->getPalette(0));
-		setGameFlag(0xB3);
+
+		if (_flags.platform == Common::kPlatformAmiga) {
+			_screen->copyPalette(0, 11);
+		} else {
+			_screen->getPalette(0).copy(palTable2()[0], 0, 20, 228);
+			_screen->fadePalette(_screen->getPalette(0), 72);
+			_screen->setScreenPalette(_screen->getPalette(0));
+			setGameFlag(0xB3);
+		}
 	} else {
 		delayWithTicks(120);
 	}
@@ -673,7 +717,7 @@ void KyraEngine_LoK::seq_makeBrandonNormal2() {
 		_animator->animRefreshNPC(0);
 		delayWithTicks(8);
 	}
-	_animator->setBrandonAnimSeqSize(4, 48);
+	_animator->setBrandonAnimSeqSize(3, 48);
 	_currentCharacter->currentAnimFrame = 7;
 	_animator->animRefreshNPC(0);
 
@@ -718,10 +762,16 @@ void KyraEngine_LoK::seq_makeBrandonWisp() {
 	_animator->animRefreshNPC(0);
 	_animator->updateAllObjectShapes();
 
-	if (_currentCharacter->sceneId >= 229 && _currentCharacter->sceneId <= 245)
-		_screen->fadeSpecialPalette(30, 234, 13, 4);
-	else if (_currentCharacter->sceneId >= 118 && _currentCharacter->sceneId <= 186)
-		_screen->fadeSpecialPalette(14, 228, 15, 4);
+	if (_flags.platform == Common::kPlatformAmiga) {
+		if ((_currentCharacter->sceneId >= 229 && _currentCharacter->sceneId <= 245) ||
+			(_currentCharacter->sceneId >= 118 && _currentCharacter->sceneId <= 186))
+			_screen->fadePalette(_screen->getPalette(10), 0x54);
+	} else {
+		if (_currentCharacter->sceneId >= 229 && _currentCharacter->sceneId <= 245)
+			_screen->fadeSpecialPalette(30, 234, 13, 4);
+		else if (_currentCharacter->sceneId >= 118 && _currentCharacter->sceneId <= 186)
+			_screen->fadeSpecialPalette(14, 228, 15, 4);
+	}
 
 	freeShapes123();
 	_screen->showMouse();
@@ -770,6 +820,7 @@ void KyraEngine_LoK::seq_dispelMagicAnimation() {
 
 void KyraEngine_LoK::seq_fillFlaskWithWater(int item, int type) {
 	int newItem = -1;
+
 	static const uint8 flaskTable1[] = { 0x46, 0x48, 0x4A, 0x4C };
 	static const uint8 flaskTable2[] = { 0x47, 0x49, 0x4B, 0x4D };
 
@@ -791,63 +842,135 @@ void KyraEngine_LoK::seq_fillFlaskWithWater(int item, int type) {
 	setMouseItem(newItem);
 	_screen->showMouse();
 	_itemInHand = newItem;
+
 	assert(_fullFlask);
 	assert(type < _fullFlask_Size && type >= 0);
+
 	static const uint16 voiceEntries[] = {
 		0x1F40, 0x1F41, 0x1F42, 0x1F45
 	};
 	assert(type < ARRAYSIZE(voiceEntries));
+
 	characterSays(voiceEntries[type], _fullFlask[type], 0, -2);
 }
 
 void KyraEngine_LoK::seq_playDrinkPotionAnim(int item, int unk2, int flags) {
-	uint8 red, green, blue;
+	if (_flags.platform == Common::kPlatformAmiga) {
+		uint8 r, g, b;
 
-	switch (item) {
-	case 60:
-	case 61:
-		red = 63;
-		green = blue = 6;
-		break;
-	case 62:
-	case 63:
-		red = green = 0;
-		blue = 67;
-		break;
-	case 64:
-	case 65:
-		red = 84;
-		green = 78;
-		blue = 14;
-		break;
-	case 66:
-		red = blue = 0;
-		green = 48;
-		break;
-	case 67:
-		red = 100;
-		green = 48;
-		blue = 23;
-		break;
-	case 68:
-		red = 73;
-		green = 0;
-		blue = 89;
-		break;
-	case 69:
-		red = green = 73;
-		blue = 86;
-		break;
-	default:
-		red = 33;
-		green = 66;
-		blue = 100;
+		switch (item) {
+		case 60: case 61:
+			// 0xC22
+			r = 50;
+			g = 8;
+			b = 8;
+			break;
+
+		case 62: case 63: case 76:
+		case 77:
+			// 0x00E
+			r = 0;
+			g = 0;
+			b = 58;
+			break;
+
+		case 64: case 65:
+			// 0xFF5
+			r = 63;
+			g = 63;
+			b = 21;
+			break;
+
+		case 66:
+			// 0x090
+			r = 0;
+			g = 37;
+			b = 0;
+			break;
+
+		case 67:
+			// 0xC61
+			r = 50;
+			g = 25;
+			b = 4;
+			break;
+
+		case 68:
+			// 0xE2E
+			r = 58;
+			g = 8;
+			b = 58;
+			break;
+
+		case 69:
+			// 0xBBB
+			r = 46;
+			g = 46;
+			b = 46;
+			break;
+
+		default:
+			// 0xFFF
+			r = 63;
+			g = 63;
+			b = 63;
+		}
+
+		_screen->setPaletteIndex(16, r, g, b);
+	} else {
+		uint8 red, green, blue;
+
+		switch (item) {
+		case 60: case 61:
+			red = 63;
+			green = blue = 6;
+			break;
+
+		case 62: case 63:
+			red = green = 0;
+			blue = 67;
+			break;
+
+		case 64: case 65:
+			red = 84;
+			green = 78;
+			blue = 14;
+			break;
+
+		case 66:
+			red = blue = 0;
+			green = 48;
+			break;
+
+		case 67:
+			red = 100;
+			green = 48;
+			blue = 23;
+			break;
+
+		case 68:
+			red = 73;
+			green = 0;
+			blue = 89;
+			break;
+
+		case 69:
+			red = green = 73;
+			blue = 86;
+			break;
+
+		default:
+			red = 33;
+			green = 66;
+			blue = 100;
+		}
+
+		red   = red * 0x3F / 100;
+		green = green * 0x3F / 100;
+		blue  = blue * 0x3F / 100;
+
+		_screen->setPaletteIndex(0xFE, red, green, blue);
 	}
-	red   = (uint8)((double)red   * 0.63);
-	green = (uint8)((double)green * 0.63);
-	blue  = (uint8)((double)blue  * 0.63);
-
-	_screen->setPaletteIndex(0xFE, red, green, blue);
 
 	_screen->hideMouse();
 	checkAmuletAnimFlags();
@@ -862,7 +985,9 @@ void KyraEngine_LoK::seq_playDrinkPotionAnim(int item, int unk2, int flags) {
 		_animator->animRefreshNPC(0);
 		delayWithTicks(5);
 	}
+
 	snd_playSoundEffect(0x34);
+
 	for (int i = 0; i < 2; ++i) {
 		_currentCharacter->currentAnimFrame = 130;
 		_animator->animRefreshNPC(0);
@@ -886,7 +1011,10 @@ void KyraEngine_LoK::seq_playDrinkPotionAnim(int item, int unk2, int flags) {
 	_currentCharacter->currentAnimFrame = 7;
 	_animator->animRefreshNPC(0);
 	freeShapes123();
-	_screen->setPaletteIndex(0xFE, 30, 30, 30);
+
+	if (_flags.platform != Common::kPlatformAmiga)
+		_screen->setPaletteIndex(0xFE, 30, 30, 30);
+
 	_screen->showMouse();
 }
 
@@ -901,20 +1029,33 @@ int KyraEngine_LoK::seq_playEnd() {
 	if (_endSequenceNeedLoading) {
 		snd_playWanderScoreViaMap(50, 1);
 		setupPanPages();
-		_finalA = new WSAMovie_v1(this);
+
+		if (_flags.platform == Common::kPlatformAmiga) {
+			_sound->loadSoundFile(kMusicFinale);
+
+			// The original started song 0 directly here. Since our player
+			// uses 0, 1 for stop and fade we start song 0 with 2
+			_sound->playTrack(2);
+		}
+
+		_finalA = createWSAMovie();
 		assert(_finalA);
 		_finalA->open("finala.wsa", 1, 0);
-		_finalB = new WSAMovie_v1(this);
+
+		_finalB = createWSAMovie();
 		assert(_finalB);
 		_finalB->open("finalb.wsa", 1, 0);
-		_finalC = new WSAMovie_v1(this);
+
+		_finalC = createWSAMovie();
 		assert(_finalC);
 		_endSequenceNeedLoading = 0;
 		_finalC->open("finalc.wsa", 1, 0);
+
 		_screen->_curPage = 0;
 		_beadStateVar = 0;
 		_malcolmFlag = 0;
 		_unkEndSeqVar2 = _system->getMillis() + 600 * _tickLength;
+
 		_screen->copyRegion(312, 0, 312, 0, 8, 136, 0, 2);
 	}
 
@@ -943,17 +1084,25 @@ int KyraEngine_LoK::seq_playEnd() {
 			_endSequenceSkipFlag = 1;
 			if (_text->printed())
 				_text->restoreTalkTextMessageBkgd(2, 0);
+
 			_screen->_curPage = 0;
 			_screen->hideMouse();
-			_screen->fadeSpecialPalette(32, 228, 20, 60);
+
+			if (_flags.platform != Common::kPlatformAmiga)
+				_screen->fadeSpecialPalette(32, 228, 20, 60);
+
 			delay(60 * _tickLength);
+
 			_screen->loadBitmap("GEMHEAL.CPS", 3, 3, &_screen->getPalette(0));
 			_screen->setScreenPalette(_screen->getPalette(0));
 			_screen->shuffleScreen(8, 8, 304, 128, 2, 0, 1, 0);
+
 			uint32 nextTime = _system->getMillis() + 120 * _tickLength;
-			_finalA = new WSAMovie_v1(this);
+
+			_finalA = createWSAMovie();
 			assert(_finalA);
 			_finalA->open("finald.wsa", 1, 0);
+
 			delayUntil(nextTime);
 			snd_playSoundEffect(0x40);
 			for (int i = 0; i < 22; ++i) {
@@ -961,12 +1110,13 @@ int KyraEngine_LoK::seq_playEnd() {
 				if (i == 4)
 					snd_playSoundEffect(0x3E);
 				else if (i == 20)
-					snd_playSoundEffect(0x0E);
+					snd_playSoundEffect(_flags.platform == Common::kPlatformPC98 ? 0x13 : 0x0E);
 				nextTime = _system->getMillis() + 8 * _tickLength;
 				_finalA->displayFrame(i, 0, 8, 8, 0, 0, 0);
 				_screen->updateScreen();
 			}
 			delete _finalA;
+
 			_finalA = 0;
 			seq_playEnding();
 			return 1;
@@ -985,11 +1135,13 @@ void KyraEngine_LoK::seq_brandonToStone() {
 	assert(_brandonStoneTable);
 	setupShapes123(_brandonStoneTable, 14, 0);
 	_animator->setBrandonAnimSeqSize(5, 51);
+
 	for (int i = 123; i <= 136; ++i) {
 		_currentCharacter->currentAnimFrame = i;
 		_animator->animRefreshNPC(0);
 		delayWithTicks(8);
 	}
+
 	_animator->resetBrandonAnimSeqSize();
 	freeShapes123();
 	_screen->showMouse();
@@ -1001,8 +1153,17 @@ void KyraEngine_LoK::seq_playEnding() {
 	_screen->hideMouse();
 	_screen->_curPage = 0;
 	_screen->fadeToBlack();
-	_screen->loadBitmap("REUNION.CPS", 3, 3, &_screen->getPalette(0));
-	_screen->copyRegion(8, 8, 8, 8, 304, 128, 2, 0);
+
+	if (_flags.platform == Common::kPlatformAmiga) {
+		_screen->loadBitmap("GEMCUT.CPS", 3, 3, &_screen->getPalette(0));
+		_screen->copyRegion(232, 136, 176, 56, 56, 56, 2, 2);
+		_screen->copyRegion(8, 8, 8, 8, 304, 128, 2, 0);
+		_screen->copyRegion(0, 0, 0, 0, 320, 200, 0, 2, Screen::CR_NO_P_CHECK);
+	} else {
+		_screen->loadBitmap("REUNION.CPS", 3, 3, &_screen->getPalette(0));
+		_screen->copyRegion(8, 8, 8, 8, 304, 128, 2, 0);
+	}
+
 	_screen->_curPage = 0;
 	// XXX
 	assert(_homeString);
@@ -1017,28 +1178,50 @@ void KyraEngine_LoK::seq_playEnding() {
 	_seqPlayerFlag = false;
 
 	_screen->showMouse();
-	seq_playCredits();
+
+	// To avoid any remaining input events, we remove the queue
+	// over here.
+	_eventList.clear();
+
+	if (_flags.platform == Common::kPlatformAmiga) {
+		_screen->_charWidth = -2;
+		_screen->setCurPage(2);
+
+		_screen->getPalette(2).clear();
+		_screen->setScreenPalette(_screen->getPalette(2));
+
+		while (!shouldQuit()) {
+			seq_playCreditsAmiga();
+			delayUntil(_system->getMillis() + 300 * _tickLength);
+		}
+	} else {
+		seq_playCredits();
+	}
 }
+
+namespace {
+struct CreditsLine {
+	int16 x, y;
+	Screen::FontId font;
+	uint8 *str;
+};
+} // end of anonymous namespace
 
 void KyraEngine_LoK::seq_playCredits() {
 	static const uint8 colorMap[] = { 0, 0, 0xC, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	static const char stringTerms[] = { 0x5, 0xd, 0x0};
-	static const int numStrings = 250;
 
-	struct {
-		int16 x, y;
-		uint8 code;
-		uint8 unk1;
-		Screen::FontId font;
-		uint8 *str;
-	} strings[numStrings];
+	typedef Common::List<CreditsLine> CreditsLineList;
+	CreditsLineList lines;
 
-	memset(strings, 0, sizeof(strings));
+	_screen->enableInterfacePalette(false);
 
 	_screen->hideMouse();
 	if (!_flags.isTalkie) {
 		_screen->loadFont(Screen::FID_CRED6_FNT, "CREDIT6.FNT");
 		_screen->loadFont(Screen::FID_CRED8_FNT, "CREDIT8.FNT");
+
+		_screen->setFont(Screen::FID_CRED8_FNT);
 	} else
 		_screen->setFont(Screen::FID_8_FNT);
 
@@ -1073,93 +1256,97 @@ void KyraEngine_LoK::seq_playCredits() {
 	uint8 *currentString = buffer;
 	int currentY = 200;
 
-	for (int i = 0; i < numStrings; i++) {
-		if (*nextString == 0)
-			break;
-
+	do {
 		currentString = nextString;
 		nextString = (uint8 *)strpbrk((const char *)currentString, stringTerms);
 		if (!nextString)
 			nextString = (uint8 *)strchr((const char *)currentString, 0);
 
-		strings[i].code = nextString[0];
+		CreditsLine line;
+
+		int lineEndCode = nextString[0];
 		*nextString = 0;
-		if (strings[i].code != 0)
+		if (lineEndCode != 0)
 			nextString++;
 
+		int alignment = 0;
 		if (*currentString == 3 || *currentString == 4) {
-			strings[i].unk1 = *currentString;
+			alignment = *currentString;
 			currentString++;
 		}
 
 		if (*currentString == 1) {
 			currentString++;
+
 			if (!_flags.isTalkie)
 				_screen->setFont(Screen::FID_CRED6_FNT);
-		} else {
-			if (*currentString == 2)
-				currentString++;
+		} else if (*currentString == 2) {
+			currentString++;
+
 			if (!_flags.isTalkie)
 				_screen->setFont(Screen::FID_CRED8_FNT);
 		}
-		strings[i].font = _screen->_currentFont;
 
-		if (strings[i].unk1 == 3)
-			strings[i].x = 157 - _screen->getTextWidth((const char *)currentString);
-		else if (strings[i].unk1 == 4)
-			strings[i].x = 161;
+		line.font = _screen->_currentFont;
+
+		if (alignment == 3)
+			line.x = 157 - _screen->getTextWidth((const char *)currentString);
+		else if (alignment == 4)
+			line.x = 161;
 		else
-			strings[i].x = (320  - _screen->getTextWidth((const char *)currentString)) / 2 + 1;
+			line.x = (320  - _screen->getTextWidth((const char *)currentString)) / 2 + 1;
 
-		strings[i].y = currentY;
-		if (strings[i].code != 5)
+		line.y = currentY;
+		if (lineEndCode != 5)
 			currentY += 10;
 
-		strings[i].str = currentString;
-	}
+		line.str = currentString;
+
+		lines.push_back(line);
+	} while (*nextString);
 
 	_screen->setCurPage(2);
 
 	_screen->getPalette(2).clear();
 	_screen->setScreenPalette(_screen->getPalette(2));
-	_screen->copyRegion(8, 32, 8, 32, 312, 128, 4, 0, Screen::CR_NO_P_CHECK);
+
+	_screen->copyRegion(0, 32, 0, 32, 320, 128, 4, 0, Screen::CR_NO_P_CHECK);
 	_screen->fadePalette(_screen->getPalette(0), 0x5A);
 
-	Common::Event event;
 	bool finished = false;
 	int bottom = 201;
-	while (!finished) {
+	while (!finished && !shouldQuit()) {
 		uint32 startLoop = _system->getMillis();
+
 		if (bottom > 175) {
-			_screen->copyRegion(8, 32, 8, 32, 312, 128, 4, 2, Screen::CR_NO_P_CHECK);
+			_screen->copyRegion(0, 32, 0, 32, 320, 128, 4, 2, Screen::CR_NO_P_CHECK);
 			bottom = 0;
 
-			for (int i = 0; i < numStrings; i++) {
-				if (strings[i].y < 200 && strings[i].y > 0) {
-					if (strings[i].font != _screen->_currentFont)
-						_screen->setFont(strings[i].font);
-					_screen->printText((const char *)strings[i].str, strings[i].x, strings[i].y, 15, 0);
+			for (CreditsLineList::iterator it = lines.begin(); it != lines.end(); ++it) {
+				if (it->y < 0) {
+					it = lines.erase(it);
+					continue;
 				}
-				strings[i].y--;
-				if (strings[i].y > bottom)
-					bottom = strings[i].y;
+
+				if (it->y < 200) {
+					if (it->font != _screen->_currentFont)
+						_screen->setFont(it->font);
+
+					_screen->printText((const char *)it->str, it->x, it->y, 15, 0);
+				}
+
+				it->y--;
+				if (it->y > bottom)
+					bottom = it->y;
 			}
-			_screen->copyRegion(8, 32, 8, 32, 312, 128, 2, 0, Screen::CR_NO_P_CHECK);
+
+			_screen->copyRegion(0, 32, 0, 32, 320, 128, 2, 0, Screen::CR_NO_P_CHECK);
 			_screen->updateScreen();
 		}
 
-		while (_eventMan->pollEvent(event)) {
-			switch (event.type) {
-			case Common::EVENT_KEYDOWN:
-				finished = true;
-				break;
-			case Common::EVENT_RTL:
-			case Common::EVENT_QUIT:
-				finished = true;
-				break;
-			default:
-				break;
-			}
+		if (checkInput(0, false)) {
+			removeInputTop();
+			finished = true;
 		}
 
 		uint32 now = _system->getMillis();
@@ -1176,58 +1363,164 @@ void KyraEngine_LoK::seq_playCredits() {
 	_screen->showMouse();
 }
 
+void KyraEngine_LoK::seq_playCreditsAmiga() {
+	_screen->setFont(Screen::FID_8_FNT);
+
+	_screen->loadBitmap("CHALET.CPS", 4, 2, &_screen->getPalette(0));
+	_screen->copyPage(2, 0);
+
+	_screen->getPalette(0).fill(16, 1, 63);
+	_screen->fadePalette(_screen->getPalette(0), 0x5A);
+	_screen->updateScreen();
+
+	const char *theEnd = "THE END";
+
+	const int width = _screen->getTextWidth(theEnd) + 1;
+	int x = (320 - width) / 2 + 1;
+
+	_screen->copyRegion(x, 8, x, 8, width, 56, 0, 2, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(x, 8, 0, 8, width, 11, 0, 2, Screen::CR_NO_P_CHECK);
+	_screen->printText(theEnd, 0, 10, 31, 0);
+
+	for (int y = 18, h = 1; y >= 10 && !shouldQuit(); --y, ++h) {
+		uint32 endTime = _system->getMillis() + 3 * _tickLength;
+
+		_screen->copyRegion(0, y, x, 8, width, h, 2, 0, Screen::CR_NO_P_CHECK);
+		_screen->updateScreen();
+
+		delayUntil(endTime);
+	}
+
+	for (int y = 8; y <= 62 && !shouldQuit(); ++y) {
+		uint32 endTime = _system->getMillis() + 3 * _tickLength;
+
+		_screen->copyRegion(x, y, 0, 8, width, 11, 2, 2, Screen::CR_NO_P_CHECK);
+		_screen->printText(theEnd, 0, 9, 31, 0);
+		_screen->copyRegion(0, 8, x, y, width, 11, 2, 0, Screen::CR_NO_P_CHECK);
+		_screen->updateScreen();
+
+		delayUntil(endTime);
+	}
+
+	int size = 0;
+	const char *creditsData = (const char *)_staticres->loadRawData(k1CreditsStrings, size);
+
+	char stringBuffer[81];
+	memset(stringBuffer, 0, sizeof(stringBuffer));
+
+	const char *cur = creditsData;
+	char *specialString = stringBuffer;
+	bool fillRectFlag = false, subWidth = false, centerFlag = false;
+	x = 0;
+	int specialX = 0;
+
+	const int fontHeight = _screen->getFontHeight();
+
+	do {
+		char code = *cur;
+
+		if (code == 3) {
+			fillRectFlag = subWidth = true;
+		} else if (code == 5) {
+			centerFlag = true;
+		} else if (code == 4) {
+			if (fillRectFlag) {
+				_screen->fillRect(0, 0, 319, 20, 0);
+
+				if (subWidth)
+					specialX = 157 - _screen->getTextWidth(stringBuffer);
+
+				_screen->printText(stringBuffer, specialX + 8, 0, 31, 0);
+			}
+
+			specialString = stringBuffer;
+			*specialString = 0;
+
+			x = 161;
+		} else if (code == 13) {
+			if (!fillRectFlag)
+				_screen->fillRect(0, 0, 319, 20, 0);
+
+			uint32 nextTime = _system->getMillis() + 8 * _tickLength;
+
+			if (centerFlag)
+				x = (320 - _screen->getTextWidth(stringBuffer)) / 2 - 8;
+
+			_screen->printText(stringBuffer, x + 8, 0, 31, 0);
+
+			for (int i = 0; i < fontHeight && !shouldQuit(); ++i) {
+				_screen->copyRegion(0, 141, 0, 140, 320, 59, 0, 0, Screen::CR_NO_P_CHECK);
+				_screen->copyRegion(0, i, 0, 198, 320, 3, 2, 0, Screen::CR_NO_P_CHECK);
+				_screen->updateScreen();
+
+				delayUntil(nextTime);
+				nextTime = _system->getMillis() + 8 * _tickLength;
+			}
+
+			specialString = stringBuffer;
+			*specialString = 0;
+
+			centerFlag = fillRectFlag = false;
+		} else {
+			*specialString++ = code;
+			*specialString = 0;
+		}
+
+		if (checkInput(0, false)) {
+			removeInputTop();
+			break;
+		}
+	} while (++cur != (creditsData + size) && !shouldQuit());
+}
+
 bool KyraEngine_LoK::seq_skipSequence() const {
 	return shouldQuit() || _abortIntroFlag;
 }
 
 int KyraEngine_LoK::handleMalcolmFlag() {
-	static uint16 frame = 0;
-	static uint32 timer1 = 0;
-	static uint32 timer2 = 0;
-
 	switch (_malcolmFlag) {
 	case 1:
-		frame = 0;
+		_malcolmFrame = 0;
 		_malcolmFlag = 2;
-		timer2 = 0;
+		_malcolmTimer2 = 0;
 
 		// Fall through to the next case
 
 	case 2:
-		if (_system->getMillis() >= timer2) {
-			_finalA->displayFrame(frame, 0, 8, 46, 0, 0, 0);
+		if (_system->getMillis() >= _malcolmTimer2) {
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
 			_screen->updateScreen();
-			timer2 = _system->getMillis() + 8 * _tickLength;
-			++frame;
-			if (frame > 13) {
+			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
+			++_malcolmFrame;
+			if (_malcolmFrame > 13) {
 				_malcolmFlag = 3;
-				timer1 = _system->getMillis() + 180 * _tickLength;
+				_malcolmTimer1 = _system->getMillis() + 180 * _tickLength;
 			}
 		}
 		break;
 
 	case 3:
-		if (_system->getMillis() < timer1) {
-			if (_system->getMillis() >= timer2) {
-				frame = _rnd.getRandomNumberRng(14, 17);
-				_finalA->displayFrame(frame, 0, 8, 46, 0, 0, 0);
+		if (_system->getMillis() < _malcolmTimer1) {
+			if (_system->getMillis() >= _malcolmTimer2) {
+				_malcolmFrame = _rnd.getRandomNumberRng(14, 17);
+				_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
 				_screen->updateScreen();
-				timer2 = _system->getMillis() + 8 * _tickLength;
+				_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
 			}
 		} else {
 			_malcolmFlag = 4;
-			frame = 18;
+			_malcolmFrame = 18;
 		}
 		break;
 
 	case 4:
-		if (_system->getMillis() >= timer2) {
-			_finalA->displayFrame(frame, 0, 8, 46, 0, 0, 0);
+		if (_system->getMillis() >= _malcolmTimer2) {
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
 			_screen->updateScreen();
-			timer2 = _system->getMillis() + 8 * _tickLength;
-			++frame;
-			if (frame > 25) {
-				frame = 26;
+			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
+			++_malcolmFrame;
+			if (_malcolmFrame > 25) {
+				_malcolmFrame = 26;
 				_malcolmFlag = 5;
 				_beadStateVar = 1;
 			}
@@ -1235,13 +1528,13 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 		break;
 
 	case 5:
-		if (_system->getMillis() >= timer2) {
-			_finalA->displayFrame(frame, 0, 8, 46, 0, 0, 0);
+		if (_system->getMillis() >= _malcolmTimer2) {
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
 			_screen->updateScreen();
-			timer2 = _system->getMillis() + 8 * _tickLength;
-			++frame;
-			if (frame > 31) {
-				frame = 32;
+			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
+			++_malcolmFrame;
+			if (_malcolmFrame > 31) {
+				_malcolmFrame = 32;
 				_malcolmFlag = 6;
 			}
 		}
@@ -1249,14 +1542,14 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 
 	case 6:
 		if (_unkEndSeqVar4) {
-			if (frame <= 33 && _system->getMillis() >= timer2) {
-				_finalA->displayFrame(frame, 0, 8, 46, 0, 0, 0);
+			if (_malcolmFrame <= 33 && _system->getMillis() >= _malcolmTimer2) {
+				_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
 				_screen->updateScreen();
-				timer2 = _system->getMillis() + 8 * _tickLength;
-				++frame;
-				if (frame > 33) {
+				_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
+				++_malcolmFrame;
+				if (_malcolmFrame > 33) {
 					_malcolmFlag = 7;
-					frame = 32;
+					_malcolmFrame = 32;
 					_unkEndSeqVar5 = 0;
 				}
 			}
@@ -1266,20 +1559,20 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 	case 7:
 		if (_unkEndSeqVar5 == 1) {
 			_malcolmFlag = 8;
-			frame = 34;
+			_malcolmFrame = 34;
 		} else if (_unkEndSeqVar5 == 2) {
 			_malcolmFlag = 3;
-			timer1 = _system->getMillis() + 180 * _tickLength;
+			_malcolmTimer1 = _system->getMillis() + 180 * _tickLength;
 		}
 		break;
 
 	case 8:
-		if (_system->getMillis() >= timer2) {
-			_finalA->displayFrame(frame, 0, 8, 46, 0, 0, 0);
+		if (_system->getMillis() >= _malcolmTimer2) {
+			_finalA->displayFrame(_malcolmFrame, 0, 8, 46, 0, 0, 0);
 			_screen->updateScreen();
-			timer2 = _system->getMillis() + 8 * _tickLength;
-			++frame;
-			if (frame > 37) {
+			_malcolmTimer2 = _system->getMillis() + 8 * _tickLength;
+			++_malcolmFrame;
+			if (_malcolmFrame > 37) {
 				_malcolmFlag = 0;
 				_deathHandler = 8;
 				return 1;
@@ -1291,10 +1584,10 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 		snd_playSoundEffect(12);
 		snd_playSoundEffect(12);
 		for (int i = 0; i < 18; ++i) {
-			timer2 = _system->getMillis() + 4 * _tickLength;
+			_malcolmTimer2 = _system->getMillis() + 4 * _tickLength;
 			_finalC->displayFrame(i, 0, 16, 50, 0, 0, 0);
 			_screen->updateScreen();
-			delayUntil(timer2);
+			delayUntil(_malcolmTimer2);
 		}
 		snd_playWanderScoreViaMap(51, 1);
 		delay(60 * _tickLength);
@@ -1307,16 +1600,16 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 			_screen->bitBlitRects();
 			assert(_veryClever);
 			_text->printTalkTextMessage(_veryClever[0], 60, 31, 5, 0, 2);
-			timer2 = _system->getMillis() + 180 * _tickLength;
+			_malcolmTimer2 = _system->getMillis() + 180 * _tickLength;
 			_malcolmFlag = 11;
 		}
 		break;
 
 	case 11:
-		if (_system->getMillis() >= timer2) {
+		if (_system->getMillis() >= _malcolmTimer2) {
 			_text->restoreTalkTextMessageBkgd(2, 0);
 			_malcolmFlag = 3;
-			timer1 = _system->getMillis() + 180 * _tickLength;
+			_malcolmTimer1 = _system->getMillis() + 180 * _tickLength;
 		}
 		break;
 
@@ -1328,16 +1621,12 @@ int KyraEngine_LoK::handleMalcolmFlag() {
 }
 
 int KyraEngine_LoK::handleBeadState() {
-	static uint32 timer1 = 0;
-	static uint32 timer2 = 0;
-	static BeadState beadState1 = { -1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	static BeadState beadState2 = {  0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
 	static const int table1[] = {
 		-1, -2, -4, -5, -6, -7, -6, -5,
 		-4, -2, -1,  0,  1,  2,  4,  5,
 		 6,  7,  6,  5,  4,  2,  1,  0, 0
 	};
+
 	static const int table2[] = {
 		0, 0, 1, 1, 2, 2, 3, 3,
 		4, 4, 5, 5, 5, 5, 4, 4,
@@ -1349,120 +1638,120 @@ int KyraEngine_LoK::handleBeadState() {
 
 	switch (_beadStateVar) {
 	case 0:
-		if (beadState1.x != -1 && _endSequenceBackUpRect) {
-			_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
-			_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+		if (_beadState1.x != -1 && _endSequenceBackUpRect) {
+			_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+			_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 		}
 
-		beadState1.x = -1;
-		beadState1.tableIndex = 0;
-		timer1 = 0;
-		timer2 = 0;
+		_beadState1.x = -1;
+		_beadState1.tableIndex = 0;
+		_beadStateTimer1 = 0;
+		_beadStateTimer2 = 0;
 		_lastDisplayedPanPage = 0;
 		return 1;
 
 	case 1:
-		if (beadState1.x != -1) {
+		if (_beadState1.x != -1) {
 			if (_endSequenceBackUpRect) {
-				_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
-				_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+				_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+				_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 			}
-			beadState1.x = -1;
-			beadState1.tableIndex = 0;
+			_beadState1.x = -1;
+			_beadState1.tableIndex = 0;
 		}
 		_beadStateVar = 2;
 		break;
 
 	case 2:
-		if (_system->getMillis() >= timer1) {
+		if (_system->getMillis() >= _beadStateTimer1) {
 			int x = 0, y = 0;
-			timer1 = _system->getMillis() + 4 * _tickLength;
-			if (beadState1.x == -1) {
+			_beadStateTimer1 = _system->getMillis() + 4 * _tickLength;
+			if (_beadState1.x == -1) {
 				assert(_panPagesTable);
-				beadState1.width2 = _animator->fetchAnimWidth(_panPagesTable[19], 256);
-				beadState1.width = ((beadState1.width2 + 7) >> 3) + 1;
-				beadState1.height = _animator->fetchAnimHeight(_panPagesTable[19], 256);
+				_beadState1.width2 = _animator->fetchAnimWidth(_panPagesTable[19], 256);
+				_beadState1.width = ((_beadState1.width2 + 7) >> 3) + 1;
+				_beadState1.height = _animator->fetchAnimHeight(_panPagesTable[19], 256);
 				if (!_endSequenceBackUpRect) {
-					_endSequenceBackUpRect = new uint8[(beadState1.width * beadState1.height) << 3];
+					_endSequenceBackUpRect = new uint8[(_beadState1.width * _beadState1.height) << 3];
 					assert(_endSequenceBackUpRect);
-					memset(_endSequenceBackUpRect, 0, ((beadState1.width * beadState1.height) << 3) * sizeof(uint8));
+					memset(_endSequenceBackUpRect, 0, ((_beadState1.width * _beadState1.height) << 3) * sizeof(uint8));
 				}
-				x = beadState1.x = 60;
-				y = beadState1.y = 40;
-				initBeadState(x, y, x, 25, 8, &beadState2);
+				x = _beadState1.x = 60;
+				y = _beadState1.y = 40;
+				initBeadState(x, y, x, 25, 8, &_beadState2);
 			} else {
-				if (processBead(beadState1.x, beadState1.y, x, y, &beadState2)) {
+				if (processBead(_beadState1.x, _beadState1.y, x, y, &_beadState2)) {
 					_beadStateVar = 3;
-					timer2 = _system->getMillis() + 240 * _tickLength;
+					_beadStateTimer2 = _system->getMillis() + 240 * _tickLength;
 					_unkEndSeqVar4 = 0;
-					beadState1.dstX = beadState1.x;
-					beadState1.dstY = beadState1.y;
+					_beadState1.dstX = _beadState1.x;
+					_beadState1.dstY = _beadState1.y;
 					return 0;
 				} else {
-					_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
-					_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
-					beadState1.x = x;
-					beadState1.y = y;
+					_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+					_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
+					_beadState1.x = x;
+					_beadState1.y = y;
 				}
 			}
 
-			_screen->copyRegionToBuffer(_screen->_curPage, x, y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
+			_screen->copyRegionToBuffer(_screen->_curPage, x, y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
 			_screen->drawShape(2, _panPagesTable[_lastDisplayedPanPage++], x, y, 0, 0);
 
 			if (_lastDisplayedPanPage > 17)
 				_lastDisplayedPanPage = 0;
 
-			_screen->addBitBlitRect(x, y, beadState1.width2, beadState1.height);
+			_screen->addBitBlitRect(x, y, _beadState1.width2, _beadState1.height);
 		}
 		break;
 
 	case 3:
-		if (_system->getMillis() >= timer1) {
-			timer1 = _system->getMillis() + 4 * _tickLength;
-			_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
-			_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+		if (_system->getMillis() >= _beadStateTimer1) {
+			_beadStateTimer1 = _system->getMillis() + 4 * _tickLength;
+			_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+			_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 
-			beadState1.x = beadState1.dstX + table1[beadState1.tableIndex];
-			beadState1.y = beadState1.dstY + table2[beadState1.tableIndex];
-			_screen->copyRegionToBuffer(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
+			_beadState1.x = _beadState1.dstX + table1[_beadState1.tableIndex];
+			_beadState1.y = _beadState1.dstY + table2[_beadState1.tableIndex];
+			_screen->copyRegionToBuffer(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
 
-			_screen->drawShape(2, _panPagesTable[_lastDisplayedPanPage++], beadState1.x, beadState1.y, 0, 0);
+			_screen->drawShape(2, _panPagesTable[_lastDisplayedPanPage++], _beadState1.x, _beadState1.y, 0, 0);
 			if (_lastDisplayedPanPage >= 17)
 				_lastDisplayedPanPage = 0;
 
-			_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+			_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 
-			++beadState1.tableIndex;
-			if (beadState1.tableIndex > 24)
-				beadState1.tableIndex = 0;
+			++_beadState1.tableIndex;
+			if (_beadState1.tableIndex > 24)
+				_beadState1.tableIndex = 0;
 				_unkEndSeqVar4 = 1;
-			if (_system->getMillis() > timer2 && _malcolmFlag == 7 && !_unkAmuletVar && !_text->printed()) {
+			if (_system->getMillis() > _beadStateTimer2 && _malcolmFlag == 7 && !_unkAmuletVar && !_text->printed()) {
 				snd_playSoundEffect(0x0B);
 				if (_currentCharacter->x1 > 233 && _currentCharacter->x1 < 305 && _currentCharacter->y1 > 85 && _currentCharacter->y1 < 105 &&
 					(_brandonStatusBit & 0x20)) {
-					beadState1.unk8 = 290;
-					beadState1.unk9 = 40;
+					_beadState1.unk8 = 290;
+					_beadState1.unk9 = 40;
 					_beadStateVar = 5;
 				} else {
 					_beadStateVar = 4;
-					beadState1.unk8 = _currentCharacter->x1 - 4;
-					beadState1.unk9 = _currentCharacter->y1 - 30;
+					_beadState1.unk8 = _currentCharacter->x1 - 4;
+					_beadState1.unk9 = _currentCharacter->y1 - 30;
 				}
 
 				if (_text->printed())
 					_text->restoreTalkTextMessageBkgd(2, 0);
 
-				initBeadState(beadState1.x, beadState1.y, beadState1.unk8, beadState1.unk9, 12, &beadState2);
+				initBeadState(_beadState1.x, _beadState1.y, _beadState1.unk8, _beadState1.unk9, 12, &_beadState2);
 				_lastDisplayedPanPage = 18;
 			}
 		}
 		break;
 
 	case 4:
-		if (_system->getMillis() >= timer1) {
+		if (_system->getMillis() >= _beadStateTimer1) {
 			int x = 0, y = 0;
-			timer1 = _system->getMillis() + _tickLength;
-			if (processBead(beadState1.x, beadState1.y, x, y, &beadState2)) {
+			_beadStateTimer1 = _system->getMillis() + _tickLength;
+			if (processBead(_beadState1.x, _beadState1.y, x, y, &_beadState2)) {
 				if (_brandonStatusBit & 20) {
 					_unkEndSeqVar5 = 2;
 					_beadStateVar = 6;
@@ -1473,27 +1762,27 @@ int KyraEngine_LoK::handleBeadState() {
 					_beadStateVar = 0;
 				}
 			} else {
-				_screen->copyBlockToPage(_screen->_curPage, beadState1.x >> 3, beadState1.y, beadState1.width, beadState1.height, _endSequenceBackUpRect);
-				_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
-				beadState1.x = x;
-				beadState1.y = y;
-				_screen->copyRegionToBuffer(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
+				_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+				_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
+				_beadState1.x = x;
+				_beadState1.y = y;
+				_screen->copyRegionToBuffer(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
 				_screen->drawShape(2, _panPagesTable[_lastDisplayedPanPage++], x, y, 0, 0);
 				if (_lastDisplayedPanPage > 17) {
 					_lastDisplayedPanPage = 0;
 				}
-				_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+				_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 			}
 		}
 		break;
 
 	case 5:
-		if (_system->getMillis() >= timer1) {
-			timer1 = _system->getMillis() + _tickLength;
+		if (_system->getMillis() >= _beadStateTimer1) {
+			_beadStateTimer1 = _system->getMillis() + _tickLength;
 			int x = 0, y = 0;
-			if (processBead(beadState1.x, beadState1.y, x, y, &beadState2)) {
-				if (beadState2.dstX == 290) {
-					_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
+			if (processBead(_beadState1.x, _beadState1.y, x, y, &_beadState2)) {
+				if (_beadState2.dstX == 290) {
+					_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
 					uint32 nextRun = 0;
 					for (int i = 0; i < 8; ++i) {
 						nextRun = _system->getMillis() + _tickLength;
@@ -1508,38 +1797,39 @@ int KyraEngine_LoK::handleBeadState() {
 						_screen->updateScreen();
 						delayUntil(nextRun);
 					}
-					initBeadState(beadState1.x, beadState1.y, 63, 60, 12, &beadState2);
+					initBeadState(_beadState1.x, _beadState1.y, 63, 60, 12, &_beadState2);
 				} else {
-					_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
-					_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
-					beadState1.x = -1;
-					beadState1.tableIndex = 0;
+					_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+					_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
+					_beadState1.x = -1;
+					_beadState1.tableIndex = 0;
 					_beadStateVar = 0;
 					_malcolmFlag = 9;
 				}
 			} else {
-				_screen->copyBlockToPage(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
-				_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
-				beadState1.x = x;
-				beadState1.y = y;
-				_screen->copyRegionToBuffer(_screen->_curPage, beadState1.x, beadState1.y, beadState1.width << 3, beadState1.height, _endSequenceBackUpRect);
+				_screen->copyBlockToPage(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
+				_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
+				_beadState1.x = x;
+				_beadState1.y = y;
+				_screen->copyRegionToBuffer(_screen->_curPage, _beadState1.x, _beadState1.y, _beadState1.width << 3, _beadState1.height, _endSequenceBackUpRect);
 				_screen->drawShape(2, _panPagesTable[_lastDisplayedPanPage++], x, y, 0, 0);
 				if (_lastDisplayedPanPage > 17)
 					_lastDisplayedPanPage = 0;
-				_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+				_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 			}
 		}
 		break;
 
 	case 6:
-		_screen->drawShape(2, _panPagesTable[19], beadState1.x, beadState1.y, 0, 0);
-		_screen->addBitBlitRect(beadState1.x, beadState1.y, beadState1.width2, beadState1.height);
+		_screen->drawShape(2, _panPagesTable[19], _beadState1.x, _beadState1.y, 0, 0);
+		_screen->addBitBlitRect(_beadState1.x, _beadState1.y, _beadState1.width2, _beadState1.height);
 		_beadStateVar = 0;
 		break;
 
 	default:
 		break;
 	}
+
 	return 0;
 }
 
@@ -1663,6 +1953,14 @@ void KyraEngine_LoK::closeFinalWsa() {
 }
 
 void KyraEngine_LoK::updateKyragemFading() {
+	if (_flags.platform == Common::kPlatformAmiga) {
+		// The AMIGA version seems to have no fading for the Kyragem. The code does not
+		// alter the screen palette.
+		//
+		// TODO: Check this in the original.
+		return;
+	}
+
 	static const uint8 kyraGemPalette[0x28] = {
 		0x3F, 0x3B, 0x38, 0x34, 0x32, 0x2F, 0x2C, 0x29, 0x25, 0x22,
 		0x1F, 0x1C, 0x19, 0x16, 0x12, 0x0F, 0x0C, 0x0A, 0x06, 0x03,
@@ -1674,14 +1972,16 @@ void KyraEngine_LoK::updateKyragemFading() {
 		return;
 
 	_kyragemFadingState.timerCount = _system->getMillis() + 4 * _tickLength;
+
 	int palPos = 684;
 	for (int i = 0; i < 20; ++i) {
 		_screen->getPalette(0)[palPos++] = kyraGemPalette[i + _kyragemFadingState.rOffset];
 		_screen->getPalette(0)[palPos++] = kyraGemPalette[i + _kyragemFadingState.gOffset];
 		_screen->getPalette(0)[palPos++] = kyraGemPalette[i + _kyragemFadingState.bOffset];
 	}
+
 	_screen->setScreenPalette(_screen->getPalette(0));
-	_animator->_updateScreen = true;
+
 	switch (_kyragemFadingState.nextOperation) {
 	case 0:
 		--_kyragemFadingState.bOffset;
@@ -1811,5 +2111,5 @@ void KyraEngine_LoK::drawJewelsFadeOutEnd(int jewel) {
 	_screen->showMouse();
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

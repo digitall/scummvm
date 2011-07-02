@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
@@ -177,9 +174,12 @@ void AgiEngine::updateTimer() {
 	setvar(vDays, getvar(vDays) + 1);
 }
 
-void AgiEngine::newInputMode(int i) {
+void AgiEngine::newInputMode(InputMode mode) {
+	if (mode == INPUT_MENU && !getflag(fMenusWork) && !(getFeatures() & GF_MENUS))
+		return;
+
 	_oldMode = _game.inputMode;
-	_game.inputMode = i;
+	_game.inputMode = mode;
 }
 
 void AgiEngine::oldInputMode() {
@@ -200,9 +200,9 @@ int AgiEngine::mainCycle() {
 	// vars in every interpreter cycle.
 	//
 	// We run AGIMOUSE always as a side effect
-	if (getFeatures() & GF_AGIMOUSE || 1) {
-		_game.vars[28] = g_mouse.x / 2;
-		_game.vars[29] = g_mouse.y;
+	if (getFeatures() & GF_AGIMOUSE || true) {
+		_game.vars[28] = _mouse.x / 2;
+		_game.vars[29] = _mouse.y;
 	}
 	if (key == KEY_PRIORITY) {
 		_sprites->eraseBoth();
@@ -266,8 +266,8 @@ process_key:
 			}
 
 			// commented out to close Sarien bug #438872
-			if (key)
-				_game.keypress = key;
+			//if (key)
+			//	_game.keypress = key;
 		}
 		break;
 	case INPUT_GETSTRING:
@@ -314,13 +314,14 @@ int AgiEngine::playGame() {
 	_game.clockEnabled = true;
 	_game.lineUserInput = 22;
 
-	if (getFeatures() & GF_AGIMOUSE)
-		report("Using AGI Mouse 1.0 protocol\n");
+	// We run AGIMOUSE always as a side effect
+	if (getFeatures() & GF_AGIMOUSE || true)
+		debug(1, "Using AGI Mouse 1.0 protocol");
 
 	if (getFeatures() & GF_AGIPAL)
 		debug(1, "Running AGIPAL game");
 
-	report("Running AGI script.\n");
+	debug(0, "Running AGI script.\n");
 
 	setflag(fEnteredCli, false);
 	setflag(fSaidAcceptedInput, false);
@@ -383,30 +384,37 @@ int AgiEngine::runGame() {
 
 		if (_restartGame) {
 			setflag(fRestartGame, true);
+			_game.lastController = 0;
+			setvar(vTimeDelay, 2);	// "normal" speed
 			_restartGame = false;
 		}
 
-		// Set computer type (v20 i.e. vComputer)
+		// Set computer type (v20 i.e. vComputer) and sound type
 		switch (getPlatform()) {
 		case Common::kPlatformAtariST:
 			setvar(vComputer, kAgiComputerAtariST);
+			setvar(vSoundgen, kAgiSoundPC);
 			break;
 		case Common::kPlatformAmiga:
 			if (getFeatures() & GF_OLDAMIGAV20)
 				setvar(vComputer, kAgiComputerAmigaOld);
 			else
 				setvar(vComputer, kAgiComputerAmiga);
+			setvar(vSoundgen, kAgiSoundTandy);
 			break;
 		case Common::kPlatformApple2GS:
 			setvar(vComputer, kAgiComputerApple2GS);
+			if (getFeatures() & GF_2GSOLDSOUND)
+				setvar(vSoundgen, kAgiSound2GSOld);
+			else
+				setvar(vSoundgen, kAgiSoundTandy);
 			break;
 		case Common::kPlatformPC:
 		default:
 			setvar(vComputer, kAgiComputerPC);
+			setvar(vSoundgen, kAgiSoundPC);
 			break;
 		}
-
-		setvar(vSoundgen, 1);	// IBM PC SOUND
 
 		// Set monitor type (v26 i.e. vMonitor)
 		switch (_renderMode) {
@@ -430,7 +438,7 @@ int AgiEngine::runGame() {
 		setvar(vFreePages, 180); // Set amount of free memory to realistic value
 		setvar(vMaxInputChars, 38);
 		_game.inputMode = INPUT_NONE;
-		_game.inputEnabled = 0;
+		_game.inputEnabled = false;
 		_game.hasPrompt = 0;
 
 		_game.state = STATE_RUNNING;

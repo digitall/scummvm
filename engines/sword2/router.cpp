@@ -20,13 +20,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
-#include "common/stream.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -322,7 +320,7 @@ int32 Router::getRoute() {
 		// of a line
 
 		// scan through the nodes linking each node to its nearest
-		// neighbour until no more nodes change
+		// neighbor until no more nodes change
 
 		// This is the routine that finds a route using scan()
 
@@ -462,17 +460,15 @@ int32 Router::smoothestPath() {
 
 		assert(options);
 
-		i = 0;
-		steps = 0;
-
-		do {
+		for (i = 0; i < 4; ++i) {
 			int32 opt = 1 << turns[i];
-			if (options & opt)
-				steps = smoothCheck(turns[i], p, dirS, dirD);
-			i++;
-		} while (steps == 0 && i < 4);
+			if (options & opt) {
+				smoothCheck(steps, turns[i], p, dirS, dirD);
+				break;
+			}
+		}
 
-		assert(steps);
+		assert(i < 4);
 
 		// route.X route.Y route.dir and bestTurns start at far end
 	}
@@ -485,7 +481,7 @@ int32 Router::smoothestPath() {
 	return 1;
 }
 
-int32 Router::smoothCheck(int32 best, int32 p, int32 dirS, int32 dirD) {
+void Router::smoothCheck(int32 &k, int32 best, int32 p, int32 dirS, int32 dirD) {
 	/*********************************************************************
 	 * Slip sliding away
 	 * This path checker checks to see if a walk that exactly follows the
@@ -494,9 +490,6 @@ int32 Router::smoothCheck(int32 best, int32 p, int32 dirS, int32 dirD) {
 	 * No longer checks the data it only creates the smoothPath array JPS
 	 *********************************************************************/
 
-	// FIXME: Using 'static' vars in a method is evil -- they should almost
-	// always be turned into member variables instead.
-	static int32 k;
 	int32 dsx, dsy;
 	int32 ddx, ddy;
 	int32 ss0, ss1, ss2;
@@ -628,8 +621,6 @@ int32 Router::smoothCheck(int32 best, int32 p, int32 dirS, int32 dirD) {
 
 		break;
 	}
-
-	return k;
 }
 
 void Router::slidyPath() {
@@ -857,9 +848,7 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 	 * produce a module list from the line data
 	 *********************************************************************/
 
-	// FIXME: Using 'static' vars in a method is evil -- they should almost
-	// always be turned into member variables instead.
-	static int32 left = 0;
+	int32 left;
 	int32 p;
 	int32 lastDir;
 	int32 lastRealDir;
@@ -945,11 +934,11 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 
 			// new frames for turn frames	29oct95jps
 			if (turnDir < 0) {
-				if ( lastDir < 0)
+				if (lastDir < 0)
 					lastDir += NO_DIRECTIONS;
 				module = _firstStandingTurnLeftFrame + lastDir;
 			} else {
-				if ( lastDir > 7)
+				if (lastDir > 7)
 					lastDir -= NO_DIRECTIONS;
 				module = _firstStandingTurnRightFrame + lastDir;
 			}
@@ -991,7 +980,7 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 	} else {
 		// start the walk on the right leg (ie. at beginning of the
 		// second step of the walk cycle)
-		left = _framesPerStep;
+		left = 1;
 	}
 
 	_lastCount = _stepCount;
@@ -1018,12 +1007,9 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 		_currentDir = _modularPath[p].dir;
 
 		if (_currentDir < NO_DIRECTIONS) {
-			module = _currentDir * _framesPerStep * 2 + left;
+			module = _currentDir * _framesPerStep * 2 + left * _framesPerStep;
 
-			if (left == 0)
-				left = _framesPerStep;
-			else
-				left = 0;
+			left = !left;
 
 			moduleEnd = module + _framesPerStep;
 			step = 0;
@@ -1070,20 +1056,14 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 							// the last stop was
 							// closest
 							_stepCount -= _framesPerStep;
-							if (left == 0)
-								left = _framesPerStep;
-							else
-								left = 0;
+							left = !left;
 						}
 					} else {
 						if (3 * ABS(lastErrorX) < ABS(errorX)) {
 							//the last stop was
 							// closest
 							_stepCount -= _framesPerStep;
-							if (left == 0)
-								left = _framesPerStep;
-							else
-								left = 0;
+							left = !left;
 						}
 					}
 				}
@@ -1208,7 +1188,7 @@ void Router::slidyWalkAnimator(WalkData *walkAnim) {
 	} else if (_targetDir != lastRealDir) {
 		// rotate to target direction
 		turnDir = _targetDir - lastRealDir;
-		if ( turnDir < 0)
+		if (turnDir < 0)
 			turnDir += NO_DIRECTIONS;
 
 		if (turnDir > 4)
@@ -1493,7 +1473,7 @@ int32 Router::solidWalkAnimator(WalkData *walkAnim) {
 	} else {
 		// start the walk on the right leg (ie. at beginning of the
 		// second step of the walk cycle)
-		left = _framesPerStep;
+		left = 1;
 	}
 
 	_lastCount = _stepCount;
@@ -1510,12 +1490,9 @@ int32 Router::solidWalkAnimator(WalkData *walkAnim) {
 		while (_modularPath[p].num > 0) {
 			_currentDir = _modularPath[p].dir;
 			if (_currentDir < NO_DIRECTIONS) {
-				module = _currentDir * _framesPerStep * 2 + left;
+				module = _currentDir * _framesPerStep * 2 + left * _framesPerStep;
 
-				if (left == 0)
-					left = _framesPerStep;
-				else
-					left = 0;
+				left = !left;
 
 				moduleEnd = module + _framesPerStep;
 				step = 0;
@@ -1545,10 +1522,7 @@ int32 Router::solidWalkAnimator(WalkData *walkAnim) {
 					_modularPath[p].num = 0;
 					_stepCount -= _framesPerStep;
 
-					if (left == 0)
-						left = _framesPerStep;
-					else
-						left = 0;
+					left = !left;
 
 					// Okay this is the end of a section
 
@@ -2368,9 +2342,9 @@ void Router::plotWalkGrid() {
 		plotCross(_node[i].x, _node[i].y, 184);
 }
 
-void Router::plotCross(int16 x, int16 y, uint8 colour) {
-	_vm->_screen->drawLine(x - 1, y - 1, x + 1, y + 1, colour);
-	_vm->_screen->drawLine(x + 1, y - 1, x - 1, y + 1, colour);
+void Router::plotCross(int16 x, int16 y, uint8 color) {
+	_vm->_screen->drawLine(x - 1, y - 1, x + 1, y + 1, color);
+	_vm->_screen->drawLine(x + 1, y - 1, x - 1, y + 1, color);
 }
 
 void Router::loadWalkGrid() {

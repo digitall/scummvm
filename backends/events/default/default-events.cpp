@@ -18,15 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/scummsys.h"
 
 #if !defined(DISABLE_DEFAULT_EVENTMANAGER)
 
 #include "common/system.h"
 #include "common/config-manager.h"
+#include "common/translation.h"
 #include "backends/events/default/default-events.h"
 #include "backends/keymapper/keymapper.h"
 #include "backends/keymapper/remap-dialog.h"
@@ -95,15 +95,13 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 		case Common::EVENT_KEYDOWN:
 			_modifierState = event.kbd.flags;
 			// init continuous event stream
-			// not done on PalmOS because keyboard is emulated and keyup is not generated
-#if !defined(PALMOS_MODE)
 			_currentKeyDown.ascii = event.kbd.ascii;
 			_currentKeyDown.keycode = event.kbd.keycode;
 			_currentKeyDown.flags = event.kbd.flags;
 			_keyRepeatTime = time + kKeyRepeatInitialDelay;
-#endif
+
 			// Global Main Menu
-			if (event.kbd.flags == Common::KBD_CTRL && event.kbd.keycode == Common::KEYCODE_F5) {
+			if (event.kbd.hasFlags(Common::KBD_CTRL) && event.kbd.keycode == Common::KEYCODE_F5) {
 				if (g_engine && !g_engine->isPaused()) {
 					Common::Event menuEvent;
 					menuEvent.type = Common::EVENT_MAINMENU;
@@ -135,7 +133,7 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 				}
 			}
 #ifdef ENABLE_VKEYBD
-			else if (event.kbd.keycode == Common::KEYCODE_F7 && event.kbd.flags == 0) {
+			else if (event.kbd.keycode == Common::KEYCODE_F7 && event.kbd.hasFlags(0)) {
 				if (_vk->isDisplaying()) {
 					_vk->close(true);
 				} else {
@@ -149,7 +147,7 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 			}
 #endif
 #ifdef ENABLE_KEYMAPPER
-			else if (event.kbd.keycode == Common::KEYCODE_F8 && event.kbd.flags == 0) {
+			else if (event.kbd.keycode == Common::KEYCODE_F8 && event.kbd.hasFlags(0)) {
 				if (!_remap) {
 					_remap = true;
 					Common::RemapDialog _remapDialog;
@@ -162,6 +160,17 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 				}
 			}
 #endif
+			else if (event.kbd.keycode == Common::KEYCODE_BACKSPACE) {
+				// WORKAROUND: Some engines incorrectly attempt to use the
+				// ascii value instead of the keycode to detect the backspace
+				// key (a non-portable behavior). This fails at least on
+				// Mac OS X, possibly also on other systems.
+				// As a workaround, we force the ascii value for backspace
+				// key pressed. A better fix would be for engines to stop
+				// making invalid assumptions about ascii values.
+				event.kbd.ascii = Common::KEYCODE_BACKSPACE;
+				_currentKeyDown.ascii = Common::KEYCODE_BACKSPACE;
+			}
 			break;
 
 		case Common::EVENT_KEYUP:
@@ -210,7 +219,7 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 			if (ConfMan.getBool("confirm_exit")) {
 				if (g_engine)
 					g_engine->pauseEngine(true);
-				GUI::MessageDialog alert("Do you really want to return to the Launcher?", "Launcher", "Cancel");
+				GUI::MessageDialog alert(_("Do you really want to return to the Launcher?"), _("Launcher"), _("Cancel"));
 				result = _shouldRTL = (alert.runModal() == GUI::kMessageOK);
 				if (g_engine)
 					g_engine->pauseEngine(false);
@@ -232,7 +241,7 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 				_confirmExitDialogActive = true;
 				if (g_engine)
 					g_engine->pauseEngine(true);
-				GUI::MessageDialog alert("Do you really want to quit?", "Quit", "Cancel");
+				GUI::MessageDialog alert(_("Do you really want to quit?"), _("Quit"), _("Cancel"));
 				result = _shouldQuit = (alert.runModal() == GUI::kMessageOK);
 				if (g_engine)
 					g_engine->pauseEngine(false);

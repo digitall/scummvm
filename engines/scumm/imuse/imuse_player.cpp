@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
@@ -31,7 +28,7 @@
 #include "scumm/saveload.h"
 #include "scumm/scumm.h"
 
-#include "sound/midiparser.h"
+#include "audio/midiparser.h"
 
 namespace Scumm {
 
@@ -47,7 +44,6 @@ namespace Scumm {
 #define PERCUSSION_CHANNEL 9
 
 extern MidiParser *MidiParser_createRO();
-extern MidiParser *MidiParser_createEUP();
 
 uint16 Player::_active_notes[128];
 
@@ -62,7 +58,6 @@ uint16 Player::_active_notes[128];
 Player::Player() :
 	_midi(NULL),
 	_parser(NULL),
-	_passThrough(0),
 	_parts(NULL),
 	_active(false),
 	_scanning(false),
@@ -72,6 +67,7 @@ Player::Player() :
 	_pan(0),
 	_transpose(0),
 	_detune(0),
+	_note_offset(0),
 	_vol_eff(0),
 	_track_index(0),
 	_loop_to_beat(0),
@@ -93,8 +89,8 @@ Player::~Player() {
 	}
 }
 
-bool Player::startSound(int sound, MidiDriver *midi, bool passThrough) {
-	void *ptr;
+bool Player::startSound(int sound, MidiDriver *midi) {
+	byte *ptr;
 	int i;
 
 	// Not sure what the old code was doing,
@@ -112,14 +108,8 @@ bool Player::startSound(int sound, MidiDriver *midi, bool passThrough) {
 	_active = true;
 	_midi = midi;
 	_id = sound;
-	_priority = 0x80;
-	_volume = 0x7F;
-	_vol_chan = 0xFFFF;
-	_vol_eff = (_se->get_channel_volume(0xFFFF) << 7) >> 7;
-	_pan = 0;
-	_transpose = 0;
-	_detune = 0;
-	_passThrough = passThrough;
+
+	loadStartParameters(sound);
 
 	for (i = 0; i < ARRAYSIZE(_parameterFaders); ++i)
 		_parameterFaders[i].init();
@@ -165,6 +155,7 @@ void Player::clear() {
 	_active = false;
 	_midi = NULL;
 	_id = 0;
+	_note_offset = 0;
 }
 
 void Player::hook_clear() {
@@ -186,15 +177,11 @@ int Player::start_seq_sound(int sound, bool reset_vars) {
 	ptr = _se->findStartOfSound(sound);
 	if (ptr == NULL)
 		return -1;
-	if (_parser)
-		delete _parser;
+	delete _parser;
 
 	if (!memcmp(ptr, "RO", 2)) {
 		// Old style 'RO' resource
 		_parser = MidiParser_createRO();
-	} else if (!memcmp(ptr, "SO", 2)) {
-		// Euphony (FM-TOWNS) resource
-		_parser = MidiParser_createEUP();
 	} else if (!memcmp(ptr, "FORM", 4)) {
 		// Humongous Games XMIDI resource
 		_parser = MidiParser::createParser_XMIDI();
@@ -207,9 +194,41 @@ int Player::start_seq_sound(int sound, bool reset_vars) {
 	_parser->property(MidiParser::mpSmartJump, 1);
 	_parser->loadMusic(ptr, 0);
 	_parser->setTrack(_track_index);
-	setSpeed(reset_vars ? 128 : _speed);
+
+	ptr = _se->findStartOfSound(sound, IMuseInternal::kMDhd);
+	setSpeed(reset_vars ? (ptr ? (READ_BE_UINT32(&ptr[4]) && ptr[15] ? ptr[15] : 128) : 128) : _speed);
 
 	return 0;
+}
+
+void Player::loadStartParameters(int sound) {
+	_priority = 0x80;
+	_volume = 0x7F;
+	_vol_chan = 0xFFFF;
+	_vol_eff = (_se->get_channel_volume(0xFFFF) << 7) >> 7;
+	_pan = 0;
+	_transpose = 0;
+	_detune = 0;
+
+	byte *ptr = _se->findStartOfSound(sound, IMuseInternal::kMDhd);
+	uint32 size = 0;
+
+	if (ptr) {
+		ptr += 4;
+		size = READ_BE_UINT32(ptr);
+		ptr += 4;
+
+		// MDhd chunks don't get used in MI1 and contain only zeroes.
+		// We check for volume, priority and speed settings of zero here.
+		if (size && (ptr[2] | ptr[3] | ptr[7])) {
+			_priority = ptr[2];
+			_volume = ptr[3];
+			_pan = ptr[4];
+			_transpose = ptr[5];
+			_detune = ptr[6];
+			setSpeed(ptr[7]);
+		}
+	}
 }
 
 void Player::uninit_parts() {
@@ -230,11 +249,6 @@ void Player::setSpeed(byte speed) {
 }
 
 void Player::send(uint32 b) {
-	if (_passThrough) {
-		_midi->send(b);
-		return;
-	}
-
 	byte cmd = (byte)(b & 0xF0);
 	byte chan = (byte)(b & 0x0F);
 	byte param1 = (byte)((b >> 8) & 0xFF);
@@ -252,6 +266,7 @@ void Player::send(uint32 b) {
 		break;
 
 	case 0x9: // Key On
+		param1 += _note_offset;
 		if (!_scanning) {
 			if (_isMT32 && !_se->isNativeMT32())
 				param2 = (((param2 * 3) >> 2) + 32) & 0x7F;
@@ -350,11 +365,6 @@ void Player::sysEx(const byte *p, uint16 len) {
 	byte buf[128];
 	Part *part;
 
-	if (_passThrough) {
-		_midi->sysEx(p, len);
-		return;
-	}
-
 	// Check SysEx manufacturer.
 	a = *p++;
 	--len;
@@ -372,7 +382,7 @@ void Player::sysEx(const byte *p, uint16 len) {
 			_midi->sysEx_customInstrument(p[0], 'EUP ', p + 1);
 		} else {
 			// SysEx manufacturer 0x97 has been spotted in the
-			// Monkey Island 2 Adlib music, so don't make this a
+			// Monkey Island 2 AdLib music, so don't make this a
 			// fatal error. See bug #1481383.
 			if (a == 0)
 				warning("Unknown SysEx manufacturer 0x00 0x%02X 0x%02X", p[0], p[1]);
@@ -664,6 +674,10 @@ void Player::setDetune(int detune) {
 	for (part = _parts; part; part = part->_next) {
 		part->set_detune(part->_detune);
 	}
+}
+
+void Player::setOffsetNote(int offset) {
+	_note_offset = offset;
 }
 
 int Player::scan(uint totrack, uint tobeat, uint totick) {
@@ -994,10 +1008,6 @@ void Player::fixAfterLoad() {
 		_isMT32 = _se->isMT32(_id);
 		_isMIDI = _se->isMIDI(_id);
 	}
-}
-
-uint32 Player::getBaseTempo() {
-	return (_midi ? _midi->getBaseTempo() : 0);
 }
 
 void Player::metaEvent(byte type, byte *msg, uint16 len) {

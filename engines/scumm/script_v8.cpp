@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
@@ -39,7 +36,7 @@
 #include "scumm/verbs.h"
 #include "scumm/smush/smush_player.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 namespace Scumm {
 
@@ -766,7 +763,6 @@ void ScummEngine_v8::o8_actorOps() {
 
 	if (subOp == 0x7A) {
 		_curActor = pop();
-		//printf("Setting current actor to %d\n", _curActor);
 		return;
 	}
 
@@ -937,7 +933,6 @@ void ScummEngine_v8::o8_verbOps() {
 		_curVerb = pop();
 		_curVerbSlot = getVerbSlot(_curVerb, 0);
 		assertRange(0, _curVerbSlot, _numVerbs - 1, "new verb slot");
-		//printf("Setting current actor to %d\n", _curActor);
 		return;
 	}
 

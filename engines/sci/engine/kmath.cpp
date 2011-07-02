@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sci/engine/state.h"
@@ -28,65 +25,68 @@
 
 namespace Sci {
 
-reg_t kRandom(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	return make_reg(0, argv[0].toSint16() + (int)((argv[1].toSint16() + 1.0 - argv[0].toSint16()) * (rand() / (RAND_MAX + 1.0))));
-}
+reg_t kRandom(EngineState *s, int argc, reg_t *argv) {
+	switch (argc) {
+	case 1: // set seed to argv[0]
+		// SCI0/SCI01 just reset the seed to 0 instead of using argv[0] at all
+		return NULL_REG;
 
-reg_t kAbs(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	// This is a hack, but so is the code in Hoyle1 that needs it.
-	if (argv[0].segment)
-		return make_reg(0, 0x3e8); // Yes people, this is an object
-	return make_reg(0, abs(argv[0].toSint16()));
-}
+	case 2: { // get random number
+		// numbers are definitely unsigned, for example lsl5 door code in k rap radio is random
+		//  and 5-digit - we get called kRandom(10000, 65000)
+		//  some codes in sq4 are also random and 5 digit (if i remember correctly)
+		const uint16 fromNumber = argv[0].toUint16();
+		const uint16 toNumber = argv[1].toUint16();
+		uint16 range = toNumber - fromNumber + 1;
+		// calculating range is exactly how sierra sci did it and is required for hoyle 4
+		//  where we get called with kRandom(0, -1) and we are supposed to give back values from 0 to 0
+		//  the returned value will be used as displace-offset for a background cel
+		//  note: i assume that the hoyle4 code is actually buggy and it was never fixed because of
+		//         the way sierra sci handled it - "it just worked". It should have called kRandom(0, 0)
+		if (range)
+			range--; // the range value was never returned, our random generator gets 0->range, so fix it
 
-reg_t kSqrt(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	return make_reg(0, (int16) sqrt((float) abs(argv[0].toSint16())));
-}
+		const int randomNumber = fromNumber + (int)g_sci->getRNG().getRandomNumber(range);
+		return make_reg(0, randomNumber);
+	}
 
-int get_angle(int xrel, int yrel) {
-	if ((xrel == 0) && (yrel == 0))
-		return 0;
-	else {
-		int val = (int)(180.0 / PI * atan2((double)xrel, (double) - yrel));
-		if (val < 0)
-			val += 360;
+	case 3: // get seed
+		// SCI0/01 did not support this at all
+		// Actually we would have to return the previous seed
+		error("kRandom: scripts asked for previous seed");
+		break;
 
-		// Take care of OB1 differences between SSCI and
-		// FSCI. SCI games sometimes check for equality with
-		// "round" angles
-		if (val % 45 == 44)
-			val++;
-		else if (val % 45 == 1)
-			val--;
-
-		return val;
+	default:
+		error("kRandom: unsupported argc");
 	}
 }
 
-reg_t kGetAngle(EngineState *s, int funct_nr, int argc, reg_t *argv) {
-	// Based on behavior observed with a test program created with
-	// SCI Studio.
-	int x1 = argv[0].toSint16();
-	int y1 = argv[1].toSint16();
-	int x2 = argv[2].toSint16();
-	int y2 = argv[3].toSint16();
-	int xrel = x2 - x1;
-	int yrel = y1 - y2; // y-axis is mirrored.
-	int angle;
+reg_t kAbs(EngineState *s, int argc, reg_t *argv) {
+	return make_reg(0, ABS(argv[0].toSint16()));
+}
+
+reg_t kSqrt(EngineState *s, int argc, reg_t *argv) {
+	return make_reg(0, (int16) sqrt((float) ABS(argv[0].toSint16())));
+}
+
+uint16 kGetAngleWorker(int16 x1, int16 y1, int16 x2, int16 y2) {
+	int16 xRel = x2 - x1;
+	int16 yRel = y1 - y2; // y-axis is mirrored.
+	int16 angle;
 
 	// Move (xrel, yrel) to first quadrant.
 	if (y1 < y2)
-		yrel = -yrel;
+		yRel = -yRel;
 	if (x2 < x1)
-		xrel = -xrel;
+		xRel = -xRel;
 
 	// Compute angle in grads.
-	if (yrel == 0 && xrel == 0)
-		angle = 0;
+	if (yRel == 0 && xRel == 0)
+		return 0;
 	else
-		angle = 100 * xrel / (xrel + yrel);
+		angle = 100 * xRel / (xRel + yRel);
 
-	// Fix up angle for actual quadrant of (xrel, yrel).
+	// Fix up angle for actual quadrant of (xRel, yRel).
 	if (y1 < y2)
 		angle = 200 - angle;
 	if (x2 < x1)
@@ -96,78 +96,106 @@ reg_t kGetAngle(EngineState *s, int funct_nr, int argc, reg_t *argv) {
 	// grad 10 with grad 11, grad 20 with grad 21, etc. This leads to
 	// "degrees" that equal either one or two grads.
 	angle -= (angle + 9) / 10;
-
-	return make_reg(0, angle);
+	return angle;
 }
 
-reg_t kGetDistance(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kGetAngle(EngineState *s, int argc, reg_t *argv) {
+	// Based on behavior observed with a test program created with
+	// SCI Studio.
+	int x1 = argv[0].toSint16();
+	int y1 = argv[1].toSint16();
+	int x2 = argv[2].toSint16();
+	int y2 = argv[3].toSint16();
+
+	return make_reg(0, kGetAngleWorker(x1, y1, x2, y2));
+}
+
+reg_t kGetDistance(EngineState *s, int argc, reg_t *argv) {
 	int xdiff = (argc > 3) ? argv[3].toSint16() : 0;
 	int ydiff = (argc > 2) ? argv[2].toSint16() : 0;
 	int angle = (argc > 5) ? argv[5].toSint16() : 0;
-	int xrel = (int)(((float) argv[1].toSint16() - xdiff) / cos(angle * PI / 180.0)); // This works because cos(0)==1
+	int xrel = (int)(((float) argv[1].toSint16() - xdiff) / cos(angle * M_PI / 180.0)); // This works because cos(0)==1
 	int yrel = argv[0].toSint16() - ydiff;
 	return make_reg(0, (int16)sqrt((float) xrel*xrel + yrel*yrel));
 }
 
-reg_t kTimesSin(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kTimesSin(EngineState *s, int argc, reg_t *argv) {
 	int angle = argv[0].toSint16();
 	int factor = argv[1].toSint16();
 
-	return make_reg(0, (int)(factor * 1.0 * sin(angle * PI / 180.0)));
+	return make_reg(0, (int16)(factor * sin(angle * M_PI / 180.0)));
 }
 
-reg_t kTimesCos(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kTimesCos(EngineState *s, int argc, reg_t *argv) {
 	int angle = argv[0].toSint16();
 	int factor = argv[1].toSint16();
 
-	return make_reg(0, (int)(factor * 1.0 * cos(angle * PI / 180.0)));
+	return make_reg(0, (int16)(factor * cos(angle * M_PI / 180.0)));
 }
 
-reg_t kCosDiv(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kCosDiv(EngineState *s, int argc, reg_t *argv) {
 	int angle = argv[0].toSint16();
 	int value = argv[1].toSint16();
-	double cosval = cos(angle * PI / 180.0);
+	double cosval = cos(angle * M_PI / 180.0);
 
-	if ((cosval < 0.0001) && (cosval > 0.0001)) {
-		warning("Attepted division by zero");
-		return make_reg(0, (int16)0x8000);
+	if ((cosval < 0.0001) && (cosval > -0.0001)) {
+		error("kCosDiv: Attempted division by zero");
+		return SIGNAL_REG;
 	} else
 		return make_reg(0, (int16)(value / cosval));
 }
 
-reg_t kSinDiv(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kSinDiv(EngineState *s, int argc, reg_t *argv) {
 	int angle = argv[0].toSint16();
 	int value = argv[1].toSint16();
-	double sinval = sin(angle * PI / 180.0);
+	double sinval = sin(angle * M_PI / 180.0);
 
-	if ((sinval < 0.0001) && (sinval > 0.0001)) {
-		warning("Attepted division by zero");
-		return make_reg(0, (int16)0x8000);
+	if ((sinval < 0.0001) && (sinval > -0.0001)) {
+		error("kSinDiv: Attempted division by zero");
+		return SIGNAL_REG;
 	} else
 		return make_reg(0, (int16)(value / sinval));
 }
 
-reg_t kTimesTan(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kTimesTan(EngineState *s, int argc, reg_t *argv) {
 	int param = argv[0].toSint16();
 	int scale = (argc > 1) ? argv[1].toSint16() : 1;
 
 	param -= 90;
 	if ((param % 90) == 0) {
-		warning("Attempted tan(pi/2)");
-		return make_reg(0, (int16)0x8000);
+		error("kTimesTan: Attempted tan(pi/2)");
+		return SIGNAL_REG;
 	} else
-		return make_reg(0, (int16) - (tan(param * PI / 180.0) * scale));
+		return make_reg(0, (int16) - (tan(param * M_PI / 180.0) * scale));
 }
 
-reg_t kTimesCot(EngineState *s, int funct_nr, int argc, reg_t *argv) {
+reg_t kTimesCot(EngineState *s, int argc, reg_t *argv) {
 	int param = argv[0].toSint16();
 	int scale = (argc > 1) ? argv[1].toSint16() : 1;
 
 	if ((param % 90) == 0) {
-		warning("Attempted tan(pi/2)");
-		return make_reg(0, (int16)0x8000);
+		error("kTimesCot: Attempted tan(pi/2)");
+		return SIGNAL_REG;
 	} else
-		return make_reg(0, (int16)(tan(param * PI / 180.0) * scale));
+		return make_reg(0, (int16)(tan(param * M_PI / 180.0) * scale));
 }
+
+#ifdef ENABLE_SCI32
+
+reg_t kMulDiv(EngineState *s, int argc, reg_t *argv) {
+	int16 multiplicant = argv[0].toSint16();
+	int16 multiplier = argv[1].toSint16();
+	int16 denominator = argv[2].toSint16();
+
+	// Sanity check...
+	if (!denominator) {
+		error("kMulDiv: attempt to divide by zero (%d * %d / %d", multiplicant, multiplier, denominator);
+		return NULL_REG;
+	}
+
+	return make_reg(0, multiplicant * multiplier / denominator);
+}
+
+#endif
 
 } // End of namespace Sci

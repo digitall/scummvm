@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LURE_H
@@ -28,9 +25,11 @@
 
 #include "engines/engine.h"
 #include "common/rect.h"
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 #include "common/file.h"
 #include "common/savefile.h"
+#include "common/util.h"
+#include "common/random.h"
 
 #include "lure/disk.h"
 #include "lure/res.h"
@@ -41,13 +40,32 @@
 #include "lure/room.h"
 #include "lure/fights.h"
 
+/**
+ * This is the namespace of the Lure engine.
+ *
+ * Status of this engine: Complete
+ *
+ * Games using this engine:
+ * - Lure of the Temptress
+ */
 namespace Lure {
+
+#define RandomNumberGen LureEngine::getReference().rnd()
+
+enum LureLanguage {
+	LANG_IT_ITA = 10,
+	LANG_FR_FRA = 6,
+	LANG_DE_DEU = 7,
+	LANG_ES_ESP = 17,
+	LANG_EN_ANY = 3,
+	LANG_UNKNOWN = -1
+};
 
 struct LureGameDescription;
 
 class LureEngine : public Engine {
 private:
-	bool _initialised;
+	bool _initialized;
 	int _gameToLoad;
 	uint8 _saveVersion;
 	Disk *_disk;
@@ -59,6 +77,7 @@ private:
 	StringData *_strings;
 	Room *_room;
 	FightsManager *_fights;
+	Common::RandomSource _rnd;
 
 	const char *generateSaveName(int slotNumber);
 
@@ -76,7 +95,7 @@ public:
 	virtual Common::Error run() {
 		Common::Error err;
 		err = init();
-		if (err != Common::kNoError)
+		if (err.getCode() != Common::kNoError)
 			return err;
 		return go();
 	}
@@ -86,6 +105,7 @@ public:
 
 	Disk &disk() { return *_disk; }
 
+	Common::RandomSource &rnd() { return _rnd; }
 	int gameToLoad() { return _gameToLoad; }
 	bool loadGame(uint8 slotNumber);
 	bool saveGame(uint8 slotNumber, Common::String &caption);
@@ -94,6 +114,7 @@ public:
 	void GUIError(const char *msg, ...) GCC_PRINTF(2, 3);
 
 	uint32 getFeatures() const;
+	LureLanguage getLureLanguage() const;
 	Common::Language getLanguage() const;
 	Common::Platform getPlatform() const;
 	virtual GUI::Debugger *getDebugger();
@@ -102,8 +123,8 @@ public:
 	virtual Common::Error loadGameState(int slot) {
 		return loadGame(slot) ? Common::kReadingFailed : Common::kNoError;
 	}
-	virtual Common::Error saveGameState(int slot, const char *desc) {
-		String s(desc);
+	virtual Common::Error saveGameState(int slot, const Common::String &desc) {
+		Common::String s(desc);
 		return saveGame(slot, s) ? Common::kReadingFailed : Common::kNoError;
 	}
 	virtual bool canLoadGameStateCurrently() {

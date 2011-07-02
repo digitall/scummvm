@@ -18,14 +18,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * A (some would say very) small collection of utility functions.
  */
-
-#include "common/endian.h"
-#include "common/util.h"
 
 #include "tinsel/dw.h"
 #include "tinsel/film.h"
@@ -60,26 +54,19 @@ byte *FindChunk(SCNHANDLE handle, uint32 chunk) {
 		chunk -= 0x2L;
 
 	while (1) {
-		if (READ_LE_UINT32(lptr) == chunk)
+		if (READ_32(lptr) == chunk)
 			return (byte *)(lptr + 2);
 
 		++lptr;
-		add = READ_LE_UINT32(lptr);
+		add = READ_32(lptr);
+
 		if (!add)
+			// End of file reached
 			return NULL;
 
+		// Move to next chunk
 		lptr = (uint32 *)(bptr + add);
 	}
 }
 
-/**
- * Get the actor id from a film (column 0)
- */
-int ExtractActor(SCNHANDLE hFilm) {
-	const FILM *pFilm = (const FILM *)LockMem(hFilm);
-	const FREEL *pReel = &pFilm->reels[0];
-	const MULTI_INIT *pmi = (const MULTI_INIT *)LockMem(FROM_LE_32(pReel->mobj));
-	return (int)FROM_LE_32(pmi->mulID);
-}
-
-} // end of namespace Tinsel
+} // End of namespace Tinsel

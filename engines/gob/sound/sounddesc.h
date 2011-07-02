@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SOUND_SOUNDDESC_H
@@ -46,6 +43,11 @@ public:
 	int16 _id;
 	byte _mixerFlags;
 
+	SoundDesc();
+	~SoundDesc();
+
+	void swap(SoundDesc &desc);
+
 	byte *getData() { return _dataPtr; }
 
 	uint32    size()         const { return _size;     }
@@ -65,9 +67,6 @@ public:
 	// Which fade out length to use when the fade starts half-way through?
 	int16 calcFadeOutLength(int16 frequency);
 	uint32 calcLength(int16 repCount, int16 frequency, bool fade);
-
-	SoundDesc();
-	~SoundDesc();
 
 private:
 	Resource *_resource;

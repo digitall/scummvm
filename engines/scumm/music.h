@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_MUSIC_H
@@ -80,13 +77,7 @@ public:
 	 * the music/sound.
 	 * @return the music timer
 	 */
-	virtual int  getMusicTimer() const { return 0; }
-
-	/**
-	 * Terminate the music engine. Called just before the music engine
-	 * is deleted.
-	 */
-	virtual void terminate() {}
+	virtual int  getMusicTimer() { return 0; }
 };
 
 } // End of namespace Scumm

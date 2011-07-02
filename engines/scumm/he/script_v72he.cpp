@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#ifdef ENABLE_HE
 
 #include "common/config-manager.h"
 #include "common/savefile.h"
@@ -34,7 +33,6 @@
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
-#include "scumm/he/resource_he.h"
 #include "scumm/scumm.h"
 #include "scumm/he/sound_he.h"
 #include "scumm/util.h"
@@ -171,7 +169,7 @@ int ScummEngine_v72he::readArray(int array, int idx2, int idx1) {
 	}
 
 	const int offset = (FROM_LE_32(ah->dim1end) - FROM_LE_32(ah->dim1start) + 1) *
-		(idx2 - FROM_LE_32(ah->dim2start)) - FROM_LE_32(ah->dim1start) + idx1;
+		(idx2 - FROM_LE_32(ah->dim2start)) + (idx1 - FROM_LE_32(ah->dim1start));
 
 	switch (FROM_LE_32(ah->type)) {
 	case kByteArray:
@@ -623,15 +621,15 @@ void ScummEngine_v72he::o72_getArrayDimSize() {
 }
 
 void ScummEngine_v72he::o72_getNumFreeArrays() {
-	byte **addr = _res->address[rtString];
+	const ResourceManager::ResTypeData &rtd = _res->_types[rtString];
 	int i, num = 0;
 
 	for (i = 1; i < _numArray; i++) {
-		if (!addr[i])
+		if (!rtd[i]._address)
 			num++;
 	}
 
-	push (num);
+	push(num);
 }
 
 void ScummEngine_v72he::o72_roomOps() {
@@ -709,13 +707,11 @@ void ScummEngine_v72he::o72_roomOps() {
 
 	case 221:
 		byte buffer[256];
-		int r;
 
 		copyScriptString((byte *)buffer, sizeof(buffer));
 
-		r = convertFilePath(buffer, sizeof(buffer));
-		memcpy(_saveLoadFileName, buffer + r, sizeof(buffer) - r);
-		debug(1, "o72_roomOps: case 221: filename %s", _saveLoadFileName);
+		_saveLoadFileName = (char *)buffer + convertFilePath(buffer, sizeof(buffer));
+		debug(1, "o72_roomOps: case 221: filename %s", _saveLoadFileName.c_str());
 
 		_saveLoadFlag = pop();
 		_saveLoadSlot = 255;
@@ -1396,11 +1392,6 @@ void ScummEngine_v72he::o72_openFile() {
 	copyScriptString(buffer, sizeof(buffer));
 	debug(1, "Original filename %s", buffer);
 
-	// HACK: INI filename seems to get reset, corruption elsewhere?
-	if (_game.id == GID_MOONBASE && buffer[0] == 0) {
-		strcpy((char *)buffer, "moonbase.ini");
-	}
-
 	const char *filename = (char *)buffer + convertFilePath(buffer, sizeof(buffer));
 	debug(1, "Final filename to %s", filename);
 
@@ -1414,23 +1405,49 @@ void ScummEngine_v72he::o72_openFile() {
 
 	if (slot != -1) {
 		switch (mode) {
-		case 1:
+		case 1:   // Read mode
 			if (!_saveFileMan->listSavefiles(filename).empty()) {
 				_hInFileTable[slot] = _saveFileMan->openForLoading(filename);
 			} else {
-				Common::File *f = new Common::File();
-				f->open(filename);
-				if (!f->isOpen())
-					delete f;
-				else
-					_hInFileTable[slot] = f;
+				_hInFileTable[slot] = SearchMan.createReadStreamForMember(filename);
 			}
 			break;
-		case 2:
+		case 2:   // Write mode
 			if (!strchr(filename, '/')) {
 				_hOutFileTable[slot] = _saveFileMan->openForSaving(filename);
 			}
 			break;
+		case 6: { // Append mode
+			if (strchr(filename, '/'))
+				break;
+
+			// First check if the file already exists
+			Common::InSaveFile *initialState = 0;
+			if (!_saveFileMan->listSavefiles(filename).empty())
+				initialState = _saveFileMan->openForLoading(filename);
+			else
+				initialState = SearchMan.createReadStreamForMember(filename);
+
+			// Read in the data from the initial file
+			uint32 initialSize = 0;
+			byte *initialData = 0;
+			if (initialState) {
+				initialSize = initialState->size();
+				initialData = new byte[initialSize];
+				initialState->read(initialData, initialSize);
+				delete initialState;
+			}
+
+			// Attempt to open a save file
+			_hOutFileTable[slot] = _saveFileMan->openForSaving(filename);
+
+			// Begin us off with the data from the previous file
+			if (_hOutFileTable[slot] && initialData) {
+				_hOutFileTable[slot]->write(initialData, initialSize);
+				delete[] initialData;
+			}
+
+			} break;
 		default:
 			error("o72_openFile(): wrong open file mode %d", mode);
 		}
@@ -1482,6 +1499,7 @@ void ScummEngine_v72he::o72_readFile() {
 		fetchScriptByte();
 		size = pop();
 		slot = pop();
+		assert(_hInFileTable[slot]);
 		val = readFileToArray(slot, size);
 		push(val);
 		break;
@@ -1571,7 +1589,7 @@ void ScummEngine_v72he::o72_rename() {
 }
 
 void ScummEngine_v72he::o72_getPixel() {
-	byte area;
+	uint16 area;
 
 	int y = pop();
 	int x = pop();
@@ -1586,11 +1604,17 @@ void ScummEngine_v72he::o72_getPixel() {
 	switch (subOp) {
 	case 9: // HE 100
 	case 218:
-		area = *vs->getBackPixels(x, y - vs->topline);
+		if (_game.features & GF_16BIT_COLOR)
+			area = READ_UINT16(vs->getBackPixels(x, y - vs->topline));
+		else
+			area = *vs->getBackPixels(x, y - vs->topline);
 		break;
 	case 8: // HE 100
 	case 219:
-		area = *vs->getPixels(x, y - vs->topline);
+		if (_game.features & GF_16BIT_COLOR)
+			area = READ_UINT16(vs->getPixels(x, y - vs->topline));
+		else
+			area = *vs->getPixels(x, y - vs->topline);
 		break;
 	default:
 		error("o72_getPixel: default case %d", subOp);
@@ -1803,9 +1827,7 @@ void ScummEngine_v72he::o72_readINI() {
 	switch (subOp) {
 	case 43: // HE 100
 	case 6: // number
-		if (!strcmp((char *)option, "NoFontsInstalled")) {
-			push(1);
-		} else if (!strcmp((char *)option, "NoPrinting")) {
+		if (!strcmp((char *)option, "NoPrinting")) {
 			push(1);
 		} else if (!strcmp((char *)option, "TextOn")) {
 			push(ConfMan.getBool("subtitles"));
@@ -1816,12 +1838,20 @@ void ScummEngine_v72he::o72_readINI() {
 	case 77: // HE 100
 	case 7: // string
 		writeVar(0, 0);
-		if (!strcmp((char *)option, "SaveGamePath")) {
+		if (!strcmp((char *)option, "HE3File")) {
+			Common::String fileName = generateFilename(-3);
+			int len = resStrLen((const byte *)fileName.c_str());
+			data = defineArray(0, kStringArray, 0, 0, 0, len);
+			memcpy(data, fileName.c_str(), len);
+		} else if (!strcmp((char *)option, "GameResourcePath") || !strcmp((char *)option, "SaveGamePath")) {
 			// We set SaveGamePath in order to detect where it used
 			// in convertFilePath and to avoid warning about invalid
 			// path in Macintosh verisons.
 			data = defineArray(0, kStringArray, 0, 0, 0, 2);
-			memcpy(data, (const char *)"*\\", 2);
+			if (_game.platform == Common::kPlatformMacintosh)
+				memcpy(data, (const char *)"*:", 2);
+			else
+				memcpy(data, (const char *)"*\\", 2);
 		} else {
 			const char *entry = (ConfMan.get((char *)option).c_str());
 			int len = resStrLen((const byte *)entry);
@@ -1881,7 +1911,8 @@ void ScummEngine_v72he::o72_writeINI() {
 
 void ScummEngine_v72he::o72_getResourceSize() {
 	const byte *ptr;
-	int size, type;
+	int size;
+	ResType type;
 
 	int resid = pop();
 	if (_game.heversion == 72) {
@@ -1893,7 +1924,7 @@ void ScummEngine_v72he::o72_getResourceSize() {
 
 	switch (subOp) {
 	case 13:
-		push (getSoundResourceSize(resid));
+		push(getSoundResourceSize(resid));
 		return;
 	case 14:
 		type = rtRoomImage;
@@ -1934,7 +1965,7 @@ void ScummEngine_v72he::o72_setSystemMessage() {
 	case 240:
 		debug(1,"o72_setSystemMessage: (%d) %s", subOp, name);
 		break;
-	case 241:  // Set Version
+	case 241: // Set Version
 		debug(1,"o72_setSystemMessage: (%d) %s", subOp, name);
 		break;
 	case 242:
@@ -2006,7 +2037,7 @@ void ScummEngine_v72he::decodeParseString(int m, int n) {
 	case 0xE1:
 		{
 		byte *dataPtr = getResourceAddress(rtTalkie, pop());
-		byte *text = findWrappedBlock(MKID_BE('TEXT'), dataPtr, 0, 0);
+		byte *text = findWrappedBlock(MKTAG('T','E','X','T'), dataPtr, 0, 0);
 		size = getResourceDataSize(text);
 		memcpy(name, text, size);
 		printString(m, name);
@@ -2043,3 +2074,5 @@ void ScummEngine_v72he::decodeParseString(int m, int n) {
 }
 
 } // End of namespace Scumm
+
+#endif // ENABLE_HE

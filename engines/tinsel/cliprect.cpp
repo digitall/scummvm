@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * This file contains the clipping rectangle code.
  */
 
@@ -28,17 +25,15 @@
 #include "tinsel/graphics.h"	// normal object drawing
 #include "tinsel/object.h"
 #include "tinsel/palette.h"
+#include "tinsel/tinsel.h"		// for _vm
 
 namespace Tinsel {
-
-/** list of all clip rectangles */
-static RectList s_rectList;
 
 /**
  * Resets the clipping rectangle allocator.
  */
-void ResetClipRect(void) {
-	s_rectList.clear();
+void ResetClipRect() {
+	_vm->_clipRects.clear();
 }
 
 /**
@@ -46,11 +41,11 @@ void ResetClipRect(void) {
  * @param pClip			clip rectangle dimensions to allocate
  */
 void AddClipRect(const Common::Rect &pClip) {
-	s_rectList.push_back(pClip);
+	_vm->_clipRects.push_back(pClip);
 }
 
 const RectList &GetClipRects() {
-	return s_rectList;
+	return _vm->_clipRects;
 }
 
 /**
@@ -110,10 +105,10 @@ static bool LooseIntersectRectangle(const Common::Rect &pSrc1, const Common::Rec
  * @param bNoVelocity		When reset, objects pos is updated with velocity
  * @param bScrolled)		When set, playfield has scrolled
  */
-void FindMovingObjects(OBJECT *pObjList, Common::Point *pWin, Common::Rect *pClip, bool bNoVelocity, bool bScrolled) {
+void FindMovingObjects(OBJECT **pObjList, Common::Point *pWin, Common::Rect *pClip, bool bNoVelocity, bool bScrolled) {
 	OBJECT *pObj;			// object list traversal pointer
 
-	for (pObj = pObjList->pNext; pObj != NULL; pObj = pObj->pNext) {
+	for (pObj = *pObjList; pObj != NULL; pObj = pObj->pNext) {
 		if (!bNoVelocity) {
 			// we want to add velocities to objects position
 
@@ -175,6 +170,8 @@ void FindMovingObjects(OBJECT *pObjList, Common::Point *pWin, Common::Rect *pCli
  * the total number of clip rectangles.
  */
 void MergeClipRect() {
+	RectList &s_rectList = _vm->_clipRects;
+
 	if (s_rectList.size() <= 1)
 		return;
 
@@ -206,16 +203,16 @@ void MergeClipRect() {
  * @param pWin			Window top left position
  * @param pClip			Pointer to clip rectangle
  */
-void UpdateClipRect(OBJECT *pObjList, Common::Point *pWin, Common::Rect *pClip) {
+void UpdateClipRect(OBJECT **pObjList, Common::Point *pWin, Common::Rect *pClip) {
 	int x, y, right, bottom;	// object corners
 	int hclip, vclip;			// total size of object clipping
 	DRAWOBJECT currentObj;		// filled in to draw the current object in list
 	OBJECT *pObj;				// object list iterator
 
-	// Initialise the fields of the drawing object to empty
+	// Initialize the fields of the drawing object to empty
 	memset(&currentObj, 0, sizeof(DRAWOBJECT));
 
-	for (pObj = pObjList->pNext; pObj != NULL; pObj = pObj->pNext) {
+	for (pObj = *pObjList; pObj != NULL; pObj = pObj->pNext) {
 		if (pObj->flags & DMA_ABS) {
 			// object position is absolute
 			x = fracToInt(pObj->xPos);
@@ -266,10 +263,9 @@ void UpdateClipRect(OBJECT *pObjList, Common::Point *pWin, Common::Rect *pClip) 
 		if (currentObj.leftClip < 0) {
 			// negative - object is not clipped
 			currentObj.leftClip = 0;
-		}
-		else
-		// NOTE: This else statement is disabled in tinsel v1
-		{	// clipped - adjust start position to left of clip rect
+		} else {
+			// NOTE: This else statement is disabled in tinsel v1
+			// clipped - adjust start position to left of clip rect
 			x = pClip->left;
 		}
 
@@ -310,4 +306,4 @@ void UpdateClipRect(OBJECT *pObjList, Common::Point *pWin, Common::Rect *pClip) 
 	}
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

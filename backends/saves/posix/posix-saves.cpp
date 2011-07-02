@@ -18,17 +18,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#if defined(UNIX) && !defined(DISABLE_DEFAULT_SAVEFILEMANAGER)
+
+// Enable getenv, mkdir and time.h stuff
+#define FORBIDDEN_SYMBOL_EXCEPTION_getenv
+#define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
+#define FORBIDDEN_SYMBOL_EXCEPTION_time_h	//On IRIX, sys/stat.h includes sys/time.h
+
+#include "common/scummsys.h"
+
+#if defined(POSIX) && !defined(DISABLE_DEFAULT_SAVEFILEMANAGER)
 
 #include "backends/saves/posix/posix-saves.h"
 
 #include "common/config-manager.h"
 #include "common/savefile.h"
+#include "common/textconsole.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -44,6 +50,9 @@
 
 POSIXSaveFileManager::POSIXSaveFileManager() {
 	// Register default savepath based on HOME
+#if defined(SAMSUNGTV)
+	ConfMan.registerDefault("savepath", "/mtd_wiselink/scummvm savegames");
+#else
 	Common::String savePath;
 	const char *home = getenv("HOME");
 	if (home && *home && strlen(home) < MAXPATHLEN) {
@@ -51,14 +60,30 @@ POSIXSaveFileManager::POSIXSaveFileManager() {
 		savePath += "/" DEFAULT_SAVE_PATH;
 		ConfMan.registerDefault("savepath", savePath);
 	}
-}
-/*
-POSIXSaveFileManager::POSIXSaveFileManager(const Common::String &defaultSavepath)
-	: DefaultSaveFileManager(defaultSavepath) {
-}
-*/
 
-#if defined(UNIX)
+	// The user can override the savepath with the SCUMMVM_SAVEPATH
+	// environment variable. This is weaker than a --savepath on the
+	// command line, but overrides the default savepath.
+	//
+	// To ensure that the command line option (if given) has precedence,
+	// we only set the value in the transient domain if it is not
+	// yet present there.
+	if (!ConfMan.hasKey("savepath", Common::ConfigManager::kTransientDomain)) {
+		const char *dir = getenv("SCUMMVM_SAVEPATH");
+		if (dir && *dir && strlen(dir) < MAXPATHLEN) {
+			Common::FSNode saveDir(dir);
+			if (!saveDir.exists()) {
+				warning("Ignoring non-existent SCUMMVM_SAVEPATH '%s'", dir);
+			} else if (!saveDir.isWritable()) {
+				warning("Ignoring non-writable SCUMMVM_SAVEPATH '%s'", dir);
+			} else {
+				ConfMan.set("savepath", dir, Common::ConfigManager::kTransientDomain);
+			}
+		}
+	}
+#endif
+}
+
 void POSIXSaveFileManager::checkPath(const Common::FSNode &dir) {
 	const Common::String path = dir.getPath();
 	clearError();
@@ -123,6 +148,5 @@ void POSIXSaveFileManager::checkPath(const Common::FSNode &dir) {
 		}
 	}
 }
-#endif
 
 #endif

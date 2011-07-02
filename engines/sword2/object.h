@@ -20,15 +20,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef	SWORD2_OBJECT_H
 #define	SWORD2_OBJECT_H
 
-#include "common/stream.h"
 #include "common/endian.h"
 
 namespace Sword2 {
@@ -52,27 +48,8 @@ struct ObjectMouse {
 		return 24;
 	}
 
-	void read(byte *addr) {
-		Common::MemoryReadStream readS(addr, size());
-
-		x1 = readS.readSint32LE();
-		y1 = readS.readSint32LE();
-		x2 = readS.readSint32LE();
-		y2 = readS.readSint32LE();
-		priority = readS.readSint32LE();
-		pointer = readS.readSint32LE();
-	}
-
-	void write(byte *addr) {
-		Common::MemoryWriteStream writeS(addr, size());
-
-		writeS.writeSint32LE(x1);
-		writeS.writeSint32LE(y1);
-		writeS.writeSint32LE(x2);
-		writeS.writeSint32LE(y2);
-		writeS.writeSint32LE(priority);
-		writeS.writeSint32LE(pointer);
-	}
+	void read(byte *addr);
+	void write(byte *addr);
 };
 
 // logic structure - contains fields used in logic script processing
@@ -159,7 +136,7 @@ public:
 // speech structure - contains fields used by speech scripts & text output
 
 class ObjectSpeech {
-	// int32 pen;			// colour to use for body of characters
+	// int32 pen;			// color to use for body of characters
 	// int32 width;			// max width of text sprite
 	// int32 command;		// speech script command id
 	// int32 ins1;			// speech script instruction parameters
@@ -295,53 +272,8 @@ struct ObjectWalkdata {
 		return 916;
 	}
 
-	void read(byte *addr) {
-		Common::MemoryReadStream readS(addr, size());
-
-		nWalkFrames = readS.readUint32LE();
-		usingStandingTurnFrames = readS.readUint32LE();
-		usingWalkingTurnFrames = readS.readUint32LE();
-		usingSlowInFrames = readS.readUint32LE();
-		usingSlowOutFrames = readS.readUint32LE();
-
-		int i;
-
-		for (i = 0; i < ARRAYSIZE(nSlowInFrames); i++)
-			nSlowInFrames[i] = readS.readUint32LE();
-
-		for (i = 0; i < ARRAYSIZE(leadingLeg); i++)
-			leadingLeg[i] = readS.readUint32LE();
-
-		for (i = 0; i < ARRAYSIZE(dx); i++)
-			dx[i] = readS.readUint32LE();
-
-		for (i = 0; i < ARRAYSIZE(dy); i++)
-			dy[i] = readS.readUint32LE();
-	}
-
-	void write(byte *addr) {
-		Common::MemoryWriteStream writeS(addr, size());
-
-		writeS.writeUint32LE(nWalkFrames);
-		writeS.writeUint32LE(usingStandingTurnFrames);
-		writeS.writeUint32LE(usingWalkingTurnFrames);
-		writeS.writeUint32LE(usingSlowInFrames);
-		writeS.writeUint32LE(usingSlowOutFrames);
-
-		int i;
-
-		for (i = 0; i < ARRAYSIZE(nSlowInFrames); i++)
-			writeS.writeUint32LE(nSlowInFrames[i]);
-
-		for (i = 0; i < ARRAYSIZE(leadingLeg); i++)
-			writeS.writeUint32LE(leadingLeg[i]);
-
-		for (i = 0; i < ARRAYSIZE(dx); i++)
-			writeS.writeUint32LE(dx[i]);
-
-		for (i = 0; i < ARRAYSIZE(dy); i++)
-			writeS.writeUint32LE(dy[i]);
-	}
+	void read(byte *addr);
+	void write(byte *addr);
 };
 
 } // End of namespace Sword2

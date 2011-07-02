@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -106,7 +103,7 @@ struct MenuData {
 	void addCharToDescription(int slot, char chr) {
 		char *description = saveLoadDescriptionsTable[slot];
 		int descriptionLen = strlen(description);
-		if (descriptionLen < 32 && isprint(chr)) {
+		if (descriptionLen < 32 && isprint(static_cast<unsigned char>(chr))) {
 			description[descriptionLen] = chr;
 			description[descriptionLen + 1] = 0;
 		}
@@ -331,14 +328,14 @@ void ToucheEngine::handleMenuAction(void *menu, int actionId) {
 		break;
 	case kActionPerformSaveLoad:
 		if (menuData->mode == kMenuLoadStateMode) {
-			if (loadGameState(_saveLoadCurrentSlot) == Common::kNoError) {
+			if (loadGameState(_saveLoadCurrentSlot).getCode() == Common::kNoError) {
 				menuData->quit = true;
 			}
 		} else if (menuData->mode == kMenuSaveStateMode) {
 			_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
 			const char *description = menuData->saveLoadDescriptionsTable[_saveLoadCurrentSlot];
 			if (strlen(description) > 0) {
-				if (saveGameState(_saveLoadCurrentSlot, description) == Common::kNoError) {
+				if (saveGameState(_saveLoadCurrentSlot, description).getCode() == Common::kNoError) {
 					menuData->quit = true;
 				}
 			}
@@ -377,8 +374,8 @@ void ToucheEngine::handleOptions(int forceDisplay) {
 						menuData.saveLoadDescriptionsTable[i][0] = 0;
 					}
 					Common::String gameStateFileName = generateGameStateFileName(_targetName.c_str(), 0, true);
-					Common::StringList filenames = _saveFileMan->listSavefiles(gameStateFileName);
-					for (Common::StringList::const_iterator it = filenames.begin(); it != filenames.end(); ++it) {
+					Common::StringArray filenames = _saveFileMan->listSavefiles(gameStateFileName);
+					for (Common::StringArray::const_iterator it = filenames.begin(); it != filenames.end(); ++it) {
 						int i = getGameStateFileSlot(it->c_str());
 						if (i >= 0 && i < kMaxSaveStates) {
 							Common::InSaveFile *f = _saveFileMan->openForLoading(*it);

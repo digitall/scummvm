@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef	SWORD2_H
@@ -41,12 +38,21 @@
 
 #include "common/events.h"
 #include "common/util.h"
+#include "common/random.h"
 
 #define	MAX_starts	100
 #define	MAX_description	100
 
 class OSystem;
 
+/**
+ * This is the namespace of the Sword2 engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Broken Sword II: The Smoking Mirror
+ */
 namespace Sword2 {
 
 enum {
@@ -146,8 +152,6 @@ public:
 	Sword2Engine(OSystem *syst);
 	~Sword2Engine();
 
-	void pauseEngine(bool pause);
-
 	int getFramesPerSecond();
 
 	void registerDefaultSettings();
@@ -160,7 +164,7 @@ public:
 	void setSubtitles(bool b) { _useSubtitles = b; }
 
 	// GMM Loading/Saving
-	Common::Error saveGameState(int slot, const char *desc);
+	Common::Error saveGameState(int slot, const Common::String &desc);
 	bool canSaveGameStateCurrently();
 	Common::Error loadGameState(int slot);
 	bool canLoadGameStateCurrently();
@@ -195,16 +199,11 @@ public:
 
 	int32 _gameCycle;
 
-#ifdef SWORD2_DEBUG
-	bool _renderSkip;
-	bool _stepOneCycle;
-#endif
-
 #if RIGHT_CLICK_CLEARS_LUGGAGE
 	bool heldIsInInventory();
 #endif
 
-	byte *fetchPalette(byte *screenFile);
+	void fetchPalette(byte *screenFile, byte *palBuffer);
 	byte *fetchScreenHeader(byte *screenFile);
 	byte *fetchLayerHeader(byte *screenFile, uint16 layerNo);
 	byte *fetchShadingMask(byte *screenFile);
@@ -225,10 +224,8 @@ public:
 	bool saveExists();
 	bool saveExists(uint16 slotNo);
 	uint32 restoreFromBuffer(byte *buffer, uint32 size);
-	char *getSaveFileName(uint16 slotNo);
+	Common::String getSaveFileName(uint16 slotNo);
 	uint32 findBufferSize();
-
-	bool _gamePaused;
 
 	void startGame();
 	void gameCycle();
@@ -236,8 +233,8 @@ public:
 
 	void sleepUntil(uint32 time);
 
-	void initialiseFontResourceFlags();
-	void initialiseFontResourceFlags(uint8 language);
+	void initializeFontResourceFlags();
+	void initializeFontResourceFlags(uint8 language);
 
 	bool initStartMenu();
 	void registerStartPoint(int32 key, char *name);

@@ -18,13 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
-#include "common/config-manager.h"
+#include "common/debug-channels.h"
 #include "common/file.h"
 #include "common/str.h"
 #include "common/system.h"
@@ -35,7 +31,7 @@
 #include "scumm/debugger.h"
 #include "scumm/imuse/imuse.h"
 #include "scumm/object.h"
-#include "scumm/player_v2.h"
+#include "scumm/resource.h"
 #include "scumm/scumm.h"
 #include "scumm/sound.h"
 
@@ -47,7 +43,7 @@ void debugC(int channel, const char *s, ...) {
 
 	// FIXME: Still spew all debug at -d9, for crashes in startup etc.
 	//	  Add setting from commandline ( / abstract channel interface)
-	if (!Common::isDebugChannelEnabled(channel) && (gDebugLevel < 9))
+	if (!DebugMan.isDebugChannelEnabled(channel) && (gDebugLevel < 9))
 		return;
 
 	va_start(va, s);
@@ -62,8 +58,6 @@ ScummDebugger::ScummDebugger(ScummEngine *s)
 	_vm = s;
 
 	// Register variables
-	DVar_Register("debug_countdown", &_frame_countdown, DVAR_INT, 0);
-
 	DVar_Register("scumm_speed", &_vm->_fastMode, DVAR_BYTE, 0);
 	DVar_Register("scumm_room", &_vm->_currentRoom, DVAR_BYTE, 0);
 	DVar_Register("scumm_roomresource", &_vm->_roomResource, DVAR_INT, 0);
@@ -89,6 +83,9 @@ ScummDebugger::ScummDebugger(ScummEngine *s)
 	if (_vm->_game.id == GID_LOOM)
 		DCmd_Register("drafts",  WRAP_METHOD(ScummDebugger, Cmd_PrintDraft));
 
+	if (_vm->_game.id == GID_MONKEY && _vm->_game.platform == Common::kPlatformSegaCD)
+		DCmd_Register("passcode",  WRAP_METHOD(ScummDebugger, Cmd_Passcode));
+
 	DCmd_Register("loadgame",  WRAP_METHOD(ScummDebugger, Cmd_LoadGame));
 	DCmd_Register("savegame",  WRAP_METHOD(ScummDebugger, Cmd_SaveGame));
 
@@ -107,17 +104,6 @@ ScummDebugger::~ScummDebugger() {
 	 // we need this destructor, even if it is empty, for __SYMBIAN32__
 }
 
-void ScummDebugger::preEnter() {
-	// Pause sound output
-	_old_soundsPaused = _vm->_sound->_soundsPaused;
-	_vm->_sound->pauseSounds(true);
-}
-
-void ScummDebugger::postEnter() {
-	// Resume previous sound state
-	_vm->_sound->pauseSounds(_old_soundsPaused);
-}
-
 ///////////////////////////////////////////////////
 // Now the fun stuff:
 
@@ -125,7 +111,7 @@ void ScummDebugger::postEnter() {
 bool ScummDebugger::Cmd_Restart(int argc, const char **argv) {
 	_vm->restart();
 
-	_detach_now = true;
+	detach();
 	return false;
 }
 
@@ -199,7 +185,7 @@ bool ScummDebugger::Cmd_LoadGame(int argc, const char **argv) {
 
 		_vm->requestLoad(slot);
 
-		_detach_now = true;
+		detach();
 		return false;
 	}
 
@@ -388,8 +374,8 @@ bool ScummDebugger::Cmd_Actor(int argc, const char **argv) {
 		DebugPrintf("Actor[%d]._elevation = %d\n", actnum, a->getElevation());
 		_vm->_fullRedraw = true;
 	} else if (!strcmp(argv[2], "costume")) {
-		if (value >= _vm->_res->num[rtCostume])
-			DebugPrintf("Costume not changed as %d exceeds max of %d\n", value, _vm->_res->num[rtCostume]);
+		if (value >= (int)_vm->_res->_types[rtCostume].size())
+			DebugPrintf("Costume not changed as %d exceeds max of %d\n", value, _vm->_res->_types[rtCostume].size());
 		else {
 			a->setActorCostume(value);
 			_vm->_fullRedraw = true;
@@ -413,14 +399,15 @@ bool ScummDebugger::Cmd_PrintActor(int argc, const char **argv) {
 	int i;
 	Actor *a;
 
-	DebugPrintf("+-----------------------------------------------------------+\n");
-	DebugPrintf("|# |  x |  y | w |elev|cos|box|mov| zp|frm|scl|dir|   cls   |\n");
-	DebugPrintf("+--+----+----+---+----+---+---+---+---+---+---+---+---------+\n");
+	DebugPrintf("+---------------------------------------------------------------+\n");
+	DebugPrintf("|# |  x |  y | w | h |elev|cos|box|mov| zp|frm|scl|dir|   cls   |\n");
+	DebugPrintf("+--+----+----+---+---+----+---+---+---+---+---+---+---+---------+\n");
 	for (i = 1; i < _vm->_numActors; i++) {
 		a = _vm->_actors[i];
 		if (a->_visible)
-			DebugPrintf("|%2d|%4d|%4d|%3d|%4d|%3d|%3d|%3d|%3d|%3d|%3d|%3d|$%08x|\n",
-						 a->_number, a->getRealPos().x, a->getRealPos().y, a->_width, a->getElevation(),
+			DebugPrintf("|%2d|%4d|%4d|%3d|%3d|%4d|%3d|%3d|%3d|%3d|%3d|%3d|%3d|$%08x|\n",
+						 a->_number, a->getRealPos().x, a->getRealPos().y, a->_width,  a->_bottom - a->_top,
+						 a->getElevation(),
 						 a->_costume, a->_walkbox, a->_moving, a->_forceClip, a->_frame,
 						 a->_scalex, a->getFacing(), _vm->_classData[a->_number]);
 	}
@@ -436,7 +423,7 @@ bool ScummDebugger::Cmd_PrintObjects(int argc, const char **argv) {
 	DebugPrintf("|num |  x |  y |width|height|state|fl|   cls   |\n");
 	DebugPrintf("+----+----+----+-----+------+-----+--+---------+\n");
 
-	for (i = 1; i < _vm->_numLocalObjects ; i++) {
+	for (i = 1; i < _vm->_numLocalObjects; i++) {
 		o = &(_vm->_objs[i]);
 		if (o->obj_nr == 0)
 			continue;
@@ -490,7 +477,7 @@ bool ScummDebugger::Cmd_Object(int argc, const char **argv) {
 			//is BgNeedsRedraw enough?
 			_vm->_bgNeedsRedraw = true;
 		} else {
-			DebugPrintf("object command 'state' requires a parameter\n");
+			DebugPrintf("State of object %d: %d\n", obj, _vm->getState(obj));
 		}
 	} else if (!strcmp(argv[2], "name")) {
 		DebugPrintf("Name of object %d: %s\n", obj, _vm->getObjOrActorName(obj));
@@ -502,12 +489,12 @@ bool ScummDebugger::Cmd_Object(int argc, const char **argv) {
 }
 
 bool ScummDebugger::Cmd_Debug(int argc, const char **argv) {
-	const Common::DebugChannelList &lvls = Common::listDebugChannels();
+	const Common::DebugManager::DebugChannelList &lvls = DebugMan.listDebugChannels();
 
 	// No parameters given: Print out a list of all channels and their status
 	if (argc <= 1) {
-		DebugPrintf("Available debug channels: ");
-		for (Common::DebugChannelList::const_iterator i = lvls.begin(); i != lvls.end(); ++i) {
+		DebugPrintf("Available debug channels:\n");
+		for (Common::DebugManager::DebugChannelList::const_iterator i = lvls.begin(); i != lvls.end(); ++i) {
 			DebugPrintf("%c%s - %s (%s)\n", i->enabled ? '+' : ' ',
 					i->name.c_str(), i->description.c_str(),
 					i->enabled ? "enabled" : "disabled");
@@ -518,9 +505,9 @@ bool ScummDebugger::Cmd_Debug(int argc, const char **argv) {
 	// Enable or disable channel?
 	bool result = false;
 	if (argv[1][0] == '+') {
-		result = Common::enableDebugChannel(argv[1] + 1);
+		result = DebugMan.enableDebugChannel(argv[1] + 1);
 	} else if (argv[1][0] == '-') {
-		result = Common::disableDebugChannel(argv[1] + 1);
+		result = DebugMan.disableDebugChannel(argv[1] + 1);
 	}
 
 	if (result) {
@@ -528,7 +515,7 @@ bool ScummDebugger::Cmd_Debug(int argc, const char **argv) {
 	} else {
 		DebugPrintf("Usage: debug [+CHANNEL|-CHANNEL]\n");
 		DebugPrintf("Enables or disables the given debug channel.\n");
-		DebugPrintf("When used without parameters, lists all avaiable debug channels and their status.\n");
+		DebugPrintf("When used without parameters, lists all available debug channels and their status.\n");
 	}
 
 	return true;
@@ -786,7 +773,13 @@ bool ScummDebugger::Cmd_PrintDraft(int argc, const char **argv) {
 	// Possibly they store information on where and/or how the draft can
 	// be used. They appear to remain constant throughout the game.
 
-	base = (_vm->_game.version == 3) ? 50 : 100;
+	if (_vm->_game.version == 4 || _vm->_game.platform == Common::kPlatformPCEngine) {
+		// DOS CD version / PC-Engine version
+		base = 100;
+	} else {
+		// All (?) other versions
+		base = 50;
+	}
 
 	if (argc == 2) {
 		// We had to debug a problem at the end of the game that only
@@ -843,11 +836,33 @@ bool ScummDebugger::Cmd_PrintDraft(int argc, const char **argv) {
 	return true;
 }
 
+bool ScummDebugger::Cmd_Passcode(int argc, const char **argv) {
+	if (argc > 1) {
+		_vm->_bootParam = atoi(argv[1]);
+		int args[16];
+		memset(args, 0, sizeof(args));
+		args[0] = _vm->_bootParam;
+
+		_vm->runScript(61, 0, 0, args);
+
+		if (_vm->_bootParam != _vm->_scummVars[411]){
+			DebugPrintf("Invalid Passcode\n");
+			return true;
+		}
+
+		_vm->_bootParam = 0;
+		detach();
+
+	} else {
+		DebugPrintf("Current Passcode is %d \nUse 'passcode <SEGA CD Passcode>'\n",_vm->_scummVars[411]);
+		return true;
+	}
+	return false;
+}
+
 bool ScummDebugger::Cmd_ResetCursors(int argc, const char **argv) {
 	_vm->resetCursors();
-
-	_detach_now = true;
-
+	detach();
 	return false;
 }
 

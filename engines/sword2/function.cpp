@@ -20,14 +20,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "common/system.h"
 #include "common/file.h"
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/defs.h"
@@ -778,9 +776,6 @@ int32 Logic::fnISpeak(int32 *params) {
 	//		8 animation mode	0 lip synced,
 	//					1 just straight animation
 
-	static bool cycle_skip = false;
-	static bool speechRunning;
-
 	// Set up the pointers which we know we'll always need
 
 	ObjectLogic obLogic(decodePtr(params[S_OB_LOGIC]));
@@ -806,12 +801,12 @@ int32 Logic::fnISpeak(int32 *params) {
 		// Drop out for 1st cycle to allow walks/anims to end and
 		// display last frame before system locks while speech loaded
 
-		if (!cycle_skip) {
-			cycle_skip = true;
+		if (!_cycleSkip) {
+			_cycleSkip = true;
 			return IR_REPEAT;
 		}
 
-		cycle_skip = false;
+		_cycleSkip = false;
 
 		_vm->_debugger->_textNumber = params[S_TEXT];
 
@@ -934,7 +929,7 @@ int32 Logic::fnISpeak(int32 *params) {
 		// Is it to be speech or subtitles or both?
 
 		// Assume not running until know otherwise
-		speechRunning = false;
+		_speechRunning = false;
 
 		// New fudge for 'fx' subtitles: If speech is selected, and
 		// this line is allowed speech (not if it's an fx subtitle!)
@@ -962,14 +957,14 @@ int32 Logic::fnISpeak(int32 *params) {
 				// playing now. (We might want to do this the
 				// next cycle, don't know yet.)
 
-				speechRunning = true;
+				_speechRunning = true;
 				_vm->_sound->unpauseSpeech();
 			} else {
 				debug(5, "ERROR: PlayCompSpeech(wav=%d (res=%d pos=%d)) returned %.8x", params[S_WAV], text_res, local_text, rv);
 			}
 		}
 
-		if (_vm->getSubtitles() || !speechRunning) {
+		if (_vm->getSubtitles() || !_speechRunning) {
 			// We want subtitles, or the speech failed to load.
 			// Either way, we're going to show the text so create
 			// the text sprite.
@@ -995,7 +990,7 @@ int32 Logic::fnISpeak(int32 *params) {
 			if (obGraph.getAnimPc() == (int32)anim_head.noAnimFrames) {
 				// End of animation - restart from frame 0
 				obGraph.setAnimPc(0);
-			} else if (speechRunning && _vm->_sound->amISpeaking() == RDSE_QUIET) {
+			} else if (_speechRunning && _vm->_sound->amISpeaking() == RDSE_QUIET) {
 				// The speech is running, but we're at a quiet
 				// bit. Restart from frame 0 (closed mouth).
 				obGraph.setAnimPc(0);
@@ -1024,11 +1019,11 @@ int32 Logic::fnISpeak(int32 *params) {
 
 	// If playing a sample
 
-	if (speechRunning) {
+	if (_speechRunning) {
 		// Has it finished?
 		if (_vm->_sound->getSpeechStatus() == RDSE_SAMPLEFINISHED)
 			speechFinished = true;
-	} else if (!speechRunning && _speechTime) {
+	} else if (!_speechRunning && _speechTime) {
 		// Counting down text time because there is no sample - this
 		// ends the speech
 
@@ -1075,7 +1070,7 @@ int32 Logic::fnISpeak(int32 *params) {
 			speechFinished = true;
 
 			// if speech sample playing, halt it prematurely
-			if (speechRunning)
+			if (_speechRunning)
 				_vm->_sound->stopSpeech();
 		}
 	}
@@ -1100,7 +1095,7 @@ int32 Logic::fnISpeak(int32 *params) {
 			obGraph.setAnimPc(0);
 		}
 
-		speechRunning = false;
+		_speechRunning = false;
 
 		// no longer in a script function loop
 		obLogic.setLooping(0);
@@ -1295,7 +1290,7 @@ int32 Logic::fnSpeechProcess(int32 *params) {
 
 			obSpeech.setCommand(0);
 			obSpeech.setWaitState(1);
-			return IR_REPEAT ;
+			return IR_REPEAT;
 		case INS_sort:
 			fnSortSprite(params);		// ob_graphic
 
@@ -1862,15 +1857,15 @@ int32 Logic::fnSetScrollRightMouse(int32 *params) {
 	return IR_CONT;
 }
 
-int32 Logic::fnColour(int32 *params) {
-	// set border colour - useful during script development
-	// eg. set to colour during a timer situation, then black when timed
+int32 Logic::fnColor(int32 *params) {
+	// set border color - useful during script development
+	// eg. set to color during a timer situation, then black when timed
 	// out
 
-	// params	0: colour (see defines above)
+	// params	0: color (see defines above)
 
 #ifdef SWORD2_DEBUG
-	// what colour?
+	// what color?
 	switch (params[0]) {
 	case BLACK:
 		_vm->_screen->setPalette(0, 1, black, RDPAL_INSTANT);
@@ -1900,22 +1895,22 @@ int32 Logic::fnColour(int32 *params) {
 #define GREEN	3
 #define BLUE	4
 
-static const uint8 black[4]	= {  0,    0,   0,   0 };
-static const uint8 white[4]	= { 255, 255, 255,   0 };
-static const uint8 red[4]	= { 255,   0,   0,   0 };
-static const uint8 green[4]	= {   0, 255,   0,   0 };
-static const uint8 blue[4]	= {   0,   0, 255,   0 };
+static const uint8 black[3]	= {  0,    0,   0 };
+static const uint8 white[3]	= { 255, 255, 255 };
+static const uint8 red[3]	= { 255,   0,   0 };
+static const uint8 green[3]	= {   0, 255,   0 };
+static const uint8 blue[3]	= {   0,   0, 255 };
 #endif
 
 int32 Logic::fnFlash(int32 *params) {
-	// flash colour 0 (ie. border) - useful during script development
+	// flash color 0 (ie. border) - useful during script development
 	// eg. fnFlash(BLUE) where a text line is missed; RED when some code
 	// missing, etc
 
-	// params:	0 colour to flash
+	// params:	0 color to flash
 
 #ifdef SWORD2_DEBUG
-	// what colour?
+	// what color?
 	switch (params[0]) {
 	case WHITE:
 		_vm->_screen->setPalette(0, 1, white, RDPAL_INSTANT);
@@ -2166,7 +2161,7 @@ int32 Logic::fnPlaySequence(int32 *params) {
 
 	// zero the entire palette in case we're about to fade up!
 
-	byte pal[4 * 256];
+	byte pal[3 * 256];
 
 	memset(pal, 0, sizeof(pal));
 	_vm->_screen->setPalette(0, 256, pal, RDPAL_INSTANT);

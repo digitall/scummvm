@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
@@ -73,7 +70,7 @@ void Screen::setScrolling() {
 		return;
 	}
 
-	// George's offset from the centre - the desired position for him
+	// George's offset from the center - the desired position for him
 
 	int16 offset_x = _thisScreen.player_feet_x - _thisScreen.feet_x;
 	int16 offset_y = _thisScreen.player_feet_y - _thisScreen.feet_y;

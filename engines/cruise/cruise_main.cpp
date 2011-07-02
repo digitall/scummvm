@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
 #include "common/endian.h"
 #include "common/events.h"
 #include "common/system.h"	// for g_system->getEventManager()
+#include "common/textconsole.h"
 
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
@@ -42,6 +40,59 @@ unsigned int timer = 0;
 
 gfxEntryStruct* linkedMsgList = NULL;
 
+void MemoryList() {
+	if (!_vm->_memList.empty()) {
+		debug("Current list of un-freed memory blocks:");
+		Common::List<byte *>::iterator i;
+		for (i = _vm->_memList.begin(); i != _vm->_memList.end(); ++i) {
+			byte *v = *i;
+			debug("%s - %d", (const char *)(v - 68), *((int32 *)(v - 72)));
+		}
+	}
+}
+
+void *MemoryAlloc(uint32 size, bool clearFlag, int32 lineNum, const char *fname) {
+	byte *result;
+
+	if (gDebugLevel > 0) {
+		// Find the point after the final slash
+		const char *fnameP = fname + strlen(fname);
+		while ((fnameP > fname) && (*(fnameP - 1) != '/') && (*(fnameP - 1) != '\\'))
+			--fnameP;
+
+		// Create the new memory block and add it to the memory list
+		byte *v = (byte *)malloc(size + 64 + 8);
+		*((int32 *) v) = lineNum;
+		strncpy((char *)v + 4, fnameP, 63);
+		*((char *)v + 4 + 63) = '\0';
+		*((uint32 *) (v + 68)) = 0x41424344;
+
+		// Add the block to the memory list
+		result = v + 64 + 8;
+		_vm->_memList.push_back(result);
+	} else
+		result = (byte *)malloc(size);
+
+	if (clearFlag)
+		memset(result, 0, size);
+
+	return result;
+}
+
+void MemoryFree(void *v) {
+	if (!v)
+		return;
+
+	if (gDebugLevel > 0) {
+		byte *p = (byte *)v;
+		assert(*((uint32 *) (p - 4)) == 0x41424344);
+
+		_vm->_memList.remove(p);
+		free(p - 8 - 64);
+	} else
+		free(v);
+}
+
 void drawBlackSolidBoxSmall() {
 //  gfxModuleData.drawSolidBox(64,100,256,117,0);
 	drawSolidBox(64, 100, 256, 117, 0);
@@ -50,8 +101,8 @@ void drawBlackSolidBoxSmall() {
 void loadPackedFileToMem(int fileIdx, uint8 *buffer) {
 	changeCursor(CURSOR_DISK);
 
-	currentVolumeFile.seek(volumePtrToFileDescriptor[fileIdx].offset, SEEK_SET);
-	currentVolumeFile.read(buffer, volumePtrToFileDescriptor[fileIdx].size);
+	_vm->_currentVolumeFile.seek(volumePtrToFileDescriptor[fileIdx].offset, SEEK_SET);
+	_vm->_currentVolumeFile.read(buffer, volumePtrToFileDescriptor[fileIdx].size);
 }
 
 int getNumObjectsByClass(int scriptIdx, int param) {
@@ -139,7 +190,7 @@ void initBigVar3() {
 
 	for (i = 0; i < NUM_FILE_ENTRIES; i++) {
 		if (filesDatabase[i].subData.ptr) {
-			free(filesDatabase[i].subData.ptr);
+			MemFree(filesDatabase[i].subData.ptr);
 		}
 
 		filesDatabase[i].subData.ptr = NULL;
@@ -156,6 +207,17 @@ void resetPtr2(scriptInstanceStruct *ptr) {
 }
 
 void resetActorPtr(actorStruct *ptr) {
+	actorStruct *p = ptr;
+
+	if (p->next) {
+		p = p->next;
+		do {
+			actorStruct *pNext = p->next;
+			MemFree(p);
+			p = pNext;
+		} while (p);
+	}
+
 	ptr->next = NULL;
 	ptr->prev = NULL;
 }
@@ -298,7 +360,7 @@ int loadFileSub1(uint8 **ptr, const char *name, uint8 *ptr2) {
 		 *	strcat(buffer, ".H32");
 		 *}
 		 * else
-		 * if (useAdlib)
+		 * if (useAdLib)
 		 * { */
 		 strcat(buffer,".ADL");
 		/* }
@@ -317,8 +379,7 @@ int loadFileSub1(uint8 **ptr, const char *name, uint8 *ptr2) {
 
 	unpackedSize = loadFileVar1 = volumePtrToFileDescriptor[fileIdx].extSize + 2;
 
-	// TODO: here, can unpack in gfx module buffer
-	unpackedBuffer = (uint8 *) mallocAndZero(unpackedSize);
+	unpackedBuffer = (uint8 *)mallocAndZero(unpackedSize);
 
 	if (!unpackedBuffer) {
 		return (-2);
@@ -337,7 +398,7 @@ int loadFileSub1(uint8 **ptr, const char *name, uint8 *ptr2) {
 
 		delphineUnpack(unpackedBuffer, pakedBuffer, volumePtrToFileDescriptor[fileIdx].size);
 
-		free(pakedBuffer);
+		MemFree(pakedBuffer);
 	} else {
 		loadPackedFileToMem(fileIdx, unpackedBuffer);
 	}
@@ -354,7 +415,9 @@ void resetFileEntry(int32 entryNumber) {
 	if (!filesDatabase[entryNumber].subData.ptr)
 		return;
 
-	free(filesDatabase[entryNumber].subData.ptr);
+	MemFree(filesDatabase[entryNumber].subData.ptr);
+	if (filesDatabase[entryNumber].subData.ptrMask)
+		MemFree(filesDatabase[entryNumber].subData.ptrMask);
 
 	filesDatabase[entryNumber].subData.ptr = NULL;
 	filesDatabase[entryNumber].subData.ptrMask = NULL;
@@ -366,7 +429,6 @@ void resetFileEntry(int32 entryNumber) {
 	filesDatabase[entryNumber].subData.resourceType = 0;
 	filesDatabase[entryNumber].subData.compression = 0;
 	filesDatabase[entryNumber].subData.name[0] = 0;
-
 }
 
 uint8 *mainProc14(uint16 overlay, uint16 idx) {
@@ -375,7 +437,7 @@ uint8 *mainProc14(uint16 overlay, uint16 idx) {
 	return NULL;
 }
 
-void CruiseEngine::initAllData(void) {
+void CruiseEngine::initAllData() {
 	int i;
 
 	setupFuncArray();
@@ -530,11 +592,10 @@ int removeFinishedScripts(scriptInstanceStruct *ptrHandle) {
 		if (ptr->scriptNumber == -1) {
 			oldPtr->nextScriptPtr = ptr->nextScriptPtr;
 
-			if (ptr->var6 && ptr->varA) {
-				//  free(ptr->var6);
-			}
+			if (ptr->data)
+				MemFree(ptr->data);
 
-			free(ptr);
+			MemFree(ptr);
 
 			ptr = oldPtr->nextScriptPtr;
 		} else {
@@ -545,6 +606,26 @@ int removeFinishedScripts(scriptInstanceStruct *ptrHandle) {
 
 	return (0);
 }
+
+void removeAllScripts(scriptInstanceStruct *ptrHandle) {
+	scriptInstanceStruct *ptr = ptrHandle->nextScriptPtr;	// can't destruct the head
+	scriptInstanceStruct *oldPtr = ptrHandle;
+
+	if (!ptr)
+		return;
+
+	do {
+		oldPtr->nextScriptPtr = ptr->nextScriptPtr;
+
+		if (ptr->data)
+			MemFree(ptr->data);
+
+		MemFree(ptr);
+
+		ptr = oldPtr->nextScriptPtr;
+	} while (ptr);
+}
+
 
 bool testMask(int x, int y, unsigned char* pData, int stride) {
 	unsigned char* ptr = y * stride + x / 8 + pData;
@@ -694,14 +775,14 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 
 Common::KeyCode keyboardCode = Common::KEYCODE_INVALID;
 
-void freeStuff2(void) {
+void freeStuff2() {
 	warning("implement freeStuff2");
 }
 
 void *allocAndZero(int size) {
 	void *ptr;
 
-	ptr = malloc(size);
+	ptr = MemAlloc(size);
 	memset(ptr, 0, size);
 
 	return ptr;
@@ -821,18 +902,8 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 						if (!obj2Ovl)  obj2Ovl = j;
 
 						char verbe_name[80];
-						char obj1_name[80];
-						char obj2_name[80];
-						char r_verbe_name[80];
-						char r_obj1_name[80];
-						char r_obj2_name[80];
 
 						verbe_name[0]	= 0;
-						obj1_name[0]	= 0;
-						obj2_name[0]	= 0;
-						r_verbe_name[0] = 0;
-						r_obj1_name[0]	= 0;
-						r_obj2_name[0]	= 0;
 
 						ovlDataStruct *ovl2 = NULL;
 						ovlDataStruct *ovl3 = NULL;
@@ -921,18 +992,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 					if (!obj2Ovl)  obj2Ovl = j;
 
 					char verbe_name[80];
-					char obj1_name[80];
-					char obj2_name[80];
-					char r_verbe_name[80];
-					char r_obj1_name[80];
-					char r_obj2_name[80];
-
 					verbe_name[0]	= 0;
-					obj1_name[0]	= 0;
-					obj2_name[0]	= 0;
-					r_verbe_name[0] = 0;
-					r_obj1_name[0]	= 0;
-					r_obj2_name[0]	= 0;
 
 					ovlDataStruct *ovl2 = NULL;
 					ovlDataStruct *ovl3 = NULL;
@@ -985,7 +1045,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 	return found;
 }
 
-int processInventory(void) {
+int processInventory() {
 	if (menuTable[1]) {
 		menuElementSubStruct *pMenuElementSub = getSelectedEntryInMenu(menuTable[1]);
 
@@ -1078,7 +1138,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 				} else if (pHeader->type == RT_MSG) {
 
 					if (pHeader->obj2Number >= 0) {
-						if ((pHeader->trackX !=-1) && (pHeader->trackY !=-1) && 
+						if ((pHeader->trackX !=-1) && (pHeader->trackY !=-1) &&
 								(pHeader->trackX != 9999) && (pHeader->trackY != 9999)) {
 							x = pHeader->trackX - 100;
 							y = pHeader->trackY - 150;
@@ -1107,7 +1167,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					userWait = 1;
 					autoOvl = ovlIdx;
 					autoMsg = pHeader->id;
-				
+
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
 						actorStruct *pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
 
@@ -1295,7 +1355,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 	}
 }
 
-void closeAllMenu(void) {
+void closeAllMenu() {
 	if (menuTable[0]) {
 		freeMenu(menuTable[0]);
 		menuTable[0] = NULL;
@@ -1330,7 +1390,9 @@ bool checkInput(int16 *buttonPtr) {
 	return false;
 }
 
-int CruiseEngine::processInput(void) {
+extern bool manageEvents();
+
+int CruiseEngine::processInput() {
 	int16 mouseX = 0;
 	int16 mouseY = 0;
 	int16 button = 0;
@@ -1367,6 +1429,7 @@ int CruiseEngine::processInput(void) {
 
 		bool pausedButtonDown = false;
 		while (!_vm->shouldQuit()) {
+			manageEvents();
 			getMouseStatus(&main10, &mouseX, &button, &mouseY);
 
 			if (button) pausedButtonDown = true;
@@ -1671,7 +1734,7 @@ bool manageEvents() {
 				break;
 			}
 
-			if (event.kbd.flags == Common::KBD_CTRL) {
+			if (event.kbd.hasFlags(Common::KBD_CTRL)) {
 				if (event.kbd.keycode == Common::KEYCODE_d) {
 					// Start the debugger
 					_vm->getDebugger()->attach();
@@ -1700,7 +1763,7 @@ void getMouseStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16
 }
 
 
-void CruiseEngine::mainLoop(void) {
+void CruiseEngine::mainLoop() {
 	//int32 t_start,t_left;
 	//uint32 t_end;
 	//int32 q=0;                     /* Dummy */
@@ -1738,26 +1801,24 @@ void CruiseEngine::mainLoop(void) {
 			// Delay for the specified amount of time, but still respond to events
 			bool skipEvents = false;
 
-			while (currentTick < lastTick + _gameSpeed) {
+			do {
 				g_system->delayMillis(10);
 				currentTick = g_system->getMillis();
 
 				if (!skipEvents)
 					skipEvents = manageEvents();
 
-				if (playerDontAskQuit) break;
+				if (playerDontAskQuit)
+					break;
 
-				if (_vm->getDebugger()->isAttached())
-					_vm->getDebugger()->onFrame();
-			}
+				_vm->getDebugger()->onFrame();
+			} while (currentTick < lastTick + _gameSpeed);
 		} else {
 			manageEvents();
 
 			if (currentTick >= (lastTickDebug + 10)) {
 				lastTickDebug = currentTick;
-
-				if (_vm->getDebugger()->isAttached())
-					_vm->getDebugger()->onFrame();
+				_vm->getDebugger()->onFrame();
 			}
 		}
 		if (playerDontAskQuit)
@@ -1800,13 +1861,30 @@ void CruiseEngine::mainLoop(void) {
 
 			// Disable any mouse click used to end the user wait
 			currentMouseButton = 0;
-		} 
+		}
 
-		manageScripts(&relHead);
-		manageScripts(&procHead);
+		// FIXME: I suspect that the original game does multiple script executions between game frames; the bug with
+		// Raoul appearing when looking at the book is being there are 3 script iterations separation between the
+		// scene being changed to the book, and the Raoul actor being frozen/disabled. This loop is a hack to ensure
+		// that does a few extra script executions for that scene
+		bool bgChanged;
+		int numIterations = 1;
 
-		removeFinishedScripts(&relHead);
-		removeFinishedScripts(&procHead);
+		while (numIterations-- > 0) {
+			bgChanged = backgroundChanged[masterScreen];
+
+			manageScripts(&relHead);
+			manageScripts(&procHead);
+
+			removeFinishedScripts(&relHead);
+			removeFinishedScripts(&procHead);
+
+			if (!bgChanged && backgroundChanged[masterScreen] &&
+					!strcmp(backgroundTable[0].name, "S06B.PI1")) {
+				bgChanged = true;
+				numIterations += 2;
+			}
+		}
 
 		processAnimation();
 
@@ -1902,15 +1980,17 @@ void CruiseEngine::mainLoop(void) {
 		}
 
 	} while (!playerDontAskQuit && quitValue2 && quitValue != 7);
-}
 
-void *mallocAndZero(int32 size) {
-	void *ptr;
-
-	ptr = malloc(size);
-	assert(ptr);
-	memset(ptr, 0, size);
-	return ptr;
+	// Free data
+	removeAllScripts(&relHead);
+	removeAllScripts(&procHead);
+	resetActorPtr(&actorHead);
+	freeOverlayTable();
+	closeCnf();
+	closeBase();
+	resetFileEntryRange(0, NUM_FILE_ENTRIES);
+	freeObjectList(&cellHead);
+	freeBackgroundIncrustList(&backgroundIncrustHead);
 }
 
 } // End of namespace Cruise

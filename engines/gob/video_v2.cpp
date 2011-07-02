@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -34,9 +31,9 @@ Video_v2::Video_v2(GobEngine *vm) : Video_v1(vm) {
 }
 
 char Video_v2::spriteUncompressor(byte *sprBuf, int16 srcWidth, int16 srcHeight,
-	    int16 x, int16 y, int16 transp, SurfaceDesc &destDesc) {
+	    int16 x, int16 y, int16 transp, Surface &destDesc) {
 	byte *memBuffer;
-	byte *srcPtr, *destPtr, *linePtr;
+	byte *srcPtr;
 	byte temp;
 	uint32 sourceLeft;
 	uint16 cmdVar;
@@ -47,7 +44,7 @@ char Video_v2::spriteUncompressor(byte *sprBuf, int16 srcWidth, int16 srcHeight,
 	int16 strLen;
 	int16 lenCmd;
 
-	_vm->validateVideoMode(destDesc._vidMode);
+	//_vm->validateVideoMode(destDesc._vidMode);
 
 	if (sprBuf[0] != 1)
 		return 0;
@@ -56,23 +53,25 @@ char Video_v2::spriteUncompressor(byte *sprBuf, int16 srcWidth, int16 srcHeight,
 		return 0;
 
 	if (sprBuf[2] == 2) {
-		SurfaceDesc sourceDesc(0x13, srcWidth, srcHeight, sprBuf + 3);
-		Video::drawSprite(sourceDesc, destDesc, 0, 0, srcWidth - 1,
-		    srcHeight - 1, x, y, transp);
+		Surface sourceDesc(srcWidth, srcHeight, 1, sprBuf + 3);
+		destDesc.blit(sourceDesc, 0, 0, srcWidth - 1, srcHeight - 1, x, y, (transp == 0) ? -1 : 0);
 		return 1;
 	} else if (sprBuf[2] == 1) {
 		memBuffer = new byte[4370];
 		assert(memBuffer);
 
+		memset(memBuffer, 0, 4370);
+
 		srcPtr = sprBuf + 3;
+
 		sourceLeft = READ_LE_UINT32(srcPtr);
 
-		destPtr = destDesc.getVidMem() + destDesc.getWidth() * y + x;
+		Pixel destPtr = destDesc.get(x, y);
 
-		curWidth = 0;
+		curWidth  = 0;
 		curHeight = 0;
 
-		linePtr = destPtr;
+		Pixel linePtr = destPtr;
 		srcPtr += 4;
 
 		if ((READ_LE_UINT16(srcPtr) == 0x1234) && (READ_LE_UINT16(srcPtr + 2) == 0x5678)) {
@@ -89,58 +88,64 @@ char Video_v2::spriteUncompressor(byte *sprBuf, int16 srcWidth, int16 srcHeight,
 		cmdVar = 0;
 		while (1) {
 			cmdVar >>= 1;
-			if ((cmdVar & 0x100) == 0) {
-				cmdVar = *srcPtr | 0xFF00;
-				srcPtr++;
-			}
+			if ((cmdVar & 0x100) == 0)
+				cmdVar = *srcPtr++ | 0xFF00;
+
 			if ((cmdVar & 1) != 0) {
 				temp = *srcPtr++;
+
 				if ((temp != 0) || (transp == 0))
-					*destPtr = temp;
+					destPtr.set(temp);
+
 				destPtr++;
 				curWidth++;
+
 				if (curWidth >= srcWidth) {
 					curWidth = 0;
 					linePtr += destDesc.getWidth();
 					destPtr = linePtr;
-					curHeight++;
-					if (curHeight >= srcHeight)
+					if (++curHeight >= srcHeight)
 						break;
 				}
-				sourceLeft--;
+
 				memBuffer[bufPos] = temp;
-				bufPos++;
-				bufPos %= 4096;
-				if (sourceLeft == 0)
+
+				bufPos = (bufPos + 1) % 4096;
+
+				if (--sourceLeft == 0)
 					break;
+
 			} else {
 				offset = *srcPtr++;
-				offset |= (*srcPtr & 0xF0) << 4;
-				strLen = (*srcPtr & 0x0F) + 3;
-				*srcPtr++;
+				temp   = *srcPtr++;
+
+				offset |= (temp & 0xF0) << 4;
+				strLen  = (temp & 0x0F)  + 3;
+
 				if (strLen == lenCmd)
 					strLen = *srcPtr++ + 18;
 
 				for (counter2 = 0; counter2 < strLen; counter2++) {
 					temp = memBuffer[(offset + counter2) % 4096];
-					if ((temp != 0) || (transp == 0))
-						*destPtr = temp;
-					destPtr++;
 
+					if ((temp != 0) || (transp == 0))
+						destPtr.set(temp);
+
+					destPtr++;
 					curWidth++;
+
 					if (curWidth >= srcWidth) {
 						curWidth = 0;
 						linePtr += destDesc.getWidth();
 						destPtr = linePtr;
-						curHeight++;
-						if (curHeight >= srcHeight) {
+						if (++curHeight >= srcHeight) {
 							delete[] memBuffer;
 							return 1;
 						}
 					}
+
 					memBuffer[bufPos] = temp;
-					bufPos++;
-					bufPos %= 4096;
+					bufPos = (bufPos + 1) % 4096;
 				}
 
 				if (strLen >= ((int32) sourceLeft)) {
@@ -148,7 +153,9 @@ char Video_v2::spriteUncompressor(byte *sprBuf, int16 srcWidth, int16 srcHeight,
 					return 1;
 				} else
 					sourceLeft--;
+
 			}
+
 		}
 	} else
 		return 0;

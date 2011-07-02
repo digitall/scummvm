@@ -1,14 +1,17 @@
 MODULE := engines/gob
 
 MODULE_OBJS := \
+	console.o \
 	dataio.o \
+	databases.o \
+	dbase.o \
 	detection.o \
 	draw.o \
 	draw_v1.o \
 	draw_v2.o \
 	draw_bargon.o \
 	draw_fascin.o \
-	driver_vga.o \
+	draw_playtoons.o \
 	expression.o \
 	game.o \
 	global.o \
@@ -19,21 +22,27 @@ MODULE_OBJS := \
 	goblin_v3.o \
 	goblin_v4.o \
 	hotspots.o \
+	iniconfig.o \
 	init.o \
 	init_v1.o \
 	init_v2.o \
+	init_fascin.o \
 	init_v3.o \
 	init_v4.o \
 	init_v6.o \
+	init_v7.o \
 	inter.o \
 	inter_v1.o \
 	inter_v2.o \
 	inter_bargon.o \
 	inter_fascin.o \
+	inter_inca2.o \
+	inter_playtoons.o \
 	inter_v3.o \
 	inter_v4.o \
 	inter_v5.o \
 	inter_v6.o \
+	inter_v7.o \
 	map.o \
 	map_v1.o \
 	map_v2.o \
@@ -46,6 +55,7 @@ MODULE_OBJS := \
 	scenery_v1.o \
 	scenery_v2.o \
 	script.o \
+	surface.o \
 	totfile.o \
 	util.o \
 	variables.o \
@@ -64,12 +74,14 @@ MODULE_OBJS := \
 	save/saveload_v3.o \
 	save/saveload_v4.o \
 	save/saveload_v6.o \
+	save/saveload_v7.o \
+	save/saveload_fascin.o \
+	save/saveload_inca2.o \
 	save/saveload_playtoons.o \
 	save/saveconverter.o \
 	save/saveconverter_v2.o \
 	save/saveconverter_v3.o \
 	save/saveconverter_v4.o \
-	save/saveconverter_v6.o \
 	sound/sound.o \
 	sound/sounddesc.o \
 	sound/pcspeaker.o \

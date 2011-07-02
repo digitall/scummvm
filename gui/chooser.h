@@ -17,20 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef CHOOSER_DIALOG_H
 #define CHOOSER_DIALOG_H
 
+#include "common/array.h"
 #include "common/str.h"
 #include "gui/dialog.h"
 
 namespace GUI {
 
 class ButtonWidget;
+class CommandSender;
 class ListWidget;
 
 /*
@@ -39,7 +38,7 @@ class ListWidget;
 
 class ChooserDialog : public Dialog {
 	typedef Common::String String;
-	typedef Common::StringList StringList;
+	typedef Common::Array<Common::String> StringArray;
 protected:
 	ListWidget		*_list;
 	ButtonWidget	*_chooseButton;
@@ -47,7 +46,7 @@ protected:
 public:
 	ChooserDialog(const String &title, String dialogId = "Browser");
 
-	void setList(const StringList& list);
+	void setList(const StringArray& list);
 
 	virtual void handleCommand(CommandSender *sender, uint32 cmd, uint32 data);
 };

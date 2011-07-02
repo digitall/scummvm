@@ -18,26 +18,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "kyra/kyra_lok.h"
-#include "kyra/screen_lok.h"
 #include "kyra/text.h"
+#include "kyra/kyra_lok.h"
 #include "kyra/animator_lok.h"
 #include "kyra/sprites.h"
 #include "kyra/timer.h"
 
+#include "common/system.h"
+
 namespace Kyra {
 
-void KyraEngine_LoK::waitForChatToFinish(int vocFile, int16 chatDuration, const char *chatStr, uint8 charNum) {
+void KyraEngine_LoK::waitForChatToFinish(int vocFile, int16 chatDuration, const char *chatStr, uint8 charNum, const bool printText) {
 	bool hasUpdatedNPCs = false;
 	bool runLoop = true;
-	bool drawText = textEnabled();
 	uint8 currPage;
-	Common::Event event;
 
 	uint32 timeToEnd = strlen(chatStr) * 8 * _tickLength + _system->getMillis();
 
@@ -93,18 +89,17 @@ void KyraEngine_LoK::waitForChatToFinish(int vocFile, int16 chatDuration, const 
 		_animator->preserveAnyChangedBackgrounds();
 		_animator->prepDrawAllObjects();
 
-		if (drawText) {
+		if (printText) {
 			currPage = _screen->_curPage;
 			_screen->_curPage = 2;
 			_text->printCharacterText(chatStr, charNum, _characterList[charNum].x1);
-			_animator->_updateScreen = true;
 			_screen->_curPage = currPage;
 		}
 
 		_animator->copyChangedObjectsForward(0);
 		updateTextFade();
 
-		if (((chatDuration < (int16)(_system->getMillis() - timeAtStart)) && chatDuration != -1 && drawText) || (!drawText && !snd_voiceIsPlaying()))
+		if (((chatDuration < (int16)(_system->getMillis() - timeAtStart)) && chatDuration != -1 && printText) || (!printText && !snd_voiceIsPlaying()))
 			break;
 
 		uint32 nextTime = loopStart + _tickLength;
@@ -139,8 +134,11 @@ void KyraEngine_LoK::endCharacterChat(int8 charNum, int16 convoInitialized) {
 	_charSayUnk3 = -1;
 
 	if (charNum > 4 && charNum < 11) {
-		//TODO: weird _game_inventory stuff here
-		//warning("STUB: endCharacterChat() for high charnums");
+		_animator->sprites()[_disabledTalkAnimObject].active = 1;
+		_sprites->_anims[_disabledTalkAnimObject].play = true;
+
+		_animator->sprites()[_enabledTalkAnimObject].active = 0;
+		_sprites->_anims[_enabledTalkAnimObject].play = false;
 	}
 
 	if (convoInitialized != 0) {
@@ -227,8 +225,19 @@ int KyraEngine_LoK::initCharacterChat(int8 charNum) {
 	_animator->restoreAllObjectBackgrounds();
 
 	if (charNum > 4 && charNum < 11) {
-		// TODO: Fill in weird _game_inventory stuff here
-		//warning("STUB: initCharacterChat() for high charnums");
+		const uint8 animDisableTable[] = { 3, 1, 1, 5, 0, 6 };
+		const uint8 animEnableTable[] = { 4, 2, 5, 6, 1, 7 };
+
+		_disabledTalkAnimObject = animDisableTable[charNum - 5];
+		_enabledTalkAnimObject = animEnableTable[charNum - 5];
+
+		_animator->sprites()[_disabledTalkAnimObject].active = 0;
+		_sprites->_anims[_disabledTalkAnimObject].play = false;
+
+		_animator->sprites()[_enabledTalkAnimObject].active = 1;
+		_sprites->_anims[_enabledTalkAnimObject].play = true;
+
+		_charSayUnk2 = _enabledTalkAnimObject;
 	}
 
 	_animator->flagAllObjectsForRefresh();
@@ -281,7 +290,9 @@ void KyraEngine_LoK::characterSays(int vocFile, const char *chatStr, int8 charNu
 	_text->_talkMessageY = yPos;
 	_text->_talkMessageH = lineNum * 10;
 
-	if (textEnabled()) {
+	const bool printText = textEnabled();
+
+	if (printText) {
 		_animator->restoreAllObjectBackgrounds();
 
 		_screen->copyRegion(12, _text->_talkMessageY, 12, 136, 296, _text->_talkMessageH, 2, 2);
@@ -298,9 +309,9 @@ void KyraEngine_LoK::characterSays(int vocFile, const char *chatStr, int8 charNu
 
 	if (!speechEnabled())
 		vocFile = -1;
-	waitForChatToFinish(vocFile, chatTicks, chatStr, charNum);
+	waitForChatToFinish(vocFile, chatTicks, chatStr, charNum, printText);
 
-	if (textEnabled()) {
+	if (printText) {
 		_animator->restoreAllObjectBackgrounds();
 
 		_screen->copyRegion(12, 136, 12, _text->_talkMessageY, 296, _text->_talkMessageH, 2, 2);
@@ -322,18 +333,27 @@ void KyraEngine_LoK::characterSays(int vocFile, const char *chatStr, int8 charNu
 
 void KyraEngine_LoK::drawSentenceCommand(const char *sentence, int color) {
 	_screen->hideMouse();
-	_screen->fillRect(8, 143, 311, 152, 12);
+	_screen->fillRect(8, 143, 311, 152, _flags.platform == Common::kPlatformAmiga ? 19 : 12);
 
-	if (_startSentencePalIndex != color || _fadeText != false) {
-		_currSentenceColor[0] = _screen->getPalette(0)[765] = _screen->getPalette(0)[color*3];
+	if (_flags.platform == Common::kPlatformAmiga) {
+		if (color != 19) {
+			_currSentenceColor[0] = 0x3F;
+			_currSentenceColor[1] = 0x3F;
+			_currSentenceColor[2] = 0x3F;
+
+			_screen->setInterfacePalette(_screen->getPalette(1),
+					_currSentenceColor[0], _currSentenceColor[1], _currSentenceColor[2]);
+		}
+	} else if (_startSentencePalIndex != color || _fadeText != false) {
+		_currSentenceColor[0] = _screen->getPalette(0)[765] = _screen->getPalette(0)[color*3+0];
 		_currSentenceColor[1] = _screen->getPalette(0)[766] = _screen->getPalette(0)[color*3+1];
 		_currSentenceColor[2] = _screen->getPalette(0)[767] = _screen->getPalette(0)[color*3+2];
 
 		_screen->setScreenPalette(_screen->getPalette(0));
-		_startSentencePalIndex = 0;
+		_startSentencePalIndex = color;
 	}
 
-	_text->printText(sentence, 8, 143, 0xFF, 12, 0);
+	_text->printText(sentence, 8, 143, 0xFF, _flags.platform == Common::kPlatformAmiga ? 19 : 12, 0);
 	_screen->showMouse();
 	setTextFadeTimerCountdown(15);
 	_fadeText = false;
@@ -341,9 +361,9 @@ void KyraEngine_LoK::drawSentenceCommand(const char *sentence, int color) {
 
 void KyraEngine_LoK::updateSentenceCommand(const char *str1, const char *str2, int color) {
 	char sentenceCommand[500];
-	strncpy(sentenceCommand, str1, 500);
+	Common::strlcpy(sentenceCommand, str1, sizeof(sentenceCommand));
 	if (str2)
-		strncat(sentenceCommand, str2, 500 - strlen(sentenceCommand));
+		Common::strlcat(sentenceCommand, str2, sizeof(sentenceCommand));
 
 	drawSentenceCommand(sentenceCommand, color);
 	_screen->updateScreen();
@@ -364,10 +384,15 @@ void KyraEngine_LoK::updateTextFade() {
 			}
 	}
 
-	_screen->getPalette(0)[765] = _currSentenceColor[0];
-	_screen->getPalette(0)[766] = _currSentenceColor[1];
-	_screen->getPalette(0)[767] = _currSentenceColor[2];
-	_screen->setScreenPalette(_screen->getPalette(0));
+	if (_flags.platform == Common::kPlatformAmiga) {
+		_screen->setInterfacePalette(_screen->getPalette(1),
+				_currSentenceColor[0], _currSentenceColor[1], _currSentenceColor[2]);
+	} else {
+		_screen->getPalette(0)[765] = _currSentenceColor[0];
+		_screen->getPalette(0)[766] = _currSentenceColor[1];
+		_screen->getPalette(0)[767] = _currSentenceColor[2];
+		_screen->setScreenPalette(_screen->getPalette(0));
+	}
 
 	if (finished) {
 		_fadeText = false;
@@ -375,4 +400,4 @@ void KyraEngine_LoK::updateTextFade() {
 	}
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

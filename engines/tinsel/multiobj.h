@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Multi-part object definitions
  */
 
@@ -40,13 +37,13 @@ struct OBJECT;
  * multi-object initialisation structure (parallels OBJ_INIT struct)
  */
 struct MULTI_INIT {
-	SCNHANDLE hMulFrame;	//!< multi-objects shape - NULL terminated list of IMAGE structures
-	int32 mulFlags;			//!< multi-objects flags
-	int32 mulID;			//!< multi-objects id
-	int32 mulX;				//!< multi-objects initial x ani position
-	int32 mulY;				//!< multi-objects initial y ani position
-	int32 mulZ;				//!< multi-objects initial z position
-	uint32 otherFlags;		//!< multi-objects Tinsel 2 - other flags
+	SCNHANDLE hMulFrame;	///< multi-objects shape - NULL terminated list of IMAGE structures
+	int32 mulFlags;			///< multi-objects flags
+	int32 mulID;			///< multi-objects id
+	int32 mulX;				///< multi-objects initial x ani position
+	int32 mulY;				///< multi-objects initial y ani position
+	int32 mulZ;				///< multi-objects initial z position
+	uint32 otherFlags;		///< multi-objects Tinsel 2 - other flags
 } PACKED_STRUCT;
 typedef MULTI_INIT *PMULTI_INIT;
 
@@ -56,15 +53,15 @@ typedef MULTI_INIT *PMULTI_INIT;
 |*			Multi Object Function Prototypes		*|
 \*----------------------------------------------------------------------*/
 
-OBJECT *MultiInitObject(	// Initialise a multi-part object
+OBJECT *MultiInitObject(	// Initialize a multi-part object
 	const MULTI_INIT *pInitTbl);	// pointer to multi-object initialisation table
 
 void MultiInsertObject(		// Insert a multi-part object onto a object list
-	OBJECT *pObjList,	// list to insert multi-part object onto
+	OBJECT **pObjList,	// list to insert multi-part object onto
 	OBJECT *pInsObj);	// head of multi-part object to insert
 
 void MultiDeleteObject(		// Delete all the pieces of a multi-part object
-	OBJECT *pObjList,	// list to delete multi-part object from
+	OBJECT **pObjList,	// list to delete multi-part object from
 	OBJECT *pMultiObj);	// multi-part object to be deleted
 
 void MultiHideObject(		// Hide a multi-part object
@@ -128,6 +125,6 @@ bool MultiHasShape(		// Returns TRUE if the object currently has an image
 void MultiForceRedraw(
 	POBJECT pMultiObj);	// multi-part object to be forced
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	// TINSEL_MULTIOBJ_H

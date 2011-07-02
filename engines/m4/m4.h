@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_H
@@ -28,6 +25,8 @@
 
 #include "common/scummsys.h"
 #include "common/util.h"
+#include "common/random.h"
+#include "audio/mididrv.h"
 
 #include "engines/engine.h"
 
@@ -40,6 +39,9 @@
 #include "m4/events.h"
 #include "m4/font.h"
 #include "m4/scene.h"
+#include "m4/mads_player.h"
+#include "m4/mads_scene.h"
+#include "m4/m4_scene.h"
 #include "m4/actor.h"
 #include "m4/sound.h"
 #include "m4/rails.h"
@@ -48,6 +50,27 @@
 
 //#define DUMP_SCRIPTS
 
+/**
+ * This is the namespace of the M4 engine.
+ *
+ * Status of this engine:
+ * This engine is eventually intended to compromise two evolutions of the same engine: 'MADS' for the
+ * first generation of the engine, and 'M4' for the second generation. This engine is called M4 overall
+ * simply because work first began on the M4 side (focusing on the game 'Orion Burger').
+ *
+ * MADS Status: The current game being focused on is 'Rex Nebular' by DreamMaster, who is implementing
+ * functionality as he disassembles the games original executables. Currently the engine has no particular
+ * game logic implemented, although it does have the title screen implemented, and displays the initial
+ * game screen and some game interface elements
+ *
+ * M4 Status: Work on this engine began with the game 'Orion Burger'. Some of the user interface
+ * functionality has been implemented. No further work has been done on this for some time, so progress
+ * on this part of the engine can be considered frozen.
+ *
+ * Games using this engine:
+ * MADS Games: Dragonsphere, Return of the Phantom, Rex Nebular and the Cosmic Gender Bender
+ * M4 Games: Orion Burger, The Riddle of Master Lu
+ */
 namespace M4 {
 
 class MidiPlayer;
@@ -59,20 +82,21 @@ class Scene;
 class ViewManager;
 class View;
 class Inventory;
-class GameInterfaceView;
+class M4InterfaceView;
 class ConversationView;
 class Actor;
 class Converse;
+class MadsConversation;
 class ScriptInterpreter;
 class WoodScript;
 class Animation;
 
 enum M4GameType {
 	GType_Riddle = 1,
-	GType_Burger,
-	GType_RexNebular,
-	GType_DragonSphere,
-	GType_Phantom
+	GType_Burger = 2,
+	GType_RexNebular = 3,
+	GType_DragonSphere = 4,
+	GType_Phantom = 5
 };
 
 enum Features {
@@ -88,7 +112,10 @@ enum {
 
 enum {
 	kDebugScript = 1 << 0,
-	kDebugConversations = 2 << 0
+	kDebugConversations = 1 << 1,
+	kDebugGraphics = 1 << 2,
+	kDebugSound = 1 << 3,
+	kDebugCore = 1 << 4
 };
 
 #define MESSAGE_BASIC 1
@@ -97,15 +124,17 @@ enum {
 
 struct M4GameDescription;
 
-#define GAME_FRAME_DELAY 50
+#define GAME_FRAME_DELAY 20
 
-FORCEINLINE void str_lower(char *s) { while (*s) { *s = tolower(*s); s++; } }
-FORCEINLINE void str_upper(char *s) { while (*s) { *s = toupper(*s); s++; } }
+#define VALIDATE_MADS assert(!_vm->isM4())
 
-FORCEINLINE long FixedMul(long a, long b) { return (long)(((float)a * (float)b) / 65536.0); }
-FORCEINLINE long FixedDiv(long a, long b) { return (long)(((float)a / (float)b) * 65536.0); }
+inline void str_lower(char *s) { while (*s) { *s = tolower(*s); s++; } }
+inline void str_upper(char *s) { while (*s) { *s = toupper(*s); s++; } }
 
-class M4Engine : public Engine {
+inline long FixedMul(long a, long b) { return (long)(((float)a * (float)b) / 65536.0); }
+inline long FixedDiv(long a, long b) { return (long)(((float)a / (float)b) * 65536.0); }
+
+class MadsM4Engine : public Engine {
 private:
 	Common::Error goMADS();
 	Common::Error goM4();
@@ -119,8 +148,8 @@ protected:
 	MidiPlayer *_midi;
 
 public:
-	M4Engine(OSystem *syst, const M4GameDescription *gameDesc);
-	virtual ~M4Engine();
+	MadsM4Engine(OSystem *syst, const M4GameDescription *gameDesc);
+	virtual ~MadsM4Engine();
 
 	int getGameType() const;
 	uint32 getFeatures() const;
@@ -130,14 +159,13 @@ public:
 
 	const char *getGameFile(int fileType);
 	Common::EventManager *eventMan() { return _eventMan; }
-	OSystem *system() { return _system; }
 
 	const M4GameDescription *_gameDescription;
 
 	ResourceManager *res() const { return _resourceManager; }
 	MidiPlayer *midi() { return _midi; }
 	Common::SaveFileManager *saveManager() { return _saveFileMan; }
-	void dumpFile(const char* filename, bool uncompress = false);
+	void dumpFile(const char *filename, bool uncompress);
 	void eventHandler();
 	bool delay(int duration, bool keyAborts = true, bool clickAborts = true);
 	void loadMenu(MenuType menuType, bool loadSaveFromHotkey = false,
@@ -152,33 +180,73 @@ public:
 	//
 
 	ResourceManager *_resourceManager;
+	Globals *_globals;
+
 	SaveLoad *_saveLoad;
 	ViewManager *_viewManager;
 	Palette *_palette;
 	Kernel *_kernel;
-	Globals *_globals;
 	Player *_player;
 	Mouse *_mouse;
 	Events *_events;
-	Font *_font;
+	FontManager *_font;
 	Actor *_actor;
 	Scene *_scene;
 	Dialogs *_dialogs;
 	M4Surface *_screen;
 	Inventory *_inventory;
-	GameInterfaceView *_interfaceView;
 	ConversationView *_conversationView;
 	Sound *_sound;
 	Rails *_rails;
-	Converse *_converse;
 	ScriptInterpreter *_script;
 	WoodScript *_ws;
-	Animation *_animation;
 	Common::RandomSource *_random;
+
+	Scene *scene() { return _scene; }
 };
 
-// FIXME: remove global
-extern M4Engine *_vm;
+class MadsEngine : public MadsM4Engine {
+private:
+	void showDialog();
+public:
+	MadsConversation _converse;
+	uint32 _currentTimer;
+	MadsPlayer _player;
+public:
+	MadsEngine(OSystem *syst, const M4GameDescription *gameDesc);
+	virtual ~MadsEngine();
+
+	virtual Common::Error run();
+
+	MadsGlobals *globals() { return (MadsGlobals *)_globals; }
+	MadsScene *scene() { return (MadsScene *)_scene; }
+	void startScene(int sceneNum) {
+		if (!_scene) {
+			_scene = new MadsScene(this);
+			((MadsScene *)_scene)->initialize();
+		}
+		_scene->show();
+		_scene->loadScene(101);
+	}
+};
+
+class M4Engine : public MadsM4Engine {
+public:
+	Converse *_converse;
+public:
+	M4Engine(OSystem *syst, const M4GameDescription *gameDesc);
+	virtual ~M4Engine();
+
+	virtual Common::Error run();
+
+	M4Globals *globals() { return (M4Globals *)_globals; }
+	M4Scene *scene() { return (M4Scene *)_scene; }
+};
+
+// FIXME: remove globals
+extern MadsM4Engine *_vm;
+extern MadsEngine *_madsVm;
+extern M4Engine *_m4Vm;
 
 } // End of namespace M4
 

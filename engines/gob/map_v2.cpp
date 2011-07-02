@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/stream.h"
@@ -47,7 +44,7 @@ Map_v2::~Map_v2() {
 
 void Map_v2::loadMapObjects(const char *avjFile) {
 	uint8 wayPointsCount;
-	int16 var;
+	uint16 var;
 	int16 id;
 	int16 mapWidth, mapHeight;
 	int16 tmp;
@@ -61,10 +58,42 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 	id = _vm->_game->_script->readInt16();
 
 	if (((uint16) id) >= 65520) {
-		warning("Map_v2::loadMapObjects(): ID >= 65520");
-		return;
-	} else if (id == -1) {
-		_passMap = (int8 *) _vm->_inter->_variables->getAddressOff8(var);
+		switch ((uint16) id) {
+			case 65530:
+				for (int i = 0; i < _mapWidth * _mapHeight; i++)
+					_passMap[i] -= READ_VARO_UINT8(var + i);
+				break;
+			case 65531:
+				for (int i = 0; i < _mapWidth * _mapHeight; i++)
+					_passMap[i] += READ_VARO_UINT8(var + i);
+				break;
+			case 65532:
+				for (int i = 0; i < _mapWidth * _mapHeight; i++)
+					WRITE_VARO_UINT8(var + i, 0x00);
+				break;
+			case 65533: {
+				int index = READ_VARO_UINT16(var);
+				// _vm->_mult->_objects[index].field_6E = 0;
+				// _vm->_mult->_objects[index].field_6A = variables;
+				warning("Map_v2::loadMapObjects(): ID == 65533 (%d)", index);
+				break;
+			}
+			case 65534:
+				_tilesWidth     = READ_VARO_UINT8(var);
+				_tilesHeight    = READ_VARO_UINT8(var + 1);
+				_mapWidth       = READ_VARO_UINT8(var + 2);
+				_mapHeight      = READ_VARO_UINT8(var + 3);
+				_mapUnknownBool = READ_VARO_UINT8(var + 4) ? true : false;
+				if (_mapUnknownBool)
+					warning("Map_v2::loadMapObjects(): _mapUnknownBool == true");
+				break;
+			case 65535:
+				_passMap = (int8 *)_vm->_inter->_variables->getAddressOff8(var);
+				break;
+			default:
+				warning("Map_v2::loadMapObjects(): ID == %d", (uint16) id);
+				break;
+		}
 		return;
 	}
 
@@ -74,11 +103,11 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 
 	Common::SeekableReadStream &mapData = *resource->stream();
 
-	_widthByte = mapData.readByte();
-	if (_widthByte == 4) {
+	_mapVersion = mapData.readByte();
+	if (_mapVersion == 4) {
 		_screenWidth = 640;
 		_screenHeight = 400;
-	} else if (_widthByte == 3) {
+	} else if (_mapVersion == 3) {
 		_passWidth = 65;
 		_screenWidth = 640;
 		_screenHeight = 200;
@@ -88,14 +117,14 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 		_screenHeight = 200;
 	}
 
-	_wayPointsCount = mapData.readByte();
+	_wayPointCount = mapData.readByte();
 	_tilesWidth = mapData.readSint16LE();
 	_tilesHeight = mapData.readSint16LE();
 
 	_bigTiles = !(_tilesHeight & 0xFF00);
 	_tilesHeight &= 0xFF;
 
-	if (_widthByte == 4) {
+	if (_mapVersion == 4) {
 		_screenWidth = mapData.readSint16LE();
 		_screenHeight = mapData.readSint16LE();
 	}
@@ -107,19 +136,19 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 	mapData.skip(_mapWidth * _mapHeight);
 
 	if (resource->getData()[0] == 1)
-		wayPointsCount = _wayPointsCount = 40;
+		wayPointsCount = _wayPointCount = 40;
 	else
-		wayPointsCount = _wayPointsCount == 0 ? 1 : _wayPointsCount;
+		wayPointsCount = _wayPointCount == 0 ? 1 : _wayPointCount;
 
 	delete[] _wayPoints;
-	_wayPoints = new Point[wayPointsCount];
-	for (int i = 0; i < _wayPointsCount; i++) {
+	_wayPoints = new WayPoint[wayPointsCount];
+	for (int i = 0; i < _wayPointCount; i++) {
 		_wayPoints[i].x = mapData.readSByte();
 		_wayPoints[i].y = mapData.readSByte();
 		_wayPoints[i].notWalkable = mapData.readSByte();
 	}
 
-	if (_widthByte == 4) {
+	if (_mapVersion == 4) {
 		_mapWidth  = VAR(17);
 		_passWidth = _mapWidth;
 	}
@@ -130,7 +159,7 @@ void Map_v2::loadMapObjects(const char *avjFile) {
 	if ((variables != 0) &&
 	    (variables != _vm->_inter->_variables->getAddressOff8(0))) {
 
-		_passMap = (int8 *) variables;
+		_passMap = (int8 *)variables;
 		mapHeight = _screenHeight / _tilesHeight;
 		mapWidth = _screenWidth / _tilesWidth;
 
@@ -231,18 +260,28 @@ void Map_v2::findNearestToDest(Mult::Mult_Object *obj) {
 }
 
 void Map_v2::optimizePoints(Mult::Mult_Object *obj, int16 x, int16 y) {
+	if (!_wayPoints)
+		return;
+
 	if (obj->nearestWayPoint < obj->nearestDest) {
+
 		for (int i = obj->nearestWayPoint; i <= obj->nearestDest; i++) {
 			if (checkDirectPath(obj, x, y, _wayPoints[i].x, _wayPoints[i].y) == 1)
 				obj->nearestWayPoint = i;
 		}
+
 	} else {
-		for (int i = obj->nearestWayPoint;
-		     i >= obj->nearestDest && (_wayPoints[i].notWalkable != 1); i--) {
+
+		for (int i = obj->nearestWayPoint; i >= obj->nearestDest; i--) {
+			if (_wayPoints[i].notWalkable == 1)
+				break;
+
 			if (checkDirectPath(obj, x, y, _wayPoints[i].x, _wayPoints[i].y) == 1)
 				obj->nearestWayPoint = i;
 		}
+
 	}
+
 }
 
 } // End of namespace Gob

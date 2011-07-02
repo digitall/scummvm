@@ -18,15 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Resource file routines for Simon1/Simon2
 
 
 #include "common/file.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 #include "common/util.h"
 
 #include "agos/agos.h"
@@ -35,28 +34,28 @@
 
 #include "common/zlib.h"
 
-using Common::File;
-
 namespace AGOS {
 
+#ifdef ENABLE_AGOS2
 uint16 AGOSEngine_Feeble::to16Wrapper(uint value) {
 	return TO_LE_16(value);
-}
-
-uint16 AGOSEngine::to16Wrapper(uint value) {
-	return TO_BE_16(value);
 }
 
 uint16 AGOSEngine_Feeble::readUint16Wrapper(const void *src) {
 	return READ_LE_UINT16(src);
 }
 
-uint16 AGOSEngine::readUint16Wrapper(const void *src) {
-	return READ_BE_UINT16(src);
-}
-
 uint32 AGOSEngine_Feeble::readUint32Wrapper(const void *src) {
 	return READ_LE_UINT32(src);
+}
+#endif
+
+uint16 AGOSEngine::to16Wrapper(uint value) {
+	return TO_BE_16(value);
+}
+
+uint16 AGOSEngine::readUint16Wrapper(const void *src) {
+	return READ_BE_UINT16(src);
 }
 
 uint32 AGOSEngine::readUint32Wrapper(const void *src) {
@@ -65,7 +64,7 @@ uint32 AGOSEngine::readUint32Wrapper(const void *src) {
 
 void AGOSEngine::decompressData(const char *srcName, byte *dst, uint32 offset, uint32 srcSize, uint32 dstSize) {
 #ifdef USE_ZLIB
-		File in;
+		Common::File in;
 		in.open(srcName);
 		if (in.isOpen() == false)
 			error("decompressData: Can't load %s", srcName);
@@ -150,7 +149,6 @@ int AGOSEngine::allocGamePcVars(Common::SeekableReadStream *in) {
 	return itemArrayInited;
 }
 
-#ifdef ENABLE_PN
 void AGOSEngine_PN::loadGamePcFile() {
 	Common::File in;
 
@@ -190,7 +188,6 @@ void AGOSEngine_PN::loadGamePcFile() {
 			error("Unknown compression format");
 	}
 }
-#endif
 
 void AGOSEngine::loadGamePcFile() {
 	Common::File in;
@@ -548,7 +545,7 @@ uint fileReadItemID(Common::SeekableReadStream *in) {
 }
 
 void AGOSEngine::openGameFile() {
-	_gameFile = new File();
+	_gameFile = new Common::File();
 	_gameFile->open(getFileName(GAME_GMEFILE));
 
 	if (!_gameFile->isOpen())
@@ -717,7 +714,7 @@ static void transferLoop(uint8 *dataOut, int &outIndex, uint32 destVal, int max)
 	assert(outIndex > max - 1);
 	byte *pDest = dataOut + outIndex;
 
-	 for (int i = 0; (i <= max) && (outIndex > 0) ; ++i) {
+	 for (int i = 0; (i <= max) && (outIndex > 0); ++i) {
 		pDest = dataOut + --outIndex;
 		*pDest = pDest[destVal];
 	 }
@@ -783,7 +780,7 @@ void AGOSEngine::loadVGABeardFile(uint16 id) {
 	uint32 offs, size;
 
 	if (getFeatures() & GF_OLD_BUNDLE) {
-		File in;
+		Common::File in;
 		char filename[15];
 		if (id == 23)
 			id = 112;
@@ -824,7 +821,7 @@ void AGOSEngine::loadVGABeardFile(uint16 id) {
 }
 
 void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
-	File in;
+	Common::File in;
 	char filename[15];
 	byte *dst;
 	uint32 file, offs, srcSize, dstSize;

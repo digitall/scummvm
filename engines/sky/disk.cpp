@@ -18,18 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/debug.h"
+#include "common/textconsole.h"
 #include "common/endian.h"
 #include "common/file.h"
-#include "common/util.h"
 
 #include "sky/disk.h"
-#include "sky/rnc_deco.h"
 #include "sky/sky.h"
 #include "sky/struc.h"
 
@@ -59,7 +56,7 @@ Disk::Disk() {
 	if (!_dataDiskHandle->isOpen())
 		error("Error opening %s", dataFilename);
 
-	printf("Found BASS version v0.0%d (%d dnr entries)\n", determineGameVersion(), _dinnerTableEntries);
+	debug("Found BASS version v0.0%d (%d dnr entries)", determineGameVersion(), _dinnerTableEntries);
 
 	memset(_buildList, 0, 60 * 2);
 	memset(_loadedFilesList, 0, 60 * 4);
@@ -68,7 +65,7 @@ Disk::Disk() {
 	delete dnrHandle;
 }
 
-Disk::~Disk(void) {
+Disk::~Disk() {
 	if (_dataDiskHandle->isOpen())
 		_dataDiskHandle->close();
 	fnFlushBuffers();
@@ -224,7 +221,7 @@ void Disk::fnCacheFast(uint16 *fList) {
 	}
 }
 
-void Disk::fnCacheFiles(void) {
+void Disk::fnCacheFiles() {
 	uint16 lCnt, bCnt, targCnt;
 	targCnt = lCnt = 0;
 	bool found;
@@ -306,7 +303,7 @@ void Disk::fnMiniLoad(uint16 fileNum) {
 	SkyEngine::_itemList[fileNum & 2047] = (void**)loadFile(fileNum);
 }
 
-void Disk::fnFlushBuffers(void) {
+void Disk::fnFlushBuffers() {
 	// dump all loaded sprites
 	uint8 lCnt = 0;
 	while (_loadedFilesList[lCnt]) {

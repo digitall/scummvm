@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "groovie/lzss.h"
+
+namespace Groovie {
 
 #define OUT_BUFF_SIZE 131072
 #define COMP_THRESH 3 // Compression not attempted if string to be compressed is less than 3 long
@@ -97,3 +96,5 @@ uint32 LzssReadStream::read(void *buf, uint32 size) {
 
 	return size;
 }
+
+} // End of Groovie namespace

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -88,7 +85,7 @@ bool PalAnim::fadeStep(int16 oper) {
 	if (oper == 0) {
 		if (_vm->_global->_setAllPalette) {
 			if (_vm->_global->_inVM != 0)
-				error("PalAnim::fadeStep(): _vm->_global->_inVM != 0 not supported.");
+				error("PalAnim::fadeStep(): _vm->_global->_inVM != 0 not supported");
 
 			for (int i = 0; i < 256; i++) {
 				newRed = fadeColor(_vm->_global->_redPalette[i], _toFadeRed[i]);

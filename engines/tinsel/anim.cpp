@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * This file contains utilities to handle object animation.
  */
 
@@ -31,6 +28,7 @@
 #include "tinsel/sched.h"
 #include "tinsel/tinsel.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
@@ -168,12 +166,15 @@ SCRIPTSTATE DoNextFrame(ANIM *pAnim) {
 			// in case we missed something (highly unlikely though)
 			error("ANI_CALL opcode encountered! Please report this error to the ScummVM team");
 			//(*pAni[pAnim->scriptIndex].pFunc)(pAnim);
+			return ScriptSleep;	// for compilers that don't support NORETURN
 
+#if 0
 			// next opcode
 			pAnim->scriptIndex++;
 
 			// go fetch a real image
 			break;
+#endif
 
 		case ANI_HIDE:		// hide animated object
 
@@ -445,4 +446,4 @@ bool AboutToJumpOrEnd(PANIM pAnim) {
 
 
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

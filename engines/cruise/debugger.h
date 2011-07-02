@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_DEBUGGER_H
@@ -35,7 +32,7 @@ public:
 	Debugger();
 	virtual ~Debugger() {}  // we need this for __SYMBIAN32__ archaic gcc/UIQ
 
-protected:
+private:
 	bool cmd_hotspots(int argc, const char **argv);
 	bool cmd_items(int argc, const char **argv);
 };

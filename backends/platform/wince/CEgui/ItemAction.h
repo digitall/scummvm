@@ -18,29 +18,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CEGUI_ITEMACTION
-#define CEGUI_ITEMACTION
+#ifndef CEGUI_ITEMACTION_H
+#define CEGUI_ITEMACTION_H
 
 #include "common/scummsys.h"
 #include "common/system.h"
 
 #include "gui/Actions.h"
 #include "CEgui/PanelItem.h"
+
 namespace CEGUI {
 
-	class ItemAction : public PanelItem {
-	public:
-		ItemAction(WORD reference, GUI::ActionType action);
-		virtual ~ItemAction();
-		virtual bool action(int x, int y, bool pushed);
-	private:
-		GUI::ActionType _action;
-	};
-}
+class ItemAction : public PanelItem {
+public:
+	ItemAction(WORD reference, GUI::ActionType action);
+	virtual ~ItemAction();
+	virtual bool action(int x, int y, bool pushed);
+private:
+	GUI::ActionType _action;
+};
+
+} // End of namespace CEGUI
 
 #endif

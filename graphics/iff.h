@@ -17,12 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-/**
+/*
  * Bitmap decoder used in engines:
  *  - parallaction
  *  - saga
@@ -31,7 +28,7 @@
 #ifndef GRAPHICS_IFF_H
 #define GRAPHICS_IFF_H
 
-#include "common/iff_container.h"
+#include "common/stream.h"
 
 namespace Graphics {
 
@@ -67,18 +64,18 @@ struct ILBMDecoder {
 	 * Available decoding modes for loadBitmap().
 	 */
 	enum {
-		ILBM_UNPACK_PLANES = 0xFF,		//!< Decode all bitplanes, and map 1 pixel to 1 byte.
-		ILBM_PACK_PLANES   = 0x100,		//!< Request unpacking, used as a mask with below options.
+		ILBM_UNPACK_PLANES = 0xFF,		///< Decode all bitplanes, and map 1 pixel to 1 byte.
+		ILBM_PACK_PLANES   = 0x100,		///< Request unpacking, used as a mask with below options.
 
-		ILBM_1_PLANES      = 1,									//!< Decode only the first bitplane, don't pack.
-		ILBM_1_PACK_PLANES = ILBM_1_PLANES | ILBM_PACK_PLANES, 	//!< Decode only the first bitplane, pack 8 pixels in 1 byte.
-		ILBM_2_PLANES      = 2,									//!< Decode first 2 bitplanes, don't pack.
-		ILBM_2_PACK_PLANES = ILBM_2_PLANES | ILBM_PACK_PLANES,	//!< Decode first 2 bitplanes, pack 4 pixels in 1 byte.
-		ILBM_3_PLANES      = 3,									//!< Decode first 3 bitplanes, don't pack.
-		ILBM_4_PLANES      = 4,									//!< Decode first 4 bitplanes, don't pack.
-		ILBM_4_PACK_PLANES = ILBM_4_PLANES | ILBM_PACK_PLANES,	//!< Decode first 4 bitplanes, pack 2 pixels in 1 byte.
-		ILBM_5_PLANES      = 5,									//!< Decode first 5 bitplanes, don't pack.
-		ILBM_8_PLANES      = 8									//!< Decode all 8 bitplanes.
+		ILBM_1_PLANES      = 1,									///< Decode only the first bitplane, don't pack.
+		ILBM_1_PACK_PLANES = ILBM_1_PLANES | ILBM_PACK_PLANES, 	///< Decode only the first bitplane, pack 8 pixels in 1 byte.
+		ILBM_2_PLANES      = 2,									///< Decode first 2 bitplanes, don't pack.
+		ILBM_2_PACK_PLANES = ILBM_2_PLANES | ILBM_PACK_PLANES,	///< Decode first 2 bitplanes, pack 4 pixels in 1 byte.
+		ILBM_3_PLANES      = 3,									///< Decode first 3 bitplanes, don't pack.
+		ILBM_4_PLANES      = 4,									///< Decode first 4 bitplanes, don't pack.
+		ILBM_4_PACK_PLANES = ILBM_4_PLANES | ILBM_PACK_PLANES,	///< Decode first 4 bitplanes, pack 2 pixels in 1 byte.
+		ILBM_5_PLANES      = 5,									///< Decode first 5 bitplanes, don't pack.
+		ILBM_8_PLANES      = 8									///< Decode all 8 bitplanes.
 	};
 
 	/**
@@ -104,40 +101,23 @@ struct ILBMDecoder {
 
 
 
-
-//	handles PBM subtype of IFF FORM files
-//
-struct PBMDecoder {
-	/**
-	 * PBM header data, necessary for loadBitmap()
-	 */
-	Graphics::BMHD	_header;
-
-	/**
-	 * Fills the _header member from the given stream.
-	 */
-	void loadHeader(Common::ReadStream *stream);
-
-	/**
-	 * Loads and unpacks the PBM bitmap data from the stream into the buffer.
-	 * The functions assumes the buffer is large enough to contain all data.
-	 */
-	void loadBitmap(byte *buffer, Common::ReadStream *stream);
-};
-
+/**
+ * Handles PBM subtype of IFF FORM files
+ */
 void decodePBM(Common::ReadStream &input, Surface &surface, byte *colors);
 
 
-/*
-	PackBits is a RLE compression algorithm introduced
-	by Apple. It is also used to encode ILBM and PBM
-	subtypes of IFF files, and some flavours of TIFF.
-
-	As there is no compression across row boundaries
-	in the above formats, read() will extract a *new*
-	line on each call, discarding any alignment or
-	padding.
-*/
+/**
+ * Decode a given PackBits encoded stream.
+ *
+ * PackBits is an RLE compression algorithm introduced by Apple. It is also
+ * used to encode ILBM and PBM subtypes of IFF files, and some flavors of
+ * TIFF.
+ *
+ * As there is no compression across row boundaries in the above formats,
+ * read() will extract a *new* line on each call, discarding any alignment
+ * or padding.
+ */
 class PackBitsReadStream : public Common::ReadStream {
 
 protected:
@@ -152,6 +132,6 @@ public:
 	uint32 read(void *dataPtr, uint32 dataSize);
 };
 
-}
+} // End of namespace Graphics
 
 #endif

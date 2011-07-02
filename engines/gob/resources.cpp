@@ -18,14 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/util.h"
 #include "common/endian.h"
-#include "common/stream.h"
+#include "common/memstream.h"
 
 #include "gob/gob.h"
 #include "gob/resources.h"
@@ -71,7 +68,7 @@ int16 Resource::getHeight() const {
 	return _height;
 }
 
-Common::MemoryReadStream *Resource::stream() const {
+Common::SeekableReadStream *Resource::stream() const {
 	return _stream;
 }
 
@@ -95,7 +92,7 @@ int32 TextItem::getSize() const {
 	return _size;
 }
 
-Common::MemoryReadStream *TextItem::stream() const {
+Common::SeekableReadStream *TextItem::stream() const {
 	return _stream;
 }
 
@@ -159,15 +156,25 @@ bool Resources::load(const Common::String &fileName) {
 	bool hasTOTRes = loadTOTResourceTable();
 	bool hasEXTRes = loadEXTResourceTable();
 
+	if (!hasTOTRes) {
+		delete _totResourceTable;
+		_totResourceTable = 0;
+	}
+
+	if (!hasEXTRes) {
+		delete _extResourceTable;
+		_extResourceTable = 0;
+	}
+
 	if (!hasTOTRes && !hasEXTRes)
 		return false;
 
-	if (hasTOTRes) {
-		if (!loadTOTTextTable(_fileBase)) {
-			unload();
-			return false;
-		}
+	if (!loadTOTTextTable(_fileBase)) {
+		unload();
+		return false;
+	}
 
+	if (hasTOTRes) {
 		if (!loadIMFile()) {
 			unload();
 			return false;
@@ -236,12 +243,11 @@ bool Resources::loadTOTResourceTable() {
 	stream->seek(totProps.resourcesOffset);
 	_totResourceTable->itemsCount = stream->readSint16LE();
 
-	_totResourceTable->dataOffset = totProps.resourcesOffset + kTOTResTableSize +
-	                                _totResourceTable->itemsCount * kTOTResItemSize;
-
-
 	uint32 resSize = _totResourceTable->itemsCount * kTOTResItemSize +
 	                 kTOTResTableSize;
+
+	_totResourceTable->dataOffset = totProps.resourcesOffset + resSize;
+
 
 	// Would the table actually fit into the TOT?
 	if ((totProps.resourcesOffset + resSize) > ((uint32) stream->size()))
@@ -267,6 +273,7 @@ bool Resources::loadTOTResourceTable() {
 
 	_totResStart = totProps.scriptEnd;
 	_totSize = stream->size() - _totResStart;
+
 	if (_totSize <= 0)
 		return false;
 
@@ -283,7 +290,7 @@ bool Resources::loadTOTResourceTable() {
 bool Resources::loadEXTResourceTable() {
 	_extResourceTable = new EXTResourceTable;
 
-	DataStream *stream = _vm->_dataIO->getDataStream(_extFile.c_str());
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(_extFile);
 	if (!stream)
 		return false;
 
@@ -339,16 +346,13 @@ bool Resources::loadTOTTextTable(const Common::String &fileBase) {
 
 	_totTextTable = new TOTTextTable;
 
-	bool fromTOT;
 	if (totProps.textsOffset == 0) {
-		fromTOT                 = false;
 		_totTextTable->data     = loadTOTLocTexts(fileBase, _totTextTable->size);
 		_totTextTable->needFree = true;
 	} else {
-		fromTOT                 = true;
 		_totTextTable->data     = _totData + totProps.textsOffset - _totResStart;
 		_totTextTable->needFree = false;
-		_totTextTable->size     = _totSize - totProps.textsOffset;
+		_totTextTable->size     = totProps.textsSize;
 	}
 
 	if (_totTextTable->data) {
@@ -361,9 +365,6 @@ bool Resources::loadTOTTextTable(const Common::String &fileBase) {
 
 			item.offset = totTextTable.readSint16LE();
 			item.size   = totTextTable.readSint16LE();
-
-			if (fromTOT)
-				item.offset -= (totProps.textsOffset - _totResStart);
 		}
 	}
 
@@ -392,7 +393,7 @@ bool Resources::loadIMFile() {
 
 	imFile += num;
 
-	DataStream *stream = _vm->_dataIO->getDataStream(imFile.c_str());
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(imFile);
 	if (!stream)
 		return true;
 
@@ -427,7 +428,7 @@ bool Resources::loadEXFile() {
 	_exFile = "commun.ex";
 	_exFile += totProps.exFileNumber + '0';
 
-	if (!_vm->_dataIO->existData(_exFile.c_str())) {
+	if (!_vm->_dataIO->hasFile(_exFile)) {
 		_exFile.clear();
 		return true;
 	}
@@ -469,7 +470,7 @@ Common::String Resources::getLocTextFile(const Common::String &fileBase,
 		break;
 	}
 
-	if (!_vm->_dataIO->existData(locTextFile.c_str()))
+	if (!_vm->_dataIO->hasFile(locTextFile))
 		locTextFile.clear();
 
 	return locTextFile;
@@ -521,8 +522,7 @@ byte *Resources::loadTOTLocTexts(const Common::String &fileBase, int32 &size) {
 	if (locTextFile.empty())
 		return 0;
 
-	size = _vm->_dataIO->getDataSize(locTextFile.c_str());
-	return _vm->_dataIO->getData(locTextFile.c_str());
+	return _vm->_dataIO->getFile(locTextFile, size);
 }
 
 Resource *Resources::getResource(uint16 id, int16 *width, int16 *height) const {
@@ -555,12 +555,18 @@ TextItem *Resources::getTextItem(uint16 id) const {
 	if (id >= _totTextTable->itemsCount)
 		return 0;
 
+	assert(_totTextTable->items);
+
 	TOTTextItem &totItem = _totTextTable->items[id];
 
 	if ((totItem.offset == 0xFFFF) || (totItem.size == 0))
 		return 0;
-	if ((totItem.offset + totItem.size) > (_totTextTable->size))
+
+	if ((totItem.offset + totItem.size) > (_totTextTable->size)) {
+		warning("TOT text %d offset %d out of range (%s, %d, %d)",
+			id, totItem.offset, _totFile.c_str(), _totSize, totItem.size);
 		return 0;
+	}
 
 	return new TextItem(_totTextTable->data + totItem.offset, totItem.size);
 }
@@ -597,10 +603,7 @@ bool Resources::dumpResource(const Resource &resource, uint16 id,
 
 	Common::String fileName = _fileBase;
 
-	char idStr[7];
-
-	snprintf(idStr, 7, "_%05d", id);
-	fileName += idStr;
+	fileName += Common::String::format("_%05d", id);
 	fileName += ".";
 	fileName += ext;
 
@@ -608,11 +611,14 @@ bool Resources::dumpResource(const Resource &resource, uint16 id,
 }
 
 Resource *Resources::getTOTResource(uint16 id) const {
-	if (id >= _totResourceTable->itemsCount) {
+	if (!_totResourceTable || (id >= _totResourceTable->itemsCount)) {
 		warning("Trying to load non-existent TOT resource (%s, %d/%d)",
-				_totFile.c_str(), id, _totResourceTable->itemsCount - 1);
+				_totFile.c_str(), id,
+				_totResourceTable ? (_totResourceTable->itemsCount - 1) : -1);
 		return 0;
 	}
+
+	assert(_totResourceTable->items);
 
 	TOTResourceItem &totItem = _totResourceTable->items[id];
 
@@ -638,6 +644,8 @@ Resource *Resources::getEXTResource(uint16 id) const {
 				_extResourceTable ? (_extResourceTable->itemsCount - 1) : -1);
 		return 0;
 	}
+
+	assert(_extResourceTable->items);
 
 	EXTResourceItem &extItem = _extResourceTable->items[id];
 
@@ -667,10 +675,10 @@ Resource *Resources::getEXTResource(uint16 id) const {
 	if (extItem.packed) {
 		byte *packedData = data;
 
-		size = READ_LE_UINT32(packedData);
-		data = new byte[size];
+		int32 unpackSize;
+		data = _vm->_dataIO->unpack(packedData, size, unpackSize);
 
-		_vm->_dataIO->unpackData(packedData, data);
+		size = unpackSize;
 
 		delete[] packedData;
 	}
@@ -684,8 +692,11 @@ byte *Resources::getTOTData(TOTResourceItem &totItem) const {
 
 	int32 offset = _totResourceTable->dataOffset + totItem.offset - _totResStart;
 
-	if ((offset < 0) || (((uint32) (offset + totItem.size)) > _totSize))
+	if ((offset < 0) || (((uint32) (offset + totItem.size)) > _totSize)) {
+		warning("TOT data %d offset %d out of range (%s, %d, %d)",
+				totItem.index, totItem.offset, _totFile.c_str(), _totSize, totItem.size);
 		return 0;
+	}
 
 	return _totData + offset;
 }
@@ -706,7 +717,7 @@ byte *Resources::getIMData(TOTResourceItem &totItem) const {
 }
 
 byte *Resources::getEXTData(EXTResourceItem &extItem, uint32 size) const {
-	DataStream *stream = _vm->_dataIO->getDataStream(_extFile.c_str());
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(_extFile);
 	if (!stream)
 		return 0;
 
@@ -727,7 +738,7 @@ byte *Resources::getEXTData(EXTResourceItem &extItem, uint32 size) const {
 }
 
 byte *Resources::getEXData(EXTResourceItem &extItem, uint32 size) const {
-	DataStream *stream = _vm->_dataIO->getDataStream(_exFile.c_str());
+	Common::SeekableReadStream *stream = _vm->_dataIO->getFile(_exFile);
 	if (!stream)
 		return 0;
 

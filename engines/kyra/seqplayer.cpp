@@ -18,23 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "kyra/seqplayer.h"
+#include "kyra/resource.h"
+#include "kyra/sound.h"
 
 #include "common/system.h"
-
-#include "engines/engine.h"
-
-#include "kyra/resource.h"
-#include "kyra/screen.h"
-#include "kyra/sound.h"
-#include "kyra/wsamovie.h"
-#include "kyra/text.h"
-
-#include "kyra/seqplayer.h"
 
 #define SEQOP(n, x) { n, &SeqPlayer::x, #x }
 
@@ -389,7 +379,8 @@ void SeqPlayer::s1_copyRegionSpecial() {
 			const int x = (Screen::SCREEN_W - _screen->getTextWidth(copyStr)) / 2;
 			const int y = 179;
 			_screen->setTextColorMap(colorMap);
-			_screen->printText(copyStr, x + 1, y + 1, 0xB, 0xC);
+			if (_vm->gameFlags().platform != Common::kPlatformAmiga)
+				_screen->printText(copyStr, x + 1, y + 1, 0xB, 0xC);
 			_screen->printText(copyStr, x, y, 0xF, 0xC);
 		}
 		break;
@@ -413,30 +404,35 @@ void SeqPlayer::s1_fillRect() {
 
 void SeqPlayer::s1_playEffect() {
 	uint8 track = *_seqData++;
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return;
 	_vm->delay(3 * _vm->tickLength());
+
+	if (_vm->gameFlags().platform == Common::kPlatformPC98) {
+		if (track > 21 && track < 38)
+			track -= 22;
+		else
+			return;
+	}
+
 	_sound->playSoundEffect(track);
 }
 
 void SeqPlayer::s1_playTrack() {
 	uint8 msg = *_seqData++;
 
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		return;
-
-	if (msg == 1) {
+	if (msg == 0 && _vm->gameFlags().platform == Common::kPlatformPC98) {
+		_sound->haltTrack();
+	} else if (msg == 1) {
 		_sound->beginFadeOut();
 	} else {
 		_sound->haltTrack();
-		if (_vm->gameFlags().platform == Common::kPlatformFMTowns || _vm->gameFlags().platform == Common::kPlatformPC98)
+		if (_vm->gameFlags().platform == Common::kPlatformFMTowns)
 			msg += 2;
 		_sound->playTrack(msg);
 	}
 }
 
 void SeqPlayer::s1_allocTempBuffer() {
-	if (_vm->gameFlags().isDemo) {
+	if (_vm->gameFlags().isDemo && !_vm->gameFlags().isTalkie) {
 		_seqQuitFlag = true;
 	} else {
 		if (!_specialBuffer && !_copyViewOffs) {
@@ -475,7 +471,7 @@ void SeqPlayer::s1_miscUnk3() {
 }
 
 void SeqPlayer::s1_prefetchVocFile() {
-	*_seqData++;
+	_seqData++;
 	// we do not have to prefetch the vocfiles on modern systems
 }
 
@@ -573,7 +569,7 @@ bool SeqPlayer::playSequence(const uint8 *seqData, bool skipSeq) {
 		SEQOP(2, s1_prefetchVocFile)
 	};
 
-	const SeqEntry* commands;
+	const SeqEntry *commands;
 	int numCommands;
 
 	if (_vm->gameFlags().isTalkie) {
@@ -641,16 +637,21 @@ bool SeqPlayer::playSequence(const uint8 *seqData, bool skipSeq) {
 		uint8 seqCode = *_seqData++;
 		if (seqCode < numCommands) {
 			SeqProc currentProc = commands[seqCode].proc;
-			debugC(5, kDebugLevelSequence, "seqCode = %d (%s)", seqCode, commands[seqCode].desc);
+			debugC(5, kDebugLevelSequence, "0x%.4X seqCode = %d (%s)", (uint16)(_seqData - 1 - seqData), seqCode, commands[seqCode].desc);
 			(this->*currentProc)();
 		} else {
-			error("Invalid sequence opcode %d", seqCode);
+			error("Invalid sequence opcode %d called from 0x%.04X", seqCode, (uint16)(_seqData - 1 - seqData));
 		}
 
 		_screen->updateScreen();
 	}
 	delete[] _specialBuffer;
 	_specialBuffer = 0;
+
+	for (uint i = 0; i < ARRAYSIZE(_seqMovies); ++i) {
+		delete _seqMovies[i].movie;
+		_seqMovies[i].movie = 0;
+	}
 	return seqSkippedFlag;
 }
 

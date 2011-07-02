@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_DEBUGGER_H
@@ -36,12 +33,9 @@ public:
 	ScummDebugger(ScummEngine *s);
 	virtual ~ScummDebugger(); // we need this here for __SYMBIAN32__
 
-protected:
+private:
 	ScummEngine *_vm;
 	bool  _old_soundsPaused;
-
-	virtual void preEnter();
-	virtual void postEnter();
 
 	// Commands
 	bool Cmd_Room(int argc, const char **argv);
@@ -61,6 +55,7 @@ protected:
 	bool Cmd_ImportRes(int argc, const char **argv);
 
 	bool Cmd_PrintDraft(int argc, const char **argv);
+	bool Cmd_Passcode(int argc, const char **argv);
 
 	bool Cmd_Debug(int argc, const char **argv);
 	bool Cmd_DebugLevel(int argc, const char **argv);

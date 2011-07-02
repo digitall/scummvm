@@ -18,17 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/preagi.h"
-#include "agi/preagi_common.h"
 #include "agi/preagi_troll.h"
 #include "agi/graphics.h"
 
 #include "common/events.h"
+#include "common/textconsole.h"
 
 #include "graphics/cursorman.h"
 
@@ -60,7 +57,7 @@ bool Troll::getMenuSel(const char *szMenu, int *iSel, int nSel) {
 
 	while (!_vm->shouldQuit()) {
 		while (_vm->_system->getEventManager()->pollEvent(event)) {
-			switch(event.type) {
+			switch (event.type) {
 			case Common::EVENT_RTL:
 			case Common::EVENT_QUIT:
 				return 0;
@@ -82,8 +79,6 @@ bool Troll::getMenuSel(const char *szMenu, int *iSel, int nSel) {
 					inventory();
 
 					return false;
-
-					break;
 				case Common::KEYCODE_DOWN:
 				case Common::KEYCODE_SPACE:
 					*iSel += 1;
@@ -105,7 +100,7 @@ bool Troll::getMenuSel(const char *szMenu, int *iSel, int nSel) {
 				case Common::KEYCODE_KP_ENTER:
 					return true;
 				case Common::KEYCODE_s:
-					if (event.kbd.flags == Common::KBD_CTRL) {
+					if (event.kbd.hasFlags(Common::KBD_CTRL)) {
 						if (_soundOn) {
 							playTune(2, 1);
 							_soundOn = !_soundOn;
@@ -207,7 +202,7 @@ void Troll::waitAnyKeyIntro() {
 
 	while (!_vm->shouldQuit()) {
 		while (_vm->_system->getEventManager()->pollEvent(event)) {
-			switch(event.type) {
+			switch (event.type) {
 			case Common::EVENT_RTL:
 			case Common::EVENT_QUIT:
 			case Common::EVENT_LBUTTONUP:
@@ -285,7 +280,7 @@ void Troll::tutorial() {
 		while (!done && !_vm->shouldQuit()) {
 			getMenuSel(IDS_TRO_TUTORIAL_1, &iSel, IDI_TRO_MAX_OPTION);
 
-			switch(iSel) {
+			switch (iSel) {
 			case IDI_TRO_SEL_OPTION_1:
 				_vm->clearScreen(0x22, false);
 				_vm->_gfx->doUpdate();
@@ -579,7 +574,7 @@ void Troll::gameLoop() {
 
 		roomParam = _roomDescs[_roomPicture - 1].roomDescIndex[currentOption];
 
-		switch(_roomDescs[_roomPicture - 1].optionTypes[currentOption]) {
+		switch (_roomDescs[_roomPicture - 1].optionTypes[currentOption]) {
 		case OT_FLASHLIGHT:
 			if (!haveFlashlight) {
 				printUserMessage(13);
@@ -775,4 +770,4 @@ void Troll::run() {
 	}
 }
 
-} // end of namespace Agi
+} // End of namespace Agi

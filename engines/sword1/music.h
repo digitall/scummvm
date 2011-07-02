@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_MUSIC_H
@@ -29,9 +26,9 @@
 #include "common/scummsys.h"
 #include "common/mutex.h"
 #include "common/file.h"
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
-#include "sound/rate.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/rate.h"
 
 namespace Sword1 {
 
@@ -46,7 +43,7 @@ private:
 public:
 	MusicHandle() : _fading(0), _audioSource(NULL) {}
 	virtual int readBuffer(int16 *buffer, const int numSamples);
-	bool play(const char *filename, bool loop);
+	bool play(const Common::String &filename, bool loop);
 	bool playPSX(uint16 id, bool loop);
 	void stop();
 	void fadeUp();

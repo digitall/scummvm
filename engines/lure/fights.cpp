@@ -1,4 +1,8 @@
-/* ScummVM - Scumm Interpreter
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  *
  */
 
@@ -40,7 +41,7 @@ const FighterRecord initialFighterList[3] = {
 
 FightsManager *int_fights = NULL;
 
-FightsManager::FightsManager() {
+FightsManager::FightsManager() : _rnd(LureEngine::getReference().rnd()) {
 	int_fights = this;
 	_fightData = NULL;
 	_mouseFlags = 0;
@@ -49,9 +50,8 @@ FightsManager::FightsManager() {
 }
 
 FightsManager::~FightsManager() {
-	if (_fightData != NULL)
-		// Release the fight data
-		delete _fightData;
+	// Release the fight data
+	delete _fightData;
 }
 
 FightsManager &FightsManager::getReference() {
@@ -71,7 +71,7 @@ void FightsManager::setupPigFight() {
 	Resources &res = Resources::getReference();
 	Hotspot *player = res.getActiveHotspot(PLAYER_ID);
 	player->setSkipFlag(false);
-	player->resource()->colourOffset = 16;
+	player->resource()->colorOffset = 16;
 	player->setTickProc(PLAYER_FIGHT_TICK_PROC_ID);
 	player->setSize(48, 53);
 	player->setAnimationIndex(PLAYER_FIGHT_ANIM_INDEX);
@@ -100,7 +100,7 @@ void FightsManager::setupSkorlFight() {
 	rec.fwtrue_x = 282;
 	rec.fwtrue_y = 136;
 	player->setPosition(282, 136);
-	player->resource()->colourOffset = 96;
+	player->resource()->colorOffset = 96;
 }
 
 bool FightsManager::isFighting() {
@@ -129,8 +129,7 @@ void FightsManager::fightLoop() {
 		}
 
 		Screen::getReference().update();
-		if (game.debugger().isAttached())
-			game.debugger().onFrame();
+		game.debugger().onFrame();
 
 		g_system->delayMillis(10);
 	}
@@ -202,7 +201,7 @@ void FightsManager::checkEvents() {
 				return;
 
 			case Common::KEYCODE_d:
-				if (events.event().kbd.flags == Common::KBD_CTRL) {
+				if (events.event().kbd.hasFlags(Common::KBD_CTRL)) {
 					// Activate the debugger
 					game.debugger().attach();
 					return;
@@ -225,7 +224,7 @@ void FightsManager::checkEvents() {
 			_keyDown = KS_UP;
 
 		} else if (events.type() == Common::EVENT_MOUSEMOVE) {
-			Point mPos = events.event().mouse;
+			Common::Point mPos = events.event().mouse;
 			if (mPos.x < rec.fwtrue_x - 12)
 				mouse.setCursorNum(CURSOR_LEFT_ARROW);
 			else if (mPos.x > rec.fwtrue_x + player->width())
@@ -596,7 +595,7 @@ void FightsManager::enemyKilled() {
 
 	playerHotspot->setTickProc(PLAYER_TICK_PROC_ID);
 	playerRec.fwhits = GENERAL_MAGIC_ID;
-	playerHotspot->resource()->colourOffset = 128;
+	playerHotspot->resource()->colorOffset = 128;
 	playerHotspot->setSize(32, 48);
 	playerHotspot->resource()->width = 32;
 	playerHotspot->resource()->height = 48;
@@ -627,4 +626,4 @@ uint16 FightsManager::getFighterMove(FighterRecord &rec, uint16 baseOffset) {
 	return getByte(baseOffset + (rec.fwhits << 5) + actionIndex);
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

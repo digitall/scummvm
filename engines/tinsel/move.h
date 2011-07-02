@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_MOVE_H	// prevent multiple includes
@@ -40,11 +37,11 @@ void SSetActorDest(MOVER *pActor);
 void DoMoveActor(MOVER *pMover);
 
 void SetDefaultRefer(int32 defRefer);
-int GetLastLeadXdest(void);
-int GetLastLeadYdest(void);
+int GetLastLeadXdest();
+int GetLastLeadYdest();
 
 DIRECTION GetDirection(int fromx, int fromy, int tox, int toy, DIRECTION lastreel,
 							  HPOLYGON hPath, YBIAS yBias = YB_X2);
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif /* TINSEL_MOVE_H */

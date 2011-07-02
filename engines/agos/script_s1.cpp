@@ -18,18 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/system.h"
 
+#include "graphics/palette.h"
+
 #include "agos/agos.h"
 
 #ifdef _WIN32_WCE
-extern bool isSmartphone(void);
+extern bool isSmartphone();
 #endif
 
 namespace AGOS {
@@ -319,7 +318,7 @@ void AGOSEngine_Simon1::os1_pauseGame() {
 	case Common::PL_POL:
 		keyYes = Common::KEYCODE_t;
 		break;
-	case Common::HB_ISR:
+	case Common::HE_ISR:
 		keyYes = Common::KEYCODE_f;
 		break;
 	case Common::ES_ESP:
@@ -426,7 +425,7 @@ void AGOSEngine_Simon1::os1_screenTextPObj() {
 		int j, k;
 
 		if (subObject->objectFlags & kOFNumber) {
-			if (_language == Common::HB_ISR) {
+			if (_language == Common::HE_ISR) {
 				j = subObject->objectFlagValue[getOffsetOfChild2Param(subObject, kOFNumber)];
 				k = (j % 10) * 10;
 				k += j / 10;
@@ -558,7 +557,7 @@ void AGOSEngine_Simon1::os1_unloadZone() {
 void AGOSEngine_Simon1::os1_loadStrings() {
 	// 185: load sound files
 	_soundFileId = getVarOrWord();
-	if (getPlatform() == Common::kPlatformAmiga && getFeatures() & GF_TALKIE) {
+	if (getPlatform() == Common::kPlatformAmiga && (getFeatures() & GF_TALKIE)) {
 		char buf[10];
 		sprintf(buf, "%d%s", _soundFileId, "Effects");
 		_sound->readSfxFile(buf);
@@ -578,13 +577,13 @@ void AGOSEngine_Simon1::os1_specialFade() {
 
 	for (i = 32; i != 0; --i) {
 		paletteFadeOut(_currentPalette, 32, 8);
-		paletteFadeOut(_currentPalette + 4 * 48, 144, 8);
-		paletteFadeOut(_currentPalette + 4 * 208, 48, 8);
-		_system->setPalette(_currentPalette, 0, 256);
+		paletteFadeOut(_currentPalette + 3 * 48, 144, 8);
+		paletteFadeOut(_currentPalette + 3 * 208, 48, 8);
+		_system->getPaletteManager()->setPalette(_currentPalette, 0, 256);
 		delay(5);
 	}
 
-	memcpy(_displayPalette, _currentPalette, 1024);
+	memcpy(_displayPalette, _currentPalette, sizeof(_currentPalette));
 }
 
 void AGOSEngine::scriptMouseOff() {

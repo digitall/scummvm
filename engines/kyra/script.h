@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SCRIPT_H
@@ -34,7 +31,7 @@
 namespace Kyra {
 
 struct EMCState;
-typedef Common::Functor1<EMCState*, int> Opcode;
+typedef Common::Functor1<EMCState *, int> Opcode;
 
 struct EMCData {
 	char filename[13];
@@ -44,7 +41,7 @@ struct EMCData {
 	uint16 *ordr;
 	uint16 dataSize;
 
-	const Common::Array<const Opcode*> *sysFuncs;
+	const Common::Array<const Opcode *> *sysFuncs;
 };
 
 struct EMCState {
@@ -58,8 +55,8 @@ struct EMCState {
 	int16 retValue;
 	uint16 bp;
 	uint16 sp;
-	int16 regs[30];				// VM registers
-	int16 stack[kStackSize];	// VM stack
+	int16 regs[30];           // VM registers
+	int16 stack[kStackSize];  // VM stack
 };
 
 #define stackPos(x) (script->stack[script->sp+x])
@@ -84,9 +81,9 @@ public:
 		// Both lead to some problems in our IFF parser, either reading after the end
 		// of file or producing a "Chunk overread" error message. To work around this
 		// we need to adjust the size field properly.
-		if (_formType == MKID_BE('EMC2'))
+		if (_formType == MKTAG('E','M','C','2'))
 			_formChunk.size -= 8;
-		else if (_formType == MKID_BE('AVFS'))
+		else if (_formType == MKTAG('A','V','F','S'))
 			_formChunk.size += 4;
 	}
 };
@@ -140,7 +137,7 @@ private:
 	void op_eval(EMCState *);
 	void op_setRetAndJmp(EMCState *);
 };
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

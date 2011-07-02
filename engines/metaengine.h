@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef ENGINES_METAENGINE_H
@@ -29,14 +26,16 @@
 #include "common/error.h"
 
 #include "engines/game.h"
+#include "engines/savestate.h"
+
 #include "base/plugins.h"
 
 class Engine;
 class OSystem;
 
 namespace Common {
-	class FSList;
-	class String;
+class FSList;
+class String;
 }
 
 /**
@@ -124,7 +123,7 @@ public:
 	 * @param target	name of a config manager target
 	 * @param slot		slot number of the save state to be removed
 	 */
-	virtual void removeSaveState(const char *target, int slot) const {};
+	virtual void removeSaveState(const char *target, int slot) const {}
 
 	/**
 	 * Returns meta infos from the specified save state.
@@ -229,6 +228,7 @@ private:
 	friend class Common::Singleton<SingletonBaseType>;
 
 public:
+	GameDescriptor findGameInLoadedPlugins(const Common::String &gameName, const EnginePlugin **plugin = NULL) const;
 	GameDescriptor findGame(const Common::String &gameName, const EnginePlugin **plugin = NULL) const;
 	GameList detectGames(const Common::FSList &fslist) const;
 	const EnginePlugin::List &getPlugins() const;

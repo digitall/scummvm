@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_EVENTS_H
@@ -56,6 +53,7 @@ enum M4MouseState {
 
 enum M4CommonCursors {
 	CURSOR_ARROW = 0,
+	CURSOR_WAIT = 1,
 	CURSOR_HOURGLASS = 5,
 	CURSOR_LOOK = 6,
 	CURSOR_TAKE = 8,
@@ -67,15 +65,17 @@ class SpriteAsset;
 
 class Events {
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	Common::Event _event;
 	M4MouseState _mouseState;
-	int _keyCode;
+	int32 _keyCode;
 	int _mouseButtons;
 	Console *_console;
+	bool _ctrlFlag;
 public:
 	bool quitFlag;
-	Events(M4Engine *vm);
+	Events(MadsM4Engine *vm);
+	virtual ~Events();
 
 	Common::Event &event() { return _event; }
 	Common::EventType type() { return _event.type; }
@@ -90,7 +90,7 @@ public:
 
 class Mouse {
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	int _currentCursor, _lockedCursor;
 	bool _locked;
 	bool _cursorOn;
@@ -103,7 +103,7 @@ private:
 	bool inHideArea();
 	friend class Events;
 public:
-	Mouse(M4Engine *vm);
+	Mouse(MadsM4Engine *vm);
 	~Mouse();
 
 	bool init(const char *seriesName, RGB8 *palette);

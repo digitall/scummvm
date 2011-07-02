@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "base/plugins.h"
@@ -29,7 +26,6 @@
 #include "common/file.h"
 
 #include "drascula/drascula.h"
-
 
 namespace Drascula {
 
@@ -49,11 +45,13 @@ void DrasculaEngine::loadArchives() {
 	const ADGameFileDescription *ag;
 
 	if (getFeatures() & GF_PACKED) {
-		for (ag = _gameDescription->desc.filesDescriptions; ag->fileName; ag++)
-			_arj.registerArchive(ag->fileName);
+		for (ag = _gameDescription->desc.filesDescriptions; ag->fileName; ag++) {
+			if (!_archives.hasArchive(ag->fileName))
+				_archives.registerArchive(ag->fileName, ag->fileType);
+		}
 	}
 
-	_arj.enableFallback(true);
+	_archives.enableFallback(true);
 }
 
 }
@@ -63,13 +61,11 @@ static const PlainGameDescriptor drasculaGames[] = {
 	{0, 0}
 };
 
-
 namespace Drascula {
 
 using Common::GUIO_NONE;
 
 static const DrasculaGameDescription gameDescriptions[] = {
-
 	{
 		// Drascula English version
 		{
@@ -88,10 +84,17 @@ static const DrasculaGameDescription gameDescriptions[] = {
 		{
 			"drascula",
 			0,
-			AD_ENTRY1s("packet.001", "c6a8697396e213a18472542d5f547cb4", 32847563),
+			{
+				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
+				// HACK: List packet.001 twice to ensure this detector entry
+				// is ranked just as high as the others (which each have two
+				// detection files).
+				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
+				{NULL, 0, NULL, 0}
+			},
 			Common::EN_ANY,
 			Common::kPlatformPC,
-			ADGF_KEEPMATCH | GF_PACKED,
+			GF_PACKED,
 			GUIO_NONE
 		},
 	},
@@ -103,7 +106,7 @@ static const DrasculaGameDescription gameDescriptions[] = {
 			0,
 			{
 				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
-				{"packet.003", 0, "e8f4dc6091037329bab4ddb1cba35807", 719728},
+				{"packet.003", 1, "e8f4dc6091037329bab4ddb1cba35807", 719728},
 				{NULL, 0, NULL, 0}
 			},
 			Common::DE_DEU,
@@ -120,7 +123,7 @@ static const DrasculaGameDescription gameDescriptions[] = {
 			0,
 			{
 				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
-				{"packet.002", 0, "4401123400f22f212b89f15fb4b43013", 721122},
+				{"packet.002", 1, "4401123400f22f212b89f15fb4b43013", 721122},
 				{NULL, 0, NULL, 0}
 			},
 			Common::FR_FRA,
@@ -214,7 +217,7 @@ static const DrasculaGameDescription gameDescriptions[] = {
 			0,
 			{
 				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
-				{"packet.004", 0, "a289d3cf80d50f25ec569b653248437e", 17205838},
+				{"packet.004", 1, "a289d3cf80d50f25ec569b653248437e", 17205838},
 				{NULL, 0, NULL, 0}
 			},
 			Common::ES_ESP,
@@ -231,10 +234,27 @@ static const DrasculaGameDescription gameDescriptions[] = {
 			0,
 			{
 				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
-				{"packet.005", 0, "58caac54b891f5d7f335e710e45e5d29", 16209623},
+				{"packet.005", 1, "58caac54b891f5d7f335e710e45e5d29", 16209623},
 				{NULL, 0, NULL, 0}
 			},
 			Common::IT_ITA,
+			Common::kPlatformPC,
+			GF_PACKED,
+			GUIO_NONE
+		},
+	},
+
+	{
+		// Drascula French version (ScummVM repacked files)
+		{
+			"drascula",
+			0,
+			{
+				{"packet.001", 0, "c6a8697396e213a18472542d5f547cb4", 32847563},
+				{"packet.002", 1, "7b83cedb9bb326ed5143e5c459508d43", 722383},
+				{NULL, 0, NULL, 0}
+			},
+			Common::FR_FRA,
 			Common::kPlatformPC,
 			GF_PACKED,
 			GUIO_NONE
@@ -246,37 +266,19 @@ static const DrasculaGameDescription gameDescriptions[] = {
 
 } // End of namespace Drascula
 
-static const ADParams detectionParams = {
-	// Pointer to ADGameDescription or its superset structure
-	(const byte *)Drascula::gameDescriptions,
-	// Size of that superset structure
-	sizeof(Drascula::DrasculaGameDescription),
-	// Number of bytes to compute MD5 sum for
-	5000,
-	// List of all engine targets
-	drasculaGames,
-	// Structure for autoupgrading obsolete targets
-	0,
-	// Name of single gameid (optional)
-	"drascula",
-	// List of files for file-based fallback detection (optional)
-	0,
-	// Flags
-	0,
-	// Additional GUI options (for every game}
-	Common::GUIO_NOMIDI
-};
-
 class DrasculaMetaEngine : public AdvancedMetaEngine {
 public:
-	DrasculaMetaEngine() : AdvancedMetaEngine(detectionParams) {}
+	DrasculaMetaEngine() : AdvancedMetaEngine(Drascula::gameDescriptions, sizeof(Drascula::DrasculaGameDescription), drasculaGames) {
+		_singleid = "drascula";
+		_guioptions = Common::GUIO_NOMIDI | Common::GUIO_NOLAUNCHLOAD;
+	}
 
 	virtual const char *getName() const {
-		return "Drascula Engine";
+		return "Drascula";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Drascula Engine (C) 2000 Alcachofa Soft, 1996 (C) Digital Dreams Multimedia, 1994 (C) Emilio de Paz";
+		return "Drascula Engine (C) 2000 Alcachofa Soft, (C) 1996 Digital Dreams Multimedia, (C) 1994 Emilio de Paz";
 	}
 
 	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;

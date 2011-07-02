@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
  // Console module header file
@@ -35,7 +32,7 @@ namespace Saga {
 class Console : public GUI::Debugger {
 public:
 	Console(SagaEngine *vm);
-	virtual ~Console(void);
+	virtual ~Console();
 
 private:
 	bool cmdActorWalkTo(int argc, const char **argv);

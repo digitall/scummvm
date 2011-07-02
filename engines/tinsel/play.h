@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Plays films within a scene, takes into account the actor in each 'column'.
  */
 
@@ -55,10 +52,12 @@ void RestoreActorReels(SCNHANDLE hFilm, int actor, int x, int y);
 
 void PokeInPalette(const MULTI_INIT *pmi);
 
-void NoSoundReels(void);
+void NoSoundReels();
 void SaveSoundReels(PSOUNDREELS psr);
 void RestoreSoundReels(PSOUNDREELS psr);
 
-} // end of namespace Tinsel
+int ExtractActor(SCNHANDLE hFilm);
+
+} // End of namespace Tinsel
 
 #endif

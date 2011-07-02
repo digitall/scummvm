@@ -18,25 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_lok.h"
-#include "kyra/seqplayer.h"
-#include "kyra/screen.h"
 #include "kyra/resource.h"
 #include "kyra/sound.h"
 #include "kyra/sprites.h"
-#include "kyra/wsamovie.h"
 #include "kyra/animator_lok.h"
-#include "kyra/text.h"
-#include "kyra/script.h"
 #include "kyra/timer.h"
 
 #include "common/system.h"
-#include "common/savefile.h"
 
 namespace Kyra {
 
@@ -314,38 +305,35 @@ void KyraEngine_LoK::setCharacterPositionHelper(int character, int *facingTable)
 		}
 	}
 
-	static uint8 facingIsZero[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	static uint8 facingIsFour[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
 	if (facing == 0) {
-		++facingIsZero[character];
+		++_characterFacingZeroCount[character];
 	} else {
 		bool resetTables = false;
 		if (facing != 7) {
 			if (facing - 1 != 0) {
 				if (facing != 4) {
 					if (facing == 3 || facing == 5) {
-						if (facingIsFour[character] > 2)
+						if (_characterFacingFourCount[character] > 2)
 							facing = 4;
 						resetTables = true;
 					}
 				} else {
-					++facingIsFour[character];
+					++_characterFacingFourCount[character];
 				}
 			} else {
-				if (facingIsZero[character] > 2)
+				if (_characterFacingZeroCount[character] > 2)
 					facing = 0;
 				resetTables = true;
 			}
 		} else {
-			if (facingIsZero[character] > 2)
+			if (_characterFacingZeroCount[character] > 2)
 				facing = 0;
 			resetTables = true;
 		}
 
 		if (resetTables) {
-			facingIsZero[character] = 0;
-			facingIsFour[character] = 0;
+			_characterFacingZeroCount[character] = 0;
+			_characterFacingFourCount[character] = 0;
 		}
 	}
 
@@ -778,10 +766,10 @@ void KyraEngine_LoK::initSceneScreen(int brandonAlive) {
 		if (_unkScreenVar2 == 1)
 			_screen->shuffleScreen(8, 8, 304, 128, 2, 0, _unkScreenVar3, false);
 		else
-			_screen->copyRegion(8, 8, 8, 8, 304, 128, 2, 0);
+			_screen->copyRegion(8, 8, 8, 8, 304, 128, 2, 0, Screen::CR_NO_P_CHECK);
 
 		if (_unkScreenVar1 && !queryGameFlag(0xA0)) {
-			if (_currentCharacter->sceneId == 45 && _paletteChanged)
+			if (_currentCharacter->sceneId == 45 && _cauldronState)
 				_screen->getPalette(0).copy(_screen->getPalette(4), 12, 1);
 
 			if (_currentCharacter->sceneId >= 229 && _currentCharacter->sceneId <= 245 && (_brandonStatusBit & 1))
@@ -824,13 +812,14 @@ void KyraEngine_LoK::initSceneScreen(int brandonAlive) {
 		_emc->run(&_scriptClick);
 
 	setTextFadeTimerCountdown(-1);
+
 	if (_currentCharacter->sceneId == 210) {
-		if (_itemInHand != -1)
+		if (_itemInHand != kItemNone)
 			magicOutMouseItem(2, -1);
 
 		_screen->hideMouse();
 		for (int i = 0; i < 10; ++i) {
-			if (_currentCharacter->inventoryItems[i] != 0xFF)
+			if (_currentCharacter->inventoryItems[i] != kItemNone)
 				magicOutMouseItem(2, i);
 		}
 		_screen->showMouse();
@@ -1203,6 +1192,66 @@ bool KyraEngine_LoK::lineIsPassable(int x, int y) {
 
 #pragma mark -
 
+void KyraEngine_LoK::setupZanthiaPalette(int pal) {
+	uint8 r, g, b;
+
+	switch (pal - 17) {
+	case 0:
+		// 0x88F
+		r = 33;
+		g = 33;
+		b = 63;
+		break;
+
+	case 1:
+		// 0x00F
+		r = 0;
+		g = 0;
+		b = 63;
+		break;
+
+	case 2:
+		// 0xF88
+		r = 63;
+		g = 33;
+		b = 33;
+		break;
+
+	case 3:
+		// 0xF00
+		r = 63;
+		g = 0;
+		b = 0;
+		break;
+
+	case 4:
+		// 0xFF9
+		r = 63;
+		g = 63;
+		b = 37;
+		break;
+
+	case 5:
+		// 0xFF1
+		r = 63;
+		g = 63;
+		b = 4;
+		break;
+
+	default:
+		// 0xFFF
+		r = 63;
+		g = 63;
+		b = 63;
+	}
+
+	_screen->getPalette(4)[12 * 3 + 0] = r;
+	_screen->getPalette(4)[12 * 3 + 1] = g;
+	_screen->getPalette(4)[12 * 3 + 2] = b;
+}
+
+#pragma mark -
+
 void KyraEngine_LoK::setupSceneResource(int sceneId) {
 	if (!_flags.isTalkie)
 		return;
@@ -1249,5 +1298,5 @@ void KyraEngine_LoK::setupSceneResource(int sceneId) {
 		_res->loadPakFile(file);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

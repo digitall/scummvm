@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
@@ -28,6 +25,7 @@
 #include "scumm/util.h"
 #include "scumm/file.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_codecs.h"
 
 namespace Scumm {
 
@@ -92,7 +90,7 @@ int BundleDirCache::matchFile(const char *filename) {
 			error("BundleDirCache::matchFileFile() Can't find free slot for file bundle dir cache");
 
 		tag = file.readUint32BE();
-		if (tag == MKID_BE('LB23'))
+		if (tag == MKTAG('L','B','2','3'))
 			_budleDirCache[freeSlot].isCompressed = true;
 		offset = file.readUint32BE();
 
@@ -112,7 +110,7 @@ int BundleDirCache::matchFile(const char *filename) {
 			int32 z = 0;
 			int32 z2;
 
-			if (tag == MKID_BE('LB23')) {
+			if (tag == MKTAG('L','B','2','3')) {
 				file.read(_budleDirCache[freeSlot].bundleTable[i].filename, 24);
 			} else {
 				for (z2 = 0; z2 < 8; z2++)
@@ -157,7 +155,7 @@ BundleMgr::~BundleMgr() {
 	delete _file;
 }
 
-Common::File *BundleMgr::getFile(const char *filename, int32 &offset, int32 &size) {
+Common::SeekableReadStream *BundleMgr::getFile(const char *filename, int32 &offset, int32 &size) {
 	BundleDirCache::IndexNode target;
 	strcpy(target.filename, filename);
 	BundleDirCache::IndexNode *found = (BundleDirCache::IndexNode *)bsearch(&target, _indexTable, _numFiles,
@@ -224,7 +222,7 @@ bool BundleMgr::loadCompTable(int32 index) {
 	assert(_numCompItems > 0);
 	_file->seek(8, SEEK_CUR);
 
-	if (tag != MKID_BE('COMP')) {
+	if (tag != MKTAG('C','O','M','P')) {
 		error("BundleMgr::loadCompTable() Compressed sound %d (%s:%d) invalid (%s)", index, _file->getName(), _bundleTable[index].offset, tag2str(tag));
 		return false;
 	}
@@ -281,7 +279,7 @@ int32 BundleMgr::decompressSampleByIndex(int32 index, int32 offset, int32 size, 
 		lastBlock = _numCompItems - 1;
 
 	int32 blocksFinalSize = 0x2000 * (1 + lastBlock - firstBlock);
-	*compFinal = new byte[blocksFinalSize];
+	*compFinal = (byte *)malloc(blocksFinalSize);
 	assert(*compFinal);
 	finalSize = 0;
 

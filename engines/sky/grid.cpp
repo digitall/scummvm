@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sky/compact.h"
@@ -140,13 +137,13 @@ Grid::Grid(Disk *pDisk, SkyCompact *skyCompact) {
 	_skyCompact = skyCompact;
 }
 
-Grid::~Grid(void) {
+Grid::~Grid() {
 	for (uint8 cnt = 0; cnt < TOT_NO_GRIDS; cnt++)
 		if (_gameGrids[cnt])
 			free(_gameGrids[cnt]);
 }
 
-void Grid::loadGrids(void) {
+void Grid::loadGrids() {
 	// no endian conversion necessary as I'm using uint8* instead of uint32*
 	for (uint8 cnt = 0; cnt < TOT_NO_GRIDS; cnt++) {
 		if (_gameGrids[cnt])

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Game detection information and MD5s
@@ -250,7 +247,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			GUIO_NOSPEECH
 		},
 		GID_ITE,
-		GF_WYRMKEEP | GF_NON_INTERACTIVE | GF_LE_VOICES,
+		GF_WYRMKEEP | GF_LE_VOICES,
 		ITE_DEFAULT_SCENE,
 		&ITE_Resources,
 		ARRAYSIZE(ITEWINDEMO_GameFonts),
@@ -302,7 +299,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			GUIO_NONE
 		},
 		GID_ITE,
-		GF_WYRMKEEP | GF_NON_INTERACTIVE | GF_8BIT_UNSIGNED_PCM,
+		GF_WYRMKEEP | GF_8BIT_UNSIGNED_PCM,
 		ITE_DEFAULT_SCENE,
 		&ITE_Resources,
 		ARRAYSIZE(ITEWINDEMO_GameFonts),
@@ -459,8 +456,8 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"Windows/Linux/DOS CD Version",
 			{
-	{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", 8929952},
-	{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", -1},
+	{"ite.rsc",		GAME_RESOURCEFILE,	"8f4315a9bb10ec839253108a032c8b54", 8929956},
+	{"scripts.rsc",	GAME_SCRIPTFILE,	"a891405405edefc69c9d6c420c868b84", 350243},
 	{ NULL, 0, NULL, 0}
 			},
 			Common::IT_ITA,
@@ -583,8 +580,8 @@ static const SAGAGameDescription gameDescriptions[] = {
 			"ite",
 			"Floppy",
 			{
-	{"ite.rsc",		GAME_RESOURCEFILE,					"8f4315a9bb10ec839253108a032c8b54", 8905108},
-	{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", -1},
+	{"ite.rsc",		GAME_RESOURCEFILE,					"8f4315a9bb10ec839253108a032c8b54", 8905106},
+	{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", 340726},
 	{ NULL, 0, NULL, 0}
 			},
 			Common::IT_ITA,
@@ -626,7 +623,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			GUIO_NONE
 		},
 		GID_IHNM,
-		GF_IHNM_DEMO,
+		0,
 		IHNMDEMO_DEFAULT_SCENE,
 		&IHNMDEMO_Resources,
 		ARRAYSIZE(IHNMDEMO_GameFonts),
@@ -733,7 +730,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			{
 	{"musicfm.res",	GAME_MUSICFILE_FM,					"0439083e3dfdc51b486071d45872ae52", -1},
 	{"musicgm.res",	GAME_MUSICFILE_GM,					"80f875a1fb384160d1f4b27166eef583", -1},
-	{"scream.res",	GAME_RESOURCEFILE,					"c92370d400e6f2a3fc411c3729d09224", -1},
+	{"scream.res",	GAME_RESOURCEFILE,					"c92370d400e6f2a3fc411c3729d09224", 78519324},
 	{"scripts.res",	GAME_SCRIPTFILE,					"32aa01a89937520fe0ea513950117292", -1},
 	{"patch.re_",	GAME_PATCHFILE | GAME_RESOURCEFILE,	"58b79e61594779513c7f2d35509fa89e", -1},
 	{"sfx.res",		GAME_SOUNDFILE,						"1c610d543f32ec8b525e3f652536f269", -1},
@@ -824,7 +821,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			},
 			Common::EN_ANY,
 			Common::kPlatformPC,
-			ADGF_NO_FLAGS,
+			ADGF_UNSTABLE,
 			GUIO_NONE
 		},
 		GID_DINO,
@@ -854,7 +851,7 @@ static const SAGAGameDescription gameDescriptions[] = {
 			},
 			Common::EN_ANY,
 			Common::kPlatformPC,
-			ADGF_NO_FLAGS,
+			ADGF_UNSTABLE,
 			GUIO_NONE
 		},
 		GID_FTA2,

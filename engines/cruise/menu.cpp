@@ -18,23 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
 #include "cruise/staticres.h"
 
+#include "engines/metaengine.h"
+#include "gui/saveload.h"
+#include "common/system.h"
+#include "common/translation.h"
+
 namespace Cruise {
+
+extern int currentMouseButton;
 
 menuStruct *menuTable[8];
 
 menuStruct *createMenu(int X, int Y, const char *menuName) {
 	menuStruct *entry;
 
-	entry = (menuStruct *) malloc(sizeof(menuStruct));
+	entry = (menuStruct *) MemAlloc(sizeof(menuStruct));
 	ASSERT(entry);
 
 	entry->x = X - 160 / 2;
@@ -202,6 +206,35 @@ int processMenu(menuStruct *pMenu) {
 	return -1;
 }
 
+static void handleSaveLoad(bool saveFlag) {
+	const EnginePlugin *plugin = 0;
+	EngineMan.findGame(_vm->getGameId(), &plugin);
+	GUI::SaveLoadChooser *dialog;
+	if (saveFlag)
+		dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"));
+	else
+		dialog = new GUI::SaveLoadChooser(_("Load game:"), _("Load"));
+
+	dialog->setSaveMode(saveFlag);
+	int slot = dialog->runModalWithPluginAndTarget(plugin, ConfMan.getActiveDomainName());
+
+	if (slot >= 0) {
+		if (!saveFlag)
+			_vm->loadGameState(slot);
+		else {
+			Common::String result(dialog->getResultString());
+			if (result.empty()) {
+				// If the user was lazy and entered no save name, come up with a default name.
+				result = Common::String::format("Save %d", slot + 1);
+			}
+
+			_vm->saveGameState(slot, result);
+		}
+	}
+
+	delete dialog;
+}
+
 int playerMenu(int menuX, int menuY) {
 	int retourMenu;
 	//int restartGame = 0;
@@ -251,15 +284,14 @@ int playerMenu(int menuX, int menuY) {
 
 		freeMenu(menuTable[0]);
 		menuTable[0] = NULL;
+		currentMouseButton = 0;
 
 		switch (retourMenu) {
 		case 3: // select save drive
 			break;
 		case 4: // save
-			saveSavegameData(0, "Default Save");
-			break;
 		case 5: // load
-			loadSavegameData(0);
+			handleSaveLoad(retourMenu == 4);
 			break;
 		case 6: // restart
 			_vm->sound().fadeOutMusic();
@@ -272,7 +304,6 @@ int playerMenu(int menuX, int menuY) {
 			break;
 		case 7: // exit
 			return 1;
-			break;
 		}
 	}
 
@@ -293,7 +324,7 @@ void freeMenu(menuStruct *pMenu) {
 
 			nextSub = pSub->pNext;
 
-			free(pSub);
+			MemFree(pSub);
 
 			pSub = nextSub;
 		}
@@ -302,13 +333,13 @@ void freeMenu(menuStruct *pMenu) {
 			freeGfx(pElement->gfx);
 		}
 
-		free(pElement);
+		MemFree(pElement);
 
 		pElement = next;
 	}
 
 	freeGfx(pMenu->gfx);
-	free(pMenu);
+	MemFree(pMenu);
 }
 
 } // End of namespace Cruise

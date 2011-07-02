@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SCRIPT_H
@@ -84,8 +81,11 @@ public:
 	void  skipExpr(char stopToken);
 
 	// Higher-level expression parsing functions
-	char evalExpr(int16 *pRes);
-	bool evalBoolResult();
+	char  evalExpr(int16 *pRes);
+	bool  evalBool();
+	int32 evalInt();
+
+	const char *evalString();
 
 	// Accessing the result of expressions
 	int32 getResultInt() const;
@@ -150,7 +150,7 @@ private:
 	byte *_totPtr;
 	uint32 _totSize;
 
-	int16 _lomHandle;
+	Common::SeekableReadStream *_lom;
 
 	TOTFile::Properties _totProperties;
 

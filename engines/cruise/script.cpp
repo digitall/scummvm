@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 namespace Cruise {
 
@@ -34,14 +32,14 @@ scriptInstanceStruct procHead;
 
 scriptInstanceStruct *currentScriptPtr;
 
-int8 getByteFromScript(void) {
+int8 getByteFromScript() {
 	int8 var = *(int8*)(currentData3DataPtr + currentScriptPtr->scriptOffset);
 	++currentScriptPtr->scriptOffset;
 
 	return (var);
 }
 
-short int getShortFromScript(void) {
+short int getShortFromScript() {
 	short int var = (int16)READ_BE_UINT16(currentData3DataPtr + currentScriptPtr->scriptOffset);
 	currentScriptPtr->scriptOffset += 2;
 
@@ -49,7 +47,7 @@ short int getShortFromScript(void) {
 }
 
 // load opcode
-int32 opcodeType0(void) {
+int32 opcodeType0() {
 	int index = 0;
 
 	switch (currentScriptOpcodeType) {
@@ -97,15 +95,13 @@ int32 opcodeType0(void) {
 		if (size == 1) {
 			address += index;
 			pushVar((int16)READ_BE_UINT16(address));
-			return (0);
+			return 0;
 		} else if (size == 2) {
 			pushVar(*address);
-			return (0);
+			return 0;
 		} else {
 			error("Unsupported code in opcodeType0 case 1");
 		}
-
-		return (0);
 	}
 	case 2: {
 		int16 var_16;
@@ -122,19 +118,15 @@ int32 opcodeType0(void) {
 		}
 
 		pushVar(var_16);
-		return (0);
-
-		break;
+		return 0;
 	}
 	default:
 		error("Unsupported type %d in opcodeType0", currentScriptOpcodeType);
 	}
-
-	return 0;
 }
 
 // save opcode
-int32 opcodeType1(void)	{
+int32 opcodeType1()	{
 	int var = popVar();
 	int offset = 0;
 
@@ -191,8 +183,9 @@ int32 opcodeType1(void)	{
 			return 0;
 		}
 		case 2: {
+			assert (ptr);
 			*(ptr + var_A + offset) = var;
-			return (0);
+			return 0;
 		}
 		default:
 			error("Unsupported code in opcodeType1 case 1");
@@ -228,7 +221,7 @@ int32 opcodeType1(void)	{
 	return (0);
 }
 
-int32 opcodeType2(void) {
+int32 opcodeType2() {
 	int index = 0;
 	switch (currentScriptOpcodeType) {
 	case 5:
@@ -238,9 +231,7 @@ int32 opcodeType2(void) {
 		int type = getByteFromScript();
 		int overlay = getByteFromScript();
 
-		int firstOffset;
-		int offset;
-		firstOffset = offset = getShortFromScript();
+		int offset = getShortFromScript();
 		offset += index;
 
 		int typ7 = type & 7;
@@ -275,15 +266,15 @@ int32 opcodeType2(void) {
 	return 0;
 }
 
-int32 opcodeType10(void) {	// break
+int32 opcodeType10() {	// break
 	return (0);
 }
 
-int32 opcodeType11(void) {	// break
+int32 opcodeType11() {	// break
 	return (1);
 }
 
-int32 opcodeType4(void) {		// test
+int32 opcodeType4() {		// test
 	int boolVar = 0;
 
 	int var1 = popVar();
@@ -328,7 +319,7 @@ int32 opcodeType4(void) {		// test
 	return (0);
 }
 
-int32 opcodeType6(void) {
+int32 opcodeType6() {
 	int si = 0;
 
 	int pop = popVar();
@@ -349,7 +340,7 @@ int32 opcodeType6(void) {
 	return (0);
 }
 
-int32 opcodeType7(void) {
+int32 opcodeType7() {
 	int var1 = popVar();
 	int var2 = popVar();
 
@@ -359,7 +350,7 @@ int32 opcodeType7(void) {
 	return (0);
 }
 
-int32 opcodeType5(void) {
+int32 opcodeType5() {
 	int offset = currentScriptPtr->scriptOffset;
 	int short1 = getShortFromScript();
 	int newSi = short1 + offset;
@@ -414,7 +405,7 @@ int32 opcodeType5(void) {
 	return (0);
 }
 
-int32 opcodeType3(void)	{	// math
+int32 opcodeType3()	{	// math
 	int pop1 = popVar();
 	int pop2 = popVar();
 
@@ -453,8 +444,8 @@ int32 opcodeType3(void)	{	// math
 	return 0;
 }
 
-int32 opcodeType9(void) {		// stop script
-	//printf("Stop a script of overlay %s\n",overlayTable[currentScriptPtr->overlayNumber].overlayName);
+int32 opcodeType9() {		// stop script
+	//debug("Stop a script of overlay %s", overlayTable[currentScriptPtr->overlayNumber].overlayName);
 	currentScriptPtr->scriptNumber = -1;
 	return (1);
 }
@@ -506,7 +497,7 @@ uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overl
 	int var_C;
 	scriptInstanceStruct *oldTail;
 
-	//printf("Starting script %d of overlay %s\n",param,overlayTable[overlayNumber].overlayName);
+	//debug("Starting script %d of overlay %s", param,overlayTable[overlayNumber].overlayName);
 
 	if (scriptType < 0) {
 		useArg3Neg = 1;
@@ -546,13 +537,13 @@ uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overl
 	if (!tempPtr)
 		return (NULL);
 
-	tempPtr->var6 = NULL;
+	tempPtr->data = NULL;
 
 	if (var_C) {
-		tempPtr->var6 = (uint8 *) mallocAndZero(var_C);
+		tempPtr->data = (uint8 *) mallocAndZero(var_C);
 	}
 
-	tempPtr->varA = var_C;
+	tempPtr->dataSize = var_C;
 	tempPtr->nextScriptPtr = NULL;
 	tempPtr->scriptOffset = 0;
 
@@ -574,7 +565,7 @@ uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overl
 
 	oldTail->nextScriptPtr = tempPtr;	// attache the new node to the list
 
-	return (tempPtr->var6);
+	return (tempPtr->data);
 }
 
 int executeScripts(scriptInstanceStruct *ptr) {
@@ -614,7 +605,7 @@ int executeScripts(scriptInstanceStruct *ptr) {
 
 	currentData3DataPtr = ptr2->dataPtr;
 
-	scriptDataPtrTable[1] = (uint8 *) ptr->var6;
+	scriptDataPtrTable[1] = (uint8 *) ptr->data;
 	scriptDataPtrTable[2] = getDataFromData3(ptr2, 1);
 	scriptDataPtrTable[5] = ovlData->data4Ptr;	// free strings
 	scriptDataPtrTable[6] = ovlData->ptr8;
@@ -634,8 +625,8 @@ int executeScripts(scriptInstanceStruct *ptr) {
 		opcodeType = getByteFromScript();
 
 		debugC(5, kCruiseDebugScript, "Script %s/%d ip=%d opcode=%d",
-			overlayTable[currentScriptPtr->overlayNumber].overlayName, 
-			currentScriptPtr->scriptNumber, 
+			overlayTable[currentScriptPtr->overlayNumber].overlayName,
+			currentScriptPtr->scriptNumber,
 			currentScriptPtr->scriptOffset,
 			(opcodeType & 0xFB) >> 3);
 

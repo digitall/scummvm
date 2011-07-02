@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
@@ -31,7 +28,6 @@
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
-#include "scumm/he/resource_he.h"
 #include "scumm/scumm.h"
 #include "scumm/he/sound_he.h"
 #include "scumm/verbs.h"
@@ -365,10 +361,10 @@ void ScummEngine_v70he::o70_getStringLen() {
 
 void ScummEngine_v70he::o70_isResourceLoaded() {
 	// Reports percentage of resource loaded by queue
-	int type;
+	ResType type;
 
 	byte subOp = fetchScriptByte();
-	/* int idx = */ pop();
+	int idx = pop();
 
 	switch (subOp) {
 	case 18:
@@ -389,6 +385,7 @@ void ScummEngine_v70he::o70_isResourceLoaded() {
 	default:
 		error("o70_isResourceLoaded: default case %d", subOp);
 	}
+	debug(7, "o70_isResourceLoaded(%d,%d)", type, idx);
 
 	push(100);
 }
@@ -484,7 +481,7 @@ void ScummEngine_v70he::o70_setSystemMessage() {
 	case 240:
 		debug(1,"o70_setSystemMessage: (%d) %s", subOp, name);
 		break;
-	case 241:  // Set Version
+	case 241: // Set Version
 		debug(1,"o70_setSystemMessage: (%d) %s", subOp, name);
 		break;
 	case 242:

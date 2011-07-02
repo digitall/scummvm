@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
 #include "engines/advancedDetector.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/translation.h"
 
 #include "base/plugins.h"
 
@@ -124,25 +122,39 @@ static const ADFileBasedFallback fileBasedFallback[] = {
 
 } // End of namespace Touche
 
-static const ADParams detectionParams = {
-	(const byte *)Touche::gameDescriptions,
-	sizeof(ADGameDescription),
-	4096, // number of md5 bytes
-	toucheGames,
-	0, // no obsolete targets data
-	"touche",
-	Touche::fileBasedFallback, // file-based detection data to enable not yet known versions to start
-	kADFlagPrintWarningOnFileBasedFallback,
-	// Additional GUI options (for every game}
-	Common::GUIO_NONE
+static const char *directoryGlobs[] = {
+	"database",
+	0
 };
 
 class ToucheMetaEngine : public AdvancedMetaEngine {
 public:
-	ToucheMetaEngine() : AdvancedMetaEngine(detectionParams) {}
+	ToucheMetaEngine() : AdvancedMetaEngine(Touche::gameDescriptions, sizeof(ADGameDescription), toucheGames) {
+		_md5Bytes = 4096;
+		_singleid = "touche";
+		_maxScanDepth = 2;
+		_directoryGlobs = directoryGlobs;
+	}
+
+	virtual const ADGameDescription *fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
+		const ADGameDescription *matchedDesc = detectGameFilebased(allFiles, Touche::fileBasedFallback);
+
+		if (matchedDesc) { // We got a match
+			Common::String report = Common::String::format(_("Your game version has been detected using "
+				"filename matching as a variant of %s."), matchedDesc->gameid);
+			report += "\n";
+			report += _("If this is an original and unmodified version, please report any");
+			report += "\n";
+			report += _("information previously printed by ScummVM to the team.");
+			report += "\n";
+			g_system->logMessage(LogMessageType::kInfo, report.c_str());
+		}
+
+		return matchedDesc;
+	}
 
 	virtual const char *getName() const {
-		return "Touche Engine";
+		return "Touche";
 	}
 
 	virtual const char *getOriginalCopyright() const {
@@ -180,11 +192,11 @@ bool ToucheMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGa
 
 SaveStateList ToucheMetaEngine::listSaves(const char *target) const {
 	Common::String pattern = Touche::generateGameStateFileName(target, 0, true);
-	Common::StringList filenames = g_system->getSavefileManager()->listSavefiles(pattern);
+	Common::StringArray filenames = g_system->getSavefileManager()->listSavefiles(pattern);
 	bool slotsTable[Touche::kMaxSaveStates];
 	memset(slotsTable, 0, sizeof(slotsTable));
 	SaveStateList saveList;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		int slot = Touche::getGameStateFileSlot(file->c_str());
 		if (slot >= 0 && slot < Touche::kMaxSaveStates) {
 			slotsTable[slot] = true;

@@ -17,9 +17,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
@@ -42,6 +39,10 @@ namespace Scumm {
  */
 static const byte default_v1_cursor_colors[4] = {
 	1, 1, 12, 11
+};
+
+static const uint16 default_pce_cursor_colors[4] = {
+	0x01FF, 0x01FF, 0x016D, 0x0092
 };
 
 static const byte default_cursor_colors[4] = {
@@ -111,11 +112,20 @@ void ScummEngine_v6::setCursorTransparency(int a) {
 }
 
 void ScummEngine::updateCursor() {
-	const int transColor = (_game.heversion >= 80) ? 5 : 255;
+	int transColor = (_game.heversion >= 80) ? 5 : 255;
+#ifdef USE_RGB_COLOR
+	Graphics::PixelFormat format = _system->getScreenFormat();
+	CursorMan.replaceCursor(_grabbedCursor, _cursor.width, _cursor.height,
+							_cursor.hotspotX, _cursor.hotspotY,
+							(_game.platform == Common::kPlatformNES ? _grabbedCursor[63] : transColor),
+							(_game.heversion == 70 ? 2 : 1),
+							&format);
+#else
 	CursorMan.replaceCursor(_grabbedCursor, _cursor.width, _cursor.height,
 							_cursor.hotspotX, _cursor.hotspotY,
 							(_game.platform == Common::kPlatformNES ? _grabbedCursor[63] : transColor),
 							(_game.heversion == 70 ? 2 : 1));
+#endif
 }
 
 void ScummEngine_v6::grabCursor(int x, int y, int w, int h) {
@@ -138,7 +148,7 @@ void ScummEngine::setCursorFromBuffer(const byte *ptr, int width, int height, in
 	uint size;
 	byte *dst;
 
-	size = width * height;
+	size = width * height * _bytesPerPixel;
 	if (size > sizeof(_grabbedCursor))
 		error("grabCursor: grabbed cursor too big");
 
@@ -148,8 +158,8 @@ void ScummEngine::setCursorFromBuffer(const byte *ptr, int width, int height, in
 
 	dst = _grabbedCursor;
 	for (; height; height--) {
-		memcpy(dst, ptr, width);
-		dst += width;
+		memcpy(dst, ptr, width * _bytesPerPixel);
+		dst += width * _bytesPerPixel;
 		ptr += pitch;
 	}
 
@@ -163,11 +173,16 @@ void ScummEngine_v70he::setCursorFromImg(uint img, uint room, uint imgindex) {
 void ScummEngine_v70he::setDefaultCursor() {
 	const uint16 *src;
 	int i, j;
-	static const byte palette[] = {0,    0,    0,    0,
-								   0xff, 0xff, 0xff, 0,
-								   0,    0,    0,    0};
+	static const byte palette[] = {0,    0,    0,
+								   0xff, 0xff, 0xff,
+								   0,    0,    0,    };
 
-	memset(_grabbedCursor, 5, sizeof(_grabbedCursor));
+	if (_bytesPerPixel == 2) {
+		for (i = 0; i < 1024; i++)
+			WRITE_UINT16(_grabbedCursor + i * 2, 5);
+	} else {
+		memset(_grabbedCursor, 5, sizeof(_grabbedCursor));
+	}
 
 	_cursor.hotspotX = _cursor.hotspotY = 2;
 	src = default_he_cursor;
@@ -180,10 +195,16 @@ void ScummEngine_v70he::setDefaultCursor() {
 		for (j = 0; j < 32; j++) {
 			switch ((p & (0x3 << 14)) >> 14) {
 				case 1:
-					_grabbedCursor[32 * i + j] = 0xfe;
+					if (_bytesPerPixel == 2)
+						WRITE_UINT16(_grabbedCursor + 64 * i + j * 2, get16BitColor(palette[4], palette[5], palette[6]));
+					else
+						_grabbedCursor[32 * i + j] = 0xfe;
 					break;
 				case 2:
-					_grabbedCursor[32 * i + j] = 0xfd;
+					if (_bytesPerPixel == 2)
+						WRITE_UINT16(_grabbedCursor + 64 * i + j * 2, get16BitColor(palette[0], palette[1], palette[2]));
+					else
+						_grabbedCursor[32 * i + j] = 0xfd;
 					break;
 				default:
 					break;
@@ -195,9 +216,12 @@ void ScummEngine_v70he::setDefaultCursor() {
 		}
 	}
 
-	// Since white color position is not guaranteed
-	// we setup our own palette if supported by backend
-	CursorMan.replaceCursorPalette(palette, 0xfd, 3);
+	if (_bytesPerPixel == 1) {
+		// Since white color position is not guaranteed
+		// we setup our own palette if supported by backend
+		CursorMan.disableCursorPalette(false);
+		CursorMan.replaceCursorPalette(palette, 0xfd, 3);
+	}
 
 	updateCursor();
 }
@@ -213,7 +237,7 @@ void ScummEngine_v6::setCursorFromImg(uint img, uint room, uint imgindex) {
 		room = getObjectRoom(img);
 
 	findObjectInRoom(&foir, foCodeHeader | foImageHeader | foCheckAlreadyLoaded, img, room);
-	imhd = (const ImageHeader *)findResourceData(MKID_BE('IMHD'), foir.obim);
+	imhd = (const ImageHeader *)findResourceData(MKTAG('I','M','H','D'), foir.obim);
 
 	if (_game.version == 8) {
 		setCursorHotspot(READ_LE_UINT32(&imhd->v8.hotspot[0].x),
@@ -243,7 +267,7 @@ void ScummEngine_v6::setCursorFromImg(uint img, uint room, uint imgindex) {
 		if (size > sizeof(_grabbedCursor))
 			error("setCursorFromImg: Cursor image too large");
 
-		bomp = findResource(MKID_BE('BOMP'), dataptr);
+		bomp = findResource(MKTAG('B','O','M','P'), dataptr);
 	}
 
 	if (bomp != NULL)
@@ -330,33 +354,46 @@ void ScummEngine_v5::redefineBuiltinCursorFromChar(int index, int chr) {
 
 //	const int oldID = _charset->getCurID();
 
-	if (_game.version == 3) {
-		_charset->setCurID(0);
-	} else if (_game.version >= 4) {
-		_charset->setCurID(1);
-	}
-
-	Graphics::Surface s;
-	byte buf[16*17];
-	memset(buf, 123, 16*17);
-	s.pixels = buf;
-	s.w = _charset->getCharWidth(chr);
-	s.h = _charset->getFontHeight();
-	s.pitch = s.w;
-	// s.h = 17 for FM-TOWNS Loom Japanese. Fixes bug #1166917
-	assert(s.w <= 16 && s.h <= 17);
-	s.bytesPerPixel = 1;
-
-	_charset->drawChar(chr, s, 0, 0);
-
 	uint16 *ptr = _cursorImages[index];
-	memset(ptr, 0, 17 * sizeof(uint16));
-	for (int h = 0; h < s.h; h++) {
-		for (int w = 0; w < s.w; w++) {
-			if (buf[s.pitch * h + w] != 123)
-				*ptr |= 1 << (15 - w);
+	int h;
+
+	if (index == 1 && _game.platform == Common::kPlatformPCEngine) {
+		uint16 cursorPCE[] = {
+			0x8000, 0xC000, 0xE000, 0xF000, 0xF800, 0xFC00, 0xFE00, 0xFF00,
+			0xF180, 0xF800, 0x8C00, 0x0C00, 0x0600, 0x0600, 0x0300, 0x0000
+		};
+
+		for (h = 0; h < ARRAYSIZE(cursorPCE); h++) {
+			*ptr++ = cursorPCE[h];
 		}
-		ptr++;
+	} else {
+		if (_game.version == 3) {
+			_charset->setCurID(0);
+		} else if (_game.version >= 4) {
+			_charset->setCurID(1);
+		}
+
+		Graphics::Surface s;
+		byte buf[16*17];
+		memset(buf, 123, 16*17);
+		s.pixels = buf;
+		s.w = _charset->getCharWidth(chr);
+		s.h = _charset->getFontHeight();
+		s.pitch = s.w;
+		// s.h = 17 for FM-TOWNS Loom Japanese. Fixes bug #1166917
+		assert(s.w <= 16 && s.h <= 17);
+		s.format = Graphics::PixelFormat::createFormatCLUT8();
+
+		_charset->drawChar(chr, s, 0, 0);
+
+		memset(ptr, 0, 17 * sizeof(uint16));
+		for (h = 0; h < s.h; h++) {
+			for (int w = 0; w < s.w; w++) {
+				if (buf[s.pitch * h + w] != 123)
+					*ptr |= 1 << (15 - w);
+			}
+			ptr++;
+		}
 	}
 
 //	_charset->setCurID(oldID);
@@ -511,20 +548,53 @@ void ScummEngine_v5::resetCursors() {
 
 void ScummEngine_v5::setBuiltinCursor(int idx) {
 	int i, j;
-	byte color = default_cursor_colors[idx];
+	uint16 color;
 	const uint16 *src = _cursorImages[_currentCursor];
 
-	memset(_grabbedCursor, 0xFF, sizeof(_grabbedCursor));
+	if (_outputPixelFormat.bytesPerPixel == 2) {
+		if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+			byte r, g, b;
+			colorPCEToRGB(default_pce_cursor_colors[idx], &r, &g, &b);
+			color = get16BitColor(r, g, b);
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+		} else if (_game.platform == Common::kPlatformFMTowns) {
+			byte *palEntry = &_textPalette[default_cursor_colors[idx] * 3];
+			color = get16BitColor(palEntry[0], palEntry[1], palEntry[2]);
+#endif
+		} else {
+			color = _16BitPalette[default_cursor_colors[idx]];
+		}
 
-	_cursor.hotspotX = _cursorHotspots[2 * _currentCursor];
-	_cursor.hotspotY = _cursorHotspots[2 * _currentCursor + 1];
-	_cursor.width = 16;
-	_cursor.height = 16;
+		for (i = 0; i < 1024; i++)
+			WRITE_UINT16(_grabbedCursor + i * 2, 0xFF);
+	} else {
+		color = default_cursor_colors[idx];
+		memset(_grabbedCursor, 0xFF, sizeof(_grabbedCursor));
+	}
+
+	_cursor.hotspotX = _cursorHotspots[2 * _currentCursor] * _textSurfaceMultiplier;
+	_cursor.hotspotY = _cursorHotspots[2 * _currentCursor + 1] * _textSurfaceMultiplier;
+	_cursor.width = 16 * _textSurfaceMultiplier;
+	_cursor.height = 16 * _textSurfaceMultiplier;
+
+	int scl = _outputPixelFormat.bytesPerPixel * _textSurfaceMultiplier;
 
 	for (i = 0; i < 16; i++) {
 		for (j = 0; j < 16; j++) {
-			if (src[i] & (1 << j))
-				_grabbedCursor[16 * i + 15 - j] = color;
+			if (src[i] & (1 << j)) {
+				byte *dst1 = _grabbedCursor + 16 * scl * i * _textSurfaceMultiplier + (15 - j) * scl;
+				byte *dst2 = (_textSurfaceMultiplier == 2) ? dst1 + 16 * scl : dst1;
+				if (_outputPixelFormat.bytesPerPixel == 2) {
+					for (int b = 0; b < scl; b += 2) {
+						*((uint16*)dst1) = *((uint16*)dst2) = color;
+						dst1 += 2;
+						dst2 += 2;
+					}
+				} else {
+					for (int b = 0; b < scl; b++)
+						*dst1++ = *dst2++ = color;
+				}
+			}
 		}
 	}
 

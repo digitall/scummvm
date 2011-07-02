@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/scummsys.h"
@@ -50,10 +47,13 @@ Debugger::Debugger(QueenEngine *vm)
 }
 
 Debugger::~Debugger() {} // we need this here for __SYMBIAN32__
+
 void Debugger::preEnter() {
+	_vm->pauseEngine(true);
 }
 
 void Debugger::postEnter() {
+	_vm->pauseEngine(false);
 	_vm->graphics()->setupMouseCursor();
 }
 
@@ -149,12 +149,12 @@ bool Debugger::Cmd_Items(int argc, const char **argv) {
 bool Debugger::Cmd_PrintBobs(int argc, const char**argv) {
 	int i;
 	BobSlot *bob = _vm->graphics()->bob(0);
-	DebugPrintf("+--------------------------------+\n");
-	DebugPrintf("|# |  x|  y|f|scl|frm|a|m| ex| ey|\n");
-	DebugPrintf("+--+---+---+-+---+---+-+-+---+---+\n");
+	DebugPrintf("+------------------------------------+\n");
+	DebugPrintf("|# |  x|  y|f|scl|frm|a|m|spd| ex| ey|\n");
+	DebugPrintf("+--+---+---+-+---+---+-+-+---+---+---+\n");
 	for (i = 0; i < Graphics::MAX_BOBS_NUMBER; ++i, ++bob) {
 		if (bob->active) {
-			DebugPrintf("|%2d|%3d|%3d|%1d|%3d|%3d|%1d|%1d|%3d|%3d|\n",
+			DebugPrintf("|%2d|%3d|%3d|%1d|%3d|%3d|%1d|%1d|%3d|%3d|%3d|\n",
 				i, bob->x, bob->y, bob->xflip, bob->scale, bob->frameNum,
 				bob->animating, bob->moving, bob->speed, bob->endx, bob->endy);
 		}

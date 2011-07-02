@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -31,24 +28,25 @@
 
 namespace Scumm {
 
-extern const char *resTypeFromId(int id);
+extern const char *nameOfResType(ResType type);
 
-void ScummEngine_v4::readResTypeList(int id) {
-	int num;
-	int i;
+int ScummEngine_v4::readResTypeList(ResType type) {
+	uint num;
 
-	debug(9, "readResTypeList(%s)", resTypeFromId(id));
+	debug(9, "readResTypeList(%s)", nameOfResType(type));
 
 	num = _fileHandle->readUint16LE();
 
-	if (num != _res->num[id]) {
-		error("Invalid number of %ss (%d) in directory", resTypeFromId(id), num);
+	if (num != _res->_types[type].size()) {
+		error("Invalid number of %ss (%d) in directory", nameOfResType(type), num);
 	}
 
-	for (i = 0; i < num; i++) {
-		_res->roomno[id][i] = _fileHandle->readByte();
-		_res->roomoffs[id][i] = _fileHandle->readUint32LE();
+	for (ResId idx = 0; idx < num; idx++) {
+		_res->_types[type][idx]._roomno = _fileHandle->readByte();
+		_res->_types[type][idx]._roomoffs = _fileHandle->readUint32LE();
 	}
+
+	return num;
 }
 
 void ScummEngine_v4::readIndexFile() {
@@ -199,14 +197,28 @@ void ScummEngine_v4::readGlobalObjects() {
 
 	uint32 bits;
 	byte tmp;
-	for (i = 0; i != num; i++) {
-		bits = _fileHandle->readByte();
-		bits |= _fileHandle->readByte() << 8;
-		bits |= _fileHandle->readByte() << 16;
-		_classData[i] = bits;
-		tmp = _fileHandle->readByte();
-		_objectOwnerTable[i] = tmp & OF_OWNER_MASK;
-		_objectStateTable[i] = tmp >> OF_STATE_SHL;
+	if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+		for (i = 0; i != num; i++) {
+			bits = _fileHandle->readByte();
+			bits |= _fileHandle->readByte() << 8;
+			bits |= _fileHandle->readByte() << 16;
+			_classData[i] = bits;
+		}
+		for (i = 0; i != num; i++) {
+			tmp = _fileHandle->readByte();
+			_objectOwnerTable[i] = tmp & OF_OWNER_MASK;
+			_objectStateTable[i] = tmp >> OF_STATE_SHL;
+		}
+	} else {
+		for (i = 0; i != num; i++) {
+			bits = _fileHandle->readByte();
+			bits |= _fileHandle->readByte() << 8;
+			bits |= _fileHandle->readByte() << 16;
+			_classData[i] = bits;
+			tmp = _fileHandle->readByte();
+			_objectOwnerTable[i] = tmp & OF_OWNER_MASK;
+			_objectStateTable[i] = tmp >> OF_STATE_SHL;
+		}
 	}
 
 	// FIXME: Indy3 FM-TOWNS has 32 extra bytes of unknown meaning

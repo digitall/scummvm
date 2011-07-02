@@ -17,16 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #if defined(__PLAYSTATION2__)
-#include "backends/fs/ps2/ps2-fs-factory.h"
-#include "backends/fs/ps2/ps2-fs.cpp"
 
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
+
+#include "backends/fs/ps2/ps2-fs-factory.h"
+#include "backends/fs/ps2/ps2-fs.h"
+
+namespace Common {
 DECLARE_SINGLETON(Ps2FilesystemFactory);
+}
 
 AbstractFSNode *Ps2FilesystemFactory::makeRootFileNode() const {
 	return new Ps2FilesystemNode();
@@ -39,4 +42,5 @@ AbstractFSNode *Ps2FilesystemFactory::makeCurrentDirectoryFileNode() const {
 AbstractFSNode *Ps2FilesystemFactory::makeFileNodePath(const Common::String &path) const {
 	return new Ps2FilesystemNode(path, true);
 }
+
 #endif

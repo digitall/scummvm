@@ -17,15 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_PTR_H
 #define COMMON_PTR_H
 
 #include "common/scummsys.h"
+#include "common/noncopyable.h"
 
 namespace Common {
 
@@ -110,14 +108,20 @@ class SharedPtr {
 public:
 	typedef int RefValue;
 	typedef T ValueType;
-	typedef T *Pointer;
+	typedef T *PointerType;
+	typedef T &ReferenceType;
 
 	SharedPtr() : _refCount(0), _deletion(0), _pointer(0) {}
-	template<class T2> explicit SharedPtr(T2 *p) : _refCount(new RefValue(1)), _deletion(new SharedPtrDeletionImpl<T2>(p)), _pointer(p) {}
-	template<class T2, class D> SharedPtr(T2 *p, D d) : _refCount(new RefValue(1)), _deletion(new SharedPtrDeletionDeleterImpl<T2, D>(p, d)), _pointer(p) {}
+
+	template<class T2>
+	explicit SharedPtr(T2 *p) : _refCount(new RefValue(1)), _deletion(new SharedPtrDeletionImpl<T2>(p)), _pointer(p) {}
+
+	template<class T2, class D>
+	SharedPtr(T2 *p, D d) : _refCount(new RefValue(1)), _deletion(new SharedPtrDeletionDeleterImpl<T2, D>(p, d)), _pointer(p) {}
 
 	SharedPtr(const SharedPtr &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) { if (_refCount) ++(*_refCount); }
-	template<class T2> SharedPtr(const SharedPtr<T2> &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) { if (_refCount) ++(*_refCount); }
+	template<class T2>
+	SharedPtr(const SharedPtr<T2> &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) { if (_refCount) ++(*_refCount); }
 
 	~SharedPtr() { decRef(); }
 
@@ -146,8 +150,8 @@ public:
 		return *this;
 	}
 
-	ValueType &operator*() const { assert(_pointer); return *_pointer; }
-	Pointer operator->() const { assert(_pointer); return _pointer; }
+	ReferenceType operator*() const { assert(_pointer); return *_pointer; }
+	PointerType operator->() const { assert(_pointer); return _pointer; }
 
 	/**
 	 * Returns the plain pointer value. Be sure you know what you
@@ -155,7 +159,7 @@ public:
 	 *
 	 * @return the pointer the SharedPtr object manages
 	 */
-	Pointer get() const { return _pointer; }
+	PointerType get() const { return _pointer; }
 
 	/**
 	 * Implicit conversion operator to bool for convenience, to make
@@ -180,15 +184,15 @@ public:
 		_pointer = 0;
 	}
 
-    template<class T2>
-    bool operator==(const Common::SharedPtr<T2> &r) const {
-        return _pointer == r.get();
-    }
+	template<class T2>
+	bool operator==(const Common::SharedPtr<T2> &r) const {
+		return _pointer == r.get();
+	}
 
-    template<class T2>
-    bool operator!=(const Common::SharedPtr<T2> &r) const {
-        return _pointer != r.get();
-    }
+	template<class T2>
+	bool operator!=(const Common::SharedPtr<T2> &r) const {
+		return _pointer != r.get();
+	}
 
 	/**
 	 * Returns the number of references to the assigned pointer.
@@ -213,9 +217,63 @@ private:
 
 	RefValue *_refCount;
 	SharedPtrDeletionInternal *_deletion;
-	T *_pointer;
+	PointerType _pointer;
 };
 
-} // end of namespace Common
+template<typename T>
+class ScopedPtr : NonCopyable {
+public:
+	typedef T ValueType;
+	typedef T *PointerType;
+	typedef T &ReferenceType;
+
+	explicit ScopedPtr(PointerType o = 0) : _pointer(o) {}
+
+	ReferenceType operator*() const { return *_pointer; }
+	PointerType operator->() const { return _pointer; }
+	operator PointerType() const { return _pointer; }
+
+	/**
+	 * Implicit conversion operator to bool for convenience, to make
+	 * checks like "if (scopedPtr) ..." possible.
+	 */
+	operator bool() const { return _pointer != 0; }
+
+	~ScopedPtr() {
+		delete _pointer;
+	}
+
+	/**
+	 * Resets the pointer with the new value. Old object will be destroyed
+	 */
+	void reset(PointerType o = 0) {
+		delete _pointer;
+		_pointer = o;
+	}
+
+	/**
+	 * Returns the plain pointer value.
+	 *
+	 * @return the pointer the ScopedPtr manages
+	 */
+	PointerType get() const { return _pointer; }
+
+	/**
+	 * Returns the plain pointer value and releases ScopedPtr.
+	 * After release() call you need to delete object yourself
+	 *
+	 * @return the pointer the ScopedPtr manages
+	 */
+	PointerType release() {
+		PointerType r = _pointer;
+		_pointer = 0;
+		return r;
+	}
+
+private:
+	PointerType _pointer;
+};
+
+} // End of namespace Common
 
 #endif

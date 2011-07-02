@@ -18,9 +18,6 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 *
-* $URL$
-* $Id$
-*
 */
 
 #ifndef COMMON_HARDWARE_KEY_H
@@ -31,6 +28,7 @@
 #ifdef ENABLE_KEYMAPPER
 
 #include "backends/keymapper/types.h"
+#include "common/textconsole.h"
 
 namespace Common {
 
@@ -60,7 +58,7 @@ struct HardwareKey {
 				KeyType typ = kGenericKeyType, ActionType prefAct = kGenericActionType)
 		: key(ky), description(desc), type(typ), preferredAction(prefAct) {
 		assert(i);
-		strncpy(hwKeyId, i, HWKEY_ID_SIZE);
+		Common::strlcpy(hwKeyId, i, HWKEY_ID_SIZE);
 	}
 };
 
@@ -131,7 +129,7 @@ private:
 };
 
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_KEYMAPPER
 

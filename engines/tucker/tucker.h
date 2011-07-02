@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TUCKER_ENGINE_H
@@ -30,14 +27,29 @@
 #include "common/util.h"
 #include "common/endian.h"
 #include "common/events.h"
+#include "common/random.h"
 #include "common/stream.h"
 
-#include "graphics/video/flic_decoder.h"
+#include "video/flic_decoder.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 #include "engines/engine.h"
 
+#include "tucker/console.h"
+
+namespace Audio {
+class RewindableAudioStream;
+} // End of namespace Audio
+
+/**
+ * This is the namespace of the Tucker engine.
+ *
+ * Status of this engine: Complete
+ *
+ * Games using this engine:
+ * - Bud Tucker in Double Trouble
+ */
 namespace Tucker {
 
 struct Action {
@@ -210,6 +222,29 @@ enum GameFlag {
 	kGameFlagIntroOnly = 1 << 3
 };
 
+enum CompressedSoundType {
+	kSoundTypeFx,
+	kSoundTypeMusic,
+	kSoundTypeSpeech,
+	kSoundTypeIntro
+};
+
+class CompressedSound {
+public:
+
+	CompressedSound() : _compressedSoundType(-1) {}
+
+	void openFile();
+	void closeFile();
+	Audio::RewindableAudioStream *load(CompressedSoundType type, int num);
+
+private:
+
+	int _compressedSoundType;
+	int _compressedSoundFlags;
+	Common::File _fCompressedSound;
+};
+
 inline int scaleMixerVolume(int volume, int max = 100) {
 	return volume * Audio::Mixer::kMaxChannelVolume / max;
 }
@@ -234,7 +269,7 @@ public:
 		kDataTableSize = 500,
 		kSpeechHistoryTableSize = 5,
 		kMaxCharacters = 8,
-		kMaxDirtyRects = 16
+		kMaxDirtyRects = 32
 	};
 
 	TuckerEngine(OSystem *system, Common::Language language, uint32 flags);
@@ -242,7 +277,7 @@ public:
 
 	virtual Common::Error run();
 	virtual bool hasFeature(EngineFeature f) const;
-	virtual void syncSoundSettings();
+	GUI::Debugger *getDebugger() { return _console; }
 
 protected:
 
@@ -312,11 +347,12 @@ protected:
 	void addObjectToInventory(int num);
 	void removeObjectFromInventory(int num);
 	void handleMap();
+	void clearSprites();
 	void updateSprites();
 	void updateSprite(int i);
 	void drawStringInteger(int num, int x, int y, int digits);
-	void drawStringAlt(int offset, int color, const uint8 *str, int strLen = -1);
-	void drawItemString(int offset, int num, const uint8 *str);
+	void drawStringAlt(int x, int y, int color, const uint8 *str, int strLen = -1);
+	void drawItemString(int x, int num, const uint8 *str);
 	void drawCreditsString(int x, int y, int num);
 	void updateCharSpeechSound(bool displayText);
 	void updateItemsGfxColors(int bit0, int bit7);
@@ -529,9 +565,11 @@ protected:
 
 	template <class S> void saveOrLoadGameStateData(S &s);
 	virtual Common::Error loadGameState(int num);
-	virtual Common::Error saveGameState(int num, const char *description);
+	virtual Common::Error saveGameState(int num, const Common::String &description);
 	virtual bool canLoadGameStateCurrently();
 	virtual bool canSaveGameStateCurrently();
+
+	TuckerConsole *_console;
 
 	void handleIntroSequence();
 	void handleCreditsSequence();
@@ -542,8 +580,6 @@ protected:
 	void copyMapRect(int x, int y, int w, int h);
 	int handleSpecialObjectSelectionSequence();
 
-	void openCompressedSoundFile();
-	void closeCompressedSoundFile();
 	uint8 *loadFile(const char *filename, uint8 *p);
 	void loadImage(const char *filename, uint8 *dst, int a);
 	void loadCursor();
@@ -553,7 +589,7 @@ protected:
 	void loadCharSizeDta();
 	void loadPanel();
 	void loadBudSpr(int startOffset);
-	int loadCTable01(int index, int firstSpriteNum);
+	int loadCTable01(int index, int firstSpriteNum, int *framesCount);
 	void loadCTable02(int fl);
 	void loadLoc();
 	void loadObj();
@@ -574,6 +610,7 @@ protected:
 
 	Common::RandomSource _rnd;
 	AnimationSequencePlayer *_player;
+	CompressedSound _compressedSound;
 	Common::Language _gameLang;
 	uint32 _gameFlags;
 
@@ -583,7 +620,6 @@ protected:
 	uint32 _lastFrameTime;
 	int _mainLoopCounter1;
 	int _mainLoopCounter2;
-	int _timerCounter1;
 	int _timerCounter2;
 	int _flagsTable[kFlagsTableSize];
 	int _partNum;
@@ -603,8 +639,6 @@ protected:
 	int _gameHintsStringNum;
 
 	int _fileLoadSize;
-	int _compressedSoundType;
-	Common::File _fCompressedSound;
 	uint8 *_loadTempBuf;
 	uint8 *_cursorGfxBuf;
 	uint8 *_charsetGfxBuf;
@@ -652,7 +686,7 @@ protected:
 	int _conversationOptionsCount;
 	bool _fadedPanel;
 	int _panelLockedFlag;
-	int _panelItemWidth;
+	int _conversationOptionLinesCount;
 	int _inventoryItemsState[50];
 	int _inventoryObjectsList[40];
 	int _inventoryObjectsOffset;
@@ -685,12 +719,11 @@ protected:
 	int _currentFxIndex;
 	int _speechSoundNum;
 	int _speechVolume;
-	Audio::SoundHandle _sfxHandles[6];
-	Audio::SoundHandle _musicHandles[2];
+	Audio::SoundHandle _sfxHandles[kLocationSoundsTableSize];
+	Audio::SoundHandle _musicHandles[kLocationMusicsTableSize];
 	Audio::SoundHandle _speechHandle;
 	int _miscSoundFxNum[2];
 	int _speechHistoryTable[kSpeechHistoryTableSize];
-	int _charSpeechSoundVolumeTable[kMaxCharacters];
 	int _charSpeechSoundCounter;
 	int _miscSoundFxDelayCounter[2];
 	int _characterSoundFxDelayCounter;
@@ -709,7 +742,7 @@ protected:
 	int _actionObj1Type, _actionObj2Type;
 	int _actionObj1Num, _actionObj2Num;
 	bool _actionRequiresTwoObjects;
-	int _skipPanelObjectUnderCursor;
+	int _actionVerbLocked;
 	int _actionPosX;
 	int _actionPosY;
 	int _selectedObjectLocationMask;
@@ -765,7 +798,6 @@ protected:
 	int _yPosCurrent;
 	const uint8 *_characterSpeechDataPtr;
 	int _ptTextOffset;
-	int _ctable01Table_sprite[20];
 	int _characterAnimationsTable[200];
 	int _characterStateTable[200];
 	int _backgroundSprOffset;
@@ -803,7 +835,7 @@ protected:
 	uint8 _currentPalette[768];
 	bool _fullRedraw;
 	int _dirtyRectsPrevCount, _dirtyRectsCount;
-	Common::Rect _dirtyRectsTable[2][kMaxDirtyRects];
+	Common::Rect _dirtyRectsTable[kMaxDirtyRects];
 
 	int _updateLocationFadePaletteCounter;
 	int _updateLocationCounter;
@@ -844,8 +876,7 @@ enum {
 enum AnimationSoundType {
 	kAnimationSoundType8BitsRAW,
 	kAnimationSoundType16BitsRAW,
-	kAnimationSoundTypeWAV,
-	kAnimationSoundTypeLoopingWAV
+	kAnimationSoundTypeWAV
 };
 
 enum {
@@ -890,7 +921,7 @@ public:
 		void (AnimationSequencePlayer::*play)();
 	};
 
-	AnimationSequencePlayer(OSystem *system, Audio::Mixer *mixer, Common::EventManager *event, int num);
+	AnimationSequencePlayer(OSystem *system, Audio::Mixer *mixer, Common::EventManager *event, CompressedSound *sound, int num);
 	~AnimationSequencePlayer();
 
 	void mainLoop();
@@ -899,14 +930,14 @@ private:
 
 	void syncTime();
 	void loadSounds(int num);
-	Audio::AudioStream *loadSoundFileAsStream(int index, AnimationSoundType type);
+	Audio::RewindableAudioStream *loadSound(int index, AnimationSoundType type);
 	void updateSounds();
 	void fadeInPalette();
 	void fadeOutPalette();
 	void unloadAnimation();
 	uint8 *loadPicture(const char *fileName);
 	void openAnimation(int index, const char *fileName);
-	bool decodeNextAnimationFrame(int index);
+	bool decodeNextAnimationFrame(int index, bool copyDirtyRects = true);
 	void loadIntroSeq17_18();
 	void playIntroSeq17_18();
 	void loadIntroSeq19_20();
@@ -933,20 +964,22 @@ private:
 	OSystem *_system;
 	Audio::Mixer *_mixer;
 	Common::EventManager *_event;
+	CompressedSound *_compressedSound;
 
 	int _seqNum;
 	bool _changeToNextSequence;
 	const SequenceUpdateFunc *_updateFunc;
 	int _updateFuncIndex;
-	::Graphics::FlicDecoder _flicPlayer[2];
-	uint8 _animationPalette[256 * 4];
+	Video::FlicDecoder _flicPlayer[2];
+	uint8 _animationPalette[256 * 3];
 	int _soundSeqDataCount;
 	int _soundSeqDataIndex;
 	const SoundSequenceData *_soundSeqData;
 	uint8 *_offscreenBuffer;
 	int _updateScreenWidth;
 	int _updateScreenPicture;
-	int _updateScreenOffset;
+	int _updateScreenCounter;
+	int _updateScreenIndex;
 	int _frameCounter;
 	int _frameTime;
 	uint32 _lastFrameTime;

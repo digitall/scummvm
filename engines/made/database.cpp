@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
 #include "common/endian.h"
 #include "common/util.h"
 #include "common/savefile.h"
+#include "common/textconsole.h"
 
 #include "made/database.h"
 
@@ -80,7 +78,7 @@ int16 Object::getVectorSize() {
 	} else {
 		// should never reach here
 		error("Unknown object class");
-		return 0;
+		return 0;	// for compilers that don't support NORETURN
 	}
 }
 
@@ -94,7 +92,7 @@ int16 Object::getVectorItem(int16 index) {
 	} else {
 		// should never reach here
 		error("Unknown object class");
-		return 0;
+		return 0;	// for compilers that don't support NORETURN
 	}
 }
 
@@ -108,7 +106,7 @@ void Object::setVectorItem(int16 index, int16 value) {
 	}
 }
 
-void Object::dump(const char *filename) {
+void Object::dump(const Common::String &filename) {
 	/*
 	FILE *o = fopen(filename, "wb");
 	fwrite(_objData, _objSize, 1, o);
@@ -255,8 +253,7 @@ GameDatabase::GameDatabase(MadeEngine *vm) : _vm(vm) {
 }
 
 GameDatabase::~GameDatabase() {
-	if (_gameState)
-		delete[] _gameState;
+	delete[] _gameState;
 }
 
 void GameDatabase::open(const char *filename) {
@@ -276,7 +273,7 @@ void GameDatabase::openFromRed(const char *redFilename, const char *filename) {
 	_isRedSource = true;
 	_filename = filename;
 	_redFilename = redFilename;
-	Common::MemoryReadStream *fileS = RedReader::loadFromRed(redFilename, filename);
+	Common::SeekableReadStream *fileS = RedReader::loadFromRed(redFilename, filename);
 	if (!fileS)
 		error("GameDatabase::openFromRed() Could not load %s from %s", filename, redFilename);
 	load(*fileS);
@@ -290,7 +287,7 @@ void GameDatabase::reload() {
 			error("GameDatabase::reload() Could not open %s", _filename.c_str());
 		reloadFromStream(fd);
 	} else {
-		Common::MemoryReadStream *fileS = RedReader::loadFromRed(_redFilename.c_str(), _filename.c_str());
+		Common::SeekableReadStream *fileS = RedReader::loadFromRed(_redFilename.c_str(), _filename.c_str());
 		if (!fileS)
 			error("GameDatabase::openFromRed() Could not load %s from %s", _filename.c_str(), _redFilename.c_str());
 		reloadFromStream(*fileS);
@@ -320,13 +317,28 @@ void GameDatabase::setObjectString(int16 index, const char *str) {
 		obj->setString(str);
 }
 
+int16 *GameDatabase::findObjectPropertyCached(int16 objectIndex, int16 propertyId, int16 &propertyFlag) {
+	uint32 id = (objectIndex << 16) | propertyId;
+	ObjectPropertyCacheMap::iterator iter = _objectPropertyCache.find(id);
+	int16 *propertyPtr = NULL;
+	if (iter != _objectPropertyCache.end()) {
+		propertyPtr = (*iter)._value;
+	} else {
+		propertyPtr = findObjectProperty(objectIndex, propertyId, propertyFlag);
+		_objectPropertyCache[id] = propertyPtr;
+	}
+	propertyFlag = 1;
+	return propertyPtr;
+}
+
 int16 GameDatabase::getObjectProperty(int16 objectIndex, int16 propertyId) {
 
 	if (objectIndex == 0)
 		return 0;
 
 	int16 propertyFlag;
-	int16 *property = findObjectProperty(objectIndex, propertyId, propertyFlag);
+	//int16 *property = findObjectProperty(objectIndex, propertyId, propertyFlag);
+	int16 *property = findObjectPropertyCached(objectIndex, propertyId, propertyFlag);
 
 	if (property) {
 		return (int16)READ_LE_UINT16(property);
@@ -342,7 +354,8 @@ int16 GameDatabase::setObjectProperty(int16 objectIndex, int16 propertyId, int16
 		return 0;
 
 	int16 propertyFlag;
-	int16 *property = findObjectProperty(objectIndex, propertyId, propertyFlag);
+	//int16 *property = findObjectProperty(objectIndex, propertyId, propertyFlag);
+	int16 *property = findObjectPropertyCached(objectIndex, propertyId, propertyFlag);
 
 	if (property) {
 		if (propertyFlag == 1) {
@@ -360,9 +373,7 @@ int16 GameDatabase::setObjectProperty(int16 objectIndex, int16 propertyId, int16
 
 void GameDatabase::dumpObject(int16 index) {
 	Object *obj = getObject(index);
-	char fn[512];
-	sprintf(fn, "obj%04X.0", index);
-	obj->dump(fn);
+	obj->dump(Common::String::format("obj%04X.0", index));
 }
 
 
@@ -372,8 +383,7 @@ GameDatabaseV2::GameDatabaseV2(MadeEngine *vm) : GameDatabase(vm), _gameText(NUL
 }
 
 GameDatabaseV2::~GameDatabaseV2() {
-	if (_gameText)
-		delete[] _gameText;
+	delete[] _gameText;
 }
 
 void GameDatabaseV2::load(Common::SeekableReadStream &sourceS) {
@@ -501,6 +511,8 @@ int16 GameDatabaseV2::loadgame(const char *filename, int16 version) {
 		_objects[i]->load(*in);
 	}
 	delete in;
+
+	_objectPropertyCache.clear();	// make sure to clear cache
 	return result;
 }
 
@@ -630,6 +642,8 @@ void GameDatabaseV3::load(Common::SeekableReadStream &sourceS) {
 void GameDatabaseV3::reloadFromStream(Common::SeekableReadStream &sourceS) {
 	sourceS.seek(_gameStateOffs);
 	sourceS.read(_gameState, _gameStateSize);
+
+	_objectPropertyCache.clear();	// make sure to clear cache
 }
 
 bool GameDatabaseV3::getSavegameDescription(const char *filename, Common::String &description, int16 version) {
@@ -641,7 +655,7 @@ bool GameDatabaseV3::getSavegameDescription(const char *filename, Common::String
 	}
 
 	uint32 header = in->readUint32BE();
-	if (header != MKID_BE('SGAM')) {
+	if (header != MKTAG('S','G','A','M')) {
 		warning("Save game header missing");
 		delete in;
 		return false;
@@ -678,7 +692,7 @@ int16 GameDatabaseV3::savegame(const char *filename, const char *description, in
 		return 6;
 	}
 	strncpy(desc, description, 64);
-	out->writeUint32BE(MKID_BE('SGAM'));
+	out->writeUint32BE(MKTAG('S','G','A','M'));
 	out->writeUint32LE(size);
 	out->writeUint16LE(version);
 	out->write(desc, 64);
@@ -697,7 +711,7 @@ int16 GameDatabaseV3::loadgame(const char *filename, int16 version) {
 	}
 
 	uint32 header = in->readUint32BE();
-	if (header != MKID_BE('SGAM')) {
+	if (header != MKTAG('S','G','A','M')) {
 		warning("Save game header missing");
 		delete in;
 		return 1;
@@ -720,6 +734,9 @@ int16 GameDatabaseV3::loadgame(const char *filename, int16 version) {
 	in->skip(64); // skip savegame description
 	in->read(_gameState, _gameStateSize);
 	delete in;
+
+	_objectPropertyCache.clear();	// make sure to clear cache
+
 	return 0;
 }
 

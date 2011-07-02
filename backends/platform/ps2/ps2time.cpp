@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
 
 #include "backends/platform/ps2/systemps2.h"
 #include "backends/platform/ps2/ps2debug.h"
@@ -106,7 +105,7 @@ void OSystem_PS2::readRtcTime(void) {
 		g_day, g_month, g_year + 2000);
 }
 
-void OSystem_PS2::getTimeAndDate(struct tm &t) const {
+void OSystem_PS2::getTimeAndDate(TimeDate &t) const {
 
 	uint32 currentSecs = g_timeSecs + (msecCount - g_lastTimeCheck) / 1000;
 	if (currentSecs >= SECONDS_PER_DAY) {
@@ -121,6 +120,4 @@ void OSystem_PS2::getTimeAndDate(struct tm &t) const {
 	t.tm_year = g_year + 100;
 	t.tm_mday = g_day;
 	t.tm_mon  = g_month - 1;
-	// tm_wday, tm_yday and tm_isdst are zero for now
-	t.tm_wday = t.tm_yday = t.tm_isdst = 0;
 }

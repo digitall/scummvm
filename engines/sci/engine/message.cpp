@@ -18,241 +18,421 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+
 #include "sci/engine/message.h"
-#include "sci/tools.h"
+#include "sci/engine/kernel.h"
+#include "sci/engine/seg_manager.h"
+#include "sci/util.h"
 
 namespace Sci {
 
-MessageTuple MessageState::getTuple() {
-	MessageTuple t;
+struct MessageRecord {
+	MessageTuple tuple;
+	MessageTuple refTuple;
+	const char *string;
+	byte talker;
+};
 
-	t.noun = *(_engineCursor.index_record + 0);
-	t.verb = *(_engineCursor.index_record + 1);
-	if (_version == 2101) {
-		t.cond = 0;
-		t.seq = 1;
-	} else {
-		t.cond = *(_engineCursor.index_record + 2);
-		t.seq = *(_engineCursor.index_record + 3);
+class MessageReader {
+public:
+	bool init() {
+		if (_headerSize > _size)
+			return false;
+
+		// Read message count from last word in header
+		_messageCount = READ_SCI11ENDIAN_UINT16(_data + _headerSize - 2);
+
+		if (_messageCount * _recordSize + _headerSize > _size)
+			return false;
+
+		return true;
 	}
 
-	return t;
-}
+	virtual bool findRecord(const MessageTuple &tuple, MessageRecord &record) = 0;
 
-MessageTuple MessageState::getRefTuple() {
-	MessageTuple t;
+	virtual ~MessageReader() { }
 
-	if (_version == 2101) {
-		t.noun = 0;
-		t.verb = 0;
-		t.cond = 0;
-	} else {
-		t.noun = *(_engineCursor.index_record + 7);
-		t.verb = *(_engineCursor.index_record + 8);
-		t.cond = *(_engineCursor.index_record + 9);
+protected:
+	MessageReader(const byte *data, uint size, uint headerSize, uint recordSize)
+		: _data(data), _size(size), _headerSize(headerSize), _recordSize(recordSize) { }
+
+	const byte *_data;
+	const uint _size;
+	const uint _headerSize;
+	const uint _recordSize;
+	uint _messageCount;
+};
+
+class MessageReaderV2 : public MessageReader {
+public:
+	MessageReaderV2(byte *data, uint size) : MessageReader(data, size, 6, 4) { }
+
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+		const byte *recordPtr = _data + _headerSize;
+
+		for (uint i = 0; i < _messageCount; i++) {
+			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)) {
+				record.tuple = tuple;
+				record.refTuple = MessageTuple();
+				record.talker = 0;
+				record.string = (const char *)_data + READ_LE_UINT16(recordPtr + 2);
+				return true;
+			}
+			recordPtr += _recordSize;
+		}
+
+		return false;
 	}
-	t.seq = 1;
+};
 
-	return t;
-}
+class MessageReaderV3 : public MessageReader {
+public:
+	MessageReaderV3(byte *data, uint size) : MessageReader(data, size, 8, 10) { }
 
-void MessageState::initCursor() {
-	_engineCursor.index_record = _indexRecords;
-	_engineCursor.index = 0;
-	_engineCursor.nextSeq = 0;
-}
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+		const byte *recordPtr = _data + _headerSize;
 
-void MessageState::advanceCursor(bool increaseSeq) {
-	_engineCursor.index_record += ((_version == 2101) ? 4 : 11);
-	_engineCursor.index++;
+		for (uint i = 0; i < _messageCount; i++) {
+			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)
+				&& (recordPtr[2] == tuple.cond) && (recordPtr[3] == tuple.seq)) {
+				record.tuple = tuple;
+				record.refTuple = MessageTuple();
+				record.talker = recordPtr[4];
+				record.string = (const char *)_data + READ_LE_UINT16(recordPtr + 5);
+				return true;
+			}
+			recordPtr += _recordSize;
+		}
 
-	if (increaseSeq)
-		_engineCursor.nextSeq++;
-}
+		return false;
+	}
+};
 
-int MessageState::findTuple(MessageTuple &t) {
-	if (_module == -1)
-		return 0;
+class MessageReaderV4 : public MessageReader {
+public:
+	MessageReaderV4(byte *data, uint size) : MessageReader(data, size, 10, 11) { }
 
-	// Reset the cursor
-	initCursor();
-	_engineCursor.nextSeq = t.seq;
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+		const byte *recordPtr = _data + _headerSize;
 
-	// Do a linear search for the message
+		for (uint i = 0; i < _messageCount; i++) {
+			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)
+				&& (recordPtr[2] == tuple.cond) && (recordPtr[3] == tuple.seq)) {
+				record.tuple = tuple;
+				record.refTuple = MessageTuple(recordPtr[7], recordPtr[8], recordPtr[9]);
+				record.talker = recordPtr[4];
+				record.string = (const char *)_data + READ_SCI11ENDIAN_UINT16(recordPtr + 5);
+				return true;
+			}
+			recordPtr += _recordSize;
+		}
+
+		return false;
+	}
+};
+
+#ifdef ENABLE_SCI32
+// SCI32 Mac decided to add an extra byte (currently unknown in meaning) between
+// the talker and the string...
+class MessageReaderV4_MacSCI32 : public MessageReader {
+public:
+	MessageReaderV4_MacSCI32(byte *data, uint size) : MessageReader(data, size, 10, 12) { }
+
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+		const byte *recordPtr = _data + _headerSize;
+
+		for (uint i = 0; i < _messageCount; i++) {
+			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)
+				&& (recordPtr[2] == tuple.cond) && (recordPtr[3] == tuple.seq)) {
+				record.tuple = tuple;
+				record.refTuple = MessageTuple(recordPtr[8], recordPtr[9], recordPtr[10]);
+				record.talker = recordPtr[4];
+				record.string = (const char *)_data + READ_BE_UINT16(recordPtr + 6);
+				return true;
+			}
+			recordPtr += _recordSize;
+		}
+
+		return false;
+	}
+};
+#endif
+
+bool MessageState::getRecord(CursorStack &stack, bool recurse, MessageRecord &record) {
+	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeMessage, stack.getModule()), 0);
+
+	if (!res) {
+		warning("Failed to open message resource %d", stack.getModule());
+		return false;
+	}
+
+	MessageReader *reader;
+	int version = READ_SCI11ENDIAN_UINT32(res->data) / 1000;
+
+	switch (version) {
+	case 2:
+		reader = new MessageReaderV2(res->data, res->size);
+		break;
+	case 3:
+		reader = new MessageReaderV3(res->data, res->size);
+		break;
+	case 4:
+#ifdef ENABLE_SCI32
+	case 5: // v5 seems to be compatible with v4
+		// SCI32 Mac is different than SCI32 DOS/Win here
+		if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2_1)
+			reader = new MessageReaderV4_MacSCI32(res->data, res->size);
+		else
+#endif
+			reader = new MessageReaderV4(res->data, res->size);
+		break;
+	default:
+		error("Message: unsupported resource version %d", version);
+		return false;
+	}
+
+	if (!reader->init()) {
+		delete reader;
+
+		warning("Message: failed to read resource header");
+		return false;
+	}
+
 	while (1) {
-		MessageTuple looking_at = getTuple();
+		MessageTuple &t = stack.top();
 
-		if (t.noun == looking_at.noun &&
-			t.verb == looking_at.verb &&
-			t.cond == looking_at.cond &&
-			t.seq == looking_at.seq)
-			break;
+		if (!reader->findRecord(t, record)) {
+			// Tuple not found
+			if (recurse && (stack.size() > 1)) {
+				stack.pop();
+				continue;
+			}
 
-		advanceCursor(false);
+			delete reader;
+			return false;
+		}
 
-		// Message tuple is not present
-		if (_engineCursor.index == _recordCount)
+		if (recurse) {
+			MessageTuple &ref = record.refTuple;
+
+			if (ref.noun || ref.verb || ref.cond) {
+				t.seq++;
+				stack.push(ref);
+				continue;
+			}
+		}
+
+		delete reader;
+		return true;
+	}
+}
+
+int MessageState::getMessage(int module, MessageTuple &t, reg_t buf) {
+	_cursorStack.init(module, t);
+	return nextMessage(buf);
+}
+
+int MessageState::nextMessage(reg_t buf) {
+	MessageRecord record;
+
+	if (!buf.isNull()) {
+		if (getRecord(_cursorStack, true, record)) {
+			outputString(buf, processString(record.string));
+			_lastReturned = record.tuple;
+			_lastReturnedModule = _cursorStack.getModule();
+			_cursorStack.top().seq++;
+			return record.talker;
+		} else {
+			MessageTuple &t = _cursorStack.top();
+			outputString(buf, Common::String::format("Msg %d: %d %d %d %d not found", _cursorStack.getModule(), t.noun, t.verb, t.cond, t.seq));
+			return 0;
+		}
+	} else {
+		CursorStack stack = _cursorStack;
+
+		if (getRecord(stack, true, record))
+			return record.talker;
+		else
 			return 0;
 	}
-
-	return 1;
 }
 
-int MessageState::getMessage() {
-	if (_module == -1)
+int MessageState::messageSize(int module, MessageTuple &t) {
+	CursorStack stack;
+	MessageRecord record;
+
+	stack.init(module, t);
+	if (getRecord(stack, true, record))
+		return strlen(record.string) + 1;
+	else
 		return 0;
+}
 
-	if (_engineCursor.index != _recordCount) {
-		MessageTuple mesg = getTuple();
-		MessageTuple ref = getRefTuple();
+bool MessageState::messageRef(int module, const MessageTuple &t, MessageTuple &ref) {
+	CursorStack stack;
+	MessageRecord record;
 
-		if (_engineCursor.nextSeq == mesg.seq) {
-			// We found the right sequence number, check for recursion
+	stack.init(module, t);
+	if (getRecord(stack, false, record)) {
+		ref = record.refTuple;
+		return true;
+	}
 
-			if (ref.noun != 0) {
-				// Recursion, advance the current cursor and load the reference
-				advanceCursor(true);
+	return false;
+}
 
-				if (findTuple(ref))
-					return getMessage();
-				else {
-					// Reference not found
-					return 0;
-				}
-			} else {
-				// No recursion, we are done
-				return 1;
-			}
+void MessageState::pushCursorStack() {
+	_cursorStackStack.push(_cursorStack);
+}
+
+void MessageState::popCursorStack() {
+	if (!_cursorStackStack.empty())
+		_cursorStack = _cursorStackStack.pop();
+	else
+		error("Message: attempt to pop from empty stack");
+}
+
+int MessageState::hexDigitToInt(char h) {
+	if ((h >= 'A') && (h <= 'F'))
+		return h - 'A' + 10;
+
+	if ((h >= 'a') && (h <= 'f'))
+		return h - 'a' + 10;
+
+	if ((h >= '0') && (h <= '9'))
+		return h - '0';
+
+	return -1;
+}
+
+bool MessageState::stringHex(Common::String &outStr, const Common::String &inStr, uint &index) {
+	// Hex escape sequences of the form \nn, where n is a hex digit
+	if (inStr[index] != '\\')
+		return false;
+
+	// Check for enough room for a hex escape sequence
+	if (index + 2 >= inStr.size())
+		return false;
+
+	int digit1 = hexDigitToInt(inStr[index + 1]);
+	int digit2 = hexDigitToInt(inStr[index + 2]);
+
+	// Check for hex
+	if ((digit1 == -1) || (digit2 == -1))
+		return false;
+
+	outStr += digit1 * 16 + digit2;
+	index += 3;
+
+	return true;
+}
+
+bool MessageState::stringLit(Common::String &outStr, const Common::String &inStr, uint &index) {
+	// Literal escape sequences of the form \n
+	if (inStr[index] != '\\')
+		return false;
+
+	// Check for enough room for a literal escape sequence
+	if (index + 1 >= inStr.size())
+		return false;
+
+	outStr += inStr[index + 1];
+	index += 2;
+
+	return true;
+}
+
+bool MessageState::stringStage(Common::String &outstr, const Common::String &inStr, uint &index) {
+	// Stage directions of the form (n*), where n is anything but a digit or a lowercase character
+	if (inStr[index] != '(')
+		return false;
+
+	for (uint i = index + 1; i < inStr.size(); i++) {
+		if (inStr[i] == ')') {
+			// Stage direction found, skip it
+			index = i + 1;
+
+			// Skip trailing white space
+			while ((index < inStr.size()) && ((inStr[index] == '\n') || (inStr[index] == '\r') || (inStr[index] == ' ')))
+				index++;
+
+			return true;
 		}
+
+		// If we find a lowercase character or a digit, it's not a stage direction
+		// SCI32 seems to support having digits in stage directions
+		if (((inStr[i] >= 'a') && (inStr[i] <= 'z')) || ((inStr[i] >= '0') && (inStr[i] <= '9') && (getSciVersion() < SCI_VERSION_2)))
+			return false;
 	}
 
-	// We either ran out of records, or found an incorrect sequence number. Go to previous stack frame.
-	if (!_cursorStack.empty()) {
-		_engineCursor = _cursorStack.pop();
-		return getMessage();
+	// We ran into the end of the string without finding a closing bracket
+	return false;
+}
+
+Common::String MessageState::processString(const char *s) {
+	Common::String outStr;
+	Common::String inStr = Common::String(s);
+
+	uint index = 0;
+
+	while (index < inStr.size()) {
+		// Check for hex escape sequence
+		if (stringHex(outStr, inStr, index))
+			continue;
+
+		// Check for literal escape sequence
+		if (stringLit(outStr, inStr, index))
+			continue;
+
+		// Check for stage direction
+		if (stringStage(outStr, inStr, index))
+			continue;
+
+		// None of the above, copy char
+		outStr += inStr[index++];
 	}
 
-	// Stack is empty, no message available
-	return 0;
+	return outStr;
 }
 
-int MessageState::getTalker() {
-	return (_version == 2101) ? -1 : *(_engineCursor.index_record + 4);
-}
+void MessageState::outputString(reg_t buf, const Common::String &str) {
+#ifdef ENABLE_SCI32
+	if (getSciVersion() >= SCI_VERSION_2) {
+		SciString *sciString = _segMan->lookupString(buf);
+		sciString->setSize(str.size() + 1);
+		for (uint32 i = 0; i < str.size(); i++)
+			sciString->setValue(i, str.c_str()[i]);
+		sciString->setValue(str.size(), 0);
+	} else {
+#endif
+		SegmentRef buffer_r = _segMan->dereference(buf);
 
-MessageTuple &MessageState::getLastTuple() {
-	return _lastReturned;
-}
-
-int MessageState::getLastModule() {
-	return _lastReturnedModule;
-}
-
-Common::String MessageState::getText() {
-	char *str = (char *)_currentResource->data + READ_LE_UINT16(_engineCursor.index_record + ((_version == 2101) ? 2 : 5));
-
-	Common::String strippedStr;
-	Common::String skippedSubstr;
-	bool skipping = false;
-
-	for (uint i = 0; i < strlen(str); i++) {
-		if (skipping) {
-			// Skip stage direction
-			skippedSubstr += str[i];
-
-			// Hopefully these locale-dependant functions are good enough
-			if (islower(str[i]) || isdigit(str[i])) {
-				// Lowercase or digit found, this is not a stage direction
-				strippedStr += skippedSubstr;
-				skipping = false;
-			} else if (str[i] == ')') {
-				// End of stage direction, skip trailing white space
-				while ((i + 1 < strlen(str)) && isspace(str[i + 1]))
-					i++;
-				skipping = false;
-			}
+		if ((unsigned)buffer_r.maxSize >= str.size() + 1) {
+			_segMan->strcpy(buf, str.c_str());
 		} else {
-			if (str[i] == '(') {
-				// Start skipping stage direction
-				skippedSubstr = str[i];
-				skipping = true;
-			} else if (str[i] == '\\') {
-				// Escape sequence
-				if ((i + 2 < strlen(str)) && isdigit(str[i + 1]) && isdigit(str[i + 2])) {
-					// Hex escape sequence
-					char hexStr[3];
-
-					hexStr[0] = str[++i];
-					hexStr[1] = str[++i];
-					hexStr[2] = 0;
-
-					char *endptr;
-					int hexNr = strtol(hexStr, &endptr, 16);
-					if (*endptr == 0)
-						strippedStr += hexNr;
-				} else if (i + 1 < strlen(str)) {
-					// Literal escape sequence
-					strippedStr += str[++i];
-				}
+			// LSL6 sets an exit text here, but the buffer size allocated
+			// is too small. Don't display a warning in this case, as we
+			// don't use the exit text anyway - bug report #3035533
+			if (g_sci->getGameId() == GID_LSL6 && str.hasPrefix("\r\n(c) 1993 Sierra On-Line, Inc")) {
+				// LSL6 buggy exit text, don't show warning
 			} else {
-				strippedStr += str[i];
+				warning("Message: buffer %04x:%04x invalid or too small to hold the following text of %i bytes: '%s'", PRINT_REG(buf), str.size() + 1, str.c_str());
 			}
+
+			// Set buffer to empty string if possible
+			if (buffer_r.maxSize > 0)
+				_segMan->strcpy(buf, "");
 		}
+#ifdef ENABLE_SCI32
 	}
-
-	return strippedStr;
+#endif
 }
 
-void MessageState::gotoNext() {
-	_lastReturned = getTuple();
-	_lastReturnedModule = _module;
-	advanceCursor(true);
-}
-
-int MessageState::getLength() {
-	int offset = READ_LE_UINT16(_engineCursor.index_record + ((_version == 2101) ? 2 : 5));
-	char *stringptr = (char *)_currentResource->data + offset;
-	return strlen(stringptr);
-}
-
-int MessageState::loadRes(ResourceManager *resmgr, int module, bool lock) {
-	if (_locked) {
-		// We already have a locked resource
-		if (_module == module) {
-			// If it's the same resource, we are done
-			return 1;
-		}
-
-		// Otherwise, free the old resource
-		resmgr->unlockResource(_currentResource);
-		_locked = false;
-	}
-
-	_currentResource = resmgr->findResource(ResourceId(kResourceTypeMessage, module), lock);
-
-	if (_currentResource == NULL || _currentResource->data == NULL) {
-		warning("Message: failed to load %d.msg", module);
-		return 0;
-	}
-
-	_module = module;
-	_locked = lock;
-
-	_version = READ_LE_UINT16(_currentResource->data);
-
-	int offs = (_version == 2101) ? 0 : 4;
-	_recordCount = READ_LE_UINT16(_currentResource->data + 4 + offs);
-	_indexRecords = _currentResource->data + 6 + offs;
-
-	_cursorStack.clear();
-	initCursor();
-
-	return 1;
+void MessageState::lastQuery(int &module, MessageTuple &tuple) {
+	module = _lastReturnedModule;
+	tuple = _lastReturned;
 }
 
 } // End of namespace Sci

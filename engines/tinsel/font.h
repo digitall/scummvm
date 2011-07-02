@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_FONT_H	// prevent multiple includes
@@ -35,11 +32,11 @@ namespace Tinsel {
 #define TBUFSZ	512
 
 
-char *TextBufferAddr(void);
+char *TextBufferAddr();
 
-SCNHANDLE GetTagFontHandle(void);
+SCNHANDLE GetTagFontHandle();
 
-SCNHANDLE GetTalkFontHandle(void);
+SCNHANDLE GetTalkFontHandle();
 
 void SetTagFontHandle(SCNHANDLE hFont);
 
@@ -49,10 +46,10 @@ void SetTempTagFontHandle(SCNHANDLE hFont);
 
 void SetTempTalkFontHandle(SCNHANDLE hFont);
 
-void ResetFontHandles(void);
+void ResetFontHandles();
 
 void FettleFontPal(SCNHANDLE fontPal);
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_FONT_H

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Low level graphics interface.
  */
 
@@ -43,7 +40,7 @@ struct DRAWOBJECT {
 	int transOffset;	// transparent character offset
 	int flags;		// object flags - see above for list
 	PALQ *pPal;		// objects palette Q position
-	int constant;		// which colour in palette for monochrome objects
+	int constant;		// which color in palette for monochrome objects
 	int width;		// width of object
 	int height;		// height of object
 	SCNHANDLE hBits;	// image bitmap handle
@@ -68,6 +65,6 @@ void DrawObject(DRAWOBJECT *pObj);
 // called to update a rectangle on the video screen from a video page
 void UpdateScreenRect(const Common::Rect &pClip);
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "made/made.h"
@@ -28,19 +25,20 @@
 #include "made/resource.h"
 #include "made/database.h"
 
+#include "graphics/palette.h"
+
 namespace Made {
 
 Screen::Screen(MadeEngine *vm) : _vm(vm) {
 
-	_screenPalette = new byte[256 * 4];
 	_palette = new byte[768];
 	_newPalette = new byte[768];
 
 	_backgroundScreen = new Graphics::Surface();
-	_backgroundScreen->create(320, 200, 1);
+	_backgroundScreen->create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
 
 	_workScreen = new Graphics::Surface();
-	_workScreen->create(320, 200, 1);
+	_workScreen->create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
 
 	_backgroundScreenDrawCtx.clipRect = Common::Rect(320, 200);
 	_workScreenDrawCtx.clipRect = Common::Rect(320, 200);
@@ -52,7 +50,7 @@ Screen::Screen(MadeEngine *vm) : _vm(vm) {
 	// Screen mask is only needed in v2 games
 	if (_vm->getGameID() != GID_RTZ) {
 		_screenMask = new Graphics::Surface();
-		_screenMask->create(320, 200, 1);
+		_screenMask->create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
 		_maskDrawCtx.clipRect = Common::Rect(320, 200);
 		_maskDrawCtx.destSurface = _screenMask;
 	}
@@ -95,7 +93,6 @@ Screen::Screen(MadeEngine *vm) : _vm(vm) {
 
 Screen::~Screen() {
 
-	delete[] _screenPalette;
 	delete[] _palette;
 	delete[] _newPalette;
 
@@ -178,7 +175,7 @@ void Screen::drawSurface(Graphics::Surface *sourceSurface, int x, int y, int16 f
 		clipHeight = clipInfo.clipRect.bottom - y;
 	}
 
-	source = (byte*)sourceSurface->getBasePtr(startX, startY);
+	source = (byte*)sourceSurface->getBasePtr(0, startY);
 	dest = (byte*)clipInfo.destSurface->getBasePtr(x, y);
 	if (_vm->getGameID() != GID_RTZ)
 		maskp = (byte*)_maskDrawCtx.destSurface->getBasePtr(x, y);
@@ -188,10 +185,10 @@ void Screen::drawSurface(Graphics::Surface *sourceSurface, int x, int y, int16 f
 
 	if (flipX) {
 		linePtrAdd = -1;
-		sourceAdd = sourceSurface->w;
+		sourceAdd = sourceSurface->w - startX - 1;
 	} else {
 		linePtrAdd = 1;
-		sourceAdd = 0;
+		sourceAdd = startX;
 	}
 
 	if (flipY) {
@@ -204,12 +201,13 @@ void Screen::drawSurface(Graphics::Surface *sourceSurface, int x, int y, int16 f
 	for (int16 yc = 0; yc < clipHeight; yc++) {
 		linePtr = source + sourceAdd;
 		for (int16 xc = 0; xc < clipWidth; xc++) {
-			if (*linePtr && (_vm->getGameID() == GID_RTZ || (mask == 0 || maskp[xc] == 0))) {
+			if (*linePtr && (_vm->getGameID() == GID_RTZ || (mask == 0 || (maskp && maskp[xc] == 0)))) {
 				if (*linePtr)
 					dest[xc] = *linePtr;
 			}
 			linePtr += linePtrAdd;
 		}
+
 		source += sourcePitch;
 		dest += clipInfo.destSurface->pitch;
 		if (_vm->getGameID() != GID_RTZ)
@@ -219,14 +217,7 @@ void Screen::drawSurface(Graphics::Surface *sourceSurface, int x, int y, int16 f
 }
 
 void Screen::setRGBPalette(byte *palRGB, int start, int count) {
-	for (int i = 0; i < count; i++) {
-		_screenPalette[i * 4 + 0] = palRGB[i * 3 + 0];
-		_screenPalette[i * 4 + 1] = palRGB[i * 3 + 1];
-		_screenPalette[i * 4 + 2] = palRGB[i * 3 + 2];
-		_screenPalette[i * 4 + 3] = 0;
-	}
-
-	_vm->_system->setPalette(_screenPalette, start, count);
+	_vm->_system->getPaletteManager()->setPalette(palRGB, start, count);
 }
 
 uint16 Screen::updateChannel(uint16 channelIndex) {
@@ -464,11 +455,6 @@ uint16 Screen::placeSprite(uint16 channelIndex, uint16 flexIndex, int16 x, int16
 		_channels[channelIndex].index = flexIndex;
 		_channels[channelIndex].x = x;
 		_channels[channelIndex].y = y;
-		_channels[channelIndex].x1 = x1;
-		_channels[channelIndex].y1 = y1;
-		_channels[channelIndex].x2 = x2;
-		_channels[channelIndex].y2 = y2;
-		_channels[channelIndex].area = (x2 - x1) * (y2 - y1);
 
 		if (_channelsUsedCount <= channelIndex)
 			_channelsUsedCount = channelIndex + 1;
@@ -513,14 +499,8 @@ uint16 Screen::placeAnim(uint16 channelIndex, uint16 animIndex, int16 x, int16 y
 		_channels[channelIndex].type = 3;
 		_channels[channelIndex].index = animIndex;
 		_channels[channelIndex].frameNum = frameNum;
-		_channels[channelIndex].needRefresh = 1;
 		_channels[channelIndex].x = x;
 		_channels[channelIndex].y = y;
-		_channels[channelIndex].x1 = x1;
-		_channels[channelIndex].y1 = y1;
-		_channels[channelIndex].x2 = x2;
-		_channels[channelIndex].y2 = y2;
-		_channels[channelIndex].area = (x2 - x1) * (y2 - y1);
 
 		if (_channelsUsedCount <= channelIndex)
 			_channelsUsedCount = channelIndex + 1;
@@ -540,7 +520,6 @@ int16 Screen::setAnimFrame(uint16 channelIndex, int16 frameNum) {
 		return 0;
 	 channelIndex--;
 	_channels[channelIndex].frameNum = frameNum;
-	_channels[channelIndex].needRefresh = 1;
 	return updateChannel(channelIndex) + 1;
 }
 
@@ -597,11 +576,6 @@ uint16 Screen::placeText(uint16 channelIndex, uint16 textObjectIndex, int16 x, i
 	_channels[channelIndex].textColor = textColor;
 	_channels[channelIndex].fontNum = fontNum;
 	_channels[channelIndex].outlineColor = outlineColor;
-	_channels[channelIndex].x1 = x1;
-	_channels[channelIndex].y1 = y1;
-	_channels[channelIndex].x2 = x2;
-	_channels[channelIndex].y2 = y2;
-	_channels[channelIndex].area = (x2 - x1) * (y2 - y1);
 
 	if (_channelsUsedCount <= channelIndex)
 		_channelsUsedCount = channelIndex + 1;

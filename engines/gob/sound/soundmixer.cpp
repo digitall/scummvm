@@ -18,13 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/util.h"
 
 #include "gob/sound/soundmixer.h"
 #include "gob/sound/sounddesc.h"
+
+#include "audio/decoders/raw.h"
 
 namespace Gob {
 
@@ -51,7 +52,7 @@ SoundMixer::SoundMixer(Audio::Mixer &mixer, Audio::Mixer::SoundType type) : _mix
 	_fadeSamples = 0;
 	_curFadeSamples = 0;
 
-	_mixer->playInputStream(type, &_handle, this, -1, 255, 0, false, true);
+	_mixer->playStream(type, &_handle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
 
 SoundMixer::~SoundMixer() {
@@ -105,7 +106,7 @@ void SoundMixer::setSample(SoundDesc &sndDesc, int16 repCount, int16 frequency,
 	sndDesc._repCount = repCount - 1;
 	sndDesc._frequency = frequency;
 
-	_16bit = (sndDesc._mixerFlags & Audio::Mixer::FLAG_16BITS) != 0;
+	_16bit = (sndDesc._mixerFlags & Audio::FLAG_16BITS) != 0;
 
 	_data = sndDesc.getData();
 

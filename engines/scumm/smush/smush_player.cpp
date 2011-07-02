@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "engines/engine.h"
@@ -31,6 +28,7 @@
 #include "common/util.h"
 
 #include "graphics/cursorman.h"
+#include "graphics/palette.h"
 
 #include "scumm/bomp.h"
 #include "scumm/file.h"
@@ -49,9 +47,10 @@
 
 #include "scumm/insane/insane.h"
 
-#include "sound/mixer.h"
-#include "sound/vorbis.h"
-#include "sound/mp3.h"
+#include "audio/mixer.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/vorbis.h"
 
 #include "common/zlib.h"
 
@@ -91,13 +90,13 @@ public:
 			assert(def_end != NULL);
 
 			char *id_end = def_end;
-			while (id_end >= def_start && !isdigit(*(id_end-1))) {
+			while (id_end >= def_start && !isdigit(static_cast<unsigned char>(*(id_end-1)))) {
 				id_end--;
 			}
 
 			assert(id_end > def_start);
 			char *id_start = id_end;
-			while (isdigit(*(id_start - 1))) {
+			while (isdigit(static_cast<unsigned char>(*(id_start - 1)))) {
 				id_start--;
 			}
 
@@ -189,7 +188,7 @@ static StringResource *getStrings(ScummEngine *vm, const char *file, bool is_enc
 	theFile.read(filebuffer, length);
 	filebuffer[length] = 0;
 
-	if (is_encoded && READ_BE_UINT32(filebuffer) == MKID_BE('ETRS')) {
+	if (is_encoded && READ_BE_UINT32(filebuffer) == MKTAG('E','T','R','S')) {
 		assert(length > ETRS_HEADER_LENGTH);
 		length -= ETRS_HEADER_LENGTH;
 		for (int i = 0; i < length; ++i) {
@@ -437,7 +436,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 					_IACTpos += bsize;
 					bsize = 0;
 				} else {
-					byte *output_data = new byte[4096];
+					byte *output_data = (byte *)malloc(4096);
 
 					memcpy(_IACToutput + _IACTpos, d_src, len);
 					byte *dst = output_data;
@@ -469,10 +468,10 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 					} while (--count);
 
 					if (!_IACTstream) {
-						_IACTstream = Audio::makeAppendableAudioStream(22050, Audio::Mixer::FLAG_STEREO | Audio::Mixer::FLAG_16BITS);
-						_vm->_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_IACTchannel, _IACTstream);
+						_IACTstream = Audio::makeQueuingAudioStream(22050, true);
+						_vm->_mixer->playStream(Audio::Mixer::kSFXSoundType, &_IACTchannel, _IACTstream);
 					}
-					_IACTstream->queueBuffer(output_data, 0x1000);
+					_IACTstream->queueBuffer(output_data, 0x1000, DisposeAfterUse::YES, Audio::FLAG_STEREO | Audio::FLAG_16BITS);
 
 					bsize -= len;
 					d_src += len;
@@ -506,7 +505,7 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 
 	const char *str;
 	char *string = NULL, *string2 = NULL;
-	if (subType == MKID_BE('TEXT')) {
+	if (subType == MKTAG('T','E','X','T')) {
 		string = (char *)malloc(subSize - 16);
 		str = string;
 		b.read(string, subSize - 16);
@@ -647,12 +646,8 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 		error("SmushPlayer::handleTextResource. Not handled flags: %d", flags);
 	}
 
-	if (string != NULL) {
-		free (string);
-	}
-	if (string3 != NULL) {
-		free (string3);
-	}
+	free(string);
+	free(string3);
 }
 
 const char *SmushPlayer::getString(int id) {
@@ -848,40 +843,40 @@ void SmushPlayer::handleFrame(int32 frameSize, Common::SeekableReadStream &b) {
 		const int32 subSize = b.readUint32BE();
 		const int32 subOffset = b.pos();
 		switch (subType) {
-		case MKID_BE('NPAL'):
+		case MKTAG('N','P','A','L'):
 			handleNewPalette(subSize, b);
 			break;
-		case MKID_BE('FOBJ'):
+		case MKTAG('F','O','B','J'):
 			handleFrameObject(subSize, b);
 			break;
 #ifdef USE_ZLIB
-		case MKID_BE('ZFOB'):
+		case MKTAG('Z','F','O','B'):
 			handleZlibFrameObject(subSize, b);
 			break;
 #endif
-		case MKID_BE('PSAD'):
+		case MKTAG('P','S','A','D'):
 			if (!_compressedFileMode)
 				handleSoundFrame(subSize, b);
 			break;
-		case MKID_BE('TRES'):
+		case MKTAG('T','R','E','S'):
 			handleTextResource(subType, subSize, b);
 			break;
-		case MKID_BE('XPAL'):
+		case MKTAG('X','P','A','L'):
 			handleDeltaPalette(subSize, b);
 			break;
-		case MKID_BE('IACT'):
+		case MKTAG('I','A','C','T'):
 			handleIACT(subSize, b);
 			break;
-		case MKID_BE('STOR'):
+		case MKTAG('S','T','O','R'):
 			handleStore(subSize, b);
 			break;
-		case MKID_BE('FTCH'):
+		case MKTAG('F','T','C','H'):
 			handleFetch(subSize, b);
 			break;
-		case MKID_BE('SKIP'):
+		case MKTAG('S','K','I','P'):
 			_vm->_insane->procSKIP(subSize, b);
 			break;
-		case MKID_BE('TEXT'):
+		case MKTAG('T','E','X','T'):
 			handleTextResource(subType, subSize, b);
 			break;
 		default:
@@ -993,7 +988,7 @@ void SmushPlayer::parseNextFrame() {
 				const uint32 subType = _base->readUint32BE();
 				const int32 subSize = _base->readUint32BE();
 				const int32 subOffset = _base->pos();
-				assert(subType == MKID_BE('AHDR'));
+				assert(subType == MKTAG('A','H','D','R'));
 				handleAnimHeader(subSize, *_base);
 				_base->seek(subOffset + subSize, SEEK_SET);
 
@@ -1029,17 +1024,17 @@ void SmushPlayer::parseNextFrame() {
 		return;
 	}
 
-	debug(3, "Chunk: %s at %x", Common::tag2string(subType).c_str(), subOffset);
+	debug(3, "Chunk: %s at %x", tag2str(subType), subOffset);
 
 	switch (subType) {
-	case MKID_BE('AHDR'): // FT INSANE may seek file to the beginning
+	case MKTAG('A','H','D','R'): // FT INSANE may seek file to the beginning
 		handleAnimHeader(subSize, *_base);
 		break;
-	case MKID_BE('FRME'):
+	case MKTAG('F','R','M','E'):
 		handleFrame(subSize, *_base);
 		break;
 	default:
-		error("Unknown Chunk found at %x: %s, %d", subOffset, Common::tag2string(subType).c_str(), subSize);
+		error("Unknown Chunk found at %x: %s, %d", subOffset, tag2str(subType), subSize);
 	}
 
 	_base->seek(subOffset + subSize, SEEK_SET);
@@ -1114,7 +1109,7 @@ void SmushPlayer::tryCmpFile(const char *filename) {
 	strcpy(fname + (i - filename), ".ogg");
 	if (file->open(fname)) {
 		_compressedFileMode = true;
-		_vm->_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_compressedFileSoundHandle, Audio::makeVorbisStream(file, true));
+		_vm->_mixer->playStream(Audio::Mixer::kSFXSoundType, &_compressedFileSoundHandle, Audio::makeVorbisStream(file, DisposeAfterUse::YES));
 		return;
 	}
 #endif
@@ -1123,7 +1118,7 @@ void SmushPlayer::tryCmpFile(const char *filename) {
 	strcpy(fname + (i - filename), ".mp3");
 	if (file->open(fname)) {
 		_compressedFileMode = true;
-		_vm->_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_compressedFileSoundHandle, Audio::makeMP3Stream(file, true));
+		_vm->_mixer->playStream(Audio::Mixer::kSFXSoundType, &_compressedFileSoundHandle, Audio::makeMP3Stream(file, DisposeAfterUse::YES));
 		return;
 	}
 #endif
@@ -1211,6 +1206,8 @@ void SmushPlayer::play(const char *filename, int32 speed, int32 offset, int32 st
 			timerCallback();
 		}
 
+		_vm->scummLoop_handleSound();
+
 		if (_warpNeeded) {
 			_vm->_system->warpMouse(_warpX, _warpY);
 			_warpNeeded = false;
@@ -1218,19 +1215,7 @@ void SmushPlayer::play(const char *filename, int32 speed, int32 offset, int32 st
 		_vm->parseEvents();
 		_vm->processInput();
 		if (_palDirtyMax >= _palDirtyMin) {
-			byte palette_colors[1024];
-			byte *p = palette_colors;
-
-			for (int i = _palDirtyMin; i <= _palDirtyMax; i++) {
-				byte *data = _pal + i * 3;
-
-				*p++ = data[0];
-				*p++ = data[1];
-				*p++ = data[2];
-				*p++ = 0;
-			}
-
-			_vm->_system->setPalette(palette_colors, _palDirtyMin, _palDirtyMax - _palDirtyMin + 1);
+			_vm->_system->getPaletteManager()->setPalette(_pal + _palDirtyMin * 3, _palDirtyMin, _palDirtyMax - _palDirtyMin + 1);
 
 			_palDirtyMax = -1;
 			_palDirtyMin = 256;

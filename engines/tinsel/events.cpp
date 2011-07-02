@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Main purpose is to process user events.
  * Also provides a couple of utility functions.
  */
@@ -52,14 +49,16 @@ namespace Tinsel {
 //----------------- EXTERNAL FUNCTIONS ---------------------
 
 // in PDISPLAY.C
-extern int GetTaggedActor(void);
-extern HPOLYGON GetTaggedPoly(void);
+extern int GetTaggedActor();
+extern HPOLYGON GetTaggedPoly();
 
 //----------------- EXTERNAL GLOBAL DATA ---------------------
 
 extern bool bEnableMenu;
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static uint32 lastUserEvent = 0;	// Time it hapenned
 static int leftEvents = 0;		// Single or double, left or right. Or escape key.
@@ -78,12 +77,12 @@ static bool bProvNotProcessed = false;
  * Gets called before each schedule, only 1 user action per schedule
  * is allowed.
  */
-void ResetEcount(void) {
+void ResetEcount() {
 	eCount = 0;
 }
 
 
-void IncUserEvents(void) {
+void IncUserEvents() {
 	userEvents++;
 	lastUserEvent = DwGetCurrentTime();
 }
@@ -101,7 +100,7 @@ void AllowDclick(CORO_PARAM, PLR_EVENT be) {
 	CORO_BEGIN_CODE(_ctx);
 	if (be == PLR_SLEFT) {
 		GetToken(TOKEN_LEFT_BUT);
-		CORO_SLEEP(dclickSpeed+1);
+		CORO_SLEEP(_vm->_config->_dclickSpeed+1);
 		FreeToken(TOKEN_LEFT_BUT);
 
 		// Prevent activation of 2 events on the same tick
@@ -120,7 +119,7 @@ void AllowDclick(CORO_PARAM, PLR_EVENT be) {
 /**
  * Re-enables user control
  */
-void ControlOn(void) {
+void ControlOn() {
 	if (!TinselV2) {
 		Control(CONTROL_ON);
 		return;
@@ -150,7 +149,7 @@ void ControlOn(void) {
 /**
  * Takes control from the user
  */
-void ControlOff(void) {
+void ControlOff() {
 	if (!TinselV2) {
 		Control(CONTROL_ON);
 		return;
@@ -176,7 +175,7 @@ void ControlOff(void) {
 /**
  * Prevent tags and cursor re-appearing
  */
-void ControlStartOff(void) {
+void ControlStartOff() {
 	if (!TinselV2) {
 		Control(CONTROL_STARTOFF);
 		return;
@@ -211,7 +210,7 @@ bool GetControl(int param) {
 		return false;
 }
 
-bool GetControl(void) {
+bool GetControl() {
 	if (controlState == CONTROL_ON) {
 		ControlOff();
 		return true;
@@ -219,7 +218,7 @@ bool GetControl(void) {
 		return false;
 }
 
-bool ControlIsOn(void) {
+bool ControlIsOn() {
 	if (TinselV2)
 		return (controlState == CONTROL_ON);
 
@@ -329,7 +328,7 @@ static void ProcessUserEvent(TINSEL_EVENT uEvent, const Common::Point &coOrds, P
  * ProcessButEvent
  */
 void ProcessButEvent(PLR_EVENT be) {
-	if (bSwapButtons) {
+	if (_vm->_config->_swapButtons) {
 		switch (be) {
 		case PLR_SLEFT:
 			be = PLR_SRIGHT;
@@ -393,7 +392,7 @@ void PlayerEvent(PLR_EVENT pEvent, const Common::Point &coOrds) {
 		"PLR_JUMP", "PLR_NOEVENT"};
 	debugC(DEBUG_BASIC, kTinselDebugActions, "%s - (%d,%d)",
 		actionList[pEvent], coOrds.x, coOrds.y);
-	static uint32 lastRealAction = 0;
+	static uint32 lastRealAction = 0;	// FIXME: Avoid non-const global vars
 
 	// This stuff to allow F1 key during startup.
 	if (bEnableMenu && pEvent == PLR_MENU)
@@ -484,14 +483,14 @@ void PlayerEvent(PLR_EVENT pEvent, const Common::Point &coOrds) {
 /**
  * For ESCapable Glitter sequences
  */
-int GetEscEvents(void) {
+int GetEscEvents() {
 	return escEvents;
 }
 
 /**
  * For cutting short talk()s etc.
  */
-int GetLeftEvents(void) {
+int GetLeftEvents() {
 	return leftEvents;
 }
 
@@ -506,15 +505,15 @@ bool LeftEventChange(int myleftEvent) {
 /**
  * For waitkey() Glitter function
  */
-int getUserEvents(void) {
+int getUserEvents() {
 	return userEvents;
 }
 
-uint32 getUserEventTime(void) {
+uint32 getUserEventTime() {
 	return DwGetCurrentTime() - lastUserEvent;
 }
 
-void resetUserEventTime(void) {
+void resetUserEventTime() {
 	lastUserEvent = DwGetCurrentTime();
 }
 
@@ -605,28 +604,30 @@ void PolyTinselProcess(CORO_PARAM, const void *param) {
 void PolygonEvent(CORO_PARAM, HPOLYGON hPoly, TINSEL_EVENT tEvent, int actor, bool bWait,
 				  int myEscape, bool *result) {
 	CORO_BEGIN_CONTEXT;
-		PTP_INIT to;
 		PPROCESS pProc;
 	CORO_END_CONTEXT(_ctx);
 
 	CORO_BEGIN_CODE(_ctx);
 
-	if (result) *result = false;
-	_ctx->to.hPoly = -1;
-	_ctx->to.event = tEvent;
-	_ctx->to.pic = InitInterpretContext(GS_POLYGON,
+	PTP_INIT to;
+
+	if (result)
+		*result = false;
+	to.hPoly = -1;
+	to.event = tEvent;
+	to.pic = InitInterpretContext(GS_POLYGON,
 			GetPolyScript(hPoly),
 			tEvent,
 			hPoly,			// Polygon
 			actor,			// Actor
 			NULL,			// No Object
 			myEscape);
-	if (_ctx->to.pic != NULL) {
-		_ctx->pProc = g_scheduler->createProcess(PID_TCODE, PolyTinselProcess, &_ctx->to, sizeof(_ctx->to));
-		AttachInterpret(_ctx->to.pic, _ctx->pProc);
+	if (to.pic != NULL) {
+		_ctx->pProc = g_scheduler->createProcess(PID_TCODE, PolyTinselProcess, &to, sizeof(to));
+		AttachInterpret(to.pic, _ctx->pProc);
 
 		if (bWait)
-			CORO_INVOKE_2(WaitInterpret,_ctx->pProc, result);
+			CORO_INVOKE_2(WaitInterpret, _ctx->pProc, result);
 	}
 
 	CORO_END_CODE;
@@ -653,14 +654,14 @@ void effRunPolyTinselCode(HPOLYGON hPoly, TINSEL_EVENT event, int actor) {
  *  If provisional event was processed, calling this prevents the
  * subsequent 'real' event.
  */
-void ProcessedProvisional(void) {
+void ProcessedProvisional() {
 	bProvNotProcessed = false;
 }
 
 /**
  * Resets the bProvNotProcessed flag
  */
-void ProvNotProcessed(void) {
+void ProvNotProcessed() {
 	bProvNotProcessed = true;
 }
 
@@ -668,4 +669,4 @@ bool GetProvNotProcessed() {
 	return bProvNotProcessed;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

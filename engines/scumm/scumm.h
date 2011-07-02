@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_H
@@ -32,25 +29,51 @@
 #include "common/file.h"
 #include "common/savefile.h"
 #include "common/keyboard.h"
+#include "common/random.h"
 #include "common/rect.h"
 #include "common/str.h"
+#include "common/textconsole.h"
 #include "graphics/surface.h"
+#include "graphics/sjis.h"
 
 #include "scumm/gfx.h"
 #include "scumm/detection.h"
 #include "scumm/script.h"
 
-#include "sound/mididrv.h"
+#include "audio/mididrv.h"
+
+#ifdef __DS__
+/* This disables the dual layer mode which is used in FM-Towns versions
+ * of SCUMM games and which emulates the behavior of the original code.
+ * The only purpose is code size reduction for certain backends.
+ * SCUMM 3 (FM-Towns) games will run in normal (DOS VGA) mode, which should
+ * work just fine in most situations. Some glitches might occur. SCUMM 5 games
+ * will not work without dual layer (and 16 bit color) support.
+ */
+#define DISABLE_TOWNS_DUAL_LAYER_MODE
+#endif
 
 namespace GUI {
-	class Dialog;
+class Dialog;
 }
 using GUI::Dialog;
 namespace Common {
-	class SeekableReadStream;
-	class WriteStream;
+class SeekableReadStream;
+class WriteStream;
 }
 
+/**
+ * This is the namespace of the SCUMM engine.
+ *
+ * Status of this engine:
+ * Complete support for all SCUMM based LucasArts adventures.
+ * Complete support for many Humongous Entertainment games,
+ * but for some of the newer ones, this is still work in progress.
+ *
+ * Games using this engine:
+ * - Classic 2D LucasArts adventures
+ * - numerous Humongous Entertainment games
+ */
 namespace Scumm {
 
 class Actor;
@@ -61,6 +84,7 @@ class CharsetRenderer;
 class IMuse;
 class IMuseDigital;
 class MusicEngine;
+class Player_Towns;
 class ScummEngine;
 class ScummDebugger;
 class Serializer;
@@ -144,17 +168,6 @@ enum {
 	DEBUG_SMUSH	=	1 << 10		// Track SMUSH
 };
 
-/**
- * Internal header for any memory block allocated by the resource manager.
- *
- * @todo Hide MemBlkHeader; no code outside the resource manager should
- * have to use it, ever. Currently script code needs it to detect whether
- * some scripts have moved (in fetchScriptByte()).
- */
-struct MemBlkHeader {
-	uint32 size;
-};
-
 struct VerbSlot;
 struct ObjectData;
 
@@ -215,7 +228,7 @@ enum ScummGameId {
 	GID_TENTACLE,
 	GID_ZAK,
 
-	GID_HEGAME,      // Generic name for all HE games with default behaviour
+	GID_HEGAME,      // Generic name for all HE games with default behavior
 	GID_PUTTDEMO,
 	GID_FBEAR,
 	GID_PUTTMOON,
@@ -227,6 +240,9 @@ enum ScummGameId {
 	GID_FUNSHOP,	// Used for all three funshops
 	GID_FOOTBALL,
 	GID_SOCCER,
+	GID_SOCCERMLS,
+	GID_SOCCER2004,
+	GID_BASEBALL2001,
 	GID_BASKETBALL,
 	GID_MOONBASE,
 	GID_HECUP		// CUP demos
@@ -281,24 +297,7 @@ enum WhereIsObject {
 	WIO_FLOBJECT = 4
 };
 
-struct AuxBlock {
-	bool visible;
-	Common::Rect r;
-
-	void reset() {
-		visible = false;
-		r.left = r.top = 0;
-		r.right = r.bottom = -1;
-	}
-};
-
-struct AuxEntry {
-	int actorNum;
-	int subIndex;
-};
-
-// TODO: Rename InfoStuff to something more descriptive
-struct InfoStuff {
+struct SaveStateMetaInfos {
 	uint32 date;
 	uint16 time;
 	uint32 playtime;
@@ -309,7 +308,8 @@ struct InfoStuff {
  * WARNING: Do not change the order of these, as the savegame format relies
  * on it; any change made here will break savegame compatibility!
  */
-enum ResTypes {
+enum ResType {
+	rtInvalid = 0,
 	rtFirst = 1,
 	rtRoom = 1,
 	rtScript = 2,
@@ -332,75 +332,12 @@ enum ResTypes {
 	rtImage = 19,
 	rtTalkie = 20,
 	rtSpoolBuffer = 21,
-	rtLast = 21,
-	rtNumTypes = 22
+	rtLast = 21
 };
 
-enum {
-	RES_INVALID_OFFSET = 0xFFFFFFFF
-};
+typedef uint16 ResId;
 
-/**
- * The 'resource manager' class. Currently doesn't really deserve to be called
- * a 'class', at least until somebody gets around to OOfying this more.
- */
-class ResourceManager {
-	//friend class ScummDebugger;
-	//friend class ScummEngine;
-protected:
-	ScummEngine *_vm;
-
-public:
-	byte mode[rtNumTypes];
-	uint16 num[rtNumTypes];
-	uint32 tags[rtNumTypes];
-	const char *name[rtNumTypes];
-	byte **address[rtNumTypes];
-protected:
-	byte *flags[rtNumTypes];
-	byte *status[rtNumTypes];
-public:
-	byte *roomno[rtNumTypes];
-	uint32 *roomoffs[rtNumTypes];
-	uint32 *globsize[rtNumTypes];
-
-protected:
-	uint32 _allocatedSize;
-	uint32 _maxHeapThreshold, _minHeapThreshold;
-	byte _expireCounter;
-
-public:
-	ResourceManager(ScummEngine *vm);
-	~ResourceManager();
-
-	void setHeapThreshold(int min, int max);
-
-	void allocResTypeData(int id, uint32 tag, int num, const char *name, int mode);
-	void freeResources();
-
-	byte *createResource(int type, int index, uint32 size);
-	void nukeResource(int type, int i);
-
-	bool isResourceLoaded(int type, int index) const;
-
-	void lock(int type, int i);
-	void unlock(int type, int i);
-	bool isLocked(int type, int i) const;
-
-	void setModified(int type, int i);
-	bool isModified(int type, int i) const;
-
-	void increaseExpireCounter();
-	void setResourceCounter(int type, int index, byte flag);
-	void increaseResourceCounter();
-
-	void resourceStats();
-
-//protected:
-	bool validateResource(const char *str, int type, int index) const;
-protected:
-	void expireResources(uint32 size);
-};
+class ResourceManager;
 
 /**
  * Base class for all SCUMM engines.
@@ -417,6 +354,7 @@ public:
 	IMuse *_imuse;
 	IMuseDigital *_imuseDigital;
 	MusicEngine *_musicEngine;
+	Player_Towns *_townsPlayer;
 	Sound *_sound;
 
 	VerbSlot *_verbs;
@@ -452,7 +390,7 @@ public:
 	virtual Common::Error run() {
 		Common::Error err;
 		err = init();
-		if (err != Common::kNoError)
+		if (err.getCode() != Common::kNoError)
 			return err;
 		return go();
 	}
@@ -463,7 +401,7 @@ public:
 
 	virtual Common::Error loadGameState(int slot);
 	virtual bool canLoadGameStateCurrently();
-	virtual Common::Error saveGameState(int slot, const char *desc);
+	virtual Common::Error saveGameState(int slot, const Common::String &desc);
 	virtual bool canSaveGameStateCurrently();
 
 	virtual void pauseEngineIntern(bool pause);
@@ -521,7 +459,6 @@ protected:
 	Dialog *_pauseDialog;
 	Dialog *_messageDialog;
 	Dialog *_versionDialog;
-	Dialog *_scummMenuDialog;
 
 	virtual int runDialog(Dialog &dialog);
 	void confirmExitDialog();
@@ -529,7 +466,6 @@ protected:
 	void pauseDialog();
 	void messageDialog(const char *message);
 	void versionDialog();
-	void scummMenuDialog();
 
 	char displayMessage(const char *altButton, const char *message, ...) GCC_PRINTF(3, 4);
 
@@ -567,6 +503,7 @@ protected:
 
 	bool _v0ObjectIndex;			// V0 Use object index, instead of object number
 	bool _v0ObjectInInventory;		// V0 Use object number from inventory
+	byte _v0ObjectFlag;
 
 	/* Global resource tables */
 	int _numVariables, _numBitVariables, _numLocalObjects;
@@ -603,7 +540,7 @@ public:
 
 	FilenamePattern _filenamePattern;
 
-	Common::String generateFilename(const int room) const;
+	virtual Common::String generateFilename(const int room) const;
 
 protected:
 	Common::KeyState _keyPressed;
@@ -634,16 +571,16 @@ protected:
 	byte _saveLoadFlag, _saveLoadSlot;
 	uint32 _lastSaveTime;
 	bool _saveTemporaryState;
-	char _saveLoadFileName[32];
-	char _saveLoadName[32];
+	Common::String _saveLoadFileName;
+	Common::String _saveLoadDescription;
 
 	bool saveState(Common::OutSaveFile *out, bool writeHeader = true);
 	bool saveState(int slot, bool compat);
 	bool loadState(int slot, bool compat);
 	virtual void saveOrLoad(Serializer *s);
-	void saveLoadResource(Serializer *ser, int type, int index);	// "Obsolete"
-	void saveResource(Serializer *ser, int type, int index);
-	void loadResource(Serializer *ser, int type, int index);
+	void saveResource(Serializer *ser, ResType type, ResId idx);
+	void loadResource(Serializer *ser, ResType type, ResId idx);
+	void loadResourceOLD(Serializer *ser, ResType type, ResId idx);	// "Obsolete"
 
 	Common::String makeSavegameName(int slot, bool temporary) const {
 		return makeSavegameName(_targetName, slot, temporary);
@@ -657,7 +594,7 @@ public:
 	bool getSavegameName(int slot, Common::String &desc);
 	void listSavegames(bool *marks, int num);
 
-	void requestSave(int slot, const char *name);
+	void requestSave(int slot, const Common::String &name);
 	void requestLoad(int slot);
 
 // thumbnail + info stuff
@@ -667,25 +604,21 @@ public:
 	}
 	static Graphics::Surface *loadThumbnailFromSlot(const char *target, int slot);
 
-	bool loadInfosFromSlot(int slot, InfoStuff *stuff) {
-		return loadInfosFromSlot(_targetName.c_str(), slot, stuff);
-	}
-	static bool loadInfosFromSlot(const char *target, int slot, InfoStuff *stuff);
+	static bool loadInfosFromSlot(const char *target, int slot, SaveStateMetaInfos *stuff);
 
 protected:
 	void saveInfos(Common::WriteStream* file);
-	static bool loadInfos(Common::SeekableReadStream *file, InfoStuff *stuff);
-
-	int32 _engineStartTime;
-	int32 _pauseStartTime;
+	static bool loadInfos(Common::SeekableReadStream *file, SaveStateMetaInfos *stuff);
 
 protected:
 	/* Script VM - should be in Script class */
 	uint32 _localScriptOffsets[1024];
-	const byte *_scriptPointer, *_scriptOrgPointer;
-	byte _opcode, _currentScript;
+	const byte *_scriptPointer;
+	const byte *_scriptOrgPointer;
 	const byte * const *_lastCodePtr;
-	int _resultVarNumber, _scummStackPos;
+	byte _opcode;
+	byte _currentScript;
+	int _scummStackPos;
 	int _vmStack[150];
 
 	OpcodeEntry _opcodes[256];
@@ -731,9 +664,10 @@ protected:
 	void stopObjectScript(int script);
 
 	void getScriptBaseAddress();
-	void getScriptEntryPoint();
+	void resetScriptPointer();
 	int getVerbEntrypoint(int obj, int entry);
 
+	void refreshScriptPointer();
 	byte fetchScriptByte();
 	virtual uint fetchScriptWord();
 	virtual int fetchScriptWordSigned();
@@ -741,8 +675,6 @@ protected:
 	int fetchScriptDWordSigned();
 	void ignoreScriptWord() { fetchScriptWord(); }
 	void ignoreScriptByte() { fetchScriptByte(); }
-	virtual void getResultPos();
-	void setResult(int result);
 	void push(int a);
 	int pop();
 	virtual int readVar(uint var);
@@ -755,7 +687,7 @@ protected:
 	void endOverride();
 
 	void copyScriptString(byte *dst);
-	int resStrLen(const byte *src) const;
+	int resStrLen(const byte *src);
 	void doSentence(int c, int b, int a);
 
 	/* Should be in Resource class */
@@ -770,8 +702,6 @@ public:
 protected:
 	int _resourceHeaderSize;
 	byte _resourceMapper[128];
-	byte *_heV7DiskOffsets;
-	uint32 *_heV7RoomIntOffsets;
 	const byte *_resourceLastSearchBuf; // FIXME: need to put it to savefile?
 	uint32 _resourceLastSearchSize;    // FIXME: need to put it to savefile?
 
@@ -783,25 +713,26 @@ protected:
 	void askForDisk(const char *filename, int disknum);	// TODO: Use Common::String
 	bool openResourceFile(const Common::String &filename, byte encByte);	// TODO: Use Common::String
 
-	void loadPtrToResource(int type, int i, const byte *ptr);
-	virtual void readResTypeList(int id);
-//	void allocResTypeData(int id, uint32 tag, int num, const char *name, int mode);
+	void loadPtrToResource(ResType type, ResId idx, const byte *ptr);
+	virtual int readResTypeList(ResType type);
+//	void allocResTypeData(ResType type, uint32 tag, int num, int mode);
 //	byte *createResource(int type, int index, uint32 size);
-	int loadResource(int type, int i);
-//	void nukeResource(int type, int i);
-	int getResourceSize(int type, int idx);
+	int loadResource(ResType type, ResId idx);
+//	void nukeResource(ResType type, ResId idx);
+	int getResourceRoomNr(ResType type, ResId idx);
+	virtual uint32 getResourceRoomOffset(ResType type, ResId idx);
+	int getResourceSize(ResType type, ResId idx);
 
 public:
-	byte *getResourceAddress(int type, int i);
-	virtual byte *getStringAddress(int i);
+	byte *getResourceAddress(ResType type, ResId idx);
+	virtual byte *getStringAddress(ResId idx);
 	byte *getStringAddressVar(int i);
-	void ensureResourceLoaded(int type, int i);
-	int getResourceRoomNr(int type, int index);
+	void ensureResourceLoaded(ResType type, ResId idx);
 
 protected:
-	int readSoundResource(int index);
-	int readSoundResourceSmallHeader(int index);
-	bool isResourceInUse(int type, int i) const;
+	int readSoundResource(ResId idx);
+	int readSoundResourceSmallHeader(ResId idx);
+	bool isResourceInUse(ResType type, ResId idx) const;
 
 	virtual void setupRoomSubBlocks();
 	virtual void resetRoomSubBlocks();
@@ -873,8 +804,9 @@ protected:
 	void findObjectInRoom(FindObjectInRoom *fo, byte findWhat, uint object, uint room);
 public:
 	int getObjectOrActorXY(int object, int &x, int &y);	// Used in actor.cpp, hence public
+	int getDist(int x, int y, int x2, int y2);	// Also used in actor.cpp
 protected:
-	int getDist(int x, int y, int x2, int y2);
+
 	int getObjActToObjActDist(int a, int b); // Not sure how to handle
 	const byte *getObjOrActorName(int obj);		 // these three..
 	void setObjectName(int obj);
@@ -951,8 +883,6 @@ public:
 	// Generic costume code
 	bool isCostumeInUse(int i) const;
 
-	Common::Rect _actorClipOverride;	// HE specific
-
 protected:
 	/* Should be in Graphics class? */
 	uint16 _screenB, _screenH;
@@ -966,6 +896,8 @@ public:
 	int _screenTop;
 
 	Common::RenderMode _renderMode;
+	uint8 _bytesPerPixel;
+	Graphics::PixelFormat _outputPixelFormat;
 
 protected:
 	ColorCycle _colorCycle[16];	// Palette cycles
@@ -985,7 +917,10 @@ protected:
 		byte animate, animateIndex;
 		int8 state;
 	} _cursor;
-	byte _grabbedCursor[8192];
+
+	// HACK Double the array size to handle 16-bit images.
+	// this should be dynamically allocated based on game depth instead.
+	byte _grabbedCursor[16384];
 	byte _currentCursor;
 
 	byte _newEffect, _switchRoomEffect2, _switchRoomEffect;
@@ -1028,19 +963,14 @@ protected:
 
 	const byte *getPalettePtr(int palindex, int room);
 
-	void setC64Palette();
-	void setNESPalette();
-	void setAmigaPalette();
-	void setHercPalette();
-	void setCGAPalette();
-	void setEGAPalette();
-	void setV1Palette();
-
+	void setPaletteFromTable(const byte *ptr, int numcolor, int firstIndex = 0);
 	void resetPalette();
 
 	void setCurrentPalette(int pal);
 	void setRoomPalette(int pal, int room);
+	void setPCEPaletteFromPtr(const byte *ptr);
 	virtual void setPaletteFromPtr(const byte *ptr, int numcolor = -1);
+
 	virtual void setPalColor(int index, int r, int g, int b);
 	void setDirtyColors(int min, int max);
 	const byte *findPalInPals(const byte *pal, int index);
@@ -1051,8 +981,12 @@ protected:
 	virtual void palManipulateInit(int resID, int start, int end, int time);
 	void palManipulate();
 public:
-	int convert16BitColor(uint16 color, uint8 r, uint8 g, uint8 b);
+	uint8 *getHEPaletteSlot(uint16 palSlot);
+	uint16 get16BitColor(uint8 r, uint8 g, uint8 b);
 	int remapPaletteColor(int r, int g, int b, int threshold);		// Used by Actor::remapActorPalette
+	void readPCEPalette(const byte **ptr, byte **dest, int numEntries);
+	void colorPCEToRGB(uint16 color, byte *r, byte *g, byte *b);
+	void setPCETextPalette(uint8 color);
 protected:
 	void moveMemInPalRes(int start, int end, byte direction);
 	void setShadowPalette(int slot, int redScale, int greenScale, int blueScale, int startColor, int endColor);
@@ -1070,7 +1004,7 @@ protected:
 	// Screen rendering
 	byte *_compositeBuf;
 	byte *_herculesBuf;
-	byte *_fmtownsBuf;
+
 	virtual void drawDirtyScreenParts();
 	void updateDirtyScreen(VirtScreenNumber slot);
 	void drawStripToScreen(VirtScreen *vs, int x, int w, int t, int b);
@@ -1127,7 +1061,8 @@ public:
 	// HE specific
 	byte _HEV7ActorPalette[256];
 	uint8 *_hePalettes;
-	int16 *_hePaletteCache;
+	uint16 _hePaletteSlot;
+	uint16 *_16BitPalette;
 
 protected:
 	int _shadowPaletteSize;
@@ -1144,7 +1079,6 @@ protected:
 	bool _haveActorSpeechMsg;
 	bool _useTalkAnims;
 	uint16 _defaultTalkDelay;
-	int _tempMusic;
 	int _saveSound;
 	bool _native_mt32;
 	bool _enable_gs;
@@ -1184,8 +1118,9 @@ protected:
 	void setBoxScaleSlot(int box, int slot);
 	void convertScaleTableToScaleSlot(int slot);
 
+	void calcItineraryMatrix(byte *itineraryMatrix, int num);
 	void createBoxMatrix();
-	bool areBoxesNeighbours(int i, int j);
+	virtual bool areBoxesNeighbors(int i, int j);
 
 	/* String class */
 public:
@@ -1220,6 +1155,7 @@ protected:
 
 	virtual bool handleNextCharsetCode(Actor *a, int *c);
 	virtual void CHARSET_1();
+	bool newLine();
 	void drawString(int a, const byte *msg);
 	void debugMessage(const byte *msg);
 	void showMessageDialog(const byte *msg);
@@ -1389,6 +1325,40 @@ public:
 
 	// Exists both in V7 and in V72HE:
 	byte VAR_NUM_GLOBAL_OBJS;
+
+	// FM-Towns specific
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+public:
+	bool towns_isRectInStringBox(int x1, int y1, int x2, int y2);
+	byte _townsPaletteFlags;
+	byte _townsCharsetColorMap[16];
+	Graphics::FontSJIS *_cjkFont;
+	uint16 _cjkChar;
+
+protected:
+	void towns_drawStripToScreen(VirtScreen *vs, int dstX, int dstY, int srcX, int srcY, int w, int h);
+#ifdef USE_RGB_COLOR
+	void towns_setPaletteFromPtr(const byte *ptr, int numcolor = -1);
+	void towns_setTextPaletteFromPtr(const byte *ptr);
+#endif
+	void towns_setupPalCycleField(int x1, int y1, int x2, int y2);
+	void towns_processPalCycleField();
+	void towns_resetPalCycleFields();
+	void towns_restoreCharsetBg();
+
+	Common::Rect _cyclRects[16];
+	int _numCyclRects;
+
+	Common::Rect _curStringRect;
+
+	byte _townsOverrideShadowColor;
+	byte _textPalette[48];
+	byte _townsClearLayerFlag;
+	byte _townsActiveLayerFlags;
+	static const uint8 _townsLayer2Mask[];
+
+	TownsScreen *_townsScreen;
+#endif // DISABLE_TOWNS_DUAL_LAYER_MODE
 };
 
 } // End of namespace Scumm

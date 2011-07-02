@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-file.h"
 #include "common/file.h"
 #include "common/savefile.h"
 #include "common/system.h"
-#include "common/util.h"
+#include "common/textconsole.h"
 
 #define MAXLINELEN 256
 
@@ -41,7 +38,7 @@ namespace Common {
  */
 bool ConfigFile::isValidName(const Common::String &name) {
 	const char *p = name.c_str();
-	while (*p && (isalnum(*p) || *p == '-' || *p == '_' || *p == '.'))
+	while (*p && (isalnum(static_cast<unsigned char>(*p)) || *p == '-' || *p == '_' || *p == '.'))
 		p++;
 	return *p == 0;
 }
@@ -95,10 +92,11 @@ bool ConfigFile::loadFromStream(SeekableReadStream &stream) {
 
 		if (line.size() == 0) {
 			// Do nothing
-		} else if (line[0] == '#') {
+		} else if (line[0] == '#' || line[0] == ';' || line.hasPrefix("//")) {
 			// Accumulate comments here. Once we encounter either the start
 			// of a new section, or a key-value-pair, we associate the value
-			// of the 'comment' variable with that entity.
+			// of the 'comment' variable with that entity. The semicolon and
+			// C++-style comments are used for Living Books games in Mohawk.
 			comment += line;
 			comment += "\n";
 		} else if (line[0] == '(') {
@@ -116,14 +114,15 @@ bool ConfigFile::loadFromStream(SeekableReadStream &stream) {
 			const char *p = line.c_str() + 1;
 			// Get the section name, and check whether it's valid (that
 			// is, verify that it only consists of alphanumerics,
-			// dashes and underscores).
-			while (*p && (isalnum(*p) || *p == '-' || *p == '_'))
+			// periods, dashes and underscores). Mohawk Living Books games
+			// can have periods in their section names.
+			while (*p && (isalnum(static_cast<unsigned char>(*p)) || *p == '-' || *p == '_' || *p == '.'))
 				p++;
 
 			if (*p == '\0')
 				error("ConfigFile::loadFromStream: missing ] in line %d", lineno);
 			else if (*p != ']')
-				error("ConfigFile::loadFromStream: Invalid character '%c' occured in section name in line %d", *p, lineno);
+				error("ConfigFile::loadFromStream: Invalid character '%c' occurred in section name in line %d", *p, lineno);
 
 			// Previous section is finished now, store it.
 			if (!section.name.empty())
@@ -140,7 +139,7 @@ bool ConfigFile::loadFromStream(SeekableReadStream &stream) {
 
 			// Skip leading whitespaces
 			const char *t = line.c_str();
-			while (isspace(*t))
+			while (isspace(static_cast<unsigned char>(*t)))
 				t++;
 
 			// Skip empty lines / lines with only whitespace

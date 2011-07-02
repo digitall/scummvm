@@ -18,12 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include <time.h>	// for ScummEngine_v6::o6_getDateTime()
 
 #include "common/config-manager.h"
 #include "common/system.h"
@@ -43,9 +38,6 @@
 #include "scumm/sound.h"
 #include "scumm/util.h"
 #include "scumm/verbs.h"
-
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
 
 namespace Scumm {
 
@@ -365,11 +357,11 @@ void ScummEngine_v6::nukeArray(int a) {
 }
 
 int ScummEngine_v6::findFreeArrayId() {
-	byte **addr = _res->address[rtString];
+	const ResourceManager::ResTypeData &rtd = _res->_types[rtString];
 	int i;
 
 	for (i = 1; i < _numArray; i++) {
-		if (!addr[i])
+		if (!rtd[i]._address)
 			return i;
 	}
 	error("Out of array pointers, %d max", _numArray);
@@ -383,15 +375,17 @@ ScummEngine_v6::ArrayHeader *ScummEngine_v6::getArray(int array) {
 	if (!ah)
 		return 0;
 
-	// Workaround for a long standing bug where we saved array headers in native
-	// endianness, instead of a fixed endianness. We now always store the
-	// dimensions in little endian byte order. But to stay compatible with older
-	// savegames, we try to detect savegames which were created on a big endian
-	// system and convert them to the proper little endian format on the fly.
-	if ((FROM_LE_16(ah->dim1) & 0xF000) || (FROM_LE_16(ah->dim2) & 0xF000) || (FROM_LE_16(ah->type) & 0xFF00)) {
-		SWAP16(ah->dim1);
-		SWAP16(ah->dim2);
-		SWAP16(ah->type);
+	if (_game.heversion == 0) {
+		// Workaround for a long standing bug where we saved array headers in native
+		// endianness, instead of a fixed endianness. We now always store the
+		// dimensions in little endian byte order. But to stay compatible with older
+		// savegames, we try to detect savegames which were created on a big endian
+		// system and convert them to the proper little endian format on the fly.
+		if ((FROM_LE_16(ah->dim1) & 0xF000) || (FROM_LE_16(ah->dim2) & 0xF000) || (FROM_LE_16(ah->type) & 0xFF00)) {
+			SWAP16(ah->dim1);
+			SWAP16(ah->dim2);
+			SWAP16(ah->type);
+		}
 	}
 
 	return ah;
@@ -538,7 +532,18 @@ void ScummEngine_v6::o6_not() {
 }
 
 void ScummEngine_v6::o6_eq() {
-	push(pop() == pop());
+	int a = pop();
+	int b = pop();
+
+	// WORKAROUND: Forces the game version string set via script 1 to be used in both Macintosh and Windows versions,
+	// when checking for save game compatibility. Allows saved games to be shared between Macintosh and Windows versions.
+	// The scripts check VAR_PLATFORM (b) against the value (2) of the Macintosh platform (a).
+	if (_game.id == GID_BASEBALL2001 && (vm.slot[_currentScript].number == 291 || vm.slot[_currentScript].number == 292) &&
+		a == 2 && b == 1) {
+		push(1);
+	} else {
+		push(a == b);
+	}
 }
 
 void ScummEngine_v6::o6_neq() {
@@ -702,12 +707,12 @@ void ScummEngine_v6::o6_ifNot() {
 void ScummEngine_v6::o6_jump() {
 	int offset = fetchScriptWordSigned();
 
-	// WORKAROUND bug #2826144: Talking to the guard at the bigfoot party, after 
+	// WORKAROUND bug #2826144: Talking to the guard at the bigfoot party, after
 	// he's let you inside, will cause the game to hang, if you end the conversation.
 	// This is a script bug, due to a missing jump in one segment of the script.
 	if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 101 && readVar(0x8000 + 97) == 1 && offset == 1) {
 		offset = -18;
-	} 
+	}
 
 	_scriptPointer += offset;
 }
@@ -745,6 +750,27 @@ void ScummEngine_v6::o6_startScript() {
 		actorTalk((const byte *)"/VDSO325/Whoa! Look at the time. Gotta scoot.");
 
 		return;
+	}
+
+	// WORKAROUND bug #1878514: When turning pages in the recipe book
+	// (found on Blood Island), there is a brief moment where it displays
+	// text from two different pages at the same time.
+	//
+	// The content of the books is drawing (in an endless loop) by local
+	// script 2007. Changing the page is handled by script 2006, which
+	// first stops script 2007; then switches the page; then restarts
+	// script 2007. But it fails to clear the blast texts beforehand.
+	// Hence, the next time blast text is drawn, both the old one (from
+	// the old instance of script 2007) and the new text (from the new
+	// instance) are briefly drawn simultaneously.
+	//
+	// This looks like a script bug to me (a missing call to clearTextQueue).
+	// But this could also hint at a subtle bug in ScummVM; we should check
+	// whether this bug occurs with the original engine or not.
+	if (_game.id == GID_CMI && script == 2007 &&
+		_currentRoom == 62 && vm.slot[_currentScript].number == 2006) {
+
+		removeBlastTexts();
 	}
 
 	runScript(script, (flags & 1) != 0, (flags & 2) != 0, args);
@@ -1199,11 +1225,11 @@ void ScummEngine_v6::o6_animateActor() {
 }
 
 void ScummEngine_v6::o6_doSentence() {
-	int verb, objectA, objectB, dummy = 0;
+	int verb, objectA, objectB;
 
 	objectB = pop();
 	if (_game.version < 8)
-		dummy = pop();	// dummy pop (in Sam&Max, seems to be always 0 or 130)
+		pop();	// dummy pop (in Sam&Max, seems to be always 0 or 130)
 	objectA = pop();
 	verb = pop();
 
@@ -1266,7 +1292,7 @@ void ScummEngine_v6::o6_loadRoomWithEgo() {
 
 void ScummEngine_v6::o6_getRandomNumber() {
 	int rnd;
-	rnd = _rnd.getRandomNumber(pop());
+	rnd = _rnd.getRandomNumber(ABS(pop()));
 	if (VAR_RANDOM_NR != 0xFF)
 		VAR(VAR_RANDOM_NR) = rnd;
 	push(rnd);
@@ -2940,7 +2966,7 @@ void ScummEngine_v6::o6_pickVarRandom() {
 }
 
 void ScummEngine_v6::o6_getDateTime() {
-	struct tm t;
+	TimeDate t;
 	_system->getTimeAndDate(t);
 
 	VAR(VAR_TIMEDATE_YEAR) = t.tm_year;
@@ -2956,7 +2982,7 @@ void ScummEngine_v6::o6_getDateTime() {
 void ScummEngine_v6::o6_getPixel() {
 	int x, y;
 
-	if (_game.heversion == 61) {
+	if (_game.heversion >= 61 && _game.heversion <= 62) {
 		x = pop();
 		y = pop();
 	} else {
@@ -2985,7 +3011,7 @@ void ScummEngine_v6::o6_setBoxSet() {
 
 	ResourceIterator boxds(room, false);
 	for (i = 0; i < arg; i++)
-		boxd = boxds.findNext(MKID_BE('BOXD'));
+		boxd = boxds.findNext(MKTAG('B','O','X','D'));
 
 	if (!boxd)
 		error("ScummEngine_v6::o6_setBoxSet: Can't find dboxes for set %d", arg);
@@ -2998,7 +3024,7 @@ void ScummEngine_v6::o6_setBoxSet() {
 
 	ResourceIterator boxms(room, false);
 	for (i = 0; i < arg; i++)
-		boxm = boxms.findNext(MKID_BE('BOXM'));
+		boxm = boxms.findNext(MKTAG('B','O','X','M'));
 
 	if (!boxm)
 		error("ScummEngine_v6::o6_setBoxSet: Can't find mboxes for set %d", arg);

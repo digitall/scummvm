@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Game detection, general game parameters
@@ -31,6 +28,7 @@
 
 #include "common/config-manager.h"
 #include "engines/advancedDetector.h"
+#include "engines/obsolete.h"
 #include "common/system.h"
 #include "graphics/thumbnail.h"
 
@@ -56,9 +54,9 @@ struct SAGAGameDescription {
 
 bool SagaEngine::isBigEndian() const { return isMacResources() && getGameId() == GID_ITE; }
 bool SagaEngine::isMacResources() const { return (getPlatform() == Common::kPlatformMacintosh); }
-const GameResourceDescription *SagaEngine::getResourceDescription() { return _gameDescription->resourceDescription; }
+const GameResourceDescription *SagaEngine::getResourceDescription() const { return _gameDescription->resourceDescription; }
 
-const GameFontDescription *SagaEngine::getFontDescription(int index) {
+const GameFontDescription *SagaEngine::getFontDescription(int index) const {
 	assert(index < _gameDescription->fontsCount);
 	return &_gameDescription->fontDescriptions[index];
 }
@@ -94,7 +92,7 @@ static const PlainGameDescriptor sagaGames[] = {
 	{0, 0}
 };
 
-static const ADObsoleteGameID obsoleteGameIDsTable[] = {
+static const Engines::ObsoleteGameID obsoleteGameIDsTable[] = {
 	{"ite", "saga", Common::kPlatformUnknown},
 	{"ihnm", "saga", Common::kPlatformUnknown},
 	{"dino", "saga", Common::kPlatformUnknown},
@@ -104,33 +102,18 @@ static const ADObsoleteGameID obsoleteGameIDsTable[] = {
 
 #include "saga/detection_tables.h"
 
-static const ADParams detectionParams = {
-	// Pointer to ADGameDescription or its superset structure
-	(const byte *)Saga::gameDescriptions,
-	// Size of that superset structure
-	sizeof(Saga::SAGAGameDescription),
-	// Number of bytes to compute MD5 sum for
-	5000,
-	// List of all engine targets
-	sagaGames,
-	// Structure for autoupgrading obsolete targets
-	obsoleteGameIDsTable,
-	// Name of single gameid (optional)
-	"saga",
-	// List of files for file-based fallback detection (optional)
-	0,
-	// Flags
-	0,
-	// Additional GUI options (for every game}
-	Common::GUIO_NONE
-};
-
 class SagaMetaEngine : public AdvancedMetaEngine {
 public:
-	SagaMetaEngine() : AdvancedMetaEngine(detectionParams) {}
+	SagaMetaEngine() : AdvancedMetaEngine(Saga::gameDescriptions, sizeof(Saga::SAGAGameDescription), sagaGames) {
+		_singleid = "saga";
+	}
+
+	virtual GameDescriptor findGame(const char *gameid) const {
+		return Engines::findGameID(gameid, _gameids, obsoleteGameIDsTable);
+	}
 
 	virtual const char *getName() const {
-		return "Saga engine ["
+		return "SAGA ["
 
 #if defined(ENABLE_IHNM) && defined(ENABLE_SAGA2)
 			"all games"
@@ -156,7 +139,13 @@ public:
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;
+
+	virtual Common::Error createInstance(OSystem *syst, Engine **engine) const {
+		Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
+		return AdvancedMetaEngine::createInstance(syst, engine);
+	}
 	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
+
 	virtual SaveStateList listSaves(const char *target) const;
 	virtual int getMaximumSaveSlot() const;
 	virtual void removeSaveState(const char *target, int slot) const;
@@ -190,7 +179,7 @@ bool SagaMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGame
 
 SaveStateList SagaMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringList filenames;
+	Common::StringArray filenames;
 	char saveDesc[SAVE_TITLE_SIZE];
 	Common::String pattern = target;
 	pattern += ".s??";
@@ -200,7 +189,7 @@ SaveStateList SagaMetaEngine::listSaves(const char *target) const {
 
 	SaveStateList saveList;
 	int slotNum = 0;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 2 digits of the filename, since they correspond to the save slot
 		slotNum = atoi(file->c_str() + file->size() - 2);
 
@@ -222,11 +211,8 @@ SaveStateList SagaMetaEngine::listSaves(const char *target) const {
 int SagaMetaEngine::getMaximumSaveSlot() const { return MAX_SAVES - 1; }
 
 void SagaMetaEngine::removeSaveState(const char *target, int slot) const {
-	char extension[6];
-	snprintf(extension, sizeof(extension), ".s%02d", slot);
-
 	Common::String filename = target;
-	filename += extension;
+	filename += Common::String::format(".s%02d", slot);;
 
 	g_system->getSavefileManager()->removeSavefile(filename);
 }
@@ -255,12 +241,12 @@ SaveStateDescriptor SagaMetaEngine::querySaveMetaInfos(const char *target, int s
 			version = SWAP_BYTES_32(version);
 		}
 
-		debug(2, "Save version: %x", version);
+		debug(2, "Save version: 0x%X", version);
 
 		if (version < 4)
 			warning("This savegame is not endian-safe. There may be problems");
 
-		if (type != MKID_BE('SAGA')) {
+		if (type != MKTAG('S','A','G','A')) {
 			error("SagaEngine::load wrong save game format");
 		}
 
@@ -338,7 +324,7 @@ const GameDisplayInfo &SagaEngine::getDisplayInfo() {
 #endif
 		default:
 			error("getDisplayInfo: Unknown game ID");
-			return ITE_DisplayInfo;		// unreachable
+			return ITE_DisplayInfo;		// for compilers that don't support NORETURN
 	}
 }
 
@@ -362,18 +348,19 @@ Common::Error SagaEngine::loadGameState(int slot) {
 	return Common::kNoError;	// TODO: return success/failure
 }
 
-Common::Error SagaEngine::saveGameState(int slot, const char *desc) {
-	save(calcSaveFileName((uint)slot), desc);
+Common::Error SagaEngine::saveGameState(int slot, const Common::String &desc) {
+	save(calcSaveFileName((uint)slot), desc.c_str());
 	return Common::kNoError;	// TODO: return success/failure
 }
 
 bool SagaEngine::canLoadGameStateCurrently() {
-	return !_scene->isInIntro();
+	return !_scene->isInIntro() &&
+		(_interface->getMode() == kPanelMain || _interface->getMode() == kPanelChapterSelection);
 }
 
 bool SagaEngine::canSaveGameStateCurrently() {
 	return !_scene->isInIntro() &&
-		   (_interface->getMode() == kPanelMain || _interface->getMode() == kPanelChapterSelection);
+		(_interface->getMode() == kPanelMain || _interface->getMode() == kPanelChapterSelection);
 }
 
 } // End of namespace Saga

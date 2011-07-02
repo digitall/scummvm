@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_OBJECT_H
@@ -30,7 +27,7 @@
 
 namespace Cine {
 
-struct objectStruct {
+struct ObjectStruct {
 	int16 x;
 	int16 y;
 	uint16 mask;
@@ -39,7 +36,7 @@ struct objectStruct {
 	char name[20];
 	uint16 part;
 
-	/*! \brief Sets all member variables to zero. */
+	/** Sets all member variables to zero. */
 	void clear() {
 		this->x = 0;
 		this->y = 0;
@@ -62,9 +59,6 @@ struct overlay {
 
 #define NUM_MAX_OBJECT 255
 #define NUM_MAX_VAR 255
-
-extern Common::Array<objectStruct> objectTable;
-extern Common::List<overlay> overlayList;
 
 void resetObjectTable();
 void loadObject(char *pObjectName);

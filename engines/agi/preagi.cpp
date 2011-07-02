@@ -18,28 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/file.h"
-#include "common/savefile.h"
 #include "common/config-manager.h"
+#include "common/debug-channels.h"
+#include "common/random.h"
+#include "common/textconsole.h"
 
-#include "base/plugins.h"
-#include "base/version.h"
-
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "audio/mididrv.h"
 
 #include "agi/preagi.h"
 #include "agi/graphics.h"
-#include "agi/sprite.h"
-#include "agi/opcodes.h"
-#include "agi/keyboard.h"
-#include "agi/menu.h"
-#include "agi/sound.h"
 
 // preagi engines
 #include "agi/preagi_mickey.h"
@@ -51,25 +40,22 @@ namespace Agi {
 PreAgiEngine::PreAgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBase(syst, gameDesc) {
 
 	// Setup mixer
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
+	syncSoundSettings();
 
-	_rnd = new Common::RandomSource();
-
-	Common::addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
-	Common::addDebugChannel(kDebugLevelResources, "Resources", "Resources debugging");
-	Common::addDebugChannel(kDebugLevelSprites, "Sprites", "Sprites debugging");
-	Common::addDebugChannel(kDebugLevelInventory, "Inventory", "Inventory debugging");
-	Common::addDebugChannel(kDebugLevelInput, "Input", "Input events debugging");
-	Common::addDebugChannel(kDebugLevelMenu, "Menu", "Menu debugging");
-	Common::addDebugChannel(kDebugLevelScripts, "Scripts", "Scripts debugging");
-	Common::addDebugChannel(kDebugLevelSound, "Sound", "Sound debugging");
-	Common::addDebugChannel(kDebugLevelText, "Text", "Text output debugging");
-	Common::addDebugChannel(kDebugLevelSavegame, "Savegame", "Saving & restoring game debugging");
+	DebugMan.addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
+	DebugMan.addDebugChannel(kDebugLevelResources, "Resources", "Resources debugging");
+	DebugMan.addDebugChannel(kDebugLevelSprites, "Sprites", "Sprites debugging");
+	DebugMan.addDebugChannel(kDebugLevelInventory, "Inventory", "Inventory debugging");
+	DebugMan.addDebugChannel(kDebugLevelInput, "Input", "Input events debugging");
+	DebugMan.addDebugChannel(kDebugLevelMenu, "Menu", "Menu debugging");
+	DebugMan.addDebugChannel(kDebugLevelScripts, "Scripts", "Scripts debugging");
+	DebugMan.addDebugChannel(kDebugLevelSound, "Sound", "Sound debugging");
+	DebugMan.addDebugChannel(kDebugLevelText, "Text", "Text output debugging");
+	DebugMan.addDebugChannel(kDebugLevelSavegame, "Savegame", "Saving & restoring game debugging");
 
 	memset(&_game, 0, sizeof(struct AgiGame));
 	memset(&_debug, 0, sizeof(struct AgiDebug));
-	memset(&g_mouse, 0, sizeof(struct Mouse));
+	memset(&_mouse, 0, sizeof(struct Mouse));
 }
 
 void PreAgiEngine::initialize() {
@@ -77,8 +63,8 @@ void PreAgiEngine::initialize() {
 	//       drivers, and I'm not sure what they are. For now, they might
 	//       as well be called "PC Speaker" and "Not PC Speaker".
 
-	switch (MidiDriver::detectMusicDriver(MDT_PCSPK)) {
-	case MD_PCSPK:
+	switch (MidiDriver::getMusicType(MidiDriver::detectDevice(MDT_PCSPK))) {
+	case MT_PCSPK:
 		_soundemu = SOUND_EMU_PC;
 		break;
 	default:
@@ -128,11 +114,8 @@ void PreAgiEngine::initialize() {
 	//_sound->initSound();
 
 	_speakerStream = new Audio::PCSpeaker(_mixer->getOutputRate());
-	_mixer->playInputStream(Audio::Mixer::kSFXSoundType, &_speakerHandle,
-							_speakerStream, -1, 255, 0, false, true);
-
-
-	//_timer->installTimerProc(agiTimerFunctionLow, 10 * 1000, NULL);
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, &_speakerHandle,
+							_speakerStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 
 	debugC(2, kDebugLevelMain, "Detect game");
 
@@ -192,6 +175,10 @@ Common::Error PreAgiEngine::go() {
 		break;
 	}
 	return Common::kNoError;
+}
+
+int PreAgiEngine::rnd(int hi) {
+	return (_rnd->getRandomNumber(hi - 1) + 1);
 }
 
 } // End of namespace Agi

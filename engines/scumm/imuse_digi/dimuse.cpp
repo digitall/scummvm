@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/system.h"
@@ -31,10 +28,12 @@
 #include "scumm/sound.h"
 #include "scumm/imuse_digi/dimuse.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_codecs.h"
 #include "scumm/imuse_digi/dimuse_track.h"
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
 
 namespace Scumm {
 
@@ -75,18 +74,20 @@ IMuseDigital::~IMuseDigital() {
 	free(_audioNames);
 }
 
-int32 IMuseDigital::makeMixerFlags(int32 flags) {
+static int32 makeMixerFlags(Track *track) {
+	const int32 flags = track->mixerFlags;
 	int32 mixerFlags = 0;
 	if (flags & kFlagUnsigned)
-		mixerFlags |= Audio::Mixer::FLAG_UNSIGNED;
+		mixerFlags |= Audio::FLAG_UNSIGNED;
 	if (flags & kFlag16Bits)
-		mixerFlags |= Audio::Mixer::FLAG_16BITS;
-	if (flags & kFlagLittleEndian)
-		mixerFlags |= Audio::Mixer::FLAG_LITTLE_ENDIAN;
+		mixerFlags |= Audio::FLAG_16BITS;
+
+#ifdef SCUMM_LITTLE_ENDIAN
+	if (track->sndDataExtComp)
+		mixerFlags |= Audio::FLAG_LITTLE_ENDIAN;
+#endif
 	if (flags & kFlagStereo)
-		mixerFlags |= Audio::Mixer::FLAG_STEREO;
-	if (flags & kFlagReverseStereo)
-		mixerFlags |= Audio::Mixer::FLAG_REVERSE_STEREO;
+		mixerFlags |= Audio::FLAG_STEREO;
 	return mixerFlags;
 }
 
@@ -187,7 +188,7 @@ void IMuseDigital::saveOrLoad(Serializer *ser) {
 			track->feedSize = freq * channels;
 			track->mixerFlags = 0;
 			if (channels == 2)
-				track->mixerFlags = kFlagStereo | kFlagReverseStereo;
+				track->mixerFlags = kFlagStereo;
 
 			if ((bits == 12) || (bits == 16)) {
 				track->mixerFlags |= kFlag16Bits;
@@ -197,14 +198,10 @@ void IMuseDigital::saveOrLoad(Serializer *ser) {
 			} else
 				error("IMuseDigital::saveOrLoad(): Can't handle %d bit samples", bits);
 
-#ifdef SCUMM_LITTLE_ENDIAN
-			if (track->sndDataExtComp)
-				track->mixerFlags |= kFlagLittleEndian;
-#endif
+			track->stream = Audio::makeQueuingAudioStream(freq, (track->mixerFlags & kFlagStereo) != 0);
 
-			track->stream = Audio::makeAppendableAudioStream(freq, makeMixerFlags(track->mixerFlags));
-
-			_mixer->playInputStream(track->getType(), &track->mixChanHandle, track->stream, -1, track->getVol(), track->getPan());
+			_mixer->playStream(track->getType(), &track->mixChanHandle, track->stream, -1, track->getVol(), track->getPan(),
+							DisposeAfterUse::YES, false, (track->mixerFlags & kFlagStereo) != 0);
 			_mixer->pauseHandle(track->mixChanHandle, true);
 		}
 	}
@@ -299,7 +296,7 @@ void IMuseDigital::callback() {
 						int tmpFeedSize = _sound->getDataFromRegion(track->soundDesc, track->curRegion, &tmpPtr, tmpOffset, tmpFeedSize12Bits);
 						curFeedSize = BundleCodecs::decode12BitsSample(tmpPtr, &tmpSndBufferPtr, tmpFeedSize);
 
-						delete[] tmpPtr;
+						free(tmpPtr);
 					} else if (bits == 16) {
 						curFeedSize = _sound->getDataFromRegion(track->soundDesc, track->curRegion, &tmpSndBufferPtr, track->regionOffset, feedSize);
 						if (channels == 1) {
@@ -313,7 +310,7 @@ void IMuseDigital::callback() {
 						if (_radioChatterSFX && track->soundId == 10000) {
 							if (curFeedSize > feedSize)
 								curFeedSize = feedSize;
-							byte *buf = new byte[curFeedSize];
+							byte *buf = (byte *)malloc(curFeedSize);
 							int index = 0;
 							int count = curFeedSize - 4;
 							byte *ptr_1 = tmpSndBufferPtr;
@@ -332,7 +329,7 @@ void IMuseDigital::callback() {
 							buf[curFeedSize - 2] = 0x80;
 							buf[curFeedSize - 3] = 0x80;
 							buf[curFeedSize - 4] = 0x80;
-							delete[] tmpSndBufferPtr;
+							free(tmpSndBufferPtr);
 							tmpSndBufferPtr = buf;
 						}
 						if (channels == 2) {
@@ -344,10 +341,10 @@ void IMuseDigital::callback() {
 						curFeedSize = feedSize;
 
 					if (_mixer->isReady()) {
-						track->stream->queueBuffer(tmpSndBufferPtr, curFeedSize);
+						track->stream->queueBuffer(tmpSndBufferPtr, curFeedSize, DisposeAfterUse::YES, makeMixerFlags(track));
 						track->regionOffset += curFeedSize;
 					} else
-						delete[] tmpSndBufferPtr;
+						free(tmpSndBufferPtr);
 
 					if (_sound->isEndOfRegion(track->soundDesc, track->curRegion)) {
 						switchToNextRegion(track);

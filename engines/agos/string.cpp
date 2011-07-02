@@ -18,17 +18,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
+#include "common/file.h"
+#include "common/textconsole.h"
+
+#include "gui/about.h"
+#include "gui/message.h"
+
 #include "agos/agos.h"
 #include "agos/intern.h"
-
-using Common::File;
 
 namespace AGOS {
 
@@ -178,7 +179,7 @@ TextLocation *AGOSEngine::getTextLocation(uint a) {
 	default:
 		error("getTextLocation: Invalid text location %d", a);
 	}
-	return NULL;
+	return NULL;	// for compilers that don't support NORETURN
 }
 
 void AGOSEngine::allocateStringTable(int num) {
@@ -263,7 +264,7 @@ uint AGOSEngine::loadTextFile(const char *filename, byte *dst) {
 }
 
 uint AGOSEngine::loadTextFile_simon1(const char *filename, byte *dst) {
-	File fo;
+	Common::File fo;
 	fo.open(filename);
 	uint32 size;
 
@@ -295,8 +296,6 @@ uint AGOSEngine::loadTextFile_gme(const char *filename, byte *dst) {
 
 void AGOSEngine::loadTextIntoMem(uint16 stringId) {
 	byte *p;
-	char filename[30];
-	int i;
 	uint16 baseMin = 0x8000, baseMax, size;
 
 	_tablesHeapPtr = _tablesheapPtrNew;
@@ -306,13 +305,13 @@ void AGOSEngine::loadTextIntoMem(uint16 stringId) {
 
 	// get filename
 	while (*p) {
-		for (i = 0; *p; p++, i++)
-			filename[i] = *p;
-		filename[i] = 0;
+		Common::String filename;
+		while (*p)
+			filename += *p++;
 		p++;
 
 		if (getPlatform() == Common::kPlatformAcorn) {
-			sprintf(filename, "%s.DAT", filename);
+			filename += ".DAT";
 		}
 
 		baseMax = (p[0] * 256) | p[1];
@@ -328,7 +327,7 @@ void AGOSEngine::loadTextIntoMem(uint16 stringId) {
 			_tablesHeapPtr += size;
 			_tablesHeapCurPos += size;
 
-			size = loadTextFile(filename, _tablesHeapPtr);
+			size = loadTextFile(filename.c_str(), _tablesHeapPtr);
 
 			setupLocalStringTable(_tablesHeapPtr, baseMax - baseMin + 1);
 
@@ -518,8 +517,7 @@ void AGOSEngine::printScreenText(uint vgaSpriteId, uint color, const char *strin
 			y -= textHeight;
 		} else
 			pos = stringLength;
-		padding = (lettersPerRow - pos) % 2 ?
-			(lettersPerRow - pos) / 2 + 1 : (lettersPerRow - pos) / 2;
+		padding = ((lettersPerRow - pos) % 2) ? (lettersPerRow - pos) / 2 + 1 : (lettersPerRow - pos) / 2;
 		while (padding--)
 			*convertedString2++ = ' ';
 		stringLength -= pos;
@@ -560,6 +558,163 @@ void AGOSEngine::printScreenText(uint vgaSpriteId, uint color, const char *strin
 	}
 }
 
+#ifdef ENABLE_AGOS2
+// Swampy Adventures specific
+void AGOSEngine_PuzzlePack::printInfoText(const char *itemText) {
+	const char *itemName = NULL;
+	int flag = (_mouse.y / 32) * 20 + (_mouse.x / 32) + 1300;
+
+	switch (_variableArray[999]) {
+		case 80:
+			if (_variableArray[flag]) {
+				if (_variableArray[flag] == 201)
+					itemName = " Bridge: ";
+				if (_variableArray[flag] == 231 || _variableArray[flag] == 241)
+					itemName = " Log: ";
+				if (_variableArray[flag] == 281)
+					itemName = " Rubble: ";
+				if (_variableArray[flag] == 291)
+					itemName = " Boulder: ";
+				if (_variableArray[flag] == 311)
+					itemName = " Key: ";
+				if (_variableArray[flag] == 312)
+					itemName = " Spanner: ";
+				if (_variableArray[flag] == 321)
+					itemName = " Gate: ";
+				if (_variableArray[flag] == 331)
+					itemName = " Crate: ";
+			} else {
+				flag -= 300;
+				if (_variableArray[flag] == 2)
+					itemName = " Water: ";
+				if (_variableArray[flag] == 5)
+					itemName = " Exit: ";
+				if ((_variableArray[flag] == 5) && (_variableArray[81] == 10))
+					itemName = " Gem: ";
+				if (_variableArray[flag] == 236 || _variableArray[flag] == 246)
+					itemName = " Floating Log: ";
+				if (_variableArray[flag] == 400)
+					itemName = " Valve: ";
+			}
+			break;
+
+		case 81:
+			if (_variableArray[flag]) {
+				if (_variableArray[flag] == 281)
+					itemName = " Cracked Block: ";
+				if (_variableArray[flag] == 291)
+					itemName = " Boulder: ";
+				if (_variableArray[flag] == 331)
+					itemName = " Block: ";
+				if (_variableArray[flag] == 341)
+					itemName = " Switch: ";
+				if (_variableArray[flag] == 343)
+					itemName = " Button: ";
+				if ((_variableArray[flag] > 430) && (_variableArray[flag] < 480))
+					itemName = " Mosaic Block: ";
+			} else {
+				flag -= 300;
+				if (_variableArray[flag] == 5)
+					itemName = " Exit: ";
+				if ((_variableArray[flag] == 5) && (_variableArray[82] == 10))
+					itemName = " Gem: ";
+			}
+			break;
+
+		case 82:
+			if (_variableArray[flag]) {
+				if (_variableArray[flag] == 201 || _variableArray[flag] == 211)
+					itemName = " Unstable Track: ";
+				if (_variableArray[flag] == 281)
+					itemName = " Rubble Pile: ";
+				if (_variableArray[flag] == 291)
+					itemName = " Boulder: ";
+				if (_variableArray[flag] == 331)
+					itemName = " Crate: ";
+				if (_variableArray[flag] == 401 || _variableArray[flag] == 405)
+					itemName = " Cart: ";
+			} else {
+				flag -= 300;
+				if (_variableArray[flag] == 4)
+					itemName = " Hole: ";
+				if (_variableArray[flag] == 5)
+					itemName = " Exit: ";
+				if ((_variableArray[flag] == 5) && (_variableArray[83] == 10))
+					itemName = " Gem: ";
+				if ((_variableArray[flag] > 5) && (_variableArray[flag] < 10))
+					itemName = " Buffer Track: ";
+				if ((_variableArray[flag] > 9) && (_variableArray[flag] < 40))
+					itemName = " Track: ";
+				if (_variableArray[flag] == 300)
+					itemName = " Boulder: ";
+			}
+			break;
+
+		case 83:
+			if (_variableArray[flag]) {
+				if (_variableArray[flag] == 201)
+					itemName = " Broken Floor: ";
+				if (_variableArray[flag] == 231 || _variableArray[flag] == 241)
+					itemName = " Barrel: ";
+				if (_variableArray[flag] == 281)
+					itemName = " Cracked Rock: ";
+				if (_variableArray[flag] == 291)
+					itemName = " Spacehopper: ";
+				if (_variableArray[flag] == 311)
+					itemName = " Key: ";
+				if (_variableArray[flag] == 321)
+					itemName = " Trapdoor: ";
+				if (_variableArray[flag] == 324)
+					itemName = " Trapdoor: ";
+				if (_variableArray[flag] == 331)
+					itemName = " Crate: ";
+			} else {
+				flag -= 300;
+				if (_variableArray[flag] == 4)
+					itemName = " Hole: ";
+				if (_variableArray[flag] == 239 || _variableArray[flag] == 249)
+					itemName = " Barrel: ";
+			}
+			break;
+
+		case 84:
+			if (_variableArray[flag]) {
+				if (_variableArray[flag] == 201)
+					itemName = " Floating Platform: ";
+				if (_variableArray[flag] == 231)
+					itemName = " Cauldron: ";
+				if (_variableArray[flag] == 281)
+					itemName = " Cracked Block: ";
+				if (_variableArray[flag] == 311 || _variableArray[flag] == 312)
+					itemName = " Key: ";
+				if (_variableArray[flag] == 321 || _variableArray[flag] == 361 || _variableArray[flag] == 371)
+					itemName = " Gate: ";
+				if (_variableArray[flag] == 331)
+					itemName = " Chest: ";
+				if (_variableArray[flag] == 332)
+					itemName = " Jewel: ";
+				if (_variableArray[flag] == 351 || _variableArray[flag] == 352)
+					itemName = " Babies: ";
+			} else {
+				flag -= 300;
+				if (_variableArray[flag] == 6)
+					itemName = " Slime: ";
+				if (_variableArray[flag] == 334)
+					itemName = " Chest: ";
+			}
+			break;
+
+		default:
+			break;
+	}
+
+	if (itemName != NULL) {
+		Common::String buf = Common::String::format("%s\n%s", itemName, itemText);
+		GUI::TimedMessageDialog dialog(buf, 1500);
+		dialog.runModal();
+	}
+}
+
 // The Feeble Files specific
 void AGOSEngine_Feeble::printScreenText(uint vgaSpriteId, uint color, const char *string, int16 x, int16 y, int16 width) {
 	char convertedString[320];
@@ -567,12 +722,9 @@ void AGOSEngine_Feeble::printScreenText(uint vgaSpriteId, uint color, const char
 	const char *string2 = string;
 	int16 height, talkDelay;
 	int stringLength = strlen(string);
-	int lettersPerRow, lettersPerRowJustified;
 	const int textHeight = 15;
 
 	height = textHeight;
-	lettersPerRow = width / 6;
-	lettersPerRowJustified = stringLength / (stringLength / lettersPerRow + 1) + 1;
 
 	talkDelay = (stringLength + 3) / 3;
 		if (_variableArray[86] == 0)
@@ -685,14 +837,14 @@ void AGOSEngine_Feeble::printInteractText(uint16 num, const char *string) {
 
 void AGOSEngine_Feeble::sendInteractText(uint16 num, const char *fmt, ...) {
 	va_list arglist;
-	char string[256];
 
 	va_start(arglist, fmt);
-	vsprintf(string, fmt, arglist);
+	Common::String string = Common::String::vformat(fmt, arglist);
 	va_end(arglist);
 
-	printInteractText(num, string);
+	printInteractText(num, string.c_str());
 }
+#endif
 
 // Waxworks specific
 uint16 AGOSEngine_Waxworks::getBoxSize() {
@@ -950,649 +1102,5 @@ void AGOSEngine_Waxworks::printBox() {
 	_lineCounts[5] = 0;
 	changeWindow(0);
 }
-
-#ifdef ENABLE_PN
-// Personal Nightmare specific
-uint32 AGOSEngine_PN::ftext(uint32 base, int n) {
-	uint32 b = base;
-	int ct = n;
-	while (ct) {
-		while(_textBase[b++])
-			;
-		ct--;
-	}
-	return b;
-}
-
-char *AGOSEngine_PN::unctok(char *c, int n) {
-	int x;
-	uint8 *tokbase;
-	tokbase = _textBase + getlong(30);
-	x = n;
-	while (x-=(*tokbase++ > 127))
-		;
-	while (*tokbase < 128)
-		*c++=*tokbase++;
-	*c++ = *tokbase & 127;
-	*c = 0;
-	return c;
-}
-
-void AGOSEngine_PN::uncomstr(char *c, uint32 x) {
-	if (x > _textBaseSize)
-		error("UNCOMSTR: TBASE over-run");
-	while (_textBase[x]) {
-		if (_textBase[x] < 244) {
-			c = unctok(c, _textBase[x]);
-		} else {
-			c = unctok(c, (_textBase[x] - 244) * 254 + _textBase[x + 1] - 1);
-			x++;
-		}
-		x++;
-	}
-	*c++ = 13;
-	*c = 0;
-}
-
-static const char *objectNames[30] = {
-	"\0",
-	"Take \0",
-	"Inventory\r",
-	"Open \0",
-	"Close \0",
-	"Lock \0",
-	"Unlock \0",
-	"Examine \0",
-	"Look in \0",
-	"Exits \r",
-	"Look\r",
-	"Wait\r",
-	"Pause\r",
-	"\0",
-	"Save\r",
-	"Restore\r",
-	"\0",
-	"N\r",
-	"NE\r",
-	"E\r",
-	"SE\r",
-	"S\r",
-	"SW\r",
-	"W\r",
-	"NW\r",
-	"INVENTORY\r",
-	"ROOM DESCRIPTION\r",
-	"x\r",
-	"MORE\r",
-	"CLOSE\r"
-};
-
-void AGOSEngine_PN::getObjectName(char *v, uint16 x) {
-	if (x & 0x8000) {
-		x &= ~0x8000;
-		if (x > getptr(51))
-			error("getObjectName: Object %d out of range", x);
-		uncomstr(v, ftext(getlong(27), x * _dataBase[47]));
-	} else {
-		assert(x < 30);
-		strcpy(v, objectNames[x]);
-	}
-}
-
-void AGOSEngine_PN::pcl(const char *s) {
-	strcat(_sb, s);
-	if (strchr(s, '\n') == 0) {
-		for (char *str = _sb; *str; str++)
-			windowPutChar(_windowArray[_curWindow], *str);
-		strcpy(_sb, "");
-	}
-}
-
-void AGOSEngine_PN::pcf(uint8 ch) {
-	int ct = 0;
-	if (ch == '[')
-		ch = '\n';
-	if (ch == 0)
-		return;	/* Trap any C EOS chrs */
-	if (ch == 255) {
-		_bp = 0;
-		_xofs = 0;
-		return;		/* pcf(255) initialises the routine */
-	}			/* pcf(254) flushes its working _buffer */
-	if (ch != 254) {
-		if ((ch != 32) || (_bp + _xofs != 50))
-			_buffer[_bp++] = ch;
-	}
-	if ((ch != 254) && (!isspace(ch)) && (_bp < 60))
-		return;
-	/* We know have a case of needing to print the text */
-	if (_bp + _xofs > 50) {
-		pcl("\n");
-		if (_buffer[0] == ' ')
-			ct = 1;	/* Skip initial space */
-		/* Note '  ' will give a single start of line space */
-		_xofs = 0;
-	}
-	_buffer[_bp] = 0;
-	pcl(_buffer + ct);
-	_xofs += _bp;
-	_bp = 0;
-	if (ch == '\n')
-		_xofs = 0;	/* At Newline! */
-}
-
-void AGOSEngine_PN::patok(int n) {
-	int x;
-	uint8 *tokbase;
-	tokbase = _textBase + getlong(30);
-	x = n;
-	while (x -= (*tokbase++ > 127))
-		;
-	while (*tokbase < 128)
-		pcf(*tokbase++);
-	pcf((uint8)(*tokbase & 127));
-}
-
-void AGOSEngine_PN::pmesd(int n) {
-	ptext(ftext(getlong(24), n));
-}
-
-void AGOSEngine_PN::plocd(int n, int m) {
-	if (n > getptr(53))
-		error("Location out of range");
-	ptext(ftext(getlong(21), n * _dataBase[48] + m));
-}
-
-void AGOSEngine_PN::pobjd(int n, int m) {
-	if (n > getptr(51))
-		error("Object out of range");
-	ptext(ftext(getlong(27), n * _dataBase[47] + m));
-}
-
-void AGOSEngine_PN::ptext(uint32 tptr) {
-	if (tptr > _textBaseSize)
-		error("ptext: attempt to print beyond end of TBASE");
-
-	while (_textBase[tptr]) {
-		if (_textBase[tptr] < 244) {
-			patok(_textBase[tptr++]);
-		} else {
-			patok((_textBase[tptr] - 244) * 254 + _textBase[tptr + 1] - 1);
-			tptr += 2;
-		}
-	}
-}
-
-const uint8 characters[11][80] = {
-// PETERMASON
-	{
-		118, 225,
-		 91, 118,
-		 94, 124,
-		236, 161,
-		241, 166,
-		168,   4,
-		138,  46,
-		139,  46,
-		249,  50,
-		 38,  56,
-		 80,  59,
-		149,  69,
-		 37,  77,
-		 93,  93,
-		 86,  95,
-		  0,
-		  0,
-		 58, 130,
-		 62, 178,
-		 83,  95,
-		  0,
-		121,  58,
-		122,  59,
-		126,  60,
-		124,  61,
-		240,  62,
-		123,  63,
-		0
-	},
-// JBLANDFORD
-	{
-		0,
-		0,
-		0,
-		0
-	},
-// SBLANDFORD
-	{
-		120, 223,
-		 94, 126,
-		112, 134,
-		 45, 152,
-		241, 166,
-		168,   3,
-		150,  26,
-		220,  29,
-		138,  42,
-		139,  47,
-		249,  50,
-		 38,  56,
-		230,  64,
-		 37,  77,
-		 93,  94,
-		 86,  96,
-		  0,
-		  0,
-		 58, 129,
-		 59, 112,
-		 83,  96,
-		 81, 106,
-		 62, 169,
-		  0,
-		121,  54,
-		122,  55,
-		119,  56,
-		118,  57,
-		  0
-	},
-// MRJONES
-	{
-		121, 218,
-		 91, 118,
-		253, 121,
-		154, 138,
-		235, 173,
-		236, 161,
-		241, 165,
-		168,   0,
-		150,  21,
-		 36,  33,
-		138,  42,
-		249,  50,
-		 80,  60,
-		  4,  60,
-		 37,  78,
-		 68,  33,
-		 93,  92,
-		101, 109,
-		  0,
-		 36,  35,
-		 68,  90,
-		  0,
-		 58, 128,
-		 59, 111,
-		 62, 182,
-		  0,
-		122,  13,
-		126,  14,
-		124,  15,
-		240,  16,
-		120,  17,
-		119,  18,
-		118,  19,
-		 52,  20,
-		125,  21,
-		127,  22,
-		123,  23,
-		117,  24,
-		  0
-	},
-// MRSJONES
-	{
-		122, 219,
-		 91, 119,
-		253, 123,
-		112, 136,
-		154, 137,
-		 95, 142,
-		 45, 152,
-		109, 155,
-		235, 160,
-		168,   1,
-		151,  13,
-		145,  15,
-		150,  22,
-		220,  28,
-		 36,  33,
-		138,  43,
-		 13,  51,
-		 80,  59,
-		230,  64,
-		149,  69,
-		 86, 100,
-		  0,
-		 36,  36,
-		  0,
-		 58, 127,
-		 62, 179,
-		 83, 100,
-		 81, 102,
-		  0,
-		121,  25,
-		126,  26,
-		124,  27,
-		120,  28,
-		119,  29,
-		118,  30,
-		 52,  31,
-		125,  32,
-		127,  33,
-		123,  34,
-		117,  35,
-		0
-	},
-// MRROBERTS
-	{
-		123, 229,
-		 91, 117,
-		253, 120,
-		 94, 125,
-		112, 134,
-		109, 156,
-		235, 172,
-		236, 162,
-		241, 165,
-		168,   3,
-		 36,  33,
-		249,  50,
-		 38,  56,
-		 80,  58,
-		 37,  75,
-		 34,  81,
-		 68,  33,
-		101, 109,
-		  0,
-		 36,  40,
-		 68,  88,
-		  0,
-		 59, 111,
-		 62, 181,
-		  0,
-		  0
-	},
-// POSTMISTRESS
-	{
-		124, 221,
-		 91, 119,
-		253, 122,
-		112, 136,
-		 95, 142,
-		130, 149,
-		109, 155,
-		235, 176,
-		220,  29,
-		 36,  33,
-		138,  43,
-		 13,  51,
-		 80,  57,
-		149,  68,
-		 37,  73,
-		 34,  33,
-		 68,  33,
-		 86, 100,
-		  0,
-		 36,  39,
-		 34,  80,
-		 68,  86,
-		  0,
-		 58, 130,
-		 62, 181,
-		 83, 100,
-		 81, 103,
-		  0,
-		121,  41,
-		122,  42,
-		126,  43,
-		240,  44,
-		120,  45,
-		119,  46,
-		118,  47,
-		 52,  48,
-		123,  49,
-		 83,  50,
-		117,  51,
-		  0
-	},
-// MWILLIAMS
-	{
-		125, 227,
-		 94, 124,
-		 95, 141,
-		241, 166,
-		168,   4,
-		150,  26,
-		 38,  54,
-		  4,  60,
-		230,  65,
-		149,  68,
-		 37,  76,
-		101, 109,
-		  0,
-		230,  63,
-		  0,
-		 59, 112,
-		 62, 183,
-		  0,
-		240,  71,
-		120,  72,
-		118,  73,
-		 52,  74,
-		117,  75,
-		  0
-	},
-// TONY
-	{
-		126, 220,
-		 95, 143,
-		130, 149,
-		 45, 153,
-		109, 154,
-		235, 158,
-		241, 166,
-		168,   2,
-		145,  15,
-		150,  24,
-		220,  20,
-		 36,  20,
-		  4,  60,
-		 37,  79,
-		 86,  97,
-		  0,
-		150,  23,
-		220,  27,
-		 36,  34,
-		  0,
-		 83,  97,
-		  0,
-		121,  36,
-		122,  37,
-		124,  38,
-		240,  39,
-		 52,  40,
-		  0
-	},
-// PIG
-	{
-		127, 228,
-		112, 133,
-		 45, 153,
-		235, 157,
-		236, 163,
-		241, 165,
-		 36,  33,
-		 80,  58,
-		 34,  81,
-		 68,  33,
-		 86,  98,
-		  0,
-		 36,  37,
-		 68,  90,
-		  0,
-		 62, 184,
-		 83,  98,
-		  0,
-		121,  76,
-		122,  77,
-		126,  78,
-		124,  79,
-		240,  80,
-		120,  81,
-		118,  82,
-		 52,  83,
-		125,  84,
-		123,  85,
-		 83,  86,
-		117,  87,
-		  0
-	},
-// JUDY
-	{
-			  0,
-			  0,
-			  0,
-			240, 52,
-			117, 53,
-			  0
-	}
-};
-
-void AGOSEngine_PN::getResponse(uint16 charNum, uint16 objNum, uint16 &msgNum1, uint16 &msgNum2) {
-	const uint8 *ptr;
-	uint16 num;
-
-	msgNum1 = 0;
-	msgNum2 = 0;
-
-	if (charNum == 83)
-		charNum += 45;
-
-	if (charNum < 118 || charNum > 128) {
-		return;
-	}
-
-	ptr = characters[charNum - 118];
-
-	while ((num = *ptr++) != 0) {
-		if (num == objNum) {
-			msgNum1 = *ptr++;
-			msgNum1 += 400;
-
-			while ((num = *ptr++) != 0)
-				ptr++;
-			break;
-		}
-		ptr++;
-	}
-
-	while ((num = *ptr++) != 0) {
-		if (num == objNum) {
-			msgNum2 = *ptr++;
-			msgNum2 += 400;
-
-			if (msgNum1 == 569)
-				msgNum1 += 400;
-			if (msgNum2 == 0)
-				msgNum2 = msgNum1;
-			return;
-		}
-		ptr++;
-	}
-
-	if (objNum >= 200)
-		msgNum1 = 0;
-
-	objNum -= 200;
-	while ((num = *ptr++) != 0) {
-		if (num == objNum) {
-			msgNum1 = *ptr++;
-			msgNum1 += 400;
-
-			if (msgNum1 == 569)
-				msgNum1 += 400;
-			if (msgNum2 == 0)
-				msgNum2 = msgNum1;
-			return;
-		}
-		ptr++;
-	}
-
-	objNum += 200;
-	while ((num = *ptr++) != 0) {
-		if (num == objNum) {
-			msgNum1 = *ptr++;
-			msgNum1 += 200;
-
-			if (msgNum1 == 569)
-				msgNum1 += 400;
-			if (msgNum2 == 0)
-				msgNum2 = msgNum1;
-			return;
-		}
-		ptr++;
-	}
-
-	if (msgNum1 == 569)
-		msgNum1 += 400;
-	if (msgNum2 == 0)
-		msgNum2 = msgNum1;
-}
-
-char *AGOSEngine_PN::getMessage(char *msg, uint16 num) {
-	char *origPtr, *strPtr1 = msg;
-	uint8 count;
-
-	getObjectName(strPtr1, num);
-	if (!(num & 0x8000)) {
-		return msg;
-	}
-
-	if (strPtr1[0] == 0x41 || strPtr1[0] == 0x61) {
-		if (strPtr1[1] != 0x20)
-			strPtr1 += 2;
-	} else if (strPtr1[0] == 0x54 || strPtr1[0] == 0x74) {
-		if (strPtr1[1] == 0x68 &&
-		    strPtr1[2] == 0x65 &&
-		    strPtr1[3] == 0x20)
-			strPtr1 += 4;
-	}
-
-	origPtr = strPtr1;
-	while (*strPtr1 != 13)
-		strPtr1++;
-
-	strPtr1[0] = 32;
-	strPtr1[1] = 13;
-	strPtr1[2] = 0;
-
-	if (_videoLockOut & 0x10) {
-		strPtr1 = origPtr;
-		count = 6;
-		while (*strPtr1) {
-			if (*strPtr1 == 32) {
-				count = 6;
-			} else {
-				count--;
-				if (count == 0) {
-					char *tmpPtr = strPtr1;
-					char *strPtr2 = strPtr1;
-
-					while (*strPtr2 != 0 && *strPtr2 != 32)
-						strPtr2++;
-
-					while (*strPtr2) {
-						*strPtr1++ = *strPtr2++;
-					}
-					*strPtr1++ = *strPtr2++;
-
-					strPtr1 = tmpPtr;
-					count = 6;
-				}
-			}
-			strPtr1++;
-		}
-	}
-
-	return origPtr;
-}
-#endif
 
 } // End of namespace AGOS

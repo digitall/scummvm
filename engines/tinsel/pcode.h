@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Virtual processor definitions
  */
 
@@ -31,7 +28,7 @@
 #include "tinsel/sched.h"	// for PROCESS
 
 namespace Common {
-	class Serializer;
+class Serializer;
 }
 
 namespace Tinsel {
@@ -44,7 +41,7 @@ enum RESUME_STATE {
 };
 
 enum {
-	PCODE_STACK_SIZE	= 128	//!< interpeters stack size
+	PCODE_STACK_SIZE	= 128	///< interpeters stack size
 };
 
 enum GSORT {
@@ -54,39 +51,30 @@ enum GSORT {
 
 enum RESCODE {RES_WAITING, RES_FINISHED, RES_CUTSHORT};
 
-// The following structure is used to introduce bug fixes into the scripts used by the games
-
-struct WorkaroundEntry {
-	TinselEngineVersion version;
-	bool scnFlag;					// Only applicable for Tinsel 1 (DW 1)
-	SCNHANDLE hCode;				// Script to apply fragment to
-	int ip;							// Script offset to run this fragment before
-	int numBytes;					// Number of bytes in the script
-	const byte *script;				// Instruction(s) to execute
-};
+struct WorkaroundEntry;
 
 struct INT_CONTEXT {
 
 	// Elements for interpret context management
-	PROCESS *pProc;			//!< processes owning this context
-	GSORT	GSort;			//!< sort of this context
+	PROCESS *pProc;			///< processes owning this context
+	GSORT	GSort;			///< sort of this context
 
 	// Previously parameters to Interpret()
-	SCNHANDLE	hCode;		//!< scene handle of the code to execute
-	byte		*code;		//!< pointer to the code to execute
-	TINSEL_EVENT	event;		//!< causal event
-	HPOLYGON	hPoly;		//!< associated polygon (if any)
-	int			idActor;	//!< associated actor (if any)
-	INV_OBJECT	*pinvo;		//!< associated inventory object
+	SCNHANDLE	hCode;		///< scene handle of the code to execute
+	byte		*code;		///< pointer to the code to execute
+	TINSEL_EVENT	event;		///< causal event
+	HPOLYGON	hPoly;		///< associated polygon (if any)
+	int			idActor;	///< associated actor (if any)
+	INV_OBJECT	*pinvo;		///< associated inventory object
 
 	// Previously local variables in Interpret()
-	int32 stack[PCODE_STACK_SIZE];	//!< interpeters run time stack
-	int sp;				//!< stack pointer
-	int bp;				//!< base pointer
-	int ip;				//!< instruction pointer
-	bool bHalt;			//!< set to exit interpeter
+	int32 stack[PCODE_STACK_SIZE];	///< interpeters run time stack
+	int sp;				///< stack pointer
+	int bp;				///< base pointer
+	int ip;				///< instruction pointer
+	bool bHalt;			///< set to exit interpeter
 	bool escOn;
-	int myEscape;		//!< only initialised to prevent compiler warning!
+	int myEscape;		///< only initialized to prevent compiler warning!
 
 	uint32 waitNumber1;		// The waiting numbert
 	uint32 waitNumber2;		// The wait for number
@@ -118,13 +106,13 @@ INT_CONTEXT *InitInterpretContext(
 
 INT_CONTEXT *RestoreInterpretContext(INT_CONTEXT *ric);
 
-void FreeMostInterpretContexts(void);
-void FreeMasterInterpretContext(void);
+void FreeMostInterpretContexts();
+void FreeMasterInterpretContext();
 
 void SaveInterpretContexts(INT_CONTEXT *sICInfo);
 
 void RegisterGlobals(int num);
-void FreeGlobals(void);
+void FreeGlobals();
 
 void AttachInterpret(INT_CONTEXT *pic, PROCESS *pProc);
 
@@ -175,6 +163,6 @@ void WaitInterpret(CORO_PARAM, PPROCESS pWaitProc, bool *result);
 #define ST_ON		0	//
 #define ST_OFF		1	// SubTitles()
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_PCODE_H

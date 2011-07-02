@@ -18,44 +18,63 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/config-manager.h"
-#include "common/events.h"
-#include "sound/mixer.h"
-
 #include "groovie/groovie.h"
+#include "groovie/cursor.h"
+#include "groovie/detection.h"
+#include "groovie/graphics.h"
 #include "groovie/music.h"
+#include "groovie/resource.h"
 #include "groovie/roq.h"
 #include "groovie/vdx.h"
+
+#include "common/config-manager.h"
+#include "common/debug-channels.h"
+#include "common/events.h"
+#include "common/file.h"
+#include "common/macresman.h"
+#include "common/textconsole.h"
+
+#include "backends/audiocd/audiocd.h"
+#include "engines/util.h"
+#include "graphics/fontman.h"
+#include "audio/mixer.h"
 
 namespace Groovie {
 
 GroovieEngine::GroovieEngine(OSystem *syst, const GroovieGameDescription *gd) :
-	Engine(syst), _gameDescription(gd), _debugger(NULL), _script(this, gd->version),
+	Engine(syst), _gameDescription(gd), _debugger(NULL), _script(NULL),
 	_resMan(NULL), _grvCursorMan(NULL), _videoPlayer(NULL), _musicPlayer(NULL),
-	_graphicsMan(NULL), _waitingForInput(false) {
+	_graphicsMan(NULL), _macResFork(NULL), _waitingForInput(false), _font(NULL) {
 
 	// Adding the default directories
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("groovie"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("media"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("system"));
+	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "groovie");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "media");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "system");
+
+	_modeSpeed = kGroovieSpeedNormal;
+	if (ConfMan.hasKey("t7g_speed")) {
+		Common::String speed = ConfMan.get("t7g_speed");
+		if (speed.equals("im_an_ios"))
+			_modeSpeed = kGroovieSpeediOS;
+		else if (speed.equals("tweaked"))
+			_modeSpeed = kGroovieSpeedTweaked;
+	}
 
 	// Initialize the custom debug levels
-	Common::addDebugChannel(kGroovieDebugAll, "All", "Debug everything");
-	Common::addDebugChannel(kGroovieDebugVideo, "Video", "Debug video and audio playback");
-	Common::addDebugChannel(kGroovieDebugResource, "Resource", "Debug resouce management");
-	Common::addDebugChannel(kGroovieDebugScript, "Script", "Debug the scripts");
-	Common::addDebugChannel(kGroovieDebugUnknown, "Unknown", "Report values of unknown data in files");
-	Common::addDebugChannel(kGroovieDebugHotspots, "Hotspots", "Show the hotspots");
-	Common::addDebugChannel(kGroovieDebugCursor, "Cursor", "Debug cursor decompression / switching");
-	Common::addDebugChannel(kGroovieDebugMIDI, "MIDI", "Debug MIDI / XMIDI files");
-	Common::addDebugChannel(kGroovieDebugScriptvars, "Scriptvars", "Print out any change to script variables");
-	Common::addDebugChannel(kGroovieDebugCell, "Cell", "Debug the cell game (in the microscope)");
-	Common::addDebugChannel(kGroovieDebugFast, "Fast", "Play videos quickly, with no sound (unstable)");
+	DebugMan.addDebugChannel(kGroovieDebugAll, "All", "Debug everything");
+	DebugMan.addDebugChannel(kGroovieDebugVideo, "Video", "Debug video and audio playback");
+	DebugMan.addDebugChannel(kGroovieDebugResource, "Resource", "Debug resouce management");
+	DebugMan.addDebugChannel(kGroovieDebugScript, "Script", "Debug the scripts");
+	DebugMan.addDebugChannel(kGroovieDebugUnknown, "Unknown", "Report values of unknown data in files");
+	DebugMan.addDebugChannel(kGroovieDebugHotspots, "Hotspots", "Show the hotspots");
+	DebugMan.addDebugChannel(kGroovieDebugCursor, "Cursor", "Debug cursor decompression / switching");
+	DebugMan.addDebugChannel(kGroovieDebugMIDI, "MIDI", "Debug MIDI / XMIDI files");
+	DebugMan.addDebugChannel(kGroovieDebugScriptvars, "Scriptvars", "Print out any change to script variables");
+	DebugMan.addDebugChannel(kGroovieDebugCell, "Cell", "Debug the cell game (in the microscope)");
+	DebugMan.addDebugChannel(kGroovieDebugFast, "Fast", "Play videos quickly, with no sound (unstable)");
 }
 
 GroovieEngine::~GroovieEngine() {
@@ -66,24 +85,61 @@ GroovieEngine::~GroovieEngine() {
 	delete _videoPlayer;
 	delete _musicPlayer;
 	delete _graphicsMan;
+	delete _script;
+	delete _macResFork;
 }
 
 Common::Error GroovieEngine::run() {
+	_script = new Script(this, _gameDescription->version);
+
 	// Initialize the graphics
-	initGraphics(640, 480, true);
+	switch (_gameDescription->version) {
+	case kGroovieV2:
+		// Request the mode with the highest precision available
+		initGraphics(640, 480, true, NULL);
+
+		// Save the enabled mode as it can be both an RGB mode or CLUT8
+		_pixelFormat = _system->getScreenFormat();
+		_mode8bit = (_pixelFormat == Graphics::PixelFormat::createFormatCLUT8());
+		break;
+	case kGroovieT7G:
+		initGraphics(640, 480, true);
+		_pixelFormat = Graphics::PixelFormat::createFormatCLUT8();
+		break;
+	}
 
 	// Create debugger. It requires GFX to be initialized
 	_debugger = new Debugger(this);
-	_script.setDebugger(_debugger);
+	_script->setDebugger(_debugger);
 
 	// Create the graphics manager
 	_graphicsMan = new GraphicsMan(this);
 
 	// Create the resource and cursor managers and the video player
+	// Prepare the font too
 	switch (_gameDescription->version) {
 	case kGroovieT7G:
-		_resMan = new ResMan_t7g();
-		_grvCursorMan = new GrvCursorMan_t7g(_system);
+		if (getPlatform() == Common::kPlatformMacintosh) {
+			_macResFork = new Common::MacResManager();
+			if (!_macResFork->open(_gameDescription->desc.filesDescriptions[0].fileName))
+				error("Could not open %s as a resource fork", _gameDescription->desc.filesDescriptions[0].fileName);
+			// The Macintosh release used system fonts. We use GUI fonts.
+			_font = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
+		} else {
+			Common::File fontfile;
+			if (!fontfile.open("sphinx.fnt")) {
+				error("Couldn't open sphinx.fnt");
+				return Common::kNoGameDataFoundError;
+			} else if (!_sphinxFont.load(fontfile)) {
+				error("Error loading sphinx.fnt");
+				return Common::kUnknownError;
+			}
+			fontfile.close();
+			_font = &_sphinxFont;
+		}
+
+		_resMan = new ResMan_t7g(_macResFork);
+		_grvCursorMan = new GrvCursorMan_t7g(_system, _macResFork);
 		_videoPlayer = new VDXPlayer(this);
 		break;
 	case kGroovieV2:
@@ -94,10 +150,19 @@ Common::Error GroovieEngine::run() {
 	}
 
 	// Create the music player
-	if (_gameDescription->desc.platform == Common::kPlatformMacintosh) {
+	switch (getPlatform()) {
+	case Common::kPlatformMacintosh:
+		// TODO: The 11th Hour Mac uses QuickTime MIDI files
+		// Right now, since the XMIDI are present and it is still detected as
+		// the DOS version, we don't have to do anything here.
 		_musicPlayer = new MusicPlayerMac(this);
-	} else {
+		break;
+	case Common::kPlatformIOS:
+		_musicPlayer = new MusicPlayerIOS(this);
+		break;
+	default:
 		_musicPlayer = new MusicPlayerXMI(this, _gameDescription->version == kGroovieT7G ? "fat" : "sample");
+		break;
 	}
 
 	// Load volume levels
@@ -107,9 +172,10 @@ Common::Error GroovieEngine::run() {
 	Common::String filename = _gameDescription->desc.filesDescriptions[0].fileName;
 	if (_gameDescription->version == kGroovieT7G) {
 		// Run The 7th Guest's demo if requested
-		if (ConfMan.hasKey("demo_mode") && ConfMan.getBool("demo_mode")) {
-			filename = Common::String("demo.grv");
-		}
+		if (ConfMan.hasKey("demo_mode") && ConfMan.getBool("demo_mode"))
+			filename = "demo.grv";
+		else if (getPlatform() == Common::kPlatformMacintosh)
+			filename = "script.grv"; // Stored inside the executable's resource fork
 	} else if (_gameDescription->version == kGroovieV2) {
 		// Open the disk index
 		Common::File disk;
@@ -148,7 +214,7 @@ Common::Error GroovieEngine::run() {
 	}
 
 	// Load the script
-	if (!_script.loadScript(filename)) {
+	if (!_script->loadScript(filename)) {
 		error("Couldn't load the script file %s", filename.c_str());
 		return Common::kUnknownError;
 	}
@@ -157,26 +223,26 @@ Common::Error GroovieEngine::run() {
 	if (ConfMan.hasKey("save_slot")) {
 		// Get the requested slot
 		int slot = ConfMan.getInt("save_slot");
-		_script.directGameLoad(slot);
+		_script->directGameLoad(slot);
 	}
-
-	// Check that the game files and the audio tracks aren't together run from
-	// the same cd
-	checkCD();
 
 	// Game timer counter
 	uint16 tmr = 0;
 
-	// Initialize the CD
-	int cd_num = ConfMan.getInt("cdrom");
-	if (cd_num >= 0)
-		_system->openCD(cd_num);
+	// Check that the game files and the audio tracks aren't together run from
+	// the same cd
+	if (getPlatform() != Common::kPlatformIOS) {
+		checkCD();
+
+		// Initialize the CD
+		int cd_num = ConfMan.getInt("cdrom");
+		if (cd_num >= 0)
+			_system->getAudioCDManager()->openCD(cd_num);
+	}
 
 	while (!shouldQuit()) {
-		// Show the debugger if required
-		if (_debugger->isAttached()) {
-			_debugger->onFrame();
-		}
+		// Give the debugger a chance to act
+		_debugger->onFrame();
 
 		// Handle input
 		Common::Event ev;
@@ -188,7 +254,7 @@ Common::Error GroovieEngine::run() {
 					_debugger->attach();
 
 				// Send the event to the scripts
-				_script.setKbdChar(ev.kbd.ascii);
+				_script->setKbdChar(ev.kbd.ascii);
 
 				// Continue the script execution to handle the key
 				_waitingForInput = false;
@@ -204,11 +270,16 @@ Common::Error GroovieEngine::run() {
 
 			case Common::EVENT_LBUTTONDOWN:
 				// Send the event to the scripts
-				_script.setMouseClick();
+				_script->setMouseClick(1);
 
 				// Continue the script execution to handle
 				// the click
 				_waitingForInput = false;
+				break;
+
+			case Common::EVENT_RBUTTONDOWN:
+				// Send the event to the scripts (to skip the video)
+				_script->setMouseClick(2);
 				break;
 
 			case Common::EVENT_QUIT:
@@ -234,7 +305,7 @@ Common::Error GroovieEngine::run() {
 			// Wait a little bit between increments.  While mouse is moving, this triggers
 			// only negligably slower.
 			if (tmr > 4) {
-				_script.timerTick();
+				_script->timerTick();
 				tmr = 0;
 			}
 
@@ -245,7 +316,7 @@ Common::Error GroovieEngine::run() {
 			_system->delayMillis(30);
 		} else {
 			// Everything's fine, execute another script step
-			_script.step();
+			_script->step();
 		}
 
 		// Update the screen if required
@@ -255,25 +326,31 @@ Common::Error GroovieEngine::run() {
 	return Common::kNoError;
 }
 
+Common::Platform GroovieEngine::getPlatform() const {
+	return _gameDescription->desc.platform;
+}
+
 bool GroovieEngine::hasFeature(EngineFeature f) const {
 	return
 		(f == kSupportsRTL) ||
 		(f == kSupportsLoadingDuringRuntime);
 }
 
-void GroovieEngine::errorString(const char *buf_input, char *buf_output, int buf_output_size) {
-	//snprintf(buf_output, buf_output_size, "%s%s\n", _script.getContext().c_str(), buf_input);
-	snprintf(buf_output, buf_output_size, "%s", buf_input);
-}
-
 void GroovieEngine::syncSoundSettings() {
-	_musicPlayer->setUserVolume(ConfMan.getInt("music_volume"));
-	// VDX videos just contain one digital audio track, which can be used for
+	Engine::syncSoundSettings();
+
+	bool mute = ConfMan.getBool("mute");
+
+	// Set the music volume
+	_musicPlayer->setUserVolume(mute ? 0 : ConfMan.getInt("music_volume"));
+
+	// Videos just contain one digital audio track, which can be used for
 	// both SFX or Speech, but the engine doesn't know what they contain, so
 	// we have to use just one volume setting for videos.
 	// We use "speech" because most users will want to change the videos
 	// volume when they can't hear the speech because of the music.
-	_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType, ConfMan.getInt("speech_volume"));
+	_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType,
+		mute ? 0 : ConfMan.getInt("speech_volume"));
 }
 
 bool GroovieEngine::canLoadGameStateCurrently() {
@@ -282,7 +359,7 @@ bool GroovieEngine::canLoadGameStateCurrently() {
 }
 
 Common::Error GroovieEngine::loadGameState(int slot) {
-	_script.directGameLoad(slot);
+	_script->directGameLoad(slot);
 
 	// TODO: Use specific error codes
 	return Common::kNoError;

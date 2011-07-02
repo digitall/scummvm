@@ -22,118 +22,23 @@
 
 #if defined(__WII__)
 
-#include "backends/fs/abstract-fs.h"
+#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
+#define FORBIDDEN_SYMBOL_EXCEPTION_unistd_h
+
+#define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
+
+#include "backends/fs/wii/wii-fs.h"
+#include "backends/fs/wii/wii-fs-factory.h"
 #include "backends/fs/stdiostream.h"
 
 #include <sys/iosupport.h>
 #include <sys/dir.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <unistd.h>
 
 #include <gctypes.h>
-
-#ifdef USE_WII_DI
-#include <di/di.h>
-#endif
-
-/**
- * Implementation of the ScummVM file system API based on Wii.
- *
- * Parts of this class are documented in the base interface class, AbstractFSNode.
- */
-class WiiFilesystemNode : public AbstractFSNode {
-protected:
-	Common::String _displayName;
-	Common::String _path;
-	bool _exists, _isDirectory, _isReadable, _isWritable;
-
-	virtual void initRootNode();
-	virtual bool getDevopChildren(AbstractFSList &list, ListMode mode, bool hidden) const;
-	virtual void setFlags(const struct stat *st);
-	virtual void clearFlags();
-
-public:
-	/**
-	 * Creates a WiiFilesystemNode with the root node as path.
-	 */
-	WiiFilesystemNode();
-
-	/**
-	 * Creates a WiiFilesystemNode for a given path.
-	 *
-	 * @param path Common::String with the path the new node should point to.
-	 */
-	WiiFilesystemNode(const Common::String &path);
-	WiiFilesystemNode(const Common::String &p, const struct stat *st);
-
-	virtual bool exists() const;
-	virtual Common::String getDisplayName() const { return _displayName; }
-	virtual Common::String getName() const { return _displayName; }
-	virtual Common::String getPath() const { return _path; }
-	virtual bool isDirectory() const { return _isDirectory; }
-	virtual bool isReadable() const { return _isReadable; }
-	virtual bool isWritable() const { return _isWritable; }
-
-	virtual AbstractFSNode *getChild(const Common::String &n) const;
-	virtual bool getChildren(AbstractFSList &list, ListMode mode, bool hidden) const;
-	virtual AbstractFSNode *getParent() const;
-
-	virtual Common::SeekableReadStream *createReadStream();
-	virtual Common::WriteStream *createWriteStream();
-
-	static void asyncHandler(bool umount, const Common::String *path);
-};
-
-void WiiFilesystemNode::asyncHandler(bool mount, const Common::String *path) {
-#ifdef USE_WII_DI
-	static bool di_tryMount = true;
-	static bool di_isMounted = false;
-
-	// umount not required filesystems
-	if (!mount) {
-		if (di_isMounted && (!path || (path && !path->hasPrefix("dvd:/")))) {
-			printf("umount ISO9660\n");
-			ISO9660_Unmount();
-			DI_StopMotor();
-			di_tryMount = false;
-			di_isMounted = false;
-		}
-
-		if (!path)
-			return;
-	}
-
-	// re-mount DVD if data from its path has been requested. in this case, we
-	// have to wait for DI_Mount() to finish
-	if (!di_tryMount && !di_isMounted && path && path->hasPrefix("dvd:/")) {
-		printf("remount ISO9660\n");
-		DI_Mount();
-
-		while (DI_GetStatus() & DVD_INIT)
-			usleep(20 * 1000);
-
-		di_tryMount = true;
-	}
-
-	if (!di_tryMount)
-		return;
-
-	// check if the async DI_Mount() call has finished
-	if (DI_GetStatus() & DVD_READY) {
-		di_tryMount = false;
-
-		printf("mount ISO9660\n");
-		if (ISO9660_Mount()) {
-			di_isMounted = true;
-			printf("ISO9660 mounted\n");
-		} else {
-			DI_StopMotor();
-			printf("ISO9660 mount failed\n");
-		}
-	}
-#endif
-}
 
 // gets all registered devoptab devices
 bool WiiFilesystemNode::getDevopChildren(AbstractFSList &list, ListMode mode, bool hidden) const {
@@ -142,8 +47,6 @@ bool WiiFilesystemNode::getDevopChildren(AbstractFSList &list, ListMode mode, bo
 
 	if (mode == Common::FSNode::kListFilesOnly)
 		return true;
-
-	asyncHandler(true, NULL);
 
 	// skip in, out and err
 	for (i = 3; i < STD_MAX; ++i) {
@@ -194,13 +97,13 @@ WiiFilesystemNode::WiiFilesystemNode(const Common::String &p) {
 
 	_path = Common::normalizePath(p, '/');
 
-	// "fat:" is not a valid directory, but "fat:/" is
+	WiiFilesystemFactory::instance().mountByPath(_path);
+
+	// "sd:" is not a valid directory, but "sd:/" is
 	if (_path.lastChar() == ':')
 		_path += '/';
 
 	_displayName = lastPathComponent(_path, '/');
-
-	asyncHandler(true, &_path);
 
 	struct stat st;
 	if (!stat(_path.c_str(), &st))
@@ -217,7 +120,7 @@ WiiFilesystemNode::WiiFilesystemNode(const Common::String &p, const struct stat 
 
 	_path = Common::normalizePath(p, '/');
 
-	// "fat:" is not a valid directory, but "fat:/" is
+	// "sd:" is not a valid directory, but "sd:/" is
 	if (_path.lastChar() == ':')
 		_path += '/';
 
@@ -291,11 +194,11 @@ AbstractFSNode *WiiFilesystemNode::getParent() const {
 }
 
 Common::SeekableReadStream *WiiFilesystemNode::createReadStream() {
-	return StdioStream::makeFromPath(getPath().c_str(), false);
+	return StdioStream::makeFromPath(getPath(), false);
 }
 
 Common::WriteStream *WiiFilesystemNode::createWriteStream() {
-	return StdioStream::makeFromPath(getPath().c_str(), true);
+	return StdioStream::makeFromPath(getPath(), true);
 }
 
 #endif //#if defined(__WII__)

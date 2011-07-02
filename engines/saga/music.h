@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Music class
@@ -28,12 +25,12 @@
 #ifndef SAGA_MUSIC_H
 #define SAGA_MUSIC_H
 
-#include "sound/audiocd.h"
-#include "sound/mididrv.h"
-#include "sound/midiparser.h"
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/flac.h"
+#include "audio/midiplayer.h"
+#include "audio/midiparser.h"
+#include "audio/mixer.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/flac.h"
 #include "common/mutex.h"
 
 namespace Saga {
@@ -44,111 +41,68 @@ enum MusicFlags {
 	MUSIC_DEFAULT = 0xffff
 };
 
-class MusicPlayer : public MidiDriver {
+class MusicDriver : public Audio::MidiPlayer {
 public:
-	MusicPlayer(MidiDriver *driver);
-	~MusicPlayer();
+	MusicDriver();
 
-	bool isPlaying() { return _isPlaying; }
-	void setPlaying(bool playing) { _isPlaying = playing; }
+	void play(SagaEngine *vm, ByteArray *buffer, bool loop);
+	virtual void pause();
+	virtual void resume();
 
-	void setVolume(int volume);
-	int getVolume() { return _masterVolume; }
+	bool isAdlib() const { return _driverType == MT_ADLIB; }
 
-	void setNativeMT32(bool b) { _nativeMT32 = b; }
-	bool hasNativeMT32() { return _nativeMT32; }
-	void playMusic();
-	void stopMusic();
-	void setLoop(bool loop) { _looping = loop; }
-	void setPassThrough(bool b) { _passThrough = b; }
+	// FIXME
+	bool isPlaying() const { return _parser && _parser->isPlaying(); }
 
-	void setGM(bool isGM) { _isGM = isGM; }
-
-	//MidiDriver interface implementation
-	int open();
-	void close();
-	void send(uint32 b);
-
-	void metaEvent(byte type, byte *data, uint16 length);
-
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
-	uint32 getBaseTempo(void)	{ return _driver ? _driver->getBaseTempo() : 0; }
-
-	//Channel allocation functions
-	MidiChannel *allocateChannel()		{ return 0; }
-	MidiChannel *getPercussionChannel()	{ return 0; }
-
-	MidiParser *_parser;
-	Common::Mutex _mutex;
+	// MidiDriver_BASE interface implementation
+	virtual void send(uint32 b);
+	virtual void metaEvent(byte type, byte *data, uint16 length);
 
 protected:
-
-	static void onTimer(void *data);
-
-	MidiChannel *_channel[16];
-	MidiDriver *_driver;
-	byte _channelVolume[16];
-	bool _nativeMT32;
+	MusicType _driverType;
 	bool _isGM;
-	bool _passThrough;
-
-	bool _isPlaying;
-	bool _looping;
-	bool _randomLoop;
-	byte _masterVolume;
-
-	byte *_musicData;
-	uint16 *_buf;
-	size_t _musicDataSize;
 };
 
 class Music {
 public:
 
-	Music(SagaEngine *vm, Audio::Mixer *mixer, MidiDriver *driver);
-	~Music(void);
-	void setNativeMT32(bool b)	{ _player->setNativeMT32(b); }
-	bool hasNativeMT32()		{ return _player->hasNativeMT32(); }
-	void setAdlib(bool b)		{ _adlib = b; }
-	bool hasAdlib()			{ return _adlib; }
-	void setPassThrough(bool b)	{ _player->setPassThrough(b); }
-	bool isPlaying(void);
+	Music(SagaEngine *vm, Audio::Mixer *mixer);
+	~Music();
+	bool isPlaying();
 	bool hasDigitalMusic() { return _digitalMusic; }
 
 	void play(uint32 resourceId, MusicFlags flags = MUSIC_DEFAULT);
-	void pause(void);
-	void resume(void);
-	void stop(void);
+	void pause();
+	void resume();
+	void stop();
 
 	void setVolume(int volume, int time = 1);
 	int getVolume() { return _currentVolume; }
 
-	int32 *_songTable;
-	int _songTableLen;
+	Common::Array<int32> _songTable;
 
 private:
 	SagaEngine *_vm;
 	Audio::Mixer *_mixer;
 
-	MusicPlayer *_player;
+	MusicDriver *_player;
 	Audio::SoundHandle _musicHandle;
 	uint32 _trackNumber;
-
-	bool _adlib;
 
 	int _targetVolume;
 	int _currentVolume;
 	int _currentVolumePercent;
 	bool _digitalMusic;
 
+	ResourceContext *_musicContext;
 	ResourceContext *_digitalMusicContext;
-	MidiParser *xmidiParser;
-	MidiParser *smfParser;
 
-	byte *_midiMusicData;
 
 	static void musicVolumeGaugeCallback(void *refCon);
-	void musicVolumeGauge(void);
+	static void onTimer(void *refCon);
+	void musicVolumeGauge();
+	ByteArray *_currentMusicBuffer;
+	ByteArray _musicBuffer[2];
 };
 
 } // End of namespace Saga

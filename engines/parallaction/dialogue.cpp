@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/events.h"
+#include "common/debug-channels.h"
+#include "common/textconsole.h"
 #include "parallaction/exec.h"
 #include "parallaction/input.h"
 #include "parallaction/parallaction.h"
@@ -49,28 +48,10 @@ struct BalloonPositions {
 	Common::Point	_answerChar;
 };
 
-BalloonPositions _balloonPositions_NS = {
-	Common::Point(140, 10),
-	Common::Point(190, 80),
-	Common::Point(10, 80)
-};
 
-BalloonPositions _balloonPositions_BR = {
-	Common::Point(0, 0),
-	Common::Point(380, 80),
-	Common::Point(10, 80)
-};
 
 
 class DialogueManager {
-
-	enum {
-		RUN_QUESTION,
-		RUN_ANSWER,
-		NEXT_QUESTION,
-		NEXT_ANSWER,
-		DIALOGUE_OVER
-	} _state;
 
 	Parallaction	*_vm;
 	Dialogue		*_dialogue;
@@ -93,11 +74,16 @@ protected:
 	BalloonPositions	_ballonPos;
 	struct VisibleAnswer {
 		Answer	*_a;
+		int		_index;		// index into Question::_answers[]
 		int		_balloon;
 	} _visAnswers[5];
 	int			_numVisAnswers;
 	bool			_isKeyDown;
 	uint16			_downKey;
+
+protected:
+	Gfx				*_gfx;
+	BalloonManager  *_balloonMan;
 
 public:
 	DialogueManager(Parallaction *vm, ZonePtr z);
@@ -114,8 +100,21 @@ public:
 	CommandList *_cmdList;
 
 protected:
+	enum DialogueState {
+		DIALOGUE_START,
+		RUN_QUESTION,
+		RUN_ANSWER,
+		NEXT_QUESTION,
+		NEXT_ANSWER,
+		DIALOGUE_OVER
+	} _state;
+
+	static const int NO_ANSWER_SELECTED = -1;
+
+	void transitionToState(DialogueState newState);
+
 	bool displayQuestion();
-	bool displayAnswers();
+	void displayAnswers();
 	bool testAnswerFlags(Answer *a);
 	virtual void addVisibleAnswers(Question *q) = 0;
 	virtual int16 selectAnswer() = 0;
@@ -131,6 +130,9 @@ protected:
 };
 
 DialogueManager::DialogueManager(Parallaction *vm, ZonePtr z) : _vm(vm), _z(z) {
+	_gfx = _vm->_gfx;
+	_balloonMan = _vm->_balloonMan;
+
 	_dialogue = _z->u._speakDialogue;
 	isNpc = !_z->u._filename.empty() && _z->u._filename.compareToIgnoreCase("yourself");
 	_questioner = isNpc ? _vm->_disk->loadTalk(_z->u._filename.c_str()) : _vm->_char._talk;
@@ -143,7 +145,8 @@ DialogueManager::DialogueManager(Parallaction *vm, ZonePtr z) : _vm(vm), _z(z) {
 void DialogueManager::start() {
 	assert(_dialogue);
 	_q = _dialogue->_questions[0];
-	_state = displayQuestion() ? RUN_QUESTION : NEXT_ANSWER;
+	_state = DIALOGUE_START;
+	transitionToState(displayQuestion() ? RUN_QUESTION : NEXT_ANSWER);
 }
 
 
@@ -154,6 +157,37 @@ DialogueManager::~DialogueManager() {
 	_z.reset();
 }
 
+void DialogueManager::transitionToState(DialogueState newState) {
+	static const char *dialogueStates[] = {
+		"start",
+		"runquestion",
+		"runanswer",
+		"nextquestion",
+		"nextanswer",
+		"over"
+	};
+
+	if (_state != newState) {
+		debugC(3, kDebugDialogue, "DialogueManager moved to state '%s'", dialogueStates[newState]);
+
+		if (DebugMan.isDebugChannelEnabled(kDebugDialogue) && gDebugLevel == 9) {
+			switch (newState) {
+				case RUN_QUESTION:
+					debug("  Q  : %s", _q->_text.c_str());
+					break;
+				case RUN_ANSWER:
+					for (int i = 0; i < _numVisAnswers; ++i) {
+						debug("  A%02i: %s", i, _visAnswers[i]._a->_text.c_str());
+					}
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	_state = newState;
+}
 
 bool DialogueManager::testAnswerFlags(Answer *a) {
 	uint32 flags = _vm->getLocationFlags();
@@ -162,17 +196,12 @@ bool DialogueManager::testAnswerFlags(Answer *a) {
 	return ((a->_yesFlags & flags) == a->_yesFlags) && ((a->_noFlags & ~flags) == a->_noFlags);
 }
 
-bool DialogueManager::displayAnswers() {
-
-	addVisibleAnswers(_q);
-	if (_numVisAnswers == 0) {
-		return false;
-	}
+void DialogueManager::displayAnswers() {
 
 	// create balloons
 	int id;
 	for (int i = 0; i < _numVisAnswers; ++i) {
-		id = _vm->_balloonMan->setDialogueBalloon(_visAnswers[i]._a->_text.c_str(), 1, BalloonManager::kUnselectedColor);
+		id = _balloonMan->setDialogueBalloon(_visAnswers[i]._a->_text, 1, BalloonManager::kUnselectedColor);
 		assert(id >= 0);
 		_visAnswers[i]._balloon = id;
 
@@ -180,115 +209,120 @@ bool DialogueManager::displayAnswers() {
 
 	int mood = 0;
 	if (_numVisAnswers == 1) {
-		mood = _visAnswers[0]._a->_mood & 0xF;
-		_vm->_balloonMan->setBalloonText(_visAnswers[0]._balloon, _visAnswers[0]._a->_text.c_str(), BalloonManager::kNormalColor);
+		mood = _visAnswers[0]._a->speakerMood();
+		_balloonMan->setBalloonText(_visAnswers[0]._balloon, _visAnswers[0]._a->_text, BalloonManager::kNormalColor);
 	} else
 	if (_numVisAnswers > 1) {
-		mood = _visAnswers[0]._a->_mood & 0xF;
-		_oldSelection = -1;
+		mood = _visAnswers[0]._a->speakerMood();
+		_oldSelection = NO_ANSWER_SELECTED;
 		_selection = 0;
 	}
 
-	_faceId = _vm->_gfx->setItem(_answerer, _ballonPos._answerChar.x, _ballonPos._answerChar.y);
-	_vm->_gfx->setItemFrame(_faceId, mood);
-
-	return true;
+	_faceId = _gfx->setItem(_answerer, _ballonPos._answerChar.x, _ballonPos._answerChar.y);
+	_gfx->setItemFrame(_faceId, mood);
 }
 
 int16 DialogueManager::selectAnswer1() {
-	if (!_visAnswers[0]._a->_text.compareToIgnoreCase("null")) {
-		return 0;
+	if (_visAnswers[0]._a->textIsNull()) {
+		return _visAnswers[0]._index;
 	}
 
 	if (_mouseButtons == kMouseLeftUp) {
-		return 0;
+		return _visAnswers[0]._index;
 	}
 
-	return -1;
+	return NO_ANSWER_SELECTED;
 }
 
 int16 DialogueManager::selectAnswerN() {
 
-	_selection = _vm->_balloonMan->hitTestDialogueBalloon(_mousePos.x, _mousePos.y);
+	_selection = _balloonMan->hitTestDialogueBalloon(_mousePos.x, _mousePos.y);
+
+	VisibleAnswer *oldAnswer = &_visAnswers[_oldSelection];
+	VisibleAnswer *answer = &_visAnswers[_selection];
 
 	if (_selection != _oldSelection) {
-		if (_oldSelection != -1) {
-			_vm->_balloonMan->setBalloonText(_visAnswers[_oldSelection]._balloon, _visAnswers[_oldSelection]._a->_text.c_str(), BalloonManager::kUnselectedColor);
+		if (_oldSelection != NO_ANSWER_SELECTED) {
+			_balloonMan->setBalloonText(oldAnswer->_balloon, oldAnswer->_a->_text, BalloonManager::kUnselectedColor);
 		}
 
-		if (_selection != -1) {
-			_vm->_balloonMan->setBalloonText(_visAnswers[_selection]._balloon, _visAnswers[_selection]._a->_text.c_str(), BalloonManager::kSelectedColor);
-			_vm->_gfx->setItemFrame(_faceId, _visAnswers[_selection]._a->_mood & 0xF);
+		if (_selection != NO_ANSWER_SELECTED) {
+			_balloonMan->setBalloonText(answer->_balloon, answer->_a->_text, BalloonManager::kSelectedColor);
+			_gfx->setItemFrame(_faceId, answer->_a->speakerMood());
 		}
 	}
 
 	_oldSelection = _selection;
 
-	if ((_mouseButtons == kMouseLeftUp) && (_selection != -1)) {
-		return _selection;
+	if ((_mouseButtons == kMouseLeftUp) && (_selection != NO_ANSWER_SELECTED)) {
+		return _visAnswers[_selection]._index;
 	}
 
-	return -1;
+	return NO_ANSWER_SELECTED;
 }
 
 bool DialogueManager::displayQuestion() {
-	if (!_q->_text.compareToIgnoreCase("NULL")) return false;
+	if (_q->textIsNull()) return false;
 
-	_vm->_balloonMan->setSingleBalloon(_q->_text.c_str(), _ballonPos._questionBalloon.x, _ballonPos._questionBalloon.y, _q->_mood & 0x10, BalloonManager::kNormalColor);
-	_faceId = _vm->_gfx->setItem(_questioner, _ballonPos._questionChar.x, _ballonPos._questionChar.y);
-	_vm->_gfx->setItemFrame(_faceId, _q->_mood & 0xF);
+	_balloonMan->setSingleBalloon(_q->_text, _ballonPos._questionBalloon.x, _ballonPos._questionBalloon.y, _q->balloonWinding(), BalloonManager::kNormalColor);
+	_faceId = _gfx->setItem(_questioner, _ballonPos._questionChar.x, _ballonPos._questionChar.y);
+	_gfx->setItemFrame(_faceId, _q->speakerMood());
 
 	return true;
 }
 
 void DialogueManager::runQuestion() {
-	debugC(9, kDebugDialogue, "runQuestion\n");
-
 	if (_mouseButtons == kMouseLeftUp) {
-		_vm->_gfx->freeDialogueObjects();
-		_state = NEXT_ANSWER;
+		_gfx->freeDialogueObjects();
+		transitionToState(NEXT_ANSWER);
 	}
 
 }
 
 
 void DialogueManager::nextAnswer() {
-	debugC(9, kDebugDialogue, "nextAnswer\n");
-
 	if (_q->_answers[0] == NULL) {
-		_state = DIALOGUE_OVER;
+		transitionToState(DIALOGUE_OVER);
 		return;
 	}
 
-	if (!_q->_answers[0]->_text.compareToIgnoreCase("NULL")) {
-		_answerId = 0;
-		_state = NEXT_QUESTION;
+	// try and check if there are any suitable answers,
+	// given the current game state.
+	addVisibleAnswers(_q);
+	if (!_numVisAnswers) {
+		// if there are no answers, then chicken out
+		transitionToState(DIALOGUE_OVER);
 		return;
 	}
 
-	_state = displayAnswers() ? RUN_ANSWER : DIALOGUE_OVER;
+	if (_visAnswers[0]._a->textIsNull()) {
+		// if the first answer is null (it's implied that it's the
+		// only one because we already called addVisibleAnswers),
+		// then jump to the next question
+		_answerId = _visAnswers[0]._index;
+		transitionToState(NEXT_QUESTION);
+	} else {
+		// at this point we are sure there are non-null answers to show
+		displayAnswers();
+		transitionToState(RUN_ANSWER);
+	}
 }
 
 void DialogueManager::runAnswer() {
-	debugC(9, kDebugDialogue, "runAnswer\n");
-
 	_answerId = selectAnswer();
-
-	if (_answerId != -1) {
+	if (_answerId != NO_ANSWER_SELECTED) {
 		_cmdList = &_q->_answers[_answerId]->_commands;
-		_vm->_gfx->freeDialogueObjects();
-		_state = NEXT_QUESTION;
+		_gfx->freeDialogueObjects();
+		transitionToState(NEXT_QUESTION);
 	}
 }
 
 void DialogueManager::nextQuestion() {
-	debugC(9, kDebugDialogue, "nextQuestion\n");
-
 	_q = _dialogue->findQuestion(_q->_answers[_answerId]->_followingName);
 	if (_q == 0) {
-		_state = DIALOGUE_OVER;
+		transitionToState(DIALOGUE_OVER);
 	} else {
-		_state = displayQuestion() ? RUN_QUESTION : NEXT_ANSWER;
+		transitionToState(displayQuestion() ? RUN_QUESTION : NEXT_ANSWER);
 	}
 }
 
@@ -362,7 +396,7 @@ protected:
 		}
 
 		if (_passwordChanged) {
-			_vm->_balloonMan->setBalloonText(_visAnswers[0]._balloon, _visAnswers[0]._a->_text.c_str(), BalloonManager::kNormalColor);
+			_balloonMan->setBalloonText(_visAnswers[0]._balloon, _visAnswers[0]._a->_text, BalloonManager::kNormalColor);
 			_passwordChanged = false;
 		}
 
@@ -374,12 +408,14 @@ protected:
 			}
 		}
 
-		return -1;
+		return NO_ANSWER_SELECTED;
 	}
 
 public:
 	DialogueManager_ns(Parallaction_ns *vm, ZonePtr z) : DialogueManager(vm, z), _vm(vm) {
-		_ballonPos = _balloonPositions_NS;
+		_ballonPos._questionBalloon = Common::Point(140, 10);
+		_ballonPos._questionChar = Common::Point(190, 80);
+		_ballonPos._answerChar = Common::Point(10, 80);
 	}
 
 	bool canDisplayAnswer(Answer *a) {
@@ -400,6 +436,7 @@ public:
 			}
 
 			_visAnswers[_numVisAnswers]._a = a;
+			_visAnswers[_numVisAnswers]._index = i;
 			_numVisAnswers++;
 		}
 
@@ -407,7 +444,7 @@ public:
 	}
 
 	virtual int16 selectAnswer() {
-		int ans = -1;
+		int ans = NO_ANSWER_SELECTED;
 		if (_askPassword) {
 			ans = askPassword();
 		} else
@@ -425,7 +462,9 @@ class DialogueManager_br : public DialogueManager {
 
 public:
 	DialogueManager_br(Parallaction_br *vm, ZonePtr z) : DialogueManager(vm, z), _vm(vm) {
-		_ballonPos = _balloonPositions_BR;
+		_ballonPos._questionBalloon = Common::Point(0, 0);
+		_ballonPos._questionChar = Common::Point(380, 80);
+		_ballonPos._answerChar = Common::Point(10, 80);
 	}
 
 	bool canDisplayAnswer(Answer *a) {
@@ -448,12 +487,13 @@ public:
 				continue;
 			}
 			_visAnswers[_numVisAnswers]._a = a;
+			_visAnswers[_numVisAnswers]._index = i;
 			_numVisAnswers++;
 		}
 	}
 
 	virtual int16 selectAnswer() {
-		int16 ans = -1;
+		int16 ans = NO_ANSWER_SELECTED;
 		if (_numVisAnswers == 1) {
 			ans = selectAnswer1();
 		} else {
@@ -465,6 +505,10 @@ public:
 
 
 void Parallaction::enterDialogueMode(ZonePtr z) {
+	if (!z->u._speakDialogue) {
+		return;
+	}
+
 	debugC(1, kDebugDialogue, "Parallaction::enterDialogueMode(%s)", z->u._filename.c_str());
 	_dialogueMan = createDialogueManager(z);
 	assert(_dialogueMan);
@@ -476,18 +520,27 @@ void Parallaction::exitDialogueMode() {
 	debugC(1, kDebugDialogue, "Parallaction::exitDialogueMode()");
 	_input->_inputMode = Input::kInputModeGame;
 
-	if (_dialogueMan->_cmdList) {
-		_cmdExec->run(*_dialogueMan->_cmdList);
-	}
-
-	// The current instance of _dialogueMan must be destroyed before the zone commands
-	// are executed, because they may create another instance of _dialogueMan that
-	// overwrite the current one. This would cause headaches (and it did, actually).
+	/* Since the current instance of _dialogueMan must be destroyed before the
+	   zone commands are executed, as they may create a new instance of _dialogueMan that
+	   would overwrite the current, we need to save the references to the command lists.
+	*/
+	CommandList *_cmdList = _dialogueMan->_cmdList;
 	ZonePtr z = _dialogueMan->_z;
+
+	// destroy the _dialogueMan here
+	destroyDialogueManager();
+
+	// run the lists saved
+	if (_cmdList) {
+		_cmdExec->run(*_cmdList);
+	}
+	_cmdExec->run(z->_commands, z);
+}
+
+void Parallaction::destroyDialogueManager() {
+	// destroy the _dialogueMan here
 	delete _dialogueMan;
 	_dialogueMan = 0;
-
-	_cmdExec->run(z->_commands, z);
 }
 
 void Parallaction::runDialogueFrame() {

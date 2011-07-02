@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/util.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 #include "backends/fs/abstract-fs.h"
 #include "backends/fs/fs-factory.h"
 
@@ -49,17 +46,17 @@ FSNode::FSNode(const Common::String &p) {
 }
 
 bool FSNode::operator<(const FSNode& node) const {
+	// Directories come before files, i.e., are "lower".
 	if (isDirectory() != node.isDirectory())
 		return isDirectory();
 
+	// If both nodes are of the same type (two files or two dirs),
+	// then sort by name, ignoring case.
 	return getDisplayName().compareToIgnoreCase(node.getDisplayName()) < 0;
 }
 
 bool FSNode::exists() const {
-	if (_realNode == 0)
-		return false;
-
-	return _realNode->exists();
+	return _realNode && _realNode->exists();
 }
 
 FSNode FSNode::getChild(const Common::String &n) const {
@@ -116,24 +113,15 @@ Common::String FSNode::getPath() const {
 }
 
 bool FSNode::isDirectory() const {
-	if (_realNode == 0)
-		return false;
-
-	return _realNode->isDirectory();
+	return _realNode && _realNode->isDirectory();
 }
 
 bool FSNode::isReadable() const {
-	if (_realNode == 0)
-		return false;
-
-	return _realNode->isReadable();
+	return _realNode && _realNode->isReadable();
 }
 
 bool FSNode::isWritable() const {
-	if (_realNode == 0)
-		return false;
-
-	return _realNode->isWritable();
+	return _realNode && _realNode->isWritable();
 }
 
 Common::SeekableReadStream *FSNode::createReadStream() const {
@@ -141,10 +129,10 @@ Common::SeekableReadStream *FSNode::createReadStream() const {
 		return 0;
 
 	if (!_realNode->exists()) {
-		warning("FSNode::createReadStream: FSNode does not exist");
+		warning("FSNode::createReadStream: '%s' does not exist", getName().c_str());
 		return false;
 	} else if (_realNode->isDirectory()) {
-		warning("FSNode::createReadStream: FSNode is a directory");
+		warning("FSNode::createReadStream: '%s' is a directory", getName().c_str());
 		return false;
 	}
 
@@ -156,7 +144,7 @@ Common::WriteStream *FSNode::createWriteStream() const {
 		return 0;
 
 	if (_realNode->isDirectory()) {
-		warning("FSNode::createWriteStream: FSNode is a directory");
+		warning("FSNode::createWriteStream: '%s' is a directory", getName().c_str());
 		return 0;
 	}
 
@@ -224,10 +212,10 @@ ArchiveMemberPtr FSDirectory::getMember(const String &name) {
 	FSNode *node = lookupCache(_fileCache, name);
 
 	if (!node || !node->exists()) {
-		warning("FSDirectory::getMember: FSNode does not exist");
+		warning("FSDirectory::getMember: '%s' does not exist", name.c_str());
 		return ArchiveMemberPtr();
 	} else if (node->isDirectory()) {
-		warning("FSDirectory::getMember: FSNode is a directory");
+		warning("FSDirectory::getMember: '%s' is a directory", name.c_str());
 		return ArchiveMemberPtr();
 	}
 
@@ -249,7 +237,7 @@ SeekableReadStream *FSDirectory::createReadStreamForMember(const String &name) c
 }
 
 FSDirectory *FSDirectory::getSubDirectory(const String &name, int depth, bool flat) {
-	return getSubDirectory(String::emptyString, name, depth, flat);
+	return getSubDirectory(String(), name, depth, flat);
 }
 
 FSDirectory *FSDirectory::getSubDirectory(const String &prefix, const String &name, int depth, bool flat) {
@@ -314,13 +302,15 @@ int FSDirectory::listMatchingMembers(ArchiveMemberList &list, const String &patt
 	// Cache dir data
 	ensureCached();
 
+	// need to match lowercase key, since all entries in our file cache are
+	// stored as lowercase.
 	String lowercasePattern(pattern);
 	lowercasePattern.toLowercase();
 
 	int matches = 0;
 	NodeCache::iterator it = _fileCache.begin();
 	for ( ; it != _fileCache.end(); ++it) {
-		if (it->_key.matchString(lowercasePattern, true)) {
+		if (it->_key.matchString(lowercasePattern, false, true)) {
 			list.push_back(ArchiveMemberPtr(new FSNode(it->_value)));
 			matches++;
 		}

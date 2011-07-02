@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // this is the object manager. our equivalent to protocol.c and coredata.c
@@ -37,8 +34,8 @@ namespace Sword1 {
 class ObjectMan {
 public:
 	ObjectMan(ResMan *pResourceMan);
-	~ObjectMan(void);
-	void initialize(void);
+	~ObjectMan();
+	void initialize();
 
 	Object *fetchObject(uint32 id);
 	uint32 fetchNoObjects(int section);

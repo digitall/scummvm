@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 // The new memory manager, now only used by the resource manager. The original
@@ -31,7 +28,7 @@
 // with our PocketPC version.
 //
 // There is one thing that prevents us from replacing the whole memory manager
-// with the standard memory allocation functions: Broken Sword 2 absolutely,
+// with the standard memory allocation functions: Broken Sword II absolutely,
 // positively needs to be able to encode pointers as 32-bit integers. The
 // original engine did this simply by casting between pointers and integers,
 // but as far as I know that's not a very portable thing to do.
@@ -48,6 +45,7 @@
 //
 // The number zero is used to represent the NULL pointer.
 
+#include "common/textconsole.h"
 
 #include "sword2/sword2.h"
 #include "sword2/memory.h"

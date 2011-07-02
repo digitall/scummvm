@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Graphics maniuplation routines - private header file
@@ -28,6 +25,7 @@
 #ifndef SAGA_GFX_H
 #define SAGA_GFX_H
 
+#include "common/rect.h"
 #include "graphics/surface.h"
 
 namespace Saga {
@@ -108,10 +106,7 @@ struct Surface : Graphics::Surface {
 		rect.right = w;
 		rect.bottom = h;
 	}
-	void drawFrame(const Common::Point &p1, const Common::Point &p2, int color) {
-		Common::Rect rect(MIN(p1.x, p2.x), MIN(p1.y, p2.y), MAX(p1.x, p2.x) + 1, MAX(p1.y, p2.y) + 1);
-		frameRect(rect, color);
-	}
+
 	void drawRect(const Common::Rect &destRect, int color) {
 		Common::Rect rect(w , h);
 		rect.clip(destRect);
@@ -198,7 +193,7 @@ public:
 	// WARNING: This method does not add a dirty rectangle automatically.
 	// Whenever it gets called, the corresponding caller must take care
 	// to add the corresponding dirty rectangle itself
-	void drawPolyLine(Common::Point *points, int count, int color) {
+	void drawPolyLine(const Common::Point *points, int count, int color) {
 		_backBuffer.drawPolyLine(points, count, color);
 	}
 
@@ -227,7 +222,7 @@ public:
 
 private:
 	Surface _backBuffer;
-	byte _currentPal[PAL_ENTRIES * 4];
+	byte _currentPal[PAL_ENTRIES * 3];
 	OSystem *_system;
 	SagaEngine *_vm;
 

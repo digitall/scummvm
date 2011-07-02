@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/archive.h"
@@ -98,6 +95,13 @@ int ScummEngine_v60he::convertFilePath(byte *dst, int dstSize) {
 
 	int len = resStrLen(dst);
 	if (_game.platform == Common::kPlatformMacintosh) {
+		// Remove : prefix in HE71 games
+		if (dst[0] == ':') {
+			len -= 1;
+			memmove(dst, dst + 1, len);
+			dst[len] = 0;
+		}
+
 		// Switch all : to / for portablity
 		for (int i = 0; i < len; i++) {
 			if (dst[i] == ':')
@@ -115,14 +119,18 @@ int ScummEngine_v60he::convertFilePath(byte *dst, int dstSize) {
 	int r = 0;
 	if (dst[len - 3] == 's' && dst[len - 2] == 'g') { // Save Game File
 		// Change filename prefix to target name, for save game files.
-		char saveName[20];
-		sprintf(saveName, "%s.sg%c", _targetName.c_str(), dst[len - 1]);
-		memcpy(dst, saveName, 20);
+		const char c = dst[len - 1];
+		snprintf((char *)dst, dstSize, "%s.sg%c", _targetName.c_str(), c);
 	} else if (dst[0] == '.' && dst[1] == '/') { // Game Data Path
 		// The default game data path is set to './' by ScummVM
 		r = 2;
-	} else if (dst[0] == '*' && dst[1] == '/') { // Save Game Path (HE72 - HE100)
+	} else if (dst[2] == 'b' && dst[5] == 'k') { // Backyard Basketball INI
+		r = 13;
+	} else if (dst[0] == '*' && dst[1] == '/') { // Save Game Path (Windows HE72 - HE100)
 		// The default save game path is set to '*/' by ScummVM
+		r = 2;
+	} else if (dst[0] == '*' && dst[1] == ':') { // Save Game Path (Macintosh HE72 - HE100)
+		// The default save game path is set to ':/' by ScummVM
 		r = 2;
 	} else if (dst[0] == 'c' && dst[1] == ':') { // Save Game Path (HE60 - HE71)
 		// The default save path is game path (DOS) or 'c:/hegames/' (Windows)
@@ -272,15 +280,14 @@ void ScummEngine_v60he::o60_roomOps() {
 		break;
 	case 221:
 		byte buffer[100];
-		int len, r;
+		int len;
 
 		convertMessageToString(_scriptPointer, buffer, sizeof(buffer));
 		len = resStrLen(_scriptPointer);
 		_scriptPointer += len + 1;
 
-		r = convertFilePath(buffer, sizeof(buffer));
-		memcpy(_saveLoadFileName, buffer + r, sizeof(buffer) - r);
-		debug(1, "o60_roomOps: case 221: filename %s", _saveLoadFileName);
+		_saveLoadFileName = (char *)buffer + convertFilePath(buffer, sizeof(buffer));
+		debug(1, "o60_roomOps: case 221: filename %s", _saveLoadFileName.c_str());
 
 		_saveLoadFlag = pop();
 		_saveLoadSlot = 255;
@@ -731,10 +738,14 @@ void ScummEngine_v60he::o60_openFile() {
 void ScummEngine_v60he::o60_closeFile() {
 	int slot = pop();
 	if (0 <= slot && slot < 17) {
+		if (_hOutFileTable[slot]) {
+			_hOutFileTable[slot]->finalize();
+			delete _hOutFileTable[slot];
+			_hOutFileTable[slot] = 0;
+		}
+
 		delete _hInFileTable[slot];
-		delete _hOutFileTable[slot];
 		_hInFileTable[slot] = 0;
-		_hOutFileTable[slot] = 0;
 	}
 }
 

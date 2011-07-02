@@ -18,11 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
 
 #include "common/system.h"
 
@@ -36,7 +32,6 @@
 #include "sword1/objectman.h"
 #include "sword1/sworddefs.h"
 #include "sword1/swordres.h"
-#include "sword1/menu.h"
 #include "sword1/sword1.h"
 
 namespace Sword1 {
@@ -48,7 +43,7 @@ Mouse::Mouse(OSystem *system, ResMan *pResMan, ObjectMan *pObjMan) {
 	_currentPtr = NULL;
 }
 
-Mouse::~Mouse(void) {
+Mouse::~Mouse() {
 	setLuggage(0, 0);
 	setPointer(0, 0);
 
@@ -56,7 +51,7 @@ Mouse::~Mouse(void) {
 		_resMan->resClose(MSE_POINTER + cnt);
 }
 
-void Mouse::initialize(void) {
+void Mouse::initialize() {
 	_numObjs = 0;
 	Logic::_scriptVars[MOUSE_STATUS] = 0; // mouse off and unlocked
 	_getOff = 0;
@@ -190,7 +185,7 @@ void Mouse::engine(uint16 x, uint16 y, uint16 eventFlags) {
 	_numObjs = 0;
 }
 
-uint16 Mouse::testEvent(void) {
+uint16 Mouse::testEvent() {
 	return _state;
 }
 
@@ -199,6 +194,7 @@ void Mouse::createPointer(uint32 ptrId, uint32 luggageId) {
 		free(_currentPtr);
 		_currentPtr = NULL;
 	}
+
 	if (ptrId) {
 		MousePtr *lugg = NULL;
 		MousePtr *ptr = (MousePtr*)_resMan->openFetchRes(ptrId);
@@ -245,7 +241,7 @@ void Mouse::createPointer(uint32 ptrId, uint32 luggageId) {
 						if (luggSrc[cntx])
 							dstData[cntx] = luggSrc[cntx];
 
-					if(SwordEngine::isPsx()) {
+					if (SwordEngine::isPsx()) {
 						dstData += resSizeX;
 						for (uint32 cntx = 0; cntx < luggSizeX; cntx++)
 							if (luggSrc[cntx])
@@ -267,7 +263,7 @@ void Mouse::createPointer(uint32 ptrId, uint32 luggageId) {
 					if (srcData[cntx])
 						dstData[cntx] = srcData[cntx];
 
-				if(SwordEngine::isPsx()) {
+				if (SwordEngine::isPsx()) {
 					dstData +=resSizeX;
 					for (uint32 cntx = 0; cntx < ptrSizeX; cntx++)
 						if (srcData[cntx])
@@ -286,6 +282,7 @@ void Mouse::createPointer(uint32 ptrId, uint32 luggageId) {
 void Mouse::setPointer(uint32 resId, uint32 rate) {
 	_currentPtrId = resId;
 	_frame = 0;
+	_activeFrame = -1;
 
 	createPointer(resId, _currentLuggageId);
 
@@ -300,48 +297,57 @@ void Mouse::setPointer(uint32 resId, uint32 rate) {
 void Mouse::setLuggage(uint32 resId, uint32 rate) {
 	_currentLuggageId = resId;
 	_frame = 0;
+	_activeFrame = -1;
+
 	createPointer(_currentPtrId, resId);
 }
 
-void Mouse::animate(void) {
+void Mouse::animate() {
 	if ((Logic::_scriptVars[MOUSE_STATUS] == 1) || (_mouseOverride && _currentPtr)) {
 		_frame = (_frame + 1) % _currentPtr->numFrames;
+
+		if (_activeFrame == _frame)
+			return;
+
 		uint8 *ptrData = (uint8*)_currentPtr + sizeof(MousePtr);
 		ptrData += _frame * _currentPtr->sizeX * _currentPtr->sizeY;
-		CursorMan.replaceCursor(ptrData, _currentPtr->sizeX, _currentPtr->sizeY, _currentPtr->hotSpotX, _currentPtr->hotSpotY);
+
+		CursorMan.replaceCursor(ptrData, _currentPtr->sizeX, _currentPtr->sizeY, _currentPtr->hotSpotX, _currentPtr->hotSpotY, 255);
+
+		_activeFrame = _frame;
 	}
 }
 
-void Mouse::fnNoHuman(void) {
+void Mouse::fnNoHuman() {
 	if (Logic::_scriptVars[MOUSE_STATUS] & 2) // locked, can't do anything
-		return ;
+		return;
 	Logic::_scriptVars[MOUSE_STATUS] = 0; // off & unlocked
 	setLuggage(0, 0);
 	setPointer(0, 0);
 }
 
-void Mouse::fnAddHuman(void) {
+void Mouse::fnAddHuman() {
 	if (Logic::_scriptVars[MOUSE_STATUS] & 2) // locked, can't do anything
-		return ;
+		return;
 	Logic::_scriptVars[MOUSE_STATUS] = 1;
 	Logic::_scriptVars[SPECIAL_ITEM] = 0;
 	_getOff = SCR_std_off;
 	setPointer(MSE_POINTER, 0);
 }
 
-void Mouse::fnBlankMouse(void) {
+void Mouse::fnBlankMouse() {
 	setPointer(0, 0);
 }
 
-void Mouse::fnNormalMouse(void) {
+void Mouse::fnNormalMouse() {
 	setPointer(MSE_POINTER, 0);
 }
 
-void Mouse::fnLockMouse(void) {
+void Mouse::fnLockMouse() {
 	Logic::_scriptVars[MOUSE_STATUS] |= 2;
 }
 
-void Mouse::fnUnlockMouse(void) {
+void Mouse::fnUnlockMouse() {
 	Logic::_scriptVars[MOUSE_STATUS] &= 1;
 }
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_SCREEN_H
@@ -76,25 +73,25 @@ class Text; // Text objects use sprites that are created internally at run-time
 class Screen {
 public:
 	Screen(OSystem *system, ResMan *pResMan, ObjectMan *pObjMan);
-	~Screen(void);
-	void clearScreen(void);
+	~Screen();
+	void clearScreen();
 	void useTextManager(Text *pTextMan);
-	void draw(void);
+	void draw();
 
-	void quitScreen(void);
+	void quitScreen();
 	void newScreen(uint32 screen);
 
 	void setScrolling(int16 offsetX, int16 offsetY);
 	void addToGraphicList(uint8 listId, uint32 objId);
 
-	void fadeDownPalette(void);
-	void fadeUpPalette(void);
+	void fadeDownPalette();
+	void fadeUpPalette();
 	void fnSetPalette(uint8 start, uint16 length, uint32 id, bool fadeUp);
-	bool stillFading(void);
-	void fullRefresh(void);
+	bool stillFading();
+	void fullRefresh();
 
-	bool showScrollFrame(void);
-	void updateScreen(void);
+	bool showScrollFrame();
+	void updateScreen();
 	void showFrame(uint16 x, uint16 y, uint32 resId, uint32 frameNo, const byte *fadeMask = NULL, int8 fadeStatus = 0);
 
 	void fnSetParallax(uint32 screen, uint32 resId);
@@ -130,9 +127,9 @@ private:
 	void decompressTony(uint8 *src, uint32 compSize, uint8 *dest);
 	void fastShrink(uint8 *src, uint32 width, uint32 height, uint32 scale, uint8 *dest);
 	int32 inRange(int32 a, int32 b, int32 c);
-	void fadePalette(void);
+	void fadePalette();
 
-	void flushPsxCache(void);
+	void flushPsxCache();
 
 	OSystem *_system;
 	ResMan *_resMan;
@@ -161,8 +158,8 @@ private:
 
 	static RoomDef _roomDefTable[TOTAL_ROOMS]; // from ROOMS.C (not const, see fnSetParallax)
 
-	uint8 _targetPalette[256 * 4];
-	uint8 _currentPalette[256 * 4]; // for fading
+	uint8 _targetPalette[256 * 3];
+	uint8 _currentPalette[256 * 3]; // for fading
 	uint8 _fadingStep;
 	int8  _fadingDirection; // 1 for fade up, -1 for fade down
 	bool _isBlack; // if the logic already faded down the palette, this is set to show the

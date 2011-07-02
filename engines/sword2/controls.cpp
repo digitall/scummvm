@@ -20,15 +20,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
-#include "common/events.h"
 #include "common/rect.h"
-#include "common/config-manager.h"
 #include "common/system.h"
 
 #include "sword2/sword2.h"
@@ -180,12 +175,12 @@ void FontRendererGui::fetchText(uint32 textId, byte *buf) {
 	byte *data = _vm->fetchTextLine(_vm->_resman->openResource(textId / SIZE), textId & 0xffff);
 	int i;
 
-	for (i = 0; data[i + 2]; i++) {
-		if (buf)
+	if (buf) {
+		for (i = 0; data[i + 2]; i++)
 			buf[i] = data[i + 2];
+		buf[i] = 0;
 	}
 
-	buf[i] = 0;
 	_vm->_resman->closeResource(textId / SIZE);
 }
 
@@ -465,7 +460,7 @@ void Widget::createSurfaceImage(int state, uint32 res, int x, int y, uint32 pc) 
 		break;
 	case RLE16:
 		spriteType |= RDSPR_RLE256;
-		// Points to just after last cdt_entry, i.e. start of colour
+		// Points to just after last cdt_entry, i.e. start of color
 		// table
 		colTablePtr = _vm->fetchAnimHeader(file) + AnimHeader::size()
 			+ anim_head.noAnimFrames * CdtEntry::size();
@@ -623,7 +618,7 @@ public:
 
 	// The sound mute switches have 0 as their "down" state and 1 as
 	// their "up" state, so this function is needed to get consistent
-	// behaviour.
+	// behavior.
 
 	void reverseStates() {
 		_upState = 1;

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -298,9 +295,11 @@ void Parallaction_ns::_c_trasformata(void *parm) {
 
 void Parallaction_ns::_c_offMouse(void *parm) {
 	_input->setMouseState(MOUSE_DISABLED);
+	_engineFlags |= kEngineBlockInput;
 }
 
 void Parallaction_ns::_c_onMouse(void *parm) {
+	_engineFlags &= ~kEngineBlockInput;
 	_input->setMouseState(MOUSE_ENABLED_SHOW);
 }
 
@@ -407,12 +406,13 @@ void Parallaction_ns::_c_testResult(void *parm) {
 
 	parseLocation("common");
 
-	uint id[2];
-	id[0] = _gfx->createLabel(_menuFont, _location._slideText[0].c_str(), 1);
-	id[1] = _gfx->createLabel(_menuFont, _location._slideText[1].c_str(), 1);
+	destroyTestResultLabels();
 
-	_gfx->showLabel(id[0], CENTER_LABEL_HORIZONTAL, 38);
-	_gfx->showLabel(id[1], CENTER_LABEL_HORIZONTAL, 58);
+	_testResultLabels[0] = _gfx->createLabel(_menuFont, _location._slideText[0].c_str(), 1);
+	_testResultLabels[1] = _gfx->createLabel(_menuFont, _location._slideText[1].c_str(), 1);
+
+	_gfx->showLabel(_testResultLabels[0], CENTER_LABEL_HORIZONTAL, 38);
+	_gfx->showLabel(_testResultLabels[1], CENTER_LABEL_HORIZONTAL, 58);
 
 	return;
 }
@@ -444,19 +444,21 @@ void Parallaction_ns::_c_startIntro(void *parm) {
 		_soundManI->playMusic();
 	}
 
+	_engineFlags |= kEngineBlockInput;
 	_input->setMouseState(MOUSE_DISABLED);
 	_intro = true;
 }
 
 void Parallaction_ns::_c_endIntro(void *parm) {
-	// NOTE: suspend command execution queue, to
-	// avoid running the QUIT command before
-	// credits are displayed. This solves bug
-	// #2619824.
-	// Execution of the command list will resume
-	// as soon as runGameFrame is run.
-	_cmdExec->suspend();
-
+	if (getFeatures() & GF_DEMO) {
+		// NOTE: suspend command execution queue, to
+		// avoid running the QUIT command before
+		// credits are displayed. This solves bug
+		// #2619824.
+		// Execution of the command list will resume
+		// as soon as runGameFrame is run.
+		_cmdExec->suspend();
+	}
 	startCreditSequence();
 	_intro = false;
 }

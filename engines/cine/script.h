@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CINE_SCRIPT_H
@@ -36,7 +33,8 @@ namespace Cine {
 #define SCRIPT_STACK_SIZE 50
 #define LOCAL_VARS_SIZE 50
 
-/*! \brief Fixed size array of script variables.
+/**
+ * Fixed size array of script variables.
  *
  * Array size can be set in constructors, once the instance is created,
  * it cannot be changed directly.
@@ -44,14 +42,15 @@ namespace Cine {
 
 class FWScript;
 
-typedef int (FWScript::*opFunc)();
+typedef int (FWScript::*OpFunc)();
 
 struct Opcode {
-	const opFunc proc;
+	OpFunc proc;
 	const char *args;
 };
 
-/*! \brief Fixed size array for script variables
+/**
+ *  Fixed size array for script variables
  */
 class ScriptVars {
 private:
@@ -63,8 +62,9 @@ public:
 	explicit ScriptVars(unsigned int len = 50);
 	ScriptVars(Common::SeekableReadStream &fHandle, unsigned int len = 50);
 	ScriptVars(const ScriptVars &src);
-	~ScriptVars(void);
+	~ScriptVars();
 
+	void reinit(unsigned int len);
 	ScriptVars &operator=(const ScriptVars &src);
 	int16 &operator[](unsigned int idx);
 	int16 operator[](unsigned int idx) const;
@@ -73,12 +73,13 @@ public:
 	void save(Common::OutSaveFile &fHandle, unsigned int len) const;
 	void load(Common::SeekableReadStream &fHandle);
 	void load(Common::SeekableReadStream &fHandle, unsigned int len);
-	void reset(void);
+	void reset();
 };
 
 class FWScriptInfo;
 
-/*! \brief Script bytecode and initial labels, ScriptStruct replacement.
+/**
+ *  Script bytecode and initial labels, ScriptStruct replacement.
  *
  * _data is one byte longer to make sure strings in bytecode are properly
  * terminated
@@ -98,22 +99,20 @@ public:
 	explicit RawScript(uint16 size);
 	RawScript(const FWScriptInfo &info, const byte *data, uint16 size);
 	RawScript(const RawScript &src);
-	~RawScript(void);
+	~RawScript();
 
 	RawScript &operator=(const RawScript &src);
 
 	void setData(const FWScriptInfo &info, const byte *data);
-	/*! \brief Size of script
-	 * \return Size of script
-	 */
-	const ScriptVars &labels(void) const;
+	const ScriptVars &labels() const;
 	byte getByte(unsigned int pos) const;
 	uint16 getWord(unsigned int pos) const;
 	const char *getString(unsigned int pos) const;
 	uint16 getLabel(const FWScriptInfo &info, byte index, uint16 offset) const;
 };
 
-/*! \brief Object script class, RelObjectScript replacement
+/**
+ * Object script class, RelObjectScript replacement
  *
  * Script parameters are not used, this class is required by different
  * script initialization of object scripts
@@ -128,13 +127,16 @@ public:
 	RawObjectScript(uint16 size, uint16 p1, uint16 p2, uint16 p3);
 	RawObjectScript(const FWScriptInfo &info, const byte *data, uint16 size, uint16 p1, uint16 p2, uint16 p3);
 
-	/// \brief Run the script one more time
-	/// \return Run count before incrementation
-	int16 run(void) { return _runCount++; }
+	/**
+	 * Run the script one more time.
+	 * @return Run count before incrementation
+	 */
+	int16 run() { return _runCount++; }
 };
 
-/*! \brief Future Wars script, prcLinkedListStruct replacement
- * \todo Rewrite _globalVars initialization
+/**
+ * Future Wars script, prcLinkedListStruct replacement.
+ * @todo Rewrite _globalVars initialization
  */
 class FWScript {
 private:
@@ -283,7 +285,7 @@ public:
 	FWScript(const RawScript &script, int16 index);
 //	FWScript(const RawObjectScript &script, int16 index);
 	FWScript(const FWScript &src);
-	~FWScript(void);
+	~FWScript();
 
 	int execute();
 	void save(Common::OutSaveFile &fHandle) const;
@@ -296,7 +298,8 @@ public:
 	friend class OSScript;
 };
 
-/*! \brief Operation Stealth script, prcLinkedListStruct replacement
+/**
+ * Operation Stealth script, prcLinkedListStruct replacement
  */
 class OSScript : public FWScript {
 private:
@@ -316,11 +319,12 @@ public:
 	friend class OSScriptInfo;
 };
 
-/*! \brief Future Wars script factory and info
+/**
+ * Future Wars script factory and info
  */
 class FWScriptInfo {
 protected:
-	virtual opFunc opcodeHandler(byte opcode) const;
+	virtual OpFunc opcodeHandler(byte opcode) const;
 
 public:
 	virtual ~FWScriptInfo() {}
@@ -334,11 +338,12 @@ public:
 	friend class FWScript;
 };
 
-/*! \brief Operation Stealth script factory and info
+/**
+ * Operation Stealth script factory and info
  */
 class OSScriptInfo : public FWScriptInfo {
 protected:
-	virtual opFunc opcodeHandler(byte opcode) const;
+	virtual OpFunc opcodeHandler(byte opcode) const;
 
 public:
 	virtual ~OSScriptInfo() {}
@@ -361,9 +366,7 @@ typedef Common::Array<RawObjectScriptPtr> RawObjectScriptArray;
 
 #define NUM_MAX_SCRIPT 50
 
-extern RawScriptArray scriptTable;
 extern FWScriptInfo *scriptInfo;
-extern ScriptVars globalVars;
 
 void setupOpcodes();
 
@@ -380,11 +383,11 @@ int16 checkCollision(int16 objIdx, int16 x, int16 y, int16 numZones, int16 zoneI
 
 void runObjectScript(int16 entryIdx);
 
-void executeObjectScripts(void);
-void executeGlobalScripts(void);
+void executeObjectScripts();
+void executeGlobalScripts();
 
-void purgeObjectScripts(void);
-void purgeGlobalScripts(void);
+void purgeObjectScripts();
+void purgeGlobalScripts();
 
 } // End of namespace Cine
 

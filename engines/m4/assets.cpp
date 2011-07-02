@@ -18,24 +18,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "m4/assets.h"
 #include "m4/globals.h"
 #include "m4/compression.h"
+#include "m4/graphics.h"
+
+#include "common/memstream.h"
 
 namespace M4 {
 
-BaseAsset::BaseAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : _vm(vm) {
+BaseAsset::BaseAsset(MadsM4Engine *vm) : _vm(vm) {
 }
 
 BaseAsset::~BaseAsset() {
 }
 
-MachineAsset::MachineAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : BaseAsset(vm, stream, size, name) {
+MachineAsset::MachineAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : BaseAsset(vm) {
 	uint32 stateCount = stream->readUint32LE();
 	for (uint32 curState = 0; curState < stateCount; curState++) {
 		uint32 stateOffset = stream->readUint32LE();
@@ -60,7 +60,7 @@ uint32 MachineAsset::getStateOffset(uint32 state) {
 	return _stateTable[state];
 }
 
-SequenceAsset::SequenceAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : BaseAsset(vm, stream, size, name) {
+SequenceAsset::SequenceAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : BaseAsset(vm) {
 	_localVarCount = stream->readUint32LE();
 	_codeSize = size - 4;
 	_code = new byte[_codeSize];
@@ -77,7 +77,7 @@ void SequenceAsset::getCode(byte *&code, uint32 &codeSize) {
 }
 
 
-DataAsset::DataAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : BaseAsset(vm, stream, size, name) {
+DataAsset::DataAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name) : BaseAsset(vm) {
 
 	_recCount = stream->readUint32LE();
 	_recSize = stream->readUint32LE();
@@ -97,25 +97,58 @@ long *DataAsset::getRow(int index) {
 	return &_data[_recSize * index];
 }
 
-SpriteAsset::SpriteAsset(M4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name, bool asStream) : BaseAsset(vm, stream, size, name) {
+SpriteAsset::SpriteAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int size, const char *name,
+						 bool asStream, int flags) :
+			BaseAsset(vm) {
 	_stream = stream;
+	_palInterface = NULL;
+	_paletteData = NULL;
 
 	if (_vm->isM4()) {
 		loadM4SpriteAsset(vm, stream, asStream);
 	} else {
-		loadMadsSpriteAsset(vm, stream);
+		loadMadsSpriteAsset(vm, stream, flags);
 	}
 }
 
-void SpriteAsset::loadM4SpriteAsset(M4Engine *vm, Common::SeekableReadStream* stream, bool asStream) {
+SpriteAsset::SpriteAsset(MadsM4Engine *vm, const char *name): BaseAsset(vm) {
+	_stream = vm->res()->get(name);
+	_palInterface = NULL;
+	_paletteData = NULL;
+
+	if (_vm->isM4()) {
+		loadM4SpriteAsset(vm, _stream, true);
+	} else {
+		loadMadsSpriteAsset(vm, _stream, 0);
+	}
+
+	vm->res()->toss(name);
+}
+
+SpriteAsset::~SpriteAsset() {
+	if (_palInterface) {
+		// Internally stored palette translation data, so release it
+		_palInterface->deleteRange(_paletteData);
+		delete _paletteData;
+	}
+
+	// Delete the individual frames
+	for (Common::Array<SpriteAssetFrame>::iterator it = _frames.begin(); it != _frames.end(); ++it) {
+		delete (*it).frame;
+	}
+
+	delete _charInfo;
+}
+
+void SpriteAsset::loadM4SpriteAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, bool asStream) {
 	bool isBigEndian = false;
 	uint32 frameOffset;
 
 	uint32 header = _stream->readUint32LE();
 	if (header == HEAD_M4SS) {
-		printf("LE-encoded sprite\n");
+		debugC(kDebugGraphics, "LE-encoded sprite\n");
 	} else {
-		printf("BE-encoded sprite\n");
+		debugC(kDebugGraphics, "BE-encoded sprite\n");
 		isBigEndian = true;
 	}
 
@@ -129,7 +162,7 @@ void SpriteAsset::loadM4SpriteAsset(M4Engine *vm, Common::SeekableReadStream* st
 	_stream->skip(6 * 4);
 	_frameCount = (!isBigEndian) ? _stream->readUint32LE() : _stream->readUint32BE();
 
-	printf("SpriteAsset::SpriteAsset() srcSize = %d; frameRate = %04X; pixelSpeed = %04X; maxWidth = %d; maxHeight = %d; frameCount = %d\n", _srcSize, _frameRate, _pixelSpeed, _maxWidth, _maxHeight, _frameCount);
+	debugC(kDebugGraphics, "SpriteAsset::SpriteAsset() srcSize = %d; frameRate = %04X; pixelSpeed = %04X; maxWidth = %d; maxHeight = %d; frameCount = %d\n", _srcSize, _frameRate, _pixelSpeed, _maxWidth, _maxHeight, _frameCount);
 
 	for (int curFrame = 0; curFrame < _frameCount; curFrame++) {
 		frameOffset = (!isBigEndian) ? _stream->readUint32LE() : _stream->readUint32BE();
@@ -158,7 +191,7 @@ void SpriteAsset::loadM4SpriteAsset(M4Engine *vm, Common::SeekableReadStream* st
 			char fn[512];
 			sprintf(fn, "%04d.raw", curFrame);
 			FILE *h = fopen(fn, "wb");
-			fwrite((byte*)frame.frame->getData(), frame.w * frame.h, 1, h);
+			fwrite((byte*)frame.frame->getBasePtr(), frame.w * frame.h, 1, h);
 			fclose(h);
 #endif
 		}
@@ -169,7 +202,7 @@ void SpriteAsset::loadM4SpriteAsset(M4Engine *vm, Common::SeekableReadStream* st
 
 }
 
-void SpriteAsset::loadMadsSpriteAsset(M4Engine *vm, Common::SeekableReadStream* stream) {
+void SpriteAsset::loadMadsSpriteAsset(MadsM4Engine *vm, Common::SeekableReadStream* stream, int flags) {
 	int curFrame = 0;
 	uint32 frameOffset = 0;
 	MadsPack sprite(stream);
@@ -179,11 +212,19 @@ void SpriteAsset::loadMadsSpriteAsset(M4Engine *vm, Common::SeekableReadStream* 
 	_maxHeight = 0;
 
 	Common::SeekableReadStream *spriteStream = sprite.getItemStream(0);
-	for (int i = 0; i < 19; i++) {
-		spriteStream->readUint16LE();
-	}
+	_mode = spriteStream->readByte();
+	spriteStream->skip(1);
+	int type1 = spriteStream->readUint16LE();
+	int type2 = spriteStream->readUint16LE();
+	_isBackground = (type1 != 0) && (type2 < 4);
+	spriteStream->skip(32);
 	_frameCount = spriteStream->readUint16LE();
-	// we skip the rest of the data
+
+	if (_vm->isM4() || ((flags & SPRITE_SET_CHAR_INFO) == 0))
+		_charInfo = NULL;
+	else
+		_charInfo = new MadsSpriteSetCharInfo(spriteStream);
+
 	delete spriteStream;
 
 	// Get the palette data
@@ -200,30 +241,62 @@ void SpriteAsset::loadMadsSpriteAsset(M4Engine *vm, Common::SeekableReadStream* 
 	spriteStream = sprite.getItemStream(1);
 	Common::SeekableReadStream *spriteDataStream = sprite.getItemStream(3);
 	SpriteAssetFrame frame;
+	Common::Array<int> frameSizes;
 	for (curFrame = 0; curFrame < _frameCount; curFrame++) {
 		frame.stream = 0;
 		frame.comp = 0;
 		frameOffset = spriteStream->readUint32LE();
 		_frameOffsets.push_back(frameOffset);
-		spriteStream->readUint32LE();	// frame size
+		uint32 frameSize = spriteStream->readUint32LE();
+		frameSizes.push_back(frameSize);
+
 		frame.x = spriteStream->readUint16LE();
 		frame.y = spriteStream->readUint16LE();
 		frame.w = spriteStream->readUint16LE();
 		frame.h = spriteStream->readUint16LE();
 		if (curFrame == 0)
-			printf("%i frames, x = %i, y = %i, w = %i, h = %i\n", _frameCount, frame.x, frame.y, frame.w, frame.h);
+			debugC(1, kDebugGraphics, "%i frames, x = %i, y = %i, w = %i, h = %i\n", _frameCount, frame.x, frame.y, frame.w, frame.h);
 
-		frame.frame = new M4Sprite(spriteDataStream, frame.x, frame.y, frame.w, frame.h, false);
+		if (_mode == 0) {
+			// Create a frame and decompress the raw pixel data
+			uint32 currPos = (uint32)spriteDataStream->pos();
+			frame.frame = new M4Sprite(spriteDataStream, frame.x, frame.y, frame.w, frame.h, false);
+			assert((uint32)spriteDataStream->pos() == (currPos + frameSize));
+		}
+
 		_frames.push_back(frame);
 	}
+
+	if (_mode != 0) {
+		// Handle decompressing Fab encoded data
+		for (curFrame = 0; curFrame < _frameCount; curFrame++) {
+			FabDecompressor fab;
+
+			int srcSize = (curFrame == (_frameCount - 1)) ? spriteDataStream->size() - _frameOffsets[curFrame] :
+				_frameOffsets[curFrame + 1] - _frameOffsets[curFrame];
+			byte *srcData = (byte *)malloc(srcSize);
+			assert(srcData);
+			spriteDataStream->read(srcData, srcSize);
+
+			byte *destData = (byte *)malloc(frameSizes[curFrame]);
+			assert(destData);
+
+			fab.decompress(srcData, srcSize, destData, frameSizes[curFrame]);
+
+			// Load the frame
+			Common::MemoryReadStream *rs = new Common::MemoryReadStream(destData, frameSizes[curFrame]);
+			_frames[curFrame].frame = new M4Sprite(rs, _frames[curFrame].x, _frames[curFrame].y,
+				_frames[curFrame].w, _frames[curFrame].h, false);
+			delete rs;
+
+			free(srcData);
+			free(destData);
+		}
+	}
+
+
 	delete spriteStream;
 	delete spriteDataStream;
-}
-
-SpriteAsset::~SpriteAsset() {
-	for (Common::Array<SpriteAssetFrame>::iterator it = _frames.begin(); it != _frames.end(); it++) {
-		delete (*it).frame;
-	}
 }
 
 int32 SpriteAsset::parseSprite(bool isBigEndian) {
@@ -271,7 +344,7 @@ int32 SpriteAsset::parseSprite(bool isBigEndian) {
 	if (chunkType == CELS___SS) {
 		chunkSize = (!isBigEndian) ? _stream->readUint32LE() : _stream->readUint32BE();
 	} else {
-		warning("SpriteAsset::parseSprite() Expected chunk type %08X, got %08X", CELS___SS, chunkType);
+		debugC(kDebugGraphics, "SpriteAsset::parseSprite() Expected chunk type %08X, got %08X", CELS___SS, chunkType);
 	}
 
 	return chunkSize;
@@ -288,11 +361,16 @@ void SpriteAsset::loadFrameHeader(SpriteAssetFrame &frameHeader, bool isBigEndia
 	frameHeader.comp = (!isBigEndian) ? _stream->readUint32LE() : _stream->readUint32BE();
 	frameHeader.frame = NULL;
 	_stream->seek(8 * 4, SEEK_CUR);
-	//printf("SpriteAsset::loadFrameHeader() stream = %d; x = %d; y = %d; w = %d; h = %d; comp = %d\n", frameHeader.stream, frameHeader.x, frameHeader.y, frameHeader.w, frameHeader.h, frameHeader.comp);
+	//debugC(kDebugGraphics, "SpriteAsset::loadFrameHeader() stream = %d; x = %d; y = %d; w = %d; h = %d; comp = %d\n", frameHeader.stream, frameHeader.x, frameHeader.y, frameHeader.w, frameHeader.h, frameHeader.comp);
 }
 
 M4Sprite *SpriteAsset::getFrame(int frameIndex) {
-	return _frames[frameIndex].frame;
+	if ((uint)frameIndex < _frames.size()) {
+		return _frames[frameIndex].frame;
+	} else {
+		debugC(kDebugGraphics, "SpriteAsset::getFrame: Invalid frame %d, out of %d", frameIndex, _frames.size());
+		return _frames[_frames.size() - 1].frame;
+	}
 }
 
 void SpriteAsset::loadStreamingFrame(M4Sprite *frame, int frameIndex, int destX, int destY) {
@@ -303,7 +381,7 @@ void SpriteAsset::loadStreamingFrame(M4Sprite *frame, int frameIndex, int destX,
 	loadFrameHeader(frameHeader);
 
 	if (frameHeader.w > 0 && frameHeader.h > 0) {
-		Common::MemoryReadStream *frameData = _stream->readStream(getFrameSize(frameIndex));
+		Common::SeekableReadStream *frameData = _stream->readStream(getFrameSize(frameIndex));
 		if (frameHeader.stream) {
 			frame->loadDeltaRle(frameData, destX - frameHeader.x, destY - frameHeader.y);
 		} else {
@@ -325,6 +403,14 @@ void SpriteAsset::translate(RGBList *list, bool isTransparent) {
 		_frames[frameIndex].frame->translate(list, isTransparent);
 }
 
+void SpriteAsset::translate(Palette *palette) {
+	_palInterface = palette;
+	_paletteData = this->getRgbList();
+	palette->addRange(_paletteData);
+	this->translate(_paletteData, true);
+}
+
+
 int32 SpriteAsset::getFrameSize(int index) {
 	/*
 	if (index + 1 == _frameCount) {
@@ -335,7 +421,7 @@ int32 SpriteAsset::getFrameSize(int index) {
 	return _frameOffsets[index + 1] - _frameOffsets[index];
 }
 
-AssetManager::AssetManager(M4Engine *vm) {
+AssetManager::AssetManager(MadsM4Engine *vm) {
 
 	_vm = vm;
 
@@ -399,7 +485,7 @@ bool AssetManager::clearAssets(AssetType assetType, int32 minHash, int32 maxHash
 
 bool AssetManager::loadAsset(const char *assetName, RGB8 *palette) {
 
-	printf("AssetManager::loadAsset() %s\n", assetName);
+	debugC(kDebugGraphics, "AssetManager::loadAsset() %s\n", assetName);
 
 	// TODO, better use MemoryReadStreamEndian?
 	//convertAssetToLE(assetData, assetSize);
@@ -413,34 +499,34 @@ bool AssetManager::loadAsset(const char *assetName, RGB8 *palette) {
 		chunkSize = assetS->readUint32LE() - 12; // sub 12 for the chunk header
 		chunkHash = assetS->readUint32LE();
 
-		printf("hash = %d\n", chunkHash);
+		debugC(kDebugGraphics, "hash = %d\n", chunkHash);
 
 		// Until loading code is complete, so that chunks not fully read are skipped correctly
 		uint32 nextOfs = assetS->pos() + chunkSize;
 
 		switch (chunkType) {
 		case CHUNK_MACH:
-			printf("MACH\n");
+			debugC(kDebugGraphics, "MACH\n");
 			clearAssets(kAssetTypeMACH, chunkHash, chunkHash);
 			_MACH[chunkHash] = new MachineAsset(_vm, assetS, chunkSize, assetName);
 			break;
 		case CHUNK_SEQU:
-			printf("SEQU\n");
+			debugC(kDebugGraphics, "SEQU\n");
 			clearAssets(kAssetTypeSEQU, chunkHash, chunkHash);
 			_SEQU[chunkHash] = new SequenceAsset(_vm, assetS, chunkSize, assetName);
 			break;
 		case CHUNK_DATA:
-			printf("DATA\n");
+			debugC(kDebugGraphics, "DATA\n");
 			clearAssets(kAssetTypeDATA, chunkHash, chunkHash);
 			_DATA[chunkHash] = new DataAsset(_vm, assetS, chunkSize, assetName);
 			break;
 		case CHUNK_CELS:
-			printf("CELS\n");
+			debugC(kDebugGraphics, "CELS\n");
 			clearAssets(kAssetTypeCELS, chunkHash, chunkHash);
 			_CELS[chunkHash] = new SpriteAsset(_vm, assetS, chunkSize, assetName);
 			break;
 		default:
-			printf("AssetManager::loadAsset() Unknown chunk type %08X\n", chunkType);
+			debugC(kDebugGraphics, "AssetManager::loadAsset() Unknown chunk type %08X\n", chunkType);
 		}
 
 		// Until loading code is complete (see above)
@@ -481,7 +567,7 @@ int32 AssetManager::addSpriteAsset(const char *assetName, int32 hash, RGB8 *pale
 
 	if (!alreadyLoaded) {
 
-		printf("AssetManager::addSpriteAsset() asset %s not loaded, loading into %d\n", assetName, hash);
+		debugC(kDebugGraphics, "AssetManager::addSpriteAsset() asset %s not loaded, loading into %d\n", assetName, hash);
 
 		clearAssets(kAssetTypeCELS, hash, hash);
 
@@ -491,7 +577,7 @@ int32 AssetManager::addSpriteAsset(const char *assetName, int32 hash, RGB8 *pale
 
 	} else {
 
-		printf("AssetManager::addSpriteAsset()  asset %s already loaded in %d\n", assetName, hash);
+		debugC(kDebugGraphics, "AssetManager::addSpriteAsset()  asset %s already loaded in %d\n", assetName, hash);
 
 		/* TODO/FIXME
 		if (_CELS[hash].palOffset >= 0 && palette)
@@ -540,6 +626,25 @@ M4Sprite *AssetManager::getSpriteFrame(int32 hash, int frameIndex) {
 int32 AssetManager::getSpriteFrameCount(int32 hash) {
 	assert(_CELS[hash] != NULL);
 	return _CELS[hash]->getCount();
+}
+
+//--------------------------------------------------------------------------
+
+MadsSpriteSetCharInfo::MadsSpriteSetCharInfo(Common::SeekableReadStream *s) {
+	_totalFrames = s->readByte();
+	s->skip(1);
+	_numEntries = s->readUint16LE();
+
+	for (int i = 0; i < 16; ++i)
+		_frameList[i] = s->readUint16LE();
+	for (int i = 0; i < 16; ++i)
+		_frameList2[i] = s->readUint16LE();
+	for (int i = 0; i < 16; ++i)
+		_ticksList[i] = s->readUint16LE();
+
+	_unk1 = s->readUint16LE();
+	_ticksAmount = s->readByte();
+	_yScale = s->readByte();
 }
 
 } // End of namespace M4

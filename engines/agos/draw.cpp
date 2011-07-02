@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -28,6 +25,7 @@
 #include "common/system.h"
 
 #include "graphics/surface.h"
+#include "graphics/palette.h"
 
 #include "agos/agos.h"
 #include "agos/intern.h"
@@ -46,6 +44,7 @@ byte *AGOSEngine::getScaleBuf() {
 	return (byte *)_scaleBuf->pixels;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::animateSpritesByY() {
 	VgaSprite *vsp;
 	VgaPointersEntry *vpe;
@@ -110,7 +109,7 @@ void AGOSEngine_Feeble::animateSpritesByY() {
 		drawImage_init(vsp->image, vsp->palette, vsp->x, vsp->y, vsp->flags);
 	}
 
-	_displayScreen = true;
+	_displayFlag++;
 }
 
 void AGOSEngine_Feeble::animateSprites() {
@@ -145,8 +144,9 @@ void AGOSEngine_Feeble::animateSprites() {
 		vsp++;
 	}
 
-	_displayScreen = true;
+	_displayFlag++;
 }
+#endif
 
 void AGOSEngine::animateSprites() {
 	VgaSprite *vsp;
@@ -174,9 +174,9 @@ void AGOSEngine::animateSprites() {
 
 			_windowNum = 4;
 
-			_backFlag = 1;
+			_backFlag = true;
 			drawImage(&state);
-			_backFlag = 0;
+			_backFlag = false;
 
 			_vgaSpriteChanged++;
 		}
@@ -296,7 +296,7 @@ void AGOSEngine::animateSprites() {
 	if (_window4Flag == 1)
 		_window4Flag++;
 
-	_displayScreen = true;
+	_displayFlag++;
 }
 
 void AGOSEngine::dirtyClips() {
@@ -449,14 +449,14 @@ void AGOSEngine::restoreBackGround() {
 		state.paletteMod = 0;
 		state.flags = kDFNonTrans;
 
-		_backFlag = 1;
+		_backFlag = true;
 		drawImage(&state);
 
 		if (getGameType() != GType_SIMON1 && getGameType() != GType_SIMON2) {
 			animTable->srcPtr = 0;
 		}
 	}
-	_backFlag = 0;
+	_backFlag = false;
 
 	if (getGameType() == GType_SIMON1 || getGameType() == GType_SIMON2) {
 		AnimTable *animTableTmp;
@@ -521,7 +521,7 @@ void AGOSEngine::displayBoxStars() {
 	uint count;
 	uint y_, x_;
 	byte *dst;
-	uint b, color;
+	uint color;
 
 	o_haltAnimation();
 
@@ -570,38 +570,38 @@ void AGOSEngine::displayBoxStars() {
 
 				dst += (((screen->pitch / 4) * y_) * 4) + x_;
 
-				b = screen->pitch;
 				dst[4] = color;
-				dst[b+1] = color;
-				dst[b+4] = color;
-				dst[b+7] = color;
-				b += screen->pitch;
-				dst[b+2] = color;
-				dst[b+4] = color;
-				dst[b+6] = color;
-				b += screen->pitch;
-				dst[b+3] = color;
-				dst[b+5] = color;
-				b += screen->pitch;
-				dst[b] = color;
-				dst[b+1] = color;
-				dst[b+2] = color;
-				dst[b+6] = color;
-				dst[b+7] = color;
-				dst[b+8] = color;
-				b += screen->pitch;
-				dst[b+3] = color;
-				dst[b+5] = color;
-				b += screen->pitch;
-				dst[b+2] = color;
-				dst[b+4] = color;
-				dst[b+6] = color;
-				b += screen->pitch;
-				dst[b+1] = color;
-				dst[b+4] = color;
-				dst[b+7] = color;
-				b += screen->pitch;
-				dst[b+4] = color;
+				dst += screen->pitch;
+				dst[1] = color;
+				dst[4] = color;
+				dst[7] = color;
+				dst += screen->pitch;
+				dst[2] = color;
+				dst[4] = color;
+				dst[6] = color;
+				dst += screen->pitch;
+				dst[3] = color;
+				dst[5] = color;
+				dst += screen->pitch;
+				dst[0] = color;
+				dst[1] = color;
+				dst[2] = color;
+				dst[6] = color;
+				dst[7] = color;
+				dst[8] = color;
+				dst += screen->pitch;
+				dst[3] = color;
+				dst[5] = color;
+				dst += screen->pitch;
+				dst[2] = color;
+				dst[4] = color;
+				dst[6] = color;
+				dst += screen->pitch;
+				dst[1] = color;
+				dst[4] = color;
+				dst[7] = color;
+				dst += screen->pitch;
+				dst[4] = color;
 			}
 		} while (ha++, --count);
 
@@ -777,9 +777,9 @@ void AGOSEngine::setMoveRect(uint16 x, uint16 y, uint16 width, uint16 height) {
 void AGOSEngine::displayScreen() {
 	if (_fastFadeInFlag == 0 && _paletteFlag == 1) {
 		_paletteFlag = 0;
-		if (memcmp(_displayPalette, _currentPalette, 1024)) {
-			memcpy(_currentPalette, _displayPalette, 1024);
-			_system->setPalette(_displayPalette, 0, 256);
+		if (memcmp(_displayPalette, _currentPalette, sizeof(_currentPalette))) {
+			memcpy(_currentPalette, _displayPalette, sizeof(_displayPalette));
+			_system->getPaletteManager()->setPalette(_displayPalette, 0, 256);
 		}
 	}
 
@@ -858,8 +858,8 @@ void AGOSEngine::fastFadeIn() {
 		slowFadeIn();
 	} else {
 		_paletteFlag = false;
-		memcpy(_currentPalette, _displayPalette, 1024);
-		_system->setPalette(_displayPalette, 0, _fastFadeInFlag);
+		memcpy(_currentPalette, _displayPalette, sizeof(_displayPalette));
+		_system->getPaletteManager()->setPalette(_displayPalette, 0, _fastFadeInFlag);
 		_fastFadeInFlag = 0;
 	}
 }
@@ -877,17 +877,17 @@ void AGOSEngine::slowFadeIn() {
 		src = _displayPalette;
 		dst = _currentPalette;
 
-		for (p = _fastFadeInFlag; p !=0 ; p -= 3) {
+		for (p = _fastFadeInFlag; p != 0; p -= 3) {
 			if (src[0] >= c)
 				dst[0] += 4;
 			if (src[1] >= c)
 				dst[1] += 4;
 			if (src[2] >= c)
 				dst[2] += 4;
-			src += 4;
-			dst += 4;
+			src += 3;
+			dst += 3;
 		}
-		_system->setPalette(_currentPalette, 0, _fastFadeCount);
+		_system->getPaletteManager()->setPalette(_currentPalette, 0, _fastFadeCount);
 		delay(5);
 	}
 	_fastFadeInFlag = 0;

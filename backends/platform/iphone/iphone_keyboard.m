@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #import "iphone_keyboard.h"
@@ -46,8 +43,8 @@
 	self = [super initWithFrame:CGRectMake(0.0f, 0.0f, 0.0f, 0.0f)];
 	softKeyboard = keyboard;
 
-	[[self textInputTraits] setAutocorrectionType:1];
-	[[self textInputTraits] setAutocapitalizationType:0];
+	[[self textInputTraits] setAutocorrectionType:(UITextAutocorrectionType)1];
+	[[self textInputTraits] setAutocapitalizationType:(UITextAutocapitalizationType)0];
 	[[self textInputTraits] setEnablesReturnKeyAutomatically:NO];
 
 	return self;

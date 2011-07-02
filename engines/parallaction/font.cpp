@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
-#include "common/stream.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 
@@ -256,7 +254,7 @@ public:
 
 	byte*	getData(uint16 index) {
 		assert(index < _numGlyphs);
-		return _data + (_height * _widths[index]) * index;;
+		return _data + (_height * _widths[index]) * index;
 	}
 
 	void	getRect(uint16 index, Common::Rect &r) {
@@ -574,7 +572,7 @@ void AmigaFont::blitData(byte c) {
 }
 
 uint16 AmigaFont::width(byte c) {
-//	printf("kern(%i) = %i, space(%i) = %i\t", c, getKerning(c), c, getSpacing(c));
+//	debug("kern(%i) = %i, space(%i) = %i\t", c, getKerning(c), c, getSpacing(c));
 	return getKerning(c) + getSpacing(c);
 }
 
@@ -642,7 +640,7 @@ Font *AmigaDisk_ns::createFont(const char *name, Common::SeekableReadStream &str
 }
 
 Font *DosDisk_br::createFont(const char *name, Common::ReadStream &stream) {
-//	printf("DosDisk_br::createFont(%s)\n", name);
+//	debug("DosDisk_br::createFont(%s)", name);
 	Font *font;
 
 	if (_vm->getFeatures() & GF_DEMO) {
@@ -670,7 +668,6 @@ GfxObj* DosDisk_br::createInventoryObjects(Common::SeekableReadStream &stream) {
 
 
 void Parallaction_ns::initFonts() {
-
 	if (getPlatform() == Common::kPlatformPC) {
 		_dialogueFont = _disk->loadFont("comic");
 		_labelFont = _disk->loadFont("topaz");
@@ -678,12 +675,11 @@ void Parallaction_ns::initFonts() {
 		_introFont = _disk->loadFont("slide");
 	} else {
 		_dialogueFont = _disk->loadFont("comic");
-		Common::MemoryReadStream stream(_amigaTopazFont, 2600, false);
+		Common::MemoryReadStream stream(_amigaTopazFont, 2600, DisposeAfterUse::NO);
 		_labelFont = new AmigaFont(stream);
 		_menuFont = _disk->loadFont("slide");
 		_introFont = _disk->loadFont("intro");
 	}
-
 }
 
 void Parallaction_br::initFonts() {
@@ -701,4 +697,4 @@ void Parallaction_br::initFonts() {
 	}
 }
 
-}
+} // End of namespace Parallaction

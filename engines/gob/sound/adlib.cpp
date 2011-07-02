@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/debug.h"
 #include "common/file.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 #include "gob/gob.h"
 #include "gob/sound/adlib.h"
@@ -59,7 +58,7 @@ void AdLib::init() {
 
 	_rate = _mixer->getOutputRate();
 
-	_opl = makeAdlibOPL(_rate);
+	_opl = makeAdLibOPL(_rate);
 
 	_first = true;
 	_ended = false;
@@ -74,8 +73,8 @@ void AdLib::init() {
 		_pollNotes[i] = 0;
 	setFreqs();
 
-	_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_handle,
-			this, -1, 255, 0, false, true);
+	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_handle,
+			this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
 
 int AdLib::readBuffer(int16 *buffer, const int numSamples) {
@@ -132,7 +131,7 @@ int AdLib::readBuffer(int16 *buffer, const int numSamples) {
 }
 
 void AdLib::writeOPL(byte reg, byte val) {
-	debugC(6, kDebugSound, "writeOPL(%02X, %02X)", reg, val);
+	debugC(6, kDebugSound, "AdLib::writeOPL (%02X, %02X)", reg, val);
 	OPLWriteReg(_opl, reg, val);
 }
 
@@ -240,14 +239,16 @@ void AdLib::setKey(byte voice, byte note, bool on, bool spec) {
 	freq = _freqs[_notLin[voice]][note - octa * 12];
 
 	writeOPL(0xA0 + voice,  freq & 0xFF);
-	writeOPL(0xB0 + voice, (freq >> 8) | (octa << 2) | 0x20 * on);
+	writeOPL(0xB0 + voice, (freq >> 8) | (octa << 2) | (0x20 * (on ? 1 : 0)));
 
 	if (!freq)
-		warning("AdLib: Voice %d, note %02X unknown", voice, note);
+		warning("AdLib::setKey Voice %d, note %02X unknown", voice, note);
 }
 
 void AdLib::setVolume(byte voice, byte volume) {
-	volume = 0x3F - (volume * 0x7E + 0x7F) / 0xFE;
+	debugC(6, kDebugSound, "AdLib::setVolume(%d, %d)", voice, volume);
+	//assert(voice >= 0 && voice <= 9);
+	volume = 0x3F - ((volume * 0x7E) + 0x7F) / 0xFE;
 	writeOPL(0x40 + _volRegNums[voice], volume);
 }
 
@@ -513,6 +514,8 @@ bool MDYPlayer::loadMDY(Common::SeekableReadStream &stream) {
 	_nrCommand = mdyHeader[46] + (mdyHeader[47] << 8) + (mdyHeader[48] << 16) + (mdyHeader[49] << 24);
 // _soundMode is either 0 (melodic) or 1 (percussive)
 	_soundMode = mdyHeader[58];
+	assert((_soundMode == 0) || (_soundMode == 1));
+
 	_pitchBendRangeStep = 25*mdyHeader[59];
 	_basicTempo = mdyHeader[60] + (mdyHeader[61] << 8);
 
@@ -597,8 +600,9 @@ void MDYPlayer::interpret() {
 	uint8 ctrlByte1, ctrlByte2;
 	uint8 timbre;
 
+// TODO : Verify the loop for percussive mode (11 ?)
 	if (_first) {
-		for (int i = 0; i < 11; i ++)
+		for (int i = 0; i < 9; i ++)
 			setVolume(i, 0);
 
 //	TODO : Set pitch range
@@ -609,8 +613,8 @@ void MDYPlayer::interpret() {
 	}
 	do {
 		instr = *_playPos;
-//			printf("instr 0x%X\n", instr);
-		switch(instr) {
+		debugC(6, kDebugSound, "MDYPlayer::interpret instr 0x%X", instr);
+		switch (instr) {
 		case 0xF8:
 			_wait = *(_playPos++);
 			break;
@@ -622,9 +626,11 @@ void MDYPlayer::interpret() {
 			_playPos++;
 			ctrlByte1 = *(_playPos++);
 			ctrlByte2 = *(_playPos++);
+			debugC(6, kDebugSound, "MDYPlayer::interpret ctrlBytes 0x%X 0x%X", ctrlByte1, ctrlByte2);
 			if (ctrlByte1 != 0x7F || ctrlByte2 != 0) {
 				_playPos -= 2;
-				while (*(_playPos++) != 0xF7);
+				while (*(_playPos++) != 0xF7)
+					;
 			} else {
 				tempoMult = *(_playPos++);
 				tempoFrac = *(_playPos++);
@@ -639,7 +645,7 @@ void MDYPlayer::interpret() {
 			}
 			channel = (int)(instr & 0x0f);
 
-			switch(instr & 0xf0) {
+			switch (instr & 0xf0) {
 			case 0x90:
 				note = *(_playPos++);
 				volume = *(_playPos++);
@@ -690,7 +696,7 @@ void MDYPlayer::interpret() {
 	if (_wait == 0xF8) {
 		_wait = 0xF0;
 		if (*_playPos != 0xF8)
-			_wait += *(_playPos++);
+			_wait += *(_playPos++) & 0x0F;
 	}
 //		_playPos++;
 	_samplesTillPoll = _wait * (_rate / 1000);
@@ -720,21 +726,22 @@ void MDYPlayer::setVoices() {
 	byte *timbrePtr;
 
 	timbrePtr = _timbres;
-	debugC(6, kDebugSound, "TBR version: %X.%X", timbrePtr[0], timbrePtr[1]);
+	debugC(6, kDebugSound, "MDYPlayer::setVoices TBR version: %X.%X", timbrePtr[0], timbrePtr[1]);
 	timbrePtr += 2;
 
 	_tbrCount = READ_LE_UINT16(timbrePtr);
-	debugC(6, kDebugSound, "Timbres counter: %d", _tbrCount);
+	debugC(6, kDebugSound, "MDYPlayer::setVoices Timbres counter: %d", _tbrCount);
 	timbrePtr += 2;
 	_tbrStart = READ_LE_UINT16(timbrePtr);
 
 	timbrePtr += 2;
-	for (int i = 0; i < _tbrCount ; i++)
+	for (int i = 0; i < _tbrCount; i++)
 		setVoice(i, i, true);
 }
 
 void MDYPlayer::setVoice(byte voice, byte instr, bool set) {
-	uint16 strct[27];
+//	uint16 strct[27];
+	uint8 strct[27];
 	byte channel;
 	byte *timbrePtr;
 	char timbreName[10];
@@ -742,7 +749,7 @@ void MDYPlayer::setVoice(byte voice, byte instr, bool set) {
 	timbreName[9] = '\0';
 	for (int j = 0; j < 9; j++)
 		timbreName[j] = _timbres[6 + j + (instr * 9)];
-	debugC(6, kDebugSound, "Loading timbre %s", timbreName);
+	debugC(6, kDebugSound, "MDYPlayer::setVoice Loading timbre %s", timbreName);
 
 	// i = 0 :  0  1  2  3  4  5  6  7  8  9 10 11 12 26
 	// i = 1 : 13 14 15 16 17 18 19 20 21 22 23 24 25 27
@@ -754,8 +761,10 @@ void MDYPlayer::setVoice(byte voice, byte instr, bool set) {
 						(uint32) (timbrePtr - _timbres), _timbresSize);
 				strct[j] = 0;
 			} else
-				strct[j] = READ_LE_UINT16(timbrePtr);
-			timbrePtr += 2;
+				//strct[j] = READ_LE_UINT16(timbrePtr);
+				strct[j] = timbrePtr[0];
+			//timbrePtr += 2;
+			timbrePtr++;
 		}
 		channel = _operators[voice] + i * 3;
 		writeOPL(0xBD, 0x00);

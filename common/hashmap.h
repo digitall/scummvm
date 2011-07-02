@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // The hash map (associative array) implementation in this file is
@@ -29,21 +26,43 @@
 #ifndef COMMON_HASHMAP_H
 #define COMMON_HASHMAP_H
 
-#include "common/func.h"
-#include "common/str.h"
-#include "common/util.h"
+/**
+ * @def DEBUG_HASH_COLLISIONS
+ * Enable the following #define if you want to check how many collisions the
+ * code produces (many collisions indicate either a bad hash function, or a
+ * hash table that is too small).
+ */
+//#define DEBUG_HASH_COLLISIONS
 
+/**
+ * @def USE_HASHMAP_MEMORY_POOL
+ * Enable the following define to let HashMaps use a memory pool for the
+ nodes they contain. * This increases memory usage, but also can improve
+ speed quite a bit.
+ */
 #define USE_HASHMAP_MEMORY_POOL
+
+
+#include "common/func.h"
+
+#ifdef DEBUG_HASH_COLLISIONS
+#include "common/debug.h"
+#endif
+
 #ifdef USE_HASHMAP_MEMORY_POOL
 #include "common/memorypool.h"
 #endif
 
+
+
 namespace Common {
 
-// Enable the following #define if you want to check how many collisions the
-// code produces (many collisions indicate either a bad hash function, or a
-// hash table that is too small).
-//#define DEBUG_HASH_COLLISIONS
+// The sgi IRIX MIPSpro Compiler has difficulties with nested templates.
+// This and the other __sgi conditionals below work around these problems.
+// The Intel C++ Compiler suffers from the same problems.
+#if (defined(__sgi) && !defined(__GNUC__)) || defined(__INTEL_COMPILER)
+template<class T> class IteratorImpl;
+#endif
 
 
 /**
@@ -62,9 +81,6 @@ namespace Common {
 template<class Key, class Val, class HashFunc = Hash<Key>, class EqualFunc = EqualTo<Key> >
 class HashMap {
 private:
-#if defined (PALMOS_MODE)
-public:
-#endif
 
 	typedef HashMap<Key, Val, HashFunc, EqualFunc> HM_t;
 
@@ -93,39 +109,41 @@ public:
 
 	ObjectPool<Node, HASHMAP_MEMORYPOOL_SIZE> _nodePool;
 
-	Node *allocNode(const Key &key) {
-		return new (_nodePool) Node(key);
-	}
-
-	void freeNode(Node *node) {
-		if (node && node != &_dummyNode)
-			_nodePool.deleteChunk(node);
-	}
-
-	Node **_storage;	// hashtable of size arrsize.
-	uint _mask;		/**< Capacity of the HashMap minus one; must be a power of two of minus one */
+	Node **_storage;	///< hashtable of size arrsize.
+	uint _mask;		///< Capacity of the HashMap minus one; must be a power of two of minus one
 	uint _size;
 	uint _deleted; ///< Number of deleted elements (_dummyNodes)
 
 	HashFunc _hash;
 	EqualFunc _equal;
 
-	// Default value, returned by the const getVal.
+	/** Default value, returned by the const getVal. */
 	const Val _defaultVal;
 
-	// Dummy node, used as marker for erased objects.
-	Node _dummyNode;
+	/** Dummy node, used as marker for erased objects. */
+	#define HASHMAP_DUMMY_NODE	((Node *)1)
 
 #ifdef DEBUG_HASH_COLLISIONS
 	mutable int _collisions, _lookups, _dummyHits;
 #endif
 
+	Node *allocNode(const Key &key) {
+		return new (_nodePool) Node(key);
+	}
+
+	void freeNode(Node *node) {
+		if (node && node != HASHMAP_DUMMY_NODE)
+			_nodePool.deleteChunk(node);
+	}
+
 	void assign(const HM_t &map);
-	int lookup(const Key &key) const;
-	int lookupAndCreateIfMissing(const Key &key);
+	uint lookup(const Key &key) const;
+	uint lookupAndCreateIfMissing(const Key &key);
 	void expandStorage(uint newCapacity);
 
+#if !defined(__sgi) || defined(__GNUC__)
 	template<class T> friend class IteratorImpl;
+#endif
 
 	/**
 	 * Simple HashMap iterator implementation.
@@ -133,7 +151,11 @@ public:
 	template<class NodeType>
 	class IteratorImpl {
 		friend class HashMap;
+#if (defined(__sgi) && !defined(__GNUC__)) || defined(__INTEL_COMPILER)
+		template<class T> friend class Common::IteratorImpl;
+#else
 		template<class T> friend class IteratorImpl;
+#endif
 	protected:
 		typedef const HashMap hashmap_t;
 
@@ -148,6 +170,7 @@ public:
 			assert(_idx <= _hashmap->_mask);
 			Node *node = _hashmap->_storage[_idx];
 			assert(node != 0);
+			assert(node != HASHMAP_DUMMY_NODE);
 			return node;
 		}
 
@@ -166,7 +189,7 @@ public:
 			assert(_hashmap);
 			do {
 				_idx++;
-			} while (_idx <= _hashmap->_mask && _hashmap->_storage[_idx] == 0);
+			} while (_idx <= _hashmap->_mask && (_hashmap->_storage[_idx] == 0 || _hashmap->_storage[_idx] == HASHMAP_DUMMY_NODE));
 			if (_idx > _hashmap->_mask)
 				_idx = (uint)-1;
 
@@ -207,10 +230,12 @@ public:
 
 	Val &getVal(const Key &key);
 	const Val &getVal(const Key &key) const;
+	const Val &getVal(const Key &key, const Val &defaultVal) const;
 	void setVal(const Key &key, const Val &val);
 
 	void clear(bool shrinkArray = 0);
 
+	void erase(iterator entry);
 	void erase(const Key &key);
 
 	uint size() const { return _size; }
@@ -218,7 +243,7 @@ public:
 	iterator	begin() {
 		// Find and return the first non-empty entry
 		for (uint ctr = 0; ctr <= _mask; ++ctr) {
-			if (_storage[ctr])
+			if (_storage[ctr] && _storage[ctr] != HASHMAP_DUMMY_NODE)
 				return iterator(ctr, this);
 		}
 		return end();
@@ -230,7 +255,7 @@ public:
 	const_iterator	begin() const {
 		// Find and return the first non-empty entry
 		for (uint ctr = 0; ctr <= _mask; ++ctr) {
-			if (_storage[ctr])
+			if (_storage[ctr] && _storage[ctr] != HASHMAP_DUMMY_NODE)
 				return const_iterator(ctr, this);
 		}
 		return end();
@@ -274,7 +299,7 @@ HashMap<Key, Val, HashFunc, EqualFunc>::HashMap()
 #ifdef __PLAYSTATION2__
 	{
 #else
-	: _defaultVal(), _dummyNode() {
+	: _defaultVal() {
 #endif
 	_mask = HASHMAP_MIN_CAPACITY - 1;
 	_storage = new Node *[HASHMAP_MIN_CAPACITY];
@@ -298,7 +323,7 @@ HashMap<Key, Val, HashFunc, EqualFunc>::HashMap()
  */
 template<class Key, class Val, class HashFunc, class EqualFunc>
 HashMap<Key, Val, HashFunc, EqualFunc>::HashMap(const HM_t &map) :
-	_defaultVal(), _dummyNode() {
+	_defaultVal() {
 #ifdef DEBUG_HASH_COLLISIONS
 	_collisions = 0;
 	_lookups = 0;
@@ -340,8 +365,8 @@ void HashMap<Key, Val, HashFunc, EqualFunc>::assign(const HM_t &map) {
 	_size = 0;
 	_deleted = 0;
 	for (uint ctr = 0; ctr <= _mask; ++ctr) {
-		if (map._storage[ctr] == &map._dummyNode) {
-			_storage[ctr] = &_dummyNode;
+		if (map._storage[ctr] == HASHMAP_DUMMY_NODE) {
+			_storage[ctr] = HASHMAP_DUMMY_NODE;
 			_deleted++;
 		} else if (map._storage[ctr] != NULL) {
 			_storage[ctr] = allocNode(map._storage[ctr]->_key);
@@ -399,7 +424,7 @@ void HashMap<Key, Val, HashFunc, EqualFunc>::expandStorage(uint newCapacity) {
 
 	// rehash all the old elements
 	for (uint ctr = 0; ctr <= old_mask; ++ctr) {
-		if (old_storage[ctr] == NULL || old_storage[ctr] == &_dummyNode)
+		if (old_storage[ctr] == NULL || old_storage[ctr] == HASHMAP_DUMMY_NODE)
 			continue;
 
 		// Insert the element from the old table into the new table.
@@ -408,7 +433,7 @@ void HashMap<Key, Val, HashFunc, EqualFunc>::expandStorage(uint newCapacity) {
 		// don't have to call _equal().
 		const uint hash = _hash(old_storage[ctr]->_key);
 		uint idx = hash & _mask;
-		for (uint perturb = hash; _storage[idx] != NULL && _storage[idx] != &_dummyNode; perturb >>= HASHMAP_PERTURB_SHIFT) {
+		for (uint perturb = hash; _storage[idx] != NULL && _storage[idx] != HASHMAP_DUMMY_NODE; perturb >>= HASHMAP_PERTURB_SHIFT) {
 			idx = (5 * idx + perturb + 1) & _mask;
 		}
 
@@ -426,13 +451,13 @@ void HashMap<Key, Val, HashFunc, EqualFunc>::expandStorage(uint newCapacity) {
 }
 
 template<class Key, class Val, class HashFunc, class EqualFunc>
-int HashMap<Key, Val, HashFunc, EqualFunc>::lookup(const Key &key) const {
+uint HashMap<Key, Val, HashFunc, EqualFunc>::lookup(const Key &key) const {
 	const uint hash = _hash(key);
 	uint ctr = hash & _mask;
 	for (uint perturb = hash; ; perturb >>= HASHMAP_PERTURB_SHIFT) {
 		if (_storage[ctr] == NULL)
 			break;
-		if (_storage[ctr] == &_dummyNode) {
+		if (_storage[ctr] == HASHMAP_DUMMY_NODE) {
 #ifdef DEBUG_HASH_COLLISIONS
 			_dummyHits++;
 #endif
@@ -448,7 +473,7 @@ int HashMap<Key, Val, HashFunc, EqualFunc>::lookup(const Key &key) const {
 
 #ifdef DEBUG_HASH_COLLISIONS
 	_lookups++;
-	fprintf(stderr, "collisions %d, dummies hit %d, lookups %d, ratio %f in HashMap %p; size %d num elements %d\n",
+	debug("collisions %d, dummies hit %d, lookups %d, ratio %f in HashMap %p; size %d num elements %d",
 		_collisions, _dummyHits, _lookups, ((double) _collisions / (double)_lookups),
 		(const void *)this, _mask+1, _size);
 #endif
@@ -457,7 +482,7 @@ int HashMap<Key, Val, HashFunc, EqualFunc>::lookup(const Key &key) const {
 }
 
 template<class Key, class Val, class HashFunc, class EqualFunc>
-int HashMap<Key, Val, HashFunc, EqualFunc>::lookupAndCreateIfMissing(const Key &key) {
+uint HashMap<Key, Val, HashFunc, EqualFunc>::lookupAndCreateIfMissing(const Key &key) {
 	const uint hash = _hash(key);
 	uint ctr = hash & _mask;
 	const uint NONE_FOUND = _mask + 1;
@@ -466,7 +491,7 @@ int HashMap<Key, Val, HashFunc, EqualFunc>::lookupAndCreateIfMissing(const Key &
 	for (uint perturb = hash; ; perturb >>= HASHMAP_PERTURB_SHIFT) {
 		if (_storage[ctr] == NULL)
 			break;
-		if (_storage[ctr] == &_dummyNode) {
+		if (_storage[ctr] == HASHMAP_DUMMY_NODE) {
 #ifdef DEBUG_HASH_COLLISIONS
 			_dummyHits++;
 #endif
@@ -486,7 +511,7 @@ int HashMap<Key, Val, HashFunc, EqualFunc>::lookupAndCreateIfMissing(const Key &
 
 #ifdef DEBUG_HASH_COLLISIONS
 	_lookups++;
-	fprintf(stderr, "collisions %d, dummies hit %d, lookups %d, ratio %f in HashMap %p; size %d num elements %d\n",
+	debug("collisions %d, dummies hit %d, lookups %d, ratio %f in HashMap %p; size %d num elements %d",
 		_collisions, _dummyHits, _lookups, ((double) _collisions / (double)_lookups),
 		(const void *)this, _mask+1, _size);
 #endif
@@ -542,11 +567,16 @@ Val &HashMap<Key, Val, HashFunc, EqualFunc>::getVal(const Key &key) {
 
 template<class Key, class Val, class HashFunc, class EqualFunc>
 const Val &HashMap<Key, Val, HashFunc, EqualFunc>::getVal(const Key &key) const {
+	return getVal(key, _defaultVal);
+}
+
+template<class Key, class Val, class HashFunc, class EqualFunc>
+const Val &HashMap<Key, Val, HashFunc, EqualFunc>::getVal(const Key &key, const Val &defaultVal) const {
 	uint ctr = lookup(key);
 	if (_storage[ctr] != NULL)
 		return _storage[ctr]->_value;
 	else
-		return _defaultVal;
+		return defaultVal;
 }
 
 template<class Key, class Val, class HashFunc, class EqualFunc>
@@ -554,6 +584,23 @@ void HashMap<Key, Val, HashFunc, EqualFunc>::setVal(const Key &key, const Val &v
 	uint ctr = lookupAndCreateIfMissing(key);
 	assert(_storage[ctr] != NULL);
 	_storage[ctr]->_value = val;
+}
+
+template<class Key, class Val, class HashFunc, class EqualFunc>
+void HashMap<Key, Val, HashFunc, EqualFunc>::erase(iterator entry) {
+	// Check whether we have a valid iterator
+	assert(entry._hashmap == this);
+	const uint ctr = entry._idx;
+	assert(ctr <= _mask);
+	Node * const node = _storage[ctr];
+	assert(node != NULL);
+	assert(node != HASHMAP_DUMMY_NODE);
+
+	// If we remove a key, we replace it with a dummy node.
+	freeNode(node);
+	_storage[ctr] = HASHMAP_DUMMY_NODE;
+	_size--;
+	_deleted++;
 }
 
 template<class Key, class Val, class HashFunc, class EqualFunc>
@@ -565,11 +612,13 @@ void HashMap<Key, Val, HashFunc, EqualFunc>::erase(const Key &key) {
 
 	// If we remove a key, we replace it with a dummy node.
 	freeNode(_storage[ctr]);
-	_storage[ctr] = &_dummyNode;
+	_storage[ctr] = HASHMAP_DUMMY_NODE;
 	_size--;
 	_deleted++;
 	return;
 }
+
+#undef HASHMAP_DUMMY_NODE
 
 }	// End of namespace Common
 

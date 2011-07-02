@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_CONFIG_MANAGER_H
@@ -56,8 +53,6 @@ public:
 		String _domainComment;
 
 	public:
-		const String &get(const String &key) const;
-
 		void setDomainComment(const String &comment);
 		const String &getDomainComment() const;
 
@@ -68,29 +63,15 @@ public:
 
 	typedef HashMap<String, Domain, IgnoreCase_Hash, IgnoreCase_EqualTo> DomainMap;
 
-#if !(defined(PALMOS_ARM) || defined(PALMOS_DEBUG) || defined(__GP32__))
 	/** The name of the application domain (normally 'scummvm'). */
-	static const String kApplicationDomain;
+	static const char *kApplicationDomain;
 
 	/** The transient (pseudo) domain. */
-	static const String kTransientDomain;
-
-#ifdef ENABLE_KEYMAPPER
-	/** The name of keymapper domain used to store the key maps */
-	static const String kKeymapperDomain;
-#endif
-
-#else
-	static const char *kApplicationDomain;
 	static const char *kTransientDomain;
-
-	const String _emptyString;
 
 #ifdef ENABLE_KEYMAPPER
 	/** The name of keymapper domain used to store the key maps */
 	static const char *kKeymapperDomain;
-#endif
-
 #endif
 
 	void				loadDefaultConfigFile();
@@ -132,10 +113,10 @@ public:
 	//
 	// Some additional convenience accessors.
 	//
-	int					getInt(const String &key, const String &domName = String::emptyString) const;
-	bool				getBool(const String &key, const String &domName = String::emptyString) const;
-	void				setInt(const String &key, int value, const String &domName = String::emptyString);
-	void				setBool(const String &key, bool value, const String &domName = String::emptyString);
+	int					getInt(const String &key, const String &domName = String()) const;
+	bool				getBool(const String &key, const String &domName = String()) const;
+	void				setInt(const String &key, int value, const String &domName = String());
+	void				setBool(const String &key, bool value, const String &domName = String());
 
 
 	void				registerDefault(const String &key, const String &value);
@@ -153,19 +134,32 @@ public:
 	void				addGameDomain(const String &domName);
 	void				removeGameDomain(const String &domName);
 	void				renameGameDomain(const String &oldName, const String &newName);
+
+	void				addMiscDomain(const String &domName);
+	void				removeMiscDomain(const String &domName);
+	void				renameMiscDomain(const String &oldName, const String &newName);
+
 	bool				hasGameDomain(const String &domName) const;
+	bool				hasMiscDomain(const String &domName) const;
+
 	const DomainMap &	getGameDomains() const { return _gameDomains; }
 	DomainMap &			getGameDomains() { return _gameDomains; }
+
+	static void			defragment();	// move in memory to reduce fragmentation
+	void 				copyFrom(ConfigManager &source);
 
 private:
 	friend class Singleton<SingletonBaseType>;
 	ConfigManager();
 
 	void			loadFromStream(SeekableReadStream &stream);
+	void			addDomain(const Common::String &domainName, const Domain &domain);
 	void			writeDomain(WriteStream &stream, const String &name, const Domain &domain);
+	void			renameDomain(const String &oldName, const String &newName, DomainMap &map);
 
 	Domain			_transientDomain;
 	DomainMap		_gameDomains;
+	DomainMap		_miscDomains;		// Any other domains
 	Domain			_appDomain;
 	Domain			_defaultsDomain;
 
@@ -173,7 +167,7 @@ private:
 	Domain			_keymapperDomain;
 #endif
 
-	StringList		_domainSaveOrder;
+	Array<String>	_domainSaveOrder;
 
 	String			_activeDomainName;
 	Domain *		_activeDomain;

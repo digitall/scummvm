@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#if defined(DYNAMIC_MODULES) && defined(UNIX)
+#include "common/scummsys.h"
+
+#if defined(DYNAMIC_MODULES) && defined(POSIX)
 
 #include "backends/plugins/posix/posix-provider.h"
 #include "backends/plugins/dynamic-plugin.h"
@@ -35,7 +34,6 @@
 class POSIXPlugin : public DynamicPlugin {
 protected:
 	void *_dlHandle;
-	Common::String _filename;
 
 	virtual VoidFunc findSymbol(const char *symbol) {
 		void *func = dlsym(_dlHandle, symbol);
@@ -54,7 +52,7 @@ protected:
 
 public:
 	POSIXPlugin(const Common::String &filename)
-		: _dlHandle(0), _filename(filename) {}
+		: DynamicPlugin(filename), _dlHandle(0) {}
 
 	bool loadPlugin() {
 		assert(!_dlHandle);
@@ -79,9 +77,9 @@ public:
 };
 
 
-Plugin* POSIXPluginProvider::createPlugin(const Common::FSNode &node) const {
+Plugin *POSIXPluginProvider::createPlugin(const Common::FSNode &node) const {
 	return new POSIXPlugin(node.getPath());
 }
 
 
-#endif // defined(DYNAMIC_MODULES) && defined(UNIX)
+#endif // defined(DYNAMIC_MODULES) && defined(POSIX)

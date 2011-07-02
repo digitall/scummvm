@@ -18,17 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
+#include "common/file.h"
+#include "common/textconsole.h"
+
 #include "agos/agos.h"
 #include "agos/intern.h"
-
-using Common::File;
 
 namespace AGOS {
 
@@ -46,9 +44,9 @@ static const char *const opcodeArgTable_elvira1[300] = {
 	"FN ", "I ", "TN ", "IT ", "II ", "I ", " ", "N ", "I ", " ", "I ", "NI ", "I ", "I ", "T ",
 	"I ", "I ", "N ", "N ", " ", "N ", "IF ", "IF ", "IF ", "IF ", "IF ", "IF ", "T ", "IB ",
 	"IB ", "IB ", "I ", " ", "vnnN ", "Ivnn ", "T ", "T ", "T ", "IF ", " ", " ", " ", "Ivnn ",
-	"IF ", "INI ", "INN ",  "IN ", "II ", "IFF ", "IIF ", "I ", "II ", "I ", "I ", "IN ", "IN ",
-	"II ", "II ", "II ", "II ", "IIN ", "IIN ",  "IN ", "II ", "IN ", "IN ", "T ", "vanpan ",
-	"vIpI ", "T ", "T ", " ", " ",	"IN ", "IN ", "IN ", "IN ", "N ", "INTTT ",  "ITTT ",
+	"IF ", "INI ", "INN ", "IN ", "II ", "IFF ", "IIF ", "I ", "II ", "I ", "I ", "IN ", "IN ",
+	"II ", "II ", "II ", "II ", "IIN ", "IIN ", "IN ", "II ", "IN ", "IN ", "T ", "vanpan ",
+	"vIpI ", "T ", "T ", " ", " ",	"IN ", "IN ", "IN ", "IN ", "N ", "INTTT ", "ITTT ",
 	"ITTT ", "I ", "I ", "IN ", "I ", " ", "F ", "NN ", "INN ", "INN ", "INNN ", "TF ", "NN ",
 	"N ", "NNNNN ", "N ", " ", "NNNNNNN ", "N ", " ", "N ",	"NN ", "N ", "NNNNNIN ", "N ", "N ",
 	"N ", "NNN ", "NNNN ", "INNN ", "IN ", "IN ", "TT ", "I ", "I ", "I ", "TTT ", "IN ", "IN ",
@@ -260,22 +258,22 @@ void AGOSEngine::endCutscene() {
 	_runScriptReturn1 = true;
 }
 
-File *AGOSEngine::openTablesFile(const char *filename) {
+Common::File *AGOSEngine::openTablesFile(const char *filename) {
 	if (getFeatures() & GF_OLD_BUNDLE)
 		return openTablesFile_simon1(filename);
 	else
 		return openTablesFile_gme(filename);
 }
 
-File *AGOSEngine::openTablesFile_simon1(const char *filename) {
-	File *fo = new File();
+Common::File *AGOSEngine::openTablesFile_simon1(const char *filename) {
+	Common::File *fo = new Common::File();
 	fo->open(filename);
 	if (fo->isOpen() == false)
 		error("openTablesFile: Can't open '%s'", filename);
 	return fo;
 }
 
-File *AGOSEngine::openTablesFile_gme(const char *filename) {
+Common::File *AGOSEngine::openTablesFile_gme(const char *filename) {
 	uint res;
 	uint32 offs;
 
@@ -289,7 +287,7 @@ File *AGOSEngine::openTablesFile_gme(const char *filename) {
 bool AGOSEngine::loadTablesIntoMem(uint16 subrId) {
 	byte *p;
 	uint16 min_num, max_num, file_num;
-	File *in;
+	Common::File *in;
 	char filename[30];
 
 	if (_tblList == NULL)
@@ -337,23 +335,21 @@ bool AGOSEngine::loadTablesIntoMem(uint16 subrId) {
 
 bool AGOSEngine_Waxworks::loadTablesIntoMem(uint16 subrId) {
 	byte *p;
-	int i;
 	uint min_num, max_num;
-	char filename[30];
-	File *in;
+	Common::File *in;
 
 	p = _tblList;
 	if (p == NULL)
 		return 0;
 
 	while (*p) {
-		for (i = 0; *p; p++, i++)
-			filename[i] = *p;
-		filename[i] = 0;
+		Common::String filename;
+		while (*p)
+			filename += *p++;
 		p++;
 
 		if (getPlatform() == Common::kPlatformAcorn) {
-			sprintf(filename, "%s.DAT", filename);
+			filename += ".DAT";
 		}
 
 		for (;;) {
@@ -370,14 +366,19 @@ bool AGOSEngine_Waxworks::loadTablesIntoMem(uint16 subrId) {
 				_stringIdLocalMin = 1;
 				_stringIdLocalMax = 0;
 
-				in = openTablesFile(filename);
+				in = openTablesFile(filename.c_str());
 				readSubroutineBlock(in);
 				closeTablesFile(in);
 				if (getGameType() == GType_SIMON2) {
-					_sound->loadSfxTable(_gameFile, _gameOffsetsPtr[atoi(filename + 6) - 1 + _soundIndexBase]);
+					_sound->loadSfxTable(_gameFile, _gameOffsetsPtr[atoi(filename.c_str() + 6) - 1 + _soundIndexBase]);
 				} else if (getGameType() == GType_SIMON1 && getPlatform() == Common::kPlatformWindows) {
-					memcpy(filename, "SFXXXX", 6);
-					if (atoi(filename + 6) != 1 && atoi(filename + 6) != 30)
+					filename.setChar('S', 0);
+					filename.setChar('F', 1);
+					filename.setChar('X', 2);
+					filename.setChar('X', 3);
+					filename.setChar('X', 4);
+					filename.setChar('X', 5);
+					if (atoi(filename.c_str() + 6) != 1 && atoi(filename.c_str() + 6) != 30)
 						_sound->readSfxFile(filename);
 				}
 
@@ -402,7 +403,7 @@ bool AGOSEngine::loadXTablesIntoMem(uint16 subrId) {
 	int i;
 	uint min_num, max_num;
 	char filename[30];
-	File *in;
+	Common::File *in;
 
 	p = _xtblList;
 	if (p == NULL)
@@ -452,7 +453,7 @@ bool AGOSEngine::loadXTablesIntoMem(uint16 subrId) {
 	return 0;
 }
 
-void AGOSEngine::closeTablesFile(File *in) {
+void AGOSEngine::closeTablesFile(Common::File *in) {
 	if (getFeatures() & GF_OLD_BUNDLE) {
 		in->close();
 		delete in;
@@ -567,7 +568,7 @@ restart:
 				_codePtr += 8;
 
 			if (_dumpOpcodes)
-				printf("; %d\n", sub->id);
+				debug("; %d", sub->id);
 			result = runScript();
 			if (result != 0) {
 				break;

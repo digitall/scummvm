@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -40,7 +37,7 @@ byte BaseCostumeRenderer::drawCostume(const VirtScreen &vs, int numStrips, const
 		_out.pixels = vs.getPixels(0, 0);
 
 	_actorX += _vm->_virtscr[kMainVirtScreen].xstart & 7;
-	_out.w = _out.pitch;
+	_out.w = _out.pitch / _vm->_bytesPerPixel;
 	_out.pixels = (byte *)_out.pixels - (_vm->_virtscr[kMainVirtScreen].xstart & 7);
 
 	_numStrips = numStrips;

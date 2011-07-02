@@ -17,15 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_ALGORITHM_H
 #define COMMON_ALGORITHM_H
 
 #include "common/scummsys.h"
+#include "common/func.h"
+#include "common/util.h"
 
 namespace Common {
 
@@ -145,57 +144,129 @@ Op for_each(In first, In last, Op f) {
 	return f;
 }
 
-/**
- * Simple sort function, modeled after std::sort.
- * Use it like this: sort(container.begin(), container.end()).
- * Also works on plain old i.e. int arrays etc. For comperance
- * operator < is used.
- */
-template<class T>
-void sort(T first, T last) {
-	if (first == last)
-		return;
+template<typename T>
+unsigned int distance(T *first, T *last) {
+	return last - first;
+}
 
-	// Simple selection sort
-	T i(first);
-	for (; i != last; ++i) {
-		T minElem(i);
-		T j(i);
-		++j;
-		for (; j != last; ++j)
-			if (*j < *minElem)
-				minElem = j;
-		if (minElem != i)
-			SWAP(*minElem, *i);
+template<typename T>
+unsigned int distance(T first, T last) {
+	unsigned int n = 0;
+	while (first != last) {
+		++n;
+		++first;
 	}
+	return n;
+}
+
+template<typename T>
+T *sortChoosePivot(T *first, T *last) {
+	return first + distance(first, last) / 2;
+}
+
+template<typename T>
+T sortChoosePivot(T first, T last) {
+	unsigned int n = distance(first, last);
+	n /= 2;
+	while (n--)
+		++first;
+	return first;
+}
+
+template<typename T, class StrictWeakOrdering>
+T sortPartition(T first, T last, T pivot, StrictWeakOrdering &comp) {
+	--last;
+	SWAP(*pivot, *last);
+
+	T sorted;
+	for (sorted = first; first != last; ++first) {
+		if (!comp(*last, *first)) {
+			if (first != sorted)
+				SWAP(*first, *sorted);
+			++sorted;
+		}
+	}
+
+	SWAP(*last, *sorted);
+	return sorted;
 }
 
 /**
  * Simple sort function, modeled after std::sort.
  * It compares data with the given comparator object comp.
  *
- * Note: Using this with: Common::Less from common/func.h
- * will give the same results as the plain sort function.
+ * Like std::sort this is not guaranteed to be stable.
+ *
+ * Two small quotes from wikipedia about stability:
+ *
+ * Stable sorting algorithms maintain the relative order of records with
+ * equal keys.
+ *
+ * Unstable sorting algorithms may change the relative order of records with
+ * equal keys, but stable sorting algorithms never do so.
+ *
+ * For more information on that topic check out:
+ * http://en.wikipedia.org/wiki/Sorting_algorithm#Stability
+ *
+ * NOTE: Actually as the time of writing our implementation is unstable.
  */
-template<class T, class StrictWeakOrdering>
+template<typename T, class StrictWeakOrdering>
 void sort(T first, T last, StrictWeakOrdering comp) {
 	if (first == last)
 		return;
 
-	// Simple selection sort
-	T i(first);
-	for (; i != last; ++i) {
-		T minElem(i);
-		T j(i);
-		++j;
-		for (; j != last; ++j)
-			if (comp(*j, *minElem))
-				minElem = j;
-		if (minElem != i)
-			SWAP(*minElem, *i);
-	}
+	T pivot = sortChoosePivot(first, last);
+	pivot = sortPartition(first, last, pivot, comp);
+	sort<T, StrictWeakOrdering>(first, pivot, comp);
+	sort<T, StrictWeakOrdering>(++pivot, last, comp);
 }
 
-} // end of namespace Common
+/**
+ * Simple sort function, modeled after std::sort.
+ */
+template<typename T>
+void sort(T *first, T *last) {
+	sort(first, last, Common::Less<T>());
+}
+
+template<class T>
+void sort(T first, T last) {
+	sort(first, last, Common::Less<typename T::ValueType>());
+}
+
+// MSVC is complaining about the minus operator being applied to an unsigned type
+// We disable this warning for the affected section of code
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4146)
+#endif
+
+/**
+ * Euclid's algorithm to compute the greatest common divisor.
+ */
+template<class T>
+T gcd(T a, T b) {
+	// Note: We check for <= instead of < to avoid spurious compiler
+	// warnings if T is an unsigned type, i.e. warnings like "comparison
+	// of unsigned expression < 0 is always false".
+	if (a <= 0)
+		a = -a;
+	if (b <= 0)
+		b = -b;
+
+	while (a > 0) {
+		T tmp = a;
+		a = b % a;
+		b = tmp;
+	}
+
+	return b;
+}
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+} // End of namespace Common
 #endif
 

@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "cruise/cruise_main.h"
 
@@ -79,6 +78,12 @@ int16 getMultipleObjectParam(int16 overlayIdx, int16 objectIdx, objectParamsQuer
 		state = globalVars[overlayTable[overlayIdx].state + ptr->_stateTableIdx];
 
 		ptr2 = &ovlData->arrayStates[ptr->_firstStateIdx + state];
+
+		if (ptr->_firstStateIdx + state < 0) {
+			debug(0, "Invalid Negative arrayState index in getMultipleObjectParam(overlayIdx: %d, objectIdx: %d)... Forcing to 0", overlayIdx, objectIdx);
+			ptr2 = &ovlData->arrayStates[0];
+		}
+
 		state2 = ptr2->state;
 		break;
 	}
@@ -118,7 +123,6 @@ void setObjectPosition(int16 ovlIdx, int16 objIdx, int16 param3, int16 param4) {
 
 	if (!ptr) {
 		return;
-		ASSERT(0);
 	}
 	//overlayTable[param1].ovlData
 
@@ -243,6 +247,11 @@ int16 getSingleObjectParam(int16 overlayIdx, int16 param2, int16 param3, int16 *
 		state = globalVars[overlayTable[overlayIdx].state + ptr->_stateTableIdx];
 
 		ptr2 = &ovlData->arrayStates[ptr->_firstStateIdx + state];
+
+		if (ptr->_firstStateIdx + state < 0) {
+			debug(0, "Invalid Negative arrayState index in getSingleObjectParam(overlayIdx: %d, param2: %d, param3: %d)... Forcing to 0", overlayIdx, param2, param3);
+			ptr2 = &ovlData->arrayStates[0];
+		}
 		break;
 	}
 	case VARIABLE: {
@@ -289,7 +298,7 @@ int16 getSingleObjectParam(int16 overlayIdx, int16 param2, int16 param3, int16 *
 	return 0;
 }
 
-void objectReset(void) {
+void objectReset() {
 	for (int i = 1; i < numOfLoadedOverlay; i++)	{
 		if (overlayTable[i].alreadyLoaded && overlayTable[i].ovlData) {
 			if (overlayTable[i].ovlData->arrayObject) {

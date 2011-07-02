@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_IMUSE_H
@@ -58,7 +55,6 @@ public:
 		PROP_GS,
 		PROP_LIMIT_PLAYERS,
 		PROP_RECYCLE_PLAYERS,
-		PROP_DIRECT_PASSTHROUGH,
 		PROP_GAME_ID
 	};
 
@@ -69,11 +65,12 @@ public:
 	virtual bool get_sound_active(int sound) const = 0;
 	virtual int32 doCommand(int numargs, int args[]) = 0;
 	virtual int clear_queue() = 0;
-	virtual void setBase(byte **base) = 0;
 	virtual uint32 property(int prop, uint32 value) = 0;
 	virtual void addSysexHandler (byte mfgID, sysexfunc handler) = 0;
 
 public:
+	virtual void startSoundWithNoteOffset(int sound, int offset) = 0;
+
 	// MusicEngine base class methods.
 	// Not actually redefined here because none are implemented.
 

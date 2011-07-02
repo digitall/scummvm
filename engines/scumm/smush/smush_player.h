@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #if !defined(SCUMM_SMUSH_PLAYER_H) && defined(ENABLE_SCUMM_7_8)
@@ -65,7 +62,7 @@ private:
 	uint32 _frame;
 
 	Audio::SoundHandle _IACTchannel;
-	Audio::AppendableAudioStream *_IACTstream;
+	Audio::QueuingAudioStream *_IACTstream;
 
 	Audio::SoundHandle _compressedFileSoundHandle;
 	bool _compressedFileMode;

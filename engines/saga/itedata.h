@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Actor data table header file
@@ -77,22 +74,23 @@ struct ObjectTableData {
 	uint16 interactBits;
 };
 
-struct FxTable {
-	int res;
-	int vol;
+struct IteFxTable {
+	byte res;
+	byte vol;
 };
 
 #define ITE_OBJECTCOUNT 39
 #define ITE_SFXCOUNT 63
 
 extern ObjectTableData ITE_ObjectTable[ITE_OBJECTCOUNT];
-extern FxTable ITE_SfxTable[ITE_SFXCOUNT];
+extern IteFxTable ITE_SfxTable[ITE_SFXCOUNT];
 
 extern const char *ITEinterfaceTextStrings[][53];
 
 #define PUZZLE_PIECES 15
 
-extern Point pieceOrigins[PUZZLE_PIECES];
+struct RawPoint { int x, y; };
+extern const RawPoint pieceOrigins[PUZZLE_PIECES];
 extern const char *pieceNames[][PUZZLE_PIECES];
 
 #define NUM_SOLICIT_REPLIES 5

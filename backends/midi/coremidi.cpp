@@ -17,17 +17,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
+
+#include "common/scummsys.h"
 
 #ifdef MACOSX
 
 #include "common/config-manager.h"
+#include "common/error.h"
+#include "common/textconsole.h"
 #include "common/util.h"
-#include "sound/musicplugin.h"
-#include "sound/mpu401.h"
+#include "audio/musicplugin.h"
+#include "audio/mpu401.h"
 
 #include <CoreMIDI/CoreMIDI.h>
 
@@ -51,6 +55,7 @@ public:
 	MidiDriver_CoreMIDI();
 	~MidiDriver_CoreMIDI();
 	int open();
+	bool isOpen() const { return mOutPort != 0 && mDest != 0; }
 	void close();
 	void send(uint32 b);
 	void sysEx(const byte *msg, uint16 length);
@@ -75,7 +80,7 @@ MidiDriver_CoreMIDI::~MidiDriver_CoreMIDI() {
 }
 
 int MidiDriver_CoreMIDI::open() {
-	if (mDest)
+	if (isOpen())
 		return MERR_ALREADY_OPEN;
 
 	OSStatus err = noErr;
@@ -101,7 +106,7 @@ int MidiDriver_CoreMIDI::open() {
 void MidiDriver_CoreMIDI::close() {
 	MidiDriver_MPU401::close();
 
-	if (mOutPort && mDest) {
+	if (isOpen()) {
 		MIDIPortDispose(mOutPort);
 		mOutPort = 0;
 		mDest = 0;
@@ -109,8 +114,7 @@ void MidiDriver_CoreMIDI::close() {
 }
 
 void MidiDriver_CoreMIDI::send(uint32 b) {
-	assert(mOutPort != NULL);
-	assert(mDest != NULL);
+	assert(isOpen());
 
 	// Extract the MIDI data
 	byte status_byte = (b & 0x000000FF);
@@ -153,8 +157,7 @@ void MidiDriver_CoreMIDI::send(uint32 b) {
 }
 
 void MidiDriver_CoreMIDI::sysEx(const byte *msg, uint16 length) {
-	assert(mOutPort != NULL);
-	assert(mDest != NULL);
+	assert(isOpen());
 
 	byte buf[384];
 	MIDIPacketList *packetList = (MIDIPacketList *)buf;
@@ -190,7 +193,7 @@ public:
 	}
 
 	MusicDevices getDevices() const;
-	Common::Error createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
 };
 
 MusicDevices CoreMIDIMusicPlugin::getDevices() const {
@@ -201,19 +204,10 @@ MusicDevices CoreMIDIMusicPlugin::getDevices() const {
 	return devices;
 }
 
-Common::Error CoreMIDIMusicPlugin::createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const {
+Common::Error CoreMIDIMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
 	*mididriver = new MidiDriver_CoreMIDI();
 
 	return Common::kNoError;
-}
-
-MidiDriver *MidiDriver_CoreMIDI_create(Audio::Mixer *mixer) {
-	MidiDriver *mididriver;
-
-	CoreMIDIMusicPlugin p;
-	p.createInstance(mixer, &mididriver);
-
-	return mididriver;
 }
 
 //#if PLUGIN_ENABLED_DYNAMIC(COREMIDI)

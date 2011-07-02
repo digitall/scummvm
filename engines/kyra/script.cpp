@@ -18,23 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-
-#include "common/endian.h"
-#include "common/stream.h"
-#include "common/util.h"
-#include "common/system.h"
-
+#include "kyra/script.h"
 #include "kyra/kyra_v1.h"
 #include "kyra/resource.h"
-#include "kyra/script.h"
+
+#include "common/endian.h"
 
 namespace Kyra {
-EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm) {
+EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm), _scriptData(0), _filename(0) {
 #define OPCODE(x) { &EMCInterpreter::x, #x }
 	static const OpcodeEntry opcodes[] = {
 		// 0x00
@@ -68,14 +61,14 @@ EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm) {
 
 bool EMCInterpreter::callback(Common::IFFChunk &chunk) {
 	switch (chunk._type) {
-	case MKID_BE('TEXT'):
+	case MKTAG('T','E','X','T'):
 		_scriptData->text = new byte[chunk._size];
 		assert(_scriptData->text);
 		if (chunk._stream->read(_scriptData->text, chunk._size) != chunk._size)
 			error("Couldn't read TEXT chunk from file '%s'", _filename);
 		break;
 
-	case MKID_BE('ORDR'):
+	case MKTAG('O','R','D','R'):
 		_scriptData->ordr = new uint16[chunk._size >> 1];
 		assert(_scriptData->ordr);
 		if (chunk._stream->read(_scriptData->ordr, chunk._size) != chunk._size)
@@ -85,7 +78,7 @@ bool EMCInterpreter::callback(Common::IFFChunk &chunk) {
 			_scriptData->ordr[i] = READ_BE_UINT16(&_scriptData->ordr[i]);
 		break;
 
-	case MKID_BE('DATA'):
+	case MKTAG('D','A','T','A'):
 		_scriptData->data = new uint16[chunk._size >> 1];
 		assert(_scriptData->data);
 		if (chunk._stream->read(_scriptData->data, chunk._size) != chunk._size)
@@ -96,17 +89,17 @@ bool EMCInterpreter::callback(Common::IFFChunk &chunk) {
 		break;
 
 	default:
-		warning("Unexpected chunk '%s' of size %d found in file '%s'", Common::ID2string(chunk._type), chunk._size, _filename);
+		warning("Unexpected chunk '%s' of size %d found in file '%s'", tag2str(chunk._type), chunk._size, _filename);
 	}
 
 	return false;
 }
 
-bool EMCInterpreter::load(const char *filename, EMCData *scriptData, const Common::Array<const Opcode*> *opcodes) {
+bool EMCInterpreter::load(const char *filename, EMCData *scriptData, const Common::Array<const Opcode *> *opcodes) {
 	Common::SeekableReadStream *stream = _vm->resource()->createReadStream(filename);
 	if (!stream) {
 		error("Couldn't open script file '%s'", filename);
-		return false;
+		return false;  // for compilers that don't support NORETURN
 	}
 
 	memset(scriptData, 0, sizeof(EMCData));
@@ -131,8 +124,10 @@ bool EMCInterpreter::load(const char *filename, EMCData *scriptData, const Commo
 
 	_scriptData->sysFuncs = opcodes;
 
-	strncpy(_scriptData->filename, filename, 13);
-	_scriptData->filename[12] = 0;
+	Common::strlcpy(_scriptData->filename, filename, 13);
+
+	_scriptData = 0;
+	_filename = 0;
 
 	return true;
 }
@@ -447,5 +442,5 @@ void EMCInterpreter::op_setRetAndJmp(EMCState *script) {
 		script->ip = &script->dataPtr->data[temp];
 	}
 }
-} // end of namespace Kyra
+} // End of namespace Kyra
 

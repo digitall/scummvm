@@ -16,6 +16,7 @@ MODULE_OBJS := \
 	dialogs.o \
 	file.o \
 	file_nes.o \
+	gfx_towns.o \
 	gfx.o \
 	he/resource_he.o \
 	he/script_v60he.o \
@@ -29,17 +30,21 @@ MODULE_OBJS := \
 	imuse/sysex_samnmax.o \
 	imuse/sysex_scumm.o \
 	input.o \
-	midiparser_eup.o \
 	midiparser_ro.o \
 	object.o \
 	palette.o \
 	player_mod.o \
 	player_nes.o \
+	player_pce.o \
+	player_sid.o \
+	player_towns.o \
 	player_v1.o \
 	player_v2.o \
 	player_v2a.o \
+	player_v2base.o \
 	player_v2cms.o \
 	player_v3a.o \
+	player_v4a.o \
 	resource_v2.o \
 	resource_v3.o \
 	resource_v4.o \

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "gob/gob.h"
@@ -88,7 +85,7 @@ Global::Global(GobEngine *vm) : _vm(vm) {
 	_unusedPalette1[16] = (int16) 0xAAAA;
 	_unusedPalette1[17] = (int16) 0xFFFF;
 
-	for (int i = 0; i < 16 ;i++)
+	for (int i = 0; i < 16; i++)
 		_unusedPalette2[i] = i;
 
 	_vgaPalette[ 0].red = 0x00; _vgaPalette[ 0].green = 0x00; _vgaPalette[ 0].blue = 0x00;
@@ -116,7 +113,6 @@ Global::Global(GobEngine *vm) : _vm(vm) {
 	_debugFlag = 0;
 	_inVM = 0;
 
-	_inter_execPtr = 0;
 	_inter_animDataSize = 10;
 
 	_inter_mouseX = 0;
@@ -127,6 +123,8 @@ Global::Global(GobEngine *vm) : _vm(vm) {
 	_doSubtitles = false;
 
 	_noCd = false;
+
+	_curWinId = 0;
 }
 
 Global::~Global() {

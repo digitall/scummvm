@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_AKOS_H
@@ -60,7 +57,7 @@ protected:
 	uint16 _codec;
 
 	// actor _palette
-	byte _palette[256];
+	uint16 _palette[256];
 	bool _useBompPalette;
 
 	// pointer to various parts of the costume resource
@@ -107,7 +104,7 @@ public:
 	int16 _actorHitX, _actorHitY;
 	bool _actorHitResult;
 
-	void setPalette(byte *_palette);
+	void setPalette(uint16 *_palette);
 	void setFacing(const Actor *a);
 	void setCostume(int costume, int shadow);
 

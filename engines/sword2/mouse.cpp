@@ -20,14 +20,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "common/system.h"
 #include "common/events.h"
+#include "common/memstream.h"
+#include "common/textconsole.h"
 
 #include "graphics/cursorman.h"
 
@@ -341,7 +340,7 @@ void Mouse::systemMenuMouse() {
 
 	if ((icon_list[hit] == OPTIONS_ICON || icon_list[hit] == QUIT_ICON
 		|| icon_list[hit] == SAVE_ICON || icon_list[hit] == RESTORE_ICON
-		|| icon_list[hit] == RESTART_ICON ) && Sword2Engine::isPsx() )
+		|| icon_list[hit] == RESTART_ICON) && Sword2Engine::isPsx())
 		return;
 
 	// No save when dead
@@ -1269,8 +1268,8 @@ void Mouse::createPointerText(uint32 text_id, uint32 pointer_res) {
 			// Above right
 			justification = POSITION_AT_LEFT_OF_BASE;
 		} else {
-			// Above centre
-			justification = POSITION_AT_CENTRE_OF_BASE;
+			// Above center
+			justification = POSITION_AT_CENTER_OF_BASE;
 		}
 	} else if (yOffset > 0) {
 		// Below pointer
@@ -1281,20 +1280,20 @@ void Mouse::createPointerText(uint32 text_id, uint32 pointer_res) {
 			// Below right
 			justification = POSITION_AT_LEFT_OF_TOP;
 		} else {
-			// Below centre
-			justification = POSITION_AT_CENTRE_OF_TOP;
+			// Below center
+			justification = POSITION_AT_CENTER_OF_TOP;
 		}
 	} else {
 		// Same y-coord as pointer
 		if (xOffset < 0) {
-			// Centre left
-			justification = POSITION_AT_RIGHT_OF_CENTRE;
+			// Center left
+			justification = POSITION_AT_RIGHT_OF_CENTER;
 		} else if (xOffset > 0) {
-			// Centre right
-			justification = POSITION_AT_LEFT_OF_CENTRE;
+			// Center right
+			justification = POSITION_AT_LEFT_OF_CENTER;
 		} else {
-			// Centre centre - shouldn't happen anyway!
-			justification = POSITION_AT_LEFT_OF_CENTRE;
+			// Center center - shouldn't happen anyway!
+			justification = POSITION_AT_LEFT_OF_CENTER;
 		}
 	}
 
@@ -1409,8 +1408,8 @@ void Mouse::addHuman() {
 	// info
 
 	if (_vm->_debugger->_testingSnR) {
-		uint8 black[4] = {   0,  0,    0,   0 };
-		uint8 white[4] = { 255, 255, 255,   0 };
+		uint8 black[3] = {   0,  0,    0 };
+		uint8 white[3] = { 255, 255, 255 };
 
 		// Testing logic scripts by simulating instant Save & Restore
 
@@ -1432,7 +1431,7 @@ void Mouse::refreshInventory() {
 	// Can reset this now
 	_vm->_logic->writeVar(COMBINE_BASE, 0);
 
-	// Cause 'object_held' icon to be greyed. The rest are coloured.
+	// Cause 'object_held' icon to be greyed. The rest are colored.
 	_examiningMenuIcon = true;
 	buildMenu();
 	_examiningMenuIcon = false;

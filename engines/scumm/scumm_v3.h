@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SCRIPT_V3_H
@@ -50,6 +47,8 @@ protected:
 
 	/* Version 3 script opcodes */
 	void o3_setBoxFlags();
+	void o3_waitForActor();
+	void o3_waitForSentence();
 };
 
 /**
@@ -60,7 +59,7 @@ public:
 	ScummEngine_v3old(OSystem *syst, const DetectorResult &dr);
 
 protected:
-	virtual void readResTypeList(int id);
+	virtual int readResTypeList(ResType type);
 	virtual void readIndexFile();
 	virtual void setupRoomSubBlocks();
 	virtual void resetRoomSubBlocks();

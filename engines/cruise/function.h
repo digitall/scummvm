@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_FUNCTION_H
@@ -30,12 +27,12 @@ namespace Cruise {
 
 extern int flag_obstacle;
 extern int vblLimit;
-int32 opcodeType8(void);
+int32 opcodeType8();
 int16 computeZoom(int param);
 int16 subOp23(int param1, int param2);
 void freeObjectList(cellStruct *pListHead);
 int removeAnimation(actorStruct * pHead, int overlay, int objIdx, int objType);
-int16 Op_FadeOut(void);
+int16 Op_FadeOut();
 
 } // End of namespace Cruise
 

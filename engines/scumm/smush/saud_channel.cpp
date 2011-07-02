@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/endian.h"
 #include "common/stream.h"
+#include "common/textconsole.h"
 
 #include "scumm/util.h"
 #include "scumm/smush/channel.h"
@@ -50,7 +48,7 @@ bool SaudChannel::handleSubTags(int32 &offset) {
 		uint32 available_size = _tbufferSize - offset;
 
 		switch (type) {
-		case MKID_BE('STRK'):
+		case MKTAG('S','T','R','K'):
 			_inData = false;
 			if (available_size >= (size + 8)) {
 				int32 subSize = READ_BE_UINT32((byte *)_tbuffer + offset + 4);
@@ -60,14 +58,14 @@ bool SaudChannel::handleSubTags(int32 &offset) {
 			} else
 				return false;
 			break;
-		case MKID_BE('SMRK'):
+		case MKTAG('S','M','R','K'):
 			_inData = false;
 			if (available_size >= (size + 8))
 				_markReached = true;
 			else
 				return false;
 			break;
-		case MKID_BE('SHDR'):
+		case MKTAG('S','H','D','R'):
 			_inData = false;
 			if (available_size >= (size + 8)) {
 				int32 subSize = READ_BE_UINT32((byte *)_tbuffer + offset + 4);
@@ -76,7 +74,7 @@ bool SaudChannel::handleSubTags(int32 &offset) {
 			} else
 				return false;
 			break;
-		case MKID_BE('SDAT'):
+		case MKTAG('S','D','A','T'):
 			_inData = true;
 			_dataSize = size;
 			offset += 8;
@@ -123,23 +121,23 @@ bool SaudChannel::appendData(Common::SeekableReadStream &b, int32 size) {
 		assert(size > 8);
 		uint32 saud_type = b.readUint32BE();
 		/*uint32 saud_size =*/ b.readUint32BE();
-		if (saud_type != MKID_BE('SAUD'))
+		if (saud_type != MKTAG('S','A','U','D'))
 			error("Invalid Chunk for SaudChannel : %X", saud_type);
 		size -= 8;
 		_dataSize = -2;
 	}
 	if (_tbuffer) {
 		byte *old = _tbuffer;
-		_tbuffer = new byte[_tbufferSize + size];
+		_tbuffer = (byte *)malloc(_tbufferSize + size);
 		if (!_tbuffer)
 			error("saud_channel failed to allocate memory");
 		memcpy(_tbuffer, old, _tbufferSize);
-		delete[] old;
+		free(old);
 		b.read(_tbuffer + _tbufferSize, size);
 		_tbufferSize += size;
 	} else {
 		_tbufferSize = size;
-		_tbuffer = new byte[_tbufferSize];
+		_tbuffer = (byte *)malloc(_tbufferSize);
 		if (!_tbuffer)
 			error("saud_channel failed to allocate memory");
 		b.read(_tbuffer, _tbufferSize);

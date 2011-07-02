@@ -19,23 +19,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
+#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <unistd.h>
 
+#include "osystem.h"
+#include "backends/plugins/wii/wii-provider.h"
+
 #include <ogc/machine/processor.h>
 #include <fat.h>
-
-#include "osystem.h"
-
+#ifndef GAMECUBE
+#include <wiiuse/wpad.h>
+#endif
 #ifdef USE_WII_DI
 #include <di/di.h>
 #endif
-
 #ifdef DEBUG_WII_GDB
 #include <debug.h>
 #endif
+#include <gxflux/gfx_con.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +55,6 @@ void reset_cb(void) {
 #ifdef DEBUG_WII_GDB
 	printf("attach gdb now\n");
 	_break();
-	SYS_SetResetCallback(reset_cb);
 #else
 	reset_btn_pressed = true;
 #endif
@@ -57,6 +63,82 @@ void reset_cb(void) {
 void power_cb(void) {
 	power_btn_pressed = true;
 }
+
+static void show_console(int code) {
+	u32 i, b;
+
+	printf("ScummVM exited abnormally (%d).\n", code);
+
+	gfx_frame_abort();
+	gfx_init();
+
+	if (!gfx_frame_start())
+		return;
+
+	gfx_con_draw();
+	gfx_frame_end();
+
+	for (i = 0; i < 60 * 3; ++i)
+		VIDEO_WaitVSync();
+
+#ifdef DEBUG_WII_GDB
+	printf("attach gdb now\n");
+	_break();
+#endif
+
+	printf("Press any key to continue.\n");
+
+	if (!gfx_frame_start())
+		return;
+
+	gfx_con_draw();
+	gfx_frame_end();
+	VIDEO_WaitVSync();
+
+	while (true) {
+		b = 0;
+
+		if (PAD_ScanPads() & 1)
+			b = PAD_ButtonsDown(0);
+
+#ifndef GAMECUBE
+		WPAD_ScanPads();
+		if (WPAD_Probe(0, NULL) == WPAD_ERR_NONE)
+			b |= WPAD_ButtonsDown(0);
+#endif
+
+		if (b)
+			break;
+
+		VIDEO_WaitVSync();
+	}
+
+	printf("\n\nExiting...\n");
+
+	if (!gfx_frame_start())
+		return;
+
+	gfx_con_draw();
+	gfx_frame_end();
+	VIDEO_WaitVSync();
+}
+
+s32 reset_func(s32 final) {
+	static bool done = false;
+
+	if (!done) {
+		show_console(-127);
+		done = true;
+	}
+
+	return 1;
+}
+
+static sys_resetinfo resetinfo = {
+	{ NULL, NULL },
+	reset_func,
+	1
+};
 
 #ifdef DEBUG_WII_MEMSTATS
 void wii_memstats(void) {
@@ -83,17 +165,18 @@ void wii_memstats(void) {
 int main(int argc, char *argv[]) {
 	s32 res;
 
-#ifdef USE_WII_DI
+#if defined(USE_WII_DI) && !defined(GAMECUBE)
 	DI_Init();
 #endif
 
 	VIDEO_Init();
 	PAD_Init();
+	DSP_Init();
 	AUDIO_Init(NULL);
 
-#ifdef DEBUG_WII_USBGECKO
-	CON_EnableGecko(1, false);
-#endif
+	gfx_video_init(NULL);
+	gfx_init();
+	gfx_con_init(NULL);
 
 #ifdef DEBUG_WII_GDB
 	DEBUG_Init(GDBSTUB_DEVICE_USB, 1);
@@ -105,14 +188,11 @@ int main(int argc, char *argv[]) {
 	else
 		printf("<unknown>\n");
 
+	SYS_RegisterResetFunc(&resetinfo);
+
 	SYS_SetResetCallback(reset_cb);
 #ifndef GAMECUBE
 	SYS_SetPowerCallback(power_cb);
-#endif
-
-#ifdef USE_WII_DI
-	// initial async mount for the browser, see wii-fs.cpp
-	DI_Mount();
 #endif
 
 	if (!fatInitDefault()) {
@@ -135,16 +215,20 @@ int main(int argc, char *argv[]) {
 	g_system = new OSystem_Wii();
 	assert(g_system);
 
+#ifdef DYNAMIC_MODULES
+	PluginManager::instance().addPluginProvider(new WiiPluginProvider());
+#endif
+
 	res = scummvm_main(argc, argv);
 	g_system->quit();
 
 	printf("shutdown\n");
 
+	SYS_UnregisterResetFunc(&resetinfo);
 	fatUnmountDefault();
 
-#ifdef USE_WII_DI
-	DI_Close();
-#endif
+	if (res)
+		show_console(res);
 
 	if (power_btn_pressed) {
 		printf("shutting down\n");
@@ -152,6 +236,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("reloading\n");
+
+	gfx_con_deinit();
+	gfx_deinit();
+	gfx_video_deinit();
 
 	return res;
 }

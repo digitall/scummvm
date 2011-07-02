@@ -18,22 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef ENGINES_GAME_H
 #define ENGINES_GAME_H
 
-#include "common/str.h"
 #include "common/array.h"
 #include "common/hash-str.h"
-#include "common/ptr.h"
-
-namespace Graphics {
-	struct Surface;
-}
+#include "common/str.h"
+#include "common/util.h"
 
 /**
  * A simple structure used to map gameids (like "monkey", "sword1", ...) to
@@ -47,22 +40,20 @@ struct PlainGameDescriptor {
 };
 
 /**
- * Same as PlainGameDsscriptor except it adds Game GUI options parameter
- * This is a plain struct to make it possible to declare NULL-terminated C arrays
- * consisting of PlainGameDescriptors.
- */
-struct PlainGameDescriptorGUIOpts {
-	const char *gameid;
-	const char *description;
-	uint32 guioptions;
-};
-
-/**
  * Given a list of PlainGameDescriptors, returns the first PlainGameDescriptor
  * matching the given gameid. If not match is found return 0.
- * The end of the list must marked by a PlainGameDescriptor with gameid equal to 0.
+ * The end of the list must be marked by an entry with gameid 0.
  */
 const PlainGameDescriptor *findPlainGameDescriptor(const char *gameid, const PlainGameDescriptor *list);
+
+/**
+ * Ths is an enum to describe how done a game is. This also indicates what level of support is expected.
+ */
+enum GameSupportLevel {
+	kStableGame = 0, // the game is fully supported
+	kTestingGame, // the game is not supposed to end up in releases yet but is ready for public testing
+	kUnstableGame // the game is not even ready for public testing yet
+};
 
 /**
  * A hashmap describing details about a given game. In a sense this is a refined
@@ -74,20 +65,29 @@ const PlainGameDescriptor *findPlainGameDescriptor(const char *gameid, const Pla
 class GameDescriptor : public Common::StringMap {
 public:
 	GameDescriptor();
-	GameDescriptor(const PlainGameDescriptor &pgd);
-	GameDescriptor(const PlainGameDescriptorGUIOpts &pgd);
+	GameDescriptor(const PlainGameDescriptor &pgd, uint32 guioptions = 0);
 	GameDescriptor(const Common::String &gameid,
 	              const Common::String &description,
 	              Common::Language language = Common::UNK_LANG,
 				  Common::Platform platform = Common::kPlatformUnknown,
-				  uint32 guioptions = 0);
+				  uint32 guioptions = 0,
+				  GameSupportLevel gsl = kStableGame);
 
 	/**
-	 * Update the description string by appending (LANG/PLATFORM/EXTRA) to it.
+	 * Update the description string by appending (EXTRA/PLATFORM/LANG) to it.
+	 * Values that are missing are omitted, so e.g. (EXTRA/LANG) would be
+	 * added if no platform has been specified but a language and an extra string.
 	 */
 	void updateDesc(const char *extra = 0);
 
 	void setGUIOptions(uint32 options);
+	void appendGUIOptions(const Common::String &str);
+
+	/**
+	 * What level of support is expected of this game
+	 */
+	GameSupportLevel getSupportLevel();
+	void setSupportLevel(GameSupportLevel gsl);
 
 	Common::String &gameid() { return getVal("gameid"); }
 	Common::String &description() { return getVal("description"); }
@@ -108,107 +108,10 @@ public:
 	GameList(const GameList &list) : Common::Array<GameDescriptor>(list) {}
 	GameList(const PlainGameDescriptor *g) {
 		while (g->gameid) {
-			push_back(GameDescriptor(g->gameid, g->description));
+			push_back(GameDescriptor(*g));
 			g++;
 		}
 	}
 };
-
-/**
- * A hashmap describing details about a given save state.
- * TODO
- * Guaranteed to contain save_slot and description values.
- * Additional ideas: Playtime, creation date, thumbnail, ...
- */
-class SaveStateDescriptor : public Common::StringMap {
-protected:
-	Common::SharedPtr<Graphics::Surface> _thumbnail; // can be 0
-
-public:
-	SaveStateDescriptor() : _thumbnail() {
-		setVal("save_slot", "-1");	// FIXME: default to 0 (first slot) or to -1 (invalid slot) ?
-		setVal("description", "");
-	}
-
-	SaveStateDescriptor(int s, const Common::String &d) : _thumbnail() {
-		char buf[16];
-		sprintf(buf, "%d", s);
-		setVal("save_slot", buf);
-		setVal("description", d);
-	}
-
-	SaveStateDescriptor(const Common::String &s, const Common::String &d) : _thumbnail() {
-		setVal("save_slot", s);
-		setVal("description", d);
-	}
-
-	/** The saveslot id, as it would be passed to the "-x" command line switch. */
-	Common::String &save_slot() { return getVal("save_slot"); }
-
-	/** The saveslot id, as it would be passed to the "-x" command line switch (read-only variant). */
-	const Common::String &save_slot() const { return getVal("save_slot"); }
-
-	/** A human readable description of the save state. */
-	Common::String &description() { return getVal("description"); }
-
-	/** A human readable description of the save state (read-only variant). */
-	const Common::String &description() const { return getVal("description"); }
-
-	/** Optional entries only included when querying via MetaEngine::querySaveMetaInfo */
-
-	/**
-	 * Returns the value of a given key as boolean.
-	 * It accepts 'true', 'yes' and '1' for true and
-	 * 'false', 'no' and '0' for false.
-	 * (FIXME:) On unknown value it errors out ScummVM.
-	 * On unknown key it returns false as default.
-	 */
-	bool getBool(const Common::String &key) const;
-
-	/**
-	 * Sets the 'is_deletable' key, which indicates if the
-	 * given savestate is safe for deletion.
-	 */
-	void setDeletableFlag(bool state);
-
-	/**
-	 * Sets the 'is_write_protected' key, which indicates if the
-	 * given savestate can be overwritten or not
-	 */
-	void setWriteProtectedFlag(bool state);
-
-	/**
-	 * Return a thumbnail graphics surface representing the savestate visually.
-	 * This is usually a scaled down version of the game graphics. The size
-	 * should be either 160x100 or 160x120 pixels, depending on the aspect
-	 * ratio of the game. If another ratio is required, contact the core team.
-	 */
-	const Graphics::Surface *getThumbnail() const { return _thumbnail.get(); }
-
-	/**
-	 * Set a thumbnail graphics surface representing the savestate visually.
-	 * Ownership of the surface is transferred to the SaveStateDescriptor.
-	 * Hence the caller must not delete the surface.
-	 */
-	void setThumbnail(Graphics::Surface *t);
-
-	/**
-	 * Sets the 'save_date' key properly, based on the given values.
-	 */
-	void setSaveDate(int year, int month, int day);
-
-	/**
-	 * Sets the 'save_time' key properly, based on the given values.
-	 */
-	void setSaveTime(int hour, int min);
-
-	/**
-	 * Sets the 'play_time' key properly, based on the given values.
-	 */
-	void setPlayTime(int hours, int minutes);
-};
-
-/** List of savestates. */
-typedef Common::Array<SaveStateDescriptor> SaveStateList;
 
 #endif

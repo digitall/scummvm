@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_RESOURCES_H
@@ -29,7 +26,7 @@
 #include "common/str.h"
 
 namespace Common {
-	class MemoryReadStream;
+class SeekableReadStream;
 }
 
 namespace Gob {
@@ -47,7 +44,7 @@ public:
 	int16 getWidth () const;
 	int16 getHeight() const;
 
-	Common::MemoryReadStream *stream() const;
+	Common::SeekableReadStream *stream() const;
 
 private:
 	byte *_data;
@@ -56,7 +53,7 @@ private:
 	int16 _height;
 	bool  _needFree;
 
-	Common::MemoryReadStream *_stream;
+	Common::SeekableReadStream *_stream;
 };
 
 class TextItem {
@@ -67,13 +64,13 @@ public:
 	byte *getData() const;
 	int32 getSize() const;
 
-	Common::MemoryReadStream *stream() const;
+	Common::SeekableReadStream *stream() const;
 
 private:
 	byte *_data;
 	int32 _size;
 
-	Common::MemoryReadStream *_stream;
+	Common::SeekableReadStream *_stream;
 };
 
 class Resources {

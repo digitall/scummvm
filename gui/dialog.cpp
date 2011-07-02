@@ -17,19 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/events.h"
+#include "common/rect.h"
 
-#include "gui/GuiManager.h"
+#include "gui/gui-manager.h"
 #include "gui/dialog.h"
 #include "gui/widget.h"
-#include "gui/PopUpWidget.h"
-
-#include "common/system.h"
 
 namespace GUI {
 
@@ -171,7 +165,7 @@ void Dialog::handleMouseDown(int x, int y, int button, int clickCount) {
 	if (w && !(w->getFlags() & WIDGET_IGNORE_DRAG))
 		_dragWidget = w;
 
-	// If the click occured inside a widget which is not the currently
+	// If the click occurred inside a widget which is not the currently
 	// focused one, change the focus to that widget.
 	if (w && w != _focusedWidget && w->wantsFocus()) {
 		setFocusWidget(w);

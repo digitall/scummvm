@@ -18,12 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#ifdef ENABLE_PN
 
 #include "common/config-manager.h"
 
@@ -32,8 +27,8 @@
 
 namespace AGOS {
 
-AGOSEngine_PN::AGOSEngine_PN(OSystem *system)
-	: AGOSEngine(system) {
+AGOSEngine_PN::AGOSEngine_PN(OSystem *system, const AGOSGameDescription *gd)
+	: AGOSEngine(system, gd) {
 
 	_stackbase = 0;
 	_tagOfActiveDoline = 0;
@@ -130,12 +125,7 @@ Common::Error AGOSEngine_PN::go() {
 
 	if (getFeatures() & GF_EGA) {
 		// Set EGA Palette
-		for (int i = 0; i < 16; i++) {
-			_displayPalette[i * 4 + 0] = egaPalette[i * 3 + 0];
-			_displayPalette[i * 4 + 1] = egaPalette[i * 3 + 1];
-			_displayPalette[i * 4 + 2] = egaPalette[i * 3 + 2];
-			_displayPalette[i * 4 + 3] = 0;
-		}
+		memcpy(_displayPalette, egaPalette, sizeof(egaPalette));
 		_paletteFlag = 1;
 	}
 
@@ -211,7 +201,7 @@ void AGOSEngine_PN::setupBoxes() {
 	uint8 num = 5;
 	for (uint8 r = 0; r < 5; r++) {
 		for (uint8 i = 0; i < 7; i++) {
-			defineBox(num,  96 + i * 24,  12 + r * 24, 24,  24, 0, 3, kOBFObject | kOBFDraggable);
+			defineBox(num, 96 + i * 24, 12 + r * 24, 24, 24, 0, 3, kOBFObject | kOBFDraggable);
 			num++;
 		}
 	}
@@ -297,5 +287,3 @@ void AGOSEngine_PN::setqptrs() {
 }
 
 } // End of namespace AGOS
-
-#endif

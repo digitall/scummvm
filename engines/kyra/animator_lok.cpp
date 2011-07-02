@@ -18,26 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/endian.h"
 
 #include "kyra/kyra_lok.h"
 #include "kyra/screen.h"
 #include "kyra/animator_lok.h"
 #include "kyra/sprites.h"
 
-#include "common/system.h"
-
 namespace Kyra {
+
 Animator_LoK::Animator_LoK(KyraEngine_LoK *vm, OSystem *system) {
 	_vm = vm;
 	_screen = vm->screen();
 	_initOk = false;
-	_updateScreen = false;
 	_system = system;
 	_screenObjects = _actors = _items = _sprites = _objectQueue = 0;
 	_noDrawShapesFlag = 0;
@@ -330,14 +323,14 @@ void Animator_LoK::prepDrawAllObjects() {
 
 				if (!_vm->_scaleMode) {
 					if (flagUnk3 & 0x100)
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x100, (uint8*)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer);
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x100, (uint8 *)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer);
 					else if (flagUnk2 & 0x4000)
 						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x4000, int(_vm->_brandonInvFlag), drawLayer);
 					else
 						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1, drawLayer);
 				} else {
 					if (flagUnk3 & 0x100)
-						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x104, (uint8*)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer, _brandonScaleX, _brandonScaleY);
+						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x104, (uint8 *)_vm->_brandonPoisonFlagsGFX, int(1), drawLayer, _brandonScaleX, _brandonScaleY);
 					else if (flagUnk2 & 0x4000)
 						_screen->drawShape(drawPage, curObject->sceneAnimPtr, xpos, ypos, 2, curObject->flags | flagUnk1 | 0x4004, int(_vm->_brandonInvFlag), drawLayer, _brandonScaleX, _brandonScaleY);
 					else
@@ -382,15 +375,11 @@ void Animator_LoK::copyChangedObjectsForward(int refreshFlag) {
 
 				_screen->copyRegion(xpos << 3, ypos, xpos << 3, ypos, width << 3, height, 2, 0);
 				curObject->refreshFlag = 0;
-				_updateScreen = true;
 			}
 		}
 	}
 
-	if (_updateScreen) {
-		_screen->updateScreen();
-		_updateScreen = false;
-	}
+	_screen->updateScreen();
 }
 
 void Animator_LoK::updateAllObjectShapes() {
@@ -659,5 +648,5 @@ void Animator_LoK::setCharactersHeight() {
 		_vm->characterList()[i].height = initHeightTable[i];
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

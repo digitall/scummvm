@@ -18,16 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Should really be called "moving actors.h"
  */
 
 #ifndef TINSEL_SAVESCN_H
 #define TINSEL_SAVESCN_H
-
-#include <time.h>	// for time_t struct
 
 #include "tinsel/actors.h"	// SAVED_ACTOR
 #include "tinsel/dw.h"	// SCNHANDLE
@@ -42,17 +37,7 @@ namespace Tinsel {
 
 enum {
 	SG_DESC_LEN	= 40,	// Max. saved game description length
-	MAX_SAVED_FILES	= 100,
-
-	// FIXME: Save file names in ScummVM can be longer than 8.3, overflowing the
-	// name field in savedFiles. Raising it to 256 as a preliminary fix.
-	FNAMELEN	= 256 // 8.3
-};
-
-struct SFILES {
-	char	name[FNAMELEN];
-	char	desc[SG_DESC_LEN + 2];
-	struct tm dateTime;
+	MAX_SAVED_FILES	= 100
 };
 
 struct SAVED_DATA {
@@ -100,20 +85,20 @@ enum letype{
 };
 
 char *ListEntry(int i, letype which);
-int getList(void);
-void setNeedLoad(void);
+int getList();
+void setNeedLoad();
 
 void RestoreGame(int num);
 void SaveGame(char *name, char *desc);
 
-void ProcessSRQueue(void);
+void ProcessSRQueue();
 
 void RequestSaveGame(char *name, char *desc, SAVED_DATA *sd, int *ssCount, SAVED_DATA *ssData);
 void RequestRestoreGame(int num, SAVED_DATA *sd, int *ssCount, SAVED_DATA *ssData);
 
-void InitialiseSaveScenes(void);
-void FreeSaveScenes(void);
+void InitializeSaveScenes();
+void FreeSaveScenes();
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	/* TINSEL_SAVESCN_H */

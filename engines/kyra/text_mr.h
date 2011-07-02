@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_TEXT_MR_H
@@ -40,7 +37,7 @@ public:
 	char *preprocessString(const char *str);
 	int dropCRIntoString(char *str, int minOffs, int maxOffs);
 
-	void printText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2, Screen::FontId font=Screen::FID_8_FNT);
+	void printText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2);
 
 	void restoreScreen();
 
@@ -50,6 +47,6 @@ protected:
 	Screen_MR *_screen;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif

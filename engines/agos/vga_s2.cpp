@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -89,7 +86,7 @@ void AGOSEngine::vc59_stopAnimations() {
 }
 
 void AGOSEngine::vc64_ifSpeech() {
-	if ((getGameType() == GType_SIMON2 && _subtitles && _language != Common::HB_ISR) ||
+	if ((getGameType() == GType_SIMON2 && _subtitles && _language != Common::HE_ISR) ||
 		!_sound->isVoiceActive()) {
 		vcSkipNextInstruction();
 	}
@@ -138,7 +135,7 @@ void AGOSEngine::vc69_playSeq() {
 	// This is a "play track". The original
 	// design stored the track to play if one was
 	// already in progress, so that the next time a
-	// "fill MIDI stream" event occured, the MIDI
+	// "fill MIDI stream" event occurred, the MIDI
 	// player would find the change and switch
 	// tracks. We use a different architecture that
 	// allows for an immediate response here, but

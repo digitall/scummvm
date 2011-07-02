@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SCREEN_V2_H
@@ -40,7 +37,7 @@ public:
 	void checkedPageUpdate(int srcPage, int dstPage);
 
 	// palette handling
-	uint8 *generateOverlay(const Palette &pal, uint8 *buffer, int color, uint16 factor);
+	uint8 *generateOverlay(const Palette &pal, uint8 *buffer, int color, uint weight, int maxColor = -1);
 	void applyOverlay(int x, int y, int w, int h, int pageNum, const uint8 *overlay);
 	int findLeastDifferentColor(const uint8 *paletteEntry, const Palette &pal, uint8 firstColor, uint16 numColors, bool skipSpecialColors = false);
 
@@ -73,7 +70,7 @@ protected:
 	uint8 *_wsaFrameAnimBuffer;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

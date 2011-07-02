@@ -17,16 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/events.h"
 #include "common/str.h"
 #include "common/system.h"
 #include "gui/message.h"
-#include "gui/GuiManager.h"
+#include "gui/gui-manager.h"
 #include "gui/ThemeEval.h"
 #include "gui/widget.h"
 
@@ -53,12 +49,16 @@ MessageDialog::MessageDialog(const Common::String &message, const char *defaultB
 	// down the string into lines, and taking the maximum of their widths.
 	// Using this, and accounting for the space the button(s) need, we can set
 	// the real size of the dialog
-	Common::StringList lines;
+	Common::Array<Common::String> lines;
 	int lineCount, okButtonPos, cancelButtonPos;
 	int maxlineWidth = g_gui.getFont().wordWrapText(message, screenW - 2 * 20, lines);
 
 	// Calculate the desired dialog size (maxing out at 300*180 for now)
-	_w = maxlineWidth + 20;
+	if (altButton)
+		_w = MAX(maxlineWidth, (2 * buttonWidth) + 10) + 20;
+	else
+		_w = MAX(maxlineWidth, buttonWidth) + 20;
+
 	lineCount = lines.size();
 
 	_h = 16;
@@ -89,10 +89,10 @@ MessageDialog::MessageDialog(const Common::String &message, const char *defaultB
 	}
 
 	if (defaultButton)
-		new ButtonWidget(this, okButtonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight, defaultButton, kOkCmd, Common::ASCII_RETURN);	// Confirm dialog
+		new ButtonWidget(this, okButtonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight, defaultButton, 0, kOkCmd, Common::ASCII_RETURN);	// Confirm dialog
 
 	if (altButton)
-		new ButtonWidget(this, cancelButtonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight, altButton, kCancelCmd, Common::ASCII_ESCAPE);	// Cancel dialog
+		new ButtonWidget(this, cancelButtonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight, altButton, 0, kCancelCmd, Common::ASCII_ESCAPE);	// Cancel dialog
 }
 
 void MessageDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
@@ -110,12 +110,12 @@ void MessageDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 
 TimedMessageDialog::TimedMessageDialog(const Common::String &message, uint32 duration)
 	: MessageDialog(message, 0, 0) {
-	_timer = getMillis() + duration;
+	_timer = g_system->getMillis() + duration;
 }
 
 void TimedMessageDialog::handleTickle() {
 	MessageDialog::handleTickle();
-	if (getMillis() > _timer)
+	if (g_system->getMillis() > _timer)
 		close();
 }
 

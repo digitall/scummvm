@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_RAILS_H
@@ -72,10 +69,11 @@ public:
 	void setCodeSurface(M4Surface *surface) { _walkCodes = surface; }
 	void clearRails();
 	int32 addRailNode(int32 x, int32 y, bool restoreEdges);
+	uint8 getDepth(const Common::Point &pt);
 
 private:
 	Common::Array<RailNode *> _nodes;
-	Common::Array<int16 *> _edges;
+	Common::Array<int16> _edges;
 	Common::List<NoWalkRect *> _noWalkRects;
 	M4Surface *_walkCodes;
 
@@ -91,6 +89,8 @@ private:
 	bool getShortestPath(int32 origID, int32 destID, RailNode **shortPath);
 	bool isLineWalkable(int x0, int y0, int x1, int y1);
 };
+
+long SqrtF16(long n);
 
 } // End of namespace M4
 

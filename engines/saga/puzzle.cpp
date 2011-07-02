@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "saga/saga.h"
@@ -141,7 +138,7 @@ void Puzzle::initPieceInfo(int i, int16 curX, int16 curY, byte offX, byte offY, 
 }
 
 
-void Puzzle::execute(void) {
+void Puzzle::execute() {
 	_active = true;
 	_vm->getTimerManager()->installTimerProc(&hintTimerCallback, kPuzzleHintTime, this);
 
@@ -155,7 +152,7 @@ void Puzzle::execute(void) {
 	//exitPuzzle();
 }
 
-void Puzzle::exitPuzzle(void) {
+void Puzzle::exitPuzzle() {
 	_active = false;
 
 	_vm->getTimerManager()->removeTimerProc(&hintTimerCallback);
@@ -164,7 +161,7 @@ void Puzzle::exitPuzzle(void) {
 	_vm->_interface->setMode(kPanelMain);
 }
 
-void Puzzle::initPieces(void) {
+void Puzzle::initPieces() {
 	SpriteInfo *spI;
 	ActorData *puzzle = _vm->_actor->getActor(_vm->_actor->actorIndexToId(ITE_ACTOR_PUZZLE));
 	int frameNumber;
@@ -172,7 +169,7 @@ void Puzzle::initPieces(void) {
 	_vm->_actor->getSpriteParams(puzzle, frameNumber, spriteList);
 
 	for (int i = 0; i < PUZZLE_PIECES; i++) {
-		spI = &(spriteList->infoList[i]);
+		spI = &((*spriteList)[i]);
 		_pieceInfo[i].offX = (byte)(spI->width >> 1);
 		_pieceInfo[i].offY = (byte)(spI->height >> 1);
 
@@ -185,13 +182,13 @@ void Puzzle::initPieces(void) {
 	_newPuzzle = false;
 }
 
-void Puzzle::showPieces(void) {
+void Puzzle::showPieces() {
 	ActorData *puzzle = _vm->_actor->getActor(_vm->_actor->actorIndexToId(ITE_ACTOR_PUZZLE));
 	int frameNumber;
 	SpriteList *spriteList;
 	_vm->_actor->getSpriteParams(puzzle, frameNumber, spriteList);
 
-	for (int j = PUZZLE_PIECES - 1 ; j >= 0; j--) {
+	for (int j = PUZZLE_PIECES - 1; j >= 0; j--) {
 		int num = _piecePriority[j];
 
 		if (_puzzlePiece != num) {
@@ -282,7 +279,7 @@ void Puzzle::handleClick(Point mousePt) {
 	_vm->_interface->setStatusText(pieceNames[_lang][_puzzlePiece]);
 }
 
-void Puzzle::alterPiecePriority(void) {
+void Puzzle::alterPiecePriority() {
 	for (int i = 1; i < PUZZLE_PIECES; i++) {
 		if (_puzzlePiece == _piecePriority[i]) {
 			for (int j = i - 1; j >= 0; j--)
@@ -347,12 +344,12 @@ void Puzzle::dropPiece(Point mousePt) {
 		if (newy < boxy)
 			newy = PUZZLE_Y_OFFSET;
 
-		spI = &(spriteList->infoList[_puzzlePiece]);
+		spI = &((*spriteList)[_puzzlePiece]);
 
 		if (newx + spI->width > boxw)
-			newx = boxw - spI->width ;
+			newx = boxw - spI->width;
 		if (newy + spI->height > boxh)
-			newy = boxh - spI->height ;
+			newy = boxh - spI->height;
 
 		int x1 = ((newx - PUZZLE_X_OFFSET) & ~7) + PUZZLE_X_OFFSET;
 		int y1 = ((newy - PUZZLE_Y_OFFSET) & ~7) + PUZZLE_Y_OFFSET;
@@ -401,7 +398,7 @@ void Puzzle::hintTimerCallback(void *refCon) {
 	((Puzzle *)refCon)->solicitHint();
 }
 
-void Puzzle::solicitHint(void) {
+void Puzzle::solicitHint() {
 	int i;
 
 	_vm->_actor->setSpeechColor(1, kITEColorBlack);
@@ -411,12 +408,12 @@ void Puzzle::solicitHint(void) {
 	switch (_hintRqState) {
 	case kRQSpeaking:
 		if (_vm->_actor->isSpeaking()) {
-			_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 50000, this);
+			_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 50 * 1000000, this);
 			break;
 		}
 
 		_hintRqState = _hintNextRqState;
-		_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 333333, this);
+		_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 100*1000000/3, this);
 		break;
 
 	case kRQNoHint:
@@ -439,11 +436,11 @@ void Puzzle::solicitHint(void) {
 		//	Roll to see if Sakka scolds
 		if (_vm->_rnd.getRandomNumber(1)) {
 			_hintRqState = kRQSakkaDenies;
-			_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 200000, this);
+			_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 200*1000000, this);
 		} else {
 			_hintRqState = kRQSpeaking;
 			_hintNextRqState = kRQHintRequested;
-			_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 50000, this);
+			_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 50*1000000, this);
 		}
 
 		break;
@@ -456,12 +453,12 @@ void Puzzle::solicitHint(void) {
 
 		_hintRqState = kRQSpeaking;
 		_hintNextRqState = kRQHintRequestedStage2;
-		_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 50000, this);
+		_vm->getTimerManager()->installTimerProc(&hintTimerCallback, 50*1000000, this);
 
 		_vm->_interface->converseClear();
-		_vm->_interface->converseAddText(optionsStr[_lang][kROAccept], 0, 1, 0, 0 );
-		_vm->_interface->converseAddText(optionsStr[_lang][kRODecline], 0, 2, 0, 0 );
-		_vm->_interface->converseAddText(optionsStr[_lang][kROLater], 0, 0, 0, 0 );
+		_vm->_interface->converseAddText(optionsStr[_lang][kROAccept], 0, 1, 0, 0);
+		_vm->_interface->converseAddText(optionsStr[_lang][kRODecline], 0, 2, 0, 0);
+		_vm->_interface->converseAddText(optionsStr[_lang][kROLater], 0, 0, 0, 0);
 		_vm->_interface->converseDisplayText();
 		break;
 
@@ -513,7 +510,7 @@ void Puzzle::handleReply(int reply) {
 	}
 }
 
-void Puzzle::giveHint(void) {
+void Puzzle::giveHint() {
 	int i, total = 0;
 
 	_vm->_interface->converseClear();
@@ -556,8 +553,7 @@ void Puzzle::giveHint(void) {
 			sprintf(hintBuf, optionsStr[_lang][kROHint], pieceNames[_lang][piece]);
 
 			_vm->_actor->nonActorSpeech(_hintBox, &hintPtr, 1, PUZZLE_TOOL_SOUNDS + _hintSpeaker + piece * 3, 0);
-		}
-		else {
+		} else {
 				//	If no pieces are in the wrong place
 			_vm->_actor->nonActorSpeech(_hintBox, &hintStr[_lang][3], 1, PUZZLE_HINT_SOUNDS + 3 * 3 + _hintSpeaker, 0);
 		}
@@ -573,7 +569,7 @@ void Puzzle::giveHint(void) {
 	_vm->getTimerManager()->installTimerProc(&hintTimerCallback, kPuzzleHintTime, this);
 }
 
-void Puzzle::clearHint(void) {
+void Puzzle::clearHint() {
 	_vm->_interface->converseClear();
 	_vm->_interface->converseAddText(optionsStr[_lang][kROLater], 0, 0, 0, 0);
 	_vm->_interface->converseDisplayText();

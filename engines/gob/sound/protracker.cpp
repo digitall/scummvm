@@ -18,14 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/file.h"
 
-#include "sound/mods/protracker.h"
+#include "audio/mods/protracker.h"
 
 #include "gob/sound/protracker.h"
 
@@ -52,8 +49,8 @@ bool Protracker::play(const char *fileName) {
 	if (!_protrackerStream)
 		return false;
 
-	_mixer->playInputStream(Audio::Mixer::kMusicSoundType, &_handle,
-			_protrackerStream, -1, 255, 0, false);
+	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_handle,
+			_protrackerStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 
 	return true;
 }

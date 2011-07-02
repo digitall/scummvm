@@ -20,9 +20,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/file.h"
@@ -40,10 +37,10 @@ namespace Sword2 {
  * of the screen file.
  */
 
-byte *Sword2Engine::fetchPalette(byte *screenFile) {
+void Sword2Engine::fetchPalette(byte *screenFile, byte *palBuffer) {
 	byte *palette;
 
-	if(isPsx()) { // PSX version doesn't have a "MultiScreenHeader", instead there's a ScreenHeader and a tag
+	if (isPsx()) { // PSX version doesn't have a "MultiScreenHeader", instead there's a ScreenHeader and a tag
 		palette = screenFile + ResHeader::size() + ScreenHeader::size() + 2;
 	} else {
 		MultiScreenHeader mscreenHeader;
@@ -52,16 +49,19 @@ byte *Sword2Engine::fetchPalette(byte *screenFile) {
 		palette = screenFile + ResHeader::size() + mscreenHeader.palette;
 	}
 
-	// Always set colour 0 to black, because while most background screen
-	// palettes have a bright colour 0 it should come out as black in the
+	// Always set color 0 to black, because while most background screen
+	// palettes have a bright color 0 it should come out as black in the
 	// game.
 
-	palette[0] = 0;
-	palette[1] = 0;
-	palette[2] = 0;
-	palette[3] = 0;
+	palBuffer[0] = 0;
+	palBuffer[1] = 0;
+	palBuffer[2] = 0;
 
-	return palette;
+	for (uint i = 4, j = 3; i < 4 * 256; i += 4, j += 3) {
+		palBuffer[j + 0] = palette[i + 0];
+		palBuffer[j + 1] = palette[i + 1];
+		palBuffer[j + 2] = palette[i + 2];
+	}
 }
 
 /**
@@ -305,7 +305,7 @@ byte *Sword2Engine::fetchPsxBackground(uint32 location) {
 	byte *buffer;
 
 	if (!file.open("screens.clu")) {
-		GUIErrorMessage("Broken Sword 2: Cannot open screens.clu");
+		GUIErrorMessage("Broken Sword II: Cannot open screens.clu");
 		return NULL;
 	}
 
@@ -373,7 +373,7 @@ byte *Sword2Engine::fetchPsxParallax(uint32 location, uint8 level) {
 		return NULL;
 
 	if (!file.open("screens.clu")) {
-		GUIErrorMessage("Broken Sword 2: Cannot open screens.clu");
+		GUIErrorMessage("Broken Sword II: Cannot open screens.clu");
 		return NULL;
 	}
 
@@ -412,8 +412,8 @@ byte *Sword2Engine::fetchPsxParallax(uint32 location, uint8 level) {
 	debug(2, "fetchPsxParallax() -> %s parallax, xRes: %u, yRes: %u", (level == 0) ? "Background" : "Foreground", plxXres, plxYres);
 
 	// Calculate the number of tiles which compose the parallax grid.
-	horTiles = plxXres % 64 ? (plxXres / 64) + 1 : plxXres / 64;
-	verTiles = plxYres % 16 ? (plxYres / 16) + 1 : plxYres / 16;
+	horTiles = (plxXres % 64) ? (plxXres / 64) + 1 : plxXres / 64;
+	verTiles = (plxYres % 16) ? (plxYres / 16) + 1 : plxYres / 16;
 
 	totSize = plxSize + horTiles * verTiles * 4 + 8;
 

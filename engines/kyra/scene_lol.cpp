@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -29,9 +26,9 @@
 #include "kyra/screen_lol.h"
 #include "kyra/resource.h"
 #include "kyra/timer.h"
-#include "kyra/sound.h"
 
 #include "common/endian.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -42,7 +39,7 @@ void LoLEngine::loadLevel(int index) {
 
 	snd_stopMusic();
 
-	updatePortraits();
+	stopPortraitSpeechAnim();
 
 	for (int i = 0; i < 400; i++) {
 		delete[] _levelShapes[i];
@@ -70,23 +67,23 @@ void LoLEngine::loadLevel(int index) {
 	loadLevelWallData(index, true);
 	_loadLevelFlag = 1;
 
-	char filename[13];
-	snprintf(filename, sizeof(filename), "LEVEL%d.INI", index);
+	Common::String filename = Common::String::format("LEVEL%d.INI", index);
 
 	int f = _hasTempDataFlags & (1 << (index - 1));
 
-	runInitScript(filename, f ? 0 : 1);
+	runInitScript(filename.c_str(), f ? 0 : 1);
 
 	if (f)
 		restoreBlockTempData(index);
 
-	snprintf(filename, sizeof(filename), "LEVEL%d.INF", index);
-	runInfScript(filename);
+	filename = Common::String::format("LEVEL%d.INF", index);
+	runInfScript(filename.c_str());
 
 	addLevelItems();
 	deleteMonstersFromBlock(_currentBlock);
 
-	_screen->generateGrayOverlay(_screen->getPalette(0), _screen->_grayOverlay, 32, 16, 0, 0, 128, true);
+	if (!_flags.use16ColorMode)
+		_screen->generateGrayOverlay(_screen->getPalette(0), _screen->_grayOverlay, 32, 16, 0, 0, 128, true);
 
 	_sceneDefaultUpdate = 0;
 	if (_screen->_fadeFlag == 3)
@@ -97,6 +94,9 @@ void LoLEngine::loadLevel(int index) {
 	setPaletteBrightness(_screen->getPalette(0), _brightness, _lampEffect);
 	setMouseCursorToItemInHand();
 
+	if (_flags.use16ColorMode)
+		_screen->fadeToPalette1(10);
+
 	snd_playTrack(_curMusicTheme);
 }
 
@@ -105,46 +105,46 @@ void LoLEngine::addLevelItems() {
 		if (_itemsInPlay[i].level != _currentLevel)
 			continue;
 
-		assignBlockObject(&_levelBlockProperties[_itemsInPlay[i].block].assignedObjects, i);
+		assignBlockObject(&_levelBlockProperties[_itemsInPlay[i].block], i);
 
 		_levelBlockProperties[_itemsInPlay[i].block].direction = 5;
 		_itemsInPlay[i].nextDrawObject = 0;
 	}
 }
 
-void LoLEngine::assignBlockObject(uint16 *cmzItemIndex, uint16 item) {
+void LoLEngine::assignBlockObject(LevelBlockProperty *l, uint16 item) {
+	uint16 *index = &l->assignedObjects;
 	ItemInPlay *tmp = 0;
 
-	while (*cmzItemIndex & 0x8000) {
-		tmp = findObject(*cmzItemIndex);
-		cmzItemIndex = &tmp->nextAssignedObject;
+	while (*index & 0x8000) {
+		tmp = findObject(*index);
+		index = &tmp->nextAssignedObject;
 	}
 
 	tmp = findObject(item);
 	tmp->level = -1;
 
-	uint16 ix = *cmzItemIndex;
+	uint16 ix = *index;
 
 	if (ix == item)
 		return;
 
-	*cmzItemIndex = item;
-	cmzItemIndex = &tmp->nextAssignedObject;
+	*index = item;
+	index = &tmp->nextAssignedObject;
 
-	while (*cmzItemIndex) {
-		tmp = findObject(*cmzItemIndex);
-		cmzItemIndex = &tmp->nextAssignedObject;
+	while (*index) {
+		tmp = findObject(*index);
+		index = &tmp->nextAssignedObject;
 	}
 
-	*cmzItemIndex = ix;
+	*index = ix;
 }
 
 void LoLEngine::loadLevelWallData(int index, bool mapShapes) {
-	char filename[13];
-	snprintf(filename, sizeof(filename), "LEVEL%d.WLL", index);
+	Common::String filename = Common::String::format("LEVEL%d.WLL", index);
 
 	uint32 size;
-	uint8 *file = _res->fileData(filename, &size);
+	uint8 *file = _res->fileData(filename.c_str(), &size);
 
 	uint16 c = READ_LE_UINT16(file);
 	loadLevelShpDat(_levelShpList[c], _levelDatList[c], false);
@@ -165,7 +165,7 @@ void LoLEngine::loadLevelWallData(int index, bool mapShapes) {
 				_wllShapeMap[c] = *d;
 		}
 		d += 2;
-		_wllBuffer3[c] = *d;
+		_specialWallTypes[c] = *d;
 		d += 2;
 		_wllWallFlags[c] = *d;
 		d += 2;
@@ -239,10 +239,9 @@ void LoLEngine::restoreBlockTempData(int index) {
 	memcpy(_monsters, _lvlTempData[l]->monsters, sizeof(MonsterInPlay) * 30);
 	memcpy(_flyingObjects, _lvlTempData[l]->flyingObjects, sizeof(FlyingObject) * 8);
 
-	char filename[13];
-	snprintf(filename, sizeof(filename), "LEVEL%d.CMZ", index);
+	Common::String filename = Common::String::format("LEVEL%d.CMZ", index);
 
-	_screen->loadBitmap(filename, 3, 3, 0);
+	_screen->loadBitmap(filename.c_str(), 3, 3, 0);
 	const uint8 *p = _screen->getCPagePtr(2);
 	uint16 len = READ_LE_UINT16(p + 4);
 	p += 6;
@@ -287,9 +286,9 @@ void LoLEngine::restoreTempDataAdjustMonsterStrength(int index) {
 	}
 }
 
-void LoLEngine::loadCmzFile(const char *file) {
+void LoLEngine::loadBlockProperties(const char *cmzFile) {
 	memset(_levelBlockProperties, 0, 1024 * sizeof(LevelBlockProperty));
-	_screen->loadBitmap(file, 2, 2, 0);
+	_screen->loadBitmap(cmzFile, 2, 2, 0);
 	const uint8 *h = _screen->getCPagePtr(2);
 	uint16 len = READ_LE_UINT16(&h[4]);
 	const uint8 *p = h + 6;
@@ -344,7 +343,7 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 	if (file) {
 		_lastSpecialColor = specialColor;
 		_lastSpecialColorWeight = weight;
-		strcpy(_lastSuppFile, file);
+		strcpy(_lastBlockDataFile, file);
 		if (palFile) {
 			strcpy(_lastOverridePalFile, palFile);
 			_lastOverridePalFilePtr = _lastOverridePalFile;
@@ -353,51 +352,78 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 		}
 	}
 
-	char fname[13];
-	snprintf(fname, sizeof(fname), "%s.VCN", _lastSuppFile);
+	if (_flags.use16ColorMode) {
+		if (_lastSpecialColor == 1)
+			_lastSpecialColor = 0x44;
+		else if (_lastSpecialColor == 0x66)
+			_lastSpecialColor = scumm_stricmp(file, "YVEL2") ? 0xcc : 0x44;
+		else if (_lastSpecialColor == 0x6b)
+			_lastSpecialColor = 0xcc;
+		else
+			_lastSpecialColor = 0x44;
+	}
 
-	_screen->loadBitmap(fname, 3, 3, 0);
-	const uint8 *v = _screen->getCPagePtr(2);
-	int tlen = READ_LE_UINT16(v);
+	Common::String fname;
+	const uint8 *v = 0;
+	int tlen = 0;
+
+	if (_flags.use16ColorMode) {
+		fname = Common::String::format("%s.VCF", _lastBlockDataFile);
+		_screen->loadBitmap(fname.c_str(), 3, 3, 0);
+		v = _screen->getCPagePtr(2);
+		tlen = READ_LE_UINT16(v) << 5;
+		v += 2;
+
+		delete[] _vcfBlocks;
+		_vcfBlocks = new uint8[tlen];
+
+		memcpy(_vcfBlocks, v, tlen);
+	}
+
+	fname = Common::String::format("%s.VCN", _lastBlockDataFile);
+	_screen->loadBitmap(fname.c_str(), 3, 3, 0);
+	v = _screen->getCPagePtr(2);
+	tlen = READ_LE_UINT16(v);
 	v += 2;
 
 	if (vcnLen == -1)
 		vcnLen = tlen << 5;
 
-	if (_vcnBlocks)
-		delete[] _vcnBlocks;
+	delete[] _vcnBlocks;
 	_vcnBlocks = new uint8[vcnLen];
 
-	if (_vcnShift)
+	if (!_flags.use16ColorMode) {
 		delete[] _vcnShift;
-	_vcnShift = new uint8[tlen];
+		_vcnShift = new uint8[tlen];
 
-	memcpy(_vcnShift, v, tlen);
-	v += tlen;
+		memcpy(_vcnShift, v, tlen);
+		v += tlen;
 
-	memcpy(_vcnExpTable, v, 128);
-	v += 128;
+		memcpy(_vcnExpTable, v, 128);
+		v += 128;
 
-	if (_lastOverridePalFilePtr) {
-		_res->loadFileToBuf(_lastOverridePalFilePtr, _screen->getPalette(0).getData(), 384);
-	} else {
-		_screen->getPalette(0).copy(v, 0, 128);
+		if (_lastOverridePalFilePtr) {
+			_res->loadFileToBuf(_lastOverridePalFilePtr, _screen->getPalette(0).getData(), 384);
+		} else {
+			_screen->getPalette(0).copy(v, 0, 128);
+		}
+
+		v += 384;
 	}
 
-	v += 384;
-	/*uint8 tmpPal = new uint8[384];
-	memcpy(tmpPal, _screen->getPalette(0) + 384, 384);
-	memset(_screen->getPalette(0) + 384, 0xff, 384);
-	memcpy(_screen->getPalette(0) + 384, tmpPal, 384);*/
-
 	if (_currentLevel == 11) {
-		_screen->loadPalette("SWAMPICE.COL", _screen->getPalette(2));
-		_screen->getPalette(2).copy(_screen->getPalette(0), 128);
+		if (_flags.use16ColorMode) {
+			_screen->loadPalette("LOLICE.NOL", _screen->getPalette(2));
+
+		} else {
+			_screen->loadPalette("SWAMPICE.COL", _screen->getPalette(2));
+			_screen->getPalette(2).copy(_screen->getPalette(0), 128);
+		}
 
 		if (_flagsTable[52] & 0x04) {
 			uint8 *pal0 = _screen->getPalette(0).getData();
 			uint8 *pal2 = _screen->getPalette(2).getData();
-			for (int i = 1; i < 768; i++)
+			for (int i = 1; i < _screen->getPalette(0).getNumColors() * 3; i++)
 				SWAP(pal0[i], pal2[i]);
 		}
 	}
@@ -405,47 +431,82 @@ void LoLEngine::loadLevelGraphics(const char *file, int specialColor, int weight
 	memcpy(_vcnBlocks, v, vcnLen);
 	v += vcnLen;
 
-	snprintf(fname, sizeof(fname), "%s.VMP", _lastSuppFile);
-	_screen->loadBitmap(fname, 3, 3, 0);
+	fname = Common::String::format("%s.VMP", _lastBlockDataFile);
+	_screen->loadBitmap(fname.c_str(), 3, 3, 0);
 	v = _screen->getCPagePtr(2);
 
 	if (vmpLen == -1)
 		vmpLen = READ_LE_UINT16(v);
 	v += 2;
 
-	if (_vmpPtr)
-		delete[] _vmpPtr;
+	delete[] _vmpPtr;
 	_vmpPtr = new uint16[vmpLen];
 
 	for (int i = 0; i < vmpLen; i++)
 		_vmpPtr[i] = READ_LE_UINT16(&v[i << 1]);
 
+	Palette tpal(256);
+	if (_flags.use16ColorMode) {
+		uint8 *dst = tpal.getData();
+		_res->loadFileToBuf("LOL.NOL", dst, 48);
+		for (int i = 1; i < 16; i++) {
+			int s = ((i << 4) | i) * 3;
+			SWAP(dst[s], dst[i * 3]);
+			SWAP(dst[s + 1], dst[i * 3 + 1]);
+			SWAP(dst[s + 2], dst[i * 3 + 2]);
+		}
+	} else {
+		tpal.copy(_screen->getPalette(0));
+	}
+
 	for (int i = 0; i < 7; i++) {
 		weight = 100 - (i * _lastSpecialColorWeight);
 		weight = (weight > 0) ? (weight * 255) / 100 : 0;
-		_screen->generateLevelOverlay(_screen->getPalette(0), _screen->getLevelOverlay(i), _lastSpecialColor, weight);
+		_screen->generateOverlay(tpal, _screen->getLevelOverlay(i), _lastSpecialColor, weight);
 
-		for (int ii = 0; ii < 128; ii++) {
-			if (_screen->getLevelOverlay(i)[ii] == 255)
-				_screen->getLevelOverlay(i)[ii] = 0;
+		int l = _flags.use16ColorMode ? 256 : 128;
+		uint8 *levelOverlay = _screen->getLevelOverlay(i);
+		for (int ii = 0; ii < l; ii++) {
+			if (levelOverlay[ii] == 255)
+				levelOverlay[ii] = 0;
 		}
 
-		for (int ii = 128; ii < 256; ii++)
-			_screen->getLevelOverlay(i)[ii] = ii & 0xff;
+		for (int ii = l; ii < 256; ii++)
+			levelOverlay[ii] = ii & 0xff;
 	}
 
+	uint8 *levelOverlay = _screen->getLevelOverlay(7);
 	for (int i = 0; i < 256; i++)
-		_screen->getLevelOverlay(7)[i] = i & 0xff;
+		levelOverlay[i] = i & 0xff;
+
+	if (_flags.use16ColorMode) {
+		_screen->getLevelOverlay(6)[0xee] = 0xee;
+		if (_lastSpecialColor == 0x44)
+			_screen->getLevelOverlay(5)[0xee] = 0xee;
+
+		for (int i = 0; i < 7; i++)
+			memcpy(_screen->getLevelOverlay(i), _screen->getLevelOverlay(i + 1), 256);
+
+		_screen->loadPalette("LOL.NOL", _screen->getPalette(0));
+
+		for (int i = 0; i < 8; i++) {
+			uint8 *pl = _screen->getLevelOverlay(7 - i);
+			for (int ii = 0; ii < 16; ii++)
+				_vcnExpTable[(i << 4) + ii] = pl[(ii << 4) | ii];
+		}
+	}
 
 	_loadSuppFilesFlag = 0;
 	generateBrightnessPalette(_screen->getPalette(0), _screen->getPalette(1), _brightness, _lampEffect);
 
-	char tname[13];
-	snprintf(tname, sizeof(tname), "LEVEL%.02d.TLC", _currentLevel);
-	Common::SeekableReadStream *s = _res->createReadStream(tname);
-	s->read(_trueLightTable1, 256);
-	s->read(_trueLightTable2, 5120);
-	delete s;
+	if (_flags.isTalkie) {
+		Common::SeekableReadStream *s = _res->createReadStream(Common::String::format("LEVEL%.02d.TLC", _currentLevel));
+		s->read(_transparencyTable1, 256);
+		s->read(_transparencyTable2, 5120);
+		delete s;
+	} else {
+		createTransparencyTables();
+	}
 
 	_loadSuppFilesFlag = 1;
 }
@@ -527,15 +588,15 @@ void LoLEngine::resetLampStatus() {
 
 void LoLEngine::setLampMode(bool lampOn) {
 	_flagsTable[31] &= 0xFB;
-	if (!(_flagsTable[30] & 0x08) || !lampOn)
+	if (!(_flagsTable[31] & 0x08) || !lampOn)
 		return;
 
-	_screen->drawShape(0, _gameShapes[43], 291, 56, 0, 0);
+	_screen->drawShape(0, _gameShapes[_flags.isTalkie ? 43 : 41], 291, 56, 0, 0);
 	_lampEffect = 8;
 }
 
 void LoLEngine::updateLampStatus() {
-	uint8 newLampEffect = 0;
+	int8 newLampEffect = 0;
 	uint8 tmpOilStatus = 0;
 
 	if ((_updateFlags & 4) || !(_flagsTable[31] & 0x08))
@@ -563,7 +624,7 @@ void LoLEngine::updateLampStatus() {
 				}
 			} else {
 				if (_screen->_fadeFlag == 0)
-					setPaletteBrightness(_screen->getPalette(0), _lampEffect, newLampEffect);
+					setPaletteBrightness(_screen->getPalette(0), _brightness, newLampEffect);
 			}
 		}
 	}
@@ -573,7 +634,7 @@ void LoLEngine::updateLampStatus() {
 
 	_screen->hideMouse();
 
-	_screen->drawShape(_screen->_curPage, _gameShapes[35 + newLampEffect], 291, 56, 0, 0);
+	_screen->drawShape(_screen->_curPage, _gameShapes[(_flags.isTalkie ? 35 : 33) + newLampEffect], 291, 56, 0, 0);
 	_screen->showMouse();
 
 	_lampEffect = newLampEffect;
@@ -762,7 +823,7 @@ void LoLEngine::notifyBlockNotPassable(int scrollFlag) {
 		movePartySmoothScrollBlocked(2);
 
 	snd_stopSpeech(true);
-	_txt->printMessage(0x8002, getLangString(0x403f));
+	_txt->printMessage(0x8002, "%s", getLangString(0x403f));
 	snd_playSoundEffect(19, -1);
 }
 
@@ -1309,9 +1370,8 @@ void LoLEngine::processGasExplosion(int soundId) {
 
 	if (dist) {
 		WSAMovie_v2 *mov = new WSAMovie_v2(this);
-		char file[13];
-		snprintf(file, 13, "gasexp%0d.wsa", dist);
-		mov->open(file, 1, 0);
+		Common::String file = Common::String::format("gasexp%0d.wsa", dist);
+		mov->open(file.c_str(), 1, 0);
 		if (!mov->opened())
 			error("Gas: Unable to load gasexp.wsa");
 
@@ -1344,7 +1404,7 @@ void LoLEngine::processGasExplosion(int soundId) {
 }
 
 int LoLEngine::smoothScrollDrawSpecialGuiShape(int pageNum) {
-	if(!_specialGuiShape)
+	if (!_specialGuiShape)
 		return 0;
 
 	_screen->clearGuiShapeMemory(pageNum);
@@ -1417,7 +1477,10 @@ void LoLEngine::prepareSpecialScene(int fieldType, int hasDialogue, int suspendG
 			initDialogueSequence(fieldType, 0);
 
 		if (fadeFlag) {
-			_screen->fadePalette(_screen->getPalette(3), 10);
+			if (_flags.use16ColorMode)
+				setPaletteBrightness(_screen->getPalette(0), _brightness, _lampEffect);
+			else
+				_screen->fadePalette(_screen->getPalette(3), 10);
 			_screen->_fadeFlag = 0;
 		}
 
@@ -1433,9 +1496,13 @@ void LoLEngine::prepareSpecialScene(int fieldType, int hasDialogue, int suspendG
 		gui_disableControls(controlMode);
 
 		if (fadeFlag) {
-			_screen->getPalette(3).copy(_screen->getPalette(0), 128);
-			_screen->loadSpecialColors(_screen->getPalette(3));
-			_screen->fadePalette(_screen->getPalette(3), 10);
+			if (_flags.use16ColorMode) {
+				setPaletteBrightness(_screen->getPalette(0), _brightness, _lampEffect);
+			} else {
+				_screen->getPalette(3).copy(_screen->getPalette(0), 128);
+				_screen->loadSpecialColors(_screen->getPalette(3));
+				_screen->fadePalette(_screen->getPalette(3), 10);
+			}
 			_screen->_fadeFlag = 0;
 		}
 
@@ -1542,7 +1609,7 @@ void LoLEngine::generateBlockDrawingBuffer() {
 	_sceneDrawVarLeft = _dscBlockMap[_currentDirection + 8];
 
 	/*******************************************
-    *             _visibleBlocks map           *
+	*             _visibleBlocks map           *
 	*                                          *
 	*     |     |     |     |     |     |      *
 	*  00 |  01 |  02 |  03 |  04 |  05 |  06  *
@@ -1757,17 +1824,21 @@ void LoLEngine::drawVcnBlocks() {
 				vcnOffset &= 0x3fff;
 			}
 
-			if (!vcnOffset) {
+			uint8 *src = 0;
+			if (vcnOffset) {
+				src = &_vcnBlocks[vcnOffset << 5];
+			} else {
 				// floor/ceiling blocks
 				vcnOffset = bdb[329];
 				if (vcnOffset & 0x4000) {
 					horizontalFlip = true;
 					vcnOffset &= 0x3fff;
 				}
+
+				src = (_vcfBlocks ? _vcfBlocks : _vcnBlocks) + (vcnOffset << 5);
 			}
 
-			uint8 shift = _vcnShift[vcnOffset];
-			uint8 *src = &_vcnBlocks[vcnOffset << 5];
+			uint8 shift = _vcnShift ? _vcnShift[vcnOffset] : _blockBrightness;
 
 			if (horizontalFlip) {
 				for (int blockY = 0; blockY < 8; blockY++) {
@@ -1801,7 +1872,7 @@ void LoLEngine::drawVcnBlocks() {
 					horizontalFlip = true;
 				}
 
-				shift = _vcnShift[remainder];
+				shift = _vcnShift ? _vcnShift[remainder] : _blockBrightness;
 				src = &_vcnBlocks[remainder << 5];
 
 				if (horizontalFlip) {
@@ -1879,10 +1950,12 @@ void LoLEngine::drawSceneShapes() {
 		if (!(w & 8))
 			continue;
 
-		uint16 v = 20 * (s - _dscUnk2[s]);
+		uint16 v = 20 * (s - (s < 23 ? _dscUnk2[s] : 0));
+		if (v > 80)
+			v = 80;
 
 		scaleLevelShapesDim(t, dimY1, dimY2, 13);
-		drawDoor(_doorShapes[_dscDoorShpIndex[s]], 0, t, 10, 0, -v, 2);
+		drawDoor(_doorShapes[(s < 23 ? _dscDoorShpIndex[s] : 0)], 0, t, 10, 0, -v, 2);
 		setLevelShapesDim(t, dimY1, dimY2, 13);
 	}
 }
@@ -2019,10 +2092,26 @@ void LoLEngine::drawDecorations(int index) {
 				xOffs = _levelShapeProperties[l].shapeX[shpIx];
 				yOffs = _levelShapeProperties[l].shapeY[shpIx];
 				shpIx = _dscOvlMap[shpIx];
-				ovl = _screen->getLevelOverlay(ovlIndex);
+				int ov = ovlIndex;
+				if (_flags.use16ColorMode) {
+					uint8 bb = _blockBrightness >> 4;
+					if (ov > bb)
+						ov -= bb;
+					else
+						ov = 0;
+				}
+				ovl = _screen->getLevelOverlay(ov);
 			} else if (_levelShapeProperties[l].shapeIndex[shpIx] != 0xffff) {
 				scaleW = scaleH = 0x100;
-				ovl = _screen->getLevelOverlay(7);
+				int ov = 7;
+				if (_flags.use16ColorMode) {
+					uint8 bb = _blockBrightness >> 4;
+					if (ov > bb)
+						ov -= bb;
+					else
+						ov = 0;
+				}
+				ovl = _screen->getLevelOverlay(ov);
 			}
 
 			if (_levelShapeProperties[l].shapeIndex[shpIx] != 0xffff) {
@@ -2076,6 +2165,11 @@ void LoLEngine::drawBlockEffects(int index, int type) {
 		uint16 drawFlag = (type == 3) ? 0x80 : 0x20;
 		uint8 *ovl = (type == 3) ? _screen->_grayOverlay : 0;
 
+		if (_flags.use16ColorMode) {
+			ovl = 0;
+			drawFlag = (type == 0 || type == 3) ? 0 : 0x20;
+		}
+
 		calcCoordinatesAddDirectionOffset(x, y, _currentDirection);
 
 		x |= ((_visibleBlockIndex[index] & 0x1f) << 8);
@@ -2095,7 +2189,7 @@ void LoLEngine::drawSpecialGuiShape(int pageNum) {
 		_screen->drawShape(pageNum, _specialGuiShape, _specialGuiShapeX + _specialGuiShape[3], _specialGuiShapeY, 2, 1);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

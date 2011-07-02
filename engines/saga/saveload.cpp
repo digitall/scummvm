@@ -18,17 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include <time.h>	// for extended infos
-
-#include "common/config-manager.h"
 #include "common/savefile.h"
 #include "common/system.h"
-#include "common/file.h"
 #include "graphics/thumbnail.h"
 
 #include "saga/saga.h"
@@ -84,7 +77,7 @@ bool SagaEngine::locateSaveFile(char *saveName, uint &titleNumber) {
 	return false;
 }
 
-uint SagaEngine::getNewSaveSlotNumber() {
+uint SagaEngine::getNewSaveSlotNumber() const {
 	uint i, j;
 	bool found;
 	for (i = 0; i < MAX_SAVES; i++) {
@@ -120,7 +113,7 @@ void SagaEngine::fillSaveList() {
 
 	int i;
 	Common::InSaveFile *in;
-	Common::StringList filenames;
+	Common::StringArray filenames;
 	char slot[3];
 	int slotNumber;
 	char *name;
@@ -138,7 +131,7 @@ void SagaEngine::fillSaveList() {
 
 	_saveFilesCount = 0;
 
-	for (Common::StringList::iterator file = filenames.begin(); file != filenames.end(); file++){
+	for (Common::StringArray::iterator file = filenames.begin(); file != filenames.end(); ++file){
 		//Obtain the last 2 digits of the filename, since they correspond to the save slot
 		slot[0] = file->c_str()[file->size()-2];
 		slot[1] = file->c_str()[file->size()-1];
@@ -153,7 +146,7 @@ void SagaEngine::fillSaveList() {
 				_saveHeader.version = in->readUint32LE();
 				in->read(_saveHeader.name, sizeof(_saveHeader.name));
 
-				if (_saveHeader.type != MKID_BE('SAGA')) {
+				if (_saveHeader.type != MKTAG('S','A','G','A')) {
 					warning("SagaEngine::load wrong save %s format", name);
 					i++;
 					continue;
@@ -177,7 +170,7 @@ void SagaEngine::save(const char *fileName, const char *saveName) {
 		return;
 	}
 
-	_saveHeader.type = MKID_BE('SAGA');
+	_saveHeader.type = MKTAG('S','A','G','A');
 	_saveHeader.size = 0;
 	_saveHeader.version = CURRENT_SAGA_VER;
 	// Note that IHNM has a smaller save title size than ITE
@@ -196,10 +189,17 @@ void SagaEngine::save(const char *fileName, const char *saveName) {
 	out->write(title, TITLESIZE);
 
 	// Thumbnail
+	// First draw scene without save dialog
+	int oldMode = _interface->getMode();
+	_interface->setMode(kPanelMain);
+	_render->drawScene();
+
 	Graphics::saveThumbnail(*out);
 
+	_interface->setMode(oldMode);
+
 	// Date / time
-	tm curTime;
+	TimeDate curTime;
 	_system->getTimeAndDate(curTime);
 
 	uint32 saveDate = ((curTime.tm_mday & 0xFF) << 24) | (((curTime.tm_mon + 1) & 0xFF) << 16) | ((curTime.tm_year + 1900) & 0xFFFF);
@@ -235,9 +235,9 @@ void SagaEngine::save(const char *fileName, const char *saveName) {
 
 	_actor->saveState(out);
 
-	out->writeSint16LE(_script->_commonBufferSize);
+	out->writeSint16LE(_script->_commonBuffer.size());
 
-	out->write(_script->_commonBuffer, _script->_commonBufferSize);
+	out->write(_script->_commonBuffer.getBuffer(), _script->_commonBuffer.size());
 
 	// ISO map x, y coordinates for ITE
 	if (getGameId() == GID_ITE) {
@@ -251,6 +251,8 @@ void SagaEngine::save(const char *fileName, const char *saveName) {
 		warning("Can't write file '%s'. (Disk full?)", fileName);
 
 	delete out;
+
+	_interface->resetSaveReminder();
 }
 
 void SagaEngine::load(const char *fileName) {
@@ -277,12 +279,12 @@ void SagaEngine::load(const char *fileName) {
 		_saveHeader.version = SWAP_BYTES_32(_saveHeader.version);
 	}
 
-	debug(2, "Save version: %x", _saveHeader.version);
+	debug(2, "Save version: 0x%X", _saveHeader.version);
 
 	if (_saveHeader.version < 4)
 		warning("This savegame is not endian-safe. There may be problems");
 
-	if (_saveHeader.type != MKID_BE('SAGA')) {
+	if (_saveHeader.type != MKTAG('S','A','G','A')) {
 		error("SagaEngine::load wrong save game format");
 	}
 
@@ -296,6 +298,7 @@ void SagaEngine::load(const char *fileName) {
 		Graphics::Surface *thumbnail = new Graphics::Surface();
 		assert(thumbnail);
 		Graphics::loadThumbnail(*in, *thumbnail);
+		thumbnail->free();
 		delete thumbnail;
 		thumbnail = 0;
 
@@ -321,7 +324,7 @@ void SagaEngine::load(const char *fileName) {
 		_music->stop();
 		if (_scene->currentChapterNumber() == 8)
 			_interface->setMode(kPanelChapterSelection);
-		if (!(getFeatures() & GF_IHNM_DEMO)) {
+		if (!isIHNMDemo()) {
 			_music->play(_music->_songTable[_scene->getCurrentMusicTrack()], _scene->getCurrentMusicRepeat() ? MUSIC_LOOP : MUSIC_NORMAL);
 		} else {
 			_music->play(3, MUSIC_LOOP);
@@ -345,7 +348,8 @@ void SagaEngine::load(const char *fileName) {
 	_actor->loadState(in);
 
 	commonBufferSize = in->readSint16LE();
-	in->read(_script->_commonBuffer, commonBufferSize);
+	_script->_commonBuffer.resize(commonBufferSize);
+	in->read(_script->_commonBuffer.getBuffer(), commonBufferSize);
 
 	if (getGameId() == GID_ITE) {
 		mapx = in->readSint16LE();

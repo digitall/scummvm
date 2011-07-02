@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_H
@@ -31,10 +28,11 @@
 #include "common/error.h"
 #include "common/events.h"
 #include "common/keyboard.h"
+#include "common/random.h"
 #include "common/util.h"
 
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "audio/mididrv.h"
+#include "audio/mixer.h"
 
 #include "engines/engine.h"
 #include "tinsel/debugger.h"
@@ -42,12 +40,25 @@
 #include "tinsel/sound.h"
 #include "tinsel/dw.h"
 
+/**
+ * This is the namespace of the Tinsel engine.
+ *
+ * Status of this engine: Complete
+ *
+ * Games using this engine:
+ * - Discworld
+ * - Discworld 2: Missing Presumed ...!?
+ */
 namespace Tinsel {
 
+class BMVPlayer;
+class Config;
 class MidiMusicPlayer;
 class PCMMusicPlayer;
 class Scheduler;
 class SoundManager;
+
+typedef Common::List<Common::Rect> RectList;
 
 enum TinselGameID {
 	GID_DW1 = 0,
@@ -60,13 +71,16 @@ enum TinselGameFeatures {
 	GF_FLOPPY = 1 << 2,
 	GF_SCNFILES = 1 << 3,
 	GF_ENHANCED_AUDIO_SUPPORT = 1 << 4,
+	GF_ALT_MIDI = 1 << 5,		// Alternate sequence in midi.dat file
 
 	// The GF_USE_?FLAGS values specify how many country flags are displayed
 	// in the subtitles options dialog.
 	// None of these defined -> 1 language, in ENGLISH.TXT
-	GF_USE_3FLAGS = 1 << 5,	// French, German, Spanish
-	GF_USE_4FLAGS = 1 << 6,	// French, German, Spanish, Italian
-	GF_USE_5FLAGS = 1 << 7	// All 5 flags
+	GF_USE_3FLAGS = 1 << 6,	// French, German, Spanish
+	GF_USE_4FLAGS = 1 << 7,	// French, German, Spanish, Italian
+	GF_USE_5FLAGS = 1 << 8,	// All 5 flags
+
+	GF_BIG_ENDIAN = 1 << 9
 };
 
 /**
@@ -108,8 +122,8 @@ typedef bool (*KEYFPTR)(const Common::KeyState &);
 
 #define	SCREEN_WIDTH	(_vm->screen().w)	// PC screen dimensions
 #define	SCREEN_HEIGHT	(_vm->screen().h)
-#define	SCRN_CENTRE_X	((SCREEN_WIDTH  - 1) / 2)	// screen centre x
-#define	SCRN_CENTRE_Y	((SCREEN_HEIGHT - 1) / 2)	// screen centre y
+#define	SCRN_CENTER_X	((SCREEN_WIDTH  - 1) / 2)	// screen center x
+#define	SCRN_CENTER_Y	((SCREEN_HEIGHT - 1) / 2)	// screen center y
 #define UNUSED_LINES	48
 #define EXTRA_UNUSED_LINES	3
 //#define	SCREEN_BOX_HEIGHT1	(SCREEN_HEIGHT - UNUSED_LINES)
@@ -124,6 +138,12 @@ typedef bool (*KEYFPTR)(const Common::KeyState &);
 #define TinselV1 (TinselVersion == TINSEL_V1)
 #define TinselV2 (TinselVersion == TINSEL_V2)
 #define TinselV1PSX (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformPSX)
+#define TinselV1Mac (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformMacintosh)
+
+#define IsDemo (_vm->getFeatures() & GF_DEMO)
+
+#define READ_16(v) ((_vm->getFeatures() & GF_BIG_ENDIAN) ? READ_BE_UINT16(v) : READ_LE_UINT16(v))
+#define READ_32(v) ((_vm->getFeatures() & GF_BIG_ENDIAN) ? READ_BE_UINT32(v) : READ_LE_UINT32(v))
 
 // Global reference to the TinselEngine object
 extern TinselEngine *_vm;
@@ -149,13 +169,12 @@ protected:
 	virtual bool hasFeature(EngineFeature f) const;
 	Common::Error loadGameState(int slot);
 #if 0
-	Common::Error saveGameState(int slot, const char *desc);
+	Common::Error saveGameState(int slot, const Common::String &desc);
 #endif
 	bool canLoadGameStateCurrently();
 #if 0
 	bool canSaveGameStateCurrently();
 #endif
-	virtual void syncSoundSettings();
 
 public:
 	TinselEngine(OSystem *syst, const TinselGameDescription *gameDesc);
@@ -169,6 +188,7 @@ public:
 	uint32 getFeatures() const;
 	Common::Language getLanguage() const;
 	uint16 getVersion() const;
+	uint32 getFlags() const;
 	Common::Platform getPlatform() const;
 
 	const char *getSampleIndex(LANGUAGE lang);
@@ -179,17 +199,28 @@ public:
 	SoundManager *_sound;
 	MidiMusicPlayer *_midiMusic;
 	PCMMusicPlayer *_pcmMusic;
+	BMVPlayer *_bmv;
+
+	Config *_config;
 
 	KEYFPTR _keyHandler;
-private:
-	//MidiMusicPlayer *_midiMusic;
-	int _musicVolume;
 
-	void NextGameCycle(void);
-	void CreateConstProcesses(void);
-	void RestartGame(void);
-	void RestartDrivers(void);
-	void ChopDrivers(void);
+	/** Stack of pending mouse button events. */
+	Common::List<Common::EventType> _mouseButtons;
+
+	/** Stack of pending keypresses. */
+	Common::List<Common::Event> _keypresses;
+
+
+	/** List of all clip rectangles. */
+	RectList _clipRects;
+
+private:
+	void NextGameCycle();
+	void CreateConstProcesses();
+	void RestartGame();
+	void RestartDrivers();
+	void ChopDrivers();
 	void ProcessKeyEvent(const Common::Event &event);
 	bool pollEvent();
 
@@ -213,7 +244,7 @@ public:
 // Externally available methods
 void CuttingScene(bool bCutting);
 void CDChangeForRestore(int cdNumber);
-void CdHasChanged(void);
+void CdHasChanged();
 
 } // End of namespace Tinsel
 

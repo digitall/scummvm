@@ -18,16 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include "common/config-manager.h"
 
 #include "kyra/kyra_v2.h"
 #include "kyra/screen_v2.h"
-#include "kyra/debugger.h"
+
+#include "common/config-manager.h"
+#include "common/error.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -63,6 +61,7 @@ KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const Engi
 	_chatVocLow = -1;
 	_chatText = 0;
 	_chatObject = -1;
+	_chatTextEnabled = false;
 
 	memset(_hiddenItems, -1, sizeof(_hiddenItems));
 
@@ -72,6 +71,9 @@ KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const Engi
 	memset(&_mainCharacter.inventory, -1, sizeof(_mainCharacter.inventory));
 
 	_pauseStart = 0;
+
+	_pathfinderFlag = 0;
+	_smoothingPath = false;
 
 	_lang = 0;
 	Common::Language lang = Common::parseLanguage(ConfMan.get("language"));
@@ -235,10 +237,10 @@ int KyraEngine_v2::updateCharPos(int *table, int force) {
 		return 0;
 	_mainCharacter.x1 += _charAddXPosTable[_mainCharacter.facing];
 	_mainCharacter.y1 += _charAddYPosTable[_mainCharacter.facing];
-	updateCharAnimFrame(0, table);
+	updateCharAnimFrame(table);
 	_updateCharPosNextUpdate = _system->getMillis() + getCharacterWalkspeed() * _tickLength;
 	return 1;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

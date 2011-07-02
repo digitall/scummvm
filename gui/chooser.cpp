@@ -17,15 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#include "common/system.h"
+#include "common/translation.h"
 #include "gui/chooser.h"
-#include "gui/GuiManager.h"
-#include "gui/ListWidget.h"
+#include "gui/widget.h"
+#include "gui/widgets/list.h"
 
 namespace GUI {
 
@@ -45,12 +42,12 @@ ChooserDialog::ChooserDialog(const String &title, String dialogId)
 	_list->setEditable(false);
 
 	// Buttons
-	new ButtonWidget(this, dialogId + ".Cancel", "Cancel", kCloseCmd, 0);
-	_chooseButton = new ButtonWidget(this, dialogId + ".Choose", "Choose", kChooseCmd, 0);
+	new ButtonWidget(this, dialogId + ".Cancel", _("Cancel"), 0, kCloseCmd);
+	_chooseButton = new ButtonWidget(this, dialogId + ".Choose", _("Choose"), 0, kChooseCmd);
 	_chooseButton->setEnabled(false);
 }
 
-void ChooserDialog::setList(const StringList& list) {
+void ChooserDialog::setList(const StringArray& list) {
 	_list->setList(list);
 }
 

@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "backends/platform/symbian/src/ScummApp.h"
@@ -27,7 +24,7 @@
 
 #define _PAGESIZE_ 0x1000
 
-#if defined (__WINS__) && !defined (__SERIES60_30__) && !defined (UIQ3)
+#if defined (__WINS__) && !defined (S60V3) && !defined (UIQ3)
 extern "C" int _chkstk(int /*a*/) {
 _asm {
 	push ecx
@@ -114,6 +111,10 @@ TUid CScummApp::AppDllUid() const {
 	return TUid::Uid(ScummUid);
 }
 
+void CScummApp::GetDataFolder(TDes& aDataFolder)
+{
+	aDataFolder = _L("ScummVM");
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 

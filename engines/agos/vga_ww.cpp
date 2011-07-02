@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Video script opcodes for Simon1/Simon2
@@ -32,6 +29,7 @@
 #include "common/system.h"
 
 #include "graphics/surface.h"
+#include "graphics/palette.h"
 
 namespace AGOS {
 
@@ -224,7 +222,7 @@ void AGOSEngine::vc62_fastFadeOut() {
 
 		for (i = fadeCount; i != 0; --i) {
 			paletteFadeOut(_currentPalette, _fastFadeCount, fadeSize);
-			_system->setPalette(_currentPalette, 0, _fastFadeCount);
+			_system->getPaletteManager()->setPalette(_currentPalette, 0, _fastFadeCount);
 			delay(5);
 		}
 

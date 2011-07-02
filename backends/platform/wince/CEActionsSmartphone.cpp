@@ -18,35 +18,38 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
+
+#include "backends/platform/wince/wince-sdl.h"
 
 #include "CEActionsSmartphone.h"
 #include "EventsBuffer.h"
 #include "gui/message.h"
-#include "scumm/scumm.h"
 #include "common/config-manager.h"
 #include "gui/KeysDialog.h"
 
-#define		KEY_ALL_SKIP	3457
+#include "common/translation.h"
+
+#define     KEY_ALL_SKIP    3457
 
 const String smartphoneActionNames[] = {
-	"Up",
-	"Down",
-	"Left",
-	"Right",
-	"Left Click",
-	"Right Click",
-	"Save",
-	"Skip",
-	"Zone",
-	"Multi Function",
-	"Bind Keys",
-	"Keyboard",
-	"Rotate",
-	"Quit"
+	_s("Up"),
+	_s("Down"),
+	_s("Left"),
+	_s("Right"),
+	_s("Left Click"),
+	_s("Right Click"),
+	_s("Save"),
+	_s("Skip"),
+	_s("Zone"),
+	_s("Multi Function"),
+	_s("Bind Keys"),
+	_s("Keyboard"),
+	_s("Rotate"),
+	_s("Quit")
 };
 
 const int ACTIONS_SMARTPHONE_DEFAULT[] = { SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_F1, SDLK_F2, SDLK_F3, SDLK_ESCAPE, SDLK_9, SDLK_8, SDLK_F4, SDLK_RETURN, SDLK_5, SDLK_0 };
@@ -57,7 +60,7 @@ void CEActionsSmartphone::init() {
 
 
 String CEActionsSmartphone::actionName(GUI::ActionType action) {
-	return smartphoneActionNames[action];
+	return _(smartphoneActionNames[action]);
 }
 
 int CEActionsSmartphone::size() {
@@ -73,10 +76,10 @@ int CEActionsSmartphone::version() {
 }
 
 CEActionsSmartphone::CEActionsSmartphone()
-: GUI::Actions() {
+	: GUI::Actions() {
 	int i;
 
-	for (i=0; i<SMARTPHONE_ACTION_LAST; i++) {
+	for (i = 0; i < SMARTPHONE_ACTION_LAST; i++) {
 		_action_mapping[i] = ACTIONS_SMARTPHONE_DEFAULT[i];
 		_action_enabled[i] = false;
 	}
@@ -84,7 +87,7 @@ CEActionsSmartphone::CEActionsSmartphone()
 }
 
 void CEActionsSmartphone::initInstanceMain(OSystem *mainSystem) {
-	_CESystem = static_cast<OSystem_WINCE3*>(mainSystem);
+	_CESystem = static_cast<OSystem_WINCE3 *>(mainSystem);
 
 	GUI_Actions::initInstanceMain(mainSystem);
 
@@ -111,7 +114,7 @@ void CEActionsSmartphone::initInstanceGame() {
 	bool is_comi = (strncmp(gameid.c_str(), "comi", 4) == 0);
 	bool is_gob = (strncmp(gameid.c_str(), "gob", 3) == 0);
 	bool is_saga = (gameid == "saga");
-	bool is_kyra = (strncmp(gameid.c_str(), "kyra",4) == 0);
+	bool is_kyra = (strncmp(gameid.c_str(), "kyra", 4) == 0);
 	bool is_samnmax = (gameid == "samnmax");
 	bool is_cine = (gameid == "cine");
 	bool is_touche = (gameid == "touche");
@@ -119,18 +122,19 @@ void CEActionsSmartphone::initInstanceGame() {
 	bool is_parallaction = (gameid == "parallaction");
 	bool is_lure = (gameid == "lure");
 	bool is_feeble = (gameid == "feeble");
-	bool is_drascula = (strncmp(gameid.c_str(), "drascula",8) == 0);
+	bool is_drascula = (strncmp(gameid.c_str(), "drascula", 8) == 0);
 	bool is_tucker = (gameid == "tucker");
 	bool is_groovie = (gameid == "groovie");
 	bool is_tinsel = (gameid == "tinsel");
 	bool is_cruise = (gameid == "cruise");
 	bool is_made = (gameid == "made");
+	bool is_sci = (gameid == "sci");
 
 	GUI_Actions::initInstanceGame();
 
 	// See if a right click mapping could be needed
 	if (is_sword1 || is_sword2 || is_sky || is_queen || is_comi || is_gob || is_tinsel ||
-			is_samnmax || is_cine || is_touche || is_parallaction || is_drascula || is_cruise)
+	        is_samnmax || is_cine || is_touche || is_parallaction || is_drascula || is_cruise)
 		_right_click_needed = true;
 
 	// Initialize keys for different actions
@@ -162,8 +166,8 @@ void CEActionsSmartphone::initInstanceGame() {
 	// Skip
 	_action_enabled[SMARTPHONE_ACTION_SKIP] = true;
 	if (is_simon || is_sky || is_sword2 || is_queen || is_sword1 || is_gob || is_tinsel ||
-			is_saga || is_kyra || is_touche || is_lure || is_feeble || is_drascula || is_tucker ||
-			is_groovie || is_cruise || is_made)
+	        is_saga || is_kyra || is_touche || is_lure || is_feeble || is_drascula || is_tucker ||
+	        is_groovie || is_cruise || is_made)
 		_key_action[SMARTPHONE_ACTION_SKIP].setKey(VK_ESCAPE);
 	else
 		_key_action[SMARTPHONE_ACTION_SKIP].setKey(KEY_ALL_SKIP);
@@ -182,7 +186,7 @@ void CEActionsSmartphone::initInstanceGame() {
 	// Bind keys
 	_action_enabled[SMARTPHONE_ACTION_BINDKEYS] = true;
 	// Disable double-tap right-click for convenience
-	if (is_tinsel || is_cruise)
+	if (is_tinsel || is_cruise || is_sci)
 		if (!ConfMan.hasKey("no_doubletap_rightclick")) {
 			ConfMan.setBool("no_doubletap_rightclick", true);
 			ConfMan.flushToDisk();
@@ -196,83 +200,85 @@ CEActionsSmartphone::~CEActionsSmartphone() {
 bool CEActionsSmartphone::perform(GUI::ActionType action, bool pushed) {
 	static bool keydialogrunning = false, quitdialog = false;
 
+	_graphicsMan = ((WINCESdlGraphicsManager *)((OSystem_SDL *)g_system)->getGraphicsManager());
+
 	if (!pushed) {
 		switch (action) {
-			case SMARTPHONE_ACTION_RIGHTCLICK:
-				_CESystem->add_right_click(false);
-				return true;
-			case SMARTPHONE_ACTION_LEFTCLICK:
-				_CESystem->add_left_click(false);
-				return true;
-			case SMARTPHONE_ACTION_SAVE:
-			case SMARTPHONE_ACTION_SKIP:
-			case SMARTPHONE_ACTION_MULTI:
-				EventsBuffer::simulateKey(&_key_action[action], false);
-				return true;
+		case SMARTPHONE_ACTION_RIGHTCLICK:
+			_graphicsMan->add_right_click(false);
+			return true;
+		case SMARTPHONE_ACTION_LEFTCLICK:
+			_graphicsMan->add_left_click(false);
+			return true;
+		case SMARTPHONE_ACTION_SAVE:
+		case SMARTPHONE_ACTION_SKIP:
+		case SMARTPHONE_ACTION_MULTI:
+			EventsBuffer::simulateKey(&_key_action[action], false);
+			return true;
 		}
 		return false;
 	}
 
 	switch (action) {
-		case SMARTPHONE_ACTION_SAVE:
-		case SMARTPHONE_ACTION_SKIP:
-		case SMARTPHONE_ACTION_MULTI:
-			if (action == SMARTPHONE_ACTION_SAVE && ConfMan.get("gameid") == "parallaction") {
-				// FIXME: This is a temporary solution. The engine should handle its own menus.
-				// Note that the user can accomplish this via the virtual keyboard as well, this is just for convenience
-				GUI::MessageDialog alert("Do you want to load or save the game?", "Load", "Save");
-				if (alert.runModal() == GUI::kMessageOK)
-					_key_action[action].setKey(SDLK_l);
-				else
-					_key_action[action].setKey(SDLK_s);
-			}
-			EventsBuffer::simulateKey(&_key_action[action], true);
-			return true;
-		case SMARTPHONE_ACTION_RIGHTCLICK:
-			_CESystem->add_right_click(true);
-			return true;
-		case SMARTPHONE_ACTION_LEFTCLICK:
-			_CESystem->add_left_click(true);
-			return true;
-		case SMARTPHONE_ACTION_UP:
-			_CESystem->move_cursor_up();
-			return true;
-		case SMARTPHONE_ACTION_DOWN:
-			_CESystem->move_cursor_down();
-			return true;
-		case SMARTPHONE_ACTION_LEFT:
-			_CESystem->move_cursor_left();
-			return true;
-		case SMARTPHONE_ACTION_RIGHT:
-			_CESystem->move_cursor_right();
-			return true;
-		case SMARTPHONE_ACTION_ZONE:
-			_CESystem->switch_zone();
-			return true;
-		case SMARTPHONE_ACTION_BINDKEYS:
-			if (!keydialogrunning) {
-				keydialogrunning = true;
-				GUI::KeysDialog *keysDialog = new GUI::KeysDialog();
-				keysDialog->runModal();
-				delete keysDialog;
-				keydialogrunning = false;
-			}
-			return true;
-		case SMARTPHONE_ACTION_KEYBOARD:
-			_CESystem->swap_smartphone_keyboard();
-			return true;
-		case SMARTPHONE_ACTION_ROTATE:
-			_CESystem->smartphone_rotate_display();
-			return true;
-		case SMARTPHONE_ACTION_QUIT:
-			if (!quitdialog) {
-				quitdialog = true;
-				GUI::MessageDialog alert("   Are you sure you want to quit ?   ", "Yes", "No");
-				if (alert.runModal() == GUI::kMessageOK)
-					_mainSystem->quit();
-				quitdialog = false;
-			}
-			return true;
+	case SMARTPHONE_ACTION_SAVE:
+	case SMARTPHONE_ACTION_SKIP:
+	case SMARTPHONE_ACTION_MULTI:
+		if (action == SMARTPHONE_ACTION_SAVE && ConfMan.get("gameid") == "parallaction") {
+			// FIXME: This is a temporary solution. The engine should handle its own menus.
+			// Note that the user can accomplish this via the virtual keyboard as well, this is just for convenience
+			GUI::MessageDialog alert(_("Do you want to load or save the game?"), _("Load"), _("Save"));
+			if (alert.runModal() == GUI::kMessageOK)
+				_key_action[action].setKey(SDLK_l);
+			else
+				_key_action[action].setKey(SDLK_s);
+		}
+		EventsBuffer::simulateKey(&_key_action[action], true);
+		return true;
+	case SMARTPHONE_ACTION_RIGHTCLICK:
+		_graphicsMan->add_right_click(true);
+		return true;
+	case SMARTPHONE_ACTION_LEFTCLICK:
+		_graphicsMan->add_left_click(true);
+		return true;
+	case SMARTPHONE_ACTION_UP:
+		_graphicsMan->move_cursor_up();
+		return true;
+	case SMARTPHONE_ACTION_DOWN:
+		_graphicsMan->move_cursor_down();
+		return true;
+	case SMARTPHONE_ACTION_LEFT:
+		_graphicsMan->move_cursor_left();
+		return true;
+	case SMARTPHONE_ACTION_RIGHT:
+		_graphicsMan->move_cursor_right();
+		return true;
+	case SMARTPHONE_ACTION_ZONE:
+		_graphicsMan->switch_zone();
+		return true;
+	case SMARTPHONE_ACTION_BINDKEYS:
+		if (!keydialogrunning) {
+			keydialogrunning = true;
+			GUI::KeysDialog *keysDialog = new GUI::KeysDialog();
+			keysDialog->runModal();
+			delete keysDialog;
+			keydialogrunning = false;
+		}
+		return true;
+	case SMARTPHONE_ACTION_KEYBOARD:
+		_graphicsMan->swap_smartphone_keyboard();
+		return true;
+	case SMARTPHONE_ACTION_ROTATE:
+		_graphicsMan->smartphone_rotate_display();
+		return true;
+	case SMARTPHONE_ACTION_QUIT:
+		if (!quitdialog) {
+			quitdialog = true;
+			GUI::MessageDialog alert(_("   Are you sure you want to quit ?   "), _("Yes"), _("No"));
+			if (alert.runModal() == GUI::kMessageOK)
+				_mainSystem->quit();
+			quitdialog = false;
+		}
+		return true;
 	}
 
 	return false;

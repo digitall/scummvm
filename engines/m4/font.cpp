@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "m4/font.h"
@@ -29,23 +26,48 @@
 
 namespace M4 {
 
-Font::Font(M4Engine *vm) : _vm(vm) {
+FontManager::~FontManager() {
+	for (uint i = 0; i < _entries.size(); ++i)
+		delete _entries[i];
+	_entries.clear();
+}
+
+Font *FontManager::getFont(const char *filename) {
+	// Append an extension if the filename doesn't already have one
+	char buffer[20];
+	strncpy(buffer, filename, 19);
+	if (!strchr(buffer, '.'))
+		strcat(buffer, ".ff");
+
+	// Check if the font is already loaded
+	for (uint i = 0; i < _entries.size(); ++i) {
+		if (!strcmp(_entries[i]->_filename, buffer))
+			return _entries[i];
+	}
+
+	Font *f = new Font(_vm, buffer);
+	_entries.push_back(f);
+	return f;
+}
+
+void FontManager::setFont(const char *filename) {
+	_currentFont = getFont(filename);
+}
+
+//--------------------------------------------------------------------------
+
+Font::Font(MadsM4Engine *vm, const char *filename) : _vm(vm) {
 	_sysFont = true;
-	_filename = NULL;
+	strncpy(_filename, filename, 19);
+	_filename[19] = '\0';
+
 	//TODO: System font
 	_fontColors[0] = _vm->_palette->BLACK;
 	_fontColors[1] = _vm->_palette->WHITE;
 	_fontColors[2] = _vm->_palette->BLACK;
 	_fontColors[3] = _vm->_palette->DARK_GRAY;
-}
-
-void Font::setFont(const char *filename) {
-	if ((_filename != NULL) && (strcmp(filename, _filename) == 0))
-		// Already using specified font, so don't bother reloading
-		return;
 
 	_sysFont = false;
-	_filename = filename;
 
 	if (_vm->isM4())
 		setFontM4(filename);
@@ -56,8 +78,8 @@ void Font::setFont(const char *filename) {
 void Font::setFontM4(const char *filename) {
 	Common::SeekableReadStream *fontFile = _vm->res()->openFile(filename);
 
-	if (fontFile->readUint32LE() != MKID_BE('FONT')) {
-		printf("Font::Font: FONT tag expected\n");
+	if (fontFile->readUint32LE() != MKTAG('F','O','N','T')) {
+		debugCN(kDebugGraphics, "Font::Font: FONT tag expected\n");
 		return;
 	}
 
@@ -65,18 +87,18 @@ void Font::setFontM4(const char *filename) {
 	_maxWidth = fontFile->readByte();
 	uint32 fontSize = fontFile->readUint32LE();
 
-	//printf("Font::Font: _maxWidth = %d, _maxHeight = %d, fontSize = %d\n", _maxWidth, _maxHeight, fontSize);
+	//debugCN(kDebugGraphics, "Font::Font: _maxWidth = %d, _maxHeight = %d, fontSize = %d\n", _maxWidth, _maxHeight, fontSize);
 
-	if (fontFile->readUint32LE() != MKID_BE('WIDT')) {
-		printf("Font::Font: WIDT tag expected\n");
+	if (fontFile->readUint32LE() != MKTAG('W','I','D','T')) {
+		debugCN(kDebugGraphics, "Font::Font: WIDT tag expected\n");
 		return;
 	}
 
 	_charWidths = new uint8[256];
 	fontFile->read(_charWidths, 256);
 
-	if (fontFile->readUint32LE() != MKID_BE('OFFS')) {
-		printf("Font::Font: OFFS tag expected\n");
+	if (fontFile->readUint32LE() != MKTAG('O','F','F','S')) {
+		debugCN(kDebugGraphics, "Font::Font: OFFS tag expected\n");
 		return;
 	}
 
@@ -85,8 +107,8 @@ void Font::setFontM4(const char *filename) {
 	for (int i = 0; i < 256; i++)
 		_charOffs[i] = fontFile->readUint16LE();
 
-	if (fontFile->readUint32LE() != MKID_BE('PIXS')) {
-		printf("Font::Font: PIXS tag expected\n");
+	if (fontFile->readUint32LE() != MKTAG('P','I','X','S')) {
+		debugCN(kDebugGraphics, "Font::Font: PIXS tag expected\n");
 		return;
 	}
 
@@ -141,13 +163,14 @@ void Font::setColor(uint8 color) {
 		_fontColors[3] = color;
 }
 
-void Font::setColors(uint8 alt1, uint8 alt2, uint8 foreground) {
+void Font::setColors(uint8 col1, uint8 col2, uint8 col3) {
 	if (_sysFont)
-		_fontColors[1] = foreground;
+		_fontColors[1] = col3;
 	else {
-		_fontColors[1] = alt1;
-		_fontColors[2] = alt2;
-		_fontColors[3] = foreground;
+		_fontColors[0] = 0xFF;
+		_fontColors[1] = col1;
+		_fontColors[2] = col2;
+		_fontColors[3] = col3;
 	}
 }
 
@@ -159,10 +182,11 @@ int32 Font::write(M4Surface *surface, const char *text, int x, int y, int width,
 	}
 	*/
 
+	int right;
 	if (width > 0)
-		width = MIN(surface->width(), x + width);
+		right = MIN(surface->width(), x + width + 1);
 	else
-		width = surface->width();
+		right = surface->width();
 
 	x++;
 	y++;
@@ -197,7 +221,7 @@ int32 Font::write(M4Surface *surface, const char *text, int x, int y, int width,
 
 		if (charWidth > 0) {
 
-			if (xPos + charWidth >= width)
+			if (xPos + charWidth > right)
 				return xPos;
 
 			uint8 *charData = &_charData[_charOffs[theChar]];
@@ -252,13 +276,13 @@ int32 Font::write(M4Surface *surface, const char *text, int x, int y, int width,
 
 }
 
-int32 Font::getWidth(char *text, int spaceWidth) {
+int32 Font::getWidth(const char *text, int spaceWidth) {
 	/*
 	if (custom_ascii_converter) {			 // if there is a function to convert the extended ASCII characters
 		custom_ascii_converter(out_string);	 // call it with the string
 	}
 	*/
-	int width = 0;
+	int width = -spaceWidth;	// Accomodate final character not needing spacing
 	while (*text)
 		width += _charWidths[*text++ & 0x7F] + spaceWidth;
 	return width;

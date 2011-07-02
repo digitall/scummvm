@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_GUI_H
@@ -210,14 +207,14 @@ enum TextColors {
 
 enum MenuObjectState {OS_GREYED = 0, OS_NORMAL = 1, OS_MOUSEOVER = 2, OS_PRESSED = 3};
 
-class DialogView: public View {
+class DialogView : public View {
 public:
-	DialogView(M4Engine *Vm, const Common::Rect &viewBounds, bool transparent = false):
-		View(Vm, viewBounds, transparent) {};
-	DialogView(M4Engine *Vm, int x = 0, int y = 0, bool transparent = false):
-		View(Vm, x, y, transparent) {};
+	DialogView(MadsM4Engine *Vm, const Common::Rect &viewBounds, bool transparent = false):
+		View(Vm, viewBounds, transparent) {}
+	DialogView(MadsM4Engine *Vm, int x = 0, int y = 0, bool transparent = false):
+		View(Vm, x, y, transparent) {}
 
-	M4Engine *vm() { return _vm; }
+	MadsM4Engine *vm() { return _vm; }
 	virtual SpriteAsset *sprites() = 0;
 	virtual MenuType getMenuType() = 0;
 	virtual MenuObject *getItem(int objectId) { return NULL; }
@@ -245,7 +242,7 @@ public:
 	virtual void onRefresh() {}
 };
 
-class MenuObject: public GUIObject {
+class MenuObject : public GUIObject {
 public:
 	typedef void (*Callback)(DialogView *view, MenuObject *item);
 protected:
@@ -268,24 +265,24 @@ public:
 	int getObjectId() { return _objectId; }
 
 	void onExecute();
-	virtual bool onEvent(M4EventType event, int param, int x, int y, MenuObject *&currentItem) { return false; }
+	virtual bool onEvent(M4EventType event, int32 param, int x, int y, MenuObject *&currentItem) { return false; }
 };
 
-class MenuButton: public MenuObject {
+class MenuButton : public MenuObject {
 public:
 	MenuButton(DialogView *owner, int buttonId, int xs, int ys, int width, int height,
 		Callback callbackFn = NULL, bool greyed = false, bool transparent = false,
 		ObjectType buttonType = OBJTYPE_BUTTON);
 
 	void onRefresh();
-	bool onEvent(M4EventType event, int param, int x, int y, MenuObject *&currentItem);
+	bool onEvent(M4EventType event, int32 param, int x, int y, MenuObject *&currentItem);
 	bool getToggled() { return _objectType == OBJTYPE_OM_SWITCH_ON; }
 };
 
 enum MenuHorizSliderState {HSLIDER_THUMB_NORMAL = 0, HSLIDER_THUMB_MOUSEOVER = 1, HSLIDER_THUMB_PRESSED = 2};
 #define SLIDER_BAR_COLOR 129
 
-class MenuHorizSlider: public MenuObject {
+class MenuHorizSlider : public MenuObject {
 protected:
 	MenuHorizSliderState _sliderState;
 	Common::Point _thumbSize;
@@ -297,7 +294,7 @@ public:
 		int initialPercentage, Callback callbackFn = NULL, bool transparent = false);
 
 	void onRefresh();
-	bool onEvent(M4EventType event, int param, int x, int y, MenuObject *&currentItem);
+	bool onEvent(M4EventType event, int32 param, int x, int y, MenuObject *&currentItem);
 	int percent() { return _percent; }
 };
 
@@ -310,7 +307,7 @@ enum MenuVertSliderState {
 	VSLIDER_DOWN      = 0x0050
 };
 
-class MenuVertSlider: public MenuObject {
+class MenuVertSlider : public MenuObject {
 protected:
 	MenuVertSliderState _sliderState;
 	Common::Point _thumbSize;
@@ -326,20 +323,20 @@ public:
 		int initialPercentage, Callback callbackFn = NULL, bool transparent = false);
 
 	void onRefresh();
-	bool onEvent(M4EventType event, int param, int x, int y, MenuObject *&currentItem);
+	bool onEvent(M4EventType event, int32 param, int x, int y, MenuObject *&currentItem);
 	MenuVertSliderState sliderState() { return _sliderState; }
 	int percent() { return _percent; }
 	void setPercentage(int value);
 };
 
-class MenuMessage: public MenuObject {
+class MenuMessage : public MenuObject {
 public:
 	MenuMessage(DialogView *owner, int objectId, int x, int y, int w, int h, bool transparent = false);
 
 	void onRefresh();
 };
 
-class MenuImage: public MenuObject {
+class MenuImage : public MenuObject {
 private:
 	M4Surface *_sprite;
 public:
@@ -354,7 +351,7 @@ public:
 	}
 };
 
-class MenuSaveLoadText: public MenuButton {
+class MenuSaveLoadText : public MenuButton {
 private:
 	bool _loadFlag;
 	const char *_displayText;
@@ -367,7 +364,7 @@ public:
 		bool loadFlag = false, const char *displayText = NULL, int displayValue = 0);
 
 	void onRefresh();
-	bool onEvent(M4EventType event, int param, int x, int y, MenuObject *&currentItem);
+	bool onEvent(M4EventType event, int32 param, int x, int y, MenuObject *&currentItem);
 	void setDisplay(int value, const char *text) { _displayValue = value; _displayText = text; }
 	int getIndex() { return _index; }
 	const char *getText() { return _displayText; }
@@ -375,7 +372,7 @@ public:
 	void setVisible(bool value);
 };
 
-class MenuTextField: public MenuObject {
+class MenuTextField : public MenuObject {
 private:
 	int _displayValue;
 	char _displayText[MAX_SAVEGAME_NAME];
@@ -388,26 +385,26 @@ public:
 		int displayValue = 0, bool transparent = true);
 
 	void onRefresh();
-	bool onEvent(M4EventType event, int param, int x, int y, MenuObject *&currentItem);
+	bool onEvent(M4EventType event, int32 param, int x, int y, MenuObject *&currentItem);
 
 	const char *getText() { return _displayText; }
 	int getDisplayValue() { return _displayValue; }
 
 };
 
-class GUIRect: public GUIObject {
+class GUIRect : public GUIObject {
 private:
 	int _tag;
 public:
-	GUIRect(View *owner, const Common::Rect &bounds, int tag): GUIObject(owner, bounds) { _tag = tag; };
+	GUIRect(View *owner, const Common::Rect &bounds, int tag): GUIObject(owner, bounds) { _tag = tag; }
 
-	virtual bool onEvent(M4EventType eventType, int param, int x, int y, GUIObject *&currentItem) { return false; }
+	virtual bool onEvent(M4EventType eventType, int32 param, int x, int y, GUIObject *&currentItem) { return false; }
 	int getTag() const { return _tag; }
 };
 
 enum GUIButtonState {BUTTON_NORMAL, BUTTON_MOUSEOVER, BUTTON_PRESSED};
 
-class GUIButton: public GUIRect {
+class GUIButton : public GUIRect {
 protected:
 	M4Surface *_normalSprite, *_mouseOverSprite, *_pressedSprite;
 	GUIButtonState _buttonState;
@@ -418,11 +415,11 @@ public:
 		M4Surface *normalSprite, M4Surface *mouseOverSprite, M4Surface *pressedSprite);
 
 	void onRefresh();
-	bool onEvent(M4EventType eventType, int param, int x, int y, GUIObject *&currentItem);
+	bool onEvent(M4EventType eventType, int32 param, int x, int y, GUIObject *&currentItem);
 	GUIButtonState getState() const { return _buttonState; }
 };
 
-class GUITextField: public GUIRect {
+class GUITextField : public GUIRect {
 private:
 	Common::String _text;
 public:
@@ -439,6 +436,16 @@ public:
 class Dialogs {
 public:
 	void keyMouseCollision() {}
+};
+
+class GameInterfaceView : public View {
+public:
+	GameInterfaceView(MadsM4Engine *vm, const Common::Rect &rect): View(vm, rect) {}
+	~GameInterfaceView() {}
+
+	virtual void initialize() {}
+	virtual void setSelectedObject(int objectNumber) {}
+	virtual void addObjectToInventory(int objectNumber) {}
 };
 
 }

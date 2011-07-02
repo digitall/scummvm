@@ -18,14 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/events.h"
-#include "common/system.h"
 #include "queen/command.h"
 
 #include "queen/display.h"
@@ -140,7 +135,7 @@ public:
 
 CmdText *CmdText::makeCmdTextInstance(uint8 y, QueenEngine *vm) {
 	switch (vm->resource()->getLanguage()) {
-	case Common::HB_ISR:
+	case Common::HE_ISR:
 		return new CmdTextHebrew(y, vm);
 	case Common::GR_GRE:
 		return new CmdTextGreek(y, vm);
@@ -367,6 +362,17 @@ void Command::readCommandsFrom(byte *&ptr) {
 		memset(&_cmdObject[0], 0, sizeof(CmdObject));
 		for (i = 1; i <= _numCmdObject; i++) {
 			_cmdObject[i].readFromBE(ptr);
+
+			// WORKAROUND bug #1858081: Fix an off by one error in the object
+			// command 175. Object 309 should be copied to 308 (disabled).
+			//
+			// _objectData[307].name = -195
+			// _objectData[308].name = 50
+			// _objectData[309].name = -50
+
+			if (i == 175 && _cmdObject[i].id == 320 && _cmdObject[i].dstObj == 307 && _cmdObject[i].srcObj == 309) {
+				_cmdObject[i].dstObj = 308;
+			}
 		}
 	}
 
@@ -1075,10 +1081,10 @@ void Command::setAreas(uint16 command) {
 			Area *area = _vm->grid()->area(cmdArea->room, areaNum);
 			if (cmdArea->area > 0) {
 				// turn on area
-				area->mapNeighbours = ABS(area->mapNeighbours);
+				area->mapNeighbors = ABS(area->mapNeighbors);
 			} else {
 				// turn off area
-				area->mapNeighbours = -ABS(area->mapNeighbours);
+				area->mapNeighbors = -ABS(area->mapNeighbors);
 			}
 		}
 	}
@@ -1131,7 +1137,7 @@ void Command::setObjects(uint16 command) {
 					if (image1 != 0 && image2 == 0 && objData->room == _vm->logic()->currentRoom()) {
 						uint16 bobNum = _vm->logic()->findBob(dstObj);
 						if (bobNum != 0) {
-							_vm->graphics()->bob(bobNum)->clear();
+							_vm->graphics()->clearBob(bobNum);
 						}
 					}
 				}

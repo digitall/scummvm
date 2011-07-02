@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GRAPHICS_PIXELFORMAT_H
@@ -49,6 +46,24 @@ struct PixelFormat {
 
 	byte rLoss, gLoss, bLoss, aLoss; /**< Precision loss of each color component. */
 	byte rShift, gShift, bShift, aShift; /**< Binary left shift of each color component in the pixel value. */
+
+	inline PixelFormat() {
+		bytesPerPixel =
+		rLoss = gLoss = bLoss = aLoss =
+		rShift = gShift = bShift = aShift = 0;
+	}
+
+	inline PixelFormat(byte BytesPerPixel,
+						byte RBits, byte GBits, byte BBits, byte ABits,
+						byte RShift, byte GShift, byte BShift, byte AShift) {
+		bytesPerPixel = BytesPerPixel;
+		rLoss = 8 - RBits, gLoss = 8 - GBits, bLoss = 8 - BBits, aLoss = 8 - ABits;
+		rShift = RShift, gShift = GShift, bShift = BShift, aShift = AShift;
+	}
+
+	static inline PixelFormat createFormatCLUT8() {
+		return PixelFormat(1, 0, 0, 0, 0, 0, 0, 0, 0);
+	}
 
 	inline bool operator==(const PixelFormat &fmt) const {
 		// TODO: If aLoss==8, then the value of aShift is irrelevant, and should be ignored.
@@ -129,6 +144,6 @@ struct PixelFormat {
 	}
 };
 
-} // end of namespace Graphics
+} // End of namespace Graphics
 
 #endif

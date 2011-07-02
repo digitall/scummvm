@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_ZONE_H
@@ -88,9 +85,9 @@ enum ZoneFlags {
 	kFlagsNoWalk		= 0x800,			// Zone: character doesn't need to walk towards object to interact
 
 	// BRA specific
-	kFlagsYourself		= 0x1000,
+	kFlagsYourself		= 0x1000,			// BRA: marks zones used by the character on him/herself
 	kFlagsScaled		= 0x2000,
-	kFlagsSelfuse		= 0x4000,
+	kFlagsSelfuse		= 0x4000,			// BRA: marks zones to be preserved across location changes (see Parallaction::freeZones)
 	kFlagsIsAnimation	= 0x1000000,		// BRA: used in walk code (trap check), to tell is a Zone is an Animation
 	kFlagsAnimLinked	= 0x2000000
 };
@@ -163,6 +160,8 @@ struct Answer {
 	int	_counterOp;
 
 	Answer();
+	bool textIsNull();
+	int speakerMood();
 };
 
 struct Question {
@@ -173,6 +172,9 @@ struct Question {
 
 	Question(const Common::String &name);
 	~Question();
+	bool textIsNull();
+	int speakerMood();
+	int balloonWinding();
 };
 
 struct Dialogue {
@@ -186,7 +188,9 @@ struct Dialogue {
 	~Dialogue();
 };
 
-#define MAX_WALKPOINT_LISTS 20
+#define MAX_WALKPOINT_LISTS 	20
+#define FREE_HEAR_CHANNEL		-1
+#define MUSIC_HEAR_CHANNEL		-2
 
 struct TypeData {
 	// common
@@ -232,7 +236,7 @@ struct TypeData {
 		_doorStartFrame2_br = 0;
 		_doorStartPos2_br.x = -1000;
 		_doorStartPos2_br.y = -1000;
-		_hearChannel = -1;
+		_hearChannel = FREE_HEAR_CHANNEL;
 		_hearFreq = -1;
 		_mergeObj1 = 0;
 		_mergeObj2 = 0;
@@ -272,7 +276,7 @@ public:
 
 	uint32			_type;
 	uint32			_flags;
-	uint			_label;
+	GfxObj			*_label;
 
 	TypeData		u;
 	CommandList		_commands;

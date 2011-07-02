@@ -17,19 +17,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include "common/scummsys.h"
 
 #if defined(__amigaos4__)
 
+#include "common/textconsole.h"
+#include "common/error.h"
 #include "common/endian.h"
 #include "common/util.h"
-#include "sound/musicplugin.h"
-#include "sound/mpu401.h"
+#include "audio/musicplugin.h"
+#include "audio/mpu401.h"
 
 #include <proto/camd.h>
 #include <proto/exec.h>
@@ -43,6 +45,7 @@ class MidiDriver_CAMD : public MidiDriver_MPU401 {
 public:
 	MidiDriver_CAMD();
 	int open();
+	bool isOpen() const { return _isOpen; }
 	void close();
 	void send(uint32 b);
 	void sysEx(const byte *msg, uint16 length);
@@ -110,11 +113,21 @@ void MidiDriver_CAMD::close() {
 }
 
 void MidiDriver_CAMD::send(uint32 b) {
+	if (!_isOpen) {
+		warning("MidiDriver_CAMD: Got event while not open");
+		return;
+	}
+
 	ULONG data = READ_LE_UINT32(&b);
 	_ICamd->PutMidi(_midi_link, data);
 }
 
 void MidiDriver_CAMD::sysEx(const byte *msg, uint16 length) {
+	if (!_isOpen) {
+		warning("MidiDriver_CAMD: Got SysEx while not open");
+		return;
+	}
+
 	unsigned char buf[266];
 
 	assert(length + 2 <= ARRAYSIZE(buf));
@@ -131,8 +144,8 @@ void MidiDriver_CAMD::sysEx(const byte *msg, uint16 length) {
 char *MidiDriver_CAMD::getDevice() {
 	char *retname = NULL;
 
-	APTR key;
-	if (key = _ICamd->LockCAMD(CD_Linkages)) {
+	APTR key = _ICamd->LockCAMD(CD_Linkages);
+	if (key != NULL) {
 		struct MidiCluster *cluster = _ICamd->NextCluster(NULL);
 
 		while (cluster && !retname) {
@@ -177,7 +190,7 @@ public:
 	}
 
 	MusicDevices getDevices() const;
-	Common::Error createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const;
+	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
 };
 
 MusicDevices CamdMusicPlugin::getDevices() const {
@@ -188,19 +201,10 @@ MusicDevices CamdMusicPlugin::getDevices() const {
 	return devices;
 }
 
-Common::Error CamdMusicPlugin::createInstance(Audio::Mixer *mixer, MidiDriver **mididriver) const {
+Common::Error CamdMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
 	*mididriver = new MidiDriver_CAMD();
 
 	return Common::kNoError;
-}
-
-MidiDriver *MidiDriver_CAMD_create(Audio::Mixer *mixer) {
-	MidiDriver *mididriver;
-
-	CamdMusicPlugin p;
-	p.createInstance(mixer, &mididriver);
-
-	return mididriver;
 }
 
 //#if PLUGIN_ENABLED_DYNAMIC(CAMD)

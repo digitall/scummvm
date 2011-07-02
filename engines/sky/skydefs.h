@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_DEFS_H
@@ -92,7 +89,7 @@ namespace Sky {
 #define C_BASE_MODE	0
 #define C_BASE_MODE56	56
 #define C_ACTION_MODE	4
-#define C_SP_COLOUR	90
+#define C_SP_COLOR	90
 #define C_MEGA_SET	112
 #define C_GRID_WIDTH	114
 #define C_ANIM_UP	122
@@ -141,7 +138,7 @@ namespace Sky {
 #define L_WAIT_SYNC	15
 #define L_SIMPLE_MOD	16
 
-// characters with own colour set
+// characters with own color set
 #define SP_COL_FOSTER 194
 #define SP_COL_JOEY 216
 #define SP_COL_JOBS 209

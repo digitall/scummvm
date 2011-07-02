@@ -18,11 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 #include "parallaction/parser.h"
@@ -286,6 +284,7 @@ void LocationParser_ns::parseAnimation(AnimationList &list, char *name) {
 	debugC(5, kDebugParser, "parseAnimation(name: %s)", name);
 
 	if (_vm->_location.findAnimation(name)) {
+		_zoneProg++;
 		_script->skip("endanimation");
 		return;
 	}
@@ -535,7 +534,7 @@ DECLARE_INSTRUCTION_PARSER(endscript)  {
 
 void ProgramParser_ns::parseRValue(ScriptVar &v, const char *str) {
 
-	if (isdigit(str[0]) || str[0] == '-') {
+	if (isdigit(static_cast<unsigned char>(str[0])) || str[0] == '-') {
 		v.setImmediate(atoi(str));
 		return;
 	}
@@ -1283,7 +1282,7 @@ DECLARE_ZONE_PARSER(commands)  {
 DECLARE_ZONE_PARSER(label)  {
 	debugC(7, kDebugParser, "ZONE_PARSER(label) ");
 
-//			printf("label: %s", _tokens[1]);
+//			debug("label: %s", _tokens[1]);
 	ctxt.z->_label = _vm->_gfx->renderFloatingLabel(_vm->_labelFont, _tokens[1]);
 	ctxt.z->_flags &= ~kFlagsNoName;
 }
@@ -1305,6 +1304,7 @@ void LocationParser_ns::parseZone(ZoneList &list, char *name) {
 	debugC(5, kDebugParser, "parseZone(name: %s)", name);
 
 	if (_vm->_location.findZone(name)) {
+		_zoneProg++;
 		_script->skip("endzone");
 		return;
 	}
@@ -1346,7 +1346,7 @@ void LocationParser_ns::parseGetData(ZonePtr z) {
 void LocationParser_ns::parseExamineData(ZonePtr z) {
 	TypeData *data = &z->u;
 	if (!scumm_stricmp(_tokens[0], "file")) {
-		data->_filename = strdup(_tokens[1]);
+		data->_filename = _tokens[1];
 	} else
 	if (!scumm_stricmp(_tokens[0], "desc")) {
 		data->_examineText = parseComment();
@@ -1360,7 +1360,7 @@ void LocationParser_ns::parseDoorData(ZonePtr z) {
 		_vm->_location._slideText[1] = _tokens[2];
 	} else
 	if (!scumm_stricmp(_tokens[0], "location")) {
-		data->_doorLocation = strdup(_tokens[1]);
+		data->_doorLocation = _tokens[1];
 	} else
 	if (!scumm_stricmp(_tokens[0], "file")) {
 		GfxObj *obj = _vm->_gfx->loadDoor(_tokens[1]);
@@ -1411,6 +1411,24 @@ void LocationParser_ns::parseSpeakData(ZonePtr z) {
 	}
 }
 
+void LocationParser_ns::parseNoneData(ZonePtr z) {
+	// "None" zones should have no content, but some
+	// inconsistently define their command list after
+	// the TYPE marker. This routine catches these
+	// command lists that would be lost otherwise.
+	if (!scumm_stricmp(_tokens[0], "commands")) {
+		parseCommands(z->_commands);
+		ctxt.endcommands = false;
+		do {
+			_script->readLineToken(true);
+			_parser->parseStatement();
+		} while (!ctxt.endcommands);
+
+		// no need to parse one more line here, as
+		// it is done by the caller
+	}
+}
+
 typedef void (LocationParser_ns::*ZoneTypeParser)(ZonePtr);
 static ZoneTypeParser parsers[] = {
 	0,	// no type
@@ -1422,7 +1440,7 @@ static ZoneTypeParser parsers[] = {
 	&LocationParser_ns::parseHearData,
 	0,	// feel
 	&LocationParser_ns::parseSpeakData,
-	0,	// none
+	&LocationParser_ns::parseNoneData,
 	0,	// trap
 	0,	// you
 	0	// command

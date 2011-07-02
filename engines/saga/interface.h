@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Game interface module private header file
@@ -94,8 +91,7 @@ enum FadeModes {
 struct InterfacePanel {
 	int x;
 	int y;
-	byte *image;
-	size_t imageLength;
+	ByteArray image;
 	int imageWidth;
 	int imageHeight;
 
@@ -106,8 +102,6 @@ struct InterfacePanel {
 
 	InterfacePanel() {
 		x = y = 0;
-		image = NULL;
-		imageLength = 0;
 		imageWidth = imageHeight = 0;
 		currentButton = NULL;
 		buttonsCount = 0;
@@ -164,7 +158,7 @@ struct InterfacePanel {
 };
 
 struct Converse {
-	char *text;
+	Common::Array<char> text;
 	int strId;
 	int stringNum;
 	int textNum;
@@ -183,7 +177,7 @@ enum StatusTextInputState {
 class Interface {
 public:
 	Interface(SagaEngine *vm);
-	~Interface(void);
+	~Interface();
 
 	int activate();
 	int deactivate();
@@ -196,7 +190,7 @@ public:
 	}
 	bool isActive() { return _active; }
 	void setMode(int mode);
-	int getMode(void) const { return _panelMode; }
+	int getMode() const { return _panelMode; }
 	void setFadeMode(int fadeMode) {
 		_fadeMode = fadeMode;
 		draw();
@@ -291,6 +285,8 @@ public:
 
 	int32 getProtectHash() { return _protectHash; }
 
+	void resetSaveReminder();
+
 private:
 	void handleMainUpdate(const Point& mousePoint);					// main panel update
 	void handleMainClick(const Point& mousePoint);					// main panel click
@@ -356,8 +352,7 @@ private:
 	void processStatusTextInput(Common::KeyState keystate);
 
 public:
-	void converseInit(void);
-	void converseClear(void);
+	void converseClear();
 	bool converseAddText(const char *text, int strId, int replyId, byte replyFlags, int replyBit);
 	void converseDisplayText();
 	void converseSetTextLines(int row);
@@ -431,8 +426,7 @@ private:
 
 	Point _lastMousePoint;
 
-	uint16 *_inventory;
-	int _inventorySize;
+	Common::Array<uint16> _inventory;
 	int _inventoryStart;
 	int _inventoryEnd;
 	int _inventoryPos;

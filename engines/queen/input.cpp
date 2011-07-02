@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/events.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "queen/queen.h"
 #include "queen/input.h"
@@ -74,7 +72,7 @@ Input::Input(Common::Language language, OSystem *system, QueenEngine *vm) :
 	case Common::IT_ITA:
 		_currentCommandKeys = _commandKeys[3];
 		break;
-	case Common::HB_ISR:
+	case Common::HE_ISR:
 		_currentCommandKeys = _commandKeys[4];
 		break;
 	case Common::ES_ESP:
@@ -100,10 +98,10 @@ void Input::delay(uint amount) {
 			_idleTime = 0;
 			switch (event.type) {
 			case Common::EVENT_KEYDOWN:
-				if (event.kbd.flags == Common::KBD_CTRL) {
-					if (event.kbd.keycode == 'd') {
+				if (event.kbd.hasFlags(Common::KBD_CTRL)) {
+					if (event.kbd.keycode == Common::KEYCODE_d) {
 						_debugger = true;
-					} else if (event.kbd.keycode == 'f') {
+					} else if (event.kbd.keycode == Common::KEYCODE_f) {
 						_fastMode = !_fastMode;
 					}
 				} else {

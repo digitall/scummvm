@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SOUND_SOUNDMIXER_H
@@ -28,8 +25,8 @@
 
 #include "common/mutex.h"
 #include "common/frac.h"
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 
 namespace Gob {
 

@@ -18,25 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/config-manager.h"
-#include "common/util.h"
-#include "common/str.h"
-
-#include "engines/engine.h"
+#include "common/debug.h"
+#include "common/textconsole.h"
 
 #include "sword1/memman.h"
 #include "sword1/resman.h"
-#include "sword1/sworddefs.h"
 #include "sword1/swordres.h"
 
 #include "gui/message.h"
-#include "gui/GuiManager.h"
 
 namespace Sword1 {
 	void guiFatalError(char *msg) {
@@ -59,7 +51,7 @@ ResMan::ResMan(const char *fileName, bool isMacFile) {
 	loadCluDescript(fileName);
 }
 
-ResMan::~ResMan(void) {
+ResMan::~ResMan() {
 #if 0
 	for (uint32 clusCnt = 0; clusCnt < _prj.noClu; clusCnt++) {
 		Clu *cluster = _prj.clu[clusCnt];
@@ -150,7 +142,7 @@ void ResMan::loadCluDescript(const char *fileName) {
 			_srIdList[cnt] = 0x04050000 | cnt;
 }
 
-void ResMan::freeCluDescript(void) {
+void ResMan::freeCluDescript() {
 
 	for (uint32 clusCnt = 0; clusCnt < _prj.noClu; clusCnt++) {
 		Clu *cluster = _prj.clu + clusCnt;
@@ -166,14 +158,12 @@ void ResMan::freeCluDescript(void) {
 			}
 		}
 		delete[] cluster->grp;
-
-		if (cluster->file != NULL)
-			delete cluster->file;
+		delete cluster->file;
 	}
 	delete[] _prj.clu;
 }
 
-void ResMan::flush(void) {
+void ResMan::flush() {
 	for (uint32 clusCnt = 0; clusCnt < _prj.noClu; clusCnt++) {
 		Clu *cluster = _prj.clu + clusCnt;
 		for (uint32 grpCnt = 0; grpCnt < cluster->noGrp; grpCnt++) {
@@ -334,10 +324,13 @@ Common::File *ResMan::resFile(uint32 id) {
 			Clu *closeClu = _openCluStart;
 			_openCluStart = _openCluStart->nextOpen;
 
-			closeClu->file->close();
-			delete closeClu->file;
-			closeClu->file = NULL;
-			closeClu->nextOpen = NULL;
+			if (closeClu) {
+				if (closeClu->file)
+					closeClu->file->close();
+				delete closeClu->file;
+				closeClu->file = NULL;
+				closeClu->nextOpen = NULL;
+			}
 			_openClus--;
 		}
 	}

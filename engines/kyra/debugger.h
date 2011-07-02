@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_DEBUGGER_H
@@ -61,9 +58,6 @@ public:
 
 protected:
 	KyraEngine_LoK *_vm;
-
-	virtual void preEnter();
-	virtual void postEnter();
 
 	bool cmd_enterRoom(int argc, const char **argv);
 	bool cmd_listScenes(int argc, const char **argv);

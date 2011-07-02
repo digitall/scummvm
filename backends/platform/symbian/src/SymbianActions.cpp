@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "backends/platform/symbian/src/SymbianActions.h"
@@ -28,6 +25,7 @@
 #include "gui/message.h"
 #include "scumm/scumm.h"
 #include "common/config-manager.h"
+#include "common/translation.h"
 
 #include <sdl.h>
 
@@ -37,25 +35,25 @@ namespace GUI {
 // or we put them in this file separated by #ifdefs, this one is up to you, AnotherGuest :)
 
 const Common::String actionNames[] = {
-	"Up",
-	"Down",
-	"Left",
-	"Right",
-	"Left Click",
-	"Right Click",
-	"Save",
-	"Skip",
-	"Zone",
-	"Multi Function",
-	"Swap character",
-	"Skip text",
-	"Pause",
-	"Fast mode",
-	"Quit",
-	"Debugger",
-	"Global menu",
-	"Virtual keyboard",
-	"Key mapper"
+	_s("Up"),
+	_s("Down"),
+	_s("Left"),
+	_s("Right"),
+	_s("Left Click"),
+	_s("Right Click"),
+	_s("Save"),
+	_s("Skip"),
+	_s("Zone"),
+	_s("Multi Function"),
+	_s("Swap character"),
+	_s("Skip text"),
+	_s("Pause"),
+	_s("Fast mode"),
+	_s("Quit"),
+	_s("Debugger"),
+	_s("Global menu"),
+	_s("Virtual keyboard"),
+	_s("Key mapper")
 };
 
 #ifdef UIQ
@@ -75,7 +73,7 @@ void SymbianActions::init() {
 
 
 Common::String SymbianActions::actionName(ActionType action) {
-	return actionNames[action];
+	return _(actionNames[action]);
 }
 
 int SymbianActions::size() {
@@ -103,11 +101,13 @@ SymbianActions::SymbianActions()
 
 void SymbianActions::initInstanceMain(OSystem *mainSystem) {
 	int i;
-	
+
+	// Need to do this since all old mappings are reset after engineDone
+	_initialized = false;
 	Actions::initInstanceMain(mainSystem);
 
 	// Disable all mappings before setting main mappings again
-	for (i = 0; i < ACTION_LAST; i++) {		
+	for (i = 0; i < ACTION_LAST; i++) {
 		_action_enabled[i] = false;
 	}
 
@@ -163,7 +163,9 @@ void SymbianActions::initInstanceGame() {
 	bool is_drascula = (strncmp(gameid.c_str(), "drascula",8) == 0);
 	bool is_tucker = (gameid == "tucker");
 	bool is_groovie = (gameid == "groovie");
+	bool is_tinsel = (gameid == "tinsel");
 	bool is_cruise = (gameid == "cruise");
+	bool is_made = (gameid == "made");
 
 	Actions::initInstanceGame();
 
@@ -194,6 +196,8 @@ void SymbianActions::initInstanceGame() {
 			_key_action[ACTION_SAVE].setKey(Common::ASCII_ESCAPE, Common::KEYCODE_ESCAPE);
 		} else if (is_parallaction) {
 			_key_action[ACTION_SAVE].setKey('s', Common::KEYCODE_s);
+		} else if (is_tinsel) {
+			_key_action[ACTION_SAVE].setKey(Common::ASCII_F1, SDLK_F1);
 		} else {
 			_key_action[ACTION_SAVE].setKey(Common::ASCII_F5, Common::KEYCODE_F5); // F5 key
 		}
@@ -202,9 +206,9 @@ void SymbianActions::initInstanceGame() {
 	_action_enabled[ACTION_QUIT] = true;
 
 	// Skip text
-	if (!is_cine && !is_parallaction && !is_groovie)
+	if (!is_cine && !is_parallaction && !is_groovie && !is_cruise && !is_made)
 		_action_enabled[ACTION_SKIP_TEXT] = true;
-	if (is_simon || is_sky || is_sword2 || is_queen || is_sword1 || is_gob ||
+	if (is_simon || is_sky || is_sword2 || is_queen || is_sword1 || is_gob || is_tinsel ||
 			is_saga || is_kyra || is_touche || is_lure || is_feeble || is_drascula || is_tucker)
 		_key_action[ACTION_SKIP_TEXT].setKey(Common::KEYCODE_ESCAPE, Common::KEYCODE_ESCAPE); // Escape key
 	else {

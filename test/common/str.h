@@ -118,6 +118,30 @@ class StringTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(foo3, "fooasdkadklasdjklasdjlkasjdlkasjdklasjdlkjasdasd""fooasdkadklasdjklasdjlkasjdlkasjdklasjdlkjasdasd");
 	}
 
+	void test_refCount5() {
+		// using external storage
+		Common::String foo1("HelloHelloHelloHelloAndHi");
+		Common::String foo2(foo1);
+
+		for (Common::String::iterator i = foo2.begin(); i != foo2.end(); ++i)
+			*i = 'h';
+
+		TS_ASSERT_EQUALS(foo1, "HelloHelloHelloHelloAndHi");
+		TS_ASSERT_EQUALS(foo2, "hhhhhhhhhhhhhhhhhhhhhhhhh");
+	}
+
+	void test_refCount6() {
+		// using internal storage
+		Common::String foo1("Hello");
+		Common::String foo2(foo1);
+
+		for (Common::String::iterator i = foo2.begin(); i != foo2.end(); ++i)
+			*i = 'h';
+
+		TS_ASSERT_EQUALS(foo1, "Hello");
+		TS_ASSERT_EQUALS(foo2, "hhhhh");
+	}
+
 	void test_self_asignment() {
 		Common::String foo1("12345678901234567890123456789012");
 		foo1 = foo1.c_str() + 2;
@@ -242,6 +266,8 @@ class StringTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(Common::lastPathComponent("foo/./bar", '/'), "bar");
 		TS_ASSERT_EQUALS(Common::lastPathComponent("foo//./bar//", '/'), "bar");
 		TS_ASSERT_EQUALS(Common::lastPathComponent("foo//.bar//", '/'), ".bar");
+
+		TS_ASSERT_EQUALS(Common::lastPathComponent("foo", '/'), "foo");
 	}
 
 	void test_normalizePath() {
@@ -258,6 +284,19 @@ class StringTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(Common::normalizePath("foo/./bar", '/'), "foo/bar");
 		TS_ASSERT_EQUALS(Common::normalizePath("foo//./bar//", '/'), "foo/bar");
 		TS_ASSERT_EQUALS(Common::normalizePath("foo//.bar//", '/'), "foo/.bar");
+
+		TS_ASSERT_EQUALS(Common::normalizePath("..", '/'), "..");
+		TS_ASSERT_EQUALS(Common::normalizePath("../", '/'), "..");
+		TS_ASSERT_EQUALS(Common::normalizePath("/..", '/'), "/..");
+		TS_ASSERT_EQUALS(Common::normalizePath("../bar", '/'), "../bar");
+		TS_ASSERT_EQUALS(Common::normalizePath("foo//../", '/'), "");
+		TS_ASSERT_EQUALS(Common::normalizePath("foo/../bar", '/'), "bar");
+		TS_ASSERT_EQUALS(Common::normalizePath("foo//../bar//", '/'), "bar");
+		TS_ASSERT_EQUALS(Common::normalizePath("foo//..bar//", '/'), "foo/..bar");
+
+		TS_ASSERT_EQUALS(Common::normalizePath("foo/../../bar//", '/'), "../bar");
+		TS_ASSERT_EQUALS(Common::normalizePath("../foo/../bar", '/'), "../bar");
+		TS_ASSERT_EQUALS(Common::normalizePath("../../foo/bar/", '/'), "../../foo/bar");
 	}
 
 	void test_matchString() {
@@ -284,13 +323,89 @@ class StringTestSuite : public CxxTest::TestSuite
 		TS_ASSERT(Common::matchString("monkey.s01",  "monkey.s*1"));
 		TS_ASSERT(!Common::matchString("monkey.s99",  "monkey.s*1"));
 		TS_ASSERT(Common::matchString("monkey.s101", "monkey.s*1"));
+
+		TS_ASSERT(!Common::String("").matchString("*_"));
+		TS_ASSERT(Common::String("a").matchString("a***"));
 	}
 
 	void test_string_printf() {
-		TS_ASSERT( Common::String::printf("") == "" );
-		TS_ASSERT( Common::String::printf("%s", "test") == "test" );
-		TS_ASSERT( Common::String::printf("%s.s%.02d", "monkey", 1) == "monkey.s01" );
-		TS_ASSERT( Common::String::printf("%s%X", "test", 1234) == "test4D2" );
-		TS_ASSERT( Common::String::printf("Some %s to make this string longer than the default built-in %s %d", "text", "capacity", 123456) == "Some text to make this string longer than the default built-in capacity 123456" );
+		TS_ASSERT_EQUALS( Common::String::format(""), "" );
+		TS_ASSERT_EQUALS( Common::String::format("%s", "test"), "test" );
+		TS_ASSERT_EQUALS( Common::String::format("%s.s%.02d", "monkey", 1), "monkey.s01" );
+		TS_ASSERT_EQUALS( Common::String::format("Some %s to make this string longer than the default built-in %s %d", "text", "capacity", 123456), "Some text to make this string longer than the default built-in capacity 123456" );
+
+		Common::String s = Common::String::format("%s%X", "test", 1234);
+		TS_ASSERT_EQUALS(s, "test4D2");
+		TS_ASSERT_EQUALS(s.size(), 7U);
+	}
+
+	void test_strlcpy() {
+		static const char * const testString = "1234567890";
+
+		char test1[4];
+		TS_ASSERT_EQUALS(Common::strlcpy(test1, testString, 4), strlen(testString));
+		TS_ASSERT_EQUALS(strcmp(test1, "123"), 0);
+
+		char test2[12];
+		test2[11] = 'X';
+		TS_ASSERT_EQUALS(Common::strlcpy(test2, testString, 11), strlen(testString));
+		TS_ASSERT_EQUALS(strcmp(test2, testString), 0);
+		TS_ASSERT_EQUALS(test2[11], 'X');
+
+		char test3[1] = { 'X' };
+		TS_ASSERT_EQUALS(Common::strlcpy(test3, testString, 0), strlen(testString));
+		TS_ASSERT_EQUALS(test3[0], 'X');
+
+		char test4[12];
+		TS_ASSERT_EQUALS(Common::strlcpy(test4, testString, 12), strlen(testString));
+		TS_ASSERT_EQUALS(strcmp(test4, testString), 0);
+	}
+
+	void test_strlcat() {
+		static const char * const initialString = "123";
+		static const char * const appendString = "4567890";
+		static const char * const resultString = "1234567890";
+
+		char test1[4];
+		TS_ASSERT_EQUALS(Common::strlcpy(test1, initialString, 4), strlen(initialString));
+		TS_ASSERT_EQUALS(strcmp(test1, initialString), 0);
+		TS_ASSERT_EQUALS(Common::strlcat(test1, appendString, 4), strlen(resultString));
+		TS_ASSERT_EQUALS(strcmp(test1, initialString), 0);
+
+		char test2[12];
+		test2[11] = 'X';
+		TS_ASSERT_EQUALS(Common::strlcpy(test2, initialString, 11), strlen(initialString));
+		TS_ASSERT_EQUALS(strcmp(test2, initialString), 0);
+		TS_ASSERT_EQUALS(Common::strlcat(test2, appendString, 11), strlen(resultString));
+		TS_ASSERT_EQUALS(strcmp(test2, resultString), 0);
+		TS_ASSERT_EQUALS(test2[11], 'X');
+
+		char test3[1];
+		test3[0] = 'X';
+		TS_ASSERT_EQUALS(Common::strlcat(test3, appendString, 0), strlen(appendString));
+		TS_ASSERT_EQUALS(test3[0], 'X');
+
+		char test4[11];
+		TS_ASSERT_EQUALS(Common::strlcpy(test4, initialString, 11), strlen(initialString));
+		TS_ASSERT_EQUALS(strcmp(test4, initialString), 0);
+		TS_ASSERT_EQUALS(Common::strlcat(test4, appendString, 11), strlen(resultString));
+		TS_ASSERT_EQUALS(strcmp(test4, resultString), 0);
+	}
+
+	void test_scumm_stricmp() {
+		TS_ASSERT_EQUALS(scumm_stricmp("abCd", "abCd"), 0);
+		TS_ASSERT_EQUALS(scumm_stricmp("abCd", "ABCd"), 0);
+		TS_ASSERT_LESS_THAN(scumm_stricmp("abCd", "ABCe"), 0);
+		TS_ASSERT_LESS_THAN(scumm_stricmp("abCd", "ABCde"), 0);
+	}
+
+	void test_scumm_strnicmp() {
+		TS_ASSERT_EQUALS(scumm_strnicmp("abCd", "abCd", 3), 0);
+		TS_ASSERT_EQUALS(scumm_strnicmp("abCd", "ABCd", 4), 0);
+		TS_ASSERT_EQUALS(scumm_strnicmp("abCd", "ABCd", 5), 0);
+		TS_ASSERT_EQUALS(scumm_strnicmp("abCd", "ABCe", 3), 0);
+		TS_ASSERT_LESS_THAN(scumm_strnicmp("abCd", "ABCe", 4), 0);
+		TS_ASSERT_EQUALS(scumm_strnicmp("abCd", "ABCde", 4), 0);
+		TS_ASSERT_LESS_THAN(scumm_strnicmp("abCd", "ABCde", 5), 0);
 	}
 };

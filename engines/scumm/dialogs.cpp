@@ -17,15 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/config-manager.h"
 #include "common/savefile.h"
 #include "common/system.h"
 #include "common/events.h"
+#include "common/translation.h"
 
 #include "graphics/scaler.h"
 
@@ -35,8 +33,8 @@
 
 #include "gui/about.h"
 
-#include "gui/GuiManager.h"
-#include "gui/ListWidget.h"
+#include "gui/gui-manager.h"
+#include "gui/widgets/list.h"
 #include "gui/ThemeEval.h"
 
 #include "scumm/dialogs.h"
@@ -44,10 +42,9 @@
 #include "scumm/scumm.h"
 #include "scumm/imuse/imuse.h"
 #include "scumm/imuse_digi/dimuse.h"
-#include "scumm/player_v2.h"
 #include "scumm/verbs.h"
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
+#include "audio/mididrv.h"
+#include "audio/mixer.h"
 
 #ifndef DISABLE_HELP
 #include "scumm/help.h"
@@ -57,15 +54,9 @@
 #include "gui/KeysDialog.h"
 #endif
 
-using GUI::CommandSender;
-using GUI::StaticTextWidget;
-using GUI::kCloseCmd;
 using Graphics::kTextAlignCenter;
 using Graphics::kTextAlignLeft;
 using GUI::WIDGET_ENABLED;
-
-typedef GUI::OptionsDialog GUI_OptionsDialog;
-typedef GUI::Dialog GUI_Dialog;
 
 namespace Scumm {
 
@@ -207,425 +198,69 @@ static const ResString string_map_table_v345[] = {
 
 #pragma mark -
 
+#ifndef DISABLE_HELP
+
+class HelpDialog : public ScummDialog {
+public:
+	HelpDialog(const GameSettings &game);
+	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
+
+	virtual void reflowLayout();
+
+protected:
+	typedef Common::String String;
+
+	GUI::ButtonWidget *_nextButton;
+	GUI::ButtonWidget *_prevButton;
+
+	GUI::StaticTextWidget *_title;
+	GUI::StaticTextWidget *_key[HELP_NUM_LINES];
+	GUI::StaticTextWidget *_dsc[HELP_NUM_LINES];
+
+	int _page;
+	int _numPages;
+	int _numLines;
+
+	const GameSettings _game;
+
+	void displayKeyBindings();
+};
+
+#endif
+
+#pragma mark -
+
+ScummDialog::ScummDialog(int x, int y, int w, int h) : GUI::Dialog(x, y, w, h) {
+	_backgroundType = GUI::ThemeEngine::kDialogBackgroundSpecial;
+}
+
 ScummDialog::ScummDialog(String name) : GUI::Dialog(name) {
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundSpecial;
 }
 
 #pragma mark -
 
-Common::StringList generateSavegameList(ScummEngine *scumm, bool saveMode);
-
-enum {
-	kSaveCmd = 'SAVE',
-	kLoadCmd = 'LOAD',
-	kPlayCmd = 'PLAY',
-	kOptionsCmd = 'OPTN',
-	kHelpCmd = 'HELP',
-	kAboutCmd = 'ABOU',
-	kQuitCmd = 'QUIT',
-	kChooseCmd = 'CHOS'
-};
-
-SaveLoadChooser::SaveLoadChooser(const String &title, const String &buttonLabel, bool saveMode, ScummEngine *engine)
-	: Dialog("ScummSaveLoad"), _saveMode(saveMode), _list(0), _chooseButton(0), _gfxWidget(0), _vm(engine) {
-
-	_backgroundType = GUI::ThemeEngine::kDialogBackgroundSpecial;
-
-	new StaticTextWidget(this, "ScummSaveLoad.Title", title);
-
-	// Add choice list
-	_list = new GUI::ListWidget(this, "ScummSaveLoad.List");
-	_list->setEditable(saveMode);
-	_list->setNumberingMode(saveMode ? GUI::kListNumberingOne : GUI::kListNumberingZero);
-
-// Tanoku: SVNMerge removed this. Unconvinient. ///////////////
-//	_container = new GUI::ContainerWidget(this, 0, 0, 10, 10);
-///////////////////////////////////////////////////////////////
-
-	_gfxWidget = new GUI::GraphicsWidget(this, 0, 0, 10, 10);
-
-	_date = new StaticTextWidget(this, 0, 0, 10, 10, "No date saved", kTextAlignCenter);
-	_time = new StaticTextWidget(this, 0, 0, 10, 10, "No time saved", kTextAlignCenter);
-	_playtime = new StaticTextWidget(this, 0, 0, 10, 10, "No playtime saved", kTextAlignCenter);
-
-	// Buttons
-	new GUI::ButtonWidget(this, "ScummSaveLoad.Cancel", "Cancel", kCloseCmd, 0);
-	_chooseButton = new GUI::ButtonWidget(this, "ScummSaveLoad.Choose", buttonLabel, kChooseCmd, 0);
-	_chooseButton->setEnabled(false);
-
-	_container = new GUI::ContainerWidget(this, 0, 0, 10, 10);
-//	_container->setHints(GUI::THEME_HINT_USE_SHADOW);
-}
-
-SaveLoadChooser::~SaveLoadChooser() {
-}
-
-const Common::String &SaveLoadChooser::getResultString() const {
-	return _list->getSelectedString();
-}
-
-void SaveLoadChooser::setList(const StringList& list) {
-	_list->setList(list);
-}
-
-int SaveLoadChooser::runModal() {
-	if (_gfxWidget)
-		_gfxWidget->setGfx(0);
-	int ret = Dialog::runModal();
-	return ret;
-}
-
-void SaveLoadChooser::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
-	int selItem = _list->getSelected();
-	switch (cmd) {
-	case GUI::kListItemActivatedCmd:
-	case GUI::kListItemDoubleClickedCmd:
-		if (selItem >= 0) {
-			if (_saveMode || !getResultString().empty()) {
-				_list->endEditMode();
-				setResult(selItem);
-				close();
-			}
-		}
-		break;
-	case kChooseCmd:
-		_list->endEditMode();
-		setResult(selItem);
-		close();
-		break;
-	case GUI::kListSelectionChangedCmd: {
-		if (_gfxWidget) {
-			updateInfos(true);
-		}
-
-		if (_saveMode) {
-			_list->startEditMode();
-		}
-		// Disable button if nothing is selected, or (in load mode) if an empty
-		// list item is selected. We allow choosing an empty item in save mode
-		// because we then just assign a default name.
-		_chooseButton->setEnabled(selItem >= 0 && (_saveMode || !getResultString().empty()));
-		_chooseButton->draw();
-	} break;
-	case kCloseCmd:
-		setResult(-1);
-	default:
-		Dialog::handleCommand(sender, cmd, data);
-	}
-}
-
-void SaveLoadChooser::reflowLayout() {
-	if (g_gui.xmlEval()->getVar("Globals.ScummSaveLoad.ExtInfo.Visible") == 1) {
-		int16 x, y;
-		uint16 w, h;
-
-		if (!g_gui.xmlEval()->getWidgetData("ScummSaveLoad.Thumbnail", x, y, w, h))
-			error("Error when loading position data for Save/Load Thumbnails.");
-
-		int thumbW = kThumbnailWidth;
-		int thumbH = ((g_system->getHeight() % 200 && g_system->getHeight() != 350) ? kThumbnailHeight2 : kThumbnailHeight1);
-		int thumbX = x + (w >> 1) - (thumbW >> 1);
-		int thumbY = y + kLineHeight;
-
-		_container->resize(x, y, w, h);
-		_gfxWidget->resize(thumbX, thumbY, thumbW, thumbH);
-
-		int height = thumbY + thumbH + kLineHeight;
-
-		_date->resize(thumbX, height, kThumbnailWidth, kLineHeight);
-
-		height += kLineHeight;
-
-		_time->resize(thumbX, height, kThumbnailWidth, kLineHeight);
-
-		height += kLineHeight;
-
-		_playtime->resize(thumbX, height, kThumbnailWidth, kLineHeight);
-
-		_container->setVisible(true);
-		_gfxWidget->setVisible(true);
-		_date->setVisible(true);
-		_time->setVisible(true);
-		_playtime->setVisible(true);
-
-		_fillR = 0; //g_gui.evaluator()->getVar("scummsaveload_thumbnail.fillR");
-		_fillG = 0; //g_gui.evaluator()->getVar("scummsaveload_thumbnail.fillG");
-		_fillB = 0; //g_gui.evaluator()->getVar("scummsaveload_thumbnail.fillB");
-	} else {
-		_container->setVisible(false);
-		_gfxWidget->setVisible(false);
-		_date->setVisible(false);
-		_time->setVisible(false);
-		_playtime->setVisible(false);
-	}
-
-	Dialog::reflowLayout();
-
-	if (_container->isVisible())
-		updateInfos(false);
-}
-
-void SaveLoadChooser::updateInfos(bool redraw) {
-	int selItem = _list->getSelected();
-	Graphics::Surface *thumb = 0;
-	if (selItem >= 0 && !_list->getSelectedString().empty())
-		thumb = _vm->loadThumbnailFromSlot(_saveMode ? selItem + 1 : selItem);
-
-	if (thumb) {
-		_gfxWidget->setGfx(thumb);
-		_gfxWidget->useAlpha(256);
-		thumb->free();
-		delete thumb;
-	} else {
-		_gfxWidget->setGfx(-1, -1, _fillR, _fillG, _fillB);
-	}
-
-	InfoStuff infos;
-	memset(&infos, 0, sizeof(InfoStuff));
-	if (selItem >= 0 && !_list->getSelectedString().empty()
-		   && _vm->loadInfosFromSlot(_saveMode ? selItem + 1 : selItem, &infos)) {
-		char buffer[32];
-		snprintf(buffer, 32, "Date: %.2d.%.2d.%.4d",
-			(infos.date >> 24) & 0xFF, (infos.date >> 16) & 0xFF,
-			infos.date & 0xFFFF);
-		_date->setLabel(buffer);
-
-		snprintf(buffer, 32, "Time: %.2d:%.2d",
-			(infos.time >> 8) & 0xFF, infos.time & 0xFF);
-		_time->setLabel(buffer);
-
-		int minutes = infos.playtime / 60;
-		int hours = minutes / 60;
-		minutes %= 60;
-
-		snprintf(buffer, 32, "Playtime: %.2d:%.2d", hours, minutes);
-		_playtime->setLabel(buffer);
-	} else {
-		_date->setLabel("No date saved");
-		_time->setLabel("No time saved");
-		_playtime->setLabel("No playtime saved");
-	}
-
-	if (redraw) {
-		_gfxWidget->draw();
-		_date->draw();
-		_time->draw();
-		_playtime->draw();
-	}
-}
-
-#pragma mark -
-
-Common::StringList generateSavegameList(ScummEngine *scumm, bool saveMode) {
-	// Get savegame descriptions
-	Common::StringList descriptions;
-	uint i = saveMode ? 1 : 0;		//the autosave is on slot #0
-	bool avail_saves[81];
-
-	scumm->listSavegames(avail_saves, ARRAYSIZE(avail_saves));
-	for (; i < ARRAYSIZE(avail_saves); i++) {
-		Common::String name;
-		if (avail_saves[i])
-			scumm->getSavegameName(i, name);
-		descriptions.push_back(name);
-	}
-
-	return descriptions;
-}
+#ifndef DISABLE_HELP
 
 ScummMenuDialog::ScummMenuDialog(ScummEngine *scumm)
-	: ScummDialog("ScummMain"), _vm(scumm) {
-
-	new GUI::ButtonWidget(this, "ScummMain.Resume", "Resume", kPlayCmd, 'P');
-
-	new GUI::ButtonWidget(this, "ScummMain.Load", "Load", kLoadCmd, 'L');
-	_saveButton = new GUI::ButtonWidget(this, "ScummMain.Save", "Save", kSaveCmd, 'S');
-
-	new GUI::ButtonWidget(this, "ScummMain.Options", "Options", kOptionsCmd, 'O');
-#ifndef DISABLE_HELP
-	new GUI::ButtonWidget(this, "ScummMain.Help", "Help", kHelpCmd, 'H');
-#endif
-	new GUI::ButtonWidget(this, "ScummMain.About", "About", kAboutCmd, 'A');
-
-	new GUI::ButtonWidget(this, "ScummMain.Quit", "Quit", kQuitCmd, 'Q');
-
-	//
-	// Create the sub dialog(s)
-	//
-	_aboutDialog = new GUI::AboutDialog();
-	_optionsDialog = new ConfigDialog();
-#ifndef DISABLE_HELP
+	: MainMenuDialog(scumm) {
 	_helpDialog = new HelpDialog(scumm->_game);
-#endif
-	_saveDialog = new SaveLoadChooser("Save game:", "Save", true, scumm);
-	_loadDialog = new SaveLoadChooser("Load game:", "Load", false, scumm);
+	_helpButton->setEnabled(true);
 }
 
 ScummMenuDialog::~ScummMenuDialog() {
-	delete _aboutDialog;
-	delete _optionsDialog;
-#ifndef DISABLE_HELP
 	delete _helpDialog;
-#endif
-	delete _saveDialog;
-	delete _loadDialog;
 }
 
-void ScummMenuDialog::reflowLayout() {
-	if (!_vm->canSaveGameStateCurrently())
-		_saveButton->setEnabled(false);
-
-	Dialog::reflowLayout();
-}
-
-void ScummMenuDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
+void ScummMenuDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) {
 	switch (cmd) {
-	case kSaveCmd:
-		save();
-		break;
-	case kLoadCmd:
-		load();
-		break;
-	case kPlayCmd:
-		close();
-		break;
-	case kOptionsCmd:
-		_optionsDialog->runModal();
-		break;
-	case kAboutCmd:
-		_aboutDialog->runModal();
-		break;
-#ifndef DISABLE_HELP
 	case kHelpCmd:
 		_helpDialog->runModal();
 		break;
-#endif
-	case kQuitCmd:
-		_vm->quitGame();
-		close();
-		break;
 	default:
-		ScummDialog::handleCommand(sender, cmd, data);
+		MainMenuDialog::handleCommand(sender, cmd, data);
 	}
 }
-
-void ScummMenuDialog::save() {
-	int idx;
-	_saveDialog->setList(generateSavegameList(_vm, true));
-	idx = _saveDialog->runModal();
-	if (idx >= 0) {
-		String result(_saveDialog->getResultString());
-		char buffer[20];
-		const char *str;
-		if (result.empty()) {
-			// If the user was lazy and entered no save name, come up with a default name.
-			sprintf(buffer, "Save %d", idx + 1);
-			str = buffer;
-		} else
-			str = result.c_str();
-		_vm->requestSave(idx + 1, str);
-		close();
-	}
-}
-
-void ScummMenuDialog::load() {
-	int idx;
-	_loadDialog->setList(generateSavegameList(_vm, false));
-	idx = _loadDialog->runModal();
-	if (idx >= 0) {
-		_vm->requestLoad(idx);
-		close();
-	}
-}
-
-#pragma mark -
-
-enum {
-	kOKCmd = 'ok  '
-};
-
-enum {
-	kKeysCmd = 'KEYS'
-};
-
-// FIXME: We use the empty string as domain name here. This tells the
-// ConfigManager to use the 'default' domain for all its actions. We do that
-// to get as close as possible to editing the 'active' settings.
-//
-// However, that requires bad & evil hacks in the ConfigManager code,
-// and even then still doesn't work quite correctly.
-// For example, if the transient domain contains 'false' for the 'fullscreen'
-// flag, but the user used a hotkey to switch to windowed mode, then the dialog
-// will display the wrong value anyway.
-//
-// Proposed solution consisting of multiple steps:
-// 1) Add special code to the open() code that reads out everything stored
-//    in the transient domain that is controlled by this dialog, and updates
-//    the dialog accordingly.
-// 2) Even more code is added to query the backend for current settings, like
-//    the fullscreen mode flag etc., and also updates the dialog accordingly.
-// 3) The domain being edited is set to the active game domain.
-// 4) If the dialog is closed with the "OK" button, then we remove everything
-//    stored in the transient domain (or at least everything corresponding to
-//    switches in this dialog.
-//    If OTOH the dialog is closed with "Cancel" we do no such thing.
-//
-// These changes will achieve two things at once: Allow us to get rid of using
-//  "" as value for the domain, and in fact provide a somewhat better user
-// experience at the same time.
-ConfigDialog::ConfigDialog()
-	: GUI::OptionsDialog("", "ScummConfig") {
-
-	//
-	// Sound controllers
-	//
-
-	addVolumeControls(this, "ScummConfig.");
-
-	//
-	// Some misc options
-	//
-
-	// SCUMM has a talkspeed range of 0-9
-	addSubtitleControls(this, "ScummConfig.", 9);
-
-	//
-	// Add the buttons
-	//
-
-	new GUI::ButtonWidget(this, "ScummConfig.Ok", "OK", GUI::OptionsDialog::kOKCmd, 'O');
-	new GUI::ButtonWidget(this, "ScummConfig.Cancel", "Cancel", kCloseCmd, 'C');
-#ifdef SMALL_SCREEN_DEVICE
-	new GUI::ButtonWidget(this, "ScummConfig.Keys", "Keys", kKeysCmd, 'K');
-	_keysDialog = NULL;
-#endif
-}
-
-ConfigDialog::~ConfigDialog() {
-#ifdef SMALL_SCREEN_DEVICE
-	delete _keysDialog;
-#endif
-}
-
-void ConfigDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
-	switch (cmd) {
-	case kKeysCmd:
-#ifdef SMALL_SCREEN_DEVICE
-		//
-		// Create the sub dialog(s)
-		//
-		_keysDialog = new GUI::KeysDialog();
-		_keysDialog->runModal();
-		delete _keysDialog;
-		_keysDialog = NULL;
-#endif
-		break;
-	default:
-		GUI_OptionsDialog::handleCommand (sender, cmd, data);
-	}
-}
-
-#ifndef DISABLE_HELP
 
 #pragma mark -
 
@@ -636,24 +271,24 @@ enum {
 
 HelpDialog::HelpDialog(const GameSettings &game)
 	: ScummDialog("ScummHelp"), _game(game) {
-	_title = new StaticTextWidget(this, "ScummHelp.Title", "");
+	_title = new GUI::StaticTextWidget(this, "ScummHelp.Title", "");
 
 	_page = 1;
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundDefault;
 
 	_numPages = ScummHelp::numPages(_game.id);
 
-	_prevButton = new GUI::ButtonWidget(this, "ScummHelp.Prev", "Previous", kPrevCmd, 'P');
-	_nextButton = new GUI::ButtonWidget(this, "ScummHelp.Next", "Next", kNextCmd, 'N');
-	new GUI::ButtonWidget(this, "ScummHelp.Close", "Close", kCloseCmd, 'C');
+	_prevButton = new GUI::ButtonWidget(this, "ScummHelp.Prev", _("~P~revious"), 0, kPrevCmd);
+	_nextButton = new GUI::ButtonWidget(this, "ScummHelp.Next", _("~N~ext"), 0, kNextCmd);
+	new GUI::ButtonWidget(this, "ScummHelp.Close", _("~C~lose"), 0, GUI::kCloseCmd);
 	_prevButton->clearFlags(WIDGET_ENABLED);
 
 	_numLines = HELP_NUM_LINES;
 
 	// Dummy entries
 	for (int i = 0; i < HELP_NUM_LINES; i++) {
-		_key[i] = new StaticTextWidget(this, 0, 0, 10, 10, "", Graphics::kTextAlignRight);
-		_dsc[i] = new StaticTextWidget(this, 0, 0, 10, 10, "", Graphics::kTextAlignLeft);
+		_key[i] = new GUI::StaticTextWidget(this, 0, 0, 10, 10, "", Graphics::kTextAlignRight);
+		_dsc[i] = new GUI::StaticTextWidget(this, 0, 0, 10, 10, "", Graphics::kTextAlignLeft);
 	}
 
 }
@@ -705,7 +340,7 @@ void HelpDialog::displayKeyBindings() {
 	delete[] dscStr;
 }
 
-void HelpDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
+void HelpDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) {
 
 	switch (cmd) {
 	case kNextCmd:
@@ -740,21 +375,21 @@ void HelpDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 #pragma mark -
 
 InfoDialog::InfoDialog(ScummEngine *scumm, int res)
-: ScummDialog("scummDummyDialog"), _vm(scumm) { // dummy x and w
+: ScummDialog(0, 0, 0, 0), _vm(scumm) { // dummy x and w
 
 	_message = queryResString(res);
 
 	// Width and height are dummy
-	_text = new StaticTextWidget(this, 4, 4, 10, 10, _message, kTextAlignCenter);
+	_text = new GUI::StaticTextWidget(this, 0, 0, 10, 10, _message, kTextAlignCenter);
 }
 
 InfoDialog::InfoDialog(ScummEngine *scumm, const String& message)
-: ScummDialog("scummDummyDialog"), _vm(scumm) { // dummy x and w
+: ScummDialog(0, 0, 0, 0), _vm(scumm) { // dummy x and w
 
 	_message = message;
 
 	// Width and height are dummy
-	_text = new StaticTextWidget(this, 4, 4, 10, 10, _message, kTextAlignCenter);
+	_text = new GUI::StaticTextWidget(this, 0, 0, 10, 10, _message, kTextAlignCenter);
 }
 
 void InfoDialog::setInfoText(const String& message) {
@@ -775,7 +410,7 @@ void InfoDialog::reflowLayout() {
 	_x = (screenW - width) / 2;
 	_y = (screenH - height) / 2;
 
-	_text->setSize(_w - 8, _h);
+	_text->setSize(_w, _h);
 }
 
 const Common::String InfoDialog::queryResString(int stringno) {
@@ -832,14 +467,25 @@ void PauseDialog::handleKeyDown(Common::KeyState state) {
 }
 
 ConfirmDialog::ConfirmDialog(ScummEngine *scumm, int res)
-	: InfoDialog(scumm, res) {
+	: InfoDialog(scumm, res), _yesKey('y'), _noKey('n') {
+
+	if (_message.lastChar() != ')') {
+		_yesKey = _message.lastChar();
+		_message.deleteLastChar();
+
+		if (_yesKey >= 'A' && _yesKey <= 'Z')
+			_yesKey += 'a' - 'A';
+
+		_text->setLabel(_message);
+		reflowLayout();
+	}
 }
 
 void ConfirmDialog::handleKeyDown(Common::KeyState state) {
-	if (state.keycode == Common::KEYCODE_n) {
+	if (state.keycode == Common::KEYCODE_n || state.ascii == _noKey) {
 		setResult(0);
 		close();
-	} else if (state.keycode == Common::KEYCODE_y) {
+	} else if (state.keycode == Common::KEYCODE_y || state.ascii == _yesKey) {
 		setResult(1);
 		close();
 	} else
@@ -850,7 +496,7 @@ void ConfirmDialog::handleKeyDown(Common::KeyState state) {
 
 ValueDisplayDialog::ValueDisplayDialog(const Common::String& label, int minVal, int maxVal,
 		int val, uint16 incKey, uint16 decKey)
-	: GUI::Dialog("scummDummyDialog"),
+	: GUI::Dialog(0, 0, 0, 0),
 	_label(label), _min(minVal), _max(maxVal),
 	_value(val), _incKey(incKey), _decKey(decKey) {
 	assert(_min <= _value && _value <= _max);
@@ -866,7 +512,7 @@ void ValueDisplayDialog::drawDialog() {
 }
 
 void ValueDisplayDialog::handleTickle() {
-	if (getMillis() > _timer) {
+	if (g_system->getMillis() > _timer) {
 		close();
 	}
 }
@@ -894,7 +540,7 @@ void ValueDisplayDialog::handleKeyDown(Common::KeyState state) {
 			_value--;
 
 		setResult(_value);
-		_timer = getMillis() + kDisplayDelay;
+		_timer = g_system->getMillis() + kDisplayDelay;
 		draw();
 	} else {
 		close();
@@ -902,9 +548,9 @@ void ValueDisplayDialog::handleKeyDown(Common::KeyState state) {
 }
 
 void ValueDisplayDialog::open() {
-	GUI_Dialog::open();
+	GUI::Dialog::open();
 	setResult(_value);
-	_timer = getMillis() + kDisplayDelay;
+	_timer = g_system->getMillis() + kDisplayDelay;
 }
 
 SubtitleSettingsDialog::SubtitleSettingsDialog(ScummEngine *scumm, int value)
@@ -914,12 +560,12 @@ SubtitleSettingsDialog::SubtitleSettingsDialog(ScummEngine *scumm, int value)
 
 void SubtitleSettingsDialog::handleTickle() {
 	InfoDialog::handleTickle();
-	if (getMillis() > _timer)
+	if (g_system->getMillis() > _timer)
 		close();
 }
 
 void SubtitleSettingsDialog::handleKeyDown(Common::KeyState state) {
-	if (state.keycode == 't' && state.flags == Common::KBD_CTRL) {
+	if (state.keycode == Common::KEYCODE_t && state.hasFlags(Common::KBD_CTRL)) {
 		cycleValue();
 
 		reflowLayout();
@@ -951,7 +597,7 @@ void SubtitleSettingsDialog::cycleValue() {
 	else
 		setInfoText(subtitleDesc[_value]);
 
-	_timer = getMillis() + 1500;
+	_timer = g_system->getMillis() + 1500;
 }
 
 Indy3IQPointsDialog::Indy3IQPointsDialog(ScummEngine *scumm, char* text)

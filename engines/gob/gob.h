@@ -18,25 +18,39 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_GOB_H
 #define GOB_GOB_H
 
+#include "common/random.h"
 #include "common/system.h"
 #include "common/savefile.h"
 
-#include "gui/dialog.h"
+#include "graphics/pixelformat.h"
 
 #include "engines/engine.h"
 
+#include "gob/console.h"
+
 namespace GUI {
-	class StaticTextWidget;
+class StaticTextWidget;
 }
 
+/**
+ * This is the namespace of the Gob engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Gobliiins
+ * - Gobliins 2
+ * - Goblins 3
+ * - Ween: The Prophecy
+ * - Bargon Attack
+ * - Lost in Time
+ * - The Bizarre Adventures of Woodruff and the Schnibble
+ */
 namespace Gob {
 
 class Game;
@@ -55,6 +69,7 @@ class PalAnim;
 class Scenery;
 class Util;
 class SaveLoad;
+class GobConsole;
 
 #define WRITE_VAR_UINT32(var, val)  _vm->_inter->_variables->writeVar32(var, val)
 #define WRITE_VAR_UINT16(var, val)  _vm->_inter->_variables->writeVar16(var, val)
@@ -101,25 +116,26 @@ enum GameType {
 	kGameTypeInca2,
 	kGameTypeDynasty,
 	kGameTypeUrban,
-	kGameTypePlaytoon,
-	kGameTypePlaytnCk,
+	kGameTypePlaytoons,
 	kGameTypeBambou,
 	kGameTypeFascination,
 	kGameTypeGeisha,
-	kGameTypeMagicStones,
-	kGameTypeAdibou4,
-	kGameTypeAdibouUnknown
+	kGameTypeAdi2,
+	kGameTypeAdi4,
+	kGameTypeAdibou2,
+	kGameTypeAdibou1
 };
 
 enum Features {
-	kFeaturesNone    =      0,
-	kFeaturesCD      = 1 << 0,
-	kFeaturesEGA     = 1 << 1,
-	kFeaturesAdlib   = 1 << 2,
-	kFeatures640     = 1 << 3,
-	kFeaturesSCNDemo = 1 << 4,
-	kFeaturesBATDemo = 1 << 5,
-	kFeatures800x600     = 1 << 6
+	kFeaturesNone      =      0,
+	kFeaturesCD        = 1 << 0,
+	kFeaturesEGA       = 1 << 1,
+	kFeaturesAdLib     = 1 << 2,
+	kFeaturesSCNDemo   = 1 << 3,
+	kFeaturesBATDemo   = 1 << 4,
+	kFeatures640x480   = 1 << 5,
+	kFeatures800x600   = 1 << 6,
+	kFeaturesTrueColor = 1 << 7
 };
 
 enum {
@@ -139,23 +155,12 @@ enum {
 
 struct GOBGameDescription;
 
-class PauseDialog : public GUI::Dialog {
-public:
-	PauseDialog();
-
-  virtual void reflowLayout();
-	virtual void handleKeyDown(Common::KeyState state);
-
-private:
-	Common::String _message;
-	GUI::StaticTextWidget *_text;
-};
-
 class GobEngine : public Engine {
 private:
 	GameType _gameType;
 	int32 _features;
 	Common::Platform _platform;
+	GobConsole *_console;
 
 	uint32 _pauseStart;
 
@@ -168,6 +173,8 @@ private:
 	bool initGameParts();
 	void deinitGameParts();
 
+	bool initGraphics();
+
 public:
 	static const Common::Language _gobToScummVMLang[];
 
@@ -177,6 +184,8 @@ public:
 	uint16 _width;
 	uint16 _height;
 	uint8 _mode;
+
+	Graphics::PixelFormat _pixelFormat;
 
 	Common::String _startStk;
 	Common::String _startTot;
@@ -213,12 +222,21 @@ public:
 	GameType getGameType() const;
 	bool isCD() const;
 	bool isEGA() const;
-	bool is640() const;
-	bool hasAdlib() const;
+	bool hasAdLib() const;
 	bool isSCNDemo() const;
 	bool isBATDemo() const;
+	bool is640x480() const;
 	bool is800x600() const;
+	bool isTrueColor() const;
 	bool isDemo() const;
+
+	bool isCurrentTot(const Common::String &tot) const;
+
+	void setTrueColor(bool trueColor);
+
+	GUI::Debugger *getDebugger() { return _console; }
+
+	const Graphics::PixelFormat &getPixelFormat() const;
 
 	GobEngine(OSystem *syst);
 	virtual ~GobEngine();

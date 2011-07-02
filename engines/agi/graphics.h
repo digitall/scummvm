@@ -18,14 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef AGI_GRAPHICS_H
 #define AGI_GRAPHICS_H
-
 
 #include "agi/font.h"
 
@@ -42,7 +38,7 @@ class GfxMgr {
 private:
 	AgiBase *_vm;
 
-	uint8 _palette[256 * 4];
+	uint8 _palette[256 * 3];
 	uint8 *_agiScreen;
 	unsigned char *_screen;
 

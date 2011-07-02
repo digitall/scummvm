@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_MUSIC_ADLIBCHANNEL_H
 #define SKY_MUSIC_ADLIBCHANNEL_H
 
 #include "sky/music/musicbase.h"
-#include "sound/fmopl.h"
+#include "audio/fmopl.h"
 
 namespace Sky {
 
@@ -59,19 +56,19 @@ typedef struct {
 	uint8 tremoVibro;
 	uint8 freqOffset;
 	uint16 frequency;
-} AdlibChannelType;
+} AdLibChannelType;
 
-class AdlibChannel : public ChannelBase {
+class AdLibChannel : public ChannelBase {
 public:
-	AdlibChannel (FM_OPL *opl, uint8 *pMusicData, uint16 startOfData);
-	virtual ~AdlibChannel(void);
+	AdLibChannel (FM_OPL *opl, uint8 *pMusicData, uint16 startOfData);
+	virtual ~AdLibChannel();
 	virtual uint8 process(uint16 aktTime);
 	virtual void updateVolume(uint16 pVolume);
-	virtual bool isActive(void);
+	virtual bool isActive();
 private:
 	FM_OPL *_opl;
 	uint8 *_musicData;
-	AdlibChannelType _channelData;
+	AdLibChannelType _channelData;
 
 	InstrumentStruct *_instruments;
 	uint16 *_frequenceTable;
@@ -81,28 +78,28 @@ private:
 
 	// normal subs
 	void setRegister(uint8 regNum, uint8 value);
-	int32 getNextEventTime(void);
+	int32 getNextEventTime();
 	uint16 getNextNote(uint8 param);
-	void adlibSetupInstrument(void);
+	void adlibSetupInstrument();
 	void setupInstrument(uint8 opcode);
 	void setupChannelVolume(uint8 volume);
-	void stopNote(void);
+	void stopNote();
 
 	// Streamfunctions from Command90hTable
-	void com90_caseNoteOff(void);       // 0
-	void com90_stopChannel(void);       // 1
-	void com90_setupInstrument(void);   // 2
-	uint8 com90_updateTempo(void);      // 3
-	//void com90_dummy(void);           // 4
-	void com90_getFreqOffset(void);     // 5
-	void com90_getChannelVolume(void);  // 6
-	void com90_getTremoVibro(void);     // 7
-	void com90_loopMusic(void);         // 8
-	void com90_keyOff(void);            // 9
-	//void com90_error(void);           // 10
-	//void com90_doLodsb(void);         // 11
-	void com90_setLoopPoint(void);      // 12
-	//void com90_do_two_Lodsb(void);    // 13
+	void com90_caseNoteOff();       // 0
+	void com90_stopChannel();       // 1
+	void com90_setupInstrument();   // 2
+	uint8 com90_updateTempo();      // 3
+	//void com90_dummy();           // 4
+	void com90_getFreqOffset();     // 5
+	void com90_getChannelVolume();  // 6
+	void com90_getTremoVibro();     // 7
+	void com90_loopMusic();         // 8
+	void com90_keyOff();            // 9
+	//void com90_error();           // 10
+	//void com90_doLodsb();         // 11
+	void com90_setLoopPoint();      // 12
+	//void com90_do_two_Lodsb();    // 13
 };
 
 } // End of namespace Sky

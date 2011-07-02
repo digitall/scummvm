@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_LIST_INTERN_H
@@ -53,6 +50,7 @@ namespace ListInternal {
 		typedef Node<T> *	NodePtr;
 		typedef T &			ValueRef;
 		typedef T *			ValuePtr;
+		typedef T			ValueType;
 
 		NodeBase *_node;
 

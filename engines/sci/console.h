@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
  // Console module header file
@@ -29,24 +26,26 @@
 #define SCI_CONSOLE_H
 
 #include "gui/debugger.h"
+#include "sci/engine/vm.h"
 
 namespace Sci {
 
 class SciEngine;
 struct List;
 
-// Refer to the "addresses" command on how to pass address parameters
-int parse_reg_t(EngineState *s, const char *str, reg_t *dest);
-reg_t disassemble(EngineState *s, reg_t pos, int print_bw_tag, int print_bytecode);
+reg_t disassemble(EngineState *s, reg_t pos, bool printBWTag, bool printBytecode);
+bool isJumpOpcode(EngineState *s, reg_t pos, reg_t& jumpOffset);
 
 class Console : public GUI::Debugger {
 public:
-	Console(SciEngine *vm);
+	Console(SciEngine *engine);
 	virtual ~Console();
-	void preEnter();
-	void postEnter();
 
 	int printObject(reg_t pos);
+
+private:
+	virtual void preEnter();
+	virtual void postEnter();
 
 private:
 	// General
@@ -62,47 +61,41 @@ private:
 	bool cmdSuffixes(int argc, const char **argv);
 	bool cmdParseGrammar(int argc, const char **argv);
 	bool cmdParserNodes(int argc, const char **argv);
-	bool cmdParserWords(int argc, const char **argv);	
+	bool cmdParserWords(int argc, const char **argv);
 	bool cmdSentenceFragments(int argc, const char **argv);
 	bool cmdParse(int argc, const char **argv);
 	bool cmdSetParseNodes(int argc, const char **argv);
+	bool cmdSaid(int argc, const char **argv);
 	// Resources
+	bool cmdDiskDump(int argc, const char **argv);
 	bool cmdHexDump(int argc, const char **argv);
 	bool cmdResourceId(int argc, const char **argv);
-	bool cmdResourceSize(int argc, const char **argv);
+	bool cmdResourceInfo(int argc, const char **argv);
 	bool cmdResourceTypes(int argc, const char **argv);
 	bool cmdList(int argc, const char **argv);
 	bool cmdHexgrep(int argc, const char **argv);
+	bool cmdVerifyScripts(int argc, const char **argv);
 	// Game
 	bool cmdSaveGame(int argc, const char **argv);
 	bool cmdRestoreGame(int argc, const char **argv);
 	bool cmdRestartGame(int argc, const char **argv);
 	bool cmdGetVersion(int argc, const char **argv);
 	bool cmdRoomNumber(int argc, const char **argv);
-	bool cmdExit(int argc, const char **argv);
+	bool cmdQuit(int argc, const char **argv);
+	bool cmdListSaves(int argc, const char **argv);
 	// Screen
-	bool cmdSci0Palette(int argc, const char **argv);
-	bool cmdClearScreen(int argc, const char **argv);
-	bool cmdRedrawScreen(int argc, const char **argv);
-	bool cmdFillScreen(int argc, const char **argv);
 	bool cmdShowMap(int argc, const char **argv);
-	bool cmdUpdateZone(int argc, const char **argv);
-	bool cmdPropagateZone(int argc, const char **argv);
-	bool cmdPriorityBands(int argc, const char **argv);
 	// Graphics
+	bool cmdSetPalette(int argc, const char **argv);
 	bool cmdDrawPic(int argc, const char **argv);
-	bool cmdDrawRect(int argc, const char **argv);
 	bool cmdDrawCel(int argc, const char **argv);
-	bool cmdViewInfo(int argc, const char **argv);
-	// GUI
-	bool cmdCurrentPort(int argc, const char **argv);
-	bool cmdPrintPort(int argc, const char **argv);
-	bool cmdVisualState(int argc, const char **argv);
-	bool cmdFlushPorts(int argc, const char **argv);
-	bool cmdDynamicViews(int argc, const char **argv);
-	bool cmdDroppedViews(int argc, const char **argv);
-	bool cmdStatusBarColors(int argc, const char **argv);
-	bool cmdPrintWidget(int argc, const char **argv);
+	bool cmdUndither(int argc, const char **argv);
+	bool cmdPicVisualize(int argc, const char **argv);
+	bool cmdPlayVideo(int argc, const char **argv);
+	bool cmdAnimateList(int argc, const char **argv);
+	bool cmdWindowList(int argc, const char **argv);
+	bool cmdSavedBits(int argc, const char **argv);
+	bool cmdShowSavedBits(int argc, const char **argv);
 	// Segments
 	bool cmdPrintSegmentTable(int argc, const char **argv);
 	bool cmdSegmentInfo(int argc, const char **argv);
@@ -115,30 +108,40 @@ private:
 	bool cmdGCNormalize(int argc, const char **argv);
 	// Music/SFX
 	bool cmdSongLib(int argc, const char **argv);
+	bool cmdSongInfo(int argc, const char **argv);
 	bool cmdIsSample(int argc, const char **argv);
+	bool cmdStartSound(int argc, const char **argv);
+	bool cmdToggleSound(int argc, const char **argv);
+	bool cmdStopAllSounds(int argc, const char **argv);
 	bool cmdSfx01Header(int argc, const char **argv);
 	bool cmdSfx01Track(int argc, const char **argv);
-	bool cmdStopSfx(int argc, const char **argv);
+	bool cmdShowInstruments(int argc, const char **argv);
+	bool cmdMapInstrument(int argc, const char **argv);
 	// Script
 	bool cmdAddresses(int argc, const char **argv);
 	bool cmdRegisters(int argc, const char **argv);
 	bool cmdDissectScript(int argc, const char **argv);
-	bool cmdSetAccumulator(int argc, const char **argv);
 	bool cmdBacktrace(int argc, const char **argv);
-	bool cmdStep(int argc, const char **argv);
+	bool cmdTrace(int argc, const char **argv);
+	bool cmdStepOver(int argc, const char **argv);
 	bool cmdStepEvent(int argc, const char **argv);
 	bool cmdStepRet(int argc, const char **argv);
 	bool cmdStepGlobal(int argc, const char **argv);
 	bool cmdStepCallk(int argc, const char **argv);
-	bool cmdDissassemble(int argc, const char **argv);
-	bool cmdDissassembleAddress(int argc, const char **argv);
+	bool cmdDisassemble(int argc, const char **argv);
+	bool cmdDisassembleAddress(int argc, const char **argv);
+	bool cmdFindKernelFunctionCall(int argc, const char **argv);
 	bool cmdSend(int argc, const char **argv);
 	bool cmdGo(int argc, const char **argv);
+	bool cmdLogKernel(int argc, const char **argv);
 	// Breakpoints
 	bool cmdBreakpointList(int argc, const char **argv);
 	bool cmdBreakpointDelete(int argc, const char **argv);
-	bool cmdBreakpointExecMethod(int argc, const char **argv);
-	bool cmdBreakpointExecFunction(int argc, const char **argv);
+	bool cmdBreakpointMethod(int argc, const char **argv);
+	bool cmdBreakpointRead(int argc, const char **argv);
+	bool cmdBreakpointWrite(int argc, const char **argv);
+	bool cmdBreakpointKernel(int argc, const char **argv);
+	bool cmdBreakpointFunction(int argc, const char **argv);
 	// VM
 	bool cmdScriptSteps(int argc, const char **argv);
 	bool cmdVMVarlist(int argc, const char **argv);
@@ -151,13 +154,28 @@ private:
 	bool cmdViewActiveObject(int argc, const char **argv);
 	bool cmdViewAccumulatorObject(int argc, const char **argv);
 
+	bool parseInteger(const char *argument, int &result);
+
+	void printBasicVarInfo(reg_t variable);
+
 	bool segmentInfo(int nr);
-	void printList(List *l);
+	void printList(List *list);
 	int printNode(reg_t addr);
+	void hexDumpReg(const reg_t *data, int len, int regsPerLine = 4, int startOffset = 0, bool isArray = false);
 
 private:
-	SciEngine *_vm;
+	/**
+	 * Prints all the scripts calling the specified kernel function.
+	 * NOTE: The results produced by this aren't 100% correct, as it
+	 * does not dissect script exports
+	 */
+	void printKernelCallsFound(int kernelFuncNum, bool showFoundScripts);
+
+	SciEngine *_engine;
+	DebugState &_debugState;
 	bool _mouseVisible;
+	Common::String _videoFile;
+	int _videoFrameDelay;
 };
 
 } // End of namespace Sci

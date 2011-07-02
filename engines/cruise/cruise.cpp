@@ -18,22 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/events.h"
-#include "common/EventRecorder.h"
 #include "common/file.h"
-#include "common/savefile.h"
-#include "common/config-manager.h"
-#include "common/system.h"
+#include "common/debug-channels.h"
+#include "common/textconsole.h"
+
+#include "engines/util.h"
 
 #include "graphics/cursorman.h"
-
-#include "sound/mididrv.h"
-#include "sound/mixer.h"
 
 #include "cruise/cruise.h"
 #include "cruise/font.h"
@@ -47,33 +40,30 @@ namespace Cruise {
 
 CruiseEngine *_vm;
 
-CruiseEngine::CruiseEngine(OSystem * syst, const CRUISEGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
+CruiseEngine::CruiseEngine(OSystem * syst, const CRUISEGameDescription *gameDesc)
+	: Engine(syst), _gameDescription(gameDesc), _rnd("cruise") {
 
-#ifdef PALMOS_MODE
-	_currentVolumeFile = new Common::File();
-#endif
-
-	Common::addDebugChannel(kCruiseDebugScript, "scripts", "Scripts debug level");
-	Common::addDebugChannel(kCruiseDebugSound, "sound", "Sound debug level");
-
-	// Setup mixer
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType,
-			ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType,
-			ConfMan.getInt("music_volume"));
+	DebugMan.addDebugChannel(kCruiseDebugScript, "scripts", "Scripts debug level");
+	DebugMan.addDebugChannel(kCruiseDebugSound, "sound", "Sound debug level");
 
 	_vm = this;
 	_debugger = new Debugger();
 	_sound = new PCSound(_mixer, this);
 
-	g_eventRec.registerRandomSource(_rnd, "cruise");
+	// Setup mixer
+	syncSoundSettings();
 }
+
+extern void listMemory();
 
 CruiseEngine::~CruiseEngine() {
 	delete _debugger;
 	delete _sound;
 
 	freeSystem();
+
+	if (gDebugLevel > 0)
+		MemoryList();
 }
 
 bool CruiseEngine::hasFeature(EngineFeature f) const {
@@ -87,21 +77,22 @@ Common::Error CruiseEngine::run() {
 	// Initialize backend
 	initGraphics(320, 200, false);
 
-	if (!loadLanguageStrings())
-		return Common::kUnknownError;
+	if (!loadLanguageStrings()) {
+		error("Could not setup language data for your version");
+		return Common::kUnknownError;	// for compilers that don't support NORETURN
+	}
 
 	initialize();
 
 	Cruise::changeCursor(Cruise::CURSOR_NORMAL);
 	CursorMan.showMouse(true);
 
-
 	lastTick = 0;
 	lastTickDebug = 0;
 
 	mainLoop();
 
-	deinitialise();
+	deinitialize();
 
 	return Common::kNoError;
 }
@@ -124,28 +115,17 @@ void CruiseEngine::initialize() {
 	// another bit of video init
 
 	readVolCnf();
-
-	// Setup mixer
-//	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-//	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
-
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-	_mt32 = ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32"));
-	_adlib = (midiDriver == MD_ADLIB);
-
-	_driver = MidiDriver::createMidi(midiDriver);
-	if (_mt32)
-		_driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
+	_vm->_polyStruct = NULL;
 }
 
-void CruiseEngine::deinitialise() {
-	polyStructNorm.clear();
-	polyStructExp.clear();
+void CruiseEngine::deinitialize() {
+	_vm->_polyStructNorm.clear();
+	_vm->_polyStructExp.clear();
 
 	// Clear any backgrounds
 	for (int i = 0; i < 8; ++i) {
 		if (backgroundScreens[i]) {
-			free(backgroundScreens[i]);
+			MemFree(backgroundScreens[i]);
 			backgroundScreens[i] = NULL;
 		}
 	}
@@ -156,7 +136,7 @@ bool CruiseEngine::loadLanguageStrings() {
 
 	// Give preference to a language file
 	if (f.open("DELPHINE.LNG")) {
-		char *data = (char *)malloc(f.size());
+		char *data = (char *)MemAlloc(f.size());
 		f.read(data, f.size());
 		char *ptr = data;
 
@@ -174,19 +154,23 @@ bool CruiseEngine::loadLanguageStrings() {
 		}
 
 		f.close();
+		MemFree(data);
 
 	} else {
 		// Try and use one of the pre-defined language lists
 		const char **p = NULL;
 		switch (getLanguage()) {
-			case Common::EN_ANY:
-				p = englishLanguageStrings;
-				break;
-			case Common::FR_FRA:
-				p = frenchLanguageStrings;
-				break;
-			default:
-				return false;
+		case Common::EN_ANY:
+			p = englishLanguageStrings;
+			break;
+		case Common::FR_FRA:
+			p = frenchLanguageStrings;
+			break;
+		case Common::DE_DEU:
+			p = germanLanguageStrings;
+			break;
+		default:
+			return false;
 		}
 
 		// Load in the located language set
@@ -213,6 +197,8 @@ void CruiseEngine::pauseEngine(bool pause) {
 		flipScreen();
 		changeCursor(_savedCursor);
 	}
+
+	gfxModuleData_addDirtyRect(Common::Rect(64, 100, 256, 117));
 }
 
 Common::Error CruiseEngine::loadGameState(int slot) {
@@ -223,7 +209,7 @@ bool CruiseEngine::canLoadGameStateCurrently() {
 	return playerMenuEnabled != 0;
 }
 
-Common::Error CruiseEngine::saveGameState(int slot, const char *desc) {
+Common::Error CruiseEngine::saveGameState(int slot, const Common::String &desc) {
 	return saveSavegameData(slot, desc);
 }
 
@@ -238,6 +224,8 @@ const char *CruiseEngine::getSavegameFile(int saveGameIdx) {
 }
 
 void CruiseEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
 	_sound->syncSounds();
 }
 

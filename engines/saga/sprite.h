@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Sprite management module private header file
@@ -33,34 +30,18 @@ namespace Saga {
 #define SPRITE_ZMAX  16
 #define SPRITE_ZMASK 0x0F
 
-#define DECODE_BUF_LEN 64000
-
 struct SpriteInfo {
-	byte *decodedBuffer;
+	ByteArray decodedBuffer;
 	int width;
 	int height;
 	int xAlign;
 	int yAlign;
-};
 
-struct SpriteList {
-	int spriteListResourceId;
-	int spriteCount;
-	SpriteInfo *infoList;
-
-	void freeMem() {
-		for (int i = 0; i < spriteCount; i++) {
-			free(infoList[i].decodedBuffer);
-		}
-		free(infoList);
-		memset(this, 0, sizeof(*this));
-	}
-
-	SpriteList() {
-		memset(this, 0, sizeof(*this));
+	SpriteInfo() : width(0), height(0), xAlign(0), yAlign(0) {
 	}
 };
 
+typedef Common::Array<SpriteInfo> SpriteList;
 
 class Sprite {
 public:
@@ -70,31 +51,30 @@ public:
 	SpriteList _inventorySprites;
 
 	Sprite(SagaEngine *vm);
-	~Sprite(void);
+	~Sprite();
 
 	// draw scaled sprite using background scene mask
-	void drawOccluded(SpriteList &spriteList, int spriteNumber, const Point &screenCoord, int scale, int depth);
+	void drawOccluded(SpriteList &spriteList, uint spriteNumber, const Point &screenCoord, int scale, int depth);
 
 	// draw scaled sprite using background scene mask
-	void draw(SpriteList &spriteList, int32 spriteNumber, const Point &screenCoord, int scale, bool clipToScene = false);
+	void draw(SpriteList &spriteList, uint spriteNumber, const Point &screenCoord, int scale, bool clipToScene = false);
 
 	// main function
 	void drawClip(const Point &spritePointer, int width, int height, const byte *spriteBuffer, bool clipToScene = false);
 
-	void draw(SpriteList &spriteList, int32 spriteNumber, const Rect &screenRect, int scale, bool clipToScene = false);
+	void draw(SpriteList &spriteList, uint spriteNumber, const Rect &screenRect, int scale, bool clipToScene = false);
 
 	void loadList(int resourceId, SpriteList &spriteList); // load or append spriteList
-	bool hitTest(SpriteList &spriteList, int spriteNumber, const Point &screenCoord, int scale, const Point &testPoint);
-	void getScaledSpriteBuffer(SpriteList &spriteList, int spriteNumber, int scale, int &width, int &height, int &xAlign, int &yAlign, const byte *&buffer);
+	bool hitTest(SpriteList &spriteList, uint spriteNumber, const Point &screenCoord, int scale, const Point &testPoint);
+	void getScaledSpriteBuffer(SpriteList &spriteList, uint spriteNumber, int scale, int &width, int &height, int &xAlign, int &yAlign, const byte *&buffer);
 
 private:
 	void decodeRLEBuffer(const byte *inputBuffer, size_t inLength, size_t outLength);
-	void scaleBuffer(const byte *src, int width, int height, int scale);
+	void scaleBuffer(const byte *src, int width, int height, int scale, size_t outLength);
 
 	SagaEngine *_vm;
 	ResourceContext *_spriteContext;
-	byte *_decodeBuf;
-	size_t _decodeBufLen;
+	ByteArray _decodeBuf;
 };
 
 } // End of namespace Saga

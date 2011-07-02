@@ -18,17 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "base/plugins.h"
 
 #include "engines/advancedDetector.h"
+#include "engines/obsolete.h"
 #include "common/config-manager.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "agos/intern.h"
 #include "agos/agos.h"
@@ -50,7 +49,7 @@ struct AGOSGameDescription {
  * corresponding new target and platform combination.
  *
  */
-static const ADObsoleteGameID obsoleteGameIDsTable[] = {
+static const Engines::ObsoleteGameID obsoleteGameIDsTable[] = {
 	{"simon1acorn", "simon1", Common::kPlatformAcorn},
 	{"simon1amiga", "simon1", Common::kPlatformAmiga},
 	{"simon1cd32", "simon1", Common::kPlatformAmiga},
@@ -65,49 +64,43 @@ static const ADObsoleteGameID obsoleteGameIDsTable[] = {
 	{0, 0, Common::kPlatformUnknown}
 };
 
-static const PlainGameDescriptor simonGames[] = {
+static const PlainGameDescriptor agosGames[] = {
 	{"pn", "Personal Nightmare"},
 	{"elvira1", "Elvira - Mistress of the Dark"},
 	{"elvira2", "Elvira II - The Jaws of Cerberus"},
 	{"waxworks", "Waxworks"},
 	{"simon1", "Simon the Sorcerer 1"},
 	{"simon2", "Simon the Sorcerer 2"},
+#ifdef ENABLE_AGOS2
 	{"feeble", "The Feeble Files"},
 	{"dimp", "Demon in my Pocket"},
 	{"jumble", "Jumble"},
 	{"puzzle", "NoPatience"},
 	{"swampy", "Swampy Adventures"},
+#endif
 	{0, 0}
 };
 
 #include "agos/detection_tables.h"
 
-static const ADParams detectionParams = {
-	// Pointer to ADGameDescription or its superset structure
-	(const byte *)AGOS::gameDescriptions,
-	// Size of that superset structure
-	sizeof(AGOS::AGOSGameDescription),
-	// Number of bytes to compute MD5 sum for
-	5000,
-	// List of all engine targets
-	simonGames,
-	// Structure for autoupgrading obsolete targets
-	obsoleteGameIDsTable,
-	// Name of single gameid (optional)
-	0,
-	// List of files for file-based fallback detection (optional)
-	0,
-	// Flags
-	0,
-	// Additional GUI options (for every game}
-	Common::GUIO_NOLAUNCHLOAD
+static const char *directoryGlobs[] = {
+	"execute", // Used by Simon1 Acorn CD
+	0
 };
 
 using namespace AGOS;
 
 class AgosMetaEngine : public AdvancedMetaEngine {
 public:
-	AgosMetaEngine() : AdvancedMetaEngine(detectionParams) {}
+	AgosMetaEngine() : AdvancedMetaEngine(AGOS::gameDescriptions, sizeof(AGOS::AGOSGameDescription), agosGames) {
+		_guioptions = Common::GUIO_NOLAUNCHLOAD;
+		_maxScanDepth = 2;
+		_directoryGlobs = directoryGlobs;
+	}
+
+	virtual GameDescriptor findGame(const char *gameid) const {
+		return Engines::findGameID(gameid, _gameids, obsoleteGameIDsTable);
+	}
 
 	virtual const char *getName() const {
 		return "AGOS";
@@ -118,7 +111,13 @@ public:
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;
+
+	virtual Common::Error createInstance(OSystem *syst, Engine **engine) const {
+		Engines::upgradeTargetIfNecessary(obsoleteGameIDsTable);
+		return AdvancedMetaEngine::createInstance(syst, engine);
+	}
 	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
+
 	virtual SaveStateList listSaves(const char *target) const;
 	virtual int getMaximumSaveSlot() const;
 };
@@ -138,41 +137,41 @@ bool AgosMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGame
 	bool res = true;
 
 	switch (gd->gameType) {
-#ifdef ENABLE_PN
 	case AGOS::GType_PN:
-		*engine = new AGOS::AGOSEngine_PN(syst);
+		*engine = new AGOS::AGOSEngine_PN(syst, gd);
 		break;
-#endif
 	case AGOS::GType_ELVIRA1:
-		*engine = new AGOS::AGOSEngine_Elvira1(syst);
+		*engine = new AGOS::AGOSEngine_Elvira1(syst, gd);
 		break;
 	case AGOS::GType_ELVIRA2:
-		*engine = new AGOS::AGOSEngine_Elvira2(syst);
+		*engine = new AGOS::AGOSEngine_Elvira2(syst, gd);
 		break;
 	case AGOS::GType_WW:
-		*engine = new AGOS::AGOSEngine_Waxworks(syst);
+		*engine = new AGOS::AGOSEngine_Waxworks(syst, gd);
 		break;
 	case AGOS::GType_SIMON1:
-		*engine = new AGOS::AGOSEngine_Simon1(syst);
+		*engine = new AGOS::AGOSEngine_Simon1(syst, gd);
 		break;
 	case AGOS::GType_SIMON2:
-		*engine = new AGOS::AGOSEngine_Simon2(syst);
+		*engine = new AGOS::AGOSEngine_Simon2(syst, gd);
 		break;
+#ifdef ENABLE_AGOS2
 	case AGOS::GType_FF:
 		if (gd->features & GF_DEMO)
-			*engine = new AGOS::AGOSEngine_FeebleDemo(syst);
+			*engine = new AGOS::AGOSEngine_FeebleDemo(syst, gd);
 		else
-			*engine = new AGOS::AGOSEngine_Feeble(syst);
+			*engine = new AGOS::AGOSEngine_Feeble(syst, gd);
 		break;
 	case AGOS::GType_PP:
-		*engine = new AGOS::AGOSEngine_PuzzlePack(syst);
+		if (gd->gameId == GID_DIMP)
+			*engine = new AGOS::AGOSEngine_DIMP(syst, gd);
+		else
+			*engine = new AGOS::AGOSEngine_PuzzlePack(syst, gd);
 		break;
+#endif
 	default:
 		res = false;
 		error("AGOS engine: unknown gameType");
-	}
-	if (res) {
-		((AGOS::AGOSEngine *)*engine)->_gameDescription = gd;
 	}
 
 	return res;
@@ -180,7 +179,7 @@ bool AgosMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGame
 
 SaveStateList AgosMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringList filenames;
+	Common::StringArray filenames;
 	Common::String saveDesc;
 	Common::String pattern = target;
 	pattern += ".???";
@@ -189,7 +188,7 @@ SaveStateList AgosMetaEngine::listSaves(const char *target) const {
 	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
 
 	SaveStateList saveList;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); file++) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 3 digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + file->size() - 3);
 

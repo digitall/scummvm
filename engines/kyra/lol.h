@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -31,11 +28,14 @@
 #include "kyra/kyra_v1.h"
 #include "kyra/script_tim.h"
 #include "kyra/script.h"
-#include "kyra/sound.h"
 #include "kyra/gui_lol.h"
 #include "kyra/text_lol.h"
 
 #include "common/list.h"
+
+namespace Audio {
+class SeekableAudioStream;
+} // End of namespace Audio
 
 namespace Kyra {
 
@@ -49,7 +49,7 @@ struct LoLCharacter {
 	uint8 raceClassSex;
 	int16 id;
 	uint8 curFaceFrame;
-	uint8 defaultFaceFrame;
+	uint8 tempFaceFrame;
 	uint8 screamSfx;
 	const uint16 *defaultModifiers;
 	uint16 itemsMight[8];
@@ -147,7 +147,7 @@ struct MonsterInPlay {
 	uint8 curDistWeapon;
 	int8 distAttackTick;
 	uint16 assignedItems;
-	uint8 field_2A[4];
+	uint8 equipmentShapes[4];
 };
 
 struct ItemInPlay {
@@ -225,7 +225,7 @@ struct FlyingObject {
 	uint8 enable;
 	uint8 objectType;
 	uint16 attackerId;
-	uint16 item;
+	Item item;
 	uint16 x;
 	uint16 y;
 	uint8 flyingHeight;
@@ -256,7 +256,7 @@ struct LevelTempData {
 struct MapLegendData {
 	uint8 shapeIndex;
 	bool enable;
-	int8 x;
+	int8 y;
 	uint16 stringId;
 };
 
@@ -276,7 +276,7 @@ struct FireballState {
 		step = 10;
 		finalize = false;
 		finProgress = 0;
-	};
+	}
 
 	bool active;
 	int16 destX;
@@ -300,7 +300,9 @@ class LoLEngine : public KyraEngine_v1 {
 friend class GUI_LoL;
 friend class TextDisplayer_LoL;
 friend class TIMInterpreter_LoL;
+friend class TimAnimator;
 friend class Debugger_LoL;
+friend class HistoryPlayer;
 public:
 	LoLEngine(OSystem *system, const GameFlags &flags);
 	~LoLEngine();
@@ -330,6 +332,9 @@ private:
 	void registerDefaultSettings();
 	void writeSettings();
 	void readSettings();
+
+	const char *const *_pakFileList;
+	int _pakFileListSize;
 
 	// options
 	int _monsterDifficulty;
@@ -364,6 +369,10 @@ private:
 	};
 
 	static const CharacterPrev _charPreviews[];
+
+	// PC98 specific data
+	static const uint16 _charPosXPC98[];
+	static const uint8 _charNamesPC98[][11];
 
 	WSAMovie_v2 *_chargenWSA;
 	static const uint8 _chargenFrameTableTalkie[];
@@ -445,7 +454,6 @@ private:
 
 	static const uint8 _clock2Timers[];
 	static const uint8 _numClock2Timers;
-	int _timer3Para;
 
 	// sound
 	int convertVolumeToMixer(int value);
@@ -480,7 +488,8 @@ private:
 	uint16 _envSfxQueuedBlocks[10];
 	int _nextSpeechId;
 	int _nextSpeaker;
-	Common::List<Audio::AudioStream*> _speechList;
+	typedef Common::List<Audio::SeekableAudioStream *> SpeechList;
+	SpeechList _speechList;
 
 	int _curTlkFile;
 
@@ -495,6 +504,8 @@ private:
 	int _ingameGMSoundIndexSize;
 	const uint8 *_ingameMT32SoundIndex;
 	int _ingameMT32SoundIndexSize;
+	const uint8 *_ingamePCSpeakerSoundIndex;
+	int _ingamePCSpeakerSoundIndexSize;
 
 	AudioDataStruct _soundData[3];
 
@@ -618,15 +629,15 @@ private:
 
 	// text
 	int characterSays(int track, int charId, bool redraw);
-	int playCharacterScriptChat(int charId, int mode, int unk1, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex);
+	int playCharacterScriptChat(int charId, int mode, int restorePortrait, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex);
 
 	TextDisplayer_LoL *_txt;
 
 	// emc scripts
 	void runInitScript(const char *filename, int optionalFunc);
 	void runInfScript(const char *filename);
-	void runLevelScript(int block, int sub);
-	void runLevelScriptCustom(int block, int sub, int charNum, int item, int reg3, int reg4);
+	void runLevelScript(int block, int flags);
+	void runLevelScriptCustom(int block, int flags, int charNum, int item, int reg3, int reg4);
 	bool checkSceneUpdateNeed(int func);
 
 	EMCData _scriptData;
@@ -648,7 +659,7 @@ private:
 	int olol_setGameFlag(EMCState *script);
 	int olol_testGameFlag(EMCState *script);
 	int olol_loadLevelGraphics(EMCState *script);
-	int olol_loadCmzFile(EMCState *script);
+	int olol_loadBlockProperties(EMCState *script);
 	int olol_loadMonsterShapes(EMCState *script);
 	int olol_deleteHandItem(EMCState *script);
 	int olol_allocItemPropertiesBuffer(EMCState *script);
@@ -706,7 +717,7 @@ private:
 	int olol_setScriptTimer(EMCState *script);
 	int olol_createHandItem(EMCState *script);
 	int olol_playAttackSound(EMCState *script);
-	int olol_characterJoinsParty(EMCState *script);
+	int olol_addRemoveCharacter(EMCState *script);
 	int olol_giveItem(EMCState *script);
 	int olol_loadTimScript(EMCState *script);
 	int olol_runTimScript(EMCState *script);
@@ -731,11 +742,12 @@ private:
 	int olol_drawExitButton(EMCState *script);
 	int olol_loadSoundFile(EMCState *script);
 	int olol_playMusicTrack(EMCState *script);
+	int olol_deleteMonstersFromBlock(EMCState *script);
 	int olol_countBlockItems(EMCState *script);
 	int olol_characterSkillTest(EMCState *script);
 	int olol_countAllMonsters(EMCState *script);
 	int olol_playEndSequence(EMCState *script);
-	int olol_stopCharacterSpeech(EMCState *script);
+	int olol_stopPortraitSpeechAnim(EMCState *script);
 	int olol_setPaletteBrightness(EMCState *script);
 	int olol_calcInflictableDamage(EMCState *script);
 	int olol_getInflictedDamage(EMCState *script);
@@ -754,6 +766,7 @@ private:
 	int olol_setNextFunc(EMCState *script);
 	int olol_dummy1(EMCState *script);
 	int olol_suspendMonster(EMCState *script);
+	int olol_setScriptTextParameter(EMCState *script);
 	int olol_triggerEventOnMouseButtonClick(EMCState *script);
 	int olol_printWindowText(EMCState *script);
 	int olol_countSpecificMonsters(EMCState *script);
@@ -787,6 +800,8 @@ private:
 	int olol_assignSpecialGuiShape(EMCState *script);
 	int olol_findInventoryItem(EMCState *script);
 	int olol_restoreFadePalette(EMCState *script);
+	int olol_getSelectedCharacter(EMCState *script);
+	int olol_setHandItem(EMCState *script);
 	int olol_drinkBezelCup(EMCState *script);
 	int olol_changeItemTypeOrFlag(EMCState *script);
 	int olol_placeInventoryItemInHand(EMCState *script);
@@ -814,14 +829,14 @@ private:
 	// tim opcode
 	void setupOpcodeTable();
 
-	Common::Array<const TIMOpcode*> _timIntroOpcodes;
+	Common::Array<const TIMOpcode *> _timIntroOpcodes;
 	int tlol_setupPaletteFade(const TIM *tim, const uint16 *param);
 	int tlol_loadPalette(const TIM *tim, const uint16 *param);
 	int tlol_setupPaletteFadeEx(const TIM *tim, const uint16 *param);
 	int tlol_processWsaFrame(const TIM *tim, const uint16 *param);
 	int tlol_displayText(const TIM *tim, const uint16 *param);
 
-	Common::Array<const TIMOpcode*> _timOutroOpcodes;
+	Common::Array<const TIMOpcode *> _timOutroOpcodes;
 	int tlol_fadeInScene(const TIM *tim, const uint16 *param);
 	int tlol_unusedResourceFunc(const TIM *tim, const uint16 *param);
 	int tlol_fadeInPalette(const TIM *tim, const uint16 *param);
@@ -830,7 +845,7 @@ private:
 	int tlol_delayForChat(const TIM *tim, const uint16 *param);
 	int tlol_fadeOutSound(const TIM *tim, const uint16 *param);
 
-	Common::Array<const TIMOpcode*> _timIngameOpcodes;
+	Common::Array<const TIMOpcode *> _timIngameOpcodes;
 	int tlol_initSceneWindowDialogue(const TIM *tim, const uint16 *param);
 	int tlol_restoreAfterSceneWindowDialogue(const TIM *tim, const uint16 *param);
 	int tlol_giveItem(const TIM *tim, const uint16 *param);
@@ -855,8 +870,8 @@ private:
 	uint8 *_levelLangFile;
 
 	int _lastUsedStringBuffer;
-	char _stringBuffer[5][512];	// TODO: The original used a size of 512, it looks a bit large.
-								// Maybe we can someday reduce the size.
+	char _stringBuffer[5][512]; // TODO: The original used a size of 512, it looks a bit large.
+	                            // Maybe we can someday reduce the size.
 	char *getLangString(uint16 id);
 	uint8 *getTableEntry(uint8 *buffer, uint16 id);
 	void decodeSjis(const char *src, char *dst);
@@ -874,8 +889,9 @@ private:
 	void fadeText();
 	void transformRegion(int x1, int y1, int x2, int y2, int w, int h, int srcPage, int dstPage);
 	void setPaletteBrightness(const Palette &srcPal, int brightness, int modifier);
-	void generateBrightnessPalette(const Palette &src, Palette &dst, int brightness, int modifier);
+	void generateBrightnessPalette(const Palette &src, Palette &dst, int brightness, int16 modifier);
 	void generateFlashPalette(const Palette &src, Palette &dst, int colorFlags);
+	void createTransparencyTables();
 	void updateSequenceBackgroundAnimations();
 
 	bool _dialogueField;
@@ -905,7 +921,7 @@ private:
 	void calcCharPortraitXpos();
 
 	void updatePortraitSpeechAnim();
-	void updatePortraits();
+	void stopPortraitSpeechAnim();
 	void initTextFading(int textType, int clearField);
 	void setCharFaceFrame(int charNum, int frameNum);
 	void faceFrameRefresh(int charNum);
@@ -924,7 +940,7 @@ private:
 	int _updateCharNum;
 	int _updatePortraitSpeechAnimDuration;
 	int _portraitSpeechAnimMode;
-	int _updateCharV3;
+	int _resetPortraitAfterSpeechAnim;
 	int _textColorFlag;
 	bool _fadeText;
 	int _needSceneRestore;
@@ -956,22 +972,23 @@ private:
 	void setLampMode(bool lampOn);
 	void updateLampStatus();
 
-	int _lampEffect;
+	int8 _lampEffect;
 	int _brightness;
 	int _lampOilStatus;
 	uint32 _lampStatusTimer;
 	bool _lampStatusSuspended;
+	uint8 _blockBrightness;
 
 	// level
 	void loadLevel(int index);
 	void addLevelItems();
 	void loadLevelWallData(int index, bool mapShapes);
-	void assignBlockObject(uint16 *cmzItemIndex, uint16 item);
+	void assignBlockObject(LevelBlockProperty *l, uint16 item);
 	int assignLevelShapes(int index);
 	uint8 *getLevelShapes(int index);
 	void restoreBlockTempData(int index);
 	void restoreTempDataAdjustMonsterStrength(int index);
-	void loadCmzFile(const char *file);
+	void loadBlockProperties(const char *cmzFile);
 	void loadLevelShpDat(const char *shpFile, const char *datFile, bool flag);
 	void loadLevelGraphics(const char *file, int specialColor, int weight, int vcnLen, int vmpLen, const char *palFile);
 
@@ -1070,6 +1087,7 @@ private:
 	uint8 *_vcnShift;
 	uint8 *_vcnExpTable;
 	uint16 *_vmpPtr;
+	uint8 *_vcfBlocks;
 	uint16 *_blockDrawingBuffer;
 	uint8 *_sceneWindowBuffer;
 	LevelShapeProperty *_levelShapeProperties;
@@ -1080,7 +1098,7 @@ private:
 	uint16 _specialGuiShapeY;
 	uint16 _specialGuiShapeMirrorFlag;
 
-	char _lastSuppFile[12];
+	char _lastBlockDataFile[12];
 	char _lastOverridePalFile[12];
 	char *_lastOverridePalFilePtr;
 	int _lastSpecialColor;
@@ -1091,14 +1109,14 @@ private:
 	int _sceneDrawVarLeft;
 	int _wllProcessFlag;
 
-	uint8 *_trueLightTable2;
-	uint8 *_trueLightTable1;
+	uint8 *_transparencyTable2;
+	uint8 *_transparencyTable1;
 
 	int _loadSuppFilesFlag;
 
 	uint8 *_wllVmpMap;
 	int8 *_wllShapeMap;
-	uint8 *_wllBuffer3;
+	uint8 *_specialWallTypes;
 	uint8 *_wllBuffer4;
 	uint8 *_wllWallFlags;
 
@@ -1124,14 +1142,14 @@ private:
 	uint16 _dmScaleH;
 
 	int _lastMouseRegion;
-	int _seqWindowX1, _seqWindowY1,	_seqWindowX2, _seqWindowY2, _seqTrigger;
-	int _spsWindowX, _spsWindowY,	_spsWindowW, _spsWindowH;
+	int _seqWindowX1, _seqWindowY1, _seqWindowX2, _seqWindowY2, _seqTrigger;
+	int _spsWindowX, _spsWindowY, _spsWindowW, _spsWindowH;
 
 	uint8 *_tempBuffer5120;
 
-	const char *const * _levelDatList;
+	const char * const *_levelDatList;
 	int _levelDatListSize;
-	const char *const * _levelShpList;
+	const char * const *_levelShpList;
 	int _levelShpListSize;
 
 	const int8 *_dscUnk1;
@@ -1183,20 +1201,20 @@ private:
 	// items
 	void giveCredits(int credits, int redraw);
 	void takeCredits(int credits, int redraw);
-	int makeItem(int itemType, int curFrame, int flags);
-	void placeMoveLevelItem(int itemIndex, int level, int block, int xOffs, int yOffs, int flyingHeight);
-	bool addItemToInventory(int itemIndex);
-	bool testUnkItemFlags(int itemIndex);
-	void deleteItem(int itemIndex);
+	Item makeItem(int itemType, int curFrame, int flags);
+	void placeMoveLevelItem(Item itemIndex, int level, int block, int xOffs, int yOffs, int flyingHeight);
+	bool addItemToInventory(Item itemIndex);
+	bool testUnkItemFlags(Item itemIndex);
+	void deleteItem(Item itemIndex);
 	ItemInPlay *findObject(uint16 index);
-	void runItemScript(int charNum, int item, int sub, int next, int reg4);
-	void setHandItem(uint16 itemIndex);
+	void runItemScript(int charNum, Item item, int flags, int next, int reg4);
+	void setHandItem(Item itemIndex);
 	bool itemEquipped(int charNum, uint16 itemType);
 
-	void setItemPosition(int item, uint16 x, uint16 y, int flyingHeight, int b);
-	void removeLevelItem(int item, int block);
-	bool launchObject(int objectType, int item, int startX, int startY, int flyingHeight, int direction, int, int attackerId, int c);
-	void endObjectFlight(FlyingObject *t, int x, int y, int objectOnNextBlock);
+	void setItemPosition(Item item, uint16 x, uint16 y, int flyingHeight, int b);
+	void removeLevelItem(Item item, int block);
+	bool launchObject(int objectType, Item item, int startX, int startY, int flyingHeight, int direction, int, int attackerId, int c);
+	void endObjectFlight(FlyingObject *t, int x, int y, int collisionObject);
 	void processObjectFlight(FlyingObject *t, int x, int y);
 	void updateObjectFlightPosition(FlyingObject *t);
 	void objectFlightProcessHits(FlyingObject *t, int x, int y, int objectOnNextBlock);
@@ -1204,7 +1222,7 @@ private:
 
 	void assignItemToBlock(uint16 *assignedBlockObjects, int id);
 	int checkDrawObjectSpace(int itemX, int itemY, int partyX, int partyY);
-	int checkSceneForItems(uint16 *blockDrawObjects, int colour);
+	int checkSceneForItems(uint16 *blockDrawObjects, int color);
 
 	uint8 _moneyColumnHeight[5];
 	uint16 _credits;
@@ -1212,9 +1230,9 @@ private:
 	ItemInPlay *_itemsInPlay;
 	ItemProperty *_itemProperties;
 
-	int _itemInHand;
-	uint16 _inventory[48];
-	int _inventoryCurItem;
+	Item _itemInHand;
+	Item _inventory[48];
+	Item _inventoryCurItem;
 	int _currentControlMode;
 	int _specialSceneFlag;
 	int _lastCharInventory;
@@ -1250,10 +1268,10 @@ private:
 	int calcMonsterDirection(uint16 x1, uint16 y1, uint16 x2, uint16 y2);
 	void setMonsterDirection(MonsterInPlay *monster, int dir);
 	void monsterDropItems(MonsterInPlay *monster);
-	void removeAssignedObjectFromBlock(LevelBlockProperty *l, int id);
-	void removeDrawObjectFromBlock(LevelBlockProperty *l, int id);
-	void assignMonsterToBlock(uint16 *assignedBlockObjects, int id);
-	void giveItemToMonster(MonsterInPlay *monster, uint16 item);
+	void removeAssignedObjectFromBlock(LevelBlockProperty *l, uint16 id);
+	void removeDrawObjectFromBlock(LevelBlockProperty *l, uint16 id);
+	void assignMonsterToBlock(uint16 *assignedBlockObjects, uint16 id);
+	void giveItemToMonster(MonsterInPlay *monster, Item item);
 	int checkBlockBeforeObjectPlacement(uint16 x, uint16 y, uint16 objectWidth, uint16 testFlag, uint16 wallFlag);
 	int checkBlockForWallsAndSufficientSpace(int block, int x, int y, int objectWidth, int testFlag, int wallFlag);
 	int calcMonsterSkillLevel(int id, int a);
@@ -1269,9 +1287,9 @@ private:
 	void redrawSceneItem();
 	int calcItemMonsterPosition(ItemInPlay *i, uint16 direction);
 	void calcSpriteRelPosition(uint16 x1, uint16 y1, int &x2, int &y2, uint16 direction);
-	void drawDoor(uint8 *shape, uint8 *table, int index, int unk2, int w, int h, int flags);
-	void drawDoorOrMonsterShape(uint8 *shape, uint8 *table, int x, int y, int flags, const uint8 *ovl);
-	uint8 *drawItemOrMonster(uint8 *shape, uint8 *ovl, int x, int y, int fineX, int fineY, int flags, int tblValue, bool vflip);
+	void drawDoor(uint8 *shape, uint8 *doorPalette, int index, int unk2, int w, int h, int flags);
+	void drawDoorOrMonsterEquipment(uint8 *shape, uint8 *objectPalette, int x, int y, int flags, const uint8 *brightnessOverlay);
+	uint8 *drawItemOrMonster(uint8 *shape, uint8 *monsterPalette, int x, int y, int fineX, int fineY, int flags, int tblValue, bool vflip);
 	int calcDrawingLayerParameters(int srcX, int srcY, int &x2, int &y2, uint16 &w, uint16 &h, uint8 *shape, int vflip);
 
 	void updateMonster(MonsterInPlay *monster);
@@ -1296,8 +1314,8 @@ private:
 	uint8 _monsterAnimType[3];
 	uint16 _monsterCurBlock;
 	int _objectLastDirection;
-	int _monsterCountUnk;
-	int _monsterShiftAlt;
+	int _monsterStepCounter;
+	int _monsterStepMode;
 
 	const uint16 *_monsterModifiers;
 	int _monsterModifiersSize;
@@ -1322,11 +1340,11 @@ private:
 
 	uint8 *_pageBuffer1;
 	uint8 *_pageBuffer2;
-	
+
 	// spells
-	typedef Common::Functor1Mem<ActiveSpell*, int, LoLEngine> SpellProc;
-	Common::Array<const SpellProc*> _spellProcs;
-	typedef void (LoLEngine::*SpellProcCallback)(WSAMovie_v2*, int, int);
+	typedef Common::Functor1Mem<ActiveSpell *, int, LoLEngine> SpellProc;
+	Common::Array<const SpellProc *> _spellProcs;
+	typedef void (LoLEngine::*SpellProcCallback)(WSAMovie_v2 *, int, int);
 
 	int castSpell(int charNum, int spellType, int spellLevel);
 
@@ -1371,7 +1389,7 @@ private:
 	void inflictMagicalDamageForBlock(int block, int attacker, int damage, int index);
 
 	ActiveSpell _activeSpell;
-	int8 _availableSpells[7];
+	int8 _availableSpells[8];
 	int _selectedSpell;
 	const SpellProperty *_spellProperties;
 	int _spellPropertiesSize;
@@ -1421,7 +1439,6 @@ private:
 	void stunCharacter(int charNum);
 	void restoreSwampPalette();
 
-	void distObj1Sub(int a, int b, int c, int d);
 	void launchMagicViper();
 
 	void breakIceWall(uint8 *pal1, uint8 *pal2);
@@ -1470,13 +1487,40 @@ private:
 
 	// save
 	Common::Error loadGameState(int slot);
-	Common::Error saveGameState(int slot, const char *saveName, const Graphics::Surface *thumbnail);
+	Common::Error saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail);
+
+	Graphics::Surface *generateSaveThumbnail() const;
 
 	void generateTempData();
 	LevelTempData *_lvlTempData[29];
 };
 
-} // end of namespace Kyra
+class HistoryPlayer {
+public:
+	HistoryPlayer(LoLEngine *vm);
+	~HistoryPlayer();
+
+	void play();
+private:
+	OSystem *_system;
+	LoLEngine *_vm;
+	Screen *_screen;
+
+	int _x, _y, _width, _height;
+	int _frame;
+	Movie *_wsa;
+
+	void loadWsa(const char *filename);
+	void playWsa(bool direction);
+	void restoreWsaBkgd();
+
+	Movie *_fireWsa;
+	int _fireFrame;
+	uint32 _nextFireTime;
+	void updateFire();
+};
+
+} // End of namespace Kyra
 
 #endif
 

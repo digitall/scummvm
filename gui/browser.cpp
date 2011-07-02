@@ -17,18 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "gui/browser.h"
-#include "gui/GuiManager.h"
-#include "gui/ListWidget.h"
+#include "gui/widgets/list.h"
 
 #include "common/config-manager.h"
 #include "common/system.h"
 #include "common/algorithm.h"
+
+#include "common/translation.h"
 
 namespace GUI {
 
@@ -36,101 +34,6 @@ enum {
 	kChooseCmd = 'Chos',
 	kGoUpCmd = 'GoUp'
 };
-
-#ifdef MACOSX
-/* On Mac OS X, use the native file selector dialog. We could do the same for
- * other operating systems.
- */
-
-BrowserDialog::BrowserDialog(const char *title, bool dirBrowser)
-	: Dialog("Browser") {
-	_titleRef = CFStringCreateWithCString(0, title, CFStringGetSystemEncoding());
-	_isDirBrowser = dirBrowser;
-}
-
-BrowserDialog::~BrowserDialog() {
-	CFRelease(_titleRef);
-}
-
-int BrowserDialog::runModal() {
-	NavDialogRef dialogRef;
-	WindowRef windowRef = 0;
-	NavDialogCreationOptions options;
-	NavUserAction result;
-	NavReplyRecord reply;
-	OSStatus err;
-	bool choiceMade = false;
-
-	// If in fullscreen mode, switch to windowed mode
-	bool wasFullscreen = g_system->getFeatureState(OSystem::kFeatureFullscreenMode);
-	if (wasFullscreen) {
-		g_system->beginGFXTransaction();
-		g_system->setFeatureState(OSystem::kFeatureFullscreenMode, false);
-		g_system->endGFXTransaction();
-	}
-
-	// Temporarily show the real mouse
-	CGDisplayShowCursor(kCGDirectMainDisplay);
-
-	err = NavGetDefaultDialogCreationOptions(&options);
-	assert(err == noErr);
-	options.windowTitle = _titleRef;
-//	options.message = CFSTR("Select your game directory");
-	options.modality = kWindowModalityAppModal;
-
-	if (_isDirBrowser)
-		err = NavCreateChooseFolderDialog(&options, 0, 0, 0, &dialogRef);
-	else
-		err = NavCreateChooseFileDialog(&options, 0, 0, 0, 0, 0, &dialogRef);
-	assert(err == noErr);
-
-	windowRef = NavDialogGetWindow(dialogRef);
-
-	err = NavDialogRun(dialogRef);
-	assert(err == noErr);
-
-	CGDisplayHideCursor(kCGDirectMainDisplay);
-
-	result = NavDialogGetUserAction(dialogRef);
-
-	if (result == kNavUserActionChoose) {
-		err = NavDialogGetReply(dialogRef, &reply);
-		assert(err == noErr);
-
-		if (reply.validRecord && err == noErr) {
-			SInt32 theCount;
-			AECountItems(&reply.selection, &theCount);
-			assert(theCount == 1);
-
-			AEKeyword keyword;
-			FSRef ref;
-			char buf[4096];
-			err = AEGetNthPtr(&reply.selection, 1, typeFSRef, &keyword, NULL, &ref, sizeof(ref), NULL);
-			assert(err == noErr);
-			err = FSRefMakePath(&ref, (UInt8*)buf, sizeof(buf)-1);
-			assert(err == noErr);
-
-			_choice = Common::FSNode(buf);
-			choiceMade = true;
-		}
-
-		err = NavDisposeReply(&reply);
-		assert(err == noErr);
-	}
-
-	NavDialogDispose(dialogRef);
-
-	// If we were in fullscreen mode, switch back
-	if (wasFullscreen) {
-		g_system->beginGFXTransaction();
-		g_system->setFeatureState(OSystem::kFeatureFullscreenMode, true);
-		g_system->endGFXTransaction();
-	}
-
-	return choiceMade;
-}
-
-#else
 
 /* We want to use this as a general directory selector at some point... possible uses
  * - to select the data dir for a game
@@ -159,9 +62,12 @@ BrowserDialog::BrowserDialog(const char *title, bool dirBrowser)
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundPlain;
 
 	// Buttons
-	new ButtonWidget(this, "Browser.Up", "Go up", kGoUpCmd, 0);
-	new ButtonWidget(this, "Browser.Cancel", "Cancel", kCloseCmd, 0);
-	new ButtonWidget(this, "Browser.Choose", "Choose", kChooseCmd, 0);
+	if (g_system->getOverlayWidth() > 320)
+		new ButtonWidget(this, "Browser.Up", _("Go up"), _("Go to previous directory level"), kGoUpCmd);
+	else
+		new ButtonWidget(this, "Browser.Up", _c("Go up", "lowres"), _("Go to previous directory level"), kGoUpCmd);
+	new ButtonWidget(this, "Browser.Cancel", _("Cancel"), 0, kCloseCmd);
+	new ButtonWidget(this, "Browser.Choose", _("Choose"), 0, kChooseCmd);
 }
 
 void BrowserDialog::open() {
@@ -184,11 +90,10 @@ void BrowserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 			// If nothing is selected in the list widget, choose the current dir.
 			// Else, choose the dir that is selected.
 			int selection = _fileList->getSelected();
-			if (selection >= 0) {
+			if (selection >= 0)
 				_choice = _nodeContent[selection];
-			} else {
+			else
 				_choice = _node;
-			}
 			setResult(1);
 			close();
 		} else {
@@ -214,11 +119,18 @@ void BrowserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		if (_nodeContent[data].isDirectory()) {
 			_node = _nodeContent[data];
 			updateListing();
-		} else {
+		} else if (!_isDirBrowser) {
 			_choice = _nodeContent[data];
 			setResult(1);
 			close();
 		}
+		break;
+	case kListSelectionChangedCmd:
+		// We do not allow selecting directories in directory
+		// browser mode, thus we will invalidate the selection
+		// when the user selects an directory over here.
+		if (data != (uint32)-1 && _isDirBrowser && !_nodeContent[data].isDirectory())
+			_fileList->setSelected(-1);
 		break;
 	default:
 		Dialog::handleCommand(sender, cmd, data);
@@ -233,30 +145,36 @@ void BrowserDialog::updateListing() {
 	ConfMan.set("browser_lastpath", _node.getPath());
 
 	// Read in the data from the file system
-	Common::FSNode::ListMode listMode =
-	         _isDirBrowser ? Common::FSNode::kListDirectoriesOnly
-	                       : Common::FSNode::kListAll;
-	if (!_node.getChildren(_nodeContent, listMode)) {
+	if (!_node.getChildren(_nodeContent, Common::FSNode::kListAll))
 		_nodeContent.clear();
-	} else {
+	else
 		Common::sort(_nodeContent.begin(), _nodeContent.end());
-	}
 
 	// Populate the ListWidget
-	Common::StringList list;
+	ListWidget::StringArray list;
+	ListWidget::ColorList colors;
 	for (Common::FSList::iterator i = _nodeContent.begin(); i != _nodeContent.end(); ++i) {
-		if (!_isDirBrowser && i->isDirectory())
+		if (i->isDirectory())
 			list.push_back(i->getDisplayName() + "/");
 		else
 			list.push_back(i->getDisplayName());
+
+		if (_isDirBrowser) {
+			if (i->isDirectory())
+				colors.push_back(ThemeEngine::kFontColorNormal);
+			else
+				colors.push_back(ThemeEngine::kFontColorAlternate);
+		}
 	}
-	_fileList->setList(list);
+
+	if (_isDirBrowser)
+		_fileList->setList(list, &colors);
+	else
+		_fileList->setList(list);
 	_fileList->scrollTo(0);
 
 	// Finally, redraw
 	draw();
 }
-
-#endif	// MACOSX
 
 } // End of namespace GUI

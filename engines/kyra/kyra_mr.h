@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_KYRA_MR_H
@@ -50,6 +47,7 @@ public:
 	KyraEngine_MR(OSystem *system, const GameFlags &flags);
 	~KyraEngine_MR();
 
+	// Regarding pausing of the engine:
 	// Idle animation time, item animations and album animations should be taken
 	// care of, but since those would just produce minor glitches it's not that
 	// important.
@@ -72,6 +70,7 @@ private:
 	bool _configStudio;
 	bool _configSkip;
 	bool _configHelium;
+	int _configVQAQuality;
 
 	void registerDefaultSettings();
 	void writeSettings();
@@ -120,7 +119,6 @@ private:
 	void snd_playWanderScoreViaMap(int track, int force);
 	void stopMusicTrack();
 
-	int musicUpdate(int forceRestart);
 	void fadeOutMusic(int ticks);
 
 	void snd_playSoundEffect(int item, int volume);
@@ -163,6 +161,7 @@ private:
 	void initMainMenu();
 	void uninitMainMenu();
 
+	MainMenu *_menu;
 	WSAMovie_v2 *_menuAnim;
 
 	// timer
@@ -233,7 +232,7 @@ private:
 
 	void showMessage(const char *string, uint8 c0, uint8 c1);
 	void showMessageFromCCode(int string, uint8 c0, int);
-	void updateItemCommand(int item, int str, uint8 c0);
+	void updateItemCommand(Item item, int str, uint8 c0);
 
 	void updateCommandLine();
 	void restoreCommandLine();
@@ -260,7 +259,7 @@ private:
 	static const uint8 _inventoryY[];
 	void redrawInventory(int page);
 	void clearInventorySlot(int slot, int page);
-	void drawInventorySlot(int page, int item, int slot);
+	void drawInventorySlot(int page, Item item, int slot);
 
 	WSAMovie_v2 *_invWsa;
 	int _invWsaFrame;
@@ -282,24 +281,24 @@ private:
 	int8 *_itemBuffer1;
 	int8 *_itemBuffer2;
 
-	static const uint8 _trashItemList[];
+	static const Item _trashItemList[];
 	void removeTrashItems();
 
 	void initItems();
 
 	int checkItemCollision(int x, int y);
 
-	bool dropItem(int unk1, uint16 item, int x, int y, int unk2);
-	bool processItemDrop(uint16 sceneId, uint16 item, int x, int y, int unk1, int unk2);
-	void itemDropDown(int startX, int startY, int dstX, int dstY, int itemSlot, uint16 item, int remove);
+	bool dropItem(int unk1, Item item, int x, int y, int unk2);
+	bool processItemDrop(uint16 sceneId, Item item, int x, int y, int unk1, int unk2);
+	void itemDropDown(int startX, int startY, int dstX, int dstY, int itemSlot, Item item, int remove);
 	void exchangeMouseItem(int itemPos, int runScript);
 	bool pickUpItem(int x, int y, int runScript);
 
 	bool isDropable(int x, int y);
 
 	const uint8 *_itemMagicTable;
-	bool itemListMagic(int handItem, int itemSlot);
-	bool itemInventoryMagic(int handItem, int invSlot);
+	bool itemListMagic(Item handItem, int itemSlot);
+	bool itemInventoryMagic(Item handItem, int invSlot);
 
 	const uint8 *_itemStringMap;
 	int _itemStringMapSize;
@@ -313,7 +312,7 @@ private:
 
 	// -> hand item
 	void setItemMouseCursor();
-	void setMouseCursor(uint16 item);
+	void setMouseCursor(Item item);
 
 	// shapes
 	void initMouseShapes();
@@ -384,7 +383,7 @@ private:
 
 	// character
 	int getCharacterWalkspeed() const;
-	void updateCharAnimFrame(int character, int *table);
+	void updateCharAnimFrame(int *table);
 	int8 _characterAnimTable[2];
 	static const uint8 _characterFrameTable[];
 
@@ -470,7 +469,7 @@ private:
 	int o3d_delay(EMCState *script);
 
 	void randomSceneChat();
-	void runDialog(int dlgIndex, int funcNum);
+	void doDialog(int dlgIndex, int funcNum);
 
 	// conscience
 	bool _badConscienceShown;
@@ -583,7 +582,7 @@ private:
 	int albumClose(Button *caller);
 
 	// save/load
-	Common::Error saveGameState(int slot, const char *saveName, const Graphics::Surface *thumbnail);
+	Common::Error saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail);
 	Common::Error loadGameState(int slot);
 
 	// opcodes
@@ -641,7 +640,7 @@ private:
 	int o3_defineSceneAnim(EMCState *script);
 	int o3_updateSceneAnim(EMCState *script);
 	int o3_runActorScript(EMCState *script);
-	int o3_runDialog(EMCState *script);
+	int o3_doDialog(EMCState *script);
 	int o3_setConversationState(EMCState *script);
 	int o3_getConversationState(EMCState *script);
 	int o3_changeChapter(EMCState *script);
@@ -663,12 +662,10 @@ private:
 	static const char *_languageExtension[];
 	static const int _languageExtensionSize;
 
-	char *appendLanguage(char *buf, int lang, int bufSize);
-
 	int loadLanguageFile(const char *file, uint8 *&buffer);
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/menu.h"
@@ -34,7 +31,7 @@
 #include "lure/events.h"
 #include "lure/lure.h"
 
-#if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
+#if defined(_WIN32_WCE) || defined(__SYMBIAN32__) || defined(WEBOS)
 #define LURE_CLICKABLE_MENUS
 #endif
 
@@ -72,12 +69,12 @@ const char *MenuRecord::getEntry(uint8 index) {
 static Menu *int_menu = NULL;
 
 const MenuRecordLanguage menuList[] = {
-	{EN_ANY, {{40, 87, 3, 7}, {127, 179, 13, 12}, {224, 281, 27, 10}}},
-	{IT_ITA, {{40, 98, 4, 6}, {120, 195, 14, 11}, {208, 281, 24, 13}}},
-	{FR_FRA, {{40, 90, 3, 7}, {120, 195, 13, 11}, {232, 273, 23, 13}}},
-	{DE_DEU, {{44, 95, 1, 11}, {135, 178, 8, 23}, {232, 273, 22, 15}}},
-	{ES_ESP, {{40, 90, 3, 8}, {120, 195, 11, 13}, {208, 281, 17, 18}}},
-	{UNK_LANG, {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}}
+	{Common::EN_ANY, {{40, 87, 3, 7}, {127, 179, 13, 12}, {224, 281, 27, 10}}},
+	{Common::IT_ITA, {{40, 98, 4, 6}, {120, 195, 14, 11}, {208, 281, 24, 13}}},
+	{Common::FR_FRA, {{40, 90, 3, 7}, {120, 195, 13, 11}, {232, 273, 23, 13}}},
+	{Common::DE_DEU, {{44, 95, 1, 11}, {135, 178, 8, 23}, {232, 273, 22, 15}}},
+	{Common::ES_ESP, {{40, 90, 3, 8}, {120, 195, 11, 13}, {208, 281, 17, 18}}},
+	{Common::UNK_LANG, {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}}
 };
 
 Menu::Menu() {
@@ -91,9 +88,9 @@ Menu::Menu() {
 	delete data;
 
 	const MenuRecordLanguage *rec = &menuList[0];
-	while ((rec->language != UNK_LANG) && (rec->language != language))
+	while ((rec->language != Common::UNK_LANG) && (rec->language != language))
 		++rec;
-	if (rec->language == UNK_LANG)
+	if (rec->language == Common::UNK_LANG)
 		error("Unknown language encountered in top line handler");
 
 	_menus[0] = new MenuRecord(&rec->menus[0], 1, sl.getString(S_CREDITS));
@@ -153,7 +150,7 @@ uint8 Menu::execute() {
 						toggleHighlight(_selectedMenu);
 						_surfaceMenu = Surface::newDialog(
 							_selectedMenu->width(), _selectedMenu->numEntries(),
-							_selectedMenu->entries(), false, DEFAULT_TEXT_COLOUR, false);
+							_selectedMenu->entries(), false, DEFAULT_TEXT_COLOR, false);
 						_surfaceMenu->copyToScreen(_selectedMenu->xstart(), MENUBAR_Y_SIZE);
 					}
 
@@ -175,7 +172,7 @@ uint8 Menu::execute() {
 		system.delayMillis(10);
 	}
 
-	if (_surfaceMenu) delete _surfaceMenu;
+	delete _surfaceMenu;
 
 	// Deselect the currently selected menu header
 	if (_selectedMenu)
@@ -230,26 +227,26 @@ uint8 Menu::getIndexAt(uint16 x, uint16 y) {
 	return index;
 }
 
-#define MENUBAR_SELECTED_COLOUR 0xf7
+#define MENUBAR_SELECTED_COLOR 0xf7
 
 void Menu::toggleHighlight(MenuRecord *menuRec) {
-	const byte colourList[4] = {4, 2, 0, 0xf7};
-	const byte *colours = LureEngine::getReference().isEGA() ? &colourList[0] : &colourList[2];
+	const byte colorList[4] = {4, 2, 0, 0xf7};
+	const byte *colors = LureEngine::getReference().isEGA() ? &colorList[0] : &colorList[2];
 	byte *addr = _menu->data();
 
 	for (uint16 y=0; y<MENUBAR_Y_SIZE; ++y) {
 		for (uint16 x=menuRec->hsxstart(); x<=menuRec->hsxend(); ++x) {
-			if (addr[x] == colours[0]) addr[x] = colours[1];
-			else if (addr[x] == colours[1]) addr[x] = colours[0];
+			if (addr[x] == colors[0]) addr[x] = colors[1];
+			else if (addr[x] == colors[1]) addr[x] = colors[0];
 		}
 		addr += FULL_SCREEN_WIDTH;
 	}
 }
 
 void Menu::toggleHighlightItem(uint8 index) {
-	const byte colourList[4] = {EGA_DIALOG_TEXT_COLOUR, EGA_DIALOG_WHITE_COLOUR,
-		VGA_DIALOG_TEXT_COLOUR, VGA_DIALOG_WHITE_COLOUR};
-	const byte *colours = LureEngine::getReference().isEGA() ? &colourList[0] : &colourList[2];
+	const byte colorList[4] = {EGA_DIALOG_TEXT_COLOR, EGA_DIALOG_WHITE_COLOR,
+		VGA_DIALOG_TEXT_COLOR, VGA_DIALOG_WHITE_COLOR};
+	const byte *colors = LureEngine::getReference().isEGA() ? &colorList[0] : &colorList[2];
 	byte *p = _surfaceMenu->data().data() + (Surface::textY() +
 		((index - 1) * FONT_HEIGHT)) * _surfaceMenu->width() + Surface::textX();
 	int numBytes =_surfaceMenu->width() - Surface::textX() * 2;
@@ -258,8 +255,8 @@ void Menu::toggleHighlightItem(uint8 index) {
 		byte *pTemp = p;
 
 		for (int x = 0; x < numBytes; ++x, ++pTemp) {
-			if (*pTemp == colours[0]) *pTemp = colours[1];
-			else if (*pTemp == colours[1]) *pTemp = colours[0];
+			if (*pTemp == colors[0]) *pTemp = colors[1];
+			else if (*pTemp == colors[1]) *pTemp = colors[0];
 		}
 	}
 
@@ -293,8 +290,8 @@ uint16 PopupMenu::ShowInventory() {
 	for (itemCtr = 0; itemCtr < numItems; ++itemCtr)
 		free(itemNames[itemCtr]);
 
-	delete itemNames;
-	delete idList;
+	Memory::dealloc(itemNames);
+	Memory::dealloc(idList);
 	return result;
 }
 
@@ -473,11 +470,11 @@ uint16 PopupMenu::Show(int numEntries, const char *actions[]) {
 	Mouse &mouse = Mouse::getReference();
 	OSystem &system = *g_system;
 	Screen &screen = Screen::getReference();
-	Rect r;
+	Common::Rect r;
 	bool isEGA = LureEngine::getReference().isEGA();
-	byte bgColour = isEGA ? EGA_DIALOG_BG_COLOUR : 0;
-	byte textColour = isEGA ? EGA_DIALOG_TEXT_COLOUR : VGA_DIALOG_TEXT_COLOUR;
-	byte whiteColour = isEGA ? EGA_DIALOG_WHITE_COLOUR : VGA_DIALOG_WHITE_COLOUR;
+	byte bgColor = isEGA ? EGA_DIALOG_BG_COLOR : 0;
+	byte textColor = isEGA ? EGA_DIALOG_TEXT_COLOR : VGA_DIALOG_TEXT_COLOR;
+	byte whiteColor = isEGA ? EGA_DIALOG_WHITE_COLOR : VGA_DIALOG_WHITE_COLOR;
 
 
 	const uint16 yMiddle = FULL_SCREEN_HEIGHT / 2;
@@ -521,7 +518,7 @@ uint16 PopupMenu::Show(int numEntries, const char *actions[]) {
 	for (;;) {
 		if (refreshFlag) {
 			// Set up the contents of the menu
-			s->fillRect(r, bgColour);
+			s->fillRect(r, bgColor);
 
 			for (int index = 0; index < numLines; ++index) {
 #ifndef LURE_CLICKABLE_MENUS
@@ -533,9 +530,9 @@ uint16 PopupMenu::Show(int numEntries, const char *actions[]) {
 					s->writeString(Surface::textX(), Surface::textY() + index * FONT_HEIGHT,
 						actions[actionIndex], true,
 #ifndef LURE_CLICKABLE_MENUS
-						(index == (numLines / 2)) ? whiteColour : textColour,
+						(index == (numLines / 2)) ? whiteColor : textColor,
 #else
-						(index == selectedIndex) ? whiteColour : textColour,
+						(index == selectedIndex) ? whiteColor : textColor,
 #endif
 						false);
 				}
@@ -584,12 +581,12 @@ uint16 PopupMenu::Show(int numEntries, const char *actions[]) {
 			} else if (e.type() == Common::EVENT_LBUTTONDOWN || e.type() == Common::EVENT_MOUSEMOVE) {
 				int16 x = mouse.x();
 				int16 y = mouse.y() - yMiddle + (s->height() / 2);
+				refreshFlag = true;
+
 				if (r.contains(x, y)) {
 					selectedIndex = (y - r.top) / FONT_HEIGHT;
 					if (e.type() == Common::EVENT_LBUTTONDOWN)
 						goto bail_out;
-					else
-						refreshFlag = true;
 				}
 #else
 			} else if ((e.type() == Common::EVENT_LBUTTONDOWN) ||
@@ -629,6 +626,8 @@ uint16 PopupMenu::Show(int numEntries, const char *actions[]) {
 	}
 
 bail_out:
+	delete s;
+
 #ifndef LURE_CLICKABLE_MENUS
 	mouse.setPosition(oldX, oldY);
 	mouse.cursorOn();
@@ -639,4 +638,4 @@ bail_out:
 	return selectedIndex;
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

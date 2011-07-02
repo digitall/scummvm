@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Plays the background film of a scene.
  */
 
@@ -40,6 +37,7 @@
 #include "tinsel/tinlib.h"		// For Control()
 #include "tinsel/tinsel.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
@@ -48,6 +46,7 @@ namespace Tinsel {
 
 #define MAX_BG	10
 
+// FIXME: Avoid non-const global vars
 static SCNHANDLE hBgPal = 0;	// Background's palette
 static POBJECT pBG[MAX_BG];
 static ANIM	thisAnim[MAX_BG];	// used by BGmainProcess()
@@ -66,7 +65,7 @@ OBJECT *GetBgObject() {
 /**
  * BackPal
  */
-SCNHANDLE BgPal(void) {
+SCNHANDLE BgPal() {
 	return hBgPal;
 }
 
@@ -80,7 +79,7 @@ void SetDoFadeIn(bool tf) {
 /**
  * Called before scene change.
  */
-void DropBackground(void) {
+void DropBackground() {
 	pBG[0] = NULL;	// No background
 
 	if (!TinselV2)
@@ -90,7 +89,7 @@ void DropBackground(void) {
 /**
  * Return the width of the current background.
  */
-int BgWidth(void) {
+int BgWidth() {
 	assert(pBG[0]);
 	return MultiRightmost(pBG[0]) + 1;
 }
@@ -98,7 +97,7 @@ int BgWidth(void) {
 /**
  * Return the height of the current background.
  */
-int BgHeight(void) {
+int BgHeight() {
 	assert(pBG[0]);
 	return MultiLowest(pBG[0]) + 1;
 }
@@ -127,7 +126,7 @@ static void BGmainProcess(CORO_PARAM, const void *param) {
 			// Get the MULTI_INIT structure
 			pmi = (const MULTI_INIT *)LockMem(FROM_LE_32(pReel->mobj));
 
-			// Initialise and insert the object, and initialise its script.
+			// Initialize and insert the object, and initialize its script.
 			pBG[0] = MultiInitObject(pmi);
 			MultiInsertObject(GetPlayfieldList(FIELD_WORLD), pBG[0]);
 			InitStepAnimScript(&thisAnim[0], pBG[0], FROM_LE_32(pReel->script), BGspeed);
@@ -142,7 +141,7 @@ static void BGmainProcess(CORO_PARAM, const void *param) {
 				// Get the MULTI_INIT structure
 				pmi = (PMULTI_INIT) LockMem(FROM_LE_32(pFilm->reels[i].mobj));
 
-				// Initialise and insert the object, and initialise its script.
+				// Initialize and insert the object, and initialize its script.
 				pBG[i] = MultiInitObject(pmi);
 				MultiInsertObject(GetPlayfieldList(FIELD_WORLD), pBG[i]);
 				MultiSetZPosition(pBG[i], 0);
@@ -157,7 +156,7 @@ static void BGmainProcess(CORO_PARAM, const void *param) {
 			FadeInFast(NULL);
 			bDoFadeIn = false;
 		} else if (TinselV2)
-			PokeInTagColour();
+			PokeInTagColor();
 
 		for (;;) {
 			for (int i = 0; i < bgReels; i++) {
@@ -177,7 +176,7 @@ static void BGmainProcess(CORO_PARAM, const void *param) {
 			pFilm = (const FILM *)LockMem(hBackground);
 			assert(bgReels == (int32)FROM_LE_32(pFilm->numreels));
 
-			// Just re-initialise the scripts.
+			// Just re-initialize the scripts.
 			for (int i = 0; i < bgReels; i++) {
 				InitStepAnimScript(&thisAnim[i], pBG[i], pFilm->reels[i].script, BGspeed);
 				StepAnimScript(&thisAnim[i]);
@@ -203,7 +202,7 @@ static void BGotherProcess(CORO_PARAM, const void *param) {
 
 	CORO_BEGIN_CODE(_ctx);
 
-	// Initialise and insert the object, and initialise its script.
+	// Initialize and insert the object, and initialize its script.
 	_ctx->pObj = MultiInitObject(pmi);
 	MultiInsertObject(GetPlayfieldList(FIELD_WORLD), _ctx->pObj);
 
@@ -275,8 +274,8 @@ void StartupBackground(CORO_PARAM, SCNHANDLE hFilm) {
 /**
  * Return the current scene handle.
  */
-SCNHANDLE GetBgroundHandle(void) {
+SCNHANDLE GetBgroundHandle() {
 	return hBackground;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

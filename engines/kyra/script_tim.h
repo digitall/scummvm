@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SCRIPT_TIM_H
@@ -36,8 +33,78 @@ namespace Kyra {
 
 class WSAMovie_v2;
 class Screen_v2;
+class Movie;
+class LoLEngine;
+
+class TimAnimator {
+public:
+	struct AnimPart {
+		uint16 firstFrame;
+		uint16 lastFrame;
+		uint16 cycles;
+		int16 nextPart;
+		int16 partDelay;
+		uint16 field_A;
+		int16 sfxIndex;
+		uint16 sfxFrame;
+	};
+
+	struct Animation {
+		Movie *wsa;
+		int16 x, y;
+		uint32 nextFrame;
+		uint8 enable;
+		uint8 field_D;
+		uint8 frameDelay;
+		int8 curPart;
+		uint8 curFrame;
+		uint8 cyclesCompleted;
+		uint16 wsaCopyParams;
+		int8 lastPart;
+		AnimPart *parts;
+	};
+
+#ifdef ENABLE_LOL
+	TimAnimator(LoLEngine *engine, Screen_v2 *screen_v2, OSystem *system, bool useParts);
+#else
+	TimAnimator(KyraEngine_v1 *engine, Screen_v2 *screen_v2, OSystem *system, bool useParts);
+#endif
+	~TimAnimator();
+
+	void init(int animIndex, Movie *wsa, int x, int y, int wsaCopyParams, int frameDelay);
+	void reset(int animIndex, bool clearStruct);
+
+	void displayFrame(int animIndex, int page, int frame, int flags = -1);
+
+	const Movie *getWsaCPtr(int animIndex) { return (animIndex >= 0 && animIndex < 6) ? _animations[animIndex].wsa : 0; }
+	int getAnimX(int animIndex) { return (animIndex >= 0 && animIndex < 6) ? _animations[animIndex].x : 0; }
+	int getAnimY(int animIndex) { return (animIndex >= 0 && animIndex < 6) ? _animations[animIndex].y : 0; }
+
+#ifdef ENABLE_LOL
+	void setupPart(int animIndex, int part, int firstFrame, int lastFrame, int cycles, int nextPart, int partDelay, int f, int sfxIndex, int sfxFrame);
+	void start(int animIndex, int part);
+	void stop(int animIndex);
+	void update(int animIndex);
+	void playPart(int animIndex, int firstFrame, int lastFrame, int delay);
+	int resetLastPart(int animIndex);
+#endif
+
+private:
+#ifdef ENABLE_LOL
+	LoLEngine *_vm;
+#else
+	KyraEngine_v1 *_vm;
+#endif
+	Screen_v2 *_screen;
+	OSystem *_system;
+
+	Animation *_animations;
+
+	const bool _useParts;
+};
+
 struct TIM;
-typedef Common::Functor2<const TIM*, const uint16*, int> TIMOpcode;
+typedef Common::Functor2<const TIM *, const uint16 *, int> TIMOpcode;
 
 struct TIM {
 	char filename[13];
@@ -69,7 +136,7 @@ struct TIM {
 	};
 
 	struct WSASlot {
-		void *anim;
+		int anim;
 
 		int16 x, y;
 		uint16 wsaFlags;
@@ -79,7 +146,7 @@ struct TIM {
 	uint16 *avtl;
 	uint8 *text;
 
-	const Common::Array<const TIMOpcode*> *opcodes;
+	const Common::Array<const TIMOpcode *> *opcodes;
 
 	// TODO: Get rid of this ugly HACK to allow the
 	// Lands of Lore outro to be working properly.
@@ -89,42 +156,17 @@ struct TIM {
 
 class TIMInterpreter {
 public:
-	struct AnimPart {
-		uint16 firstFrame;
-		uint16 lastFrame;
-		uint16 cycles;
-		int16 nextPart;
-		int16 partDelay;
-		uint16 field_A;
-		int16 sfxIndex;
-		uint16 sfxFrame;
-	};
-
-	struct Animation {
-		Movie *wsa;
-		int16 x, y;
-		uint32 nextFrame;
-		uint8 enable;
-		uint8 field_D;
-		uint8 frameDelay;
-		int8 curPart;
-		uint8 curFrame;
-		uint8 cyclesCompleted;
-		uint16 wsaCopyParams;
-		int8 lastPart;
-		AnimPart *parts;
-	};
-
 	TIMInterpreter(KyraEngine_v1 *engine, Screen_v2 *screen_v2, OSystem *system);
 	virtual ~TIMInterpreter();
 
-	TIM *load(const char *filename, const Common::Array<const TIMOpcode*> *opcodes);
+	TIM *load(const char *filename, const Common::Array<const TIMOpcode *> *opcodes);
 	void unload(TIM *&tim) const;
 
 	bool callback(Common::IFFChunk &chunk);
 
-	virtual Animation *initAnimStruct(int index, const char *filename, int x, int y, int, int offscreenBuffer, uint16 wsaFlags);
+	virtual int initAnimStruct(int index, const char *filename, int x, int y, int, int offscreenBuffer, uint16 wsaFlags);
 	virtual int freeAnimStruct(int index);
+	TimAnimator *animator() { return _animator; }
 
 	void setLangData(const char *filename);
 	void clearLangData() { delete[] _langData; _langData = 0; }
@@ -146,14 +188,6 @@ public:
 
 	virtual void drawDialogueBox(int numStr, const char *s1, const char *s2, const char *s3) {}
 	virtual uint16 processDialogue() { return 1; }
-
-	virtual void setupBackgroundAnimationPart(int animIndex, int part, int firstFrame, int lastFrame, int cycles, int nextPart, int partDelay, int f, int sfxIndex, int sfxFrame) {}
-	virtual void startBackgroundAnimation(int animIndex, int part) {}
-	virtual void stopBackgroundAnimation(int animIndex) {}
-	virtual void updateBackgroundAnimation(int animIndex) {}
-	virtual void playAnimationPart(int animIndex, int firstFrame, int lastFrame, int delay) {}
-	virtual int resetAnimationLastPart(int animIndex) { return -1; }
-
 	virtual void resetDialogueState(TIM *tim) {}
 
 	int _drawPage2;
@@ -169,6 +203,8 @@ protected:
 	TIM *_currentTim;
 	int _currentFunc;
 
+	TimAnimator *_animator;
+
 	bool _finished;
 
 	// used when loading
@@ -177,8 +213,6 @@ protected:
 	TIM *_tim;
 
 	Common::String _vocFiles[120];
-
-	Animation *_animations;
 
 	virtual void update() {}
 	virtual void checkSpeechProgress() {}
@@ -224,8 +258,8 @@ protected:
 	int cmd_stopAllFuncs(const uint16 *param);
 #define cmd_return(n, v) \
 	int cmd_return_##n(const uint16 *){ return v; }
-	cmd_return( 1,  1);
-	cmd_return(n1, -1);
+	cmd_return( 1,  1)
+	cmd_return(n1, -1)
 #undef cmd_return
 };
 
@@ -233,23 +267,15 @@ protected:
 class LoLEngine;
 class Screen_LoL;
 class TIMInterpreter_LoL : public TIMInterpreter {
-friend class LoLEngine;
 public:
 	TIMInterpreter_LoL(LoLEngine *engine, Screen_v2 *screen_v2, OSystem *system);
 
-	Animation *initAnimStruct(int index, const char *filename, int x, int y, int frameDelay, int, uint16 wsaCopyParams);
+	int initAnimStruct(int index, const char *filename, int x, int y, int frameDelay, int, uint16 wsaCopyParams);
 	int freeAnimStruct(int index);
 
 	void drawDialogueBox(int numStr, const char *s1, const char *s2, const char *s3);
 	uint16 processDialogue();
 	void resetDialogueState(TIM *tim);
-
-	void setupBackgroundAnimationPart(int animIndex, int part, int firstFrame, int lastFrame, int cycles, int nextPart, int partDelay, int f, int sfxIndex, int sfxFrame);
-	void startBackgroundAnimation(int animIndex, int part);
-	void stopBackgroundAnimation(int animIndex);
-	void updateBackgroundAnimation(int animIndex);
-	void playAnimationPart(int animIndex, int firstFrame, int lastFrame, int delay);
-	int resetAnimationLastPart(int animIndex);
 
 private:
 	void update();
@@ -288,7 +314,7 @@ private:
 };
 #endif // ENABLE_LOL
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

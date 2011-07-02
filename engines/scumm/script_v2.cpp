@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
 #include "scumm/object.h"
+#include "scumm/resource.h"
 #include "scumm/scumm_v2.h"
 #include "scumm/sound.h"
 #include "scumm/util.h"
@@ -640,7 +638,6 @@ void ScummEngine_v2::o2_waitForActor() {
 }
 
 void ScummEngine_v2::o2_waitForMessage() {
-
 	if (VAR(VAR_HAVE_MSG)) {
 		_scriptPointer--;
 		o5_breakHere();
@@ -741,23 +738,23 @@ void ScummEngine_v2::o2_drawObject() {
 }
 
 void ScummEngine_v2::o2_resourceRoutines() {
-	const ResTypes resTypes[] = {
-		rtNumTypes,	// Invalid
-		rtNumTypes,	// Invalid
+	const ResType resTypes[] = {
+		rtInvalid,
+		rtInvalid,
 		rtCostume,
 		rtRoom,
-		rtNumTypes,	// Invalid
+		rtInvalid,
 		rtScript,
 		rtSound
 	};
 	int resid = getVarOrDirectByte(PARAM_1);
 	int opcode = fetchScriptByte();
 
-	ResTypes type = rtNumTypes;
+	ResType type = rtInvalid;
 	if (0 <= (opcode >> 4) && (opcode >> 4) < (int)ARRAYSIZE(resTypes))
 		type = resTypes[opcode >> 4];
 
-	if ((opcode & 0x0f) == 0 || type == rtNumTypes)
+	if ((opcode & 0x0f) == 0 || type == rtInvalid)
 		return;
 
 	// HACK V2 Maniac Mansion tries to load an invalid sound resource in demo script.
@@ -876,7 +873,7 @@ void ScummEngine_v2::o2_doSentence() {
 		return;
 	}
 	if (a == 0xFB) {
-		resetSentence();
+		resetSentence(false);
 		return;
 	}
 
@@ -965,15 +962,15 @@ void ScummEngine_v2::o2_drawSentence() {
 		return;
 
 	if (getResourceAddress(rtVerb, slot))
-		strcpy(_sentenceBuf, (char*)getResourceAddress(rtVerb, slot));
+		_sentenceBuf = (char *)getResourceAddress(rtVerb, slot);
 	else
 		return;
 
 	if (VAR(VAR_SENTENCE_OBJECT1) > 0) {
 		temp = getObjOrActorName(VAR(VAR_SENTENCE_OBJECT1));
 		if (temp) {
-			strcat(_sentenceBuf, " ");
-			strcat(_sentenceBuf, (const char*)temp);
+			_sentenceBuf += " ";
+			_sentenceBuf += (const char *)temp;
 		}
 
 		// For V1 games, the engine must compute the preposition.
@@ -1018,16 +1015,16 @@ void ScummEngine_v2::o2_drawSentence() {
 		}
 
 		if (_game.platform == Common::kPlatformNES) {
-			strcat(_sentenceBuf, (const char *)(getResourceAddress(rtCostume, 78) + VAR(VAR_SENTENCE_PREPOSITION) * 8 + 2));
+			_sentenceBuf += (const char *)(getResourceAddress(rtCostume, 78) + VAR(VAR_SENTENCE_PREPOSITION) * 8 + 2);
 		} else
-			strcat(_sentenceBuf, prepositions[lang][VAR(VAR_SENTENCE_PREPOSITION)]);
+			_sentenceBuf += prepositions[lang][VAR(VAR_SENTENCE_PREPOSITION)];
 	}
 
 	if (VAR(VAR_SENTENCE_OBJECT2) > 0) {
 		temp = getObjOrActorName(VAR(VAR_SENTENCE_OBJECT2));
 		if (temp) {
-			strcat(_sentenceBuf, " ");
-			strcat(_sentenceBuf, (const char*)temp);
+			_sentenceBuf += " ";
+			_sentenceBuf += (const char *)temp;
 		}
 	}
 
@@ -1044,7 +1041,7 @@ void ScummEngine_v2::o2_drawSentence() {
 		_string[2].color = 13;
 
 	byte string[80];
-	char *ptr = _sentenceBuf;
+	const char *ptr = _sentenceBuf.c_str();
 	int i = 0, len = 0;
 
 	// Maximum length of printable characters
@@ -1078,7 +1075,7 @@ void ScummEngine_v2::o2_drawSentence() {
 	}
 	restoreBackground(sentenceline);
 
-	drawString(2, (byte*)string);
+	drawString(2, (byte *)string);
 }
 
 void ScummEngine_v2::o2_ifClassOfIs() {
@@ -1142,6 +1139,44 @@ void ScummEngine_v2::o2_startScript() {
 			return;
 	}
 
+	// WORKAROUND bug #1447058: In Maniac Mansion, when the door bell
+	// rings, then this normally causes Ted Edison to leave his room.
+	// This is controlled by script 87. On the other hand, when the
+	// player enters Ted's room while Ted is in it, then Ted captures
+	// the player and puts his active ego into the cellar prison.
+	//
+	// Unfortunately, the two events can collide: If the cutscene is
+	// playing in which Ted captures the player (controlled by script
+	// 88) and simultaneously the door bell rings (due to package
+	// delivery...) then this leads to an assertion (in ScummVM, due to
+	// its stricter validity checking), or to unexpected / strange
+	// behavior (in the original engine). The script writers apparently
+	// anticipated the possibility of the door bell ringing: Before
+	// script 91 starts script 88, it explicitly stops script 87.
+	// Unfortunately, this is not quite enough, as script 87 can be
+	// started while script 88 is already running -- specifically, by
+	// the package delivery sequence.
+	//
+	// Now, one can easily suppress this particular assertion, but then
+	// one still gets odd behavior: Ted is in the process of
+	// incarcerating the player, when the door bell rings; Ted promptly
+	// leaves to get the package, leaving the player alone (!), but then
+	// moments later we cut to the cellar, where Ted just put the
+	// player. That seems weird and irrational (the Edisons may be mad,
+	// but they are not stupid when it comes to putting people into
+	// their dungeon ;)
+	//
+	// To avoid this, we use a somewhat more elaborate workaround: If
+	// script 88 or 89 are running (which control the capture resp.
+	// imprisonment of the player), then any attempt to start script 87
+	// (which makes Ted go answer the door bell) is simply ignored. This
+	// way, the door bell still chimes, but Ted ignores it.
+	if (_game.id == GID_MANIAC && script == 87) {
+		if (isScriptRunning(88) || isScriptRunning(89)) {
+			return;
+		}
+	}
+
 	runScript(script, 0, 0, 0);
 }
 
@@ -1175,6 +1210,8 @@ void ScummEngine_v2::o2_walkActorToObject() {
 	int obj;
 	Actor *a;
 
+	_v0ObjectFlag = 0;
+
 	a = derefActor(getVarOrDirectByte(PARAM_1), "o2_walkActorToObject");
 	obj = getVarOrDirectWord(PARAM_2);
 	if (whereIsObject(obj) != WIO_NOT_FOUND) {
@@ -1183,6 +1220,7 @@ void ScummEngine_v2::o2_walkActorToObject() {
 		AdjustBoxResult r = a->adjustXYToBeInBox(x, y);
 		x = r.x;
 		y = r.y;
+
 		a->startWalkActor(x, y, dir);
 	}
 }
@@ -1358,7 +1396,7 @@ void ScummEngine_v2::o2_loadRoomWithEgo() {
 
 	_fullRedraw = true;
 
-	resetSentence();
+	resetSentence(false);
 
 	if (x >= 0 && y >= 0) {
 		a->startWalkActor(x, y, -1);
@@ -1437,7 +1475,7 @@ void ScummEngine_v2::o2_cutscene() {
 
 	_sentenceNum = 0;
 	stopScript(SENTENCE_SCRIPT);
-	resetSentence();
+	resetSentence(false);
 
 	vm.cutScenePtr[0] = 0;
 }
@@ -1476,10 +1514,10 @@ void ScummEngine_v2::o2_beginOverride() {
 }
 
 void ScummEngine_v2::o2_chainScript() {
-	int data = getVarOrDirectByte(PARAM_1);
+	int script = getVarOrDirectByte(PARAM_1);
 	stopScript(vm.slot[_currentScript].number);
 	_currentScript = 0xFF;
-	runScript(data, 0, 0, 0);
+	runScript(script, 0, 0, 0);
 }
 
 void ScummEngine_v2::o2_pickupObject() {
@@ -1585,7 +1623,7 @@ void ScummEngine_v2::o2_switchCostumeSet() {
 		o2_dummy();
 }
 
-void ScummEngine_v2::resetSentence() {
+void ScummEngine_v2::resetSentence(bool walking) {
 	VAR(VAR_SENTENCE_VERB) = VAR(VAR_BACKUP_VERB);
 	VAR(VAR_SENTENCE_OBJECT1) = 0;
 	VAR(VAR_SENTENCE_OBJECT2) = 0;

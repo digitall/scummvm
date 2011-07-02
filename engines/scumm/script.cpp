@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
@@ -39,7 +36,7 @@ namespace Scumm {
 /* Start executing script 'script' with the given parameters */
 void ScummEngine::runScript(int script, bool freezeResistant, bool recursive, int *lvarptr, int cycle) {
 	ScriptSlot *s;
-	byte *scriptPtr;
+	//byte *scriptPtr;
 	uint32 scriptOffs;
 	byte scriptType;
 	int slot;
@@ -51,7 +48,8 @@ void ScummEngine::runScript(int script, bool freezeResistant, bool recursive, in
 		stopScript(script);
 
 	if (script < _numGlobalScripts) {
-		scriptPtr = getResourceAddress(rtScript, script);
+		// Call getResourceAddress to ensure the resource is loaded & its usage count reset
+		/*scriptPtr =*/ getResourceAddress(rtScript, script);
 		scriptOffs = _resourceHeaderSize;
 		scriptType = WIO_GLOBAL;
 
@@ -174,7 +172,7 @@ int ScummEngine::getVerbEntrypoint(int obj, int entry) {
 	else if (_game.features & GF_SMALL_HEADER)
 		verbptr = objptr + 19;
 	else
-		verbptr = findResource(MKID_BE('VERB'), objptr);
+		verbptr = findResource(MKTAG('V','E','R','B'), objptr);
 
 	assert(verbptr);
 
@@ -214,9 +212,10 @@ int ScummEngine::getVerbEntrypoint(int obj, int entry) {
 			verbptr += 3;
 		} while (1);
 
-		if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine)
-			return verboffs + READ_LE_UINT16(verbptr + 1) + 3;
-		else if (_game.features & GF_SMALL_HEADER)
+		if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
+			verbptr += READ_LE_UINT16(verbptr + 1) + 3;
+			return verbptr - objptr;
+		} else if (_game.features & GF_SMALL_HEADER)
 			return READ_LE_UINT16(verbptr + 1);
 		else
 			return verboffs + READ_LE_UINT16(verbptr + 1);
@@ -260,8 +259,7 @@ void ScummEngine::stopScript(int script) {
 /* Stop an object script 'script'*/
 void ScummEngine::stopObjectScript(int script) {
 	ScriptSlot *ss;
-	NestedScript *nest;
-	int i, num;
+	int i;
 
 	if (script == 0)
 		return;
@@ -281,19 +279,14 @@ void ScummEngine::stopObjectScript(int script) {
 		}
 	}
 
-	nest = vm.nest;
-	num = vm.numNestedScripts;
-
-	while (num > 0) {
-		if (nest->number == script &&
-				(nest->where == WIO_ROOM || nest->where == WIO_INVENTORY || nest->where == WIO_FLOBJECT)) {
-			nukeArrays(nest->slot);
-			nest->number = 0xFF;
-			nest->slot = 0xFF;
-			nest->where = 0xFF;
+	for (i = 0; i < vm.numNestedScripts; ++i) {
+		if (vm.nest[i].number == script &&
+				(vm.nest[i].where == WIO_ROOM || vm.nest[i].where == WIO_INVENTORY || vm.nest[i].where == WIO_FLOBJECT)) {
+			nukeArrays(vm.nest[i].slot);
+			vm.nest[i].number = 0xFF;
+			vm.nest[i].slot = 0xFF;
+			vm.nest[i].where = 0xFF;
 		}
-		nest++;
-		num--;
 	}
 }
 
@@ -318,6 +311,9 @@ void ScummEngine::runScriptNested(int script) {
 
 	updateScriptPtr();
 
+	if (vm.numNestedScripts >= kMaxScriptNesting)
+		error("Too many nested scripts");
+
 	nest = &vm.nest[vm.numNestedScripts];
 
 	if (_currentScript == 0xFF) {
@@ -333,12 +329,9 @@ void ScummEngine::runScriptNested(int script) {
 
 	vm.numNestedScripts++;
 
-	if (vm.numNestedScripts > ARRAYSIZE(vm.nest))
-		error("Too many nested scripts");
-
 	_currentScript = script;
 	getScriptBaseAddress();
-	getScriptEntryPoint();
+	resetScriptPointer();
 	executeScript();
 
 	if (vm.numNestedScripts != 0)
@@ -353,7 +346,7 @@ void ScummEngine::runScriptNested(int script) {
 				slot->status != ssDead && slot->freezeCount == 0) {
 			_currentScript = nest->slot;
 			getScriptBaseAddress();
-			getScriptEntryPoint();
+			resetScriptPointer();
 			return;
 		}
 	}
@@ -398,26 +391,26 @@ void ScummEngine::getScriptBaseAddress() {
 				break;
 		_scriptOrgPointer = getResourceAddress(rtInventory, idx);
 		assert(idx < _numInventory);
-		_lastCodePtr = &_res->address[rtInventory][idx];
+		_lastCodePtr = &_res->_types[rtInventory][idx]._address;
 		break;
 
 	case WIO_LOCAL:
 	case WIO_ROOM:								/* room script */
 		if (_game.version == 8) {
 			_scriptOrgPointer = getResourceAddress(rtRoomScripts, _roomResource);
-			assert(_roomResource < _res->num[rtRoomScripts]);
-			_lastCodePtr = &_res->address[rtRoomScripts][_roomResource];
+			assert(_roomResource < (int)_res->_types[rtRoomScripts].size());
+			_lastCodePtr = &_res->_types[rtRoomScripts][_roomResource]._address;
 		} else {
 			_scriptOrgPointer = getResourceAddress(rtRoom, _roomResource);
 			assert(_roomResource < _numRooms);
-			_lastCodePtr = &_res->address[rtRoom][_roomResource];
+			_lastCodePtr = &_res->_types[rtRoom][_roomResource]._address;
 		}
 		break;
 
 	case WIO_GLOBAL:							/* global script */
 		_scriptOrgPointer = getResourceAddress(rtScript, ss->number);
 		assert(ss->number < _numScripts);
-		_lastCodePtr = &_res->address[rtScript][ss->number];
+		_lastCodePtr = &_res->_types[rtScript][ss->number]._address;
 		break;
 
 	case WIO_FLOBJECT:						/* flobject script */
@@ -426,7 +419,7 @@ void ScummEngine::getScriptBaseAddress() {
 		idx = _objs[idx].fl_object_index;
 		_scriptOrgPointer = getResourceAddress(rtFlObject, idx);
 		assert(idx < _numFlObject);
-		_lastCodePtr = &_res->address[rtFlObject][idx];
+		_lastCodePtr = &_res->_types[rtFlObject][idx]._address;
 		break;
 	default:
 		error("Bad type while getting base address");
@@ -439,11 +432,25 @@ void ScummEngine::getScriptBaseAddress() {
 	}
 }
 
-
-void ScummEngine::getScriptEntryPoint() {
+void ScummEngine::resetScriptPointer() {
 	if (_currentScript == 0xFF)
 		return;
 	_scriptPointer = _scriptOrgPointer + vm.slot[_currentScript].offs;
+}
+
+/**
+ * This method checks whether the resource that contains the active script
+ * moved, and if so, updates the script pointer accordingly.
+ *
+ * The script resource may have moved because it might have been garbage
+ * collected by ResourceManager::expireResources.
+ */
+void ScummEngine::refreshScriptPointer() {
+	if (*_lastCodePtr != _scriptOrgPointer) {
+		long oldoffs = _scriptPointer - _scriptOrgPointer;
+		getScriptBaseAddress();
+		_scriptPointer = _scriptOrgPointer + oldoffs;
+	}
 }
 
 /** Execute a script - Read opcode, and execute it from the table */
@@ -452,11 +459,11 @@ void ScummEngine::executeScript() {
 	while (_currentScript != 0xFF) {
 
 		if (_showStack == 1) {
-			printf("Stack:");
+			debugN("Stack:");
 			for (c = 0; c < _scummStackPos; c++) {
-				printf(" %d", _vmStack[c]);
+				debugN(" %d", _vmStack[c]);
 			}
-			printf("\n");
+			debugN("\n");
 		}
 		_opcode = fetchScriptByte();
 		if (_game.version > 2) // V0-V2 games didn't use the didexec flag
@@ -468,9 +475,9 @@ void ScummEngine::executeScript() {
 				getOpcodeDesc(_opcode));
 		if (_hexdumpScripts == true) {
 			for (c = -1; c < 15; c++) {
-				printf(" %02x", *(_scriptPointer + c));
+				debugN(" %02x", *(_scriptPointer + c));
 			}
-			printf("\n");
+			debugN("\n");
 		}
 
 		executeOpcode(_opcode);
@@ -487,24 +494,20 @@ void ScummEngine::executeOpcode(byte i) {
 }
 
 const char *ScummEngine::getOpcodeDesc(byte i) {
+#ifndef REDUCE_MEMORY_USAGE
 	return _opcodes[i].desc;
+#else
+	return "";
+#endif
 }
 
 byte ScummEngine::fetchScriptByte() {
-	if (*_lastCodePtr + sizeof(MemBlkHeader) != _scriptOrgPointer) {
-		long oldoffs = _scriptPointer - _scriptOrgPointer;
-		getScriptBaseAddress();
-		_scriptPointer = _scriptOrgPointer + oldoffs;
-	}
+	refreshScriptPointer();
 	return *_scriptPointer++;
 }
 
 uint ScummEngine::fetchScriptWord() {
-	if (*_lastCodePtr + sizeof(MemBlkHeader) != _scriptOrgPointer) {
-		long oldoffs = _scriptPointer - _scriptOrgPointer;
-		getScriptBaseAddress();
-		_scriptPointer = _scriptOrgPointer + oldoffs;
-	}
+	refreshScriptPointer();
 	uint a = READ_LE_UINT16(_scriptPointer);
 	_scriptPointer += 2;
 	return a;
@@ -515,11 +518,7 @@ int ScummEngine::fetchScriptWordSigned() {
 }
 
 uint ScummEngine::fetchScriptDWord() {
-	if (*_lastCodePtr + sizeof(MemBlkHeader) != _scriptOrgPointer) {
-		long oldoffs = _scriptPointer - _scriptOrgPointer;
-		getScriptBaseAddress();
-		_scriptPointer = _scriptOrgPointer + oldoffs;
-	}
+	refreshScriptPointer();
 	uint a = READ_LE_UINT32(_scriptPointer);
 	_scriptPointer += 4;
 	return a;
@@ -619,8 +618,8 @@ void ScummEngine::writeVar(uint var, int value) {
 		assertRange(0, var, _numVariables - 1, "variable (writing)");
 
 		if (VAR_SUBTITLES != 0xFF && var == VAR_SUBTITLES) {
-			// Ignore default setting in HE72-73 games
-			if (_game.heversion <= 73 && vm.slot[_currentScript].number == 1)
+			// Ignore default setting in HE72-74 games
+			if (_game.heversion <= 74 && vm.slot[_currentScript].number == 1)
 				return;
 			assert(value == 0 || value == 1);
 			ConfMan.setBool("subtitles", (value != 0));
@@ -705,25 +704,6 @@ void ScummEngine::writeVar(uint var, int value) {
 	}
 
 	error("Illegal varbits (w)");
-}
-
-void ScummEngine::getResultPos() {
-	int a;
-
-	_resultVarNumber = fetchScriptWord();
-	if (_resultVarNumber & 0x2000) {
-		a = fetchScriptWord();
-		if (a & 0x2000) {
-			_resultVarNumber += readVar(a & ~0x2000);
-		} else {
-			_resultVarNumber += a & 0xFFF;
-		}
-		_resultVarNumber &= ~0x2000;
-	}
-}
-
-void ScummEngine::setResult(int value) {
-	writeVar(_resultVarNumber, value);
 }
 
 void ScummEngine::push(int a) {
@@ -916,7 +896,7 @@ void ScummEngine::runAllScripts() {
 			if (vm.slot[i].cycle == cycle && vm.slot[i].status == ssRunning && !vm.slot[i].didexec) {
 				_currentScript = (byte)i;
 				getScriptBaseAddress();
-				getScriptEntryPoint();
+				resetScriptPointer();
 				executeScript();
 			}
 		}
@@ -943,7 +923,7 @@ void ScummEngine::runExitScript() {
 		// be limiting ourselves to strictly reading the size from the header?
 		if (_game.id == GID_INDY3 && !(_game.features & GF_OLD_BUNDLE)) {
 			byte *roomptr = getResourceAddress(rtRoom, _roomResource);
-			const byte *excd = findResourceData(MKID_BE('EXCD'), roomptr) - _resourceHeaderSize;
+			const byte *excd = findResourceData(MKTAG('E','X','C','D'), roomptr) - _resourceHeaderSize;
 			if (!excd || (getResourceDataSize(excd) < 1)) {
 				debug(2, "Exit-%d is empty", _roomResource);
 				return;
@@ -1124,7 +1104,7 @@ void ScummEngine::checkAndRunSentenceScript() {
 			// For now we assume that if there are more than 460 scripts, then
 			// the pair 29/104 is used, else the pair 28/103.
 
-			if (_res->num[rtScript] > 460) {
+			if (_res->_types[rtScript].size() > 460) {
 				if (sentenceScript == 104)
 					sentenceScript = 29;
 			} else {
@@ -1249,22 +1229,26 @@ bool ScummEngine::isRoomScriptRunning(int script) const {
 
 void ScummEngine::copyScriptString(byte *dst) {
 	int len = resStrLen(_scriptPointer) + 1;
-	while (len--)
-		*dst++ = fetchScriptByte();
+	memcpy(dst, _scriptPointer, len);
+	_scriptPointer += len;
+	dst += len;
 	*dst = 0;
 }
 
-//
-// Given a pointer to a Scumm string, this function returns the total byte length
-// of the string data in that resource. To do so it has to understand certain
-// special characters embedded into the string. The reason for this function is that
-// sometimes this embedded data contains zero bytes, thus we can't just use strlen.
-//
-int ScummEngine::resStrLen(const byte *src) const {
+/**
+ * Given a pointer to a Scumm string, this function returns the total
+ * byte length of the string data in that resource. To do so it has to
+ * understand certain special characters embedded into the string. The
+ * reason for this function is that sometimes this embedded data
+ * contains zero bytes, thus we can't just use strlen.
+ */
+int ScummEngine::resStrLen(const byte *src) {
 	int num = 0;
 	byte chr;
-	if (src == NULL)
+	if (src == NULL) {
+		refreshScriptPointer();
 		src = _scriptPointer;
+	}
 	while ((chr = *src++) != 0) {
 		num++;
 		if (_game.heversion <= 71 && chr == 0xFF) {
@@ -1295,7 +1279,8 @@ void ScummEngine::beginCutscene(int *args) {
 	int scr = _currentScript;
 	vm.slot[scr].cutsceneOverride++;
 
-	if (++vm.cutSceneStackPointer > ARRAYSIZE(vm.cutSceneData))
+	++vm.cutSceneStackPointer;
+	if (vm.cutSceneStackPointer >= kMaxCutsceneNum)
 		error("Cutscene stack overflow");
 
 	vm.cutSceneData[vm.cutSceneStackPointer] = args[0];
@@ -1325,6 +1310,9 @@ void ScummEngine::endCutscene() {
 
 	vm.cutSceneScript[vm.cutSceneStackPointer] = 0;
 	vm.cutScenePtr[vm.cutSceneStackPointer] = 0;
+
+	if (0 == vm.cutSceneStackPointer)
+		error("Cutscene stack underflow");
 	vm.cutSceneStackPointer--;
 
 	if (VAR(VAR_CUTSCENE_END_SCRIPT))
@@ -1333,7 +1321,7 @@ void ScummEngine::endCutscene() {
 
 void ScummEngine::abortCutscene() {
 	const int idx = vm.cutSceneStackPointer;
-	assert(0 <= idx && idx < 5);
+	assert(0 <= idx && idx < kMaxCutsceneNum);
 
 	uint32 offs = vm.cutScenePtr[idx];
 	if (offs) {
@@ -1352,7 +1340,7 @@ void ScummEngine::abortCutscene() {
 
 void ScummEngine::beginOverride() {
 	const int idx = vm.cutSceneStackPointer;
-	assert(0 <= idx && idx < 5);
+	assert(0 <= idx && idx < kMaxCutsceneNum);
 
 	vm.cutScenePtr[idx] = _scriptPointer - _scriptOrgPointer;
 	vm.cutSceneScript[idx] = _currentScript;
@@ -1369,7 +1357,7 @@ void ScummEngine::beginOverride() {
 
 void ScummEngine::endOverride() {
 	const int idx = vm.cutSceneStackPointer;
-	assert(0 <= idx && idx < 5);
+	assert(0 <= idx && idx < kMaxCutsceneNum);
 
 	vm.cutScenePtr[idx] = 0;
 	vm.cutSceneScript[idx] = 0;

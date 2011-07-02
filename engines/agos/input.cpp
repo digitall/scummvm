@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -99,7 +96,7 @@ void AGOSEngine::setup_cond_c_helper() {
 			animMax = 9;
 		}
 
-		_animatePointer = 0;
+		_animatePointer = false;
 		_mouseCursor = cursor;
 		_mouseAnimMax = animMax;
 		_mouseAnim = 1;
@@ -574,13 +571,13 @@ bool AGOSEngine::processSpecialKeys() {
 		if (getGameType() == GType_FF || (getGameType() == GType_SIMON2 && (getFeatures() & GF_TALKIE)) ||
 			((getFeatures() & GF_TALKIE) && _language != Common::EN_ANY && _language != Common::DE_DEU)) {
 			if (_speech)
-				_subtitles ^= 1;
+				_subtitles = !_subtitles;
 		}
 		break;
 	case 'v':
 		if (getGameType() == GType_FF || (getGameType() == GType_SIMON2 && (getFeatures() & GF_TALKIE))) {
 			if (_subtitles)
-				_speech ^= 1;
+				_speech = !_speech;
 		}
 		break;
 	case '+':
@@ -598,22 +595,24 @@ bool AGOSEngine::processSpecialKeys() {
 		syncSoundSettings();
 		break;
 	case 'm':
-		_musicPaused ^= 1;
+		_musicPaused = !_musicPaused;
 		if (_midiEnabled) {
 			_midi.pause(_musicPaused);
 		}
-		_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, (_musicPaused) ? 0 : ConfMan.getInt("music_volume"));
+		syncSoundSettings();
 		break;
 	case 's':
 		if (getGameId() == GID_SIMON1DOS) {
-			_midi._enable_sfx ^= 1;
+			_midi._enable_sfx = !_midi._enable_sfx;
 		} else {
-			_sound->effectsPause(_effectsPaused ^= 1);
+			_effectsPaused = !_effectsPaused;
+			_sound->effectsPause(_effectsPaused);
 		}
 		break;
 	case 'b':
 		if (getGameType() == GType_SIMON2) {
-			_sound->ambientPause(_ambientPaused ^= 1);
+			_ambientPaused = !_ambientPaused;
+			_sound->ambientPause(_ambientPaused);
 		}
 		break;
 	default:
@@ -623,144 +622,5 @@ bool AGOSEngine::processSpecialKeys() {
 	_keyPressed.reset();
 	return verbCode;
 }
-
-#ifdef ENABLE_PN
-// Personal Nightmare specific
-void AGOSEngine_PN::clearInputLine() {
-	_inputting = false;
-	_inputReady = false;
-	clearWindow(_windowArray[2]);
-}
-
-void AGOSEngine_PN::handleKeyboard() {
-	if (!_inputReady)
-		return;
-
-	if (_hitCalled != 0) {
-		mouseHit();
-	}
-
-	int16 chr = -1;
-	if (_mouseString) {
-		const char *strPtr = _mouseString;
-		while (*strPtr != 0 && *strPtr != 13)
-			addChar(*strPtr++);
-		_mouseString = 0;
-
-		chr = *strPtr;
-		if (chr == 13) {
-			addChar(13);
-		}
-	}
-	if (_mouseString1 && chr != 13) {
-		const char *strPtr = _mouseString1;
-		while (*strPtr != 13)
-			addChar(*strPtr++);
-		_mouseString1 = 0;
-
-		chr = *strPtr;
-		if (chr == 13) {
-			addChar(13);
-		}
-	}
-	if (chr == -1) {
-		if (_keyPressed.keycode == Common::KEYCODE_BACKSPACE || _keyPressed.keycode == Common::KEYCODE_RETURN) {
-			chr = _keyPressed.keycode;
-			addChar(chr);
-		} else if (!(_videoLockOut & 0x10)) {
-			chr = _keyPressed.ascii;
-			if (chr >= 32)
-				addChar(chr);
-		}
-	}
-
-	if (chr == 13) {
-		_mouseString = 0;
-		_mouseString1 = 0;
-		_mousePrintFG = 0;
-		_inputReady = false;
-	}
-
-	_keyPressed.reset();
-}
-
-void AGOSEngine_PN::interact(char *buffer, uint8 size) {
-	if (!_inputting) {
-		memset(_keyboardBuffer, 0, sizeof(_keyboardBuffer));
-		_intputCounter = 0;
-		_inputMax = size;
-		_inputWindow = _windowArray[_curWindow];
-		windowPutChar(_inputWindow, 128);
-		windowPutChar(_inputWindow, 8);
-		_inputting = true;
-		_inputReady = true;
-	}
-
-	while (!shouldQuit() && _inputReady) {
-		if (!_noScanFlag && _scanFlag) {
-			buffer[0] = 1;
-			buffer[1] = 0;
-			_scanFlag = 0;
-			break;
-		}
-		delay(1);
-	}
-
-	if (!_inputReady) {
-		memcpy(buffer, _keyboardBuffer, size);
-		_inputting = false;
-	}
-}
-
-void AGOSEngine_PN::addChar(uint8 chr) {
-	if (chr == 13) {
-		_keyboardBuffer[_intputCounter++] = chr;
-		windowPutChar(_inputWindow, 13);
-	} else if (chr == 8 && _intputCounter) {
-		clearCursor(_inputWindow);
-		windowPutChar(_inputWindow, 8);
-		windowPutChar(_inputWindow, 128);
-		windowPutChar(_inputWindow, 8);
-
-		_keyboardBuffer[--_intputCounter] = 0;
-	} else if (chr >= 32 && _intputCounter < _inputMax) {
-		_keyboardBuffer[_intputCounter++] = chr;
-
-		clearCursor(_inputWindow);
-		windowPutChar(_inputWindow, chr);
-		windowPutChar(_inputWindow, 128);
-		windowPutChar(_inputWindow, 8);
-	}
-}
-
-void AGOSEngine_PN::clearCursor(WindowBlock *window) {
-	byte oldTextColor = window->textColor;
-
-	window->textColor = window->fillColor;
-	windowPutChar(window, 128);
-	window->textColor = oldTextColor;
-
-	windowPutChar(window, 8);
-}
-
-bool AGOSEngine_PN::processSpecialKeys() {
-	if (shouldQuit())
-		_exitCutscene = true;
-
-	switch (_keyPressed.keycode) {
-	case Common::KEYCODE_ESCAPE:
-		_exitCutscene = true;
-		break;
-	case Common::KEYCODE_PAUSE:
-		pause();
-		break;
-	default:
-		break;
-	}
-
-	_keyPressed.reset();
-	return false;
-}
-#endif
 
 } // End of namespace AGOS

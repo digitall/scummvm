@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * String resource managment routines
  */
 
@@ -28,12 +25,16 @@
 #include "tinsel/drives.h"
 #include "tinsel/sound.h"
 #include "tinsel/strres.h"
+#include "tinsel/scn.h"
 #include "common/file.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 #include "gui/message.h"
 
 namespace Tinsel {
+
+// FIXME: Avoid non-const global vars
 
 #ifdef DEBUG
 // Diagnostic number
@@ -87,11 +88,9 @@ void ChangeLanguage(LANGUAGE newLang) {
 	textLanguage = newLang;
 	sampleLanguage = newLang;
 
-	if (textBuffer) {
-		// free the previous buffer
-		free(textBuffer);
-		textBuffer = NULL;
-	}
+	// free the previous buffer
+	free(textBuffer);
+	textBuffer = NULL;
 
 	// Try and open the specified language file. If it fails, and the language
 	// isn't English, try falling back on opening 'english.txt' - some foreign
@@ -110,8 +109,8 @@ void ChangeLanguage(LANGUAGE newLang) {
 	// Check whether the file is compressed or not -  for compressed files the
 	// first long is the filelength and for uncompressed files it is the chunk
 	// identifier
-	textLen = f.readUint32LE();
-	if (f.ioFailed())
+	textLen = f.readUint32();
+	if (f.eos() || f.err())
 		error(FILE_IS_CORRUPT, _vm->getTextFile(newLang));
 
 	if (textLen == CHUNK_STRING || textLen == CHUNK_MBSTRING) {
@@ -287,13 +286,11 @@ int LoadStringResource(int id, int sub, char *pBuffer, int bufferMax) {
 		}
 	}
 
-	if (len)
-	{
+	if (len) {
 		// the string exists
 
 		// copy the string to the buffer
-		if (len < bufferMax)
-		{
+		if (len < bufferMax) {
 			memcpy(pBuffer, pText + 1, len);
 
 			// null terminate
@@ -356,10 +353,8 @@ int SubStringCount(int id) {
 
 
 void FreeTextBuffer() {
-	if (textBuffer) {
-		free(textBuffer);
-		textBuffer = NULL;
-	}
+	free(textBuffer);
+	textBuffer = NULL;
 }
 
 /**
@@ -376,18 +371,18 @@ void LanguageFacts(int language, SCNHANDLE hDescription, SCNHANDLE hFlagFilm) {
 /**
  * Gets the current subtitles language
  */
-LANGUAGE TextLanguage(void) {
+LANGUAGE TextLanguage() {
 	return textLanguage;
 }
 
 /**
  * Gets the current voice language
  */
-LANGUAGE SampleLanguage(void) {
+LANGUAGE SampleLanguage() {
 	return sampleLanguage;
 }
 
-int NumberOfLanguages(void) {
+int NumberOfLanguages() {
 	int i, count;
 
 	for (i = 0, count = 0; i < NUM_LANGUAGES; i++) {
@@ -439,4 +434,4 @@ SCNHANDLE LanguageFlag(LANGUAGE thisOne) {
 	return languages[thisOne].hFlagFilm;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

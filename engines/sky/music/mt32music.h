@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_MUSIC_MT32MUSIC_H
@@ -35,10 +32,10 @@ namespace Sky {
 class MT32Music : public MusicBase {
 public:
 	MT32Music(MidiDriver *pMidiDrv, Disk *pDisk);
-	~MT32Music(void);
+	~MT32Music();
 private:
 	static void passTimerFunc(void *param);
-	void timerCall(void);
+	void timerCall();
 	bool processPatchSysEx(uint8 *sysExData);
 	virtual void setVolume(uint16 volume);
 
@@ -46,9 +43,9 @@ private:
 	uint8 *_sysExSequence;
 	MidiDriver *_midiDrv;
 
-	virtual void setupPointers(void);
+	virtual void setupPointers();
 	virtual void setupChannels(uint8 *channelData);
-	virtual void startDriver(void);
+	virtual void startDriver();
 };
 
 } // End of namespace Sky

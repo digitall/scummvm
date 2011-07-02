@@ -18,25 +18,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef SCUMM_HE_ANIMATION_H
+#if !defined(SCUMM_HE_ANIMATION_H) && defined(ENABLE_HE)
 #define SCUMM_HE_ANIMATION_H
 
-#include "common/file.h"
+#include "video/smk_decoder.h"
 
-#include "graphics/video/smk_decoder.h"
-
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 namespace Scumm {
 
 class ScummEngine_v90he;
 
-class MoviePlayer : public Graphics::SmackerDecoder {
+class MoviePlayer : public Video::SmackerDecoder {
 	ScummEngine_v90he *_vm;
 
 	Audio::Mixer *_mixer;
@@ -54,10 +49,8 @@ public:
 	int getImageNum();
 	int load(const char *filename, int flags, int image = 0);
 
+	void copyFrameToBuffer(byte *dst, int dstType, uint x, uint y, uint pitch);
 	void handleNextFrame();
-
-protected:
-	virtual void setPalette(byte *pal);
 };
 
 } // End of namespace Scumm

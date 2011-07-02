@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Scene parsing defines
  */
 
@@ -33,11 +30,11 @@
 namespace Tinsel {
 
 enum {
-	MAX_NODES		= 32,	//!< maximum nodes in a Node Path
-	MAX_NOSCROLL	= 16,	//!< maximum number of NoScroll commands in a scene
-	MAX_ENTRANCE	= 25,	//!< maximum number of entrances in a scene
-	MAX_POLY		= 256,	//!< maximum number of polygons in a scene
-	MAX_ACTOR		= 32	//!< maximum number of actors in a scene
+	MAX_NODES		= 32,	///< maximum nodes in a Node Path
+	MAX_NOSCROLL	= 16,	///< maximum number of NoScroll commands in a scene
+	MAX_ENTRANCE	= 25,	///< maximum number of entrances in a scene
+	MAX_POLY		= 256,	///< maximum number of polygons in a scene
+	MAX_ACTOR		= 32	///< maximum number of actors in a scene
 };
 
 // ENTRANCE_STRUC bitflags
@@ -78,20 +75,20 @@ enum REEL {
 typedef enum { TRANS_DEF, TRANS_CUT, TRANS_FADE } TRANSITS;
 
 // amount to shift scene handles by
-#define	SCNHANDLE_SHIFT (TinselV2 ? 25 : 23)
-#define	OFFSETMASK (TinselV2 ? 0x01ffffffL : 0x007fffffL)
-#define HANDLEMASK (TinselV2 ? 0xFE000000L : 0xFF800000L)
+#define	SCNHANDLE_SHIFT ((TinselV2 && !IsDemo) ? 25 : 23)
+#define	OFFSETMASK ((TinselV2 && !IsDemo) ? 0x01ffffffL : 0x007fffffL)
+#define HANDLEMASK ((TinselV2 && !IsDemo) ? 0xFE000000L : 0xFF800000L)
 
 void DoHailScene(SCNHANDLE scene);
 
-void WrapScene(void);
+void WrapScene();
 
 void StartNewScene(SCNHANDLE scene, int entry);
 
-void EndScene(void);
+void EndScene();
 
 void SendSceneTinselProcess(TINSEL_EVENT event);
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	// TINSEL_SCENE_H

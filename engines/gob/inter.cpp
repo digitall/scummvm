@@ -18,12 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-#include <time.h>	// FIXME: for Inter::renewTimeInVars()
 
 #include "common/endian.h"
 
@@ -41,7 +36,7 @@
 
 namespace Gob {
 
-Inter::Inter(GobEngine *vm) : _vm(vm) {
+Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(600) {
 	_terminate = 0;
 	_break = false;
 
@@ -56,9 +51,6 @@ Inter::Inter(GobEngine *vm) : _vm(vm) {
 
 	_soundEndTimeKey = 0;
 	_soundStopVal = 0;
-
-	memset(_varStack, 0, 300);
-	_varStackPos = 0;
 
 	_noBusyWait = false;
 
@@ -84,22 +76,15 @@ void Inter::executeOpcodeDraw(byte i) {
 		warning("unimplemented opcodeDraw: %d [0x%X]", i, i);
 }
 
-bool Inter::executeOpcodeFunc(byte i, byte j, OpFuncParams &params) {
+void Inter::executeOpcodeFunc(byte i, byte j, OpFuncParams &params) {
 	debugC(1, kDebugFuncOp, "opcodeFunc %d.%d [0x%X.0x%X] (%s)",
 			i, j, i, j, getDescOpcodeFunc(i, j));
 
-	if ((i > 4) || (j > 15)) {
-		warning("unimplemented opcodeFunc: %d.%d [0x%X.0x%X]", i, j, i, j);
-		return false;
-	}
-
-	i = i * 16 + j;
-	if (_opcodesFunc[i].proc && _opcodesFunc[i].proc->isValid())
-		return (*_opcodesFunc[i].proc)(params);
+	int n = i * 16 + j;
+	if ((i <= 4) && (j <= 15) && _opcodesFunc[n].proc && _opcodesFunc[n].proc->isValid())
+		(*_opcodesFunc[n].proc)(params);
 	else
 		warning("unimplemented opcodeFunc: %d.%d [0x%X.0x%X]", i, j, i, j);
-
-	return false;
 }
 
 void Inter::executeOpcodeGob(int i, OpGobParams &params) {
@@ -159,7 +144,7 @@ void Inter::initControlVars(char full) {
 }
 
 void Inter::renewTimeInVars() {
-	struct tm t;
+	TimeDate t;
 	_vm->_system->getTimeAndDate(t);
 
 	WRITE_VAR(5, 1900 + t.tm_year);
@@ -269,31 +254,50 @@ void Inter::funcBlock(int16 retFlag) {
 
 			int addr = _vm->_game->_script->pos();
 
-			if ((startaddr == 0x18B4 && addr == 0x1A7F && // Zombie, EGA
-				 !strncmp(_vm->_game->_curTotFile, "avt005.tot", 10)) ||
-			  (startaddr == 0x188D && addr == 0x1A58 && // Zombie, Mac
-				 !strncmp(_vm->_game->_curTotFile, "avt005.tot", 10)) ||
-				(startaddr == 0x1299 && addr == 0x139A && // Dungeon
-				 !strncmp(_vm->_game->_curTotFile, "avt006.tot", 10)) ||
-				(startaddr == 0x11C0 && addr == 0x12C9 && // Cauldron, EGA
-				 !strncmp(_vm->_game->_curTotFile, "avt012.tot", 10)) ||
-				(startaddr == 0x11C8 && addr == 0x1341 && // Cauldron, Mac
-				 !strncmp(_vm->_game->_curTotFile, "avt012.tot", 10)) ||
-				(startaddr == 0x09F2 && addr == 0x0AF3 && // Statue
-				 !strncmp(_vm->_game->_curTotFile, "avt016.tot", 10)) ||
-				(startaddr == 0x0B92 && addr == 0x0C93 && // Castle
-				 !strncmp(_vm->_game->_curTotFile, "avt019.tot", 10)) ||
-				(startaddr == 0x17D9 && addr == 0x18DA && // Finale, EGA
-				 !strncmp(_vm->_game->_curTotFile, "avt022.tot", 10)) ||
-				(startaddr == 0x17E9 && addr == 0x19A8 && // Finale, Mac
-				 !strncmp(_vm->_game->_curTotFile, "avt022.tot", 10))) {
+			if ((startaddr == 0x18B4 && addr == 0x1A7F && _vm->isCurrentTot("avt005.tot")) || // Zombie, EGA
+			    (startaddr == 0x188D && addr == 0x1A58 && _vm->isCurrentTot("avt005.tot")) || // Zombie, Mac
+			    (startaddr == 0x1299 && addr == 0x139A && _vm->isCurrentTot("avt006.tot")) || // Dungeon
+			    (startaddr == 0x11C0 && addr == 0x12C9 && _vm->isCurrentTot("avt012.tot")) || // Cauldron, EGA
+			    (startaddr == 0x11C8 && addr == 0x1341 && _vm->isCurrentTot("avt012.tot")) || // Cauldron, Mac
+			    (startaddr == 0x09F2 && addr == 0x0AF3 && _vm->isCurrentTot("avt016.tot")) || // Statue
+			    (startaddr == 0x0B92 && addr == 0x0C93 && _vm->isCurrentTot("avt019.tot")) || // Castle
+			    (startaddr == 0x17D9 && addr == 0x18DA && _vm->isCurrentTot("avt022.tot")) || // Finale, EGA
+			    (startaddr == 0x17E9 && addr == 0x19A8 && _vm->isCurrentTot("avt022.tot"))) { // Finale, Mac
 
 				_vm->_util->longDelay(5000);
 			}
+		} // End of workaround
 
+		// WORKAROUND:
+		// Apart the CD version which is playing a speech in this room, all the versions
+		// of Fascination have a too short delay between the storage room and the lab.
+		// We manually add it here.
+		if ((_vm->getGameType() == kGameTypeFascination) && _vm->isCurrentTot("PLANQUE.tot")) {
+				int addr = _vm->_game->_script->pos();
+				if ((startaddr == 0x0202 && addr == 0x0330) || // Before Lab, Amiga & Atari, English
+				    (startaddr == 0x023D && addr == 0x032D) || // Before Lab, PC floppy, German
+				    (startaddr == 0x02C2 && addr == 0x03C2)) { // Before Lab, PC floppy, Hebrew
+					warning("Fascination - Adding delay");
+					_vm->_util->longDelay(3000);
+			}
 		} // End of workaround
 
 		cmd = _vm->_game->_script->readByte();
+
+		// WORKAROUND:
+		// A VGA version has some broken code in its scripts, this workaround skips the corrupted parts.
+		if (_vm->getGameType() == kGameTypeFascination) {
+			int addr = _vm->_game->_script->pos();
+			if ((startaddr == 0x212D) && (addr == 0x290E) && (cmd == 0x90) && _vm->isCurrentTot("INTRO1.tot")) {
+				_vm->_game->_script->skip(2);
+				cmd = _vm->_game->_script->readByte();
+			}
+			if ((startaddr == 0x207D) && (addr == 0x22CE) && (cmd == 0x90) && _vm->isCurrentTot("INTRO2.tot")) {
+				_vm->_game->_script->skip(2);
+				cmd = _vm->_game->_script->readByte();
+			}
+		}
+
 		if ((cmd >> 4) >= 12) {
 			cmd2 = 16 - (cmd >> 4);
 			cmd &= 0xF;
@@ -305,7 +309,10 @@ void Inter::funcBlock(int16 retFlag) {
 		if (cmd2 == 0)
 			cmd >>= 4;
 
-		if (executeOpcodeFunc(cmd2, cmd, params))
+		params.doReturn = false;
+		executeOpcodeFunc(cmd2, cmd, params);
+
+		if (params.doReturn)
 			return;
 
 		if (_vm->shouldQuit())
@@ -322,7 +329,6 @@ void Inter::funcBlock(int16 retFlag) {
 	} while (params.counter != params.cmdCount);
 
 	_vm->_game->_script->setFinished(true);
-	return;
 }
 
 void Inter::callSub(int16 retFlag) {
@@ -354,6 +360,96 @@ void Inter::allocateVars(uint32 count) {
 void Inter::delocateVars() {
 	delete _variables;
 	_variables = 0;
+}
+
+void Inter::storeValue(uint16 index, uint16 type, uint32 value) {
+	switch (type) {
+	case OP_ARRAY_INT8:
+	case TYPE_VAR_INT8:
+		WRITE_VARO_UINT8(index, value);
+		break;
+
+	case TYPE_VAR_INT16:
+	case TYPE_VAR_INT32_AS_INT16:
+	case TYPE_ARRAY_INT16:
+		WRITE_VARO_UINT16(index, value);
+		break;
+
+	default:
+		WRITE_VARO_UINT32(index, value);
+	}
+}
+
+void Inter::storeValue(uint32 value) {
+	uint16 type;
+	uint16 index = _vm->_game->_script->readVarIndex(0, &type);
+
+	storeValue(index, type, value);
+}
+
+void Inter::storeString(uint16 index, uint16 type, const char *value) {
+	uint32 maxLength = _vm->_global->_inter_animDataSize * 4 - 1;
+	char  *str       = GET_VARO_STR(index);
+
+	switch (type) {
+	case TYPE_VAR_STR:
+		if (strlen(value) > maxLength)
+			warning("Inter_v7::storeString(): String too long");
+
+		Common::strlcpy(str, value, maxLength);
+		break;
+
+	case TYPE_IMM_INT8:
+	case TYPE_VAR_INT8:
+		strcpy(str, value);
+		break;
+
+	case TYPE_ARRAY_INT8:
+		WRITE_VARO_UINT8(index, atoi(value));
+		break;
+
+	case TYPE_VAR_INT16:
+	case TYPE_VAR_INT32_AS_INT16:
+	case TYPE_ARRAY_INT16:
+		WRITE_VARO_UINT16(index, atoi(value));
+		break;
+
+	case TYPE_VAR_INT32:
+	case TYPE_ARRAY_INT32:
+		WRITE_VARO_UINT32(index, atoi(value));
+		break;
+
+	default:
+		warning("Inter_v7::storeString(): Requested to store a string into type %d", type);
+		break;
+	}
+}
+
+void Inter::storeString(const char *value) {
+	uint16 type;
+	uint16 varIndex = _vm->_game->_script->readVarIndex(0, &type);
+
+	storeString(varIndex, type, value);
+}
+
+uint32 Inter::readValue(uint16 index, uint16 type) {
+	switch (type) {
+	case TYPE_IMM_INT8:
+	case TYPE_VAR_INT8:
+	case TYPE_ARRAY_INT8:
+		return (uint32)(((int32)((int8)READ_VARO_UINT8(index))));
+		break;
+
+	case TYPE_VAR_INT16:
+	case TYPE_VAR_INT32_AS_INT16:
+	case TYPE_ARRAY_INT16:
+		return (uint32)(((int32)((int16)READ_VARO_UINT16(index))));
+
+	default:
+		return READ_VARO_UINT32(index);
+	}
+
+	return 0;
 }
 
 } // End of namespace Gob

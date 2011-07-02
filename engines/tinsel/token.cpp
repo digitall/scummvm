@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * To ensure exclusive use of resources and exclusive control responsibilities.
  */
 
@@ -37,7 +34,7 @@ struct Token {
 	PROCESS		*proc;
 };
 
-static Token tokens[NUMTOKENS];
+static Token tokens[NUMTOKENS];	// FIXME: Avoid non-const global vars
 
 
 /**
@@ -120,10 +117,10 @@ bool TestToken(int which) {
 /**
  * Call at the start of each scene.
  */
-void FreeAllTokens(void) {
+void FreeAllTokens() {
 	for (int i = 0; i < NUMTOKENS; i++) {
 		tokens[i].proc = NULL;
 	}
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Video script opcodes for Simon1/Simon2
@@ -31,6 +28,7 @@
 #include "agos/vga.h"
 
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "graphics/surface.h"
 
@@ -106,7 +104,7 @@ void AGOSEngine_Elvira1::setupVideoOpcodes(VgaOpcodeProc *op) {
 	op[20] = &AGOSEngine::vc19_loop;
 	op[21] = &AGOSEngine::vc20_setRepeat;
 	op[22] = &AGOSEngine::vc21_endRepeat;
-	op[23] = &AGOSEngine::vc22_setPaletteOld;
+	op[23] = &AGOSEngine::vc22_setPalette;
 	op[24] = &AGOSEngine::vc23_setPriority;
 	op[25] = &AGOSEngine::vc24_setSpriteXY;
 	op[26] = &AGOSEngine::vc25_halt_sprite;
@@ -155,7 +153,7 @@ void AGOSEngine::runVgaScript() {
 
 		if (_dumpVgaOpcodes) {
 			if (_vcPtr != (const byte *)&_vcGetOutOfCode) {
-				printf("%.5d %.5X: %5d %4d ", _vgaTickCounter, (unsigned int)(_vcPtr - _curVgaFile1), _vgaCurSpriteId, _vgaCurZoneNum);
+				debugN("%.5d %.5X: %5d %4d ", _vgaTickCounter, (unsigned int)(_vcPtr - _curVgaFile1), _vgaCurSpriteId, _vgaCurZoneNum);
 				dumpVideoScript(_vcPtr, true);
 			}
 		}
@@ -383,7 +381,7 @@ void AGOSEngine::vcSkipNextInstruction() {
 	}
 
 	if (_dumpVgaOpcodes)
-		printf("; skipped\n");
+		debugN("; skipped\n");
 }
 
 // VGA Script commands
@@ -918,7 +916,7 @@ static const uint8 iconPalette[64] = {
 	0x77, 0x55, 0x00,
 };
 
-void AGOSEngine::vc22_setPaletteOld() {
+void AGOSEngine::vc22_setPalette() {
 	byte *offs, *palptr, *src;
 	uint16 b, num;
 
@@ -935,8 +933,8 @@ void AGOSEngine::vc22_setPaletteOld() {
 
 	if (getGameType() == GType_PN) {
 		if (b > 128) {
-			b-= 128;
-			palptr = _displayPalette + 64;
+			b -= 128;
+			palptr = _displayPalette + 3 * 16;
 		}
 	} else if (getGameType() == GType_ELVIRA1) {
 		if (b >= 1000) {
@@ -956,24 +954,22 @@ void AGOSEngine::vc22_setPaletteOld() {
 			num = 13;
 
 			for (int i = 0; i < 19; i++) {
-				palptr[(13 + i) * 4 + 0] = extraColors[i * 3 + 0] * 4;
-				palptr[(13 + i) * 4 + 1] = extraColors[i * 3 + 1] * 4;
-				palptr[(13 + i) * 4 + 2] = extraColors[i * 3 + 2] * 4;
-				palptr[(13 + i) * 4 + 3] = 0;
+				palptr[(13 + i) * 3 + 0] = extraColors[i * 3 + 0] * 4;
+				palptr[(13 + i) * 3 + 1] = extraColors[i * 3 + 1] * 4;
+				palptr[(13 + i) * 3 + 2] = extraColors[i * 3 + 2] * 4;
 			}
 		}
 	}
 
 	if (getGameType() == GType_ELVIRA2 && getPlatform() == Common::kPlatformAtariST) {
 		// Custom palette used for icon area
-		palptr = &_displayPalette[13 * 64];
+		palptr = &_displayPalette[13 * 3 * 16];
 		for (uint8 c = 0; c < 16; c++) {
 			palptr[0] = iconPalette[c * 3 + 0] * 2;
 			palptr[1] = iconPalette[c * 3 + 1] * 2;
 			palptr[2] = iconPalette[c * 3 + 2] * 2;
-			palptr[3] = 0;
 
-			palptr += 4;
+			palptr += 3;
 		};
 		palptr = _displayPalette;
 	}
@@ -986,9 +982,8 @@ void AGOSEngine::vc22_setPaletteOld() {
 		palptr[0] = ((color & 0xf00) >> 8) * 32;
 		palptr[1] = ((color & 0x0f0) >> 4) * 32;
 		palptr[2] = ((color & 0x00f) >> 0) * 32;
-		palptr[3] = 0;
 
-		palptr += 4;
+		palptr += 3;
 		src += 2;
 	} while (--num);
 
@@ -1197,7 +1192,7 @@ void AGOSEngine::vc32_saveScreen() {
 		uint16 height = _videoWindows[4 * 4 + 3];
 
 		byte *dst = (byte *)_backGroundBuf->getBasePtr(xoffs, yoffs);
-		byte *src = (byte *)_window4BackScn->pixels;;
+		byte *src = (byte *)_window4BackScn->pixels;
 		uint16 srcWidth = _videoWindows[4 * 4 + 2] * 16;
 		for (; height > 0; height--) {
 			memcpy(dst, src, width);
@@ -1212,10 +1207,9 @@ void AGOSEngine::vc33_setMouseOn() {
 		_mouseHideCount = 1;
 		if (getGameType() == GType_ELVIRA2 || getGameType() == GType_WW) {
 			// Set mouse palette
-			_displayPalette[65 * 4 + 0] = 48 * 4;
-			_displayPalette[65 * 4 + 1] = 48 * 4;
-			_displayPalette[65 * 4 + 2] = 40 * 4;
-			_displayPalette[65 * 4 + 3] = 0;
+			_displayPalette[65 * 3 + 0] = 48 * 4;
+			_displayPalette[65 * 3 + 1] = 48 * 4;
+			_displayPalette[65 * 3 + 2] = 40 * 4;
 			_paletteFlag = 1;
 		}
 		mouseOn();
@@ -1258,7 +1252,7 @@ void AGOSEngine::clearVideoWindow(uint16 num, uint16 color) {
 			dst += screen->pitch;
 		}
 		 _system->unlockScreen();
-	} else if (num == 4) {
+	} else {
 		const uint16 *vlut = &_videoWindows[num * 4];
 		uint16 xoffs = (vlut[0] - _videoWindows[16]) * 16;
 		uint16 yoffs = (vlut[1] - _videoWindows[17]);
@@ -1299,15 +1293,10 @@ void AGOSEngine::vc35_clearWindow() {
 }
 
 void AGOSEngine::vc36_setWindowImage() {
-	_displayScreen = false;
+	_displayFlag = 0;
 	uint16 vga_res = vcReadNextWord();
 	uint16 windowNum = vcReadNextWord();
-
-	if (getGameType() == GType_FF || getGameType() == GType_PP) {
-		fillBackGroundFromFront();
-	} else {
-		setWindowImage(windowNum, vga_res);
-	}
+	setWindowImage(windowNum, vga_res);
 }
 
 void AGOSEngine::vc37_pokePalette() {
@@ -1318,15 +1307,14 @@ void AGOSEngine::vc37_pokePalette() {
 	if (getGameType() == GType_PN && (getFeatures() & GF_EGA))
 		return;
 
-	byte *palptr = _displayPalette + offs * 4;
+	byte *palptr = _displayPalette + offs * 3;
 	palptr[0] = ((color & 0xf00) >> 8) * 32;
 	palptr[1] = ((color & 0x0f0) >> 4) * 32;
 	palptr[2] = ((color & 0x00f) >> 0) * 32;
-	palptr[3] = 0;
 
 	if (!(_videoLockOut & 0x20)) {
 		_paletteFlag = 1;
-		_displayScreen++;
+		_displayFlag++;
 	}
 }
 

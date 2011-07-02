@@ -18,21 +18,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "groovie/groovie.h"
 #include "groovie/graphics.h"
+#include "groovie/groovie.h"
+
+#include "common/rect.h"
+#include "common/system.h"
+
+#include "graphics/palette.h"
 
 namespace Groovie {
 
 GraphicsMan::GraphicsMan(GroovieEngine *vm) :
 	_vm(vm), _changed(false), _fading(0) {
 	// Create the game surfaces
-	_foreground.create(640, 320, 1);
-	_background.create(640, 320, 1);
+	_foreground.create(640, 320, _vm->_pixelFormat);
+	_background.create(640, 320, _vm->_pixelFormat);
 }
 
 GraphicsMan::~GraphicsMan() {
@@ -105,11 +107,7 @@ void GraphicsMan::fadeIn(byte *pal) {
 	_fadeStartTime = _vm->_system->getMillis();
 
 	// Copy the target palette
-	for (int i = 0; i < 256; i++) {
-		_paletteFull[(i * 4) + 0] = pal[(i * 3) + 0];
-		_paletteFull[(i * 4) + 1] = pal[(i * 3) + 1];
-		_paletteFull[(i * 4) + 2] = pal[(i * 3) + 2];
-	}
+	memcpy(_paletteFull, pal, 3 * 256);
 
 	// Set the current fading
 	_fading = 1;
@@ -123,7 +121,7 @@ void GraphicsMan::fadeOut() {
 	_fadeStartTime = _vm->_system->getMillis();
 
 	// Get the current palette
-	_vm->_system->grabPalette(_paletteFull, 0, 256);
+	_vm->_system->getPaletteManager()->grabPalette(_paletteFull, 0, 256);
 
 	// Set the current fading
 	_fading = 2;
@@ -150,15 +148,15 @@ void GraphicsMan::applyFading(int step) {
 	}
 
 	// Calculate the new palette
-	byte newpal[256 * 4];
+	byte newpal[256 * 3];
 	for (int i = 0; i < 256; i++) {
-		newpal[(i * 4) + 0] = (_paletteFull[(i * 4) + 0] * factorR) / 256;
-		newpal[(i * 4) + 1] = (_paletteFull[(i * 4) + 1] * factorG) / 256;
-		newpal[(i * 4) + 2] = (_paletteFull[(i * 4) + 2] * factorB) / 256;
+		newpal[(i * 3) + 0] = (_paletteFull[(i * 3) + 0] * factorR) / 256;
+		newpal[(i * 3) + 1] = (_paletteFull[(i * 3) + 1] * factorG) / 256;
+		newpal[(i * 3) + 2] = (_paletteFull[(i * 3) + 2] * factorB) / 256;
 	}
 
 	// Set the screen palette
-	_vm->_system->setPalette(newpal, 0, 256);
+	_vm->_system->getPaletteManager()->setPalette(newpal, 0, 256);
 
 	// Request a screen update
 	change();

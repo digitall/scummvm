@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_DEBUGGER_H
@@ -33,15 +30,16 @@ namespace Tinsel {
 class TinselEngine;
 
 class Console: public GUI::Debugger {
-protected:
+public:
+	Console();
+	virtual ~Console();
+
+private:
 	bool cmd_item(int argc, const char **argv);
 	bool cmd_scene(int argc, const char **argv);
 	bool cmd_music(int argc, const char **argv);
 	bool cmd_sound(int argc, const char **argv);
 	bool cmd_string(int argc, const char **argv);
-public:
-	Console();
-	virtual ~Console(void);
 };
 
 } // End of namespace Tinsel

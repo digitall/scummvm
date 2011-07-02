@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef MADE_PMVPLAYER_H
@@ -31,8 +28,8 @@
 #include "common/file.h"
 #include "common/endian.h"
 #include "graphics/surface.h"
-#include "sound/mixer.h"
-#include "sound/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/audiostream.h"
 
 #include "made/graphics.h"
 #include "made/sound.h"
@@ -50,7 +47,7 @@ protected:
 	MadeEngine *_vm;
 	Audio::Mixer *_mixer;
 	Common::File *_fd;
-	Audio::AppendableAudioStream *_audioStream;
+	Audio::QueuingAudioStream *_audioStream;
 	Audio::SoundHandle _audioStreamHandle;
 	byte _paletteRGB[768];
 	Graphics::Surface *_surface;

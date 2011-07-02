@@ -18,10 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+// Disable symbol overrides so that we can use system headers.
+#define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include <kernel.h>
 #include <stdio.h>
@@ -33,35 +33,41 @@
 #include <assert.h>
 #include <iopcontrol.h>
 #include <iopheap.h>
-#include "common/scummsys.h"
-#include "engines/engine.h"
-#include "backends/platform/ps2/systemps2.h"
-#include "backends/platform/ps2/Gs2dScreen.h"
-#include "backends/platform/ps2/ps2input.h"
-#include "backends/platform/ps2/irxboot.h"
+
 #include <sjpcm.h>
 #include <libhdd.h>
-#include "backends/platform/ps2/savefilemgr.h"
-#include "common/file.h"
-#include "backends/platform/ps2/sysdefs.h"
-#include "backends/platform/ps2/fileio.h"
 #include <libmc.h>
 #include <libpad.h>
-#include "backends/platform/ps2/cd.h"
 #include <fileXio_rpc.h>
-#include "backends/platform/ps2/asyncfio.h"
 #include "eecodyvdfs.h"
-#include "graphics/surface.h"
-#include "graphics/scaler.h"
-#include "graphics/font.h"
-#include "backends/timer/default/default-timer.h"
-#include "sound/mixer_intern.h"
-#include "common/events.h"
-#include "backends/platform/ps2/ps2debug.h"
-#include "backends/fs/ps2/ps2-fs-factory.h"
 
-#include "backends/saves/default/default-saves.h"
 #include "common/config-manager.h"
+#include "common/events.h"
+#include "common/file.h"
+#include "common/scummsys.h"
+
+#include "backends/platform/ps2/asyncfio.h"
+#include "backends/platform/ps2/cd.h"
+#include "backends/platform/ps2/fileio.h"
+#include "backends/platform/ps2/Gs2dScreen.h"
+#include "backends/platform/ps2/irxboot.h"
+#include "backends/platform/ps2/ps2debug.h"
+#include "backends/platform/ps2/ps2input.h"
+#include "backends/platform/ps2/savefilemgr.h"
+#include "backends/platform/ps2/sysdefs.h"
+#include "backends/platform/ps2/systemps2.h"
+
+#include "backends/fs/ps2/ps2-fs-factory.h"
+#include "backends/plugins/ps2/ps2-provider.h"
+
+#include "backends/timer/default/default-timer.h"
+
+#include "audio/mixer_intern.h"
+
+#include "engines/engine.h"
+
+#include "graphics/font.h"
+#include "graphics/surface.h"
 
 #include "icon.h"
 #include "ps2temp.h"
@@ -87,8 +93,6 @@ volatile uint32 msecCount = 0;
 
 OSystem_PS2 *g_systemPs2;
 
-int gBitFormat = 1555;
-
 #define FOREVER 2147483647
 
 namespace Graphics {
@@ -108,7 +112,6 @@ extern "C" int scummvm_main(int argc, char *argv[]);
 
 extern "C" int main(int argc, char *argv[]) {
 	SifInitRpc(0);
-
 	ee_thread_t thisThread;
 	int tid = GetThreadId();
 	ReferThreadStatus(tid, &thisThread);
@@ -133,8 +136,11 @@ extern "C" int main(int argc, char *argv[]) {
 	sioprintf("Creating system\n");
 	g_system = g_systemPs2 = new OSystem_PS2(argv[0]);
 
-	g_systemPs2->init();
+#ifdef DYNAMIC_MODULES
+	PluginManager::instance().addPluginProvider(new PS2PluginProvider());
+#endif
 
+	g_systemPs2->init();
 	sioprintf("init done. starting ScummVM.\n");
 	int res = scummvm_main(argc, argv);
 	sioprintf("scummvm_main terminated: %d\n", res);
@@ -170,11 +176,11 @@ s32 timerInterruptHandler(s32 cause) {
 }
 
 void systemTimerThread(OSystem_PS2 *system) {
-	system->timerThread();
+	system->timerThreadCallback();
 }
 
 void systemSoundThread(OSystem_PS2 *system) {
-	system->soundThread();
+	system->soundThreadCallback();
 }
 
 void gluePowerOffCallback(void *system) {
@@ -341,14 +347,14 @@ OSystem_PS2::OSystem_PS2(const char *elfPath) {
 
 void OSystem_PS2::init(void) {
 	sioprintf("Timer...\n");
-	_scummTimerManager = new DefaultTimerManager();
-	_scummMixer = new Audio::MixerImpl(this);
-	_scummMixer->setOutputRate(48000);
+	_timerManager = new DefaultTimerManager();
+	_scummMixer = new Audio::MixerImpl(this, 48000);
 	_scummMixer->setReady(true);
+
 	initTimer();
 
 	sioprintf("Starting SavefileManager\n");
-	_saveManager = new Ps2SaveFileManager(this, _screen);
+	_savefileManager = new Ps2SaveFileManager(this, _screen);
 
 	sioprintf("Initializing ps2Input\n");
 	_input = new Ps2Input(this, _useMouse, _useKbd);
@@ -357,7 +363,7 @@ void OSystem_PS2::init(void) {
 	makeConfigPath();
 
 	_screen->wantAnim(false);
-	_screen->clearScreen();
+	fillScreen(0);
 }
 
 OSystem_PS2::~OSystem_PS2(void) {
@@ -420,15 +426,15 @@ void OSystem_PS2::initTimer(void) {
 	T0_MODE = TIMER_MODE( 2, 0, 0, 0, 1, 1, 1, 0, 1, 1);
 }
 
-void OSystem_PS2::timerThread(void) {
+void OSystem_PS2::timerThreadCallback(void) {
 	while (!_systemQuit) {
 		WaitSema(g_TimerThreadSema);
-		_scummTimerManager->handler();
+		((DefaultTimerManager *)_timerManager)->handler();
 	}
 	ExitThread();
 }
 
-void OSystem_PS2::soundThread(void) {
+void OSystem_PS2::soundThreadCallback(void) {
 	int16 *soundBufL = (int16*)memalign(64, SMP_PER_BLOCK * sizeof(int16) * 2);
 	int16 *soundBufR = soundBufL + SMP_PER_BLOCK;
 
@@ -525,7 +531,7 @@ bool OSystem_PS2::netPresent(void) {
 	return _useNet;
 }
 
-void OSystem_PS2::initSize(uint width, uint height) {
+void OSystem_PS2::initSize(uint width, uint height, const Graphics::PixelFormat *format) {
 	printf("initializing new size: (%d/%d)...", width, height);
 	_screen->newScreenSize(width, height);
 	_screen->setMouseXy(width / 2, height / 2);
@@ -541,11 +547,11 @@ void OSystem_PS2::initSize(uint width, uint height) {
 }
 
 void OSystem_PS2::setPalette(const byte *colors, uint start, uint num) {
-	_screen->setPalette((const uint32*)colors, (uint8)start, (uint16)num);
+	_screen->setPalette(colors, (uint8)start, (uint16)num);
 }
 
 void OSystem_PS2::grabPalette(byte *colors, uint start, uint num) {
-	_screen->grabPalette((uint32*)colors, (uint8)start, (uint16)num);
+	_screen->grabPalette(colors, (uint8)start, (uint16)num);
 }
 
 void OSystem_PS2::copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {
@@ -563,6 +569,11 @@ void OSystem_PS2::updateScreen(void) {
 		_msgClearTime = 0;
 	}
 	_screen->updateScreen();
+}
+
+void OSystem_PS2::displayMessageOnOSD(const char *msg) {
+	/* TODO : check */
+	printf("displayMessageOnOSD: %s\n", msg);
 }
 
 uint32 OSystem_PS2::getMillis(void) {
@@ -588,20 +599,8 @@ void OSystem_PS2::delayMillis(uint msecs) {
 	}
 }
 
-Common::TimerManager *OSystem_PS2::getTimerManager() {
-	return _scummTimerManager;
-}
-/*
-Common::EventManager *OSystem_PS2::getEventManager() {
-	return getEventManager();
-}
-*/
 Audio::Mixer *OSystem_PS2::getMixer() {
 	return _scummMixer;
-}
-
-Common::SaveFileManager *OSystem_PS2::getSavefileManager(void) {
-	return _saveManager;
 }
 
 FilesystemFactory *OSystem_PS2::getFilesystemFactory() {
@@ -624,25 +623,8 @@ void OSystem_PS2::warpMouse(int x, int y) {
 	_screen->setMouseXy(x, y);
 }
 
-void OSystem_PS2::setMouseCursor(const byte *buf, uint w, uint h, int hotspot_x, int hotspot_y, byte keycolor, int cursorTargetScale) {
+void OSystem_PS2::setMouseCursor(const byte *buf, uint w, uint h, int hotspot_x, int hotspot_y, uint32 keycolor, int cursorTargetScale, const Graphics::PixelFormat *format) {
 	_screen->setMouseOverlay(buf, w, h, hotspot_x, hotspot_y, keycolor);
-}
-
-bool OSystem_PS2::openCD(int drive) {
-	return false;
-}
-
-bool OSystem_PS2::pollCD(void) {
-	return false;
-}
-
-void OSystem_PS2::playCD(int track, int num_loops, int start_frame, int duration) {
-}
-
-void OSystem_PS2::stopCD(void) {
-}
-
-void OSystem_PS2::updateCD(void) {
 }
 
 void OSystem_PS2::showOverlay(void) {
@@ -662,7 +644,7 @@ void OSystem_PS2::grabOverlay(OverlayColor *buf, int pitch) {
 }
 
 void OSystem_PS2::copyRectToOverlay(const OverlayColor *buf, int pitch, int x, int y, int w, int h) {
-	_screen->copyOverlayRect((uint16*)buf, (uint16)pitch, (uint16)x, (uint16)y, (uint16)w, (uint16)h);
+	_screen->copyOverlayRect((const uint16*)buf, (uint16)pitch, (uint16)x, (uint16)y, (uint16)w, (uint16)h);
 }
 
 Graphics::PixelFormat OSystem_PS2::getOverlayFormat(void) const {
@@ -684,10 +666,6 @@ Graphics::Surface *OSystem_PS2::lockScreen(void) {
 
 void OSystem_PS2::unlockScreen(void) {
 	_screen->unlockScreen();
-}
-
-void OSystem_PS2::fillScreen(uint32 col) {
-	_screen->fillScreen(col);
 }
 
 const OSystem::GraphicsMode OSystem_PS2::_graphicsMode = { NULL, NULL, 0 };
@@ -732,7 +710,7 @@ int16 OSystem_PS2::getWidth(void) {
 	return _screen->getWidth();
 }
 
-void OSystem_PS2::msgPrintf(int millis, char *format, ...) {
+void OSystem_PS2::msgPrintf(int millis, const char *format, ...) {
 	va_list ap;
 	char resStr[1024];
 	memset(resStr, 0, 1024);
@@ -745,7 +723,7 @@ void OSystem_PS2::msgPrintf(int millis, char *format, ...) {
 	int maxWidth = 0;
 
 	Graphics::Surface surf;
-	surf.create(300, 200, 1);
+	surf.create(300, 200, Graphics::PixelFormat::createFormatCLUT8());
 
 	char *lnSta = resStr;
 	while (*lnSta && (posY < 180)) {
@@ -783,7 +761,7 @@ void OSystem_PS2::msgPrintf(int millis, char *format, ...) {
 
 void OSystem_PS2::powerOffCallback(void) {
 	sioprintf("powerOffCallback\n");
-	// _saveManager->quit(); // romeo
+	// _savefileManager->quit(); // romeo
 	if (_useHdd) {
 		sioprintf("umount\n");
 		fio.umount("pfs0:");
@@ -823,7 +801,7 @@ void OSystem_PS2::quit(void) {
 		DisableIntc(INT_TIMER0);
 		RemoveIntcHandler(INT_TIMER0, _intrId);
 
-		// _saveManager->quit(); // romeo
+		// _savefileManager->quit(); // romeo
 		_screen->quit();
 
 		padEnd(); // stop pad library
@@ -915,14 +893,14 @@ bool OSystem_PS2::prepMC() {
 		fio.mkdir("mc0:ScummVM");
 		f = ps2_fopen("mc0:ScummVM/scummvm.icn", "w");
 
-		printf("f = %p\n", f);
+		printf("f = %p\n", (const void *)f);
 
 		ps2_fwrite(data, size, 2, f);
 		ps2_fclose(f);
 
 		f = ps2_fopen("mc0:ScummVM/icon.sys", "w");
 
-		printf("f = %p\n", f);
+		printf("f = %p\n", (const void *)f);
 
 		ps2_fwrite(&icon, sizeof(icon), 1, f);
 		ps2_fclose(f);
@@ -962,8 +940,7 @@ void OSystem_PS2::makeConfigPath() {
 					ps2_fwrite(buf, size, 1, dst);
 					ps2_fclose(dst);
 					sprintf(path, "mc0:ScummVM/ScummVM.ini");
-				}
-				else {
+				} else {
 					sprintf(path, "cdfs:ScummVM.ini");
 				}
 
@@ -993,12 +970,11 @@ void OSystem_PS2::makeConfigPath() {
 	_configFile = strdup(path);
 }
 
-Common::SeekableReadStream *OSystem_PS2::createConfigReadStream() {
-	Common::FSNode file(_configFile);
-	return file.createReadStream();
+Common::String OSystem_PS2::getDefaultConfigFileName() {
+	return _configFile;
 }
 
-Common::WriteStream *OSystem_PS2::createConfigWriteStream() {
-	Common::FSNode file(_configFile);
-	return file.createWriteStream();
+void OSystem_PS2::logMessage(LogMessageType::Type type, const char *message) {
+	printf("%s", message);
+	sioprintf("%s", message);
 }

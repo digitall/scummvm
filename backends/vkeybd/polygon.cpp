@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/scummsys.h"
 
 #ifdef ENABLE_VKEYBD
 
@@ -54,6 +53,6 @@ bool Polygon::contains(int16 x, int16 y) const {
 	return inside_flag;
 }
 
-} // end of namespace Common
+} // End of namespace Common
 
 #endif // #ifdef ENABLE_VKEYBD

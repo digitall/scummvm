@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "cruise/cruise.h"
 #include "cruise/staticres.h"
@@ -74,8 +73,8 @@ int flag_aff_chemin;
 
 void getPixel(int x, int y) {
 
-	for (uint i = 0; i < polyStructs->size(); ++i) {
-		CtStruct &ct = (*polyStructs)[i];
+	for (uint i = 0; i < _vm->_polyStructs->size(); ++i) {
+		CtStruct &ct = (*_vm->_polyStructs)[i];
 		numPoly = ct.num;
 
 		if (walkboxState[numPoly] == 0 && ct.bounds.contains(x, y)) {
@@ -293,7 +292,7 @@ int point_proche(int16 table[][2]) {
 	int x1, y1, i, x, y, p;
 	int d1 = 1000;
 
-	polyStructs = &polyStructNorm;
+	_vm->_polyStructs = &_vm->_polyStructNorm;
 
 	if (nclick_noeud == 1) {
 		x = x_mouse;
@@ -301,19 +300,19 @@ int point_proche(int16 table[][2]) {
 		x1 = table_ptselect[0][0];
 		y1 = table_ptselect[0][1];
 
-		polyStructs = &polyStructExp;
+		_vm->_polyStructs = &_vm->_polyStructExp;
 
 		getPixel(x, y);
 
 		if (!flag_obstacle) {
-			polyStructs = &polyStructNorm;
+			_vm->_polyStructs = &_vm->_polyStructNorm;
 
 			getPixel(x, y);
 
 			if (flag_obstacle) {
 				polydroite(x1, y1, x, y);
 			}
-			polyStructs = &polyStructExp;
+			_vm->_polyStructs = &_vm->_polyStructExp;
 		}
 		if (!flag_obstacle) {	/* dans flag_obstacle --> couleur du point */
 			x1 = table_ptselect[0][0];
@@ -325,7 +324,7 @@ int point_proche(int16 table[][2]) {
 			y_mouse = Y;
 		}
 	}
-	polyStructs = &polyStructNorm;
+	_vm->_polyStructs = &_vm->_polyStructNorm;
 
 	p = -1;
 	for (i = 0; i < ctp_routeCoordCount; i++) {
@@ -453,7 +452,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 	table_ptselect[*nclick][0] = x_mouse;
 	table_ptselect[*nclick][1] = y_mouse;
 	(*nclick)++;
-	polyStructs = &polyStructNorm;
+	_vm->_polyStructs = &_vm->_polyStructNorm;
 
 	if (*nclick == 2) {	// second point
 		x1 = table_ptselect[0][0];
@@ -464,7 +463,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 			return;
 		}
 		flag_aff_chemin = 1;
-		polyStructs = &polyStructExp;
+		_vm->_polyStructs = &_vm->_polyStructExp;
 
 		// can we go there directly ?
 		polydroite(x1, y1, x2, y2);
@@ -472,7 +471,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 		if (!flag_obstacle) {
 			solution0[0][0] = x1;
 			solution0[0][1] = y1;
-			polyStructs = &polyStructExp;
+			_vm->_polyStructs = &_vm->_polyStructExp;
 
 			poly2(x2, y2, ctp_routeCoords[select_noeud[1]][0],
 			      ctp_routeCoords[select_noeud[1]][1]);
@@ -516,7 +515,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 					solution0[++i][1] =
 					    ctp_routeCoords[p1][1];
 				}
-				polyStructs = &polyStructExp;
+				_vm->_polyStructs = &_vm->_polyStructExp;
 				poly2(x2, y2,
 				      ctp_routeCoords[select_noeud[1]][0],
 				      ctp_routeCoords[select_noeud[1]][1]);
@@ -541,7 +540,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 					while (flag_obstacle && i != d) {
 						x2 = solution0[i][0];
 						y2 = solution0[i][1];
-						polyStructs = &polyStructExp;
+						_vm->_polyStructs = &_vm->_polyStructExp;
 						polydroite(x1, y1, x2, y2);
 						i--;
 					}
@@ -569,7 +568,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 	persoStruct *perso;
 	int num;
 
-	if (!polyStruct) {
+	if (!_vm->_polyStruct) {
 		moveInfo.x = -1;
 		moveInfo.y = -1;
 
@@ -599,7 +598,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 			return -1;
 		}
 
-		perso = persoTable[i] = (persoStruct *) malloc(sizeof(persoStruct));
+		perso = persoTable[i] = (persoStruct *) MemAlloc(sizeof(persoStruct));
 
 		ptr = perso->solution[0];
 
@@ -621,7 +620,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 	}
 
 	nclick_noeud = 0;
-	polyStructs = &polyStructNorm;
+	_vm->_polyStructs = &_vm->_polyStructNorm;
 	flag_aff_chemin = 0;
 
 	if (x == destX && y == destY) {
@@ -663,7 +662,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 		return (-1);
 	}
 
-	perso = persoTable[num] = (persoStruct *) malloc(sizeof(persoStruct));
+	perso = persoTable[num] = (persoStruct *) MemAlloc(sizeof(persoStruct));
 
 	perso->inc_jo1 = stepX;
 	perso->inc_jo2 = stepY;
@@ -711,7 +710,7 @@ void set_anim(int ovl, int obj, int start, int x, int y, int mat, int state) {
 /**
  * Handles the processing of any active actors to allow for handling movement
  */
-void processAnimation(void) {
+void processAnimation() {
 	objectParamsQuery params;
 	MovementEntry moveInfo;
 	actorStruct *currentActor = actorHead.next;

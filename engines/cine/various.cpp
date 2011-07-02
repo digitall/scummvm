@@ -18,14 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/endian.h"
 #include "common/events.h"
+#include "common/textconsole.h"
+
+#include "graphics/cursorman.h"
 
 #include "cine/cine.h"
 #include "cine/main_loop.h"
@@ -53,10 +53,13 @@ uint16 var5;
 int16 buildObjectListCommand(int16 param);
 int16 canUseOnObject = 0;
 
-void drawString(const char *string, byte param) {
-}
+void waitPlayerInput() {
+	uint16 button;
 
-void waitPlayerInput(void) {
+	do {
+		manageEvents();
+		getMouseData(mouseUpdateStatus, &button, &dummyU16, &dummyU16);
+	} while (!button && !g_cine->shouldQuit());
 }
 
 void setTextWindow(uint16 param1, uint16 param2, uint16 param3, uint16 param4) {
@@ -73,11 +76,9 @@ uint16 waitForPlayerClick;
 uint16 menuCommandLen;
 bool _paletteNeedUpdate;
 uint16 _messageLen;
-byte _danKeysPressed;
 
 int16 playerCommand;
 
-Common::String commandBuffer;
 char currentPrcName[20];
 char currentRelName[20];
 char currentObjectName[20];
@@ -93,14 +94,25 @@ uint16 musicIsPlaying;
 
 byte isInPause = 0;
 
-/*! \brief Values used by the xMoveKeyb variable */
+/**
+ * Bit masks for mouse buttons' states
+ * Bit on = mouse button down
+ * Bit off = mouse button up
+ */
+enum MouseButtonState
+{
+	kLeftMouseButton  = (1 << 0),
+	kRightMouseButton = (1 << 1)
+};
+
+/** Values used by the xMoveKeyb variable */
 enum xMoveKeybEnums {
 	kKeybMoveCenterX = 0,
 	kKeybMoveRight = 1,
 	kKeybMoveLeft = 2
 };
 
-/*! \brief Values used by the yMoveKeyb variable */
+/** Values used by the yMoveKeyb variable */
 enum yMoveKeybEnums {
 	kKeybMoveCenterY = 0,
 	kKeybMoveDown = 1,
@@ -122,12 +134,10 @@ static const int16 canUseOnItemTable[] = { 1, 0, 0, 1, 1, 0, 0 };
 CommandeType objectListCommand[20];
 int16 objListTab[20];
 
-Common::Array<uint16> zoneData;
-Common::Array<uint16> zoneQuery; //!< Only exists in Operation Stealth
-
-/*! \brief Move the player character using the keyboard
- * \param x Negative values move left, positive right, zero not at all
- * \param y Negative values move down, positive up, zero not at all
+/**
+ * Move the player character using the keyboard
+ * @param x Negative values move left, positive right, zero not at all
+ * @param y Negative values move down, positive up, zero not at all
  * NOTE: If both x and y are zero then the character stops
  * FIXME: This seems to only work in Operation Stealth. May need code changes somewhere else...
  */
@@ -151,21 +161,22 @@ void moveUsingKeyboard(int x, int y) {
 	egoMovedWithKeyboard = x || y;
 }
 
-void stopMusicAfterFadeOut(void) {
+void stopMusicAfterFadeOut() {
 //	if (g_sfxPlayer->_fadeOutCounter != 0 && g_sfxPlayer->_fadeOutCounter < 100) {
 //		g_sfxPlayer->stop();
 //	}
 }
 
 void runObjectScript(int16 entryIdx) {
-	ScriptPtr tmp(scriptInfo->create(*relTable[entryIdx], entryIdx));
+	ScriptPtr tmp(scriptInfo->create(*g_cine->_relTable[entryIdx], entryIdx));
 	assert(tmp);
-	objectScripts.push_back(tmp);
+	g_cine->_objectScripts.push_back(tmp);
 }
 
-/*! \brief Add action result message to overlay list
- * \param cmd Message description
- * \todo Why are x, y, width and color left uninitialized?
+/**
+ * Add action result message to overlay list
+ * @param cmd Message description
+ * @todo Why are x, y, width and color left uninitialized?
  */
 void addPlayerCommandMessage(int16 cmd) {
 	overlay tmp;
@@ -173,19 +184,19 @@ void addPlayerCommandMessage(int16 cmd) {
 	tmp.objIdx = cmd;
 	tmp.type = 3;
 
-	overlayList.push_back(tmp);
+	g_cine->_overlayList.push_back(tmp);
 }
 
 int16 getRelEntryForObject(uint16 param1, uint16 param2, SelectedObjStruct *pSelectedObject) {
 	int16 i;
 	int16 found = -1;
 
-	for (i = 0; i < (int16)relTable.size(); i++) {
-		if (relTable[i]->_param1 == param1 && relTable[i]->_param2 == pSelectedObject->idx) {
+	for (i = 0; i < (int16)g_cine->_relTable.size(); i++) {
+		if (g_cine->_relTable[i]->_param1 == param1 && g_cine->_relTable[i]->_param2 == pSelectedObject->idx) {
 			if (param2 == 1) {
 				found = i;
 			} else if (param2 == 2) {
-				if (relTable[i]->_param3 == pSelectedObject->param) {
+				if (g_cine->_relTable[i]->_param3 == pSelectedObject->param) {
 					found = i;
 				}
 			}
@@ -198,10 +209,11 @@ int16 getRelEntryForObject(uint16 param1, uint16 param2, SelectedObjStruct *pSel
 	return found;
 }
 
-/*! \brief Find index of the object under cursor
- * \param x Mouse cursor coordinate
- * \param y Mouse cursor coordinate
- * \todo Fix displaced type 1 objects
+/**
+ * Find index of the object under cursor
+ * @param x Mouse cursor coordinate
+ * @param y Mouse cursor coordinate
+ * @todo Fix displaced type 1 objects
  */
 int16 getObjectUnderCursor(uint16 x, uint16 y) {
 	Common::List<overlay>::iterator it;
@@ -210,19 +222,19 @@ int16 getObjectUnderCursor(uint16 x, uint16 y) {
 	int width;
 
 	// reverse_iterator would be nice
-	for (it = overlayList.reverse_begin(); it != overlayList.end(); --it) {
-		if (it->type >= 2 || !objectTable[it->objIdx].name[0]) {
+	for (it = g_cine->_overlayList.reverse_begin(); it != g_cine->_overlayList.end(); --it) {
+		if (it->type >= 2 || !g_cine->_objectTable[it->objIdx].name[0]) {
 			continue;
 		}
 
-		objX = objectTable[it->objIdx].x;
-		objY = objectTable[it->objIdx].y;
+		objX = g_cine->_objectTable[it->objIdx].x;
+		objY = g_cine->_objectTable[it->objIdx].y;
 
-		frame = ABS((int16)(objectTable[it->objIdx].frame));
-		part = objectTable[it->objIdx].part;
+		frame = ABS((int16)(g_cine->_objectTable[it->objIdx].frame));
+		part = g_cine->_objectTable[it->objIdx].part;
 
 		// Additional case for negative frame values in Operation Stealth
-		if (g_cine->getGameType() == Cine::GType_OS && objectTable[it->objIdx].frame < 0) {
+		if (g_cine->getGameType() == Cine::GType_OS && g_cine->_objectTable[it->objIdx].frame < 0) {
 			if ((it->type == 1) && (x >= objX) && (objX + frame >= x) && (y >= objY) && (objY + part >= y)) {
 				return it->objIdx;
 			} else {
@@ -231,18 +243,18 @@ int16 getObjectUnderCursor(uint16 x, uint16 y) {
 		}
 
 		if (it->type == 0) {
-			threshold = animDataTable[frame]._var1;
+			threshold = g_cine->_animDataTable[frame]._var1;
 		} else {
-			threshold = animDataTable[frame]._width / 2;
+			threshold = g_cine->_animDataTable[frame]._width / 2;
 		}
 
-		height = animDataTable[frame]._height;
-		width = animDataTable[frame]._realWidth;
+		height = g_cine->_animDataTable[frame]._height;
+		width = g_cine->_animDataTable[frame]._realWidth;
 
 		xdif = x - objX;
 		ydif = y - objY;
 
-		if ((xdif < 0) || ((threshold << 4) <= xdif) || (ydif <= 0) || (ydif >= height) || !animDataTable[frame].data()) {
+		if ((xdif < 0) || ((threshold << 4) <= xdif) || (ydif <= 0) || (ydif >= height) || !g_cine->_animDataTable[frame].data()) {
 			continue;
 		}
 
@@ -254,17 +266,17 @@ int16 getObjectUnderCursor(uint16 x, uint16 y) {
 				continue;
 			}
 
-			if (it->type == 0 && animDataTable[frame].getColor(xdif, ydif) != (part & 0x0F)) {
+			if (it->type == 0 && g_cine->_animDataTable[frame].getColor(xdif, ydif) != (part & 0x0F)) {
 				return it->objIdx;
-			} else if (it->type == 1 && gfxGetBit(xdif, ydif, animDataTable[frame].data(), animDataTable[frame]._width * 4)) {
+			} else if (it->type == 1 && gfxGetBit(xdif, ydif, g_cine->_animDataTable[frame].data(), g_cine->_animDataTable[frame]._width * 4)) {
 				return it->objIdx;
 			}
 		} else if (it->type == 0)	{ // use generated mask
-			if (gfxGetBit(xdif, ydif, animDataTable[frame].mask(), animDataTable[frame]._width)) {
+			if (gfxGetBit(xdif, ydif, g_cine->_animDataTable[frame].mask(), g_cine->_animDataTable[frame]._width)) {
 				return it->objIdx;
 			}
 		} else if (it->type == 1) { // is mask
-			if (gfxGetBit(xdif, ydif, animDataTable[frame].data(), animDataTable[frame]._width * 4)) {
+			if (gfxGetBit(xdif, ydif, g_cine->_animDataTable[frame].data(), g_cine->_animDataTable[frame]._width * 4)) {
 				return it->objIdx;
 			}
 		}
@@ -276,18 +288,18 @@ int16 getObjectUnderCursor(uint16 x, uint16 y) {
 void CineEngine::resetEngine() {
 	g_sound->stopMusic();
 	freeAnimDataTable();
-	overlayList.clear();
-	bgIncrustList.clear();
+	g_cine->_overlayList.clear();
+	g_cine->_bgIncrustList.clear();
 	closePart();
 
-	objectScripts.clear();
-	globalScripts.clear();
-	relTable.clear();
-	scriptTable.clear();
-	messageTable.clear();
+	g_cine->_objectScripts.clear();
+	g_cine->_globalScripts.clear();
+	g_cine->_relTable.clear();
+	g_cine->_scriptTable.clear();
+	g_cine->_messageTable.clear();
 	resetObjectTable();
 
-	globalVars.reset();
+	g_cine->_globalVars.reset();
 
 	var2 = var3 = var4 = var5 = 0;
 
@@ -302,10 +314,10 @@ void CineEngine::resetEngine() {
 	playerCommand = -1;
 	isDrawCommandEnabled = 0;
 
-	commandBuffer = "";
+	g_cine->_commandBuffer = "";
 
-	globalVars[VAR_MOUSE_X_POS] = 0;
-	globalVars[VAR_MOUSE_Y_POS] = 0;
+	g_cine->_globalVars[VAR_MOUSE_X_POS] = 0;
+	g_cine->_globalVars[VAR_MOUSE_Y_POS] = 0;
 
 	fadeRequired = false;
 
@@ -314,7 +326,7 @@ void CineEngine::resetEngine() {
 	checkForPendingDataLoadSwitch = 0;
 
 	if (g_cine->getGameType() == Cine::GType_OS) {
-		seqList.clear();
+		g_cine->_seqList.clear();
 		currentAdditionalBgIdx = 0;
 		currentAdditionalBgIdx2 = 0;
 		// TODO: Add resetting of the following variables
@@ -324,7 +336,7 @@ void CineEngine::resetEngine() {
 	}
 }
 
-void CineEngine::makeSystemMenu(void) {
+void CineEngine::makeSystemMenu() {
 	int16 numEntry, systemCommand;
 	int16 mouseX, mouseY, mouseButton;
 	int16 selectedSave;
@@ -346,21 +358,21 @@ void CineEngine::makeSystemMenu(void) {
 		systemCommand = makeMenuChoice(systemMenu, numEntry, mouseX, mouseY, 140);
 
 		switch (systemCommand) {
-		case 0:
+		case 0: // Pause
 			{
-				drawString(otherMessages[2], 0);
+				renderer->drawString(otherMessages[2], 0);
 				waitPlayerInput();
 				break;
 			}
-		case 1:
+		case 1: // Restart Game
 			{
 				getMouseData(mouseUpdateStatus, (uint16 *)&mouseButton, (uint16 *)&mouseX, (uint16 *)&mouseY);
 				if (!makeMenuChoice(confirmMenu, 2, mouseX, mouseY + 8, 100)) {
-					//reinitEngine();
+					_restartRequested = true;
 				}
 				break;
 			}
-		case 2:
+		case 2: // Quit
 			{
 				getMouseData(mouseUpdateStatus, (uint16 *)&mouseButton, (uint16 *)&mouseX, (uint16 *)&mouseY);
 				if (!makeMenuChoice(confirmMenu, 2, mouseX, mouseY + 8, 100)) {
@@ -389,27 +401,27 @@ void CineEngine::makeSystemMenu(void) {
 							char loadString[256];
 
 							sprintf(loadString, otherMessages[3], currentSaveName[selectedSave]);
-							drawString(loadString, 0);
+							renderer->drawString(loadString, 0);
 
 							makeLoad(saveNameBuffer);
 						} else {
-							drawString(otherMessages[4], 0);
+							renderer->drawString(otherMessages[4], 0);
 							waitPlayerInput();
 							checkDataDisk(-1);
 						}
 					} else {
-						drawString(otherMessages[4], 0);
+						renderer->drawString(otherMessages[4], 0);
 						waitPlayerInput();
 						checkDataDisk(-1);
 					}
 				} else {
-					drawString(otherMessages[5], 0);
+					renderer->drawString(otherMessages[5], 0);
 					waitPlayerInput();
 					checkDataDisk(-1);
 				}
 				break;
 			}
-		case 5:
+		case 5: // Save game
 			{
 				loadSaveDirectory();
 				selectedSave = makeMenuChoice(currentSaveName, 10, mouseX, mouseY + 8, 180);
@@ -428,13 +440,12 @@ void CineEngine::makeSystemMenu(void) {
 
 					getMouseData(mouseUpdateStatus, (uint16 *)&mouseButton, (uint16 *)&mouseX, (uint16 *)&mouseY);
 					if (!makeMenuChoice(confirmMenu, 2, mouseX, mouseY + 8, 100)) {
-						char saveString[256], tmp[80];
+						char saveString[256];
+						Common::String tmp = Common::String::format("%s.dir", _targetName.c_str());
 
-						snprintf(tmp, 80, "%s.dir", _targetName.c_str());
-
-						Common::OutSaveFile *fHandle = g_saveFileMan->openForSaving(tmp);
+						Common::OutSaveFile *fHandle = _saveFileMan->openForSaving(tmp);
 						if (!fHandle) {
-							warning("Unable to open file %s for saving", tmp);
+							warning("Unable to open file %s for saving", tmp.c_str());
 							break;
 						}
 
@@ -442,13 +453,13 @@ void CineEngine::makeSystemMenu(void) {
 						delete fHandle;
 
 						sprintf(saveString, otherMessages[3], currentSaveName[selectedSave]);
-						drawString(saveString, 0);
+						renderer->drawString(saveString, 0);
 
 						makeSave(saveFileName);
 
 						checkDataDisk(-1);
 					} else {
-						drawString(otherMessages[4], 0);
+						renderer->drawString(otherMessages[4], 0);
 						waitPlayerInput();
 						checkDataDisk(-1);
 					}
@@ -492,8 +503,15 @@ void processInventory(int16 x, int16 y) {
 	if (!listSize)
 		return;
 
-	renderer->drawMenu(objectListCommand, listSize, x, y, menuWidth, -1);
-	renderer->blit();
+	Common::StringArray list;
+	for (int i = 0; i < listSize; ++i)
+		list.push_back(objectListCommand[i]);
+	SelectionMenu *menu = new SelectionMenu(Common::Point(x, y), menuWidth, list);
+	renderer->pushMenu(menu);
+	renderer->drawFrame();
+	renderer->popMenu();
+	delete menu;
+	menu = 0;
 
 	do {
 		manageEvents();
@@ -504,8 +522,6 @@ void processInventory(int16 x, int16 y) {
 		manageEvents();
 		getMouseData(mouseUpdateStatus, &button, &dummyU16, &dummyU16);
 	} while (button);
-
-	// TODO: Both Future Wars and Operation Stealth call showMouse, drawMouse or something similar here.
 }
 
 int16 buildObjectListCommand(int16 param) {
@@ -516,8 +532,8 @@ int16 buildObjectListCommand(int16 param) {
 	}
 
 	for (i = 0; i < 255; i++) {
-		if (objectTable[i].name[0] && objectTable[i].costume == param) {
-			strcpy(objectListCommand[j], objectTable[i].name);
+		if (g_cine->_objectTable[i].name[0] && g_cine->_objectTable[i].costume == param) {
+			strcpy(objectListCommand[j], g_cine->_objectTable[i].name);
 			objListTab[j] = i;
 			j++;
 		}
@@ -551,16 +567,16 @@ int16 selectSubObject(int16 x, int16 y, int16 param) {
 
 // TODO: Make separate functions for Future Wars's and Operation Stealth's version of this function, this is getting too messy
 // TODO: Add support for using the different prepositions for different verbs (Doesn't work currently)
-void makeCommandLine(void) {
+void makeCommandLine() {
 	uint16 x, y;
 
 	commandVar1 = 0;
 	commandVar2 = -10;
 
 	if (playerCommand != -1) {
-		commandBuffer = defaultActionCommand[playerCommand];
+		g_cine->_commandBuffer = defaultActionCommand[playerCommand];
 	} else {
-		commandBuffer = "";
+		g_cine->_commandBuffer = "";
 	}
 
 	if ((playerCommand != -1) && (choiceResultTable[playerCommand] == 2)) {	// need object selection ?
@@ -579,7 +595,7 @@ void makeCommandLine(void) {
 				canUseOnObject = 0;
 			} else { // Future Wars
 				playerCommand = -1;
-				commandBuffer = "";
+				g_cine->_commandBuffer = "";
 			}
 		} else {
 			if (g_cine->getGameType() == Cine::GType_OS) {
@@ -593,13 +609,13 @@ void makeCommandLine(void) {
 
 			commandVar3[0] = si;
 			commandVar1 = 1;
-			commandBuffer += " ";
-			commandBuffer += objectTable[commandVar3[0]].name;
-			commandBuffer += " ";
+			g_cine->_commandBuffer += " ";
+			g_cine->_commandBuffer += g_cine->_objectTable[commandVar3[0]].name;
+			g_cine->_commandBuffer += " ";
 			if (g_cine->getGameType() == Cine::GType_OS) {
-				commandBuffer += commandPrepositionTable[playerCommand];
+				g_cine->_commandBuffer += commandPrepositionTable[playerCommand];
 			} else { // Future Wars
-				commandBuffer += defaultCommandPreposition;
+				g_cine->_commandBuffer += defaultCommandPreposition;
 			}
 		}
 	}
@@ -607,10 +623,12 @@ void makeCommandLine(void) {
 	if (g_cine->getGameType() == Cine::GType_OS || !(playerCommand != -1 && choiceResultTable[playerCommand] == 2)) {
 		if (playerCommand == 2) {
 			getMouseData(mouseUpdateStatus, &dummyU16, &x, &y);
+			CursorMan.showMouse(false);
 			processInventory(x, y + 8);
 			playerCommand = -1;
 			commandVar1 = 0;
-			commandBuffer = "";
+			g_cine->_commandBuffer = "";
+			CursorMan.showMouse(true);
 		}
 	}
 
@@ -629,8 +647,8 @@ void makeCommandLine(void) {
 
 				commandVar3[commandVar1] = si;
 				commandVar1++;
-				commandBuffer += " ";
-				commandBuffer += objectTable[si].name;
+				g_cine->_commandBuffer += " ";
+				g_cine->_commandBuffer += g_cine->_objectTable[si].name;
 			}
 		}
 
@@ -648,13 +666,13 @@ void makeCommandLine(void) {
 
 			playerCommand = -1;
 			commandVar1 = 0;
-			commandBuffer = "";
+			g_cine->_commandBuffer = "";
 		}
 	}
 
 	if (g_cine->getGameType() == Cine::GType_OS || !disableSystemMenu) {
 		isDrawCommandEnabled = 1;
-		renderer->setCommand(commandBuffer);
+		renderer->setCommand(g_cine->_commandBuffer);
 	}
 }
 
@@ -670,10 +688,9 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 	int16 di;
 	uint16 j;
 	int16 mouseX, mouseY;
-	int16 var_16;
-	int16 var_14;
 	int16 currentSelection, oldSelection;
 	int16 var_4;
+	SelectionMenu *menu;
 
 	if (disableSystemMenu)
 		return -1;
@@ -688,13 +705,17 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 		Y = 199 - paramY;
 	}
 
-	renderer->drawMenu(commandList, height, X, Y, width, -1);
-	renderer->blit();
+	Common::StringArray list;
+	for (uint16 i = 0; i < height; ++i)
+		list.push_back(commandList[i]);
+	menu = new SelectionMenu(Common::Point(X, Y), width, list);
+	renderer->pushMenu(menu);
+	renderer->drawFrame();
 
 	do {
 		manageEvents();
 		getMouseData(mouseUpdateStatus, &button, &dummyU16, &dummyU16);
-	} while (button);
+	} while (button && !g_cine->shouldQuit());
 
 	var_A = 0;
 
@@ -702,14 +723,11 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 
 	di = currentSelection * 9 + Y + 4;
 
-	renderer->drawMenu(commandList, height, X, Y, width, currentSelection);
-	renderer->blit();
+	menu->setSelection(currentSelection);
+	renderer->drawFrame();
 
 	manageEvents();
 	getMouseData(mouseUpdateStatus, &button, (uint16 *)&mouseX, (uint16 *)&mouseY);
-
-	var_16 = mouseX;
-	var_14 = mouseY;
 
 	menuVar = 0;
 
@@ -756,15 +774,15 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 
 			di = currentSelection * 9 + Y + 4;
 
-			renderer->drawMenu(commandList, height, X, Y, width, currentSelection);
-			renderer->blit();
+			menu->setSelection(currentSelection);
+			renderer->drawFrame();
 
 //			if (needMouseSave) {
 //				gfxRedrawMouseCursor();
 //			}
 		}
 
-	} while (!var_A);
+	} while (!var_A && !g_cine->shouldQuit());
 
 	assert(!needMouseSave);
 
@@ -775,7 +793,7 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 	do {
 		manageEvents();
 		getMouseData(mouseUpdateStatus, &button, &dummyU16, &dummyU16);
-	} while (button);
+	} while (button && !g_cine->shouldQuit());
 
 	if (var_4 == 2)	{	// recheck
 		if (!recheckValue)
@@ -787,7 +805,7 @@ int16 makeMenuChoice(const CommandeType commandList[], uint16 height, uint16 X, 
 	return currentSelection;
 }
 
-void makeActionMenu(void) {
+void makeActionMenu() {
 	uint16 mouseButton;
 	uint16 mouseX;
 	uint16 mouseY;
@@ -801,7 +819,7 @@ void makeActionMenu(void) {
 
 		if (playerCommand >= 8000) {
 			playerCommand -= 8000;
-			canUseOnObject = 1;
+			canUseOnObject = canUseOnItemTable[playerCommand];
 		}
 	} else {
 		playerCommand = makeMenuChoice(defaultActionCommand, 6, mouseX, mouseY, 70);
@@ -810,68 +828,74 @@ void makeActionMenu(void) {
 	inMenu = false;
 }
 
-uint16 executePlayerInput(void) {
+uint16 executePlayerInput() {
 	uint16 var_5E;
 	uint16 var_2;
 	uint16 mouseX, mouseY, mouseButton;
 	uint16 currentEntry = 0;
 	uint16 di = 0;
+	bool limitMouseCheckCount = false;
 
 	canUseOnObject = 0;
 
 	if (isInPause) {
-		drawString(otherMessages[2], 0);
+		renderer->drawString(otherMessages[2], 0);
 		waitPlayerInput();
 		isInPause = 0;
 	}
 
-	if (allowPlayerInput) {
+	if (allowPlayerInput) { // Player input is allowed
 		if (isDrawCommandEnabled) {
-			renderer->setCommand(commandBuffer);
-			isDrawCommandEnabled = 0;
+			renderer->setCommand(g_cine->_commandBuffer);
 		}
+		isDrawCommandEnabled = 0;
+		limitMouseCheckCount = true;
+	}
 
+	// Get mouse position and button states
+	di = 0;
+	currentEntry = 0;
+	getMouseData(mouseUpdateStatus, &mouseButton, &mouseX, &mouseY);
+
+	while (mouseButton && (!limitMouseCheckCount || currentEntry < 200) && !g_cine->shouldQuit()) {
+		di |= (mouseButton & (kLeftMouseButton | kRightMouseButton));
+		if (!limitMouseCheckCount) {
+			manageEvents();
+		}
 		getMouseData(mouseUpdateStatus, &mouseButton, &mouseX, &mouseY);
+		currentEntry++;
+	}
 
-		while (mouseButton && currentEntry < 200) {
-			if (mouseButton & 1) {
-				di |= 1;
-			}
+	if (di) {
+		mouseButton = di;
+	}
 
-			if (mouseButton & 2) {
-				di |= 2;
-			}
-
-			getMouseData(mouseUpdateStatus, &mouseButton, &mouseX, &mouseY);
-
-			currentEntry++;
-		}
-
-		if (di) {
-			mouseButton = di;
-		}
-
-		if (playerCommand != -1) {
-			if (mouseButton & 1) {
-				if (mouseButton & 2) {
-					g_cine->makeSystemMenu();
-				} else {
+	if ((mouseButton & kLeftMouseButton) && (mouseButton & kRightMouseButton)) {
+		// Left and right mouse buttons are down
+		g_cine->makeSystemMenu();
+	} else if (allowPlayerInput) { // Player input is allowed
+		if (!(mouseButton & kLeftMouseButton) && (mouseButton & kRightMouseButton)) {
+			// Player input is allowed, left mouse button is up, right mouse button is down
+			makeActionMenu();
+			makeCommandLine();
+		} else if (playerCommand != -1) { // A player command is given
+			if (mouseButton & kLeftMouseButton) { // Left mouse button is down
+				if (!(mouseButton & kRightMouseButton)) { // Right mouse button is up
+					// A player command is given, left mouse button is down, right mouse button is up
 					int16 si;
-					do {
+					while (mouseButton && !g_cine->shouldQuit()) {
 						manageEvents();
 						getMouseData(mouseUpdateStatus, &mouseButton, &dummyU16, &dummyU16);
-					} while (mouseButton);
+					}
 
-					si = getObjectUnderCursor(mouseX,
-					    mouseY);
+					si = getObjectUnderCursor(mouseX, mouseY);
 
 					if (si != -1) {
 						commandVar3[commandVar1] = si;
 						commandVar1++;
 
-						commandBuffer += " ";
-						commandBuffer += objectTable[si].name;
-
+						g_cine->_commandBuffer += " ";
+						g_cine->_commandBuffer += g_cine->_objectTable[si].name;
 
 						isDrawCommandEnabled = 1;
 
@@ -893,29 +917,39 @@ uint16 executePlayerInput(void) {
 							playerCommand = -1;
 
 							commandVar1 = 0;
-							commandBuffer = "";
-							renderer->setCommand(commandBuffer);
+							g_cine->_commandBuffer = "";
+						} else if (g_cine->getGameType() == Cine::GType_OS) {
+							isDrawCommandEnabled = 1;
+							g_cine->_commandBuffer += commandPrepositionTable[playerCommand];
 						}
+
+						renderer->setCommand(g_cine->_commandBuffer);
 					} else {
-						globalVars[VAR_MOUSE_X_POS] = mouseX;
-						globalVars[VAR_MOUSE_Y_POS] = mouseY;
+						g_cine->_globalVars[VAR_MOUSE_X_POS] = mouseX;
+						if (!mouseX) {
+							g_cine->_globalVars[VAR_MOUSE_X_POS]++;
+						}
+
+						g_cine->_globalVars[VAR_MOUSE_Y_POS] = mouseY;
+
+						if (g_cine->getGameType() == Cine::GType_OS) {
+							if (!mouseY) {
+								g_cine->_globalVars[VAR_MOUSE_Y_POS]++;
+							}
+							g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = g_cine->_globalVars[VAR_MOUSE_X_POS];
+							g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = g_cine->_globalVars[VAR_MOUSE_Y_POS];
+						}
 					}
 				}
-			} else if (mouseButton & 2) {
-				if (mouseButton & 1) {
-					g_cine->makeSystemMenu();
-				}
-
-				makeActionMenu();
-				makeCommandLine();
-			} else {
+			} else if (!(mouseButton & kRightMouseButton)) { // Right mouse button is up
+				// A player command is given, left and right mouse buttons are up
 				int16 objIdx;
 
 				objIdx = getObjectUnderCursor(mouseX, mouseY);
 
-				if (commandVar2 != objIdx) {
+				if (g_cine->getGameType() == Cine::GType_OS || commandVar2 != objIdx) {
 					if (objIdx != -1) {
-						renderer->setCommand(commandBuffer + " " + objectTable[objIdx].name);
+						renderer->setCommand(g_cine->_commandBuffer + " " + g_cine->_objectTable[objIdx].name);
 					} else {
 						isDrawCommandEnabled = 1;
 					}
@@ -923,78 +957,42 @@ uint16 executePlayerInput(void) {
 
 				commandVar2 = objIdx;
 			}
-		} else {
-			if (mouseButton & 2) {
-				if (!(mouseButton & 1)) {
+		} else { // No player command is given
+			if (!(mouseButton & kRightMouseButton)) { // Right mouse button is up
+				if (mouseButton & kLeftMouseButton) { // Left mouse button is down
+					// No player command is given, left mouse button is down, right mouse button is up
+					int16 objIdx;
+					int16 relEntry;
+
+					g_cine->_globalVars[VAR_MOUSE_X_POS] = mouseX;
+					if (!mouseX) {
+						g_cine->_globalVars[VAR_MOUSE_X_POS]++;
+					}
+
+					g_cine->_globalVars[VAR_MOUSE_Y_POS] = mouseY;
+
 					if (g_cine->getGameType() == Cine::GType_OS) {
-						playerCommand = makeMenuChoice(defaultActionCommand, 6, mouseX, mouseY, 70, true);
-
-						if (playerCommand >= 8000) {
-							playerCommand -= 8000;
-							canUseOnObject = 1;
+						if (!mouseY) {
+							g_cine->_globalVars[VAR_MOUSE_Y_POS]++;
 						}
-					} else {
-						playerCommand = makeMenuChoice(defaultActionCommand, 6, mouseX, mouseY, 70);
+						g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = g_cine->_globalVars[VAR_MOUSE_X_POS];
+						g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = g_cine->_globalVars[VAR_MOUSE_Y_POS];
 					}
 
-					makeCommandLine();
-				} else {
-					g_cine->makeSystemMenu();
-				}
-			} else {
-				if (mouseButton & 1) {
-					if (!(mouseButton & 2)) {
-						int16 objIdx;
-						int16 relEntry;
+					objIdx = getObjectUnderCursor(mouseX, mouseY);
 
-						globalVars[VAR_MOUSE_X_POS] = mouseX;
-						if (!mouseX) {
-							globalVars[VAR_MOUSE_X_POS]++;
+					if (objIdx != -1) {
+						currentSelectedObject.idx = objIdx;
+						currentSelectedObject.param = -1;
+
+						relEntry = getRelEntryForObject(6, 1, &currentSelectedObject);
+
+						if (relEntry != -1) {
+							runObjectScript(relEntry);
 						}
-
-						globalVars[VAR_MOUSE_Y_POS] = mouseY;
-
-						objIdx = getObjectUnderCursor(mouseX, mouseY);
-
-						if (objIdx != -1) {
-							currentSelectedObject.idx = objIdx;
-							currentSelectedObject.param = -1;
-
-							relEntry = getRelEntryForObject(6, 1, &currentSelectedObject);
-
-							if (relEntry != -1) {
-								runObjectScript(relEntry);
-							}
-						}
-					} else {
-						g_cine->makeSystemMenu();
 					}
 				}
 			}
-		}
-	} else {
-		di = 0;
-		getMouseData(mouseUpdateStatus, &mouseButton, &mouseX, &mouseY);
-
-		while (mouseButton) {
-			if (mouseButton & 1) {
-				di |= 1;
-			}
-
-			if (mouseButton & 2) {
-				di |= 2;
-			}
-
-			manageEvents();
-			getMouseData(mouseUpdateStatus, &mouseButton, &mouseX, &mouseY);
-		}
-
-		if (di) {
-			mouseButton = di;
-		}
-
-		if ((mouseButton & 1) && (mouseButton & 2)) {
-			g_cine->makeSystemMenu();
 		}
 	}
 
@@ -1006,98 +1004,145 @@ uint16 executePlayerInput(void) {
 		var_2 = 0;
 	}
 
-	if (egoMovedWithKeyboard && allowPlayerInput) {	// use keyboard
+	if (g_cine->getGameType() == Cine::GType_OS) { // OS: Move using keyboard
+		// Handle possible horizontal movement by keyboard
+		if (xMoveKeyb != kKeybMoveCenterX && allowPlayerInput) {
+			if (xMoveKeyb == kKeybMoveRight) { // moving right
+				const int16 playerFrame = g_cine->_objectTable[1].frame;
+				const int16 playerX = g_cine->_objectTable[1].x;
+				// TODO: Check if multiplying _width by two here is correct or not
+				const int16 newX = g_cine->_animDataTable[playerFrame]._width * 2 + playerX + 8;
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = newX;
+			} else { // moving left
+				const int16 playerX = g_cine->_objectTable[1].x;
+				const int16 newX = playerX - 8;
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = newX;
+			}
+
+			// Restrain horizontal position to range 0-319
+			if (g_cine->_globalVars[VAR_MOUSE_X_POS] < 0) {
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = 0;
+			} else if (g_cine->_globalVars[VAR_MOUSE_X_POS] > 319) {
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = 319;
+			}
+		}
+
+		// Handle possible vertical movement by keyboard
+		if (yMoveKeyb != kKeybMoveCenterY && allowPlayerInput) {
+			if (yMoveKeyb == kKeybMoveDown) { // moving down
+				const int16 playerFrame = g_cine->_objectTable[1].frame;
+				const int16 playerY = g_cine->_objectTable[1].y;
+				// TODO: Check if multiplying _height by two here is correct or not
+				const int16 newY = g_cine->_animDataTable[playerFrame]._height * 2 + playerY - 1;
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = newY;
+			} else { // moving up
+				const int16 playerY = g_cine->_objectTable[1].y;
+				const int16 newY = playerY - 8;
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = newY;
+			}
+
+			// Restrain vertical position to range 0-199
+			if (g_cine->_globalVars[VAR_MOUSE_Y_POS] < 0) {
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = 0;
+			} else if (g_cine->_globalVars[VAR_MOUSE_Y_POS] > 199) {
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = 199;
+			}
+		}
+	} else if (egoMovedWithKeyboard && allowPlayerInput) { // FW: Move using keyboard
 		egoMovedWithKeyboard = false;
 
-		switch (globalVars[VAR_MOUSE_X_MODE]) {
+		switch (g_cine->_globalVars[VAR_MOUSE_X_MODE]) {
 		case 1:
-			mouseX = objectTable[1].x + 12;
+			mouseX = g_cine->_objectTable[1].x + 12;
 			break;
 		case 2:
-			mouseX = objectTable[1].x + 7;
+			mouseX = g_cine->_objectTable[1].x + 7;
 			break;
 		default:
-			mouseX = globalVars[VAR_MOUSE_X_POS];
+			mouseX = g_cine->_globalVars[VAR_MOUSE_X_POS];
 			break;
 		}
 
-		switch (globalVars[VAR_MOUSE_Y_MODE]) {
+		switch (g_cine->_globalVars[VAR_MOUSE_Y_MODE]) {
 		case 1:
-			mouseY = objectTable[1].y + 34;
+			mouseY = g_cine->_objectTable[1].y + 34;
 			break;
 		case 2:
-			mouseY = objectTable[1].y + 28;
+			mouseY = g_cine->_objectTable[1].y + 28;
 			break;
 		default:
-			mouseY = globalVars[VAR_MOUSE_Y_POS];
+			mouseY = g_cine->_globalVars[VAR_MOUSE_Y_POS];
 			break;
 		}
 
 		if (var_5E == bgVar0) {
 			var_5E = 0;
 
-			globalVars[VAR_MOUSE_X_POS] = mouseX;
-			globalVars[VAR_MOUSE_Y_POS] = mouseY;
+			g_cine->_globalVars[VAR_MOUSE_X_POS] = mouseX;
+			g_cine->_globalVars[VAR_MOUSE_Y_POS] = mouseY;
 		} else {
 			if (xMoveKeyb) {
 				if (xMoveKeyb == kKeybMoveLeft) {
-					globalVars[VAR_MOUSE_X_POS] = 1;
+					g_cine->_globalVars[VAR_MOUSE_X_POS] = 1;
 				} else {
-					globalVars[VAR_MOUSE_X_POS] = 320;
+					g_cine->_globalVars[VAR_MOUSE_X_POS] = 320;
 				}
 			} else {
-				globalVars[VAR_MOUSE_X_POS] = mouseX;
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = mouseX;
 			}
 
 			if (yMoveKeyb) {
 				if (yMoveKeyb == kKeybMoveUp) {
-					globalVars[VAR_MOUSE_Y_POS] = 1;
+					g_cine->_globalVars[VAR_MOUSE_Y_POS] = 1;
 				} else {
-					globalVars[VAR_MOUSE_Y_POS] = 200;
+					g_cine->_globalVars[VAR_MOUSE_Y_POS] = 200;
 				}
 			} else {
-				globalVars[VAR_MOUSE_Y_POS] = mouseY;
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = mouseY;
 			}
 		}
 
 		bgVar0 = var_5E;
-	} else {		// don't use keyboard for move -> shortcuts to commands
+	}
+
+	if (g_cine->getGameType() == Cine::GType_OS || !(egoMovedWithKeyboard && allowPlayerInput)) {
 		getMouseData(mouseUpdateStatus, &mouseButton, &mouseX, &mouseY);
 
+		// TODO: Investigate why some of these buttons don't work (Maybe main_loop.cpp's processEvent has something to do with it?)
 		switch (var_2 - 59) {
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
+		case 0: // F1 = EXAMINE
+		case 1: // F2 = TAKE
+		case 2: // F3 = INVENTORY
+		case 3: // F4 = USE
+		case 4: // F5 = OPERATE
+		case 5: // F6 = SPEAK
 			if (allowPlayerInput) {
 				playerCommand = var_2 - 59;
+				// TODO: Operation Stealth uses shift key here for handling canUseOnObject differently... investigate and implement.
 				makeCommandLine();
 			}
 			break;
-		case 6:
-		case 7:
-		case 8:
-		case 23:
+		case 6: // F7
+		case 7: // F8
+		case 8: // F9
+		case 23: // Keypad-0/Ins
+			// TODO: Restrict this case only to F7 for Operation Stealth
+			if (allowPlayerInput) {
+				makeActionMenu();
+				makeCommandLine();
+			}
 			break;
-		case 9:
-		case 24:
+		case 9: // F10
+		case 24: // Keypad-./Del
+			// TODO: Restrict this case only to F10 for Operation Stealth
 			g_cine->makeSystemMenu();
 			break;
 		default:
-			//  printf("Unhandled case %d in last part of executePlayerInput\n",var2-59);
 			break;
 		}
 	}
 
-	// Update Operation Stealth specific global variables.
-	// This fixes swimming at the bottom of the ocean after
-	// having been thrown into it with the girl.
-	if (g_cine->getGameType() == Cine::GType_OS) {
-		globalVars[VAR_MOUSE_X_POS_2ND] = globalVars[VAR_MOUSE_X_POS];
-		globalVars[VAR_MOUSE_Y_POS_2ND] = globalVars[VAR_MOUSE_Y_POS];
-	}
+	renderer->clearMenuStack();
 
 	return var_5E;
 }
@@ -1110,27 +1155,27 @@ void drawSprite(Common::List<overlay>::iterator it, const byte *spritePtr, const
 	msk = (byte *)malloc(width * height);
 
 	if (g_cine->getGameType() == Cine::GType_OS) {
-		generateMask(spritePtr, msk, width * height, objectTable[it->objIdx].part);
+		generateMask(spritePtr, msk, width * height, g_cine->_objectTable[it->objIdx].part);
 	} else {
 		memcpy(msk, maskPtr, width * height);
 	}
 
-	for (++it; it != overlayList.end(); ++it) {
+	for (++it; it != g_cine->_overlayList.end(); ++it) {
 		if (it->type != 5) {
 			continue;
 		}
 
-		maskX = objectTable[it->objIdx].x;
-		maskY = objectTable[it->objIdx].y;
+		maskX = g_cine->_objectTable[it->objIdx].x;
+		maskY = g_cine->_objectTable[it->objIdx].y;
 
-		maskSpriteIdx = ABS((int16)(objectTable[it->objIdx].frame));
+		maskSpriteIdx = ABS((int16)(g_cine->_objectTable[it->objIdx].frame));
 
-		maskWidth = animDataTable[maskSpriteIdx]._realWidth;
-		maskHeight = animDataTable[maskSpriteIdx]._height;
-		gfxUpdateSpriteMask(msk, x, y, width, height, animDataTable[maskSpriteIdx].data(), maskX, maskY, maskWidth, maskHeight);
+		maskWidth = g_cine->_animDataTable[maskSpriteIdx]._realWidth;
+		maskHeight = g_cine->_animDataTable[maskSpriteIdx]._height;
+		gfxUpdateSpriteMask(msk, x, y, width, height, g_cine->_animDataTable[maskSpriteIdx].data(), maskX, maskY, maskWidth, maskHeight);
 
 #ifdef DEBUG_SPRITE_MASK
-		gfxFillSprite(animDataTable[maskSpriteIdx].data(), maskWidth, maskHeight, page, maskX, maskY, 1);
+		gfxFillSprite(g_cine->_animDataTable[maskSpriteIdx].data(), maskWidth, maskHeight, page, maskX, maskY, 1);
 #endif
 	}
 
@@ -1142,7 +1187,7 @@ void removeMessages() {
 	Common::List<overlay>::iterator it;
 	bool remove;
 
-	for (it = overlayList.begin(); it != overlayList.end(); ) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ) {
 		if (g_cine->getGameType() == Cine::GType_OS) {
 			// NOTE: These are really removeOverlay calls that have been deferred.
 			// In Operation Stealth's disassembly elements are removed from the
@@ -1156,7 +1201,7 @@ void removeMessages() {
 		}
 
 		if (remove) {
-			it = overlayList.erase(it);
+			it = g_cine->_overlayList.erase(it);
 		} else {
 			++it;
 		}
@@ -1167,10 +1212,10 @@ uint16 processKeyboard(uint16 param) {
 	return 0;
 }
 
-void mainLoopSub6(void) {
+void mainLoopSub6() {
 }
 
-void checkForPendingDataLoad(void) {
+void checkForPendingDataLoad() {
 	if (newPrcName[0] != 0) {
 		bool loadPrcOk = loadPrc(newPrcName);
 
@@ -1198,7 +1243,7 @@ void checkForPendingDataLoad(void) {
 	}
 
 	if (newObjectName[0] != 0) {
-		overlayList.clear();
+		g_cine->_overlayList.clear();
 
 		loadObject(newObjectName);
 
@@ -1214,7 +1259,7 @@ void checkForPendingDataLoad(void) {
 	}
 }
 
-void hideMouse(void) {
+void hideMouse() {
 }
 
 void removeExtention(char *dest, const char *source) {
@@ -1237,15 +1282,13 @@ void addMessage(byte param1, int16 param2, int16 param3, int16 param4, int16 par
 	tmp.width = param4;
 	tmp.color = param5;
 
-	overlayList.push_back(tmp);
+	g_cine->_overlayList.push_back(tmp);
 }
-
-Common::List<SeqListElement> seqList;
 
 void removeSeq(uint16 param1, uint16 param2, uint16 param3) {
 	Common::List<SeqListElement>::iterator it;
 
-	for (it = seqList.begin(); it != seqList.end(); ++it) {
+	for (it = g_cine->_seqList.begin(); it != g_cine->_seqList.end(); ++it) {
 		if (it->objIdx == param1 && it->var4 == param2 && it->varE == param3) {
 			it->var4 = -1;
 			break;
@@ -1256,7 +1299,7 @@ void removeSeq(uint16 param1, uint16 param2, uint16 param3) {
 bool isSeqRunning(uint16 param1, uint16 param2, uint16 param3) {
 	Common::List<SeqListElement>::iterator it;
 
-	for (it = seqList.begin(); it != seqList.end(); ++it) {
+	for (it = g_cine->_seqList.begin(); it != g_cine->_seqList.end(); ++it) {
 		if (it->objIdx == param1 && it->var4 == param2 && it->varE == param3) {
 			// Just to be on the safe side there's a restriction of the
 			// addition's result to 16-bit arithmetic here like in the
@@ -1272,7 +1315,8 @@ void addSeqListElement(uint16 objIdx, int16 param1, int16 param2, int16 frame, i
 	Common::List<SeqListElement>::iterator it;
 	SeqListElement tmp;
 
-	for (it = seqList.begin(); it != seqList.end() && it->varE < param7; ++it) ;
+	for (it = g_cine->_seqList.begin(); it != g_cine->_seqList.end() && it->varE < param7; ++it)
+		;
 
 	tmp.objIdx = objIdx;
 	tmp.var4 = param1;
@@ -1289,12 +1333,12 @@ void addSeqListElement(uint16 objIdx, int16 param1, int16 param2, int16 frame, i
 	tmp.var1C = 0;
 	tmp.var1E = 0;
 
-	seqList.insert(it, tmp);
+	g_cine->_seqList.insert(it, tmp);
 }
 
 void modifySeqListElement(uint16 objIdx, int16 var4Test, int16 param1, int16 param2, int16 param3, int16 param4) {
 	// Find a suitable list element and modify it
-	for (Common::List<SeqListElement>::iterator it = seqList.begin(); it != seqList.end(); ++it) {
+	for (Common::List<SeqListElement>::iterator it = g_cine->_seqList.begin(); it != g_cine->_seqList.end(); ++it) {
 		if (it->objIdx == objIdx && it->var4 == var4Test) {
 			it->varC  = param1;
 			it->var18 = param2;
@@ -1368,7 +1412,7 @@ uint16 addAni(uint16 param1, uint16 objIdx, const int8 *ptr, SeqListElement &ele
 	// In the original an error string is set and 0 is returned if the following doesn't hold
 	assert(*ptrData);
 
-	di = (objectTable[objIdx].costume + 1) % (*ptrData);
+	di = (g_cine->_objectTable[objIdx].costume + 1) % (*ptrData);
 	++ptrData; // Jump over the just read byte
 	// Here ptr2 seems to be indexing a table of structs (8 bytes per struct):
 	//	struct {
@@ -1389,18 +1433,18 @@ uint16 addAni(uint16 param1, uint16 objIdx, const int8 *ptr, SeqListElement &ele
 		return 0;
 	}
 
-	objectTable[objIdx].x += ptr2[4];
-	objectTable[objIdx].y += ptr2[5];
-	objectTable[objIdx].mask += ptr2[6];
+	g_cine->_objectTable[objIdx].x += ptr2[4];
+	g_cine->_objectTable[objIdx].y += ptr2[5];
+	g_cine->_objectTable[objIdx].mask += ptr2[6];
 
 	if (ptr2[6]) {
 		resetGfxEntityEntry(objIdx);
 	}
 
-	objectTable[objIdx].frame = ptr2[7] + element.var8;
+	g_cine->_objectTable[objIdx].frame = ptr2[7] + element.var8;
 
 	if (param3 || !element.var14) {
-		objectTable[objIdx].costume = di;
+		g_cine->_objectTable[objIdx].costume = di;
 	} else {
 		assert(param4);
 		*param4 = di;
@@ -1409,9 +1453,9 @@ uint16 addAni(uint16 param1, uint16 objIdx, const int8 *ptr, SeqListElement &ele
 	return 1;
 }
 
-/*!
+/**
  * Permutates the overlay list into a different order according to some logic.
- * \todo Check this function for correctness (Wasn't very easy to reverse engineer so there may be errors)
+ * @todo Check this function for correctness (Wasn't very easy to reverse engineer so there may be errors)
  */
 void resetGfxEntityEntry(uint16 objIdx) {
 	Common::List<overlay>::iterator it, bObjsCutPoint;
@@ -1419,7 +1463,7 @@ void resetGfxEntityEntry(uint16 objIdx) {
 	bool foundCutPoint = false;
 
 	// Go through the overlay list and partition the whole list into two categories (Type A and type B objects)
-	for (it = overlayList.begin(); it != overlayList.end(); ++it) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ++it) {
 		if (it->objIdx == objIdx && it->type != 2 && it->type != 3) { // Type A object
 			aReverseObjs.push_front(*it);
 		} else { // Type B object
@@ -1428,10 +1472,10 @@ void resetGfxEntityEntry(uint16 objIdx) {
 			if (it->type == 2 || it->type == 3) {
 				objectMask = 10000;
 			} else {
-				objectMask = objectTable[it->objIdx].mask;
+				objectMask = g_cine->_objectTable[it->objIdx].mask;
 			}
 
-			if (objectTable[objIdx].mask > objectMask) { // Check for B objects' cut point
+			if (g_cine->_objectTable[objIdx].mask > objectMask) { // Check for B objects' cut point
 				bObjsCutPoint = bObjs.reverse_begin();
 				foundCutPoint = true;
 			}
@@ -1439,26 +1483,26 @@ void resetGfxEntityEntry(uint16 objIdx) {
 	}
 
 	// Recreate the overlay list in a different order.
-	overlayList.clear();
+	g_cine->_overlayList.clear();
 	if (foundCutPoint) {
 		// If a cut point was found the order is:
 		// B objects before the cut point, the cut point, A objects in reverse order, B objects after cut point.
 		++bObjsCutPoint; // Include the cut point in the first list insertion
-		overlayList.insert(overlayList.end(), bObjs.begin(), bObjsCutPoint);
-		overlayList.insert(overlayList.end(), aReverseObjs.begin(), aReverseObjs.end());
-		overlayList.insert(overlayList.end(), bObjsCutPoint, bObjs.end());
+		g_cine->_overlayList.insert(g_cine->_overlayList.end(), bObjs.begin(), bObjsCutPoint);
+		g_cine->_overlayList.insert(g_cine->_overlayList.end(), aReverseObjs.begin(), aReverseObjs.end());
+		g_cine->_overlayList.insert(g_cine->_overlayList.end(), bObjsCutPoint, bObjs.end());
 	} else {
 		// If no cut point was found the order is:
 		// A objects in reverse order, B objects.
-		overlayList.insert(overlayList.end(), aReverseObjs.begin(), aReverseObjs.end());
-		overlayList.insert(overlayList.end(), bObjs.begin(), bObjs.end());
+		g_cine->_overlayList.insert(g_cine->_overlayList.end(), aReverseObjs.begin(), aReverseObjs.end());
+		g_cine->_overlayList.insert(g_cine->_overlayList.end(), bObjs.begin(), bObjs.end());
 	}
 }
 
 void processSeqListElement(SeqListElement &element) {
-	int16 x = objectTable[element.objIdx].x;
-	int16 y = objectTable[element.objIdx].y;
-	const int8 *ptr1 = (const int8 *) animDataTable[element.frame].data();
+	int16 x = g_cine->_objectTable[element.objIdx].x;
+	int16 y = g_cine->_objectTable[element.objIdx].y;
+	const int8 *ptr1 = (const int8 *) g_cine->_animDataTable[element.frame].data();
 	int16 var_10;
 	int16 var_4;
 	int16 var_2;
@@ -1491,8 +1535,8 @@ void processSeqListElement(SeqListElement &element) {
 			int16 x2 = element.var18;
 			int16 y2 = element.var1A;
 			if (element.varC) {
-				x2 += objectTable[element.varC].x;
-				y2 += objectTable[element.varC].y;
+				x2 += g_cine->_objectTable[element.varC].x;
+				y2 += g_cine->_objectTable[element.varC].y;
 			}
 			computeMove1(element, ptr1[4] + x, ptr1[5] + y, param1, param2, x2, y2);
 		} else {
@@ -1501,7 +1545,7 @@ void processSeqListElement(SeqListElement &element) {
 				if (xMoveKeyb != kKeybMoveRight) {
 					adder = -adder;
 				}
-				globalVars[VAR_MOUSE_X_POS] = globalVars[VAR_MOUSE_X_POS_2ND] = ptr1[4] + x + adder;
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = g_cine->_globalVars[VAR_MOUSE_X_POS_2ND] = ptr1[4] + x + adder;
 			}
 
 			if (yMoveKeyb && allowPlayerInput) {
@@ -1509,11 +1553,11 @@ void processSeqListElement(SeqListElement &element) {
 				if (yMoveKeyb != kKeybMoveDown) {
 					adder = -adder;
 				}
-				globalVars[VAR_MOUSE_Y_POS] = globalVars[VAR_MOUSE_Y_POS_2ND] = ptr1[5] + y + adder;
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = g_cine->_globalVars[VAR_MOUSE_Y_POS_2ND] = ptr1[5] + y + adder;
 			}
 
-			if (globalVars[VAR_MOUSE_X_POS] || globalVars[VAR_MOUSE_Y_POS]) {
-				computeMove1(element, ptr1[4] + x, ptr1[5] + y, param1, param2, globalVars[VAR_MOUSE_X_POS], globalVars[VAR_MOUSE_Y_POS]);
+			if (g_cine->_globalVars[VAR_MOUSE_X_POS] || g_cine->_globalVars[VAR_MOUSE_Y_POS]) {
+				computeMove1(element, ptr1[4] + x, ptr1[5] + y, param1, param2, g_cine->_globalVars[VAR_MOUSE_X_POS], g_cine->_globalVars[VAR_MOUSE_Y_POS]);
 			} else {
 				element.var16 = 0;
 				element.var14 = 0;
@@ -1533,27 +1577,27 @@ void processSeqListElement(SeqListElement &element) {
 			&& !addAni(3, element.objIdx, ptr1, element, 0, &var_4)) || (element.var16 == 2	&& !addAni(2, element.objIdx, ptr1, element, 0,
 			    &var_4))) {
 			if (element.varC == 255) {
-				globalVars[VAR_MOUSE_Y_POS] = 0;
+				g_cine->_globalVars[VAR_MOUSE_Y_POS] = 0;
 			}
 		}
 
 		if ((element.var14 == 1
 			&& !addAni(0, element.objIdx, ptr1, element, 1, &var_2))) {
 			if (element.varC == 255) {
-				globalVars[VAR_MOUSE_X_POS] = 0;
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = 0;
 
 				if (var_4 != -1) {
-					objectTable[element.objIdx].costume = var_4;
+					g_cine->_objectTable[element.objIdx].costume = var_4;
 				}
 			}
 		}
 
 		if ((element.var14 == 2 && !addAni(1, element.objIdx, ptr1, element, 1, &var_2))) {
 			if (element.varC == 255) {
-				globalVars[VAR_MOUSE_X_POS] = 0;
+				g_cine->_globalVars[VAR_MOUSE_X_POS] = 0;
 
 				if (var_4 != -1) {
-					objectTable[element.objIdx].costume = var_4;
+					g_cine->_objectTable[element.objIdx].costume = var_4;
 				}
 			}
 		}
@@ -1561,7 +1605,7 @@ void processSeqListElement(SeqListElement &element) {
 		if (element.var16 + element.var14 == 0) {
 			if (element.var1C) {
 				if (element.var1E) {
-					objectTable[element.objIdx].costume = 0;
+					g_cine->_objectTable[element.objIdx].costume = 0;
 					element.var1E = 0;
 				}
 
@@ -1573,10 +1617,10 @@ void processSeqListElement(SeqListElement &element) {
 	}
 }
 
-void processSeqList(void) {
+void processSeqList() {
 	Common::List<SeqListElement>::iterator it;
 
-	for (it = seqList.begin(); it != seqList.end(); ++it) {
+	for (it = g_cine->_seqList.begin(); it != g_cine->_seqList.end(); ++it) {
 		if (it->var4 == -1) {
 			continue;
 		}
@@ -1602,10 +1646,13 @@ bool makeTextEntryMenu(const char *messagePtr, char *inputString, int stringMaxL
 	int inputLength = strlen(inputString);
 	int inputPos = inputLength + 1;
 
+	TextInputMenu *inputBox = new TextInputMenu(Common::Point(x - 16, y), width + 32, messagePtr);
+	renderer->pushMenu(inputBox);
+
 	while (!quit) {
 		if (redraw) {
-			renderer->drawInputBox(messagePtr, inputString, inputPos, x - 16, y, width + 32);
-			renderer->blit();
+			inputBox->setInput(inputString, inputPos);
+			renderer->drawFrame();
 			redraw = false;
 		}
 
@@ -1619,10 +1666,10 @@ bool makeTextEntryMenu(const char *messagePtr, char *inputString, int stringMaxL
 
 		getMouseData(0, &mouseButton, &mouseX, &mouseY);
 
-		if (mouseButton & 2)
-			quit = 2;
-		else if (mouseButton & 1)
-			quit = 1;
+		if ((mouseButton & kRightMouseButton) || g_cine->shouldQuit())
+			quit = kRightMouseButton;
+		else if (mouseButton & kLeftMouseButton)
+			quit = kLeftMouseButton;
 
 		switch (keycode) {
 		case Common::KEYCODE_BACKSPACE:
@@ -1684,7 +1731,10 @@ bool makeTextEntryMenu(const char *messagePtr, char *inputString, int stringMaxL
 		}
 	}
 
-	if (quit == 2)
+	renderer->popMenu();
+	delete inputBox;
+
+	if (quit == kRightMouseButton)
 		return false;
 
 	return true;

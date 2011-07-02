@@ -18,13 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CEGUI_PANELKEYBOARD
-#define CEGUI_PANELKEYBOARD
+#ifndef CEGUI_PANELKEYBOARD_H
+#define CEGUI_PANELKEYBOARD_H
 
 #include "common/scummsys.h"
 #include "common/system.h"
@@ -37,15 +34,16 @@ using CEKEYS::EventsBuffer;
 
 namespace CEGUI {
 
-	class PanelKeyboard : public Toolbar {
-	public:
-		PanelKeyboard(WORD reference);
-		virtual ~PanelKeyboard();
-		virtual bool action(int x, int y, bool pushed);
-	private:
-		bool _state;
-		Key _lastKey;
-	};
-}
+class PanelKeyboard : public Toolbar {
+public:
+	PanelKeyboard(WORD reference);
+	virtual ~PanelKeyboard();
+	virtual bool action(int x, int y, bool pushed);
+private:
+	bool _state;
+	Key _lastKey;
+};
+
+} // End of namespace CEGUI
 
 #endif

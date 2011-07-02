@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "tucker/graphics.h"
@@ -112,7 +109,7 @@ void Graphics::decodeRLE_224(uint8 *dst, const uint8 *src, int w, int h) {
 	}
 }
 
-void Graphics::decodeRLE_248(uint8 *dst, const uint8 *src, int w, int h, int y1, int y2, bool xflip) {
+void Graphics::decodeRLE_248(uint8 *dst, const uint8 *src, int w, int h, int y1, int y2, bool xflip, bool color248Only) {
 	int code = 0;
 	int color = 0;
 	for (int y = 0; y < h; ++y) {
@@ -125,7 +122,7 @@ void Graphics::decodeRLE_248(uint8 *dst, const uint8 *src, int w, int h, int y1,
 				}
 			}
 			if (color != 0) {
-				if ((dst[offset] < 0xE0 || y + y1 < y2) && dst[offset] < 0xF8) {
+				if ((color248Only || dst[offset] < 0xE0 || y + y1 < y2) && dst[offset] < 0xF8) {
 					dst[offset] = color;
 				}
 			} else {
@@ -165,13 +162,16 @@ void Graphics::copyRect(uint8 *dst, int dstPitch, uint8 *src, int srcPitch, int 
 	}
 }
 
-void Graphics::drawStringChar(uint8 *dst, uint8 chr, int pitch, uint8 chrColor, const uint8 *src) {
+void Graphics::drawStringChar(uint8 *dst, int xDst, int yDst, int pitch, uint8 chr, uint8 chrColor, const uint8 *src) {
 	if (chr < 32 || chr - 32 >= _charset.xCount * _charset.yCount) {
 		return;
 	}
+	const int h = MIN(_charset.charH, 200 - yDst);
+	const int w = MIN(_charset.charW, pitch - xDst);
+	dst += yDst * pitch + xDst;
 	int offset = (chr - 32) * _charset.charH * _charset.charW;
-	for (int y = 0; y < _charset.charH; ++y) {
-		for (int x = 0; x < _charset.charW; ++x) {
+	for (int y = 0; y < h; ++y) {
+		for (int x = 0; x < w; ++x) {
 			const int color = src[offset++];
 			if (color != 0) {
 				if (_charsetType == kCharsetTypeCredits) {
@@ -186,6 +186,7 @@ void Graphics::drawStringChar(uint8 *dst, uint8 chr, int pitch, uint8 chrColor, 
 }
 
 void Graphics::setCharset(CharsetType type) {
+	_charsetType = type;
 	switch (type) {
 	case kCharsetTypeDefault:
 		_charset.charW = 10;

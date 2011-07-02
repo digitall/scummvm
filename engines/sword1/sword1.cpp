@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sword1/sword1.h"
@@ -37,9 +34,12 @@
 #include "sword1/control.h"
 
 #include "common/config-manager.h"
+#include "common/textconsole.h"
+
+#include "engines/util.h"
 
 #include "gui/message.h"
-#include "gui/GuiManager.h"
+#include "gui/gui-manager.h"
 
 namespace Sword1 {
 
@@ -56,19 +56,16 @@ SwordEngine::SwordEngine(OSystem *syst)
 		_features = 0;
 
 	// Add default file directories
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("CLUSTERS"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("MUSIC"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("SPEECH"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("VIDEO"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("SMACKSHI"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("ENGLISH"));//PSX Demo
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("ITALIAN"));//PSX Demo
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("clusters"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("music"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("speech"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("video"));
-	Common::File::addDefaultDirectory(_gameDataDir.getChild("smackshi"));
-	
+	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "clusters");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "music");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "speech");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "video");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "smackshi");
+	SearchMan.addSubDirectoryMatching(gameDataDir, "english");//PSX Demo
+	SearchMan.addSubDirectoryMatching(gameDataDir, "italian");//PSX Demo
+
+	_console = new SwordConsole(this);
 }
 
 SwordEngine::~SwordEngine() {
@@ -81,6 +78,7 @@ SwordEngine::~SwordEngine() {
 	delete _mouse;
 	delete _objectMan;
 	delete _resMan;
+	delete _console;
 }
 
 Common::Error SwordEngine::init() {
@@ -145,7 +143,7 @@ Common::Error SwordEngine::init() {
 
 	_systemVars.playSpeech = 1;
 	_mouseState = 0;
-	
+
 	// Some Mac versions use big endian for the speech files but not all of them.
 	if (_systemVars.platform == Common::kPlatformMacintosh)
 		_sound->checkSpeechFileEndianness();
@@ -158,7 +156,7 @@ Common::Error SwordEngine::init() {
 	return Common::kNoError;
 }
 
-void SwordEngine::reinitialize(void) {
+void SwordEngine::reinitialize() {
 	_sound->quitScreen();
 	_resMan->flush(); // free everything that's currently alloced and opened. (*evil*)
 
@@ -170,6 +168,8 @@ void SwordEngine::reinitialize(void) {
 }
 
 void SwordEngine::syncSoundSettings() {
+	Engine::syncSoundSettings();
+
 	uint musicVol = ConfMan.getInt("music_volume");
 	uint sfxVol = ConfMan.getInt("sfx_volume");
 	uint speechVol = ConfMan.getInt("speech_volume");
@@ -217,12 +217,17 @@ void SwordEngine::syncSoundSettings() {
 		sfxVolL = 255;
 	}
 
-	_music->setVolume(musicVolL, musicVolR);
-	_sound->setSpeechVol(speechVolL, speechVolR);
-	_sound->setSfxVol(sfxVolL, sfxVolR);
+	bool mute = ConfMan.getBool("mute");
 
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, ConfMan.getInt("speech_volume"));
+	if (mute) {
+		_music->setVolume(0, 0);
+		_sound->setSpeechVol(0, 0);
+		_sound->setSfxVol(0, 0);
+	} else {
+		_music->setVolume(musicVolL, musicVolR);
+		_sound->setSpeechVol(speechVolL, speechVolR);
+		_sound->setSfxVol(sfxVolL, sfxVolR);
+	}
 }
 
 void SwordEngine::flagsToBool(bool *dest, uint8 flags) {
@@ -420,7 +425,7 @@ void SwordEngine::showFileErrorMsg(uint8 type, bool *fileExists) {
 		error("%s", msg);
 }
 
-void SwordEngine::checkCdFiles(void) { // check if we're running from cd, hdd or what...
+void SwordEngine::checkCdFiles() { // check if we're running from cd, hdd or what...
 	bool fileExists[30];
 	bool isFullVersion = false; // default to demo version
 	bool missingTypes[8] = { false, false, false, false, false, false, false, false };
@@ -558,7 +563,7 @@ void SwordEngine::checkCdFiles(void) { // check if we're running from cd, hdd or
 
 Common::Error SwordEngine::go() {
 	_control->checkForOldSaveGames();
-	SwordEngine::_systemVars.engineStartTime = _system->getMillis() / 1000;
+	setTotalPlayTime(0);
 
 	uint16 startPos = ConfMan.getInt("boot_param");
 	_control->readSavegameDescriptions();
@@ -601,7 +606,7 @@ Common::Error SwordEngine::go() {
 	return Common::kNoError;
 }
 
-void SwordEngine::checkCd(void) {
+void SwordEngine::checkCd() {
 	uint8 needCd = _cdList[Logic::_scriptVars[NEW_SCREEN]];
 	if (_systemVars.runningFromCd) { // are we running from cd?
 		if (needCd == 0) { // needCd == 0 means we can use either CD1 or CD2.
@@ -623,7 +628,7 @@ void SwordEngine::checkCd(void) {
 	}
 }
 
-uint8 SwordEngine::mainLoop(void) {
+uint8 SwordEngine::mainLoop() {
 	uint8 retCode = 0;
 	_keyPressed.reset();
 
@@ -670,9 +675,16 @@ uint8 SwordEngine::mainLoop(void) {
 			else if (((_keyPressed.keycode == Common::KEYCODE_F5 || _keyPressed.keycode == Common::KEYCODE_ESCAPE)
 			         && (Logic::_scriptVars[MOUSE_STATUS] & 1)) || (_systemVars.controlPanelMode)) {
 				retCode = _control->runPanel();
-				if (!retCode)
+				if (retCode == CONTROL_NOTHING_DONE)
 					_screen->fullRefresh();
 			}
+
+			// Check for Debugger Activation
+			if (_keyPressed.hasFlags(Common::KBD_CTRL) && _keyPressed.keycode == Common::KEYCODE_d) {
+				this->getDebugger()->attach();
+				this->getDebugger()->onFrame();
+			}
+
 			_mouseState = 0;
 			_keyPressed.reset();
 		} while ((Logic::_scriptVars[SCREEN] == Logic::_scriptVars[NEW_SCREEN]) && (retCode == 0) && (!shouldQuit()));
@@ -742,7 +754,7 @@ bool SwordEngine::mouseIsActive() {
 }
 
 // The following function is needed to restore proper status after GMM load game
-void SwordEngine::reinitRes(void) {
+void SwordEngine::reinitRes() {
 	checkCd(); // Reset currentCD var to correct value
 	_screen->newScreen(Logic::_scriptVars[NEW_SCREEN]);
 	_logic->newScreen(Logic::_scriptVars[NEW_SCREEN]);

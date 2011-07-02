@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/text_mr.h"
-#include "kyra/screen_mr.h"
 #include "kyra/resource.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -34,8 +32,10 @@ TextDisplayer_MR::TextDisplayer_MR(KyraEngine_MR *vm, Screen_MR *screen)
 }
 
 char *TextDisplayer_MR::preprocessString(const char *str) {
-	if (_talkBuffer != str)
-		strncpy(_talkBuffer, str, sizeof(_talkBuffer));
+	if (_talkBuffer != str) {
+		assert(strlen(str) < sizeof(_talkBuffer) - 1);
+		strcpy(_talkBuffer, str);
+	}
 
 	char *p = _talkBuffer;
 	while (*p) {
@@ -127,7 +127,7 @@ int TextDisplayer_MR::dropCRIntoString(char *str, int minOffs, int maxOffs) {
 	return 0;
 }
 
-void TextDisplayer_MR::printText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2, Screen::FontId font) {
+void TextDisplayer_MR::printText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2) {
 	if (_vm->_albumChatActive) {
 		c0 = 0xEE;
 		c1 = 0xE3;
@@ -137,11 +137,9 @@ void TextDisplayer_MR::printText(const char *str, int x, int y, uint8 c0, uint8 
 	uint8 colorMap[] = { 0, 255, 240, 240 };
 	colorMap[3] = c1;
 	_screen->setTextColor(colorMap, 0, 3);
-	Screen::FontId curFont = _screen->setFont(font);
 	_screen->_charWidth = -2;
 	_screen->printText(str, x, y, c0, c2);
 	_screen->_charWidth = 0;
-	_screen->setFont(curFont);
 }
 
 void TextDisplayer_MR::restoreScreen() {
@@ -265,7 +263,8 @@ void KyraEngine_MR::objectChatInit(const char *str, int object, int vocHigh, int
 
 	_screen->hideMouse();
 
-	if (textEnabled()) {
+	_chatTextEnabled = textEnabled();
+	if (_chatTextEnabled) {
 		objectChatPrintText(str, object);
 		_chatEndTime = _system->getMillis() + chatCalcDuration(str) * _tickLength;
 	} else {
@@ -339,10 +338,8 @@ void KyraEngine_MR::objectChatWaitToFinish() {
 			_emc->start(&_chatScriptState, 1);
 
 		_animNeedUpdate = false;
-		while (!_animNeedUpdate && _emc->isValid(&_chatScriptState) && !shouldQuit()) {
-			musicUpdate(0);
+		while (!_animNeedUpdate && _emc->isValid(&_chatScriptState) && !shouldQuit())
 			_emc->run(&_chatScriptState);
-		}
 
 		int curFrame = _animNewFrame;
 		uint32 delayTime = _animDelayTime;
@@ -628,24 +625,20 @@ void KyraEngine_MR::malcolmSceneStartupChat() {
 }
 
 void KyraEngine_MR::updateDlgBuffer() {
-	char dlgFile[16];
-	char cnvFile[16];
-
 	if (_cnvFile)
 		_cnvFile->seek(0, SEEK_SET);
 
 	if (_curDlgIndex == _mainCharacter.dlgIndex && _curDlgChapter == _currentChapter && _curDlgLang == _lang)
 		return;
 
-	snprintf(dlgFile, 16, "CH%.02d-S%.02d.", _currentChapter, _mainCharacter.dlgIndex);
-	appendLanguage(dlgFile, _lang, 16);
-	snprintf(cnvFile, 16, "CH%.02d-S%.02d.CNV", _currentChapter, _mainCharacter.dlgIndex);
+	Common::String dlgFile = Common::String::format("CH%.02d-S%.02d.%s", _currentChapter, _mainCharacter.dlgIndex, _languageExtension[_lang]);
+	Common::String cnvFile = Common::String::format("CH%.02d-S%.02d.CNV", _currentChapter, _mainCharacter.dlgIndex);
 
 	delete _cnvFile;
 	delete _dlgBuffer;
 
-	_res->exists(cnvFile, true);
-	_res->exists(dlgFile, true);
+	_res->exists(cnvFile.c_str(), true);
+	_res->exists(dlgFile.c_str(), true);
 	_cnvFile = _res->createReadStream(cnvFile);
 	_dlgBuffer = _res->createReadStream(dlgFile);
 	assert(_cnvFile);
@@ -859,7 +852,7 @@ void KyraEngine_MR::randomSceneChat() {
 	processDialog(vocHighIndex, vocHighBase, 0);
 }
 
-void KyraEngine_MR::runDialog(int dlgIndex, int funcNum) {
+void KyraEngine_MR::doDialog(int dlgIndex, int funcNum) {
 	switch (_currentChapter-2) {
 	case 0:
 		dlgIndex -= 34;
@@ -904,5 +897,5 @@ void KyraEngine_MR::runDialog(int dlgIndex, int funcNum) {
 	processDialog(vocHighIndex, vocHighBase, funcNum);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

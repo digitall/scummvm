@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef ABOUT_DIALOG_H
@@ -27,16 +24,17 @@
 
 #include "gui/dialog.h"
 #include "common/str.h"
-#include "graphics/surface.h"
+#include "common/array.h"
+#include "common/keyboard.h"
 
 namespace GUI {
 
 class AboutDialog : public Dialog {
-	typedef Common::StringList StringList;
+	typedef Common::Array<Common::String> StringArray;
 protected:
 	int			_scrollPos;
 	uint32		_scrollTime;
-	StringList	_lines;
+	StringArray	_lines;
 	uint32		_lineHeight;
 	bool		_willClose;
 

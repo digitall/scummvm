@@ -18,17 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "drascula/drascula.h"
 
 namespace Drascula {
 
-int x_talk_dch[6] = {1, 25, 49, 73, 97, 121};
-int x_talk_izq[6] = {145, 169, 193, 217, 241, 265};
+static const int x_talk_dch[6] = {1, 25, 49, 73, 97, 121};
+static const int x_talk_izq[6] = {145, 169, 193, 217, 241, 265};
 
 void DrasculaEngine::talkInit(const char *filename) {
 	_rnd->setSeed((unsigned int)_system->getMillis() / 2);
@@ -55,10 +52,10 @@ void DrasculaEngine::talk_igor(int index, int talkerType) {
 	char filename[20];
 	sprintf(filename, "I%i.als", index);
 	const char *said = _texti[index];
-	int x_talk0[8] = {  56,  82, 108, 134, 160, 186, 212, 238 };
-	int x_talk1[8] = {  56,  86, 116, 146, 176, 206, 236, 266 };
-	int x_talk3[4] = {  80, 102, 124, 146 };
-	int x_talk4[4] = { 119, 158, 197, 236 };
+	static const int x_talk0[8] = {  56,  82, 108, 134, 160, 186, 212, 238 };
+	static const int x_talk1[8] = {  56,  86, 116, 146, 176, 206, 236, 266 };
+	static const int x_talk3[4] = {  80, 102, 124, 146 };
+	static const int x_talk4[4] = { 119, 158, 197, 236 };
 	int face = 0;
 
 	color_abc(kColorWhite);
@@ -170,6 +167,7 @@ void DrasculaEngine::talk_drascula(int index, int talkerType) {
 			centerText(said, drasculaX + 19, drasculaY);
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 
@@ -215,6 +213,7 @@ void DrasculaEngine::talk_drascula_big(int index) {
 			centerText(said, 191, 69);
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 
@@ -245,7 +244,9 @@ void DrasculaEngine::talk_solo(const char *said, const char *filename) {
 			else if (currentChapter == 5)
 				centerText(said, 173, 92);
 		}
+		updateEvents();
 		updateScreen();
+		pause(3);
 	} while (!isTalkFinished());
 
 	if (currentChapter == 6) {
@@ -304,6 +305,7 @@ void DrasculaEngine::talk_bartender(int index, int talkerType) {
 			centerText(said, 132, 45);
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 	} while (!isTalkFinished());
@@ -331,11 +333,9 @@ void DrasculaEngine::talk_bj(int index) {
 
 			updateRefresh_pre();
 
-			copyBackground(bjX + 2, bjY - 1, bjX + 2, bjY - 1, 27, 40,
-						   bgSurface, screenSurface);
+			copyBackground(bjX + 2, bjY - 1, bjX + 2, bjY - 1, 27, 40, bgSurface, screenSurface);
 
-			copyRect(x_talk[face], 99, bjX + 2, bjY - 1, 27, 40,
-					 drawSurface3, screenSurface);
+			copyRect(x_talk[face], 99, bjX + 2, bjY - 1, 27, 40, drawSurface3, screenSurface);
 			moveCharacters();
 			updateRefresh();
 
@@ -353,6 +353,7 @@ void DrasculaEngine::talk_bj(int index) {
 
 			updateScreen();
 		}
+		updateEvents();
 	} while (!isTalkFinished());
 
 	updateRoom();
@@ -467,6 +468,7 @@ void DrasculaEngine::talk(const char *said, const char *filename) {
 			centerText(said, curX, curY);
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 	} while (!isTalkFinished());
@@ -558,16 +560,15 @@ void DrasculaEngine::talk_vonBraun(int index, int talkerType) {
 			if (!_subtitlesDisabled)
 				centerText(said, vonBraunX, 66);
 
-			updateScreen();
-			pause(3);
 		} else {
 			updateRoom();
 
 			if (!_subtitlesDisabled)
 				centerText(said, 150, 80);
-
-			updateScreen();
 		}
+		updateScreen();
+		updateEvents();
+		pause(3);
 	} while (!isTalkFinished());
 
 	updateRoom();
@@ -621,6 +622,7 @@ void DrasculaEngine::talk_blind(int index) {
 			centerText(said, 260, 71);
 
 		updateScreen();
+		updateEvents();
 		pause(2);
 		p++;
 	} while (!isTalkFinished());
@@ -641,7 +643,9 @@ void DrasculaEngine::talk_hacker(int index) {
 	do {
 		if (!_subtitlesDisabled)
 			centerText(said, 156, 170);
+		updateEvents();
 		updateScreen();
+		pause(3);
 	} while (!isTalkFinished());
 }
 
@@ -693,12 +697,12 @@ void DrasculaEngine::talk_pen(const char *said, const char *filename, int talker
 		copyBackground();
 		updateRefresh_pre();
 
+		updateRefresh();
+
 		if (talkerType == 0)
 			copyRect(x_talk[face], 145, 145, 105, 25, 29, drawSurface3, screenSurface);
 		else
 			copyBackground(x_talk2[face], 171, 173, 116, 25, 28, drawSurface3, screenSurface);
-
-		updateRefresh();
 
 		if (!_subtitlesDisabled) {
 			if (talkerType == 0)
@@ -708,6 +712,7 @@ void DrasculaEngine::talk_pen(const char *said, const char *filename, int talker
 		}
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 	} while (!isTalkFinished());
@@ -745,6 +750,7 @@ void DrasculaEngine::talk_bj_bed(int index) {
 			centerText(said, 104, 102);
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 	} while (!isTalkFinished());
@@ -781,6 +787,7 @@ void DrasculaEngine::talk_htel(int index) {
 			centerText(said, 90, 50);
 
 		updateScreen();
+		updateEvents();
 		pause(3);
 	} while (!isTalkFinished());
 
@@ -862,6 +869,7 @@ void DrasculaEngine::talk_sync(const char *said, const char *filename, const cha
 			centerText(said, curX, curY);
 
 		updateScreen();
+		updateEvents();
 
 		p++;
 		pause(3);
@@ -895,6 +903,7 @@ void DrasculaEngine::talk_trunk(int index) {
 			centerText(said, 263, 69);
 
 		updateScreen();
+		updateEvents();
 
 		pause(4);
 	} while (!isTalkFinished());
@@ -922,6 +931,7 @@ void DrasculaEngine::talk_generic(const char* said, const char* filename, int* f
 			centerText(said, coords[5], coords[6]);
 
 		updateScreen();
+		updateEvents();
 
 		pause(3);
 	} while (!isTalkFinished());
@@ -944,8 +954,10 @@ void DrasculaEngine::grr() {
 
 	updateScreen();
 
-	while (!isTalkFinished())
-		;
+	while (!isTalkFinished()) {
+		updateEvents();
+		pause(3);
+	}
 
 	updateRoom();
 	updateScreen();

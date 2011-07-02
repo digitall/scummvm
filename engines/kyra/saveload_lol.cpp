@@ -18,20 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
 
-#include "common/endian.h"
-#include "common/savefile.h"
-#include "common/system.h"
-
 #include "kyra/lol.h"
 #include "kyra/screen_lol.h"
-#include "kyra/resource.h"
+
+#include "common/savefile.h"
+#include "common/substream.h"
+
+#include "graphics/scaler.h"
 
 namespace Kyra {
 
@@ -43,7 +40,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 	SaveHeader header;
 	Common::InSaveFile *saveFile = openSaveForReading(fileName, header);
 	if (!saveFile) {
-		_txt->printMessage(2, getLangString(0x425d));
+		_txt->printMessage(2, "%s", getLangString(0x425d));
 		return Common::kNoError;
 	}
 
@@ -52,7 +49,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 	_screen->fillRect(112, 0, 287, 119, 0, 0);
 	_screen->updateScreen();
 
-	Common::SeekableSubReadStreamEndian in(saveFile, saveFile->pos(), saveFile->size(), !header.originalSave, true);
+	Common::SeekableSubReadStreamEndian in(saveFile, saveFile->pos(), saveFile->size(), !header.originalSave, DisposeAfterUse::YES);
 
 	for (int i = 0; i < 4; i++) {
 		LoLCharacter *c = &_characters[i];
@@ -61,7 +58,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 		c->raceClassSex = in.readByte();
 		c->id = in.readSint16BE();
 		c->curFaceFrame = in.readByte();
-		c->defaultFaceFrame = in.readByte();
+		c->tempFaceFrame = in.readByte();
 		c->screamSfx = in.readByte();
 		for (int ii = 0; ii < 8; ii++)
 			c->itemsMight[ii] = in.readUint16BE();
@@ -115,7 +112,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 	_selectedCharacter = in.readSByte();
 	_currentLevel = in.readByte();
 	for (int i = 0; i < 48; i++)
-		_inventory[i] = in.readUint16BE();
+		_inventory[i] = in.readSint16BE();
 	_inventoryCurItem = in.readSint16BE();
 	_itemInHand = in.readSint16BE();
 	_lastMouseRegion = in.readSint16BE();
@@ -151,7 +148,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 		_globalScriptVars[i] = in.readUint16BE();
 	_brightness = in.readByte();
 	_lampOilStatus = in.readByte();
-	_lampEffect = in.readByte();
+	_lampEffect = in.readSByte();
 	_credits = in.readUint16BE();
 	for (int i = 0; i < 8; i++)
 		_globalScriptVars2[i] = in.readUint16BE();
@@ -233,7 +230,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 			m->distAttackTick = in.readSByte();
 			m->assignedItems = in.readUint16BE();
 			m->properties = &_monsterProperties[m->type];
-			in.read(m->field_2A, 4);
+			in.read(m->equipmentShapes, 4);
 		}
 
 		for (int ii = 0; ii < 8; ii++) {
@@ -241,7 +238,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 			m->enable = in.readByte();
 			m->objectType = in.readByte();
 			m->attackerId = in.readUint16BE();
-			m->item = in.readUint16BE();
+			m->item = in.readSint16BE();
 			m->x = in.readUint16BE();
 			m->y = in.readUint16BE();
 			m->flyingHeight = in.readByte();
@@ -272,7 +269,7 @@ Common::Error LoLEngine::loadGameState(int slot) {
 	return Common::kNoError;
 }
 
-Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Graphics::Surface *thumbnail) {
+Common::Error LoLEngine::saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail) {
 	const char *fileName = getSavegameFilename(slot);
 
 	Common::OutSaveFile *out = openSaveForWriting(fileName, saveName, thumbnail);
@@ -289,7 +286,7 @@ Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Gra
 		out->writeByte(c->raceClassSex);
 		out->writeSint16BE(c->id);
 		out->writeByte(c->curFaceFrame);
-		out->writeByte(c->defaultFaceFrame);
+		out->writeByte(c->tempFaceFrame);
 		out->writeByte(c->screamSfx);
 		for (int ii = 0; ii < 8; ii++)
 			out->writeUint16BE(c->itemsMight[ii]);
@@ -338,7 +335,7 @@ Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Gra
 	out->writeSByte(_selectedCharacter);
 	out->writeByte(_currentLevel);
 	for (int i = 0; i < 48; i++)
-		out->writeUint16BE(_inventory[i]);
+		out->writeSint16BE(_inventory[i]);
 	out->writeSint16BE(_inventoryCurItem);
 	out->writeSint16BE(_itemInHand);
 	out->writeSint16BE(_lastMouseRegion);
@@ -348,7 +345,7 @@ Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Gra
 		out->writeUint16BE(_globalScriptVars[i]);
 	out->writeByte(_brightness);
 	out->writeByte(_lampOilStatus);
-	out->writeByte(_lampEffect);
+	out->writeSByte(_lampEffect);
 	out->writeUint16BE(_credits);
 	for (int i = 0; i < 8; i++)
 		out->writeUint16BE(_globalScriptVars2[i]);
@@ -413,7 +410,7 @@ Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Gra
 			out->writeByte(m->curDistWeapon);
 			out->writeSByte(m->distAttackTick);
 			out->writeUint16BE(m->assignedItems);
-			out->write(m->field_2A, 4);
+			out->write(m->equipmentShapes, 4);
 		}
 
 		for (int ii = 0; ii < 8; ii++) {
@@ -421,7 +418,7 @@ Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Gra
 			out->writeByte(m->enable);
 			out->writeByte(m->objectType);
 			out->writeUint16BE(m->attackerId);
-			out->writeUint16BE(m->item);
+			out->writeSint16BE(m->item);
 			out->writeUint16BE(m->x);
 			out->writeUint16BE(m->y);
 			out->writeByte(m->flyingHeight);
@@ -449,7 +446,30 @@ Common::Error LoLEngine::saveGameState(int slot, const char *saveName, const Gra
 	return Common::kNoError;
 }
 
-} // end of namespace Kyra
+Graphics::Surface *LoLEngine::generateSaveThumbnail() const {
+	if (_flags.platform != Common::kPlatformPC98)
+		return 0;
+
+	uint8 *screenPal = new uint8[16 * 3];
+	assert(screenPal);
+	_screen->getRealPalette(0, screenPal);
+
+	uint8 *screenBuf = new uint8[Screen::SCREEN_W * Screen::SCREEN_H];
+	assert(screenBuf);
+
+	Graphics::Surface *dst = new Graphics::Surface();
+	assert(dst);
+
+	_screen->copyRegionToBuffer(0, 0, 0, 320, 200, screenBuf);
+	Screen_LoL::convertPC98Gfx(screenBuf, Screen::SCREEN_W, Screen::SCREEN_H, Screen::SCREEN_W);
+	::createThumbnail(dst, screenBuf, Screen::SCREEN_W, Screen::SCREEN_H, screenPal);
+
+	delete[] screenBuf;
+	delete[] screenPal;
+	return dst;
+}
+
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

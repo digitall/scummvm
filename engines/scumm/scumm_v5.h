@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SCRIPT_V5_H
@@ -50,6 +47,8 @@ protected:
 		PARAM_3 = 0x20
 	};
 
+	int _resultVarNumber;
+
 public:
 	ScummEngine_v5(OSystem *syst, const DetectorResult &dr);
 
@@ -76,6 +75,9 @@ protected:
 	virtual int getVar();
 	virtual int getVarOrDirectByte(byte mask);
 	virtual int getVarOrDirectWord(byte mask);
+
+	virtual void getResultPos();
+	void setResult(int result);
 
 	virtual void animateCursor();
 

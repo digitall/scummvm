@@ -18,45 +18,61 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "sci/engine/gc.h"
 #include "common/array.h"
+#include "sci/graphics/ports.h"
 
 namespace Sci {
 
-//#define DEBUG_GC
+//#define GC_DEBUG_CODE
 
-struct WorklistManager {
-	Common::Array<reg_t> _worklist;
-	reg_t_hash_map _map;
-
-	void push(reg_t reg) {
-		if (!reg.segment) // No numbers
-			return;
-
-		debugC(2, kDebugLevelGC, "[GC] Adding %04x:%04x\n", PRINT_REG(reg));
-
-		if (_map.contains(reg))
-			return; // already dealt with it
-
-		_map.setVal(reg, true);
-		_worklist.push_back(reg);
-	}
+#ifdef GC_DEBUG_CODE
+const char *segmentTypeNames[] = {
+	"invalid",   // 0
+	"script",    // 1
+	"clones",    // 2
+	"locals",    // 3
+	"stack",     // 4
+	"obsolete",  // 5: obsolete system strings
+	"lists",     // 6
+	"nodes",     // 7
+	"hunk",      // 8
+	"dynmem",    // 9
+	"obsolete",  // 10: obsolete string fragments
+	"array",     // 11: SCI32 arrays
+	"string"     // 12: SCI32 strings
 };
+#endif
 
-static reg_t_hash_map *normalise_hashmap_ptrs(SegManager *sm, reg_t_hash_map &nonnormal_map) {
-	reg_t_hash_map *normal_map = new reg_t_hash_map();
+void WorklistManager::push(reg_t reg) {
+	if (!reg.segment) // No numbers
+		return;
 
-	for (reg_t_hash_map::iterator i = nonnormal_map.begin(); i != nonnormal_map.end(); ++i) {
+	debugC(kDebugLevelGC, "[GC] Adding %04x:%04x", PRINT_REG(reg));
+
+	if (_map.contains(reg))
+		return; // already dealt with it
+
+	_map.setVal(reg, true);
+	_worklist.push_back(reg);
+}
+
+void WorklistManager::pushArray(const Common::Array<reg_t> &tmp) {
+	for (Common::Array<reg_t>::const_iterator it = tmp.begin(); it != tmp.end(); ++it)
+		push(*it);
+}
+
+static AddrSet *normalizeAddresses(SegManager *segMan, const AddrSet &nonnormal_map) {
+	AddrSet *normal_map = new AddrSet();
+
+	for (AddrSet::const_iterator i = nonnormal_map.begin(); i != nonnormal_map.end(); ++i) {
 		reg_t reg = i->_key;
-		MemObject *mobj = (reg.segment < sm->_heap.size()) ? sm->_heap[reg.segment] : NULL;
+		SegmentObj *mobj = segMan->getSegmentObj(reg.segment);
 
 		if (mobj) {
-			reg = mobj->findCanonicAddress(sm, reg);
+			reg = mobj->findCanonicAddress(segMan, reg);
 			normal_map->setVal(reg, true);
 		}
 	}
@@ -64,144 +80,139 @@ static reg_t_hash_map *normalise_hashmap_ptrs(SegManager *sm, reg_t_hash_map &no
 	return normal_map;
 }
 
-
-void add_outgoing_refs(void *refcon, reg_t addr) {
-	WorklistManager *wm = (WorklistManager *)refcon;
-	wm->push(addr);
+static void processWorkList(SegManager *segMan, WorklistManager &wm, const Common::Array<SegmentObj *> &heap) {
+	SegmentId stackSegment = segMan->findSegmentByType(SEG_TYPE_STACK);
+	while (!wm._worklist.empty()) {
+		reg_t reg = wm._worklist.back();
+		wm._worklist.pop_back();
+		if (reg.segment != stackSegment) { // No need to repeat this one
+			debugC(kDebugLevelGC, "[GC] Checking %04x:%04x", PRINT_REG(reg));
+			if (reg.segment < heap.size() && heap[reg.segment]) {
+				// Valid heap object? Find its outgoing references!
+				wm.pushArray(heap[reg.segment]->listAllOutgoingReferences(reg));
+			}
+		}
+	}
 }
 
-reg_t_hash_map *find_all_used_references(EngineState *s) {
-	SegManager *sm = s->seg_manager;
-	reg_t_hash_map *normal_map = NULL;
-	WorklistManager wm;
-	uint i;
+AddrSet *findAllActiveReferences(EngineState *s) {
+	assert(!s->_executionStack.empty());
 
-	// Initialise
-	// Init: Registers
+	WorklistManager wm;
+
+	// Initialize registers
 	wm.push(s->r_acc);
 	wm.push(s->r_prev);
-	// Init: Value Stack
+
+	// Initialize value stack
 	// We do this one by hand since the stack doesn't know the current execution stack
-	{
-		ExecStack &xs = s->_executionStack.back();
-		reg_t *pos;
+	Common::List<ExecStack>::const_iterator iter = s->_executionStack.reverse_begin();
 
-		for (pos = s->stack_base; pos < xs.sp; pos++)
-			wm.push(*pos);
-	}
+	// Skip fake kernel stack frame if it's on top
+	if ((*iter).type == EXEC_STACK_TYPE_KERNEL)
+		--iter;
 
-	debugC(2, kDebugLevelGC, "[GC] -- Finished adding value stack");
+	assert((iter != s->_executionStack.end()) && ((*iter).type != EXEC_STACK_TYPE_KERNEL));
+
+	const StackPtr sp = iter->sp;
+
+	for (reg_t *pos = s->stack_base; pos < sp; pos++)
+		wm.push(*pos);
+
+	debugC(kDebugLevelGC, "[GC] -- Finished adding value stack");
 
 	// Init: Execution Stack
-	Common::List<ExecStack>::iterator iter;
 	for (iter = s->_executionStack.begin();
 	     iter != s->_executionStack.end(); ++iter) {
-		ExecStack &es = *iter;
+		const ExecStack &es = *iter;
 
 		if (es.type != EXEC_STACK_TYPE_KERNEL) {
 			wm.push(es.objp);
 			wm.push(es.sendp);
 			if (es.type == EXEC_STACK_TYPE_VARSELECTOR)
-				wm.push(*(es.getVarPointer(s)));
+				wm.push(*(es.getVarPointer(s->_segMan)));
 		}
 	}
 
-	debugC(2, kDebugLevelGC, "[GC] -- Finished adding execution stack");
+	debugC(kDebugLevelGC, "[GC] -- Finished adding execution stack");
+
+	const Common::Array<SegmentObj *> &heap = s->_segMan->getSegments();
+	uint heapSize = heap.size();
 
 	// Init: Explicitly loaded scripts
-	for (i = 1; i < sm->_heap.size(); i++)
-		if (sm->_heap[i]
-		        && sm->_heap[i]->getType() == MEM_OBJ_SCRIPT) {
-			Script *script = (Script *)sm->_heap[i];
+	for (uint i = 1; i < heapSize; i++) {
+		if (heap[i] && heap[i]->getType() == SEG_TYPE_SCRIPT) {
+			Script *script = (Script *)heap[i];
 
-			if (script->lockers) { // Explicitly loaded?
-				// Locals, if present
-				wm.push(make_reg(script->locals_segment, 0));
-
-				// All objects (may be classes, may be indirectly reachable)
-				for (uint obj_nr = 0; obj_nr < script->_objects.size(); obj_nr++) {
-					wm.push(script->_objects[obj_nr].pos);
-				}
+			if (script->getLockers()) { // Explicitly loaded?
+				wm.pushArray(script->listObjectReferences());
 			}
 		}
-
-	debugC(2, kDebugLevelGC, "[GC] -- Finished explicitly loaded scripts, done with root set\n");
-
-	// Run Worklist Algorithm
-	while (!wm._worklist.empty()) {
-		reg_t reg = wm._worklist.back();
-		wm._worklist.pop_back();
-		if (reg.segment != s->stack_segment) { // No need to repeat this one
-			debugC(2, kDebugLevelGC, "[GC] Checking %04x:%04x\n", PRINT_REG(reg));
-			if (reg.segment < sm->_heap.size() && sm->_heap[reg.segment])
-				sm->_heap[reg.segment]->listAllOutgoingReferences(s, reg, &wm, add_outgoing_refs);
-		}
 	}
 
-	// Normalise
-	normal_map = normalise_hashmap_ptrs(sm, wm._map);
+	debugC(kDebugLevelGC, "[GC] -- Finished explicitly loaded scripts, done with root set");
 
-	return normal_map;
-}
+	processWorkList(s->_segMan, wm, heap);
 
-struct deallocator_t {
-	SegManager *segmgr;
-	MemObject *mobj;
-#ifdef DEBUG_GC
-	char *segnames[MEM_OBJ_MAX + 1];
-	int segcount[MEM_OBJ_MAX + 1];
-#endif
-	reg_t_hash_map *use_map;
-};
+	if (g_sci->_gfxPorts)
+		g_sci->_gfxPorts->processEngineHunkList(wm);
 
-void free_unless_used(void *refcon, reg_t addr) {
-	deallocator_t *deallocator = (deallocator_t *)refcon;
-	reg_t_hash_map *use_map = deallocator->use_map;
-
-	if (!use_map->contains(addr)) {
-		// Not found -> we can free it
-		deallocator->mobj->freeAtAddress(deallocator->segmgr, addr);
-#ifdef DEBUG_GC
-		debugC(2, kDebugLevelGC, "[GC] Deallocating %04x:%04x\n", PRINT_REG(addr));
-		deallocator->segcount[deallocator->mobj->getType()]++;
-#endif
-	}
-
+	return normalizeAddresses(s->_segMan, wm._map);
 }
 
 void run_gc(EngineState *s) {
-	uint seg_nr;
-	deallocator_t deallocator;
-	SegManager *sm = s->seg_manager;
+	SegManager *segMan = s->_segMan;
 
-#ifdef DEBUG_GC
-	debugC(2, kDebugLevelGC, "[GC] Running...\n");
-	memset(&(deallocator.segcount), 0, sizeof(int) * (MEM_OBJ_MAX + 1));
+	// Some debug stuff
+	debugC(kDebugLevelGC, "[GC] Running...");
+#ifdef GC_DEBUG_CODE
+	const char *segnames[SEG_TYPE_MAX + 1];
+	int segcount[SEG_TYPE_MAX + 1];
+	memset(segnames, 0, sizeof(segnames));
+	memset(segcount, 0, sizeof(segcount));
 #endif
 
-	deallocator.segmgr = sm;
-	deallocator.use_map = find_all_used_references(s);
+	// Compute the set of all segments references currently in use.
+	AddrSet *activeRefs = findAllActiveReferences(s);
 
-	for (seg_nr = 1; seg_nr < sm->_heap.size(); seg_nr++) {
-		if (sm->_heap[seg_nr] != NULL) {
-			deallocator.mobj = sm->_heap[seg_nr];
-#ifdef DEBUG_GC
-			deallocator.segnames[deallocator.mobj->getType()] = deallocator.mobj->type;	// FIXME: add a segment "name"
+	// Iterate over all segments, and check for each whether it
+	// contains stuff that can be collected.
+	const Common::Array<SegmentObj *> &heap = segMan->getSegments();
+	for (uint seg = 1; seg < heap.size(); seg++) {
+		SegmentObj *mobj = heap[seg];
+
+		if (mobj != NULL) {
+#ifdef GC_DEBUG_CODE
+			const SegmentType type = mobj->getType();
+			segnames[type] = segmentTypeNames[type];
 #endif
-			deallocator.mobj->listAllDeallocatable(seg_nr, &deallocator, free_unless_used);
+
+			// Get a list of all deallocatable objects in this segment,
+			// then free any which are not referenced from somewhere.
+			const Common::Array<reg_t> tmp = mobj->listAllDeallocatable(seg);
+			for (Common::Array<reg_t>::const_iterator it = tmp.begin(); it != tmp.end(); ++it) {
+				const reg_t addr = *it;
+				if (!activeRefs->contains(addr)) {
+					// Not found -> we can free it
+					mobj->freeAtAddress(segMan, addr);
+					debugC(kDebugLevelGC, "[GC] Deallocating %04x:%04x", PRINT_REG(addr));
+#ifdef GC_DEBUG_CODE
+					segcount[type]++;
+#endif
+				}
+			}
+
 		}
 	}
 
-	delete deallocator.use_map;
+	delete activeRefs;
 
-#ifdef DEBUG_GC
-	{
-		int i;
-		debugC(2, kDebugLevelGC, "[GC] Summary:\n");
-		for (i = 0; i <= MEM_OBJ_MAX; i++)
-			if (deallocator.segcount[i])
-				debugC(2, kDebugLevelGC, "\t%d\t* %s\n", deallocator.segcount[i], deallocator.segnames[i]);
-	}
+#ifdef GC_DEBUG_CODE
+	// Output debug summary of garbage collection
+	debugC(kDebugLevelGC, "[GC] Summary:");
+	for (int i = 0; i <= SEG_TYPE_MAX; i++)
+		if (segcount[i])
+			debugC(kDebugLevelGC, "\t%d\t* %s", segcount[i], segnames[i]);
 #endif
 }
 

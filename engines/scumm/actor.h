@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -33,7 +30,6 @@
 
 
 namespace Scumm {
-
 
 enum {
 	V12_X_MULTIPLIER = 8,
@@ -55,6 +51,7 @@ struct CostumeData {
 	byte active[16];
 	uint16 animCounter;
 	byte soundCounter;
+	byte soundPos;
 	uint16 stopped;
 	uint16 curpos[16];
 	uint16 start[16];
@@ -157,7 +154,7 @@ protected:
 	};
 
 
-	byte _palette[256];
+	uint16 _palette[256];
 	int _elevation;
 	uint16 _facing;
 	uint16 _targetFacing;
@@ -304,7 +301,7 @@ public:
 	void classChanged(int cls, bool value);
 
 	// Used by the save/load system:
-	void saveLoadWithSerializer(Serializer *ser);
+	virtual void saveLoadWithSerializer(Serializer *ser);
 
 protected:
 	bool isInClass(int cls);
@@ -312,46 +309,6 @@ protected:
 	virtual bool isPlayer();
 
 	bool findPathTowards(byte box, byte box2, byte box3, Common::Point &foundPath);
-};
-
-class ActorHE : public Actor {
-public:
-	ActorHE(ScummEngine *scumm, int id) : Actor(scumm, id) {}
-
-	virtual void initActor(int mode);
-
-	virtual void hideActor();
-
-	void drawActorToBackBuf(int x, int y);
-
-	void setHEFlag(int bit, int set);
-
-	void setUserCondition(int slot, int set);
-	bool isUserConditionSet(int slot) const;
-
-	void setTalkCondition(int slot);
-	bool isTalkConditionSet(int slot) const;
-
-public:
-	/** This rect is used to clip actor drawing. */
-	Common::Rect _clipOverride;
-
-	bool _heNoTalkAnimation;
-	bool _heTalking;
-	byte _heFlags;
-
-	AuxBlock _auxBlock;
-
-	struct {
-		int16 posX;
-		int16 posY;
-		int16 color;
-		byte sentence[128];
-	} _heTalkQueue[16];
-
-
-	virtual void prepareDrawActorCostume(BaseCostumeRenderer *bcr);
-	virtual void setActorCostume(int c);
 };
 
 class Actor_v3 : public Actor {
@@ -380,14 +337,16 @@ protected:
 
 class ActorC64 : public Actor_v2 {
 public:
-	// FIXME: These vars are never saved, which might lead to broken save states.
-	byte _miscflags;
-	byte _speaking, _speakingPrev;
 	byte _costCommand, _costFrame;
+	byte _miscflags; // 0x1: strong, 0x8: Ed's enemy, 0x40: stop moving, 0x80: hide(dead/radiation suit)
+	byte _speaking, _speakingPrev;
 
 public:
 	ActorC64(ScummEngine *scumm, int id) : Actor_v2(scumm, id) {
-		 _speaking = _speakingPrev = _costCommand = _costFrame = 0;
+		 _costCommand = 0;
+		 _costFrame = 0;
+		 _speaking = 0;
+		 _speakingPrev = 0;
 	}
 	virtual void initActor(int mode) {
 		Actor_v2::initActor(mode);
@@ -395,6 +354,9 @@ public:
 			_miscflags = 0;
 		}
 	}
+
+	// Used by the save/load system:
+	virtual void saveLoadWithSerializer(Serializer *ser);
 
 protected:
 

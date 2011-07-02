@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Data structures used by the fader and flasher processes
  */
 
@@ -50,8 +47,8 @@ void FadeOutMedium(SCNHANDLE noFadeTable[]);
 void FadeOutFast(SCNHANDLE noFadeTable[]);
 void FadeInMedium(SCNHANDLE noFadeTable[]);
 void FadeInFast(SCNHANDLE noFadeTable[]);
-void PokeInTagColour(void);
+void PokeInTagColor();
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_FADERS_H

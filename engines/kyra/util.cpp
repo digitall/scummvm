@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/util.h"
@@ -148,5 +145,5 @@ const uint8 Util::_charMapISOToDOS[128] = {
 	151, 163, 150, 129, 236, 231, 152
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

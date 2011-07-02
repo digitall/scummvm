@@ -18,17 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "gui/ThemeEngine.h"
 #include "gui/ThemeEval.h"
 #include "gui/ThemeParser.h"
-#include "gui/GuiManager.h"
 
 #include "graphics/VectorRenderer.h"
+
+#include "common/system.h"
+#include "common/tokenizer.h"
 
 namespace GUI {
 
@@ -38,13 +37,10 @@ struct TextDataInfo {
 };
 
 static const TextDataInfo kTextDataDefaults[] = {
-	{kTextDataDefault,		"text_default"},
-	{kTextDataHover,		"text_hover"},
-	{kTextDataDisabled,		"text_disabled"},
-	{kTextDataInverted,		"text_inverted"},
-	{kTextDataButton,		"text_button"},
-	{kTextDataButtonHover,	"text_button_hover"},
-	{kTextDataNormalFont,	"text_normal"}
+	{ kTextDataDefault,			"text_default" },
+	{ kTextDataButton,			"text_button" },
+	{ kTextDataNormalFont,		"text_normal" },
+	{ kTextDataTooltip,			"tooltip_normal" }
 };
 
 
@@ -54,6 +50,33 @@ static TextData parseTextDataId(const Common::String &name) {
 			return kTextDataDefaults[i].id;
 
 	return kTextDataNone;
+}
+
+struct TextColorDataInfo {
+	TextColor id;
+	const char *name;
+};
+
+static const TextColorDataInfo kTextColorDefaults[] = {
+	{ kTextColorNormal,					"color_normal" },
+	{ kTextColorNormalInverted,			"color_normal_inverted" },
+	{ kTextColorNormalHover,			"color_normal_hover" },
+	{ kTextColorNormalDisabled,			"color_normal_disabled" },
+	{ kTextColorAlternative,			"color_alternative" },
+	{ kTextColorAlternativeInverted,	"color_alternative_inverted" },
+	{ kTextColorAlternativeHover,		"color_alternative_hover" },
+	{ kTextColorAlternativeDisabled,	"color_alternative_disabled" },
+	{ kTextColorButton,					"color_button" },
+	{ kTextColorButtonHover,			"color_button_hover" },
+	{ kTextColorButtonDisabled,			"color_button_disabled" }
+};
+
+static TextColor parseTextColorId(const Common::String &name) {
+	for (int i = 0; i < kTextColorMAX; ++i)
+		if (name.compareToIgnoreCase(kTextColorDefaults[i].name) == 0)
+			return kTextColorDefaults[i].id;
+
+	return kTextColorMAX;
 }
 
 static Graphics::TextAlign parseTextHAlign(const Common::String &val) {
@@ -118,7 +141,7 @@ Graphics::DrawStep *ThemeParser::defaultDrawStep() {
 
 Graphics::DrawStep *ThemeParser::newDrawStep() {
 	assert(_defaultStepGlobal);
-	Graphics::DrawStep *step = 0 ; //new DrawStep;
+	Graphics::DrawStep *step = 0; //new DrawStep;
 
 	if (_defaultStepLocal) {
 		step = new Graphics::DrawStep(*_defaultStepLocal);
@@ -148,21 +171,32 @@ bool ThemeParser::parserCallback_defaults(ParserNode *node) {
 }
 
 bool ThemeParser::parserCallback_font(ParserNode *node) {
-	int red, green, blue;
-
 	if (resolutionCheck(node->values["resolution"]) == false) {
 		node->ignore = true;
 		return true;
 	}
 
+	TextData textDataId = parseTextDataId(node->values["id"]);
+	if (!_theme->addFont(textDataId, node->values["file"]))
+		return parserError("Error loading Font in theme engine.");
+
+	return true;
+}
+
+bool ThemeParser::parserCallback_text_color(ParserNode *node) {
+	int red, green, blue;
+
+	TextColor colorId = parseTextColorId(node->values["id"]);
+	if (colorId == kTextColorMAX)
+		return parserError("Error text color is not defined.");
+
 	if (_palette.contains(node->values["color"]))
 		getPaletteColor(node->values["color"], red, green, blue);
-	else if (!parseIntegerKey(node->values["color"].c_str(), 3, &red, &green, &blue))
-		return parserError("Error parsing color value for font definition.");
+	else if (!parseIntegerKey(node->values["color"], 3, &red, &green, &blue))
+		return parserError("Error parsing color value for text color definition.");
 
-	TextData textDataId = parseTextDataId(node->values["id"]);
-	if (!_theme->addFont(textDataId, node->values["file"], red, green, blue))
-		return parserError("Error loading Font in theme engine.");
+	if (!_theme->addTextColor(colorId, red, green, blue))
+		return parserError("Error while adding text color information.");
 
 	return true;
 }
@@ -179,10 +213,10 @@ bool ThemeParser::parserCallback_cursor(ParserNode *node) {
 
 	int spotx, spoty, scale;
 
-	if (!parseIntegerKey(node->values["hotspot"].c_str(), 2, &spotx, &spoty))
+	if (!parseIntegerKey(node->values["hotspot"], 2, &spotx, &spoty))
 		return parserError("Error parsing cursor Hot Spot coordinates.");
 
-	if (!parseIntegerKey(node->values["scale"].c_str(), 1, &scale))
+	if (!parseIntegerKey(node->values["scale"], 1, &scale))
 		return parserError("Error parsing cursor scale.");
 
 	if (!_theme->createCursor(node->values["file"], spotx, spoty, scale))
@@ -198,7 +232,7 @@ bool ThemeParser::parserCallback_bitmap(ParserNode *node) {
 	}
 
 	if (!_theme->addBitmap(node->values["filename"]))
-		return parserError("Error loading Bitmap file '%s'", node->values["filename"].c_str());
+		return parserError("Error loading Bitmap file '" + node->values["filename"] + "'");
 
 	return true;
 }
@@ -215,9 +249,10 @@ bool ThemeParser::parserCallback_text(ParserNode *node) {
 
 	Common::String id = getParentNode(node)->values["id"];
 	TextData textDataId = parseTextDataId(node->values["font"]);
+	TextColor textColorId = parseTextColorId(node->values["text_color"]);
 
-	if (!_theme->addTextData(id, textDataId, alignH, alignV))
-		return parserError("Error adding Text Data for '%s'.", id.c_str());
+	if (!_theme->addTextData(id, textDataId, textColorId, alignH, alignV))
+		return parserError("Error adding Text Data for '" + id + "'.");
 
 	return true;
 }
@@ -244,13 +279,13 @@ bool ThemeParser::parserCallback_color(ParserNode *node) {
 	Common::String name = node->values["name"];
 
 	if (_palette.contains(name))
-		return parserError("Color '%s' has already been defined.", name.c_str());
+		return parserError("Color '" + name + "' has already been defined.");
 
 	int red, green, blue;
 
-	if (parseIntegerKey(node->values["rgb"].c_str(), 3, &red, &green, &blue) == false ||
+	if (parseIntegerKey(node->values["rgb"], 3, &red, &green, &blue) == false ||
 		red < 0 || red > 255 || green < 0 || green > 255 || blue < 0 || blue > 255)
-		return parserError("Error parsing RGB values for palette color '%s'", name.c_str());\
+		return parserError("Error parsing RGB values for palette color '" + name + "'");
 
 	_palette[name].r = red;
 	_palette[name].g = green;
@@ -297,7 +332,7 @@ bool ThemeParser::parserCallback_drawstep(ParserNode *node) {
 	drawstep->drawingCall = getDrawingFunctionCallback(functionName);
 
 	if (drawstep->drawingCall == 0)
-		return parserError("%s is not a valid drawing function name", functionName.c_str());
+		return parserError(functionName + " is not a valid drawing function name");
 
 	if (!parseDrawStep(node, drawstep, true))
 		return false;
@@ -317,20 +352,15 @@ bool ThemeParser::parserCallback_drawdata(ParserNode *node) {
 	}
 
 	if (node->values.contains("cache")) {
-		if (node->values["cache"] == "true")
-			cached = true;
-		else if (node->values["cache"] == "false")
-			cached = false;
-		else return parserError("'Parsed' value must be either true or false.");
+		if (!Common::parseBool(node->values["cache"], cached))
+			return parserError("'Parsed' value must be either true or false.");
 	}
 
 	if (_theme->addDrawData(node->values["id"], cached) == false)
 		return parserError("Error adding Draw Data set: Invalid DrawData name.");
 
-	if (_defaultStepLocal) {
-		delete _defaultStepLocal;
-		_defaultStepLocal = 0;
-	}
+	delete _defaultStepLocal;
+	_defaultStepLocal = 0;
 
 	return true;
 }
@@ -351,12 +381,12 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
  */
 #define __PARSER_ASSIGN_INT(struct_name, key_name, force) \
 	if (stepNode->values.contains(key_name)) { \
-		if (!parseIntegerKey(stepNode->values[key_name].c_str(), 1, &x)) \
-			return parserError("Error parsing key value for '%s'.", key_name); \
+		if (!parseIntegerKey(stepNode->values[key_name], 1, &x)) \
+			return parserError("Error parsing key value for '" + Common::String(key_name) + "'."); \
 		\
 		drawstep->struct_name = x; \
 	} else if (force) { \
-		return parserError("Missing necessary key '%s'.", key_name); \
+		return parserError("Missing necessary key '" + Common::String(key_name) + "'."); \
 	}
 
 /**
@@ -375,9 +405,9 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 			red = _palette[val].r; \
 			green = _palette[val].g; \
 			blue = _palette[val].b; \
-		} else if (parseIntegerKey(val.c_str(), 3, &red, &green, &blue) == false || \
+		} else if (parseIntegerKey(val, 3, &red, &green, &blue) == false || \
 			red < 0 || red > 255 || green < 0 || green > 255 || blue < 0 || blue > 255) \
-			return parserError("Error parsing color struct '%s'", val.c_str());\
+			return parserError("Error parsing color struct '" + val + "'");\
 		\
 		drawstep->struct_name.r = red; \
 		drawstep->struct_name.g = green; \
@@ -424,7 +454,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 			if (stepNode->values.contains("orientation")) {
 				val = stepNode->values["orientation"];
 
-				if ( val == "top")
+				if (val == "top")
 					drawstep->extraData = Graphics::VectorRenderer::kTriangleUp;
 				else if (val == "bottom")
 					drawstep->extraData = Graphics::VectorRenderer::kTriangleDown;
@@ -433,7 +463,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 				else if (val == "right")
 					drawstep->extraData = Graphics::VectorRenderer::kTriangleRight;
 				else
-					return parserError("'%s' is not a valid value for triangle orientation.", val.c_str());
+					return parserError("'" + val + "' is not a valid value for triangle orientation.");
 			}
 		}
 
@@ -445,7 +475,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 			drawstep->autoWidth = false;
 
 			val = stepNode->values["width"];
-			if (parseIntegerKey(val.c_str(), 1, &x))
+			if (parseIntegerKey(val, 1, &x))
 				drawstep->w = x;
 			else if (val == "height")
 				drawstep->w = -1;
@@ -454,7 +484,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 			if (stepNode->values.contains("xpos")) {
 				val = stepNode->values["xpos"];
 
-				if (parseIntegerKey(val.c_str(), 1, &x))
+				if (parseIntegerKey(val, 1, &x))
 					drawstep->x = x;
 				else if (val == "center")
 					drawstep->xAlign = Graphics::DrawStep::kVectorAlignCenter;
@@ -473,7 +503,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 			drawstep->autoHeight = false;
 
 			val = stepNode->values["height"];
-			if (parseIntegerKey(val.c_str(), 1, &x))
+			if (parseIntegerKey(val, 1, &x))
 				drawstep->h = x;
 			else if (val == "width")
 				drawstep->h = -1;
@@ -482,7 +512,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 			if (stepNode->values.contains("ypos")) {
 				val = stepNode->values["ypos"];
 
-				if (parseIntegerKey(val.c_str(), 1, &x))
+				if (parseIntegerKey(val, 1, &x))
 					drawstep->y = x;
 				else if (val == "center")
 					drawstep->yAlign = Graphics::DrawStep::kVectorAlignCenter;
@@ -512,7 +542,7 @@ bool ThemeParser::parseDrawStep(ParserNode *stepNode, Graphics::DrawStep *drawst
 		else if (val == "gradient")
 			drawstep->fillMode = Graphics::VectorRenderer::kFillGradient;
 		else
-			return parserError("'%s' is not a valid fill mode for a shape.", stepNode->values["fill"].c_str());
+			return parserError("'" + stepNode->values["fill"] + "' is not a valid fill mode for a shape.");
 	}
 
 #undef __PARSER_ASSIGN_INT
@@ -533,8 +563,8 @@ bool ThemeParser::parserCallback_def(ParserNode *node) {
 	if (_theme->getEvaluator()->hasVar(node->values["value"]) == true)
 		value = _theme->getEvaluator()->getVar(node->values["value"]);
 
-	else if (!parseIntegerKey(node->values["value"].c_str(), 1, &value))
-		return parserError("Invalid definition for '%s'.", var.c_str());
+	else if (!parseIntegerKey(node->values["value"], 1, &value))
+		return parserError("Invalid definition for '" + var + "'.");
 
 	_theme->getEvaluator()->setVar(var, value);
 	return true;
@@ -552,7 +582,7 @@ bool ThemeParser::parserCallback_widget(ParserNode *node) {
 
 		var = "Globals." + node->values["name"] + ".";
 		if (!parseCommonLayoutProps(node, var))
-			return parserError("Error parsing Layout properties of '%s'.", var.c_str());
+			return parserError("Error parsing Layout properties of '" + var + "'.");
 
 	} else {
 		// FIXME: Shouldn't we distinguish the name/id and the label of a widget?
@@ -562,9 +592,7 @@ bool ThemeParser::parserCallback_widget(ParserNode *node) {
 		bool enabled = true;
 
 		if (node->values.contains("enabled")) {
-			if (node->values["enabled"] == "false")
-				enabled = false;
-			else if (node->values["enabled"] != "true")
+			if (!Common::parseBool(node->values["enabled"], enabled))
 				return parserError("Invalid value for Widget enabling (expecting true/false)");
 		}
 
@@ -572,22 +600,22 @@ bool ThemeParser::parserCallback_widget(ParserNode *node) {
 			if (_theme->getEvaluator()->hasVar(node->values["width"]) == true)
 				width = _theme->getEvaluator()->getVar(node->values["width"]);
 
-			else if (!parseIntegerKey(node->values["width"].c_str(), 1, &width))
-				return parserError("Corrupted width value in key for %s", var.c_str());
+			else if (!parseIntegerKey(node->values["width"], 1, &width))
+				return parserError("Corrupted width value in key for " + var);
 		}
 
 		if (node->values.contains("height")) {
 			if (_theme->getEvaluator()->hasVar(node->values["height"]) == true)
 				height = _theme->getEvaluator()->getVar(node->values["height"]);
 
-			else if (!parseIntegerKey(node->values["height"].c_str(), 1, &height))
-				return parserError("Corrupted height value in key for %s", var.c_str());
+			else if (!parseIntegerKey(node->values["height"], 1, &height))
+				return parserError("Corrupted height value in key for " + var);
 		}
 
 		Graphics::TextAlign alignH = Graphics::kTextAlignLeft;
 
 		if (node->values.contains("textalign")) {
-			if((alignH = parseTextHAlign(node->values["textalign"])) == Graphics::kTextAlignInvalid)
+			if ((alignH = parseTextHAlign(node->values["textalign"])) == Graphics::kTextAlignInvalid)
 				return parserError("Invalid value for text alignment.");
 		}
 
@@ -608,14 +636,12 @@ bool ThemeParser::parserCallback_dialog(ParserNode *node) {
 	}
 
 	if (node->values.contains("enabled")) {
-		if (node->values["enabled"] == "false")
-			enabled = false;
-		else if (node->values["enabled"] != "true")
+		if (!Common::parseBool(node->values["enabled"], enabled))
 			return parserError("Invalid value for Dialog enabling (expecting true/false)");
 	}
 
 	if (node->values.contains("inset")) {
-		if (!parseIntegerKey(node->values["inset"].c_str(), 1, &inset))
+		if (!parseIntegerKey(node->values["inset"], 1, &inset))
 			return false;
 	}
 
@@ -644,16 +670,19 @@ bool ThemeParser::parserCallback_import(ParserNode *node) {
 
 bool ThemeParser::parserCallback_layout(ParserNode *node) {
 	int spacing = -1;
+	bool center = false;
 
 	if (node->values.contains("spacing")) {
-		if (!parseIntegerKey(node->values["spacing"].c_str(), 1, &spacing))
+		if (!parseIntegerKey(node->values["spacing"], 1, &spacing))
 			return false;
 	}
 
+	Common::parseBool(node->values["center"], center);
+
 	if (node->values["type"] == "vertical")
-		_theme->getEvaluator()->addLayout(GUI::ThemeLayout::kLayoutVertical, spacing, node->values["center"] == "true");
+		_theme->getEvaluator()->addLayout(GUI::ThemeLayout::kLayoutVertical, spacing, center);
 	else if (node->values["type"] == "horizontal")
-		_theme->getEvaluator()->addLayout(GUI::ThemeLayout::kLayoutHorizontal, spacing, node->values["center"] == "true");
+		_theme->getEvaluator()->addLayout(GUI::ThemeLayout::kLayoutHorizontal, spacing, center);
 	else
 		return parserError("Invalid layout type. Only 'horizontal' and 'vertical' layouts allowed.");
 
@@ -661,7 +690,7 @@ bool ThemeParser::parserCallback_layout(ParserNode *node) {
 	if (node->values.contains("padding")) {
 		int paddingL, paddingR, paddingT, paddingB;
 
-		if (!parseIntegerKey(node->values["padding"].c_str(), 4, &paddingL, &paddingR, &paddingT, &paddingB))
+		if (!parseIntegerKey(node->values["padding"], 4, &paddingL, &paddingR, &paddingT, &paddingB))
 			return false;
 
 		_theme->getEvaluator()->addPadding(paddingL, paddingR, paddingT, paddingB);
@@ -677,7 +706,7 @@ bool ThemeParser::parserCallback_space(ParserNode *node) {
 		if (_theme->getEvaluator()->hasVar(node->values["size"]))
 			size = _theme->getEvaluator()->getVar(node->values["size"]);
 
-		else if (!parseIntegerKey(node->values["size"].c_str(), 1, &size))
+		else if (!parseIntegerKey(node->values["size"], 1, &size))
 			return parserError("Invalid value for Spacing size.");
 	}
 
@@ -698,7 +727,7 @@ bool ThemeParser::parseCommonLayoutProps(ParserNode *node, const Common::String 
 	if (node->values.contains("size")) {
 		int width, height;
 
-		if (!parseIntegerKey(node->values["size"].c_str(), 2, &width, &height)) {
+		if (!parseIntegerKey(node->values["size"], 2, &width, &height)) {
 			Common::StringTokenizer tokenizer(node->values["size"], " ,");
 			Common::String wtoken, htoken;
 			char *parseEnd;
@@ -743,7 +772,7 @@ bool ThemeParser::parseCommonLayoutProps(ParserNode *node, const Common::String 
 	if (node->values.contains("pos")) {
 		int x, y;
 
-		if (!parseIntegerKey(node->values["pos"].c_str(), 2, &x, &y)) {
+		if (!parseIntegerKey(node->values["pos"], 2, &x, &y)) {
 			Common::StringTokenizer tokenizer(node->values["pos"], " ,");
 			Common::String xpos, ypos;
 			char *parseEnd;
@@ -799,7 +828,7 @@ bool ThemeParser::parseCommonLayoutProps(ParserNode *node, const Common::String 
 	if (node->values.contains("padding")) {
 		int paddingL, paddingR, paddingT, paddingB;
 
-		if (!parseIntegerKey(node->values["padding"].c_str(), 4, &paddingL, &paddingR, &paddingT, &paddingB))
+		if (!parseIntegerKey(node->values["padding"], 4, &paddingL, &paddingR, &paddingT, &paddingB))
 			return false;
 
 		_theme->getEvaluator()->setVar(var + "Padding.Left", paddingL);
@@ -812,7 +841,7 @@ bool ThemeParser::parseCommonLayoutProps(ParserNode *node, const Common::String 
 	if (node->values.contains("textalign")) {
 		Graphics::TextAlign alignH = Graphics::kTextAlignLeft;
 
-		if((alignH = parseTextHAlign(node->values["textalign"])) == Graphics::kTextAlignInvalid)
+		if ((alignH = parseTextHAlign(node->values["textalign"])) == Graphics::kTextAlignInvalid)
 			return parserError("Invalid value for text alignment.");
 
 		_theme->getEvaluator()->setVar(var + "Align", alignH);
@@ -825,30 +854,50 @@ bool ThemeParser::resolutionCheck(const Common::String &resolution) {
 		return true;
 
 	Common::StringTokenizer globTokenizer(resolution, ", ");
-	Common::String cur, w, h;
-	bool definedRes = false;
+	Common::String cur;
 
 	while (!globTokenizer.empty()) {
-		bool ignore = false;
 		cur = globTokenizer.nextToken();
 
-		if (cur[0] == '-') {
-			ignore = true;
-			cur.deleteChar(0);
-		} else {
-			definedRes = true;
+		bool lt;
+		int val;
+
+		if (cur.size() < 5) {
+			warning("Invalid theme 'resolution' token '%s'", resolution.c_str());
+			return false;
 		}
 
-		Common::StringTokenizer resTokenizer(cur, "x");
-		w = resTokenizer.nextToken();
-		h = resTokenizer.nextToken();
+		if (cur[0] == 'x') {
+			val = g_system->getOverlayWidth();
+		} else if (cur[0] == 'y') {
+			val = g_system->getOverlayHeight();
+		} else {
+			warning("Error parsing theme 'resolution' token '%s'", resolution.c_str());
+			return false;
+		}
 
-		if ((w == "X" || atoi(w.c_str()) == g_system->getOverlayWidth()) &&
-			(h == "Y" || atoi(h.c_str()) == g_system->getOverlayHeight()))
-			return !ignore;
+		if (cur[1] == '<') {
+			lt = true;
+		} else if (cur[1] == '>') {
+			lt = false;
+		} else {
+			warning("Error parsing theme 'resolution' token '%s'", resolution.c_str());
+			return false;
+		}
+
+		int token = atoi(cur.c_str() + 2);
+
+		// check inverse for unfulfilled requirements
+		if (lt) {
+			if (val >= token)
+				return false;
+		} else {
+			if (val <= token)
+				return false;
+		}
 	}
 
-	return !definedRes;
+	return true;
 }
 
 } // End of namespace GUI

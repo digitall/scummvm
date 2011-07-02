@@ -18,46 +18,60 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "graphics/scaler/intern.h"
-#include "graphics/scaler.h"
+#include "graphics/scaler/aspect.h"
 
 
-#define	kVeryFastAndUglyAspectMode	0	// No interpolation at all, but super-fast
-#define	kFastAndNiceAspectMode		1	// Quite good quality with good speed
-#define	kSlowAndPerfectAspectMode	2	// Accurate but slow code
+#define	kSuperFastAndUglyAspectMode	0	// No interpolation at all, but super-fast
+#define	kVeryFastAndGoodAspectMode	1	// Good quality with very good speed
+#define	kFastAndVeryGoodAspectMode	2	// Very good quality with good speed
+#define	kSlowAndPerfectAspectMode	3	// Accurate but slow code
 
-#define ASPECT_MODE	kFastAndNiceAspectMode
+#define ASPECT_MODE	kVeryFastAndGoodAspectMode
 
 
 #if ASPECT_MODE == kSlowAndPerfectAspectMode
 
-template<int bitFormat, int scale>
+template<typename ColorMask, int scale>
 static inline uint16 interpolate5(uint16 A, uint16 B) {
-	uint16 r = (uint16)(((A & redblueMask & 0xFF00) * scale + (B & redblueMask & 0xFF00) * (5 - scale)) / 5);
-	uint16 g = (uint16)(((A & greenMask) * scale + (B & greenMask) * (5 - scale)) / 5);
-	uint16 b = (uint16)(((A & redblueMask & 0x00FF) * scale + (B & redblueMask & 0x00FF) * (5 - scale)) / 5);
+	uint16 r = (uint16)(((A & ColorMask::kRedBlueMask & 0xFF00) * scale + (B & ColorMask::kRedBlueMask & 0xFF00) * (5 - scale)) / 5);
+	uint16 g = (uint16)(((A & ColorMask::kGreenMask) * scale + (B & ColorMask::kGreenMask) * (5 - scale)) / 5);
+	uint16 b = (uint16)(((A & ColorMask::kRedBlueMask & 0x00FF) * scale + (B & ColorMask::kRedBlueMask & 0x00FF) * (5 - scale)) / 5);
 
-	return (uint16)((r & redblueMask & 0xFF00) | (g & greenMask) | (b & redblueMask & 0x00FF));
+	return (uint16)((r & ColorMask::kRedBlueMask & 0xFF00) | (g & ColorMask::kGreenMask) | (b & ColorMask::kRedBlueMask & 0x00FF));
 }
 
 
-template<int bitFormat, int scale>
+template<typename ColorMask, int scale>
 static inline void interpolate5Line(uint16 *dst, const uint16 *srcA, const uint16 *srcB, int width) {
 	// Accurate but slightly slower code
 	while (width--) {
-		*dst++ = interpolate5<bitFormat, scale>(*srcA++, *srcB++);
+		*dst++ = interpolate5<ColorMask, scale>(*srcA++, *srcB++);
 	}
 }
 #endif
 
-#if ASPECT_MODE == kFastAndNiceAspectMode
+#if ASPECT_MODE == kVeryFastAndGoodAspectMode
 
-template<int bitFormat, int scale>
+template<typename ColorMask, int scale>
+static inline void interpolate5Line(uint16 *dst, const uint16 *srcA, const uint16 *srcB, int width) {
+	if (scale == 1) {
+		while (width--) {
+			*dst++ = interpolate16_7_1<ColorMask>(*srcB++, *srcA++);
+		}
+	} else {
+		while (width--) {
+			*dst++ = interpolate16_5_3<ColorMask>(*srcB++, *srcA++);
+		}
+	}
+}
+#endif
+
+#if ASPECT_MODE == kFastAndVeryGoodAspectMode
+
+template<typename ColorMask, int scale>
 static inline void interpolate5Line(uint16 *dst, const uint16 *srcA, const uint16 *srcB, int width) {
 	// For efficiency reasons we blit two pixels at a time, so it is important
 	// that makeRectStretchable() guarantees that the width is even and that
@@ -78,28 +92,28 @@ static inline void interpolate5Line(uint16 *dst, const uint16 *srcA, const uint1
 	uint32 *d = (uint32 *)dst;
 	if (scale == 1) {
 		while (width--) {
-			*d++ = interpolate32_3_1<bitFormat>(*sB++, *sA++);
+			*d++ = interpolate32_3_1<ColorMask>(*sB++, *sA++);
 		}
 	} else {
 		while (width--) {
-			*d++ = interpolate32_1_1<bitFormat>(*sB++, *sA++);
+			*d++ = interpolate32_1_1<ColorMask>(*sB++, *sA++);
 		}
 	}
 }
 #endif
 
 void makeRectStretchable(int &x, int &y, int &w, int &h) {
-#if ASPECT_MODE != kVeryFastAndUglyAspectMode
+#if ASPECT_MODE != kSuperFastAndUglyAspectMode
 	int m = real2Aspect(y) % 6;
 
 	// Ensure that the rect will start on a line that won't have its
-	// colours changed by the stretching function.
+	// colors changed by the stretching function.
 	if (m != 0 && m != 5) {
 		y -= m;
 		h += m;
 	}
 
-  #if ASPECT_MODE == kFastAndNiceAspectMode
+  #if ASPECT_MODE == kVeryFastAndGoodAspectMode
 	// Force x to be even, to ensure aligned memory access (this assumes
 	// that each line starts at an even memory location, but that should
 	// be the case on every target anyway).
@@ -133,7 +147,7 @@ void makeRectStretchable(int &x, int &y, int &w, int &h) {
  * srcY + height - 1, and it should be stretched to Y coordinates srcY
  * through real2Aspect(srcY + height - 1).
  */
-template<int bitFormat>
+template<typename ColorMask>
 int stretch200To240(uint8 *buf, uint32 pitch, int width, int height, int srcX, int srcY, int origSrcY) {
 	int maxDstY = real2Aspect(origSrcY + height - 1);
 	int y;
@@ -143,29 +157,29 @@ int stretch200To240(uint8 *buf, uint32 pitch, int width, int height, int srcX, i
 	for (y = maxDstY; y >= srcY; y--) {
 		const uint8 *srcPtr = startSrcPtr + aspect2Real(y) * pitch;
 
-#if ASPECT_MODE == kVeryFastAndUglyAspectMode
+#if ASPECT_MODE == kSuperFastAndUglyAspectMode
 		if (srcPtr == dstPtr)
 			break;
-		memcpy(dstPtr, srcPtr, width * 2);
+		memcpy(dstPtr, srcPtr, sizeof(OverlayColor) * width);
 #else
 		// Bilinear filter
 		switch (y % 6) {
 		case 0:
 		case 5:
 			if (srcPtr != dstPtr)
-				memcpy(dstPtr, srcPtr, width * 2);
+				memcpy(dstPtr, srcPtr, sizeof(OverlayColor) * width);
 			break;
 		case 1:
-			interpolate5Line<bitFormat, 1>((uint16 *)dstPtr, (const uint16 *)(srcPtr - pitch), (const uint16 *)srcPtr, width);
+			interpolate5Line<ColorMask, 1>((uint16 *)dstPtr, (const uint16 *)(srcPtr - pitch), (const uint16 *)srcPtr, width);
 			break;
 		case 2:
-			interpolate5Line<bitFormat, 2>((uint16 *)dstPtr, (const uint16 *)(srcPtr - pitch), (const uint16 *)srcPtr, width);
+			interpolate5Line<ColorMask, 2>((uint16 *)dstPtr, (const uint16 *)(srcPtr - pitch), (const uint16 *)srcPtr, width);
 			break;
 		case 3:
-			interpolate5Line<bitFormat, 2>((uint16 *)dstPtr, (const uint16 *)srcPtr, (const uint16 *)(srcPtr - pitch), width);
+			interpolate5Line<ColorMask, 2>((uint16 *)dstPtr, (const uint16 *)srcPtr, (const uint16 *)(srcPtr - pitch), width);
 			break;
 		case 4:
-			interpolate5Line<bitFormat, 1>((uint16 *)dstPtr, (const uint16 *)srcPtr, (const uint16 *)(srcPtr - pitch), width);
+			interpolate5Line<ColorMask, 1>((uint16 *)dstPtr, (const uint16 *)srcPtr, (const uint16 *)(srcPtr - pitch), width);
 			break;
 		}
 #endif
@@ -176,9 +190,106 @@ int stretch200To240(uint8 *buf, uint32 pitch, int width, int height, int srcX, i
 }
 
 int stretch200To240(uint8 *buf, uint32 pitch, int width, int height, int srcX, int srcY, int origSrcY) {
+	extern int gBitFormat;
 	if (gBitFormat == 565)
-		return stretch200To240<565>(buf, pitch, width, height, srcX, srcY, origSrcY);
+		return stretch200To240<Graphics::ColorMasks<565> >(buf, pitch, width, height, srcX, srcY, origSrcY);
 	else // gBitFormat == 555
-		return stretch200To240<555>(buf, pitch, width, height, srcX, srcY, origSrcY);
+		return stretch200To240<Graphics::ColorMasks<555> >(buf, pitch, width, height, srcX, srcY, origSrcY);
 }
+
+
+template<typename ColorMask>
+void Normal1xAspectTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+
+	for (int y = 0; y < (height * 6 / 5); ++y) {
+
+#if ASPECT_MODE == kSuperFastAndUglyAspectMode
+		if ((y % 6) == 5)
+			srcPtr -= srcPitch;
+		memcpy(dstPtr, srcPtr, sizeof(OverlayColor) * width);
+#else
+		// Bilinear filter five input lines onto six output lines
+		switch (y % 6) {
+		case 0:
+			// First output line is copied from first input line
+			memcpy(dstPtr, srcPtr, sizeof(OverlayColor) * width);
+			break;
+		case 1:
+			// Second output line is mixed from first and second input line
+			interpolate5Line<ColorMask, 1>((uint16 *)dstPtr, (const uint16 *)(srcPtr - srcPitch), (const uint16 *)srcPtr, width);
+			break;
+		case 2:
+			// Third output line is mixed from second and third input line
+			interpolate5Line<ColorMask, 2>((uint16 *)dstPtr, (const uint16 *)(srcPtr - srcPitch), (const uint16 *)srcPtr, width);
+			break;
+		case 3:
+			// Fourth output line is mixed from third and fourth input line
+			interpolate5Line<ColorMask, 2>((uint16 *)dstPtr, (const uint16 *)srcPtr, (const uint16 *)(srcPtr - srcPitch), width);
+			break;
+		case 4:
+			// Fifth output line is mixed from fourth and fifth input line
+			interpolate5Line<ColorMask, 1>((uint16 *)dstPtr, (const uint16 *)srcPtr, (const uint16 *)(srcPtr - srcPitch), width);
+			break;
+		case 5:
+			// Sixth (and last) output line is copied from fifth (and last) input line
+			srcPtr -= srcPitch;
+			memcpy(dstPtr, srcPtr, sizeof(OverlayColor) * width);
+			break;
+		}
+#endif
+
+		srcPtr += srcPitch;
+		dstPtr += dstPitch;
+	}
+}
+
+void Normal1xAspect(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+	extern int gBitFormat;
+	if (gBitFormat == 565)
+		Normal1xAspectTemplate<Graphics::ColorMasks<565> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+	else
+		Normal1xAspectTemplate<Graphics::ColorMasks<555> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+}
+
+#ifdef USE_ARM_SCALER_ASM
+extern "C" void Normal2xAspectMask(const uint8  *srcPtr,
+                                         uint32  srcPitch,
+                                         uint8  *dstPtr,
+                                         uint32  dstPitch,
+                                         int     width,
+                                         int     height,
+                                         uint32  mask);
+
+/**
+ * A 2x scaler which also does aspect ratio correction.
+ * This is Normal2x combined with vertical stretching,
+ * so it will scale a 320x200 surface to a 640x480 surface.
+ */
+void Normal2xAspect(const uint8  *srcPtr,
+                          uint32  srcPitch,
+                          uint8  *dstPtr,
+                          uint32  dstPitch,
+                          int     width,
+                          int     height) {
+	extern int gBitFormat;
+	if (gBitFormat == 565) {
+		Normal2xAspectMask(srcPtr,
+		                   srcPitch,
+		                   dstPtr,
+		                   dstPitch,
+		                   width,
+		                   height,
+		                   0x07e0F81F);
+	} else {
+		Normal2xAspectMask(srcPtr,
+		                   srcPitch,
+		                   dstPtr,
+		                   dstPitch,
+		                   width,
+		                   height,
+		                   0x03e07C1F);
+	}
+}
+
+#endif	// USE_ARM_SCALER_ASM
 

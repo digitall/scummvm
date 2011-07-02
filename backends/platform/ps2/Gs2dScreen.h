@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef __GS2DSCREEN_H__
@@ -46,7 +43,7 @@ enum GsInterlace {
 
 
 namespace Graphics {
-	struct Surface;
+struct Surface;
 }
 
 class Gs2dScreen {
@@ -60,16 +57,14 @@ public:
 
 	void copyPrintfOverlay(const uint8* buf);
 	void clearPrintfOverlay(void);
-	void clearScreen(void);
-	void fillScreen(uint32 col);
 
 	Graphics::Surface *lockScreen();
 	void unlockScreen();
 
 	void copyScreenRect(const uint8 *buf, int pitch, int x, int y, int w, int h);
-	void setPalette(const uint32 *pal, uint8 start, uint16 num);
+	void setPalette(const uint8 *pal, uint8 start, uint16 num);
 	void updateScreen(void);
-	void grabPalette(uint32 *pal, uint8 start, uint16 num);
+	void grabPalette(uint8 *pal, uint8 start, uint16 num);
 	void grabScreen(Graphics::Surface *surf);
 	//- overlay routines
 	void copyOverlayRect(const uint16 *buf, uint16 pitch, uint16 x, uint16 y, uint16 w, uint16 h);

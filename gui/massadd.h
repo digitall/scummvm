@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef MASSADD_DIALOG_H
@@ -30,19 +27,25 @@
 #include "common/hashmap.h"
 #include "common/stack.h"
 #include "common/str.h"
-#include "common/hash-str.h"
 
 namespace GUI {
 
 class StaticTextWidget;
 
 class MassAddDialog : public Dialog {
+	typedef Common::Array<Common::String> StringArray;
 public:
 	MassAddDialog(const Common::FSNode &startDir);
 
 	//void open();
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data);
 	void handleTickle();
+
+	Common::String getFirstAddedTarget() const {
+		if (!_games.empty())
+			return _games.front().gameid();
+		return Common::String();
+	}
 
 private:
 	Common::Stack<Common::FSNode>  _scanStack;
@@ -53,9 +56,11 @@ private:
 	 * Used to detect whether a potential new target is already present in the
 	 * config manager.
 	 */
-	Common::HashMap<Common::String, Common::StringList>	_pathToTargets;
+	Common::HashMap<Common::String, StringArray>	_pathToTargets;
 
 	int _dirsScanned;
+	int _oldGamesCount;
+	int _dirTotal;
 
 	Widget *_okButton;
 	StaticTextWidget *_dirProgressText;

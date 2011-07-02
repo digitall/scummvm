@@ -18,17 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-
 
 #include "agi/agi.h"
 #include "agi/graphics.h"
 #include "agi/keyboard.h"
-#include "agi/menu.h"
 #ifdef __DS__
 #include "wordcompletion.h"
 #endif
@@ -38,7 +32,7 @@ namespace Agi {
 //
 // IBM-PC keyboard scancodes
 //
-uint8 scancodeTable[26] = {
+const uint8 scancodeTable[26] = {
 	30,			// A
 	48,			// B
 	46,			// C
@@ -107,10 +101,10 @@ int AgiEngine::handleController(int key) {
 	VtEntry *v = &_game.viewTable[0];
 	int i;
 
-	// AGI 3.149 games and The Black Cauldron need KEY_ESCAPE to use menus
+	// AGI 3.149 games, The Black Cauldron and King's Quest 4 need KEY_ESCAPE to use menus
 	// Games with the GF_ESCPAUSE flag need KEY_ESCAPE to pause the game
 	if (key == 0 ||
-		(key == KEY_ESCAPE && getVersion() != 0x3149 && getGameID() != GID_BC && !(getFeatures() & GF_ESCPAUSE)) )
+		(key == KEY_ESCAPE && getVersion() != 0x3149 && getGameID() != GID_BC && getGameID() != GID_KQ4 && !(getFeatures() & GF_ESCPAUSE)) )
 		return false;
 
 	if ((getGameID() == GID_MH1 || getGameID() == GID_MH2) && (key == KEY_ENTER) &&
@@ -124,13 +118,12 @@ int AgiEngine::handleController(int key) {
 		if (_game.controllers[i].keycode == key) {
 			debugC(3, kDebugLevelInput, "event %d: key press", _game.controllers[i].controller);
 			_game.controllerOccured[_game.controllers[i].controller] = true;
-			report("event AC:%i occured\n", _game.controllers[i].controller);
 			return true;
 		}
 	}
 
 	if (key == BUTTON_LEFT) {
-		if ((getflag(fMenusWork) || (getFeatures() & GF_MENUS)) && g_mouse.y <= CHAR_LINES) {
+		if ((getflag(fMenusWork) || (getFeatures() & GF_MENUS)) && _mouse.y <= CHAR_LINES) {
 			newInputMode(INPUT_MENU);
 			return true;
 		}
@@ -138,8 +131,8 @@ int AgiEngine::handleController(int key) {
 
 	// Show predictive dialog if the user clicks on input area
 	if (key == BUTTON_LEFT &&
-			(int)g_mouse.y >= _game.lineUserInput * CHAR_LINES &&
-			(int)g_mouse.y <= (_game.lineUserInput + 1) * CHAR_LINES) {
+			(int)_mouse.y >= _game.lineUserInput * CHAR_LINES &&
+			(int)_mouse.y <= (_game.lineUserInput + 1) * CHAR_LINES) {
 		if (predictiveDialog()) {
 			if (_game.inputMode == INPUT_NONE) {
 				for (int n = 0; _predictiveResult[n]; n++)
@@ -188,15 +181,14 @@ int AgiEngine::handleController(int key) {
 			// Handle mouse button events
 			if (key == BUTTON_LEFT) {
 				v->flags |= ADJ_EGO_XY;
-				v->parm1 = WIN_TO_PIC_X(g_mouse.x);
-				v->parm2 = WIN_TO_PIC_Y(g_mouse.y);
+				v->parm1 = WIN_TO_PIC_X(_mouse.x);
+				v->parm2 = WIN_TO_PIC_Y(_mouse.y);
 				return true;
 			}
 		}
 
-		v->flags &= ~ADJ_EGO_XY;
-
 		if (d || key == KEY_STATIONARY) {
+			v->flags &= ~ADJ_EGO_XY;
 			v->direction = v->direction == d ? 0 : d;
 			return true;
 		}
@@ -216,8 +208,8 @@ void AgiEngine::handleGetstring(int key) {
 
 	switch (key) {
 	case BUTTON_LEFT:
-		if ((int)g_mouse.y >= _stringdata.y * CHAR_LINES &&
-				(int)g_mouse.y <= (_stringdata.y + 1) * CHAR_LINES) {
+		if ((int)_mouse.y >= _stringdata.y * CHAR_LINES &&
+				(int)_mouse.y <= (_stringdata.y + 1) * CHAR_LINES) {
 			if (predictiveDialog()) {
 				strcpy(_game.strings[_stringdata.str], _predictiveResult);
 				newInputMode(INPUT_NORMAL);
@@ -284,7 +276,7 @@ void AgiEngine::handleGetstring(int key) {
 void AgiEngine::handleKeys(int key) {
 	uint8 *p = NULL;
 	int c = 0;
-	static uint8 formattedEntry[256];
+	static uint8 formattedEntry[40];
 	int l = _game.lineUserInput;
 	int fg = _game.colorFg, bg = _game.colorBg;
 	int promptLength = strlen(agiSprintf(_game.strings[0]));
@@ -303,7 +295,7 @@ void AgiEngine::handleKeys(int key) {
 			;
 
 		// Copy to internal buffer
-		for (; *p; p++) {
+		for (; *p && c < 40-1; p++) {
 			// Squash spaces
 			if (*p == 0x20 && *(p + 1) == 0x20) {
 				p++;
@@ -323,7 +315,7 @@ void AgiEngine::handleKeys(int key) {
 		// Clear to start a new line
 		_game.hasPrompt = 0;
 		_game.inputBuffer[_game.cursorPos = 0] = 0;
-		debugC(3, kDebugLevelInput, "clear lines");
+		debugC(3, kDebugLevelInput | kDebugLevelText, "clear lines");
 		clearLines(l, l + 1, bg);
 		flushLines(l, l + 1);
 #ifdef __DS__
@@ -421,12 +413,12 @@ int AgiEngine::waitAnyKey() {
 	return key;
 }
 
-bool AgiEngine::isKeypress(void) {
+bool AgiEngine::isKeypress() {
 	processEvents();
 	return _keyQueueStart != _keyQueueEnd;
 }
 
-int AgiEngine::getKeypress(void) {
+int AgiEngine::getKeypress() {
 	int k;
 
 	while (_keyQueueStart == _keyQueueEnd)	// block
@@ -437,7 +429,7 @@ int AgiEngine::getKeypress(void) {
 	return k;
 }
 
-void AgiEngine::clearKeyQueue(void) {
+void AgiEngine::clearKeyQueue() {
 	while (isKeypress()) {
 		getKeypress();
 	}

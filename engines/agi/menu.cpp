@@ -18,17 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
-#include "agi/sprite.h"
 #include "agi/graphics.h"
 #include "agi/keyboard.h"
 #include "agi/menu.h"
-#include "common/list.h"
 
 namespace Agi {
 
@@ -119,7 +114,7 @@ void Menu::drawMenuOptionHilite(int hMenu, int vMenu) {
 	AgiMenuOption *d = getMenuOption(hMenu, vMenu);
 
 	// Disabled menu items are "greyed out" with a checkerboard effect,
-	// rather than having a different colour. -- dsymonds
+	// rather than having a different color. -- dsymonds
 	_vm->printText(d->text, 0, m->wincol + 1, vMenu + 2, m->width + 2,
 			MENU_BG, MENU_FG, !d->enabled);
 }
@@ -132,16 +127,16 @@ void Menu::newMenuSelected(int i) {
 }
 
 bool Menu::mouseOverText(int line, int col, char *s) {
-	if (g_mouse.x < col * CHAR_COLS)
+	if (_vm->_mouse.x < col * CHAR_COLS)
 		return false;
 
-	if (g_mouse.x > (int)(col + strlen(s)) * CHAR_COLS)
+	if (_vm->_mouse.x > (int)(col + strlen(s)) * CHAR_COLS)
 		return false;
 
-	if (g_mouse.y < line * CHAR_LINES)
+	if (_vm->_mouse.y < line * CHAR_LINES)
 		return false;
 
-	if (g_mouse.y >= (line + 1) * CHAR_LINES)
+	if (_vm->_mouse.y >= (line + 1) * CHAR_LINES)
 		return false;
 
 	return true;
@@ -296,12 +291,12 @@ bool Menu::keyhandler(int key) {
 	//
 	// Mouse handling
 	//
-	if (g_mouse.button) {
+	if (_vm->_mouse.button) {
 		int hmenu, vmenu;
 
 		buttonUsed = 1;	// Button has been used at least once
 
-		if (g_mouse.y <= CHAR_LINES) {
+		if (_vm->_mouse.y <= CHAR_LINES) {
 			// on the menubar
 			hmenu = 0;
 
@@ -361,7 +356,7 @@ bool Menu::keyhandler(int key) {
 
 		drawMenuOptionHilite(_hCurMenu, _vCurMenu);
 
-		if (g_mouse.y <= CHAR_LINES) {
+		if (_vm->_mouse.y <= CHAR_LINES) {
 			// on the menubar
 		} else {
 			// see which option we selected
@@ -408,6 +403,7 @@ bool Menu::keyhandler(int key) {
 		if (d->enabled) {
 			debugC(6, kDebugLevelMenu | kDebugLevelInput, "event %d registered", d->event);
 			_vm->_game.controllerOccured[d->event] = true;
+			_vm->_menuSelected = true;
 			goto exit_menu;
 		}
 		break;

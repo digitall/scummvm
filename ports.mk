@@ -1,48 +1,40 @@
 # This file contains port specific Makefile rules. It is automatically
 # included by the default (main) Makefile.
 #
-# $URL: https://scummvm.svn.sourceforge.net/svnroot/scummvm/tools/trunk/Makefile $
-# $Id: Makefile 30664 2008-01-27 19:47:41Z jvprat $
 
 
 #
-# UNIX specific
+# POSIX specific
 #
-install: all
-	$(INSTALL) -d "$(DESTDIR)$(BINDIR)"
-	$(INSTALL) -c -s -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(BINDIR)/$(EXECUTABLE)"
-	$(INSTALL) -d "$(DESTDIR)$(MANDIR)/man6/"
-	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.6" "$(DESTDIR)$(MANDIR)/man6/scummvm.6"
-	$(INSTALL) -d "$(DESTDIR)$(PREFIX)/share/pixmaps/"
-	$(INSTALL) -c -m 644 "$(srcdir)/icons/scummvm.xpm" "$(DESTDIR)$(PREFIX)/share/pixmaps/scummvm.xpm"
-	$(INSTALL) -d "$(DESTDIR)$(PREFIX)/share/doc/scummvm/"
-	$(INSTALL) -c -m 644 $(DIST_FILES_DOCS) "$(DESTDIR)$(PREFIX)/share/doc/scummvm/"
-	$(INSTALL) -d "$(DESTDIR)$(DATADIR)/scummvm/"
-	$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_ENGINEDATA) "$(DESTDIR)$(DATADIR)/scummvm/"
+install:
+	$(INSTALL) -d "$(DESTDIR)$(bindir)"
+	$(INSTALL) -c -s -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
+	$(INSTALL) -d "$(DESTDIR)$(mandir)/man6/"
+	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.6" "$(DESTDIR)$(mandir)/man6/scummvm.6"
+	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/pixmaps/"
+	$(INSTALL) -c -m 644 "$(srcdir)/icons/scummvm.xpm" "$(DESTDIR)$(datarootdir)/pixmaps/scummvm.xpm"
+	$(INSTALL) -d "$(DESTDIR)$(docdir)"
+	$(INSTALL) -c -m 644 $(DIST_FILES_DOCS) "$(DESTDIR)$(docdir)"
+	$(INSTALL) -d "$(DESTDIR)$(datadir)"
+	$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_ENGINEDATA) "$(DESTDIR)$(datadir)/"
 ifdef DYNAMIC_MODULES
-	$(INSTALL) -d "$(DESTDIR)$(LIBDIR)/scummvm/"
-	$(INSTALL) -c -s -m 644 $(DIST_FILES_PLUGINS) "$(DESTDIR)$(LIBDIR)/scummvm/"
+	$(INSTALL) -d "$(DESTDIR)$(libdir)/scummvm/"
+	$(INSTALL) -c -s -m 644 $(PLUGINS) "$(DESTDIR)$(libdir)/scummvm/"
 endif
 
 uninstall:
-	rm -f "$(DESTDIR)$(BINDIR)/$(EXECUTABLE)"
-	rm -f "$(DESTDIR)$(MANDIR)/man6/scummvm.6"
-	rm -f "$(DESTDIR)$(PREFIX)/share/pixmaps/scummvm.xpm"
-	rm -rf "$(DESTDIR)$(PREFIX)/share/doc/scummvm/"
-	rm -rf "$(DESTDIR)$(DATADIR)/scummvm/"
+	rm -f "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
+	rm -f "$(DESTDIR)$(mandir)/man6/scummvm.6"
+	rm -f "$(DESTDIR)$(datarootdir)/pixmaps/scummvm.xpm"
+	rm -rf "$(DESTDIR)$(docdir)"
+	rm -rf "$(DESTDIR)$(datadir)"
 ifdef DYNAMIC_MODULES
-	rm -rf "$(DESTDIR)$(LIBDIR)/scummvm/"
+	rm -rf "$(DESTDIR)$(libdir)/scummvm/"
 endif
-
-deb:
-	ln -sf dists/debian;
-	debian/prepare
-	fakeroot debian/rules binary
-
 
 # Special target to create a application wrapper for Mac OS X
 bundle_name = ScummVM.app
-bundle: scummvm-static $(srcdir)/dists/macosx/Info.plist
+bundle: scummvm-static
 	mkdir -p $(bundle_name)/Contents/MacOS
 	mkdir -p $(bundle_name)/Contents/Resources
 	echo "APPL????" > $(bundle_name)/Contents/PkgInfo
@@ -50,22 +42,30 @@ bundle: scummvm-static $(srcdir)/dists/macosx/Info.plist
 	cp $(srcdir)/icons/scummvm.icns $(bundle_name)/Contents/Resources/
 	cp $(DIST_FILES_DOCS) $(bundle_name)/
 	cp $(DIST_FILES_THEMES) $(bundle_name)/Contents/Resources/
+ifdef DIST_FILES_ENGINEDATA
 	cp $(DIST_FILES_ENGINEDATA) $(bundle_name)/Contents/Resources/
-	$(srcdir)/tools/credits.pl --rtf > $(bundle_name)/Contents/Resources/Credits.rtf
+endif
+	$(srcdir)/devtools/credits.pl --rtf > $(bundle_name)/Contents/Resources/Credits.rtf
 	chmod 644 $(bundle_name)/Contents/Resources/*
 	cp scummvm-static $(bundle_name)/Contents/MacOS/scummvm
 	chmod 755 $(bundle_name)/Contents/MacOS/scummvm
 	$(STRIP) $(bundle_name)/Contents/MacOS/scummvm
 
-iphonebundle: iphone $(srcdir)/dists/iphone/Info.plist
+iphonebundle: iphone
 	mkdir -p $(bundle_name)
 	cp $(srcdir)/dists/iphone/Info.plist $(bundle_name)/
 	cp $(DIST_FILES_DOCS) $(bundle_name)/
 	cp $(DIST_FILES_THEMES) $(bundle_name)/
+ifdef DIST_FILES_ENGINEDATA
 	cp $(DIST_FILES_ENGINEDATA) $(bundle_name)/
+endif
+	$(STRIP) scummvm
+	ldid -S scummvm
+	chmod 755 scummvm
 	cp scummvm $(bundle_name)/ScummVM
-	cp $(srcdir)/dists/iphone/icon.png $(bundle_name)/icon.png
-	cp $(srcdir)/dists/iphone/Default.png $(bundle_name)/Default.png
+	cp $(srcdir)/dists/iphone/icon.png $(bundle_name)/
+	cp $(srcdir)/dists/iphone/icon-72.png $(bundle_name)/
+	cp $(srcdir)/dists/iphone/Default.png $(bundle_name)/
 
 # Location of static libs for the iPhone
 ifneq ($(BACKEND), iphone)
@@ -92,12 +92,24 @@ ifdef USE_MAD
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libmad.a
 endif
 
-ifdef USE_MPEG2
-OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libmpeg2.a
+ifdef USE_PNG
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libpng.a
+endif
+
+ifdef USE_THEORADEC
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libtheoradec.a
+endif
+
+ifdef USE_FAAD
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libfaad.a
 endif
 
 ifdef USE_ZLIB
-OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libz.a
+OSX_ZLIB ?= -lz
+endif
+
+ifdef USE_TERMCONV
+OSX_ICONV ?= -liconv
 endif
 
 # Special target to create a static linked binary for Mac OS X.
@@ -107,6 +119,8 @@ scummvm-static: $(OBJS)
 	$(CXX) $(LDFLAGS) -force_cpusubtype_ALL -o scummvm-static $(OBJS) \
 		-framework CoreMIDI \
 		$(OSX_STATIC_LIBS) \
+		$(OSX_ZLIB) \
+		$(OSX_ICONV) \
 		-lSystemStubs
 
 # Special target to create a static linked binary for the iPhone
@@ -122,7 +136,7 @@ iphone: $(OBJS)
 # TODO: Replace AUTHORS by Credits.rtf
 osxsnap: bundle
 	mkdir ScummVM-snapshot
-	$(srcdir)/tools/credits.pl --text > $(srcdir)/AUTHORS
+	$(srcdir)/devtools/credits.pl --text > $(srcdir)/AUTHORS
 	cp $(srcdir)/AUTHORS ./ScummVM-snapshot/Authors
 	cp $(srcdir)/COPYING ./ScummVM-snapshot/License\ \(GPL\)
 	cp $(srcdir)/COPYING.LGPL ./ScummVM-snapshot/License\ \(LGPL\)
@@ -145,15 +159,18 @@ osxsnap: bundle
 # Windows specific
 #
 
-scummvmico.o: $(srcdir)/icons/scummvm.ico
-	$(WINDRES) -I$(srcdir) $(srcdir)/dists/scummvm.rc scummvmico.o
+scummvmwinres.o: $(srcdir)/icons/scummvm.ico $(DIST_FILES_THEMES) $(DIST_FILES_ENGINEDATA) $(srcdir)/dists/scummvm.rc
+	$(QUIET_WINDRES)$(WINDRES) -DHAVE_CONFIG_H $(WINDRESFLAGS) $(DEFINES) -I. -I$(srcdir) $(srcdir)/dists/scummvm.rc scummvmwinres.o
 
-# Special target to create a win32 snapshot binary
+# Special target to create a win32 snapshot binary (for Inno Setup)
 win32dist: $(EXECUTABLE)
 	mkdir -p $(WIN32PATH)
+	mkdir -p $(WIN32PATH)/graphics
 	$(STRIP) $(EXECUTABLE) -o $(WIN32PATH)/$(EXECUTABLE)
 	cp $(DIST_FILES_THEMES) $(WIN32PATH)
+ifdef DIST_FILES_ENGINEDATA
 	cp $(DIST_FILES_ENGINEDATA) $(WIN32PATH)
+endif
 	cp $(srcdir)/AUTHORS $(WIN32PATH)/AUTHORS.txt
 	cp $(srcdir)/COPYING $(WIN32PATH)/COPYING.txt
 	cp $(srcdir)/COPYING.LGPL $(WIN32PATH)/COPYING.LGPL.txt
@@ -162,7 +179,17 @@ win32dist: $(EXECUTABLE)
 	cp $(srcdir)/README $(WIN32PATH)/README.txt
 	cp /usr/local/README-SDL.txt $(WIN32PATH)
 	cp /usr/local/bin/SDL.dll $(WIN32PATH)
-	u2d $(WIN32PATH)/*.txt
+	cp $(srcdir)/dists/win32/graphics/left.bmp $(WIN32PATH)/graphics
+	cp $(srcdir)/dists/win32/graphics/scummvm-install.ico $(WIN32PATH)/graphics
+	cp $(srcdir)/dists/win32/ScummVM.iss $(WIN32PATH)
+	unix2dos $(WIN32PATH)/*.txt
+
+# Special target to create a win32 NSIS installer
+win32setup: $(EXECUTABLE)
+	mkdir -p $(srcdir)/$(STAGINGPATH)
+	$(STRIP) $(EXECUTABLE) -o $(srcdir)/$(STAGINGPATH)/$(EXECUTABLE)
+	cp /usr/local/bin/SDL.dll $(srcdir)/$(STAGINGPATH)
+	makensis -V2 -Dtop_srcdir="../.." -Dstaging_dir="../../$(STAGINGPATH)" -Darch=$(ARCH) $(srcdir)/dists/win32/scummvm.nsi
 
 #
 # AmigaOS specific
@@ -171,65 +198,37 @@ win32dist: $(EXECUTABLE)
 # Special target to create an AmigaOS snapshot installation
 aos4dist: $(EXECUTABLE)
 	mkdir -p $(AOS4PATH)
-	$(STRIP) $(EXECUTABLE) -o $(AOS4PATH)/$(EXECUTABLE)_SVN
-	cp icons/scummvm.info $(AOS4PATH)/$(EXECUTABLE)_SVN.info
+	$(STRIP) $(EXECUTABLE) -o $(AOS4PATH)/$(EXECUTABLE)
+	cp icons/scummvm.info $(AOS4PATH)/$(EXECUTABLE).info
 	cp $(DIST_FILES_THEMES) $(AOS4PATH)/themes/
+ifdef DIST_FILES_ENGINEDATA
 	cp $(DIST_FILES_ENGINEDATA) $(AOS4PATH)/extras/
-	cp $(srcdir)/AUTHORS $(AOS4PATH)/AUTHORS.txt
-	cp $(srcdir)/COPYING $(AOS4PATH)/COPYING.txt
-	cp $(srcdir)/COPYING.LGPL $(AOS4PATH)/COPYING.LGPL.txt
-	cp $(srcdir)/COPYRIGHT $(AOS4PATH)/COPYRIGHT.txt
-	cp $(srcdir)/NEWS $(AOS4PATH)/NEWS.txt
-	cp $(srcdir)/README $(AOS4PATH)/README.txt
+endif
+	cp $(DIST_FILES_DOCS) $(AOS4PATH)
 
 #
-# Wii/Gamecube specific
+# PlayStation 3 specific
 #
-
-# Special target to create a Wii snapshot
-wiidist: $(EXECUTABLE)
-	$(MKDIR) wiidist/scummvm
-ifeq ($(GAMECUBE),1)
-	$(DEVKITPPC)/bin/elf2dol $(EXECUTABLE) wiidist/scummvm/scummvm.dol
-else
-	$(STRIP) $(EXECUTABLE) -o wiidist/scummvm/boot.elf
-	$(CP) $(srcdir)/dists/wii/icon.png wiidist/scummvm/
-	sed "s/@REVISION@/$(VER_SVNREV)/;s/@TIMESTAMP@/`date +%Y%m%d%H%M%S`/" < $(srcdir)/dists/wii/meta.xml > wiidist/scummvm/meta.xml
+ps3pkg: $(EXECUTABLE)
+	$(STRIP) $(EXECUTABLE)
+	sprxlinker $(EXECUTABLE)
+	mkdir -p ps3pkg/USRDIR/data/
+	mkdir -p ps3pkg/USRDIR/doc/
+	mkdir -p ps3pkg/USRDIR/saves/
+	make_self_npdrm "$(EXECUTABLE)" ps3pkg/USRDIR/EBOOT.BIN UP0001-SCUM12000_00-0000000000000000
+	cp $(DIST_FILES_THEMES) ps3pkg/USRDIR/data/
+ifdef DIST_FILES_ENGINEDATA
+	cp $(DIST_FILES_ENGINEDATA) ps3pkg/USRDIR/data/
 endif
-	sed 's/$$/\r/' < $(srcdir)/dists/wii/READMII > wiidist/scummvm/READMII.txt
-	for i in $(DIST_FILES_DOCS); do sed 's/$$/\r/' < $$i > wiidist/scummvm/`basename $$i`.txt; done
-	$(CP) $(DIST_FILES_THEMES) wiidist/scummvm/
-ifneq ($(DIST_FILES_ENGINEDATA),)
-	$(CP) $(DIST_FILES_ENGINEDATA) wiidist/scummvm/
-endif
-	$(CP) $(srcdir)/backends/vkeybd/packs/vkeybd_default.zip wiidist/scummvm/
+	cp $(DIST_FILES_DOCS) ps3pkg/USRDIR/doc/
+	cp $(srcdir)/dists/ps3/readme-ps3.md ps3pkg/USRDIR/doc/
+	cp $(srcdir)/backends/vkeybd/packs/vkeybd_default.zip ps3pkg/USRDIR/data/
+	cp $(srcdir)/dists/ps3/ICON0.PNG ps3pkg/
+	cp $(srcdir)/dists/ps3/PIC1.PNG ps3pkg/
+	sfo.py -f $(srcdir)/dists/ps3/sfo.xml ps3pkg/PARAM.SFO
+	pkg.py --contentid UP0001-SCUM12000_00-0000000000000000 ps3pkg/ scummvm-ps3.pkg
+	package_finalize scummvm-ps3.pkg
 
-.PHONY: deb bundle osxsnap win32dist wiidist install uninstall
+# Mark special targets as phony
+.PHONY: deb bundle osxsnap win32dist install uninstall ps3pkg
 
-#
-# ARM specific
-#
-ifdef USE_TREMOLO
-DEFINES += -DUSE_TREMOR -DUSE_VORBIS -DUSE_TREMOLO
-LIBS += -ltremolo
-endif
-
-ifdef USE_ARM_SMUSH_ASM
-DEFINES += -DUSE_ARM_SMUSH_ASM
-endif
-
-ifdef USE_ARM_SOUND_ASM
-DEFINES += -DUSE_ARM_SOUND_ASM
-endif
-
-ifdef USE_ARM_GFX_ASM
-DEFINES += -DUSE_ARM_GFX_ASM
-endif
-
-ifdef USE_ARM_COSTUME_ASM
-DEFINES += -DUSE_ARM_COSTUME_ASM
-endif
-
-ifdef USE_ARM_SCALER_ASM
-DEFINES += -DUSE_ARM_SCALER_ASM
-endif

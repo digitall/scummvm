@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef LUREDEFS_H
@@ -111,7 +108,7 @@ enum Action {
 // Basic game dimensions
 #define FULL_SCREEN_WIDTH 320
 #define FULL_SCREEN_HEIGHT 200
-#define GAME_COLOURS 256
+#define GAME_COLORS 256
 #define SCREEN_SIZE (FULL_SCREEN_HEIGHT * FULL_SCREEN_WIDTH)
 
 // Some resources include multiple packed palettes of 64 entries each
@@ -120,7 +117,7 @@ enum Action {
 #define RES_PALETTE_ENTRIES 220
 // Main working palette size
 #define MAIN_PALETTE_SIZE 228
-// Palette colour increment amouns for palette fade in/outs
+// Palette color increment amouns for palette fade in/outs
 #define PALETTE_FADE_INC_SIZE 4
 
 // EGA constants
@@ -189,11 +186,11 @@ enum CursorType {CURSOR_ARROW = 0, CURSOR_DISK = 1, CURSOR_TIME_START = 2,
 #define POPMENU_CHANGE_SENSITIVITY 5
 
 // Dialog related defines
-#define EGA_DIALOG_TEXT_COLOUR 6
-#define EGA_DIALOG_WHITE_COLOUR 2
-#define	VGA_DIALOG_TEXT_COLOUR 0xe2
-#define VGA_DIALOG_WHITE_COLOUR 0xe3
-#define EGA_DIALOG_BG_COLOUR 13
+#define EGA_DIALOG_TEXT_COLOR 6
+#define EGA_DIALOG_WHITE_COLOR 2
+#define	VGA_DIALOG_TEXT_COLOR 0xe2
+#define VGA_DIALOG_WHITE_COLOR 0xe3
+#define EGA_DIALOG_BG_COLOR 13
 #define INFO_DIALOG_X 69
 #define INFO_DIALOG_Y 61
 #define INFO_DIALOG_WIDTH 191
@@ -253,7 +250,11 @@ enum CursorType {CURSOR_ARROW = 0, CURSOR_DISK = 1, CURSOR_TIME_START = 2,
 #define RATPOUCH_ID 0x3E9
 #define SKORL_ID 0x3EA
 #define BLACKSMITH_ID 0x3EB
+#define GWEN_ID 0x3EC
+#define MALLIN_ID 0x3ED
+#define MONK1_ID 0x3EE
 #define GOEWIN_ID 0x3EF
+#define MONK2_ID 0x3F0
 #define WAYNE_ID 0x3f1
 #define CASTLE_SKORL_ID 0x3F3
 #define FIRST_NONCHARACTER_ID 0x408

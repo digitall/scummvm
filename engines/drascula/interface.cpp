@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "drascula/drascula.h"
@@ -31,10 +28,10 @@ namespace Drascula {
 void DrasculaEngine::setCursor(int cursor) {
 	switch (cursor) {
 	case kCursorCrosshair:
-		CursorMan.replaceCursor((const byte *)crosshairCursor, 40, 25, 20, 17);
+		CursorMan.replaceCursor((const byte *)crosshairCursor, 40, 25, 20, 17, 255);
 		break;
 	case kCursorCurrentItem:
-		CursorMan.replaceCursor((const byte *)mouseCursor, OBJWIDTH, OBJHEIGHT, 20, 17);
+		CursorMan.replaceCursor((const byte *)mouseCursor, OBJWIDTH, OBJHEIGHT, 20, 17, 255);
 	default:
 		break;
 	}
@@ -65,6 +62,8 @@ void DrasculaEngine::selectVerbFromBar() {
 }
 
 void DrasculaEngine::selectVerb(int verb) {
+	debug(4, "selectVerb(%d)", verb);
+
 	int c = _menuScreen ? 0 : 171;
 
 	if (currentChapter == 5) {
@@ -76,7 +75,7 @@ void DrasculaEngine::selectVerb(int verb) {
 	}
 
 	for (int i = 0; i < OBJHEIGHT; i++)
-		memcpy(mouseCursor + i * OBJWIDTH, backSurface + OBJWIDTH * verb + (c + i) * 320, OBJWIDTH);
+		memcpy(mouseCursor + i * OBJWIDTH, cursorSurface + OBJWIDTH * verb + (c + i) * 320, OBJWIDTH);
 	setCursor(kCursorCurrentItem);
 
 	if (verb > 0) {
@@ -89,7 +88,7 @@ void DrasculaEngine::selectVerb(int verb) {
 }
 
 bool DrasculaEngine::confirmExit() {
-	byte key;
+	byte key = 0;
 
 	color_abc(kColorRed);
 	updateRoom();
@@ -97,7 +96,7 @@ bool DrasculaEngine::confirmExit() {
 	updateScreen();
 
 	delay(100);
-	for (;;) {
+	while (!shouldQuit()) {
 		key = getScan();
 		if (key != 0)
 			break;
@@ -118,7 +117,7 @@ void DrasculaEngine::showMenu() {
 	x = whichObject();
 	strcpy(textIcon, iconName[x]);
 
-	for (n = 1; n < 43; n++) {
+	for (n = 1; n < ARRAYSIZE(inventoryObjects); n++) {
 		h = inventoryObjects[n];
 
 		if (h != 0) {
@@ -126,7 +125,7 @@ void DrasculaEngine::showMenu() {
 							OBJWIDTH, OBJHEIGHT, srcSurface, screenSurface);
 		}
 		copyRect(_x1d_menu[h], _y1d_menu[h], _itemLocations[n].x, _itemLocations[n].y,
-				OBJWIDTH, OBJHEIGHT, backSurface, screenSurface);
+				OBJWIDTH, OBJHEIGHT, cursorSurface, screenSurface);
 	}
 
 	if (x < 7)
@@ -140,7 +139,7 @@ void DrasculaEngine::clearMenu() {
 		if (mouseX > _verbBarX[n] && mouseX < _verbBarX[n + 1])
 			verbActivated = 0;
 		copyRect(OBJWIDTH * n, OBJHEIGHT * verbActivated, _verbBarX[n], 2,
-						OBJWIDTH, OBJHEIGHT, backSurface, screenSurface);
+						OBJWIDTH, OBJHEIGHT, cursorSurface, screenSurface);
 		verbActivated = 1;
 	}
 }
@@ -151,7 +150,7 @@ void DrasculaEngine::enterName() {
 	int v = 0, h = 0;
 	char select2[23];
 	strcpy(select2, "                      ");
-	for (;;) {
+	while (!shouldQuit()) {
 		select2[v] = '-';
 		copyBackground(115, 14, 115, 14, 176, 9, bgSurface, screenSurface);
 		print_abc(select2, 117, 15);
@@ -160,7 +159,7 @@ void DrasculaEngine::enterName() {
 		key = getScan();
 
 		if (key != 0) {
-			if (key >= 0 && key <= 0xFF && isalpha(key))
+			if (key >= 0 && key <= 0xFF && isalpha(static_cast<unsigned char>(key)))
 				select2[v] = tolower(key);
 			else if ((key >= Common::KEYCODE_0 && key <= Common::KEYCODE_9) || key == Common::KEYCODE_SPACE)
 				select2[v] = key;
@@ -192,11 +191,10 @@ void DrasculaEngine::enterName() {
 }
 
 bool DrasculaEngine::checkMenuFlags() {
-	for (int n = 0; n < 43; n++) {
-		if (whichObject() == n) {
-			if (inventoryObjects[n] != 0 && checkAction(inventoryObjects[n]))
-				return true;
-		}
+	int n = whichObject();
+	if (n != 0) {
+		if (inventoryObjects[n] != 0 && checkAction(inventoryObjects[n]))
+			return true;
 	}
 
 	return false;

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -236,7 +233,7 @@ void Mult_v1::freeMultKeys() {
 		_animArrayData = 0;
 
 		_animSurf.reset();
-		_vm->_draw->freeSprite(22);
+		_vm->_draw->freeSprite(Draw::kAnimSurface);
 
 		_animDataAllocated = false;
 	}
@@ -316,12 +313,10 @@ void Mult_v1::playMultInit() {
 			multObj.lastBottom = -1;
 		}
 
-		_animSurf = _vm->_video->initSurfDesc(_vm->_global->_videoMode,
-				320, 200, 0);
-		_vm->_draw->_spritesArray[22] = _animSurf;
+		_animSurf = _vm->_video->initSurfDesc(320, 200);
+		_vm->_draw->_spritesArray[Draw::kAnimSurface] = _animSurf;
 
-		_vm->_video->drawSprite(*_vm->_draw->_backSurface,
-			*_animSurf, 0, 0, 319, 199, 0, 0, 0);
+		_animSurf->blit(*_vm->_draw->_backSurface, 0, 0, 319, 199, 0, 0);
 
 		_animDataAllocated = true;
 	} else
@@ -350,8 +345,7 @@ void Mult_v1::drawStatics(bool &stop) {
 
 		_vm->_scenery->_curStatic = _multData->staticIndices[_vm->_scenery->_curStatic];
 		_vm->_scenery->renderStatic(_vm->_scenery->_curStatic, _vm->_scenery->_curStaticLayer);
-		_vm->_video->drawSprite(*_vm->_draw->_backSurface, *_animSurf,
-		    0, 0, 319, 199, 0, 0, 0);
+		_animSurf->blit(*_vm->_draw->_backSurface, 0, 0, 319, 199, 0, 0);
 	}
 }
 
@@ -579,8 +573,8 @@ void Mult_v1::animate() {
 		if ((pNeedRedraw[i] == 0) || (_objects[i].lastLeft == -1))
 			continue;
 
-		_vm->_draw->_sourceSurface = 22;
-		_vm->_draw->_destSurface = 21;
+		_vm->_draw->_sourceSurface = Draw::kAnimSurface;
+		_vm->_draw->_destSurface = Draw::kBackSurface;
 		_vm->_draw->_spriteLeft = pDirtyLefts[i] - _animLeft;
 		_vm->_draw->_spriteTop = pDirtyTops[i] - _animTop;
 		_vm->_draw->_spriteRight = pDirtyRights[i] - pDirtyLefts[i] + 1;

@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Font management and font drawing header file
@@ -28,6 +25,7 @@
 #ifndef SAGA_FONT_H
 #define SAGA_FONT_H
 
+#include "common/list.h"
 #include "saga/gfx.h"
 
 namespace Saga {
@@ -119,7 +117,11 @@ struct FontCharEntry {
 struct FontStyle {
 	FontHeader header;
 	FontCharEntry fontCharEntry[256];
-	byte *font;
+#ifndef __DS__
+	ByteArray font;
+#else
+	byte* font;
+#endif
 };
 
 struct FontData {
@@ -130,7 +132,7 @@ struct FontData {
 class Font {
  public:
 	Font(SagaEngine *vm);
-	~Font(void);
+	~Font();
 	int getStringWidth(KnownFont font, const char *text, size_t count, FontEffectFlags flags) {
 		return getStringWidth(knownFont2FontIdx(font), text, count, flags);
 	}
@@ -169,14 +171,14 @@ class Font {
 	 void textDrawRect(FontId fontId, const char *text, const Common::Rect &rect, int color, int effectColor, FontEffectFlags flags);
 	 void textDraw(FontId fontId, const char *string, const Common::Point &point, int color, int effectColor, FontEffectFlags flags);
 
-	 void loadFont(uint32 fontResourceId);
+	 void loadFont(FontData *font, uint32 fontResourceId);
 	 void createOutline(FontData *font);
 	 void draw(FontId fontId, const char *text, size_t count, const Common::Point &point, int color, int effectColor, FontEffectFlags flags);
 	 void outFont(const FontStyle &drawFont, const char *text, size_t count, const Common::Point &point, int color, FontEffectFlags flags);
 
 	 FontData *getFont(FontId fontId) {
 		 validate(fontId);
-		 return _fonts[fontId];
+		 return &_fonts[fontId];
 	 }
 
 	int getHeight(FontId fontId) {
@@ -185,11 +187,11 @@ class Font {
 
 	 void validate(FontId fontId) {
 		 if (!valid(fontId)) {
-			 error("Font::validate: Invalid font id.");
+			 error("Font::validate: Invalid font id");
 		 }
 	 }
 	 bool valid(FontId fontId) {
-		 return ((fontId >= 0) && (fontId < _loadedFonts));
+		 return (uint(fontId) < _fonts.size());
 	 }
 	 int getByteLen(int numBits) const {
 		 int byteLength = numBits / 8;
@@ -206,8 +208,7 @@ class Font {
 
 	int _fontMapping;
 
-	int _loadedFonts;
-	FontData **_fonts;
+	Common::Array<FontData> _fonts;
 };
 
 } // End of namespace Saga

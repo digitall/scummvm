@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Graphics Memory Manager data structures
  */
 
@@ -38,8 +35,8 @@ namespace Tinsel {
 /**
  * Loads the graphics handle table index file and preloads all the permanent graphics etc.
  */
-void SetupHandleTable(void);
-void FreeHandleTable(void);
+void SetupHandleTable();
+void FreeHandleTable();
 
 byte *LockMem(SCNHANDLE offset);
 
@@ -62,6 +59,6 @@ void LoadExtraGraphData(
 
 int CdNumber(SCNHANDLE offset);
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif	// TINSEL_HANDLE_H

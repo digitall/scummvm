@@ -18,32 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#ifndef CEKEYS_EVENTSBUFFER
-#define CEKEYS_EVENTSBUFFER
+#ifndef CEKEYS_EVENTSBUFFER_H
+#define CEKEYS_EVENTSBUFFER_H
 
 #include "common/scummsys.h"
 #include "common/system.h"
 #include "common/list.h"
 
-#include <SDL.h>
-
 #include "gui/Key.h"
 
 namespace CEKEYS {
 
-	class EventsBuffer {
-	public:
-		static bool simulateKey(GUI::Key *key, bool pushed);
-		static bool simulateMouseMove(int x, int y);
-		static bool simulateMouseLeftClick(int x, int y, bool pushed);
-		static bool simulateMouseRightClick(int x, int y, bool pushed);
+class EventsBuffer {
+public:
+	static bool simulateKey(GUI::Key *key, bool pushed);
+	static bool simulateMouseMove(int x, int y);
+	static bool simulateMouseLeftClick(int x, int y, bool pushed);
+	static bool simulateMouseRightClick(int x, int y, bool pushed);
 
-	};
+};
 }
 
 #endif

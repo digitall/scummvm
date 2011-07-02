@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
@@ -28,6 +25,7 @@
 
 #include "common/config-manager.h"
 #include "common/fs.h"
+#include "common/textconsole.h"
 
 namespace Agi {
 
@@ -121,7 +119,7 @@ int AgiLoader_v3::init() {
 	}
 
 	if (!fp.open(path)) {
-		printf("Failed to open \"%s\"\n", path.c_str());
+		warning("Failed to open '%s'", path.c_str());
 		return errBadFileOpen;
 	}
 	// build offset table for v3 directory format
@@ -218,8 +216,7 @@ uint8 *AgiLoader_v3::loadVolRes(AgiDir *agid) {
 			debugC(3, kDebugLevelResources, "offset = %d", agid->offset);
 			debugC(3, kDebugLevelResources, "x = %x %x", x[0], x[1]);
 			error("ACK! BAD RESOURCE");
-
-			_vm->quitGame();
+			_vm->quitGame();	// for compilers that don't support NORETURN
 		}
 
 		agid->len = READ_LE_UINT16((uint8 *) x + 3);	// uncompressed size
@@ -228,19 +225,12 @@ uint8 *AgiLoader_v3::loadVolRes(AgiDir *agid) {
 		compBuffer = (uint8 *)calloc(1, agid->clen + 32);
 		fp.read(compBuffer, agid->clen);
 
-		if (x[2] & 0x80 || agid->len == agid->clen) {
+		if (x[2] & 0x80) { // compressed pic
+			data = _vm->_picture->convertV3Pic(compBuffer, agid->clen);
+			// compBuffer has been freed inside convertV3Pic()
+		} else if (agid->len == agid->clen) {
 			// do not decompress
 			data = compBuffer;
-
-#if 0
-			// CM: added to avoid problems in
-			//     convert_v2_v3_pic() when clen > len
-			//     e.g. Sierra demo 4, first picture
-			//     (Tue Mar 16 13:13:43 EST 1999)
-			agid->len = agid->clen;
-
-			// Now removed to fix Gold Rush! in demo4
-#endif
 		} else {
 			// it is compressed
 			data = (uint8 *)calloc(1, agid->len + 32);
@@ -310,7 +300,6 @@ int AgiLoader_v3::loadResource(int t, int n) {
 			unloadResource(rPICTURE, n);
 			data = loadVolRes(&_vm->_game.dirPic[n]);
 			if (data != NULL) {
-				data = _vm->_picture->convertV3Pic(data, _vm->_game.dirPic[n].len);
 				_vm->_game.pictures[n].rdata = data;
 				_vm->_game.dirPic[n].flags |= RES_LOADED;
 			} else {
@@ -325,7 +314,7 @@ int AgiLoader_v3::loadResource(int t, int n) {
 		data = loadVolRes(&_vm->_game.dirSound[n]);
 		if (data != NULL) {
 			// Freeing of the raw resource from memory is delegated to the createFromRawResource-function
-			_vm->_game.sounds[n] = AgiSound::createFromRawResource(data, _vm->_game.dirSound[n].len, n, *_vm->_sound);
+			_vm->_game.sounds[n] = AgiSound::createFromRawResource(data, _vm->_game.dirSound[n].len, n, *_vm->_sound, _vm->_soundemu);
 			_vm->_game.dirSound[n].flags |= RES_LOADED;
 		} else {
 			ec = errBadResource;

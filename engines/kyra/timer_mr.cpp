@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/kyra_mr.h"
 #include "kyra/timer.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -60,7 +59,7 @@ void KyraEngine_MR::timerRunSceneScript7(int arg) {
 
 void KyraEngine_MR::timerFleaDeath(int arg) {
 	_timer->setCountdown(4, 5400);
-	saveGameState(999, "Autosave", 0);
+	saveGameStateIntern(999, "Autosave", 0);
 	_screen->hideMouse();
 	_timer->disable(4);
 	runAnimationScript("FLEADTH1.EMC", 0, 0, 1, 1);
@@ -99,4 +98,4 @@ void KyraEngine_MR::setNextIdleAnimTimer() {
 	_nextIdleAnim = _system->getMillis() + _rnd.getRandomNumberRng(10, 15) * 1000;
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

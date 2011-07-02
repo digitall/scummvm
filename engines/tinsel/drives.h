@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * CD/drive handling functions
  */
 
 #ifndef TINSEL_DRIVES_H
 #define TINSEL_DRIVES_H
 
-#include "common/file.h"
+#include "common/stream.h"
 #include "tinsel/dw.h"
 #include "tinsel/coroutine.h"
 
@@ -45,13 +42,11 @@ namespace Tinsel {
 
 #define fAllCds	(fCd1|fCd2|fCd3|fCd4|fCd5|fCd6|fCd7|fCd8)
 
-extern char currentCD;
-
-void DoCdChange(void);
+void DoCdChange();
 
 void CdCD(CORO_PARAM);
 
-int GetCurrentCD(void);
+int GetCurrentCD();
 
 void SetCD(int flags);
 
@@ -59,17 +54,32 @@ int GetCD(int flags);
 
 void SetNextCD(int cdNumber);
 
-bool GotoCD(void);
+bool GotoCD();
 
-class TinselFile: public Common::File {
+class TinselFile : public Common::SeekableReadStream, public Common::ReadStreamEndian {
 private:
 	static bool _warningShown;
+	Common::SeekableReadStream *_stream;
+	bool openInternal(const Common::String &filename);
 public:
-	virtual bool open(const Common::String &filename);
+	TinselFile();
+	~TinselFile();
+	bool open(const Common::String &filename);
+	void close();
 	char getCdNumber();
+
+	bool err() const;
+	void clearErr();
+
+	bool eos() const;
+	uint32 read(void *dataPtr, uint32 dataSize);
+
+	int32 pos() const;
+	int32 size() const;
+	bool seek(int32 offset, int whence = SEEK_SET);
 };
 
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif /* TINSEL_DRIVES_H */

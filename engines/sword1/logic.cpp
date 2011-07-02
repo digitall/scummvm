@@ -18,17 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
 
 #include "common/endian.h"
 #include "common/util.h"
-#include "common/system.h"
-#include "common/events.h"
-#include "common/EventRecorder.h"
+#include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "sword1/logic.h"
 #include "sword1/text.h"
@@ -55,8 +50,8 @@ namespace Sword1 {
 
 uint32 Logic::_scriptVars[NUM_SCRIPT_VARS];
 
-Logic::Logic(SwordEngine *vm, ObjectMan *pObjMan, ResMan *resMan, Screen *pScreen, Mouse *pMouse, Sound *pSound, Music *pMusic, Menu *pMenu, OSystem *system, Audio::Mixer *mixer) {
-	g_eventRec.registerRandomSource(_rnd, "sword1");
+Logic::Logic(SwordEngine *vm, ObjectMan *pObjMan, ResMan *resMan, Screen *pScreen, Mouse *pMouse, Sound *pSound, Music *pMusic, Menu *pMenu, OSystem *system, Audio::Mixer *mixer)
+	: _rnd("sword1") {
 
 	_vm = vm;
 	_objMan = pObjMan;
@@ -76,13 +71,13 @@ Logic::Logic(SwordEngine *vm, ObjectMan *pObjMan, ResMan *resMan, Screen *pScree
 	setupMcodeTable();
 }
 
-Logic::~Logic(void) {
+Logic::~Logic() {
 	delete _textMan;
 	delete _router;
 	delete _eventMan;
 }
 
-void Logic::initialize(void) {
+void Logic::initialize() {
 	memset(_scriptVars, 0, NUM_SCRIPT_VARS * sizeof(uint32));
 	for (uint8 cnt = 0; cnt < NON_ZERO_SCRIPT_VARS; cnt++)
 		_scriptVars[_scriptVarInit[cnt][0]] = _scriptVarInit[cnt][1];
@@ -114,7 +109,7 @@ void Logic::newScreen(uint32 screen) {
 	}
 
 	// work around, at screen 69 in psx version TOP menu gets stuck at disabled, fix it at next screen (71)
-	if( (screen == 71) && (SwordEngine::isPsx()))
+	if ((screen == 71) && (SwordEngine::isPsx()))
 		_scriptVars[TOP_MENU_DISABLED] = 0;
 
 	if (SwordEngine::_systemVars.justRestoredGame) { // if we've just restored a game - we want George to be exactly as saved
@@ -133,7 +128,7 @@ void Logic::newScreen(uint32 screen) {
 	}
 }
 
-void Logic::engine(void) {
+void Logic::engine() {
 	debug(8, "\n\nNext logic cycle");
 	_eventMan->serviceGlobalEventList();
 
@@ -430,7 +425,7 @@ int Logic::animDriver(Object *compact) {
 	return 0;
 }
 
-void Logic::updateScreenParams(void) {
+void Logic::updateScreenParams() {
 	Object *compact = (Object*)_objMan->fetchObject(PLAYER);
 	_screen->setScrolling((int16)(compact->o_xcoord - _scriptVars[FEET_X]),
 						  (int16)(compact->o_ycoord - _scriptVars[FEET_Y]));
@@ -690,7 +685,7 @@ int Logic::interpretScript(Object *compact, int id, Header *scriptModule, int sc
 			break;
 		default:
 			error("Invalid operator %d",scriptCode[pc-1]);
-			return 0;
+			return 0;	// for compilers that don't support NORETURN
 		}
 	}
 }
@@ -1018,7 +1013,7 @@ int Logic::fnNewScript(Object *cpt, int32 id, int32 script, int32 d, int32 e, in
 int Logic::fnSubScript(Object *cpt, int32 id, int32 script, int32 d, int32 e, int32 f, int32 z, int32 x) {
 	cpt->o_tree.o_script_level++;
 	if (cpt->o_tree.o_script_level == TOTAL_script_levels)
-		error("Compact %d: script level exceeded in fnSubScript.", id);
+		error("Compact %d: script level exceeded in fnSubScript", id);
 	cpt->o_tree.o_script_pc[cpt->o_tree.o_script_level] = script;
 	cpt->o_tree.o_script_id[cpt->o_tree.o_script_level] = script;
 	return SCRIPT_STOP;
@@ -1252,7 +1247,7 @@ int Logic::fnChangeSpeechText(Object *cpt, int32 id, int32 tar, int32 width, int
 //The game is halted for debugging. Maybe we'll remove this later.
 int Logic::fnTalkError(Object *cpt, int32 id, int32 c, int32 d, int32 e, int32 f, int32 z, int32 x) {
 	error("fnTalkError for id %d, instruction %d", id, cpt->o_down_flag);
-	return SCRIPT_STOP;
+	return SCRIPT_STOP;	// for compilers that don't support NORETURN
 }
 
 int Logic::fnStartTalk(Object *cpt, int32 id, int32 target, int32 d, int32 e, int32 f, int32 z, int32 x) {
@@ -1606,8 +1601,8 @@ int Logic::fnStopMusic(Object *cpt, int32 id, int32 a, int32 b, int32 c, int32 d
 }
 
 int Logic::fnInnerSpace(Object *cpt, int32 id, int32 a, int32 b, int32 c, int32 d, int32 z, int32 x) {
-	error("fnInnerSpace() not working.");
-	return SCRIPT_STOP;
+	error("fnInnerSpace() not working");
+	return SCRIPT_STOP;	// for compilers that don't support NORETURN
 }
 
 int Logic::fnSetScreen(Object *cpt, int32 id, int32 target, int32 screen, int32 c, int32 d, int32 z, int32 x) {
@@ -1635,7 +1630,7 @@ int Logic::fnRestartGame(Object *cpt, int32 id, int32 a, int32 b, int32 c, int32
 
 int Logic::fnQuitGame(Object *cpt, int32 id, int32 a, int32 b, int32 c, int32 d, int32 z, int32 x) {
 	if (SwordEngine::_systemVars.isDemo) {
-		GUI::MessageDialog dialog("This is the end of the Broken Sword 1 Demo", "OK", NULL);
+		GUI::MessageDialog dialog(_("This is the end of the Broken Sword 1 Demo"), _("OK"), NULL);
 		dialog.runModal();
 		Engine::quitGame();
 	} else

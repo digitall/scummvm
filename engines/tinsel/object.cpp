@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * This file contains the Object Manager code.
  */
 
@@ -32,12 +29,16 @@
 #include "tinsel/text.h"
 #include "tinsel/tinsel.h"
 
+#include "common/textconsole.h"
+
 #define	OID_EFFECTS	0x2000			// generic special effects object id
 
 namespace Tinsel {
 
+// FIXME: Avoid non-const global vars
+
 // list of all objects
-OBJECT *objectList = 0;
+static OBJECT *objectList = 0;
 
 // pointer to free object list
 static OBJECT *pFreeObjects = 0;
@@ -48,18 +49,16 @@ static int numObj = 0;
 static int maxObj = 0;
 #endif
 
-void FreeObjectList(void) {
-	if (objectList) {
-		free(objectList);
-		objectList = NULL;
-	}
+void FreeObjectList() {
+	free(objectList);
+	objectList = NULL;
 }
 
 /**
  * Kills all objects and places them on the free list.
  */
 
-void KillAllObjects(void) {
+void KillAllObjects() {
 	int i;
 
 #ifdef DEBUG
@@ -95,15 +94,15 @@ void KillAllObjects(void) {
  * Shows the maximum number of objects used at once.
  */
 
-void ObjectStats(void) {
-	printf("%i objects of %i used.\n", maxObj, NUM_OBJECTS);
+void ObjectStats() {
+	debug("%i objects of %i used", maxObj, NUM_OBJECTS);
 }
 #endif
 
 /**
  * Allocate a object from the free list.
  */
-OBJECT *AllocObject(void) {
+OBJECT *AllocObject() {
 	OBJECT *pObj = pFreeObjects;	// get a free object
 
 	// check for no free objects
@@ -128,6 +127,10 @@ OBJECT *AllocObject(void) {
 
 	// return new object
 	return pObj;
+}
+
+bool isValidObject(OBJECT *obj) {
+	return (obj >= objectList && obj <= objectList + NUM_OBJECTS - 1);
 }
 
 /**
@@ -159,13 +162,13 @@ void CopyObject(OBJECT *pDest, OBJECT *pSrc) {
  * @param pInsObj			Object to insert
  */
 
-void InsertObject(OBJECT *pObjList, OBJECT *pInsObj) {
-	OBJECT *pPrev, *pObj;	// object list traversal pointers
+void InsertObject(OBJECT **pObjList, OBJECT *pInsObj) {
+	OBJECT **pAnchor, *pObj;	// object list traversal pointers
 
 	// validate object pointer
-	assert(pInsObj >= objectList && pInsObj <= objectList + NUM_OBJECTS - 1);
+	assert(isValidObject(pInsObj));
 
-	for (pPrev = pObjList, pObj = pObjList->pNext; pObj != NULL; pPrev = pObj, pObj = pObj->pNext) {
+	for (pAnchor = pObjList, pObj = *pAnchor; pObj != NULL; pAnchor = &pObj->pNext, pObj = *pAnchor) {
 		// check Z order
 		if (pInsObj->zPos < pObj->zPos) {
 			// object Z is lower than list Z - insert here
@@ -179,9 +182,9 @@ void InsertObject(OBJECT *pObjList, OBJECT *pInsObj) {
 		}
 	}
 
-	// insert obj between pPrev and pObj
+	// insert obj between pAnchor and pObj
 	pInsObj->pNext = pObj;
-	pPrev->pNext = pInsObj;
+	*pAnchor = pInsObj;
 }
 
 
@@ -191,12 +194,12 @@ void InsertObject(OBJECT *pObjList, OBJECT *pInsObj) {
  * @param pObjList			List to delete object from
  * @param pDelObj			Object to delete
  */
-void DelObject(OBJECT *pObjList, OBJECT *pDelObj) {
-	OBJECT *pPrev, *pObj;	// object list traversal pointers
+void DelObject(OBJECT **pObjList, OBJECT *pDelObj) {
+	OBJECT **pAnchor, *pObj;	// object list traversal pointers
 	const Common::Rect rcScreen(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	// validate object pointer
-	assert(pDelObj >= objectList && pDelObj <= objectList + NUM_OBJECTS - 1);
+	assert(isValidObject(pDelObj));
 
 #ifdef DEBUG
 	// one less object in use
@@ -204,7 +207,7 @@ void DelObject(OBJECT *pObjList, OBJECT *pDelObj) {
 	assert(numObj >= 0);
 #endif
 
-	for (pPrev = pObjList, pObj = pObjList->pNext; pObj != NULL; pPrev = pObj, pObj = pObj->pNext) {
+	for (pAnchor = pObjList, pObj = *pAnchor; pObj != NULL; pAnchor = &pObj->pNext, pObj = *pAnchor) {
 		if (pObj == pDelObj) {
 			// found object to delete
 
@@ -214,7 +217,7 @@ void DelObject(OBJECT *pObjList, OBJECT *pDelObj) {
 			}
 
 			// make PREV next = OBJ next - removes OBJ from list
-			pPrev->pNext = pObj->pNext;
+			*pAnchor = pObj->pNext;
 
 			// place free list in OBJ next
 			pObj->pNext = pFreeObjects;
@@ -242,12 +245,12 @@ void DelObject(OBJECT *pObjList, OBJECT *pDelObj) {
  * Sort the specified object list in Z Y order.
  * @param pObjList			List to sort
  */
-void SortObjectList(OBJECT *pObjList) {
+void SortObjectList(OBJECT **pObjList) {
 	OBJECT *pPrev, *pObj;	// object list traversal pointers
 	OBJECT head;		// temporary head of list - because pObjList is not usually a OBJECT
 
 	// put at head of list
-	head.pNext = pObjList->pNext;
+	head.pNext = *pObjList;
 
 	// set head of list dummy OBJ Z Y values to lowest possible
 	head.yPos = intToFrac(MIN_INT16);
@@ -331,7 +334,7 @@ void GetAniOffset(SCNHANDLE hImg, int flags, int *pAniX, int *pAniY) {
  */
 void GetAniPosition(OBJECT *pObj, int *pPosX, int *pPosY) {
 	// validate object pointer
-	assert(pObj >= objectList && pObj <= objectList + NUM_OBJECTS - 1);
+	assert(isValidObject(pObj));
 
 	// get the animation offset of the object
 	GetAniOffset(pObj->hImg, pObj->flags, pPosX, pPosY);
@@ -342,7 +345,7 @@ void GetAniPosition(OBJECT *pObj, int *pPosX, int *pPosY) {
 }
 
 /**
- * Initialise a object using a OBJ_INIT structure to supply parameters.
+ * Initialize a object using a OBJ_INIT structure to supply parameters.
  * @param pInitTbl			Pointer to object initialisation table
  */
 OBJECT *InitObject(const OBJ_INIT *pInitTbl) {
@@ -419,7 +422,7 @@ OBJECT *InitObject(const OBJ_INIT *pInitTbl) {
  */
 void AnimateObjectFlags(OBJECT *pAniObj, int newflags, SCNHANDLE hNewImg) {
 	// validate object pointer
-	assert(pAniObj >= objectList && pAniObj <= objectList + NUM_OBJECTS - 1);
+	assert(isValidObject(pAniObj));
 
 	if (pAniObj->hImg != hNewImg
 		|| (pAniObj->flags & DMA_HARDFLAGS) != (newflags & DMA_HARDFLAGS)) {
@@ -478,12 +481,12 @@ void AnimateObject(OBJECT *pAniObj, SCNHANDLE hNewImg) {
  * Creates a rectangle object of the given dimensions and returns
  * a pointer to the object.
  * @param hPal			Palette for the rectangle object
- * @param colour		Which colour offset from the above palette
+ * @param color		Which color offset from the above palette
  * @param width			Width of rectangle
  * @param height		Height of rectangle
  */
-OBJECT *RectangleObject(SCNHANDLE hPal, int colour, int width, int height) {
-	// template for initialising the rectangle object
+OBJECT *RectangleObject(SCNHANDLE hPal, int color, int width, int height) {
+	// template for initializing the rectangle object
 	static const OBJ_INIT rectObj = {0, DMA_CONST, OID_EFFECTS, 0, 0, 0};
 	PALQ *pPalQ;		// palette queue pointer
 
@@ -499,8 +502,8 @@ OBJECT *RectangleObject(SCNHANDLE hPal, int colour, int width, int height) {
 	// assign palette to object
 	pRect->pPal = pPalQ;
 
-	// set colour in the palette
-	pRect->constant = colour;
+	// set color in the palette
+	pRect->constant = color;
 
 	// set rectangle width
 	pRect->width = width;
@@ -519,7 +522,7 @@ OBJECT *RectangleObject(SCNHANDLE hPal, int colour, int width, int height) {
  * @param height		Height of rectangle
  */
 OBJECT *TranslucentObject(int width, int height) {
-	// template for initialising the rectangle object
+	// template for initializing the rectangle object
 	static const OBJ_INIT rectObj = {0, DMA_TRANS, OID_EFFECTS, 0, 0, 0};
 
 	// allocate and init a new object
@@ -535,4 +538,4 @@ OBJECT *TranslucentObject(int width, int height) {
 	return pRect;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

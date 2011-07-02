@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "graphics/scaler/intern.h"
@@ -41,12 +38,12 @@ static inline int GetResult(uint32 A, uint32 B, uint32 C, uint32 D) {
 	return (y>>1) - (x>>1);
 }
 
-#define interpolate_1_1		interpolate16_1_1<Graphics::ColorMasks<bitFormat> >
-#define interpolate_3_1		interpolate16_3_1<Graphics::ColorMasks<bitFormat> >
-#define interpolate_6_1_1	interpolate16_6_1_1<Graphics::ColorMasks<bitFormat> >
-#define interpolate_1_1_1_1	interpolate16_1_1_1_1<Graphics::ColorMasks<bitFormat> >
+#define interpolate_1_1		interpolate16_1_1<ColorMask>
+#define interpolate_3_1		interpolate16_3_1<ColorMask>
+#define interpolate_6_1_1	interpolate16_6_1_1<ColorMask>
+#define interpolate_1_1_1_1	interpolate16_1_1_1_1<ColorMask>
 
-template<int bitFormat>
+template<typename ColorMask>
 void Super2xSaITemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
 	const uint16 *bP;
 	uint16 *dP;
@@ -153,9 +150,15 @@ void Super2xSaITemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uin
 	}
 }
 
-MAKE_WRAPPER(Super2xSaI)
+void Super2xSaI(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+	extern int gBitFormat;
+	if (gBitFormat == 565)
+		Super2xSaITemplate<Graphics::ColorMasks<565> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+	else
+		Super2xSaITemplate<Graphics::ColorMasks<555> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+}
 
-template<int bitFormat>
+template<typename ColorMask>
 void SuperEagleTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
 	const uint16 *bP;
 	uint16 *dP;
@@ -258,9 +261,16 @@ void SuperEagleTemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uin
 	}
 }
 
-MAKE_WRAPPER(SuperEagle)
 
-template<int bitFormat>
+void SuperEagle(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+	extern int gBitFormat;
+	if (gBitFormat == 565)
+		SuperEagleTemplate<Graphics::ColorMasks<565> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+	else
+		SuperEagleTemplate<Graphics::ColorMasks<555> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+}
+
+template<typename ColorMask>
 void _2xSaITemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
 	const uint16 *bP;
 	uint16 *dP;
@@ -274,7 +284,7 @@ void _2xSaITemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 
 
 			register unsigned colorA, colorB;
 			unsigned colorC, colorD,
-				colorE, colorF, colorG, colorH, colorI, colorJ, colorK, colorL, colorM, colorN, colorO, colorP;
+				colorE, colorF, colorG, colorH, colorI, colorJ, colorK, colorL, colorM, colorN, colorO;
 			unsigned product, product1, product2;
 
 //---------------------------------------
@@ -300,7 +310,6 @@ void _2xSaITemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 
 			colorM = *(bP + 2 * nextlineSrc - 1);
 			colorN = *(bP + 2 * nextlineSrc);
 			colorO = *(bP + 2 * nextlineSrc + 1);
-			colorP = *(bP + 2 * nextlineSrc + 2);
 
 			if ((colorA == colorD) && (colorB != colorC)) {
 				if (((colorA == colorE) && (colorB == colorL)) ||
@@ -394,4 +403,11 @@ void _2xSaITemplate(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 
 	}
 }
 
-MAKE_WRAPPER(_2xSaI)
+
+void _2xSaI(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height) {
+	extern int gBitFormat;
+	if (gBitFormat == 565)
+		_2xSaITemplate<Graphics::ColorMasks<565> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+	else
+		_2xSaITemplate<Graphics::ColorMasks<555> >(srcPtr, srcPitch, dstPtr, dstPitch, width, height);
+}

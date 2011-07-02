@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TOUCHE_ENGINE_H
@@ -29,13 +26,24 @@
 #include "common/array.h"
 #include "common/endian.h"
 #include "common/file.h"
+#include "common/random.h"
 #include "common/rect.h"
 #include "common/util.h"
 
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 #include "engines/engine.h"
 
+#include "touche/console.h"
+
+/**
+ * This is the namespace of the Touche engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Touche: The Adventures of the Fifth Musketeer
+ */
 namespace Touche {
 
 struct Area {
@@ -373,10 +381,9 @@ public:
 	virtual Common::Error run();
 	virtual bool hasFeature(EngineFeature f) const;
 	virtual void syncSoundSettings();
+	GUI::Debugger *getDebugger() { return _console; }
 
 protected:
-
-	bool detectGame();
 
 	void restart();
 	void readConfigurationSettings();
@@ -504,10 +511,12 @@ protected:
 
 	void saveGameStateData(Common::WriteStream *stream);
 	void loadGameStateData(Common::ReadStream *stream);
-	virtual Common::Error saveGameState(int num, const char *description);
+	virtual Common::Error saveGameState(int num, const Common::String &description);
 	virtual Common::Error loadGameState(int num);
 	virtual bool canLoadGameStateCurrently();
 	virtual bool canSaveGameStateCurrently();
+
+	ToucheConsole *_console;
 
 	void setupOpcodes();
 	void op_nop();
@@ -517,7 +526,7 @@ protected:
 	void op_true();
 	void op_false();
 	void op_push();
-	void op_testFalse();
+	void op_not();
 	void op_add();
 	void op_sub();
 	void op_mul();
@@ -525,7 +534,7 @@ protected:
 	void op_mod();
 	void op_and();
 	void op_or();
-	void op_not();
+	void op_neg();
 	void op_testGreater();
 	void op_testEquals();
 	void op_testLower();
@@ -767,7 +776,7 @@ protected:
 	int _fullRedrawCounter;
 	int _menuRedrawCounter;
 	uint8 *_offscreenBuffer;
-	uint8 _paletteBuffer[256 * 4];
+	uint8 _paletteBuffer[256 * 3];
 	Common::Rect _dirtyRectsTable[NUM_DIRTY_RECTS];
 	int _dirtyRectsTableCount;
 

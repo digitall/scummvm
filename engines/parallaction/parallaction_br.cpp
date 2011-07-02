@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
 #include "common/util.h"
+#include "common/textconsole.h"
 
 #include "parallaction/parallaction.h"
 #include "parallaction/exec.h"
@@ -61,9 +59,7 @@ Common::Error Parallaction_br::init() {
 			_disk = new DosDisk_br(this);
 		}
 		_disk->setLanguage(2);					// NOTE: language is now hardcoded to English. Original used command-line parameters.
-		int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-		MidiDriver *driver = MidiDriver::createMidi(midiDriver);
-		_soundManI = new DosSoundMan_br(this, driver);
+		_soundManI = new DosSoundMan_br(this);
 	} else {
 		_disk = new AmigaDisk_br(this);
 		_disk->setLanguage(2);					// NOTE: language is now hardcoded to English. Original used command-line parameters.
@@ -86,9 +82,10 @@ Common::Error Parallaction_br::init() {
 	_walker = new PathWalker_BR;
 
 	_part = -1;
+	_nextPart = -1;
 
-	_subtitle[0] = -1;
-	_subtitle[1] = -1;
+	_subtitle[0] = 0;
+	_subtitle[1] = 0;
 
 	memset(_zoneFlags, 0, sizeof(_zoneFlags));
 
@@ -134,7 +131,7 @@ bool Parallaction_br::processGameEvent(int event) {
 	bool c = true;
 	_input->stopHovering();
 
-	switch(event) {
+	switch (event) {
 	case kEvIngameMenu:
 		startIngameMenu();
 		c = false;
@@ -153,7 +150,8 @@ Common::Error Parallaction_br::go() {
 	while (!shouldQuit()) {
 
 		if (getFeatures() & GF_DEMO) {
-			scheduleLocationSwitch("camalb.1");
+			scheduleLocationSwitch("camalb");
+			_nextPart = 1;
 			_input->_inputMode = Input::kInputModeGame;
 		} else {
 			startGui(splash);
@@ -195,7 +193,7 @@ void Parallaction_br::runPendingZones() {
 	if (_activeZone) {
 		z = _activeZone;	// speak Zone or sound
 		_activeZone.reset();
-		if (ACTIONTYPE(z) == kZoneSpeak) {
+		if (ACTIONTYPE(z) == kZoneSpeak && z->u._speakDialogue) {
 			enterDialogueMode(z);
 		} else {
 			runZone(z);			// FIXME: BRA doesn't handle sound yet
@@ -205,7 +203,7 @@ void Parallaction_br::runPendingZones() {
 	if (_activeZone2) {
 		z = _activeZone2;	// speak Zone or sound
 		_activeZone2.reset();
-		if (ACTIONTYPE(z) == kZoneSpeak) {
+		if (ACTIONTYPE(z) == kZoneSpeak && z->u._speakDialogue) {
 			enterDialogueMode(z);
 		} else {
 			runZone(z);			// FIXME: BRA doesn't handle sound yet
@@ -226,7 +224,6 @@ void Parallaction_br::freeCharacter() {
 void Parallaction_br::freeLocation(bool removeAll) {
 	// free open location stuff
 	clearSubtitles();
-	_subtitle[0] = _subtitle[1] = -1;
 
 	_localFlagNames->clear();
 
@@ -260,25 +257,30 @@ void Parallaction_br::cleanupGame() {
 	_globalFlagsNames = 0;
 	_objectsNames = 0;
 	_countersNames = 0;
+
+	_numLocations = 0;
+	_globalFlags = 0;
+	memset(_localFlags, 0, sizeof(_localFlags));
+	memset(_locationNames, 0, sizeof(_locationNames));
+	memset(_zoneFlags, 0, sizeof(_zoneFlags));
 }
 
 
 void Parallaction_br::changeLocation() {
-    if (_newLocationName.empty()) {
-        return;
-    }
+	if (_newLocationName.empty()) {
+		return;
+	}
 
-    char location[200];
-    strcpy(location, _newLocationName.c_str());
-
-	char *partStr = strrchr(location, '.');
-	if (partStr) {
+	if (_nextPart != -1) {
 		cleanupGame();
 
-		int n = partStr - location;
-		location[n] = '\0';
+		// more cleanup needed for part changes (see also saveload)
+		_globalFlags = 0;
+		cleanInventory(true);
+		strcpy(_characterName1, "null");
 
-		_part = atoi(++partStr);
+		_part = _nextPart;
+
 		if (getFeatures() & GF_DEMO) {
 			assert(_part == 1);
 		} else {
@@ -294,6 +296,7 @@ void Parallaction_br::changeLocation() {
 		_countersNames = _disk->loadTable("counters");
 
 		// TODO: maybe handle this into Disk
+		delete _objects;
 		if (getPlatform() == Common::kPlatformPC) {
 			_objects = _disk->loadObjects("icone.ico");
 		} else {
@@ -305,8 +308,8 @@ void Parallaction_br::changeLocation() {
 
 	freeLocation(false);
 	// load new location
-	strcpy(_location._name, location);
-	parseLocation(location);
+	strcpy(_location._name, _newLocationName.c_str());
+	parseLocation(_location._name);
 
 	if (_location._startPosition.x != -1000) {
 		_char._ani->setFoot(_location._startPosition);
@@ -357,6 +360,7 @@ void Parallaction_br::changeLocation() {
 
 	_engineFlags &= ~kEngineChangeLocation;
 	_newLocationName.clear();
+	_nextPart = -1;
 }
 
 // FIXME: Parallaction_br::parseLocation() is now a verbatim copy of the same routine from Parallaction_ns.
@@ -455,6 +459,11 @@ void Parallaction_br::changeCharacter(const char *name) {
 		_char.setName(name);
 		_char._ani->gfxobj = _gfx->loadCharacterAnim(name);
 		_char._talk = _disk->loadTalk(name);
+
+		/* TODO: adjust inventories as following
+		 * 1) if not on game load, then copy _inventory to the right slot of _charInventories
+		 * 2) copy the new inventory from the right slot of _charInventories
+		 */
 	}
 
 	_char._ani->_flags |= kFlagsActive;

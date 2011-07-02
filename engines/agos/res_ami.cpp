@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Conversion routines for planar graphics in Amiga versions
@@ -119,7 +116,7 @@ static void convertCompressedImage(const byte *src, byte *dst, uint8 colorDepth,
 
 	uncbfroutptr = uncbfrout;
 	const int chunkSize = colorDepth > 4 ? 16 : 8;
-	if (horizontal)  {
+	if (horizontal) {
 		for (j = 0; j < height; ++j) {
 			for (i = 0; i < width / 16; ++i) {
 				memcpy(dst + width * chunkSize / 16 * j + chunkSize * i, uncbfroutptr, chunkSize);

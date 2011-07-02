@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_SCREEN_MR_H
@@ -39,6 +36,7 @@ public:
 
 	void setScreenDim(int dim);
 	const ScreenDim *getScreenDim(int dim);
+	int screenDimTableCount() const { return _screenDimTableCount; }
 
 	int getLayer(int x, int y);
 
@@ -54,6 +52,6 @@ private:
 	static const int _screenDimTableCount;
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif

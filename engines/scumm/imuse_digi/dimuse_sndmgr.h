@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SCUMM_IMUSE_DIGI_SNDMGR_H
@@ -27,7 +24,7 @@
 
 
 #include "common/scummsys.h"
-#include "sound/audiostream.h"
+#include "audio/audiostream.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
 
 namespace Scumm {
@@ -101,7 +98,7 @@ public:
 		int type;
 		int volGroupId;
 		int disk;
-		Audio::AudioStream *compressedStream;
+		Audio::SeekableAudioStream *compressedStream;
 		bool compressed;
 		char lastFileName[24];
 	};
@@ -113,7 +110,7 @@ private:
 	bool checkForProperHandle(SoundDesc *soundDesc);
 	SoundDesc *allocSlot();
 	void prepareSound(byte *ptr, SoundDesc *sound);
-	void prepareSoundFromRMAP(Common::File *file, SoundDesc *sound, int32 offset, int32 size);
+	void prepareSoundFromRMAP(Common::SeekableReadStream *file, SoundDesc *sound, int32 offset, int32 size);
 
 	ScummEngine *_vm;
 	byte _disk;

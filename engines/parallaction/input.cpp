@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/events.h"
 #include "common/system.h"
+#include "common/textconsole.h"
+#include "graphics/cursorman.h"
 
 #include "parallaction/exec.h"
 #include "parallaction/input.h"
@@ -111,7 +110,7 @@ void Input::readInput() {
 			_hasKeyPressEvent = true;
 			_keyPressed = e.kbd;
 
-			if (e.kbd.flags == Common::KBD_CTRL && e.kbd.keycode == 'd')
+			if (e.kbd.hasFlags(Common::KBD_CTRL) && e.kbd.keycode == Common::KEYCODE_d)
 				_vm->_debugger->attach();
 
 			updateMousePos = false;
@@ -148,8 +147,7 @@ void Input::readInput() {
 		setCursorPos(e.mouse);
 	}
 
-	if (_vm->_debugger->isAttached())
-		_vm->_debugger->onFrame();
+	_vm->_debugger->onFrame();
 
 	return;
 
@@ -190,11 +188,13 @@ int Input::updateGameInput() {
 	int event = kEvNone;
 
 	if (!isMouseEnabled() ||
+		(_engineFlags & kEngineBlockInput) ||
 		(_engineFlags & kEngineWalking) ||
 		(_engineFlags & kEngineChangeLocation)) {
 
-		debugC(3, kDebugInput, "updateGameInput: input flags (mouse: %i, walking: %i, changeloc: %i)",
+		debugC(3, kDebugInput, "updateGameInput: input flags (mouse: %i, block: %i, walking: %i, changeloc: %i)",
 			isMouseEnabled(),
+			(_engineFlags & kEngineBlockInput) == 0,
 			(_engineFlags & kEngineWalking) == 0,
 			(_engineFlags & kEngineChangeLocation) == 0
 		);
@@ -202,13 +202,13 @@ int Input::updateGameInput() {
 		return event;
 	}
 
-	if (_vm->getGameType() == GType_Nippon) {
+	if (_gameType == GType_Nippon) {
 		if (_hasKeyPressEvent && (_vm->getFeatures() & GF_DEMO) == 0) {
 			if (_keyPressed.keycode == Common::KEYCODE_l) event = kEvLoadGame;
 			if (_keyPressed.keycode == Common::KEYCODE_s) event = kEvSaveGame;
 		}
 	} else
-	if (_vm->getGameType() == GType_BRA) {
+	if (_gameType == GType_BRA) {
 		if (_hasKeyPressEvent && (_vm->getFeatures() & GF_DEMO) == 0) {
 			if (_keyPressed.keycode == Common::KEYCODE_F5) event = kEvIngameMenu;
 		}
@@ -324,8 +324,13 @@ bool Input::translateGameInput() {
 
 	if ((_mouseButtons == kMouseLeftUp) && ((_activeItem._id != 0) || (ACTIONTYPE(z) == kZoneCommand))) {
 
-		if (z->_flags & kFlagsNoWalk) {
-			// character doesn't need to walk to take specified action
+		bool noWalk = z->_flags & kFlagsNoWalk;	// check the explicit no-walk flag
+		if (_gameType == GType_BRA) {
+			// action performed on object marked for self-use do not need walk in BRA
+			noWalk |= ((z->_flags & kFlagsYourself) != 0);
+		}
+
+		if (noWalk) {
 			takeAction(z);
 		} else {
 			// action delayed: if Zone defined a moveto position the character is programmed to move there,
@@ -350,7 +355,7 @@ bool Input::translateGameInput() {
 
 void Input::enterInventoryMode() {
 	Common::Point mousePos;
-	getCursorPos(mousePos);
+	getAbsoluteCursorPos(mousePos);
 	bool hitCharacter = _vm->hitZone(kZoneYou, mousePos.x, mousePos.y);
 
 	if (hitCharacter) {
@@ -388,7 +393,7 @@ void Input::exitInventoryMode() {
 			_vm->dropItem(z->u._mergeObj1);
 			_vm->dropItem(z->u._mergeObj2);
 			_vm->addInventoryItem(z->u._mergeObj3);
-			_vm->_cmdExec->run(z->_commands);
+			_vm->_cmdExec->run(z->_commands);	// commands might set a new _inputMode
 		}
 
 	}
@@ -405,7 +410,11 @@ void Input::exitInventoryMode() {
 	}
 	_vm->resumeJobs();
 
-	_inputMode = kInputModeGame;
+	// in case the input mode was not changed by the code above (especially by the commands
+	// executed in case of a merge), then assume we are going back to game mode
+	if (_inputMode == kInputModeInventory) {
+		_inputMode = kInputModeGame;
+	}
 }
 
 bool Input::updateInventoryInput() {
@@ -434,11 +443,11 @@ void Input::setMouseState(MouseTriState state) {
 	switch (_mouseState) {
 	case MOUSE_ENABLED_HIDE:
 	case MOUSE_DISABLED:
-		_vm->_system->showMouse(false);
+		CursorMan.showMouse(false);
 		break;
 
 	case MOUSE_ENABLED_SHOW:
-		_vm->_system->showMouse(true);
+		CursorMan.showMouse(true);
 		break;
 	}
 }
@@ -475,7 +484,7 @@ void Input::initCursors() {
 			_donnaCursor = _vm->_disk->loadPointer("pointer3");
 
 			Graphics::Surface *surf = new Graphics::Surface;
-			surf->create(_mouseComboProps_BR._width, _mouseComboProps_BR._height, 1);
+			surf->create(_mouseComboProps_BR._width, _mouseComboProps_BR._height, Graphics::PixelFormat::createFormatCLUT8());
 			_comboArrow = new SurfaceToFrames(surf);
 
 			// TODO: choose the pointer depending on the active character
@@ -484,12 +493,12 @@ void Input::initCursors() {
 		} else {
 			// TODO: Where are the Amiga cursors?
 			Graphics::Surface *surf1 = new Graphics::Surface;
-			surf1->create(_mouseComboProps_BR._width, _mouseComboProps_BR._height, 1);
+			surf1->create(_mouseComboProps_BR._width, _mouseComboProps_BR._height, Graphics::PixelFormat::createFormatCLUT8());
 			_comboArrow = new SurfaceToFrames(surf1);
 
 			// TODO: scale mouse cursor (see staticres.cpp)
 			Graphics::Surface *surf2 = new Graphics::Surface;
-			surf2->create(32, 16, 1);
+			surf2->create(32, 16, Graphics::PixelFormat::createFormatCLUT8());
 			memcpy(surf2->pixels, _resMouseArrow_BR_Amiga, 32*16);
 			_mouseArrow = new SurfaceToFrames(surf2);
 		}
@@ -509,14 +518,14 @@ void Input::setArrowCursor() {
 		// this stuff is needed to avoid artifacts with labels and selected items when switching cursors
 		stopHovering();
 		_activeItem._id = 0;
-		_vm->_system->setMouseCursor(_mouseArrow->getData(0), MOUSEARROW_WIDTH_NS, MOUSEARROW_HEIGHT_NS, 0, 0, 0);
+		CursorMan.replaceCursor(_mouseArrow->getData(0), MOUSEARROW_WIDTH_NS, MOUSEARROW_HEIGHT_NS, 0, 0, 0);
 		break;
 
 	case GType_BRA: {
 		Common::Rect r;
 		_mouseArrow->getRect(0, r);
-		_vm->_system->setMouseCursor(_mouseArrow->getData(0), r.width(), r.height(), 0, 0, 0);
-		_vm->_system->showMouse(true);
+		CursorMan.replaceCursor(_mouseArrow->getData(0), r.width(), r.height(), 0, 0, 0);
+		CursorMan.showMouse(true);
 		_activeItem._id = 0;
 		break;
 	}
@@ -535,7 +544,7 @@ void Input::setInventoryCursor(ItemName name) {
 		byte *v8 = _comboArrow->getData(0);
 		// FIXME: destination offseting is not clear
 		_vm->_inventoryRenderer->drawItem(name, v8 + 7 * MOUSECOMBO_WIDTH_NS + 7, MOUSECOMBO_WIDTH_NS);
-		_vm->_system->setMouseCursor(v8, MOUSECOMBO_WIDTH_NS, MOUSECOMBO_HEIGHT_NS, 0, 0, 0);
+		CursorMan.replaceCursor(v8, MOUSECOMBO_WIDTH_NS, MOUSECOMBO_HEIGHT_NS, 0, 0, 0);
 		break;
 	}
 
@@ -545,7 +554,7 @@ void Input::setInventoryCursor(ItemName name) {
 		memcpy(dst, src, _comboArrow->getSize(0));
 		// FIXME: destination offseting is not clear
 		_vm->_inventoryRenderer->drawItem(name, dst + _mouseComboProps_BR._yOffset * _mouseComboProps_BR._width + _mouseComboProps_BR._xOffset, _mouseComboProps_BR._width);
-		_vm->_system->setMouseCursor(dst, _mouseComboProps_BR._width, _mouseComboProps_BR._height, 0, 0, 0);
+		CursorMan.replaceCursor(dst, _mouseComboProps_BR._width, _mouseComboProps_BR._height, 0, 0, 0);
 		break;
 	}
 

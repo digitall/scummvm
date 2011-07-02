@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
 #include "base/plugins.h"
-
+#include "common/savefile.h"
+#include "common/system.h"
 #include "engines/advancedDetector.h"
 
 #include "cruise/cruise.h"
@@ -40,6 +38,10 @@ struct CRUISEGameDescription {
 	int gameType;
 	uint32 features;
 };
+
+const char *CruiseEngine::getGameId() const {
+	return _gameDescription->desc.gameid;
+}
 
 int CruiseEngine::getGameType() const {
 	return _gameDescription->gameType;
@@ -67,6 +69,19 @@ namespace Cruise {
 using Common::GUIO_NONE;
 
 static const CRUISEGameDescription gameDescriptions[] = {
+	{
+		{
+			"cruise",
+			"16 colors",
+			AD_ENTRY1("D1", "cd29a4cd9162076e9a18495fe56a48f3"),
+			Common::EN_GRB,
+			Common::kPlatformPC,
+			ADGF_NO_FLAGS,
+			GUIO_NONE
+		},
+		GType_CRUISE,
+		0,
+	},
 	{
 		{
 			"cruise",
@@ -135,6 +150,45 @@ static const CRUISEGameDescription gameDescriptions[] = {
 	{
 		{
 			"cruise",
+			0,
+			AD_ENTRY1("D1", "70f42a21cc257b01d58667853335f4f1"),
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO_NONE
+		},
+		GType_CRUISE,
+		0,
+	},
+	{ // Amiga English US GOLD edition.
+		{
+			"cruise",
+			0,
+			AD_ENTRY1("D1", "de084e9d2c6e4b2cc14803bf849eda3e"),
+			Common::EN_ANY,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO_NONE
+		},
+		GType_CRUISE,
+		0,
+	},
+	{ // AtariST English KixxXL edition.
+		{
+			"cruise",
+			0,
+			AD_ENTRY1("D1", "be78614d5fa34bdb68bb03a2a6130280"),
+			Common::EN_ANY,
+			Common::kPlatformAtariST,
+			ADGF_NO_FLAGS,
+			GUIO_NONE
+		},
+		GType_CRUISE,
+		0,
+	},
+	{
+		{
+			"cruise",
 			"256 colors",
 			AD_ENTRY1("D1", "e19a4ab2e24a69087e4ea994a5506231"),
 			Common::IT_ITA,
@@ -163,33 +217,15 @@ static const CRUISEGameDescription gameDescriptions[] = {
 
 }
 
-static const ADParams detectionParams = {
-	// Pointer to ADGameDescription or its superset structure
-	(const byte *)Cruise::gameDescriptions,
-	// Size of that superset structure
-	sizeof(Cruise::CRUISEGameDescription),
-	// Number of bytes to compute MD5 sum for
-	5000,
-	// List of all engine targets
-	cruiseGames,
-	// Structure for autoupgrading obsolete targets
-	0,
-	// Name of single gameid (optional)
-	"cruise",
-	// List of files for file-based fallback detection (optional)
-	0,
-	// Flags
-	0,
-	// Additional GUI options (for every game}
-	Common::GUIO_NOSPEECH | Common::GUIO_NOMIDI
-};
-
 class CruiseMetaEngine : public AdvancedMetaEngine {
 public:
-	CruiseMetaEngine() : AdvancedMetaEngine(detectionParams) {}
+	CruiseMetaEngine() : AdvancedMetaEngine(Cruise::gameDescriptions, sizeof(Cruise::CRUISEGameDescription), cruiseGames) {
+		_singleid = "cruise";
+		_guioptions = Common::GUIO_NOSPEECH | Common::GUIO_NOMIDI;
+	}
 
 	virtual const char *getName() const {
-		return "Cinematique evo 2 engine";
+		return "CruisE";
 	}
 
 	virtual const char *getOriginalCopyright() const {
@@ -197,7 +233,7 @@ public:
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual int getMaximumSaveSlot() const { return 99; };
+	virtual int getMaximumSaveSlot() const { return 99; }
 	virtual SaveStateList listSaves(const char *target) const;
 	virtual void removeSaveState(const char *target, int slot) const;
 	virtual SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
@@ -215,14 +251,14 @@ bool CruiseMetaEngine::hasFeature(MetaEngineFeature f) const {
 
 SaveStateList CruiseMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringList filenames;
+	Common::StringArray filenames;
 	Common::String pattern("cruise.s??");
 
 	filenames = saveFileMan->listSavefiles(pattern);
 	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
 
 	SaveStateList saveList;
-	for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last 2 digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + file->size() - 2);
 
@@ -232,7 +268,7 @@ SaveStateList CruiseMetaEngine::listSaves(const char *target) const {
 				Cruise::CruiseSavegameHeader header;
 				Cruise::readSavegameHeader(in, header);
 				saveList.push_back(SaveStateDescriptor(slotNum, header.saveName));
-				if (header.thumbnail) delete header.thumbnail;
+				delete header.thumbnail;
 				delete in;
 			}
 		}

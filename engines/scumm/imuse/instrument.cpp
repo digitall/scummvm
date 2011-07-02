@@ -17,16 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 
 #include "scumm/scumm.h"
 #include "scumm/saveload.h"
 #include "scumm/imuse/instrument.h"
-#include "sound/mididrv.h"
+#include "audio/mididrv.h"
 
 namespace Scumm {
 
@@ -144,12 +141,12 @@ public:
 				: (MidiDriver::_mt32ToGm[_program] < 128)); }
 };
 
-class Instrument_Adlib : public InstrumentInternal {
+class Instrument_AdLib : public InstrumentInternal {
 private:
 
 #include "common/pack-start.h"	// START STRUCT PACKING
 
-	struct AdlibInstrument {
+	struct AdLibInstrument {
 		byte flags_1;
 		byte oplvl_1;
 		byte atdec_1;
@@ -170,11 +167,11 @@ private:
 
 #include "common/pack-end.h"	// END STRUCT PACKING
 
-	AdlibInstrument _instrument;
+	AdLibInstrument _instrument;
 
 public:
-	Instrument_Adlib(const byte *data);
-	Instrument_Adlib(Serializer *s);
+	Instrument_AdLib(const byte *data);
+	Instrument_AdLib(Serializer *s);
 	void saveOrLoad(Serializer *s);
 	void send(MidiChannel *mc);
 	void copy_to(Instrument *dest) { dest->adlib((byte *)&_instrument); }
@@ -273,8 +270,7 @@ void Instrument::nativeMT32(bool native) {
 }
 
 void Instrument::clear() {
-	if (_instrument)
-		delete _instrument;
+	delete _instrument;
 	_instrument = NULL;
 	_type = itNone;
 }
@@ -291,8 +287,8 @@ void Instrument::adlib(const byte *instrument) {
 	clear();
 	if (!instrument)
 		return;
-	_type = itAdlib;
-	_instrument = new Instrument_Adlib(instrument);
+	_type = itAdLib;
+	_instrument = new Instrument_AdLib(instrument);
 }
 
 void Instrument::roland(const byte *instrument) {
@@ -317,8 +313,8 @@ void Instrument::saveOrLoad (Serializer *s) {
 		case itProgram:
 			_instrument = new Instrument_Program(s);
 			break;
-		case itAdlib:
-			_instrument = new Instrument_Adlib(s);
+		case itAdLib:
+			_instrument = new Instrument_AdLib(s);
 			break;
 		case itRoland:
 			_instrument = new Instrument_Roland(s);
@@ -372,29 +368,29 @@ void Instrument_Program::send(MidiChannel *mc) {
 
 ////////////////////////////////////////
 //
-// Instrument_Adlib class members
+// Instrument_AdLib class members
 //
 ////////////////////////////////////////
 
-Instrument_Adlib::Instrument_Adlib(const byte *data) {
+Instrument_AdLib::Instrument_AdLib(const byte *data) {
 	memcpy(&_instrument, data, sizeof(_instrument));
 }
 
-Instrument_Adlib::Instrument_Adlib(Serializer *s) {
+Instrument_AdLib::Instrument_AdLib(Serializer *s) {
 	if (!s->isSaving())
 		saveOrLoad(s);
 	else
 		memset(&_instrument, 0, sizeof(_instrument));
 }
 
-void Instrument_Adlib::saveOrLoad(Serializer *s) {
+void Instrument_AdLib::saveOrLoad(Serializer *s) {
 	if (s->isSaving())
 		s->saveBytes(&_instrument, sizeof(_instrument));
 	else
 		s->loadBytes(&_instrument, sizeof(_instrument));
 }
 
-void Instrument_Adlib::send(MidiChannel *mc) {
+void Instrument_AdLib::send(MidiChannel *mc) {
 	mc->sysEx_customInstrument('ADL ', (byte *)&_instrument);
 }
 
@@ -422,11 +418,11 @@ Instrument_Roland::Instrument_Roland(Serializer *s) {
 		memset(&_instrument, 0, sizeof(_instrument));
 }
 
-void Instrument_Roland::saveOrLoad (Serializer *s) {
+void Instrument_Roland::saveOrLoad(Serializer *s) {
 	if (s->isSaving()) {
-		s->saveBytes (&_instrument, sizeof(_instrument));
+		s->saveBytes(&_instrument, sizeof(_instrument));
 	} else {
-		s->loadBytes (&_instrument, sizeof(_instrument));
+		s->loadBytes(&_instrument, sizeof(_instrument));
 		memcpy(&_instrument_name, &_instrument.common.name, sizeof(_instrument.common.name));
 		_instrument_name[10] = '\0';
 		if (!_native_mt32 && getEquivalentGM() >= 128) {

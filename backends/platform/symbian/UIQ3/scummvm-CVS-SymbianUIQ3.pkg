@@ -1,5 +1,8 @@
-; ScummVM - Scumm Interpreter
-; Copyright (C) 2001-2006 The ScummVM project
+; ScummVM - Graphic Adventure Engine
+;
+; ScummVM is the legal property of its developers, whose names
+; are too numerous to list here. Please refer to the COPYRIGHT
+; file distributed with this source distribution.
 ;
 ; This program is free software; you can redistribute it and/or
 ; modify it under the terms of the GNU General Public License
@@ -15,9 +18,6 @@
 ; along with this program; if not, write to the Free Software
 ; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ;
-; $URL:$
-; $Id$
-;
 ;
 
 ;;;
@@ -32,7 +32,7 @@
 :"ScummVM"
 
 ; UID is the app's UID
-#{"ScummVM UIQ3"},(0xA0000657),0,14,0
+#{"ScummVM UIQ3"},(0xA0000657),1,30,0
 
 ; ProductID for UIQ 3.0
 ; Product/platform version UID, Major, Minor, Build, Product ID
@@ -57,9 +57,12 @@
 ; Common datafiles needed for some games
 "..\..\..\..\dists\engine-data\kyra.dat"-"c:\shared\scummvm\kyra.dat"
 "..\..\..\..\dists\engine-data\sky.cpt"-"c:\shared\scummvm\sky.cpt"
-"..\..\..\..\dists\engine-data\igor.tbl"-"c:\shared\scummvm\igor.tbl"
 "..\..\..\..\dists\engine-data\lure.dat"-"c:\shared\scummvm\lure.dat"
 "..\..\..\..\dists\engine-data\drascula.dat"-"c:\shared\scummvm\drascula.dat"
+"..\..\..\..\dists\engine-data\m4.dat"-"c:\shared\scummvm\m4.dat"
+"..\..\..\..\dists\engine-data\teenagent.dat"-"c:\shared\scummvm\teenagent.dat"
+"..\..\..\vkeybd\packs\vkeybd_default.zip"-"c:\shared\scummvm\vkeybd_default.zip"
+"..\..\..\..\gui\themes\translations.dat"-"c:\shared\scummvm\translations.dat"
 
 ; Config/log files: 'empty' will automagically be removed on uninstall
 ""-"c:\shared\scummvm\scummvm.ini",FILENULL

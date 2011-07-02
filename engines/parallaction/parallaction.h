@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef PARALLACTION_H
@@ -30,7 +27,9 @@
 #include "common/stack.h"
 #include "common/array.h"
 #include "common/func.h"
+#include "common/random.h"
 #include "common/savefile.h"
+#include "common/textconsole.h"
 
 #include "engines/engine.h"
 
@@ -42,6 +41,15 @@
 #define PATH_LEN	200
 
 
+/**
+ * This is the namespace of the Parallaction engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Nippon Safes Inc. (complete)
+ * - The Big Red Adventure (work in progress)
+ */
 namespace Parallaction {
 
 enum {
@@ -71,6 +79,7 @@ enum EngineFlags {
 	kEnginePauseJobs	= (1 << 1),
 	kEngineWalking		= (1 << 3),
 	kEngineChangeLocation	= (1 << 4),
+	kEngineBlockInput	= (1 << 5),
 	kEngineDragging		= (1 << 6),
 	kEngineTransformedDonna	= (1 << 7),
 
@@ -163,7 +172,6 @@ struct Location {
 
 protected:
 	int			_gameType;
-	void freeZones(bool removeAll);
 
 	bool keepZone_br(ZonePtr z);
 	bool keepZone_ns(ZonePtr z);
@@ -181,6 +189,7 @@ public:
 	ZonePtr findZone(const char *name);
 
 	void cleanup(bool removeAll);
+	void freeZones(bool removeAll);
 
 	int getScale(int z) const;
 };
@@ -241,7 +250,7 @@ public:
 	Common::Platform getPlatform() const;
 
 protected:		// members
-	bool detectGame(void);
+	bool detectGame();
 
 private:
 	const PARALLACTIONGameDescription *_gameDescription;
@@ -257,7 +266,7 @@ public:
 	virtual Common::Error run() {
 		Common::Error err;
 		err = init();
-		if (err != Common::kNoError)
+		if (err.getCode() != Common::kNoError)
 			return err;
 		return go();
 	}
@@ -270,6 +279,7 @@ public:
 	int32			_screenWidth;
 	int32			_screenHeight;
 	int32			_screenSize;
+	int				_gameType;
 
 	// subsystems
 	Gfx				*_gfx;
@@ -298,6 +308,7 @@ public:
 	BalloonManager		*_balloonMan;
 	DialogueManager		*_dialogueMan;
 	InventoryRenderer	*_inventoryRenderer;
+	Inventory			*_inventory;			// inventory for the current character
 
 	// game data
 	Character		_char;
@@ -330,6 +341,7 @@ protected:
 	void	allocateLocationSlot(const char *name);
 	void	finalizeLocationParsing();
 	void	showLocationComment(const Common::String &text, bool end);
+	void	destroyDialogueManager();
 
 public:
 	void	beep();
@@ -348,6 +360,7 @@ public:
 	uint32		getLocationFlags();
 	bool		checkSpecialZoneBox(ZonePtr z, uint32 type, uint x, uint y);
 	bool		checkZoneBox(ZonePtr z, uint32 type, uint x, uint y);
+	bool 		checkZoneType(ZonePtr z, uint32 type);
 	bool		checkLinkedAnimBox(ZonePtr z, uint32 type, uint x, uint y);
 	ZonePtr		hitZone(uint32 type, uint16 x, uint16 y);
 	void		runZone(ZonePtr z);
@@ -365,7 +378,6 @@ public:
 	void		cleanInventory(bool keepVerbs = true);
 	void		openInventory();
 	void		closeInventory();
-	Inventory 	*getActiveInventory();
 
 	virtual void parseLocation(const char* name) = 0;
 	virtual void changeLocation() = 0;
@@ -415,7 +427,6 @@ private:
 	bool				_inTestResult;
 	LocationParser_ns	*_locationParser;
 	ProgramParser_ns	*_programParser;
-	Inventory			*_inventory;
 
 private:
 	void	initFonts();
@@ -430,6 +441,7 @@ private:
 	void	loadProgram(AnimationPtr a, const char *filename);
 	void	freeLocation(bool removeAll);
 	void	freeCharacter();
+	void	destroyTestResultLabels();
 	void	startMovingSarcophagus(ZonePtr sarc);
 	void	stopMovingSarcophagus();
 
@@ -450,6 +462,8 @@ private:
 	bool _intro;
 	static const Callable _dosCallables[25];
 	static const Callable _amigaCallables[25];
+
+	GfxObj *_testResultLabels[2];
 
 	PathWalker_NS		*_walker;
 
@@ -533,12 +547,15 @@ public:
 	const char **_audioCommandsNamesRes;
 	static const char *_partNames[];
 	int			_part;
+	int			_nextPart;
+
+
 #if 0	// disabled since I couldn't find any references to lip sync in the scripts
 	int16		_lipSyncVal;
 	uint		_subtitleLipSync;
 #endif
 	int			_subtitleY;
-	int			_subtitle[2];
+	GfxObj		*_subtitle[2];
 	ZonePtr		_activeZone2;
 	uint32		_zoneFlags[NUM_LOCATIONS][NUM_ZONES];
 
@@ -547,7 +564,7 @@ private:
 	LocationParser_br		*_locationParser;
 	ProgramParser_br		*_programParser;
 	SoundMan_br				*_soundManI;
-	Inventory				*_inventory;
+	Inventory				*_charInventories[3];	// all the inventories
 
 	int32		_counters[32];
 	Table		*_countersNames;
@@ -587,7 +604,7 @@ private:
 extern Parallaction *_vm;
 
 
-} // namespace Parallaction
+} // End of namespace Parallaction
 
 
 #endif

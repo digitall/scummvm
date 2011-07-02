@@ -18,24 +18,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef VECTOR_RENDERER_H
 #define VECTOR_RENDERER_H
 
+#include "common/rect.h"
 #include "common/scummsys.h"
-#include "common/system.h"
+#include "common/str.h"
 
 #include "graphics/surface.h"
-#include "graphics/pixelformat.h"
 
 #include "gui/ThemeEngine.h"
 
+class OSystem;
+
 namespace Graphics {
 class VectorRenderer;
+struct DrawStep;
 
 
 typedef void (VectorRenderer::*DrawingFunctionCallback)(const Common::Rect &, const Graphics::DrawStep &);
@@ -494,6 +494,6 @@ protected:
 	int _gradientBytes[3]; /**< Color bytes of the active gradient, used to speed up calculation */
 };
 
-} // end of namespace Graphics
+} // End of namespace Graphics
 
 #endif

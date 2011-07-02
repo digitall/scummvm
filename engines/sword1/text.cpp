@@ -18,14 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
-#include "common/endian.h"
-#include "common/util.h"
+#include "common/textconsole.h"
 
 #include "sword1/text.h"
 #include "sword1/resman.h"
@@ -49,13 +45,13 @@ Text::Text(ObjectMan *pObjMan, ResMan *pResMan, bool czechVersion) {
 	_fontId = (czechVersion) ? CZECH_GAME_FONT : GAME_FONT;
 	_font = (uint8*)_resMan->openFetchRes(_fontId);
 
-	_joinWidth = charWidth( SPACE ) - 2 * OVERLAP;
+	_joinWidth = charWidth(SPACE) - 2 * OVERLAP;
 	_charHeight = _resMan->getUint16(_resMan->fetchFrame(_font, 0)->height); // all chars have the same height
 	for (int i = 0; i < MAX_TEXT_OBS; i++)
 		_textBlocks[i] = NULL;
 }
 
-Text::~Text(void) {
+Text::~Text() {
 	for (int i = 0; i < MAX_TEXT_OBS; i++)
 		free(_textBlocks[i]);
 	//_resMan->resClose(_fontId); => wiped automatically by _resMan->flush();
@@ -77,7 +73,7 @@ uint32 Text::lowTextManager(uint8 *ascii, int32 width, uint8 pen) {
 	return textObjId;
 }
 
-void Text::makeTextSprite(uint8 slot, uint8 *text, uint16 maxWidth, uint8 pen) {
+void Text::makeTextSprite(uint8 slot, const uint8 *text, uint16 maxWidth, uint8 pen) {
 	LineInfo lines[MAX_LINES];
 	uint16 numLines = analyzeSentence(text, maxWidth, lines);
 
@@ -106,7 +102,7 @@ void Text::makeTextSprite(uint8 slot, uint8 *text, uint16 maxWidth, uint8 pen) {
 		for (uint16 pos = 0; pos < lines[lineCnt].length; pos++)
 			sprPtr += copyChar(*text++, sprPtr, sprWidth, pen) - OVERLAP;
 		text++; // skip space at the end of the line
-		if(SwordEngine::isPsx()) //Chars are half height in psx version
+		if (SwordEngine::isPsx()) //Chars are half height in psx version
 			linePtr += (_charHeight / 2) * sprWidth;
 		else
 			linePtr += _charHeight * sprWidth;
@@ -119,7 +115,7 @@ uint16 Text::charWidth(uint8 ch) {
 	return _resMan->getUint16(_resMan->fetchFrame(_font, ch - SPACE)->width);
 }
 
-uint16 Text::analyzeSentence(uint8 *text, uint16 maxWidth, LineInfo *line) {
+uint16 Text::analyzeSentence(const uint8 *text, uint16 maxWidth, LineInfo *line) {
 	uint16 lineNo = 0;
 
 	bool firstWord = true;
@@ -136,7 +132,7 @@ uint16 Text::analyzeSentence(uint8 *text, uint16 maxWidth, LineInfo *line) {
 			text++;
 
 		wordWidth += OVERLAP; // no overlap on final letter of word!
-		if ( firstWord )	{ // first word on first line, so no separating SPACE needed
+		if (firstWord)	{ // first word on first line, so no separating SPACE needed
 			line[0].width = wordWidth;
 			line[0].length = wordLength;
 			firstWord = false;
@@ -145,12 +141,12 @@ uint16 Text::analyzeSentence(uint8 *text, uint16 maxWidth, LineInfo *line) {
 			// (with a separating space character - also overlapped)
 			uint16 spaceNeeded = _joinWidth + wordWidth;
 
-			if (line[lineNo].width + spaceNeeded <= maxWidth ) {
+			if (line[lineNo].width + spaceNeeded <= maxWidth) {
 				line[lineNo].width += spaceNeeded;
 				line[lineNo].length += 1 + wordLength; // NB. space+word characters
 			} else {	// put word (without separating SPACE) at start of next line
 				lineNo++;
-				assert( lineNo < MAX_LINES );
+				assert(lineNo < MAX_LINES);
 				line[lineNo].width = wordWidth;
 				line[lineNo].length = wordLength;
 			}
@@ -167,9 +163,9 @@ uint16 Text::copyChar(uint8 ch, uint8 *sprPtr, uint16 sprWidth, uint8 pen) {
 	uint8 *decChr;
 	uint16 frameHeight = 0;
 
-	if(SwordEngine::isPsx()) {
+	if (SwordEngine::isPsx()) {
 		frameHeight =  _resMan->getUint16(chFrame->height)/2;
-		if(_fontId == CZECH_GAME_FONT) { //Czech game fonts are compressed
+		if (_fontId == CZECH_GAME_FONT) { //Czech game fonts are compressed
 			decBuf = (uint8*) malloc((_resMan->getUint16(chFrame->width))*(_resMan->getUint16(chFrame->height)/2));
 			Screen::decompressHIF(chData, decBuf);
 			decChr = decBuf;

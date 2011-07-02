@@ -18,12 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/scummsys.h"
+
 #ifdef ENABLE_VKEYBD
+
+#include "common/textconsole.h"
 
 #include "backends/vkeybd/image-map.h"
 #include "backends/vkeybd/polygon.h"
@@ -53,7 +54,7 @@ void ImageMap::removeArea(const String& id) {
 
 void ImageMap::removeAllAreas() {
 	HashMap<String, Polygon*>::iterator it;
-	for (it = _areas.begin(); it != _areas.end(); it++) {
+	for (it = _areas.begin(); it != _areas.end(); ++it) {
 		delete it->_value;
 	}
 	_areas.clear();
@@ -61,7 +62,7 @@ void ImageMap::removeAllAreas() {
 
 String ImageMap::findMapArea(int16 x, int16 y) {
 	HashMap<String, Polygon*>::iterator it;
-	for (it = _areas.begin(); it != _areas.end(); it++) {
+	for (it = _areas.begin(); it != _areas.end(); ++it) {
 		if (it->_value->contains(x, y))
 			return it->_key;
 	}

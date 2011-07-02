@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef QUEEN_DISPLAY_H
@@ -28,11 +25,13 @@
 
 #include "common/str.h"
 #include "common/util.h"
+#include "common/random.h"
 #include "queen/defs.h"
 
 class OSystem;
+
 namespace Common {
-	struct Rect;
+struct Rect;
 }
 
 namespace Queen {
@@ -45,7 +44,7 @@ public:
 	Display(QueenEngine *vm, OSystem *system);
 	~Display();
 
-	//! initialise dynalum for the specified room
+	//! initialize dynalum for the specified room
 	void dynalumInit(const char *roomName, uint16 roomNum);
 
 	//! update dynalum for the current room
@@ -139,7 +138,7 @@ public:
 	//! show/hide mouse cursor
 	void showMouseCursor(bool show);
 
-	//! initialise font, compute justification sizes
+	//! initialize font, compute justification sizes
 	void initFont();
 
 	//! add the specified text to the texts list

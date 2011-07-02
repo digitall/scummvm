@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Definition of POLYGON structure and functions in POLYGONS.C
  */
 
@@ -98,7 +95,7 @@ SCNHANDLE GetPolyScript(HPOLYGON p);
 REEL GetPolyReelType(HPOLYGON p);
 int32 GetPolyZfactor(HPOLYGON p);
 int numNodes(HPOLYGON pp);
-void RebootDeadTags(void);
+void RebootDeadTags();
 void DisableBlock(int block);
 void EnableBlock(int block);
 void DisableEffect(int effect);
@@ -112,10 +109,10 @@ void DisableTag(CORO_PARAM, int tag);
 void EnableTag(CORO_PARAM, int tag);
 void DisableExit(int exitno);
 void EnableExit(int exitno);
-HPOLYGON FirstPathPoly(void);
+HPOLYGON FirstPathPoly();
 HPOLYGON GetPolyHandle(int i);
 void InitPolygons(SCNHANDLE ph, int numPoly, bool bRestart);
-void DropPolygons(void);
+void DropPolygons();
 
 
 void SaveDeadPolys(bool *sdp);
@@ -127,8 +124,8 @@ void RestorePolygonStuff(POLY_VOLATILE *sps);
 
 PTYPE PolyType(HPOLYGON hp);		// ->type
 int PolySubtype(HPOLYGON hp);		// ->subtype
-int PolyCentreX(HPOLYGON hp);		// ->pcentrex
-int PolyCentreY(HPOLYGON hp);		// ->pcentrey
+int PolyCenterX(HPOLYGON hp);		// ->pcenterx
+int PolyCenterY(HPOLYGON hp);		// ->pcentery
 int PolyCornerX(HPOLYGON hp, int n);	// ->cx[n]
 int PolyCornerY(HPOLYGON hp, int n);	// ->cy[n]
 PSTATE PolyPointState(HPOLYGON hp);	// ->pointState
@@ -150,12 +147,12 @@ bool PolyTagFollowsCursor(HPOLYGON hp);
 SCNHANDLE GetPolyTagHandle(HPOLYGON hp);
 bool IsTagPolygon(int tagno);
 void GetPolyMidBottom(HPOLYGON hp, int *pX, int *pY);
-int PathCount(void);
+int PathCount();
 void MovePolygon(PTYPE ptype, int id, int x, int y);
 void MovePolygonTo(PTYPE ptype, int id, int x, int y);
 
 /*-------------------------------------------------------------------------*/
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		/* TINSEL_POLYGONS_H */

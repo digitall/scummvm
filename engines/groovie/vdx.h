@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_VDX_H
@@ -28,12 +25,17 @@
 
 #include "groovie/player.h"
 
+namespace Common {
+class ReadStream;
+}
+
 namespace Groovie {
 
 class VDXPlayer : public VideoPlayer {
 public:
 	VDXPlayer(GroovieEngine *vm);
 	~VDXPlayer();
+	void resetFlags();
 	void setOrigin(int16 x, int16 y);
 
 protected:
@@ -68,9 +70,9 @@ private:
 
 	void getStill(Common::ReadStream *in);
 	void getDelta(Common::ReadStream *in);
-	void expandColourMap(byte *out, uint16 colourMap, uint8 colour1, uint8 colour0);
-	void decodeBlockStill(byte *buf, byte *colours, uint16 imageWidth, uint8 mask);
-	void decodeBlockDelta(uint32 offset, byte *colours, uint16 imageWidth);
+	void expandColorMap(byte *out, uint16 colorMap, uint8 color1, uint8 color0);
+	void decodeBlockStill(byte *buf, byte *colors, uint16 imageWidth, uint8 mask);
+	void decodeBlockDelta(uint32 offset, byte *colors, uint16 imageWidth);
 	void chunkSound(Common::ReadStream *in);
 	void setPalette(uint8 *palette);
 	void fadeIn(uint8 *palette);

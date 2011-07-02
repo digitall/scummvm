@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef MADE_SCRIPTFUNCS_H
@@ -33,6 +30,10 @@
 
 #include "made/resource.h"
 
+namespace Audio {
+class PCSpeaker;
+}
+
 namespace Made {
 
 class MadeEngine;
@@ -41,24 +42,31 @@ typedef Common::Functor2<int16, int16*, int16> ExternalFunc;
 
 class ScriptFunctions {
 public:
-	ScriptFunctions(MadeEngine *vm) : _vm(vm) {}
-	virtual ~ScriptFunctions() {
-		for (uint i = 0; i < _externalFuncs.size(); ++i)
-			delete _externalFuncs[i];
-	}
+	ScriptFunctions(MadeEngine *vm);
+	virtual ~ScriptFunctions();
+
 	int16 callFunction(uint16 index, int16 argc, int16 *argv)  {
 		if (index >= _externalFuncs.size())
 			error("ScriptFunctions::callFunction() Invalid function index %d", index);
 		debug(4, "%s", _externalFuncNames[index]);
 		return (*_externalFuncs[index])(argc, argv);
 	}
+
 	void setupExternalsTable();
 	const char* getFuncName(int index) { return _externalFuncNames[index]; }
 	int getCount() const { return _externalFuncs.size(); }
+	void stopSound();
+
 protected:
 	MadeEngine *_vm;
 	Audio::SoundHandle _audioStreamHandle;
 	Audio::SoundHandle _voiceStreamHandle;
+	SoundResource* _soundResource;
+	bool _soundStarted;
+
+	// PlayNote/StopNote and PlayTele/StopTele wave generators
+	Audio::SoundHandle _pcSpeakerHandle1, _pcSpeakerHandle2;
+	Audio::PCSpeaker *_pcSpeaker1, *_pcSpeaker2;
 
 	Common::Array<const ExternalFunc*> _externalFuncs;
 	Common::Array<const char *> _externalFuncNames;

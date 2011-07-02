@@ -18,20 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_PLAYER_MOD_H
 #define SCUMM_PLAYER_MOD_H
 
 #include "scumm/scumm.h"
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 
 namespace Audio {
-	class RateConverter;
+class RateConverter;
 }
 
 namespace Scumm {
@@ -63,7 +60,7 @@ public:
 	}
 	bool isStereo() const { return true; }
 	bool endOfData() const { return false; }
-	int getRate() const { return _samplerate; }
+	int getRate() const { return _sampleRate; }
 
 private:
 	enum {
@@ -86,7 +83,7 @@ private:
 
 	uint32 _mixamt;
 	uint32 _mixpos;
-	int _samplerate;
+	const int _sampleRate;
 
 	soundChan _channels[MOD_MAXCHANS];
 

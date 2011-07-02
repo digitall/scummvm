@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "gui/themebrowser.h"
-#include "gui/ListWidget.h"
+#include "gui/widgets/list.h"
 #include "gui/widget.h"
+#include "gui/gui-manager.h"
+
+#include "common/translation.h"
 
 namespace GUI {
 
@@ -41,7 +41,7 @@ enum {
 ThemeBrowser::ThemeBrowser() : Dialog("Browser") {
 	_fileList = 0;
 
-	new StaticTextWidget(this, "Browser.Headline", "Select a Theme");
+	new StaticTextWidget(this, "Browser.Headline", _("Select a Theme"));
 
 	// Add file list
 	_fileList = new ListWidget(this, "Browser.List");
@@ -51,8 +51,8 @@ ThemeBrowser::ThemeBrowser() : Dialog("Browser") {
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundPlain;
 
 	// Buttons
-	new ButtonWidget(this, "Browser.Cancel", "Cancel", kCloseCmd, 0);
-	new ButtonWidget(this, "Browser.Choose", "Choose", kChooseCmd, 0);
+	new ButtonWidget(this, "Browser.Cancel", _("Cancel"), 0, kCloseCmd);
+	new ButtonWidget(this, "Browser.Choose", _("Choose"), 0, kChooseCmd);
 }
 
 void ThemeBrowser::open() {
@@ -100,7 +100,7 @@ void ThemeBrowser::updateListing() {
 	const Common::String currentThemeId = g_gui.theme()->getThemeId();
 	int currentThemeIndex = 0, index = 0;
 
-	Common::StringList list;
+	ListWidget::StringArray list;
 	for (ThemeDescList::const_iterator i = _themes.begin(); i != _themes.end(); ++i, ++index) {
 		list.push_back(i->name);
 
@@ -116,5 +116,5 @@ void ThemeBrowser::updateListing() {
 	draw();
 }
 
-} // end of namespace GUI
+} // End of namespace GUI
 

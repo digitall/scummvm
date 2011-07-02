@@ -18,13 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/debug.h"
 #include "common/endian.h"
-#include "sound/mixer.h"
+#include "common/memstream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
 
 #include "made/resource.h"
 #include "made/graphics.h"
@@ -45,17 +45,17 @@ PictureResource::PictureResource() : _picture(NULL), _picturePalette(NULL) {
 
 PictureResource::~PictureResource() {
 	if (_picture) {
+		_picture->free();
 		delete _picture;
 		_picture = 0;
 	}
-	if (_picturePalette) {
-		delete[] _picturePalette;
-		_picturePalette = 0;
-	}
+
+	delete[] _picturePalette;
+	_picturePalette = 0;
 }
 
 void PictureResource::load(byte *source, int size) {
-	if (READ_BE_UINT32(source) == MKID_BE('Flex')) {
+	if (READ_BE_UINT32(source) == MKTAG('F','l','e','x')) {
 		loadChunked(source, size);
 	} else {
 		loadRaw(source, size);
@@ -93,7 +93,7 @@ void PictureResource::loadRaw(byte *source, int size) {
 	}
 
 	_picture = new Graphics::Surface();
-	_picture->create(width, height, 1);
+	_picture->create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 
 	decompressImage(source, *_picture, cmdOffs, pixelOffs, maskOffs, lineSize, cmdFlags, pixelFlags, maskFlags);
 
@@ -124,13 +124,13 @@ void PictureResource::loadChunked(byte *source, int size) {
 
 		debug(0, "chunkType = %08X; chunkSize = %d", chunkType, chunkSize);
 
-		if (chunkType == MKID_BE('Rect')) {
+		if (chunkType == MKTAG('R','e','c','t')) {
 			debug(0, "Rect");
 			sourceS->skip(4);
 			height = sourceS->readUint16BE();
 			width = sourceS->readUint16BE();
 			debug(0, "width = %d; height = %d", width, height);
-		} else if (chunkType == MKID_BE('fMap')) {
+		} else if (chunkType == MKTAG('f','M','a','p')) {
 			debug(0, "fMap");
 			lineSize = sourceS->readUint16BE();
 			sourceS->skip(11);
@@ -138,21 +138,21 @@ void PictureResource::loadChunked(byte *source, int size) {
 			cmdOffs = sourceS->pos();
 			sourceS->skip(chunkSize - 14);
 			debug(0, "lineSize = %d; cmdFlags = %d; cmdOffs = %04X", lineSize, cmdFlags, cmdOffs);
-		} else if (chunkType == MKID_BE('fLCo')) {
+		} else if (chunkType == MKTAG('f','L','C','o')) {
 			debug(0, "fLCo");
 			sourceS->skip(9);
 			pixelFlags = sourceS->readByte();
 			pixelOffs = sourceS->pos();
 			sourceS->skip(chunkSize - 10);
 			debug(0, "pixelFlags = %d; pixelOffs = %04X", pixelFlags, pixelOffs);
-		} else if (chunkType == MKID_BE('fPix')) {
+		} else if (chunkType == MKTAG('f','P','i','x')) {
 			debug(0, "fPix");
 			sourceS->skip(9);
 			maskFlags = sourceS->readByte();
 			maskOffs = sourceS->pos();
 			sourceS->skip(chunkSize - 10);
 			debug(0, "maskFlags = %d; maskOffs = %04X", maskFlags, maskOffs);
-		} else if (chunkType == MKID_BE('fGCo')) {
+		} else if (chunkType == MKTAG('f','G','C','o')) {
 			debug(0, "fGCo");
 			_hasPalette = true;
 			_paletteColorCount = chunkSize / 3;
@@ -169,7 +169,7 @@ void PictureResource::loadChunked(byte *source, int size) {
 	}
 
 	_picture = new Graphics::Surface();
-	_picture->create(width, height, 1);
+	_picture->create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 
 	decompressImage(source, *_picture, cmdOffs, pixelOffs, maskOffs, lineSize, cmdFlags, pixelFlags, maskFlags);
 
@@ -183,8 +183,10 @@ AnimationResource::AnimationResource() {
 }
 
 AnimationResource::~AnimationResource() {
-	for (uint i = 0; i < _frames.size(); i++)
+	for (uint i = 0; i < _frames.size(); i++) {
+		_frames[i]->free();
 		delete _frames[i];
+	}
 }
 
 void AnimationResource::load(byte *source, int size) {
@@ -223,7 +225,7 @@ void AnimationResource::load(byte *source, int size) {
 		uint16 lineSize = sourceS->readUint16LE();
 
 		Graphics::Surface *frame = new Graphics::Surface();
-		frame->create(frameWidth, frameHeight, 1);
+		frame->create(frameWidth, frameHeight, Graphics::PixelFormat::createFormatCLUT8());
 
 		decompressImage(source + frameOffs, *frame, cmdOffs, pixelOffs, maskOffs, lineSize, 0, 0, 0, _flags & 1);
 
@@ -257,11 +259,13 @@ void SoundResource::load(byte *source, int size) {
 }
 
 Audio::AudioStream *SoundResource::getAudioStream(int soundRate, bool loop) {
-	byte flags = Audio::Mixer::FLAG_UNSIGNED;
-	if (loop)
-		flags |= Audio::Mixer::FLAG_LOOP;
+	Audio::RewindableAudioStream *stream =
+			Audio::makeRawStream(_soundData, _soundSize, soundRate, Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
 
-	return Audio::makeLinearInputStream(_soundData, _soundSize, soundRate, flags, 0, 0);
+	if (loop)
+		return Audio::makeLoopingAudioStream(stream, 0);
+	else
+		return stream;
 }
 
 void SoundResourceV1::load(byte *source, int size) {
@@ -290,7 +294,6 @@ void MenuResource::load(byte *source, int size) {
 		_strings.push_back(string);
 		debug(2, "%02d: %s\n", i, string);
 	}
-	fflush(stdout);
 	delete sourceS;
 }
 
@@ -307,8 +310,7 @@ FontResource::FontResource() : _data(NULL), _size(0) {
 }
 
 FontResource::~FontResource() {
-	if (_data)
-		delete[] _data;
+	delete[] _data;
 }
 
 void FontResource::load(byte *source, int size) {
@@ -359,8 +361,7 @@ GenericResource::GenericResource() : _data(NULL), _size(0) {
 }
 
 GenericResource::~GenericResource() {
-	if (_data)
-		delete[] _data;
+	delete[] _data;
 }
 
 void GenericResource::load(byte *source, int size) {
@@ -373,6 +374,7 @@ void GenericResource::load(byte *source, int size) {
 
 ResourceReader::ResourceReader() {
 	_isV1 = false;
+	_cacheDataSize = 0;
 }
 
 ResourceReader::~ResourceReader() {
@@ -495,8 +497,9 @@ void ResourceReader::loadIndex(ResourceSlots *slots) {
 	_fd->readUint32LE(); // skip index size
 	_fd->readUint32LE(); // skip unknown
 	_fd->readUint32LE(); // skip res type
-	uint16 count = _fd->readUint16LE();
-	_fd->readUint16LE(); // skip unknown count
+	uint16 count1 = _fd->readUint16LE();
+	uint16 count2 = _fd->readUint16LE();
+	uint16 count = MAX(count1, count2);
 	_fd->readUint16LE(); // skip unknown count
 	for (uint16 i = 0; i < count; i++) {
 		uint32 offs = _fd->readUint32LE();
@@ -525,7 +528,10 @@ bool ResourceReader::loadResource(ResourceSlot *slot, byte *&buffer, uint32 &siz
 
 ResourceSlot *ResourceReader::getResourceSlot(uint32 resType, uint index) {
 	ResourceSlots *slots = _resSlots[resType];
-	assert(slots);
+
+	if (!slots)
+		return NULL;
+
 	if (index >= 1 && index < slots->size()) {
 		return &(*slots)[index];
 	} else {
@@ -540,8 +546,12 @@ Resource *ResourceReader::getResourceFromCache(ResourceSlot *slot) {
 }
 
 void ResourceReader::addResourceToCache(ResourceSlot *slot, Resource *res) {
-	if (_cacheCount >= kMaxResourceCacheCount)
+	_cacheDataSize += slot->size;
+
+	if (_cacheDataSize >= kMaxResourceCacheSize) {
 		purgeCache();
+	}
+
 	slot->res = res;
 	slot->refCount = 1;
 	_cacheCount++;
@@ -559,6 +569,7 @@ void ResourceReader::purgeCache() {
 		for (ResourceSlots::iterator slotIter = slots->begin(); slotIter != slots->end(); ++slotIter) {
 			ResourceSlot *slot = &(*slotIter);
 			if (slot->refCount <= 0 && slot->res) {
+				_cacheDataSize -= slot->size;
 				delete slot->res;
 				slot->res = NULL;
 				slot->refCount = 0;

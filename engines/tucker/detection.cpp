@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
@@ -105,18 +102,6 @@ static const ADGameDescription tuckerGameDescriptions[] = {
 	AD_TABLE_END_MARKER
 };
 
-static const ADParams detectionParams = {
-	(const byte *)tuckerGameDescriptions,
-	sizeof(ADGameDescription),
-	512,
-	tuckerGames,
-	0,
-	"tucker",
-	0,
-	0,
-	Common::GUIO_NONE
-};
-
 static const ADGameDescription tuckerDemoGameDescription = {
 	"tucker",
 	"Non-Interactive Demo",
@@ -129,11 +114,13 @@ static const ADGameDescription tuckerDemoGameDescription = {
 
 class TuckerMetaEngine : public AdvancedMetaEngine {
 public:
-	TuckerMetaEngine() : AdvancedMetaEngine(detectionParams) {
+	TuckerMetaEngine() : AdvancedMetaEngine(tuckerGameDescriptions, sizeof(ADGameDescription), tuckerGames) {
+		_md5Bytes = 512;
+		_singleid = "tucker";
 	}
 
 	virtual const char *getName() const {
-		return "Tucker Engine";
+		return "Tucker";
 	}
 
 	virtual const char *getOriginalCopyright() const {
@@ -143,6 +130,7 @@ public:
 	virtual bool hasFeature(MetaEngineFeature f) const {
 		switch (f) {
 		case kSupportsListSaves:
+		case kSupportsLoadingDuringStartup:
 		case kSupportsDeleteSave:
 			return true;
 		default:
@@ -157,7 +145,7 @@ public:
 		return desc != 0;
 	}
 
-	virtual const ADGameDescription *fallbackDetect(const Common::FSList &fslist) const {
+	virtual const ADGameDescription *fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
 		for (Common::FSList::const_iterator d = fslist.begin(); d != fslist.end(); ++d) {
 			Common::FSList audiofslist;
 			if (d->isDirectory() && d->getName().equalsIgnoreCase("audio") && d->getChildren(audiofslist, Common::FSNode::kListFilesOnly)) {
@@ -173,11 +161,11 @@ public:
 
 	virtual SaveStateList listSaves(const char *target) const {
 		Common::String pattern = Tucker::generateGameStateFileName(target, 0, true);
-		Common::StringList filenames = g_system->getSavefileManager()->listSavefiles(pattern);
+		Common::StringArray filenames = g_system->getSavefileManager()->listSavefiles(pattern);
 		bool slotsTable[Tucker::kLastSaveSlot + 1];
 		memset(slotsTable, 0, sizeof(slotsTable));
 		SaveStateList saveList;
-		for (Common::StringList::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+		for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 			int slot;
 			const char *ext = strrchr(file->c_str(), '.');
 			if (ext && (slot = atoi(ext + 1)) >= 0 && slot <= Tucker::kLastSaveSlot) {
@@ -190,8 +178,7 @@ public:
 		}
 		for (int slot = 0; slot <= Tucker::kLastSaveSlot; ++slot) {
 			if (slotsTable[slot]) {
-				char description[64];
-				snprintf(description, sizeof(description), "savegm.%02d", slot);
+				Common::String description = Common::String::format("savegm.%02d", slot);
 				saveList.push_back(SaveStateDescriptor(slot, description));
 			}
 		}

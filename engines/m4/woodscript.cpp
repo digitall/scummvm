@@ -18,12 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "m4/woodscript.h"
+
+#include "common/memstream.h"
+#include "graphics/palette.h"
 
 namespace M4 {
 
@@ -46,7 +46,7 @@ Bytecode::~Bytecode() {
 
 int Bytecode::loadInstruction(Instruction &instruction) {
 
-	//printf("Bytecode::loadInstruction() ip = %08X\n", _code->pos());
+	//debugCN(kDebugScript, "Bytecode::loadInstruction() ip = %08X\n", _code->pos());
 
 	int32 format, data;
 	uint32 code, code2;
@@ -90,7 +90,7 @@ int Bytecode::loadInstruction(Instruction &instruction) {
 
 void Bytecode::jumpAbsolute(int32 ofs) {
 	_code->seek(ofs * 4);
-	//printf("Bytecode::jumpAbsolute() ofs = %08X\n", _code->pos());
+	//debugCN(kDebugScript, "Bytecode::jumpAbsolute() ofs = %08X\n", _code->pos());
 }
 
 void Bytecode::jumpRelative(int32 ofs) {
@@ -153,7 +153,7 @@ bool Bytecode::decodeArgument(int32 format, int32 data, long *&arg, long &value)
 	return true;
 }
 
-WoodScript::WoodScript(M4Engine *vm) {
+WoodScript::WoodScript(MadsM4Engine *vm) {
 	_vm = vm;
 	_machineId = 0;
 	_assets = new AssetManager(vm);
@@ -162,7 +162,7 @@ WoodScript::WoodScript(M4Engine *vm) {
 
 	_backgroundSurface = NULL;
 
-	Common::Rect viewBounds = Common::Rect(0, 0, 640, 480);
+	//Common::Rect viewBounds = Common::Rect(0, 0, 640, 480);
 	//_surfaceView = new View(viewBounds);
 }
 
@@ -180,7 +180,7 @@ Sequence *WoodScript::createSequence(Machine *machine, int32 sequenceHash) {
 
 void WoodScript::runSequencePrograms() {
 	// A lot TODO
-	for (Common::Array<Sequence*>::iterator it = _sequences.begin(); it != _sequences.end(); it++) {
+	for (Common::Array<Sequence*>::iterator it = _sequences.begin(); it != _sequences.end(); ++it) {
 		Sequence *sequence = *it;
 		if (sequence->isActive()) {
 			sequence->runProgram();
@@ -200,7 +200,7 @@ void WoodScript::runTimerSequenceRequests() {
 Machine *WoodScript::createMachine(int32 machineHash, Sequence *parentSeq,
 	int32 dataHash, int32 dataRowIndex, int callbackHandler, const char *machineName) {
 
-	//printf("WoodScript::createMachine(%d)\n", machineHash); fflush(stdout);
+	//debugCN(kDebugScript, "WoodScript::createMachine(%d)\n", machineHash);
 
 	Machine *machine = new Machine(this, machineHash, parentSeq, dataHash, dataRowIndex, callbackHandler, machineName, _machineId);
 	_machineId++;
@@ -228,7 +228,7 @@ Machine *WoodScript::playSeries(const char *seriesName, long layer, uint32 flags
 	int32 frameRate, int32 loopCount, int32 s, int32 x, int32 y,
 	int32 firstFrame, int32 lastFrame) {
 
-	//printf("WoodScript::playSeries(%s)\n", seriesName);
+	//debugCN(kDebugScript, "WoodScript::playSeries(%s)\n", seriesName);
 
 	RGB8 *palette = NULL;
 	if (flags & SERIES_LOAD_PALETTE)
@@ -282,7 +282,7 @@ Machine *WoodScript::showSeries(const char *seriesName, long layer, uint32 flags
 }
 
 Machine *WoodScript::streamSeries(const char *seriesName, int32 frameRate, long layer, int32 triggerNum) {
-	//printf("WoodScript::streamSeries(%s)\n", seriesName);
+	//debugCN(kDebugScript, "WoodScript::streamSeries(%s)\n", seriesName);
 	_globals[kGlobTemp1] = frameRate << 16;
 	/* FIXME: Single frames from a stream series will be decompressed on-the-fly, contrary to
 			  "normal" sprite series, to save some memory, and since no random access to single
@@ -319,16 +319,16 @@ void WoodScript::update() {
 
 	{
 		// FIXME: This should be done when a new palette is set
-		byte palette[1024];
-		g_system->grabPalette(palette, 0, 256);
+		byte palette[768];
+		g_system->getPaletteManager()->grabPalette(palette, 0, 256);
 		for (int i = 0; i < 256; i++) {
-			_mainPalette[i].r = palette[i * 4 + 0];
-			_mainPalette[i].g = palette[i * 4 + 1];
-			_mainPalette[i].b = palette[i * 4 + 2];
+			_mainPalette[i].r = palette[i * 3 + 0];
+			_mainPalette[i].g = palette[i * 3 + 1];
+			_mainPalette[i].b = palette[i * 3 + 2];
 		}
 	}
 
-	for (Common::Array<Sequence*>::iterator it = _layers.begin(); it != _layers.end(); it++) {
+	for (Common::Array<Sequence*>::iterator it = _layers.begin(); it != _layers.end(); ++it) {
 		Sequence *sequence = *it;
 
 		// TODO: Use correct clipRect etc.
@@ -341,7 +341,7 @@ void WoodScript::update() {
 
 	// Handle end-of-sequence requests
 	if (_endOfSequenceRequestList.size() > 0) {
-		for (Common::Array<Sequence*>::iterator it = _endOfSequenceRequestList.begin(); it != _endOfSequenceRequestList.end(); it++) {
+		for (Common::Array<Sequence*>::iterator it = _endOfSequenceRequestList.begin(); it != _endOfSequenceRequestList.end(); ++it) {
 			Sequence *sequence = *it;
 
 			EndOfSequenceRequestItem endOfSequenceRequestItem = sequence->getEndOfSequenceRequestItem();
@@ -354,11 +354,11 @@ void WoodScript::update() {
 
 void WoodScript::clear() {
 
-	for (Common::Array<Sequence*>::iterator it = _sequences.begin(); it != _sequences.end(); it++)
+	for (Common::Array<Sequence*>::iterator it = _sequences.begin(); it != _sequences.end(); ++it)
 		delete *it;
 	_sequences.clear();
 
-	for (Common::Array<Machine*>::iterator it = _machines.begin(); it != _machines.end(); it++)
+	for (Common::Array<Machine*>::iterator it = _machines.begin(); it != _machines.end(); ++it)
 		delete *it;
 	_machines.clear();
 

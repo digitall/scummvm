@@ -18,16 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GROOVIE_CURSOR_H
 #define GROOVIE_CURSOR_H
 
+#include "common/array.h"
 #include "common/system.h"
-#include "common/file.h"
+
+namespace Common {
+class MacResManager;
+}
 
 namespace Groovie {
 
@@ -69,7 +70,7 @@ protected:
 
 class GrvCursorMan_t7g : public GrvCursorMan {
 public:
-	GrvCursorMan_t7g(OSystem *system);
+	GrvCursorMan_t7g(OSystem *system, Common::MacResManager *macResFork = 0);
 	~GrvCursorMan_t7g();
 
 private:
@@ -82,14 +83,16 @@ private:
 	Common::Array<byte *> _palettes;
 
 	// Loading functions
-	byte *loadImage(Common::File &file);
-	byte *loadPalette(Common::File &file);
+	byte *loadImage(Common::SeekableReadStream &file);
+	byte *loadPalette(Common::SeekableReadStream &file);
 };
 
 class GrvCursorMan_v2 : public GrvCursorMan {
 public:
 	GrvCursorMan_v2(OSystem *system);
 	~GrvCursorMan_v2();
+
+	void setStyle(uint8 newStyle);
 };
 
 } // End of Groovie namespace

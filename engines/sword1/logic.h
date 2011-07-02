@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_LOGIC_H
@@ -30,7 +27,10 @@
 #include "sword1/sworddefs.h"
 #include "sword1/objectman.h"
 #include "common/util.h"
-#include "sound/mixer.h"
+#include "common/random.h"
+#include "audio/mixer.h"
+
+class OSystem;
 
 namespace Sword1 {
 
@@ -53,11 +53,11 @@ typedef int (Logic::*BSMcodeTable)(Object *, int32, int32, int32, int32, int32, 
 class Logic {
 public:
 	Logic(SwordEngine *vm, ObjectMan *pObjMan, ResMan *resMan, Screen *pScreen, Mouse *pMouse, Sound *pSound, Music *pMusic, Menu *pMenu, OSystem *system, Audio::Mixer *mixer);
-	~Logic(void);
-	void initialize(void);
+	~Logic();
+	void initialize();
 	void newScreen(uint32 screen);
-	void engine(void);
-	void updateScreenParams(void);
+	void engine();
+	void updateScreenParams();
 	void runMouseScript(Object *cpt, int32 scriptId);
 	void startPositions(uint32 pos);
 

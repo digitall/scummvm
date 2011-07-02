@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_M4_MENUS_H
@@ -41,7 +38,7 @@ namespace M4 {
 
 typedef Common::List<MenuObject *> MenuObjectList;
 
-class OrionMenuView: public DialogView {
+class OrionMenuView : public DialogView {
 	typedef MenuObjectList::iterator MenuObjectsIterator;
 private:
 	MenuType _menuType;
@@ -59,7 +56,7 @@ private:
 	M4Surface *createThumbnail();
 	void destroyView();
 public:
-	OrionMenuView(M4Engine *vm, int x, int y, MenuType menuType, bool calledFromMainMenu,
+	OrionMenuView(MadsM4Engine *vm, int x, int y, MenuType menuType, bool calledFromMainMenu,
 		bool loadSaveFromHotkey);
 	~OrionMenuView();
 	MenuType getMenuType() { return _menuType; }
@@ -70,7 +67,7 @@ public:
 	void refresh(const Common::Rect &areaRect);
 	void close() { _closeFlag = true; }
 
-	bool onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents);
+	bool onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents);
 
 	int _originalMidiVolume;
 	SaveGameList *_saveNames;

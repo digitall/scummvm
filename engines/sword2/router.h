@@ -20,16 +20,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SWORD2_ROUTER_H
 #define SWORD2_ROUTER_H
 
 // This used to be a variable, but it was never set. Actually, it wasn't even
-// initialised!
+// initialized!
 //
 // Define this to force the use of slidy router (so solid path not used when
 // ending walk in ANY direction)
@@ -182,7 +179,7 @@ private:
 	int32 smoothestPath();
 	void slidyPath();
 
-	int32 smoothCheck(int32 best, int32 p, int32 dirS, int32 dirD);
+	void smoothCheck(int32 &steps, int32 best, int32 p, int32 dirS, int32 dirD);
 
 	bool addSlowInFrames(WalkData *walkAnim);
 	void addSlowOutFrames(WalkData *walkAnim);
@@ -193,7 +190,7 @@ private:
 	int32 solidWalkAnimator(WalkData *walkAnim);
 #endif
 
-	void plotCross(int16 x, int16 y, uint8 colour);
+	void plotCross(int16 x, int16 y, uint8 color);
 
 public:
 	Router(Sword2Engine *vm) : _vm(vm), _diagonalx(0), _diagonaly(0) {

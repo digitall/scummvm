@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef COMMON_UTIL_H
@@ -62,33 +59,21 @@ template<typename T> inline void SWAP(T &a, T &b) { T tmp = a; a = b; b = tmp; }
 #define ARRAYSIZE(x) ((int)(sizeof(x) / sizeof(x[0])))
 
 
-namespace Common {
-
 /**
- * A simple non-optimized string tokenizer.
- *
- * Example of use:
- * StringTokenizer("Now, this is a test!", " ,!") gives tokens "Now", "this", "is", "a" and "test" using nextToken().
+ * @def SCUMMVM_CURRENT_FUNCTION
+ * This macro evaluates to the current function's name on compilers supporting this.
  */
-class StringTokenizer {
-public:
-	/**
-	 * Creates a StringTokenizer.
-	 * @param str The string to be tokenized.
-	 * @param delimiters String containing all the delimiter characters (i.e. the characters to be ignored).
-	 * @note Uses space, horizontal tab, carriage return, newline, form feed and vertical tab as delimiters by default.
-	 */
-	StringTokenizer(const String &str, const String &delimiters = " \t\r\n\f\v");
-	void reset();       //!< Resets the tokenizer to its initial state
-	bool empty() const; //!< Returns true if there are no more tokens left in the string, false otherwise
-	String nextToken(); //!< Returns the next token from the string (Or an empty string if there are no more tokens)
+#if defined(__GNUC__)
+# define SCUMMVM_CURRENT_FUNCTION __PRETTY_FUNCTION__
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+#  define SCUMMVM_CURRENT_FUNCTION	__func__
+#elif defined(_MSC_VER) && _MSC_VER >= 1300
+#  define SCUMMVM_CURRENT_FUNCTION __FUNCTION__
+#else
+#  define SCUMMVM_CURRENT_FUNCTION "<unknown>"
+#endif
 
-private:
-	const String _str;        //!< The string to be tokenized
-	const String _delimiters; //!< String containing all the delimiter characters
-	uint         _tokenBegin; //!< Latest found token's begin (Valid after a call to nextToken(), zero otherwise)
-	uint         _tokenEnd;   //!< Latest found token's end (Valid after a call to nextToken(), zero otherwise)
-};
+namespace Common {
 
 /**
  * Print a hexdump of the data passed in. The number of bytes per line is
@@ -102,57 +87,22 @@ extern void hexdump(const byte * data, int len, int bytesPerLine = 16, int start
 
 
 /**
- * Take a 32 bit value and turn it into a four character string, where each of
- * the four bytes is turned into one character. Most significant byte is printed
- * first.
+ * Parse a string for a boolean value.
+ * The strings "true", "yes", and "1" are interpreted as true.
+ * The strings "false", "no", and "0" are interpreted as false.
+ * This function ignores case.
+ *
+ * @param[in] val			the string to parse
+ * @param[out] valAsBool	the parsing result
+ * @return 	true if the string parsed correctly, false if an error occurred.
  */
-String tag2string(uint32 tag);
-#define tag2str(x)	Common::tag2string(x).c_str()
-
-
-
-
-/**
- * Simple random number generator. Although it is definitely not suitable for
- * cryptographic purposes, it serves our purposes just fine.
- */
-class RandomSource {
-private:
-	uint32 _randSeed;
-
-public:
-	RandomSource();
-	void setSeed(uint32 seed);
-
-	uint32 getSeed() {
-		return _randSeed;
-	}
-
-	/**
-	 * Generates a random unsigned integer in the interval [0, max].
-	 * @param max	the upper bound
-	 * @return	a random number in the interval [0, max]
-	 */
-	uint getRandomNumber(uint max);
-	/**
-	 * Generates a random bit, i.e. either 0 or 1.
-	 * Identical to getRandomNumber(1), but faster, hopefully.
-	 * @return	a random bit, either 0 or 1
-	 */
-	uint getRandomBit(void);
-	/**
-	 * Generates a random unsigned integer in the interval [min, max].
-	 * @param min	the lower bound
-	 * @param max	the upper bound
-	 * @return	a random number in the interval [min, max]
-	 */
-	uint getRandomNumberRng(uint min, uint max);
-};
+bool parseBool(const Common::String &val, bool &valAsBool);
 
 /**
  * List of game language.
  */
 enum Language {
+	ZH_CNA,
 	ZH_TWN,
 	CZ_CZE,
 	NL_NLD,
@@ -162,7 +112,8 @@ enum Language {
 	FR_FRA,
 	DE_DEU,
 	GR_GRE,
-	HB_ISR,
+	HE_ISR,
+	HU_HUN,
 	IT_ITA,
 	JA_JPN,
 	KO_KOR,
@@ -172,13 +123,13 @@ enum Language {
 	RU_RUS,
 	ES_ESP,
 	SE_SWE,
-	HU_HUN,
 
 	UNK_LANG = -1	// Use default language (i.e. none specified)
 };
 
 struct LanguageDescription {
 	const char *code;
+	//const char *unixLocale;
 	const char *description;
 	Common::Language id;
 };
@@ -190,6 +141,10 @@ extern const LanguageDescription g_languages[];
 extern Language parseLanguage(const String &str);
 extern const char *getLanguageCode(Language id);
 extern const char *getLanguageDescription(Language id);
+
+// locale <-> Language conversion is disabled, since it is not used currently
+/*extern const char *getLanguageLocale(Language id);
+extern Language parseLanguageFromLocale(const char *locale);*/
 
 /**
  * List of game platforms. Specifying a platform for a target can be used to
@@ -212,11 +167,12 @@ enum Platform {
 	kPlatformSegaCD,
 	kPlatform3DO,
 	kPlatformPCEngine,
-
 	kPlatformApple2GS,
 	kPlatformPC98,
 	kPlatformWii,
 	kPlatformPSX,
+	kPlatformCDi,
+	kPlatformIOS,
 
 	kPlatformUnknown = -1
 };
@@ -252,11 +208,6 @@ enum RenderMode {
 	kRenderAmiga = 5
 };
 
-enum HerculesDimensions {
-	kHercW = 720,
-	kHercH = 350
-};
-
 struct RenderModeDescription {
 	const char *code;
 	const char *description;
@@ -275,46 +226,36 @@ enum GameGUIOption {
 	GUIO_NOSUBTITLES	= (1 << 0),
 	GUIO_NOMUSIC		= (1 << 1),
 	GUIO_NOSPEECH		= (1 << 2),
-	GUIO_NOSFX		= (1 << 3),
-	GUIO_NOMIDI		= (1 << 4),
-	GUIO_NOLAUNCHLOAD	= (1 << 5)
+	GUIO_NOSFX			= (1 << 3),
+	GUIO_NOMIDI			= (1 << 4),
+	GUIO_NOLAUNCHLOAD	= (1 << 5),
+
+	GUIO_MIDIPCSPK		= (1 << 6),
+	GUIO_MIDICMS		= (1 << 7),
+	GUIO_MIDIPCJR		= (1 << 8),
+	GUIO_MIDIADLIB		= (1 << 9),
+	GUIO_MIDIC64        = (1 << 10),
+	GUIO_MIDIAMIGA      = (1 << 11),
+	GUIO_MIDIAPPLEIIGS  = (1 << 12),
+	GUIO_MIDITOWNS		= (1 << 13),
+	GUIO_MIDIPC98		= (1 << 14),
+	GUIO_MIDIMT32		= (1 << 15),
+	GUIO_MIDIGM			= (1 << 16)
 };
 
 bool checkGameGUIOption(GameGUIOption option, const String &str);
+bool checkGameGUIOptionLanguage(Language lang, const String &str);
 uint32 parseGameGUIOptions(const String &str);
-String getGameGUIOptionsDescription(uint32 options);
+const String getGameGUIOptionsDescription(uint32 options);
+const String getGameGUIOptionsDescriptionLanguage(Language lang);
 
 /**
  * Updates the GUI options of the current config manager
  * domain, when they differ to the ones passed as
  * parameter.
  */
-void updateGameGUIOptions(const uint32 options);
+void updateGameGUIOptions(const uint32 options, const String &langOption);
 
 }	// End of namespace Common
-
-
-#if defined(__GNUC__)
-void error(const char *s, ...) GCC_PRINTF(1, 2) NORETURN;
-#else
-void NORETURN error(const char *s, ...);
-#endif
-
-#ifdef DISABLE_TEXT_CONSOLE
-
-inline int printf(const char *s, ...) { return 0; }
-
-inline void warning(const char *s, ...) {}
-
-#else
-
-/**
- * Print a warning message to the text console (stderr).
- * Automatically prepends the text "WARNING: " and appends
- * an exclamation mark and a newline.
- */
-void warning(const char *s, ...) GCC_PRINTF(1, 2);
-
-#endif
 
 #endif

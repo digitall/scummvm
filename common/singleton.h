@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef COMMON_SINGLETON_H
@@ -38,8 +35,6 @@ class Singleton : NonCopyable {
 private:
 	Singleton<T>(const Singleton<T> &);
 	Singleton<T> &operator=(const Singleton<T> &);
-
-	static T *_singleton;
 
 	/**
 	 * The default object factory used by the template class Singleton.
@@ -89,9 +84,18 @@ protected:
 #endif
 
 	typedef T	SingletonBaseType;
+
+	static T *_singleton;
 };
 
-#define DECLARE_SINGLETON(T) template<> T *Common::Singleton<T>::_singleton = 0
+/**
+ * Note that you need to use this macro from the Common namespace.
+ *
+ * This is because C++ requires initial explicit specialization
+ * to be placed in the same namespace as the template.
+ */
+#define DECLARE_SINGLETON(T) \
+	template<> T *Singleton<T>::_singleton = 0
 
 }	// End of namespace Common
 

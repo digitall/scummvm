@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_OVERLAY_H
@@ -179,11 +176,13 @@ struct overlayStruct {
 extern overlayStruct overlayTable[90];
 extern int numOfLoadedOverlay;
 
-void initOverlayTable(void);
+void initOverlayTable();
 int loadOverlay(const char * scriptName);
 int32 findOverlayByName2(const char * name);
 int findOverlayByName(const char *overlayName);
 int releaseOverlay(const char *name);
+int freeOverlay(int overlayIdx);
+void freeOverlayTable();
 
 } // End of namespace Cruise
 

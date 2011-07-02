@@ -18,26 +18,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/events.h"
-#include "common/EventRecorder.h"
 #include "common/keyboard.h"
-#include "common/file.h"
-#include "common/savefile.h"
 #include "common/config-manager.h"
 #include "common/stream.h"
 
 #include "graphics/cursorman.h"
 
+#include "engines/util.h"
+
+#include "backends/audiocd/audiocd.h"
+
 #include "base/plugins.h"
 #include "base/version.h"
 
-#include "sound/audiocd.h"
-#include "sound/mixer.h"
+#include "audio/mixer.h"
 
 #include "made/made.h"
 #include "made/database.h"
@@ -74,12 +71,13 @@ MadeEngine::MadeEngine(OSystem *syst, const MadeGameDescription *gameDesc) : Eng
 		if (!scumm_stricmp(g->gameid, gameid))
 			_gameId = g->id;
 
-	_rnd = new Common::RandomSource();
-	g_eventRec.registerRandomSource(*_rnd, "made");
+	_rnd = new Common::RandomSource("made");
+
+	_console = new MadeConsole(this);
 
 	int cd_num = ConfMan.getInt("cdrom");
 	if (cd_num >= 0)
-		_system->openCD(cd_num);
+		_system->getAudioCDManager()->openCD(cd_num);
 
 	_pmvPlayer = new PmvPlayer(this, _mixer);
 	_res = new ResourceReader();
@@ -95,17 +93,7 @@ MadeEngine::MadeEngine(OSystem *syst, const MadeGameDescription *gameDesc) : Eng
 
 	_script = new ScriptInterpreter(this);
 
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-	bool native_mt32 = ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32"));
-	//bool adlib = (midiDriver == MD_ADLIB);
-
-	MidiDriver *driver = MidiDriver::createMidi(midiDriver);
-	if (native_mt32)
-		driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
-
-	_music = new MusicPlayer(driver);
-	_music->setNativeMT32(native_mt32);
-	//_music->setAdlib(adlib);
+	_music = new MusicPlayer();
 
 	// Set default sound frequency
 	switch (getGameID()) {
@@ -127,7 +115,10 @@ MadeEngine::MadeEngine(OSystem *syst, const MadeGameDescription *gameDesc) : Eng
 }
 
 MadeEngine::~MadeEngine() {
+	_system->getAudioCDManager()->stop();
+
 	delete _rnd;
+	delete _console;
 	delete _pmvPlayer;
 	delete _res;
 	delete _screen;
@@ -137,11 +128,15 @@ MadeEngine::~MadeEngine() {
 }
 
 void MadeEngine::syncSoundSettings() {
-	_music->setVolume(ConfMan.getInt("music_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, ConfMan.getInt("speech_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
+	Engine::syncSoundSettings();
+
+	bool mute = false;
+	if (ConfMan.hasKey("mute"))
+		mute = ConfMan.getBool("mute");
+
+	_music->setVolume(mute ? 0 : ConfMan.getInt("music_volume"));
+	_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType,
+									mute ? 0 : ConfMan.getInt("sfx_volume"));
 }
 
 int16 MadeEngine::getTicks() {
@@ -186,9 +181,7 @@ void MadeEngine::resetAllTimers() {
 }
 
 Common::String MadeEngine::getSavegameFilename(int16 saveNum) {
-	char filename[256];
-	snprintf(filename, 256, "%s.%03d", getTargetName().c_str(), saveNum);
-	return filename;
+	return Common::String::format("%s.%03d", getTargetName().c_str(), saveNum);
 }
 
 void MadeEngine::handleEvents() {
@@ -223,12 +216,58 @@ void MadeEngine::handleEvents() {
 			break;
 
 		case Common::EVENT_KEYDOWN:
-			_eventKey = event.kbd.ascii;
-			// For unknown reasons, the game accepts ASCII code
-			// 9 as backspace
-			if (_eventKey == Common::KEYCODE_BACKSPACE)
+			// Handle any special keys here
+			// Supported keys taken from http://www.allgame.com/game.php?id=13542&tab=controls
+
+			switch (event.kbd.keycode) {
+			case Common::KEYCODE_KP_PLUS:	// action (same as left mouse click)
+				_eventNum = 1;		// left mouse button up
+				break;
+			case Common::KEYCODE_KP_MINUS:	// inventory (same as right mouse click)
+				_eventNum = 3;		// right mouse button up
+				break;
+			case Common::KEYCODE_UP:
+			case Common::KEYCODE_KP8:
+				_eventMouseY = MAX<int16>(0, _eventMouseY - 1);
+				g_system->warpMouse(_eventMouseX, _eventMouseY);
+				break;
+			case Common::KEYCODE_DOWN:
+			case Common::KEYCODE_KP2:
+				_eventMouseY = MIN<int16>(199, _eventMouseY + 1);
+				g_system->warpMouse(_eventMouseX, _eventMouseY);
+				break;
+			case Common::KEYCODE_LEFT:
+			case Common::KEYCODE_KP4:
+				_eventMouseX = MAX<int16>(0, _eventMouseX - 1);
+				g_system->warpMouse(_eventMouseX, _eventMouseY);
+				break;
+			case Common::KEYCODE_RIGHT:
+			case Common::KEYCODE_KP6:
+				_eventMouseX = MIN<int16>(319, _eventMouseX + 1);
+				g_system->warpMouse(_eventMouseX, _eventMouseY);
+				break;
+			case Common::KEYCODE_F1:		// menu
+			case Common::KEYCODE_F2:		// save game
+			case Common::KEYCODE_F3:		// load game
+			case Common::KEYCODE_F4:		// repeat last message
+				_eventNum = 5;
+				_eventKey = (event.kbd.keycode - Common::KEYCODE_F1) + 21;
+				break;
+			case Common::KEYCODE_BACKSPACE:
+				_eventNum = 5;
 				_eventKey = 9;
-			_eventNum = 5;
+				break;
+			default:
+				_eventNum = 5;
+				_eventKey = event.kbd.ascii;
+				break;
+			}
+
+			// Check for Debugger Activation
+			if (event.kbd.hasFlags(Common::KBD_CTRL) && event.kbd.keycode == Common::KEYCODE_d) {
+				this->getDebugger()->attach();
+				this->getDebugger()->onFrame();
+			}
 			break;
 
 		default:
@@ -237,7 +276,7 @@ void MadeEngine::handleEvents() {
 		}
 	}
 
-	AudioCD.updateCD();
+	_system->getAudioCDManager()->updateCD();
 
 }
 

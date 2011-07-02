@@ -18,15 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_MOUSE_H
 #define SWORD1_MOUSE_H
 
 #include "common/scummsys.h"
+#include "common/rect.h"
 #include "sword1/sworddefs.h"
 #include "sword1/object.h"
 
@@ -72,22 +70,22 @@ class ObjectMan;
 class Mouse {
 public:
 	Mouse(OSystem *system, ResMan *pResMan, ObjectMan *pObjMan);
-	~Mouse(void);
-	void initialize(void);
+	~Mouse();
+	void initialize();
 	void addToList(int id, Object *compact);
 	void useLogicAndMenu(Logic *pLogic, Menu *pMenu);
 	void setLuggage(uint32 resID, uint32 rate);
 	void setPointer(uint32 resID, uint32 rate);
-	void animate(void);
+	void animate();
 	void engine(uint16 x, uint16 y, uint16 eventFlags);
-	uint16 testEvent(void);
+	uint16 testEvent();
 	void giveCoords(uint16 *x, uint16 *y);
-	void fnNoHuman(void);
-	void fnAddHuman(void);
-	void fnBlankMouse(void);
-	void fnNormalMouse(void);
-	void fnLockMouse(void);
-	void fnUnlockMouse(void);
+	void fnNoHuman();
+	void fnAddHuman();
+	void fnBlankMouse();
+	void fnNormalMouse();
+	void fnLockMouse();
+	void fnUnlockMouse();
 	void controlPanel(bool on);
 private:
 	void createPointer(uint32 ptrId, uint32 luggageId);
@@ -99,8 +97,9 @@ private:
 	ObjectMan *_objMan;
 	Common::Point _mouse;
 
-	uint32 _currentPtrId, _currentLuggageId, _frame;
+	uint32 _currentPtrId, _currentLuggageId;
 	MousePtr *_currentPtr;
+	int _frame, _activeFrame;
 	uint16 _numObjs;
 	uint16 _lastState, _state;
 	uint32 _getOff;

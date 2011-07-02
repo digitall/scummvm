@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SCRIPT_V0_H
@@ -62,6 +59,7 @@ protected:
 
 	virtual void setupScummVars();
 	virtual void resetScummVars();
+	virtual void scummLoop(int delta);
 	virtual void decodeParseString();
 
 	virtual void processInput();
@@ -94,7 +92,9 @@ protected:
 
 	virtual int getActiveObject();
 
-	virtual void resetSentence(bool walking = false);
+	virtual void resetSentence(bool walking);
+
+	virtual bool areBoxesNeighbors(int box1nr, int box2nr);
 
 	/* Version C64 script opcodes */
 	void o_stopCurrentScript();
@@ -134,6 +134,10 @@ protected:
 	void o_endCutscene();
 	void o_beginOverride();
 	void o_setOwnerOf();
+
+	byte VAR_ACTIVE_ACTOR;
+	byte VAR_IS_SOUND_RUNNING;
+	byte VAR_ACTIVE_VERB;
 };
 
 

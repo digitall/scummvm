@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "common/config-manager.h"
@@ -32,8 +29,8 @@
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
 #include "scumm/imuse_digi/dimuse_track.h"
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 
 namespace Scumm {
 
@@ -112,7 +109,8 @@ void IMuseDigital::startSound(int soundId, const char *soundName, int soundType,
 	track->souStreamUsed = (input != 0);
 
 	if (track->souStreamUsed) {
-		_mixer->playInputStream(track->getType(), &track->mixChanHandle, input, -1, track->getVol(), track->getPan());
+		_mixer->playStream(track->getType(), &track->mixChanHandle, input, -1, track->getVol(), track->getPan(),
+							DisposeAfterUse::YES, false, (track->mixerFlags & kFlagStereo) != 0);
 	} else {
 		strcpy(track->soundName, soundName);
 		track->soundDesc = _sound->openSound(soundId, soundName, soundType, volGroupId, -1);
@@ -150,7 +148,7 @@ void IMuseDigital::startSound(int soundId, const char *soundName, int soundType,
 
 		track->feedSize = freq * channels;
 		if (channels == 2)
-			track->mixerFlags = kFlagStereo | kFlagReverseStereo;
+			track->mixerFlags = kFlagStereo;
 
 		if ((bits == 12) || (bits == 16)) {
 			track->mixerFlags |= kFlag16Bits;
@@ -160,11 +158,6 @@ void IMuseDigital::startSound(int soundId, const char *soundName, int soundType,
 		} else
 			error("IMuseDigital::startSound(): Can't handle %d bit samples", bits);
 
-#ifdef SCUMM_LITTLE_ENDIAN
-		if (track->sndDataExtComp)
-			track->mixerFlags |= kFlagLittleEndian;
-#endif
-
 		if (otherTrack && otherTrack->used && !otherTrack->toBeRemoved) {
 			track->curRegion = otherTrack->curRegion;
 			track->dataOffset = otherTrack->dataOffset;
@@ -172,8 +165,9 @@ void IMuseDigital::startSound(int soundId, const char *soundName, int soundType,
 			track->dataMod12Bit = otherTrack->dataMod12Bit;
 		}
 
-		track->stream = Audio::makeAppendableAudioStream(freq, makeMixerFlags(track->mixerFlags));
-		_mixer->playInputStream(track->getType(), &track->mixChanHandle, track->stream, -1, track->getVol(), track->getPan());
+		track->stream = Audio::makeQueuingAudioStream(freq, track->mixerFlags & kFlagStereo);
+		_mixer->playStream(track->getType(), &track->mixChanHandle, track->stream, -1, track->getVol(), track->getPan(),
+							DisposeAfterUse::YES, false, (track->mixerFlags & kFlagStereo) != 0);
 	}
 
 	track->used = true;
@@ -372,8 +366,9 @@ Track *IMuseDigital::cloneToFadeOutTrack(Track *track, int fadeDelay) {
 	fadeTrack->volFadeUsed = true;
 
 	// Create an appendable output buffer
-	fadeTrack->stream = Audio::makeAppendableAudioStream(_sound->getFreq(fadeTrack->soundDesc), makeMixerFlags(fadeTrack->mixerFlags));
-	_mixer->playInputStream(track->getType(), &fadeTrack->mixChanHandle, fadeTrack->stream, -1, fadeTrack->getVol(), fadeTrack->getPan());
+	fadeTrack->stream = Audio::makeQueuingAudioStream(_sound->getFreq(fadeTrack->soundDesc), track->mixerFlags & kFlagStereo);
+	_mixer->playStream(track->getType(), &fadeTrack->mixChanHandle, fadeTrack->stream, -1, fadeTrack->getVol(), fadeTrack->getPan(),
+							DisposeAfterUse::YES, false, (track->mixerFlags & kFlagStereo) != 0);
 	fadeTrack->used = true;
 
 	debug(5, "cloneToFadeOutTrack() - end of func, soundId %d, fade soundId %d", track->soundId, fadeTrack->soundId);

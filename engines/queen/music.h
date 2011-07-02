@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef QUEEN_MUSIC_H
@@ -28,7 +25,8 @@
 
 #include "common/util.h"
 #include "common/mutex.h"
-#include "sound/mididrv.h"
+#include "common/random.h"
+#include "audio/mididrv.h"
 
 class MidiParser;
 
@@ -38,7 +36,7 @@ struct TuneData;
 
 class QueenEngine;
 
-class MidiMusic : public MidiDriver {
+class MidiMusic : public MidiDriver_BASE {
 public:
 	MidiMusic(QueenEngine *vm);
 	~MidiMusic();
@@ -49,25 +47,15 @@ public:
 	void stopSong() { stopMusic(); }
 	void playMusic();
 	void stopMusic();
-	void setLoop(bool loop)		{ _looping = loop; }
+	void setLoop(bool loop)		{ _isLooping = loop; }
 	void queueTuneList(int16 tuneList);
 	bool queueSong(uint16 songNum);
 	void queueClear();
 	void toggleVChange();
 
-	//MidiDriver interface implementation
-	int open() { return 0; }
-	void close() {}
-	void send(uint32 b);
-
-	void metaEvent(byte type, byte *data, uint16 length);
-
-	void setTimerCallback(void *timerParam, void (*timerProc)(void *)) { }
-	uint32 getBaseTempo(void)	{ return _driver ? _driver->getBaseTempo() : 0; }
-
-	//Channel allocation functions
-	MidiChannel *allocateChannel()		{ return 0; }
-	MidiChannel *getPercussionChannel()	{ return 0; }
+	// MidiDriver_BASE interface implementation
+	virtual void send(uint32 b);
+	virtual void metaEvent(byte type, byte *data, uint16 length);
 
 protected:
 
@@ -85,15 +73,15 @@ protected:
 
 	MidiDriver *_driver;
 	MidiParser *_parser;
-	MidiChannel *_channel[16];
-	byte _channelVolume[16];
+	MidiChannel *_channelsTable[16];
+	byte _channelsVolume[16];
 	bool _adlib;
 	bool _nativeMT32;
 	Common::Mutex _mutex;
 	Common::RandomSource _rnd;
 
 	bool _isPlaying;
-	bool _looping;
+	bool _isLooping;
 	bool _randomLoop;
 	byte _masterVolume;
 	uint8 _queuePos;

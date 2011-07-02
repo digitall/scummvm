@@ -18,23 +18,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "sword1/memman.h"
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Sword1 {
 
-MemMan::MemMan(void) {
+MemMan::MemMan() {
 	_alloced = 0;
 	_memListFree = _memListFreeEnd = NULL;
 }
 
-MemMan::~MemMan(void) {
+MemMan::~MemMan() {
 	flush();
 	if (_alloced)
 		warning("deleting MemMan, still %d bytes alloced", _alloced);
@@ -76,7 +74,7 @@ void MemMan::setCondition(MemHandle *bsMem, uint16 pCond) {
 	}
 }
 
-void MemMan::flush(void) {
+void MemMan::flush() {
 	while (_memListFree) {
 		free(_memListFreeEnd->data);
 		_memListFreeEnd->data = NULL;
@@ -88,7 +86,7 @@ void MemMan::flush(void) {
 		warning("MemMan::flush: Something's wrong: still %d bytes alloced", _alloced);
 }
 
-void MemMan::checkMemoryUsage(void) {
+void MemMan::checkMemoryUsage() {
 	while ((_alloced > MAX_ALLOC) && _memListFree) {
 		free(_memListFreeEnd->data);
 		_memListFreeEnd->data = NULL;

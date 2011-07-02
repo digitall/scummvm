@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Prototypes of actor functions
  */
 
@@ -48,12 +45,12 @@ struct OBJECT;
 /*----------------------------------------------------------------------*/
 
 void RegisterActors(int num);
-void FreeActors(void);
+void FreeActors();
 void SetLeadId(int rid);
-int GetLeadId(void);
+int GetLeadId();
 bool ActorIsGhost(int actor);
 void StartTaggedActors(SCNHANDLE ah, int numActors, bool bRunScript);
-void DropActors(void);		// No actor reels running
+void DropActors();		// No actor reels running
 void DisableActor(int actor);
 void EnableActor(int actor);
 void Tag_Actor(int ano, SCNHANDLE tagtext, int tp);
@@ -100,8 +97,8 @@ int GetActorZpos(int ano, int column);
 void IncLoopCount(int ano);
 int GetLoopCount(int ano);
 SCNHANDLE GetActorTag(int ano);
-void FirstTaggedActor(void);
-int NextTaggedActor(void);
+void FirstTaggedActor();
+int NextTaggedActor();
 int NextTaggedActor(int previous);
 int AsetZPos(OBJECT *pObj, int y, int32 zFactor);
 void SetMoverZ(MOVER *pMover, int y, int32 zFactor);
@@ -109,11 +106,11 @@ void ActorEvent(int ano, TINSEL_EVENT event, PLR_EVENT be);
 
 void storeActorAttr(int ano, int r1, int g1, int b1);
 COLORREF GetActorRGB(int ano);
-void SetActorRGB(int ano, COLORREF colour);
+void SetActorRGB(int ano, COLORREF color);
 void SetActorZfactor(int ano, uint32 zFactor);
 uint32 GetActorZfactor(int ano);
 
-void setactorson(void);
+void setactorson();
 
 void ActorsLife(int id, bool bAlive);
 
@@ -128,7 +125,7 @@ bool ActorIsPointedTo(int actor);
 void SetActorTagWanted(int actor, bool bTagWanted, bool bCursor, SCNHANDLE hOverrideTag);
 bool ActorTagIsWanted(int actor);
 bool InHotSpot(int ano, int curX, int curY);
-int FrontTaggedActor(void);
+int FrontTaggedActor();
 void GetActorTagPos(int actor, int *pTagX, int *pTagY, bool bAbsolute);
 bool IsTaggedActor(int actor);
 void StoreActorPresFilm(int ano, SCNHANDLE hFilm, int x, int y);
@@ -145,8 +142,8 @@ struct SAVED_ACTOR {
 	short		zFactor;
 	bool		bAlive;
 	bool		bHidden;
-	SCNHANDLE	presFilm;	//!< the film that reel belongs to
-	short		presRnum;	//!< the present reel number
+	SCNHANDLE	presFilm;	///< the film that reel belongs to
+	short		presRnum;	///< the present reel number
 	short		presPlayX, presPlayY;
 };
 typedef SAVED_ACTOR *PSAVED_ACTOR;
@@ -172,6 +169,6 @@ void RestoreActorZ(byte *saveActorZ);
 
 /*----------------------------------------------------------------------*/
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif /* TINSEL_ACTOR_H */

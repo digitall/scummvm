@@ -71,6 +71,35 @@ class HashMapTestSuite : public CxxTest::TestSuite
 		TS_ASSERT(container.empty());
 	}
 
+	void test_add_remove_iterator() {
+		Common::HashMap<int, int> container;
+		container[0] = 17;
+		container[1] = 33;
+		container[2] = 45;
+		container[3] = 12;
+		container[4] = 96;
+		TS_ASSERT(container.contains(1));
+		container.erase(container.find(1));
+		TS_ASSERT(!container.contains(1));
+		container[1] = 42;
+		TS_ASSERT(container.contains(1));
+		container.erase(container.find(0));
+		TS_ASSERT(!container.empty());
+		container.erase(container.find(1));
+		TS_ASSERT(!container.empty());
+		container.erase(container.find(2));
+		TS_ASSERT(!container.empty());
+		container.erase(container.find(3));
+		TS_ASSERT(!container.empty());
+		container.erase(container.find(4));
+		TS_ASSERT(container.empty());
+		container[1] = 33;
+		TS_ASSERT(container.contains(1));
+		TS_ASSERT(!container.empty());
+		container.erase(container.find(1));
+		TS_ASSERT(container.empty());
+	}
+
 	void test_lookup() {
 		Common::HashMap<int, int> container;
 		container[0] = 17;
@@ -84,6 +113,24 @@ class HashMapTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(container[2], 45);
 		TS_ASSERT_EQUALS(container[3], 12);
 		TS_ASSERT_EQUALS(container[4], 96);
+	}
+
+	void test_lookup_with_default() {
+		Common::HashMap<int, int> container;
+		container[0] = 17;
+		container[1] = -1;
+		container[2] = 45;
+		container[3] = 12;
+		container[4] = 96;
+
+		// We take a const ref now to ensure that the map
+		// is not modified by getVal.
+		const Common::HashMap<int, int> &containerRef = container;
+
+		TS_ASSERT_EQUALS(containerRef.getVal(0), 17);
+		TS_ASSERT_EQUALS(containerRef.getVal(17), 0);
+		TS_ASSERT_EQUALS(containerRef.getVal(0, -10), 17);
+		TS_ASSERT_EQUALS(containerRef.getVal(17, -10), -10);
 	}
 
 	void test_iterator_begin_end() {
@@ -150,6 +197,38 @@ class HashMapTestSuite : public CxxTest::TestSuite
 		TS_ASSERT(h.empty());
     }
 
+	void test_iterator() {
+		Common::HashMap<int, int> container;
+		container[0] = 17;
+		container[1] = 33;
+		container[2] = 45;
+		container[3] = 12;
+		container[4] = 96;
+		container.erase(1);
+		container[1] = 42;
+		container.erase(0);
+		container.erase(1);
+
+		int found = 0;
+		Common::HashMap<int, int>::iterator i;
+		for (i = container.begin(); i != container.end(); ++i) {
+			int key = i->_key;
+			TS_ASSERT(key >= 0 && key <= 4);
+			TS_ASSERT(!(found & (1 << key)));
+			found |= 1 << key;
+		}
+		TS_ASSERT(found == 16+8+4);
+
+		found = 0;
+		Common::HashMap<int, int>::const_iterator j;
+		for (j = container.begin(); j != container.end(); ++j) {
+			int key = j->_key;
+			TS_ASSERT(key >= 0 && key <= 4);
+			TS_ASSERT(!(found & (1 << key)));
+			found |= 1 << key;
+		}
+		TS_ASSERT(found == 16+8+4);
+}
 
 	// TODO: Add test cases for iterators, find, ...
 };

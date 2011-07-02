@@ -18,35 +18,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/util.h"
 #include "common/system.h"
-#include "common/events.h"
 #include "common/config-manager.h"
 #include "common/file.h"
 #include "common/fs.h"
 #include "common/unzip.h"
+#include "common/tokenizer.h"
+#include "common/translation.h"
 
-#include "graphics/surface.h"
-#include "graphics/colormasks.h"
-#include "graphics/imagedec.h"
 #include "graphics/cursorman.h"
+#include "graphics/fontman.h"
+#include "graphics/imagedec.h"
+#include "graphics/surface.h"
 #include "graphics/VectorRenderer.h"
+#include "graphics/fonts/bdf.h"
 
-#include "gui/launcher.h"
+#include "gui/widget.h"
 #include "gui/ThemeEngine.h"
 #include "gui/ThemeEval.h"
 #include "gui/ThemeParser.h"
-
-#if defined(MACOSX) || defined(IPHONE)
-#include <CoreFoundation/CoreFoundation.h>
-#endif
-
-#define GUI_ENABLE_BUILTIN_THEME
 
 namespace GUI {
 
@@ -56,10 +48,10 @@ const char * const ThemeEngine::kImageSearch = "search.bmp";
 
 struct TextDrawData {
 	const Graphics::Font *_fontPtr;
+};
 
-	struct {
-		uint8 r, g, b;
-	} _color;
+struct TextColorData {
+	int r, g, b;
 };
 
 struct WidgetDrawData {
@@ -67,23 +59,24 @@ struct WidgetDrawData {
 	Common::List<Graphics::DrawStep> _steps;
 
 	TextData _textDataId;
+	TextColor _textColorId;
 	Graphics::TextAlign _textAlignH;
 	GUI::ThemeEngine::TextAlignVertical _textAlignV;
 
 	/** Extra space that the widget occupies when it's drawn.
 	    E.g. when taking into account rounded corners, drop shadows, etc
-		Used when restoring the widget background */
+	    Used when restoring the widget background */
 	uint16 _backgroundOffset;
 
 	bool _buffer;
 
 
 	/**
-	 *	Calculates the background threshold offset of a given DrawData item.
-	 *	After fully loading all DrawSteps of a DrawData item, this function must be
-	 *	called in order to calculate if such draw steps would be drawn outside of
-	 *	the actual widget drawing zone (e.g. shadows). If this is the case, a constant
-	 *	value will be added when restoring the background of the widget.
+	 * Calculates the background threshold offset of a given DrawData item.
+	 * After fully loading all DrawSteps of a DrawData item, this function must be
+	 * called in order to calculate if such draw steps would be drawn outside of
+	 * the actual widget drawing zone (e.g. shadows). If this is the case, a constant
+	 * value will be added when restoring the background of the widget.
 	 */
 	void calcBackgroundOffset();
 };
@@ -116,16 +109,17 @@ protected:
 
 class ThemeItemTextData : public ThemeItem {
 public:
-	ThemeItemTextData(ThemeEngine *engine, const TextDrawData *data, const Common::Rect &area, const Common::String &text,
-		Graphics::TextAlign alignH, GUI::ThemeEngine::TextAlignVertical alignV,
-		bool ellipsis, bool restoreBg, int deltaX) :
-		ThemeItem(engine, area), _data(data), _text(text), _alignH(alignH), _alignV(alignV),
+	ThemeItemTextData(ThemeEngine *engine, const TextDrawData *data, const TextColorData *color, const Common::Rect &area, const Common::String &text,
+	                  Graphics::TextAlign alignH, GUI::ThemeEngine::TextAlignVertical alignV,
+	                  bool ellipsis, bool restoreBg, int deltaX) :
+		ThemeItem(engine, area), _data(data), _color(color), _text(text), _alignH(alignH), _alignV(alignV),
 		_ellipsis(ellipsis), _restoreBg(restoreBg), _deltax(deltaX) {}
 
 	void drawSelf(bool draw, bool restore);
 
 protected:
 	const TextDrawData *_data;
+	const TextColorData *_color;
 	Common::String _text;
 	Graphics::TextAlign _alignH;
 	GUI::ThemeEngine::TextAlignVertical _alignV;
@@ -149,66 +143,71 @@ protected:
 
 
 /**********************************************************
- *	Data definitions for theme engine elements
+ *  Data definitions for theme engine elements
  *********************************************************/
 struct DrawDataInfo {
-	DrawData id;		//!< The actual ID of the DrawData item.
-	const char *name;	//!< The name of the DrawData item as it appears in the Theme Description files
-	bool buffer;		//!< Sets whether this item is buffered on the backbuffer or drawn directly to the screen.
-	DrawData parent;	//!< Parent DrawData item, for items that overlay. E.g. kButtonIdle -> kButtonHover
+	DrawData id;        ///< The actual ID of the DrawData item.
+	const char *name;   ///< The name of the DrawData item as it appears in the Theme Description files
+	bool buffer;        ///< Sets whether this item is buffered on the backbuffer or drawn directly to the screen.
+	DrawData parent;    ///< Parent DrawData item, for items that overlay. E.g. kButtonIdle -> kButtonHover
 };
 
 /**
  * Default values for each DrawData item.
  */
 static const DrawDataInfo kDrawDataDefaults[] = {
-	{kDDMainDialogBackground,		"mainmenu_bg",		true,	kDDNone},
-	{kDDSpecialColorBackground,		"special_bg",		true,	kDDNone},
-	{kDDPlainColorBackground,		"plain_bg",			true,	kDDNone},
-	{kDDDefaultBackground,			"default_bg",		true,	kDDNone},
-	{kDDTextSelectionBackground,	"text_selection",	false,	kDDNone},
-	{kDDTextSelectionFocusBackground,	"text_selection_focus",	false,	kDDNone},
+	{kDDMainDialogBackground,         "mainmenu_bg",          true,   kDDNone},
+	{kDDSpecialColorBackground,       "special_bg",           true,   kDDNone},
+	{kDDPlainColorBackground,         "plain_bg",             true,   kDDNone},
+	{kDDTooltipBackground,            "tooltip_bg",           true,   kDDNone},
+	{kDDDefaultBackground,            "default_bg",           true,   kDDNone},
+	{kDDTextSelectionBackground,      "text_selection",       false,  kDDNone},
+	{kDDTextSelectionFocusBackground, "text_selection_focus", false,  kDDNone},
 
-	{kDDWidgetBackgroundDefault,	"widget_default",	true,	kDDNone},
-	{kDDWidgetBackgroundSmall,		"widget_small",		true,	kDDNone},
-	{kDDWidgetBackgroundEditText,	"widget_textedit",	true,	kDDNone},
-	{kDDWidgetBackgroundSlider,		"widget_slider",	true,	kDDNone},
+	{kDDWidgetBackgroundDefault,    "widget_default",   true,   kDDNone},
+	{kDDWidgetBackgroundSmall,      "widget_small",     true,   kDDNone},
+	{kDDWidgetBackgroundEditText,   "widget_textedit",  true,   kDDNone},
+	{kDDWidgetBackgroundSlider,     "widget_slider",    true,   kDDNone},
 
-	{kDDButtonIdle,					"button_idle",		true,	kDDWidgetBackgroundSlider},
-	{kDDButtonHover,				"button_hover",	false,	kDDButtonIdle},
-	{kDDButtonDisabled,				"button_disabled",	true,	kDDNone},
+	{kDDButtonIdle,                 "button_idle",      true,   kDDWidgetBackgroundSlider},
+	{kDDButtonHover,                "button_hover",     false,  kDDButtonIdle},
+	{kDDButtonDisabled,             "button_disabled",  true,   kDDNone},
 
-	{kDDSliderFull,					"slider_full",		false,	kDDNone},
-	{kDDSliderHover,				"slider_hover",		false,	kDDNone},
-	{kDDSliderDisabled,				"slider_disabled",	true,	kDDNone},
+	{kDDSliderFull,                 "slider_full",      false,  kDDNone},
+	{kDDSliderHover,                "slider_hover",     false,  kDDNone},
+	{kDDSliderDisabled,             "slider_disabled",  false,  kDDNone},
 
-	{kDDCheckboxDefault,			"checkbox_default",			true,	kDDNone},
-	{kDDCheckboxDisabled,			"checkbox_disabled",		true,	kDDNone},
-	{kDDCheckboxSelected,			"checkbox_selected",		false,	kDDCheckboxDefault},
+	{kDDCheckboxDefault,            "checkbox_default",         true,   kDDNone},
+	{kDDCheckboxDisabled,           "checkbox_disabled",        true,   kDDNone},
+	{kDDCheckboxSelected,           "checkbox_selected",        false,  kDDCheckboxDefault},
 
-	{kDDTabActive,					"tab_active",				false,	kDDTabInactive},
-	{kDDTabInactive,				"tab_inactive",				true,	kDDNone},
-	{kDDTabBackground,				"tab_background",			true,	kDDNone},
+	{kDDRadiobuttonDefault,         "radiobutton_default",      true,   kDDNone},
+	{kDDRadiobuttonDisabled,        "radiobutton_disabled",     true,   kDDNone},
+	{kDDRadiobuttonSelected,        "radiobutton_selected",     false,  kDDRadiobuttonDefault},
 
-	{kDDScrollbarBase,				"scrollbar_base",			true,	kDDNone},
+	{kDDTabActive,                  "tab_active",               false,  kDDTabInactive},
+	{kDDTabInactive,                "tab_inactive",             true,   kDDNone},
+	{kDDTabBackground,              "tab_background",           true,   kDDNone},
 
-	{kDDScrollbarButtonIdle,		"scrollbar_button_idle",	true,	kDDNone},
-	{kDDScrollbarButtonHover,		"scrollbar_button_hover",	false,	kDDScrollbarButtonIdle},
+	{kDDScrollbarBase,              "scrollbar_base",           true,   kDDNone},
 
-	{kDDScrollbarHandleIdle,		"scrollbar_handle_idle",	false,	kDDNone},
-	{kDDScrollbarHandleHover,		"scrollbar_handle_hover",	false,	kDDScrollbarBase},
+	{kDDScrollbarButtonIdle,        "scrollbar_button_idle",    true,   kDDNone},
+	{kDDScrollbarButtonHover,       "scrollbar_button_hover",   false,  kDDScrollbarButtonIdle},
 
-	{kDDPopUpIdle,					"popup_idle",	true,	kDDNone},
-	{kDDPopUpHover,					"popup_hover",	false,	kDDPopUpIdle},
-	{kDDPopUpDisabled,				"popup_disabled",	true,	kDDNone},
+	{kDDScrollbarHandleIdle,        "scrollbar_handle_idle",    false,  kDDNone},
+	{kDDScrollbarHandleHover,       "scrollbar_handle_hover",   false,  kDDScrollbarBase},
 
-	{kDDCaret,						"caret",		false,	kDDNone},
-	{kDDSeparator,					"separator",	true,	kDDNone},
+	{kDDPopUpIdle,                  "popup_idle",       true,   kDDNone},
+	{kDDPopUpHover,                 "popup_hover",      false,  kDDPopUpIdle},
+	{kDDPopUpDisabled,              "popup_disabled",   true,   kDDNone},
+
+	{kDDCaret,                      "caret",        false,  kDDNone},
+	{kDDSeparator,                  "separator",    true,   kDDNone},
 };
 
 
 /**********************************************************
- *	ThemeItem functions for drawing queues.
+ * ThemeItem functions for drawing queues.
  *********************************************************/
 void ThemeItemDrawData::drawSelf(bool draw, bool restore) {
 
@@ -232,7 +231,7 @@ void ThemeItemTextData::drawSelf(bool draw, bool restore) {
 		_engine->restoreBackground(_area);
 
 	if (draw) {
-		_engine->renderer()->setFgColor(_data->_color.r, _data->_color.g, _data->_color.b);
+		_engine->renderer()->setFgColor(_color->r, _color->g, _color->b);
 		_engine->renderer()->drawString(_data->_fontPtr, _text, _area, _alignH, _alignV, _deltax, _ellipsis);
 	}
 
@@ -256,7 +255,7 @@ void ThemeItemBitmap::drawSelf(bool draw, bool restore) {
 
 
 /**********************************************************
- *	ThemeEngine class
+ * ThemeEngine class
  *********************************************************/
 ThemeEngine::ThemeEngine(Common::String id, GraphicsMode mode) :
 	_system(0), _vectorRenderer(0),
@@ -275,6 +274,10 @@ ThemeEngine::ThemeEngine(Common::String id, GraphicsMode mode) :
 
 	for (int i = 0; i < kTextDataMAX; ++i) {
 		_texts[i] = 0;
+	}
+
+	for (int i = 0; i < kTextColorMAX; ++i) {
+		_textColors[i] = 0;
 	}
 
 	// We currently allow two different ways of theme selection in our config file:
@@ -319,13 +322,13 @@ ThemeEngine::~ThemeEngine() {
 
 
 /**********************************************************
- *	Rendering mode management
+ * Rendering mode management
  *********************************************************/
 const ThemeEngine::Renderer ThemeEngine::_rendererModes[] = {
-	{ "Disabled GFX", "none", kGfxDisabled },
-	{ "Standard Renderer (16bpp)", "normal_16bpp", kGfxStandard16bit },
+	{ _s("Disabled GFX"), _sc("Disabled GFX", "lowres"), "none", kGfxDisabled },
+	{ _s("Standard Renderer (16bpp)"), _s("Standard (16bpp)"), "normal_16bpp", kGfxStandard16bit },
 #ifndef DISABLE_FANCY_THEMES
-	{ "Antialiased Renderer (16bpp)", "aa_16bpp", kGfxAntialias16bit }
+	{ _s("Antialiased Renderer (16bpp)"), _s("Antialiased (16bpp)"), "aa_16bpp", kGfxAntialias16bit }
 #endif
 };
 
@@ -361,13 +364,13 @@ const char *ThemeEngine::findModeConfigName(GraphicsMode mode) {
 
 
 /**********************************************************
- *	Theme setup/initialization
+ * Theme setup/initialization
  *********************************************************/
 bool ThemeEngine::init() {
 	// reset everything and reload the graphics
 	_initOk = false;
-	setGraphicsMode(_graphicsMode);
 	_overlayFormat = _system->getOverlayFormat();
+	setGraphicsMode(_graphicsMode);
 
 	if (_screen.pixels && _backBuffer.pixels) {
 		_initOk = true;
@@ -384,22 +387,23 @@ bool ThemeEngine::init() {
 	// Try to create a Common::Archive with the files of the theme.
 	if (!_themeArchive && !_themeFile.empty()) {
 		Common::FSNode node(_themeFile);
-		if (node.getName().hasSuffix(".zip") && !node.isDirectory()) {
-#ifdef USE_ZLIB
-			Common::ZipArchive *zipArchive = new Common::ZipArchive(node);
-
-			if (!zipArchive || !zipArchive->isOpen()) {
-				delete zipArchive;
-				zipArchive = 0;
-				warning("Failed to open Zip archive '%s'.", node.getPath().c_str());
-			}
-			_themeArchive = zipArchive;
-#else
-			warning("Trying to load theme '%s' in a Zip archive without zLib support", _themeFile.c_str());
-			return false;
-#endif
-		} else if (node.isDirectory()) {
+		if (node.isDirectory()) {
 			_themeArchive = new Common::FSDirectory(node);
+		} else if (_themeFile.matchString("*.zip", true)) {
+			// TODO: Also use "node" directly?
+			// Look for the zip file via SearchMan
+			Common::ArchiveMemberPtr member = SearchMan.getMember(_themeFile);
+			if (member) {
+				_themeArchive = Common::makeZipArchive(member->createReadStream());
+				if (!_themeArchive) {
+					warning("Failed to open Zip archive '%s'.", member->getDisplayName().c_str());
+				}
+			} else {
+				_themeArchive = Common::makeZipArchive(node);
+				if (!_themeArchive) {
+					warning("Failed to open Zip archive '%s'.", node.getPath().c_str());
+				}
+			}
 		}
 	}
 
@@ -491,10 +495,10 @@ void ThemeEngine::setGraphicsMode(GraphicsMode mode) {
 	uint32 height = _system->getOverlayHeight();
 
 	_backBuffer.free();
-	_backBuffer.create(width, height, _bytesPerPixel);
+	_backBuffer.create(width, height, _overlayFormat);
 
 	_screen.free();
-	_screen.create(width, height, _bytesPerPixel);
+	_screen.create(width, height, _overlayFormat);
 
 	delete _vectorRenderer;
 	_vectorRenderer = Graphics::createRenderer(mode);
@@ -504,7 +508,7 @@ void ThemeEngine::setGraphicsMode(GraphicsMode mode) {
 void WidgetDrawData::calcBackgroundOffset() {
 	uint maxShadow = 0;
 	for (Common::List<Graphics::DrawStep>::const_iterator step = _steps.begin();
-		step != _steps.end(); ++step) {
+	        step != _steps.end(); ++step) {
 		if ((step->autoWidth || step->autoHeight) && step->shadow > maxShadow)
 			maxShadow = step->shadow;
 
@@ -523,7 +527,7 @@ void ThemeEngine::restoreBackground(Common::Rect r) {
 
 
 /**********************************************************
- *	Theme elements management
+ * Theme elements management
  *********************************************************/
 void ThemeEngine::addDrawStep(const Common::String &drawDataId, const Graphics::DrawStep &step) {
 	DrawData id = parseDrawDataId(drawDataId);
@@ -532,20 +536,21 @@ void ThemeEngine::addDrawStep(const Common::String &drawDataId, const Graphics::
 	_widgets[id]->_steps.push_back(step);
 }
 
-bool ThemeEngine::addTextData(const Common::String &drawDataId, TextData textId, Graphics::TextAlign alignH, TextAlignVertical alignV) {
+bool ThemeEngine::addTextData(const Common::String &drawDataId, TextData textId, TextColor colorId, Graphics::TextAlign alignH, TextAlignVertical alignV) {
 	DrawData id = parseDrawDataId(drawDataId);
 
-	if (id == -1 || textId == -1 || !_widgets[id])
+	if (id == -1 || textId == -1 || colorId == kTextColorMAX || !_widgets[id])
 		return false;
 
 	_widgets[id]->_textDataId = textId;
+	_widgets[id]->_textColorId = colorId;
 	_widgets[id]->_textAlignH = alignH;
 	_widgets[id]->_textAlignV = alignV;
 
 	return true;
 }
 
-bool ThemeEngine::addFont(TextData textId, const Common::String &file, int r, int g, int b) {
+bool ThemeEngine::addFont(TextData textId, const Common::String &file) {
 	if (textId == -1)
 		return false;
 
@@ -557,23 +562,57 @@ bool ThemeEngine::addFont(TextData textId, const Common::String &file, int r, in
 	if (file == "default") {
 		_texts[textId]->_fontPtr = _font;
 	} else {
-		_texts[textId]->_fontPtr = FontMan.getFontByName(file);
+		Common::String localized = FontMan.genLocalizedFontFilename(file);
+		// Try built-in fonts
+		_texts[textId]->_fontPtr = FontMan.getFontByName(localized);
 
 		if (!_texts[textId]->_fontPtr) {
-			_texts[textId]->_fontPtr = loadFont(file);
+			// First try to load localized font
+			_texts[textId]->_fontPtr = loadFont(localized);
 
-			if (!_texts[textId]->_fontPtr)
-				error("Couldn't load font '%s'", file.c_str());
+			if (_texts[textId]->_fontPtr)
+				FontMan.assignFontToName(localized, _texts[textId]->_fontPtr);
 
-			FontMan.assignFontToName(file, _texts[textId]->_fontPtr);
+			// Fallback to non-localized font and default translation
+			else {
+				// Try built-in fonts
+				_texts[textId]->_fontPtr = FontMan.getFontByName(file);
+
+				// Try to load it
+				if (!_texts[textId]->_fontPtr) {
+					_texts[textId]->_fontPtr = loadFont(file);
+
+					if (!_texts[textId]->_fontPtr)
+						error("Couldn't load font '%s'", file.c_str());
+
+					FontMan.assignFontToName(file, _texts[textId]->_fontPtr);
+				}
+#ifdef USE_TRANSLATION
+				TransMan.setLanguage("C");
+#endif
+				warning("Failed to load localized font '%s'. Using non-localized font and default GUI language instead", file.c_str());
+			}
 		}
 	}
 
-	_texts[textId]->_color.r = r;
-	_texts[textId]->_color.g = g;
-	_texts[textId]->_color.b = b;
 	return true;
 
+}
+
+bool ThemeEngine::addTextColor(TextColor colorId, int r, int g, int b) {
+	if (colorId >= kTextColorMAX)
+		return false;
+
+	if (_textColors[colorId] != 0)
+		delete _textColors[colorId];
+
+	_textColors[colorId] = new TextColorData;
+
+	_textColors[colorId]->r = r;
+	_textColors[colorId]->g = g;
+	_textColors[colorId]->b = b;
+
+	return true;
 }
 
 bool ThemeEngine::addBitmap(const Common::String &filename) {
@@ -616,7 +655,7 @@ bool ThemeEngine::addDrawData(const Common::String &data, bool cached) {
 
 
 /**********************************************************
- *	Theme XML loading
+ * Theme XML loading
  *********************************************************/
 void ThemeEngine::loadTheme(const Common::String &themeId) {
 	unloadTheme();
@@ -656,6 +695,11 @@ void ThemeEngine::unloadTheme() {
 		_texts[i] = 0;
 	}
 
+	for (int i = 0; i < kTextColorMAX; ++i) {
+		delete _textColors[i];
+		_textColors[i] = 0;
+	}
+
 	_themeEval->reset();
 	_themeOk = false;
 }
@@ -666,12 +710,12 @@ bool ThemeEngine::loadDefaultXML() {
 	// file inside the themes directory.
 	// Use the Python script "makedeftheme.py" to convert a normal XML theme
 	// into the "default.inc" file, which is ready to be included in the code.
-#ifdef GUI_ENABLE_BUILTIN_THEME
+#ifndef DISABLE_GUI_BUILTIN_THEME
 	const char *defaultXML =
 #include "themes/default.inc"
-	;
+	    ;
 
-	if (!_parser->loadBuffer((const byte*)defaultXML, strlen(defaultXML), false))
+	if (!_parser->loadBuffer((const byte *)defaultXML, strlen(defaultXML)))
 		return false;
 
 	_themeName = "ScummVM Classic Theme (Builtin Version)";
@@ -745,7 +789,7 @@ bool ThemeEngine::loadThemeXML(const Common::String &themeId) {
 
 
 /**********************************************************
- *	Drawing Queue management
+ * Drawing Queue management
  *********************************************************/
 void ThemeEngine::queueDD(DrawData type, const Common::Rect &r, uint32 dynamic, bool restore) {
 	if (_widgets[type] == 0)
@@ -771,8 +815,8 @@ void ThemeEngine::queueDD(DrawData type, const Common::Rect &r, uint32 dynamic, 
 	}
 }
 
-void ThemeEngine::queueDDText(TextData type, const Common::Rect &r, const Common::String &text, bool restoreBg,
-	bool ellipsis, Graphics::TextAlign alignH, TextAlignVertical alignV, int deltax) {
+void ThemeEngine::queueDDText(TextData type, TextColor color, const Common::Rect &r, const Common::String &text, bool restoreBg,
+                              bool ellipsis, Graphics::TextAlign alignH, TextAlignVertical alignV, int deltax) {
 
 	if (_texts[type] == 0)
 		return;
@@ -780,7 +824,7 @@ void ThemeEngine::queueDDText(TextData type, const Common::Rect &r, const Common
 	Common::Rect area = r;
 	area.clip(_screen.w, _screen.h);
 
-	ThemeItemTextData *q = new ThemeItemTextData(this, _texts[type], area, text, alignH, alignV, ellipsis, restoreBg, deltax);
+	ThemeItemTextData *q = new ThemeItemTextData(this, _texts[type], _textColors[color], area, text, alignH, alignV, ellipsis, restoreBg, deltax);
 
 	if (_buffering) {
 		_screenQueue.push_back(q);
@@ -808,7 +852,7 @@ void ThemeEngine::queueBitmap(const Graphics::Surface *bitmap, const Common::Rec
 
 
 /**********************************************************
- *	Widget drawing functions
+ * Widget drawing functions
  *********************************************************/
 void ThemeEngine::drawButton(const Common::Rect &r, const Common::String &str, WidgetStateInfo state, uint16 hints) {
 	if (!ready())
@@ -824,7 +868,7 @@ void ThemeEngine::drawButton(const Common::Rect &r, const Common::String &str, W
 		dd = kDDButtonDisabled;
 
 	queueDD(dd, r, 0, hints & WIDGET_CLEARBG);
-	queueDDText(getTextData(dd), r, str, false, false, _widgets[dd]->_textAlignH, _widgets[dd]->_textAlignV);
+	queueDDText(getTextData(dd), getTextColor(dd), r, str, false, true, _widgets[dd]->_textAlignH, _widgets[dd]->_textAlignV);
 }
 
 void ThemeEngine::drawLineSeparator(const Common::Rect &r, WidgetStateInfo state) {
@@ -847,7 +891,6 @@ void ThemeEngine::drawCheckbox(const Common::Rect &r, const Common::String &str,
 	if (state == kStateDisabled)
 		dd = kDDCheckboxDisabled;
 
-	TextData td = (state == kStateHighlight) ? kTextDataHover : getTextData(dd);
 	const int checkBoxSize = MIN((int)r.height(), getFontHeight());
 
 	r2.bottom = r2.top + checkBoxSize;
@@ -858,7 +901,33 @@ void ThemeEngine::drawCheckbox(const Common::Rect &r, const Common::String &str,
 	r2.left = r2.right + checkBoxSize;
 	r2.right = r.right;
 
-	queueDDText(td, r2, str, false, false, _widgets[kDDCheckboxDefault]->_textAlignH, _widgets[dd]->_textAlignV);
+	queueDDText(getTextData(dd), getTextColor(dd), r2, str, false, false, _widgets[kDDCheckboxDefault]->_textAlignH, _widgets[dd]->_textAlignV);
+}
+
+void ThemeEngine::drawRadiobutton(const Common::Rect &r, const Common::String &str, bool checked, WidgetStateInfo state) {
+	if (!ready())
+		return;
+
+	Common::Rect r2 = r;
+	DrawData dd = kDDRadiobuttonDefault;
+
+	if (checked)
+		dd = kDDRadiobuttonSelected;
+
+	if (state == kStateDisabled)
+		dd = kDDRadiobuttonDisabled;
+
+	const int checkBoxSize = MIN((int)r.height(), getFontHeight());
+
+	r2.bottom = r2.top + checkBoxSize;
+	r2.right = r2.left + checkBoxSize;
+
+	queueDD(dd, r2);
+
+	r2.left = r2.right + checkBoxSize;
+	r2.right = r.right;
+
+	queueDDText(getTextData(dd), getTextColor(dd), r2, str, false, false, _widgets[kDDRadiobuttonDefault]->_textAlignH, _widgets[dd]->_textAlignV);
 }
 
 void ThemeEngine::drawSlider(const Common::Rect &r, int width, WidgetStateInfo state) {
@@ -924,6 +993,10 @@ void ThemeEngine::drawDialogBackground(const Common::Rect &r, DialogBackground b
 		queueDD(kDDPlainColorBackground, r);
 		break;
 
+	case kDialogBackgroundTooltip:
+		queueDD(kDDTooltipBackground, r);
+		break;
+
 	case kDialogBackgroundDefault:
 		queueDD(kDDDefaultBackground, r);
 		break;
@@ -958,7 +1031,7 @@ void ThemeEngine::drawPopUpWidget(const Common::Rect &r, const Common::String &s
 
 	if (!sel.empty()) {
 		Common::Rect text(r.left + 3, r.top + 1, r.right - 10, r.bottom);
-		queueDDText(getTextData(dd), text, sel, true, false, _widgets[dd]->_textAlignH, _widgets[dd]->_textAlignV, deltax);
+		queueDDText(getTextData(dd), getTextColor(dd), text, sel, true, false, _widgets[dd]->_textAlignH, _widgets[dd]->_textAlignV, deltax);
 	}
 }
 
@@ -1002,74 +1075,106 @@ void ThemeEngine::drawTab(const Common::Rect &r, int tabHeight, int tabWidth, co
 		if (i == active)
 			continue;
 
+		if (r.left + i * tabWidth > r.right || r.left + (i + 1) * tabWidth > r.right)
+			continue;
+
 		Common::Rect tabRect(r.left + i * tabWidth, r.top, r.left + (i + 1) * tabWidth, r.top + tabHeight);
 		queueDD(kDDTabInactive, tabRect);
-		queueDDText(getTextData(kDDTabInactive), tabRect, tabs[i], false, false, _widgets[kDDTabInactive]->_textAlignH, _widgets[kDDTabInactive]->_textAlignV);
+		queueDDText(getTextData(kDDTabInactive), getTextColor(kDDTabInactive), tabRect, tabs[i], false, false, _widgets[kDDTabInactive]->_textAlignH, _widgets[kDDTabInactive]->_textAlignV);
 	}
 
-	if (active >= 0) {
+	if (active >= 0 &&
+	        (r.left + active * tabWidth < r.right) && (r.left + (active + 1) * tabWidth < r.right)) {
 		Common::Rect tabRect(r.left + active * tabWidth, r.top, r.left + (active + 1) * tabWidth, r.top + tabHeight);
 		const uint16 tabLeft = active * tabWidth;
 		const uint16 tabRight =  MAX(r.right - tabRect.right, 0);
 		queueDD(kDDTabActive, tabRect, (tabLeft << 16) | (tabRight & 0xFFFF));
-		queueDDText(getTextData(kDDTabActive), tabRect, tabs[active], false, false, _widgets[kDDTabActive]->_textAlignH, _widgets[kDDTabActive]->_textAlignV);
+		queueDDText(getTextData(kDDTabActive), getTextColor(kDDTabActive), tabRect, tabs[active], false, false, _widgets[kDDTabActive]->_textAlignH, _widgets[kDDTabActive]->_textAlignV);
 	}
 }
 
-void ThemeEngine::drawText(const Common::Rect &r, const Common::String &str, WidgetStateInfo state, Graphics::TextAlign align, TextInversionState inverted, int deltax, bool useEllipsis, FontStyle font) {
+void ThemeEngine::drawText(const Common::Rect &r, const Common::String &str, WidgetStateInfo state, Graphics::TextAlign align, TextInversionState inverted, int deltax, bool useEllipsis, FontStyle font, FontColor color, bool restore) {
 	if (!ready())
 		return;
+
+	TextColor colorId = kTextColorMAX;
+
+	switch (color) {
+	case kFontColorNormal:
+		if (inverted) {
+			colorId = kTextColorNormalInverted;
+		} else {
+			switch (state) {
+			case kStateDisabled:
+				colorId = kTextColorNormalDisabled;
+				break;
+
+			case kStateHighlight:
+				colorId = kTextColorNormalHover;
+				break;
+
+			case kStateEnabled:
+				colorId = kTextColorNormal;
+				break;
+			}
+		}
+		break;
+
+	case kFontColorAlternate:
+		if (inverted) {
+			colorId = kTextColorAlternativeInverted;
+		} else {
+			switch (state) {
+			case kStateDisabled:
+				colorId = kTextColorAlternativeDisabled;
+				break;
+
+			case kStateHighlight:
+				colorId = kTextColorAlternativeHover;
+				break;
+
+			case kStateEnabled:
+				colorId = kTextColorAlternative;
+				break;
+			}
+		}
+		break;
+
+	default:
+		return;
+	}
+
+	TextData textId = fontStyleToData(font);
 
 	switch (inverted) {
 	case kTextInversion:
 		queueDD(kDDTextSelectionBackground, r);
-		queueDDText(kTextDataInverted, r, str, false, useEllipsis, align, kTextAlignVCenter, deltax);
-		return;
+		restore = false;
+		break;
 
 	case kTextInversionFocus:
 		queueDD(kDDTextSelectionFocusBackground, r);
-		queueDDText(kTextDataInverted, r, str, false, useEllipsis, align, kTextAlignVCenter, deltax);
-		return;
+		restore = false;
+		break;
 
 	default:
 		break;
 	}
 
-	switch (font) {
-	case kFontStyleNormal:
-		queueDDText(kTextDataNormalFont, r, str, true, useEllipsis, align, kTextAlignVCenter, deltax);
-		return;
-
-	default:
-		break;
-	}
-
-	switch (state) {
-	case kStateDisabled:
-		queueDDText(kTextDataDisabled, r, str, true, useEllipsis, align, kTextAlignVCenter, deltax);
-		return;
-
-	case kStateHighlight:
-		queueDDText(kTextDataHover, r, str, true, useEllipsis, align, kTextAlignVCenter, deltax);
-		return;
-
-	case kStateEnabled:
-		queueDDText(kTextDataDefault, r, str, true, useEllipsis, align, kTextAlignVCenter, deltax);
-		return;
-	}
+	queueDDText(textId, colorId, r, str, restore, useEllipsis, align, kTextAlignVCenter, deltax);
 }
 
-void ThemeEngine::drawChar(const Common::Rect &r, byte ch, const Graphics::Font *font, WidgetStateInfo state) {
+void ThemeEngine::drawChar(const Common::Rect &r, byte ch, const Graphics::Font *font, WidgetStateInfo state, FontColor color) {
 	if (!ready())
 		return;
 
 	Common::Rect charArea = r;
 	charArea.clip(_screen.w, _screen.h);
 
-	uint32 color = _overlayFormat.RGBToColor(_texts[kTextDataDefault]->_color.r, _texts[kTextDataDefault]->_color.g, _texts[kTextDataDefault]->_color.b);
+	uint32 rgbColor = _overlayFormat.RGBToColor(_textColors[color]->r, _textColors[color]->g, _textColors[color]->b);
 
 	restoreBackground(charArea);
-	font->drawChar(&_screen, ch, charArea.left, charArea.top, color);
+	font->drawChar(&_screen, ch, charArea.left, charArea.top, rgbColor);
 	addDirtyRect(charArea);
 }
 
@@ -1081,28 +1186,26 @@ void ThemeEngine::debugWidgetPosition(const char *name, const Common::Rect &r) {
 	_screen.vLine(r.right, r.top, r.bottom, 0xFFFF);
 }
 
-
-
 /**********************************************************
- *	Screen/overlay management
+ * Screen/overlay management
  *********************************************************/
-void ThemeEngine::updateScreen() {
+void ThemeEngine::updateScreen(bool render) {
 	if (!_bufferQueue.empty()) {
 		_vectorRenderer->setSurface(&_backBuffer);
 
-		for (Common::List<ThemeItem*>::iterator q = _bufferQueue.begin(); q != _bufferQueue.end(); ++q) {
+		for (Common::List<ThemeItem *>::iterator q = _bufferQueue.begin(); q != _bufferQueue.end(); ++q) {
 			(*q)->drawSelf(true, false);
 			delete *q;
 		}
 
 		_vectorRenderer->setSurface(&_screen);
-		memcpy(_screen.getBasePtr(0,0), _backBuffer.getBasePtr(0,0), _screen.pitch * _screen.h);
+		memcpy(_screen.getBasePtr(0, 0), _backBuffer.getBasePtr(0, 0), _screen.pitch * _screen.h);
 		_bufferQueue.clear();
 	}
 
 	if (!_screenQueue.empty()) {
 		_vectorRenderer->disableShadows();
-		for (Common::List<ThemeItem*>::iterator q = _screenQueue.begin(); q != _screenQueue.end(); ++q) {
+		for (Common::List<ThemeItem *>::iterator q = _screenQueue.begin(); q != _screenQueue.end(); ++q) {
 			(*q)->drawSelf(true, false);
 			delete *q;
 		}
@@ -1111,7 +1214,8 @@ void ThemeEngine::updateScreen() {
 		_screenQueue.clear();
 	}
 
-	renderDirtyScreen();
+	if (render)
+		renderDirtyScreen();
 }
 
 void ThemeEngine::addDirtyRect(Common::Rect r) {
@@ -1124,7 +1228,7 @@ void ThemeEngine::addDirtyRect(Common::Rect r) {
 
 	// Check if the new rectangle is contained within another in the list
 	Common::List<Common::Rect>::iterator it;
-	for (it = _dirtyScreen.begin(); it != _dirtyScreen.end(); ) {
+	for (it = _dirtyScreen.begin(); it != _dirtyScreen.end();) {
 		// If we find a rectangle which fully contains the new one,
 		// we can abort the search.
 		if (it->contains(r))
@@ -1146,7 +1250,7 @@ void ThemeEngine::renderDirtyScreen() {
 	if (_dirtyScreen.empty())
 		return;
 
-	Common::List<Common::Rect>::iterator i, j;
+	Common::List<Common::Rect>::iterator i;
 	for (i = _dirtyScreen.begin(); i != _dirtyScreen.end(); ++i) {
 		_vectorRenderer->copyFrame(_system, *i);
 	}
@@ -1163,18 +1267,24 @@ void ThemeEngine::openDialog(bool doBuffer, ShadingStyle style) {
 		addDirtyRect(Common::Rect(0, 0, _screen.w, _screen.h));
 	}
 
-	memcpy(_backBuffer.getBasePtr(0,0), _screen.getBasePtr(0,0), _screen.pitch * _screen.h);
+	memcpy(_backBuffer.getBasePtr(0, 0), _screen.getBasePtr(0, 0), _screen.pitch * _screen.h);
 	_vectorRenderer->setSurface(&_screen);
 }
 
 bool ThemeEngine::createCursor(const Common::String &filename, int hotspotX, int hotspotY, int scale) {
-	if (!_system->hasFeature(OSystem::kFeatureCursorHasPalette))
+	if (!_system->hasFeature(OSystem::kFeatureCursorPalette))
 		return true;
 
 	// Try to locate the specified file among all loaded bitmaps
 	const Graphics::Surface *cursor = _bitmaps[filename];
 	if (!cursor)
 		return false;
+
+#ifdef USE_RGB_COLOR
+	_cursorFormat.bytesPerPixel = 1;
+	_cursorFormat.rLoss = _cursorFormat.gLoss = _cursorFormat.bLoss = _cursorFormat.aLoss = 8;
+	_cursorFormat.rShift = _cursorFormat.gShift = _cursorFormat.bShift = _cursorFormat.aShift = 0;
+#endif
 
 	// Set up the cursor parameters
 	_cursorHotspotX = hotspotX;
@@ -1190,31 +1300,33 @@ bool ThemeEngine::createCursor(const Common::String &filename, int hotspotX, int
 	assert(_cursor);
 	memset(_cursor, 0xFF, sizeof(byte) * _cursorWidth * _cursorHeight);
 
+	// the transparent color is 0xFF00FF
+	const int colTransparent = _overlayFormat.RGBToColor(0xFF, 0, 0xFF);
+
 	// Now, scan the bitmap. We have to convert it from 16 bit color mode
 	// to 8 bit mode, and have to create a suitable palette on the fly.
 	uint colorsFound = 0;
-	Common::HashMap<int, int>	colorToIndex;
-	const OverlayColor *src = (const OverlayColor*)cursor->pixels;
+	Common::HashMap<int, int> colorToIndex;
+	const OverlayColor *src = (const OverlayColor *)cursor->pixels;
 	for (uint y = 0; y < _cursorHeight; ++y) {
 		for (uint x = 0; x < _cursorWidth; ++x) {
 			byte r, g, b;
+
+			// Skip transparency
+			if (src[x] == colTransparent)
+				continue;
+
 			_overlayFormat.colorToRGB(src[x], r, g, b);
 			const int col = (r << 16) | (g << 8) | b;
-
-			// Skip transparency (the transparent color actually is 0xFF00FF,
-			// but the RGB conversion chops of the lower bits).
-			if ((r > 0xF1) && (g < 0x03) && (b > 0xF1))
-				continue;
 
 			// If there is no entry yet for this color in the palette: Add one
 			if (!colorToIndex.contains(col)) {
 				const int index = colorsFound++;
 				colorToIndex[col] = index;
 
-				_cursorPal[index * 4 + 0] = r;
-				_cursorPal[index * 4 + 1] = g;
-				_cursorPal[index * 4 + 2] = b;
-				_cursorPal[index * 4 + 3] = 0xFF;
+				_cursorPal[index * 3 + 0] = r;
+				_cursorPal[index * 3 + 1] = g;
+				_cursorPal[index * 3 + 2] = b;
 
 				if (colorsFound > MAX_CURS_COLORS) {
 					warning("Cursor contains too many colors (%d, but only %d are allowed)", colorsFound, MAX_CURS_COLORS);
@@ -1237,7 +1349,7 @@ bool ThemeEngine::createCursor(const Common::String &filename, int hotspotX, int
 
 
 /**********************************************************
- *	Legacy GUI::Theme support functions
+ * Legacy GUI::Theme support functions
  *********************************************************/
 
 const Graphics::Font *ThemeEngine::getFont(FontStyle font) const {
@@ -1260,6 +1372,9 @@ TextData ThemeEngine::getTextData(DrawData ddId) const {
 	return _widgets[ddId] ? (TextData)_widgets[ddId]->_textDataId : kTextDataNone;
 }
 
+TextColor ThemeEngine::getTextColor(DrawData ddId) const {
+	return _widgets[ddId] ? _widgets[ddId]->_textColorId : kTextColorMAX;
+}
 
 DrawData ThemeEngine::parseDrawDataId(const Common::String &name) const {
 	for (int i = 0; i < kDrawDataMAX; ++i)
@@ -1270,7 +1385,7 @@ DrawData ThemeEngine::parseDrawDataId(const Common::String &name) const {
 }
 
 /**********************************************************
- *	External data loading
+ * External data loading
  *********************************************************/
 
 const Graphics::Font *ThemeEngine::loadFontFromArchive(const Common::String &filename) {
@@ -1280,7 +1395,21 @@ const Graphics::Font *ThemeEngine::loadFontFromArchive(const Common::String &fil
 	if (_themeArchive)
 		stream = _themeArchive->createReadStreamForMember(filename);
 	if (stream) {
-		font = Graphics::NewFont::loadFromCache(*stream);
+		font = Graphics::BdfFont::loadFont(*stream);
+		delete stream;
+	}
+
+	return font;
+}
+
+const Graphics::Font *ThemeEngine::loadCachedFontFromArchive(const Common::String &filename) {
+	Common::SeekableReadStream *stream = 0;
+	const Graphics::Font *font = 0;
+
+	if (_themeArchive)
+		stream = _themeArchive->createReadStreamForMember(filename);
+	if (stream) {
+		font = Graphics::BdfFont::loadFromCache(*stream);
 		delete stream;
 	}
 
@@ -1289,23 +1418,24 @@ const Graphics::Font *ThemeEngine::loadFontFromArchive(const Common::String &fil
 
 const Graphics::Font *ThemeEngine::loadFont(const Common::String &filename) {
 	const Graphics::Font *font = 0;
-	Common::String cacheFilename = genCacheFilename(filename.c_str());
+	Common::String cacheFilename = genCacheFilename(filename);
 	Common::File fontFile;
 
 	if (!cacheFilename.empty()) {
-		if (fontFile.open(cacheFilename))
-			font = Graphics::NewFont::loadFromCache(fontFile);
+		if (fontFile.open(cacheFilename)) {
+			font = Graphics::BdfFont::loadFromCache(fontFile);
+		}
 
 		if (font)
 			return font;
 
-		if ((font = loadFontFromArchive(cacheFilename)))
+		if ((font = loadCachedFontFromArchive(cacheFilename)))
 			return font;
 	}
 
 	// normal open
 	if (fontFile.open(filename)) {
-		font = Graphics::NewFont::loadFont(fontFile);
+		font = Graphics::BdfFont::loadFont(fontFile);
 	}
 
 	if (!font) {
@@ -1314,7 +1444,7 @@ const Graphics::Font *ThemeEngine::loadFont(const Common::String &filename) {
 
 	if (font) {
 		if (!cacheFilename.empty()) {
-			if (!Graphics::NewFont::cacheFontData(*(const Graphics::NewFont*)font, cacheFilename)) {
+			if (!Graphics::BdfFont::cacheFontData(*(const Graphics::BdfFont *)font, cacheFilename)) {
 				warning("Couldn't create cache file for font '%s'", filename.c_str());
 			}
 		}
@@ -1323,7 +1453,7 @@ const Graphics::Font *ThemeEngine::loadFont(const Common::String &filename) {
 	return font;
 }
 
-Common::String ThemeEngine::genCacheFilename(const char *filename) {
+Common::String ThemeEngine::genCacheFilename(const Common::String &filename) const {
 	Common::String cacheName(filename);
 	for (int i = cacheName.size() - 1; i >= 0; --i) {
 		if (cacheName[i] == '.') {
@@ -1341,10 +1471,16 @@ Common::String ThemeEngine::genCacheFilename(const char *filename) {
 
 
 /**********************************************************
- *	Static Theme XML functions
+ * Static Theme XML functions
  *********************************************************/
 
 bool ThemeEngine::themeConfigParseHeader(Common::String header, Common::String &themeName) {
+	// Check that header is not corrupted
+	if ((byte)header[0] > 127) {
+		warning("Corrupted theme header found");
+		return false;
+	}
+
 	header.trim();
 
 	if (header.empty())
@@ -1367,17 +1503,45 @@ bool ThemeEngine::themeConfigParseHeader(Common::String header, Common::String &
 	return tok.empty();
 }
 
+bool ThemeEngine::themeConfigUsable(const Common::ArchiveMember &member, Common::String &themeName) {
+	Common::File stream;
+	bool foundHeader = false;
+
+	if (member.getName().matchString("*.zip", true)) {
+		Common::Archive *zipArchive = Common::makeZipArchive(member.createReadStream());
+
+		if (zipArchive && zipArchive->hasFile("THEMERC")) {
+			stream.open("THEMERC", *zipArchive);
+		}
+
+		delete zipArchive;
+	}
+
+	if (stream.isOpen()) {
+		Common::String stxHeader = stream.readLine();
+		foundHeader = themeConfigParseHeader(stxHeader, themeName);
+	}
+
+	return foundHeader;
+}
+
 bool ThemeEngine::themeConfigUsable(const Common::FSNode &node, Common::String &themeName) {
 	Common::File stream;
 	bool foundHeader = false;
 
-	if (node.getName().hasSuffix(".zip") && !node.isDirectory()) {
-#ifdef USE_ZLIB
-		Common::ZipArchive zipArchive(node);
-		if (zipArchive.hasFile("THEMERC")) {
-			stream.open("THEMERC", zipArchive);
+	if (node.getName().matchString("*.zip", true) && !node.isDirectory()) {
+		Common::Archive *zipArchive = Common::makeZipArchive(node);
+		if (zipArchive && zipArchive->hasFile("THEMERC")) {
+			// Open THEMERC from the ZIP file.
+			stream.open("THEMERC", *zipArchive);
 		}
-#endif
+		// Delete the ZIP archive again. Note: This only works because
+		// stream.open() only uses ZipArchive::createReadStreamForMember,
+		// and that in turn happens to read all the data for a given
+		// archive member into a memory block. So there will be no dangling
+		// reference to zipArchive anywhere. This could change if we
+		// ever modify ZipArchive::createReadStreamForMember.
+		delete zipArchive;
 	} else if (node.isDirectory()) {
 		Common::FSNode headerfile = node.getChild("THEMERC");
 		if (!headerfile.exists() || !headerfile.isReadable() || headerfile.isDirectory())
@@ -1399,13 +1563,15 @@ struct TDComparator {
 	const Common::String _id;
 	TDComparator(const Common::String &id) : _id(id) {}
 
-	bool operator()(const ThemeEngine::ThemeDescriptor &r) { return _id == r.id; }
+	bool operator()(const ThemeEngine::ThemeDescriptor &r) {
+		return _id == r.id;
+	}
 };
 
 } // end of anonymous namespace
 
 void ThemeEngine::listUsableThemes(Common::List<ThemeDescriptor> &list) {
-#ifdef GUI_ENABLE_BUILTIN_THEME
+#ifndef DISABLE_GUI_BUILTIN_THEME
 	ThemeDescriptor th;
 	th.name = "ScummVM Classic Theme (Builtin Version)";
 	th.id = "builtin";
@@ -1416,26 +1582,7 @@ void ThemeEngine::listUsableThemes(Common::List<ThemeDescriptor> &list) {
 	if (ConfMan.hasKey("themepath"))
 		listUsableThemes(Common::FSNode(ConfMan.get("themepath")), list);
 
-#ifdef DATA_PATH
-	listUsableThemes(Common::FSNode(DATA_PATH), list);
-#endif
-
-#if defined(MACOSX) || defined(IPHONE)
-	CFURLRef resourceUrl = CFBundleCopyResourcesDirectoryURL(CFBundleGetMainBundle());
-	if (resourceUrl) {
-		char buf[256];
-		if (CFURLGetFileSystemRepresentation(resourceUrl, true, (UInt8 *)buf, 256)) {
-			Common::FSNode resourcePath(buf);
-			listUsableThemes(resourcePath, list);
-		}
-		CFRelease(resourceUrl);
-	}
-#endif
-
-	if (ConfMan.hasKey("extrapath"))
-		listUsableThemes(Common::FSNode(ConfMan.get("extrapath")), list);
-
-	listUsableThemes(Common::FSNode("."), list, 1);
+	listUsableThemes(SearchMan, list);
 
 	// Now we need to strip all duplicates
 	// TODO: It might not be the best idea to strip duplicates. The user might
@@ -1452,6 +1599,32 @@ void ThemeEngine::listUsableThemes(Common::List<ThemeDescriptor> &list) {
 
 	list = output;
 	output.clear();
+}
+
+void ThemeEngine::listUsableThemes(Common::Archive &archive, Common::List<ThemeDescriptor> &list) {
+	ThemeDescriptor td;
+
+	Common::ArchiveMemberList fileList;
+	archive.listMatchingMembers(fileList, "*.zip");
+	for (Common::ArchiveMemberList::iterator i = fileList.begin();
+	        i != fileList.end(); ++i) {
+		td.name.clear();
+		if (themeConfigUsable(**i, td.name)) {
+			td.filename = (*i)->getName();
+			td.id = (*i)->getDisplayName();
+
+			// If the name of the node object also contains
+			// the ".zip" suffix, we will strip it.
+			if (td.id.matchString("*.zip", true)) {
+				for (int j = 0; j < 4; ++j)
+					td.id.deleteLastChar();
+			}
+
+			list.push_back(td);
+		}
+	}
+
+	fileList.clear();
 }
 
 void ThemeEngine::listUsableThemes(const Common::FSNode &node, Common::List<ThemeDescriptor> &list, int depth) {
@@ -1473,14 +1646,13 @@ void ThemeEngine::listUsableThemes(const Common::FSNode &node, Common::List<Them
 	}
 
 	Common::FSList fileList;
-#ifdef USE_ZLIB
 	// Check all files. We need this to find all themes inside ZIP archives.
 	if (!node.getChildren(fileList, Common::FSNode::kListFilesOnly))
 		return;
 
 	for (Common::FSList::iterator i = fileList.begin(); i != fileList.end(); ++i) {
 		// We will only process zip files for now
-		if (!i->getPath().hasSuffix(".zip"))
+		if (!i->getPath().matchString("*.zip", true))
 			continue;
 
 		td.name.clear();
@@ -1490,7 +1662,7 @@ void ThemeEngine::listUsableThemes(const Common::FSNode &node, Common::List<Them
 
 			// If the name of the node object also contains
 			// the ".zip" suffix, we will strip it.
-			if (td.id.hasSuffix(".zip")) {
+			if (td.id.matchString("*.zip", true)) {
 				for (int j = 0; j < 4; ++j)
 					td.id.deleteLastChar();
 			}
@@ -1500,7 +1672,6 @@ void ThemeEngine::listUsableThemes(const Common::FSNode &node, Common::List<Them
 	}
 
 	fileList.clear();
-#endif
 
 	// Check if we exceeded the given recursion depth
 	if (depth - 1 == -1)
@@ -1528,7 +1699,7 @@ Common::String ThemeEngine::getThemeFile(const Common::String &id) {
 	Common::FSNode node(id);
 
 	// If the given id is a full path we'll just use it
-	if (node.exists() && (node.isDirectory() || node.getName().hasSuffix(".zip")))
+	if (node.exists() && (node.isDirectory() || node.getName().matchString("*.zip", true)))
 		return id;
 
 	// FIXME:
@@ -1559,7 +1730,7 @@ Common::String ThemeEngine::getThemeId(const Common::String &filename) {
 	if (!node.exists())
 		return "builtin";
 
-	if (node.getName().hasSuffix(".zip")) {
+	if (node.getName().matchString("*.zip", true)) {
 		Common::String id = node.getName();
 
 		for (int i = 0; i < 4; ++i)
@@ -1572,4 +1743,4 @@ Common::String ThemeEngine::getThemeId(const Common::String &filename) {
 }
 
 
-} // end of namespace GUI.
+} // End of namespace GUI.

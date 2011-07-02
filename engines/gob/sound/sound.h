@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SOUND_SOUND_H
@@ -55,7 +52,7 @@ public:
 	int sampleGetNextFreeSlot() const;
 
 	bool sampleLoad(SoundDesc *sndDesc, SoundType type, const char *fileName, bool tryExist = true);
-	void sampleFree(SoundDesc *sndDesc, bool noteAdlib = false, int index = -1);
+	void sampleFree(SoundDesc *sndDesc, bool noteAdLib = false, int index = -1);
 
 
 	// SoundBlaster
@@ -114,13 +111,13 @@ public:
 
 
 	// CD-ROM
-	void cdLoadLIC(const char *fname);
+	void cdLoadLIC(const Common::String &fname);
 	void cdUnloadLIC();
 
 	void cdPlayBgMusic();
 	void cdPlayMultMusic();
 
-	void cdPlay(const char *trackName);
+	void cdPlay(const Common::String &);
 	void cdStop();
 
 	bool cdIsPlaying() const;

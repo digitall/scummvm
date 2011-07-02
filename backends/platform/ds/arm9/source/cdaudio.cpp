@@ -8,17 +8,20 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- *
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
+
+// Disable symbol overrides for FILE as that is used in FLAC headers
+#define FORBIDDEN_SYMBOL_EXCEPTION_FILE
 
 #include "cdaudio.h"
 #include "backends/fs/ds/ds-fs.h"
@@ -71,25 +74,26 @@ struct decoderFormat {
 	unsigned char	sample[1024];
 } __attribute__ ((packed));
 
-bool active = false;
-WaveHeader waveHeader;
-Header blockHeader;
-FILE* file;
-int fillPos;
-bool isPlayingFlag = false;
+static bool s_started = false;
+static bool s_active = false;
+static WaveHeader waveHeader;
+static Header blockHeader;
+static FILE *s_file;
+static int fillPos;
+static bool isPlayingFlag = false;
 
-s16* audioBuffer;
-u32 sampleNum;
-s16* decompressionBuffer;
-int numLoops;
-int blockCount;
-int dataChunkStart;
-int blocksLeft;
-bool trackStartsAt2 = false;
+static s16 *audioBuffer;
+static u32 sampleNum;
+static s16 *decompressionBuffer;
+static int s_numLoops;
+static int blockCount;
+static int dataChunkStart;
+static int blocksLeft;
+static bool trackStartsAt2 = false;
 
 
 // These are from Microsoft's document on DVI ADPCM
-const int stepTab[ 89 ] = {
+static const int stepTab[ 89 ] = {
 7, 8, 9, 10, 11, 12, 13, 14,
 16, 17, 19, 21, 23, 25, 28, 31,
 34, 37, 41, 45, 50, 55, 60, 66,
@@ -103,7 +107,7 @@ const int stepTab[ 89 ] = {
 15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794,
 32767 };
 
-const int indexTab[ 16 ] = { -1, -1, -1, -1, 2, 4, 6, 8,
+static const int indexTab[ 16 ] = { -1, -1, -1, -1, 2, 4, 6, 8,
 -1, -1, -1, -1, 2, 4, 6, 8 };
 
 void playNextBlock();
@@ -115,11 +119,11 @@ void allocBuffers() {
 }
 
 void setActive(bool active) {
-	DS::CD::active = active;
+	s_active = active;
 }
 
 bool getActive() {
-	return active;
+	return s_active;
 }
 
 void playTrack(int track, int numLoops, int startFrame, int duration) {
@@ -137,26 +141,30 @@ void playTrack(int track, int numLoops, int startFrame, int duration) {
 
 	char str[100];
 
-	if (path[strlen(path.c_str()) - 1] == '/') {
-		sprintf(str, "track%d.wav", track);
-		path = path + str;
-	} else {
-		sprintf(str, "/track%d.wav", track);
-		path = path + str;
+	if (path.lastChar() != '/')
+		path += '/';
+
+	Common::String fname;
+
+	sprintf(str, "track%d.wav", track);
+	fname = path + str;
+	s_file = DS::std_fopen(fname.c_str(), "rb");
+
+	if (!s_file) {
+		sprintf(str, "track%02d.wav", track);
+		fname = path + str;
+		s_file = DS::std_fopen(fname.c_str(), "rb");
 	}
 
-
-	//1820160
-
-	file = DS::std_fopen(path.c_str(), "rb");
-
-	if (!file) {
+	if (!s_file) {
 		consolePrintf("Failed to open %s!\n", path.c_str());
 		return;
 	}
 
 
-	DS::std_fread((const void *) &waveHeader, sizeof(waveHeader), 1, file);
+	DS::std_fread(&waveHeader, sizeof(waveHeader), 1, s_file);
+
+	consolePrintf("File: %s\n", fname.c_str());
 
 	consolePrintf("Playing track %d\n", track);
 	consolePrintf("Format: %d\n", waveHeader.fmtFormatTag);
@@ -166,7 +174,7 @@ void playTrack(int track, int numLoops, int startFrame, int duration) {
 
 	if ((waveHeader.fmtFormatTag != 17) && (waveHeader.fmtFormatTag != 20)) {
 		consolePrintf("Wave file is in the wrong format!  You must use IMA-ADPCM 4-bit mono.\n");
-		DS::std_fclose(file);
+		DS::std_fclose(s_file);
 		return;
 	}
 
@@ -178,17 +186,16 @@ void playTrack(int track, int numLoops, int startFrame, int duration) {
 
 	// Skip chunks until we reach the data chunk
 	chunkHeader chunk;
-	DS::std_fread((const void *) &chunk, sizeof(chunkHeader), 1, file);
+	DS::std_fread(&chunk, sizeof(chunkHeader), 1, s_file);
 
 	while (!((chunk.name[0] == 'd') && (chunk.name[1] == 'a') && (chunk.name[2] == 't') && (chunk.name[3] == 'a'))) {
-		DS::std_fseek(file, chunk.size, SEEK_CUR);
-		DS::std_fread((const void *) &chunk, sizeof(chunkHeader), 1, file);
+		DS::std_fseek(s_file, chunk.size, SEEK_CUR);
+		DS::std_fread(&chunk, sizeof(chunkHeader), 1, s_file);
 	}
 
-	dataChunkStart = DS::std_ftell(file);
+	dataChunkStart = DS::std_ftell(s_file);
 
 
-	static bool started = false;
 	sampleNum = 0;
 	blockCount = 0;
 
@@ -196,11 +203,11 @@ void playTrack(int track, int numLoops, int startFrame, int duration) {
 	IPC->streamFillNeeded[1] = true;
 	IPC->streamFillNeeded[2] = true;
 	IPC->streamFillNeeded[3] = true;
-	if (!started) {
+	if (!s_started) {
 		fillPos = 0;
 		audioBuffer = (s16 *) malloc(BUFFER_SIZE * 2);
 		decompressionBuffer = (s16 *) malloc(waveHeader.fmtExtra * 2);
-		started = true;
+		s_started = true;
 //		consolePrintf("****Starting buffer*****\n");
 		memset(audioBuffer, 0, BUFFER_SIZE * 2);
 		memset(decompressionBuffer, 0, waveHeader.fmtExtra * 2);
@@ -229,14 +236,14 @@ void playTrack(int track, int numLoops, int startFrame, int duration) {
 
 	// No need to seek if we're starting from the beginning
 	if (block != 0) {
-		DS::std_fseek(file, dataChunkStart + block * waveHeader.fmtBlockAlign, SEEK_SET);
+		DS::std_fseek(s_file, dataChunkStart + block * waveHeader.fmtBlockAlign, SEEK_SET);
 //		consolePrintf("Startframe: %d  msec: %d (%d,%d)\n", startFrame, tenthssec, samples, block);
 	}
 
 
 	//decompressBlock();
 	playNextBlock();
-	DS::CD::numLoops = numLoops;
+	s_numLoops = numLoops;
 }
 
 void update() {
@@ -244,7 +251,12 @@ void update() {
 }
 
 #ifdef ARM_ADPCM
-extern "C" void ARM_adcpm(int *block, int len, int stepTableIndex,
+// FIXME: This code, as well as the source file adpcm_arm.s, are
+// apparently unused. Maybe that is a mistake? Or maybe there is a bug
+// in ARM_adpcm (then this should be reported and fixed). Or maybe there
+// are other good reasons to prefer the C code, but then this as well as
+// the assembler source file should be removed.
+extern "C" void ARM_adpcm(int *block, int len, int stepTableIndex,
                           int firstSample, s16 *decompressionBuffer);
 #endif
 
@@ -258,20 +270,20 @@ void decompressBlock() {
 
 
 	do {
-		DS::std_fread((const void *) &blockHeader, sizeof(blockHeader), 1, file);
+		DS::std_fread(&blockHeader, sizeof(blockHeader), 1, s_file);
 
-		DS::std_fread(&block[0], waveHeader.fmtBlockAlign - sizeof(blockHeader), 1, file);
+		DS::std_fread(&block[0], waveHeader.fmtBlockAlign - sizeof(blockHeader), 1, s_file);
 
-		if (DS::std_feof(file) ) {
+		if (DS::std_feof(s_file)) {
 			// Reached end of file, so loop
 
 
-			if ((numLoops == -1) || (numLoops > 1)) {
+			if ((s_numLoops == -1) || (s_numLoops > 1)) {
 				// Seek file to first packet
-				if (numLoops != -1) {
-					numLoops--;
+				if (s_numLoops != -1) {
+					s_numLoops--;
 				}
-				DS::std_fseek(file, dataChunkStart, SEEK_SET);
+				DS::std_fseek(s_file, dataChunkStart, SEEK_SET);
 				loop = true;
 			} else {
 				// Fill decompression buffer with zeros to prevent glitching
@@ -320,45 +332,30 @@ void decompressBlock() {
 		int offset = 0;
 
 		switch (7 - (r & 0x0007)) {
-			case 0: {
-				offset = (word & 0xF0000000) >> 28;
-				break;
-			}
-
-			case 1: {
-				offset = (word & 0x0F000000) >> 24;
-				break;
-			}
-
-			case 2: {
-				offset = (word & 0x00F00000) >> 20;
-				break;
-			}
-
-			case 3: {
-				offset = (word & 0x000F0000) >> 16;
-				break;
-			}
-
-			case 4: {
-				offset = (word & 0x0000F000) >> 12;
-				break;
-			}
-
-			case 5: {
-				offset = (word & 0x00000F00) >> 8;
-				break;
-			}
-
-			case 6: {
-				offset = (word & 0x000000F0) >> 4;
-				break;
-			}
-
-			case 7: {
-				offset = (word & 0x0000000F);
-				break;
-			}
+		case 0:
+			offset = (word & 0xF0000000) >> 28;
+			break;
+		case 1:
+			offset = (word & 0x0F000000) >> 24;
+			break;
+		case 2:
+			offset = (word & 0x00F00000) >> 20;
+			break;
+		case 3:
+			offset = (word & 0x000F0000) >> 16;
+			break;
+		case 4:
+			offset = (word & 0x0000F000) >> 12;
+			break;
+		case 5:
+			offset = (word & 0x00000F00) >> 8;
+			break;
+		case 6:
+			offset = (word & 0x000000F0) >> 4;
+			break;
+		case 7:
+			offset = (word & 0x0000000F);
+			break;
 		}
 
 		int diff = 0;
@@ -401,7 +398,8 @@ void decompressBlock() {
 }
 
 void playNextBlock() {
-	if (!isPlayingFlag) return;
+	if (!isPlayingFlag)
+		return;
 	int lastBlockId = -1;
 
 	while (IPC->adpcm.semaphore);		// Wait for buffer to become free if needed
@@ -437,9 +435,6 @@ void playNextBlock() {
 //			DC_FlushAll();
 
 		}
-
-
-
 	}
 
 
@@ -455,9 +450,10 @@ void playNextBlock() {
 }
 
 void stopTrack() {
-	if (!isPlayingFlag) return;
+	if (!isPlayingFlag)
+		return;
 
-	DS::std_fclose(file);
+	DS::std_fclose(s_file);
 
 	isPlayingFlag = false;
 
@@ -465,7 +461,7 @@ void stopTrack() {
 		audioBuffer[r] = 0;
 	}
 
-	for (int r= 0; r < waveHeader.fmtExtra; r++) {
+	for (int r = 0; r < waveHeader.fmtExtra; r++) {
 		decompressionBuffer[r] = 0;
 	}
 //	DS::stopSound(1);
@@ -477,30 +473,47 @@ void stopTrack() {
 }
 
 bool trackExists(int num) {
-	Common::String path = ConfMan.get("path");
-
+	Common::String path;
 	char fname[128];
+	FILE *file;
 
 	sprintf(fname, "track%d.wav", num);
 
-	if (path[strlen(path.c_str()) - 1] == '/') {
-		path = path + fname;
-	} else {
-		path = path + "/" + fname;
-	}
+	path = ConfMan.get("path");
+	if (path.lastChar() != '/')
+		path += '/';
+	path += fname;
+
 	consolePrintf("Looking for %s...", path.c_str());
 
-	FILE* file;
-	if ((file = DS::std_fopen(path.c_str(), "r"))) {
+	file = DS::std_fopen(path.c_str(), "r");
+	if (file) {
 		consolePrintf("Success!\n");
 		setActive(true);
 		DS::std_fclose(file);
 		return true;
-	} else {
-		setActive(false);
-		consolePrintf("Failed!\n");
-		return false;
 	}
+
+	sprintf(fname, "track%02d.wav", num);
+
+	path = ConfMan.get("path");
+	if (path.lastChar() != '/')
+		path += '/';
+	path += fname;
+
+	consolePrintf("Looking for %s...", path.c_str());
+
+	file = DS::std_fopen(path.c_str(), "r");
+	if (file) {
+		consolePrintf("Success!\n");
+		setActive(true);
+		DS::std_fclose(file);
+		return true;
+	}
+
+	setActive(false);
+	consolePrintf("Failed!\n");
+	return false;
 }
 
 bool checkCD() {
@@ -523,4 +536,4 @@ bool isPlaying() {
 }
 
 }
-}
+}	// End of namespace DS

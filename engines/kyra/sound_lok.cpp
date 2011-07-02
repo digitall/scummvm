@@ -18,18 +18,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "kyra/sound.h"
 #include "kyra/kyra_lok.h"
+#include "kyra/sound.h"
+
+#include "common/system.h"
 
 namespace Kyra {
 
 void KyraEngine_LoK::snd_playSoundEffect(int track, int volume) {
-	if ((_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98) && track == 49) {
+	if (_flags.platform == Common::kPlatformPC98) {
+		if (track < 16 || track > 119)
+			track = 58;
+		else
+			track -= 16;
+	}
+
+	if (_flags.platform == Common::kPlatformFMTowns && track == 49) {
 		snd_playWanderScoreViaMap(56, 1);
 		return;
 	}
@@ -42,22 +48,20 @@ void KyraEngine_LoK::snd_playWanderScoreViaMap(int command, int restart) {
 		_lastMusicCommand = -1;
 
 	if (_flags.platform == Common::kPlatformFMTowns) {
-		if (command == 1) {
-			_sound->beginFadeOut();
-		} else if (command >= 35 && command <= 38) {
-			snd_playSoundEffect(command-20);
+		if (command >= 35 && command <= 38) {
+			snd_playSoundEffect(command - 20);
 		} else if (command >= 2) {
 			if (_lastMusicCommand != command)
 				// the original does -2 here we handle this inside _sound->playTrack()
 				_sound->playTrack(command);
 		} else {
-			_sound->haltTrack();
+			_sound->beginFadeOut();
 		}
 		_lastMusicCommand = command;
 	} else if (_flags.platform == Common::kPlatformPC98) {
 		if (command == 1) {
 			_sound->beginFadeOut();
-		} else if (command >= 2) {
+		} else if ((command >= 2 && command < 53) || command == 55) {
 			if (_lastMusicCommand != command)
 				_sound->playTrack(command);
 		} else {
@@ -70,9 +74,8 @@ void KyraEngine_LoK::snd_playWanderScoreViaMap(int command, int restart) {
 }
 
 void KyraEngine_LoK::snd_playVoiceFile(int id) {
-	char vocFile[9];
-	snprintf(vocFile, sizeof(vocFile), "%03d", id);
-	_speechPlayTime = _sound->voicePlay(vocFile, &_speechHandle);
+	Common::String vocFile = Common::String::format("%03d", id);
+	_speechPlayTime = _sound->voicePlay(vocFile.c_str(), &_speechHandle);
 }
 
 void KyraEngine_LoK::snd_voiceWaitForFinish(bool ingame) {
@@ -90,4 +93,4 @@ uint32 KyraEngine_LoK::snd_getVoicePlayTime() {
 	return (_speechPlayTime != -1 ? _speechPlayTime : 0);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

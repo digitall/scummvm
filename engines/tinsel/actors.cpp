@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Handles things to do with actors, delegates much moving actor stuff.
  */
 
@@ -44,6 +41,7 @@
 #include "tinsel/tinsel.h"
 #include "tinsel/token.h"
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 namespace Tinsel {
@@ -56,9 +54,9 @@ namespace Tinsel {
 
 /** actor struct - one per actor */
 struct T1_ACTOR_STRUC {
-	int32 masking;			//!< type of actor masking
-	SCNHANDLE hActorId;		//!< handle actor ID string index
-	SCNHANDLE hActorCode;	//!< handle to actor script
+	int32 masking;			///< type of actor masking
+	SCNHANDLE hActorId;		///< handle actor ID string index
+	SCNHANDLE hActorCode;	///< handle to actor script
 } PACKED_STRUCT;
 
 struct T2_ACTOR_STRUC {
@@ -78,6 +76,8 @@ struct T2_ACTOR_STRUC {
 //----------------- LOCAL GLOBAL DATA --------------------
 
 #define MAX_REELS 6
+
+// FIXME: Avoid non-const global vars
 
 static int LeadActorId = 0;		// The lead actor
 
@@ -106,7 +106,7 @@ struct ACTORINFO {
 	bool		bEscOn;
 	int			escEvent;
 
-	COLORREF	textColour;	// Text colour
+	COLORREF	textColor;	// Text color
 
 	SCNHANDLE	playFilm;	// revert to this after talks
 	SCNHANDLE	talkFilm;	// this be deleted in the future!
@@ -138,7 +138,7 @@ typedef TAGACTOR *PTAGACTOR;
 
 static ACTORINFO *actorInfo = NULL;
 
-static COLORREF defaultColour = 0;		// Text colour
+static COLORREF defaultColor = 0;		// Text color
 
 static bool bActorsOn = false;
 
@@ -197,9 +197,11 @@ void RegisterActors(int num) {
 }
 
 void FreeActors() {
-	if (actorInfo) {
-		free(actorInfo);
-		actorInfo = NULL;
+	free(actorInfo);
+	actorInfo = NULL;
+	if (TinselV2) {
+		free(zFactors);
+		zFactors = NULL;
 	}
 }
 
@@ -215,7 +217,7 @@ void SetLeadId(int leadID) {
 /**
  * No comment.
  */
-int GetLeadId(void) {
+int GetLeadId() {
 	return LeadActorId;
 }
 
@@ -432,7 +434,7 @@ void StartTaggedActors(SCNHANDLE ah, int numActors, bool bRunScript) {
 		memset(taggedActors, 0, sizeof(taggedActors));
 		numTaggedActors = numActors;
 	} else {
-		// Only actors with code blocks got (x, y) re-initialised, so...
+		// Only actors with code blocks got (x, y) re-initialized, so...
 		for (i = 0; i < NumActors; i++) {
 			actorInfo[i].x = actorInfo[i].y = 0;
 			actorInfo[i].mtype = 0;
@@ -471,17 +473,17 @@ void StartTaggedActors(SCNHANDLE ah, int numActors, bool bRunScript) {
 /**
  * Called between scenes, zeroises all actors.
  */
-void DropActors(void) {
+void DropActors() {
 
 	for (int i = 0; i < NumActors; i++) {
 		if (TinselV2) {
-			// Save text colour
-			COLORREF tColour = actorInfo[i].textColour;
+			// Save text color
+			COLORREF tColor = actorInfo[i].textColor;
 
 			memset(&actorInfo[i], 0, sizeof(ACTORINFO));
 
-			// Restor text colour
-			actorInfo[i].textColour = tColour;
+			// Restor text color
+			actorInfo[i].textColor = tColor;
 
 			// Clear extra arrays
 			memset(zFactors, 0, NumActors);
@@ -614,7 +616,7 @@ SCNHANDLE GetActorTag(int ano) {
  * NextTagged Actor is repeatedly called until the caller gets fed up
  * or there are no more tagged actors to look at.
  */
-void FirstTaggedActor(void) {
+void FirstTaggedActor() {
 	ti = 0;
 }
 
@@ -623,11 +625,11 @@ void FirstTaggedActor(void) {
  * NextTagged Actor is repeatedly called until the caller gets fed up
  * or there are no more tagged actors to look at.
  */
-int NextTaggedActor(void) {
+int NextTaggedActor() {
 	PMOVER	pActor;
 	bool	hid;
 
-	do {
+	while (ti < NumActors) {
 		if (actorInfo[ti].tagged) {
 			pActor = GetMover(ti+1);
 			if (pActor)
@@ -639,7 +641,8 @@ int NextTaggedActor(void) {
 				return ++ti;
 			}
 		}
-	} while (++ti < NumActors);
+		++ti;
+	}
 
 	return 0;
 }
@@ -1185,7 +1188,7 @@ SCNHANDLE GetActorTalkFilm(int ano) {
 void SetActorTalking(int ano, bool tf) {
 	assert(ano > 0 && ano <= NumActors); // illegal actor number
 
-	actorInfo[ano - 1].bTalking = tf;;
+	actorInfo[ano - 1].bTalking = tf;
 }
 
 bool ActorIsTalking(int ano) {
@@ -1273,7 +1276,7 @@ void SetMoverZ(PMOVER pMover, int y, int32 zFactor) {
 
 /**
  * Stores actor's attributes.
- * Currently only the speech colours.
+ * Currently only the speech colors.
  */
 void storeActorAttr(int ano, int r1, int g1, int b1) {
 	assert((ano > 0 && ano <= NumActors) || ano == -1); // illegal actor number
@@ -1283,36 +1286,36 @@ void storeActorAttr(int ano, int r1, int g1, int b1) {
 	if (b1 > MAX_INTENSITY)	b1 = MAX_INTENSITY;	// }
 
 	if (ano == -1)
-		defaultColour = TINSEL_RGB(r1, g1, b1);
+		defaultColor = TINSEL_RGB(r1, g1, b1);
 	else
-		actorInfo[ano - 1].textColour = TINSEL_RGB(r1, g1, b1);
+		actorInfo[ano - 1].textColor = TINSEL_RGB(r1, g1, b1);
 }
 
 /**
- * Called from ActorRGB() - Stores actor's speech colour.
+ * Called from ActorRGB() - Stores actor's speech color.
  */
 
-void SetActorRGB(int ano, COLORREF colour) {
+void SetActorRGB(int ano, COLORREF color) {
 	assert(ano >= 0 && ano <= NumActors);
 
 	if (ano)
-		actorInfo[ano - 1].textColour = TO_LE_32(colour);
+		actorInfo[ano - 1].textColor = TO_LE_32(color);
 	else
-		defaultColour = TO_LE_32(colour);
+		defaultColor = TO_LE_32(color);
 }
 
 /**
- * Get the actor's stored speech colour.
+ * Get the actor's stored speech color.
  * @param ano			Actor Id
  */
 COLORREF GetActorRGB(int ano) {
 	// Not used in JAPAN version
 	assert((ano >= -1) && (ano <= NumActors)); // illegal actor number
 
-	if ((ano == -1) || !actorInfo[ano - 1].textColour)
-		return defaultColour;
+	if ((ano == -1) || !actorInfo[ano - 1].textColor)
+		return defaultColor;
 	else
-		return actorInfo[ano - 1].textColour;
+		return actorInfo[ano - 1].textColor;
 }
 
 /**
@@ -1406,7 +1409,7 @@ void RestoreActorZ(byte *saveActorZ) {
 	memcpy(zFactors, saveActorZ, NumActors);
 }
 
-void setactorson(void) {
+void setactorson() {
 	bActorsOn = true;
 }
 
@@ -1567,7 +1570,7 @@ bool InHotSpot(int ano, int curX, int curY) {
 /**
  * Front Tagged Actor
  */
-int FrontTaggedActor(void) {
+int FrontTaggedActor() {
 	int i;
 
 	for (i = 0; i < numTaggedActors; i++) {
@@ -1716,4 +1719,4 @@ bool ActorReelPlaying(int actor, int column) {
 	return false;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

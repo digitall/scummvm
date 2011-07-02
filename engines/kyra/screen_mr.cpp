@@ -18,13 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "kyra/screen_mr.h"
-
 #include "kyra/kyra_mr.h"
 
 namespace Kyra {
@@ -140,4 +136,4 @@ void Screen_MR::drawFilledBox(int x1, int y1, int x2, int y2, uint8 c1, uint8 c2
 	drawClippedLine(x1, y2-1, x2-1, y2-1, c3);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra

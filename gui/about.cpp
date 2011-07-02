@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "engines/metaengine.h"
@@ -27,11 +24,10 @@
 #include "base/version.h"
 #include "common/events.h"
 #include "common/system.h"
+#include "common/translation.h"
 #include "common/util.h"
 #include "gui/about.h"
-#include "gui/GuiManager.h"
-#include "gui/widget.h"
-
+#include "gui/gui-manager.h"
 #include "gui/ThemeEval.h"
 
 namespace GUI {
@@ -58,7 +54,7 @@ enum {
 
 static const char *copyright_text[] = {
 "",
-"C0""Copyright (C) 2001-2009 The ScummVM project",
+"C0""Copyright (C) 2001-2011 The ScummVM project",
 "C0""http://www.scummvm.org",
 "",
 "C0""ScummVM is the legal property of its developers, whose names are too numerous to list here. Please refer to the COPYRIGHT file distributed with this binary.",
@@ -81,30 +77,9 @@ AboutDialog::AboutDialog()
 	: Dialog(10, 20, 300, 174),
 	_scrollPos(0), _scrollTime(0), _willClose(false) {
 
+	reflowLayout();
+
 	int i;
-
-	const int screenW = g_system->getOverlayWidth();
-	const int screenH = g_system->getOverlayHeight();
-
-	_xOff = g_gui.xmlEval()->getVar("Globals.About.XOffset", 5);
-	_yOff = g_gui.xmlEval()->getVar("Globals.About.YOffset", 5);
-	int outerBorder = g_gui.xmlEval()->getVar("Globals.About.OuterBorder");
-
-	_w = screenW - 2 * outerBorder;
-	_h = screenH - 2 * outerBorder;
-
-	_lineHeight = g_gui.getFontHeight() + 3;
-
-	// Heuristic to compute 'optimal' dialog width
-	int maxW = _w - 2*_xOff;
-	_w = 0;
-	for (i = 0; i < ARRAYSIZE(credits); i++) {
-		int tmp = g_gui.getStringWidth(credits[i] + 5);
-		if ( _w < tmp && tmp <= maxW) {
-			_w = tmp;
-		}
-	}
-	_w += 2*_xOff;
 
 	for (i = 0; i < 1; i++)
 		_lines.push_back("");
@@ -113,22 +88,25 @@ AboutDialog::AboutDialog()
 	version += gScummVMVersion;
 	_lines.push_back(version);
 
-	Common::String date("C2""(built on ");
-	date += gScummVMBuildDate;
-	date += ')';
-	_lines.push_back(date);
+	Common::String date = Common::String::format(_("(built on %s)"), gScummVMBuildDate);
+	_lines.push_back("C2" + date);
 
 	for (i = 0; i < ARRAYSIZE(copyright_text); i++)
 		addLine(copyright_text[i]);
 
-	addLine("C1""Features compiled in:");
-	Common::String features("C0");
-	features += gScummVMFeatures;
+	Common::String features("C1");
+	features += _("Features compiled in:");
 	addLine(features.c_str());
+	Common::String featureList("C0");
+	featureList += gScummVMFeatures;
+	addLine(featureList.c_str());
 
 	_lines.push_back("");
 
-	addLine("C1""Available engines:");
+	Common::String engines("C1");
+	engines += _("Available engines:");
+	addLine(engines.c_str());
+
 	const EnginePlugin::List &plugins = EngineMan.getPlugins();
 	EnginePlugin::List::const_iterator iter = plugins.begin();
 	for (; iter != plugins.end(); ++iter) {
@@ -151,10 +129,6 @@ AboutDialog::AboutDialog()
 
 	for (i = 0; i < ARRAYSIZE(credits); i++)
 		addLine(credits[i]);
-
-	// Center the dialog
-	_x = (screenW - _w) / 2;
-	_y = (screenH - _h) / 2;
 }
 
 void AboutDialog::addLine(const char *str) {
@@ -164,10 +138,10 @@ void AboutDialog::addLine(const char *str) {
 		Common::String format(str, 2);
 		str += 2;
 
-		Common::StringList wrappedLines;
+		StringArray wrappedLines;
 		g_gui.getFont().wordWrapText(str, _w - 2 * _xOff, wrappedLines);
 
-		for (Common::StringList::const_iterator i = wrappedLines.begin(); i != wrappedLines.end(); ++i) {
+		for (StringArray::const_iterator i = wrappedLines.begin(); i != wrappedLines.end(); ++i) {
 			_lines.push_back(format + *i);
 		}
 	}
@@ -175,7 +149,7 @@ void AboutDialog::addLine(const char *str) {
 
 
 void AboutDialog::open() {
-	_scrollTime = getMillis() + kScrollStartDelay;
+	_scrollTime = g_system->getMillis() + kScrollStartDelay;
 	_scrollPos = 0;
 	_willClose = false;
 
@@ -253,7 +227,7 @@ void AboutDialog::drawDialog() {
 }
 
 void AboutDialog::handleTickle() {
-	const uint32 t = getMillis();
+	const uint32 t = g_system->getMillis();
 	int scrollOffset = ((int)t - (int)_scrollTime) / kScrollMillisPerPixel;
 	if (scrollOffset > 0) {
 		int modifiers = g_system->getEventManager()->getModifierState();
@@ -294,6 +268,7 @@ void AboutDialog::handleKeyUp(Common::KeyState state) {
 
 void AboutDialog::reflowLayout() {
 	Dialog::reflowLayout();
+	int i;
 	const int screenW = g_system->getOverlayWidth();
 	const int screenH = g_system->getOverlayHeight();
 
@@ -309,16 +284,15 @@ void AboutDialog::reflowLayout() {
 	// Heuristic to compute 'optimal' dialog width
 	int maxW = _w - 2*_xOff;
 	_w = 0;
-	for (int i = 0; i < ARRAYSIZE(credits); i++) {
+	for (i = 0; i < ARRAYSIZE(credits); i++) {
 		int tmp = g_gui.getStringWidth(credits[i] + 5);
-		if ( _w < tmp && tmp <= maxW) {
+		if (_w < tmp && tmp <= maxW) {
 			_w = tmp;
 		}
 	}
 	_w += 2*_xOff;
 
-	_lineHeight = g_gui.getFontHeight() + 3;
-
+	// Center the dialog
 	_x = (screenW - _w) / 2;
 	_y = (screenH - _h) / 2;
 }

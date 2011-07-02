@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "lure/animseq.h"
@@ -34,7 +31,6 @@
 #include "lure/sound.h"
 #include "common/stack.h"
 #include "common/endian.h"
-#include "common/EventRecorder.h"
 
 namespace Lure {
 
@@ -739,9 +735,7 @@ void Script::addActions(uint16 hotspotId, uint16 actions, uint16 v3) {
 // Generates a random number and stores it in the general field
 
 void Script::randomToGeneral(uint16 maxVal, uint16 minVal, uint16 v3) {
-	Common::RandomSource rnd;
-	g_eventRec.registerRandomSource(rnd, "lureScripts");
-	uint16 v = minVal + rnd.getRandomNumber(maxVal - minVal);
+	uint16 v = minVal + LureEngine::getReference().rnd().getRandomNumber(maxVal - minVal);
 	Resources::getReference().fieldList().setField(GENERAL, v);
 }
 
@@ -902,6 +896,16 @@ uint16 Script::execute(uint16 startOffset) {
 
 	uint16 offset = startOffset;
 	bool breakFlag = false;
+
+	// WORKAROUND: Prevents the Weregate door closing prematurely
+	if (startOffset == 3941) {
+		Hotspot *goewinHotspot = r.getActiveHotspot(GOEWIN_ID);
+		if (!goewinHotspot->doorCloseCheck(10025)) {
+			// Goewin is still blocking the door, so reschedule the closing
+			r.delayList().add(1, startOffset, false);
+			return 0;
+		}
+	}
 
 	param = 0;
 	fields.setField(SEQUENCE_RESULT, 0);
@@ -1123,7 +1127,7 @@ uint16 Script::execute(uint16 startOffset) {
 			break;
 
 		case S_OPCODE_RANDOM:
-			param = r.random() >> 8; // make number between 0 to 255
+			param = r.getRandom() >> 8; // make number between 0 to 255
 			break;
 
 		case S_OPCODE_END:
@@ -1299,6 +1303,11 @@ bool HotspotScript::execute(Hotspot *h) {
 
 		default:
 			// Set the animation frame number
+
+			// WORKAROUND: In Lure English EGA, the apparatus in room #30 can be set with an invalid frame number
+			if ((h->hotspotId() == 1059) && (opcode >= h->numFrames()))
+				opcode = h->numFrames() - 1;
+
 			debugC(ERROR_DETAILED, kLureDebugScripts, "SET FRAME NUMBER = %d", opcode);
 
 			h->setFrameNumber(opcode);
@@ -1311,4 +1320,4 @@ bool HotspotScript::execute(Hotspot *h) {
 	return (opcode == S2_OPCODE_UNLOAD);
 }
 
-} // end of namespace Lure
+} // End of namespace Lure

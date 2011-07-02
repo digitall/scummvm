@@ -17,12 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
+
 #ifndef SYMBIAN_PORTDEFS_H
 #define SYMBIAN_PORTDEFS_H
+
 #include <assert.h>
 #include <stdarg.h>
 #include <string.h>
@@ -35,6 +34,31 @@
 #include <e32std.h>
 #include <math.h>
 
+/* define pi */
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif  /*  M_PI  */
+
+
+// Enable Symbians own datatypes
+// This is done for two reasons
+// a) uint is already defined by Symbians libc component
+// b) Symbian is using its "own" datatyping, and the Scummvm port
+//    should follow this to ensure the best compability possible.
+typedef unsigned char byte;
+typedef unsigned char uint8;
+typedef signed char int8;
+typedef unsigned short int uint16;
+typedef signed short int int16;
+typedef unsigned long int uint32;
+typedef signed long int int32;
+
+// Define SCUMMVM_DONT_DEFINE_TYPES to prevent scummsys.h from trying to
+// re-define those data types.
+#define SCUMMVM_DONT_DEFINE_TYPES
+
+#define SMALL_SCREEN_DEVICE
+
 #define DISABLE_COMMAND_LINE
 
 #if defined(USE_TREMOR) && !defined(USE_VORBIS)
@@ -44,10 +68,6 @@
 // hack in some tricks to work around not having these fcns for Symbian
 // and we _really_ don't wanna link with any other windows LIBC library!
 #if defined(__GCC32__)
-
-	#define snprintf(buf,len,args...)	sprintf(buf,args)
-	#define vsnprintf(buf,len,format,valist)	vsprintf(buf,format,valist)
-
 	// taken from public domain http://www.opensource.apple.com/darwinsource/WWDC2004/gcc_legacy-939/gcc/floatlib.c
 	#define SIGNBIT		0x80000000
 	#define HIDDEN		(1 << 23)
@@ -127,15 +147,19 @@
 #define USE_ARM_COSTUME_ASM
 #define USE_ARM_SOUND_ASM
 #endif
-#define ENABLE_KEYMAPPER
+// This is not really functioning yet.
+// Default SDL keys should map to standard keys I think!
+//#define ENABLE_KEYMAPPER
 
 // Symbian bsearch implementation is flawed
 void *scumm_bsearch(const void *key, const void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 #define bsearch	scumm_bsearch
+#define FORBIDDEN_SYMBOL_EXCEPTION_FILE
+#define FORBIDDEN_SYMBOL_EXCEPTION_fclose
+#define FORBIDDEN_SYMBOL_EXCEPTION_fopen
 
 // we cannot include SymbianOS.h everywhere, but this works too (functions code is in SymbianOS.cpp)
 namespace Symbian {
-extern void FatalError(const char *msg);
 extern char* GetExecutablePath();
 }
 #endif

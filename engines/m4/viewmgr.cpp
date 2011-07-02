@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // TODO: Views have a _coords rect, so I'm not sure if x/y is needed in the onRefresh
@@ -31,7 +28,7 @@
 
 namespace M4 {
 
-void returnToMainMenuFn(M4Engine *vm) {
+void returnToMainMenuFn(MadsM4Engine *vm) {
 	vm->_palette->resetColorCounts();
 	vm->_palette->setMadsSystemPalette();
 
@@ -58,10 +55,17 @@ void RectList::addRect(const Common::Rect &rect) {
 	push_back(rect);
 }
 
+int RectList::find(const Common::Point &pt) {
+	for (uint idx = 0; idx < size(); ++idx) {
+		if (this->operator [](idx).contains(pt.x, pt.y))
+			return idx;
+	}
+	return -1;
+}
+
 //--------------------------------------------------------------------------
 
-HotkeyList::HotkeyList(View *owner) {
-	_view = owner;
+HotkeyList::HotkeyList(View *owner) : _view(owner) {
 }
 
 HotkeyList::~HotkeyList() {
@@ -98,14 +102,15 @@ bool HotkeyList::call(uint32 key) {
 
 // View constructor
 
-View::View(M4Engine *vm, const Common::Rect &viewBounds, bool transparent):
-	_hotkeys(HotkeyList(this)), M4Surface(viewBounds.width(), viewBounds.height()), _vm(vm) {
+View::View(MadsM4Engine *vm, const Common::Rect &viewBounds, bool transparent)
+	: M4Surface(viewBounds.width(), viewBounds.height()), _hotkeys(this), _vm(vm) {
 	SCREEN_FLAGS_DEFAULT;
 	_coords = viewBounds;
 	_transparent = transparent;
 }
 
-View::View(M4Engine *vm, int x, int y, bool transparent): _hotkeys(HotkeyList(this)), M4Surface(), _vm(vm) {
+View::View(MadsM4Engine *vm, int x, int y, bool transparent)
+	: M4Surface(), _hotkeys(this), _vm(vm) {
 	SCREEN_FLAGS_DEFAULT;
 	_coords.left = x;
 	_coords.top = y;
@@ -186,7 +191,7 @@ void View::onRefresh(RectList *rects, M4Surface *destSurface) {
 
 //--------------------------------------------------------------------------
 
-ViewManager::ViewManager(M4Engine *vm): _systemHotkeys(HotkeyList(NULL)), _vm(vm) {
+ViewManager::ViewManager(MadsM4Engine *vm): _systemHotkeys(HotkeyList(NULL)), _vm(vm) {
 	_captureScreen = NULL;
 	_captureEvents = false;
 }
@@ -239,6 +244,8 @@ void ViewManager::handleKeyboardEvents(uint32 keycode) {
 		if (view->screenFlags().get & SCREVENT_KEY) {
 			foundFlag = true;
 			handledFlag = (view->onEvent)(KEVENT_KEY, keycode, mousePos.x, mousePos.y, _captureEvents);
+			if (_captureEvents)
+				_captureScreen = view;
 		}
 	}
 
@@ -282,6 +289,7 @@ void ViewManager::handleMouseEvents(M4EventType event) {
 	// If a window sets the _captureEvents flag to true, it will receive all events until
 	// it sets it to false, even if it's not the top window
 	if (_captureEvents) {
+		assert(_captureScreen);
 		if (_captureScreen->screenFlags().get & SCREVENT_MOUSE)
 			(_captureScreen->onEvent)(event, 0, mousePos.x, mousePos.y, _captureEvents);
 

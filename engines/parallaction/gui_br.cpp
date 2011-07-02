@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/system.h"
+#include "common/textconsole.h"
 
 #include "parallaction/gui.h"
 #include "parallaction/input.h"
@@ -98,6 +96,12 @@ public:
 	}
 };
 
+
+struct LocationPart {
+	int part;
+	const char *location;
+};
+
 class MainMenuInputState_BR : public MenuInputState {
 	Parallaction_br *_vm;
 
@@ -158,17 +162,17 @@ class MainMenuInputState_BR : public MenuInputState {
 	const char **_menuStrings;
 	const MenuOptions *_options;
 
-	static const char *_firstLocation[];
+	static LocationPart _firstLocation[];
 
 	int _availItems;
 	int _selection;
 
 	void cleanup() {
-        _vm->_gfx->freeDialogueObjects();
+		_vm->_gfx->freeDialogueObjects();
 
 		for (int i = 0; i < _availItems; i++) {
 			delete _lines[i];
-            _lines[i] = 0;
+			_lines[i] = 0;
 		}
 	}
 
@@ -194,9 +198,9 @@ public:
 	    memset(_lines, 0, sizeof(_lines));
 	}
 
-    ~MainMenuInputState_BR() {
-        cleanup();
-    }
+	~MainMenuInputState_BR() {
+		cleanup();
+	}
 
 	virtual MenuInputState* run() {
 		int event = _vm->_input->getLastButtonEvent();
@@ -205,7 +209,8 @@ public:
 			return this;
 		}
 
-		switch (_options[_selection]) {
+		int selection = _options[_selection];
+		switch (selection) {
 		case kMenuQuit: {
 			_vm->quitGame();
 			break;
@@ -219,7 +224,9 @@ public:
 			break;
 
 		default:
-			_vm->scheduleLocationSwitch(_firstLocation[_options[_selection]]);
+			_vm->_nextPart = _firstLocation[selection].part;
+			_vm->scheduleLocationSwitch(_firstLocation[selection].location);
+
 		}
 
 		_vm->_system->showMouse(false);
@@ -241,7 +248,8 @@ public:
 
 		bool complete[3];
 		_vm->_saveLoad->getGamePartProgress(complete, 3);
-		for (i = 0; i < 3 && complete[i]; i++, _availItems++) ;
+		for (i = 0; i < 3 && complete[i]; i++, _availItems++)
+			;
 
 		if (_vm->getPlatform() == Common::kPlatformAmiga) {
 			_menuStrings = _menuStringsAmiga;
@@ -262,13 +270,14 @@ public:
 
 };
 
-const char *MainMenuInputState_BR::_firstLocation[] = {
-	"intro.0",
-	"museo.1",
-	"start.2",
-	"bolscoi.3",
-	"treno.4"
+LocationPart MainMenuInputState_BR::_firstLocation[] = {
+	{ 0, "intro" },
+	{ 1, "museo" },
+	{ 2, "start" },
+	{ 3, "bolscoi" },
+	{ 4, "treno" }
 };
+
 
 const char *MainMenuInputState_BR::_menuStringsAmiga[NUM_MENULINES] = {
 	"See the introduction",
@@ -472,7 +481,7 @@ public:
 		_y = 90;
 
 		Graphics::Surface *surf = new Graphics::Surface;
-		surf->create(w, 110, 1);
+		surf->create(w, 110, Graphics::PixelFormat::createFormatCLUT8());
 		surf->fillRect(Common::Rect(0, 0, w, 110), 12);
 		surf->fillRect(Common::Rect(10, 10, w-10, 100), 15);
 

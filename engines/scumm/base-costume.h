@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_BASE_COSTUME_H
@@ -103,6 +100,8 @@ protected:
 	// whether to draw the actor mirrored
 	bool _mirror;
 
+	int _numBlocks;
+
 	// width and height of cel to decode
 	int _width, _height;
 
@@ -145,7 +144,7 @@ public:
 	}
 	virtual ~BaseCostumeRenderer() {}
 
-	virtual void setPalette(byte *palette) = 0;
+	virtual void setPalette(uint16 *palette) = 0;
 	virtual void setFacing(const Actor *a) = 0;
 	virtual void setCostume(int costume, int shadow) = 0;
 

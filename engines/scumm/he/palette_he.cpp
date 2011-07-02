@@ -8,6 +8,7 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#ifdef ENABLE_HE
 
 #include "common/system.h"
+#include "graphics/palette.h"
 #include "scumm/scumm.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/resource.h"
@@ -38,7 +38,7 @@ void ScummEngine_v71he::remapHEPalette(const uint8 *src, uint8 *dst) {
 	src += 30;
 
 	if (_game.heversion >= 99) {
-		palPtr = _hePalettes + 1024 + 30;
+		palPtr = _hePalettes + _hePaletteSlot + 30;
 	} else {
 		palPtr = _currentPalette + 30;
 	}
@@ -73,9 +73,9 @@ void ScummEngine_v71he::remapHEPalette(const uint8 *src, uint8 *dst) {
 uint8 *ScummEngine_v90he::getHEPaletteIndex(int palSlot) {
 	if (palSlot) {
 		assert(palSlot >= 1 && palSlot <= _numPalettes);
-		return _hePalettes + palSlot * 1024;
+		return _hePalettes + palSlot * _hePaletteSlot;
 	} else {
-		return _hePalettes + 1024;
+		return _hePalettes + _hePaletteSlot;
 	}
 }
 
@@ -84,7 +84,7 @@ int ScummEngine_v90he::getHEPaletteSimilarColor(int palSlot, int red, int green,
 	assertRange(0, start, 255, "start palette slot");
 	assertRange(0, end, 255, "pend alette slot");
 
-	uint8 *pal = _hePalettes + palSlot * 1024 + start * 3;
+	uint8 *pal = _hePalettes + palSlot * _hePaletteSlot + start * 3;
 
 	int bestsum = 0x7FFFFFFF;
 	int bestitem = start;
@@ -105,39 +105,83 @@ int ScummEngine_v90he::getHEPaletteSimilarColor(int palSlot, int red, int green,
 	return bestitem;
 }
 
+int ScummEngine_v90he::getHEPalette16BitColorComponent(int component, int type) {
+	uint16 col;
+	if (type == 2) {
+		col = (((component & 0xFFFF) >>  0) & 0x1F) << 3;
+	} else if (type == 1) {
+		col = (((component & 0xFFFF) >>  5) & 0x1F) << 3;
+	} else {
+		col = (((component & 0xFFFF) >> 10) & 0x1F) << 3;
+	}
+	return col;
+}
+
 int ScummEngine_v90he::getHEPaletteColorComponent(int palSlot, int color, int component) {
 	assertRange(1, palSlot, _numPalettes, "palette");
 	assertRange(0, color, 255, "palette slot");
 
-	return _hePalettes[palSlot * 1024 + color * 3 + component % 3];
+	return _hePalettes[palSlot * _hePaletteSlot + color * 3 + component % 3];
 }
 
 int ScummEngine_v90he::getHEPaletteColor(int palSlot, int color) {
 	assertRange(1, palSlot, _numPalettes, "palette");
 	assertRange(0, color, 255, "palette slot");
 
-	return _hePalettes[palSlot * 1024 + 768 + color];
+	if (_game.features & GF_16BIT_COLOR)
+		return READ_LE_UINT16(_hePalettes + palSlot * _hePaletteSlot + 768 + color * 2);
+	else
+		return _hePalettes[palSlot * _hePaletteSlot + 768 + color];
 }
 
 void ScummEngine_v90he::setHEPaletteColor(int palSlot, uint8 color, uint8 r, uint8 g, uint8 b) {
 	debug(7, "setHEPaletteColor(%d, %d, %d, %d, %d)", palSlot, color, r, g, b);
 	assertRange(1, palSlot, _numPalettes, "palette");
-	uint8 *p = _hePalettes + palSlot * 1024 + color * 3;
+
+	uint8 *p = _hePalettes + palSlot * _hePaletteSlot + color * 3;
 	*(p + 0) = r;
 	*(p + 1) = g;
 	*(p + 2) = b;
-	_hePalettes[palSlot * 1024 + 768 + color] = color;
+	if (_game.features & GF_16BIT_COLOR) {
+		WRITE_LE_UINT16(_hePalettes + palSlot * _hePaletteSlot + 768 + color * 2, get16BitColor(r, g, b));
+	} else {
+		_hePalettes[palSlot * _hePaletteSlot + 768 + color] = color;
+	}
 }
 
 void ScummEngine_v90he::setHEPaletteFromPtr(int palSlot, const uint8 *palData) {
 	assertRange(1, palSlot, _numPalettes, "palette");
-	uint8 *pc = _hePalettes + palSlot * 1024;
+
+	uint8 *pc = _hePalettes + palSlot * _hePaletteSlot;
 	uint8 *pi = pc + 768;
-	for (int i = 0; i < 256; ++i) {
-		*pc++ = *palData++;
-		*pc++ = *palData++;
-		*pc++ = *palData++;
-		*pi++ = i;
+	if (_game.features & GF_16BIT_COLOR) {
+		for (int i = 0; i < 256; ++i) {
+			uint8 r = *pc++ = *palData++;
+			uint8 g = *pc++ = *palData++;
+			uint8 b = *pc++ = *palData++;
+			WRITE_LE_UINT16(pi, get16BitColor(r, g, b)); pi += 2;
+		}
+	} else {
+		for (int i = 0; i < 256; ++i) {
+			*pc++ = *palData++;
+			*pc++ = *palData++;
+			*pc++ = *palData++;
+			*pi++ = i;
+		}
+	}
+
+	int i;
+	uint8 *palPtr = _hePalettes + palSlot * _hePaletteSlot + 768;
+	if (_game.features & GF_16BIT_COLOR) {
+		for (i = 0; i < 10; ++i)
+			WRITE_LE_UINT16(palPtr + i * 2, i);
+		for (i = 246; i < 256; ++i)
+			WRITE_LE_UINT16(palPtr + i * 2, i);
+	} else {
+		for (i = 0; i < 10; ++i)
+			*(palPtr + i) = i;
+		for (i = 246; i < 256; ++i)
+			*(palPtr + i) = i;
 	}
 }
 
@@ -146,7 +190,7 @@ void ScummEngine_v90he::setHEPaletteFromCostume(int palSlot, int resId) {
 	assertRange(1, palSlot, _numPalettes, "palette");
 	const uint8 *data = getResourceAddress(rtCostume, resId);
 	assert(data);
-	const uint8 *rgbs = findResourceData(MKID_BE('RGBS'), data);
+	const uint8 *rgbs = findResourceData(MKTAG('R','G','B','S'), data);
 	assert(rgbs);
 	setHEPaletteFromPtr(palSlot, rgbs);
 }
@@ -156,9 +200,9 @@ void ScummEngine_v90he::setHEPaletteFromImage(int palSlot, int resId, int state)
 	assertRange(1, palSlot, _numPalettes, "palette");
 	uint8 *data = getResourceAddress(rtImage, resId);
 	assert(data);
-	const uint8 *rgbs = findWrappedBlock(MKID_BE('RGBS'), data, state, 0);
-	assert(rgbs);
-	setHEPaletteFromPtr(palSlot, rgbs);
+	const uint8 *rgbs = findWrappedBlock(MKTAG('R','G','B','S'), data, state, 0);
+	if (rgbs)
+		setHEPaletteFromPtr(palSlot, rgbs);
 }
 
 void ScummEngine_v90he::setHEPaletteFromRoom(int palSlot, int resId, int state) {
@@ -166,7 +210,7 @@ void ScummEngine_v90he::setHEPaletteFromRoom(int palSlot, int resId, int state) 
 	assertRange(1, palSlot, _numPalettes, "palette");
 	const uint8 *data = getResourceAddress(rtRoom, resId);
 	assert(data);
-	const uint8 *pals = findResourceData(MKID_BE('PALS'), data);
+	const uint8 *pals = findResourceData(MKTAG('P','A','L','S'), data);
 	assert(pals);
 	const uint8 *rgbs = findPalInPals(pals, state);
 	assert(rgbs);
@@ -176,8 +220,9 @@ void ScummEngine_v90he::setHEPaletteFromRoom(int palSlot, int resId, int state) 
 void ScummEngine_v90he::restoreHEPalette(int palSlot) {
 	debug(7, "restoreHEPalette(%d)", palSlot);
 	assertRange(1, palSlot, _numPalettes, "palette");
+
 	if (palSlot != 1) {
-		memcpy(_hePalettes + palSlot * 1024, _hePalettes + 1024, 1024);
+		memcpy(_hePalettes + palSlot * _hePaletteSlot, _hePalettes + _hePaletteSlot, _hePaletteSlot);
 	}
 }
 
@@ -185,18 +230,27 @@ void ScummEngine_v90he::copyHEPalette(int dstPalSlot, int srcPalSlot) {
 	debug(7, "copyHEPalette(%d, %d)", dstPalSlot, srcPalSlot);
 	assert(dstPalSlot >= 1 && dstPalSlot <= _numPalettes);
 	assert(srcPalSlot >= 1 && srcPalSlot <= _numPalettes);
+
 	if (dstPalSlot != srcPalSlot) {
-		memcpy(_hePalettes + dstPalSlot * 1024, _hePalettes + srcPalSlot * 1024, 1024);
+		memcpy(_hePalettes + dstPalSlot * _hePaletteSlot, _hePalettes + srcPalSlot * _hePaletteSlot, _hePaletteSlot);
 	}
 }
 
-void ScummEngine_v90he::copyHEPaletteColor(int palSlot, uint8 dstColor, uint8 srcColor) {
+void ScummEngine_v90he::copyHEPaletteColor(int palSlot, uint8 dstColor, uint16 srcColor) {
 	debug(7, "copyHEPaletteColor(%d, %d, %d)", palSlot, dstColor, srcColor);
 	assertRange(1, palSlot, _numPalettes, "palette");
-	uint8 *dstPal = _hePalettes + palSlot * 1024 + dstColor * 3;
-	uint8 *srcPal = _hePalettes + 1024 + srcColor * 3;
-	memcpy(dstPal, srcPal, 3);
-	_hePalettes[palSlot * 1024 + 768 + dstColor] = srcColor;
+
+	uint8 *dstPal = _hePalettes + palSlot * _hePaletteSlot + dstColor * 3;
+	uint8 *srcPal = _hePalettes + _hePaletteSlot + srcColor * 3;
+	if (_game.features & GF_16BIT_COLOR) {
+		dstPal[0] = (srcColor >> 10) << 3;
+		dstPal[1] = (srcColor >>  5) << 3;
+		dstPal[2] = (srcColor >>  0) << 3;
+		WRITE_LE_UINT16(_hePalettes + palSlot * _hePaletteSlot + 768 + dstColor * 2, srcColor);
+	} else {
+		memcpy(dstPal, srcPal, 3);
+		_hePalettes[palSlot * _hePaletteSlot + 768 + dstColor] = srcColor;
+	}
 }
 
 void ScummEngine_v99he::setPaletteFromPtr(const byte *ptr, int numcolor) {
@@ -209,7 +263,7 @@ void ScummEngine_v99he::setPaletteFromPtr(const byte *ptr, int numcolor) {
 
 	assertRange(0, numcolor, 256, "setPaletteFromPtr: numcolor");
 
-	dest = _hePalettes + 1024;
+	dest = _hePalettes + _hePaletteSlot;
 
 	for (i = 0; i < numcolor; i++) {
 		r = *ptr++;
@@ -220,48 +274,63 @@ void ScummEngine_v99he::setPaletteFromPtr(const byte *ptr, int numcolor) {
 			*dest++ = r;
 			*dest++ = g;
 			*dest++ = b;
-			_hePalettes[1792 + i] = i;
+
+			if (_game.features & GF_16BIT_COLOR) {
+				WRITE_LE_UINT16(_hePalettes + 2048 + i * 2, get16BitColor(r, g, b));
+			} else {
+				_hePalettes[1792 + i] = i;
+			}
 		} else {
 			dest += 3;
 		}
 	}
 
-	memcpy(_hePalettes, _hePalettes + 1024, 768);
+	memcpy(_hePalettes, _hePalettes + _hePaletteSlot, 768);
 
-	for (i = 0; i < 10; ++i)
-		_hePalettes[1792 + i] = i;
-	for (i = 246; i < 256; ++i)
-		_hePalettes[1792 + i] = i;
-
+	if (_game.features & GF_16BIT_COLOR) {
+		for (i = 0; i < 10; ++i)
+			WRITE_LE_UINT16(_hePalettes + 2048 + i * 2, i);
+		for (i = 246; i < 256; ++i)
+			WRITE_LE_UINT16(_hePalettes + 2048 + i * 2, i);
+	} else {
+		for (i = 0; i < 10; ++i)
+			_hePalettes[1792 + i] = i;
+		for (i = 246; i < 256; ++i)
+			_hePalettes[1792 + i] = i;
+	}
 	setDirtyColors(0, numcolor - 1);
 }
 
 void ScummEngine_v99he::darkenPalette(int redScale, int greenScale, int blueScale, int startColor, int endColor) {
 	uint8 *src, *dst;
-	int color, j;
+	int j, r, g, b;
 
 	src = _hePalettes + startColor * 3;
-	dst = _hePalettes + 1024 + startColor * 3;
+	dst = _hePalettes + _hePaletteSlot + startColor * 3;
 	for (j = startColor; j <= endColor; j++) {
-		color = *src++;
-		color = color * redScale / 0xFF;
-		if (color > 255)
-			color = 255;
-		*dst++ = color;
+		r = *src++;
+		r = r * redScale / 0xFF;
+		if (r > 255)
+			r = 255;
+		*dst++ = r;
 
-		color = *src++;
-		color = color * greenScale / 0xFF;
-		if (color > 255)
-			color = 255;
-		*dst++ = color;
+		g = *src++;
+		g = g * greenScale / 0xFF;
+		if (g > 255)
+			g = 255;
+		*dst++ = g;
 
-		color = *src++;
-		color = color * blueScale / 0xFF;
-		if (color > 255)
-			color = 255;
-		*dst++ = color;
+		b = *src++;
+		b = b * blueScale / 0xFF;
+		if (b > 255)
+			b = 255;
+		*dst++ = b;
 
-		_hePalettes[1792 + j] = j;
+		if (_game.features & GF_16BIT_COLOR) {
+			WRITE_LE_UINT16(_hePalettes + 2048 + j * 2, get16BitColor(r, g, b));
+		} else {
+			_hePalettes[1792 + j] = j;
+		}
 		setDirtyColors(j, endColor);
 	}
 }
@@ -272,48 +341,50 @@ void ScummEngine_v99he::copyPalColor(int dst, int src) {
 	if ((uint) dst >= 256 || (uint) src >= 256)
 		error("copyPalColor: invalid values, %d, %d", dst, src);
 
-	dp = &_hePalettes[1024 + dst * 3];
-	sp = &_hePalettes[1024 + src * 3];
+	dp = &_hePalettes[_hePaletteSlot + dst * 3];
+	sp = &_hePalettes[_hePaletteSlot + src * 3];
 
 	dp[0] = sp[0];
 	dp[1] = sp[1];
 	dp[2] = sp[2];
-	_hePalettes[1792 + dst] = dst;
+
+	if (_game.features & GF_16BIT_COLOR) {
+		WRITE_LE_UINT16(_hePalettes + 2048 + dst * 2, get16BitColor(sp[0], sp[1], sp[2]));
+	} else {
+		_hePalettes[1792 + dst] = dst;
+	}
 
 	setDirtyColors(dst, dst);
 }
 
 void ScummEngine_v99he::setPalColor(int idx, int r, int g, int b) {
-	_hePalettes[1024 + idx * 3 + 0] = r;
-	_hePalettes[1024 + idx * 3 + 1] = g;
-	_hePalettes[1024 + idx * 3 + 2] = b;
-	_hePalettes[1792 + idx] = idx;
+	_hePalettes[_hePaletteSlot + idx * 3 + 0] = r;
+	_hePalettes[_hePaletteSlot + idx * 3 + 1] = g;
+	_hePalettes[_hePaletteSlot + idx * 3 + 2] = b;
+
+	if (_game.features & GF_16BIT_COLOR) {
+		WRITE_LE_UINT16(_hePalettes + 2048 + idx * 2, get16BitColor(r, g, b));
+	} else {
+		_hePalettes[1792 + idx] = idx;
+	}
 	setDirtyColors(idx, idx);
 }
 
 void ScummEngine_v99he::updatePalette() {
+	if (_game.features & GF_16BIT_COLOR)
+		return;
+
 	if (_palDirtyMax == -1)
 		return;
 
 	int num = _palDirtyMax - _palDirtyMin + 1;
-	int i;
 
-	byte palette_colors[1024];
-	byte *p = palette_colors;
-
-	for (i = _palDirtyMin; i <= _palDirtyMax; i++) {
-		byte *data = _hePalettes + 1024 + i * 3;
-
-		*p++ = data[0];
-		*p++ = data[1];
-		*p++ = data[2];
-		*p++ = 0;
-	}
-
-	_system->setPalette(palette_colors, _palDirtyMin, num);
+	_system->getPaletteManager()->setPalette(_hePalettes + 1024 + _palDirtyMin * 3, _palDirtyMin, num);
 
 	_palDirtyMax = -1;
 	_palDirtyMin = 256;
 }
 
 } // End of namespace Scumm
+
+#endif // ENABLE_HE

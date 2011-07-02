@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * CursorPositionProcess()
  * TagProcess()
  * PointProcess()
@@ -44,6 +41,8 @@
 #include "tinsel/text.h"
 #include "tinsel/tinsel.h"
 
+#include "common/textconsole.h"
+
 namespace Tinsel {
 
 //----------------- EXTERNAL GLOBAL DATA --------------------
@@ -59,8 +58,8 @@ extern int newestString;	// The overrun counter, in STRRES.C
 
 #define LPOSX	295		// X-co-ord of lead actor's position display
 #define CPOSX	24		// X-co-ord of cursor's position display
-#define OPOSX	SCRN_CENTRE_X	// X-co-ord of overrun counter's display
-#define SPOSX	SCRN_CENTRE_X	// X-co-ord of string numbner's display
+#define OPOSX	SCRN_CENTER_X	// X-co-ord of overrun counter's display
+#define SPOSX	SCRN_CENTER_X	// X-co-ord of string numbner's display
 
 #define POSY	0		// Y-co-ord of these position displays
 
@@ -71,6 +70,8 @@ enum HotSpotTag {
 };
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static bool DispPath = false;
 static bool bShowString = false;
@@ -155,8 +156,8 @@ void CursorPositionProcess(CORO_PARAM, const void *) {
 
 			// New text objects
 			sprintf(PositionString, "%d %d", aniX + Loffset, aniY + Toffset);
-			_ctx->cpText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), PositionString,
-						0, CPOSX, POSY, GetTagFontHandle(), TXT_CENTRE);
+			_ctx->cpText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), PositionString,
+						0, CPOSX, POSY, GetTagFontHandle(), TXT_CENTER);
 			if (DispPath) {
 				HPOLYGON hp = InPolygon(aniX + Loffset, aniY + Toffset, PATH);
 				if (hp == NOPOLY)
@@ -167,7 +168,7 @@ void CursorPositionProcess(CORO_PARAM, const void *) {
 						PolyCornerX(hp, 1), PolyCornerY(hp, 1),
 						PolyCornerX(hp, 2), PolyCornerY(hp, 2),
 						PolyCornerX(hp, 3), PolyCornerY(hp, 3));
-				_ctx->cpathText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), PositionString,
+				_ctx->cpathText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), PositionString,
 							0, 4, POSY+ 10, GetTagFontHandle(), 0);
 			}
 
@@ -188,7 +189,7 @@ void CursorPositionProcess(CORO_PARAM, const void *) {
 
 			sprintf(PositionString, "%d", Overrun);
 			_ctx->opText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), PositionString,
-						0, OPOSX, POSY, GetTagFontHandle(), TXT_CENTRE);
+						0, OPOSX, POSY, GetTagFontHandle(), TXT_CENTER);
 
 			// update previous value
 			_ctx->prevOver = Overrun;
@@ -213,8 +214,8 @@ void CursorPositionProcess(CORO_PARAM, const void *) {
 
 				// create new text object list
 				sprintf(PositionString, "%d %d", aniX, aniY);
-				_ctx->rpText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), PositionString,
-								0, LPOSX, POSY,	GetTagFontHandle(), TXT_CENTRE);
+				_ctx->rpText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), PositionString,
+								0, LPOSX, POSY,	GetTagFontHandle(), TXT_CENTER);
 
 				// update previous position
 				_ctx->prevlX = aniX;
@@ -232,8 +233,8 @@ void CursorPositionProcess(CORO_PARAM, const void *) {
 			}
 
 			sprintf(PositionString, "String: %d", newestString);
-			_ctx->spText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), PositionString,
-						0, SPOSX, POSY+10, GetTalkFontHandle(), TXT_CENTRE);
+			_ctx->spText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), PositionString,
+						0, SPOSX, POSY+10, GetTalkFontHandle(), TXT_CENTER);
 
 			// update previous value
 			_ctx->prevString = newestString;
@@ -252,43 +253,37 @@ void CursorPositionProcess(CORO_PARAM, const void *) {
 /**
  * While inventory/menu is open.
  */
-void DisablePointing(CORO_PARAM) {
-	CORO_BEGIN_CONTEXT;
-		int	i;
-		HPOLYGON hPoly;		// Polygon handle
-	CORO_END_CONTEXT(_ctx);
-
-	CORO_BEGIN_CODE(_ctx);
+void DisablePointing() {
+	int	i;
+	HPOLYGON hPoly;		// Polygon handle
 
 	bPointingActive = false;
 
-	for (_ctx->i = 0; _ctx->i < MAX_POLY; _ctx->i++)	{
-		_ctx->hPoly = GetPolyHandle(_ctx->i);
+	for (i = 0; i < MAX_POLY; i++)	{
+		hPoly = GetPolyHandle(i);
 
-		if (_ctx->hPoly != NOPOLY && PolyType(_ctx->hPoly) == TAG && PolyIsPointedTo(_ctx->hPoly)) {
-			SetPolyPointedTo(_ctx->hPoly, false);
-			SetPolyTagWanted(_ctx->hPoly, false, false, 0);
-			CORO_INVOKE_ARGS(PolygonEvent, (CORO_SUBCTX, _ctx->hPoly, UNPOINT, 0, false, 0));
+		if (hPoly != NOPOLY && PolyType(hPoly) == TAG && PolyIsPointedTo(hPoly)) {
+			SetPolyPointedTo(hPoly, false);
+			SetPolyTagWanted(hPoly, false, false, 0);
+			PolygonEvent(nullContext, hPoly, UNPOINT, 0, false, 0);
 		}
 	}
 
 	// For each tagged actor
-	for (_ctx->i = 0; (_ctx->i = NextTaggedActor(_ctx->i)) != 0; ) {
-		if (ActorIsPointedTo(_ctx->i)) {
-			SetActorPointedTo(_ctx->i, false);
-			SetActorTagWanted(_ctx->i, false, false, 0);
+	for (i = 0; (i = NextTaggedActor(i)) != 0; ) {
+		if (ActorIsPointedTo(i)) {
+			SetActorPointedTo(i, false);
+			SetActorTagWanted(i, false, false, 0);
 
-			CORO_INVOKE_ARGS(ActorEvent, (CORO_SUBCTX, _ctx->i, UNPOINT, false, 0));
+			ActorEvent(nullContext, i, UNPOINT, false, 0);
 		}
 	}
-
-	CORO_END_CODE;
 }
 
 /**
  * EnablePointing()
  */
-void EnablePointing(void) {
+void EnablePointing() {
 	bPointingActive = true;
 }
 
@@ -304,7 +299,7 @@ static void SaveTaggedActor(int ano) {
  * Tag process keeps us updated as to which tagged actor is currently tagged
  * (if one is). Tag process asks us for this information, as does ProcessUserEvent().
  */
-int GetTaggedActor(void) {
+int GetTaggedActor() {
 	return TaggedActor;
 }
 
@@ -316,7 +311,7 @@ static void SaveTaggedPoly(HPOLYGON hp) {
 	hTaggedPolygon = hp;
 }
 
-HPOLYGON GetTaggedPoly(void) {
+HPOLYGON GetTaggedPoly() {
 	return hTaggedPolygon;
 }
 
@@ -381,6 +376,7 @@ static bool InHotSpot(int ano, int aniX, int aniY, int *pxtext, int *pytext) {
  * the screen.
  */
 static bool ActorTag(int curX, int curY, HotSpotTag *pTag, OBJECT **ppText) {
+	// FIXME: Avoid non-const global vars
 	static int tagX = 0, tagY = 0;	// Values when tag was displayed
 	int	newX, newY;		// new values, to keep tag in place
 	int	ano;
@@ -413,8 +409,8 @@ static bool ActorTag(int curX, int curY, HotSpotTag *pTag, OBJECT **ppText) {
 
 				// May have buggered cursor
 				EndCursorFollowed();
-				*ppText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), tagBuffer,
-						0, tagX, tagY, GetTagFontHandle(), TXT_CENTRE, 0);
+				*ppText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), tagBuffer,
+						0, tagX, tagY, GetTagFontHandle(), TXT_CENTER, 0);
 				assert(*ppText);
 				MultiSetZPosition(*ppText, Z_TAG_TEXT);
 			} else
@@ -458,8 +454,8 @@ static bool ActorTag(int curX, int curY, HotSpotTag *pTag, OBJECT **ppText) {
 
 				PlayfieldGetPos(FIELD_WORLD, &tagX, &tagY);
 				LoadStringRes(GetActorTag(ano), TextBufferAddr(), TBUFSZ);
-				*ppText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
-							0, xtext - tagX, ytext - tagY, GetTagFontHandle(), TXT_CENTRE);
+				*ppText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
+							0, xtext - tagX, ytext - tagY, GetTagFontHandle(), TXT_CENTER);
 				assert(*ppText); // Actor tag string produced NULL text
 				MultiSetZPosition(*ppText, Z_TAG_TEXT);
 			} else {
@@ -492,6 +488,7 @@ static bool ActorTag(int curX, int curY, HotSpotTag *pTag, OBJECT **ppText) {
  * code contains a printtag() call, its tagState flag gets set to TAG_ON.
  */
 static bool PolyTag(HotSpotTag *pTag, OBJECT **ppText) {
+	// FIXME: Avoid non-const global vars
 	static int	Loffset = 0, Toffset = 0;	// Values when tag was displayed
 	static int curX = 0, curY = 0;
 	int		nLoff, nToff;		// new values, to keep tag in place
@@ -561,9 +558,9 @@ static bool PolyTag(HotSpotTag *pTag, OBJECT **ppText) {
 					// May have buggered cursor
 					EndCursorFollowed();
 
-					*ppText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS),
+					*ppText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS),
 							TextBufferAddr(), 0, tagx - Loffset, tagy - Toffset,
-							GetTagFontHandle(), TXT_CENTRE, 0);
+							GetTagFontHandle(), TXT_CENTER, 0);
 				} else if (TinselV2) {
 					// Bugger cursor
 					const char *tagPtr = TextBufferAddr();
@@ -571,13 +568,13 @@ static bool PolyTag(HotSpotTag *pTag, OBJECT **ppText) {
 						StartCursorFollowed();
 
 					GetCursorXYNoWait(&curX, &curY, false);
-					*ppText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
-							0, curX, curY, GetTagFontHandle(), TXT_CENTRE, 0);
+					*ppText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
+							0, curX, curY, GetTagFontHandle(), TXT_CENTER, 0);
 				} else {
 					// Handle displaying the tag text on-screen
-					*ppText = ObjectTextOut(nullContext, GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
+					*ppText = ObjectTextOut(GetPlayfieldList(FIELD_STATUS), TextBufferAddr(),
 							0, tagx - Loffset, tagy - Toffset,
-							GetTagFontHandle(), TXT_CENTRE);
+							GetTagFontHandle(), TXT_CENTER);
 					assert(*ppText); // Polygon tag string produced NULL text
 				}
 
@@ -817,15 +814,15 @@ void PointProcess(CORO_PARAM, const void *) {
 	CORO_END_CODE;
 }
 
-void DisableTags(void) {
+void DisableTags() {
 	bTagsActive = false;
 }
 
-void EnableTags(void) {
+void EnableTags() {
 	bTagsActive = true;
 }
 
-bool DisableTagsIfEnabled(void) {
+bool DisableTagsIfEnabled() {
 	if (bTagsActive) {
 		DisableTags();
 		return true;
@@ -838,13 +835,13 @@ bool DisableTagsIfEnabled(void) {
  * Causes CursorPositionProcess() to display, or not, the path that the
  * cursor is in.
  */
-void TogglePathDisplay(void) {
+void TogglePathDisplay() {
 	DispPath ^= 1;	// Toggle path display (XOR with true)
 }
 
 
-void setshowstring(void) {
+void setshowstring() {
 	bShowString = true;
 }
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel

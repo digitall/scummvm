@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCI_ENGINE_SAVEGAME_H
@@ -35,14 +32,43 @@ namespace Sci {
 
 struct EngineState;
 
+/*
+ * Savegame format history:
+ *
+ * Version - new/changed feature
+ * =============================
+ *      30 - synonyms
+ *      29 - system strings
+ *      28 - heap
+ *      27 - script created windows
+ *      26 - play time
+ *      25 - palette intensity
+ *      24 - palvary
+ *      23 - script buffer and heap size
+ *      22 - game signature
+ *      21 - script local variables
+ *      20 - exports/synonyms
+ *      19 - exportsAreWide
+ *      18 - SCI32 arrays/strings
+ *      17 - sound
+ *
+ */
+
+enum {
+	CURRENT_SAVEGAME_VERSION = 30,
+	MINIMUM_SAVEGAME_VERSION = 14
+};
+
 // Savegame metadata
 struct SavegameMetadata {
-	Common::String savegame_name;
-	int savegame_version;
-	Common::String game_version;
-	sci_version_t version;
-	int savegame_date;
-	int savegame_time;
+	Common::String name;
+	int version;
+	Common::String gameVersion;
+	int saveDate;
+	int saveTime;
+	uint32 playTime;
+	uint16 gameObjectOffset;
+	uint16 script0Size;
 };
 
 
@@ -53,15 +79,14 @@ struct SavegameMetadata {
  * @param savename	The description of the savegame
  * @return 0 on success, 1 otherwise
  */
-int gamestate_save(EngineState *s, Common::WriteStream *save, const char *savename);
+bool gamestate_save(EngineState *s, Common::WriteStream *save, const Common::String &savename, const Common::String &version);
 
 /**
  * Restores a game state from a directory.
  * @param s			An older state from the same game
  * @param dirname	The subdirectory to restore from
- * @return NULL on failure, a pointer to a valid EngineState otherwise
  */
-EngineState *gamestate_restore(EngineState *s, Common::SeekableReadStream *save);
+void gamestate_restore(EngineState *s, Common::SeekableReadStream *save);
 
 /**
  * Read the header from a savegame.

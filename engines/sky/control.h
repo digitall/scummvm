@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_CONTROL_H
@@ -29,10 +26,11 @@
 
 #include "common/events.h"
 #include "common/scummsys.h"
+#include "common/str-array.h"
 
 class OSystem;
 namespace Common {
-	class SaveFileManager;
+class SaveFileManager;
 }
 
 namespace Sky {
@@ -137,7 +135,7 @@ struct AllocedMem {
 class ConResource {
 public:
 	ConResource(void *pSpData, uint32 pNSprites, uint32 pCurSprite, uint16 pX, uint16 pY, uint32 pText, uint8 pOnClick, OSystem *system, uint8 *screen);
-	virtual ~ConResource(void) {}
+	virtual ~ConResource() {}
 	void setSprite(void *pSpData) { _spriteData = (DataFileHeader*)pSpData; }
 	void setText(uint32 pText) { if (pText) _text = pText + 0x7000; else _text = 0; }
 	void setXY(uint16 x, uint16 y) { _x = x; _y = y; }
@@ -157,9 +155,9 @@ private:
 class TextResource : public ConResource {
 public:
 	TextResource(void *pSpData, uint32 pNSprites, uint32 pCurSprite, uint16 pX, uint16 pY, uint32 pText, uint8 pOnClick, OSystem *system, uint8 *screen);
-	virtual ~TextResource(void);
+	virtual ~TextResource();
 	virtual void drawToScreen(bool doMask);
-	void flushForRedraw(void);
+	void flushForRedraw();
 private:
 	uint16 _oldX, _oldY;
 	uint8 *_oldScreen;
@@ -168,10 +166,10 @@ private:
 class ControlStatus {
 public:
 	ControlStatus(Text *skyText, OSystem *system, uint8 *scrBuf);
-	~ControlStatus(void);
+	~ControlStatus();
 	void setToText(const char *newText);
 	void setToText(uint16 textNum);
-	void drawToScreen(void);
+	void drawToScreen();
 private:
 	TextResource *_statusText;
 	DataFileHeader *_textData;
@@ -183,38 +181,38 @@ private:
 class Control {
 public:
 	Control(Common::SaveFileManager *saveFileMan, Screen *screen, Disk *disk, Mouse *mouse, Text *text, MusicBase *music, Logic *logic, Sound *sound, SkyCompact *skyCompact, OSystem *system);
-	void doControlPanel(void);
-	void doLoadSavePanel(void);
-	void restartGame(void);
-	void showGameQuitMsg(void);
-	void doAutoSave(void);
+	void doControlPanel();
+	void doLoadSavePanel();
+	void restartGame();
+	void showGameQuitMsg();
+	void doAutoSave();
 	uint16 quickXRestore(uint16 slot);
-	bool loadSaveAllowed(void);
+	bool loadSaveAllowed();
 
 	uint16 _selectedGame;
-	uint16 saveGameToFile(void);
+	uint16 saveGameToFile();
 
-	void loadDescriptions(Common::StringList &list);
-	void saveDescriptions(const Common::StringList &list);
+	void loadDescriptions(Common::StringArray &list);
+	void saveDescriptions(const Common::StringArray &list);
 
 private:
 	int displayMessage(const char *altButton, const char *message, ...) GCC_PRINTF(3, 4);
 
-	void initPanel(void);
-	void removePanel(void);
+	void initPanel();
+	void removePanel();
 
-	void drawMainPanel(void);
+	void drawMainPanel();
 
 	void delay(unsigned int amount);
 
-    void animClick(ConResource *pButton);
+	void animClick(ConResource *pButton);
 	bool getYesNo(char *text);
 	void buttonControl(ConResource *pButton);
 	uint16 handleClick(ConResource *pButton);
-	uint16 doMusicSlide(void);
-	uint16 doSpeedSlide(void);
+	uint16 doMusicSlide();
+	uint16 doSpeedSlide();
 	void toggleFx(ConResource *pButton);
-	uint16 toggleText(void);
+	uint16 toggleText();
 	void toggleMusic(ConResource *pButton);
 	uint16 shiftDown(uint8 speed);
 	uint16 shiftUp(uint8 speed);
@@ -222,13 +220,13 @@ private:
 	void drawCross(uint16 x, uint16 y);
 
 	uint16 saveRestorePanel(bool allowSave);
-	void setUpGameSprites(const Common::StringList &saveGameNames, DataFileHeader **nameSprites, uint16 firstNum, uint16 selectedGame);
+	void setUpGameSprites(const Common::StringArray &saveGameNames, DataFileHeader **nameSprites, uint16 firstNum, uint16 selectedGame);
 	void showSprites(DataFileHeader **nameSprites, bool allowSave);
 	void handleKeyPress(Common::KeyState kbd, Common::String &textBuf);
 
 	uint32 prepareSaveData(uint8 *destBuf);
 
-	bool autoSaveExists(void);
+	bool autoSaveExists();
 	uint16 restoreGameFromFile(bool autoSave);
 	void importOldMegaSet(uint8 **srcPos, MegaSet *mega);
 	void importOldCompact(Compact* destCpt, uint8 **srcPos, uint16 numElems, uint16 type, char *name);

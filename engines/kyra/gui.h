@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_GUI_H
@@ -37,16 +34,16 @@
 
 namespace Kyra {
 
-#define BUTTON_FUNCTOR(type, x, y) Button::Callback(new Common::Functor1Mem<Button*, int, type>(x, y))
+#define BUTTON_FUNCTOR(type, x, y) Button::Callback(new Common::Functor1Mem<Button *, int, type>(x, y))
 
 struct Button {
-	typedef Common::Functor1<Button*, int> CallbackFunctor;
+	typedef Common::Functor1<Button *, int> CallbackFunctor;
 	typedef Common::SharedPtr<CallbackFunctor> Callback;
 
 	Button() : nextButton(0), index(0), keyCode(0), keyCode2(0), data0Val1(0), data1Val1(0), data2Val1(0), flags(0),
-		data0ShapePtr(0), data1ShapePtr(0), data2ShapePtr(0), data0Callback(), data1Callback(), data2Callback(),
-		dimTableIndex(0), x(0), y(0), width(0), height(0), data0Val2(0), data0Val3(0), data1Val2(0), data1Val3(0),
-		data2Val2(0), data2Val3(0), flags2(0), mouseWheel(0), buttonCallback(), arg(0) {}
+	    data0ShapePtr(0), data1ShapePtr(0), data2ShapePtr(0), data0Callback(), data1Callback(), data2Callback(),
+	    dimTableIndex(0), x(0), y(0), width(0), height(0), data0Val2(0), data0Val3(0), data1Val2(0), data1Val3(0),
+	    data2Val2(0), data2Val3(0), flags2(0), mouseWheel(0), buttonCallback(), arg(0) {}
 
 	Button *nextButton;
 	uint16 index;
@@ -176,7 +173,7 @@ protected:
 	bool _displaySubMenu;
 	bool _cancelSubMenu;
 
-	virtual void printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2, Screen::FontId font=Screen::FID_8_FNT);
+	virtual void printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2);
 	virtual int getMenuCenterStringX(const char *str, int x1, int x2);
 
 	Button::Callback _redrawShadedButtonFunctor;

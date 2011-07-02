@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Game interface module
@@ -124,8 +121,7 @@ static const int IHNMTextStringIdsLUT[56] = {
 #define buttonRes1 0x42544E01
 
 Interface::Interface(SagaEngine *vm) : _vm(vm) {
-	byte *resource;
-	size_t resourceLength;
+	ByteArray resourceData;
 	int i;
 
 #if 0
@@ -170,34 +166,27 @@ Interface::Interface(SagaEngine *vm) : _vm(vm) {
 		}
 	}
 
-	_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->mainPanelResourceId, resource, resourceLength);
-	_vm->decodeBGImage(resource, resourceLength, &_mainPanel.image,
-		&_mainPanel.imageLength, &_mainPanel.imageWidth, &_mainPanel.imageHeight);
-
-	free(resource);
+	_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->mainPanelResourceId, resourceData);
+	_vm->decodeBGImage(resourceData, _mainPanel.image, &_mainPanel.imageWidth, &_mainPanel.imageHeight);
 
 	// Converse panel
 	_conversePanel.buttons = _vm->getDisplayInfo().conversePanelButtons;
 	_conversePanel.buttonsCount = _vm->getDisplayInfo().conversePanelButtonsCount;
 
-	_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->conversePanelResourceId, resource, resourceLength);
-	_vm->decodeBGImage(resource, resourceLength, &_conversePanel.image,
-		&_conversePanel.imageLength, &_conversePanel.imageWidth, &_conversePanel.imageHeight);
-	free(resource);
+	_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->conversePanelResourceId, resourceData);
+	_vm->decodeBGImage(resourceData, _conversePanel.image, &_conversePanel.imageWidth, &_conversePanel.imageHeight);
 
 	// Option panel
-	if (!(_vm->getFeatures() & GF_NON_INTERACTIVE)) {
+	if (!_vm->_script->isNonInteractiveDemo()) {
 		_optionPanel.buttons = _vm->getDisplayInfo().optionPanelButtons;
 		_optionPanel.buttonsCount = _vm->getDisplayInfo().optionPanelButtonsCount;
 
-		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->optionPanelResourceId, resource, resourceLength);
-		_vm->decodeBGImage(resource, resourceLength, &_optionPanel.image,
-			&_optionPanel.imageLength, &_optionPanel.imageWidth, &_optionPanel.imageHeight);
-		free(resource);
+		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->optionPanelResourceId, resourceData);
+		_vm->decodeBGImage(resourceData, _optionPanel.image, &_optionPanel.imageWidth, &_optionPanel.imageHeight);
 	} else {
 		_optionPanel.buttons = NULL;
 		_optionPanel.buttonsCount = 0;
-		_optionPanel.sprites.spriteCount = 0;
+		_optionPanel.sprites.clear();
 	}
 
 #ifdef ENABLE_IHNM
@@ -206,10 +195,8 @@ Interface::Interface(SagaEngine *vm) : _vm(vm) {
 		_quitPanel.buttons = _vm->getDisplayInfo().quitPanelButtons;
 		_quitPanel.buttonsCount = _vm->getDisplayInfo().quitPanelButtonsCount;
 
-		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->warningPanelResourceId, resource, resourceLength);
-		_vm->decodeBGImage(resource, resourceLength, &_quitPanel.image,
-			&_quitPanel.imageLength, &_quitPanel.imageWidth, &_quitPanel.imageHeight);
-		free(resource);
+		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->warningPanelResourceId, resourceData);
+		_vm->decodeBGImage(resourceData, _quitPanel.image, &_quitPanel.imageWidth, &_quitPanel.imageHeight);
 	}
 
 	// Save panel
@@ -217,10 +204,8 @@ Interface::Interface(SagaEngine *vm) : _vm(vm) {
 		_savePanel.buttons = _vm->getDisplayInfo().savePanelButtons;
 		_savePanel.buttonsCount = _vm->getDisplayInfo().savePanelButtonsCount;
 
-		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->warningPanelResourceId, resource, resourceLength);
-		_vm->decodeBGImage(resource, resourceLength, &_savePanel.image,
-			&_savePanel.imageLength, &_savePanel.imageWidth, &_savePanel.imageHeight);
-		free(resource);
+		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->warningPanelResourceId, resourceData);
+		_vm->decodeBGImage(resourceData, _savePanel.image, &_savePanel.imageWidth, &_savePanel.imageHeight);
 	}
 
 	// Load panel
@@ -228,16 +213,14 @@ Interface::Interface(SagaEngine *vm) : _vm(vm) {
 		_loadPanel.buttons = _vm->getDisplayInfo().loadPanelButtons;
 		_loadPanel.buttonsCount = _vm->getDisplayInfo().loadPanelButtonsCount;
 
-		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->warningPanelResourceId, resource, resourceLength);
-		_vm->decodeBGImage(resource, resourceLength, &_loadPanel.image,
-			&_loadPanel.imageLength, &_loadPanel.imageWidth, &_loadPanel.imageHeight);
-		free(resource);
+		_vm->_resource->loadResource(_interfaceContext, _vm->getResourceDescription()->warningPanelResourceId, resourceData);
+		_vm->decodeBGImage(resourceData, _loadPanel.image, &_loadPanel.imageWidth, &_loadPanel.imageHeight);
 	}
 #endif
 
 	// Main panel sprites
 	_vm->_sprite->loadList(_vm->getResourceDescription()->mainPanelSpritesResourceId, _mainPanel.sprites);
-	if (!(_vm->getFeatures() & GF_NON_INTERACTIVE)) {
+	if (!_vm->_script->isNonInteractiveDemo()) {
 		// Option panel sprites
 		_vm->_sprite->loadList(_vm->getResourceDescription()->optionPanelSpritesResourceId, _optionPanel.sprites);
 		// Save panel sprites
@@ -323,16 +306,12 @@ Interface::Interface(SagaEngine *vm) : _vm(vm) {
 	_inventoryStart = 0;
 	_inventoryEnd = 0;
 	_inventoryBox = 0;
-	_inventorySize = ITE_INVENTORY_SIZE;
 	_saveReminderState = 0;
 
 	_optionSaveFileTop = 0;
 	_optionSaveFileTitleNumber = 0;
 
-	_inventory = (uint16 *)calloc(_inventorySize, sizeof(uint16));
-	if (_inventory == NULL) {
-		error("Interface::Interface(): not enough memory");
-	}
+	_inventory.resize(ITE_INVENTORY_SIZE);
 
 	_textInput = false;
 	_statusTextInput = false;
@@ -344,26 +323,7 @@ Interface::Interface(SagaEngine *vm) : _vm(vm) {
 	_vm->getTimerManager()->installTimerProc(&saveReminderCallback, TIMETOSAVE, this);
 }
 
-Interface::~Interface(void) {
-	free(_inventory);
-
-	free(_mainPanel.image);
-	free(_conversePanel.image);
-	free(_optionPanel.image);
-	free(_quitPanel.image);
-	free(_loadPanel.image);
-	free(_savePanel.image);
-
-	_mainPanel.sprites.freeMem();
-	_conversePanel.sprites.freeMem();
-	_optionPanel.sprites.freeMem();
-	_quitPanel.sprites.freeMem();
-	_loadPanel.sprites.freeMem();
-	_savePanel.sprites.freeMem();
-	_protectPanel.sprites.freeMem();
-
-	_defPortraits.freeMem();
-	_scenePortraits.freeMem();
+Interface::~Interface() {
 }
 
 void Interface::saveReminderCallback(void *refCon) {
@@ -387,7 +347,7 @@ int Interface::activate() {
 		unlockMode();
 		if (_panelMode == kPanelMain || _panelMode == kPanelChapterSelection) {
 			_saveReminderState = 1;
-		} else if (_panelMode == kPanelNull && _vm->getFeatures() & GF_IHNM_DEMO) {
+		} else if (_panelMode == kPanelNull && _vm->isIHNMDemo()) {
 			_saveReminderState = 1;
 		}
 		_vm->_gfx->showCursor(true);
@@ -438,7 +398,7 @@ void Interface::setMode(int mode) {
 	} else if (mode == kPanelChapterSelection) {
 		_saveReminderState = 1;
 	} else if (mode == kPanelNull) {
-		if (_vm->getFeatures() & GF_IHNM_DEMO) {
+		if (_vm->isIHNMDemo()) {
 			_inMainMode = true;
 			_saveReminderState = 1;
 		}
@@ -544,8 +504,10 @@ bool Interface::processAscii(Common::KeyState keystate) {
 			return true;
 		}
 
+#ifdef ENABLE_IHNM
 		if (_vm->_scene->isNonInteractiveIHNMDemoPart())
 			_vm->_scene->showIHNMDemoSpecialScreen();
+#endif
 		break;
 	case kPanelCutaway:
 		if (keystate.keycode == Common::KEYCODE_ESCAPE) {
@@ -555,8 +517,10 @@ bool Interface::processAscii(Common::KeyState keystate) {
 			return true;
 		}
 
+#ifdef ENABLE_INHM
 		if (_vm->_scene->isNonInteractiveIHNMDemoPart())
 			_vm->_scene->showIHNMDemoSpecialScreen();
+#endif
 		break;
 	case kPanelVideo:
 		if (keystate.keycode == Common::KEYCODE_ESCAPE) {
@@ -570,8 +534,10 @@ bool Interface::processAscii(Common::KeyState keystate) {
 			return true;
 		}
 
+#ifdef ENABLE_IHNM
 		if (_vm->_scene->isNonInteractiveIHNMDemoPart())
 			_vm->_scene->showIHNMDemoSpecialScreen();
+#endif
 		break;
 	case kPanelOption:
 		// TODO: check input dialog keys
@@ -651,7 +617,7 @@ bool Interface::processAscii(Common::KeyState keystate) {
 				return true;
 			}
 		}
-		if (keystate.keycode == Common::KEYCODE_o && keystate.flags == Common::KBD_CTRL) { // ctrl-o
+		if (keystate.keycode == Common::KEYCODE_o && keystate.hasFlags(Common::KBD_CTRL)) { // ctrl-o
 			if (_saveReminderState > 0) {
 				setMode(kPanelOption);
 				return true;
@@ -728,7 +694,7 @@ bool Interface::processAscii(Common::KeyState keystate) {
 #ifdef ENABLE_IHNM
 		if (_vm->getGameId() == GID_IHNM) {
 			// Any keypress here returns the user back to the game
-			if (!(_vm->getFeatures() & GF_IHNM_DEMO)) {
+			if (!_vm->isIHNMDemo()) {
 				_vm->_scene->clearPsychicProfile();
 			} else {
 				setMode(kPanelConverse);
@@ -762,7 +728,7 @@ void Interface::setStatusText(const char *text, int statusColor) {
 }
 
 void Interface::loadScenePortraits(int resourceId) {
-	_scenePortraits.freeMem();
+	_scenePortraits.clear();
 
 	_vm->_sprite->loadList(resourceId, _scenePortraits);
 }
@@ -809,9 +775,9 @@ void Interface::draw() {
 	drawStatusBar();
 
 	if (_panelMode == kPanelMain || _panelMode == kPanelMap ||
-		(_panelMode == kPanelNull && _vm->getFeatures() & GF_IHNM_DEMO)) {
+		(_panelMode == kPanelNull && _vm->isIHNMDemo())) {
 		_mainPanel.getRect(rect);
-		_vm->_gfx->drawRegion(rect, _mainPanel.image);
+		_vm->_gfx->drawRegion(rect, _mainPanel.image.getBuffer());
 
 		for (int i = 0; i < kVerbTypeIdsMax; i++) {
 			if (_verbTypeToPanelButton[i] != NULL) {
@@ -820,13 +786,13 @@ void Interface::draw() {
 		}
 	} else if (_panelMode == kPanelConverse) {
 		_conversePanel.getRect(rect);
-		_vm->_gfx->drawRegion(rect, _conversePanel.image);
+		_vm->_gfx->drawRegion(rect, _conversePanel.image.getBuffer());
 		converseDisplayTextLines();
 	}
 
 	if (_panelMode == kPanelMain || _panelMode == kPanelConverse ||
 		_lockedMode == kPanelMain || _lockedMode == kPanelConverse ||
-		(_panelMode == kPanelNull && _vm->getFeatures() & GF_IHNM_DEMO)) {
+		(_panelMode == kPanelNull && _vm->isIHNMDemo())) {
 		leftPortraitPoint.x = _mainPanel.x + _vm->getDisplayInfo().leftPortraitXOffset;
 		leftPortraitPoint.y = _mainPanel.y + _vm->getDisplayInfo().leftPortraitYOffset;
 		_vm->_sprite->draw(_defPortraits, _leftPortrait, leftPortraitPoint, 256);
@@ -841,7 +807,7 @@ void Interface::draw() {
 		// can tell this is what the original engine does. And it keeps
 		// ITE from crashing when entering the Elk King's court.
 
-		if (_rightPortrait >= _scenePortraits.spriteCount)
+		if (_rightPortrait >= (int)_scenePortraits.size())
 			_rightPortrait = 0;
 
 		_vm->_sprite->draw(_scenePortraits, _rightPortrait, rightPortraitPoint, 256);
@@ -950,12 +916,11 @@ void Interface::drawOption() {
 	Rect rect2;
 	PanelButton *panelButton;
 	Point textPoint;
-	Point point;
 	Point sliderPoint;
 	int spritenum = 0;
 
 	_optionPanel.getRect(rect);
-	_vm->_gfx->drawRegion(rect, _optionPanel.image);
+	_vm->_gfx->drawRegion(rect, _optionPanel.image.getBuffer());
 
 	for (int i = 0; i < _optionPanel.buttonsCount; i++) {
 		panelButton = &_optionPanel.buttons[i];
@@ -1032,7 +997,7 @@ void Interface::drawQuit() {
 	if (_vm->getGameId() == GID_ITE)
 		drawButtonBox(rect, kButton, false);
 	else
-		_vm->_gfx->drawRegion(rect, _quitPanel.image);
+		_vm->_gfx->drawRegion(rect, _quitPanel.image.getBuffer());
 
 	for (i = 0; i < _quitPanel.buttonsCount; i++) {
 		panelButton = &_quitPanel.buttons[i];
@@ -1080,7 +1045,7 @@ void Interface::setQuit(PanelButton *panelButton) {
 			break;
 		case kTextQuit:
 #ifdef ENABLE_IHNM
-			if (_vm->getFeatures() & GF_IHNM_DEMO)
+			if (_vm->isIHNMDemo())
 				_vm->_scene->creditsScene();	// display sales info for IHNM demo
 			else
 #endif
@@ -1098,7 +1063,7 @@ void Interface::drawLoad() {
 	if (_vm->getGameId() == GID_ITE)
 		drawButtonBox(rect, kButton, false);
 	else
-		_vm->_gfx->drawRegion(rect, _loadPanel.image);
+		_vm->_gfx->drawRegion(rect, _loadPanel.image.getBuffer());
 
 	for (i = 0; i < _loadPanel.buttonsCount; i++) {
 		panelButton = &_loadPanel.buttons[i];
@@ -1318,7 +1283,7 @@ void Interface::drawSave() {
 	if (_vm->getGameId() == GID_ITE)
 		drawButtonBox(rect, kButton, false);
 	else
-		_vm->_gfx->drawRegion(rect, _savePanel.image);
+		_vm->_gfx->drawRegion(rect, _savePanel.image.getBuffer());
 
 	for (i = 0; i < _savePanel.buttonsCount; i++) {
 		panelButton = &_savePanel.buttons[i];
@@ -1393,7 +1358,7 @@ void Interface::setSave(PanelButton *panelButton) {
 	char *fileName;
 	switch (panelButton->id) {
 		case kTextSave:
-			if (_textInputStringLength == 0 ) {
+			if (_textInputStringLength == 0) {
 				break;
 			}
 			if (!_vm->isSaveListFull() && (_optionSaveFileTitleNumber == 0)) {
@@ -1411,9 +1376,7 @@ void Interface::setSave(PanelButton *panelButton) {
 				fileName = _vm->calcSaveFileName(_vm->getSaveFile(_optionSaveFileTitleNumber)->slotNumber);
 				_vm->save(fileName, _textInputString);
 			}
-			_vm->getTimerManager()->removeTimerProc(&saveReminderCallback);
-			_vm->getTimerManager()->installTimerProc(&saveReminderCallback, TIMETOSAVE, this);
-			setSaveReminderState(1);
+			resetSaveReminder();
 
 			_textInput = false;
 			setMode(kPanelOption);
@@ -1423,6 +1386,12 @@ void Interface::setSave(PanelButton *panelButton) {
 			setMode(kPanelOption);
 			break;
 	}
+}
+
+void Interface::resetSaveReminder() {
+	_vm->getTimerManager()->removeTimerProc(&saveReminderCallback);
+	_vm->getTimerManager()->installTimerProc(&saveReminderCallback, TIMETOSAVE, this);
+	setSaveReminderState(1);
 }
 
 void Interface::handleOptionUpdate(const Point& mousePoint) {
@@ -1582,7 +1551,7 @@ void Interface::handleChapterSelectionClick(const Point& mousePoint) {
 			event.param4 = obj;	// Object
 			event.param5 = 0;	// With Object
 			event.param6 = obj;		// Actor
-			_vm->_events->queue(&event);
+			_vm->_events->queue(event);
 		}
 	}
 }
@@ -1854,8 +1823,9 @@ void Interface::update(const Point& mousePoint, int updateFlag) {
 		if (_vm->getGameId() == GID_IHNM) {
 			// Any mouse click here returns the user back to the game
 			if (updateFlag & UPDATE_MOUSECLICK) {
-				if (!(_vm->getFeatures() & GF_IHNM_DEMO)) {
+				if (!_vm->isIHNMDemo()) {
 					_vm->_scene->clearPsychicProfile();
+					_vm->_script->wakeUpThreads(kWaitTypeDelay);
 				} else {
 					setMode(kPanelConverse);
 					_vm->_scene->_textList.clear();
@@ -1867,8 +1837,10 @@ void Interface::update(const Point& mousePoint, int updateFlag) {
 		break;
 
 	case kPanelNull:
+#ifdef ENABLE_IHNM
 		if (_vm->_scene->isNonInteractiveIHNMDemoPart() && (updateFlag & UPDATE_MOUSECLICK))
 			_vm->_scene->showIHNMDemoSpecialScreen();
+#endif
 		break;
 	}
 
@@ -2056,7 +2028,7 @@ void Interface::updateInventory(int pos) {
 }
 
 void Interface::addToInventory(int objectId) {
-	if (_inventoryCount >= _inventorySize) {
+	if (uint(_inventoryCount) >= _inventory.size()) {
 		return;
 	}
 
@@ -2158,43 +2130,43 @@ void Interface::drawButtonBox(const Rect& rect, ButtonKind kind, bool down) {
 	byte solidColor;
 	byte odl, our, idl, iur;
 
-	switch (kind ) {
-		case kSlider:
-			cornerColor = 0x8b;
-			frameColor = _vm->KnownColor2ColorId(kKnownColorBlack);
-			fillColor = kITEColorLightBlue96;
-			odl = kITEColorDarkBlue8a;
-			our = kITEColorLightBlue92;
-			idl = 0x89;
-			iur = 0x94;
-			solidColor = down ? kITEColorLightBlue94 : kITEColorLightBlue96;
-			break;
-		case kEdit:
-			if (_vm->getGameId() == GID_ITE) {
-				cornerColor = frameColor = fillColor = kITEColorLightBlue96;
-				our = kITEColorDarkBlue8a;
-				odl = kITEColorLightBlue94;
-				solidColor = down ? kITEColorBlue : kITEColorDarkGrey0C;
-			} else {
-				cornerColor = frameColor = fillColor = _vm->KnownColor2ColorId(kKnownColorBlack);
-				our = odl = solidColor = _vm->KnownColor2ColorId(kKnownColorBlack);
-			}
-			iur = 0x97;
-			idl = 0x95;
-			break;
-		default:
-			cornerColor = 0x8b;
-			frameColor = _vm->KnownColor2ColorId(kKnownColorBlack);
-			solidColor = fillColor = kITEColorLightBlue96;
-			odl = kITEColorDarkBlue8a;
-			our = kITEColorLightBlue94;
-			idl = 0x97;
-			iur = 0x95;
-			if (down) {
-				SWAP(odl, our);
-				SWAP(idl, iur);
-			}
-			break;
+	switch (kind) {
+	case kSlider:
+		cornerColor = 0x8b;
+		frameColor = _vm->KnownColor2ColorId(kKnownColorBlack);
+		fillColor = kITEColorLightBlue96;
+		odl = kITEColorDarkBlue8a;
+		our = kITEColorLightBlue92;
+		idl = 0x89;
+		iur = 0x94;
+		solidColor = down ? kITEColorLightBlue94 : kITEColorLightBlue96;
+		break;
+	case kEdit:
+		if (_vm->getGameId() == GID_ITE) {
+			cornerColor = frameColor = fillColor = kITEColorLightBlue96;
+			our = kITEColorDarkBlue8a;
+			odl = kITEColorLightBlue94;
+			solidColor = down ? kITEColorBlue : kITEColorDarkGrey0C;
+		} else {
+			cornerColor = frameColor = fillColor = _vm->KnownColor2ColorId(kKnownColorBlack);
+			our = odl = solidColor = _vm->KnownColor2ColorId(kKnownColorBlack);
+		}
+		iur = 0x97;
+		idl = 0x95;
+		break;
+	default:
+		cornerColor = 0x8b;
+		frameColor = _vm->KnownColor2ColorId(kKnownColorBlack);
+		solidColor = fillColor = kITEColorLightBlue96;
+		odl = kITEColorDarkBlue8a;
+		our = kITEColorLightBlue94;
+		idl = 0x97;
+		iur = 0x95;
+		if (down) {
+			SWAP(odl, our);
+			SWAP(idl, iur);
+		}
+		break;
 	}
 
 	int x = rect.left;
@@ -2273,14 +2245,22 @@ void Interface::drawPanelButtonText(InterfacePanel *panel, PanelButton *panelBut
 		}
 		break;
 	case kTextMusic:
-		if (_vm->_musicVolume)
+		if (_vm->_musicVolume) {
 			textId = kText10Percent + _vm->_musicVolume / 25 - 1;
+			if (textId > kTextMax) {
+				textId = kTextMax;
+			}
+		}
 		else
 			textId = kTextOff;
 		break;
 	case kTextSound:
-		if (_vm->_soundVolume)
+		if (_vm->_soundVolume) {
 			textId = kText10Percent + _vm->_soundVolume / 25  - 1;
+			if (textId > kTextMax) {
+				textId = kTextMax;
+			}
+		}
 		else
 			textId = kTextOff;
 		break;
@@ -2415,18 +2395,9 @@ void Interface::drawVerbPanelText(PanelButton *panelButton, KnownColor textKnown
 
 
 // Converse stuff
-void Interface::converseInit(void) {
-	for (int i = 0; i < CONVERSE_MAX_TEXTS; i++)
-		_converseText[i].text = NULL;
-	converseClear();
-}
-
-void Interface::converseClear(void) {
+void Interface::converseClear() {
 	for (int i = 0; i < CONVERSE_MAX_TEXTS; i++) {
-		if (_converseText[i].text != NULL) {
-			free(_converseText[i].text);
-			_converseText[i].text = NULL;
-		}
+		_converseText[i].text.clear();
 		_converseText[i].stringNum = -1;
 		_converseText[i].replyId = 0;
 		_converseText[i].replyFlags = 0;
@@ -2472,8 +2443,8 @@ bool Interface::converseAddText(const char *text, int strId, int replyId, byte r
 			return true;
 		}
 
-		_converseText[_converseTextCount].text = (char *)malloc(i + 1);
-		strncpy(_converseText[_converseTextCount].text, _converseWorkString, i);
+		_converseText[_converseTextCount].text.resize(i + 1);
+		strncpy(&_converseText[_converseTextCount].text.front(), _converseWorkString, i);
 
 		_converseText[_converseTextCount].strId = strId;
 		_converseText[_converseTextCount].text[i] = 0;
@@ -2583,7 +2554,7 @@ void Interface::converseDisplayTextLines() {
 		rect.left += 8;
 		_vm->_gfx->drawRect(rect, backgnd);
 
-		str = _converseText[relPos].text;
+		str = &_converseText[relPos].text.front();
 
 		if (_converseText[relPos].textNum == 0) { // first entry
 			textPoint.x = rect.left - 6;
@@ -2717,10 +2688,9 @@ void Interface::loadState(Common::InSaveFile *in) {
 
 void Interface::mapPanelShow() {
 	int i;
-	byte *resource;
-	size_t resourceLength, imageLength;
+	ByteArray resourceData;
 	Rect rect;
-	byte *image;
+	ByteArray image;
 	int imageWidth, imageHeight;
 	const byte *pal;
 	PalEntry cPal[PAL_ENTRIES];
@@ -2729,15 +2699,14 @@ void Interface::mapPanelShow() {
 
 	rect.left = rect.top = 0;
 
-	_vm->_resource->loadResource(_interfaceContext,
-			 _vm->_resource->convertResourceId(RID_ITE_TYCHO_MAP), resource, resourceLength);
-	if (resourceLength == 0) {
+	_vm->_resource->loadResource(_interfaceContext, _vm->_resource->convertResourceId(RID_ITE_TYCHO_MAP), resourceData);
+	if (resourceData.empty()) {
 		error("Interface::mapPanelShow() unable to load Tycho map resource");
 	}
 
 	_vm->_gfx->getCurrentPal(_mapSavedPal);
 
-	for (i = 0; i < 6 ; i++) {
+	for (i = 0; i < 6; i++) {
 		_vm->_gfx->palToBlack(_mapSavedPal, 0.2 * i);
 		_vm->_render->drawScene();
 		_vm->_system->delayMillis(5);
@@ -2745,8 +2714,8 @@ void Interface::mapPanelShow() {
 
 	_vm->_render->setFlag(RF_MAP);
 
-	_vm->decodeBGImage(resource, resourceLength, &image, &imageLength, &imageWidth, &imageHeight);
-	pal = _vm->getImagePal(resource, resourceLength);
+	_vm->decodeBGImage(resourceData, image, &imageWidth, &imageHeight);
+	pal = _vm->getImagePal(resourceData);
 
 	for (i = 0; i < PAL_ENTRIES; i++) {
 		cPal[i].red = *pal++;
@@ -2757,17 +2726,15 @@ void Interface::mapPanelShow() {
 	rect.setWidth(imageWidth);
 	rect.setHeight(imageHeight);
 
-	_vm->_gfx->drawRegion(rect, image);
+	_vm->_gfx->drawRegion(rect, image.getBuffer());
 
 	// Evil Evil
-	for (i = 0; i < 6 ; i++) {
+	for (i = 0; i < 6; i++) {
 		_vm->_gfx->blackToPal(cPal, 0.2 * i);
 		_vm->_render->drawScene();
 		_vm->_system->delayMillis(5);
 	}
 
-	free(resource);
-	free(image);
 
 	setSaveReminderState(false);
 
@@ -2780,7 +2747,7 @@ void Interface::mapPanelClean() {
 
 	_vm->_gfx->getCurrentPal(pal);
 
-	for (i = 0; i < 6 ; i++) {
+	for (i = 0; i < 6; i++) {
 		_vm->_gfx->palToBlack(pal, 0.2 * i);
 		_vm->_render->drawScene();
 		_vm->_system->delayMillis(5);
@@ -2792,7 +2759,7 @@ void Interface::mapPanelClean() {
 	_vm->_gfx->showCursor(true);
 	_vm->_render->drawScene();
 
-	for (i = 0; i < 6 ; i++) {
+	for (i = 0; i < 6; i++) {
 		_vm->_gfx->blackToPal(_mapSavedPal, 0.2 * i);
 		_vm->_render->drawScene();
 		_vm->_system->delayMillis(5);
@@ -2824,32 +2791,31 @@ void Interface::keyBoss() {
 	_vm->_music->pause();
 
 	int i;
-	byte *resource;
-	size_t resourceLength, imageLength;
+	ByteArray resourceData;
 	Rect rect;
-	byte *image;
+	ByteArray image;
 	int imageWidth, imageHeight;
-	const byte *pal;
+	//const byte *pal;
 	PalEntry cPal[PAL_ENTRIES];
 
 	_vm->_gfx->showCursor(false);
 
 	rect.left = rect.top = 0;
 
-	_vm->_resource->loadResource(_interfaceContext, RID_IHNM_BOSS_SCREEN, resource, resourceLength);
-	if (resourceLength == 0) {
+	_vm->_resource->loadResource(_interfaceContext, RID_IHNM_BOSS_SCREEN, resourceData);
+	if (resourceData.empty()) {
 		error("Interface::bossKey() unable to load Boss image resource");
 	}
 
 	_bossMode = _panelMode;
 	setMode(kPanelBoss);
 
-	_vm->decodeBGImage(resource, resourceLength, &image, &imageLength, &imageWidth, &imageHeight);
+	_vm->decodeBGImage(resourceData, image, &imageWidth, &imageHeight);
 	rect.setWidth(imageWidth);
 	rect.setHeight(imageHeight);
 
 	_vm->_gfx->getCurrentPal(_mapSavedPal);
-	pal = _vm->getImagePal(resource, resourceLength);
+	//pal = _vm->getImagePal(resourceData);
 
 	cPal[0].red = 0;
 	cPal[0].green = 0;
@@ -2861,12 +2827,9 @@ void Interface::keyBoss() {
 		cPal[i].blue = 128;
 	}
 
-	_vm->_gfx->drawRegion(rect, image);
+	_vm->_gfx->drawRegion(rect, image.getBuffer());
 
 	_vm->_gfx->setPalette(cPal);
-
-	free(resource);
-	free(image);
 }
 
 

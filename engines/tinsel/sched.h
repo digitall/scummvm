@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Data structures used by the process scheduler
  */
 
@@ -45,15 +42,15 @@ typedef void (*CORO_ADDR)(CoroContext &, const void *);
 
 /** process structure */
 struct PROCESS {
-	PROCESS *pNext;	//!< pointer to next process in active or free list
-	PROCESS *pPrevious;	//!< pointer to previous process in active or free list
+	PROCESS *pNext;	///< pointer to next process in active or free list
+	PROCESS *pPrevious;	///< pointer to previous process in active or free list
 
-	CoroContext state;		//!< the state of the coroutine
-	CORO_ADDR  coroAddr;	//!< the entry point of the coroutine
+	CoroContext state;		///< the state of the coroutine
+	CORO_ADDR  coroAddr;	///< the entry point of the coroutine
 
-	int sleepTime;		//!< number of scheduler cycles to sleep
-	int pid;		//!< process ID
-	char param[PARAM_SIZE];	//!< process specific info
+	int sleepTime;		///< number of scheduler cycles to sleep
+	int pid;		///< process ID
+	char param[PARAM_SIZE];	///< process specific info
 };
 typedef PROCESS *PPROCESS;
 
@@ -140,9 +137,9 @@ void xCallGlobalProcess(uint32 procID);
 void xKillGlobalProcess(uint32 procID);
 bool GlobalProcessEvent(CORO_PARAM, uint32 procID, TINSEL_EVENT event, bool bWait, int myEscape);
 void RestoreGlobalProcess(INT_CONTEXT *pic);
-void KillGlobalProcesses(void);
+void KillGlobalProcesses();
 void FreeGlobalProcesses();
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_SCHED_H

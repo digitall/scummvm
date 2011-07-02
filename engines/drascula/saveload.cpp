@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#include "common/textconsole.h"
 
 #include "drascula/drascula.h"
 
@@ -29,24 +28,23 @@ namespace Drascula {
 
 bool DrasculaEngine::saveLoadScreen() {
 	char names[10][23];
-	char file[50];
-	char fileEpa[50];
+	Common::String file;
 	int n, n2, num_sav = 0, y = 27;
 	Common::InSaveFile *sav;
 
 	clearRoom();
 
-	snprintf(fileEpa, 50, "%s.epa", _targetName.c_str());
+	Common::String fileEpa = Common::String::format("%s.epa", _targetName.c_str());
 	if (!(sav = _saveFileMan->openForLoading(fileEpa))) {
 		Common::OutSaveFile *epa;
 		if (!(epa = _saveFileMan->openForSaving(fileEpa)))
-			error("Can't open %s file", fileEpa);
+			error("Can't open %s file", fileEpa.c_str());
 		for (n = 0; n < NUM_SAVES; n++)
 			epa->writeString("*\n");
 		epa->finalize();
 		delete epa;
 		if (!(sav = _saveFileMan->openForLoading(fileEpa))) {
-			error("Can't open %s file", fileEpa);
+			error("Can't open %s file", fileEpa.c_str());
 		}
 	}
 	for (n = 0; n < NUM_SAVES; n++) {
@@ -64,7 +62,7 @@ bool DrasculaEngine::saveLoadScreen() {
 	_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 	setCursor(kCursorCrosshair);
 
-	for (;;) {
+	while (!shouldQuit()) {
 		y = 27;
 		copyBackground();
 		for (n = 0; n < NUM_SAVES; n++) {
@@ -89,11 +87,11 @@ bool DrasculaEngine::saveLoadScreen() {
 						enterName();
 						strcpy(names[n], select);
 						if (selectionMade == 1) {
-							snprintf(file, 50, "%s%02d", _targetName.c_str(), n + 1);
-							saveGame(file);
+							file = Common::String::format("%s%02d", _targetName.c_str(), n + 1);
+							saveGame(file.c_str());
 							Common::OutSaveFile *tsav;
 							if (!(tsav = _saveFileMan->openForSaving(fileEpa))) {
-								error("Can't open %s file", fileEpa);
+								error("Can't open %s file", fileEpa.c_str());
 							}
 							for (n = 0; n < NUM_SAVES; n++) {
 								tsav->writeString(names[n]);
@@ -111,7 +109,7 @@ bool DrasculaEngine::saveLoadScreen() {
 						y = y + 9;
 					}
 					if (selectionMade == 1) {
-						snprintf(file, 50, "%s%02d", _targetName.c_str(), n + 1);
+						file = Common::String::format("%s%02d", _targetName.c_str(), n + 1);
 					}
 					num_sav = n;
 				}
@@ -128,11 +126,11 @@ bool DrasculaEngine::saveLoadScreen() {
 				}
 
 				if (selectionMade == 1) {
-					snprintf(file, 50, "%s%02d", _targetName.c_str(), n + 1);
-					saveGame(file);
+					file = Common::String::format("%s%02d", _targetName.c_str(), n + 1);
+					saveGame(file.c_str());
 					Common::OutSaveFile *tsav;
 					if (!(tsav = _saveFileMan->openForSaving(fileEpa))) {
-						error("Can't open %s file", fileEpa);
+						error("Can't open %s file", fileEpa.c_str());
 					}
 					for (n = 0; n < NUM_SAVES; n++) {
 						tsav->writeString(names[n]);
@@ -144,16 +142,16 @@ bool DrasculaEngine::saveLoadScreen() {
 			}
 
 			if (mouseX > 125 && mouseY > 123 && mouseX < 199 && mouseY < 149 && selectionMade == 1) {
-				if (!loadGame(file)) {
+				if (!loadGame(file.c_str())) {
 					_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
 					return false;
 				}
 				break;
 			} else if (mouseX > 208 && mouseY > 123 && mouseX < 282 && mouseY < 149 && selectionMade == 1) {
-				saveGame(file);
+				saveGame(file.c_str());
 				Common::OutSaveFile *tsav;
 				if (!(tsav = _saveFileMan->openForSaving(fileEpa))) {
-					error("Can't open %s file", fileEpa);
+					error("Can't open %s file", fileEpa.c_str());
 				}
 				for (n = 0; n < NUM_SAVES; n++) {
 					tsav->writeString(names[n]);
@@ -210,7 +208,7 @@ bool DrasculaEngine::loadGame(const char *gameName) {
 	curY = sav->readSint32LE();
 	trackProtagonist = sav->readSint32LE();
 
-	for (l = 1; l < 43; l++) {
+	for (l = 1; l < ARRAYSIZE(inventoryObjects); l++) {
 		inventoryObjects[l] = sav->readSint32LE();
 	}
 
@@ -221,14 +219,16 @@ bool DrasculaEngine::loadGame(const char *gameName) {
 	takeObject = sav->readSint32LE();
 	pickedObject = sav->readSint32LE();
 	loadedDifferentChapter = 0;
-	sscanf(currentData, "%d.ald", &roomNum);
+	if (!sscanf(currentData, "%d.ald", &roomNum)) {
+		error("Bad save format");
+	}
 	enterRoom(roomNum);
 	selectVerb(kVerbNone);
 
 	return true;
 }
 
-void DrasculaEngine::saveGame(char gameName[]) {
+void DrasculaEngine::saveGame(const char *gameName) {
 	Common::OutSaveFile *out;
 	int l;
 
@@ -241,7 +241,7 @@ void DrasculaEngine::saveGame(char gameName[]) {
 	out->writeSint32LE(curY);
 	out->writeSint32LE(trackProtagonist);
 
-	for (l = 1; l < 43; l++) {
+	for (l = 1; l < ARRAYSIZE(inventoryObjects); l++) {
 		out->writeSint32LE(inventoryObjects[l]);
 	}
 

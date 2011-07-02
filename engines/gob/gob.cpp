@@ -18,21 +18,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "common/endian.h"
-#include "common/events.h"
-#include "common/EventRecorder.h"
+#include "common/debug-channels.h"
 
+#include "backends/audiocd/audiocd.h"
 #include "base/plugins.h"
 #include "common/config-manager.h"
-#include "common/md5.h"
-#include "sound/mididrv.h"
+#include "audio/mididrv.h"
 
-#include "gui/GuiManager.h"
+#include "gui/gui-manager.h"
+#include "gui/dialog.h"
 #include "gui/widget.h"
 
 #include "gob/gob.h"
@@ -65,13 +61,25 @@ const Common::Language GobEngine::_gobToScummVMLang[] = {
 	Common::EN_USA,
 	Common::NL_NLD,
 	Common::KO_KOR,
-	Common::HB_ISR,
+	Common::HE_ISR,
 	Common::PT_BRA,
 	Common::JA_JPN
 };
 
 
-PauseDialog::PauseDialog() : GUI::Dialog("PauseDialog") {
+class PauseDialog : public GUI::Dialog {
+public:
+	PauseDialog();
+
+	virtual void reflowLayout();
+	virtual void handleKeyDown(Common::KeyState state);
+
+private:
+	Common::String _message;
+	GUI::StaticTextWidget *_text;
+};
+
+PauseDialog::PauseDialog() : GUI::Dialog(0, 0, 0, 0) {
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundSpecial;
 
 	_message = "Game paused. Press Ctrl+p again to continue.";
@@ -96,12 +104,12 @@ void PauseDialog::reflowLayout() {
 
 void PauseDialog::handleKeyDown(Common::KeyState state) {
 	// Close on CTRL+p
-	if ((state.flags == Common::KBD_CTRL) && (state.keycode == Common::KEYCODE_p))
+	if ((state.hasFlags(Common::KBD_CTRL)) && (state.keycode == Common::KEYCODE_p))
 		close();
 }
 
 
-GobEngine::GobEngine(OSystem *syst) : Engine(syst) {
+GobEngine::GobEngine(OSystem *syst) : Engine(syst), _rnd("gob") {
 	_sound     = 0; _mult     = 0; _game    = 0;
 	_global    = 0; _dataIO   = 0; _goblin  = 0;
 	_vidPlayer = 0; _init     = 0; _inter   = 0;
@@ -112,28 +120,35 @@ GobEngine::GobEngine(OSystem *syst) : Engine(syst) {
 	_pauseStart = 0;
 
 	// Setup mixer
-	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, ConfMan.getInt("sfx_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
+	bool muteSFX   = ConfMan.getBool("mute") || ConfMan.getBool("sfx_mute");
+	bool muteMusic = ConfMan.getBool("mute") || ConfMan.getBool("music_mute");
+
+	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType,
+			muteSFX   ? 0 : ConfMan.getInt("sfx_volume"));
+	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType,
+			muteMusic ? 0 : ConfMan.getInt("music_volume"));
 
 	_copyProtection = ConfMan.getBool("copy_protection");
 
-	Common::addDebugChannel(kDebugFuncOp, "FuncOpcodes", "Script FuncOpcodes debug level");
-	Common::addDebugChannel(kDebugDrawOp, "DrawOpcodes", "Script DrawOpcodes debug level");
-	Common::addDebugChannel(kDebugGobOp, "GoblinOpcodes", "Script GoblinOpcodes debug level");
-	Common::addDebugChannel(kDebugSound, "Sound", "Sound output debug level");
-	Common::addDebugChannel(kDebugExpression, "Expression", "Expression parser debug level");
-	Common::addDebugChannel(kDebugGameFlow, "Gameflow", "Gameflow debug level");
-	Common::addDebugChannel(kDebugFileIO, "FileIO", "File Input/Output debug level");
-	Common::addDebugChannel(kDebugSaveLoad, "SaveLoad", "Saving/Loading debug level");
-	Common::addDebugChannel(kDebugGraphics, "Graphics", "Graphics debug level");
-	Common::addDebugChannel(kDebugVideo, "Video", "IMD/VMD video debug level");
-	Common::addDebugChannel(kDebugHotspots, "Hotspots", "Hotspots debug level");
-	Common::addDebugChannel(kDebugDemo, "Demo", "Demo script debug level");
+	_console = new GobConsole(this);
 
-	g_eventRec.registerRandomSource(_rnd, "gob");
+	DebugMan.addDebugChannel(kDebugFuncOp, "FuncOpcodes", "Script FuncOpcodes debug level");
+	DebugMan.addDebugChannel(kDebugDrawOp, "DrawOpcodes", "Script DrawOpcodes debug level");
+	DebugMan.addDebugChannel(kDebugGobOp, "GoblinOpcodes", "Script GoblinOpcodes debug level");
+	DebugMan.addDebugChannel(kDebugSound, "Sound", "Sound output debug level");
+	DebugMan.addDebugChannel(kDebugExpression, "Expression", "Expression parser debug level");
+	DebugMan.addDebugChannel(kDebugGameFlow, "Gameflow", "Gameflow debug level");
+	DebugMan.addDebugChannel(kDebugFileIO, "FileIO", "File Input/Output debug level");
+	DebugMan.addDebugChannel(kDebugSaveLoad, "SaveLoad", "Saving/Loading debug level");
+	DebugMan.addDebugChannel(kDebugGraphics, "Graphics", "Graphics debug level");
+	DebugMan.addDebugChannel(kDebugVideo, "Video", "IMD/VMD video debug level");
+	DebugMan.addDebugChannel(kDebugHotspots, "Hotspots", "Hotspots debug level");
+	DebugMan.addDebugChannel(kDebugDemo, "Demo", "Demo script debug level");
 }
 
 GobEngine::~GobEngine() {
+	delete _console;
+
 	deinitGameParts();
 }
 
@@ -190,12 +205,8 @@ bool GobEngine::isEGA() const {
 	return (_features & kFeaturesEGA) != 0;
 }
 
-bool GobEngine::is640() const {
-	return (_features & kFeatures640) != 0;
-}
-
-bool GobEngine::hasAdlib() const {
-	return (_features & kFeaturesAdlib) != 0;
+bool GobEngine::hasAdLib() const {
+	return (_features & kFeaturesAdLib) != 0;
 }
 
 bool GobEngine::isSCNDemo() const {
@@ -206,12 +217,56 @@ bool GobEngine::isBATDemo() const {
 	return (_features & kFeaturesBATDemo) != 0;
 }
 
+bool GobEngine::is640x480() const {
+	return (_features & kFeatures640x480) != 0;
+}
+
 bool GobEngine::is800x600() const {
 	return (_features & kFeatures800x600) != 0;
 }
 
+bool GobEngine::isTrueColor() const {
+	return (_features & kFeaturesTrueColor) != 0;
+}
+
 bool GobEngine::isDemo() const {
 	return (isSCNDemo() || isBATDemo());
+}
+
+bool GobEngine::isCurrentTot(const Common::String &tot) const {
+	return _game->_curTotFile.equalsIgnoreCase(tot);
+}
+
+const Graphics::PixelFormat &GobEngine::getPixelFormat() const {
+	return _pixelFormat;
+}
+
+void GobEngine::setTrueColor(bool trueColor) {
+	if (isTrueColor() == trueColor)
+		return;
+
+	_features = (_features & ~kFeaturesTrueColor) | (trueColor ? kFeaturesTrueColor : 0);
+
+	_video->setSize(is640x480());
+
+	_pixelFormat = g_system->getScreenFormat();
+
+	Common::Array<SurfacePtr>::iterator surf;
+	for (surf = _draw->_spritesArray.begin(); surf != _draw->_spritesArray.end(); ++surf)
+		if (*surf)
+			(*surf)->setBPP(_pixelFormat.bytesPerPixel);
+
+	if (_draw->_backSurface)
+		_draw->_backSurface->setBPP(_pixelFormat.bytesPerPixel);
+	if (_draw->_frontSurface)
+		_draw->_frontSurface->setBPP(_pixelFormat.bytesPerPixel);
+	if (_draw->_cursorSprites)
+		_draw->_cursorSprites->setBPP(_pixelFormat.bytesPerPixel);
+	if (_draw->_cursorSpritesBack)
+		_draw->_cursorSpritesBack->setBPP(_pixelFormat.bytesPerPixel);
+	if (_draw->_scummvmCursor)
+		_draw->_scummvmCursor->setBPP(_pixelFormat.bytesPerPixel);
+	SurfacePtr _scummvmCursor;
 }
 
 Common::Error GobEngine::run() {
@@ -220,8 +275,10 @@ Common::Error GobEngine::run() {
 		return Common::kUnknownError;
 	}
 
-	_video->setSize(is640());
-	_video->init();
+	if (!initGraphics()) {
+		GUIErrorMessage("GobEngine::init(): Failed to set up graphics");
+		return Common::kUnknownError;
+	}
 
 	// On some systems it's not safe to run CD audio games from the CD.
 	if (isCD())
@@ -229,7 +286,7 @@ Common::Error GobEngine::run() {
 
 	int cd_num = ConfMan.getInt("cdrom");
 	if (cd_num >= 0)
-		_system->openCD(cd_num);
+		_system->getAudioCDManager()->openCD(cd_num);
 
 	_global->_debugFlag = 1;
 	_video->_doRangeClamp = true;
@@ -277,7 +334,7 @@ Common::Error GobEngine::run() {
 	case Common::KO_KOR:
 		_global->_language = kLanguageKorean;
 		break;
-	case Common::HB_ISR:
+	case Common::HE_ISR:
 		_global->_language = kLanguageHebrew;
 		break;
 	case Common::PT_BRA:
@@ -311,6 +368,7 @@ void GobEngine::pauseEngineIntern(bool pause) {
 			_inter->_soundEndTimeKey += duration;
 	}
 
+	_vidPlayer->pauseAll(pause);
 	_mixer->pauseAll(pause);
 }
 
@@ -331,13 +389,13 @@ void GobEngine::pauseGame() {
 }
 
 bool GobEngine::initGameParts() {
-	_noMusic = MidiDriver::parseMusicDriver(ConfMan.get("music_driver")) == MD_NULL;
-
+	// just detect some devices some of which will be always there if the music is not disabled
+	_noMusic = MidiDriver::getMusicType(MidiDriver::detectDevice(MDT_PCSPK | MDT_MIDI | MDT_ADLIB)) == MT_NULL ? true : false;
 	_saveLoad = 0;
 
 	_global    = new Global(this);
 	_util      = new Util(this);
-	_dataIO    = new DataIO(this);
+	_dataIO    = new DataIO();
 	_palAnim   = new PalAnim(this);
 	_vidPlayer = new VideoPlayer(this);
 	_sound     = new Sound(this);
@@ -345,7 +403,6 @@ bool GobEngine::initGameParts() {
 
 	switch (_gameType) {
 	case kGameTypeGeisha:
-	case kGameTypeAdibouUnknown:
 	case kGameTypeGob1:
 		_init     = new Init_v1(this);
 		_video    = new Video_v1(this);
@@ -358,15 +415,15 @@ bool GobEngine::initGameParts() {
 		break;
 
 	case kGameTypeFascination:
-		_init     = new Init_v2(this);
+		_init     = new Init_Fascination(this);
 		_video    = new Video_v2(this);
 		_inter    = new Inter_Fascination(this);
 		_mult     = new Mult_v2(this);
-		_draw     = new Draw_v2(this);
+		_draw     = new Draw_Fascination(this);
 		_map      = new Map_v2(this);
 		_goblin   = new Goblin_v2(this);
 		_scenery  = new Scenery_v2(this);
-		_saveLoad = new SaveLoad_v2(this, _targetName.c_str());
+		_saveLoad = new SaveLoad_Fascination(this, _targetName.c_str());
 		break;
 
 	case kGameTypeWeen:
@@ -395,7 +452,6 @@ bool GobEngine::initGameParts() {
 		break;
 
 	case kGameTypeGob3:
-	case kGameTypeInca2:
 		_init     = new Init_v3(this);
 		_video    = new Video_v2(this);
 		_inter    = new Inter_v3(this);
@@ -405,6 +461,18 @@ bool GobEngine::initGameParts() {
 		_goblin   = new Goblin_v3(this);
 		_scenery  = new Scenery_v2(this);
 		_saveLoad = new SaveLoad_v3(this, _targetName.c_str(), SaveLoad_v3::kScreenshotTypeGob3);
+		break;
+
+	case kGameTypeInca2:
+		_init     = new Init_v3(this);
+		_video    = new Video_v2(this);
+		_inter    = new Inter_Inca2(this);
+		_mult     = new Mult_v2(this);
+		_draw     = new Draw_v2(this);
+		_map      = new Map_v2(this);
+		_goblin   = new Goblin_v3(this);
+		_scenery  = new Scenery_v2(this);
+		_saveLoad = new SaveLoad_Inca2(this, _targetName.c_str());
 		break;
 
 	case kGameTypeLostInTime:
@@ -443,7 +511,6 @@ bool GobEngine::initGameParts() {
 		_saveLoad = new SaveLoad(this);
 		break;
 
-	case kGameTypeAdibou4:
 	case kGameTypeUrban:
 		_init     = new Init_v6(this);
 		_video    = new Video_v6(this);
@@ -456,43 +523,53 @@ bool GobEngine::initGameParts() {
 		_saveLoad = new SaveLoad_v6(this, _targetName.c_str());
 		break;
 
-	case kGameTypePlaytoon:
-	case kGameTypePlaytnCk:
+	case kGameTypePlaytoons:
 	case kGameTypeBambou:
 		_init     = new Init_v2(this);
+		_video    = new Video_v6(this);
+		_inter    = new Inter_Playtoons(this);
+		_mult     = new Mult_v2(this);
+		_draw     = new Draw_Playtoons(this);
+		_map      = new Map_v2(this);
+		_goblin   = new Goblin_v4(this);
+		_scenery  = new Scenery_v2(this);
+		_saveLoad = new SaveLoad_Playtoons(this, _targetName.c_str());
+		break;
+
+	case kGameTypeAdibou2:
+	case kGameTypeAdi2:
+	case kGameTypeAdi4:
+		_init     = new Init_v7(this);
+		_video    = new Video_v6(this);
+		_inter    = new Inter_v7(this);
+		_mult     = new Mult_v2(this);
+		_draw     = new Draw_v2(this);
+		_map      = new Map_v2(this);
+		_goblin   = new Goblin_v4(this);
+		_scenery  = new Scenery_v2(this);
+		_saveLoad = new SaveLoad_v7(this, _targetName.c_str());
+		break;
+
+	case kGameTypeAdibou1:
+		_init     = new Init_v2(this);
 		_video    = new Video_v2(this);
-		_inter    = new Inter_v6(this);
+		_inter    = new Inter_v2(this);
 		_mult     = new Mult_v2(this);
 		_draw     = new Draw_v2(this);
 		_map      = new Map_v2(this);
 		_goblin   = new Goblin_v2(this);
 		_scenery  = new Scenery_v2(this);
-		_saveLoad = new SaveLoad_Playtoons(this);
+		_saveLoad = new SaveLoad_v2(this, _targetName.c_str());
 		break;
-
 	default:
 		deinitGameParts();
 		return false;
-		break;
 	}
+
+	// Setup mixer
+	syncSoundSettings();
 
 	_inter->setupOpcodes();
-
-	if (is640()) {
-		_video->_surfWidth = _width = 640;
-		_video->_surfHeight = _video->_splitHeight1 = _height = 480;
-		_global->_mouseMaxX = 640;
-		_global->_mouseMaxY = 480;
-		_mode = 0x18;
-		_global->_primarySurfDesc = SurfaceDescPtr(new SurfaceDesc(0x18, 640, 480));
-	} else {
-		_video->_surfWidth = _width = 320;
-		_video->_surfHeight = _video->_splitHeight1 = _height = 200;
-		_global->_mouseMaxX = 320;
-		_global->_mouseMaxY = 200;
-		_mode = 0x14;
-		_global->_primarySurfDesc = SurfaceDescPtr(new SurfaceDesc(0x14, 320, 200));
-	}
 
 	return true;
 }
@@ -514,6 +591,36 @@ void GobEngine::deinitGameParts() {
 	delete _video;     _video = 0;
 	delete _sound;     _sound = 0;
 	delete _dataIO;    _dataIO = 0;
+}
+
+bool GobEngine::initGraphics() {
+	if        (is800x600()) {
+		warning("GobEngine::initGraphics(): 800x600 games currently unsupported");
+		return false;
+	} else if (is640x480()) {
+		_width  = 640;
+		_height = 480;
+		_mode   = 0x18;
+	} else {
+		_width  = 320;
+		_height = 200;
+		_mode   = 0x14;
+	}
+
+	_video->setSize(is640x480());
+
+	_pixelFormat = g_system->getScreenFormat();
+
+	_video->_surfWidth    = _width;
+	_video->_surfHeight   = _height;
+	_video->_splitHeight1 = _height;
+
+	_global->_mouseMaxX = _width;
+	_global->_mouseMaxY = _height;
+
+	_global->_primarySurfDesc = SurfacePtr(new Surface(_width, _height, _pixelFormat.bytesPerPixel));
+
+	return true;
 }
 
 } // End of namespace Gob

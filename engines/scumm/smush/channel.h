@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_SMUSH_CHANNEL_H
@@ -29,20 +26,20 @@
 #include "common/util.h"
 
 namespace Common {
-	class SeekableReadStream;
+class SeekableReadStream;
 }
 
 namespace Scumm {
 
 class SmushChannel {
 protected:
-	int32 _track;				//!< the track number
-	byte *_tbuffer;	//!< data temporary buffer
-	int32 _tbufferSize;			//!< temporary buffer size
-	byte *_sbuffer;	//!< sound buffer
-	int32 _sbufferSize;			//!< sound buffer size
+	int32 _track;				///< the track number
+	byte *_tbuffer;	///< data temporary buffer
+	int32 _tbufferSize;			///< temporary buffer size
+	byte *_sbuffer;	///< sound buffer
+	int32 _sbufferSize;			///< sound buffer size
 
-	int32 _dataSize;			//!< remaining size of sound data in the iMUS buffer
+	int32 _dataSize;			///< remaining size of sound data in the iMUS buffer
 
 	bool _inData;
 
@@ -93,16 +90,16 @@ public:
 		vol = _volume;
 		pan = _pan;
 		return true;
-	};
+	}
 };
 
 class ImuseChannel : public SmushChannel {
 private:
 	int32 _srbufferSize;
 
-	int32 _bitsize;			//!< the bitsize of the original data
-	int32 _rate;				//!< the sampling rate of the original data
-	int32 _channels;			//!< the number of channels of the original data
+	int32 _bitsize;			///< the bitsize of the original data
+	int32 _rate;				///< the sampling rate of the original data
+	int32 _channels;			///< the number of channels of the original data
 
 protected:
 	void decode();
@@ -123,7 +120,7 @@ public:
 		vol = _volume;
 		pan = _pan;
 		return true;
-	};
+	}
 };
 
 } // End of namespace Scumm

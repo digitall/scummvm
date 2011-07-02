@@ -18,17 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "agi/agi.h"
 #include "agi/graphics.h"
 #include "agi/keyboard.h"
 
-#include "common/func.h"
 #include "common/config-manager.h"
+#include "common/textconsole.h"
 
 #ifdef __DS__
 #include "wordcompletion.h"
@@ -36,11 +33,16 @@
 
 namespace Agi {
 
-#define kModePre 0
-#define kModeNum 1
-#define kModeAbc 2
+enum {
+	kModePre = 0,
+	kModeNum = 1,
+	kModeAbc = 2
+};
 
-#define MAXLINELEN 80
+enum {
+	MAXLINELEN = 80,
+	MAXWORDLEN = 24
+};
 
 uint8 countWordsInString(char *str) {
   // Count the number of (space separated) words in the given string.
@@ -68,12 +70,13 @@ void bringWordtoTop(char *str, int wordnum) {
 	// This function reorders the words on the given pred.dic line
 	// by moving the word at position 'wordnum' to the front (that is, right behind
 	// right behind the numerical code word at the start of the line).
-	Common::StringList words;
+	Common::Array<Common::String> words;
 	char buf[MAXLINELEN];
 
 	if (!str)
 		return;
 	strncpy(buf, str, MAXLINELEN);
+	buf[MAXLINELEN - 1] = 0;
 	char *word = strtok(buf, " ");
 	if (!word) {
 		debug("Invalid dictionary line");
@@ -92,13 +95,13 @@ void bringWordtoTop(char *str, int wordnum) {
 	memcpy(str, tmp.c_str(), strlen(str));
 }
 
-bool AgiEngine::predictiveDialog(void) {
+bool AgiEngine::predictiveDialog() {
 	int key = 0, active = -1, lastactive = 0;
 	bool rc = false;
 	uint8 x;
 	int y;
 	int bx[17], by[17];
-	String prefix;
+	Common::String prefix;
 	char temp[MAXWORDLEN + 1], repeatcount[MAXWORDLEN];
 	AgiBlock tmpwindow;
 	bool navigationwithkeys = false;
@@ -137,7 +140,7 @@ bool AgiEngine::predictiveDialog(void) {
 	_predictiveDialogRunning = true;
 	_system->setFeatureState(OSystem::kFeatureDisableKeyFiltering, true);
 
-	memset(repeatcount, 0, MAXWORDLEN);
+	memset(repeatcount, 0, sizeof(repeatcount));
 
 	// show the predictive dialog.
 	// if another window is already in display, save its state into tmpwindow
@@ -187,7 +190,7 @@ bool AgiEngine::predictiveDialog(void) {
 
 	bool needRefresh = true;
 
-	for (;;) {
+	while (!shouldQuit()) {
 		if (needRefresh) {
 			for (int i = 0; buttons[i]; i++) {
 				int color1 = colors[i * 2];
@@ -210,13 +213,12 @@ bool AgiEngine::predictiveDialog(void) {
 				}
 			}
 
-			temp[MAXWORDLEN] = 0;
-
-			strncpy(temp, prefix.c_str(), MAXWORDLEN);
-			strncat(temp, _currentWord.c_str(), MAXWORDLEN);
+			Common::strlcpy(temp, prefix.c_str(), sizeof(temp));
+			Common::strlcat(temp, _currentWord.c_str(), sizeof(temp));
 
 			for (int i = prefix.size() + _currentCode.size(); i < MAXWORDLEN; i++)
 				temp[i] = ' ';
+			temp[MAXWORDLEN] = 0;
 
 			printText(temp, 0, 8, 7, MAXWORDLEN, 15, 0);
 			_gfx->flushBlock(62, 54, 249, 66);
@@ -374,7 +376,7 @@ bool AgiEngine::predictiveDialog(void) {
 					_currentCode.clear();
 					_currentWord.clear();
 					numMatchingWords = 0;
-					memset(repeatcount, 0, MAXWORDLEN);
+					memset(repeatcount, 0, sizeof(repeatcount));
 				} else if (active < 9 || active == 11 || active == 15) { // number or backspace
 					if (active == 11) { // backspace
 						if (_currentCode.size()) {
@@ -416,10 +418,11 @@ bool AgiEngine::predictiveDialog(void) {
 							_wordNumber = (_wordNumber + 1) % numMatchingWords;
 							char tmp[MAXLINELEN];
 							strncpy(tmp, _predictiveDictActLine, MAXLINELEN);
+							tmp[MAXLINELEN - 1] = 0;
 							char *tok = strtok(tmp, " ");
 							for (uint8 i = 0; i <= _wordNumber; i++)
 								tok = strtok(NULL, " ");
-							_currentWord = String(tok, _currentCode.size());
+							_currentWord = Common::String(tok, _currentCode.size());
 						}
 					} else if (mode == kModeAbc){
 						x = _currentCode.size();
@@ -451,7 +454,7 @@ bool AgiEngine::predictiveDialog(void) {
 					prefix += temp;
 					_currentCode.clear();
 					_currentWord.clear();
-					memset(repeatcount, 0, MAXWORDLEN);
+					memset(repeatcount, 0, sizeof(repeatcount));
 				} else {
 					goto press;
 				}
@@ -460,9 +463,8 @@ bool AgiEngine::predictiveDialog(void) {
 	}
 
  press:
-	strncpy(_predictiveResult, prefix.c_str(), 40);
-	strncat(_predictiveResult, _currentWord.c_str(), 40);
-	_predictiveResult[prefix.size() + _currentCode.size() + 1] = 0;
+	Common::strlcpy(_predictiveResult, prefix.c_str(), sizeof(_predictiveResult));
+	Common::strlcat(_predictiveResult, _currentWord.c_str(), sizeof(_predictiveResult));
 
  getout:
 	// if another window was shown, bring it up again
@@ -483,7 +485,7 @@ bool AgiEngine::predictiveDialog(void) {
 	return rc;
 }
 
-void AgiEngine::loadDict(void) {
+void AgiEngine::loadDict() {
 	Common::File inFile;
 	int lines = 0;
 
@@ -517,7 +519,7 @@ void AgiEngine::loadDict(void) {
 
 	_predictiveDictLine = (char **)calloc(1, sizeof(char *) * lines);
 	if (_predictiveDictLine == NULL) {
-		warning("Cannot allocate memory for line index buffer.");
+		warning("Cannot allocate memory for line index buffer");
 		return;
 	}
 	_predictiveDictLine[0] = _predictiveDictText;
@@ -547,53 +549,46 @@ void AgiEngine::loadDict(void) {
 #endif
 
 	uint32 time3 = _system->getMillis();
-	printf("Time to parse pred.dic: %d, total: %d\n", time3-time2, time3-time1);
+	debug("Time to parse pred.dic: %d, total: %d", time3-time2, time3-time1);
 }
 
-bool AgiEngine::matchWord(void) {
-	if (_currentCode.empty()) {
+bool AgiEngine::matchWord() {
+	// If no text has been entered, then there is no match.
+	if (_currentCode.empty())
 		return false;
-	}
-	// Lookup word in the dictionary
-	int line = 0, cmpRes = 0, len = 0;
-	char target[MAXWORDLEN];
 
-	strncpy(target, _currentCode.c_str(), MAXWORDLEN);
-	strcat(target, " ");
+	// If the currently entered text is too long, it cannot match anything.
+	if (_currentCode.size() > MAXWORDLEN)
+		return false;
 
-	// do the search at most two times:
-	// first try to match the exact code, by matching also the space after the code
-	// if there is not an exact match, do it once more for the best matching prefix (drop the space)
-	len = _currentCode.size() + 1;
-	for (int i = 0; i < 2; ++i) {
-		// Perform a binary search.
-		int hi = _predictiveDictLineCount - 1;
-		int lo = 0;
-		while (lo <= hi) {
-			line = (lo + hi) / 2;
-			cmpRes = strncmp(_predictiveDictLine[line], target, len);
-			if (cmpRes > 0)
-				hi = line - 1;
-			else if (cmpRes < 0)
-				lo = line + 1;
-			else
-				break;
-		}
-
-		if (cmpRes == 0)  // Exact match found? -> stop now
+	// Perform a binary search on the dictionary to find the first
+	// entry that has _currentCode as a prefix.
+	int hi = _predictiveDictLineCount - 1;
+	int lo = 0;
+	int line = 0;
+	while (lo < hi) {
+		line = (lo + hi) / 2;
+		int cmpVal = strncmp(_predictiveDictLine[line], _currentCode.c_str(), _currentCode.size());
+		if (cmpVal > 0)
+			hi = line - 1;
+		else if (cmpVal < 0)
+			lo = line + 1;
+		else {
+			hi = line;
 			break;
-		len--;  // Remove the trailing space
+		}
 	}
 
 	_currentWord.clear();
 	_wordNumber = 0;
-	if (!strncmp(_predictiveDictLine[line], target, len)) {
+	if (0 == strncmp(_predictiveDictLine[line], _currentCode.c_str(), _currentCode.size())) {
 		_predictiveDictActLine = _predictiveDictLine[line];
 		char tmp[MAXLINELEN];
 		strncpy(tmp, _predictiveDictActLine, MAXLINELEN);
+		tmp[MAXLINELEN - 1] = 0;
 		char *tok = strtok(tmp, " ");
 		tok = strtok(NULL, " ");
-		_currentWord = String(tok, _currentCode.size());
+		_currentWord = Common::String(tok, _currentCode.size());
 		return true;
 	} else {
 		_predictiveDictActLine = NULL;

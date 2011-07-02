@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/debug.h"
 #include "common/endian.h"
+#include "common/textconsole.h"
 
 #include "sky/disk.h"
 #include "sky/logic.h"
@@ -32,6 +31,9 @@
 #include "sky/skydefs.h"
 #include "sky/sound.h"
 #include "sky/struc.h"
+
+#include "audio/audiostream.h"
+#include "audio/decoders/raw.h"
 
 namespace Sky {
 
@@ -311,7 +313,7 @@ static const Sfx fx_hello_helga = {
 	}
 };
 
-static const Sfx fx_statue_on_armour = {
+static const Sfx fx_statue_on_armor = {
 	8,
 	0,
 	{
@@ -983,7 +985,7 @@ static const Sfx *musicList[] = {
 	&fx_null, // 365
 	&fx_break_crystals, // 366
 	&fx_disintegrate, // 367
-	&fx_statue_on_armour, // 368
+	&fx_statue_on_armor, // 368
 	&fx_null, // 369
 	&fx_null, // 360
 	&fx_ping, // 371
@@ -1028,29 +1030,29 @@ Sound::Sound(Audio::Mixer *mixer, Disk *pDisk, uint8 pVolume) {
 	_isPaused = false;
 }
 
-Sound::~Sound(void) {
+Sound::~Sound() {
 	_mixer->stopAll();
-	if (_soundData)
-		free(_soundData);
+	free(_soundData);
 }
 
 void Sound::playSound(uint32 id, byte *sound, uint32 size, Audio::SoundHandle *handle) {
 	byte flags = 0;
-	flags |= Audio::Mixer::FLAG_UNSIGNED|Audio::Mixer::FLAG_AUTOFREE;
+	flags |= Audio::FLAG_UNSIGNED;
 	size -= sizeof(DataFileHeader);
 	byte *buffer = (byte *)malloc(size);
 	memcpy(buffer, sound+sizeof(DataFileHeader), size);
 
 	_mixer->stopID(id);
-	_mixer->playRaw(Audio::Mixer::kSFXSoundType, handle, buffer, size, 11025, flags, id);
+
+	Audio::AudioStream *stream = Audio::makeRawStream(buffer, size, 11025, flags);
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, handle, stream, id);
 }
 
 void Sound::loadSection(uint8 pSection) {
 	fnStopFx();
 	_mixer->stopAll();
 
-	if (_soundData)
-		free(_soundData);
+	free(_soundData);
 	_soundData = _skyDisk->loadFile(pSection * 4 + SOUND_FILE_BASE);
 	uint16 asmOfs;
 	if (SkyEngine::_systemVars.gameVersion == 109) {
@@ -1108,19 +1110,24 @@ void Sound::playSound(uint16 sound, uint16 volume, uint8 channel) {
 	uint32 dataLoop = READ_BE_UINT16(_sfxInfo + (sound << 3) + 6);
 	dataOfs += _sfxBaseOfs;
 
-	byte flags = Audio::Mixer::FLAG_UNSIGNED;
+	Audio::SeekableAudioStream *stream = Audio::makeRawStream(_soundData + dataOfs, dataSize, sampleRate,
+	                                                                Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
 
-	uint32 loopSta = 0, loopEnd = 0;
+	Audio::AudioStream *output = 0;
 	if (dataLoop) {
-		loopSta = dataSize - dataLoop;
-		loopEnd = dataSize;
-		flags |= Audio::Mixer::FLAG_LOOP;
+		uint32 loopSta = dataSize - dataLoop;
+		uint32 loopEnd = dataSize;
+
+		output = Audio::makeLoopingAudioStream(stream, Audio::Timestamp(0, loopSta, sampleRate),
+		                                       Audio::Timestamp(0, loopEnd, sampleRate), 0);
+	} else {
+		output = stream;
 	}
 
 	if (channel == 0)
-		_mixer->playRaw(Audio::Mixer::kSFXSoundType, &_ingameSound0, _soundData + dataOfs, dataSize, sampleRate, flags, SOUND_CH0, volume, 0, loopSta, loopEnd);
+		_mixer->playStream(Audio::Mixer::kSFXSoundType, &_ingameSound0, output, SOUND_CH0, volume, 0);
 	else
-		_mixer->playRaw(Audio::Mixer::kSFXSoundType, &_ingameSound1, _soundData + dataOfs, dataSize, sampleRate, flags, SOUND_CH1, volume, 0, loopSta, loopEnd);
+		_mixer->playStream(Audio::Mixer::kSFXSoundType, &_ingameSound1, output, SOUND_CH1, volume, 0);
 }
 
 void Sound::fnStartFx(uint32 sound, uint8 channel) {
@@ -1175,7 +1182,7 @@ void Sound::fnStartFx(uint32 sound, uint8 channel) {
 	playSound(sfx->soundNo, volume, channel);
 }
 
-void Sound::checkFxQueue(void) {
+void Sound::checkFxQueue() {
 	for (uint8 cnt = 0; cnt < MAX_QUEUED_FX; cnt++) {
 		if (_sfxQueue[cnt].count) {
 			_sfxQueue[cnt].count--;
@@ -1185,7 +1192,7 @@ void Sound::checkFxQueue(void) {
 	}
 }
 
-void Sound::restoreSfx(void) {
+void Sound::restoreSfx() {
 	// queue sfx, so they will be started when the player exits the control panel
 	memset(_sfxQueue, 0, sizeof(_sfxQueue));
 	uint8 queueSlot = 0;
@@ -1204,13 +1211,13 @@ void Sound::restoreSfx(void) {
 	}
 }
 
-void Sound::fnStopFx(void) {
+void Sound::fnStopFx() {
 	_mixer->stopID(SOUND_CH0);
 	_mixer->stopID(SOUND_CH1);
 	_saveSounds[0] = _saveSounds[1] = 0xFFFF;
 }
 
-void Sound::stopSpeech(void) {
+void Sound::stopSpeech() {
 	_mixer->stopID(SOUND_SPEECH);
 }
 
@@ -1242,11 +1249,13 @@ bool Sound::startSpeech(uint16 textNum) {
 		rate = 11025;
 
 	_mixer->stopID(SOUND_SPEECH);
-	_mixer->playRaw(Audio::Mixer::kSpeechSoundType, &_ingameSpeech, playBuffer, speechSize, rate, Audio::Mixer::FLAG_UNSIGNED | Audio::Mixer::FLAG_AUTOFREE, SOUND_SPEECH);
+
+	Audio::AudioStream *stream = Audio::makeRawStream(playBuffer, speechSize, rate, Audio::FLAG_UNSIGNED);
+	_mixer->playStream(Audio::Mixer::kSpeechSoundType, &_ingameSpeech, stream, SOUND_SPEECH);
 	return true;
 }
 
-void Sound::fnPauseFx(void) {
+void Sound::fnPauseFx() {
 	if (!_isPaused) {
 		_isPaused = true;
 		_mixer->pauseID(SOUND_CH0, true);
@@ -1254,7 +1263,7 @@ void Sound::fnPauseFx(void) {
 	}
 }
 
-void Sound::fnUnPauseFx(void) {
+void Sound::fnUnPauseFx() {
 	if (_isPaused) {
 		_isPaused = false;
 		_mixer->pauseID(SOUND_CH0, false);

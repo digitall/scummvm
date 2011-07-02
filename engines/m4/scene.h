@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_SCENE_H
@@ -29,94 +26,93 @@
 class View;
 
 #include "m4/assets.h"
+#include "m4/font.h"
 #include "m4/hotspot.h"
 #include "m4/graphics.h"
 #include "m4/viewmgr.h"
+#include "m4/gui.h"
+#include "m4/m4_views.h"
+#include "common/array.h"
 
 namespace M4 {
 
-#define TITLE_SCENE_BURGER 951		// 951 = intro, 901 = demo menu, 971 = first scene
-#define MAINMENU_SCENE_BURGER 903
-#define FIRST_SCENE 101
 #define MAX_CHK_FILENAME_SIZE 144
 
-#define INTERFACE_HEIGHT 106
-#define MADS_SURFACE_HEIGHT 156
-
 enum MADSVerbs {
-	kVerbLook	= 2,
-	kVerbTake	= 3,
-	kVerbPush	= 4,
-	kVerbOpen	= 5,
-	kVerbPut	= 6,
-	kVerbTalkTo	= 7,
-	kVerbGive	= 8,
-	kVerbPull	= 9,
-	kVerbClose	= 10,
-	kVerbThrow	= 11,
-	kVerbWalkTo	= 12
+	kVerbNone   = 0,
+	kVerbLook	= 3,
+	kVerbTake	= 4,
+	kVerbPush	= 5,
+	kVerbOpen	= 6,
+	kVerbPut	= 7,
+	kVerbTalkTo	= 8,
+	kVerbGive	= 9,
+	kVerbPull	= 10,
+	kVerbClose	= 11,
+	kVerbThrow	= 12,
+	kVerbWalkTo	= 13,
+	kVerbLookAt = 209
 };
 
-struct SceneResources {
+class SceneResources {
+public:
 	char artBase[MAX_CHK_FILENAME_SIZE];
 	char pictureBase[MAX_CHK_FILENAME_SIZE];
-	int32 hotspotCount;
 	HotSpotList *hotspots;
-	int32 parallaxCount;
-	HotSpotList *parallax;
-	int32 propsCount;
-	HotSpotList *props;
+	HotSpotList *dynamicHotspots;
 	int32 frontY, backY;
 	int32 frontScale, backScale;
 	int16 depthTable[16];
 	int32 railNodeCount;	// # of rails
 };
 
-class Scene: public View {
+class M4Engine;
+class MadsEngine;
+class InterfaceView;
+
+class Scene : public View {
+private:
+	HotSpotList _sceneHotspots;
+protected:
+	GameInterfaceView *_interfaceSurface;
+	M4Surface *_backgroundSurface;
+	M4Surface *_walkSurface;
+	RGBList *_palData;
+	RGBList *_interfacePal;
+	SceneResources *_sceneResources;
 public:
-	Scene(M4Engine *vm);
-	~Scene();
+	int _currentScene;
+	int _previousScene;
+	int _nextScene;
+public:
+	Scene(MadsM4Engine *vm, SceneResources *res);
+	virtual ~Scene();
+
+	// Methods that differ between engines
+	virtual void loadScene(int sceneNumber);
+	virtual void leaveScene();
+	virtual void loadSceneCodes(int sceneNumber, int index = 0) = 0;
+	virtual void show();
+	virtual void mouseMove(int x, int y) = 0;
+	virtual void leftClick(int x, int y) = 0;
+	virtual void rightClick(int x, int y) = 0;
+	virtual void update() = 0;
+	virtual void showHotSpots();
 
 	// TODO: perhaps move playIntro() someplace else?
 	void playIntro();
-	void loadScene(int sceneNumber);
-	void loadSceneResources(int sceneNumber);
-	void loadSceneHotSpotsMads(int sceneNumber);
-	void loadSceneCodes(int sceneNumber, int index = 0);
-	void loadSceneInverseColorTable(int sceneNumber);
-	void loadSceneSprites(int sceneNumber);
-	void loadSceneSpriteCodes(int sceneNumber);
 	void showSprites();
-	void checkHotspotAtMousePos(int x, int y);
-	void checkHotspotAtMousePosMads(int x, int y);
-	void showHotSpots();
 	void showCodes();
 	int getCurrentScene() { return _currentScene; }
-	SceneResources getSceneResources() { return _sceneResources; }
 	M4Surface *getBackgroundSurface() const { return _backgroundSurface; }
-	byte *getInverseColorTable() const { return _inverseColorTable; }
-	void update();
-	void setMADSStatusText(const char *text) { strcpy(_statusText, text); }
-	void showMADSV2TextBox(char *text, int x, int y, char *faceName);
+	void showInterface();
+	void hideInterface();
+	GameInterfaceView *getInterface() { return _interfaceSurface; }
+	SceneResources &getSceneResources() { return *_sceneResources; }
+	M4Surface *getWalkSurface() const { return _walkSurface; }
 
 	void onRefresh(RectList *rects, M4Surface *destSurface);
-	bool onEvent(M4EventType eventType, int param1, int x, int y, bool &captureEvents);
-
-private:
-	int _currentScene;
-	M4Surface *_backgroundSurface;
-	M4Surface *_codeSurface;
-	M4Surface *_madsInterfaceSurface;
-	byte *_inverseColorTable;
-	RGBList *_palData;
-	RGBList *_interfacePal;
-	SceneResources _sceneResources;
-	HotSpotList _sceneHotspots;
-	SpriteAsset *_sceneSprites;
-	SpriteAsset *_walkerSprite;
-	char _statusText[100];
-
-	void nextCommonCursor();
+	bool onEvent(M4EventType eventType, int32 param1, int x, int y, bool &captureEvents);
 };
 
 } // End of namespace M4

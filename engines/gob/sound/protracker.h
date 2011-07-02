@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SOUND_PROTRACKER_H
 #define GOB_SOUND_PROTRACKER_H
 
-#include "sound/mixer.h"
-#include "sound/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/audiostream.h"
 
 namespace Gob {
 

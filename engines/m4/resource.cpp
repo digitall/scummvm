@@ -18,14 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "m4/m4.h"
 #include "m4/resource.h"
 #include "m4/events.h"
+
+#include "common/substream.h"
+#include "common/textconsole.h"
 
 namespace M4 {
 
@@ -43,12 +43,12 @@ FileSystem::FileSystem(const char *hashFilename) {
 	hashFile.open(hashFilename);
 
 	if (!hashFile.isOpen()) {
-		printf("FileSystem::FileSystem: error opening hash %s\n", hashFilename);
+		debugCN(kDebugCore, "FileSystem::FileSystem: error opening hash %s\n", hashFilename);
 	}
 
 	hashSize = hashFile.readUint32LE();
 
-	//printf("FileSystem::FileSystem: hashSize = %d\n", hashSize);
+	//debugCN(kDebugCore, "FileSystem::FileSystem: hashSize = %d\n", hashSize);
 
 	/* load file records and add them to the hash list */
 	for (uint i = 0; i < hashSize; i++) {
@@ -63,12 +63,12 @@ FileSystem::FileSystem(const char *hashFilename) {
 
 		if (entry.filename[0]) {
 			/*
-			printf("  filename: %s\n", entry.filename);
-			printf("  hagfile: %d\n", entry.hagfile);
-			printf("  disks: %d\n", entry.disks);
-			printf("  offset: %08X\n", entry.offset);
-			printf("  size: %d\n", entry.size);
-			printf("  next: %08X\n", entry.next);
+			debugCN(kDebugCore, "  filename: %s\n", entry.filename);
+			debugCN(kDebugCore, "  hagfile: %d\n", entry.hagfile);
+			debugCN(kDebugCore, "  disks: %d\n", entry.disks);
+			debugCN(kDebugCore, "  offset: %08X\n", entry.offset);
+			debugCN(kDebugCore, "  size: %d\n", entry.size);
+			debugCN(kDebugCore, "  next: %08X\n", entry.next);
 			*/
 			_fileEntries[entry.filename] = entry;
 		}
@@ -90,7 +90,7 @@ FileSystem::FileSystem(const char *hashFilename) {
 		_hagEntries[entry.fileIndex].hagFile->open(_hagEntries[entry.fileIndex].filename);
 
 		if (!_hagEntries[entry.fileIndex].hagFile->isOpen()) {
-			printf("FileSystem::FileSystem: error opening hag %s\n", _hagEntries[entry.fileIndex].filename);
+			debugCN(kDebugCore, "FileSystem::FileSystem: error opening hag %s\n", _hagEntries[entry.fileIndex].filename);
 		}
 
 	}
@@ -113,7 +113,7 @@ Common::SeekableReadStream *FileSystem::loadFile(const char *resourceName, bool 
 	Common::SeekableReadStream *result = NULL;
 
 	if (hfe) {
-		//printf("FileSystem::loadFile() success opening %s\n", filename);
+		//debugCN(kDebugCore, "FileSystem::loadFile() success opening %s\n", filename);
 		HashHagEntry *hagEntry = &_hagEntries[hfe->hagfile];
 
 		if (preloadFlag) {
@@ -128,7 +128,7 @@ Common::SeekableReadStream *FileSystem::loadFile(const char *resourceName, bool 
 				hfe->offset + hfe->size);
 
 	} else {
-		printf("FileSystem::loadFile() error opening %s\n", resourceName);
+		debugCN(kDebugCore, "FileSystem::loadFile() error opening %s\n", resourceName);
 	}
 
 	return result;
@@ -152,7 +152,9 @@ void FileSystem::changeExtension(char *destName, const char *sourceName, const c
 	char *dot = strrchr(destName, '.');
 	if (dot != NULL)
 		*dot = 0;
-	sprintf(destName, "%s.%s", destName, extension);
+
+	strcat(destName, ".");
+	strcat(destName, extension);
 
 	str_upper(destName);
 }
@@ -205,7 +207,7 @@ void ResourceManager::toss(const char *resourceName) {
 
 		if (!strcmp(r->name, resourceName)) {
 			r->flags |= kResourcePurge;
-			//printf("M4ResourceManager::toss: mark resource %s to be purged\n", resourceName);
+			//debugCN(kDebugCore, "M4ResourceManager::toss: mark resource %s to be purged\n", resourceName);
 		}
 	}
 }
@@ -308,6 +310,99 @@ const char *MADSResourceManager::getResourceFilename(const char *resourceName) {
 	return outputFilename;
 }
 
+/**
+ * Forms a resource name based on the passed specifiers
+ */
+const char *MADSResourceManager::getResourceName(char asciiCh, int prefix, ExtensionType extType,
+												 const char *suffix, int index) {
+	static char resourceName[100];
+
+	if (prefix <= 0)
+		strcpy(resourceName, "*");
+	else {
+		if (prefix < 100)
+			strcpy(resourceName, "*SC");
+		else
+			strcpy(resourceName, "*RM");
+		sprintf(resourceName + 3, "%.3d", prefix);
+	}
+
+	// Append the specified ascii prefix character
+	char asciiStr[2];
+	asciiStr[0] = asciiCh;
+	asciiStr[1] = '\0';
+	strcat(resourceName, asciiStr);
+
+	// Add in the index specified
+	if (index >= 0)
+		sprintf(resourceName + strlen(resourceName), "%d", index);
+
+	// Add in any suffix
+	if (suffix)
+		strcat(resourceName, suffix);
+
+	// Handle extension types
+	switch (extType) {
+	case EXTTYPE_SS:
+		strcat(resourceName, ".SS");
+		break;
+	case EXTTYPE_AA:
+		strcat(resourceName, ".AA");
+		break;
+	case EXTTYPE_DAT:
+		strcat(resourceName, ".DAT");
+		break;
+	case EXTTYPE_HH:
+		strcat(resourceName, ".HH");
+		break;
+	case EXTTYPE_ART:
+		strcat(resourceName, ".ART");
+		break;
+	case EXTTYPE_INT:
+		strcat(resourceName, ".INT");
+		break;
+	default:
+		break;
+	}
+
+	return &resourceName[0];
+}
+
+/**
+ * Another variation for forming resource names
+ */
+const char *MADSResourceManager::getResourceName(ResourcePrefixType prefixType, int idx, const char *extension) {
+	static char resourceName[100];
+
+	strcpy(resourceName, "*");
+
+	if (extension) {
+		switch (prefixType) {
+		case RESPREFIX_GL:
+			strcat(resourceName, "GL000");
+			break;
+		case RESPREFIX_SC:
+		case RESPREFIX_RM:
+			strcat(resourceName, (prefixType == RESPREFIX_SC) ? "SC" : "RM");
+			sprintf(resourceName + 3, "%.3d", idx);
+			break;
+		default:
+			break;
+		}
+
+		strcat(resourceName, extension);
+	}
+
+	return &resourceName[0];
+}
+
+/**
+ * Forms an AA resource name based on the given passed index
+ */
+const char *MADSResourceManager::getAAName(int index) {
+	return getResourceName('I', 0, EXTTYPE_AA, NULL, index);
+}
+
 Common::SeekableReadStream *MADSResourceManager::loadResource(const char *resourceName, bool loadFlag) {
 	Common::File hagFile;
 	uint32 offset = 0, size = 0;
@@ -368,7 +463,6 @@ Common::SeekableReadStream *MADSResourceManager::loadResource(const char *resour
 
 bool MADSResourceManager::resourceExists(const char *resourceName) {
 	Common::File hagFile;
-	uint32 offset, size;
 
 	// If the first character is the wildcard (resource indicator), skip over it
 	if (*resourceName == '*')
@@ -391,8 +485,8 @@ bool MADSResourceManager::resourceExists(const char *resourceName) {
 	while (++resIndex < numEntries) {
 		// Read in the details of the next resource
 		char resourceBuffer[14];
-		offset = hagFile.readUint32LE();
-		size = hagFile.readUint32LE();
+		hagFile.readUint32LE(); // offset
+		hagFile.readUint32LE(); // size
 		hagFile.read(resourceBuffer, 14);
 
 		if (!strcmp(resName, resourceBuffer))
@@ -407,7 +501,7 @@ bool MADSResourceManager::resourceExists(const char *resourceName) {
 
 //--------------------------------------------------------------------------
 
-M4ResourceManager::M4ResourceManager(M4Engine *vm): ResourceManager(vm) {
+M4ResourceManager::M4ResourceManager(MadsM4Engine *vm): ResourceManager(vm) {
 	_hfs = new FileSystem(_vm->getGameFile(kFileTypeHash));
 }
 
@@ -415,7 +509,7 @@ M4ResourceManager::~M4ResourceManager() {
 }
 
 Common::SeekableReadStream *M4ResourceManager::loadResource(const char *resourceName, bool preloadFlag) {
-	//printf("M4ResourceManager::loadResource() loading resource %s\n", resourceName);
+	//debugCN(kDebugCore, "M4ResourceManager::loadResource() loading resource %s\n", resourceName);
 	Common::SeekableReadStream* result = NULL;
 	if (_hfs) {
 		// actually load the resource

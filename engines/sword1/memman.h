@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SWORD1_MEMMAN_H
@@ -42,25 +39,21 @@ struct MemHandle {
 #define MEM_CAN_FREE	1
 #define MEM_DONT_FREE	2
 
-#ifdef PALMOS_MODE
-#define MAX_ALLOC (3*1024*1024) // max amount of mem we want to alloc().
-#else
 #define MAX_ALLOC (6*1024*1024) // max amount of mem we want to alloc().
-#endif
 
 class MemMan {
 public:
-	MemMan(void);
-	~MemMan(void);
+	MemMan();
+	~MemMan();
 	void alloc(MemHandle *bsMem, uint32 pSize, uint16 pCond = MEM_DONT_FREE);
 	void setCondition(MemHandle *bsMem, uint16 pCond);
 	void freeNow(MemHandle *bsMem);
 	void initHandle(MemHandle *bsMem);
-	void flush(void);
+	void flush();
 private:
 	void addToFreeList(MemHandle *bsMem);
 	void removeFromFreeList(MemHandle *bsMem);
-	void checkMemoryUsage(void);
+	void checkMemoryUsage();
 	uint32 _alloced;  //currently allocated memory
 	MemHandle *_memListFree;
 	MemHandle *_memListFreeEnd;

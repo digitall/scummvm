@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -66,7 +63,7 @@ void Inter_v3::setupOpcodesGob() {
 	OPCODEGOB(100, o3_wobble);
 }
 
-bool Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
+void Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
 	byte *totData;
 	int16 totTextItem;
 	int16 part, curPart = 0;
@@ -80,11 +77,16 @@ bool Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
 	part = _vm->_game->_script->readValExpr();
 
 	stringVar = stringStartVar;
+	if (part == -1) {
+		warning("o3_getTotTextItemPart, part == -1");
+		_vm->_draw->_hotspotText = GET_VARO_STR(stringVar);
+	}
+
 	WRITE_VARO_UINT8(stringVar, 0);
 
 	TextItem *textItem = _vm->_game->_resources->getTextItem(totTextItem);
 	if (!textItem)
-		return false;
+		return;
 
 	totData = textItem->getData();
 
@@ -138,7 +140,7 @@ bool Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
 							(*totData == 6) || (*totData == 7)) {
 						WRITE_VARO_UINT8(stringVar, 0);
 						delete textItem;
-						return false;
+						return;
 					}
 
 					switch (*totData) {
@@ -172,7 +174,7 @@ bool Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
 						totData - _vm->_game->_resources->getTexts());
 				WRITE_VARO_UINT8(stringVar + 6, 0);
 				delete textItem;
-				return false;
+				return;
 			}
 
 			end = false;
@@ -219,7 +221,7 @@ bool Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
 
 					if (curPart == part) {
 						delete textItem;
-						return false;
+						return;
 					}
 
 					stringVar = stringStartVar;
@@ -241,16 +243,14 @@ bool Inter_v3::o3_getTotTextItemPart(OpFuncParams &params) {
 	}
 
 	delete textItem;
-	return false;
 }
 
-bool Inter_v3::o3_copySprite(OpFuncParams &params) {
+void Inter_v3::o3_copySprite(OpFuncParams &params) {
 	o1_copySprite(params);
 
 	// For the close-up "fading" in the CD version
-	if (_vm->_draw->_destSurface == 20)
-		_vm->_video->sparseRetrace(20);
-	return false;
+	if (_vm->_draw->_destSurface == Draw::kFrontSurface)
+		_vm->_video->sparseRetrace(Draw::kFrontSurface);
 }
 
 void Inter_v3::o3_wobble(OpGobParams &params) {

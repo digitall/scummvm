@@ -18,13 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
 
+#include "gob/hotspots.h"
 #include "gob/gob.h"
 #include "gob/inter.h"
 #include "gob/global.h"
@@ -32,6 +30,7 @@
 #include "gob/dataio.h"
 #include "gob/draw.h"
 #include "gob/game.h"
+#include "gob/expression.h"
 #include "gob/script.h"
 #include "gob/palanim.h"
 #include "gob/video.h"
@@ -51,14 +50,15 @@ Inter_Fascination::Inter_Fascination(GobEngine *vm) : Inter_v2(vm) {
 void Inter_Fascination::setupOpcodesDraw() {
 	Inter_v2::setupOpcodesDraw();
 
-	OPCODEDRAW(0x03, oFascin_cdUnknown3);
+	OPCODEDRAW(0x03, oFascin_setWinSize);
+	OPCODEDRAW(0x04, oFascin_closeWin);
+	OPCODEDRAW(0x05, oFascin_activeWin);
+	OPCODEDRAW(0x06, oFascin_openWin);
 
-	OPCODEDRAW(0x04, oFascin_cdUnknown4);
-	OPCODEDRAW(0x05, oFascin_cdUnknown5);
-	OPCODEDRAW(0x06, oFascin_cdUnknown6);
+	OPCODEDRAW(0x08, oFascin_initCursorAnim);
 
 	OPCODEDRAW(0x0A, oFascin_setRenderFlags);
-	OPCODEDRAW(0x0B, oFascin_cdUnknown11);
+	OPCODEDRAW(0x0B, oFascin_setWinFlags);
 
 	CLEAROPCODEDRAW(0x50);
 	CLEAROPCODEDRAW(0x51);
@@ -85,173 +85,270 @@ void Inter_Fascination::setupOpcodesDraw() {
 void Inter_Fascination::setupOpcodesFunc() {
 	Inter_v2::setupOpcodesFunc();
 
-	OPCODEFUNC(0x09, o1_assign);
+	OPCODEFUNC(0x06, oFascin_repeatUntil);
+	OPCODEFUNC(0x09, oFascin_assign);
+	OPCODEFUNC(0x32, oFascin_copySprite);
 }
 
 void Inter_Fascination::setupOpcodesGob() {
-	OPCODEGOB(   1, oFascin_geUnknown0);
-	OPCODEGOB(   2, oFascin_geUnknown1);
-	OPCODEGOB(   3, oFascin_geUnknown2);
-	OPCODEGOB(   4, oFascin_geUnknown3);
+	OPCODEGOB(   1, oFascin_playTirb);
+	OPCODEGOB(   2, oFascin_playTira);
+	OPCODEGOB(   3, oFascin_loadExtasy);
+	OPCODEGOB(   4, oFascin_adlibPlay);
 
-	OPCODEGOB(   5, oFascin_geUnknown4);
-	OPCODEGOB(   6, oFascin_geUnknown5);
-	OPCODEGOB(   7, oFascin_geUnknown6);
-	OPCODEGOB(   8, oFascin_geUnknown7);
+	OPCODEGOB(   5, oFascin_adlibStop);
+	OPCODEGOB(   6, oFascin_adlibUnload);
+	OPCODEGOB(   7, oFascin_loadMus1);
+	OPCODEGOB(   8, oFascin_loadMus2);
 
-	OPCODEGOB(   9, oFascin_geUnknown8);
-	OPCODEGOB(  10, oFascin_geUnknown9);
-	OPCODEGOB(  11, oFascin_geUnknown10);
-	OPCODEGOB(  12, oFascin_geUnknown11);
+	OPCODEGOB(   9, oFascin_loadMus3);
+	OPCODEGOB(  10, oFascin_loadBatt1);
+	OPCODEGOB(  11, oFascin_loadBatt2);
+	OPCODEGOB(  12, oFascin_loadBatt3);
 
-	OPCODEGOB(1000, oFascin_geUnknown1000);
-	OPCODEGOB(1001, oFascin_geUnknown1001); //protrackerPlay doesn't play correctly "mod.extasy"
-	OPCODEGOB(1002, oFascin_geUnknown1002); //to be replaced by o2_stopProtracker when protrackerPlay is fixed
+	OPCODEGOB(1000, oFascin_loadMod);
+	OPCODEGOB(1001, oFascin_playProtracker);
+	OPCODEGOB(1002, o2_stopProtracker);
 }
 
-void Inter_Fascination::oFascin_geUnknown0(OpGobParams &params) {
-	warning("Fascination Unknown GE Function 0");
-	warning("funcPlayImd with parameter : 'tirb.imd'");
+void Inter_Fascination::oFascin_repeatUntil(OpFuncParams &params) {
+	int16 size;
+	bool flag;
 
-	if (_vm->_vidPlayer->primaryOpen("tirb.imd")) {
-		_vm->_vidPlayer->primaryPlay();
-		_vm->_vidPlayer->primaryClose();
+	_nestLevel[0]++;
+
+	uint32 blockPos = _vm->_game->_script->pos();
+
+	do {
+		_vm->_game->_script->seek(blockPos);
+		size = _vm->_game->_script->peekUint16(2) + 2;
+
+		funcBlock(1);
+
+		_vm->_game->_script->seek(blockPos + size + 1);
+
+		flag = _vm->_game->_script->evalBool();
+
+		// WORKAROUND: The script of the PC version of Fascination, when the protection check
+		// fails, writes on purpose everywhere in the memory in order to hang the computer.
+		// This results in a crash in Scummvm. This workaround avoids that crash.
+		if (_vm->getPlatform() == Common::kPlatformPC) {
+			if (((blockPos == 3533) && _vm->isCurrentTot("INTRO1.TOT")) ||
+			    ((blockPos == 3519) && _vm->isCurrentTot("INTRO2.TOT")) ||
+			    ((blockPos == 3265) && _vm->isCurrentTot("INTRO2.TOT")))  //PC Hebrew
+				_terminate = 1;
+		}
+	} while (!flag && !_break && !_terminate && !_vm->shouldQuit());
+
+	_nestLevel[0]--;
+
+	if (*_breakFromLevel > -1) {
+		_break = false;
+		*_breakFromLevel = -1;
 	}
-	_vm->_draw->closeScreen();
 }
 
-void Inter_Fascination::oFascin_geUnknown1(OpGobParams &params) {
-	warning("Fascination Unknown GE Function 1");
-	warning("funcPlayImd with parameter : 'tira.imd'");
-	if (_vm->_vidPlayer->primaryOpen("tira.imd")) {
-		_vm->_vidPlayer->primaryPlay();
-		_vm->_vidPlayer->primaryClose();
+void Inter_Fascination::oFascin_assign(OpFuncParams &params) {
+	byte destType = _vm->_game->_script->peekByte();
+	int16 dest = _vm->_game->_script->readVarIndex();
+
+	byte loopCount;
+	if (_vm->_game->_script->peekByte() == 99) {
+		_vm->_game->_script->skip(1);
+		loopCount = _vm->_game->_script->readByte();
+	} else
+		loopCount = 1;
+
+	for (int i = 0; i < loopCount; i++) {
+		int16 result;
+		int16 srcType = _vm->_game->_script->evalExpr(&result);
+
+		switch (destType) {
+		case TYPE_VAR_INT8:
+			if (srcType != TYPE_IMM_INT16) {
+				char* str = _vm->_game->_script->getResultStr();
+				WRITE_VARO_STR(dest, str);
+			} else
+				WRITE_VARO_UINT8(dest + i, _vm->_game->_script->getResultInt());
+			break;
+
+		case TYPE_VAR_INT32_AS_INT16:
+		case TYPE_ARRAY_INT16:
+			WRITE_VARO_UINT16(dest + i * 2, _vm->_game->_script->getResultInt());
+			break;
+
+		case TYPE_VAR_INT32:
+		case TYPE_ARRAY_INT32:
+			WRITE_VAR_OFFSET(dest + i * 4, _vm->_game->_script->getResultInt());
+			break;
+
+		case TYPE_VAR_STR:
+		case TYPE_ARRAY_STR:
+			if (srcType == TYPE_IMM_INT16)
+				WRITE_VARO_UINT8(dest, result);
+			else
+				WRITE_VARO_STR(dest, _vm->_game->_script->getResultStr());
+			break;
+		}
 	}
-	_vm->_draw->closeScreen();
 }
 
-void Inter_Fascination::oFascin_geUnknown2(OpGobParams &params) {
+void Inter_Fascination::oFascin_copySprite(OpFuncParams &params) {
+	_vm->_draw->_sourceSurface = _vm->_game->_script->readInt16();
+	_vm->_draw->_destSurface = _vm->_game->_script->readInt16();
+	_vm->_draw->_spriteLeft = _vm->_game->_script->readValExpr();
+	_vm->_draw->_spriteTop = _vm->_game->_script->readValExpr();
+	_vm->_draw->_spriteRight = _vm->_game->_script->readValExpr();
+	_vm->_draw->_spriteBottom = _vm->_game->_script->readValExpr();
+
+	_vm->_draw->_destSpriteX = _vm->_game->_script->readValExpr();
+	_vm->_draw->_destSpriteY = _vm->_game->_script->readValExpr();
+
+	_vm->_draw->_transparency = _vm->_game->_script->readInt16();
+
+	_vm->_draw->spriteOperation(DRAW_BLITSURF);
+}
+
+void Inter_Fascination::oFascin_playTirb(OpGobParams &params) {
+	VideoPlayer::Properties vidProps;
+
+	vidProps.type   = VideoPlayer::kVideoTypePreIMD;
+	vidProps.sprite = Draw::kFrontSurface;
+	vidProps.x      = 150;
+	vidProps.y      =  88;
+	vidProps.width  = 128;
+	vidProps.height =  80;
+
+	int vidSlot = _vm->_vidPlayer->openVideo(true, "tirb", vidProps);
+	if (vidSlot < 0)
+		return;
+
+	_vm->_vidPlayer->play(vidSlot, vidProps);
+	_vm->_vidPlayer->closeVideo(vidSlot);
+}
+
+void Inter_Fascination::oFascin_playTira(OpGobParams &params) {
+	VideoPlayer::Properties vidProps;
+
+	vidProps.type   = VideoPlayer::kVideoTypePreIMD;
+	vidProps.sprite = Draw::kFrontSurface;
+	vidProps.x      =  88;
+	vidProps.y      =  66;
+	vidProps.width  = 128;
+	vidProps.height =  80;
+
+	int vidSlot = _vm->_vidPlayer->openVideo(true, "tira", vidProps);
+	if (vidSlot < 0)
+		return;
+
+	_vm->_vidPlayer->play(vidSlot, vidProps);
+	_vm->_vidPlayer->closeVideo(vidSlot);
+}
+
+void Inter_Fascination::oFascin_loadExtasy(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("extasy.tbr");
 	_vm->_sound->adlibLoadMDY("extasy.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown3(OpGobParams &params) {
+void Inter_Fascination::oFascin_adlibPlay(OpGobParams &params) {
+#ifdef ENABLE_FASCIN_ADLIB
 	_vm->_sound->adlibPlay();
+#endif
 }
 
-void Inter_Fascination::oFascin_geUnknown4(OpGobParams &params) {
+void Inter_Fascination::oFascin_adlibStop(OpGobParams &params) {
 	_vm->_sound->adlibStop();
 }
 
-void Inter_Fascination::oFascin_geUnknown5(OpGobParams &params) {
+void Inter_Fascination::oFascin_adlibUnload(OpGobParams &params) {
 	_vm->_sound->adlibUnload();
 }
 
-void Inter_Fascination::oFascin_geUnknown6(OpGobParams &params) {
+void Inter_Fascination::oFascin_loadMus1(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("music1.tbr");
 	_vm->_sound->adlibLoadMDY("music1.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown7(OpGobParams &params) {
+void Inter_Fascination::oFascin_loadMus2(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("music2.tbr");
 	_vm->_sound->adlibLoadMDY("music2.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown8(OpGobParams &params) {
+void Inter_Fascination::oFascin_loadMus3(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("music3.tbr");
 	_vm->_sound->adlibLoadMDY("music3.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown9(OpGobParams &params) {
+void Inter_Fascination::oFascin_loadBatt1(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("batt1.tbr");
 	_vm->_sound->adlibLoadMDY("batt1.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown10(OpGobParams &params) {
+void Inter_Fascination::oFascin_loadBatt2(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("batt2.tbr");
 	_vm->_sound->adlibLoadMDY("batt2.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown11(OpGobParams &params) {
+void Inter_Fascination::oFascin_loadBatt3(OpGobParams &params) {
 	_vm->_sound->adlibLoadTBR("batt3.tbr");
 	_vm->_sound->adlibLoadMDY("batt3.mdy");
 }
 
-void Inter_Fascination::oFascin_geUnknown1000(OpGobParams &params) {
-	warning("Fascination Unknown GE Function 1000 - Load MOD music");
+void Inter_Fascination::oFascin_loadMod(OpGobParams &params) {
+	// Fascination GE Function 1000 - Load MOD music.
+	// Only used by Amiga and Atari versions.
+	// Useless as it's included in Paula's playProTracker
 }
 
-void Inter_Fascination::oFascin_geUnknown1001(OpGobParams &params) {
-	warning("Fascination oFascin_playProtracker - MOD not compatible (sample > 32768), To Be Fixed");
+void Inter_Fascination::oFascin_setWinSize() {
+	_vm->_draw->_winMaxWidth  = _vm->_game->_script->readUint16();
+	_vm->_draw->_winMaxHeight = _vm->_game->_script->readUint16();
+	_vm->_draw->_winVarArrayLeft   = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayTop    = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayWidth  = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayHeight = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayStatus = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayLimitsX = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayLimitsY = _vm->_game->_script->readVarIndex();
 }
 
-void Inter_Fascination::oFascin_geUnknown1002(OpGobParams &params) {
-	warning("Fascination o2_stopProtracker - Commented out");
+void Inter_Fascination::oFascin_closeWin() {
+	int16 id;
+	_vm->_game->_script->evalExpr(&id);
+	_vm->_draw->activeWin(id);
+	_vm->_draw->closeWin(id);
 }
 
-bool Inter_Fascination::oFascin_feUnknown4(OpFuncParams &params) {
-	warning("Fascination Unknown FE Function 4");
-	return true;
+void Inter_Fascination::oFascin_activeWin() {
+	int16 id;
+	_vm->_game->_script->evalExpr(&id);
+	_vm->_draw->activeWin(id);
 }
 
-bool Inter_Fascination::oFascin_feUnknown27(OpFuncParams &params) {
-	warning("Fascination Unknown FE Function 27h");
-	return true;
+void Inter_Fascination::oFascin_openWin() {
+	int16 retVal, id;
+	_vm->_game->_script->evalExpr(&id);
+	retVal = _vm->_game->_script->readVarIndex();
+	WRITE_VAR((retVal / 4), (int32) _vm->_draw->openWin(id));
 }
 
-void Inter_Fascination::oFascin_cdUnknown3() {
-	uint16 resVar, resVar2;
-	int16 retVal1, retVal2, retVal3, retVal4, retVal5, retVal6, retVal7;
-
-	warning("Fascination oFascin_cdUnknown3 - Variables initialisations");
-
-	resVar = _vm->_game->_script->readUint16();
-	resVar2 = _vm->_game->_script->readUint16();
-	retVal1 = _vm->_game->_script->readVarIndex();
-	retVal2 = _vm->_game->_script->readVarIndex();
-	retVal3 = _vm->_game->_script->readVarIndex();
-	retVal4 = _vm->_game->_script->readVarIndex();
-	retVal5 = _vm->_game->_script->readVarIndex();
-	retVal6 = _vm->_game->_script->readVarIndex();
-	retVal7 = _vm->_game->_script->readVarIndex();
-	warning ("Width? :%d Height? :%d",resVar, resVar2);
-	warning ("Fetched variables 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d", retVal1, retVal2, retVal3, retVal4, retVal5, retVal6, retVal7);
-}
-
-void Inter_Fascination::oFascin_cdUnknown4() {
-	int16 expr;
-	warning("Fascination oFascin_cdUnknown4");
-	_vm->_game->_script->evalExpr(&expr);
-	warning ("_vm->_game->_script->evalExpr: %d, the rest is not yet implemented",expr);
-}
-
-void Inter_Fascination::oFascin_cdUnknown5() {
-	int16 retVal1,expr;
-	warning("Fascination oFascin_cdUnknown5");
-	_vm->_game->_script->evalExpr(&expr);
-	retVal1 = _vm->_game->_script->readVarIndex();
-	warning ("_vm->_game->_script->evalExpr: %d Variable index %d, the rest is not yet implemented",expr, retVal1);
-}
-
-void Inter_Fascination::oFascin_cdUnknown6() {
-	int16 retVal1,expr;
-	warning("Fascination oFascin_cdUnknown6");
-	_vm->_game->_script->evalExpr(&expr);
-	retVal1 = _vm->_game->_script->readVarIndex();
-	warning ("_vm->_game->_script->evalExpr: %d Variable index %d, the rest is not yet implemented",expr, retVal1);
+void Inter_Fascination::oFascin_initCursorAnim() {
+	int16 ind = _vm->_game->_script->readValExpr();
+	_vm->_draw->_cursorAnimLow[ind] = _vm->_game->_script->readInt16();
+	_vm->_draw->_cursorAnimHigh[ind] = _vm->_game->_script->readInt16();
+	_vm->_draw->_cursorAnimDelays[ind] = _vm->_game->_script->readInt16();
 }
 
 void Inter_Fascination::oFascin_setRenderFlags() {
 	int16 expr;
-//	warning("Fascination oFascin_cdUnknown10 (set render flags)");
 	_vm->_game->_script->evalExpr(&expr);
-	warning("_draw_renderFlags <- %d",expr);
 	_vm->_draw->_renderFlags = expr;
 }
 
-void Inter_Fascination::oFascin_cdUnknown11() {
-//	warning("Fascination oFascin_cdUnknown11 (set variable)");
-	_vm->_game->_script->evalExpr(0);
+void Inter_Fascination::oFascin_setWinFlags() {
+	int16 expr;
+	_vm->_game->_script->evalExpr(&expr);
+	_vm->_global->_curWinId = expr;
 }
 
 void Inter_Fascination::oFascin_playProtracker(OpGobParams &params) {

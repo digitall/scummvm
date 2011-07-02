@@ -18,36 +18,35 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/config-manager.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
 
 #include "queen/music.h"
 #include "queen/queen.h"
 #include "queen/resource.h"
 #include "queen/sound.h"
 
-#include "sound/midiparser.h"
+#include "audio/midiparser.h"
+
 
 namespace Queen {
 
-extern MidiDriver *C_Player_CreateAdlibMidiDriver(Audio::Mixer *);
+extern MidiDriver *C_Player_CreateAdLibMidiDriver(Audio::Mixer *);
 
 MidiMusic::MidiMusic(QueenEngine *vm)
-	: _isPlaying(false), _looping(false), _randomLoop(false), _masterVolume(192), _buf(0) {
+	: _isPlaying(false), _isLooping(false),
+	_randomLoop(false), _masterVolume(192),
+	_buf(0), _rnd("queenMusic") {
 
-	memset(_channel, 0, sizeof(_channel));
+	memset(_channelsTable, 0, sizeof(_channelsTable));
 	_queuePos = _lastSong = _currentSong = 0;
 	queueClear();
 
-	int midiDriver = MidiDriver::detectMusicDriver(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MIDI);
-	_adlib = (midiDriver == MD_ADLIB);
-	_nativeMT32 = ((midiDriver == MD_MT32) || ConfMan.getBool("native_mt32"));
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_MT32);
+	_adlib = (MidiDriver::getMusicType(dev) == MT_ADLIB);
+	_nativeMT32 = ((MidiDriver::getMusicType(dev) == MT_MT32) || ConfMan.getBool("native_mt32"));
 
 	const char *musicDataFile;
 	if (vm->resource()->isDemo()) {
@@ -68,31 +67,36 @@ MidiMusic::MidiMusic(QueenEngine *vm)
 	if (_adlib) {
 //		int infoOffset = _numSongs * 4 + 2;
 //		if (READ_LE_UINT16(_musicData + 2) != infoOffset) {
-//			defaultAdlibVolume = _musicData[infoOffset];
+//			defaultAdLibVolume = _musicData[infoOffset];
 //		}
-		_driver = C_Player_CreateAdlibMidiDriver(vm->_mixer);
+		_driver = C_Player_CreateAdLibMidiDriver(vm->_mixer);
 	} else {
-		_driver = MidiDriver::createMidi(midiDriver);
+		_driver = MidiDriver::createMidi(dev);
 		if (_nativeMT32) {
 			_driver->property(MidiDriver::PROP_CHANNEL_MASK, 0x03FE);
 		}
 	}
+	assert(_driver);
 
-	_driver->open();
+	int ret = _driver->open();
+	assert(ret == 0);
 	_driver->setTimerCallback(this, &timerCallback);
+
+	if (_nativeMT32)
+		_driver->sendMT32Reset();
+	else
+		_driver->sendGMReset();
 
 	_parser = MidiParser::createParser_SMF();
 	_parser->setMidiDriver(this);
 	_parser->setTimerRate(_driver->getBaseTempo());
-
-	g_eventRec.registerRandomSource(_rnd, "queenMusic");
 }
 
 MidiMusic::~MidiMusic() {
 	_driver->setTimerCallback(0, 0);
 	_parser->unloadMusic();
-	_driver->close();
 	delete _parser;
+	_driver->close();
 	delete _driver;
 	delete[] _buf;
 	delete[] _musicData;
@@ -110,8 +114,8 @@ void MidiMusic::setVolume(int volume) {
 	_masterVolume = volume;
 
 	for (int i = 0; i < 16; ++i) {
-		if (_channel[i])
-			_channel[i]->volume(_channelVolume[i] * _masterVolume / 255);
+		if (_channelsTable[i])
+			_channelsTable[i]->volume(_channelsVolume[i] * _masterVolume / 255);
 	}
 }
 
@@ -148,7 +152,7 @@ bool MidiMusic::queueSong(uint16 songNum) {
 void MidiMusic::queueClear() {
 	_lastSong = _songQueue[0];
 	_queuePos = 0;
-	_looping = _randomLoop = false;
+	_isLooping = _randomLoop = false;
 	memset(_songQueue, 0, sizeof(_songQueue));
 }
 
@@ -162,7 +166,7 @@ void MidiMusic::send(uint32 b) {
 	if ((b & 0xFFF0) == 0x07B0) {
 		// Adjust volume changes by master volume
 		byte volume = (byte)((b >> 16) & 0x7F);
-		_channelVolume[channel] = volume;
+		_channelsVolume[channel] = volume;
 		volume = volume * _masterVolume / 255;
 		b = (b & 0xFF00FFFF) | (volume << 16);
 	} else if ((b & 0xF0) == 0xC0 && !_nativeMT32) {
@@ -170,7 +174,7 @@ void MidiMusic::send(uint32 b) {
 	} else if ((b & 0xFFF0) == 0x007BB0) {
 		//Only respond to All Notes Off if this channel
 		//has currently been allocated
-		if (_channel[channel])
+		if (!_channelsTable[channel])
 			return;
 	}
 
@@ -182,17 +186,17 @@ void MidiMusic::send(uint32 b) {
 	if (channel == 5 && _currentSong == 38)
 		return;
 
-	if (!_channel[channel])
-		_channel[channel] = (channel == 9) ? _driver->getPercussionChannel() : _driver->allocateChannel();
+	if (!_channelsTable[channel])
+		_channelsTable[channel] = (channel == 9) ? _driver->getPercussionChannel() : _driver->allocateChannel();
 
-	if (_channel[channel])
-		_channel[channel]->send(b);
+	if (_channelsTable[channel])
+		_channelsTable[channel]->send(b);
 }
 
 void MidiMusic::metaEvent(byte type, byte *data, uint16 length) {
 	switch (type) {
 	case 0x2F: // End of Track
-		if (_looping || _songQueue[1]) {
+		if (_isLooping || _songQueue[1]) {
 			playMusic();
 		} else {
 			stopMusic();
@@ -210,10 +214,9 @@ void MidiMusic::metaEvent(byte type, byte *data, uint16 length) {
 }
 
 void MidiMusic::onTimer() {
-	_mutex.lock();
+	Common::StackLock lock(_mutex);
 	if (_isPlaying)
 		_parser->onTimer();
-	_mutex.unlock();
 }
 
 void MidiMusic::queueTuneList(int16 tuneList) {
@@ -309,11 +312,12 @@ void MidiMusic::playMusic() {
 		size = packedSize * 2;
 	}
 
-	_mutex.lock();
+	stopMusic();
+
+	Common::StackLock lock(_mutex);
 	_parser->loadMusic(musicPtr, size);
 	_parser->setTrack(0);
 	_isPlaying = true;
-	_mutex.unlock();
 
 	debug(8, "Playing song %d [queue position: %d]", songNum, _queuePos);
 	queueUpdatePos();
@@ -325,7 +329,7 @@ void MidiMusic::queueUpdatePos() {
 	} else {
 		if (_queuePos < (MUSIC_QUEUE_SIZE - 1) && _songQueue[_queuePos + 1])
 			_queuePos++;
-		else if (_looping)
+		else if (_isLooping)
 			_queuePos = 0;
 	}
 }
@@ -339,14 +343,13 @@ uint8 MidiMusic::randomQueuePos() {
 	if (!queueSize)
 		return 0;
 
-	return (uint8) _rnd.getRandomNumber(queueSize - 1) & 0xFF;
+	return (uint8)_rnd.getRandomNumber(queueSize - 1) & 0xFF;
 }
 
 void MidiMusic::stopMusic() {
-	_mutex.lock();
+	Common::StackLock lock(_mutex);
 	_isPlaying = false;
 	_parser->unloadMusic();
-	_mutex.unlock();
 }
 
 uint32 MidiMusic::songOffset(uint16 songNum) const {

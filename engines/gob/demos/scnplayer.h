@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_SCNPLAYER_H
@@ -28,6 +25,7 @@
 
 #include "common/str.h"
 #include "common/hashmap.h"
+#include "common/hash-str.h"
 
 #include "gob/demos/demoplayer.h"
 

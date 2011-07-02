@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "made/pmvplayer.h"
 #include "made/screen.h"
+
+#include "audio/decoders/raw.h"
 
 namespace Made {
 
@@ -48,26 +47,22 @@ bool PmvPlayer::play(const char *filename) {
 	uint32 chunkType, chunkSize, prevChunkSize = 0;
 
 	readChunk(chunkType, chunkSize);	// "MOVE"
-	if (chunkType != MKID_BE('MOVE')) {
+	if (chunkType != MKTAG('M','O','V','E')) {
 		warning("Unexpected PMV video header, expected 'MOVE'");
 		delete _fd;
 		return false;
 	}
 
 	readChunk(chunkType, chunkSize);	// "MHED"
-	if (chunkType != MKID_BE('MHED')) {
+	if (chunkType != MKTAG('M','H','E','D')) {
 		warning("Unexpected PMV video header, expected 'MHED'");
 		delete _fd;
 		return false;
 	}
 
 	uint frameDelay = _fd->readUint16LE();
-	int unk;
 	_fd->skip(4);	// always 0?
-	unk = _fd->readByte();
-	debug(2, "%i", unk);
-	unk = _fd->readByte();
-	debug(2, "%i", unk);
+	uint frameCount = _fd->readUint16LE();
 	_fd->skip(4);	// always 0?
 
 	uint soundFreq = _fd->readUint16LE();
@@ -80,7 +75,7 @@ bool PmvPlayer::play(const char *filename) {
 	if (soundFreq == 22254) soundFreq = 22050;
 
 	for (int i = 0; i < 22; i++) {
-		unk = _fd->readUint16LE();
+		int unk = _fd->readUint16LE();
 		debug(2, "%i ", unk);
 	}
 
@@ -90,7 +85,7 @@ bool PmvPlayer::play(const char *filename) {
 	_fd->read(_paletteRGB, 768);
 	_vm->_screen->setRGBPalette(_paletteRGB);
 
-	uint32 frameCount = 0;
+	uint32 frameNumber = 0;
 	uint16 chunkCount = 0;
 	uint32 soundSize = 0;
 	uint32 soundChunkOfs = 0, palChunkOfs = 0;
@@ -100,31 +95,26 @@ bool PmvPlayer::play(const char *filename) {
 
 	uint32 soundStartTime = 0, skipFrames = 0;
 
-	uint32 frameNum, bytesRead;
+	uint32 bytesRead;
 	uint16 width, height, cmdOffs, pixelOffs, maskOffs, lineSize;
 
 	// TODO: Sound can still be a little choppy. A bug in the decoder or -
 	// perhaps more likely - do we have to implement double buffering to
 	// get it to work well?
-	_audioStream = Audio::makeAppendableAudioStream(soundFreq, Audio::Mixer::FLAG_UNSIGNED);
+	_audioStream = Audio::makeQueuingAudioStream(soundFreq, false);
 
-	while (!_vm->shouldQuit() && !_aborted && !_fd->eos()) {
+	while (!_vm->shouldQuit() && !_aborted && !_fd->eos() && frameNumber < frameCount) {
 
 		int32 frameTime = _vm->_system->getMillis();
 
 		readChunk(chunkType, chunkSize);
-		if (chunkType != MKID_BE('MFRM')) {
+		if (chunkType != MKTAG('M','F','R','M')) {
 			warning("Unknown chunk type");
 		}
 
-		if (_fd->eos())
-			break;
-
 		// Only reallocate the frame data buffer if its size has changed
 		if (prevChunkSize != chunkSize || !frameData) {
-			if (frameData)
-				delete[] frameData;
-
+			delete[] frameData;
 			frameData = new byte[chunkSize];
 		}
 
@@ -147,9 +137,9 @@ bool PmvPlayer::play(const char *filename) {
 			debug(1, "chunkCount = %d; chunkSize = %d; total = %d\n", chunkCount, chunkSize, chunkCount * chunkSize);
 
 			soundSize = chunkCount * chunkSize;
-			soundData = new byte[soundSize];
+			soundData = (byte *)malloc(soundSize);
 			decompressSound(audioData + 8, soundData, chunkSize, chunkCount);
-			_audioStream->queueBuffer(soundData, soundSize);
+			_audioStream->queueBuffer(soundData, soundSize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 		}
 
 		// Handle palette
@@ -163,7 +153,7 @@ bool PmvPlayer::play(const char *filename) {
 		// Handle video
 		imageData = frameData + READ_LE_UINT32(frameData + 12) - 8;
 
-		frameNum = READ_LE_UINT32(frameData);
+		// frameNum @0
 		width = READ_LE_UINT16(imageData + 8);
 		height = READ_LE_UINT16(imageData + 10);
 		cmdOffs = READ_LE_UINT16(imageData + 12);
@@ -176,13 +166,13 @@ bool PmvPlayer::play(const char *filename) {
 
 		if (!_surface) {
 			_surface = new Graphics::Surface();
-			_surface->create(width, height, 1);
+			_surface->create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 		}
 
 		decompressMovieImage(imageData, *_surface, cmdOffs, pixelOffs, maskOffs, lineSize);
 
 		if (firstTime) {
-			_mixer->playInputStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle, _audioStream);
+			_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle, _audioStream);
 			soundStartTime = g_system->getMillis();
 			skipFrames = 0;
 			firstTime = false;
@@ -192,7 +182,7 @@ bool PmvPlayer::play(const char *filename) {
 		updateScreen();
 
 		if (skipFrames == 0) {
-			int32 waitTime = (frameCount * frameDelay) -
+			int32 waitTime = (frameNumber * frameDelay) -
 				(g_system->getMillis() - soundStartTime) - (_vm->_system->getMillis() - frameTime);
 
 			if (waitTime < 0) {
@@ -204,7 +194,7 @@ bool PmvPlayer::play(const char *filename) {
 		} else
 			skipFrames--;
 
-		frameCount++;
+		frameNumber++;
 
 	}
 
@@ -215,6 +205,7 @@ bool PmvPlayer::play(const char *filename) {
 
 	//delete _audioStream;
 	delete _fd;
+	_surface->free();
 	delete _surface;
 
 	return !_aborted;

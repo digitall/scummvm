@@ -18,22 +18,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "kyra/kyra_lok.h"
-#include "kyra/screen.h"
-#include "kyra/script.h"
-#include "kyra/text.h"
-#include "kyra/animator_lok.h"
-#include "kyra/sound.h"
 #include "kyra/gui_lok.h"
+#include "kyra/kyra_lok.h"
+#include "kyra/animator_lok.h"
+#include "kyra/text.h"
 #include "kyra/timer.h"
 #include "kyra/util.h"
 
-#include "common/config-manager.h"
 #include "common/savefile.h"
 #include "common/system.h"
 
@@ -49,29 +42,33 @@ void KyraEngine_LoK::initMainButtonList() {
 
 int KyraEngine_LoK::buttonInventoryCallback(Button *caller) {
 	int itemOffset = caller->index - 2;
-	uint8 inventoryItem = _currentCharacter->inventoryItems[itemOffset];
-	if (_itemInHand == -1) {
-		if (inventoryItem == 0xFF) {
+	Item inventoryItem = (int8)_currentCharacter->inventoryItems[itemOffset];
+	if (_itemInHand == kItemNone) {
+		if (inventoryItem == kItemNone) {
 			snd_playSoundEffect(0x36);
 			return 0;
 		} else {
 			_screen->hideMouse();
-			_screen->fillRect(_itemPosX[itemOffset], _itemPosY[itemOffset], _itemPosX[itemOffset] + 15, _itemPosY[itemOffset] + 15, 12);
+			_screen->fillRect(_itemPosX[itemOffset], _itemPosY[itemOffset], _itemPosX[itemOffset] + 15, _itemPosY[itemOffset] + 15, _flags.platform == Common::kPlatformAmiga ? 19 : 12);
 			snd_playSoundEffect(0x35);
 			setMouseItem(inventoryItem);
-			updateSentenceCommand(_itemList[inventoryItem], _takenList[0], 179);
+			updateSentenceCommand(_itemList[getItemListIndex(inventoryItem)], _takenList[0], 179);
 			_itemInHand = inventoryItem;
 			_screen->showMouse();
-			_currentCharacter->inventoryItems[itemOffset] = 0xFF;
+			_currentCharacter->inventoryItems[itemOffset] = kItemNone;
 		}
 	} else {
-		if (inventoryItem != 0xFF) {
+		if (inventoryItem != kItemNone) {
 			snd_playSoundEffect(0x35);
 			_screen->hideMouse();
-			_screen->fillRect(_itemPosX[itemOffset], _itemPosY[itemOffset], _itemPosX[itemOffset] + 15, _itemPosY[itemOffset] + 15, 12);
+			_screen->fillRect(_itemPosX[itemOffset], _itemPosY[itemOffset], _itemPosX[itemOffset] + 15, _itemPosY[itemOffset] + 15, _flags.platform == Common::kPlatformAmiga ? 19 : 12);
 			_screen->drawShape(0, _shapes[216+_itemInHand], _itemPosX[itemOffset], _itemPosY[itemOffset], 0, 0);
 			setMouseItem(inventoryItem);
-			updateSentenceCommand(_itemList[inventoryItem], _takenList[1], 179);
+			// TODO: Proper support for both taken strings in Amiga version
+			if (_flags.platform == Common::kPlatformAmiga)
+				updateSentenceCommand(_itemList[getItemListIndex(inventoryItem)], _takenList[0], 179);
+			else
+				updateSentenceCommand(_itemList[getItemListIndex(inventoryItem)], _takenList[1], 179);
 			_screen->showMouse();
 			_currentCharacter->inventoryItems[itemOffset] = _itemInHand;
 			_itemInHand = inventoryItem;
@@ -80,10 +77,10 @@ int KyraEngine_LoK::buttonInventoryCallback(Button *caller) {
 			_screen->hideMouse();
 			_screen->drawShape(0, _shapes[216+_itemInHand], _itemPosX[itemOffset], _itemPosY[itemOffset], 0, 0);
 			_screen->setMouseCursor(1, 1, _shapes[0]);
-			updateSentenceCommand(_itemList[_itemInHand], _placedList[0], 179);
+			updateSentenceCommand(_itemList[getItemListIndex(_itemInHand)], _placedList[0], 179);
 			_screen->showMouse();
 			_currentCharacter->inventoryItems[itemOffset] = _itemInHand;
-			_itemInHand = -1;
+			_itemInHand = kItemNone;
 		}
 	}
 	_screen->updateScreen();
@@ -100,7 +97,7 @@ int KyraEngine_LoK::buttonAmuletCallback(Button *caller) {
 	}
 	if (!queryGameFlag(0x2D))
 		return 1;
-	if (_itemInHand != -1) {
+	if (_itemInHand != kItemNone) {
 		assert(_putDownFirst);
 		characterSays(2000, _putDownFirst[0], 0, -2);
 		return 1;
@@ -204,9 +201,29 @@ void GUI_LoK::createScreenThumbnail(Graphics::Surface &dst) {
 	uint8 *screen = new uint8[Screen::SCREEN_W*Screen::SCREEN_H];
 	if (screen) {
 		_screen->queryPageFromDisk("SEENPAGE.TMP", 0, screen);
-
 		uint8 screenPal[768];
-		_screen->getRealPalette(2, screenPal);
+
+		if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
+			_screen->getRealPalette(0, &screenPal[ 0]);
+			_screen->getRealPalette(1, &screenPal[96]);
+
+			// Set the interface palette text color to white
+			screenPal[96 + 16 * 3 + 0] = 0xFF;
+			screenPal[96 + 16 * 3 + 1] = 0xFF;
+			screenPal[96 + 16 * 3 + 2] = 0xFF;
+
+			if (_screen->isInterfacePaletteEnabled()) {
+				for (int y = 0; y < 64; ++y) {
+					for (int x = 0; x < 320; ++x) {
+						screen[(y + 136) * Screen::SCREEN_W + x] += 32;
+					}
+				}
+			}
+
+		} else {
+			_screen->getRealPalette(2, screenPal);
+		}
+
 		::createThumbnail(&dst, screen, Screen::SCREEN_W, Screen::SCREEN_H, screenPal);
 	}
 	delete[] screen;
@@ -340,6 +357,7 @@ void GUI_LoK::setGUILabels() {
 	int offsetOptions = 0;
 	int offsetMainMenu = 0;
 	int offsetOn = 0;
+	int offsetPC98 = 0;
 
 	int walkspeedGarbageOffset = 36;
 	int menuLabelGarbageOffset = 0;
@@ -353,6 +371,18 @@ void GUI_LoK::setGUILabels() {
 			offset = 6;
 		offsetOn = offsetMainMenu = offsetOptions = offset;
 		walkspeedGarbageOffset = 48;
+	} else if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
+		if (_vm->gameFlags().lang == Common::EN_ANY) {
+			offset = offsetOn = 23;
+			offsetOptions = 32;
+			walkspeedGarbageOffset = 2;
+			offsetMainMenu = 23;
+		} else if (_vm->gameFlags().lang == Common::DE_DEU) {
+			offset = offsetOn = 12;
+			offsetOptions = 21;
+			walkspeedGarbageOffset = 3;
+			offsetMainMenu = 12;
+		}
 	} else if (_vm->gameFlags().lang == Common::ES_ESP) {
 		offsetOn = offsetMainMenu = offsetOptions = offset = -4;
 		menuLabelGarbageOffset = 72;
@@ -360,14 +390,19 @@ void GUI_LoK::setGUILabels() {
 		offsetOn = offsetMainMenu = offsetOptions = offset = 32;
 	} else if (_vm->gameFlags().lang == Common::DE_DEU) {
 		offset = offsetMainMenu = offsetOn = offsetOptions = 24;
-	} else if (_vm->gameFlags().platform == Common::kPlatformFMTowns || _vm->gameFlags().platform == Common::kPlatformPC98) {
+	} else if (_vm->gameFlags().platform == Common::kPlatformFMTowns) {
 		offset = 1;
 		offsetOptions = 10;
 		offsetOn = 0;
 		walkspeedGarbageOffset = 0;
+	} else if (_vm->gameFlags().platform == Common::kPlatformPC98) {
+		offsetMainMenu = offsetOptions = offsetOn = offset = 47;
+		offsetPC98 = 1;
 	}
 
-	assert(offset + 27 < _vm->_guiStringsSize);
+	assert(offset + (_vm->gameFlags().isTalkie ? 28 : 23) < _vm->_guiStringsSize);
+	assert(offsetOptions + 27 < _vm->_guiStringsSize);
+	assert(offsetMainMenu + 19 < _vm->_guiStringsSize);
 
 	// The Legend of Kyrandia
 	_menu[0].menuNameString = _vm->_guiStrings[0];
@@ -383,17 +418,17 @@ void GUI_LoK::setGUILabels() {
 	_menu[0].item[4].itemString = _vm->_guiStrings[5];
 
 	// Cancel
-	_menu[2].item[5].itemString = _vm->_guiStrings[10];
+	_menu[2].item[5].itemString = _vm->_guiStrings[10 + offsetPC98];
 
 	// Enter a description of your saved game:
-	_menu[3].menuNameString = _vm->_guiStrings[11];
+	_menu[3].menuNameString = _vm->_guiStrings[11 + offsetPC98];
 	// Save
-	_menu[3].item[0].itemString = _vm->_guiStrings[12];
+	_menu[3].item[0].itemString = _vm->_guiStrings[12 + offsetPC98];
 	// Cancel
-	_menu[3].item[1].itemString = _vm->_guiStrings[10];
+	_menu[3].item[1].itemString = _vm->_guiStrings[10 + offsetPC98];
 
 	// Rest in peace, Brandon
-	_menu[4].menuNameString = _vm->_guiStrings[13];
+	_menu[4].menuNameString = _vm->_guiStrings[13 + offsetPC98];
 	// Load a game
 	_menu[4].item[0].itemString = _vm->_guiStrings[1];
 	// Quit playing
@@ -448,8 +483,14 @@ int GUI_LoK::buttonMenuCallback(Button *caller) {
 		_vm->snd_playSoundEffect(0x36);
 		return 0;
 	}
-	// XXX
-	_screen->setPaletteIndex(0xFE, 60, 60, 0);
+
+	if (_vm->gameFlags().platform == Common::kPlatformAmiga) {
+		_screen->setPaletteIndex(0x10, 0x3F, 0x3F, 0x3F);
+		_screen->setInterfacePalette(_screen->getPalette(1), 0x3F, 0x3F, 0x3F);
+	} else {
+		_screen->setPaletteIndex(0xFE, 60, 60, 0);
+	}
+
 	for (int i = 0; i < 6; i++) {
 		_menuButtonData[i].data0Val1 = _menuButtonData[i].data1Val1 = _menuButtonData[i].data2Val1 = 4;
 		_menuButtonData[i].data0Callback = _redrawShadedButtonFunctor;
@@ -485,7 +526,6 @@ int GUI_LoK::buttonMenuCallback(Button *caller) {
 	if (_menuRestoreScreen) {
 		restorePalette();
 		_screen->loadPageFromDisk("SEENPAGE.TMP", 0);
-		_vm->_animator->_updateScreen = true;
 	} else {
 		_screen->deletePageFromDisk(0);
 	}
@@ -516,7 +556,6 @@ int GUI_LoK::resumeGame(Button *button) {
 
 void GUI_LoK::setupSavegames(Menu &menu, int num) {
 	Common::InSaveFile *in;
-	static char savenames[5][35];
 	uint8 startSlot;
 	assert(num <= 5);
 
@@ -532,15 +571,14 @@ void GUI_LoK::setupSavegames(Menu &menu, int num) {
 	for (int i = startSlot; i < num; ++i)
 		menu.item[i].enabled = 0;
 
-	KyraEngine_v1::SaveHeader header;
+	KyraEngine_LoK::SaveHeader header;
 	for (int i = startSlot; i < num && uint(_savegameOffset + i) < _saveSlots.size(); i++) {
 		if ((in = _vm->openSaveForReading(_vm->getSavegameFilename(_saveSlots[i + _savegameOffset]), header))) {
-			strncpy(savenames[i], header.description.c_str(), ARRAYSIZE(savenames[0]));
-			savenames[i][34] = 0;
+			Common::strlcpy(_savegameNames[i], header.description.c_str(), ARRAYSIZE(_savegameNames[0]));
 
-			Util::convertISOToDOS(savenames[i]);
+			Util::convertISOToDOS(_savegameNames[i]);
 
-			menu.item[i].itemString = savenames[i];
+			menu.item[i].itemString = _savegameNames[i];
 			menu.item[i].enabled = 1;
 			menu.item[i].saveSlot = _saveSlots[i + _savegameOffset];
 			delete in;
@@ -558,7 +596,7 @@ int GUI_LoK::saveGameMenu(Button *button) {
 	_screen->savePageToDisk("SEENPAGE.TMP", 0);
 
 	_menu[2].menuNameString = _vm->_guiStrings[8]; // Select a position to save to:
-	_specialSavegameString = _vm->_guiStrings[9]; // [ EMPTY SLOT ]
+	_specialSavegameString = _vm->_guiStrings[_vm->gameFlags().platform == Common::kPlatformPC98 ? 10: 9]; // [ EMPTY SLOT ]
 	for (int i = 0; i < 5; i++)
 		_menu[2].item[i].callback = BUTTON_FUNCTOR(GUI_LoK, this, &GUI_LoK::saveGame);
 
@@ -639,12 +677,12 @@ int GUI_LoK::loadGameMenu(Button *button) {
 }
 
 void GUI_LoK::redrawTextfield() {
-	_screen->fillRect(38, 91, 287, 102, 250);
+	_screen->fillRect(38, 91, 287, 102, _vm->gameFlags().platform == Common::kPlatformAmiga ? 18 : 250);
 	_text->printText(_savegameName, 38, 92, 253, 0, 0);
 
 	_screen->_charWidth = -2;
 	int width = _screen->getTextWidth(_savegameName);
-	_screen->fillRect(39 + width, 93, 45 + width, 100, 254);
+	_screen->fillRect(39 + width, 93, 45 + width, 100, _vm->gameFlags().platform == Common::kPlatformAmiga ? 31 : 254);
 	_screen->_charWidth = 0;
 
 	_screen->updateScreen();
@@ -659,7 +697,7 @@ void GUI_LoK::updateSavegameString() {
 		char inputKey = _keyPressed.ascii;
 		Util::convertISOToDOS(inputKey);
 
-		if ((uint8)inputKey > 31 && (uint8)inputKey < 226) {
+		if ((uint8)inputKey > 31 && (uint8)inputKey < (_vm->gameFlags().lang == Common::JA_JPN ? 128 : 226)) {
 			if (length < ARRAYSIZE(_savegameName)-1) {
 				_savegameName[length] = inputKey;
 				_savegameName[length+1] = 0;
@@ -681,6 +719,7 @@ void GUI_LoK::updateSavegameString() {
 }
 
 int GUI_LoK::saveGame(Button *button) {
+	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 	updateMenuButton(button);
 	_vm->_gameToLoad = _menu[2].item[button->index-0xC].saveSlot;
 
@@ -693,21 +732,27 @@ int GUI_LoK::saveGame(Button *button) {
 	_displaySubMenu = true;
 	_cancelSubMenu = false;
 
+	Screen::FontId cf = _screen->setFont(Screen::FID_8_FNT);
+
 	if (_savegameOffset == 0 && _vm->_gameToLoad == 0) {
 		_savegameName[0] = 0;
 	} else {
 		for (int i = 0; i < 5; i++) {
 			if (_menu[2].item[i].saveSlot == _vm->_gameToLoad) {
-				strncpy(_savegameName, _menu[2].item[i].itemString, 31);
+				Common::strlcpy(_savegameName, _menu[2].item[i].itemString, 31);
 				break;
 			}
 		}
 	}
 	redrawTextfield();
 
+	_screen->setFont(cf);
+
 	while (_displaySubMenu && !_vm->shouldQuit()) {
 		checkTextfieldInput();
+		cf = _screen->setFont(Screen::FID_8_FNT);
 		updateSavegameString();
+		_screen->setFont(cf);
 		processHighlights(_menu[3]);
 	}
 
@@ -724,11 +769,12 @@ int GUI_LoK::saveGame(Button *button) {
 
 			Graphics::Surface thumb;
 			createScreenThumbnail(thumb);
-			_vm->saveGameState(_vm->_gameToLoad, _savegameName, &thumb);
+			_vm->saveGameStateIntern(_vm->_gameToLoad, _savegameName, &thumb);
 			thumb.free();
 		}
 	}
 
+	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
 	return 0;
 }
 
@@ -758,7 +804,7 @@ int GUI_LoK::cancelSubMenu(Button *button) {
 int GUI_LoK::quitPlaying(Button *button) {
 	updateMenuButton(button);
 
-	if (quitConfirm(_vm->_guiStrings[14])) { // Are you sure you want to quit playing?
+	if (quitConfirm(_vm->_guiStrings[_vm->gameFlags().platform == Common::kPlatformPC98 ? 15 : 14])) { // Are you sure you want to quit playing?
 		_vm->quitGame();
 	} else {
 		initMenu(_menu[_toplevelMenu]);
@@ -921,6 +967,9 @@ void GUI_LoK::setupControls(Menu &menu) {
 			menu.item[3].itemString = "ERROR";
 		}
 	} else {
+		if (_vm->gameFlags().platform == Common::kPlatformAmiga)
+			clickableOffset = 5;
+
 		menu.item[4].enabled = 0;
 		menu.item[4].labelString = 0;
 	}
@@ -949,7 +998,7 @@ void GUI_LoK::setupControls(Menu &menu) {
 int GUI_LoK::controlsChangeMusic(Button *button) {
 	updateMenuButton(button);
 
-	_vm->_configMusic = ++_vm->_configMusic % ((_vm->gameFlags().platform == Common::kPlatformFMTowns) ? 3 : 2);
+	_vm->_configMusic = (_vm->_configMusic + 1) % ((_vm->gameFlags().platform == Common::kPlatformFMTowns) ? 3 : 2);
 	setupControls(_menu[5]);
 	return 0;
 }
@@ -965,7 +1014,7 @@ int GUI_LoK::controlsChangeSounds(Button *button) {
 int GUI_LoK::controlsChangeWalk(Button *button) {
 	updateMenuButton(button);
 
-	_vm->_configWalkspeed = ++_vm->_configWalkspeed % 5;
+	_vm->_configWalkspeed = (_vm->_configWalkspeed + 1) % 5;
 	_vm->setWalkspeed(_vm->_configWalkspeed);
 	setupControls(_menu[5]);
 	return 0;
@@ -974,7 +1023,7 @@ int GUI_LoK::controlsChangeWalk(Button *button) {
 int GUI_LoK::controlsChangeText(Button *button) {
 	updateMenuButton(button);
 
-	_vm->_configTextspeed = ++_vm->_configTextspeed % 4;
+	_vm->_configTextspeed = (_vm->_configTextspeed + 1) % 4;
 	setupControls(_menu[5]);
 	return 0;
 }
@@ -982,7 +1031,7 @@ int GUI_LoK::controlsChangeText(Button *button) {
 int GUI_LoK::controlsChangeVoice(Button *button) {
 	updateMenuButton(button);
 
-	_vm->_configVoice = ++_vm->_configVoice % 3;
+	_vm->_configVoice = (_vm->_configVoice + 1) % 3;
 	setupControls(_menu[5]);
 	return 0;
 }
@@ -1075,5 +1124,5 @@ void KyraEngine_LoK::drawAmulet() {
 	_screen->showMouse();
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 

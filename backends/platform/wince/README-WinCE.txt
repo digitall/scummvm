@@ -1,24 +1,101 @@
 ScummVM Windows CE FAQ
-Last updated: $Date$
-Release version: 0.13.0
+Last updated: 2011-07-01
+Release version: 1.3.1
 ------------------------------------------------------------------------
 
 New in this version
 -------------------
+1.3.1:
+- Fix for Normal2xAspect scaler which was causing screen update issues in some
+  games.
+- Fix for Normal1xAspect scaler which caused problems in the bottom part of the
+  screen when toolbar was hidden.
+- Fix for freelook mode.
+- Fix for timer manager, caused timing issues in some games.
+- Activated runtime language detection for ScummVM gui.
+- Toolbar is now hidden when returning to the game list.
+- Double-tap right-click emulation is now turned off for SCI games by default.
+- Added a new option "no_doubletap_paneltoggle" for scummvm.ini to disable
+  toolbar toggling when double-tapping on the top part of the screen.
+- SDL library related fixes:
+  * Fix for screen/mouse-cursor rotation issues (fixes erratic touchscreen
+    behaviour)
+  * Fix for hardware keyboard on some devices (HTC Touch Pro, etc.)
 
-1.0.0rc1:
+1.3.0:
+This is the first official Windows CE release since 1.1.1.
+
+The following new engines are now included (changes since last WinCE release):
+ - Draci Engine (Dragon History)
+ - Hugo Engine (Hugo Trilogy)
+ - Mohawk Engine (Myst, Riven, Living Book games & Where in Time is Carmen
+   Sandiego?)
+ - SCI Engine (Sierra SCI games, see main README for a list of supported games)
+ - Toon Engine (Toonstruck)
+
+Also, there are now 4 binaries in this distribution, a single executable
+which contains all engines (for devices with enough memory) and 3 smaller
+binaries which contain only some of the engines. The following lists all
+executables and the engines they contain:
+
+scummvm.exe:
+ - all supported engines
+scummvm1.exe:
+ - scumm, agi, cruise, draci, lure, queen, sky, sword1, tinsel, touche
+scummvm2.exe:
+ - agos, cine, drascula, gob, groovie, kyra, made, parallaction, saga,
+   teenagent, tucker
+scummvm3.exe:
+ - hugo, mohawk, sci, sword2, toon
+
+There are no other port specific changes.
+
+1.2.1:
+(Note: No official 1.2.1 release)
+
+1.2.0:
+(Note: No official 1.2.0 release)
+
+1.1.1:
+Fix to the Normal2xAspect scaler that was causing crashes.
+
+1.1.0:
+The TeenAgent engine is now included, but there are no other port specific
+changes since 1.0.0.
+
+This are 3 binaries in this distribution. Combining all the engines into a
+single executable produces something that is too large to run on most
+devices. We have therefore split the engines roughly into two and built 2
+separate exes as follows:
+
+scummvm1.exe:
+ - scumm, sword1, sword2, queen, sky, lure, agi, touche, tinsel, cruise
+scummvm2.exe:
+ - gob, cine, saga, kyra, agos, parallaction, drascula, groovie, tucker, made,
+   teenagent
+
+For those lucky enough to have devices with enough memory we also have a
+combined executable scummvm.exe which contains all of those engines.
+
+1.0.0:
+(Note: No changes since 1.0.0rc1)
 This version features optimized ARM assembly versions for the Smartphone,
 Normal2x and Normal2xAspect scalers, courtesy of Robin Watts. There should
 be a speed improvement when using these scalers.
 
 Also new is the aspect 2x upscaling mode, which is auto detected and used
 when the scaler is set to (normal) 2x mode and the panel is hidden. Hence,
-a 320x200 game running on a VGA or higher resolution device will be 
+a 320x200 game running on a VGA or higher resolution device will be
 aspect scaled to fill the 640x480 screen.
 
 Be aware that Discworld 2 tries to allocate a big chunk of memory (10 MB)
 and this will fail on many devices (file under the not enough memory
 category).
+
+From this version on, we're dropping support for FLAC and MPEG-2. The first
+is a pain to maintain, while the second has been gradually phased out in
+scummvm. Be sure to update your add-on packs and/or recompress your sound.
+
 
 ------------------------------------------------------------------------
 
@@ -179,8 +256,8 @@ The following actions are available :
   * Right click    : acts as a right mouse button click
   * Cursor         : hide or display the mouse cursor
   * Free look      : go in or out of free-look mode. In this mode, you can tap
-                     the screen to look for interesting locations without 
-                     walking. Click a second time near the pointer's location 
+                     the screen to look for interesting locations without
+                     walking. Click a second time near the pointer's location
                      equals to a left click.
   * Zoom up        : magnify the upper part of the screen for 640x480 games
                      rendered on a QVGA device.
@@ -286,10 +363,10 @@ Game specific sections (f.e. [monkey2]) - performance options
  *  high_sample_rate       bool     Desktop quality (22 kHz) sound output if
                                     set.  The default is 11 kHz.
                                     If you have a fast device, you can set this
-                                    to true to enjoy better sound effects and 
+                                    to true to enjoy better sound effects and
                                     music.
  *  FM_high_quality        bool     Desktop quality FM synthesis if set. Lower
-                                    quality otherwise. The default is low 
+                                    quality otherwise. The default is low
                                     quality. You can change this if you have a
                                     fast device.
  *  sound_thread_priority  int      Set the priority of the sound thread (0, 1,
@@ -302,14 +379,14 @@ Game specific sections (f.e. [monkey2]) - performance options
 
 Game specific sections (f.e. [monkey2]) - game options
 
- *  landscape                int    0: Portrait, 1: Landscape, 
+ *  landscape                int    0: Portrait, 1: Landscape,
                                     2: Inverse Landscape.
                                     You can also use this in the [scummvm]
                                     section to display the launcher in landscape
                                     for example, at startup.
- *  no_doubletap_rightclick  int    1: Turn off the default behavior of 
+ *  no_doubletap_rightclick  int    1: Turn off the default behavior of
                                     simulating a right-click when the screen is
-                                    double-tapped. 
+                                    double-tapped.
 
 
 [scummvm] section - keys definition
@@ -359,7 +436,7 @@ Game specific questions
 I need to press a special key
 -----------------------------
 
-Bring up the virtual keyboard. On Smartphones take a look at the Keyboard 
+Bring up the virtual keyboard. On Smartphones take a look at the Keyboard
 action above. On Pocket PCs it's easier to double-tap at the top of the screen.
 
 The panel is obscuring the playfield area
@@ -514,9 +591,9 @@ How can I scroll through my inventory items in Zak Mc Kracken ?
 You need to map the hide toolbar button (see the General Questions section) or
 double tap at the top of the screen (from 0.8.0+)
 
-------------------------
--- Broken Sword 1 & 2 --
-------------------------
+-------------------------
+-- Broken Sword I & II --
+-------------------------
 
 I've installed the movies pack but they are not playing/they are slow
 ---------------------------------------------------------------------
@@ -587,7 +664,7 @@ as this interferes with the game's controls. This setting can be overridden
 -- Discworld 2 --
 -----------------
 
-Crashes at startup of this game are usually due to the high memory 
+Crashes at startup of this game are usually due to the high memory
 requirements of this game.
 
 -------------------------
@@ -652,7 +729,7 @@ with file name scummvm1.exe, includes support for the following engines:
  - scumm, sword1, sword2, queen, sky, lure, agi, touche
 while the second, with file name scummvm2.exe:
  - gob, cine, saga, kyra, agos, parallaction, drascula, groovie, tucker
-The user must make sure to execute the correct file for a game. All 
+The user must make sure to execute the correct file for a game. All
 previously detected games will be shown in the launcher. Trying to launch
 a gob engine game with scummvm1.exe will not work.
 Detection also works as implied: scummvm1.exe will detect only the games

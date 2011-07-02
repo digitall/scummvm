@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef KYRA_UTIL_H
@@ -46,7 +43,7 @@ private:
 	static const uint8 _charMapISOToDOS[128];
 };
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

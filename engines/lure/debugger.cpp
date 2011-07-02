@@ -18,11 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
 
 #include "common/config-manager.h"
 #include "common/endian.h"
@@ -105,7 +101,7 @@ bool Debugger::cmd_enterRoom(int argc, const char **argv) {
 		if (!remoteFlag)
 			res.getActiveHotspot(PLAYER_ID)->setRoomNumber(roomNumber);
 
-		_detach_now = true;
+		detach();
 		return false;
 	}
 
@@ -313,7 +309,7 @@ bool Debugger::cmd_hotspot(int argc, const char **argv) {
 			hs->width, hs->height,  hs->widthCopy, hs->heightCopy, hs->yCorrection);
 		DebugPrintf("Talk bubble offset = %d,%d\n", hs->talkX, hs->talkY);
 		DebugPrintf("load offset = %xh, script load = %d\n", hs->loadOffset, hs->scriptLoadFlag);
-		DebugPrintf("Animation Id = %xh, Colour offset = %d\n", hs->animRecordId, hs->colourOffset);
+		DebugPrintf("Animation Id = %xh, Color offset = %d\n", hs->animRecordId, hs->colorOffset);
 		DebugPrintf("Talk Script offset = %xh, Tick Script offset = %xh\n",
 			hs->talkScriptOffset, hs->tickScriptOffset);
 		DebugPrintf("Tick Proc offset = %xh\n", hs->tickProcId);
@@ -323,7 +319,7 @@ bool Debugger::cmd_hotspot(int argc, const char **argv) {
 
 		if (h != NULL) {
 			DebugPrintf("Frame Number = %d of %d\n", h->frameNumber(), h->numFrames());
-			DebugPrintf("Persistant = %s\n", h->persistant() ? "true" : "false");
+			DebugPrintf("Persistent = %s\n", h->persistant() ? "true" : "false");
 		}
 
 	} else if (strcmp(argv[2], "actions") == 0) {
@@ -353,15 +349,13 @@ bool Debugger::cmd_hotspot(int argc, const char **argv) {
 	} else {
 		if (strcmp(argv[2], "schedule") == 0) {
 			// List any current schedule for the character
-			hs->npcSchedule.list(buffer);
-			DebugPrintf("%s", buffer);
+			DebugPrintf("%s", hs->npcSchedule.getDebugInfo().c_str());
 		}
 		if (!h)
 			DebugPrintf("The specified hotspot is not currently active\n");
 		else if (strcmp(argv[2], "paths") == 0) {
 			// List any paths for a charcter
-			h->pathFinder().list(buffer);
-			DebugPrintf("%s", buffer);
+			DebugPrintf("%s", h->pathFinder().getDebugInfo().c_str());
 		}
 		else if (strcmp(argv[2], "pixels") == 0) {
 			// List the pixel data for the hotspot
@@ -540,13 +534,13 @@ bool Debugger::cmd_showAnim(int argc, const char **argv) {
 	}
 
 	// Bottle object is used as a handy hotspot holder that doesn't have any
-	// tick proc behaviour that we need to worry about
+	// tick proc behavior that we need to worry about
 	Hotspot *hotspot = res.activateHotspot(BOTTLE_HOTSPOT_ID);
 	hotspot->setLayer(0xfe);
 	hotspot->setSize(width, height);
 
 	Hotspot *player = res.activateHotspot(PLAYER_ID);
-	hotspot->setColourOffset(player->resource()->colourOffset);
+	hotspot->setColorOffset(player->resource()->colorOffset);
 
 	hotspot->setAnimation(animId);
 
@@ -555,11 +549,16 @@ bool Debugger::cmd_showAnim(int argc, const char **argv) {
 }
 
 bool Debugger::cmd_saveStrings(int argc, const char **argv) {
-	StringData &strings = StringData::getReference();
-	char buffer[32768];
-
 	if (argc != 2) {
 		DebugPrintf("strings <stringId>\n");
+		return true;
+	}
+
+	StringData &strings = StringData::getReference();
+
+	char *buffer = (char *)malloc(32768);
+	if (!buffer) {
+		DebugPrintf("Cannot allocate strings buffer\n");
 		return true;
 	}
 
@@ -583,6 +582,9 @@ bool Debugger::cmd_saveStrings(int argc, const char **argv) {
 
 	DebugPrintf("Done\n");
 */
+
+	free(buffer);
+
 	return true;
 }
 

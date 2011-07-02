@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifdef ENABLE_LOL
@@ -28,17 +25,15 @@
 #include "kyra/lol.h"
 #include "kyra/screen_lol.h"
 #include "kyra/resource.h"
-
-#include "kyra/sound.h"
 #include "kyra/timer.h"
 #include "kyra/util.h"
 #include "kyra/debugger.h"
+#include "kyra/sound.h"
 
-#include "sound/voc.h"
-#include "sound/audiostream.h"
+#include "audio/audiostream.h"
 
 #include "common/config-manager.h"
-#include "common/endian.h"
+#include "common/system.h"
 
 namespace Kyra {
 
@@ -48,7 +43,12 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 	_txt = 0;
 	_tim = 0;
 
-	switch (_flags.lang) {
+	_lang = 0;
+	Common::Language lang = Common::parseLanguage(ConfMan.get("language"));
+	if (lang == _flags.fanLang && _flags.replacedLang != Common::UNK_LANG)
+		lang = _flags.replacedLang;
+
+	switch (lang) {
 	case Common::EN_ANY:
 	case Common::EN_USA:
 	case Common::EN_GRB:
@@ -65,6 +65,7 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 
 	case Common::JA_JPN:
 		_lang = 0;
+		break;
 
 	default:
 		warning("unsupported language, switching back to English");
@@ -105,14 +106,14 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 	_healOverlay = 0;
 	_swarmSpellStatus = 0;
 
-	_ingameMT32SoundIndex = _ingameGMSoundIndex = /*_ingameADLSoundIndex =*/ 0;
+	_ingameMT32SoundIndex = _ingameGMSoundIndex = _ingamePCSpeakerSoundIndex = 0;
 
 	_charSelection = -1;
 	_characters = 0;
 	_spellProperties = 0;
 	_updateFlags = 0;
 	_selectedSpell = 0;
-	_updateCharNum = _updatePortraitSpeechAnimDuration = _portraitSpeechAnimMode = _updateCharV3 = _textColorFlag = _needSceneRestore = 0;
+	_updateCharNum = _updatePortraitSpeechAnimDuration = _portraitSpeechAnimMode = _resetPortraitAfterSpeechAnim = _textColorFlag = _needSceneRestore = 0;
 	_fadeText = false;
 	_palUpdateTimer = _updatePortraitNext = 0;
 	_lampStatusTimer = 0xffffffff;
@@ -131,7 +132,7 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 	memset(_visibleBlockIndex, 0, sizeof(_visibleBlockIndex));
 
 	_smoothScrollModeNormal = 1;
-	_wllVmpMap = _wllBuffer3 = _wllBuffer4 = _wllWallFlags = 0;
+	_wllVmpMap = _specialWallTypes = _wllBuffer4 = _wllWallFlags = 0;
 	_wllShapeMap = 0;
 	_lvlShapeTop = _lvlShapeBottom = _lvlShapeLeftRight = 0;
 	_levelBlockProperties = 0;
@@ -143,8 +144,9 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 	_vcnShift = 0;
 	_vcnExpTable = 0;
 	_vmpPtr = 0;
-	_trueLightTable2 = 0;
-	_trueLightTable1 = 0;
+	_vcfBlocks = 0;
+	_transparencyTable2 = 0;
+	_transparencyTable1 = 0;
 	_levelShapeProperties = 0;
 	_levelShapes = 0;
 	_specialGuiShape = 0;
@@ -156,11 +158,12 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 
 	_lampEffect = _brightness = _lampOilStatus = 0;
 	_lampStatusSuspended = false;
+	_blockBrightness = 0;
 	_tempBuffer5120 = 0;
 	_flyingObjects = 0;
 	_monsters = 0;
 	_lastMouseRegion = 0;
-	_objectLastDirection = _monsterCountUnk = _monsterShiftAlt = 0;
+	_objectLastDirection = _monsterStepCounter = _monsterStepMode = 0;
 	_monsterCurBlock = 0;
 	_seqWindowX1 = _seqWindowY1 = _seqWindowX2 = _seqWindowY2 = _seqTrigger = 0;
 	_spsWindowX = _spsWindowY = _spsWindowW = _spsWindowH = 0;
@@ -234,7 +237,6 @@ LoLEngine::LoLEngine(OSystem *system, const GameFlags &flags) : KyraEngine_v1(sy
 	_lightningSfxFrame = 0;
 
 	_compassTimer = 0;
-	_timer3Para = 0;
 	_scriptCharacterCycle = 0;
 	_partyDamageFlags = -1;
 
@@ -318,25 +320,24 @@ LoLEngine::~LoLEngine() {
 	delete[] _monsterPalettes;
 	delete[] _monsterShapesEx;
 
-	if (_automapShapes)
-		delete[] _automapShapes;
+	delete[] _automapShapes;
 
-	for (Common::Array<const TIMOpcode*>::iterator i = _timIntroOpcodes.begin(); i != _timIntroOpcodes.end(); ++i)
+	for (Common::Array<const TIMOpcode *>::iterator i = _timIntroOpcodes.begin(); i != _timIntroOpcodes.end(); ++i)
 		delete *i;
 	_timIntroOpcodes.clear();
 
-	for (Common::Array<const TIMOpcode*>::iterator i = _timOutroOpcodes.begin(); i != _timOutroOpcodes.end(); ++i)
+	for (Common::Array<const TIMOpcode *>::iterator i = _timOutroOpcodes.begin(); i != _timOutroOpcodes.end(); ++i)
 		delete *i;
 	_timOutroOpcodes.clear();
 
-	for (Common::Array<const TIMOpcode*>::iterator i = _timIngameOpcodes.begin(); i != _timIngameOpcodes.end(); ++i)
+	for (Common::Array<const TIMOpcode *>::iterator i = _timIngameOpcodes.begin(); i != _timIngameOpcodes.end(); ++i)
 		delete *i;
 	_timIngameOpcodes.clear();
 
 
 	delete[] _wllVmpMap;
 	delete[] _wllShapeMap;
-	delete[] _wllBuffer3;
+	delete[] _specialWallTypes;
 	delete[] _wllBuffer4;
 	delete[] _wllWallFlags;
 	delete[] _lvlShapeTop;
@@ -353,8 +354,9 @@ LoLEngine::~LoLEngine() {
 	delete[] _vcnBlocks;
 	delete[] _vcnShift;
 	delete[] _vmpPtr;
-	delete[] _trueLightTable2;
-	delete[] _trueLightTable1;
+	delete[] _vcfBlocks;
+	delete[] _transparencyTable2;
+	delete[] _transparencyTable1;
 	delete[] _levelShapeProperties;
 	delete[] _blockDrawingBuffer;
 	delete[] _sceneWindowBuffer;
@@ -398,11 +400,11 @@ LoLEngine::~LoLEngine() {
 	delete[] _mapCursorOverlay;
 	delete[] _mapOverlay;
 
-	for (Common::Array<const SpellProc*>::iterator i = _spellProcs.begin(); i != _spellProcs.end(); ++i)
+	for (Common::Array<const SpellProc *>::iterator i = _spellProcs.begin(); i != _spellProcs.end(); ++i)
 		delete *i;
 	_spellProcs.clear();
 
-	for (Common::List<Audio::AudioStream *>::iterator i = _speechList.begin(); i != _speechList.end(); ++i)
+	for (SpeechList::iterator i = _speechList.begin(); i != _speechList.end(); ++i)
 		delete *i;
 	_speechList.clear();
 
@@ -426,7 +428,7 @@ Common::Error LoLEngine::init() {
 	KyraEngine_v1::init();
 	initStaticResource();
 
-	_envSfxDistThreshold = _sound->getSfxType() == Sound::kAdlib ? 15 : 3;
+	_envSfxDistThreshold = _sound->getSfxType() == Sound::kAdLib ? 15 : 3;
 
 	_gui = new GUI_LoL(this);
 	assert(_gui);
@@ -455,8 +457,8 @@ Common::Error LoLEngine::init() {
 	memset(_wllVmpMap, 0, 80);
 	_wllShapeMap = new int8[80];
 	memset(_wllShapeMap, 0, 80);
-	_wllBuffer3 = new uint8[80];
-	memset(_wllBuffer3, 0, 80);
+	_specialWallTypes = new uint8[80];
+	memset(_specialWallTypes, 0, 80);
 	_wllBuffer4 = new uint8[80];
 	memset(_wllBuffer4, 0, 80);
 	_wllWallFlags = new uint8[80];
@@ -469,8 +471,8 @@ Common::Error LoLEngine::init() {
 	memset(_lvlShapeLeftRight, 0, 36 * sizeof(int16));
 	_levelShapeProperties = new LevelShapeProperty[100];
 	memset(_levelShapeProperties, 0, 100 * sizeof(LevelShapeProperty));
-	_levelShapes = new uint8*[400];
-	memset(_levelShapes, 0, 400 * sizeof(uint8*));
+	_levelShapes = new uint8 *[400];
+	memset(_levelShapes, 0, 400 * sizeof(uint8 *));
 	_blockDrawingBuffer = new uint16[1320];
 	memset(_blockDrawingBuffer, 0, 1320 * sizeof(uint16));
 	_sceneWindowBuffer = new uint8[21120];
@@ -501,20 +503,22 @@ Common::Error LoLEngine::init() {
 	_sceneDrawPage1 = 2;
 	_sceneDrawPage2 = 6;
 
-	_monsterShapes = new uint8*[48];
-	memset(_monsterShapes, 0, 48 * sizeof(uint8*));
-	_monsterPalettes = new uint8*[48];
-	memset(_monsterPalettes, 0, 48 * sizeof(uint8*));
+	_monsterShapes = new uint8 *[48];
+	memset(_monsterShapes, 0, 48 * sizeof(uint8 *));
+	_monsterPalettes = new uint8 *[48];
+	memset(_monsterPalettes, 0, 48 * sizeof(uint8 *));
 
-	_monsterShapesEx = new uint8*[576];
-	memset(_monsterShapesEx, 0, 576 * sizeof(uint8*));
+	_monsterShapesEx = new uint8 *[576];
+	memset(_monsterShapesEx, 0, 576 * sizeof(uint8 *));
 	memset(&_scriptData, 0, sizeof(EMCData));
 
 	_hasTempDataFlags = 0;
 	_activeMagicMenu = -1;
 
-	_automapShapes = new const uint8*[109];
+	_automapShapes = new const uint8 *[109];
 	_mapOverlay = new uint8[256];
+
+	memset(_availableSpells, -1, 8);
 
 	_spellProcs.push_back(new SpellProc(this, &LoLEngine::castSpark));
 	_spellProcs.push_back(new SpellProc(this, &LoLEngine::castHeal));
@@ -549,14 +553,18 @@ Common::Error LoLEngine::go() {
 			return Common::kNoError;
 	}
 
-	if (!_flags.isDemo && !_res->loadFileList("FILEDATA.FDT"))
-		error("Couldn't load file list: 'FILEDATA.FDT'");
+	if (_flags.isTalkie && !_flags.isDemo) {
+		if (!_res->loadFileList("FILEDATA.FDT"))
+			error("Couldn't load file list: 'FILEDATA.FDT'");
+	} else if (_pakFileList) {
+		_res->loadFileList(_pakFileList, _pakFileListSize);
+	}
 
 	// Usually fonts etc. would be setup by the prologue code, if we skip
 	// the prologue code we need to setup them manually here.
 	if (_gameToLoad != -1 && action != 3) {
 		preInit();
-		_screen->setFont(Screen::FID_9_FNT);
+		_screen->setFont(_flags.use16ColorMode ? Screen::FID_SJIS_FNT : Screen::FID_9_FNT);
 	}
 
 	// We have three sound.dat files, one for the intro, one for the
@@ -581,7 +589,9 @@ Common::Error LoLEngine::go() {
 	if (action == 0) {
 		startupNew();
 	} else if (_gameToLoad != -1) {
-		if (loadGameState(_gameToLoad) != Common::kNoError)
+		// FIXME: Instead of throwing away the error returned by
+		// loadGameState, we should use it / augment it.
+		if (loadGameState(_gameToLoad).getCode() != Common::kNoError)
 			error("Couldn't load game slot %d on startup", _gameToLoad);
 		_gameToLoad = -1;
 	}
@@ -606,12 +616,11 @@ void LoLEngine::preInit() {
 
 	loadTalkFile(0);
 
-	char filename[32];
-	snprintf(filename, sizeof(filename), "LANDS.%s", _languageExt[_lang]);
-	_res->exists(filename, true);
-	if (_landsFile)
-		delete[] _landsFile;
-	_landsFile = _res->fileData(filename, 0);
+	Common::String filename;
+	filename = Common::String::format("LANDS.%s", _languageExt[_lang]);
+	_res->exists(filename.c_str(), true);
+	delete[] _landsFile;
+	_landsFile = _res->fileData(filename.c_str(), 0);
 	loadItemIconShapes();
 }
 
@@ -625,7 +634,7 @@ void LoLEngine::loadItemIconShapes() {
 	_screen->loadBitmap("ITEMICN.SHP", 3, 3, 0);
 	const uint8 *shp = _screen->getCPagePtr(3);
 	_numItemIconShapes = READ_LE_UINT16(shp);
-	_itemIconShapes = new uint8*[_numItemIconShapes];
+	_itemIconShapes = new uint8 *[_numItemIconShapes];
 	for (int i = 0; i < _numItemIconShapes; i++)
 		_itemIconShapes[i] = _screen->makeShapeCopy(shp, i);
 
@@ -635,7 +644,7 @@ void LoLEngine::loadItemIconShapes() {
 		_screen->loadBitmap("GAMESHP.SHP", 3, 3, 0);
 		shp = _screen->getCPagePtr(3);
 		_numGameShapes = READ_LE_UINT16(shp);
-		_gameShapes = new uint8*[_numGameShapes];
+		_gameShapes = new uint8 *[_numGameShapes];
 		for (int i = 0; i < _numGameShapes; i++)
 			_gameShapes[i] = _screen->makeShapeCopy(shp, i);
 	}
@@ -730,13 +739,16 @@ int LoLEngine::mainMenu() {
 		// 16 color mode
 		{
 			{ 0, 0, 0, 0, 0 },
-			{ 0x01, 0x04, 0x0C, 0x03, 0x00, 0xC1, 0xE1 },
+			{ 0x01, 0x04, 0x0C, 0x04, 0x00, 0xC1, 0xE1 },
 			{ 0xCC, 0xDD, 0xDD, 0xDD },
-			Screen::FID_9_FNT, 1
+			Screen::FID_SJIS_FNT, 1
 		}
 	};
 
 	int dataIndex = _flags.use16ColorMode ? 1 : 0;
+
+	if (!_flags.isTalkie)
+		--data[dataIndex].menuTable[3];
 
 	if (hasSave)
 		++data[dataIndex].menuTable[3];
@@ -780,13 +792,28 @@ void LoLEngine::startup() {
 	Palette &pal = _screen->getPalette(0);
 	_screen->loadBitmap("PLAYFLD.CPS", 3, 3, &pal);
 
-	_screen->copyPalette(1, 0);
-	pal.fill(0, 1, 0x3F);
-	pal.fill(2, 126, 0x3F);
-	pal.fill(192, 4, 0x3F);
-	_screen->generateOverlay(pal, _screen->_paletteOverlay1, 1, 96);
-	_screen->generateOverlay(pal, _screen->_paletteOverlay2, 144, 65);
-	_screen->copyPalette(0, 1);
+	if (_flags.use16ColorMode) {
+		memset(_screen->_paletteOverlay1, 0, 256);
+		memset(_screen->_paletteOverlay2, 0, 256);
+
+		static const uint8 colTable1[] = { 0x00, 0xEE, 0xCC, 0xFF, 0x44, 0x66, 0x44, 0x88, 0xEE, 0xAA, 0x11, 0xCC, 0xDD, 0xEE, 0x44, 0xCC };
+		static const uint8 colTable2[] = { 0x00, 0xCC, 0xFF, 0xBB, 0xEE, 0xBB, 0x55, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xFF, 0xCC, 0xDD, 0xBB };
+		static const uint8 colTable3[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
+
+		for (int i = 0; i < 16; i++) {
+			_screen->_paletteOverlay1[colTable3[i]] = colTable1[i];
+			_screen->_paletteOverlay2[colTable3[i]] = colTable2[i];
+		}
+
+	} else {
+		_screen->copyPalette(1, 0);
+		pal.fill(0, 1, 0x3F);
+		pal.fill(2, 126, 0x3F);
+		pal.fill(192, 4, 0x3F);
+		_screen->generateOverlay(pal, _screen->_paletteOverlay1, 1, 96, 254);
+		_screen->generateOverlay(pal, _screen->_paletteOverlay2, 144, 65, 254);
+		_screen->copyPalette(0, 1);
+	}
 
 	_screen->getPalette(1).clear();
 	_screen->getPalette(2).clear();
@@ -797,42 +824,42 @@ void LoLEngine::startup() {
 	_screen->loadBitmap("ITEMSHP.SHP", 3, 3, 0);
 	const uint8 *shp = _screen->getCPagePtr(3);
 	_numItemShapes = READ_LE_UINT16(shp);
-	_itemShapes = new uint8*[_numItemShapes];
+	_itemShapes = new uint8 *[_numItemShapes];
 	for (int i = 0; i < _numItemShapes; i++)
 		_itemShapes[i] = _screen->makeShapeCopy(shp, i);
 
 	_screen->loadBitmap("THROWN.SHP", 3, 3, 0);
 	shp = _screen->getCPagePtr(3);
 	_numThrownShapes = READ_LE_UINT16(shp);
-	_thrownShapes = new uint8*[_numThrownShapes];
+	_thrownShapes = new uint8 *[_numThrownShapes];
 	for (int i = 0; i < _numThrownShapes; i++)
 		_thrownShapes[i] = _screen->makeShapeCopy(shp, i);
 
 	_screen->loadBitmap("ICE.SHP", 3, 3, 0);
 	shp = _screen->getCPagePtr(3);
 	_numEffectShapes = READ_LE_UINT16(shp);
-	_effectShapes = new uint8*[_numEffectShapes];
+	_effectShapes = new uint8 *[_numEffectShapes];
 	for (int i = 0; i < _numEffectShapes; i++)
 		_effectShapes[i] = _screen->makeShapeCopy(shp, i);
 
 	_screen->loadBitmap("FIREBALL.SHP", 3, 3, 0);
 	shp = _screen->getCPagePtr(3);
 	_numFireballShapes = READ_LE_UINT16(shp);
-	_fireballShapes = new uint8*[_numFireballShapes];
+	_fireballShapes = new uint8 *[_numFireballShapes];
 	for (int i = 0; i < _numFireballShapes; i++)
 		_fireballShapes[i] = _screen->makeShapeCopy(shp, i);
 
 	_screen->loadBitmap("HEAL.SHP", 3, 3, 0);
 	shp = _screen->getCPagePtr(3);
 	_numHealShapes = READ_LE_UINT16(shp);
-	_healShapes = new uint8*[_numHealShapes];
+	_healShapes = new uint8 *[_numHealShapes];
 	for (int i = 0; i < _numHealShapes; i++)
 		_healShapes[i] = _screen->makeShapeCopy(shp, i);
 
 	_screen->loadBitmap("HEALI.SHP", 3, 3, 0);
 	shp = _screen->getCPagePtr(3);
 	_numHealiShapes = READ_LE_UINT16(shp);
-	_healiShapes = new uint8*[_numHealiShapes];
+	_healiShapes = new uint8 *[_numHealiShapes];
 	for (int i = 0; i < _numHealiShapes; i++)
 		_healiShapes[i] = _screen->makeShapeCopy(shp, i);
 
@@ -843,8 +870,8 @@ void LoLEngine::startup() {
 	runInitScript("ONETIME.INF", 0);
 	_emc->load("ITEM.INF", &_itemScript, &_opcodes);
 
-	_trueLightTable1 = new uint8[256];
-	_trueLightTable2 = new uint8[5120];
+	_transparencyTable1 = new uint8[256];
+	_transparencyTable2 = new uint8[5120];
 
 	_loadSuppFilesFlag = 1;
 
@@ -866,13 +893,14 @@ void LoLEngine::startupNew() {
 	_inventory[1] = makeItem(217, 0, 0);
 	_inventory[2] = makeItem(218, 0, 0);
 
-	memset(_availableSpells, -1, 7);
 	_availableSpells[0] = 0;
 	setupScreenDims();
 
 	memset(_globalScriptVars2, 0x100, 8);
 
-	static int selectIds[] = { -9, -1, -8, -5 };
+	static const int selectIds[] = { -9, -1, -8, -5 };
+	assert(_charSelection >= 0);
+	assert(_charSelection < ARRAYSIZE(selectIds));
 	addCharacter(selectIds[_charSelection]);
 
 	gui_enableDefaultPlayfieldButtons();
@@ -890,7 +918,9 @@ void LoLEngine::runLoop() {
 
 	while (!shouldQuit() && _runFlag) {
 		if (_gameToLoad != -1) {
-			if (loadGameState(_gameToLoad) != Common::kNoError)
+			// FIXME: Instead of throwing away the error returned by
+			// loadGameState, we should use it / augment it.
+			if (loadGameState(_gameToLoad).getCode() != Common::kNoError)
 				error("Couldn't load game slot %d", _gameToLoad);
 			_gameToLoad = -1;
 		}
@@ -945,13 +975,12 @@ void LoLEngine::writeSettings() {
 		_flags.lang = Common::DE_DEU;
 		break;
 
-	case 3:
-		_flags.lang = Common::JA_JPN;
-		break;
-
 	case 0:
 	default:
-		_flags.lang = Common::EN_ANY;
+		if (_flags.platform == Common::kPlatformPC98)
+			_flags.lang = Common::JA_JPN;
+		else
+			_flags.lang = Common::EN_ANY;
 	}
 
 	if (_flags.lang == _flags.replacedLang && _flags.fanLang != Common::UNK_LANG)
@@ -1034,29 +1063,22 @@ void LoLEngine::decodeSjis(const char *src, char *dst) {
 	char d[3];
 	s[1] = 0;
 
-	uint8 cmd = *src++;
-
-	while (cmd) {
+	uint8 cmd = 0;
+	while ((cmd = *src++) != 0) {
 		if (cmd == 27) {
-			cmd = *src & 0x7f;
-			src++;
-
-			for (int i = 0; i < cmd; i ++) {
-				*dst++ = *src++;
-				*dst++ = *src++;
-			}
-			cmd = *src++;
-
+			cmd = *src++ & 0x7f;
+			memcpy(dst, src, cmd * 2);
+			dst += cmd * 2;
+			src += cmd * 2;
 		} else {
-			s[0] = *src++;
-			Util::decodeString1(s, d);
-			*dst++ = d[0];
-			cmd = *src++;
+			s[0] = cmd;
+			int size = Util::decodeString1(s, d);
+			memcpy(dst, d, size);
+			dst += size;
 		}
 	}
 
-	if (!cmd)
-		*dst = 0;
+	*dst = 0;
 }
 
 bool LoLEngine::addCharacter(int id) {
@@ -1097,7 +1119,7 @@ bool LoLEngine::addCharacter(int id) {
 }
 
 void LoLEngine::setTemporaryFaceFrame(int charNum, int frame, int updateDelay, int redraw) {
-	_characters[charNum].defaultFaceFrame = frame;
+	_characters[charNum].tempFaceFrame = frame;
 	if (frame || updateDelay)
 		setCharacterUpdateEvent(charNum, 6, updateDelay, 1);
 	if (redraw)
@@ -1136,9 +1158,8 @@ void LoLEngine::loadCharFaceShapes(int charNum, int id) {
 	if (id < 0)
 		id = -id;
 
-	char file[13];
-	snprintf(file, sizeof(file), "FACE%02d.SHP", id);
-	_screen->loadBitmap(file, 3, 3, 0);
+	Common::String file = Common::String::format("FACE%02d.SHP", id);
+	_screen->loadBitmap(file.c_str(), 3, 3, 0);
 
 	const uint8 *p = _screen->getCPagePtr(3);
 	for (int i = 0; i < 40; i++) {
@@ -1183,9 +1204,15 @@ void LoLEngine::updatePortraitSpeechAnim() {
 
 	if (speechEnabled()) {
 		if (snd_updateCharacterSpeech() == 2)
-			_updatePortraitSpeechAnimDuration = 2;
+			// WORKAROUND for portrait speech animations which would "freeze" in some situations
+			if (_resetPortraitAfterSpeechAnim == 2)
+				_resetPortraitAfterSpeechAnim = 1;
+			else
+				_updatePortraitSpeechAnimDuration = 2;
 		else
 			_updatePortraitSpeechAnimDuration = 1;
+	} else if (_resetPortraitAfterSpeechAnim == 2) {
+		_resetPortraitAfterSpeechAnim = 1;
 	}
 
 	_updatePortraitSpeechAnimDuration--;
@@ -1197,7 +1224,7 @@ void LoLEngine::updatePortraitSpeechAnim() {
 		else
 			gui_drawCharFaceShape(_updateCharNum, x, y, 0);
 		_updatePortraitNext = _system->getMillis() + 10 * _tickLength;
-	} else if (_updateCharV3 != 0) {
+	} else if (_resetPortraitAfterSpeechAnim != 0) {
 		faceFrameRefresh(_updateCharNum);
 		if (redraw) {
 			gui_drawCharPortraitWithStats(_updateCharNum);
@@ -1209,11 +1236,13 @@ void LoLEngine::updatePortraitSpeechAnim() {
 	}
 }
 
-void LoLEngine::updatePortraits() {
+void LoLEngine::stopPortraitSpeechAnim() {
 	if (_updateCharNum == -1)
 		return;
 
-	_updatePortraitSpeechAnimDuration = _updateCharV3 = 1;
+	_updatePortraitSpeechAnimDuration = 1;
+	// WORKAROUND for portrait speech animations which would "freeze" in some situations
+	_resetPortraitAfterSpeechAnim = 2;
 	updatePortraitSpeechAnim();
 	_updatePortraitSpeechAnimDuration = 1;
 	_updateCharNum = -1;
@@ -1231,7 +1260,7 @@ void LoLEngine::initTextFading(int textType, int clearField) {
 	if (!clearField)
 		return;
 
-	updatePortraits();
+	stopPortraitSpeechAnim();
 	if (_needSceneRestore)
 		_screen->setScreenDim(_txt->clearDim(3));
 
@@ -1247,7 +1276,7 @@ void LoLEngine::faceFrameRefresh(int charNum) {
 	if (_characters[charNum].curFaceFrame == 1)
 		setTemporaryFaceFrame(charNum, 0, 0, 0);
 	else if (_characters[charNum].curFaceFrame == 6)
-		if (_characters[charNum].defaultFaceFrame != 5)
+		if (_characters[charNum].tempFaceFrame != 5)
 			setTemporaryFaceFrame(charNum, 0, 0, 0);
 		else
 			_characters[charNum].curFaceFrame = 5;
@@ -1291,7 +1320,7 @@ int LoLEngine::calculateCharacterStats(int charNum, int index) {
 		return _characters[charNum].skillLevels[index] + _characters[charNum].skillModifiers[index];
 	}
 
-	return 1;
+	//return 1;
 }
 
 int LoLEngine::calculateProtection(int index) {
@@ -1311,10 +1340,13 @@ int LoLEngine::calculateProtection(int index) {
 }
 
 void LoLEngine::setCharacterMagicOrHitPoints(int charNum, int type, int points, int mode) {
-	static const uint16 barData[2][5] = {
+	static const uint16 barData[4][5] = {
 		// xPos, bar color, text color, flag, string id
 		{ 0x27, 0x9A, 0x98, 0x01, 0x4254 },
-		{ 0x21, 0xA2, 0xA0, 0x00, 0x4253 }
+		{ 0x21, 0xA2, 0xA0, 0x00, 0x4253 },
+		// 16 color mode
+		{ 0x27, 0x66, 0x55, 0x01, 0x4254 },
+		{ 0x21, 0xAA, 0x99, 0x00, 0x4253 }
 	};
 
 	if (charNum > 3)
@@ -1353,6 +1385,9 @@ void LoLEngine::setCharacterMagicOrHitPoints(int charNum, int type, int points, 
 	int step = (newVal > pointsCur) ? 2 : -2;
 	newVal = CLIP(newVal + step, 0, pointsMax);
 
+	if (_flags.use16ColorMode)
+		type += 2;
+
 	if (newVal != pointsCur) {
 		step = (newVal >= pointsCur) ? 2 : -2;
 
@@ -1364,7 +1399,7 @@ void LoLEngine::setCharacterMagicOrHitPoints(int charNum, int type, int points, 
 
 			uint32 delayTimer = _system->getMillis() + _tickLength;
 
-			gui_drawLiveMagicBar(barData[type][0] + _activeCharsXpos[charNum], 175, i, 0, pointsMax, 5, 32, barData[type][1], 1, barData[type][3]);
+			gui_drawLiveMagicBar(barData[type][0] + _activeCharsXpos[charNum], 175, i, 0, pointsMax, 5, 32, barData[type][1], _flags.use16ColorMode ? 0x44 : 1, barData[type][3]);
 			_screen->printText(getLangString(barData[type][4]), barData[type][0] + _activeCharsXpos[charNum], 144, barData[type][2], 0);
 			_screen->updateScreen();
 
@@ -1550,11 +1585,17 @@ void LoLEngine::initDialogueSequence(int controlMode, int pageNum) {
 		_fadeText = false;
 		int cp = _screen->setCurPage(pageNum);
 
-		_screen->fillRect(0, 128, 319, 199, 1);
-		gui_drawBox(0, 129, 320, 71, 136, 251, -1);
-		gui_drawBox(1, 130, 318, 69, 136, 251, 252);
+		if (_flags.use16ColorMode) {
+			_screen->fillRect(0, 128, 319, 199, 0x44);
+			gui_drawBox(0, 129, 320, 71, 0xee, 0xcc, -1);
+			gui_drawBox(1, 130, 318, 69, 0xee, 0xcc, 0x11);
+		} else {
+			_screen->fillRect(0, 128, 319, 199, 1);
+			gui_drawBox(0, 129, 320, 71, 136, 251, -1);
+			gui_drawBox(1, 130, 318, 69, 136, 251, 252);
+		}
 
-		_screen->modifyScreenDim(5, 8, 131, 304, 66);
+		_screen->modifyScreenDim(5, 8, 131, 306, 66);
 		_screen->modifyScreenDim(4, 1, 133, 38, 60);
 		_txt->clearDim(4);
 
@@ -1568,7 +1609,7 @@ void LoLEngine::initDialogueSequence(int controlMode, int pageNum) {
 				_portraitSpeechAnimMode = 2;
 				_updateCharNum = i;
 				_screen->drawShape(0, _gameShapes[88], _activeCharsXpos[_updateCharNum] + 8, 142, 0, 0);
-				updatePortraits();
+				stopPortraitSpeechAnim();
 			}
 		}
 
@@ -1589,7 +1630,7 @@ void LoLEngine::restoreAfterDialogueSequence(int controlMode) {
 	if (!_dialogueField)
 		return;
 
-	updatePortraits();
+	stopPortraitSpeechAnim();
 	_currentControlMode = controlMode;
 	calcCharPortraitXpos();
 
@@ -1599,7 +1640,7 @@ void LoLEngine::restoreAfterDialogueSequence(int controlMode) {
 		_updateFlags &= 0xfffd;
 	} else {
 		const ScreenDim *d = _screen->getScreenDim(5);
-		_screen->fillRect(d->sx, d->sy, d->sx + d->w - 2, d->sy + d->h - 2, d->unkA);
+		_screen->fillRect(d->sx, d->sy, d->sx + d->w - (_flags.use16ColorMode ? 3 : 2), d->sy + d->h - 2, d->unkA);
 		_txt->clearDim(4);
 		_txt->setupField(false);
 	}
@@ -1619,7 +1660,7 @@ void LoLEngine::fadeText() {
 	if (!_fadeText)
 		return;
 
-	if (_screen->fadeColor(192, 252, _system->getMillis() - _palUpdateTimer, 60 * _tickLength))
+	if (_screen->fadeColor(192, 252, (_system->getMillis() - _palUpdateTimer) / _tickLength, 60))
 		return;
 
 	if (_needSceneRestore)
@@ -1633,8 +1674,8 @@ void LoLEngine::fadeText() {
 }
 
 void LoLEngine::transformRegion(int x1, int y1, int x2, int y2, int w, int h, int srcPage, int dstPage) {
-	uint16 *p1 = (uint16*)_tempBuffer5120;
-	uint16 *p2 = (uint16*)(_tempBuffer5120 + 640);
+	uint16 *p1 = (uint16 *)_tempBuffer5120;
+	uint16 *p2 = (uint16 *)(_tempBuffer5120 + 640);
 
 	for (int i = 0; i < w; i++)
 		p1[i] = i;
@@ -1676,20 +1717,36 @@ void LoLEngine::setPaletteBrightness(const Palette &srcPal, int brightness, int 
 	_screen->_fadeFlag = 0;
 }
 
-void LoLEngine::generateBrightnessPalette(const Palette &src, Palette &dst, int brightness, int modifier) {
+void LoLEngine::generateBrightnessPalette(const Palette &src, Palette &dst, int brightness, int16 modifier) {
 	dst.copy(src);
-	_screen->loadSpecialColors(dst);
+	if (_flags.use16ColorMode) {
+		if (!brightness)
+			modifier = 0;
+		else if (modifier < 0 || modifier > 7 || !(_flagsTable[31] & 0x08))
+			modifier = 8;
 
-	brightness = (8 - brightness) << 5;
-	if (modifier >= 0 && modifier < 8 && (_flagsTable[31] & 0x08)) {
-		brightness = 256 - ((((modifier & 0xfffe) << 5) * (256 - brightness)) >> 8);
-		if (brightness < 0)
-			brightness = 0;
-	}
+		modifier >>= 1;
+		if (modifier)
+			modifier--;
+		if (modifier > 3)
+			modifier = 3;
+		_blockBrightness = modifier << 4;
+		_sceneUpdateRequired = true;
 
-	for (int i = 0; i < 384; i++) {
-		uint16 c = (dst[i] * brightness) >> 8;
-		dst[i] = c & 0xff;
+	} else {
+		_screen->loadSpecialColors(dst);
+
+		brightness = (8 - brightness) << 5;
+		if (modifier >= 0 && modifier < 8 && (_flagsTable[31] & 0x08)) {
+			brightness = 256 - ((((modifier & 0xfffe) << 5) * (256 - brightness)) >> 8);
+			if (brightness < 0)
+				brightness = 0;
+		}
+
+		for (int i = 0; i < 384; i++) {
+			uint16 c = (dst[i] * brightness) >> 8;
+			dst[i] = c & 0xff;
+		}
 	}
 }
 
@@ -1710,30 +1767,64 @@ void LoLEngine::generateFlashPalette(const Palette &src, Palette &dst, int color
 	dst.copy(src, 128);
 }
 
+void LoLEngine::createTransparencyTables() {
+	if (_flags.isTalkie || _loadSuppFilesFlag)
+		return;
+
+	uint8 *tpal = new uint8[768];
+
+	if (_flags.use16ColorMode) {
+		static const uint8 colTbl[] = {
+			0x00, 0x00, 0x11, 0x00, 0x22, 0x00, 0x33, 0x00, 0x44, 0x00, 0x55, 0x00, 0x66, 0x00, 0x77, 0x00,
+			0x88, 0x00, 0x99, 0x00, 0xAA, 0x00, 0xBB, 0x00, 0xCC, 0x00, 0xDD, 0x00, 0xEE, 0x00, 0xFF, 0x00
+		};
+
+		memset(tpal, 0xff, 768);
+		_res->loadFileToBuf("LOL.NOL", tpal, 48);
+
+		for (int i = 15; i > -1; i--) {
+			int s = colTbl[i << 1] * 3;
+			tpal[s] = tpal[i * 3];
+			tpal[s + 1] = tpal[i * 3 + 1];
+			tpal[s + 2] = tpal[i * 3 + 2];
+			tpal[i * 3 + 2] = tpal[i * 3 + 1] = tpal[i * 3] = 0xff;
+		}
+
+		_screen->createTransparencyTablesIntern(colTbl, 16, tpal, tpal,  _transparencyTable1, _transparencyTable2, 80);
+
+	} else {
+		_res->loadFileToBuf("fxpal.col", tpal, 768);
+		_screen->loadBitmap("fxpal.shp", 3, 3, 0);
+		const uint8 *shpPal = _screen->getPtrToShape(_screen->getCPagePtr(2), 0) + 11;
+
+		_screen->createTransparencyTablesIntern(shpPal, 20, tpal, _screen->getPalette(1).getData(), _transparencyTable1, _transparencyTable2, 70);
+	}
+
+	delete[] tpal;
+	_loadSuppFilesFlag = 1;
+}
+
 void LoLEngine::updateSequenceBackgroundAnimations() {
-	if (_updateFlags & 8)
+	if (_updateFlags & 8 || !_tim)
+		return;
+	if (!_tim->animator())
 		return;
 
 	for (int i = 0; i < 6; i++)
-		_tim->updateBackgroundAnimation(i);
+		_tim->animator()->update(i);
 }
 
 void LoLEngine::loadTalkFile(int index) {
-	char file[8];
-
 	if (index == _curTlkFile)
 		return;
 
-	if (_curTlkFile > 0 && index > 0) {
-		snprintf(file, sizeof(file), "%02d.TLK", _curTlkFile);
-		_res->unloadPakFile(file);
-	}
+	if (_curTlkFile > 0 && index > 0)
+		_res->unloadPakFile(Common::String::format("%02d.TLK", _curTlkFile));
 
 	if (index > 0)
 		_curTlkFile = index;
 
-	snprintf(file, sizeof(file), "%02d.TLK", index);
-	_res->loadPakFile(file);
+	_res->loadPakFile(Common::String::format("%02d.TLK", index));
 }
 
 int LoLEngine::characterSays(int track, int charId, bool redraw) {
@@ -1757,10 +1848,10 @@ int LoLEngine::characterSays(int track, int charId, bool redraw) {
 	bool r = snd_playCharacterSpeech(track, charId, 0);
 
 	if (r && redraw) {
-		updatePortraits();
+		stopPortraitSpeechAnim();
 		_updateCharNum = charId;
 		_portraitSpeechAnimMode = 0;
-		_updateCharV3 = 1;
+		_resetPortraitAfterSpeechAnim = 1;
 		_fadeText = false;
 		updatePortraitSpeechAnim();
 	}
@@ -1768,7 +1859,7 @@ int LoLEngine::characterSays(int track, int charId, bool redraw) {
 	return r ? (textEnabled() ? 1 : 0) : 1;
 }
 
-int LoLEngine::playCharacterScriptChat(int charId, int mode, int unk1, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
+int LoLEngine::playCharacterScriptChat(int charId, int mode, int restorePortrait, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
 	int ch = 0;
 	bool skipAnim = false;
 
@@ -1777,7 +1868,7 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int unk1, char *str
 	else
 		charId ^= 0x70;
 
-	updatePortraits();
+	stopPortraitSpeechAnim();
 
 	if (charId < 0) {
 		charId = ch = (_rnd.getRandomNumber(0x7fff) * countActiveCharacters()) / 0x8000;
@@ -1806,7 +1897,7 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int unk1, char *str
 		_updateCharNum = charId;
 		_portraitSpeechAnimMode = mode;
 		_updatePortraitSpeechAnimDuration = strlen(str) >> 1;
-		_updateCharV3 = unk1;
+		_resetPortraitAfterSpeechAnim = restorePortrait;
 	}
 
 	if (script)
@@ -1839,16 +1930,16 @@ int LoLEngine::playCharacterScriptChat(int charId, int mode, int unk1, char *str
 	return 1;
 }
 
-void LoLEngine::giveItemToMonster(MonsterInPlay *monster, uint16 item) {
+void LoLEngine::giveItemToMonster(MonsterInPlay *monster, Item item) {
 	uint16 *c = &monster->assignedItems;
 	while (*c)
 		c = &_itemsInPlay[*c].nextAssignedObject;
-	*c = item;
+	*c = (uint16)item;
 	_itemsInPlay[item].nextAssignedObject = 0;
 }
 
 const uint16 *LoLEngine::getCharacterOrMonsterStats(int id) {
-	return (id & 0x8000) ? (const uint16*)_monsters[id & 0x7fff].properties->fightingStats : _characters[id].defaultModifiers;
+	return (id & 0x8000) ? (const uint16 *)_monsters[id & 0x7fff].properties->fightingStats : _characters[id].defaultModifiers;
 }
 
 uint16 *LoLEngine::getCharacterOrMonsterItemsMight(int id) {
@@ -1897,7 +1988,7 @@ int LoLEngine::castSpell(int charNum, int spellType, int spellLevel) {
 	_activeSpell.level = ABS(spellLevel);
 
 	if ((_spellProperties[spellType].flags & 0x100) && testWallFlag(calcNewBlockPosition(_currentBlock, _currentDirection), _currentDirection, 1)) {
-		_txt->printMessage(2, getLangString(0x4257));
+		_txt->printMessage(2, "%s", getLangString(0x4257));
 		return 0;
 	}
 
@@ -1913,7 +2004,7 @@ int LoLEngine::castSpell(int charNum, int spellType, int spellLevel) {
 			return 0;
 
 		setCharacterMagicOrHitPoints(charNum, 1, -_activeSpell.p->mpRequired[spellLevel], 1);
-		setCharacterMagicOrHitPoints(charNum, 0, -_activeSpell.p[1].hpRequired[spellLevel], 1);
+		setCharacterMagicOrHitPoints(charNum, 0, -_activeSpell.p->hpRequired[spellLevel], 1);
 		gui_drawCharPortraitWithStats(charNum);
 
 		if (_spellProcs[spellType]->isValid())
@@ -2038,7 +2129,7 @@ int LoLEngine::processMagicSpark(int charNum, int spellLevel) {
 			if ((i - wFrames[ii]) == 1)
 				snd_playSoundEffect(162, -1);
 
-			mov->displayFrame(((i - wFrames[ii]) + (dist << 4)) % numFrames, 2, wX[ii], wY[ii], 0x5000, _trueLightTable1, _trueLightTable2);
+			mov->displayFrame(((i - wFrames[ii]) + (dist << 4)) % numFrames, 2, wX[ii], wY[ii], 0x5000, _transparencyTable1, _transparencyTable2);
 			_screen->copyRegion(wX[ii], wY[ii], wX[ii], wY[ii], width, height, 2, 0, Screen::CR_NO_P_CHECK);
 			_screen->updateScreen();
 		}
@@ -2059,7 +2150,7 @@ int LoLEngine::processMagicSpark(int charNum, int spellLevel) {
 }
 
 int LoLEngine::processMagicHealSelectTarget() {
-	_txt->printMessage(0, getLangString(0x4040));
+	_txt->printMessage(0, "%s", getLangString(0x4040));
 	gui_resetButtonList();
 	gui_setFaceFramesControlButtons(81, 0);
 	gui_initButtonsFromList(_buttonList8);
@@ -2069,7 +2160,21 @@ int LoLEngine::processMagicHealSelectTarget() {
 int LoLEngine::processMagicHeal(int charNum, int spellLevel) {
 	if (!_healOverlay) {
 		_healOverlay = new uint8[256];
-		_screen->generateGrayOverlay(_screen->getPalette(1), _healOverlay, 52, 22, 20, 0, 256, true);
+		Palette tpal(256);
+		tpal.copy(_screen->getPalette(1));
+
+		if (_flags.use16ColorMode) {
+			tpal.fill(16, 240, 0xff);
+			uint8 *dst = tpal.getData();
+			for (int i = 1; i < 16; i++) {
+				int s = ((i << 4) | i) * 3;
+				SWAP(dst[s], dst[i]);
+				SWAP(dst[s + 1], dst[i + 1]);
+				SWAP(dst[s + 2], dst[i + 2]);
+			}
+		}
+
+		_screen->generateGrayOverlay(tpal, _healOverlay, 52, 22, 20, 0, 256, true);
 	}
 
 	const uint8 *healShpFrames = 0;
@@ -2147,7 +2252,7 @@ int LoLEngine::processMagicHeal(int charNum, int spellLevel) {
 			increaseCharacterHitpoints(charNum, pts[charNum] / 256, true);
 			gui_drawCharPortraitWithStats(charNum);
 
-			_screen->drawShape(2, _healShapes[healShpFrames[i]], pX[charNum], pY, 0, 0x1000, _trueLightTable1, _trueLightTable2);
+			_screen->drawShape(2, _healShapes[healShpFrames[i]], pX[charNum], pY, 0, 0x1000, _transparencyTable1, _transparencyTable2);
 			_screen->fillRect(0, 0, 31, 31, 0);
 
 			_screen->drawShape(_screen->_curPage, _healiShapes[healiShpFrames[i]], 0, 0, 0, 0);
@@ -2187,12 +2292,12 @@ int LoLEngine::processMagicIce(int charNum, int spellLevel) {
 	gui_drawScene(0);
 	_screen->copyPage(0, 12);
 
-	Palette tpal(768), swampCol(768);
+	Palette tpal(256), swampCol(256);
 
 	if (_currentLevel == 11 && !(_flagsTable[52] & 0x04)) {
 		uint8 *sc = _screen->getPalette(0).getData();
 		uint8 *dc = _screen->getPalette(2).getData();
-		for (int i = 1; i < 768; i++)
+		for (int i = 1; i < (_screen->getPalette(0).getNumColors() * 3); i++)
 			SWAP(sc[i], dc[i]);
 
 		_flagsTable[52] |= 0x04;
@@ -2200,19 +2305,34 @@ int LoLEngine::processMagicIce(int charNum, int spellLevel) {
 		setCharacterUpdateEvent(charNum, 8, freezeTimes[spellLevel], 1);
 	}
 
-	_screen->loadPalette("SWAMPICE.COL", swampCol);
-	tpal.copy(_screen->getPalette(1), 128);
-	swampCol.copy(_screen->getPalette(1), 128);
+	Palette s(256);
+	s.copy(_screen->getPalette(1));
+	if (_flags.use16ColorMode) {
+		_screen->loadPalette("LOLICE.NOL", swampCol);
+		for (int i = 1; i < 16; i++) {
+			uint16 v = (s[i * 3] + s[i * 3 + 1] + s[i * 3 + 2]) / 3;
+			tpal[i * 3] = 0;
+			tpal[i * 3 + 1] = v;
+			tpal[i * 3 + 2] = v << 1;
 
-	Palette &s = _screen->getPalette(1);
-	for (int i = 1; i < 128; i++) {
-		tpal[i * 3] = 0;
-		uint16 v = (s[i * 3] + s[i * 3 + 1] + s[i * 3 + 2]) / 3;
-		tpal[i * 3 + 1] = v;
-		tpal[i * 3 + 2] = v << 1;
+			if (tpal[i * 3 + 2] > 29)
+				tpal[i * 3 + 2] = 29;
+		}
 
-		if (tpal[i * 3 + 2] > 0x3f)
-			tpal[i * 3 + 2] = 0x3f;
+	} else {
+		_screen->loadPalette("SWAMPICE.COL", swampCol);
+		tpal.copy(s, 128);
+		swampCol.copy(s, 128);
+
+		for (int i = 1; i < 128; i++) {
+			tpal[i * 3] = 0;
+			uint16 v = (s[i * 3] + s[i * 3 + 1] + s[i * 3 + 2]) / 3;
+			tpal[i * 3 + 1] = v;
+			tpal[i * 3 + 2] = v << 1;
+
+			if (tpal[i * 3 + 2] > 0x3f)
+				tpal[i * 3 + 2] = 0x3f;
+		}
 	}
 
 	generateBrightnessPalette(tpal, tpal, _brightness, _lampEffect);
@@ -2317,10 +2437,6 @@ int LoLEngine::processMagicIce(int charNum, int spellLevel) {
 	if (breakWall)
 		breakIceWall(tpal.getData(), swampCol.getData());
 
-	static const uint8 freezeTime[] = { 20, 28, 40, 60 };
-	if (_currentLevel == 11)
-		setCharacterUpdateEvent(charNum, 8, freezeTime[spellLevel], 1);
-
 	_screen->setCurPage(cp);
 	return 1;
 }
@@ -2384,7 +2500,7 @@ int LoLEngine::processMagicFireball(int charNum, int spellLevel) {
 		numFireballs = fbCnt - 3;
 
 	FireballState *fireballState[3];
-	memset(fireballState, 0, sizeof(fireballState));
+	memset(&fireballState, 0, sizeof(fireballState));
 	for (i = 0; i < numFireballs; i++)
 		fireballState[i] = new FireballState(i);
 
@@ -2411,7 +2527,10 @@ int LoLEngine::processMagicFireball(int charNum, int spellLevel) {
 			int sH = ((fb->progress / 8 + shp[2] + fireBallWH) << 8) / shp[2];
 
 			if (fb->finalize) {
-				_screen->drawShape(_screen->_curPage, shp, fX, fY, 0, 0x1004, _trueLightTable1, _trueLightTable2, sW, sH);
+				if (_flags.use16ColorMode)
+					_screen->drawShape(_screen->_curPage, shp, fX, fY, 0, 4, sW, sH);
+				else
+					_screen->drawShape(_screen->_curPage, shp, fX, fY, 0, 0x1004, _transparencyTable1, _transparencyTable2, sW, sH);
 
 				if (finShpIndex2[fb->finProgress] != -1) {
 					shp = _fireballShapes[finShpIndex2[fb->finProgress]];
@@ -2423,7 +2542,10 @@ int LoLEngine::processMagicFireball(int charNum, int spellLevel) {
 				}
 
 			} else {
-				_screen->drawShape(_screen->_curPage, shp, fX, fY, 0, 0x1004, _trueLightTable1, _trueLightTable2, sW, sH);
+				if (_flags.use16ColorMode)
+					_screen->drawShape(_screen->_curPage, shp, fX, fY, 0, 4, sW, sH);
+				else
+					_screen->drawShape(_screen->_curPage, shp, fX, fY, 0, 0x1004, _transparencyTable1, _transparencyTable2, sW, sH);
 			}
 
 			if (fb->finalize) {
@@ -2571,12 +2693,11 @@ int LoLEngine::processMagicMistOfDoom(int charNum, int spellLevel) {
 
 	snd_playSoundEffect(155, -1);
 
-	char wsafile[13];
-	snprintf(wsafile, 13, "mists%0d.wsa", spellLevel + 1);
+	Common::String wsafile = Common::String::format("mists%0d.wsa", spellLevel + 1);
 	WSAMovie_v2 *mov = new WSAMovie_v2(this);
-	mov->open(wsafile, 1, 0);
+	mov->open(wsafile.c_str(), 1, 0);
 	if (!mov->opened())
-		error("Mist: Unable to load mists.wsa");
+		error("Mist: Unable to load %s", wsafile.c_str());
 
 	snd_playSoundEffect(_mistAnimData[spellLevel].sound, -1);
 	playSpellAnimation(mov, _mistAnimData[spellLevel].part1First, _mistAnimData[spellLevel].part1Last, 7, 112, 0, 0, 0, 0, 0, false);
@@ -2589,7 +2710,7 @@ int LoLEngine::processMagicMistOfDoom(int charNum, int spellLevel) {
 	_screen->copyPage(12, 0);
 
 	updateDrawPage2();
-	this->snd_playQueuedEffects();
+	snd_playQueuedEffects();
 	return 1;
 }
 
@@ -2603,12 +2724,11 @@ int LoLEngine::processMagicLightning(int charNum, int spellLevel) {
 	_lightningDiv = _lightningProps[spellLevel].frameDiv;
 	_lightningFirstSfx = 0;
 
-	char wsafile[13];
-	snprintf(wsafile, 13, "litning%d.wsa", spellLevel + 1);
+	Common::String wsafile = Common::String::format("litning%d.wsa", spellLevel + 1);
 	WSAMovie_v2 *mov = new WSAMovie_v2(this);
-	mov->open(wsafile, 1, 0);
+	mov->open(wsafile.c_str(), 1, 0);
 	if (!mov->opened())
-		error("Litning: Unable to load litning.wsa");
+		error("Litning: Unable to load %s", wsafile.c_str());
 
 	for (int i = 0; i < 4; i++)
 		playSpellAnimation(mov, 0, _lightningProps[spellLevel].lastFrame, 3, 93, 0, &LoLEngine::callbackProcessMagicLightning, 0, 0, 0, false);
@@ -2644,7 +2764,7 @@ int LoLEngine::processMagicFog() {
 	for (int curFrame = 0; curFrame < numFrames; curFrame++) {
 		uint32 delayTimer = _system->getMillis() + 3 * _tickLength;
 		_screen->copyPage(12, 2);
-		mov->displayFrame(curFrame % numFrames, 2, 112, 0, 0x5000, _trueLightTable1, _trueLightTable2);
+		mov->displayFrame(curFrame % numFrames, 2, 112, 0, 0x5000, _transparencyTable1, _transparencyTable2);
 		_screen->copyRegion(112, 0, 112, 0, 176, 120, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
 		delayUntil(delayTimer);
@@ -2668,6 +2788,8 @@ int LoLEngine::processMagicFog() {
 }
 
 int LoLEngine::processMagicSwarm(int charNum, int damage) {
+	createTransparencyTables();
+
 	int cp = _screen->setCurPage(2);
 	_screen->copyPage(0, 12);
 	snd_playSoundEffect(74, -1);
@@ -2733,19 +2855,31 @@ int LoLEngine::processMagicSwarm(int charNum, int damage) {
 }
 
 int LoLEngine::processMagicVaelansCube() {
-	uint8 *tmpPal1 = new uint8[768];
-	uint8 *tmpPal2 = new uint8[768];
 	uint8 *sp1 = _screen->getPalette(1).getData();
+	int len = _screen->getPalette(1).getNumColors() * 3;
 
-	memcpy(tmpPal1, sp1, 768);
-	memcpy(tmpPal2, sp1, 768);
+	uint8 *tmpPal1 = new uint8[len];
+	uint8 *tmpPal2 = new uint8[len];
 
-	for (int i = 0; i < 128; i++) {
-		uint16 a = sp1[i * 3] + 16;
-		tmpPal2[i * 3] = (a > 60) ? 60 : a;
-		tmpPal2[i * 3 + 1] = sp1[i * 3 + 1];
-		a = sp1[i * 3 + 2] + 19;
-		tmpPal2[i * 3 + 2] = (a > 60) ? 60 : a;
+	memcpy(tmpPal1, sp1, len);
+	memcpy(tmpPal2, sp1, len);
+
+	if (_flags.use16ColorMode) {
+		for (int i = 0; i < 16; i++) {
+			uint16 a = sp1[i * 3 + 1] + 16;
+			tmpPal2[i * 3 + 1] = (a > 58) ? 58 : a;
+			tmpPal2[i * 3] = sp1[i * 3];
+			a =	sp1[i * 3 + 2] + 16;
+			tmpPal2[i * 3 + 2] = (a > 63) ? 63 : a;
+		}
+	} else {
+		for (int i = 0; i < 128; i++) {
+			uint16 a = sp1[i * 3] + 16;
+			tmpPal2[i * 3] = (a > 60) ? 60 : a;
+			tmpPal2[i * 3 + 1] = sp1[i * 3 + 1];
+			a =	sp1[i * 3 + 2] + 19;
+			tmpPal2[i * 3 + 2] = (a > 60) ? 60 : a;
+		}
 	}
 
 	snd_playSoundEffect(146, -1);
@@ -2846,7 +2980,15 @@ void LoLEngine::callbackProcessMagicLightning(WSAMovie_v2 *mov, int x, int y) {
 		Palette tpal(p1.getNumColors());
 		tpal.copy(p1);
 
-		for (int i = 6; i < 384; i++) {
+		int start = 6;
+		int end = 384;
+
+		if (_flags.use16ColorMode) {
+			start = 3;
+			end = 48;
+		}
+
+		for (int i = start; i < end; i++) {
 			uint16 v = (tpal[i] * 120) / 64;
 			tpal[i] = (v < 64) ? v : 63;
 		}
@@ -2868,6 +3010,8 @@ void LoLEngine::callbackProcessMagicLightning(WSAMovie_v2 *mov, int x, int y) {
 }
 
 void LoLEngine::drinkBezelCup(int numUses, int charNum) {
+	createTransparencyTables();
+
 	int cp = _screen->setCurPage(2);
 	snd_playSoundEffect(73, -1);
 
@@ -2896,7 +3040,7 @@ void LoLEngine::drinkBezelCup(int numUses, int charNum) {
 		uint32 etime = _system->getMillis() + 4 * _tickLength;
 
 		_screen->copyRegion(0, 0, x, y, w, h, 2, 2, Screen::CR_NO_P_CHECK);
-		mov->displayFrame(frm, 2, x, y, 0x5000, _trueLightTable1, _trueLightTable2);
+		mov->displayFrame(frm, 2, x, y, _flags.use16ColorMode ? 0x4000 : 0x5000, _transparencyTable1, _transparencyTable2);
 		_screen->copyRegion(x, y, x, y, w, h, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
 
@@ -2926,7 +3070,7 @@ void LoLEngine::addSpellToScroll(int spell, int charNum) {
 		}
 
 		if (_availableSpells[i] == spell) {
-			_txt->printMessage(2, getLangString(0x42d0));
+			_txt->printMessage(2, "%s", getLangString(0x42d0));
 			return;
 		}
 	}
@@ -2954,17 +3098,21 @@ void LoLEngine::transferSpellToScollAnimation(int charNum, int spell, int slot) 
 			_screen->copyRegion(201, 1, 17, 15, 6, h, 2, 2, Screen::CR_NO_P_CHECK);
 			_screen->copyRegion(208, 1, 89, 15, 6, h, 2, 2, Screen::CR_NO_P_CHECK);
 			int cp = _screen->setCurPage(2);
-			_screen->fillRect(21, 15, 89, h + 15, 206);
+			_screen->fillRect(21, 15, 89, h + 15, _flags.use16ColorMode ? 0xbb : 206);
 			_screen->copyRegion(112, 16, 12, h + 15, 87, 14, 2, 2, Screen::CR_NO_P_CHECK);
 
 			int y = 15;
+			Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
 			for (int ii = 0; ii < 7; ii++) {
 				if (_availableSpells[ii] == -1)
 					continue;
 				uint8 col = (ii == _selectedSpell) ? 132 : 1;
-				_screen->fprintString(getLangString(_spellProperties[_availableSpells[ii]].spellNameCode), 24, y, col, 0, 0);
+				if (_flags.use16ColorMode)
+					col = (ii == _selectedSpell) ? 0x88 : 0x44;
+				_screen->fprintString("%s", 24, y, col, 0, 0, getLangString(_spellProperties[_availableSpells[ii]].spellNameCode));
 				y += 9;
 			}
+			_screen->setFont(of);
 
 			_screen->setCurPage(cp);
 			_screen->copyRegion(8, 0, 8, 0, 96, 120, 3, 0, Screen::CR_NO_P_CHECK);
@@ -2980,8 +3128,10 @@ void LoLEngine::transferSpellToScollAnimation(int charNum, int spell, int slot) 
 	int vX = _updateSpellBookCoords[slot << 1] + 32;
 	int vY = _updateSpellBookCoords[(slot << 1) + 1] + 5;
 
-	char wsaFile[13];
-	snprintf(wsaFile, 13, "write%0d%c.wsa", spell, (_lang == 1) ? 'f' : (_lang == 0 ? 'e' : 'g'));
+	Common::String wsaFile = Common::String::format("write%0d", spell);
+	if (_flags.isTalkie)
+		wsaFile += (_lang == 1) ? 'f' : (_lang == 0 ? 'e' : 'g');
+	wsaFile += ".wsa";
 	snd_playSoundEffect(_updateSpellBookAnimData[(spell << 2) + 3], -1);
 	snd_playSoundEffect(95, -1);
 
@@ -3002,7 +3152,7 @@ void LoLEngine::transferSpellToScollAnimation(int charNum, int spell, int slot) 
 		int wsaX = vX + (((((cX - vX) << 8) / 16) * i) >> 8) - 16;
 		int wsaY = vY + (((((160 - vY) << 8) / 16) * i) >> 8) - 16;
 
-		mov->displayFrame(51, 2, wsaX, wsaY, 0x5000, _trueLightTable1, _trueLightTable2);
+		mov->displayFrame(51, 2, wsaX, wsaY, 0x5000, _transparencyTable1, _transparencyTable2);
 
 		_screen->copyRegion(wsaX, wsaY, wsaX, wsaY, mov->width() + 48, mov->height() + 48, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
@@ -3025,7 +3175,7 @@ void LoLEngine::transferSpellToScollAnimation(int charNum, int spell, int slot) 
 	playSpellAnimation(mov, 0, 6, 5, _updateSpellBookCoords[slot << 1], _updateSpellBookCoords[(slot << 1) + 1], 0, 0, 0, 0, false);
 	mov->close();
 
-	mov->open(wsaFile, 0, 0);
+	mov->open(wsaFile.c_str(), 0, 0);
 	if (!mov->opened())
 		error("SpellBook: Unable to load spellbook anim");
 	snd_playSoundEffect(_updateSpellBookAnimData[(spell << 2) + 3], -1);
@@ -3073,31 +3223,39 @@ void LoLEngine::playSpellAnimation(WSAMovie_v2 *mov, int firstFrame, int lastFra
 			(this->*callback)(mov, x, y);
 
 		if (mov)
-			mov->displayFrame(curFrame % mov->frames(), 2, x, y, 0x5000, _trueLightTable1, _trueLightTable2);
+			mov->displayFrame(curFrame % mov->frames(), 2, x, y, _flags.use16ColorMode ? 0x4000 : 0x5000, _transparencyTable1, _transparencyTable2);
 
 		if (mov || callback) {
 			_screen->copyRegion(x, y, x, y, w2, h2, 2, 0, Screen::CR_NO_P_CHECK);
 			_screen->updateScreen();
 		}
 
-		int del = (int)(delayTimer - _system->getMillis());
+		uint32 tm = _system->getMillis();
+		uint32 del = (delayTimer > tm) ? (delayTimer - tm) : 0;
+
 		do {
-			int step = del > _tickLength ? _tickLength : del;
+			uint32 step = del > _tickLength ? _tickLength : del;
 
 			if (!pal1 || !pal2) {
-				if (del > 0)
+				if (del) {
 					delay(step);
-				del -= step;
+					del -= step;
+				} else {
+					updateInput();
+				}
 				continue;
 			}
 
 			if (!_screen->fadePaletteStep(pal1, pal2, _system->getMillis() - startTime, _tickLength * fadeDelay) && !mov)
 				return;
 
-			if (del > 0)
+			if (del) {
 				delay(step);
-			del -= step;
-		} while (del > 0);
+				del -= step;
+			} else {
+				updateInput();
+			}
+		} while (del);
 
 		if (!mov)
 			continue;
@@ -3358,7 +3516,6 @@ void LoLEngine::removeCharacterEffects(LoLCharacter *c, int first, int last) {
 		}
 	}
 
-	_timer3Para = 1;
 	_timer->enable(3);
 }
 
@@ -3421,11 +3578,12 @@ void LoLEngine::checkForPartyDeath() {
 		_screen->fadeToPalette1(40);
 
 	} else {
-		_screen->fadeClearSceneWindow(10);
+		if (!_flags.use16ColorMode)
+			_screen->fadeClearSceneWindow(10);
 		restoreAfterSpecialScene(0, 1, 1, 0);
 
 		snd_playTrack(325);
-		updatePortraits();
+		stopPortraitSpeechAnim();
 		initTextFading(0, 1);
 		setMouseCursorToIcon(0);
 		_updateFlags |= 4;
@@ -3456,7 +3614,7 @@ void LoLEngine::applyMonsterAttackSkill(MonsterInPlay *monster, int16 target, in
 		if (t) {
 			giveItemToMonster(monster, t);
 			if (characterSays(0x4019, _characters[target].id, true))
-				_txt->printMessage(6, getLangString(0x4019));
+				_txt->printMessage(6, "%s", getLangString(0x4019));
 		}
 		break;
 
@@ -3470,7 +3628,7 @@ void LoLEngine::applyMonsterAttackSkill(MonsterInPlay *monster, int16 target, in
 		if (t) {
 			deleteItem(t);
 			if (characterSays(0x401b, _characters[target].id, true))
-				_txt->printMessage(6, getLangString(0x401b));
+				_txt->printMessage(6, "%s", getLangString(0x401b));
 		}
 		break;
 
@@ -3526,7 +3684,7 @@ void LoLEngine::applyMonsterDefenseSkill(MonsterInPlay *monster, int16 attacker,
 		if ((flags & 0x3f) == 2 || skill)
 			return;
 
-		for (int i = 0; i < 3 ; i++) {
+		for (int i = 0; i < 3; i++) {
 			itm = _characters[attacker].items[i];
 			if (!itm)
 				continue;
@@ -3538,12 +3696,12 @@ void LoLEngine::applyMonsterDefenseSkill(MonsterInPlay *monster, int16 attacker,
 			if (monster->properties->defenseSkillType == 1) {
 				giveItemToMonster(monster, itm);
 				if (characterSays(0x401c, _characters[attacker].id, true))
-					_txt->printMessage(6, getLangString(0x401c));
+					_txt->printMessage(6, "%s", getLangString(0x401c));
 
 			} else {
 				deleteItem(itm);
 				if (characterSays(0x401d, _characters[attacker].id, true))
-					_txt->printMessage(6, getLangString(0x401d));
+					_txt->printMessage(6, "%s", getLangString(0x401d));
 			}
 		}
 		break;
@@ -3663,7 +3821,7 @@ void LoLEngine::restoreSwampPalette() {
 	uint8 *d = _screen->getPalette(0).getData();
 	uint8 *d2 = _screen->getPalette(1).getData();
 
-	for (int i = 1; i < 768; i++)
+	for (int i = 1; i < (_screen->getPalette(0).getNumColors() * 3); i++)
 		SWAP(s[i], d[i]);
 
 	generateBrightnessPalette(_screen->getPalette(0), _screen->getPalette(1), _brightness, _lampEffect);
@@ -3705,7 +3863,7 @@ void LoLEngine::launchMagicViper() {
 		if (frm == v[2])
 			snd_playSoundEffect(172, -1);
 
-		mov->displayFrame(frm++ % numFrames, 2, 112, 0, 0x5000, _trueLightTable1, _trueLightTable2);
+		mov->displayFrame(frm++ % numFrames, 2, 112, 0, 0x5000, _transparencyTable1, _transparencyTable2);
 		_screen->copyRegion(112, 0, 112, 0, 176, 120, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
 		delayUntil(etime);
@@ -3835,7 +3993,7 @@ uint16 LoLEngine::getNearestPartyMemberFromPos(int x, int y) {
 
 void LoLEngine::displayAutomap() {
 	snd_playSoundEffect(105, -1);
-	gui_toggleButtonDisplayMode(78, 1);
+	gui_toggleButtonDisplayMode(_flags.isTalkie ? 78 : 76, 1);
 
 	_currentMapLevel = _currentLevel;
 	uint8 *tmpWll = new uint8[80];
@@ -3848,7 +4006,13 @@ void LoLEngine::displayAutomap() {
 	for (int i = 0; i < 109; i++)
 		_automapShapes[i] = _screen->getPtrToShape(shp, i + 11);
 
-	_screen->generateGrayOverlay(_screen->getPalette(3), _mapOverlay, 52, 0, 0, 0, 256, false);
+	if (_flags.use16ColorMode) {
+		static const uint8 ovlSrc[] = { 0x00, 0xEE, 0xCC, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0x22, 0x11, 0xDD, 0xEE, 0xCC };
+		memset(_mapOverlay, 0, 256);
+		for (int i = 0; i < 16; i++)
+			_mapOverlay[(i << 4) | i] = ovlSrc[i];
+	} else
+		_screen->generateGrayOverlay(_screen->getPalette(3), _mapOverlay, 52, 0, 0, 0, 256, false);
 
 	_screen->loadFont(Screen::FID_9_FNT, "FONT9PN.FNT");
 	_screen->loadFont(Screen::FID_6_FNT, "FONT6PN.FNT");
@@ -3899,7 +4063,7 @@ void LoLEngine::displayAutomap() {
 			for (int i = 0; i < 1024; i++)
 				 _levelBlockProperties[i].flags |= 7;
 			_mapUpdateNeeded = true;
-		} else if (f == 0x6e) {
+		} else if (f == _keyMap[Common::KEYCODE_ESCAPE]) {
 			exitAutomap = true;
 		}
 
@@ -3908,6 +4072,9 @@ void LoLEngine::displayAutomap() {
 
 	_screen->loadFont(Screen::FID_9_FNT, "FONT9P.FNT");
 	_screen->loadFont(Screen::FID_6_FNT, "FONT6P.FNT");
+
+	if (_flags.use16ColorMode)
+		_screen->clearPage(2);
 
 	_screen->fadeToBlack(10);
 	loadLevelWallData(_currentLevel, false);
@@ -3975,16 +4142,15 @@ bool LoLEngine::updateAutoMapIntern(uint16 block, uint16 x, uint16 y, int16 xOff
 }
 
 void LoLEngine::loadMapLegendData(int level) {
-	uint16 *legendData= (uint16*)_tempBuffer5120;
+	uint16 *legendData = (uint16 *)_tempBuffer5120;
 	for (int i = 0; i < 32; i++) {
 		legendData[i * 6] = 0xffff;
 		legendData[i * 6 + 5] = 0xffff;
 	}
 
-	char file[13];
+	Common::String file = Common::String::format("level%d.xxx", level);
 	uint32 size = 0;
-	snprintf(file, 12, "level%d.xxx", level);
-	uint8 *data = _res->fileData(file, &size);
+	uint8 *data = _res->fileData(file.c_str(), &size);
 	uint8 *pos = data;
 	size = MIN<uint32>(size / 12, 32);
 
@@ -4008,17 +4174,20 @@ void LoLEngine::loadMapLegendData(int level) {
 }
 
 void LoLEngine::drawMapPage(int pageNum) {
-	// WORKAROUND for French version. The Text does not always properly fit the screen there.
-	int8 textOffset = (_lang == 1) ? -2 : 0;
+	// WORKAROUND for French version. The text does not always properly fit the screen there.
+	const int8 xOffset = (_lang == 1) ? -2 : 0;
+
+	if (_flags.use16ColorMode)
+		_screen->clearPage(pageNum);
 
 	for (int i = 0; i < 2; i++) {
 		_screen->loadBitmap("parch.cps", pageNum, pageNum, &_screen->getPalette(3));
 		if (_lang == 1)
-			_screen->copyRegion(236, 16, 236 + textOffset, 16, -textOffset, 1, pageNum, pageNum, Screen::CR_NO_P_CHECK);
+			_screen->copyRegion(236, 16, 236 + xOffset, 16, -xOffset, 1, pageNum, pageNum, Screen::CR_NO_P_CHECK);
 
 		int cp = _screen->setCurPage(pageNum);
-		Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
-		_screen->printText(getLangString(_autoMapStrings[_currentMapLevel]), 236 + textOffset, 8, 1, 0);
+		Screen::FontId of = _screen->setFont(_flags.use16ColorMode ? Screen::FID_SJIS_FNT : Screen::FID_9_FNT);
+		_screen->printText(getLangString(_autoMapStrings[_currentMapLevel]), 236 + xOffset, 8, 1, 0);
 		uint16 blX = mapGetStartPosX();
 		uint16 bl = (mapGetStartPosY() << 5) + blX;
 
@@ -4077,13 +4246,14 @@ void LoLEngine::drawMapPage(int pageNum) {
 		_screen->setFont(of);
 		_screen->setCurPage(cp);
 
-		of = _screen->setFont(Screen::FID_6_FNT);
+		of = _screen->setFont(_flags.use16ColorMode ? Screen::FID_SJIS_FNT : Screen::FID_6_FNT);
 
 		int tY = 0;
 		sx = mapGetStartPosX();
 		sy = mapGetStartPosY();
 
-		uint16 *legendData = (uint16*)_tempBuffer5120;
+		uint16 *legendData = (uint16 *)_tempBuffer5120;
+		uint8 yOffset = _flags.use16ColorMode ? 4 : 0;
 
 		for (int ii = 0; ii < 32; ii++)  {
 			uint16 *l = &legendData[ii * 6];
@@ -4097,7 +4267,7 @@ void LoLEngine::drawMapPage(int pageNum) {
 			if (l[2] == 0xffff)
 				continue;
 
-			printMapText(l[2], 244 + textOffset, (tY << 3) + 22);
+			printMapText(l[2], 244 + xOffset, (tY << 3) + 22 + yOffset);
 
 			if (l[5] == 0xffff) {
 				tY++;
@@ -4107,7 +4277,7 @@ void LoLEngine::drawMapPage(int pageNum) {
 			uint16 cbl2 = l[3] + (l[4] << 5);
 			_levelBlockProperties[cbl2].flags |= 7;
 			_screen->drawShape(2, _automapShapes[l[5] << 2], (l[3] - sx) * 7 + _automapTopLeftX - 3, (l[4] - sy) * 6 + _automapTopLeftY - 3, 0, 0);
-			_screen->drawShape(2, _automapShapes[l[5] << 2], 231 + textOffset, (tY << 3) + 19, 0, 0);
+			_screen->drawShape(2, _automapShapes[l[5] << 2], 231 + xOffset, (tY << 3) + 19 + yOffset, 0, 0);
 			tY++;
 		}
 
@@ -4116,9 +4286,9 @@ void LoLEngine::drawMapPage(int pageNum) {
 		for (int ii = 0; ii < 11; ii++) {
 			if (!_defaultLegendData[ii].enable)
 				continue;
-			_screen->copyBlockAndApplyOverlay(_screen->_curPage, 235, (tY << 3) + 21, _screen->_curPage, 235 + textOffset, (tY << 3) + 21, 7, 6, 0, _mapOverlay);
-			_screen->drawShape(_screen->_curPage, _automapShapes[_defaultLegendData[ii].shapeIndex << 2], 232 + textOffset, (tY << 3) + 18 + _defaultLegendData[ii].x, 0, 0);
-			printMapText(_defaultLegendData[ii].stringId, 244 + textOffset, (tY << 3) + 22);
+			_screen->copyBlockAndApplyOverlay(_screen->_curPage, 235, (tY << 3) + 21 + yOffset, _screen->_curPage, 235 + xOffset, (tY << 3) + 21 + yOffset, 7, 6, 0, _mapOverlay);
+			_screen->drawShape(_screen->_curPage, _automapShapes[_defaultLegendData[ii].shapeIndex << 2], 232 + xOffset, (tY << 3) + 18 + yOffset + _defaultLegendData[ii].y, 0, 0);
+			printMapText(_defaultLegendData[ii].stringId, 244 + xOffset, (tY << 3) + 22 + yOffset);
 			tY++;
 		}
 
@@ -4130,23 +4300,28 @@ void LoLEngine::drawMapPage(int pageNum) {
 }
 
 bool LoLEngine::automapProcessButtons(int inputFlag) {
-	if (inputFlag != 199)
-		return false;
-
 	int r = -1;
-	if (posWithinRect(_mouseX, _mouseY, 252, 175, 273, 200))
+	if (inputFlag == _keyMap[Common::KEYCODE_RIGHT] || inputFlag == _keyMap[Common::KEYCODE_KP6]) {
 		r = 0;
-	else if (posWithinRect(_mouseX, _mouseY, 231, 175, 252, 200))
+	} else if (inputFlag == _keyMap[Common::KEYCODE_LEFT] || inputFlag == _keyMap[Common::KEYCODE_KP4]) {
 		r = 1;
-	else if (posWithinRect(_mouseX, _mouseY, 275, 175, 315, 197))
-		r = 2;
+	} else if (inputFlag == 199) {
+		if (posWithinRect(_mouseX, _mouseY, 252, 175, 273, 200))
+			r = 0;
+		else if (posWithinRect(_mouseX, _mouseY, 231, 175, 252, 200))
+			r = 1;
+		else if (posWithinRect(_mouseX, _mouseY, 275, 175, 315, 197))
+			r = 2;
 
-	printMapExitButtonText();
+		printMapExitButtonText();
 
-	while (inputFlag == 199 || inputFlag == 200) {
-		inputFlag = checkInput(0, false);
-		removeInputTop();
-		delay(_tickLength);
+		while (inputFlag == 199 || inputFlag == 200) {
+			inputFlag = checkInput(0, false);
+			removeInputTop();
+			delay(_tickLength);
+		}
+	} else {
+		return false;
 	}
 
 	if (r == 0) {
@@ -4203,16 +4378,21 @@ void LoLEngine::redrawMapCursor() {
 	if (_currentLevel != _currentMapLevel)
 		return;
 
-	_screen->fillRect(0, 0, 16, 16, 0, 2);
-	_screen->drawShape(2, _automapShapes[48 + _currentDirection], 0, 0, 0, 0);
 	int cx = _automapTopLeftX + (((_currentBlock - sx) % 32) * 7);
 	int cy = _automapTopLeftY + (((_currentBlock - (sy << 5)) / 32) * 6);
-	_screen->copyRegion(cx, cy, cx, cy, 16, 16, 2, 0);
-	_screen->copyBlockAndApplyOverlay(2, 0, 0, 0, cx - 3, cy - 2, 16, 16, 0, _mapCursorOverlay);
 
-	_mapCursorOverlay[24] = _mapCursorOverlay[1];
-	for (int i = 1; i < 24; i++)
-		_mapCursorOverlay[i] = _mapCursorOverlay[i + 1];
+	if (_flags.use16ColorMode) {
+		_screen->drawShape(0, _automapShapes[48 + _currentDirection], cx - 3, cy - 2, 0, 0);
+	} else {
+		_screen->fillRect(0, 0, 16, 16, 0, 2);
+		_screen->drawShape(2, _automapShapes[48 + _currentDirection], 0, 0, 0, 0);
+		_screen->copyRegion(cx, cy, cx, cy, 16, 16, 2, 0);
+		_screen->copyBlockAndApplyOverlay(2, 0, 0, 0, cx - 3, cy - 2, 16, 16, 0, _mapCursorOverlay);
+
+		_mapCursorOverlay[24] = _mapCursorOverlay[1];
+		for (int i = 1; i < 24; i++)
+			_mapCursorOverlay[i] = _mapCursorOverlay[i + 1];
+	}
 
 	_screen->updateScreen();
 }
@@ -4306,13 +4486,18 @@ void LoLEngine::mapIncludeLegendData(int type) {
 
 void LoLEngine::printMapText(uint16 stringId, int x, int y) {
 	int cp = _screen->setCurPage(2);
-	_screen->printText(getLangString(stringId), x, y, 239, 0);
+	if (_flags.use16ColorMode)
+		_screen->printText(getLangString(stringId), x & ~3, y & ~7, 1, 0);
+	else
+		_screen->printText(getLangString(stringId), x, y, 239, 0);
 	_screen->setCurPage(cp);
 }
 
 void LoLEngine::printMapExitButtonText() {
 	int cp = _screen->setCurPage(2);
-	_screen->fprintString(getLangString(0x4033), 295, 182, 172, 0, 5);
+	Screen::FontId of = _screen->setFont(Screen::FID_9_FNT);
+	_screen->fprintString("%s", 295, 182, _flags.use16ColorMode ? 0xbb : 172, 0, 5, getLangString(0x4033));
+	_screen->setFont(of);
 	_screen->setCurPage(cp);
 }
 
@@ -4333,10 +4518,9 @@ void LoLEngine::generateTempData() {
 	_lvlTempData[l]->monsters = new MonsterInPlay[30];
 	_lvlTempData[l]->flyingObjects = new FlyingObject[8];
 
-	char filename[13];
-	snprintf(filename, sizeof(filename), "LEVEL%d.CMZ", _currentLevel);
+	Common::String filename = Common::String::format("LEVEL%d.CMZ", _currentLevel);
 
-	_screen->loadBitmap(filename, 15, 15, 0);
+	_screen->loadBitmap(filename.c_str(), 15, 15, 0);
 	const uint8 *p = _screen->getCPagePtr(14);
 	uint16 len = READ_LE_UINT16(p + 4);
 	p += 6;
@@ -4360,7 +4544,7 @@ void LoLEngine::generateTempData() {
 	_hasTempDataFlags |= (1 << l);
 }
 
-} // end of namespace Kyra
+} // End of namespace Kyra
 
 #endif // ENABLE_LOL
 

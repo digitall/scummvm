@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -77,9 +74,12 @@ int32 SlotFileIndexed::tallyUpFiles(uint32 slotSize, uint32 indexSize) const {
 }
 
 void SlotFileIndexed::buildIndex(byte *buffer, SavePartInfo &info,
-		SaveConverter *converter) const {
+		SaveConverter *converter, bool setLongest) const {
 
 	uint32 descLength = info.getDescMaxLength();
+
+	uint32 longest     = 0;
+	byte  *bufferStart = buffer;
 
 	// Iterate over all files
 	for (uint32 i = 0; i < _slotCount; i++, buffer += descLength) {
@@ -100,9 +100,18 @@ void SlotFileIndexed::buildIndex(byte *buffer, SavePartInfo &info,
 
 			delete[] desc;
 
+			longest = MAX<uint32>(longest, strlen((const char *) buffer));
+
 		} else
 			// No valid slot, fill with 0
 			memset(buffer, 0, descLength);
+	}
+
+	if (setLongest) {
+		uint32 slot0Len;
+		for (slot0Len = strlen((const char *) bufferStart); slot0Len < longest; slot0Len++)
+			bufferStart[slot0Len] = ' ';
+		bufferStart[slot0Len] = '\0';
 	}
 }
 
@@ -145,8 +154,7 @@ Common::String SlotFileIndexed::build(int slot) const {
 	if ((slot < 0) || (((uint32) slot) >= _slotCount))
 		return Common::String();
 
-	char buf[4];
-	snprintf(buf, sizeof(buf), "%02d", slot);
+	Common::String buf = Common::String::format("%02d", slot);
 
 	return _base + "." + _ext + buf;
 }
@@ -212,6 +220,10 @@ uint32 SaveHandler::getVarSize(GobEngine *vm) {
 	return vm->_inter->_variables->getSize();
 }
 
+bool SaveHandler::deleteFile() {
+	return true;
+}
+
 
 TempSpriteHandler::TempSpriteHandler(GobEngine *vm) : SaveHandler(vm) {
 	_sprite = 0;
@@ -229,6 +241,9 @@ int32 TempSpriteHandler::getSize() {
 }
 
 bool TempSpriteHandler::load(int16 dataVar, int32 size, int32 offset) {
+	if (isDummy(size))
+		return true;
+
 	// Sprite available?
 	if (!_sprite)
 		return false;
@@ -239,10 +254,10 @@ bool TempSpriteHandler::load(int16 dataVar, int32 size, int32 offset) {
 
 	// Index sane?
 	int index = getIndex(size);
-	if ((index < 0) || (index >= SPRITES_COUNT))
+	if ((index < 0) || (index >= Draw::kSpriteCount))
 		return false;
 
-	SurfaceDescPtr sprite = _vm->_draw->_spritesArray[index];
+	SurfacePtr sprite = _vm->_draw->_spritesArray[index];
 
 	// Target sprite exists?
 	if (!sprite)
@@ -254,7 +269,7 @@ bool TempSpriteHandler::load(int16 dataVar, int32 size, int32 offset) {
 
 	// Handle palette
 	if (usesPalette(size)) {
-		if (!_sprite->writePalette((byte *) _vm->_global->_pPaletteDesc->vgaPal))
+		if (!_sprite->writePalette((byte *)_vm->_global->_pPaletteDesc->vgaPal))
 			return false;
 
 		_vm->_video->setFullPalette(_vm->_global->_pPaletteDesc);
@@ -272,9 +287,11 @@ bool TempSpriteHandler::load(int16 dataVar, int32 size, int32 offset) {
 }
 
 bool TempSpriteHandler::save(int16 dataVar, int32 size, int32 offset) {
-	SurfaceDescPtr sprite;
+	if (isDummy(size))
+		return true;
 
-	if (!createSprite(dataVar, size, offset, &sprite))
+	SurfacePtr sprite = createSprite(dataVar, size, offset);
+	if (!sprite)
 		return false;
 
 	// Save the sprite
@@ -282,42 +299,53 @@ bool TempSpriteHandler::save(int16 dataVar, int32 size, int32 offset) {
 		return false;
 
 	// Handle palette
-	if (usesPalette(size)) {
-		if (!_sprite->readPalette((const byte *) _vm->_global->_pPaletteDesc->vgaPal))
+	if (usesPalette(size))
+		if (!_sprite->readPalette((const byte *)_vm->_global->_pPaletteDesc->vgaPal))
 			return false;
-	}
 
 	return true;
 }
 
-bool TempSpriteHandler::createSprite(int16 dataVar, int32 size,
-		int32 offset, SurfaceDescPtr *sprite) {
-
+bool TempSpriteHandler::create(uint32 width, uint32 height, bool trueColor) {
 	delete _sprite;
 	_sprite = 0;
 
+	// Create a new temporary sprite
+	_sprite = new SavePartSprite(width, height, trueColor);
+
+	return true;
+}
+
+bool TempSpriteHandler::createFromSprite(int16 dataVar, int32 size, int32 offset) {
+	return createSprite(dataVar, size, offset) != 0;
+}
+
+SurfacePtr TempSpriteHandler::createSprite(int16 dataVar, int32 size, int32 offset) {
+	SurfacePtr sprt;
+
 	// Sprite requested?
 	if (!isSprite(size))
-		return false;
+		return sprt;
 
 	// Index sane?
 	int index = getIndex(size);
-	if ((index < 0) || (index >= SPRITES_COUNT))
-		return false;
-
-	SurfaceDescPtr sprt = _vm->_draw->_spritesArray[index];
+	if ((index < 0) || (index >= Draw::kSpriteCount))
+		return sprt;
 
 	// Sprite exists?
-	if (!sprt)
-		return false;
+	if (!(sprt = _vm->_draw->_spritesArray[index]))
+		return sprt;
 
-	// Create a new temporary sprite
-	_sprite = new SavePartSprite(sprt->getWidth(), sprt->getHeight());
+	if (!create(sprt->getWidth(), sprt->getHeight(), sprt->getBPP() > 1))
+		sprt.reset();
 
-	if (sprite)
-		*sprite = sprt;
+	return sprt;
+}
 
-	return true;
+// A size of 0 means no proper sprite should be saved/loaded,
+// but no error should be thrown either.
+bool TempSpriteHandler::isDummy(int32 size) {
+	return (size == 0);
 }
 
 // A negative size is the flag for using a sprite
@@ -328,6 +356,8 @@ bool TempSpriteHandler::isSprite(int32 size) {
 // Contruct the index
 int TempSpriteHandler::getIndex(int32 size) {
 	// Palette flag
+	if (size < -3000)
+		size += 3000;
 	if (size < -1000)
 		size += 1000;
 
@@ -453,6 +483,50 @@ bool NotesHandler::save(int16 dataVar, int32 size, int32 offset) {
 		return false;
 
 	return writer.writePart(0, &vars);
+}
+
+
+FakeFileHandler::FakeFileHandler(GobEngine *vm) : SaveHandler(vm) {
+}
+
+FakeFileHandler::~FakeFileHandler() {
+}
+
+int32 FakeFileHandler::getSize() {
+	if (_data.empty())
+		return -1;
+
+	return _data.size();
+}
+
+bool FakeFileHandler::load(int16 dataVar, int32 size, int32 offset) {
+	if (size <= 0)
+		return false;
+
+	if ((uint32)(offset + size) > _data.size())
+		return false;
+
+	_vm->_inter->_variables->copyFrom(dataVar, &_data[0] + offset, size);
+
+	return true;
+}
+
+bool FakeFileHandler::save(int16 dataVar, int32 size, int32 offset) {
+	if (size <= 0)
+		return false;
+
+	if ((uint32)(offset + size) > _data.size())
+		_data.resize(offset + size);
+
+	_vm->_inter->_variables->copyTo(dataVar, &_data[0] + offset, size);
+
+	return true;
+}
+
+bool FakeFileHandler::deleteFile() {
+	_data.clear();
+
+	return true;
 }
 
 } // End of namespace Gob

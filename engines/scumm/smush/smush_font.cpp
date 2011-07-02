@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -171,7 +168,7 @@ void SmushFont::drawString(const char *str, byte *buffer, int dst_width, int dst
 
 	while (str) {
 		char line[256];
-		char *pos = (char *)strchr(str, '\n');
+		const char *pos = strchr(str, '\n');
 		if (pos) {
 			memcpy(line, str, pos - str - 1);
 			line[pos - str - 1] = 0;

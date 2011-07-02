@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #include "graphics/thumbnail.h"
@@ -27,6 +24,8 @@
 #include "graphics/colormasks.h"
 #include "common/endian.h"
 #include "common/system.h"
+#include "common/stream.h"
+#include "common/textconsole.h"
 
 namespace Graphics {
 
@@ -48,7 +47,7 @@ bool loadHeader(Common::SeekableReadStream &in, ThumbnailHeader &header, bool ou
 	// We also accept the bad 'BMHT' header here, for the sake of compatibility
 	// with some older savegames which were written incorrectly due to a bug in
 	// ScummVM which wrote the thumb header type incorrectly on LE systems.
-	if (header.type != MKID_BE('THMB') && header.type != MKID_BE('BMHT')) {
+	if (header.type != MKTAG('T','H','M','B') && header.type != MKTAG('B','M','H','T')) {
 		if (outputWarnings)
 			warning("couldn't find thumbnail header type");
 		return false;
@@ -82,7 +81,7 @@ bool checkThumbnailHeader(Common::SeekableReadStream &in) {
 	return hasHeader;
 }
 
-bool skipThumbnailHeader(Common::SeekableReadStream &in) {
+bool skipThumbnail(Common::SeekableReadStream &in) {
 	uint32 position = in.pos();
 	ThumbnailHeader header;
 
@@ -106,10 +105,10 @@ bool loadThumbnail(Common::SeekableReadStream &in, Graphics::Surface &to) {
 		return false;
 	}
 
-	to.create(header.width, header.height, sizeof(OverlayColor));
+	Graphics::PixelFormat format = g_system->getOverlayFormat();
+	to.create(header.width, header.height, format);
 
 	OverlayColor *pixels = (OverlayColor *)to.pixels;
-	Graphics::PixelFormat format = g_system->getOverlayFormat();
 	for (int y = 0; y < to.h; ++y) {
 		for (int x = 0; x < to.w; ++x) {
 			uint8 r, g, b;
@@ -138,18 +137,18 @@ bool saveThumbnail(Common::WriteStream &out) {
 }
 
 bool saveThumbnail(Common::WriteStream &out, const Graphics::Surface &thumb) {
-	if (thumb.bytesPerPixel != 2) {
+	if (thumb.format.bytesPerPixel != 2) {
 		warning("trying to save thumbnail with bpp different than 2");
 		return false;
 	}
 
 	ThumbnailHeader header;
-	header.type = MKID_BE('THMB');
-	header.size = ThumbnailHeaderSize + thumb.w*thumb.h*thumb.bytesPerPixel;
+	header.type = MKTAG('T','H','M','B');
+	header.size = ThumbnailHeaderSize + thumb.w*thumb.h*thumb.format.bytesPerPixel;
 	header.version = THMB_VERSION;
 	header.width = thumb.w;
 	header.height = thumb.h;
-	header.bpp = thumb.bytesPerPixel;
+	header.bpp = thumb.format.bytesPerPixel;
 
 	out.writeUint32BE(header.type);
 	out.writeUint32BE(header.size);
@@ -166,5 +165,5 @@ bool saveThumbnail(Common::WriteStream &out, const Graphics::Surface &thumb) {
 	return true;
 }
 
-} // end of namespace Graphics
+} // End of namespace Graphics
 

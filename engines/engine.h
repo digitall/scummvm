@@ -17,54 +17,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef ENGINES_ENGINE_H
 #define ENGINES_ENGINE_H
 
 #include "common/scummsys.h"
-#include "common/error.h"
-#include "common/fs.h"
 #include "common/str.h"
 
 class OSystem;
 
 namespace Audio {
-	class Mixer;
+class Mixer;
 }
 namespace Common {
-	class EventManager;
-	class SaveFileManager;
-	class TimerManager;
+class Error;
+class EventManager;
+class SaveFileManager;
+class TimerManager;
 }
 namespace GUI {
-	class Debugger;
-	class Dialog;
+class Debugger;
+class Dialog;
 }
-
-/**
- * Setup the backend's graphics mode.
- */
-void initCommonGFX(bool defaultTo1XScaler);
-
-/**
- * Setup the backend's screen size and graphics mode.
- *
- * Shows an various warnings on certain backend graphics
- * transaction failures (aspect switch, fullscreen switch, etc.).
- *
- * Errors out when backend is not able to switch to the specified
- * mode.
- */
-void initGraphics(int width, int height, bool defaultTo1xScaler);
 
 /**
  * Initializes graphics and shows error message.
  */
-void GUIErrorMessage(const Common::String msg);
+void GUIErrorMessage(const Common::String &msg);
 
 
 class Engine {
@@ -82,8 +62,6 @@ protected:
 
 	const Common::String _targetName; // target name for saves
 
-	const Common::FSNode _gameDataDir;	// FIXME: Get rid of this
-
 private:
 	/**
 	 * The pause level, 0 means 'running', a positive value indicates
@@ -92,6 +70,24 @@ private:
 	 * to nest code which pauses the engine.
 	 */
 	int _pauseLevel;
+
+	/**
+	 * The time when the pause was started.
+	 */
+	uint32 _pauseStartTime;
+
+	/**
+	 * The time when the engine was started. This value is used to calculate
+	 * the current play time of the game running.
+	 */
+	int32 _engineStartTime;
+
+	/**
+	 * Save slot selected via global main menu.
+	 * This slot will be loaded after main menu execution (not from inside
+	 * the menu loop, to avoid bugs like #2822778).
+	 */
+	int _saveSlotToLoad;
 
 public:
 
@@ -171,6 +167,15 @@ public:
 	 * Notify the engine that the sound settings in the config manager may have
 	 * changed and that it hence should adjust any internal volume etc. values
 	 * accordingly.
+	 * The default implementation sets the volume levels of all mixer sound
+	 * types according to the config entries of the active domain.
+	 * When overwriting, call the default implementation first, then adjust the
+	 * volumes further (if required).
+	 *
+	 * @note When setting volume levels, respect the "mute" config entry.
+	 * @note The volume for the plain sound type is reset to the maximum
+	 *       volume. If the engine can associate its own value for this
+	 *       type, it needs to overwrite this member and set it accordingly.
 	 * @todo find a better name for this
 	 */
 	virtual void syncSoundSettings();
@@ -188,6 +193,15 @@ public:
 	virtual Common::Error loadGameState(int slot);
 
 	/**
+	 * Sets the game slot for a savegame to be loaded after global
+	 * main menu execution. This is to avoid loading a savegame from
+	 * inside the menu loop which causes bugs like #2822778.
+	 *
+	 * @param slot	the slot from which a savestate should be loaded.
+	 */
+	void setGameToLoadSlot(int slot);
+
+	/**
 	 * Indicates whether a game state can be loaded.
 	 */
 	virtual bool canLoadGameStateCurrently();
@@ -198,7 +212,7 @@ public:
 	 * @param desc	a description for the savestate, entered by the user
 	 * @return returns kNoError on success, else an error code.
 	 */
-	virtual Common::Error saveGameState(int slot, const char *desc);
+	virtual Common::Error saveGameState(int slot, const Common::String &desc);
 
 	/**
 	 * Indicates whether a game state can be saved.
@@ -253,6 +267,31 @@ public:
 	 */
 	void openMainMenuDialog();
 
+	/**
+	 * Display a warning to the user that the game is not fully supported.
+	 *
+	 * @return true if the user chose to start anyway, false otherwise
+	 */
+	static bool warnUserAboutUnsupportedGame();
+
+	/**
+	 * Get the total play time.
+	 *
+	 * @return How long the player has been playing in ms.
+	 */
+	uint32 getTotalPlayTime() const;
+
+	/**
+	 * Set the game time counter to the specified time.
+	 *
+	 * This can be used to set the play time counter after loading a savegame
+	 * for example. Another use case is in case the engine wants to exclude
+	 * time from the counter the user spent in original engine dialogs.
+	 *
+	 * @param time Play time to set up in ms.
+	 */
+	void setTotalPlayTime(uint32 time = 0);
+
 	inline Common::TimerManager *getTimerManager() { return _timer; }
 	inline Common::EventManager *getEventManager() { return _eventMan; }
 	inline Common::SaveFileManager *getSaveFileManager() { return _saveFileMan; }
@@ -271,6 +310,7 @@ protected:
 
 };
 
+// FIXME: HACK for MidiEmu & error()
 extern Engine *g_engine;
 
 #endif

@@ -18,10 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+#ifdef ENABLE_HE
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
@@ -30,7 +29,6 @@
 #include "scumm/he/logic_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
-#include "scumm/he/resource_he.h"
 #include "scumm/scumm.h"
 #include "scumm/sound.h"
 #include "scumm/he/sprite_he.h"
@@ -350,12 +348,12 @@ void ScummEngine_v90he::o90_max() {
 }
 
 void ScummEngine_v90he::o90_sin() {
-	double a = pop() * PI / 180.;
+	double a = pop() * M_PI / 180.;
 	push((int)(sin(a) * 100000));
 }
 
 void ScummEngine_v90he::o90_cos() {
-	double a = pop() * PI / 180.;
+	double a = pop() * M_PI / 180.;
 	push((int)(cos(a) * 100000));
 }
 
@@ -371,7 +369,7 @@ void ScummEngine_v90he::o90_sqrt() {
 void ScummEngine_v90he::o90_atan2() {
 	int y = pop();
 	int x = pop();
-	int a = (int)(atan2((double)y, (double)x) * 180. / PI);
+	int a = (int)(atan2((double)y, (double)x) * 180. / M_PI);
 	if (a < 0) {
 		a += 360;
 	}
@@ -383,7 +381,7 @@ void ScummEngine_v90he::o90_getSegmentAngle() {
 	int x1 = pop();
 	int dy = y1 - pop();
 	int dx = x1 - pop();
-	int a = (int)(atan2((double)dy, (double)dx) * 180. / PI);
+	int a = (int)(atan2((double)dy, (double)dx) * 180. / M_PI);
 	if (a < 0) {
 		a += 360;
 	}
@@ -1253,7 +1251,7 @@ void ScummEngine_v90he::o90_setSpriteGroupInfo() {
 
 void ScummEngine_v90he::o90_getWizData() {
 	byte filename[4096];
-	int state, resId;
+	int resId, state, type;
 	int32 w, h;
 	int32 x, y;
 
@@ -1317,9 +1315,10 @@ void ScummEngine_v90he::o90_getWizData() {
 		push(computeWizHistogram(resId, state, x, y, w, h));
 		break;
 	case 139:
-		pop();
-		pop();
-		push(0);
+		type = pop();
+		state = pop();
+		resId = pop();
+		push(_wiz->getWizImageData(resId, state, type));
 		break;
 	case 141:
 		pop();
@@ -1434,7 +1433,7 @@ void ScummEngine_v90he::o90_videoOps() {
 			}
 		} else if (_videoParams.status == 165) {
 			// Stop video
-			_moviePlay->closeFile();
+			_moviePlay->close();
 		}
 		break;
 	default:
@@ -1461,7 +1460,7 @@ void ScummEngine_v90he::o90_getVideoData() {
 		break;
 	case 52:	// Get current frame
 		pop();
-		push(_moviePlay->getCurFrame());
+		push(_moviePlay->endOfVideo() ? -1 : (_moviePlay->getCurFrame() + 1));
 		break;
 	case 63:	// Get image number
 		pop();
@@ -1949,13 +1948,13 @@ static int sortArrayOffset;
 
 static int compareByteArray(const void *a, const void *b) {
 	int va = *((const uint8 *)a + sortArrayOffset);
-	int vb = *((const uint8 *)a + sortArrayOffset);
+	int vb = *((const uint8 *)b + sortArrayOffset);
 	return va - vb;
 }
 
 static int compareByteArrayReverse(const void *a, const void *b) {
 	int va = *((const uint8 *)a + sortArrayOffset);
-	int vb = *((const uint8 *)a + sortArrayOffset);
+	int vb = *((const uint8 *)b + sortArrayOffset);
 	return vb - va;
 }
 
@@ -1983,6 +1982,13 @@ static int compareDwordArrayReverse(const void *a, const void *b) {
 	return vb - va;
 }
 
+
+/**
+ * Sort a row range in a two-dimensional array by the value in a given column.
+ *
+ * We sort the data in the row range [dim2start..dim2end], according to the value
+ * in column dim1start == dim1end.
+ */
 void ScummEngine_v90he::sortArray(int array, int dim2start, int dim2end, int dim1start, int dim1end, int sortOrder) {
 	debug(9, "sortArray(%d, [%d,%d,%d,%d], %d)", array, dim2start, dim2end, dim1start, dim1end, sortOrder);
 
@@ -1991,11 +1997,21 @@ void ScummEngine_v90he::sortArray(int array, int dim2start, int dim2end, int dim
 	ArrayHeader *ah = (ArrayHeader *)getResourceAddress(rtString, readVar(array));
 	assert(ah);
 
-	const int num = dim2end - dim2start + 1;
-	const int pitch = FROM_LE_32(ah->dim1end) - FROM_LE_32(ah->dim1start) + 1;
-	const int offset = pitch * (dim2start - FROM_LE_32(ah->dim2start));
-	sortArrayOffset = dim1start - FROM_LE_32(ah->dim1start);
+	const int num = dim2end - dim2start + 1;	// number of rows to sort
+	const int pitch = FROM_LE_32(ah->dim1end) - FROM_LE_32(ah->dim1start) + 1;	// length of a row = number of columns in it
+	const int offset = pitch * (dim2start - FROM_LE_32(ah->dim2start));	// memory offset to the first row to be sorted
+	sortArrayOffset = dim1start - FROM_LE_32(ah->dim1start);	// offset to the column by which we sort
 
+	// Now we just have to invoke qsort on the appropriate row range. We
+	// need to pass sortArrayOffset as an implicit parameter to the
+	// comparison functions, which makes it necessary to use a global
+	// (albeit local to this file) variable.
+	// This could be avoided by using qsort_r or a self-written portable
+	// analog (this function passes an additional, user determined
+	// parameter to the comparison function).
+	// Another idea would be to use Common::sort, but that only is
+	// suitable if you sort objects of fixed size, which must be known
+	// during compilation time; clearly this not the case here.
 	switch (FROM_LE_32(ah->type)) {
 	case kByteArray:
 	case kStringArray:
@@ -2038,7 +2054,6 @@ void ScummEngine_v90he::o90_sortArray() {
 			int dim2end = pop();
 			int dim2start = pop();
 			getArrayDim(array, &dim2start, &dim2end, &dim1start, &dim1end);
-			checkArrayLimits(array, dim2start, dim2end, dim1start, dim1end);
 			sortArray(array, dim2start, dim2end, dim1start, dim1end, sortOrder);
 		}
 		break;
@@ -2099,7 +2114,8 @@ void ScummEngine_v90he::o90_getObjectData() {
 }
 
 void ScummEngine_v90he::o90_getPaletteData() {
-	int b, c, d, e;
+	int c, d, e;
+	int r, g, b;
 	int palSlot, color;
 
 	byte subOp = fetchScriptByte();
@@ -2109,10 +2125,10 @@ void ScummEngine_v90he::o90_getPaletteData() {
 		e = pop();
 		d = pop();
 		palSlot = pop();
-		pop();
-		c = pop();
 		b = pop();
-		push(getHEPaletteSimilarColor(palSlot, b, c, d, e));
+		g = pop();
+		r = pop();
+		push(getHEPaletteSimilarColor(palSlot, r, g, d, e));
 		break;
 	case 52:
 		c = pop();
@@ -2128,17 +2144,27 @@ void ScummEngine_v90he::o90_getPaletteData() {
 	case 132:
 		c = pop();
 		b = pop();
-		push(getHEPaletteColorComponent(1, b, c));
+		if (_game.features & GF_16BIT_COLOR)
+			push(getHEPalette16BitColorComponent(b, c));
+		else
+			push(getHEPaletteColorComponent(1, b, c));
 		break;
 	case 217:
-		pop();
-		c = pop();
-		c = MAX(0, c);
-		c = MIN(c, 255);
 		b = pop();
 		b = MAX(0, b);
 		b = MIN(b, 255);
-		push(getHEPaletteSimilarColor(1, b, c, 10, 245));
+		g = pop();
+		g = MAX(0, g);
+		g = MIN(g, 255);
+		r = pop();
+		r = MAX(0, r);
+		r = MIN(r, 255);
+
+		if (_game.features & GF_16BIT_COLOR) {
+			push(get16BitColor(r, g, b));
+		} else {
+			push(getHEPaletteSimilarColor(1, r, g, 10, 245));
+		}
 		break;
 	default:
 		error("o90_getPaletteData: Unknown case %d", subOp);
@@ -2263,13 +2289,13 @@ void ScummEngine_v90he::o90_kernelGetFunctions() {
 	switch (args[0]) {
 	case 1001:
 		{
-		double b = args[1] * PI / 180.;
+		double b = args[1] * M_PI / 180.;
 		push((int)(sin(b) * 100000));
 		}
 		break;
 	case 1002:
 		{
-		double b = args[1] * PI / 180.;
+		double b = args[1] * M_PI / 180.;
 		push((int)(cos(b) * 100000));
 		}
 		break;
@@ -2353,3 +2379,5 @@ void ScummEngine_v90he::o90_kernelSetFunctions() {
 }
 
 } // End of namespace Scumm
+
+#endif // ENABLE_HE

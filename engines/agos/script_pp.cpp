@@ -18,12 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+
+#ifdef ENABLE_AGOS2
 
 #include "common/system.h"
 
@@ -277,9 +276,9 @@ void AGOSEngine_PuzzlePack::setupOpcodes() {
 		OPCODE(opp_resetPVCount),
 		/* 192 */
 		OPCODE(opp_setPathValues),
-		OPCODE(off_stopClock),
-		OPCODE(opp_restartClock),
-		OPCODE(off_setColour),
+		OPCODE(off_restartClock),
+		OPCODE(opp_pauseClock),
+		OPCODE(off_setColor),
 	};
 
 	_opcodesPuzzlePack = opcodes;
@@ -309,6 +308,7 @@ void AGOSEngine_PuzzlePack::opp_restoreOopsPosition() {
 	uint i;
 
 	getNextWord();
+	getNextWord();
 
 	if (_oopsValid) {
 		for (i = 0; i < _numVars; i++) {
@@ -316,12 +316,10 @@ void AGOSEngine_PuzzlePack::opp_restoreOopsPosition() {
 		}
 		i = _variableArray[999] * 100 + 11;
 		setWindowImage(4,i);
-		if (getBitFlag(110)) {
-			_gameTime += 10;
-		} else {
-			// Swampy adventures
-			_gameTime += 30;
-		}
+		_gameTime += 10;
+		// Swampy adventures
+		if (!getBitFlag(110))
+			_gameTime += 20;
 		_oopsValid = false;
 	}
 }
@@ -335,13 +333,12 @@ void AGOSEngine_PuzzlePack::opp_loadMouseImage() {
 
 void AGOSEngine_PuzzlePack::opp_message() {
 	// 63: show string nl
-
+	const byte *stringPtr = getStringPtrByID(getNextStringID());
 	if (getBitFlag(105)) {
 		// Swampy adventures
-		getStringPtrByID(getNextStringID());
-//		printInfoText(getStringPtrByID(getNextStringID()));
+		printInfoText((const char *)stringPtr);
 	} else {
-		showMessageFormat("%s\n", getStringPtrByID(getNextStringID()));
+		showMessageFormat("%s\n", stringPtr);
 	}
 }
 
@@ -359,12 +356,14 @@ void AGOSEngine_PuzzlePack::opp_setShortText() {
 void AGOSEngine_PuzzlePack::opp_loadHiScores() {
 	// 105: load high scores
 	getVarOrByte();
+	//loadHiScores();
 }
 
 void AGOSEngine_PuzzlePack::opp_checkHiScores() {
 	// 106: check high scores
 	getVarOrByte();
 	getVarOrByte();
+	//checkHiScores();
 }
 
 void AGOSEngine_PuzzlePack::opp_sync() {
@@ -382,13 +381,10 @@ void AGOSEngine_PuzzlePack::opp_saveUserGame() {
 		_gameTime += getTime() - _clockStopped;
 	_clockStopped = 0;
 
-	if (getGameId() == GID_DIMP) {
-		saveGame(1, NULL);
-	} else if (!getBitFlag(110)) {
+	if (!getBitFlag(110)) {
 		// Swampy adventures
 		saveGame(1, NULL);
 	}
-
 	//saveHiScores()
 }
 
@@ -449,11 +445,12 @@ void AGOSEngine_PuzzlePack::opp_setPathValues() {
 	_pathValues[_PVCount++] = getVarOrByte();
 }
 
-void AGOSEngine_PuzzlePack::opp_restartClock() {
-	// 194: resume clock
-	if (_clockStopped != 0)
-		_gameTime += getTime() - _clockStopped;
-	_clockStopped = 0;
+void AGOSEngine_PuzzlePack::opp_pauseClock() {
+	// 194: pause clock
+	if (_clockStopped == 0)
+		_clockStopped = getTime();
 }
 
 } // End of namespace AGOS
+
+#endif // ENABLE_AGOS2

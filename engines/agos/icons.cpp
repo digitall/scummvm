@@ -18,16 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
-#include "common/system.h"
-
 #include "common/file.h"
+#include "common/system.h"
+#include "common/textconsole.h"
 
 #include "graphics/surface.h"
 
@@ -374,6 +371,7 @@ void AGOSEngine::drawIcon(WindowBlock *window, uint icon, uint x, uint y) {
 	_videoLockOut &= ~0x8000;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::drawIconArray(uint num, Item *itemRef, int line, int classMask) {
 	Item *item_ptr_org = itemRef;
 	WindowBlock *window;
@@ -447,7 +445,7 @@ void AGOSEngine_Feeble::drawIconArray(uint num, Item *itemRef, int line, int cla
 				setupIconHitArea(window, k++, xp, yp, itemRef);
 		} else {
 /*
- *	Just remember the overflow has occured
+ *	Just remember the overflow has occurred
  */
 			window->iconPtr->iconArray[icount].item = NULL;	/* END MARKINGS */
 			_iOverflow = 1;
@@ -477,12 +475,13 @@ l1:;		itemRef = derefItem(itemRef->next);
 	window->iconPtr->upArrow = _scrollUpHitArea;
 	window->iconPtr->downArrow = _scrollDownHitArea;
 }
+#endif
 
 void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask) {
 	Item *item_ptr_org = itemRef;
 	WindowBlock *window;
 	uint width, height;
-	uint k, i, curWidth;
+	uint k, curWidth;
 	bool item_again, showArrows;
 	uint x_pos, y_pos;
 	const int iconSize = (getGameType() == GType_SIMON2) ? 20 : 1;
@@ -499,8 +498,6 @@ void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask)
 		width = window->width / 3;
 		height = window->height / 3;
 	}
-
-	i = 0;
 
 	if (window == NULL)
 		return;
@@ -581,6 +578,7 @@ void AGOSEngine::drawIconArray(uint num, Item *itemRef, int line, int classMask)
 	}
 }
 
+#ifdef ENABLE_AGOS2
 uint AGOSEngine_Feeble::setupIconHitArea(WindowBlock *window, uint num, uint x, uint y, Item *itemPtr) {
 	HitArea *ha = findEmptyHitArea();
 
@@ -596,6 +594,7 @@ uint AGOSEngine_Feeble::setupIconHitArea(WindowBlock *window, uint num, uint x, 
 
 	return ha - _hitAreas;
 }
+#endif
 
 uint AGOSEngine_Simon2::setupIconHitArea(WindowBlock *window, uint num, uint x, uint y, Item *itemPtr) {
 	HitArea *ha = findEmptyHitArea();
@@ -683,6 +682,7 @@ uint AGOSEngine::setupIconHitArea(WindowBlock *window, uint num, uint x, uint y,
 	return ha - _hitAreas;
 }
 
+#ifdef ENABLE_AGOS2
 void AGOSEngine_Feeble::addArrows(WindowBlock *window, uint8 num) {
 	HitArea *ha;
 
@@ -712,6 +712,7 @@ void AGOSEngine_Feeble::addArrows(WindowBlock *window, uint8 num) {
 	ha->window = window;
 	ha->verb = 1;
 }
+#endif
 
 void AGOSEngine_Simon2::addArrows(WindowBlock *window, uint8 num) {
 	HitArea *ha;
@@ -860,16 +861,16 @@ void AGOSEngine::addArrows(WindowBlock *window, uint8 num) {
 	x = 30;
 	y = 151;
 	if (num != 2) {
-		y = window->height * 4 + window->y - 19;
-		x = window->width + window->x;
+		y = window->y + window->height * 4 - 19;
+		x = window->x + window->width;
 	}
 	drawArrow(x, y, 16);
 
 	ha = findEmptyHitArea();
 	_scrollUpHitArea = ha - _hitAreas;
 
-	ha->x = 30 * 8;
-	ha->y = 151;
+	ha->x = x * 8;
+	ha->y = y;
 	ha->width = 16;
 	ha->height = 19;
 	ha->flags = kBFBoxInUse;
@@ -881,16 +882,16 @@ void AGOSEngine::addArrows(WindowBlock *window, uint8 num) {
 	x = 30;
 	y = 170;
 	if (num != 2) {
-		y = window->height * 4;
-		x = window->width + window->x;
+		y = window->y + window->height * 4;
+		x = window->x + window->width;
 	}
 	drawArrow(x, y, -16);
 
 	ha = findEmptyHitArea();
 	_scrollDownHitArea = ha - _hitAreas;
 
-	ha->x = 30 * 8;
-	ha->y = 170;
+	ha->x = x * 8;
+	ha->y = y;
 	ha->width = 16;
 	ha->height = 19;
 	ha->flags = kBFBoxInUse;
@@ -956,7 +957,8 @@ void AGOSEngine::drawArrow(uint16 x, uint16 y, int8 dir) {
 
 	for (h = 0; h < 19; h++) {
 		for (w = 0; w < 16; w++) {
-			dst[w] = src[w] + 16;
+			if (src[w])
+				dst[w] = src[w] + 16;
 		}
 
 		src += dir;
@@ -984,8 +986,8 @@ void AGOSEngine_Elvira2::removeArrows(WindowBlock *window, uint num) {
 
 void AGOSEngine::removeArrows(WindowBlock *window, uint num) {
 	if (num != 2) {
-		uint y = window->height * 4 + window->y - 19;
-		uint x = window->width + window->x;
+		uint y = window->y + window->height * 4 - 19;
+		uint x = (window->x + window->width) * 8;
 		restoreBlock(x, y, x + 16, y + 38);
 	} else {
 		colorBlock(window, 240, 151, 16, 38);
@@ -1039,7 +1041,6 @@ static const byte hitBarData[12 * 7] = {
 	0x3C, 0x89, 0xC3, 0x00, 0x88, 0x88, 0x18, 0x03, 0x86, 0x23, 0x0C, 0x00
 };
 
-#ifdef ENABLE_PN
 // Personal Nightmare specific
 void AGOSEngine_PN::drawIconHitBar() {
 	Graphics::Surface *screen = _system->lockScreen();
@@ -1119,6 +1120,5 @@ void AGOSEngine_PN::printIcon(HitArea *ha, uint8 i, uint8 r) {
 		}
 	}
 }
-#endif
 
 } // End of namespace AGOS

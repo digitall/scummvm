@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef CRUISE_CRUISE_MAIN_H
@@ -92,10 +89,9 @@ int findHighColor();
 ovlData3Struct *getOvlData3Entry(int32 scriptNumber, int32 param);
 ovlData3Struct *scriptFunc1Sub2(int32 scriptNumber, int32 param);
 void resetFileEntry(int32 entryNumber);
-void *mallocAndZero(int32 size);
 uint8 *mainProc14(uint16 overlay, uint16 idx);
 void printInfoBlackBox(const char *string);
-void waitForPlayerInput(void);
+void waitForPlayerInput();
 void loadPackedFileToMem(int fileIdx, uint8 * buffer);
 int getNumObjectsByClass(int scriptIdx, int param);
 void resetFileEntryRange(int param1, int param2);
@@ -106,15 +102,24 @@ void removeExtention(const char *name, char *buffer);
 void resetPtr2(scriptInstanceStruct * ptr);
 void getFileExtention(const char *name, char *buffer);
 void *allocAndZero(int size);
-void freeStuff2(void);
-void mainLoop(void);
+void freeStuff2();
+void mainLoop();
 void getMouseStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 bool testMask(int x, int y, unsigned char* pData, int stride);
 menuElementSubStruct *getSelectedEntryInMenu(menuStruct *pMenu);
-void closeAllMenu(void);
+void closeAllMenu();
 int removeFinishedScripts(scriptInstanceStruct *ptrHandle);
-void initBigVar3(void);
+void initBigVar3();
 void resetActorPtr(actorStruct *ptr);
+void removeAllScripts(scriptInstanceStruct *ptrHandle);
+
+void MemoryList();
+void *MemoryAlloc(uint32 size, bool clearFlag, int32 lineNum, const char *fname);
+void MemoryFree(void *v);
+
+#define mallocAndZero(size) MemoryAlloc(size, true, __LINE__, __FILE__)
+#define MemAlloc(size) MemoryAlloc(size, false, __LINE__, __FILE__)
+#define MemFree(v) MemoryFree(v)
 
 } // End of namespace Cruise
 

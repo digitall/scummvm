@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * Plays films within a scene, takes into account the actor in each 'column'.								|
  */
 
@@ -62,6 +59,8 @@ struct PPINIT {
 };
 
 //----------------- LOCAL GLOBAL DATA --------------------
+
+// FIXME: Avoid non-const global vars
 
 static SOUNDREELS soundReels[MAX_SOUNDREELS];
 static int soundReelNumbers[MAX_SOUNDREELS];
@@ -152,8 +151,7 @@ static int RegisterSoundReel(SCNHANDLE hFilm, int column, int actorCol) {
 		if (soundReels[i].hFilm == hFilm && soundReels[i].column == column)
 			break;
 
-		if (!soundReels[i].hFilm)
-		{
+		if (!soundReels[i].hFilm) {
 			soundReels[i].hFilm = hFilm;
 			soundReels[i].column = column;
 			soundReels[i].actorCol = actorCol;
@@ -165,7 +163,7 @@ static int RegisterSoundReel(SCNHANDLE hFilm, int column, int actorCol) {
 	return i;
 }
 
-void NoSoundReels(void) {
+void NoSoundReels() {
 	memset(soundReels, 0, sizeof(soundReels));
 	soundReelWait = 0;
 }
@@ -181,8 +179,7 @@ static void DeRegisterSoundReel(SCNHANDLE hFilm, int column) {
 }
 
 void SaveSoundReels(PSOUNDREELS psr) {
-	for (int i = 0; i < MAX_SOUNDREELS; i++)
-	{
+	for (int i = 0; i < MAX_SOUNDREELS; i++) {
 		if (IsCdPlayHandle(soundReels[i].hFilm))
 			soundReels[i].hFilm = 0;
 	}
@@ -378,10 +375,9 @@ static void SoundReel(CORO_PARAM, SCNHANDLE hFilm, int column, int speed,
 	CORO_END_CODE;
 }
 
-static void ResSoundReel(CORO_PARAM, const void *) {
+static void ResSoundReel(CORO_PARAM, const void *param) {
 	// get the stuff copied to process when it was created
-	PPROCESS pProc = g_scheduler->getCurrentProcess();
-	int	i = *(int *)pProc->param;
+	int i = *(const int *)param;
 
 	CORO_BEGIN_CONTEXT;
 	CORO_END_CONTEXT(_ctx);
@@ -395,7 +391,7 @@ static void ResSoundReel(CORO_PARAM, const void *) {
 	CORO_END_CODE;
 }
 
-static void SoundReelWaitCheck(void) {
+static void SoundReelWaitCheck() {
 	if (--soundReelWait == 0) {
 		for (int i = 0; i < MAX_SOUNDREELS; i++) {
 			if (soundReels[i].hFilm) {
@@ -435,6 +431,7 @@ static void t1PlayReel(CORO_PARAM, const PPINIT *ppi) {
 		int tmpX, tmpY;
 	CORO_END_CONTEXT(_ctx);
 
+	// FIXME: Avoid non-const global vars
 	static int	firstColZ = 0;	// Z-position of column zero
 	static int32	fColZfactor = 0;	// Z-factor of column zero's actor
 
@@ -821,6 +818,7 @@ static void t2PlayReel(CORO_PARAM, int x, int y, bool bRestore, int speed, SCNHA
 
 		SoundReelWaitCheck();
 	} else {
+		// FIXME: Avoid non-const global vars
 		static int baseZposn;		// Z-position of column zero
 		static uint32 baseZfact;	// Z-factor of column zero's actor
 
@@ -1169,4 +1167,14 @@ void RestoreActorReels(SCNHANDLE hFilm, int actor, int x, int y) {
 	}
 }
 
-} // end of namespace Tinsel
+/**
+ * Get the actor id from a film (column 0)
+ */
+int ExtractActor(SCNHANDLE hFilm) {
+	const FILM *pFilm = (const FILM *)LockMem(hFilm);
+	const FREEL *pReel = &pFilm->reels[0];
+	const MULTI_INIT *pmi = (const MULTI_INIT *)LockMem(FROM_LE_32(pReel->mobj));
+	return (int)FROM_LE_32(pmi->mulID);
+}
+
+} // End of namespace Tinsel

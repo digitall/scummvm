@@ -18,11 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/textconsole.h"
 
 #include "queen/cutaway.h"
 
@@ -283,7 +281,7 @@ void Cutaway::limitBob(CutawayObject &object) {
 		}
 
 		BobSlot *bob =
-			_vm->graphics()->bob( _vm->logic()->findBob(object.objectNumber) );
+			_vm->graphics()->bob(_vm->logic()->findBob(object.objectNumber));
 
 		if (!bob) {
 			warning("Failed to find bob");
@@ -667,7 +665,7 @@ const byte *Cutaway::handleAnimation(const byte *ptr, CutawayObject &object) {
 
 				// Only flip if we are not moving or it is not a person object
 				if (!(objAnim[i].object > 0 && objAnim[i].object < 4) ||
-						!(objAnim[i].mx || objAnim[i].my) )
+						!(objAnim[i].mx || objAnim[i].my))
 					bob->xflip = objAnim[i].flip;
 
 				// Add frame alteration
@@ -1048,7 +1046,7 @@ void Cutaway::stop() {
 
 					ObjectData *from = _vm->logic()->objectData(fromIndex);
 					if (object->image && !from->image && bobIndex && _vm->logic()->currentRoom() == object->room)
-						_vm->graphics()->bob(bobIndex)->clear();
+						_vm->graphics()->clearBob(bobIndex);
 				}
 
 				if (_vm->logic()->currentRoom() == room)
@@ -1076,7 +1074,7 @@ void Cutaway::stop() {
 					int objectFrame = _vm->logic()->findFrame(objectIndex);
 
 					if (objectFrame == 1000) {
-						_vm->graphics()->bob(bobIndex)->clear();
+						_vm->graphics()->clearBob(bobIndex);
 					} else if (objectFrame) {
 						_vm->bankMan()->unpack(ABS(frame), objectFrame, bank);
 						pbs->frameNum = objectFrame;
@@ -1154,10 +1152,10 @@ void Cutaway::updateGameState() {
 
 				if (areaSubIndex > 0) {
 					Area *area = _vm->grid()->area(areaIndex, areaSubIndex);
-					area->mapNeighbours = ABS(area->mapNeighbours);
+					area->mapNeighbors = ABS(area->mapNeighbors);
 				} else {
 					Area *area = _vm->grid()->area(areaIndex, ABS(areaSubIndex));
-					area->mapNeighbours = -ABS(area->mapNeighbours);
+					area->mapNeighbors = -ABS(area->mapNeighbors);
 				}
 			}
 
@@ -1235,7 +1233,7 @@ void Cutaway::handleText(
 	}
 
 	BobSlot *bob =
-		_vm->graphics()->bob( _vm->logic()->findBob(ABS(object.objectNumber)) );
+		_vm->graphics()->bob(_vm->logic()->findBob(ABS(object.objectNumber)));
 
 	_vm->graphics()->setBobText(bob, sentence, x, object.bobStartY, object.specialMove, flags);
 

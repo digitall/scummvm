@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
@@ -42,19 +39,25 @@ Debugger::Debugger(Parallaction *vm)
 	DCmd_Register("zones",		WRAP_METHOD(Debugger, Cmd_Zones));
 	DCmd_Register("animations",	WRAP_METHOD(Debugger, Cmd_Animations));
 	DCmd_Register("globalflags",WRAP_METHOD(Debugger, Cmd_GlobalFlags));
+	DCmd_Register("toggleglobalflag",WRAP_METHOD(Debugger, Cmd_ToggleGlobalFlag));
 	DCmd_Register("localflags",	WRAP_METHOD(Debugger, Cmd_LocalFlags));
 	DCmd_Register("locations",	WRAP_METHOD(Debugger, Cmd_Locations));
 	DCmd_Register("gfxobjects",	WRAP_METHOD(Debugger, Cmd_GfxObjects));
 	DCmd_Register("programs",	WRAP_METHOD(Debugger, Cmd_Programs));
-
+	DCmd_Register("showmouse",	WRAP_METHOD(Debugger, Cmd_ShowMouse));
 }
 
 
 void Debugger::preEnter() {
+	_mouseState = _vm->_input->getMouseState();
+	_vm->pauseEngine(true);
 }
 
 
 void Debugger::postEnter() {
+	_vm->pauseEngine(false);
+	_vm->_input->setMouseState(_mouseState);
+	_vm->_input->setArrowCursor();	// unselects the active item, if any
 }
 
 bool Debugger::Cmd_Location(int argc, const char **argv) {
@@ -114,6 +117,32 @@ bool Debugger::Cmd_GlobalFlags(int argc, const char **argv) {
 	return true;
 }
 
+bool Debugger::Cmd_ToggleGlobalFlag(int argc, const char **argv) {
+
+	int i;
+
+	switch (argc) {
+	case 2:
+		i = _vm->_globalFlagsNames->lookup(argv[1]);
+		if (i == Table::notFound) {
+			DebugPrintf("invalid flag '%s'\n", argv[1]);
+		} else {
+			i--;
+			if ((_globalFlags & (1 << i)) == 0)
+				_globalFlags |= (1 << i);
+			else
+				_globalFlags &= ~(1 << i);
+		}
+		break;
+
+	default:
+		DebugPrintf("toggleglobalflag <flag name>\n");
+
+	}
+
+	return true;
+}
+
 bool Debugger::Cmd_LocalFlags(int argc, const char **argv) {
 
 	uint32 flags = _vm->getLocationFlags();
@@ -155,7 +184,7 @@ bool Debugger::Cmd_Zones(int argc, const char **argv) {
 	DebugPrintf("+--------------------+---+---+---+---+--------+--------+\n"
 				"| name               | l | t | r | b |  type  |  flag  |\n"
 				"+--------------------+---+---+---+---+--------+--------+\n");
-	for ( ; b != e; b++) {
+	for ( ; b != e; ++b) {
 		ZonePtr z = *b;
 		z->getRect(r);
 		DebugPrintf("|%-20s|%3i|%3i|%3i|%3i|%8x|%8x|\n", z->_name, r.left, r.top, r.right, r.bottom, z->_type, z->_flags );
@@ -234,7 +263,7 @@ bool Debugger::Cmd_Animations(int argc, const char **argv) {
 	DebugPrintf("+--------------------+----+----+----+---+--------+----------------------------------------+\n"
 				"| name               | x  | y  | z  | f |  type  |                 flags                  | \n"
 				"+--------------------+----+----+----+---+--------+----------------------------------------+\n");
-	for ( ; b != e; b++) {
+	for ( ; b != e; ++b) {
 		AnimationPtr a = *b;
 		flags = decodeZoneFlags(a->_flags);
 		DebugPrintf("|%-20s|%4i|%4i|%4i|%3i|%8x|%-40s|\n", a->_name, a->getX(), a->getY(), a->getZ(), a->getF(), a->_type, flags.c_str() );
@@ -257,7 +286,7 @@ bool Debugger::Cmd_GfxObjects(int argc, const char **argv) {
 	GfxObjArray::iterator e = _vm->_gfx->_sceneObjects.end();
 	Common::Rect r;
 
-	for ( ; b != e; b++) {
+	for ( ; b != e; ++b) {
 		GfxObj *obj = *b;
 		obj->getRect(obj->frame, r);
 		DebugPrintf("|%-20s|%5i|%5i|%5i|%5i|%5i|%7i|%5i|%8s|\n", obj->getName(), r.left, r.top, r.width(), r.height(),
@@ -287,6 +316,11 @@ bool Debugger::Cmd_Programs(int argc, const char** argv) {
 	}
 	DebugPrintf("+---+--------------------+--------+----------+\n");
 
+	return true;
+}
+
+bool Debugger::Cmd_ShowMouse(int argc, const char** argv) {
+	_mouseState = MOUSE_ENABLED_SHOW;
 	return true;
 }
 

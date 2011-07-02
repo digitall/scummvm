@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef GOB_HOTSPOTS_H
@@ -101,6 +98,9 @@ public:
 	/** Return the cursor found in the hotspot to the coordinates. */
 	int16 findCursor(uint16 x, uint16 y) const;
 
+	/** implementation of oPlaytoons_F_1B code*/
+	void oPlaytoons_F_1B();
+
 private:
 	struct Hotspot {
 		uint16  id;
@@ -124,7 +124,7 @@ private:
 
 		Type         getType  () const;
 		MouseButtons getButton() const;
-		uint8        getWindow() const;
+		uint16       getWindow() const;
 		uint8        getCursor() const;
 		uint8        getState () const;
 
@@ -198,6 +198,9 @@ private:
 	/** Handling hotspot leave events. */
 	void leave(uint16 index);
 
+	/** Which window is the mouse cursor currently in? (Fascination) */
+	int16 curWindow(int16 &dx, int16 &dy) const;
+
 	/** Which hotspot is the mouse cursor currently at? */
 	uint16 checkMouse(Type type, uint16 &id, uint16 &index) const;
 
@@ -218,8 +221,8 @@ private:
 			uint16 &inputId, bool &hasInput, uint16 &inputCount);
 	/** Find the hotspot requested by script commands. */
 	bool evaluateFind(uint16 key, int16 timeVal, const uint16 *ids,
-			uint16 hotspotIndex1, uint16 hotspotIndex2, uint16 endIndex,
-			int16 &duration, uint16 &id, uint16 &index, bool &finished);
+			uint16 leaveWindowIndex, uint16 hotspotIndex1, uint16 hotspotIndex2,
+			uint16 endIndex, int16 &duration, uint16 &id, uint16 &index, bool &finished);
 
 	// Finding specific hotspots
 	/** Find the hotspot index that corresponds to the input index. */

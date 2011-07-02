@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
-#ifndef ScummAPPH
-#define ScummAPPH
+#ifndef SCUMMAPP_H
+#define SCUMMAPP_H
 
 #include <eikapp.h>
 #include <e32base.h>
@@ -45,6 +42,7 @@ public:
 	TInt ViewResourceId();
 #endif
 	TUid AppDllUid() const;
+	void GetDataFolder(TDes& aDataFolder);
 #if defined (EPOC_AS_APP) && !defined (UIQ3) && !defined (S60V3)
 	TECompXL    iECompXL;
 #endif

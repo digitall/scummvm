@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SKY_GRID_H
@@ -39,10 +36,10 @@ class SkyCompact;
 class Grid {
 public:
 	Grid(Disk *pDisk, SkyCompact *skyCompact);
-	~Grid(void);
+	~Grid();
 
 	// grid.asm routines
-	void loadGrids(void);
+	void loadGrids();
 	void removeObjectFromWalk(Compact *cpt);
 	void objectToWalk(Compact *cpt);
 

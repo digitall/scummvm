@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/array.h"
 #include "common/hashmap.h"
+#include "common/substream.h"
+#include "common/textconsole.h"
 
 #include "m4/converse.h"
 #include "m4/resource.h"
@@ -44,38 +43,38 @@ namespace M4 {
 
 // Conversation chunks
 // Header
-#define  HEAD_CONV MKID_BE('CONV')		// conversation
-#define CHUNK_DECL MKID_BE('DECL')		// declaration
-#define CHUNK_NODE MKID_BE('NODE')		// node
-#define CHUNK_LNOD MKID_BE('LNOD')		// linear node
-#define CHUNK_ETRY MKID_BE('ETRY')		// entry
-#define CHUNK_TEXT MKID_BE('TEXT')		// text
-#define CHUNK_MESG MKID_BE('MESG')		// message
+#define  HEAD_CONV MKTAG('C','O','N','V')		// conversation
+#define CHUNK_DECL MKTAG('D','E','C','L')		// declaration
+#define CHUNK_NODE MKTAG('N','O','D','E')		// node
+#define CHUNK_LNOD MKTAG('L','N','O','D')		// linear node
+#define CHUNK_ETRY MKTAG('E','T','R','Y')		// entry
+#define CHUNK_TEXT MKTAG('T','E','X','T')		// text
+#define CHUNK_MESG MKTAG('M','E','S','G')		// message
 // Conversation chunks - entry related (unconditional)
-#define CHUNK_RPLY MKID_BE('RPLY')		// reply
-#define CHUNK_HIDE MKID_BE('HIDE')		// hide entry
-#define CHUNK_UHID MKID_BE('UHID')		// unhide entry
-#define CHUNK_DSTR MKID_BE('DSTR')		// destroy entry
+#define CHUNK_RPLY MKTAG('R','P','L','Y')		// reply
+#define CHUNK_HIDE MKTAG('H','I','D','E')		// hide entry
+#define CHUNK_UHID MKTAG('U','H','I','D')		// unhide entry
+#define CHUNK_DSTR MKTAG('D','S','T','R')		// destroy entry
 // Conversation chunks - entry related (conditional)
-#define CHUNK_CRPL MKID_BE('CRPL')		// reply
-#define CHUNK_CHDE MKID_BE('CHDE')		// hide entry
-#define CHUNK_CUHD MKID_BE('CUHD')		// unhide entry
-#define CHUNK_CDST MKID_BE('DDTS')		// destroy entry
+#define CHUNK_CRPL MKTAG('C','R','P','L')		// reply
+#define CHUNK_CHDE MKTAG('C','H','D','E')		// hide entry
+#define CHUNK_CUHD MKTAG('C','U','H','D')		// unhide entry
+#define CHUNK_CDST MKTAG('D','D','T','S')		// destroy entry
 // Conversation chunks - branching and logic (unconditional)
-#define CHUNK_ASGN MKID_BE('ASGN')		// assign
-#define CHUNK_GOTO MKID_BE('GOTO')		// goto chunk
-#define CHUNK_EXIT MKID_BE('EXIT')		// exit/return from goto
+#define CHUNK_ASGN MKTAG('A','S','G','N')		// assign
+#define CHUNK_GOTO MKTAG('G','O','T','O')		// goto chunk
+#define CHUNK_EXIT MKTAG('E','X','I','T')		// exit/return from goto
 // Conversation chunks - branching and logic (conditional)
-#define CHUNK_CASN MKID_BE('CASN')		// assign
-#define CHUNK_CCGO MKID_BE('CCGO')		// goto chunk
-#define CHUNK_CEGO MKID_BE('CEGO')		// exit/return from goto
+#define CHUNK_CASN MKTAG('C','A','S','N')		// assign
+#define CHUNK_CCGO MKTAG('C','C','G','O')		// goto chunk
+#define CHUNK_CEGO MKTAG('C','E','G','O')		// exit/return from goto
 // Others
-#define CHUNK_FALL MKID_BE('FALL')		// fallthrough
-#define CHUNK_WRPL MKID_BE('WRPL')		// weighted reply chunk
-#define CHUNK_WPRL MKID_BE('WPRL')		// weighted preply chunk
+#define CHUNK_FALL MKTAG('F','A','L','L')		// fallthrough
+#define CHUNK_WRPL MKTAG('W','R','P','L')		// weighted reply chunk
+#define CHUNK_WPRL MKTAG('W','P','R','L')		// weighted preply chunk
 
 
-ConversationView::ConversationView(M4Engine *vm): View(vm, Common::Rect(0,
+ConversationView::ConversationView(MadsM4Engine *vm): View(vm, Common::Rect(0,
 		vm->_screen->height() - INTERFACE_HEIGHT, vm->_screen->width(), vm->_screen->height())) {
 
 	_screenType = VIEWID_CONVERSATION;
@@ -96,14 +95,14 @@ void ConversationView::setNode(int32 nodeIndex) {
 	_vm->_font->setFont(FONT_CONVERSATION);
 
 	// TODO: Conversation styles and colors
-	_vm->_font->setColors(2, 1, 3);
+	_vm->_font->current()->setColors(2, 1, 3);
 
 	_currentNodeIndex = nodeIndex;
 
 	_activeItems.clear();
 
 	if (nodeIndex != -1) {
-		ConvEntry *node = _vm->_converse->getNode(nodeIndex);
+		ConvEntry *node = _m4Vm->_converse->getNode(nodeIndex);
 
 		for (uint i = 0; i < node->entries.size(); ++i) {
 			if (!node->entries[i]->visible)
@@ -118,13 +117,13 @@ void ConversationView::setNode(int32 nodeIndex) {
 			_activeItems.push_back(node->entries[i]);
 
 			if (node->entries[i]->autoSelect || strlen(node->entries[i]->text) == 0) {
-				//printf("Auto selecting entry %i of node %i\n", i, nodeIndex);
+				//warning(kDebugConversations, "Auto selecting entry %i of node %i\n", i, nodeIndex);
 				selectEntry(i);
 				return;
 			}
 
 			// Figure out the longest string to determine where option highlighting ends
-			int tempX = _vm->_font->getWidth(node->entries[i]->text, 0) +
+			int tempX = _vm->_font->current()->getWidth(node->entries[i]->text, 0) +
 				CONV_ENTRIES_X_OFFSET + 10;
 			_xEnd = MAX(_xEnd, tempX);
 		}
@@ -134,11 +133,11 @@ void ConversationView::setNode(int32 nodeIndex) {
 
 		// Fallthrough
 		if (node->fallthroughMinEntries >= 0 && node->fallthroughOffset >= 0) {
-			//printf("Current node falls through node at offset %i when entries are less or equal than %i\n",
+			//warning(kDebugConversations, "Current node falls through node at offset %i when entries are less or equal than %i\n",
 			//		node->fallthroughOffset, node->fallthroughMinEntries);
 			if (_activeItems.size() <= (uint32)node->fallthroughMinEntries) {
-				const EntryInfo *entryInfo = _vm->_converse->getEntryInfo(node->fallthroughOffset);
-				//printf("Entries are less than or equal to %i, falling through to node at offset %i, index %i\n",
+				const EntryInfo *entryInfo = _m4Vm->_converse->getEntryInfo(node->fallthroughOffset);
+				//warning(kDebugConversations, "Entries are less than or equal to %i, falling through to node at offset %i, index %i\n",
 				//		node->fallthroughMinEntries, node->fallthroughOffset, entryInfo->nodeIndex);
 				setNode(entryInfo->nodeIndex);
 				return;
@@ -163,17 +162,17 @@ void ConversationView::onRefresh(RectList *rects, M4Surface *destSurface) {
 			if (i > CONV_MAX_SHOWN_ENTRIES - 1)
 				break;
 
-			_vm->_font->setColor((_highlightedIndex == i) ? CONVERSATION_ENTRY_HIGHLIGHTED :
+			_vm->_font->current()->setColor((_highlightedIndex == i) ? CONVERSATION_ENTRY_HIGHLIGHTED :
 				CONVERSATION_ENTRY_NORMAL);
 
-			_vm->_font->writeString(this, _activeItems[i]->text, CONV_ENTRIES_X_OFFSET,
+			_vm->_font->current()->writeString(this, _activeItems[i]->text, CONV_ENTRIES_X_OFFSET,
 				CONV_ENTRIES_Y_OFFSET + CONV_ENTRIES_HEIGHT * i, 0, 0);
 		}
 	}
 	View::onRefresh(rects, destSurface);
 }
 
-bool ConversationView::onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents) {
+bool ConversationView::onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents) {
 	//if (!this->isVisible())
 	//	return false;
 	if (!_entriesShown)
@@ -227,15 +226,15 @@ void ConversationView::selectEntry(int entryIndex) {
 
 	// Hide selected entry, unless it has a persistent flag set
 	if (!(_activeItems[entryIndex]->flags & kEntryPersists)) {
-		//printf("Hiding selected entry\n");
-		_vm->_converse->getNode(_currentNodeIndex)->entries[entryIndex]->visible = false;
+		//debugCN(kDebugConversations, "Hiding selected entry\n");
+		_m4Vm->_converse->getNode(_currentNodeIndex)->entries[entryIndex]->visible = false;
 	} else {
-		//printf("Selected entry is persistent, not hiding it\n");
+		//debugCN(kDebugConversations, "Selected entry is persistent, not hiding it\n");
 	}
 }
 
 void ConversationView::updateState() {
-	switch(_conversationState) {
+	switch (_conversationState) {
 		case kConversationOptionsShown:
 			return;
 		case kEntryIsActive:
@@ -266,8 +265,8 @@ void ConversationView::playNextReply() {
 		ConvEntry *currentEntry = _activeItems[_highlightedIndex]->entries[i];
 
 		if (currentEntry->isConditional) {
-			if (!_vm->_converse->evaluateCondition(
-				_vm->_converse->getValue(currentEntry->condition.offset),
+			if (!_m4Vm->_converse->evaluateCondition(
+				_m4Vm->_converse->getValue(currentEntry->condition.offset),
 				currentEntry->condition.op, currentEntry->condition.val))
 				continue;	// don't play this reply
 		}
@@ -286,7 +285,7 @@ void ConversationView::playNextReply() {
 			}
 		} else {
 			int selectedWeight = _vm->_random->getRandomNumber(currentEntry->totalWeight - 1) + 1;
-			//printf("Selected weight: %i\n", selectedWeight);
+			//debugCN(kDebugConversations, "Selected weight: %i\n", selectedWeight);
 			int previousWeight = 1;
 			int currentWeight = 0;
 
@@ -313,9 +312,9 @@ void ConversationView::playNextReply() {
 
 	// If we reached here, there are no more replies, so perform the active entry's actions
 
-	//printf("Current selection does %i actions\n", _activeItems[entryIndex]->actions.size());
+	//debugCN(kDebugConversations, "Current selection does %i actions\n", _activeItems[entryIndex]->actions.size());
 	for (uint32 i = 0; i < _activeItems[_highlightedIndex]->actions.size(); i++) {
-		if (!_vm->_converse->performAction(_activeItems[_highlightedIndex]->actions[i]))
+		if (!_m4Vm->_converse->performAction(_activeItems[_highlightedIndex]->actions[i]))
 			break;
 	}	// end for
 
@@ -343,7 +342,7 @@ void Converse::startConversation(const char *convName, bool showConverseBox, Con
 
 	_playerCommandsAllowed = _vm->_player->commandsAllowed;
 	if (_vm->isM4())	// TODO: remove (interface not implemented yet in MADS games)
-		_interfaceWasVisible = _vm->_interfaceView->isVisible();
+		_interfaceWasVisible = _m4Vm->scene()->getInterface()->isVisible();
 	_vm->_player->setCommandsAllowed(false);
 	_style = style;
 
@@ -352,7 +351,7 @@ void Converse::startConversation(const char *convName, bool showConverseBox, Con
 		_vm->_mouse->lockCursor(CURSOR_ARROW);
 
 		if (_interfaceWasVisible)
-			_vm->_interfaceView->hide();
+			_m4Vm->scene()->getInterface()->hide();
 
 		_vm->_conversationView->setNode(0);
 		_vm->_conversationView->show();
@@ -368,7 +367,7 @@ void Converse::endConversation() {
 	_offsetMap.clear();
 	_vm->_player->setCommandsAllowed(_playerCommandsAllowed);
 	if (_interfaceWasVisible)
-		_vm->_interfaceView->show();
+		_m4Vm->scene()->getInterface()->show();
 }
 
 void Converse::loadConversation(const char *convName) {
@@ -399,30 +398,30 @@ void Converse::loadConversation(const char *convName) {
 		return;
 	}
 	size = convS->readUint32LE();	// is this used at all?
-	if (debugFlag) printf("Conv chunk size (external header): %i\n", size);
+	if (debugFlag) debugCN(kDebugConversations, "Conv chunk size (external header): %i\n", size);
 
 	// Conversation name, which is the conversation file's name
 	// without the extension
 	convS->read(buffer, 8);
-	if (debugFlag) printf("Conversation name: %s\n", buffer);
+	if (debugFlag) debugCN(kDebugConversations, "Conversation name: %s\n", buffer);
 
 	while (true) {
 		chunkPos = convS->pos();
 		chunk = convS->readUint32LE();	// read chunk
 		if (convS->eos()) break;
 
-		if (debugFlag) printf("***** Pos: %i -> ", chunkPos);
-		switch(chunk) {
+		if (debugFlag) debugC(kDebugConversations, "***** Pos: %i -> ", chunkPos);
+		switch (chunk) {
 			case CHUNK_DECL:	// Declare
-				if (debugFlag) printf("DECL chunk\n");
+				if (debugFlag) debugCN(kDebugConversations, "DECL chunk\n");
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Tag: %i\n", data);
+				if (debugFlag) debugCN(kDebugConversations, "Tag: %i\n", data);
 				if (data > 0)
 					warning("Tag > 0 in DECL chunk, value is: %i", data);		// TODO
 				val = convS->readUint32LE();
-				if (debugFlag) printf("Value: %i\n", val);
+				if (debugFlag) debugCN(kDebugConversations, "Value: %i\n", val);
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Flags: %i\n", data);
+				if (debugFlag) debugCN(kDebugConversations, "Flags: %i\n", data);
 				if (data > 0)
 					warning("Flags != 0 in DECL chunk, value is %i", data);		// TODO
 				setValue(chunkPos, val);
@@ -437,23 +436,23 @@ void Converse::loadConversation(const char *convName) {
 				curEntry->fallthroughMinEntries = -1;
 				curEntry->fallthroughOffset = -1;
 				if (chunk == CHUNK_NODE) {
-					if (debugFlag) printf("NODE chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "NODE chunk\n");
 				} else {
-					if (debugFlag) printf("LNOD chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "LNOD chunk\n");
 				}
 				curNode = convS->readUint32LE();
-				if (debugFlag) printf("Node number: %i\n", curNode);
+				if (debugFlag) debugCN(kDebugConversations, "Node number: %i\n", curNode);
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Tag: %i\n", data);
+				if (debugFlag) debugCN(kDebugConversations, "Tag: %i\n", data);
 				if (chunk == CHUNK_LNOD) {
 					autoSelectIndex = convS->readUint32LE();
-					if (debugFlag) printf("Autoselect entry number: %i\n", autoSelectIndex);
+					if (debugFlag) debugCN(kDebugConversations, "Autoselect entry number: %i\n", autoSelectIndex);
 				}
 				size = convS->readUint32LE();
-				if (debugFlag) printf("Number of entries: %i\n", size);
+				if (debugFlag) debugCN(kDebugConversations, "Number of entries: %i\n", size);
 				for (i = 0; i < size; i++) {
 					data = convS->readUint32LE();
-					if (debugFlag) printf("Entry %i: %i\n", i + 1, data);
+					if (debugFlag) debugCN(kDebugConversations, "Entry %i: %i\n", i + 1, data);
 				}
 				_convNodes.push_back(curEntry);
 				setEntryInfo(curEntry->offset, curEntry->entryType, curNode, -1);
@@ -465,14 +464,14 @@ void Converse::loadConversation(const char *convName) {
 				curEntry->entryType = kEntry;
 				strcpy(curEntry->voiceFile, "");
 				strcpy(curEntry->text, "");
-				if (debugFlag) printf("ETRY chunk\n");
+				if (debugFlag) debugCN(kDebugConversations, "ETRY chunk\n");
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Unknown (attributes perhaps?): %i\n", data);
+				if (debugFlag) debugCN(kDebugConversations, "Unknown (attributes perhaps?): %i\n", data);
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Entry flags: ");
-				if (debugFlag) if (data & kEntryInitial) printf ("Initial ");
-				if (debugFlag) if (data & kEntryPersists) printf ("Persists ");
-				if (debugFlag) printf("\n");
+				if (debugFlag) debugCN(kDebugConversations, "Entry flags: ");
+				if (debugFlag) if (data & kEntryInitial) debugCN(kDebugConversations, "Initial ");
+				if (debugFlag) if (data & kEntryPersists) debugCN(kDebugConversations, "Persists ");
+				if (debugFlag) debugCN(kDebugConversations, "\n");
 				curEntry->flags = data;
 				curEntry->visible = (curEntry->flags & kEntryInitial) ? true : false;
 				if (autoSelectIndex >= 0) {
@@ -517,29 +516,32 @@ void Converse::loadConversation(const char *convName) {
 				if (chunk == CHUNK_WPRL || chunk == CHUNK_WRPL) {
 					replyEntry->entryType = kWeightedReply;
 					replyEntry->totalWeight = 0;
-					if (debugFlag) printf("WRPL chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "WRPL chunk\n");
 					size = convS->readUint32LE();
-					if (debugFlag) printf("Weighted reply %i - %i entries:\n", i, size);
+					if (debugFlag) debugCN(kDebugConversations, "Weighted reply %i - %i entries:\n", i, size);
 					for (i = 0; i < size; i++) {
 						weightedEntry = new ConvEntry();
 						weightedEntry->offset = chunkPos;
 						strcpy(weightedEntry->voiceFile, "");
 						weightedEntry->entryType = kWeightedReply;
 						data = convS->readUint32LE();
-						if (debugFlag) printf("- Weight: %i ", data);
+						if (debugFlag) debugCN(kDebugConversations, "- Weight: %i ", data);
 						weightedEntry->weight = data;
 						replyEntry->totalWeight += weightedEntry->weight;
 						data = convS->readUint32LE();
-						if (debugFlag) printf("offset: %i\n", data);
+						if (debugFlag) debugCN(kDebugConversations, "offset: %i\n", data);
 						replyEntry->entries.push_back(weightedEntry);
 					}
 					currentWeightedEntry = 0;
 				} else {
 					replyEntry->entryType = kReply;
-					if (debugFlag) printf("RPLY chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "RPLY chunk\n");
 					data = convS->readUint32LE();
-					if (debugFlag) printf("Reply data offset: %i\n", data);
+					if (debugFlag) debugCN(kDebugConversations, "Reply data offset: %i\n", data);
 				}
+
+				if (!curEntry)
+					error("Converse::loadConversation(): curEntry is NULL while adding a reply");
 
 				curEntry->entries.push_back(replyEntry);
 				setEntryInfo(replyEntry->offset, replyEntry->entryType,
@@ -560,9 +562,9 @@ void Converse::loadConversation(const char *convName) {
 				{
 				ConvEntry* parentEntry = NULL;
 				if (chunk == CHUNK_TEXT) {
-					if (debugFlag) printf("TEXT chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "TEXT chunk\n");
 				} else {
-					if (debugFlag) printf("MESG chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "MESG chunk\n");
 				}
 
 				if (replyEntry == NULL) {
@@ -572,25 +574,27 @@ void Converse::loadConversation(const char *convName) {
 				} else if (replyEntry != NULL && replyEntry->entryType == kWeightedReply) {
 					parentEntry = replyEntry->entries[currentWeightedEntry];
 					currentWeightedEntry++;
+				} else {
+					error("Converse::loadConversation(): Unexpected reply entry while processing TEXT/MESG chunk");
 				}
 
 				size = convS->readUint32LE();
-				if (debugFlag) printf("Entry data size: %i\n", size);
+				if (debugFlag) debugCN(kDebugConversations, "Entry data size: %i\n", size);
 				convS->read(buffer, 8);
 				size -= 8;		// subtract maximum length of voice file name
 				// If the file name is 8 characters, it will not be 0-terminated, so use strncpy
 				strncpy(parentEntry->voiceFile, buffer, 8);
 				parentEntry->voiceFile[8] = '\0';
-				if (debugFlag) printf("Voice file: %s\n", parentEntry->voiceFile);
+				if (debugFlag) debugCN(kDebugConversations, "Voice file: %s\n", parentEntry->voiceFile);
 
 				if (chunk == CHUNK_TEXT) {
 					convS->read(buffer, size);
-					if (debugFlag) printf("Text: %s\n", buffer);
+					if (debugFlag) debugCN(kDebugConversations, "Text: %s\n", buffer);
 					sprintf(parentEntry->text, "%s", buffer);
 				} else {
 					while (size > 0) {
 						data = convS->readUint32LE();
-						if (debugFlag) printf("Unknown: %i\n", data);	// TODO
+						if (debugFlag) debugCN(kDebugConversations, "Unknown: %i\n", data);	// TODO
 						size -= 4;
 					}
 				}
@@ -607,7 +611,7 @@ void Converse::loadConversation(const char *convName) {
 			case CHUNK_CASN:	// Conditional assign
 			case CHUNK_ASGN:	// Assign
 				curAction = new EntryAction();
-				if (debugFlag) printf("ASGN chunk\n");
+				if (debugFlag) debugCN(kDebugConversations, "ASGN chunk\n");
 				curAction->actionType = kAssignValue;
 
 				// Conditional part
@@ -650,32 +654,32 @@ void Converse::loadConversation(const char *convName) {
 
 				if (chunk == CHUNK_GOTO || chunk == CHUNK_CCGO) {
 					curAction->actionType = kGotoEntry;
-					if (debugFlag) printf("GOTO chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "GOTO chunk\n");
 				} else if (chunk == CHUNK_HIDE || chunk == CHUNK_CHDE) {
 					curAction->actionType = kHideEntry;
-					if (debugFlag) printf("HIDE chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "HIDE chunk\n");
 				} else if (chunk == CHUNK_UHID || chunk == CHUNK_CUHD) {
 					curAction->actionType = kUnhideEntry;
-					if (debugFlag) printf("UHID chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "UHID chunk\n");
 				} else if (chunk == CHUNK_DSTR || chunk == CHUNK_CDST) {
 					curAction->actionType = kDestroyEntry;
-					if (debugFlag) printf("DSTR chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "DSTR chunk\n");
 				} else if (chunk == CHUNK_EXIT || chunk == CHUNK_CEGO) {
 					curAction->actionType = kExitConv;
-					if (debugFlag) printf("EXIT chunk\n");
+					if (debugFlag) debugCN(kDebugConversations, "EXIT chunk\n");
 				}
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Offset: %i\n", data);
+				if (debugFlag) debugCN(kDebugConversations, "Offset: %i\n", data);
 				curAction->targetOffset = data;
 				curEntry->actions.push_back(curAction);
 				break;
 			case CHUNK_FALL:	// Fallthrough
-				if (debugFlag) printf("FALL chunk\n");
+				if (debugFlag) debugCN(kDebugConversations, "FALL chunk\n");
 				size = convS->readUint32LE();
-				if (debugFlag) printf("Minimum nodes: %i\n", size);
+				if (debugFlag) debugCN(kDebugConversations, "Minimum nodes: %i\n", size);
 				_convNodes[curNode]->fallthroughMinEntries = size;
 				data = convS->readUint32LE();
-				if (debugFlag) printf("Offset: %i\n", data);
+				if (debugFlag) debugCN(kDebugConversations, "Offset: %i\n", data);
 				_convNodes[curNode]->fallthroughOffset = data;
 				break;
 			// ----------------------------------------------------------------------------
@@ -713,35 +717,35 @@ void Converse::loadConversationMads(const char *convName) {
 	// ------------------------------------------------------------
 	// Chunk 0
 	convS = convDataD.getItemStream(0);
-	printf("Chunk 0\n");
-	printf("Conv stream size: %i\n", convS->size());
+	debugCN(kDebugConversations, "Chunk 0\n");
+	debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	while (!convS->eos()) { // FIXME (eos changed)
-		printf("%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 
 	// ------------------------------------------------------------
 	// Chunk 1
 	convS = convDataD.getItemStream(1);
-	printf("Chunk 1\n");
-	printf("Conv stream size: %i\n", convS->size());
+	debugCN(kDebugConversations, "Chunk 1\n");
+	debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	while (!convS->eos()) { // FIXME (eos changed)
-		printf("%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 
 	// ------------------------------------------------------------
 	// Chunk 2
 	convS = convDataD.getItemStream(2);
-	printf("Chunk 2\n");
-	printf("Conv stream size: %i\n", convS->size());
+	debugCN(kDebugConversations, "Chunk 2\n");
+	debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	while (!convS->eos()) { // FIXME (eos changed)
-		printf("%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 
 	// ------------------------------------------------------------
 	// CNV file
@@ -764,46 +768,46 @@ void Converse::loadConversationMads(const char *convName) {
 	// TODO: finish this
 	// Chunk 0
 	convS = convData.getItemStream(0);
-	printf("Chunk 0\n");
-	printf("Conv stream size: %i\n", convS->size());
-	printf("%i ", convS->readUint16LE());
-	printf("%i ", convS->readUint16LE());
-	printf("%i ", convS->readUint16LE());
-	printf("%i ", convS->readUint16LE());
-	printf("%i ", convS->readUint16LE());
-	printf("%i ", convS->readUint16LE());
-	printf("\n");
+	debugCN(kDebugConversations, "Chunk 0\n");
+	debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
+	debugCN(kDebugConversations, "%i ", convS->readUint16LE());
+	debugCN(kDebugConversations, "%i ", convS->readUint16LE());
+	debugCN(kDebugConversations, "%i ", convS->readUint16LE());
+	debugCN(kDebugConversations, "%i ", convS->readUint16LE());
+	debugCN(kDebugConversations, "%i ", convS->readUint16LE());
+	debugCN(kDebugConversations, "%i ", convS->readUint16LE());
+	debugCN(kDebugConversations, "\n");
 	count = convS->readUint16LE();	// conversation face count (usually 2)
-	printf("Conversation faces: %i\n", count);
+	debugCN(kDebugConversations, "Conversation faces: %i\n", count);
 	for (i = 0; i < 5; i++) {
 		convS->read(buffer, 16);
-		printf("Face %i: %s ", i + 1, buffer);
+		debugCN(kDebugConversations, "Face %i: %s ", i + 1, buffer);
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 
 	// 5 face slots
 	// 1 = face slot has a face (with the filename specified above)
 	// 0 = face slot doesn't contain face data
 	for (i = 0; i < 5; i++) {
-		printf("%i ", convS->readUint16LE());
+		debugCN(kDebugConversations, "%i ", convS->readUint16LE());
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 
 	convS->read(buffer, 14);		// speech file
-	printf("Speech file: %s\n", buffer);
+	debugCN(kDebugConversations, "Speech file: %s\n", buffer);
 
 	while (!convS->eos()) { // FIXME: eos changed
-		printf("%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 
 	delete convS;
 
 	// ------------------------------------------------------------
 	// Chunk 1: Conversation nodes
 	convS = convData.getItemStream(1);
-	printf("Chunk 1: conversation nodes\n");
-	printf("Conv stream size: %i\n", convS->size());
+	debugCN(kDebugConversations, "Chunk 1: conversation nodes\n");
+	debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	while (true) {
 		uint16 id = convS->readUint16LE();
@@ -823,12 +827,12 @@ void Converse::loadConversationMads(const char *convName) {
 		unk = convS->readUint16LE();
 		assert (unk == 65535);
 		_convNodes.push_back(curEntry);
-		printf("Node %i, ID %i, entries %i\n", _convNodes.size(), curEntry->id, curEntry->entryCount);
+		debugCN(kDebugConversations, "Node %i, ID %i, entries %i\n", _convNodes.size(), curEntry->id, curEntry->entryCount);
 		// flags = 0: node has more than 1 entry
 		// flags = 65535: node has 1 entry
 	}
-	printf("Conversation has %i nodes\n", _convNodes.size());
-	printf("\n");
+	debugCN(kDebugConversations, "Conversation has %i nodes\n", _convNodes.size());
+	debugCN(kDebugConversations, "\n");
 
 	delete convS;
 
@@ -839,14 +843,14 @@ void Converse::loadConversationMads(const char *convName) {
 	// ------------------------------------------------------------
 	// Chunk 5 contains the conversation strings
 	convS = convData.getItemStream(5);
-	//printf("Chunk 5: conversation strings\n");
-	//printf("Conv stream size: %i\n", convS->size());
+	//debugCN(kDebugConversations, "Chunk 5: conversation strings\n");
+	//debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	*buffer = 0;
 
 	while (true) {
 		//if (curPos == 0)
-		//	printf("%i: Offset %i: ", _convStrings.size(), convS->pos());
+		//	debugCN(kDebugConversations, "%i: Offset %i: ", _convStrings.size(), convS->pos());
 		uint8 b = convS->readByte();
 		if (convS->eos()) break;
 
@@ -857,9 +861,9 @@ void Converse::loadConversationMads(const char *convName) {
 		}
 		if (buffer[curPos - 1] == '\0') {
 			// end of string
-			//printf("%s\n", buffer);
-			buf = new char[strlen(buffer)];
-			sprintf(buf, "%s", buffer);
+			//debugCN(kDebugConversations, "%s\n", buffer);
+			buf = new char[strlen(buffer) + 1];
+			strcpy(buf, buffer);
 			_convStrings.push_back(buf);
 			curPos = 0;
 			*buffer = 0;
@@ -871,8 +875,8 @@ void Converse::loadConversationMads(const char *convName) {
 	// ------------------------------------------------------------
 	// Chunk 2: entry data
 	convS = convData.getItemStream(2);
-	//printf("Chunk 2 - entry data\n");
-	//printf("Conv stream size: %i\n", convS->size());
+	//debugCN(kDebugConversations, "Chunk 2 - entry data\n");
+	//debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	for (i = 0; i < _convNodes.size(); i++) {
 		for (j = 0; j < _convNodes[i]->entryCount; j++) {
@@ -887,7 +891,7 @@ void Converse::loadConversationMads(const char *convName) {
 			curEntry->size = convS->readUint16LE();
 
 			_convNodes[i]->entries.push_back(curEntry);
-			//printf("Node %i, entry %i, id %i, offset %i, size %i, text: %s\n",
+			//debugCN(kDebugConversations, "Node %i, entry %i, id %i, offset %i, size %i, text: %s\n",
 			//		i, j, curEntry->id, curEntry->offset, curEntry->size, curEntry->text);
 		}
 	}
@@ -897,8 +901,8 @@ void Converse::loadConversationMads(const char *convName) {
 	// ------------------------------------------------------------
 	// Chunk 3: message (MESG) chunks, created from the strings of chunk 5
 	convS = convData.getItemStream(3);
-	//printf("Chunk 3 - MESG chunk data\n");
-	//printf("Conv stream size: %i\n", convS->size());
+	//debugCN(kDebugConversations, "Chunk 3 - MESG chunk data\n");
+	//debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 
 	while (true) {
 		uint16 index = convS->readUint16LE();
@@ -908,15 +912,15 @@ void Converse::loadConversationMads(const char *convName) {
 		stringIndex = index;
 		stringCount = convS->readUint16LE();
 		*buffer = 0;
-		//printf("Message: %i\n", _madsMessageList.size());
+		//debugCN(kDebugConversations, "Message: %i\n", _madsMessageList.size());
 		for (i = stringIndex; i < stringIndex + stringCount; i++) {
-			//printf("%i: %s\n", i, _convStrings[i]);
+			//debugCN(kDebugConversations, "%i: %s\n", i, _convStrings[i]);
 			curMessage->messageStrings.push_back(_convStrings[i]);
 		}
 		_madsMessageList.push_back(curMessage);
-		//printf("----------\n");
+		//debugCN(kDebugConversations, "----------\n");
 	}
-	//printf("\n");
+	//debugCN(kDebugConversations, "\n");
 
 	delete convS;
 
@@ -924,38 +928,38 @@ void Converse::loadConversationMads(const char *convName) {
 	// TODO: finish this
 	// Chunk 6: conversation script
 	convS = convData.getItemStream(6);
-	printf("Chunk 6\n");
-	printf("Conv stream size: %i\n", convS->size());
+	debugCN(kDebugConversations, "Chunk 6\n");
+	debugCN(kDebugConversations, "Conv stream size: %i\n", convS->size());
 	/*while (!convS->eos()) { // FIXME (eos changed)
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("%i ", convS->readByte());
-		printf("\n");
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "%i ", convS->readByte());
+		debugCN(kDebugConversations, "\n");
 	}
 	return;*/
 
 	for (i = 0; i < _convNodes.size(); i++) {
 		for (j = 0; j < _convNodes[i]->entryCount; j++) {
-			printf("*** Node %i entry %i data size %i\n", i, j, _convNodes[i]->entries[j]->size);
-			printf("Entry ID %i, text %s\n", _convNodes[i]->entries[j]->id, _convNodes[i]->entries[j]->text);
-			Common::SubReadStream *entryStream = new Common::SubReadStream(convS, _convNodes[i]->entries[j]->size);
+			debugCN(kDebugConversations, "*** Node %i entry %i data size %i\n", i, j, _convNodes[i]->entries[j]->size);
+			debugCN(kDebugConversations, "Entry ID %i, text %s\n", _convNodes[i]->entries[j]->id, _convNodes[i]->entries[j]->text);
+			Common::ReadStream *entryStream = new Common::SubReadStream(convS, _convNodes[i]->entries[j]->size);
 			readConvEntryActions(entryStream, _convNodes[i]->entries[j]);
 			delete entryStream;
-			printf("--------------------\n");
+			debugCN(kDebugConversations, "--------------------\n");
 		}
 	}
 
 	delete convS;
 }
 
-void Converse::readConvEntryActions(Common::SubReadStream *convS, ConvEntry *curEntry) {
+void Converse::readConvEntryActions(Common::ReadStream *convS, ConvEntry *curEntry) {
 	uint8 chunk;
 	uint8 type;	// 255: normal, 11: conditional
 	uint8 hasText1, hasText2;
@@ -973,50 +977,50 @@ void Converse::readConvEntryActions(Common::SubReadStream *convS, ConvEntry *cur
 
 		switch (chunk) {
 		case 1:
-			printf("TODO: chunk type %i\n", chunk);
+			debugCN(kDebugConversations, "TODO: chunk type %i\n", chunk);
 			break;
 		case 2:
-			printf("HIDE\n");
+			debugCN(kDebugConversations, "HIDE\n");
 			convS->readByte();
 			count = convS->readByte();
-			printf("%i entries: ", count);
+			debugCN(kDebugConversations, "%i entries: ", count);
 			for (int i = 0; i < count; i++)
-				printf("%i %d", i, convS->readUint16LE());
-			printf("\n");
+				debugCN(kDebugConversations, "%i %d", i, convS->readUint16LE());
+			debugCN(kDebugConversations, "\n");
 			break;
 		case 3:
-			printf("UNHIDE\n");
+			debugCN(kDebugConversations, "UNHIDE\n");
 			convS->readByte();
 			count = convS->readByte();
-			printf("%i entries: ", count);
+			debugCN(kDebugConversations, "%i entries: ", count);
 			for (int i = 0; i < count; i++)
-				printf("%i %d", i, convS->readUint16LE());
-			printf("\n");
+				debugCN(kDebugConversations, "%i %d", i, convS->readUint16LE());
+			debugCN(kDebugConversations, "\n");
 			break;
 		case 4:		// MESSAGE
-			printf("MESSAGE\n");
+			debugCN(kDebugConversations, "MESSAGE\n");
 
 			if (type == 255) {
-				//printf("unconditional\n");
+				//debugCN(kDebugConversations, "unconditional\n");
 			} else if (type == 11) {
-				//printf("conditional\n");
+				//debugCN(kDebugConversations, "conditional\n");
 			} else {
-				printf("unknown type: %i\n", type);
+				debugCN(kDebugConversations, "unknown type: %i\n", type);
 			}
 
 			// Conditional part
 			if (type == 11) {
 				unk = convS->readUint16LE();	//	1
 				if (unk != 1)
-					printf("Message: unk != 1 (it's %i)\n", unk);
+					debugCN(kDebugConversations, "Message: unk != 1 (it's %i)\n", unk);
 
 					var = convS->readUint16LE();
 					val = convS->readUint16LE();
-					printf("Var %i == %i\n", var, val);
+					debugCN(kDebugConversations, "Var %i == %i\n", var, val);
 			}
 			unk = convS->readUint16LE();	//	256
 			if (unk != 256)
-				printf("Message: unk != 256 (it's %i)\n", unk);
+				debugCN(kDebugConversations, "Message: unk != 256 (it's %i)\n", unk);
 
 			// it seems that the first text entry is set when the message
 			// chunk is supposed to be shown unconditionally, whereas the second text
@@ -1026,74 +1030,74 @@ void Converse::readConvEntryActions(Common::SubReadStream *convS, ConvEntry *cur
 
 			if (hasText1 == 1) {
 				messageIndex = convS->readUint16LE();
-				printf("Message 1 index: %i, text:\n", messageIndex);
+				debugCN(kDebugConversations, "Message 1 index: %i, text:\n", messageIndex);
 				for (uint32 i = 0; i < _madsMessageList[messageIndex]->messageStrings.size(); i++) {
-					printf("%s\n", _madsMessageList[messageIndex]->messageStrings[i]);
+					debugCN(kDebugConversations, "%s\n", _madsMessageList[messageIndex]->messageStrings[i]);
 				}
 			}
 
 			if (hasText2 == 1) {
 				messageIndex = convS->readUint16LE();
 				if (hasText1 == 0) {
-					printf("Message 2 index: %i, text:\n", messageIndex);
+					debugCN(kDebugConversations, "Message 2 index: %i, text:\n", messageIndex);
 					for (uint32 i = 0; i < _madsMessageList[messageIndex]->messageStrings.size(); i++) {
-						printf("%s\n", _madsMessageList[messageIndex]->messageStrings[i]);
+						debugCN(kDebugConversations, "%s\n", _madsMessageList[messageIndex]->messageStrings[i]);
 					}
 				}
 			}
 
 			break;
 		case 5:		// AUTO
-			printf("AUTO\n");
+			debugCN(kDebugConversations, "AUTO\n");
 			for (int k = 0; k < 4; k++)
 				convS->readByte();
 			messageIndex = convS->readUint16LE();
-			printf("Message index: %i, text:\n", messageIndex);
+			debugCN(kDebugConversations, "Message index: %i, text:\n", messageIndex);
 			for (uint32 i = 0; i < _madsMessageList[messageIndex]->messageStrings.size(); i++) {
-				printf("%s\n", _madsMessageList[messageIndex]->messageStrings[i]);
+				debugCN(kDebugConversations, "%s\n", _madsMessageList[messageIndex]->messageStrings[i]);
 			}
 
 			convS->readUint16LE();
 			break;
 		case 6:
-			printf("TODO: chunk type %i\n", chunk);
+			debugCN(kDebugConversations, "TODO: chunk type %i\n", chunk);
 			break;
 		case 7:		// GOTO
 			unk = convS->readUint32LE();	// 0
 			if (unk != 0 && unk != 1)
-				printf("Goto: unk != 0 or 1 (it's %i)\n", unk);
+				debugCN(kDebugConversations, "Goto: unk != 0 or 1 (it's %i)\n", unk);
 
 			target = convS->readUint16LE();
 			convS->readUint16LE();	// 255
 
 			if (unk != 0)
-				printf("Goto: unk != 0 (it's %i)\n", unk);
+				debugCN(kDebugConversations, "Goto: unk != 0 (it's %i)\n", unk);
 
 			if (target != 65535)
-				printf("GOTO node %i\n", target);
+				debugCN(kDebugConversations, "GOTO node %i\n", target);
 			else
-				printf("GOTO exit\n");
+				debugCN(kDebugConversations, "GOTO exit\n");
 			break;
 		case 8:
-			printf("TODO: chunk type %i\n", chunk);
+			debugCN(kDebugConversations, "TODO: chunk type %i\n", chunk);
 			break;
 		case 9:		// ASSIGN
-			//printf("ASSIGN\n");
+			//debugCN(kDebugConversations, "ASSIGN\n");
 			unk = convS->readUint32LE();	// 0
 
 			if (unk != 0)
-				printf("Assign: unk != 0 (it's %i)\n", unk);
+				debugCN(kDebugConversations, "Assign: unk != 0 (it's %i)\n", unk);
 
 			val = convS->readUint16LE();
 			var = convS->readUint16LE();
-			//printf("Var %i = %i\n", var, val);
+			//debugCN(kDebugConversations, "Var %i = %i\n", var, val);
 			break;
 		default:
-			printf ("Unknown chunk type! (%i)\n", chunk);
+			debugCN(kDebugConversations, "Unknown chunk type! (%i)\n", chunk);
 			break;
 		}
 	}
-	printf("\n");
+	debugCN(kDebugConversations, "\n");
 }
 
 void Converse::setEntryInfo(int32 offset, EntryType type, int32 nodeIndex, int32 entryIndex) {
@@ -1104,7 +1108,7 @@ void Converse::setEntryInfo(int32 offset, EntryType type, int32 nodeIndex, int32
 	info.nodeIndex = nodeIndex;
 	info.entryIndex = entryIndex;
 	_offsetMap[hashOffset] = info;
-	//printf("Set entry info: offset %i, type %i, node %i, entry %i\n", offset, type, nodeIndex, entryIndex);
+	//debugCN(kDebugConversations, "Set entry info: offset %i, type %i, node %i, entry %i\n", offset, type, nodeIndex, entryIndex);
 }
 
 const EntryInfo* Converse::getEntryInfo(int32 offset) {
@@ -1167,7 +1171,7 @@ bool Converse::performAction(EntryAction *action) {
 	}
 
 	if (action->actionType == kAssignValue) {
-		//printf("Assigning variable at offset %i to value %i\n",
+		//debugCN(kDebugConversations, "Assigning variable at offset %i to value %i\n",
 		//		action->targetOffset, action->value);
 		setValue(action->targetOffset, action->value);
 		return true;		// nothing else to do in an assignment action
@@ -1185,24 +1189,24 @@ bool Converse::performAction(EntryAction *action) {
 
 	switch (action->actionType) {
 	case kGotoEntry:
-		//printf("Goto entry at offset %i. Associated node is %i, entry %i\n",
+		//debugCN(kDebugConversations, "Goto entry at offset %i. Associated node is %i, entry %i\n",
 		//	action->targetOffset, entryInfo->nodeIndex, entryInfo->entryIndex);
 		_vm->_conversationView->setNode(entryInfo->nodeIndex);
 		if (entryInfo->entryIndex >= 0)
 			_vm->_conversationView->selectEntry(entryInfo->entryIndex);
 		return false;
 	case kHideEntry:
-		//printf("Hide entry at offset %i. Associated node is %i, entry %i\n",
+		//debugCN(kDebugConversations, "Hide entry at offset %i. Associated node is %i, entry %i\n",
 		//	targetEntry->offset, entryInfo->nodeIndex, entryInfo->entryIndex);
 		targetEntry->visible = false;
 		return true;
 	case kUnhideEntry:
-		//printf("Show entry at offset %i. Associated node is %i, entry %i\n",
+		//debugCN(kDebugConversations, "Show entry at offset %i. Associated node is %i, entry %i\n",
 		//	targetEntry->offset, entryInfo->nodeIndex, entryInfo->entryIndex);
 		targetEntry->visible = true;
 		return true;
 	case kDestroyEntry:
-		//printf("Destroy entry at offset %i. Associated node is %i, entry %i\n",
+		//debugCN(kDebugConversations, "Destroy entry at offset %i. Associated node is %i, entry %i\n",
 		//	targetEntry->offset, entryInfo->nodeIndex, entryInfo->entryIndex);
 		if (entryInfo->entryIndex >= 0)
 			getNode(entryInfo->nodeIndex)->entries.remove_at(entryInfo->entryIndex);
@@ -1211,7 +1215,7 @@ bool Converse::performAction(EntryAction *action) {
 		targetEntry->visible = true;
 		return true;
 	case kExitConv:
-		//printf("Exit conversation\n");
+		//debugCN(kDebugConversations, "Exit conversation\n");
 		endConversation();
 		return false;
 	default:
@@ -1219,5 +1223,15 @@ bool Converse::performAction(EntryAction *action) {
 		return false;
 	}	// end switch
 }
+
+/*--------------------------------------------------------------------------*/
+
+MadsConversation::MadsConversation() {
+	for (int i = 0; i < MADS_TALK_SIZE; ++i) {
+		_talkList[i].desc = NULL;
+		_talkList[i].id = 0;
+	}
+}
+
 
 } // End of namespace M4

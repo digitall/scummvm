@@ -20,18 +20,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef SWORD2_ANIMATION_H
 #define SWORD2_ANIMATION_H
 
-#include "graphics/video/dxa_decoder.h"
-#include "graphics/video/smk_decoder.h"
-#include "graphics/video/video_player.h"
-#include "sound/mixer.h"
+#include "video/dxa_decoder.h"
+#include "video/smk_decoder.h"
+#include "video/video_decoder.h"
+#include "audio/mixer.h"
 
 #include "sword2/screen.h"
 
@@ -58,25 +55,24 @@ struct MovieText {
 	}
 };
 
-class DXADecoderWithSound : public Graphics::DXADecoder {
+class DXADecoderWithSound : public Video::DXADecoder {
 public:
 	DXADecoderWithSound(Audio::Mixer *mixer, Audio::SoundHandle *bgSoundHandle);
 	~DXADecoderWithSound() {}
 
-	int32 getAudioLag();
+	uint32 getElapsedTime() const;
 private:
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle *_bgSoundHandle;
 };
 
-class MoviePlayer : public Graphics::VideoPlayer {
+class MoviePlayer {
 public:
-	MoviePlayer(Sword2Engine *vm, Audio::Mixer *snd, OSystem *system, Audio::SoundHandle *bgSoundHandle, Graphics::VideoDecoder *decoder, DecoderType decoderType);
-	virtual ~MoviePlayer(void);
+	MoviePlayer(Sword2Engine *vm, Audio::Mixer *snd, OSystem *system, Audio::SoundHandle *bgSoundHandle, Video::VideoDecoder *decoder, DecoderType decoderType);
+	virtual ~MoviePlayer();
 
 	bool load(const char *name);
 	void play(MovieText *movieTexts, uint32 numMovieTexts, uint32 leadIn, uint32 leadOut);
-	void pauseMovie(bool pause);
 
 protected:
 	Sword2Engine *_vm;
@@ -87,19 +83,25 @@ protected:
 	uint32 _currentMovieText;
 	byte *_textSurface;
 	int _textX, _textY;
+	byte _white, _black;
 	DecoderType _decoderType;
 
+	Video::VideoDecoder *_decoder;
 	Audio::SoundHandle *_bgSoundHandle;
 	Audio::AudioStream *_bgSoundStream;
 
 	uint32 _leadOut;
 	int _leadOutFrame;
 
-	void performPostProcessing(byte *screen);
+	void performPostProcessing(byte *screen, uint16 pitch);
+	bool playVideo();
 
 	void openTextObject(uint32 index);
-	void closeTextObject(uint32 index, byte *screen);
-	void drawTextObject(uint32 index, byte *screen);
+	void closeTextObject(uint32 index, byte *screen, uint16 pitch);
+	void drawTextObject(uint32 index, byte *screen, uint16 pitch);
+
+	byte findBlackPalIndex();
+	byte findWhitePalIndex();
 };
 
 MoviePlayer *makeMoviePlayer(const char *name, Sword2Engine *vm, Audio::Mixer *snd, OSystem *system);

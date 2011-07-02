@@ -18,14 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "engines/game.h"
-#include "base/plugins.h"
-#include "graphics/surface.h"
 
 
 const PlainGameDescriptor *findPlainGameDescriptor(const char *gameid, const PlainGameDescriptor *list) {
@@ -43,20 +38,15 @@ GameDescriptor::GameDescriptor() {
 	setVal("description", "");
 }
 
-GameDescriptor::GameDescriptor(const PlainGameDescriptor &pgd) {
-	setVal("gameid", pgd.gameid);
-	setVal("description", pgd.description);
-}
-
-GameDescriptor::GameDescriptor(const PlainGameDescriptorGUIOpts &pgd) {
+GameDescriptor::GameDescriptor(const PlainGameDescriptor &pgd, uint32 guioptions) {
 	setVal("gameid", pgd.gameid);
 	setVal("description", pgd.description);
 
-	if (pgd.guioptions != 0)
-		setVal("guioptions", Common::getGameGUIOptionsDescription(pgd.guioptions));
+	if (guioptions != 0)
+		setVal("guioptions", Common::getGameGUIOptionsDescription(guioptions));
 }
 
-GameDescriptor::GameDescriptor(const Common::String &g, const Common::String &d, Common::Language l, Common::Platform p, uint32 guioptions) {
+GameDescriptor::GameDescriptor(const Common::String &g, const Common::String &d, Common::Language l, Common::Platform p, uint32 guioptions, GameSupportLevel gsl) {
 	setVal("gameid", g);
 	setVal("description", d);
 	if (l != Common::UNK_LANG)
@@ -65,6 +55,8 @@ GameDescriptor::GameDescriptor(const Common::String &g, const Common::String &d,
 		setVal("platform", Common::getPlatformCode(p));
 	if (guioptions != 0)
 		setVal("guioptions", Common::getGameGUIOptionsDescription(guioptions));
+
+	setSupportLevel(gsl);
 }
 
 void GameDescriptor::setGUIOptions(uint32 guioptions) {
@@ -74,10 +66,11 @@ void GameDescriptor::setGUIOptions(uint32 guioptions) {
 		erase("guioptions");
 }
 
+void GameDescriptor::appendGUIOptions(const Common::String &str) {
+	setVal("guioptions", getVal("guioptions", "") + " " + str);
+}
+
 void GameDescriptor::updateDesc(const char *extra) {
-	// TODO: The format used here (LANG/PLATFORM/EXTRA) is not set in stone.
-	// We may want to change the order (PLATFORM/EXTRA/LANG, anybody?), or
-	// the seperator (instead of '/' use ', ' or ' ').
 	const bool hasCustomLanguage = (language() != Common::UNK_LANG);
 	const bool hasCustomPlatform = (platform() != Common::kPlatformUnknown);
 	const bool hasExtraDesc = (extra && extra[0]);
@@ -104,53 +97,29 @@ void GameDescriptor::updateDesc(const char *extra) {
 	}
 }
 
-void SaveStateDescriptor::setThumbnail(Graphics::Surface *t) {
-	if (_thumbnail.get() == t)
-		return;
-
-	_thumbnail = Common::SharedPtr<Graphics::Surface>(t, Graphics::SharedPtrSurfaceDeleter());
-}
-
-bool SaveStateDescriptor::getBool(const Common::String &key) const {
-	if (contains(key)) {
-		Common::String value = getVal(key);
-		if (value.equalsIgnoreCase("true") ||
-			value.equalsIgnoreCase("yes") ||
-			value.equals("1"))
-			return true;
-		if (value.equalsIgnoreCase("false") ||
-			value.equalsIgnoreCase("no") ||
-			value.equals("0"))
-			return false;
-		error("SaveStateDescriptor: %s '%s' has unknown value '%s' for boolean '%s'",
-				save_slot().c_str(), description().c_str(), value.c_str(), key.c_str());
+GameSupportLevel GameDescriptor::getSupportLevel() {
+	GameSupportLevel gsl = kStableGame;
+	if (contains("gsl")) {
+		Common::String gslString = getVal("gsl");
+		if (gslString.equals("unstable"))
+			gsl = kUnstableGame;
+		else if (gslString.equals("testing"))
+			gsl = kTestingGame;
 	}
-	return false;
+	return gsl;
 }
 
-void SaveStateDescriptor::setDeletableFlag(bool state) {
-	setVal("is_deletable", state ? "true" : "false");
+void GameDescriptor::setSupportLevel(GameSupportLevel gsl) {
+	switch (gsl) {
+	case kUnstableGame:
+		setVal("gsl", "unstable");
+		break;
+	case kTestingGame:
+		setVal("gsl", "testing");
+		break;
+	case kStableGame:
+		// Fall Through intended
+	default:
+		erase("gsl");
+	}
 }
-
-void SaveStateDescriptor::setWriteProtectedFlag(bool state) {
-	setVal("is_write_protected", state ? "true" : "false");
-}
-
-void SaveStateDescriptor::setSaveDate(int year, int month, int day) {
-	char buffer[32];
-	snprintf(buffer, 32, "%.2d.%.2d.%.4d", day, month, year);
-	setVal("save_date", buffer);
-}
-
-void SaveStateDescriptor::setSaveTime(int hour, int min) {
-	char buffer[32];
-	snprintf(buffer, 32, "%.2d:%.2d", hour, min);
-	setVal("save_time", buffer);
-}
-
-void SaveStateDescriptor::setPlayTime(int hours, int minutes) {
-	char buffer[32];
-	snprintf(buffer, 32, "%.2d:%.2d", hours, minutes);
-	setVal("play_time", buffer);
-}
-

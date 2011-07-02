@@ -18,16 +18,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "groovie/vdx.h"
+#include "groovie/graphics.h"
 #include "groovie/groovie.h"
 #include "groovie/lzss.h"
-#include "groovie/vdx.h"
 
-#include "sound/mixer.h"
+#include "common/debug.h"
+#include "common/debug-channels.h"
+#include "common/textconsole.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
+#include "graphics/palette.h"
 
 #define TILE_SIZE 4			// Size of each tile on the image: only ever seen 4 so far
 #define VDX_IDENT 0x9267	// 37479
@@ -43,14 +46,18 @@ VDXPlayer::~VDXPlayer() {
 	//delete _audioStream;
 }
 
+void VDXPlayer::resetFlags() {
+	_flagOnePrev = false;
+}
+
 void VDXPlayer::setOrigin(int16 x, int16 y) {
 	_origX = x;
 	_origY = y;
 }
 
 uint16 VDXPlayer::loadInternal() {
-	if (Common::isDebugChannelEnabled(kGroovieDebugVideo) ||
-	    Common::isDebugChannelEnabled(kGroovieDebugAll)) {
+	if (DebugMan.isDebugChannelEnabled(kGroovieDebugVideo) ||
+	    DebugMan.isDebugChannelEnabled(kGroovieDebugAll)) {
 		int8 i;
 		debugN(1, "Groovie::VDX: New VDX: bitflags are ");
 		for (i = 15; i >= 0; i--) {
@@ -63,7 +70,7 @@ uint16 VDXPlayer::loadInternal() {
 	}
 	// Flags:
 	// - 1 Puzzle piece? Skip palette, don't redraw full screen, draw still to b/ack buffer
-	// - 2 Transparent colour is 0xFF
+	// - 2 Transparent color is 0xFF
 	// - 5 Skip still chunks
 	// - 7
 	// - 8 Just show the first frame
@@ -78,6 +85,11 @@ uint16 VDXPlayer::loadInternal() {
 	_flagSeven =	((_flags & (1 << 7)) != 0);
 	_flagEight =	((_flags & (1 << 8)) != 0);
 	_flagNine =		((_flags & (1 << 9)) != 0);
+
+	// Enable highspeed if we're not obeying fps, and not marked as special
+	// This will be disabled in chunk audio if we're actually an audio vdx
+	if ( _vm->_modeSpeed == kGroovieSpeediOS || (_vm->_modeSpeed == kGroovieSpeedTweaked && ((_flags & (1 << 15)) == 0)))
+		setOverrideSpeed(true);
 
 	if (_flagOnePrev && !_flagOne && !_flagEight) {
 		_flagSeven = true;
@@ -97,7 +109,7 @@ uint16 VDXPlayer::loadInternal() {
 	debugC(1, kGroovieDebugVideo | kGroovieDebugAll, "Groovie::VDX: Playing video");
 
 	if (_file->readUint16LE() != VDX_IDENT) {
-		error("Groovie::VDX: This does not appear to be a 7th guest vxd file");
+		error("Groovie::VDX: This does not appear to be a 7th guest VDX file");
 		return 0;
 	} else {
 		debugC(5, kGroovieDebugVideo | kGroovieDebugAll, "Groovie::VDX: VDX file identified correctly");
@@ -118,19 +130,26 @@ uint16 VDXPlayer::loadInternal() {
 
 bool VDXPlayer::playFrameInternal() {
 	byte currRes = 0x80;
-	while (!_file->eos() && currRes == 0x80) {
+	Common::ReadStream *vdxData = 0;
+	while (currRes == 0x80) {
 		currRes = _file->readByte();
 
 		// Skip unknown data: 1 byte, ref Edward
 		byte tmp = _file->readByte();
-		debugC(5, kGroovieDebugVideo | kGroovieDebugUnknown | kGroovieDebugAll, "Groovie::VDX: Edward = 0x%04X", tmp);
 
 		uint32 compSize = _file->readUint32LE();
 		uint8 lengthmask = _file->readByte();
 		uint8 lengthbits = _file->readByte();
 
+		if (_file->eos())
+			break;
+
+		debugC(5, kGroovieDebugVideo | kGroovieDebugUnknown | kGroovieDebugAll, "Groovie::VDX: Edward = 0x%04X", tmp);
+
 		// Read the chunk data and decompress if needed
-		Common::ReadStream *vdxData = new Common::SubReadStream(_file, compSize);
+		if (compSize)
+			vdxData = _file->readStream(compSize);
+
 		if (lengthmask && lengthbits) {
 			Common::ReadStream *decompData = new LzssReadStream(vdxData, lengthmask, lengthbits);
 			delete vdxData;
@@ -158,11 +177,12 @@ bool VDXPlayer::playFrameInternal() {
 				error("Groovie::VDX: Invalid resource type: %d", currRes);
 		}
 		delete vdxData;
+		vdxData = 0;
 	}
 
 	// Wait until the current frame can be shown
 
-	if (!Common::isDebugChannelEnabled(kGroovieDebugFast)) {
+	if (!DebugMan.isDebugChannelEnabled(kGroovieDebugFast)) {
 		waitFrame();
 	}
 	// TODO: Move it to a better place
@@ -194,17 +214,14 @@ static const uint16 vdxBlockMapLookup[] = {
 };
 
 void VDXPlayer::getDelta(Common::ReadStream *in) {
-	uint16 j, k, l;
-	uint32 offset;
-	uint8 currOpCode, param1, param2, param3;
+	uint16 k, l;
 
 	// Get the size of the local palette
-	j = in->readUint16LE();
+	uint16 palSize = in->readUint16LE();
 
 	// Load the palette if it isn't empty
-	if (j) {
+	if (palSize) {
 		uint16 palBitField[16];
-		int flag = 1, palIndex;
 
 		// Load the bit field
 		for (l = 0; l < 16; l++) {
@@ -213,9 +230,9 @@ void VDXPlayer::getDelta(Common::ReadStream *in) {
 
 		// Load the actual palette
 		for (l = 0; l < 16; l++) {
-			flag = 1 << 15;
-			for (j = 0; j < 16; j++) {
-				palIndex = (l * 16) + j;
+			int flag = 1 << 15;
+			for (uint16 j = 0; j < 16; j++) {
+				int palIndex = (l * 16) + j;
 
 				if (flag & palBitField[l]) {
 					for (k = 0; k < 3; k++) {
@@ -232,38 +249,39 @@ void VDXPlayer::getDelta(Common::ReadStream *in) {
 			setPalette(_palBuf);
 		}
 	}
-	currOpCode = in->readByte();
 
-	/* j now becomes the current block line we're dealing with */
-	j = 0;
-	offset = 0;
+	uint8 currOpCode = in->readByte();
+	uint8 param1, param2, param3;
+
+	uint16 currentLine = 0;
+	uint32 offset = 0;
 	while (!in->eos()) {
-		byte colours[16];
+		byte colors[16];
 		if (currOpCode < 0x60) {
 			param1 = in->readByte();
 			param2 = in->readByte();
-			expandColourMap(colours, vdxBlockMapLookup[currOpCode], param1, param2);
-			decodeBlockDelta(offset, colours, 640);
+			expandColorMap(colors, vdxBlockMapLookup[currOpCode], param1, param2);
+			decodeBlockDelta(offset, colors, 640);
 			offset += TILE_SIZE;
 		} else if (currOpCode > 0x7f) {
 			param1 = in->readByte();
 			param2 = in->readByte();
 			param3 = in->readByte();
-			expandColourMap(colours, (param1 << 8) + currOpCode, param2, param3);
-			decodeBlockDelta(offset, colours, 640);
+			expandColorMap(colors, (param1 << 8) + currOpCode, param2, param3);
+			decodeBlockDelta(offset, colors, 640);
 			offset += TILE_SIZE;
 		} else switch (currOpCode) {
-			case 0x60: /* Fill tile with the 16 colours given as parameters */
+			case 0x60: /* Fill tile with the 16 colors given as parameters */
 				for (l = 0; l < 16; l++) {
-					colours[l] = in->readByte();
+					colors[l] = in->readByte();
 				}
-				decodeBlockDelta(offset, colours, 640);
+				decodeBlockDelta(offset, colors, 640);
 				offset += TILE_SIZE;
 				break;
 			case 0x61: /* Skip to the end of this line, next block is start of next */
 				/* Note this is used at the end of EVERY line */
-				j++;
-				offset = j * TILE_SIZE * 640;
+				currentLine++;
+				offset = currentLine * TILE_SIZE * 640;
 				break;
 			case 0x62:
 			case 0x63:
@@ -286,14 +304,14 @@ void VDXPlayer::getDelta(Common::ReadStream *in) {
 			case 0x72:
 			case 0x73:
 			case 0x74:
-			case 0x75: /* Next param1 blocks are filled with colour param2 */
+			case 0x75: /* Next param1 blocks are filled with color param2 */
 				param1 = currOpCode - 0x6b;
 				param2 = in->readByte();
 				for (l = 0; l < 16; l++) {
-					colours[l] = param2;
+					colors[l] = param2;
 				}
 				for (k = 0; k < param1; k++) {
-					decodeBlockDelta(offset, colours, 640);
+					decodeBlockDelta(offset, colors, 640);
 					offset += TILE_SIZE;
 				}
 				break;
@@ -306,14 +324,14 @@ void VDXPlayer::getDelta(Common::ReadStream *in) {
 			case 0x7c:
 			case 0x7d:
 			case 0x7e:
-			case 0x7f: /* Next bytes contain colours to fill the next param1 blocks in the current line*/
+			case 0x7f: /* Next bytes contain colors to fill the next param1 blocks in the current line*/
 				param1 = currOpCode - 0x75;
 				for (k = 0; k < param1; k++) {
 					param2 = in->readByte();
 					for (l = 0; l < 16; l++) {
-						colours[l] = param2;
+						colors[l] = param2;
 					}
-					decodeBlockDelta(offset, colours, 640);
+					decodeBlockDelta(offset, colors, 640);
 					offset += TILE_SIZE;
 				}
 				break;
@@ -331,8 +349,8 @@ void VDXPlayer::getStill(Common::ReadStream *in) {
 	debugC(5, kGroovieDebugVideo | kGroovieDebugAll, "Groovie::VDX: numYTiles=%d", numYTiles);
 
 	// It's skipped in the original:
-	uint16 colourDepth = in->readUint16LE();
-	debugC(5, kGroovieDebugVideo | kGroovieDebugAll, "Groovie::VDX: colourDepth=%d", colourDepth);
+	uint16 colorDepth = in->readUint16LE();
+	debugC(5, kGroovieDebugVideo | kGroovieDebugAll, "Groovie::VDX: colorDepth=%d", colorDepth);
 
 	uint16 imageWidth = TILE_SIZE * numXTiles;
 
@@ -365,14 +383,17 @@ void VDXPlayer::getStill(Common::ReadStream *in) {
 	// Skip the frame when flag 5 is set, unless flag 1 is set
 	if (!_flagFive || _flagOne) {
 
-		byte colours[16];
+		byte colors[16];
 		for (uint16 j = 0; j < numYTiles; j++) {
-			for (uint16 i = 0; i < numXTiles; i++) { /* Tile number */
-				uint8 colour1 = in->readByte();
-				uint8 colour0 = in->readByte();
-				uint16 colourMap = in->readUint16LE();
-				expandColourMap(colours, colourMap, colour1, colour0);
-				decodeBlockStill(buf + j * TILE_SIZE * imageWidth + i * TILE_SIZE, colours, 640, mask);
+			byte *currentTile = buf + j * TILE_SIZE * imageWidth;
+			for (uint16 i = numXTiles; i; i--) {
+				uint8 color1 = in->readByte();
+				uint8 color0 = in->readByte();
+				uint16 colorMap = in->readUint16LE();
+				expandColorMap(colors, colorMap, color1, color0);
+				decodeBlockStill(currentTile, colors, 640, mask);
+
+				currentTile += TILE_SIZE;
 			}
 		}
 
@@ -409,47 +430,57 @@ void VDXPlayer::getStill(Common::ReadStream *in) {
 	}
 }
 
-void VDXPlayer::expandColourMap(byte *out, uint16 colourMap, uint8 colour1, uint8 colour0) {
-	int flag = 1 << 15;
-	for (int i = 0; i < 16; i++) {
-		// Set the corresponding colour
-		out[i] = (colourMap & flag) ? colour1 : colour0;
+void VDXPlayer::expandColorMap(byte *out, uint16 colorMap, uint8 color1, uint8 color0) {
+	// It's a bit faster to start from the end
+	out += 16;
+	for (int i = 16; i; i--) {
+		// Set the corresponding color
+		// The following is an optimized version of:
+		// *--out = (colorMap & 1) ? color1 : color0;
+		uint8 selector = -(colorMap & 1);
+		*--out = (selector & color1) | (~selector & color0);
 
-		// Update the flag to test the next colour
-		flag >>= 1;
+		// Update the flag map to test the next color
+		colorMap >>= 1;
 	}
 }
 
-void VDXPlayer::decodeBlockStill(byte *buf, byte *colours, uint16 imageWidth, uint8 mask) {
-	for (int y = 0; y < TILE_SIZE; y++) {
-		for (int x = 0; x < TILE_SIZE; x++) {
-			if (_flagOne) {
+void VDXPlayer::decodeBlockStill(byte *buf, byte *colors, uint16 imageWidth, uint8 mask) {
+	assert(TILE_SIZE == 4);
+
+	for (int y = TILE_SIZE; y; y--) {
+		if (_flagOne) {
+			// TODO: optimize with bit logic?
+			for (int x = 0; x < TILE_SIZE; x++) {
 				// 0xff pixels don't modify the buffer
-				if (*colours != 0xff) {
-					// Write the colour
-					*buf = *colours | mask;
+				if (*colors != 0xff) {
+					// Write the color
+					*buf = *colors | mask;
 					// Note: if the mask is 0, it paints the image
 					// else, it paints the image's mask using 0xff
 				}
-			} else {
-				*buf = *colours;
+
+				// Point to the next color
+				colors++;
+
+				// Point to the next pixel
+				buf++;
 			}
 
-			// Point to the next colour
-			colours++;
+			// Point to the start of the next line
+			buf += imageWidth - TILE_SIZE;
+		} else {
+			*((uint32 *)buf) = *((uint32 *)colors);
+			colors += 4;
 
-			// Point to the next pixel
-			buf++;
+			// Point to the start of the next line
+			buf += imageWidth;
 		}
-
-		// Point to the start of the next line
-		buf += imageWidth - TILE_SIZE;
 	}
 }
 
-void VDXPlayer::decodeBlockDelta(uint32 offset, byte *colours, uint16 imageWidth) {
-	byte *fgBuf = (byte *)_fg->getBasePtr(0, 0) + offset;
-	//byte *bgBuf = (byte *)_bg->getBasePtr(0, 0) + offset;
+void VDXPlayer::decodeBlockDelta(uint32 offset, byte *colors, uint16 imageWidth) {
+	assert(TILE_SIZE == 4);
 
 	byte *dest;
 	// TODO: Verify just the else block is required
@@ -460,41 +491,55 @@ void VDXPlayer::decodeBlockDelta(uint32 offset, byte *colours, uint16 imageWidth
 		dest = (byte *)_bg->getBasePtr(0, 0) + offset;
 	//}
 
-	int32 off = _origX + _origY * imageWidth;
-	for (int y = 0; y < TILE_SIZE; y++) {
-		for (int x = 0; x < TILE_SIZE; x++) {
-			if (_flagSeven) {
-				if (fgBuf[off] != 0xff) {
-					if (*colours == 0xff) {
-						dest[off] = fgBuf[off];
+	// Move the pointers to the beginning of the current block
+	int32 blockOff = _origX + _origY * imageWidth;
+	dest += blockOff;
+	byte *fgBuf = 0;
+	if (_flagSeven) {
+		fgBuf = (byte *)_fg->getBasePtr(0, 0) + offset + blockOff;
+		//byte *bgBuf = (byte *)_bg->getBasePtr(0, 0) + offset + blockOff;
+	}
+
+	for (int y = TILE_SIZE; y; y--) {
+		if (_flagSeven) {
+			// Paint mask
+			for (int x = 0; x < TILE_SIZE; x++) {
+				// TODO: this can probably be optimized with bit logic
+				if (fgBuf[x] != 0xff) {
+					if (*colors == 0xff) {
+						dest[x] = fgBuf[x];
 					} else {
-						dest[off] = *colours;
+						dest[x] = *colors;
 					}
 				}
-			} else {
-				// Paint directly
-				dest[off] = *colours;
+				colors++;
 			}
-			colours++;
-			off++;
+			fgBuf += imageWidth;
+		} else {
+			// Paint directly
+			*((uint32 *)dest) = *((uint32 *)colors);
+			colors += 4;
 		}
 
-		// Prepare the offset of the next line
-		off += imageWidth - TILE_SIZE;
+		// Move to the next line
+		dest += imageWidth;
 	}
 }
 
 void VDXPlayer::chunkSound(Common::ReadStream *in) {
+	if (getOverrideSpeed())
+		setOverrideSpeed(false);
+
 	if (!_audioStream) {
-		_audioStream = Audio::makeAppendableAudioStream(22050, Audio::Mixer::FLAG_UNSIGNED | Audio::Mixer::FLAG_AUTOFREE);
+		_audioStream = Audio::makeQueuingAudioStream(22050, false);
 		Audio::SoundHandle sound_handle;
-		g_system->getMixer()->playInputStream(Audio::Mixer::kPlainSoundType, &sound_handle, _audioStream);
+		g_system->getMixer()->playStream(Audio::Mixer::kPlainSoundType, &sound_handle, _audioStream);
 	}
 
-	byte *data = new byte[60000];
+	byte *data = (byte *)malloc(60000);
 	int chunksize = in->read(data, 60000);
-	if (!Common::isDebugChannelEnabled(kGroovieDebugFast)) {
-		_audioStream->queueBuffer(data, chunksize);
+	if (!DebugMan.isDebugChannelEnabled(kGroovieDebugFast)) {
+		_audioStream->queueBuffer(data, chunksize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 	}
 }
 
@@ -518,15 +563,8 @@ void VDXPlayer::setPalette(uint8 *palette) {
 	if (_flagSkipPalette)
 		return;
 
-	uint8 palBuf[4 * 256];
 	debugC(7, kGroovieDebugVideo | kGroovieDebugAll, "Groovie::VDX: Setting palette");
-	for (int i = 0; i < 256; i++) {
-		palBuf[(i * 4) + 0] = palette[(i * 3) + 0];
-		palBuf[(i * 4) + 1] = palette[(i * 3) + 1];
-		palBuf[(i * 4) + 2] = palette[(i * 3) + 2];
-		palBuf[(i * 4) + 3] = 0;
-	}
-	_syst->setPalette(palBuf, 0, 256);
+	_syst->getPaletteManager()->setPalette(palette, 0, 256);
 }
 
 } // End of Groovie namespace

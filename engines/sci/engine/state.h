@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCI_INCLUDE_ENGINE_H
@@ -29,80 +26,70 @@
 #include "common/scummsys.h"
 #include "common/array.h"
 #include "common/serializer.h"
+#include "common/str-array.h"
 
 namespace Common {
-	class SeekableReadStream;
-	class WriteStream;
+class SeekableReadStream;
+class WriteStream;
 }
 
 #include "sci/sci.h"
-#include "sci/vocabulary.h"
-#include "sci/resource.h"
-#include "sci/engine/kernel.h"	// for kfunct_sig_pair_t
-#include "sci/engine/message.h"		// for MessageState
-#include "sci/engine/script.h"
 #include "sci/engine/seg_manager.h"
-#include "sci/gfx/gfx_system.h"
-#include "sci/sfx/core.h"
+
+#include "sci/parser/vocabulary.h"
+
+#include "sci/sound/soundcmd.h"
 
 namespace Sci {
 
-class Menubar;
+class EventManager;
+class MessageState;
+class SoundCommandParser;
 
-struct GfxState;
-struct GfxPort;
-struct GfxVisual;
-struct GfxContainer;
-struct GfxList;
-
+enum AbortGameState {
+	kAbortNone = 0,
+	kAbortLoadGame = 1,
+	kAbortRestartGame = 2,
+	kAbortQuitGame = 3
+};
 
 class DirSeeker {
 protected:
-	EngineState *_vm;
 	reg_t _outbuffer;
-	Common::StringList _savefiles;
-	Common::StringList::const_iterator _iter;
+	Common::StringArray _files;
+	Common::StringArray _virtualFiles;
+	Common::StringArray::const_iterator _iter;
 
 public:
-	DirSeeker(EngineState *s) : _vm(s) {
+	DirSeeker() {
 		_outbuffer = NULL_REG;
-		_iter = _savefiles.begin();
+		_iter = _files.begin();
 	}
 
-	void firstFile(const char *mask, reg_t buffer);
-	void nextFile();
+	reg_t firstFile(const Common::String &mask, reg_t buffer, SegManager *segMan);
+	reg_t nextFile(SegManager *segMan);
+
+	Common::String getVirtualFilename(uint fileNumber);
+
+private:
+	void addAsVirtualFiles(Common::String title, Common::String fileMask);
 };
 
 enum {
-	CURRENT_SAVEGAME_VERSION = 9,
-	MINIMUM_SAVEGAME_VERSION = 9,
-
-	MAX_SAVE_DIR_SIZE = MAXPATHLEN
+	MAX_SAVEGAME_NR = 20 /**< Maximum number of savegames */
 };
 
-/** values for EngineState.restarting_flag */
+// We assume that scripts give us savegameId 0->99 for creating a new save slot
+//  and savegameId 100->199 for existing save slots ffs. kfile.cpp
 enum {
-	SCI_GAME_IS_NOT_RESTARTING = 0,
-	SCI_GAME_WAS_RESTARTED = 1,
-	SCI_GAME_IS_RESTARTING_NOW = 2,
-	SCI_GAME_WAS_RESTARTED_AT_LEAST_ONCE = 4
+	SAVEGAMEID_OFFICIALRANGE_START = 100,
+	SAVEGAMEID_OFFICIALRANGE_END = 199
 };
 
-/** Supported languages */
-enum kLanguage {
-	K_LANG_NONE = 0,
-	K_LANG_ENGLISH = 1,
-	K_LANG_FRENCH = 33,
-	K_LANG_SPANISH = 34,
-	K_LANG_ITALIAN = 39,
-	K_LANG_GERMAN = 49,
-	K_LANG_JAPANESE = 81,
-	K_LANG_PORTUGUESE = 351
-};
-
-struct drawn_pic_t {
-	int nr;
-	int palette;
+enum {
+	GAMEISRESTARTING_NONE = 0,
+	GAMEISRESTARTING_RESTART = 1,
+	GAMEISRESTARTING_RESTORE = 2
 };
 
 class FileHandle {
@@ -119,77 +106,53 @@ public:
 	bool isOpen() const;
 };
 
+enum VideoFlags {
+	kNone            = 0,
+	kDoubled         = 1 << 0,
+	kDropFrames      = 1 << 1,
+	kBlackLines      = 1 << 2,
+	kUnkBit3         = 1 << 3,
+	kGammaBoost      = 1 << 4,
+	kHoldBlackFrame  = 1 << 5,
+	kHoldLastFrame   = 1 << 6,
+	kUnkBit7         = 1 << 7,
+	kStretch         = 1 << 8
+};
+
+struct VideoState {
+	Common::String fileName;
+	uint16 x;
+	uint16 y;
+	uint16 flags;
+
+	void reset() {
+		fileName = "";
+		x = y = flags = 0;
+	}
+};
+
 struct EngineState : public Common::Serializable {
 public:
-	EngineState(ResourceManager *res, sci_version_t version, uint32 flags);
+	EngineState(SegManager *segMan);
 	virtual ~EngineState();
+
 	virtual void saveLoadWithSerializer(Common::Serializer &ser);
 
 public:
-	int widget_serial_counter; /**< Used for savegames */
-
-	ResourceManager *resmgr; /**< The resource manager */
-
-	const sci_version_t _version; /**< The approximated patchlevel of the version to emulate */
-	const uint32 _flags;			/**< Specific game flags */
-
-	Common::String _gameName; /**< Designation of the primary object (which inherits from Game) */
-	char *game_version;
+	SegManager *_segMan; /**< The segment manager */
 
 	/* Non-VM information */
 
-	GfxState *gfx_state; /**< Graphics state and driver */
-	gfx_pixmap_t *old_screen; /**< Old screen content: Stored during kDrawPic() for kAnimate() */
+	uint32 lastWaitTime; /**< The last time the game invoked Wait() */
+	uint32 _screenUpdateTime;	/**< The last time the game updated the screen */
 
-	SfxState _sound; /**< sound subsystem */
-	int sfx_init_flags; /**< flags the sfx subsystem was initialised with */
-	unsigned int sound_volume; /**< 0x0 -> 0xf Current volume of sound system */
-	unsigned int sound_mute; /**< 0 = not, else == saved value */
+	void speedThrottler(uint32 neededSleep);
+	void wait(int16 ticks);
 
-	byte restarting_flags; /**< Flags used for restarting */
-
-	byte pic_not_valid; /**< Is 0 if the background picture is "valid" */
-	byte pic_is_new; /**< New pic was loaded or port was opened */
-
-	int *pic_priority_table; /**< 16 entries with priorities or NULL if not present */
-
-	/** Text on the status bar, or NULL if the title bar is blank */
-	Common::String _statusBarText;
-
-	int status_bar_foreground, status_bar_background;
-
-	long game_time; /**< Counted at 60 ticks per second, reset during start time */
-
-	GfxPort *port; /**< The currently active port */
-
-	gfx_color_t ega_colors[16]; /**< The 16 EGA colors- for SCI0(1) */
-
-	GfxVisual *visual; /**< A visual widget, containing all ports */
-
-	GfxPort *titlebar_port; /**< Title bar viewport (0,0,9,319) */
-	GfxPort *wm_port; /**< window manager viewport and designated &heap[0] view (10,0,199,319) */
-	GfxPort *picture_port; /**< The background picture viewport (10,0,199,319) */
-	GfxPort *iconbar_port; /**< Full-screen port used for non-clipped icon bar draw in SCI1 */
-
-	gfx_map_mask_t pic_visible_map; /**< The number of the map to display in update commands */
-	int pic_animate; /**< The animation used by Animate() to display the picture */
-
-	GfxList *dyn_views; /**< Pointers to pic and dynamic view lists */
-	GfxList *drop_views; /**< A list Animate() can dump dropped dynviews into */
-
-	int animation_granularity; /**< Number of animation steps to perform betwen updates for transition animations */
-
-	Menubar *_menubar; /**< The menu bar */
-
-	int priority_first; /**< The line where priority zone 0 ends */
-	int priority_last; /**< The line where the highest priority zone starts */
-
-	Common::Array<drawn_pic_t> _pics;
-
-	uint32 game_start_time; /**< The time at which the interpreter was started */
-	uint32 last_wait_time; /**< The last time the game invoked Wait() */
-
-	unsigned int kernel_opt_flags; /**< Kernel optimization flags- used for performance tweaking */
+	uint32 _throttleCounter; /**< total times kAnimate was invoked */
+	uint32 _throttleLastTime; /**< last time kAnimate was invoked */
+	bool _throttleTrigger;
+	bool _gameIsBenchmarking;
 
 	/* Kernel File IO stuff */
 
@@ -197,6 +160,16 @@ public:
 
 	DirSeeker _dirseeker;
 
+	int16 _lastSaveVirtualId; // last virtual id fed to kSaveGame, if no kGetSaveFiles was called inbetween
+	int16 _lastSaveNewId;    // last newly created filename-id by kSaveGame
+
+	uint _chosenQfGImportItem; // Remembers the item selected in QfG import rooms
+
+	bool _cursorWorkaroundActive; // ffs. GfxCursor::setPosition()
+	Common::Point _cursorWorkaroundPoint;
+	Common::Rect _cursorWorkaroundRect;
+
+public:
 	/* VM Information */
 
 	Common::List<ExecStack> _executionStack; /**< The execution stack */
@@ -204,87 +177,64 @@ public:
 	 * When called from kernel functions, the vm is re-started recursively on
 	 * the same stack. This variable contains the stack base for the current vm.
 	 */
-	int execution_stack_base;
+	int executionStackBase;
 	bool _executionStackPosChanged;   /**< Set to true if the execution stack position should be re-evaluated by the vm */
 
+	// Registers
 	reg_t r_acc; /**< Accumulator */
-	int16 restAdjust; /**< &rest register (only used for save games) */
 	reg_t r_prev; /**< previous comparison result */
+	int16 r_rest; /**< current &rest register */
 
-	SegmentId stack_segment; /**< Heap area for the stack to use */
 	StackPtr stack_base; /**< Pointer to the least stack element */
 	StackPtr stack_top; /**< First invalid stack element */
 
-	reg_t parser_base; /**< Base address for the parser error reporting mechanism */
-	reg_t parser_event; /**< The event passed to Parse() and later used by Said() */
-	Script *script_000;  /**< script 000, e.g. for globals */
+	// Script state
+	ExecStack *xs;
+	reg_t *variables[4];		///< global, local, temp, param, as immediate pointers
+	reg_t *variablesBase[4];	///< Used for referencing VM ops
+	SegmentId variablesSegment[4];	///< Same as above, contains segment IDs
+	int variablesMax[4];		///< Max. values for all variables
+
+	AbortGameState abortScriptProcessing;
+	int16 gameIsRestarting; // is set when restarting (=1) or restoring the game (=2)
+
+	int scriptStepCounter; // Counts the number of steps executed
+	int scriptGCInterval; // Number of steps in between gcs
 
 	uint16 currentRoomNumber() const;
+	void setRoomNumber(uint16 roomNumber);
 
 	/**
-	 * Processes a multilanguage string based on the current language settings and
-	 * returns a string that is ready to be displayed.
-	 * @param str		the multilanguage string
-	 * @param sep		optional seperator between main language and subtitle language,
-	 *					if NULL is passed no subtitle will be added to the returned string
-	 * @return processed string
+	 * Sets global variables from script 0
 	 */
-	Common::String strSplit(const char *str, const char *sep = "\r----------\r");
+	void initGlobals();
 
-	/* Debugger data: */
-	Breakpoint *bp_list;   /**< List of breakpoints */
-	int have_bp;  /**< Bit mask specifying which types of breakpoints are used in bp_list */
+	/**
+	 * Shrink execution stack to size.
+	 * Contains an assert if it is not already smaller.
+	 */
+	void shrinkStackToBase();
 
-	/* System strings */
-	SegmentId sys_strings_segment;
-	SystemStrings *sys_strings;
+	int gcCountDown; /**< Number of kernel calls until next gc */
 
-	SegmentId string_frag_segment;
+	MessageState *_msgState;
 
-	/* Parser data: */
-	parse_tree_node_t parser_nodes[VOCAB_TREE_NODES]; /**< The parse tree */
+	// MemorySegment provides access to a 256-byte block of memory that remains
+	// intact across restarts and restores
+	enum {
+		kMemorySegmentMax = 256
+	};
+	uint16 _memorySegmentSize;
+	byte _memorySegment[kMemorySegmentMax];
 
-	int parser_valid; /**< If something has been correctly parsed */
+	VideoState _videoState;
+	bool _syncedAudioOptions;
 
-	SynonymList _synonyms; /**< The list of synonyms */
-
-	reg_t game_obj; /**< Pointer to the game object */
-
-	Common::Array<Class> _classtable; /**< Table of all classes */
-
-	SegManager *seg_manager;
-	int gc_countdown; /**< Number of kernel calls until next gc */
-
-	MessageState _msgState;
-
-	EngineState *successor; /**< Successor of this state: Used for restoring */
-
-private:
-	kLanguage charToLanguage(const char c) const;
-	Common::String getLanguageString(const char *str, kLanguage lang) const;
+	/**
+	 * Resets the engine state.
+	 */
+	void reset(bool isRestoring);
 };
-
-/**
- * Retrieves the gfx_pixmap_color_t associated with a game color index.
- * @param s			game state
- * @param color		color to look up
- * @return the requested color
- */
-PaletteEntry get_pic_color(EngineState *s, int color);
-
-// FIXME: Document this strange function.
-// It seems to negate the given register but only if the "cantBeHere" exists.
-// My guess: Since some SCI versions have cantBeHere and some have canBeHere,
-// this function allows unifying the code, making it look identical for both
-// kinds of SCI games. That's fine, but the name not_register is rather
-// misleading. A different name (and a different place for declaring this)
-// would be highly welcome.
-static inline reg_t not_register(EngineState *s, reg_t r) {
-	if (((SciEngine*)g_engine)->getKernel()->_selectorMap.cantBeHere != -1)
-		return make_reg(0, !r.offset);
-	else
-		return r;
-}
 
 } // End of namespace Sci
 

@@ -17,17 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * $URL$
- * $Id$
  */
 
 #ifndef GUI_OBJECT_H
 #define GUI_OBJECT_H
 
+#include "common/scummsys.h"
+#include "common/str.h"
+
 namespace GUI {
 
-class CommandReceiver;
 class CommandSender;
 
 class CommandReceiver {
@@ -62,7 +61,7 @@ class GuiObject : public CommandReceiver {
 protected:
 	int16		_x, _y;
 	uint16		_w, _h;
-	Common::String _name;
+	const Common::String _name;
 
 	Widget		*_firstWidget;
 
@@ -86,10 +85,6 @@ public:
 
 protected:
 	virtual void	releaseFocus() = 0;
-
-	// Convenience alias for OSystem::getMillis().
-	// This is a bit hackish, of course :-).
-	uint32 getMillis();
 };
 
 } // End of namespace GUI

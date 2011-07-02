@@ -18,12 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
-
-
 
 #include "agi/agi.h"
 #include "agi/opcodes.h"
@@ -49,7 +44,7 @@ int AgiEngine::setupV2Game(int ver) {
 	if (getFeatures() & GF_AGDS)
 		setVersion(ver = 0x2440);	// ALL AGDS games built for 2.440
 
-	report("Setting up for version 0x%04X\n", ver);
+	debug(0, "Setting up for version 0x%04X", ver);
 
 	// 'quit' takes 0 args for 2.089
 	if (ver == 0x2089)
@@ -72,7 +67,7 @@ int AgiEngine::setupV2Game(int ver) {
 int AgiEngine::setupV3Game(int ver) {
 	int ec = errOK;
 
-	report("Setting up for version 0x%04X\n", ver);
+	debug(0, "Setting up for version 0x%04X", ver);
 
 	// 'unknown176' takes 1 arg for 3.002.086, not 0 args.
 	// 'unknown173' also takes 1 arg for 3.002.068, not 0 args.

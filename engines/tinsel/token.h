@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef TINSEL_TOKEN_H
@@ -48,10 +45,10 @@ void FreeControlToken();
 void GetToken(int which);
 void FreeToken(int which);
 
-void FreeAllTokens(void);
+void FreeAllTokens();
 bool TestToken(int which);
 
 
-} // end of namespace Tinsel
+} // End of namespace Tinsel
 
 #endif		// TINSEL_TOKEN_H

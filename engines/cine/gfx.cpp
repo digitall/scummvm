@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "cine/cine.h"
@@ -30,8 +27,9 @@
 #include "cine/pal.h"
 
 #include "common/endian.h"
-#include "common/system.h"
 #include "common/events.h"
+#include "common/system.h"
+#include "common/textconsole.h"
 
 #include "graphics/cursorman.h"
 
@@ -39,6 +37,23 @@ namespace Cine {
 
 byte *collisionPage;
 FWRenderer *renderer = NULL;
+
+// Constants related to kLowPalFormat
+#define kLowPalBytesPerColor 2
+#define kLowPalNumColors 16
+#define kLowPalNumBytes ((kLowPalNumColors) * (kLowPalBytesPerColor))
+
+/** Low resolution (9-bit) color format used in Cine's 16-color modes. */
+#define kLowPalFormat Graphics::PixelFormat(kLowPalBytesPerColor, 3, 3, 3, 0, 8, 4, 0, 0)
+
+
+// Constants related to kHighPalFormat
+#define kHighPalBytesPerColor 3
+#define kHighPalNumColors 256
+#define kHighPalNumBytes ((kHighPalNumColors) * (kHighPalBytesPerColor))
+
+/** High resolution (24-bit) color format used in Cine's 256-color modes. */
+#define kHighPalFormat Graphics::PixelFormat(kHighPalBytesPerColor, 8, 8, 8, 0, 0, 8, 16, 0)
 
 static const byte mouseCursorNormal[] = {
 	0x00, 0x00, 0x40, 0x00, 0x60, 0x00, 0x70, 0x00,
@@ -88,7 +103,8 @@ static const byte cursorPalette[] = {
 	0xff, 0xff, 0xff, 0xff
 };
 
-/*! \brief Initialize renderer
+/**
+ * Initialize renderer
  */
 FWRenderer::FWRenderer() : _background(NULL), _backupPal(), _cmd(""),
 	_cmdY(0), _messageBg(0), _backBuffer(new byte[_screenSize]),
@@ -100,14 +116,25 @@ FWRenderer::FWRenderer() : _background(NULL), _backupPal(), _cmd(""),
 	memset(_bgName, 0, sizeof (_bgName));
 }
 
-/* \brief Destroy renderer
+
+/**
+ * Destroy renderer
  */
 FWRenderer::~FWRenderer() {
 	delete[] _background;
 	delete[] _backBuffer;
+
+	clearMenuStack();
 }
 
-/* \brief Reset renderer state
+bool FWRenderer::initialize() {
+	_activePal = Palette(kLowPalFormat, kLowPalNumColors);
+	return true;
+}
+
+
+/**
+ * Reset renderer state
  */
 void FWRenderer::clear() {
 	delete[] _background;
@@ -125,76 +152,81 @@ void FWRenderer::clear() {
 	_showCollisionPage = false;
 }
 
-/*! \brief Draw 1bpp sprite using selected color
- * \param obj Object info
- * \param fillColor Sprite color
+/**
+ * Draw 1bpp sprite using selected color
+ * @param obj Object info
+ * @param fillColor Sprite color
  */
-void FWRenderer::fillSprite(const objectStruct &obj, uint8 color) {
-	const byte *data = animDataTable[obj.frame].data();
+void FWRenderer::fillSprite(const ObjectStruct &obj, uint8 color) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
 	int x, y, width, height;
 
 	x = obj.x;
 	y = obj.y;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	gfxFillSprite(data, width, height, _backBuffer, x, y, color);
 }
 
-/*! \brief Draw 1bpp sprite using selected color on background
- * \param obj Object info
- * \param fillColor Sprite color
+/**
+ * Draw 1bpp sprite using selected color on background
+ * @param obj Object info
+ * @param fillColor Sprite color
  */
-void FWRenderer::incrustMask(const objectStruct &obj, uint8 color) {
-	const byte *data = animDataTable[obj.frame].data();
+void FWRenderer::incrustMask(const ObjectStruct &obj, uint8 color) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
 	int x, y, width, height;
 
 	x = obj.x;
 	y = obj.y;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	gfxFillSprite(data, width, height, _background, x, y, color);
 }
 
-/*! \brief Draw color sprite using with external mask
- * \param obj Object info
- * \param mask External mask
+/**
+ * Draw color sprite using with external mask
+ * @param obj Object info
+ * @param mask External mask
  */
-void FWRenderer::drawMaskedSprite(const objectStruct &obj, const byte *mask) {
-	const byte *data = animDataTable[obj.frame].data();
+void FWRenderer::drawMaskedSprite(const ObjectStruct &obj, const byte *mask) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
 	int x, y, width, height;
 
 	x = obj.x;
 	y = obj.y;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	assert(mask);
 
 	drawSpriteRaw(data, mask, width, height, _backBuffer, x, y);
 }
 
-/*! \brief Draw color sprite
- * \param obj Object info
+/**
+ * Draw color sprite
+ * @param obj Object info
  */
-void FWRenderer::drawSprite(const objectStruct &obj) {
-	const byte *mask = animDataTable[obj.frame].mask();
+void FWRenderer::drawSprite(const ObjectStruct &obj) {
+	const byte *mask = g_cine->_animDataTable[obj.frame].mask();
 	drawMaskedSprite(obj, mask);
 }
 
-/*! \brief Draw color sprite on background
- * \param obj Object info
+/**
+ * Draw color sprite on background
+ * @param obj Object info
  */
-void FWRenderer::incrustSprite(const objectStruct &obj) {
-	const byte *data = animDataTable[obj.frame].data();
-	const byte *mask = animDataTable[obj.frame].mask();
+void FWRenderer::incrustSprite(const ObjectStruct &obj) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
+	const byte *mask = g_cine->_animDataTable[obj.frame].mask();
 	int x, y, width, height;
 
 	x = obj.x;
 	y = obj.y;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	// There was an assert(mask) here before but it made savegame loading
 	// in Future Wars sometimes fail the assertion (e.g. see bug #2055912).
@@ -207,7 +239,8 @@ void FWRenderer::incrustSprite(const objectStruct &obj) {
 	}
 }
 
-/*! \brief Draw command box on screen
+/**
+ * Draw command box on screen
  */
 void FWRenderer::drawCommand() {
 	unsigned int i;
@@ -224,13 +257,25 @@ void FWRenderer::drawCommand() {
 	}
 }
 
-/*! \brief Draw message in a box
- * \param str Message to draw
- * \param x Top left message box corner coordinate
- * \param y Top left message box corner coordinate
- * \param width Message box width
- * \param color Message box background color (Or if negative draws only the text)
- * \note Negative colors are used in Operation Stealth's timed cutscenes
+void FWRenderer::drawString(const char *string, byte param) {
+	int width;
+
+	width = getStringWidth(string) + 10;
+	width = width > 300 ? 300 : width;
+
+	drawMessage(string, (320 - width) / 2, 80, width, 4);
+
+	blit();
+}
+
+/**
+ * Draw message in a box
+ * @param str Message to draw
+ * @param x Top left message box corner coordinate
+ * @param y Top left message box corner coordinate
+ * @param width Message box width
+ * @param color Message box background color (Or if negative draws only the text)
+ * @note Negative colors are used in Operation Stealth's timed cutscenes
  * (e.g. when first meeting The Movement for the Liberation of Santa Paragua).
  */
 void FWRenderer::drawMessage(const char *str, int x, int y, int width, int color) {
@@ -238,8 +283,13 @@ void FWRenderer::drawMessage(const char *str, int x, int y, int width, int color
 	int line = 0, words = 0, cw = 0;
 	int space = 0, extraSpace = 0;
 
+	const bool isAmiga = (g_cine->getPlatform() == Common::kPlatformAmiga);
+
 	if (color >= 0) {
-		drawPlainBox(x, y, width, 4, color);
+		if (isAmiga)
+			drawTransparentBox(x, y, width, 4);
+		else
+			drawPlainBox(x, y, width, 4, color);
 	}
 	tx = x + 4;
 	ty = str[0] ? y - 5 : y + 4;
@@ -261,7 +311,10 @@ void FWRenderer::drawMessage(const char *str, int x, int y, int width, int color
 
 			ty += 9;
 			if (color >= 0) {
-				drawPlainBox(x, ty, width, 9, color);
+				if (isAmiga)
+					drawTransparentBox(x, ty, width, 9);
+				else
+					drawPlainBox(x, ty, width, 9, color);
 			}
 			tx = x + 4;
 		}
@@ -280,19 +333,23 @@ void FWRenderer::drawMessage(const char *str, int x, int y, int width, int color
 
 	ty += 9;
 	if (color >= 0) {
-		drawPlainBox(x, ty, width, 4, color);
-		drawDoubleBorder(x, y, width, ty - y + 4, 2);
+		if (isAmiga)
+			drawTransparentBox(x, ty, width, 4);
+		else
+			drawPlainBox(x, ty, width, 4, color);
+		drawDoubleBorder(x, y, width, ty - y + 4, isAmiga ? 18 : 2);
 	}
 }
 
-/*! \brief Draw rectangle on screen
- * \param x Top left corner coordinate
- * \param y Top left corner coordinate
- * \param width Rectangle width (Negative values draw the box horizontally flipped)
- * \param height Rectangle height (Negative values draw the box vertically flipped)
- * \param color Fill color
- * \note An on-screen rectangle's drawn width is always at least one.
- * \note An on-screen rectangle's drawn height is always at least one.
+/**
+ * Draw rectangle on screen
+ * @param x Top left corner coordinate
+ * @param y Top left corner coordinate
+ * @param width Rectangle width (Negative values draw the box horizontally flipped)
+ * @param height Rectangle height (Negative values draw the box vertically flipped)
+ * @param color Fill color
+ * @note An on-screen rectangle's drawn width is always at least one.
+ * @note An on-screen rectangle's drawn height is always at least one.
  */
 void FWRenderer::drawPlainBox(int x, int y, int width, int height, byte color) {
 	// Make width's and height's absolute values at least one
@@ -325,19 +382,48 @@ void FWRenderer::drawPlainBox(int x, int y, int width, int height, byte color) {
 	Common::Rect screenRect(320, 200);
 	boxRect.clip(screenRect);
 
-	// Draw the filled rectangle
 	byte *dest = _backBuffer + boxRect.top * 320 + boxRect.left;
 	for (int i = 0; i < boxRect.height(); i++) {
 		memset(dest + i * 320, color, boxRect.width());
 	}
 }
 
-/*! \brief Draw empty rectangle
- * \param x Top left corner coordinate
- * \param y Top left corner coordinate
- * \param width Rectangle width
- * \param height Rectangle height
- * \param color Line color
+void FWRenderer::drawTransparentBox(int x, int y, int width, int height) {
+	// Handle horizontally flipped boxes
+	if (width < 0) {
+		width = ABS(width);
+		x -= width;
+	}
+
+	// Handle vertically flipped boxes
+	if (height < 0) {
+		height = ABS(height);
+		y -= height;
+	}
+
+	// Clip the rectangle to screen dimensions
+	Common::Rect boxRect(x, y, x + width, y + height);
+	Common::Rect screenRect(320, 200);
+	boxRect.clip(screenRect);
+
+	byte *dest = _backBuffer + boxRect.top * 320 + boxRect.left;
+	const int lineAdd = 320 - boxRect.width();
+	for (int i = 0; i < boxRect.height(); ++i) {
+		for (int j = 0; j < boxRect.width(); ++j, ++dest) {
+			if (*dest < 16)
+				*dest += 16;
+		}
+		dest += lineAdd;
+	}
+}
+
+/**
+ * Draw empty rectangle
+ * @param x Top left corner coordinate
+ * @param y Top left corner coordinate
+ * @param width Rectangle width
+ * @param height Rectangle height
+ * @param color Line color
  */
 void FWRenderer::drawBorder(int x, int y, int width, int height, byte color) {
 	drawLine(x, y, width, 1, color);
@@ -346,22 +432,24 @@ void FWRenderer::drawBorder(int x, int y, int width, int height, byte color) {
 	drawLine(x + width, y, 1, height + 1, color);
 }
 
-/*! \brief Draw empty 2 color rectangle (inner line color is black)
- * \param x Top left corner coordinate
- * \param y Top left corner coordinate
- * \param width Rectangle width
- * \param height Rectangle height
- * \param color Outter line color
+/**
+ * Draw empty 2 color rectangle (inner line color is black)
+ * @param x Top left corner coordinate
+ * @param y Top left corner coordinate
+ * @param width Rectangle width
+ * @param height Rectangle height
+ * @param color Outter line color
  */
 void FWRenderer::drawDoubleBorder(int x, int y, int width, int height, byte color) {
 	drawBorder(x + 1, y + 1, width - 2, height - 2, 0);
 	drawBorder(x, y, width, height, color);
 }
 
-/*! \brief Draw text character on screen
- * \param character Character to draw
- * \param x Character coordinate
- * \param y Character coordinate
+/**
+ * Draw text character on screen
+ * @param character Character to draw
+ * @param x Character coordinate
+ * @param y Character coordinate
  */
 int FWRenderer::drawChar(char character, int x, int y) {
 	int width, idx;
@@ -377,87 +465,106 @@ int FWRenderer::drawChar(char character, int x, int y) {
 	return x;
 }
 
-/*! \brief Draw Line
- * \param x Line end coordinate
- * \param y Line end coordinate
- * \param width Horizontal line length
- * \param height Vertical line length
- * \param color Line color
- * \note Either width or height must be equal to 1
+int FWRenderer::getStringWidth(const char *str) {
+	const char *p = str;
+	int width = 0;
+
+	while (*p) {
+		if (*p == ' ')
+			width += 5;
+		else
+			width += g_cine->_textHandler.fontParamTable[(unsigned char)*p].characterWidth;
+		p++;
+	}
+
+	return width;
+}
+
+/**
+ * Draw Line
+ * @param x Line end coordinate
+ * @param y Line end coordinate
+ * @param width Horizontal line length
+ * @param height Vertical line length
+ * @param color Line color
+ * @note Either width or height must be equal to 1
  */
 void FWRenderer::drawLine(int x, int y, int width, int height, byte color) {
 	// this line is a special case of rectangle ;-)
 	drawPlainBox(x, y, width, height, color);
 }
 
-/*! \brief Hide invisible parts of the sprite
- * \param[in,out] mask Mask to be updated
- * \param it Overlay info from overlayList
+/**
+ * Hide invisible parts of the sprite
+ * @param[in,out] mask Mask to be updated
+ * @param it Overlay info from overlayList
  */
 void FWRenderer::remaskSprite(byte *mask, Common::List<overlay>::iterator it) {
-	AnimData &sprite = animDataTable[objectTable[it->objIdx].frame];
+	AnimData &sprite = g_cine->_animDataTable[g_cine->_objectTable[it->objIdx].frame];
 	int x, y, width, height, idx;
 	int mx, my, mw, mh;
 
-	x = objectTable[it->objIdx].x;
-	y = objectTable[it->objIdx].y;
+	x = g_cine->_objectTable[it->objIdx].x;
+	y = g_cine->_objectTable[it->objIdx].y;
 	width = sprite._realWidth;
 	height = sprite._height;
 
-	for (++it; it != overlayList.end(); ++it) {
+	for (++it; it != g_cine->_overlayList.end(); ++it) {
 		if (it->type != 5) {
 			continue;
 		}
 
-		idx = ABS(objectTable[it->objIdx].frame);
-		mx = objectTable[it->objIdx].x;
-		my = objectTable[it->objIdx].y;
-		mw = animDataTable[idx]._realWidth;
-		mh = animDataTable[idx]._height;
+		idx = ABS(g_cine->_objectTable[it->objIdx].frame);
+		mx = g_cine->_objectTable[it->objIdx].x;
+		my = g_cine->_objectTable[it->objIdx].y;
+		mw = g_cine->_animDataTable[idx]._realWidth;
+		mh = g_cine->_animDataTable[idx]._height;
 
-		gfxUpdateSpriteMask(mask, x, y, width, height, animDataTable[idx].data(), mx, my, mw, mh);
+		gfxUpdateSpriteMask(mask, x, y, width, height, g_cine->_animDataTable[idx].data(), mx, my, mw, mh);
 	}
 }
 
-/*! \brief Draw background to backbuffer
+/**
+ * Draw background to backbuffer
  */
 void FWRenderer::drawBackground() {
 	assert(_background);
 	memcpy(_backBuffer, _background, _screenSize);
 }
 
-/*! \brief Draw one overlay
- * \param it Overlay info
+/**
+ * Draw one overlay
+ * @param it Overlay info
  */
 void FWRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	int idx, len, width;
-	objectStruct *obj;
+	ObjectStruct *obj;
 	AnimData *sprite;
 	byte *mask;
 
 	switch (it->type) {
 	// color sprite
 	case 0:
-		if (objectTable[it->objIdx].frame < 0) {
+		if (g_cine->_objectTable[it->objIdx].frame < 0) {
 			return;
 		}
-		sprite = &animDataTable[objectTable[it->objIdx].frame];
+		sprite = &g_cine->_animDataTable[g_cine->_objectTable[it->objIdx].frame];
 		len = sprite->_realWidth * sprite->_height;
 		mask = new byte[len];
 		memcpy(mask, sprite->mask(), len);
 		remaskSprite(mask, it);
-		drawMaskedSprite(objectTable[it->objIdx], mask);
+		drawMaskedSprite(g_cine->_objectTable[it->objIdx], mask);
 		delete[] mask;
 		break;
 
 	// game message
 	case 2:
-		if (it->objIdx >= messageTable.size()) {
+		if (it->objIdx >= g_cine->_messageTable.size()) {
 			return;
 		}
 
-		_messageLen += messageTable[it->objIdx].size();
-		drawMessage(messageTable[it->objIdx].c_str(), it->x, it->y, it->width, it->color);
+		_messageLen += g_cine->_messageTable[it->objIdx].size();
+		drawMessage(g_cine->_messageTable[it->objIdx].c_str(), it->x, it->y, it->width, it->color);
 		waitForPlayerClick = 1;
 		break;
 
@@ -476,13 +583,13 @@ void FWRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	// bitmap
 	case 4:
 		assert(it->objIdx < NUM_MAX_OBJECT);
-		obj = &objectTable[it->objIdx];
+		obj = &g_cine->_objectTable[it->objIdx];
 
 		if (obj->frame < 0) {
 			return;
 		}
 
-		if (!animDataTable[obj->frame].data()) {
+		if (!g_cine->_animDataTable[obj->frame].data()) {
 			return;
 		}
 
@@ -491,17 +598,19 @@ void FWRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	}
 }
 
-/*! \brief Draw overlays
+/**
+ * Draw overlays
  */
 void FWRenderer::drawOverlays() {
 	Common::List<overlay>::iterator it;
 
-	for (it = overlayList.begin(); it != overlayList.end(); ++it) {
+	for (it = g_cine->_overlayList.begin(); it != g_cine->_overlayList.end(); ++it) {
 		renderOverlay(it);
 	}
 }
 
-/*! \brief Draw another frame
+/**
+ * Draw another frame
  */
 void FWRenderer::drawFrame() {
 	drawBackground();
@@ -515,19 +624,24 @@ void FWRenderer::drawFrame() {
 		refreshPalette();
 	}
 
+	const int menus = _menuStack.size();
+	for (int i = 0; i < menus; ++i)
+		_menuStack[i]->drawMenu(*this, (i == menus - 1));
+
 	blit();
 }
 
-/*!
- * \brief Turn on or off the showing of the collision page.
+/**
+ * Turn on or off the showing of the collision page.
  * If turned on the blitting routine shows the collision page instead of the back buffer.
- * \note Useful for debugging collision page related problems.
+ * @note Useful for debugging collision page related problems.
  */
 void FWRenderer::showCollisionPage(bool state) {
 	_showCollisionPage = state;
 }
 
-/*! \brief Update screen
+/**
+ * Update screen
  */
 void FWRenderer::blit() {
 	// Show the back buffer or the collision page. Normally the back
@@ -536,14 +650,16 @@ void FWRenderer::blit() {
 	g_system->copyRectToScreen(source, 320, 0, 0, 320, 200);
 }
 
-/*! \brief Set player command string
- * \param cmd New command string
+/**
+ * Set player command string
+ * @param cmd New command string
  */
 void FWRenderer::setCommand(Common::String cmd) {
 	_cmd = cmd;
 }
 
-/*! \brief Refresh current palette
+/**
+ * Refresh current palette
  */
 void FWRenderer::refreshPalette() {
 	assert(_activePal.isValid() && !_activePal.empty());
@@ -551,7 +667,8 @@ void FWRenderer::refreshPalette() {
 	_changePal = 0;
 }
 
-/*! \brief Load palette of current background
+/**
+ * Load palette of current background
  */
 void FWRenderer::reloadPalette() {
 	assert(_backupPal.isValid() && !_backupPal.empty());
@@ -559,9 +676,10 @@ void FWRenderer::reloadPalette() {
 	_changePal = 1;
 }
 
-/*! \brief Load background into renderer
- * \param bg Raw background data
- * \todo Combine with OSRenderer's version of loadBg16
+/**
+ * Load background into renderer
+ * @param bg Raw background data
+ * @todo Combine with OSRenderer's version of loadBg16
  */
 void FWRenderer::loadBg16(const byte *bg, const char *name, unsigned int idx) {
 	assert(idx == 0);
@@ -583,49 +701,57 @@ void FWRenderer::loadBg16(const byte *bg, const char *name, unsigned int idx) {
 	gfxConvertSpriteToRaw(_background, bg, 160, 200);
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::loadCt16(const byte *ct, const char *name) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::loadBg256(const byte *bg, const char *name, unsigned int idx) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::loadCt256(const byte *ct, const char *name) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::selectBg(unsigned int idx) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::selectScrollBg(unsigned int idx) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::setScroll(unsigned int shift) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
 }
 
-/*! \brief Future Wars has no scrolling backgrounds so scroll value is always zero.
+/**
+ * Future Wars has no scrolling backgrounds so scroll value is always zero.
  */
 uint FWRenderer::getScroll() const {
 	return 0;
 }
 
-/*! \brief Placeholder for Operation Stealth implementation
+/**
+ * Placeholder for Operation Stealth implementation
  */
 void FWRenderer::removeBg(unsigned int idx) {
 	error("Future Wars renderer doesn't support multiple backgrounds");
@@ -640,10 +766,11 @@ const char *FWRenderer::getBgName(uint idx) const {
 	return _bgName;
 }
 
-/*! \brief Restore active and backup palette from save
- * \param fHandle Savefile open for reading
+/**
+ * Restore active and backup palette from save
+ * @param fHandle Savefile open for reading
  */
-void FWRenderer::restorePalette(Common::SeekableReadStream &fHandle) {
+void FWRenderer::restorePalette(Common::SeekableReadStream &fHandle, int version) {
 	byte buf[kLowPalNumBytes];
 
 	// Load the active 16 color palette from file
@@ -657,14 +784,15 @@ void FWRenderer::restorePalette(Common::SeekableReadStream &fHandle) {
 	_changePal = 1;
 }
 
-/*! \brief Write active and backup palette to save
- * \param fHandle Savefile open for writing
+/**
+ * Write active and backup palette to save
+ * @param fHandle Savefile open for writing
  */
 void FWRenderer::savePalette(Common::OutSaveFile &fHandle) {
 	byte buf[kLowPalNumBytes];
 
 	// Make sure the active palette has the correct format and color count
-	assert(_activePal.colorFormat() == kLowPalFormat);	
+	assert(_activePal.colorFormat() == kLowPalFormat);
 	assert(_activePal.colorCount() == kLowPalNumColors);
 
 	// Make sure the backup palette has the correct format and color count
@@ -680,17 +808,17 @@ void FWRenderer::savePalette(Common::OutSaveFile &fHandle) {
 	fHandle.write(buf, kLowPalNumBytes);
 }
 
-/*! \brief Write active and backup palette to save
- * \param fHandle Savefile open for writing
- * \todo Add support for saving the palette in the 16 color version of Operation Stealth.
+/**
+ * Write active and backup palette to save
+ * @param fHandle Savefile open for writing
+ * @todo Add support for saving the palette in the 16 color version of Operation Stealth.
  *       Possibly combine with FWRenderer's savePalette-method?
  */
 void OSRenderer::savePalette(Common::OutSaveFile &fHandle) {
 	byte buf[kHighPalNumBytes];
 
-	// Make sure the active palette has the correct format and color count
-	assert(_activePal.colorFormat() == kHighPalFormat);
-	assert(_activePal.colorCount() == kHighPalNumColors);
+	// We can have 16 color palette in many cases
+	fHandle.writeUint16LE(_activePal.colorCount());
 
 	// Write the active 256 color palette.
 	_activePal.save(buf, sizeof(buf), CINE_LITTLE_ENDIAN);
@@ -701,15 +829,22 @@ void OSRenderer::savePalette(Common::OutSaveFile &fHandle) {
 	fHandle.write(buf, kHighPalNumBytes);
 }
 
-/*! \brief Restore active and backup palette from save
- * \param fHandle Savefile open for reading
+/**
+ * Restore active and backup palette from save
+ * @param fHandle Savefile open for reading
  */
-void OSRenderer::restorePalette(Common::SeekableReadStream &fHandle) {
+void OSRenderer::restorePalette(Common::SeekableReadStream &fHandle, int version) {
 	byte buf[kHighPalNumBytes];
+	uint colorCount = (version > 0) ? fHandle.readUint16LE() : kHighPalNumBytes;
 
-	// Load the active 256 color palette from file
 	fHandle.read(buf, kHighPalNumBytes);
-	_activePal.load(buf, sizeof(buf), kHighPalFormat, kHighPalNumColors, CINE_LITTLE_ENDIAN);
+
+	if (colorCount == kHighPalNumBytes) {
+		// Load the active 256 color palette from file
+		_activePal.load(buf, sizeof(buf), kHighPalFormat, kHighPalNumColors, CINE_LITTLE_ENDIAN);
+	} else {
+		_activePal.load(buf, sizeof(buf), kLowPalFormat, kLowPalNumColors, CINE_LITTLE_ENDIAN);
+	}
 
 	// Jump over the backup 256 color palette.
 	// FIXME: Load the backup 256 color palette and use it properly.
@@ -718,22 +853,24 @@ void OSRenderer::restorePalette(Common::SeekableReadStream &fHandle) {
 	_changePal = 1;
 }
 
-/*! \brief Rotate active palette
- * \param a First color to rotate
- * \param b Last color to rotate
- * \param c Possibly rotation step, must be 0 or 1 at the moment
+/**
+ * Rotate active palette
+ * @param a First color to rotate
+ * @param b Last color to rotate
+ * @param c Possibly rotation step, must be 0 or 1 at the moment
  */
 void FWRenderer::rotatePalette(int a, int b, int c) {
 	_activePal.rotateRight(a, b, c);
 	refreshPalette();
 }
 
-/*! \brief Copy part of backup palette to active palette and transform
- * \param first First color to transform
- * \param last Last color to transform
- * \param r Red channel transformation
- * \param g Green channel transformation
- * \param b Blue channel transformation
+/**
+ * Copy part of backup palette to active palette and transform
+ * @param first First color to transform
+ * @param last Last color to transform
+ * @param r Red channel transformation
+ * @param g Green channel transformation
+ * @param b Blue channel transformation
  */
 void FWRenderer::transformPalette(int first, int last, int r, int g, int b) {
 	if (!_activePal.isValid() || _activePal.empty()) {
@@ -744,117 +881,8 @@ void FWRenderer::transformPalette(int first, int last, int r, int g, int b) {
 	refreshPalette();
 }
 
-/*! \brief Draw menu box, one item per line with possible highlight
- * \param items Menu items
- * \param height Item count
- * \param x Top left menu corner coordinate
- * \param y Top left menu corner coordinate
- * \param width Menu box width
- * \param selected Index of highlighted item (no highlight if less than 0)
- */
-void FWRenderer::drawMenu(const CommandeType *items, unsigned int height, int x, int y, int width, int selected) {
-	int tx, ty, th = height * 9 + 10;
-	unsigned int i, j;
-
-	if (x + width > 319) {
-		x = 319 - width;
-	}
-
-	if (y + th > 199) {
-		y = 199 - th;
-	}
-
-	drawPlainBox(x, y, width, 4, _messageBg);
-
-	ty = y + 4;
-
-	for (i = 0; i < height; i++, ty += 9) {
-		drawPlainBox(x, ty, width, 9, (int)i == selected ? 0 : _messageBg);
-		tx = x + 4;
-
-		for (j = 0; items[i][j]; j++) {
-			tx = drawChar(items[i][j], tx, ty);
-		}
-	}
-
-	drawPlainBox(x, ty, width, 4, _messageBg);
-	drawDoubleBorder(x, y, width, ty - y + 4, 2);
-}
-
-/*! \brief Draw text input box
- * \param info Input box message
- * \param input Text entered in the input area
- * \param cursor Cursor position in the input area
- * \param x Top left input box corner coordinate
- * \param y Top left input box corner coordinate
- * \param width Input box width
- */
-void FWRenderer::drawInputBox(const char *info, const char *input, int cursor, int x, int y, int width) {
-	int i, tx, ty, tw;
-	int line = 0, words = 0, cw = 0;
-	int space = 0, extraSpace = 0;
-
-	drawPlainBox(x, y, width, 4, _messageBg);
-	tx = x + 4;
-	ty = info[0] ? y - 5 : y + 4;
-	tw = width - 8;
-
-	// input box info message
-	for (i = 0; info[i]; i++, line--) {
-		// fit line of text
-		if (!line) {
-			line = fitLine(info + i, tw, words, cw);
-
-			if ( info[i + line] != '\0' && words) {
-				space = (tw - cw) / words;
-				extraSpace = (tw - cw) % words;
-			} else {
-				space = 5;
-				extraSpace = 0;
-			}
-
-			ty += 9;
-			drawPlainBox(x, ty, width, 9, _messageBg);
-			tx = x + 4;
-		}
-
-		// draw characters
-		if (info[i] == ' ') {
-			tx += space + extraSpace;
-
-			if (extraSpace) {
-				extraSpace = 0;
-			}
-		} else {
-			tx = drawChar(info[i], tx, ty);
-		}
-	}
-
-	// input area background
-	ty += 9;
-	drawPlainBox(x, ty, width, 9, _messageBg);
-	drawPlainBox(x + 16, ty - 1, width - 32, 9, 0);
-	tx = x + 20;
-
-	// text in input area
-	for (i = 0; input[i]; i++) {
-		tx = drawChar(input[i], tx, ty);
-
-		if (cursor == i + 2) {
-			drawLine(tx, ty - 1, 1, 9, 2);
-		}
-	}
-
-	if (!input[0] || cursor == 1) {
-		drawLine(x + 20, ty - 1, 1, 9, 2);
-	}
-
-	ty += 9;
-	drawPlainBox(x, ty, width, 4, _messageBg);
-	drawDoubleBorder(x, y, width, ty - y + 4, 2);
-}
-
-/*! \brief Fade to black
+/**
+ * Fade to black
  * \bug Operation Stealth sometimes seems to fade to black using
  * transformPalette resulting in double fadeout
  */
@@ -872,7 +900,184 @@ void FWRenderer::fadeToBlack() {
 	}
 }
 
-/*! \brief Initialize Operation Stealth renderer
+// Menu implementation
+
+void FWRenderer::pushMenu(Menu *menu) {
+	_menuStack.push(menu);
+}
+
+Menu *FWRenderer::popMenu() {
+	if (_menuStack.empty())
+		return 0;
+
+	Menu *menu = _menuStack.top();
+	_menuStack.pop();
+	return menu;
+}
+
+void FWRenderer::clearMenuStack() {
+	Menu *menu = 0;
+	while ((menu = popMenu()) != 0)
+		delete menu;
+}
+
+SelectionMenu::SelectionMenu(Common::Point p, int width, Common::StringArray elements)
+	: Menu(kSelectionMenu), _pos(p), _width(width), _elements(elements), _selection(-1) {
+}
+
+void SelectionMenu::setSelection(int selection) {
+	if (selection >= getElementCount() || selection < -1) {
+		warning("Invalid selection %d", selection);
+		selection = -1;
+	}
+
+	_selection = selection;
+}
+
+void SelectionMenu::drawMenu(FWRenderer &r, bool top) {
+	const int height = getElementCount() * 9 + 10;
+	int x = _pos.x;
+	int y = _pos.y;
+
+	if (x + _width > 319)
+		x = 319 - _width;
+
+	if (y + height > 199)
+		y = 199 - height;
+
+	const bool isAmiga = (g_cine->getPlatform() == Common::kPlatformAmiga);
+
+	if (isAmiga) {
+		r.drawTransparentBox(x, y, _width, height);
+		r.drawDoubleBorder(x, y, _width, height, 18);
+	} else {
+		r.drawPlainBox(x, y, _width, height, r._messageBg);
+		r.drawDoubleBorder(x, y, _width, height, 2);
+	}
+
+	int lineY = y + 4;
+	int charX;
+
+	const int elemCount = getElementCount();
+	for (int i = 0; i < elemCount; ++i, lineY += 9) {
+		charX = x + 4;
+
+		if (i == _selection) {
+			if (isAmiga) {
+				// The original Amiga version is using a different highlight color here,
+				// but with our current code it is not possible to change the text color,
+				// thus we can not use the Amiga's color, since otherwise the text
+				// wouldn't be visible anymore.
+				r.drawPlainBox(charX, lineY, _width - 8, FONT_HEIGHT, top ? r._messageBg/*2*/ : 18);
+			} else {
+				r.drawPlainBox(charX, lineY, _width - 8, 9, 0);
+			}
+		}
+
+		const int size = _elements[i].size();
+		for (int j = 0; j < size; ++j)
+			charX = r.drawChar(_elements[i][j], charX, lineY);
+	}
+}
+
+TextInputMenu::TextInputMenu(Common::Point p, int width, const char *info)
+	: Menu(kTextInputMenu), _pos(p), _width(width), _info(info), _input(), _cursor(0) {
+}
+
+void TextInputMenu::setInput(const char *input, int cursor) {
+	_input = input;
+	_cursor = cursor;
+}
+
+void TextInputMenu::drawMenu(FWRenderer &r, bool top) {
+	const int x = _pos.x;
+	const int y = _pos.y;
+
+	int i, tx, ty, tw;
+	int line = 0, words = 0, cw = 0;
+	int space = 0, extraSpace = 0;
+
+	const bool isAmiga = (g_cine->getPlatform() == Common::kPlatformAmiga);
+
+	if (isAmiga)
+		r.drawTransparentBox(x, y, _width, 4);
+	else
+		r.drawPlainBox(x, y, _width, 4, r._messageBg);
+	tx = x + 4;
+	ty = _info[0] ? y - 5 : y + 4;
+	tw = _width - 8;
+
+	const int infoSize = _info.size();
+
+	// input box info message
+	for (i = 0; i < infoSize; i++, line--) {
+		// fit line of text
+		if (!line) {
+			line = fitLine(_info.c_str() + i, tw, words, cw);
+
+			if (i + line < infoSize && words) {
+				space = (tw - cw) / words;
+				extraSpace = (tw - cw) % words;
+			} else {
+				space = 5;
+				extraSpace = 0;
+			}
+
+			ty += 9;
+			if (isAmiga)
+				r.drawTransparentBox(x, ty, _width, 9);
+			else
+				r.drawPlainBox(x, ty, _width, 9, r._messageBg);
+			tx = x + 4;
+		}
+
+		// draw characters
+		if (_info[i] == ' ') {
+			tx += space + extraSpace;
+
+			if (extraSpace) {
+				extraSpace = 0;
+			}
+		} else {
+			tx = r.drawChar(_info[i], tx, ty);
+		}
+	}
+
+	// input area background
+	ty += 9;
+	if (isAmiga)
+		r.drawTransparentBox(x, ty, _width, 9);
+	else
+		r.drawPlainBox(x, ty, _width, 9, r._messageBg);
+	r.drawPlainBox(x + 16, ty - 1, _width - 32, 9, 0);
+	tx = x + 20;
+
+	// text in input area
+	const int inputSize = _input.size();
+	for (i = 0; i < inputSize; i++) {
+		tx = r.drawChar(_input[i], tx, ty);
+
+		if (_cursor == i + 2) {
+			r.drawLine(tx, ty - 1, 1, 9, 2);
+		}
+	}
+
+	if (_input.empty() || _cursor == 1) {
+		r.drawLine(x + 20, ty - 1, 1, 9, 2);
+	}
+
+	ty += 9;
+	if (isAmiga)
+		r.drawTransparentBox(x, ty, _width, 4);
+	else
+		r.drawPlainBox(x, ty, _width, 4, r._messageBg);
+	r.drawDoubleBorder(x, y, _width, ty - y + 4, isAmiga ? 18 : 2);
+}
+
+// -------------------
+
+/**
+ * Initialize Operation Stealth renderer
  */
 OSRenderer::OSRenderer() : FWRenderer(), _bgTable(), _currentBg(0), _scrollBg(0),
 	_bgShift(0) {
@@ -880,7 +1085,8 @@ OSRenderer::OSRenderer() : FWRenderer(), _bgTable(), _currentBg(0), _scrollBg(0)
 	_bgTable.resize(9); // Resize the background table to its required size
 }
 
-/*! \brief Destroy Operation Stealth renderer
+/**
+ * Destroy Operation Stealth renderer
  */
 OSRenderer::~OSRenderer() {
 	for (uint i = 0; i < _bgTable.size(); i++) {
@@ -888,7 +1094,13 @@ OSRenderer::~OSRenderer() {
 	}
 }
 
-/*! \brief Reset Operation Stealth renderer state
+bool OSRenderer::initialize() {
+	_activePal = Palette(kHighPalFormat, kHighPalNumColors);
+	return true;
+}
+
+/**
+ * Reset Operation Stealth renderer state
  */
 void OSRenderer::clear() {
 	for (uint i = 0; i < _bgTable.size(); i++) {
@@ -902,62 +1114,66 @@ void OSRenderer::clear() {
 	FWRenderer::clear();
 }
 
-/*! \brief Draw 1bpp sprite using selected color on backgrounds
- * \param obj Object info
- * \param fillColor Sprite color
+/**
+ * Draw 1bpp sprite using selected color on backgrounds
+ * @param obj Object info
+ * @param fillColor Sprite color
  */
-void OSRenderer::incrustMask(const objectStruct &obj, uint8 color) {
-	const byte *data = animDataTable[obj.frame].data();
+void OSRenderer::incrustMask(const ObjectStruct &obj, uint8 color) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
 	int x, y, width, height;
 
 	x = obj.x;
 	y = obj.y;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	if (_bgTable[_currentBg].bg) {
 		gfxFillSprite(data, width, height, _bgTable[_currentBg].bg, x, y, color);
 	}
 }
 
-/*! \brief Draw color sprite
- * \param obj Object info
+/**
+ * Draw color sprite
+ * @param obj Object info
  */
-void OSRenderer::drawSprite(const objectStruct &obj) {
-	const byte *data = animDataTable[obj.frame].data();
+void OSRenderer::drawSprite(const ObjectStruct &obj) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
 	int x, y, width, height, transColor;
 
 	x = obj.x;
 	y = obj.y;
 	transColor = obj.part;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	drawSpriteRaw2(data, transColor, width, height, _backBuffer, x, y);
 }
 
-/*! \brief Draw color sprite
- * \param obj Object info
+/**
+ * Draw color sprite
+ * @param obj Object info
  */
-void OSRenderer::incrustSprite(const objectStruct &obj) {
-	const byte *data = animDataTable[obj.frame].data();
+void OSRenderer::incrustSprite(const ObjectStruct &obj) {
+	const byte *data = g_cine->_animDataTable[obj.frame].data();
 	int x, y, width, height, transColor;
 
 	x = obj.x;
 	y = obj.y;
 	transColor = obj.part;
-	width = animDataTable[obj.frame]._realWidth;
-	height = animDataTable[obj.frame]._height;
+	width = g_cine->_animDataTable[obj.frame]._realWidth;
+	height = g_cine->_animDataTable[obj.frame]._height;
 
 	if (_bgTable[_currentBg].bg) {
 		drawSpriteRaw2(data, transColor, width, height, _bgTable[_currentBg].bg, x, y);
 	}
 }
 
-/*! \brief Draw text character on screen
- * \param character Character to draw
- * \param x Character coordinate
- * \param y Character coordinate
+/**
+ * Draw text character on screen
+ * @param character Character to draw
+ * @param x Character coordinate
+ * @param y Character coordinate
  */
 int OSRenderer::drawChar(char character, int x, int y) {
 	int width, idx;
@@ -973,7 +1189,8 @@ int OSRenderer::drawChar(char character, int x, int y) {
 	return x;
 }
 
-/*! \brief Draw background to backbuffer
+/**
+ * Draw background to backbuffer
  */
 void OSRenderer::drawBackground() {
 	byte *main;
@@ -999,13 +1216,14 @@ void OSRenderer::drawBackground() {
 	}
 }
 
-/*! \brief Draw one overlay
- * \param it Overlay info
- * \todo Add handling of type 22 overlays
+/**
+ * Draw one overlay
+ * @param it Overlay info
+ * @todo Add handling of type 22 overlays
  */
 void OSRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	int len, idx, width, height;
-	objectStruct *obj;
+	ObjectStruct *obj;
 	AnimData *sprite;
 	byte *mask;
 	byte color;
@@ -1013,26 +1231,26 @@ void OSRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	switch (it->type) {
 	// color sprite
 	case 0:
-		if (objectTable[it->objIdx].frame < 0) {
+		if (g_cine->_objectTable[it->objIdx].frame < 0) {
 			break;
 		}
-		sprite = &animDataTable[objectTable[it->objIdx].frame];
+		sprite = &g_cine->_animDataTable[g_cine->_objectTable[it->objIdx].frame];
 		len = sprite->_realWidth * sprite->_height;
 		mask = new byte[len];
-		generateMask(sprite->data(), mask, len, objectTable[it->objIdx].part);
+		generateMask(sprite->data(), mask, len, g_cine->_objectTable[it->objIdx].part);
 		remaskSprite(mask, it);
-		drawMaskedSprite(objectTable[it->objIdx], mask);
+		drawMaskedSprite(g_cine->_objectTable[it->objIdx], mask);
 		delete[] mask;
 		break;
 
 	// game message
 	case 2:
-		if (it->objIdx >= messageTable.size()) {
+		if (it->objIdx >= g_cine->_messageTable.size()) {
 			return;
 		}
 
-		_messageLen += messageTable[it->objIdx].size();
-		drawMessage(messageTable[it->objIdx].c_str(), it->x, it->y, it->width, it->color);
+		_messageLen += g_cine->_messageTable[it->objIdx].size();
+		drawMessage(g_cine->_messageTable[it->objIdx].c_str(), it->x, it->y, it->width, it->color);
 		if (it->color >= 0) { // This test isn't in Future Wars's implementation
 			waitForPlayerClick = 1;
 		}
@@ -1053,7 +1271,7 @@ void OSRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 
 	// bitmap
 	case 4:
-		if (objectTable[it->objIdx].frame >= 0) {
+		if (g_cine->_objectTable[it->objIdx].frame >= 0) {
 			FWRenderer::renderOverlay(it);
 		}
 		break;
@@ -1062,8 +1280,8 @@ void OSRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	case 20:
 		assert(it->objIdx < NUM_MAX_OBJECT);
 		var5 = it->x; // A global variable updated here!
-		obj = &objectTable[it->objIdx];
-		sprite = &animDataTable[obj->frame];
+		obj = &g_cine->_objectTable[it->objIdx];
+		sprite = &g_cine->_animDataTable[obj->frame];
 
 		if (obj->frame < 0 || it->x < 0 || it->x > 8 || !_bgTable[it->x].bg || sprite->_bpp != 1) {
 			break;
@@ -1083,7 +1301,7 @@ void OSRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	case 22:
 		// TODO: Check it this implementation really works correctly (Some things might be wrong, needs testing).
 		assert(it->objIdx < NUM_MAX_OBJECT);
-		obj = &objectTable[it->objIdx];
+		obj = &g_cine->_objectTable[it->objIdx];
 		color = obj->part & 0x0F;
 		width = obj->frame;
 		height = obj->costume;
@@ -1099,7 +1317,8 @@ void OSRenderer::renderOverlay(const Common::List<overlay>::iterator &it) {
 	}
 }
 
-/*! \brief Load palette of current background
+/**
+ * Load palette of current background
  */
 void OSRenderer::reloadPalette() {
 	// selected background in plane takeoff scene has swapped colors 12
@@ -1112,12 +1331,13 @@ void OSRenderer::reloadPalette() {
 	_changePal = 1;
 }
 
-/*! \brief Copy part of backup palette to active palette and transform
- * \param first First color to transform
- * \param last Last color to transform
- * \param r Red channel transformation
- * \param g Green channel transformation
- * \param b Blue channel transformation
+/**
+ * Copy part of backup palette to active palette and transform
+ * @param first First color to transform
+ * @param last Last color to transform
+ * @param r Red channel transformation
+ * @param g Green channel transformation
+ * @param b Blue channel transformation
  */
 void OSRenderer::transformPalette(int first, int last, int r, int g, int b) {
 	palBg *bg = _bgShift ? &_bgTable[_scrollBg] : &_bgTable[_currentBg];
@@ -1131,11 +1351,12 @@ void OSRenderer::transformPalette(int first, int last, int r, int g, int b) {
 	refreshPalette();
 }
 
-/*! \brief Load 16 color background into renderer
- * \param bg Raw background data
- * \param name Background filename
- * \param pos Background index
- * \todo Combine with FWRenderer's version of loadBg16
+/**
+ * Load 16 color background into renderer
+ * @param bg Raw background data
+ * @param name Background filename
+ * @param pos Background index
+ * @todo Combine with FWRenderer's version of loadBg16
  */
 void OSRenderer::loadBg16(const byte *bg, const char *name, unsigned int idx) {
 	assert(idx < 9);
@@ -1157,9 +1378,10 @@ void OSRenderer::loadBg16(const byte *bg, const char *name, unsigned int idx) {
 	gfxConvertSpriteToRaw(_bgTable[idx].bg, bg, 160, 200);
 }
 
-/*! \brief Load 16 color CT data as background into renderer
- * \param ct Raw CT data
- * \param name Background filename
+/**
+ * Load 16 color CT data as background into renderer
+ * @param ct Raw CT data
+ * @param name Background filename
  */
 void OSRenderer::loadCt16(const byte *ct, const char *name) {
 	// Make the 9th background point directly to the collision page
@@ -1168,10 +1390,11 @@ void OSRenderer::loadCt16(const byte *ct, const char *name) {
 	loadBg16(ct, name, kCollisionPageBgIdxAlias);
 }
 
-/*! \brief Load 256 color background into renderer
- * \param bg Raw background data
- * \param name Background filename
- * \param pos Background index
+/**
+ * Load 256 color background into renderer
+ * @param bg Raw background data
+ * @param name Background filename
+ * @param pos Background index
  */
 void OSRenderer::loadBg256(const byte *bg, const char *name, unsigned int idx) {
 	assert(idx < 9);
@@ -1187,9 +1410,10 @@ void OSRenderer::loadBg256(const byte *bg, const char *name, unsigned int idx) {
 	memcpy(_bgTable[idx].bg, bg + kHighPalNumBytes, _screenSize);
 }
 
-/*! \brief Load 256 color CT data as background into renderer
- * \param ct Raw CT data
- * \param name Background filename
+/**
+ * Load 256 color CT data as background into renderer
+ * @param ct Raw CT data
+ * @param name Background filename
  */
 void OSRenderer::loadCt256(const byte *ct, const char *name) {
 	// Make the 9th background point directly to the collision page
@@ -1198,19 +1422,24 @@ void OSRenderer::loadCt256(const byte *ct, const char *name) {
 	loadBg256(ct, name, kCollisionPageBgIdxAlias);
 }
 
-/*! \brief Select active background and load its palette
- * \param idx Background index
+/**
+ * Select active background and load its palette
+ * @param idx Background index
  */
 void OSRenderer::selectBg(unsigned int idx) {
-	assert(idx < 9 && _bgTable[idx].bg);
-	assert(_bgTable[idx].pal.isValid() && !(_bgTable[idx].pal.empty()));
+	assert(idx < 9);
 
+	if (_bgTable[idx].bg) {
+		assert(_bgTable[idx].pal.isValid() && !(_bgTable[idx].pal.empty()));
 	_currentBg = idx;
+	} else
+		warning("OSRenderer::selectBg(%d) - attempt to select null background", idx);
 	reloadPalette();
 }
 
-/*! \brief Select scroll background
- * \param idx Scroll background index
+/**
+ * Select scroll background
+ * @param idx Scroll background index
  */
 void OSRenderer::selectScrollBg(unsigned int idx) {
 	assert(idx < 9);
@@ -1221,8 +1450,9 @@ void OSRenderer::selectScrollBg(unsigned int idx) {
 	reloadPalette();
 }
 
-/*! \brief Set background scroll
- * \param shift Background scroll in pixels
+/**
+ * Set background scroll
+ * @param shift Background scroll in pixels
  */
 void OSRenderer::setScroll(unsigned int shift) {
 	assert(shift <= 200);
@@ -1230,15 +1460,17 @@ void OSRenderer::setScroll(unsigned int shift) {
 	_bgShift = shift;
 }
 
-/*! \brief Get background scroll
- * \return Background scroll in pixels
+/**
+ * Get background scroll
+ * @return Background scroll in pixels
  */
 uint OSRenderer::getScroll() const {
 	return _bgShift;
 }
 
-/*! \brief Unload background from renderer
- * \param idx Background to unload
+/**
+ * Unload background from renderer
+ * @param idx Background to unload
  */
 void OSRenderer::removeBg(unsigned int idx) {
 	assert(idx > 0 && idx < 9);
@@ -1286,7 +1518,7 @@ void setMouseCursor(int cursor) {
 			}
 			++src;
 		}
-		CursorMan.replaceCursor(mouseCursor, 16, 16, mc->hotspotX, mc->hotspotY);
+		CursorMan.replaceCursor(mouseCursor, 16, 16, mc->hotspotX, mc->hotspotY, 0xFF);
 		CursorMan.replaceCursorPalette(cursorPalette, 0, 2);
 		currentMouseCursor = cursor;
 	}
@@ -1566,17 +1798,17 @@ void maskBgOverlay(const byte *bgPtr, const byte *maskPtr, int16 width, int16 he
 	maskPtr = backup;
 
 	// incrust pass
-	for (it = bgIncrustList.begin(); it != bgIncrustList.end(); ++it) {
-		tmpWidth = animDataTable[it->frame]._realWidth;
-		tmpHeight = animDataTable[it->frame]._height;
+	for (it = g_cine->_bgIncrustList.begin(); it != g_cine->_bgIncrustList.end(); ++it) {
+		tmpWidth = g_cine->_animDataTable[it->frame]._realWidth;
+		tmpHeight = g_cine->_animDataTable[it->frame]._height;
 		mask = (byte*)malloc(tmpWidth * tmpHeight);
 
 		if (it->param == 0) {
-			generateMask(animDataTable[it->frame].data(), mask, tmpWidth * tmpHeight, it->part);
+			generateMask(g_cine->_animDataTable[it->frame].data(), mask, tmpWidth * tmpHeight, it->part);
 			gfxUpdateIncrustMask(mask, it->x, it->y, tmpWidth, tmpHeight, maskPtr, x, y, width, height);
-			gfxDrawMaskedSprite(animDataTable[it->frame].data(), mask, tmpWidth, tmpHeight, page, it->x, it->y);
+			gfxDrawMaskedSprite(g_cine->_animDataTable[it->frame].data(), mask, tmpWidth, tmpHeight, page, it->x, it->y);
 		} else {
-			memcpy(mask, animDataTable[it->frame].data(), tmpWidth * tmpHeight);
+			memcpy(mask, g_cine->_animDataTable[it->frame].data(), tmpWidth * tmpHeight);
 			gfxUpdateIncrustMask(mask, it->x, it->y, tmpWidth, tmpHeight, maskPtr, x, y, width, height);
 			gfxFillSprite(mask, tmpWidth, tmpHeight, page, it->x, it->y);
 		}

@@ -18,19 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
+#include "common/textconsole.h"
 #include "common/util.h"
-#include "common/system.h"
-#include "common/events.h"
 
-#include "graphics/surface.h"
-#include "graphics/colormasks.h"
-
-#include "gui/ThemeEngine.h"
 #include "graphics/VectorRenderer.h"
 
 #define VECTOR_RENDERER_FAST_TRIANGLES
@@ -84,26 +76,26 @@ void VectorRenderer::stepGetPositions(const DrawStep &step, const Common::Rect &
 	if (!step.autoWidth) {
 		in_w = step.w == -1 ? area.height() : step.w;
 
-		switch(step.xAlign) {
-			case Graphics::DrawStep::kVectorAlignManual:
-				if (step.x >= 0) in_x = area.left + step.x;
-				else in_x = area.left + area.width() + step.x; // value relative to the opposite corner.
-				break;
+		switch (step.xAlign) {
+		case Graphics::DrawStep::kVectorAlignManual:
+			if (step.x >= 0) in_x = area.left + step.x;
+			else in_x = area.left + area.width() + step.x; // value relative to the opposite corner.
+			break;
 
-			case Graphics::DrawStep::kVectorAlignCenter:
-				in_x = area.left + (area.width() / 2) - (in_w / 2);
-				break;
+		case Graphics::DrawStep::kVectorAlignCenter:
+			in_x = area.left + (area.width() / 2) - (in_w / 2);
+			break;
 
-			case Graphics::DrawStep::kVectorAlignLeft:
-				in_x = area.left;
-				break;
+		case Graphics::DrawStep::kVectorAlignLeft:
+			in_x = area.left;
+			break;
 
-			case Graphics::DrawStep::kVectorAlignRight:
-				in_x = area.left + area.width() - in_w;
-				break;
+		case Graphics::DrawStep::kVectorAlignRight:
+			in_x = area.left + area.width() - in_w;
+			break;
 
-			default:
-				error("Vertical alignment in horizontal data.");
+		default:
+			error("Vertical alignment in horizontal data");
 		}
 	} else {
 		in_x = area.left;
@@ -113,26 +105,26 @@ void VectorRenderer::stepGetPositions(const DrawStep &step, const Common::Rect &
 	if (!step.autoHeight) {
 		in_h = step.h == -1 ? area.width() : step.h;
 
-		switch(step.yAlign) {
-			case Graphics::DrawStep::kVectorAlignManual:
-				if (step.y >= 0) in_y = area.top + step.y;
-				else in_y = area.top + area.height() + step.y; // relative
-				break;
+		switch (step.yAlign) {
+		case Graphics::DrawStep::kVectorAlignManual:
+			if (step.y >= 0) in_y = area.top + step.y;
+			else in_y = area.top + area.height() + step.y; // relative
+			break;
 
-			case Graphics::DrawStep::kVectorAlignCenter:
-				in_y = area.top + (area.height() / 2) - (in_h / 2);
-				break;
+		case Graphics::DrawStep::kVectorAlignCenter:
+			in_y = area.top + (area.height() / 2) - (in_h / 2);
+			break;
 
-			case Graphics::DrawStep::kVectorAlignTop:
-				in_y = area.top;
-				break;
+		case Graphics::DrawStep::kVectorAlignTop:
+			in_y = area.top;
+			break;
 
-			case Graphics::DrawStep::kVectorAlignBottom:
-				in_y = area.top + area.height() - in_h;
-				break;
+		case Graphics::DrawStep::kVectorAlignBottom:
+			in_y = area.top + area.height() - in_h;
+			break;
 
-			default:
-				error("Horizontal alignment in vertical data.");
+		default:
+			error("Horizontal alignment in vertical data");
 		}
 	} else {
 		in_y = area.top;
@@ -147,4 +139,4 @@ void VectorRenderer::stepGetPositions(const DrawStep &step, const Common::Rect &
 	}
 }
 
-} // end of namespace Graphics
+} // End of namespace Graphics

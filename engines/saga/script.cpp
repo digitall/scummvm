@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 // Scripting module: Script resource handling functions
@@ -46,12 +43,11 @@ namespace Saga {
 
 SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	ResourceContext *resourceContext;
-	byte *resourcePointer;
-	size_t resourceLength;
+	ByteArray resourceData;
 	int prevTell;
-	int i, j;
-	byte *stringsPointer;
-	size_t stringsLength;
+	uint ui;
+	int j;
+	ByteArray stringsData;
 
 	//initialize member variables
 	_abortEnabled = true;
@@ -67,9 +63,7 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	_pointerObject = ID_NOTHING;
 
 	_staticSize = 0;
-	_commonBufferSize = COMMON_BUFFER_SIZE;
-	_commonBuffer = (byte*)malloc(_commonBufferSize);
-	memset(_commonBuffer, 0, _commonBufferSize);
+	_commonBuffer.resize(COMMON_BUFFER_SIZE);
 
 	debug(8, "Initializing scripting subsystem");
 	// Load script resource file context
@@ -86,46 +80,40 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	uint32 scriptResourceId = 0;
 	scriptResourceId = _vm->getResourceDescription()->moduleLUTResourceId;
 	debug(3, "Loading module LUT from resource %i", scriptResourceId);
-	_vm->_resource->loadResource(resourceContext, scriptResourceId, resourcePointer, resourceLength);
+	_vm->_resource->loadResource(resourceContext, scriptResourceId, resourceData);
 
 	// Create logical script LUT from resource
-	if (resourceLength % 22 == 0) {			// ITE CD
+	if (resourceData.size() % 22 == 0) {			// ITE CD
 		_modulesLUTEntryLen = 22;
-	} else if (resourceLength % 16 == 0) {	// ITE disk, IHNM
+	} else if (resourceData.size() % 16 == 0) {	// ITE disk, IHNM
 		_modulesLUTEntryLen = 16;
 	} else {
-		error("Script::Script() Invalid script lookup table length (%i)", (int)resourceLength);
+		error("Script::Script() Invalid script lookup table length (%i)", (int)resourceData.size());
 	}
 
 	// Calculate number of entries
-	_modulesCount = resourceLength / _modulesLUTEntryLen;
+	int modulesCount = resourceData.size() / _modulesLUTEntryLen;
 
-	debug(3, "LUT has %i entries", _modulesCount);
+	debug(3, "LUT has %i entries", modulesCount);
 
 	// Allocate space for logical LUT
-	_modules = (ModuleData *)malloc(_modulesCount * sizeof(*_modules));
-	if (_modules == NULL) {
-		memoryError("Script::Script()");
-	}
+	_modules.resize(modulesCount);
 
 	// Convert LUT resource to logical LUT
-	MemoryReadStreamEndian scriptS(resourcePointer, resourceLength, resourceContext->isBigEndian);
-	for (i = 0; i < _modulesCount; i++) {
-		memset(&_modules[i], 0, sizeof(ModuleData));
+	ByteArrayReadStreamEndian scriptS(resourceData, resourceContext->isBigEndian());
+	for (ui = 0; ui < _modules.size(); ui++) {
 
 		prevTell = scriptS.pos();
-		_modules[i].scriptResourceId = scriptS.readUint16();
-		_modules[i].stringsResourceId = scriptS.readUint16();
-		_modules[i].voicesResourceId = scriptS.readUint16();
+		_modules[ui].scriptResourceId = scriptS.readUint16();
+		_modules[ui].stringsResourceId = scriptS.readUint16();
+		_modules[ui].voicesResourceId = scriptS.readUint16();
 
 		// Skip the unused portion of the structure
 		for (j = scriptS.pos(); j < prevTell + _modulesLUTEntryLen; j++) {
 			if (scriptS.readByte() != 0)
-				warning("Unused scriptLUT part isn't really unused for LUT %d (pos: %d)", i, j);
+				warning("Unused scriptLUT part isn't really unused for LUT %d (pos: %d)", ui, j);
 		}
 	}
-
-	free(resourcePointer);
 
 	// TODO
 	//
@@ -135,10 +123,9 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	// In IHNM, the "main strings" contains the verb strings, but not the
 	// object names. At least, I think that's the case.
 
-	_vm->_resource->loadResource(resourceContext, _vm->getResourceDescription()->mainStringsResourceId, stringsPointer, stringsLength);
+	_vm->_resource->loadResource(resourceContext, _vm->getResourceDescription()->mainStringsResourceId, stringsData);
 
-	_vm->loadStrings(_mainStrings, stringsPointer, stringsLength);
-	free(stringsPointer);
+	_vm->loadStrings(_mainStrings, stringsData);
 
 	setupScriptOpcodeList();
 
@@ -157,19 +144,10 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 
 SAGA1Script::~SAGA1Script() {
 	debug(8, "Shutting down scripting subsystem.");
-
-	_mainStrings.freeMem();
-	_globalVoiceLUT.freeMem();
-
-	freeModules();
-	free(_modules);
-
-	free(_commonBuffer);
 }
 
 SAGA2Script::SAGA2Script(SagaEngine *vm) : Script(vm) {
-	byte *resourcePointer;
-	size_t resourceLength;
+	ByteArray resourceData;
 
 	debug(8, "Initializing scripting subsystem");
 	// Load script resource file context
@@ -179,23 +157,23 @@ SAGA2Script::SAGA2Script(SagaEngine *vm) : Script(vm) {
 	}
 
 	// Script export segment (lookup table)
-	uint32 saga2ExportSegId = MKID_BE('_EXP');
+	uint32 saga2ExportSegId = MKTAG('_','E','X','P');
 	int32 entryNum = _scriptContext->getEntryNum(saga2ExportSegId);
 	if (entryNum < 0)
 		error("Unable to locate the script's export segment");
 	debug(3, "Loading module LUT from resource %i", entryNum);
-	_vm->_resource->loadResource(_scriptContext, (uint32)entryNum, resourcePointer, resourceLength);
+	_vm->_resource->loadResource(_scriptContext, (uint32)entryNum, resourceData);
 
 	_modulesLUTEntryLen = sizeof(uint32);
 
 	// Calculate number of entries
-	_modulesCount = resourceLength / _modulesLUTEntryLen + 1;
+	int modulesCount = resourceData.size() / _modulesLUTEntryLen + 1;
 
-	debug(3, "LUT has %i entries", _modulesCount);
+	debug(3, "LUT has %i entries", modulesCount);
 
 	// Script data segment
 	/*
-	uint32 saga2DataSegId = MKID_BE('__DA');
+	uint32 saga2DataSegId = MKTAG('_','_','D','A');
 	entryNum = _scriptContext->getEntryNum(saga2DataSegId);
 	if (entryNum < 0)
 		error("Unable to locate the script's data segment");
@@ -258,10 +236,10 @@ void Script::setupScriptOpcodeList() {
 		// Function calling
 		OPCODE(opCall),			// 23: Call function
 		OPCODE(opCcall),		// 24: Call C function
-		OPCODE(opCcallV),		// 25: Call C function (void)
+		OPCODE(opCcallV),		// 25: Call C function ()
 		OPCODE(opEnter),		// 26: Enter a function
 		OPCODE(opReturn),		// 27: Return from a function
-		OPCODE(opReturnV),		// 28: Return from a function (void)
+		OPCODE(opReturnV),		// 28: Return from a function ()
 		// Branching
 		OPCODE(opJmp),			// 29
 		OPCODE(opJmpTrueV),		// 30: Test argument and consume it
@@ -374,12 +352,12 @@ void Script::setupScriptOpcodeList() {
 		OPCODE(opCallNear),		// 29: Call function in the same segment
 		OPCODE(opCallFar),		// 30: Call function in other segment
 		OPCODE(opCcall),		// 31: Call C function
-		OPCODE(opCcallV),		// 32: Call C function (void)
+		OPCODE(opCcallV),		// 32: Call C function ()
 		OPCODE(opCallMember),	// 33: Call member function
-		OPCODE(opCallMemberV),	// 34: Call member function (void)
+		OPCODE(opCallMemberV),	// 34: Call member function ()
 		OPCODE(opEnter),		// 35: Enter a function
 		OPCODE(opReturn),		// 36: Return from a function
-		OPCODE(opReturnV),		// 37: Return from a function (void)
+		OPCODE(opReturnV),		// 37: Return from a function ()
 		// Branching
 		OPCODE(opJmp),			// 38
 		OPCODE(opJmpTrueV),		// 39: Test argument and consume it
@@ -571,9 +549,7 @@ void Script::opCall(SCRIPTOP_PARAMS) {
 	if (iparam1 != kAddressModule) {
 		error("Script::runThread iparam1 != kAddressModule");
 	}
-	byte *addr = thread->baseAddress(iparam1);
 	iparam1 = scriptS->readSint16LE();
-	addr += iparam1;
 	thread->push(argumentsCount);
 
 	// NOTE: The original pushes the program
@@ -988,15 +964,19 @@ void Script::opSpeak(SCRIPTOP_PARAMS) {
 
 	// now data contains last string index
 
+#if 0
 	if (_vm->getFeatures() & GF_OLD_ITE_DOS) { // special ITE dos
 		if ((_vm->_scene->currentSceneNumber() == ITE_DEFAULT_SCENE) &&
 			(iparam1 >= 288) && (iparam1 <= (RID_SCENE1_VOICE_END - RID_SCENE1_VOICE_START + 288))) {
 			sampleResourceId = RID_SCENE1_VOICE_START + iparam1 - 288;
 		}
 	} else {
-		if (thread->_voiceLUT->voicesCount > first)
-			sampleResourceId = thread->_voiceLUT->voices[first];
+#endif
+		if (thread->_voiceLUT->size() > uint16(first))
+			sampleResourceId = (*thread->_voiceLUT)[uint16(first)];
+#if 0
 	}
+#endif
 
 	if (sampleResourceId < 0 || sampleResourceId > 4000)
 		sampleResourceId = -1;
@@ -1065,12 +1045,11 @@ void Script::opJmpSeedRandom(SCRIPTOP_PARAMS) {
 	warning("opJmpSeedRandom");
 }
 
-void Script::loadModule(int scriptModuleNumber) {
-	byte *resourcePointer;
-	size_t resourceLength;
+void Script::loadModule(uint scriptModuleNumber) {
+	ByteArray resourceData;
 
 	// Validate script number
-	if ((scriptModuleNumber < 0) || (scriptModuleNumber >= _modulesCount)) {
+	if (scriptModuleNumber >= _modules.size()) {
 		error("Script::loadScript() Invalid script module number");
 	}
 
@@ -1081,79 +1060,70 @@ void Script::loadModule(int scriptModuleNumber) {
 	// Initialize script data structure
 	debug(3, "Loading script module #%d", scriptModuleNumber);
 
-	_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].scriptResourceId, resourcePointer, resourceLength);
+	_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].scriptResourceId, resourceData);
 
-	loadModuleBase(_modules[scriptModuleNumber], resourcePointer, resourceLength);
-	free(resourcePointer);
+	loadModuleBase(_modules[scriptModuleNumber], resourceData);
 
-	_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].stringsResourceId, resourcePointer, resourceLength);
+	_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].stringsResourceId, resourceData);
 
-	_vm->loadStrings(_modules[scriptModuleNumber].strings, resourcePointer, resourceLength);
-	free(resourcePointer);
+	_vm->loadStrings(_modules[scriptModuleNumber].strings, resourceData);
 
 	if (_modules[scriptModuleNumber].voicesResourceId > 0) {
-		_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].voicesResourceId, resourcePointer, resourceLength);
+		_vm->_resource->loadResource(_scriptContext, _modules[scriptModuleNumber].voicesResourceId, resourceData);
 
-		loadVoiceLUT(_modules[scriptModuleNumber].voiceLUT, resourcePointer, resourceLength);
-		free(resourcePointer);
+		loadVoiceLUT(_modules[scriptModuleNumber].voiceLUT, resourceData);
 	}
 
 	_modules[scriptModuleNumber].staticOffset = _staticSize;
 	_staticSize += _modules[scriptModuleNumber].staticSize;
-	if (_staticSize > _commonBufferSize) {
-		error("Script::loadModule() _staticSize > _commonBufferSize");
+	if (_staticSize > _commonBuffer.size()) {
+		error("Script::loadModule() _staticSize > _commonBuffer.size()");
 	}
 	_modules[scriptModuleNumber].loaded = true;
 }
 
-void Script::freeModules() {
-	int i;
-	for (i = 0; i < _modulesCount; i++) {
+void Script::clearModules() {
+	uint i;
+	for (i = 0; i < _modules.size(); i++) {
 		if (_modules[i].loaded) {
-			_modules[i].freeMem();
-			_modules[i].loaded = false;
+			_modules[i].clear();
 		}
 	}
 	_staticSize = 0;
 }
 
-void Script::loadModuleBase(ModuleData &module, const byte *resourcePointer, size_t resourceLength) {
-	int i;
+void Script::loadModuleBase(ModuleData &module, const ByteArray &resourceData) {
+	uint i;
 
 	debug(3, "Loading module base...");
 
-	module.moduleBase = (byte*)malloc(resourceLength);
-	module.moduleBaseSize = resourceLength;
+	module.moduleBase.assign(resourceData);
 
-	memcpy(module.moduleBase, resourcePointer, resourceLength);
+	ByteArrayReadStreamEndian scriptS(module.moduleBase, _scriptContext->isBigEndian());
 
-	MemoryReadStreamEndian scriptS(module.moduleBase, module.moduleBaseSize, _scriptContext->isBigEndian);
-
-	module.entryPointsCount = scriptS.readUint16();
+	uint entryPointsCount = scriptS.readUint16();
 	scriptS.readUint16(); //skip
-	module.entryPointsTableOffset = scriptS.readUint16();
+	uint16 entryPointsTableOffset;	// offset of entrypoint table in moduleBase
+	entryPointsTableOffset = scriptS.readUint16();
 	scriptS.readUint16(); //skip
 
-	if ((module.moduleBaseSize - module.entryPointsTableOffset) < (module.entryPointsCount * SCRIPT_TBLENTRY_LEN)) {
+	if ((module.moduleBase.size() - entryPointsTableOffset) < (entryPointsCount * SCRIPT_TBLENTRY_LEN)) {
 		error("Script::loadModuleBase() Invalid table offset");
 	}
 
-	if (module.entryPointsCount > SCRIPT_MAX) {
+	if (entryPointsCount > SCRIPT_MAX) {
 		error("Script::loadModuleBase()Script limit exceeded");
 	}
 
-	module.entryPoints = (EntryPoint *)malloc(module.entryPointsCount * sizeof(*module.entryPoints));
-	if (module.entryPoints == NULL) {
-		memoryError("Script::loadModuleBase");
-	}
+	module.entryPoints.resize(entryPointsCount);
 
 	// Read in the entrypoint table
 
 	module.staticSize = scriptS.readUint16();
-	while (scriptS.pos() < module.entryPointsTableOffset)
+	while (scriptS.pos() < entryPointsTableOffset)
 		scriptS.readByte();
 
-	for (i = 0; i < module.entryPointsCount; i++) {
+	for (i = 0; i < module.entryPoints.size(); i++) {
 		// First uint16 is the offset of the entrypoint name from the start
 		// of the bytecode resource, second uint16 is the offset of the
 		// bytecode itself for said entrypoint
@@ -1161,26 +1131,21 @@ void Script::loadModuleBase(ModuleData &module, const byte *resourcePointer, siz
 		module.entryPoints[i].offset = scriptS.readUint16();
 
 		// Perform a simple range check on offset values
-		if ((module.entryPoints[i].nameOffset >= module.moduleBaseSize) || (module.entryPoints[i].offset >= module.moduleBaseSize)) {
+		if ((module.entryPoints[i].nameOffset >= module.moduleBase.size()) || (module.entryPoints[i].offset >= module.moduleBase.size())) {
 			error("Script::loadModuleBase() Invalid offset encountered in script entrypoint table");
 		}
 	}
 }
 
-void Script::loadVoiceLUT(VoiceLUT &voiceLUT, const byte *resourcePointer, size_t resourceLength) {
+void Script::loadVoiceLUT(VoiceLUT &voiceLUT, const ByteArray &resourceData) {
 	uint16 i;
 
-	voiceLUT.voicesCount = resourceLength / 2;
+	voiceLUT.resize(resourceData.size() / 2);
 
-	voiceLUT.voices = (uint16 *)malloc(voiceLUT.voicesCount * sizeof(*voiceLUT.voices));
-	if (voiceLUT.voices == NULL) {
-		error("Script::loadVoiceLUT() not enough memory");
-	}
+	ByteArrayReadStreamEndian scriptS(resourceData, _scriptContext->isBigEndian());
 
-	MemoryReadStreamEndian scriptS(resourcePointer, resourceLength, _scriptContext->isBigEndian);
-
-	for (i = 0; i < voiceLUT.voicesCount; i++) {
-		voiceLUT.voices[i] = scriptS.readUint16();
+	for (i = 0; i < voiceLUT.size(); i++) {
+		voiceLUT[i] = scriptS.readUint16();
 	}
 }
 
@@ -1189,7 +1154,7 @@ void Script::showVerb(int statusColor) {
 	const char *verbName;
 	const char *object1Name;
 	const char *object2Name;
-	char statusString[STATUS_TEXT_LEN];
+	Common::String statusString;
 
 	if (_leftButtonVerb == getVerbType(kVerbNone)) {
 		_vm->_interface->setStatusText("");
@@ -1209,8 +1174,8 @@ void Script::showVerb(int statusColor) {
 	object1Name = _vm->getObjectName(_currentObject[0]);
 
 	if (!_secondObjectNeeded) {
-		snprintf(statusString, STATUS_TEXT_LEN, "%s %s", verbName, object1Name);
-		_vm->_interface->setStatusText(statusString, statusColor);
+		statusString = Common::String::format("%s %s", verbName, object1Name);
+		_vm->_interface->setStatusText(statusString.c_str(), statusColor);
 		return;
 	}
 
@@ -1222,15 +1187,15 @@ void Script::showVerb(int statusColor) {
 	}
 
 	if (_leftButtonVerb == getVerbType(kVerbGive)) {
-		snprintf(statusString, STATUS_TEXT_LEN, _vm->getTextString(kTextGiveTo), object1Name, object2Name);
-		_vm->_interface->setStatusText(statusString, statusColor);
+		statusString = Common::String::format(_vm->getTextString(kTextGiveTo), object1Name, object2Name);
+		_vm->_interface->setStatusText(statusString.c_str(), statusColor);
 	} else {
 		if (_leftButtonVerb == getVerbType(kVerbUse)) {
-			snprintf(statusString, STATUS_TEXT_LEN, _vm->getTextString(kTextUseWidth), object1Name, object2Name);
-			_vm->_interface->setStatusText(statusString, statusColor);
+			statusString = Common::String::format(_vm->getTextString(kTextUseWidth), object1Name, object2Name);
+			_vm->_interface->setStatusText(statusString.c_str(), statusColor);
 		} else {
-			snprintf(statusString, STATUS_TEXT_LEN, "%s %s", verbName, object1Name);
-			_vm->_interface->setStatusText(statusString, statusColor);
+			statusString = Common::String::format("%s %s", verbName, object1Name);
+			_vm->_interface->setStatusText(statusString.c_str(), statusColor);
 		}
 	}
 }
@@ -1313,8 +1278,14 @@ void Script::setVerb(int verb) {
 	// engine did it, but it appears to work.
 	_pointerObject = ID_NOTHING;
 
-	setLeftButtonVerb( verb );
+	setLeftButtonVerb(verb);
 	showVerb();
+}
+
+bool Script::isNonInteractiveDemo() {
+	// This detection only works in ITE. The early non-interactive demos had
+	// a very small script file
+	return _vm->getGameId() == GID_ITE && _scriptContext->fileSize() < 50000;
 }
 
 void Script::setLeftButtonVerb(int verb) {
@@ -1434,7 +1405,7 @@ void Script::doVerb() {
 		event.param4 = _pendingObject[0];	// Object
 		event.param5 = _pendingObject[1];	// With Object
 		event.param6 = (objectType == kGameObjectActor) ? _pendingObject[0] : ID_PROTAG;		// Actor
-		_vm->_events->queue(&event);
+		_vm->_events->queue(event);
 
 	} else {
 		// Show excuse text in ITE CD Versions
@@ -1541,7 +1512,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 	}
 
 	if (_pointerObject != ID_NOTHING) {
-		hitObject( leftButton );
+		hitObject(leftButton);
 	} else {
 		_pendingObject[0] = ID_NOTHING;
 		_pendingObject[1] = ID_NOTHING;
@@ -1610,7 +1581,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 				_vm->_actor->actorWalkTo(ID_PROTAG, pickLocation);
 		} else {
 			if (_pendingVerb == getVerbType(kVerbLookAt)) {
-				if (objectTypeId(_pendingObject[0]) != kGameObjectActor ) {
+				if (objectTypeId(_pendingObject[0]) != kGameObjectActor) {
 					_vm->_actor->actorWalkTo(ID_PROTAG, pickLocation);
 				} else {
 					doVerb();

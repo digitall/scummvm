@@ -18,14 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 
 #include "common/file.h"
+#include "common/textconsole.h"
 
 #include "agos/intern.h"
 #include "agos/agos.h"
@@ -225,7 +223,7 @@ Item *AGOSEngine::actor() {
 	error("actor: is this code ever used?");
 	//if (_actorPlayer)
 	//	return _actorPlayer;
-	return _dummyItem1;
+	return _dummyItem1;	// for compilers that don't support NORETURN
 }
 
 Item *AGOSEngine::getNextItemPtr() {
@@ -381,7 +379,7 @@ int AGOSEngine::wordMatch(Item *item, int16 a, int16 n) {
 	if (a == -1 && n == item->noun)
 		return 1;
 	if (a == item->adjective && n == item->noun)
-		return 1 ;
+		return 1;
 
 	return 0;
 }
@@ -429,6 +427,9 @@ Item *AGOSEngine::findMaster(int16 a, int16 n) {
 
 	for (j = 1; j < _itemArraySize; j++) {
 		Item *item = derefItem(j);
+		if (item == NULL)
+			continue;
+
 		if (wordMatch(item, a, n))
 			return item;
 	}
@@ -442,6 +443,9 @@ Item *AGOSEngine::nextMaster(Item *i, int16 a, int16 n) {
 
 	for (j = first; j < _itemArraySize; j++) {
 		Item *item = derefItem(j);
+		if (item == NULL)
+			continue;
+
 		if (wordMatch(item, a, n))
 			return item;
 	}
@@ -455,7 +459,7 @@ uint AGOSEngine::itemPtrToID(Item *id) {
 		if (_itemArrayPtr[i] == id)
 			return i;
 	error("itemPtrToID: not found");
-	return 0;
+	return 0;	// for compilers that don't support NORETURN
 }
 
 } // End of namespace AGOS

@@ -18,13 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  * CD/drive handling functions
  */
 
-#include "gui/message.h"
+#include "common/textconsole.h"
 #include "tinsel/drives.h"
 #include "tinsel/scene.h"
 #include "tinsel/tinsel.h"
@@ -33,11 +30,15 @@
 
 namespace Tinsel {
 
+// FIXME: Avoid non-const global vars
+
 char currentCD = '1';
-static uint32 cdFlags[] = { fCd1, fCd2, fCd3, fCd4, fCd5, fCd6, fCd7, fCd8 };
 
 static bool bChangingCD = false;
 static char nextCD = '\0';
+
+static uint32 lastTime = 0;
+extern LANGUAGE sampleLanguage;
 
 
 void CdCD(CORO_PARAM) {
@@ -63,10 +64,12 @@ void CdCD(CORO_PARAM) {
 	CORO_END_CODE;
 }
 
-int GetCurrentCD(void) {
+int GetCurrentCD() {
 	// count from 1
 	return (currentCD - '1' + 1);
 }
+
+static const uint32 cdFlags[] = { fCd1, fCd2, fCd3, fCd4, fCd5, fCd6, fCd7, fCd8 };
 
 void SetCD(int flags) {
 	if (flags & cdFlags[currentCD - '1'])
@@ -94,10 +97,7 @@ int GetCD(int flags) {
 	return cd;
 }
 
-static uint32 lastTime = 0;
-extern LANGUAGE sampleLanguage;
-
-void DoCdChange(void) {
+void DoCdChange() {
 	if (bChangingCD && (g_system->getMillis() > (lastTime + 1000))) {
 		lastTime = g_system->getMillis();
 		_vm->_sound->closeSampleStream();
@@ -129,7 +129,7 @@ void SetNextCD(int cdNumber) {
 	nextCD = (char)(cdNumber + '1' - 1);
 }
 
-bool GotoCD(void) {
+bool GotoCD() {
 	// WORKAROUND: Somehow, CdDoChange() is called twice... Hopefully, this guard helps
 	if (currentCD == nextCD)
 		return false;
@@ -149,13 +149,24 @@ bool GotoCD(void) {
 
 bool TinselFile::_warningShown = false;
 
+TinselFile::TinselFile() : ReadStreamEndian((_vm->getFeatures() & GF_BIG_ENDIAN) != 0) {
+	_stream = NULL;
+}
+
+TinselFile::~TinselFile() {
+	delete _stream;
+}
+
+bool TinselFile::openInternal(const Common::String &filename) {
+	_stream = SearchMan.createReadStreamForMember(filename);
+	if (!_stream)
+		_stream = SearchMan.createReadStreamForMember(filename + ".");
+	return _stream != 0;
+}
+
 bool TinselFile::open(const Common::String &filename) {
-	if (Common::File::open(filename)) {
-		// If it's the sample file, strip off the CD number from the filename
-
-
+	if (openInternal(filename))
 		return true;
-	}
 
 	if (!TinselV2)
 		return false;
@@ -173,7 +184,50 @@ bool TinselFile::open(const Common::String &filename) {
 	strncpy(newFilename, fname, p - fname);
 	strcpy(newFilename + (p - fname), p + 1);
 
-	return Common::File::open(newFilename);
+	return openInternal(newFilename);
 }
 
-} // end of namespace Tinsel
+void TinselFile::close() {
+	delete _stream;
+	_stream = NULL;
+}
+
+int32 TinselFile::pos() const {
+	assert(_stream);
+	return _stream->pos();
+}
+
+int32 TinselFile::size() const {
+	assert(_stream);
+	return _stream->size();
+}
+
+bool TinselFile::seek(int32 offset, int whence) {
+	assert(_stream);
+	return _stream->seek(offset, whence);
+}
+
+bool TinselFile::eos() const {
+	assert(_stream);
+	return _stream->eos();
+}
+
+bool TinselFile::err() const {
+	assert(_stream);
+	return _stream->err();
+}
+
+void TinselFile::clearErr() {
+	assert(_stream);
+	_stream->clearErr();
+}
+
+uint32 TinselFile::read(void *dataPtr, uint32 dataSize) {
+	assert(_stream);
+	return _stream->read(dataPtr, dataSize);
+}
+
+
+
+
+} // End of namespace Tinsel

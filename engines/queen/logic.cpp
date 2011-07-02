@@ -18,15 +18,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
 #include "common/config-manager.h"
-#include "common/events.h"
-#include "common/system.h"
+#include "common/textconsole.h"
 
 #include "queen/logic.h"
 
@@ -1550,7 +1546,7 @@ void Logic::asmEndGame() {
 	while (n--) {
 		_vm->update();
 	}
-//	printf("Game completed.");
+//	debug("Game completed.");
 	_vm->quitGame();
 }
 
@@ -1630,7 +1626,7 @@ void Logic::asmSetLightsOn() {
 
 void Logic::asmSetManequinAreaOn() {
 	Area *a = _vm->grid()->area(ROOM_FLODA_FRONTDESK, 7);
-	a->mapNeighbours = ABS(a->mapNeighbours);
+	a->mapNeighbors = ABS(a->mapNeighbors);
 }
 
 void Logic::asmPanToJoe() {
@@ -2004,7 +2000,7 @@ void Logic::asmPanLeftToBomb() {
 }
 
 void Logic::asmEndDemo() {
-//	printf("Flight of the Amazon Queen, released January 95.");
+//	debug("Flight of the Amazon Queen, released January 95.");
 	_vm->quitGame();
 }
 
@@ -2049,7 +2045,7 @@ void Logic::asmInterviewIntro() {
 }
 
 void Logic::asmEndInterview() {
-//	printf("Interactive Interview copyright (c) 1995, IBI.");
+//	debug("Interactive Interview copyright (c) 1995, IBI.");
 	_vm->quitGame();
 }
 

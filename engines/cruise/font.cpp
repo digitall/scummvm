@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/endian.h"
@@ -137,7 +134,7 @@ void loadFNT(const char *fileName) {
 	fontFileHandle.close();
 }
 
-void initSystem(void) {
+void initSystem() {
 	int32 i;
 
 	itemColor = 15;
@@ -168,8 +165,8 @@ void initSystem(void) {
 	loadFNT("system.fnt");
 }
 
-void freeSystem(void) {
-	free(_systemFNT);
+void freeSystem() {
+	MemFree(_systemFNT);
 }
 
 void bigEndianShortToNative(void *var) {
@@ -266,13 +263,13 @@ int32 prepareWordRender(int32 inRightBorder_X, int16 wordSpacingWidth,
 	return counter;
 }
 
-void drawString(int32 x, int32 y, const char *string, uint8 *buffer, uint8 fontColour, int32 rightBorder_X) {
+void drawString(int32 x, int32 y, const char *string, uint8 *buffer, uint8 fontColor, int32 rightBorder_X) {
 
 	// Get the rendered text to display
 	gfxEntryStruct *s = renderText(rightBorder_X, string);
 
 	// Draw the message
-	drawMessage(s, x, y, rightBorder_X - x, fontColour, buffer);
+	drawMessage(s, x, y, rightBorder_X - x, fontColor, buffer);
 
 	// Free the data
 	delete s->imagePtr;
@@ -349,7 +346,7 @@ gfxEntryStruct *renderText(int inRightBorder_X, const char *string) {
 	    (uint8 *) mallocAndZero(stringRenderBufferSize);
 	resetBitmap(currentStrRenderBuffer, stringRenderBufferSize);
 
-	generatedGfxEntry = (gfxEntryStruct *) malloc(sizeof(gfxEntryStruct));
+	generatedGfxEntry = (gfxEntryStruct *) MemAlloc(sizeof(gfxEntryStruct));
 	generatedGfxEntry->imagePtr = currentStrRenderBuffer;
 	generatedGfxEntry->imageSize = stringRenderBufferSize / 2;
 	generatedGfxEntry->fontIndex = fontFileIndex;
@@ -430,10 +427,10 @@ gfxEntryStruct *renderText(int inRightBorder_X, const char *string) {
 
 void freeGfx(gfxEntryStruct *pGfx) {
 	if (pGfx->imagePtr) {
-		free(pGfx->imagePtr);
+		MemFree(pGfx->imagePtr);
 	}
 
-	free(pGfx);
+	MemFree(pGfx);
 }
 
 

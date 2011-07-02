@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef M4_CONVERSE_H
@@ -30,8 +27,8 @@
 #include "common/hashmap.h"
 
 #include "m4/globals.h"
-#include "m4/m4.h"
 #include "m4/viewmgr.h"
+#include "m4/sound.h"
 
 namespace M4 {
 
@@ -135,14 +132,14 @@ enum ConverseStyle {CONVSTYLE_EARTH, CONVSTYLE_SPACE};
 typedef Common::HashMap<Common::String,EntryInfo,Common::IgnoreCase_Hash,Common::IgnoreCase_EqualTo> OffsetHashMap;
 typedef Common::HashMap<Common::String,int32,Common::IgnoreCase_Hash,Common::IgnoreCase_EqualTo> ConvVarHashMap;
 
-class ConversationView: public View {
+class ConversationView : public View {
 public:
-	ConversationView(M4Engine *vm);
+	ConversationView(MadsM4Engine *vm);
 	~ConversationView();
 	void setNode(int32 nodeIndex);
 
 	void onRefresh(RectList *rects, M4Surface *destSurface);
-	bool onEvent(M4EventType eventType, int param, int x, int y, bool &captureEvents);
+	bool onEvent(M4EventType eventType, int32 param, int x, int y, bool &captureEvents);
 	int32 getCurrentNodeIndex() { return _currentNodeIndex; }
 	void selectEntry(int entryIndex);
 
@@ -162,7 +159,7 @@ private:
 class Converse {
 
 public:
-	Converse(M4Engine *vm) : _vm(vm) {}
+	Converse(MadsM4Engine *vm) : _vm(vm) {}
 	~Converse() {}
 
 	void startConversation(const char *convName, bool showConversebox = true, ConverseStyle style = CONVSTYLE_EARTH );
@@ -179,7 +176,7 @@ public:
 	void play();
 	*/
 private:
-	M4Engine *_vm;
+	MadsM4Engine *_vm;
 	Common::Array<ConvEntry*>_convNodes;
 	Common::Array<MessageEntry*>_madsMessageList;
 	Common::Array<char *>_convStrings;
@@ -191,8 +188,25 @@ private:
 
 	void loadConversation(const char *convName);
 	void loadConversationMads(const char *convName);
-	void readConvEntryActions(Common::SubReadStream *convS, ConvEntry *curEntry);
+	void readConvEntryActions(Common::ReadStream *convS, ConvEntry *curEntry);
 	void setEntryInfo(int32 offset, EntryType type, int32 nodeIndex, int32 entryIndex);
+};
+
+
+struct MadsTalkEntry {
+	uint16 id;
+	const char *desc;
+};
+
+#define MADS_TALK_SIZE 5
+
+class MadsConversation {
+private:
+	MadsTalkEntry _talkList[MADS_TALK_SIZE];
+public:
+	MadsConversation();
+
+	MadsTalkEntry &operator[](int index) { return _talkList[index]; }
 };
 
 } // End of namespace M4

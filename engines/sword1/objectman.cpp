@@ -18,12 +18,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 
+#include "common/textconsole.h"
 #include "common/util.h"
 
 #include "sword1/objectman.h"
@@ -37,7 +35,7 @@ ObjectMan::ObjectMan(ResMan *pResourceMan) {
 	_resMan = pResourceMan;
 }
 
-void ObjectMan::initialize(void) {
+void ObjectMan::initialize() {
 	uint16 cnt;
 	for (cnt = 0; cnt < TOTAL_SECTIONS; cnt++)
 		_liveList[cnt] = 0; // we don't need to close the files here. When this routine is
@@ -55,7 +53,7 @@ void ObjectMan::initialize(void) {
 	}
 }
 
-ObjectMan::~ObjectMan(void) {
+ObjectMan::~ObjectMan() {
 	for (uint16 cnt = 0; cnt < TOTAL_SECTIONS; cnt++)
 		if (_liveList[cnt])
 			_resMan->resClose(_objectList[cnt]);

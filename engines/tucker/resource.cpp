@@ -18,18 +18,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #include "common/file.h"
+#include "common/textconsole.h"
 
-#include "sound/audiostream.h"
-#include "sound/flac.h"
-#include "sound/mp3.h"
-#include "sound/vorbis.h"
-#include "sound/wave.h"
+#include "audio/audiostream.h"
+#include "audio/decoders/flac.h"
+#include "audio/decoders/mp3.h"
+#include "audio/decoders/vorbis.h"
+#include "audio/decoders/wave.h"
 
 #include "tucker/tucker.h"
 #include "tucker/graphics.h"
@@ -43,12 +41,12 @@ enum {
 
 struct CompressedSoundFile {
 	const char *filename;
-	Audio::AudioStream *(*makeStream)(Common::SeekableReadStream *stream, bool disposeAfterUse, uint32 startTime, uint32 duration, uint numLoops);
+	Audio::SeekableAudioStream *(*makeStream)(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeAfterUse);
 };
 
 static const CompressedSoundFile compressedSoundFilesTable[] = {
 #ifdef USE_FLAC
-	{ "TUCKER.SOF", Audio::makeFlacStream },
+	{ "TUCKER.SOF", Audio::makeFLACStream },
 #endif
 #ifdef USE_VORBIS
 	{ "TUCKER.SOG", Audio::makeVorbisStream },
@@ -162,39 +160,37 @@ public:
 };
 
 uint8 *TuckerEngine::loadFile(const char *fname, uint8 *p) {
-	char filename[80];
-	strcpy(filename, fname);
+	Common::String filename;
+	filename = fname;
 	if (_gameLang == Common::DE_DEU) {
-		if (strcmp(filename, "bgtext.c") == 0) {
-			strcpy(filename, "bgtextgr.c");
-		} else if (strcmp(filename, "charname.c") == 0) {
-			strcpy(filename, "charnmgr.c");
-		} else if (strcmp(filename, "data5.c") == 0) {
-			strcpy(filename, "data5gr.c");
-		} else if (strcmp(filename, "infobar.txt") == 0) {
-			strcpy(filename, "infobrgr.txt");
-		} else if (strcmp(filename, "charsize.dta") == 0) {
-			strcpy(filename, "charszgr.dta");
-		} else if (strncmp(filename, "objtxt", 6) == 0) {
-			const char num = filename[6];
-			snprintf(filename, sizeof(filename), "objtx%cgr.c", num);
-		} else if (strncmp(filename, "pt", 2) == 0) {
-			const char num = filename[2];
-			snprintf(filename, sizeof(filename), "pt%ctxtgr.c", num);
+		if (filename == "bgtext.c") {
+			filename = "bgtextgr.c";
+		} else if (filename == "charname.c") {
+			filename = "charnmgr.c";
+		} else if (filename == "data5.c") {
+			filename = "data5gr.c";
+		} else if (filename == "infobar.txt") {
+			filename = "infobrgr.txt";
+		} else if (filename == "charsize.dta") {
+			filename = "charszgr.dta";
+		} else if (filename.hasPrefix("objtxt")) {
+			filename = Common::String::format("objtx%cgr.c", filename[6]);
+		} else if (filename.hasPrefix("pt")) {
+			filename = Common::String::format("pt%ctxtgr.c", filename[2]);
 		}
 	}
 	_fileLoadSize = 0;
 	bool decode = false;
 	if (_gameFlags & kGameFlagEncodedData) {
-		char *ext = strrchr(filename, '.');
-		if (ext && strcmp(ext + 1, "c") == 0) {
-			strcpy(ext + 1, "enc");
+		if (filename.hasSuffix(".c")) {
+			filename.deleteLastChar();
+			filename += "enc";
 			decode = true;
 		}
 	}
 	Common::File f;
 	if (!f.open(filename)) {
-		warning("Unable to open '%s'", filename);
+		warning("Unable to open '%s'", filename.c_str());
 		return 0;
 	}
 	const int sz = f.size();
@@ -211,23 +207,70 @@ uint8 *TuckerEngine::loadFile(const char *fname, uint8 *p) {
 	return p;
 }
 
-void TuckerEngine::openCompressedSoundFile() {
+void CompressedSound::openFile() {
 	_compressedSoundType = -1;
 	for (int i = 0; compressedSoundFilesTable[i].filename; ++i) {
 		if (_fCompressedSound.open(compressedSoundFilesTable[i].filename)) {
 			int version = _fCompressedSound.readUint16LE();
 			if (version == kCurrentCompressedSoundDataVersion) {
 				_compressedSoundType = i;
+				_compressedSoundFlags = _fCompressedSound.readUint16LE();
 				debug(1, "Using compressed sound file '%s'", compressedSoundFilesTable[i].filename);
 				return;
 			}
 			warning("Unhandled version %d for compressed sound file '%s'", version, compressedSoundFilesTable[i].filename);
+			_fCompressedSound.close();
 		}
 	}
 }
 
-void TuckerEngine::closeCompressedSoundFile() {
+void CompressedSound::closeFile() {
 	_fCompressedSound.close();
+}
+
+Audio::RewindableAudioStream *CompressedSound::load(CompressedSoundType type, int num) {
+	if (_compressedSoundType < 0) {
+		return 0;
+	}
+	int offset = 0;
+	switch (type) {
+	case kSoundTypeFx:
+		offset = kCompressedSoundDataFileHeaderSize;
+		break;
+	case kSoundTypeMusic:
+		offset = kCompressedSoundDataFileHeaderSize + 8;
+		break;
+	case kSoundTypeSpeech:
+		offset = kCompressedSoundDataFileHeaderSize + 16;
+		break;
+	case kSoundTypeIntro:
+		if (_compressedSoundFlags & 1) {
+			offset = kCompressedSoundDataFileHeaderSize + 24;
+		}
+		break;
+	}
+	if (offset == 0) {
+		return 0;
+	}
+	Audio::SeekableAudioStream *stream = 0;
+	_fCompressedSound.seek(offset);
+	int dirOffset = _fCompressedSound.readUint32LE();
+	int dirSize = _fCompressedSound.readUint32LE();
+	if (num < dirSize) {
+		const int dirHeaderSize = (_compressedSoundFlags & 1) ? 4 * 8 : 3 * 8;
+		dirOffset += kCompressedSoundDataFileHeaderSize + dirHeaderSize;
+		_fCompressedSound.seek(dirOffset + num * 8);
+		int soundOffset = _fCompressedSound.readUint32LE();
+		int soundSize = _fCompressedSound.readUint32LE();
+		if (soundSize != 0) {
+			_fCompressedSound.seek(dirOffset + dirSize * 8 + soundOffset);
+			Common::SeekableReadStream *tmp = _fCompressedSound.readStream(soundSize);
+			if (tmp) {
+				stream = (compressedSoundFilesTable[_compressedSoundType].makeStream)(tmp, DisposeAfterUse::YES);
+			}
+		}
+	}
+	return stream;
 }
 
 void TuckerEngine::loadImage(const char *fname, uint8 *dst, int type) {
@@ -336,29 +379,31 @@ void TuckerEngine::loadPanel() {
 }
 
 void TuckerEngine::loadBudSpr(int startOffset) {
-	int endOffset = loadCTable01(0, startOffset);
+	int framesCount[20];
+	memset(framesCount, 0, sizeof(framesCount));
+	int endOffset = loadCTable01(0, startOffset, framesCount);
 	loadCTable02(0);
 	int frame = 0;
 	int spriteOffset = 0;
 	for (int i = startOffset; i < endOffset; ++i) {
-		if (_ctable01Table_sprite[frame] == i) {
-			char filename[40];
+		if (framesCount[frame] == i) {
+			Common::String filename;
 			switch (_flagsTable[137]) {
 			case 0:
 				if ((_gameFlags & kGameFlagDemo) != 0) {
-					sprintf(filename, "budl00_%d.pcx", frame + 1);
+					filename = Common::String::format("budl00_%d.pcx", frame + 1);
 				} else {
-					sprintf(filename, "bud_%d.pcx", frame + 1);
+					filename = Common::String::format("bud_%d.pcx", frame + 1);
 				}
 				break;
 			case 1:
-				sprintf(filename, "peg_%d.pcx", frame + 1);
+				filename = Common::String::format("peg_%d.pcx", frame + 1);
 				break;
 			default:
-				sprintf(filename, "mac_%d.pcx", frame + 1);
+				filename = Common::String::format("mac_%d.pcx", frame + 1);
 				break;
 			}
-			loadImage(filename, _loadTempBuf, 0);
+			loadImage(filename.c_str(), _loadTempBuf, 0);
 			++frame;
 		}
 		int sz = Graphics::encodeRLE(_loadTempBuf + _spriteFramesTable[i].sourceOffset, _spritesGfxBuf + spriteOffset, _spriteFramesTable[i].xSize, _spriteFramesTable[i].ySize);
@@ -367,7 +412,7 @@ void TuckerEngine::loadBudSpr(int startOffset) {
 	}
 }
 
-int TuckerEngine::loadCTable01(int index, int firstSpriteNum) {
+int TuckerEngine::loadCTable01(int index, int firstSpriteNum, int *framesCount) {
 	loadFile("ctable01.c", _loadTempBuf);
 	DataTokenizer t(_loadTempBuf,  _fileLoadSize);
 	int lastSpriteNum = firstSpriteNum;
@@ -378,7 +423,7 @@ int TuckerEngine::loadCTable01(int index, int firstSpriteNum) {
 			if (x < 0) {
 				break;
 			} else if (x == 999) {
-				_ctable01Table_sprite[count] = lastSpriteNum;
+				framesCount[count] = lastSpriteNum;
 				++count;
 				continue;
 			}
@@ -397,7 +442,7 @@ int TuckerEngine::loadCTable01(int index, int firstSpriteNum) {
 			}
 		}
 	}
-	_ctable01Table_sprite[count] = -1;
+	framesCount[count] = -1;
 	return lastSpriteNum;
 }
 
@@ -432,30 +477,30 @@ void TuckerEngine::loadCTable02(int fl) {
 }
 
 void TuckerEngine::loadLoc() {
-	char filename[40];
+	Common::String filename;
 
 	int i = _locationWidthTable[_locationNum];
 	_locationHeight = (_locationNum < 73) ? 140 : 200;
-	sprintf(filename, (i == 1) ? "loc%02d.pcx" : "loc%02da.pcx", _locationNum);
-	copyLocBitmap(filename, 0, false);
+	filename = Common::String::format((i == 1) ? "loc%02d.pcx" : "loc%02da.pcx", _locationNum);
+	copyLocBitmap(filename.c_str(), 0, false);
 	Graphics::copyRect(_quadBackgroundGfxBuf, 320, _locationBackgroundGfxBuf, 640, 320, _locationHeight);
 	if (_locationHeight == 200) {
 		return;
 	}
-	sprintf(filename, (i != 2) ? "path%02d.pcx" : "path%02da.pcx", _locationNum);
-	copyLocBitmap(filename, 0, true);
+	filename = Common::String::format((i != 2) ? "path%02d.pcx" : "path%02da.pcx", _locationNum);
+	copyLocBitmap(filename.c_str(), 0, true);
 	if (i > 1) {
-		sprintf(filename, "loc%02db.pcx", _locationNum);
-		copyLocBitmap(filename, 320, false);
+		filename = Common::String::format("loc%02db.pcx", _locationNum);
+		copyLocBitmap(filename.c_str(), 320, false);
 		Graphics::copyRect(_quadBackgroundGfxBuf + 44800, 320, _locationBackgroundGfxBuf + 320, 640, 320, _locationHeight);
 		if (i == 2) {
-			sprintf(filename, "path%02db.pcx", _locationNum);
-			copyLocBitmap(filename, 320, true);
+			filename = Common::String::format("path%02db.pcx", _locationNum);
+			copyLocBitmap(filename.c_str(), 320, true);
 		}
 	}
 	if (i > 2) {
-		sprintf(filename, "loc%02dc.pcx", _locationNum);
-		copyLocBitmap(filename, 0, false);
+		filename = Common::String::format("loc%02dc.pcx", _locationNum);
+		copyLocBitmap(filename.c_str(), 0, false);
 		Graphics::copyRect(_quadBackgroundGfxBuf + 89600, 320, _locationBackgroundGfxBuf, 640, 320, 140);
 	}
 	if (_locationNum == 1) {
@@ -463,8 +508,8 @@ void TuckerEngine::loadLoc() {
 		loadImage("rochpath.pcx", _loadLocBufPtr, 0);
 	}
 	if (i > 3) {
-		sprintf(filename, "loc%02dd.pcx", _locationNum);
-		copyLocBitmap(filename, 0, false);
+		filename = Common::String::format("loc%02dd.pcx", _locationNum);
+		copyLocBitmap(filename.c_str(), 0, false);
 		Graphics::copyRect(_quadBackgroundGfxBuf + 134400, 320, _locationBackgroundGfxBuf + 320, 640, 320, 140);
 	}
 	_fullRedraw = true;
@@ -493,13 +538,14 @@ void TuckerEngine::loadObj() {
 	}
 	_currentPartNum = _partNum;
 
-	char filename[40];
-	sprintf(filename, "objtxt%d.c", _partNum);
+	Common::String filename;
+	filename = Common::String::format("objtxt%d.c", _partNum);
 	free(_objTxtBuf);
-	_objTxtBuf = loadFile(filename, 0);
-	sprintf(filename, "pt%dtext.c", _partNum);
+	_objTxtBuf = loadFile(filename.c_str(), 0);
+	filename = Common::String::format("pt%dtext.c", _partNum);
 	free(_ptTextBuf);
-	_ptTextBuf = loadFile(filename, 0);
+	_ptTextBuf = loadFile(filename.c_str(), 0);
+	_characterSpeechDataPtr = _ptTextBuf;
 	loadData();
 	loadPanObj();
 }
@@ -536,9 +582,8 @@ void TuckerEngine::loadData() {
 	_dataCount = maxCount;
 	int offset = 0;
 	for (int i = 0; i < count; ++i) {
-		char filename[40];
-		sprintf(filename, "scrobj%d%d.pcx", _partNum, i);
-		loadImage(filename, _loadTempBuf, 0);
+		Common::String filename = Common::String::format("scrobj%d%d.pcx", _partNum, i);
+		loadImage(filename.c_str(), _loadTempBuf, 0);
 		offset = loadDataHelper(offset, i);
 	}
 }
@@ -555,9 +600,8 @@ int TuckerEngine::loadDataHelper(int offset, int index) {
 }
 
 void TuckerEngine::loadPanObj() {
-	char filename[40];
-	sprintf(filename, "panobjs%d.pcx", _partNum);
-	loadImage(filename, _loadTempBuf, 0);
+	Common::String filename = Common::String::format("panobjs%d.pcx", _partNum);
+	loadImage(filename.c_str(), _loadTempBuf, 0);
 	int offset = 0;
 	for (int y = 0; y < 5; ++y) {
 		for (int x = 0; x < 10; ++x) {
@@ -764,9 +808,8 @@ void TuckerEngine::loadSprA02_01() {
 	unloadSprA02_01();
 	const int count = _sprA02LookupTable[_locationNum];
 	for (int i = 1; i < count + 1; ++i) {
-		char filename[40];
-		sprintf(filename, "sprites/a%02d_%02d.spr", _locationNum, i);
-		_sprA02Table[i] = loadFile(filename, 0);
+		Common::String filename = Common::String::format("sprites/a%02d_%02d.spr", _locationNum, i);
+		_sprA02Table[i] = loadFile(filename.c_str(), 0);
 	}
 	_sprA02Table[0] = _sprA02Table[1];
 }
@@ -783,9 +826,8 @@ void TuckerEngine::loadSprC02_01() {
 	unloadSprC02_01();
 	const int count = _sprC02LookupTable[_locationNum];
 	for (int i = 1; i < count + 1; ++i) {
-		char filename[40];
-		sprintf(filename, "sprites/c%02d_%02d.spr", _locationNum, i);
-		_sprC02Table[i] = loadFile(filename, 0);
+		Common::String filename = Common::String::format("sprites/c%02d_%02d.spr", _locationNum, i);
+		_sprC02Table[i] = loadFile(filename.c_str(), 0);
 	}
 	_sprC02Table[0] = _sprC02Table[1];
 	_spritesCount = _sprC02LookupTable2[_locationNum];
@@ -865,8 +907,21 @@ void TuckerEngine::loadFx() {
 }
 
 void TuckerEngine::loadSound(Audio::Mixer::SoundType type, int num, int volume, bool loop, Audio::SoundHandle *handle) {
-	Audio::AudioStream *stream = 0;
-	if (_compressedSoundType < 0) {
+	Audio::RewindableAudioStream *stream = 0;
+	switch (type) {
+	case Audio::Mixer::kSFXSoundType:
+		stream = _compressedSound.load(kSoundTypeFx, num);
+		break;
+	case Audio::Mixer::kMusicSoundType:
+		stream = _compressedSound.load(kSoundTypeMusic, num);
+		break;
+	case Audio::Mixer::kSpeechSoundType:
+		stream = _compressedSound.load(kSoundTypeSpeech, num);
+		break;
+	default:
+		return;
+	}
+	if (!stream) {
 		const char *fmt = 0;
 		switch (type) {
 		case Audio::Mixer::kSFXSoundType:
@@ -881,59 +936,19 @@ void TuckerEngine::loadSound(Audio::Mixer::SoundType type, int num, int volume, 
 		default:
 			return;
 		}
-		char fileName[64];
-		snprintf(fileName, sizeof(fileName), fmt, num);
-		Common::File f;
-		if (f.open(fileName)) {
-			int size, rate;
-			uint8 flags = 0;
-			if (Audio::loadWAVFromStream(f, size, rate, flags)) {
-				uint8 *data = (uint8 *)malloc(size);
-				if (data) {
-					f.read(data, size);
-					flags |= Audio::Mixer::FLAG_AUTOFREE;
-					if (loop) {
-						flags |= Audio::Mixer::FLAG_LOOP;
-					}
-					stream = Audio::makeLinearInputStream(data, size, rate, flags, 0, 0);
-				}
-			}
-		}
-	} else {
-		int offset = 0;
-		switch (type) {
-		case Audio::Mixer::kSFXSoundType:
-			offset = kCompressedSoundDataFileHeaderSize;
-			break;
-		case Audio::Mixer::kMusicSoundType:
-			offset = kCompressedSoundDataFileHeaderSize + 8;
-			break;
-		case Audio::Mixer::kSpeechSoundType:
-			offset = kCompressedSoundDataFileHeaderSize + 16;
-			break;
-		default:
-			return;
-		}
-		_fCompressedSound.seek(offset);
-		int dirOffset = _fCompressedSound.readUint32LE();
-		int dirSize = _fCompressedSound.readUint32LE();
-		if (num < dirSize) {
-			dirOffset += kCompressedSoundDataFileHeaderSize + 3 * 8;
-			_fCompressedSound.seek(dirOffset + num * 8);
-			int soundOffset = _fCompressedSound.readUint32LE();
-			int soundSize = _fCompressedSound.readUint32LE();
-			if (soundSize != 0) {
-				_fCompressedSound.seek(dirOffset + dirSize * 8 + soundOffset);
-				Common::MemoryReadStream *tmp = _fCompressedSound.readStream(soundSize);
-				if (tmp) {
-					stream = (compressedSoundFilesTable[_compressedSoundType].makeStream)(tmp, true, 0, 0, loop ? 0 : 1);
-				}
-			}
+		Common::String fileName = Common::String::format(fmt, num);
+		Common::File *f = new Common::File;
+		if (f->open(fileName)) {
+			stream = Audio::makeWAVStream(f, DisposeAfterUse::YES);
+		} else {
+			delete f;
 		}
 	}
+
 	if (stream) {
 		_mixer->stopHandle(*handle);
-		_mixer->playInputStream(type, handle, stream, -1, scaleMixerVolume(volume, kMaxSoundVolume));
+		_mixer->playStream(type, handle, Audio::makeLoopingAudioStream(stream, loop ? 0 : 1),
+		                        -1, scaleMixerVolume(volume, kMaxSoundVolume));
 	}
 }
 
@@ -1014,7 +1029,7 @@ void TuckerEngine::loadActionsTable() {
 		_panelState = 0;
 		setCursorType(0);
 		_csDataHandled = false;
-		_skipPanelObjectUnderCursor = 0;
+		_actionVerbLocked = 0;
 		_mouseClick = 1;
 	}
 }

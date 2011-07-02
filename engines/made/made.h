@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef MADE_H
@@ -28,25 +25,37 @@
 
 #include "common/scummsys.h"
 #include "common/endian.h"
-#include "common/util.h"
+#include "common/events.h"
 #include "common/file.h"
+#include "common/hash-str.h"
+#include "common/keyboard.h"
+#include "common/random.h"
 #include "common/savefile.h"
 #include "common/system.h"
-#include "common/hash-str.h"
-#include "common/events.h"
-#include "common/keyboard.h"
+#include "common/util.h"
 
 #include "graphics/surface.h"
 
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
-#include "sound/voc.h"
-#include "sound/audiocd.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
+#include "audio/decoders/voc.h"
 
 #include "engines/engine.h"
 
 #include "made/sound.h"
+#include "made/console.h"
 
+/**
+ * This is the namespace of the Made engine.
+ *
+ * Status of this engine: ???
+ *
+ * Games using this engine:
+ * - Return to Zork
+ * - Leather Goddesses of Phobos 2
+ * - The Manhole
+ * - Rodney's Funscreen
+ */
 namespace Made {
 
 enum MadeGameID {
@@ -89,6 +98,8 @@ public:
 	virtual bool hasFeature(EngineFeature f) const;
 	virtual void syncSoundSettings();
 
+	GUI::Debugger *getDebugger() { return _console; }
+
 	int getGameId() {
 		return _gameId;
 	}
@@ -101,6 +112,7 @@ public:
 	Common::Platform getPlatform() const;
 
 private:
+	MadeConsole *_console;
 public:
 	PmvPlayer *_pmvPlayer;
 	ResourceReader *_res;

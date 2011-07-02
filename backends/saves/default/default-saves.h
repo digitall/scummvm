@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #if !defined(BACKEND_SAVES_DEFAULT_H) && !defined(DISABLE_DEFAULT_SAVEFILEMANAGER)
@@ -39,7 +36,7 @@ public:
 	DefaultSaveFileManager();
 	DefaultSaveFileManager(const Common::String &defaultSavepath);
 
-	virtual Common::StringList listSavefiles(const Common::String &pattern);
+	virtual Common::StringArray listSavefiles(const Common::String &pattern);
 	virtual Common::InSaveFile *openForLoading(const Common::String &filename);
 	virtual Common::OutSaveFile *openForSaving(const Common::String &filename);
 	virtual bool removeSavefile(const Common::String &filename);

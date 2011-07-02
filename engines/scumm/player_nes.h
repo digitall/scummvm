@@ -18,9 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
 #ifndef SCUMM_PLAYER_NES_H
@@ -28,14 +25,14 @@
 
 #include "common/scummsys.h"
 #include "scumm/music.h"
-#include "sound/audiostream.h"
-#include "sound/mixer.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 
 namespace Scumm {
 
 class ScummEngine;
 namespace APUe {
-	class APU;
+class APU;
 }
 
 static const int MAXVOLUME = 0x7F;
@@ -60,7 +57,7 @@ public:
 	int readBuffer(int16 *buffer, const int numSamples);
 	bool isStereo() const { return false; }
 	bool endOfData() const { return false; }
-	int getRate() const { return _sample_rate; }
+	int getRate() const { return _sampleRate; }
 
 private:
 
@@ -75,13 +72,11 @@ private:
 	void APU_writeControl(byte value);
 	byte APU_readStatus();
 
-	void do_mix(int16 *buf, uint len);
-
 	ScummEngine *_vm;
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _soundHandle;
 	APUe::APU *_apu;
-	int _sample_rate;
+	int _sampleRate;
 	int _samples_per_frame;
 	int _current_sample;
 	int _maxvol;

@@ -18,13 +18,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
 
-#include "cine/cine.h"
 #include "common/file.h"
+#include "common/textconsole.h"
+
+#include "cine/cine.h"
 #include "cine/various.h"
 
 namespace Cine {
@@ -37,7 +36,8 @@ const char **otherMessages;
 const char *defaultCommandPreposition;
 const char **commandPrepositionTable;
 
-/*! \brief Loads font data from the given file.
+/**
+ * Loads font data from the given file.
  * The number of characters used in the font varies between game versions:
  * 78 (Most PC, Amiga and Atari ST versions of Future Wars, but also Operation Stealth's Amiga demo),
  * 85 (All observed versions of German Future Wars (Amiga and PC), possibly Spanish Future Wars too),
@@ -604,6 +604,8 @@ void loadErrmessDat(const char *fname) {
 	in.open(fname);
 
 	if (in.isOpen()) {
+		// FIXME - This can leak in some situations in Operation Stealth
+		//         Engine Restart - multiple allocations with no free?
 		char **ptr = (char **)malloc(sizeof(char *) * 6 * 4 + 60 * 6 * 4);
 
 		for (int i = 0; i < 6 * 4; i++) {
@@ -639,12 +641,13 @@ void loadPoldatDat(const char *fname) {
 	}
 }
 
-/*! \brief Fit a substring of text into one line of fixed width text box
- * \param str Text to fit
- * \param maxWidth Text box width
- * \param[out] words Number of words that fit
- * \param[out] width Total width of nonblank characters that fit
- * \return Length of substring which fits
+/**
+ * Fit a substring of text into one line of fixed width text box
+ * @param str Text to fit
+ * @param maxWidth Text box width
+ * @param[out] words Number of words that fit
+ * @param[out] width Total width of nonblank characters that fit
+ * @return Length of substring which fits
  */
 int fitLine(const char *str, int maxWidth, int &words, int &width) {
 	int i, bkpWords = 0, bkpWidth = 0, bkpLen = 0;

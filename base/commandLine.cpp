@@ -18,10 +18,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * $URL$
- * $Id$
- *
  */
+
+// FIXME: Avoid using printf
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf
+
+#define FORBIDDEN_SYMBOL_EXCEPTION_exit
+
+#include <limits.h>
 
 #include "engines/metaengine.h"
 #include "base/commandLine.h"
@@ -30,9 +34,8 @@
 
 #include "common/config-manager.h"
 #include "common/system.h"
+#include "common/textconsole.h"
 #include "common/fs.h"
-
-#include "sound/mididrv.h"
 
 #include "gui/ThemeEngine.h"
 
@@ -51,7 +54,7 @@ static const char USAGE_STRING[] =
 ;
 
 // DONT FIXME: DO NOT ORDER ALPHABETICALLY, THIS IS ORDERED BY IMPORTANCE/CATEGORY! :)
-#if defined(PALMOS_MODE) || defined(__SYMBIAN32__) || defined(__GP32__)
+#if defined(__SYMBIAN32__) || defined(__GP32__) || defined(ANDROID) || defined(__DS__)
 static const char HELP_STRING[] = "NoUsageString"; // save more data segment space
 #else
 static const char HELP_STRING[] =
@@ -61,7 +64,10 @@ static const char HELP_STRING[] =
 	"  -h, --help               Display a brief help text and exit\n"
 	"  -z, --list-games         Display list of supported games and exit\n"
 	"  -t, --list-targets       Display list of configured targets and exit\n"
-	"  --list-saves=TARGET	    Display a list of savegames for the game (TARGET) specified\n"
+	"  --list-saves=TARGET      Display a list of savegames for the game (TARGET) specified\n"
+#if defined (WIN32) && !defined(_WIN32_WCE) && !defined(__SYMBIAN32__)
+	"  --console                Enable the console window (default:enabled)\n"
+#endif
 	"\n"
 	"  -c, --config=CONFIG      Use alternate configuration file\n"
 	"  -p, --path=PATH          Path to where the game is installed\n"
@@ -122,6 +128,10 @@ static const char HELP_STRING[] =
 #ifdef ENABLE_SCUMM
 	"  --tempo=NUM              Set music tempo (in percent, 50-200) for SCUMM games\n"
 	"                           (default: 100)\n"
+#ifdef ENABLE_SCUMM_7_8
+	"  --dimuse-tempo=NUM       Set internal Digital iMuse tempo (10 - 100) per second\n"
+	"                           (default: 10)\n"
+#endif
 #endif
 	"\n"
 	"The meaning of boolean long options can be inverted by prefixing them with\n"
@@ -141,7 +151,7 @@ static void usage(const char *s, ...) {
 	vsnprintf(buf, STRINGBUFLEN, s, va);
 	va_end(va);
 
-#if !(defined(__GP32__) || defined (__SYMBIAN32__))
+#if !(defined(__GP32__) || defined (__SYMBIAN32__) || defined(__DS__))
 	printf(USAGE_STRING, s_appName, buf, s_appName, s_appName);
 #endif
 	exit(1);
@@ -155,8 +165,10 @@ void registerDefaults() {
 	// Graphics
 	ConfMan.registerDefault("fullscreen", false);
 	ConfMan.registerDefault("aspect_ratio", false);
+	ConfMan.registerDefault("disable_dithering", false);
 	ConfMan.registerDefault("gfx_mode", "normal");
 	ConfMan.registerDefault("render_mode", "default");
+	ConfMan.registerDefault("desired_screen_aspect_ratio", "auto");
 
 	// Sound & Music
 	ConfMan.registerDefault("music_volume", 192);
@@ -166,6 +178,7 @@ void registerDefaults() {
 	ConfMan.registerDefault("music_mute", false);
 	ConfMan.registerDefault("sfx_mute", false);
 	ConfMan.registerDefault("speech_mute", false);
+	ConfMan.registerDefault("mute", false);
 
 	ConfMan.registerDefault("multi_midi", false);
 	ConfMan.registerDefault("native_mt32", false);
@@ -173,7 +186,12 @@ void registerDefaults() {
 	ConfMan.registerDefault("midi_gain", 100);
 //	ConfMan.registerDefault("music_driver", ???);
 
+	ConfMan.registerDefault("mt32_device", "null");
+	ConfMan.registerDefault("gm_device", "null");
+
 	ConfMan.registerDefault("cdrom", 0);
+
+	ConfMan.registerDefault("enable_unsupported_game_warning", true);
 
 	// Game specific
 	ConfMan.registerDefault("path", "");
@@ -197,6 +215,9 @@ void registerDefaults() {
 #endif
 #ifdef ENABLE_SCUMM
 	ConfMan.registerDefault("tempo", 0);
+#ifdef ENABLE_SCUMM_7_8
+	ConfMan.registerDefault("dimuse_tempo", 10);
+#endif
 #endif
 
 #if defined(ENABLE_SKY) || defined(ENABLE_QUEEN)
@@ -212,6 +233,7 @@ void registerDefaults() {
 	ConfMan.registerDefault("record_file_name", "record.bin");
 	ConfMan.registerDefault("record_temp_file_name", "record.tmp");
 	ConfMan.registerDefault("record_time_file_name", "record.time");
+
 }
 
 //
@@ -240,17 +262,19 @@ void registerDefaults() {
 	if (!option) usage("Option '%s' requires an argument", argv[isLongCmd ? i : i-1]);
 
 // Use this for options which have a required integer value
+// (we don't check ERANGE because WinCE doesn't support errno, so we're stuck just rejecting LONG_MAX/LONG_MIN..)
 #define DO_OPTION_INT(shortCmd, longCmd) \
 	DO_OPTION(shortCmd, longCmd) \
-	char *endptr = 0; \
-	int intValue; intValue = (int)strtol(option, &endptr, 0); \
-	if (endptr == NULL || *endptr != 0) usage("--%s: Invalid number '%s'", longCmd, option);
+	char *endptr; \
+	long int retval = strtol(option, &endptr, 0); \
+	if (*endptr != '\0' || retval == LONG_MAX || retval == LONG_MIN) \
+		usage("--%s: Invalid number '%s'", longCmd, option);
 
 // Use this for boolean options; this distinguishes between "-x" and "-X",
 // resp. between "--some-option" and "--no-some-option".
 #define DO_OPTION_BOOL(shortCmd, longCmd) \
 	if (isLongCmd ? (!strcmp(s+2, longCmd) || !strcmp(s+2, "no-"longCmd)) : (tolower(s[1]) == shortCmd)) { \
-		bool boolValue = (islower(s[1]) != 0); \
+		bool boolValue = (islower(static_cast<unsigned char>(s[1])) != 0); \
 		s += 2; \
 		if (isLongCmd) { \
 			boolValue = !strcmp(s, longCmd); \
@@ -355,8 +379,6 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			END_OPTION
 
 			DO_OPTION('e', "music-driver")
-				if (MidiDriver::findMusicDriver(option) == 0)
-					usage("Unrecognized music driver '%s'", option);
 			END_OPTION
 
 			DO_LONG_OPTION_INT("output-rate")
@@ -369,19 +391,6 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			END_OPTION
 
 			DO_OPTION('g', "gfx-mode")
-				// Check whether 'option' specifies a valid graphics mode.
-				bool isValid = false;
-				if (!scumm_stricmp(option, "normal") || !scumm_stricmp(option, "default"))
-					isValid = true;
-				if (!isValid) {
-					const OSystem::GraphicsMode *gm = g_system->getSupportedGraphicsModes();
-					while (gm->name && !isValid) {
-						isValid = !scumm_stricmp(gm->name, option);
-						gm++;
-					}
-				}
-				if (!isValid)
-					usage("Unrecognized graphics mode '%s'", option);
 			END_OPTION
 
 			DO_OPTION_INT('m', "music-volume")
@@ -508,6 +517,10 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 #ifdef ENABLE_SCUMM
 			DO_LONG_OPTION_INT("tempo")
 			END_OPTION
+#ifdef ENABLE_SCUMM_7_8
+			DO_LONG_OPTION_INT("dimuse-tempo")
+			END_OPTION
+#endif
 #endif
 #if defined(ENABLE_SCUMM) || defined(ENABLE_GROOVIE)
 			DO_LONG_OPTION_BOOL("demo-mode")
@@ -534,6 +547,12 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 #ifdef IPHONE
 			// This is automatically set when launched from the Springboard.
 			DO_LONG_OPTION_OPT("launchedFromSB", 0)
+			END_OPTION
+#endif
+
+#if defined (WIN32) && !defined(_WIN32_WCE) && !defined(__SYMBIAN32__)
+			// Optional console window on Windows (default: enabled)
+			DO_LONG_OPTION_BOOL("console")
 			END_OPTION
 #endif
 
@@ -569,9 +588,13 @@ static void listTargets() {
 	using namespace Common;
 	const ConfigManager::DomainMap &domains = ConfMan.getGameDomains();
 	ConfigManager::DomainMap::const_iterator iter;
+
+	Common::Array<Common::String> targets;
+	targets.reserve(domains.size());
+
 	for (iter = domains.begin(); iter != domains.end(); ++iter) {
 		Common::String name(iter->_key);
-		Common::String description(iter->_value.get("description"));
+		Common::String description(iter->_value.getVal("description"));
 
 		if (description.empty()) {
 			// FIXME: At this point, we should check for a "gameid" override
@@ -583,13 +606,19 @@ static void listTargets() {
 				description = g.description();
 		}
 
-		printf("%-20s %s\n", name.c_str(), description.c_str());
-
+		targets.push_back(Common::String::format("%-20s %s", name.c_str(), description.c_str()));
 	}
+
+	Common::sort(targets.begin(), targets.end());
+
+	for (Common::Array<Common::String>::const_iterator i = targets.begin(), end = targets.end(); i != end; ++i)
+		printf("%s\n", i->c_str());
 }
 
 /** List all saves states for the given target. */
-static void listSaves(const char *target) {
+static Common::Error listSaves(const char *target) {
+	Common::Error result = Common::kNoError;
+
 	// FIXME HACK
 	g_system->initBackend();
 
@@ -604,7 +633,7 @@ static void listSaves(const char *target) {
 	// Grab the gameid from the domain resp. use the target as gameid
 	Common::String gameid;
 	if (domain)
-		gameid = domain->get("gameid");
+		gameid = domain->getVal("gameid");
 	if (gameid.empty())
 		gameid = target;
 	gameid.toLowercase();	// Normalize it to lower case
@@ -614,25 +643,37 @@ static void listSaves(const char *target) {
 	GameDescriptor game = EngineMan.findGame(gameid, &plugin);
 
 	if (!plugin) {
-		error("Could not find any plugin to handle gameid '%s' (target '%s')", gameid.c_str(), target);
-		return;
+		return Common::Error(Common::kEnginePluginNotFound,
+						Common::String::format("target '%s', gameid '%s", target, gameid.c_str()));
 	}
 
-	// Query the plugin for a list of savegames
-	SaveStateList saveList = (*plugin)->listSaves(target);
+	if (!(*plugin)->hasFeature(MetaEngine::kSupportsListSaves)) {
+		// TODO: Include more info about the target (desc, engine name, ...) ???
+		return Common::Error(Common::kEnginePluginNotSupportSaves,
+						Common::String::format("target '%s', gameid '%s", target, gameid.c_str()));
+	} else {
+		// Query the plugin for a list of savegames
+		SaveStateList saveList = (*plugin)->listSaves(target);
 
-	// TODO: Include more info about the target (desc, engine name, ...) ???
-	printf("Saves for target '%s':\n", target);
-	printf("  Slot Description                                           \n"
-	       "  ---- ------------------------------------------------------\n");
+		if (saveList.size() > 0) {
+			// TODO: Include more info about the target (desc, engine name, ...) ???
+			printf("Save states for target '%s' (gameid '%s'):\n", target, gameid.c_str());
+			printf("  Slot Description                                           \n"
+				   "  ---- ------------------------------------------------------\n");
 
-	for (SaveStateList::const_iterator x = saveList.begin(); x != saveList.end(); ++x) {
-		printf("  %-4s %s\n", x->save_slot().c_str(), x->description().c_str());
-		// TODO: Could also iterate over the full hashmap, printing all key-value pairs
+			for (SaveStateList::const_iterator x = saveList.begin(); x != saveList.end(); ++x) {
+				printf("  %-4s %s\n", x->save_slot().c_str(), x->description().c_str());
+				// TODO: Could also iterate over the full hashmap, printing all key-value pairs
+			}
+		} else {
+			printf("There are no save states for target '%s' (gameid '%s'):\n", target, gameid.c_str());
+		}
 	}
 
 	// Revert to the old active domain
 	ConfMan.setActiveDomain(oldDomain);
+
+	return result;
 }
 
 /** Lists all usable themes */
@@ -661,8 +702,8 @@ static void runDetectorTest() {
 	int success = 0, failure = 0;
 	for (iter = domains.begin(); iter != domains.end(); ++iter) {
 		Common::String name(iter->_key);
-		Common::String gameid(iter->_value.get("gameid"));
-		Common::String path(iter->_value.get("path"));
+		Common::String gameid(iter->_value.getVal("gameid"));
+		Common::String path(iter->_value.getVal("path"));
 		printf("Looking at target '%s', gameid '%s', path '%s' ...\n",
 				name.c_str(), gameid.c_str(), path.c_str());
 		if (path.empty()) {
@@ -735,8 +776,8 @@ void upgradeTargets() {
 	for (iter = domains.begin(); iter != domains.end(); ++iter) {
 		Common::ConfigManager::Domain &dom = iter->_value;
 		Common::String name(iter->_key);
-		Common::String gameid(dom.get("gameid"));
-		Common::String path(dom.get("path"));
+		Common::String gameid(dom.getVal("gameid"));
+		Common::String path(dom.getVal("path"));
 		printf("Looking at target '%s', gameid '%s' ...\n",
 				name.c_str(), gameid.c_str());
 		if (path.empty()) {
@@ -755,9 +796,9 @@ void upgradeTargets() {
 			continue;
 		}
 
-		Common::Language lang = Common::parseLanguage(dom.get("language"));
-		Common::Platform plat = Common::parsePlatform(dom.get("platform"));
-		Common::String desc(dom.get("description"));
+		Common::Language lang = Common::parseLanguage(dom.getVal("language"));
+		Common::Platform plat = Common::parsePlatform(dom.getVal("platform"));
+		Common::String desc(dom.getVal("description"));
 
 		GameList candidates(EngineMan.detectGames(files));
 		GameDescriptor *g = 0;
@@ -845,7 +886,8 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 #endif // DISABLE_COMMAND_LINE
 
 
-bool processSettings(Common::String &command, Common::StringMap &settings) {
+bool processSettings(Common::String &command, Common::StringMap &settings, Common::Error &err) {
+	err = Common::kNoError;
 
 #ifndef DISABLE_COMMAND_LINE
 
@@ -854,34 +896,34 @@ bool processSettings(Common::String &command, Common::StringMap &settings) {
 	// have been loaded.
 	if (command == "list-targets") {
 		listTargets();
-		return false;
+		return true;
 	} else if (command == "list-games") {
 		listGames();
-		return false;
+		return true;
 	} else if (command == "list-saves") {
-		listSaves(settings["list-saves"].c_str());
-		return false;
+		err = listSaves(settings["list-saves"].c_str());
+		return true;
 	} else if (command == "list-themes") {
 		listThemes();
-		return false;
+		return true;
 	} else if (command == "version") {
 		printf("%s\n", gScummVMFullVersion);
 		printf("Features compiled in: %s\n", gScummVMFeatures);
-		return false;
+		return true;
 	} else if (command == "help") {
 		printf(HELP_STRING, s_appName);
-		return false;
+		return true;
 	}
 #ifdef DETECTOR_TESTING_HACK
 	else if (command == "test-detector") {
 		runDetectorTest();
-		return false;
+		return true;
 	}
 #endif
 #ifdef UPGRADE_ALL_TARGETS_HACK
 	else if (command == "upgrade-targets") {
 		upgradeTargets();
-		return false;
+		return true;
 	}
 #endif
 
@@ -919,26 +961,6 @@ bool processSettings(Common::String &command, Common::StringMap &settings) {
 	}
 
 
-	// The user can override the savepath with the SCUMMVM_SAVEPATH
-	// environment variable. This is weaker than a --savepath on the
-	// command line, but overrides the default savepath, hence it is
-	// handled here, just before the command line gets parsed.
-#if !defined(MACOS_CARBON) && !defined(_WIN32_WCE) && !defined(PALMOS_MODE) && !defined(__GP32__)
-	if (!settings.contains("savepath")) {
-		const char *dir = getenv("SCUMMVM_SAVEPATH");
-		if (dir && *dir && strlen(dir) < MAXPATHLEN) {
-			Common::FSNode saveDir(dir);
-			if (!saveDir.exists()) {
-				warning("Non-existent SCUMMVM_SAVEPATH save path. It will be ignored.");
-			} else if (!saveDir.isWritable()) {
-				warning("Non-writable SCUMMVM_SAVEPATH save path. It will be ignored.");
-			} else {
-				settings["savepath"] = dir;
-			}
-		}
-	}
-#endif
-
 	// Finally, store the command line settings into the config manager.
 	for (Common::StringMap::const_iterator x = settings.begin(); x != settings.end(); ++x) {
 		Common::String key(x->_key);
@@ -953,7 +975,7 @@ bool processSettings(Common::String &command, Common::StringMap &settings) {
 		ConfMan.set(key, value, Common::ConfigManager::kTransientDomain);
 	}
 
-	return true;
+	return false;
 }
 
 } // End of namespace Base
