@@ -58,6 +58,7 @@ public:
 	gfxEntryStruct *_gfxPtr;
 
         Cell();
+        ~Cell();
 };
 
 class CellListNode {
