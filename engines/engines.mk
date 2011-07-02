@@ -70,6 +70,11 @@ DEFINES += -DENABLE_HUGO=$(ENABLE_HUGO)
 MODULES += engines/hugo
 endif
 
+ifdef ENABLE_INNOCENT
+DEFINES += -DENABLE_INNOCENT=$(ENABLE_INNOCENT)
+MODULES += engines/innocent
+endif
+
 ifdef ENABLE_KYRA
 DEFINES += -DENABLE_KYRA=$(ENABLE_KYRA)
 MODULES += engines/kyra
@@ -201,9 +206,4 @@ endif
 ifdef ENABLE_TUCKER
 DEFINES += -DENABLE_TUCKER=$(ENABLE_TUCKER)
 MODULES += engines/tucker
-endif
-
-ifdef ENABLE_INNOCENT
-DEFINES += -DENABLE_INNOCENT=$(ENABLE_INNOCENT)
-MODULES += engines/innocent
 endif
