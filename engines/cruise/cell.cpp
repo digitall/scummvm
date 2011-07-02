@@ -55,6 +55,12 @@ Cell::Cell() {
 	_animChange = 0;
 }
 
+Cell::~Cell() {
+	if (_gfxPtr)
+		freeGfx(_gfxPtr);
+	_gfxPtr = NULL;
+}
+
 CellListNode::CellListNode() {
 	_next = NULL;
 	_prev = NULL;
@@ -217,8 +223,6 @@ void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType,
 			dx->_prev = si->_prev;
 
 			// Free the entry
-			if (si->_cell->_gfxPtr)
-				freeGfx(si->_cell->_gfxPtr);
 			delete si->_cell;
 			delete si;
 
