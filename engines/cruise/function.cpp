@@ -275,6 +275,7 @@ void freeObjectList(CellListNode *pListHead) {
 		if (pCurrent->_cell->_freeze == 0) {
 			if (pCurrent->_cell->_gfxPtr)
 				freeGfx(pCurrent->_cell->_gfxPtr);
+			delete pCurrent->_cell;
 			delete pCurrent;
 		}
 
