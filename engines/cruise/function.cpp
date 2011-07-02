@@ -273,9 +273,7 @@ void freeObjectList(CellListNode *pListHead) {
 		CellListNode *pNext = pCurrent->_next;
 
 		if (pCurrent->_cell->_freeze == 0) {
-			if (pCurrent->_cell->_gfxPtr)
-				freeGfx(pCurrent->_cell->_gfxPtr);
-			MemFree(pCurrent->_cell);
+			delete pCurrent->_cell;
 			MemFree(pCurrent);
 		}
 
