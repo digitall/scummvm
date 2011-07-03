@@ -46,7 +46,8 @@ public:
 	char _name[13];
 	uint16 _spriteId;
 
-	BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overlayIdx, int16 X, int16 Y, uint16 frame, 
+	BackgroundIncrust();
+	BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overlayIdx, int16 X, int16 Y, uint16 frame,
                         uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
                         uint16 spriteId, char *name);
 	void backup(int savedX, int savedY, int saveWidth, int saveHeight, uint8* pBackground);
