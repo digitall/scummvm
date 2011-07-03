@@ -442,7 +442,7 @@ static void syncIncrust(Common::Serializer &s) {
 
 	for (int i = 0; i < numEntries; ++i) {
 		BackgroundIncrustListNode *t = s.isSaving() ? pl :
-			(BackgroundIncrustListNode *)mallocAndZero(sizeof(BackgroundIncrustListNode));
+			new BackgroundIncrustListNode;
 		BackgroundIncrust *backgroundIncrust = t->backgroundIncrust;
 		s.syncAsUint32LE(dummyLong);
 

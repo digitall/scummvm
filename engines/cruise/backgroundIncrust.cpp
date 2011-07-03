@@ -26,12 +26,31 @@
 namespace Cruise {
 
 BackgroundIncrust::BackgroundIncrust() {
+	_objectIdx = 0;
+	_type = 0;
+	_X = 0;
+	_Y = 0;
+	_scale = 0;
+	_frame = 0;
+	_backgroundIdx = 0;
+	_overlayIdx = 0;
+	_scriptNumber = 0;
+	_scriptOverlayIdx = 0;
+
+	_spriteId = 0;
 	_ptr = NULL;
+
+	_overlayIdx = 0;
+	_saveWidth = 0;
+	_saveHeight = 0;
+	_saveSize = 0;
+	_savedX = 0;
+	_savedY = 0;
 }
 
 BackgroundIncrust::BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overlayIdx, int16 X, int16 Y, uint16 frame, 
-                                    uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
-                                    uint16 spriteId, char* name) {
+				    uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
+				    uint16 spriteId, char* name) {
         _objectIdx = objectIdx;
         _type = type;
         _X = X;
@@ -46,6 +65,13 @@ BackgroundIncrust::BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overla
         _spriteId = spriteId;
         _ptr = NULL;
         strcpy(_name, name);
+
+	_overlayIdx = 0;
+	_saveWidth = 0;
+	_saveHeight = 0;
+	_saveSize = 0;
+	_savedX = 0;
+	_savedY = 0;
 }
 
 BackgroundIncrustListNode::BackgroundIncrustListNode(){
