@@ -40,7 +40,6 @@ BackgroundIncrust::BackgroundIncrust() {
 	_spriteId = 0;
 	_ptr = NULL;
 
-	_overlayIdx = 0;
 	_saveWidth = 0;
 	_saveHeight = 0;
 	_saveSize = 0;
@@ -66,7 +65,6 @@ BackgroundIncrust::BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overla
         _ptr = NULL;
         strcpy(_name, name);
 
-	_overlayIdx = 0;
 	_saveWidth = 0;
 	_saveHeight = 0;
 	_saveSize = 0;
