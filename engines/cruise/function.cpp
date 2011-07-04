@@ -719,7 +719,7 @@ int16 Op_AddCell() {
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
 
-	addCell(&cellHead, overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, currentScriptPtr->type);
+	cellHead.addCell(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, currentScriptPtr->type);
 
 	return 0;
 }
@@ -864,7 +864,7 @@ int16 Op_AutoCell() {
 	if (!overlay)
 		overlay = currentScriptPtr->overlayNumber;
 
-	pObject = addCell(&cellHead, overlay, obj, 4, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, currentScriptPtr->type);
+	pObject = cellHead.addCell(overlay, obj, 4, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, currentScriptPtr->type);
 
 	if (!pObject)
 		return 0;
