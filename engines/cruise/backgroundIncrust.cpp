@@ -74,6 +74,11 @@ BackgroundIncrust::BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overla
 	_savedY = 0;
 }
 
+BackgroundIncrust::~BackgroundIncrust() {
+	if (_ptr)
+		MemFree(_ptr);
+}
+
 BackgroundIncrustListNode::BackgroundIncrustListNode() {
 	next = NULL;
 	prev = NULL;
@@ -277,8 +282,7 @@ void BackgroundIncrustListNode::freeBackgroundIncrustList() {
 		BackgroundIncrustListNode *pNext = pCurrent->next;
 		BackgroundIncrust *currentBackgroundIncrust = pCurrent->backgroundIncrust;
 
-		if (currentBackgroundIncrust->_ptr)
-			MemFree(currentBackgroundIncrust->_ptr);
+		delete pCurrent->backgroundIncrust;
 		MemFree(pCurrent);
 
 		pCurrent = pNext;
@@ -332,10 +336,7 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 			bx = cx;
 			bx->prev = pCurrent->next;
 
-			if (currentBacgroundIncrust->_ptr) {
-				MemFree(currentBacgroundIncrust->_ptr);
-			}
-
+			delete pCurrent->backgroundIncrust;
 			MemFree(pCurrent);
 
 			pCurrent = pNext;
