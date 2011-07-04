@@ -53,9 +53,9 @@ CellListNode::CellListNode(){
 
 }
 
-void resetPtr(CellListNode *ptr) {
-	ptr->_next = NULL;
-	ptr->_prev = NULL;
+void CellListNode::resetPtr() {
+	_next = NULL;
+	_prev = NULL;
 }
 
 void freeMessageList(CellListNode *objPtr) {

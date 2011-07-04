@@ -65,14 +65,15 @@ class CellListNode {
 public:
 	CellListNode *_next;
 	CellListNode *_prev;
-        Cell *_cell;
+	Cell *_cell;
 
-        CellListNode();
+	CellListNode();
+	void resetPtr();
 };
 
 
 
-void resetPtr(CellListNode * ptr);
+
 CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
 CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
 void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx);
