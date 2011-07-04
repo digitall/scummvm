@@ -164,12 +164,12 @@ CellListNode *CellListNode::addCell(int16 overlayIdx, int16 objIdx, int16 type, 
 }
 
 
-void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
+void CellListNode::createTextObject(int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
 
 	const char *ax;
 	CellListNode *pNewElement;
 
-	pNewElement = pObject->addCell(overlayIdx, messageIdx, OBJ_TYPE_MESSAGE, backgroundPlane, parentOvl, parentIdx);
+	pNewElement = addCell(overlayIdx, messageIdx, OBJ_TYPE_MESSAGE, backgroundPlane, parentOvl, parentIdx);
 	pNewElement->_cell->_X = x;
 	pNewElement->_cell->_fieldC = y;
 	pNewElement->_cell->_spriteIdx = width;
