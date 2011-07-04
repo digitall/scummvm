@@ -283,7 +283,7 @@ void freeObjectList(CellListNode *pListHead) {
 	}
 
 	if (var_2) {
-		resetPtr(pListHead);
+		pListHead->resetPtr();
 	}
 }
 

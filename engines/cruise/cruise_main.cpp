@@ -474,7 +474,7 @@ void CruiseEngine::initAllData() {
 	resetPtr2(&procHead);
 	resetPtr2(&relHead);
 
-	resetPtr(&cellHead);
+	cellHead.resetPtr();
 
 	resetActorPtr(&actorHead);
 	backgroundIncrustListHead.resetBackgroundIncrustList();
