@@ -813,7 +813,7 @@ int16 Op_AddMessage() {
 		}
 	}
 
-	createTextObject(&cellHead, overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber);
+	cellHead.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber);
 
 	return 0;
 }

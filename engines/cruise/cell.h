@@ -71,6 +71,7 @@ public:
 	void resetPtr();
 	CellListNode *addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
 	CellListNode *addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
+	void createTextObject(int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx);
 };
 
 
@@ -78,7 +79,7 @@ public:
 
 
 
-void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx);
+
 void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane);
 void freezeCell(CellListNode * pObject, int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);
 void sortCells(int16 param1, int16 param2, CellListNode *objPtr);
