@@ -67,11 +67,11 @@ void freeMessageList(CellListNode *objPtr) {
 		} */
 }
 
-CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
+CellListNode *CellListNode::addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
 	int16 var;
 
 	CellListNode *newElement;
-	CellListNode *currentHead = pHead;
+	CellListNode *currentHead = this;
 	CellListNode *currentHead2;
 	CellListNode *currentHead3;
 
@@ -123,14 +123,14 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
 		newElement->_prev = currentHead->_prev;
 		currentHead->_prev = newElement;
 	} else {
-		newElement->_prev = pHead->_prev;
-		pHead->_prev = newElement;
+		newElement->_prev = _prev;
+		_prev = newElement;
 	}
 
 	return newElement;
 }
 
-CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
+CellListNode *CellListNode::addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
 	int16 var;
         CellListNode *newCellListNode;
 
@@ -138,7 +138,7 @@ CellListNode *addCell(CellListNode *pHead, int16 overlayIdx, int16 objIdx, int16
             return 0;
         }
 
-        newCellListNode = addCell(pHead, overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
+        newCellListNode = addCell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
         if(!newCellListNode)
             return 0;
 
@@ -154,7 +154,7 @@ void createTextObject(CellListNode *pObject, int overlayIdx, int messageIdx, int
 	const char *ax;
         CellListNode *pNewElement;
 
-        pNewElement = addCell(pObject, overlayIdx, messageIdx, OBJ_TYPE_MESSAGE, backgroundPlane, parentOvl, parentIdx);
+        pNewElement = pObject->addCell(overlayIdx, messageIdx, OBJ_TYPE_MESSAGE, backgroundPlane, parentOvl, parentIdx);
         pNewElement->_cell->_X = x;
         pNewElement->_cell->_fieldC = y;
         pNewElement->_cell->_spriteIdx = width;
