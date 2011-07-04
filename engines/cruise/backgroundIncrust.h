@@ -47,6 +47,7 @@ public:
 	uint16 _spriteId;
 
 	BackgroundIncrust();
+	~BackgroundIncrust();
 	BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overlayIdx, int16 X, int16 Y, uint16 frame,
                         uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
                         uint16 spriteId, char *name);
