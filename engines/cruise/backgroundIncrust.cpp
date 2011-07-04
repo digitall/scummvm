@@ -280,7 +280,7 @@ void BackgroundIncrustListNode::freeBackgroundIncrustList() {
 
 	while (pCurrent) {
 		BackgroundIncrustListNode *pNext = pCurrent->next;
-		BackgroundIncrust *currentBackgroundIncrust = pCurrent->backgroundIncrust;
+
 
 		delete pCurrent->backgroundIncrust;
 		MemFree(pCurrent);
