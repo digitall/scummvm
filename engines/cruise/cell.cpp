@@ -268,31 +268,31 @@ void CellListNode::freezeCell(int overlayIdx, int objIdx, int objType, int backg
 	}
 }
 
-void sortCells(int16 ovlIdx, int16 ovjIdx, CellListNode *objPtr) {
+void CellListNode::sortCells(int16 ovlIdx, int16 objIdx) {
 	CellListNode *pl, *pl2, *pl3, *pl4, *plz, *pllast;
 	CellListNode prov;
 	int16 newz, objz, sobjz;
 
 	pl4 = NULL;
 
-	getSingleObjectParam(ovlIdx, ovjIdx, 2, &sobjz);
-	pl = objPtr;
+	getSingleObjectParam(ovlIdx, objIdx, 2, &sobjz);
+	pl = this;
 	prov._next = NULL;
 	prov._prev = NULL;
 
 	pl2 = pl->_next;
 	pllast = NULL;
-	plz = objPtr;
+	plz = this;
 
 	while (pl2) {
 		pl3 = pl2->_next;
-		if ((pl2->_cell->_overlay == ovlIdx) && (pl2->_cell->_idx == ovjIdx)) {// found
+		if ((pl2->_cell->_overlay == ovlIdx) && (pl2->_cell->_idx == objIdx)) {// found
 			pl->_next = pl3;
 
 			if (pl3) {
 				pl3->_prev = pl2->_prev;
 			} else {
-				objPtr->_prev = pl2->_prev;
+				this->_prev = pl2->_prev;
 			}
 
 			pl4 = prov._next;
@@ -334,10 +334,10 @@ void sortCells(int16 ovlIdx, int16 ovjIdx, CellListNode *objPtr) {
 		plz->_next = pl2;
 		pllast->_next = pl4;
 
-		if (plz != objPtr)
+		if (plz != this)
 			pl2->_prev = plz;
 		if (!pl4)
-			objPtr->_prev = pllast;
+			this->_prev = pllast;
 		else
 			pl4->_prev = pllast;
 	}
