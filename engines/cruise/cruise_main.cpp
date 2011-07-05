@@ -1966,7 +1966,7 @@ void CruiseEngine::mainLoop() {
 					userEnabled = false;
 				}
 			} else if (autoMsg != -1) {
-				removeCell(&cellHead, autoOvl, autoMsg, 5, masterScreen);
+				cellHead.removeCell(autoOvl, autoMsg, 5, masterScreen);
 				autoMsg = -1;
 			}
 		} else {
