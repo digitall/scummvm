@@ -1196,7 +1196,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 							autoTrack = true;
 							userWait = 0;
 							userEnabled = 0;
-							freezeCell(&cellHead, ovlIdx, pHeader->id, 5, -1, 0, 9998);
+							cellHead.freezeCell(ovlIdx, pHeader->id, 5, -1, 0, 9998);
 						}
 					}
 				}
@@ -1344,7 +1344,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 						autoTrack = true;
 						userWait = 0;
 						userEnabled = 0;
-						freezeCell(&cellHead, ovlIdx, pHeader->id, 5, -1, 0, 9998);
+						cellHead.freezeCell(ovlIdx, pHeader->id, 5, -1, 0, 9998);
 					}
 				}
 			}
@@ -1951,7 +1951,7 @@ void CruiseEngine::mainLoop() {
 			if (autoTrack) {
 				if (isAnimFinished(narratorOvl, narratorIdx, &actorHead, ATP_MOUSE)) {
 					if (autoMsg != -1) {
-						freezeCell(&cellHead, autoOvl, autoMsg, 5, -1, 9998, 0);
+						cellHead.freezeCell(autoOvl, autoMsg, 5, -1, 9998, 0);
 
 						char* pText = getText(autoMsg, autoOvl);
 
