@@ -132,7 +132,7 @@ void setObjectPosition(int16 ovlIdx, int16 objIdx, int16 param3, int16 param4) {
 		if (param3 != 5)
 			return;
 		globalVars[overlayTable[ovlIdx].state + ptr->_stateTableIdx] = param4;
-		sortCells(ovlIdx, objIdx, &cellHead);
+		cellHead.sortCells(ovlIdx, objIdx);
 		break;
 	}
 	case UNIQUE:
@@ -151,7 +151,7 @@ void setObjectPosition(int16 ovlIdx, int16 objIdx, int16 param3, int16 param4) {
 		}
 		case 2: {	// z
 			ptr2->Z = param4;
-			sortCells(ovlIdx, objIdx, &cellHead);
+			cellHead.sortCells(ovlIdx, objIdx);
 			break;
 		}
 		case 3: {
@@ -195,7 +195,7 @@ int16 objInit(int ovlIdx, int objIdx, int newState) {
 	case THEME:
 	case MULTIPLE: {
 		globalVars[overlayTable[ovlIdx].state + ptr->_stateTableIdx] = newState;
-		sortCells(ovlIdx, objIdx, &cellHead);
+		cellHead.sortCells(ovlIdx, objIdx);
 		break;
 	}
 	case UNIQUE:
@@ -215,7 +215,7 @@ int16 objInit(int ovlIdx, int objIdx, int newState) {
 
 		destEntry->state = newState;
 
-		sortCells(ovlIdx, objIdx, &cellHead);
+		cellHead.sortCells(ovlIdx, objIdx);
 		break;
 	}
 	default: {
