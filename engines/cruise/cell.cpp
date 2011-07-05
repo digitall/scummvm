@@ -187,8 +187,8 @@ void CellListNode::createTextObject(int overlayIdx, int messageIdx, int x, int y
 		backgrounds[0]._isChanged = true;
 }
 
-void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
-	CellListNode *currentObj = objPtr->_next;
+void CellListNode::removeCell(int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
+	CellListNode *currentObj = _next;
 	CellListNode *previous;
 
 	while (currentObj) {
@@ -202,8 +202,8 @@ void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType,
 		currentObj = currentObj->_next;
 	}
 
-	previous = objPtr;
-	currentObj = objPtr->_next;
+	previous = this;
+	currentObj = _next;
 
 	while (currentObj) {
 		CellListNode *si;
@@ -217,7 +217,7 @@ void removeCell(CellListNode *objPtr, int ovlNumber, int objectIdx, int objType,
 			dx = si->_next;
 
 			if (!si->_next) {
-				dx = objPtr;
+				dx = this;
 			}
 
 			dx->_prev = si->_prev;

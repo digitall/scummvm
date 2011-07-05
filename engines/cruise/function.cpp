@@ -328,7 +328,7 @@ int16 Op_RemoveMessage() {
 		overlay = currentScriptPtr->overlayNumber;
 	}
 
-	removeCell(&cellHead, overlay, idx, 5, masterScreen);
+	cellHead.removeCell(overlay, idx, 5, masterScreen);
 
 	return (0);
 }
@@ -747,7 +747,7 @@ int16 Op_RemoveCell() {
 		ovlNumber = currentScriptPtr->overlayNumber;
 	}
 
-	removeCell(&cellHead, ovlNumber, objectIdx, objType, masterScreen);
+	cellHead.removeCell(ovlNumber, objectIdx, objType, masterScreen);
 
 	return 0;
 }
