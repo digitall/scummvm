@@ -1723,7 +1723,7 @@ int16 Op_LinkObjects() {
 	if (!ovl2)
 		ovl2 = currentScriptPtr->overlayNumber;
 
-	linkCell(&cellHead, ovl, obj, type, ovl2, obj2);
+	cellHead.linkCell(ovl, obj, type, ovl2, obj2);
 
 	return 0;
 }
