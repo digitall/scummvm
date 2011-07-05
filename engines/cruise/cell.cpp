@@ -234,18 +234,19 @@ void CellListNode::removeCell(int ovlNumber, int objectIdx, int objType, int bac
 	}
 }
 
-void linkCell(CellListNode *pHead, int ovl, int obj, int type, int ovl2, int obj2) {
-	while (pHead) {
-		if ((pHead->_cell->_overlay == ovl) || (ovl == -1)) {
-			if ((pHead->_cell->_idx == obj) || (obj == -1)) {
-				if ((pHead->_cell->_type == type) || (type == -1)) {
-					pHead->_cell->_followObjectIdx = obj2;
-					pHead->_cell->_followObjectOverlayIdx = ovl2;
+void CellListNode::linkCell(int ovl, int obj, int type, int ovl2, int obj2) {
+	CellListNode *currentNode = this;
+	while (currentNode) {
+		if ((currentNode->_cell->_overlay == ovl) || (ovl == -1)) {
+			if ((currentNode->_cell->_idx == obj) || (obj == -1)) {
+				if ((currentNode->_cell->_type == type) || (type == -1)) {
+					currentNode->_cell->_followObjectIdx = obj2;
+					currentNode->_cell->_followObjectOverlayIdx = ovl2;
 				}
 			}
 		}
 
-		pHead = pHead->_next;
+		currentNode = currentNode->_next;
 	}
 }
 
