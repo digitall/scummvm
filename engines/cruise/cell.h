@@ -75,11 +75,8 @@ public:
 	void removeCell(int ovlNumber, int objectIdx, int objType, int backgroundPlane);
 	void freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);
 	void sortCells(int16 overlayIdx, int16 objIdx);
-
+	void linkCell(int ovl, int obj, int type, int ovl2, int obj2);
 };
-
-void linkCell(CellListNode *pHead, int ovl, int obj, int type, int ovl2, int obj2);
-
 
 } // End of namespace Cruise
 
