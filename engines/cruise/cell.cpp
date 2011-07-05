@@ -249,21 +249,22 @@ void linkCell(CellListNode *pHead, int ovl, int obj, int type, int ovl2, int obj
 	}
 }
 
-void freezeCell(CellListNode * pObject, int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze) {
-	while (pObject) {
-		if ((pObject->_cell->_overlay == overlayIdx) || (overlayIdx == -1)) {
-			if ((pObject->_cell->_idx == objIdx) || (objIdx == -1)) {
-				if ((pObject->_cell->_type == objType) || (objType == -1)) {
-					if ((pObject->_cell->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) {
-						if ((pObject->_cell->_freeze == oldFreeze) || (oldFreeze == -1)) {
-							pObject->_cell->_freeze = newFreeze;
+void CellListNode::freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze) {
+	CellListNode *currentNode = this;
+	while (currentNode) {
+		if ((currentNode->_cell->_overlay == overlayIdx) || (overlayIdx == -1)) {
+			if ((currentNode->_cell->_idx == objIdx) || (objIdx == -1)) {
+				if ((currentNode->_cell->_type == objType) || (objType == -1)) {
+					if ((currentNode->_cell->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) {
+						if ((currentNode->_cell->_freeze == oldFreeze) || (oldFreeze == -1)) {
+							currentNode->_cell->_freeze = newFreeze;
 						}
 					}
 				}
 			}
 		}
 
-		pObject = pObject->_next;
+		currentNode = currentNode->_next;
 	}
 }
 

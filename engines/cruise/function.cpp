@@ -1473,7 +1473,7 @@ int16 Op_FreezeCell() {
 		overlayIdx = currentScriptPtr->overlayNumber;
 	}
 
-	freezeCell(&cellHead, overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
+	cellHead.freezeCell(overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
 
 	return 0;
 }
