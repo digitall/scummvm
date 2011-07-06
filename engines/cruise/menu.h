@@ -24,6 +24,23 @@
 #define CRUISE_MENU_H
 
 namespace Cruise {
+struct menuElementSubStruct {
+	struct menuElementSubStruct *pNext;
+	int16 ovlIdx;
+	int16 header;
+};
+
+struct menuElementStruct {
+	struct menuElementStruct *next;
+	const char *string;
+	int x;
+	int y;
+	int varA;
+	bool selected;
+	unsigned char color;
+	gfxEntryStruct *gfx;
+	menuElementSubStruct *ptrSub;
+};
 
 struct menuStruct {
 	const char *stringPtr;
