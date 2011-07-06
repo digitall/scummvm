@@ -56,9 +56,10 @@ public:
 
 	void addSelectableMenuEntry(int var0, int var1, int var2, int color,
 	                            const char *menuText);
+	void updateMouse(int mouseX, int mouseY);
 };
 
-void updateMenuMouse(int mouseX, int mouseY, Menu * pMenu);
+
 int processMenu(Menu * pMenu);
 int playerMenu(int menuX, int menuY);
 
