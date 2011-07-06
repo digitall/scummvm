@@ -42,14 +42,14 @@ Menu::Menu(int X, int Y, const char *menuName) {
 	_gfx = renderText(160, menuName);
 }
 
-void addSelectableMenuEntry(int ovlIdx, int headerIdx, Menu *pMenu, int param2, int color, const char *menuText) {
+void Menu::addSelectableMenuEntry(int ovlIdx, int headerIdx, int param2, int color, const char *menuText) {
 	menuElementStruct *pCurrentElement;
 	menuElementStruct *pNewElement;
 	menuElementSubStruct *pNewSubStruct;
 	menuElementSubStruct *pCurrentSubStruct;
 
-	if (pMenu->_numElements <= 48) {
-		pCurrentElement = pMenu->_ptrNextElement;
+	if (_numElements <= 48) {
+		pCurrentElement = _ptrNextElement;
 
 		while (pCurrentElement && pCurrentElement->next) {
 			if (param2) {
@@ -91,7 +91,7 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, Menu *pMenu, int param2, 
 		pNewElement->gfx = renderText(160, menuText);
 
 		if (pCurrentElement == NULL) {
-			pMenu->_ptrNextElement = pNewElement;
+			_ptrNextElement = pNewElement;
 		} else {
 			pCurrentElement->next = pNewElement;
 		}
@@ -102,7 +102,7 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, Menu *pMenu, int param2, 
 		pNewSubStruct->ovlIdx = ovlIdx;
 		pNewSubStruct->header = headerIdx;
 
-		pMenu->_numElements++;
+		_numElements++;
 	}
 }
 
@@ -255,11 +255,11 @@ int playerMenu(int menuX, int menuY) {
 
 		//addSelectableMenuEntry(0, 3, menuTable[0], 1, -1, "Save game disk");
 		if (userEnabled) {
-			addSelectableMenuEntry(0, 4, menuTable[0], 1, -1, _vm->langString(ID_SAVE));
+			menuTable[0]->addSelectableMenuEntry(0, 4, 1, -1, _vm->langString(ID_SAVE));
 		}
-		addSelectableMenuEntry(0, 5, menuTable[0], 1, -1, _vm->langString(ID_LOAD));
-		addSelectableMenuEntry(0, 6, menuTable[0], 1, -1, _vm->langString(ID_RESTART));
-		addSelectableMenuEntry(0, 7, menuTable[0], 1, -1, _vm->langString(ID_QUIT));
+		menuTable[0]->addSelectableMenuEntry(0, 5, 1, -1, _vm->langString(ID_LOAD));
+		menuTable[0]->addSelectableMenuEntry(0, 6, 1, -1, _vm->langString(ID_RESTART));
+		menuTable[0]->addSelectableMenuEntry(0, 7, 1, -1, _vm->langString(ID_QUIT));
 
 		retourMenu = processMenu(menuTable[0]);
 

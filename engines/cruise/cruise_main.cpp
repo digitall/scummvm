@@ -811,7 +811,7 @@ void buildInventory(int X, int Y) {
 						getSingleObjectParam(i, j, 5, &returnVar);
 
 						if (returnVar < -1) {
-							addSelectableMenuEntry(i, j, pMenu, 1, -1, getObjectName(j, pOvlData->arrayNameObj));
+							pMenu->addSelectableMenuEntry(i, j, 1, -1, getObjectName(j, pOvlData->arrayNameObj));
 							numObjectInInventory++;
 						}
 					}
@@ -945,7 +945,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 										color = -1;
 
 									ptr = getObjectName(ptrHead->obj1Number, ovl3->arrayNameObj);
-									addSelectableMenuEntry(j, i, menuTable[0], 1, color, ptr);
+									menuTable[0]->addSelectableMenuEntry(j, i, 1, color, ptr);
 								}
 							}
 						}
@@ -1033,7 +1033,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 								} else if (ovl2->nameVerbGlob) {
 									found = true;
 									ptr = getObjectName(ptrHead->verbNumber, ovl2->nameVerbGlob);
-									addSelectableMenuEntry(j, i, menuTable[0], 1, -1, ptr);
+									menuTable[0]->addSelectableMenuEntry(j, i, 1, -1, ptr);
 								}
 							}
 						}
