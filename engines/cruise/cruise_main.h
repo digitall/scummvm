@@ -100,7 +100,7 @@ void *allocAndZero(int size);
 void freeStuff2();
 void mainLoop();
 bool testMask(int x, int y, unsigned char* pData, int stride);
-menuElementSubStruct *getSelectedEntryInMenu(menuStruct *pMenu);
+menuElementSubStruct *getSelectedEntryInMenu(Menu *pMenu);
 void closeAllMenu();
 int removeFinishedScripts(scriptInstanceStruct *ptrHandle);
 void initBigVar3();

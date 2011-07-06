@@ -42,22 +42,23 @@ struct menuElementStruct {
 	menuElementSubStruct *ptrSub;
 };
 
-struct menuStruct {
-	const char *stringPtr;
-	gfxEntryStruct *gfx;
-	int x;
-	int y;
-	int numElements;
-	menuElementStruct *ptrNextElement;
+class Menu {
+public:
+	const char *_stringPtr;
+	gfxEntryStruct *_gfx;
+	int _x;
+	int _y;
+	int _numElements;
+	menuElementStruct *_ptrNextElement;
 };
 
 
-menuStruct *createMenu(int X, int Y, const char *menuName);
-void addSelectableMenuEntry(int var0, int var1, menuStruct * pMenu, int var2,
+Menu *createMenu(int X, int Y, const char *menuName);
+void addSelectableMenuEntry(int var0, int var1, Menu * pMenu, int var2,
                             int color, const char *menuText);
-void updateMenuMouse(int mouseX, int mouseY, menuStruct * pMenu);
-int processMenu(menuStruct * pMenu);
-void freeMenu(menuStruct * pMenu);
+void updateMenuMouse(int mouseX, int mouseY, Menu * pMenu);
+int processMenu(Menu * pMenu);
+void freeMenu(Menu * pMenu);
 int playerMenu(int menuX, int menuY);
 
 } // End of namespace Cruise
