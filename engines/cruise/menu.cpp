@@ -131,7 +131,7 @@ void Menu::updateMouse(int mouseX, int mouseY) {
 
 bool manageEvents();
 
-int processMenu(Menu *pMenu) {
+int Menu::process() {
 	int16 mouseX;
 	int16 mouseY;
 	int16 mouseButton;
@@ -148,7 +148,7 @@ int processMenu(Menu *pMenu) {
 	do {
 		currentMouse.getStatus(&main10, &mouseX, &mouseButton, &mouseY);
 
-		pMenu->updateMouse(mouseX, mouseY);
+		updateMouse(mouseX, mouseY);
 
 		if (mouseButton) {
 			if (di) {
@@ -173,7 +173,7 @@ int processMenu(Menu *pMenu) {
 	flipScreen();
 
 	if (mouseButton & 1) {
-		menuElementSubStruct* pSelectedEntry = getSelectedEntryInMenu(pMenu);
+		menuElementSubStruct* pSelectedEntry = getSelectedEntryInMenu(this);
 
 		if (pSelectedEntry) {
 			return pSelectedEntry->header;
@@ -259,7 +259,7 @@ int playerMenu(int menuX, int menuY) {
 		menuTable[0]->addSelectableMenuEntry(0, 6, 1, -1, _vm->langString(ID_RESTART));
 		menuTable[0]->addSelectableMenuEntry(0, 7, 1, -1, _vm->langString(ID_QUIT));
 
-		retourMenu = processMenu(menuTable[0]);
+		retourMenu = menuTable[0]->process();
 
 		delete menuTable[0];
 		menuTable[0] = NULL;
