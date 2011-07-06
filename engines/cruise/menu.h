@@ -51,7 +51,6 @@ struct menuStruct {
 	menuElementStruct *ptrNextElement;
 };
 
-extern menuStruct *menuTable[8];
 
 menuStruct *createMenu(int X, int Y, const char *menuName);
 void addSelectableMenuEntry(int var0, int var1, menuStruct * pMenu, int var2,
