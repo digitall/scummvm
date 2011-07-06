@@ -272,6 +272,7 @@ extern uint8 globalScreen[320 * 200];
 extern Mouse currentMouse;
 extern BackgroundIncrustListNode backgroundIncrustListHead;
 extern CellListNode cellHead;
+extern menuStruct *menuTable[8];
 
 //extern OSystem *osystem;
 
