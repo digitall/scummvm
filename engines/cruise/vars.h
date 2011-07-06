@@ -30,24 +30,6 @@ namespace Cruise {
 #define NBCOLORS 256
 #define NBSCREENS 8
 
-struct menuElementSubStruct {
-	struct menuElementSubStruct *pNext;
-	int16 ovlIdx;
-	int16 header;
-};
-
-struct menuElementStruct {
-	struct menuElementStruct *next;
-	const char *string;
-	int x;
-	int y;
-	int varA;
-	bool selected;
-	unsigned char color;
-	gfxEntryStruct *gfx;
-	menuElementSubStruct *ptrSub;
-};
-
 typedef int32(*opcodeTypeFunction)();
 typedef int16(*opcodeFunction)();
 
