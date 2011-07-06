@@ -260,7 +260,7 @@ int playerMenu(int menuX, int menuY) {
 
 		retourMenu = processMenu(menuTable[0]);
 
-		freeMenu(menuTable[0]);
+		delete menuTable[0];
 		menuTable[0] = NULL;
 		currentMouse._button = 0;
 
@@ -288,8 +288,8 @@ int playerMenu(int menuX, int menuY) {
 	return 0;
 }
 
-void freeMenu(Menu *pMenu) {
-	menuElementStruct *pElement = pMenu->_ptrNextElement;
+Menu::~Menu() {
+	menuElementStruct *pElement = _ptrNextElement;
 
 	while (pElement) {
 		menuElementStruct *next;
@@ -316,8 +316,7 @@ void freeMenu(Menu *pMenu) {
 		pElement = next;
 	}
 
-	freeGfx(pMenu->_gfx);
-	MemFree(pMenu);
+	freeGfx(_gfx);
 }
 
 } // End of namespace Cruise
