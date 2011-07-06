@@ -58,6 +58,8 @@ public:
                                     const char *menuText);
 	void updateMouse(int mouseX, int mouseY);
 	int process();
+	menuElementSubStruct *getSelectedEntry(menuElementStruct* pSelectedElement);
+	menuElementSubStruct *getSelectedEntry();
 };
 
 int playerMenu(int menuX, int menuY);

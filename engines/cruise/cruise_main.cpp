@@ -826,38 +826,6 @@ void buildInventory(int X, int Y) {
 	}
 }
 
-int currentMenuElementX;
-int currentMenuElementY;
-menuElementStruct *currentMenuElement;
-
-menuElementSubStruct *getSelectedEntryInMenu(Menu *pMenu) {
-	menuElementStruct *pMenuElement;
-
-	if (pMenu == NULL) {
-		return NULL;
-	}
-
-	if (pMenu->_numElements == 0) {
-		return NULL;
-	}
-
-	pMenuElement = pMenu->_ptrNextElement;
-
-	while (pMenuElement) {
-		if (pMenuElement->selected) {
-			currentMenuElementX = pMenuElement->x;
-			currentMenuElementY = pMenuElement->y;
-			currentMenuElement = pMenuElement;
-
-			return pMenuElement->ptrSub;
-		}
-
-		pMenuElement = pMenuElement->next;
-	}
-
-	return NULL;
-}
-
 bool createDialog(int objOvl, int objIdx, int x, int y) {
 	bool found = false;
 	int testState1 = -1;
@@ -1048,7 +1016,8 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 
 int processInventory() {
 	if (menuTable[1]) {
-		menuElementSubStruct *pMenuElementSub = getSelectedEntryInMenu(menuTable[1]);
+		menuElementStruct *pCurrentMenuElement = NULL;
+		menuElementSubStruct *pMenuElementSub = menuTable[1]->getSelectedEntry(pCurrentMenuElement);
 
 		if (pMenuElementSub) {
 			int var2 = pMenuElementSub->ovlIdx;
@@ -1057,7 +1026,7 @@ int processInventory() {
 			delete menuTable[1];
 			menuTable[1] = NULL;
 
-			findRelation(var2, var4, currentMenuElementX + 80, currentMenuElementY);
+			findRelation(var2, var4, pCurrentMenuElement->x + 80, pCurrentMenuElement->y);
 
 			return 1;
 		} else {
@@ -1516,7 +1485,7 @@ int CruiseEngine::processInput() {
 		} else {
 			if ((button & CRS_MB_LEFT) && (buttonDown == 0)) {
 				if (menuTable[0]) {
-					callRelation(getSelectedEntryInMenu(menuTable[0]), dialogueObj);
+					callRelation(menuTable[0]->getSelectedEntry(), dialogueObj);
 
 					delete menuTable[0];
 					menuTable[0] = NULL;
@@ -1566,7 +1535,7 @@ int CruiseEngine::processInput() {
 				currentMouse.changeCursor(CURSOR_NORMAL);
 			} else { // call sub relation when clicking in inventory
 				if (menuTable[0] && menuTable[1]) {
-					menuElementSubStruct * p0 = getSelectedEntryInMenu(menuTable[1]);
+					menuElementSubStruct * p0 = menuTable[1]->getSelectedEntry();
 
 					if (p0)
 						callSubRelation(linkedRelation, p0->ovlIdx, p0->header);
@@ -1617,7 +1586,8 @@ int CruiseEngine::processInput() {
 				} else {
 					// handle click in menu
 					if (menuTable[0]) {
-						menuElementSubStruct *pMenuElementSub = getSelectedEntryInMenu(menuTable[0]);
+						menuElementStruct *pCurrentMenuElement = NULL;
+						menuElementSubStruct *pMenuElementSub = menuTable[0]->getSelectedEntry(pCurrentMenuElement);
 
 						callRelation(pMenuElementSub, -1);
 
@@ -1630,7 +1600,7 @@ int CruiseEngine::processInput() {
 							char text[80];
 							strcpy(text, menuTable[0]->_stringPtr);
 							strcat(text, ":");
-							strcat(text, currentMenuElement->string);
+							strcat(text, pCurrentMenuElement->string);
 							linkedMsgList = renderText(320, (const char *)text);
 							currentMouse.changeCursor(CURSOR_CROSS);
 						}
