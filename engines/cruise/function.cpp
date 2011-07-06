@@ -1740,10 +1740,10 @@ int16 Op_XMenuItem() {
 	int index = popVar();
 	int count = 0;
 
-	if (!menuTable[0] || (menuTable[0]->numElements == 0))
+	if (!menuTable[0] || (menuTable[0]->_numElements == 0))
 		return 0;
 
-	menuElementStruct *p = menuTable[0]->ptrNextElement;
+	menuElementStruct *p = menuTable[0]->_ptrNextElement;
 
 	while (p) {
 		if (count == index)
@@ -1760,10 +1760,10 @@ int16 Op_YMenuItem() {
 	int index = popVar();
 	int count = 0;
 
-	if (!menuTable[0] || (menuTable[0]->numElements == 0))
+	if (!menuTable[0] || (menuTable[0]->_numElements == 0))
 		return 0;
 
-	menuElementStruct *p = menuTable[0]->ptrNextElement;
+	menuElementStruct *p = menuTable[0]->_ptrNextElement;
 
 	while (p) {
 		if (count == index)
