@@ -430,13 +430,13 @@ int16 Op_GetRingWord() {
 int16 Op_KillMenu() {
 	// Free menus, if active
 	if (menuTable[0]) {
-		freeMenu(menuTable[0]);
+		delete menuTable[0];
 		menuTable[0] = NULL;
 		currentActiveMenu = -1;
 	}
 
 	if (menuTable[1]) {
-		freeMenu(menuTable[1]);
+		delete menuTable[1];
 		menuTable[1] = NULL;
 		currentActiveMenu = -1;
 	}
@@ -1702,7 +1702,7 @@ int16 Op_DialogOff() {
 	objectReset();
 
 	if (menuTable[0]) {
-		freeMenu(menuTable[0]);
+		delete menuTable[0];
 		menuTable[0] = NULL;
 		currentMouse.changeCursor(CURSOR_NORMAL);
 		currentActiveMenu = -1;

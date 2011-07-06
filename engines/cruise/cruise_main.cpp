@@ -821,7 +821,7 @@ void buildInventory(int X, int Y) {
 	}
 
 	if (numObjectInInventory == 0) {
-		freeMenu(menuTable[1]);
+		delete menuTable[1];
 		menuTable[1] = NULL;
 	}
 }
@@ -1054,14 +1054,14 @@ int processInventory() {
 			int var2 = pMenuElementSub->ovlIdx;
 			int var4 = pMenuElementSub->header;
 
-			freeMenu(menuTable[1]);
+			delete menuTable[1];
 			menuTable[1] = NULL;
 
 			findRelation(var2, var4, currentMenuElementX + 80, currentMenuElementY);
 
 			return 1;
 		} else {
-			freeMenu(menuTable[1]);
+			delete menuTable[1];
 			menuTable[1] = NULL;
 		}
 	}
@@ -1358,12 +1358,12 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 
 void closeAllMenu() {
 	if (menuTable[0]) {
-		freeMenu(menuTable[0]);
+		delete menuTable[0];
 		menuTable[0] = NULL;
 	}
 
 	if (menuTable[1]) {
-		freeMenu(menuTable[1]);
+		delete menuTable[1];
 		menuTable[1] = NULL;
 	}
 	if (linkedMsgList) {
@@ -1506,7 +1506,7 @@ int CruiseEngine::processInput() {
 				if (dialogFound) {
 					currentActiveMenu = 0;
 				} else {
-					freeMenu(menuTable[0]);
+					delete menuTable[0];
 					menuTable[0] = NULL;
 					currentActiveMenu = -1;
 				}
@@ -1518,7 +1518,7 @@ int CruiseEngine::processInput() {
 				if (menuTable[0]) {
 					callRelation(getSelectedEntryInMenu(menuTable[0]), dialogueObj);
 
-					freeMenu(menuTable[0]);
+					delete menuTable[0];
 					menuTable[0] = NULL;
 
 					if (linkedMsgList) {
@@ -1554,7 +1554,7 @@ int CruiseEngine::processInput() {
 					if (objType != -1) {
 						callSubRelation(linkedRelation, objOvl, objIdx);
 					}
-					freeMenu(menuTable[0]);
+					delete menuTable[0];
 					menuTable[0] = NULL;
 				}
 
@@ -1596,7 +1596,7 @@ int CruiseEngine::processInput() {
 								selectDown = 1;
 							} else {
 								// object has a name but no relation, just move the character
-								freeMenu(menuTable[0]);
+								delete menuTable[0];
 								menuTable[0] = NULL;
 
 								aniX = mouseX;
@@ -1623,7 +1623,7 @@ int CruiseEngine::processInput() {
 
 						// if there is a linked relation, close menu
 						if (!linkedRelation) {
-							freeMenu(menuTable[0]);
+							delete menuTable[0];
 							menuTable[0] = NULL;
 							currentMouse.changeCursor(CURSOR_NORMAL);
 						} else { // else create the message for the linked relation
@@ -1657,7 +1657,7 @@ int CruiseEngine::processInput() {
 
 			// close object menu if there is no linked relation
 			if ((linkedRelation == 0) && (menuTable[0])) {
-				freeMenu(menuTable[0]);
+				delete menuTable[0];
 				menuTable[0] = NULL;
 				selectDown = 0;
 				menuDown = 0;
