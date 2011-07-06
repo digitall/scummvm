@@ -790,7 +790,7 @@ void *allocAndZero(int size) {
 }
 
 void buildInventory(int X, int Y) {
-	menuStruct *pMenu;
+	Menu *pMenu;
 
 	pMenu = createMenu(X, Y, _vm->langString(ID_INVENTORY));
 	menuTable[1] = pMenu;
@@ -830,18 +830,18 @@ int currentMenuElementX;
 int currentMenuElementY;
 menuElementStruct *currentMenuElement;
 
-menuElementSubStruct *getSelectedEntryInMenu(menuStruct *pMenu) {
+menuElementSubStruct *getSelectedEntryInMenu(Menu *pMenu) {
 	menuElementStruct *pMenuElement;
 
 	if (pMenu == NULL) {
 		return NULL;
 	}
 
-	if (pMenu->numElements == 0) {
+	if (pMenu->_numElements == 0) {
 		return NULL;
 	}
 
-	pMenuElement = pMenu->ptrNextElement;
+	pMenuElement = pMenu->_ptrNextElement;
 
 	while (pMenuElement) {
 		if (pMenuElement->selected) {
@@ -1628,7 +1628,7 @@ int CruiseEngine::processInput() {
 							currentMouse.changeCursor(CURSOR_NORMAL);
 						} else { // else create the message for the linked relation
 							char text[80];
-							strcpy(text, menuTable[0]->stringPtr);
+							strcpy(text, menuTable[0]->_stringPtr);
 							strcat(text, ":");
 							strcat(text, currentMenuElement->string);
 							linkedMsgList = renderText(320, (const char *)text);

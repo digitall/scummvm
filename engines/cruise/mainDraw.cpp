@@ -1282,28 +1282,28 @@ void drawCtp() {
 }
 #endif
 
-void drawMenu(menuStruct *pMenu) {
+void drawMenu(Menu *pMenu) {
 	if (pMenu == NULL)
 		return;
 
-	if (pMenu->numElements == 0)
+	if (pMenu->_numElements == 0)
 		return;
 
-	int hline = pMenu->gfx->height;
-	int x = pMenu->x;
-	int y = pMenu->y + hline;
+	int hline = pMenu->_gfx->height;
+	int x = pMenu->_x;
+	int y = pMenu->_y + hline;
 
 	int numItemByLine = (199 - hline * 2) / hline;
-	int nbcol = pMenu->numElements / numItemByLine;
+	int nbcol = pMenu->_numElements / numItemByLine;
 
 	if (!nbcol) {
 		nbcol++;
 
-		if (y + pMenu->numElements*hline > 199 - hline) {
-			y = 200 - (pMenu->numElements * hline) - hline;
+		if (y + pMenu->_numElements*hline > 199 - hline) {
+			y = 200 - (pMenu->_numElements * hline) - hline;
 		}
 	} else {
-		if (pMenu->numElements % numItemByLine) {
+		if (pMenu->_numElements % numItemByLine) {
 			nbcol++;
 		}
 
@@ -1319,13 +1319,13 @@ void drawMenu(menuStruct *pMenu) {
 	int wx = x + (nbcol - 1) * (160 / 2);
 
 	if (wx <= 320 - 160) {
-		drawMessage(pMenu->gfx, wx, y - hline, 160, titleColor, gfxModuleData.pPage10);
+		drawMessage(pMenu->_gfx, wx, y - hline, 160, titleColor, gfxModuleData.pPage10);
 	}
 
 	wx = x;
 	int wy = y;
 	int wc = 0;
-	menuElementStruct* p1 = pMenu->ptrNextElement;
+	menuElementStruct* p1 = pMenu->_ptrNextElement;
 
 	while (p1) {
 		gfxEntryStruct *p2 = p1->gfx;
