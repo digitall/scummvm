@@ -33,35 +33,34 @@ namespace Cruise {
 
 extern int currentMouseButton;
 
-menuStruct *createMenu(int X, int Y, const char *menuName) {
-	menuStruct *entry;
+Menu *createMenu(int X, int Y, const char *menuName) {
+	Menu *entry;
 
-	entry = (menuStruct *) MemAlloc(sizeof(menuStruct));
+	entry = (Menu *) MemAlloc(sizeof(Menu));
 	ASSERT(entry);
 
-	entry->x = X - 160 / 2;
-	entry->y = Y;
-	entry->stringPtr = menuName;
-	entry->numElements = 0;
-	entry->ptrNextElement = NULL;
-	entry->gfx = renderText(160, menuName);
+	entry->_x = X - 160 / 2;
+	entry->_y = Y;
+	entry->_stringPtr = menuName;
+	entry->_numElements = 0;
+	entry->_ptrNextElement = NULL;
+	entry->_gfx = renderText(160, menuName);
 
 	return entry;
 }
 
-void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int param2, int color, const char *menuText) {
+void addSelectableMenuEntry(int ovlIdx, int headerIdx, Menu *pMenu, int param2, int color, const char *menuText) {
 	menuElementStruct *pCurrentElement;
 	menuElementStruct *pNewElement;
 	menuElementSubStruct *pNewSubStruct;
 	menuElementSubStruct *pCurrentSubStruct;
 
-	if (pMenu->numElements <= 48) {
-		pCurrentElement = pMenu->ptrNextElement;
+	if (pMenu->_numElements <= 48) {
+		pCurrentElement = pMenu->_ptrNextElement;
 
 		while (pCurrentElement && pCurrentElement->next) {
 			if (param2) {
 				if (!strcmp(pCurrentElement->string, menuText)) {
-					pNewElement = pCurrentElement;
 					pNewSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
 					ASSERT(pNewSubStruct);
 
@@ -69,10 +68,10 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int pa
 					pNewSubStruct->ovlIdx = ovlIdx;
 					pNewSubStruct->header = headerIdx;
 
-					pCurrentSubStruct = pNewElement->ptrSub;
+					pCurrentSubStruct = pCurrentElement->ptrSub;
 
 					if (!pCurrentSubStruct) {
-						pNewElement->ptrSub = pNewSubStruct;
+						pCurrentElement->ptrSub = pNewSubStruct;
 						return;
 					}
 
@@ -99,7 +98,7 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int pa
 		pNewElement->gfx = renderText(160, menuText);
 
 		if (pCurrentElement == NULL) {
-			pMenu->ptrNextElement = pNewElement;
+			pMenu->_ptrNextElement = pNewElement;
 		} else {
 			pCurrentElement->next = pNewElement;
 		}
@@ -110,16 +109,16 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int pa
 		pNewSubStruct->ovlIdx = ovlIdx;
 		pNewSubStruct->header = headerIdx;
 
-		pMenu->numElements++;
+		pMenu->_numElements++;
 	}
 }
 
-void updateMenuMouse(int mouseX, int mouseY, menuStruct *pMenu) {
+void updateMenuMouse(int mouseX, int mouseY, Menu *pMenu) {
 	if (pMenu) {
-		if (pMenu->gfx) {
-			int height = pMenu->gfx->height;	// rustine
+		if (pMenu->_gfx) {
+			int height = pMenu->_gfx->height;	// rustine
 			int var_2 = 0;
-			menuElementStruct *pCurrentEntry = pMenu->ptrNextElement;
+			menuElementStruct *pCurrentEntry = pMenu->_ptrNextElement;
 
 			while (pCurrentEntry) {
 				pCurrentEntry->selected = false;
@@ -141,7 +140,7 @@ void updateMenuMouse(int mouseX, int mouseY, menuStruct *pMenu) {
 
 bool manageEvents();
 
-int processMenu(menuStruct *pMenu) {
+int processMenu(Menu *pMenu) {
 	int16 mouseX;
 	int16 mouseY;
 	int16 mouseButton;
@@ -296,8 +295,8 @@ int playerMenu(int menuX, int menuY) {
 	return 0;
 }
 
-void freeMenu(menuStruct *pMenu) {
-	menuElementStruct *pElement = pMenu->ptrNextElement;
+void freeMenu(Menu *pMenu) {
+	menuElementStruct *pElement = pMenu->_ptrNextElement;
 
 	while (pElement) {
 		menuElementStruct *next;
@@ -324,7 +323,7 @@ void freeMenu(menuStruct *pMenu) {
 		pElement = next;
 	}
 
-	freeGfx(pMenu->gfx);
+	freeGfx(pMenu->_gfx);
 	MemFree(pMenu);
 }
 
