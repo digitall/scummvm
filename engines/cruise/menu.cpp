@@ -53,7 +53,6 @@ menuStruct *createMenu(int X, int Y, const char *menuName) {
 
 // TODO: rewrite to remove the goto
 void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int param2, int color, const char *menuText) {
-	menuElementStruct *di;
 	menuElementStruct *var_6;
 	menuElementStruct *pNewElement;
 	menuElementSubStruct *pSubStruct;
@@ -62,40 +61,33 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int pa
 	if (pMenu->numElements <= 48) {
 		var_6 = pMenu->ptrNextElement;
 
-		if (var_6) {
-			do {
-				di = var_6;
-				if (param2) {
-					if (!strcmp(var_6->string, menuText)) {
-						pNewElement = var_6;
-						pSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
-						ASSERT(pSubStruct);
+		while (var_6 && var_6->next) {
+			if (param2) {
+				if (!strcmp(var_6->string, menuText)) {
+					pNewElement = var_6;
+					pSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
+					ASSERT(pSubStruct);
 
-						pSubStruct->pNext = NULL;
-						pSubStruct->ovlIdx = ovlIdx;
-						pSubStruct->header = headerIdx;
+					pSubStruct->pNext = NULL;
+					pSubStruct->ovlIdx = ovlIdx;
+					pSubStruct->header = headerIdx;
 
-						pSubStructCurrent = pNewElement->ptrSub;
+					pSubStructCurrent = pNewElement->ptrSub;
 
-						if (!pSubStructCurrent) {
-							pNewElement->ptrSub = pSubStruct;
-							return;
-						}
-
-						if (pSubStructCurrent->pNext) {
-							do {
-								pSubStructCurrent = pSubStructCurrent->pNext;
-							} while (pSubStructCurrent->pNext);
-						}
-
-						pSubStructCurrent->pNext = pSubStruct;
+					if (!pSubStructCurrent) {
+						pNewElement->ptrSub = pSubStruct;
 						return;
 					}
-				}
-				var_6 = var_6->next;
-			} while (var_6);
 
-			var_6 = di;
+					while (pSubStructCurrent->pNext) {
+						pSubStructCurrent = pSubStructCurrent->pNext;
+					}
+
+					pSubStructCurrent->pNext = pSubStruct;
+					return;
+				}
+			}
+			var_6 = var_6->next;
 		}
 
 		pNewElement = (menuElementStruct *)allocAndZero(sizeof(menuElementStruct));
