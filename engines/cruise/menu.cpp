@@ -106,27 +106,25 @@ void Menu::addSelectableMenuEntry(int ovlIdx, int headerIdx, int param2, int col
 	}
 }
 
-void updateMenuMouse(int mouseX, int mouseY, Menu *pMenu) {
-	if (pMenu) {
-		if (pMenu->_gfx) {
-			int height = pMenu->_gfx->height;	// rustine
-			int var_2 = 0;
-			menuElementStruct *pCurrentEntry = pMenu->_ptrNextElement;
+void Menu::updateMouse(int mouseX, int mouseY) {
+	if (_gfx) {
+		int height = _gfx->height;	// rustine
+		int var_2 = 0;
+		menuElementStruct *pCurrentEntry = _ptrNextElement;
 
-			while (pCurrentEntry) {
-				pCurrentEntry->selected = false;
+		while (pCurrentEntry) {
+			pCurrentEntry->selected = false;
 
-				if (var_2 == 0) {
-					if ((mouseX > pCurrentEntry->x) && ((pCurrentEntry->x + 160) >= mouseX)) {
-						if ((mouseY > pCurrentEntry->y) && ((pCurrentEntry->y + height) >= mouseY)) {
-							var_2 = 1;
-							pCurrentEntry->selected = true;
-						}
+			if (var_2 == 0) {
+				if ((mouseX > pCurrentEntry->x) && ((pCurrentEntry->x + 160) >= mouseX)) {
+					if ((mouseY > pCurrentEntry->y) && ((pCurrentEntry->y + height) >= mouseY)) {
+						var_2 = 1;
+						pCurrentEntry->selected = true;
 					}
 				}
-
-				pCurrentEntry = pCurrentEntry->next;
 			}
+
+			pCurrentEntry = pCurrentEntry->next;
 		}
 	}
 }
@@ -150,7 +148,7 @@ int processMenu(Menu *pMenu) {
 	do {
 		currentMouse.getStatus(&main10, &mouseX, &mouseButton, &mouseY);
 
-		updateMenuMouse(mouseX, mouseY, pMenu);
+		pMenu->updateMouse(mouseX, mouseY);
 
 		if (mouseButton) {
 			if (di) {

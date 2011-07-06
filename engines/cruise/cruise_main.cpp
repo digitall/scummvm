@@ -1486,7 +1486,7 @@ int CruiseEngine::processInput() {
 	}
 
 	if ((currentActiveMenu != -1) && menuTable[currentActiveMenu]) {
-		updateMenuMouse(mouseX, mouseY, menuTable[currentActiveMenu]);
+		menuTable[currentActiveMenu]->updateMouse(mouseX, mouseY);
 	}
 
 	if (dialogueEnabled) {
