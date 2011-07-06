@@ -49,49 +49,48 @@ menuStruct *createMenu(int X, int Y, const char *menuName) {
 	return entry;
 }
 
-// TODO: rewrite to remove the goto
 void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int param2, int color, const char *menuText) {
-	menuElementStruct *var_6;
+	menuElementStruct *pCurrentElement;
 	menuElementStruct *pNewElement;
-	menuElementSubStruct *pSubStruct;
-	menuElementSubStruct *pSubStructCurrent;
+	menuElementSubStruct *pNewSubStruct;
+	menuElementSubStruct *pCurrentSubStruct;
 
 	if (pMenu->numElements <= 48) {
-		var_6 = pMenu->ptrNextElement;
+		pCurrentElement = pMenu->ptrNextElement;
 
-		while (var_6 && var_6->next) {
+		while (pCurrentElement && pCurrentElement->next) {
 			if (param2) {
-				if (!strcmp(var_6->string, menuText)) {
-					pNewElement = var_6;
-					pSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
-					ASSERT(pSubStruct);
+				if (!strcmp(pCurrentElement->string, menuText)) {
+					pNewElement = pCurrentElement;
+					pNewSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
+					ASSERT(pNewSubStruct);
 
-					pSubStruct->pNext = NULL;
-					pSubStruct->ovlIdx = ovlIdx;
-					pSubStruct->header = headerIdx;
+					pNewSubStruct->pNext = NULL;
+					pNewSubStruct->ovlIdx = ovlIdx;
+					pNewSubStruct->header = headerIdx;
 
-					pSubStructCurrent = pNewElement->ptrSub;
+					pCurrentSubStruct = pNewElement->ptrSub;
 
-					if (!pSubStructCurrent) {
-						pNewElement->ptrSub = pSubStruct;
+					if (!pCurrentSubStruct) {
+						pNewElement->ptrSub = pNewSubStruct;
 						return;
 					}
 
-					while (pSubStructCurrent->pNext) {
-						pSubStructCurrent = pSubStructCurrent->pNext;
+					while (pCurrentSubStruct->pNext) {
+						pCurrentSubStruct = pCurrentSubStruct->pNext;
 					}
 
-					pSubStructCurrent->pNext = pSubStruct;
+					pCurrentSubStruct->pNext = pNewSubStruct;
 					return;
 				}
 			}
-			var_6 = var_6->next;
+			pCurrentElement = pCurrentElement->next;
 		}
 
 		pNewElement = (menuElementStruct *)allocAndZero(sizeof(menuElementStruct));
 		ASSERT(pNewElement);
-		pSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
-		ASSERT(pSubStruct);
+		pNewSubStruct = (menuElementSubStruct *)allocAndZero(sizeof(menuElementSubStruct));
+		ASSERT(pNewSubStruct);
 
 		pNewElement->string = menuText;
 		pNewElement->next = NULL;
@@ -99,17 +98,17 @@ void addSelectableMenuEntry(int ovlIdx, int headerIdx, menuStruct *pMenu, int pa
 		pNewElement->color = color;
 		pNewElement->gfx = renderText(160, menuText);
 
-		if (var_6 == NULL) {
+		if (pCurrentElement == NULL) {
 			pMenu->ptrNextElement = pNewElement;
 		} else {
-			var_6->next = pNewElement;
+			pCurrentElement->next = pNewElement;
 		}
 
-		pNewElement->ptrSub = pSubStruct;
+		pNewElement->ptrSub = pNewSubStruct;
 
-		pSubStruct->pNext = NULL;
-		pSubStruct->ovlIdx = ovlIdx;
-		pSubStruct->header = headerIdx;
+		pNewSubStruct->pNext = NULL;
+		pNewSubStruct->ovlIdx = ovlIdx;
+		pNewSubStruct->header = headerIdx;
 
 		pMenu->numElements++;
 	}
