@@ -173,7 +173,7 @@ int Menu::process() {
 	flipScreen();
 
 	if (mouseButton & 1) {
-		menuElementSubStruct* pSelectedEntry = getSelectedEntryInMenu(this);
+		menuElementSubStruct* pSelectedEntry = getSelectedEntry();
 
 		if (pSelectedEntry) {
 			return pSelectedEntry->header;
@@ -211,6 +211,7 @@ static void handleSaveLoad(bool saveFlag) {
 	delete dialog;
 }
 
+// this function does not look like it belongs to here.
 int playerMenu(int menuX, int menuY) {
 	int retourMenu;
 	//int restartGame = 0;
@@ -315,6 +316,32 @@ Menu::~Menu() {
 	}
 
 	freeGfx(_gfx);
+}
+
+menuElementSubStruct *Menu::getSelectedEntry(menuElementStruct* pSelectedElement) {
+	menuElementStruct *pMenuElement;
+	if (_numElements == 0) {
+		pSelectedElement = NULL;
+		return NULL;
+	}
+
+	pMenuElement = _ptrNextElement;
+
+	while (pMenuElement) {
+		if (pMenuElement->selected) {
+			pSelectedElement = pMenuElement;
+			return pMenuElement->ptrSub;
+		}
+
+		pMenuElement = pMenuElement->next;
+	}
+	pSelectedElement = NULL;
+	return NULL;
+}
+
+menuElementSubStruct *Menu::getSelectedEntry() {
+	menuElementStruct *dummy = NULL;
+	return getSelectedEntry(dummy);
 }
 
 } // End of namespace Cruise
