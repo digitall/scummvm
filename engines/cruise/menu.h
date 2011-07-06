@@ -50,10 +50,11 @@ public:
 	int _y;
 	int _numElements;
 	menuElementStruct *_ptrNextElement;
+
+	Menu(int X, int Y, const char *menuName);
 };
 
 
-Menu *createMenu(int X, int Y, const char *menuName);
 void addSelectableMenuEntry(int var0, int var1, Menu * pMenu, int var2,
                             int color, const char *menuText);
 void updateMenuMouse(int mouseX, int mouseY, Menu * pMenu);

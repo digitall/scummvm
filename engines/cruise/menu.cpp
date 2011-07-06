@@ -33,20 +33,13 @@ namespace Cruise {
 
 extern int currentMouseButton;
 
-Menu *createMenu(int X, int Y, const char *menuName) {
-	Menu *entry;
-
-	entry = (Menu *) MemAlloc(sizeof(Menu));
-	ASSERT(entry);
-
-	entry->_x = X - 160 / 2;
-	entry->_y = Y;
-	entry->_stringPtr = menuName;
-	entry->_numElements = 0;
-	entry->_ptrNextElement = NULL;
-	entry->_gfx = renderText(160, menuName);
-
-	return entry;
+Menu::Menu(int X, int Y, const char *menuName) {
+	_x = X - 160 / 2;
+	_y = Y;
+	_stringPtr = menuName;
+	_numElements = 0;
+	_ptrNextElement = NULL;
+	_gfx = renderText(160, menuName);
 }
 
 void addSelectableMenuEntry(int ovlIdx, int headerIdx, Menu *pMenu, int param2, int color, const char *menuText) {
@@ -254,7 +247,7 @@ int playerMenu(int menuX, int menuY) {
 		    linkedRelation = 0; */
 		freeDisk();
 
-		menuTable[0] = createMenu(menuX, menuY, _vm->langString(ID_PLAYER_MENU));
+		menuTable[0] = new Menu(menuX, menuY, _vm->langString(ID_PLAYER_MENU));
 		ASSERT(menuTable[0]);
 
 		//addSelectableMenuEntry(0, 3, menuTable[0], 1, -1, "Save game disk");
