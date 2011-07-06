@@ -792,7 +792,7 @@ void *allocAndZero(int size) {
 void buildInventory(int X, int Y) {
 	Menu *pMenu;
 
-	pMenu = createMenu(X, Y, _vm->langString(ID_INVENTORY));
+	pMenu = new Menu(X, Y, _vm->langString(ID_INVENTORY));
 	menuTable[1] = pMenu;
 
 	if (pMenu == NULL)
@@ -868,7 +868,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 
 	getSingleObjectParam(objOvl, objIdx, 5, &objectState);
 
-	menuTable[0] = createMenu(x, y, _vm->langString(ID_SPEAK_ABOUT));
+	menuTable[0] = new Menu(x, y, _vm->langString(ID_SPEAK_ABOUT));
 
 	for (j = 1; j < numOfLoadedOverlay; j++) {
 		if (overlayTable[j].alreadyLoaded) {
@@ -1014,7 +1014,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 						if ((first) && (ovl3->arrayNameObj) && ((testState == -1) || (testState == objectState))) {
 							const char *ptrName = getObjectName(ptrHead->obj1Number, ovl3->arrayNameObj);
 
-							menuTable[0] = createMenu(x, y, ptrName);
+							menuTable[0] = new Menu(x, y, ptrName);
 							first = false;
 						}
 					}
