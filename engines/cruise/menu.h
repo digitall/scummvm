@@ -53,11 +53,11 @@ public:
 
 	Menu(int X, int Y, const char *menuName);
 	~Menu();
+
+	void addSelectableMenuEntry(int var0, int var1, int var2, int color,
+	                            const char *menuText);
 };
 
-
-void addSelectableMenuEntry(int var0, int var1, Menu * pMenu, int var2,
-                            int color, const char *menuText);
 void updateMenuMouse(int mouseX, int mouseY, Menu * pMenu);
 int processMenu(Menu * pMenu);
 int playerMenu(int menuX, int menuY);
