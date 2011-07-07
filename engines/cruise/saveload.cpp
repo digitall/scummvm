@@ -507,8 +507,7 @@ static void syncActors(Common::Serializer &s) {
 		if(s.isSaving()){
 			p = ptr;
 		} else {
-			p = (ActorListNode *)mallocAndZero(sizeof(ActorListNode));
-			p->_actor = (Actor *)malloc(sizeof(ActorListNode));
+			p = new ActorListNode;
 		}
 		pActor = p->_actor;
 

@@ -59,12 +59,16 @@ public:
 	int16 _flag;
 	int16 _start;
 	int16 _freeze;
+
+	Actor();
 };
 class ActorListNode {
 public:
 	ActorListNode *_next;
 	ActorListNode *_prev;
 	Actor *_actor;
+
+	ActorListNode();
 
 };
 
