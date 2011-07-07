@@ -68,6 +68,9 @@ CellListNode::CellListNode() {
 
 }
 
+CellListNode::~CellListNode() {
+	delete _cell;
+}
 void CellListNode::resetPtr() {
 	_next = NULL;
 	_prev = NULL;
@@ -223,7 +226,6 @@ void CellListNode::removeCell(int ovlNumber, int objectIdx, int objType, int bac
 			dx->_prev = si->_prev;
 
 			// Free the entry
-			delete si->_cell;
 			delete si;
 
 			currentObj = dx;
