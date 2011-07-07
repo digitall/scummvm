@@ -60,6 +60,10 @@ ActorListNode::ActorListNode() {
 	_actor = new Actor;
 }
 
+ActorListNode::~ActorListNode() {
+    delete _actor;
+}
+
 bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType) {
 	ActorListNode *pCurrentEntry = pStartEntry->_next;
 	Actor *pCurrentActor;
@@ -1060,8 +1064,6 @@ int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType) {
 
 			if (pActor->_pathId >= 0)
 				freePerso(pActor->_pathId);
-			delete pActor;
-
 			delete pl;
 			pl = pl4;
 		} else {

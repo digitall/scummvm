@@ -69,6 +69,7 @@ public:
         Actor *_actor;
 
         ActorListNode();
+        ~ActorListNode();
 
 };
 
