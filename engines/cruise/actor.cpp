@@ -54,6 +54,12 @@ Actor::Actor() {
 	_freeze = 0;
 }
 
+bool Actor::isAnimFinished() {
+	if (_pathId == ANIM_FINISH)
+		return true;
+	else
+		return false;
+}
 ActorListNode::ActorListNode() {
 	_next = NULL;
 	_prev = NULL;
@@ -67,14 +73,9 @@ ActorListNode::~ActorListNode() {
 bool ActorListNode::isAnimFinished(int overlayIdx, int idx, int objType) {
 	ActorListNode *pCurrentEntry = findActor(overlayIdx, idx, objType);
 	if (!pCurrentEntry)
-		return 1;
+		return true;
+	return pCurrentEntry->_actor->isAnimFinished();
 
-	if (pCurrentEntry->_actor->_pathId != ANIM_FINISH) {
-		return false;
-	}
-
-
-	return 1;
 }
 
 ActorListNode *ActorListNode::findActor(int overlayIdx, int objIdx, int type) {
