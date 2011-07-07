@@ -1083,22 +1083,22 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 							if (pHeader->trackDirection == 9999) {
 								objectParamsQuery naratorParams;
 								getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-								pTrack->_xDest = naratorParams.X;
-								pTrack->_yDest = naratorParams.Y;
-								pTrack->_endDirection = direction(naratorParams.X, naratorParams.Y, pTrack->_xDest, pTrack->_yDest, 0, 0);
+								pTrack->_actor->_xDest = naratorParams.X;
+								pTrack->_actor->_yDest = naratorParams.Y;
+								pTrack->_actor->_endDirection = direction(naratorParams.X, naratorParams.Y, pTrack->_actor->_xDest, pTrack->_actor->_yDest, 0, 0);
 							} else if ((pHeader->trackX == 9999) && (pHeader->trackY == 9999)) {
 								objectParamsQuery naratorParams;
 								getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-								pTrack->_xDest = naratorParams.X;
-								pTrack->_yDest = naratorParams.Y;
-								pTrack->_endDirection = pHeader->trackDirection;
+								pTrack->_actor->_xDest = naratorParams.X;
+								pTrack->_actor->_yDest = naratorParams.Y;
+								pTrack->_actor->_endDirection = pHeader->trackDirection;
 							} else {
-								pTrack->_xDest = pHeader->trackX;
-								pTrack->_yDest = pHeader->trackY;
-								pTrack->_endDirection = pHeader->trackDirection;
+								pTrack->_actor->_xDest = pHeader->trackX;
+								pTrack->_actor->_yDest = pHeader->trackY;
+								pTrack->_actor->_endDirection = pHeader->trackDirection;
 							}
 
-							pTrack->_flag = 1;
+							pTrack->_actor->_flag = 1;
 
 							autoTrack = true;
 							userEnabled = 0;
@@ -1147,21 +1147,21 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 
 							if (pHeader->trackDirection == 9999) {
 								getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-								pTrack->_xDest = naratorParams.X;
-								pTrack->_yDest = naratorParams.Y;
-								pTrack->_endDirection = direction(naratorParams.X, naratorParams.Y, pHeader->trackX,pHeader->trackY, 0, 0);
+								pTrack->_actor->_xDest = naratorParams.X;
+								pTrack->_actor->_yDest = naratorParams.Y;
+								pTrack->_actor->_endDirection = direction(naratorParams.X, naratorParams.Y, pHeader->trackX,pHeader->trackY, 0, 0);
 							} else if ((pHeader->trackX == 9999) && (pHeader->trackY == 9999)) {
 								getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-								pTrack->_xDest = naratorParams.X;
-								pTrack->_yDest = naratorParams.Y;
-								pTrack->_endDirection = pHeader->trackDirection;
+								pTrack->_actor->_xDest = naratorParams.X;
+								pTrack->_actor->_yDest = naratorParams.Y;
+								pTrack->_actor->_endDirection = pHeader->trackDirection;
 							} else {
-								pTrack->_xDest = pHeader->trackX;
-								pTrack->_yDest = pHeader->trackY;
-								pTrack->_endDirection = pHeader->trackDirection;
+								pTrack->_actor->_xDest = pHeader->trackX;
+								pTrack->_actor->_yDest = pHeader->trackY;
+								pTrack->_actor->_endDirection = pHeader->trackDirection;
 							}
 
-							pTrack->_flag = 1;
+							pTrack->_actor->_flag = 1;
 							autoTrack = true;
 							userWait = 0;
 							userEnabled = 0;
@@ -1221,22 +1221,22 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 						if (pHeader->trackDirection == 9999) {
 							objectParamsQuery naratorParams;
 							getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-							pTrack->_xDest = naratorParams.X;
-							pTrack->_yDest = naratorParams.Y;
-							pTrack->_endDirection = direction(naratorParams.X, naratorParams.Y, pTrack->_xDest, pTrack->_yDest, 0, 0);
+							pTrack->_actor->_xDest = naratorParams.X;
+							pTrack->_actor->_yDest = naratorParams.Y;
+							pTrack->_actor->_endDirection = direction(naratorParams.X, naratorParams.Y, pTrack->_actor->_xDest, pTrack->_actor->_yDest, 0, 0);
 						} else if ((pHeader->trackX == 9999) && (pHeader->trackY == 9999)) {
 							objectParamsQuery naratorParams;
 							getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-							pTrack->_xDest = naratorParams.X;
-							pTrack->_yDest = naratorParams.Y;
-							pTrack->_endDirection = pHeader->trackDirection;
+							pTrack->_actor->_xDest = naratorParams.X;
+							pTrack->_actor->_yDest = naratorParams.Y;
+							pTrack->_actor->_endDirection = pHeader->trackDirection;
 						} else {
-							pTrack->_xDest = pHeader->trackX;
-							pTrack->_yDest = pHeader->trackY;
-							pTrack->_endDirection = pHeader->trackDirection;
+							pTrack->_actor->_xDest = pHeader->trackX;
+							pTrack->_actor->_yDest = pHeader->trackY;
+							pTrack->_actor->_endDirection = pHeader->trackDirection;
 						}
 
-						pTrack->_flag = 1;
+						pTrack->_actor->_flag = 1;
 
 						autoTrack = true;
 						userEnabled = 0;
@@ -1293,22 +1293,22 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 						if (pHeader->trackDirection == 9999) {
 							objectParamsQuery naratorParams;
 							getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-							pTrack->_xDest = naratorParams.X;
-							pTrack->_yDest = naratorParams.Y;
-							pTrack->_endDirection = direction(naratorParams.X, naratorParams.Y, pTrack->_xDest, pTrack->_yDest, 0, 0);
+							pTrack->_actor->_xDest = naratorParams.X;
+							pTrack->_actor->_yDest = naratorParams.Y;
+							pTrack->_actor->_endDirection = direction(naratorParams.X, naratorParams.Y, pTrack->_actor->_xDest, pTrack->_actor->_yDest, 0, 0);
 						} else if ((pHeader->trackX == 9999) && (pHeader->trackY == 9999)) {
 							objectParamsQuery naratorParams;
 							getMultipleObjectParam(narratorOvl, narratorIdx, &naratorParams);
-							pTrack->_xDest = naratorParams.X;
-							pTrack->_yDest = naratorParams.Y;
-							pTrack->_endDirection = pHeader->trackDirection;
+							pTrack->_actor->_xDest = naratorParams.X;
+							pTrack->_actor->_yDest = naratorParams.Y;
+							pTrack->_actor->_endDirection = pHeader->trackDirection;
 						} else {
-							pTrack->_xDest = pHeader->trackX;
-							pTrack->_yDest = pHeader->trackY;
-							pTrack->_endDirection = pHeader->trackDirection;
+							pTrack->_actor->_xDest = pHeader->trackX;
+							pTrack->_actor->_yDest = pHeader->trackY;
+							pTrack->_actor->_endDirection = pHeader->trackDirection;
 						}
 
-						pTrack->_flag = 1;
+						pTrack->_actor->_flag = 1;
 
 						autoTrack = true;
 						userWait = 0;

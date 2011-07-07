@@ -616,9 +616,9 @@ int16 Op_AniDir() {
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->overlayNumber;
 
-	ActorListNode *pActor = findActor(&actorHead, ovlIdx, objIdx, type);
-	if (pActor)
-		return pActor->_startDirection;
+	ActorListNode *pActorNode = findActor(&actorHead, ovlIdx, objIdx, type);
+	if (pActorNode)
+		return pActorNode->_actor->_startDirection;
 
 	return -1;
 }
@@ -1091,6 +1091,7 @@ int16 Op_GetZoom() {
 ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int param, int param2) {
 	ActorListNode *pPrevious = pHead;
 	ActorListNode *pCurrent = pHead->_next;
+	Actor *newActor;
 
 	// go to the end of the list
 	while (pCurrent) {
@@ -1098,8 +1099,8 @@ ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int 
 		pCurrent = pPrevious->_next;
 	}
 
-	if (pCurrent && (pCurrent->_overlayNumber == overlay)
-	        && (pCurrent->_idx == objIdx) && (pCurrent->_type == param2)) {
+	if (pCurrent && (pCurrent->_actor->_overlayNumber == overlay)
+	        && (pCurrent->_actor->_idx == objIdx) && (pCurrent->_actor->_type == param2)) {
 		return NULL;
 	}
 
@@ -1117,18 +1118,24 @@ ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int 
 
 	pNewElement->_prev = pCurrent->_prev;
 	pCurrent->_prev = pNewElement;
+	newActor = (Actor *)mallocAndZero(sizeof(Actor));
+	if (!newActor)
+		return NULL;
 
-	pNewElement->_idx = objIdx;
-	pNewElement->_type = param2;
-	pNewElement->_pathId = -1;
-	pNewElement->_overlayNumber = overlay;
-	pNewElement->_startDirection = param;
-	pNewElement->_nextDirection = -1;
-	pNewElement->_stepX = 5;
-	pNewElement->_stepY = 2;
-	pNewElement->_phase = ANIM_PHASE_WAIT;
-	pNewElement->_flag = 0;
-	pNewElement->_freeze = 0;
+	newActor->_idx = objIdx;
+	newActor->_type = param2;
+	newActor->_pathId = -1;
+	newActor->_overlayNumber = overlay;
+	newActor->_startDirection = param;
+	newActor->_nextDirection = -1;
+	newActor->_stepX = 5;
+	newActor->_stepY = 2;
+	newActor->_phase = ANIM_PHASE_WAIT;
+	newActor->_flag = 0;
+	newActor->_freeze = 0;
+
+
+	pNewElement->_actor = newActor;
 
 	return pNewElement;
 }
@@ -1138,6 +1145,7 @@ int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType)
 	ActorListNode* pl2;
 	ActorListNode* pl3;
 	ActorListNode* pl4;
+	Actor *pActor;
 
 	int dir = 0;
 
@@ -1148,10 +1156,10 @@ int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType)
 	while (pl) {
 		pl2 = pl;
 
-		if (((pl->_overlayNumber == overlay) || (overlay == -1)) &&
-		        ((pl->_idx == objIdx) || (objIdx == -1)) &&
-		        ((pl->_type == objType) || (objType == -1))) {
-			pl->_type = -1;
+		if (((pl->_actor->_overlayNumber == overlay) || (overlay == -1)) &&
+		        ((pl->_actor->_idx == objIdx) || (objIdx == -1)) &&
+		        ((pl->_actor->_type == objType) || (objType == -1))) {
+			pl->_actor->_type = -1;
 		}
 
 		pl = pl2->_next;
@@ -1162,7 +1170,8 @@ int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType)
 	pl = pl2->_next;
 
 	while (pl) {
-		if (pl->_type == -1) {
+		pActor = pl->_actor;
+		if (pActor->_type == -1) {
 			pl4 = pl->_next;
 			pl2->_next = pl4;
 			pl3 = pl4;
@@ -1172,10 +1181,11 @@ int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType)
 
 			pl3->_prev = pl->_prev;
 
-			dir = pl->_startDirection;
+			dir = pActor->_startDirection;
 
-			if (pl->_pathId >= 0)
-				freePerso(pl->_pathId);
+			if (pActor->_pathId >= 0)
+				freePerso(pActor->_pathId);
+			MemFree(pActor);
 
 			MemFree(pl);
 			pl = pl4;
@@ -1214,14 +1224,14 @@ int16 Op_AddAnimation() {
 
 			getMultipleObjectParam(overlay, obj, &params);
 
-			si->_x = params.X;
-			si->_y = params.Y;
-			si->_xDest = -1;
-			si->_yDest = -1;
-			si->_endDirection = -1;
-			si->_start = start;
-			si->_stepX = stepX;
-			si->_stepY = stepY;
+			si->_actor->_x = params.X;
+			si->_actor->_y = params.Y;
+			si->_actor->_xDest = -1;
+			si->_actor->_yDest = -1;
+			si->_actor->_endDirection = -1;
+			si->_actor->_start = start;
+			si->_actor->_stepX = stepX;
+			si->_actor->_stepY = stepY;
 
 			int newFrame = ABS(actor_end[direction][0]) - 1;
 
@@ -1324,10 +1334,10 @@ int16 Op_TrackAnim() {		// setup actor position
 
 	animationStart = false;
 
-	pActor->_xDest = actorX;
-	pActor->_yDest = actorY;
-	pActor->_flag = 1;
-	pActor->_endDirection = var0;
+	pActor->_actor->_xDest = actorX;
+	pActor->_actor->_yDest = actorY;
+	pActor->_actor->_flag = 1;
+	pActor->_actor->_endDirection = var0;
 
 	return 0;
 }
@@ -1482,8 +1492,8 @@ void Op_60Sub(int overlayIdx, ActorListNode * pActorHead, int _var0, int _var1, 
 	ActorListNode *pActor = findActor(pActorHead, overlayIdx, _var0, _var3);
 
 	if (pActor) {
-		if ((pActor->_freeze == _var2) || (_var2 == -1)) {
-			pActor->_freeze = _var1;
+		if ((pActor->_actor->_freeze == _var2) || (_var2 == -1)) {
+			pActor->_actor->_freeze = _var1;
 		}
 	}
 }
