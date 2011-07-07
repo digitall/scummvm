@@ -1883,7 +1883,7 @@ void CruiseEngine::mainLoop() {
 			}
 		}
 
-		processAnimation(&actorHead);
+		actorHead.processAnimation();
 
 		if (remdo) {
 			// ASSERT(0);
