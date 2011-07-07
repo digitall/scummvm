@@ -1015,4 +1015,62 @@ ActorListNode *addActor(ActorListNode * pHead, int overlay, int objIdx, int para
 	return pNewElement;
 }
 
+int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType) {
+	ActorListNode* pl;
+	ActorListNode* pl2;
+	ActorListNode* pl3;
+	ActorListNode* pl4;
+	Actor *pActor;
+
+	int dir = 0;
+
+	pl = pHead;
+	pl2 = pl;
+	pl = pl2->_next;
+
+	while (pl) {
+		pl2 = pl;
+
+		if (((pl->_actor->_overlayNumber == overlay) || (overlay == -1)) &&
+		        ((pl->_actor->_idx == objIdx) || (objIdx == -1)) &&
+		        ((pl->_actor->_type == objType) || (objType == -1))) {
+			pl->_actor->_type = -1;
+		}
+
+		pl = pl2->_next;
+	}
+
+	pl = pHead;
+	pl2 = pl;
+	pl = pl2->_next;
+
+	while (pl) {
+		pActor = pl->_actor;
+		if (pActor->_type == -1) {
+			pl4 = pl->_next;
+			pl2->_next = pl4;
+			pl3 = pl4;
+
+			if (pl3 == NULL)
+				pl3 = pHead;
+
+			pl3->_prev = pl->_prev;
+
+			dir = pActor->_startDirection;
+
+			if (pActor->_pathId >= 0)
+				freePerso(pActor->_pathId);
+			delete pActor;
+
+			delete pl;
+			pl = pl4;
+		} else {
+			pl2 = pl;
+			pl = pl2->_next;
+		}
+	}
+
+	return dir;
+}
+
 } // End of namespace Cruise
