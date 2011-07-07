@@ -615,7 +615,7 @@ int16 Op_AniDir() {
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->overlayNumber;
 
-	ActorListNode *pActorNode = findActor(&actorHead, ovlIdx, objIdx, type);
+	ActorListNode *pActorNode = actorHead.findActor(ovlIdx, objIdx, type);
 	if (pActorNode)
 		return pActorNode->_actor->_startDirection;
 
@@ -1215,7 +1215,7 @@ int16 Op_TrackAnim() {		// setup actor position
 		overlay = currentScriptPtr->overlayNumber;
 	}
 
-	pActor = findActor(&actorHead, overlay, var2, var1);
+	pActor = actorHead.findActor(overlay, var2, var1);
 
 	if (!pActor) {
 		return 1;
@@ -1378,7 +1378,7 @@ int16 Op_FreezeCell() {
 }
 
 void Op_60Sub(int overlayIdx, ActorListNode * pActorHead, int _var0, int _var1, int _var2, int _var3) {
-	ActorListNode *pActor = findActor(pActorHead, overlayIdx, _var0, _var3);
+	ActorListNode *pActor = pActorHead->findActor(overlayIdx, _var0, _var3);
 
 	if (pActor) {
 		if ((pActor->_actor->_freeze == _var2) || (_var2 == -1)) {
