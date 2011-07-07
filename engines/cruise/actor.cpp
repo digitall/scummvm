@@ -64,8 +64,8 @@ ActorListNode::~ActorListNode() {
 	delete _actor;
 }
 
-bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType) {
-	ActorListNode *pCurrentEntry = pStartEntry->_next;
+bool ActorListNode::isAnimFinished(int overlayIdx, int idx, int objType) {
+	ActorListNode *pCurrentEntry = _next;
 	Actor *pCurrentActor;
 
 	while (pCurrentEntry) {
