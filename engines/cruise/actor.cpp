@@ -65,21 +65,14 @@ ActorListNode::~ActorListNode() {
 }
 
 bool ActorListNode::isAnimFinished(int overlayIdx, int idx, int objType) {
-	ActorListNode *pCurrentEntry = _next;
-	Actor *pCurrentActor;
+	ActorListNode *pCurrentEntry = findActor(overlayIdx, idx, objType);
+	if (!pCurrentEntry)
+	    return 1;
 
-	while (pCurrentEntry) {
-	    pCurrentActor = pCurrentEntry->_actor;
-		if ((pCurrentActor->_overlayNumber == overlayIdx || overlayIdx == -1) &&
-		        (pCurrentActor->_idx == idx || idx == -1) &&
-		        (pCurrentActor->_type == objType || objType == -1)) {
-			if (pCurrentActor->_pathId != ANIM_FINISH) {
-				return false;
-			}
-		}
-
-		pCurrentEntry = pCurrentEntry->_next;
+	if (pCurrentEntry->_actor->_pathId != ANIM_FINISH) {
+	    return false;
 	}
+
 
 	return 1;
 }
