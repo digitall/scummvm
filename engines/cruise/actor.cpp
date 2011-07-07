@@ -33,8 +33,8 @@ enum AnimPathIds {
 	ANIM_STATIC = -3
 };
 
-bool isAnimFinished(int overlayIdx, int idx, Actor *pStartEntry, int objType) {
-	Actor *pCurrentEntry = pStartEntry->_next;
+bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType) {
+	ActorListNode *pCurrentEntry = pStartEntry->_next;
 
 	while (pCurrentEntry) {
 		if ((pCurrentEntry->_overlayNumber == overlayIdx || overlayIdx == -1) &&
@@ -51,8 +51,8 @@ bool isAnimFinished(int overlayIdx, int idx, Actor *pStartEntry, int objType) {
 	return 1;
 }
 
-Actor *findActor(Actor *pStartEntry, int overlayIdx, int objIdx, int type) {
-	Actor *pCurrentEntry = pStartEntry->_next;
+ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx, int type) {
+	ActorListNode *pCurrentEntry = pStartEntry->_next;
 
 	while (pCurrentEntry) {
 		if ((pCurrentEntry->_overlayNumber == overlayIdx
@@ -713,8 +713,8 @@ void set_anim(int ovl, int obj, int start, int x, int y, int mat, int state) {
 void processAnimation() {
 	objectParamsQuery params;
 	MovementEntry moveInfo;
-	Actor *currentActor = actorHead._next;
-	Actor *nextActor;
+	ActorListNode *currentActor = actorHead._next;
+	ActorListNode *nextActor;
 
 	while (currentActor) {
 		nextActor = currentActor->_next;
