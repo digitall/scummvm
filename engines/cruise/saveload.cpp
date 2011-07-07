@@ -488,7 +488,7 @@ static void syncIncrust(Common::Serializer &s) {
 
 static void syncActors(Common::Serializer &s) {
 	int numEntries = 0;
-	Actor *ptr;
+	ActorListNode *ptr;
 	uint16 dummyLong = 0;
 
 	if (s.isSaving()) {
@@ -502,7 +502,7 @@ static void syncActors(Common::Serializer &s) {
 
 	ptr = s.isSaving() ? actorHead._next : &actorHead;
 	for (int i = 0; i < numEntries; ++i) {
-		Actor *p = s.isSaving() ? ptr : (Actor *)mallocAndZero(sizeof(Actor));
+		ActorListNode *p = s.isSaving() ? ptr : (ActorListNode *)mallocAndZero(sizeof(ActorListNode));
 
 		s.syncAsUint32LE(dummyLong);
 		s.syncAsSint16LE(p->_idx);
