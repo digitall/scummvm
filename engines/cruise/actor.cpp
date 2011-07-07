@@ -84,8 +84,8 @@ bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int obj
 	return 1;
 }
 
-ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx, int type) {
-	ActorListNode *pCurrentEntry = pStartEntry->_next;
+ActorListNode *ActorListNode::findActor(int overlayIdx, int objIdx, int type) {
+	ActorListNode *pCurrentEntry = _next;
 	Actor *pCurrentActor;
 
 	while (pCurrentEntry) {

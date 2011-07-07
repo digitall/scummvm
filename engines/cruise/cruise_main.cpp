@@ -1075,7 +1075,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					}
 
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-						ActorListNode* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+						ActorListNode* pTrack = actorHead.findActor(narratorOvl, narratorIdx, 0);
 
 						if (pTrack) {
 							animationStart = false;
@@ -1139,7 +1139,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					autoMsg = pHeader->id;
 
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-						ActorListNode *pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+						ActorListNode *pTrack = actorHead.findActor(narratorOvl, narratorIdx, 0);
 
 						if (pTrack)	 {
 							objectParamsQuery naratorParams;
@@ -1213,7 +1213,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 				}
 
 				if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-					ActorListNode* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+					ActorListNode* pTrack = actorHead.findActor(narratorOvl, narratorIdx, 0);
 
 					if (pTrack) {
 						animationStart = false;
@@ -1285,7 +1285,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 				autoMsg = pHeader->id;
 
 				if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-					ActorListNode* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+					ActorListNode* pTrack = actorHead.findActor(narratorOvl, narratorIdx, 0);
 
 					if (pTrack) {
 						animationStart = false;
