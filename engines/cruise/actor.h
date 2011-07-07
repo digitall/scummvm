@@ -61,6 +61,8 @@ public:
 	int16 _freeze;
 
         Actor();
+
+	bool isAnimFinished();
 };
 class ActorListNode {
 public:
