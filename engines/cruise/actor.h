@@ -73,10 +73,10 @@ public:
         ActorListNode *addActor(int overlay, int objIdx, int param, int param2);
         int removeActor(int overlay, int objIdx, int objType);
         ActorListNode *findActor(int overlayIdx, int objIdx, int type);
+        bool isAnimFinished(int overlayIdx, int idx, int objType);
 
 };
 
-bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType);
 void processAnimation(ActorListNode *pObject);
 void getPixel(int x, int y);
 

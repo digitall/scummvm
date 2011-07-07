@@ -1919,7 +1919,7 @@ void CruiseEngine::mainLoop() {
 
 			// wait for character to finish auto track
 			if (autoTrack) {
-				if (isAnimFinished(narratorOvl, narratorIdx, &actorHead, ATP_MOUSE)) {
+				if (actorHead.isAnimFinished(narratorOvl, narratorIdx, ATP_MOUSE)) {
 					if (autoMsg != -1) {
 						cellHead.freezeCell(autoOvl, autoMsg, 5, -1, 9998, 0);
 
