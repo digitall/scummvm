@@ -1846,7 +1846,7 @@ void CruiseEngine::mainLoop() {
 			}
 		}
 
-		processAnimation();
+		processAnimation(&actorHead);
 
 		if (remdo) {
 			// ASSERT(0);
