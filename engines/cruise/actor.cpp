@@ -90,10 +90,9 @@ ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx,
 
 	while (pCurrentEntry) {
 		pCurrentActor = pCurrentEntry->_actor;
-		if ((pCurrentActor->_overlayNumber == overlayIdx
-		        || overlayIdx == -1) && (pCurrentActor->_idx == objIdx
-		                                 || objIdx == -1) && (pCurrentActor->_type == type
-		                                                      || type == -1)) {
+		if ((pCurrentActor->_overlayNumber == overlayIdx || overlayIdx == -1) && 
+			(pCurrentActor->_idx == objIdx || objIdx == -1) &&
+			(pCurrentActor->_type == type || type == -1)) {
 			return pCurrentEntry;
 		}
 
