@@ -1152,7 +1152,7 @@ int16 Op_RemoveAnimation() {
 		ovlIdx = currentScriptPtr->overlayNumber;
 	}
 
-	return removeActor(&actorHead, ovlIdx, objIdx, objType);
+	return actorHead.removeActor(ovlIdx, objIdx, objType);
 }
 
 int16 Op_regenerateBackgroundIncrust() {
