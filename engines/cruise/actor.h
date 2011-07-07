@@ -71,11 +71,10 @@ public:
 	ActorListNode();
 	~ActorListNode();
 	ActorListNode *addActor(int overlay, int objIdx, int param, int param2);
+	int removeActor(int overlay, int objIdx, int objType);
 
 };
 
-
-int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType);
 bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType);
 ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx, int type);
 void processAnimation(ActorListNode *pObject);

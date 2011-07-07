@@ -677,7 +677,7 @@ void initVars() {
 	// TODO: unfreeze anims
 
 	freeObjectList(&cellHead);
-	removeActor(&actorHead, -1, -1, -1);
+	actorHead.removeActor(-1, -1, -1);
 
 	removeAllScripts(&relHead);
 	removeAllScripts(&procHead);
