@@ -616,7 +616,7 @@ int16 Op_AniDir() {
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->overlayNumber;
 
-	Actor *pActor = findActor(&actorHead, ovlIdx, objIdx, type);
+	ActorListNode *pActor = findActor(&actorHead, ovlIdx, objIdx, type);
 	if (pActor)
 		return pActor->_startDirection;
 
@@ -1088,9 +1088,9 @@ int16 Op_GetZoom() {
 	return (computeZoom(popVar()));
 }
 
-Actor *addAnimation(Actor * pHead, int overlay, int objIdx, int param, int param2) {
-	Actor *pPrevious = pHead;
-	Actor *pCurrent = pHead->_next;
+ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int param, int param2) {
+	ActorListNode *pPrevious = pHead;
+	ActorListNode *pCurrent = pHead->_next;
 
 	// go to the end of the list
 	while (pCurrent) {
@@ -1103,11 +1103,11 @@ Actor *addAnimation(Actor * pHead, int overlay, int objIdx, int param, int param
 		return NULL;
 	}
 
-	Actor *pNewElement = (Actor *) MemAlloc(sizeof(Actor));
+	ActorListNode *pNewElement = (ActorListNode *) MemAlloc(sizeof(ActorListNode));
 	if (!pNewElement)
 		return NULL;
 
-	memset(pNewElement, 0, sizeof(Actor));
+	memset(pNewElement, 0, sizeof(ActorListNode));
 	pNewElement->_next = pPrevious->_next;
 	pPrevious->_next = pNewElement;
 
@@ -1133,11 +1133,11 @@ Actor *addAnimation(Actor * pHead, int overlay, int objIdx, int param, int param
 	return pNewElement;
 }
 
-int removeAnimation(Actor * pHead, int overlay, int objIdx, int objType) {
-	Actor* pl;
-	Actor* pl2;
-	Actor* pl3;
-	Actor* pl4;
+int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType) {
+	ActorListNode* pl;
+	ActorListNode* pl2;
+	ActorListNode* pl3;
+	ActorListNode* pl4;
 
 	int dir = 0;
 
@@ -1205,7 +1205,7 @@ int16 Op_AddAnimation() {
 	}
 
 	if (direction >= 0 && direction <= 3) {
-		Actor *si;
+		ActorListNode *si;
 
 		si = addAnimation(&actorHead, overlay, obj, direction, type);
 
@@ -1303,7 +1303,7 @@ int16 Op_GetPixel() {
 }
 
 int16 Op_TrackAnim() {		// setup actor position
-	Actor *pActor;
+	ActorListNode *pActor;
 
 	int var0 = popVar();
 	int actorY = popVar();
@@ -1478,8 +1478,8 @@ int16 Op_FreezeCell() {
 	return 0;
 }
 
-void Op_60Sub(int overlayIdx, Actor * pActorHead, int _var0, int _var1, int _var2, int _var3) {
-	Actor *pActor = findActor(pActorHead, overlayIdx, _var0, _var3);
+void Op_60Sub(int overlayIdx, ActorListNode * pActorHead, int _var0, int _var1, int _var2, int _var3) {
+	ActorListNode *pActor = findActor(pActorHead, overlayIdx, _var0, _var3);
 
 	if (pActor) {
 		if ((pActor->_freeze == _var2) || (_var2 == -1)) {
