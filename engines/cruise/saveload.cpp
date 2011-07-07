@@ -502,28 +502,36 @@ static void syncActors(Common::Serializer &s) {
 
 	ptr = s.isSaving() ? actorHead._next : &actorHead;
 	for (int i = 0; i < numEntries; ++i) {
-		ActorListNode *p = s.isSaving() ? ptr : (ActorListNode *)mallocAndZero(sizeof(ActorListNode));
+		ActorListNode *p;
+		Actor *pActor;
+		if(s.isSaving()){
+		    p = ptr;
+		} else {
+		    p = (ActorListNode *)mallocAndZero(sizeof(ActorListNode));
+		    p->_actor = (Actor *)malloc(sizeof(ActorListNode));
+		}
+		pActor = p->_actor;
 
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(p->_idx);
-		s.syncAsSint16LE(p->_type);
-		s.syncAsSint16LE(p->_overlayNumber);
-		s.syncAsSint16LE(p->_xDest);
-		s.syncAsSint16LE(p->_yDest);
-		s.syncAsSint16LE(p->_x);
-		s.syncAsSint16LE(p->_y);
-		s.syncAsSint16LE(p->_startDirection);
-		s.syncAsSint16LE(p->_nextDirection);
-		s.syncAsSint16LE(p->_endDirection);
-		s.syncAsSint16LE(p->_stepX);
-		s.syncAsSint16LE(p->_stepY);
-		s.syncAsSint16LE(p->_pathId);
-		s.syncAsSint16LE(p->_phase);
-		s.syncAsSint16LE(p->_counter);
-		s.syncAsSint16LE(p->_poly);
-		s.syncAsSint16LE(p->_flag);
-		s.syncAsSint16LE(p->_start);
-		s.syncAsSint16LE(p->_freeze);
+		s.syncAsSint16LE(pActor->_idx);
+		s.syncAsSint16LE(pActor->_type);
+		s.syncAsSint16LE(pActor->_overlayNumber);
+		s.syncAsSint16LE(pActor->_xDest);
+		s.syncAsSint16LE(pActor->_yDest);
+		s.syncAsSint16LE(pActor->_x);
+		s.syncAsSint16LE(pActor->_y);
+		s.syncAsSint16LE(pActor->_startDirection);
+		s.syncAsSint16LE(pActor->_nextDirection);
+		s.syncAsSint16LE(pActor->_endDirection);
+		s.syncAsSint16LE(pActor->_stepX);
+		s.syncAsSint16LE(pActor->_stepY);
+		s.syncAsSint16LE(pActor->_pathId);
+		s.syncAsSint16LE(pActor->_phase);
+		s.syncAsSint16LE(pActor->_counter);
+		s.syncAsSint16LE(pActor->_poly);
+		s.syncAsSint16LE(pActor->_flag);
+		s.syncAsSint16LE(pActor->_start);
+		s.syncAsSint16LE(pActor->_freeze);
 
 		if (s.isSaving())
 			ptr = ptr->_next;
