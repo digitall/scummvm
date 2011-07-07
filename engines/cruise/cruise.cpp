@@ -193,7 +193,7 @@ void CruiseEngine::pauseEngine(bool pause) {
 		_savedCursor = currentMouse._cursor;
 		currentMouse.changeCursor(CURSOR_NOMOUSE);
 	} else {
-		processAnimation();
+		processAnimation(&actorHead);
 		flipScreen();
 		currentMouse.changeCursor(_savedCursor);
 	}
