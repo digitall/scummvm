@@ -837,7 +837,7 @@ int16 Op_EndAnim() {
 	if (!overlay)
 		overlay = currentScriptPtr->overlayNumber;
 
-	return isAnimFinished(overlay, param2, &actorHead, param1);
+	return actorHead.isAnimFinished(overlay, param2, param1);
 }
 
 int16 Op_Protect() {
