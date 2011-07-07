@@ -717,13 +717,13 @@ void set_anim(int ovl, int obj, int start, int x, int y, int mat, int state) {
 void processAnimation() {
 	objectParamsQuery params;
 	MovementEntry moveInfo;
-	ActorListNode *currentActor = actorHead._next;
+	ActorListNode *pCurrentActorNode = actorHead._next;
 	ActorListNode *nextActor;
 	Actor *pCurrentActor;
 
-	while (currentActor) {
-		nextActor = currentActor->_next;
-		pCurrentActor = currentActor->_actor;
+	while (pCurrentActorNode) {
+		nextActor = pCurrentActorNode->_next;
+		pCurrentActor = pCurrentActorNode->_actor;
 		if (!pCurrentActor->_freeze && ((pCurrentActor->_type == ATP_MOUSE) || (pCurrentActor->_type == 1))) {
 			getMultipleObjectParam(pCurrentActor->_overlayNumber, pCurrentActor->_idx, &params);
 
@@ -933,7 +933,7 @@ void processAnimation() {
 			}
 		}
 
-		currentActor = nextActor;
+		pCurrentActorNode = nextActor;
 	}
 }
 
