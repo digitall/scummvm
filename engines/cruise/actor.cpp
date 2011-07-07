@@ -1019,7 +1019,7 @@ ActorListNode *ActorListNode::addActor(int overlay, int objIdx, int param, int p
 	return pNewElement;
 }
 
-int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType) {
+int ActorListNode::removeActor(int overlay, int objIdx, int objType) {
 	ActorListNode* pl;
 	ActorListNode* pl2;
 	ActorListNode* pl3;
@@ -1028,7 +1028,7 @@ int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType) {
 
 	int dir = 0;
 
-	pl = pHead;
+	pl = this;
 	pl2 = pl;
 	pl = pl2->_next;
 
@@ -1044,7 +1044,7 @@ int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType) {
 		pl = pl2->_next;
 	}
 
-	pl = pHead;
+	pl = this;
 	pl2 = pl;
 	pl = pl2->_next;
 
@@ -1056,7 +1056,7 @@ int removeActor(ActorListNode * pHead, int overlay, int objIdx, int objType) {
 			pl3 = pl4;
 
 			if (pl3 == NULL)
-				pl3 = pHead;
+				pl3 = this;
 
 			pl3->_prev = pl->_prev;
 
