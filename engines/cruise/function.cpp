@@ -1104,11 +1104,10 @@ ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int 
 		return NULL;
 	}
 
-	ActorListNode *pNewElement = (ActorListNode *) MemAlloc(sizeof(ActorListNode));
+	ActorListNode *pNewElement = new ActorListNode;
 	if (!pNewElement)
 		return NULL;
 
-	memset(pNewElement, 0, sizeof(ActorListNode));
 	pNewElement->_next = pPrevious->_next;
 	pPrevious->_next = pNewElement;
 
@@ -1118,7 +1117,7 @@ ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int 
 
 	pNewElement->_prev = pCurrent->_prev;
 	pCurrent->_prev = pNewElement;
-	newActor = (Actor *)mallocAndZero(sizeof(Actor));
+	newActor = pNewElement->_actor;
 	if (!newActor)
 		return NULL;
 
@@ -1185,9 +1184,9 @@ int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType)
 
 			if (pActor->_pathId >= 0)
 				freePerso(pActor->_pathId);
-			MemFree(pActor);
+			delete pActor;
 
-			MemFree(pl);
+			delete pl;
 			pl = pl4;
 		} else {
 			pl2 = pl;
