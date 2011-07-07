@@ -38,10 +38,8 @@ enum ATP {
 	ATP_TRACK = 1
 };
 
-class ActorListNode {
+class Actor {
 public:
-	ActorListNode *_next;
-	ActorListNode *_prev;
 	int16 _idx;
 	int16 _type;
 	int16 _overlayNumber;
@@ -61,6 +59,13 @@ public:
 	int16 _flag;
 	int16 _start;
 	int16 _freeze;
+};
+class ActorListNode {
+public:
+	ActorListNode *_next;
+	ActorListNode *_prev;
+	Actor *_actor;
+
 };
 
 bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType);
