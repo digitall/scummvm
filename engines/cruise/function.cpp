@@ -1107,7 +1107,7 @@ int16 Op_AddAnimation() {
 	if (direction >= 0 && direction <= 3) {
 		ActorListNode *si;
 
-		si = addActor(&actorHead, overlay, obj, direction, type);
+		si = actorHead.addActor(overlay, obj, direction, type);
 
 		if (si) {
 			objectParamsQuery params;
