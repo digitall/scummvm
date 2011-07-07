@@ -74,10 +74,10 @@ public:
 	int removeActor(int overlay, int objIdx, int objType);
 	ActorListNode *findActor(int overlayIdx, int objIdx, int type);
 	bool isAnimFinished(int overlayIdx, int idx, int objType);
+	void processAnimation();
 
 };
 
-void processAnimation(ActorListNode *pObject);
 void getPixel(int x, int y);
 
 } // End of namespace Cruise
