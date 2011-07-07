@@ -968,9 +968,9 @@ void processAnimation(ActorListNode *pObject) {
 	}
 }
 
-ActorListNode *addActor(ActorListNode * pHead, int overlay, int objIdx, int param, int param2) {
-	ActorListNode *pPrevious = pHead;
-	ActorListNode *pCurrent = pHead->_next;
+ActorListNode *ActorListNode::addActor(int overlay, int objIdx, int param, int param2) {
+	ActorListNode *pPrevious = this;
+	ActorListNode *pCurrent = _next;
 	Actor *newActor;
 
 	// go to the end of the list
@@ -992,7 +992,7 @@ ActorListNode *addActor(ActorListNode * pHead, int overlay, int objIdx, int para
 	pPrevious->_next = pNewElement;
 
 	if (!pCurrent) {
-		pCurrent = pHead;
+		pCurrent = this;
 	}
 
 	pNewElement->_prev = pCurrent->_prev;
