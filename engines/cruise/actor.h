@@ -70,7 +70,7 @@ public:
 
 bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType);
 ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx, int type);
-void processAnimation();
+void processAnimation(ActorListNode *pObject);
 void getPixel(int x, int y);
 
 } // End of namespace Cruise
