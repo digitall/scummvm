@@ -207,13 +207,13 @@ void resetPtr2(scriptInstanceStruct *ptr) {
 	ptr->scriptNumber = -1;
 }
 
-void resetActorPtr(Actor *ptr) {
-	Actor *p = ptr;
+void resetActorPtr(ActorListNode *ptr) {
+	ActorListNode *p = ptr;
 
 	if (p->_next) {
 		p = p->_next;
 		do {
-			Actor *pNext = p->_next;
+			ActorListNode *pNext = p->_next;
 			MemFree(p);
 			p = pNext;
 		} while (p);
@@ -1075,7 +1075,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					}
 
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-						Actor* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+						ActorListNode* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
 
 						if (pTrack) {
 							animationStart = false;
@@ -1139,7 +1139,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					autoMsg = pHeader->id;
 
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-						Actor *pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+						ActorListNode *pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
 
 						if (pTrack)	 {
 							objectParamsQuery naratorParams;
@@ -1213,7 +1213,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 				}
 
 				if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-					Actor* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+					ActorListNode* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
 
 					if (pTrack) {
 						animationStart = false;
@@ -1285,7 +1285,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 				autoMsg = pHeader->id;
 
 				if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
-					Actor* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
+					ActorListNode* pTrack = findActor(&actorHead, narratorOvl, narratorIdx, 0);
 
 					if (pTrack) {
 						animationStart = false;

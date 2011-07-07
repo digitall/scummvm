@@ -38,10 +38,10 @@ enum ATP {
 	ATP_TRACK = 1
 };
 
-class Actor {
+class ActorListNode {
 public:
-	Actor *_next;
-	Actor *_prev;
+	ActorListNode *_next;
+	ActorListNode *_prev;
 	int16 _idx;
 	int16 _type;
 	int16 _overlayNumber;
@@ -63,8 +63,8 @@ public:
 	int16 _freeze;
 };
 
-bool isAnimFinished(int overlayIdx, int idx, Actor *pStartEntry, int objType);
-Actor *findActor(Actor *pStartEntry, int overlayIdx, int objIdx, int type);
+bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType);
+ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx, int type);
 void processAnimation();
 void getPixel(int x, int y);
 

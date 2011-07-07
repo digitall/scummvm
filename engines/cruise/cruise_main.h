@@ -104,7 +104,7 @@ menuElementSubStruct *getSelectedEntryInMenu(Menu *pMenu);
 void closeAllMenu();
 int removeFinishedScripts(scriptInstanceStruct *ptrHandle);
 void initBigVar3();
-void resetActorPtr(Actor *ptr);
+void resetActorPtr(ActorListNode *ptr);
 void removeAllScripts(scriptInstanceStruct *ptrHandle);
 
 void MemoryList();
