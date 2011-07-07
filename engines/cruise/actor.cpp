@@ -33,6 +33,33 @@ enum AnimPathIds {
 	ANIM_STATIC = -3
 };
 
+Actor::Actor() {
+	_idx = 0;
+	_type = 0;
+	_overlayNumber = 0;
+	_xDest = 0;
+	_yDest = 0;
+	_x = 0;
+	_y = 0;
+	_startDirection = 0;
+	_nextDirection = 0;
+	_endDirection = 0;
+	_stepX = 0;
+	_stepY = 0;
+	_pathId = 0;
+	_counter = 0;
+	_poly = 0;
+	_flag = 0;
+	_start = 0;
+	_freeze = 0;
+}
+
+ActorListNode::ActorListNode() {
+	_next = NULL;
+	_prev = NULL;
+	_actor = new Actor;
+}
+
 bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType) {
 	ActorListNode *pCurrentEntry = pStartEntry->_next;
 	Actor *pCurrentActor;
