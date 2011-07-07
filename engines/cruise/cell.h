@@ -68,6 +68,7 @@ public:
 	Cell *_cell;
 
 	CellListNode();
+        ~CellListNode();
 	void resetPtr();
 	CellListNode *addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
 	CellListNode *addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
