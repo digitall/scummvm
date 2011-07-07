@@ -72,6 +72,7 @@ public:
 
 };
 
+ActorListNode *addActor(ActorListNode * pHead, int overlay, int objIdx, int param, int param2);
 bool isAnimFinished(int overlayIdx, int idx, ActorListNode *pStartEntry, int objType);
 ActorListNode *findActor(ActorListNode *pStartEntry, int overlayIdx, int objIdx, int type);
 void processAnimation(ActorListNode *pObject);

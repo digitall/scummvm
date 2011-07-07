@@ -1088,57 +1088,6 @@ int16 Op_GetZoom() {
 	return (computeZoom(popVar()));
 }
 
-ActorListNode *addAnimation(ActorListNode * pHead, int overlay, int objIdx, int param, int param2) {
-	ActorListNode *pPrevious = pHead;
-	ActorListNode *pCurrent = pHead->_next;
-	Actor *newActor;
-
-	// go to the end of the list
-	while (pCurrent) {
-		pPrevious = pCurrent;
-		pCurrent = pPrevious->_next;
-	}
-
-	if (pCurrent && (pCurrent->_actor->_overlayNumber == overlay)
-	        && (pCurrent->_actor->_idx == objIdx) && (pCurrent->_actor->_type == param2)) {
-		return NULL;
-	}
-
-	ActorListNode *pNewElement = new ActorListNode;
-	if (!pNewElement)
-		return NULL;
-
-	pNewElement->_next = pPrevious->_next;
-	pPrevious->_next = pNewElement;
-
-	if (!pCurrent) {
-		pCurrent = pHead;
-	}
-
-	pNewElement->_prev = pCurrent->_prev;
-	pCurrent->_prev = pNewElement;
-	newActor = pNewElement->_actor;
-	if (!newActor)
-		return NULL;
-
-	newActor->_idx = objIdx;
-	newActor->_type = param2;
-	newActor->_pathId = -1;
-	newActor->_overlayNumber = overlay;
-	newActor->_startDirection = param;
-	newActor->_nextDirection = -1;
-	newActor->_stepX = 5;
-	newActor->_stepY = 2;
-	newActor->_phase = ANIM_PHASE_WAIT;
-	newActor->_flag = 0;
-	newActor->_freeze = 0;
-
-
-	pNewElement->_actor = newActor;
-
-	return pNewElement;
-}
-
 int removeAnimation(ActorListNode * pHead, int overlay, int objIdx, int objType) {
 	ActorListNode* pl;
 	ActorListNode* pl2;
@@ -1216,7 +1165,7 @@ int16 Op_AddAnimation() {
 	if (direction >= 0 && direction <= 3) {
 		ActorListNode *si;
 
-		si = addAnimation(&actorHead, overlay, obj, direction, type);
+		si = addActor(&actorHead, overlay, obj, direction, type);
 
 		if (si) {
 			objectParamsQuery params;
