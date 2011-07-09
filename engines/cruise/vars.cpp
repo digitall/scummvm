@@ -82,8 +82,6 @@ SoundEntry soundList[4];
 
 opcodeTypeFunction opcodeTypeTable[64];
 
-int16 positionInStack;
-
 ActorListNode actorHead;
 
 int16 stateID;
@@ -171,6 +169,7 @@ Mouse currentMouse;
 BackgroundIncrustListNode backgroundIncrustListHead;
 CellListNode cellHead;
 Menu *menuTable[8];
+Stack stack;
 //OSystem *osystem;
 
 } // End of namespace Cruise
