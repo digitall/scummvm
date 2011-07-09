@@ -52,7 +52,7 @@ int32 opcodeType0() {
 
 	switch (currentScriptOpcodeType) {
 	case 0: {
-		pushVar(getShortFromScript());
+		stack.pushVar(getShortFromScript());
 		return (0);
 	}
 	case 5:
@@ -94,10 +94,10 @@ int32 opcodeType0() {
 
 		if (size == 1) {
 			address += index;
-			pushVar((int16)READ_BE_UINT16(address));
+			stack.pushVar((int16)READ_BE_UINT16(address));
 			return 0;
 		} else if (size == 2) {
-			pushVar(*address);
+			stack.pushVar(*address);
 			return 0;
 		} else {
 			error("Unsupported code in opcodeType0 case 1");
@@ -117,7 +117,7 @@ int32 opcodeType0() {
 			return -10;
 		}
 
-		pushVar(var_16);
+		stack.pushVar(var_16);
 		return 0;
 	}
 	default:
@@ -127,7 +127,7 @@ int32 opcodeType0() {
 
 // save opcode
 int32 opcodeType1()	{
-	int var = popVar();
+	int var = stack.popVar();
 	int offset = 0;
 
 	switch (currentScriptOpcodeType) {
@@ -255,9 +255,9 @@ int32 opcodeType2() {
 
 		if (size == 1) {
 			adresse += index;
-			pushPtr(adresse);
+			stack.pushPtr(adresse);
 		} else if (size == 2) {
-			pushPtr(adresse);
+			stack.pushPtr(adresse);
 		}
 
 	}
@@ -277,8 +277,8 @@ int32 opcodeType11() {	// break
 int32 opcodeType4() {		// test
 	int boolVar = 0;
 
-	int var1 = popVar();
-	int var2 = popVar();
+	int var1 = stack.popVar();
+	int var2 = stack.popVar();
 
 	switch (currentScriptOpcodeType) {
 	case 0: {
@@ -314,7 +314,7 @@ int32 opcodeType4() {		// test
 
 	}
 
-	pushVar(boolVar);
+	stack.pushVar(boolVar);
 
 	return (0);
 }
@@ -322,7 +322,7 @@ int32 opcodeType4() {		// test
 int32 opcodeType6() {
 	int si = 0;
 
-	int pop = popVar();
+	int pop = stack.popVar();
 
 	if (!pop)
 		si = 1;
@@ -341,11 +341,11 @@ int32 opcodeType6() {
 }
 
 int32 opcodeType7() {
-	int var1 = popVar();
-	int var2 = popVar();
+	int var1 = stack.popVar();
+	int var2 = stack.popVar();
 
-	pushVar(var1);
-	pushVar(var2);
+	stack.pushVar(var1);
+	stack.pushVar(var2);
 
 	return (0);
 }
@@ -406,37 +406,37 @@ int32 opcodeType5() {
 }
 
 int32 opcodeType3()	{	// math
-	int pop1 = popVar();
-	int pop2 = popVar();
+	int pop1 = stack.popVar();
+	int pop2 = stack.popVar();
 
 	switch (currentScriptOpcodeType) {
 	case 0: {
-		pushVar(pop1 + pop2);
+		stack.pushVar(pop1 + pop2);
 		return (0);
 	}
 	case 1: {
-		pushVar(pop1 / pop2);
+		stack.pushVar(pop1 / pop2);
 		return (0);
 	}
 	case 2: {
-		pushVar(pop1 - pop2);
+		stack.pushVar(pop1 - pop2);
 		return (0);
 	}
 	case 3: {
-		pushVar(pop1 * pop2);
+		stack.pushVar(pop1 * pop2);
 		return (0);
 	}
 	case 4: {
-		pushVar(pop1 % pop2);
+		stack.pushVar(pop1 % pop2);
 		return (0);
 	}
 	case 7:
 	case 5: {
-		pushVar(pop2 | pop1);
+		stack.pushVar(pop2 | pop1);
 		return (0);
 	}
 	case 6: {
-		pushVar(pop2 & pop1);
+		stack.pushVar(pop2 & pop1);
 		return (0);
 	}
 	}
@@ -612,7 +612,7 @@ int executeScripts(scriptInstanceStruct *ptr) {
 
 	currentScriptPtr = ptr;
 
-	positionInStack = 0;
+	stack.reset();
 
 	do {
 #ifdef SKIP_INTRO

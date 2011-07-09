@@ -20,6 +20,8 @@
  *
  */
 
+#include "common/stack.h"
+
 #ifndef CRUISE_STACK_H
 #define CRUISE_STACK_H
 
@@ -42,13 +44,24 @@ public:
 		void *_ptrVar;
 		int16 _shortVar;
 	} _data;
+	StackElement() {}
+	StackElement(int16 var);
+	StackElement(void *ptr);
+
+
+
 };
 
-int16 popVar();
-void pushVar(int16 var);
+class Stack : private Common::Stack<StackElement> {
+public:
+	void reset();
 
-void pushPtr(void *ptr);
-void *popPtr();
+	void pushVar(int16 var);
+	int16 popVar();
+
+	void pushPtr(void *ptr);
+	void *popPtr();
+};
 
 } // End of namespace Cruise
 
