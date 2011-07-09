@@ -568,7 +568,7 @@ void CruiseEngine::initAllData() {
 #endif
 
 	if (bootOverlayNumber) {
-		positionInStack = 0;
+		stack.reset();
 
 		attacheNewScriptToTail(&procHead, bootOverlayNumber, 0, 20, 0, 0, scriptType_PROC);
 		scriptFunc2(bootOverlayNumber, &procHead, 1, 0);

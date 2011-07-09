@@ -42,7 +42,7 @@ int16 Op_LoadOverlay() {
 	char overlayName[38] = "";
 	int overlayLoadResult;
 
-	pOverlayName = (char *)popPtr();
+	pOverlayName = (char *)stack.popPtr();
 
 	if (strlen(pOverlayName) == 0)
 		return 0;
@@ -63,8 +63,8 @@ int16 Op_LoadOverlay() {
 }
 
 int16 Op_Strcpy() {
-	char *ptr1 = (char *)popPtr();
-	char *ptr2 = (char *)popPtr();
+	char *ptr1 = (char *)stack.popPtr();
+	char *ptr2 = (char *)stack.popPtr();
 
 	while (*ptr1) {
 		*ptr2 = *ptr1;
@@ -85,16 +85,16 @@ int16 Op_Exec() {
 	uint8 *ptr2;
 	int16 popTable[200];
 
-	int numOfArgToPop = popVar();
+	int numOfArgToPop = stack.popVar();
 
 	int i = 0;
 
 	for (i = 0; i < numOfArgToPop; i++) {
-		popTable[numOfArgToPop - i - 1] = popVar();
+		popTable[numOfArgToPop - i - 1] = stack.popVar();
 	}
 
-	scriptIdx = popVar();
-	ovlIdx = popVar();
+	scriptIdx = stack.popVar();
+	ovlIdx = stack.popVar();
 
 	if (!ovlIdx) {
 		ovlIdx = currentScriptPtr->overlayNumber;
@@ -120,17 +120,17 @@ int16 Op_Exec() {
 }
 
 int16 Op_AddProc() {
-	int pop1 = popVar();
+	int pop1 = stack.popVar();
 	int pop2;
 	int overlay;
 	int param[160];
 
 	for (long int i = 0; i < pop1; i++) {
-		param[i] = popVar();
+		param[i] = stack.popVar();
 	}
 
-	pop2 = popVar();
-	overlay = popVar();
+	pop2 = stack.popVar();
+	overlay = stack.popVar();
 
 	if (!overlay)
 		overlay = currentScriptPtr->overlayNumber;
@@ -152,8 +152,8 @@ int16 Op_AddProc() {
 }
 
 int16 Op_Narrator() {
-	int pop1 = popVar();
-	int pop2 = popVar();
+	int pop1 = stack.popVar();
+	int pop2 = stack.popVar();
 
 	if (!pop2)
 		pop2 = currentScriptPtr->overlayNumber;
@@ -187,7 +187,7 @@ int16 Op_GetMouseY() {
 }
 
 int16 Op_Random() {
-	int var = popVar();
+	int var = stack.popVar();
 
 	if (var < 2) {
 		return (0);
@@ -197,10 +197,10 @@ int16 Op_Random() {
 }
 
 int16 Op_PlayFX() {
-	int volume = popVar();
-	int speed = popVar();
-	/*int channelNum = */popVar();
-	int sampleNum = popVar();
+	int volume = stack.popVar();
+	int speed = stack.popVar();
+	/*int channelNum = */stack.popVar();
+	int sampleNum = stack.popVar();
 
 	if ((sampleNum >= 0) && (sampleNum < NUM_FILE_ENTRIES) && (filesDatabase[sampleNum].subData.ptr)) {
 		if (speed == -1)
@@ -214,10 +214,10 @@ int16 Op_PlayFX() {
 }
 
 int16 Op_LoopFX() {
-	int volume = popVar();
-	int speed = popVar();
-	/*int channelNum = */popVar();
-	int sampleNum = popVar();
+	int volume = stack.popVar();
+	int speed = stack.popVar();
+	/*int channelNum = */stack.popVar();
+	int sampleNum = stack.popVar();
 
 	if ((sampleNum >= 0) && (sampleNum < NUM_FILE_ENTRIES) && (filesDatabase[sampleNum].subData.ptr)) {
 		if (speed == -1)
@@ -231,7 +231,7 @@ int16 Op_LoopFX() {
 }
 
 int16 Op_StopFX() {
-	int channelNum = popVar();
+	int channelNum = stack.popVar();
 
 	if (channelNum == -1) {
 		_vm->sound().stopChannel(0);
@@ -246,10 +246,10 @@ int16 Op_StopFX() {
 }
 
 int16 Op_FreqFX() {
-	int volume = popVar();
-	int freq2 = popVar();
-	int channelNum = popVar();
-	int sampleNum = popVar();
+	int volume = stack.popVar();
+	int freq2 = stack.popVar();
+	int channelNum = stack.popVar();
+	int sampleNum = stack.popVar();
 
 	if ((sampleNum >= 0) && (sampleNum < NUM_FILE_ENTRIES) && (filesDatabase[sampleNum].subData.ptr)) {
 		int freq = Period(freq2 * 1000);
@@ -298,8 +298,8 @@ int16 Op_freeBackgroundInscrustList() {
 
 
 int16 Op_UnmergeBackgroundIncrust() {
-	int obj = popVar();
-	int ovl = popVar();
+	int obj = stack.popVar();
+	int ovl = stack.popVar();
 
 	if (!ovl) {
 		ovl = currentScriptPtr->overlayNumber;
@@ -320,8 +320,8 @@ int16 Op_RemoveMessage() {
 	int idx;
 	int overlay;
 
-	idx = popVar();
-	overlay = popVar();
+	idx = stack.popVar();
+	overlay = stack.popVar();
 
 	if (!overlay) {
 		overlay = currentScriptPtr->overlayNumber;
@@ -337,7 +337,7 @@ int16 Op_FindSet() {
 	char name[36] = "";
 	char *ptr;
 
-	ptr = (char *) popPtr();
+	ptr = (char *) stack.popPtr();
 
 	if (!ptr) {
 		return -1;
@@ -356,8 +356,8 @@ int16 Op_FindSet() {
 }
 
 int16 Op_RemoveFrame() {
-	int count = popVar();
-	int start = popVar();
+	int count = stack.popVar();
+	int start = stack.popVar();
 
 	resetFileEntryRange(start, count);
 
@@ -367,7 +367,7 @@ int16 Op_RemoveFrame() {
 int16 Op_comment() {
 	char *var;
 
-	var = (char *)popPtr();
+	var = (char *)stack.popPtr();
 
 	debug(1, "COMMENT: \"%s\"", var);
 
@@ -378,8 +378,8 @@ int16 Op_RemoveProc() {
 	int idx;
 	int overlay;
 
-	idx = popVar();
-	overlay = popVar();
+	idx = stack.popVar();
+	overlay = stack.popVar();
 
 	if (!overlay) {
 		overlay = currentScriptPtr->overlayNumber;
@@ -394,7 +394,7 @@ int16 Op_FreeOverlay() {
 	char localName[36] = "";
 	char *namePtr;
 
-	namePtr = (char *) popPtr();
+	namePtr = (char *) stack.popPtr();
 
 	strcpy(localName, namePtr);
 
@@ -411,11 +411,11 @@ int16 Op_FindProc() {
 	char *ptr;
 	int param;
 
-	ptr = (char *)popPtr();
+	ptr = (char *)stack.popPtr();
 
 	strcpy(name, ptr);
 
-	param = getProcParam(popVar(), 20, name);
+	param = getProcParam(stack.popVar(), 20, name);
 
 	return param;
 }
@@ -450,14 +450,14 @@ int16 Op_KillMenu() {
 
 int16 Op_UserMenu() {
 	int oldValue = playerMenuEnabled;
-	playerMenuEnabled = popVar();
+	playerMenuEnabled = stack.popVar();
 
 	return oldValue;
 }
 
 int16 Op_UserOn() {
 	int oldValue = userEnabled;
-	int newValue = popVar();
+	int newValue = stack.popVar();
 
 	if (newValue != -1) {
 		userEnabled = newValue;
@@ -468,7 +468,7 @@ int16 Op_UserOn() {
 
 int16 Op_Display() {
 	int oldValue = displayOn;
-	int newValue = popVar();
+	int newValue = stack.popVar();
 
 	if (newValue != -1) {
 		displayOn = newValue;
@@ -493,11 +493,11 @@ int16 Op_LoadBackground() {
 	char *ptr;
 	int bgIdx;
 
-	ptr = (char *) popPtr();
+	ptr = (char *) stack.popPtr();
 
 	strcpy(bgName, ptr);
 
-	bgIdx = popVar();
+	bgIdx = stack.popVar();
 
 	if (bgIdx >= 0 || bgIdx < NBSCREENS) {
 		strToUpper(bgName);
@@ -518,7 +518,7 @@ int16 Op_LoadBackground() {
 int16 Op_FrameExist() {
 	int param;
 
-	param = popVar();
+	param = stack.popVar();
 
 	if (param < 0 || param > 255) {
 		return 0;
@@ -538,13 +538,13 @@ int16 Op_LoadFrame() {
 	char name[36] = "";
 	char *ptr;
 
-	ptr = (char *) popPtr();
+	ptr = (char *) stack.popPtr();
 
 	strcpy(name, ptr);
 
-	param1 = popVar();
-	param2 = popVar();
-	param3 = popVar();
+	param1 = stack.popVar();
+	param2 = stack.popVar();
+	param3 = stack.popVar();
 
 	if (param3 >= 0 || param3 < NUM_FILE_ENTRIES) {
 		strToUpper(name);
@@ -569,8 +569,8 @@ int16 Op_LoadAbs() {
 	char *ptr;
 	int result = 0;
 
-	ptr = (char *) popPtr();
-	slot = popVar();
+	ptr = (char *) stack.popPtr();
+	slot = stack.popVar();
 
 	if ((slot >= 0) && (slot < NUM_FILE_ENTRIES)) {
 		strcpy(name, ptr);
@@ -587,9 +587,9 @@ int16 Op_LoadAbs() {
 }
 
 int16 Op_InitializeState() {
-	int param1 = popVar();
-	int objIdx = popVar();
-	int ovlIdx = popVar();
+	int param1 = stack.popVar();
+	int objIdx = stack.popVar();
+	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->overlayNumber;
@@ -608,9 +608,9 @@ int16 Op_GetlowMemory() {
 }
 
 int16 Op_AniDir() {
-	int type = popVar();
-	int objIdx = popVar();
-	int ovlIdx = popVar();
+	int type = stack.popVar();
+	int objIdx = stack.popVar();
+	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->overlayNumber;
@@ -660,7 +660,7 @@ int16 Op_FindOverlay() {
 	char name[36] = "";
 	char *ptr;
 
-	ptr = (char *) popPtr();
+	ptr = (char *) stack.popPtr();
 
 	strcpy(name, ptr);
 	strToUpper(name);
@@ -671,10 +671,10 @@ int16 Op_FindOverlay() {
 int16 Op_WriteObject() {
 	int16 returnParam;
 
-	int16 param1 = popVar();
-	int16 param2 = popVar();
-	int16 param3 = popVar();
-	int16 param4 = popVar();
+	int16 param1 = stack.popVar();
+	int16 param2 = stack.popVar();
+	int16 param3 = stack.popVar();
+	int16 param4 = stack.popVar();
 
 	getSingleObjectParam(param4, param3, param2, &returnParam);
 	setObjectPosition(param4, param3, param2, param1);
@@ -685,9 +685,9 @@ int16 Op_WriteObject() {
 int16 Op_ReadObject() {
 	int16 returnParam;
 
-	int member = popVar();
-	int obj = popVar();
-	int ovl = popVar();
+	int member = stack.popVar();
+	int obj = stack.popVar();
+	int ovl = stack.popVar();
 
 	getSingleObjectParam(ovl, obj, member, &returnParam);
 
@@ -711,9 +711,9 @@ int16 Op_GetMouseButton() {
 }
 
 int16 Op_AddCell() {
-	int16 objType = popVar();
-	int16 objIdx = popVar();
-	int16 overlayIdx = popVar();
+	int16 objType = stack.popVar();
+	int16 objIdx = stack.popVar();
+	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
@@ -725,9 +725,9 @@ int16 Op_AddCell() {
 
 int16 Op_AddBackgroundIncrust() {
 
-	int16 objType = popVar();
-	int16 objIdx = popVar();
-	int16 overlayIdx = popVar();
+	int16 objType = stack.popVar();
+	int16 objIdx = stack.popVar();
+	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
@@ -738,9 +738,9 @@ int16 Op_AddBackgroundIncrust() {
 }
 
 int16 Op_RemoveCell() {
-	int objType = popVar();
-	int objectIdx = popVar();
-	int ovlNumber = popVar();
+	int objType = stack.popVar();
+	int objectIdx = stack.popVar();
+	int ovlNumber = stack.popVar();
 
 	if (!ovlNumber) {
 		ovlNumber = currentScriptPtr->overlayNumber;
@@ -754,7 +754,7 @@ int16 Op_RemoveCell() {
 int16 fontFileIndex = -1;
 
 int16 Op_SetFont() {
-	fontFileIndex = popVar();
+	fontFileIndex = stack.popVar();
 
 	return 0;
 }
@@ -773,7 +773,7 @@ int16 Op_ProtectionFlag() {
 	int16 temp = protectionCode;
 	int16 newVar;
 
-	newVar = popVar();
+	newVar = stack.popVar();
 	if (newVar != -1) {
 		protectionCode = newVar;
 	}
@@ -782,7 +782,7 @@ int16 Op_ProtectionFlag() {
 }
 
 int16 Op_ClearScreen() {
-	int bgIdx = popVar();
+	int bgIdx = stack.popVar();
 
 	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && (backgrounds[bgIdx]._backgroundScreen)) {
 		memset(backgrounds[bgIdx]._backgroundScreen, 0, 320 * 200);
@@ -794,12 +794,12 @@ int16 Op_ClearScreen() {
 }
 
 int16 Op_AddMessage() {
-	int16 color = popVar();
-	int16 var_2 = popVar();
-	int16 var_4 = popVar();
-	int16 var_6 = popVar();
-	int16 var_8 = popVar();
-	int16 overlayIdx = popVar();
+	int16 color = stack.popVar();
+	int16 var_2 = stack.popVar();
+	int16 var_4 = stack.popVar();
+	int16 var_6 = stack.popVar();
+	int16 var_8 = stack.popVar();
+	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
@@ -818,20 +818,20 @@ int16 Op_AddMessage() {
 }
 
 int16 Op_Preload() {
-	popPtr();
-	popVar();
+	stack.popPtr();
+	stack.popVar();
 
 	return 0;
 }
 
 int16 Op_LoadCt() {
-	return initCt((const char *)popPtr());
+	return initCt((const char *)stack.popPtr());
 }
 
 int16 Op_EndAnim() {
-	int param1 = popVar();
-	int param2 = popVar();
-	int overlay = popVar();
+	int param1 = stack.popVar();
+	int param2 = stack.popVar();
+	int overlay = stack.popVar();
 
 	if (!overlay)
 		overlay = currentScriptPtr->overlayNumber;
@@ -840,8 +840,8 @@ int16 Op_EndAnim() {
 }
 
 int16 Op_Protect() {
-	popPtr();
-	popVar();
+	stack.popPtr();
+	stack.popVar();
 
 	return 0;
 }
@@ -849,16 +849,16 @@ int16 Op_Protect() {
 int16 Op_AutoCell() {
 	CellListNode *pObject;
 
-	int signal = popVar();
-	int loop = popVar();
-	int wait = popVar();
-	int animStep = popVar();
-	int end = popVar();
-	int start = popVar();
-	int type = popVar();
-	int change = popVar();
-	int obj = popVar();
-	int overlay = popVar();
+	int signal = stack.popVar();
+	int loop = stack.popVar();
+	int wait = stack.popVar();
+	int animStep = stack.popVar();
+	int end = stack.popVar();
+	int start = stack.popVar();
+	int type = stack.popVar();
+	int change = stack.popVar();
+	int obj = stack.popVar();
+	int overlay = stack.popVar();
 
 	if (!overlay)
 		overlay = currentScriptPtr->overlayNumber;
@@ -903,8 +903,8 @@ int16 Op_AutoCell() {
 
 int16 Op_Sizeof() {
 	objectParamsQuery params;
-	int index = popVar();
-	int overlay = popVar();
+	int index = stack.popVar();
+	int overlay = stack.popVar();
 
 	if (!overlay)
 		overlay = currentScriptPtr->overlayNumber;
@@ -916,7 +916,7 @@ int16 Op_Sizeof() {
 
 int16 Op_SetActiveBackground() {
 	int currentPlane = masterScreen;
-	int newPlane = popVar();
+	int newPlane = stack.popVar();
 
 	if (newPlane >= 0 && newPlane < NBSCREENS) {
 		if (backgrounds[newPlane]._backgroundScreen) {
@@ -930,7 +930,7 @@ int16 Op_SetActiveBackground() {
 }
 
 int16 Op_RemoveBackground() {
-	int backgroundIdx = popVar();
+	int backgroundIdx = stack.popVar();
 
 	if (backgroundIdx > 0 && backgroundIdx < 8) {
 		if (backgrounds[backgroundIdx]._backgroundScreen)
@@ -952,14 +952,14 @@ int16 Op_RemoveBackground() {
 int vblLimit;
 
 int16 Op_VBL() {
-	vblLimit = popVar();
+	vblLimit = stack.popVar();
 	return 0;
 }
 
 int op7BVar = 0;
 
 int16 Op_Sec() {
-	int di = popVar();
+	int di = stack.popVar();
 	int si = 1 - op7BVar;
 	int sign;
 
@@ -975,8 +975,8 @@ int16 Op_Sec() {
 }
 
 int16 Op_RemoveBackgroundIncrust() {
-	int idx = popVar();
-	int overlay = popVar();
+	int idx = stack.popVar();
+	int overlay = stack.popVar();
 
 	if (!overlay) {
 		overlay = currentScriptPtr->overlayNumber;
@@ -988,11 +988,11 @@ int16 Op_RemoveBackgroundIncrust() {
 }
 
 int16 Op_SetColor()	{
-	int colorB = popVar();
-	int colorG = popVar();
-	int colorR = popVar();
-	int endIdx = popVar();
-	int startIdx = popVar();
+	int colorB = stack.popVar();
+	int colorG = stack.popVar();
+	int colorR = stack.popVar();
+	int endIdx = stack.popVar();
+	int startIdx = stack.popVar();
 
 	int i;
 
@@ -1021,7 +1021,7 @@ int16 Op_SetColor()	{
 int16 Op_Inventory() {
 	int si = var41;
 
-	var41 = popVar();
+	var41 = stack.popVar();
 
 	return si;
 }
@@ -1029,7 +1029,7 @@ int16 Op_Inventory() {
 int16 Op_RemoveOverlay() {
 	int overlayIdx;
 
-	overlayIdx = popVar();
+	overlayIdx = stack.popVar();
 
 	if (strlen(overlayTable[overlayIdx].overlayName)) {
 		releaseOverlay(overlayTable[overlayIdx].overlayName);
@@ -1039,12 +1039,12 @@ int16 Op_RemoveOverlay() {
 }
 
 int16 Op_ComputeLine() {
-	int y2 = popVar();
-	int x2 = popVar();
-	int y1 = popVar();
-	int x1 = popVar();
+	int y2 = stack.popVar();
+	int x2 = stack.popVar();
+	int y1 = stack.popVar();
+	int x1 = stack.popVar();
 
-	point* pDest = (point *)popPtr();
+	point* pDest = (point *)stack.popPtr();
 
 	int maxValue = cor_droite(x1, y1, x2, y2, pDest);
 
@@ -1054,17 +1054,17 @@ int16 Op_ComputeLine() {
 }
 
 int16 Op_FindMsg() {
-	int si = popVar();
-	popVar();
+	int si = stack.popVar();
+	stack.popVar();
 
 	return si;
 }
 
 int16 Op_SetZoom() {
-	var46 = popVar();
-	var45 = popVar();
-	var42 = popVar();
-	var39 = popVar();
+	var46 = stack.popVar();
+	var45 = stack.popVar();
+	var42 = stack.popVar();
+	var39 = stack.popVar();
 	return 0;
 }
 
@@ -1077,27 +1077,27 @@ int16 subOp23(int param1, int param2) {
 }
 
 int16 Op_GetStep() {
-	int si = popVar();
-	int dx = popVar();
+	int si = stack.popVar();
+	int dx = stack.popVar();
 
 	return subOp23(dx, si);
 }
 
 int16 Op_GetZoom() {
-	return (computeZoom(popVar()));
+	return (computeZoom(stack.popVar()));
 }
 
 int flag_obstacle;		// numPolyBis
 
 // add animation
 int16 Op_AddAnimation() {
-	int stepY = popVar();
-	int stepX = popVar();
-	int direction = popVar();
-	int start = popVar();
-	int type = popVar();
-	int obj = popVar();
-	int overlay = popVar();
+	int stepY = stack.popVar();
+	int stepX = stack.popVar();
+	int direction = stack.popVar();
+	int start = stack.popVar();
+	int type = stack.popVar();
+	int obj = stack.popVar();
+	int overlay = stack.popVar();
 
 	if (!overlay) {
 		overlay = currentScriptPtr->overlayNumber;
@@ -1144,9 +1144,9 @@ int16 Op_AddAnimation() {
 }
 
 int16 Op_RemoveAnimation() {
-	int objType = popVar();
-	int objIdx = popVar();
-	int ovlIdx = popVar();
+	int objType = stack.popVar();
+	int objIdx = stack.popVar();
+	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx) {
 		ovlIdx = currentScriptPtr->overlayNumber;
@@ -1163,16 +1163,16 @@ int16 Op_regenerateBackgroundIncrust() {
 int16 Op_SetStringColors() {
 	// TODO: here ignore if low color mode
 
-	subColor = (uint8) popVar();
-	itemColor = (uint8) popVar();
-	selectColor = (uint8) popVar();
-	titleColor = (uint8) popVar();
+	subColor = (uint8) stack.popVar();
+	itemColor = (uint8) stack.popVar();
+	selectColor = (uint8) stack.popVar();
+	titleColor = (uint8) stack.popVar();
 
 	return 0;
 }
 
 int16 Op_XClick() {
-	int x = popVar();
+	int x = stack.popVar();
 
 	if (x != -1) {
 		aniX = x;
@@ -1183,7 +1183,7 @@ int16 Op_XClick() {
 }
 
 int16 Op_YClick() {
-	int y = popVar();
+	int y = stack.popVar();
 
 	if (y != -1) {
 		aniY = y;
@@ -1194,8 +1194,8 @@ int16 Op_YClick() {
 }
 
 int16 Op_GetPixel() {
-	int x = popVar();
-	int y = popVar();
+	int x = stack.popVar();
+	int y = stack.popVar();
 
 	getPixel(x, y);
 	return numPoly;
@@ -1204,12 +1204,12 @@ int16 Op_GetPixel() {
 int16 Op_TrackAnim() {		// setup actor position
 	ActorListNode *pActor;
 
-	int var0 = popVar();
-	int actorY = popVar();
-	int actorX = popVar();
-	int var1 = popVar();
-	int var2 = popVar();
-	int overlay = popVar();
+	int var0 = stack.popVar();
+	int actorY = stack.popVar();
+	int actorX = stack.popVar();
+	int var1 = stack.popVar();
+	int var2 = stack.popVar();
+	int overlay = stack.popVar();
 
 	if (!overlay) {
 		overlay = currentScriptPtr->overlayNumber;
@@ -1232,8 +1232,8 @@ int16 Op_TrackAnim() {		// setup actor position
 }
 
 int16 Op_BgName() {
-	char* bgName = (char *)popPtr();
-	int bgIdx = popVar();
+	char* bgName = (char *)stack.popPtr();
+	int bgIdx = stack.popVar();
 
 	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && bgName) {
 		strcpy(bgName, backgrounds[bgIdx]._backgroundTable.name);
@@ -1248,7 +1248,7 @@ int16 Op_BgName() {
 }
 
 int16 Op_LoadSong() {
-	const char *ptr = (const char *)popPtr();
+	const char *ptr = (const char *)stack.popPtr();
 	char buffer[33];
 
 	strcpy(buffer, ptr);
@@ -1285,7 +1285,7 @@ int16 Op_SongSize() {
 	if (_vm->sound().songLoaded()) {
 		oldSize = _vm->sound().numOrders();
 
-		size = popVar();
+		size = stack.popVar();
 		if ((size >= 1) && (size < 128))
 			_vm->sound().setNumOrders(size);
 	} else
@@ -1295,8 +1295,8 @@ int16 Op_SongSize() {
 }
 
 int16 Op_SetPattern() {
-	int value = popVar();
-	int offset = popVar();
+	int value = stack.popVar();
+	int offset = stack.popVar();
 
 	if (_vm->sound().songLoaded()) {
 		_vm->sound().setPattern(offset, value);
@@ -1319,7 +1319,7 @@ int16 Op_FreeSong() {
 
 int16 Op_SongLoop() {
 	bool oldLooping = _vm->sound().musicLooping();
-	_vm->sound().musicLoop(popVar() != 0);
+	_vm->sound().musicLoop(stack.popVar() != 0);
 
 	return oldLooping;
 }
@@ -1347,8 +1347,8 @@ int16 Op_FreezeOverlay() {
 	//int var1;
 	int temp;
 
-	int var0 = popVar();
-	int var1 = popVar();
+	int var0 = stack.popVar();
+	int var1 = stack.popVar();
 
 	if (!var1) {
 		var1 = currentScriptPtr->overlayNumber;
@@ -1361,12 +1361,12 @@ int16 Op_FreezeOverlay() {
 }
 
 int16 Op_FreezeCell() {
-	int newFreezz = popVar();
-	int oldFreeze = popVar();
-	int backgroundPlante = popVar();
-	int objType = popVar();
-	int objIdx = popVar();
-	int overlayIdx = popVar();
+	int newFreezz = stack.popVar();
+	int oldFreeze = stack.popVar();
+	int backgroundPlante = stack.popVar();
+	int objType = stack.popVar();
+	int objIdx = stack.popVar();
+	int overlayIdx = stack.popVar();
 
 	if (!overlayIdx) {
 		overlayIdx = currentScriptPtr->overlayNumber;
@@ -1396,11 +1396,11 @@ int16 Op_FreezeAni() {
 	 * int var4;
 	 */
 
-	int var0 = popVar();
-	int var1 = popVar();
-	int var2 = popVar();
-	int var3 = popVar();
-	int var4 = popVar();
+	int var0 = stack.popVar();
+	int var1 = stack.popVar();
+	int var2 = stack.popVar();
+	int var3 = stack.popVar();
+	int var4 = stack.popVar();
 
 	if (!var4) {
 		var4 = currentScriptPtr->overlayNumber;
@@ -1412,17 +1412,17 @@ int16 Op_FreezeAni() {
 }
 
 int16 Op_Itoa() {
-	int nbp = popVar();
+	int nbp = stack.popVar();
 	int param[160];
 	char txt[40];
 	char format[30];
 	char nbf[20];
 
 	for (int i = nbp - 1; i >= 0; i--)
-		param[i] = popVar();
+		param[i] = stack.popVar();
 
-	int val = popVar();
-	char* pDest = (char *)popPtr();
+	int val = stack.popVar();
+	char* pDest = (char *)stack.popPtr();
 
 	if (!nbp)
 		sprintf(txt, "%d", val);
@@ -1442,8 +1442,8 @@ int16 Op_Itoa() {
 }
 
 int16 Op_Strcat() {
-	char *pSource = (char *)popPtr();
-	char *pDest = (char *)popPtr();
+	char *pSource = (char *)stack.popPtr();
+	char *pDest = (char *)stack.popPtr();
 
 	while (*pDest)
 		pDest++;
@@ -1456,9 +1456,9 @@ int16 Op_Strcat() {
 }
 
 int16 Op_FindSymbol() {
-	int var0 = popVar();
-	char *ptr = (char *)popPtr();
-	int var1 = popVar();
+	int var0 = stack.popVar();
+	char *ptr = (char *)stack.popPtr();
+	int var1 = stack.popVar();
 
 	if (!var1)
 		var1 = currentScriptPtr->overlayNumber;
@@ -1468,7 +1468,7 @@ int16 Op_FindSymbol() {
 
 int16 Op_FindObject() {
 	char var_26[36];
-	char *ptr = (char *)popPtr();
+	char *ptr = (char *)stack.popPtr();
 	int overlayIdx;
 
 	var_26[0] = 0;
@@ -1477,7 +1477,7 @@ int16 Op_FindObject() {
 		strcpy(var_26, ptr);
 	}
 
-	overlayIdx = popVar();
+	overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->overlayNumber;
@@ -1486,9 +1486,9 @@ int16 Op_FindObject() {
 }
 
 int16 Op_SetObjectAtNode() {
-	int16 node = popVar();
-	int16 obj = popVar();
-	int16 ovl = popVar();
+	int16 node = stack.popVar();
+	int16 obj = stack.popVar();
+	int16 ovl = stack.popVar();
 
 	if (!ovl)
 		ovl = currentScriptPtr->overlayNumber;
@@ -1506,7 +1506,7 @@ int16 Op_SetObjectAtNode() {
 }
 
 int16 Op_GetNodeX() {
-	int16 node = popVar();
+	int16 node = stack.popVar();
 
 	int nodeInfo[2];
 
@@ -1518,7 +1518,7 @@ int16 Op_GetNodeX() {
 }
 
 int16 Op_GetNodeY() {
-	int16 node = popVar();
+	int16 node = stack.popVar();
 
 	int nodeInfo[2];
 
@@ -1531,7 +1531,7 @@ int16 Op_GetNodeY() {
 
 int16 Op_SetVolume() {
 	int oldVolume = _vm->sound().getVolume();
-	int newVolume = popVar();
+	int newVolume = stack.popVar();
 
 	if (newVolume > 63) newVolume = 63;
 	if (newVolume >= 0) {
@@ -1543,7 +1543,7 @@ int16 Op_SetVolume() {
 }
 
 int16 Op_SongExist() {
-	const char *songName = (char *)popPtr();
+	const char *songName = (char *)stack.popPtr();
 
 	if (songName) {
 		char name[33];
@@ -1563,29 +1563,29 @@ int16 Op_TrackPos() {
 }
 
 int16 Op_SetNodeState() {
-	int16 state = popVar();
-	int16 node = popVar();
+	int16 state = stack.popVar();
+	int16 node = stack.popVar();
 
 	return setNodeState(node, state);
 }
 
 int16 Op_SetNodeColor() {
-	int16 color = popVar();
-	int16 node = popVar();
+	int16 color = stack.popVar();
+	int16 node = stack.popVar();
 
 	return setNodeColor(node, color);
 }
 
 int16 Op_SetXDial() {
 	int16 old = xdial;
-	xdial = popVar();
+	xdial = stack.popVar();
 
 	return old;
 }
 
 int16 Op_DialogOn() {
-	dialogueObj = popVar();
-	dialogueOvl = popVar();
+	dialogueObj = stack.popVar();
+	dialogueOvl = stack.popVar();
 
 	if (dialogueOvl == 0)
 		dialogueOvl = currentScriptPtr->overlayNumber;
@@ -1611,11 +1611,11 @@ int16 Op_DialogOff() {
 }
 
 int16 Op_LinkObjects() {
-	int type = popVar();
-	int obj2 = popVar();
-	int ovl2 = popVar();
-	int obj = popVar();
-	int ovl = popVar();
+	int type = stack.popVar();
+	int obj2 = stack.popVar();
+	int ovl2 = stack.popVar();
+	int obj = stack.popVar();
+	int ovl = stack.popVar();
 
 	if (!ovl)
 		ovl = currentScriptPtr->overlayNumber;
@@ -1628,15 +1628,15 @@ int16 Op_LinkObjects() {
 }
 
 int16 Op_UserClick() {
-	sysKey = popVar();
-	sysY = popVar();
-	sysX = popVar();
+	sysKey = stack.popVar();
+	sysY = stack.popVar();
+	sysX = stack.popVar();
 
 	return 0;
 }
 
 int16 Op_XMenuItem() {
-	int index = popVar();
+	int index = stack.popVar();
 	int count = 0;
 
 	if (!menuTable[0] || (menuTable[0]->_numElements == 0))
@@ -1656,7 +1656,7 @@ int16 Op_XMenuItem() {
 }
 
 int16 Op_YMenuItem() {
-	int index = popVar();
+	int index = stack.popVar();
 	int count = 0;
 
 	if (!menuTable[0] || (menuTable[0]->_numElements == 0))
@@ -1682,7 +1682,7 @@ int16 Op_Menu() {
 
 int16 Op_AutoControl() {
 	int oldValue = automaticMode;
-	int newValue = popVar();
+	int newValue = stack.popVar();
 
 	if (newValue >= 0) {
 		automaticMode = newValue;
@@ -1699,8 +1699,8 @@ int16 Op_MouseMove() {
 	currentMouse.getStatus(&handle, &pt.x, &button, &pt.y);
 
 	// x/y parameters aren't used
-	popVar();
-	popVar();
+	stack.popVar();
+	stack.popVar();
 
 	return 0;
 }
@@ -1717,7 +1717,7 @@ int16 Op_MsgExist() {
 }
 
 int16 Op_UserDelay() {
-	int delay = popVar();
+	int delay = stack.popVar();
 
 	if (delay >= 0) {
 		userDelay = delay;
@@ -1889,11 +1889,11 @@ int32 opcodeType8() {
 		return (-21);
 
 	if (opcode < ARRAYSIZE(opcodeTablePtr) && opcodeTablePtr[opcode]) {
-		pushVar(opcodeTablePtr[opcode]());
+		stack.pushVar(opcodeTablePtr[opcode]());
 		return (0);
 	} else {
 		warning("Unsupported opcode %d in opcode type 8", opcode);
-		pushVar(0);
+		stack.pushVar(0);
 		// exit(1);
 	}
 

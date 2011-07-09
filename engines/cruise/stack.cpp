@@ -20,7 +20,10 @@
  *
  */
 
+#include <assert.h>
+
 #include "cruise/cruise_main.h"
+#include "stack.h"
 
 namespace Cruise {
 
@@ -29,46 +32,54 @@ StackElement scriptStack[SIZE_STACK];
 
 // VAR
 
-void pushVar(int16 var) {
-	if (positionInStack < SIZE_STACK) {
-		scriptStack[positionInStack]._data._shortVar = var;
-		scriptStack[positionInStack]._type = STACK_SHORT;
-		positionInStack++;
-	}
+StackElement::StackElement(int16 var) {
+	_data._shortVar = var;
+	_type = STACK_SHORT;
+}
+void Stack::pushVar(int16 var) {
+	StackElement temp(var);
+	push(temp);
 }
 
-int16 popVar() {
-	if (positionInStack <= 0) {
-		return (0);
+int16 Stack::popVar() {
+	if (!empty()) {
+		StackElement temp = pop();
+		if (temp._type == STACK_SHORT)
+			return temp._data._shortVar;
+		else
+			assert(0);
+	} else {
+		return 0;
 	}
-
-	positionInStack--;
-
-	ASSERT(scriptStack[positionInStack]._type == STACK_SHORT);
-
-	return (scriptStack[positionInStack]._data._shortVar);
 }
 
 //// PTR
 
-void pushPtr(void *ptr) {
-	if (positionInStack < SIZE_STACK) {
-		scriptStack[positionInStack]._data._ptrVar = ptr;
-		scriptStack[positionInStack]._type = STACK_PTR;
-		positionInStack++;
+StackElement::StackElement(void *ptr) {
+	_data._ptrVar = ptr;
+	_type = STACK_PTR;
+}
+
+void Stack::pushPtr(void *ptr) {
+	StackElement temp(ptr);
+	push(temp);
+}
+
+void *Stack::popPtr() {
+	if (!empty()) {
+		StackElement temp = pop();
+		if (temp._type == STACK_PTR)
+			return temp._data._ptrVar;
+		else
+			assert(0);
+	} else {
+		return 0;
 	}
 }
 
-void *popPtr() {
-	if (positionInStack <= 0) {
-		return (0);
-	}
+//// MISC
 
-	positionInStack--;
-
-	ASSERT(scriptStack[positionInStack]._type == STACK_PTR);
-
-	return (scriptStack[positionInStack]._data._ptrVar);
+void Stack::reset() {
+	clear();
 }
-
 } // End of namespace Cruise
