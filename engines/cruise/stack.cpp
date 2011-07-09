@@ -31,8 +31,8 @@ StackElement scriptStack[SIZE_STACK];
 
 void pushVar(int16 var) {
 	if (positionInStack < SIZE_STACK) {
-		scriptStack[positionInStack].data.shortVar = var;
-		scriptStack[positionInStack].type = STACK_SHORT;
+		scriptStack[positionInStack]._data._shortVar = var;
+		scriptStack[positionInStack]._type = STACK_SHORT;
 		positionInStack++;
 	}
 }
@@ -44,17 +44,17 @@ int16 popVar() {
 
 	positionInStack--;
 
-	ASSERT(scriptStack[positionInStack].type == STACK_SHORT);
+	ASSERT(scriptStack[positionInStack]._type == STACK_SHORT);
 
-	return (scriptStack[positionInStack].data.shortVar);
+	return (scriptStack[positionInStack]._data._shortVar);
 }
 
 //// PTR
 
 void pushPtr(void *ptr) {
 	if (positionInStack < SIZE_STACK) {
-		scriptStack[positionInStack].data.ptrVar = ptr;
-		scriptStack[positionInStack].type = STACK_PTR;
+		scriptStack[positionInStack]._data._ptrVar = ptr;
+		scriptStack[positionInStack]._type = STACK_PTR;
 		positionInStack++;
 	}
 }
@@ -66,9 +66,9 @@ void *popPtr() {
 
 	positionInStack--;
 
-	ASSERT(scriptStack[positionInStack].type == STACK_PTR);
+	ASSERT(scriptStack[positionInStack]._type == STACK_PTR);
 
-	return (scriptStack[positionInStack].data.ptrVar);
+	return (scriptStack[positionInStack]._data._ptrVar);
 }
 
 } // End of namespace Cruise
