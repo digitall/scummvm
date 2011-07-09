@@ -36,12 +36,12 @@ enum stackElementTypeEnum {
 
 class StackElement {
 public:
-	stackElementTypeEnum type;
+	stackElementTypeEnum _type;
 
 	union {
-		void *ptrVar;
-		int16 shortVar;
-	} data;
+		void *_ptrVar;
+		int16 _shortVar;
+	} _data;
 };
 
 int16 popVar();
