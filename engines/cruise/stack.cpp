@@ -25,7 +25,7 @@
 namespace Cruise {
 
 // 4 type bigger than the old one, but much safer/cleaner
-stackElementStruct scriptStack[SIZE_STACK];
+StackElement scriptStack[SIZE_STACK];
 
 // VAR
 
