@@ -34,7 +34,8 @@ enum stackElementTypeEnum {
 	STACK_PTR
 };
 
-struct stackElementStruct {
+class StackElement {
+public:
 	stackElementTypeEnum type;
 
 	union {
