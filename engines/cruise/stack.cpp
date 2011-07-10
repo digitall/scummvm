@@ -33,8 +33,8 @@ StackElement scriptStack[SIZE_STACK];
 // VAR
 
 StackElement::StackElement(int16 var) {
-       _data._shortVar = var;
-       _type = STACK_SHORT;
+	_data._shortVar = var;
+	_type = STACK_SHORT;
 }
 void Stack::pushVar(int16 var) {
 	StackElement temp(var);
@@ -43,21 +43,21 @@ void Stack::pushVar(int16 var) {
 
 int16 Stack::popVar() {
 	if (!empty()) {
-	    StackElement temp = pop();
-	    if (temp._type == STACK_SHORT)
-		return temp._data._shortVar;
-	    else
-		assert(0);
+		StackElement temp = pop();
+		if (temp._type == STACK_SHORT)
+			return temp._data._shortVar;
+		else
+			assert(0);
 	} else {
-	    return 0;
+		return 0;
 	}
 }
 
 //// PTR
 
 StackElement::StackElement(void *ptr) {
-       _data._ptrVar = ptr;
-       _type = STACK_PTR;
+	_data._ptrVar = ptr;
+	_type = STACK_PTR;
 }
 
 void Stack::pushPtr(void *ptr) {
@@ -67,13 +67,13 @@ void Stack::pushPtr(void *ptr) {
 
 void *Stack::popPtr() {
 	if (!empty()) {
-	    StackElement temp = pop();
-	    if (temp._type == STACK_PTR)
-		return temp._data._ptrVar;
-	    else
-		assert(0);
+		StackElement temp = pop();
+		if (temp._type == STACK_PTR)
+			return temp._data._ptrVar;
+		else
+			assert(0);
 	} else {
-	    return 0;
+		return 0;
 	}
 }
 
