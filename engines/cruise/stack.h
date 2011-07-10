@@ -27,8 +27,6 @@
 
 namespace Cruise {
 
-// TODO: Replace this with Common::Stack
-
 #define SIZE_STACK 0x200
 
 enum stackElementTypeEnum {
@@ -44,12 +42,10 @@ public:
 		void *_ptrVar;
 		int16 _shortVar;
 	} _data;
+
 	StackElement() {}
 	StackElement(int16 var);
 	StackElement(void *ptr);
-
-
-
 };
 
 class Stack : private Common::Stack<StackElement> {
