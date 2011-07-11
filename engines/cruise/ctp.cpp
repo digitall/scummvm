@@ -215,7 +215,7 @@ int initCt(const char *ctpName) {
 	short int segementSizeTable[7];	// tempTable
 
 	if (!loadCtFromSave) {
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < NUM_PERSONS; i++) {
 			persoTable[i] = NULL;
 		}
 	}
