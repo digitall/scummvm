@@ -212,7 +212,7 @@ int setNodeState(int nodeIdx, int nodeState) {
 int initCt(const char *ctpName) {
 	uint8 *dataPointer;	// ptr2
 	char fileType[5];	// string2
-	short int segementSizeTable[7];	// tempTable
+	short int segmentSizeTable[7];	// tempTable
 
 	if (!loadCtFromSave) {
 		for (int i = 0; i < NUM_PERSONS; i++) {
@@ -240,13 +240,13 @@ int initCt(const char *ctpName) {
 	dataPointer += 2;
 
 	for (int i = 0; i < 7; i++) {
-		segementSizeTable[i] = (int16)READ_BE_UINT16(dataPointer);
+		segmentSizeTable[i] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 	}
 
 	// get the path-finding coordinates
-	ASSERT((segementSizeTable[0] % 4) == 0);
-	for (int i = 0; i < segementSizeTable[0] / 4; i++) {
+	ASSERT((segmentSizeTable[0] % 4) == 0);
+	for (int i = 0; i < segmentSizeTable[0] / 4; i++) {
 		ctp_routeCoords[i][0] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 		ctp_routeCoords[i][1] = (int16)READ_BE_UINT16(dataPointer);
@@ -254,8 +254,8 @@ int initCt(const char *ctpName) {
 	}
 
 	// get the path-finding line informations (indexing the routeCoords array)
-	ASSERT((segementSizeTable[1] % 20) == 0);
-	for (int i = 0; i < segementSizeTable[1] / 20; i++) {
+	ASSERT((segmentSizeTable[1] % 20) == 0);
+	for (int i = 0; i < segmentSizeTable[1] / 20; i++) {
 		for (int j = 0; j < 10; j++) {
 			ctp_routes[i][j] = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
@@ -263,8 +263,8 @@ int initCt(const char *ctpName) {
 	}
 
 	// read polygons
-	ASSERT((segementSizeTable[2] % 80) == 0);
-	for (int i = 0; i < segementSizeTable[2] / 80; i++) {
+	ASSERT((segmentSizeTable[2] % 80) == 0);
+	for (int i = 0; i < segmentSizeTable[2] / 80; i++) {
 		for (int j = 0; j < 40; j++) {
 			ctp_walkboxTable[i][j] = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
@@ -273,35 +273,35 @@ int initCt(const char *ctpName) {
 
 	if (loadCtFromSave) {
 		// loading from save, ignore the initial values
-		dataPointer += segementSizeTable[3];
-		dataPointer += segementSizeTable[4];
+		dataPointer += segmentSizeTable[3];
+		dataPointer += segmentSizeTable[4];
 	} else {
 		// get the walkbox type
 		// Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
-		ASSERT((segementSizeTable[3] % 2) == 0);
-		for (int i = 0; i < segementSizeTable[3] / 2; i++) {
+		ASSERT((segmentSizeTable[3] % 2) == 0);
+		for (int i = 0; i < segmentSizeTable[3] / 2; i++) {
 			walkboxColor[i] = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
 		}
 
 		// change indicator, walkbox type can change, i.e. blocked by object (values are either 0x00 or 0x01)
-		ASSERT((segementSizeTable[4] % 2) == 0);
-		for (int i = 0; i < segementSizeTable[4] / 2; i++) {
+		ASSERT((segmentSizeTable[4] % 2) == 0);
+		for (int i = 0; i < segmentSizeTable[4] / 2; i++) {
 			walkboxState[i] = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
 		}
 	}
 
 	//
-	ASSERT((segementSizeTable[5] % 2) == 0);
-	for (int i = 0; i < segementSizeTable[5] / 2; i++) {
+	ASSERT((segmentSizeTable[5] % 2) == 0);
+	for (int i = 0; i < segmentSizeTable[5] / 2; i++) {
 		walkboxColorIndex[i] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 	}
 
 	//
-	ASSERT((segementSizeTable[6] % 2) == 0);
-	for (int i = 0; i < segementSizeTable[6] / 2; i++) {
+	ASSERT((segmentSizeTable[6] % 2) == 0);
+	for (int i = 0; i < segmentSizeTable[6] / 2; i++) {
 		walkboxZoom[i] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 	}
@@ -310,7 +310,7 @@ int initCt(const char *ctpName) {
 	if (ctpName != currentCtpName)
 		strcpy(currentCtpName, ctpName);
 
-	numberOfWalkboxes = segementSizeTable[6] / 2;	// get the number of walkboxes
+	numberOfWalkboxes = segmentSizeTable[6] / 2;	// get the number of walkboxes
 
 	computeAllDistance(distanceTable, ctp_routeCoordCount);	// process path-finding stuff
 
