@@ -1496,7 +1496,7 @@ int16 Op_SetObjectAtNode() {
 
 	int nodeInfo[2];
 
-	if (!getNode(nodeInfo, node)) {
+	if (!getNode(node, nodeInfo)) {
 		setObjectPosition(ovl, obj, 0, nodeInfo[0]);
 		setObjectPosition(ovl, obj, 1, nodeInfo[1]);
 		setObjectPosition(ovl, obj, 2, nodeInfo[1]);
@@ -1511,7 +1511,7 @@ int16 Op_GetNodeX() {
 
 	int nodeInfo[2];
 
-	int result = getNode(nodeInfo, node);
+	int result = getNode(node, nodeInfo);
 
 	ASSERT(result == 0);
 
@@ -1523,7 +1523,7 @@ int16 Op_GetNodeY() {
 
 	int nodeInfo[2];
 
-	int result = getNode(nodeInfo, node);
+	int result = getNode(node, nodeInfo);
 
 	ASSERT(result == 0);
 

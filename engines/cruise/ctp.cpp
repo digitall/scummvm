@@ -166,12 +166,12 @@ void makeCtStruct(Common::Array<CtStruct> &lst, int16 table[][40], int num, int 
 	ct.bounds.bottom = minY + i;
 }
 
-int getNode(int nodeResult[2], int nodeId) {
-	if (nodeId < 0 || nodeId >= ctp_routeCoordCount)
+int getNode(int nodeIdx, int nodeResult[2]) {
+	if (nodeIdx < 0 || nodeIdx >= ctp_routeCoordCount)
 		return -1;
 
-	nodeResult[0] = ctp_routeCoords[nodeId][0];
-	nodeResult[1] = ctp_routeCoords[nodeId][1];
+	nodeResult[0] = ctp_routeCoords[nodeIdx][0];
+	nodeResult[1] = ctp_routeCoords[nodeIdx][1];
 
 	return 0;
 }
