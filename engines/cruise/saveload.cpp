@@ -942,9 +942,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	}
 
 	if (strlen(currentCtpName)) {
-		loadCtFromSave = 1;
-		initCt(currentCtpName);
-		loadCtFromSave = 0;
+		initCt(currentCtpName, true);
+
 	}
 	//prepareFadeOut();
 	//gfxModuleData.gfxFunction8();
