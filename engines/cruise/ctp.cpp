@@ -204,12 +204,12 @@ int setNodeState(int nodeIdx, int nodeState) {
 	return oldState;
 }
 
-int initCt(const char *ctpName) {
+int initCt(const char *ctpName, bool isLoading) {
 	uint8 *dataPointer;	// ptr2
 	char fileType[5];	// string2
 	short int segmentSizeTable[7];	// tempTable
 
-	if (!loadCtFromSave) {
+	if (!isLoading) {
 		for (int i = 0; i < NUM_PERSONS; i++) {
 			persoTable[i] = NULL;
 		}
@@ -266,7 +266,7 @@ int initCt(const char *ctpName) {
 		}
 	}
 
-	if (loadCtFromSave) {
+	if (isLoading) {
 		// loading from save, ignore the initial values
 		dataPointer += segmentSizeTable[3];
 		dataPointer += segmentSizeTable[4];
