@@ -24,15 +24,11 @@
 #include "cruise/cruise_main.h"
 #include "common/endian.h"
 #include "common/util.h"
+#include "common/rect.h"
 
 namespace Cruise {
 
 uint8 *ctpVar17;
-
-int currentWalkBoxCenterX;
-int currentWalkBoxCenterY;
-int currentWalkBoxCenterXBis;
-int currentWalkBoxCenterYBis;
 
 int ctpVarUnk;
 uint8 walkboxTable[0x12];
@@ -65,11 +61,12 @@ void computeAllDistance(int16 table[][10], short int coordCount) {
 	}
 }
 
-void getWalkBoxCenter(int n, int16 table[][40]) {
+Common::Point getWalkBoxCenter(int n, int16 table[][40]) {
 	int minX = 1000;
 	int minY = 1000;
 	int maxX = -1;
 	int maxY = -1;
+	Common::Point currentWalkBoxcenter;
 
 	for (int i = 0; i < table[n][0]; i++) {
 		int x = table[n][i*2+1];
@@ -88,8 +85,9 @@ void getWalkBoxCenter(int n, int16 table[][40]) {
 			maxY = y;
 	}
 
-	currentWalkBoxCenterX = ((maxX - minX) / 2) + minX;
-	currentWalkBoxCenterY = ((maxY - minY) / 2) + minY;
+	currentWalkBoxcenter.x = ((maxX - minX) / 2) + minX;
+	currentWalkBoxcenter.y = ((maxY - minY) / 2) + minY;
+	return currentWalkBoxcenter;
 }
 
 // ax dx bx
@@ -134,12 +132,9 @@ void makeCtStruct(Common::Array<CtStruct> &lst, int16 table[][40], int num, int 
 	if (table[num][0] < 1)
 		return;
 
-	getWalkBoxCenter(num, table);
+	Common::Point currentWalkBoxCenter = getWalkBoxCenter(num, table);
 
-	currentWalkBoxCenterXBis = currentWalkBoxCenterX;
-	currentWalkBoxCenterYBis = currentWalkBoxCenterY;
-
-	renderCTPWalkBox(&table[num][0], currentWalkBoxCenterX, currentWalkBoxCenterY,  currentWalkBoxCenterX, currentWalkBoxCenterY, z + 0x200);
+	renderCTPWalkBox(&table[num][0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
 	lst.push_back(CtStruct());
 	CtStruct &ct = lst[lst.size() - 1];
