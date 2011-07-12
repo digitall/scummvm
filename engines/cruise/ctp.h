@@ -61,7 +61,7 @@ public:
 
 extern uint8 *ctpVar17;
 
-int initCt(const char * ctpName);
+int initCt(const char * ctpName, bool isLoading = false);
 int computeDistance(int varX, int varY, int paramX, int paramY);
 
 int getNode(int nodeResult[2], int nodeId);
