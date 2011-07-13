@@ -154,16 +154,16 @@ void makeCtStruct(Common::Array<Ct> &lst, int16 table[][40], int num, int z) {
 		if (x2 > maxX)
 			maxX = x2;
 
-		ct.slices.push_back(CtEntry(x1, x2));
+		ct._slices.push_back(CtEntry(x1, x2));
 		i++;
 	}
 
-	ct.num = num;
-	ct.color = walkboxColor[num];
-	ct.bounds.left = minX;
-	ct.bounds.right = maxX;
-	ct.bounds.top = minY;
-	ct.bounds.bottom = minY + i;
+	ct._num = num;
+	ct._color = walkboxColor[num];
+	ct._bounds.left = minX;
+	ct._bounds.right = maxX;
+	ct._bounds.top = minY;
+	ct._bounds.bottom = minY + i;
 }
 
 int getNode(int nodeIdx, int nodeResult[2]) {
