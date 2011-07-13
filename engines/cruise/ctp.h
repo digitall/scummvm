@@ -47,6 +47,7 @@ public:
 class WalkBox {
 public:
 	int16 _array[40];
+	int16 _zoom;
 };
 
 int initCt(const char * ctpName, bool isLoading = false);

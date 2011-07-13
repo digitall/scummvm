@@ -258,9 +258,8 @@ extern int16 ctp_routes[20][10];	// path-finding line information
    for the 20 * i slice the root x,y is routeCoords[i], routeCoords[i+2]
    the unused rest of the slice if filled up with 0xFF
 */
-extern WalkBox walkboxes[15];	// ctpVar5      // walkboxes coordinates and lines
+extern WalkBox walkboxes[15];	// ctpVar5, 7	// walkboxes coordinates and lines and scaling information
 extern int16 walkboxColorIndex[16];
-extern int16 walkboxZoom[15];	// ctpVar7  // scaling information for walkboxes
 extern int16 distanceTable[20][10];
 
 extern int16 flagSpeed;

@@ -156,7 +156,6 @@ int16 ctp_routeCoords[20][2];	// ctpVar3
 int16 ctp_routes[20][10];
 WalkBox walkboxes[15];			// ctpVar5
 int16 walkboxColorIndex[16];
-int16 walkboxZoom[15];		//  ctpVar7
 int16 distanceTable[20][10];
 
 int16 flagSpeed;
