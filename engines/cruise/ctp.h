@@ -50,9 +50,9 @@ public:
 	int16 maxX;
 };
 
-class CtStruct {
+class Ct {
 public:
-	CtStruct *next;
+	Ct *next;
 	int16 num;
 	int16 color;
 	Common::Rect bounds;
