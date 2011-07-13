@@ -59,16 +59,17 @@ void computeAllDistance(int16 table[][10], short int coordCount) {
 	}
 }
 
-Common::Point getWalkBoxCenter(int n, int16 table[][40]) {
+Common::Point getWalkBoxCenter(int n, WalkBox walkBoxArray[]) {
 	int minX = 1000;
 	int minY = 1000;
 	int maxX = -1;
 	int maxY = -1;
 	Common::Point currentWalkBoxcenter;
+	WalkBox walkBox = walkBoxArray[n];
 
-	for (int i = 0; i < table[n][0]; i++) {
-		int x = table[n][i*2+1];
-		int y = table[n][i*2+2];
+	for (int i = 0; i < walkBox._array[0]; i++) {
+		int x = walkBox._array[i*2+1];
+		int y = walkBox._array[i*2+2];
 
 		if (x < minX)
 			minX = x;
@@ -123,16 +124,16 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 }
 
 // this process the walkboxes
-void makeCtStruct(Common::Array<Ct> &lst, int16 table[][40], int num, int z) {
+void makeCtStruct(Common::Array<Ct> &lst, WalkBox walkBoxArray[], int num, int z) {
 	int minX = 1000;
 	int maxX = -1;
 
-	if (table[num][0] < 1)
+	if (walkBoxArray[num]._array[0] < 1)
 		return;
 
-	Common::Point currentWalkBoxCenter = getWalkBoxCenter(num, table);
+	Common::Point currentWalkBoxCenter = getWalkBoxCenter(num, walkBoxArray);
 
-	renderCTPWalkBox(&table[num][0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
+	renderCTPWalkBox(&walkBoxArray[num]._array[0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
 	lst.push_back(Ct());
 	Ct &ct = lst[lst.size() - 1];
@@ -259,7 +260,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	ASSERT((segmentSizeTable[2] % 80) == 0);
 	for (int i = 0; i < segmentSizeTable[2] / 80; i++) {
 		for (int j = 0; j < 40; j++) {
-			ctp_walkboxTable[i][j] = (int16)READ_BE_UINT16(dataPointer);
+			walkboxes[i]._array[j] = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
 		}
 	}
@@ -310,13 +311,13 @@ int initCt(const char *ctpName, bool isLoading) {
 	// Load the polyStructNorm list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(_vm->_polyStructNorm, ctp_walkboxTable, i, 0);
+		makeCtStruct(_vm->_polyStructNorm, walkboxes, i, 0);
 	}
 
 	// Load the polyStructExp list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(_vm->_polyStructExp, ctp_walkboxTable, i, walkboxZoom[i] * 20);
+		makeCtStruct(_vm->_polyStructExp, walkboxes, i, walkboxZoom[i] * 20);
 	}
 
 	_vm->_polyStruct = _vm->_polyStructs = &_vm->_polyStructNorm;

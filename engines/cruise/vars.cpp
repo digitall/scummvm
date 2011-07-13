@@ -21,6 +21,7 @@
  */
 
 #include "cruise/cruise_main.h"
+#include "ctp.h"
 
 namespace Cruise {
 
@@ -153,7 +154,7 @@ int32 loadFileVar1;
 int16 ctp_routeCoordCount;	// ctpVar2
 int16 ctp_routeCoords[20][2];	// ctpVar3
 int16 ctp_routes[20][10];
-int16 ctp_walkboxTable[15][40];	// ctpVar5
+WalkBox walkboxes[15];			// ctpVar5
 int16 walkboxColorIndex[16];
 int16 walkboxZoom[15];		//  ctpVar7
 int16 distanceTable[20][10];
