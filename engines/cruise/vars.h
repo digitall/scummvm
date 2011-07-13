@@ -230,9 +230,6 @@ extern int16 saveVar1;
 extern uint8 saveVar2[97];	// recheck size
 
 extern int16 numberOfWalkboxes;	// saveVar3
-extern int16 walkboxColor[15];	// saveVar4     // Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
-extern int16 walkboxState[15];	// saveVar5 // walkbox can change its type: 0x00 - not changeable, 0x01 - changeable
-// Assumption: To change the type: walkboxColor[i] -= walkboxChane[i] and vice versa
 extern uint8 lastAni[16];
 
 extern int32 loadFileVar1;

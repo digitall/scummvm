@@ -157,7 +157,7 @@ void makeCtStruct(Common::Array<Ct> &lst, WalkBox walkBoxArray[], int num, int z
 	}
 
 	ct._num = num;
-	ct._color = walkboxColor[num];
+	ct._color = walkboxes[num]._color;
 	ct._bounds.left = minX;
 	ct._bounds.right = maxX;
 	ct._bounds.top = minY;
@@ -178,12 +178,12 @@ int setNodeColor(int nodeIdx, int nodeColor) {
 	if (nodeIdx < 0 || nodeIdx >= ctp_routeCoordCount)
 		return -1;
 
-	int oldColor = walkboxColor[nodeIdx];
+	int oldColor = walkboxes[nodeIdx]._color;
 
 	if (nodeColor == -1)
 		return
 
-		    walkboxColor[nodeIdx] = nodeColor;
+	walkboxes[nodeIdx]._color = nodeColor;
 
 	return oldColor;
 }
@@ -192,12 +192,12 @@ int setNodeState(int nodeIdx, int nodeState) {
 	if (nodeIdx < 0 || nodeIdx >= ctp_routeCoordCount)
 		return -1;
 
-	int oldState = walkboxState[nodeIdx];
+	int oldState = walkboxes[nodeIdx]._state;
 
 	if (nodeState == -1)
 		return oldState;
 
-	walkboxState[nodeIdx] = nodeState;
+	walkboxes[nodeIdx]._state = nodeState;
 
 	return oldState;
 }
@@ -273,14 +273,14 @@ int initCt(const char *ctpName, bool isLoading) {
 		// Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
 		ASSERT((segmentSizeTable[3] % 2) == 0);
 		for (int i = 0; i < segmentSizeTable[3] / 2; i++) {
-			walkboxColor[i] = (int16)READ_BE_UINT16(dataPointer);
+			walkboxes[i]._color = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
 		}
 
 		// change indicator, walkbox type can change, i.e. blocked by object (values are either 0x00 or 0x01)
 		ASSERT((segmentSizeTable[4] % 2) == 0);
 		for (int i = 0; i < segmentSizeTable[4] / 2; i++) {
-			walkboxState[i] = (int16)READ_BE_UINT16(dataPointer);
+			walkboxes[i]._state = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
 		}
 	}
