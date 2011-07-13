@@ -199,6 +199,55 @@ int setNodeState(int nodeIdx, int nodeState) {
 	return oldState;
 }
 
+void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoading) {
+
+	// read polygons
+	ASSERT((segmentSizeTable[2] % 80) == 0);
+	for (int i = 0; i < segmentSizeTable[2] / 80; i++) {
+		for (int j = 0; j < 40; j++) {
+			walkboxes[i]._array[j] = (int16)READ_BE_UINT16(dataPointer);
+			dataPointer += 2;
+		}
+	}
+
+	if (isLoading) {
+		// loading from save, ignore the initial values
+		dataPointer += segmentSizeTable[3];
+		dataPointer += segmentSizeTable[4];
+	} else {
+		// get the walkbox type
+		// Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
+		ASSERT((segmentSizeTable[3] % 2) == 0);
+		for (int i = 0; i < segmentSizeTable[3] / 2; i++) {
+			walkboxes[i]._color = (int16)READ_BE_UINT16(dataPointer);
+			dataPointer += 2;
+		}
+
+		// change indicator, walkbox type can change, i.e. blocked by object (values are either 0x00 or 0x01)
+		ASSERT((segmentSizeTable[4] % 2) == 0);
+		for (int i = 0; i < segmentSizeTable[4] / 2; i++) {
+			walkboxes[i]._state = (int16)READ_BE_UINT16(dataPointer);
+			dataPointer += 2;
+		}
+	}
+
+	//
+	ASSERT((segmentSizeTable[5] % 2) == 0);
+	for (int i = 0; i < segmentSizeTable[5] / 2; i++) {
+		walkboxColorIndex[i] = (int16)READ_BE_UINT16(dataPointer);
+		dataPointer += 2;
+	}
+
+	//
+	ASSERT((segmentSizeTable[6] % 2) == 0);
+	for (int i = 0; i < segmentSizeTable[6] / 2; i++) {
+		walkboxes[i]._zoom = (int16)READ_BE_UINT16(dataPointer);
+		dataPointer += 2;
+	}
+
+	numberOfWalkboxes = segmentSizeTable[6] / 2;	// get the number of walkboxes
+}
+
 int initCt(const char *ctpName, bool isLoading) {
 	uint8 *dataPointer;	// ptr2
 	char fileType[5];	// string2
@@ -252,55 +301,12 @@ int initCt(const char *ctpName, bool isLoading) {
 		}
 	}
 
-	// read polygons
-	ASSERT((segmentSizeTable[2] % 80) == 0);
-	for (int i = 0; i < segmentSizeTable[2] / 80; i++) {
-		for (int j = 0; j < 40; j++) {
-			walkboxes[i]._array[j] = (int16)READ_BE_UINT16(dataPointer);
-			dataPointer += 2;
-		}
-	}
+	initWalkBoxes(segmentSizeTable, dataPointer, isLoading);
 
-	if (isLoading) {
-		// loading from save, ignore the initial values
-		dataPointer += segmentSizeTable[3];
-		dataPointer += segmentSizeTable[4];
-	} else {
-		// get the walkbox type
-		// Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
-		ASSERT((segmentSizeTable[3] % 2) == 0);
-		for (int i = 0; i < segmentSizeTable[3] / 2; i++) {
-			walkboxes[i]._color = (int16)READ_BE_UINT16(dataPointer);
-			dataPointer += 2;
-		}
-
-		// change indicator, walkbox type can change, i.e. blocked by object (values are either 0x00 or 0x01)
-		ASSERT((segmentSizeTable[4] % 2) == 0);
-		for (int i = 0; i < segmentSizeTable[4] / 2; i++) {
-			walkboxes[i]._state = (int16)READ_BE_UINT16(dataPointer);
-			dataPointer += 2;
-		}
-	}
-
-	//
-	ASSERT((segmentSizeTable[5] % 2) == 0);
-	for (int i = 0; i < segmentSizeTable[5] / 2; i++) {
-		walkboxColorIndex[i] = (int16)READ_BE_UINT16(dataPointer);
-		dataPointer += 2;
-	}
-
-	//
-	ASSERT((segmentSizeTable[6] % 2) == 0);
-	for (int i = 0; i < segmentSizeTable[6] / 2; i++) {
-		walkboxes[i]._zoom = (int16)READ_BE_UINT16(dataPointer);
-		dataPointer += 2;
-	}
 	MemFree(ptr);
 
 	if (ctpName != currentCtpName)
 		strcpy(currentCtpName, ctpName);
-
-	numberOfWalkboxes = segmentSizeTable[6] / 2;	// get the number of walkboxes
 
 	computeAllDistance(distanceTable, ctp_routeCoordCount);	// process path-finding stuff
 
