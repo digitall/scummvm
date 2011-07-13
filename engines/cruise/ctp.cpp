@@ -28,8 +28,6 @@
 
 namespace Cruise {
 
-uint8 *ctpVar17;
-
 int ctpVarUnk;
 uint8 walkboxTable[0x12];
 
