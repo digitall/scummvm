@@ -59,13 +59,12 @@ void computeAllDistance(int16 table[][10], short int coordCount) {
 	}
 }
 
-Common::Point getWalkBoxCenter(int n, WalkBox walkBoxArray[]) {
+Common::Point getWalkBoxCenter(WalkBox &walkBox) {
 	int minX = 1000;
 	int minY = 1000;
 	int maxX = -1;
 	int maxY = -1;
 	Common::Point currentWalkBoxcenter;
-	WalkBox walkBox = walkBoxArray[n];
 
 	for (int i = 0; i < walkBox._array[0]; i++) {
 		int x = walkBox._array[i*2+1];
@@ -131,7 +130,7 @@ void makeCtStruct(Common::Array<Ct> &lst, WalkBox walkBoxArray[], int num, int z
 	if (walkBoxArray[num]._array[0] < 1)
 		return;
 
-	Common::Point currentWalkBoxCenter = getWalkBoxCenter(num, walkBoxArray);
+	Common::Point currentWalkBoxCenter = getWalkBoxCenter(walkBoxArray[num]);
 
 	renderCTPWalkBox(&walkBoxArray[num]._array[0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
