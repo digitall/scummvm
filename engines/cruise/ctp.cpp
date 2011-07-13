@@ -131,9 +131,10 @@ void makeCtStruct(Common::Array<Ct> &lst, WalkBox walkBoxArray[], int num, int z
 
 	renderCTPWalkBox(&walkBoxArray[num]._array[0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
-	lst.push_back(Ct());
-	Ct &ct = lst[lst.size() - 1];
+/*	lst.push_back(Ct());
+	Ct &ct = lst[lst.size() - 1];*/
 
+	Ct *ct = new Ct;
 	int16* XArray = XMIN_XMAX;
 	int minY = *XArray++;
 
@@ -149,16 +150,18 @@ void makeCtStruct(Common::Array<Ct> &lst, WalkBox walkBoxArray[], int num, int z
 		if (x2 > maxX)
 			maxX = x2;
 
-		ct._slices.push_back(CtEntry(x1, x2));
+		ct->_slices.push_back(CtEntry(x1, x2));
 		i++;
 	}
 
-	ct._num = num;
-	ct._color = walkboxes[num]._color;
-	ct._bounds.left = minX;
-	ct._bounds.right = maxX;
-	ct._bounds.top = minY;
-	ct._bounds.bottom = minY + i;
+	ct->_num = num;
+	ct->_color = walkboxes[num]._color;
+	ct->_bounds.left = minX;
+	ct->_bounds.right = maxX;
+	ct->_bounds.top = minY;
+	ct->_bounds.bottom = minY + i;
+
+	lst.push_back(*ct);
 }
 
 int getNode(int nodeIdx, int nodeResult[2]) {
