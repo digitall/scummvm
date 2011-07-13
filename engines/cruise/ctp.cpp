@@ -28,9 +28,6 @@
 
 namespace Cruise {
 
-int ctpVarUnk;
-uint8 walkboxTable[0x12];
-
 int computeDistance(int varX, int varY, int paramX, int paramY) {
 	int diffX = ABS(paramX - varX);
 	int diffY = ABS(paramY - varY);
@@ -93,6 +90,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 	int numPoints;
 	int i;
 	int16 *destination;
+	uint8 walkboxTable[0x12];
 
 	int startX = X - ((upscaleValue(hotPointX, scale) + 0x8000) >> 16);
 	int startY = Y - ((upscaleValue(hotPointY, scale) + 0x8000) >> 16);
@@ -113,7 +111,6 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 	}
 
 	m_color = 0;
-	ctpVarUnk = 0;
 
 	for (i = 0; i < numPoints; i++) {
 		walkboxTable[i] = i;
