@@ -52,7 +52,6 @@ public:
 
 class Ct {
 public:
-	Ct *next;
 	int16 num;
 	int16 color;
 	Common::Rect bounds;
