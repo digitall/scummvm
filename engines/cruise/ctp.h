@@ -48,6 +48,9 @@ class WalkBox {
 public:
 	int16 _array[40];
 	int16 _zoom;
+	int16 _color;		// saveVar4     // Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
+	int16 _state;		// saveVar5		// walkbox can change its type: 0x00 - not changeable, 0x01 - changeable
+						// Assumption: To change the type: walkboxColor[i] -= walkboxChane[i] and vice versa
 };
 
 int initCt(const char * ctpName, bool isLoading = false);
