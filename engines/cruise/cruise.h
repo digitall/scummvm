@@ -125,10 +125,10 @@ public:
 
 	Common::File _currentVolumeFile;
 
-	Common::Array<CtStruct> _polyStructNorm;
-	Common::Array<CtStruct> _polyStructExp;
-	Common::Array<CtStruct> *_polyStructs;
-	Common::Array<CtStruct> *_polyStruct;
+	Common::Array<Ct> _polyStructNorm;
+	Common::Array<Ct> _polyStructExp;
+	Common::Array<Ct> *_polyStructs;
+	Common::Array<Ct> *_polyStruct;
 
 	Common::File _PAL_file;
 };
