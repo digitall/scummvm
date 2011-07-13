@@ -44,6 +44,11 @@ public:
 	Common::Array<CtEntry> _slices;
 };
 
+class WalkBox {
+public:
+	int16 _array[40];
+};
+
 int initCt(const char * ctpName, bool isLoading = false);
 int computeDistance(int varX, int varY, int paramX, int paramY);
 
