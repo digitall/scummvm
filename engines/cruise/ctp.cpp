@@ -295,7 +295,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	//
 	ASSERT((segmentSizeTable[6] % 2) == 0);
 	for (int i = 0; i < segmentSizeTable[6] / 2; i++) {
-		walkboxZoom[i] = (int16)READ_BE_UINT16(dataPointer);
+		walkboxes[i]._zoom = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 	}
 	MemFree(ptr);
@@ -316,7 +316,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	// Load the polyStructExp list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(_vm->_polyStructExp, walkboxes, i, walkboxZoom[i] * 20);
+		makeCtStruct(_vm->_polyStructExp, walkboxes, i, walkboxes[i]._zoom * 20);
 	}
 
 	_vm->_polyStruct = _vm->_polyStructs = &_vm->_polyStructNorm;
