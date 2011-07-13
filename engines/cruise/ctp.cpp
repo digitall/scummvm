@@ -188,16 +188,13 @@ int setNodeColor(int nodeIdx, int nodeColor) {
 	return oldColor;
 }
 
-int setNodeState(int nodeIdx, int nodeState) {
-	if (nodeIdx < 0 || nodeIdx >= ctp_routeCoordCount)
-		return -1;
-
-	int oldState = walkboxes[nodeIdx]._state;
+int WalkBox::setState(int nodeState) {
+	int oldState = _state;
 
 	if (nodeState == -1)
 		return oldState;
 
-	walkboxes[nodeIdx]._state = nodeState;
+	_state = nodeState;
 
 	return oldState;
 }
