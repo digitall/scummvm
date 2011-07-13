@@ -125,7 +125,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 }
 
 // this process the walkboxes
-void makeCtStruct(Common::Array<CtStruct> &lst, int16 table[][40], int num, int z) {
+void makeCtStruct(Common::Array<Ct> &lst, int16 table[][40], int num, int z) {
 	int minX = 1000;
 	int maxX = -1;
 
@@ -136,8 +136,8 @@ void makeCtStruct(Common::Array<CtStruct> &lst, int16 table[][40], int num, int 
 
 	renderCTPWalkBox(&table[num][0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
-	lst.push_back(CtStruct());
-	CtStruct &ct = lst[lst.size() - 1];
+	lst.push_back(Ct());
+	Ct &ct = lst[lst.size() - 1];
 
 	int16* XArray = XMIN_XMAX;
 	int minY = *XArray++;
