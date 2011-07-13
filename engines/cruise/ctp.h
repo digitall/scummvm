@@ -38,10 +38,10 @@ public:
 
 class Ct {
 public:
-	int16 num;
-	int16 color;
-	Common::Rect bounds;
-	Common::Array<CtEntry> slices;
+	int16 _num;
+	int16 _color;
+	Common::Rect _bounds;
+	Common::Array<CtEntry> _slices;
 };
 
 extern uint8 *ctpVar17;

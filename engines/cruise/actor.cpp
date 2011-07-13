@@ -103,12 +103,12 @@ void getPixel(int x, int y) {
 
 	for (uint i = 0; i < _vm->_polyStructs->size(); ++i) {
 		Ct &ct = (*_vm->_polyStructs)[i];
-		numPoly = ct.num;
+		numPoly = ct._num;
 
-		if (walkboxState[numPoly] == 0 && ct.bounds.contains(x, y)) {
+		if (walkboxState[numPoly] == 0 && ct._bounds.contains(x, y)) {
 			// click was in given box
-			int u = y - ct.bounds.top;
-			CtEntry &cte = ct.slices[u];
+			int u = y - ct._bounds.top;
+			CtEntry &cte = ct._slices[u];
 
 			if ((x >= cte.minX && x <= cte.maxX)) {
 				flag_obstacle = walkboxColor[numPoly];

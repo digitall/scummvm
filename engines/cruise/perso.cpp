@@ -49,7 +49,6 @@ void freeCTP() {
 		_vm->_polyStruct = NULL;
 	}
 
-	ctpVar17 = NULL;
 	_vm->_polyStruct = NULL;
 
 	strcpy((char *)currentCtpName, "");
