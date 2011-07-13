@@ -144,8 +144,6 @@ int16 saveVar1;
 uint8 saveVar2[97];		// recheck size
 
 int16 numberOfWalkboxes;	// saveVar3
-int16 walkboxColor[15];		// saveVar4
-int16 walkboxState[15];	// saveVar5
 
 uint8 lastAni[16];
 
@@ -154,7 +152,7 @@ int32 loadFileVar1;
 int16 ctp_routeCoordCount;	// ctpVar2
 int16 ctp_routeCoords[20][2];	// ctpVar3
 int16 ctp_routes[20][10];
-WalkBox walkboxes[15];			// ctpVar5
+WalkBox walkboxes[15];			// ctpVar5, saveVar4-5
 int16 walkboxColorIndex[16];
 int16 distanceTable[20][10];
 

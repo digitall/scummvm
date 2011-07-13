@@ -595,9 +595,9 @@ static void syncCT(Common::Serializer &s) {
 
 	if (numberOfWalkboxes) {
 		for (int i = 0; i < numberOfWalkboxes; ++i)
-			s.syncAsSint16LE(walkboxColor[i]);
+			s.syncAsSint16LE(walkboxes[i]._color);
 		for (int i = 0; i < numberOfWalkboxes; ++i)
-			s.syncAsSint16LE(walkboxState[i]);
+			s.syncAsSint16LE(walkboxes[i]._state);
 	}
 
 	for (int i = 0; i < 10; i++) {
