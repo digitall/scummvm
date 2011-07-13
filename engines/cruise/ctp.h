@@ -54,6 +54,7 @@ public:
 };
 
 int initCt(const char * ctpName, bool isLoading = false);
+void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoading);
 int computeDistance(int varX, int varY, int paramX, int paramY);
 
 int getNode(int nodeIdx, int nodeResult[2]);
