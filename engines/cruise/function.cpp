@@ -1573,7 +1573,7 @@ int16 Op_SetNodeColor() {
 	int16 color = stack.popVar();
 	int16 node = stack.popVar();
 
-	return setNodeColor(node, color);
+	return walkboxes[node].setColor(color);
 }
 
 int16 Op_SetXDial() {
