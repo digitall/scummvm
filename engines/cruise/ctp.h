@@ -27,20 +27,6 @@
 
 namespace Cruise {
 
-struct ctpVar19SubStruct {
-	uint16 boxIdx;		//0
-	uint16 type;		//2
-	uint16 minX;		//4
-	uint16 maxX;		//6
-	uint16 minY;		//8
-	uint16 maxY;		//A
-};
-
-struct ctpVar19Struct {
-	struct ctpVar19Struct *field_0;	//0
-	ctpVar19SubStruct subStruct;
-};
-
 class CtEntry {
 public:
 	CtEntry(int16 xs, int16 xe) { minX = xs; maxX = xe; }
