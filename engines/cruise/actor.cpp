@@ -102,7 +102,7 @@ int flag_aff_chemin;
 void getPixel(int x, int y) {
 
 	for (uint i = 0; i < _vm->_polyStructs->size(); ++i) {
-		CtStruct &ct = (*_vm->_polyStructs)[i];
+		Ct &ct = (*_vm->_polyStructs)[i];
 		numPoly = ct.num;
 
 		if (walkboxState[numPoly] == 0 && ct.bounds.contains(x, y)) {
