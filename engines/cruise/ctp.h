@@ -44,8 +44,6 @@ public:
 	Common::Array<CtEntry> _slices;
 };
 
-extern uint8 *ctpVar17;
-
 int initCt(const char * ctpName, bool isLoading = false);
 int computeDistance(int varX, int varY, int paramX, int paramY);
 
