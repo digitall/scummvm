@@ -120,7 +120,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 }
 
 // this process the walkboxes
-void makeCtStruct(Common::Array<Ct> &lst, WalkBox *pWalkBox, int num, int z) {
+	Ct::Ct(WalkBox *pWalkBox, int num, int z) {
 	int minX = 1000;
 	int maxX = -1;
 
@@ -131,10 +131,7 @@ void makeCtStruct(Common::Array<Ct> &lst, WalkBox *pWalkBox, int num, int z) {
 
 	renderCTPWalkBox(&pWalkBox->_array[0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
-/*	lst.push_back(Ct());
-	Ct &ct = lst[lst.size() - 1];*/
 
-	Ct *ct = new Ct;
 	int16* XArray = XMIN_XMAX;
 	int minY = *XArray++;
 
@@ -150,18 +147,17 @@ void makeCtStruct(Common::Array<Ct> &lst, WalkBox *pWalkBox, int num, int z) {
 		if (x2 > maxX)
 			maxX = x2;
 
-		ct->_slices.push_back(CtEntry(x1, x2));
+		_slices.push_back(CtEntry(x1, x2));
 		i++;
 	}
 
-	ct->_num = num;
-	ct->_color = pWalkBox->_color;
-	ct->_bounds.left = minX;
-	ct->_bounds.right = maxX;
-	ct->_bounds.top = minY;
-	ct->_bounds.bottom = minY + i;
+	_num = num;
+	_color = pWalkBox->_color;
+	_bounds.left = minX;
+	_bounds.right = maxX;
+	_bounds.top = minY;
+	_bounds.bottom = minY + i;
 
-	lst.push_back(*ct);
 }
 
 int getNode(int nodeIdx, int nodeResult[2]) {
@@ -310,13 +306,15 @@ int initCt(const char *ctpName, bool isLoading) {
 	// Load the polyStructNorm list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(_vm->_polyStructNorm, &walkboxes[i], i, 0);
+		Ct temp(&walkboxes[i], i, 0);
+		_vm->_polyStructNorm.push_back(temp);
 	}
 
 	// Load the polyStructExp list
 
 	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
-		makeCtStruct(_vm->_polyStructExp, &walkboxes[i], i, walkboxes[i]._zoom * 20);
+		Ct temp(&walkboxes[i], i, walkboxes[i]._zoom * 20);
+		_vm->_polyStructExp.push_back(temp);
 	}
 
 	_vm->_polyStruct = _vm->_polyStructs = &_vm->_polyStructNorm;
