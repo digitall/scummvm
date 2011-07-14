@@ -363,7 +363,7 @@ int point_proche(int16 table[][2]) {
 		if (pointDistance < d1) {
 			polydroite(x_mouse, y_mouse, x, y);
 
-			if (!flag_obstacle && ctp_routes[i][0] > 0) {
+			if (!flag_obstacle && routes[i]._route[0] > 0) {
 				d1 = pointDistance;
 				p = i;
 			}
@@ -406,7 +406,7 @@ void explore(int depart, int arrivee) {
 	}
 
 	while ((i = fl[id1]) < 20) {
-		id2 = ctp_routes[id1][i + 1];
+		id2 = routes[id1]._route[i + 1];
 
 		if (id2 == arrivee) {
 			if (idsol < solmax) {
@@ -515,7 +515,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 		} else {
 			// no, we take the fastest way
 			solution[0] = -1;
-			if (ctp_routes[select_noeud[0]][0] > 0)
+			if (routes[select_noeud[0]]._route[0] > 0)
 				chemin0(table[0], table[1]);
 
 			if (solution[0] == -1) {
