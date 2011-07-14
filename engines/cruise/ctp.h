@@ -36,14 +36,6 @@ public:
 	int16 maxX;
 };
 
-class Ct {
-public:
-	int16 _num;
-	int16 _color;
-	Common::Rect _bounds;
-	Common::Array<CtEntry> _slices;
-};
-
 class WalkBox {
 public:
 	int16 _array[40];
@@ -53,6 +45,18 @@ public:
 						// Assumption: To change the type: walkboxColor[i] -= walkboxChane[i] and vice versa
 	int setState(int state);
 	int setColor(int color);
+};
+
+
+class Ct {
+public:
+	int16 _num;
+	int16 _color;
+	Common::Rect _bounds;
+	Common::Array<CtEntry> _slices;
+
+	Ct() {}
+	Ct(WalkBox *pWalkBox, int num, int z);
 };
 
 int initCt(const char * ctpName, bool isLoading = false);
