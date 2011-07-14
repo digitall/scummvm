@@ -1566,7 +1566,7 @@ int16 Op_SetNodeState() {
 	int16 state = stack.popVar();
 	int16 node = stack.popVar();
 
-	if (node < 0 || node > numberOfWalkboxes)
+	if (node < 0 || node > WalkboxCount)
 		return -1;
 
 
@@ -1577,7 +1577,7 @@ int16 Op_SetNodeColor() {
 	int16 color = stack.popVar();
 	int16 node = stack.popVar();
 
-	if (node < 0 || node > numberOfWalkboxes)
+	if (node < 0 || node > WalkboxCount)
 		return -1;
 
 	return walkboxes[node].setColor(color);
