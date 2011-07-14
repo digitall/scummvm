@@ -143,14 +143,13 @@ char currentCtpName[40];
 int16 saveVar1;
 uint8 saveVar2[97];		// recheck size
 
-int16 numberOfWalkboxes;	// saveVar3
-
 uint8 lastAni[16];
 
 int32 loadFileVar1;
 
 int16 routeCount;	// ctpVar2
 CtpRoute routes[20];		// ctpVar3
+int16 WalkboxCount;	// saveVar3
 WalkBox walkboxes[15];			// ctpVar5, saveVar4-5
 int16 walkboxColorIndex[16];
 
