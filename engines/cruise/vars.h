@@ -243,7 +243,7 @@ extern int16 ctp_routeCoords[20][2];	// ctpVar3      // path-finding coordinates
 	coordinate information with x (2 bytes) and y (2 bytes)
 */
 
-extern int16 ctp_routes[20][10];	// path-finding line information
+extern CtpRoute routes[20];	// path-finding line information
 
 /* ctp_routes:
 
