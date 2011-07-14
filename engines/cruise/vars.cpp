@@ -151,7 +151,7 @@ int32 loadFileVar1;
 
 int16 ctp_routeCoordCount;	// ctpVar2
 int16 ctp_routeCoords[20][2];	// ctpVar3
-int16 ctp_routes[20][10];
+CtpRoute routes[20];
 WalkBox walkboxes[15];			// ctpVar5, saveVar4-5
 int16 walkboxColorIndex[16];
 int16 distanceTable[20][10];

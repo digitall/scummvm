@@ -59,6 +59,11 @@ public:
 	Ct(WalkBox *pWalkBox, int num, int z);
 };
 
+class CtpRoute {
+public:
+	int16 _route[10];
+};
+
 int initCt(const char * ctpName, bool isLoading = false);
 void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoading);
 int computeDistance(int varX, int varY, int paramX, int paramY);
