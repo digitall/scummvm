@@ -45,8 +45,8 @@ void computeAllDistance(int16 table[][10], short int coordCount) {
 		int x1 = ctp_routeCoords[i][0];
 		int y1 = ctp_routeCoords[i][1];
 
-		for (int j = 0; j < ctp_routes[i][0]; j++) {
-			int p = ctp_routes[i][j+1];
+		for (int j = 0; j < routes[i]._route[0]; j++) {
+			int p = routes[i]._route[j+1];
 
 			int x2 = ctp_routeCoords[p][0];
 			int y2 = ctp_routeCoords[p][1];
@@ -289,7 +289,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	ASSERT((segmentSizeTable[1] % 20) == 0);
 	for (int i = 0; i < segmentSizeTable[1] / 20; i++) {
 		for (int j = 0; j < 10; j++) {
-			ctp_routes[i][j] = (int16)READ_BE_UINT16(dataPointer);
+			routes[i]._route[j] = (int16)READ_BE_UINT16(dataPointer);
 			dataPointer += 2;
 		}
 	}
