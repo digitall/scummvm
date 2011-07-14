@@ -355,7 +355,7 @@ int point_proche(CtpRoute ctpRoutes[]) {
 	_vm->_polyStructs = &_vm->_polyStructNorm;
 
 	p = -1;
-	for (i = 0; i < ctp_routeCoordCount; i++) {
+	for (i = 0; i < routeCount; i++) {
 		x = ctpRoutes[i]._coords[0];
 		y = ctpRoutes[i]._coords[1];
 

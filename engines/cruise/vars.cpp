@@ -149,7 +149,7 @@ uint8 lastAni[16];
 
 int32 loadFileVar1;
 
-int16 ctp_routeCoordCount;	// ctpVar2
+int16 routeCount;	// ctpVar2
 CtpRoute routes[20];		// ctpVar3
 WalkBox walkboxes[15];			// ctpVar5, saveVar4-5
 int16 walkboxColorIndex[16];
