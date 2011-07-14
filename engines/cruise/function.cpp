@@ -1495,8 +1495,8 @@ int16 Op_SetObjectAtNode() {
 		ovl = currentScriptPtr->overlayNumber;
 
 	int nodeInfo[2];
-
-	if (!getNode(node, nodeInfo)) {
+	if (!(node < 0 || node >= routeCount)) {
+		routes[node].getCoords(nodeInfo);
 		setObjectPosition(ovl, obj, 0, nodeInfo[0]);
 		setObjectPosition(ovl, obj, 1, nodeInfo[1]);
 		setObjectPosition(ovl, obj, 2, nodeInfo[1]);
@@ -1508,10 +1508,13 @@ int16 Op_SetObjectAtNode() {
 
 int16 Op_GetNodeX() {
 	int16 node = stack.popVar();
-
+	int result;
 	int nodeInfo[2];
-
-	int result = getNode(node, nodeInfo);
+	if (node < 0 || node >= routeCount) {
+		result = -1;
+	} else {
+		result = routes[node].getCoords(nodeInfo);
+	}
 
 	ASSERT(result == 0);
 
@@ -1520,11 +1523,13 @@ int16 Op_GetNodeX() {
 
 int16 Op_GetNodeY() {
 	int16 node = stack.popVar();
-
+	int result;
 	int nodeInfo[2];
-
-	int result = getNode(node, nodeInfo);
-
+	if (node < 0 || node >= routeCount) {
+		result = -1;
+	} else {
+		result = routes[node].getCoords(nodeInfo);
+	}
 	ASSERT(result == 0);
 
 	return nodeInfo[1];

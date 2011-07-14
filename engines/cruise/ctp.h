@@ -64,13 +64,13 @@ public:
 	int16 _route[10];
 	int16 _coords[2];
 	int16 _distance[10];
+
+	int getCoords(int nodeResult[2]);
 };
 
 int initCt(const char * ctpName, bool isLoading = false);
 void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoading);
 int computeDistance(int varX, int varY, int paramX, int paramY);
-
-int getNode(int nodeIdx, int nodeResult[2]);
 
 } // End of namespace Cruise
 
