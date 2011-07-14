@@ -42,14 +42,14 @@ int computeDistance(int varX, int varY, int paramX, int paramY) {
 // this function process path finding coordinates
 void computeAllDistance(int16 table[][10], short int coordCount) {
 	for (int i = 0; i < coordCount; i++) {
-		int x1 = ctp_routeCoords[i][0];
-		int y1 = ctp_routeCoords[i][1];
+		int x1 = routes[i]._coords[0];
+		int y1 = routes[i]._coords[1];
 
 		for (int j = 0; j < routes[i]._route[0]; j++) {
 			int p = routes[i]._route[j+1];
 
-			int x2 = ctp_routeCoords[p][0];
-			int y2 = ctp_routeCoords[p][1];
+			int x2 = routes[p]._coords[0];
+			int y2 = routes[p]._coords[1];
 
 			table[i][p] = computeDistance(x1, y1, x2, y2);
 		}
@@ -164,8 +164,8 @@ int getNode(int nodeIdx, int nodeResult[2]) {
 	if (nodeIdx < 0 || nodeIdx >= ctp_routeCoordCount)
 		return -1;
 
-	nodeResult[0] = ctp_routeCoords[nodeIdx][0];
-	nodeResult[1] = ctp_routeCoords[nodeIdx][1];
+	nodeResult[0] = routes[nodeIdx]._coords[0];
+	nodeResult[1] = routes[nodeIdx]._coords[1];
 
 	return 0;
 }
@@ -279,9 +279,9 @@ int initCt(const char *ctpName, bool isLoading) {
 	// get the path-finding coordinates
 	ASSERT((segmentSizeTable[0] % 4) == 0);
 	for (int i = 0; i < segmentSizeTable[0] / 4; i++) {
-		ctp_routeCoords[i][0] = (int16)READ_BE_UINT16(dataPointer);
+		routes[i]._coords[0] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
-		ctp_routeCoords[i][1] = (int16)READ_BE_UINT16(dataPointer);
+		routes[i]._coords[1] = (int16)READ_BE_UINT16(dataPointer);
 		dataPointer += 2;
 	}
 

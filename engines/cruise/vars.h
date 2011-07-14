@@ -235,7 +235,6 @@ extern uint8 lastAni[16];
 extern int32 loadFileVar1;
 
 extern int16 ctp_routeCoordCount;	// ctpVar2  // number of path-finding coordinates
-extern int16 ctp_routeCoords[20][2];	// ctpVar3      // path-finding coordinates array
 
 /* ctp_routeCoords:
 
@@ -243,7 +242,7 @@ extern int16 ctp_routeCoords[20][2];	// ctpVar3      // path-finding coordinates
 	coordinate information with x (2 bytes) and y (2 bytes)
 */
 
-extern CtpRoute routes[20];	// path-finding line information
+extern CtpRoute routes[20];	// path-finding line information,path-finding coordinates array
 
 /* ctp_routes:
 
