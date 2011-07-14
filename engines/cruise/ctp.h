@@ -62,6 +62,7 @@ public:
 class CtpRoute {
 public:
 	int16 _route[10];
+	int16 _coords[2];
 };
 
 int initCt(const char * ctpName, bool isLoading = false);
