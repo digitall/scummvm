@@ -56,16 +56,16 @@ void computeAllDistance(CtpRoute table[], short int coordCount) {
 	}
 }
 
-Common::Point getWalkBoxCenter(WalkBox &walkBox) {
+Common::Point WalkBox::getCenter() {
 	int minX = 1000;
 	int minY = 1000;
 	int maxX = -1;
 	int maxY = -1;
 	Common::Point currentWalkBoxcenter;
 
-	for (int i = 0; i < walkBox._array[0]; i++) {
-		int x = walkBox._array[i*2+1];
-		int y = walkBox._array[i*2+2];
+	for (int i = 0; i < _array[0]; i++) {
+		int x = _array[i*2+1];
+		int y = _array[i*2+2];
 
 		if (x < minX)
 			minX = x;
@@ -127,7 +127,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 	if (pWalkBox->_array[0] < 1)
 		return;
 
-	Common::Point currentWalkBoxCenter = getWalkBoxCenter(*pWalkBox);
+	Common::Point currentWalkBoxCenter = pWalkBox->getCenter();
 
 	renderCTPWalkBox(&pWalkBox->_array[0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
