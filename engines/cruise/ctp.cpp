@@ -161,7 +161,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 }
 
 int getNode(int nodeIdx, int nodeResult[2]) {
-	if (nodeIdx < 0 || nodeIdx >= ctp_routeCoordCount)
+	if (nodeIdx < 0 || nodeIdx >= routeCount)
 		return -1;
 
 	nodeResult[0] = routes[nodeIdx]._coords[0];
@@ -268,7 +268,7 @@ int initCt(const char *ctpName, bool isLoading) {
 		return (0);
 	}
 
-	ctp_routeCoordCount = (int16)READ_BE_UINT16(dataPointer); // get the number of nods
+	routeCount = (int16)READ_BE_UINT16(dataPointer); // get the number of nods
 	dataPointer += 2;
 
 	for (int i = 0; i < 7; i++) {
@@ -301,7 +301,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	if (ctpName != currentCtpName)
 		strcpy(currentCtpName, ctpName);
 
-	computeAllDistance(routes, ctp_routeCoordCount);	// process path-finding stuff
+	computeAllDistance(routes, routeCount);	// process path-finding stuff
 
 	// Load the polyStructNorm list
 
