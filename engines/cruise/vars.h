@@ -229,7 +229,7 @@ extern char currentCtpName[40];
 extern int16 saveVar1;
 extern uint8 saveVar2[97];	// recheck size
 
-extern int16 numberOfWalkboxes;	// saveVar3
+extern int16 WalkboxCount;	// saveVar3
 extern uint8 lastAni[16];
 
 extern int32 loadFileVar1;

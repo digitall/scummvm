@@ -238,7 +238,7 @@ void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoa
 		dataPointer += 2;
 	}
 
-	numberOfWalkboxes = segmentSizeTable[6] / 2;	// get the number of walkboxes
+	WalkboxCount = segmentSizeTable[6] / 2;	// get the number of walkboxes
 }
 
 int initCt(const char *ctpName, bool isLoading) {
@@ -305,14 +305,14 @@ int initCt(const char *ctpName, bool isLoading) {
 
 	// Load the polyStructNorm list
 
-	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
+	for (int i = WalkboxCount - 1; i >= 0; i--) {
 		Ct temp(&walkboxes[i], i, 0);
 		_vm->_polyStructNorm.push_back(temp);
 	}
 
 	// Load the polyStructExp list
 
-	for (int i = numberOfWalkboxes - 1; i >= 0; i--) {
+	for (int i = WalkboxCount - 1; i >= 0; i--) {
 		Ct temp(&walkboxes[i], i, walkboxes[i]._zoom * 20);
 		_vm->_polyStructExp.push_back(temp);
 	}
