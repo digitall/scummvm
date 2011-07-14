@@ -316,7 +316,7 @@ void poly2(int x1, int y1, int x2, int y2) {
 	flag_obstacle = 0;
 }
 
-int point_proche(int16 table[][2]) {
+int point_proche(CtpRoute ctpRoutes[]) {
 	int x1, y1, i, x, y, p;
 	int d1 = 1000;
 
@@ -356,8 +356,8 @@ int point_proche(int16 table[][2]) {
 
 	p = -1;
 	for (i = 0; i < ctp_routeCoordCount; i++) {
-		x = table[i][0];
-		y = table[i][1];
+		x = ctpRoutes[i]._coords[0];
+		y = ctpRoutes[i]._coords[1];
 
 		int pointDistance = computeDistance(x_mouse, y_mouse, x, y);
 		if (pointDistance < d1) {
@@ -501,8 +501,8 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 			solution0[0][1] = y1;
 			_vm->_polyStructs = &_vm->_polyStructExp;
 
-			poly2(x2, y2, ctp_routeCoords[select_noeud[1]][0],
-			      ctp_routeCoords[select_noeud[1]][1]);
+			poly2(x2, y2, routes[select_noeud[1]]._coords[0],
+			      routes[select_noeud[1]]._coords[1]);
 
 			solution0[1][0] = table_ptselect[1][0] = X;
 			solution0[1][1] = table_ptselect[1][1] = Y;
@@ -539,14 +539,14 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 				while (solution[i] != -1) {
 					p1 = solution[i];
 					solution0[i + 1][0] =
-					    ctp_routeCoords[p1][0];
+					    routes[p1]._coords[0];
 					solution0[++i][1] =
-					    ctp_routeCoords[p1][1];
+					    routes[p1]._coords[1];
 				}
 				_vm->_polyStructs = &_vm->_polyStructExp;
 				poly2(x2, y2,
-				      ctp_routeCoords[select_noeud[1]][0],
-				      ctp_routeCoords[select_noeud[1]][1]);
+				      routes[select_noeud[1]]._coords[0],
+				      routes[select_noeud[1]]._coords[1]);
 				solution0[i + 1][0] = table_ptselect[1][0] = X;
 				solution0[i + 1][1] = table_ptselect[1][1] = Y;
 				solution0[i + 2][0] = -1;
@@ -667,7 +667,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 	x_mouse = x;
 	y_mouse = y;
 
-	if (!flag_obstacle || (point_select = point_proche(ctp_routeCoords)) == -1) {
+	if (!flag_obstacle || (point_select = point_proche(routes)) == -1) {
 		moveInfo.x = -1;
 		moveInfo.y = -1;
 
@@ -698,7 +698,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 	x_mouse = destX;
 	y_mouse = destY;
 
-	if ((point_select = point_proche(ctp_routeCoords)) != -1)
+	if ((point_select = point_proche(routes)) != -1)
 		valide_noeud(select_noeud, point_select, &nclick_noeud, perso->solution);
 
 	if ((!flag_aff_chemin) || ((table_ptselect[0][0] == table_ptselect[1][0]) && (table_ptselect[0][1] == table_ptselect[1][1]))) {
