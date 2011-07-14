@@ -591,12 +591,12 @@ static void syncCT(Common::Serializer &s) {
 		// There is no further data to load or save
 		return;
 
-	s.syncAsSint16LE(numberOfWalkboxes);
+	s.syncAsSint16LE(WalkboxCount);
 
-	if (numberOfWalkboxes) {
-		for (int i = 0; i < numberOfWalkboxes; ++i)
+	if (WalkboxCount) {
+		for (int i = 0; i < WalkboxCount; ++i)
 			s.syncAsSint16LE(walkboxes[i]._color);
-		for (int i = 0; i < numberOfWalkboxes; ++i)
+		for (int i = 0; i < WalkboxCount; ++i)
 			s.syncAsSint16LE(walkboxes[i]._state);
 	}
 
