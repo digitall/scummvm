@@ -40,7 +40,7 @@ int computeDistance(int varX, int varY, int paramX, int paramY) {
 }
 
 // this function process path finding coordinates
-void computeAllDistance(int16 table[][10], short int coordCount) {
+void computeAllDistance(CtpRoute table[], short int coordCount) {
 	for (int i = 0; i < coordCount; i++) {
 		int x1 = routes[i]._coords[0];
 		int y1 = routes[i]._coords[1];
@@ -51,7 +51,7 @@ void computeAllDistance(int16 table[][10], short int coordCount) {
 			int x2 = routes[p]._coords[0];
 			int y2 = routes[p]._coords[1];
 
-			table[i][p] = computeDistance(x1, y1, x2, y2);
+			table[i]._distance[p] = computeDistance(x1, y1, x2, y2);
 		}
 	}
 }
@@ -301,7 +301,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	if (ctpName != currentCtpName)
 		strcpy(currentCtpName, ctpName);
 
-	computeAllDistance(distanceTable, ctp_routeCoordCount);	// process path-finding stuff
+	computeAllDistance(routes, ctp_routeCoordCount);	// process path-finding stuff
 
 	// Load the polyStructNorm list
 

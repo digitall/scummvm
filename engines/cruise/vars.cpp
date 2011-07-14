@@ -153,7 +153,6 @@ int16 ctp_routeCoordCount;	// ctpVar2
 CtpRoute routes[20];		// ctpVar3
 WalkBox walkboxes[15];			// ctpVar5, saveVar4-5
 int16 walkboxColorIndex[16];
-int16 distanceTable[20][10];
 
 int16 flagSpeed;
 int16 speedGame;

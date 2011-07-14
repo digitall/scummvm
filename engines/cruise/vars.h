@@ -256,7 +256,6 @@ extern CtpRoute routes[20];	// path-finding line information,path-finding coordi
 */
 extern WalkBox walkboxes[15];	// ctpVar5, 7	// walkboxes coordinates and lines and scaling information
 extern int16 walkboxColorIndex[16];
-extern int16 distanceTable[20][10];
 
 extern int16 flagSpeed;
 extern int16 speedGame;

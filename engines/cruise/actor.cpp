@@ -413,7 +413,7 @@ void explore(int depart, int arrivee) {
 				sol[idsol] = (char)arrivee;
 				D = 0;
 				for (i = 0; i < idsol; i++) {
-					D = D + distanceTable[(int)sol[i]][(int)sol[i + 1]];
+					D = D + routes[(int)sol[i]]._distance[(int)sol[i + 1]];
 					Fsol[i] = sol[i];
 				}
 				prem2 = 0;
