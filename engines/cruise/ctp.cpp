@@ -160,12 +160,12 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 
 }
 
-int getNode(int nodeIdx, int nodeResult[2]) {
-	if (nodeIdx < 0 || nodeIdx >= routeCount)
-		return -1;
+int CtpRoute::getCoords(int nodeResult[2]) {
+/*	if (nodeIdx < 0 || nodeIdx >= routeCount)
+		return -1;*/
 
-	nodeResult[0] = routes[nodeIdx]._coords[0];
-	nodeResult[1] = routes[nodeIdx]._coords[1];
+	nodeResult[0] = _coords[0];
+	nodeResult[1] = _coords[1];
 
 	return 0;
 }
