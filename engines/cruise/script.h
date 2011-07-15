@@ -48,10 +48,6 @@ struct scriptInstanceStruct {
 	int16 var1A;
 };
 
-extern scriptInstanceStruct relHead;
-extern scriptInstanceStruct procHead;
-extern scriptInstanceStruct *currentScriptPtr;
-
 void setupFuncArray();
 int8 getByteFromScript();
 

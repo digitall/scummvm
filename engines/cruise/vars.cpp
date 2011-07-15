@@ -164,6 +164,11 @@ BackgroundIncrustListNode backgroundIncrustListHead;
 CellListNode cellHead;
 Menu *menuTable[8];
 Stack stack;
+
+scriptInstanceStruct relHead;
+scriptInstanceStruct procHead;
+scriptInstanceStruct *currentScriptPtr;
+
 //OSystem *osystem;
 
 } // End of namespace Cruise

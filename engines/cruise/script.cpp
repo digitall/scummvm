@@ -27,11 +27,6 @@
 
 namespace Cruise {
 
-scriptInstanceStruct relHead;
-scriptInstanceStruct procHead;
-
-scriptInstanceStruct *currentScriptPtr;
-
 int8 getByteFromScript() {
 	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->scriptOffset);
 	++currentScriptPtr->scriptOffset;
