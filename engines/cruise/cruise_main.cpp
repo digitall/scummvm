@@ -1016,8 +1016,8 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 
 int processInventory() {
 	if (menuTable[1]) {
-		menuElementStruct *pCurrentMenuElement = NULL;
-		menuElementSubStruct *pMenuElementSub = menuTable[1]->getSelectedEntry(pCurrentMenuElement);
+		menuElementStruct currentMenuElement;
+		menuElementSubStruct *pMenuElementSub = menuTable[1]->getSelectedEntry(currentMenuElement);
 
 		if (pMenuElementSub) {
 			int var2 = pMenuElementSub->ovlIdx;
@@ -1026,7 +1026,7 @@ int processInventory() {
 			delete menuTable[1];
 			menuTable[1] = NULL;
 
-			findRelation(var2, var4, pCurrentMenuElement->x + 80, pCurrentMenuElement->y);
+			findRelation(var2, var4, currentMenuElement.x + 80, currentMenuElement.y);
 
 			return 1;
 		} else {
@@ -1586,8 +1586,8 @@ int CruiseEngine::processInput() {
 				} else {
 					// handle click in menu
 					if (menuTable[0]) {
-						menuElementStruct *pCurrentMenuElement = NULL;
-						menuElementSubStruct *pMenuElementSub = menuTable[0]->getSelectedEntry(pCurrentMenuElement);
+						menuElementStruct currentMenuElement;
+						menuElementSubStruct *pMenuElementSub = menuTable[0]->getSelectedEntry(currentMenuElement);
 
 						callRelation(pMenuElementSub, -1);
 
@@ -1600,7 +1600,7 @@ int CruiseEngine::processInput() {
 							char text[80];
 							strcpy(text, menuTable[0]->_stringPtr);
 							strcat(text, ":");
-							strcat(text, pCurrentMenuElement->string);
+							strcat(text, currentMenuElement.string);
 							linkedMsgList = renderText(320, (const char *)text);
 							currentMouse.changeCursor(CURSOR_CROSS);
 						}

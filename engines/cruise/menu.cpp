@@ -321,10 +321,9 @@ Menu::~Menu() {
 	freeGfx(_gfx);
 }
 
-menuElementSubStruct *Menu::getSelectedEntry(menuElementStruct* pSelectedElement) {
+menuElementSubStruct *Menu::getSelectedEntry(menuElementStruct &pSelectedElement) {
 	menuElementStruct *pMenuElement;
 	if (_numElements == 0) {
-		pSelectedElement = NULL;
 		return NULL;
 	}
 
@@ -332,18 +331,17 @@ menuElementSubStruct *Menu::getSelectedEntry(menuElementStruct* pSelectedElement
 
 	while (pMenuElement) {
 		if (pMenuElement->selected) {
-			pSelectedElement = pMenuElement;
+			pSelectedElement = *pMenuElement;
 			return pMenuElement->ptrSub;
 		}
 
 		pMenuElement = pMenuElement->next;
 	}
-	pSelectedElement = NULL;
 	return NULL;
 }
 
 menuElementSubStruct *Menu::getSelectedEntry() {
-	menuElementStruct *dummy = NULL;
+	menuElementStruct dummy;
 	return getSelectedEntry(dummy);
 }
 
