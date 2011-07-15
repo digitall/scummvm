@@ -269,6 +269,10 @@ extern CellListNode cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 
+extern scriptInstanceStruct relHead;
+extern scriptInstanceStruct procHead;
+extern scriptInstanceStruct *currentScriptPtr;
+
 //extern OSystem *osystem;
 
 } // End of namespace Cruise
