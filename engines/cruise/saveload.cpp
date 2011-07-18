@@ -307,54 +307,54 @@ static void syncOverlays2(Common::Serializer &s) {
 	}
 }
 
-void syncScript(Common::Serializer &s, scriptInstanceStruct *entry) {
+void syncScript(Common::Serializer &s, ScriptInstance *entry) {
 	int numScripts = 0;
 	uint32 dummyLong = 0;
 	uint16 dummyWord = 0;
 
 	if (s.isSaving()) {
 		// Figure out the number of scripts to save
-		scriptInstanceStruct* pCurrent = entry->nextScriptPtr;
+		ScriptInstance* pCurrent = entry->_nextScriptPtr;
 		while (pCurrent) {
 			++numScripts;
-			pCurrent = pCurrent->nextScriptPtr;
+			pCurrent = pCurrent->_nextScriptPtr;
 		}
 	}
 	s.syncAsSint16LE(numScripts);
 
-	scriptInstanceStruct *ptr = entry->nextScriptPtr;
+	ScriptInstance *ptr = entry->_nextScriptPtr;
 	for (int i = 0; i < numScripts; ++i) {
 		if (s.isLoading())
-			ptr = (scriptInstanceStruct *)mallocAndZero(sizeof(scriptInstanceStruct));
+			ptr = (ScriptInstance *)mallocAndZero(sizeof(ScriptInstance));
 
 		s.syncAsUint16LE(dummyWord);
-		s.syncAsSint16LE(ptr->ccr);
-		s.syncAsSint16LE(ptr->scriptOffset);
+		s.syncAsSint16LE(ptr->_ccr);
+		s.syncAsSint16LE(ptr->_scriptOffset);
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(ptr->dataSize);
-		s.syncAsSint16LE(ptr->scriptNumber);
-		s.syncAsSint16LE(ptr->overlayNumber);
-		s.syncAsSint16LE(ptr->sysKey);
-		s.syncAsSint16LE(ptr->freeze);
-		s.syncAsSint16LE(ptr->type);
-		s.syncAsSint16LE(ptr->var16);
-		s.syncAsSint16LE(ptr->var18);
-		s.syncAsSint16LE(ptr->var1A);
+		s.syncAsSint16LE(ptr->_dataSize);
+		s.syncAsSint16LE(ptr->_scriptNumber);
+		s.syncAsSint16LE(ptr->_overlayNumber);
+		s.syncAsSint16LE(ptr->_sysKey);
+		s.syncAsSint16LE(ptr->_freeze);
+		s.syncAsSint16LE(ptr->_type);
+		s.syncAsSint16LE(ptr->_var16);
+		s.syncAsSint16LE(ptr->_var18);
+		s.syncAsSint16LE(ptr->_var1A);
 
-		s.syncAsSint16LE(ptr->dataSize);
+		s.syncAsSint16LE(ptr->_dataSize);
 
-		if (ptr->dataSize) {
+		if (ptr->_dataSize) {
 			if (s.isLoading())
-				ptr->data = (byte *)mallocAndZero(ptr->dataSize);
-			s.syncBytes(ptr->data, ptr->dataSize);
+				ptr->_data = (byte *)mallocAndZero(ptr->_dataSize);
+			s.syncBytes(ptr->_data, ptr->_dataSize);
 		}
 
 		if (s.isLoading()) {
-			ptr->nextScriptPtr = NULL;
-			entry->nextScriptPtr = ptr;
+			ptr->_nextScriptPtr = NULL;
+			entry->_nextScriptPtr = ptr;
 			entry = ptr;
 		} else {
-			ptr = ptr->nextScriptPtr;
+			ptr = ptr->_nextScriptPtr;
 		}
 	}
 }
