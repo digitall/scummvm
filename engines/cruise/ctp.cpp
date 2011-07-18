@@ -46,12 +46,18 @@ void computeAllDistance(CtpRoute table[], short int coordCount) {
 		int y1 = routes[i]._coords[1];
 
 		for (int j = 0; j < routes[i]._route[0]; j++) {
+			int tempP;
 			int p = routes[i]._route[j+1];
 
 			int x2 = routes[p]._coords[0];
 			int y2 = routes[p]._coords[1];
 
-			table[i]._distance[p] = computeDistance(x1, y1, x2, y2);
+			/* WARNING: p value exceeds 9 and there was no control for this. I
+			 * am adding this to keep the original behaviour, but it may not be
+			 * neccessary.
+			 */
+			tempP = p / 10;
+			table[i + tempP]._distance[p%10] = computeDistance(x1, y1, x2, y2);
 		}
 	}
 }
