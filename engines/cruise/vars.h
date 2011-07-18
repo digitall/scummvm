@@ -269,9 +269,9 @@ extern CellListNode cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 
-extern scriptInstanceStruct relHead;
-extern scriptInstanceStruct procHead;
-extern scriptInstanceStruct *currentScriptPtr;
+extern ScriptInstance relHead;
+extern ScriptInstance procHead;
+extern ScriptInstance *currentScriptPtr;
 
 //extern OSystem *osystem;
 

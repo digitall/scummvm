@@ -173,16 +173,16 @@ int getProcParam(int overlayIdx, int param2, const char *name) {
 	return 0;
 }
 
-void changeScriptParamInList(int param1, int param2, scriptInstanceStruct *pScriptInstance, int oldFreeze, int newValue) {
-	pScriptInstance = pScriptInstance->nextScriptPtr;
+void changeScriptParamInList(int param1, int param2, ScriptInstance *pScriptInstance, int oldFreeze, int newValue) {
+	pScriptInstance = pScriptInstance->_nextScriptPtr;
 	while (pScriptInstance) {
-		if ((pScriptInstance->overlayNumber == param1) || (param1 == -1))
-			if ((pScriptInstance->scriptNumber == param2) || (param2 == -1))
-				if ((pScriptInstance->freeze == oldFreeze) || (oldFreeze == -1)) {
-					pScriptInstance->freeze = newValue;
+		if ((pScriptInstance->_overlayNumber == param1) || (param1 == -1))
+			if ((pScriptInstance->_scriptNumber == param2) || (param2 == -1))
+				if ((pScriptInstance->_freeze == oldFreeze) || (oldFreeze == -1)) {
+					pScriptInstance->_freeze = newValue;
 				}
 
-		pScriptInstance = pScriptInstance->nextScriptPtr;
+		pScriptInstance = pScriptInstance->_nextScriptPtr;
 	}
 }
 
@@ -202,9 +202,9 @@ void initBigVar3() {
 	}
 }
 
-void resetPtr2(scriptInstanceStruct *ptr) {
-	ptr->nextScriptPtr = NULL;
-	ptr->scriptNumber = -1;
+void resetPtr2(ScriptInstance *ptr) {
+	ptr->_nextScriptPtr = NULL;
+	ptr->_scriptNumber = -1;
 }
 
 void resetActorPtr(ActorListNode *ptr) {
@@ -267,14 +267,14 @@ ovlData3Struct *scriptFunc1Sub2(int32 scriptNumber, int32 param) {
 	return &ovlData->ptr1[param];
 }
 
-void scriptFunc2(int scriptNumber, scriptInstanceStruct * scriptHandle,
+void scriptFunc2(int scriptNumber, ScriptInstance * scriptHandle,
                  int param, int param2) {
-	if (scriptHandle->nextScriptPtr) {
-		if (scriptNumber == scriptHandle->nextScriptPtr->overlayNumber
+	if (scriptHandle->_nextScriptPtr) {
+		if (scriptNumber == scriptHandle->_nextScriptPtr->_overlayNumber
 		        || scriptNumber != -1) {
-			if (param2 == scriptHandle->nextScriptPtr->scriptNumber
+			if (param2 == scriptHandle->_nextScriptPtr->_scriptNumber
 			        || param2 != -1) {
-				scriptHandle->nextScriptPtr->sysKey = param;
+				scriptHandle->_nextScriptPtr->_sysKey = param;
 			}
 		}
 	}
@@ -582,48 +582,48 @@ void CruiseEngine::initAllData() {
 	return;
 }
 
-int removeFinishedScripts(scriptInstanceStruct *ptrHandle) {
-	scriptInstanceStruct *ptr = ptrHandle->nextScriptPtr;	// can't destruct the head
-	scriptInstanceStruct *oldPtr = ptrHandle;
+int removeFinishedScripts(ScriptInstance *ptrHandle) {
+	ScriptInstance *ptr = ptrHandle->_nextScriptPtr;	// can't destruct the head
+	ScriptInstance *oldPtr = ptrHandle;
 
 	if (!ptr)
 		return (0);
 
 	do {
-		if (ptr->scriptNumber == -1) {
-			oldPtr->nextScriptPtr = ptr->nextScriptPtr;
+		if (ptr->_scriptNumber == -1) {
+			oldPtr->_nextScriptPtr = ptr->_nextScriptPtr;
 
-			if (ptr->data)
-				MemFree(ptr->data);
+			if (ptr->_data)
+				MemFree(ptr->_data);
 
 			MemFree(ptr);
 
-			ptr = oldPtr->nextScriptPtr;
+			ptr = oldPtr->_nextScriptPtr;
 		} else {
 			oldPtr = ptr;
-			ptr = ptr->nextScriptPtr;
+			ptr = ptr->_nextScriptPtr;
 		}
 	} while (ptr);
 
 	return (0);
 }
 
-void removeAllScripts(scriptInstanceStruct *ptrHandle) {
-	scriptInstanceStruct *ptr = ptrHandle->nextScriptPtr;	// can't destruct the head
-	scriptInstanceStruct *oldPtr = ptrHandle;
+void removeAllScripts(ScriptInstance *ptrHandle) {
+	ScriptInstance *ptr = ptrHandle->_nextScriptPtr;	// can't destruct the head
+	ScriptInstance *oldPtr = ptrHandle;
 
 	if (!ptr)
 		return;
 
 	do {
-		oldPtr->nextScriptPtr = ptr->nextScriptPtr;
+		oldPtr->_nextScriptPtr = ptr->_nextScriptPtr;
 
-		if (ptr->data)
-			MemFree(ptr->data);
+		if (ptr->_data)
+			MemFree(ptr->_data);
 
 		MemFree(ptr);
 
-		ptr = oldPtr->nextScriptPtr;
+		ptr = oldPtr->_nextScriptPtr;
 	} while (ptr);
 }
 
@@ -902,7 +902,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 								strcpy(verbe_name, ptr);
 
 								if (!strlen(verbe_name))
-									attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, scriptType_REL);
+									attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 								else if (ovl2->nameVerbGlob) {
 									found = true;
 									int color;
@@ -994,7 +994,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 							if ((!first) && ((testState == -1) || (testState == objectState))) {
 								if (!strlen(verbe_name)) {
 									if (currentScriptPtr) {
-										attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, scriptType_REL);
+										attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 									} else {
 										attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, 0, 0, scriptType_REL);
 									}
@@ -1069,7 +1069,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 			if ((pHeader->obj2OldState == -1) || (params.state == pHeader->obj2OldState)) {
 				if (pHeader->type == RT_REL) { // REL
 					if (currentScriptPtr) {
-						attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, scriptType_REL);
+						attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 					} else {
 						attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 					}
@@ -1129,7 +1129,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					}
 
 					if (currentScriptPtr) {
-						cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber);
+						cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
 					} else {
 						cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
 					}
@@ -1207,7 +1207,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 			// REL
 			if (pHeader->type == RT_REL) {
 				if (currentScriptPtr) {
-					attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, scriptType_REL);
+					attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 				} else {
 					attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 				}
@@ -1275,7 +1275,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 				}
 
 				if (currentScriptPtr) {
-					cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber);
+					cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
 				} else {
 					cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
 				}

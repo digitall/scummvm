@@ -32,28 +32,29 @@ enum scriptTypeEnum {
 	scriptType_REL = 30
 };
 
-struct scriptInstanceStruct {
-	struct scriptInstanceStruct *nextScriptPtr;
-	int16 ccr;
-	int16 scriptOffset;
-	uint8 *data;
-	int16 dataSize;
-	int16 scriptNumber;
-	int16 overlayNumber;
-	int16 sysKey;
-	int16 freeze;
-	scriptTypeEnum type;
-	int16 var16;
-	int16 var18;
-	int16 var1A;
+class ScriptInstance {
+public:
+	ScriptInstance *_nextScriptPtr;
+	int16 _ccr;
+	int16 _scriptOffset;
+	uint8 *_data;
+	int16 _dataSize;
+	int16 _scriptNumber;
+	int16 _overlayNumber;
+	int16 _sysKey;
+	int16 _freeze;
+	scriptTypeEnum _type;
+	int16 _var16;
+	int16 _var18;
+	int16 _var1A;
 };
 
 void setupFuncArray();
 int8 getByteFromScript();
 
-int removeScript(int overlay, int idx, scriptInstanceStruct * headPtr);
-uint8 *attacheNewScriptToTail(scriptInstanceStruct *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
-void manageScripts(scriptInstanceStruct * scriptHandle);
+int removeScript(int overlay, int idx, ScriptInstance * headPtr);
+uint8 *attacheNewScriptToTail(ScriptInstance *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
+void manageScripts(ScriptInstance * scriptHandle);
 
 } // End of namespace Cruise
 

@@ -46,8 +46,8 @@ int positionInDecompileLineTable;
 int failed;
 
 char *currentDecompScript;
-scriptInstanceStruct dummy;
-scriptInstanceStruct *currentDecompScriptPtr = &dummy;
+ScriptInstance dummy;
+ScriptInstance *currentDecompScriptPtr = &dummy;
 
 uint8 *getDataFromData3(ovlData3Struct * ptr, int param);
 

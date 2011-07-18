@@ -97,10 +97,10 @@ int16 Op_Exec() {
 	ovlIdx = stack.popVar();
 
 	if (!ovlIdx) {
-		ovlIdx = currentScriptPtr->overlayNumber;
+		ovlIdx = currentScriptPtr->_overlayNumber;
 	}
 
-	ptr = attacheNewScriptToTail(&procHead, ovlIdx, scriptIdx, currentScriptPtr->type, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, scriptType_MinusPROC);
+	ptr = attacheNewScriptToTail(&procHead, ovlIdx, scriptIdx, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_MinusPROC);
 
 	if (!ptr)
 		return (0);
@@ -133,12 +133,12 @@ int16 Op_AddProc() {
 	overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 
 	if (!overlay)
 		return (0);
 
-	uint8* procBss = attacheNewScriptToTail(&procHead, overlay, pop2, currentScriptPtr->type, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, scriptType_PROC);
+	uint8* procBss = attacheNewScriptToTail(&procHead, overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
 
 	if (procBss) {
 		for (long int i = 0; i < pop1; i++) {
@@ -156,7 +156,7 @@ int16 Op_Narrator() {
 	int pop2 = stack.popVar();
 
 	if (!pop2)
-		pop2 = currentScriptPtr->overlayNumber;
+		pop2 = currentScriptPtr->_overlayNumber;
 
 	narratorOvl = pop2;
 	narratorIdx = pop1;
@@ -303,7 +303,7 @@ int16 Op_UnmergeBackgroundIncrust() {
 	int ovl = stack.popVar();
 
 	if (!ovl) {
-		ovl = currentScriptPtr->overlayNumber;
+		ovl = currentScriptPtr->_overlayNumber;
 	}
 
 	backgroundIncrustListHead.unmergeBackgroundIncrustList(ovl, obj);
@@ -325,7 +325,7 @@ int16 Op_RemoveMessage() {
 	overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 	}
 
 	cellHead.removeCell(overlay, idx, 5, masterScreen);
@@ -383,7 +383,7 @@ int16 Op_RemoveProc() {
 	overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 	}
 
 	removeScript(overlay, idx, &procHead);
@@ -479,10 +479,10 @@ int16 Op_Display() {
 }
 
 int16 Op_FreezeParent() {
-	if (currentScriptPtr->var1A == 20) {
-		changeScriptParamInList(currentScriptPtr->var18, currentScriptPtr->var16, &procHead, -1, 9997);
-	} else if (currentScriptPtr->var1A == 30) {
-		changeScriptParamInList(currentScriptPtr->var18, currentScriptPtr->var16, &relHead, -1, 9997);
+	if (currentScriptPtr->_var1A == 20) {
+		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &procHead, -1, 9997);
+	} else if (currentScriptPtr->_var1A == 30) {
+		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &relHead, -1, 9997);
 	}
 
 	return 0;
@@ -593,7 +593,7 @@ int16 Op_InitializeState() {
 	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx)
-		ovlIdx = currentScriptPtr->overlayNumber;
+		ovlIdx = currentScriptPtr->_overlayNumber;
 
 #ifdef FUNCTION_DEBUG
 	debug(1, "Init %s state to %d", getObjectName(objIdx, overlayTable[ovlIdx].ovlData->arrayNameObj), param1);
@@ -614,7 +614,7 @@ int16 Op_AniDir() {
 	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx)
-		ovlIdx = currentScriptPtr->overlayNumber;
+		ovlIdx = currentScriptPtr->_overlayNumber;
 
 	ActorListNode *pActorNode = actorHead.findActor(ovlIdx, objIdx, type);
 	if (pActorNode)
@@ -717,9 +717,9 @@ int16 Op_AddCell() {
 	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->overlayNumber;
+		overlayIdx = currentScriptPtr->_overlayNumber;
 
-	cellHead.addCell(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, currentScriptPtr->type);
+	cellHead.addCell(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
 
 	return 0;
 }
@@ -731,9 +731,9 @@ int16 Op_AddBackgroundIncrust() {
 	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->overlayNumber;
+		overlayIdx = currentScriptPtr->_overlayNumber;
 
-	backgroundIncrustListHead.addBackgroundIncrust(overlayIdx, objIdx, currentScriptPtr->scriptNumber, currentScriptPtr->overlayNumber, masterScreen, objType);
+	backgroundIncrustListHead.addBackgroundIncrust(overlayIdx, objIdx, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, masterScreen, objType);
 
 	return 0;
 }
@@ -744,7 +744,7 @@ int16 Op_RemoveCell() {
 	int ovlNumber = stack.popVar();
 
 	if (!ovlNumber) {
-		ovlNumber = currentScriptPtr->overlayNumber;
+		ovlNumber = currentScriptPtr->_overlayNumber;
 	}
 
 	cellHead.removeCell(ovlNumber, objectIdx, objType, masterScreen);
@@ -761,10 +761,10 @@ int16 Op_SetFont() {
 }
 
 int16 Op_UnfreezeParent() {
-	if (currentScriptPtr->var1A == 0x14) {
-		changeScriptParamInList(currentScriptPtr->var18, currentScriptPtr->var16, &procHead, -1, 0);
-	} else if (currentScriptPtr->var1A == 0x1E) {
-		changeScriptParamInList(currentScriptPtr->var18, currentScriptPtr->var16, &relHead, -1, 0);
+	if (currentScriptPtr->_var1A == 0x14) {
+		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &procHead, -1, 0);
+	} else if (currentScriptPtr->_var1A == 0x1E) {
+		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &relHead, -1, 0);
 	}
 
 	return 0;
@@ -803,7 +803,7 @@ int16 Op_AddMessage() {
 	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->overlayNumber;
+		overlayIdx = currentScriptPtr->_overlayNumber;
 
 	if (color == -1) {
 		color = findHighColor();
@@ -813,7 +813,7 @@ int16 Op_AddMessage() {
 		}
 	}
 
-	cellHead.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber);
+	cellHead.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
 
 	return 0;
 }
@@ -835,7 +835,7 @@ int16 Op_EndAnim() {
 	int overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 
 	return actorHead.isAnimFinished(overlay, param2, param1);
 }
@@ -862,9 +862,9 @@ int16 Op_AutoCell() {
 	int overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 
-	pObject = cellHead.addCell(overlay, obj, 4, masterScreen, currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, currentScriptPtr->type);
+	pObject = cellHead.addCell(overlay, obj, 4, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
 
 	if (!pObject)
 		return 0;
@@ -879,10 +879,10 @@ int16 Op_AutoCell() {
 	pObject->_cell->_animChange = change;
 
 	if (type) {
-		if (currentScriptPtr->type == scriptType_PROC) {
-			changeScriptParamInList(currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, &procHead, -1, 9996);
-		} else if (currentScriptPtr->type == scriptType_REL) {
-			changeScriptParamInList(currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, &relHead, -1, 9996);
+		if (currentScriptPtr->_type == scriptType_PROC) {
+			changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &procHead, -1, 9996);
+		} else if (currentScriptPtr->_type == scriptType_REL) {
+			changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &relHead, -1, 9996);
 		}
 	}
 
@@ -908,7 +908,7 @@ int16 Op_Sizeof() {
 	int overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 
 	getMultipleObjectParam(overlay, index, &params);
 
@@ -980,7 +980,7 @@ int16 Op_RemoveBackgroundIncrust() {
 	int overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 	}
 
 	backgroundIncrustListHead.removeBackgroundIncrustNode(overlay, idx);
@@ -1101,7 +1101,7 @@ int16 Op_AddAnimation() {
 	int overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 	}
 
 	if (direction >= 0 && direction <= 3) {
@@ -1150,7 +1150,7 @@ int16 Op_RemoveAnimation() {
 	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx) {
-		ovlIdx = currentScriptPtr->overlayNumber;
+		ovlIdx = currentScriptPtr->_overlayNumber;
 	}
 
 	return actorHead.removeActor(ovlIdx, objIdx, objType);
@@ -1213,7 +1213,7 @@ int16 Op_TrackAnim() {		// setup actor position
 	int overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->overlayNumber;
+		overlay = currentScriptPtr->_overlayNumber;
 	}
 
 	pActor = actorHead.findActor(overlay, var2, var1);
@@ -1352,7 +1352,7 @@ int16 Op_FreezeOverlay() {
 	int var1 = stack.popVar();
 
 	if (!var1) {
-		var1 = currentScriptPtr->overlayNumber;
+		var1 = currentScriptPtr->_overlayNumber;
 	}
 
 	temp = overlayTable[var1].executeScripts;
@@ -1370,7 +1370,7 @@ int16 Op_FreezeCell() {
 	int overlayIdx = stack.popVar();
 
 	if (!overlayIdx) {
-		overlayIdx = currentScriptPtr->overlayNumber;
+		overlayIdx = currentScriptPtr->_overlayNumber;
 	}
 
 	cellHead.freezeCell(overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
@@ -1404,7 +1404,7 @@ int16 Op_FreezeAni() {
 	int var4 = stack.popVar();
 
 	if (!var4) {
-		var4 = currentScriptPtr->overlayNumber;
+		var4 = currentScriptPtr->_overlayNumber;
 	}
 
 	Op_60Sub(var4, &actorHead, var3, var0, var1, var2);
@@ -1462,7 +1462,7 @@ int16 Op_FindSymbol() {
 	int var1 = stack.popVar();
 
 	if (!var1)
-		var1 = currentScriptPtr->overlayNumber;
+		var1 = currentScriptPtr->_overlayNumber;
 
 	return getProcParam(var1, var0, ptr);
 }
@@ -1481,7 +1481,7 @@ int16 Op_FindObject() {
 	overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->overlayNumber;
+		overlayIdx = currentScriptPtr->_overlayNumber;
 
 	return getProcParam(overlayIdx, 40, var_26);
 }
@@ -1492,7 +1492,7 @@ int16 Op_SetObjectAtNode() {
 	int16 ovl = stack.popVar();
 
 	if (!ovl)
-		ovl = currentScriptPtr->overlayNumber;
+		ovl = currentScriptPtr->_overlayNumber;
 
 	int nodeInfo[2];
 	if (!(node < 0 || node >= routeCount)) {
@@ -1601,7 +1601,7 @@ int16 Op_DialogOn() {
 	dialogueOvl = stack.popVar();
 
 	if (dialogueOvl == 0)
-		dialogueOvl = currentScriptPtr->overlayNumber;
+		dialogueOvl = currentScriptPtr->_overlayNumber;
 
 	dialogueEnabled = true;
 
@@ -1631,9 +1631,9 @@ int16 Op_LinkObjects() {
 	int ovl = stack.popVar();
 
 	if (!ovl)
-		ovl = currentScriptPtr->overlayNumber;
+		ovl = currentScriptPtr->_overlayNumber;
 	if (!ovl2)
-		ovl2 = currentScriptPtr->overlayNumber;
+		ovl2 = currentScriptPtr->_overlayNumber;
 
 	cellHead.linkCell(ovl, obj, type, ovl2, obj2);
 
@@ -1747,10 +1747,10 @@ int16 Op_ThemeReset() {
 
 int16 Op_UserWait() {
 	userWait = 1;
-	if (currentScriptPtr->type == scriptType_PROC) {
-		changeScriptParamInList(currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, &procHead, -1, 9999);
-	} else if (currentScriptPtr->type == scriptType_REL) {
-		changeScriptParamInList(currentScriptPtr->overlayNumber, currentScriptPtr->scriptNumber, &relHead, -1, 9999);
+	if (currentScriptPtr->_type == scriptType_PROC) {
+		changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &procHead, -1, 9999);
+	} else if (currentScriptPtr->_type == scriptType_REL) {
+		changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &relHead, -1, 9999);
 	}
 
 	return 0;
