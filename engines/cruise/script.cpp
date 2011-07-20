@@ -43,6 +43,22 @@ ScriptInstance::ScriptInstance() {
 	_var1A = 0;
 }
 
+int removeFinishedScripts(Common::List<ScriptInstance> *ptrHandle) {
+	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
+
+	while (iter != ptrHandle->end()) {
+		if (iter->_scriptNumber == -1) {
+			if (iter->_data)
+				MemFree(iter->_data);
+			iter = ptrHandle->erase(iter);
+		} else {
+			iter++;
+		}
+	}
+
+	return (0);
+}
+
 int8 getByteFromScript() {
 	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->_scriptOffset);
 	++currentScriptPtr->_scriptOffset;

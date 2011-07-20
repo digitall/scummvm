@@ -582,22 +582,6 @@ void CruiseEngine::initAllData() {
 	return;
 }
 
-int removeFinishedScripts(Common::List<ScriptInstance> *ptrHandle) {
-	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
-
-	while (iter != ptrHandle->end()) {
-		if (iter->_scriptNumber == -1) {
-			if (iter->_data)
-				MemFree(iter->_data);
-			iter = ptrHandle->erase(iter);
-		} else {
-			iter++;
-		}
-	}
-
-	return (0);
-}
-
 void removeAllScripts(Common::List<ScriptInstance> *ptrHandle) {
 	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
 	while (iter != ptrHandle->end()) {
