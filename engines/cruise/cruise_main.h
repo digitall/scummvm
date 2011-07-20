@@ -95,7 +95,6 @@ int getProcParam(int overlayIdx, int param2, const char * name);
 void changeScriptParamInList(int param1, int param2, Common::List<ScriptInstance> * pScriptInstance, int newValue, int param3);
 uint8 *getDataFromData3(ovlData3Struct * ptr, int param);
 void removeExtention(const char *name, char *buffer);
-void resetPtr2(Common::List<ScriptInstance> * ptr);
 void getFileExtention(const char *name, char *buffer);
 void *allocAndZero(int size);
 void freeStuff2();

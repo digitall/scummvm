@@ -202,10 +202,6 @@ void initBigVar3() {
 	}
 }
 
-void resetPtr2(Common::List<ScriptInstance> *ptr) {
-	ptr->begin()->_scriptNumber = -1;
-}
-
 void resetActorPtr(ActorListNode *ptr) {
 	ActorListNode *p = ptr;
 
