@@ -28,6 +28,20 @@
 
 namespace Cruise {
 
+ScriptInstance::ScriptInstance() {
+	_ccr = 0;
+	_scriptOffset = 0;
+	_data = 0;
+	_dataSize = 0;
+	_scriptNumber = 0;
+	_overlayNumber = 0;
+	_sysKey = 0;
+	_freeze = 0;
+	_var16 = 0;
+	_var18 = 0;
+	_var1A = 0;
+}
+
 int8 getByteFromScript() {
 	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->_scriptOffset);
 	++currentScriptPtr->_scriptOffset;
