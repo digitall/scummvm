@@ -321,10 +321,9 @@ void syncScript(Common::Serializer &s, Common::List<ScriptInstance> *entry) {
 	s.syncAsSint16LE(numScripts);
 
 	ScriptInstance ptr;
-	for (Common::List<ScriptInstance>::iterator iter = entry->begin(); iter != entry->end(); ++iter) {
-		if (s.isLoading())
-			;
-		else
+	Common::List<ScriptInstance>::iterator iter = entry->begin();
+	for (int i = 0; i < numScripts; ++iter, ++i) {
+		if (s.isSaving())
 			ptr = *iter;
 
 		s.syncAsUint16LE(dummyWord);
