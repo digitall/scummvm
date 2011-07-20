@@ -1892,8 +1892,8 @@ void CruiseEngine::mainLoop() {
 	} while (!playerDontAskQuit && quitValue2 && quitValue != 7);
 
 	// Free data
-	removeAllScripts(&relHead);
-	removeAllScripts(&procHead);
+	relHead.removeAll();
+	procHead.removeAll();
 	resetActorPtr(&actorHead);
 	freeOverlayTable();
 	closeCnf();
