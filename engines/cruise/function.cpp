@@ -385,7 +385,7 @@ int16 Op_RemoveProc() {
 		overlay = currentScriptPtr->_overlayNumber;
 	}
 
-	removeScript(overlay, idx, &procHead);
+	procHead.remove(overlay, idx);
 
 	return (0);
 }

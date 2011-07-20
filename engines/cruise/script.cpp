@@ -511,10 +511,10 @@ void setupFuncArray() {
 	opcodeTypeTable[12] = opcodeType11;
 }
 
-int removeScript(int overlay, int idx, Common::List<ScriptInstance> *listPtr) {
-	Common::List<ScriptInstance>::iterator iter = listPtr->begin();
+int ScriptList::remove(int overlay, int idx) {
+	Common::List<ScriptInstance>::iterator iter = this->begin();
 
-		 while (iter != listPtr->end()) {
+		 while (iter != this->end()) {
 			if (iter->_overlayNumber == overlay
 			        && (iter->_scriptNumber == idx || idx == -1)) {
 				iter->_scriptNumber = -1;
