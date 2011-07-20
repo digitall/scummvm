@@ -725,8 +725,8 @@ void initVars() {
 
 	initBigVar3();
 
-	resetPtr2(&procHead);
-	resetPtr2(&relHead);
+	procHead.resetPtr2();
+	relHead.resetPtr2();
 
 	cellHead.resetPtr();
 
