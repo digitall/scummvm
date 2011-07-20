@@ -104,7 +104,6 @@ bool testMask(int x, int y, unsigned char* pData, int stride);
 void closeAllMenu();
 void initBigVar3();
 void resetActorPtr(ActorListNode *ptr);
-void removeAllScripts(Common::List<ScriptInstance> *ptrHandle);
 
 void MemoryList();
 void *MemoryAlloc(uint32 size, bool clearFlag, int32 lineNum, const char *fname);
