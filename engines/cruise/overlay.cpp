@@ -77,11 +77,9 @@ int freeOverlay(int overlayIdx) {
 	    overlayTable[overlayIdx].var16 = NULL;
 	  } */
 
-	removeScript(overlayIdx, -1, &procHead);
-	removeScript(overlayIdx, -1, &procHead);
+	procHead.remove(overlayIdx, -1);
 
-	removeScript(overlayIdx, -1, &relHead);
-	removeScript(overlayIdx, -1, &relHead);
+	relHead.remove(overlayIdx, -1);
 
 	if (ovlDataPtr->stringTable) {
 		for (i = 0; i < ovlDataPtr->numStrings; ++i)
