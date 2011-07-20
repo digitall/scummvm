@@ -56,10 +56,10 @@ public:
 	uint8 *add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
 	int remove(int overlay, int idx);
 	int removeFinished();
+	void removeAll();
 };
 void setupFuncArray();
 int8 getByteFromScript();
-void removeAllScripts(Common::List<ScriptInstance> *ptrHandle);
 void resetPtr2(Common::List<ScriptInstance> * ptr);
 void manageScripts(Common::List<ScriptInstance> * scriptHandle);
 
