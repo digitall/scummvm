@@ -102,7 +102,6 @@ void freeStuff2();
 void mainLoop();
 bool testMask(int x, int y, unsigned char* pData, int stride);
 void closeAllMenu();
-int removeFinishedScripts(Common::List<ScriptInstance> *ptrHandle);
 void initBigVar3();
 void resetActorPtr(ActorListNode *ptr);
 void removeAllScripts(Common::List<ScriptInstance> *ptrHandle);
