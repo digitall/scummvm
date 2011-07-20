@@ -566,7 +566,7 @@ void CruiseEngine::initAllData() {
 	if (bootOverlayNumber) {
 		stack.reset();
 
-		attacheNewScriptToTail(&procHead, bootOverlayNumber, 0, 20, 0, 0, scriptType_PROC);
+		procHead.add(bootOverlayNumber, 0, 20, 0, 0, scriptType_PROC);
 		scriptFunc2(bootOverlayNumber, &procHead, 1, 0);
 	}
 
@@ -852,7 +852,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 								strcpy(verbe_name, ptr);
 
 								if (!strlen(verbe_name))
-									attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+									relHead.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 								else if (ovl2->nameVerbGlob) {
 									found = true;
 									int color;
@@ -944,9 +944,9 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 							if ((!first) && ((testState == -1) || (testState == objectState))) {
 								if (!strlen(verbe_name)) {
 									if (currentScriptPtr) {
-										attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+										relHead.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 									} else {
-										attacheNewScriptToTail(&relHead, j, ptrHead->id, 30, 0, 0, scriptType_REL);
+										relHead.add(j, ptrHead->id, 30, 0, 0, scriptType_REL);
 									}
 								} else if (ovl2->nameVerbGlob) {
 									found = true;
@@ -1019,9 +1019,9 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 			if ((pHeader->obj2OldState == -1) || (params.state == pHeader->obj2OldState)) {
 				if (pHeader->type == RT_REL) { // REL
 					if (currentScriptPtr) {
-						attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+						relHead.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 					} else {
-						attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
+						relHead.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 					}
 
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
@@ -1157,9 +1157,9 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 			// REL
 			if (pHeader->type == RT_REL) {
 				if (currentScriptPtr) {
-					attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+					relHead.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 				} else {
-					attacheNewScriptToTail(&relHead, ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
+					relHead.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 				}
 
 				if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {

@@ -27,6 +27,7 @@
 #include "common/list.h"
 #include "stack.h"
 #include "ctp.h"
+#include "script.h"
 
 namespace Cruise {
 
@@ -270,8 +271,8 @@ extern CellListNode cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 
-extern Common::List<ScriptInstance> relHead;
-extern Common::List<ScriptInstance> procHead;
+extern ScriptList relHead;
+extern ScriptList procHead;
 extern ScriptInstance *currentScriptPtr;
 
 //extern OSystem *osystem;

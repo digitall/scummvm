@@ -526,7 +526,7 @@ int removeScript(int overlay, int idx, Common::List<ScriptInstance> *listPtr) {
 	return (0);
 }
 
-uint8 *attacheNewScriptToTail(Common::List<ScriptInstance> *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
+uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
 	int useArg3Neg = 0;
 	ovlData3Struct *data3Ptr;
 	ScriptInstance tempScript;
@@ -583,7 +583,7 @@ uint8 *attacheNewScriptToTail(Common::List<ScriptInstance> *scriptHandlePtr, int
 	tempScript._var16 = arg1;
 	tempScript._var1A = arg0;
 
-	scriptHandlePtr->push_back(tempScript);
+	this->push_back(tempScript);
 	return (tempScript._data);
 }
 

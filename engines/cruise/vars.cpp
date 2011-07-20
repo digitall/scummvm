@@ -22,6 +22,7 @@
 
 #include "cruise/cruise_main.h"
 #include "ctp.h"
+#include "script.h"
 
 namespace Cruise {
 
@@ -165,8 +166,8 @@ CellListNode cellHead;
 Menu *menuTable[8];
 Stack stack;
 
-Common::List<ScriptInstance> relHead;
-Common::List<ScriptInstance> procHead;
+ScriptList relHead;
+ScriptList procHead;
 ScriptInstance *currentScriptPtr;
 
 //OSystem *osystem;

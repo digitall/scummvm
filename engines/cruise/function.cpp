@@ -100,7 +100,7 @@ int16 Op_Exec() {
 		ovlIdx = currentScriptPtr->_overlayNumber;
 	}
 
-	ptr = attacheNewScriptToTail(&procHead, ovlIdx, scriptIdx, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_MinusPROC);
+	ptr = procHead.add(ovlIdx, scriptIdx, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_MinusPROC);
 
 	if (!ptr)
 		return (0);
@@ -138,7 +138,7 @@ int16 Op_AddProc() {
 	if (!overlay)
 		return (0);
 
-	uint8* procBss = attacheNewScriptToTail(&procHead, overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
+	uint8* procBss = procHead.add(overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
 
 	if (procBss) {
 		for (long int i = 0; i < pop1; i++) {
