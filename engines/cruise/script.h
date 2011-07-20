@@ -46,6 +46,8 @@ public:
 	int16 _var16;
 	int16 _var18;
 	int16 _var1A;
+
+	ScriptInstance();
 };
 
 void setupFuncArray();

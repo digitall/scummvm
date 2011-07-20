@@ -602,8 +602,9 @@ void removeAllScripts(Common::List<ScriptInstance> *ptrHandle) {
 	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
 	while (iter != ptrHandle->end()) {
 		if (iter->_data)
-			MemFree(iter->_data);
+			MemFree((*iter)._data);
 		ptrHandle->erase(iter);
+		iter++;
 	}
 }
 
