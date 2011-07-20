@@ -68,8 +68,8 @@ void ScriptList::removeAll() {
 	}
 }
 
-void resetPtr2(Common::List<ScriptInstance> *ptr) {
-	ptr->begin()->_scriptNumber = -1;
+void ScriptList::resetPtr2() {
+	begin()->_scriptNumber = -1;
 }
 
 int8 getByteFromScript() {
