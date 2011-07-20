@@ -58,12 +58,12 @@ int ScriptList::removeFinished() {
 	return (0);
 }
 
-void removeAllScripts(Common::List<ScriptInstance> *ptrHandle) {
-	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
-	while (iter != ptrHandle->end()) {
+void ScriptList::removeAll() {
+	Common::List<ScriptInstance>::iterator iter = begin();
+	while (iter != end()) {
 		if (iter->_data)
 			MemFree((*iter)._data);
-		ptrHandle->erase(iter);
+		erase(iter);
 		iter++;
 	}
 }
