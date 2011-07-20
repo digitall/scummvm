@@ -675,8 +675,8 @@ void initVars() {
 	freeObjectList(&cellHead);
 	actorHead.removeActor(-1, -1, -1);
 
-	removeAllScripts(&relHead);
-	removeAllScripts(&procHead);
+	relHead.removeAll();
+	procHead.removeAll();
 	changeScriptParamInList(-1, -1, &procHead, -1, 0);
 	procHead.removeFinished();
 
