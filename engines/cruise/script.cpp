@@ -68,6 +68,10 @@ void removeAllScripts(Common::List<ScriptInstance> *ptrHandle) {
 	}
 }
 
+void resetPtr2(Common::List<ScriptInstance> *ptr) {
+	ptr->begin()->_scriptNumber = -1;
+}
+
 int8 getByteFromScript() {
 	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->_scriptOffset);
 	++currentScriptPtr->_scriptOffset;
