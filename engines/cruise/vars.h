@@ -24,6 +24,7 @@
 #define CRUISE_VARS_H
 
 #include "common/file.h"
+#include "common/list.h"
 #include "stack.h"
 #include "ctp.h"
 
@@ -269,8 +270,8 @@ extern CellListNode cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 
-extern ScriptInstance relHead;
-extern ScriptInstance procHead;
+extern Common::List<ScriptInstance> relHead;
+extern Common::List<ScriptInstance> procHead;
 extern ScriptInstance *currentScriptPtr;
 
 //extern OSystem *osystem;

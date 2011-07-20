@@ -25,6 +25,7 @@
 
 #include "common/scummsys.h"
 #include "common/savefile.h"
+#include "common/list.h"
 
 #include "cruise/overlay.h"
 #include "cruise/object.h"
@@ -91,20 +92,20 @@ void loadPackedFileToMem(int fileIdx, uint8 * buffer);
 int getNumObjectsByClass(int scriptIdx, int param);
 void resetFileEntryRange(int param1, int param2);
 int getProcParam(int overlayIdx, int param2, const char * name);
-void changeScriptParamInList(int param1, int param2, ScriptInstance * pScriptInstance, int newValue, int param3);
+void changeScriptParamInList(int param1, int param2, Common::List<ScriptInstance> * pScriptInstance, int newValue, int param3);
 uint8 *getDataFromData3(ovlData3Struct * ptr, int param);
 void removeExtention(const char *name, char *buffer);
-void resetPtr2(ScriptInstance * ptr);
+void resetPtr2(Common::List<ScriptInstance> * ptr);
 void getFileExtention(const char *name, char *buffer);
 void *allocAndZero(int size);
 void freeStuff2();
 void mainLoop();
 bool testMask(int x, int y, unsigned char* pData, int stride);
 void closeAllMenu();
-int removeFinishedScripts(ScriptInstance *ptrHandle);
+int removeFinishedScripts(Common::List<ScriptInstance> *ptrHandle);
 void initBigVar3();
 void resetActorPtr(ActorListNode *ptr);
-void removeAllScripts(ScriptInstance *ptrHandle);
+void removeAllScripts(Common::List<ScriptInstance> *ptrHandle);
 
 void MemoryList();
 void *MemoryAlloc(uint32 size, bool clearFlag, int32 lineNum, const char *fname);
