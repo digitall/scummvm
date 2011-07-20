@@ -56,10 +56,10 @@ public:
 	int remove(int overlay, int idx);
 	int removeFinished();
 	void removeAll();
+	void resetPtr2();
 };
 void setupFuncArray();
 int8 getByteFromScript();
-void resetPtr2(Common::List<ScriptInstance> * ptr);
 void manageScripts(Common::List<ScriptInstance> * scriptHandle);
 
 } // End of namespace Cruise
