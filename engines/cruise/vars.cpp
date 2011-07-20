@@ -165,8 +165,8 @@ CellListNode cellHead;
 Menu *menuTable[8];
 Stack stack;
 
-ScriptInstance relHead;
-ScriptInstance procHead;
+Common::List<ScriptInstance> relHead;
+Common::List<ScriptInstance> procHead;
 ScriptInstance *currentScriptPtr;
 
 //OSystem *osystem;
