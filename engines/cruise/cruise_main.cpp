@@ -1823,8 +1823,8 @@ void CruiseEngine::mainLoop() {
 			manageScripts(&relHead);
 			manageScripts(&procHead);
 
-			removeFinishedScripts(&relHead);
-			removeFinishedScripts(&procHead);
+			relHead.removeFinished();
+			procHead.removeFinished();
 
 			if (!bgChanged && backgrounds[masterScreen]._isChanged &&
 					!strcmp(backgrounds[0]._backgroundTable.name, "S06B.PI1")) {

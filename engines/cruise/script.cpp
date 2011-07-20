@@ -43,14 +43,14 @@ ScriptInstance::ScriptInstance() {
 	_var1A = 0;
 }
 
-int removeFinishedScripts(Common::List<ScriptInstance> *ptrHandle) {
-	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
+int ScriptList::removeFinished() {
+	Common::List<ScriptInstance>::iterator iter =  begin();
 
-	while (iter != ptrHandle->end()) {
+	while (iter != end()) {
 		if (iter->_scriptNumber == -1) {
 			if (iter->_data)
 				MemFree(iter->_data);
-			iter = ptrHandle->erase(iter);
+			iter = erase(iter);
 		} else {
 			iter++;
 		}

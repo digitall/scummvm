@@ -678,10 +678,10 @@ void initVars() {
 	removeAllScripts(&relHead);
 	removeAllScripts(&procHead);
 	changeScriptParamInList(-1, -1, &procHead, -1, 0);
-	removeFinishedScripts(&procHead);
+	procHead.removeFinished();
 
 	changeScriptParamInList(-1, -1, &relHead, -1, 0);
-	removeFinishedScripts(&relHead);
+	relHead.removeFinished();
 
 	for (unsigned long int i = 0; i < 90; i++) {
 		if (strlen(overlayTable[i].overlayName) && overlayTable[i].alreadyLoaded) {
