@@ -50,6 +50,9 @@ public:
 	ScriptInstance();
 };
 
+class ScriptList: public Common::List<ScriptInstance> {
+
+};
 void setupFuncArray();
 int8 getByteFromScript();
 
