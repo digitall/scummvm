@@ -31,6 +31,8 @@
 
 #include "graphics/scaler.h"
 #include "graphics/thumbnail.h"
+#include "common/list.h"
+#include "common/list_intern.h"
 
 namespace Cruise {
 
@@ -307,55 +309,49 @@ static void syncOverlays2(Common::Serializer &s) {
 	}
 }
 
-void syncScript(Common::Serializer &s, ScriptInstance *entry) {
+void syncScript(Common::Serializer &s, Common::List<ScriptInstance> *entry) {
 	int numScripts = 0;
 	uint32 dummyLong = 0;
 	uint16 dummyWord = 0;
 
 	if (s.isSaving()) {
 		// Figure out the number of scripts to save
-		ScriptInstance* pCurrent = entry->_nextScriptPtr;
-		while (pCurrent) {
-			++numScripts;
-			pCurrent = pCurrent->_nextScriptPtr;
-		}
+		numScripts = entry->size();
 	}
 	s.syncAsSint16LE(numScripts);
 
-	ScriptInstance *ptr = entry->_nextScriptPtr;
-	for (int i = 0; i < numScripts; ++i) {
+	ScriptInstance ptr;
+	for (Common::List<ScriptInstance>::iterator iter = entry->begin(); iter != entry->end(); ++iter) {
 		if (s.isLoading())
-			ptr = (ScriptInstance *)mallocAndZero(sizeof(ScriptInstance));
+			;
+		else
+			ptr = *iter;
 
 		s.syncAsUint16LE(dummyWord);
-		s.syncAsSint16LE(ptr->_ccr);
-		s.syncAsSint16LE(ptr->_scriptOffset);
+		s.syncAsSint16LE(ptr._ccr);
+		s.syncAsSint16LE(ptr._scriptOffset);
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(ptr->_dataSize);
-		s.syncAsSint16LE(ptr->_scriptNumber);
-		s.syncAsSint16LE(ptr->_overlayNumber);
-		s.syncAsSint16LE(ptr->_sysKey);
-		s.syncAsSint16LE(ptr->_freeze);
-		s.syncAsSint16LE(ptr->_type);
-		s.syncAsSint16LE(ptr->_var16);
-		s.syncAsSint16LE(ptr->_var18);
-		s.syncAsSint16LE(ptr->_var1A);
+		s.syncAsSint16LE(ptr._dataSize);
+		s.syncAsSint16LE(ptr._scriptNumber);
+		s.syncAsSint16LE(ptr._overlayNumber);
+		s.syncAsSint16LE(ptr._sysKey);
+		s.syncAsSint16LE(ptr._freeze);
+		s.syncAsSint16LE(ptr._type);
+		s.syncAsSint16LE(ptr._var16);
+		s.syncAsSint16LE(ptr._var18);
+		s.syncAsSint16LE(ptr._var1A);
 
-		s.syncAsSint16LE(ptr->_dataSize);
+		s.syncAsSint16LE(ptr._dataSize);
 
-		if (ptr->_dataSize) {
+		if (ptr._dataSize) {
 			if (s.isLoading())
-				ptr->_data = (byte *)mallocAndZero(ptr->_dataSize);
-			s.syncBytes(ptr->_data, ptr->_dataSize);
+				ptr._data = (byte *)mallocAndZero(ptr._dataSize);
+			s.syncBytes(ptr._data, ptr._dataSize);
 		}
 
 		if (s.isLoading()) {
-			ptr->_nextScriptPtr = NULL;
-			entry->_nextScriptPtr = ptr;
-			entry = ptr;
-		} else {
-			ptr = ptr->_nextScriptPtr;
-		}
+			entry->push_back(ptr);
+		} 
 	}
 }
 
