@@ -29,6 +29,7 @@
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
 #include "cruise/staticres.h"
+#include "common/list.h"
 
 namespace Cruise {
 
@@ -173,16 +174,15 @@ int getProcParam(int overlayIdx, int param2, const char *name) {
 	return 0;
 }
 
-void changeScriptParamInList(int param1, int param2, ScriptInstance *pScriptInstance, int oldFreeze, int newValue) {
-	pScriptInstance = pScriptInstance->_nextScriptPtr;
-	while (pScriptInstance) {
-		if ((pScriptInstance->_overlayNumber == param1) || (param1 == -1))
-			if ((pScriptInstance->_scriptNumber == param2) || (param2 == -1))
-				if ((pScriptInstance->_freeze == oldFreeze) || (oldFreeze == -1)) {
-					pScriptInstance->_freeze = newValue;
+void changeScriptParamInList(int param1, int param2, Common::List<ScriptInstance> *pScriptList, int oldFreeze, int newValue) {
+	Common::List<ScriptInstance>::iterator iter = pScriptList->begin();
+	while (iter != pScriptList->end()) {
+		if ((iter->_overlayNumber == param1) || (param1 == -1))
+			if ((iter->_scriptNumber == param2) || (param2 == -1))
+				if ((iter->_freeze == oldFreeze) || (oldFreeze == -1)) {
+					iter->_freeze = newValue;
 				}
-
-		pScriptInstance = pScriptInstance->_nextScriptPtr;
+		iter++;
 	}
 }
 
@@ -202,9 +202,8 @@ void initBigVar3() {
 	}
 }
 
-void resetPtr2(ScriptInstance *ptr) {
-	ptr->_nextScriptPtr = NULL;
-	ptr->_scriptNumber = -1;
+void resetPtr2(Common::List<ScriptInstance> *ptr) {
+	ptr->begin()->_scriptNumber = -1;
 }
 
 void resetActorPtr(ActorListNode *ptr) {
@@ -267,14 +266,15 @@ ovlData3Struct *scriptFunc1Sub2(int32 scriptNumber, int32 param) {
 	return &ovlData->ptr1[param];
 }
 
-void scriptFunc2(int scriptNumber, ScriptInstance * scriptHandle,
+void scriptFunc2(int scriptNumber, Common::List<ScriptInstance> *scriptHandle,
                  int param, int param2) {
-	if (scriptHandle->_nextScriptPtr) {
-		if (scriptNumber == scriptHandle->_nextScriptPtr->_overlayNumber
+	Common::List<ScriptInstance>::iterator iter = scriptHandle->begin();
+	if (iter != scriptHandle->end()) {
+		if (scriptNumber == iter->_overlayNumber
 		        || scriptNumber != -1) {
-			if (param2 == scriptHandle->_nextScriptPtr->_scriptNumber
+			if (param2 == iter->_scriptNumber
 			        || param2 != -1) {
-				scriptHandle->_nextScriptPtr->_sysKey = param;
+				iter->_sysKey = param;
 			}
 		}
 	}
@@ -582,49 +582,29 @@ void CruiseEngine::initAllData() {
 	return;
 }
 
-int removeFinishedScripts(ScriptInstance *ptrHandle) {
-	ScriptInstance *ptr = ptrHandle->_nextScriptPtr;	// can't destruct the head
-	ScriptInstance *oldPtr = ptrHandle;
+int removeFinishedScripts(Common::List<ScriptInstance> *ptrHandle) {
+	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
 
-	if (!ptr)
-		return (0);
-
-	do {
-		if (ptr->_scriptNumber == -1) {
-			oldPtr->_nextScriptPtr = ptr->_nextScriptPtr;
-
-			if (ptr->_data)
-				MemFree(ptr->_data);
-
-			MemFree(ptr);
-
-			ptr = oldPtr->_nextScriptPtr;
+	while (iter != ptrHandle->end()) {
+		if (iter->_scriptNumber == -1) {
+			if (iter->_data)
+				MemFree(iter->_data);
+			iter = ptrHandle->erase(iter);
 		} else {
-			oldPtr = ptr;
-			ptr = ptr->_nextScriptPtr;
+			iter++;
 		}
-	} while (ptr);
+	}
 
 	return (0);
 }
 
-void removeAllScripts(ScriptInstance *ptrHandle) {
-	ScriptInstance *ptr = ptrHandle->_nextScriptPtr;	// can't destruct the head
-	ScriptInstance *oldPtr = ptrHandle;
-
-	if (!ptr)
-		return;
-
-	do {
-		oldPtr->_nextScriptPtr = ptr->_nextScriptPtr;
-
-		if (ptr->_data)
-			MemFree(ptr->_data);
-
-		MemFree(ptr);
-
-		ptr = oldPtr->_nextScriptPtr;
-	} while (ptr);
+void removeAllScripts(Common::List<ScriptInstance> *ptrHandle) {
+	Common::List<ScriptInstance>::iterator iter =  ptrHandle->begin();
+	while (iter != ptrHandle->end()) {
+		if (iter->_data)
+			MemFree(iter->_data);
+		ptrHandle->erase(iter);
+	}
 }
 
 

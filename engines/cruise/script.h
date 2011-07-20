@@ -34,7 +34,6 @@ enum scriptTypeEnum {
 
 class ScriptInstance {
 public:
-	ScriptInstance *_nextScriptPtr;
 	int16 _ccr;
 	int16 _scriptOffset;
 	uint8 *_data;
@@ -52,9 +51,9 @@ public:
 void setupFuncArray();
 int8 getByteFromScript();
 
-int removeScript(int overlay, int idx, ScriptInstance * headPtr);
-uint8 *attacheNewScriptToTail(ScriptInstance *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
-void manageScripts(ScriptInstance * scriptHandle);
+int removeScript(int overlay, int idx, Common::List<ScriptInstance> *headPtr);
+uint8 *attacheNewScriptToTail(Common::List<ScriptInstance> *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
+void manageScripts(Common::List<ScriptInstance> * scriptHandle);
 
 } // End of namespace Cruise
 

@@ -24,6 +24,7 @@
 #include "cruise/cruise_main.h"
 #include "common/endian.h"
 #include "common/textconsole.h"
+#include "common/list.h"
 
 namespace Cruise {
 
@@ -466,31 +467,26 @@ void setupFuncArray() {
 	opcodeTypeTable[12] = opcodeType11;
 }
 
-int removeScript(int overlay, int idx, ScriptInstance *headPtr) {
-	ScriptInstance *scriptPtr;
+int removeScript(int overlay, int idx, Common::List<ScriptInstance> *listPtr) {
+	Common::List<ScriptInstance>::iterator iter = listPtr->begin();
 
-	scriptPtr = headPtr->_nextScriptPtr;
-
-	if (scriptPtr) {
-		do {
-			if (scriptPtr->_overlayNumber == overlay
-			        && (scriptPtr->_scriptNumber == idx || idx == -1)) {
-				scriptPtr->_scriptNumber = -1;
+		 while (iter != listPtr->end()) {
+			if (iter->_overlayNumber == overlay
+			        && (iter->_scriptNumber == idx || idx == -1)) {
+				iter->_scriptNumber = -1;
 			}
 
-			scriptPtr = scriptPtr->_nextScriptPtr;
-		} while (scriptPtr);
-	}
+			iter++;
+		}
 
 	return (0);
 }
 
-uint8 *attacheNewScriptToTail(ScriptInstance *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
+uint8 *attacheNewScriptToTail(Common::List<ScriptInstance> *scriptHandlePtr, int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
 	int useArg3Neg = 0;
 	ovlData3Struct *data3Ptr;
-	ScriptInstance *tempPtr;
+	ScriptInstance tempScript;
 	int var_C;
-	ScriptInstance *oldTail;
 
 	//debug("Starting script %d of overlay %s", param,overlayTable[overlayNumber].overlayName);
 
@@ -519,48 +515,32 @@ uint8 *attacheNewScriptToTail(ScriptInstance *scriptHandlePtr, int16 overlayNumb
 
 	var_C = data3Ptr->sysKey;
 
-	oldTail = scriptHandlePtr;
-
-	while (oldTail->_nextScriptPtr) {	// go to the end of the list
-		oldTail = oldTail->_nextScriptPtr;
-	}
-
-	tempPtr =
-	    (ScriptInstance *)
-	    mallocAndZero(sizeof(ScriptInstance));
-
-	if (!tempPtr)
-		return (NULL);
-
-	tempPtr->_data = NULL;
+	tempScript._data = NULL;
 
 	if (var_C) {
-		tempPtr->_data = (uint8 *) mallocAndZero(var_C);
+		tempScript._data = (uint8 *) mallocAndZero(var_C);
 	}
 
-	tempPtr->_dataSize = var_C;
-	tempPtr->_nextScriptPtr = NULL;
-	tempPtr->_scriptOffset = 0;
+	tempScript._dataSize = var_C;
+	tempScript._scriptOffset = 0;
 
-	tempPtr->_scriptNumber = param;
-	tempPtr->_overlayNumber = overlayNumber;
+	tempScript._scriptNumber = param;
+	tempScript._overlayNumber = overlayNumber;
 
 	if (scriptType == 20) {	// Obj or not ?
-		tempPtr->_sysKey = useArg3Neg;
+		tempScript._sysKey = useArg3Neg;
 	} else {
-		tempPtr->_sysKey = 1;
+		tempScript._sysKey = 1;
 	}
 
-	tempPtr->_freeze = 0;
-	tempPtr->_type = scriptType;
-	tempPtr->_var18 = arg2;
-	tempPtr->_var16 = arg1;
-	tempPtr->_var1A = arg0;
-	tempPtr->_nextScriptPtr = oldTail->_nextScriptPtr;	// should always be NULL as it's the tail
+	tempScript._freeze = 0;
+	tempScript._type = scriptType;
+	tempScript._var18 = arg2;
+	tempScript._var16 = arg1;
+	tempScript._var1A = arg0;
 
-	oldTail->_nextScriptPtr = tempPtr;	// attache the new node to the list
-
-	return (tempPtr->_data);
+	scriptHandlePtr->push_back(tempScript);
+	return (tempScript._data);
 }
 
 int executeScripts(ScriptInstance *ptr) {
@@ -637,25 +617,23 @@ int executeScripts(ScriptInstance *ptr) {
 	return (0);
 }
 
-void manageScripts(ScriptInstance *scriptHandle) {
-	ScriptInstance *ptr = scriptHandle;
-
-	if (ptr) {
-		do {
-			if (!overlayTable[ptr->_overlayNumber].executeScripts) {
-				if ((ptr->_scriptNumber != -1) && (ptr->_freeze == 0) && (ptr->_sysKey != 0)) {
-					executeScripts(ptr);
-				}
-
-				if (ptr->_sysKey == 0) {
-					ptr->_sysKey = 1;
-				}
+void manageScripts(Common::List<ScriptInstance> *scriptHandle) {
+	Common::List<ScriptInstance>::iterator iter = scriptHandle->begin();
+	while (iter != scriptHandle->end()) {
+		if (!overlayTable[iter->_overlayNumber].executeScripts) {
+			if ( (iter->_scriptNumber != -1) && (iter->_freeze == 0) && (iter->_sysKey != 0)) {
+				executeScripts(&(*iter));
 			}
 
-			ptr = ptr->_nextScriptPtr;
+			if (iter->_sysKey == 0) {
+				iter->_sysKey = 1;
+			}
+		}
 
-		} while (ptr);
+		iter++;
+
 	}
+
 }
 
 } // End of namespace Cruise
