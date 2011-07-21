@@ -42,35 +42,7 @@ ScriptInstance::ScriptInstance() {
 	_var1A = 0;
 }
 
-int ScriptList::removeFinished() {
-	Common::List<ScriptInstance>::iterator iter =  begin();
 
-	while (iter != end()) {
-		if (iter->_scriptNumber == -1) {
-			if (iter->_data)
-				MemFree(iter->_data);
-			iter = erase(iter);
-		} else {
-			iter++;
-		}
-	}
-
-	return (0);
-}
-
-void ScriptList::removeAll() {
-	Common::List<ScriptInstance>::iterator iter = begin();
-	while (iter != end()) {
-		if (iter->_data)
-			MemFree((*iter)._data);
-		erase(iter);
-		iter++;
-	}
-}
-
-void ScriptList::resetPtr2() {
-	begin()->_scriptNumber = -1;
-}
 
 int8 getByteFromScript() {
 	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->_scriptOffset);
@@ -306,12 +278,43 @@ int32 opcodeType2() {
 	return 0;
 }
 
-int32 opcodeType10() {	// break
-	return (0);
-}
+int32 opcodeType3()	{	// math
+	int pop1 = stack.popVar();
+	int pop2 = stack.popVar();
 
-int32 opcodeType11() {	// break
-	return (1);
+	switch (currentScriptOpcodeType) {
+	case 0: {
+		stack.pushVar(pop1 + pop2);
+		return (0);
+	}
+	case 1: {
+		stack.pushVar(pop1 / pop2);
+		return (0);
+	}
+	case 2: {
+		stack.pushVar(pop1 - pop2);
+		return (0);
+	}
+	case 3: {
+		stack.pushVar(pop1 * pop2);
+		return (0);
+	}
+	case 4: {
+		stack.pushVar(pop1 % pop2);
+		return (0);
+	}
+	case 7:
+	case 5: {
+		stack.pushVar(pop2 | pop1);
+		return (0);
+	}
+	case 6: {
+		stack.pushVar(pop2 & pop1);
+		return (0);
+	}
+	}
+
+	return 0;
 }
 
 int32 opcodeType4() {		// test
@@ -355,37 +358,6 @@ int32 opcodeType4() {		// test
 	}
 
 	stack.pushVar(boolVar);
-
-	return (0);
-}
-
-int32 opcodeType6() {
-	int si = 0;
-
-	int pop = stack.popVar();
-
-	if (!pop)
-		si = 1;
-
-	if (pop < 0) {
-		si |= 4;
-	}
-
-	if (pop > 0) {
-		si |= 2;
-	}
-
-	currentScriptPtr->_ccr = si;
-
-	return (0);
-}
-
-int32 opcodeType7() {
-	int var1 = stack.popVar();
-	int var2 = stack.popVar();
-
-	stack.pushVar(var1);
-	stack.pushVar(var2);
 
 	return (0);
 }
@@ -445,48 +417,48 @@ int32 opcodeType5() {
 	return (0);
 }
 
-int32 opcodeType3()	{	// math
-	int pop1 = stack.popVar();
-	int pop2 = stack.popVar();
+int32 opcodeType6() {
+	int si = 0;
 
-	switch (currentScriptOpcodeType) {
-	case 0: {
-		stack.pushVar(pop1 + pop2);
-		return (0);
-	}
-	case 1: {
-		stack.pushVar(pop1 / pop2);
-		return (0);
-	}
-	case 2: {
-		stack.pushVar(pop1 - pop2);
-		return (0);
-	}
-	case 3: {
-		stack.pushVar(pop1 * pop2);
-		return (0);
-	}
-	case 4: {
-		stack.pushVar(pop1 % pop2);
-		return (0);
-	}
-	case 7:
-	case 5: {
-		stack.pushVar(pop2 | pop1);
-		return (0);
-	}
-	case 6: {
-		stack.pushVar(pop2 & pop1);
-		return (0);
-	}
+	int pop = stack.popVar();
+
+	if (!pop)
+		si = 1;
+
+	if (pop < 0) {
+		si |= 4;
 	}
 
-	return 0;
+	if (pop > 0) {
+		si |= 2;
+	}
+
+	currentScriptPtr->_ccr = si;
+
+	return (0);
+}
+
+int32 opcodeType7() {
+	int var1 = stack.popVar();
+	int var2 = stack.popVar();
+
+	stack.pushVar(var1);
+	stack.pushVar(var2);
+
+	return (0);
 }
 
 int32 opcodeType9() {		// stop script
 	//debug("Stop a script of overlay %s", overlayTable[currentScriptPtr->_overlayNumber].overlayName);
 	currentScriptPtr->_scriptNumber = -1;
+	return (1);
+}
+
+int32 opcodeType10() {	// break
+	return (0);
+}
+
+int32 opcodeType11() {	// break
 	return (1);
 }
 
@@ -524,6 +496,36 @@ int ScriptList::remove(int overlay, int idx) {
 		}
 
 	return (0);
+}
+
+int ScriptList::removeFinished() {
+	Common::List<ScriptInstance>::iterator iter =  begin();
+
+	while (iter != end()) {
+		if (iter->_scriptNumber == -1) {
+			if (iter->_data)
+				MemFree(iter->_data);
+			iter = erase(iter);
+		} else {
+			iter++;
+		}
+	}
+
+	return (0);
+}
+
+void ScriptList::removeAll() {
+	Common::List<ScriptInstance>::iterator iter = begin();
+	while (iter != end()) {
+		if (iter->_data)
+			MemFree((*iter)._data);
+		erase(iter);
+		iter++;
+	}
+}
+
+void ScriptList::resetPtr2() {
+	begin()->_scriptNumber = -1;
 }
 
 uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
