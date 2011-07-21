@@ -352,6 +352,7 @@ void syncScript(Common::Serializer &s, Common::List<ScriptInstance> *entry) {
 			entry->push_back(ptr);
 		} 
 	}
+	currentScriptPtr = NULL;
 }
 
 static void syncCell(Common::Serializer &s) {
