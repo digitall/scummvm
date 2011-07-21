@@ -58,6 +58,7 @@ public:
 	void removeAll();
 	void resetPtr2();
 	void manage();
+	void changeParam(int param1, int param2, int newValue, int param3);
 };
 void setupFuncArray();
 int8 getByteFromScript();

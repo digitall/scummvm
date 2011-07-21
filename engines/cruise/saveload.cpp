@@ -676,10 +676,10 @@ void initVars() {
 
 	relHead.removeAll();
 	procHead.removeAll();
-	changeScriptParamInList(-1, -1, &procHead, -1, 0);
+	procHead.changeParam(-1, -1, -1, 0);
 	procHead.removeFinished();
 
-	changeScriptParamInList(-1, -1, &relHead, -1, 0);
+	relHead.changeParam(-1, -1, -1, 0);
 	relHead.removeFinished();
 
 	for (unsigned long int i = 0; i < 90; i++) {
