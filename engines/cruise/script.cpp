@@ -512,9 +512,9 @@ void setupFuncArray() {
 }
 
 int ScriptList::remove(int overlay, int idx) {
-	Common::List<ScriptInstance>::iterator iter = this->begin();
+	Common::List<ScriptInstance>::iterator iter = begin();
 
-		 while (iter != this->end()) {
+		 while (iter != end()) {
 			if (iter->_overlayNumber == overlay
 			        && (iter->_scriptNumber == idx || idx == -1)) {
 				iter->_scriptNumber = -1;
@@ -583,7 +583,7 @@ uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1,
 	tempScript._var16 = arg1;
 	tempScript._var1A = arg0;
 
-	this->push_back(tempScript);
+	push_back(tempScript);
 	return (tempScript._data);
 }
 
