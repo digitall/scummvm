@@ -680,4 +680,16 @@ void ScriptList::manage() {
 
 }
 
+void ScriptList::changeParam(int param1, int param2, int oldFreeze, int newValue) {
+	Common::List<ScriptInstance>::iterator iter = begin();
+	while (iter != end()) {
+		if ((iter->_overlayNumber == param1) || (param1 == -1))
+			if ((iter->_scriptNumber == param2) || (param2 == -1))
+				if ((iter->_freeze == oldFreeze) || (oldFreeze == -1)) {
+					iter->_freeze = newValue;
+				}
+		iter++;
+	}
+}
+
 } // End of namespace Cruise
