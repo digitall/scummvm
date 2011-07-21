@@ -50,7 +50,7 @@ public:
 	ScriptInstance();
 };
 
-class ScriptList: public Common::List<ScriptInstance> {
+class ScriptList: private Common::List<ScriptInstance> {
 public:
 	Common::List<ScriptInstance>::iterator begin();
 	uint size();
