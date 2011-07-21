@@ -479,9 +479,9 @@ int16 Op_Display() {
 
 int16 Op_FreezeParent() {
 	if (currentScriptPtr->_var1A == 20) {
-		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &procHead, -1, 9997);
+		procHead.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
 	} else if (currentScriptPtr->_var1A == 30) {
-		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &relHead, -1, 9997);
+		relHead.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
 	}
 
 	return 0;
@@ -761,9 +761,9 @@ int16 Op_SetFont() {
 
 int16 Op_UnfreezeParent() {
 	if (currentScriptPtr->_var1A == 0x14) {
-		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &procHead, -1, 0);
+		procHead.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
 	} else if (currentScriptPtr->_var1A == 0x1E) {
-		changeScriptParamInList(currentScriptPtr->_var18, currentScriptPtr->_var16, &relHead, -1, 0);
+		relHead.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
 	}
 
 	return 0;
@@ -879,9 +879,9 @@ int16 Op_AutoCell() {
 
 	if (type) {
 		if (currentScriptPtr->_type == scriptType_PROC) {
-			changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &procHead, -1, 9996);
+			procHead.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
 		} else if (currentScriptPtr->_type == scriptType_REL) {
-			changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &relHead, -1, 9996);
+			relHead.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
 		}
 	}
 
@@ -1747,9 +1747,9 @@ int16 Op_ThemeReset() {
 int16 Op_UserWait() {
 	userWait = 1;
 	if (currentScriptPtr->_type == scriptType_PROC) {
-		changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &procHead, -1, 9999);
+		procHead.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
 	} else if (currentScriptPtr->_type == scriptType_REL) {
-		changeScriptParamInList(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, &relHead, -1, 9999);
+		relHead.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
 	}
 
 	return 0;
