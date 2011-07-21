@@ -661,9 +661,9 @@ int executeScripts(ScriptInstance *ptr) {
 	return (0);
 }
 
-void manageScripts(Common::List<ScriptInstance> *scriptHandle) {
-	Common::List<ScriptInstance>::iterator iter = scriptHandle->begin();
-	while (iter != scriptHandle->end()) {
+void ScriptList::manage() {
+	Common::List<ScriptInstance>::iterator iter = begin();
+	while (iter != end()) {
 		if (!overlayTable[iter->_overlayNumber].executeScripts) {
 			if ( (iter->_scriptNumber != -1) && (iter->_freeze == 0) && (iter->_sysKey != 0)) {
 				executeScripts(&(*iter));
