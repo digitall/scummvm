@@ -680,6 +680,19 @@ void ScriptList::manage() {
 
 }
 
+void ScriptList::scriptFunc2(int scriptNumber, int param, int param2) {
+	Common::List<ScriptInstance>::iterator iter = begin();
+	if (iter != end()) {
+		if (scriptNumber == iter->_overlayNumber
+		        || scriptNumber != -1) {
+			if (param2 == iter->_scriptNumber
+			        || param2 != -1) {
+				iter->_sysKey = param;
+			}
+		}
+	}
+}
+
 void ScriptList::changeParam(int param1, int param2, int oldFreeze, int newValue) {
 	Common::List<ScriptInstance>::iterator iter = begin();
 	while (iter != end()) {
