@@ -54,6 +54,8 @@ public:
 class ScriptList: public Common::List<ScriptInstance> {
 public:
 	uint8 *add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
+	void add(ScriptInstance scriptToAdd);
+
 	int remove(int overlay, int idx);
 	int removeFinished();
 	void removeAll();
@@ -61,6 +63,7 @@ public:
 	void manage();
 	void changeParam(int param1, int param2, int newValue, int param3);
 	void scriptFunc2(int scriptNumber, int param, int param2);
+
 };
 void setupFuncArray();
 int8 getByteFromScript();
