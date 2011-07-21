@@ -309,7 +309,7 @@ static void syncOverlays2(Common::Serializer &s) {
 	}
 }
 
-void syncScript(Common::Serializer &s, Common::List<ScriptInstance> *entry) {
+void syncScript(Common::Serializer &s, ScriptList *entry) {
 	int numScripts = 0;
 	uint32 dummyLong = 0;
 	uint16 dummyWord = 0;
@@ -349,7 +349,7 @@ void syncScript(Common::Serializer &s, Common::List<ScriptInstance> *entry) {
 		}
 
 		if (s.isLoading()) {
-			entry->push_back(ptr);
+			entry->add(ptr);
 		}
 	}
 	currentScriptPtr = NULL;
