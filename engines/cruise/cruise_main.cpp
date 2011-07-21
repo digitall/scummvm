@@ -252,19 +252,7 @@ ovlData3Struct *scriptFunc1Sub2(int32 scriptNumber, int32 param) {
 	return &ovlData->ptr1[param];
 }
 
-void scriptFunc2(int scriptNumber, Common::List<ScriptInstance> *scriptHandle,
-                 int param, int param2) {
-	Common::List<ScriptInstance>::iterator iter = scriptHandle->begin();
-	if (iter != scriptHandle->end()) {
-		if (scriptNumber == iter->_overlayNumber
-		        || scriptNumber != -1) {
-			if (param2 == iter->_scriptNumber
-			        || param2 != -1) {
-				iter->_sysKey = param;
-			}
-		}
-	}
-}
+
 
 uint8 *getDataFromData3(ovlData3Struct *ptr, int param) {
 	uint8 *dataPtr;
@@ -557,7 +545,7 @@ void CruiseEngine::initAllData() {
 		stack.reset();
 
 		procHead.add(bootOverlayNumber, 0, 20, 0, 0, scriptType_PROC);
-		scriptFunc2(bootOverlayNumber, &procHead, 1, 0);
+		procHead.scriptFunc2(bootOverlayNumber, 1, 0);
 	}
 
 	strcpy(lastOverlay, "AUTO00");
