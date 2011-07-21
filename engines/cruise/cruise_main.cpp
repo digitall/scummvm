@@ -1783,8 +1783,8 @@ void CruiseEngine::mainLoop() {
 		while (numIterations-- > 0) {
 			bgChanged = backgrounds[masterScreen]._isChanged;
 		
-			manageScripts(&relHead);
-			manageScripts(&procHead);
+			relHead.manage();
+			procHead.manage();
 
 			relHead.removeFinished();
 			procHead.removeFinished();

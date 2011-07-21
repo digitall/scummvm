@@ -57,10 +57,11 @@ public:
 	int removeFinished();
 	void removeAll();
 	void resetPtr2();
+	void manage();
 };
 void setupFuncArray();
 int8 getByteFromScript();
-void manageScripts(Common::List<ScriptInstance> * scriptHandle);
+
 
 } // End of namespace Cruise
 
