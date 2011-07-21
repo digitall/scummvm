@@ -174,17 +174,7 @@ int getProcParam(int overlayIdx, int param2, const char *name) {
 	return 0;
 }
 
-void changeScriptParamInList(int param1, int param2, Common::List<ScriptInstance> *pScriptList, int oldFreeze, int newValue) {
-	Common::List<ScriptInstance>::iterator iter = pScriptList->begin();
-	while (iter != pScriptList->end()) {
-		if ((iter->_overlayNumber == param1) || (param1 == -1))
-			if ((iter->_scriptNumber == param2) || (param2 == -1))
-				if ((iter->_freeze == oldFreeze) || (oldFreeze == -1)) {
-					iter->_freeze = newValue;
-				}
-		iter++;
-	}
-}
+
 
 void initBigVar3() {
 	int i;
@@ -1052,7 +1042,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 
 							autoTrack = true;
 							userEnabled = 0;
-							changeScriptParamInList(ovlIdx, pHeader->id, &relHead, 0, 9998);
+							relHead.changeParam(ovlIdx, pHeader->id, 0, 9998);
 						}
 					}
 				} else if (pHeader->type == RT_MSG) {
@@ -1190,7 +1180,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 
 						autoTrack = true;
 						userEnabled = 0;
-						changeScriptParamInList(ovlIdx, pHeader->id, &relHead, 0, 9998);
+						relHead.changeParam(ovlIdx, pHeader->id, 0, 9998);
 					}
 				}
 			} else if (pHeader->type == RT_MSG) { // MSG
@@ -1803,8 +1793,8 @@ void CruiseEngine::mainLoop() {
 
 		if (isUserWait & !userWait) {
 			// User waiting has ended
-			changeScriptParamInList(-1, -1, &procHead, 9999, 0);
-			changeScriptParamInList(-1, -1, &relHead, 9999, 0);
+			procHead.changeParam(-1, -1, 9999, 0);
+			relHead.changeParam(-1, -1, 9999, 0);
 
 			// Disable any mouse click used to end the user wait
 			currentMouse._button = 0;
@@ -1879,7 +1869,7 @@ void CruiseEngine::mainLoop() {
 							userWait = 1;
 					}
 
-					changeScriptParamInList(-1, -1, &relHead, 9998, 0);
+					relHead.changeParam(-1, -1, 9998, 0);
 					autoTrack = false;
 					enableUser = 1;
 				} else {

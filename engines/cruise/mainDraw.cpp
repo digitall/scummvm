@@ -1494,9 +1494,9 @@ void mainDraw(int16 param) {
 
 								if (currentObjPtr->_cell->_animType) {	// should we resume the script ?
 									if (currentObjPtr->_cell->_parentType == 20) {
-										changeScriptParamInList(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, &procHead, -1, 0);
+										procHead.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
 									} else if (currentObjPtr->_cell->_parentType == 30) {
-										changeScriptParamInList(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, &relHead, -1, 0);
+										relHead.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
 									}
 								}
 							}
@@ -1516,9 +1516,9 @@ void mainDraw(int16 param) {
 
 								if (currentObjPtr->_cell->_animType) {	// should we resume the script ?
 									if (currentObjPtr->_cell->_parentType == 20) {
-										changeScriptParamInList(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, &procHead, -1, 0);
+										procHead.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
 									} else if (currentObjPtr->_cell->_parentType == 30) {
-										changeScriptParamInList(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, &relHead, -1, 0);
+										relHead.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
 									}
 								}
 							}
@@ -1531,9 +1531,9 @@ void mainDraw(int16 param) {
 
 					if ((currentObjPtr->_cell->_animSignal >= 0) && (currentObjPtr->_cell->_animSignal == newVal) && (currentObjPtr->_cell->_animType != 0)) {
 						if (currentObjPtr->_cell->_parentType == 20) {
-							changeScriptParamInList(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, &procHead, -1, 0);
+							procHead.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
 						} else if (currentObjPtr->_cell->_parentType == 30) {
-							changeScriptParamInList(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, &relHead, -1, 0);
+							relHead.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
 						}
 
 						currentObjPtr->_cell->_animType = 0;
