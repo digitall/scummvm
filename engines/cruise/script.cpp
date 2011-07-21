@@ -483,6 +483,16 @@ void setupFuncArray() {
 	opcodeTypeTable[12] = opcodeType11;
 }
 
+Common::List<ScriptInstance>::iterator ScriptList::begin() {
+
+	return Common::List<ScriptInstance>::begin();
+}
+
+uint ScriptList::size() {
+
+	return  Common::List<ScriptInstance>::size();
+}
+
 int ScriptList::remove(int overlay, int idx) {
 	Common::List<ScriptInstance>::iterator iter = begin();
 
