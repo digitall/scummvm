@@ -37,6 +37,7 @@
 #include "cruise/menu.h"
 #include "cruise/stack.h"
 #include "cruise/script.h"
+#include "cruise/perso.h"
 #include "cruise/vars.h"
 #include "cruise/font.h"
 #include "cruise/volume.h"
@@ -46,7 +47,6 @@
 #include "cruise/linker.h"
 #include "cruise/gfxModule.h"
 #include "cruise/dataLoader.h"
-#include "cruise/perso.h"
 
 
 #include "cruise/background.h"

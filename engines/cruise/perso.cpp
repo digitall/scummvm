@@ -26,10 +26,6 @@
 
 namespace Cruise {
 
-persoStruct *persoTable[NUM_PERSONS];
-
-int16 numPoly;
-
 void freePerso(int persoIdx) {
 	if (persoTable[persoIdx]) {
 		MemFree(persoTable[persoIdx]);
