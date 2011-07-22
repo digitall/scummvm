@@ -533,7 +533,8 @@ void ScriptList::removeAll() {
 }
 
 void ScriptList::resetPtr2() {
-	begin()->_scriptNumber = -1;
+	if (begin() != end())
+		begin()->_scriptNumber = -1;
 }
 
 uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
