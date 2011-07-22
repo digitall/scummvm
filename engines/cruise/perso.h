@@ -63,6 +63,7 @@ void freePerso(int persoIdx);
 void freeCTP();
 void affiche_chemin(int16 persoIdx, MovementEntry &data);
 int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2);
+int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2, unsigned int &inc_jo);
 
 } // End of namespace Cruise
 

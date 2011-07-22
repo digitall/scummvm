@@ -54,11 +54,12 @@ void freeCTP() {
 	strcpy((char *)currentCtpName, "");
 }
 
-int pathVar0;
-
-unsigned int inc_jo;
-
 int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2) {
+	unsigned int temp;
+	return direction(x1, y1, x2, y2, inc_jo1, inc_jo2, temp);
+
+}
+int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2, unsigned int &inc_jo) {
 	int h, v, h1, v1;
 
 	h1 = x1 - x2;
@@ -86,6 +87,7 @@ int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2) {
 	}
 }
 
+// french for right horn?? maybe google translate is not that reliable.
 int cor_droite(int x1, int y1, int x2, int y2, point* outputTable) {
 	int numOutput = 0;
 
@@ -173,6 +175,7 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
                       int16 *dir_perso, int16 *inc_jo0, int16 num) {
 	int x1, x2, y1, y2;
 	int i, u;
+	unsigned int inc_jo;
 
 	u = 0;
 	inc_jo = *inc_jo0;
@@ -197,7 +200,7 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
 					}
 
 					*inc_droite0 = cor_droite(x1, y1, x2, y2, cor_joueur);
-					*dir_perso = resx_y.direction = direction(x1, y1, x2, y2, *inc_jo1, *inc_jo2);
+					*dir_perso = resx_y.direction = direction(x1, y1, x2, y2, *inc_jo1, *inc_jo2, inc_jo);
 					*inc_jo0 = inc_jo;
 					u = 1;
 				} else
@@ -236,6 +239,7 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
 
 }
 
+// french for shows road.
 void affiche_chemin(int16 persoIdx, MovementEntry &data) {
 	persoStruct *pPerso = persoTable[persoIdx];
 
