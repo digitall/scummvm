@@ -166,8 +166,8 @@ CellListNode cellHead;
 Menu *menuTable[8];
 Stack stack;
 
-ScriptList relHead;
-ScriptList procHead;
+ScriptList relScriptList;
+ScriptList procScriptList;
 ScriptInstance *currentScriptPtr;
 
 int16 numPoly;

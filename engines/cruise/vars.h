@@ -271,8 +271,8 @@ extern CellListNode cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 
-extern ScriptList relHead;
-extern ScriptList procHead;
+extern ScriptList relScriptList;
+extern ScriptList procScriptList;
 extern ScriptInstance *currentScriptPtr;
 
 extern int16 numPoly;
