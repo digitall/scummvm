@@ -55,9 +55,6 @@ struct MovementEntry {
 	int16 poly;
 };
 
-extern persoStruct *persoTable[NUM_PERSONS];
-extern int16 numPoly;
-
 int cor_droite(int x1, int y1, int x2, int y2, point* outputTable);
 void freePerso(int persoIdx);
 void freeCTP();

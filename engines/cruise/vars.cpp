@@ -170,6 +170,8 @@ ScriptList relHead;
 ScriptList procHead;
 ScriptInstance *currentScriptPtr;
 
+int16 numPoly;
+persoStruct *persoTable[NUM_PERSONS];
 //OSystem *osystem;
 
 } // End of namespace Cruise
