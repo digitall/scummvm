@@ -626,7 +626,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 			return -1;
 		}
 
-		perso = persoTable[i] = (Perso *) MemAlloc(sizeof(Perso));
+		perso = persoTable[i] = new Perso();
 
 		ptr = perso->solution[0];
 
@@ -690,7 +690,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 		return (-1);
 	}
 
-	perso = persoTable[num] = (Perso *) MemAlloc(sizeof(Perso));
+	perso = persoTable[num] = new Perso();
 
 	perso->inc_jo1 = stepX;
 	perso->inc_jo2 = stepY;

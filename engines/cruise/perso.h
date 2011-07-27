@@ -58,8 +58,6 @@ public:
 	void processActorWalk(int16 persoIdx, MovementEntry &data);
 };
 
-
-
 int cor_droite(int x1, int y1, int x2, int y2, point* outputTable);
 void freePerso(int persoIdx);
 
