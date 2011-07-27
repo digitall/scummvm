@@ -557,7 +557,7 @@ static void syncSongs(Common::Serializer &s) {
 	}
 }
 
-static void syncPerso(Common::Serializer &s, persoStruct &p) {
+static void syncPerso(Common::Serializer &s, Perso &p) {
 	s.syncAsSint16LE(p.inc_droite);
 	s.syncAsSint16LE(p.inc_droite0);
 	s.syncAsSint16LE(p.inc_chemin);
@@ -604,7 +604,7 @@ static void syncCT(Common::Serializer &s) {
 
 		if (s.isLoading())
 			// Set up the pointer for the next structure
-			persoTable[i] = (v == 0) ? NULL : (persoStruct *)mallocAndZero(sizeof(persoStruct));
+			persoTable[i] = (v == 0) ? NULL : (Perso *)mallocAndZero(sizeof(Perso));
 
 		if (v != 0)
 			syncPerso(s, *persoTable[i]);
