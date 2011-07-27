@@ -352,7 +352,8 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 			entry->add(ptr);
 		}
 	}
-	currentScriptPtr = NULL;
+	if (s.isLoading())
+		currentScriptPtr = NULL;		//in case the load was called while a script runs.
 }
 
 static void syncCell(Common::Serializer &s) {
