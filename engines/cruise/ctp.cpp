@@ -328,4 +328,21 @@ int initCt(const char *ctpName, bool isLoading) {
 	return (1);
 }
 
+void freeCTP() {
+
+	for (unsigned long int i = 0; i < NUM_PERSONS; i++) {
+		freePerso(i);
+	}
+
+	if (_vm->_polyStruct) {
+		_vm->_polyStructNorm.clear();
+		_vm->_polyStructExp.clear();
+		_vm->_polyStruct = NULL;
+	}
+
+	_vm->_polyStruct = NULL;
+
+	strcpy((char *)currentCtpName, "");
+}
+
 } // End of namespace Cruise

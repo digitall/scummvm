@@ -33,23 +33,6 @@ void freePerso(int persoIdx) {
 	}
 }
 
-void freeCTP() {
-
-	for (unsigned long int i = 0; i < NUM_PERSONS; i++) {
-		freePerso(i);
-	}
-
-	if (_vm->_polyStruct) {
-		_vm->_polyStructNorm.clear();
-		_vm->_polyStructExp.clear();
-		_vm->_polyStruct = NULL;
-	}
-
-	_vm->_polyStruct = NULL;
-
-	strcpy((char *)currentCtpName, "");
-}
-
 int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2) {
 	unsigned int temp;
 	return direction(x1, y1, x2, y2, inc_jo1, inc_jo2, temp);

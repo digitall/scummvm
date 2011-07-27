@@ -70,6 +70,7 @@ public:
 };
 
 int initCt(const char * ctpName, bool isLoading = false);
+void freeCTP();
 void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoading);
 int computeDistance(int varX, int varY, int paramX, int paramY);
 
