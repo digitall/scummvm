@@ -276,7 +276,7 @@ extern ScriptList procScriptList;
 extern ScriptInstance *currentScriptPtr;
 
 extern int16 numPoly;
-extern persoStruct *persoTable[NUM_PERSONS];
+extern Perso *persoTable[NUM_PERSONS];
 //extern OSystem *osystem;
 
 } // End of namespace Cruise
