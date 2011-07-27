@@ -604,7 +604,7 @@ static void syncCT(Common::Serializer &s) {
 
 		if (s.isLoading())
 			// Set up the pointer for the next structure
-			persoTable[i] = (v == 0) ? NULL : (Perso *)mallocAndZero(sizeof(Perso));
+			persoTable[i] = (v == 0) ? NULL : new Perso();
 
 		if (v != 0)
 			syncPerso(s, *persoTable[i]);
