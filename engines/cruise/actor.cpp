@@ -822,7 +822,8 @@ void ActorListNode::processAnimation() {
 					// In-place (on the spot) animationos
 
 					if ((pCurrentActor->_counter == -1) && (pCurrentActor->_phase == ANIM_PHASE_STATIC)) {
-						affiche_chemin(pCurrentActor->_pathId, moveInfo);
+						Perso *perso = persoTable[pCurrentActor->_pathId];
+						perso->processActorWalk(pCurrentActor->_pathId, moveInfo);
 
 						if (moveInfo.x == -1) {
 							pCurrentActor->_pathId = ANIM_FINISH;
@@ -899,7 +900,8 @@ void ActorListNode::processAnimation() {
 					// Walk animations
 
 					if (pCurrentActor->_counter >= 1) {
-						affiche_chemin(pCurrentActor->_pathId, moveInfo);
+						Perso *perso = persoTable[pCurrentActor->_pathId];
+						perso->processActorWalk(pCurrentActor->_pathId, moveInfo);
 
 						if (moveInfo.x == -1) {
 							if ((pCurrentActor->_endDirection == -1) || (pCurrentActor->_endDirection == pCurrentActor->_nextDirection)) {
