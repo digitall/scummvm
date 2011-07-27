@@ -35,6 +35,14 @@ struct point {
 	int16 y;
 };
 
+struct MovementEntry {
+	int16 x;
+	int16 y;
+	int16 direction;
+	int16 zoom;
+	int16 poly;
+};
+
 class Perso {
 public:
 	int16 inc_droite;	// 2
@@ -46,20 +54,16 @@ public:
 	int16 inc_jo2;		// 2
 	int16 dir_perso;	// 2
 	int16 inc_jo0;		// 2
+
+	void processActorWalk(int16 persoIdx, MovementEntry &data);
 };
 
-struct MovementEntry {
-	int16 x;
-	int16 y;
-	int16 direction;
-	int16 zoom;
-	int16 poly;
-};
+
 
 int cor_droite(int x1, int y1, int x2, int y2, point* outputTable);
 void freePerso(int persoIdx);
 
-void affiche_chemin(int16 persoIdx, MovementEntry &data);
+
 int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2);
 int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2, unsigned int &inc_jo);
 

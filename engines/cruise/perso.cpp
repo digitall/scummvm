@@ -148,28 +148,25 @@ int cor_droite(int x1, int y1, int x2, int y2, point* outputTable) {
 	return numOutput;
 }
 
-void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droite0,
-                      int16 *inc_chemin, point* cor_joueur,
-                      int16 solution0[NUM_NODES + 3][2], int16 *inc_jo1, int16 *inc_jo2,
-                      int16 *dir_perso, int16 *inc_jo0, int16 num) {
+void Perso::processActorWalk(int16 num, MovementEntry &resx_y) {
 	int x1, x2, y1, y2;
 	int i, u;
 	unsigned int inc_jo;
 
 	u = 0;
-	inc_jo = *inc_jo0;
+	inc_jo = inc_jo0;
 
-	i = *inc_chemin;
+	i = inc_chemin;
 
-	if (!*inc_droite) {
-		x1 = solution0[i][0];
-		y1 = solution0[i][1];
+	if (!inc_droite) {
+		x1 = solution[i][0];
+		y1 = solution[i][1];
 		i++;
-		if (solution0[i][0] != -1) {
+		if (solution[i][0] != -1) {
 			do {
-				if (solution0[i][0] != -2) {
-					x2 = solution0[i][0];
-					y2 = solution0[i][1];
+				if (solution[i][0] != -2) {
+					x2 = solution[i][0];
+					y2 = solution[i][1];
 					if ((x1 == x2) && (y1 == y2)) {
 						resx_y.x = -1;
 						resx_y.y = -1;
@@ -178,14 +175,14 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
 						return;
 					}
 
-					*inc_droite0 = cor_droite(x1, y1, x2, y2, cor_joueur);
-					*dir_perso = resx_y.direction = direction(x1, y1, x2, y2, *inc_jo1, *inc_jo2, inc_jo);
-					*inc_jo0 = inc_jo;
+					inc_droite0 = cor_droite(x1, y1, x2, y2, coordinates);
+					dir_perso = resx_y.direction = direction(x1, y1, x2, y2, inc_jo1, inc_jo2, inc_jo);
+					inc_jo0 = inc_jo;
 					u = 1;
 				} else
 					i++;
 
-			} while (solution0[i][0] != -1 && !u);
+			} while (solution[i][0] != -1 && !u);
 		}
 		if (!u) {
 			resx_y.x = -1;
@@ -194,12 +191,12 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
 
 			return;
 		}
-		*inc_chemin = i;
+		inc_chemin = i;
 	}
 
-	resx_y.x = cor_joueur[*inc_droite].x;
-	resx_y.y = cor_joueur[*inc_droite].y;
-	resx_y.direction = *dir_perso;
+	resx_y.x = coordinates[inc_droite].x;
+	resx_y.y = coordinates[inc_droite].y;
+	resx_y.direction = dir_perso;
 	resx_y.zoom = computeZoom(resx_y.y);
 
 	getPixel(resx_y.x, resx_y.y);
@@ -208,26 +205,14 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
 	u = subOp23(resx_y.zoom, inc_jo);
 	if (!u)
 		u = 1;
-	*inc_droite += u;
+	inc_droite += u;
 
-	if ((*inc_droite) >= (*inc_droite0)) {
-		*inc_droite = 0;
-		resx_y.x = solution0[*inc_chemin][0];
-		resx_y.y = solution0[*inc_chemin][1];
+	if (inc_droite >= inc_droite0) {
+		inc_droite = 0;
+		resx_y.x = solution[inc_chemin][0];
+		resx_y.y = solution[inc_chemin][1];
 	}
 
-}
-
-// french for shows road.
-void affiche_chemin(int16 persoIdx, MovementEntry &data) {
-	Perso *pPerso = persoTable[persoIdx];
-
-	ASSERT(pPerso);
-
-	processActorWalk(data, &pPerso->inc_droite, &pPerso->inc_droite0,
-	                 &pPerso->inc_chemin, pPerso->coordinates, pPerso->solution,
-	                 &pPerso->inc_jo1, &pPerso->inc_jo2, &pPerso->dir_perso,
-	                 &pPerso->inc_jo0, persoIdx);
 }
 
 } // End of namespace Cruise
