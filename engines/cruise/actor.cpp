@@ -593,7 +593,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
  * Computes a path for an actor to walk between a given source and destination position
  */
 int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX, int16 destY, int16 stepX, int16 stepY, int16 oldPathId) {
-	persoStruct *perso;
+	Perso *perso;
 	int num;
 
 	if (!_vm->_polyStruct) {
@@ -626,7 +626,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 			return -1;
 		}
 
-		perso = persoTable[i] = (persoStruct *) MemAlloc(sizeof(persoStruct));
+		perso = persoTable[i] = (Perso *) MemAlloc(sizeof(Perso));
 
 		ptr = perso->solution[0];
 
@@ -690,7 +690,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 		return (-1);
 	}
 
-	perso = persoTable[num] = (persoStruct *) MemAlloc(sizeof(persoStruct));
+	perso = persoTable[num] = (Perso *) MemAlloc(sizeof(Perso));
 
 	perso->inc_jo1 = stepX;
 	perso->inc_jo2 = stepY;

@@ -35,11 +35,12 @@ struct point {
 	int16 y;
 };
 
-struct persoStruct {
+class Perso {
+public:
 	int16 inc_droite;	// 2
 	int16 inc_droite0;	// 2
 	int16 inc_chemin;	// 2
-	point coordinates[400];	// 1600
+	point coordinates[400];	// 1600 why is this 400 while the screen is 320 x 200? is not 320 enough?
 	int16 solution[NUM_NODES + 3][2];	//((20+3)*2*2)
 	int16 inc_jo1;		// 2
 	int16 inc_jo2;		// 2

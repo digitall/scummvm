@@ -220,7 +220,7 @@ void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droit
 
 // french for shows road.
 void affiche_chemin(int16 persoIdx, MovementEntry &data) {
-	persoStruct *pPerso = persoTable[persoIdx];
+	Perso *pPerso = persoTable[persoIdx];
 
 	ASSERT(pPerso);
 
