@@ -31,8 +31,6 @@ uint8 *PAL_ptr = NULL;
 int16 numLoadedPal;
 int16 fileData2;
 
-char currentBaseName[15] = "";
-
 void loadPal(volumeDataStruct *entry) {
 	// This code isn't currently being used
 #if 0
@@ -72,7 +70,6 @@ int closeBase() {
 
 		fileDescriptorArray.clear();
 
-		strcpy(currentBaseName, "");
 	}
 
 	if (_vm->_PAL_file.isOpen()) {
@@ -120,8 +117,6 @@ int getVolumeDataEntry(volumeDataStruct *entry) {
 		iter->extSize = _vm->_currentVolumeFile.readSint32BE();
 		iter->unk3 = _vm->_currentVolumeFile.readSint32BE();
 	}
-
-	strcpy(currentBaseName, entry->ident);
 
 	loadPal(entry);
 
