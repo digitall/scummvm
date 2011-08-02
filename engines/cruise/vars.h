@@ -151,7 +151,7 @@ extern int16 autoTrack;
 extern int16 currentDiskNumber;
 
 extern int16 volumeNumEntry;
-extern fileEntry *volumePtrToFileDescriptor;
+extern Common::Array<fileEntry> fileDescriptorArray;
 
 extern uint32 volumeFileDescriptorSize;
 extern int16 volumeSizeOfEntry;

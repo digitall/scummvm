@@ -103,8 +103,8 @@ void drawBlackSolidBoxSmall() {
 void loadPackedFileToMem(int fileIdx, uint8 *buffer) {
 	currentMouse.changeCursor(CURSOR_DISK);
 
-	_vm->_currentVolumeFile.seek(volumePtrToFileDescriptor[fileIdx].offset, SEEK_SET);
-	_vm->_currentVolumeFile.read(buffer, volumePtrToFileDescriptor[fileIdx].size);
+	_vm->_currentVolumeFile.seek(fileDescriptorArray[fileIdx].offset, SEEK_SET);
+	_vm->_currentVolumeFile.read(buffer, fileDescriptorArray[fileIdx].size);
 }
 
 int getNumObjectsByClass(int scriptIdx, int param) {
@@ -352,7 +352,7 @@ int loadFileSub1(uint8 **ptr, const char *name, uint8 *ptr2) {
 	if (fileIdx < 0)
 		return (-18);
 
-	unpackedSize = loadFileVar1 = volumePtrToFileDescriptor[fileIdx].extSize + 2;
+	unpackedSize = loadFileVar1 = fileDescriptorArray[fileIdx].extSize + 2;
 
 	unpackedBuffer = (uint8 *)mallocAndZero(unpackedSize);
 
@@ -362,16 +362,16 @@ int loadFileSub1(uint8 **ptr, const char *name, uint8 *ptr2) {
 
 	lastFileSize = unpackedSize;
 
-	if (volumePtrToFileDescriptor[fileIdx].size + 2 != unpackedSize) {
-		uint8 *pakedBuffer = (uint8 *) mallocAndZero(volumePtrToFileDescriptor[fileIdx].size + 2);
+	if (fileDescriptorArray[fileIdx].size + 2 != unpackedSize) {
+		uint8 *pakedBuffer = (uint8 *) mallocAndZero(fileDescriptorArray[fileIdx].size + 2);
 
 		loadPackedFileToMem(fileIdx, pakedBuffer);
 
-		uint32 realUnpackedSize = READ_BE_UINT32(pakedBuffer + volumePtrToFileDescriptor[fileIdx].size - 4);
+		uint32 realUnpackedSize = READ_BE_UINT32(pakedBuffer + fileDescriptorArray[fileIdx].size - 4);
 
 		lastFileSize = realUnpackedSize;
 
-		delphineUnpack(unpackedBuffer, pakedBuffer, volumePtrToFileDescriptor[fileIdx].size);
+		delphineUnpack(unpackedBuffer, pakedBuffer, fileDescriptorArray[fileIdx].size);
 
 		MemFree(pakedBuffer);
 	} else {

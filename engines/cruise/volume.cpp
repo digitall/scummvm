@@ -22,6 +22,7 @@
 
 #include "cruise/cruise.h"
 #include "cruise/cruise_main.h"
+#include "common/array.h"
 
 namespace Cruise {
 
@@ -69,8 +70,7 @@ int closeBase() {
 	if (_vm->_currentVolumeFile.isOpen()) {
 		_vm->_currentVolumeFile.close();
 
-		MemFree(volumePtrToFileDescriptor);
-		volumePtrToFileDescriptor = NULL;	//this was not here before, I am adding just to be sure.
+		fileDescriptorArray.clear();
 
 		strcpy(currentBaseName, "");
 	}
@@ -84,7 +84,6 @@ int closeBase() {
 
 int getVolumeDataEntry(volumeDataStruct *entry) {
 	char buffer[256];
-	int i;
 
 	volumeNumEntry = 0;
 	volumeNumberOfEntry = 0;
@@ -112,14 +111,14 @@ int getVolumeDataEntry(volumeDataStruct *entry) {
 
 	assert(volumeSizeOfEntry == 14 + 4 + 4 + 4 + 4);
 
-	volumePtrToFileDescriptor = (fileEntry *) mallocAndZero(sizeof(fileEntry) * volumeNumEntry);
-
-	for (i = 0; i < volumeNumEntry; i++) {
-		_vm->_currentVolumeFile.read(&volumePtrToFileDescriptor[i].name, 14);
-		volumePtrToFileDescriptor[i].offset = _vm->_currentVolumeFile.readSint32BE();
-		volumePtrToFileDescriptor[i].size = _vm->_currentVolumeFile.readSint32BE();
-		volumePtrToFileDescriptor[i].extSize = _vm->_currentVolumeFile.readSint32BE();
-		volumePtrToFileDescriptor[i].unk3 = _vm->_currentVolumeFile.readSint32BE();
+	fileDescriptorArray.resize(volumeNumEntry);
+	Common::Array<fileEntry>::iterator iter;
+	for (iter = fileDescriptorArray.begin(); iter != fileDescriptorArray.end(); iter++) {
+		_vm->_currentVolumeFile.read(&(iter->name), 14);
+		iter->offset = _vm->_currentVolumeFile.readSint32BE();
+		iter->size = _vm->_currentVolumeFile.readSint32BE();
+		iter->extSize = _vm->_currentVolumeFile.readSint32BE();
+		iter->unk3 = _vm->_currentVolumeFile.readSint32BE();
 	}
 
 	strcpy(currentBaseName, entry->ident);
@@ -170,7 +169,7 @@ int32 findFileInDisksSub1(const char *fileName) {
 void freeDisk() {
 	if (_vm->_currentVolumeFile.isOpen()) {
 		_vm->_currentVolumeFile.close();
-		MemFree(volumePtrToFileDescriptor);
+		fileDescriptorArray.clear();
 	}
 
 	/* TODO
@@ -195,7 +194,7 @@ int16 findFileInList(char *fileName) {
 	}
 
 	for (i = 0; i < volumeNumEntry; i++) {
-		if (!strcmp(volumePtrToFileDescriptor[i].name, fileName)) {
+		if (!strcmp(fileDescriptorArray[i].name, fileName)) {
 			return (i);
 		}
 	}

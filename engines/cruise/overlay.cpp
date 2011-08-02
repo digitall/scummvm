@@ -179,7 +179,7 @@ int loadOverlay(const char *scriptName) {
 		return (-18);
 	}
 
-	unpackedSize = volumePtrToFileDescriptor[fileIdx].extSize + 2;
+	unpackedSize = fileDescriptorArray[fileIdx].extSize + 2;
 
 	// This memory block will be later passed to a MemoryReadStream, which will dispose of it
 	unpackedBuffer = (byte *)malloc(unpackedSize);
@@ -189,14 +189,14 @@ int loadOverlay(const char *scriptName) {
 		return (-2);
 	}
 
-	if (volumePtrToFileDescriptor[fileIdx].size + 2 != unpackedSize) {
+	if (fileDescriptorArray[fileIdx].size + 2 != unpackedSize) {
 		char *pakedBuffer =
-		    (char *)mallocAndZero(volumePtrToFileDescriptor[fileIdx].
+		    (char *)mallocAndZero(fileDescriptorArray[fileIdx].
 		                          size + 2);
 
 		loadPackedFileToMem(fileIdx, (uint8 *) pakedBuffer);
 
-		delphineUnpack((uint8 *)unpackedBuffer, (const uint8 *)pakedBuffer, volumePtrToFileDescriptor[fileIdx].size);
+		delphineUnpack((uint8 *)unpackedBuffer, (const uint8 *)pakedBuffer, fileDescriptorArray[fileIdx].size);
 
 		MemFree(pakedBuffer);
 	} else {
@@ -560,7 +560,7 @@ int loadOverlay(const char *scriptName) {
 			return (-18);
 		}
 
-		unpackedSize = volumePtrToFileDescriptor[fileIdx].extSize + 2;
+		unpackedSize = fileDescriptorArray[fileIdx].extSize + 2;
 
 		// This memory block will be later passed to a MemoryReadStream, which will dispose of it
 		unpackedBuffer = (byte *)malloc(unpackedSize);
@@ -570,16 +570,16 @@ int loadOverlay(const char *scriptName) {
 			return (-2);
 		}
 
-		if (volumePtrToFileDescriptor[fileIdx].size + 2 !=
+		if (fileDescriptorArray[fileIdx].size + 2 !=
 		        unpackedSize) {
 			char *pakedBuffer =
 			    (char *)
-			    mallocAndZero(volumePtrToFileDescriptor[fileIdx].
+			    mallocAndZero(fileDescriptorArray[fileIdx].
 			                  size + 2);
 
 			loadPackedFileToMem(fileIdx, (uint8 *) pakedBuffer);
 
-			delphineUnpack((uint8 *) unpackedBuffer, (const uint8 *)pakedBuffer, volumePtrToFileDescriptor[fileIdx].size);
+			delphineUnpack((uint8 *) unpackedBuffer, (const uint8 *)pakedBuffer, fileDescriptorArray[fileIdx].size);
 
 			MemFree(pakedBuffer);
 		} else {

@@ -64,7 +64,7 @@ int16 autoTrack;
 int16 currentDiskNumber = 1;
 
 int16 volumeNumEntry;
-fileEntry *volumePtrToFileDescriptor = NULL;
+Common::Array<fileEntry> fileDescriptorArray;
 
 uint32 volumeFileDescriptorSize;
 int16 volumeSizeOfEntry;

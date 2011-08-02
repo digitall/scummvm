@@ -237,18 +237,18 @@ byte *readBundleSoundFile(const char *name) {
 	int fileIdx = findFileInDisks(name);
 	if (fileIdx < 0) return NULL;
 
-	int unpackedSize = volumePtrToFileDescriptor[fileIdx].extSize + 2;
+	int unpackedSize = fileDescriptorArray[fileIdx].extSize + 2;
 	byte *data = (byte *)MemAlloc(unpackedSize);
 	assert(data);
 
-	if (volumePtrToFileDescriptor[fileIdx].size + 2 != unpackedSize) {
-		uint8 *packedBuffer = (uint8 *)mallocAndZero(volumePtrToFileDescriptor[fileIdx].size + 2);
+	if (fileDescriptorArray[fileIdx].size + 2 != unpackedSize) {
+		uint8 *packedBuffer = (uint8 *)mallocAndZero(fileDescriptorArray[fileIdx].size + 2);
 
 		loadPackedFileToMem(fileIdx, packedBuffer);
 
 		//uint32 realUnpackedSize = READ_BE_UINT32(packedBuffer + volumePtrToFileDescriptor[fileIdx].size - 4);
 
-		delphineUnpack(data, packedBuffer, volumePtrToFileDescriptor[fileIdx].size);
+		delphineUnpack(data, packedBuffer, fileDescriptorArray[fileIdx].size);
 
 		MemFree(packedBuffer);
 	} else {
