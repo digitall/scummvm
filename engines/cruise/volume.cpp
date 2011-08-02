@@ -70,6 +70,7 @@ int closeBase() {
 		_vm->_currentVolumeFile.close();
 
 		MemFree(volumePtrToFileDescriptor);
+		volumePtrToFileDescriptor = NULL;	//this was not here before, I am adding just to be sure.
 
 		strcpy(currentBaseName, "");
 	}
