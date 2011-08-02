@@ -115,14 +115,6 @@ int getVolumeDataEntry(volumeDataStruct *entry) {
 	volumePtrToFileDescriptor = (fileEntry *) mallocAndZero(sizeof(fileEntry) * volumeNumEntry);
 
 	for (i = 0; i < volumeNumEntry; i++) {
-		volumePtrToFileDescriptor[i].name[0] = 0;
-		volumePtrToFileDescriptor[i].offset = 0;
-		volumePtrToFileDescriptor[i].size = 0;
-		volumePtrToFileDescriptor[i].extSize = 0;
-		volumePtrToFileDescriptor[i].unk3 = 0;
-	}
-
-	for (i = 0; i < volumeNumEntry; i++) {
 		_vm->_currentVolumeFile.read(&volumePtrToFileDescriptor[i].name, 14);
 		volumePtrToFileDescriptor[i].offset = _vm->_currentVolumeFile.readSint32BE();
 		volumePtrToFileDescriptor[i].size = _vm->_currentVolumeFile.readSint32BE();
