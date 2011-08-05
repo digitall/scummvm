@@ -415,7 +415,6 @@ uint8 *mainProc14(uint16 overlay, uint16 idx) {
 void CruiseEngine::initAllData() {
 	int i;
 
-	setupFuncArray();
 	initOverlayTable();
 
 	stateID = 0;

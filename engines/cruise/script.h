@@ -67,8 +67,9 @@ public:
 	void changeParam(int param1, int param2, int newValue, int param3);
 	void scriptFunc2(int scriptNumber, int param, int param2);
 
+	static int32 executeScript(int16 opCode);
+
 };
-void setupFuncArray();
 int8 getByteFromScript();
 
 

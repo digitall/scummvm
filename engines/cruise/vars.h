@@ -34,7 +34,6 @@ namespace Cruise {
 #define NBCOLORS 256
 #define NBSCREENS 8
 
-typedef int32(*opcodeTypeFunction)();
 typedef int16(*opcodeFunction)();
 
 extern uint8 *_systemFNT;
@@ -169,8 +168,6 @@ extern dataFileEntry filesDatabase[NUM_FILE_ENTRIES];
 extern int16 bootOverlayNumber;
 
 extern SoundEntry soundList[4];
-
-extern opcodeTypeFunction opcodeTypeTable[64];
 
 extern ActorListNode actorHead;
 
