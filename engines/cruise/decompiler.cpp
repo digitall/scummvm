@@ -1355,7 +1355,7 @@ void dumpScript(uint8 *ovlName, ovlDataStruct *ovlData, int idx) {
 
 	// return;
 
-//      scriptDataPtrTable[1] = *(char**)(ptr+0x6);
+	//currentScript->scriptDataPtrTable[1] = *(char**)(ptr+0x6);
 	scriptDataPtrTable[2] = getDataFromData3(currentScript, 1);	// strings
 	scriptDataPtrTable[5] = ovlData->data4Ptr;	// free strings
 	scriptDataPtrTable[6] = ovlData->ptr8;

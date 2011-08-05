@@ -1891,7 +1891,7 @@ opcodeFunction opcodeTablePtr[] = {
 	Op_KillMenu,
 };
 
-int32 opcodeType8() {
+int32 ScriptInstance::opcodeType8() {
 	int opcode = getByteFromScript();
 
 	if (!opcode)

@@ -175,7 +175,6 @@ extern int16 stateID;
 extern int16 xdial;
 
 extern uint8 *currentData3DataPtr;
-extern uint8 *scriptDataPtrTable[7];
 
 extern int16 currentScriptOpcodeType;
 
