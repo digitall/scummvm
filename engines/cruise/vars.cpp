@@ -88,7 +88,6 @@ int16 stateID;
 int16 xdial = 0;
 
 uint8 *currentData3DataPtr;
-uint8 *scriptDataPtrTable[7];
 
 int16 currentScriptOpcodeType;
 

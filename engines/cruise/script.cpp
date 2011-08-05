@@ -59,7 +59,7 @@ short int getShortFromScript() {
 }
 
 // load opcode
-int32 opcodeType0() {
+int32 ScriptInstance::opcodeType0() {
 	int index = 0;
 
 	switch (currentScriptOpcodeType) {
@@ -138,7 +138,7 @@ int32 opcodeType0() {
 }
 
 // save opcode
-int32 opcodeType1()	{
+int32 ScriptInstance::opcodeType1()	{
 	int var = stack.popVar();
 	int offset = 0;
 
@@ -233,7 +233,7 @@ int32 opcodeType1()	{
 	return (0);
 }
 
-int32 opcodeType2() {
+int32 ScriptInstance::opcodeType2() {
 	int index = 0;
 	switch (currentScriptOpcodeType) {
 	case 5:
@@ -278,7 +278,7 @@ int32 opcodeType2() {
 	return 0;
 }
 
-int32 opcodeType3()	{	// math
+int32 ScriptInstance::opcodeType3()	{	// math
 	int pop1 = stack.popVar();
 	int pop2 = stack.popVar();
 
@@ -317,7 +317,7 @@ int32 opcodeType3()	{	// math
 	return 0;
 }
 
-int32 opcodeType4() {		// test
+int32 ScriptInstance::opcodeType4() {		// test
 	int boolVar = 0;
 
 	int var1 = stack.popVar();
@@ -362,7 +362,7 @@ int32 opcodeType4() {		// test
 	return (0);
 }
 
-int32 opcodeType5() {
+int32 ScriptInstance::opcodeType5() {
 	int offset = currentScriptPtr->_scriptOffset;
 	int short1 = getShortFromScript();
 	int newSi = short1 + offset;
@@ -417,7 +417,7 @@ int32 opcodeType5() {
 	return (0);
 }
 
-int32 opcodeType6() {
+int32 ScriptInstance::opcodeType6() {
 	int si = 0;
 
 	int pop = stack.popVar();
@@ -438,7 +438,7 @@ int32 opcodeType6() {
 	return (0);
 }
 
-int32 opcodeType7() {
+int32 ScriptInstance::opcodeType7() {
 	int var1 = stack.popVar();
 	int var2 = stack.popVar();
 
@@ -448,17 +448,17 @@ int32 opcodeType7() {
 	return (0);
 }
 
-int32 opcodeType9() {		// stop script
+int32 ScriptInstance::opcodeType9() {		// stop script
 	//debug("Stop a script of overlay %s", overlayTable[currentScriptPtr->_overlayNumber].overlayName);
 	currentScriptPtr->_scriptNumber = -1;
 	return (1);
 }
 
-int32 opcodeType10() {	// break
+int32 ScriptInstance::opcodeType10() {	// break
 	return (0);
 }
 
-int32 opcodeType11() {	// break
+int32 ScriptInstance::opcodeType11() {	// break
 	return (1);
 }
 
@@ -582,23 +582,23 @@ uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1,
 void ScriptList::add(ScriptInstance scriptToAdd) {
 	push_back(scriptToAdd);
 }
-int executeScripts(ScriptInstance *ptr) {
+int ScriptInstance::execute() {
 	int numScript2;
 	ovlData3Struct *ptr2;
 	ovlDataStruct *ovlData;
 	uint8 opcodeType;
 
-	numScript2 = ptr->_scriptNumber;
+	numScript2 = _scriptNumber;
 
-	if (ptr->_type == 20) {
-		ptr2 = getOvlData3Entry(ptr->_overlayNumber, numScript2);
+	if (_type == 20) {
+		ptr2 = getOvlData3Entry(_overlayNumber, numScript2);
 
 		if (!ptr2) {
 			return (-4);
 		}
 	} else {
-		if (ptr->_type == 30) {
-			ptr2 = scriptFunc1Sub2(ptr->_overlayNumber, numScript2);
+		if (_type == 30) {
+			ptr2 = scriptFunc1Sub2(_overlayNumber, numScript2);
 
 			if (!ptr2) {
 				return (-4);
@@ -608,23 +608,23 @@ int executeScripts(ScriptInstance *ptr) {
 		}
 	}
 
-	if (!overlayTable[ptr->_overlayNumber].alreadyLoaded) {
+	if (!overlayTable[_overlayNumber].alreadyLoaded) {
 		return (-7);
 	}
 
-	ovlData = overlayTable[ptr->_overlayNumber].ovlData;
+	ovlData = overlayTable[_overlayNumber].ovlData;
 
 	if (!ovlData)
 		return (-4);
 
 	currentData3DataPtr = ptr2->dataPtr;
 
-	scriptDataPtrTable[1] = (uint8 *) ptr->_data;
+	scriptDataPtrTable[1] = (uint8 *) _data;
 	scriptDataPtrTable[2] = getDataFromData3(ptr2, 1);
 	scriptDataPtrTable[5] = ovlData->data4Ptr;	// free strings
 	scriptDataPtrTable[6] = ovlData->ptr8;
 
-	currentScriptPtr = ptr;
+	currentScriptPtr = this;
 
 	stack.reset();
 
@@ -646,14 +646,14 @@ int executeScripts(ScriptInstance *ptr) {
 
 		currentScriptOpcodeType = opcodeType & 7;
 
-	} while (!ScriptList::executeScript((opcodeType & 0xFB) >> 3));
+	} while (!executeScript((opcodeType & 0xFB) >> 3));
 
 	currentScriptPtr = NULL;
 
 	return (0);
 }
 
-int32 ScriptList::executeScript(int16 opCode) {
+int32 ScriptInstance::executeScript(int16 opCode) {
 	switch (opCode) {
 	case 1: {
 		return 	opcodeType0();
@@ -701,7 +701,7 @@ void ScriptList::manage() {
 	while (iter != end()) {
 		if (!overlayTable[iter->_overlayNumber].executeScripts) {
 			if ( (iter->_scriptNumber != -1) && (iter->_freeze == 0) && (iter->_sysKey != 0)) {
-				executeScripts(&(*iter));
+				iter->execute();
 			}
 
 			if (iter->_sysKey == 0) {

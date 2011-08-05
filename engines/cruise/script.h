@@ -47,7 +47,27 @@ public:
 	int16 _var18;
 	int16 _var1A;
 
+	uint8 *scriptDataPtrTable[7];
+
 	ScriptInstance();
+	int32 execute();
+
+private:
+
+	int32 opcodeType0();
+	int32 opcodeType1();
+	int32 opcodeType2();
+	int32 opcodeType3();
+	int32 opcodeType4();
+	int32 opcodeType5();
+	int32 opcodeType6();
+	int32 opcodeType7();
+	int32 opcodeType8();
+	int32 opcodeType9();
+	int32 opcodeType10();
+	int32 opcodeType11();
+
+	int32 executeScript(int16 opCode);
 };
 
 class ScriptList: private Common::List<ScriptInstance> {
@@ -66,8 +86,6 @@ public:
 	void changeParam(int param1, int param2, int newValue, int param3);
 	void scriptFunc2(int scriptNumber, int param, int param2);
 
-	static int32 executeScript(int16 opCode);
-	
 };
 int8 getByteFromScript();
 
