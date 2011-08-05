@@ -82,8 +82,6 @@ int16 bootOverlayNumber;
 
 SoundEntry soundList[4];
 
-opcodeTypeFunction opcodeTypeTable[64];
-
 ActorListNode actorHead;
 
 int16 stateID;
