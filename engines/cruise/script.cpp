@@ -462,27 +462,6 @@ int32 opcodeType11() {	// break
 	return (1);
 }
 
-void setupFuncArray() {
-	int i;
-
-	for (i = 0; i < 64; i++) {
-		opcodeTypeTable[i] = NULL;
-	}
-
-	opcodeTypeTable[1] = opcodeType0;
-	opcodeTypeTable[2] = opcodeType1;
-	opcodeTypeTable[3] = opcodeType2;
-	opcodeTypeTable[4] = opcodeType3;
-	opcodeTypeTable[5] = opcodeType4;
-	opcodeTypeTable[6] = opcodeType5;
-	opcodeTypeTable[7] = opcodeType6;
-	opcodeTypeTable[8] = opcodeType7;
-	opcodeTypeTable[9] = opcodeType8;
-	opcodeTypeTable[10] = opcodeType9;
-	opcodeTypeTable[11] = opcodeType10;
-	opcodeTypeTable[12] = opcodeType11;
-}
-
 Common::List<ScriptInstance>::iterator ScriptList::begin() {
 
 	return Common::List<ScriptInstance>::begin();
@@ -667,14 +646,54 @@ int executeScripts(ScriptInstance *ptr) {
 
 		currentScriptOpcodeType = opcodeType & 7;
 
-		if (!opcodeTypeTable[(opcodeType & 0xFB) >> 3]) {
-			error("Unsupported opcode type %d", (opcodeType & 0xFB) >> 3);
-		}
-	} while (!opcodeTypeTable[(opcodeType & 0xFB) >> 3]());
+	} while (!ScriptList::executeScript((opcodeType & 0xFB) >> 3));
 
 	currentScriptPtr = NULL;
 
 	return (0);
+}
+
+int32 ScriptList::executeScript(int16 opCode) {
+	switch (opCode) {
+	case 1: {
+		return 	opcodeType0();
+	}
+	case 2: {
+		return 	opcodeType1();
+	}
+	case 3: {
+		return 	opcodeType2();
+	}
+	case 4: {
+		return 	opcodeType3();
+	}
+	case 5: {
+		return 	opcodeType4();
+	}
+	case 6: {
+		return 	opcodeType5();
+	}
+	case 7: {
+		return 	opcodeType6();
+	}
+	case 8: {
+		return 	opcodeType7();
+	}
+	case 9: {
+		return 	opcodeType8();
+	}
+	case 10: {
+		return 	opcodeType9();
+	}
+	case 11: {
+		return 	opcodeType10();
+	}
+	case 12: {
+		return 	opcodeType11();
+	}
+	default:
+			error("Unsupported opcode type %d", opCode);
+	}
 }
 
 void ScriptList::manage() {
