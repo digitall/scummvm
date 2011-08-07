@@ -656,44 +656,19 @@ int ScriptInstance::execute() {
 
 int32 ScriptInstance::executeScript(int16 opCode) {
 	switch (opCode) {
-	case 1: {
-		return 	opcodeType0();
-	}
-	case 2: {
-		return 	opcodeType1();
-	}
-	case 3: {
-		return 	opcodeType2();
-	}
-	case 4: {
-		return 	opcodeType3();
-	}
-	case 5: {
-		return 	opcodeType4();
-	}
-	case 6: {
-		return 	opcodeType5();
-	}
-	case 7: {
-		return 	opcodeType6();
-	}
-	case 8: {
-		return 	opcodeType7();
-	}
-	case 9: {
-		return 	opcodeType8();
-	}
-	case 10: {
-		return 	opcodeType9();
-	}
-	case 11: {
-		return 	opcodeType10();
-	}
-	case 12: {
-		return 	opcodeType11();
-	}
-	default:
-			error("Unsupported opcode type %d", opCode);
+	case 1: return 	opcodeType0();
+	case 2: return 	opcodeType1();
+	case 3: return 	opcodeType2();
+	case 4: return 	opcodeType3();
+	case 5: return 	opcodeType4();
+	case 6: return 	opcodeType5();
+	case 7: return 	opcodeType6();
+	case 8: return 	opcodeType7();
+	case 9: return 	opcodeType8();
+	case 10: return opcodeType9();
+	case 11: return	opcodeType10();
+	case 12: return opcodeType11();
+	default: error("Unsupported opcode type %d", opCode);
 	}
 }
 
