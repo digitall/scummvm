@@ -40,7 +40,7 @@ enum ATP {
 
 class Actor {
 public:
-    	int16 _idx;
+	int16 _idx;
 	int16 _type;
 	int16 _overlayNumber;
 	int16 _xDest;
@@ -60,24 +60,24 @@ public:
 	int16 _start;
 	int16 _freeze;
 
-        Actor();
+	Actor();
 
 	bool isAnimFinished();
 };
-class ActorListNode {
+
+class ActorList: private Common::List<Actor> {
 public:
-	ActorListNode *_next;
-	ActorListNode *_prev;
-        Actor *_actor;
+	Common::List<Actor>::iterator begin();
+	uint size();
 
-        ActorListNode();
-        ~ActorListNode();
-        ActorListNode *addActor(int overlay, int objIdx, int param, int param2);
-        int removeActor(int overlay, int objIdx, int objType);
-        ActorListNode *findActor(int overlayIdx, int objIdx, int type);
-        bool isAnimFinished(int overlayIdx, int idx, int objType);
+	Actor *add(int overlay, int objIdx, int param, int param2);
+	void add(Actor actor);
+	int remove(int overlay, int objIdx, int objType);
+	
+	void clear();
+	Actor *findActor(int overlayIdx, int objIdx, int type);
+	bool isAnimFinished(int overlayIdx, int idx, int objType);
 	void processAnimation();
-
 };
 
 void getPixel(int x, int y);

@@ -485,28 +485,21 @@ static void syncIncrust(Common::Serializer &s) {
 
 static void syncActors(Common::Serializer &s) {
 	int numEntries = 0;
-	ActorListNode *ptr;
 	uint16 dummyLong = 0;
 
 	if (s.isSaving()) {
-		ptr = actorHead._next;
-		while (ptr) {
-			++numEntries;
-			ptr = ptr->_next;
-		}
+		numEntries = actorHead.size();
 	}
 	s.syncAsSint16LE(numEntries);
 
-	ptr = s.isSaving() ? actorHead._next : &actorHead;
+	Common::List<Actor>::iterator iter = actorHead.begin();
 	for (int i = 0; i < numEntries; ++i) {
-		ActorListNode *p;
 		Actor *pActor;
 		if(s.isSaving()){
-		    p = ptr;
+		    pActor = &(*iter);
 		} else {
-		    p = new ActorListNode;
+		    pActor = new Actor;
 		}
-		pActor = p->_actor;
 
 		s.syncAsUint32LE(dummyLong);
 		s.syncAsSint16LE(pActor->_idx);
@@ -529,15 +522,10 @@ static void syncActors(Common::Serializer &s) {
 		s.syncAsSint16LE(pActor->_start);
 		s.syncAsSint16LE(pActor->_freeze);
 
-		if (s.isSaving())
-			ptr = ptr->_next;
-		else {
-			p->_next = NULL;
-			ptr->_next = p;
-			p->_prev = actorHead._prev;
-			actorHead._prev = p;
-			ptr = p->_next;
-		}
+		if (s.isLoading())
+			actorHead.add(*pActor);
+		
+		iter++;
 	}
 }
 
@@ -674,7 +662,7 @@ void initVars() {
 	// TODO: unfreeze anims
 
 	freeObjectList(&cellHead);
-	actorHead.removeActor(-1, -1, -1);
+	actorHead.remove(-1, -1, -1);
 
 	relScriptList.removeAll();
 	procScriptList.removeAll();
@@ -733,7 +721,7 @@ void initVars() {
 
 	cellHead.resetPtr();
 
-	resetActorPtr(&actorHead);
+	actorHead.clear();
 	backgroundIncrustListHead.resetBackgroundIncrustList();
 
 	vblLimit = 0;
