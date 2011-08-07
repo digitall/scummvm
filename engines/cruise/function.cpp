@@ -616,9 +616,9 @@ int16 Op_AniDir() {
 	if (!ovlIdx)
 		ovlIdx = currentScriptPtr->_overlayNumber;
 
-	ActorListNode *pActorNode = actorHead.findActor(ovlIdx, objIdx, type);
-	if (pActorNode)
-		return pActorNode->_actor->_startDirection;
+	Actor *pActor = actorHead.findActor(ovlIdx, objIdx, type);
+	if (pActor)
+		return pActor->_startDirection;
 
 	return -1;
 }
@@ -1105,23 +1105,23 @@ int16 Op_AddAnimation() {
 	}
 
 	if (direction >= 0 && direction <= 3) {
-		ActorListNode *si;
+		Actor *si;
 
-		si = actorHead.addActor(overlay, obj, direction, type);
+		si = actorHead.add(overlay, obj, direction, type);
 
 		if (si) {
 			objectParamsQuery params;
 
 			getMultipleObjectParam(overlay, obj, &params);
 
-			si->_actor->_x = params.X;
-			si->_actor->_y = params.Y;
-			si->_actor->_xDest = -1;
-			si->_actor->_yDest = -1;
-			si->_actor->_endDirection = -1;
-			si->_actor->_start = start;
-			si->_actor->_stepX = stepX;
-			si->_actor->_stepY = stepY;
+			si->_x = params.X;
+			si->_y = params.Y;
+			si->_xDest = -1;
+			si->_yDest = -1;
+			si->_endDirection = -1;
+			si->_start = start;
+			si->_stepX = stepX;
+			si->_stepY = stepY;
 
 			int newFrame = ABS(actor_end[direction][0]) - 1;
 
@@ -1153,7 +1153,7 @@ int16 Op_RemoveAnimation() {
 		ovlIdx = currentScriptPtr->_overlayNumber;
 	}
 
-	return actorHead.removeActor(ovlIdx, objIdx, objType);
+	return actorHead.remove(ovlIdx, objIdx, objType);
 }
 
 int16 Op_regenerateBackgroundIncrust() {
@@ -1203,7 +1203,7 @@ int16 Op_GetPixel() {
 }
 
 int16 Op_TrackAnim() {		// setup actor position
-	ActorListNode *pActor;
+	Actor *pActor;
 
 	int var0 = stack.popVar();
 	int actorY = stack.popVar();
@@ -1224,10 +1224,10 @@ int16 Op_TrackAnim() {		// setup actor position
 
 	animationStart = false;
 
-	pActor->_actor->_xDest = actorX;
-	pActor->_actor->_yDest = actorY;
-	pActor->_actor->_flag = 1;
-	pActor->_actor->_endDirection = var0;
+	pActor->_xDest = actorX;
+	pActor->_yDest = actorY;
+	pActor->_flag = 1;
+	pActor->_endDirection = var0;
 
 	return 0;
 }
@@ -1378,12 +1378,12 @@ int16 Op_FreezeCell() {
 	return 0;
 }
 
-void Op_60Sub(int overlayIdx, ActorListNode * pActorHead, int _var0, int _var1, int _var2, int _var3) {
-	ActorListNode *pActor = pActorHead->findActor(overlayIdx, _var0, _var3);
+void Op_60Sub(int overlayIdx, ActorList *pActorHead, int _var0, int _var1, int _var2, int _var3) {
+	Actor *pActor = pActorHead->findActor(overlayIdx, _var0, _var3);
 
 	if (pActor) {
-		if ((pActor->_actor->_freeze == _var2) || (_var2 == -1)) {
-			pActor->_actor->_freeze = _var1;
+		if ((pActor->_freeze == _var2) || (_var2 == -1)) {
+			pActor->_freeze = _var1;
 		}
 	}
 }
