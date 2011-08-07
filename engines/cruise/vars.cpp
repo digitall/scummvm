@@ -82,7 +82,7 @@ int16 bootOverlayNumber;
 
 SoundEntry soundList[4];
 
-ActorListNode actorHead;
+ActorList actorHead;
 
 int16 stateID;
 int16 xdial = 0;

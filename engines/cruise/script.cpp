@@ -582,6 +582,7 @@ uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1,
 void ScriptList::add(ScriptInstance scriptToAdd) {
 	push_back(scriptToAdd);
 }
+
 int ScriptInstance::execute() {
 	int numScript2;
 	ovlData3Struct *ptr2;

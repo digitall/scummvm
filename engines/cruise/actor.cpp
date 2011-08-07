@@ -24,6 +24,8 @@
 
 #include "cruise/cruise.h"
 #include "cruise/staticres.h"
+#include "common/list.h"
+#include "common/list_intern.h"
 
 namespace Cruise {
 
@@ -55,44 +57,32 @@ Actor::Actor() {
 }
 
 bool Actor::isAnimFinished() {
-    if (_pathId == ANIM_FINISH)
-	return true;
-    else
-	return false;
-}
-ActorListNode::ActorListNode() {
-	_next = NULL;
-	_prev = NULL;
-	_actor = new Actor;
+	if (_pathId == ANIM_FINISH)
+		return true;
+	else
+		return false;
 }
 
-ActorListNode::~ActorListNode() {
-    delete _actor;
-}
-
-bool ActorListNode::isAnimFinished(int overlayIdx, int idx, int objType) {
-	ActorListNode *pCurrentEntry = findActor(overlayIdx, idx, objType);
+bool ActorList::isAnimFinished(int overlayIdx, int idx, int objType) {
+	Actor *pCurrentEntry = findActor(overlayIdx, idx, objType);
 	if (!pCurrentEntry)
-	    return true;
-	return pCurrentEntry->_actor->isAnimFinished();
+		return true;
+	return pCurrentEntry->isAnimFinished();
 
 }
 
-ActorListNode *ActorListNode::findActor(int overlayIdx, int objIdx, int type) {
-	ActorListNode *pCurrentEntry = _next;
-	Actor *pCurrentActor;
+Actor *ActorList::findActor(int overlayIdx, int objIdx, int type) {
+	Common::List<Actor>::iterator iter = begin();
 
-	while (pCurrentEntry) {
-		pCurrentActor = pCurrentEntry->_actor;
-		if ((pCurrentActor->_overlayNumber == overlayIdx || overlayIdx == -1) && 
-			(pCurrentActor->_idx == objIdx || objIdx == -1) &&
-			(pCurrentActor->_type == type || type == -1)) {
-			return pCurrentEntry;
+	while (iter != end()) {
+		if ((iter->_overlayNumber == overlayIdx || overlayIdx == -1) &&
+			(iter->_idx == objIdx || objIdx == -1) &&
+			(iter->_type == type || type == -1)) {
+			return &(*iter);
 		}
 
-		pCurrentEntry = pCurrentEntry->_next;
+		iter++;
 	}
-
 	return NULL;
 }
 
@@ -738,158 +728,154 @@ void set_anim(int ovl, int obj, int start, int x, int y, int mat, int state) {
 /**
  * Handles the processing of any active actors to allow for handling movement
  */
-void ActorListNode::processAnimation() {
+void ActorList::processAnimation() {
 	objectParamsQuery params;
 	MovementEntry moveInfo;
-	ActorListNode *pCurrentActorNode = _next;
-	ActorListNode *nextActor;
-	Actor *pCurrentActor;
+	Common::List<Actor>::iterator iter = begin();
 
-	while (pCurrentActorNode) {
-		nextActor = pCurrentActorNode->_next;
-		pCurrentActor = pCurrentActorNode->_actor;
-		if (!pCurrentActor->_freeze && ((pCurrentActor->_type == ATP_MOUSE) || (pCurrentActor->_type == 1))) {
-			getMultipleObjectParam(pCurrentActor->_overlayNumber, pCurrentActor->_idx, &params);
+	while (iter != end()) {
+		if (!iter->_freeze && ((iter->_type == ATP_MOUSE) || (iter->_type == 1))) {
+			getMultipleObjectParam(iter->_overlayNumber, iter->_idx, &params);
 
-			if (((animationStart && !pCurrentActor->_flag) || (!animationStart && pCurrentActor->_xDest != -1
-					&& pCurrentActor->_yDest != -1)) && (pCurrentActor->_type == ATP_MOUSE)) {
+			if (((animationStart && !iter->_flag) || (!animationStart && iter->_xDest != -1
+					&& iter->_yDest != -1)) && (iter->_type == ATP_MOUSE)) {
 				// mouse animation
 				if (!animationStart) {
-					aniX = pCurrentActor->_xDest;
-					aniY = pCurrentActor->_yDest;
-					pCurrentActor->_xDest = -1;
-					pCurrentActor->_yDest = -1;
+					aniX = iter->_xDest;
+					aniY = iter->_yDest;
+					iter->_xDest = -1;
+					iter->_yDest = -1;
 
-					pCurrentActor->_flag = 1;
+					iter->_flag = 1;
 				}
 
-				pCurrentActor->_pathId = computePathfinding(moveInfo, params.X, params.Y,
-					aniX, aniY, pCurrentActor->_stepX, pCurrentActor->_stepY, pCurrentActor->_pathId);
+				iter->_pathId = computePathfinding(moveInfo, params.X, params.Y,
+					aniX, aniY, iter->_stepX, iter->_stepY, iter->_pathId);
 
-				if (pCurrentActor->_pathId == ANIM_WAIT) {
-					if ((pCurrentActor->_endDirection != -1) && (pCurrentActor->_endDirection != pCurrentActor->_startDirection)) {
-						pCurrentActor->_phase = ANIM_PHASE_STATIC_END;
-						pCurrentActor->_nextDirection = pCurrentActor->_endDirection;
-						pCurrentActor->_endDirection = -1;
-						pCurrentActor->_counter = 0;
+				if (iter->_pathId == ANIM_WAIT) {
+					if ((iter->_endDirection != -1) && (iter->_endDirection != iter->_startDirection)) {
+						iter->_phase = ANIM_PHASE_STATIC_END;
+						iter->_nextDirection = iter->_endDirection;
+						iter->_endDirection = -1;
+						iter->_counter = 0;
 					} else {
-						pCurrentActor->_pathId = ANIM_FINISH;
-						pCurrentActor->_flag = 0;
-						pCurrentActor->_endDirection = -1;
-						pCurrentActor->_phase = ANIM_PHASE_WAIT;
+						iter->_pathId = ANIM_FINISH;
+						iter->_flag = 0;
+						iter->_endDirection = -1;
+						iter->_phase = ANIM_PHASE_WAIT;
 					}
 				} else {
-					pCurrentActor->_phase = ANIM_PHASE_STATIC;
-					pCurrentActor->_counter = -1;
+					iter->_phase = ANIM_PHASE_STATIC;
+					iter->_counter = -1;
 				}
 			} else
-				if ((pCurrentActor->_type == 1) && (pCurrentActor->_xDest != -1) && (pCurrentActor->_yDest != -1)) {
+				if ((iter->_type == 1) && (iter->_xDest != -1) && (iter->_yDest != -1)) {
 					// track animation
-					pCurrentActor->_pathId = computePathfinding(moveInfo, params.X, params.Y, pCurrentActor->_xDest, pCurrentActor->_yDest, pCurrentActor->_stepX, pCurrentActor->_stepY, pCurrentActor->_pathId);
+					iter->_pathId = computePathfinding(moveInfo, params.X, params.Y, iter->_xDest, iter->_yDest, iter->_stepX, iter->_stepY, iter->_pathId);
 
-					pCurrentActor->_xDest = -1;
-					pCurrentActor->_yDest = -1;
+					iter->_xDest = -1;
+					iter->_yDest = -1;
 
-					if (pCurrentActor->_pathId == ANIM_WAIT) {
-						if ((pCurrentActor->_endDirection != -1) && (pCurrentActor->_endDirection != pCurrentActor->_startDirection)) {
-							pCurrentActor->_phase = ANIM_PHASE_STATIC_END;
-							pCurrentActor->_nextDirection = pCurrentActor->_endDirection;
-							pCurrentActor->_endDirection = -1;
-							pCurrentActor->_counter = 0;
+					if (iter->_pathId == ANIM_WAIT) {
+						if ((iter->_endDirection != -1) && (iter->_endDirection != iter->_startDirection)) {
+							iter->_phase = ANIM_PHASE_STATIC_END;
+							iter->_nextDirection = iter->_endDirection;
+							iter->_endDirection = -1;
+							iter->_counter = 0;
 						} else {
-							pCurrentActor->_pathId = -2;
-							pCurrentActor->_flag = 0;
-							pCurrentActor->_endDirection = -1;
-							pCurrentActor->_phase = ANIM_PHASE_WAIT;
+							iter->_pathId = -2;
+							iter->_flag = 0;
+							iter->_endDirection = -1;
+							iter->_phase = ANIM_PHASE_WAIT;
 						}
 					} else {
-						pCurrentActor->_phase = ANIM_PHASE_STATIC;
-						pCurrentActor->_counter = -1;
+						iter->_phase = ANIM_PHASE_STATIC;
+						iter->_counter = -1;
 					}
 				}
 
 			animationStart = false;
 
-			if ((pCurrentActor->_pathId >= 0) || (pCurrentActor->_phase == ANIM_PHASE_STATIC_END)) {
+			if ((iter->_pathId >= 0) || (iter->_phase == ANIM_PHASE_STATIC_END)) {
 
 				// Main switch statement for handling various phases of movement
 				// IMPORTANT: This switch relies on falling through cases in certain circumstances
 				// , so 'break' statements should *not* be used at the end of case areas
-				switch (pCurrentActor->_phase) {
+				switch (iter->_phase) {
 				case ANIM_PHASE_STATIC_END:
 				case ANIM_PHASE_STATIC:
 				{
 					// In-place (on the spot) animationos
 
-					if ((pCurrentActor->_counter == -1) && (pCurrentActor->_phase == ANIM_PHASE_STATIC)) {
-						Perso *perso = persoTable[pCurrentActor->_pathId];
-						perso->processActorWalk(pCurrentActor->_pathId, moveInfo);
+					if ((iter->_counter == -1) && (iter->_phase == ANIM_PHASE_STATIC)) {
+						Perso *perso = persoTable[iter->_pathId];
+						perso->processActorWalk(iter->_pathId, moveInfo);
 
 						if (moveInfo.x == -1) {
-							pCurrentActor->_pathId = ANIM_FINISH;
-							pCurrentActor->_flag = 0;
-							pCurrentActor->_endDirection = -1;
-							pCurrentActor->_phase = ANIM_PHASE_WAIT;
+							iter->_pathId = ANIM_FINISH;
+							iter->_flag = 0;
+							iter->_endDirection = -1;
+							iter->_phase = ANIM_PHASE_WAIT;
 							break;
 						}
 
-						pCurrentActor->_x = moveInfo.x;
-						pCurrentActor->_y = moveInfo.y;
-						pCurrentActor->_nextDirection = moveInfo.direction;
-						pCurrentActor->_poly = moveInfo.poly;
-						pCurrentActor->_counter = 0;
+						iter->_x = moveInfo.x;
+						iter->_y = moveInfo.y;
+						iter->_nextDirection = moveInfo.direction;
+						iter->_poly = moveInfo.poly;
+						iter->_counter = 0;
 
-						if (pCurrentActor->_startDirection == pCurrentActor->_nextDirection)
-							pCurrentActor->_phase = ANIM_PHASE_MOVE;
+						if (iter->_startDirection == iter->_nextDirection)
+							iter->_phase = ANIM_PHASE_MOVE;
 					}
 
-					if ((pCurrentActor->_counter >= 0)
-					        && ((pCurrentActor->_phase == ANIM_PHASE_STATIC_END)
-					            || (pCurrentActor->_phase == ANIM_PHASE_STATIC))) {
+					if ((iter->_counter >= 0)
+					        && ((iter->_phase == ANIM_PHASE_STATIC_END)
+					            || (iter->_phase == ANIM_PHASE_STATIC))) {
 						int newA;
 						int inc = 1;
-						int t_inc = pCurrentActor->_startDirection - 1;
+						int t_inc = iter->_startDirection - 1;
 
 						if (t_inc < 0)
 							t_inc = 3;
 
-						if (pCurrentActor->_nextDirection == t_inc)
+						if (iter->_nextDirection == t_inc)
 							inc = -1;
 
 						if (inc > 0)
-							newA = actor_stat[pCurrentActor->_startDirection][pCurrentActor->_counter++];
+							newA = actor_stat[iter->_startDirection][iter->_counter++];
 						else
-							newA = actor_invstat[pCurrentActor->_startDirection][pCurrentActor->_counter++];
+							newA = actor_invstat[iter->_startDirection][iter->_counter++];
 
 						if (newA == 0) {
-							pCurrentActor->_startDirection = pCurrentActor->_startDirection + inc;
+							iter->_startDirection = iter->_startDirection + inc;
 
-							if (pCurrentActor->_startDirection > 3)
-								pCurrentActor->_startDirection = 0;
+							if (iter->_startDirection > 3)
+								iter->_startDirection = 0;
 
-							if (pCurrentActor->_startDirection < 0)
-								pCurrentActor-> _startDirection = 3;
+							if (iter->_startDirection < 0)
+								iter-> _startDirection = 3;
 
-							pCurrentActor->_counter = 0;
+							iter->_counter = 0;
 
-							if (pCurrentActor->_startDirection == pCurrentActor->_nextDirection) {
-								if (pCurrentActor->_phase == ANIM_PHASE_STATIC)
-									pCurrentActor->_phase = ANIM_PHASE_MOVE;
+							if (iter->_startDirection == iter->_nextDirection) {
+								if (iter->_phase == ANIM_PHASE_STATIC)
+									iter->_phase = ANIM_PHASE_MOVE;
 								else
-									pCurrentActor->_phase = ANIM_PHASE_END;
+									iter->_phase = ANIM_PHASE_END;
 							} else {
-								newA = actor_stat[pCurrentActor->_startDirection][pCurrentActor->_counter++];
+								newA = actor_stat[iter->_startDirection][iter->_counter++];
 
 								if (inc == -1)
 									newA = -newA;
 
-								set_anim(pCurrentActor->_overlayNumber, pCurrentActor->_idx,
-									pCurrentActor->_start, params.X, params.Y, newA, pCurrentActor->_poly);
+								set_anim(iter->_overlayNumber, iter->_idx,
+									iter->_start, params.X, params.Y, newA, iter->_poly);
 								break;
 							}
 						} else {
-							set_anim(pCurrentActor->_overlayNumber,pCurrentActor->_idx, pCurrentActor->_start,
-								params.X, params.Y, newA, pCurrentActor->_poly);
+							set_anim(iter->_overlayNumber,iter->_idx, iter->_start,
+								params.X, params.Y, newA, iter->_poly);
 							break;
 						}
 					}
@@ -899,39 +885,39 @@ void ActorListNode::processAnimation() {
 				{
 					// Walk animations
 
-					if (pCurrentActor->_counter >= 1) {
-						Perso *perso = persoTable[pCurrentActor->_pathId];
-						perso->processActorWalk(pCurrentActor->_pathId, moveInfo);
+					if (iter->_counter >= 1) {
+						Perso *perso = persoTable[iter->_pathId];
+						perso->processActorWalk(iter->_pathId, moveInfo);
 
 						if (moveInfo.x == -1) {
-							if ((pCurrentActor->_endDirection == -1) || (pCurrentActor->_endDirection == pCurrentActor->_nextDirection)) {
-								pCurrentActor->_phase = ANIM_PHASE_END;
+							if ((iter->_endDirection == -1) || (iter->_endDirection == iter->_nextDirection)) {
+								iter->_phase = ANIM_PHASE_END;
 							} else {
-								pCurrentActor->_phase = ANIM_PHASE_STATIC_END;
-								pCurrentActor->_nextDirection = pCurrentActor->_endDirection;
+								iter->_phase = ANIM_PHASE_STATIC_END;
+								iter->_nextDirection = iter->_endDirection;
 							}
-							pCurrentActor->_counter = 0;
+							iter->_counter = 0;
 							break;
 						} else {
-							pCurrentActor->_x = moveInfo.x;
-							pCurrentActor->_y = moveInfo.y;
-							pCurrentActor->_nextDirection = moveInfo.direction;
-							pCurrentActor->_poly = moveInfo.poly;
+							iter->_x = moveInfo.x;
+							iter->_y = moveInfo.y;
+							iter->_nextDirection = moveInfo.direction;
+							iter->_poly = moveInfo.poly;
 						}
 					}
 
-					if (pCurrentActor->_phase == ANIM_PHASE_MOVE) {
+					if (iter->_phase == ANIM_PHASE_MOVE) {
 						int newA;
 
-						pCurrentActor->_startDirection = pCurrentActor->_nextDirection;
+						iter->_startDirection = iter->_nextDirection;
 
-						newA = actor_move[pCurrentActor->_startDirection][pCurrentActor->_counter++];
+						newA = actor_move[iter->_startDirection][iter->_counter++];
 						if (!newA) {
-							pCurrentActor->_counter = 0;
-							newA = actor_move[pCurrentActor->_startDirection][pCurrentActor->_counter++];
+							iter->_counter = 0;
+							newA = actor_move[iter->_startDirection][iter->_counter++];
 						}
-						set_anim(pCurrentActor->_overlayNumber, pCurrentActor->_idx, pCurrentActor->_start,
-							pCurrentActor->_x, pCurrentActor->_y, newA, pCurrentActor->_poly);
+						set_anim(iter->_overlayNumber, iter->_idx, iter->_start,
+							iter->_x, iter->_y, newA, iter->_poly);
 						break;
 					}
 				}
@@ -940,134 +926,93 @@ void ActorListNode::processAnimation() {
 				{
 					// End of walk animation
 
-					int newA = actor_end[pCurrentActor->_startDirection][0];
+					int newA = actor_end[iter->_startDirection][0];
 
-					set_anim(pCurrentActor->_overlayNumber, pCurrentActor->_idx, pCurrentActor->_start,
-						pCurrentActor->_x, pCurrentActor->_y, newA, pCurrentActor->_poly);
+					set_anim(iter->_overlayNumber, iter->_idx, iter->_start,
+						iter->_x, iter->_y, newA, iter->_poly);
 
-					pCurrentActor->_pathId = ANIM_FINISH;
-					pCurrentActor->_phase = ANIM_PHASE_WAIT;
-					pCurrentActor->_flag = 0;
-					pCurrentActor->_endDirection = -1;
+					iter->_pathId = ANIM_FINISH;
+					iter->_phase = ANIM_PHASE_WAIT;
+					iter->_flag = 0;
+					iter->_endDirection = -1;
 					break;
 				}
 				default: {
-					warning("Unimplemented currentActor->phase=%d in processAnimation()", pCurrentActor->_phase);
+					warning("Unimplemented currentActor->phase=%d in processAnimation()", iter->_phase);
 					// exit(1);
 				}
 				}
 			}
 		}
 
-		pCurrentActorNode = nextActor;
+		iter++;
 	}
 }
 
-ActorListNode *ActorListNode::addActor(int overlay, int objIdx, int param, int param2) {
-	ActorListNode *pPrevious = this;
-	ActorListNode *pCurrent = _next;
-	Actor *newActor;
+Actor *ActorList::add(int overlay, int objIdx, int param, int param2) {
+	Actor newActor;
 
-	// go to the end of the list
-	while (pCurrent) {
-		pPrevious = pCurrent;
-		pCurrent = pPrevious->_next;
-	}
+	newActor._idx = objIdx;
+	newActor._type = param2;
+	newActor._pathId = -1;
+	newActor._overlayNumber = overlay;
+	newActor._startDirection = param;
+	newActor._nextDirection = -1;
+	newActor._stepX = 5;
+	newActor._stepY = 2;
+	newActor._phase = ANIM_PHASE_WAIT;
+	newActor._flag = 0;
+	newActor._freeze = 0;
 
-	if (pCurrent && (pCurrent->_actor->_overlayNumber == overlay)
-	        && (pCurrent->_actor->_idx == objIdx) && (pCurrent->_actor->_type == param2)) {
-		return NULL;
-	}
+	push_back(newActor);
 
-	ActorListNode *pNewElement = new ActorListNode;
-	if (!pNewElement)
-		return NULL;
-
-	pNewElement->_next = pPrevious->_next;
-	pPrevious->_next = pNewElement;
-
-	if (!pCurrent) {
-		pCurrent = this;
-	}
-
-	pNewElement->_prev = pCurrent->_prev;
-	pCurrent->_prev = pNewElement;
-	newActor = pNewElement->_actor;
-	if (!newActor)
-	    return NULL;
-
-	newActor->_idx = objIdx;
-	newActor->_type = param2;
-	newActor->_pathId = -1;
-	newActor->_overlayNumber = overlay;
-	newActor->_startDirection = param;
-	newActor->_nextDirection = -1;
-	newActor->_stepX = 5;
-	newActor->_stepY = 2;
-	newActor->_phase = ANIM_PHASE_WAIT;
-	newActor->_flag = 0;
-	newActor->_freeze = 0;
-
-
-	pNewElement->_actor = newActor;
-
-	return pNewElement;
+	Common::List<Actor>:: iterator iter = reverse_begin();
+	return &(*iter);
 }
 
-int ActorListNode::removeActor(int overlay, int objIdx, int objType) {
-	ActorListNode* pl;
-	ActorListNode* pl2;
-	ActorListNode* pl3;
-	ActorListNode* pl4;
-	Actor *pActor;
+void ActorList::add(Actor actor) {
+	push_back(actor);
+}
+
+int ActorList::remove(int overlay, int objIdx, int objType) {
 
 	int dir = 0;
+	Common::List<Actor>::iterator iter = begin();
+	
+	while(iter != end()) {
+		if (((iter->_overlayNumber == overlay) || (overlay == -1)) &&
+				((iter->_idx == objIdx) || (objIdx == -1)) &&
+				((iter->_type == objType) || (objType == -1))) {
+				dir = iter->_startDirection;
+				if (iter->_pathId >= 0)
+					freePerso(iter->_pathId);
 
-	pl = this;
-	pl2 = pl;
-	pl = pl2->_next;
+				erase(iter);
 
-	while (pl) {
-		pl2 = pl;
-
-		if (((pl->_actor->_overlayNumber == overlay) || (overlay == -1)) &&
-		        ((pl->_actor->_idx == objIdx) || (objIdx == -1)) &&
-		        ((pl->_actor->_type == objType) || (objType == -1))) {
-			pl->_actor->_type = -1;
 		}
-
-		pl = pl2->_next;
-	}
-
-	pl = this;
-	pl2 = pl;
-	pl = pl2->_next;
-
-	while (pl) {
-		pActor = pl->_actor;
-		if (pActor->_type == -1) {
-			pl4 = pl->_next;
-			pl2->_next = pl4;
-			pl3 = pl4;
-
-			if (pl3 == NULL)
-				pl3 = this;
-
-			pl3->_prev = pl->_prev;
-
-			dir = pActor->_startDirection;
-
-			if (pActor->_pathId >= 0)
-				freePerso(pActor->_pathId);
-			delete pl;
-			pl = pl4;
-		} else {
-			pl2 = pl;
-			pl = pl2->_next;
-		}
+		// the old remove was first changing matching elements _type to -1 then removed.
+		// I am adding this control in chase -1 assigned _type some where else.
+		if ( iter->_type == -1)
+			erase(iter);
+		iter++;
 	}
 
 	return dir;
+}
+
+Common::List<Actor>::iterator ActorList::begin() {
+	
+	return Common::List<Actor>::begin();
+}
+
+uint ActorList::size() {
+	
+	return  Common::List<Actor>::size();
+}
+
+void ActorList::clear() {
+	//Common::List<Actor>::clear();
+	remove(-1, -1, -1);
 }
 
 } // End of namespace Cruise

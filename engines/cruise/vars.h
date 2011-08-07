@@ -169,7 +169,7 @@ extern int16 bootOverlayNumber;
 
 extern SoundEntry soundList[4];
 
-extern ActorListNode actorHead;
+extern ActorList actorHead;
 
 extern int16 stateID;
 extern int16 xdial;
