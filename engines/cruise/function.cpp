@@ -293,7 +293,7 @@ int16 Op_FreeCell() {
 }
 
 int16 Op_freeBackgroundInscrustList() {
-	backgroundIncrustListHead.freeBackgroundIncrustList();
+	backgroundIncrustListHead.clear();
 	return (0);
 }
 
@@ -306,7 +306,7 @@ int16 Op_UnmergeBackgroundIncrust() {
 		ovl = currentScriptPtr->_overlayNumber;
 	}
 
-	backgroundIncrustListHead.unmergeBackgroundIncrustList(ovl, obj);
+	backgroundIncrustListHead.unmerge(ovl, obj);
 
 	return (0);
 }
@@ -733,7 +733,7 @@ int16 Op_AddBackgroundIncrust() {
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->_overlayNumber;
 
-	backgroundIncrustListHead.addBackgroundIncrust(overlayIdx, objIdx, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, masterScreen, objType);
+	backgroundIncrustListHead.add(overlayIdx, objIdx, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, masterScreen, objType);
 
 	return 0;
 }
@@ -983,7 +983,7 @@ int16 Op_RemoveBackgroundIncrust() {
 		overlay = currentScriptPtr->_overlayNumber;
 	}
 
-	backgroundIncrustListHead.removeBackgroundIncrustNode(overlay, idx);
+	backgroundIncrustListHead.remove(overlay, idx);
 
 	return 0;
 }
@@ -1157,7 +1157,7 @@ int16 Op_RemoveAnimation() {
 }
 
 int16 Op_regenerateBackgroundIncrust() {
-	backgroundIncrustListHead.regenerateBackgroundIncrustList();
+	backgroundIncrustListHead.regenerate();
 	return 0;
 }
 

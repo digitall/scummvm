@@ -158,7 +158,7 @@ int16 oldSpeedGame;
 uint8 globalScreen[320 * 200];
 
 Mouse currentMouse;
-BackgroundIncrustListNode backgroundIncrustListHead;
+BackgroundIncrustList backgroundIncrustListHead;
 CellListNode cellHead;
 Menu *menuTable[8];
 Stack stack;
