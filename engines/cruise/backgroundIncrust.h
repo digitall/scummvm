@@ -48,28 +48,25 @@ public:
 
 	BackgroundIncrust();
 	~BackgroundIncrust();
-	BackgroundIncrust(uint16 objectIdx, int16 type, uint16 overlayIdx, int16 X, int16 Y, uint16 frame,
-                        uint16 scale, uint16 backgroundIdx, uint16 scriptNumber, uint16 scriptOverlayIdx,
-                        uint16 spriteId, char *name);
+
 	void backup(int savedX, int savedY, int saveWidth, int saveHeight, uint8* pBackground);
 	void restore();
 
 };
 
-class BackgroundIncrustListNode {
+class BackgroundIncrustList : public Common::List<BackgroundIncrust> {
 public:
-	BackgroundIncrustListNode *next;
-	BackgroundIncrustListNode *prev;
-	BackgroundIncrust *backgroundIncrust;
+	BackgroundIncrust *add(int16 overlayIdx, int16 param2, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
+	void remove(int overlay, int idx);
+	void clear();
 
-        BackgroundIncrustListNode();
-        void resetBackgroundIncrustList();
-        void freeBackgroundIncrustList();
-        void removeBackgroundIncrustNode(int overlay, int idx);
-        void regenerateBackgroundIncrustList();
-        void unmergeBackgroundIncrustList(int ovl, int idx);
-        BackgroundIncrustListNode *addBackgroundIncrust(int16 overlayIdx, int16 param2, int16 scriptNumber, int16 scriptOverlay, int16 backgroundIdx, int16 param4);
+	void regenerate();
+	void unmerge(int ovl, int idx);
 };
+
+	//void resetBackgroundIncrustList();			//null the first element
+	//void freeBackgroundIncrustList();			//clear
+
 
 
 } // End of namespace Cruise

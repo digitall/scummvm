@@ -262,7 +262,7 @@ extern int16 oldSpeedGame;
 extern uint8 globalScreen[320 * 200];
 
 extern Mouse currentMouse;
-extern BackgroundIncrustListNode backgroundIncrustListHead;
+extern BackgroundIncrustList backgroundIncrustListHead;
 extern CellListNode cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
