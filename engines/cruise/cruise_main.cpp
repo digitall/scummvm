@@ -434,7 +434,7 @@ void CruiseEngine::initAllData() {
 	cellHead.resetPtr();
 
 	actorHead.clear();
-	backgroundIncrustListHead.resetBackgroundIncrustList();
+	backgroundIncrustListHead.clear();
 
 	bootOverlayNumber = loadOverlay("AUTO00");
 
@@ -1866,7 +1866,7 @@ void CruiseEngine::mainLoop() {
 	closeBase();
 	resetFileEntryRange(0, NUM_FILE_ENTRIES);
 	freeObjectList(&cellHead);
-	backgroundIncrustListHead.freeBackgroundIncrustList();
+	backgroundIncrustListHead.clear();
 }
 
 } // End of namespace Cruise
