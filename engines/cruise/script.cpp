@@ -508,8 +508,7 @@ void ScriptList::removeAll() {
 	while (iter != end()) {
 		if (iter->_data)
 			MemFree((*iter)._data);
-		erase(iter);
-		iter++;
+		iter = erase(iter);
 	}
 }
 
