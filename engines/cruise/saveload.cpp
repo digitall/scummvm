@@ -419,67 +419,54 @@ static void syncCell(Common::Serializer &s) {
 
 static void syncIncrust(Common::Serializer &s) {
 	int numEntries = 0;
-	BackgroundIncrustListNode *pl, *pl1;
 	uint8 dummyByte = 0;
 	uint16 dummyWord = 0;
 	uint32 dummyLong = 0;
 
 	if (s.isSaving()) {
 		// Figure out the number of entries to save
-		pl = backgroundIncrustListHead.next;
-		while (pl) {
-			++numEntries;
-			pl = pl->next;
-		}
+		numEntries = backgroundIncrustListHead.size();
 	}
 	s.syncAsSint16LE(numEntries);
 
-	pl = s.isSaving() ? backgroundIncrustListHead.next : &backgroundIncrustListHead;
-	pl1 = &backgroundIncrustListHead;
+	BackgroundIncrust backgroundIncrust;
+	Common::List<BackgroundIncrust>::iterator iter = backgroundIncrustListHead.begin();
 
-	for (int i = 0; i < numEntries; ++i) {
-		BackgroundIncrustListNode *t = s.isSaving() ? pl :
-			new BackgroundIncrustListNode;
-		BackgroundIncrust *backgroundIncrust = t->backgroundIncrust;
-		s.syncAsUint32LE(dummyLong);
+	for (int i = 0; i < numEntries; ++i, iter++) {
+		if(s.isSaving())
+			backgroundIncrust = *iter;
 
-		s.syncAsSint16LE(backgroundIncrust->_objectIdx);
-		s.syncAsSint16LE(backgroundIncrust->_type);
-		s.syncAsSint16LE(backgroundIncrust->_overlayIdx);
-		s.syncAsSint16LE(backgroundIncrust->_X);
-		s.syncAsSint16LE(backgroundIncrust->_Y);
-		s.syncAsSint16LE(backgroundIncrust->_frame);
-		s.syncAsSint16LE(backgroundIncrust->_scale);
-		s.syncAsSint16LE(backgroundIncrust->_backgroundIdx);
-		s.syncAsSint16LE(backgroundIncrust->_scriptNumber);
-		s.syncAsSint16LE(backgroundIncrust->_scriptOverlayIdx);
 		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(backgroundIncrust->_saveWidth);
-		s.syncAsSint16LE(backgroundIncrust->_saveHeight);
-		s.syncAsSint16LE(backgroundIncrust->_saveSize);
-		s.syncAsSint16LE(backgroundIncrust->_savedX);
-		s.syncAsSint16LE(backgroundIncrust->_savedY);
-		s.syncBytes((byte *)backgroundIncrust->_name, 13);
+		s.syncAsSint16LE(backgroundIncrust._objectIdx);
+		s.syncAsSint16LE(backgroundIncrust._type);
+		s.syncAsSint16LE(backgroundIncrust._overlayIdx);
+		s.syncAsSint16LE(backgroundIncrust._X);
+		s.syncAsSint16LE(backgroundIncrust._Y);
+		s.syncAsSint16LE(backgroundIncrust._frame);
+		s.syncAsSint16LE(backgroundIncrust._scale);
+		s.syncAsSint16LE(backgroundIncrust._backgroundIdx);
+		s.syncAsSint16LE(backgroundIncrust._scriptNumber);
+		s.syncAsSint16LE(backgroundIncrust._scriptOverlayIdx);
+		s.syncAsUint32LE(dummyLong);
+		s.syncAsSint16LE(backgroundIncrust._saveWidth);
+		s.syncAsSint16LE(backgroundIncrust._saveHeight);
+		s.syncAsSint16LE(backgroundIncrust._saveSize);
+		s.syncAsSint16LE(backgroundIncrust._savedX);
+		s.syncAsSint16LE(backgroundIncrust._savedY);
+		s.syncBytes((byte *)backgroundIncrust._name, 13);
 		s.syncAsByte(dummyByte);
-		s.syncAsSint16LE(backgroundIncrust->_spriteId);
+		s.syncAsSint16LE(backgroundIncrust._spriteId);
 		s.syncAsUint16LE(dummyWord);
 
-		if (backgroundIncrust->_saveSize) {
+		if (backgroundIncrust._saveSize) {
 			if (s.isLoading())
-				backgroundIncrust->_ptr = (byte *)MemAlloc(backgroundIncrust->_saveSize);
+				backgroundIncrust._ptr = (byte *)MemAlloc(backgroundIncrust._saveSize);
 
-			s.syncBytes(backgroundIncrust->_ptr, backgroundIncrust->_saveSize);
+			s.syncBytes(backgroundIncrust._ptr, backgroundIncrust._saveSize);
 		}
 
-		if (s.isSaving())
-			pl = pl->next;
-		else {
-			t->next = NULL;
-			pl->next = t;
-			t->prev = pl1->prev;
-			pl1->prev = t;
-			pl = t;
-		}
+		if (s.isLoading())
+			backgroundIncrustListHead.push_back(backgroundIncrust);
 	}
 }
 
@@ -656,7 +643,7 @@ void initVars() {
 
 	resetPreload();
 	freeCTP();
-	backgroundIncrustListHead.freeBackgroundIncrustList();
+	backgroundIncrustListHead.clear();
 
 	cellHead.freezeCell(-1, -1, -1, -1, -1, 0);
 	// TODO: unfreeze anims
@@ -722,7 +709,7 @@ void initVars() {
 	cellHead.resetPtr();
 
 	actorHead.clear();
-	backgroundIncrustListHead.resetBackgroundIncrustList();
+	backgroundIncrustListHead.clear();
 
 	vblLimit = 0;
 	remdo = 0;
@@ -939,7 +926,7 @@ Common::Error loadSavegameData(int saveGameIdx) {
 		}
 	}
 
-	backgroundIncrustListHead.regenerateBackgroundIncrustList();
+	backgroundIncrustListHead.regenerate();
 
 	// to finish
 
