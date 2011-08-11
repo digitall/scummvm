@@ -63,7 +63,7 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 
 	int16 var;
 
-	Cell pNewCell;
+	Cell newCell;
 
 	getSingleObjectParam(overlayIdx, objIdx, 2, &var);
 
@@ -88,17 +88,17 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 			return NULL;
 	}
 
-	pNewCell._idx = objIdx;
-	pNewCell._type = type;
-	pNewCell._backgroundPlane = backgroundPlane;
-	pNewCell._overlay = overlayIdx;
-	pNewCell._parent = scriptNumber;
-	pNewCell._parentOverlay = scriptOverlay;
+	newCell._idx = objIdx;
+	newCell._type = type;
+	newCell._backgroundPlane = backgroundPlane;
+	newCell._overlay = overlayIdx;
+	newCell._parent = scriptNumber;
+	newCell._parentOverlay = scriptOverlay;
 
-	insert(iter,pNewCell);
-	//delete(pNewCell);	//since the insert copied the element.
+	insert(iter,newCell);
+
 	Cell *re  = &(*(--iter));
-	return re; // the insert added the element before iter.
+	return re; 
 }
 
 Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
