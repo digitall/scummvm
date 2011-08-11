@@ -235,10 +235,13 @@ void BackgroundIncrustList::remove(int overlay, int idx) {
 	Common::List<BackgroundIncrust>::iterator iter = begin();
 
 	while (iter != end()) {
-		if ((iter->_type == -1) || ((iter->_overlayIdx == overlay || overlay == -1) && (iter->_objectIdx == idx || idx == -1) && (iter->_X == var_4) && (iter->_Y == var_6)))
-			erase(iter);
-
-		iter++;
+		if ((iter->_type == -1) ||
+				((iter->_overlayIdx == overlay || overlay == -1) &&
+				(iter->_objectIdx == idx || idx == -1) &&
+				(iter->_X == var_4) && (iter->_Y == var_6)))
+			iter = erase(iter);
+		else
+			iter++;
 	}
 
 }

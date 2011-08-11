@@ -431,7 +431,7 @@ void CruiseEngine::initAllData() {
 	procScriptList.resetPtr2();
 	relScriptList.resetPtr2();
 
-	cellHead.resetPtr();
+	cellHead.clear();
 
 	actorHead.clear();
 	backgroundIncrustListHead.clear();
@@ -556,21 +556,21 @@ int menuDown = 0;
 int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 	char objectName[80];
 
-	CellListNode *currentObject = cellHead._prev;
+	Common::List<Cell>::iterator rIter = cellHead.reverse_begin();
 
-	while (currentObject) {
-		if (currentObject->_cell->_overlay > 0 && overlayTable[currentObject->_cell->_overlay].alreadyLoaded &&
-				(currentObject->_cell->_type == OBJ_TYPE_SPRITE || currentObject->_cell->_type == OBJ_TYPE_MASK ||
-				currentObject->_cell->_type == OBJ_TYPE_EXIT || currentObject->_cell->_type == OBJ_TYPE_VIRTUAL)) {
-			const char* pObjectName = getObjectName(currentObject->_cell->_idx, overlayTable[currentObject->_cell->_overlay].ovlData->arrayNameObj);
+	while (rIter != cellHead.end()) {
+		if (rIter->_overlay > 0 && overlayTable[rIter->_overlay].alreadyLoaded &&
+				(rIter->_type == OBJ_TYPE_SPRITE || rIter->_type == OBJ_TYPE_MASK ||
+				rIter->_type == OBJ_TYPE_EXIT || rIter->_type == OBJ_TYPE_VIRTUAL)) {
+			const char* pObjectName = getObjectName(rIter->_idx, overlayTable[rIter->_overlay].ovlData->arrayNameObj);
 
 			strcpy(objectName, pObjectName);
 
-			if (strlen(objectName) && (currentObject->_cell->_freeze == 0)) {
-				int objIdx = currentObject->_cell->_idx;
-				int objOvl = currentObject->_cell->_overlay;
-				int linkedObjIdx = currentObject->_cell->_followObjectIdx;
-				int linkedObjOvl = currentObject->_cell->_followObjectOverlayIdx;
+			if (strlen(objectName) && (rIter->_freeze == 0)) {
+				int objIdx = rIter->_idx;
+				int objOvl = rIter->_overlay;
+				int linkedObjIdx = rIter->_followObjectIdx;
+				int linkedObjOvl = rIter->_followObjectOverlayIdx;
 
 				objectParamsQuery params;
 				getMultipleObjectParam(objOvl, objIdx, &params);
@@ -589,7 +589,7 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 				}
 
 				if (params.state >= 0 && params.fileIdx >= 0) {
-					if (currentObject->_cell->_type == OBJ_TYPE_SPRITE || currentObject->_cell->_type == OBJ_TYPE_MASK || currentObject->_cell->_type == OBJ_TYPE_EXIT) {
+					if (rIter->_type == OBJ_TYPE_SPRITE || rIter->_type == OBJ_TYPE_MASK || rIter->_type == OBJ_TYPE_EXIT) {
 						int x = params.X + x2;
 						int y = params.Y + y2;
 						int j = params.fileIdx;
@@ -637,7 +637,7 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 								*outObjOvl = linkedObjOvl;
 								*outObjIdx = linkedObjIdx;
 
-								return (currentObject->_cell->_type);
+								return (rIter->_type);
 							}
 						} else {
 							// int numBitPlanes = filesDatabase[j].resType;
@@ -655,11 +655,11 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 								if (testMask(offsetX, offsetY, filesDatabase[j].subData.ptrMask, filesDatabase[j].width / 8)) {
 									*outObjOvl = linkedObjOvl;
 									*outObjIdx = linkedObjIdx;
-									return currentObject->_cell->_type;
+									return rIter->_type;
 								}
 							}
 						}
-					} else if (currentObject->_cell->_type == OBJ_TYPE_VIRTUAL) {
+					} else if (rIter->_type == OBJ_TYPE_VIRTUAL) {
 						int x = params.X + x2;
 						int y = params.Y + y2;
 						int width = params.fileIdx;
@@ -669,14 +669,14 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 							*outObjOvl = linkedObjOvl;
 							*outObjIdx = linkedObjIdx;
 
-							return (currentObject->_cell->_type);
+							return (rIter->_type);
 						}
 					}
 				}
 			}
 		}
 
-		currentObject = currentObject->_prev;
+		rIter--;
 	}
 
 	*outObjOvl = 0;
@@ -1842,7 +1842,7 @@ void CruiseEngine::mainLoop() {
 					userEnabled = false;
 				}
 			} else if (autoMsg != -1) {
-				cellHead.removeCell(autoOvl, autoMsg, 5, masterScreen);
+				cellHead.remove(autoOvl, autoMsg, 5, masterScreen);
 				autoMsg = -1;
 			}
 		} else {
@@ -1860,7 +1860,7 @@ void CruiseEngine::mainLoop() {
 	closeCnf();
 	closeBase();
 	resetFileEntryRange(0, NUM_FILE_ENTRIES);
-	freeObjectList(&cellHead);
+	cellHead.clear();
 	backgroundIncrustListHead.clear();
 }
 

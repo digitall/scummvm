@@ -21,6 +21,7 @@
  */
 
 #include "cruise/debugger.h"
+#include "common/list.h"
 #include "cruise/cell.h"
 #include "cruise/cruise_main.h"
 #include "cruise/object.h"
@@ -41,15 +42,15 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 	const char *pObjType;
 	objectParamsQuery params;
 
-	CellListNode *currentObject = cellHead._prev;
+	Common::List<Cell>::iterator rIter = cellHead.reverse_begin();
 
-	while (currentObject) {
-		if (currentObject->_cell->_overlay > 0 && overlayTable[currentObject->_cell->_overlay].alreadyLoaded &&
-			(currentObject->_cell->_type == OBJ_TYPE_SPRITE || currentObject->_cell->_type == OBJ_TYPE_MASK ||
-			currentObject->_cell->_type == OBJ_TYPE_EXIT || currentObject->_cell->_type == OBJ_TYPE_VIRTUAL)) {
-			const char *pObjectName = getObjectName(currentObject->_cell->_idx, overlayTable[currentObject->_cell->_overlay].ovlData->arrayNameObj);
+	while (rIter != cellHead.end()) {
+		if (rIter->_overlay > 0 && overlayTable[rIter->_overlay].alreadyLoaded &&
+			(rIter->_type == OBJ_TYPE_SPRITE || rIter->_type == OBJ_TYPE_MASK ||
+			rIter->_type == OBJ_TYPE_EXIT || rIter->_type == OBJ_TYPE_VIRTUAL)) {
+			const char *pObjectName = getObjectName(rIter->_idx, overlayTable[rIter->_overlay].ovlData->arrayNameObj);
 
-			switch (currentObject->_cell->_type) {
+			switch (rIter->_type) {
 			case OBJ_TYPE_SPRITE:
 				pObjType = "SPRITE";
 				break;
@@ -68,13 +69,13 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 			}
 
 			if (*pObjectName) {
-				getMultipleObjectParam(currentObject->_cell->_overlay, currentObject->_cell->_idx, &params);
+				getMultipleObjectParam(rIter->_overlay, rIter->_idx, &params);
 
 				DebugPrintf("%s %s - %d,%d\n", pObjectName, pObjType, params.X, params.Y);
 			}
 		}
 
-		currentObject = currentObject->_prev;
+		rIter--;
 	}
 
 	return true;

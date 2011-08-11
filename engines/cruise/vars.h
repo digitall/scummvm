@@ -263,7 +263,7 @@ extern uint8 globalScreen[320 * 200];
 
 extern Mouse currentMouse;
 extern BackgroundIncrustList backgroundIncrustListHead;
-extern CellListNode cellHead;
+extern CellList cellHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 

@@ -24,6 +24,7 @@
 #include "cruise/polys.h"
 #include "common/endian.h"
 #include "common/util.h"
+#include "common/list.h"
 
 namespace Cruise {
 
@@ -33,12 +34,12 @@ struct autoCellStruct {
 	short int objIdx;
 	short int type;
 	short int newValue;
-	CellListNode *pCell;
+	Cell *pCell;
 };
 
 autoCellStruct autoCellHead;
 
-void addAutoCell(int overlayIdx, int idx, int type, int newVal, CellListNode *pObject) {
+void addAutoCell(int overlayIdx, int idx, int type, int newVal, Cell *pObject) {
 	autoCellStruct *pNewEntry;
 
 	pNewEntry = new autoCellStruct;
@@ -65,12 +66,12 @@ void freeAutoCell() {
 			setObjectPosition(pCurrent->ovlIdx, pCurrent->objIdx, pCurrent->type, pCurrent->newValue);
 		}
 
-		if (pCurrent->pCell->_cell->_animWait < 0) {
+		if (pCurrent->pCell->_animWait < 0) {
 			objectParamsQuery params;
 
 			getMultipleObjectParam(pCurrent->ovlIdx, pCurrent->objIdx, &params);
 
-			pCurrent->pCell->_cell->_animCounter = params.state2 - 1;
+			pCurrent->pCell->_animCounter = params.state2 - 1;
 		}
 
 		delete pCurrent;
@@ -1070,7 +1071,7 @@ void drawMask(unsigned char* workBuf, int wbWidth, int wbHeight, unsigned char* 
 unsigned char polygonMask[(320*200)/8];
 
 // draw poly sprite (OLD: mainDrawSub1)
-void mainDrawPolygons(int fileIndex, CellListNode *plWork, int X, int scale, int Y, char *destBuffer, char *dataPtr) {
+void mainDrawPolygons(int fileIndex, CellList *plWork, int X, int scale, int Y, char *destBuffer, char *dataPtr) {
 	int newX;
 	int newY;
 	int newScale;
@@ -1121,12 +1122,15 @@ void mainDrawPolygons(int fileIndex, CellListNode *plWork, int X, int scale, int
 	memset(polygonMask, 0xFF, (320*200) / 8);
 
 	int numPasses = 0;
+	Common::List<Cell>::iterator iter;
+	if (plWork)
+		 iter = plWork->begin();
 
-	while (plWork) {
-		if (plWork->_cell->_type == OBJ_TYPE_BGMASK && plWork->_cell->_freeze == 0) {
+	while (plWork && iter != plWork->end()) {
+		if (iter->_type == OBJ_TYPE_BGMASK && iter->_freeze == 0) {
 			objectParamsQuery params;
 
-			getMultipleObjectParam(plWork->_cell->_overlay, plWork->_cell->_idx, &params);
+			getMultipleObjectParam(iter->_overlay, iter->_idx, &params);
 
 			int maskX = params.X;
 			int maskY = params.Y;
@@ -1141,7 +1145,7 @@ void mainDrawPolygons(int fileIndex, CellListNode *plWork, int X, int scale, int
 
 		}
 
-		plWork = plWork->_next;
+		iter++;
 	}
 
 	// this function builds the poly model and then calls the draw functions (OLD: mainDrawSub1Sub5)
@@ -1199,7 +1203,7 @@ void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int wi
 	}
 }
 
-void drawSprite(int width, int height, CellListNode *currentObjPtr, const uint8 *dataIn, int ys, int xs, uint8 *output, const uint8 *dataBuf) {
+void drawSprite(int width, int height, CellList *currentObjPtr, const uint8 *dataIn, int ys, int xs, uint8 *output, const uint8 *dataBuf) {
 	int x = 0;
 	int y = 0;
 
@@ -1210,7 +1214,10 @@ void drawSprite(int width, int height, CellListNode *currentObjPtr, const uint8 
 		// At least part of sprite is on-screen
 		gfxModuleData_addDirtyRect(Common::Rect(ps.x, ps.y, pe.x, pe.y));
 
-	CellListNode* plWork = currentObjPtr;
+	Common::List<Cell>::iterator iter;
+	if(currentObjPtr)
+		iter = currentObjPtr->begin();
+
 	int workBufferSize = height * (width / 8);
 
 	unsigned char* workBuf = (unsigned char*)MemAlloc(workBufferSize);
@@ -1218,26 +1225,24 @@ void drawSprite(int width, int height, CellListNode *currentObjPtr, const uint8 
 
 	int numPasses = 0;
 
-	while (plWork) {
-		if (plWork->_cell->_type == OBJ_TYPE_BGMASK && plWork->_cell->_freeze == 0) {
+	while (currentObjPtr && iter != currentObjPtr->end()) {
+		if (iter->_type == OBJ_TYPE_BGMASK && iter->_freeze == 0) {
 			objectParamsQuery params;
 
-			getMultipleObjectParam(plWork->_cell->_overlay, plWork->_cell->_idx, &params);
+			getMultipleObjectParam(iter->_overlay, iter->_idx, &params);
 
 			int maskX = params.X;
 			int maskY = params.Y;
 			int maskFrame = params.fileIdx;
 
-			if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_BGMASK && filesDatabase[maskFrame].subData.ptrMask) {
+			if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_BGMASK && filesDatabase[maskFrame].subData.ptrMask)
 				drawMask(workBuf, width / 8, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
-			} else
-				if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_SPRITE && filesDatabase[maskFrame].subData.ptrMask) {
+			else
+				if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_SPRITE && filesDatabase[maskFrame].subData.ptrMask)
 					drawMask(workBuf, width / 8, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
-				}
 
 		}
-
-		plWork = plWork->_next;
+		iter++;
 	}
 
 	for (y = 0; y < height; y++) {
@@ -1392,7 +1397,7 @@ int getValueFromObjectQuerry(objectParamsQuery *params, int idx) {
 
 void mainDraw(int16 param) {
 	uint8 *bgPtr;
-	CellListNode *currentObjPtr;
+	Common::List<Cell>::iterator iter;
 	int16 currentObjIdx;
 	int16 objX1 = 0;
 	int16 objY1 = 0;
@@ -1418,7 +1423,7 @@ void mainDraw(int16 param) {
 
 	autoCellHead.next = NULL;
 
-	currentObjPtr = cellHead._next;
+	iter = cellHead.begin();
 
 #ifdef _DEBUG
 	/*	polyOutputBuffer = (char*)bgPtr;
@@ -1427,17 +1432,17 @@ void mainDraw(int16 param) {
 
 	//-------------------------------------------------- PROCESS SPRITES -----------------------------------------//
 
-	while (currentObjPtr) {
-		if ((masterScreen == currentObjPtr->_cell->_backgroundPlane) && (currentObjPtr->_cell->_freeze == 0) && (currentObjPtr->_cell->_type == OBJ_TYPE_SPRITE)) {
+	while (iter != cellHead.end()) {
+		if ((masterScreen == iter->_backgroundPlane) && (iter->_freeze == 0) && (iter->_type == OBJ_TYPE_SPRITE)) {
 			objectParamsQuery params;
 
-			currentObjIdx = currentObjPtr->_cell->_idx;
+			currentObjIdx = iter->_idx;
 
-			if ((currentObjPtr->_cell->_followObjectOverlayIdx != currentObjPtr->_cell->_overlay) || (currentObjPtr->_cell->_followObjectIdx != currentObjPtr->_cell->_idx)) {
+			if ((iter->_followObjectOverlayIdx != iter->_overlay) || (iter->_followObjectIdx != iter->_idx)) {
 				// Declaring this twice ?
 				// objectParamsQuery params;
 
-				getMultipleObjectParam(currentObjPtr->_cell->_followObjectOverlayIdx, currentObjPtr->_cell->_followObjectIdx, &params);
+				getMultipleObjectParam(iter->_followObjectOverlayIdx, iter->_followObjectIdx, &params);
 
 				objX1 = params.X;
 				objY1 = params.Y;
@@ -1448,7 +1453,7 @@ void mainDraw(int16 param) {
 				objZ1 = 0;
 			}
 
-			getMultipleObjectParam(currentObjPtr->_cell->_overlay, currentObjIdx, &params);
+			getMultipleObjectParam(iter->_overlay, currentObjIdx, &params);
 
 			objX2 = objX1 + params.X;
 			objY2 = objY1 + params.Y;
@@ -1460,7 +1465,9 @@ void mainDraw(int16 param) {
 
 			if ((params.state >= 0) && (objZ2 >= 0) && filesDatabase[objZ2].subData.ptr) {
 				if (filesDatabase[objZ2].subData.resourceType == 8) {	// Poly
-					mainDrawPolygons(objZ2, currentObjPtr, objX2, params.scale, objY2, (char *)gfxModuleData.pPage10, (char *)filesDatabase[objZ2].subData.ptr);	// poly
+					CellList polyList;
+					polyList.insert(polyList.begin(), iter, cellHead.end());
+					mainDrawPolygons(objZ2, &polyList, objX2, params.scale, objY2, (char *)gfxModuleData.pPage10, (char *)filesDatabase[objZ2].subData.ptr);	// poly
 				} else if (filesDatabase[objZ2].subData.resourceType == OBJ_TYPE_SOUND) {
 				} else if (filesDatabase[objZ2].resType == OBJ_TYPE_MASK) {
 				} else if (filesDatabase[objZ2].subData.resourceType == OBJ_TYPE_SPRITE) {
@@ -1468,89 +1475,91 @@ void mainDraw(int16 param) {
 					spriteHeight = filesDatabase[objZ2].height;	// height
 
 					if (filesDatabase[objZ2].subData.ptr) {
-						drawSprite(objX1, spriteHeight, currentObjPtr, filesDatabase[objZ2].subData.ptr, objY2, objX2, gfxModuleData.pPage10, filesDatabase[objZ2].subData.ptrMask);
+						CellList spriteList;
+						spriteList.insert(spriteList.begin(), iter, cellHead.end());
+						drawSprite(objX1, spriteHeight, &spriteList, filesDatabase[objZ2].subData.ptr, objY2, objX2, gfxModuleData.pPage10, filesDatabase[objZ2].subData.ptrMask);
 					}
 				}
 			}
 
 			// automatic animation process
-			if (currentObjPtr->_cell->_animStep && !param) {
-				if (currentObjPtr->_cell->_animCounter <= 0) {
+			if (iter->_animStep && !param) {
+				if (iter->_animCounter <= 0) {
 
 					bool change = true;
 
-					int newVal = getValueFromObjectQuerry(&params, currentObjPtr->_cell->_animChange) + currentObjPtr->_cell->_animStep;
+					int newVal = getValueFromObjectQuerry(&params, iter->_animChange) + iter->_animStep;
 
-					if (currentObjPtr->_cell->_animStep > 0) {
-						if (newVal > currentObjPtr->_cell->_animEnd) {
-							if (currentObjPtr->_cell->_animLoop) {
-								newVal = currentObjPtr->_cell->_animStart;
-								if (currentObjPtr->_cell->_animLoop > 0)
-									currentObjPtr->_cell->_animLoop--;
+					if (iter->_animStep > 0) {
+						if (newVal > iter->_animEnd) {
+							if (iter->_animLoop) {
+								newVal = iter->_animStart;
+								if (iter->_animLoop > 0)
+									iter->_animLoop--;
 							} else {
 								int16 data2;
-								data2 = currentObjPtr->_cell->_animStart;
+								data2 = iter->_animStart;
 
 								change = false;
-								currentObjPtr->_cell->_animStep = 0;
+								iter->_animStep = 0;
 
-								if (currentObjPtr->_cell->_animType) {	// should we resume the script ?
-									if (currentObjPtr->_cell->_parentType == 20) {
-										procScriptList.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
-									} else if (currentObjPtr->_cell->_parentType == 30) {
-										relScriptList.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
+								if (iter->_animType) {	// should we resume the script ?
+									if (iter->_parentType == 20) {
+										procScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
+									} else if (iter->_parentType == 30) {
+										relScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
 									}
 								}
 							}
 						}
 					} else {
-						if (newVal < currentObjPtr->_cell->_animEnd) {
-							if (currentObjPtr->_cell->_animLoop) {
-								newVal = currentObjPtr->_cell->_animStart;
-								if (currentObjPtr->_cell->_animLoop > 0)
-									currentObjPtr->_cell->_animLoop--;
+						if (newVal < iter->_animEnd) {
+							if (iter->_animLoop) {
+								newVal = iter->_animStart;
+								if (iter->_animLoop > 0)
+									iter->_animLoop--;
 							} else {
 								int16 data2;
-								data2 = currentObjPtr->_cell->_animStart;
+								data2 = iter->_animStart;
 
 								change = false;
-								currentObjPtr->_cell->_animStep = 0;
+								iter->_animStep = 0;
 
-								if (currentObjPtr->_cell->_animType) {	// should we resume the script ?
-									if (currentObjPtr->_cell->_parentType == 20) {
-										procScriptList.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
-									} else if (currentObjPtr->_cell->_parentType == 30) {
-										relScriptList.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
+								if (iter->_animType) {	// should we resume the script ?
+									if (iter->_parentType == 20) {
+										procScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
+									} else if (iter->_parentType == 30) {
+										relScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
 									}
 								}
 							}
 						}
 					}
 
-					if (currentObjPtr->_cell->_animWait >= 0) {
-						currentObjPtr->_cell->_animCounter = currentObjPtr->_cell->_animWait;
+					if (iter->_animWait >= 0) {
+						iter->_animCounter = iter->_animWait;
 					}
 
-					if ((currentObjPtr->_cell->_animSignal >= 0) && (currentObjPtr->_cell->_animSignal == newVal) && (currentObjPtr->_cell->_animType != 0)) {
-						if (currentObjPtr->_cell->_parentType == 20) {
-							procScriptList.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
-						} else if (currentObjPtr->_cell->_parentType == 30) {
-							relScriptList.changeParam(currentObjPtr->_cell->_parentOverlay, currentObjPtr->_cell->_parent, -1, 0);
+					if ((iter->_animSignal >= 0) && (iter->_animSignal == newVal) && (iter->_animType != 0)) {
+						if (iter->_parentType == 20) {
+							procScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
+						} else if (iter->_parentType == 30) {
+							relScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
 						}
 
-						currentObjPtr->_cell->_animType = 0;
+						iter->_animType = 0;
 					}
 
 					if (change) {
-						addAutoCell(currentObjPtr->_cell->_overlay, currentObjPtr->_cell->_idx, currentObjPtr->_cell->_animChange, newVal, currentObjPtr);
+						addAutoCell(iter->_overlay, iter->_idx, iter->_animChange, newVal, &(*iter));
 					}
 				} else {
-					currentObjPtr->_cell->_animCounter--;
+					iter->_animCounter--;
 				}
 			}
 		}
 
-		currentObjPtr = currentObjPtr->_next;
+		iter++;
 	}
 
 	//----------------------------------------------------------------------------------------------------------------//
@@ -1560,14 +1569,14 @@ void mainDraw(int16 param) {
 
 	//-------------------------------------------------- DRAW OBJECTS TYPE 5 (MSG)-----------------------------------------//
 
-	currentObjPtr = cellHead._next;
+	iter = cellHead.begin();
 
-	while (currentObjPtr) {
-		if (currentObjPtr->_cell->_type == OBJ_TYPE_MESSAGE && currentObjPtr->_cell->_freeze == 0) {
-			drawMessage(currentObjPtr->_cell->_gfxPtr, currentObjPtr->_cell->_X, currentObjPtr->_cell->_fieldC, currentObjPtr->_cell->_spriteIdx, currentObjPtr->_cell->_color, gfxModuleData.pPage10);
+	while (iter != cellHead.end()) {
+		if (iter->_type == OBJ_TYPE_MESSAGE && iter->_freeze == 0) {
+			drawMessage(iter->_gfxPtr, iter->_X, iter->_fieldC, iter->_spriteIdx, iter->_color, gfxModuleData.pPage10);
 			isMessage = 1;
 		}
-		currentObjPtr = currentObjPtr->_next;
+		iter++;
 	}
 
 	//----------------------------------------------------------------------------------------------------------------//

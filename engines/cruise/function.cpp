@@ -28,6 +28,7 @@
 
 #include "common/textconsole.h"
 #include "common/util.h"
+#include "common/list.h"
 
 namespace Cruise {
 
@@ -265,30 +266,8 @@ int16 Op_FreeCT() {
 	return (0);
 }
 
-void freeObjectList(CellListNode *pListHead) {
-	int var_2 = 0;
-	CellListNode *pCurrent = pListHead->_next;
-
-	while (pCurrent) {
-		CellListNode *pNext = pCurrent->_next;
-
-		if (pCurrent->_cell->_freeze == 0) {
-			delete pCurrent->_cell;
-			MemFree(pCurrent);
-		}
-
-		var_2 = 1;
-
-		pCurrent = pNext;
-	}
-
-	if (var_2) {
-		pListHead->resetPtr();
-	}
-}
-
 int16 Op_FreeCell() {
-	freeObjectList(&cellHead);
+	cellHead.clear();
 	return (0);
 }
 
@@ -328,7 +307,7 @@ int16 Op_RemoveMessage() {
 		overlay = currentScriptPtr->_overlayNumber;
 	}
 
-	cellHead.removeCell(overlay, idx, 5, masterScreen);
+	cellHead.remove(overlay, idx, 5, masterScreen);
 
 	return (0);
 }
@@ -719,7 +698,7 @@ int16 Op_AddCell() {
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->_overlayNumber;
 
-	cellHead.addCell(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
+	cellHead.add(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
 
 	return 0;
 }
@@ -747,7 +726,7 @@ int16 Op_RemoveCell() {
 		ovlNumber = currentScriptPtr->_overlayNumber;
 	}
 
-	cellHead.removeCell(ovlNumber, objectIdx, objType, masterScreen);
+	cellHead.remove(ovlNumber, objectIdx, objType, masterScreen);
 
 	return 0;
 }
@@ -848,7 +827,7 @@ int16 Op_Protect() {
 }
 
 int16 Op_AutoCell() {
-	CellListNode *pObject;
+	Cell *pObject;
 
 	int signal = stack.popVar();
 	int loop = stack.popVar();
@@ -864,19 +843,19 @@ int16 Op_AutoCell() {
 	if (!overlay)
 		overlay = currentScriptPtr->_overlayNumber;
 
-	pObject = cellHead.addCell(overlay, obj, 4, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
+	pObject = cellHead.add(overlay, obj, 4, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
 
 	if (!pObject)
 		return 0;
 
-	pObject->_cell->_animSignal = signal;
-	pObject->_cell->_animLoop = loop;
-	pObject->_cell->_animWait = wait;
-	pObject->_cell->_animStep = animStep;
-	pObject->_cell->_animEnd = end;
-	pObject->_cell->_animStart = start;
-	pObject->_cell->_animType = type;
-	pObject->_cell->_animChange = change;
+	pObject->_animSignal = signal;
+	pObject->_animLoop = loop;
+	pObject->_animWait = wait;
+	pObject->_animStep = animStep;
+	pObject->_animEnd = end;
+	pObject->_animStart = start;
+	pObject->_animType = type;
+	pObject->_animChange = change;
 
 	if (type) {
 		if (currentScriptPtr->_type == scriptType_PROC) {
@@ -887,16 +866,16 @@ int16 Op_AutoCell() {
 	}
 
 	if (change == 5) {
-		objInit(pObject->_cell->_overlay, pObject->_cell->_idx, start);
+		objInit(pObject->_overlay, pObject->_idx, start);
 	} else {
-		setObjectPosition(pObject->_cell->_overlay, pObject->_cell->_idx, pObject->_cell->_animChange, start);
+		setObjectPosition(pObject->_overlay, pObject->_idx, pObject->_animChange, start);
 	}
 
 	if (wait < 0) {
 		objectParamsQuery params;
 
 		getMultipleObjectParam(overlay, obj, &params);
-		pObject->_cell->_animCounter = params.state2 - 1;
+		pObject->_animCounter = params.state2 - 1;
 	}
 
 	return 0;

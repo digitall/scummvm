@@ -58,25 +58,24 @@ public:
 	gfxEntryStruct *_gfxPtr;
 
         Cell();
-        ~Cell();
 };
 
-class CellListNode {
+class CellList: public Common::List<Cell> {
 public:
-	CellListNode *_next;
-	CellListNode *_prev;
-	Cell *_cell;
+	Common::List<Cell>::iterator begin();
+	Common::List<Cell>::iterator end();
+	Common::List<Cell>::iterator reverse_begin();
 
-	CellListNode();
-        ~CellListNode();
-	void resetPtr();
-	CellListNode *addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
-	CellListNode *addCell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
+	Cell *add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
+	Cell *add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
+
+	void remove(int ovlNumber, int objectIdx, int objType, int backgroundPlane);
+	void clear();
+	
 	void createTextObject(int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx);
-	void removeCell(int ovlNumber, int objectIdx, int objType, int backgroundPlane);
-	void freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);
-	void sortCells(int16 overlayIdx, int16 objIdx);
 	void linkCell(int ovl, int obj, int type, int ovl2, int obj2);
+	void freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);
+	void sort(int16 overlayIdx, int16 objIdx);
 };
 
 } // End of namespace Cruise

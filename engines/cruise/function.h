@@ -30,7 +30,6 @@ extern int vblLimit;
 
 int16 computeZoom(int param);
 int16 subOp23(int param1, int param2);
-void freeObjectList(CellListNode *pListHead);
 int16 Op_FadeOut();
 
 } // End of namespace Cruise
