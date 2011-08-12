@@ -20,9 +20,6 @@
  *
  */
 
-#include "devtools/create_project/create_project.h"
-
-
 #include "cruise/cruise_main.h"
 #include "common/file.h"
 #include "cruise/cell.h"
