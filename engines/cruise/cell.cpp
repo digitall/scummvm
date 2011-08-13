@@ -171,23 +171,25 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
         return pNewCell;
 }
 
+void Cell::makeTextObject(int x, int y, int width, int16 color, const char *pText) {
+	_X = x;
+	_fieldC = y;
+	_spriteIdx = width;
+	_color = color;
+	
+	if (pText)
+		_gfxPtr = renderText(width, pText);
+}
 
 void CellList::createTextObject(int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx) {
 
-	const char *ax;
+	const char *pText;
 	Cell *pNewCell;
 
+	pText = getText(messageIdx, overlayIdx);
+
 	pNewCell = add(overlayIdx, messageIdx, OBJ_TYPE_MESSAGE, backgroundPlane, parentOvl, parentIdx);
-	pNewCell->_X = x;
-	pNewCell->_fieldC = y;
-	pNewCell->_spriteIdx = width;
-	pNewCell->_color = color;
-
-	ax = getText(messageIdx, overlayIdx);
-
-	if (ax) {
-		pNewCell->_gfxPtr = renderText(width, ax);
-	}
+	pNewCell->makeTextObject(x, y, width, color, pText);
 
 	// WORKAROUND: This is needed for the new dirty rect handling so as to properly refresh the screen
 	// when the copy protection screen is being shown
