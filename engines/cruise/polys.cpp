@@ -199,15 +199,15 @@ void fillpoly(int16 *point_data, int lineCount, ColorP color) {
 	static byte num_intersect[SCREENHEIGHT];
 
 	switch (lineCount) {
-	case 0:		// do nothing
+	case 0:     // do nothing
 		return;
-	case 1:		// draw pixel
+	case 1:     // draw pixel
 		pixel(point_data[0], point_data[1], color);
 		return;
-	case 2:		// draw line
+	case 2:     // draw line
 		line(point_data[0], point_data[1], point_data[2], point_data[3], color);
 		return;
-	default:		// go on and draw polygon
+	default:        // go on and draw polygon
 		break;
 	}
 

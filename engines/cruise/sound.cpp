@@ -40,7 +40,9 @@ class PCSoundDriver {
 public:
 	typedef void (*UpdateCallback)(void *);
 
-	PCSoundDriver() { _upCb = NULL, _upRef = NULL, _musicVolume = 0, _sfxVolume = 0; }
+	PCSoundDriver() {
+		_upCb = NULL, _upRef = NULL, _musicVolume = 0, _sfxVolume = 0;
+	}
 	virtual ~PCSoundDriver() {}
 
 	virtual void setupChannel(int channel, const byte *data, int instrument, int volume) = 0;
@@ -48,7 +50,9 @@ public:
 	virtual void stopChannel(int channel) = 0;
 	virtual void playSample(const byte *data, int size, int channel, int volume) = 0;
 	virtual void stopAll() = 0;
-	virtual const char *getInstrumentExtension() const { return ""; }
+	virtual const char *getInstrumentExtension() const {
+		return "";
+	}
 	virtual void syncSounds();
 
 	void setUpdateCallback(UpdateCallback upCb, void *ref);
@@ -120,9 +124,15 @@ public:
 
 	// AudioStream interface
 	virtual int readBuffer(int16 *buffer, const int numSamples);
-	virtual bool isStereo() const { return false; }
-	virtual bool endOfData() const { return false; }
-	virtual int getRate() const { return _sampleRate; }
+	virtual bool isStereo() const {
+		return false;
+	}
+	virtual bool endOfData() const {
+		return false;
+	}
+	virtual int getRate() const {
+		return _sampleRate;
+	}
 
 	void initCard();
 	void update(int16 *buf, int len);
@@ -160,7 +170,7 @@ const int AdLibSoundDriver::_freqTable[] = {
 const int AdLibSoundDriver::_freqTableCount = ARRAYSIZE(_freqTable);
 
 const int AdLibSoundDriver::_operatorsTable[] = {
-	0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13,	16, 17, 18, 19, 20, 21
+	0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21
 };
 
 const int AdLibSoundDriver::_operatorsTableCount = ARRAYSIZE(_operatorsTable);
@@ -174,7 +184,9 @@ const int AdLibSoundDriver::_voiceOperatorsTableCount = ARRAYSIZE(_voiceOperator
 class AdLibSoundDriverADL : public AdLibSoundDriver {
 public:
 	AdLibSoundDriverADL(Audio::Mixer *mixer) : AdLibSoundDriver(mixer) {}
-	virtual const char *getInstrumentExtension() const { return ".ADL"; }
+	virtual const char *getInstrumentExtension() const {
+		return ".ADL";
+	}
 	virtual void loadInstrument(const byte *data, AdLibSoundInstrument *asi);
 	virtual void setChannelFrequency(int channel, int frequency);
 	virtual void playSample(const byte *data, int size, int channel, int volume);
@@ -219,17 +231,38 @@ public:
 
 	static void updateCallback(void *ref);
 
-	bool songLoaded() const { return _sfxData != NULL; }
-	bool songPlayed() const { return _songPlayed; }
-	bool playing() const { return _playing; }
-	uint8 numOrders() const { assert(_sfxData); return _sfxData[470]; }
-	void setNumOrders(uint8 v) { assert(_sfxData); _sfxData[470] = v; }
-	void setPattern(int offset, uint8 value) { assert(_sfxData); _sfxData[472 + offset] = value; }
-	const char *musicName() { return _musicName; }
+	bool songLoaded() const {
+		return _sfxData != NULL;
+	}
+	bool songPlayed() const {
+		return _songPlayed;
+	}
+	bool playing() const {
+		return _playing;
+	}
+	uint8 numOrders() const {
+		assert(_sfxData);
+		return _sfxData[470];
+	}
+	void setNumOrders(uint8 v) {
+		assert(_sfxData);
+		_sfxData[470] = v;
+	}
+	void setPattern(int offset, uint8 value) {
+		assert(_sfxData);
+		_sfxData[472 + offset] = value;
+	}
+	const char *musicName() {
+		return _musicName;
+	}
 
 	// Note: Original game never actually uses looping variable. Songs are hardcoded to loop
-	bool looping() const { return _looping; }
-	void setLooping(bool v) { _looping = v; }
+	bool looping() const {
+		return _looping;
+	}
+	void setLooping(bool v) {
+		_looping = v;
+	}
 };
 
 byte *readBundleSoundFile(const char *name) {
@@ -527,8 +560,10 @@ void AdLibSoundDriverADL::loadInstrument(const byte *data, AdLibSoundInstrument 
 	asi->waveSelectCar = *data++ & 3;
 	asi->amDepth = *data++;
 	++data;
-	loadRegisterInstrument(data, &asi->regMod); data += 26;
-	loadRegisterInstrument(data, &asi->regCar); data += 26;
+	loadRegisterInstrument(data, &asi->regMod);
+	data += 26;
+	loadRegisterInstrument(data, &asi->regCar);
+	data += 26;
 }
 
 void AdLibSoundDriverADL::setChannelFrequency(int channel, int frequency) {

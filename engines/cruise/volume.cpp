@@ -331,7 +331,7 @@ int16 readVolCnf() {
 	}
 
 	numOfDisks = fileHandle.readSint16BE();
-	sizeHEntry = fileHandle.readSint16BE();		// size of one header entry - 20 bytes
+	sizeHEntry = fileHandle.readSint16BE();     // size of one header entry - 20 bytes
 
 	for (i = 0; i < numOfDisks; i++) {
 		//      fread(&volumeData[i],20,1,fileHandle);
@@ -385,7 +385,7 @@ int16 readVolCnf() {
 		buffer = (fileEntry *) mallocAndZero(numEntry * sizeEntry);
 
 		for (j = 0; j < numEntry; j++) {
-			fileHandle.seek(4 + j*0x1E);
+			fileHandle.seek(4 + j * 0x1E);
 			fileHandle.read(buffer[j].name, 14);
 			buffer[j].offset = fileHandle.readSint32BE();
 			buffer[j].size = fileHandle.readSint32BE();

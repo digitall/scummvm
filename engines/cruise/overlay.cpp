@@ -245,7 +245,7 @@ int loadOverlay(const char *scriptName) {
 	ovlData->specialString1Length = s.readUint16BE();
 	ovlData->scriptNumber = s.readUint16BE();
 
-	if (ovlData->numSymbGlob)	{ // export data
+	if (ovlData->numSymbGlob)   { // export data
 		int i;
 		ovlData->arraySymbGlob =
 		    (exportEntryStruct *) mallocAndZero(ovlData->numSymbGlob * sizeof(exportEntryStruct));
@@ -263,7 +263,7 @@ int loadOverlay(const char *scriptName) {
 		}
 	}
 
-	if (ovlData->exportNamesSize) {	// export names
+	if (ovlData->exportNamesSize) { // export names
 		ovlData->arrayNameSymbGlob = (char *) mallocAndZero(ovlData->exportNamesSize);
 
 		if (!ovlData->arrayNameSymbGlob) {
@@ -273,7 +273,7 @@ int loadOverlay(const char *scriptName) {
 		s.read(ovlData->arrayNameSymbGlob, ovlData->exportNamesSize);
 	}
 
-	if (ovlData->numRelocGlob) {	// import data
+	if (ovlData->numRelocGlob) {    // import data
 		int i;
 
 		ovlData->arrayRelocGlob =
@@ -293,7 +293,7 @@ int loadOverlay(const char *scriptName) {
 		}
 	}
 
-	if (ovlData->nameExportSize) {	// import name
+	if (ovlData->nameExportSize) {  // import name
 		ovlData->arrayNameRelocGlob = (char *) mallocAndZero(ovlData->nameExportSize);
 
 		if (!ovlData->arrayNameRelocGlob) {
@@ -303,7 +303,7 @@ int loadOverlay(const char *scriptName) {
 		s.read(ovlData->arrayNameRelocGlob, ovlData->nameExportSize);
 	}
 
-	if (ovlData->numMsgRelHeader) {	// link data
+	if (ovlData->numMsgRelHeader) { // link data
 		int i;
 		ASSERT(sizeof(linkDataStruct) == 0x22);
 
@@ -339,7 +339,7 @@ int loadOverlay(const char *scriptName) {
 		}
 	}
 
-	if (ovlData->numProc) {	// script
+	if (ovlData->numProc) { // script
 		ovlData3Struct *tempPtr;
 		int i;
 

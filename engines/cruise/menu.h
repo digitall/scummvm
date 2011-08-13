@@ -54,7 +54,7 @@ public:
 	Menu(int X, int Y, const char *menuName);
 	~Menu();
 	void addSelectableMenuEntry(int var0, int var1, int var2, int color,
-								const char *menuText);
+	                            const char *menuText);
 	void updateMouse(int mouseX, int mouseY);
 	int process();
 	menuElementSubStruct *getSelectedEntry(menuElementStruct &pSelectedElement);

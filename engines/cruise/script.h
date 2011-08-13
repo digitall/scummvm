@@ -77,7 +77,7 @@ public:
 
 	uint8 *add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType);
 	void add(ScriptInstance scriptToAdd);
-	
+
 	int remove(int overlay, int idx);
 	int removeFinished();
 	void removeAll();

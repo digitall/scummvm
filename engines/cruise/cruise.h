@@ -53,7 +53,8 @@ enum CruiseGameType {
 #define MAX_LANGUAGE_STRINGS 25
 
 enum LangStringId { ID_PAUSED = 0, ID_INVENTORY = 5, ID_SPEAK_ABOUT = 6, ID_PLAYER_MENU = 7,
-	ID_SAVE = 9, ID_LOAD = 10, ID_RESTART = 11, ID_QUIT = 12};
+                    ID_SAVE = 9, ID_LOAD = 10, ID_RESTART = 11, ID_QUIT = 12
+                  };
 
 struct CRUISEGameDescription;
 
@@ -82,7 +83,7 @@ protected:
 	bool initGame();
 
 public:
-	CruiseEngine(OSystem * syst, const CRUISEGameDescription *gameDesc);
+	CruiseEngine(OSystem *syst, const CRUISEGameDescription *gameDesc);
 	virtual ~ CruiseEngine();
 	virtual bool hasFeature(EngineFeature f) const;
 
@@ -91,10 +92,16 @@ public:
 	uint32 getFeatures() const;
 	Common::Language getLanguage() const;
 	Common::Platform getPlatform() const;
-	PCSound &sound() { return *_sound; }
-	virtual GUI::Debugger *getDebugger() { return _debugger; }
+	PCSound &sound() {
+		return *_sound;
+	}
+	virtual GUI::Debugger *getDebugger() {
+		return _debugger;
+	}
 	virtual void pauseEngine(bool pause);
-	const char *langString(LangStringId langId) { return _langStrings[(int)langId].c_str(); }
+	const char *langString(LangStringId langId) {
+		return _langStrings[(int)langId].c_str();
+	}
 
 	static const char *getSavegameFile(int saveGameIdx);
 	virtual Common::Error loadGameState(int slot);

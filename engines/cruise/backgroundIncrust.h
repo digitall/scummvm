@@ -49,7 +49,7 @@ public:
 	BackgroundIncrust();
 	~BackgroundIncrust();
 
-	void backup(int savedX, int savedY, int saveWidth, int saveHeight, uint8* pBackground);
+	void backup(int savedX, int savedY, int saveWidth, int saveHeight, uint8 *pBackground);
 	void restore();
 
 };
@@ -64,8 +64,8 @@ public:
 	void unmerge(int ovl, int idx);
 };
 
-	//void resetBackgroundIncrustList();			//null the first element
-	//void freeBackgroundIncrustList();			//clear
+//void resetBackgroundIncrustList();            //null the first element
+//void freeBackgroundIncrustList();         //clear
 
 
 

@@ -32,7 +32,7 @@ struct gfxEntryStruct;
 
 class Cell {
 public:
-    	int16 _idx;
+	int16 _idx;
 	int16 _type;
 	int16 _overlay;
 	int16 _X;
@@ -57,7 +57,7 @@ public:
 	int16 _animLoop;
 	gfxEntryStruct *_gfxPtr;
 
-        Cell();
+	Cell();
 };
 
 class CellList: public Common::List<Cell> {
@@ -71,7 +71,7 @@ public:
 
 	void remove(int ovlNumber, int objectIdx, int objType, int backgroundPlane);
 	void clear();
-	
+
 	void createTextObject(int overlayIdx, int messageIdx, int x, int y, int width, int16 color, int backgroundPlane, int parentOvl, int parentIdx);
 	void linkCell(int ovl, int obj, int type, int ovl2, int obj2);
 	void freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);

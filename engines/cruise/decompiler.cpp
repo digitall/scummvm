@@ -49,7 +49,7 @@ char *currentDecompScript;
 ScriptInstance dummy;
 ScriptInstance *currentDecompScriptPtr = &dummy;
 
-uint8 *getDataFromData3(ovlData3Struct * ptr, int param);
+uint8 *getDataFromData3(ovlData3Struct *ptr, int param);
 
 opcodeTypeFunction decompOpcodeTypeTable[64];
 
@@ -59,7 +59,7 @@ unsigned long int currentOffset;
 
 unsigned long int dumpIdx = 0;
 
-FILE *fHandle = NULL;	// FIXME: Use Common::DumpFile instead of FILE
+FILE *fHandle = NULL;   // FIXME: Use Common::DumpFile instead of FILE
 
 #define DECOMPILER_STACK_DEPTH 100
 #define DECOMPILER_STACK_ENTRY_SIZE 5000
@@ -138,11 +138,11 @@ void resolveDecompShort(char *buffer) {
 
 	for (i = 0; i < data3Ptr->numRelocGlob; i++) {
 		switch (importEntry->type) {
-		case 20:	// script
+		case 20:    // script
 		case 30:
 		case 40:
 		case 50: {
-			if (importEntry->offset == currentDecompScriptPtr->var4 - 3) {	// param1
+			if (importEntry->offset == currentDecompScriptPtr->var4 - 3) {  // param1
 				sprintf(buffer,
 				        data3Ptr->dataPtr +
 				        data3Ptr->
@@ -150,7 +150,7 @@ void resolveDecompShort(char *buffer) {
 				        importEntry->offsetToName);
 				return;
 			}
-			if (importEntry->offset == currentDecompScriptPtr->var4 - 6) {	// param2
+			if (importEntry->offset == currentDecompScriptPtr->var4 - 6) {  // param2
 				sprintf(buffer, "linkedIdx");
 				return;
 			}
@@ -274,7 +274,7 @@ void addDecomp(char *string, ...) {
 	 * fprintf(fHandle,"\n"); */
 
 	struct decompileLineStruct *pLineStruct =
-				    &decompileLineTable[positionInDecompileLineTable++];
+			    &decompileLineTable[positionInDecompileLineTable++];
 
 	pLineStruct->lineOffset = currentLineIdx;
 	pLineStruct->indent = 0;
@@ -319,14 +319,14 @@ void resolveVarName(char *ovlIdxString, int varType, char *varIdxString,
 
 		for (i = 0; i < currentDecompOvl->numSymbGlob; i++) {
 			if (varIdx == currentDecompOvl->arraySymbGlob[i].idx) {
-				if (((currentDecompOvl->arraySymbGlob[i].var4 & 0xF0) == 0) && varType != 0x20) {	// var
+				if (((currentDecompOvl->arraySymbGlob[i].var4 & 0xF0) == 0) && varType != 0x20) {   // var
 					strcpy(outputName,
 					       currentDecompOvl->arrayNameSymbGlob +
 					       currentDecompOvl->arraySymbGlob[i].
 					       offsetToName);
 					return;
 				}
-				if ((currentDecompOvl->arraySymbGlob[i].var4) == 20 && varType == 0x20) {	// script
+				if ((currentDecompOvl->arraySymbGlob[i].var4) == 20 && varType == 0x20) {   // script
 					strcpy(outputName,
 					       currentDecompOvl->arrayNameSymbGlob +
 					       currentDecompOvl->arraySymbGlob[i].
@@ -407,7 +407,7 @@ int decompLoadVar() {
 	}
 	default: {
 		debug("Unsupported type %d in opcodeType0",
-		       currentScriptOpcodeType);
+		      currentScriptOpcodeType);
 		failed = 1;
 	}
 	}
@@ -481,7 +481,7 @@ int decompSaveVar() {
 	}
 	default: {
 		debug("Unsupported type %d in opcodeType1",
-		       currentScriptOpcodeType);
+		      currentScriptOpcodeType);
 		failed = 1;
 	}
 	}
@@ -519,14 +519,14 @@ int decompOpcodeType2() {
 			           decompSaveOpcodeVar);
 		} else {
 			debug("Unsupported type %d in opcodeType2",
-			       byte1 & 7);
+			      byte1 & 7);
 			failed = 1;
 		}
 		break;
 	}
 	default: {
 		debug("Unsupported type %d in opcodeType2",
-		       currentScriptOpcodeType);
+		      currentScriptOpcodeType);
 		failed = 1;
 	}
 	}
@@ -1356,8 +1356,8 @@ void dumpScript(uint8 *ovlName, ovlDataStruct *ovlData, int idx) {
 	// return;
 
 //      currentScript->scriptDataPtrTable[1] = *(char**)(ptr+0x6);
-	scriptDataPtrTable[2] = getDataFromData3(currentScript, 1);	// strings
-	scriptDataPtrTable[5] = ovlData->data4Ptr;	// free strings
+	scriptDataPtrTable[2] = getDataFromData3(currentScript, 1); // strings
+	scriptDataPtrTable[5] = ovlData->data4Ptr;  // free strings
 	scriptDataPtrTable[6] = ovlData->ptr8;
 
 	stop = 0;
@@ -1392,7 +1392,7 @@ void dumpScript(uint8 *ovlName, ovlDataStruct *ovlData, int idx) {
 
 		if (!decompOpcodeTypeTable[(opcodeType & 0xFB) >> 3]) {
 			debug("Unsupported opcode type %d in decomp",
-			       (opcodeType & 0xFB) >> 3);
+			      (opcodeType & 0xFB) >> 3);
 			return;
 		}
 

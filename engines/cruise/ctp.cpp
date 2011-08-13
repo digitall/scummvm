@@ -47,7 +47,7 @@ void computeAllDistance(CtpRoute table[], short int coordCount) {
 
 		for (int j = 0; j < routes[i]._route[0]; j++) {
 			int tempP;
-			int p = routes[i]._route[j+1];
+			int p = routes[i]._route[j + 1];
 
 			int x2 = routes[p]._coords[0];
 			int y2 = routes[p]._coords[1];
@@ -57,7 +57,7 @@ void computeAllDistance(CtpRoute table[], short int coordCount) {
 			 * neccessary.
 			 */
 			tempP = p / 10;
-			table[i + tempP]._distance[p%10] = computeDistance(x1, y1, x2, y2);
+			table[i + tempP]._distance[p % 10] = computeDistance(x1, y1, x2, y2);
 		}
 	}
 }
@@ -70,8 +70,8 @@ Common::Point WalkBox::getCenter() {
 	Common::Point currentWalkBoxcenter;
 
 	for (int i = 0; i < _array[0]; i++) {
-		int x = _array[i*2+1];
-		int y = _array[i*2+2];
+		int x = _array[i * 2 + 1];
+		int y = _array[i * 2 + 2];
 
 		if (x < minX)
 			minX = x;
@@ -126,7 +126,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 }
 
 // this process the walkboxes
-	Ct::Ct(WalkBox *pWalkBox, int num, int z) {
+Ct::Ct(WalkBox *pWalkBox, int num, int z) {
 	int minX = 1000;
 	int maxX = -1;
 
@@ -138,7 +138,7 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 	renderCTPWalkBox(&pWalkBox->_array[0], currentWalkBoxCenter.x, currentWalkBoxCenter.y,  currentWalkBoxCenter.x, currentWalkBoxCenter.y, z + 0x200);
 
 
-	int16* XArray = XMIN_XMAX;
+	int16 *XArray = XMIN_XMAX;
 	int minY = *XArray++;
 
 	int i = 0;
@@ -167,8 +167,8 @@ void renderCTPWalkBox(int16 *walkboxData, int hotPointX, int hotPointY, int X, i
 }
 
 int CtpRoute::getCoords(int nodeResult[2]) {
-/*	if (nodeIdx < 0 || nodeIdx >= routeCount)
-		return -1;*/
+	/*  if (nodeIdx < 0 || nodeIdx >= routeCount)
+	        return -1;*/
 
 	nodeResult[0] = _coords[0];
 	nodeResult[1] = _coords[1];
@@ -182,7 +182,7 @@ int WalkBox::setColor(int color) {
 	if (color == -1)
 		return
 
-	_color = color;
+		    _color = color;
 
 	return oldColor;
 }
@@ -244,20 +244,20 @@ void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoa
 		dataPointer += 2;
 	}
 
-	WalkboxCount = segmentSizeTable[6] / 2;	// get the number of walkboxes
+	WalkboxCount = segmentSizeTable[6] / 2; // get the number of walkboxes
 }
 
 int initCt(const char *ctpName, bool isLoading) {
-	uint8 *dataPointer;	// ptr2
-	char fileType[5];	// string2
-	short int segmentSizeTable[7];	// tempTable
+	uint8 *dataPointer; // ptr2
+	char fileType[5];   // string2
+	short int segmentSizeTable[7];  // tempTable
 
 	if (!isLoading) {
 		for (int i = 0; i < NUM_PERSONS; i++) {
 			persoTable[i] = NULL;
 		}
 	}
-	uint8* ptr = NULL;
+	uint8 *ptr = NULL;
 	if (!loadFileSub1(&ptr, ctpName, 0)) {
 		MemFree(ptr);
 		return (-18);
@@ -266,7 +266,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	dataPointer = ptr;
 
 	fileType[4] = 0;
-	memcpy(fileType, dataPointer, 4);	// get the file type, first 4 bytes of the CTP file
+	memcpy(fileType, dataPointer, 4);   // get the file type, first 4 bytes of the CTP file
 	dataPointer += 4;
 
 	if (strcmp(fileType, "CTP ")) {
@@ -307,7 +307,7 @@ int initCt(const char *ctpName, bool isLoading) {
 	if (ctpName != currentCtpName)
 		strcpy(currentCtpName, ctpName);
 
-	computeAllDistance(routes, routeCount);	// process path-finding stuff
+	computeAllDistance(routes, routeCount); // process path-finding stuff
 
 	// Load the polyStructNorm list
 

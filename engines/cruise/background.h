@@ -32,14 +32,14 @@ struct backgroundTableStruct {
 
 class Background {
 public:
-    uint8 *_backgroundScreen;
-    bool _isChanged;
-    backgroundTableStruct _backgroundTable;
+	uint8 *_backgroundScreen;
+	bool _isChanged;
+	backgroundTableStruct _backgroundTable;
 
-    Background(){
-        _backgroundScreen = NULL; // just for being sure.
-        _isChanged = false;
-    }
+	Background() {
+		_backgroundScreen = NULL; // just for being sure.
+		_isChanged = false;
+	}
 
 };
 

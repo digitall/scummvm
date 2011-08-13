@@ -29,8 +29,14 @@ namespace Cruise {
 
 class CtEntry {
 public:
-	CtEntry(int16 xs, int16 xe) { minX = xs; maxX = xe; }
-	CtEntry() { minX = 0; maxX = 0; }
+	CtEntry(int16 xs, int16 xe) {
+		minX = xs;
+		maxX = xe;
+	}
+	CtEntry() {
+		minX = 0;
+		maxX = 0;
+	}
 
 	int16 minX;
 	int16 maxX;
@@ -40,9 +46,9 @@ class WalkBox {
 public:
 	int16 _array[40];
 	int16 _zoom;
-	int16 _color;		// saveVar4     // Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
-	int16 _state;		// saveVar5		// walkbox can change its type: 0x00 - not changeable, 0x01 - changeable
-						// Assumption: To change the type: walkboxColor[i] -= walkboxChane[i] and vice versa
+	int16 _color;       // saveVar4     // Type: 0x00 - non walkable, 0x01 - walkable, 0x02 - exit zone
+	int16 _state;       // saveVar5     // walkbox can change its type: 0x00 - not changeable, 0x01 - changeable
+	// Assumption: To change the type: walkboxColor[i] -= walkboxChane[i] and vice versa
 	Common::Point getCenter();
 	int setState(int state);
 	int setColor(int color);
@@ -69,7 +75,7 @@ public:
 	int getCoords(int nodeResult[2]);
 };
 
-int initCt(const char * ctpName, bool isLoading = false);
+int initCt(const char *ctpName, bool isLoading = false);
 void freeCTP();
 void initWalkBoxes(short int segmentSizeTable[7], uint8 *dataPointer, bool isLoading);
 int computeDistance(int varX, int varY, int paramX, int paramY);

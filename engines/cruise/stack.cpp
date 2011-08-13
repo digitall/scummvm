@@ -80,6 +80,6 @@ void *Stack::popPtr() {
 //// MISC
 
 void Stack::reset() {
-    clear();
+	clear();
 }
 } // End of namespace Cruise

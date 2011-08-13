@@ -67,7 +67,7 @@ int direction(int x1, int y1, int x2, int y2, int inc_jo1, int inc_jo2, unsigned
 }
 
 // french for right horn?? maybe google translate is not that reliable.
-int cor_droite(int x1, int y1, int x2, int y2, point* outputTable) {
+int cor_droite(int x1, int y1, int x2, int y2, point *outputTable) {
 	int numOutput = 0;
 
 	int dx;

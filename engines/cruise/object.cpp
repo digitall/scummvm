@@ -141,15 +141,15 @@ void setObjectPosition(int16 ovlIdx, int16 objIdx, int16 param3, int16 param4) {
 		ptr2 =  &overlayTable[ovlIdx].ovlData->arrayObjVar[ptr->_varTableIdx];
 
 		switch (param3) {
-		case 0: {	// x
+		case 0: {   // x
 			ptr2->X = param4;
 			break;
 		}
-		case 1: {	// y
+		case 1: {   // y
 			ptr2->Y = param4;
 			break;
 		}
-		case 2: {	// z
+		case 2: {   // z
 			ptr2->Z = param4;
 			cellHead.sort(ovlIdx, objIdx);
 			break;
@@ -158,11 +158,11 @@ void setObjectPosition(int16 ovlIdx, int16 objIdx, int16 param3, int16 param4) {
 			ptr2->frame = param4;
 			break;
 		}
-		case 4: {	// scale
+		case 4: {   // scale
 			ptr2->scale = param4;
 			break;
 		}
-		case 5: {	// state
+		case 5: {   // state
 			ptr2->state = param4;
 			break;
 		}
@@ -299,7 +299,7 @@ int16 getSingleObjectParam(int16 overlayIdx, int16 param2, int16 param3, int16 *
 }
 
 void objectReset() {
-	for (int i = 1; i < numOfLoadedOverlay; i++)	{
+	for (int i = 1; i < numOfLoadedOverlay; i++)    {
 		if (overlayTable[i].alreadyLoaded && overlayTable[i].ovlData) {
 			if (overlayTable[i].ovlData->arrayObject) {
 				for (int j = 0; j < overlayTable[i].ovlData->numObj; j++) {

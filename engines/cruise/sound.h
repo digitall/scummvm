@@ -69,8 +69,12 @@ public:
 	void syncSounds();
 
 	// Note: Volume variable accessed by these methods is never actually used in original game
-	void setVolume(int volume) { _genVolume = volume; }
-	uint8 getVolume() const { return _genVolume; }
+	void setVolume(int volume) {
+		_genVolume = volume;
+	}
+	uint8 getVolume() const {
+		return _genVolume;
+	}
 };
 
 } // End of namespace Cruise

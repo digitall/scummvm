@@ -73,10 +73,10 @@ struct dataFileName {
 };
 
 struct setHeaderEntry {
-	int32 offset;		// offset ptr
+	int32 offset;       // offset ptr
 	int16 width;
 	int16 height;
-	int16 type;		// resource type, ie. sprites 0,1,4,5 and 8
+	int16 type;     // resource type, ie. sprites 0,1,4,5 and 8
 	int16 transparency;
 	int16 hotspotY;
 	int16 hotspotX;
@@ -94,16 +94,16 @@ struct fileEntry {
 	int32 offset;
 	int32 size;
 	int32 extSize;
-	int32 unk3;		// unused
+	int32 unk3;     // unused
 };
 
 struct dataFileEntrySub {
 	uint8 *ptr;
-	int16 index;		// sprite index
+	int16 index;        // sprite index
 	char name[13];
-	int16 transparency;	// sprite transparency
+	int16 transparency; // sprite transparency
 	uint8 *ptrMask;
-	uint8 resourceType;	// sprite and image type 2,4,8 , fnt = 7, spl = 6
+	uint8 resourceType; // sprite and image type 2,4,8 , fnt = 7, spl = 6
 	int16 compression;
 };
 
@@ -123,9 +123,9 @@ struct SoundEntry {
 
 /*
 struct systemStringsStruct {
-	int8 param;
-	char string[12];
-	char bootScriptName[8];
+    int8 param;
+    char string[12];
+    char bootScriptName[8];
 };
 */
 extern preloadStruct preloadData[64];
@@ -141,7 +141,7 @@ extern char nextOverlay[38];
 
 extern int16 currentActiveMenu;
 extern int16 autoMsg;
-extern menuElementSubStruct* linkedRelation;
+extern menuElementSubStruct *linkedRelation;
 extern int16 main21;
 extern int16 main22;
 extern int16 userWait;
@@ -216,31 +216,31 @@ extern int16 var47;
 extern int16 var48;
 extern int16 flagCt;
 
-extern uint8 newPal[NBCOLORS*3];
-extern uint8 workpal[NBCOLORS*3];
-extern uint8 palScreen[NBSCREENS][NBCOLORS*3];
+extern uint8 newPal[NBCOLORS * 3];
+extern uint8 workpal[NBCOLORS * 3];
+extern uint8 palScreen[NBSCREENS][NBCOLORS * 3];
 
 //extern systemStringsStruct systemStrings;
 
 extern char currentCtpName[40];
 
 extern int16 saveVar1;
-extern uint8 saveVar2[97];	// recheck size
+extern uint8 saveVar2[97];  // recheck size
 
-extern int16 WalkboxCount;	// saveVar3
+extern int16 WalkboxCount;  // saveVar3
 extern uint8 lastAni[16];
 
 extern int32 loadFileVar1;
 
-extern int16 routeCount;	// ctpVar2  // number of path-finding coordinates
+extern int16 routeCount;    // ctpVar2  // number of path-finding coordinates
 
 /* ctp_routeCoords:
 
-	correct size would be: ctp_routes[routeCoordCount * 4]
-	coordinate information with x (2 bytes) and y (2 bytes)
+    correct size would be: ctp_routes[routeCoordCount * 4]
+    coordinate information with x (2 bytes) and y (2 bytes)
 */
 
-extern CtpRoute routes[20];	// path-finding line information,path-finding coordinates array
+extern CtpRoute routes[20]; // path-finding line information,path-finding coordinates array
 
 /* ctp_routes:
 
@@ -252,7 +252,7 @@ extern CtpRoute routes[20];	// path-finding line information,path-finding coordi
    for the 20 * i slice the root x,y is routeCoords[i], routeCoords[i+2]
    the unused rest of the slice if filled up with 0xFF
 */
-extern WalkBox walkboxes[15];	// ctpVar5, 7	// walkboxes coordinates and lines and scaling information
+extern WalkBox walkboxes[15];   // ctpVar5, 7   // walkboxes coordinates and lines and scaling information
 extern int16 walkboxColorIndex[16];
 
 extern int16 flagSpeed;

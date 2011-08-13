@@ -27,33 +27,33 @@
 
 namespace Cruise {
 
-Cell::Cell(){
-        _gfxPtr = NULL;
+Cell::Cell() {
+	_gfxPtr = NULL;
 
-        _freeze = 0;
-        _animStart = 0;
-        _animEnd = 0;
-        _animWait = 0;
-        _animSignal = 0;
-        _animCounter = 0;
-        _animType = 0;
-        _animStep = 0;
-        _animLoop = 0;
+	_freeze = 0;
+	_animStart = 0;
+	_animEnd = 0;
+	_animWait = 0;
+	_animSignal = 0;
+	_animCounter = 0;
+	_animType = 0;
+	_animStep = 0;
+	_animLoop = 0;
 }
 
 /*Cell::~Cell() {
-	if (_gfxPtr)
-		freeGfx(_gfxPtr);
-	_gfxPtr = NULL;
+    if (_gfxPtr)
+        freeGfx(_gfxPtr);
+    _gfxPtr = NULL;
 }*/
 
 void freeMessageList(CellList *objPtr) {
-	/*	if (objPtr) {
-			 if (objPtr->next)
-			 MemFree(objPtr->next);
+	/*  if (objPtr) {
+	         if (objPtr->next)
+	         MemFree(objPtr->next);
 
-			MemFree(objPtr);
-		} */
+	        MemFree(objPtr);
+	    } */
 }
 
 Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
@@ -145,11 +145,11 @@ void CellList::remove(int ovlNumber, int objectIdx, int objType, int backgroundP
 	Common::List<Cell>::iterator iter = begin();
 	while (iter != end()) {
 		if ((iter->_type == -1) ||
-				(((iter->_overlay == ovlNumber) || (ovlNumber == -1)) &&
-				((iter->_idx == objectIdx) || (objectIdx == -1)) &&
-				((iter->_type == objType) || (objType == -1)) &&
-				((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)))) {
-			if(iter->_gfxPtr)
+		        (((iter->_overlay == ovlNumber) || (ovlNumber == -1)) &&
+		         ((iter->_idx == objectIdx) || (objectIdx == -1)) &&
+		         ((iter->_type == objType) || (objType == -1)) &&
+		         ((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)))) {
+			if (iter->_gfxPtr)
 				freeGfx(iter->_gfxPtr);
 			iter = erase(iter);
 		} else
@@ -158,7 +158,7 @@ void CellList::remove(int ovlNumber, int objectIdx, int objType, int backgroundP
 }
 
 void CellList::clear() {
-	remove(-1,-1,-1,-1); // since clear does not free _gfxPtr
+	remove(-1, -1, -1, -1); // since clear does not free _gfxPtr
 }
 
 void CellList::linkCell(int ovl, int obj, int type, int ovl2, int obj2) {
@@ -166,8 +166,8 @@ void CellList::linkCell(int ovl, int obj, int type, int ovl2, int obj2) {
 	Common::List<Cell>::iterator iter = begin();
 	while (iter != end()) {
 		if (((iter->_overlay == ovl) || (ovl == -1)) &&
-				((iter->_idx == obj) || (obj == -1)) &&
-				((iter->_type == type) || (type == -1))) {
+		        ((iter->_idx == obj) || (obj == -1)) &&
+		        ((iter->_type == type) || (type == -1))) {
 			iter->_followObjectIdx = obj2;
 			iter->_followObjectOverlayIdx = ovl2;
 		}
@@ -181,10 +181,10 @@ void CellList::freezeCell(int overlayIdx, int objIdx, int objType, int backgroun
 
 	while (iter != end()) {
 		if (((iter->_overlay == overlayIdx) || (overlayIdx == -1)) &&
-				((iter->_idx == objIdx) || (objIdx == -1)) &&
-				((iter->_type == objType) || (objType == -1)) &&
-				((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) &&
-				((iter->_freeze == oldFreeze) || (oldFreeze == -1))) {
+		        ((iter->_idx == objIdx) || (objIdx == -1)) &&
+		        ((iter->_type == objType) || (objType == -1)) &&
+		        ((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) &&
+		        ((iter->_freeze == oldFreeze) || (oldFreeze == -1))) {
 			iter->_freeze = newFreeze;
 		}
 		iter++;
@@ -195,7 +195,7 @@ void printCellZ(int a) {
 	Common::List<Cell>::iterator iter = cellHead.begin();
 	int i = 1;
 	int16 objz;
-	while(iter != cellHead.end()) {
+	while (iter != cellHead.end()) {
 		getSingleObjectParam(iter->_overlay, iter->_idx, 2, &objz);
 		if (a)
 			debug("\t\t\t\t number = %d, z = %d", i, objz);
@@ -209,14 +209,14 @@ void printCellZ(int a) {
 
 void CellList::sort(int16 ovlIdx, int16 objIdx) {
 	int16 newz, objz, sobjz;
-	
+
 	Common::List<Cell>::iterator iter = begin();
 	Common::List<Cell>::iterator insertPos = end();
 
 	CellList temp;
 	getSingleObjectParam(ovlIdx, objIdx, 2, &sobjz);
-	while(iter != end()) {
-		if ((iter->_overlay == ovlIdx) && (iter->_idx == objIdx)) {	// found
+	while (iter != end()) {
+		if ((iter->_overlay == ovlIdx) && (iter->_idx == objIdx)) { // found
 			temp.push_front(*iter);
 			iter = erase(iter);
 		} else {
@@ -233,11 +233,11 @@ void CellList::sort(int16 ovlIdx, int16 objIdx) {
 		}
 	}
 
-	if(temp.size()) {
-		if ( insertPos == end() ) {	//the before is empty.
-			insert(begin(),temp.begin(), temp.end());
+	if (temp.size()) {
+		if (insertPos == end()) {    //the before is empty.
+			insert(begin(), temp.begin(), temp.end());
 		} else {
-			insertPos++;	//to add after insertPos not before.
+			insertPos++;    //to add after insertPos not before.
 			insert(insertPos, temp.begin(), temp.end());
 		}
 	}

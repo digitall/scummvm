@@ -74,7 +74,7 @@ enum ResType {
 	OBJ_TYPE_EXIT = 9
 };
 
-extern gfxEntryStruct* linkedMsgList;
+extern gfxEntryStruct *linkedMsgList;
 
 extern int buttonDown;
 extern int selectDown;
@@ -88,17 +88,17 @@ void resetFileEntry(int32 entryNumber);
 uint8 *mainProc14(uint16 overlay, uint16 idx);
 void printInfoBlackBox(const char *string);
 void waitForPlayerInput();
-void loadPackedFileToMem(int fileIdx, uint8 * buffer);
+void loadPackedFileToMem(int fileIdx, uint8 *buffer);
 int getNumObjectsByClass(int scriptIdx, int param);
 void resetFileEntryRange(int param1, int param2);
-int getProcParam(int overlayIdx, int param2, const char * name);
-uint8 *getDataFromData3(ovlData3Struct * ptr, int param);
+int getProcParam(int overlayIdx, int param2, const char *name);
+uint8 *getDataFromData3(ovlData3Struct *ptr, int param);
 void removeExtention(const char *name, char *buffer);
 void getFileExtention(const char *name, char *buffer);
 void *allocAndZero(int size);
 void freeStuff2();
 void mainLoop();
-bool testMask(int x, int y, unsigned char* pData, int stride);
+bool testMask(int x, int y, unsigned char *pData, int stride);
 void closeAllMenu();
 void initBigVar3();
 

@@ -116,11 +116,11 @@ void decodeGfxUnified(dataFileEntry *pCurrentFileEntry, int16 format) {
 				int bit = 7 - (x % 8);
 				int col = x / 8;
 
-				p0 = (dataPtr[line*pCurrentFileEntry->width + col + range * 0] >> bit) & 1;
-				p1 = (dataPtr[line*pCurrentFileEntry->width + col + range * 1] >> bit) & 1;
-				p2 = (dataPtr[line*pCurrentFileEntry->width + col + range * 2] >> bit) & 1;
-				p3 = (dataPtr[line*pCurrentFileEntry->width + col + range * 3] >> bit) & 1;
-				p4 = (dataPtr[line*pCurrentFileEntry->width + col + range * 4] >> bit) & 1;
+				p0 = (dataPtr[line * pCurrentFileEntry->width + col + range * 0] >> bit) & 1;
+				p1 = (dataPtr[line * pCurrentFileEntry->width + col + range * 1] >> bit) & 1;
+				p2 = (dataPtr[line * pCurrentFileEntry->width + col + range * 2] >> bit) & 1;
+				p3 = (dataPtr[line * pCurrentFileEntry->width + col + range * 3] >> bit) & 1;
+				p4 = (dataPtr[line * pCurrentFileEntry->width + col + range * 4] >> bit) & 1;
 
 				*destP++ = p0 | (p1 << 1) | (p2 << 2) | (p3 << 3) | (p4 << 4);
 			}
@@ -167,7 +167,7 @@ int updateResFileEntry(int height, int width, int size, int entryNumber, int res
 
 int createResFileEntry(int width, int height, int size, int resType) {
 	error("Executing untested createResFileEntry");
-	return 0;	// for compilers that don't support NORETURN
+	return 0;   // for compilers that don't support NORETURN
 
 #if 0
 	int i;
@@ -235,7 +235,7 @@ int getNumMaxEntiresInSet(uint8 *ptr) {
 	return numEntries;
 }
 
-int loadFile(const char* name, int idx, int destIdx) {
+int loadFile(const char *name, int idx, int destIdx) {
 	uint8 *ptr = NULL;
 	fileTypeEnum fileType;
 
@@ -249,7 +249,7 @@ int loadFile(const char* name, int idx, int destIdx) {
 		int numMaxEntriesInSet = getNumMaxEntiresInSet(ptr);
 
 		if (destIdx > numMaxEntriesInSet) {
-			return 0;	// exit if limit is reached
+			return 0;   // exit if limit is reached
 		}
 		return loadSetEntry(name, ptr, destIdx, idx);
 	}
@@ -283,7 +283,7 @@ int loadFileRange(const char *name, int startIdx, int currentEntryIdx, int numId
 
 		for (i = 0; i < numIdx; i++) {
 			if ((startIdx + i) > numMaxEntriesInSet) {
-				return 0;	// exit if limit is reached
+				return 0;   // exit if limit is reached
 			}
 			loadSetEntry(name, ptr, startIdx + i, currentEntryIdx + i);
 		}
@@ -325,7 +325,7 @@ int loadFullBundle(const char *name, int startIdx) {
 		int i;
 		int numMaxEntriesInSet;
 
-		numMaxEntriesInSet = getNumMaxEntiresInSet(ptr);	// get maximum number of sprites/animations in SET file
+		numMaxEntriesInSet = getNumMaxEntiresInSet(ptr);    // get maximum number of sprites/animations in SET file
 
 		for (i = 0; i < numMaxEntriesInSet; i++) {
 			loadSetEntry(name, ptr, i, startIdx + i);
@@ -420,7 +420,7 @@ int loadSetEntry(const char *name, uint8 *ptr, int currentEntryIdx, int currentD
 	int sec = 0;
 	uint16 numIdx;
 
-	if (!strcmp((char*)ptr, "SEC")) {
+	if (!strcmp((char *)ptr, "SEC")) {
 		sec = 1;
 	}
 
@@ -463,7 +463,7 @@ int loadSetEntry(const char *name, uint8 *ptr, int currentEntryIdx, int currentD
 		}
 
 		if (fileIndex < 0) {
-			return -1;	// TODO: buffer is not freed
+			return -1;  // TODO: buffer is not freed
 		}
 
 		if (!sec && (localBuffer.type == 5)) {

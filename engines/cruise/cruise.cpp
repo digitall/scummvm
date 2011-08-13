@@ -40,7 +40,7 @@ namespace Cruise {
 
 CruiseEngine *_vm;
 
-CruiseEngine::CruiseEngine(OSystem * syst, const CRUISEGameDescription *gameDesc)
+CruiseEngine::CruiseEngine(OSystem *syst, const CRUISEGameDescription *gameDesc)
 	: Engine(syst), _gameDescription(gameDesc), _rnd("cruise") {
 
 	DebugMan.addDebugChannel(kCruiseDebugScript, "scripts", "Scripts debug level");
@@ -68,9 +68,9 @@ CruiseEngine::~CruiseEngine() {
 
 bool CruiseEngine::hasFeature(EngineFeature f) const {
 	return
-		(f == kSupportsRTL) ||
-		(f == kSupportsLoadingDuringRuntime) ||
-		(f == kSupportsSavingDuringRuntime);
+	    (f == kSupportsRTL) ||
+	    (f == kSupportsLoadingDuringRuntime) ||
+	    (f == kSupportsSavingDuringRuntime);
 }
 
 Common::Error CruiseEngine::run() {
@@ -79,7 +79,7 @@ Common::Error CruiseEngine::run() {
 
 	if (!loadLanguageStrings()) {
 		error("Could not setup language data for your version");
-		return Common::kUnknownError;	// for compilers that don't support NORETURN
+		return Common::kUnknownError;   // for compilers that don't support NORETURN
 	}
 
 	initialize();

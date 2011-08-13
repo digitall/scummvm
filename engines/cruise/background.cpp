@@ -91,8 +91,8 @@ int loadBackground(const char *name, int idx) {
 
 	debug(1, "Loading BG: %s", name);
 
-        if (!backgrounds[idx]._backgroundScreen) {
-	//if (!backgroundScreens[idx]) {
+	if (!backgrounds[idx]._backgroundScreen) {
+		//if (!backgroundScreens[idx]) {
 		backgrounds[idx]._backgroundScreen = (uint8 *)mallocAndZero(320 * 200);
 	}
 
@@ -129,8 +129,8 @@ int loadBackground(const char *name, int idx) {
 		flagSpeed = 0;
 	}
 
-	if (!strcmp((char*)ptr, "PAL")) {
-		memcpy(palScreen[idx], ptr + 4, 256*3);
+	if (!strcmp((char *)ptr, "PAL")) {
+		memcpy(palScreen[idx], ptr + 4, 256 * 3);
 		gfxModuleData_setPal256(palScreen[idx]);
 	} else {
 		int mode = ptr2[1];
@@ -146,20 +146,20 @@ int loadBackground(const char *name, int idx) {
 			flipGen(oldPalette, 0x20);
 
 			for (unsigned long int i = 0; i < 32; i++) {
-				gfxModuleData_convertOldPalColor(oldPalette[i], &palScreen[idx][i*3]);
+				gfxModuleData_convertOldPalColor(oldPalette[i], &palScreen[idx][i * 3]);
 			}
 
 			// duplicate the palette
 			for (unsigned long int i = 1; i < 8; i++) {
-				memcpy(&palScreen[idx][32*i*3], &palScreen[idx][0], 32*3);
+				memcpy(&palScreen[idx][32 * i * 3], &palScreen[idx][0], 32 * 3);
 			}
 
 			break;
 		}
 		case 5: { // color on 4 bit
 			for (unsigned long int i = 0; i < 32; i++) {
-				uint8* inPtr = ptr2 + i * 2;
-				uint8* outPtr = palScreen[idx] + i * 3;
+				uint8 *inPtr = ptr2 + i * 2;
+				uint8 *outPtr = palScreen[idx] + i * 3;
 
 				outPtr[2] = ((inPtr[1]) & 0x0F) * 17;
 				outPtr[1] = (((inPtr[1]) & 0xF0) >> 4) * 17;
@@ -169,13 +169,13 @@ int loadBackground(const char *name, int idx) {
 
 			// duplicate the palette
 			for (unsigned long int i = 1; i < 8; i++) {
-				memcpy(&palScreen[idx][32*i*3], &palScreen[idx][0], 32*3);
+				memcpy(&palScreen[idx][32 * i * 3], &palScreen[idx][0], 32 * 3);
 			}
 
 			break;
 		}
 		case 8:
-			memcpy(palScreen[idx], ptr2, 256*3);
+			memcpy(palScreen[idx], ptr2, 256 * 3);
 			ptr2 += 256 * 3;
 			break;
 

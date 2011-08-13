@@ -108,7 +108,7 @@ void Menu::addSelectableMenuEntry(int ovlIdx, int headerIdx, int param2, int col
 
 void Menu::updateMouse(int mouseX, int mouseY) {
 	if (_gfx) {
-		int height = _gfx->height;	// rustine
+		int height = _gfx->height;  // rustine
 		int var_2 = 0;
 		menuElementStruct *pCurrentEntry = _ptrNextElement;
 
@@ -173,7 +173,7 @@ int Menu::process() {
 	flipScreen();
 
 	if (mouseButton & 1) {
-		menuElementSubStruct* pSelectedEntry = getSelectedEntry();
+		menuElementSubStruct *pSelectedEntry = getSelectedEntry();
 
 		if (pSelectedEntry) {
 			return pSelectedEntry->header;
@@ -341,8 +341,8 @@ menuElementSubStruct *Menu::getSelectedEntry(menuElementStruct &pSelectedElement
 }
 
 menuElementSubStruct *Menu::getSelectedEntry() {
-    menuElementStruct dummy;
-    return getSelectedEntry(dummy);
+	menuElementStruct dummy;
+	return getSelectedEntry(dummy);
 }
 
 } // End of namespace Cruise

@@ -30,7 +30,7 @@
 namespace Cruise {
 
 enum AnimPathIds {
-	ANIM_WAIT	= -1,
+	ANIM_WAIT   = -1,
 	ANIM_FINISH = -2,
 	ANIM_STATIC = -3
 };
@@ -76,8 +76,8 @@ Actor *ActorList::findActor(int overlayIdx, int objIdx, int type) {
 
 	while (iter != end()) {
 		if ((iter->_overlayNumber == overlayIdx || overlayIdx == -1) &&
-			(iter->_idx == objIdx || objIdx == -1) &&
-			(iter->_type == type || type == -1)) {
+		        (iter->_idx == objIdx || objIdx == -1) &&
+		        (iter->_type == type || type == -1)) {
 			return &(*iter);
 		}
 
@@ -332,7 +332,7 @@ int point_proche(CtpRoute ctpRoutes[]) {
 			}
 			_vm->_polyStructs = &_vm->_polyStructExp;
 		}
-		if (!flag_obstacle) {	/* dans flag_obstacle --> couleur du point */
+		if (!flag_obstacle) {   /* dans flag_obstacle --> couleur du point */
 			x1 = table_ptselect[0][0];
 			y1 = table_ptselect[0][1];
 
@@ -472,7 +472,7 @@ void valide_noeud(int16 table[], int16 p, int *nclick, int16 solution0[20 + 3][2
 	(*nclick)++;
 	_vm->_polyStructs = &_vm->_polyStructNorm;
 
-	if (*nclick == 2) {	// second point
+	if (*nclick == 2) { // second point
 		x1 = table_ptselect[0][0];
 		y1 = table_ptselect[0][1];
 		x2 = table_ptselect[1][0];
@@ -603,7 +603,7 @@ int16 computePathfinding(MovementEntry &moveInfo, int16 x, int16 y, int16 destX,
 		int i;
 		int16 *ptr;
 
-		for (i = 0; i < NUM_PERSONS; i++) {	// 10 = num perso
+		for (i = 0; i < NUM_PERSONS; i++) { // 10 = num perso
 			if (!persoTable[i]) {
 				break;
 			}
@@ -738,7 +738,7 @@ void ActorList::processAnimation() {
 			getMultipleObjectParam(iter->_overlayNumber, iter->_idx, &params);
 
 			if (((animationStart && !iter->_flag) || (!animationStart && iter->_xDest != -1
-					&& iter->_yDest != -1)) && (iter->_type == ATP_MOUSE)) {
+			        && iter->_yDest != -1)) && (iter->_type == ATP_MOUSE)) {
 				// mouse animation
 				if (!animationStart) {
 					aniX = iter->_xDest;
@@ -750,7 +750,7 @@ void ActorList::processAnimation() {
 				}
 
 				iter->_pathId = computePathfinding(moveInfo, params.X, params.Y,
-					aniX, aniY, iter->_stepX, iter->_stepY, iter->_pathId);
+				                                   aniX, aniY, iter->_stepX, iter->_stepY, iter->_pathId);
 
 				if (iter->_pathId == ANIM_WAIT) {
 					if ((iter->_endDirection != -1) && (iter->_endDirection != iter->_startDirection)) {
@@ -768,31 +768,30 @@ void ActorList::processAnimation() {
 					iter->_phase = ANIM_PHASE_STATIC;
 					iter->_counter = -1;
 				}
-			} else
-				if ((iter->_type == 1) && (iter->_xDest != -1) && (iter->_yDest != -1)) {
-					// track animation
-					iter->_pathId = computePathfinding(moveInfo, params.X, params.Y, iter->_xDest, iter->_yDest, iter->_stepX, iter->_stepY, iter->_pathId);
+			} else if ((iter->_type == 1) && (iter->_xDest != -1) && (iter->_yDest != -1)) {
+				// track animation
+				iter->_pathId = computePathfinding(moveInfo, params.X, params.Y, iter->_xDest, iter->_yDest, iter->_stepX, iter->_stepY, iter->_pathId);
 
-					iter->_xDest = -1;
-					iter->_yDest = -1;
+				iter->_xDest = -1;
+				iter->_yDest = -1;
 
-					if (iter->_pathId == ANIM_WAIT) {
-						if ((iter->_endDirection != -1) && (iter->_endDirection != iter->_startDirection)) {
-							iter->_phase = ANIM_PHASE_STATIC_END;
-							iter->_nextDirection = iter->_endDirection;
-							iter->_endDirection = -1;
-							iter->_counter = 0;
-						} else {
-							iter->_pathId = -2;
-							iter->_flag = 0;
-							iter->_endDirection = -1;
-							iter->_phase = ANIM_PHASE_WAIT;
-						}
+				if (iter->_pathId == ANIM_WAIT) {
+					if ((iter->_endDirection != -1) && (iter->_endDirection != iter->_startDirection)) {
+						iter->_phase = ANIM_PHASE_STATIC_END;
+						iter->_nextDirection = iter->_endDirection;
+						iter->_endDirection = -1;
+						iter->_counter = 0;
 					} else {
-						iter->_phase = ANIM_PHASE_STATIC;
-						iter->_counter = -1;
+						iter->_pathId = -2;
+						iter->_flag = 0;
+						iter->_endDirection = -1;
+						iter->_phase = ANIM_PHASE_WAIT;
 					}
+				} else {
+					iter->_phase = ANIM_PHASE_STATIC;
+					iter->_counter = -1;
 				}
+			}
 
 			animationStart = false;
 
@@ -803,8 +802,7 @@ void ActorList::processAnimation() {
 				// , so 'break' statements should *not* be used at the end of case areas
 				switch (iter->_phase) {
 				case ANIM_PHASE_STATIC_END:
-				case ANIM_PHASE_STATIC:
-				{
+				case ANIM_PHASE_STATIC: {
 					// In-place (on the spot) animationos
 
 					if ((iter->_counter == -1) && (iter->_phase == ANIM_PHASE_STATIC)) {
@@ -870,19 +868,18 @@ void ActorList::processAnimation() {
 									newA = -newA;
 
 								set_anim(iter->_overlayNumber, iter->_idx,
-									iter->_start, params.X, params.Y, newA, iter->_poly);
+								         iter->_start, params.X, params.Y, newA, iter->_poly);
 								break;
 							}
 						} else {
-							set_anim(iter->_overlayNumber,iter->_idx, iter->_start,
-								params.X, params.Y, newA, iter->_poly);
+							set_anim(iter->_overlayNumber, iter->_idx, iter->_start,
+							         params.X, params.Y, newA, iter->_poly);
 							break;
 						}
 					}
 				}
 
-				case ANIM_PHASE_MOVE:
-				{
+				case ANIM_PHASE_MOVE: {
 					// Walk animations
 
 					if (iter->_counter >= 1) {
@@ -917,19 +914,18 @@ void ActorList::processAnimation() {
 							newA = actor_move[iter->_startDirection][iter->_counter++];
 						}
 						set_anim(iter->_overlayNumber, iter->_idx, iter->_start,
-							iter->_x, iter->_y, newA, iter->_poly);
+						         iter->_x, iter->_y, newA, iter->_poly);
 						break;
 					}
 				}
 
-				case ANIM_PHASE_END:
-				{
+				case ANIM_PHASE_END: {
 					// End of walk animation
 
 					int newA = actor_end[iter->_startDirection][0];
 
 					set_anim(iter->_overlayNumber, iter->_idx, iter->_start,
-						iter->_x, iter->_y, newA, iter->_poly);
+					         iter->_x, iter->_y, newA, iter->_poly);
 
 					iter->_pathId = ANIM_FINISH;
 					iter->_phase = ANIM_PHASE_WAIT;
@@ -978,21 +974,21 @@ int ActorList::remove(int overlay, int objIdx, int objType) {
 
 	int dir = 0;
 	Common::List<Actor>::iterator iter = begin();
-	
-	while(iter != end()) {
-		if (((iter->_overlayNumber == overlay) || (overlay == -1)) &&
-				((iter->_idx == objIdx) || (objIdx == -1)) &&
-				((iter->_type == objType) || (objType == -1))) {
-				dir = iter->_startDirection;
-				if (iter->_pathId >= 0)
-					freePerso(iter->_pathId);
 
-				erase(iter);
+	while (iter != end()) {
+		if (((iter->_overlayNumber == overlay) || (overlay == -1)) &&
+		        ((iter->_idx == objIdx) || (objIdx == -1)) &&
+		        ((iter->_type == objType) || (objType == -1))) {
+			dir = iter->_startDirection;
+			if (iter->_pathId >= 0)
+				freePerso(iter->_pathId);
+
+			erase(iter);
 
 		}
 		// the old remove was first changing matching elements _type to -1 then removed.
 		// I am adding this control in chase -1 assigned _type some where else.
-		if ( iter->_type == -1)
+		if (iter->_type == -1)
 			erase(iter);
 		iter++;
 	}
@@ -1001,12 +997,12 @@ int ActorList::remove(int overlay, int objIdx, int objType) {
 }
 
 Common::List<Actor>::iterator ActorList::begin() {
-	
+
 	return Common::List<Actor>::begin();
 }
 
 uint ActorList::size() {
-	
+
 	return  Common::List<Actor>::size();
 }
 

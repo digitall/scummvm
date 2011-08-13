@@ -38,9 +38,9 @@ namespace Cruise {
 
 struct overlayRestoreTemporary {
 	int _sBssSize;
-	uint8* _pBss;
+	uint8 *_pBss;
 	int _sNumObj;
-	objectParams* _pObj;
+	objectParams *_pObj;
 };
 
 overlayRestoreTemporary ovlRestoreData[90];
@@ -349,10 +349,10 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 
 		if (s.isLoading()) {
 			entry->add(ptr);
-		} 
+		}
 	}
 	if (s.isLoading())
-		currentScriptPtr = NULL;		//in case the load was called while a script runs.
+		currentScriptPtr = NULL;        //in case the load was called while a script runs.
 }
 
 static void syncCell(Common::Serializer &s) {
@@ -363,7 +363,7 @@ static void syncCell(Common::Serializer &s) {
 	if (s.isSaving()) {
 		// Figure out the number of chunks to save
 		chunkCount = cellHead.size();
-	} 
+	}
 	s.syncAsSint16LE(chunkCount);
 
 	Common::List<Cell>::iterator iter = cellHead.begin();
@@ -420,7 +420,7 @@ static void syncIncrust(Common::Serializer &s) {
 	Common::List<BackgroundIncrust>::iterator iter = backgroundIncrustListHead.begin();
 
 	for (int i = 0; i < numEntries; ++i, iter++) {
-		if(s.isSaving())
+		if (s.isSaving())
 			backgroundIncrust = *iter;
 
 		s.syncAsUint32LE(dummyLong);
@@ -469,10 +469,10 @@ static void syncActors(Common::Serializer &s) {
 	Common::List<Actor>::iterator iter = actorHead.begin();
 	for (int i = 0; i < numEntries; ++i) {
 		Actor *pActor;
-		if(s.isSaving()){
-		    pActor = &(*iter);
+		if (s.isSaving()) {
+			pActor = &(*iter);
 		} else {
-		    pActor = new Actor;
+			pActor = new Actor;
 		}
 
 		s.syncAsUint32LE(dummyLong);
@@ -498,7 +498,7 @@ static void syncActors(Common::Serializer &s) {
 
 		if (s.isLoading())
 			actorHead.add(*pActor);
-		
+
 		iter++;
 	}
 }
@@ -616,7 +616,7 @@ void resetPreload() {
 	}
 }
 
-void unloadOverlay(const char*name, int overlayNumber) {
+void unloadOverlay(const char *name, int overlayNumber) {
 	releaseOverlay(name);
 
 	strcpy(overlayTable[overlayNumber].overlayName, "");
@@ -863,8 +863,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 			}
 
 			/*if (j < 2) {
-				error("Unsupported mono file load");
-				//loadFileMode1(filesDatabase[j].subData.name,filesDatabase[j].subData.var4);
+			    error("Unsupported mono file load");
+			    //loadFileMode1(filesDatabase[j].subData.name,filesDatabase[j].subData.var4);
 			} else */
 			if (strlen(filesDatabase[i].subData.name) > 0) {
 				loadFileRange(filesDatabase[i].subData.name, filesDatabase[i].subData.index, i, j - i);

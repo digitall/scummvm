@@ -160,7 +160,8 @@ static const CRUISEGameDescription gameDescriptions[] = {
 		GType_CRUISE,
 		0,
 	},
-	{ // Amiga English US GOLD edition.
+	{
+		// Amiga English US GOLD edition.
 		{
 			"cruise",
 			0,
@@ -173,7 +174,8 @@ static const CRUISEGameDescription gameDescriptions[] = {
 		GType_CRUISE,
 		0,
 	},
-	{ // AtariST English KixxXL edition.
+	{
+		// AtariST English KixxXL edition.
 		{
 			"cruise",
 			0,
@@ -233,7 +235,9 @@ public:
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual int getMaximumSaveSlot() const { return 99; }
+	virtual int getMaximumSaveSlot() const {
+		return 99;
+	}
 	virtual SaveStateList listSaves(const char *target) const;
 	virtual void removeSaveState(const char *target, int slot) const;
 	virtual SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
@@ -242,11 +246,11 @@ public:
 
 bool CruiseMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsDeleteSave) ||
-		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail) ||
-		(f == kSupportsLoadingDuringStartup);
+	    (f == kSupportsListSaves) ||
+	    (f == kSupportsDeleteSave) ||
+	    (f == kSavesSupportMetaInfo) ||
+	    (f == kSavesSupportThumbnail) ||
+	    (f == kSupportsLoadingDuringStartup);
 }
 
 SaveStateList CruiseMetaEngine::listSaves(const char *target) const {
@@ -255,7 +259,7 @@ SaveStateList CruiseMetaEngine::listSaves(const char *target) const {
 	Common::String pattern("cruise.s??");
 
 	filenames = saveFileMan->listSavefiles(pattern);
-	sort(filenames.begin(), filenames.end());	// Sort (hopefully ensuring we are sorted numerically..)
+	sort(filenames.begin(), filenames.end());   // Sort (hopefully ensuring we are sorted numerically..)
 
 	SaveStateList saveList;
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
@@ -283,7 +287,7 @@ void CruiseMetaEngine::removeSaveState(const char *target, int slot) const {
 
 SaveStateDescriptor CruiseMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
 	Common::InSaveFile *f = g_system->getSavefileManager()->openForLoading(
-		Cruise::CruiseEngine::getSavegameFile(slot));
+	                            Cruise::CruiseEngine::getSavegameFile(slot));
 	assert(f);
 
 	Cruise::CruiseSavegameHeader header;

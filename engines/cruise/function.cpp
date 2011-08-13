@@ -139,11 +139,11 @@ int16 Op_AddProc() {
 	if (!overlay)
 		return (0);
 
-	uint8* procBss = procScriptList.add(overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
+	uint8 *procBss = procScriptList.add(overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
 
 	if (procBss) {
 		for (long int i = 0; i < pop1; i++) {
-			int16* ptr = (int16*)(procBss + i * 2);
+			int16 *ptr = (int16 *)(procBss + i * 2);
 			*ptr = param[i];
 			bigEndianShortToNative(ptr);
 		}
@@ -200,7 +200,8 @@ int16 Op_Random() {
 int16 Op_PlayFX() {
 	int volume = stack.popVar();
 	int speed = stack.popVar();
-	/*int channelNum = */stack.popVar();
+	/*int channelNum = */
+	stack.popVar();
 	int sampleNum = stack.popVar();
 
 	if ((sampleNum >= 0) && (sampleNum < NUM_FILE_ENTRIES) && (filesDatabase[sampleNum].subData.ptr)) {
@@ -208,7 +209,7 @@ int16 Op_PlayFX() {
 			speed = filesDatabase[sampleNum].subData.transparency;
 
 		_vm->sound().playSound(filesDatabase[sampleNum].subData.ptr,
-			filesDatabase[sampleNum].width, volume);
+		                       filesDatabase[sampleNum].width, volume);
 	}
 
 	return (0);
@@ -217,7 +218,8 @@ int16 Op_PlayFX() {
 int16 Op_LoopFX() {
 	int volume = stack.popVar();
 	int speed = stack.popVar();
-	/*int channelNum = */stack.popVar();
+	/*int channelNum = */
+	stack.popVar();
 	int sampleNum = stack.popVar();
 
 	if ((sampleNum >= 0) && (sampleNum < NUM_FILE_ENTRIES) && (filesDatabase[sampleNum].subData.ptr)) {
@@ -225,7 +227,7 @@ int16 Op_LoopFX() {
 			speed = filesDatabase[sampleNum].subData.transparency;
 
 		_vm->sound().playSound(filesDatabase[sampleNum].subData.ptr,
-			filesDatabase[sampleNum].width, volume);
+		                       filesDatabase[sampleNum].width, volume);
 	}
 
 	return (0);
@@ -609,7 +611,7 @@ int16 Op_FadeOut() {
 			offsetTable[0] = -32;
 			offsetTable[1] = -32;
 			offsetTable[2] = -32;
-			calcRGB(&workpal[3*j], &workpal[3*j], offsetTable);
+			calcRGB(&workpal[3 * j], &workpal[3 * j], offsetTable);
 		}
 		gfxModuleData_setPal256(workpal);
 		gfxModuleData_flipScreen();
@@ -624,7 +626,7 @@ int16 Op_FadeOut() {
 	return 0;
 }
 
-int16 isOverlayLoaded(const char * name) {
+int16 isOverlayLoaded(const char *name) {
 	int16 i;
 
 	for (i = 1; i < numOfLoadedOverlay; i++) {
@@ -967,7 +969,7 @@ int16 Op_RemoveBackgroundIncrust() {
 	return 0;
 }
 
-int16 Op_SetColor()	{
+int16 Op_SetColor() {
 	int colorB = stack.popVar();
 	int colorG = stack.popVar();
 	int colorR = stack.popVar();
@@ -987,9 +989,9 @@ int16 Op_SetColor()	{
 
 		if (CVTLoaded) {
 			int colorIdx = cvtPalette[i];
-			calcRGB(&palScreen[masterScreen][3*colorIdx], &workpal[3*colorIdx], offsetTable);
+			calcRGB(&palScreen[masterScreen][3 * colorIdx], &workpal[3 * colorIdx], offsetTable);
 		} else {
-			calcRGB(&palScreen[masterScreen][3*i], &workpal[3*i], offsetTable);
+			calcRGB(&palScreen[masterScreen][3 * i], &workpal[3 * i], offsetTable);
 		}
 	}
 
@@ -1024,7 +1026,7 @@ int16 Op_ComputeLine() {
 	int y1 = stack.popVar();
 	int x1 = stack.popVar();
 
-	point* pDest = (point*)stack.popPtr();
+	point *pDest = (point *)stack.popPtr();
 
 	int maxValue = cor_droite(x1, y1, x2, y2, pDest);
 
@@ -1067,7 +1069,7 @@ int16 Op_GetZoom() {
 	return (computeZoom(stack.popVar()));
 }
 
-int flag_obstacle;		// numPolyBis
+int flag_obstacle;      // numPolyBis
 
 // add animation
 int16 Op_AddAnimation() {
@@ -1181,7 +1183,7 @@ int16 Op_GetPixel() {
 	return numPoly;
 }
 
-int16 Op_TrackAnim() {		// setup actor position
+int16 Op_TrackAnim() {      // setup actor position
 	Actor *pActor;
 
 	int var0 = stack.popVar();
@@ -1212,7 +1214,7 @@ int16 Op_TrackAnim() {		// setup actor position
 }
 
 int16 Op_BgName() {
-	char* bgName = (char*)stack.popPtr();
+	char *bgName = (char *)stack.popPtr();
 	int bgIdx = stack.popVar();
 
 	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && bgName) {
@@ -1402,7 +1404,7 @@ int16 Op_Itoa() {
 		param[i] = stack.popVar();
 
 	int val = stack.popVar();
-	char* pDest = (char*)stack.popPtr();
+	char *pDest = (char *)stack.popPtr();
 
 	if (!nbp)
 		sprintf(txt, "%d", val);
@@ -1528,7 +1530,7 @@ int16 Op_SetVolume() {
 }
 
 int16 Op_SongExist() {
-	const char *songName = (char*)stack.popPtr();
+	const char *songName = (char *)stack.popPtr();
 
 	if (songName) {
 		char name[33];
@@ -1751,11 +1753,11 @@ opcodeFunction opcodeTablePtr[] = {
 	Op_LoadOverlay,
 	Op_SetColor,
 	Op_PlayFX,
-	NULL,	// used to be debug
+	NULL,   // used to be debug
 
 	Op_FreeOverlay, // 0x10
 	Op_FindOverlay,
-	NULL,	// used to be exec debug
+	NULL,   // used to be exec debug
 	Op_AddMessage,
 	Op_RemoveMessage,
 	Op_UserWait,

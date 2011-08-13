@@ -73,7 +73,7 @@ public:
 	Actor *add(int overlay, int objIdx, int param, int param2);
 	void add(Actor actor);
 	int remove(int overlay, int objIdx, int objType);
-	
+
 	void clear();
 	Actor *findActor(int overlayIdx, int objIdx, int type);
 	bool isAnimFinished(int overlayIdx, int idx, int objType);
