@@ -399,7 +399,7 @@ static void syncCell(Common::Serializer &s) {
 		s.syncAsUint16LE(dummyWord);
 
 		if (s.isLoading())
-			cellHead.push_back(*p);
+			cellHead.add(p);
 		iter++;
 	}
 }

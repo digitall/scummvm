@@ -1463,8 +1463,7 @@ void mainDraw(int16 param) {
 
 			if ((params.state >= 0) && (objZ2 >= 0) && filesDatabase[objZ2].subData.ptr) {
 				if (filesDatabase[objZ2].subData.resourceType == 8) {   // Poly
-					CellList polyList;
-					polyList.insert(polyList.begin(), iter, cellHead.end());
+					CellList polyList(iter, cellHead.end());
 					mainDrawPolygons(objZ2, &polyList, objX2, params.scale, objY2, (char *)gfxModuleData.pPage10, (char *)filesDatabase[objZ2].subData.ptr);    // poly
 				} else if (filesDatabase[objZ2].subData.resourceType == OBJ_TYPE_SOUND) {
 				} else if (filesDatabase[objZ2].resType == OBJ_TYPE_MASK) {
@@ -1473,8 +1472,7 @@ void mainDraw(int16 param) {
 					spriteHeight = filesDatabase[objZ2].height; // height
 
 					if (filesDatabase[objZ2].subData.ptr) {
-						CellList spriteList;
-						spriteList.insert(spriteList.begin(), iter, cellHead.end());
+						CellList spriteList(iter, cellHead.end());
 						drawSprite(objX1, spriteHeight, &spriteList, filesDatabase[objZ2].subData.ptr, objY2, objX2, gfxModuleData.pPage10, filesDatabase[objZ2].subData.ptrMask);
 					}
 				}

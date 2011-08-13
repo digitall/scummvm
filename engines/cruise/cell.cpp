@@ -56,6 +56,10 @@ void freeMessageList(CellList *objPtr) {
 	    } */
 }
 
+CellList::CellList(Common::List<Cell>::iterator firstElement,	Common::List<Cell>::iterator lastElement) {
+	insert(begin(), firstElement, lastElement);
+}
+
 Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
 
 	int16 var;
@@ -138,6 +142,11 @@ void CellList::createTextObject(int overlayIdx, int messageIdx, int x, int y, in
 	// when the copy protection screen is being shown
 	if ((messageIdx == 0) && !strcmp(overlayTable[overlayIdx].overlayName, "XX2"))
 		backgrounds[0]._isChanged = true;
+}
+
+Cell *CellList::add(Cell *newCell) {
+	push_back(*newCell);
+	return &(*reverse_begin());
 }
 
 void CellList::remove(int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
