@@ -41,6 +41,15 @@ Cell::Cell() {
 	_animLoop = 0;
 }
 
+Cell::Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
+	_idx = objIdx;
+	_type = type;
+	_backgroundPlane = backgroundPlane;
+	_overlay = overlayIdx;
+	_parent = scriptNumber;
+	_parentOverlay = scriptOverlay;
+}
+
 void Cell::sync(Common::Serializer& s) {
 	uint16 dummyWord = 0;
 	
@@ -96,8 +105,6 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 
 	int16 var;
 
-	Cell newCell;
-
 	getSingleObjectParam(overlayIdx, objIdx, 2, &var);
 
 	Common::List<Cell>::iterator iter = begin();
@@ -121,16 +128,11 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 			return NULL;
 	}
 
-	newCell._idx = objIdx;
-	newCell._type = type;
-	newCell._backgroundPlane = backgroundPlane;
-	newCell._overlay = overlayIdx;
-	newCell._parent = scriptNumber;
-	newCell._parentOverlay = scriptOverlay;
+	Cell newCell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
 
 	insert(iter,newCell);
 
-	Cell *re  = &(*(--iter));
+	Cell *re  = &(*(--iter));	//since insert add element before the iter.
 	return re; 
 }
 
