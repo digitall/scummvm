@@ -25,6 +25,7 @@
 
 
 #include "common/scummsys.h"
+#include "common/serializer.h"
 
 namespace Cruise {
 
@@ -58,6 +59,8 @@ public:
 	gfxEntryStruct *_gfxPtr;
 
 	Cell();
+
+	void sync(Common::Serializer &s);
 };
 
 class CellList: private Common::List<Cell> {

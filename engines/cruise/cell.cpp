@@ -41,6 +41,38 @@ Cell::Cell() {
 	_animLoop = 0;
 }
 
+void Cell::sync(Common::Serializer& s) {
+	uint16 dummyWord = 0;
+	
+	s.syncAsUint16LE(dummyWord);
+	s.syncAsUint16LE(dummyWord);
+
+	s.syncAsSint16LE(_idx);
+	s.syncAsSint16LE(_type);
+	s.syncAsSint16LE(_overlay);
+	s.syncAsSint16LE(_X);
+	s.syncAsSint16LE(_fieldC);
+	s.syncAsSint16LE(_spriteIdx);
+	s.syncAsSint16LE(_color);
+	s.syncAsSint16LE(_backgroundPlane);
+	s.syncAsSint16LE(_freeze);
+	s.syncAsSint16LE(_parent);
+	s.syncAsSint16LE(_parentOverlay);
+	s.syncAsSint16LE(_parentType);
+	s.syncAsSint16LE(_followObjectOverlayIdx);
+	s.syncAsSint16LE(_followObjectIdx);
+	s.syncAsSint16LE(_animStart);
+	s.syncAsSint16LE(_animEnd);
+	s.syncAsSint16LE(_animWait);
+	s.syncAsSint16LE(_animStep);
+	s.syncAsSint16LE(_animChange);
+	s.syncAsSint16LE(_animType);
+	s.syncAsSint16LE(_animSignal);
+	s.syncAsSint16LE(_animCounter);
+	s.syncAsSint16LE(_animLoop);
+	s.syncAsUint16LE(dummyWord);
+}
+
 /*Cell::~Cell() {
     if (_gfxPtr)
         freeGfx(_gfxPtr);

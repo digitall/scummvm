@@ -358,7 +358,6 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 static void syncCell(Common::Serializer &s) {
 	int chunkCount = 0;
 	Cell *p;
-	uint16 dummyWord = 0;
 
 	if (s.isSaving()) {
 		// Figure out the number of chunks to save
@@ -369,35 +368,7 @@ static void syncCell(Common::Serializer &s) {
 	Common::List<Cell>::iterator iter = _vm->cellList.begin();
 	for (int i = 0; i < chunkCount; ++i) {
 		p = s.isSaving() ? &(*iter) : new Cell;
-
-		s.syncAsUint16LE(dummyWord);
-		s.syncAsUint16LE(dummyWord);
-
-		s.syncAsSint16LE(p->_idx);
-		s.syncAsSint16LE(p->_type);
-		s.syncAsSint16LE(p->_overlay);
-		s.syncAsSint16LE(p->_X);
-		s.syncAsSint16LE(p->_fieldC);
-		s.syncAsSint16LE(p->_spriteIdx);
-		s.syncAsSint16LE(p->_color);
-		s.syncAsSint16LE(p->_backgroundPlane);
-		s.syncAsSint16LE(p->_freeze);
-		s.syncAsSint16LE(p->_parent);
-		s.syncAsSint16LE(p->_parentOverlay);
-		s.syncAsSint16LE(p->_parentType);
-		s.syncAsSint16LE(p->_followObjectOverlayIdx);
-		s.syncAsSint16LE(p->_followObjectIdx);
-		s.syncAsSint16LE(p->_animStart);
-		s.syncAsSint16LE(p->_animEnd);
-		s.syncAsSint16LE(p->_animWait);
-		s.syncAsSint16LE(p->_animStep);
-		s.syncAsSint16LE(p->_animChange);
-		s.syncAsSint16LE(p->_animType);
-		s.syncAsSint16LE(p->_animSignal);
-		s.syncAsSint16LE(p->_animCounter);
-		s.syncAsSint16LE(p->_animLoop);
-		s.syncAsUint16LE(dummyWord);
-
+		p->sync(s);
 		if (s.isLoading())
 			_vm->cellList.add(p);
 		iter++;
