@@ -63,6 +63,12 @@ Cell::Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, in
 	_animLoop = 0;
 }
 
+void Cell::setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx) {
+		_parentType = parentType;
+        _followObjectIdx = followObjectIdx;
+        _followObjectOverlayIdx = followObjectOverlayIdx;
+}
+
 void Cell::sync(Common::Serializer& s) {
 	uint16 dummyWord = 0;
 	
@@ -160,10 +166,8 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
         pNewCell = add(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
         if(!pNewCell)
             return 0;
+		pNewCell->setFollower(scriptType, objIdx, overlayIdx);
 
-        pNewCell->_parentType = scriptType;
-        pNewCell->_followObjectIdx = objIdx;
-        pNewCell->_followObjectOverlayIdx = overlayIdx;
         return pNewCell;
 }
 

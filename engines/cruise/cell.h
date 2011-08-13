@@ -61,6 +61,7 @@ public:
 	Cell();
 	Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
 
+	void setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx);
 	void sync(Common::Serializer &s);
 };
 
