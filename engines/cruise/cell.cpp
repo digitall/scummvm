@@ -167,7 +167,7 @@ void CellList::remove(int ovlNumber, int objectIdx, int objType, int backgroundP
 }
 
 void CellList::clear() {
-	remove(-1, -1, -1, -1); // since clear does not free _gfxPtr
+	remove(-1, -1, -1, -1); // since original clear does not free _gfxPtr
 }
 
 void CellList::linkCell(int ovl, int obj, int type, int ovl2, int obj2) {
@@ -250,21 +250,6 @@ void CellList::sort(int16 ovlIdx, int16 objIdx) {
 			insert(insertPos, temp.begin(), temp.end());
 		}
 	}
-}
-
-Common::List<Cell>::iterator CellList::begin() {
-
-	return Common::List<Cell>::begin();
-}
-
-Common::List<Cell>::iterator CellList::end() {
-
-	return Common::List<Cell>::end();
-}
-
-Common::List<Cell>::iterator CellList::reverse_begin() {
-
-	return Common::List<Cell>::reverse_begin();
 }
 
 } // End of namespace Cruise

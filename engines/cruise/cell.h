@@ -66,9 +66,9 @@ public:
 	CellList() {}
 	CellList(Common::List<Cell>::iterator firstElement,	Common::List<Cell>::iterator lastElement);
 
-	Common::List<Cell>::iterator begin();
-	Common::List<Cell>::iterator end();
-	Common::List<Cell>::iterator reverse_begin();
+	Common::List<Cell>::iterator begin() { return Common::List<Cell>::begin(); }
+	Common::List<Cell>::iterator end() { return Common::List<Cell>::end(); }
+	Common::List<Cell>::iterator reverse_begin() { return Common::List<Cell>::reverse_begin(); }
 	uint size() { return Common::List<Cell>::size(); }
 
 	Cell *add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
