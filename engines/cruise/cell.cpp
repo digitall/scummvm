@@ -42,12 +42,25 @@ Cell::Cell() {
 }
 
 Cell::Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
+	
 	_idx = objIdx;
 	_type = type;
 	_backgroundPlane = backgroundPlane;
 	_overlay = overlayIdx;
 	_parent = scriptNumber;
 	_parentOverlay = scriptOverlay;
+
+	_gfxPtr = NULL;
+
+	_freeze = 0;
+	_animStart = 0;
+	_animEnd = 0;
+	_animWait = 0;
+	_animSignal = 0;
+	_animCounter = 0;
+	_animType = 0;
+	_animStep = 0;
+	_animLoop = 0;
 }
 
 void Cell::sync(Common::Serializer& s) {
