@@ -362,11 +362,11 @@ static void syncCell(Common::Serializer &s) {
 
 	if (s.isSaving()) {
 		// Figure out the number of chunks to save
-		chunkCount = cellHead.size();
+		chunkCount = _vm->cellList.size();
 	}
 	s.syncAsSint16LE(chunkCount);
 
-	Common::List<Cell>::iterator iter = cellHead.begin();
+	Common::List<Cell>::iterator iter = _vm->cellList.begin();
 	for (int i = 0; i < chunkCount; ++i) {
 		p = s.isSaving() ? &(*iter) : new Cell;
 
@@ -399,7 +399,7 @@ static void syncCell(Common::Serializer &s) {
 		s.syncAsUint16LE(dummyWord);
 
 		if (s.isLoading())
-			cellHead.add(p);
+			_vm->cellList.add(p);
 		iter++;
 	}
 }
@@ -632,10 +632,10 @@ void initVars() {
 	freeCTP();
 	backgroundIncrustListHead.clear();
 
-	cellHead.freezeCell(-1, -1, -1, -1, -1, 0);
+	_vm->cellList.freezeCell(-1, -1, -1, -1, -1, 0);
 	// TODO: unfreeze anims
 
-	cellHead.clear();
+	_vm->cellList.clear();
 	actorHead.remove(-1, -1, -1);
 
 	relScriptList.removeAll();
@@ -693,7 +693,7 @@ void initVars() {
 	procScriptList.resetPtr2();
 	relScriptList.resetPtr2();
 
-	cellHead.clear();
+	_vm->cellList.clear();
 
 	actorHead.clear();
 	backgroundIncrustListHead.clear();
@@ -880,9 +880,9 @@ Common::Error loadSavegameData(int saveGameIdx) {
 
 	lastAni[0] = 0;
 
-	iter = cellHead.begin();
+	iter = _vm->cellList.begin();
 
-	while (iter != cellHead.end()) {
+	while (iter != _vm->cellList.end()) {
 		if (iter->_type == 5) {
 			uint8 *ptr = mainProc14(iter->_overlay, iter->_idx);
 

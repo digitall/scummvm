@@ -26,7 +26,7 @@
 #include "cruise/cruise_main.h"
 #include "cruise/object.h"
 #include "cruise/overlay.h"
-
+#include "cruise/cruise.h"
 namespace Cruise {
 
 Debugger::Debugger(): GUI::Debugger() {
@@ -42,9 +42,9 @@ bool Debugger::cmd_hotspots(int argc, const char **argv) {
 	const char *pObjType;
 	objectParamsQuery params;
 
-	Common::List<Cell>::iterator rIter = cellHead.reverse_begin();
+	Common::List<Cell>::iterator rIter = _vm->cellList.reverse_begin();
 
-	while (rIter != cellHead.end()) {
+	while (rIter != _vm->cellList.end()) {
 		if (rIter->_overlay > 0 && overlayTable[rIter->_overlay].alreadyLoaded &&
 		        (rIter->_type == OBJ_TYPE_SPRITE || rIter->_type == OBJ_TYPE_MASK ||
 		         rIter->_type == OBJ_TYPE_EXIT || rIter->_type == OBJ_TYPE_VIRTUAL)) {

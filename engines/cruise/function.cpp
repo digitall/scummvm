@@ -269,7 +269,7 @@ int16 Op_FreeCT() {
 }
 
 int16 Op_FreeCell() {
-	cellHead.clear();
+	_vm->cellList.clear();
 	return (0);
 }
 
@@ -309,7 +309,7 @@ int16 Op_RemoveMessage() {
 		overlay = currentScriptPtr->_overlayNumber;
 	}
 
-	cellHead.remove(overlay, idx, 5, masterScreen);
+	_vm->cellList.remove(overlay, idx, 5, masterScreen);
 
 	return (0);
 }
@@ -700,7 +700,7 @@ int16 Op_AddCell() {
 	if (!overlayIdx)
 		overlayIdx = currentScriptPtr->_overlayNumber;
 
-	cellHead.add(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
+	_vm->cellList.add(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
 
 	return 0;
 }
@@ -728,7 +728,7 @@ int16 Op_RemoveCell() {
 		ovlNumber = currentScriptPtr->_overlayNumber;
 	}
 
-	cellHead.remove(ovlNumber, objectIdx, objType, masterScreen);
+	_vm->cellList.remove(ovlNumber, objectIdx, objType, masterScreen);
 
 	return 0;
 }
@@ -794,7 +794,7 @@ int16 Op_AddMessage() {
 		}
 	}
 
-	cellHead.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
+	_vm->cellList.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
 
 	return 0;
 }
@@ -845,7 +845,7 @@ int16 Op_AutoCell() {
 	if (!overlay)
 		overlay = currentScriptPtr->_overlayNumber;
 
-	pObject = cellHead.add(overlay, obj, 4, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
+	pObject = _vm->cellList.add(overlay, obj, 4, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
 
 	if (!pObject)
 		return 0;
@@ -1354,7 +1354,7 @@ int16 Op_FreezeCell() {
 		overlayIdx = currentScriptPtr->_overlayNumber;
 	}
 
-	cellHead.freezeCell(overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
+	_vm->cellList.freezeCell(overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
 
 	return 0;
 }
@@ -1616,7 +1616,7 @@ int16 Op_LinkObjects() {
 	if (!ovl2)
 		ovl2 = currentScriptPtr->_overlayNumber;
 
-	cellHead.linkCell(ovl, obj, type, ovl2, obj2);
+	_vm->cellList.linkCell(ovl, obj, type, ovl2, obj2);
 
 	return 0;
 }

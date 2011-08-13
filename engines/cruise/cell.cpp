@@ -200,22 +200,6 @@ void CellList::freezeCell(int overlayIdx, int objIdx, int objType, int backgroun
 	}
 }
 
-void printCellZ(int a) {
-	Common::List<Cell>::iterator iter = cellHead.begin();
-	int i = 1;
-	int16 objz;
-	while (iter != cellHead.end()) {
-		getSingleObjectParam(iter->_overlay, iter->_idx, 2, &objz);
-		if (a)
-			debug("\t\t\t\t number = %d, z = %d", i, objz);
-		else
-			debug("number = %d, z = %d", i, objz);
-		iter++;
-		i++;
-	}
-
-}
-
 void CellList::sort(int16 ovlIdx, int16 objIdx) {
 	int16 newz, objz, sobjz;
 

@@ -431,7 +431,7 @@ void CruiseEngine::initAllData() {
 	procScriptList.resetPtr2();
 	relScriptList.resetPtr2();
 
-	cellHead.clear();
+	_vm->cellList.clear();
 
 	actorHead.clear();
 	backgroundIncrustListHead.clear();
@@ -556,9 +556,9 @@ int menuDown = 0;
 int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 	char objectName[80];
 
-	Common::List<Cell>::iterator rIter = cellHead.reverse_begin();
+	Common::List<Cell>::iterator rIter = _vm->cellList.reverse_begin();
 
-	while (rIter != cellHead.end()) {
+	while (rIter != _vm->cellList.end()) {
 		if (rIter->_overlay > 0 && overlayTable[rIter->_overlay].alreadyLoaded &&
 		        (rIter->_type == OBJ_TYPE_SPRITE || rIter->_type == OBJ_TYPE_MASK ||
 		         rIter->_type == OBJ_TYPE_EXIT || rIter->_type == OBJ_TYPE_VIRTUAL)) {
@@ -1040,9 +1040,9 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 					}
 
 					if (currentScriptPtr) {
-						cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
+						_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
 					} else {
-						cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
+						_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
 					}
 
 					userWait = 1;
@@ -1076,7 +1076,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 							autoTrack = true;
 							userWait = 0;
 							userEnabled = 0;
-							cellHead.freezeCell(ovlIdx, pHeader->id, 5, -1, 0, 9998);
+							_vm->cellList.freezeCell(ovlIdx, pHeader->id, 5, -1, 0, 9998);
 						}
 					}
 				}
@@ -1186,9 +1186,9 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 				}
 
 				if (currentScriptPtr) {
-					cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
+					_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
 				} else {
-					cellHead.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
+					_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
 				}
 
 				userWait = 1;
@@ -1224,7 +1224,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 						autoTrack = true;
 						userWait = 0;
 						userEnabled = 0;
-						cellHead.freezeCell(ovlIdx, pHeader->id, 5, -1, 0, 9998);
+						_vm->cellList.freezeCell(ovlIdx, pHeader->id, 5, -1, 0, 9998);
 					}
 				}
 			}
@@ -1827,7 +1827,7 @@ void CruiseEngine::mainLoop() {
 			if (autoTrack) {
 				if (actorHead.isAnimFinished(narratorOvl, narratorIdx, ATP_MOUSE)) {
 					if (autoMsg != -1) {
-						cellHead.freezeCell(autoOvl, autoMsg, 5, -1, 9998, 0);
+						_vm->cellList.freezeCell(autoOvl, autoMsg, 5, -1, 9998, 0);
 
 						char *pText = getText(autoMsg, autoOvl);
 
@@ -1842,7 +1842,7 @@ void CruiseEngine::mainLoop() {
 					userEnabled = false;
 				}
 			} else if (autoMsg != -1) {
-				cellHead.remove(autoOvl, autoMsg, 5, masterScreen);
+				_vm->cellList.remove(autoOvl, autoMsg, 5, masterScreen);
 				autoMsg = -1;
 			}
 		} else {
@@ -1860,7 +1860,7 @@ void CruiseEngine::mainLoop() {
 	closeCnf();
 	closeBase();
 	resetFileEntryRange(0, NUM_FILE_ENTRIES);
-	cellHead.clear();
+	_vm->cellList.clear();
 	backgroundIncrustListHead.clear();
 }
 

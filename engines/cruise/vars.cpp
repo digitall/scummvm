@@ -159,7 +159,6 @@ uint8 globalScreen[320 * 200];
 
 Mouse currentMouse;
 BackgroundIncrustList backgroundIncrustListHead;
-CellList cellHead;
 Menu *menuTable[8];
 Stack stack;
 

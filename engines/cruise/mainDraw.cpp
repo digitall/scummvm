@@ -25,6 +25,7 @@
 #include "common/endian.h"
 #include "common/util.h"
 #include "common/list.h"
+#include "cruise/cruise.h"
 
 namespace Cruise {
 
@@ -1421,7 +1422,7 @@ void mainDraw(int16 param) {
 
 	autoCellHead.next = NULL;
 
-	iter = cellHead.begin();
+	iter = _vm->cellList.begin();
 
 #ifdef _DEBUG
 	/*  polyOutputBuffer = (char*)bgPtr;
@@ -1430,7 +1431,7 @@ void mainDraw(int16 param) {
 
 	//-------------------------------------------------- PROCESS SPRITES -----------------------------------------//
 
-	while (iter != cellHead.end()) {
+	while (iter != _vm->cellList.end()) {
 		if ((masterScreen == iter->_backgroundPlane) && (iter->_freeze == 0) && (iter->_type == OBJ_TYPE_SPRITE)) {
 			objectParamsQuery params;
 
@@ -1463,7 +1464,7 @@ void mainDraw(int16 param) {
 
 			if ((params.state >= 0) && (objZ2 >= 0) && filesDatabase[objZ2].subData.ptr) {
 				if (filesDatabase[objZ2].subData.resourceType == 8) {   // Poly
-					CellList polyList(iter, cellHead.end());
+					CellList polyList(iter, _vm->cellList.end());
 					mainDrawPolygons(objZ2, &polyList, objX2, params.scale, objY2, (char *)gfxModuleData.pPage10, (char *)filesDatabase[objZ2].subData.ptr);    // poly
 				} else if (filesDatabase[objZ2].subData.resourceType == OBJ_TYPE_SOUND) {
 				} else if (filesDatabase[objZ2].resType == OBJ_TYPE_MASK) {
@@ -1472,7 +1473,7 @@ void mainDraw(int16 param) {
 					spriteHeight = filesDatabase[objZ2].height; // height
 
 					if (filesDatabase[objZ2].subData.ptr) {
-						CellList spriteList(iter, cellHead.end());
+						CellList spriteList(iter, _vm->cellList.end());
 						drawSprite(objX1, spriteHeight, &spriteList, filesDatabase[objZ2].subData.ptr, objY2, objX2, gfxModuleData.pPage10, filesDatabase[objZ2].subData.ptrMask);
 					}
 				}
@@ -1565,9 +1566,9 @@ void mainDraw(int16 param) {
 
 	//-------------------------------------------------- DRAW OBJECTS TYPE 5 (MSG)-----------------------------------------//
 
-	iter = cellHead.begin();
+	iter = _vm->cellList.begin();
 
-	while (iter != cellHead.end()) {
+	while (iter != _vm->cellList.end()) {
 		if (iter->_type == OBJ_TYPE_MESSAGE && iter->_freeze == 0) {
 			drawMessage(iter->_gfxPtr, iter->_X, iter->_fieldC, iter->_spriteIdx, iter->_color, gfxModuleData.pPage10);
 			isMessage = 1;

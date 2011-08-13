@@ -138,6 +138,8 @@ public:
 	Common::Array<Ct> *_polyStruct;
 
 	Common::File _PAL_file;
+
+	CellList cellList;
 };
 
 extern CruiseEngine *_vm;
