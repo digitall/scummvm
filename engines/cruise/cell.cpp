@@ -70,9 +70,10 @@ void Cell::remove() {
 }
 
 void Cell::setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx) {
+	if(_parentType != -1)
 		_parentType = parentType;
-        _followObjectIdx = followObjectIdx;
-        _followObjectOverlayIdx = followObjectOverlayIdx;
+	_followObjectIdx = followObjectIdx;
+	_followObjectOverlayIdx = followObjectOverlayIdx;
 }
 
 void Cell::sync(Common::Serializer& s) {
@@ -240,8 +241,7 @@ void CellList::linkCell(int ovl, int obj, int type, int ovl2, int obj2) {
 		if (((iter->_overlay == ovl) || (ovl == -1)) &&
 		        ((iter->_idx == obj) || (obj == -1)) &&
 		        ((iter->_type == type) || (type == -1))) {
-			iter->_followObjectIdx = obj2;
-			iter->_followObjectOverlayIdx = ovl2;
+			iter->setFollower(-1, obj2, ovl2);
 		}
 		iter++;
 	}

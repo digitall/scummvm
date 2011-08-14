@@ -61,7 +61,7 @@ public:
 	Cell();
 	Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
 	void remove();
-	
+
 	void setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx);
 	void makeTextObject(int x, int y, int width, int16 color,const char *pText);
 	void sync(Common::Serializer &s);
