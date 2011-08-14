@@ -63,6 +63,12 @@ Cell::Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, in
 	_animLoop = 0;
 }
 
+void Cell::remove() {
+	if (_gfxPtr)
+		freeGfx(_gfxPtr);
+	_gfxPtr = NULL;
+}
+
 void Cell::setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx) {
 		_parentType = parentType;
         _followObjectIdx = followObjectIdx;
@@ -107,6 +113,11 @@ void Cell::sync(Common::Serializer& s) {
     _gfxPtr = NULL;
 }*/
 
+void Cell::freeze(int oldFreeze, int newFreeze) {
+	if ((_freeze == oldFreeze) || (oldFreeze == -1))
+		_freeze = newFreeze;
+}
+
 void freeMessageList(CellList *objPtr) {
 	/*  if (objPtr) {
 	         if (objPtr->next)
@@ -147,9 +158,9 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 			return NULL;
 	}
 
-	Cell newCell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
+	Cell *pNewCell = new Cell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
 
-	insert(iter,newCell);
+	insert(iter,*pNewCell);
 
 	Cell *re  = &(*(--iter));	//since insert add element before the iter.
 	return re; 
@@ -211,8 +222,7 @@ void CellList::remove(int ovlNumber, int objectIdx, int objType, int backgroundP
 		         ((iter->_idx == objectIdx) || (objectIdx == -1)) &&
 		         ((iter->_type == objType) || (objType == -1)) &&
 		         ((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)))) {
-			if (iter->_gfxPtr)
-				freeGfx(iter->_gfxPtr);
+			iter->remove();
 			iter = erase(iter);
 		} else
 			iter++;
@@ -245,9 +255,8 @@ void CellList::freezeCell(int overlayIdx, int objIdx, int objType, int backgroun
 		if (((iter->_overlay == overlayIdx) || (overlayIdx == -1)) &&
 		        ((iter->_idx == objIdx) || (objIdx == -1)) &&
 		        ((iter->_type == objType) || (objType == -1)) &&
-		        ((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1)) &&
-		        ((iter->_freeze == oldFreeze) || (oldFreeze == -1))) {
-			iter->_freeze = newFreeze;
+		        ((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1))) {
+				iter->freeze(oldFreeze, newFreeze);
 		}
 		iter++;
 	}
