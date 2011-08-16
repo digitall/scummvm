@@ -29,58 +29,6 @@
 
 namespace Cruise {
 
-struct autoCellStruct {
-	struct autoCellStruct *next;
-	short int ovlIdx;
-	short int objIdx;
-	short int type;
-	short int newValue;
-	Cell *pCell;
-};
-
-autoCellStruct autoCellHead;
-
-void addAutoCell(int overlayIdx, int idx, int type, int newVal, Cell *pObject) {
-	autoCellStruct *pNewEntry;
-
-	pNewEntry = new autoCellStruct;
-
-	pNewEntry->next = autoCellHead.next;
-	autoCellHead.next = pNewEntry;
-
-	pNewEntry->ovlIdx = overlayIdx;
-	pNewEntry->objIdx = idx;
-	pNewEntry->type = type;
-	pNewEntry->newValue = newVal;
-	pNewEntry->pCell = pObject;
-}
-
-void freeAutoCell() {
-	autoCellStruct *pCurrent = autoCellHead.next;
-
-	while (pCurrent) {
-		autoCellStruct *next = pCurrent->next;
-
-		if (pCurrent->type == 5) {
-			objInit(pCurrent->ovlIdx, pCurrent->objIdx, pCurrent->newValue);
-		} else {
-			setObjectPosition(pCurrent->ovlIdx, pCurrent->objIdx, pCurrent->type, pCurrent->newValue);
-		}
-
-		if (pCurrent->pCell->_animWait < 0) {
-			objectParamsQuery params;
-
-			getMultipleObjectParam(pCurrent->ovlIdx, pCurrent->objIdx, &params);
-
-			pCurrent->pCell->_animCounter = params.state2 - 1;
-		}
-
-		delete pCurrent;
-
-		pCurrent = next;
-	}
-}
-
 void calcRGB(uint8 *pColorSrc, uint8 *pColorDst, int *offsetTable) {
 	for (unsigned long int i = 0; i < 3; i++) {
 		int color = *(pColorSrc++);
@@ -1152,57 +1100,6 @@ void mainDrawPolygons(int fileIndex, CellList *plWork, int X, int scale, int Y, 
 	buildPolyModel(newX, newY, newScale, (char *)polygonMask, destBuffer, newFrame);
 }
 
-void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int width, int newColor, uint8 *ouputPtr) {
-	// this is used for font only
-
-	if (pGfxPtr) {
-		uint8 *initialOuput;
-		uint8 *output;
-		int xp, yp;
-		int x, y;
-		const uint8 *ptr = pGfxPtr->imagePtr;
-		int height = pGfxPtr->height;
-
-		if (width > 310)
-			width = 310;
-		if (width + globalX > 319)
-			globalX = 319 - width;
-		if (globalY < 0)
-			globalY = 0;
-		if (globalX < 0)
-			globalX = 0;
-
-		if (globalY + pGfxPtr->height >= 198) {
-			globalY = 198 - pGfxPtr->height;
-		}
-
-		gfxModuleData_addDirtyRect(Common::Rect(globalX, globalY, globalX + width, globalY + height));
-
-		initialOuput = ouputPtr + (globalY * 320) + globalX;
-
-		for (yp = 0; yp < height; yp++) {
-			output = initialOuput + 320 * yp;
-			y = globalY + yp;
-
-			for (xp = 0; xp < pGfxPtr->width; xp++) {
-				x = globalX + xp;
-				uint8 color = *(ptr++);
-
-				if (color) {
-					if ((x >= 0) && (x < 320) && (y >= 0) && (y < 200)) {
-						if (color == 1) {
-							*output = (uint8) 0;
-						} else {
-							*output = (uint8) newColor;
-						}
-					}
-				}
-				output++;
-			}
-		}
-	}
-}
-
 void drawSprite(int width, int height, CellList *currentObjPtr, const uint8 *dataIn, int ys, int xs, uint8 *output, const uint8 *dataBuf) {
 	int x = 0;
 	int y = 0;
@@ -1369,30 +1266,7 @@ void drawMenu(Menu *pMenu) {
 	}
 }
 
-int getValueFromObjectQuerry(objectParamsQuery *params, int idx) {
-	switch (idx) {
-	case 0:
-		return params->X;
-	case 1:
-		return params->Y;
-	case 2:
-		return params->baseFileIdx;
-	case 3:
-		return params->fileIdx;
-	case 4:
-		return params->scale;
-	case 5:
-		return params->state;
-	case 6:
-		return params->state2;
-	case 7:
-		return params->nbState;
-	}
-
-	assert(0);
-
-	return 0;
-}
+autoCellStruct autoCellHead;
 
 void mainDraw(int16 param) {
 	uint8 *bgPtr;
@@ -1480,80 +1354,8 @@ void mainDraw(int16 param) {
 			}
 
 			// automatic animation process
-			if (iter->_animStep && !param) {
-				if (iter->_animCounter <= 0) {
-
-					bool change = true;
-
-					int newVal = getValueFromObjectQuerry(&params, iter->_animChange) + iter->_animStep;
-
-					if (iter->_animStep > 0) {
-						if (newVal > iter->_animEnd) {
-							if (iter->_animLoop) {
-								newVal = iter->_animStart;
-								if (iter->_animLoop > 0)
-									iter->_animLoop--;
-							} else {
-								int16 data2;
-								data2 = iter->_animStart;
-
-								change = false;
-								iter->_animStep = 0;
-
-								if (iter->_animType) {  // should we resume the script ?
-									if (iter->_parentType == 20) {
-										procScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
-									} else if (iter->_parentType == 30) {
-										relScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
-									}
-								}
-							}
-						}
-					} else {
-						if (newVal < iter->_animEnd) {
-							if (iter->_animLoop) {
-								newVal = iter->_animStart;
-								if (iter->_animLoop > 0)
-									iter->_animLoop--;
-							} else {
-								int16 data2;
-								data2 = iter->_animStart;
-
-								change = false;
-								iter->_animStep = 0;
-
-								if (iter->_animType) {  // should we resume the script ?
-									if (iter->_parentType == 20) {
-										procScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
-									} else if (iter->_parentType == 30) {
-										relScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
-									}
-								}
-							}
-						}
-					}
-
-					if (iter->_animWait >= 0) {
-						iter->_animCounter = iter->_animWait;
-					}
-
-					if ((iter->_animSignal >= 0) && (iter->_animSignal == newVal) && (iter->_animType != 0)) {
-						if (iter->_parentType == 20) {
-							procScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
-						} else if (iter->_parentType == 30) {
-							relScriptList.changeParam(iter->_parentOverlay, iter->_parent, -1, 0);
-						}
-
-						iter->_animType = 0;
-					}
-
-					if (change) {
-						addAutoCell(iter->_overlay, iter->_idx, iter->_animChange, newVal, &(*iter));
-					}
-				} else {
-					iter->_animCounter--;
-				}
-			}
+			if (iter->_animStep && !param)
+				iter->animate(params);
 		}
 
 		iter++;
@@ -1570,7 +1372,7 @@ void mainDraw(int16 param) {
 
 	while (iter != _vm->cellList.end()) {
 		if (iter->_type == OBJ_TYPE_MESSAGE && iter->_freeze == 0) {
-			drawMessage(iter->_gfxPtr, iter->_X, iter->_fieldC, iter->_spriteIdx, iter->_color, gfxModuleData.pPage10);
+			iter->drawAsMessage();
 			isMessage = 1;
 		}
 		iter++;

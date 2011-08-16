@@ -26,6 +26,7 @@
 
 #include "common/scummsys.h"
 #include "common/serializer.h"
+#include "cruise/object.h"
 
 namespace Cruise {
 
@@ -36,25 +37,36 @@ public:
 	int16 _idx;
 	int16 _type;
 	int16 _overlay;
+	int16 _backgroundPlane;
 	int16 _X;
 	int16 _fieldC;
 	int16 _spriteIdx;
 	int16 _color;
-	int16 _backgroundPlane;
+
+
+	int16 _animWait;					//used in cell.cpp
+	int16 _animCounter;
+	
+	int16 _followObjectOverlayIdx;		//used in cruise_main
+	int16 _followObjectIdx;
 	int16 _freeze;
+
+	int16 _animChange;					//used in function
+
+	int16 _animStep;					//used in mainDraw
+private:
 	int16 _parent;
 	int16 _parentOverlay;
 	int16 _parentType;
-	int16 _followObjectOverlayIdx;
-	int16 _followObjectIdx;
+
 	int16 _animStart;
 	int16 _animEnd;
-	int16 _animWait;
-	int16 _animStep;
-	int16 _animChange;
+	
+
+
 	int16 _animType;
 	int16 _animSignal;
-	int16 _animCounter;
+	
 	int16 _animLoop;
 	gfxEntryStruct *_gfxPtr;
 public:
@@ -62,10 +74,22 @@ public:
 	Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
 	void remove();
 
+	void setAnim(int16 signal, int16 loop, int16 wait, int16 animStep, int16 end, int16 start, int16 type, int16 change);
+	void animate(objectParamsQuery params);
 	void setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx);
 	void makeTextObject(int x, int y, int width, int16 color,const char *pText);
 	void sync(Common::Serializer &s);
 	void freeze(int oldFreeze, int newFreeze);
+	void drawAsMessage();
+};
+
+struct autoCellStruct {
+	struct autoCellStruct *next;
+	short int ovlIdx;
+	short int objIdx;
+	short int type;
+	short int newValue;
+	Cell *pCell;
 };
 
 class CellList: private Common::List<Cell> {
@@ -91,6 +115,11 @@ public:
 	void freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);
 	void sort(int16 overlayIdx, int16 objIdx);
 };
+
+extern autoCellStruct autoCellHead;
+
+void freeAutoCell();
+void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int width, int newColor, uint8 *ouputPtr);
 
 } // End of namespace Cruise
 

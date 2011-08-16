@@ -27,6 +27,125 @@
 
 namespace Cruise {
 
+extern autoCellStruct autoCellHead;
+
+void addAutoCell(int overlayIdx, int idx, int type, int newVal, Cell *pObject) {
+	autoCellStruct *pNewEntry;
+
+	pNewEntry = new autoCellStruct;
+
+	pNewEntry->next = autoCellHead.next;
+	autoCellHead.next = pNewEntry;
+
+	pNewEntry->ovlIdx = overlayIdx;
+	pNewEntry->objIdx = idx;
+	pNewEntry->type = type;
+	pNewEntry->newValue = newVal;
+	pNewEntry->pCell = pObject;
+}
+
+void freeAutoCell() {
+	autoCellStruct *pCurrent = autoCellHead.next;
+
+	while (pCurrent) {
+		autoCellStruct *next = pCurrent->next;
+
+		if (pCurrent->type == 5) {
+			objInit(pCurrent->ovlIdx, pCurrent->objIdx, pCurrent->newValue);
+		} else {
+			setObjectPosition(pCurrent->ovlIdx, pCurrent->objIdx, pCurrent->type, pCurrent->newValue);
+		}
+
+		if (pCurrent->pCell->_animWait < 0) {
+			objectParamsQuery params;
+
+			getMultipleObjectParam(pCurrent->ovlIdx, pCurrent->objIdx, &params);
+
+			pCurrent->pCell->_animCounter = params.state2 - 1;
+		}
+
+		delete pCurrent;
+
+		pCurrent = next;
+	}
+}
+
+void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int width, int newColor, uint8 *ouputPtr) {
+	// this is used for font only
+
+	if (pGfxPtr) {
+		uint8 *initialOuput;
+		uint8 *output;
+		int xp, yp;
+		int x, y;
+		const uint8 *ptr = pGfxPtr->imagePtr;
+		int height = pGfxPtr->height;
+
+		if (width > 310)
+			width = 310;
+		if (width + globalX > 319)
+			globalX = 319 - width;
+		if (globalY < 0)
+			globalY = 0;
+		if (globalX < 0)
+			globalX = 0;
+
+		if (globalY + pGfxPtr->height >= 198) {
+			globalY = 198 - pGfxPtr->height;
+		}
+
+		gfxModuleData_addDirtyRect(Common::Rect(globalX, globalY, globalX + width, globalY + height));
+
+		initialOuput = ouputPtr + (globalY * 320) + globalX;
+
+		for (yp = 0; yp < height; yp++) {
+			output = initialOuput + 320 * yp;
+			y = globalY + yp;
+
+			for (xp = 0; xp < pGfxPtr->width; xp++) {
+				x = globalX + xp;
+				uint8 color = *(ptr++);
+
+				if (color) {
+					if ((x >= 0) && (x < 320) && (y >= 0) && (y < 200)) {
+						if (color == 1) {
+							*output = (uint8) 0;
+						} else {
+							*output = (uint8) newColor;
+						}
+					}
+				}
+				output++;
+			}
+		}
+	}
+}
+
+int getValueFromObjectQuerry(objectParamsQuery *params, int idx) {
+	switch (idx) {
+	case 0:
+		return params->X;
+	case 1:
+		return params->Y;
+	case 2:
+		return params->baseFileIdx;
+	case 3:
+		return params->fileIdx;
+	case 4:
+		return params->scale;
+	case 5:
+		return params->state;
+	case 6:
+		return params->state2;
+	case 7:
+		return params->nbState;
+	}
+
+	assert(0);
+
+	return 0;
+}
+
 Cell::Cell() {
 	_gfxPtr = NULL;
 
@@ -117,6 +236,94 @@ void Cell::sync(Common::Serializer& s) {
 void Cell::freeze(int oldFreeze, int newFreeze) {
 	if ((_freeze == oldFreeze) || (oldFreeze == -1))
 		_freeze = newFreeze;
+}
+
+void Cell::setAnim(int16 signal, int16 loop, int16 wait, int16 animStep, int16 end, int16 start, int16 type, int16 change) {
+	_animSignal = signal;
+	_animLoop = loop;
+	_animWait = wait;
+	_animStep = animStep;
+	_animEnd = end;
+	_animStart = start;
+	_animType = type;
+	_animChange = change;
+}
+
+void Cell::animate(objectParamsQuery params) {
+	if (_animCounter <= 0) {
+
+		bool change = true;
+
+		int newVal = getValueFromObjectQuerry(&params, _animChange) + _animStep;
+
+		if (_animStep > 0) {
+			if (newVal > _animEnd) {
+				if (_animLoop) {
+					newVal = _animStart;
+					if (_animLoop > 0)
+						_animLoop--;
+				} else {
+					int16 data2;
+					data2 = _animStart;
+
+					change = false;
+					_animStep = 0;
+
+					if (_animType) {  // should we resume the script ?
+						if (_parentType == 20) {
+							procScriptList.changeParam(_parentOverlay, _parent, -1, 0);					//those are not suppose to be here
+						} else if (_parentType == 30) {
+							relScriptList.changeParam(_parentOverlay, _parent, -1, 0);					//
+						}
+					}
+				}
+			}
+		} else {
+			if (newVal < _animEnd) {
+				if (_animLoop) {
+					newVal = _animStart;
+					if (_animLoop > 0)
+						_animLoop--;
+				} else {
+					int16 data2;
+					data2 = _animStart;
+
+					change = false;
+					_animStep = 0;
+
+					if (_animType) {  // should we resume the script ?
+						if (_parentType == 20) {
+							procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+						} else if (_parentType == 30) {
+							relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+						}
+					}
+				}
+			}
+		}
+
+		if (_animWait >= 0) {
+			_animCounter = _animWait;
+		}
+
+		if ((_animSignal >= 0) && (_animSignal == newVal) && (_animType != 0)) {
+			if (_parentType == 20) {
+				procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+			} else if (_parentType == 30) {
+				relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+			}
+
+			_animType = 0;
+		}
+
+		if (change)
+			addAutoCell(_overlay, _idx, _animChange, newVal, this);
+	} else
+		_animCounter--;
+}
+
+void Cell::drawAsMessage() {
+	drawMessage(_gfxPtr, _X, _fieldC, _spriteIdx, _color, gfxModuleData.pPage10);
 }
 
 void freeMessageList(CellList *objPtr) {

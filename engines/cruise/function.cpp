@@ -849,15 +849,15 @@ int16 Op_AutoCell() {
 
 	if (!pObject)
 		return 0;
-
-	pObject->_animSignal = signal;
+	pObject->setAnim(signal, loop, wait, animStep, end, start, type, change);
+/*	pObject->_animSignal = signal;
 	pObject->_animLoop = loop;
 	pObject->_animWait = wait;
 	pObject->_animStep = animStep;
 	pObject->_animEnd = end;
 	pObject->_animStart = start;
 	pObject->_animType = type;
-	pObject->_animChange = change;
+	pObject->_animChange = change;*/
 
 	if (type) {
 		if (currentScriptPtr->_type == scriptType_PROC) {
