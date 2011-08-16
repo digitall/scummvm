@@ -52,8 +52,6 @@ public:
 	int16 _freeze;
 
 	int16 _animChange;					//used in function
-
-	int16 _animStep;					//used in mainDraw
 private:
 	int16 _parent;
 	int16 _parentOverlay;
@@ -66,7 +64,7 @@ private:
 
 	int16 _animType;
 	int16 _animSignal;
-	
+	int16 _animStep;
 	int16 _animLoop;
 	gfxEntryStruct *_gfxPtr;
 public:

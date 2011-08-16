@@ -250,7 +250,7 @@ void Cell::setAnim(int16 signal, int16 loop, int16 wait, int16 animStep, int16 e
 }
 
 void Cell::animate(objectParamsQuery params) {
-	if (_animCounter <= 0) {
+	if (_animStep && (_animCounter <= 0)) {
 
 		bool change = true;
 

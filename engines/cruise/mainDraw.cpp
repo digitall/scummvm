@@ -1354,7 +1354,7 @@ void mainDraw(int16 param) {
 			}
 
 			// automatic animation process
-			if (iter->_animStep && !param)
+			if (!param)
 				iter->animate(params);
 		}
 
