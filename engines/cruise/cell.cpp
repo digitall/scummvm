@@ -24,6 +24,7 @@
 #include "common/file.h"
 #include "cruise/cell.h"
 #include "common/list.h"
+#include "cruise.h"
 
 namespace Cruise {
 
@@ -271,9 +272,9 @@ void Cell::animate(objectParamsQuery params) {
 
 					if (_animType) {  // should we resume the script ?
 						if (_parentType == 20) {
-							procScriptList.changeParam(_parentOverlay, _parent, -1, 0);					//those are not suppose to be here
+							_vm->procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
 						} else if (_parentType == 30) {
-							relScriptList.changeParam(_parentOverlay, _parent, -1, 0);					//
+							_vm->relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
 						}
 					}
 				}
@@ -293,9 +294,9 @@ void Cell::animate(objectParamsQuery params) {
 
 					if (_animType) {  // should we resume the script ?
 						if (_parentType == 20) {
-							procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+							_vm->procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
 						} else if (_parentType == 30) {
-							relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+							_vm->relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
 						}
 					}
 				}
@@ -308,9 +309,9 @@ void Cell::animate(objectParamsQuery params) {
 
 		if ((_animSignal >= 0) && (_animSignal == newVal) && (_animType != 0)) {
 			if (_parentType == 20) {
-				procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+				_vm->procScriptList.changeParam(_parentOverlay, _parent, -1, 0);
 			} else if (_parentType == 30) {
-				relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
+				_vm->relScriptList.changeParam(_parentOverlay, _parent, -1, 0);
 			}
 
 			_animType = 0;

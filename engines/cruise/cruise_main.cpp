@@ -428,8 +428,8 @@ void CruiseEngine::initAllData() {
 
 	initBigVar3();
 
-	procScriptList.resetPtr2();
-	relScriptList.resetPtr2();
+	_vm->procScriptList.resetPtr2();
+	_vm->relScriptList.resetPtr2();
 
 	_vm->cellList.clear();
 
@@ -527,8 +527,8 @@ void CruiseEngine::initAllData() {
 	if (bootOverlayNumber) {
 		stack.reset();
 
-		procScriptList.add(bootOverlayNumber, 0, 20, 0, 0, scriptType_PROC);
-		procScriptList.scriptFunc2(bootOverlayNumber, 1, 0);
+		_vm->procScriptList.add(bootOverlayNumber, 0, 20, 0, 0, scriptType_PROC);
+		_vm->procScriptList.scriptFunc2(bootOverlayNumber, 1, 0);
 	}
 
 	strcpy(lastOverlay, "AUTO00");
@@ -813,7 +813,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 								strcpy(verbe_name, ptr);
 
 								if (!strlen(verbe_name))
-									relScriptList.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+									_vm->relScriptList.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 								else if (ovl2->nameVerbGlob) {
 									found = true;
 									int color;
@@ -905,9 +905,9 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 							if ((!first) && ((testState == -1) || (testState == objectState))) {
 								if (!strlen(verbe_name)) {
 									if (currentScriptPtr) {
-										relScriptList.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+										_vm->relScriptList.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 									} else {
-										relScriptList.add(j, ptrHead->id, 30, 0, 0, scriptType_REL);
+										_vm->relScriptList.add(j, ptrHead->id, 30, 0, 0, scriptType_REL);
 									}
 								} else if (ovl2->nameVerbGlob) {
 									found = true;
@@ -980,9 +980,9 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 			if ((pHeader->obj2OldState == -1) || (params.state == pHeader->obj2OldState)) {
 				if (pHeader->type == RT_REL) { // REL
 					if (currentScriptPtr) {
-						relScriptList.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+						_vm->relScriptList.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 					} else {
-						relScriptList.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
+						_vm->relScriptList.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 					}
 
 					if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
@@ -1013,7 +1013,7 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 
 							autoTrack = true;
 							userEnabled = 0;
-							relScriptList.changeParam(ovlIdx, pHeader->id, 0, 9998);
+							_vm->relScriptList.changeParam(ovlIdx, pHeader->id, 0, 9998);
 						}
 					}
 				} else if (pHeader->type == RT_MSG) {
@@ -1118,9 +1118,9 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 			// REL
 			if (pHeader->type == RT_REL) {
 				if (currentScriptPtr) {
-					relScriptList.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+					_vm->relScriptList.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
 				} else {
-					relScriptList.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
+					_vm->relScriptList.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 				}
 
 				if ((narratorOvl > 0) && (pHeader->trackX != -1) && (pHeader->trackY != -1)) {
@@ -1151,7 +1151,7 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 
 						autoTrack = true;
 						userEnabled = 0;
-						relScriptList.changeParam(ovlIdx, pHeader->id, 0, 9998);
+						_vm->relScriptList.changeParam(ovlIdx, pHeader->id, 0, 9998);
 					}
 				}
 			} else if (pHeader->type == RT_MSG) { // MSG
@@ -1727,8 +1727,8 @@ void CruiseEngine::mainLoop() {
 
 		if (isUserWait & !userWait) {
 			// User waiting has ended
-			procScriptList.changeParam(-1, -1, 9999, 0);
-			relScriptList.changeParam(-1, -1, 9999, 0);
+			_vm->procScriptList.changeParam(-1, -1, 9999, 0);
+			_vm->relScriptList.changeParam(-1, -1, 9999, 0);
 
 			// Disable any mouse click used to end the user wait
 			currentMouse._button = 0;
@@ -1744,11 +1744,11 @@ void CruiseEngine::mainLoop() {
 		while (numIterations-- > 0) {
 			bgChanged = backgrounds[masterScreen]._isChanged;
 
-			relScriptList.manage();
-			procScriptList.manage();
+			_vm->relScriptList.manage();
+			_vm->procScriptList.manage();
 
-			relScriptList.removeFinished();
-			procScriptList.removeFinished();
+			_vm->relScriptList.removeFinished();
+			_vm->procScriptList.removeFinished();
 
 			if (!bgChanged && backgrounds[masterScreen]._isChanged &&
 			        !strcmp(backgrounds[0]._backgroundTable.name, "S06B.PI1")) {
@@ -1853,8 +1853,8 @@ void CruiseEngine::mainLoop() {
 	} while (!playerDontAskQuit && quitValue2 && quitValue != 7);
 
 	// Free data
-	relScriptList.removeAll();
-	procScriptList.removeAll();
+	_vm->relScriptList.removeAll();
+	_vm->procScriptList.removeAll();
 	actorHead.clear();
 	freeOverlayTable();
 	closeCnf();

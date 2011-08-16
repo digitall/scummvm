@@ -140,6 +140,8 @@ public:
 	Common::File _PAL_file;
 
 	CellList cellList;
+	ScriptList relScriptList;
+	ScriptList procScriptList;
 };
 
 extern CruiseEngine *_vm;

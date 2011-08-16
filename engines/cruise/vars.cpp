@@ -162,8 +162,6 @@ BackgroundIncrustList backgroundIncrustListHead;
 Menu *menuTable[8];
 Stack stack;
 
-ScriptList relScriptList;
-ScriptList procScriptList;
 ScriptInstance *currentScriptPtr;
 
 int16 numPoly;

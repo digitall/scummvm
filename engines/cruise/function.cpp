@@ -101,7 +101,7 @@ int16 Op_Exec() {
 		ovlIdx = currentScriptPtr->_overlayNumber;
 	}
 
-	ptr = procScriptList.add(ovlIdx, scriptIdx, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_MinusPROC);
+	ptr = _vm->procScriptList.add(ovlIdx, scriptIdx, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_MinusPROC);
 
 	if (!ptr)
 		return (0);
@@ -139,7 +139,7 @@ int16 Op_AddProc() {
 	if (!overlay)
 		return (0);
 
-	uint8 *procBss = procScriptList.add(overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
+	uint8 *procBss = _vm->procScriptList.add(overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
 
 	if (procBss) {
 		for (long int i = 0; i < pop1; i++) {
@@ -367,7 +367,7 @@ int16 Op_RemoveProc() {
 		overlay = currentScriptPtr->_overlayNumber;
 	}
 
-	procScriptList.remove(overlay, idx);
+	_vm->procScriptList.remove(overlay, idx);
 
 	return (0);
 }
@@ -461,9 +461,9 @@ int16 Op_Display() {
 
 int16 Op_FreezeParent() {
 	if (currentScriptPtr->_var1A == 20) {
-		procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
+		_vm->procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
 	} else if (currentScriptPtr->_var1A == 30) {
-		relScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
+		_vm->relScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
 	}
 
 	return 0;
@@ -743,9 +743,9 @@ int16 Op_SetFont() {
 
 int16 Op_UnfreezeParent() {
 	if (currentScriptPtr->_var1A == 0x14) {
-		procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
+		_vm->procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
 	} else if (currentScriptPtr->_var1A == 0x1E) {
-		relScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
+		_vm->relScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
 	}
 
 	return 0;
@@ -861,9 +861,9 @@ int16 Op_AutoCell() {
 
 	if (type) {
 		if (currentScriptPtr->_type == scriptType_PROC) {
-			procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
+			_vm->procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
 		} else if (currentScriptPtr->_type == scriptType_REL) {
-			relScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
+			_vm->relScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
 		}
 	}
 
@@ -1729,9 +1729,9 @@ int16 Op_ThemeReset() {
 int16 Op_UserWait() {
 	userWait = 1;
 	if (currentScriptPtr->_type == scriptType_PROC) {
-		procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
+		_vm->procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
 	} else if (currentScriptPtr->_type == scriptType_REL) {
-		relScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
+		_vm->relScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
 	}
 
 	return 0;

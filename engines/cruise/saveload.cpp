@@ -564,8 +564,8 @@ static void DoSync(Common::Serializer &s) {
 	syncOverlays1(s);
 	syncPreloadData(s);
 	syncOverlays2(s);
-	syncScript(s, &procScriptList);
-	syncScript(s, &relScriptList);
+	syncScript(s, &_vm->procScriptList);
+	syncScript(s, &_vm->relScriptList);
 	syncCell(s);
 	syncIncrust(s);
 	syncActors(s);
@@ -609,13 +609,13 @@ void initVars() {
 	_vm->cellList.clear();
 	actorHead.remove(-1, -1, -1);
 
-	relScriptList.removeAll();
-	procScriptList.removeAll();
-	procScriptList.changeParam(-1, -1, -1, 0);
-	procScriptList.removeFinished();
+	_vm->relScriptList.removeAll();
+	_vm->procScriptList.removeAll();
+	_vm->procScriptList.changeParam(-1, -1, -1, 0);
+	_vm->procScriptList.removeFinished();
 
-	relScriptList.changeParam(-1, -1, -1, 0);
-	relScriptList.removeFinished();
+	_vm->relScriptList.changeParam(-1, -1, -1, 0);
+	_vm->relScriptList.removeFinished();
 
 	for (unsigned long int i = 0; i < 90; i++) {
 		if (strlen(overlayTable[i].overlayName) && overlayTable[i].alreadyLoaded) {
@@ -661,8 +661,8 @@ void initVars() {
 
 	initBigVar3();
 
-	procScriptList.resetPtr2();
-	relScriptList.resetPtr2();
+	_vm->procScriptList.resetPtr2();
+	_vm->relScriptList.resetPtr2();
 
 	_vm->cellList.clear();
 
