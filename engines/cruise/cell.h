@@ -38,29 +38,25 @@ public:
 	int16 _type;
 	int16 _overlay;
 	int16 _backgroundPlane;
+
+	int16 _animWait;					//used in cell.cpp
+	int16 _animCounter;
+
+	int16 _freeze;						//used in cruise_main
+
+	int16 _animChange;					//used in function
+private:
 	int16 _X;
 	int16 _fieldC;
 	int16 _spriteIdx;
 	int16 _color;
-
-
-	int16 _animWait;					//used in cell.cpp
-	int16 _animCounter;
-	
-	int16 _followObjectOverlayIdx;		//used in cruise_main
-	int16 _followObjectIdx;
-	int16 _freeze;
-
-	int16 _animChange;					//used in function
-private:
 	int16 _parent;
 	int16 _parentOverlay;
 	int16 _parentType;
-
+	int16 _followObjectIdx;
+	int16 _followObjectOverlayIdx;
 	int16 _animStart;
 	int16 _animEnd;
-	
-
 
 	int16 _animType;
 	int16 _animSignal;
@@ -71,6 +67,9 @@ public:
 	Cell();
 	Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
 	void remove();
+
+	int16 getFollowObjectOverlayIdx() { return _followObjectOverlayIdx;}
+	int16 getFollowObjectIdx() {return _followObjectIdx;}
 
 	void setAnim(int16 signal, int16 loop, int16 wait, int16 animStep, int16 end, int16 start, int16 type, int16 change);
 	void animate(objectParamsQuery params);

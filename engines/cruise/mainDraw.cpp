@@ -1311,11 +1311,11 @@ void mainDraw(int16 param) {
 
 			currentObjIdx = iter->_idx;
 
-			if ((iter->_followObjectOverlayIdx != iter->_overlay) || (iter->_followObjectIdx != iter->_idx)) {
+			if ((iter->getFollowObjectOverlayIdx() != iter->_overlay) || (iter->getFollowObjectIdx() != iter->_idx)) {
 				// Declaring this twice ?
 				// objectParamsQuery params;
 
-				getMultipleObjectParam(iter->_followObjectOverlayIdx, iter->_followObjectIdx, &params);
+				getMultipleObjectParam(iter->getFollowObjectOverlayIdx(), iter->getFollowObjectIdx(), &params);
 
 				objX1 = params.X;
 				objY1 = params.Y;

@@ -569,8 +569,8 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 			if (strlen(objectName) && (rIter->_freeze == 0)) {
 				int objIdx = rIter->_idx;
 				int objOvl = rIter->_overlay;
-				int linkedObjIdx = rIter->_followObjectIdx;
-				int linkedObjOvl = rIter->_followObjectOverlayIdx;
+				int linkedObjIdx = rIter->getFollowObjectIdx();
+				int linkedObjOvl = rIter->getFollowObjectOverlayIdx();
 
 				objectParamsQuery params;
 				getMultipleObjectParam(objOvl, objIdx, &params);
