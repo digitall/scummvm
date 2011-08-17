@@ -50,6 +50,9 @@ public:
 	uint8 *scriptDataPtrTable[7];
 
 	ScriptInstance();
+
+	int8 getByte();
+	short int getShort();
 	int32 execute();
 
 private:
@@ -87,8 +90,6 @@ public:
 	void scriptFunc2(int scriptNumber, int param, int param2);
 
 };
-int8 getByteFromScript();
-
 
 } // End of namespace Cruise
 

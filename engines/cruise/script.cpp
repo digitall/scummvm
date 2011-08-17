@@ -44,14 +44,14 @@ ScriptInstance::ScriptInstance() {
 
 
 
-int8 getByteFromScript() {
+int8 ScriptInstance::getByte() {
 	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->_scriptOffset);
 	++currentScriptPtr->_scriptOffset;
 
 	return (var);
 }
 
-short int getShortFromScript() {
+short int ScriptInstance::getShort() {
 	short int var = (int16)READ_BE_UINT16(currentData3DataPtr + currentScriptPtr->_scriptOffset);
 	currentScriptPtr->_scriptOffset += 2;
 
@@ -64,16 +64,16 @@ int32 ScriptInstance::opcodeType0() {
 
 	switch (currentScriptOpcodeType) {
 	case 0: {
-		stack.pushVar(getShortFromScript());
+		stack.pushVar(getShort());
 		return (0);
 	}
 	case 5:
 		index = saveOpcodeVar;
 	case 1: {
 		uint8 *address = 0;
-		int type = getByteFromScript();
-		int ovl = getByteFromScript();
-		short int offset = getShortFromScript();
+		int type = getByte();
+		int ovl = getByte();
+		short int offset = getShort();
 		offset += index;
 
 		int typ7 = type & 7;
@@ -117,9 +117,9 @@ int32 ScriptInstance::opcodeType0() {
 	}
 	case 2: {
 		int16 var_16;
-		int di = getByteFromScript();
-		int si = getByteFromScript();
-		int var_2 = getShortFromScript();
+		int di = getByte();
+		int si = getByte();
+		int var_2 = getShort();
 
 		if (!si) {
 			si = currentScriptPtr->_overlayNumber;
@@ -152,10 +152,10 @@ int32 ScriptInstance::opcodeType1() {
 	case 1: {
 		int var_A = 0;
 
-		int byte1 = getByteFromScript();
-		int byte2 = getByteFromScript();
+		int byte1 = getByte();
+		int byte2 = getByte();
 
-		int short1 = getShortFromScript();
+		int short1 = getShort();
 
 		int var_6 = byte1 & 7;
 
@@ -206,9 +206,9 @@ int32 ScriptInstance::opcodeType1() {
 		break;
 	}
 	case 2: {
-		int mode = getByteFromScript();
-		int di = getByteFromScript();
-		int var_4 = getShortFromScript();
+		int mode = getByte();
+		int di = getByte();
+		int var_4 = getShort();
 
 		if (!di) {
 			di = currentScriptPtr->_overlayNumber;
@@ -240,10 +240,10 @@ int32 ScriptInstance::opcodeType2() {
 		index = saveOpcodeVar;
 	case 1: {
 		uint8 *adresse = NULL;
-		int type = getByteFromScript();
-		int overlay = getByteFromScript();
+		int type = getByte();
+		int overlay = getByte();
 
-		int offset = getShortFromScript();
+		int offset = getShort();
 		offset += index;
 
 		int typ7 = type & 7;
@@ -364,7 +364,7 @@ int32 ScriptInstance::opcodeType4() {       // test
 
 int32 ScriptInstance::opcodeType5() {
 	int offset = currentScriptPtr->_scriptOffset;
-	int short1 = getShortFromScript();
+	int short1 = getShort();
 	int newSi = short1 + offset;
 	int bitMask = currentScriptPtr->_ccr;
 
@@ -636,7 +636,7 @@ int ScriptInstance::execute() {
 			currentScriptPtr->_scriptOffset = 923;
 		}
 #endif
-		opcodeType = getByteFromScript();
+		opcodeType = getByte();
 
 		debugC(5, kCruiseDebugScript, "Script %s/%d ip=%d opcode=%d",
 		       overlayTable[currentScriptPtr->_overlayNumber].overlayName,

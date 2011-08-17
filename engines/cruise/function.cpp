@@ -1874,7 +1874,7 @@ opcodeFunction opcodeTablePtr[] = {
 };
 
 int32 ScriptInstance::opcodeType8() {
-	int opcode = getByteFromScript();
+	int opcode = getByte();
 
 	if (!opcode)
 		return (-21);
