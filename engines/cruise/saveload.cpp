@@ -355,26 +355,6 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 		currentScriptPtr = NULL;        //in case the load was called while a script runs.
 }
 
-static void syncCell(Common::Serializer &s) {
-	int chunkCount = 0;
-	Cell *p;
-
-	if (s.isSaving()) {
-		// Figure out the number of chunks to save
-		chunkCount = _vm->cellList.size();
-	}
-	s.syncAsSint16LE(chunkCount);
-
-	Common::List<Cell>::iterator iter = _vm->cellList.begin();
-	for (int i = 0; i < chunkCount; ++i) {
-		p = s.isSaving() ? &(*iter) : new Cell;
-		p->sync(s);
-		if (s.isLoading())
-			_vm->cellList.add(p);
-		iter++;
-	}
-}
-
 static void syncIncrust(Common::Serializer &s) {
 	int numEntries = 0;
 	uint8 dummyByte = 0;
@@ -566,7 +546,7 @@ static void DoSync(Common::Serializer &s) {
 	syncOverlays2(s);
 	syncScript(s, &_vm->procScriptList);
 	syncScript(s, &_vm->relScriptList);
-	syncCell(s);
+	_vm->cellList.syncCells(s);
 	syncIncrust(s);
 	syncActors(s);
 	syncSongs(s);

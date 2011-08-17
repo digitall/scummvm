@@ -417,11 +417,6 @@ void CellList::createTextObject(int overlayIdx, int messageIdx, int x, int y, in
 		backgrounds[0]._isChanged = true;
 }
 
-Cell *CellList::add(Cell *newCell) {
-	push_back(*newCell);
-	return &(*reverse_begin());
-}
-
 void CellList::remove(int ovlNumber, int objectIdx, int objType, int backgroundPlane) {
 
 	Common::List<Cell>::iterator iter = begin();
@@ -503,6 +498,26 @@ void CellList::sort(int16 ovlIdx, int16 objIdx) {
 			insertPos++;    //to add after insertPos not before.
 			insert(insertPos, temp.begin(), temp.end());
 		}
+	}
+}
+
+void CellList::syncCells(Common::Serializer &s) {
+	int chunkCount = 0;
+	Cell *p;
+
+	if (s.isSaving()) {
+		// Figure out the number of chunks to save
+		chunkCount = size();
+	}
+	s.syncAsSint16LE(chunkCount);
+
+	Common::List<Cell>::iterator iter = begin();
+	for (int i = 0; i < chunkCount; ++i) {
+		p = s.isSaving() ? &(*iter) : new Cell;
+		p->sync(s);
+		if (s.isLoading())
+			push_back(*p);
+		iter++;
 	}
 }
 

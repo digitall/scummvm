@@ -98,11 +98,9 @@ public:
 	Common::List<Cell>::iterator begin() { return Common::List<Cell>::begin(); }
 	Common::List<Cell>::iterator end() { return Common::List<Cell>::end(); }
 	Common::List<Cell>::iterator reverse_begin() { return Common::List<Cell>::reverse_begin(); }
-	uint size() { return Common::List<Cell>::size(); }
 
 	Cell *add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType);
 	Cell *add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
-	Cell *add(Cell *newCell);
 
 	void remove(int ovlNumber, int objectIdx, int objType, int backgroundPlane);
 	void clear();
@@ -111,6 +109,8 @@ public:
 	void linkCell(int ovl, int obj, int type, int ovl2, int obj2);
 	void freezeCell(int overlayIdx, int objIdx, int objType, int backgroundPlane, int oldFreeze, int newFreeze);
 	void sort(int16 overlayIdx, int16 objIdx);
+
+	void syncCells(Common::Serializer &s);
 };
 
 extern autoCellStruct autoCellHead;
