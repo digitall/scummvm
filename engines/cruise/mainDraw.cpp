@@ -1299,15 +1299,7 @@ void mainDraw(int16 param) {
 
 	//-------------------------------------------------- DRAW OBJECTS TYPE 5 (MSG)-----------------------------------------//
 
-	iter = _vm->cellList.begin();
-
-	while (iter != _vm->cellList.end()) {
-		if (iter->_type == OBJ_TYPE_MESSAGE && iter->_freeze == 0) {
-			iter->drawAsMessage();
-			isMessage = 1;
-		}
-		iter++;
-	}
+	isMessage = _vm->cellList.drawMessages();
 
 	//----------------------------------------------------------------------------------------------------------------//
 

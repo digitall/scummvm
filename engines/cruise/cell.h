@@ -112,6 +112,7 @@ public:
 
 	void syncCells(Common::Serializer &s);
 	void processMask(unsigned char *workBuf, int width, int height, int xs, int ys);
+	int16 drawMessages();
 };
 
 extern autoCellStruct autoCellHead;

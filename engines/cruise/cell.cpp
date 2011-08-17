@@ -569,4 +569,17 @@ void CellList::processMask(unsigned char *workBuf, int width, int height, int xs
 	}
 }
 
+int16 CellList::drawMessages() {
+	Common::List<Cell>::iterator iter = begin();
+	int16 messageDrawn = 0;
+	while (iter != _vm->cellList.end()) {
+		if (iter->_type == OBJ_TYPE_MESSAGE && iter->_freeze == 0) {
+			iter->drawAsMessage();
+			messageDrawn = 1;
+		}
+		iter++;
+	}
+	return messageDrawn;
+}
+
 } // End of namespace Cruise
