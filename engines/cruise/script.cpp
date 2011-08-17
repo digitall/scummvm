@@ -45,15 +45,15 @@ ScriptInstance::ScriptInstance() {
 
 
 int8 ScriptInstance::getByte() {
-	int8 var = *(int8 *)(currentData3DataPtr + currentScriptPtr->_scriptOffset);
-	++currentScriptPtr->_scriptOffset;
+	int8 var = *(int8 *)(currentData3DataPtr + _scriptOffset);
+	++_scriptOffset;
 
 	return (var);
 }
 
 short int ScriptInstance::getShort() {
-	short int var = (int16)READ_BE_UINT16(currentData3DataPtr + currentScriptPtr->_scriptOffset);
-	currentScriptPtr->_scriptOffset += 2;
+	short int var = (int16)READ_BE_UINT16(currentData3DataPtr + _scriptOffset);
+	_scriptOffset += 2;
 
 	return (var);
 }
@@ -122,7 +122,7 @@ int32 ScriptInstance::opcodeType0() {
 		int var_2 = getShort();
 
 		if (!si) {
-			si = currentScriptPtr->_overlayNumber;
+			si = _overlayNumber;
 		}
 
 		if (getSingleObjectParam(si, var_2, di, &var_16)) {
@@ -211,7 +211,7 @@ int32 ScriptInstance::opcodeType1() {
 		int var_4 = getShort();
 
 		if (!di) {
-			di = currentScriptPtr->_overlayNumber;
+			di = _overlayNumber;
 		}
 
 		if ((var == 0x85) && !strcmp((char *)currentCtpName, "S26.CTP") && !di && mode == 1) { // patch in bar
@@ -363,45 +363,45 @@ int32 ScriptInstance::opcodeType4() {       // test
 }
 
 int32 ScriptInstance::opcodeType5() {
-	int offset = currentScriptPtr->_scriptOffset;
+	int offset = _scriptOffset;
 	int short1 = getShort();
 	int newSi = short1 + offset;
-	int bitMask = currentScriptPtr->_ccr;
+	int bitMask = _ccr;
 
 	switch (currentScriptOpcodeType) {
 	case 0: {
 		if (!(bitMask & 1)) {
-			currentScriptPtr->_scriptOffset = newSi;
+			_scriptOffset = newSi;
 		}
 		break;
 	}
 	case 1: {
 		if (bitMask & 1) {
-			currentScriptPtr->_scriptOffset = newSi;
+			_scriptOffset = newSi;
 		}
 		break;
 	}
 	case 2: {
 		if (bitMask & 2) {
-			currentScriptPtr->_scriptOffset = newSi;
+			_scriptOffset = newSi;
 		}
 		break;
 	}
 	case 3: {
 		if (bitMask & 3) {
-			currentScriptPtr->_scriptOffset = newSi;
+			_scriptOffset = newSi;
 		}
 		break;
 	}
 	case 4: {
 		if (bitMask & 4) {
-			currentScriptPtr->_scriptOffset = newSi;
+			_scriptOffset = newSi;
 		}
 		break;
 	}
 	case 5: {
 		if (bitMask & 5) {
-			currentScriptPtr->_scriptOffset = newSi;
+			_scriptOffset = newSi;
 		}
 		break;
 	}
@@ -409,7 +409,7 @@ int32 ScriptInstance::opcodeType5() {
 		break;  // never
 	}
 	case 7: {
-		currentScriptPtr->_scriptOffset = newSi;    //always
+		_scriptOffset = newSi;    //always
 		break;
 	}
 	}
@@ -433,7 +433,7 @@ int32 ScriptInstance::opcodeType6() {
 		si |= 2;
 	}
 
-	currentScriptPtr->_ccr = si;
+	_ccr = si;
 
 	return (0);
 }
@@ -449,8 +449,8 @@ int32 ScriptInstance::opcodeType7() {
 }
 
 int32 ScriptInstance::opcodeType9() {       // stop script
-	//debug("Stop a script of overlay %s", overlayTable[currentScriptPtr->_overlayNumber].overlayName);
-	currentScriptPtr->_scriptNumber = -1;
+	//debug("Stop a script of overlay %s", overlayTable[_overlayNumber].overlayName);
+	_scriptNumber = -1;
 	return (1);
 }
 
@@ -630,20 +630,15 @@ int ScriptInstance::execute() {
 
 	do {
 #ifdef SKIP_INTRO
-		if (currentScriptPtr->_scriptOffset == 290
-		        && currentScriptPtr->_overlayNumber == 4
-		        && currentScriptPtr->_scriptNumber == 0) {
-			currentScriptPtr->_scriptOffset = 923;
+		if (_scriptOffset == 290 && _overlayNumber == 4 && _scriptNumber == 0) {
+			_scriptOffset = 923;
 		}
 #endif
 		opcodeType = getByte();
 
 		debugC(5, kCruiseDebugScript, "Script %s/%d ip=%d opcode=%d",
-		       overlayTable[currentScriptPtr->_overlayNumber].overlayName,
-		       currentScriptPtr->_scriptNumber,
-		       currentScriptPtr->_scriptOffset,
-		       (opcodeType & 0xFB) >> 3);
-
+		       overlayTable[_overlayNumber].overlayName, _scriptNumber,
+		       _scriptOffset, (opcodeType & 0xFB) >> 3);
 		currentScriptOpcodeType = opcodeType & 7;
 
 	} while (!executeScript((opcodeType & 0xFB) >> 3));
