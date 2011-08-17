@@ -521,4 +521,51 @@ void CellList::syncCells(Common::Serializer &s) {
 	}
 }
 
+void clearMaskBit(int x, int y, unsigned char *pData, int stride) {
+	unsigned char *ptr = y * stride + x / 8 + pData;
+
+	unsigned char bitToTest = 0x80 >> (x & 7);
+
+	*(ptr) &= ~bitToTest;
+}
+
+void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *pMask, int maskWidth, int maskHeight, int maskX, int maskY, int passIdx) {
+	for (int y = 0; y < maskHeight; y++) {
+		for (int x = 0; x < maskWidth * 8; x++) {
+			if (testMask(x, y, pMask, maskWidth)) {
+				int destX = maskX + x;
+				int destY = maskY + y;
+
+				if ((destX >= 0) && (destX < wbWidth * 8) && (destY >= 0) && (destY < wbHeight))
+					clearMaskBit(destX, destY, workBuf, wbWidth);
+			}
+		}
+	}
+}
+
+void CellList::processMask(unsigned char *workBuf, int width, int height, int xs, int ys) {
+		//workbuff, width, height, xs, ys
+	int numPasses = 0;
+
+	Common::List<Cell>::iterator iter = begin();
+
+	while (iter != end()) {
+		if (iter->_type == OBJ_TYPE_BGMASK && iter->_freeze == 0) {
+			objectParamsQuery params;
+
+			getMultipleObjectParam(iter->_overlay, iter->_idx, &params);
+
+			int maskX = params.X;
+			int maskY = params.Y;
+			int maskFrame = params.fileIdx;
+
+			if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_BGMASK && filesDatabase[maskFrame].subData.ptrMask)
+				drawMask(workBuf, width / 8, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
+			else if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_SPRITE && filesDatabase[maskFrame].subData.ptrMask)
+				drawMask(workBuf, width / 8, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
+
+		}
+		iter++;
+	}
+}
 } // End of namespace Cruise

@@ -994,29 +994,6 @@ bool findPoly(char *dataPtr, int positionX, int positionY, int scale, int mouseX
 	return false;
 }
 
-void clearMaskBit(int x, int y, unsigned char *pData, int stride) {
-	unsigned char *ptr = y * stride + x / 8 + pData;
-
-	unsigned char bitToTest = 0x80 >> (x & 7);
-
-	*(ptr) &= ~bitToTest;
-}
-
-
-void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *pMask, int maskWidth, int maskHeight, int maskX, int maskY, int passIdx) {
-	for (int y = 0; y < maskHeight; y++) {
-		for (int x = 0; x < maskWidth * 8; x++) {
-			if (testMask(x, y, pMask, maskWidth)) {
-				int destX = maskX + x;
-				int destY = maskY + y;
-
-				if ((destX >= 0) && (destX < wbWidth * 8) && (destY >= 0) && (destY < wbHeight))
-					clearMaskBit(destX, destY, workBuf, wbWidth);
-			}
-		}
-	}
-}
-
 unsigned char polygonMask[(320 * 200) / 8];
 
 // draw poly sprite (OLD: mainDrawSub1)
@@ -1111,16 +1088,19 @@ void drawSprite(int width, int height, CellList *currentObjPtr, const uint8 *dat
 		// At least part of sprite is on-screen
 		gfxModuleData_addDirtyRect(Common::Rect(ps.x, ps.y, pe.x, pe.y));
 
-	Common::List<Cell>::iterator iter;
-	if (currentObjPtr)
-		iter = currentObjPtr->begin();
-
 	int workBufferSize = height * (width / 8);
 
 	unsigned char *workBuf = (unsigned char *)MemAlloc(workBufferSize);
 	memcpy(workBuf, dataBuf, workBufferSize);
 
+	if (currentObjPtr)
+		currentObjPtr->processMask(workBuf, width, height, xs, ys);
+/*	//workbuff, width, height, xs, ys
 	int numPasses = 0;
+
+	Common::List<Cell>::iterator iter;
+	if (currentObjPtr)
+		iter = currentObjPtr->begin();
 
 	while (currentObjPtr && iter != currentObjPtr->end()) {
 		if (iter->_type == OBJ_TYPE_BGMASK && iter->_freeze == 0) {
@@ -1139,7 +1119,7 @@ void drawSprite(int width, int height, CellList *currentObjPtr, const uint8 *dat
 
 		}
 		iter++;
-	}
+	}*/
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < (width); x++) {

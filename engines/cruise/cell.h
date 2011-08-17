@@ -111,13 +111,14 @@ public:
 	void sort(int16 overlayIdx, int16 objIdx);
 
 	void syncCells(Common::Serializer &s);
+	void processMask(unsigned char *workBuf, int width, int height, int xs, int ys);
 };
 
 extern autoCellStruct autoCellHead;
 
 void freeAutoCell();
 void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int width, int newColor, uint8 *ouputPtr);
-
+void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *pMask, int maskWidth, int maskHeight, int maskX, int maskY, int passIdx);
 } // End of namespace Cruise
 
 #endif
