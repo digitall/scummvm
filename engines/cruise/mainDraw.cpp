@@ -1046,32 +1046,8 @@ void mainDrawPolygons(int fileIndex, CellList *plWork, int X, int scale, int Y, 
 	gfxModuleData_addDirtyRect(Common::Rect(spriteX2, spriteY2, spriteX1, spriteY1));
 
 	memset(polygonMask, 0xFF, (320 * 200) / 8);
-
-	int numPasses = 0;
-	Common::List<Cell>::iterator iter;
-	if (plWork)
-		iter = plWork->begin();
-
-	while (plWork && iter != plWork->end()) {
-		if (iter->_type == OBJ_TYPE_BGMASK && iter->_freeze == 0) {
-			objectParamsQuery params;
-
-			getMultipleObjectParam(iter->_overlay, iter->_idx, &params);
-
-			int maskX = params.X;
-			int maskY = params.Y;
-			int maskFrame = params.fileIdx;
-
-			if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_BGMASK && filesDatabase[maskFrame].subData.ptrMask) {
-				drawMask(polygonMask, 40, 200, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX, maskY, numPasses++);
-			} else if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_SPRITE && filesDatabase[maskFrame].subData.ptrMask) {
-				drawMask(polygonMask, 40, 200, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX, maskY, numPasses++);
-			}
-
-		}
-
-		iter++;
-	}
+	if(plWork)
+		plWork->processMask(polygonMask, 40, 200, 0, 0);
 
 	// this function builds the poly model and then calls the draw functions (OLD: mainDrawSub1Sub5)
 	buildPolyModel(newX, newY, newScale, (char *)polygonMask, destBuffer, newFrame);
@@ -1094,32 +1070,7 @@ void drawSprite(int width, int height, CellList *currentObjPtr, const uint8 *dat
 	memcpy(workBuf, dataBuf, workBufferSize);
 
 	if (currentObjPtr)
-		currentObjPtr->processMask(workBuf, width, height, xs, ys);
-/*	//workbuff, width, height, xs, ys
-	int numPasses = 0;
-
-	Common::List<Cell>::iterator iter;
-	if (currentObjPtr)
-		iter = currentObjPtr->begin();
-
-	while (currentObjPtr && iter != currentObjPtr->end()) {
-		if (iter->_type == OBJ_TYPE_BGMASK && iter->_freeze == 0) {
-			objectParamsQuery params;
-
-			getMultipleObjectParam(iter->_overlay, iter->_idx, &params);
-
-			int maskX = params.X;
-			int maskY = params.Y;
-			int maskFrame = params.fileIdx;
-
-			if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_BGMASK && filesDatabase[maskFrame].subData.ptrMask)
-				drawMask(workBuf, width / 8, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
-			else if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_SPRITE && filesDatabase[maskFrame].subData.ptrMask)
-				drawMask(workBuf, width / 8, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
-
-		}
-		iter++;
-	}*/
+		currentObjPtr->processMask(workBuf, width / 8, height, xs, ys);
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < (width); x++) {
