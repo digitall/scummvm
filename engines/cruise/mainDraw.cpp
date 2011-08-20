@@ -1321,4 +1321,26 @@ void mainDraw(int16 param) {
 	}
 }
 
+int16 fadeOut() {
+		for (long int i = 0; i < 256; i += 32) {
+		for (long int j = 0; j < 256; j++) {
+			int offsetTable[3];
+			offsetTable[0] = -32;
+			offsetTable[1] = -32;
+			offsetTable[2] = -32;
+			calcRGB(&workpal[3 * j], &workpal[3 * j], offsetTable);
+		}
+		gfxModuleData_setPal256(workpal);
+		gfxModuleData_flipScreen();
+	}
+
+	memset(globalScreen, 0, 320 * 200);
+	flip();
+
+	fadeFlag = 1;
+	PCFadeFlag = 1;
+
+	return 0;
+}
+
 } // End of namespace Cruise

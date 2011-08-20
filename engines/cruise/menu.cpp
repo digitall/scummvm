@@ -275,7 +275,7 @@ int playerMenu(int menuX, int menuY) {
 			break;
 		case 6: // restart
 			_vm->sound().fadeOutMusic();
-			Op_FadeOut();
+			fadeOut();
 			memset(globalScreen, 0, 320 * 200);
 			initVars();
 			_vm->initAllData();

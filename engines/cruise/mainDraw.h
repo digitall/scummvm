@@ -43,7 +43,7 @@ bool findPoly(char *dataPtr, int x, int y, int zoom, int mouseX, int mouseY);
 unsigned char *drawPolyMode2(unsigned char *dataPointer, int linesToDraw);
 void calcRGB(uint8 *pColorSrc, uint8 *pColorDst, int *offsetTable);
 void drawMessage(const gfxEntryStruct *pGfxPtr, int globalX, int globalY, int width, int newColor, uint8 *ouputPtr);
-
+int16 fadeOut();
 } // End of namespace Cruise
 
 #endif
