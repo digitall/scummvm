@@ -42,6 +42,142 @@ ScriptInstance::ScriptInstance() {
 	_var1A = 0;
 }
 
+opcodeFunction ScriptInstance::opcodeTablePtr[] = {
+	NULL, // 0x00
+	Op_FadeIn,
+	Op_FadeOut,
+	Op_LoadBackground,
+	Op_LoadAbs,
+	Op_AddCell,
+	Op_AddProc,
+	Op_InitializeState,
+	Op_RemoveCell,
+	Op_FreeCell,
+	Op_RemoveProc,
+	Op_RemoveFrame,
+	Op_LoadOverlay,
+	Op_SetColor,
+	Op_PlayFX,
+	NULL,   // used to be debug
+
+	Op_FreeOverlay, // 0x10
+	Op_FindOverlay,
+	NULL,   // used to be exec debug
+	Op_AddMessage,
+	Op_RemoveMessage,
+	Op_UserWait,
+	Op_FreezeCell,
+	Op_LoadCt,
+	Op_AddAnimation,
+	Op_RemoveAnimation,
+	Op_SetZoom,
+	Op_SetObjectAtNode,
+	Op_SetNodeState,
+	Op_SetNodeColor,
+	Op_TrackAnim,
+	Op_GetNodeX,
+
+	Op_GetNodeY, // 0x20
+	Op_EndAnim,
+	Op_GetZoom,
+	Op_GetStep,
+	Op_SetStringColors,
+	Op_XClick,
+	Op_YClick,
+	Op_GetPixel,
+	Op_UserOn,
+	Op_FreeCT,
+	Op_FindObject,
+	Op_FindProc,
+	Op_WriteObject,
+	Op_ReadObject,
+	Op_RemoveOverlay,
+	Op_AddBackgroundIncrust,
+
+	Op_RemoveBackgroundIncrust, // 0x30
+	Op_UnmergeBackgroundIncrust,
+	Op_freeBackgroundInscrustList,
+	Op_DialogOn,
+	Op_DialogOff,
+	Op_UserDelay,
+	Op_ThemeReset,
+	Op_Narrator,
+	Op_RemoveBackground,
+	Op_SetActiveBackground,
+	Op_CTOn,
+	Op_CTOff,
+	Op_Random,
+	Op_LoadSong,
+	Op_FadeSong,
+	Op_PlaySong,
+
+	Op_FreeSong, // 0x40
+	Op_FrameExist,
+	Op_SetVolume,
+	Op_SongExist,
+	Op_TrackPos,
+	Op_StopSong,
+	Op_RestoreSong,
+	Op_SongSize,
+	Op_SetPattern,
+	Op_SongLoop,
+	Op_SongPlayed,
+	Op_LinkObjects,
+	Op_UserClick,
+	Op_XMenuItem,
+	Op_YMenuItem,
+	Op_Menu,
+
+	Op_AutoControl, // 0x50
+	Op_MouseMove,
+	Op_MouseEnd,
+	Op_MsgExist,
+	Op_SetFont,
+	NULL, // MergeMsg
+	Op_Display,
+	Op_GetMouseX,
+	Op_GetMouseY,
+	Op_GetMouseButton,
+	Op_FindSet,
+	Op_regenerateBackgroundIncrust,
+	Op_BgName,
+	Op_LoopFX,
+	Op_StopFX,
+	Op_FreqFX,
+
+	Op_FreezeAni, // 0x60
+	Op_FindMsg,
+	Op_FreezeParent,
+	Op_UnfreezeParent,
+	Op_Exec,
+	Op_AutoCell,
+	Op_Sizeof,
+	Op_Preload,
+	Op_FreePreload,
+	NULL, // DeletePreload
+	Op_VBL,
+	Op_LoadFrame,
+	Op_FreezeOverlay,
+	Op_Strcpy,
+	Op_Strcat,
+	Op_Itoa,
+
+	Op_comment, // 0x70
+	Op_ComputeLine,
+	Op_FindSymbol,
+	Op_SetXDial,
+	Op_GetlowMemory,
+	Op_AniDir,
+	Op_Protect,
+	Op_ClearScreen,
+	Op_Inventory,
+	Op_UserMenu,
+	Op_GetRingWord,
+	Op_Sec,
+	Op_ProtectionFlag,
+	Op_KillMenu,
+};
+
 
 
 int8 ScriptInstance::getByte() {
@@ -446,6 +582,28 @@ int32 ScriptInstance::opcodeType7() {
 	stack.pushVar(var2);
 
 	return (0);
+}
+
+int32 ScriptInstance::opcodeType8() {
+	int opcode = getByte();
+
+	if (!opcode)
+		return (-21);
+
+	if (opcode > 0x100)
+		return (-21);
+
+	if (opcode < ARRAYSIZE(opcodeTablePtr) && opcodeTablePtr[opcode]) {
+		stack.pushVar(opcodeTablePtr[opcode]());
+		return (0);
+	} else {
+		warning("Unsupported opcode %d in opcode type 8", opcode);
+		stack.pushVar(0);
+		// exit(1);
+	}
+
+	return 0;
+
 }
 
 int32 ScriptInstance::opcodeType9() {       // stop script

@@ -34,8 +34,6 @@ namespace Cruise {
 #define NBCOLORS 256
 #define NBSCREENS 8
 
-typedef int16(*opcodeFunction)();
-
 extern uint8 *_systemFNT;
 extern int16 fontFileIndex;
 

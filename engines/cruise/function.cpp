@@ -38,7 +38,7 @@ uint32 Period(uint32 hz) {
 
 //#define FUNCTION_DEBUG
 
-int16 Op_LoadOverlay() {
+int16 ScriptInstance::Op_LoadOverlay() {
 	char *pOverlayName;
 	char overlayName[38] = "";
 	int overlayLoadResult;
@@ -63,7 +63,7 @@ int16 Op_LoadOverlay() {
 	return overlayLoadResult;
 }
 
-int16 Op_Strcpy() {
+int16 ScriptInstance::Op_Strcpy() {
 	char *ptr1 = (char *)stack.popPtr();
 	char *ptr2 = (char *)stack.popPtr();
 
@@ -79,7 +79,7 @@ int16 Op_Strcpy() {
 	return (0);
 }
 
-int16 Op_Exec() {
+int16 ScriptInstance::Op_Exec() {
 	int scriptIdx;
 	int ovlIdx;
 	uint8 *ptr;
@@ -120,7 +120,7 @@ int16 Op_Exec() {
 	return (0);
 }
 
-int16 Op_AddProc() {
+int16 ScriptInstance::Op_AddProc() {
 	int pop1 = stack.popVar();
 	int pop2;
 	int overlay;
@@ -152,7 +152,7 @@ int16 Op_AddProc() {
 	return (0);
 }
 
-int16 Op_Narrator() {
+int16 ScriptInstance::Op_Narrator() {
 	int pop1 = stack.popVar();
 	int pop2 = stack.popVar();
 
@@ -165,7 +165,7 @@ int16 Op_Narrator() {
 	return (0);
 }
 
-int16 Op_GetMouseX() {
+int16 ScriptInstance::Op_GetMouseX() {
 	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
@@ -176,7 +176,7 @@ int16 Op_GetMouseX() {
 	return (mouseX);
 }
 
-int16 Op_GetMouseY() {
+int16 ScriptInstance::Op_GetMouseY() {
 	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
@@ -187,7 +187,7 @@ int16 Op_GetMouseY() {
 	return (mouseY);
 }
 
-int16 Op_Random() {
+int16 ScriptInstance::Op_Random() {
 	int var = stack.popVar();
 
 	if (var < 2) {
@@ -197,7 +197,7 @@ int16 Op_Random() {
 	return (_vm->_rnd.getRandomNumber(var - 1));
 }
 
-int16 Op_PlayFX() {
+int16 ScriptInstance::Op_PlayFX() {
 	int volume = stack.popVar();
 	int speed = stack.popVar();
 	/*int channelNum = */
@@ -215,7 +215,7 @@ int16 Op_PlayFX() {
 	return (0);
 }
 
-int16 Op_LoopFX() {
+int16 ScriptInstance::Op_LoopFX() {
 	int volume = stack.popVar();
 	int speed = stack.popVar();
 	/*int channelNum = */
@@ -233,7 +233,7 @@ int16 Op_LoopFX() {
 	return (0);
 }
 
-int16 Op_StopFX() {
+int16 ScriptInstance::Op_StopFX() {
 	int channelNum = stack.popVar();
 
 	if (channelNum == -1) {
@@ -248,7 +248,7 @@ int16 Op_StopFX() {
 	return 0;
 }
 
-int16 Op_FreqFX() {
+int16 ScriptInstance::Op_FreqFX() {
 	int volume = stack.popVar();
 	int freq2 = stack.popVar();
 	int channelNum = stack.popVar();
@@ -263,23 +263,23 @@ int16 Op_FreqFX() {
 	return (0);
 }
 
-int16 Op_FreeCT() {
+int16 ScriptInstance::Op_FreeCT() {
 	freeCTP();
 	return (0);
 }
 
-int16 Op_FreeCell() {
+int16 ScriptInstance::Op_FreeCell() {
 	_vm->cellList.clear();
 	return (0);
 }
 
-int16 Op_freeBackgroundInscrustList() {
+int16 ScriptInstance::Op_freeBackgroundInscrustList() {
 	backgroundIncrustListHead.clear();
 	return (0);
 }
 
 
-int16 Op_UnmergeBackgroundIncrust() {
+int16 ScriptInstance::Op_UnmergeBackgroundIncrust() {
 	int obj = stack.popVar();
 	int ovl = stack.popVar();
 
@@ -292,13 +292,13 @@ int16 Op_UnmergeBackgroundIncrust() {
 	return (0);
 }
 
-int16 Op_FreePreload() {
+int16 ScriptInstance::Op_FreePreload() {
 	// TODO: See if this is needed
 	debug(1, "Op_FreePreload not implemented");
 	return (0);
 }
 
-int16 Op_RemoveMessage() {
+int16 ScriptInstance::Op_RemoveMessage() {
 	int idx;
 	int overlay;
 
@@ -314,7 +314,7 @@ int16 Op_RemoveMessage() {
 	return (0);
 }
 
-int16 Op_FindSet() {
+int16 ScriptInstance::Op_FindSet() {
 	int16 i;
 	char name[36] = "";
 	char *ptr;
@@ -337,7 +337,7 @@ int16 Op_FindSet() {
 	return -1;
 }
 
-int16 Op_RemoveFrame() {
+int16 ScriptInstance::Op_RemoveFrame() {
 	int count = stack.popVar();
 	int start = stack.popVar();
 
@@ -346,7 +346,7 @@ int16 Op_RemoveFrame() {
 	return (0);
 }
 
-int16 Op_comment() {
+int16 ScriptInstance::Op_comment() {
 	char *var;
 
 	var = (char *)stack.popPtr();
@@ -356,7 +356,7 @@ int16 Op_comment() {
 	return (0);
 }
 
-int16 Op_RemoveProc() {
+int16 ScriptInstance::Op_RemoveProc() {
 	int idx;
 	int overlay;
 
@@ -372,7 +372,7 @@ int16 Op_RemoveProc() {
 	return (0);
 }
 
-int16 Op_FreeOverlay() {
+int16 ScriptInstance::Op_FreeOverlay() {
 	char localName[36] = "";
 	char *namePtr;
 
@@ -388,7 +388,7 @@ int16 Op_FreeOverlay() {
 	return 0;
 }
 
-int16 Op_FindProc() {
+int16 ScriptInstance::Op_FindProc() {
 	char name[36] = "";
 	char *ptr;
 	int param;
@@ -402,13 +402,13 @@ int16 Op_FindProc() {
 	return param;
 }
 
-int16 Op_GetRingWord() {
+int16 ScriptInstance::Op_GetRingWord() {
 	// Original method had a ringed queue allowing this method to return words one at a time.
 	// But it never seemed to be used; no entries were ever added to the list
 	return 0;
 }
 
-int16 Op_KillMenu() {
+int16 ScriptInstance::Op_KillMenu() {
 	// Free menus, if active
 	if (menuTable[0]) {
 		delete menuTable[0];
@@ -430,14 +430,14 @@ int16 Op_KillMenu() {
 	return 0;
 }
 
-int16 Op_UserMenu() {
+int16 ScriptInstance::Op_UserMenu() {
 	int oldValue = playerMenuEnabled;
 	playerMenuEnabled = stack.popVar();
 
 	return oldValue;
 }
 
-int16 Op_UserOn() {
+int16 ScriptInstance::Op_UserOn() {
 	int oldValue = userEnabled;
 	int newValue = stack.popVar();
 
@@ -448,7 +448,7 @@ int16 Op_UserOn() {
 	return oldValue;
 }
 
-int16 Op_Display() {
+int16 ScriptInstance::Op_Display() {
 	int oldValue = displayOn;
 	int newValue = stack.popVar();
 
@@ -459,7 +459,7 @@ int16 Op_Display() {
 	return oldValue;
 }
 
-int16 Op_FreezeParent() {
+int16 ScriptInstance::Op_FreezeParent() {
 	if (currentScriptPtr->_var1A == 20) {
 		_vm->procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
 	} else if (currentScriptPtr->_var1A == 30) {
@@ -469,7 +469,7 @@ int16 Op_FreezeParent() {
 	return 0;
 }
 
-int16 Op_LoadBackground() {
+int16 ScriptInstance::Op_LoadBackground() {
 	int result = 0;
 	char bgName[36] = "";
 	char *ptr;
@@ -497,7 +497,7 @@ int16 Op_LoadBackground() {
 	return result;
 }
 
-int16 Op_FrameExist() {
+int16 ScriptInstance::Op_FrameExist() {
 	int param;
 
 	param = stack.popVar();
@@ -513,7 +513,7 @@ int16 Op_FrameExist() {
 	return 0;
 }
 
-int16 Op_LoadFrame() {
+int16 ScriptInstance::Op_LoadFrame() {
 	int param1;
 	int param2;
 	int param3;
@@ -545,7 +545,7 @@ int16 Op_LoadFrame() {
 	return 0;
 }
 
-int16 Op_LoadAbs() {
+int16 ScriptInstance::Op_LoadAbs() {
 	int slot;
 	char name[36] = "";
 	char *ptr;
@@ -568,7 +568,7 @@ int16 Op_LoadAbs() {
 	return result;
 }
 
-int16 Op_InitializeState() {
+int16 ScriptInstance::Op_InitializeState() {
 	int param1 = stack.popVar();
 	int objIdx = stack.popVar();
 	int ovlIdx = stack.popVar();
@@ -585,11 +585,11 @@ int16 Op_InitializeState() {
 	return (0);
 }
 
-int16 Op_GetlowMemory() {
+int16 ScriptInstance::Op_GetlowMemory() {
 	return lowMemory;
 }
 
-int16 Op_AniDir() {
+int16 ScriptInstance::Op_AniDir() {
 	int type = stack.popVar();
 	int objIdx = stack.popVar();
 	int ovlIdx = stack.popVar();
@@ -604,7 +604,7 @@ int16 Op_AniDir() {
 	return -1;
 }
 
-int16 Op_FadeOut() {
+int16 ScriptInstance::Op_FadeOut() {
 	return fadeOut();
 }
 
@@ -620,7 +620,7 @@ int16 isOverlayLoaded(const char *name) {
 	return 0;
 }
 
-int16 Op_FindOverlay() {
+int16 ScriptInstance::Op_FindOverlay() {
 	char name[36] = "";
 	char *ptr;
 
@@ -632,7 +632,7 @@ int16 Op_FindOverlay() {
 	return (isOverlayLoaded(name));
 }
 
-int16 Op_WriteObject() {
+int16 ScriptInstance::Op_WriteObject() {
 	int16 returnParam;
 
 	int16 param1 = stack.popVar();
@@ -646,7 +646,7 @@ int16 Op_WriteObject() {
 	return returnParam;
 }
 
-int16 Op_ReadObject() {
+int16 ScriptInstance::Op_ReadObject() {
 	int16 returnParam;
 
 	int member = stack.popVar();
@@ -658,12 +658,12 @@ int16 Op_ReadObject() {
 	return returnParam;
 }
 
-int16 Op_FadeIn() {
+int16 ScriptInstance::Op_FadeIn() {
 	doFade = 1;
 	return 0;
 }
 
-int16 Op_GetMouseButton() {
+int16 ScriptInstance::Op_GetMouseButton() {
 	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
@@ -674,7 +674,7 @@ int16 Op_GetMouseButton() {
 	return mouseButton;
 }
 
-int16 Op_AddCell() {
+int16 ScriptInstance::Op_AddCell() {
 	int16 objType = stack.popVar();
 	int16 objIdx = stack.popVar();
 	int16 overlayIdx = stack.popVar();
@@ -687,7 +687,7 @@ int16 Op_AddCell() {
 	return 0;
 }
 
-int16 Op_AddBackgroundIncrust() {
+int16 ScriptInstance::Op_AddBackgroundIncrust() {
 
 	int16 objType = stack.popVar();
 	int16 objIdx = stack.popVar();
@@ -701,7 +701,7 @@ int16 Op_AddBackgroundIncrust() {
 	return 0;
 }
 
-int16 Op_RemoveCell() {
+int16 ScriptInstance::Op_RemoveCell() {
 	int objType = stack.popVar();
 	int objectIdx = stack.popVar();
 	int ovlNumber = stack.popVar();
@@ -717,13 +717,13 @@ int16 Op_RemoveCell() {
 
 int16 fontFileIndex = -1;
 
-int16 Op_SetFont() {
+int16 ScriptInstance::Op_SetFont() {
 	fontFileIndex = stack.popVar();
 
 	return 0;
 }
 
-int16 Op_UnfreezeParent() {
+int16 ScriptInstance::Op_UnfreezeParent() {
 	if (currentScriptPtr->_var1A == 0x14) {
 		_vm->procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
 	} else if (currentScriptPtr->_var1A == 0x1E) {
@@ -733,7 +733,7 @@ int16 Op_UnfreezeParent() {
 	return 0;
 }
 
-int16 Op_ProtectionFlag() {
+int16 ScriptInstance::Op_ProtectionFlag() {
 	int16 temp = protectionCode;
 	int16 newVar;
 
@@ -745,7 +745,7 @@ int16 Op_ProtectionFlag() {
 	return temp;
 }
 
-int16 Op_ClearScreen() {
+int16 ScriptInstance::Op_ClearScreen() {
 	int bgIdx = stack.popVar();
 
 	if ((bgIdx >= 0) && (bgIdx < NBSCREENS) && (backgrounds[bgIdx]._backgroundScreen)) {
@@ -757,7 +757,7 @@ int16 Op_ClearScreen() {
 	return 0;
 }
 
-int16 Op_AddMessage() {
+int16 ScriptInstance::Op_AddMessage() {
 	int16 color = stack.popVar();
 	int16 var_2 = stack.popVar();
 	int16 var_4 = stack.popVar();
@@ -781,18 +781,18 @@ int16 Op_AddMessage() {
 	return 0;
 }
 
-int16 Op_Preload() {
+int16 ScriptInstance::Op_Preload() {
 	stack.popPtr();
 	stack.popVar();
 
 	return 0;
 }
 
-int16 Op_LoadCt() {
+int16 ScriptInstance::Op_LoadCt() {
 	return initCt((const char *)stack.popPtr());
 }
 
-int16 Op_EndAnim() {
+int16 ScriptInstance::Op_EndAnim() {
 	int param1 = stack.popVar();
 	int param2 = stack.popVar();
 	int overlay = stack.popVar();
@@ -803,14 +803,14 @@ int16 Op_EndAnim() {
 	return actorHead.isAnimFinished(overlay, param2, param1);
 }
 
-int16 Op_Protect() {
+int16 ScriptInstance::Op_Protect() {
 	stack.popPtr();
 	stack.popVar();
 
 	return 0;
 }
 
-int16 Op_AutoCell() {
+int16 ScriptInstance::Op_AutoCell() {
 	Cell *pObject;
 
 	int signal = stack.popVar();
@@ -865,7 +865,7 @@ int16 Op_AutoCell() {
 	return 0;
 }
 
-int16 Op_Sizeof() {
+int16 ScriptInstance::Op_Sizeof() {
 	objectParamsQuery params;
 	int index = stack.popVar();
 	int overlay = stack.popVar();
@@ -878,7 +878,7 @@ int16 Op_Sizeof() {
 	return params.nbState - 1;
 }
 
-int16 Op_SetActiveBackground() {
+int16 ScriptInstance::Op_SetActiveBackground() {
 	int currentPlane = masterScreen;
 	int newPlane = stack.popVar();
 
@@ -893,7 +893,7 @@ int16 Op_SetActiveBackground() {
 	return currentPlane;
 }
 
-int16 Op_RemoveBackground() {
+int16 ScriptInstance::Op_RemoveBackground() {
 	int backgroundIdx = stack.popVar();
 
 	if (backgroundIdx > 0 && backgroundIdx < 8) {
@@ -915,14 +915,14 @@ int16 Op_RemoveBackground() {
 
 int vblLimit;
 
-int16 Op_VBL() {
+int16 ScriptInstance::Op_VBL() {
 	vblLimit = stack.popVar();
 	return 0;
 }
 
 int op7BVar = 0;
 
-int16 Op_Sec() {
+int16 ScriptInstance::Op_Sec() {
 	int di = stack.popVar();
 	int si = 1 - op7BVar;
 	int sign;
@@ -938,7 +938,7 @@ int16 Op_Sec() {
 	return si;
 }
 
-int16 Op_RemoveBackgroundIncrust() {
+int16 ScriptInstance::Op_RemoveBackgroundIncrust() {
 	int idx = stack.popVar();
 	int overlay = stack.popVar();
 
@@ -951,7 +951,7 @@ int16 Op_RemoveBackgroundIncrust() {
 	return 0;
 }
 
-int16 Op_SetColor() {
+int16 ScriptInstance::Op_SetColor() {
 	int colorB = stack.popVar();
 	int colorG = stack.popVar();
 	int colorR = stack.popVar();
@@ -982,7 +982,7 @@ int16 Op_SetColor() {
 	return 0;
 }
 
-int16 Op_Inventory() {
+int16 ScriptInstance::Op_Inventory() {
 	int si = var41;
 
 	var41 = stack.popVar();
@@ -990,7 +990,7 @@ int16 Op_Inventory() {
 	return si;
 }
 
-int16 Op_RemoveOverlay() {
+int16 ScriptInstance::Op_RemoveOverlay() {
 	int overlayIdx;
 
 	overlayIdx = stack.popVar();
@@ -1002,7 +1002,7 @@ int16 Op_RemoveOverlay() {
 	return 0;
 }
 
-int16 Op_ComputeLine() {
+int16 ScriptInstance::Op_ComputeLine() {
 	int y2 = stack.popVar();
 	int x2 = stack.popVar();
 	int y1 = stack.popVar();
@@ -1017,14 +1017,14 @@ int16 Op_ComputeLine() {
 	return maxValue;
 }
 
-int16 Op_FindMsg() {
+int16 ScriptInstance::Op_FindMsg() {
 	int si = stack.popVar();
 	stack.popVar();
 
 	return si;
 }
 
-int16 Op_SetZoom() {
+int16 ScriptInstance::Op_SetZoom() {
 	var46 = stack.popVar();
 	var45 = stack.popVar();
 	var42 = stack.popVar();
@@ -1040,21 +1040,21 @@ int16 subOp23(int param1, int param2) {
 	return (param1 * param2) >> 8;
 }
 
-int16 Op_GetStep() {
+int16 ScriptInstance::Op_GetStep() {
 	int si = stack.popVar();
 	int dx = stack.popVar();
 
 	return subOp23(dx, si);
 }
 
-int16 Op_GetZoom() {
+int16 ScriptInstance::Op_GetZoom() {
 	return (computeZoom(stack.popVar()));
 }
 
 int flag_obstacle;      // numPolyBis
 
 // add animation
-int16 Op_AddAnimation() {
+int16 ScriptInstance::Op_AddAnimation() {
 	int stepY = stack.popVar();
 	int stepX = stack.popVar();
 	int direction = stack.popVar();
@@ -1107,7 +1107,7 @@ int16 Op_AddAnimation() {
 	return 0;
 }
 
-int16 Op_RemoveAnimation() {
+int16 ScriptInstance::Op_RemoveAnimation() {
 	int objType = stack.popVar();
 	int objIdx = stack.popVar();
 	int ovlIdx = stack.popVar();
@@ -1119,12 +1119,12 @@ int16 Op_RemoveAnimation() {
 	return actorHead.remove(ovlIdx, objIdx, objType);
 }
 
-int16 Op_regenerateBackgroundIncrust() {
+int16 ScriptInstance::Op_regenerateBackgroundIncrust() {
 	backgroundIncrustListHead.regenerate();
 	return 0;
 }
 
-int16 Op_SetStringColors() {
+int16 ScriptInstance::Op_SetStringColors() {
 	// TODO: here ignore if low color mode
 
 	subColor = (uint8) stack.popVar();
@@ -1135,7 +1135,7 @@ int16 Op_SetStringColors() {
 	return 0;
 }
 
-int16 Op_XClick() {
+int16 ScriptInstance::Op_XClick() {
 	int x = stack.popVar();
 
 	if (x != -1) {
@@ -1146,7 +1146,7 @@ int16 Op_XClick() {
 	return aniX;
 }
 
-int16 Op_YClick() {
+int16 ScriptInstance::Op_YClick() {
 	int y = stack.popVar();
 
 	if (y != -1) {
@@ -1157,7 +1157,7 @@ int16 Op_YClick() {
 	return aniY;
 }
 
-int16 Op_GetPixel() {
+int16 ScriptInstance::Op_GetPixel() {
 	int x = stack.popVar();
 	int y = stack.popVar();
 
@@ -1165,7 +1165,7 @@ int16 Op_GetPixel() {
 	return numPoly;
 }
 
-int16 Op_TrackAnim() {      // setup actor position
+int16 ScriptInstance::Op_TrackAnim() {      // setup actor position
 	Actor *pActor;
 
 	int var0 = stack.popVar();
@@ -1195,7 +1195,7 @@ int16 Op_TrackAnim() {      // setup actor position
 	return 0;
 }
 
-int16 Op_BgName() {
+int16 ScriptInstance::Op_BgName() {
 	char *bgName = (char *)stack.popPtr();
 	int bgIdx = stack.popVar();
 
@@ -1211,7 +1211,7 @@ int16 Op_BgName() {
 	return 0;
 }
 
-int16 Op_LoadSong() {
+int16 ScriptInstance::Op_LoadSong() {
 	const char *ptr = (const char *)stack.popPtr();
 	char buffer[33];
 
@@ -1223,27 +1223,27 @@ int16 Op_LoadSong() {
 	return 0;
 }
 
-int16 Op_PlaySong() {
+int16 ScriptInstance::Op_PlaySong() {
 	if (_vm->sound().songLoaded() && !_vm->sound().songPlayed())
 		_vm->sound().playMusic();
 
 	return 0;
 }
 
-int16 Op_StopSong() {
+int16 ScriptInstance::Op_StopSong() {
 	if (_vm->sound().isPlaying())
 		_vm->sound().stopMusic();
 
 	return 0;
 }
 
-int16 Op_RestoreSong() {
+int16 ScriptInstance::Op_RestoreSong() {
 	// Used in the original to restore the contents of a song. Doesn't seem to be used,
 	// since the backup buffer it uses is never set
 	return 0;
 }
 
-int16 Op_SongSize() {
+int16 ScriptInstance::Op_SongSize() {
 	int size, oldSize;
 
 	if (_vm->sound().songLoaded()) {
@@ -1258,7 +1258,7 @@ int16 Op_SongSize() {
 	return oldSize;
 }
 
-int16 Op_SetPattern() {
+int16 ScriptInstance::Op_SetPattern() {
 	int value = stack.popVar();
 	int offset = stack.popVar();
 
@@ -1269,26 +1269,26 @@ int16 Op_SetPattern() {
 	return 0;
 }
 
-int16 Op_FadeSong() {
+int16 ScriptInstance::Op_FadeSong() {
 	_vm->sound().fadeSong();
 
 	return 0;
 }
 
-int16 Op_FreeSong() {
+int16 ScriptInstance::Op_FreeSong() {
 	_vm->sound().stopMusic();
 	_vm->sound().removeMusic();
 	return 0;
 }
 
-int16 Op_SongLoop() {
+int16 ScriptInstance::Op_SongLoop() {
 	bool oldLooping = _vm->sound().musicLooping();
 	_vm->sound().musicLoop(stack.popVar() != 0);
 
 	return oldLooping;
 }
 
-int16 Op_SongPlayed() {
+int16 ScriptInstance::Op_SongPlayed() {
 	return _vm->sound().songPlayed();
 }
 
@@ -1296,17 +1296,17 @@ void setVar49Value(int value) {
 	flagCt = value;
 }
 
-int16 Op_CTOn() {
+int16 ScriptInstance::Op_CTOn() {
 	setVar49Value(1);
 	return 0;
 }
 
-int16 Op_CTOff() {
+int16 ScriptInstance::Op_CTOff() {
 	setVar49Value(0);
 	return 0;
 }
 
-int16 Op_FreezeOverlay() {
+int16 ScriptInstance::Op_FreezeOverlay() {
 	//int var0;
 	//int var1;
 	int temp;
@@ -1324,7 +1324,7 @@ int16 Op_FreezeOverlay() {
 	return temp;
 }
 
-int16 Op_FreezeCell() {
+int16 ScriptInstance::Op_FreezeCell() {
 	int newFreezz = stack.popVar();
 	int oldFreeze = stack.popVar();
 	int backgroundPlante = stack.popVar();
@@ -1351,7 +1351,7 @@ void Op_60Sub(int overlayIdx, ActorList *pActorHead, int _var0, int _var1, int _
 	}
 }
 
-int16 Op_FreezeAni() {
+int16 ScriptInstance::Op_FreezeAni() {
 	/*
 	 * int var0;
 	 * int var1;
@@ -1375,7 +1375,7 @@ int16 Op_FreezeAni() {
 	return 0;
 }
 
-int16 Op_Itoa() {
+int16 ScriptInstance::Op_Itoa() {
 	int nbp = stack.popVar();
 	int param[160];
 	char txt[40];
@@ -1405,7 +1405,7 @@ int16 Op_Itoa() {
 	return 0;
 }
 
-int16 Op_Strcat() {
+int16 ScriptInstance::Op_Strcat() {
 	char *pSource = (char *)stack.popPtr();
 	char *pDest = (char *)stack.popPtr();
 
@@ -1419,7 +1419,7 @@ int16 Op_Strcat() {
 	return 0;
 }
 
-int16 Op_FindSymbol() {
+int16 ScriptInstance::Op_FindSymbol() {
 	int var0 = stack.popVar();
 	char *ptr = (char *)stack.popPtr();
 	int var1 = stack.popVar();
@@ -1430,7 +1430,7 @@ int16 Op_FindSymbol() {
 	return getProcParam(var1, var0, ptr);
 }
 
-int16 Op_FindObject() {
+int16 ScriptInstance::Op_FindObject() {
 	char var_26[36];
 	char *ptr = (char *)stack.popPtr();
 	int overlayIdx;
@@ -1449,7 +1449,7 @@ int16 Op_FindObject() {
 	return getProcParam(overlayIdx, 40, var_26);
 }
 
-int16 Op_SetObjectAtNode() {
+int16 ScriptInstance::Op_SetObjectAtNode() {
 	int16 node = stack.popVar();
 	int16 obj = stack.popVar();
 	int16 ovl = stack.popVar();
@@ -1469,7 +1469,7 @@ int16 Op_SetObjectAtNode() {
 	return 0;
 }
 
-int16 Op_GetNodeX() {
+int16 ScriptInstance::Op_GetNodeX() {
 	int16 node = stack.popVar();
 	int result;
 	int nodeInfo[2];
@@ -1484,7 +1484,7 @@ int16 Op_GetNodeX() {
 	return nodeInfo[0];
 }
 
-int16 Op_GetNodeY() {
+int16 ScriptInstance::Op_GetNodeY() {
 	int16 node = stack.popVar();
 	int result;
 	int nodeInfo[2];
@@ -1498,7 +1498,7 @@ int16 Op_GetNodeY() {
 	return nodeInfo[1];
 }
 
-int16 Op_SetVolume() {
+int16 ScriptInstance::Op_SetVolume() {
 	int oldVolume = _vm->sound().getVolume();
 	int newVolume = stack.popVar();
 
@@ -1511,7 +1511,7 @@ int16 Op_SetVolume() {
 	return oldVolume >> 2;
 }
 
-int16 Op_SongExist() {
+int16 ScriptInstance::Op_SongExist() {
 	const char *songName = (char *)stack.popPtr();
 
 	if (songName) {
@@ -1526,12 +1526,12 @@ int16 Op_SongExist() {
 	return 0;
 }
 
-int16 Op_TrackPos() {
+int16 ScriptInstance::Op_TrackPos() {
 	// This function returns a variable that never seems to change from 0
 	return 0;
 }
 
-int16 Op_SetNodeState() {
+int16 ScriptInstance::Op_SetNodeState() {
 	int16 state = stack.popVar();
 	int16 node = stack.popVar();
 
@@ -1542,7 +1542,7 @@ int16 Op_SetNodeState() {
 	return walkboxes[node].setState(state);
 }
 
-int16 Op_SetNodeColor() {
+int16 ScriptInstance::Op_SetNodeColor() {
 	int16 color = stack.popVar();
 	int16 node = stack.popVar();
 
@@ -1552,14 +1552,14 @@ int16 Op_SetNodeColor() {
 	return walkboxes[node].setColor(color);
 }
 
-int16 Op_SetXDial() {
+int16 ScriptInstance::Op_SetXDial() {
 	int16 old = xdial;
 	xdial = stack.popVar();
 
 	return old;
 }
 
-int16 Op_DialogOn() {
+int16 ScriptInstance::Op_DialogOn() {
 	dialogueObj = stack.popVar();
 	dialogueOvl = stack.popVar();
 
@@ -1571,7 +1571,7 @@ int16 Op_DialogOn() {
 	return 0;
 }
 
-int16 Op_DialogOff() {
+int16 ScriptInstance::Op_DialogOff() {
 	dialogueEnabled = false;
 
 	objectReset();
@@ -1586,7 +1586,7 @@ int16 Op_DialogOff() {
 	return 0;
 }
 
-int16 Op_LinkObjects() {
+int16 ScriptInstance::Op_LinkObjects() {
 	int type = stack.popVar();
 	int obj2 = stack.popVar();
 	int ovl2 = stack.popVar();
@@ -1603,7 +1603,7 @@ int16 Op_LinkObjects() {
 	return 0;
 }
 
-int16 Op_UserClick() {
+int16 ScriptInstance::Op_UserClick() {
 	sysKey = stack.popVar();
 	sysY = stack.popVar();
 	sysX = stack.popVar();
@@ -1611,7 +1611,7 @@ int16 Op_UserClick() {
 	return 0;
 }
 
-int16 Op_XMenuItem() {
+int16 ScriptInstance::Op_XMenuItem() {
 	int index = stack.popVar();
 	int count = 0;
 
@@ -1631,7 +1631,7 @@ int16 Op_XMenuItem() {
 	return 0;
 }
 
-int16 Op_YMenuItem() {
+int16 ScriptInstance::Op_YMenuItem() {
 	int index = stack.popVar();
 	int count = 0;
 
@@ -1652,11 +1652,11 @@ int16 Op_YMenuItem() {
 }
 
 
-int16 Op_Menu() {
+int16 ScriptInstance::Op_Menu() {
 	return (int16)(menuTable[0] != NULL);
 }
 
-int16 Op_AutoControl() {
+int16 ScriptInstance::Op_AutoControl() {
 	int oldValue = automaticMode;
 	int newValue = stack.popVar();
 
@@ -1668,7 +1668,7 @@ int16 Op_AutoControl() {
 	return oldValue;
 }
 
-int16 Op_MouseMove() {
+int16 ScriptInstance::Op_MouseMove() {
 	int16 handle, button;
 	Common::Point pt;
 
@@ -1681,18 +1681,18 @@ int16 Op_MouseMove() {
 	return 0;
 }
 
-int16 Op_MouseEnd() {
+int16 ScriptInstance::Op_MouseEnd() {
 	if (automoveInc < automoveMax)
 		return (int16)false;
 
 	return (int16)true;
 }
 
-int16 Op_MsgExist() {
+int16 ScriptInstance::Op_MsgExist() {
 	return isMessage;
 }
 
-int16 Op_UserDelay() {
+int16 ScriptInstance::Op_UserDelay() {
 	int delay = stack.popVar();
 
 	if (delay >= 0) {
@@ -1702,13 +1702,13 @@ int16 Op_UserDelay() {
 	return userDelay;
 }
 
-int16 Op_ThemeReset() {
+int16 ScriptInstance::Op_ThemeReset() {
 	objectReset();
 
 	return 0;
 }
 
-int16 Op_UserWait() {
+int16 ScriptInstance::Op_UserWait() {
 	userWait = 1;
 	if (currentScriptPtr->_type == scriptType_PROC) {
 		_vm->procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
@@ -1717,164 +1717,6 @@ int16 Op_UserWait() {
 	}
 
 	return 0;
-}
-
-opcodeFunction opcodeTablePtr[] = {
-	NULL, // 0x00
-	Op_FadeIn,
-	Op_FadeOut,
-	Op_LoadBackground,
-	Op_LoadAbs,
-	Op_AddCell,
-	Op_AddProc,
-	Op_InitializeState,
-	Op_RemoveCell,
-	Op_FreeCell,
-	Op_RemoveProc,
-	Op_RemoveFrame,
-	Op_LoadOverlay,
-	Op_SetColor,
-	Op_PlayFX,
-	NULL,   // used to be debug
-
-	Op_FreeOverlay, // 0x10
-	Op_FindOverlay,
-	NULL,   // used to be exec debug
-	Op_AddMessage,
-	Op_RemoveMessage,
-	Op_UserWait,
-	Op_FreezeCell,
-	Op_LoadCt,
-	Op_AddAnimation,
-	Op_RemoveAnimation,
-	Op_SetZoom,
-	Op_SetObjectAtNode,
-	Op_SetNodeState,
-	Op_SetNodeColor,
-	Op_TrackAnim,
-	Op_GetNodeX,
-
-	Op_GetNodeY, // 0x20
-	Op_EndAnim,
-	Op_GetZoom,
-	Op_GetStep,
-	Op_SetStringColors,
-	Op_XClick,
-	Op_YClick,
-	Op_GetPixel,
-	Op_UserOn,
-	Op_FreeCT,
-	Op_FindObject,
-	Op_FindProc,
-	Op_WriteObject,
-	Op_ReadObject,
-	Op_RemoveOverlay,
-	Op_AddBackgroundIncrust,
-
-	Op_RemoveBackgroundIncrust, // 0x30
-	Op_UnmergeBackgroundIncrust,
-	Op_freeBackgroundInscrustList,
-	Op_DialogOn,
-	Op_DialogOff,
-	Op_UserDelay,
-	Op_ThemeReset,
-	Op_Narrator,
-	Op_RemoveBackground,
-	Op_SetActiveBackground,
-	Op_CTOn,
-	Op_CTOff,
-	Op_Random,
-	Op_LoadSong,
-	Op_FadeSong,
-	Op_PlaySong,
-
-	Op_FreeSong, // 0x40
-	Op_FrameExist,
-	Op_SetVolume,
-	Op_SongExist,
-	Op_TrackPos,
-	Op_StopSong,
-	Op_RestoreSong,
-	Op_SongSize,
-	Op_SetPattern,
-	Op_SongLoop,
-	Op_SongPlayed,
-	Op_LinkObjects,
-	Op_UserClick,
-	Op_XMenuItem,
-	Op_YMenuItem,
-	Op_Menu,
-
-	Op_AutoControl, // 0x50
-	Op_MouseMove,
-	Op_MouseEnd,
-	Op_MsgExist,
-	Op_SetFont,
-	NULL, // MergeMsg
-	Op_Display,
-	Op_GetMouseX,
-	Op_GetMouseY,
-	Op_GetMouseButton,
-	Op_FindSet,
-	Op_regenerateBackgroundIncrust,
-	Op_BgName,
-	Op_LoopFX,
-	Op_StopFX,
-	Op_FreqFX,
-
-	Op_FreezeAni, // 0x60
-	Op_FindMsg,
-	Op_FreezeParent,
-	Op_UnfreezeParent,
-	Op_Exec,
-	Op_AutoCell,
-	Op_Sizeof,
-	Op_Preload,
-	Op_FreePreload,
-	NULL, // DeletePreload
-	Op_VBL,
-	Op_LoadFrame,
-	Op_FreezeOverlay,
-	Op_Strcpy,
-	Op_Strcat,
-	Op_Itoa,
-
-	Op_comment, // 0x70
-	Op_ComputeLine,
-	Op_FindSymbol,
-	Op_SetXDial,
-	Op_GetlowMemory,
-	Op_AniDir,
-	Op_Protect,
-	Op_ClearScreen,
-	Op_Inventory,
-	Op_UserMenu,
-	Op_GetRingWord,
-	Op_Sec,
-	Op_ProtectionFlag,
-	Op_KillMenu,
-};
-
-int32 ScriptInstance::opcodeType8() {
-	int opcode = getByte();
-
-	if (!opcode)
-		return (-21);
-
-	if (opcode > 0x100)
-		return (-21);
-
-	if (opcode < ARRAYSIZE(opcodeTablePtr) && opcodeTablePtr[opcode]) {
-		stack.pushVar(opcodeTablePtr[opcode]());
-		return (0);
-	} else {
-		warning("Unsupported opcode %d in opcode type 8", opcode);
-		stack.pushVar(0);
-		// exit(1);
-	}
-
-	return 0;
-
 }
 
 } // End of namespace Cruise
