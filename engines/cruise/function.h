@@ -26,7 +26,6 @@
 namespace Cruise {
 
 extern int flag_obstacle;
-extern int vblLimit;
 
 int16 computeZoom(int param);
 int16 subOp23(int param1, int param2);

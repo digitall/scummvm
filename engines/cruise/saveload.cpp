@@ -646,7 +646,6 @@ void initVars() {
 	actorHead.clear();
 	backgroundIncrustListHead.clear();
 
-	vblLimit = 0;
 	remdo = 0;
 	songLoaded = 0;
 	songPlayed = 0;

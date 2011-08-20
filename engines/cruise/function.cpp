@@ -935,10 +935,8 @@ int16 ScriptInstance::Op_RemoveBackground() {
 	return (0);
 }
 
-int vblLimit;
-
 int16 ScriptInstance::Op_VBL() {
-	vblLimit = stack.popVar();
+	stack.popVar();		//this was assigned to a global variable that never read.
 	return 0;
 }
 
