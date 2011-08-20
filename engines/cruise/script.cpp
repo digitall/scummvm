@@ -42,143 +42,153 @@ ScriptInstance::ScriptInstance() {
 	_var1A = 0;
 }
 
-opcodeFunction ScriptInstance::opcodeTablePtr[] = {
-	NULL, // 0x00
-	Op_FadeIn,
-	Op_FadeOut,
-	Op_LoadBackground,
-	Op_LoadAbs,
-	Op_AddCell,
-	Op_AddProc,
-	Op_InitializeState,
-	Op_RemoveCell,
-	Op_FreeCell,
-	Op_RemoveProc,
-	Op_RemoveFrame,
-	Op_LoadOverlay,
-	Op_SetColor,
-	Op_PlayFX,
-	NULL,   // used to be debug
+int16 ScriptInstance::operateFunction(int opCode) {
+	switch (opCode) {
+		//case 0:NULL // 0x00
+		case 1: return Op_FadeIn();
+		case 2: return Op_FadeOut();
+		case 3: return Op_LoadBackground();
+		case 4: return Op_LoadAbs();
+		case 5: return Op_AddCell();
+		case 6: return Op_AddProc();
+		case 7: return Op_InitializeState();
+		case 8: return Op_RemoveCell();
+		case 9: return Op_FreeCell();
+		case 10: return Op_RemoveProc();
+		case 11: return Op_RemoveFrame();
+		case 12: return Op_LoadOverlay();
+		case 13: return Op_SetColor();
+		case 14: return Op_PlayFX();
+		//case 15: NULL used to be debug
 
-	Op_FreeOverlay, // 0x10
-	Op_FindOverlay,
-	NULL,   // used to be exec debug
-	Op_AddMessage,
-	Op_RemoveMessage,
-	Op_UserWait,
-	Op_FreezeCell,
-	Op_LoadCt,
-	Op_AddAnimation,
-	Op_RemoveAnimation,
-	Op_SetZoom,
-	Op_SetObjectAtNode,
-	Op_SetNodeState,
-	Op_SetNodeColor,
-	Op_TrackAnim,
-	Op_GetNodeX,
+		case 16: return Op_FreeOverlay(); // 0x10
+		case 17: return Op_FindOverlay();
+		//case 18: NULL used to be exec debug
+		case 19: return Op_AddMessage();
+		case 20: return Op_RemoveMessage();
+		case 21: return Op_UserWait();
+		case 22: return Op_FreezeCell();
+		case 23: return Op_LoadCt();
+		case 24: return Op_AddAnimation();
+		case 25: return Op_RemoveAnimation();
+		case 26: return Op_SetZoom();
+		case 27: return Op_SetObjectAtNode();
+		case 28: return Op_SetNodeState();
+		case 29: return Op_SetNodeColor();
+		case 30: return Op_TrackAnim();
+		case 31: return Op_GetNodeX();
 
-	Op_GetNodeY, // 0x20
-	Op_EndAnim,
-	Op_GetZoom,
-	Op_GetStep,
-	Op_SetStringColors,
-	Op_XClick,
-	Op_YClick,
-	Op_GetPixel,
-	Op_UserOn,
-	Op_FreeCT,
-	Op_FindObject,
-	Op_FindProc,
-	Op_WriteObject,
-	Op_ReadObject,
-	Op_RemoveOverlay,
-	Op_AddBackgroundIncrust,
+		case 32: return Op_GetNodeY(); // 0x20
+		case 33: return Op_EndAnim();
+		case 34: return Op_GetZoom();
+		case 35: return Op_GetStep();
+		case 36: return Op_SetStringColors();
+		case 37: return Op_XClick();
+		case 38: return Op_YClick();
+		case 39: return Op_GetPixel();
+		case 40: return Op_UserOn();
+		case 41: return Op_FreeCT();
+		case 42: return Op_FindObject();
+		case 43: return Op_FindProc();
+		case 44: return Op_WriteObject();
+		case 45: return Op_ReadObject();
+		case 46: return Op_RemoveOverlay();
+		case 47: return Op_AddBackgroundIncrust();
 
-	Op_RemoveBackgroundIncrust, // 0x30
-	Op_UnmergeBackgroundIncrust,
-	Op_freeBackgroundInscrustList,
-	Op_DialogOn,
-	Op_DialogOff,
-	Op_UserDelay,
-	Op_ThemeReset,
-	Op_Narrator,
-	Op_RemoveBackground,
-	Op_SetActiveBackground,
-	Op_CTOn,
-	Op_CTOff,
-	Op_Random,
-	Op_LoadSong,
-	Op_FadeSong,
-	Op_PlaySong,
+		case 48: return Op_RemoveBackgroundIncrust(); // 0x30
+		case 49: return Op_UnmergeBackgroundIncrust();
+		case 50: return Op_freeBackgroundInscrustList();
+		case 51: return Op_DialogOn();
+		case 52: return Op_DialogOff();
+		case 53: return Op_UserDelay();
+		case 54: return Op_ThemeReset();
+		case 55: return Op_Narrator();
+		case 56: return Op_RemoveBackground();
+		case 57: return Op_SetActiveBackground();
+		case 58: return Op_CTOn();
+		case 59: return Op_CTOff();
+		case 60: return Op_Random();
+		case 61: return Op_LoadSong();
+		case 62: return Op_FadeSong();
+		case 63: return Op_PlaySong();
 
-	Op_FreeSong, // 0x40
-	Op_FrameExist,
-	Op_SetVolume,
-	Op_SongExist,
-	Op_TrackPos,
-	Op_StopSong,
-	Op_RestoreSong,
-	Op_SongSize,
-	Op_SetPattern,
-	Op_SongLoop,
-	Op_SongPlayed,
-	Op_LinkObjects,
-	Op_UserClick,
-	Op_XMenuItem,
-	Op_YMenuItem,
-	Op_Menu,
+		case 64: return Op_FreeSong(); // 0x40
+		case 65: return Op_FrameExist();
+		case 66: return Op_SetVolume();
+		case 67: return Op_SongExist();
+		case 68: return Op_TrackPos();
+		case 69: return Op_StopSong();
+		case 70: return Op_RestoreSong();
+		case 71: return Op_SongSize();
+		case 72: return Op_SetPattern();
+		case 73: return Op_SongLoop();
+		case 74: return Op_SongPlayed();
+		case 75: return Op_LinkObjects();
+		case 76: return Op_UserClick();
+		case 77: return Op_XMenuItem();
+		case 78: return Op_YMenuItem();
+		case 79: return Op_Menu();
 
-	Op_AutoControl, // 0x50
-	Op_MouseMove,
-	Op_MouseEnd,
-	Op_MsgExist,
-	Op_SetFont,
-	NULL, // MergeMsg
-	Op_Display,
-	Op_GetMouseX,
-	Op_GetMouseY,
-	Op_GetMouseButton,
-	Op_FindSet,
-	Op_regenerateBackgroundIncrust,
-	Op_BgName,
-	Op_LoopFX,
-	Op_StopFX,
-	Op_FreqFX,
+		case 80: return Op_AutoControl(); // 0x50
+		case 81: return Op_MouseMove();
+		case 82: return Op_MouseEnd();
+		case 83: return Op_MsgExist();
+		case 84: return Op_SetFont();
+		// case 85: NULL MergeMsg
+		case 86: return Op_Display();
+		case 87: return Op_GetMouseX();
+		case 88: return Op_GetMouseY();
+		case 89: return Op_GetMouseButton();
+		case 90: return Op_FindSet();
+		case 91: return Op_regenerateBackgroundIncrust();
+		case 92: return Op_BgName();
+		case 93: return Op_LoopFX();
+		case 94: return Op_StopFX();
+		case 95: return Op_FreqFX();
 
-	Op_FreezeAni, // 0x60
-	Op_FindMsg,
-	Op_FreezeParent,
-	Op_UnfreezeParent,
-	Op_Exec,
-	Op_AutoCell,
-	Op_Sizeof,
-	Op_Preload,
-	Op_FreePreload,
-	NULL, // DeletePreload
-	Op_VBL,
-	Op_LoadFrame,
-	Op_FreezeOverlay,
-	Op_Strcpy,
-	Op_Strcat,
-	Op_Itoa,
+		case 96: return Op_FreezeAni(); // 0x60
+		case 97: return Op_FindMsg();
+		case 98: return Op_FreezeParent();
+		case 99: return Op_UnfreezeParent();
+		case 100: return Op_Exec();
+		case 101: return Op_AutoCell();
+		case 102: return Op_Sizeof();
+		case 103: return Op_Preload();
+		case 104: return Op_FreePreload();
+		// case 105: NULL DeletePreload
+		case 106: return Op_VBL();
+		case 107: return Op_LoadFrame();
+		case 108: return Op_FreezeOverlay();
+		case 109: return Op_Strcpy();
+		case 110: return Op_Strcat();
+		case 111: return Op_Itoa();
 
-	Op_comment, // 0x70
-	Op_ComputeLine,
-	Op_FindSymbol,
-	Op_SetXDial,
-	Op_GetlowMemory,
-	Op_AniDir,
-	Op_Protect,
-	Op_ClearScreen,
-	Op_Inventory,
-	Op_UserMenu,
-	Op_GetRingWord,
-	Op_Sec,
-	Op_ProtectionFlag,
-	Op_KillMenu,
-};
+		case 112: return Op_comment(); // 0x70
+		case 113: return Op_ComputeLine();
+		case 114: return Op_FindSymbol();
+		case 115: return Op_SetXDial();
+		case 116: return Op_GetlowMemory();
+		case 117: return Op_AniDir();
+		case 118: return Op_Protect();
+		case 119: return Op_ClearScreen();
+		case 120: return Op_Inventory();
+		case 121: return Op_UserMenu();
+		case 122: return Op_GetRingWord();
+		case 123: return Op_Sec();
+		case 124: return Op_ProtectionFlag();
+		case 125: return Op_KillMenu();
+		default: error("Unsupported opcode %d ", opCode);
+	}
+}
 
-
+bool ScriptInstance::isValidOperation(int opCode) {
+	return ((opCode < 126) && // biggest vaid opCode
+			(opCode != 0) &&	//
+			(opCode != 15) &&	// non valid opCodes
+			(opCode != 18) &&	//
+			(opCode != 85) &&	//
+			(opCode != 105));	//
+}
 
 int8 ScriptInstance::getByte() {
 	int8 var = *(int8 *)(currentData3DataPtr + _scriptOffset);
@@ -593,8 +603,8 @@ int32 ScriptInstance::opcodeType8() {
 	if (opcode > 0x100)
 		return (-21);
 
-	if (opcode < ARRAYSIZE(opcodeTablePtr) && opcodeTablePtr[opcode]) {
-		stack.pushVar(opcodeTablePtr[opcode]());
+	if (isValidOperation(opcode)) {
+		stack.pushVar(operateFunction(opcode));
 		return (0);
 	} else {
 		warning("Unsupported opcode %d in opcode type 8", opcode);
