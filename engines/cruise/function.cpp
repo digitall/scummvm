@@ -36,6 +36,40 @@ uint32 Period(uint32 hz) {
 	return ((uint32)(100000000L / ((uint32)hz * 28L)));
 }
 
+int16 isOverlayLoaded(const char *name) {
+	int16 i;
+
+	for (i = 1; i < numOfLoadedOverlay; i++) {
+		if (!strcmp(overlayTable[i].overlayName, name) && overlayTable[i].alreadyLoaded) {
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+void setVar49Value(int value) {
+	flagCt = value;
+}
+
+void Op_60Sub(int overlayIdx, ActorList *pActorHead, int _var0, int _var1, int _var2, int _var3) {
+	Actor *pActor = pActorHead->findActor(overlayIdx, _var0, _var3);
+
+	if (pActor) {
+		if ((pActor->_freeze == _var2) || (_var2 == -1)) {
+			pActor->_freeze = _var1;
+		}
+	}
+}
+
+int16 computeZoom(int param) {
+	return (((param - var46) * (var39 - var42)) / (var45 - var46)) + var42;
+}
+
+int16 subOp23(int param1, int param2) {
+	return (param1 * param2) >> 8;
+}
+
 //#define FUNCTION_DEBUG
 
 int16 ScriptInstance::Op_LoadOverlay() {
@@ -608,18 +642,6 @@ int16 ScriptInstance::Op_FadeOut() {
 	return fadeOut();
 }
 
-int16 isOverlayLoaded(const char *name) {
-	int16 i;
-
-	for (i = 1; i < numOfLoadedOverlay; i++) {
-		if (!strcmp(overlayTable[i].overlayName, name) && overlayTable[i].alreadyLoaded) {
-			return i;
-		}
-	}
-
-	return 0;
-}
-
 int16 ScriptInstance::Op_FindOverlay() {
 	char name[36] = "";
 	char *ptr;
@@ -1032,14 +1054,6 @@ int16 ScriptInstance::Op_SetZoom() {
 	return 0;
 }
 
-int16 computeZoom(int param) {
-	return (((param - var46) * (var39 - var42)) / (var45 - var46)) + var42;
-}
-
-int16 subOp23(int param1, int param2) {
-	return (param1 * param2) >> 8;
-}
-
 int16 ScriptInstance::Op_GetStep() {
 	int si = stack.popVar();
 	int dx = stack.popVar();
@@ -1292,10 +1306,6 @@ int16 ScriptInstance::Op_SongPlayed() {
 	return _vm->sound().songPlayed();
 }
 
-void setVar49Value(int value) {
-	flagCt = value;
-}
-
 int16 ScriptInstance::Op_CTOn() {
 	setVar49Value(1);
 	return 0;
@@ -1339,16 +1349,6 @@ int16 ScriptInstance::Op_FreezeCell() {
 	_vm->cellList.freezeCell(overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
 
 	return 0;
-}
-
-void Op_60Sub(int overlayIdx, ActorList *pActorHead, int _var0, int _var1, int _var2, int _var3) {
-	Actor *pActor = pActorHead->findActor(overlayIdx, _var0, _var3);
-
-	if (pActor) {
-		if ((pActor->_freeze == _var2) || (_var2 == -1)) {
-			pActor->_freeze = _var1;
-		}
-	}
 }
 
 int16 ScriptInstance::Op_FreezeAni() {
