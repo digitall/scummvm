@@ -146,7 +146,7 @@ int Menu::process() {
 	si = 0;
 
 	do {
-		currentMouse.getStatus(&main10, &mouseX, &mouseButton, &mouseY);
+		currentMouse.getStatus(&mouseX, &mouseButton, &mouseY);
 
 		updateMouse(mouseX, mouseY);
 

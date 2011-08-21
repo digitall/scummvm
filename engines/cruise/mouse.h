@@ -25,8 +25,6 @@
 
 namespace Cruise {
 
-extern int16 main10;
-
 enum CursorType {
 	CURSOR_NORMAL = 0,
 	CURSOR_DISK = 1,
@@ -59,7 +57,7 @@ public:
 		_cursor = CURSOR_NOMOUSE;
 	}
 
-	void getStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
+	void getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 	void changeCursor(CursorType eType);
 };
 

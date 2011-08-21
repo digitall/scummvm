@@ -1255,10 +1255,10 @@ void closeAllMenu() {
 }
 
 bool checkInput(int16 *buttonPtr) {
-	int16 handle, button;
+	int16 button;
 	Common::Point pt;
 
-	currentMouse.getStatus(&handle, &pt.x, &button, &pt.y);
+	currentMouse.getStatus(&pt.x, &button, &pt.y);
 
 	if (!button)
 		buttonDown = 0;
@@ -1290,7 +1290,7 @@ int CruiseEngine::processInput() {
 		mouseY = sysY;
 		sysKey = -1;
 	} else if (automaticMode == 0) {
-		currentMouse.getStatus(&main10, &mouseX, &button, &mouseY);
+		currentMouse.getStatus(&mouseX, &button, &mouseY);
 	}
 
 	if (!button) {
@@ -1310,7 +1310,7 @@ int CruiseEngine::processInput() {
 		bool pausedButtonDown = false;
 		while (!_vm->shouldQuit()) {
 			manageEvents();
-			currentMouse.getStatus(&main10, &mouseX, &button, &mouseY);
+			currentMouse.getStatus(&mouseX, &button, &mouseY);
 
 			if (button) pausedButtonDown = true;
 			else if (pausedButtonDown)
@@ -1789,7 +1789,7 @@ void CruiseEngine::mainLoop() {
 					static int16 oldMouseX = -1;
 					static int16 oldMouseY = -1;
 
-					currentMouse.getStatus(&main10, &mouseX, &mouseButton, &mouseY);
+					currentMouse.getStatus(&mouseX, &mouseButton, &mouseY);
 
 					if (mouseX != oldMouseX || mouseY != oldMouseY) {
 						int objectType;

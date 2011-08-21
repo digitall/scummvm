@@ -28,8 +28,6 @@
 
 namespace Cruise {
 
-int16 main10;
-
 struct MouseCursor {
 	int hotspotX;
 	int hotspotY;
@@ -93,7 +91,7 @@ void mouseOn() {
 	g_system->updateScreen();
 }
 
-void Mouse::getStatus(int16 *pMouseVar, int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY) {
+void Mouse::getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY) {
 	*pMouseX = _coordinateX;
 	*pMouseY = _coordinateY;
 	*pMouseButton = _button;

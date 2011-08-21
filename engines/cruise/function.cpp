@@ -200,23 +200,21 @@ int16 ScriptInstance::Op_Narrator() {
 }
 
 int16 ScriptInstance::Op_GetMouseX() {
-	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
 	int16 mouseButton;
 
-	currentMouse.getStatus(&dummy, &mouseX, &mouseButton, &mouseY);
+	currentMouse.getStatus(&mouseX, &mouseButton, &mouseY);
 
 	return (mouseX);
 }
 
 int16 ScriptInstance::Op_GetMouseY() {
-	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
 	int16 mouseButton;
 
-	currentMouse.getStatus(&dummy, &mouseX, &mouseButton, &mouseY);
+	currentMouse.getStatus(&mouseX, &mouseButton, &mouseY);
 
 	return (mouseY);
 }
@@ -686,12 +684,11 @@ int16 ScriptInstance::Op_FadeIn() {
 }
 
 int16 ScriptInstance::Op_GetMouseButton() {
-	int16 dummy;
 	int16 mouseX;
 	int16 mouseY;
 	int16 mouseButton;
 
-	currentMouse.getStatus(&dummy, &mouseX, &mouseButton, &mouseY);
+	currentMouse.getStatus(&mouseX, &mouseButton, &mouseY);
 
 	return mouseButton;
 }
@@ -1667,10 +1664,10 @@ int16 ScriptInstance::Op_AutoControl() {
 }
 
 int16 ScriptInstance::Op_MouseMove() {
-	int16 handle, button;
+	int16 button;
 	Common::Point pt;
 
-	currentMouse.getStatus(&handle, &pt.x, &button, &pt.y);
+	currentMouse.getStatus(&pt.x, &button, &pt.y);
 
 	// x/y parameters aren't used
 	stack.popVar();
