@@ -659,6 +659,33 @@ Common::List<ScriptInstance>::iterator ScriptList::begin() {
 	return Common::List<ScriptInstance>::begin();
 }
 
+void ScriptInstance::sync(Common::Serializer &s) {
+		uint32 dummyLong = 0;
+		uint16 dummyWord = 0;
+		
+		s.syncAsUint16LE(dummyWord);
+		s.syncAsSint16LE(_ccr);
+		s.syncAsSint16LE(_scriptOffset);
+		s.syncAsUint32LE(dummyLong);
+		s.syncAsSint16LE(_dataSize);
+		s.syncAsSint16LE(_scriptNumber);
+		s.syncAsSint16LE(_overlayNumber);
+		s.syncAsSint16LE(_sysKey);
+		s.syncAsSint16LE(_freeze);
+		s.syncAsSint16LE(_type);
+		s.syncAsSint16LE(_var16);
+		s.syncAsSint16LE(_var18);
+		s.syncAsSint16LE(_var1A);
+
+		s.syncAsSint16LE(_dataSize);
+
+		if (_dataSize) {
+			if (s.isLoading())
+				_data = (byte *)mallocAndZero(_dataSize);
+			s.syncBytes(_data, _dataSize);
+		}
+}
+
 uint ScriptList::size() {
 
 	return  Common::List<ScriptInstance>::size();

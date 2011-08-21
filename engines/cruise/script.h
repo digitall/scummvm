@@ -55,7 +55,7 @@ public:
 	int8 getByte();
 	short int getShort();
 	int32 execute();
-
+	void sync(Common::Serializer &s);
 private:
 	int16 operateFunction(int opCode);
 	bool isValidOperation(int opCode);

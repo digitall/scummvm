@@ -310,8 +310,6 @@ static void syncOverlays2(Common::Serializer &s) {
 
 void syncScript(Common::Serializer &s, ScriptList *entry) {
 	int numScripts = 0;
-	uint32 dummyLong = 0;
-	uint16 dummyWord = 0;
 
 	if (s.isSaving()) {
 		// Figure out the number of scripts to save
@@ -325,28 +323,8 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 		if (s.isSaving())
 			ptr = *iter;
 
-		s.syncAsUint16LE(dummyWord);
-		s.syncAsSint16LE(ptr._ccr);
-		s.syncAsSint16LE(ptr._scriptOffset);
-		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(ptr._dataSize);
-		s.syncAsSint16LE(ptr._scriptNumber);
-		s.syncAsSint16LE(ptr._overlayNumber);
-		s.syncAsSint16LE(ptr._sysKey);
-		s.syncAsSint16LE(ptr._freeze);
-		s.syncAsSint16LE(ptr._type);
-		s.syncAsSint16LE(ptr._var16);
-		s.syncAsSint16LE(ptr._var18);
-		s.syncAsSint16LE(ptr._var1A);
-
-		s.syncAsSint16LE(ptr._dataSize);
-
-		if (ptr._dataSize) {
-			if (s.isLoading())
-				ptr._data = (byte *)mallocAndZero(ptr._dataSize);
-			s.syncBytes(ptr._data, ptr._dataSize);
-		}
-
+		ptr.sync(s);
+		
 		if (s.isLoading()) {
 			entry->add(ptr);
 		}
