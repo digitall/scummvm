@@ -659,127 +659,31 @@ int32 ScriptInstance::opcodeType11() {  // break
 	return (1);
 }
 
-Common::List<ScriptInstance>::iterator ScriptList::begin() {
-
-	return Common::List<ScriptInstance>::begin();
-}
-
 void ScriptInstance::sync(Common::Serializer &s) {
-		uint32 dummyLong = 0;
-		uint16 dummyWord = 0;
-		
-		s.syncAsUint16LE(dummyWord);
-		s.syncAsSint16LE(_ccr);
-		s.syncAsSint16LE(_scriptOffset);
-		s.syncAsUint32LE(dummyLong);
-		s.syncAsSint16LE(_dataSize);
-		s.syncAsSint16LE(_scriptNumber);
-		s.syncAsSint16LE(_overlayNumber);
-		s.syncAsSint16LE(_sysKey);
-		s.syncAsSint16LE(_freeze);
-		s.syncAsSint16LE(_type);
-		s.syncAsSint16LE(_var16);
-		s.syncAsSint16LE(_var18);
-		s.syncAsSint16LE(_var1A);
+	uint32 dummyLong = 0;
+	uint16 dummyWord = 0;
 
-		s.syncAsSint16LE(_dataSize);
+	s.syncAsUint16LE(dummyWord);
+	s.syncAsSint16LE(_ccr);
+	s.syncAsSint16LE(_scriptOffset);
+	s.syncAsUint32LE(dummyLong);
+	s.syncAsSint16LE(_dataSize);
+	s.syncAsSint16LE(_scriptNumber);
+	s.syncAsSint16LE(_overlayNumber);
+	s.syncAsSint16LE(_sysKey);
+	s.syncAsSint16LE(_freeze);
+	s.syncAsSint16LE(_type);
+	s.syncAsSint16LE(_var16);
+	s.syncAsSint16LE(_var18);
+	s.syncAsSint16LE(_var1A);
 
-		if (_dataSize) {
-			if (s.isLoading())
-				_data = (byte *)mallocAndZero(_dataSize);
-			s.syncBytes(_data, _dataSize);
-		}
-}
+	s.syncAsSint16LE(_dataSize);
 
-uint ScriptList::size() {
-
-	return  Common::List<ScriptInstance>::size();
-}
-
-int ScriptList::remove(int overlay, int idx) {
-	Common::List<ScriptInstance>::iterator iter = begin();
-
-	while (iter != end()) {
-		if (iter->_overlayNumber == overlay
-		        && (iter->_scriptNumber == idx || idx == -1)) {
-			iter->_scriptNumber = -1;
-		}
-
-		iter++;
+	if (_dataSize) {
+		if (s.isLoading())
+			_data = (byte *)mallocAndZero(_dataSize);
+		s.syncBytes(_data, _dataSize);
 	}
-
-	return (0);
-}
-
-int ScriptList::removeFinished() {
-	Common::List<ScriptInstance>::iterator iter =  begin();
-
-	while (iter != end()) {
-		if (iter->_scriptNumber == -1) {
-			iter->remove();
-			iter = erase(iter);
-		} else {
-			iter++;
-		}
-	}
-
-	return (0);
-}
-
-void ScriptList::removeAll() {
-	Common::List<ScriptInstance>::iterator iter = begin();
-	while (iter != end()) {
-		iter->remove();
-		iter = erase(iter);
-	}
-}
-
-void ScriptList::resetPtr2() {
-	pCurrentScript = NULL;
-	if (begin() != end())
-		begin()->_scriptNumber = -1;
-}
-
-uint8 *ScriptList::add(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType) {
-	int useArg3Neg = 0;
-	ovlData3Struct *data3Ptr;
-	int dataSize;
-
-	//debug("Starting script %d of overlay %s", param,overlayTable[overlayNumber].overlayName);
-
-	if (scriptType < 0) {
-		useArg3Neg = 1;
-		scriptType = (scriptTypeEnum) - scriptType;
-	}
-
-	if (scriptType == 20) {
-		data3Ptr = getOvlData3Entry(overlayNumber, scriptNumber);
-	} else {
-		if (scriptType == 30) {
-			data3Ptr = scriptFunc1Sub2(overlayNumber, scriptNumber);
-		} else {
-			return (NULL);
-		}
-	}
-
-	if (!data3Ptr) {
-		return (NULL);
-	}
-
-	if (!data3Ptr->dataPtr) {
-		return (NULL);
-	}
-
-	dataSize = data3Ptr->sysKey;
-
-	ScriptInstance script(overlayNumber, scriptNumber, var1A, var16, var18, scriptType, dataSize, useArg3Neg);
-
-	push_back(script);
-	return (script.getData());
-}
-
-void ScriptList::add(ScriptInstance scriptToAdd) {
-	push_back(scriptToAdd);
 }
 
 int ScriptInstance::execute() {
@@ -888,6 +792,102 @@ int32 ScriptInstance::executeScript(int16 opCode) {
 void ScriptInstance::setFreeze(int16 oldFreeze, int16 newFreeze) {
 	if ((_freeze == oldFreeze) || (oldFreeze == -1))
 		_freeze = newFreeze;
+}
+
+
+Common::List<ScriptInstance>::iterator ScriptList::begin() {
+	return Common::List<ScriptInstance>::begin();
+}
+
+uint ScriptList::size() {
+
+	return  Common::List<ScriptInstance>::size();
+}
+
+int ScriptList::remove(int overlay, int idx) {
+	Common::List<ScriptInstance>::iterator iter = begin();
+
+	while (iter != end()) {
+		if (iter->_overlayNumber == overlay
+		        && (iter->_scriptNumber == idx || idx == -1)) {
+			iter->_scriptNumber = -1;
+		}
+
+		iter++;
+	}
+
+	return (0);
+}
+
+int ScriptList::removeFinished() {
+	Common::List<ScriptInstance>::iterator iter =  begin();
+
+	while (iter != end()) {
+		if (iter->_scriptNumber == -1) {
+			iter->remove();
+			iter = erase(iter);
+		} else {
+			iter++;
+		}
+	}
+
+	return (0);
+}
+
+void ScriptList::removeAll() {
+	Common::List<ScriptInstance>::iterator iter = begin();
+	while (iter != end()) {
+		iter->remove();
+		iter = erase(iter);
+	}
+}
+
+void ScriptList::resetPtr2() {
+	pCurrentScript = NULL;
+	if (begin() != end())
+		begin()->_scriptNumber = -1;
+}
+
+uint8 *ScriptList::add(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType) {
+	int useArg3Neg = 0;
+	ovlData3Struct *data3Ptr;
+	int dataSize;
+
+	//debug("Starting script %d of overlay %s", param,overlayTable[overlayNumber].overlayName);
+
+	if (scriptType < 0) {
+		useArg3Neg = 1;
+		scriptType = (scriptTypeEnum) - scriptType;
+	}
+
+	if (scriptType == 20) {
+		data3Ptr = getOvlData3Entry(overlayNumber, scriptNumber);
+	} else {
+		if (scriptType == 30) {
+			data3Ptr = scriptFunc1Sub2(overlayNumber, scriptNumber);
+		} else {
+			return (NULL);
+		}
+	}
+
+	if (!data3Ptr) {
+		return (NULL);
+	}
+
+	if (!data3Ptr->dataPtr) {
+		return (NULL);
+	}
+
+	dataSize = data3Ptr->sysKey;
+
+	ScriptInstance script(overlayNumber, scriptNumber, var1A, var16, var18, scriptType, dataSize, useArg3Neg);
+
+	push_back(script);
+	return (script.getData());
+}
+
+void ScriptList::add(ScriptInstance scriptToAdd) {
+	push_back(scriptToAdd);
 }
 
 void ScriptList::manage() {
