@@ -42,6 +42,30 @@ ScriptInstance::ScriptInstance() {
 	_var1A = 0;
 }
 
+ScriptInstance::ScriptInstance(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType, int dataSize, int useArg3Neg) {
+        if(dataSize) {
+                _dataSize = dataSize;
+                _data = (uint8 *)mallocAndZero(_dataSize);
+        } else {
+                _dataSize = 0;
+                _data = NULL;
+        }
+        _scriptOffset = 0;
+
+        _scriptNumber = scriptNumber;
+        _overlayNumber = overlayNumber;
+        _freeze = 0;
+        _type = scriptType;
+        _var18 = var18;
+        _var16 = var16;
+        _var1A = var1A;
+        _ccr = 0;
+        if(_type == 20)
+                _sysKey = useArg3Neg;
+        else
+                _sysKey = 1;
+}
+
 int16 ScriptInstance::operateFunction(int opCode) {
 	switch (opCode) {
 		//case 0:NULL // 0x00
@@ -686,11 +710,10 @@ void ScriptList::resetPtr2() {
 		begin()->_scriptNumber = -1;
 }
 
-uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1, int16 arg2, scriptTypeEnum scriptType) {
+uint8 *ScriptList::add(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType) {
 	int useArg3Neg = 0;
 	ovlData3Struct *data3Ptr;
-	ScriptInstance tempScript;
-	int var_C;
+	int dataSize;
 
 	//debug("Starting script %d of overlay %s", param,overlayTable[overlayNumber].overlayName);
 
@@ -700,10 +723,10 @@ uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1,
 	}
 
 	if (scriptType == 20) {
-		data3Ptr = getOvlData3Entry(overlayNumber, param);
+		data3Ptr = getOvlData3Entry(overlayNumber, scriptNumber);
 	} else {
 		if (scriptType == 30) {
-			data3Ptr = scriptFunc1Sub2(overlayNumber, param);
+			data3Ptr = scriptFunc1Sub2(overlayNumber, scriptNumber);
 		} else {
 			return (NULL);
 		}
@@ -717,34 +740,12 @@ uint8 *ScriptList::add(int16 overlayNumber, int16 param, int16 arg0, int16 arg1,
 		return (NULL);
 	}
 
-	var_C = data3Ptr->sysKey;
+	dataSize = data3Ptr->sysKey;
 
-	tempScript._data = NULL;
+	ScriptInstance script(overlayNumber, scriptNumber, var1A, var16, var18, scriptType, dataSize, useArg3Neg);
 
-	if (var_C) {
-		tempScript._data = (uint8 *) mallocAndZero(var_C);
-	}
-
-	tempScript._dataSize = var_C;
-	tempScript._scriptOffset = 0;
-
-	tempScript._scriptNumber = param;
-	tempScript._overlayNumber = overlayNumber;
-
-	if (scriptType == 20) { // Obj or not ?
-		tempScript._sysKey = useArg3Neg;
-	} else {
-		tempScript._sysKey = 1;
-	}
-
-	tempScript._freeze = 0;
-	tempScript._type = scriptType;
-	tempScript._var18 = arg2;
-	tempScript._var16 = arg1;
-	tempScript._var1A = arg0;
-
-	push_back(tempScript);
-	return (tempScript._data);
+	push_back(script);
+	return (script._data);
 }
 
 void ScriptList::add(ScriptInstance scriptToAdd) {
