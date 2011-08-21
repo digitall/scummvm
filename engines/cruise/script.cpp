@@ -912,7 +912,7 @@ void ScriptList::scriptFunc2(int scriptNumber, int param, int param2) {
 		        || scriptNumber != -1) {
 			if (param2 == iter->_scriptNumber
 			        || param2 != -1) {
-				iter->_sysKey = param;
+				iter->setSysKey(param);
 			}
 		}
 	}

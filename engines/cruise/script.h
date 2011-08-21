@@ -56,6 +56,7 @@ public:
 	int8 getByte();
 	short int getShort();
 	void setFreeze(int16 oldFreeze, int16 newFreeze);
+	void setSysKey(int16 syskey) { _sysKey = syskey;}
 	int32 execute();
 	void sync(Common::Serializer &s);
 private:
