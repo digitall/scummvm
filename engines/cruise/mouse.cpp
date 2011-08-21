@@ -51,6 +51,13 @@ static const byte cursorPalette[] = {
 	0xff, 0xff, 0xff
 };
 
+Mouse::Mouse() {
+	_coordinateX = 0;
+	_coordinateY = 0;
+	_button = 0;
+	_cursor = CURSOR_NOMOUSE;
+}
+
 void Mouse::changeCursor(CursorType eType) {
 	assert(eType >= 0 && eType < CURSOR_MAX);
 	if (_cursor != eType) {

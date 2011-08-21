@@ -50,12 +50,7 @@ public:
 	int _button;
 	CursorType _cursor;
 
-	Mouse() {
-		_coordinateX = 0;
-		_coordinateY = 0;
-		_button = 0;
-		_cursor = CURSOR_NOMOUSE;
-	}
+	Mouse();
 
 	void getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 	void changeCursor(CursorType eType);
