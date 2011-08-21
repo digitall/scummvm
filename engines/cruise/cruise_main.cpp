@@ -427,7 +427,6 @@ void CruiseEngine::initAllData() {
 	}
 
 	initBigVar3();
-
 	_vm->procScriptList.resetPtr2();
 	_vm->relScriptList.resetPtr2();
 
@@ -813,7 +812,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 								strcpy(verbe_name, ptr);
 
 								if (!strlen(verbe_name))
-									_vm->relScriptList.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+									_vm->relScriptList.add(j, ptrHead->id, 30, ScriptList::getCurrentScript()->_scriptNumber, ScriptList::getCurrentScript()->_overlayNumber, scriptType_REL);
 								else if (ovl2->nameVerbGlob) {
 									found = true;
 									int color;
@@ -904,8 +903,8 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 
 							if ((!first) && ((testState == -1) || (testState == objectState))) {
 								if (!strlen(verbe_name)) {
-									if (currentScriptPtr) {
-										_vm->relScriptList.add(j, ptrHead->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+									if (ScriptList::getCurrentScript()) {
+										_vm->relScriptList.add(j, ptrHead->id, 30, ScriptList::getCurrentScript()->_scriptNumber, ScriptList::getCurrentScript()->_overlayNumber, scriptType_REL);
 									} else {
 										_vm->relScriptList.add(j, ptrHead->id, 30, 0, 0, scriptType_REL);
 									}
@@ -979,8 +978,8 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 
 			if ((pHeader->obj2OldState == -1) || (params.state == pHeader->obj2OldState)) {
 				if (pHeader->type == RT_REL) { // REL
-					if (currentScriptPtr) {
-						_vm->relScriptList.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+					if (ScriptList::getCurrentScript()) {
+						_vm->relScriptList.add(ovlIdx, pHeader->id, 30, ScriptList::getCurrentScript()->_scriptNumber, ScriptList::getCurrentScript()->_overlayNumber, scriptType_REL);
 					} else {
 						_vm->relScriptList.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 					}
@@ -1039,8 +1038,8 @@ void callSubRelation(menuElementSubStruct *pMenuElement, int nOvl, int nObj) {
 						objInit(obj1Ovl, pHeader->obj1Number, pHeader->obj1NewState);
 					}
 
-					if (currentScriptPtr) {
-						_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
+					if (ScriptList::getCurrentScript()) {
+						_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, ScriptList::getCurrentScript()->_overlayNumber, ScriptList::getCurrentScript()->_scriptNumber);
 					} else {
 						_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
 					}
@@ -1117,8 +1116,8 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 		if (pHeader->obj2Number == nObj2) {
 			// REL
 			if (pHeader->type == RT_REL) {
-				if (currentScriptPtr) {
-					_vm->relScriptList.add(ovlIdx, pHeader->id, 30, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_REL);
+				if (ScriptList::getCurrentScript()) {
+					_vm->relScriptList.add(ovlIdx, pHeader->id, 30, ScriptList::getCurrentScript()->_scriptNumber, ScriptList::getCurrentScript()->_overlayNumber, scriptType_REL);
 				} else {
 					_vm->relScriptList.add(ovlIdx, pHeader->id, 30, 0, 0, scriptType_REL);
 				}
@@ -1185,8 +1184,8 @@ void callRelation(menuElementSubStruct *pMenuElement, int nObj2) {
 					}
 				}
 
-				if (currentScriptPtr) {
-					_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
+				if (ScriptList::getCurrentScript()) {
+					_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, ScriptList::getCurrentScript()->_overlayNumber, ScriptList::getCurrentScript()->_scriptNumber);
 				} else {
 					_vm->cellList.createTextObject(ovlIdx, pHeader->id, x, y, 200, findHighColor(), masterScreen, 0, 0);
 				}

@@ -162,10 +162,10 @@ BackgroundIncrustList backgroundIncrustListHead;
 Menu *menuTable[8];
 Stack stack;
 
-ScriptInstance *currentScriptPtr;
-
 int16 numPoly;
 Perso *persoTable[NUM_PERSONS];
 //OSystem *osystem;
+
+ScriptInstance *ScriptList::pCurrentScript = NULL;
 
 } // End of namespace Cruise

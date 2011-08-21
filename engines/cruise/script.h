@@ -200,6 +200,8 @@ private:
 };
 
 class ScriptList: private Common::List<ScriptInstance> {
+private:
+	static ScriptInstance *pCurrentScript;
 public:
 	Common::List<ScriptInstance>::iterator begin();
 	uint size();
@@ -214,6 +216,7 @@ public:
 	void manage();
 	void changeParam(int param1, int param2, int newValue, int param3);
 	void scriptFunc2(int scriptNumber, int param, int param2);
+	static ScriptInstance *getCurrentScript() {return pCurrentScript;}
 
 };
 

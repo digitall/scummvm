@@ -264,8 +264,6 @@ extern BackgroundIncrustList backgroundIncrustListHead;
 extern Menu *menuTable[8];
 extern Stack stack;
 
-extern ScriptInstance *currentScriptPtr;
-
 extern int16 numPoly;
 extern Perso *persoTable[NUM_PERSONS];
 //extern OSystem *osystem;

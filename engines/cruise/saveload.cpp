@@ -351,8 +351,6 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 			entry->add(ptr);
 		}
 	}
-	if (s.isLoading())
-		currentScriptPtr = NULL;        //in case the load was called while a script runs.
 }
 
 static void syncIncrust(Common::Serializer &s) {

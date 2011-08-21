@@ -681,6 +681,7 @@ void ScriptList::removeAll() {
 }
 
 void ScriptList::resetPtr2() {
+	pCurrentScript = NULL;
 	if (begin() != end())
 		begin()->_scriptNumber = -1;
 }
@@ -792,8 +793,6 @@ int ScriptInstance::execute() {
 	scriptDataPtrTable[5] = ovlData->data4Ptr;  // free strings
 	scriptDataPtrTable[6] = ovlData->ptr8;
 
-	currentScriptPtr = this;
-
 	stack.reset();
 
 	do {
@@ -810,8 +809,6 @@ int ScriptInstance::execute() {
 		currentScriptOpcodeType = opcodeType & 7;
 
 	} while (!executeScript((opcodeType & 0xFB) >> 3));
-
-	currentScriptPtr = NULL;
 
 	return (0);
 }
@@ -852,7 +849,9 @@ void ScriptList::manage() {
 	while (iter != end()) {
 		if (!overlayTable[iter->_overlayNumber].executeScripts) {
 			if ((iter->_scriptNumber != -1) && (iter->_freeze == 0) && (iter->_sysKey != 0)) {
+				pCurrentScript = &(*iter);
 				iter->execute();
+				pCurrentScript = NULL;
 			}
 
 			if (iter->_sysKey == 0) {
