@@ -775,7 +775,7 @@ uint8 *ScriptList::add(int16 overlayNumber, int16 scriptNumber, int16 var1A, int
 	ScriptInstance script(overlayNumber, scriptNumber, var1A, var16, var18, scriptType, dataSize, useArg3Neg);
 
 	push_back(script);
-	return (script._data);
+	return (script.getData());
 }
 
 void ScriptList::add(ScriptInstance scriptToAdd) {
