@@ -34,12 +34,13 @@ enum scriptTypeEnum {
 
 class ScriptInstance {
 public:
+	int16 _scriptNumber;
+	int16 _overlayNumber;
+private:
 	int16 _ccr;
 	int16 _scriptOffset;
 	uint8 *_data;
 	int16 _dataSize;
-	int16 _scriptNumber;
-	int16 _overlayNumber;
 	int16 _sysKey;
 	int16 _freeze;
 	scriptTypeEnum _type;
@@ -48,19 +49,20 @@ public:
 	int16 _var1A;
 
 	uint8 *scriptDataPtrTable[7];
-
+public:
 	ScriptInstance();
 	ScriptInstance(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType, int dataSize, int useArg3Neg);
 	void remove();
 
-	int8 getByte();
-	short int getShort();
 	void setFreeze(int16 oldFreeze, int16 newFreeze);
 	void setSysKey(int16 syskey) {_sysKey = syskey;}
 	uint8 *getData() {return _data;}
 	int32 execute();
 	void sync(Common::Serializer &s);
 private:
+	int8 getByte();
+	short int getShort();
+
 	int16 operateFunction(int opCode);
 	bool isValidOperation(int opCode);
 
