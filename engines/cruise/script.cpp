@@ -783,6 +783,13 @@ void ScriptList::add(ScriptInstance scriptToAdd) {
 }
 
 int ScriptInstance::execute() {
+	if (!((_scriptNumber != -1) && (_freeze == 0) && (_sysKey != 0))) {
+		if (_sysKey == 0) {
+			_sysKey = 1;
+		}
+		return (0);
+	}
+
 	int numScript2;
 	ovlData3Struct *ptr2;
 	ovlDataStruct *ovlData;
@@ -841,6 +848,9 @@ int ScriptInstance::execute() {
 
 	} while (!executeScript((opcodeType & 0xFB) >> 3));
 
+	if (_sysKey == 0) {
+		_sysKey = 1;
+	}
 	return (0);
 }
 
@@ -879,15 +889,9 @@ void ScriptList::manage() {
 	Common::List<ScriptInstance>::iterator iter = begin();
 	while (iter != end()) {
 		if (!overlayTable[iter->_overlayNumber].executeScripts) {
-			if ((iter->_scriptNumber != -1) && (iter->_freeze == 0) && (iter->_sysKey != 0)) {
-				pCurrentScript = &(*iter);
-				iter->execute();
-				pCurrentScript = NULL;
-			}
-
-			if (iter->_sysKey == 0) {
-				iter->_sysKey = 1;
-			}
+			pCurrentScript = &(*iter);
+			iter->execute();
+			pCurrentScript = NULL;
 		}
 
 		iter++;
