@@ -132,10 +132,10 @@ int16 ScriptInstance::Op_Exec() {
 	ovlIdx = stack.popVar();
 
 	if (!ovlIdx) {
-		ovlIdx = currentScriptPtr->_overlayNumber;
+		ovlIdx = _overlayNumber;
 	}
 
-	ptr = _vm->procScriptList.add(ovlIdx, scriptIdx, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_MinusPROC);
+	ptr = _vm->procScriptList.add(ovlIdx, scriptIdx, _type, _scriptNumber, _overlayNumber, scriptType_MinusPROC);
 
 	if (!ptr)
 		return (0);
@@ -168,12 +168,12 @@ int16 ScriptInstance::Op_AddProc() {
 	overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 
 	if (!overlay)
 		return (0);
 
-	uint8 *procBss = _vm->procScriptList.add(overlay, pop2, currentScriptPtr->_type, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, scriptType_PROC);
+	uint8 *procBss = _vm->procScriptList.add(overlay, pop2, _type, _scriptNumber, _overlayNumber, scriptType_PROC);
 
 	if (procBss) {
 		for (long int i = 0; i < pop1; i++) {
@@ -191,7 +191,7 @@ int16 ScriptInstance::Op_Narrator() {
 	int pop2 = stack.popVar();
 
 	if (!pop2)
-		pop2 = currentScriptPtr->_overlayNumber;
+		pop2 = _overlayNumber;
 
 	narratorOvl = pop2;
 	narratorIdx = pop1;
@@ -318,7 +318,7 @@ int16 ScriptInstance::Op_UnmergeBackgroundIncrust() {
 	int ovl = stack.popVar();
 
 	if (!ovl) {
-		ovl = currentScriptPtr->_overlayNumber;
+		ovl = _overlayNumber;
 	}
 
 	backgroundIncrustListHead.unmerge(ovl, obj);
@@ -340,7 +340,7 @@ int16 ScriptInstance::Op_RemoveMessage() {
 	overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 	}
 
 	_vm->cellList.remove(overlay, idx, 5, masterScreen);
@@ -398,7 +398,7 @@ int16 ScriptInstance::Op_RemoveProc() {
 	overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 	}
 
 	_vm->procScriptList.remove(overlay, idx);
@@ -494,10 +494,10 @@ int16 ScriptInstance::Op_Display() {
 }
 
 int16 ScriptInstance::Op_FreezeParent() {
-	if (currentScriptPtr->_var1A == 20) {
-		_vm->procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
-	} else if (currentScriptPtr->_var1A == 30) {
-		_vm->relScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 9997);
+	if (_var1A == 20) {
+		_vm->procScriptList.changeParam(_var18, _var16, -1, 9997);
+	} else if (_var1A == 30) {
+		_vm->relScriptList.changeParam(_var18, _var16, -1, 9997);
 	}
 
 	return 0;
@@ -608,7 +608,7 @@ int16 ScriptInstance::Op_InitializeState() {
 	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx)
-		ovlIdx = currentScriptPtr->_overlayNumber;
+		ovlIdx = _overlayNumber;
 
 #ifdef FUNCTION_DEBUG
 	debug(1, "Init %s state to %d", getObjectName(objIdx, overlayTable[ovlIdx].ovlData->arrayNameObj), param1);
@@ -629,7 +629,7 @@ int16 ScriptInstance::Op_AniDir() {
 	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx)
-		ovlIdx = currentScriptPtr->_overlayNumber;
+		ovlIdx = _overlayNumber;
 
 	Actor *pActor = actorHead.findActor(ovlIdx, objIdx, type);
 	if (pActor)
@@ -702,9 +702,9 @@ int16 ScriptInstance::Op_AddCell() {
 	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->_overlayNumber;
+		overlayIdx = _overlayNumber;
 
-	_vm->cellList.add(overlayIdx, objIdx, objType, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
+	_vm->cellList.add(overlayIdx, objIdx, objType, masterScreen, _overlayNumber, _scriptNumber, _type);
 
 	return 0;
 }
@@ -716,9 +716,9 @@ int16 ScriptInstance::Op_AddBackgroundIncrust() {
 	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->_overlayNumber;
+		overlayIdx = _overlayNumber;
 
-	backgroundIncrustListHead.add(overlayIdx, objIdx, currentScriptPtr->_scriptNumber, currentScriptPtr->_overlayNumber, masterScreen, objType);
+	backgroundIncrustListHead.add(overlayIdx, objIdx, _scriptNumber, _overlayNumber, masterScreen, objType);
 
 	return 0;
 }
@@ -729,7 +729,7 @@ int16 ScriptInstance::Op_RemoveCell() {
 	int ovlNumber = stack.popVar();
 
 	if (!ovlNumber) {
-		ovlNumber = currentScriptPtr->_overlayNumber;
+		ovlNumber = _overlayNumber;
 	}
 
 	_vm->cellList.remove(ovlNumber, objectIdx, objType, masterScreen);
@@ -746,10 +746,10 @@ int16 ScriptInstance::Op_SetFont() {
 }
 
 int16 ScriptInstance::Op_UnfreezeParent() {
-	if (currentScriptPtr->_var1A == 0x14) {
-		_vm->procScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
-	} else if (currentScriptPtr->_var1A == 0x1E) {
-		_vm->relScriptList.changeParam(currentScriptPtr->_var18, currentScriptPtr->_var16, -1, 0);
+	if (_var1A == 0x14) {
+		_vm->procScriptList.changeParam(_var18, _var16, -1, 0);
+	} else if (_var1A == 0x1E) {
+		_vm->relScriptList.changeParam(_var18, _var16, -1, 0);
 	}
 
 	return 0;
@@ -788,7 +788,7 @@ int16 ScriptInstance::Op_AddMessage() {
 	int16 overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->_overlayNumber;
+		overlayIdx = _overlayNumber;
 
 	if (color == -1) {
 		color = findHighColor();
@@ -798,7 +798,7 @@ int16 ScriptInstance::Op_AddMessage() {
 		}
 	}
 
-	_vm->cellList.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber);
+	_vm->cellList.createTextObject(overlayIdx, var_8, var_6, var_4, var_2, color, masterScreen, _overlayNumber, _scriptNumber);
 
 	return 0;
 }
@@ -820,7 +820,7 @@ int16 ScriptInstance::Op_EndAnim() {
 	int overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 
 	return actorHead.isAnimFinished(overlay, param2, param1);
 }
@@ -847,9 +847,9 @@ int16 ScriptInstance::Op_AutoCell() {
 	int overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 
-	pObject = _vm->cellList.add(overlay, obj, 4, masterScreen, currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, currentScriptPtr->_type);
+	pObject = _vm->cellList.add(overlay, obj, 4, masterScreen, _overlayNumber, _scriptNumber, _type);
 
 	if (!pObject)
 		return 0;
@@ -864,10 +864,10 @@ int16 ScriptInstance::Op_AutoCell() {
 	pObject->_animChange = change;*/
 
 	if (type) {
-		if (currentScriptPtr->_type == scriptType_PROC) {
-			_vm->procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
-		} else if (currentScriptPtr->_type == scriptType_REL) {
-			_vm->relScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9996);
+		if (_type == scriptType_PROC) {
+			_vm->procScriptList.changeParam(_overlayNumber, _scriptNumber, -1, 9996);
+		} else if (_type == scriptType_REL) {
+			_vm->relScriptList.changeParam(_overlayNumber, _scriptNumber, -1, 9996);
 		}
 	}
 
@@ -893,7 +893,7 @@ int16 ScriptInstance::Op_Sizeof() {
 	int overlay = stack.popVar();
 
 	if (!overlay)
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 
 	getMultipleObjectParam(overlay, index, &params);
 
@@ -963,7 +963,7 @@ int16 ScriptInstance::Op_RemoveBackgroundIncrust() {
 	int overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 	}
 
 	backgroundIncrustListHead.remove(overlay, idx);
@@ -1076,7 +1076,7 @@ int16 ScriptInstance::Op_AddAnimation() {
 	int overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 	}
 
 	if (direction >= 0 && direction <= 3) {
@@ -1125,7 +1125,7 @@ int16 ScriptInstance::Op_RemoveAnimation() {
 	int ovlIdx = stack.popVar();
 
 	if (!ovlIdx) {
-		ovlIdx = currentScriptPtr->_overlayNumber;
+		ovlIdx = _overlayNumber;
 	}
 
 	return actorHead.remove(ovlIdx, objIdx, objType);
@@ -1188,7 +1188,7 @@ int16 ScriptInstance::Op_TrackAnim() {      // setup actor position
 	int overlay = stack.popVar();
 
 	if (!overlay) {
-		overlay = currentScriptPtr->_overlayNumber;
+		overlay = _overlayNumber;
 	}
 
 	pActor = actorHead.findActor(overlay, var2, var1);
@@ -1323,7 +1323,7 @@ int16 ScriptInstance::Op_FreezeOverlay() {
 	int var1 = stack.popVar();
 
 	if (!var1) {
-		var1 = currentScriptPtr->_overlayNumber;
+		var1 = _overlayNumber;
 	}
 
 	temp = overlayTable[var1].executeScripts;
@@ -1341,7 +1341,7 @@ int16 ScriptInstance::Op_FreezeCell() {
 	int overlayIdx = stack.popVar();
 
 	if (!overlayIdx) {
-		overlayIdx = currentScriptPtr->_overlayNumber;
+		overlayIdx = _overlayNumber;
 	}
 
 	_vm->cellList.freezeCell(overlayIdx, objIdx, objType, backgroundPlante, oldFreeze, newFreezz);
@@ -1365,7 +1365,7 @@ int16 ScriptInstance::Op_FreezeAni() {
 	int var4 = stack.popVar();
 
 	if (!var4) {
-		var4 = currentScriptPtr->_overlayNumber;
+		var4 = _overlayNumber;
 	}
 
 	Op_60Sub(var4, &actorHead, var3, var0, var1, var2);
@@ -1423,7 +1423,7 @@ int16 ScriptInstance::Op_FindSymbol() {
 	int var1 = stack.popVar();
 
 	if (!var1)
-		var1 = currentScriptPtr->_overlayNumber;
+		var1 = _overlayNumber;
 
 	return getProcParam(var1, var0, ptr);
 }
@@ -1442,7 +1442,7 @@ int16 ScriptInstance::Op_FindObject() {
 	overlayIdx = stack.popVar();
 
 	if (!overlayIdx)
-		overlayIdx = currentScriptPtr->_overlayNumber;
+		overlayIdx = _overlayNumber;
 
 	return getProcParam(overlayIdx, 40, var_26);
 }
@@ -1453,7 +1453,7 @@ int16 ScriptInstance::Op_SetObjectAtNode() {
 	int16 ovl = stack.popVar();
 
 	if (!ovl)
-		ovl = currentScriptPtr->_overlayNumber;
+		ovl = _overlayNumber;
 
 	int nodeInfo[2];
 	if (!(node < 0 || node >= routeCount)) {
@@ -1562,7 +1562,7 @@ int16 ScriptInstance::Op_DialogOn() {
 	dialogueOvl = stack.popVar();
 
 	if (dialogueOvl == 0)
-		dialogueOvl = currentScriptPtr->_overlayNumber;
+		dialogueOvl = _overlayNumber;
 
 	dialogueEnabled = true;
 
@@ -1592,9 +1592,9 @@ int16 ScriptInstance::Op_LinkObjects() {
 	int ovl = stack.popVar();
 
 	if (!ovl)
-		ovl = currentScriptPtr->_overlayNumber;
+		ovl = _overlayNumber;
 	if (!ovl2)
-		ovl2 = currentScriptPtr->_overlayNumber;
+		ovl2 = _overlayNumber;
 
 	_vm->cellList.linkCell(ovl, obj, type, ovl2, obj2);
 
@@ -1708,10 +1708,10 @@ int16 ScriptInstance::Op_ThemeReset() {
 
 int16 ScriptInstance::Op_UserWait() {
 	userWait = 1;
-	if (currentScriptPtr->_type == scriptType_PROC) {
-		_vm->procScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
-	} else if (currentScriptPtr->_type == scriptType_REL) {
-		_vm->relScriptList.changeParam(currentScriptPtr->_overlayNumber, currentScriptPtr->_scriptNumber, -1, 9999);
+	if (_type == scriptType_PROC) {
+		_vm->procScriptList.changeParam(_overlayNumber, _scriptNumber, -1, 9999);
+	} else if (_type == scriptType_REL) {
+		_vm->relScriptList.changeParam(_overlayNumber, _scriptNumber, -1, 9999);
 	}
 
 	return 0;
