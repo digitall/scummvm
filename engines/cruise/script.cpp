@@ -885,6 +885,11 @@ int32 ScriptInstance::executeScript(int16 opCode) {
 	}
 }
 
+void ScriptInstance::setFreeze(int16 oldFreeze, int16 newFreeze) {
+	if ((_freeze == oldFreeze) || (oldFreeze == -1))
+		_freeze = newFreeze;
+}
+
 void ScriptList::manage() {
 	Common::List<ScriptInstance>::iterator iter = begin();
 	while (iter != end()) {
@@ -918,9 +923,7 @@ void ScriptList::changeParam(int param1, int param2, int oldFreeze, int newValue
 	while (iter != end()) {
 		if ((iter->_overlayNumber == param1) || (param1 == -1))
 			if ((iter->_scriptNumber == param2) || (param2 == -1))
-				if ((iter->_freeze == oldFreeze) || (oldFreeze == -1)) {
-					iter->_freeze = newValue;
-				}
+				iter->setFreeze(oldFreeze, newValue);
 		iter++;
 	}
 }
