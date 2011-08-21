@@ -51,6 +51,7 @@ public:
 
 	ScriptInstance();
 	ScriptInstance(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType, int dataSize, int useArg3Neg);
+	void remove();
 
 	int8 getByte();
 	short int getShort();

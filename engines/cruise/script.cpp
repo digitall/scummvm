@@ -43,27 +43,32 @@ ScriptInstance::ScriptInstance() {
 }
 
 ScriptInstance::ScriptInstance(int16 overlayNumber, int16 scriptNumber, int16 var1A, int16 var16, int16 var18, scriptTypeEnum scriptType, int dataSize, int useArg3Neg) {
-        if(dataSize) {
-                _dataSize = dataSize;
-                _data = (uint8 *)mallocAndZero(_dataSize);
-        } else {
-                _dataSize = 0;
-                _data = NULL;
-        }
-        _scriptOffset = 0;
+	if(dataSize) {
+			_dataSize = dataSize;
+			_data = (uint8 *)mallocAndZero(_dataSize);
+	} else {
+			_dataSize = 0;
+			_data = NULL;
+	}
+	_scriptOffset = 0;
 
-        _scriptNumber = scriptNumber;
-        _overlayNumber = overlayNumber;
-        _freeze = 0;
-        _type = scriptType;
-        _var18 = var18;
-        _var16 = var16;
-        _var1A = var1A;
-        _ccr = 0;
-        if(_type == 20)
-                _sysKey = useArg3Neg;
-        else
-                _sysKey = 1;
+	_scriptNumber = scriptNumber;
+	_overlayNumber = overlayNumber;
+	_freeze = 0;
+	_type = scriptType;
+	_var18 = var18;
+	_var16 = var16;
+	_var1A = var1A;
+	_ccr = 0;
+	if(_type == 20)
+			_sysKey = useArg3Neg;
+	else
+			_sysKey = 1;
+}
+
+void ScriptInstance::remove() {
+	if (_data)
+		MemFree(_data);
 }
 
 int16 ScriptInstance::operateFunction(int opCode) {
@@ -711,8 +716,7 @@ int ScriptList::removeFinished() {
 
 	while (iter != end()) {
 		if (iter->_scriptNumber == -1) {
-			if (iter->_data)
-				MemFree(iter->_data);
+			iter->remove();
 			iter = erase(iter);
 		} else {
 			iter++;
@@ -725,8 +729,7 @@ int ScriptList::removeFinished() {
 void ScriptList::removeAll() {
 	Common::List<ScriptInstance>::iterator iter = begin();
 	while (iter != end()) {
-		if (iter->_data)
-			MemFree((*iter)._data);
+		iter->remove();
 		iter = erase(iter);
 	}
 }
