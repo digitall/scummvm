@@ -190,12 +190,16 @@ void CruiseEngine::pauseEngine(bool pause) {
 		drawString(10, 100, langString(ID_PAUSED), gfxModuleData.pPage00, itemColor, 300);
 		gfxModuleData_flipScreen();
 
+		/* this does not automaticly updates screen, but since game is paused,
+		 * there should not be any difference with simply hiding it.
 		_savedCursor = currentMouse._cursor;
-		currentMouse.changeCursor(CURSOR_NOMOUSE);
+		currentMouse.changeCursor(CURSOR_NOMOUSE);*/
+		currentMouse.mouseOff();
 	} else {
 		actorHead.processAnimation();
 		flipScreen();
-		currentMouse.changeCursor(_savedCursor);
+		//currentMouse.changeCursor(_savedCursor);
+		currentMouse.mouseOn();
 	}
 
 	gfxModuleData_addDirtyRect(Common::Rect(64, 100, 256, 117));
