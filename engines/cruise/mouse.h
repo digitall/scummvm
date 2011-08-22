@@ -56,12 +56,11 @@ private:
 	static const MouseCursor mouseCursors[];
 	static const byte cursorPalette[];
 
-public:
 	int _coordinateX;
 	int _coordinateY;
 	int _button;
 	CursorType _cursor;
-
+public:
 	Mouse();
 
 	void reset() {_button = 0;}
