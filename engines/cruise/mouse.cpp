@@ -28,13 +28,7 @@
 
 namespace Cruise {
 
-struct MouseCursor {
-	int hotspotX;
-	int hotspotY;
-	const byte *bitmap;
-};
-
-static const MouseCursor mouseCursors[] = {
+const MouseCursor Mouse::mouseCursors[] = {
 	{ 1, 1, mouseCursorNormal },
 	{ 0, 0, mouseCursorDisk },
 	{ 7, 7, mouseCursorCross },
@@ -44,9 +38,7 @@ static const MouseCursor mouseCursors[] = {
 	{ 10, 6, mouseCursorMagnifyingGlass }
 };
 
-
-
-static const byte cursorPalette[] = {
+const byte Mouse::cursorPalette[] = {
 	0, 0, 0,
 	0xff, 0xff, 0xff
 };

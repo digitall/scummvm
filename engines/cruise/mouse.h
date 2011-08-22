@@ -43,7 +43,18 @@ enum MouseButton {
 	CRS_MB_BOTH = CRS_MB_LEFT | CRS_MB_RIGHT
 };
 
+struct MouseCursor {
+	int hotspotX;
+	int hotspotY;
+	const byte *bitmap;
+};
+
+
 class Mouse {
+private:
+	static const MouseCursor mouseCursors[];
+	static const byte cursorPalette[];
+
 public:
 	int _coordinateX;
 	int _coordinateY;
