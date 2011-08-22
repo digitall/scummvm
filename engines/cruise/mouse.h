@@ -56,7 +56,6 @@ public:
 	void changeCursor(CursorType eType);
 };
 
-bool isMouseOn();
 void mouseOff();
 void mouseOn();
 

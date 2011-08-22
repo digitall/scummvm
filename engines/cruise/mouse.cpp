@@ -84,10 +84,6 @@ void Mouse::changeCursor(CursorType eType) {
 	}
 }
 
-bool isMouseOn() {
-	return (currentMouse._cursor != CURSOR_NOMOUSE) && CursorMan.isVisible();
-}
-
 void mouseOff() {
 	CursorMan.showMouse(false);
 	g_system->updateScreen();
