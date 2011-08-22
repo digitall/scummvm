@@ -1305,7 +1305,7 @@ int CruiseEngine::processInput() {
 	if (keyboardCode == Common::KEYCODE_p) {
 		keyboardCode = Common::KEYCODE_INVALID;
 		_vm->pauseEngine(true);
-		mouseOff();
+		currentMouse.mouseOff();
 
 		bool pausedButtonDown = false;
 		while (!_vm->shouldQuit()) {

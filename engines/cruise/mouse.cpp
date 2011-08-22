@@ -76,7 +76,7 @@ void Mouse::changeCursor(CursorType eType) {
 	}
 }
 
-void mouseOff() {
+void Mouse::mouseOff() {
 	CursorMan.showMouse(false);
 	g_system->updateScreen();
 }

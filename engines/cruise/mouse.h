@@ -69,9 +69,11 @@ public:
 	void manageEvent(Common::Event event);
 	void getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 	void changeCursor(CursorType eType);
+
+	static void mouseOff();
 };
 
-void mouseOff();
+
 void mouseOn();
 
 } // End of namespace Cruise
