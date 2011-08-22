@@ -23,6 +23,8 @@
 #ifndef CRUISE_MOUSE_H
 #define CRUISE_MOUSE_H
 
+#include "common/keyboard.h"
+#include "common/events.h"
 namespace Cruise {
 
 enum CursorType {
@@ -49,7 +51,6 @@ struct MouseCursor {
 	const byte *bitmap;
 };
 
-
 class Mouse {
 private:
 	static const MouseCursor mouseCursors[];
@@ -63,6 +64,7 @@ public:
 
 	Mouse();
 
+	void manageEvent(Common::Event event);
 	void getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 	void changeCursor(CursorType eType);
 };

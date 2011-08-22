@@ -92,4 +92,41 @@ void Mouse::getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY) {
 	*pMouseButton = _button;
 }
 
+void Mouse::manageEvent(Common::Event event) {
+	switch (event.type) {
+		case Common::EVENT_LBUTTONDOWN:
+			_button |= CRS_MB_LEFT;
+			break;
+		case Common::EVENT_LBUTTONUP:
+			_button &= ~CRS_MB_LEFT;
+			break;
+		case Common::EVENT_RBUTTONDOWN:
+			_button |= CRS_MB_RIGHT;
+			break;
+		case Common::EVENT_RBUTTONUP:
+			_button &= ~CRS_MB_RIGHT;
+			break;
+		case Common::EVENT_MOUSEMOVE:
+			_coordinateX = event.mouse.x;
+			_coordinateY = event.mouse.y;
+			break;
+
+		case Common::EVENT_KEYUP:
+			switch (event.kbd.keycode) {
+				case Common::KEYCODE_ESCAPE:
+					_button &= ~CRS_MB_MIDDLE;
+					break;
+				default:
+					break;
+				}
+			break;
+		case Common::EVENT_KEYDOWN:
+			if (event.kbd.keycode == Common::KEYCODE_ESCAPE) {
+				_button |= CRS_MB_MIDDLE;
+			}
+		default:
+			break;
+	}
+}
+
 } // End of namespace Cruise

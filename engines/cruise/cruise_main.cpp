@@ -1568,65 +1568,31 @@ bool manageEvents() {
 
 	Common::EventManager *eventMan = g_system->getEventManager();
 	while (eventMan->pollEvent(event)) {
-		bool abortFlag = true;
-
-		switch (event.type) {
-		case Common::EVENT_LBUTTONDOWN:
-			currentMouse._button |= CRS_MB_LEFT;
-			break;
-		case Common::EVENT_LBUTTONUP:
-			currentMouse._button &= ~CRS_MB_LEFT;
-			break;
-		case Common::EVENT_RBUTTONDOWN:
-			currentMouse._button |= CRS_MB_RIGHT;
-			break;
-		case Common::EVENT_RBUTTONUP:
-			currentMouse._button &= ~CRS_MB_RIGHT;
-			break;
-		case Common::EVENT_MOUSEMOVE:
-			currentMouse._coordinateX = event.mouse.x;
-			currentMouse._coordinateY = event.mouse.y;
-			abortFlag = false;
-			break;
-		case Common::EVENT_QUIT:
-		case Common::EVENT_RTL:
-			playerDontAskQuit = 1;
-			break;
-		case Common::EVENT_KEYUP:
-			switch (event.kbd.keycode) {
-			case Common::KEYCODE_ESCAPE:
-				currentMouse._button &= ~CRS_MB_MIDDLE;
+		currentMouse.manageEvent(event);
+		switch(event.type) {
+			case Common::EVENT_QUIT:
+			case Common::EVENT_RTL:
+				playerDontAskQuit = 1;
 				break;
-			default:
-				break;
-			}
-			break;
-		case Common::EVENT_KEYDOWN:
-			switch (event.kbd.keycode) {
-			case Common::KEYCODE_ESCAPE:
-				currentMouse._button |= CRS_MB_MIDDLE;
-				break;
-			default:
-				keyboardCode = event.kbd.keycode;
-				break;
-			}
-
-			if (event.kbd.hasFlags(Common::KBD_CTRL)) {
-				if (event.kbd.keycode == Common::KEYCODE_d) {
-					// Start the debugger
-					_vm->getDebugger()->attach();
-					keyboardCode = Common::KEYCODE_INVALID;
-				} else if (event.kbd.keycode == Common::KEYCODE_f) {
-					bFastMode = !bFastMode;
-					keyboardCode = Common::KEYCODE_INVALID;
+			case Common::EVENT_KEYDOWN:
+				if (event.kbd.keycode != Common::KEYCODE_ESCAPE) {
+					keyboardCode = event.kbd.keycode;
 				}
-			}
 
-		default:
-			break;
+				if (event.kbd.hasFlags(Common::KBD_CTRL)) {
+					if (event.kbd.keycode == Common::KEYCODE_d) {
+						// Start the debugger
+						_vm->getDebugger()->attach();
+						keyboardCode = Common::KEYCODE_INVALID;
+					} else if (event.kbd.keycode == Common::KEYCODE_f) {
+						bFastMode = !bFastMode;
+						keyboardCode = Common::KEYCODE_INVALID;
+					}
+				}
+			default:
+				break;
 		}
-
-		if (abortFlag)
+		if (event.type != Common::EVENT_MOUSEMOVE)
 			return true;
 	}
 
