@@ -31,8 +31,6 @@
 
 namespace Cruise {
 
-extern int currentMouseButton;
-
 Menu::Menu(int X, int Y, const char *menuName) {
 	_x = X - 160 / 2;
 	_y = Y;
