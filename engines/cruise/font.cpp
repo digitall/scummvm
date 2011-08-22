@@ -158,7 +158,7 @@ void initSystem() {
 
 	currentMouse.changeCursor(CURSOR_NOMOUSE);
 	currentMouse.changeCursor(CURSOR_NORMAL);
-	mouseOn();
+	currentMouse.mouseOn();
 
 	strcpy(cmdLine, "");
 

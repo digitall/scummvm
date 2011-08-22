@@ -81,7 +81,7 @@ void Mouse::mouseOff() {
 	g_system->updateScreen();
 }
 
-void mouseOn() {
+void Mouse::mouseOn() {
 	CursorMan.showMouse(true);
 	g_system->updateScreen();
 }

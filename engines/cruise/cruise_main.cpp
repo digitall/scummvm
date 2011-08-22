@@ -1328,7 +1328,7 @@ int CruiseEngine::processInput() {
 
 		keyboardCode = Common::KEYCODE_INVALID;
 		_vm->pauseEngine(false);
-		mouseOn();
+		currentMouse.mouseOn();
 		return 0;
 	}
 

@@ -71,10 +71,11 @@ public:
 	void changeCursor(CursorType eType);
 
 	static void mouseOff();
+	static void mouseOn();
 };
 
 
-void mouseOn();
+
 
 } // End of namespace Cruise
 
