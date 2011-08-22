@@ -264,7 +264,7 @@ int playerMenu(int menuX, int menuY) {
 
 		delete menuTable[0];
 		menuTable[0] = NULL;
-		currentMouse._button = 0;
+		currentMouse.reset();
 
 		switch (retourMenu) {
 		case 3: // select save drive

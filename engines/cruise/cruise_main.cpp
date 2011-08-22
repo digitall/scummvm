@@ -1696,7 +1696,7 @@ void CruiseEngine::mainLoop() {
 			_vm->relScriptList.changeParam(-1, -1, 9999, 0);
 
 			// Disable any mouse click used to end the user wait
-			currentMouse._button = 0;
+			currentMouse.reset();
 		}
 
 		// FIXME: I suspect that the original game does multiple script executions between game frames; the bug with

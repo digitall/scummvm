@@ -64,6 +64,7 @@ public:
 
 	Mouse();
 
+	void reset() {_button = 0;}
 	void manageEvent(Common::Event event);
 	void getStatus(int16 *pMouseX, int16 *pMouseButton, int16 *pMouseY);
 	void changeCursor(CursorType eType);
