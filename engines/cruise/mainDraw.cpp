@@ -1046,7 +1046,7 @@ void mainDrawPolygons(int fileIndex, CellList *plWork, int X, int scale, int Y, 
 	gfxModuleData_addDirtyRect(Common::Rect(spriteX2, spriteY2, spriteX1, spriteY1));
 
 	memset(polygonMask, 0xFF, (320 * 200) / 8);
-	if(plWork)
+	if (plWork)
 		plWork->processMask(polygonMask, 40, 200, 0, 0);
 
 	// this function builds the poly model and then calls the draw functions (OLD: mainDrawSub1Sub5)
@@ -1322,7 +1322,7 @@ void mainDraw(int16 param) {
 }
 
 int16 fadeOut() {
-		for (long int i = 0; i < 256; i += 32) {
+	for (long int i = 0; i < 256; i += 32) {
 		for (long int j = 0; j < 256; j++) {
 			int offsetTable[3];
 			offsetTable[0] = -32;

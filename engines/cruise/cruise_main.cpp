@@ -1569,28 +1569,28 @@ bool manageEvents() {
 	Common::EventManager *eventMan = g_system->getEventManager();
 	while (eventMan->pollEvent(event)) {
 		currentMouse.manageEvent(event);
-		switch(event.type) {
-			case Common::EVENT_QUIT:
-			case Common::EVENT_RTL:
-				playerDontAskQuit = 1;
-				break;
-			case Common::EVENT_KEYDOWN:
-				if (event.kbd.keycode != Common::KEYCODE_ESCAPE) {
-					keyboardCode = event.kbd.keycode;
-				}
+		switch (event.type) {
+		case Common::EVENT_QUIT:
+		case Common::EVENT_RTL:
+			playerDontAskQuit = 1;
+			break;
+		case Common::EVENT_KEYDOWN:
+			if (event.kbd.keycode != Common::KEYCODE_ESCAPE) {
+				keyboardCode = event.kbd.keycode;
+			}
 
-				if (event.kbd.hasFlags(Common::KBD_CTRL)) {
-					if (event.kbd.keycode == Common::KEYCODE_d) {
-						// Start the debugger
-						_vm->getDebugger()->attach();
-						keyboardCode = Common::KEYCODE_INVALID;
-					} else if (event.kbd.keycode == Common::KEYCODE_f) {
-						bFastMode = !bFastMode;
-						keyboardCode = Common::KEYCODE_INVALID;
-					}
+			if (event.kbd.hasFlags(Common::KBD_CTRL)) {
+				if (event.kbd.keycode == Common::KEYCODE_d) {
+					// Start the debugger
+					_vm->getDebugger()->attach();
+					keyboardCode = Common::KEYCODE_INVALID;
+				} else if (event.kbd.keycode == Common::KEYCODE_f) {
+					bFastMode = !bFastMode;
+					keyboardCode = Common::KEYCODE_INVALID;
 				}
-			default:
-				break;
+			}
+		default:
+			break;
 		}
 		if (event.type != Common::EVENT_MOUSEMOVE)
 			return true;

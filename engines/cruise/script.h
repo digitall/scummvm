@@ -55,8 +55,8 @@ public:
 	void remove();
 
 	void setFreeze(int16 oldFreeze, int16 newFreeze);
-	void setSysKey(int16 syskey) {_sysKey = syskey;}
-	uint8 *getData() {return _data;}
+	void setSysKey(int16 syskey) { _sysKey = syskey; }
+	uint8 *getData() { return _data; }
 	int32 execute();
 	void sync(Common::Serializer &s);
 private:
@@ -189,7 +189,7 @@ private:
 	int16 Op_ProtectionFlag();
 	int16 Op_KillMenu();
 	//end of the functions
-	
+
 	int32 opcodeType0();
 	int32 opcodeType1();
 	int32 opcodeType2();
@@ -223,7 +223,7 @@ public:
 	void manage();
 	void changeParam(int param1, int param2, int newValue, int param3);
 	void scriptFunc2(int scriptNumber, int param, int param2);
-	static ScriptInstance *getCurrentScript() {return pCurrentScript;}
+	static ScriptInstance *getCurrentScript() { return pCurrentScript; }
 
 };
 

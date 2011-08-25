@@ -39,12 +39,12 @@ public:
 	int16 _overlay;
 	int16 _backgroundPlane;
 
-	int16 _animWait;					//used in cell.cpp
+	int16 _animWait;                    //used in cell.cpp
 	int16 _animCounter;
 
-	int16 _freeze;						//used in cruise_main
+	int16 _freeze;                      //used in cruise_main
 
-	int16 _animChange;					//used in function
+	int16 _animChange;                  //used in function
 private:
 	int16 _X;
 	int16 _fieldC;
@@ -68,13 +68,13 @@ public:
 	Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber);
 	void remove();
 
-	int16 getFollowObjectOverlayIdx() { return _followObjectOverlayIdx;}
-	int16 getFollowObjectIdx() {return _followObjectIdx;}
+	int16 getFollowObjectOverlayIdx() { return _followObjectOverlayIdx; }
+	int16 getFollowObjectIdx() { return _followObjectIdx; }
 
 	void setAnim(int16 signal, int16 loop, int16 wait, int16 animStep, int16 end, int16 start, int16 type, int16 change);
 	void animate(objectParamsQuery params);
 	void setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx);
-	void makeTextObject(int x, int y, int width, int16 color,const char *pText);
+	void makeTextObject(int x, int y, int width, int16 color, const char *pText);
 	void sync(Common::Serializer &s);
 	void freeze(int oldFreeze, int newFreeze);
 	void drawAsMessage();
@@ -93,7 +93,7 @@ class CellList: private Common::List<Cell> {
 public:
 
 	CellList() {}
-	CellList(Common::List<Cell>::iterator firstElement,	Common::List<Cell>::iterator lastElement);
+	CellList(Common::List<Cell>::iterator firstElement, Common::List<Cell>::iterator lastElement);
 
 	Common::List<Cell>::iterator begin() { return Common::List<Cell>::begin(); }
 	Common::List<Cell>::iterator end() { return Common::List<Cell>::end(); }

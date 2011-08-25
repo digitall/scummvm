@@ -162,7 +162,6 @@ Cell::Cell() {
 }
 
 Cell::Cell(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber) {
-	
 	_idx = objIdx;
 	_type = type;
 	_backgroundPlane = backgroundPlane;
@@ -190,15 +189,15 @@ void Cell::remove() {
 }
 
 void Cell::setFollower(int16 parentType, int16 followObjectIdx, int16 followObjectOverlayIdx) {
-	if(_parentType != -1)
+	if (_parentType != -1)
 		_parentType = parentType;
 	_followObjectIdx = followObjectIdx;
 	_followObjectOverlayIdx = followObjectOverlayIdx;
 }
 
-void Cell::sync(Common::Serializer& s) {
+void Cell::sync(Common::Serializer &s) {
 	uint16 dummyWord = 0;
-	
+
 	s.syncAsUint16LE(dummyWord);
 	s.syncAsUint16LE(dummyWord);
 
@@ -336,7 +335,7 @@ void freeMessageList(CellList *objPtr) {
 	    } */
 }
 
-CellList::CellList(Common::List<Cell>::iterator firstElement,	Common::List<Cell>::iterator lastElement) {
+CellList::CellList(Common::List<Cell>::iterator firstElement,   Common::List<Cell>::iterator lastElement) {
 	insert(begin(), firstElement, lastElement);
 }
 
@@ -369,26 +368,26 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 
 	Cell *pNewCell = new Cell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
 
-	insert(iter,*pNewCell);
+	insert(iter, *pNewCell);
 
-	Cell *re  = &(*(--iter));	//since insert add element before the iter.
-	return re; 
+	Cell *re  = &(*(--iter));   //since insert add element before the iter.
+	return re;
 }
 
 Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
 	int16 var;
-        Cell *pNewCell;
+	Cell *pNewCell;
 
-        if (getSingleObjectParam(overlayIdx, objIdx, 2, &var) < 0) {
-            return 0;
-        }
+	if (getSingleObjectParam(overlayIdx, objIdx, 2, &var) < 0) {
+		return 0;
+	}
 
-        pNewCell = add(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
-        if(!pNewCell)
-            return 0;
-		pNewCell->setFollower(scriptType, objIdx, overlayIdx);
+	pNewCell = add(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
+	if (!pNewCell)
+		return 0;
+	pNewCell->setFollower(scriptType, objIdx, overlayIdx);
 
-        return pNewCell;
+	return pNewCell;
 }
 
 void Cell::makeTextObject(int x, int y, int width, int16 color, const char *pText) {
@@ -396,7 +395,7 @@ void Cell::makeTextObject(int x, int y, int width, int16 color, const char *pTex
 	_fieldC = y;
 	_spriteIdx = width;
 	_color = color;
-	
+
 	if (pText)
 		_gfxPtr = renderText(width, pText);
 }
@@ -459,7 +458,7 @@ void CellList::freezeCell(int overlayIdx, int objIdx, int objType, int backgroun
 		        ((iter->_idx == objIdx) || (objIdx == -1)) &&
 		        ((iter->_type == objType) || (objType == -1)) &&
 		        ((iter->_backgroundPlane == backgroundPlane) || (backgroundPlane == -1))) {
-				iter->freeze(oldFreeze, newFreeze);
+			iter->freeze(oldFreeze, newFreeze);
 		}
 		iter++;
 	}
@@ -544,7 +543,7 @@ void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *
 }
 
 void CellList::processMask(unsigned char *workBuf, int width, int height, int xs, int ys) {
-		//workbuff, width, height, xs, ys
+	//workbuff, width, height, xs, ys
 	int numPasses = 0;
 
 	Common::List<Cell>::iterator iter = begin();

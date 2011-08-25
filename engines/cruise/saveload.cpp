@@ -324,7 +324,7 @@ void syncScript(Common::Serializer &s, ScriptList *entry) {
 			ptr = *iter;
 
 		ptr.sync(s);
-		
+
 		if (s.isLoading()) {
 			entry->add(ptr);
 		}

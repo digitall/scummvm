@@ -851,14 +851,14 @@ int16 ScriptInstance::Op_AutoCell() {
 	if (!pObject)
 		return 0;
 	pObject->setAnim(signal, loop, wait, animStep, end, start, type, change);
-/*	pObject->_animSignal = signal;
-	pObject->_animLoop = loop;
-	pObject->_animWait = wait;
-	pObject->_animStep = animStep;
-	pObject->_animEnd = end;
-	pObject->_animStart = start;
-	pObject->_animType = type;
-	pObject->_animChange = change;*/
+	/*  pObject->_animSignal = signal;
+	    pObject->_animLoop = loop;
+	    pObject->_animWait = wait;
+	    pObject->_animStep = animStep;
+	    pObject->_animEnd = end;
+	    pObject->_animStart = start;
+	    pObject->_animType = type;
+	    pObject->_animChange = change;*/
 
 	if (type) {
 		if (_type == scriptType_PROC) {
@@ -933,7 +933,7 @@ int16 ScriptInstance::Op_RemoveBackground() {
 }
 
 int16 ScriptInstance::Op_VBL() {
-	stack.popVar();		//this was assigned to a global variable that never read.
+	stack.popVar();     //this was assigned to a global variable that never read.
 	return 0;
 }
 
