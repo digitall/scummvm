@@ -377,6 +377,9 @@ static void syncIncrust(Common::Serializer &s) {
 				backgroundIncrust._ptr = (byte *)MemAlloc(backgroundIncrust._saveSize);
 
 			s.syncBytes(backgroundIncrust._ptr, backgroundIncrust._saveSize);
+		} else {
+			if (s.isLoading())
+				backgroundIncrust._ptr = NULL;	//there might be junk value from last loop
 		}
 
 		if (s.isLoading())

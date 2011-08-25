@@ -683,6 +683,9 @@ void ScriptInstance::sync(Common::Serializer &s) {
 		if (s.isLoading())
 			_data = (byte *)mallocAndZero(_dataSize);
 		s.syncBytes(_data, _dataSize);
+	} else {
+		if (s.isLoading())
+			_data = NULL;		//there might be junk value from last loop
 	}
 }
 
