@@ -366,12 +366,11 @@ Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 background
 			return NULL;
 	}
 
-	Cell *pNewCell = new Cell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
+	Cell cell(overlayIdx, objIdx, type, backgroundPlane, scriptOverlay, scriptNumber);
 
-	insert(iter, *pNewCell);
+	insert(iter, cell);
 
-	Cell *re  = &(*(--iter));   //since insert add element before the iter.
-	return re;
+	return &(*(--iter));
 }
 
 Cell *CellList::add(int16 overlayIdx, int16 objIdx, int16 type, int16 backgroundPlane, int16 scriptOverlay, int16 scriptNumber, int16 scriptType) {
