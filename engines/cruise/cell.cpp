@@ -528,7 +528,7 @@ void clearMaskBit(int x, int y, unsigned char *pData, int stride) {
 	*(ptr) &= ~bitToTest;
 }
 
-void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *pMask, int maskWidth, int maskHeight, int maskX, int maskY, int passIdx) {
+void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *pMask, int maskWidth, int maskHeight, int maskX, int maskY) {
 	for (int y = 0; y < maskHeight; y++) {
 		for (int x = 0; x < maskWidth * 8; x++) {
 			if (testMask(x, y, pMask, maskWidth)) {
@@ -543,8 +543,6 @@ void drawMask(unsigned char *workBuf, int wbWidth, int wbHeight, unsigned char *
 }
 
 void CellList::processMask(unsigned char *workBuf, int width, int height, int xs, int ys) {
-	//workbuff, width, height, xs, ys
-	int numPasses = 0;
 
 	Common::List<Cell>::iterator iter = begin();
 
@@ -559,9 +557,9 @@ void CellList::processMask(unsigned char *workBuf, int width, int height, int xs
 			int maskFrame = params.fileIdx;
 
 			if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_BGMASK && filesDatabase[maskFrame].subData.ptrMask)
-				drawMask(workBuf, width, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
+				drawMask(workBuf, width, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys);
 			else if (filesDatabase[maskFrame].subData.resourceType == OBJ_TYPE_SPRITE && filesDatabase[maskFrame].subData.ptrMask)
-				drawMask(workBuf, width, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys, numPasses++);
+				drawMask(workBuf, width, height, filesDatabase[maskFrame].subData.ptrMask, filesDatabase[maskFrame].width / 8, filesDatabase[maskFrame].height, maskX - xs, maskY - ys);
 
 		}
 		iter++;
