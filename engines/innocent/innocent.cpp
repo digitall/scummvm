@@ -43,8 +43,6 @@
 #include "innocent/musicparser.h"
 #include "innocent/resources.h"
 
-#define GFX_TRANSACTION for (int ___i = 1; ___i && (_system->beginGFXTransaction(), true); ___i--, _system->endGFXTransaction() )
-
 using namespace Common;
 
 namespace Innocent {
@@ -83,10 +81,7 @@ Engine::~Engine() {
 }
 
 Common::Error Engine::run() {
-	GFX_TRANSACTION {
-		initCommonGFX(false);
-		_system->initSize(320, 200);
-	}
+	initGraphics(320, 200, false);
 	_copyProtection = ConfMan.getBool("copy_protection");
 	_startRoom = ConfMan.getInt("boot_param");
 	_debugger = &Debug;
