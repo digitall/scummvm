@@ -500,7 +500,7 @@ void MystScriptParser::o_disableAreas(uint16 op, uint16 var, uint16 argc, uint16
 				resource = _vm->_resources[argv[i + 1]];
 
 			if (resource)
-				resource->setEnabled(true);
+				resource->setEnabled(false);
 			else
 				warning("Unknown Resource in disableAreas script Opcode");
 		}
@@ -560,6 +560,7 @@ void MystScriptParser::o_playSoundBlocking(uint16 op, uint16 var, uint16 argc, u
 	debugC(kDebugScript, "Opcode %d: playSoundBlocking", op);
 	debugC(kDebugScript, "\tsoundId: %d", soundId);
 
+	_vm->_sound->stopSound();
 	_vm->_sound->playSoundBlocking(soundId);
 }
 

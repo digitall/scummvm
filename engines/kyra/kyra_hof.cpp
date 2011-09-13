@@ -857,7 +857,7 @@ void KyraEngine_HoF::loadOptionsBuffer(const char *file) {
 void KyraEngine_HoF::loadChapterBuffer(int chapter) {
 	char tempString[14];
 
-	static const char *chapterFilenames[] = {
+	static const char *const chapterFilenames[] = {
 		"CH1.XXX", "CH2.XXX", "CH3.XXX", "CH4.XXX", "CH5.XXX"
 	};
 
@@ -1052,8 +1052,7 @@ void KyraEngine_HoF::runStartScript(int script, int unk1) {
 void KyraEngine_HoF::loadNPCScript() {
 	_emc->unload(&_npcScriptData);
 
-	char filename[12];
-	strcpy(filename, "_NPC.EMC");
+	char filename[] = "_NPC.EMC";
 
 	if (_flags.platform != Common::kPlatformPC || _flags.isTalkie) {
 		switch (_lang) {
@@ -1084,7 +1083,7 @@ void KyraEngine_HoF::loadNPCScript() {
 #pragma mark -
 
 void KyraEngine_HoF::resetScaleTable() {
-	Common::set_to(_scaleTable, _scaleTable + ARRAYSIZE(_scaleTable), 0x100);
+	Common::set_to(_scaleTable, ARRAYEND(_scaleTable), 0x100);
 }
 
 void KyraEngine_HoF::setScaleTableItem(int item, int data) {
@@ -1414,7 +1413,7 @@ void KyraEngine_HoF::runIdleScript(int script) {
 		setNextIdleAnimTimer();
 	} else {
 		// FIXME: move this to staticres.cpp?
-		static const char *idleScriptFiles[] = {
+		static const char *const idleScriptFiles[] = {
 			"_IDLHAIR.EMC", "_IDLDUST.EMC", "_IDLLEAN.EMC", "_IDLDIRT.EMC", "_IDLTOSS.EMC", "_IDLNOSE.EMC",
 			"_IDLBRSH.EMC", "_Z3IDLE.EMC", "_Z4IDLE.EMC", "_Z6IDLE.EMC", "_Z7IDLE.EMC", "_Z8IDLE.EMC"
 		};
@@ -1674,7 +1673,7 @@ void KyraEngine_HoF::setCauldronState(uint8 state, bool paletteFade) {
 }
 
 void KyraEngine_HoF::clearCauldronTable() {
-	Common::set_to(_cauldronTable, _cauldronTable+ARRAYSIZE(_cauldronTable), -1);
+	Common::set_to(_cauldronTable, ARRAYEND(_cauldronTable), -1);
 }
 
 void KyraEngine_HoF::addFrontCauldronTable(int item) {
@@ -1998,4 +1997,3 @@ void KyraEngine_HoF::readSettings() {
 }
 
 } // End of namespace Kyra
-

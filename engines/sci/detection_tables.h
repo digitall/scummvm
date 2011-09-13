@@ -91,7 +91,7 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformPC, ADGF_DEMO, GUIO_NOSPEECH	},
 
-	// Castle of Dr. Brain - English DOS Floppy EGA (from omer_mor, bug report #3035349)
+	// Castle of Dr. Brain - English DOS 5.25" Floppy EGA (from omer_mor, bug report #3035349)
 	{"castlebrain", "EGA", {
 		{"resource.map", 0, "88d106f945f7fd9d1aeda961cfec38a9", 2646},
 		{"resource.000", 0, "6e125f4ce3f4f5c35f2617c7b66c6e21", 25325},
@@ -101,6 +101,16 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.004", 0, "5e7b90949422de005f80285979972e43", 292423},
 		{"resource.005", 0, "8a5ed3ba96e2eaf18e36fedfaab89419", 297838},
 		{"resource.006", 0, "dceed92e709cad1bd9582809a235b0a0", 266682},
+		AD_LISTEND},
+		Common::EN_ANY, Common::kPlatformPC, 0, GUIO_NOSPEECH	},
+
+	// Castle of Dr. Brain - English DOS 3.5" Floppy EGA (from nozomi77, bug report #3405307)
+	{"castlebrain", "EGA", {
+		{"resource.map", 0, "dfcf23e36cb81223bdf11166aaf90754", 2730},
+		{"resource.000", 0, "27ec5fa09cd12a7fd16e86d96a2ed245", 300857},
+		{"resource.001", 0, "6e0020a9f9bef9a9d65943dc013f14b5", 222108},
+		{"resource.002", 0, "de2f182529efaad2c4b510b452ab77ac", 633662},
+		{"resource.003", 0, "38b4b37febc6b4f5061c461a283df148", 430388},
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformPC, 0, GUIO_NOSPEECH	},
 
@@ -2649,6 +2659,14 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformPC, ADGF_CD | ADGF_UNSTABLE, GUIO_NONE	},
 
+	// Police Quest 4 - German DOS CD (German text, English speech)
+	// Supplied by markcoolio in bug report #3392955
+	{"pq4", "CD", {
+		{"resource.map", 0, "a398076371ed0e1e706c8f9fb9fc7ac5", 11386},
+		{"resource.000", 0, "6ff21954e0a2c5992279e7eb787c8d56", 18918747},
+		AD_LISTEND},
+		Common::DE_DEU, Common::kPlatformPC, ADGF_CD | ADGF_UNSTABLE, GUIO_NONE	},
+
 	// Police Quest 4 - English DOS
 	// SCI interpreter version 2.000.000 (a guess?)
 	{"pq4", "", {
@@ -3145,6 +3163,15 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 	// Slater & Charlie Go Camping - English DOS/Windows
 	{"slater", "", {
 		{"resource.000", 0, "1846b57fe84774be72f7c50ab3c90df0", 2256126},
+		{"resource.map", 0, "21f85414124dc23e54544a5536dc35cd", 4044},
+		{"resource.msg", 0, "c44f51fb955eae266fecf360ebcd5ad2", 1132},
+		AD_LISTEND},
+		Common::EN_ANY, Common::kPlatformPC, 0, GUIO_NOSPEECH	},
+
+
+	// Slater & Charlie Go Camping - English DOS/Windows (Sierra Originals)
+	{"slater", "", {
+		{"resource.000", 0, "d7b4cc8e2c0b3a4768f8dfb5de27f206", 2256126},
 		{"resource.map", 0, "21f85414124dc23e54544a5536dc35cd", 4044},
 		{"resource.msg", 0, "c44f51fb955eae266fecf360ebcd5ad2", 1132},
 		AD_LISTEND},

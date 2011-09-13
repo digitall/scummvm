@@ -83,7 +83,9 @@ KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 }
 
 void KyraEngine_v1::pauseEngineIntern(bool pause) {
-	_sound->pause(pause);
+	Engine::pauseEngineIntern(pause);
+	if (_sound)
+		_sound->pause(pause);	
 	_timer->pause(pause);
 }
 
@@ -648,4 +650,3 @@ void KyraEngine_v1::syncSoundSettings() {
 }
 
 } // End of namespace Kyra
-

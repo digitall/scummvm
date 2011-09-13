@@ -209,6 +209,8 @@ const SciWorkaroundEntry kDeviceInfo_workarounds[] = {
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kDisplay_workarounds[] = {
 	{ GID_ISLANDBRAIN,   300,   300,  0,           "geneDude", "show",           -1,    0, { WORKAROUND_IGNORE,    0 } }, // when looking at the gene explanation chart - a parameter is an object
+	{ GID_PQ1,           500,   500,  0,           "endInter", "changeState", 0x3e8,    0, { WORKAROUND_IGNORE,    0 } }, // restoring a game at the map scene (bug #3389579)
+	{ GID_PQ1,           500,   500,  0,           "endInter", "changeState", 0x46b,    0, { WORKAROUND_IGNORE,    0 } }, // restoring a game at the map scene (bug #3389579)
 	{ GID_PQ2,            23,    23,  0,         "rm23Script", "elements",    0x4ae,    0, { WORKAROUND_IGNORE,    0 } }, // when looking at the 2nd page of pate's file - 0x75 as id
 	{ GID_PQ2,            23,    23,  0,         "rm23Script", "elements",    0x4c1,    0, { WORKAROUND_IGNORE,    0 } }, // when looking at the 2nd page of pate's file - 0x75 as id (another pq2 version, bug #3043904)
 	{ GID_QFG1,           11,    11,  0,             "battle", "<noname90>",     -1,    0, { WORKAROUND_IGNORE,    0 } }, // DEMO: When entering battle, 0x75 as id
@@ -283,6 +285,8 @@ const SciWorkaroundEntry kGraphSaveBox_workarounds[] = {
 
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kGraphRestoreBox_workarounds[] = {
+	{ GID_LSL6,           -1,    86,  0,             "LL6Inv", "show",           -1,    0, { WORKAROUND_STILLCALL, 0 } }, // happens when restoring, is called with hunk segment, but hunk is not allocated at that time
+	// ^^ TODO: check, if this is really a script error or an issue with our restore code
 	{ GID_LSL6,           -1,    86,  0,             "LL6Inv", "hide",           -1,    0, { WORKAROUND_STILLCALL, 0 } }, // happens during the game, gets called with 1 extra parameter
 	{ GID_SQ5,           850,   850,  0,                 NULL, "changeState",    -1,    0, { WORKAROUND_STILLCALL, 0 } }, // happens while playing Battle Cruiser (invalid segment) - bug #3056811
 	SCI_WORKAROUNDENTRY_TERMINATOR

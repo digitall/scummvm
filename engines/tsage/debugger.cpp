@@ -23,21 +23,23 @@
 #include "tsage/debugger.h"
 #include "tsage/globals.h"
 #include "tsage/graphics.h"
-#include "tsage/ringworld_logic.h"
+#include "tsage/ringworld/ringworld_logic.h"
 
-namespace tSage {
+namespace TsAGE {
 
 Debugger::Debugger() : GUI::Debugger() {
 	DCmd_Register("continue",		WRAP_METHOD(Debugger, Cmd_Exit));
 	DCmd_Register("scene",			WRAP_METHOD(Debugger, Cmd_Scene));
 	DCmd_Register("walk_regions",	WRAP_METHOD(Debugger, Cmd_WalkRegions));
 	DCmd_Register("priority_regions",	WRAP_METHOD(Debugger, Cmd_PriorityRegions));
+	DCmd_Register("scene_regions",	WRAP_METHOD(Debugger, Cmd_SceneRegions));
 	DCmd_Register("setflag",		WRAP_METHOD(Debugger, Cmd_SetFlag));
 	DCmd_Register("getflag",		WRAP_METHOD(Debugger, Cmd_GetFlag));
 	DCmd_Register("clearflag",		WRAP_METHOD(Debugger, Cmd_ClearFlag));
 	DCmd_Register("listobjects",	WRAP_METHOD(Debugger, Cmd_ListObjects));
 	DCmd_Register("moveobject",		WRAP_METHOD(Debugger, Cmd_MoveObject));
 	DCmd_Register("hotspots",		WRAP_METHOD(Debugger, Cmd_Hotspots));
+	DCmd_Register("sound",			WRAP_METHOD(Debugger, Cmd_Sound));
 }
 
 static int strToInt(const char *s) {
@@ -154,6 +156,59 @@ bool Debugger::Cmd_PriorityRegions(int argc, const char **argv) {
 		}
 
 		regionsDesc += Common::String::format("Region Priority = %d bounds=%d,%d,%d,%d\n",
+			r._regionId, r._bounds.left, r._bounds.top, r._bounds.right, r._bounds.bottom);
+	}
+
+	// Release the surface
+	_globals->_sceneManager._scene->_backSurface.unlockSurface();
+
+	// Mark the scene as requiring a full redraw
+	_globals->_paneRefreshFlag[0] = 2;
+
+	DebugPrintf("Total regions = %d\n", count);
+	DebugPrintf("%s", regionsDesc.c_str());
+
+	return true;
+}
+
+/*
+ * This command draws the scene regions onto the screen. These are the regions
+ * used by hotspots that have non-rectangular areas.
+ */
+bool Debugger::Cmd_SceneRegions(int argc, const char **argv) {
+	int regionNum = 0;
+
+	// Check for an optional specific region to display
+	if (argc == 2)
+		regionNum = strToInt(argv[1]);
+
+	// Color index to use for the first priority region
+	int color = 16;
+	int count = 0;
+
+	// Lock the background surface for access
+	Graphics::Surface destSurface = _globals->_sceneManager._scene->_backSurface.lockSurface();
+
+	Common::List<Region>::iterator i = _globals->_sceneRegions.begin();
+	Common::String regionsDesc;
+
+	for (; i != _globals->_sceneRegions.end(); ++i, ++color, ++count) {
+		Region &r = *i;
+
+		if ((regionNum == 0) || (regionNum == (count + 1))) {
+			for (int y = 0; y < destSurface.h; ++y) {
+				byte *destP = (byte *)destSurface.getBasePtr(0, y);
+
+				for (int x = 0; x < destSurface.w; ++x) {
+					if (r.contains(Common::Point(_globals->_sceneManager._scene->_sceneBounds.left + x,
+							_globals->_sceneManager._scene->_sceneBounds.top + y)))
+						*destP = color;
+					++destP;
+				}
+			}
+		}
+
+		regionsDesc += Common::String::format("Region id = %d bounds=%d,%d,%d,%d\n",
 			r._regionId, r._bounds.left, r._bounds.top, r._bounds.right, r._bounds.bottom);
 	}
 
@@ -413,7 +468,7 @@ bool Debugger::Cmd_Hotspots(int argc, const char **argv) {
 			if (ri != _globals->_sceneRegions.end()) {
 				// Fill out the areas defined by the region
 				Region &r = *ri;
-
+			
 				for (int y = r._bounds.top; y < r._bounds.bottom; ++y) {
 					LineSliceSet set = r.getLineSlices(y);
 
@@ -434,5 +489,18 @@ bool Debugger::Cmd_Hotspots(int argc, const char **argv) {
 	return false;
 }
 
+/**
+ * Play the specified sound
+ */
+bool Debugger::Cmd_Sound(int argc, const char **argv) {
+	if (argc != 2) {
+		DebugPrintf("Usage: %s <sound number>\n", argv[0]);
+		return true;
+	}
 
-} // End of namespace tSage
+	int soundNum = strToInt(argv[1]);
+	_globals->_soundHandler.play(soundNum);
+	return false;
+}
+
+} // End of namespace TsAGE

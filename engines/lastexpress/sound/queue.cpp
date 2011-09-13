@@ -102,9 +102,41 @@ void SoundQueue::removeFromQueue(Common::String filename) {
 }
 
 void SoundQueue::updateQueue() {
-	//Common::StackLock locker(_mutex);
+	Common::StackLock locker(_mutex);
 
-	//warning("[Sound::updateQueue] Not implemented");
+	++_flag;
+
+	if (getSoundState() & kSoundState1) {
+		SoundEntry *entry = getEntry(kSoundType1);
+		if (!entry || getFlags()->flag_3 || (entry && entry->getTime() > getSound()->getLoopingSoundDuration())) {
+			getSound()->playLoopingSound(0x45);
+		} else {
+			if (getSound()->getData1() && getSound()->getData2() >= getSound()->getData1()) {
+				entry->update(getSound()->getData0());
+				getSound()->setData1(0);
+			}
+		}
+	}
+
+	for (Common::List<SoundEntry *>::iterator it = _soundList.begin(); it != _soundList.end(); ++it) {
+		SoundEntry *entry = *it;
+
+		// Original removes the entry data from the cache and sets the archive as not loaded
+		// and if the sound data buffer is not full, loads a new entry to be played based on
+		// its priority and filter id
+
+		if (!entry->updateSound() && !(entry->getStatus().status3 & 0x8)) {
+			entry->close();
+			SAFE_DELETE(entry);
+			it = _soundList.reverse_erase(it);
+		}
+	}
+
+	// Original update the current entry, loading another set of samples to be decoded
+
+	getFlags()->flag_3 = 0;
+
+	--_flag;
 }
 
 void SoundQueue::resetQueue() {
@@ -138,16 +170,9 @@ void SoundQueue::resetQueue(SoundType type1, SoundType type2) {
 }
 
 void SoundQueue::clearQueue() {
-	_flag |= 4;
-
-	// FIXME: Wait a while for a flag to be set
-	//for (int i = 0; i < 3000000; i++)
-	//	if (_flag & 8)
-	//		break;
+	Common::StackLock locker(_mutex);
 
 	_flag |= 8;
-
-	Common::StackLock locker(_mutex);
 
 	for (Common::List<SoundEntry *>::iterator i = _soundList.begin(); i != _soundList.end(); ++i) {
 		SoundEntry *entry = (*i);
@@ -169,7 +194,7 @@ void SoundQueue::clearStatus() {
 	Common::StackLock locker(_mutex);
 
 	for (Common::List<SoundEntry *>::iterator i = _soundList.begin(); i != _soundList.end(); ++i)
-		(*i)->setStatus((*i)->getStatus().status | kSoundStatusClear3);
+		(*i)->setStatus((*i)->getStatus().status | kSoundStatusClosed);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -292,11 +317,11 @@ void SoundQueue::updateSubtitles() {
 		if (!(status & kSoundStatus_40)
 		 || status & kSoundStatus_180
 		 || soundEntry->getTime() == 0
-		 || (status & kSoundStatusFilterVariant) < 6
+		 || (status & kSoundStatusFilter) < 6
 		 || ((getFlags()->nis & 0x8000) && soundEntry->getPriority() < 90)) {
 			 current_index = 0;
 		} else {
-			current_index = soundEntry->getPriority() + (status & kSoundStatusFilterVariant);
+			current_index = soundEntry->getPriority() + (status & kSoundStatusFilter);
 
 			if (_currentSubtitle == (*i))
 				current_index += 4;

@@ -33,8 +33,6 @@
 #include "common/queue.h"
 #include "common/random.h"
 
-#include "audio/mixer.h"
-
 #include "livingbooks_code.h"
 
 namespace Common {
@@ -133,7 +131,9 @@ enum {
 	kLBEventMouseUp = 5,
 	kLBEventPhaseMain = 6,
 	kLBEventNotified = 7,
+	kLBEventDragStart = 8,
 	kLBEventDragMove = 9,
+	kLBEventDragEnd = 0xa,
 	kLBEventRolloverBegin = 0xb,
 	kLBEventRolloverMove = 0xc,
 	kLBEventRolloverEnd = 0xd,
@@ -271,6 +271,7 @@ struct LBScriptEntry {
 	uint16 newMode;
 	uint16 newPage;
 	uint16 newSubpage;
+	Common::String newCursor;
 
 	// kLBEventNotified
 	uint16 matchFrom;
@@ -405,6 +406,8 @@ public:
 	uint16 getSoundPriority() { return _soundMode; }
 	bool isAmbient() { return _isAmbient; }
 
+	Common::List<LBItem *>::iterator _iterator;
+
 protected:
 	MohawkEngine_LivingBooks *_vm;
 	LBPage *_page;
@@ -434,7 +437,6 @@ protected:
 	void runScript(uint event, uint16 data = 0, uint16 from = 0);
 	int runScriptEntry(LBScriptEntry *entry);
 
-	LBValue parseValue(const Common::String &command, uint &pos);
 	void runCommand(const Common::String &command);
 	bool checkCondition(const Common::String &condition);
 
@@ -609,6 +611,7 @@ struct NotifyEvent {
 	uint16 newMode;
 	uint16 newPage;
 	uint16 newSubpage;
+	Common::String newCursor;
 };
 
 enum DelayedEventType {
@@ -668,7 +671,7 @@ public:
 	GUI::Debugger *getDebugger() { return _console; }
 
 	void addArchive(Archive *archive);
-	void removeArchive(Archive *Archive);
+	void removeArchive(Archive *archive);
 	void addItem(LBItem *item);
 	void removeItems(const Common::Array<LBItem *> &items);
 
@@ -689,6 +692,7 @@ public:
 	LBMode getCurMode() { return _curMode; }
 
 	bool tryLoadPageStart(LBMode mode, uint page);
+	bool loadPage(LBMode mode, uint page, uint subpage);
 	void prevPage();
 	void nextPage();
 
@@ -714,10 +718,10 @@ private:
 	uint16 _phase;
 	LBPage *_page;
 	Common::Array<LBItem *> _items;
+	Common::List<LBItem *> _orderedItems;
 	Common::Queue<DelayedEvent> _eventQueue;
 	LBItem *_focus;
 	void destroyPage();
-	bool loadPage(LBMode mode, uint page, uint subpage);
 	void updatePage();
 
 	uint16 _lastSoundOwner, _lastSoundId;

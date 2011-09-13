@@ -41,7 +41,7 @@ public:
 
 protected:
 	Video::PalDesc *_palDesc;
-	static const char *_fontNames[4];
+	static const char *const _fontNames[4];
 	GobEngine *_vm;
 
 	void cleanup();
@@ -52,6 +52,14 @@ class Init_v1 : public Init {
 public:
 	Init_v1(GobEngine *vm);
 	~Init_v1();
+
+	void initVideo();
+};
+
+class Init_Geisha : public Init_v1 {
+public:
+	Init_Geisha(GobEngine *vm);
+	~Init_Geisha();
 
 	void initVideo();
 };

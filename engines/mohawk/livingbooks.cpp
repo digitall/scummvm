@@ -87,8 +87,14 @@ void LBPage::open(Archive *mhk, uint16 baseId) {
 	_baseId = baseId;
 
 	_vm->addArchive(_mhk);
-	if (_vm->hasResource(ID_BCOD, baseId))
+	if (!_vm->hasResource(ID_BCOD, baseId)) {
+		// assume that BCOD is mandatory for v4/v5
+		if (_vm->getGameType() == GType_LIVINGBOOKSV4 || _vm->getGameType() == GType_LIVINGBOOKSV5)
+			error("missing BCOD resource (id %d)", baseId);
+		_code = new LBCode(_vm, 0);
+	} else {
 		_code = new LBCode(_vm, baseId);
+	}
 
 	loadBITL(baseId);
 	for (uint i = 0; i < _items.size(); i++)
@@ -198,9 +204,12 @@ Common::Error MohawkEngine_LivingBooks::run() {
 				break;
 
 			case Common::EVENT_LBUTTONDOWN:
-				for (uint16 i = 0; i < _items.size(); i++)
-					if (_items[i]->contains(event.mouse))
-						found = _items[i];
+				for (Common::List<LBItem *>::const_iterator i = _orderedItems.begin(); i != _orderedItems.end(); ++i) {
+					if ((*i)->contains(event.mouse)) {
+						found = *i;
+						break;
+					}
+				}
 
 				if (found)
 					found->handleMouseDown(event.mouse);
@@ -335,6 +344,7 @@ void MohawkEngine_LivingBooks::destroyPage() {
 
 	delete _page;
 	assert(_items.empty());
+	assert(_orderedItems.empty());
 	_page = NULL;
 
 	_notifyEvents.clear();
@@ -561,6 +571,7 @@ void MohawkEngine_LivingBooks::updatePage() {
 			case kLBDelayedEventDestroy:
 				_items.remove_at(i);
 				i--;
+				_orderedItems.remove(delayedEvent.item);
 				delete delayedEvent.item;
 				_page->itemDestroyed(delayedEvent.item);
 				if (_focus == delayedEvent.item)
@@ -607,6 +618,8 @@ void MohawkEngine_LivingBooks::removeArchive(Archive *archive) {
 
 void MohawkEngine_LivingBooks::addItem(LBItem *item) {
 	_items.push_back(item);
+	_orderedItems.push_front(item);
+	item->_iterator = _orderedItems.begin();
 }
 
 void MohawkEngine_LivingBooks::removeItems(const Common::Array<LBItem *> &items) {
@@ -620,6 +633,7 @@ void MohawkEngine_LivingBooks::removeItems(const Common::Array<LBItem *> &items)
 			break;
 		}
 		assert(found);
+		_orderedItems.erase(items[i]->_iterator);
 	}
 }
 
@@ -1313,8 +1327,13 @@ void MohawkEngine_LivingBooks::handleNotify(NotifyEvent &event) {
 		if (getGameType() == GType_LIVINGBOOKSV1) {
 			debug(2, "kLBNotifyChangeMode: %d", event.param);
 			quitGame();
-		} else {
-			debug(2, "kLBNotifyChangeMode: mode %d, page %d.%d",
+			break;
+		}
+
+		debug(2, "kLBNotifyChangeMode: v2 type %d", event.param);
+		switch (event.param) {
+		case 1:
+			debug(2, "kLBNotifyChangeMode:, mode %d, page %d.%d",
 				event.newMode, event.newPage, event.newSubpage);
 			// TODO: what is entry.newUnknown?
 			if (!event.newMode)
@@ -1325,6 +1344,13 @@ void MohawkEngine_LivingBooks::handleNotify(NotifyEvent &event) {
 						error("kLBNotifyChangeMode failed to move to mode %d, page %d.%d",
 							event.newMode, event.newPage, event.newSubpage);
 			}
+			break;
+		case 3:
+			debug(2, "kLBNotifyChangeMode: new cursor '%s'", event.newCursor.c_str());
+			_cursor->setCursor(event.newCursor);
+			break;
+		default:
+			error("unknown v2 kLBNotifyChangeMode type %d", event.param);
 		}
 		break;
 
@@ -2078,16 +2104,32 @@ LBScriptEntry *LBItem::parseScriptEntry(uint16 type, uint16 &size, Common::Memor
 	}
 
 	if (type == kLBNotifyScript && entry->opcode == kLBNotifyChangeMode && _vm->getGameType() != GType_LIVINGBOOKSV1) {
-		if (size < 8) {
-			error("%d unknown bytes in notify entry kLBNotifyChangeMode", size);
+		switch (entry->param) {
+		case 1:
+			if (size < 8)
+				error("%d unknown bytes in notify entry kLBNotifyChangeMode", size);
+			entry->newUnknown = stream->readUint16();
+			entry->newMode = stream->readUint16();
+			entry->newPage = stream->readUint16();
+			entry->newSubpage = stream->readUint16();
+			debug(4, "kLBNotifyChangeMode: unknown %04x, mode %d, page %d.%d",
+				entry->newUnknown, entry->newMode, entry->newPage, entry->newSubpage);
+			size -= 8;
+			break;
+		case 3:
+			{
+			Common::String newCursor = _vm->readString(stream);
+			entry->newCursor = newCursor;
+			if (size < newCursor.size() + 1)
+				error("failed to read newCursor in notify entry");
+			size -= newCursor.size() + 1;
+			debug(4, "kLBNotifyChangeMode: new cursor '%s'", newCursor.c_str());
+			}
+			break;
+		default:
+			// the original engine also does something when param==2 (but not a notify)
+			error("unknown v2 kLBNotifyChangeMode type %d", entry->param);
 		}
-		entry->newUnknown = stream->readUint16();
-		entry->newMode = stream->readUint16();
-		entry->newPage = stream->readUint16();
-		entry->newSubpage = stream->readUint16();
-		debug(4, "kLBNotifyChangeMode: unknown %04x, mode %d, page %d.%d",
-			entry->newUnknown, entry->newMode, entry->newPage, entry->newSubpage);
-		size -= 8;
 	}
 	if (entry->opcode == kLBOpSendExpression) {
 		if (size < 4)
@@ -2300,8 +2342,6 @@ void LBItem::readData(uint16 type, uint16 size, Common::MemoryReadStreamEndian *
 		{
 		assert(size == 4);
 		uint offset = stream->readUint32();
-		if (!_page->_code)
-			error("no BCOD?");
 		_page->_code->runCode(this, offset);
 		}
 		break;
@@ -2573,6 +2613,7 @@ void LBItem::runScript(uint event, uint16 data, uint16 from) {
 				notifyEvent.newMode = entry->newMode;
 				notifyEvent.newPage = entry->newPage;
 				notifyEvent.newSubpage = entry->newSubpage;
+				notifyEvent.newCursor = entry->newCursor;
 				_vm->addNotifyEvent(notifyEvent);
 			} else
 				_vm->addNotifyEvent(NotifyEvent(entry->opcode, entry->param));
@@ -2823,8 +2864,6 @@ int LBItem::runScriptEntry(LBScriptEntry *entry) {
 			break;
 
 		case kLBOpSendExpression:
-			if (!_page->_code)
-				error("no BCOD?");
 			_page->_code->runCode(this, entry->offset);
 			break;
 
@@ -2858,8 +2897,6 @@ int LBItem::runScriptEntry(LBScriptEntry *entry) {
 		case kLBOpJumpUnlessExpression:
 		case kLBOpBreakExpression:
 		case kLBOpJumpToExpression:
-			if (!_page->_code)
-				error("no BCOD?");
 			{
 			LBValue r = _page->_code->runCode(this, entry->offset);
 			// FIXME
@@ -2884,257 +2921,24 @@ void LBItem::setNextTime(uint16 min, uint16 max, uint32 start) {
 	debug(9, "nextTime is now %d frames away", _nextTime - (uint)(_vm->_system->getMillis() / 16));
 }
 
-enum LBTokenType {
-	kLBNoToken,
-	kLBNameToken,
-	kLBStringToken,
-	kLBOperatorToken,
-	kLBIntegerToken,
-	kLBEndToken
-};
-
-static Common::String readToken(const Common::String &source, uint &pos, LBTokenType &type) {
-	Common::String token;
-	type = kLBNoToken;
-
-	bool done = false;
-	while (pos < source.size() && !done) {
-		if (type == kLBStringToken) {
-			if (source[pos] == '"') {
-				pos++;
-				return token;
-			}
-
-			token += source[pos];
-			pos++;
-			continue;
-		}
-
-		switch (source[pos]) {
-		case ' ':
-			pos++;
-			done = true;
-			break;
-
-		case ')':
-			if (type == kLBNoToken) {
-				type = kLBEndToken;
-				return Common::String();
-			}
-			done = true;
-			break;
-
-		case ';':
-			if (type == kLBNoToken) {
-				pos++;
-				type = kLBEndToken;
-				return Common::String();
-			}
-			done = true;
-			break;
-
-		case '@':
-			// FIXME
-			error("found @ in string '%s', not supported yet", source.c_str());
-
-		case '+':
-		case '-':
-		case '!':
-		case '=':
-		case '>':
-		case '<':
-			if (type == kLBNoToken)
-				type = kLBOperatorToken;
-			if (type == kLBOperatorToken)
-				token += source[pos];
-			else
-				done = true;
-			break;
-
-		case '"':
-			if (type == kLBNoToken)
-				type = kLBStringToken;
-			else
-				done = true;
-			break;
-
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			if (type == kLBNoToken)
-				type = kLBIntegerToken;
-			if (type == kLBNameToken || type == kLBIntegerToken)
-				token += source[pos];
-			else
-				done = true;
-			break;
-
-		default:
-			if (type == kLBNoToken)
-				type = kLBNameToken;
-			if (type == kLBNameToken)
-				token += source[pos];
-			else
-				done = true;
-			break;
-		}
-
-		if (!done)
-			pos++;
-	}
-
-	if (type == kLBStringToken)
-		error("readToken: ran out of input while parsing string from '%s'", source.c_str());
-
-	if (!token.size()) {
-		assert(type == kLBNoToken);
-		type = kLBEndToken;
-	}
-
-	return token;
-}
-
-LBValue LBItem::parseValue(const Common::String &source, uint &pos) {
-	LBTokenType type, postOpType;
-	Common::String preOp, postOp;
-
-	Common::String str = readToken(source, pos, type);
-	if (type == kLBOperatorToken) {
-		preOp = str;
-		str = readToken(source, pos, type);
-	}
-
-	LBValue value;
-	if (type == kLBStringToken) {
-		value.type = kLBValueString;
-		value.string = str;
-	} else if (type == kLBIntegerToken) {
-		value.type = kLBValueInteger;
-		value.integer = atoi(str.c_str());
-	} else if (type == kLBNameToken) {
-		value = _vm->_variables[str];
-	} else {
-		error("expected string/integer as value in '%s', got '%s'", source.c_str(), str.c_str());
-	}
-
-	uint readAheadPos = pos;
-	postOp = readToken(source, readAheadPos, postOpType);
-	if (postOpType != kLBEndToken) {
-		if (postOpType != kLBOperatorToken)
-			error("expected operator after '%s' in '%s', got '%s'", str.c_str(), source.c_str(), postOp.c_str());
-		// might be a comparison operator, caller will handle other cases if valid
-		if (postOp == "-" || postOp == "+") {
-			pos = readAheadPos;
-			LBValue nextValue = parseValue(source, pos);
-			if (value.type != kLBValueInteger || nextValue.type != kLBValueInteger)
-				error("expected integer for arthmetic operator in '%s'", source.c_str());
-			if (postOp == "+")
-				value.integer += nextValue.integer;
-			else if (postOp == "-")
-				value.integer -= nextValue.integer;
-		}
-	}
-
-	if (preOp.size()) {
-		if (preOp == "!") {
-			if (value.type == kLBValueInteger)
-				value.integer = !value.integer;
-			else
-				error("expected integer after ! operator in '%s'", source.c_str());
-		} else {
-			error("expected valid operator before '%s' in '%s', got '%s'", str.c_str(), source.c_str(), preOp.c_str());
-		}
-	}
-
-	return value;
-}
-
 void LBItem::runCommand(const Common::String &command) {
-	uint pos = 0;
-	LBTokenType type;
+	LBCode tempCode(_vm, 0);
 
 	debug(2, "running command '%s'", command.c_str());
 
-	while (pos < command.size()) {
-		Common::String varname = readToken(command, pos, type);
-		if (type != kLBNameToken)
-			error("expected name as lvalue of command '%s', got '%s'", command.c_str(), varname.c_str());
-		Common::String op = readToken(command, pos, type);
-		if (type != kLBOperatorToken || (op != "=" && op != "++" && op != "--"))
-			error("expected assignment/postincrement/postdecrement operator for command '%s', got '%s'", command.c_str(), op.c_str());
-
-		if (op == "=") {
-			LBValue value = parseValue(command, pos);
-			_vm->_variables[varname] = value;
-		} else {
-			if (_vm->_variables[varname].type != kLBValueInteger)
-				error("expected integer after postincrement/postdecrement operator in '%s'", command.c_str());
-			if (op == "++")
-				_vm->_variables[varname].integer++;
-			else if (op == "--")
-				_vm->_variables[varname].integer--;
-		}
-
-		if (pos < command.size() && command[pos] == ';')
-			pos++;
-	}
+	uint offset = tempCode.parseCode(command);
+	tempCode.runCode(this, offset);
 }
 
 bool LBItem::checkCondition(const Common::String &condition) {
-	uint pos = 0;
-	LBTokenType type;
+	LBCode tempCode(_vm, 0);
 
 	debug(3, "checking condition '%s'", condition.c_str());
 
-	if (condition.size() <= pos || condition[pos] != '(')
-		error("bad condition '%s' (started wrong)", condition.c_str());
-	pos++;
+	uint offset = tempCode.parseCode(condition);
+	LBValue result = tempCode.runCode(this, offset);
 
-	LBValue value1 = parseValue(condition, pos);
-
-	Common::String op = readToken(condition, pos, type);
-	if (type == kLBEndToken) {
-		if (condition.size() != pos + 1 || condition[pos] != ')')
-			error("bad condition '%s' (ended wrong)", condition.c_str());
-
-		if (value1.type == kLBValueInteger)
-			return value1.integer;
-		else
-			error("expected comparison operator for condition '%s'", condition.c_str());
-	}
-	if (type != kLBOperatorToken || (op != "!=" && op != "==" && op != ">" && op != "<" && op != ">=" && op != "<="))
-		error("expected comparison operator for condition '%s', got '%s'", condition.c_str(), op.c_str());
-
-	LBValue value2 = parseValue(condition, pos);
-
-	if (condition.size() != pos + 1 || condition[pos] != ')')
-		error("bad condition '%s' (ended wrong)", condition.c_str());
-
-	if (op == "!=")
-		return (value1 != value2);
-	else if (op == "==")
-		return (value1 == value2);
-
-	if (value1.type != kLBValueInteger || value2.type != kLBValueInteger)
-		error("evaluation operator %s in condition '%s' expected two integer operands!", op.c_str(), condition.c_str());
-
-	if (op == ">")
-		return (value1.integer > value2.integer);
-	else if (op == ">=")
-		return (value1.integer >= value2.integer);
-	else if (op == "<")
-		return (value1.integer < value2.integer);
-	else if (op == "<=")
-		return (value1.integer <= value2.integer);
-
-	return false; // unreachable
+	return result.toInt();
 }
 
 LBSoundItem::LBSoundItem(MohawkEngine_LivingBooks *vm, LBPage *page, Common::Rect rect) : LBItem(vm, page, rect) {

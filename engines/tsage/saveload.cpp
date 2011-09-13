@@ -30,7 +30,7 @@
 #include "tsage/sound.h"
 #include "tsage/tsage.h"
 
-namespace tSage {
+namespace TsAGE {
 
 Saver *_saver;
 
@@ -101,6 +101,19 @@ void Serializer::validate(int v, Common::Serializer::Version minVersion,
 	syncAsUint32LE(tempVal, minVersion, maxVersion);
 	if (isLoading() && (tempVal != v))
 		error("Savegame is corrupt");
+}
+
+#define DOUBLE_PRECISION 1000000000
+
+void Serializer::syncAsDouble(double &v) {
+	int32 num = (int32)(v);
+	uint32 fraction = (uint32)((v - (int32)v) * DOUBLE_PRECISION);
+
+	syncAsSint32LE(num);
+	syncAsUint32LE(fraction);
+
+	if (isLoading())
+		v = num + (double)fraction / DOUBLE_PRECISION;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -236,12 +249,9 @@ bool Saver::readSavegameHeader(Common::InSaveFile *in, tSageSavegameHeader &head
 	while ((ch = (char)in->readByte()) != '\0') header.saveName += ch;
 
 	// Get the thumbnail
-	header.thumbnail = new Graphics::Surface();
-	if (!Graphics::loadThumbnail(*in, *header.thumbnail)) {
-		delete header.thumbnail;
-		header.thumbnail = NULL;
+	header.thumbnail = Graphics::loadThumbnail(*in);
+	if (!header.thumbnail)
 		return false;
-	}
 
 	// Read in save date/time
 	header.saveYear = in->readSint16LE();
@@ -400,4 +410,4 @@ void Saver::resolveLoadPointers() {
 		error("Could not resolve savegame block pointers");
 }
 
-} // End of namespace tSage
+} // End of namespace TsAGE

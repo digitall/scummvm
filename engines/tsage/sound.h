@@ -33,13 +33,15 @@
 #include "tsage/saveload.h"
 #include "tsage/core.h"
 
-namespace tSage {
+namespace TsAGE {
 
 class Sound;
 
 #define SOUND_ARR_SIZE 16
 #define ROLAND_DRIVER_NUM 2
 #define ADLIB_DRIVER_NUM 3
+#define SBLASTER_DRIVER_NUM 4
+#define CALLBACKS_PER_SECOND 60
 
 struct trackInfoStruct {
 	int _numTracks;
@@ -106,12 +108,12 @@ public:
 	virtual void setProgram(int channel, int program) {}			// Method #13
 	virtual void setVolume1(int channel, int v2, int v3, int volume) {}
 	virtual void setPitchBlend(int channel, int pitchBlend) {}		// Method #15
-	virtual void proc32(int channel, int program, int v0, int v1) {}// Method #16
+	virtual void playSound(const byte *channelData, int dataOffset, int program, int channel, int v0, int v1) {}// Method #16
 	virtual void updateVoice(int channel) {}						// Method #17
 	virtual void proc36() {}										// Method #18
 	virtual void proc38(int channel, int cmd, int value) {}			// Method #19
 	virtual void setPitch(int channel, int pitchBlend) {}			// Method #20
-	virtual void proc42(int channel, int v0, int v1) {}				// Method #21
+	virtual void proc42(int channel, int cmd, int value, int *v1, int *v2) {}	// Method #21
 };
 
 struct VoiceStructEntryType0 {
@@ -223,6 +225,7 @@ public:
 	int getMasterVol() const;
 	void loadSound(int soundNum, bool showErrors);
 	void unloadSound(int soundNum);
+	bool isFading();
 
 	// _sf methods
 	static SoundManager &sfManager();
@@ -347,8 +350,8 @@ public:
 	void _soRemoteReceive();
 	void _soServiceTrackType0(int trackIndex, const byte *channelData);
 	void _soUpdateDamper(VoiceTypeStruct *voiceType, int channelNum, VoiceType mode, int v0);
-	void _soProc32(VoiceTypeStruct *vtStruct, int channelNum, VoiceType voiceType, int v0, int v1);
-	void _soProc42(VoiceTypeStruct *vtStruct, int channelNum, VoiceType voiceType, int v0);
+	void _soPlaySound(VoiceTypeStruct *vtStruct, const byte *channelData, int channelNum, VoiceType voiceType, int v0, int v1);
+	void _soPlaySound2(VoiceTypeStruct *vtStruct, const byte *channelData, int channelNum, VoiceType voiceType, int v0);
 	void _soProc38(VoiceTypeStruct *vtStruct, int channelNum, VoiceType voiceType, int cmd, int value);
 	void _soProc40(VoiceTypeStruct *vtStruct, int channelNum, int pitchBlend);
 	void _soDoTrackCommand(int channelNum, int command, int value);
@@ -362,7 +365,7 @@ public:
 class ASound: public EventHandler {
 public:
 	Sound _sound;
-	Action *_action;
+	EventHandler *_action;
 	int _cueValue;
 
 	ASound();
@@ -382,7 +385,7 @@ public:
 	bool isMuted() const { return _sound.isMuted(); }
 	void pause(bool flag) { _sound.pause(flag); }
 	void mute(bool flag) { _sound.mute(flag); }
-	void fade(int fadeDest, int fadeSteps, int fadeTicks, bool stopAfterFadeFlag, Action *action);
+	void fade(int fadeDest, int fadeSteps, int fadeTicks, bool stopAfterFadeFlag, EventHandler *action);
 	void fadeIn() { fade(127, 5, 10, false, NULL); }
 	void fadeOut(Action *action) { fade(0, 5, 10, true, action); }
 	void setTimeIndex(uint32 timeIndex) { _sound.setTimeIndex(timeIndex); }
@@ -395,7 +398,22 @@ public:
 	int getVol() const { return _sound.getVol(); }
 	void holdAt(int v) { _sound.holdAt(v); }
 	void release() { _sound.release(); }
+	void fadeSound(int soundNum);
 };
+
+class ASoundExt: public ASound {
+public:
+	int _soundNum;
+
+	ASoundExt();
+	void fadeOut2(EventHandler *action);
+	void changeSound(int soundNum);
+
+	virtual Common::String getClassName() { return "ASoundExt"; }
+	virtual void synchronize(Serializer &s);
+	virtual void signal();
+};
+
 
 #define ADLIB_CHANNEL_COUNT 9
 
@@ -410,6 +428,10 @@ private:
 	const byte *_patchData;
 	int _masterVolume;
 	Common::Queue<RegisterValue> _queue;
+	int _samplesTillCallback;
+	int _samplesTillCallbackRemainder;
+	int _samplesPerCallback;
+	int _samplesPerCallbackRemainder;
 
 	bool _channelVoiced[ADLIB_CHANNEL_COUNT];
 	int _channelVolume[ADLIB_CHANNEL_COUNT];
@@ -439,7 +461,7 @@ public:
 	virtual const GroupData *getGroupData();
 	virtual void installPatch(const byte *data, int size);
 	virtual int setMasterVolume(int volume);
-	virtual void proc32(int channel, int program, int v0, int v1);
+	virtual void playSound(const byte *channelData, int dataOffset, int program, int channel, int v0, int v1);
 	virtual void updateVoice(int channel);
 	virtual void proc38(int channel, int cmd, int value);
 	virtual void setPitch(int channel, int pitchBlend);
@@ -453,60 +475,33 @@ public:
 	void update(int16 *buf, int len);
 };
 
-class AdlibFxSoundDriver: public SoundDriver, Audio::AudioStream {
+class SoundBlasterDriver: public SoundDriver {
 private:
 	GroupData _groupData;
 	Audio::Mixer *_mixer;
-	FM_OPL *_opl;
 	Audio::SoundHandle _soundHandle;
+	Audio::QueuingAudioStream *_audioStream;
 	int _sampleRate;
-	byte _portContents[256];
-	int _masterVolume;
-	Common::Queue<RegisterValue> _queue;
 
-	bool _channelVoiced[ADLIB_CHANNEL_COUNT];
-	int _channelVolume[ADLIB_CHANNEL_COUNT];
-	int _v4405E[ADLIB_CHANNEL_COUNT];
-	int _v44067[ADLIB_CHANNEL_COUNT];
-	int _v44070[ADLIB_CHANNEL_COUNT];
-	int _v44079[ADLIB_CHANNEL_COUNT];
-	int _v44082[ADLIB_CHANNEL_COUNT + 1];
-	int _pitchBlend[ADLIB_CHANNEL_COUNT];
-	int _v4409E[ADLIB_CHANNEL_COUNT];
-
-
-	void write(byte reg, byte value);
-	void flush();
-	void updateChannelVolume(int channel);
-	void setVoice(int channel);
-	void clearVoice(int channel);
-	void updateChannel(int channel);
-	void setFrequency(int channel);
+	byte _masterVolume;
+	byte _channelVolume;
+	const byte *_channelData;
 public:
-	AdlibFxSoundDriver();
-	virtual ~AdlibFxSoundDriver();
+	SoundBlasterDriver();
+	virtual ~SoundBlasterDriver();
 
 	virtual bool open();
 	virtual void close();
 	virtual bool reset();
 	virtual const GroupData *getGroupData();
-	virtual void installPatch(const byte *data, int size) {}
 	virtual int setMasterVolume(int volume);
-	virtual void proc32(int channel, int program, int v0, int v1);
+	virtual void playSound(const byte *channelData, int dataOffset, int program, int channel, int v0, int v1);
 	virtual void updateVoice(int channel);
 	virtual void proc38(int channel, int cmd, int value);
-	virtual void setPitch(int channel, int pitchBlend);
-
-	// AudioStream interface
-	virtual int readBuffer(int16 *buffer, const int numSamples);
-	virtual bool isStereo() const { return false; }
-	virtual bool endOfData() const { return false; }
-	virtual int getRate() const { return _sampleRate; }
-
-	void update(int16 *buf, int len);
+	virtual void proc42(int channel, int cmd, int value, int *v1, int *v2);
 };
 
 
-} // End of namespace tSage
+} // End of namespace TsAGE
 
 #endif

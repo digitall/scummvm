@@ -33,6 +33,8 @@
 #include "common/savefile.h"
 #include "common/system.h"
 
+#include "audio/mididrv.h"
+
 #include "scumm/detection.h"
 #include "scumm/detection_tables.h"
 #include "scumm/he/intern_he.h"
@@ -142,6 +144,14 @@ Common::String ScummEngine_v70he::generateFilename(const int room) const {
 	Common::String result;
 	char id = 0;
 
+	Common::String bPattern = _filenamePattern.pattern;
+
+	// Special cases for Blue's games, which share common (b) files
+	if (_game.id == GID_BIRTHDAYYELLOW || _game.id == GID_BIRTHDAYRED)
+		bPattern = "Blue'sBirthday";
+	else if (_game.id == GID_TREASUREHUNT)
+		bPattern = "Blue'sTreasureHunt";
+
 	switch (_filenamePattern.genMethod) {
 	case kGenHEMac:
 	case kGenHEMacNoParens:
@@ -154,13 +164,7 @@ Common::String ScummEngine_v70he::generateFilename(const int room) const {
 			switch (disk) {
 			case 2:
 				id = 'b';
-				// Special cases for Blue's games, which share common (b) files
-				if (_game.id == GID_BIRTHDAY && !(_game.features & GF_DEMO))
-					result = "Blue'sBirthday.(b)";
-				else if (_game.id == GID_TREASUREHUNT)
-					result = "Blue'sTreasureHunt.(b)";
-				else
-					result = Common::String::format("%s.(b)", _filenamePattern.pattern);
+				result = bPattern + ".(b)";
 				break;
 			case 1:
 				id = 'a';
@@ -185,10 +189,11 @@ Common::String ScummEngine_v70he::generateFilename(const int room) const {
 				// For mac they're stored in game binary
 				result = _filenamePattern.pattern;
 			} else {
+				Common::String pattern = id == 'b' ? bPattern : _filenamePattern.pattern;
 				if (_filenamePattern.genMethod == kGenHEMac)
-					result = Common::String::format("%s (%c)", _filenamePattern.pattern, id);
+					result = Common::String::format("%s (%c)", pattern.c_str(), id);
 				else
-					result = Common::String::format("%s %c", _filenamePattern.pattern, id);
+					result = Common::String::format("%s %c", pattern.c_str(), id);
 			}
 		}
 
@@ -431,7 +436,7 @@ static void computeGameSettingsFromMD5(const Common::FSList &fslist, const GameF
 	}
 }
 
-static void composeFileHashMap(DescMap &fileMD5Map, const Common::FSList &fslist, int depth, const char **globs) {
+static void composeFileHashMap(DescMap &fileMD5Map, const Common::FSList &fslist, int depth, const char *const *globs) {
 	if (depth <= 0)
 		return;
 
@@ -449,7 +454,7 @@ static void composeFileHashMap(DescMap &fileMD5Map, const Common::FSList &fslist
 				continue;
 
 			bool matched = false;
-			for (const char **glob = globs; *glob; glob++)
+			for (const char *const *glob = globs; *glob; glob++)
 				if (file->getName().matchString(*glob, true)) {
 					matched = true;
 					break;

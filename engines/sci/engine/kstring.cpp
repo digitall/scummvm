@@ -42,6 +42,14 @@ reg_t kStrCat(EngineState *s, int argc, reg_t *argv) {
 	Common::String s1 = s->_segMan->getString(argv[0]);
 	Common::String s2 = s->_segMan->getString(argv[1]);
 
+	// The Japanese version of PQ2 splits the two strings here
+	// (check bug #3396887).
+	if (g_sci->getGameId() == GID_PQ2 &&
+		g_sci->getLanguage() == Common::JA_JPN) {
+		s1 = g_sci->strSplit(s1.c_str(), NULL);
+		s2 = g_sci->strSplit(s2.c_str(), NULL);
+	}
+
 	s1 += s2;
 	s->_segMan->strcpy(argv[0], s1.c_str());
 	return argv[0];
@@ -336,8 +344,9 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 				if (align >= 0)
 					while (str_leng-- > 1)
 						*target++ = ' '; /* Format into the text */
-
-				*target++ = arguments[paramindex++];
+				char argchar = arguments[paramindex++];
+				if (argchar)
+					*target++ = argchar;
 				mode = 0;
 			}
 			break;
@@ -730,6 +739,10 @@ reg_t kString(EngineState *s, int argc, reg_t *argv) {
 	case 8: { // Dup
 		const char *rawString = 0;
 		uint32 size = 0;
+		reg_t stringHandle;
+		// We allocate the new string first because if the StringTable needs to
+		// grow, our rawString pointer will be invalidated
+		SciString *dupString = s->_segMan->allocateString(&stringHandle);
 
 		if (argv[1].segment == s->_segMan->getStringSegmentId()) {
 			SciString *string = s->_segMan->lookupString(argv[1]);
@@ -741,8 +754,6 @@ reg_t kString(EngineState *s, int argc, reg_t *argv) {
 			size = string.size() + 1;
 		}
 
-		reg_t stringHandle;
-		SciString *dupString = s->_segMan->allocateString(&stringHandle);
 		dupString->setSize(size);
 
 		for (uint32 i = 0; i < size; i++)

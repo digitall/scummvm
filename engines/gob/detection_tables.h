@@ -2496,7 +2496,7 @@ static const GOBGameDescription gameDescriptions[] = {
 			GUIO_NOSUBTITLES | GUIO_NOSPEECH
 		},
 		kGameTypeGeisha,
-		kFeaturesNone,
+		kFeaturesEGA | kFeaturesAdLib,
 		"disk1.stk", "intro.tot", 0
 	},
 	{
@@ -2510,7 +2510,21 @@ static const GOBGameDescription gameDescriptions[] = {
 			GUIO_NOSUBTITLES | GUIO_NOSPEECH
 		},
 		kGameTypeGeisha,
-		kFeaturesNone,
+		kFeaturesEGA | kFeaturesAdLib,
+		"disk1.stk", "intro.tot", 0
+	},
+	{
+		{
+			"geisha",
+			"",
+			AD_ENTRY1s("disk1.stk", "e5892f00917c62423e93f5fd9920cf47", 208120),
+			UNK_LANG,
+			kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO_NOSUBTITLES | GUIO_NOSPEECH
+		},
+		kGameTypeGeisha,
+		kFeaturesEGA,
 		"disk1.stk", "intro.tot", 0
 	},
 	{
@@ -5154,7 +5168,7 @@ static const GOBGameDescription fallbackDescs[] = {
 			GUIO_NOSUBTITLES | GUIO_NOSPEECH
 		},
 		kGameTypeGeisha,
-		kFeaturesNone,
+		kFeaturesEGA,
 		"disk1.stk", "intro.tot", 0
 	},
 	{ //22

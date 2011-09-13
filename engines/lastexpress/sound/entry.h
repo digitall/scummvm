@@ -102,7 +102,9 @@ public:
 	void reset();
 	bool isFinished();
 	void update(uint val);
+	bool updateSound();
 	void updateState();
+	void updateEntryFlag(SoundFlag flag);
 
 	// Subtitles
 	void showSubtitle(Common::String filename);
@@ -124,8 +126,7 @@ public:
 	Common::String   getName2()    { return _name2; }
 
 	// Streams
-	SimpleSound                *getSoundStream() { return _soundStream; }
-	byte                       *getSoundBuffer() { return _soundBuffer; }
+	SimpleSound *getSoundStream() { return _soundStream; }
 
 private:
 	LastExpressEngine *_engine;
@@ -141,7 +142,7 @@ private:
 	//int _size;
 	//int _field_28;
 	Common::SeekableReadStream *_stream;    // The file stream
-	//int _field_30;
+	//int _archive;
 	int _field_34;
 	int _field_38;
 	int _field_3C;
@@ -156,16 +157,11 @@ private:
 
 	// Sound buffer & stream
 	bool _queued;
-	byte *_soundBuffer;
 	StreamedSound *_soundStream;    // the filtered sound stream
 
 	void setType(SoundFlag flag);
 	void setupStatus(SoundFlag flag);
-	void setupCache();
-	void setInCache();
-	void loadSoundData(Common::String name);
-
-	void applyFilter(int16 *buffer);
+	void loadStream(Common::String name);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -184,7 +180,7 @@ public:
 
 	// Accessors
 	SoundStatusUnion getStatus() { return _status; }
-	SoundEntry *getSoundEntry() { return _sound; }
+	SoundEntry *getSoundEntry()  { return _sound; }
 
 private:
 	LastExpressEngine *_engine;
