@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY13COMP_H
-#define SKY13COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 13COMP_H
+#define 13COMP_H
 
 uint16 foreman_l_to_r[] = {
 	41-8+63*64,
@@ -3767,9 +3760,5 @@ uint16 armsup_seq[] = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

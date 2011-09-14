@@ -20,9 +20,8 @@
  *
  */
 
-#ifndef SKY90COMP_H
-#define SKY90COMP_H
-
+#ifndef 90COMP_H
+#define 90COMP_H
 
 #include "91comp.h"
 #include "lincmenu.h"
@@ -32,11 +31,6 @@
 #include "95comp.h"
 #include "linc_gen.h"
 #include "96comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 Compact door_r90f = {
 	L_SCRIPT,	// logic
@@ -1859,9 +1853,5 @@ void *data_6[] = {
 };
 
 uint32 *sec6_compacts = (uint32*)data_6;
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

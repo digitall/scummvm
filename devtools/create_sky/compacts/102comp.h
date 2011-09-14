@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY102COMP_H
-#define SKY102COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 102COMP_H
+#define 102COMP_H
 
 uint16 restore_seq[] = {
 	182*64,
@@ -570,9 +563,5 @@ Compact restart_butt = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

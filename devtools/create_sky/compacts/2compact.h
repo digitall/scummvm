@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY2COMPACT_H
-#define SKY2COMPACT_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 2COMPACT_H
+#define 2COMPACT_H
 
 uint16 sml_loaderb_l_to_u[] = {
 	24+158*64,
@@ -1822,9 +1815,5 @@ Compact top_barrel = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

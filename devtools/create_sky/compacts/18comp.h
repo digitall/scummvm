@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY18COMP_H
-#define SKY18COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 18COMP_H
+#define 18COMP_H
 
 uint16 steam_alert_seq[] = {
 	86*64,
@@ -1603,9 +1596,5 @@ Compact right_exit_s18 = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

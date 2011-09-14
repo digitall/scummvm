@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY10COMP_H
-#define SKY10COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 10COMP_H
+#define 10COMP_H
 
 uint16 liyt_4_seq[] = {
 	70*64,
@@ -2432,9 +2425,5 @@ Compact liyt_1 = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

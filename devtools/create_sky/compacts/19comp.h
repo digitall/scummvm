@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY19COMP_H
-#define SKY19COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 19COMP_H
+#define 19COMP_H
 
 uint16 rs_foster_19_28[] = {
 	C_XCOOD,
@@ -723,9 +716,5 @@ uint16 s19_fast_list[] = {
 	135,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

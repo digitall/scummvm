@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY72COMP_H
-#define SKY72COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 72COMP_H
+#define 72COMP_H
 
 uint16 wit_st_right[] = {
 	159*64,
@@ -2416,9 +2409,5 @@ Compact sc72_chamber1 = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

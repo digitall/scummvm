@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY74COMP_H
-#define SKY74COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 74COMP_H
+#define 74COMP_H
 
 Compact sc74_monitor3 = {
 	L_SCRIPT,	// logic
@@ -6683,9 +6676,5 @@ uint16 sc74_slot_flash[] = {
 	1,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

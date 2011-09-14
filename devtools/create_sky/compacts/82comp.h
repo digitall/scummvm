@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY82COMP_H
-#define SKY82COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 82COMP_H
+#define 82COMP_H
 
 uint16 sc82_push_button[] = {
 	209*64,
@@ -714,9 +707,5 @@ uint16 sc82_jobs_return[] = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

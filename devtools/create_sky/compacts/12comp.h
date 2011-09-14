@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY12COMP_H
-#define SKY12COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 12COMP_H
+#define 12COMP_H
 
 uint16 botbelt_seq[] = {
 	44*64,
@@ -2229,9 +2222,5 @@ uint16 topbelt_seq[] = {
 	42,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

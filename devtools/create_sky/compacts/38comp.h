@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY38COMP_H
-#define SKY38COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 38COMP_H
+#define 38COMP_H
 
 uint16 spu_left[] = {
 	2,
@@ -3830,9 +3823,5 @@ uint16 sc38_lift_down[] = {
 	1,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

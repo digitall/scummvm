@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY70COMP_H
-#define SKY70COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 70COMP_H
+#define 70COMP_H
 
 Compact sc70_bar = {
 	L_SCRIPT,	// logic
@@ -1262,9 +1255,5 @@ uint16 sc70_mouse_list[] = {
 	0XFFFF,
 	ID_TEXT_MOUSE
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

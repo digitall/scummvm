@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY34COMP_H
-#define SKY34COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 34COMP_H
+#define 34COMP_H
 
 uint16 sc34_fast_list[] = {
 	12+DISK_14,
@@ -956,9 +949,5 @@ Compact sc34_door = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

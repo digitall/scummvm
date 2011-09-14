@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY26COMP_H
-#define SKY26COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 26COMP_H
+#define 26COMP_H
 
 Compact bio_door = {
 	L_SCRIPT,	// logic
@@ -1305,9 +1298,5 @@ Compact s26_floor = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

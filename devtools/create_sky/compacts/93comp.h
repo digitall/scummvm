@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY93COMP_H
-#define SKY93COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 93COMP_H
+#define 93COMP_H
 
 uint16 get_adjust[] = {
 	63*64,
@@ -836,9 +829,5 @@ uint16 pal93[] = {
 	16129,
 	16191
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

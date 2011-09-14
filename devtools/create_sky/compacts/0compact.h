@@ -20,19 +20,13 @@
  *
  */
 
-#ifndef SKY0COMPACT_H
-#define SKY0COMPACT_H
-
+#ifndef 0COMPACT_H
+#define 0COMPACT_H
 
 #include "2compact.h"
 #include "4compact.h"
 #include "3compact.h"
 #include "1compact.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 uint16 slide2_seq[] = {
 	170*64,
@@ -9324,9 +9318,5 @@ void *data_1[] = {
 	&car_down,
 	car_down_seq
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

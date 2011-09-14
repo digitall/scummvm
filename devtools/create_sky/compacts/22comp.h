@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY22COMP_H
-#define SKY22COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 22COMP_H
+#define 22COMP_H
 
 uint16 fost_replace_pill[] = {
 	197*64,
@@ -1583,9 +1576,5 @@ Compact fish_poster = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY24COMP_H
-#define SKY24COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 24COMP_H
+#define 24COMP_H
 
 uint16 give_mag_seq[] = {
 	70*64,
@@ -1313,9 +1306,5 @@ uint16 s24_fast_list[] = {
 	135,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

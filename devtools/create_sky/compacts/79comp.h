@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY79COMP_H
-#define SKY79COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 79COMP_H
+#define 79COMP_H
 
 uint16 sc791_palette[] = {
 	0,
@@ -1657,9 +1650,5 @@ Compact sc79_pipe = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

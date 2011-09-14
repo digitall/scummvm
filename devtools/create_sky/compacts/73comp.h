@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY73COMP_H
-#define SKY73COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 73COMP_H
+#define 73COMP_H
 
 uint16 gal_u_to_l[] = {
 	35+90*64,
@@ -2548,9 +2541,5 @@ Compact sc73_cham4_light = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

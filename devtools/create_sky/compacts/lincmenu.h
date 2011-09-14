@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKYLINCMENU_H
-#define SKYLINCMENU_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef LINCMENU_H
+#define LINCMENU_H
 
 Compact playbak_menu = {
 	L_SCRIPT,	// logic
@@ -800,9 +793,5 @@ Compact blind_menu = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

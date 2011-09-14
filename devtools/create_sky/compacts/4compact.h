@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY4COMPACT_H
-#define SKY4COMPACT_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 4COMPACT_H
+#define 4COMPACT_H
 
 uint16 jobs_u_to_l[] = {
 	43-8+117*64,
@@ -1348,9 +1341,5 @@ Compact cupboard_s4 = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

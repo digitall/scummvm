@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY36COMP_H
-#define SKY36COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 36COMP_H
+#define 36COMP_H
 
 uint16 sc36_get_glass[] = {
 	96*64,
@@ -4271,9 +4264,5 @@ Compact sc36_exit_30 = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

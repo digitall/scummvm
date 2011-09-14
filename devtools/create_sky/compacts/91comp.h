@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY91COMP_H
-#define SKY91COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 91COMP_H
+#define 91COMP_H
 
 Compact decomp_obj = {
 	L_SCRIPT,	// logic
@@ -1520,9 +1513,5 @@ Compact door_r91f = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY92COMP_H
-#define SKY92COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 92COMP_H
+#define 92COMP_H
 
 Compact bridge_e = {
 	L_SCRIPT,	// logic
@@ -1684,9 +1677,5 @@ Compact slab3 = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY67COMP_H
-#define SKY67COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 67COMP_H
+#define 67COMP_H
 
 uint16 sc67_logic_list[] = {
 	ID_FOSTER,
@@ -2091,9 +2084,5 @@ Compact sc67_clot = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

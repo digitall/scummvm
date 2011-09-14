@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY85COMP_H
-#define SKY85COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 85COMP_H
+#define 85COMP_H
 
 uint16 sc85_palette[] = {
 	0,
@@ -436,9 +429,5 @@ uint16 sc85_logic_list[] = {
 	0XFFFF,
 	ID_STD_MENU_LOGIC
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

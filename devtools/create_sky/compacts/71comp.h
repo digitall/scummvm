@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY71COMP_H
-#define SKY71COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 71COMP_H
+#define 71COMP_H
 
 uint16 medi_d_to_u[] = {
 	35+32*64,
@@ -1702,9 +1695,5 @@ uint16 sc71_light2_anim[] = {
 	19,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

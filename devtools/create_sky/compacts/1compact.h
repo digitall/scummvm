@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY1COMPACT_H
-#define SKY1COMPACT_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 1COMPACT_H
+#define 1COMPACT_H
 
 uint16 car_down_seq[] = {
 	28*64,
@@ -1974,9 +1967,5 @@ uint16 fire1_seq[] = {
 	13,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

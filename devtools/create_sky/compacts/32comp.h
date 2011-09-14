@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY32COMP_H
-#define SKY32COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 32COMP_H
+#define 32COMP_H
 
 uint16 sc32_gardening1[] = {
 	58*64,
@@ -1838,9 +1831,5 @@ Compact sc32_exit_33 = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

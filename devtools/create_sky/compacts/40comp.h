@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY40COMP_H
-#define SKY40COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 40COMP_H
+#define 40COMP_H
 
 Compact sc40_body_2 = {
 	0,	// logic
@@ -1222,9 +1215,5 @@ uint16 sc40_ascend[] = {
 	17,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

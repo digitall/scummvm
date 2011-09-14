@@ -20,10 +20,8 @@
  *
  */
 
-#include "sky/compact.h"
-#include "sky/control.h"
-
-namespace Sky {
+#include "compact.h"
+#include "control.h"
 
 Compact *Control::_saveLoadCpts[833] = {
 	// 0compact.asm:
@@ -2153,4 +2151,3 @@ uint8 Control::_resetDiffCd[856] = {
 	0x35, 0x00, 0x34, 0x31, 0x1A, 0x00, 0x36, 0x31
 };
 
-} // End of namespace Sky

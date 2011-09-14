@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKYOBJECTS_H
-#define SKYOBJECTS_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef OBJECTS_H
+#define OBJECTS_H
 
 Compact blank5 = {
 	L_SCRIPT,	// logic
@@ -1260,9 +1253,5 @@ Compact menu_bar = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

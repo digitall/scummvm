@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY47COMP_H
-#define SKY47COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 47COMP_H
+#define 47COMP_H
 
 uint16 reset_48_47[] = {
 	C_SCREEN,
@@ -580,9 +573,5 @@ Compact sc47_floor = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

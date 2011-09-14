@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY23COMP_H
-#define SKY23COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 23COMP_H
+#define 23COMP_H
 
 uint32 *grid23 = 0;
 
@@ -797,9 +790,5 @@ uint16 rs_foster_29_23[] = {
 	ID_S23_FLOOR,
 	65535
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

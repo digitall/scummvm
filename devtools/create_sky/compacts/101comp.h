@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY101COMP_H
-#define SKY101COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 101COMP_H
+#define 101COMP_H
 
 Compact cancel_button = {
 	L_SCRIPT,	// logic
@@ -884,9 +877,5 @@ uint16 s101_chip_list[] = {
 	151+DISK_1,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY81COMP_H
-#define SKY81COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 81COMP_H
+#define 81COMP_H
 
 Compact sc81_big_tent3 = {
 	L_SCRIPT,	// logic
@@ -2764,9 +2757,5 @@ uint16 sc81_foster_sit[] = {
 	18,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

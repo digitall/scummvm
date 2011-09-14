@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY77COMP_H
-#define SKY77COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 77COMP_H
+#define 77COMP_H
 
 uint16 sc77_fpushl_2[] = {
 	74*64,
@@ -1094,9 +1087,5 @@ Compact sc77_door76 = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY80COMP_H
-#define SKY80COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 80COMP_H
+#define 80COMP_H
 
 Compact sc80_bubble10 = {
 	L_SCRIPT,	// logic
@@ -3567,9 +3560,5 @@ Compact sc80_goo = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

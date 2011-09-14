@@ -20,9 +20,8 @@
  *
  */
 
-#ifndef SKY30COMP_H
-#define SKY30COMP_H
-
+#ifndef 30COMP_H
+#define 30COMP_H
 
 #include "31comp.h"
 #include "38comp.h"
@@ -41,11 +40,6 @@
 #include "48comp.h"
 #include "65comp.h"
 #include "42comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 uint16 sc32_vinc_talk[] = {
 	57*64,
@@ -6617,9 +6611,5 @@ void *data_4[] = {
 	sc31_guard_chat,
 	&sc31_at_watcher
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

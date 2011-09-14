@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY41COMP_H
-#define SKY41COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 41COMP_H
+#define 41COMP_H
 
 uint16 sc41_mouse_list[] = {
 	ID_SC41_EXIT_39,
@@ -746,9 +739,5 @@ uint16 sc41_palette[] = {
 	16129,
 	16191
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

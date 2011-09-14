@@ -23,13 +23,6 @@
 #ifndef SKY76COMP_H
 #define SKY76COMP_H
 
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
-
 uint16 ken_u_to_r[] = {
 	45+61*64,
 	0
@@ -2816,9 +2809,5 @@ Compact sc76_door75 = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

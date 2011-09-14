@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY68COMP_H
-#define SKY68COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 68COMP_H
+#define 68COMP_H
 
 Compact sc68_pulse5 = {
 	L_SCRIPT,	// logic
@@ -1411,9 +1404,5 @@ uint16 sc68_joey_list[] = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

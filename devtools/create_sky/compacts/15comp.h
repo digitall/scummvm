@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY15COMP_H
-#define SKY15COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 15COMP_H
+#define 15COMP_H
 
 uint16 rs_foster_13_15[] = {
 	C_XCOOD,
@@ -1108,9 +1101,5 @@ uint16 s15_chip_list[] = {
 	150+DISK_3,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY37COMP_H
-#define SKY37COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 37COMP_H
+#define 37COMP_H
 
 uint16 sc37_mouse_list[] = {
 	ID_SC37_SENSOR,
@@ -1906,9 +1899,5 @@ uint16 sc37_crbarbox[] = {
 	26,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,9 +20,8 @@
  *
  */
 
-#ifndef SKY29COMP_H
-#define SKY29COMP_H
-
+#ifndef 29COMP_H
+#define 29COMP_H
 
 #include "19comp.h"
 #include "23comp.h"
@@ -36,11 +35,6 @@
 #include "21comp.h"
 #include "11comp.h"
 #include "10comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 uint16 rs_joey_7_29[] = {
 	C_XCOOD,
@@ -1592,9 +1586,5 @@ void *data_3[] = {
 	slot_28_anim,
 	rs_31_28
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

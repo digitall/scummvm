@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY3COMPACT_H
-#define SKY3COMPACT_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 3COMPACT_H
+#define 3COMPACT_H
 
 uint16 rs_low_lift2[] = {
 	C_XCOOD,
@@ -1845,9 +1838,5 @@ Compact low_barrel = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,19 +20,13 @@
  *
  */
 
-#ifndef SKYZ_COMPAC_H
-#define SKYZ_COMPAC_H
-
+#ifndef Z_COMPAC_H
+#define Z_COMPAC_H
 
 #include "objects.h"
 #include "85comp.h"
 #include "101comp.h"
 #include "102comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 uint16 fradman_up[] = {
 	2,
@@ -5971,9 +5965,5 @@ void *data_0[] = {
 };
 
 uint32 *z_compact_table = (uint32*)data_0;
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

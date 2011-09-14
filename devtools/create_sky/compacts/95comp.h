@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY95COMP_H
-#define SKY95COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 95COMP_H
+#define 95COMP_H
 
 uint16 fast_list_sc95[] = {
 	IT_BLUE_FOSTER+DISK_4,
@@ -1359,9 +1352,5 @@ uint16 door_l95_anim[] = {
 	22,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

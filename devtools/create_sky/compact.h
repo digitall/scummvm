@@ -20,16 +20,13 @@
  *
  */
 
-#ifndef SKYCOMPACT_H
-#define SKYCOMPACT_H
+#ifndef COMPACT_H
+#define COMPACT_H
 
-#include "sky/sky.h"
-#include "sky/struc.h"
-#include "sky/skydefs.h"
+//#include "sky.h"
+#include "struc.h"
+#include "skydefs.h"
 
-namespace Sky {
-
-namespace SkyCompact {
 	MegaSet *getMegaSet(Compact *cpt, uint16 megaSet);
 	uint16 **getTurnTable(Compact *cpt, uint16 megaSet, uint16 dir);
 	uint16 *getSub(Compact *cpt, uint16 mode);

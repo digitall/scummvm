@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY33COMP_H
-#define SKY33COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 33COMP_H
+#define 33COMP_H
 
 Compact sc33_lock = {
 	0,	// logic
@@ -826,9 +819,5 @@ uint16 reset_30_33[] = {
 	248,
 	65535
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

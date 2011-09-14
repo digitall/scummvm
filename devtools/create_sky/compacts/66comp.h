@@ -20,9 +20,8 @@
  *
  */
 
-#ifndef SKY66COMP_H
-#define SKY66COMP_H
-
+#ifndef 66COMP_H
+#define 66COMP_H
 
 #include "67comp.h"
 #include "71comp.h"
@@ -40,11 +39,6 @@
 #include "80comp.h"
 #include "81comp.h"
 #include "82comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 uint16 sc66_hi_beam_an1[] = {
 	98*64,
@@ -6691,9 +6685,5 @@ void *data_5[] = {
 	reset_foster_spec,
 	reset_dad_spec
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

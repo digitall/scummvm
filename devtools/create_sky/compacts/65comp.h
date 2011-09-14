@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY65COMP_H
-#define SKY65COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 65COMP_H
+#define 65COMP_H
 
 uint32 *sc65_walk_grid = 0;
 
@@ -673,9 +666,5 @@ uint16 sc65_palette[] = {
 	16129,
 	16191
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

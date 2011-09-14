@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY96COMP_H
-#define SKY96COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 96COMP_H
+#define 96COMP_H
 
 uint16 sc96_mouse[] = {
 	ID_CRYSTAL,
@@ -926,9 +919,5 @@ uint16 fast_list_sc96[] = {
 	IT_SC96_GRID_1+DISK_4,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

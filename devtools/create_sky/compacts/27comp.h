@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY27COMP_H
-#define SKY27COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 27COMP_H
+#define 27COMP_H
 
 uint16 s27_logic[] = {
 	ID_FOSTER,
@@ -3276,9 +3269,5 @@ Compact chair_27 = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

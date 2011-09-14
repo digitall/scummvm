@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY9COMPACT_H
-#define SKY9COMPACT_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 9COMPACT_H
+#define 9COMPACT_H
 
 uint16 s9_floor_table[] = {
 	ID_S9_FLOOR,
@@ -1691,9 +1684,5 @@ uint16 s9_pal[] = {
 	16129,
 	16191
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

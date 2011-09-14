@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY94COMP_H
-#define SKY94COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 94COMP_H
+#define 94COMP_H
 
 uint16 door_l94_anim[] = {
 	58*64,
@@ -1379,9 +1372,5 @@ Compact hologram_a = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

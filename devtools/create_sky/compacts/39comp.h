@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY39COMP_H
-#define SKY39COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 39COMP_H
+#define 39COMP_H
 
 Compact sc39_exit_31 = {
 	0,	// logic
@@ -776,9 +769,5 @@ uint16 sc39_palette[] = {
 	16129,
 	16191
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

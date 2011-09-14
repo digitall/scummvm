@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY31COMP_H
-#define SKY31COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 31COMP_H
+#define 31COMP_H
 
 uint16 reset_start_31[] = {
 	C_SCREEN,
@@ -2852,9 +2845,5 @@ uint16 sc31_joey_list[] = {
 	1,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

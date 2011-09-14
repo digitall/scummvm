@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY11COMP_H
-#define SKY11COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 11COMP_H
+#define 11COMP_H
 
 Compact slat_3 = {
 	L_SCRIPT,	// logic
@@ -1727,9 +1720,5 @@ uint16 cable_fall2_seq[] = {
 	13,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

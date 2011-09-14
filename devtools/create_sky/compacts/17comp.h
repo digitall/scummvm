@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY17COMP_H
-#define SKY17COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 17COMP_H
+#define 17COMP_H
 
 uint16 pulseb_seq[] = {
 	132*64,
@@ -916,9 +909,5 @@ Compact pulse = {
 	0,	// baseSub_off
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

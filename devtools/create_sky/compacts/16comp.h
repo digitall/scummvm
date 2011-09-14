@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY16COMP_H
-#define SKY16COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 16COMP_H
+#define 16COMP_H
 
 Compact reactor_lower = {
 	0,	// logic
@@ -982,9 +975,5 @@ uint16 fost_con_look[] = {
 	3,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

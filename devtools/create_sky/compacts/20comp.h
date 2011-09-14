@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY20COMP_H
-#define SKY20COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 20COMP_H
+#define 20COMP_H
 
 uint16 gal_look_up[] = {
 	90*64,
@@ -1223,9 +1216,5 @@ uint16 s20_mouse[] = {
 	0XFFFF,
 	ID_TEXT_MOUSE
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

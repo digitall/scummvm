@@ -20,9 +20,8 @@
  *
  */
 
-#ifndef SKY5COMPACT_H
-#define SKY5COMPACT_H
-
+#ifndef 5COMPACT_H
+#define 5COMPACT_H
 
 #include "14comp.h"
 #include "9compact.h"
@@ -32,11 +31,6 @@
 #include "15comp.h"
 #include "16comp.h"
 #include "17comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 Compact copter = {
 	0,	// logic
@@ -4925,9 +4919,5 @@ void *data_2[] = {
 };
 
 uint32 *table2 = (uint32*)data_2;
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

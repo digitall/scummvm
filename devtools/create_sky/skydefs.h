@@ -23,10 +23,6 @@
 #ifndef SKYDEFS_H
 #define SKYDEFS_H
 
-#include "stdafx.h"
-
-namespace Sky {
-
 //This file is incomplete, several flags still missing.
 
 // grafixProg pointer types:
@@ -4307,7 +4303,5 @@ namespace Sky {
 #define MOUSE_UP		8	// mouse up
 
 #define TEXT_MOUSE_WIDTH 0x80
-
-} // End of namespace Sky
 
 #endif

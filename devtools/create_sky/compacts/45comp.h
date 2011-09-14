@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY45COMP_H
-#define SKY45COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 45COMP_H
+#define 45COMP_H
 
 uint16 reset_44_45[] = {
 	C_SCREEN,
@@ -631,9 +624,5 @@ uint16 sc45_mouse_list[] = {
 	0XFFFF,
 	ID_TEXT_MOUSE
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,16 +20,10 @@
  *
  */
 
-#ifndef SKY21COMP_H
-#define SKY21COMP_H
-
+#ifndef 21COMP_H
+#define 21COMP_H
 
 #include "22comp.h"
-
-
-namespace Sky {
-
-namespace SkyCompact {
 
 uint16 lamb_sit_up[] = {
 	218*64,
@@ -2144,9 +2138,5 @@ uint16 take_cassette_seq[] = {
 	3,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKYLINC_GEN_H
-#define SKYLINC_GEN_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef LINC_GEN_H
+#define LINC_GEN_H
 
 uint16 window_mouse[] = {
 	ID_INFO_BUTTON,
@@ -573,9 +566,5 @@ uint16 rs_foster_s90[] = {
 };
 
 uint32 *grid93 = 0;
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

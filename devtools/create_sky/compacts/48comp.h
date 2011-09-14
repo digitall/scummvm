@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY48COMP_H
-#define SKY48COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 48COMP_H
+#define 48COMP_H
 
 Compact sc48_eyes = {
 	L_SCRIPT,	// logic
@@ -1164,9 +1157,5 @@ uint16 sc48_light_pal[] = {
 	16128,
 	16191
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif

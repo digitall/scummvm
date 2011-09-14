@@ -20,15 +20,8 @@
  *
  */
 
-#ifndef SKY25COMP_H
-#define SKY25COMP_H
-
-
-
-
-namespace Sky {
-
-namespace SkyCompact {
+#ifndef 25COMP_H
+#define 25COMP_H
 
 Compact sales_chart = {
 	L_SCRIPT,	// logic
@@ -1119,9 +1112,5 @@ Compact s25_floor = {
 	0,
 	0
 };
-
-} // namespace SkyCompact
-
-} // namespace Sky
 
 #endif
