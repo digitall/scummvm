@@ -27,8 +27,7 @@
 
 #define DATAALIGNMENT 4
 
-#define SKY_DAT_VER_MAJ 1  // 1 byte
-#define SKY_DAT_VER_MIN 0  // 1 byte
+#define SKY_DAT_VER 0  // 2 bytes
 
 typedef unsigned char  uint8;
 typedef unsigned char  byte;
