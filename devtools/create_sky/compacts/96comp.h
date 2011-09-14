@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 96COMP_H
-#define 96COMP_H
+#ifndef SKY96COMP_H
+#define SKY96COMP_H
 
 uint16 sc96_mouse[] = {
 	ID_CRYSTAL,

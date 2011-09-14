@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 70COMP_H
-#define 70COMP_H
+#ifndef SKY70COMP_H
+#define SKY70COMP_H
 
 Compact sc70_bar = {
 	L_SCRIPT,	// logic

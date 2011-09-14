@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 73COMP_H
-#define 73COMP_H
+#ifndef SKY73COMP_H
+#define SKY73COMP_H
 
 uint16 gal_u_to_l[] = {
 	35+90*64,

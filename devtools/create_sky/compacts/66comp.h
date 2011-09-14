@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 66COMP_H
-#define 66COMP_H
+#ifndef SKY66COMP_H
+#define SKY66COMP_H
 
 #include "67comp.h"
 #include "71comp.h"

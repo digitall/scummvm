@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 1COMPACT_H
-#define 1COMPACT_H
+#ifndef SKY1COMPACT_H
+#define SKY1COMPACT_H
 
 uint16 car_down_seq[] = {
 	28*64,

@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 33COMP_H
-#define 33COMP_H
+#ifndef SKY33COMP_H
+#define SKY33COMP_H
 
 Compact sc33_lock = {
 	0,	// logic

@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 32COMP_H
-#define 32COMP_H
+#ifndef SKY32COMP_H
+#define SKY32COMP_H
 
 uint16 sc32_gardening1[] = {
 	58*64,

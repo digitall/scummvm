@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 80COMP_H
-#define 80COMP_H
+#ifndef SKY80COMP_H
+#define SKY80COMP_H
 
 Compact sc80_bubble10 = {
 	L_SCRIPT,	// logic

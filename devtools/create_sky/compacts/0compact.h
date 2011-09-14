@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 0COMPACT_H
-#define 0COMPACT_H
+#ifndef SKY0COMPACT_H
+#define SKY0COMPACT_H
 
 #include "2compact.h"
 #include "4compact.h"

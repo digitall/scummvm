@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 78COMP_H
-#define 78COMP_H
+#ifndef SKY78COMP_H
+#define SKY78COMP_H
 
 uint16 sc78_ledge_table[] = {
 	ID_SC78_LEDGE,

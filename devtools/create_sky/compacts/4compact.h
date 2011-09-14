@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 4COMPACT_H
-#define 4COMPACT_H
+#ifndef SKY4COMPACT_H
+#define SKY4COMPACT_H
 
 uint16 jobs_u_to_l[] = {
 	43-8+117*64,

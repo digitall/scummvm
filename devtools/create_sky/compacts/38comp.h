@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 38COMP_H
-#define 38COMP_H
+#ifndef SKY38COMP_H
+#define SKY38COMP_H
 
 uint16 spu_left[] = {
 	2,

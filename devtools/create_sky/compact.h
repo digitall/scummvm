@@ -2942,7 +2942,7 @@
 	extern Compact menu_bar;
 	extern uint16 fradman_up[];
 	extern uint16 high_floor_table[];
-	extern Compact floor;
+	extern Compact _floor;
 	extern uint16 wjoey_d_to_u[];
 	extern uint16 wjoey_st_left[];
 	extern uint16 ljoey_r_to_d[];
@@ -3232,7 +3232,7 @@
 	extern uint16 fast_intro_3[];
 	extern uint16 retina_scan_cdt[];
 	extern Compact forklift_cpt;
-	extern void *data_0[];
+	extern void **data_0;
 	extern uint16 babs_auto[];
 	extern uint16 burke_auto[];
 	extern uint16 dan_auto[];
@@ -3252,8 +3252,5 @@
 	extern uint16 ss_auto[];
 	extern uint16 wit_auto[];
 	extern uint16 minif_auto[];
-}
-
-} // End of namespace Sky
 
 #endif

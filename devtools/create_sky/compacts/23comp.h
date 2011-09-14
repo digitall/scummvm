@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 23COMP_H
-#define 23COMP_H
+#ifndef SKY23COMP_H
+#define SKY23COMP_H
 
 uint32 *grid23 = 0;
 

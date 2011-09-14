@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 72COMP_H
-#define 72COMP_H
+#ifndef SKY72COMP_H
+#define SKY72COMP_H
 
 uint16 wit_st_right[] = {
 	159*64,

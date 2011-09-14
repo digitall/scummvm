@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 25COMP_H
-#define 25COMP_H
+#ifndef SKY25COMP_H
+#define SKY25COMP_H
 
 Compact sales_chart = {
 	L_SCRIPT,	// logic

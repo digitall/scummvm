@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 5COMPACT_H
-#define 5COMPACT_H
+#ifndef SKY5COMPACT_H
+#define SKY5COMPACT_H
 
 #include "14comp.h"
 #include "9compact.h"

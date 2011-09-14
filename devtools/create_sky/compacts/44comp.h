@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 44COMP_H
-#define 44COMP_H
+#ifndef SKY44COMP_H
+#define SKY44COMP_H
 
 uint16 sc44_chip_list[] = {
 	IT_SC44_LAYER_0+DISK_13,

@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 82COMP_H
-#define 82COMP_H
+#ifndef SKY82COMP_H
+#define SKY82COMP_H
 
 uint16 sc82_push_button[] = {
 	209*64,

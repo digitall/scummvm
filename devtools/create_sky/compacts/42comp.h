@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 42COMP_H
-#define 42COMP_H
+#ifndef SKY42COMP_H
+#define SKY42COMP_H
 
 uint16 sc42_jdg_hammer[] = {
 	169*64,

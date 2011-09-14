@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 12COMP_H
-#define 12COMP_H
+#ifndef SKY12COMP_H
+#define SKY12COMP_H
 
 uint16 botbelt_seq[] = {
 	44*64,

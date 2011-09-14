@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 48COMP_H
-#define 48COMP_H
+#ifndef SKY48COMP_H
+#define SKY48COMP_H
 
 Compact sc48_eyes = {
 	L_SCRIPT,	// logic

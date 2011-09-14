@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 93COMP_H
-#define 93COMP_H
+#ifndef SKY93COMP_H
+#define SKY93COMP_H
 
 uint16 get_adjust[] = {
 	63*64,

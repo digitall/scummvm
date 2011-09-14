@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 11COMP_H
-#define 11COMP_H
+#ifndef SKY11COMP_H
+#define SKY11COMP_H
 
 Compact slat_3 = {
 	L_SCRIPT,	// logic

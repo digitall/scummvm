@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 92COMP_H
-#define 92COMP_H
+#ifndef SKY92COMP_H
+#define SKY92COMP_H
 
 Compact bridge_e = {
 	L_SCRIPT,	// logic

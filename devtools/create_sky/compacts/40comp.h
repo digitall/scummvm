@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 40COMP_H
-#define 40COMP_H
+#ifndef SKY40COMP_H
+#define SKY40COMP_H
 
 Compact sc40_body_2 = {
 	0,	// logic

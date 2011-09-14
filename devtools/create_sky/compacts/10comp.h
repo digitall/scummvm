@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 10COMP_H
-#define 10COMP_H
+#ifndef SKY10COMP_H
+#define SKY10COMP_H
 
 uint16 liyt_4_seq[] = {
 	70*64,

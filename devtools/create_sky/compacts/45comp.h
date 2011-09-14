@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 45COMP_H
-#define 45COMP_H
+#ifndef SKY45COMP_H
+#define SKY45COMP_H
 
 uint16 reset_44_45[] = {
 	C_SCREEN,

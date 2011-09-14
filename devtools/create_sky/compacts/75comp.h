@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 75COMP_H
-#define 75COMP_H
+#ifndef SKY75COMP_H
+#define SKY75COMP_H
 
 uint16 sc75_floor_table[] = {
 	ID_SC75_FLOOR,

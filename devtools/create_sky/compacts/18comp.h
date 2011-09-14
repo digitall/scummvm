@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 18COMP_H
-#define 18COMP_H
+#ifndef SKY18COMP_H
+#define SKY18COMP_H
 
 uint16 steam_alert_seq[] = {
 	86*64,

@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 46COMP_H
-#define 46COMP_H
+#ifndef SKY46COMP_H
+#define SKY46COMP_H
 
 uint16 sc46_floor_table[] = {
 	ID_SC46_FLOOR,

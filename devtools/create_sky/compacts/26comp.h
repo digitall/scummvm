@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 26COMP_H
-#define 26COMP_H
+#ifndef SKY26COMP_H
+#define SKY26COMP_H
 
 Compact bio_door = {
 	L_SCRIPT,	// logic

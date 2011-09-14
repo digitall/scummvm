@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 19COMP_H
-#define 19COMP_H
+#ifndef SKY19COMP_H
+#define SKY19COMP_H
 
 uint16 rs_foster_19_28[] = {
 	C_XCOOD,

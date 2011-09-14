@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 39COMP_H
-#define 39COMP_H
+#ifndef SKY39COMP_H
+#define SKY39COMP_H
 
 Compact sc39_exit_31 = {
 	0,	// logic

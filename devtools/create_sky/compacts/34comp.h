@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 34COMP_H
-#define 34COMP_H
+#ifndef SKY34COMP_H
+#define SKY34COMP_H
 
 uint16 sc34_fast_list[] = {
 	12+DISK_14,

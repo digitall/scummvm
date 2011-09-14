@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 3COMPACT_H
-#define 3COMPACT_H
+#ifndef SKY3COMPACT_H
+#define SKY3COMPACT_H
 
 uint16 rs_low_lift2[] = {
 	C_XCOOD,

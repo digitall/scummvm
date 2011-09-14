@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 28COMP_H
-#define 28COMP_H
+#ifndef SKY28COMP_H
+#define SKY28COMP_H
 
 uint16 s28_chip_list[] = {
 	136+DISK_9,

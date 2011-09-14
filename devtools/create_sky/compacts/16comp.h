@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 16COMP_H
-#define 16COMP_H
+#ifndef SKY16COMP_H
+#define SKY16COMP_H
 
 Compact reactor_lower = {
 	0,	// logic

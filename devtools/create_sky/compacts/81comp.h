@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 81COMP_H
-#define 81COMP_H
+#ifndef SKY81COMP_H
+#define SKY81COMP_H
 
 Compact sc81_big_tent3 = {
 	L_SCRIPT,	// logic

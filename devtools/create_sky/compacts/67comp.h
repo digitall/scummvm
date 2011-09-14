@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 67COMP_H
-#define 67COMP_H
+#ifndef SKY67COMP_H
+#define SKY67COMP_H
 
 uint16 sc67_logic_list[] = {
 	ID_FOSTER,

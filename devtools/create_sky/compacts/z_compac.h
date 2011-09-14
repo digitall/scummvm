@@ -88,7 +88,7 @@ uint16 high_floor_table[] = {
 	0
 };
 
-Compact floor = {
+Compact _floor = {
 	0,	// logic
 	ST_MOUSE,	// status
 	0,	// sync
@@ -5964,6 +5964,6 @@ void *data_0[] = {
 	forklift2_cdt
 };
 
-uint32 *z_compact_table = (uint32*)data_0;
+uint32 *z_compact_table = (uint32 *)data_0;
 
 #endif

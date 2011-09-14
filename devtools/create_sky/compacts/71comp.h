@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 71COMP_H
-#define 71COMP_H
+#ifndef SKY71COMP_H
+#define SKY71COMP_H
 
 uint16 medi_d_to_u[] = {
 	35+32*64,

@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 95COMP_H
-#define 95COMP_H
+#ifndef SKY95COMP_H
+#define SKY95COMP_H
 
 uint16 fast_list_sc95[] = {
 	IT_BLUE_FOSTER+DISK_4,

@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 22COMP_H
-#define 22COMP_H
+#ifndef SKY22COMP_H
+#define SKY22COMP_H
 
 uint16 fost_replace_pill[] = {
 	197*64,

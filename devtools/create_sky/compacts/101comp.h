@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 101COMP_H
-#define 101COMP_H
+#ifndef SKY101COMP_H
+#define SKY101COMP_H
 
 Compact cancel_button = {
 	L_SCRIPT,	// logic

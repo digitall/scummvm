@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 77COMP_H
-#define 77COMP_H
+#ifndef SKY77COMP_H
+#define SKY77COMP_H
 
 uint16 sc77_fpushl_2[] = {
 	74*64,

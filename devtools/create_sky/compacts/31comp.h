@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 31COMP_H
-#define 31COMP_H
+#ifndef SKY31COMP_H
+#define SKY31COMP_H
 
 uint16 reset_start_31[] = {
 	C_SCREEN,

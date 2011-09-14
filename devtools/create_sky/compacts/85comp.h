@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 85COMP_H
-#define 85COMP_H
+#ifndef SKY85COMP_H
+#define SKY85COMP_H
 
 uint16 sc85_palette[] = {
 	0,

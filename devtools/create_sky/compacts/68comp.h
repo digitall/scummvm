@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 68COMP_H
-#define 68COMP_H
+#ifndef SKY68COMP_H
+#define SKY68COMP_H
 
 Compact sc68_pulse5 = {
 	L_SCRIPT,	// logic

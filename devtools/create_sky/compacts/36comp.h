@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 36COMP_H
-#define 36COMP_H
+#ifndef SKY36COMP_H
+#define SKY36COMP_H
 
 uint16 sc36_get_glass[] = {
 	96*64,

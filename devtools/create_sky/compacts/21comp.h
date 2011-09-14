@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 21COMP_H
-#define 21COMP_H
+#ifndef SKY21COMP_H
+#define SKY21COMP_H
 
 #include "22comp.h"
 

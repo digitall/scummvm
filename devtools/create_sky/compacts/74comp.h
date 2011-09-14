@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 74COMP_H
-#define 74COMP_H
+#ifndef SKY74COMP_H
+#define SKY74COMP_H
 
 Compact sc74_monitor3 = {
 	L_SCRIPT,	// logic

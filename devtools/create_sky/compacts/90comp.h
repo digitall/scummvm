@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 90COMP_H
-#define 90COMP_H
+#ifndef SKY90COMP_H
+#define SKY90COMP_H
 
 #include "91comp.h"
 #include "lincmenu.h"

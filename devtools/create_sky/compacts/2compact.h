@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 2COMPACT_H
-#define 2COMPACT_H
+#ifndef SKY2COMPACT_H
+#define SKY2COMPACT_H
 
 uint16 sml_loaderb_l_to_u[] = {
 	24+158*64,

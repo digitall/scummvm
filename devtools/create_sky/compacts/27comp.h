@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 27COMP_H
-#define 27COMP_H
+#ifndef SKY27COMP_H
+#define SKY27COMP_H
 
 uint16 s27_logic[] = {
 	ID_FOSTER,

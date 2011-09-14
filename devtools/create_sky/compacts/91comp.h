@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 91COMP_H
-#define 91COMP_H
+#ifndef SKY91COMP_H
+#define SKY91COMP_H
 
 Compact decomp_obj = {
 	L_SCRIPT,	// logic

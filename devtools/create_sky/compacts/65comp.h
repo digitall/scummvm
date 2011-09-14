@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 65COMP_H
-#define 65COMP_H
+#ifndef SKY65COMP_H
+#define SKY65COMP_H
 
 uint32 *sc65_walk_grid = 0;
 

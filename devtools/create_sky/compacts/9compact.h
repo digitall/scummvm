@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 9COMPACT_H
-#define 9COMPACT_H
+#ifndef SKY9COMPACT_H
+#define SKY9COMPACT_H
 
 uint16 s9_floor_table[] = {
 	ID_S9_FLOOR,

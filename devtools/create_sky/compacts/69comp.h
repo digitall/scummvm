@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 69COMP_H
-#define 69COMP_H
+#ifndef SKY69COMP_H
+#define SKY69COMP_H
 
 uint32 *grid69 = 0;
 

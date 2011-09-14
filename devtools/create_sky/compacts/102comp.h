@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef 102COMP_H
-#define 102COMP_H
+#ifndef SKY102COMP_H
+#define SKY102COMP_H
 
 uint16 restore_seq[] = {
 	182*64,
