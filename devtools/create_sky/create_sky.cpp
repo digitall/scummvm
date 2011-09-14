@@ -39,31 +39,9 @@
 #include "common/scummsys.h"
 #include "common/events.h"
 
+#include "util.h"
+
 #include "create_sky.h"
-
-static void writeByte(FILE *fp, uint8 b) {
-	fwrite(&b, 1, 1, fp);
-}
-
-static void writeUint16BE(FILE *fp, uint16 value) {
-	writeByte(fp, (uint8)(value >> 8));
-	writeByte(fp, (uint8)(value & 0xFF));
-}
-
-void writeSint16BE(FILE *fp, int16 value) {
-	writeUint16BE(fp, (uint16)value);
-}
-
-static void writeUint32BE(FILE *fp, uint32 value) {
-	writeByte(fp, (uint8)(value >> 24));
-	writeByte(fp, (uint8)((value >> 16) & 0xFF));
-	writeByte(fp, (uint8)((value >> 8) & 0xFF));
-	writeByte(fp, (uint8)(value & 0xFF));
-}
-
-void writeSint32BE(FILE *fp, int32 value) {
-	writeUint32BE(fp, (uint16)value);
-}
 
 int main(int argc, char *argv[]) {
 	FILE *outFile;
