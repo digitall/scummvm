@@ -5799,7 +5799,7 @@ void *data_0[] = {
 	sml_up_mid_get_seq,
 	new_grid,
 	&lamb,
-	&floor,
+	&_floor,
 	&coordinate_test,
 	save_restore_mouse,
 	&whole_screen,

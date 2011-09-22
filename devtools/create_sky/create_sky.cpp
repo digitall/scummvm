@@ -39,17 +39,53 @@
 #include "common/scummsys.h"
 #include "common/events.h"
 
-#include "util.h"
+enum CptTypeIds {
+	CPT_NULL = 0,
+	COMPACT,
+	TURNTAB,
+	ANIMSEQ,
+	MISCBIN,
+	GETTOTAB,
+	ROUTEBUF,
+	MAINLIST
+};
 
-#include "compact.h"
+#include "util.h"
 #include "skydefs.h"
 #include "struc.h"
+
+extern Compact mini_so;
+extern uint16 rs_foster_4_2[];
+extern Compact junk1;
+extern Compact loader;
+extern uint16 sc30_joey_list[];
+extern void *data_4[];
+extern uint16 sc31_joey_list[];
+extern uint16 sc32_joey_list[];
+extern uint16 sc33_joey_list[];
+extern uint16 sc36_fast_list[];
+extern Compact danielle;
+extern Compact spunky;
+extern uint16 sc39_fast_list[];
+extern Compact shades;
+extern uint16 sc40_fast_list[];
+extern uint16 sc41_fast_list[];
+extern uint16 sc44_fast_list[];
+extern uint16 sc46_fast_list[];
+extern uint16 sc47_fast_list[];
+extern Compact r_talk_s4;
+extern void *data_2[];
+extern void *data_5[];
+extern Compact witness;
+extern Compact foster;
+extern void *data_0[];
+
 #include "compacts/0compact.h"
 #include "compacts/1compact.h"
 #include "compacts/29comp.h"
 #include "compacts/2compact.h"
-#include "compacts/30comp.h"
 #include "compacts/3compact.h"
+#include "compacts/30comp.h"
 #include "compacts/4compact.h"
 #include "compacts/5compact.h"
 #include "compacts/66comp.h"
@@ -57,7 +93,8 @@
 #include "compacts/9compact.h"
 #include "compacts/linc_gen.h"
 #include "compacts/lincmenu.h"
-//#include "compacts/z_compac.h"
+#include "compacts/z_compac.h"
+#include "compacts/savedata.h"
 #include "talks.h"
 
 #include "create_sky.h"
@@ -98,110 +135,85 @@ int main(int argc, char *argv[]) {
 	uint16 fileVersion = SKY_DAT_VER;
 	writeUint16LE(outFile, fileVersion);
 
-	const uint16 _numDataLists = 9;
+	const uint16 _dataListLen[9] = { 1046, 272, 353, 412, 487, 608, 257, 198, 2 };
+	const void *_dataListPointer[9] = { data_0, data_1, data_2, data_3, data_4, data_5, data_6, animTalkTablePtr, move_list };
+	const uint16 _numDataLists = ARRAYSIZE(_dataListLen);
+
 	writeUint16LE(outFile, _numDataLists);
-
-	const uint16 _dataListLen[_numDataLists] = { 1046, 272, 353, 412, 487, 608, 257, 198, 2};
-
-	//_cptNames	  = (char***)malloc(_numDataLists * sizeof(char**));
-	//_cptSizes	  = (uint16 **)malloc(_numDataLists * sizeof(uint16*));
-	//_cptTypes	  = (uint16 **)malloc(_numDataLists * sizeof(uint16*));
-	//_compacts	  = (Compact***)malloc(_numDataLists * sizeof(Compact**));
-
-	for (int i = 0; i < _numDataLists; i++) {
+	for (int i = 0; i < _numDataLists; i++)
 		writeUint16LE(outFile, _dataListLen[i]);
-		
-		//_cptNames[i] = (char**)malloc(_dataListLen[i] * sizeof(char*));
-		//_cptSizes[i] = (uint16 *)malloc(_dataListLen[i] * sizeof(uint16));
-		//_cptTypes[i] = (uint16 *)malloc(_dataListLen[i] * sizeof(uint16));
-		//_compacts[i] = (Compact**)malloc(_dataListLen[i] * sizeof(Compact*));
-	}
 
 	uint32 rawSize = 148603; // In units of uint16 i.e. total size in bytes / sizeof(uint16)
 	writeUint32LE(outFile, rawSize);
-	//uint16 *rawPos = _rawBuf = (uint16*)malloc(rawSize);
 
 	uint32 srcSize = 155496; // In units of uint16 i.e. total size in bytes / sizeof(uint16)
 	writeUint32LE(outFile, srcSize);
 	
-	//uint16 *srcBuf = (uint16*)malloc(srcSize);
-	//uint16 *srcPos = srcBuf;
-	/*
-	_cptFile->read(srcBuf, srcSize);
-
-	uint32 asciiSize = XXX;
-	writeUint32LE(outFile, asciiSize);
-	
-	char *asciiPos = _asciiBuf = (char*)malloc(asciiSize);
-	_cptFile->read(_asciiBuf, asciiSize);
-
 	// and fill them with the compact data
-	uint32 debcnt = 0;
+	// Temp - Fill With Zeros
+	for (uint32 i = 0; i < srcSize; i++)
+		writeUint16LE(outFile, 0x0000);
+	/*for (uint32 lcnt = 0; lcnt < _numDataLists; lcnt++) {
+		for (uint32 ecnt = 0; ecnt < _dataListLen[lcnt]; ecnt++) {
+			writeUint16LE(outFile, _cptSizes[lcnt][ecnt]);
+			if (_cptSizes[lcnt][ecnt]) {
+				writeUint16LE(outFile, _cptTypes[lcnt][ecnt]);
+				for (uint16 elemCnt = 0; elemCnt < _cptSizes[lcnt][ecnt]; elemCnt++)
+					writeUint16LE(outFile, 0x0000); // Elements of Compact
+			}
+		}
+	}*/
+
+	uint32 asciiSize = 42395;
+	writeUint32LE(outFile, asciiSize);
+/*
 	for (uint32 lcnt = 0; lcnt < _numDataLists; lcnt++) {
 		for (uint32 ecnt = 0; ecnt < _dataListLen[lcnt]; ecnt++) {
-			_cptSizes[lcnt][ecnt] = READ_LE_UINT16(srcPos++);
 			if (_cptSizes[lcnt][ecnt]) {
-				_cptTypes[lcnt][ecnt] = READ_LE_UINT16(srcPos++);				
-				_compacts[lcnt][ecnt] = (Compact*)rawPos;
-				_cptNames[lcnt][ecnt] = asciiPos;
-				asciiPos += strlen(asciiPos) + 1;
-
-				for (uint16 elemCnt = 0; elemCnt < _cptSizes[lcnt][ecnt]; elemCnt++)
-					*rawPos++ = READ_LE_UINT16(srcPos++);
-			} else {
-				_cptTypes[lcnt][ecnt] = 0;
-				_compacts[lcnt][ecnt] = 0;
-				_cptNames[lcnt][ecnt] = 0;
+				fwrite(_cptNames[lcnt][ecnt], strlen(_cptNames[lcnt][ecnt]), 1, outFile);
 			}
 		}
 	}
-	free(srcBuf);
 
-	uint16 numDlincs = _cptFile->readUint16LE();
-	uint16 *dlincBuf = (uint16*)malloc(numDlincs * 2 * sizeof(uint16));
-	uint16 *dlincPos = dlincBuf;
-	_cptFile->read(dlincBuf, numDlincs * 2 * sizeof(uint16));
 	// these compacts don't actually exist but only point to other ones...
+	uint16 numDlincs = XXX;
+	writeUint16LE(outFile, numDlincs);
 	for (uint16 cnt = 0; cnt < numDlincs; cnt++) {
-		uint16 dlincId = READ_LE_UINT16(dlincPos++);
-		uint16 destId = READ_LE_UINT16(dlincPos++);
-		assert(((dlincId >> 12) < _numDataLists) && ((dlincId & 0xFFF) < _dataListLen[dlincId >> 12]) && (_compacts[dlincId >> 12][dlincId & 0xFFF] == NULL));
-		_compacts[dlincId >> 12][dlincId & 0xFFF] = _compacts[destId >> 12][destId & 0xFFF];
+		uint16 dlincId = XXX;
+		uint16 destId = XXX;
 
-		assert(_cptNames[dlincId >> 12][dlincId & 0xFFF] == NULL);
-		_cptNames[dlincId >> 12][dlincId & 0xFFF] = asciiPos;
-		asciiPos += strlen(asciiPos) + 1;
-	}
-	free(dlincBuf);
+		writeUint16LE(outFile, dlincId);
+		writeUint16LE(outFile, destId);
 
-	// if this is v0.0288, parse this diff data
-	uint16 numDiffs = _cptFile->readUint16LE();
-	uint16 diffSize = _cptFile->readUint16LE();
-	uint16 *diffBuf = (uint16*)malloc(diffSize * sizeof(uint16));
-	_cptFile->read(diffBuf, diffSize * sizeof(uint16));
-	if (SkyEngine::_systemVars.gameVersion == 288) {
-		uint16 *diffPos = diffBuf;
-		for (uint16 cnt = 0; cnt < numDiffs; cnt++) {
-			uint16 cptId = READ_LE_UINT16(diffPos++);
-			uint16 *rawCpt = (uint16*)fetchCpt(cptId);
-			rawCpt += READ_LE_UINT16(diffPos++);
-			uint16 len = READ_LE_UINT16(diffPos++);
-			for (uint16 elemCnt = 0; elemCnt < len; elemCnt++)
-				rawCpt[elemCnt] = READ_LE_UINT16(diffPos++);
-		}
-		assert(diffPos == (diffBuf + diffSize));
+		//assert(((dlincId >> 12) < _numDataLists) && ((dlincId & 0xFFF) < _dataListLen[dlincId >> 12]) && (_compacts[dlincId >> 12][dlincId & 0xFFF] == NULL));
+		//_compacts[dlincId >> 12][dlincId & 0xFFF] = _compacts[destId >> 12][destId & 0xFFF];
+
+		//assert(_cptNames[dlincId >> 12][dlincId & 0xFFF] == NULL);
+		//_cptNames[dlincId >> 12][dlincId & 0xFFF] = asciiPos;
+		//asciiPos += strlen(asciiPos) + 1;
 	}
-	free(diffBuf);
+
+	// Diff Data (Reset?)
+	uint16 numDiffs = XXX;
+	writeUint16LE(outFile, numDiffs);
+	uint16 diffSize = XXX;
+	writeUint16LE(outFile, diffSize); // In units of uint16 i.e. total size in bytes / sizeof(uint16)
+	for (uint16 cnt = 0; cnt < numDiffs; cnt++) {
+		uint16 cptId = XXX;
+		writeUint16LE(outFile, cptId);
+		uint16 cptOffset = XXX;
+		writeUint16LE(outFile, cptOffset);
+		uint16 len = XXX;
+		writeUint16LE(outFile, len);
+		for (uint16 elemCnt = 0; elemCnt < len; elemCnt++)
+			writeUint16LE(outFile, rawCpt[elemCnt]);
+	}
 
 	// these are the IDs that have to be saved into savegame files.
-	_numSaveIds = _cptFile->readUint16LE();
-	_saveIds = (uint16*)malloc(_numSaveIds * sizeof(uint16));
-	_cptFile->read(_saveIds, _numSaveIds * sizeof(uint16));
+	uint16 _numSaveIds = XXX;
+	writeUint16LE(outFile, _numSaveIds);
 	for (uint16 cnt = 0; cnt < _numSaveIds; cnt++)
-		_saveIds[cnt] = FROM_LE_16(_saveIds[cnt]);
-		_resetDataPos = _cptFile->pos();
-	}
-	*/
+		writeUint16LE(outFile, _saveIds[cnt]);
 
 	/*
 	uint8 *SkyCompact::createResetData(uint16 gameVersion) {

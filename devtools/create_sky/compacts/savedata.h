@@ -23,7 +23,7 @@
 #ifndef SAVEDATA_H
 #define SAVEDATA_H
 
-#include "struc.h"
+#include "../struc.h"
 
 Compact *_saveLoadCpts[833] = {
 	// 0compact.asm:
