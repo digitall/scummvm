@@ -4937,8 +4937,6 @@ uint16 monitor_st_down[] = {
 	0
 };
 
-uint32 *zt = (uint32*)data_0;
-
 uint16 but_9[] = {
 	149*64,
 	1,
@@ -5963,7 +5961,5 @@ void *data_0[] = {
 	forklift1_cdt,
 	forklift2_cdt
 };
-
-uint32 *z_compact_table = (uint32 *)data_0;
 
 #endif

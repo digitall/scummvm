@@ -626,8 +626,6 @@ uint16 sc30_palette[] = {
 	16191
 };
 
-uint32 *sec4_compacts = (uint32*)data_4;
-
 uint16 sc36_col_talk2[] = {
 	63*64,
 	63*64,

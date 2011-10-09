@@ -23,40 +23,6 @@
 #ifndef SKYSTRUC_H
 #define SKYSTRUC_H
 
-struct lowTextManager_t {
-	byte *textData;
-	uint16 compactNum;
-};
-
-struct displayText_t {
-	byte *textData;	
-	uint32 textWidth;
-};
-
-#if !defined(__GNUC__)
-#pragma START_PACK_STRUCTS
-#endif
-
-struct dataFileHeader {
-	uint16 flag; // bit 0: set for colour data, clear for not
-	// bit 1: set for compressed, clear for uncompressed
-	// bit 2: set for 32 colours, clear for 16 colours
-	uint16 s_x;
-	uint16 s_y;
-	uint16 s_width;
-	uint16 s_height;
-	uint16 s_sp_size;
-	uint16 s_tot_size;
-	uint16 s_n_sprites;
-	int16 s_offset_x;
-	int16 s_offset_y;
-	uint16 s_compressed_size;
-} GCC_PACK;
-
-#if !defined(__GNUC__)
-#pragma END_PACK_STRUCTS
-#endif
-
 struct GrafixPtr { // replacement for old grafixProg pointer. More savegame compatible.
 	uint8 ptrType; // ptr to autoroute / to compact / to turntable
 	uint16 ptrTarget; // compact / turntable number
