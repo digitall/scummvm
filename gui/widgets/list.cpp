@@ -385,6 +385,7 @@ bool ListWidget::handleKeyDown(Common::KeyState state) {
 				break;
 			}
 		case Common::KEYCODE_PAGEDOWN:
+		case Common::KEYCODE_RIGHT:
 			_selectedItem += _entriesPerPage - 1;
 			if (_selectedItem >= (int)_list.size() )
 				_selectedItem = _list.size() - 1;
@@ -415,6 +416,7 @@ bool ListWidget::handleKeyDown(Common::KeyState state) {
 				break;
 			}
 		case Common::KEYCODE_PAGEUP:
+		case Common::KEYCODE_LEFT:
 			_selectedItem -= _entriesPerPage - 1;
 			if (_selectedItem < 0)
 				_selectedItem = 0;

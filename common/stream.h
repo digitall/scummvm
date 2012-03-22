@@ -27,6 +27,10 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 
+#ifdef _XBOX360
+#define FORCEINLINE __forceinline
+#endif
+
 namespace Common {
 
 class SeekableReadStream;

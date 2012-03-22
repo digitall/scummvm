@@ -378,6 +378,8 @@ bool SdlEventSource::dispatchSDLEvent(SDL_Event &ev, Common::Event &event) {
 		return handleJoyButtonDown(ev, event);
 	case SDL_JOYBUTTONUP:
 		return handleJoyButtonUp(ev, event);
+	case SDL_JOYHATMOTION:
+		return handleJoyHat(ev, event);
 	case SDL_JOYAXISMOTION:
 		return handleJoyAxisMotion(ev, event);
 
@@ -619,6 +621,10 @@ bool SdlEventSource::handleJoyButtonUp(SDL_Event &ev, Common::Event &event) {
 		}
 	}
 	return true;
+}
+
+bool SdlEventSource::handleJoyHat(SDL_Event &ev, Common::Event &event) {
+	return false;
 }
 
 bool SdlEventSource::handleJoyAxisMotion(SDL_Event &ev, Common::Event &event) {
