@@ -25,46 +25,66 @@
 
 #include "common/scummsys.h"
 
-#ifdef WIN32
+#ifdef _XBOX
 
-// Fix for bug #2895217 "MSVC compilation broken with r47595":
-// We need to keep this on top of the "common/scummsys.h"(base/main.h) include,
-// otherwise we will get errors about the windows headers redefining
-// "ARRAYSIZE" for example.
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#undef ARRAYSIZE // winnt.h defines ARRAYSIZE, but we want our own one...
+#include <xtl.h>
 
-#include "backends/platform/sdl/win32/win32.h"
+#include "backends/platform/sdl/xbox/xbox.h"
 #include "backends/plugins/sdl/sdl-provider.h"
 #include "base/main.h"
 
-#ifndef _CONSOLE
-int __stdcall WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,  LPSTR /*lpCmdLine*/, int /*iShowCmd*/) {
-	SDL_SetModuleHandle(GetModuleHandle(NULL));
-	return main(__argc, __argv);
-}
-#endif
+#define CUSTOM_LAUNCH_MAGIC 0xEE456777
+
+typedef struct {
+	DWORD magic;
+	CHAR szFilename[300];
+	CHAR szLaunchXBEOnExit[100];
+	CHAR szRemap_D_As[350];
+	BYTE country;
+	BYTE launchInsertedMedia;
+	BYTE executionType;
+	CHAR reserved[MAX_LAUNCH_DATA_SIZE-757];
+} CUSTOM_LAUNCH_DATA, *PCUSTOM_LAUNCH_DATA;
 
 int main(int argc, char *argv[]) {
+#ifndef _XBOX360
+	char *x_argv[100];
+	int x_argc = 1;
+	DWORD dwLaunchType;
+	LAUNCH_DATA LaunchData;
+
+	x_argv[0] = strdup("D:\\default.xbe");
+	XGetLaunchInfo(&dwLaunchType, &LaunchData);
+
+	if (dwLaunchType == LDT_TITLE && ((PCUSTOM_LAUNCH_DATA)&LaunchData)->magic == CUSTOM_LAUNCH_MAGIC)
+	{		
+		x_argv[x_argc] = strtok(((PCUSTOM_LAUNCH_DATA)&LaunchData)->szFilename, " ");
+		while (x_argv[x_argc] != NULL) {
+			x_argc++;
+			x_argv[x_argc] = strtok(NULL, " ");
+		}
+	}
+#endif
+
 	// Create our OSystem instance
-	g_system = new OSystem_Win32();
+	g_system = new OSystem_Xbox();
 	assert(g_system);
 
 	// Pre initialize the backend
-	((OSystem_Win32 *)g_system)->init();
+	((OSystem_Xbox *)g_system)->init();
 
-#ifdef DYNAMIC_MODULES
-	PluginManager::instance().addPluginProvider(new SDLPluginProvider());
-#endif
 
 	// Invoke the actual ScummVM main entry point:
+#ifndef _XBOX360
+	int res = scummvm_main(x_argc, x_argv);
+#else
 	int res = scummvm_main(argc, argv);
+#endif
 
 	// Free OSystem
-	delete (OSystem_Win32 *)g_system;
+	delete (OSystem_Xbox *)g_system;
 
-	return res;
+	exit(res);
 }
 
 #endif

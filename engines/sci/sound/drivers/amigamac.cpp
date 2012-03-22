@@ -556,7 +556,7 @@ int MidiDriver_AmigaMac::open() {
 	_isSci1Early = false;
 
 	for (int i = 0; i < 48; i++)
-		_freqTable[i] = pow(2, i / (double)48);
+		_freqTable[i] = (double)pow((double)2, i / (double)48);
 
 	_frequency = _mixer->getOutputRate();
 	_envDecay.length = _frequency / (32 * 64);
