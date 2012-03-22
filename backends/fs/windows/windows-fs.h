@@ -27,7 +27,11 @@
 #if defined(ARRAYSIZE)
 #undef ARRAYSIZE
 #endif
+#ifndef _XBOX
 #include <windows.h>
+#else
+#include <xtl.h>
+#endif
 // winnt.h defines ARRAYSIZE, but we want our own one...
 #undef ARRAYSIZE
 #ifdef _WIN32_WCE
@@ -37,6 +41,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tchar.h>
+
+#ifdef _XBOX
+#define INVALID_FILE_ATTRIBUTES 0xFFFFFFFF
+#endif
 
 /**
  * Implementation of the ScummVM file system API based on Windows API.

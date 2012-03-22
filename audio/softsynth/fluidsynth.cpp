@@ -94,7 +94,9 @@ void MidiDriver_FluidSynth::setNum(const char *name, double val) {
 	char *name2 = strdup(name);
 
 	fluid_settings_setnum(_settings, name2, val);
+#ifndef _DEBUG
 	free(name2);
+#endif
 }
 
 void MidiDriver_FluidSynth::setStr(const char *name, const char *val) {

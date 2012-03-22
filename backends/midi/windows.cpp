@@ -24,7 +24,7 @@
 
 #include "common/scummsys.h"
 
-#if defined(WIN32) && !defined(_WIN32_WCE)
+#if defined(WIN32) && !defined(_WIN32_WCE) && !defined(_XBOX)
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

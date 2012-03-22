@@ -654,7 +654,7 @@ void Kernel::mapFunctions() {
 										}
 									}
 									if (!subFunctions[subId].signature)
-										error("k%s: no previous signatures", kernelSubMap->name);
+										warning("k%s: no previous signatures", kernelSubMap->name);
 								}
 							}
 						}
