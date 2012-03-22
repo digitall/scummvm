@@ -24,7 +24,11 @@
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
+#ifndef _XBOX
 #include <windows.h>
+#else
+#include <xtl.h>
+#endif 
 #undef ARRAYSIZE // winnt.h defines ARRAYSIZE, but we want our own one...
 #endif
 
@@ -359,7 +363,23 @@ void OSystem_SDL::logMessage(LogMessageType::Type type, const char *message) {
 
 Common::String OSystem_SDL::getSystemLanguage() const {
 #if defined(USE_DETECTLANG) && !defined(_WIN32_WCE)
-#ifdef WIN32
+#ifdef _XBOX
+	switch(XGetLanguage()) {
+		case 1: return "en_US"; break;
+		case 2: return "ja_JP"; break;
+		case 3: return "de_DE"; break;
+		case 4: return "fr_FR"; break;
+		case 5: return "es_ES"; break;
+		case 6: return "it_IT"; break;
+		case 7: return "ko_KR"; break;
+		case 8: return "zh_CN"; break;
+		case 9: return "pt_BR"; break;
+		case 10: return "zh_CN"; break;
+		case 11: return "pl_PL"; break;
+		case 12: return "ru_RU"; break;
+		default: return "en_US"; break;
+	}
+#elif WIN32
 	// We can not use "setlocale" (at least not for MSVC builds), since it
 	// will return locales like: "English_USA.1252", thus we need a special
 	// way to determine the locale string for Win32.

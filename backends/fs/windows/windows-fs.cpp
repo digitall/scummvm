@@ -124,7 +124,12 @@ WindowsFilesystemNode::WindowsFilesystemNode() {
 WindowsFilesystemNode::WindowsFilesystemNode(const Common::String &p, const bool currentDir) {
 	if (currentDir) {
 		char path[MAX_PATH];
+#ifndef _XBOX
 		GetCurrentDirectory(MAX_PATH, path);
+#else
+		strcpy(path, "D:\\");
+#endif
+ 		
 		_path = path;
 	} else {
 		assert(p.size() > 0);
@@ -168,7 +173,7 @@ bool WindowsFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, b
 	assert(_isDirectory);
 
 	if (_isPseudoRoot) {
-#ifndef _WIN32_WCE
+#if !defined(_WIN32_WCE) && !defined(_XBOX)
 		// Drives enumeration
 		TCHAR drive_buffer[100];
 		GetLogicalDriveStrings(sizeof(drive_buffer) / sizeof(TCHAR), drive_buffer);
@@ -187,6 +192,21 @@ bool WindowsFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, b
 				entry._path = toAscii(current_drive);
 				myList.push_back(new WindowsFilesystemNode(entry));
 		}
+#elif defined(_XBOX)
+	char drive_name[10];
+	strcpy(drive_name, "D:\\");
+	if (GetVolumeInformation(drive_name, NULL, 0, NULL, NULL, NULL, NULL, 0)
+	    || (GetLastError() == ERROR_NOT_READY)) {
+
+			WindowsFilesystemNode entry;
+
+			entry._displayName = drive_name;
+			entry._isDirectory = true;
+			entry._isValid = true;
+			entry._isPseudoRoot = false;
+			entry._path = drive_name;
+			myList.push_back(new WindowsFilesystemNode(entry));			
+		}  
 #endif
 	}
 	else {

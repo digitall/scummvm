@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScummVM", "ScummVM.vcproj", "{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+		Xbox Debug = Xbox Debug
+		Xbox Release = Xbox Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Debug.ActiveCfg = Debug|Win32
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Debug.Build.0 = Debug|Win32
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Release.ActiveCfg = Release|Win32
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Release.Build.0 = Release|Win32
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Xbox Debug.ActiveCfg = Xbox_Debug|Xbox
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Xbox Debug.Build.0 = Xbox_Debug|Xbox
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Xbox Release.ActiveCfg = Xbox_Release|Xbox
+		{005C0895-A3D3-4BFC-8985-0DEAF3CD9149}.Xbox Release.Build.0 = Xbox_Release|Xbox
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

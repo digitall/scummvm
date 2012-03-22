@@ -42,6 +42,10 @@
 #include "graphics/surface.h"
 #include "gui/EventRecorder.h"
 
+#ifdef _XBOX
+#include "backends/platform/sdl/xbox/xboxconfig.h"
+#endif
+
 static const OSystem::GraphicsMode s_supportedGraphicsModes[] = {
 	{"1x", _s("Normal (no scaling)"), GFX_NORMAL},
 #ifdef USE_SCALERS
@@ -142,9 +146,13 @@ SurfaceSdlGraphicsManager::SurfaceSdlGraphicsManager(SdlEventSource *sdlEventSou
 #endif
 	_transactionMode(kTransactionNone) {
 
+#ifdef _XBOX
+	XboxLoadConfig();
+#else
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) == -1) {
 		error("Could not initialize SDL: %s", SDL_GetError());
 	}
+#endif
 
 	// This is also called in initSDL(), but initializing graphics
 	// may reset it.
@@ -783,6 +791,10 @@ bool SurfaceSdlGraphicsManager::loadGFXMode() {
 
 #ifdef USE_RGB_COLOR
 	detectSupportedFormats();
+#endif
+
+#ifdef _XBOX
+	XboxSetScreen();
 #endif
 
 	if (_hwscreen == NULL) {
