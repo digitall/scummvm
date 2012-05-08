@@ -251,7 +251,7 @@ void BackgroundIncrustListNode::freeBackgroundIncrustList() {
 
 		if (currentBackgroundIncrust->_ptr)
 			MemFree(currentBackgroundIncrust->_ptr);
-		MemFree(pCurrent);
+		delete pCurrent;
 
 		pCurrent = pNext;
 	}
@@ -308,7 +308,7 @@ void BackgroundIncrustListNode::removeBackgroundIncrustNode(int overlay, int idx
 				MemFree(currentBacgroundIncrust->_ptr);
 			}
 
-			MemFree(pCurrent);
+			delete pCurrent;
 
 			pCurrent = pNext;
 		} else {
