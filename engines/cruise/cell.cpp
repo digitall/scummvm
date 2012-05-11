@@ -38,6 +38,21 @@ Cell::Cell() {
 	_animType = 0;
 	_animStep = 0;
 	_animLoop = 0;
+
+	_idx = 0;
+	_type = 0;
+	_overlay = 0;
+	_X = 0;
+	_fieldC = 0;
+	_spriteIdx = 0;
+	_color = 0;
+	_backgroundPlane = 0;
+	_parent = 0;
+	_parentOverlay = 0;
+	_parentType = 0;
+	_followObjectOverlayIdx = 0;
+	_followObjectIdx = 0;
+	_animChange = 0;
 }
 
 CellListNode::CellListNode() {
