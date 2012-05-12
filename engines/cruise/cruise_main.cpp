@@ -214,7 +214,7 @@ void resetActorPtr(ActorListNode *ptr) {
 		p = p->_next;
 		do {
 			ActorListNode *pNext = p->_next;
-			MemFree(p);
+			delete p;
 			p = pNext;
 		} while (p);
 	}
