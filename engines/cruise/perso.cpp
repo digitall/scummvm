@@ -28,7 +28,7 @@ namespace Cruise {
 
 void freePerso(int persoIdx) {
 	if (persoTable[persoIdx]) {
-		MemFree(persoTable[persoIdx]);
+		delete persoTable[persoIdx];
 		persoTable[persoIdx] = NULL;
 	}
 }
