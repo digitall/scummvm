@@ -26,6 +26,7 @@
 namespace Cruise {
 
 enum scriptTypeEnum {
+	scriptType_Invalid = 0,
 	scriptType_MinusPROC = -20,
 	scriptType_Minus30 = -30,
 	scriptType_PROC = 20,

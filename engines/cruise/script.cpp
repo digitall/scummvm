@@ -37,6 +37,7 @@ ScriptInstance::ScriptInstance() {
 	_overlayNumber = 0;
 	_sysKey = 0;
 	_freeze = 0;
+	_type = scriptType_Invalid;
 	_var16 = 0;
 	_var18 = 0;
 	_var1A = 0;
