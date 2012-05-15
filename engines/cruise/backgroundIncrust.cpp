@@ -236,7 +236,7 @@ void BackgroundIncrustList::remove(int overlay, int idx) {
 
 	while (iter != end()) {
 		if ((iter->_type == -1) || ((iter->_overlayIdx == overlay || overlay == -1) && (iter->_objectIdx == idx || idx == -1) && (iter->_X == var_4) && (iter->_Y == var_6)))
-			erase(iter);
+			iter = erase(iter);
 
 		iter++;
 	}
