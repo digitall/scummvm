@@ -987,13 +987,13 @@ int ActorList::remove(int overlay, int objIdx, int objType) {
 				if (iter->_pathId >= 0)
 					freePerso(iter->_pathId);
 
-				erase(iter);
+				iter = erase(iter);
 
 		}
 		// the old remove was first changing matching elements _type to -1 then removed.
 		// I am adding this control in chase -1 assigned _type some where else.
 		if ( iter->_type == -1)
-			erase(iter);
+			iter = erase(iter);
 		iter++;
 	}
 
