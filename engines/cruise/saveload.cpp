@@ -806,6 +806,8 @@ Common::Error loadSavegameData(int saveGameIdx) {
 	// Skip over the savegame header
 	CruiseSavegameHeader header;
 	readSavegameHeader(f, header);
+	if (header.thumbnail)
+		header.thumbnail->free();
 	delete header.thumbnail;
 
 	// Synchronise the remaining data of the savegame

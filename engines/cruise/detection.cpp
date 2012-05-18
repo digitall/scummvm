@@ -279,6 +279,8 @@ SaveStateList CruiseMetaEngine::listSaves(const char *target) const {
 				Cruise::CruiseSavegameHeader header;
 				Cruise::readSavegameHeader(in, header);
 				saveList.push_back(SaveStateDescriptor(slotNum, header.saveName));
+				if (header.thumbnail)
+					header.thumbnail->free();
 				delete header.thumbnail;
 				delete in;
 			}
