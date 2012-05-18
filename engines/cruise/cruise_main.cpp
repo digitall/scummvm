@@ -893,6 +893,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 						if ((first) && (ovl3->arrayNameObj) && ((testState == -1) || (testState == objectState))) {
 							const char *ptrName = getObjectName(ptrHead->obj1Number, ovl3->arrayNameObj);
 
+							delete menuTable[0];
 							menuTable[0] = new Menu(x, y, ptrName);
 							first = false;
 						}
