@@ -630,7 +630,7 @@ bool PCSoundFxPlayer::load(const char *song) {
 		stop();
 	}
 
-	strcpy(_musicName, song);
+	memmove(_musicName, song, 33);
 	_songPlayed = false;
 	_looping = false;
 	_sfxData = readBundleSoundFile(song);
