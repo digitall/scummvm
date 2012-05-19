@@ -468,6 +468,7 @@ static void syncIncrust(Common::Serializer &s) {
 		if (s.isLoading())
 			backgroundIncrustListHead.push_back(backgroundIncrust);
 	}
+	backgroundIncrust._ptr = NULL;
 }
 
 static void syncActors(Common::Serializer &s) {
