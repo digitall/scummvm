@@ -704,6 +704,7 @@ void buildInventory(int X, int Y) {
 	Menu *pMenu;
 
 	pMenu = new Menu(X, Y, _vm->langString(ID_INVENTORY));
+	delete menuTable[1];
 	menuTable[1] = pMenu;
 
 	if (pMenu == NULL)
@@ -747,6 +748,7 @@ bool createDialog(int objOvl, int objIdx, int x, int y) {
 
 	getSingleObjectParam(objOvl, objIdx, 5, &objectState);
 
+	delete menuTable[0];
 	menuTable[0] = new Menu(x, y, _vm->langString(ID_SPEAK_ABOUT));
 
 	for (j = 1; j < numOfLoadedOverlay; j++) {
