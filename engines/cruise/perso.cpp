@@ -148,6 +148,20 @@ int cor_droite(int x1, int y1, int x2, int y2, point* outputTable) {
 	return numOutput;
 }
 
+Perso::Perso() {
+	inc_droite = 0;
+	inc_droite0 = 0;
+	inc_chemin = 0;
+	for (int i = 0; i < ARRAYSIZE(coordinates); i++)
+		coordinates[i].x = coordinates[i].y = 0;
+	for (int i = 0; i < (NUM_NODES + 3); i++)
+		solution[i][0] = solution[i][1] = 0;
+	inc_jo1 = 0;
+	inc_jo2 = 0;
+	dir_perso = 0;
+	inc_jo0 = 0;
+}
+
 void Perso::processActorWalk(int16 num, MovementEntry &resx_y) {
 	int x1, x2, y1, y2;
 	int i, u;

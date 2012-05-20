@@ -55,6 +55,7 @@ public:
 	int16 dir_perso;	// 2
 	int16 inc_jo0;		// 2
 
+	Perso();
 	void processActorWalk(int16 persoIdx, MovementEntry &data);
 };
 
