@@ -246,6 +246,7 @@ int playerMenu(int menuX, int menuY) {
 		    linkedRelation = 0; */
 		freeDisk();
 
+		delete menuTable[0];
 		menuTable[0] = new Menu(menuX, menuY, _vm->langString(ID_PLAYER_MENU));
 		ASSERT(menuTable[0]);
 
