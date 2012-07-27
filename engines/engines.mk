@@ -216,3 +216,8 @@ ifdef ENABLE_TUCKER
 DEFINES += -DENABLE_TUCKER=$(ENABLE_TUCKER)
 MODULES += engines/tucker
 endif
+
+ifdef ENABLE_AESOP
+DEFINES += -DENABLE_AESOP=$(ENABLE_AESOP)
+MODULES += engines/aesop
+endif
