@@ -29,10 +29,15 @@
 #include "common/array.h"
 #include "common/rect.h"
 
+#include "pegasus/graphics.h"
 #include "pegasus/timers.h"
 
 namespace Graphics {
 	struct Surface;
+}
+
+namespace Common {
+	class MacResManager;
 }
 
 namespace Pegasus {
@@ -44,7 +49,7 @@ namespace Pegasus {
 
 class Cursor : private Idler {
 public:
-	Cursor();
+	Cursor(GraphicsManager *gfx, Common::MacResManager *resFork);
 	virtual ~Cursor();
 
 	void addCursorFrames(uint16 id);
@@ -77,6 +82,9 @@ private:
 	int _index;
 
 	void loadCursorImage(CursorInfo &cursorInfo);
+
+	GraphicsManager *_gfx;
+	Common::MacResManager *_resFork;
 };
 
 } // End of namespace Pegasus

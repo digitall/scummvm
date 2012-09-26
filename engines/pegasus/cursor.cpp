@@ -36,7 +36,9 @@
 
 namespace Pegasus {
 
-Cursor::Cursor() {
+Cursor::Cursor(GraphicsManager *gfx, Common::MacResManager *resFork) {
+	_gfx = gfx;
+	_resFork = resFork;
 	_cursorObscured = false;
 	_index = -1;
 	startIdling();
@@ -55,8 +57,7 @@ Cursor::~Cursor() {
 }
 
 void Cursor::addCursorFrames(uint16 id) {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-	Common::SeekableReadStream *cursStream = vm->_resFork->getResource(MKTAG('C', 'u', 'r', 's'), id);
+	Common::SeekableReadStream *cursStream = _resFork->getResource(MKTAG('C', 'u', 'r', 's'), id);
 	if (!cursStream)
 		error("Could not load cursor frames set %d", id);
 
@@ -84,7 +85,7 @@ void Cursor::setCurrentFrameIndex(int32 index) {
 			loadCursorImage(_info[index]);
 			CursorMan.replaceCursorPalette(_info[index].palette, 0, _info[index].colorCount);
 			CursorMan.replaceCursor((byte *)_info[index].surface->pixels, _info[index].surface->w, _info[index].surface->h, _info[index].hotspot.x, _info[index].hotspot.y, 0);
-			((PegasusEngine *)g_engine)->_gfx->markCursorAsDirty();
+			_gfx->markCursorAsDirty();
 		}
 	}
 }
@@ -98,13 +99,13 @@ void Cursor::show() {
 		CursorMan.showMouse(true);
 
 	_cursorObscured = false;
-	((PegasusEngine *)g_engine)->_gfx->markCursorAsDirty();
+	_gfx->markCursorAsDirty();
 }
 
 void Cursor::hide() {
 	CursorMan.showMouse(false);
 	setCurrentFrameIndex(0);
-	((PegasusEngine *)g_engine)->_gfx->markCursorAsDirty();
+	_gfx->markCursorAsDirty();
 }
 
 void Cursor::hideUntilMoved() {
@@ -119,7 +120,7 @@ void Cursor::useIdleTime() {
 		_cursorLocation = g_system->getEventManager()->getMousePos();
 		if (_index != -1 && _cursorObscured)
 			show();
-		((PegasusEngine *)g_engine)->_gfx->markCursorAsDirty();
+		_gfx->markCursorAsDirty();
 	}
 }
 
@@ -137,8 +138,7 @@ void Cursor::loadCursorImage(CursorInfo &cursorInfo) {
 
 	cursorInfo.surface = new Graphics::Surface();
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-	Common::SeekableReadStream *cicnStream = vm->_resFork->getResource(MKTAG('c', 'i', 'c', 'n'), cursorInfo.tag);
+	Common::SeekableReadStream *cicnStream = _resFork->getResource(MKTAG('c', 'i', 'c', 'n'), cursorInfo.tag);
 
 	if (!cicnStream)
 		error("Failed to find color icon %d", cursorInfo.tag);

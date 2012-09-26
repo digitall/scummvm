@@ -119,7 +119,7 @@ Common::Error PegasusEngine::run() {
 	_console = new PegasusConsole(this);
 	_gfx = new GraphicsManager(this);
 	_resFork = new Common::MacResManager();
-	_cursor = new Cursor();
+	_cursor = new Cursor(_gfx, _resFork);
 	_rnd = new Common::RandomSource("Pegasus");
 
 	if (!_resFork->open("JMP PP Resources") || !_resFork->hasResFork())
