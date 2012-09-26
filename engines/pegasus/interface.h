@@ -35,12 +35,13 @@
 
 namespace Pegasus {
 
+class PegasusEngine;
 class BiochipItem;
 class InventoryItem;
 
 class Interface : public InputHandler, public NotificationReceiver {
 public:
-	Interface();
+	Interface(PegasusEngine *vm);
 	virtual ~Interface();
 
 	void createInterface();
@@ -139,6 +140,9 @@ protected:
 	Notification _interfaceNotification;
 
 	bool _playingEndMessage;
+
+private:
+	PegasusEngine *_vm;
 };
 
 extern Interface *g_interface;

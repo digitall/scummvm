@@ -35,14 +35,14 @@ namespace Pegasus {
 
 Interface *g_interface = 0;
 
-Interface::Interface() : InputHandler(0), _interfaceNotification(kInterfaceNotificationID, (NotificationManager *)((PegasusEngine *)g_engine)),
+Interface::Interface(PegasusEngine *vm) : _vm(vm), InputHandler(0), _interfaceNotification(kInterfaceNotificationID, (NotificationManager *)_vm),
 			_currentItemSpot(kCurrentItemSpotID), _currentBiochipSpot(kCurrentBiochipSpotID),
 			_background1(kInterface1ID), _background2(kInterface2ID), _background3(kInterface3ID),
 			_background4(kInterface4ID), _datePicture(kDateID), _inventoryPush(kInventoryPushID),
 			_inventoryLid(kInventoryLidID, kNoDisplayElement),
-			_inventoryPanel(kNoDisplayElement, (InputHandler *)((PegasusEngine *)g_engine), ((PegasusEngine *)g_engine)->getItemsInventory()),
+			_inventoryPanel(kNoDisplayElement, (InputHandler *)_vm, _vm->getItemsInventory()),
 			_biochipPush(kBiochipPushID), _biochipLid(kBiochipLidID, kNoDisplayElement),
-			_biochipPanel(kNoDisplayElement, (InputHandler *)((PegasusEngine *)g_engine), ((PegasusEngine *)g_engine)->getBiochipsInventory()) {
+			_biochipPanel(kNoDisplayElement, (InputHandler *)_vm, _vm->getBiochipsInventory()) {
 	g_energyMonitor = 0;
 	_previousHandler = 0;
 	_inventoryRaised = false;
@@ -127,7 +127,7 @@ void Interface::throwAwayDateMonitor() {
 
 void Interface::setDate(const uint16 dateResID) {
 	validateDateMonitor();
-	_datePicture.initFromPICTResource(((PegasusEngine *)g_engine)->_resFork, dateResID);
+	_datePicture.initFromPICTResource(_vm->_resFork, dateResID);
 	_datePicture.triggerRedraw();
 }
 
@@ -160,7 +160,7 @@ void Interface::throwAwayNotifications() {
 
 void Interface::validateAIArea() {
 	if (!g_AIArea) {
-		new AIArea((InputHandler *)((PegasusEngine *)g_engine));
+		new AIArea((InputHandler *)_vm);
 		if (g_AIArea)
 			g_AIArea->initAIArea();
 	}
@@ -553,14 +553,12 @@ void Interface::calibrateCompass() {
 
 	g_compass->startFader(compassMove);
 
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	while (g_compass->isFading()) {
-		vm->refreshDisplay();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	g_compass->setFaderValue(currentValue);
 }
 
@@ -569,98 +567,90 @@ void Interface::calibrateEnergyBar() {
 }
 
 void Interface::raiseInventoryDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	raiseInventoryDrawer(false);
 
 	while (_inventoryLid.isRunning()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	inventoryLidOpen(false);
 
 	while (_inventoryPush.isFading()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	inventoryDrawerUp();
 }
 
 void Interface::lowerInventoryDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	lowerInventoryDrawer(false);
 
 	while (_inventoryPush.isFading()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	inventoryDrawerDown(false);
 
 	while (_inventoryLid.isRunning()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	inventoryLidClosed();
 }
 
 void Interface::raiseBiochipDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	raiseBiochipDrawer(false);
 
 	while (_biochipLid.isRunning()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	biochipLidOpen(false);
 
 	while (_biochipPush.isFading()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	biochipDrawerUp();
 }
 
 void Interface::lowerBiochipDrawerSync() {
-	PegasusEngine *vm = (PegasusEngine *)g_engine;
-
 	lowerBiochipDrawer(false);
 
 	while (_biochipPush.isFading()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	biochipDrawerDown(false);
 
 	while (_biochipLid.isRunning()) {
-		vm->checkCallBacks();
-		vm->refreshDisplay();
+		_vm->checkCallBacks();
+		_vm->refreshDisplay();
 		g_system->delayMillis(10);
 	}
 
-	vm->refreshDisplay();
+	_vm->refreshDisplay();
 	biochipLidClosed();
 }
 

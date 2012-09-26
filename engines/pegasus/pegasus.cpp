@@ -1372,7 +1372,7 @@ void PegasusEngine::processShell() {
 
 void PegasusEngine::createInterface() {
 	if (!g_interface)
-		new Interface();
+		new Interface(this);
 
 	g_interface->createInterface();
 }
