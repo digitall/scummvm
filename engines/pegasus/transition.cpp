@@ -30,7 +30,7 @@
 
 namespace Pegasus {
 
-ScreenFader::ScreenFader() {
+ScreenFader::ScreenFader(PegasusEngine *vm) : Fader(vm) {
 	_isBlack = true;
 	// Initially, assume screens are on at full brightness.
 	Fader::setFaderValue(100);
@@ -112,7 +112,7 @@ uint32 ScreenFader::fadePixel(uint32 color, int32 percent) const {
 	return g_system->getScreenFormat().RGBToColor(r, g, b);
 }
 
-Transition::Transition(const DisplayElementID id) : FaderAnimation(id) {
+Transition::Transition(PegasusEngine *vm, const DisplayElementID id) : FaderAnimation(vm, id) {
 	_outPicture = 0;
 	_inPicture = 0;
 }

@@ -58,7 +58,7 @@ Neighborhood *g_neighborhood = 0;
 Neighborhood::Neighborhood(InputHandler *nextHandler, PegasusEngine *vm, const Common::String &resName, NeighborhoodID id)
 		: InputHandler(nextHandler), IDObject(id), _vm(vm), _resName(resName), _navMovie(kNavMovieID), _stridingCallBack(this),
 		_neighborhoodNotification(kNeighborhoodNotificationID, (NotificationManager *)vm), _pushIn(kNoDisplayElement),
-		_turnPush(kTurnPushID), _croppedMovie(kCroppedMovieID) {
+		_turnPush(_vm, kTurnPushID), _croppedMovie(kCroppedMovieID), _loop1Fader(vm), _loop2Fader(vm) {
 	GameState.setOpenDoorLocation(kNoRoomID, kNoDirection);
 	_currentAlternate = 0;
 	_currentActivation = kActivateHotSpotAlways;

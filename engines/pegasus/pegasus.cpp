@@ -665,7 +665,7 @@ void PegasusEngine::receiveNotification(Notification *notification, const Notifi
 	if (&_shellNotification == notification) {
 		switch (flags) {
 		case kGameStartingFlag: {
-			useMenu(new MainMenu());
+			useMenu(new MainMenu(this));
 
 			if (!isDemo()) {
 				runIntro();
@@ -809,7 +809,7 @@ void PegasusEngine::doGameMenuCommand(const GameMenuCommand command) {
 		} else {
 			stopIntroTimer();
 			_gfx->doFadeOutSync();
-			useMenu(new CreditsMenu());
+			useMenu(new CreditsMenu(this));
 			_gfx->updateDisplay();
 			_gfx->doFadeInSync();
 		}
@@ -840,7 +840,7 @@ void PegasusEngine::doGameMenuCommand(const GameMenuCommand command) {
 		break;
 	case kMenuCmdCreditsMainMenu:
 		_gfx->doFadeOutSync();
-		useMenu(new MainMenu());
+		useMenu(new MainMenu(this));
 		_gfx->updateDisplay();
 		((MainMenu *)_gameMenu)->startMainMenuLoop();
 		_gfx->doFadeInSync();
@@ -874,7 +874,7 @@ void PegasusEngine::doGameMenuCommand(const GameMenuCommand command) {
 				if (shouldQuit())
 					return;
 
-				useMenu(new MainMenu());
+				useMenu(new MainMenu(this));
 				_gfx->updateDisplay();
 				((MainMenu *)_gameMenu)->startMainMenuLoop();
 				_gfx->doFadeInSync();
@@ -887,7 +887,7 @@ void PegasusEngine::doGameMenuCommand(const GameMenuCommand command) {
 	case kMenuCmdDeathMainMenuDemo:
 	case kMenuCmdDeathMainMenu:
 		_gfx->doFadeOutSync();
-		useMenu(new MainMenu());
+		useMenu(new MainMenu(this));
 		_gfx->updateDisplay();
 		((MainMenu *)_gameMenu)->startMainMenuLoop();
 		_gfx->doFadeInSync();
@@ -916,7 +916,7 @@ void PegasusEngine::doGameMenuCommand(const GameMenuCommand command) {
 		_gfx->doFadeOutSync();
 		throwAwayEverything();
 		pauseMenu(false);
-		useMenu(new MainMenu());
+		useMenu(new MainMenu(this));
 		_gfx->updateDisplay();
 		((MainMenu *)_gameMenu)->startMainMenuLoop();
 		_gfx->doFadeInSync();
@@ -977,7 +977,7 @@ void PegasusEngine::handleInput(const Input &input, const Hotspot *cursorSpot) {
 				Common::Error result = showLoadDialog();
 				if (result.getCode() != Common::kNoError) {
 					if (!_gameMenu) {
-						useMenu(new MainMenu());
+						useMenu(new MainMenu(this));
 						((MainMenu *)_gameMenu)->startMainMenuLoop();
 					}
 
@@ -1145,7 +1145,7 @@ void PegasusEngine::doInterfaceOverview() {
 	_cursor->hide();
 
 	_gfx->doFadeOutSync();
-	useMenu(new MainMenu());
+	useMenu(new MainMenu(this));
 	_gfx->updateDisplay();
 	((MainMenu *)_gameMenu)->startMainMenuLoop();
 	_gfx->doFadeInSync();
@@ -1340,7 +1340,7 @@ void PegasusEngine::die(const DeathReason reason) {
 void PegasusEngine::doDeath() {
 	_gfx->doFadeOutSync();
 	throwAwayEverything();
-	useMenu(new DeathMenu(_deathReason));
+	useMenu(new DeathMenu(this, _deathReason));
 	_gfx->updateDisplay();
 	_gfx->doFadeInSync();
 }
@@ -1996,7 +1996,7 @@ void PegasusEngine::pauseMenu(bool menuUp) {
 		_screenDimmer.startDisplaying();
 		_screenDimmer.show();
 		_gfx->updateDisplay();
-		useMenu(new PauseMenu());
+		useMenu(new PauseMenu(this));
 	} else {
 		pauseEngine(false);
 		_screenDimmer.hide();

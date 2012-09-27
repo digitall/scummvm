@@ -32,6 +32,7 @@
 namespace Pegasus {
 
 class Fader;
+class PegasusEngine;
 
 class FaderMoveSpec {
 friend class Fader;
@@ -73,7 +74,7 @@ protected:
 
 class Fader : public IdlerTimeBase {
 public:
-	Fader();
+	Fader(PegasusEngine *vm);
 	virtual ~Fader() {}
 
 	virtual void setFaderValue(const int32);
@@ -95,11 +96,13 @@ protected:
 
 	int32 _currentValue;
 	FaderMoveSpec _currentFaderMove;
+
+	PegasusEngine *_vm;
 };
 
 class FaderAnimation : public DisplayElement, public Fader {
 public:
-	FaderAnimation(const DisplayElementID id) : DisplayElement(id) {}
+	FaderAnimation(PegasusEngine *vm, const DisplayElementID id) : Fader(vm), DisplayElement(id) {}
 	virtual ~FaderAnimation() {}
 
 	void setFaderValue(const int32);
@@ -110,7 +113,7 @@ class Sound;
 class SoundFader : public Fader {
 friend class Sound;
 public:
-	SoundFader();
+	SoundFader(PegasusEngine *vm);
 	virtual ~SoundFader() {}
 
 	void setFaderValue(const int32);

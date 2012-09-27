@@ -36,9 +36,11 @@
 
 namespace Pegasus {
 
+class PegasusEngine;
+
 class GameMenu : public IDObject, public InputHandler {
 public:
-	GameMenu(const uint32);
+	GameMenu(PegasusEngine *vm, const uint32 id);
 	virtual ~GameMenu() {}
 
 	virtual void becomeCurrentHandler();
@@ -55,6 +57,8 @@ protected:
 
 	void drawScore(GameScoreType, GameScoreType, const Common::Rect &, Surface *);
 
+	PegasusEngine *_vm;
+
 private:
 	void drawNumber(GameScoreType, CoordType &, CoordType, Surface *);
 };
@@ -63,7 +67,7 @@ class Hotspot;
 
 class MainMenu : public GameMenu {
 public:
-	MainMenu();
+	MainMenu(PegasusEngine *vm);
 	virtual ~MainMenu();
 
 	virtual void handleInput(const Input &input, const Hotspot *);
@@ -96,7 +100,7 @@ protected:
 
 class CreditsMenu : public GameMenu {
 public:
-	CreditsMenu();
+	CreditsMenu(PegasusEngine *vm);
 	virtual ~CreditsMenu() {}
 
 	virtual void handleInput(const Input &input, const Hotspot *);
@@ -115,7 +119,7 @@ protected:
 
 class DeathMenu : public GameMenu {
 public:
-	DeathMenu(const DeathReason);
+	DeathMenu(PegasusEngine *vm, const DeathReason);
 	virtual ~DeathMenu() {}
 
 	virtual void handleInput(const Input &input, const Hotspot *);
@@ -145,7 +149,7 @@ protected:
 
 class PauseMenu : public GameMenu {
 public:
-	PauseMenu();
+	PauseMenu(PegasusEngine *vm);
 	virtual ~PauseMenu() {}
 
 	virtual void handleInput(const Input &input, const Hotspot *);

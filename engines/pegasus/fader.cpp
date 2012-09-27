@@ -30,7 +30,8 @@
 
 namespace Pegasus {
 
-Fader::Fader() {
+Fader::Fader(PegasusEngine *vm) {
+	_vm = vm;
 	_currentValue = 0;
 	_currentFaderMove._numKnots = 0;
 }
@@ -94,7 +95,7 @@ void Fader::startFaderSync(const FaderMoveSpec &spec) {
 		start();
 
 		while (isFading()) {
-			((PegasusEngine *)g_engine)->checkCallBacks();
+			_vm->checkCallBacks();
 			useIdleTime();
 		}
 
@@ -191,7 +192,7 @@ void FaderAnimation::setFaderValue(const int32 newValue) {
 	}
 }
 
-SoundFader::SoundFader() {
+SoundFader::SoundFader(PegasusEngine *vm) : Fader(vm) {
 	_sound = 0;
 	_masterVolume = 0xff;
 }

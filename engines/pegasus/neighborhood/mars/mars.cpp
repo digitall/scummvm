@@ -99,7 +99,7 @@ Mars::Mars(InputHandler *nextHandler, PegasusEngine *owner) : Neighborhood(nextH
 		_leftDamageShuttleMovie(kNoDisplayElement), _rightDamageShuttleMovie(kNoDisplayElement), _explosions(kNoDisplayElement),
 		_planetMovie(kNoDisplayElement), _junk(kNoDisplayElement), _energyChoiceSpot(kShuttleEnergySpotID),
 		_gravitonChoiceSpot(kShuttleGravitonSpotID), _tractorChoiceSpot(kShuttleTractorSpotID),
-		_shuttleViewSpot(kShuttleViewSpotID), _shuttleTransportSpot(kShuttleTransportSpotID) {
+		_shuttleViewSpot(kShuttleViewSpotID), _shuttleTransportSpot(kShuttleTransportSpotID), _shuttleEnergyMeter(owner) {
 	_noAirFuse.setFunctor(new Common::Functor0Mem<void, Mars>(this, &Mars::airStageExpired));
 	setIsItemTaken(kMarsCard);
 	setIsItemTaken(kAirMask);

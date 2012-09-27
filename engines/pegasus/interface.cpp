@@ -38,10 +38,10 @@ Interface *g_interface = 0;
 Interface::Interface(PegasusEngine *vm) : _vm(vm), InputHandler(0), _interfaceNotification(kInterfaceNotificationID, (NotificationManager *)_vm),
 			_currentItemSpot(kCurrentItemSpotID), _currentBiochipSpot(kCurrentBiochipSpotID),
 			_background1(kInterface1ID), _background2(kInterface2ID), _background3(kInterface3ID),
-			_background4(kInterface4ID), _datePicture(kDateID), _inventoryPush(kInventoryPushID),
+			_background4(kInterface4ID), _datePicture(kDateID), _inventoryPush(_vm, kInventoryPushID),
 			_inventoryLid(kInventoryLidID, kNoDisplayElement),
 			_inventoryPanel(kNoDisplayElement, (InputHandler *)_vm, _vm->getItemsInventory()),
-			_biochipPush(kBiochipPushID), _biochipLid(kBiochipLidID, kNoDisplayElement),
+			_biochipPush(_vm, kBiochipPushID), _biochipLid(kBiochipLidID, kNoDisplayElement),
 			_biochipPanel(kNoDisplayElement, (InputHandler *)_vm, _vm->getBiochipsInventory()) {
 	g_energyMonitor = 0;
 	_previousHandler = 0;
@@ -133,7 +133,7 @@ void Interface::setDate(const uint16 dateResID) {
 
 void Interface::validateCompass() {
 	if (!g_compass) {
-		new Compass();
+		new Compass(_vm);
 		g_compass->initCompass();
 		g_compass->setDisplayOrder(kCompassOrder);
 		g_compass->startDisplaying();

@@ -28,7 +28,7 @@
 
 namespace Pegasus {
 
-ShuttleEnergyMeter::ShuttleEnergyMeter() : FaderAnimation(kNoDisplayElement) {
+ShuttleEnergyMeter::ShuttleEnergyMeter(PegasusEngine *vm) : FaderAnimation(vm, kNoDisplayElement) {
 	setBounds(kShuttleEnergyLeft, kShuttleEnergyTop, kShuttleEnergyLeft + kShuttleEnergyWidth,
 			kShuttleEnergyTop + kShuttleEnergyHeight);
 	setDisplayOrder(kShuttleStatusOrder);

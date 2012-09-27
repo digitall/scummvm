@@ -31,12 +31,14 @@
 
 namespace Pegasus {
 
+class PegasusEngine;
+
 // Compass is defined with 0 as north, 90 east, 180 south, 270 west.
 // Clockwise rotation increases the angle, counterclockwise rotation decreases the angle.
 
 class Compass : public FaderAnimation {
 public:
-	Compass();
+	Compass(PegasusEngine *vm);
 	virtual ~Compass();
 
 	void initCompass();

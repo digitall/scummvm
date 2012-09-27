@@ -36,7 +36,7 @@ namespace Pegasus {
 
 class ScreenFader : public Fader {
 public:
-	ScreenFader();
+	ScreenFader(PegasusEngine *vm);
 	virtual ~ScreenFader();
 
 	void doFadeOutSync(const TimeValue = kOneSecondPerThirtyTicks, const TimeScale = kThirtyTicksPerSecond, bool isBlack = true);
@@ -60,7 +60,7 @@ static const int kTransitionRange = kTransitionTop - kTransitionBottom;
 
 class Transition : public FaderAnimation {
 public:
-	Transition(const DisplayElementID id);
+	Transition(PegasusEngine *vm, const DisplayElementID id);
 	virtual ~Transition() {}
 
 	virtual void setBounds(const Common::Rect &);
@@ -78,7 +78,7 @@ protected:
 
 class Slide : public Transition {
 public:
-	Slide(const DisplayElementID id) : Transition(id) {}
+	Slide(PegasusEngine *vm, const DisplayElementID id) : Transition(vm, id) {}
 	virtual ~Slide() {}
 
 	virtual void setSlideDirection(SlideDirection dir) { _direction = dir; }
@@ -96,7 +96,7 @@ protected:
 
 class Push : public Slide {
 public:
-	Push(const DisplayElementID id) : Slide(id) {}
+	Push(PegasusEngine *vm, const DisplayElementID id) : Slide(vm, id) {}
 	virtual ~Push() {}
 
 protected:

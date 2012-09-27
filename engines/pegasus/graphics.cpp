@@ -48,7 +48,7 @@ GraphicsManager::GraphicsManager(PegasusEngine *vm) : _vm(vm) {
 	_curSurface = &_workArea;
 	_erase = false;
 	_updatesEnabled = true;
-	_screenFader = new ScreenFader();
+	_screenFader = new ScreenFader(_vm);
 }
 
 GraphicsManager::~GraphicsManager() {

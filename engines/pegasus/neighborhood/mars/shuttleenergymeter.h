@@ -31,6 +31,8 @@
 
 namespace Pegasus {
 
+class PegasusEngine;
+
 static const int32 kFullShuttleEnergy = 100;
 // Low is 20 percent
 static const int32 kLowShuttleEnergy = kFullShuttleEnergy * 20 / 100;
@@ -44,7 +46,7 @@ static const int32 kTractorBeamEnergy = kLowShuttleEnergy;
 
 class ShuttleEnergyMeter : public FaderAnimation {
 public:
-	ShuttleEnergyMeter();
+	ShuttleEnergyMeter(PegasusEngine *vm);
 	~ShuttleEnergyMeter() {}
 
 	void initShuttleEnergyMeter();
