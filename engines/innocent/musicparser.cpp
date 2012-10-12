@@ -38,7 +38,7 @@ namespace Common {
 namespace Innocent {
 //
 
-MusicParser::MusicParser() : MidiParser(), _time(0), _lasttick(0), _tick(0) {
+MusicParser::MusicParser() : MidiParser(), _time(0), _lastTick(0), _tick(0) {
 	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_GM);
 	_midiDriver = MidiDriver::createMidi(dev);
 	_midiDriver->open();
@@ -63,20 +63,20 @@ bool MusicParser::loadMusic(byte *data, uint32 size) {
 	_script.reset(new MusicScript(data));
 	_tune.reset(new Tune(_script->getTune()));
 
-	_num_tracks = 1;
+	_numTracks = 1;
 	_ppqn = 120;
-//	_clocks_per_tick = 0x19;
+//	_clocksPerTick = 0x19;
 	setTempo(500000 * 0x19);
 	setTrack(0);
 	return true;
 }
 
 void MusicParser::tick() {
-	_time += _timer_rate;
-	if (_lasttick && _time < _lasttick + _psec_per_tick)
+	_time += _timerRate;
+	if (_lastTick && _time < _lastTick + _psecPerTick)
 		return;
 
-	_lasttick = _time;
+	_lastTick = _time;
 
 	_tune->tick();
 	_tick++;

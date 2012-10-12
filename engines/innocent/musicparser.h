@@ -163,7 +163,7 @@ private:
 	std::auto_ptr<Tune> _tune;
 	std::auto_ptr<MusicScript> _script;
 
-	uint32 _time, _lasttick, _tick;
+	uint32 _time, _lastTick, _tick;
 	MidiDriver *_midiDriver;
 };
 
