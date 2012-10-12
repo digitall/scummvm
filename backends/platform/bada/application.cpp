@@ -68,7 +68,7 @@ void BadaScummVM::OnUserEventReceivedN(RequestId requestId,
 		// assertion failure termination
 		String *message = NULL;
 		if (args) {
-			message = (String*)args->GetAt(0);
+			message = (String *)args->GetAt(0);
 		}
 		if (!message) {
 			message = new String("Unknown error");
@@ -99,11 +99,13 @@ void BadaScummVM::OnLowMemory(void) {
 }
 
 void BadaScummVM::pauseGame(bool pause) {
-	if (pause && _appForm && g_engine && !g_engine->isPaused()) {
-		_appForm->pushKey(Common::KEYCODE_SPACE);
-	}
+	if (_appForm) {
+		if (pause && g_engine && !g_engine->isPaused()) {
+			_appForm->pushKey(Common::KEYCODE_SPACE);
+		}
 
-	if (g_system) {
-		((BadaSystem *)g_system)->setMute(pause);
+		if (g_system) {
+			((BadaSystem *)g_system)->setMute(pause);
+		}
 	}
 }

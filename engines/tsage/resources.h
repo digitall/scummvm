@@ -29,7 +29,6 @@
 #include "common/list.h"
 #include "common/str.h"
 #include "common/str-array.h"
-#include "common/textconsole.h"
 #include "common/util.h"
 #include "graphics/surface.h"
 
@@ -42,7 +41,10 @@ const int MEMORY_POOL_SIZE = 1000;
 
 enum ResourceType { RES_LIBRARY, RES_STRIP, RES_IMAGE, RES_PALETTE, RES_VISAGE, RES_SOUND, RES_MESSAGE,
 		RES_FONT, RES_POINTER, RES_BANK, RES_SND_DRIVER, RES_PRIORITY, RES_CONTROL, RES_WALKRGNS,
-		RES_BITMAP, RES_SAVE, RES_SEQUENCE };
+		RES_BITMAP, RES_SAVE, RES_SEQUENCE,
+		// Return to Ringworld specific resource types
+		RT17, RT18, RT19, RT20, RT21, RT22, RT23, RT24, RT25, RT26, RT27, RT28, RT29, RT30, RT31
+};
 
 class MemoryHeader {
 public:
@@ -143,6 +145,7 @@ private:
 	MemoryManager &_memoryManager;
 private:
 	Common::File _file;
+	Common::String _filename;
 	ResourceList _resources;
 	SectionList _sections;
 
@@ -152,8 +155,11 @@ public:
 	TLib(MemoryManager &memManager, const Common::String &filename);
 	~TLib();
 
+	const Common::String &getFilename() { return _filename; }
+	const SectionList &getSections() { return _sections; }
 	byte *getResource(uint16 id, bool suppressErrors = false);
 	byte *getResource(ResourceType resType, uint16 resNum, uint16 rlbNum, bool suppressErrors = false);
+	uint32 getResourceStart(ResourceType resType, uint16 resNum, uint16 rlbNum, ResourceEntry &entry);
 	bool getPalette(int paletteNum, byte *palData, uint *startNum, uint *numEntries);
 	byte *getSubResource(int resNum, int rlbNum, int index, uint *size, bool suppressErrors = false);
 	bool getMessage(int resNum, int lineNum, Common::String &result, bool suppressErrors = false);
@@ -172,6 +178,10 @@ public:
 	void getPalette(int paletteNum, byte *palData, uint *startNum, uint *numEntries, bool suppressErrors = false);
 	byte *getSubResource(int resNum, int rlbNum, int index, uint *size, bool suppressErrors = false);
 	Common::String getMessage(int resNum, int lineNum, bool suppressErrors = false);
+	TLib &first() { return **_libList.begin(); }
+
+	static bool scanIndex(Common::File &f, ResourceType resType, int rlbNum, int resNum, ResourceEntry &resEntry);
+	static void loadSection(Common::File &f, ResourceList &resources);
 };
 
 

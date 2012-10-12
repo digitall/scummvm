@@ -45,7 +45,7 @@ typedef CruiseEngine::MemInfo MemInfo;
 void MemoryList() {
 	if (!_vm->_memList.empty()) {
 		debug("Current list of un-freed memory blocks:");
-		Common::List<MemInfo*>::iterator i;
+		Common::List<MemInfo *>::iterator i;
 		for (i = _vm->_memList.begin(); i != _vm->_memList.end(); ++i) {
 			MemInfo const *const v = *i;
 			debug("%s - %d", v->fname, v->lineNum);
@@ -691,7 +691,7 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 						if ((filesDatabase[j].subData.resourceType == OBJ_TYPE_POLY) && (filesDatabase[j].subData.ptr)) {
 							int zoom = params.scale;
 
-							int16* dataPtr = (int16*)filesDatabase[j].subData.ptr;
+							int16* dataPtr = (int16 *)filesDatabase[j].subData.ptr;
 
 							if (*dataPtr == 0) {
 								int16 offset;
@@ -723,7 +723,7 @@ int findObject(int mouseX, int mouseY, int *outObjOvl, int *outObjIdx) {
 								y -= newY;
 							}
 
-							if (dataPtr && findPoly((char*)dataPtr, x, y, zoom, mouseX, mouseY)) {
+							if (dataPtr && findPoly((char *)dataPtr, x, y, zoom, mouseX, mouseY)) {
 								*outObjOvl = linkedObjOvl;
 								*outObjIdx = linkedObjIdx;
 
@@ -998,7 +998,7 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 
 					ovlDataStruct *ovl2 = NULL;
 					ovlDataStruct *ovl3 = NULL;
-					ovlDataStruct *ovl4 = NULL;
+					//ovlDataStruct *ovl4 = NULL;
 
 					if (verbeOvl > 0)
 						ovl2 = overlayTable[verbeOvl].ovlData;
@@ -1006,8 +1006,8 @@ bool findRelation(int objOvl, int objIdx, int x, int y) {
 					if (obj1Ovl > 0)
 						ovl3 = overlayTable[obj1Ovl].ovlData;
 
-					if (obj2Ovl > 0)
-						ovl4 = overlayTable[obj2Ovl].ovlData;
+					//if (obj2Ovl > 0)
+					//	ovl4 = overlayTable[obj2Ovl].ovlData;
 
 					if ((ovl3) && (ptrHead->obj1Number >= 0)) {
 						testState = ptrHead->obj1OldState;
@@ -1799,30 +1799,60 @@ void CruiseEngine::mainLoop() {
 		// Handle frame delay
 		uint32 currentTick = g_system->getMillis();
 
-		if (!bFastMode) {
-			// Delay for the specified amount of time, but still respond to events
-			bool skipEvents = false;
+		// Delay for the specified amount of time, but still respond to events
+		bool skipEvents = false;
 
-			do {
+		do {
+			if (userEnabled && !userWait && !autoTrack) {
+				if (currentActiveMenu == -1) {
+					static int16 oldMouseX = -1;
+					static int16 oldMouseY = -1;
+
+					getMouseStatus(&main10, &mouseX, &mouseButton, &mouseY);
+
+					if (mouseX != oldMouseX || mouseY != oldMouseY) {
+						int objectType;
+						int newCursor1;
+						int newCursor2;
+
+						oldMouseX = mouseX;
+						oldMouseY = mouseY;
+
+						objectType = findObject(mouseX, mouseY, &newCursor1, &newCursor2);
+
+						if (objectType == 9) {
+							changeCursor(CURSOR_EXIT);
+						} else if (objectType != -1) {
+							changeCursor(CURSOR_MAGNIFYING_GLASS);
+						} else {
+							changeCursor(CURSOR_WALK);
+						}
+					}
+				} else {
+					changeCursor(CURSOR_NORMAL);
+				}
+			} else {
+				changeCursor(CURSOR_NORMAL);
+			}
+
+			g_system->updateScreen();
+
+			if (!skipEvents || bFastMode)
+				skipEvents = manageEvents();
+
+			if (bFastMode) {
+				if (currentTick >= (lastTickDebug + 10))
+					lastTickDebug = currentTick;
+			} else {
 				g_system->delayMillis(10);
 				currentTick = g_system->getMillis();
-
-				if (!skipEvents)
-					skipEvents = manageEvents();
-
-				if (playerDontAskQuit)
-					break;
-
-				_vm->getDebugger()->onFrame();
-			} while (currentTick < lastTick + _gameSpeed);
-		} else {
-			manageEvents();
-
-			if (currentTick >= (lastTickDebug + 10)) {
-				lastTickDebug = currentTick;
-				_vm->getDebugger()->onFrame();
 			}
-		}
+
+			if (playerDontAskQuit)
+				break;
+
+			_vm->getDebugger()->onFrame();
+		} while (currentTick < lastTick + _gameSpeed && !bFastMode);
 		if (playerDontAskQuit)
 			break;
 
@@ -1842,6 +1872,14 @@ void CruiseEngine::mainLoop() {
 //      readKeyboard();
 
 		bool isUserWait = userWait != 0;
+		// WORKAROUND: This prevents hotspots responding during
+		// delays i.e. Menu opening if you click fast on another
+		// hotspot after trying to open a locked door, which
+		// occurred with the original interpreter.
+		if (userDelay) {
+			currentMouseButton = 0;
+		}
+
 		playerDontAskQuit = processInput();
 		if (playerDontAskQuit)
 			break;
@@ -1853,7 +1891,6 @@ void CruiseEngine::mainLoop() {
 
 		if (userDelay && !userWait) {
 			userDelay--;
-			continue;
 		}
 
 		if (isUserWait & !userWait) {
@@ -1915,38 +1952,6 @@ void CruiseEngine::mainLoop() {
 			/*if (!PCFadeFlag)*/
 			mainDraw(userWait);
 			flipScreen();
-
-			if (userEnabled && !userWait && !autoTrack) {
-				if (currentActiveMenu == -1) {
-					static int16 oldMouseX = -1;
-					static int16 oldMouseY = -1;
-
-					getMouseStatus(&main10, &mouseX, &mouseButton, &mouseY);
-
-					if (mouseX != oldMouseX || mouseY != oldMouseY) {
-						int objectType;
-						int newCursor1;
-						int newCursor2;
-
-						oldMouseX = mouseX;
-						oldMouseY = mouseY;
-
-						objectType = findObject(mouseX, mouseY, &newCursor1, &newCursor2);
-
-						if (objectType == 9) {
-							changeCursor(CURSOR_EXIT);
-						} else if (objectType != -1) {
-							changeCursor(CURSOR_MAGNIFYING_GLASS);
-						} else {
-							changeCursor(CURSOR_WALK);
-						}
-					}
-				} else {
-					changeCursor(CURSOR_NORMAL);
-				}
-			} else {
-				changeCursor(CURSOR_NORMAL);
-			}
 
 			if (userWait == 1) {
 				// Waiting for press - original wait loop has been integrated into the

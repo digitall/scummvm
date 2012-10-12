@@ -24,6 +24,7 @@
 #include "common/config-manager.h"
 #include "common/events.h"
 #include "common/fs.h"
+#include "common/gui_options.h"
 #include "common/util.h"
 #include "common/system.h"
 #include "common/translation.h"
@@ -71,8 +72,10 @@ enum {
 	kCmdChooseSoundFontCmd = 'chsf',
 
 	kCmdExtraBrowser = 'PEXT',
+	kCmdExtraPathClear = 'PEXC',
 	kCmdGameBrowser = 'PGME',
-	kCmdSaveBrowser = 'PSAV'
+	kCmdSaveBrowser = 'PSAV',
+	kCmdSavePathClear = 'PSAC'
 };
 
 /*
@@ -88,7 +91,7 @@ public:
 
 protected:
 	bool tryInsertChar(byte c, int pos) {
-		if (isalnum(c) || c == '-' || c == '_') {
+		if (Common::isAlnum(c) || c == '-' || c == '_') {
 			_editString.insertChar(c, pos);
 			return true;
 		}
@@ -129,6 +132,8 @@ protected:
 	StaticTextWidget *_gamePathWidget;
 	StaticTextWidget *_extraPathWidget;
 	StaticTextWidget *_savePathWidget;
+	ButtonWidget *_extraPathClearButton;
+	ButtonWidget *_savePathClearButton;
 
 	StaticTextWidget *_langPopUpDesc;
 	PopUpWidget *_langPopUp;
@@ -140,10 +145,27 @@ protected:
 	CheckboxWidget *_globalMIDIOverride;
 	CheckboxWidget *_globalMT32Override;
 	CheckboxWidget *_globalVolumeOverride;
+
+	ExtraGuiOptions _engineOptions;
 };
 
 EditGameDialog::EditGameDialog(const String &domain, const String &desc)
 	: OptionsDialog(domain, "GameOptions") {
+	// Retrieve all game specific options.
+	const EnginePlugin *plugin = 0;
+	// To allow for game domains without a gameid.
+	// TODO: Is it intentional that this is still supported?
+	String gameId(ConfMan.get("gameid", domain));
+	if (gameId.empty())
+		gameId = domain;
+	// Retrieve the plugin, since we need to access the engine's MetaEngine
+	// implementation.
+	EngineMan.findGame(gameId, &plugin);
+	if (plugin) {
+		_engineOptions = (*plugin)->getExtraGuiOptions(domain);
+	} else {
+		warning("Plugin for target \"%s\" not found! Game specific settings might be missing", domain.c_str());
+	}
 
 	// GAME: Path to game data (r/o), extra data (r/o), and save data (r/w)
 	String gamePath(ConfMan.get("path", _domain));
@@ -203,7 +225,16 @@ EditGameDialog::EditGameDialog(const String &domain, const String &desc)
 	}
 
 	//
-	// 2) The graphics tab
+	// 2) The engine tab (shown only if there are custom engine options)
+	//
+	if (_engineOptions.size() > 0) {
+		tab->addTab(_("Engine"));
+
+		addEngineControls(tab, "GameOptions_Engine.", _engineOptions);
+	}
+
+	//
+	// 3) The graphics tab
 	//
 	_graphicsTabId = tab->addTab(g_system->getOverlayWidth() > 320 ? _("Graphics") : _("GFX"));
 
@@ -215,7 +246,7 @@ EditGameDialog::EditGameDialog(const String &domain, const String &desc)
 	addGraphicControls(tab, "GameOptions_Graphics.");
 
 	//
-	// 3) The audio tab
+	// 4) The audio tab
 	//
 	tab->addTab(_("Audio"));
 
@@ -228,7 +259,7 @@ EditGameDialog::EditGameDialog(const String &domain, const String &desc)
 	addSubtitleControls(tab, "GameOptions_Audio.");
 
 	//
-	// 4) The volume tab
+	// 5) The volume tab
 	//
 	if (g_system->getOverlayWidth() > 320)
 		tab->addTab(_("Volume"));
@@ -243,37 +274,35 @@ EditGameDialog::EditGameDialog(const String &domain, const String &desc)
 	addVolumeControls(tab, "GameOptions_Volume.");
 
 	//
-	// 5) The MIDI tab
+	// 6) The MIDI tab
 	//
-	tab->addTab(_("MIDI"));
+	if (!_guioptions.contains(GUIO_NOMIDI)) {
+		tab->addTab(_("MIDI"));
 
-	if (g_system->getOverlayWidth() > 320)
-		_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _("Override global MIDI settings"), 0, kCmdGlobalMIDIOverride);
-	else
-		_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _c("Override global MIDI settings", "lowres"), 0, kCmdGlobalMIDIOverride);
+		if (g_system->getOverlayWidth() > 320)
+			_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _("Override global MIDI settings"), 0, kCmdGlobalMIDIOverride);
+		else
+			_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _c("Override global MIDI settings", "lowres"), 0, kCmdGlobalMIDIOverride);
 
-	if (_guioptions & Common::GUIO_NOMIDI)
-		_globalMIDIOverride->setEnabled(false);
-
-	addMIDIControls(tab, "GameOptions_MIDI.");
-
-	//
-	// 6) The MT-32 tab
-	//
-	tab->addTab(_("MT-32"));
-
-	if (g_system->getOverlayWidth() > 320)
-		_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _("Override global MT-32 settings"), 0, kCmdGlobalMT32Override);
-	else
-		_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _c("Override global MT-32 settings", "lowres"), 0, kCmdGlobalMT32Override);
-
-	//if (_guioptions & Common::GUIO_NOMIDI)
-	//	_globalMT32Override->setEnabled(false);
-
-	addMT32Controls(tab, "GameOptions_MT32.");
+		addMIDIControls(tab, "GameOptions_MIDI.");
+	}
 
 	//
-	// 7) The Paths tab
+	// 7) The MT-32 tab
+	//
+	if (!_guioptions.contains(GUIO_NOMIDI)) {
+		tab->addTab(_("MT-32"));
+
+		if (g_system->getOverlayWidth() > 320)
+			_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _("Override global MT-32 settings"), 0, kCmdGlobalMT32Override);
+		else
+			_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _c("Override global MT-32 settings", "lowres"), 0, kCmdGlobalMT32Override);
+
+		addMT32Controls(tab, "GameOptions_MT32.");
+	}
+
+	//
+	// 8) The Paths tab
 	//
 	if (g_system->getOverlayWidth() > 320)
 		tab->addTab(_("Paths"));
@@ -297,12 +326,16 @@ EditGameDialog::EditGameDialog(const String &domain, const String &desc)
 		new ButtonWidget(tab, "GameOptions_Paths.Extrapath", _c("Extra Path:", "lowres"), _("Specifies path to additional data used the game"), kCmdExtraBrowser);
 	_extraPathWidget = new StaticTextWidget(tab, "GameOptions_Paths.ExtrapathText", extraPath, _("Specifies path to additional data used the game"));
 
+	_extraPathClearButton = addClearButton(tab, "GameOptions_Paths.ExtraPathClearButton", kCmdExtraPathClear);
+
 	// GUI:  Button + Label for the save path
 	if (g_system->getOverlayWidth() > 320)
 		new ButtonWidget(tab, "GameOptions_Paths.Savepath", _("Save Path:"), _("Specifies where your savegames are put"), kCmdSaveBrowser);
 	else
 		new ButtonWidget(tab, "GameOptions_Paths.Savepath", _c("Save Path:", "lowres"), _("Specifies where your savegames are put"), kCmdSaveBrowser);
 	_savePathWidget = new StaticTextWidget(tab, "GameOptions_Paths.SavepathText", savePath, _("Specifies where your savegames are put"));
+
+	_savePathClearButton = addClearButton(tab, "GameOptions_Paths.SavePathClearButton", kCmdSavePathClear);
 
 	// Activate the first tab
 	tab->setActiveTab(0);
@@ -334,8 +367,7 @@ void EditGameDialog::open() {
 	e = ConfMan.hasKey("gfx_mode", _domain) ||
 		ConfMan.hasKey("render_mode", _domain) ||
 		ConfMan.hasKey("fullscreen", _domain) ||
-		ConfMan.hasKey("aspect_ratio", _domain) ||
-		ConfMan.hasKey("disable_dithering", _domain);
+		ConfMan.hasKey("aspect_ratio", _domain);
 	_globalGraphicsOverride->setState(e);
 
 	e = ConfMan.hasKey("music_driver", _domain) ||
@@ -350,14 +382,18 @@ void EditGameDialog::open() {
 		ConfMan.hasKey("speech_volume", _domain);
 	_globalVolumeOverride->setState(e);
 
-	e = ConfMan.hasKey("soundfont", _domain) ||
-		ConfMan.hasKey("multi_midi", _domain) ||
-		ConfMan.hasKey("midi_gain", _domain);
-	_globalMIDIOverride->setState(e);
+	if (!_guioptions.contains(GUIO_NOMIDI)) {
+		e = ConfMan.hasKey("soundfont", _domain) ||
+			ConfMan.hasKey("multi_midi", _domain) ||
+			ConfMan.hasKey("midi_gain", _domain);
+		_globalMIDIOverride->setState(e);
+	}
 
-	e = ConfMan.hasKey("native_mt32", _domain) ||
-		ConfMan.hasKey("enable_gs", _domain);
-	_globalMT32Override->setState(e);
+	if (!_guioptions.contains(GUIO_NOMIDI)) {
+		e = ConfMan.hasKey("native_mt32", _domain) ||
+			ConfMan.hasKey("enable_gs", _domain);
+		_globalMT32Override->setState(e);
+	}
 
 	// TODO: game path
 
@@ -374,6 +410,19 @@ void EditGameDialog::open() {
 		_langPopUp->setEnabled(false);
 	}
 
+	// Set the state of engine-specific checkboxes
+	for (uint j = 0; j < _engineOptions.size(); ++j) {
+		// The default values for engine-specific checkboxes are not set when
+		// ScummVM starts, as this would require us to load and poll all of the
+		// engine plugins on startup. Thus, we set the state of each custom
+		// option checkbox to what is specified by the engine plugin, and
+		// update it only if a value has been set in the configuration of the
+		// currently selected game.
+		bool isChecked = _engineOptions[j].defaultState;
+		if (ConfMan.hasKey(_engineOptions[j].configOption, _domain))
+			isChecked = ConfMan.getBool(_engineOptions[j].configOption, _domain);
+		_engineCheckboxes[j]->setState(isChecked);
+	}
 
 	const Common::PlatformDescription *p = Common::g_platforms;
 	const Common::Platform platform = Common::parsePlatform(ConfMan.get("platform", _domain));
@@ -403,16 +452,25 @@ void EditGameDialog::close() {
 		String extraPath(_extraPathWidget->getLabel());
 		if (!extraPath.empty() && (extraPath != _c("None", "path")))
 			ConfMan.set("extrapath", extraPath, _domain);
+		else
+			ConfMan.removeKey("extrapath", _domain);
 
 		String savePath(_savePathWidget->getLabel());
 		if (!savePath.empty() && (savePath != _("Default")))
 			ConfMan.set("savepath", savePath, _domain);
+		else
+			ConfMan.removeKey("savepath", _domain);
 
 		Common::Platform platform = (Common::Platform)_platformPopUp->getSelectedTag();
 		if (platform < 0)
 			ConfMan.removeKey("platform", _domain);
 		else
 			ConfMan.set("platform", Common::getPlatformCode(platform), _domain);
+
+		// Set the state of engine-specific checkboxes
+		for (uint i = 0; i < _engineOptions.size(); i++) {
+			ConfMan.setBool(_engineOptions[i].configOption, _engineCheckboxes[i]->getState(), _domain);
+		}
 	}
 	OptionsDialog::close();
 }
@@ -503,6 +561,14 @@ void EditGameDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 dat
 		break;
 	}
 
+	case kCmdExtraPathClear:
+		_extraPathWidget->setLabel(_c("None", "path"));
+		break;
+
+	case kCmdSavePathClear:
+		_savePathWidget->setLabel(_("Default"));
+		break;
+
 	case kOKCmd: {
 		// Write back changes made to config object
 		String newDomain(_domainWidget->getEditString());
@@ -590,13 +656,12 @@ LauncherDialog::LauncherDialog()
 		_searchDesc = new StaticTextWidget(this, "Launcher.SearchDesc", _("Search:"));
 
 	_searchWidget = new EditTextWidget(this, "Launcher.Search", _search, 0, kSearchCmd);
-	_searchClearButton = new ButtonWidget(this, "Launcher.SearchClearButton", "C", _("Clear value"), kSearchClearCmd);
+	_searchClearButton = addClearButton(this, "Launcher.SearchClearButton", kSearchClearCmd);
 
 	// Add list with game titles
 	_list = new ListWidget(this, "Launcher.GameList", 0, kListSearchCmd);
 	_list->setEditable(false);
 	_list->setNumberingMode(kListNumberingOff);
-
 
 	// Populate the list
 	updateListing();
@@ -612,7 +677,7 @@ LauncherDialog::LauncherDialog()
 	_browser = new BrowserDialog(_("Select directory with game data"), true);
 
 	// Create Load dialog
-	_loadDialog = new SaveLoadChooser(_("Load game:"), _("Load"));
+	_loadDialog = new SaveLoadChooser(_("Load game:"), _("Load"), false);
 }
 
 void LauncherDialog::selectTarget(const String &target) {
@@ -1038,7 +1103,7 @@ void LauncherDialog::updateButtons() {
 	bool en = enable;
 
 	if (item >= 0)
-		en = !(Common::checkGameGUIOption(Common::GUIO_NOLAUNCHLOAD, ConfMan.get("guioptions", _domains[item])));
+		en = !(Common::checkGameGUIOption(GUIO_NOLAUNCHLOAD, ConfMan.get("guioptions", _domains[item])));
 
 	if (en != _loadButton->isEnabled()) {
 		_loadButton->setEnabled(en);
@@ -1061,7 +1126,7 @@ void LauncherDialog::updateButtons() {
 void LauncherDialog::reflowLayout() {
 #ifndef DISABLE_FANCY_THEMES
 	if (g_gui.xmlEval()->getVar("Globals.ShowLauncherLogo") == 1 && g_gui.theme()->supportsImages()) {
-		StaticTextWidget *ver = (StaticTextWidget*)findWidget("Launcher.Version");
+		StaticTextWidget *ver = (StaticTextWidget *)findWidget("Launcher.Version");
 		if (ver) {
 			ver->setAlign((Graphics::TextAlign)g_gui.xmlEval()->getVar("Launcher.Version.Align", Graphics::kTextAlignCenter));
 			ver->setLabel(gScummVMVersionDate);
@@ -1072,7 +1137,7 @@ void LauncherDialog::reflowLayout() {
 		_logo->useThemeTransparency(true);
 		_logo->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageLogo));
 	} else {
-		StaticTextWidget *ver = (StaticTextWidget*)findWidget("Launcher.Version");
+		StaticTextWidget *ver = (StaticTextWidget *)findWidget("Launcher.Version");
 		if (ver) {
 			ver->setAlign((Graphics::TextAlign)g_gui.xmlEval()->getVar("Launcher.Version.Align", Graphics::kTextAlignCenter));
 			ver->setLabel(gScummVMFullVersion);
@@ -1108,6 +1173,11 @@ void LauncherDialog::reflowLayout() {
 			_searchPic = 0;
 		}
 	}
+
+	removeWidget(_searchClearButton);
+	_searchClearButton->setNext(0);
+	delete _searchClearButton;
+	_searchClearButton = addClearButton(this, "Launcher.SearchClearButton", kSearchClearCmd);
 #endif
 
 	_w = g_system->getOverlayWidth();

@@ -55,6 +55,13 @@
 #include "audio/mididrv.h"
 #include "audio/musicplugin.h"  /* for music manager */
 
+#include "graphics/cursorman.h"
+#include "graphics/fontman.h"
+#include "graphics/yuv_to_rgb.h"
+#ifdef USE_FREETYPE2
+#include "graphics/fonts/ttf.h"
+#endif
+
 #include "backends/keymapper/keymapper.h"
 
 #if defined(_WIN32_WCE)
@@ -103,7 +110,7 @@ static const EnginePlugin *detectPlugin() {
 
 	// Query the plugins and find one that will handle the specified gameid
 	printf("User picked target '%s' (gameid '%s')...\n", ConfMan.getActiveDomainName().c_str(), gameid.c_str());
-	printf("%s", "  Looking for a plugin supporting this gameid... ");
+	printf("  Looking for a plugin supporting this gameid... ");
 
  	GameDescriptor game = EngineMan.findGame(gameid, &plugin);
 
@@ -111,7 +118,7 @@ static const EnginePlugin *detectPlugin() {
 		printf("failed\n");
 		warning("%s is an invalid gameid. Use the --list-games option to list supported gameid", gameid.c_str());
 	} else {
-		printf("%s\n Starting '%s'\n", plugin->getName(), game.description().c_str());
+		printf("%s\n  Starting '%s'\n", plugin->getName(), game.description().c_str());
 	}
 
 	return plugin;
@@ -195,12 +202,21 @@ static Common::Error runGame(const EnginePlugin *plugin, OSystem &system, const 
 	}
 
 	// On creation the engine should have set up all debug levels so we can use
-	// the command line arugments here
+	// the command line arguments here
 	Common::StringTokenizer tokenizer(edebuglevels, " ,");
 	while (!tokenizer.empty()) {
 		Common::String token = tokenizer.nextToken();
 		if (!DebugMan.enableDebugChannel(token))
 			warning(_("Engine does not support debug level '%s'"), token.c_str());
+	}
+
+	// Initialize any game-specific keymaps
+	engine->initKeymap();
+
+	// Set default values for all of the custom engine options
+	const ExtraGuiOptions engineOptions = (*plugin)->getExtraGuiOptions(Common::String());
+	for (uint i = 0; i < engineOptions.size(); i++) {
+		ConfMan.registerDefault(engineOptions[i].configOption, engineOptions[i].defaultState);
 	}
 
 	// Inform backend that the engine is about to be run
@@ -211,6 +227,9 @@ static Common::Error runGame(const EnginePlugin *plugin, OSystem &system, const 
 
 	// Inform backend that the engine finished
 	system.engineDone();
+
+	// Clean up any game-specific keymaps
+	engine->deinitKeymap();
 
 	// Free up memory
 	delete engine;
@@ -253,42 +272,52 @@ static void setupGraphics(OSystem &system) {
 }
 
 static void setupKeymapper(OSystem &system) {
-
 #ifdef ENABLE_KEYMAPPER
 	using namespace Common;
 
 	Keymapper *mapper = system.getEventManager()->getKeymapper();
-	Keymap *globalMap = new Keymap("global");
-	Action *act;
-	HardwareKeySet *keySet;
 
-	keySet = system.getHardwareKeySet();
+	HardwareInputSet *inputSet = system.getHardwareInputSet();
 
 	// Query backend for hardware keys and register them
-	mapper->registerHardwareKeySet(keySet);
+	mapper->registerHardwareInputSet(inputSet);
 
 	// Now create the global keymap
-	act = new Action(globalMap, "MENU", _("Menu"), kGenericActionType, kSelectKeyType);
-	act->addKeyEvent(KeyState(KEYCODE_F5, ASCII_F5, 0));
+	Keymap *primaryGlobalKeymap = new Keymap(kGlobalKeymapName);
+	Action *act;
+	act = new Action(primaryGlobalKeymap, "MENU", _("Menu"));
+	act->addEvent(EVENT_MAINMENU);
 
-	act = new Action(globalMap, "SKCT", _("Skip"), kGenericActionType, kActionKeyType);
+	act = new Action(primaryGlobalKeymap, "SKCT", _("Skip"));
 	act->addKeyEvent(KeyState(KEYCODE_ESCAPE, ASCII_ESCAPE, 0));
 
-	act = new Action(globalMap, "PAUS", _("Pause"), kGenericActionType, kStartKeyType);
+	act = new Action(primaryGlobalKeymap, "PAUS", _("Pause"));
 	act->addKeyEvent(KeyState(KEYCODE_SPACE, ' ', 0));
 
-	act = new Action(globalMap, "SKLI", _("Skip line"), kGenericActionType, kActionKeyType);
+	act = new Action(primaryGlobalKeymap, "SKLI", _("Skip line"));
 	act->addKeyEvent(KeyState(KEYCODE_PERIOD, '.', 0));
 
-	act = new Action(globalMap, "VIRT", _("Display keyboard"), kVirtualKeyboardActionType);
-	act->addKeyEvent(KeyState(KEYCODE_F7, ASCII_F7, 0));
+#ifdef ENABLE_VKEYBD
+	act = new Action(primaryGlobalKeymap, "VIRT", _("Display keyboard"));
+	act->addEvent(EVENT_VIRTUAL_KEYBOARD);
+#endif
 
-	act = new Action(globalMap, "REMP", _("Remap keys"), kKeyRemapActionType);
-	act->addKeyEvent(KeyState(KEYCODE_F8, ASCII_F8, 0));
+	act = new Action(primaryGlobalKeymap, "REMP", _("Remap keys"));
+	act->addEvent(EVENT_KEYMAPPER_REMAP);
 
-	mapper->addGlobalKeymap(globalMap);
+	act = new Action(primaryGlobalKeymap, "FULS", _("Toggle FullScreen"));
+	act->addKeyEvent(KeyState(KEYCODE_RETURN, ASCII_RETURN, KBD_ALT));
 
-	mapper->pushKeymap("global");
+	mapper->addGlobalKeymap(primaryGlobalKeymap);
+	mapper->pushKeymap(kGlobalKeymapName, true);
+
+	// Get the platform-specific global keymap (if it exists)
+	Keymap *platformGlobalKeymap = system.getGlobalKeymap();
+	if (platformGlobalKeymap) {
+		String platformGlobalKeymapName = platformGlobalKeymap->getName();
+		mapper->addGlobalKeymap(platformGlobalKeymap);
+		mapper->pushKeymap(platformGlobalKeymapName, true);
+	}
 #endif
 
 }
@@ -471,10 +500,20 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 	PluginManager::destroy();
 	GUI::GuiManager::destroy();
 	Common::ConfigManager::destroy();
+	Common::DebugManager::destroy();
+	Common::EventRecorder::destroy();
 	Common::SearchManager::destroy();
 #ifdef USE_TRANSLATION
 	Common::TranslationManager::destroy();
 #endif
+	MusicManager::destroy();
+	Graphics::CursorManager::destroy();
+	Graphics::FontManager::destroy();
+#ifdef USE_FREETYPE2
+	Graphics::shutdownTTF();
+#endif
+	EngineManager::destroy();
+	Graphics::YUVToRGBManager::destroy();
 
 	return 0;
 }

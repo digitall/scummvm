@@ -93,7 +93,7 @@ const char *getSciVersionDesc(SciVersion version) {
 
 //#define SCI_VERBOSE_RESMAN 1
 
-static const char *const sci_error_types[] = {
+static const char *const s_errorDescriptions[] = {
 	"No error",
 	"I/O error",
 	"Resource is empty (size 0)",
@@ -101,10 +101,8 @@ static const char *const sci_error_types[] = {
 	"resource.map file not found",
 	"No resource files found",
 	"Unknown compression method",
-	"Decompression failed: Decompression buffer overflow",
 	"Decompression failed: Sanity check failed",
-	"Decompression failed: Resource too big",
-	"SCI version is unsupported"
+	"Decompression failed: Resource too big"
 };
 
 static const char *const s_resourceTypeNames[] = {
@@ -169,8 +167,11 @@ ResourceType ResourceManager::convertResType(byte type) {
 		if (type < ARRAYSIZE(s_resTypeMapSci21)) {
 			// LSL6 hires doesn't have the chunk resource type, to match
 			// the resource types of the lowres version, thus we use the
-			// older resource types here
-			if (g_sci && g_sci->getGameId() == GID_LSL6HIRES)
+			// older resource types here.
+			// PQ4 CD and QFG4 CD are SCI2.1, but use the resource types of the
+			// corresponding SCI2 floppy disk versions.
+			if (g_sci && (g_sci->getGameId() == GID_LSL6HIRES ||
+				g_sci->getGameId() == GID_QFG4 || g_sci->getGameId() == GID_PQ4))
 				return s_resTypeMapSci0[type];
 			else
 				return s_resTypeMapSci21[type];
@@ -573,7 +574,7 @@ void ResourceSource::loadResource(ResourceManager *resMan, Resource *res) {
 	if (error) {
 		warning("Error %d occurred while reading %s from resource file %s: %s",
 				error, res->_id.toString().c_str(), res->getResourceLocation().c_str(),
-				sci_error_types[error]);
+				s_errorDescriptions[error]);
 		res->unalloc();
 	}
 
@@ -606,7 +607,7 @@ int ResourceManager::addAppropriateSources() {
 		if (Common::File::exists("alt.map") && Common::File::exists("resource.alt"))
 			addSource(new VolumeResourceSource("resource.alt", addExternalMap("alt.map", 10), 10));
 #endif
-	} else if (Common::File::exists("Data1")) {
+	} else if (Common::MacResManager::exists("Data1")) {
 		// Mac SCI1.1+ file naming scheme
 		SearchMan.listMatchingMembers(files, "Data?*");
 
@@ -750,12 +751,10 @@ void ResourceManager::addScriptChunkSources() {
 		// to try to get to any scripts in there. The Lighthouse SCI2.1 demo
 		// does exactly this.
 
-		Common::List<ResourceId> *resources = listResources(kResourceTypeScript);
+		Common::List<ResourceId> resources = listResources(kResourceTypeScript);
 
-		if (resources->empty() && testResource(ResourceId(kResourceTypeChunk, 0)))
+		if (resources.empty() && testResource(ResourceId(kResourceTypeChunk, 0)))
 			addResourcesFromChunk(0);
-
-		delete resources;
 	}
 #endif
 }
@@ -1042,13 +1041,13 @@ void ResourceManager::freeOldResources() {
 	}
 }
 
-Common::List<ResourceId> *ResourceManager::listResources(ResourceType type, int mapNumber) {
-	Common::List<ResourceId> *resources = new Common::List<ResourceId>;
+Common::List<ResourceId> ResourceManager::listResources(ResourceType type, int mapNumber) {
+	Common::List<ResourceId> resources;
 
 	ResourceMap::iterator itr = _resMap.begin();
 	while (itr != _resMap.end()) {
 		if ((itr->_value->getType() == type) && ((mapNumber == -1) || (itr->_value->getNumber() == mapNumber)))
-			resources->push_back(itr->_value->_id);
+			resources.push_back(itr->_value->_id);
 		++itr;
 	}
 
@@ -1557,7 +1556,7 @@ void ResourceManager::readResourcePatches() {
 			name = (*x)->getName();
 
 			// SCI1 scheme
-			if (isdigit(static_cast<unsigned char>(name[0]))) {
+			if (Common::isDigit(name[0])) {
 				char *end = 0;
 				resourceNr = strtol(name.c_str(), &end, 10);
 				bAdd = (*end == '.'); // Ensure the next character is the period
@@ -1565,7 +1564,7 @@ void ResourceManager::readResourcePatches() {
 				// SCI0 scheme
 				int resname_len = strlen(szResType);
 				if (scumm_strnicmp(name.c_str(), szResType, resname_len) == 0
-					&& !isalpha(static_cast<unsigned char>(name[resname_len + 1]))) {
+					&& !Common::isAlpha(name[resname_len + 1])) {
 					resourceNr = atoi(name.c_str() + resname_len + 1);
 					bAdd = true;
 				}
@@ -1875,6 +1874,9 @@ int Resource::readResourceInfo(ResVersion volVersion, Common::SeekableReadStream
 	uint32 wCompression, szUnpacked;
 	ResourceType type;
 
+	if (file->size() == 0)
+		return SCI_ERROR_EMPTY_RESOURCE;
+
 	switch (volVersion) {
 	case kResVersionSci0Sci1Early:
 	case kResVersionSci1Middle:
@@ -1919,7 +1921,7 @@ int Resource::readResourceInfo(ResVersion volVersion, Common::SeekableReadStream
 		break;
 #endif
 	default:
-		return SCI_ERROR_INVALID_RESMAP_ENTRY;
+		return SCI_ERROR_RESMAP_INVALID_ENTRY;
 	}
 
 	// check if there were errors while reading
@@ -1960,7 +1962,7 @@ int Resource::readResourceInfo(ResVersion volVersion, Common::SeekableReadStream
 		compression = kCompUnknown;
 	}
 
-	return compression == kCompUnknown ? SCI_ERROR_UNKNOWN_COMPRESSION : 0;
+	return (compression == kCompUnknown) ? SCI_ERROR_UNKNOWN_COMPRESSION : SCI_ERROR_NONE;
 }
 
 int Resource::decompress(ResVersion volVersion, Common::SeekableReadStream *file) {
@@ -2181,28 +2183,31 @@ void ResourceManager::detectSciVersion() {
 	}
 
 	if (_volVersion == kResVersionSci11Mac) {
-		// SCI32 doesn't have the resource.cfg file, so we can figure out
-		// which of the games are SCI1.1. Note that there are no Mac SCI2 games.
-		// Yes, that means that GK1 Mac is SCI2.1 and not SCI2.
+		Resource *res = testResource(ResourceId(kResourceTypeScript, 64920));
+		// Distinguish between SCI1.1 and SCI32 games here. SCI32 games will
+		// always include script 64920 (the Array class). Note that there are
+		// no Mac SCI2 games. Yes, that means that GK1 Mac is SCI2.1 and not SCI2.
 
 		// TODO: Decide between SCI2.1 and SCI3
-		if (Common::File::exists("resource.cfg"))
-			s_sciVersion = SCI_VERSION_1_1;
-		else
+		if (res)
 			s_sciVersion = SCI_VERSION_2_1;
+		else
+			s_sciVersion = SCI_VERSION_1_1;
 		return;
 	}
 
 	// Handle SCI32 versions here
 	if (_volVersion >= kResVersionSci2) {
-		Common::List<ResourceId> *heaps = listResources(kResourceTypeHeap);
+		Common::List<ResourceId> heaps = listResources(kResourceTypeHeap);
+		bool hasHeapResources = !heaps.empty();
+
 		// SCI2.1/3 and SCI1 Late resource maps are the same, except that
 		// SCI1 Late resource maps have the resource types or'd with
 		// 0x80. We differentiate between SCI2 and SCI2.1/3 based on that.
 		if (_mapVersion == kResVersionSci1Late) {
 			s_sciVersion = SCI_VERSION_2;
 			return;
-		} else if (!heaps->empty()) {
+		} else if (hasHeapResources) {
 			s_sciVersion = SCI_VERSION_2_1;
 			return;
 		} else {
@@ -2354,7 +2359,7 @@ bool ResourceManager::detectFontExtended() {
 }
 
 // detects, if SCI1.1 game uses palette merging or copying - this is supposed to only get used on SCI1.1 games
-bool ResourceManager::detectForPaletteMergingForSci11() {
+bool ResourceManager::detectPaletteMergingSci11() {
 	// Load palette 999 (default palette)
 	Resource *res = findResource(ResourceId(kResourceTypePalette, 999), false);
 
@@ -2585,7 +2590,7 @@ Common::String ResourceManager::findSierraGameId() {
 	if (!heap)
 		return "";
 
-	int16 gameObjectOffset = findGameObject(false).offset;
+	int16 gameObjectOffset = findGameObject(false).getOffset();
 
 	if (!gameObjectOffset)
 		return "";

@@ -62,7 +62,7 @@ class NSArchive : public Common::Archive {
 	Common::SeekableReadStream	*_stream;
 
 	char			_archiveDir[MAX_ARCHIVE_ENTRIES][32];
-	uint32			_archiveLenghts[MAX_ARCHIVE_ENTRIES];
+	uint32			_archiveLengths[MAX_ARCHIVE_ENTRIES];
 	uint32			_archiveOffsets[MAX_ARCHIVE_ENTRIES];
 	uint32			_numFiles;
 
@@ -73,9 +73,9 @@ public:
 	~NSArchive();
 
 	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const;
-	bool hasFile(const Common::String &name);
-	int listMembers(Common::ArchiveMemberList &list);
-	Common::ArchiveMemberPtr getMember(const Common::String &name);
+	bool hasFile(const Common::String &name) const;
+	int listMembers(Common::ArchiveMemberList &list) const;
+	const Common::ArchiveMemberPtr getMember(const Common::String &name) const;
 };
 
 
@@ -103,8 +103,8 @@ NSArchive::NSArchive(Common::SeekableReadStream *stream, Common::Platform platfo
 	uint32 dataOffset = (isSmallArchive) ? SMALL_ARCHIVE_DATA_OFS : NORMAL_ARCHIVE_DATA_OFS;
 	for (uint16 i = 0; i < _numFiles; i++) {
 		_archiveOffsets[i] = dataOffset;
-		_archiveLenghts[i] = _stream->readUint32BE();
-		dataOffset += _archiveLenghts[i];
+		_archiveLengths[i] = _stream->readUint32BE();
+		dataOffset += _archiveLengths[i];
 	}
 
 }
@@ -133,27 +133,27 @@ Common::SeekableReadStream *NSArchive::createReadStreamForMember(const Common::S
 	debugC(9, kDebugDisk, "NSArchive::createReadStreamForMember: '%s' found in slot %i", name.c_str(), index);
 
 	int offset = _archiveOffsets[index];
-	int endOffset = _archiveOffsets[index] + _archiveLenghts[index];
+	int endOffset = _archiveOffsets[index] + _archiveLengths[index];
 	return new Common::SeekableSubReadStream(_stream, offset, endOffset, DisposeAfterUse::NO);
 }
 
-bool NSArchive::hasFile(const Common::String &name) {
+bool NSArchive::hasFile(const Common::String &name) const {
 	if (name.empty())
 		return false;
 	return lookup(name.c_str()) != _numFiles;
 }
 
-int NSArchive::listMembers(Common::ArchiveMemberList &list) {
+int NSArchive::listMembers(Common::ArchiveMemberList &list) const {
 	for (uint32 i = 0; i < _numFiles; i++) {
 		list.push_back(Common::SharedPtr<Common::GenericArchiveMember>(new Common::GenericArchiveMember(_archiveDir[i], this)));
 	}
 	return _numFiles;
 }
 
-Common::ArchiveMemberPtr NSArchive::getMember(const Common::String &name) {
+const Common::ArchiveMemberPtr NSArchive::getMember(const Common::String &name) const {
 	uint32 index = lookup(name.c_str());
 
-	char *item = 0;
+	const char *item = 0;
 	if (index < _numFiles) {
 		item = _archiveDir[index];
 	}
@@ -262,8 +262,15 @@ Common::SeekableReadStream *DosDisk_ns::tryOpenFile(const char* name) {
 
 Script* Disk_ns::loadLocation(const char *name) {
 	char path[PATH_LEN];
+	const char *charName = _vm->_char.getBaseName();
 
-	sprintf(path, "%s%s/%s.loc", _vm->_char.getBaseName(), _language.c_str(), name);
+	// WORKAROUND: Special case for the Multilingual DOS version: during the ending
+	// sequence, it tries to load a non-existing file using "Dinor" as a character
+	// name. In this case, the character name should be just "dino".
+	if (!strcmp(charName, "Dinor"))
+		charName = "dino";
+
+	sprintf(path, "%s%s/%s.loc", charName, _language.c_str(), name);
 	debugC(3, kDebugDisk, "Disk_ns::loadLocation(%s): trying '%s'", name, path);
 	Common::SeekableReadStream *stream = tryOpenFile(path);
 
@@ -328,7 +335,7 @@ GfxObj* DosDisk_ns::loadTalk(const char *name) {
 	}
 
 	char v20[30];
-	if (_engineFlags & kEngineTransformedDonna) {
+	if (g_engineFlags & kEngineTransformedDonna) {
 		sprintf(v20, "%stta.cnv", name);
 	} else {
 		sprintf(v20, "%stal.cnv", name);
@@ -473,7 +480,7 @@ void DosDisk_ns::loadBackground(BackgroundInfo& info, const char *filename) {
 	// read bitmap, mask and path data and extract them into the 3 buffers
 	info.bg.create(info.width, info.height, Graphics::PixelFormat::createFormatCLUT8());
 	createMaskAndPathBuffers(info);
-	unpackBackground(stream, (byte*)info.bg.pixels, info._mask->data, info._path->data);
+	unpackBackground(stream, (byte *)info.bg.pixels, info._mask->data, info._path->data);
 
 	delete stream;
 }
@@ -661,10 +668,10 @@ public:
 
 		stream.seek(-4, SEEK_END);
 		uint32 decrlen = stream.readUint32BE() >> 8;
-		byte *dest = (byte*)malloc(decrlen);
+		byte *dest = (byte *)malloc(decrlen);
 
 		uint32 crlen = stream.size() - 4;
-		byte *src = (byte*)malloc(crlen);
+		byte *src = (byte *)malloc(crlen);
 		stream.seek(4, SEEK_SET);
 		stream.read(src, crlen);
 
@@ -757,14 +764,14 @@ void AmigaDisk_ns::unpackFrame(byte *dst, byte *src, uint16 planeSize) {
 */
 void AmigaDisk_ns::patchFrame(byte *dst, byte *dlta, uint16 bytesPerPlane, uint16 height) {
 
-	uint32 *dataIndex = (uint32*)dlta;
-	uint32 *ofslenIndex = (uint32*)dlta + 8;
+	uint32 *dataIndex = (uint32 *)dlta;
+	uint32 *ofslenIndex = (uint32 *)dlta + 8;
 
-	uint16 *base = (uint16*)dlta;
+	uint16 *base = (uint16 *)dlta;
 	uint16 wordsPerLine = bytesPerPlane >> 1;
 
 	for (uint j = 0; j < NUM_PLANES; j++) {
-		uint16 *dst16 = (uint16*)(dst + j * bytesPerPlane * height);
+		uint16 *dst16 = (uint16 *)(dst + j * bytesPerPlane * height);
 
 		uint16 *data = base + READ_BE_UINT32(dataIndex);
 		dataIndex++;
@@ -804,7 +811,7 @@ void AmigaDisk_ns::unpackBitmap(byte *dst, byte *src, uint16 numFrames, uint16 b
 			uint size = READ_BE_UINT32(src + 4);
 
 			if (tempBuffer == 0)
-				tempBuffer = (byte*)malloc(planeSize * NUM_PLANES);
+				tempBuffer = (byte *)malloc(planeSize * NUM_PLANES);
 
 			memcpy(tempBuffer, baseFrame, planeSize * NUM_PLANES);
 
@@ -832,7 +839,7 @@ void AmigaDisk_ns::decodeCnv(byte *data, uint16 numFrames, uint16 width, uint16 
 	assert(buf);
 	stream->read(buf, rawsize);
 	unpackBitmap(data, buf, numFrames, bytesPerPlane, height);
-	delete []buf;
+	delete[] buf;
 }
 
 #undef NUM_PLANES

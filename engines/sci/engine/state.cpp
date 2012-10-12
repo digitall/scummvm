@@ -26,6 +26,7 @@
 #include "sci/debug.h"	// for g_debug_sleeptime_factor
 #include "sci/event.h"
 
+#include "sci/engine/file.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
@@ -68,21 +69,26 @@ static const uint16 s_halfWidthSJISMap[256] = {
 };
 
 EngineState::EngineState(SegManager *segMan)
-: _segMan(segMan), _dirseeker() {
+: _segMan(segMan),
+#ifdef ENABLE_SCI32
+	_virtualIndexFile(0),
+#endif
+	_dirseeker() {
 
 	reset(false);
 }
 
 EngineState::~EngineState() {
 	delete _msgState;
+#ifdef ENABLE_SCI32
+	delete _virtualIndexFile;
+#endif
 }
 
 void EngineState::reset(bool isRestoring) {
 	if (!isRestoring) {
 		_memorySegmentSize = 0;
-
 		_fileHandles.resize(5);
-
 		abortScriptProcessing = kAbortNone;
 	}
 
@@ -116,6 +122,11 @@ void EngineState::reset(bool isRestoring) {
 
 	_videoState.reset();
 	_syncedAudioOptions = false;
+
+	_vmdPalStart = 0;
+	_vmdPalEnd = 256;
+
+	_palCycleToColor = 255;
 }
 
 void EngineState::speedThrottler(uint32 neededSleep) {
@@ -145,12 +156,12 @@ void EngineState::wait(int16 ticks) {
 void EngineState::initGlobals() {
 	Script *script_000 = _segMan->getScript(1);
 
-	if (!script_000->_localsBlock)
+	if (script_000->getLocalsCount() == 0)
 		error("Script 0 has no locals block");
 
-	variablesSegment[VAR_GLOBAL] = script_000->_localsSegment;
-	variablesBase[VAR_GLOBAL] = variables[VAR_GLOBAL] = script_000->_localsBlock->_locals.begin();
-	variablesMax[VAR_GLOBAL] = script_000->_localsBlock->_locals.size();
+	variablesSegment[VAR_GLOBAL] = script_000->getLocalsSegment();
+	variablesBase[VAR_GLOBAL] = variables[VAR_GLOBAL] = script_000->getLocalsBegin();
+	variablesMax[VAR_GLOBAL] = script_000->getLocalsCount();
 }
 
 uint16 EngineState::currentRoomNumber() const {

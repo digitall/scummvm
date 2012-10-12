@@ -33,13 +33,13 @@
 
 namespace CGE {
 
-Font::Font(const char *name) {
+Font::Font(CGEEngine *vm, const char *name) : _vm(vm) {
 	_map = (uint8 *)malloc(kMapSize);
 	_pos = (uint16 *)malloc(kPosSize * sizeof(uint16));
 	_widthArr = (uint8 *)malloc(kWidSize);
 
 	assert((_map != NULL) && (_pos != NULL) && (_widthArr != NULL));
-	mergeExt(_path, name, kFontExt);
+	_vm->mergeExt(_path, name, kFontExt);
 	load();
 }
 
@@ -50,7 +50,7 @@ Font::~Font() {
 }
 
 void Font::load() {
-	EncryptedStream f = _path;
+	EncryptedStream f(_vm, _path);
 	assert(!f.err());
 
 	f.read(_widthArr, kWidSize);
@@ -73,8 +73,8 @@ uint16 Font::width(const char *text) {
 	return w;
 }
 
-Talk::Talk(CGEEngine *vm, const char *text, TextBoxStyle mode)
-	: Sprite(vm, NULL), _mode(mode), _vm(vm) {
+Talk::Talk(CGEEngine *vm, const char *text, TextBoxStyle mode, bool wideSpace)
+	: Sprite(vm, NULL), _mode(mode), _wideSpace(wideSpace), _vm(vm) {
 	_ts = NULL;
 	_flags._syst = true;
 	update(text);
@@ -85,16 +85,7 @@ Talk::Talk(CGEEngine *vm)
 	: Sprite(vm, NULL), _mode(kTBPure), _vm(vm) {
 	_ts = NULL;
 	_flags._syst = true;
-}
-
-Font *Talk::_font;
-
-void Talk::init() {
-	_font = new Font("CGE");
-}
-
-void Talk::deinit() {
-	delete _font;
+	_wideSpace = false;
 }
 
 void Talk::update(const char *text) {
@@ -113,8 +104,10 @@ void Talk::update(const char *text) {
 				if (k > mw)
 					mw = k;
 				k = 2 * hmarg;
-			} else
-				k += _font->_widthArr[(unsigned char)*p];
+			} else if ((*p == 0x20) && (_vm->_font->_widthArr[(unsigned char)*p] > 4) && (!_wideSpace))
+				k += _vm->_font->_widthArr[(unsigned char)*p] - 2;
+			else
+				k += _vm->_font->_widthArr[(unsigned char)*p];
 		}
 		if (k > mw)
 			mw = k;
@@ -130,9 +123,16 @@ void Talk::update(const char *text) {
 		if (*text == '|' || *text == '\n') {
 			m = _ts[0]->_m + (ln += kFontHigh + kTextLineSpace) * mw + hmarg;
 		} else {
-			int cw = _font->_widthArr[(unsigned char)*text];
-			uint8 *f = _font->_map + _font->_pos[(unsigned char)*text];
-			for (int i = 0; i < cw; i++) {
+			int cw = _vm->_font->_widthArr[(unsigned char)*text];
+			uint8 *f = _vm->_font->_map + _vm->_font->_pos[(unsigned char)*text];
+
+			// Handle properly space size, after it was enlarged to display properly
+			// 'F1' text.
+			int8 fontStart = 0;
+			if ((*text == 0x20) && (cw > 4) && (!_wideSpace))
+				fontStart = 2;
+
+			for (int i = fontStart; i < cw; i++) {
 				uint8 *pp = m;
 				uint16 n;
 				uint16 b = *(f++);
@@ -189,56 +189,7 @@ Bitmap *Talk::box(uint16 w, uint16 h) {
 			q -= w;
 		}
 	}
-	return new Bitmap(w, h, b);
-}
-
-void Talk::putLine(int line, const char *text) {
-	// Note: (_ts[0]._w % 4) must be 0
-	uint16 w = _ts[0]->_w;
-	uint16 h = _ts[0]->_h;
-	uint8 *v = _ts[0]->_v;
-	uint16 dsiz = w >> 2;         // data size (1 plane line size)
-	uint16 lsiz = 2 + dsiz + 2;   // uint16 for line header, uint16 for gap
-	uint16 psiz = h * lsiz;       // - last gap, but + plane trailer
-	uint16 size = 4 * psiz;       // whole map size
-	uint16 rsiz = kFontHigh * lsiz;    // length of whole text row map
-
-	// set desired line pointer
-	v += (kTextVMargin + (kFontHigh + kTextLineSpace) * line) * lsiz;
-	uint8 *p = v;                // assume blanked line above text
-
-	// clear whole rectangle
-	assert((rsiz % lsiz) == 0);
-	for (int planeCtr = 0; planeCtr < 4; planeCtr++, p += psiz) {
-		for (byte *pDest = p; pDest < (p + (rsiz - lsiz)); pDest += lsiz)
-			Common::copy(p - lsiz, p, pDest);
-	}
-
-	// paint text line
-	if (!text)
-		return;
-	p = v + 2 + (kTextHMargin / 4) + (kTextHMargin % 4) * psiz;
-	uint8 *q = v + size;
-
-	while (*text) {
-		uint16 cw = _font->_widthArr[(unsigned char)*text], i;
-		uint8 *fp = _font->_map + _font->_pos[(unsigned char)*text];
-
-		for (i = 0; i < cw; i++) {
-			uint16 b = fp[i];
-			uint16 n;
-			for (n = 0; n < kFontHigh; n++) {
-				if (b & 1)
-					*p = kTextColFG;
-				b >>= 1;
-				p += lsiz;
-			}
-			p = p - rsiz + psiz;
-			if (p >= q)
-				p = p - size + 1;
-		}
-		text++;
-	}
+	return new Bitmap(_vm, w, h, b);
 }
 
 InfoLine::InfoLine(CGEEngine *vm, uint16 w) : Talk(vm), _oldText(NULL), _vm(vm) {
@@ -247,7 +198,7 @@ InfoLine::InfoLine(CGEEngine *vm, uint16 w) : Talk(vm), _oldText(NULL), _vm(vm) 
 		_ts[1] = NULL;
 	}
 
-	_ts[0] = new Bitmap(w, kFontHigh, kTextColBG);
+	_ts[0] = new Bitmap(_vm, w, kFontHigh, kTextColBG);
 	setShapeList(_ts);
 }
 
@@ -278,10 +229,16 @@ void InfoLine::update(const char *text) {
 		uint8 *p = v + 2, * q = p + size;
 
 		while (*text) {
-			uint16 cw = _font->_widthArr[(unsigned char)*text];
-			uint8 *fp = _font->_map + _font->_pos[(unsigned char)*text];
+			uint16 cw = _vm->_font->_widthArr[(unsigned char)*text];
+			uint8 *fp = _vm->_font->_map + _vm->_font->_pos[(unsigned char)*text];
 
-			for (uint16 i = 0; i < cw; i++) {
+			// Handle properly space size, after it was enlarged to display properly
+			// 'F1' text.
+			int8 fontStart = 0;
+			if ((*text == 0x20) && (cw > 4) && (!_wideSpace))
+				fontStart = 2;
+
+			for (int i = fontStart; i < cw; i++) {
 				uint16 b = fp[i];
 				for (uint16 n = 0; n < kFontHigh; n++) {
 					if (b & 1)

@@ -41,7 +41,7 @@ int AgiEngine::loadWords_v1(Common::File &f) {
 	int k;
 
 	debug(0, "Loading dictionary");
-	
+
 	// Loop through alphabet, as words in the dictionary file are sorted by
 	// first character
 	f.seek(f.pos() + 26 * 2, SEEK_SET);
@@ -120,6 +120,7 @@ void AgiEngine::unloadWords() {
  */
 int AgiEngine::findWord(const char *word, int *flen) {
 	int c;
+	int result = -1;
 
 	debugC(2, kDebugLevelScripts, "find_word(%s)", word);
 
@@ -129,16 +130,19 @@ int AgiEngine::findWord(const char *word, int *flen) {
 		return -1;
 
 	*flen = 0;
-	Common::Array<AgiWord*> &a = _game.words[c];
+	Common::Array<AgiWord *> &a = _game.words[c];
+
 	for (int i = 0; i < (int)a.size(); i++) {
 		int wlen = strlen(a[i]->word);
-		if (!strncmp(a[i]->word, word, wlen) && (word[wlen] == 0 || word[wlen] == 0x20)) {
+		// Keep looking till we find the word itself, or the whole phrase.
+		// Try to find the best match (i.e. the longest matching phrase).
+		if (!strncmp(a[i]->word, word, wlen) && (word[wlen] == 0 || word[wlen] == 0x20) && wlen >= *flen) {
 			*flen = wlen;
-			return a[i]->id;
+			result = a[i]->id;
 		}
 	}
 
-	return -1;
+	return result;
 }
 
 void AgiEngine::dictionaryWords(char *msg) {

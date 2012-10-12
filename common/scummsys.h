@@ -23,6 +23,9 @@
 #ifndef COMMON_SCUMMSYS_H
 #define COMMON_SCUMMSYS_H
 
+// This is a convenience macro to test whether the compiler used is a GCC
+// version, which is at least major.minor.
+#define GCC_ATLEAST(major, minor) (defined(__GNUC__) && (__GNUC__ > (major) || (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor))))
 
 #if defined(_WIN32_WCE) && _WIN32_WCE < 300
 	#define NONSTANDARD_PORT
@@ -130,6 +133,15 @@
 	#define _USE_MATH_DEFINES
 	#include <math.h>
 
+	// FIXME: We sadly can't assume standard C++ headers to be present on every
+	// system we support, so we should get rid of this. The solution should be to
+	// write a simple placement new on our own. It might be noteworthy we can't
+	// easily do that for systems which do have a <new>, since it might clash with
+	// the default definition otherwise!
+	// Symbian does not have <new> but the new operator
+	#if !defined(__SYMBIAN32__)
+	#include <new>
+	#endif
 #endif
 
 
@@ -259,7 +271,7 @@
 #ifndef FORCEINLINE
 	#if defined(_MSC_VER)
 		#define FORCEINLINE __forceinline
-	#elif (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))
+	#elif GCC_ATLEAST(3, 1)
 		#define FORCEINLINE inline __attribute__((__always_inline__))
 	#else
 		#define FORCEINLINE inline
@@ -307,7 +319,7 @@
 		#define scumm_va_copy va_copy
 	#elif defined(__va_copy)
 		#define scumm_va_copy __va_copy
-	#elif defined(_MSC_VER)
+	#elif defined(_MSC_VER) || defined(__SYMBIAN32__)
 		#define scumm_va_copy(dst, src)       ((dst) = (src))
 	#else
 		#error scumm_va_copy undefined for this port

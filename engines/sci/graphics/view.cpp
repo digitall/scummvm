@@ -172,6 +172,20 @@ void GfxView::initData(GuiResourceId resourceId) {
 				cel->displaceX = (signed char)celData[4];
 				cel->displaceY = celData[5];
 				cel->clearKey = celData[6];
+
+				// HACK: Fix Ego's odd displacement in the QFG3 demo, scene 740.
+				// For some reason, ego jumps above the rope, so we fix his rope
+				// hanging view by displacing it down by 40 pixels. Fixes bug
+				// #3035693.
+				// FIXME: Remove this once we figure out why Ego jumps so high.
+				// Likely culprits include kInitBresen, kDoBresen and kCantBeHere.
+				// The scripts have the y offset that hero reaches (11) hardcoded,
+				// so it might be collision detection. However, since this requires
+				// extensive work to fix properly for very little gain, this hack
+				// here will suffice until the actual issue is found.
+				if (g_sci->getGameId() == GID_QFG3 && g_sci->isDemo() && resourceId == 39)
+					cel->displaceY = 98;
+
 				if (isEGA) {
 					cel->offsetEGA = celOffset + 7;
 					cel->offsetRLE = 0;
@@ -418,10 +432,11 @@ void unpackCelData(byte *inBuffer, byte *celBitmap, byte clearColor, int pixelCo
 	//   Skip the next YYYYY pixels (i.e. transparency)
 
 	if (literalPos && isMacSci11ViewData) {
-		// KQ6/Freddy Pharkas use byte lengths, all others use uint16
+		// KQ6/Freddy Pharkas/Slater use byte lengths, all others use uint16
 		// The SCI devs must have realized that a max of 255 pixels wide
 		// was not very good for 320 or 640 width games.
-		bool hasByteLengths = (g_sci->getGameId() == GID_KQ6 || g_sci->getGameId() == GID_FREDDYPHARKAS);
+		bool hasByteLengths = (g_sci->getGameId() == GID_KQ6 || g_sci->getGameId() == GID_FREDDYPHARKAS
+				|| g_sci->getGameId() == GID_SLATER);
 
 		// compression for SCI1.1+ Mac
 		while (pixelNr < pixelCount) {
@@ -471,7 +486,8 @@ void unpackCelData(byte *inBuffer, byte *celBitmap, byte clearColor, int pixelCo
 			curByte = *rlePtr++;
 			if (curByte & 0xC0) { // fill with color
 				runLength = curByte >> 6;
-				memset(outPtr + pixelNr,    curByte & 0x3F, MIN<uint16>(runLength, pixelCount - pixelNr));
+				curByte = curByte & 0x3F;
+				memset(outPtr + pixelNr,           curByte, MIN<uint16>(runLength, pixelCount - pixelNr));
 			} else { // skip the next pixels (transparency)
 				runLength = curByte & 0x3F;
 			}
@@ -704,6 +720,19 @@ void GfxView::draw(const Common::Rect &rect, const Common::Rect &clipRect, const
 
 	bitmap += (clipRect.top - rect.top) * celWidth + (clipRect.left - rect.left);
 
+	// WORKAROUND: EcoQuest French and German draw the fish and anemone sprites
+	// with priority 15 in scene 440. Afterwards, a dialog is shown on top of
+	// these sprites with priority 15 as well. This is undefined behavior
+	// actually, as the sprites and dialog share the same priority, so in our
+	// implementation the sprites get drawn incorrectly on top of the dialog.
+	// Perhaps this worked by mistake in SSCI because of subtle differences in
+	// how sprites are drawn. We compensate for this by resetting the priority
+	// of all sprites that have a priority of 15 in scene 440 to priority 14,
+	// so that the speech bubble can be drawn correctly on top of them. Fixes
+	// bug #3040625.
+	if (g_sci->getGameId() == GID_ECOQUEST && g_sci->getEngineState()->currentRoomNumber() == 440 && priority == 15)
+		priority = 14;
+
 	if (!_EGAmapping) {
 		for (y = 0; y < height; y++, bitmap += celWidth) {
 			for (x = 0; x < width; x++) {
@@ -712,8 +741,14 @@ void GfxView::draw(const Common::Rect &rect, const Common::Rect &clipRect, const
 					const int x2 = clipRectTranslated.left + x;
 					const int y2 = clipRectTranslated.top + y;
 					if (!upscaledHires) {
-						if (priority >= _screen->getPriority(x2, y2))
-							_screen->putPixel(x2, y2, drawMask, palette->mapping[color], priority, 0);
+						if (priority >= _screen->getPriority(x2, y2)) {
+							if (!_palette->isRemapped(palette->mapping[color])) {
+								_screen->putPixel(x2, y2, drawMask, palette->mapping[color], priority, 0);
+							} else {
+								byte remappedColor = _palette->remapColor(palette->mapping[color], _screen->getVisual(x2, y2));
+								_screen->putPixel(x2, y2, drawMask, remappedColor, priority, 0);
+							}
+						}
 					} else {
 						// UpscaledHires means view is hires and is supposed to
 						// get drawn onto lowres screen.
@@ -822,7 +857,12 @@ void GfxView::drawScaled(const Common::Rect &rect, const Common::Rect &clipRect,
 			const int x2 = clipRectTranslated.left + x;
 			const int y2 = clipRectTranslated.top + y;
 			if (color != clearKey && priority >= _screen->getPriority(x2, y2)) {
-				_screen->putPixel(x2, y2, drawMask, palette->mapping[color], priority, 0);
+				if (!_palette->isRemapped(palette->mapping[color])) {
+					_screen->putPixel(x2, y2, drawMask, palette->mapping[color], priority, 0);
+				} else {
+					byte remappedColor = _palette->remapColor(palette->mapping[color], _screen->getVisual(x2, y2));
+					_screen->putPixel(x2, y2, drawMask, remappedColor, priority, 0);
+				}
 			}
 		}
 	}
@@ -834,6 +874,15 @@ void GfxView::adjustToUpscaledCoordinates(int16 &y, int16 &x) {
 
 void GfxView::adjustBackUpscaledCoordinates(int16 &y, int16 &x) {
 	_screen->adjustBackUpscaledCoordinates(y, x, _sci2ScaleRes);
+}
+
+byte GfxView::getColorAtCoordinate(int16 loopNo, int16 celNo, int16 x, int16 y) {
+	const CelInfo *celInfo = getCelInfo(loopNo, celNo);
+	const byte *bitmap = getBitmap(loopNo, celNo);
+	const int16 celWidth = celInfo->width;
+
+	bitmap += (celWidth * y);
+	return bitmap[x];
 }
 
 } // End of namespace Sci

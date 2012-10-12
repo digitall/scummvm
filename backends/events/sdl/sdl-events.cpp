@@ -191,6 +191,8 @@ void SdlEventSource::SDLModToOSystemKeyFlags(SDLMod mod, Common::Event &event) {
 #endif
 	if (mod & KMOD_CTRL)
 		event.kbd.flags |= Common::KBD_CTRL;
+	if (mod & KMOD_META)
+		event.kbd.flags |= Common::KBD_META;
 
 	// Sticky flags
 	if (mod & KMOD_NUM)
@@ -436,6 +438,14 @@ bool SdlEventSource::handleKeyDown(SDL_Event &ev, Common::Event &event) {
 		event.type = Common::EVENT_QUIT;
 		return true;
 	}
+
+	#ifdef WIN32
+	// On Windows, also use the default Alt-F4 quit combination
+	if ((ev.key.keysym.mod & KMOD_ALT) && ev.key.keysym.sym == SDLK_F4) {
+		event.type = Common::EVENT_QUIT;
+		return true;
+	}
+	#endif
 #endif
 
 	// Ctrl-u toggles mute

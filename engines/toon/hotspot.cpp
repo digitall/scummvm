@@ -57,7 +57,7 @@ void Hotspots::save(Common::WriteStream *Stream) {
 	}
 }
 
-int32 Hotspots::FindBasedOnCorner(int32 x, int32 y) {
+int32 Hotspots::FindBasedOnCorner(int16 x, int16 y) {
 	debugC(1, kDebugHotspot, "FindBasedOnCorner(%d, %d)", x, y);
 
 	for (int32 i = 0; i < _numItems; i++) {
@@ -73,7 +73,7 @@ int32 Hotspots::FindBasedOnCorner(int32 x, int32 y) {
 	return -1;
 }
 
-int32 Hotspots::Find(int32 x, int32 y) {
+int32 Hotspots::Find(int16 x, int16 y) {
 	debugC(6, kDebugHotspot, "Find(%d, %d)", x, y);
 
 	int32 priority = -1;
@@ -96,7 +96,7 @@ int32 Hotspots::Find(int32 x, int32 y) {
 	return foundId;
 }
 
-bool Hotspots::LoadRif(Common::String rifName, Common::String additionalRifName) {
+bool Hotspots::LoadRif(const Common::String &rifName, const Common::String &additionalRifName) {
 	debugC(1, kDebugHotspot, "LoadRif(%s, %s)", rifName.c_str(), additionalRifName.c_str());
 
 	uint32 size = 0;

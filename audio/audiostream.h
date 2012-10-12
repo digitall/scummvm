@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SOUND_AUDIOSTREAM_H
-#define SOUND_AUDIOSTREAM_H
+#ifndef AUDIO_AUDIOSTREAM_H
+#define AUDIO_AUDIOSTREAM_H
 
 #include "common/ptr.h"
 #include "common/scummsys.h"
@@ -355,6 +355,16 @@ QueuingAudioStream *makeQueuingAudioStream(int rate, bool stereo);
  * @param isStereo Is the stream a stereo stream?
  */
 Timestamp convertTimeToStreamPos(const Timestamp &where, int rate, bool isStereo);
+
+/**
+ * Factory function for an AudioStream wrapper that cuts off the amount of samples read after a
+ * given time length is reached.
+ *
+ * @param parentStream    The stream to limit
+ * @param length          The time length to limit the stream to
+ * @param disposeAfterUse Whether the parent stream object should be destroyed on destruction of the returned stream
+ */
+AudioStream *makeLimitingAudioStream(AudioStream *parentStream, const Timestamp &length, DisposeAfterUse::Flag disposeAfterUse = DisposeAfterUse::YES);
 
 } // End of namespace Audio
 

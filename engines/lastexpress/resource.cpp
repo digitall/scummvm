@@ -31,7 +31,6 @@
 
 #include "common/debug.h"
 #include "common/file.h"
-#include "common/textconsole.h"
 
 namespace LastExpress {
 
@@ -129,13 +128,10 @@ bool ResourceManager::loadArchive(const Common::String &name) {
 
 // Get a stream to file in the archive
 //  - same as createReadStreamForMember except it checks if the file exists and will assert / output a debug message if not
-Common::SeekableReadStream *ResourceManager::getFileStream(const Common::String &name) {
+Common::SeekableReadStream *ResourceManager::getFileStream(const Common::String &name) const {
 
 	// Check if the file exits in the archive
 	if (!hasFile(name)) {
-//#ifdef _DEBUG
-//		error("[ResourceManager::getFileStream] Cannot open file: %s", name.c_str());
-//#endif
 		debugC(2, kLastExpressDebugResource, "Error opening file: %s", name.c_str());
 		return NULL;
 	}
@@ -148,8 +144,8 @@ Common::SeekableReadStream *ResourceManager::getFileStream(const Common::String 
 //////////////////////////////////////////////////////////////////////////
 // Archive functions
 //////////////////////////////////////////////////////////////////////////
-bool ResourceManager::hasFile(const Common::String &name) {
-	for (Common::Array<HPFArchive *>::iterator it = _archives.begin(); it != _archives.end(); ++it) {
+bool ResourceManager::hasFile(const Common::String &name) const {
+	for (Common::Array<HPFArchive *>::const_iterator it = _archives.begin(); it != _archives.end(); ++it) {
 		if ((*it)->hasFile(name))
 			return true;
 	}
@@ -157,10 +153,10 @@ bool ResourceManager::hasFile(const Common::String &name) {
 	return false;
 }
 
-int ResourceManager::listMembers(Common::ArchiveMemberList &list) {
+int ResourceManager::listMembers(Common::ArchiveMemberList &list) const {
 	int count = 0;
 
-	for (Common::Array<HPFArchive *>::iterator it = _archives.begin(); it != _archives.end(); ++it) {
+	for (Common::Array<HPFArchive *>::const_iterator it = _archives.begin(); it != _archives.end(); ++it) {
 
 		Common::ArchiveMemberList members;
 		count += (*it)->listMembers(members);
@@ -171,7 +167,7 @@ int ResourceManager::listMembers(Common::ArchiveMemberList &list) {
 	return count;
 }
 
-Common::ArchiveMemberPtr ResourceManager::getMember(const Common::String &name) {
+const Common::ArchiveMemberPtr ResourceManager::getMember(const Common::String &name) const {
 	if (!hasFile(name))
 		return Common::ArchiveMemberPtr();
 

@@ -25,6 +25,7 @@
 
 #include "base/plugins.h"
 #include "common/fs.h"
+#include "common/gui_options.h"
 #include "common/savefile.h"
 #include "common/system.h"
 #include "graphics/thumbnail.h"
@@ -117,12 +118,12 @@ bool Sword1::SwordEngine::hasFeature(EngineFeature f) const {
 
 GameList SwordMetaEngine::getSupportedGames() const {
 	GameList games;
-	games.push_back(GameDescriptor(sword1FullSettings, Common::GUIO_NOMIDI));
-	games.push_back(GameDescriptor(sword1DemoSettings, Common::GUIO_NOMIDI));
-	games.push_back(GameDescriptor(sword1MacFullSettings, Common::GUIO_NOMIDI));
-	games.push_back(GameDescriptor(sword1MacDemoSettings, Common::GUIO_NOMIDI));
-	games.push_back(GameDescriptor(sword1PSXSettings, Common::GUIO_NOMIDI));
-	games.push_back(GameDescriptor(sword1PSXDemoSettings, Common::GUIO_NOMIDI));
+	games.push_back(GameDescriptor(sword1FullSettings, GUIO_NOMIDI));
+	games.push_back(GameDescriptor(sword1DemoSettings, GUIO_NOMIDI));
+	games.push_back(GameDescriptor(sword1MacFullSettings, GUIO_NOMIDI));
+	games.push_back(GameDescriptor(sword1MacDemoSettings, GUIO_NOMIDI));
+	games.push_back(GameDescriptor(sword1PSXSettings, GUIO_NOMIDI));
+	games.push_back(GameDescriptor(sword1PSXDemoSettings, GUIO_NOMIDI));
 	return games;
 }
 
@@ -198,17 +199,17 @@ GameList SwordMetaEngine::detectGames(const Common::FSList &fslist) const {
 			psxDemoFilesFound = false;
 
 	if (mainFilesFound && pcFilesFound && demoFilesFound)
-		detectedGames.push_back(GameDescriptor(sword1DemoSettings, Common::GUIO_NOMIDI));
+		detectedGames.push_back(GameDescriptor(sword1DemoSettings, GUIO2(GUIO_NOMIDI, GUIO_NOASPECT)));
 	else if (mainFilesFound && pcFilesFound && psxFilesFound)
-		detectedGames.push_back(GameDescriptor(sword1PSXSettings, Common::GUIO_NOMIDI));
+		detectedGames.push_back(GameDescriptor(sword1PSXSettings, GUIO2(GUIO_NOMIDI, GUIO_NOASPECT)));
 	else if (mainFilesFound && pcFilesFound && psxDemoFilesFound)
-		detectedGames.push_back(GameDescriptor(sword1PSXDemoSettings, Common::GUIO_NOMIDI));
+		detectedGames.push_back(GameDescriptor(sword1PSXDemoSettings, GUIO2(GUIO_NOMIDI, GUIO_NOASPECT)));
 	else if (mainFilesFound && pcFilesFound && !psxFilesFound)
-		detectedGames.push_back(GameDescriptor(sword1FullSettings, Common::GUIO_NOMIDI));
+		detectedGames.push_back(GameDescriptor(sword1FullSettings, GUIO2(GUIO_NOMIDI, GUIO_NOASPECT)));
 	else if (mainFilesFound && macFilesFound)
-		detectedGames.push_back(GameDescriptor(sword1MacFullSettings, Common::GUIO_NOMIDI));
+		detectedGames.push_back(GameDescriptor(sword1MacFullSettings, GUIO2(GUIO_NOMIDI, GUIO_NOASPECT)));
 	else if (mainFilesFound && macDemoFilesFound)
-		detectedGames.push_back(GameDescriptor(sword1MacDemoSettings, Common::GUIO_NOMIDI));
+		detectedGames.push_back(GameDescriptor(sword1MacDemoSettings, GUIO2(GUIO_NOMIDI, GUIO_NOASPECT)));
 
 	return detectedGames;
 }
@@ -266,9 +267,6 @@ SaveStateDescriptor SwordMetaEngine::querySaveMetaInfos(const char *target, int 
 		in->read(&versionSave, 1);      // version
 
 		SaveStateDescriptor desc(slot, name);
-
-		desc.setDeletableFlag(true);
-		desc.setWriteProtectedFlag(false);
 
 		if (versionSave < 2) // These older version of the savegames used a flag to signal presence of thumbnail
 			in->skip(1);

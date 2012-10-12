@@ -22,6 +22,8 @@
 #ifndef OPTIONS_DIALOG_H
 #define OPTIONS_DIALOG_H
 
+#include "engines/metaengine.h"
+
 #include "gui/dialog.h"
 #include "common/str.h"
 #include "audio/mididrv.h"
@@ -44,6 +46,8 @@ class RadiobuttonGroup;
 class RadiobuttonWidget;
 
 class OptionsDialog : public Dialog {
+	typedef Common::Array<CheckboxWidget *> CheckboxWidgetList;
+
 public:
 	OptionsDialog(const Common::String &domain, int x, int y, int w, int h);
 	OptionsDialog(const Common::String &domain, const Common::String &name);
@@ -74,6 +78,7 @@ protected:
 	// The default value is the launcher's non-scaled talkspeed value. When SCUMM uses the widget,
 	// it uses its own scale
 	void addSubtitleControls(GuiObject *boss, const Common::String &prefix, int maxSliderVal = 255);
+	void addEngineControls(GuiObject *boss, const Common::String &prefix, const ExtraGuiOptions &engineOptions);
 
 	void setGraphicSettingsState(bool enabled);
 	void setAudioSettingsState(bool enabled);
@@ -87,6 +92,8 @@ protected:
 
 	TabWidget *_tabWidget;
 	int _graphicsTabId;
+	int _midiTabId;
+	int _pathsTabId;
 
 private:
 	//
@@ -97,7 +104,6 @@ private:
 	PopUpWidget *_gfxPopUp;
 	CheckboxWidget *_fullscreenCheckbox;
 	CheckboxWidget *_aspectCheckbox;
-	CheckboxWidget *_disableDitheringCheckbox;
 	StaticTextWidget *_renderModePopUpDesc;
 	PopUpWidget *_renderModePopUp;
 
@@ -172,13 +178,18 @@ protected:
 	//
 	// Game GUI options
 	//
-	uint32 _guioptions;
+	Common::String _guioptions;
 	Common::String _guioptionsString;
 
 	//
 	//Theme Options
 	//
 	Common::String _oldTheme;
+
+	//
+	// Engine-specific controls
+	//
+	CheckboxWidgetList _engineCheckboxes;
 };
 
 
@@ -191,13 +202,18 @@ public:
 	void close();
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data);
 
+	virtual void reflowLayout();
+
 protected:
 #ifdef SMALL_SCREEN_DEVICE
 	KeysDialog *_keysDialog;
 #endif
 	StaticTextWidget *_savePath;
+	ButtonWidget	 *_savePathClearButton;
 	StaticTextWidget *_themePath;
+	ButtonWidget	 *_themePathClearButton;
 	StaticTextWidget *_extraPath;
+	ButtonWidget	 *_extraPathClearButton;
 #ifdef DYNAMIC_MODULES
 	StaticTextWidget *_pluginsPath;
 #endif

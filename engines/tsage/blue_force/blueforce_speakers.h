@@ -92,6 +92,14 @@ public:
 	virtual void setText(const Common::String &msg);
 };
 
+class SpeakerJake: public VisualSpeaker {
+public:
+	SpeakerJake();
+
+	virtual Common::String getClassName() { return "SpeakerJake"; }
+	virtual void setText(const Common::String &msg);
+};
+
 class SpeakerJakeJacket: public VisualSpeaker {
 public:
 	SpeakerJakeJacket();
@@ -113,6 +121,14 @@ public:
 	SpeakerJailer();
 
 	virtual Common::String getClassName() { return "SpeakerJailer"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerGreen: public VisualSpeaker {
+public:
+	SpeakerGreen();
+
+	virtual Common::String getClassName() { return "SpeakerGreen"; }
 	virtual void setText(const Common::String &msg);
 };
 
@@ -139,6 +155,203 @@ public:
 	virtual void setText(const Common::String &msg);
 };
 
+class SpeakerJordan: public VisualSpeaker {
+public:
+	SpeakerJordan();
+
+	virtual Common::String getClassName() { return "SpeakerJordan"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerSkip: public VisualSpeaker {
+public:
+	SpeakerSkip();
+
+	virtual Common::String getClassName() { return "SpeakerSkip"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerSkipB: public VisualSpeaker {
+public:
+	SpeakerSkipB();
+
+	virtual Common::String getClassName() { return "SpeakerSkipB"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerCarter: public VisualSpeaker {
+public:
+	SpeakerCarter();
+
+	virtual Common::String getClassName() { return "SpeakerCarter"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerDriver: public VisualSpeaker {
+public:
+	SpeakerDriver();
+
+	virtual Common::String getClassName() { return "SpeakerDriver"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerShooter: public VisualSpeaker {
+public:
+	SpeakerShooter();
+
+	virtual Common::String getClassName() { return "SpeakerShooter"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerJim: public VisualSpeaker {
+public:
+	SpeakerJim();
+
+	virtual Common::String getClassName() { return "SpeakerJim"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerDezi: public VisualSpeaker {
+public:
+	SpeakerDezi();
+
+	virtual Common::String getClassName() { return "SpeakerDezi"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerJake385: public VisualSpeaker {
+public:
+	SpeakerJake385();
+
+	virtual Common::String getClassName() { return "SpeakerJake385"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerLaura: public VisualSpeaker {
+public:
+	SpeakerLaura();
+
+	virtual Common::String getClassName() { return "SpeakerLaura"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerLauraHeld: public VisualSpeaker {
+public:
+	SpeakerLauraHeld();
+
+	virtual Common::String getClassName() { return "SpeakerLaura"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerEugene: public VisualSpeaker {
+public:
+	SpeakerEugene();
+
+	virtual Common::String getClassName() { return "SpeakerEugene"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerWeasel: public VisualSpeaker {
+public:
+	SpeakerWeasel();
+
+	virtual Common::String getClassName() { return "SpeakerWeasel"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerBilly: public VisualSpeaker {
+public:
+	SpeakerBilly();
+
+	virtual Common::String getClassName() { return "SpeakerBilly"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerDrunk: public VisualSpeaker {
+public:
+	SpeakerDrunk();
+
+	virtual Common::String getClassName() { return "SpeakerDrunk"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerGiggles: public VisualSpeaker {
+public:
+	SpeakerGiggles();
+
+	virtual Common::String getClassName() { return "SpeakerGiggles"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerFBI: public VisualSpeaker {
+public:
+	SpeakerFBI();
+
+	virtual Common::String getClassName() { return "FBI"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerNico: public VisualSpeaker {
+public:
+	SpeakerNico();
+
+	virtual Common::String getClassName() { return "NICO"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerDA: public VisualSpeaker {
+public:
+	SpeakerDA();
+
+	virtual Common::String getClassName() { return "DA"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerGrandma: public VisualSpeaker {
+public:
+	SpeakerGrandma();
+
+	virtual Common::String getClassName() { return "SpeakerGrandma"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerLyle: public VisualSpeaker {
+public:
+	SpeakerLyle();
+
+	virtual Common::String getClassName() { return "SpeakerLyle"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerGranText: public VisualSpeaker {
+public:
+	SpeakerGranText();
+
+	virtual Common::String getClassName() { return "SpeakerGranText"; }
+};
+
+class SpeakerLyleText: public VisualSpeaker {
+public:
+	SpeakerLyleText();
+
+	virtual Common::String getClassName() { return "SpeakerLyleText"; }
+};
+
+class SpeakerKate: public VisualSpeaker {
+public:
+	SpeakerKate();
+
+	virtual Common::String getClassName() { return "SpeakerKate"; }
+	virtual void setText(const Common::String &msg);
+};
+
+class SpeakerTony: public VisualSpeaker {
+public:
+	SpeakerTony();
+
+	virtual Common::String getClassName() { return "SpeakerTony"; }
+	virtual void setText(const Common::String &msg);
+};
 } // End of namespace BlueForce
 
 } // End of namespace TsAGE

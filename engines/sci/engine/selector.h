@@ -132,6 +132,7 @@ struct SelectorCache {
 #ifdef ENABLE_SCI32
 	Selector data; // Used by Array()/String()
 	Selector picture; // Used to hold the picture ID for SCI32 pictures
+	Selector bitmap; // Used to hold the text bitmap for SCI32 texts
 
 	Selector plane;
 	Selector top;
@@ -143,10 +144,12 @@ struct SelectorCache {
 
 	Selector fore;
 	Selector back;
+	Selector skip;
 	Selector dimmed;
 
 	Selector fixPriority;
 	Selector mirrored;
+	Selector visible;
 
 	Selector useInsetRect;
 	Selector inTop, inLeft, inBottom, inRight;
@@ -168,7 +171,7 @@ struct SelectorCache {
  * SelectorCache and mapped in script.cpp.
  */
 reg_t readSelector(SegManager *segMan, reg_t object, Selector selectorId);
-#define readSelectorValue(segMan, _obj_, _slc_) (readSelector(segMan, _obj_, _slc_).offset)
+#define readSelectorValue(segMan, _obj_, _slc_) (readSelector(segMan, _obj_, _slc_).getOffset())
 
 /**
  * Writes a selector value to an object.

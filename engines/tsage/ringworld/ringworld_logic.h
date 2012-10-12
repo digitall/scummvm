@@ -144,7 +144,7 @@ public:
 	virtual Common::String getClassName() { return "RingworldInvObjectList"; }
 };
 
-#define RING_INVENTORY (*((::TsAGE::Ringworld::RingworldInvObjectList *)_globals->_inventory))
+#define RING_INVENTORY (*((::TsAGE::Ringworld::RingworldInvObjectList *)g_globals->_inventory))
 
 class RingworldGame: public Game {
 public:
@@ -155,6 +155,29 @@ public:
 	virtual Scene *createScene(int sceneNumber);
 	virtual void processEvent(Event &event);
 	virtual void rightClick();
+	virtual bool canSaveGameStateCurrently();
+	virtual bool canLoadGameStateCurrently();
+};
+
+class NamedHotspot : public SceneHotspot {
+public:
+	NamedHotspot();
+
+	virtual void doAction(int action);
+	virtual Common::String getClassName() { return "NamedHotspot"; }
+	virtual void synchronize(Serializer &s);
+};
+
+class NamedHotspotExt : public NamedHotspot {
+public:
+	int _flag;
+	NamedHotspotExt() { _flag = 0; }
+
+	virtual Common::String getClassName() { return "NamedHotspot"; }
+	virtual void synchronize(Serializer &s) {
+		NamedHotspot::synchronize(s);
+		s.syncAsSint16LE(_flag);
+	}
 };
 
 } // End of namespace Ringworld

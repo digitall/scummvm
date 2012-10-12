@@ -21,9 +21,19 @@
  */
 
 #include "made/pmvplayer.h"
+#include "made/made.h"
 #include "made/screen.h"
+#include "made/graphics.h"
+
+#include "common/file.h"
+#include "common/debug.h"
+#include "common/system.h"
+#include "common/events.h"
 
 #include "audio/decoders/raw.h"
+#include "audio/audiostream.h"
+
+#include "graphics/surface.h"
 
 namespace Made {
 
@@ -238,7 +248,7 @@ void PmvPlayer::handleEvents() {
 }
 
 void PmvPlayer::updateScreen() {
-	_vm->_system->copyRectToScreen((const byte*)_surface->pixels, _surface->pitch,
+	_vm->_system->copyRectToScreen(_surface->pixels, _surface->pitch,
 									(320 - _surface->w) / 2, (200 - _surface->h) / 2, _surface->w, _surface->h);
 	_vm->_system->updateScreen();
 }

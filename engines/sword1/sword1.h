@@ -75,6 +75,7 @@ struct SystemVars {
 	uint8   language;
 	bool    isDemo;
 	Common::Platform platform;
+	Common::Language realLanguage;
 };
 
 class SwordEngine : public Engine {
@@ -90,7 +91,7 @@ public:
 
 	static bool isMac() { return _systemVars.platform == Common::kPlatformMacintosh; }
 	static bool isPsx() { return _systemVars.platform == Common::kPlatformPSX; }
-	static bool isPc() { return _systemVars.platform == Common::kPlatformPC; }
+	static bool isWindows() { return _systemVars.platform == Common::kPlatformWindows ; }
 
 protected:
 	// Engine APIs

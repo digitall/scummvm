@@ -63,6 +63,14 @@ uint16 TinselEngine::getVersion() const {
 	return _gameDescription->version;
 }
 
+bool TinselEngine::getIsADGFDemo() const {
+	return (bool)(_gameDescription->desc.flags & ADGF_DEMO);
+}
+
+bool TinselEngine::isCD() const {
+	return (bool)(_gameDescription->desc.flags & ADGF_CD);
+}
+
 } // End of namespace Tinsel
 
 static const PlainGameDescriptor tinselGames[] = {
@@ -169,7 +177,7 @@ struct SizeMD5 {
 };
 typedef Common::HashMap<Common::String, SizeMD5, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> SizeMD5Map;
 typedef Common::HashMap<Common::String, Common::FSNode, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> FileMap;
-typedef Common::Array<const ADGameDescription*> ADGameDescList;
+typedef Common::Array<const ADGameDescription *> ADGameDescList;
 
 /**
  * Fallback detection scans the list of Discworld 2 targets to see if it can detect an installation

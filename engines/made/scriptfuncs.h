@@ -23,12 +23,12 @@
 #ifndef MADE_SCRIPTFUNCS_H
 #define MADE_SCRIPTFUNCS_H
 
-#include "common/util.h"
-#include "common/file.h"
-#include "common/func.h"
-#include "common/stream.h"
-
 #include "made/resource.h"
+
+#include "audio/mixer.h"
+
+#include "common/debug.h"
+#include "common/system.h"
 
 namespace Audio {
 class PCSpeaker;
@@ -68,7 +68,7 @@ protected:
 	Audio::SoundHandle _pcSpeakerHandle1, _pcSpeakerHandle2;
 	Audio::PCSpeaker *_pcSpeaker1, *_pcSpeaker2;
 
-	Common::Array<const ExternalFunc*> _externalFuncs;
+	Common::Array<const ExternalFunc *> _externalFuncs;
 	Common::Array<const char *> _externalFuncNames;
 	GenericResource *_musicRes;
 

@@ -66,8 +66,6 @@ static const PlainGameDescriptor cruiseGames[] = {
 
 namespace Cruise {
 
-using Common::GUIO_NONE;
-
 static const CRUISEGameDescription gameDescriptions[] = {
 	{
 		{
@@ -77,7 +75,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -90,7 +88,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -103,7 +101,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -116,7 +114,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -129,7 +127,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -142,7 +140,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -155,7 +153,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformAmiga,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -168,7 +166,20 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformAmiga,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
+		},
+		GType_CRUISE,
+		0,
+	},
+	{ // Amiga Italian US GOLD edition.
+		{
+			"cruise",
+			0,
+			AD_ENTRY1("D1", "a0011075413b7335e003e8e3c9cf51b9"),
+			Common::IT_ITA,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -181,7 +192,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformAtariST,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -194,7 +205,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -207,7 +218,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			GUIO_NONE
+			GUIO0()
 		},
 		GType_CRUISE,
 		0,
@@ -221,7 +232,7 @@ class CruiseMetaEngine : public AdvancedMetaEngine {
 public:
 	CruiseMetaEngine() : AdvancedMetaEngine(Cruise::gameDescriptions, sizeof(Cruise::CRUISEGameDescription), cruiseGames) {
 		_singleid = "cruise";
-		_guioptions = Common::GUIO_NOSPEECH | Common::GUIO_NOMIDI;
+		_guioptions = GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI);
 	}
 
 	virtual const char *getName() const {
@@ -284,19 +295,20 @@ void CruiseMetaEngine::removeSaveState(const char *target, int slot) const {
 SaveStateDescriptor CruiseMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
 	Common::InSaveFile *f = g_system->getSavefileManager()->openForLoading(
 		Cruise::CruiseEngine::getSavegameFile(slot));
-	assert(f);
 
-	Cruise::CruiseSavegameHeader header;
-	Cruise::readSavegameHeader(f, header);
-	delete f;
+	if (f) {
+		Cruise::CruiseSavegameHeader header;
+		Cruise::readSavegameHeader(f, header);
+		delete f;
 
-	// Create the return descriptor
-	SaveStateDescriptor desc(slot, header.saveName);
-	desc.setDeletableFlag(true);
-	desc.setWriteProtectedFlag(false);
-	desc.setThumbnail(header.thumbnail);
+		// Create the return descriptor
+		SaveStateDescriptor desc(slot, header.saveName);
+		desc.setThumbnail(header.thumbnail);
 
-	return desc;
+		return desc;
+	}
+
+	return SaveStateDescriptor();
 }
 
 bool CruiseMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {

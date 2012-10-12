@@ -409,10 +409,14 @@ int sort_temp_cmp(const void *p1, const void *p2) {
 	const sort_temp_t *st1 = (const sort_temp_t *)p1;
 	const sort_temp_t *st2 = (const sort_temp_t *)p2;
 
-	if (st1->order.segment < st1->order.segment || (st1->order.segment == st1->order.segment && st1->order.offset < st2->order.offset))
+	if (st1->order.getSegment() < st2->order.getSegment() ||
+		(st1->order.getSegment() == st2->order.getSegment() &&
+		st1->order.getOffset() < st2->order.getOffset()))
 		return -1;
 
-	if (st1->order.segment > st2->order.segment || (st1->order.segment == st2->order.segment && st1->order.offset > st2->order.offset))
+	if (st1->order.getSegment() > st2->order.getSegment() ||
+		(st1->order.getSegment() == st2->order.getSegment() &&
+		st1->order.getOffset() > st2->order.getOffset()))
 		return 1;
 
 	return 0;
@@ -502,6 +506,11 @@ reg_t kListAt(EngineState *s, int argc, reg_t *argv) {
 		curIndex++;
 	}
 
+	// Update the virtual file selected in the character import screen of QFG4.
+	// For the SCI0-SCI1.1 version of this, check kDrawControl().
+	if (g_sci->inQfGImportRoom() && !strcmp(s->_segMan->getObjectName(curObject), "SelectorDText"))
+		s->_chosenQfGImportItem = listIndex;
+
 	return curObject;
 }
 
@@ -575,8 +584,11 @@ reg_t kListFirstTrue(EngineState *s, int argc, reg_t *argv) {
 
 		// First, check if the target selector is a variable
 		if (lookupSelector(s->_segMan, curObject, slc, &address, NULL) == kSelectorVariable) {
-			// Can this happen with variable selectors?
-			error("kListFirstTrue: Attempted to access a variable selector");
+			// If it's a variable selector, check its value.
+			// Example: script 64893 in Torin, MenuHandler::isHilited checks
+			// all children for variable selector 0x03ba (bHilited).
+			if (!readSelector(s->_segMan, curObject, slc).isNull())
+				return curObject;
 		} else {
 			invokeSelector(s, curObject, slc, argc, argv, argc - 2, argv + 2);
 
@@ -609,15 +621,15 @@ reg_t kListAllTrue(EngineState *s, int argc, reg_t *argv) {
 
 		// First, check if the target selector is a variable
 		if (lookupSelector(s->_segMan, curObject, slc, &address, NULL) == kSelectorVariable) {
-			// Can this happen with variable selectors?
-			error("kListAllTrue: Attempted to access a variable selector");
+			// If it's a variable selector, check its value
+			s->r_acc = readSelector(s->_segMan, curObject, slc);
 		} else {
 			invokeSelector(s, curObject, slc, argc, argv, argc - 2, argv + 2);
-
-			// Check if the result isn't true
-			if (s->r_acc.isNull())
-				break;
 		}
+
+		// Check if the result isn't true
+		if (s->r_acc.isNull())
+			break;
 
 		curNode = s->_segMan->lookupNode(nextNode);
 	}
@@ -662,15 +674,15 @@ reg_t kArray(EngineState *s, int argc, reg_t *argv) {
 		if (argv[2].toUint16() == 3)
 			return kString(s, argc, argv);
 	} else {
-		if (s->_segMan->getSegmentType(argv[1].segment) == SEG_TYPE_STRING ||
-			s->_segMan->getSegmentType(argv[1].segment) == SEG_TYPE_SCRIPT) {
+		if (s->_segMan->getSegmentType(argv[1].getSegment()) == SEG_TYPE_STRING ||
+			s->_segMan->getSegmentType(argv[1].getSegment()) == SEG_TYPE_SCRIPT) {
 			return kString(s, argc, argv);
 		}
 
 #if 0
 		if (op == 6) {
-			if (s->_segMan->getSegmentType(argv[3].segment) == SEG_TYPE_STRING ||
-				s->_segMan->getSegmentType(argv[3].segment) == SEG_TYPE_SCRIPT) {
+			if (s->_segMan->getSegmentType(argv[3].getSegment()) == SEG_TYPE_STRING ||
+				s->_segMan->getSegmentType(argv[3].getSegment()) == SEG_TYPE_SCRIPT) {
 				return kString(s, argc, argv);
 			}
 		}
@@ -691,6 +703,16 @@ reg_t kArray(EngineState *s, int argc, reg_t *argv) {
 	}
 	case 2: { // At (return value at an index)
 		SciArray<reg_t> *array = s->_segMan->lookupArray(argv[1]);
+		if (g_sci->getGameId() == GID_PHANTASMAGORIA2) {
+			// HACK: Phantasmagoria 2 keeps trying to access past the end of an
+			// array when it starts. I'm assuming it's trying to see where the
+			// array ends, or tries to resize it. Adjust the array size
+			// accordingly, and return NULL for now.
+			if (array->getSize() == argv[2].toUint16()) {
+				array->setSize(argv[2].toUint16());
+				return NULL_REG;
+			}
+		}
 		return array->getValue(argv[2].toUint16());
 	}
 	case 3: { // Atput (put value at an index)
@@ -743,7 +765,6 @@ reg_t kArray(EngineState *s, int argc, reg_t *argv) {
 
 		reg_t arrayHandle = argv[1];
 		SciArray<reg_t> *array1 = s->_segMan->lookupArray(argv[1]);
-		//SciArray<reg_t> *array1 = !argv[1].isNull() ? s->_segMan->lookupArray(argv[1]) : s->_segMan->allocateArray(&arrayHandle);
 		SciArray<reg_t> *array2 = s->_segMan->lookupArray(argv[3]);
 		uint32 index1 = argv[2].toUint16();
 		uint32 index2 = argv[4].toUint16();
@@ -780,21 +801,8 @@ reg_t kArray(EngineState *s, int argc, reg_t *argv) {
 #endif
 			return NULL_REG;
 		}
-		SegmentType sourceType = s->_segMan->getSegmentObj(argv[1].segment)->getType();
-		if (sourceType == SEG_TYPE_SCRIPT) {
-			// A technique used in later SCI2.1 and SCI3 games: the contents of a script
-			// are loaded in an array (well, actually a string).
-			Script *scr = s->_segMan->getScript(argv[1].segment);
-			reg_t stringHandle;
-
-			SciString *dupString = s->_segMan->allocateString(&stringHandle);
-			dupString->setSize(scr->getBufSize());
-			dupString->fromString(Common::String((const char *)scr->getBuf()));
-
-			return stringHandle;
-		} else if (sourceType != SEG_TYPE_ARRAY && sourceType != SEG_TYPE_SCRIPT) {
-			error("kArray(Dup): Request to duplicate a segment which isn't an array or a script");
-		}
+		if (s->_segMan->getSegmentObj(argv[1].getSegment())->getType() != SEG_TYPE_ARRAY)
+			error("kArray(Dup): Request to duplicate a segment which isn't an array");
 
 		reg_t arrayHandle;
 		SciArray<reg_t> *dupArray = s->_segMan->allocateArray(&arrayHandle);

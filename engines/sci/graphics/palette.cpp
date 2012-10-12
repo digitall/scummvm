@@ -37,7 +37,7 @@
 
 namespace Sci {
 
-GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen, bool useMerging)
+GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen)
 	: _resMan(resMan), _screen(screen) {
 	int16 color;
 
@@ -65,7 +65,14 @@ GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen, bool useMergi
 	// the real merging done in earlier games. If we use the copying over, we
 	// will get issues because some views have marked all colors as being used
 	// and those will overwrite the current palette in that case
-	_useMerging = useMerging;
+	if (getSciVersion() < SCI_VERSION_1_1)
+		_useMerging = true;
+	else if (getSciVersion() == SCI_VERSION_1_1)
+		// there are some games that use inbetween SCI1.1 interpreter, so we have
+		// to detect if the current game is merging or copying
+		_useMerging = _resMan->detectPaletteMergingSci11();
+	else	// SCI32
+		_useMerging = false;
 
 	palVaryInit();
 
@@ -93,6 +100,9 @@ GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen, bool useMergi
 	default:
 		error("GfxPalette: Unknown view type");
 	}
+
+	_remapOn = false;
+	resetRemapping();
 }
 
 GfxPalette::~GfxPalette() {
@@ -114,7 +124,7 @@ bool GfxPalette::isMerging() {
 void GfxPalette::setDefault() {
 	if (_resMan->getViewType() == kViewEga)
 		setEGA();
-	else if (_resMan->getViewType() == kViewAmiga)
+	else if (_resMan->getViewType() == kViewAmiga || _resMan->getViewType() == kViewAmiga64)
 		setAmiga();
 	else
 		kernelSetFromResource(999, true);
@@ -133,8 +143,9 @@ void GfxPalette::createFromData(byte *data, int bytesLeft, Palette *paletteOut) 
 	memset(paletteOut, 0, sizeof(Palette));
 
 	// Setup 1:1 mapping
-	for (colorNo = 0; colorNo < 256; colorNo++)
+	for (colorNo = 0; colorNo < 256; colorNo++) {
 		paletteOut->mapping[colorNo] = colorNo;
+	}
 
 	if (bytesLeft < 37) {
 		// This happens when loading palette of picture 0 in sq5 - the resource is broken and doesn't contain a full
@@ -206,6 +217,14 @@ bool GfxPalette::setAmiga() {
 			_sysPalette.colors[curColor].r = (byte1 & 0x0F) * 0x11;
 			_sysPalette.colors[curColor].g = ((byte2 & 0xF0) >> 4) * 0x11;
 			_sysPalette.colors[curColor].b = (byte2 & 0x0F) * 0x11;
+
+			if (_totalScreenColors == 64) {
+				// Set the associated color from the Amiga halfbrite colors
+				_sysPalette.colors[curColor + 32].used = 1;
+				_sysPalette.colors[curColor + 32].r = _sysPalette.colors[curColor].r >> 1;
+				_sysPalette.colors[curColor + 32].g = _sysPalette.colors[curColor].g >> 1;
+				_sysPalette.colors[curColor + 32].b = _sysPalette.colors[curColor].b >> 1;
+			}
 		}
 
 		// Directly set the palette, because setOnScreen() wont do a thing for amiga
@@ -226,6 +245,13 @@ void GfxPalette::modifyAmigaPalette(byte *data) {
 		_sysPalette.colors[curColor].r = (byte1 & 0x0F) * 0x11;
 		_sysPalette.colors[curColor].g = ((byte2 & 0xF0) >> 4) * 0x11;
 		_sysPalette.colors[curColor].b = (byte2 & 0x0F) * 0x11;
+
+		if (_totalScreenColors == 64) {
+			// Set the associated color from the Amiga halfbrite colors
+			_sysPalette.colors[curColor + 32].r = _sysPalette.colors[curColor].r >> 1;
+			_sysPalette.colors[curColor + 32].g = _sysPalette.colors[curColor].g >> 1;
+			_sysPalette.colors[curColor + 32].b = _sysPalette.colors[curColor].b >> 1;
+		}
 	}
 
 	copySysPaletteToScreen();
@@ -307,12 +333,87 @@ void GfxPalette::set(Palette *newPalette, bool force, bool forceRealMerge) {
 	}
 }
 
+byte GfxPalette::remapColor(byte remappedColor, byte screenColor) {
+	assert(_remapOn);
+	if (_remappingType[remappedColor] == kRemappingByRange)
+		return _remappingByRange[screenColor];
+	else if (_remappingType[remappedColor] == kRemappingByPercent)
+		return _remappingByPercent[screenColor];
+	else
+		error("remapColor(): Color %d isn't remapped", remappedColor);
+
+	return 0;	// should never reach here
+}
+
+void GfxPalette::resetRemapping() {
+	_remapOn = false;
+	_remappingPercentToSet = 0;
+
+	for (int i = 0; i < 256; i++) {
+		_remappingType[i] = kRemappingNone;
+		_remappingByPercent[i] = i;
+		_remappingByRange[i] = i;
+	}
+}
+
+void GfxPalette::setRemappingPercent(byte color, byte percent) {
+	_remapOn = true;
+
+	// We need to defer the setup of the remapping table every time the screen
+	// palette is changed, so that kernelFindColor() can find the correct
+	// colors. Set it once here, in case the palette stays the same and update
+	// it on each palette change by copySysPaletteToScreen().
+	_remappingPercentToSet = percent;
+
+	for (int i = 0; i < 256; i++) {
+		byte r = _sysPalette.colors[i].r * _remappingPercentToSet / 100;
+		byte g = _sysPalette.colors[i].g * _remappingPercentToSet / 100;
+		byte b = _sysPalette.colors[i].b * _remappingPercentToSet / 100;
+		_remappingByPercent[i] = kernelFindColor(r, g, b);
+	}
+
+	_remappingType[color] = kRemappingByPercent;
+}
+
+void GfxPalette::setRemappingPercentGray(byte color, byte percent) {
+	_remapOn = true;
+
+	// We need to defer the setup of the remapping table every time the screen
+	// palette is changed, so that kernelFindColor() can find the correct
+	// colors. Set it once here, in case the palette stays the same and update
+	// it on each palette change by copySysPaletteToScreen().
+	_remappingPercentToSet = percent;
+
+	// Note: This is not what the original does, but the results are the same visually
+	for (int i = 0; i < 256; i++) {
+		byte rComponent = _sysPalette.colors[i].r * _remappingPercentToSet * 0.30 / 100;
+		byte gComponent = _sysPalette.colors[i].g * _remappingPercentToSet * 0.59 / 100;
+		byte bComponent = _sysPalette.colors[i].b * _remappingPercentToSet * 0.11 / 100;
+		byte luminosity = rComponent + gComponent + bComponent;
+		_remappingByPercent[i] = kernelFindColor(luminosity, luminosity, luminosity);
+	}
+
+	_remappingType[color] = kRemappingByPercent;
+}
+
+void GfxPalette::setRemappingRange(byte color, byte from, byte to, byte base) {
+	_remapOn = true;
+
+	for (int i = from; i <= to; i++) {
+		_remappingByRange[i] = i + base;
+	}
+
+	_remappingType[color] = kRemappingByRange;
+}
+
 bool GfxPalette::insert(Palette *newPalette, Palette *destPalette) {
 	bool paletteChanged = false;
 
 	for (int i = 1; i < 255; i++) {
 		if (newPalette->colors[i].used) {
-			if ((newPalette->colors[i].r != destPalette->colors[i].r) || (newPalette->colors[i].g != destPalette->colors[i].g) || (newPalette->colors[i].b != destPalette->colors[i].b)) {
+			if ((newPalette->colors[i].r != destPalette->colors[i].r) ||
+				(newPalette->colors[i].g != destPalette->colors[i].g) ||
+				(newPalette->colors[i].b != destPalette->colors[i].b)) {
 				destPalette->colors[i].r = newPalette->colors[i].r;
 				destPalette->colors[i].g = newPalette->colors[i].g;
 				destPalette->colors[i].b = newPalette->colors[i].b;
@@ -339,7 +440,9 @@ bool GfxPalette::merge(Palette *newPalette, bool force, bool forceRealMerge) {
 		// forced palette merging or dest color is not used yet
 		if (force || (!_sysPalette.colors[i].used)) {
 			_sysPalette.colors[i].used = newPalette->colors[i].used;
-			if ((newPalette->colors[i].r != _sysPalette.colors[i].r) || (newPalette->colors[i].g != _sysPalette.colors[i].g) || (newPalette->colors[i].b != _sysPalette.colors[i].b)) {
+			if ((newPalette->colors[i].r != _sysPalette.colors[i].r) ||
+				(newPalette->colors[i].g != _sysPalette.colors[i].g) ||
+				(newPalette->colors[i].b != _sysPalette.colors[i].b)) {
 				_sysPalette.colors[i].r = newPalette->colors[i].r;
 				_sysPalette.colors[i].g = newPalette->colors[i].g;
 				_sysPalette.colors[i].b = newPalette->colors[i].b;
@@ -352,7 +455,9 @@ bool GfxPalette::merge(Palette *newPalette, bool force, bool forceRealMerge) {
 		// is the same color already at the same position? -> match it directly w/o lookup
 		//  this fixes games like lsl1demo/sq5 where the same rgb color exists multiple times and where we would
 		//  otherwise match the wrong one (which would result into the pixels affected (or not) by palette changes)
-		if ((_sysPalette.colors[i].r == newPalette->colors[i].r) && (_sysPalette.colors[i].g == newPalette->colors[i].g) && (_sysPalette.colors[i].b == newPalette->colors[i].b)) {
+		if ((_sysPalette.colors[i].r == newPalette->colors[i].r) &&
+			(_sysPalette.colors[i].g == newPalette->colors[i].g) &&
+			(_sysPalette.colors[i].b == newPalette->colors[i].b)) {
 			newPalette->mapping[i] = i;
 			continue;
 		}
@@ -460,6 +565,16 @@ void GfxPalette::copySysPaletteToScreen() {
 			bpal[i * 3    ] = CLIP(_sysPalette.colors[i].r * _sysPalette.intensity[i] / 100, 0, 255);
 			bpal[i * 3 + 1] = CLIP(_sysPalette.colors[i].g * _sysPalette.intensity[i] / 100, 0, 255);
 			bpal[i * 3 + 2] = CLIP(_sysPalette.colors[i].b * _sysPalette.intensity[i] / 100, 0, 255);
+		}
+	}
+
+	// Check if we need to reset remapping by percent with the new colors.
+	if (_remappingPercentToSet) {
+		for (int i = 0; i < 256; i++) {
+			byte r = _sysPalette.colors[i].r * _remappingPercentToSet / 100;
+			byte g = _sysPalette.colors[i].g * _remappingPercentToSet / 100;
+			byte b = _sysPalette.colors[i].b * _remappingPercentToSet / 100;
+			_remappingByPercent[i] = kernelFindColor(r, g, b);
 		}
 	}
 
@@ -670,7 +785,7 @@ void GfxPalette::palVaryInit() {
 }
 
 bool GfxPalette::palVaryLoadTargetPalette(GuiResourceId resourceId) {
-	_palVaryResourceId = resourceId;
+	_palVaryResourceId = (resourceId != 65535) ? resourceId : -1;
 	Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
 	if (palResource) {
 		// Load and initialize destination palette
@@ -681,6 +796,13 @@ bool GfxPalette::palVaryLoadTargetPalette(GuiResourceId resourceId) {
 }
 
 void GfxPalette::palVaryInstallTimer() {
+	// Remove any possible leftover palVary timer callbacks.
+	// This happens for example in QFG1VGA, when sleeping at Erana's place
+	// (bug #3439240) - the nighttime to daytime effect clashes with the
+	// scene transition effect, as we load scene images too quickly for
+	// the SCI scripts in that case (also refer to kernelPalVaryInit).
+	palVaryRemoveTimer();
+
 	int16 ticks = _palVaryTicks > 0 ? _palVaryTicks : 1;
 	// Call signal increase every [ticks]
 	g_sci->getTimerManager()->installTimerProc(&palVaryCallback, 1000000 / 60 * ticks, this, "sciPalette");
@@ -938,7 +1060,7 @@ void GfxPalette::loadMacIconBarPalette() {
 }
 
 bool GfxPalette::colorIsFromMacClut(byte index) {
-	return index != 0 && _macClut && (_macClut[index * 3] != 0 || _macClut[index * 3 + 1] != 0 || _macClut[index * 3 + 1] != 0);
+	return index != 0 && _macClut && (_macClut[index * 3] != 0 || _macClut[index * 3 + 1] != 0 || _macClut[index * 3 + 2] != 0);
 }
 
 #ifdef ENABLE_SCI32
@@ -964,8 +1086,9 @@ bool GfxPalette::loadClut(uint16 clutId) {
 	memset(&pal, 0, sizeof(Palette));
 
 	// Setup 1:1 mapping
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < 256; i++) {
 		pal.mapping[i] = i;
+	}
 
 	// Now load in the palette
 	for (int i = 1; i <= 236; i++) {

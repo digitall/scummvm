@@ -200,9 +200,8 @@ void Debugger::enter() {
 
 bool Debugger::handleCommand(int argc, const char **argv, bool &result) {
 	if (_cmds.contains(argv[0])) {
-		Debuglet *debuglet = _cmds[argv[0]].get();
-		assert(debuglet);
-		result = (*debuglet)(argc, argv);
+		assert(_cmds[argv[0]]);
+		result = (*_cmds[argv[0]])(argc, argv);
 		return true;
 	}
 
@@ -247,6 +246,12 @@ bool Debugger::parseCommand(const char *inputOrig) {
 					*(int32 *)_dvars[i].variable = atoi(param[1]);
 					DebugPrintf("(int)%s = %d\n", param[0], *(int32 *)_dvars[i].variable);
 					break;
+				case DVAR_BOOL:
+					if (Common::parseBool(param[1], *(bool *)_dvars[i].variable))
+						DebugPrintf("(bool)%s = %s\n", param[0], *(bool *)_dvars[i].variable ? "true" : "false");
+					else
+						DebugPrintf("Invalid value for boolean variable. Valid values are \"true\", \"false\", \"1\", \"0\", \"yes\", \"no\"\n");
+					break;
 				// Integer Array
 				case DVAR_INTARRAY: {
 					const char *chr = strchr(param[0], '[');
@@ -277,6 +282,9 @@ bool Debugger::parseCommand(const char *inputOrig) {
 					break;
 				case DVAR_INT:
 					DebugPrintf("(int)%s = %d\n", param[0], *(const int32 *)_dvars[i].variable);
+					break;
+				case DVAR_BOOL:
+					DebugPrintf("(bool)%s = %s\n", param[0], *(const bool *)_dvars[i].variable ? "true" : "false");
 					break;
 				// Integer array
 				case DVAR_INTARRAY: {

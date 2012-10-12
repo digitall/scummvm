@@ -203,7 +203,7 @@ Zone::Zone() {
 }
 
 Zone::~Zone() {
-	_vm->_gfx->unregisterLabel(_label);
+	g_vm->_gfx->unregisterLabel(_label);
 	delete _label;
 }
 
@@ -220,7 +220,11 @@ bool Zone::hitRect(int x, int y) const {
 	if (_right < _left || _bottom < _top) {
 		return false;
 	}
-	return Common::Rect(_left, _top, _right, _bottom).contains(x, y);
+
+	Common::Rect r(_left, _top, _right + 1, _bottom + 1);
+	r.grow(-1);
+
+	return r.contains(x, y);
 }
 
 Dialogue::Dialogue() {
@@ -321,7 +325,7 @@ int16 ScriptVar::getValue() {
 	}
 
 	if (_flags & kParaRandom) {
-		return (_vm->_rnd.getRandomNumber(65536) * _value) >> 16;
+		return (g_vm->_rnd.getRandomNumber(65536) * _value) >> 16;
 	}
 
 	error("Parameter is not an r-value");
@@ -382,11 +386,11 @@ ScriptVar::~ScriptVar() {
 
 
 Table::Table(uint32 size) : _size(size), _used(0), _disposeMemory(true) {
-	_data = (char**)calloc(size, sizeof(char*));
+	_data = (char**)calloc(size, sizeof(char *));
 }
 
 Table::Table(uint32 size, const char **data) : _size(size), _used(size), _disposeMemory(false) {
-	_data = const_cast<char**>(data);
+	_data = const_cast<char **>(data);
 }
 
 Table::~Table() {

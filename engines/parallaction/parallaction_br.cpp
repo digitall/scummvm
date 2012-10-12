@@ -79,7 +79,7 @@ Common::Error Parallaction_br::init() {
 	_cmdExec = new CommandExec_br(this);
 	_programExec = new ProgramExec_br(this);
 
-	_walker = new PathWalker_BR;
+	_walker = new PathWalker_BR(this);
 
 	_part = -1;
 	_nextPart = -1;
@@ -161,10 +161,10 @@ Common::Error Parallaction_br::go() {
 
 //		initCharacter();
 
-		while (((_engineFlags & kEngineReturn) == 0) && (!shouldQuit())) {
+		while (((g_engineFlags & kEngineReturn) == 0) && (!shouldQuit())) {
 			runGame();
 		}
-		_engineFlags &= ~kEngineReturn;
+		g_engineFlags &= ~kEngineReturn;
 
 		cleanupGame();
 	}
@@ -259,7 +259,7 @@ void Parallaction_br::cleanupGame() {
 	_countersNames = 0;
 
 	_numLocations = 0;
-	_globalFlags = 0;
+	g_globalFlags = 0;
 	memset(_localFlags, 0, sizeof(_localFlags));
 	memset(_locationNames, 0, sizeof(_locationNames));
 	memset(_zoneFlags, 0, sizeof(_zoneFlags));
@@ -275,7 +275,7 @@ void Parallaction_br::changeLocation() {
 		cleanupGame();
 
 		// more cleanup needed for part changes (see also saveload)
-		_globalFlags = 0;
+		g_globalFlags = 0;
 		cleanInventory(true);
 		strcpy(_characterName1, "null");
 
@@ -289,7 +289,7 @@ void Parallaction_br::changeLocation() {
 
 		_disk->selectArchive(_partNames[_part]);
 
-		memset(_counters, 0, ARRAYSIZE(_counters));
+		memset(_counters, 0, sizeof(_counters));
 
 		_globalFlagsNames = _disk->loadTable("global");
 		_objectsNames = _disk->loadTable("objects");
@@ -358,7 +358,7 @@ void Parallaction_br::changeLocation() {
 	// TODO: implement the music commands which control music execution
 	_soundMan->execute(SC_PLAYMUSIC);
 
-	_engineFlags &= ~kEngineChangeLocation;
+	g_engineFlags &= ~kEngineChangeLocation;
 	_newLocationName.clear();
 	_nextPart = -1;
 }
@@ -548,7 +548,7 @@ void Parallaction_br::scheduleWalk(int16 x, int16 y, bool fromUser) {
 		}
 	}
 
-	_engineFlags |= kEngineWalking;
+	g_engineFlags |= kEngineWalking;
 }
 
 void Parallaction_br::setFollower(const Common::String &name) {

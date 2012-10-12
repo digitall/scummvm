@@ -260,7 +260,7 @@ void OSystem_Dreamcast::initSize(uint w, uint h, const Graphics::PixelFormat *fo
   _devpoll = Timer();
 }
 
-void OSystem_Dreamcast::copyRectToScreen(const byte *buf, int pitch, int x, int y,
+void OSystem_Dreamcast::copyRectToScreen(const void *buf, int pitch, int x, int y,
 					 int w, int h)
 {
   if (w<1 || h<1)
@@ -269,10 +269,11 @@ void OSystem_Dreamcast::copyRectToScreen(const byte *buf, int pitch, int x, int 
     x<<=1; w<<=1;
   }
   unsigned char *dst = screen + y*SCREEN_W*2 + x;
+  const byte *src = (const byte *)buf;
   do {
-    memcpy(dst, buf, w);
+    memcpy(dst, src, w);
     dst += SCREEN_W*2;
-    buf += pitch;
+    src += pitch;
   } while (--h);
   _screen_dirty = true;
 }
@@ -291,9 +292,9 @@ void OSystem_Dreamcast::warpMouse(int x, int y)
   _ms_cur_y = y;
 }
 
-void OSystem_Dreamcast::setMouseCursor(const byte *buf, uint w, uint h,
+void OSystem_Dreamcast::setMouseCursor(const void *buf, uint w, uint h,
 				       int hotspot_x, int hotspot_y,
-				       uint32 keycolor, int cursorTargetScale, const Graphics::PixelFormat *format)
+				       uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format)
 {
   _ms_cur_w = w;
   _ms_cur_h = h;
@@ -334,8 +335,8 @@ void OSystem_Dreamcast::updateScreenTextures(void)
     unsigned short *dst = (unsigned short *)screen_tx[_screen_buffer];
     unsigned char *src = screen;
 
-    // while ((*((volatile unsigned int *)(void*)0xa05f810c) & 0x3ff) != 200);
-    // *((volatile unsigned int *)(void*)0xa05f8040) = 0xff0000;
+    // while ((*((volatile unsigned int *)(void *)0xa05f810c) & 0x3ff) != 200);
+    // *((volatile unsigned int *)(void *)0xa05f8040) = 0xff0000;
 
     if (_screenFormat == 0)
       for ( int y = 0; y<_screen_h; y++ )
@@ -379,7 +380,7 @@ void OSystem_Dreamcast::updateScreenPolygons(void)
   struct polygon_list mypoly;
   struct packed_colour_vertex_list myvertex;
 
-  // *((volatile unsigned int *)(void*)0xa05f8040) = 0x00ff00;
+  // *((volatile unsigned int *)(void *)0xa05f8040) = 0x00ff00;
 
   mypoly.cmd =
     TA_CMD_POLYGON|TA_CMD_POLYGON_TYPE_OPAQUE|TA_CMD_POLYGON_SUBLIST|
@@ -395,7 +396,7 @@ void OSystem_Dreamcast::updateScreenPolygons(void)
   mypoly.red = mypoly.green = mypoly.blue = mypoly.alpha = 0;
 
   ta_begin_frame();
-  // *((volatile unsigned int *)(void*)0xa05f8040) = 0x0000ff;
+  // *((volatile unsigned int *)(void *)0xa05f8040) = 0x0000ff;
   ta_commit_list(&mypoly);
 
   myvertex.cmd = TA_CMD_VERTEX;
@@ -493,12 +494,12 @@ void OSystem_Dreamcast::updateScreenPolygons(void)
     _softkbd.draw(330.0*sin(0.013*_softkbd_motion) - 320.0, 200.0,
 		  120-_softkbd_motion);
 
-  // *((volatile unsigned int *)(void*)0xa05f8040) = 0xffff00;
+  // *((volatile unsigned int *)(void *)0xa05f8040) = 0xffff00;
   drawMouse(_ms_cur_x, _ms_cur_y, _ms_cur_w, _ms_cur_h, _ms_buf, _ms_visible);
-  // *((volatile unsigned int *)(void*)0xa05f8040) = 0xff00ff;
+  // *((volatile unsigned int *)(void *)0xa05f8040) = 0xff00ff;
   ta_commit_frame();
 
-  // *((volatile unsigned int *)(void*)0xa05f8040) = 0x0;
+  // *((volatile unsigned int *)(void *)0xa05f8040) = 0x0;
 
   _last_screen_refresh = Timer();
 }
@@ -652,27 +653,29 @@ void OSystem_Dreamcast::clearOverlay()
   _overlay_dirty = true;
 }
 
-void OSystem_Dreamcast::grabOverlay(OverlayColor *buf, int pitch)
+void OSystem_Dreamcast::grabOverlay(void *buf, int pitch)
 {
   int h = OVL_H;
   unsigned short *src = overlay;
+  unsigned char *dst = (unsigned char *)buf;
   do {
-    memcpy(buf, src, OVL_W*sizeof(int16));
+    memcpy(dst, src, OVL_W*sizeof(int16));
     src += OVL_W;
-    buf += pitch;
+    dst += pitch;
   } while (--h);
 }
 
-void OSystem_Dreamcast::copyRectToOverlay(const OverlayColor *buf, int pitch,
+void OSystem_Dreamcast::copyRectToOverlay(const void *buf, int pitch,
 					  int x, int y, int w, int h)
 {
   if (w<1 || h<1)
     return;
   unsigned short *dst = overlay + y*OVL_W + x;
+  const unsigned char *src = (const unsigned char *)buf;
   do {
-    memcpy(dst, buf, w*sizeof(int16));
+    memcpy(dst, src, w*sizeof(int16));
     dst += OVL_W;
-    buf += pitch;
+    src += pitch;
   } while (--h);
   _overlay_dirty = true;
 }

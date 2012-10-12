@@ -35,13 +35,10 @@
 
 namespace CGE {
 
-Text *_text;
-Talk *_talk = NULL;
-
 Text::Text(CGEEngine *vm, const char *fname) : _vm(vm) {
-	mergeExt(_fileName, fname, kSayExt);
-	if (!_cat->exist(_fileName))
-		error("No talk (%s)\n", _fileName);
+	_vm->mergeExt(_fileName, fname, kSayExt);
+	if (!_vm->_resman->exist(_fileName))
+		error("No talk (%s)", _fileName);
 	int16 txtCount = count() + 1;
 	if (!txtCount)
 		error("Unable to read dialog file %s", _fileName);
@@ -60,23 +57,22 @@ Text::~Text() {
 }
 
 int16 Text::count() {
-	EncryptedStream tf = _fileName;
+	EncryptedStream tf(_vm, _fileName);
 	if (tf.err())
 		return -1;
 
 	Common::String line;
 	char tmpStr[kLineMax + 1];
-	
-	int n, counter = 0;
+
+	int counter = 0;
 
 	for (line = tf.readLine(); !tf.eos(); line = tf.readLine()) {
-		n = line.size();
 		char *s;
 
 		strcpy(tmpStr, line.c_str());
 		if ((s = strtok(tmpStr, " =,;/\t\n")) == NULL)
 			continue;
-		if (!isdigit(*s))
+		if (!Common::isDigit(*s))
 			continue;
 
 		counter++;
@@ -95,7 +91,7 @@ void Text::clear() {
 }
 
 void Text::load() {
-	EncryptedStream tf = _fileName;
+	EncryptedStream tf(_vm, _fileName);
 	assert(!tf.err());
 
 	Common::String line;
@@ -109,7 +105,7 @@ void Text::load() {
 		strcpy(tmpStr, line.c_str());
 		if ((s = strtok(tmpStr, " =,;/\t\n")) == NULL)
 			continue;
-		if (!isdigit(*s))
+		if (!Common::isDigit(*s))
 			continue;
 
 		int r = atoi(s);
@@ -138,16 +134,23 @@ char *Text::getText(int ref) {
 }
 
 void Text::say(const char *text, Sprite *spr) {
-	killText();
-	_talk = new Talk(_vm, text, kTBRound);
-	if (!_talk)
+	_vm->killText();
+
+	if (!text)
+		return;
+
+	if (*text == 0)
+		return;
+
+	_vm->_talk = new Talk(_vm, text, kTBRound);
+	if (!_vm->_talk)
 		return;
 
 	bool east = spr->_flags._east;
 	int x = (east) ? (spr->_x + spr->_w - 2) : (spr->_x + 2);
 	int y = spr->_y + 2;
-	Sprite *spike = new Spike(_vm);
-	uint16 sw = spike->_w;
+	Speaker *speaker = new Speaker(_vm);
+	uint16 sw = speaker->_w;
 
 	if (east) {
 		if (x + sw + kTextRoundCorner + 5 >= kScrWidth)
@@ -160,30 +163,35 @@ void Text::say(const char *text, Sprite *spr) {
 	if (spr->_ref == 1)
 		x += ((east) ? -10 : 10); // Hero
 
-	_talk->_flags._kill = true;
-	_talk->_flags._bDel = true;
-	_talk->setName(_text->getText(kSayName));
-	_talk->gotoxy(x - (_talk->_w - sw) / 2 - 3 + 6 * east, y - spike->_h - _talk->_h + 1);
-	_talk->_z = 125;
-	_talk->_ref = kSayRef;
+	_vm->_talk->_flags._kill = true;
+	_vm->_talk->_flags._bDel = true;
+	_vm->_talk->setName(_vm->_text->getText(kSayName));
+	_vm->_talk->gotoxy(x - (_vm->_talk->_w - sw) / 2 - 3 + 6 * east, y - speaker->_h - _vm->_talk->_h + 1);
+	_vm->_talk->_z = 125;
+	_vm->_talk->_ref = kSayRef;
 
-	spike->gotoxy(x, _talk->_y + _talk->_h - 1);
-	spike->_z = 126;
-	spike->_flags._slav = true;
-	spike->_flags._kill = true;
-	spike->setName(_text->getText(kSayName));
-	spike->step(east);
-	spike->_ref = kSayRef;
+	speaker->gotoxy(x, _vm->_talk->_y + _vm->_talk->_h - 1);
+	speaker->_z = 126;
+	speaker->_flags._slav = true;
+	speaker->_flags._kill = true;
+	speaker->setName(_vm->_text->getText(kSayName));
+	speaker->step(east);
+	speaker->_ref = kSayRef;
 
-	_vga->_showQ->insert(_talk, _vga->_showQ->last());
-	_vga->_showQ->insert(spike, _vga->_showQ->last());
+	_vm->_vga->_showQ->insert(_vm->_talk, _vm->_vga->_showQ->last());
+	_vm->_vga->_showQ->insert(speaker, _vm->_vga->_showQ->last());
 }
 
-void CGEEngine::inf(const char *text) {
+void CGEEngine::inf(const char *text, bool wideSpace) {
 	debugC(1, kCGEDebugEngine, "CGEEngine::inf(%s)", text);
+	if (!text)
+		return;
+
+	if (*text == 0)
+		return;
 
 	killText();
-	_talk = new Talk(this, text, kTBRect);
+	_talk = new Talk(this, text, kTBRect, wideSpace);
 	if (!_talk)
 		return;
 
@@ -204,14 +212,6 @@ void Text::sayTime(Sprite *spr) {
 	char t[6];
 	sprintf(t, "%d:%02d", curTime.tm_hour, curTime.tm_min);
 	say(t, spr);
-}
-
-void killText() {
-	if (!_talk)
-		return;
-
-	_snail_->addCom(kSnKill, -1, 0, _talk);
-	_talk = NULL;
 }
 
 } // End of namespace CGE

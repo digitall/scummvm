@@ -11,6 +11,7 @@ MODULE_OBJS := \
 	midi/alsa.o \
 	midi/dmedia.o \
 	midi/seq.o \
+	midi/sndio.o \
 	midi/stmidi.o \
 	midi/timidity.o \
 	saves/savefile.o \
@@ -33,6 +34,7 @@ endif
 ifdef ENABLE_KEYMAPPER
 MODULE_OBJS += \
 	keymapper/action.o \
+	keymapper/hardware-input.o \
 	keymapper/keymap.o \
 	keymapper/keymapper.o \
 	keymapper/remap-dialog.o
@@ -98,6 +100,7 @@ MODULE_OBJS += \
 	fs/windows/windows-fs-factory.o \
 	midi/windows.o \
 	plugins/win32/win32-provider.o \
+	saves/windows/windows-saves.o \
 	taskbar/win32/win32-taskbar.o
 endif
 
@@ -145,6 +148,12 @@ ifeq ($(BACKEND),linuxmoto)
 MODULE_OBJS += \
 	events/linuxmotosdl/linuxmotosdl-events.o \
 	graphics/linuxmotosdl/linuxmotosdl-graphics.o
+endif
+
+ifeq ($(BACKEND),maemo)
+MODULE_OBJS += \
+	events/maemosdl/maemosdl-events.o \
+	graphics/maemosdl/maemosdl-graphics.o
 endif
 
 ifeq ($(BACKEND),n64)

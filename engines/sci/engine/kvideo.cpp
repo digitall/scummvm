@@ -21,6 +21,7 @@
  */
 
 #include "engines/util.h"
+#include "sci/engine/kernel.h"
 #include "sci/engine/state.h"
 #include "sci/graphics/helpers.h"
 #include "sci/graphics/cursor.h"
@@ -31,6 +32,7 @@
 #include "common/str.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "graphics/palette.h"
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 #include "video/video_decoder.h"
@@ -39,6 +41,7 @@
 #include "sci/video/seq_decoder.h"
 #ifdef ENABLE_SCI32
 #include "video/coktel_decoder.h"
+#include "sci/video/robot_decoder.h"
 #endif
 
 namespace Sci {
@@ -46,6 +49,8 @@ namespace Sci {
 void playVideo(Video::VideoDecoder *videoDecoder, VideoState videoState) {
 	if (!videoDecoder)
 		return;
+
+	videoDecoder->start();
 
 	byte *scaleBuffer = 0;
 	byte bytesPerPixel = videoDecoder->getPixelFormat().bytesPerPixel;
@@ -84,9 +89,12 @@ void playVideo(Video::VideoDecoder *videoDecoder, VideoState videoState) {
 	}
 
 	bool skipVideo = false;
+	EngineState *s = g_sci->getEngineState();
 
-	if (videoDecoder->hasDirtyPalette())
-		videoDecoder->setSystemPalette();
+	if (videoDecoder->hasDirtyPalette()) {
+		const byte *palette = videoDecoder->getPalette() + s->_vmdPalStart * 3;
+		g_system->getPaletteManager()->setPalette(palette, s->_vmdPalStart, s->_vmdPalEnd - s->_vmdPalStart);
+	}
 
 	while (!g_engine->shouldQuit() && !videoDecoder->endOfVideo() && !skipVideo) {
 		if (videoDecoder->needsUpdate()) {
@@ -98,11 +106,13 @@ void playVideo(Video::VideoDecoder *videoDecoder, VideoState videoState) {
 					g_sci->_gfxScreen->scale2x((byte *)frame->pixels, scaleBuffer, videoDecoder->getWidth(), videoDecoder->getHeight(), bytesPerPixel);
 					g_system->copyRectToScreen(scaleBuffer, pitch, x, y, width, height);
 				} else {
-					g_system->copyRectToScreen((byte *)frame->pixels, frame->pitch, x, y, width, height);
+					g_system->copyRectToScreen(frame->pixels, frame->pitch, x, y, width, height);
 				}
 
-				if (videoDecoder->hasDirtyPalette())
-					videoDecoder->setSystemPalette();
+				if (videoDecoder->hasDirtyPalette()) {
+					const byte *palette = videoDecoder->getPalette() + s->_vmdPalStart * 3;
+					g_system->getPaletteManager()->setPalette(palette, s->_vmdPalStart, s->_vmdPalEnd - s->_vmdPalStart);
+				}
 
 				g_system->updateScreen();
 			}
@@ -133,7 +143,7 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 
 	Video::VideoDecoder *videoDecoder = 0;
 
-	if (argv[0].segment != 0) {
+	if (argv[0].getSegment() != 0) {
 		Common::String filename = s->_segMan->getString(argv[0]);
 
 		if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
@@ -154,9 +164,8 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 		} else {
 			// DOS SEQ
 			// SEQ's are called with no subops, just the string and delay
-			SeqDecoder *seqDecoder = new SeqDecoder();
-			seqDecoder->setFrameDelay(argv[1].toUint16()); // Time between frames in ticks
-			videoDecoder = seqDecoder;
+			// Time is specified as ticks
+			videoDecoder = new SEQDecoder(argv[1].toUint16());
 
 			if (!videoDecoder->loadFile(filename)) {
 				warning("Failed to open movie file %s", filename.c_str());
@@ -182,7 +191,7 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 		switch (argv[0].toUint16()) {
 		case 0: {
 			Common::String filename = s->_segMan->getString(argv[1]);
-			videoDecoder = new Video::AviDecoder(g_system->getMixer());
+			videoDecoder = new Video::AVIDecoder();
 
 			if (filename.equalsIgnoreCase("gk2a.avi")) {
 				// HACK: Switch to 16bpp graphics for Indeo3.
@@ -201,6 +210,8 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 				warning("Failed to open movie file %s", filename.c_str());
 				delete videoDecoder;
 				videoDecoder = 0;
+			} else {
+				s->_videoState.fileName = filename;
 			}
 			break;
 		}
@@ -230,6 +241,51 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 
 #ifdef ENABLE_SCI32
 
+reg_t kRobot(EngineState *s, int argc, reg_t *argv) {
+	int16 subop = argv[0].toUint16();
+
+	switch (subop) {
+	case 0: { // init
+		int id = argv[1].toUint16();
+		reg_t obj = argv[2];
+		int16 flag = argv[3].toSint16();
+		int16 x = argv[4].toUint16();
+		int16 y = argv[5].toUint16();
+		warning("kRobot(init), id %d, obj %04x:%04x, flag %d, x=%d, y=%d", id, PRINT_REG(obj), flag, x, y);
+		g_sci->_robotDecoder->load(id);
+		g_sci->_robotDecoder->start();
+		g_sci->_robotDecoder->setPos(x, y);
+		}
+		break;
+	case 1:	// LSL6 hires (startup)
+		// TODO
+		return NULL_REG;	// an integer is expected
+	case 4: {	// start - we don't really have a use for this one
+			//int id = argv[1].toUint16();
+			//warning("kRobot(start), id %d", id);
+		}
+		break;
+	case 7:	// unknown, called e.g. by Phantasmagoria
+		warning("kRobot(%d)", subop);
+		break;
+	case 8: // sync
+		//if (true) {	// debug: automatically skip all robot videos
+		if (g_sci->_robotDecoder->endOfVideo()) {
+			g_sci->_robotDecoder->close();
+			// Signal the engine scripts that the video is done
+			writeSelector(s->_segMan, argv[1], SELECTOR(signal), SIGNAL_REG);
+		} else {
+			writeSelector(s->_segMan, argv[1], SELECTOR(signal), NULL_REG);
+		}
+		break;
+	default:
+		warning("kRobot(%d)", subop);
+		break;
+	}
+
+	return s->r_acc;
+}
+
 reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
 	uint16 operation = argv[0].toUint16();
 	Video::VideoDecoder *videoDecoder = 0;
@@ -257,7 +313,7 @@ reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
 		// with subfx 21. The subtleness has to do with creation of temporary
 		// planes and positioning relative to such planes.
 
-		uint16 flags = argv[3].offset;
+		uint16 flags = argv[3].getOffset();
 		Common::String flagspec;
 
 		if (argc > 3) {
@@ -285,16 +341,22 @@ reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
 			s->_videoState.flags = flags;
 		}
 
-		warning("x, y: %d, %d", argv[1].offset, argv[2].offset);
-		s->_videoState.x = argv[1].offset;
-		s->_videoState.y = argv[2].offset;
+		warning("x, y: %d, %d", argv[1].getOffset(), argv[2].getOffset());
+		s->_videoState.x = argv[1].getOffset();
+		s->_videoState.y = argv[2].getOffset();
 
 		if (argc > 4 && flags & 16)
-			warning("gammaBoost: %d%% between palette entries %d and %d", argv[4].offset, argv[5].offset, argv[6].offset);
+			warning("gammaBoost: %d%% between palette entries %d and %d", argv[4].getOffset(), argv[5].getOffset(), argv[6].getOffset());
 		break;
 	}
 	case 6:	// Play
-		videoDecoder = new Video::VMDDecoder(g_system->getMixer());
+		videoDecoder = new Video::AdvancedVMDDecoder();
+
+		if (s->_videoState.fileName.empty()) {
+			// Happens in Lighthouse
+			warning("kPlayVMD: Empty filename passed");
+			return s->r_acc;
+		}
 
 		if (!videoDecoder->loadFile(s->_videoState.fileName)) {
 			warning("Could not open VMD %s", s->_videoState.fileName.c_str());
@@ -308,6 +370,10 @@ reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
 
 		if (reshowCursor)
 			g_sci->_gfxCursor->kernelShow();
+		break;
+	case 23:	// set video palette range
+		s->_vmdPalStart = argv[1].toUint16();
+		s->_vmdPalEnd = argv[2].toUint16();
 		break;
 	case 14:
 		// Takes an additional integer parameter (e.g. 3)
@@ -325,6 +391,55 @@ reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
 		}
 
 		warning("%s", warningMsg.c_str());
+		break;
+	}
+
+	return s->r_acc;
+}
+
+reg_t kPlayDuck(EngineState *s, int argc, reg_t *argv) {
+	uint16 operation = argv[0].toUint16();
+	Video::VideoDecoder *videoDecoder = 0;
+	bool reshowCursor = g_sci->_gfxCursor->isVisible();
+
+	switch (operation) {
+	case 1:	// Play
+		// 6 params
+		s->_videoState.reset();
+		s->_videoState.fileName = Common::String::format("%d.duk", argv[1].toUint16());
+
+		videoDecoder = new Video::AVIDecoder();
+
+		if (!videoDecoder->loadFile(s->_videoState.fileName)) {
+			warning("Could not open Duck %s", s->_videoState.fileName.c_str());
+			break;
+		}
+
+		if (reshowCursor)
+			g_sci->_gfxCursor->kernelHide();
+
+		{
+		// Duck videos are 16bpp, so we need to change the active pixel format
+		int oldWidth = g_system->getWidth();
+		int oldHeight = g_system->getHeight();
+		Common::List<Graphics::PixelFormat> formats;
+		formats.push_back(videoDecoder->getPixelFormat());
+		initGraphics(640, 480, true, formats);
+
+		if (g_system->getScreenFormat().bytesPerPixel != videoDecoder->getPixelFormat().bytesPerPixel)
+			error("Could not switch screen format for the duck video");
+
+		playVideo(videoDecoder, s->_videoState);
+
+		// Switch back to 8bpp
+		initGraphics(oldWidth, oldHeight, oldWidth > 320);
+		}
+
+		if (reshowCursor)
+			g_sci->_gfxCursor->kernelShow();
+		break;
+	default:
+		kStub(s, argc, argv);
 		break;
 	}
 

@@ -103,7 +103,7 @@ public:
 	}
 	byte*	getData(uint16 index) {
 		assert(index == 0);
-		return (byte*)_surf->getBasePtr(0,0);
+		return (byte *)_surf->getBasePtr(0,0);
 	}
 	void	getRect(uint16 index, Common::Rect &r) {
 		assert(index == 0);
@@ -144,7 +144,7 @@ public:
 
 	~Cnv() {
 		if (_freeData)
-			delete []_data;
+			delete[] _data;
 	}
 
 	byte* getFramePtr(uint16 index) {
@@ -341,12 +341,12 @@ public:
 */
 struct BackgroundInfo {
 protected:
-	typedef Common::Array<MaskBuffer*> MaskPatches;
+	typedef Common::Array<MaskBuffer *> MaskPatches;
 	MaskPatches	_maskPatches;
 	MaskBuffer		_maskBackup;
 	void clearMaskData();
 
-	typedef Common::Array<PathBuffer*> PathPatches;
+	typedef Common::Array<PathBuffer *> PathPatches;
 	PathPatches	_pathPatches;
 	PathBuffer		_pathBackup;
 	void clearPathData();
@@ -377,14 +377,14 @@ public:
 	void toggleMaskPatch(uint id, int x, int y, bool apply);
 	uint16 getMaskLayer(uint16 z) const;
 	void finalizeMask();
-	void loadGfxObjMask(const char *name, GfxObj *obj);
+	void loadGfxObjMask(Parallaction *vm, const char *name, GfxObj *obj);
 
 	// path management
 	bool hasPath();
 	uint addPathPatch(PathBuffer *patch);
 	void togglePathPatch(uint id, int x, int y, bool apply);
 	void finalizePath();
-	void loadGfxObjPath(const char *name, GfxObj *obj);
+	void loadGfxObjPath(Parallaction *vm, const char *name, GfxObj *obj);
 };
 
 
@@ -415,7 +415,7 @@ public:
 };
 
 
-typedef Common::Array<GfxObj*> GfxObjArray;
+typedef Common::Array<GfxObj *> GfxObjArray;
 #define SCENE_DRAWLIST_SIZE 100
 
 class Gfx {

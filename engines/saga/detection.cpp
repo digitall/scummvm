@@ -209,7 +209,7 @@ int SagaMetaEngine::getMaximumSaveSlot() const { return MAX_SAVES - 1; }
 
 void SagaMetaEngine::removeSaveState(const char *target, int slot) const {
 	Common::String filename = target;
-	filename += Common::String::format(".s%02d", slot);;
+	filename += Common::String::format(".s%02d", slot);
 
 	g_system->getSavefileManager()->removeSavefile(filename);
 }
@@ -251,9 +251,6 @@ SaveStateDescriptor SagaMetaEngine::querySaveMetaInfos(const char *target, int s
 			in->read(title, TITLESIZE);
 			debug(0, "Save is for: %s", title);
 		}
-
-		desc.setDeletableFlag(true);
-		desc.setWriteProtectedFlag(false);
 
 		if (version >= 6) {
 			Graphics::Surface *const thumbnail = Graphics::loadThumbnail(*in);

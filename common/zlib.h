@@ -37,7 +37,19 @@ class WriteStream;
  * it possible to uncompress data in engines without being forced to link
  * them against zlib, thus simplifying the build system.
  *
- * @return true on success (i.e. Z_OK), false otherwise
+ * Taken from the zlib manual:
+ * Decompresses the src buffer into the dst buffer.
+ * srcLen is the byte length of the source buffer. Upon entry, dstLen is the
+ * total size of the destination buffer, which must be large enough to hold
+ * the entire uncompressed data. Upon exit, dstLen is the actual size of the
+ * compressed buffer.
+ *
+ * @param dst       the buffer to store into.
+ * @param dstLen    a pointer to the size of the destination buffer.
+ * @param src       the data to be decompressed.
+ * @param srcLen    the size of the compressed data.
+ *
+ * @return true on success (i.e. Z_OK), false otherwise.
  */
 bool uncompress(byte *dst, unsigned long *dstLen, const byte *src, unsigned long srcLen);
 
@@ -46,9 +58,43 @@ bool uncompress(byte *dst, unsigned long *dstLen, const byte *src, unsigned long
  * necessary inflate functions to uncompress data compressed with deflate
  * but *not* with the standard zlib header.
  *
- * @return true on success (Z_OK or Z_STREAM_END), false otherwise
+ * Decompresses the src buffer into the dst buffer.
+ * srcLen is the byte length of the source buffer, dstLen is the byte
+ * length of the output buffer.
+ * It decompress as much data as possible, up to dstLen bytes.
+ * If a dictionary is provided through the dict buffer, uses it to initializes
+ * the internal decompression dictionary, before the decompression takes place.
+ *
+ * @param dst       the buffer to store into.
+ * @param dstLen    the size of the destination buffer.
+ * @param src       the data to be decompressed.
+ * @param dstLen    the size of the compressed data.
+ * @param dict      (optional) a decompress dictionary.
+ * @param dictLen   (optional) the size of the dictionary.
+ *                  Mandatory if dict is not 0.
+ *
+ * @return true on success (Z_OK or Z_STREAM_END), false otherwise.
  */
-bool inflateZlibHeaderless(byte *dst, uint dstLen, const byte *src, uint srcLen);
+bool inflateZlibHeaderless(byte *dst, uint dstLen, const byte *src, uint srcLen, const byte *dict = 0, uint dictLen = 0);
+
+/**
+ * Wrapper around zlib's inflate functions. This function will call the
+ * necessary inflate functions to uncompress data compressed for InstallShield
+ * cabinet files.
+ *
+ * Decompresses the src buffer into the dst buffer.
+ * srcLen is the byte length of the source buffer, dstLen is the byte
+ * length of the output buffer.
+ * It decompress as much data as possible, up to dstLen bytes.
+ *
+ * @param dst       the buffer to store into.
+ * @param dstLen    the size of the destination buffer.
+ * @param src       the data to be decompressed.
+ * @param dstLen    the size of the compressed data.
+ *
+ * @return true on success (Z_OK or Z_STREAM_END), false otherwise.
+ */
+bool inflateZlibInstallShield(byte *dst, uint dstLen, const byte *src, uint srcLen);
 
 #endif
 
@@ -59,10 +105,18 @@ bool inflateZlibHeaderless(byte *dst, uint dstLen, const byte *src, uint srcLen)
  * format. In the former case, the original stream is returned unmodified
  * (and in particular, not wrapped).
  *
+ * Certain GZip-formats don't supply an easily readable length, if you
+ * still need the length carried along with the stream, and you know
+ * the decompressed length at wrap-time, then it can be supplied as knownSize
+ * here. knownSize will be ignored if the GZip-stream DOES include a length.
+ *
  * It is safe to call this with a NULL parameter (in this case, NULL is
  * returned).
+ *
+ * @param toBeWrapped	the stream to be wrapped (if it is in gzip-format)
+ * @param knownSize		a supplied length of the compressed data (if not available directly)
  */
-SeekableReadStream *wrapCompressedReadStream(SeekableReadStream *toBeWrapped);
+SeekableReadStream *wrapCompressedReadStream(SeekableReadStream *toBeWrapped, uint32 knownSize = 0);
 
 /**
  * Take an arbitrary WriteStream and wrap it in a custom stream which provides

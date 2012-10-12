@@ -35,7 +35,18 @@ namespace Sci {
 SoundCommandParser::SoundCommandParser(ResourceManager *resMan, SegManager *segMan, Kernel *kernel, AudioPlayer *audio, SciVersion soundVersion) :
 	_resMan(resMan), _segMan(segMan), _kernel(kernel), _audio(audio), _soundVersion(soundVersion) {
 
-	_music = new SciMusic(_soundVersion);
+	// Check if the user wants synthesized or digital sound effects in SCI1.1
+	// games based on the prefer_digitalsfx config setting
+
+	// In SCI2 and later games, this check should always be true - there was
+	// always only one version of each sound effect or digital music track
+	// (e.g. the menu music in GK1 - there is a sound effect with the same
+	// resource number, but it's totally unrelated to the menu music).
+	// The GK1 demo (very late SCI1.1) does the same thing
+	// TODO: Check the QFG4 demo
+	_useDigitalSFX = (getSciVersion() >= SCI_VERSION_2 || g_sci->getGameId() == GID_GK1 || ConfMan.getBool("prefer_digitalsfx"));
+
+	_music = new SciMusic(_soundVersion, _useDigitalSFX);
 	_music->init();
 }
 
@@ -50,7 +61,7 @@ reg_t SoundCommandParser::kDoSoundInit(int argc, reg_t *argv, reg_t acc) {
 }
 
 int SoundCommandParser::getSoundResourceId(reg_t obj) {
-	int resourceId = obj.segment ? readSelectorValue(_segMan, obj, SELECTOR(number)) : -1;
+	int resourceId = obj.getSegment() ? readSelectorValue(_segMan, obj, SELECTOR(number)) : -1;
 	// Modify the resourceId for the Windows versions that have an alternate MIDI soundtrack, like SSCI did.
 	if (g_sci && g_sci->_features->useAltWinGMSound()) {
 		// Check if the alternate MIDI song actually exists...
@@ -63,6 +74,36 @@ int SoundCommandParser::getSoundResourceId(reg_t obj) {
 	return resourceId;
 }
 
+void SoundCommandParser::initSoundResource(MusicEntry *newSound) {
+	if (newSound->resourceId && _resMan->testResource(ResourceId(kResourceTypeSound, newSound->resourceId)))
+		newSound->soundRes = new SoundResource(newSound->resourceId, _resMan, _soundVersion);
+	else
+		newSound->soundRes = 0;
+
+	// In SCI1.1 games, sound effects are started from here. If we can find
+	// a relevant audio resource, play it, otherwise switch to synthesized
+	// effects. If the resource exists, play it using map 65535 (sound
+	// effects map)
+	bool checkAudioResource = getSciVersion() >= SCI_VERSION_1_1;
+	// Hoyle 4 has garbled audio resources in place of the sound resources.
+	if (g_sci->getGameId() == GID_HOYLE4)
+		checkAudioResource = false;
+
+	if (checkAudioResource && _resMan->testResource(ResourceId(kResourceTypeAudio, newSound->resourceId))) {
+		// Found a relevant audio resource, create an audio stream if there is
+		// no associated sound resource, or if both resources exist and the
+		// user wants the digital version.
+		if (_useDigitalSFX || !newSound->soundRes) {
+			int sampleLen;
+			newSound->pStreamAud = _audio->getAudioStream(newSound->resourceId, 65535, &sampleLen);
+			newSound->soundType = Audio::Mixer::kSFXSoundType;
+		}
+	}
+
+	if (!newSound->pStreamAud && newSound->soundRes)
+		_music->soundInitSnd(newSound);
+}
+
 void SoundCommandParser::processInitSound(reg_t obj) {
 	int resourceId = getSoundResourceId(obj);
 
@@ -73,11 +114,6 @@ void SoundCommandParser::processInitSound(reg_t obj) {
 
 	MusicEntry *newSound = new MusicEntry();
 	newSound->resourceId = resourceId;
-	if (resourceId && _resMan->testResource(ResourceId(kResourceTypeSound, resourceId)))
-		newSound->soundRes = new SoundResource(resourceId, _resMan, _soundVersion);
-	else
-		newSound->soundRes = 0;
-
 	newSound->soundObj = obj;
 	newSound->loop = readSelectorValue(_segMan, obj, SELECTOR(loop));
 	newSound->priority = readSelectorValue(_segMan, obj, SELECTOR(pri)) & 0xFF;
@@ -88,25 +124,7 @@ void SoundCommandParser::processInitSound(reg_t obj) {
 	debugC(kDebugLevelSound, "kDoSound(init): %04x:%04x number %d, loop %d, prio %d, vol %d", PRINT_REG(obj),
 			resourceId,	newSound->loop, newSound->priority, newSound->volume);
 
-	// In SCI1.1 games, sound effects are started from here. If we can find
-	// a relevant audio resource, play it, otherwise switch to synthesized
-	// effects. If the resource exists, play it using map 65535 (sound
-	// effects map)
-	bool checkAudioResource = getSciVersion() >= SCI_VERSION_1_1;
-	if (g_sci->getGameId() == GID_HOYLE4)
-		checkAudioResource = false; // hoyle 4 has garbled audio resources in place of the sound resources
-	// if we play those, we will only make the user deaf and break speakers. Sierra SCI doesn't play anything
-	// on soundblaster. FIXME: check, why this is
-
-	if (checkAudioResource && _resMan->testResource(ResourceId(kResourceTypeAudio, resourceId))) {
-		// Found a relevant audio resource, play it
-		int sampleLen;
-		newSound->pStreamAud = _audio->getAudioStream(resourceId, 65535, &sampleLen);
-		newSound->soundType = Audio::Mixer::kSpeechSoundType;
-	} else {
-		if (newSound->soundRes)
-			_music->soundInitSnd(newSound);
-	}
+	initSoundResource(newSound);
 
 	_music->pushBackSlot(newSound);
 
@@ -116,8 +134,6 @@ void SoundCommandParser::processInitSound(reg_t obj) {
 			writeSelectorValue(_segMan, obj, SELECTOR(state), kSoundInitialized);
 		else
 			writeSelector(_segMan, obj, SELECTOR(nodePtr), obj);
-
-		writeSelector(_segMan, obj, SELECTOR(handle), obj);
 	}
 }
 
@@ -130,8 +146,14 @@ reg_t SoundCommandParser::kDoSoundPlay(int argc, reg_t *argv, reg_t acc) {
 void SoundCommandParser::processPlaySound(reg_t obj) {
 	MusicEntry *musicSlot = _music->getSlot(obj);
 	if (!musicSlot) {
-		warning("kDoSound(play): Slot not found (%04x:%04x)", PRINT_REG(obj));
-		return;
+		warning("kDoSound(play): Slot not found (%04x:%04x), initializing it manually", PRINT_REG(obj));
+		// The sound hasn't been initialized for some reason, so initialize it
+		// here. Happens in KQ6, room 460, when giving the creature (child) to
+		// the bookworm. Fixes bugs #3413301 and #3421098.
+		processInitSound(obj);
+		musicSlot = _music->getSlot(obj);
+		if (!musicSlot)
+			error("Failed to initialize uninitialized sound slot");
 	}
 
 	int resourceId = getSoundResourceId(obj);
@@ -157,6 +179,9 @@ void SoundCommandParser::processPlaySound(reg_t obj) {
 
 	musicSlot->loop = readSelectorValue(_segMan, obj, SELECTOR(loop));
 	musicSlot->priority = readSelectorValue(_segMan, obj, SELECTOR(priority));
+	// Reset hold when starting a new song. kDoSoundSetHold is always called after
+	// kDoSoundPlay to set it properly, if needed. Fixes bug #3413589.
+	musicSlot->hold = -1;
 	if (_soundVersion >= SCI_VERSION_1_EARLY)
 		musicSlot->volume = readSelectorValue(_segMan, obj, SELECTOR(vol));
 
@@ -266,7 +291,7 @@ reg_t SoundCommandParser::kDoSoundPause(int argc, reg_t *argv, reg_t acc) {
 
 	reg_t obj = argv[0];
 	uint16 value = argc > 1 ? argv[1].toUint16() : 0;
-	if (!obj.segment) {		// pause the whole playlist
+	if (!obj.getSegment()) {		// pause the whole playlist
 		_music->pauseAll(value);
 	} else {	// pause a playlist slot
 		MusicEntry *musicSlot = _music->getSlot(obj);
@@ -342,23 +367,35 @@ reg_t SoundCommandParser::kDoSoundFade(int argc, reg_t *argv, reg_t acc) {
 
 	case 4: // SCI01+
 	case 5: // SCI1+ (SCI1 late sound scheme), with fade and continue
-		musicSlot->fadeTo = CLIP<uint16>(argv[1].toUint16(), 0, MUSIC_VOLUME_MAX);
-		// sometimes we get objects in that position, fix it up (ffs. workarounds)
-		if (!argv[1].segment)
-			musicSlot->fadeStep = volume > musicSlot->fadeTo ? -argv[3].toUint16() : argv[3].toUint16();
-		else
-			musicSlot->fadeStep = volume > musicSlot->fadeTo ? -5 : 5;
-		musicSlot->fadeTickerStep = argv[2].toUint16() * 16667 / _music->soundGetTempo();
-		musicSlot->fadeTicker = 0;
-
 		if (argc == 5) {
 			// TODO: We currently treat this argument as a boolean, but may
 			// have to handle different non-zero values differently. (e.g.,
-			// some KQ6 scripts pass 3 here)
-			musicSlot->stopAfterFading = (argv[4].toUint16() != 0);
+			// some KQ6 scripts pass 3 here).
+			// There is a script bug in KQ6, room 460 (the room with the flying
+			// books). An object is passed here, which should not be treated as
+			// a true flag. Fixes bugs #3555404 and #3291115.
+			musicSlot->stopAfterFading = (argv[4].isNumber() && argv[4].toUint16() != 0);
 		} else {
 			musicSlot->stopAfterFading = false;
 		}
+
+		musicSlot->fadeTo = CLIP<uint16>(argv[1].toUint16(), 0, MUSIC_VOLUME_MAX);
+		// Check if the song is already at the requested volume. If it is, don't
+		// perform any fading. Happens for example during the intro of Longbow.
+		if (musicSlot->fadeTo != musicSlot->volume) {
+			// sometimes we get objects in that position, fix it up (ffs. workarounds)
+			if (!argv[1].getSegment())
+				musicSlot->fadeStep = volume > musicSlot->fadeTo ? -argv[3].toUint16() : argv[3].toUint16();
+			else
+				musicSlot->fadeStep = volume > musicSlot->fadeTo ? -5 : 5;
+			musicSlot->fadeTickerStep = argv[2].toUint16() * 16667 / _music->soundGetTempo();
+		} else {
+			// Stop the music, if requested. Fixes bug #3555404.
+			if (musicSlot->stopAfterFading)
+				processStopSound(obj, false);
+		}
+
+		musicSlot->fadeTicker = 0;
 
 		// WORKAROUND/HACK: In the labyrinth in KQ6, when falling in the pit and
 		// lighting the lantern, the game scripts perform a fade in of the game
@@ -460,7 +497,7 @@ void SoundCommandParser::processUpdateCues(reg_t obj) {
 	} else {
 		// Slot actually has no data (which would mean that a sound-resource w/
 		// unsupported data is used.
-		//  (example lsl5 - sound resource 744 - it's roland exclusive
+		//  (example lsl5 - sound resource 744 - it's Roland exclusive
 		writeSelectorValue(_segMan, obj, SELECTOR(signal), SIGNAL_OFFSET);
 		// If we don't set signal here, at least the switch to the mud wrestling
 		// room in lsl5 will not work.
@@ -472,12 +509,7 @@ void SoundCommandParser::processUpdateCues(reg_t obj) {
 		// fireworks).
 		// It is also needed in other games, e.g. LSL6 when talking to the
 		// receptionist (bug #3192166).
-		if (g_sci->getGameId() == GID_LONGBOW && g_sci->getEngineState()->currentRoomNumber() == 95) {
-			// HACK: Don't set a signal here in the intro of Longbow, as that makes some dialog
-			// boxes disappear too soon (bug #3044844).
-		} else {
-			writeSelectorValue(_segMan, obj, SELECTOR(signal), SIGNAL_OFFSET);
-		}
+		writeSelectorValue(_segMan, obj, SELECTOR(signal), SIGNAL_OFFSET);
 		if (_soundVersion <= SCI_VERSION_0_LATE) {
 			processStopSound(obj, false);
 		} else {

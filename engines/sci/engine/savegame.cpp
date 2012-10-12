@@ -66,7 +66,7 @@ void syncWithSerializer(Common::Serializer &s, T &obj) {
 }
 
 // By default, sync using syncWithSerializer, which in turn can easily be overloaded.
-template <typename T>
+template<typename T>
 struct DefaultSyncer : Common::BinaryFunction<Common::Serializer, T, void> {
 	void operator()(Common::Serializer &s, T &obj) const {
 		//obj.saveLoadWithSerializer(s);
@@ -87,7 +87,7 @@ struct DefaultSyncer : Common::BinaryFunction<Common::Serializer, T, void> {
  *
  * TODO: Add something like this for lists, queues....
  */
-template <typename T, class Syncer = DefaultSyncer<T> >
+template<typename T, class Syncer = DefaultSyncer<T> >
 struct ArraySyncer : Common::BinaryFunction<Common::Serializer, T, void> {
 	void operator()(Common::Serializer &s, Common::Array<T> &arr) const {
 		uint len = arr.size();
@@ -113,13 +113,14 @@ void syncArray(Common::Serializer &s, Common::Array<T> &arr) {
 }
 
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, reg_t &obj) {
-	s.syncAsUint16LE(obj.segment);
-	s.syncAsUint16LE(obj.offset);
+	// Segment and offset are accessed directly here
+	s.syncAsUint16LE(obj._segment);
+	s.syncAsUint16LE(obj._offset);
 }
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, synonym_t &obj) {
 	s.syncAsUint16LE(obj.replaceant);
 	s.syncAsUint16LE(obj.replacement);
@@ -189,7 +190,7 @@ void SegManager::saveLoadWithSerializer(Common::Serializer &s) {
 
 		assert(mobj);
 
-		// Let the object sync custom data
+		// Let the object sync custom data. Scripts are loaded at this point.
 		mobj->saveLoadWithSerializer(s);
 
 		if (type == SEG_TYPE_SCRIPT) {
@@ -200,11 +201,9 @@ void SegManager::saveLoadWithSerializer(Common::Serializer &s) {
 				// Hook the script up in the script->segment map
 				_scriptSegMap[scr->getScriptNumber()] = i;
 
-				// Now, load the script itself
-				scr->load(g_sci->getResMan());
-
-				for (ObjMap::iterator it = scr->_objects.begin(); it != scr->_objects.end(); ++it)
-					it->_value.syncBaseObject(scr->getBuf(it->_value.getPos().offset));
+				ObjMap objects = scr->getObjectMap();
+				for (ObjMap::iterator it = objects.begin(); it != objects.end(); ++it)
+					it->_value.syncBaseObject(scr->getBuf(it->_value.getPos().getOffset()));
 
 			}
 
@@ -226,9 +225,10 @@ void SegManager::saveLoadWithSerializer(Common::Serializer &s) {
 			continue;
 
 		Script *scr = (Script *)_heap[i];
-		scr->_localsBlock = (scr->_localsSegment == 0) ? NULL : (LocalVariables *)(_heap[scr->_localsSegment]);
+		scr->syncLocalsBlock(this);
 
-		for (ObjMap::iterator it = scr->_objects.begin(); it != scr->_objects.end(); ++it) {
+		ObjMap objects = scr->getObjectMap();
+		for (ObjMap::iterator it = objects.begin(); it != objects.end(); ++it) {
 			reg_t addr = it->_value.getPos();
 			Object *obj = scr->scriptObjInit(addr, false);
 
@@ -237,7 +237,7 @@ void SegManager::saveLoadWithSerializer(Common::Serializer &s) {
 					// TODO/FIXME: This should not be happening at all. It might indicate a possible issue
 					// with the garbage collector. It happens for example in LSL5 (German, perhaps English too).
 					warning("Failed to locate base object for object at %04X:%04X; skipping", PRINT_REG(addr));
-					scr->_objects.erase(addr.toUint16());
+					objects.erase(addr.toUint16());
 				}
 			}
 		}
@@ -245,7 +245,7 @@ void SegManager::saveLoadWithSerializer(Common::Serializer &s) {
 }
 
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, Class &obj) {
 	s.syncAsSint32LE(obj.script);
 	syncWithSerializer(s, obj.reg);
@@ -324,14 +324,14 @@ void Object::saveLoadWithSerializer(Common::Serializer &s) {
 	syncArray<reg_t>(s, _variables);
 }
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, SegmentObjTable<Clone>::Entry &obj) {
 	s.syncAsSint32LE(obj.next_free);
 
 	syncWithSerializer<Object>(s, obj);
 }
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, SegmentObjTable<List>::Entry &obj) {
 	s.syncAsSint32LE(obj.next_free);
 
@@ -339,7 +339,7 @@ void syncWithSerializer(Common::Serializer &s, SegmentObjTable<List>::Entry &obj
 	syncWithSerializer(s, obj.last);
 }
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, SegmentObjTable<Node>::Entry &obj) {
 	s.syncAsSint32LE(obj.next_free);
 
@@ -350,7 +350,7 @@ void syncWithSerializer(Common::Serializer &s, SegmentObjTable<Node>::Entry &obj
 }
 
 #ifdef ENABLE_SCI32
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, SegmentObjTable<SciArray<reg_t> >::Entry &obj) {
 	s.syncAsSint32LE(obj.next_free);
 
@@ -386,7 +386,7 @@ void syncWithSerializer(Common::Serializer &s, SegmentObjTable<SciArray<reg_t> >
 	}
 }
 
-template <>
+template<>
 void syncWithSerializer(Common::Serializer &s, SegmentObjTable<SciString>::Entry &obj) {
 	s.syncAsSint32LE(obj.next_free);
 
@@ -414,7 +414,7 @@ void syncWithSerializer(Common::Serializer &s, SegmentObjTable<SciString>::Entry
 }
 #endif
 
-template <typename T>
+template<typename T>
 void sync_Table(Common::Serializer &s, T &obj) {
 	s.syncAsSint32LE(obj.first_free);
 	s.syncAsSint32LE(obj.entries_used);
@@ -465,7 +465,7 @@ void Script::syncStringHeap(Common::Serializer &s) {
 				break;
 		} while (1);
 
- 	} else {
+ 	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1){
 		// Strings in SCI1.1 come after the object instances
 		byte *buf = _heapStart + 4 + READ_SCI11ENDIAN_UINT16(_heapStart + 2) * 2;
 
@@ -475,6 +475,8 @@ void Script::syncStringHeap(Common::Serializer &s) {
 
 		// Now, sync everything till the end of the buffer
 		s.syncBytes(buf, _heapSize - (buf - _heapStart));
+	} else if (getSciVersion() == SCI_VERSION_3) {
+		warning("TODO: syncStringHeap(): Implement SCI3 variant");
 	}
 }
 
@@ -482,7 +484,7 @@ void Script::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsSint32LE(_nr);
 
 	if (s.isLoading())
-		init(_nr, g_sci->getResMan());
+		load(_nr, g_sci->getResMan());
 	s.skip(4, VER(14), VER(22));		// OBSOLETE: Used to be _bufSize
 	s.skip(4, VER(14), VER(22));		// OBSOLETE: Used to be _scriptSize
 	s.skip(4, VER(14), VER(22));		// OBSOLETE: Used to be _heapSize
@@ -506,7 +508,7 @@ void Script::saveLoadWithSerializer(Common::Serializer &s) {
 		Object tmp;
 		for (uint i = 0; i < numObjs; ++i) {
 			syncWithSerializer(s, tmp);
-			_objects[tmp.getPos().offset] = tmp;
+			_objects[tmp.getPos().getOffset()] = tmp;
 		}
 	} else {
 		ObjMap::iterator it;
@@ -545,8 +547,6 @@ void DataStack::saveLoadWithSerializer(Common::Serializer &s) {
 void SciMusic::saveLoadWithSerializer(Common::Serializer &s) {
 	// Sync song lib data. When loading, the actual song lib will be initialized
 	// afterwards in gamestate_restore()
-	Common::StackLock lock(_mutex);
-
 	int songcount = 0;
 	byte masterVolume = soundGetMasterVolume();
 	byte reverb = _pMidiDrv->getReverb();
@@ -576,9 +576,12 @@ void SciMusic::saveLoadWithSerializer(Common::Serializer &s) {
 		songcount = _playList.size();
 	s.syncAsUint32LE(songcount);
 
-	if (s.isLoading()) {
+	if (s.isLoading())
 		clearPlayList();
 
+	Common::StackLock lock(_mutex);
+
+	if (s.isLoading()) {
 		for (int i = 0; i < songcount; i++) {
 			MusicEntry *curSong = new MusicEntry();
 			curSong->saveLoadWithSerializer(s);
@@ -626,12 +629,8 @@ void SoundCommandParser::reconstructPlayList() {
 
 	const MusicList::iterator end = _music->getPlayListEnd();
 	for (MusicList::iterator i = _music->getPlayListStart(); i != end; ++i) {
-		if ((*i)->resourceId && _resMan->testResource(ResourceId(kResourceTypeSound, (*i)->resourceId))) {
-			(*i)->soundRes = new SoundResource((*i)->resourceId, _resMan, _soundVersion);
-			_music->soundInitSnd(*i);
-		} else {
-			(*i)->soundRes = 0;
-		}
+		initSoundResource(*i);
+
 		if ((*i)->status == kSoundPlaying) {
 			// Sync the sound object's selectors related to playing with the stored
 			// ones in the playlist, as they may have been invalidated when loading.
@@ -818,7 +817,7 @@ bool gamestate_save(EngineState *s, Common::WriteStream *fh, const Common::Strin
 
 	Resource *script0 = g_sci->getResMan()->findResource(ResourceId(kResourceTypeScript, 0), false);
 	meta.script0Size = script0->size;
-	meta.gameObjectOffset = g_sci->getGameObject().offset;
+	meta.gameObjectOffset = g_sci->getGameObject().getOffset();
 
 	// Checking here again
 	if (s->executionStackBase) {
@@ -869,7 +868,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 
 	if (meta.gameObjectOffset > 0 && meta.script0Size > 0) {
 		Resource *script0 = g_sci->getResMan()->findResource(ResourceId(kResourceTypeScript, 0), false);
-		if (script0->size != meta.script0Size || g_sci->getGameObject().offset != meta.gameObjectOffset) {
+		if (script0->size != meta.script0Size || g_sci->getGameObject().getOffset() != meta.gameObjectOffset) {
 			//warning("This saved game was created with a different version of the game, unable to load it");
 
 			showScummVMDialog("This saved game was created with a different version of the game, unable to load it");

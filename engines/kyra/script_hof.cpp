@@ -325,7 +325,6 @@ int KyraEngine_HoF::o2_drawShape(EMCState *script) {
 	if (modeFlag) {
 		_screen->drawShape(2, shp, x, y, 2, dsFlag ? 1 : 0);
 	} else {
-		_screen->hideMouse();
 		restorePage3();
 		_screen->drawShape(2, shp, x, y, 2, dsFlag ? 1 : 0);
 		memcpy(_gamePlayBuffer, _screen->getCPagePtr(3), 46080);
@@ -334,7 +333,6 @@ int KyraEngine_HoF::o2_drawShape(EMCState *script) {
 		flagAnimObjsForRefresh();
 		flagAnimObjsSpecialRefresh();
 		refreshAnimObjectsIfNeed();
-		_screen->showMouse();
 	}
 
 	return 0;
@@ -492,7 +490,6 @@ int KyraEngine_HoF::o2_drawSceneShape(EMCState *script) {
 	int y = stackPos(2);
 	int flag = (stackPos(3) != 0) ? 1 : 0;
 
-	_screen->hideMouse();
 	restorePage3();
 
 	_screen->drawShape(2, _sceneShapeTable[shape], x, y, 2, flag);
@@ -504,7 +501,6 @@ int KyraEngine_HoF::o2_drawSceneShape(EMCState *script) {
 	flagAnimObjsSpecialRefresh();
 	flagAnimObjsForRefresh();
 	refreshAnimObjectsIfNeed();
-	_screen->showMouse();
 	return 0;
 }
 
@@ -1397,7 +1393,6 @@ int KyraEngine_HoF::o2_demoFinale(EMCState *script) {
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0);
 
 	_screen->_curPage = 0;
-	_screen->setFont(Screen::FID_6_FNT);
 	int y = _lang == 1 ? 70 : 65;
 	for (int i = 0; i < 6; i++)
 		_text->printText(strings[i], _text->getCenterStringX(strings[i], 1, 319), y + i * 10, 255, 207, 0);
@@ -1406,7 +1401,7 @@ int KyraEngine_HoF::o2_demoFinale(EMCState *script) {
 	_screen->updateScreen();
 
 	_eventList.clear();
-	while (!skipFlag())
+	while (!skipFlag() && !shouldQuit())
 		delay(10);
 
 	_sound->beginFadeOut();

@@ -28,7 +28,10 @@
 #include "common/EventRecorder.h"
 #include "common/file.h"
 #include "common/fs.h"
+#include "engines/advancedDetector.h"
 #include "engines/util.h"
+#include "gui/message.h"
+
 #include "cge/cge.h"
 #include "cge/vga13h.h"
 #include "cge/cge_main.h"
@@ -38,7 +41,7 @@
 
 namespace CGE {
 
-const int CGEEngine::_maxCaveArr[5] = {1, 8, 16, 23, 24};
+const int CGEEngine::_maxSceneArr[5] = {1, 8, 16, 23, 24};
 
 CGEEngine::CGEEngine(OSystem *syst, const ADGameDescription *gameDescription)
 	: Engine(syst), _gameDescription(gameDescription), _randomSource("cge") {
@@ -49,19 +52,20 @@ CGEEngine::CGEEngine(OSystem *syst, const ADGameDescription *gameDescription)
 	DebugMan.addDebugChannel(kCGEDebugEngine, "engine", "CGE Engine debug channel");
 
 	_startupMode = 1;
-	_demoText    = kDemo;
 	_oldLev      = 0;
 	_pocPtr      = 0;
-
+	_bitmapPalette = NULL;
+	_quitFlag = false;
+	_showBoundariesFl = false;
 }
 
-void CGEEngine::initCaveValues() {
-	for (int i = 0; i < kCaveMax; i++) {
+void CGEEngine::initSceneValues() {
+	for (int i = 0; i < kSceneMax; i++) {
 		_heroXY[i].x = 0;
 		_heroXY[i].y = 0;
 	}
 
-	for (int i = 0; i < kCaveMax + 1; i++) {
+	for (int i = 0; i < kSceneMax + 1; i++) {
 		_barriers[i]._horz = 0xFF;
 		_barriers[i]._vert = 0xFF;
 	}
@@ -75,39 +79,35 @@ void CGEEngine::init() {
 	_lastTick = 0;
 	_hero = NULL;
 	_shadow = NULL;
-	_miniCave = NULL;
+	_miniScene = NULL;
 	_miniShp = NULL;
 	_miniShpList = NULL;
 	_sprite = NULL;
-	_dat = new IoHand(kDatName);
-	_cat = new BtFile(kCatName);
+	_resman = new ResourceManager();
 
 	// Create debugger console
 	_console = new CGEConsole(this);
 
-	// Initialise classes that have static members
-	Bitmap::init();
-	Talk::init();
-	Cluster::init(this);
-
 	// Initialise engine objects
+	_font = new Font(this, "CGE");
 	_text = new Text(this, "CGE");
-	_vga = new Vga();
+	_talk = NULL;
+	_vga = new Vga(this);
 	_sys = new System(this);
 	_pocLight = new PocLight(this);
 	for (int i = 0; i < kPocketNX; i++)
 		_pocket[i] = NULL;
 	_horzLine = new HorizLine(this);
 	_infoLine = new InfoLine(this, kInfoW);
-	_cavLight = new CavLight(this);
+	_sceneLight = new SceneLight(this);
 	_debugLine = new InfoLine(this, kScrWidth);
-	_snail = new Snail(this, false);
-	_snail_ = new Snail(this, true);
-
+	_commandHandler = new CommandHandler(this, false);
+	_commandHandlerTurbo = new CommandHandler(this, true);
+	_midiPlayer = new MusicPlayer(this);
 	_mouse = new Mouse(this);
 	_keyboard = new Keyboard(this);
-	_eventManager = new EventManager();
-	_fx = new Fx(16);   // must precede SOUND!!
+	_eventManager = new EventManager(this);
+	_fx = new Fx(this, 16);   // must precede SOUND!!
 	_sound = new Sound(this);
 
 	_offUseCount = atoi(_text->getText(kOffUseCount));
@@ -118,12 +118,12 @@ void CGEEngine::init() {
 	_volume[0] = 0;
 	_volume[1] = 0;
 
-	initCaveValues();
+	initSceneValues();
 
-	_maxCave    =  0;
+	_maxScene   =  0;
 	_dark       = false;
 	_game       = false;
-	_finis      = false;
+	_endGame    = false;
 	_now        =  1;
 	_lev        = -1;
 	_recentStep = -2;
@@ -135,45 +135,39 @@ void CGEEngine::init() {
 	_soundOk = 1;
 	_sprTv = NULL;
 	_gameCase2Cpt = 0;
-	_offUseCount = 0;
 
 	_startGameSlot = ConfMan.hasKey("save_slot") ? ConfMan.getInt("save_slot") : -1;
 }
 
 void CGEEngine::deinit() {
-	// Call classes with static members to clear them up
-	Talk::deinit();
-	Bitmap::deinit();
-	Cluster::init(this);
-
 	// Remove all of our debug levels here
 	DebugMan.clearAllDebugChannels();
 
 	delete _console;
-	_midiPlayer.killMidi();
 
 	// Delete engine objects
 	delete _vga;
 	delete _sys;
 	delete _sprite;
-	delete _miniCave;
+	delete _miniScene;
 	delete _shadow;
 	delete _horzLine;
 	delete _infoLine;
-	delete _cavLight;
+	delete _sceneLight;
 	delete _debugLine;
 	delete _text;
 	delete _pocLight;
 	delete _keyboard;
 	delete _mouse;
 	delete _eventManager;
-	delete _fx;
 	delete _sound;
-	delete _snail;
-	delete _snail_;
+	delete _fx;
+	delete _midiPlayer;
+	delete _font;
+	delete _commandHandler;
+	delete _commandHandlerTurbo;
 	delete _hero;
-	delete _dat;
-	delete _cat;
+	delete _resman;
 
 	if (_miniShpList) {
 		for (int i = 0; _miniShpList[i]; ++i)
@@ -202,6 +196,16 @@ Common::Error CGEEngine::run() {
 	// Run the game
 	cge_main();
 
+	// If game is finished, display ending message
+	if (_flag[3]) {
+		Common::String msg = Common::String(_text->getText(kSayTheEnd));
+		if (msg.size() != 0) {
+			g_system->delayMillis(10);
+			GUI::MessageDialog dialog(msg, "OK");
+			dialog.runModal();
+		}
+	}
+
 	// Remove game objects
 	deinit();
 
@@ -220,7 +224,8 @@ bool CGEEngine::canLoadGameStateCurrently() {
 }
 
 bool CGEEngine::canSaveGameStateCurrently() {
-	return (_startupMode == 0) && _mouse->_active;
+	return (_startupMode == 0) && _mouse->_active &&
+				_commandHandler->idle() && !_hero->_flags._hide;
 }
 
 } // End of namespace CGE

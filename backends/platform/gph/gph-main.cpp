@@ -20,8 +20,8 @@
  *
  */
 
-#include "backends/platform/gph/gph-sdl.h"
-#include "backends/plugins/posix/posix-provider.h"
+#include "backends/platform/gph/gph.h"
+#include "backends/plugins/sdl/sdl-provider.h"
 #include "base/main.h"
 
 #if defined(GPH_DEVICE)
@@ -36,14 +36,14 @@ int main(int argc, char *argv[]) {
 	((OSystem_GPH *)g_system)->init();
 
 #ifdef DYNAMIC_MODULES
-	PluginManager::instance().addPluginProvider(new POSIXPluginProvider());
+	PluginManager::instance().addPluginProvider(new SDLPluginProvider());
 #endif
 
 	// Invoke the actual ScummVM main entry point:
 	int res = scummvm_main(argc, argv);
 
 	// Free OSystem
-	delete (OSystem_GPH *)g_system;
+	delete(OSystem_GPH *)g_system;
 
 	return res;
 }

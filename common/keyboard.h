@@ -224,11 +224,15 @@ enum {
 	KBD_CTRL  = 1 << 0,
 	KBD_ALT   = 1 << 1,
 	KBD_SHIFT = 1 << 2,
+	KBD_META  = 1 << 3,
+	KBD_NON_STICKY = (KBD_CTRL|KBD_ALT|KBD_SHIFT|KBD_META),
 
 	// Sticky modifier flags
-	KBD_NUM   = 1 << 3,
-	KBD_CAPS  = 1 << 4,
-	KBD_SCRL  = 1 << 5
+	KBD_NUM   = 1 << 4,
+	KBD_CAPS  = 1 << 5,
+	KBD_SCRL  = 1 << 6,
+	KBD_STICKY = (KBD_NUM|KBD_CAPS|KBD_SCRL)
+
 };
 
 /**
@@ -245,7 +249,10 @@ struct KeyState {
 	 * ASCII-value of the pressed key (if any).
 	 * This depends on modifiers, i.e. pressing the 'A' key results in
 	 * different values here depending on the status of shift, alt and
-	 * caps lock.
+	 * caps lock. This should be used rather than keycode for text input
+	 * to avoid keyboard layout issues. For example you cannot assume that
+	 * KEYCODE_0 without a modifier will be '0' (on AZERTY keyboards it is
+	*  not).
 	 */
 	uint16 ascii;
 
@@ -281,18 +288,27 @@ struct KeyState {
 
 	/**
 	 * Check whether the non-sticky flags are *exactly* as specified by f.
-	 * This ignors the sticky flags (KBD_NUM, KBD_CAPS, KBD_SCRL).
+	 * This ignores the sticky flags (KBD_NUM, KBD_CAPS, KBD_SCRL).
+	 * Sticky flags should never be passed to this function.
 	 * If you just want to check whether a modifier flag is set, just bit-and
 	 * the flag. E.g. to check whether the control key modifier is set,
 	 * you can write
 	 *    if (keystate.flags & KBD_CTRL) { ... }
 	 */
 	bool hasFlags(byte f) const {
-		return f == (flags & ~(KBD_NUM|KBD_CAPS|KBD_SCRL));
+		assert(!(f & KBD_STICKY));
+		return f == (flags & ~KBD_STICKY);
 	}
 
+	/**
+	 * Check if two key states are equal. This implementation ignores the state
+	 * of the sticky flags (caps lock, num lock, scroll lock) completely. This
+	 * functionality is currently only used by the keymapper.
+	 */
 	bool operator==(const KeyState &x) const {
-		return keycode == x.keycode && ascii == x.ascii && flags == x.flags;
+		// Intentionally ignore ASCII, as the keycode and non-sticky flag
+		// combination should suffice.
+		return keycode == x.keycode && hasFlags(x.flags & ~KBD_STICKY);
 	}
 };
 

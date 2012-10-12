@@ -36,13 +36,15 @@ const SciWorkaroundEntry arithmeticWorkarounds[] = {
 	{ GID_ECOQUEST2,      100,    0,  0,               "Rain", "points",      0xcc6,    0, { WORKAROUND_FAKE,   0 } }, // op_or: when giving the papers to the customs officer, gets called against a pointer instead of a number - bug #3034464
 	{ GID_ECOQUEST2,      100,    0,  0,               "Rain", "points",      0xce0,    0, { WORKAROUND_FAKE,   0 } }, // Same as above, for the Spanish version - bug #3313962
 	{ GID_FANMADE,        516,  983,  0,             "Wander", "setTarget",      -1,    0, { WORKAROUND_FAKE,   0 } }, // op_mul: The Legend of the Lost Jewel Demo (fan made): called with object as second parameter when attacked by insects - bug #3038913
+	{ GID_GK1,            800,64992,  0,                "Fwd", "doit",           -1,    0, { WORKAROUND_FAKE,   1 } }, // op_gt: when Mosely finds Gabriel and Grace near the end of the game, compares the Grooper object with 7
 	{ GID_ICEMAN,         199,  977,  0,            "Grooper", "doit",           -1,    0, { WORKAROUND_FAKE,   0 } }, // op_add: While dancing with the girl
 	{ GID_MOTHERGOOSE256,  -1,  999,  0,              "Event", "new",            -1,    0, { WORKAROUND_FAKE,   0 } }, // op_and: constantly during the game (SCI1 version)
 	{ GID_MOTHERGOOSE256,  -1,    4,  0,              "rm004", "doit",           -1,    0, { WORKAROUND_FAKE,   0 } }, // op_or: when going north and reaching the castle (rooms 4 and 37) - bug #3038228
 	{ GID_MOTHERGOOSEHIRES,90,   90,  0,      "newGameButton", "select",         -1,    0, { WORKAROUND_FAKE,   0 } }, // op_ge: MUMG Deluxe, when selecting "New Game" in the main menu. It tries to compare an integer with a list. Needs to return false for the game to continue.
+	{ GID_PHANTASMAGORIA, 902,    0,  0,                   "", "export 7",       -1,    0, { WORKAROUND_FAKE,   0 } }, // op_shr: when starting a chapter in Phantasmagoria
 	{ GID_QFG1VGA,        301,  928,  0,              "Blink", "init",           -1,    0, { WORKAROUND_FAKE,   0 } }, // op_div: when entering the inn, gets called with 1 parameter, but 2nd parameter is used for div which happens to be an object
 	{ GID_QFG2,           200,  200,  0,              "astro", "messages",       -1,    0, { WORKAROUND_FAKE,   0 } }, // op_lsi: when getting asked for your name by the astrologer bug #3039879
-	{ GID_GK1,            800,64992,  0,                "Fwd", "doit",           -1,    0, { WORKAROUND_FAKE,   1 } }, // op_gt: when Mosely finds Gabriel and Grace near the end of the game, compares the Grooper object with 7
+	{ GID_QFG4,           710,64941,  0,          "RandCycle", "doit",           -1,    0, { WORKAROUND_FAKE,   1 } }, // op_gt: when the tentacle appears in the third room of the caves
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -124,6 +126,7 @@ const SciWorkaroundEntry uninitializedReadWorkarounds[] = {
 	{ GID_MOTHERGOOSEHIRES,-1,64950,  1,               "View", "handleEvent",    -1,    0, { WORKAROUND_FAKE,   0 } }, // see above
 	{ GID_PEPPER,         -1,   894,  0,            "Package", "doVerb",         -1,    3, { WORKAROUND_FAKE,   0 } }, // using the hand on the book in the inventory - bug #3040012
 	{ GID_PEPPER,        150,   928,  0,           "Narrator", "startText",      -1,    0, { WORKAROUND_FAKE,   0 } }, // happens during the non-interactive demo of Pepper
+	{ GID_PQ4,            -1,    25,  0,         "iconToggle", "select",         -1,    1, { WORKAROUND_FAKE,   0 } }, // when toggling the icon bar to auto-hide or not
 	{ GID_PQSWAT,         -1, 64950,  0,               "View", "handleEvent",    -1,    0, { WORKAROUND_FAKE,   0 } }, // Using the menu in the beginning
 	{ GID_QFG1,           -1,   210,  0,          "Encounter", "init",        0xbd0,    0, { WORKAROUND_FAKE,   0 } }, // hq1: going to the brigands hideout
 	{ GID_QFG1,           -1,   210,  0,          "Encounter", "init",        0xbe4,    0, { WORKAROUND_FAKE,   0 } }, // qfg1: going to the brigands hideout
@@ -154,15 +157,19 @@ const SciWorkaroundEntry uninitializedReadWorkarounds[] = {
 	{ GID_SHIVERS,        -1,   952,  0,       "SoundManager", "stop",           -1,    2, { WORKAROUND_FAKE,   0 } }, // Just after Sierra logo
 	{ GID_SHIVERS,        -1, 64950,  0,            "Feature", "handleEvent",    -1,    0, { WORKAROUND_FAKE,   0 } }, // When clicking on the locked door at the beginning
 	{ GID_SHIVERS,        -1, 64950,  0,               "View", "handleEvent",    -1,    0, { WORKAROUND_FAKE,   0 } }, // When clicking on the gargoyle eye at the beginning
+	{ GID_SHIVERS,     20311, 64964,  0,              "DPath", "init",           -1,    1, { WORKAROUND_FAKE,   0 } }, // Just after door puzzle is solved and the metal balls start to roll
+	{ GID_SHIVERS,     29260, 29260,  0,             "spMars", "handleEvent",    -1,    4, { WORKAROUND_FAKE,   0 } }, // When clicking mars after seeing fortune to align earth etc...
+	{ GID_SHIVERS,     29260, 29260,  0,            "spVenus", "handleEvent",    -1,    4, { WORKAROUND_FAKE,   0 } }, // When clicking venus after seeing fortune to align earth etc...
 	{ GID_SQ1,           103,   103,  0,               "hand", "internalEvent",  -1,   -1, { WORKAROUND_FAKE,   0 } }, // Spanish (and maybe early versions?) only: when moving cursor over input pad, temps 1 and 2
 	{ GID_SQ1,            -1,   703,  0,                   "", "export 1",       -1,    0, { WORKAROUND_FAKE,   0 } }, // sub that's called from several objects while on sarien battle cruiser
 	{ GID_SQ1,            -1,   703,  0,         "firePulsar", "changeState", 0x18a,    0, { WORKAROUND_FAKE,   0 } }, // export 1, but called locally (when shooting at aliens)
 	{ GID_SQ4,            -1,   398,  0,            "showBox", "changeState",    -1,    0, { WORKAROUND_FAKE,   0 } }, // CD: called when rummaging in Software Excess bargain bin
-	{ GID_SQ4,            -1,   928,  0,           "Narrator", "startText",      -1, 1000, { WORKAROUND_FAKE,   1 } }, // CD: method returns this to the caller
+	{ GID_SQ4,            -1,   928, -1,           "Narrator", "startText",      -1, 1000, { WORKAROUND_FAKE,   1 } }, // CD: happens in the options dialog and in-game when speech and subtitles are used simultaneously
 	{ GID_SQ5,           201,   201,  0,        "buttonPanel", "doVerb",         -1,    0, { WORKAROUND_FAKE,   1 } }, // when looking at the orange or red button - bug #3038563
 	{ GID_SQ6,            -1,     0,  0,                "SQ6", "init",           -1,    2, { WORKAROUND_FAKE,   0 } }, // Demo and full version: called when the game starts (demo: room 0, full: room 100)
-	{ GID_SQ6,           100, 64950,  0,               "View", "handleEvent",    -1,    0, { WORKAROUND_FAKE,   0 } }, // called when pressing "Start game" in the main menu
+	{ GID_SQ6,            -1, 64950, -1,            "Feature", "handleEvent",    -1,    0, { WORKAROUND_FAKE,   0 } }, // called when pressing "Start game" in the main menu, when entering the Orion's Belt bar (room 300), and perhaps other places
 	{ GID_SQ6,            -1, 64964,  0,              "DPath", "init",           -1,    1, { WORKAROUND_FAKE,   0 } }, // during the game
+	{ GID_TORIN,          -1, 64017,  0,             "oFlags", "clear",          -1,    0, { WORKAROUND_FAKE,   0 } }, // entering Torin's home in the French version
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -172,6 +179,7 @@ const SciWorkaroundEntry kAbs_workarounds[] = {
 	{ GID_HOYLE1,          2,     2,  0,              "room2", "doit",           -1,    0, { WORKAROUND_FAKE,  0x3e9 } }, // old maid - called with objects instead of integers
 	{ GID_HOYLE1,          3,     3,  0,              "room3", "doit",           -1,    0, { WORKAROUND_FAKE,  0x3e9 } }, // hearts - called with objects instead of integers
 	{ GID_QFG1VGA,        -1,    -1,  0,                 NULL, "doit",           -1,    0, { WORKAROUND_FAKE,  0x3e9 } }, // when the game is patched with the NRS patch
+	{ GID_QFG3   ,        -1,    -1,  0,                 NULL, "doit",           -1,    0, { WORKAROUND_FAKE,  0x3e9 } }, // when the game is patched with the NRS patch (bugs #3528416, #3528542)
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -209,15 +217,9 @@ const SciWorkaroundEntry kDeviceInfo_workarounds[] = {
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kDisplay_workarounds[] = {
 	{ GID_ISLANDBRAIN,   300,   300,  0,           "geneDude", "show",           -1,    0, { WORKAROUND_IGNORE,    0 } }, // when looking at the gene explanation chart - a parameter is an object
-	{ GID_PQ1,           500,   500,  0,           "endInter", "changeState", 0x3e8,    0, { WORKAROUND_IGNORE,    0 } }, // restoring a game at the map scene (bug #3389579)
-	{ GID_PQ1,           500,   500,  0,           "endInter", "changeState", 0x46b,    0, { WORKAROUND_IGNORE,    0 } }, // restoring a game at the map scene (bug #3389579)
 	{ GID_PQ2,            23,    23,  0,         "rm23Script", "elements",    0x4ae,    0, { WORKAROUND_IGNORE,    0 } }, // when looking at the 2nd page of pate's file - 0x75 as id
 	{ GID_PQ2,            23,    23,  0,         "rm23Script", "elements",    0x4c1,    0, { WORKAROUND_IGNORE,    0 } }, // when looking at the 2nd page of pate's file - 0x75 as id (another pq2 version, bug #3043904)
 	{ GID_QFG1,           11,    11,  0,             "battle", "<noname90>",     -1,    0, { WORKAROUND_IGNORE,    0 } }, // DEMO: When entering battle, 0x75 as id
-	{ GID_QFG3,           -1,    47,  0,          "barterWin", "open",       0x1426,    0, { WORKAROUND_IGNORE,    0 } }, // sometimes when talking with a vendor that can be bartered with, the wrong local variable is checked and the variable contents are wrong - bug #3292251
-	{ GID_QFG3,           -1,    47,  0,         "barterIcon", "show",       0x135c,    0, { WORKAROUND_IGNORE,    0 } }, // sometimes when talking with a vendor that can be bartered with, the wrong local variable is checked and the variable contents are wrong - bug #3292251
-	{ GID_SQ1,            -1,   700,  0,       "arcadaRegion", "doit",           -1,    0, { WORKAROUND_IGNORE,    0 } }, // restoring in some rooms of the arcada (right at the start)
-	{ GID_SQ1,            44,    44,  0,           "spinDone", "changeState",0x13b0,    0, { WORKAROUND_IGNORE,    0 } }, // restoring a game at the slot machine in Ulence Flats (bug #3308087)
 	{ GID_SQ4,           397,     0,  0,                   "", "export 12",      -1,    0, { WORKAROUND_IGNORE,    0 } }, // FLOPPY: when going into the computer store (bug #3044044)
 	{ GID_SQ4,           391,   391,  0,          "doCatalog", "mode",         0x84,    0, { WORKAROUND_IGNORE,    0 } }, // CD: clicking on catalog in roboter sale - a parameter is an object
 	{ GID_SQ4,           391,   391,  0,         "choosePlug", "changeState",    -1,    0, { WORKAROUND_IGNORE,    0 } }, // CD: ordering connector in roboter sale - a parameter is an object
@@ -252,8 +254,9 @@ const SciWorkaroundEntry kDoSoundFade_workarounds[] = {
 
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kGetAngle_workarounds[] = {
-	{ GID_FANMADE,       516,   992,  0,             "Motion", "init",           -1,    0, { WORKAROUND_IGNORE,    0 } }, // The Legend of the Lost Jewel Demo (fan made): called with third/fourth parameters as objects
+	{ GID_FANMADE,       516,   992,  0,             "Motion", "init",           -1,    0, { WORKAROUND_FAKE,      0 } }, // The Legend of the Lost Jewel Demo (fan made): called with third/fourth parameters as objects
 	{ GID_KQ6,            -1,   752,  0,        "throwDazzle", "changeState",    -1,    0, { WORKAROUND_STILLCALL, 0 } }, // room 740/790 after the Genie is exposed in the Palace (short and long ending), it starts shooting lightning bolts around. An extra 5th parameter is passed - bug #3034610 & #3041734
+	{ GID_SQ1,            -1,   927,  0,           "PAvoider", "doit",           -1,    0, { WORKAROUND_FAKE,      0 } }, // all rooms in Ulence Flats after getting the Pilot Droid: called with a single parameter when the droid is in Roger's path - bug #3513207
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -285,10 +288,7 @@ const SciWorkaroundEntry kGraphSaveBox_workarounds[] = {
 
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kGraphRestoreBox_workarounds[] = {
-	{ GID_LSL6,           -1,    86,  0,             "LL6Inv", "show",           -1,    0, { WORKAROUND_STILLCALL, 0 } }, // happens when restoring, is called with hunk segment, but hunk is not allocated at that time
-	// ^^ TODO: check, if this is really a script error or an issue with our restore code
 	{ GID_LSL6,           -1,    86,  0,             "LL6Inv", "hide",           -1,    0, { WORKAROUND_STILLCALL, 0 } }, // happens during the game, gets called with 1 extra parameter
-	{ GID_SQ5,           850,   850,  0,                 NULL, "changeState",    -1,    0, { WORKAROUND_STILLCALL, 0 } }, // happens while playing Battle Cruiser (invalid segment) - bug #3056811
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -325,8 +325,9 @@ const SciWorkaroundEntry kGraphRedrawBox_workarounds[] = {
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kGraphUpdateBox_workarounds[] = {
 	{ GID_ECOQUEST2,     100,   333,  0,        "showEcorder", "changeState",    -1,    0, { WORKAROUND_STILLCALL, 0 } }, // necessary workaround for our ecorder script patch, because there isn't enough space to patch the function
-	{ GID_PQ3,           202,   202,  0,            "MapEdit", "movePt",         -1,    0, { WORKAROUND_STILLCALL, 0 } }, // when plotting crimes, gets called with 2 extra parameters - bug #3038077
 	{ GID_PQ3,           202,   202,  0,            "MapEdit", "addPt",          -1,    0, { WORKAROUND_STILLCALL, 0 } }, // when plotting crimes, gets called with 2 extra parameters - bug #3038077
+	{ GID_PQ3,           202,   202,  0,            "MapEdit", "movePt",         -1,    0, { WORKAROUND_STILLCALL, 0 } }, // when plotting crimes, gets called with 2 extra parameters - bug #3038077
+	{ GID_PQ3,           202,   202,  0,            "MapEdit", "dispose",        -1,    0, { WORKAROUND_STILLCALL, 0 } }, // when plotting crimes, gets called with 2 extra parameters
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -341,6 +342,7 @@ const SciWorkaroundEntry kIsObject_workarounds[] = {
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kMemory_workarounds[] = {
 	{ GID_LAURABOW2,      -1,   999,  0,                   "", "export 6",       -1,    0, { WORKAROUND_FAKE,    0 } }, // during the intro, when exiting the train (room 160), talking to Mr. Augustini, etc. - bug #3034490
+	{ GID_SQ1,            -1,   999,  0,                   "", "export 6",       -1,    0, { WORKAROUND_FAKE,    0 } }, // during walking Roger around Ulence Flats - bug #3513765
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -358,7 +360,7 @@ const SciWorkaroundEntry kNewWindow_workarounds[] = {
 
 //    gameID,           room,script,lvl,          object-name, method-name,    call,index,                workaround
 const SciWorkaroundEntry kPaletteUnsetFlag_workarounds[] = {
-	{ GID_QFG4,          100,   100,  0,            "doMovie", "<noname144>",    -1,    0, { WORKAROUND_IGNORE,    0 } }, // after the Sierra logo, no flags are passed, thus the call is meaningless - bug #3034506
+	{ GID_QFG4,          100,   100,  0,            "doMovie", "changeState",    -1,    0, { WORKAROUND_IGNORE,    0 } }, // after the Sierra logo, no flags are passed, thus the call is meaningless - bug #3034506
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 
@@ -392,11 +394,12 @@ const SciWorkaroundEntry kStrLen_workarounds[] = {
 const SciWorkaroundEntry kUnLoad_workarounds[] = {
 	{ GID_ECOQUEST,      380,    61,  0,              "gotIt", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // CD version: after talking to the dolphin the first time, a 3rd parameter is passed by accident
 	{ GID_ECOQUEST,      380,    69,  0,   "lookAtBlackBoard", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // German version, when closing the blackboard closeup in the dolphin room, a 3rd parameter is passed by accident - bug #3098353
-	{ GID_LAURABOW2,      -1,     1,  0,           "sCartoon", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // DEMO: during the intro, a 3rd parameter is passed by accident - bug #3034902
+	{ GID_LAURABOW2,      -1,    -1,  0,           "sCartoon", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // DEMO: during the intro, a 3rd parameter is passed by accident - bug #3034902
 	{ GID_LSL6,          130,   130,  0,    "recruitLarryScr", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // during intro, a 3rd parameter is passed by accident
 	{ GID_LSL6,          740,   740,  0,        "showCartoon", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // during ending, 4 additional parameters are passed by accident
 	{ GID_LSL6HIRES,     130,   130,  0,    "recruitLarryScr", "changeState",    -1,    0, { WORKAROUND_IGNORE, 0 } }, // during intro, a 3rd parameter is passed by accident
 	{ GID_SQ1,            43,   303,  0,            "slotGuy", "dispose",        -1,    0, { WORKAROUND_IGNORE, 0 } }, // when leaving ulence flats bar, parameter 1 is not passed - script error
+	{ GID_QFG4,           -1,   110,  0,            "dreamer", "dispose",        -1,    0, { WORKAROUND_IGNORE, 0 } }, // during the dream sequence, a 3rd parameter is passed by accident
 	SCI_WORKAROUNDENTRY_TERMINATOR
 };
 

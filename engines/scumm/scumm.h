@@ -24,6 +24,7 @@
 #define SCUMM_H
 
 #include "engines/engine.h"
+
 #include "common/endian.h"
 #include "common/events.h"
 #include "common/file.h"
@@ -31,6 +32,7 @@
 #include "common/keyboard.h"
 #include "common/random.h"
 #include "common/rect.h"
+#include "common/rendermode.h"
 #include "common/str.h"
 #include "common/textconsole.h"
 #include "graphics/surface.h"
@@ -148,7 +150,13 @@ enum GameFeatures {
 	GF_HE_985             = 1 << 14,
 
 	/** HE games with 16 bit color */
-	GF_16BIT_COLOR         = 1 << 15
+	GF_16BIT_COLOR         = 1 << 15,
+
+	/**
+	 * SCUMM v5-v7 Mac games stored in a container file
+	 * Used to differentiate between m68k and PPC versions of Indy4
+	 */
+	GF_MAC_CONTAINER       = 1 << 16
 };
 
 /* SCUMM Debug Channels */
@@ -239,10 +247,12 @@ enum ScummGameId {
 	GID_PUTTRACE,
 	GID_FUNSHOP,	// Used for all three funshops
 	GID_FOOTBALL,
+	GID_FOOTBALL2002,
 	GID_SOCCER,
 	GID_SOCCERMLS,
 	GID_SOCCER2004,
 	GID_BASEBALL2001,
+	GID_BASEBALL2003,
 	GID_BASKETBALL,
 	GID_MOONBASE,
 	GID_HECUP		// CUP demos
@@ -302,6 +312,19 @@ struct SaveStateMetaInfos {
 	uint16 time;
 	uint32 playtime;
 };
+
+enum UserStates {
+	USERSTATE_SET_FREEZE      = 0x01,   // freeze scripts if USERSTATE_FREEZE_ON is set, unfreeze otherwise
+	USERSTATE_SET_CURSOR      = 0x02,   // shows cursor if USERSTATE_CURSOR_ON is set, hides it otherwise
+	USERSTATE_SET_IFACE       = 0x04,   // change user-interface (sentence-line, inventory, verb-area)
+	USERSTATE_FREEZE_ON       = 0x08,   // only interpreted if USERSTATE_SET_FREEZE is set
+	USERSTATE_CURSOR_ON       = 0x10,   // only interpreted if USERSTATE_SET_CURSOR is set
+	USERSTATE_IFACE_SENTENCE  = 0x20,   // only interpreted if USERSTATE_SET_IFACE is set
+	USERSTATE_IFACE_INVENTORY = 0x40,   // only interpreted if USERSTATE_SET_IFACE is set
+	USERSTATE_IFACE_VERBS     = 0x80    // only interpreted if USERSTATE_SET_IFACE is set
+};
+
+#define USERSTATE_IFACE_ALL (USERSTATE_IFACE_SENTENCE | USERSTATE_IFACE_INVENTORY | USERSTATE_IFACE_VERBS)
 
 /**
  * A list of resource types.
@@ -502,10 +525,6 @@ protected:
 	int32 *_scummVars;
 	byte *_bitVars;
 
-	bool _v0ObjectIndex;			// V0 Use object index, instead of object number
-	bool _v0ObjectInInventory;		// V0 Use object number from inventory
-	byte _v0ObjectFlag;
-
 	/* Global resource tables */
 	int _numVariables, _numBitVariables, _numLocalObjects;
 	int _numGlobalObjects, _numArray, _numVerbs, _numFlObject;
@@ -646,7 +665,7 @@ protected:
 	void updateScriptPtr();
 	virtual void runInventoryScript(int i);
 	void inventoryScriptIndy3Mac();
-	void checkAndRunSentenceScript();
+	virtual void checkAndRunSentenceScript();
 	void runExitScript();
 	void runEntryScript();
 	void runAllScripts();
@@ -699,6 +718,9 @@ public:
 	Common::String _containerFile;
 
 	bool openFile(BaseScummFile &file, const Common::String &filename, bool resourceFile = false);
+
+	/** Is this game a Mac m68k v5 game with iMuse? */
+	bool isMacM68kIMuse() const;
 
 protected:
 	int _resourceHeaderSize;
@@ -791,6 +813,9 @@ protected:
 	void setOwnerOf(int obj, int owner);
 	void clearOwnerOf(int obj);
 	int getObjectRoom(int obj) const;
+	virtual bool objIsActor(int obj);
+	virtual int objToActor(int obj);
+	virtual int actorToObj(int actor);
 	int getObjX(int obj);
 	int getObjY(int obj);
 	void getObjectXYPos(int object, int &x, int &y)	{ int dir; getObjectXYPos(object, x, y, dir); }
@@ -799,7 +824,6 @@ protected:
 	int getObjNewDir(int obj);
 	int getObjectIndex(int object) const;
 	int getObjectImageCount(int object);
-	int whereIsObjectInventory(int object);
 	int whereIsObject(int object) const;
 	int findObject(int x, int y);
 	void findObjectInRoom(FindObjectInRoom *fo, byte findWhat, uint object, uint room);
@@ -820,7 +844,7 @@ protected:
 	virtual void clearDrawQueues();
 
 	uint32 getOBCDOffs(int object) const;
-	byte *getOBCDFromObject(int obj);
+	byte *getOBCDFromObject(int obj, bool v0CheckInventory = true);
 	const byte *getOBIMFromObjectData(const ObjectData &od);
 	const byte *getObjectImage(const byte *ptr, int state);
 	virtual int getObjectIdFromOBIM(const byte *obim);
@@ -931,8 +955,7 @@ protected:
 public:
 	bool isLightOn() const;
 
-	byte _currentLights;
-	int getCurrentLights() const;
+	virtual int getCurrentLights() const;
 
 protected:
 	void initScreens(int b, int h);
@@ -1349,7 +1372,7 @@ public:
 public:
 	bool towns_isRectInStringBox(int x1, int y1, int x2, int y2);
 	byte _townsPaletteFlags;
-	byte _townsCharsetColorMap[16];	
+	byte _townsCharsetColorMap[16];
 
 protected:
 	void towns_drawStripToScreen(VirtScreen *vs, int dstX, int dstY, int srcX, int srcY, int w, int h);

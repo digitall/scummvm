@@ -134,6 +134,7 @@ OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
 	_enable_zoning(false),
 	_mixer(0),
 	_shake_offset(0),
+	_queuedEventTime(0),
 	_event_queue_lock(createMutex()),
 	_touch_pt_down(),
 	_touch_pt_scroll(),
@@ -174,6 +175,8 @@ OSystem_Android::~OSystem_Android() {
 	_mixer = 0;
 	delete _fsFactory;
 	_fsFactory = 0;
+	delete _timerManager;
+	_timerManager = 0;
 
 	deleteMutex(_event_queue_lock);
 }
@@ -551,6 +554,7 @@ void OSystem_Android::getTimeAndDate(TimeDate &td) const {
 	td.tm_mday = tm.tm_mday;
 	td.tm_mon = tm.tm_mon;
 	td.tm_year = tm.tm_year;
+	td.tm_wday = tm.tm_wday;
 }
 
 void OSystem_Android::addSysArchivesToSearchSet(Common::SearchSet &s,

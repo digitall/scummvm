@@ -21,6 +21,7 @@
  */
 
 #include <FUiCtrlMessageBox.h>
+#include <FLocales.h>
 
 #include "common/config-manager.h"
 #include "common/file.h"
@@ -42,9 +43,12 @@
 
 using namespace Osp::Base;
 using namespace Osp::Base::Runtime;
+using namespace Osp::Locales;
 using namespace Osp::Ui::Controls;
+using namespace Osp::System;
 
 #define DEFAULT_CONFIG_FILE "/Home/scummvm.ini"
+#define RESOURCE_PATH       "/Res"
 #define MUTEX_BUFFER_SIZE 5
 
 //
@@ -152,17 +156,17 @@ OSystem::MutexRef BadaMutexManager::createMutex() {
 }
 
 void BadaMutexManager::lockMutex(OSystem::MutexRef mutex) {
-	Mutex *m = (Mutex*)mutex;
+	Mutex *m = (Mutex *)mutex;
 	m->Acquire();
 }
 
 void BadaMutexManager::unlockMutex(OSystem::MutexRef mutex) {
-	Mutex *m = (Mutex*)mutex;
+	Mutex *m = (Mutex *)mutex;
 	m->Release();
 }
 
 void BadaMutexManager::deleteMutex(OSystem::MutexRef mutex) {
-	Mutex *m = (Mutex*)mutex;
+	Mutex *m = (Mutex *)mutex;
 
 	for (int i = 0; i < MUTEX_BUFFER_SIZE; i++) {
 		if (buffer[i] == m) {
@@ -245,7 +249,7 @@ result BadaSystem::initModules() {
 		return E_OUT_OF_MEMORY;
 	}
 
-	_graphicsManager = (GraphicsManager*) new BadaGraphicsManager(_appForm);
+	_graphicsManager = (GraphicsManager *)new BadaGraphicsManager(_appForm);
 	if (!_graphicsManager) {
 		return E_OUT_OF_MEMORY;
 	}
@@ -266,7 +270,7 @@ result BadaSystem::initModules() {
 		return E_OUT_OF_MEMORY;
 	}
 
-	_audiocdManager = (AudioCDManager*) new DefaultAudioCDManager();
+	_audiocdManager = (AudioCDManager *)new DefaultAudioCDManager();
 	if (!_audiocdManager) {
 		return E_OUT_OF_MEMORY;
 	}
@@ -282,9 +286,6 @@ result BadaSystem::initModules() {
 
 void BadaSystem::initBackend() {
 	logEntered();
-
-	// allow translations and game .DAT files to be found
-	ConfMan.set("extrapath", "/Res");
 
 	// use the mobile device theme
 	ConfMan.set("gui_theme", "/Res/scummmobile");
@@ -304,10 +305,10 @@ void BadaSystem::initBackend() {
 	}
 
 	ConfMan.registerDefault("fullscreen", true);
-	ConfMan.registerDefault("aspect_ratio", true);
+	ConfMan.registerDefault("aspect_ratio", false);
 	ConfMan.setBool("confirm_exit", false);
 
-	Osp::System::SystemTime::GetTicks(_epoch);
+	SystemTime::GetTicks(_epoch);
 
 	if (E_SUCCESS != initModules()) {
 		AppLog("initModules failed");
@@ -317,7 +318,7 @@ void BadaSystem::initBackend() {
 
 	// replace kBigGUIFont using the large font from the scummmobile theme
 	Common::File fontFile;
-	Common::String fileName = "/Res/scummmobile/helvB14-ASCII.fcc";
+	Common::String fileName = "/Res/scummmobile/helvB14-iso-8859-1.fcc";
 	BadaFilesystemNode file(fileName);
 	if (file.exists()) {
 		Common::SeekableReadStream *stream = file.createReadStream();
@@ -333,6 +334,11 @@ void BadaSystem::initBackend() {
 	}
 
 	logLeaving();
+}
+
+void BadaSystem::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
+	// allow translations.dat and game .DAT files to be found
+	s.addDirectory(RESOURCE_PATH, RESOURCE_PATH, priority);
 }
 
 void BadaSystem::destroyBackend() {
@@ -369,7 +375,7 @@ bool BadaSystem::pollEvent(Common::Event &event) {
 
 uint32 BadaSystem::getMillis() {
 	long long result, ticks = 0;
-	Osp::System::SystemTime::GetTicks(ticks);
+	SystemTime::GetTicks(ticks);
 	result = ticks - _epoch;
 	return result;
 }
@@ -389,13 +395,18 @@ void BadaSystem::updateScreen() {
 void BadaSystem::getTimeAndDate(TimeDate &td) const {
 	DateTime currentTime;
 
-	if (E_SUCCESS == Osp::System::SystemTime::GetCurrentTime(currentTime)) {
+	if (E_SUCCESS == SystemTime::GetCurrentTime(WALL_TIME, currentTime)) {
 		td.tm_sec = currentTime.GetSecond();
 		td.tm_min = currentTime.GetMinute();
 		td.tm_hour = currentTime.GetHour();
 		td.tm_mday = currentTime.GetDay();
 		td.tm_mon = currentTime.GetMonth();
 		td.tm_year = currentTime.GetYear();
+
+		Calendar *calendar = Calendar::CreateInstanceN(CALENDAR_GREGORIAN);
+		calendar->SetTime(currentTime);
+		td.tm_wday = calendar->GetTimeField(TIME_FIELD_DAY_OF_WEEK) - 1;
+		delete calendar;
 	}
 }
 
@@ -446,8 +457,12 @@ void BadaSystem::closeGraphics() {
 }
 
 void BadaSystem::setMute(bool on) {
+	// only change mute after eventManager init() has completed
 	if (_audioThread) {
-		_audioThread->setMute(on);
+		BadaGraphicsManager *graphics = getGraphics();
+		if (graphics && graphics->isReady()) {
+			_audioThread->setMute(on);
+		}
 	}
 }
 

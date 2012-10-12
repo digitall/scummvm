@@ -20,9 +20,6 @@
  *
  */
 
-// FIXME: Avoid using printf
-#define FORBIDDEN_SYMBOL_EXCEPTION_printf
-
 #include "base/plugins.h"
 
 #include "common/archive.h"
@@ -156,6 +153,7 @@ Common::String ScummEngine_v70he::generateFilename(const int room) const {
 	case kGenHEMac:
 	case kGenHEMacNoParens:
 	case kGenHEPC:
+	case kGenHEIOS:
 		if (_game.heversion >= 98 && room >= 0) {
 			int disk = 0;
 			if (_heV7DiskOffsets)
@@ -168,7 +166,11 @@ Common::String ScummEngine_v70he::generateFilename(const int room) const {
 				break;
 			case 1:
 				id = 'a';
-				result = Common::String::format("%s.(a)", _filenamePattern.pattern);
+				// Some of the newer HE games for iOS use the ".hea" suffix instead
+				if (_filenamePattern.genMethod == kGenHEIOS)
+					result = Common::String::format("%s.hea", _filenamePattern.pattern);
+				else
+					result = Common::String::format("%s.(a)", _filenamePattern.pattern);
 				break;
 			default:
 				id = '0';
@@ -180,7 +182,7 @@ Common::String ScummEngine_v70he::generateFilename(const int room) const {
 			id = (room == 0) ? '0' : '1';
 		}
 
-		if (_filenamePattern.genMethod == kGenHEPC) {
+		if (_filenamePattern.genMethod == kGenHEPC || _filenamePattern.genMethod == kGenHEIOS) {
 			// For HE >= 98, we already called snprintf above.
 			if (_game.heversion < 98 || room < 0)
 				result = Common::String::format("%s.he%c", _filenamePattern.pattern, id);
@@ -217,6 +219,7 @@ static Common::String generateFilenameForDetection(const char *pattern, Filename
 		break;
 
 	case kGenHEPC:
+	case kGenHEIOS:
 		result = Common::String::format("%s.he0", pattern);
 		break;
 
@@ -237,6 +240,10 @@ static Common::String generateFilenameForDetection(const char *pattern, Filename
 	}
 
 	return result;
+}
+
+bool ScummEngine::isMacM68kIMuse() const {
+	return _game.platform == Common::kPlatformMacintosh && (_game.id == GID_MONKEY2 || _game.id == GID_INDY4) && !(_game.features & GF_MAC_CONTAINER);
 }
 
 struct DetectorDesc {
@@ -306,6 +313,46 @@ static void closeDiskImage(ScummDiskImage *img) {
 	if (img)
 		img->close();
 	SearchMan.remove("tmpDiskImgDir");
+}
+
+/*
+ * This function tries to detect if a speech file exists.
+ * False doesn't necessarily mean there are no speech files.
+ */
+static bool detectSpeech(const Common::FSList &fslist, const GameSettings *gs) {
+	if (gs->id == GID_MONKEY || gs->id == GID_MONKEY2) {
+		// FMTOWNS monkey and monkey2 games don't have speech but may have .sou files
+		if (gs->platform == Common::kPlatformFMTowns)
+			return false;
+
+		const char *const basenames[] = { gs->gameid, "monster", 0 };
+		static const char *const extensions[] = { "sou",
+#ifdef USE_FLAC
+		 "sof",
+#endif
+#ifdef USE_VORBIS
+		 "sog",
+#endif
+#ifdef USE_MAD
+		 "so3",
+#endif
+		 0 };
+
+		for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
+			if (file->isDirectory())
+				continue;
+
+			for (int i = 0; basenames[i]; ++i) {
+				Common::String basename = Common::String(basenames[i]) + ".";
+
+				for (int j = 0; extensions[j]; ++j) {
+					if ((basename + extensions[j]).equalsIgnoreCase(file->getName()))
+						return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 // The following function tries to detect the language for COMI and DIG
@@ -430,6 +477,11 @@ static void computeGameSettingsFromMD5(const Common::FSList &fslist, const GameF
 				if (dr.language == UNK_LANG) {
 					dr.language = detectLanguage(fslist, dr.game.id);
 				}
+
+				// HACK: Detect between 68k and PPC versions
+				if (dr.game.platform == Common::kPlatformMacintosh && dr.game.version >= 5 && dr.game.heversion == 0 && strstr(gfp->pattern, "Data"))
+					dr.game.features |= GF_MAC_CONTAINER;
+
 				break;
 			}
 		}
@@ -545,21 +597,20 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 
 					// Print some debug info
 					int filesize = tmp->size();
-					if (d.md5Entry->filesize != filesize)
 					debug(1, "SCUMM detector found matching file '%s' with MD5 %s, size %d\n",
 						file.c_str(), md5str.c_str(), filesize);
 
 					// Sanity check: We *should* have found a matching gameid / variant at this point.
-					// If not, then there's a bug in our data tables...
-					assert(dr.game.gameid != 0);
-
-					// Add it to the list of detected games
-					results.push_back(dr);
+					// If not, we may have #ifdef'ed the entry out in our detection_tables.h because we
+					// don't have the required stuff compiled in, or there's a bug in our data tables...
+					if (dr.game.gameid != 0)
+						// Add it to the list of detected games
+						results.push_back(dr);
 				}
 			}
 
 			if (isDiskImg)
-				closeDiskImage((ScummDiskImage*)tmp);
+				closeDiskImage((ScummDiskImage *)tmp);
 			delete tmp;
 		}
 
@@ -607,6 +658,17 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 
 			// HACK: Perhaps it is some modified translation?
 			dr.language = detectLanguage(fslist, g->id);
+
+			// Detect if there are speech files in this unknown game
+			if (detectSpeech(fslist, g)) {
+				if (strchr(dr.game.guioptions, GUIO_NOSPEECH[0]) != NULL) {
+					if (g->id == GID_MONKEY || g->id == GID_MONKEY2)
+						// TODO: This may need to be updated if something important gets added in the top detection table for these game ids
+						dr.game.guioptions = GUIO0();
+					else
+						warning("FIXME: fix NOSPEECH fallback");
+				}
+			}
 
 			// Add the game/variant to the candidates list if it is consistent
 			// with the file(s) we are seeing.
@@ -921,9 +983,6 @@ GameList ScummMetaEngine::detectGames(const Common::FSList &fslist) const {
 
 	::detectGames(fslist, results, 0);
 
-	// TODO: We still don't handle the FM-TOWNS demos (like zakloom) very well.
-	// In particular, they are detected as ZakTowns, which is bad.
-
 	for (Common::List<DetectorResult>::iterator
 	          x = results.begin(); x != results.end(); ++x) {
 		const PlainGameDescriptor *g = findPlainGameDescriptor(x->game.gameid, gameDescriptions);
@@ -937,27 +996,7 @@ GameList ScummMetaEngine::detectGames(const Common::FSList &fslist) const {
 		// Based on generateComplexID() in advancedDetector.cpp.
 		dg["preferredtarget"] = generatePreferredTarget(*x);
 
-		// HACK: Detect and distinguish the FM-TOWNS demos
-		if (x->game.platform == Common::kPlatformFMTowns && (x->game.features & GF_DEMO)) {
-			if (x->md5 == "2d388339d6050d8ccaa757b64633954e") {
-				// Indy + Loom demo
-				dg.description() = "Indiana Jones and the Last Crusade & Loom";
-				dg.updateDesc(x->extra);
-				dg["preferredtarget"] = "indyloom";
-			} else if (x->md5 == "77f5c9cc0986eb729c1a6b4c8823bbae") {
-				// Zak + Loom demo
-				dg.description() = "Zak McKracken & Loom";
-				dg.updateDesc(x->extra);
-				dg["preferredtarget"] = "zakloom";
-			} else if (x->md5 == "3938ee1aa4433fca9d9308c9891172b1") {
-				// Indy + Zak demo
-				dg.description() = "Indiana Jones and the Last Crusade & Zak McKracken";
-				dg.updateDesc(x->extra);
-				dg["preferredtarget"] = "indyzak";
-			}
-		}
-
-		dg.setGUIOptions(x->game.guioptions | MidiDriver::musicType2GUIO(x->game.midi));
+		dg.setGUIOptions(x->game.guioptions + MidiDriver::musicType2GUIO(x->game.midi));
 		dg.appendGUIOptions(getGameGUIOptionsDescriptionLanguage(x->language));
 
 		detectedGames.push_back(dg);
@@ -1033,17 +1072,29 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 	// unknown MD5, or with a medium debug level in case of a known MD5 (for
 	// debugging purposes).
 	if (!findInMD5Table(res.md5.c_str())) {
-		printf("Your game version appears to be unknown. If this is *NOT* a fan-modified\n");
-		printf("version (in particular, not a fan-made translation), please, report the\n");
-		printf("following data to the ScummVM team along with name of the game you tried\n");
-		printf("to add and its version/language/etc.:\n");
+		Common::String md5Warning;
 
-		printf("  SCUMM gameid '%s', file '%s', MD5 '%s'\n\n",
+		md5Warning = "Your game version appears to be unknown. If this is *NOT* a fan-modified\n";
+		md5Warning += "version (in particular, not a fan-made translation), please, report the\n";
+		md5Warning += "following data to the ScummVM team along with name of the game you tried\n";
+		md5Warning += "to add and its version/language/etc.:\n";
+
+		md5Warning += Common::String::format("  SCUMM gameid '%s', file '%s', MD5 '%s'\n\n",
 				res.game.gameid,
 				generateFilenameForDetection(res.fp.pattern, res.fp.genMethod).c_str(),
 				res.md5.c_str());
+
+		g_system->logMessage(LogMessageType::kWarning, md5Warning.c_str());
 	} else {
 		debug(1, "Using MD5 '%s'", res.md5.c_str());
+	}
+
+	// We don't support the "Lite" version off puttzoo iOS because it contains
+	// the full game.
+	if (!strcmp(res.game.gameid, "puttzoo") && !strcmp(res.extra, "Lite")) {
+		GUIErrorMessage("The Lite version of Putt-Putt Saves the Zoo iOS is not supported to avoid piracy.\n"
+		                "The full version is available for purchase from the iTunes Store.");
+		return Common::kUnsupportedGameidError;
 	}
 
 	// If the GUI options were updated, we catch this here and update them in the users config
@@ -1094,6 +1145,7 @@ Common::Error ScummMetaEngine::createInstance(OSystem *syst, Engine **engine) co
 		case 200:
 			*engine = new ScummEngine_vCUPhe(syst, res);
 			break;
+		case 101:
 		case 100:
 			*engine = new ScummEngine_v100he(syst, res);
 			break;
@@ -1224,7 +1276,6 @@ SaveStateDescriptor ScummMetaEngine::querySaveMetaInfos(const char *target, int 
 	Graphics::Surface *thumbnail = ScummEngine::loadThumbnailFromSlot(target, slot);
 
 	SaveStateDescriptor desc(slot, saveDesc);
-	desc.setDeletableFlag(true);
 	desc.setThumbnail(thumbnail);
 
 	SaveStateMetaInfos infos;

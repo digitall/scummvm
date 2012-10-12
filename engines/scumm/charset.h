@@ -112,7 +112,7 @@ public:
 class CharsetRendererClassic : public CharsetRendererCommon {
 protected:
 	virtual void drawBitsN(const Graphics::Surface &s, byte *dst, const byte *src, byte bpp, int drawTop, int width, int height);
-	void printCharIntern(bool is2byte, const byte *charPtr, int origWidth, int origHeight, int width, int height, VirtScreen *vs, bool ignoreCharsetMask);	
+	void printCharIntern(bool is2byte, const byte *charPtr, int origWidth, int origHeight, int width, int height, VirtScreen *vs, bool ignoreCharsetMask);
 	virtual bool prepareDraw(uint16 chr);
 
 	int _width, _height, _origWidth, _origHeight;
@@ -156,7 +156,7 @@ class CharsetRendererNES : public CharsetRendererCommon {
 protected:
 	byte *_trTable;
 
-	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth);
+	void drawBits1(Graphics::Surface &dest, int x, int y, const byte *src, int drawTop, int width, int height);
 
 public:
 	CharsetRendererNES(ScummEngine *vm) : CharsetRendererCommon(vm) {}
@@ -172,7 +172,7 @@ public:
 class CharsetRendererV3 : public CharsetRendererCommon {
 protected:
 	virtual void enableShadow(bool enable);
-	virtual void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth);
+	virtual void drawBits1(Graphics::Surface &dest, int x, int y, const byte *src, int drawTop, int width, int height);
 	virtual int getDrawWidthIntern(uint16 chr);
 	virtual int getDrawHeightIntern(uint16 chr);
 	virtual void setDrawCharIntern(uint16 chr) {}
@@ -195,10 +195,10 @@ public:
 
 	int getCharWidth(uint16 chr);
 	int getFontHeight();
-	
+
 private:
 	void enableShadow(bool enable);
-	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth);
+	void drawBits1(Graphics::Surface &dest, int x, int y, const byte *src, int drawTop, int width, int height);
 #ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
 	int getDrawWidthIntern(uint16 chr);
 	int getDrawHeightIntern(uint16 chr);
@@ -210,7 +210,7 @@ private:
 #ifdef USE_RGB_COLOR
 class CharsetRendererPCE : public CharsetRendererV3 {
 private:
-	void drawBits1(const Graphics::Surface &s, byte *dst, const byte *src, int drawTop, int width, int height, uint8 bitDepth);
+	void drawBits1(Graphics::Surface &dest, int x, int y, const byte *src, int drawTop, int width, int height);
 
 	int getDrawWidthIntern(uint16 chr);
 	int getDrawHeightIntern(uint16 chr);

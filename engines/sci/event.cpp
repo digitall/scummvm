@@ -102,8 +102,8 @@ const MouseEventConversion mouseEventMappings[] = {
 	{ Common::EVENT_RBUTTONDOWN,   SCI_EVENT_MOUSE_PRESS, 2 },
 	{ Common::EVENT_MBUTTONDOWN,   SCI_EVENT_MOUSE_PRESS, 3 },
 	{   Common::EVENT_LBUTTONUP, SCI_EVENT_MOUSE_RELEASE, 1 },
-	{   Common::EVENT_LBUTTONUP, SCI_EVENT_MOUSE_RELEASE, 2 },
-	{   Common::EVENT_LBUTTONUP, SCI_EVENT_MOUSE_RELEASE, 3 }
+	{   Common::EVENT_RBUTTONUP, SCI_EVENT_MOUSE_RELEASE, 2 },
+	{   Common::EVENT_MBUTTONUP, SCI_EVENT_MOUSE_RELEASE, 3 }
 };
 
 EventManager::EventManager(bool fontIsExtended) : _fontIsExtended(fontIsExtended) {
@@ -253,14 +253,11 @@ SciEvent EventManager::getScummVMEvent() {
 	if ((modifiers & Common::KBD_ALT) && input.character > 0 && input.character < 27)
 		input.character += 96; // 0x01 -> 'a'
 
-	if (getSciVersion() <= SCI_VERSION_1_MIDDLE) {
-		// TODO: find out if altify is also not needed for sci1late+, couldnt find any game that uses those keys
-		// Scancodify if appropriate
-		if (modifiers & Common::KBD_ALT)
-			input.character = altify(input.character);
-		else if ((modifiers & Common::KBD_CTRL) && input.character > 0 && input.character < 27)
-			input.character += 96; // 0x01 -> 'a'
-	}
+	// Scancodify if appropriate
+	if (modifiers & Common::KBD_ALT)
+		input.character = altify(input.character);
+	else if ((modifiers & Common::KBD_CTRL) && input.character > 0 && input.character < 27)
+		input.character += 96; // 0x01 -> 'a'
 
 	// If no actual key was pressed (e.g. if only a modifier key was pressed),
 	// ignore the event

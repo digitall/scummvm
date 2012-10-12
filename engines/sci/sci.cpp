@@ -46,7 +46,8 @@
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
-#include "sci/graphics/controls.h"
+#include "sci/graphics/controls16.h"
+#include "sci/graphics/controls32.h"
 #include "sci/graphics/coordadjuster.h"
 #include "sci/graphics/cursor.h"
 #include "sci/graphics/maciconbar.h"
@@ -90,6 +91,7 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gam
 	_vocabularyLanguage = 1; // we load english vocabulary on startup
 	_eventMan = 0;
 	_console = 0;
+	_opcode_formats = 0;
 
 	// Set up the engine specific debug levels
 	DebugMan.addDebugChannel(kDebugLevelError, "Error", "Script error debugging");
@@ -113,6 +115,7 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gam
 	DebugMan.addDebugChannel(kDebugLevelGC, "GC", "Garbage Collector debugging");
 	DebugMan.addDebugChannel(kDebugLevelResMan, "ResMan", "Resource manager debugging");
 	DebugMan.addDebugChannel(kDebugLevelOnStartup, "OnStartup", "Enter debugger at start of game");
+	DebugMan.addDebugChannel(kDebugLevelDebugMode, "DebugMode", "Enable game debug mode at start of game");
 
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
 
@@ -147,12 +150,13 @@ SciEngine::~SciEngine() {
 	DebugMan.clearAllDebugChannels();
 
 #ifdef ENABLE_SCI32
+	delete _gfxControls32;
 	delete _gfxText32;
 	delete _robotDecoder;
 	delete _gfxFrameout;
 #endif
 	delete _gfxMenu;
-	delete _gfxControls;
+	delete _gfxControls16;
 	delete _gfxText16;
 	delete _gfxAnimate;
 	delete _gfxPaint;
@@ -176,6 +180,9 @@ SciEngine::~SciEngine() {
 	delete _eventMan;
 	delete _gamestate->_segMan;
 	delete _gamestate;
+
+	delete[] _opcode_formats;
+
 	delete _resMan;	// should be deleted last
 	g_sci = 0;
 }
@@ -184,9 +191,10 @@ extern void showScummVMDialog(const Common::String &message);
 
 Common::Error SciEngine::run() {
 	// Assign default values to the config manager, in case settings are missing
-	ConfMan.registerDefault("sci_originalsaveload", "false");
+	ConfMan.registerDefault("originalsaveload", "false");
 	ConfMan.registerDefault("native_fb01", "false");
 	ConfMan.registerDefault("windows_cursors", "false");	// Windows cursors for KQ6 Windows
+	ConfMan.registerDefault("silver_cursors", "false");	// Silver cursors for SQ4 CD
 
 	_resMan = new ResourceManager();
 	assert(_resMan);
@@ -377,7 +385,7 @@ bool SciEngine::gameHasFanMadePatch() {
 		{ GID_PQ3,        994,   4686,   1291,  0x78 },	// English
 		{ GID_PQ3,        994,   4734,   1283,  0x78 },	// German
 		{ GID_QFG1VGA,    994,   4388,      0,  0x00 },
-		{ GID_QFG3,       994,   4714,      0,  0x00 },
+		{ GID_QFG3,        33,    260,      0,  0x00 },
 		// TODO: Disabled, as it fixes a whole lot of bugs which can't be tested till SCI2.1 support is finished
 		//{ GID_QFG4,       710,  11477,      0,  0x00 },
 		{ GID_SQ1,        994,   4740,      0,  0x00 },
@@ -445,8 +453,8 @@ static byte patchGameRestoreSaveSci21[] = {
 };
 
 static void patchGameSaveRestoreCode(SegManager *segMan, reg_t methodAddress, byte id) {
-	Script *script = segMan->getScript(methodAddress.segment);
-	byte *patchPtr = const_cast<byte *>(script->getBuf(methodAddress.offset));
+	Script *script = segMan->getScript(methodAddress.getSegment());
+	byte *patchPtr = const_cast<byte *>(script->getBuf(methodAddress.getOffset()));
 	if (getSciVersion() <= SCI_VERSION_1_1)
 		memcpy(patchPtr, patchGameRestoreSave, sizeof(patchGameRestoreSave));
 	else	// SCI2+
@@ -455,8 +463,8 @@ static void patchGameSaveRestoreCode(SegManager *segMan, reg_t methodAddress, by
 }
 
 static void patchGameSaveRestoreCodeSci21(SegManager *segMan, reg_t methodAddress, byte id, bool doRestore) {
-	Script *script = segMan->getScript(methodAddress.segment);
-	byte *patchPtr = const_cast<byte *>(script->getBuf(methodAddress.offset));
+	Script *script = segMan->getScript(methodAddress.getSegment());
+	byte *patchPtr = const_cast<byte *>(script->getBuf(methodAddress.getOffset()));
 	memcpy(patchPtr, patchGameRestoreSaveSci21, sizeof(patchGameRestoreSaveSci21));
 	if (doRestore)
 		patchPtr[2] = 0x78;	// push1
@@ -484,7 +492,7 @@ void SciEngine::patchGameSaveRestore() {
 		break;
 	}
 
-	if (ConfMan.getBool("sci_originalsaveload"))
+	if (ConfMan.getBool("originalsaveload"))
 		return;
 
 	uint16 kernelNamesSize = _kernel->getKernelNamesSize();
@@ -588,7 +596,7 @@ void SciEngine::initGraphics() {
 	_gfxAnimate = 0;
 	_gfxCache = 0;
 	_gfxCompare = 0;
-	_gfxControls = 0;
+	_gfxControls16 = 0;
 	_gfxCoordAdjuster = 0;
 	_gfxCursor = 0;
 	_gfxMacIconBar = 0;
@@ -600,6 +608,7 @@ void SciEngine::initGraphics() {
 	_gfxText16 = 0;
 	_gfxTransitions = 0;
 #ifdef ENABLE_SCI32
+	_gfxControls32 = 0;
 	_gfxText32 = 0;
 	_robotDecoder = 0;
 	_gfxFrameout = 0;
@@ -609,16 +618,7 @@ void SciEngine::initGraphics() {
 	if (hasMacIconBar())
 		_gfxMacIconBar = new GfxMacIconBar();
 
-	bool paletteMerging = true;
-	if (getSciVersion() >= SCI_VERSION_1_1) {
-		// there are some games that use inbetween SCI1.1 interpreter, so we have to detect if it's merging or copying
-		if (getSciVersion() == SCI_VERSION_1_1)
-			paletteMerging = _resMan->detectForPaletteMergingForSci11();
-		else
-			paletteMerging = false;
-	}
-
-	_gfxPalette = new GfxPalette(_resMan, _gfxScreen, paletteMerging);
+	_gfxPalette = new GfxPalette(_resMan, _gfxScreen);
 	_gfxCache = new GfxCache(_resMan, _gfxScreen, _gfxPalette);
 	_gfxCursor = new GfxCursor(_resMan, _gfxPalette, _gfxScreen);
 
@@ -631,7 +631,8 @@ void SciEngine::initGraphics() {
 		_gfxPaint32 = new GfxPaint32(_resMan, _gamestate->_segMan, _kernel, _gfxCoordAdjuster, _gfxCache, _gfxScreen, _gfxPalette);
 		_gfxPaint = _gfxPaint32;
 		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache, _gfxScreen);
-		_robotDecoder = new RobotDecoder(g_system->getMixer(), getPlatform() == Common::kPlatformMacintosh);
+		_gfxControls32 = new GfxControls32(_gamestate->_segMan, _gfxCache, _gfxScreen, _gfxText32);
+		_robotDecoder = new RobotDecoder(getPlatform() == Common::kPlatformMacintosh);
 		_gfxFrameout = new GfxFrameout(_gamestate->_segMan, _resMan, _gfxCoordAdjuster, _gfxCache, _gfxScreen, _gfxPalette, _gfxPaint32);
 	} else {
 #endif
@@ -645,7 +646,7 @@ void SciEngine::initGraphics() {
 		_gfxPaint = _gfxPaint16;
 		_gfxAnimate = new GfxAnimate(_gamestate, _gfxCache, _gfxPorts, _gfxPaint16, _gfxScreen, _gfxPalette, _gfxCursor, _gfxTransitions);
 		_gfxText16 = new GfxText16(_resMan, _gfxCache, _gfxPorts, _gfxPaint16, _gfxScreen);
-		_gfxControls = new GfxControls(_gamestate->_segMan, _gfxPorts, _gfxPaint16, _gfxText16, _gfxScreen);
+		_gfxControls16 = new GfxControls16(_gamestate->_segMan, _gfxPorts, _gfxPaint16, _gfxText16, _gfxScreen);
 		_gfxMenu = new GfxMenu(_eventMan, _gamestate->_segMan, _gfxPorts, _gfxPaint16, _gfxText16, _gfxScreen, _gfxCursor);
 
 		_gfxMenu->reset();
@@ -739,7 +740,7 @@ GUI::Debugger *SciEngine::getDebugger() {
 	if (_gamestate) {
 		ExecStack *xs = &(_gamestate->_executionStack.back());
 		if (xs) {
-			xs->addr.pc.offset = _debugState.old_pc_offset;
+			xs->addr.pc.setOffset(_debugState.old_pc_offset);
 			xs->sp = _debugState.old_sp;
 		}
 	}
@@ -875,6 +876,7 @@ void SciEngine::syncIngameAudioOptions() {
 			if (getGameId() == GID_SQ4
 				|| getGameId() == GID_FREDDYPHARKAS
 				|| getGameId() == GID_ECOQUEST
+				|| getGameId() == GID_LSL6
 				// TODO: The following need script patches for simultaneous speech and subtitles
 				//|| getGameId() == GID_KQ6
 				//|| getGameId() == GID_LAURABOW2

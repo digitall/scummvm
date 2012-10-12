@@ -76,14 +76,6 @@ namespace {
 std::string unifyPath(const std::string &path);
 
 /**
- * Returns the last path component.
- *
- * @param path Path string.
- * @return Last path component.
- */
-std::string getLastPathComponent(const std::string &path);
-
-/**
  * Display the help text for the program.
  *
  * @param exe Name of the executable.
@@ -197,9 +189,41 @@ int main(int argc, char *argv[]) {
 
 			msvcVersion = atoi(argv[++i]);
 
-			if (msvcVersion != 8 && msvcVersion != 9 && msvcVersion != 10) {
+			if (msvcVersion != 8 && msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11) {
 				std::cerr << "ERROR: Unsupported version: \"" << msvcVersion << "\" passed to \"--msvc-version\"!\n";
 				return -1;
+			}
+		} else if (!strncmp(argv[i], "--enable-engine=", 16)) {
+			const char *names = &argv[i][16];
+			if (!*names) {
+				std::cerr << "ERROR: Invalid command \"" << argv[i] << "\"\n";
+				return -1;
+			}
+
+			TokenList tokens = tokenize(names, ',');
+			TokenList::const_iterator token = tokens.begin();
+			while (token != tokens.end()) {
+				std::string name = *token++;
+				if (!setEngineBuildState(name, setup.engines, true)) {
+					std::cerr << "ERROR: \"" << name << "\" is not a known engine!\n";
+					return -1;
+				}
+			}
+		} else if (!strncmp(argv[i], "--disable-engine=", 17)) {
+			const char *names = &argv[i][17];
+			if (!*names) {
+				std::cerr << "ERROR: Invalid command \"" << argv[i] << "\"\n";
+				return -1;
+			}
+
+			TokenList tokens = tokenize(names, ',');
+			TokenList::const_iterator token = tokens.begin();
+			while (token != tokens.end()) {
+				std::string name = *token++;
+				if (!setEngineBuildState(name, setup.engines, false)) {
+					std::cerr << "ERROR: \"" << name << "\" is not a known engine!\n";
+					return -1;
+				}
 			}
 		} else if (!strncmp(argv[i], "--enable-", 9)) {
 			const char *name = &argv[i][9];
@@ -211,12 +235,9 @@ int main(int argc, char *argv[]) {
 			if (!std::strcmp(name, "all-engines")) {
 				for (EngineDescList::iterator j = setup.engines.begin(); j != setup.engines.end(); ++j)
 					j->enable = true;
-			} else if (!setEngineBuildState(name, setup.engines, true)) {
-				// If none found, we'll try the features list
-				if (!setFeatureBuildState(name, setup.features, true)) {
-					std::cerr << "ERROR: \"" << name << "\" is neither an engine nor a feature!\n";
-					return -1;
-				}
+			} else if (!setFeatureBuildState(name, setup.features, true)) {
+				std::cerr << "ERROR: \"" << name << "\" is not a feature!\n";
+				return -1;
 			}
 		} else if (!strncmp(argv[i], "--disable-", 10)) {
 			const char *name = &argv[i][10];
@@ -228,12 +249,9 @@ int main(int argc, char *argv[]) {
 			if (!std::strcmp(name, "all-engines")) {
 				for (EngineDescList::iterator j = setup.engines.begin(); j != setup.engines.end(); ++j)
 					j->enable = false;
-			} else if (!setEngineBuildState(name, setup.engines, false)) {
-				// If none found, we'll try the features list
-				if (!setFeatureBuildState(name, setup.features, false)) {
-					std::cerr << "ERROR: \"" << name << "\" is neither an engine nor a feature!\n";
-					return -1;
-				}
+			} else if (!setFeatureBuildState(name, setup.features, false)) {
+				std::cerr << "ERROR: \"" << name << "\" is not a feature!\n";
+				return -1;
 			}
 		} else if (!std::strcmp(argv[i], "--file-prefix")) {
 			if (i + 1 >= argc) {
@@ -411,6 +429,12 @@ int main(int argc, char *argv[]) {
 		// 4310 (cast truncates constant value)
 		//   used in some engines
 		//
+		// 4345 (behavior change: an object of POD type constructed with an
+		// initializer of the form () will be default-initialized)
+		//   used in Common::Array(), and it basically means that newer VS
+		//   versions adhere to the standard in this case. Can be safely
+		//   disabled.
+		//
 		// 4351 (new behavior: elements of array 'array' will be default initialized)
 		//   a change in behavior in Visual Studio 2005. We want the new behavior, so it can be disabled
 		//
@@ -460,6 +484,7 @@ int main(int argc, char *argv[]) {
 		globalWarnings.push_back("4244");
 		globalWarnings.push_back("4250");
 		globalWarnings.push_back("4310");
+		globalWarnings.push_back("4345");
 		globalWarnings.push_back("4351");
 		globalWarnings.push_back("4512");
 		globalWarnings.push_back("4702");
@@ -476,10 +501,14 @@ int main(int argc, char *argv[]) {
 
 		projectWarnings["agos"].push_back("4511");
 
+		projectWarnings["dreamweb"].push_back("4355");
+
 		projectWarnings["lure"].push_back("4189");
 		projectWarnings["lure"].push_back("4355");
 
 		projectWarnings["kyra"].push_back("4355");
+		projectWarnings["kyra"].push_back("4510");
+		projectWarnings["kyra"].push_back("4610");
 
 		projectWarnings["m4"].push_back("4355");
 
@@ -514,7 +543,9 @@ int main(int argc, char *argv[]) {
 		globalWarnings.push_back("-Wwrite-strings");
 		// The following are not warnings at all... We should consider adding them to
 		// a different list of parameters.
+#if !NEEDS_RTTI
 		globalWarnings.push_back("-fno-rtti");
+#endif
 		globalWarnings.push_back("-fno-exceptions");
 		globalWarnings.push_back("-fcheck-new");
 
@@ -541,14 +572,6 @@ std::string unifyPath(const std::string &path) {
 	std::string result = path;
 	std::replace(result.begin(), result.end(), '\\', '/');
 	return result;
-}
-
-std::string getLastPathComponent(const std::string &path) {
-	std::string::size_type pos = path.find_last_of('/');
-	if (pos == std::string::npos)
-		return path;
-	else
-		return path.substr(pos + 1);
 }
 
 void displayHelp(const char *exe) {
@@ -580,6 +603,7 @@ void displayHelp(const char *exe) {
 	        "                           8 stands for \"Visual Studio 2005\"\n"
 	        "                           9 stands for \"Visual Studio 2008\"\n"
 	        "                           10 stands for \"Visual Studio 2010\"\n"
+	        "                           11 stands for \"Visual Studio 2012\"\n"
 	        "                           The default is \"9\", thus \"Visual Studio 2008\"\n"
 	        " --build-events           Run custom build events as part of the build\n"
 	        "                          (default: false)\n"
@@ -591,14 +615,14 @@ void displayHelp(const char *exe) {
 	        "\n"
 	        "Engines settings:\n"
 	        " --list-engines           list all available engines and their default state\n"
-	        " --enable-engine          enable building of the engine with the name \"engine\"\n"
-	        " --disable-engine         disable building of the engine with the name \"engine\"\n"
+	        " --enable-engine=<name>   enable building of the engine with the name \"name\"\n"
+	        " --disable-engine=<name>  disable building of the engine with the name \"name\"\n"
 	        " --enable-all-engines     enable building of all engines\n"
 	        " --disable-all-engines    disable building of all engines\n"
 	        "\n"
 	        "Optional features settings:\n"
-	        " --enable-name            enable inclusion of the feature \"name\"\n"
-	        " --disable-name           disable inclusion of the feature \"name\"\n"
+	        " --enable-<name>          enable inclusion of the feature \"name\"\n"
+	        " --disable-<name>         disable inclusion of the feature \"name\"\n"
 	        "\n"
 	        " There are the following features available:\n"
 	        "\n";
@@ -610,26 +634,6 @@ void displayHelp(const char *exe) {
 		cout << ' ' << (i->enable ? " enabled" : "disabled") << " | " << std::setw((std::streamsize)15) << i->name << std::setw((std::streamsize)0) << " | " << i->description << '\n';
 	cout.setf(std::ios_base::right, std::ios_base::adjustfield);
 }
-
-typedef StringList TokenList;
-
-/**
- * Takes a given input line and creates a list of tokens out of it.
- *
- * A token in this context is separated by whitespaces. A special case
- * are quotation marks though. A string inside quotation marks is treated
- * as single token, even when it contains whitespaces.
- *
- * Thus for example the input:
- * foo bar "1 2 3 4" ScummVM
- * will create a list with the following entries:
- * "foo", "bar", "1 2 3 4", "ScummVM"
- * As you can see the quotation marks will get *removed* too.
- *
- * @param input The text to be tokenized.
- * @return A list of tokens.
- */
-TokenList tokenize(const std::string &input);
 
 /**
  * Try to parse a given line and create an engine definition
@@ -650,7 +654,7 @@ bool parseEngine(const std::string &line, EngineDesc &engine);
 } // End of anonymous namespace
 
 EngineDescList parseConfigure(const std::string &srcDir) {
-	std::string configureFile = srcDir + "/configure";
+	std::string configureFile = srcDir + "/engines/configure.engines";
 
 	std::ifstream configure(configureFile.c_str());
 	if (!configure)
@@ -759,8 +763,9 @@ bool parseEngine(const std::string &line, EngineDesc &engine) {
 
 	return true;
 }
+} // End of anonymous namespace
 
-TokenList tokenize(const std::string &input) {
+TokenList tokenize(const std::string &input, char separator) {
 	TokenList result;
 
 	std::string::size_type sIdx = input.find_first_not_of(" \t");
@@ -774,12 +779,15 @@ TokenList tokenize(const std::string &input) {
 			++sIdx;
 			nIdx = input.find_first_of('\"', sIdx);
 		} else {
-			nIdx = input.find_first_of(' ', sIdx);
+			nIdx = input.find_first_of(separator, sIdx);
 		}
 
 		if (nIdx != std::string::npos) {
 			result.push_back(input.substr(sIdx, nIdx - sIdx));
-			sIdx = input.find_first_not_of(" \t", nIdx + 1);
+			if (separator == ' ')
+				sIdx = input.find_first_not_of(" \t", nIdx + 1);
+			else
+				sIdx = input.find_first_not_of(separator, nIdx + 1);
 		} else {
 			result.push_back(input.substr(sIdx));
 			break;
@@ -788,7 +796,6 @@ TokenList tokenize(const std::string &input) {
 
 	return result;
 }
-} // End of anonymous namespace
 
 namespace {
 const Feature s_features[] = {
@@ -799,6 +806,7 @@ const Feature s_features[] = {
 	{    "flac",        "USE_FLAC", "libFLAC_static",   true, "FLAC support" },
 	{     "png",         "USE_PNG", "libpng",           true, "libpng support" },
 	{  "theora",   "USE_THEORADEC", "libtheora_static", true, "Theora decoding support" },
+	{"freetype",   "USE_FREETYPE2", "freetype",         true, "FreeType support" },
 
 	// Feature flags
 	{        "bink",        "USE_BINK",         "", true, "Bink video support" },
@@ -811,6 +819,7 @@ const Feature s_features[] = {
 	{     "taskbar",     "USE_TASKBAR",         "", true, "Taskbar integration support" },
 	{ "translation", "USE_TRANSLATION",         "", true, "Translation support" },
 	{      "vkeybd",   "ENABLE_VKEYBD",         "", false, "Virtual keyboard support"},
+	{   "keymapper","ENABLE_KEYMAPPER",         "", false, "Keymapper support"},
 	{  "langdetect",  "USE_DETECTLANG",         "", true, "System language detection support" } // This feature actually depends on "translation", there
 	                                                                                            // is just no current way of properly detecting this...
 };
@@ -820,7 +829,6 @@ const Tool s_tools[] = {
 	{ "create_hugo",         true},
 	{ "create_kyradat",      true},
 	{ "create_lure",         true},
-	{ "create_mads",         true},
 	{ "create_teenagent",    true},
 	{ "create_toon",         true},
 	{ "create_translations", true},
@@ -953,7 +961,7 @@ bool isInList(const std::string &dir, const std::string &fileName, const StringL
 				continue;
 		}
 
-		const std::string lastPathComponent = getLastPathComponent(*i);
+		const std::string lastPathComponent = ProjectProvider::getLastPathComponent(*i);
 		if (extensionName == "o") {
 			return false;
 		} else if (!producesObjectFile(fileName) && extensionName != "h") {
@@ -1168,9 +1176,7 @@ void ProjectProvider::createProject(const BuildSetup &setup) {
 		createModuleList(setup.srcDir + "/gui", setup.defines, in, ex);
 		createModuleList(setup.srcDir + "/audio", setup.defines, in, ex);
 		createModuleList(setup.srcDir + "/audio/softsynth/mt32", setup.defines, in, ex);
-#if HAS_VIDEO_FOLDER
 		createModuleList(setup.srcDir + "/video", setup.defines, in, ex);
-#endif
 
 		// Resource files
 		in.push_back(setup.srcDir + "/icons/" + setup.projectName + ".ico");
@@ -1180,6 +1186,8 @@ void ProjectProvider::createProject(const BuildSetup &setup) {
 		in.push_back(setup.srcDir + "/AUTHORS");
 		in.push_back(setup.srcDir + "/COPYING");
 		in.push_back(setup.srcDir + "/COPYING.LGPL");
+		in.push_back(setup.srcDir + "/COPYING.BSD");
+		in.push_back(setup.srcDir + "/COPYING.FREEFONT");
 		in.push_back(setup.srcDir + "/COPYRIGHT");
 		in.push_back(setup.srcDir + "/NEWS");
 		in.push_back(setup.srcDir + "/README");
@@ -1256,6 +1264,14 @@ std::string ProjectProvider::createUUID() const {
 #endif
 }
 
+std::string ProjectProvider::getLastPathComponent(const std::string &path) {
+	std::string::size_type pos = path.find_last_of('/');
+	if (pos == std::string::npos)
+		return path;
+	else
+		return path.substr(pos + 1);
+}
+
 void ProjectProvider::addFilesToProject(const std::string &dir, std::ofstream &projectFile,
                                         const StringList &includeList, const StringList &excludeList,
                                         const std::string &filePrefix) {
@@ -1300,6 +1316,8 @@ void ProjectProvider::createModuleList(const std::string &moduleDir, const Strin
 
 	std::stack<bool> shouldInclude;
 	shouldInclude.push(true);
+
+	StringList filesInVariableList;
 
 	bool hadModule = false;
 	std::string line;
@@ -1354,6 +1372,30 @@ void ProjectProvider::createModuleList(const std::string &moduleDir, const Strin
 					std::getline(moduleMk, line);
 					tokens = tokenize(line);
 					i = tokens.begin();
+				} else if (*i == "$(KYRARPG_COMMON_OBJ)") {
+					// HACK to fix EOB/LOL compilation in the kyra engine:
+					// replace the variable name with the stored files.
+					// This assumes that the file list has already been defined.
+					if (filesInVariableList.size() == 0)
+						error("$(KYRARPG_COMMON_OBJ) found, but the variable hasn't been set before it");
+					// Construct file list and replace the variable
+					for (StringList::iterator j = filesInVariableList.begin(); j != filesInVariableList.end(); ++j) {
+						const std::string filename = *j;
+
+						if (shouldInclude.top()) {
+							// In case we should include a file, we need to make
+							// sure it is not in the exclude list already. If it
+							// is we just drop it from the exclude list.
+							excludeList.remove(filename);
+
+							includeList.push_back(filename);
+						} else if (std::find(includeList.begin(), includeList.end(), filename) == includeList.end()) {
+							// We only add the file to the exclude list in case it
+							// has not yet been added to the include list.
+							excludeList.push_back(filename);
+						}
+					}
+					++i;
 				} else {
 					const std::string filename = moduleDir + "/" + unifyPath(*i);
 
@@ -1369,6 +1411,29 @@ void ProjectProvider::createModuleList(const std::string &moduleDir, const Strin
 						// has not yet been added to the include list.
 						excludeList.push_back(filename);
 					}
+					++i;
+				}
+			}
+		} else if (*i == "KYRARPG_COMMON_OBJ") {
+			// HACK to fix EOB/LOL compilation in the kyra engine: add the
+			// files defined in the KYRARPG_COMMON_OBJ variable in a list
+			if (tokens.size() < 3)
+				error("Malformed KYRARPG_COMMON_OBJ definition in " + moduleMkFile);
+			++i;
+
+			if (*i != ":=" && *i != "+=" && *i != "=")
+				error("Malformed KYRARPG_COMMON_OBJ definition in " + moduleMkFile);
+
+			++i;
+
+			while (i != tokens.end()) {
+				if (*i == "\\") {
+					std::getline(moduleMk, line);
+					tokens = tokenize(line);
+					i = tokens.begin();
+				} else {
+					const std::string filename = moduleDir + "/" + unifyPath(*i);
+					filesInVariableList.push_back(filename);
 					++i;
 				}
 			}

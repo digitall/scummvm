@@ -69,6 +69,7 @@ void MacResManager::close() {
 	delete[] _resLists; _resLists = 0;
 	delete[] _resTypes; _resTypes = 0;
 	delete _stream; _stream = 0;
+	_resMap.numTypes = 0;
 }
 
 bool MacResManager::hasDataFork() const {
@@ -109,7 +110,7 @@ bool MacResManager::open(String filename) {
 	String fullPath = ConfMan.get("path") + "/" + filename + "/..namedfork/rsrc";
 	FSNode resFsNode = FSNode(fullPath);
 	if (resFsNode.exists()) {
-		SeekableReadStream *macResForkRawStream = resFsNode.createReadStream();;
+		SeekableReadStream *macResForkRawStream = resFsNode.createReadStream();
 
 		if (macResForkRawStream && loadFromRawFork(*macResForkRawStream)) {
 			_baseFileName = filename;
@@ -123,7 +124,7 @@ bool MacResManager::open(String filename) {
 	File *file = new File();
 
 	// First, let's try to see if the Mac converted name exists
-	if (file->open("._" + filename) && loadFromAppleDouble(*file)) {
+	if (file->open(constructAppleDoubleName(filename)) && loadFromAppleDouble(*file)) {
 		_baseFileName = filename;
 		return true;
 	}
@@ -172,7 +173,7 @@ bool MacResManager::open(FSNode path, String filename) {
 	String fullPath = path.getPath() + "/" + filename + "/..namedfork/rsrc";
 	FSNode resFsNode = FSNode(fullPath);
 	if (resFsNode.exists()) {
-		SeekableReadStream *macResForkRawStream = resFsNode.createReadStream();;
+		SeekableReadStream *macResForkRawStream = resFsNode.createReadStream();
 
 		if (macResForkRawStream && loadFromRawFork(*macResForkRawStream)) {
 			_baseFileName = filename;
@@ -184,7 +185,7 @@ bool MacResManager::open(FSNode path, String filename) {
 #endif
 
 	// First, let's try to see if the Mac converted name exists
-	FSNode fsNode = path.getChild("._" + filename);
+	FSNode fsNode = path.getChild(constructAppleDoubleName(filename));
 	if (fsNode.exists() && !fsNode.isDirectory()) {
 		SeekableReadStream *stream = fsNode.createReadStream();
 		if (loadFromAppleDouble(*stream)) {
@@ -234,6 +235,27 @@ bool MacResManager::open(FSNode path, String filename) {
 	}
 
 	// The file doesn't exist
+	return false;
+}
+
+bool MacResManager::exists(const String &filename) {
+	// Try the file name by itself
+	if (Common::File::exists(filename))
+		return true;
+
+	// Try the .rsrc extension
+	if (Common::File::exists(filename + ".rsrc"))
+		return true;
+
+	// Check if we have a MacBinary file
+	Common::File tempFile;
+	if (tempFile.open(filename + ".bin") && isMacBinary(tempFile))
+		return true;
+
+	// Check if we have an AppleDouble file
+	if (tempFile.open(constructAppleDoubleName(filename)) && tempFile.readUint32BE() == 0x00051607)
+		return true;
+
 	return false;
 }
 
@@ -550,6 +572,22 @@ void MacResManager::readMap() {
 			}
 		}
 	}
+}
+
+Common::String MacResManager::constructAppleDoubleName(Common::String name) {
+	// Insert "._" before the last portion of a path name
+	for (int i = name.size() - 1; i >= 0; i--) {
+		if (i == 0) {
+			name.insertChar('_', 0);
+			name.insertChar('.', 0);
+		} else if (name[i] == '/') {
+			name.insertChar('_', i + 1);
+			name.insertChar('.', i + 1);
+			break;
+		}
+	}
+
+	return name;
 }
 
 } // End of namespace Common

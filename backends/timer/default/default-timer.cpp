@@ -59,7 +59,6 @@ void insertPrioQueue(TimerSlot *head, TimerSlot *newSlot) {
 
 
 DefaultTimerManager::DefaultTimerManager() :
-	_timerHandler(0),
 	_head(0) {
 
 	_head = new TimerSlot();
@@ -122,7 +121,7 @@ bool DefaultTimerManager::installTimerProc(TimerProc callback, int32 interval, v
 
 	for (i = _callbacks.begin(); i != _callbacks.end(); ++i) {
 		if (i->_value == callback) {
-			error("Same callback is referred by different names (%s vs %s)", i->_key.c_str(), id.c_str());
+			error("Same callback added twice (old name: %s, new name: %s)", i->_key.c_str(), id.c_str());
 		}
 	}
 	_callbacks[id] = callback;
@@ -136,12 +135,6 @@ bool DefaultTimerManager::installTimerProc(TimerProc callback, int32 interval, v
 	slot->nextFireTimeMicro = interval % 1000;
 	slot->next = 0;
 
-	// FIXME: It seems we do allow the client to add one callback multiple times over here,
-	// but "removeTimerProc" will remove *all* added instances. We should either prevent
-	// multiple additions of a timer proc OR we should change removeTimerProc to only remove
-	// a specific timer proc entry.
-	// Probably we can safely just allow a single addition of a specific function once
-	// and just update our Timer documentation accordingly.
 	insertPrioQueue(_head, slot);
 
 	return true;
@@ -163,7 +156,7 @@ void DefaultTimerManager::removeTimerProc(TimerProc callback) {
 	}
 
 	// We need to remove all names referencing the timer proc here.
-	// 
+	//
 	// Else we run into troubles, when the client code removes and readds timer
 	// callbacks.
 	//

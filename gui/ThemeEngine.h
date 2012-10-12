@@ -35,7 +35,7 @@
 #include "graphics/pixelformat.h"
 
 
-#define SCUMMVM_THEME_VERSION_STR "SCUMMVM_STX0.8.3"
+#define SCUMMVM_THEME_VERSION_STR "SCUMMVM_STX0.8.16"
 
 class OSystem;
 
@@ -81,6 +81,7 @@ enum DrawData {
 	kDDButtonIdle,
 	kDDButtonHover,
 	kDDButtonDisabled,
+	kDDButtonPressed,
 
 	kDDSliderFull,
 	kDDSliderHover,
@@ -178,7 +179,8 @@ public:
 	enum State {
 		kStateDisabled,     ///< Indicates that the widget is disabled, that does NOT include that it is invisible
 		kStateEnabled,      ///< Indicates that the widget is enabled
-		kStateHighlight     ///< Indicates that the widget is highlighted by the user
+		kStateHighlight,    ///< Indicates that the widget is highlighted by the user
+		kStatePressed       ///< Indicates that the widget is pressed, currently works for buttons
 	};
 
 	typedef State WidgetStateInfo;
@@ -228,6 +230,10 @@ public:
 	static const char *const kImageLogo;      ///< ScummVM logo used in the launcher
 	static const char *const kImageLogoSmall; ///< ScummVM logo used in the GMM
 	static const char *const kImageSearch;    ///< Search tool image used in the launcher
+	static const char *const kImageEraser;     ///< Clear input image used in the launcher
+	static const char *const kImageDelbtn; ///< Delete characters in the predictive dialog
+	static const char *const kImageList;      ///< List image used in save/load chooser selection
+	static const char *const kImageGrid;      ///< Grid image used in save/load chooser selection
 
 	/**
 	 * Graphics mode enumeration.
@@ -272,6 +278,11 @@ public:
 	void disable();
 
 	/**
+	 * Query the set up pixel format.
+	 */
+	const Graphics::PixelFormat getPixelFormat() const { return _overlayFormat; }
+
+	/**
 	 * Implementation of the GUI::Theme API. Called when a
 	 * new dialog is opened. Note that the boolean parameter
 	 * meaning has been changed.
@@ -308,6 +319,8 @@ public:
 	int getStringWidth(const Common::String &str, FontStyle font = kFontStyleBold) const;
 
 	int getCharWidth(byte c, FontStyle font = kFontStyleBold) const;
+
+	int getKerningOffset(byte left, byte right, FontStyle font = kFontStyleBold) const;
 
 	//@}
 
@@ -410,10 +423,12 @@ public:
 	 * Interface for the ThemeParser class: Loads a font to use on the GUI from the given
 	 * filename.
 	 *
-	 * @param fontName Identifier name for the font.
-	 * @param file Name of the font file.
+	 * @param fextId            Identifier name for the font.
+	 * @param file              Filename of the non-scalable font version.
+	 * @param scalableFile      Filename of the scalable version. (Optional)
+	 * @param pointsize         Point size for the scalable font. (Optional)
 	 */
-	bool addFont(TextData textId, const Common::String &file);
+	bool addFont(TextData textId, const Common::String &file, const Common::String &scalableFile, const int pointsize);
 
 	/**
 	 * Interface for the ThemeParser class: adds a text color value.
@@ -487,9 +502,8 @@ public:
 	 * @param filename File name of the bitmap to load.
 	 * @param hotspotX X Coordinate of the bitmap which does the cursor click.
 	 * @param hotspotY Y Coordinate of the bitmap which does the cursor click.
-	 * @param scale    Scale at which the bitmap is supposed to be used.
 	 */
-	bool createCursor(const Common::String &filename, int hotspotX, int hotspotY, int scale);
+	bool createCursor(const Common::String &filename, int hotspotX, int hotspotY);
 
 	/**
 	 * Wrapper for restoring data from the Back Buffer to the screen.
@@ -535,10 +549,10 @@ protected:
 	 */
 	void unloadTheme();
 
-	const Graphics::Font *loadFont(const Common::String &filename);
-	const Graphics::Font *loadFontFromArchive(const Common::String &filename);
-	const Graphics::Font *loadCachedFontFromArchive(const Common::String &filename);
+	const Graphics::Font *loadScalableFont(const Common::String &filename, const Common::String &charset, const int pointsize, Common::String &name);
+	const Graphics::Font *loadFont(const Common::String &filename, Common::String &name);
 	Common::String genCacheFilename(const Common::String &filename) const;
+	const Graphics::Font *loadFont(const Common::String &filename, const Common::String &scalableFilename, const Common::String &charset, const int pointsize, const bool makeLocalizedFont);
 
 	/**
 	 * Actual Dirty Screen handling function.
@@ -657,10 +671,10 @@ protected:
 	Common::String _themeId;
 	Common::String _themeFile;
 	Common::Archive *_themeArchive;
+	Common::SearchSet _themeFiles;
 
 	bool _useCursor;
 	int _cursorHotspotX, _cursorHotspotY;
-	int _cursorTargetScale;
 	enum {
 		MAX_CURS_COLORS = 255
 	};

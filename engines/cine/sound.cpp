@@ -25,12 +25,16 @@
 #include "common/memstream.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/timer.h"
+#include "common/mutex.h"
+#include "common/config-manager.h"
 
 #include "cine/cine.h"
 #include "cine/sound.h"
 
 #include "audio/audiostream.h"
 #include "audio/fmopl.h"
+#include "audio/mididrv.h"
 #include "audio/decoders/raw.h"
 #include "audio/mods/soundfx.h"
 
@@ -48,14 +52,13 @@ public:
 	virtual void playSample(const byte *data, int size, int channel, int volume) = 0;
 	virtual void stopAll() = 0;
 	virtual const char *getInstrumentExtension() const { return ""; }
+	virtual void notifyInstrumentLoad(const byte *data, int size, int channel) {}
 
-	void setUpdateCallback(UpdateCallback upCb, void *ref);
+	virtual void setUpdateCallback(UpdateCallback upCb, void *ref) = 0;
 	void resetChannel(int channel);
 	void findNote(int freq, int *note, int *oct) const;
 
 protected:
-	UpdateCallback _upCb;
-	void *_upRef;
 
 	static const int _noteTable[];
 	static const int _noteTableCount;
@@ -104,6 +107,7 @@ public:
 	virtual ~AdLibSoundDriver();
 
 	// PCSoundDriver interface
+	virtual void setUpdateCallback(UpdateCallback upCb, void *ref);
 	virtual void setupChannel(int channel, const byte *data, int instrument, int volume);
 	virtual void stopChannel(int channel);
 	virtual void stopAll();
@@ -121,6 +125,9 @@ public:
 	virtual void loadInstrument(const byte *data, AdLibSoundInstrument *asi) = 0;
 
 protected:
+	UpdateCallback _upCb;
+	void *_upRef;
+
 	FM_OPL *_opl;
 	int _sampleRate;
 	Audio::Mixer *_mixer;
@@ -146,7 +153,7 @@ const int AdLibSoundDriver::_freqTable[] = {
 const int AdLibSoundDriver::_freqTableCount = ARRAYSIZE(_freqTable);
 
 const int AdLibSoundDriver::_operatorsTable[] = {
-	0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13,	16, 17, 18, 19, 20, 21
+	0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21
 };
 
 const int AdLibSoundDriver::_operatorsTableCount = ARRAYSIZE(_operatorsTable);
@@ -175,6 +182,30 @@ public:
 	virtual void loadInstrument(const byte *data, AdLibSoundInstrument *asi);
 	virtual void setChannelFrequency(int channel, int frequency);
 	virtual void playSample(const byte *data, int size, int channel, int volume);
+};
+
+// (Future Wars) MIDI driver
+class MidiSoundDriverH32 : public PCSoundDriver {
+public:
+	MidiSoundDriverH32(MidiDriver *output);
+	~MidiSoundDriverH32();
+
+	virtual void setUpdateCallback(UpdateCallback upCb, void *ref);
+	virtual void setupChannel(int channel, const byte *data, int instrument, int volume);
+	virtual void setChannelFrequency(int channel, int frequency);
+	virtual void stopChannel(int channel);
+	virtual void playSample(const byte *data, int size, int channel, int volume);
+	virtual void stopAll() {}
+	virtual const char *getInstrumentExtension() const { return ".H32"; }
+	virtual void notifyInstrumentLoad(const byte *data, int size, int channel);
+
+private:
+	MidiDriver *_output;
+	UpdateCallback _callback;
+	Common::Mutex _mutex;
+
+	void writeInstrument(int offset, const byte *data, int size);
+	void selectInstrument(int channel, int timbreGroup, int timbreNumber, int volume);
 };
 
 class PCSoundFxPlayer {
@@ -213,23 +244,35 @@ private:
 	byte *_sfxData;
 	byte *_instrumentsData[NUM_INSTRUMENTS];
 	PCSoundDriver *_driver;
+	Common::Mutex _mutex;
 };
 
 
-void PCSoundDriver::setUpdateCallback(UpdateCallback upCb, void *ref) {
-	_upCb = upCb;
-	_upRef = ref;
-}
-
 void PCSoundDriver::findNote(int freq, int *note, int *oct) const {
-	*note = _noteTableCount - 1;
-	for (int i = 0; i < _noteTableCount; ++i) {
-		if (_noteTable[i] <= freq) {
+	if (freq > 0x777)
+		*oct = 0;
+	else if (freq > 0x3BB)
+		*oct = 1;
+	else if (freq > 0x1DD)
+		*oct = 2;
+	else if (freq > 0x0EE)
+		*oct = 3;
+	else if (freq > 0x077)
+		*oct = 4;
+	else if (freq > 0x03B)
+		*oct = 5;
+	else if (freq > 0x01D)
+		*oct = 6;
+	else
+		*oct = 7;
+
+	*note = 11;
+	for (int i = 0; i < 12; ++i) {
+		if (_noteTable[*oct * 12 + i] <= freq) {
 			*note = i;
 			break;
 		}
 	}
-	*oct = *note / 12;
 }
 
 void PCSoundDriver::resetChannel(int channel) {
@@ -250,6 +293,11 @@ AdLibSoundDriver::AdLibSoundDriver(Audio::Mixer *mixer)
 AdLibSoundDriver::~AdLibSoundDriver() {
 	_mixer->stopHandle(_soundHandle);
 	OPLDestroy(_opl);
+}
+
+void AdLibSoundDriver::setUpdateCallback(UpdateCallback upCb, void *ref) {
+	_upCb = upCb;
+	_upRef = ref;
 }
 
 void AdLibSoundDriver::setupChannel(int channel, const byte *data, int instrument, int volume) {
@@ -441,12 +489,11 @@ void AdLibSoundDriverINS::setChannelFrequency(int channel, int frequency) {
 	if (ins->mode == 0 || ins->channel == 6) {
 		int freq, note, oct;
 		findNote(frequency, &note, &oct);
-		if (channel == 6) {
-			note %= 12;
-		}
+		if (channel == 6)
+			oct = 0;
 		freq = _freqTable[note % 12];
 		OPLWriteReg(_opl, 0xA0 | channel, freq);
-		freq = ((note / 12) << 2) | ((freq & 0x300) >> 8);
+		freq = (oct << 2) | ((freq & 0x300) >> 8);
 		if (ins->mode == 0) {
 			freq |= 0x20;
 		}
@@ -509,14 +556,16 @@ void AdLibSoundDriverADL::setChannelFrequency(int channel, int frequency) {
 	findNote(frequency, &note, &oct);
 	if (ins->amDepth) {
 		note = ins->amDepth;
+		oct = note / 12;
 	}
 	if (note < 0) {
 		note = 0;
+		oct = 0;
 	}
 
 	freq = _freqTable[note % 12];
 	OPLWriteReg(_opl, 0xA0 | channel, freq);
-	freq = ((note / 12) << 2) | ((freq & 0x300) >> 8);
+	freq = (oct << 2) | ((freq & 0x300) >> 8);
 	if (ins->mode == 0) {
 		freq |= 0x20;
 	}
@@ -564,8 +613,163 @@ void AdLibSoundDriverADL::playSample(const byte *data, int size, int channel, in
 	}
 }
 
+MidiSoundDriverH32::MidiSoundDriverH32(MidiDriver *output)
+	: _output(output), _callback(0), _mutex() {
+}
+
+MidiSoundDriverH32::~MidiSoundDriverH32() {
+	if (_callback)
+		g_system->getTimerManager()->removeTimerProc(_callback);
+
+	_output->close();
+	delete _output;
+}
+
+void MidiSoundDriverH32::setUpdateCallback(UpdateCallback upCb, void *ref) {
+	Common::StackLock lock(_mutex);
+
+	Common::TimerManager *timer = g_system->getTimerManager();
+	assert(timer);
+
+	if (_callback)
+		timer->removeTimerProc(_callback);
+
+	_callback = upCb;
+	if (_callback)
+		timer->installTimerProc(_callback, 1000000 / 50, ref, "MidiSoundDriverH32");
+}
+
+void MidiSoundDriverH32::setupChannel(int channel, const byte *data, int instrument, int volume) {
+	Common::StackLock lock(_mutex);
+
+	if (volume < 0 ||  volume > 100)
+		volume = 0;
+
+	if (!data)
+		selectInstrument(channel, 0, 0, volume);
+	// In case the instrument is a builtin instrument select it directly.
+	else if (data[0] < 0x80)
+		selectInstrument(channel, data[0] / 0x40, data[0] % 0x40, volume);
+	// In case we use a custom instrument we need to specify the timbre group
+	// 2, which means it's a timbre from the timbre memory area.
+	else
+		selectInstrument(channel, 2, instrument, volume);
+}
+
+void MidiSoundDriverH32::setChannelFrequency(int channel, int frequency) {
+	Common::StackLock lock(_mutex);
+
+	int note, oct;
+	findNote(frequency, &note, &oct);
+	note %= 12;
+	note = oct * 12 + note + 12;
+
+	_output->send(0x91 + channel, note, 0x7F);
+}
+
+void MidiSoundDriverH32::stopChannel(int channel) {
+	Common::StackLock lock(_mutex);
+
+	_output->send(0xB1 + channel, 0x7B, 0x00);
+}
+
+void MidiSoundDriverH32::playSample(const byte *data, int size, int channel, int volume) {
+	Common::StackLock lock(_mutex);
+
+	stopChannel(channel);
+
+	volume = volume * 8 / 5;
+
+	if (data[0] < 0x80) {
+		selectInstrument(channel, data[0] / 0x40, data[0] % 0x40, volume);
+	} else {
+		writeInstrument(channel * 512 + 0x80000, data + 1, 256);
+		selectInstrument(channel, 2, channel, volume);
+	}
+
+	_output->send(0x91 + channel, 12, 0x7F);
+}
+
+void MidiSoundDriverH32::notifyInstrumentLoad(const byte *data, int size, int channel) {
+	Common::StackLock lock(_mutex);
+
+	// In case we specify a standard instrument or standard rhythm instrument
+	// do not do anything here. It might be noteworthy that the instrument
+	// selection client code does not support rhythm instruments!
+	if (data[0] < 0x80 || data[0] > 0xC0)
+		return;
+
+	writeInstrument(channel * 512 + 0x80000, data + 1, size - 1);
+}
+
+void MidiSoundDriverH32::writeInstrument(int offset, const byte *data, int size) {
+	byte sysEx[254];
+
+	sysEx[0] = 0x41;
+	sysEx[1] = 0x10;
+	sysEx[2] = 0x16;
+	sysEx[3] = 0x12;
+	sysEx[4] = (offset >> 16) & 0xFF;
+	sysEx[5] = (offset >>  8) & 0xFF;
+	sysEx[6] = (offset >>  0) & 0xFF;
+	int copySize = MIN(246, size);
+	memcpy(&sysEx[7], data, copySize);
+
+	byte checkSum = 0;
+	for (int i = 0; i < copySize + 3; ++i)
+		checkSum += sysEx[4 + i];
+	sysEx[7 + copySize] = 0x80 - (checkSum & 0x7F);
+
+	_output->sysEx(sysEx, copySize + 8);
+}
+
+void MidiSoundDriverH32::selectInstrument(int channel, int timbreGroup, int timbreNumber, int volume) {
+	const int offset = channel * 16 + 0x30000; // 0x30000 is the start of the patch temp area
+
+	byte sysEx[24] = {
+		0x41, 0x10, 0x16, 0x12,
+		0x00, 0x00, 0x00,       // offset
+		0x00, // Timbre group   _ timbreGroup * 64 + timbreNumber should be the
+		0x00, // Timbre number /  MT-32 instrument in case timbreGroup is 0 or 1.
+		0x18, // Key shift (= 0)
+		0x32, // Fine tune (= 0)
+		0x0C, // Bender Range
+		0x03, // Assign Mode
+		0x01, // Reverb Switch (= enabled)
+		0x00, // dummy
+		0x00, // Output level
+		0x07, // Panpot (= balanced)
+		0x00, // dummy
+		0x00, // dummy
+		0x00, // dummy
+		0x00, // dummy
+		0x00, // dummy
+		0x00, // dummy
+		0x00  // checksum
+	};
+
+
+	sysEx[4] = (offset >> 16) & 0xFF;
+	sysEx[5] = (offset >>  8) & 0xFF;
+	sysEx[6] = (offset >>  0) & 0xFF;
+
+	sysEx[7] = timbreGroup;
+	sysEx[8] = timbreNumber;
+
+	sysEx[15] = volume;
+
+	byte checkSum = 0;
+
+	for (int i = 4; i < 23; ++i)
+		checkSum += sysEx[i];
+
+	sysEx[23] = 0x80 - (checkSum & 0x7F);
+
+	_output->sysEx(sysEx, 24);
+}
+
 PCSoundFxPlayer::PCSoundFxPlayer(PCSoundDriver *driver)
-	: _playing(false), _driver(driver) {
+	: _playing(false), _driver(driver), _mutex() {
 	memset(_instrumentsData, 0, sizeof(_instrumentsData));
 	_sfxData = NULL;
 	_fadeOutCounter = 0;
@@ -573,6 +777,8 @@ PCSoundFxPlayer::PCSoundFxPlayer(PCSoundDriver *driver)
 }
 
 PCSoundFxPlayer::~PCSoundFxPlayer() {
+	Common::StackLock lock(_mutex);
+
 	_driver->setUpdateCallback(NULL, NULL);
 	stop();
 }
@@ -585,6 +791,8 @@ bool PCSoundFxPlayer::load(const char *song) {
 		g_system->delayMillis(50);
 	}
 	_fadeOutCounter = 0;
+
+	Common::StackLock lock(_mutex);
 
 	stop();
 
@@ -602,15 +810,18 @@ bool PCSoundFxPlayer::load(const char *song) {
 		memcpy(instrument, _sfxData + 20 + i * 30, 12);
 		instrument[63] = '\0';
 
-		if (strlen(instrument) != 0) {
+		if (instrument[0] != '\0') {
 			char *dot = strrchr(instrument, '.');
 			if (dot) {
 				*dot = '\0';
 			}
 			strcat(instrument, _driver->getInstrumentExtension());
-			_instrumentsData[i] = readBundleSoundFile(instrument);
+			uint32 instrumentSize;
+			_instrumentsData[i] = readBundleSoundFile(instrument, &instrumentSize);
 			if (!_instrumentsData[i]) {
 				warning("Unable to load soundfx instrument '%s'", instrument);
+			} else {
+				_driver->notifyInstrumentLoad(_instrumentsData[i], instrumentSize, i);
 			}
 		}
 	}
@@ -619,6 +830,7 @@ bool PCSoundFxPlayer::load(const char *song) {
 
 void PCSoundFxPlayer::play() {
 	debug(9, "PCSoundFxPlayer::play()");
+	Common::StackLock lock(_mutex);
 	if (_sfxData) {
 		for (int i = 0; i < NUM_CHANNELS; ++i) {
 			_instrumentsChannelTable[i] = -1;
@@ -633,6 +845,7 @@ void PCSoundFxPlayer::play() {
 }
 
 void PCSoundFxPlayer::stop() {
+	Common::StackLock lock(_mutex);
 	if (_playing || _fadeOutCounter != 0) {
 		_fadeOutCounter = 0;
 		_playing = false;
@@ -645,6 +858,7 @@ void PCSoundFxPlayer::stop() {
 }
 
 void PCSoundFxPlayer::fadeOut() {
+	Common::StackLock lock(_mutex);
 	if (_playing) {
 		_fadeOutCounter = 1;
 		_playing = false;
@@ -656,6 +870,7 @@ void PCSoundFxPlayer::updateCallback(void *ref) {
 }
 
 void PCSoundFxPlayer::update() {
+	Common::StackLock lock(_mutex);
 	if (_playing || (_fadeOutCounter != 0 && _fadeOutCounter < 100)) {
 		++_updateTicksCounter;
 		if (_updateTicksCounter > _eventsDelay) {
@@ -717,12 +932,33 @@ void PCSoundFxPlayer::unload() {
 
 
 PCSound::PCSound(Audio::Mixer *mixer, CineEngine *vm)
-	: Sound(mixer, vm) {
-	if (_vm->getGameType() == GType_FW) {
-		_soundDriver = new AdLibSoundDriverINS(_mixer);
-	} else {
-		_soundDriver = new AdLibSoundDriverADL(_mixer);
+	: Sound(mixer, vm), _soundDriver(0) {
+
+	const MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB);
+	const MusicType musicType = MidiDriver::getMusicType(dev);
+	if (musicType == MT_MT32 || musicType == MT_GM) {
+		const bool isMT32 = (musicType == MT_MT32 || ConfMan.getBool("native_mt32"));
+		if (isMT32) {
+			MidiDriver *driver = MidiDriver::createMidi(dev);
+			if (driver && driver->open() == 0) {
+				driver->sendMT32Reset();
+				_soundDriver = new MidiSoundDriverH32(driver);
+			} else {
+				warning("Could not create MIDI output, falling back to AdLib");
+			}
+		} else {
+			warning("General MIDI output devices are not supported, falling back to AdLib");
+		}
 	}
+
+	if (!_soundDriver) {
+		if (_vm->getGameType() == GType_FW) {
+			_soundDriver = new AdLibSoundDriverINS(_mixer);
+		} else {
+			_soundDriver = new AdLibSoundDriverADL(_mixer);
+		}
+	}
+
 	_player = new PCSoundFxPlayer(_soundDriver);
 }
 
@@ -762,19 +998,55 @@ void PCSound::stopSound(int channel) {
 }
 
 PaulaSound::PaulaSound(Audio::Mixer *mixer, CineEngine *vm)
-	: Sound(mixer, vm) {
+	: Sound(mixer, vm), _sfxTimer(0), _musicTimer(0), _musicFadeTimer(0) {
 	_moduleStream = 0;
+	// The original is using the following timer frequency:
+	// 0.709379Mhz / 8000 = 88.672375Hz
+	// 1000000 / 88.672375Hz = 11277.46944863us
+	g_system->getTimerManager()->installTimerProc(&PaulaSound::sfxTimerProc, 11277, this, "PaulaSound::sfxTimerProc");
+	// The original is using the following timer frequency:
+	// 0.709379Mhz / 14565 = 48.704359Hz
+	// 1000000 / 48.704359Hz = 20532.04313806us
+	g_system->getTimerManager()->installTimerProc(&PaulaSound::musicTimerProc, 20532, this, "PaulaSound::musicTimerProc");
 }
 
 PaulaSound::~PaulaSound() {
+	Common::StackLock sfxLock(_sfxMutex);
+	g_system->getTimerManager()->removeTimerProc(&PaulaSound::sfxTimerProc);
 	for (int i = 0; i < NUM_CHANNELS; ++i) {
 		stopSound(i);
 	}
+
+	Common::StackLock musicLock(_musicMutex);
+	g_system->getTimerManager()->removeTimerProc(&PaulaSound::musicTimerProc);
 	stopMusic();
 }
 
 void PaulaSound::loadMusic(const char *name) {
 	debugC(5, kCineDebugSound, "PaulaSound::loadMusic('%s')", name);
+	for (int i = 0; i < NUM_CHANNELS; ++i) {
+		stopSound(i);
+	}
+
+	// Fade music out when there is music playing.
+	_musicMutex.lock();
+	if (_mixer->isSoundHandleActive(_moduleHandle)) {
+		// Only start fade out when it is not in progress.
+		if (!_musicFadeTimer) {
+			_musicFadeTimer = 1;
+		}
+
+		_musicMutex.unlock();
+		while (_musicFadeTimer != 64) {
+			g_system->delayMillis(50);
+		}
+	} else {
+		_musicMutex.unlock();
+	}
+
+	Common::StackLock lock(_musicMutex);
+	assert(!_mixer->isSoundHandleActive(_moduleHandle));
+
 	if (_vm->getGameType() == GType_FW) {
 		// look for separate files
 		Common::File f;
@@ -795,54 +1067,135 @@ void PaulaSound::loadMusic(const char *name) {
 
 void PaulaSound::playMusic() {
 	debugC(5, kCineDebugSound, "PaulaSound::playMusic()");
+	Common::StackLock lock(_musicMutex);
+
 	_mixer->stopHandle(_moduleHandle);
 	if (_moduleStream) {
+		_musicFadeTimer = 0;
 		_mixer->playStream(Audio::Mixer::kMusicSoundType, &_moduleHandle, _moduleStream);
 	}
 }
 
 void PaulaSound::stopMusic() {
 	debugC(5, kCineDebugSound, "PaulaSound::stopMusic()");
+	Common::StackLock lock(_musicMutex);
+
 	_mixer->stopHandle(_moduleHandle);
 }
 
 void PaulaSound::fadeOutMusic() {
 	debugC(5, kCineDebugSound, "PaulaSound::fadeOutMusic()");
-	// TODO
-	stopMusic();
+	Common::StackLock lock(_musicMutex);
+
+	_musicFadeTimer = 1;
 }
 
 void PaulaSound::playSound(int channel, int frequency, const uint8 *data, int size, int volumeStep, int stepCount, int volume, int repeat) {
-	// TODO: handle volume slides and repeat
 	debugC(5, kCineDebugSound, "PaulaSound::playSound() channel %d size %d", channel, size);
+	Common::StackLock lock(_sfxMutex);
+	assert(frequency > 0);
+
 	stopSound(channel);
-	size = MIN<int>(size - SPL_HDR_SIZE, READ_BE_UINT16(data + 4));
-	// TODO: consider skipping the header in loadSpl directly
 	if (size > 0) {
 		byte *sound = (byte *)malloc(size);
 		if (sound) {
-			memcpy(sound, data + SPL_HDR_SIZE, size);
-			playSoundChannel(channel, frequency, sound, size, volume);
+			// Create the audio stream
+			memcpy(sound, data, size);
+
+			// Clear the first and last 16 bits like in the original.
+			sound[0] = sound[1] = sound[size - 2] = sound[size - 1] = 0;
+
+			Audio::SeekableAudioStream *stream = Audio::makeRawStream(sound, size, PAULA_FREQ / frequency, 0);
+
+			// Initialize the volume control
+			_channelsTable[channel].initialize(volume, volumeStep, stepCount);
+
+			// Start the sfx
+			_mixer->playStream(Audio::Mixer::kSFXSoundType, &_channelsTable[channel].handle,
+			                   Audio::makeLoopingAudioStream(stream, repeat ? 0 : 1),
+			                   -1, volume * Audio::Mixer::kMaxChannelVolume / 63,
+			                   _channelBalance[channel]);
 		}
 	}
 }
 
 void PaulaSound::stopSound(int channel) {
 	debugC(5, kCineDebugSound, "PaulaSound::stopSound() channel %d", channel);
-	_mixer->stopHandle(_channelsTable[channel]);
+	Common::StackLock lock(_sfxMutex);
+
+	_mixer->stopHandle(_channelsTable[channel].handle);
 }
 
-void PaulaSound::update() {
-	// process volume slides and start sound playback
-	// TODO
+void PaulaSound::sfxTimerProc(void *param) {
+	PaulaSound *sound = (PaulaSound *)param;
+	sound->sfxTimerCallback();
 }
 
-void PaulaSound::playSoundChannel(int channel, int frequency, uint8 *data, int size, int volume) {
-	assert(frequency > 0);
-	frequency = PAULA_FREQ / frequency;
-	Audio::AudioStream *stream = Audio::makeRawStream(data, size, frequency, 0);
-	_mixer->playStream(Audio::Mixer::kSFXSoundType, &_channelsTable[channel], stream);
-	_mixer->setChannelVolume(_channelsTable[channel], volume * Audio::Mixer::kMaxChannelVolume / 63);
+void PaulaSound::sfxTimerCallback() {
+	Common::StackLock lock(_sfxMutex);
+
+	if (_sfxTimer < 6) {
+		++_sfxTimer;
+
+		for (int i = 0; i < NUM_CHANNELS; ++i) {
+			// Only process active channels
+			if (!_mixer->isSoundHandleActive(_channelsTable[i].handle)) {
+				continue;
+			}
+
+			if (_channelsTable[i].curStep) {
+				--_channelsTable[i].curStep;
+			} else {
+				_channelsTable[i].curStep = _channelsTable[i].stepCount;
+				const int volume = CLIP(_channelsTable[i].volume + _channelsTable[i].volumeStep, 0, 63);
+				_channelsTable[i].volume = volume;
+				// Unlike the original we stop silent sounds
+				if (volume) {
+					_mixer->setChannelVolume(_channelsTable[i].handle, volume * Audio::Mixer::kMaxChannelVolume / 63);
+				} else {
+					_mixer->stopHandle(_channelsTable[i].handle);
+				}
+			}
+		}
+	} else {
+		_sfxTimer = 0;
+		// Possible TODO: The original only ever started sounds here. This
+		// should not be noticable though. So we do not do it for now.
+	}
 }
+
+void PaulaSound::musicTimerProc(void *param) {
+	PaulaSound *sound = (PaulaSound *)param;
+	sound->musicTimerCallback();
+}
+
+void PaulaSound::musicTimerCallback() {
+	Common::StackLock lock(_musicMutex);
+
+	++_musicTimer;
+	if (_musicTimer == 6) {
+		_musicTimer = 0;
+		if (_musicFadeTimer) {
+			++_musicFadeTimer;
+			if (_musicFadeTimer == 64) {
+				stopMusic();
+			} else {
+				if (_mixer->isSoundHandleActive(_moduleHandle)) {
+					_mixer->setChannelVolume(_moduleHandle, (64 - _musicFadeTimer) * Audio::Mixer::kMaxChannelVolume / 64);
+				}
+			}
+		}
+	}
+}
+
+const int PaulaSound::_channelBalance[NUM_CHANNELS] = {
+	// L/R/R/L This is according to the Hardware Reference Manual.
+	// TODO: It seems the order is swapped for some Amiga models:
+	// http://www.amiga.org/forums/archive/index.php/t-7862.html
+	// Maybe we should consider using R/L/L/R to match Amiga 500?
+	// This also is a bit more drastic to what WineUAE defaults,
+	// which is only 70% of full panning.
+	-127, 127, 127, -127
+};
 
 } // End of namespace Cine

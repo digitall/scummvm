@@ -10,6 +10,7 @@ MODULE_OBJS := \
 	sci.o \
 	util.o \
 	engine/features.o \
+	engine/file.o \
 	engine/gc.o \
 	engine/kernel.o \
 	engine/kevent.o \
@@ -43,7 +44,7 @@ MODULE_OBJS := \
 	graphics/animate.o \
 	graphics/cache.o \
 	graphics/compare.o \
-	graphics/controls.o \
+	graphics/controls16.o \
 	graphics/coordadjuster.o \
 	graphics/cursor.o \
 	graphics/font.o \
@@ -71,6 +72,7 @@ MODULE_OBJS := \
 	sound/drivers/amigamac.o \
 	sound/drivers/cms.o \
 	sound/drivers/fb01.o \
+	sound/drivers/fmtowns.o \
 	sound/drivers/midi.o \
 	sound/drivers/pcjr.o \
 	video/seq_decoder.o
@@ -78,6 +80,8 @@ MODULE_OBJS := \
 	
 ifdef ENABLE_SCI32
 MODULE_OBJS += \
+	engine/kgraphics32.o \
+	graphics/controls32.o \
 	graphics/frameout.o \
 	graphics/paint32.o \
 	graphics/text32.o \

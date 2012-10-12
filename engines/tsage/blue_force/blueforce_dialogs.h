@@ -74,7 +74,7 @@ public:
 	void execute();
 };
 
-class RadioConvDialog : public ModalDialog {
+class RadioConvDialog : public GfxDialog {
 private:
 	GfxButton _buttons[8];
 public:
@@ -84,6 +84,20 @@ public:
 
 	static int show();
 };
+
+class OptionsDialog: public GfxDialog {
+private:
+	GfxButton _btnSave, _btnRestore, _btnRestart;
+	GfxButton _btnQuit, _btnResume;
+	GfxButton _btnSound;
+	GfxMessage _gfxMessage;
+public:
+	OptionsDialog();
+	virtual ~OptionsDialog() {}
+
+	static void show();
+};
+
 
 } // End of namespace BlueForce
 

@@ -63,7 +63,7 @@ PATH_BUILD_CLASSES_PLUGIN_TOP = $(PATH_BUILD)/classes.plugin
 PATH_STAGE_PREFIX = build.stage
 PATH_STAGE_MAIN = $(PATH_STAGE_PREFIX).main
 
-PATH_REL = org/inodes/gus/scummvm
+PATH_REL = org/scummvm/scummvm
 PATH_SRC_TOP = $(srcdir)/backends/platform/android
 PATH_SRC = $(PATH_SRC_TOP)/$(PATH_REL)
 
@@ -130,7 +130,18 @@ $(PATH_STAGE_PREFIX).%/res/drawable/scummvm.png: $(PATH_RESOURCES)/drawable/scum
 $(FILE_RESOURCES_MAIN): $(FILE_MANIFEST) $(RESOURCES) $(ANDROID_JAR8) $(DIST_FILES_THEMES) $(DIST_FILES_ENGINEDATA)
 	$(INSTALL) -d $(PATH_BUILD_ASSETS)
 	$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_ENGINEDATA) $(PATH_BUILD_ASSETS)/
-	$(AAPT) package -f -M $< -S $(PATH_RESOURCES) -A $(PATH_BUILD_ASSETS) -I $(ANDROID_JAR8) -F $@
+	work_dir=`pwd`; \
+	for i in $(PATH_BUILD_ASSETS)/*.zip; do \
+		echo "recompress $$i"; \
+		cd $$work_dir; \
+		$(RM) -rf $(PATH_BUILD_ASSETS)/tmp; \
+		$(MKDIR) $(PATH_BUILD_ASSETS)/tmp; \
+		unzip -q $$i -d $(PATH_BUILD_ASSETS)/tmp; \
+		cd $(PATH_BUILD_ASSETS)/tmp; \
+		zip -r ../`basename $$i` *; \
+	done
+	@$(RM) -rf $(PATH_BUILD_ASSETS)/tmp
+	$(AAPT) package -f -0 zip -M $< -S $(PATH_RESOURCES) -A $(PATH_BUILD_ASSETS) -I $(ANDROID_JAR8) -F $@
 
 $(PATH_BUILD)/%/$(FILE_RESOURCES): $(PATH_BUILD)/%/AndroidManifest.xml $(PATH_STAGE_PREFIX).%/res/values/strings.xml $(PATH_STAGE_PREFIX).%/res/drawable/scummvm.png plugins/lib%.so $(ANDROID_JAR8)
 	$(AAPT) package -f -M $< -S $(PATH_STAGE_PREFIX).$*/res -I $(ANDROID_JAR8) -F $@
@@ -172,13 +183,13 @@ androidrelease: $(addprefix release/, $(APK_MAIN) $(APK_PLUGINS))
 
 androidtestmain: $(APK_MAIN)
 	$(ADB) install -r $(APK_MAIN)
-	$(ADB) shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.inodes.gus.scummvm/.Unpacker
+	$(ADB) shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.scummvm.scummvm/.Unpacker
 
 androidtest: $(APK_MAIN) $(APK_PLUGINS)
 	@set -e; for apk in $^; do \
 		$(ADB) install -r $$apk; \
 	done
-	$(ADB) shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.inodes.gus.scummvm/.Unpacker
+	$(ADB) shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.scummvm.scummvm/.Unpacker
 
 # used by buildbot!
 androiddistdebug: all

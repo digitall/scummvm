@@ -37,6 +37,14 @@ reg_t kRandom(EngineState *s, int argc, reg_t *argv) {
 		//  some codes in sq4 are also random and 5 digit (if i remember correctly)
 		const uint16 fromNumber = argv[0].toUint16();
 		const uint16 toNumber = argv[1].toUint16();
+		// Some scripts may request a range in the reverse order (from largest
+		// to smallest). An example can be found in Longbow, room 710, where a
+		// random number is requested from 119 to 83. In this case, we're
+		// supposed to return toNumber (determined by the KQ5CD disasm).
+		// Fixes bug #3413020.
+		if (fromNumber > toNumber)
+			return make_reg(0, toNumber);
+
 		uint16 range = toNumber - fromNumber + 1;
 		// calculating range is exactly how sierra sci did it and is required for hoyle 4
 		//  where we get called with kRandom(0, -1) and we are supposed to give back values from 0 to 0
@@ -69,7 +77,18 @@ reg_t kSqrt(EngineState *s, int argc, reg_t *argv) {
 	return make_reg(0, (int16) sqrt((float) ABS(argv[0].toSint16())));
 }
 
+/**
+ * Returns the angle (in degrees) between the two points determined by (x1, y1)
+ * and (x2, y2). The angle ranges from 0 to 359 degrees.
+ * What this function does is pretty simple but apparently the original is not
+ * accurate.
+ */
 uint16 kGetAngleWorker(int16 x1, int16 y1, int16 x2, int16 y2) {
+	// SCI1 games (QFG2 and newer) use a simple atan implementation. SCI0 games
+	// use a somewhat less accurate calculation (below).
+	if (getSciVersion() >= SCI_VERSION_1_EGA_ONLY)
+		return (int16)(360 - atan2((double)(x1 - x2), (double)(y1 - y2)) * 57.2958) % 360;
+
 	int16 xRel = x2 - x1;
 	int16 yRel = y1 - y2; // y-axis is mirrored.
 	int16 angle;

@@ -167,6 +167,7 @@ void Kernel::mapSelectors() {
 #ifdef ENABLE_SCI32
 	FIND_SELECTOR(data);
 	FIND_SELECTOR(picture);
+	FIND_SELECTOR(bitmap);
 	FIND_SELECTOR(plane);
 	FIND_SELECTOR(top);
 	FIND_SELECTOR(left);
@@ -177,8 +178,10 @@ void Kernel::mapSelectors() {
 	FIND_SELECTOR(dimmed);
 	FIND_SELECTOR(fore);
 	FIND_SELECTOR(back);
+	FIND_SELECTOR(skip);
 	FIND_SELECTOR(fixPriority);
 	FIND_SELECTOR(mirrored);
+	FIND_SELECTOR(visible);
 	FIND_SELECTOR(useInsetRect);
 	FIND_SELECTOR(inTop);
 	FIND_SELECTOR(inLeft);

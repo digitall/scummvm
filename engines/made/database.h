@@ -23,17 +23,17 @@
 #ifndef MADE_DATABASE_H
 #define MADE_DATABASE_H
 
-#include "common/array.h"
 #include "common/hashmap.h"
-#include "common/util.h"
-#include "common/file.h"
-#include "common/stream.h"
-#include "common/str.h"
 
-#include "made/made.h"
-#include "made/redreader.h"
+namespace Common {
+class SeekableReadStream;
+class WriteStream;
+class String;
+}
 
 namespace Made {
+
+class MadeEngine;
 
 class Object {
 public:
@@ -151,9 +151,9 @@ public:
 	void dumpObject(int16 index);
 
 protected:
-	typedef Common::HashMap<uint32, int16*> ObjectPropertyCacheMap;
+	typedef Common::HashMap<uint32, int16 *> ObjectPropertyCacheMap;
 	MadeEngine *_vm;
-	Common::Array<Object*> _objects;
+	Common::Array<Object *> _objects;
 	ObjectPropertyCacheMap _objectPropertyCache;
 	byte *_gameState;
 	uint32 _gameStateSize;

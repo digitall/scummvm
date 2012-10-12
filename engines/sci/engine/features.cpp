@@ -26,6 +26,7 @@
 #include "sci/engine/selector.h"
 #include "sci/engine/vm.h"
 
+#include "common/config-manager.h"
 #include "common/file.h"
 
 namespace Sci {
@@ -42,6 +43,9 @@ GameFeatures::GameFeatures(SegManager *segMan, Kernel *kernel) : _segMan(segMan)
 	_sci2StringFunctionType = kSci2StringFunctionUninitialized;
 #endif
 	_usesCdTrack = Common::File::exists("cdaudio.map");
+	if (!ConfMan.getBool("use_cdaudio"))
+		_usesCdTrack = false;
+	_forceDOSTracks = false;
 }
 
 reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc, int methodNum) {
@@ -70,11 +74,11 @@ bool GameFeatures::autoDetectSoundType() {
 	// Look up the script address
 	reg_t addr = getDetectionAddr("Sound", SELECTOR(play));
 
-	if (!addr.segment)
+	if (!addr.getSegment())
 		return false;
 
-	uint16 offset = addr.offset;
-	Script *script = _segMan->getScript(addr.segment);
+	uint16 offset = addr.getOffset();
+	Script *script = _segMan->getScript(addr.getSegment());
 	uint16 intParam = 0xFFFF;
 	bool foundTarget = false;
 
@@ -217,11 +221,11 @@ bool GameFeatures::autoDetectLofsType(Common::String gameSuperClassName, int met
 	// Look up the script address
 	reg_t addr = getDetectionAddr(gameSuperClassName.c_str(), -1, methodNum);
 
-	if (!addr.segment)
+	if (!addr.getSegment())
 		return false;
 
-	uint16 offset = addr.offset;
-	Script *script = _segMan->getScript(addr.segment);
+	uint16 offset = addr.getOffset();
+	Script *script = _segMan->getScript(addr.getSegment());
 
 	while (true) {
 		int16 opparams[4];
@@ -316,11 +320,11 @@ bool GameFeatures::autoDetectGfxFunctionsType(int methodNum) {
 	// Look up the script address
 	reg_t addr = getDetectionAddr("Rm", SELECTOR(overlay), methodNum);
 
-	if (!addr.segment)
+	if (!addr.getSegment())
 		return false;
 
-	uint16 offset = addr.offset;
-	Script *script = _segMan->getScript(addr.segment);
+	uint16 offset = addr.getOffset();
+	Script *script = _segMan->getScript(addr.getSegment());
 
 	while (true) {
 		int16 opparams[4];
@@ -430,19 +434,16 @@ SciVersion GameFeatures::detectMessageFunctionType() {
 		return _messageFunctionType;
 	}
 
-	Common::List<ResourceId> *resources = g_sci->getResMan()->listResources(kResourceTypeMessage, -1);
+	Common::List<ResourceId> resources = g_sci->getResMan()->listResources(kResourceTypeMessage, -1);
 
-	if (resources->empty()) {
-		delete resources;
-
+	if (resources.empty()) {
 		// No messages found, so this doesn't really matter anyway...
 		_messageFunctionType = SCI_VERSION_1_1;
 		return _messageFunctionType;
 	}
 
-	Resource *res = g_sci->getResMan()->findResource(*resources->begin(), false);
+	Resource *res = g_sci->getResMan()->findResource(*resources.begin(), false);
 	assert(res);
-	delete resources;
 
 	// Only v2 Message resources use the kGetMessage kernel function.
 	// v3-v5 use the kMessage kernel function.
@@ -473,11 +474,11 @@ bool GameFeatures::autoDetectSci21KernelType() {
 	// Look up the script address
 	reg_t addr = getDetectionAddr("Sound", SELECTOR(play));
 
-	if (!addr.segment)
+	if (!addr.getSegment())
 		return false;
 
-	uint16 offset = addr.offset;
-	Script *script = _segMan->getScript(addr.segment);
+	uint16 offset = addr.getOffset();
+	Script *script = _segMan->getScript(addr.getSegment());
 
 	while (true) {
 		int16 opparams[4];
@@ -549,11 +550,11 @@ bool GameFeatures::autoDetectSci21StringFunctionType() {
 	// Look up the script address
 	reg_t addr = getDetectionAddr("Str", SELECTOR(size));
 
-	if (!addr.segment)
+	if (!addr.getSegment())
 		return false;
 
-	uint16 offset = addr.offset;
-	Script *script = _segMan->getScript(addr.segment);
+	uint16 offset = addr.getOffset();
+	Script *script = _segMan->getScript(addr.getSegment());
 
 	while (true) {
 		int16 opparams[4];
@@ -586,11 +587,11 @@ bool GameFeatures::autoDetectMoveCountType() {
 	// Look up the script address
 	reg_t addr = getDetectionAddr("Motion", SELECTOR(doit));
 
-	if (!addr.segment)
+	if (!addr.getSegment())
 		return false;
 
-	uint16 offset = addr.offset;
-	Script *script = _segMan->getScript(addr.segment);
+	uint16 offset = addr.getOffset();
+	Script *script = _segMan->getScript(addr.getSegment());
 	bool foundTarget = false;
 
 	while (true) {
@@ -642,7 +643,7 @@ MoveCountType GameFeatures::detectMoveCountType() {
 }
 
 bool GameFeatures::useAltWinGMSound() {
-	if (g_sci && g_sci->getPlatform() == Common::kPlatformWindows && g_sci->isCD()) {
+	if (g_sci && g_sci->getPlatform() == Common::kPlatformWindows && g_sci->isCD() && !_forceDOSTracks) {
 		SciGameId id = g_sci->getGameId();
 		return (id == GID_ECOQUEST ||
 				id == GID_JONES ||

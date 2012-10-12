@@ -54,25 +54,10 @@ Seq *getConstantSeq(bool seqFlag) {
 	return seq;
 }
 
-extern "C" void SNDMIDIPlay();
-
-Dac mkDac(uint8 r, uint8 g, uint8 b) {
-	static Dac x;
-	x._r = r;
-	x._g = g;
-	x._b = b;
-	return x;
-}
-
-Sprite *locate(int ref) {
-	Sprite *spr = _vga->_showQ->locate(ref);
-	return (spr) ? spr : _vga->_spareQ->locate(ref);
-}
-
 Sprite::Sprite(CGEEngine *vm, BitmapPtr *shpP)
 	: _x(0), _y(0), _z(0), _nearPtr(0), _takePtr(0),
 	  _next(NULL), _prev(NULL), _seqPtr(kNoSeq), _time(0),
-	  _ext(NULL), _ref(-1), _cave(0), _vm(vm) {
+	  _ext(NULL), _ref(-1), _scene(0), _vm(vm) {
 	memset(_file, 0, sizeof(_file));
 	memset(&_flags, 0, sizeof(_flags));
 	_ref = 0;
@@ -87,8 +72,8 @@ Sprite::Sprite(CGEEngine *vm, BitmapPtr *shpP)
 }
 
 Sprite::~Sprite() {
-	if (_sprite == this)
-		_sprite = NULL;
+	if (_vm->_sprite == this)
+		_vm->_sprite = NULL;
 
 	contract();
 }
@@ -130,22 +115,15 @@ BitmapPtr *Sprite::setShapeList(BitmapPtr *shpP) {
 	return r;
 }
 
-void Sprite::moveShapes(uint8 *buf) {
-	BitmapPtr *p;
-	for (p = _ext->_shpList; *p; p++) {
-		buf += (*p)->moveVmap(buf);
-	}
-}
-
 bool Sprite::works(Sprite *spr) {
 	if (!spr || !spr->_ext)
 		return false;
 
-	Snail::Com *c = spr->_ext->_take;
+	CommandHandler::Command *c = spr->_ext->_take;
 	if (c != NULL) {
 		c += spr->_takePtr;
 		if (c->_ref == _ref)
-			if (c->_com != kSnLabel || (c->_val == 0 || c->_val == _vm->_now))
+			if (c->_commandType != kCmdLabel || (c->_val == 0 || c->_val == _vm->_now))
 				return true;
 	}
 
@@ -177,7 +155,7 @@ bool Sprite::seqTest(int n) {
 	return true;
 }
 
-Snail::Com *Sprite::snList(SnList type) {
+CommandHandler::Command *Sprite::snList(SnList type) {
 	SprExt *e = _ext;
 	if (e)
 		return (type == kNear) ? e->_near : e->_take;
@@ -223,11 +201,11 @@ Sprite *Sprite::expand() {
 	    maxnow = 0,
 	    maxnxt = 0;
 
-	Snail::Com *nearList = NULL;
-	Snail::Com *takeList = NULL;
-	mergeExt(fname, _file, kSprExt);
-	if (_cat->exist(fname)) { // sprite description file exist
-		EncryptedStream sprf(fname);
+	CommandHandler::Command *nearList = NULL;
+	CommandHandler::Command *takeList = NULL;
+	_vm->mergeExt(fname, _file, kSprExt);
+	if (_vm->_resman->exist(fname)) { // sprite description file exist
+		EncryptedStream sprf(_vm, fname);
 		if (sprf.err())
 			error("Bad SPR [%s]", fname);
 		Common::String line;
@@ -241,8 +219,8 @@ Sprite *Sprite::expand() {
 			if (len == 0 || *tmpStr == '.')
 				continue;
 
-			Snail::Com *c;
-			switch (takeEnum(Comd, strtok(tmpStr, " =\t"))) {
+			CommandHandler::Command *c;
+			switch (_vm->takeEnum(Comd, strtok(tmpStr, " =\t"))) {
 			case 0:
 				// Name
 				setName(strtok(NULL, ""));
@@ -254,7 +232,7 @@ Sprite *Sprite::expand() {
 					shplist.push_back(NULL);
 					++_shpCnt;
 				}
-				shplist[shapeCount++] = new Bitmap(strtok(NULL, " \t,;/"));
+				shplist[shapeCount++] = new Bitmap(_vm, strtok(NULL, " \t,;/"));
 				break;
 			case 2:
 				// Seq
@@ -284,33 +262,33 @@ Sprite *Sprite::expand() {
 				// Near
 				if (_nearPtr == kNoPtr)
 					break;
-				nearList = (Snail::Com *)realloc(nearList, (nearCount + 1) * sizeof(*nearList));
+				nearList = (CommandHandler::Command *)realloc(nearList, (nearCount + 1) * sizeof(*nearList));
 				assert(nearList != NULL);
 				c = &nearList[nearCount++];
-				if ((c->_com = (SnCom)takeEnum(Snail::_comText, strtok(NULL, " \t,;/"))) < 0)
+				if ((c->_commandType = (CommandType)_vm->takeEnum(CommandHandler::_commandText, strtok(NULL, " \t,;/"))) < 0)
 					error("Bad NEAR in %d [%s]", lcnt, fname);
 				c->_ref = atoi(strtok(NULL, " \t,;/"));
 				c->_val = atoi(strtok(NULL, " \t,;/"));
-				c->_ptr = NULL;
-			break;
+				c->_spritePtr = NULL;
+				break;
 			case 4:
 				// Take
 				if (_takePtr == kNoPtr)
 					break;
-				takeList = (Snail::Com *)realloc(takeList, (takeCount + 1) * sizeof(*takeList));
+				takeList = (CommandHandler::Command *)realloc(takeList, (takeCount + 1) * sizeof(*takeList));
 				assert(takeList != NULL);
 				c = &takeList[takeCount++];
-				if ((c->_com = (SnCom)takeEnum(Snail::_comText, strtok(NULL, " \t,;/"))) < 0)
+				if ((c->_commandType = (CommandType)_vm->takeEnum(CommandHandler::_commandText, strtok(NULL, " \t,;/"))) < 0)
 					error("Bad NEAR in %d [%s]", lcnt, fname);
 				c->_ref = atoi(strtok(NULL, " \t,;/"));
 				c->_val = atoi(strtok(NULL, " \t,;/"));
-				c->_ptr = NULL;
+				c->_spritePtr = NULL;
 				break;
 			}
 		}
 	} else {
 		// no sprite description: try to read immediately from .BMP
-		shplist[shapeCount++] = new Bitmap(_file);
+		shplist[shapeCount++] = new Bitmap(_vm, _file);
 	}
 
 	shplist[shapeCount] = NULL;
@@ -331,11 +309,11 @@ Sprite *Sprite::expand() {
 	setShapeList(shapeList);
 
 	if (nearList)
-		nearList[nearCount - 1]._ptr = _ext->_near = nearList;
+		nearList[nearCount - 1]._spritePtr = _ext->_near = nearList;
 	else
 		_nearPtr = kNoPtr;
 	if (takeList)
-		takeList[takeCount - 1]._ptr = _ext->_take = takeList;
+		takeList[takeCount - 1]._spritePtr = _ext->_take = takeList;
 	else
 		_takePtr = kNoPtr;
 
@@ -462,10 +440,10 @@ void Sprite::show() {
 }
 
 void Sprite::show(uint16 pg) {
-	Graphics::Surface *a = _vga->_page[1];
-	_vga->_page[1] = _vga->_page[pg & 3];
+	Graphics::Surface *a = _vm->_vga->_page[1];
+	_vm->_vga->_page[1] = _vm->_vga->_page[pg & 3];
 	shp()->show(_x, _y);
-	_vga->_page[1] = a;
+	_vm->_vga->_page[1] = a;
 }
 
 void Sprite::hide() {
@@ -479,7 +457,7 @@ BitmapPtr Sprite::ghost() {
 	if (!e->_b1)
 		return NULL;
 
-	BitmapPtr bmp = new Bitmap(0, 0, (uint8 *)NULL);
+	BitmapPtr bmp = new Bitmap(_vm, 0, 0, (uint8 *)NULL);
 	assert(bmp != NULL);
 	bmp->_w = e->_b1->_w;
 	bmp->_h = e->_b1->_h;
@@ -496,7 +474,7 @@ void Sprite::sync(Common::Serializer &s) {
 	s.syncAsUint16LE(unused);
 	s.syncAsUint16LE(unused);	// _ext
 	s.syncAsUint16LE(_ref);
-	s.syncAsByte(_cave);
+	s.syncAsByte(_scene);
 
 	// bitfield in-memory storage is unpredictable, so to avoid
 	// any issues, pack/unpack everything manually
@@ -507,7 +485,7 @@ void Sprite::sync(Common::Serializer &s) {
 		_flags._near = flags & 0x0002 ? true : false;
 		_flags._drag = flags & 0x0004 ? true : false;
 		_flags._hold = flags & 0x0008 ? true : false;
-		_flags._____ = flags & 0x0010 ? true : false;
+		_flags._dummy = flags & 0x0010 ? true : false;
 		_flags._slav = flags & 0x0020 ? true : false;
 		_flags._syst = flags & 0x0040 ? true : false;
 		_flags._kill = flags & 0x0080 ? true : false;
@@ -531,7 +509,7 @@ void Sprite::sync(Common::Serializer &s) {
 		flags = (flags << 1) | _flags._kill;
 		flags = (flags << 1) | _flags._syst;
 		flags = (flags << 1) | _flags._slav;
-		flags = (flags << 1) | _flags._____;
+		flags = (flags << 1) | _flags._dummy;
 		flags = (flags << 1) | _flags._hold;
 		flags = (flags << 1) | _flags._drag;
 		flags = (flags << 1) | _flags._near;
@@ -556,19 +534,6 @@ void Sprite::sync(Common::Serializer &s) {
 	s.syncAsUint16LE(unused);	// _next
 }
 
-Sprite *spriteAt(int x, int y) {
-	Sprite *spr = NULL, * tail = _vga->_showQ->last();
-	if (tail) {
-		for (spr = tail->_prev; spr; spr = spr->_prev) {
-			if (! spr->_flags._hide && ! spr->_flags._tran) {
-				if (spr->shp()->solidAt(x - spr->_x, y - spr->_y))
-					break;
-			}
-		}
-	}
-	return spr;
-}
-
 Queue::Queue(bool show) : _head(NULL), _tail(NULL), _show(show) {
 }
 
@@ -581,15 +546,6 @@ void Queue::clear() {
 		Sprite *s = remove(_head);
 		if (s->_flags._kill)
 			delete s;
-	}
-}
-
-void Queue::forAll(void (*fun)(Sprite *)) {
-	Sprite *s = _head;
-	while (s) {
-		Sprite *n = s->_next;
-		fun(s);
-		s = n;
 	}
 }
 
@@ -669,7 +625,7 @@ Sprite *Queue::locate(int ref) {
 	return NULL;
 }
 
-Vga::Vga() : _frmCnt(0), _msg(NULL), _name(NULL), _setPal(false), _mono(0) {
+Vga::Vga(CGEEngine *vm) : _frmCnt(0), _msg(NULL), _name(NULL), _setPal(false), _mono(0), _vm(vm) {
 	_oldColors = NULL;
 	_newColors = NULL;
 	_showQ = new Queue(true);
@@ -681,15 +637,6 @@ Vga::Vga() : _frmCnt(0), _msg(NULL), _name(NULL), _setPal(false), _mono(0) {
 		_page[idx]->create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
 	}
 
-#if 0
-	// This part was used to display credits at the beginning of the game
-	for (int i = 10; i < 20; i++) {
-		char *text = _text->getText(i);
-		if (text) {
-			debugN(1, "%s\n", text);
-		}
-	}
-#endif
 	_oldColors = (Dac *)malloc(sizeof(Dac) * kPalCount);
 	_newColors = (Dac *)malloc(sizeof(Dac) * kPalCount);
 	getColors(_oldColors);
@@ -738,6 +685,47 @@ void Vga::getColors(Dac *tab) {
 	byte palData[kPalSize];
 	g_system->getPaletteManager()->grabPalette(palData, 0, kPalCount);
 	palToDac(palData, tab);
+}
+
+uint8 Vga::closest(Dac *pal, const uint8 colR, const uint8 colG, const uint8 colB) {
+#define f(col, lum) ((((uint16)(col)) << 8) / lum)
+	uint16 i, dif = 0xFFFF, found = 0;
+	uint16 L = colR + colG + colB;
+	if (!L)
+		L++;
+	uint16 R = f(colR, L), G = f(colG, L), B = f(colB, L);
+	for (i = 0; i < 256; i++) {
+		uint16 l = pal[i]._r + pal[i]._g + pal[i]._b;
+		if (!l)
+			l++;
+		int  r = f(pal[i]._r, l), g = f(pal[i]._g, l), b = f(pal[i]._b, l);
+		uint16 D = ((r > R) ? (r - R) : (R - r)) +
+		           ((g > G) ? (g - G) : (G - g)) +
+		           ((b > B) ? (b - B) : (B - b)) +
+		           ((l > L) ? (l - L) : (L - l)) * 10 ;
+
+		if (D < dif) {
+			found = i;
+			dif = D;
+			if (D == 0)
+				break;    // exact!
+		}
+	}
+	return found;
+#undef f
+}
+
+uint8 *Vga::glass(Dac *pal, const uint8 colR, const uint8 colG, const uint8 colB) {
+	uint8 *x = (uint8 *)malloc(256);
+	if (x) {
+		uint16 i;
+		for (i = 0; i < 256; i++) {
+			x[i] = closest(pal, ((uint16)(pal[i]._r) * colR) / 255,
+			                    ((uint16)(pal[i]._g) * colG) / 255,
+			                    ((uint16)(pal[i]._b) * colB) / 255);
+		}
+	}
+	return x;
 }
 
 void Vga::palToDac(const byte *palData, Dac *tab) {
@@ -825,8 +813,19 @@ void Vga::update() {
 		updateColors();
 		_setPal = false;
 	}
+	if (_vm->_showBoundariesFl) {
+		Vga::_page[0]->hLine(0, 200 - kPanHeight, 320, 0xee);
+		if (_vm->_barriers[_vm->_now]._horz != 255) {
+			for (int i = 0; i < 8; i++)
+				Vga::_page[0]->vLine((_vm->_barriers[_vm->_now]._horz * 8) + i, 0, 200, 0xff);
+		}
+		if (_vm->_barriers[_vm->_now]._vert != 255) {
+			for (int i = 0; i < 4; i++)
+				Vga::_page[0]->hLine(0, 80 + (_vm->_barriers[_vm->_now]._vert * 4) + i, 320, 0xff);
+		}
+	}
 
-	g_system->copyRectToScreen((const byte *)Vga::_page[0]->getBasePtr(0, 0), kScrWidth, 0, 0, kScrWidth, kScrHeight);
+	g_system->copyRectToScreen(Vga::_page[0]->getBasePtr(0, 0), kScrWidth, 0, 0, kScrWidth, kScrHeight);
 	g_system->updateScreen();
 }
 
@@ -845,14 +844,14 @@ void Bitmap::xShow(int16 x, int16 y) {
 	debugC(4, kCGEDebugBitmap, "Bitmap::xShow(%d, %d)", x, y);
 
 	const byte *srcP = (const byte *)_v;
-	byte *destEndP = (byte *)_vga->_page[1]->pixels + (kScrWidth * kScrHeight);
+	byte *destEndP = (byte *)_vm->_vga->_page[1]->pixels + (kScrWidth * kScrHeight);
 	byte *lookupTable = _m;
 
 	// Loop through processing data for each plane. The game originally ran in plane mapped mode, where a
 	// given plane holds each fourth pixel sequentially. So to handle an entire picture, each plane's data
 	// must be decompressed and inserted into the surface
 	for (int planeCtr = 0; planeCtr < 4; planeCtr++) {
-		byte *destP = (byte *)_vga->_page[1]->getBasePtr(x + planeCtr, y);
+		byte *destP = (byte *)_vm->_vga->_page[1]->getBasePtr(x + planeCtr, y);
 
 		for (;;) {
 			uint16 v = READ_LE_UINT16(srcP);
@@ -898,13 +897,13 @@ void Bitmap::show(int16 x, int16 y) {
 	debugC(5, kCGEDebugBitmap, "Bitmap::show(%d, %d)", x, y);
 
 	const byte *srcP = (const byte *)_v;
-	byte *destEndP = (byte *)_vga->_page[1]->pixels + (kScrWidth * kScrHeight);
+	byte *destEndP = (byte *)_vm->_vga->_page[1]->pixels + (kScrWidth * kScrHeight);
 
 	// Loop through processing data for each plane. The game originally ran in plane mapped mode, where a
 	// given plane holds each fourth pixel sequentially. So to handle an entire picture, each plane's data
 	// must be decompressed and inserted into the surface
 	for (int planeCtr = 0; planeCtr < 4; planeCtr++) {
-		byte *destP = (byte *)_vga->_page[1]->getBasePtr(x + planeCtr, y);
+		byte *destP = (byte *)_vm->_vga->_page[1]->getBasePtr(x + planeCtr, y);
 
 		for (;;) {
 			uint16 v = READ_LE_UINT16(srcP);
@@ -944,17 +943,6 @@ void Bitmap::show(int16 x, int16 y) {
 				srcP++;
 		}
 	}
-/*
-	DEBUG code to display image immediately
-	// Temporary
-	g_system->copyRectToScreen((const byte *)VGA::Page[1]->getBasePtr(0, 0), SCR_WID, 0, 0, SCR_WID, SCR_HIG);
-	byte palData[PAL_SIZ];
-	VGA::DAC2pal(VGA::SysPal, palData);
-	g_system->getPaletteManager()->setPalette(palData, 0, PAL_CNT);
-
-	g_system->updateScreen();
-	g_system->delayMillis(5000);
-*/
 }
 
 
@@ -962,8 +950,8 @@ void Bitmap::hide(int16 x, int16 y) {
 	debugC(5, kCGEDebugBitmap, "Bitmap::hide(%d, %d)", x, y);
 
 	for (int yp = y; yp < y + _h; yp++) {
-		const byte *srcP = (const byte *)_vga->_page[2]->getBasePtr(x, yp);
-		byte *destP = (byte *)_vga->_page[1]->getBasePtr(x, yp);
+		const byte *srcP = (const byte *)_vm->_vga->_page[2]->getBasePtr(x, yp);
+		byte *destP = (byte *)_vm->_vga->_page[1]->getBasePtr(x, yp);
 
 		Common::copy(srcP, srcP + _w, destP);
 	}
@@ -971,41 +959,41 @@ void Bitmap::hide(int16 x, int16 y) {
 
 /*--------------------------------------------------------------------------*/
 
-HorizLine::HorizLine(CGEEngine *vm): Sprite(vm, NULL) {
+HorizLine::HorizLine(CGEEngine *vm) : Sprite(vm, NULL), _vm(vm) {
 	// Set the sprite list
 	BitmapPtr *HL = new BitmapPtr[2];
-	HL[0] = new Bitmap("HLINE");
+	HL[0] = new Bitmap(_vm, "HLINE");
 	HL[1] = NULL;
 
 	setShapeList(HL);
 }
 
-CavLight::CavLight(CGEEngine *vm): Sprite(vm, NULL) {
+SceneLight::SceneLight(CGEEngine *vm) : Sprite(vm, NULL), _vm(vm) {
 	// Set the sprite list
 	BitmapPtr *PR = new BitmapPtr[2];
-	PR[0] = new Bitmap("PRESS");
+	PR[0] = new Bitmap(_vm, "PRESS");
 	PR[1] = NULL;
 
 	setShapeList(PR);
 }
 
-Spike::Spike(CGEEngine *vm): Sprite(vm, NULL) {
+Speaker::Speaker(CGEEngine *vm): Sprite(vm, NULL), _vm(vm) {
 	// Set the sprite list
 	BitmapPtr *SP = new BitmapPtr[3];
-	SP[0] = new Bitmap("SPK_L");
-	SP[1] = new Bitmap("SPK_R");
+	SP[0] = new Bitmap(_vm, "SPK_L");
+	SP[1] = new Bitmap(_vm, "SPK_R");
 	SP[2] = NULL;
 
 	setShapeList(SP);
 }
 
-PocLight::PocLight(CGEEngine *vm): Sprite(vm, NULL) {
+PocLight::PocLight(CGEEngine *vm): Sprite(vm, NULL), _vm(vm) {
 	// Set the sprite list
 	BitmapPtr *LI = new BitmapPtr[5];
-	LI[0] = new Bitmap("LITE0");
-	LI[1] = new Bitmap("LITE1");
-	LI[2] = new Bitmap("LITE2");
-	LI[3] = new Bitmap("LITE3");
+	LI[0] = new Bitmap(_vm, "LITE0");
+	LI[1] = new Bitmap(_vm, "LITE1");
+	LI[2] = new Bitmap(_vm, "LITE2");
+	LI[3] = new Bitmap(_vm, "LITE3");
 	LI[4] = NULL;
 
 	setShapeList(LI);

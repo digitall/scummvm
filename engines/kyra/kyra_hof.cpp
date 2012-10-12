@@ -88,7 +88,7 @@ KyraEngine_HoF::KyraEngine_HoF(OSystem *system, const GameFlags &flags) : KyraEn
 	_currentTalkSections.ENDTim = 0;
 
 	memset(&_invWsa, 0, sizeof(_invWsa));
-	_itemAnimData = 0;
+	_itemAnimDefinition = 0;
 	_demoAnimData = 0;
 	_nextAnimItem = 0;
 
@@ -211,8 +211,8 @@ void KyraEngine_HoF::pauseEngineIntern(bool pause) {
 
 		_nextIdleAnim += pausedTime;
 
-		for (int x = 0; x < _itemAnimDataSize; x++)
-			_activeItemAnim[x].nextFrame += pausedTime;
+		for (int x = 0; x < _itemAnimDefinitionSize; x++)
+			_activeItemAnim[x].nextFrameTime += pausedTime;
 
 		_tim->refreshTimersAfterPause(pausedTime);
 	}
@@ -223,11 +223,12 @@ Common::Error KyraEngine_HoF::init() {
 	assert(_screen);
 	_screen->setResolution();
 
+	_debugger = new Debugger_HoF(this);
+	assert(_debugger);
+
 	KyraEngine_v1::init();
 	initStaticResource();
 
-	_debugger = new Debugger_HoF(this);
-	assert(_debugger);
 	_text = new TextDisplayer_HoF(this, _screen);
 	assert(_text);
 	_gui = new GUI_HoF(this);
@@ -285,7 +286,7 @@ Common::Error KyraEngine_HoF::go() {
 		if (_flags.isDemo && !_flags.isTalkie) {
 #ifdef ENABLE_LOL
 			if (_flags.gameID == GI_LOL)
-				seq_playSequences(kSequenceLolDemoScene1, kSequenceLolDemoScene6);
+				seq_playSequences(kSequenceLoLDemoScene1, kSequenceLoLDemoScene6);
 			else
 #endif // ENABLE_LOL
 				seq_playSequences(kSequenceDemoVirgin, kSequenceDemoFisher);
@@ -418,8 +419,6 @@ void KyraEngine_HoF::startup() {
 	_screen->loadPalette("PALETTE.COL", _screen->getPalette(0));
 	_screen->loadBitmap("_PLAYFLD.CPS", 3, 3, 0);
 	_screen->copyPage(3, 0);
-	_screen->showMouse();
-	_screen->hideMouse();
 
 	clearAnimObjects();
 
@@ -455,6 +454,9 @@ void KyraEngine_HoF::startup() {
 }
 
 void KyraEngine_HoF::runLoop() {
+	// Initialize debugger since how it should be fully usable
+	_debugger->initialize();
+
 	_screen->updateScreen();
 
 	_runFlag = true;
@@ -780,20 +782,16 @@ void KyraEngine_HoF::updateMouse() {
 
 	if (type != 0 && _mouseState != type && _screen->isMouseVisible()) {
 		_mouseState = type;
-		_screen->hideMouse();
 		_screen->setMouseCursor(xOffset, yOffset, getShapePtr(shapeIndex));
-		_screen->showMouse();
 	}
 
 	if (type == 0 && _mouseState != _itemInHand && _screen->isMouseVisible()) {
 		if ((mouse.y > 145) || (mouse.x > 6 && mouse.x < 312 && mouse.y > 6 && mouse.y < 135)) {
 			_mouseState = _itemInHand;
-			_screen->hideMouse();
 			if (_itemInHand == kItemNone)
 				_screen->setMouseCursor(0, 0, getShapePtr(0));
 			else
 				_screen->setMouseCursor(8, 15, getShapePtr(_itemInHand+64));
-			_screen->showMouse();
 		}
 	}
 }
@@ -910,7 +908,6 @@ void KyraEngine_HoF::showMessageFromCCode(int id, int16 palIndex, int) {
 
 void KyraEngine_HoF::showMessage(const char *string, int16 palIndex) {
 	_shownMessage = string;
-	_screen->hideMouse();
 	_screen->fillRect(0, 190, 319, 199, 0xCF);
 
 	if (string) {
@@ -928,7 +925,6 @@ void KyraEngine_HoF::showMessage(const char *string, int16 palIndex) {
 	}
 
 	_fadeMessagePalette = false;
-	_screen->showMouse();
 }
 
 void KyraEngine_HoF::showChapterMessage(int id, int16 palIndex) {
@@ -1083,11 +1079,11 @@ void KyraEngine_HoF::loadNPCScript() {
 #pragma mark -
 
 void KyraEngine_HoF::resetScaleTable() {
-	Common::set_to(_scaleTable, ARRAYEND(_scaleTable), 0x100);
+	Common::fill(_scaleTable, ARRAYEND(_scaleTable), 0x100);
 }
 
 void KyraEngine_HoF::setScaleTableItem(int item, int data) {
-	if (item >= 1 || item <= 15)
+	if (item >= 1 && item <= 15)
 		_scaleTable[item-1] = (data << 8) / 100;
 }
 
@@ -1096,7 +1092,7 @@ int KyraEngine_HoF::getScale(int x, int y) {
 }
 
 void KyraEngine_HoF::setDrawLayerTableEntry(int entry, int data) {
-	if (entry >= 1 || entry <= 15)
+	if (entry >= 1 && entry <= 15)
 		_drawLayerTable[entry-1] = data;
 }
 
@@ -1112,9 +1108,7 @@ int KyraEngine_HoF::getDrawLayer(int x, int y) {
 
 void KyraEngine_HoF::backUpPage0() {
 	if (_screenBuffer) {
-		_screen->hideMouse();
 		memcpy(_screenBuffer, _screen->getCPagePtr(0), 64000);
-		_screen->showMouse();
 	}
 }
 
@@ -1473,7 +1467,7 @@ void KyraEngine_HoF::snd_playVoiceFile(int id) {
 	char vocFile[9];
 	assert(id >= 0 && id <= 9999999);
 	sprintf(vocFile, "%07d", id);
-	if (_sound->voiceFileIsPresent(vocFile)) {
+	if (_sound->isVoicePresent(vocFile)) {
 		snd_stopVoice();
 
 		while (!_sound->voicePlay(vocFile, &_speechHandle)) {
@@ -1673,7 +1667,7 @@ void KyraEngine_HoF::setCauldronState(uint8 state, bool paletteFade) {
 }
 
 void KyraEngine_HoF::clearCauldronTable() {
-	Common::set_to(_cauldronTable, ARRAYEND(_cauldronTable), -1);
+	Common::fill(_cauldronTable, ARRAYEND(_cauldronTable), -1);
 }
 
 void KyraEngine_HoF::addFrontCauldronTable(int item) {

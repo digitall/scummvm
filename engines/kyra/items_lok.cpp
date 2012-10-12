@@ -38,7 +38,7 @@ int KyraEngine_LoK::findDuplicateItemShape(int shape) {
 
 	while (dupTable[i] != 0xFF) {
 		if (dupTable[i] == shape)
-			return dupTable[i+1];
+			return dupTable[i + 1];
 		i += 2;
 	}
 	return -1;
@@ -163,24 +163,20 @@ void KyraEngine_LoK::placeItemInGenericMapScene(int item, int index) {
 }
 
 void KyraEngine_LoK::setHandItem(Item item) {
-	_screen->hideMouse();
 	setMouseItem(item);
 	_itemInHand = item;
-	_screen->showMouse();
 }
 
 void KyraEngine_LoK::removeHandItem() {
-	_screen->hideMouse();
 	_screen->setMouseCursor(1, 1, _shapes[0]);
 	_itemInHand = kItemNone;
-	_screen->showMouse();
 }
 
 void KyraEngine_LoK::setMouseItem(Item item) {
 	if (item == kItemNone)
 		_screen->setMouseCursor(1, 1, _shapes[6]);
 	else
-		_screen->setMouseCursor(8, 15, _shapes[216+item]);
+		_screen->setMouseCursor(8, 15, _shapes[216 + item]);
 }
 
 void KyraEngine_LoK::wipeDownMouseItem(int xpos, int ypos) {
@@ -196,16 +192,16 @@ void KyraEngine_LoK::wipeDownMouseItem(int xpos, int ypos) {
 
 	while (height >= 0) {
 		restoreItemRect1(xpos, ypos);
-		_screen->setNewShapeHeight(_shapes[216+_itemInHand], height);
+		_screen->setNewShapeHeight(_shapes[216 + _itemInHand], height);
 		uint32 nextTime = _system->getMillis() + 1 * _tickLength;
-		_screen->drawShape(0, _shapes[216+_itemInHand], xpos, y, 0, 0);
+		_screen->drawShape(0, _shapes[216 + _itemInHand], xpos, y, 0, 0);
 		_screen->updateScreen();
 		y += 2;
 		height -= 2;
 		delayUntil(nextTime);
 	}
 	restoreItemRect1(xpos, ypos);
-	_screen->resetShapeHeight(_shapes[216+_itemInHand]);
+	_screen->resetShapeHeight(_shapes[216 + _itemInHand]);
 	removeHandItem();
 	_screen->showMouse();
 }
@@ -415,7 +411,6 @@ int KyraEngine_LoK::processItemDrop(uint16 sceneId, uint8 item, int x, int y, in
 }
 
 void KyraEngine_LoK::exchangeItemWithMouseItem(uint16 sceneId, int itemIndex) {
-	_screen->hideMouse();
 	_animator->animRemoveGameItem(itemIndex);
 	assert(sceneId < _roomTableSize);
 	Room *currentRoom = &_roomTable[sceneId];
@@ -432,7 +427,6 @@ void KyraEngine_LoK::exchangeItemWithMouseItem(uint16 sceneId, int itemIndex) {
 		updateSentenceCommand(_itemList[getItemListIndex(_itemInHand)], _takenList[0], 179);
 	else
 		updateSentenceCommand(_itemList[getItemListIndex(_itemInHand)], _takenList[1], 179);
-	_screen->showMouse();
 	clickEventHandler2();
 }
 
@@ -517,7 +511,7 @@ void KyraEngine_LoK::itemDropDown(int x, int y, int destX, int destY, byte freeI
 			drawY = tempY - 16;
 			backUpItemRect0(drawX, drawY);
 			uint32 nextTime = _system->getMillis() + 1 * _tickLength;
-			_screen->drawShape(0, _shapes[216+item], drawX, drawY, 0, 0);
+			_screen->drawShape(0, _shapes[216 + item], drawX, drawY, 0, 0);
 			_screen->updateScreen();
 			delayUntil(nextTime);
 		}
@@ -554,7 +548,7 @@ void KyraEngine_LoK::itemDropDown(int x, int y, int destX, int destY, byte freeI
 				drawY = tempY - 16;
 				backUpItemRect0(drawX, drawY);
 				uint32 nextTime = _system->getMillis() + 1 * _tickLength;
-				_screen->drawShape(0, _shapes[216+item], drawX, drawY, 0, 0);
+				_screen->drawShape(0, _shapes[216 + item], drawX, drawY, 0, 0);
 				_screen->updateScreen();
 				delayUntil(nextTime);
 			}
@@ -575,7 +569,7 @@ void KyraEngine_LoK::dropItem(int unk1, int item, int x, int y, int unk2) {
 	if (processItemDrop(_currentCharacter->sceneId, item, x, y, unk1, unk2))
 		return;
 	snd_playSoundEffect(54);
-	
+
 	// Old floppy versions don't print warning messages and don't have the necessary string resources.
 	// These versions will only play the warning sound effect.
 	if (_flags.isOldFloppy && !_noDropList)
@@ -597,7 +591,7 @@ void KyraEngine_LoK::itemSpecialFX(int x, int y, int item) {
 }
 
 void KyraEngine_LoK::itemSpecialFX1(int x, int y, int item) {
-	uint8 *shape = _shapes[216+item];
+	uint8 *shape = _shapes[216 + item];
 	x -= 8;
 	int startY = y;
 	y -= 15;
@@ -635,7 +629,7 @@ void KyraEngine_LoK::itemSpecialFX2(int x, int y, int item) {
 	for (int i = 204; i >= 201; --i) {
 		restoreItemRect0(x, y);
 		uint32 nextTime = _system->getMillis() + 3 * _tickLength;
-		_screen->drawShape(0, _shapes[216+item], x, y, 0, 0);
+		_screen->drawShape(0, _shapes[216 + item], x, y, 0, 0);
 		_screen->drawShape(0, _shapes[i], x, y + yAdd, 0, 0);
 		_screen->updateScreen();
 		delayUntil(nextTime);
@@ -687,7 +681,7 @@ void KyraEngine_LoK::magicOutMouseItem(int animIndex, int itemPos) {
 	for (int shape = _magicMouseItemStartFrame[animIndex]; shape <= _magicMouseItemEndFrame[animIndex]; ++shape) {
 		restoreItemRect1(x, y);
 		uint32 nextTime = _system->getMillis() + 4 * _tickLength;
-		_screen->drawShape(0, _shapes[216+_itemInHand], x + 4, y + 3, 0, 0);
+		_screen->drawShape(0, _shapes[216 + _itemInHand], x + 4, y + 3, 0, 0);
 		if (tableIndex == -1)
 			_screen->drawShape(0, _shapes[shape], x, y, 0, 0);
 		else
@@ -705,7 +699,7 @@ void KyraEngine_LoK::magicOutMouseItem(int animIndex, int itemPos) {
 	for (int shape = _magicMouseItemStartFrame2[animIndex]; shape <= _magicMouseItemEndFrame2[animIndex]; ++shape) {
 		restoreItemRect1(x, y);
 		uint32 nextTime = _system->getMillis() + 4 * _tickLength;
-		_screen->drawShape(0, _shapes[216+_itemInHand], x + 4, y + 3, 0, 0);
+		_screen->drawShape(0, _shapes[216 + _itemInHand], x + 4, y + 3, 0, 0);
 		if (tableIndex == -1)
 			_screen->drawShape(0, _shapes[shape], x, y, 0, 0);
 		else
@@ -720,9 +714,7 @@ void KyraEngine_LoK::magicOutMouseItem(int animIndex, int itemPos) {
 		_itemInHand = kItemNone;
 	} else {
 		_characterList[0].inventoryItems[itemPos] = kItemNone;
-		_screen->hideMouse();
 		_screen->fillRect(_itemPosX[itemPos], _itemPosY[itemPos], _itemPosX[itemPos] + 15, _itemPosY[itemPos] + 15, _flags.platform == Common::kPlatformAmiga ? 19 : 12, 0);
-		_screen->showMouse();
 	}
 
 	_screen->showMouse();
@@ -789,13 +781,11 @@ void KyraEngine_LoK::magicInMouseItem(int animIndex, int item, int itemPos) {
 	}
 	restoreItemRect1(x, y);
 	if (itemPos == -1) {
-		_screen->setMouseCursor(8, 15, _shapes[216+item]);
+		_screen->setMouseCursor(8, 15, _shapes[216 + item]);
 		_itemInHand = item;
 	} else {
 		_characterList[0].inventoryItems[itemPos] = item;
-		_screen->hideMouse();
-		_screen->drawShape(0, _shapes[216+item], _itemPosX[itemPos], _itemPosY[itemPos], 0, 0);
-		_screen->showMouse();
+		_screen->drawShape(0, _shapes[216 + item], _itemPosX[itemPos], _itemPosY[itemPos], 0, 0);
 	}
 	_screen->showMouse();
 	_screen->_curPage = videoPageBackUp;
@@ -846,9 +836,7 @@ void KyraEngine_LoK::updatePlayerItemsForScene() {
 		++_itemInHand;
 		if (_itemInHand > 33)
 			_itemInHand = 33;
-		_screen->hideMouse();
-		_screen->setMouseCursor(8, 15, _shapes[216+_itemInHand]);
-		_screen->showMouse();
+		_screen->setMouseCursor(8, 15, _shapes[216 + _itemInHand]);
 	}
 
 	bool redraw = false;
@@ -864,9 +852,7 @@ void KyraEngine_LoK::updatePlayerItemsForScene() {
 	}
 
 	if (redraw) {
-		_screen->hideMouse();
 		redrawInventory(0);
-		_screen->showMouse();
 	}
 
 	if (_itemInHand == 33)
@@ -884,38 +870,36 @@ void KyraEngine_LoK::updatePlayerItemsForScene() {
 void KyraEngine_LoK::redrawInventory(int page) {
 	int videoPageBackUp = _screen->_curPage;
 	_screen->_curPage = page;
-	_screen->hideMouse();
 	for (int i = 0; i < 10; ++i) {
 		_screen->fillRect(_itemPosX[i], _itemPosY[i], _itemPosX[i] + 15, _itemPosY[i] + 15, _flags.platform == Common::kPlatformAmiga ? 19 : 12, page);
 
 		if (_currentCharacter->inventoryItems[i] != kItemNone) {
 			uint8 item = _currentCharacter->inventoryItems[i];
-			_screen->drawShape(page, _shapes[216+item], _itemPosX[i], _itemPosY[i], 0, 0);
+			_screen->drawShape(page, _shapes[216 + item], _itemPosX[i], _itemPosY[i], 0, 0);
 		}
 	}
-	_screen->showMouse();
 	_screen->_curPage = videoPageBackUp;
 	_screen->updateScreen();
 }
 
 void KyraEngine_LoK::backUpItemRect0(int xpos, int ypos) {
-	_screen->rectClip(xpos, ypos, 3<<3, 24);
-	_screen->copyRegionToBuffer(_screen->_curPage, xpos, ypos, 3<<3, 24, _itemBkgBackUp[0]);
+	_screen->rectClip(xpos, ypos, 3 << 3, 24);
+	_screen->copyRegionToBuffer(_screen->_curPage, xpos, ypos, 3 << 3, 24, _itemBkgBackUp[0]);
 }
 
 void KyraEngine_LoK::restoreItemRect0(int xpos, int ypos) {
-	_screen->rectClip(xpos, ypos, 3<<3, 24);
-	_screen->copyBlockToPage(_screen->_curPage, xpos, ypos, 3<<3, 24, _itemBkgBackUp[0]);
+	_screen->rectClip(xpos, ypos, 3 << 3, 24);
+	_screen->copyBlockToPage(_screen->_curPage, xpos, ypos, 3 << 3, 24, _itemBkgBackUp[0]);
 }
 
 void KyraEngine_LoK::backUpItemRect1(int xpos, int ypos) {
-	_screen->rectClip(xpos, ypos, 4<<3, 32);
-	_screen->copyRegionToBuffer(_screen->_curPage, xpos, ypos, 4<<3, 32, _itemBkgBackUp[1]);
+	_screen->rectClip(xpos, ypos, 4 << 3, 32);
+	_screen->copyRegionToBuffer(_screen->_curPage, xpos, ypos, 4 << 3, 32, _itemBkgBackUp[1]);
 }
 
 void KyraEngine_LoK::restoreItemRect1(int xpos, int ypos) {
-	_screen->rectClip(xpos, ypos, 4<<3, 32);
-	_screen->copyBlockToPage(_screen->_curPage, xpos, ypos, 4<<3, 32, _itemBkgBackUp[1]);
+	_screen->rectClip(xpos, ypos, 4 << 3, 32);
+	_screen->copyBlockToPage(_screen->_curPage, xpos, ypos, 4 << 3, 32, _itemBkgBackUp[1]);
 }
 
 int KyraEngine_LoK::getItemListIndex(Item item) {

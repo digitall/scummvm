@@ -33,6 +33,8 @@ public:
 
 	virtual bool displayLogFile();
 
+	virtual Common::String getSystemLanguage() const;
+
 	virtual void initBackend();
 	virtual void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0);
 	virtual void setupIcon();

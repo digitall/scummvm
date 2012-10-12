@@ -1095,10 +1095,16 @@ void ScummEngine_v5::o5_getClosestObjActor() {
 void ScummEngine_v5::o5_getDist() {
 	int o1, o2;
 	int r;
+
 	getResultPos();
+
 	o1 = getVarOrDirectWord(PARAM_1);
 	o2 = getVarOrDirectWord(PARAM_2);
-	r = getObjActToObjActDist(o1, o2);
+
+	if (_game.version == 0) // in v0 both parameters are always actor IDs, never objects
+		r = getObjActToObjActDist(actorToObj(o1), actorToObj(o2));
+	else
+		r = getObjActToObjActDist(o1, o2);
 
 	// FIXME: MI2 race workaround, see bug #597022. We never quite figured out
 	// what the real cause of this, or if it maybe occurs in the original, too...
@@ -1799,12 +1805,20 @@ void ScummEngine_v5::o5_roomOps() {
 
 	case 13:	// SO_SAVE_STRING
 		{
-			// This subopcode is used in Indy 4 to save the IQ points data.
-			// No other game uses it. We use this to replace the given filename by
-			// one based on the targetname ("TARGET.iq").
-			// This way, the iq data of each Indy 4 variant a user might have stays
-			// separate. Moreover, the filename now clearly reflects to which target
-			// it belongs (as it should).
+			// This subopcode is used in Indy 4 to save the IQ points
+			// data. No other LucasArts game uses it. We use this fact
+			// to substitute a filename based on the targetname
+			// ("TARGET.iq").
+			//
+			// This way, the iq data of each Indy 4 variant stays
+			// separate. Moreover, the filename now clearly reflects to
+			// which target it belongs (as it should).
+			//
+			// In addition, the Monkey Island fan patch (which adds
+			// speech support and more things to MI 1 and 2) uses
+			// this opcode to generate a "monkey.cfg" file containing.
+			// some user controllable settings.
+			// Once more we use a custom filename ("TARGET.cfg").
 			Common::String filename;
 			char chr;
 
@@ -1814,6 +1828,8 @@ void ScummEngine_v5::o5_roomOps() {
 
 			if (_game.id == GID_INDY4) {
 				filename = _targetName + ".iq";
+			} else if (_game.id == GID_MONKEY || _game.id == GID_MONKEY2) {
+				filename = _targetName + ".cfg";
 			} else {
 				error("SO_SAVE_STRING: Unsupported filename %s", filename.c_str());
 			}
@@ -1841,6 +1857,8 @@ void ScummEngine_v5::o5_roomOps() {
 
 			if (_game.id == GID_INDY4) {
 				filename = _targetName + ".iq";
+			} else if (_game.id == GID_MONKEY || _game.id == GID_MONKEY2) {
+				filename = _targetName + ".cfg";
 			} else {
 				error("SO_LOAD_STRING: Unsupported filename %s", filename.c_str());
 			}
@@ -2452,8 +2470,40 @@ void ScummEngine_v5::o5_walkActorTo() {
 	a->startWalkActor(x, y, -1);
 }
 
+void ScummEngine_v5::walkActorToActor(int actor, int toActor, int dist) {
+	Actor *a = derefActor(actor, "walkActorToActor");
+	Actor *to = derefActor(toActor, "walkActorToActor(2)");
+
+	if (_game.version <= 2) {
+		dist *= V12_X_MULTIPLIER;
+	} else if (dist == 0xFF) {
+		dist = a->_scalex * a->_width / 0xFF;
+		dist += (to->_scalex * to->_width / 0xFF) / 2;
+	}
+	int x = to->getPos().x;
+	int y = to->getPos().y;
+	if (x < a->getPos().x)
+		x += dist;
+	else
+		x -= dist;
+
+	if (_game.version <= 2) {
+		x /= V12_X_MULTIPLIER;
+		y /= V12_Y_MULTIPLIER;
+	}
+	if (_game.version <= 3) {
+		AdjustBoxResult abr = a->adjustXYToBeInBox(x, y);
+		x = abr.x;
+		y = abr.y;
+	}
+	a->startWalkActor(x, y, -1);
+
+	// WORKAROUND: See bug #2971126 for details on why this is here.
+	if (_game.version == 0)
+		o5_breakHere();
+}
+
 void ScummEngine_v5::o5_walkActorToActor() {
-	int x, y;
 	Actor *a, *a2;
 	int nr = getVarOrDirectByte(PARAM_1);
 	int nr2 = getVarOrDirectByte(PARAM_2);
@@ -2487,33 +2537,7 @@ void ScummEngine_v5::o5_walkActorToActor() {
 	if (!a2->isInCurrentRoom())
 		return;
 
-	if (_game.version <= 2) {
-		dist *= V12_X_MULTIPLIER;
-	} else if (dist == 0xFF) {
-		dist = a->_scalex * a->_width / 0xFF;
-		dist += (a2->_scalex * a2->_width / 0xFF) / 2;
-	}
-	x = a2->getPos().x;
-	y = a2->getPos().y;
-	if (x < a->getPos().x)
-		x += dist;
-	else
-		x -= dist;
-
-	if (_game.version <= 2) {
-		x /= V12_X_MULTIPLIER;
-		y /= V12_Y_MULTIPLIER;
-	}
-	if (_game.version <= 3) {
-		AdjustBoxResult abr = a->adjustXYToBeInBox(x, y);
-		x = abr.x;
-		y = abr.y;
-	}
-	a->startWalkActor(x, y, -1);
-
-	// WORKAROUND: See bug #2971126 for details on why this is here.
-	if (_game.version == 0)
-		o5_breakHere();
+	walkActorToActor(nr, nr2, dist);
 }
 
 void ScummEngine_v5::o5_walkActorToObject() {

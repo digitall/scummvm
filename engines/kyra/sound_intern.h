@@ -67,7 +67,7 @@ public:
 	void haltTrack();
 	bool isPlaying() const;
 
-	void playSoundEffect(uint8 track);
+	void playSoundEffect(uint8 track, uint8 volume = 0xff);
 	void stopAllSoundEffects();
 
 	void beginFadeOut();
@@ -116,7 +116,7 @@ public:
 	void playTrack(uint8 track);
 	void haltTrack();
 
-	void playSoundEffect(uint8);
+	void playSoundEffect(uint8 track, uint8 volume = 0xff);
 	void stopAllSoundEffects();
 
 	void beginFadeOut();
@@ -130,7 +130,6 @@ private:
 	void fadeOutSoundEffects();
 
 	int _lastTrack;
-	Audio::AudioStream *_currentSFX;
 	Audio::SoundHandle _sfxHandle;
 
 	uint8 *_musicTrackData;
@@ -166,7 +165,7 @@ public:
 	void beginFadeOut();
 
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx) { return -1; }
-	void playSoundEffect(uint8);
+	void playSoundEffect(uint8 track, uint8 volume = 0xff);
 
 	void updateVolumeSettings();
 
@@ -195,7 +194,7 @@ public:
 	void beginFadeOut();
 
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx);
-	void playSoundEffect(uint8 track);
+	void playSoundEffect(uint8 track, uint8 volume = 0xff);
 
 	void updateVolumeSettings();
 
@@ -304,7 +303,7 @@ public:
 	void beginFadeOut();
 
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, bool isSfx) { return -1; }
-	void playSoundEffect(uint8);
+	void playSoundEffect(uint8 track, uint8 volume = 0xff);
 
 protected:
 	Audio::MaxTrax *_driver;

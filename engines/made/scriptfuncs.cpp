@@ -20,21 +20,19 @@
  *
  */
 
-#include "common/util.h"
+#include "made/scriptfuncs.h"
+#include "made/made.h"
+#include "made/screen.h"
+#include "made/music.h"
+#include "made/database.h"
+#include "made/pmvplayer.h"
 
-#include "backends/audiocd/audiocd.h"
-#include "graphics/cursorman.h"
 #include "audio/softsynth/pcspk.h"
 
-#include "made/made.h"
-#include "made/resource.h"
-#include "made/database.h"
-#include "made/screen.h"
-#include "made/script.h"
-#include "made/sound.h"
-#include "made/pmvplayer.h"
-#include "made/scriptfuncs.h"
-#include "made/music.h"
+#include "backends/audiocd/audiocd.h"
+
+#include "graphics/cursorman.h"
+#include "graphics/surface.h"
 
 namespace Made {
 
@@ -576,7 +574,7 @@ int16 ScriptFunctions::sfLoadMouseCursor(int16 argc, int16 *argv) {
 	PictureResource *flex = _vm->_res->getPicture(argv[2]);
 	if (flex) {
 		Graphics::Surface *surf = flex->getPicture();
-		CursorMan.replaceCursor((const byte *)surf->pixels, surf->w, surf->h, argv[1], argv[0], 0);
+		CursorMan.replaceCursor(surf->pixels, surf->w, surf->h, argv[1], argv[0], 0);
 		_vm->_res->freeResource(flex);
 	}
 	return 0;

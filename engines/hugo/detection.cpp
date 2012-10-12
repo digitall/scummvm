@@ -63,7 +63,7 @@ static const HugoGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformPC,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO0()
 		},
 		kGameTypeHugo1
 	},
@@ -75,7 +75,7 @@ static const HugoGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			GF_PACKED,
-			Common::GUIO_NONE
+			GUIO0()
 		},
 		kGameTypeHugo1
 	},
@@ -87,7 +87,7 @@ static const HugoGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformPC,
 			GF_PACKED,
-			Common::GUIO_NONE
+			GUIO0()
 		},
 		kGameTypeHugo2
 	},
@@ -99,7 +99,7 @@ static const HugoGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			GF_PACKED,
-			Common::GUIO_NONE
+			GUIO0()
 		},
 		kGameTypeHugo2
 	},
@@ -111,7 +111,7 @@ static const HugoGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformPC,
 			GF_PACKED,
-			Common::GUIO_NONE
+			GUIO0()
 		},
 		kGameTypeHugo3
 	},
@@ -123,7 +123,7 @@ static const HugoGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			GF_PACKED,
-			Common::GUIO_NONE
+			GUIO0()
 		},
 		kGameTypeHugo3
 	},
@@ -243,9 +243,6 @@ SaveStateDescriptor HugoMetaEngine::querySaveMetaInfos(const char *target, int s
 
 		Graphics::Surface *const thumbnail = Graphics::loadThumbnail(*file);
 		desc.setThumbnail(thumbnail);
-
-		desc.setDeletableFlag(true);
-		desc.setWriteProtectedFlag(false);
 
 		uint32 saveDate = file->readUint32BE();
 		uint16 saveTime = file->readUint16BE();

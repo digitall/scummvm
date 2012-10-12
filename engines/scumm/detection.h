@@ -23,7 +23,8 @@
 #ifndef SCUMM_DETECTION_H
 #define SCUMM_DETECTION_H
 
-#include "common/util.h"
+#include "common/language.h"
+#include "common/platform.h"
 
 namespace Scumm {
 
@@ -89,7 +90,7 @@ struct GameSettings {
 	/**
 	 * Game GUI options. Used to enable/disable certain GUI widgets
 	 */
-	uint32 guioptions;
+	const char *guioptions;
 };
 
 enum FilenameGenMethod {
@@ -98,6 +99,7 @@ enum FilenameGenMethod {
 	kGenHEMac,
 	kGenHEMacNoParens,
 	kGenHEPC,
+	kGenHEIOS,
 	kGenUnchanged
 };
 

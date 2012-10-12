@@ -33,7 +33,7 @@ namespace Sci {
 
 reg_t kStrEnd(EngineState *s, int argc, reg_t *argv) {
 	reg_t address = argv[0];
-	address.offset += s->_segMan->strlen(address);
+	address.incOffset(s->_segMan->strlen(address));
 
 	return address;
 }
@@ -96,7 +96,7 @@ reg_t kStrAt(EngineState *s, int argc, reg_t *argv) {
 
 	byte value;
 	byte newvalue = 0;
-	unsigned int offset = argv[1].toUint16();
+	uint16 offset = argv[1].toUint16();
 	if (argc > 2)
 		newvalue = argv[2].toSint16();
 
@@ -123,18 +123,22 @@ reg_t kStrAt(EngineState *s, int argc, reg_t *argv) {
 			oddOffset = !oddOffset;
 
 		if (!oddOffset) {
-			value = tmp.offset & 0x00ff;
+			value = tmp.getOffset() & 0x00ff;
 			if (argc > 2) { /* Request to modify this char */
-				tmp.offset &= 0xff00;
-				tmp.offset |= newvalue;
-				tmp.segment = 0;
+				uint16 tmpOffset = tmp.toUint16();
+				tmpOffset &= 0xff00;
+				tmpOffset |= newvalue;
+				tmp.setOffset(tmpOffset);
+				tmp.setSegment(0);
 			}
 		} else {
-			value = tmp.offset >> 8;
+			value = tmp.getOffset() >> 8;
 			if (argc > 2)  { /* Request to modify this char */
-				tmp.offset &= 0x00ff;
-				tmp.offset |= newvalue << 8;
-				tmp.segment = 0;
+				uint16 tmpOffset = tmp.toUint16();
+				tmpOffset &= 0x00ff;
+				tmpOffset |= newvalue << 8;
+				tmp.setOffset(tmpOffset);
+				tmp.setSegment(0);
 			}
 		}
 	}
@@ -147,7 +151,7 @@ reg_t kReadNumber(EngineState *s, int argc, reg_t *argv) {
 	Common::String source_str = s->_segMan->getString(argv[0]);
 	const char *source = source_str.c_str();
 
-	while (isspace((unsigned char)*source))
+	while (Common::isSpace(*source))
 		source++; /* Skip whitespace */
 
 	int16 result = 0;
@@ -161,6 +165,7 @@ reg_t kReadNumber(EngineState *s, int argc, reg_t *argv) {
 		// do clipping. In SQ4 we get the door code in here and that's even
 		// larger than uint32!
 		if (*source == '-') {
+			// FIXME: Setting result to -1 does _not_ negate the output.
 			result = -1;
 			source++;
 		}
@@ -201,10 +206,10 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 	char xfer;
 	int i;
 	int startarg;
-	int str_leng = 0; /* Used for stuff like "%13s" */
-	int unsigned_var = 0;
+	int strLength = 0; /* Used for stuff like "%13s" */
+	bool unsignedVar = false;
 
-	if (position.segment)
+	if (position.getSegment())
 		startarg = 2;
 	else {
 		// WORKAROUND: QFG1 VGA Mac calls this without the first parameter (dest). It then
@@ -236,7 +241,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 				mode = 0;
 			} else {
 				mode = 1;
-				str_leng = 0;
+				strLength = 0;
 			}
 		} else if (mode == 1) { /* xfer != '%' */
 			char fillchar = ' ';
@@ -246,32 +251,32 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 
 			/* int writelength; -- unused atm */
 
-			if (xfer && (isdigit(static_cast<unsigned char>(xfer)) || xfer == '-' || xfer == '=')) {
+			if (xfer && (Common::isDigit(xfer) || xfer == '-' || xfer == '=')) {
 				char *destp;
 
 				if (xfer == '0')
 					fillchar = '0';
 				else if (xfer == '=')
 					align = ALIGN_CENTER;
-				else if (isdigit(static_cast<unsigned char>(xfer)) || (xfer == '-'))
+				else if (Common::isDigit(xfer) || (xfer == '-'))
 					source--; // Go to start of length argument
 
-				str_leng = strtol(source, &destp, 10);
+				strLength = strtol(source, &destp, 10);
 
 				if (destp > source)
 					source = destp;
 
-				if (str_leng < 0) {
+				if (strLength < 0) {
 					align = ALIGN_LEFT;
-					str_leng = -str_leng;
+					strLength = -strLength;
 				} else if (align != ALIGN_CENTER)
 					align = ALIGN_RIGHT;
 
 				xfer = *source++;
 			} else
-				str_leng = 0;
+				strLength = 0;
 
-			assert((target - targetbuf) + str_leng + 1 <= maxsize);
+			assert((target - targetbuf) + strLength + 1 <= maxsize);
 
 			switch (xfer) {
 			case 's': { /* Copy string */
@@ -286,12 +291,12 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 				Common::String tempsource = g_sci->getKernel()->lookupText(reg,
 				                                  arguments[paramindex + 1]);
 				int slen = strlen(tempsource.c_str());
-				int extralen = str_leng - slen;
+				int extralen = strLength - slen;
 				assert((target - targetbuf) + extralen <= maxsize);
 				if (extralen < 0)
 					extralen = 0;
 
-				if (reg.segment) /* Heap address? */
+				if (reg.getSegment()) /* Heap address? */
 					paramindex++;
 				else
 					paramindex += 2; /* No, text resource address */
@@ -342,7 +347,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 			case 'c': { /* insert character */
 				assert((target - targetbuf) + 2 <= maxsize);
 				if (align >= 0)
-					while (str_leng-- > 1)
+					while (strLength-- > 1)
 						*target++ = ' '; /* Format into the text */
 				char argchar = arguments[paramindex++];
 				if (argchar)
@@ -353,8 +358,14 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 
 			case 'x':
 			case 'u':
-				unsigned_var = 1;
+				unsignedVar = true;
 			case 'd': { /* Copy decimal */
+				// In the new SCI2 kString function, %d is used for unsigned
+				// integers. An example is script 962 in Shivers - it uses %d
+				// to create file names.
+				if (getSciVersion() >= SCI_VERSION_2)
+					unsignedVar = true;
+
 				/* int templen; -- unused atm */
 				const char *format_string = "%d";
 
@@ -362,14 +373,14 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 					format_string = "%x";
 
 				int val = arguments[paramindex];
-				if (!unsigned_var)
+				if (!unsignedVar)
 					val = (int16)arguments[paramindex];
 
 				target += sprintf(target, format_string, val);
 				paramindex++;
 				assert((target - targetbuf) <= maxsize);
 
-				unsigned_var = 0;
+				unsignedVar = false;
 
 				mode = 0;
 			}
@@ -384,7 +395,7 @@ reg_t kFormat(EngineState *s, int argc, reg_t *argv) {
 
 			if (align) {
 				int written = target - writestart;
-				int padding = str_leng - written;
+				int padding = strLength - written;
 
 				if (padding > 0) {
 					if (align > 0) {
@@ -647,10 +658,16 @@ reg_t kString(EngineState *s, int argc, reg_t *argv) {
 	case 1: // Size
 		return make_reg(0, s->_segMan->getString(argv[1]).size());
 	case 2: { // At (return value at an index)
-		if (argv[1].segment == s->_segMan->getStringSegmentId())
-			return make_reg(0, s->_segMan->lookupString(argv[1])->getRawData()[argv[2].toUint16()]);
-
-		return make_reg(0, s->_segMan->getString(argv[1])[argv[2].toUint16()]);
+		// Note that values are put in bytes to avoid sign extension
+		if (argv[1].getSegment() == s->_segMan->getStringSegmentId()) {
+			SciString *string = s->_segMan->lookupString(argv[1]);
+			byte val = string->getRawData()[argv[2].toUint16()];
+			return make_reg(0, val);
+		} else {
+			Common::String string = s->_segMan->getString(argv[1]);
+			byte val = string[argv[2].toUint16()];
+			return make_reg(0, val);
+		}
 	}
 	case 3: { // Atput (put value at an index)
 		SciString *string = s->_segMan->lookupString(argv[1]);
@@ -691,13 +708,15 @@ reg_t kString(EngineState *s, int argc, reg_t *argv) {
 	case 6: { // Cpy
 		const char *string2 = 0;
 		uint32 string2Size = 0;
+		Common::String string;
 
-		if (argv[3].segment == s->_segMan->getStringSegmentId()) {
-			SciString *string = s->_segMan->lookupString(argv[3]);
-			string2 = string->getRawData();
-			string2Size = string->getSize();
+		if (argv[3].getSegment() == s->_segMan->getStringSegmentId()) {
+			SciString *sstr;
+			sstr = s->_segMan->lookupString(argv[3]);
+			string2 = sstr->getRawData();
+			string2Size = sstr->getSize();
 		} else {
-			Common::String string = s->_segMan->getString(argv[3]);
+			string = s->_segMan->getString(argv[3]);
 			string2 = string.c_str();
 			string2Size = string.size() + 1;
 		}
@@ -737,27 +756,15 @@ reg_t kString(EngineState *s, int argc, reg_t *argv) {
 			return make_reg(0, strcmp(string1.c_str(), string2.c_str()));
 	}
 	case 8: { // Dup
-		const char *rawString = 0;
-		uint32 size = 0;
 		reg_t stringHandle;
-		// We allocate the new string first because if the StringTable needs to
-		// grow, our rawString pointer will be invalidated
+
 		SciString *dupString = s->_segMan->allocateString(&stringHandle);
 
-		if (argv[1].segment == s->_segMan->getStringSegmentId()) {
-			SciString *string = s->_segMan->lookupString(argv[1]);
-			rawString = string->getRawData();
-			size = string->getSize();
+		if (argv[1].getSegment() == s->_segMan->getStringSegmentId()) {
+			*dupString = *s->_segMan->lookupString(argv[1]);
 		} else {
-			Common::String string = s->_segMan->getString(argv[1]);
-			rawString = string.c_str();
-			size = string.size() + 1;
+			dupString->fromString(s->_segMan->getString(argv[1]));
 		}
-
-		dupString->setSize(size);
-
-		for (uint32 i = 0; i < size; i++)
-			dupString->setValue(i, rawString[i]);
 
 		return stringHandle;
 	}

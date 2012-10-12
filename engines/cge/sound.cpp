@@ -25,7 +25,6 @@
  * Copyright (c) 1994-1995 Janus B. Wisniewski and L.K. Avalon
  */
 
-#include "cge/general.h"
 #include "cge/sound.h"
 #include "cge/text.h"
 #include "cge/cge_main.h"
@@ -35,6 +34,15 @@
 #include "audio/audiostream.h"
 
 namespace CGE {
+
+DataCk::DataCk(byte *buf, int bufSize) {
+	_buf = buf;
+	_ckSize = bufSize;
+}
+
+DataCk::~DataCk() {
+	free(_buf);
+}
 
 Sound::Sound(CGEEngine *vm) : _vm(vm) {
 	_audioStream = NULL;
@@ -47,12 +55,12 @@ Sound::~Sound() {
 }
 
 void Sound::close() {
-	_vm->_midiPlayer.killMidi();
+	_vm->_midiPlayer->killMidi();
 }
 
 void Sound::open() {
 	setRepeat(1);
-	play((*_fx)[30000], 8);
+	play((*_vm->_fx)[30000], 8);
 }
 
 void Sound::setRepeat(int16 count) {
@@ -83,6 +91,12 @@ void Sound::sndDigiStart(SmpInfo *PSmpInfo) {
 	// Start the new sound
 	_vm->_mixer->playStream(Audio::Mixer::kSFXSoundType, &_soundHandle,
 		Audio::makeLoopingAudioStream(_audioStream, (uint)PSmpInfo->_counter));
+
+	// CGE pan:
+	// 8 = Center
+	// Less = Left
+	// More = Right
+	_vm->_mixer->setChannelBalance(_soundHandle, (int8)CLIP(((PSmpInfo->_span - 8) * 16), -127, 127));
 }
 
 void Sound::stop() {
@@ -95,7 +109,7 @@ void Sound::sndDigiStop(SmpInfo *PSmpInfo) {
 	_audioStream = NULL;
 }
 
-Fx::Fx(int size) : _current(NULL) {
+Fx::Fx(CGEEngine *vm, int size) : _current(NULL), _vm(vm) {
 	_cache = new Handler[size];
 	for (_size = 0; _size < size; _size++) {
 		_cache[_size]._ref = 0;
@@ -136,12 +150,15 @@ void Fx::preload(int ref0) {
 
 	for (int ref = ref0; ref < ref0 + 10; ref++) {
 		sprintf(filename, "FX%05d.WAV", ref);
-		EncryptedStream file = filename;
+		EncryptedStream file(_vm, filename);
 		DataCk *wav = loadWave(&file);
 		if (wav) {
 			Handler *p = &_cache[find(0)];
-			if (p >= cacheLim)
+			if (p >= cacheLim) {
+				delete wav;
 				break;
+			}
+			delete p->_wav;
 			p->_wav = wav;
 			p->_ref = ref;
 		} else {
@@ -154,16 +171,24 @@ DataCk *Fx::load(int idx, int ref) {
 	char filename[12];
 	sprintf(filename, "FX%05d.WAV", ref);
 
-	EncryptedStream file = filename;
+	EncryptedStream file(_vm, filename);
 	DataCk *wav = loadWave(&file);
 	if (wav) {
 		Handler *p = &_cache[idx];
+		delete p->_wav;
 		p->_wav = wav;
 		p->_ref = ref;
 	} else {
 		warning("Unable to load %s", filename);
 	}
 	return wav;
+}
+
+DataCk *Fx::loadWave(EncryptedStream *file) {
+	byte *data = (byte *)malloc(file->size());
+	file->read(data, file->size());
+
+	return new DataCk(data, file->size());
 }
 
 DataCk *Fx::operator[](int ref) {
@@ -180,7 +205,7 @@ DataCk *Fx::operator[](int ref) {
 	return _current;
 }
 
-MusicPlayer::MusicPlayer() {
+MusicPlayer::MusicPlayer(CGEEngine *vm) : _vm(vm) {
 	_data = NULL;
 	_isGM = false;
 
@@ -215,14 +240,14 @@ void MusicPlayer::killMidi() {
 void MusicPlayer::loadMidi(int ref) {
 	// Work out the filename and check the given MIDI file exists
 	Common::String filename = Common::String::format("%.2d.MID", ref);
-	if (!_cat->exist(filename.c_str()))
+	if (!_vm->_resman->exist(filename.c_str()))
 		return;
 
 	// Stop any currently playing MIDI file
 	killMidi();
 
 	// Read in the data for the file
-	EncryptedStream mid(filename.c_str());
+	EncryptedStream mid(_vm, filename.c_str());
 	_dataSize = mid.size();
 	_data = (byte *)malloc(_dataSize);
 	mid.read(_data, _dataSize);
@@ -245,6 +270,8 @@ void MusicPlayer::sndMidiStart() {
 
 		syncVolume();
 
+		// Al the tracks are supposed to loop
+		_isLooping = true;
 		_isPlaying = true;
 	}
 }

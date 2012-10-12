@@ -140,8 +140,14 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 			         ((argv[3].toUint16() & 0xff) << 16) |
 			         ((argv[4].toUint16() & 0xff) <<  8) |
 			          (argv[5].toUint16() & 0xff);
-			if (argc == 8)
-				warning("kDoAudio: Play called with SQ6 extra parameters");
+			// Removed warning because of the high amount of console spam
+			/*if (argc == 8) {
+				// TODO: Handle the extra 2 SCI21 params
+				// argv[6] is always 1
+				// argv[7] is the contents of global 229 (0xE5)
+				warning("kDoAudio: Play called with SCI2.1 extra parameters: %04x:%04x and %04x:%04x",
+						PRINT_REG(argv[6]), PRINT_REG(argv[7]));
+			}*/
 		} else {
 			warning("kDoAudio: Play called with an unknown number of parameters (%d)", argc);
 			return NULL_REG;
@@ -195,6 +201,13 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 			return make_reg(0, 1);
 		} else {
 			int16 language = argv[1].toSint16();
+
+			// athrxx: It seems from disasm that the original KQ5 FM-Towns loads a default language (Japanese) audio map at the beginning
+			// right after loading the video and audio drivers. The -1 language argument in here simply means that the original will stick
+			// with Japanese. Instead of doing that we switch to the language selected in the launcher.
+			if (g_sci->getPlatform() == Common::kPlatformFMTowns && language == -1)
+				language = (g_sci->getLanguage() == Common::JA_JPN) ? K_LANG_JAPANESE : K_LANG_ENGLISH;
+
 			debugC(kDebugLevelSound, "kDoAudio: set language to %d", language);
 
 			if (language != -1)
@@ -232,6 +245,11 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 	case 13:
 		// Used in Pharkas whenever a speech sample starts (takes no params)
 		//warning("kDoAudio: Unhandled case 13, %d extra arguments passed", argc - 1);
+		break;
+	case 17:
+		// Seems to be some sort of audio sync, used in SQ6. Silenced the
+		// warning due to the high level of spam it produces. (takes no params)
+		//warning("kDoAudio: Unhandled case 17, %d extra arguments passed", argc - 1);
 		break;
 	default:
 		warning("kDoAudio: Unhandled case %d, %d extra arguments passed", argv[0].toUint16(), argc - 1);

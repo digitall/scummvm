@@ -114,7 +114,7 @@ int AgiEngine::handleController(int key) {
 
 	debugC(3, kDebugLevelInput, "key = %04x", key);
 
-	for (i = 0; i < _game.lastController; i++) {
+	for (i = 0; i < MAX_CONTROLLERS; i++) {
 		if (_game.controllers[i].keycode == key) {
 			debugC(3, kDebugLevelInput, "event %d: key press", _game.controllers[i].controller);
 			_game.controllerOccured[_game.controllers[i].controller] = true;
@@ -133,6 +133,19 @@ int AgiEngine::handleController(int key) {
 	if (key == BUTTON_LEFT &&
 			(int)_mouse.y >= _game.lineUserInput * CHAR_LINES &&
 			(int)_mouse.y <= (_game.lineUserInput + 1) * CHAR_LINES) {
+		GUI::PredictiveDialog _predictiveDialog;
+		_predictiveDialog.runModal();
+		strcpy(_predictiveResult, _predictiveDialog.getResult());
+		if (strcmp(_predictiveResult, "")) {
+			if (_game.inputMode == INPUT_NONE) {
+				for (int n = 0; _predictiveResult[n]; n++)
+					keyEnqueue(_predictiveResult[n]);
+			} else {
+				strcpy((char *)_game.inputBuffer, _predictiveResult);
+				handleKeys(KEY_ENTER);
+			}
+		}
+		/*
 		if (predictiveDialog()) {
 			if (_game.inputMode == INPUT_NONE) {
 				for (int n = 0; _predictiveResult[n]; n++)
@@ -142,6 +155,7 @@ int AgiEngine::handleController(int key) {
 				handleKeys(KEY_ENTER);
 			}
 		}
+		*/
 		return true;
 	}
 
@@ -180,10 +194,17 @@ int AgiEngine::handleController(int key) {
 		if (!(getFeatures() & GF_AGIMOUSE)) {
 			// Handle mouse button events
 			if (key == BUTTON_LEFT) {
-				v->flags |= fAdjEgoXY;
-				v->parm1 = WIN_TO_PIC_X(_mouse.x);
-				v->parm2 = WIN_TO_PIC_Y(_mouse.y);
-				return true;
+				if (getGameID() == GID_PQ1 && _game.vars[vCurRoom] == 116) {
+					// WORKAROUND: Special handling for mouse clicks in the newspaper
+					// screen of PQ1. Fixes bug #3018770.
+					d = 3;	// fake a right arrow key (next page)
+				} else {
+					// Click-to-walk mouse interface
+					v->flags |= fAdjEgoXY;
+					v->parm1 = WIN_TO_PIC_X(_mouse.x);
+					v->parm2 = WIN_TO_PIC_Y(_mouse.y);
+					return true;
+				}
 			}
 		}
 
@@ -210,6 +231,17 @@ void AgiEngine::handleGetstring(int key) {
 	case BUTTON_LEFT:
 		if ((int)_mouse.y >= _stringdata.y * CHAR_LINES &&
 				(int)_mouse.y <= (_stringdata.y + 1) * CHAR_LINES) {
+			GUI::PredictiveDialog _predictiveDialog;
+			_predictiveDialog.runModal();
+			strcpy(_predictiveResult, _predictiveDialog.getResult());
+			if (strcmp(_predictiveResult, "")) {
+				strcpy(_game.strings[_stringdata.str], _predictiveResult);
+				newInputMode(INPUT_NORMAL);
+				_gfx->printCharacter(_stringdata.x + strlen(_game.strings[_stringdata.str]) + 1,
+								_stringdata.y, ' ', _game.colorFg, _game.colorBg);
+				return;
+			}
+			/*
 			if (predictiveDialog()) {
 				strcpy(_game.strings[_stringdata.str], _predictiveResult);
 				newInputMode(INPUT_NORMAL);
@@ -217,6 +249,7 @@ void AgiEngine::handleGetstring(int key) {
 								_stringdata.y, ' ', _game.colorFg, _game.colorBg);
 				return;
 			}
+			*/
 		}
 		break;
 	case KEY_ENTER:

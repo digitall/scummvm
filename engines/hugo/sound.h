@@ -43,6 +43,12 @@ public:
 	void pause(bool p);
 	void play(uint8 *stream, uint16 size);
 
+	// The following line prevents compiler warnings about hiding the pause()
+	// method from the parent class.
+	// FIXME: Maybe the pause(bool p) method should be removed and the
+	// pause/resume methods of the parent class be used instead?
+	virtual void pause() { Audio::MidiPlayer::pause(); }
+
 	uint32 getBaseTempo();
 
 	// Overload Audio::MidiPlayer method
@@ -91,7 +97,7 @@ private:
 
 	void stopSound();
 	void stopMusic();
-	void playMIDI(sound_pt seq_p, uint16 size);
+	void playMIDI(SoundPtr seqPtr, uint16 size);
 };
 
 } // End of namespace Hugo

@@ -27,7 +27,7 @@
 
 static const OSystem::GraphicsMode s_noGraphicsModes[] = { {0, 0, 0} };
 
-class NullGraphicsManager : GraphicsManager {
+class NullGraphicsManager : public GraphicsManager {
 public:
 	virtual ~NullGraphicsManager() {}
 
@@ -38,6 +38,7 @@ public:
 	const OSystem::GraphicsMode *getSupportedGraphicsModes() const { return s_noGraphicsModes; }
 	int getDefaultGraphicsMode() const { return 0; }
 	bool setGraphicsMode(int mode) { return true; }
+	void resetGraphicsScale(){}
 	int getGraphicsMode() const { return 0; }
 	inline Graphics::PixelFormat getScreenFormat() const {
 		return Graphics::PixelFormat::createFormatCLUT8();
@@ -57,7 +58,7 @@ public:
 	int16 getWidth() { return 0; }
 	void setPalette(const byte *colors, uint start, uint num) {}
 	void grabPalette(byte *colors, uint start, uint num) {}
-	void copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {}
+	void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) {}
 	Graphics::Surface *lockScreen() { return NULL; }
 	void unlockScreen() {}
 	void fillScreen(uint32 col) {}
@@ -70,14 +71,14 @@ public:
 	void hideOverlay() {}
 	Graphics::PixelFormat getOverlayFormat() const { return Graphics::PixelFormat(); }
 	void clearOverlay() {}
-	void grabOverlay(OverlayColor *buf, int pitch) {}
-	void copyRectToOverlay(const OverlayColor *buf, int pitch, int x, int y, int w, int h) {}
+	void grabOverlay(void *buf, int pitch) {}
+	void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) {}
 	int16 getOverlayHeight() { return 0; }
 	int16 getOverlayWidth() { return 0; }
 
 	bool showMouse(bool visible) { return !visible; }
 	void warpMouse(int x, int y) {}
-	void setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int cursorTargetScale = 1, const Graphics::PixelFormat *format = NULL) {}
+	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) {}
 	void setCursorPalette(const byte *colors, uint start, uint num) {}
 };
 

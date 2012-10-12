@@ -49,7 +49,7 @@ OpenGLGraphicsManager::OpenGLGraphicsManager()
 	_transactionMode(kTransactionNone),
 	_cursorNeedsRedraw(false), _cursorPaletteDisabled(true),
 	_cursorVisible(false), _cursorKeyColor(0),
-	_cursorTargetScale(1),
+	_cursorDontScale(false),
 	_formatBGR(false),
 	_displayX(0), _displayY(0), _displayWidth(0), _displayHeight(0) {
 
@@ -70,6 +70,11 @@ OpenGLGraphicsManager::~OpenGLGraphicsManager() {
 	free(_gamePalette);
 	free(_cursorPalette);
 
+	_screenData.free();
+	_overlayData.free();
+	_cursorData.free();
+	_osdSurface.free();
+
 	delete _gameTexture;
 	delete _overlayTexture;
 	delete _cursorTexture;
@@ -81,8 +86,8 @@ OpenGLGraphicsManager::~OpenGLGraphicsManager() {
 
 bool OpenGLGraphicsManager::hasFeature(OSystem::Feature f) {
 	return
-		(f == OSystem::kFeatureAspectRatioCorrection) ||
-		(f == OSystem::kFeatureCursorPalette);
+	    (f == OSystem::kFeatureAspectRatioCorrection) ||
+	    (f == OSystem::kFeatureCursorPalette);
 }
 
 void OpenGLGraphicsManager::setFeatureState(OSystem::Feature f, bool enable) {
@@ -269,9 +274,9 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 		}
 
 		if (_videoMode.fullscreen == _oldVideoMode.fullscreen &&
-			_videoMode.mode == _oldVideoMode.mode &&
-			_videoMode.screenWidth == _oldVideoMode.screenWidth &&
-			_videoMode.screenHeight == _oldVideoMode.screenHeight) {
+		        _videoMode.mode == _oldVideoMode.mode &&
+		        _videoMode.screenWidth == _oldVideoMode.screenWidth &&
+		        _videoMode.screenHeight == _oldVideoMode.screenHeight) {
 
 			_oldVideoMode.setup = false;
 		}
@@ -344,14 +349,14 @@ void OpenGLGraphicsManager::grabPalette(byte *colors, uint start, uint num) {
 	memcpy(colors, _gamePalette + start * 3, num * 3);
 }
 
-void OpenGLGraphicsManager::copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {
+void OpenGLGraphicsManager::copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) {
 	assert(x >= 0 && x < _screenData.w);
 	assert(y >= 0 && y < _screenData.h);
 	assert(h > 0 && y + h <= _screenData.h);
 	assert(w > 0 && x + w <= _screenData.w);
 
 	// Copy buffer data to game screen internal buffer
-	const byte *src = buf;
+	const byte *src = (const byte *)buf;
 	byte *dst = (byte *)_screenData.pixels + y * _screenData.pitch + x * _screenData.format.bytesPerPixel;
 	for (int i = 0; i < h; i++) {
 		memcpy(dst, src, w * _screenData.format.bytesPerPixel);
@@ -420,7 +425,7 @@ void OpenGLGraphicsManager::setShakePos(int shakeOffset) {
 	_shakePos = shakeOffset;
 }
 
-void OpenGLGraphicsManager::setFocusRectangle(const Common::Rect& rect) {
+void OpenGLGraphicsManager::setFocusRectangle(const Common::Rect &rect) {
 }
 
 void OpenGLGraphicsManager::clearFocusRectangle() {
@@ -462,32 +467,35 @@ void OpenGLGraphicsManager::clearOverlay() {
 	_overlayNeedsRedraw = true;
 }
 
-void OpenGLGraphicsManager::grabOverlay(OverlayColor *buf, int pitch) {
-	assert(_overlayData.format.bytesPerPixel == sizeof(buf[0]));
+void OpenGLGraphicsManager::grabOverlay(void *buf, int pitch) {
 	const byte *src = (byte *)_overlayData.pixels;
+	byte *dst = (byte *)buf;
 	for (int i = 0; i < _overlayData.h; i++) {
 		// Copy overlay data to buffer
-		memcpy(buf, src, _overlayData.pitch);
-		buf += pitch;
+		memcpy(dst, src, _overlayData.pitch);
+		dst += pitch;
 		src += _overlayData.pitch;
 	}
 }
 
-void OpenGLGraphicsManager::copyRectToOverlay(const OverlayColor *buf, int pitch, int x, int y, int w, int h) {
+void OpenGLGraphicsManager::copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) {
 	assert(_transactionMode == kTransactionNone);
 
 	if (_overlayTexture == NULL)
 		return;
 
+	const byte *src = (const byte *)buf;
+
 	// Clip the coordinates
 	if (x < 0) {
 		w += x;
-		buf -= x;
+		src -= x * 2;
 		x = 0;
 	}
 
 	if (y < 0) {
-		h += y; buf -= y * pitch;
+		h += y;
+		src -= y * pitch;
 		y = 0;
 	}
 
@@ -500,26 +508,12 @@ void OpenGLGraphicsManager::copyRectToOverlay(const OverlayColor *buf, int pitch
 	if (w <= 0 || h <= 0)
 		return;
 
-	if (_overlayFormat.aBits() == 1) {
-		// Copy buffer with the alpha bit on for all pixels for correct
-		// overlay drawing.
-		const uint16 *src = (const uint16 *)buf;
-		uint16 *dst = (uint16 *)_overlayData.pixels + y * _overlayData.w + x;
-		for (int i = 0; i < h; i++) {
-			for (int e = 0; e < w; e++)
-				dst[e] = src[e] | 0x1;
-			src += pitch;
-			dst += _overlayData.w;
-		}
-	} else {
-		// Copy buffer data to internal overlay surface
-		const byte *src = (const byte *)buf;
-		byte *dst = (byte *)_overlayData.pixels + y * _overlayData.pitch;
-		for (int i = 0; i < h; i++) {
-			memcpy(dst + x * _overlayData.format.bytesPerPixel, src, w * _overlayData.format.bytesPerPixel);
-			src += pitch * sizeof(buf[0]);
-			dst += _overlayData.pitch;
-		}
+	// Copy buffer data to internal overlay surface
+	byte *dst = (byte *)_overlayData.pixels + y * _overlayData.pitch;
+	for (int i = 0; i < h; i++) {
+		memcpy(dst + x * _overlayData.format.bytesPerPixel, src, w * _overlayData.format.bytesPerPixel);
+		src += pitch;
+		dst += _overlayData.pitch;
 	}
 
 	// Extend dirty area if not full screen redraw is flagged
@@ -594,13 +588,11 @@ void OpenGLGraphicsManager::warpMouse(int x, int y) {
 		scaledY += _displayY;
 	}
 
+	setMousePosition(scaledX, scaledY);
 	setInternalMousePosition(scaledX, scaledY);
-
-	_cursorState.x = scaledX;
-	_cursorState.y = scaledY;
 }
 
-void OpenGLGraphicsManager::setMouseCursor(const byte *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, int cursorTargetScale, const Graphics::PixelFormat *format) {
+void OpenGLGraphicsManager::setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format) {
 #ifdef USE_RGB_COLOR
 	if (format)
 		_cursorFormat = *format;
@@ -613,7 +605,7 @@ void OpenGLGraphicsManager::setMouseCursor(const byte *buf, uint w, uint h, int 
 
 	// Allocate space for cursor data
 	if (_cursorData.w != w || _cursorData.h != h ||
-			_cursorData.format.bytesPerPixel != _cursorFormat.bytesPerPixel)
+	        _cursorData.format.bytesPerPixel != _cursorFormat.bytesPerPixel)
 		_cursorData.create(w, h, _cursorFormat);
 
 	// Save cursor data
@@ -625,7 +617,7 @@ void OpenGLGraphicsManager::setMouseCursor(const byte *buf, uint w, uint h, int 
 	_cursorState.hotX = hotspotX;
 	_cursorState.hotY = hotspotY;
 	_cursorKeyColor = keycolor;
-	_cursorTargetScale = cursorTargetScale;
+	_cursorDontScale = dontScale;
 	_cursorNeedsRedraw = true;
 
 	refreshCursorScale();
@@ -717,7 +709,7 @@ void OpenGLGraphicsManager::refreshGameScreen() {
 	} else {
 		// Update the texture
 		_gameTexture->updateBuffer((byte *)_screenData.pixels + y * _screenData.pitch +
-			x * _screenData.format.bytesPerPixel, _screenData.pitch, x, y, w, h);
+		                           x * _screenData.format.bytesPerPixel, _screenData.pitch, x, y, w, h);
 	}
 
 	_screenNeedsRedraw = false;
@@ -759,7 +751,7 @@ void OpenGLGraphicsManager::refreshOverlay() {
 	} else {
 		// Update the texture
 		_overlayTexture->updateBuffer((byte *)_overlayData.pixels + y * _overlayData.pitch +
-			x * _overlayData.format.bytesPerPixel, _overlayData.pitch, x, y, w, h);
+		                              x * _overlayData.format.bytesPerPixel, _overlayData.pitch, x, y, w, h);
 	}
 
 	_overlayNeedsRedraw = false;
@@ -838,38 +830,44 @@ void OpenGLGraphicsManager::refreshCursor() {
 }
 
 void OpenGLGraphicsManager::refreshCursorScale() {
-	// Get the window minimum scale factor. The cursor will mantain its original aspect
-	// ratio, and we do not want it to get too big if only one dimension is resized
-	uint screenScaleFactor = MIN(_videoMode.hardwareWidth * 10000 / _videoMode.screenWidth,
-		_videoMode.hardwareHeight * 10000 / _videoMode.screenHeight);
+	// Calculate the scale factors of the screen.
+	// We also totally ignore the aspect of the overlay cursor, since aspect
+	// ratio correction only applies to the game screen.
+	// TODO: It might make sense to always ignore scaling of the mouse cursor
+	// when the overlay is visible.
+	uint screenScaleFactorX = _videoMode.hardwareWidth * 10000 / _videoMode.screenWidth;
+	uint screenScaleFactorY = _videoMode.hardwareHeight * 10000 / _videoMode.screenHeight;
 
-	// Do not scale cursor if original size is used
-	if (_videoMode.mode == OpenGL::GFX_ORIGINAL)
-		screenScaleFactor = _videoMode.scaleFactor * 10000;
-
-	if ((uint)_cursorTargetScale * 10000 >= screenScaleFactor && (uint)_videoMode.scaleFactor * 10000 >= screenScaleFactor) {
-		// If the cursor target scale and the video mode scale factor are bigger than
-		// the current window scale, do not scale the cursor for the overlay
-		_cursorState.rW = _cursorState.w;
-		_cursorState.rH = _cursorState.h;
-		_cursorState.rHotX = _cursorState.hotX;
-		_cursorState.rHotY = _cursorState.hotY;
-	} else {
-		// Otherwise, scale the cursor for the overlay
-		int targetScaleFactor = MIN(_cursorTargetScale, _videoMode.scaleFactor);
-		// We limit the maximum scale to 3 here to avoid too big cursors, for large overlay resolutions
-		int actualFactor = MIN<uint>(3, screenScaleFactor - (targetScaleFactor - 1)) * 10000;
-		_cursorState.rW = (int16)(_cursorState.w * actualFactor / 10000);
-		_cursorState.rH = (int16)(_cursorState.h * actualFactor / 10000);
-		_cursorState.rHotX = (int16)(_cursorState.hotX * actualFactor / 10000);
-		_cursorState.rHotY = (int16)(_cursorState.hotY * actualFactor / 10000);
+	// Ignore scaling when the cursor should not be scaled.
+	if (_cursorDontScale) {
+		screenScaleFactorX = 10000;
+		screenScaleFactorY = 10000;
 	}
 
-	// Always scale the cursor for the game
-	_cursorState.vW = (int16)(_cursorState.w * screenScaleFactor / 10000);
-	_cursorState.vH = (int16)(_cursorState.h * screenScaleFactor / 10000);
-	_cursorState.vHotX = (int16)(_cursorState.hotX * screenScaleFactor / 10000);
-	_cursorState.vHotY = (int16)(_cursorState.hotY * screenScaleFactor / 10000);
+	// Apply them (without any possible) aspect ratio correction to the
+	// overlay.
+	_cursorState.rW = (int16)(_cursorState.w * screenScaleFactorX / 10000);
+	_cursorState.rH = (int16)(_cursorState.h * screenScaleFactorY / 10000);
+	_cursorState.rHotX = (int16)(_cursorState.hotX * screenScaleFactorX / 10000);
+	_cursorState.rHotY = (int16)(_cursorState.hotY * screenScaleFactorY / 10000);
+
+	// Only apply scaling when it's desired.
+	if (_cursorDontScale) {
+		screenScaleFactorX = 10000;
+		screenScaleFactorY = 10000;
+	} else {
+		// Make sure we properly scale the cursor according to the desired aspect.
+		int width, height;
+		calculateDisplaySize(width, height);
+		screenScaleFactorX = (width * 10000 / _videoMode.screenWidth);
+		screenScaleFactorY = (height * 10000 / _videoMode.screenHeight);
+	}
+
+	// Apply the scale cursor scaling for the game screen.
+	_cursorState.vW = (int16)(_cursorState.w * screenScaleFactorX / 10000);
+	_cursorState.vH = (int16)(_cursorState.h * screenScaleFactorY / 10000);
+	_cursorState.vHotX = (int16)(_cursorState.hotX * screenScaleFactorX / 10000);
+	_cursorState.vHotY = (int16)(_cursorState.hotY * screenScaleFactorY / 10000);
 }
 
 void OpenGLGraphicsManager::calculateDisplaySize(int &width, int &height) {
@@ -904,7 +902,7 @@ void OpenGLGraphicsManager::getGLPixelFormat(Graphics::PixelFormat pixelFormat, 
 		bpp = 4;
 		intFormat = GL_RGBA;
 		glFormat = GL_RGBA;
-		gltype = GL_UNSIGNED_BYTE;
+		gltype = GL_UNSIGNED_INT_8_8_8_8;
 	} else if (pixelFormat == Graphics::PixelFormat(3, 8, 8, 8, 0, 16, 8, 0, 0)) { // RGB888
 		bpp = 3;
 		intFormat = GL_RGB;
@@ -920,11 +918,6 @@ void OpenGLGraphicsManager::getGLPixelFormat(Graphics::PixelFormat pixelFormat, 
 		intFormat = GL_RGBA;
 		glFormat = GL_RGBA;
 		gltype = GL_UNSIGNED_SHORT_5_5_5_1;
-	} else if (pixelFormat == Graphics::PixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0)) { // RGB555
-		bpp = 2;
-		intFormat = GL_RGB;
-		glFormat = GL_BGRA;
-		gltype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	} else if (pixelFormat == Graphics::PixelFormat(2, 4, 4, 4, 4, 12, 8, 4, 0)) { // RGBA4444
 		bpp = 2;
 		intFormat = GL_RGBA;
@@ -938,6 +931,13 @@ void OpenGLGraphicsManager::getGLPixelFormat(Graphics::PixelFormat pixelFormat, 
 		glFormat = GL_RGB;
 		gltype = GL_UNSIGNED_BYTE;
 #ifndef USE_GLES
+	} else if (pixelFormat == Graphics::PixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0)) { // RGB555
+		// GL_BGRA does not exist in every GLES implementation so should not be configured if
+		// USE_GLES is set.
+		bpp = 2;
+		intFormat = GL_RGB;
+		glFormat = GL_BGRA;
+		gltype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	} else if (pixelFormat == Graphics::PixelFormat(4, 8, 8, 8, 8, 16, 8, 0, 24)) { // ARGB8888
 		bpp = 4;
 		intFormat = GL_RGBA;
@@ -1031,10 +1031,10 @@ void OpenGLGraphicsManager::internUpdateScreen() {
 		// Draw the cursor
 		if (_overlayVisible)
 			_cursorTexture->drawTexture(_cursorState.x - _cursorState.rHotX,
-				_cursorState.y - _cursorState.rHotY, _cursorState.rW, _cursorState.rH);
+			                            _cursorState.y - _cursorState.rHotY, _cursorState.rW, _cursorState.rH);
 		else
 			_cursorTexture->drawTexture(_cursorState.x - _cursorState.vHotX,
-				_cursorState.y - _cursorState.vHotY, _cursorState.vW, _cursorState.vH);
+			                            _cursorState.y - _cursorState.vHotY, _cursorState.vW, _cursorState.vH);
 
 		glPopMatrix();
 	}
@@ -1115,8 +1115,6 @@ void OpenGLGraphicsManager::loadTextures() {
 	}
 #endif
 
-	uint gameScreenBPP = 0;
-
 	if (!_gameTexture) {
 		byte bpp;
 		GLenum intformat;
@@ -1127,7 +1125,6 @@ void OpenGLGraphicsManager::loadTextures() {
 #else
 		getGLPixelFormat(Graphics::PixelFormat::createFormatCLUT8(), bpp, intformat, format, type);
 #endif
-		gameScreenBPP = bpp;
 		_gameTexture = new GLTexture(bpp, intformat, format, type);
 	} else
 		_gameTexture->refresh();
@@ -1161,23 +1158,23 @@ void OpenGLGraphicsManager::loadTextures() {
 
 	if (
 #ifdef USE_RGB_COLOR
-			_transactionDetails.formatChanged ||
+	    _transactionDetails.formatChanged ||
 #endif
-			_oldVideoMode.screenWidth != _videoMode.screenWidth ||
-			_oldVideoMode.screenHeight != _videoMode.screenHeight)
+	    _oldVideoMode.screenWidth != _videoMode.screenWidth ||
+	    _oldVideoMode.screenHeight != _videoMode.screenHeight)
 		_screenData.create(_videoMode.screenWidth, _videoMode.screenHeight,
 #ifdef USE_RGB_COLOR
-			_screenFormat
+		                   _screenFormat
 #else
-			Graphics::PixelFormat::createFormatCLUT8()
+		                   Graphics::PixelFormat::createFormatCLUT8()
 #endif
-			);
+		                  );
 
 
 	if (_oldVideoMode.overlayWidth != _videoMode.overlayWidth ||
-		_oldVideoMode.overlayHeight != _videoMode.overlayHeight)
+	        _oldVideoMode.overlayHeight != _videoMode.overlayHeight)
 		_overlayData.create(_videoMode.overlayWidth, _videoMode.overlayHeight,
-			_overlayFormat);
+		                    _overlayFormat);
 
 	_screenNeedsRedraw = true;
 	_overlayNeedsRedraw = true;
@@ -1186,10 +1183,11 @@ void OpenGLGraphicsManager::loadTextures() {
 	// We need to setup a proper unpack alignment value here, else we will
 	// get problems with the texture updates, in case the surface data is
 	// not properly aligned.
-	// For now we use the gcd of the game screen format and 2, since 2 is
-	// the BPP value for the overlay and the OSD.
-	if (gameScreenBPP)
-		glPixelStorei(GL_UNPACK_ALIGNMENT, Common::gcd<uint>(gameScreenBPP, 2));
+	// It is noteworthy this assumes the OSD uses the same BPP as the overlay
+	// and that the cursor works with any alignment setting.
+	int newAlignment = Common::gcd(_gameTexture->getBytesPerPixel(), _overlayTexture->getBytesPerPixel());
+	assert(newAlignment == 1 || newAlignment == 2 || newAlignment == 4);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, newAlignment);
 
 	// We use a "pack" alignment (when reading from textures) to 4 here,
 	// since the only place where we really use it is the BMP screenshot
@@ -1253,8 +1251,8 @@ uint OpenGLGraphicsManager::getAspectRatio() const {
 	// ratio correction is enabled, but it's better than the previous 4/3 mode
 	// mess at least...
 	if (_videoMode.aspectRatioCorrection
-	    && ((_videoMode.screenWidth == 320 && _videoMode.screenHeight == 200)
-	    || (_videoMode.screenWidth == 640 && _videoMode.screenHeight == 400)))
+	        && ((_videoMode.screenWidth == 320 && _videoMode.screenHeight == 200)
+	            || (_videoMode.screenWidth == 640 && _videoMode.screenHeight == 400)))
 		return 13333;
 	else if (_videoMode.mode == OpenGL::GFX_NORMAL)
 		return _videoMode.hardwareWidth * 10000 / _videoMode.hardwareHeight;
@@ -1266,15 +1264,13 @@ void OpenGLGraphicsManager::adjustMousePosition(int16 &x, int16 &y) {
 	if (_overlayVisible)
 		return;
 
-	if (!_overlayVisible) {
-		x -= _displayX;
-		y -= _displayY;
+	x -= _displayX;
+	y -= _displayY;
 
-		if (_displayWidth != _videoMode.screenWidth)
-			x = x * _videoMode.screenWidth / _displayWidth;
-		if (_displayHeight != _videoMode.screenHeight)
-			y = y * _videoMode.screenHeight / _displayHeight;
-	}
+	if (_displayWidth != _videoMode.screenWidth)
+		x = x * _videoMode.screenWidth / _displayWidth;
+	if (_displayHeight != _videoMode.screenHeight)
+		y = y * _videoMode.screenHeight / _displayHeight;
 }
 
 bool OpenGLGraphicsManager::saveScreenshot(const char *filename) {
@@ -1349,7 +1345,7 @@ const char *OpenGLGraphicsManager::getCurrentModeName() {
 
 #ifdef USE_OSD
 const Graphics::Font *OpenGLGraphicsManager::getFontOSD() {
-  return FontMan.getFontByUsage(Graphics::FontManager::kLocalizedFont);
+	return FontMan.getFontByUsage(Graphics::FontManager::kLocalizedFont);
 }
 
 void OpenGLGraphicsManager::updateOSD() {

@@ -53,7 +53,8 @@ CoktelDecoder::CoktelDecoder(Audio::Mixer *mixer, Audio::Mixer::SoundType soundT
 	_mixer(mixer), _soundType(soundType), _width(0), _height(0), _x(0), _y(0),
 	_defaultX(0), _defaultY(0), _features(0), _frameCount(0), _paletteDirty(false),
 	_ownSurface(true), _frameRate(12), _hasSound(false), _soundEnabled(false),
-	_soundStage(kSoundNone), _audioStream(0) {
+	_soundStage(kSoundNone), _audioStream(0), _startTime(0), _pauseStartTime(0),
+	_isPaused(false) {
 
 	assert(_mixer);
 
@@ -261,6 +262,10 @@ bool CoktelDecoder::isPaletted() const {
 	return true;
 }
 
+int CoktelDecoder::getCurFrame() const {
+	return _curFrame;
+}
+
 void CoktelDecoder::close() {
 	disableSound();
 	freeSurface();
@@ -273,9 +278,22 @@ void CoktelDecoder::close() {
 
 	_features = 0;
 
-	_frameCount = 0;
+	_curFrame   = -1;
+	_frameCount =  0;
+
+	_startTime = 0;
 
 	_hasSound = false;
+
+	_isPaused = false;
+}
+
+Audio::Mixer::SoundType CoktelDecoder::getSoundType() const {
+	return _soundType;
+}
+
+Audio::AudioStream *CoktelDecoder::getAudioStream() const {
+	return _audioStream;
 }
 
 uint16 CoktelDecoder::getWidth() const {
@@ -291,6 +309,7 @@ uint32 CoktelDecoder::getFrameCount() const {
 }
 
 const byte *CoktelDecoder::getPalette() {
+	_paletteDirty = false;
 	return _palette;
 }
 
@@ -625,12 +644,43 @@ Common::Rational CoktelDecoder::getFrameRate() const {
 	return _frameRate;
 }
 
+uint32 CoktelDecoder::getTimeToNextFrame() const {
+	if (endOfVideo() || _curFrame < 0)
+		return 0;
+
+	uint32 elapsedTime        = g_system->getMillis() - _startTime;
+	uint32 nextFrameStartTime = (Common::Rational((_curFrame + 1) * 1000) / getFrameRate()).toInt();
+
+	if (nextFrameStartTime <= elapsedTime)
+		return 0;
+
+	return nextFrameStartTime - elapsedTime;
+}
+
 uint32 CoktelDecoder::getStaticTimeToNextFrame() const {
 	return (1000 / _frameRate).toInt();
 }
 
+void CoktelDecoder::pauseVideo(bool pause) {
+	if (_isPaused != pause) {
+		if (_isPaused) {
+			// Add the time we were paused to the initial starting time
+			_startTime += g_system->getMillis() - _pauseStartTime;
+		} else {
+			// Store the time we paused for use later
+			_pauseStartTime = g_system->getMillis();
+		}
+
+		_isPaused = pause;
+	}
+}
+
 inline void CoktelDecoder::unsignedToSigned(byte *buffer, int length) {
 	while (length-- > 0) *buffer++ ^= 0x80;
+}
+
+bool CoktelDecoder::endOfVideo() const {
+	return !isVideoLoaded() || (getCurFrame() >= (int32)getFrameCount() - 1);
 }
 
 
@@ -644,6 +694,21 @@ PreIMDDecoder::PreIMDDecoder(uint16 width, uint16 height,
 
 PreIMDDecoder::~PreIMDDecoder() {
 	close();
+}
+
+bool PreIMDDecoder::reloadStream(Common::SeekableReadStream *stream) {
+	if (!_stream)
+		return false;
+
+	if (!stream->seek(_stream->pos())) {
+		close();
+		return false;
+	}
+
+	delete _stream;
+	_stream = stream;
+
+	return true;
 }
 
 bool PreIMDDecoder::seek(int32 frame, int whence, bool restart) {
@@ -690,8 +755,6 @@ bool PreIMDDecoder::loadStream(Common::SeekableReadStream *stream) {
 }
 
 void PreIMDDecoder::close() {
-	reset();
-
 	CoktelDecoder::close();
 
 	delete _stream;
@@ -838,6 +901,21 @@ IMDDecoder::IMDDecoder(Audio::Mixer *mixer, Audio::Mixer::SoundType soundType) :
 
 IMDDecoder::~IMDDecoder() {
 	close();
+}
+
+bool IMDDecoder::reloadStream(Common::SeekableReadStream *stream) {
+	if (!_stream)
+		return false;
+
+	if (!stream->seek(_stream->pos())) {
+		close();
+		return false;
+	}
+
+	delete _stream;
+	_stream = stream;
+
+	return true;
 }
 
 bool IMDDecoder::seek(int32 frame, int whence, bool restart) {
@@ -1129,8 +1207,6 @@ bool IMDDecoder::loadFrameTables(uint32 framePosPos, uint32 frameCoordsPos) {
 }
 
 void IMDDecoder::close() {
-	reset();
-
 	CoktelDecoder::close();
 
 	delete _stream;
@@ -1194,8 +1270,6 @@ void IMDDecoder::processFrame() {
 	_curFrame++;
 
 	_dirtyRects.clear();
-
-	_paletteDirty = false;
 
 	uint32 cmd = 0;
 	bool hasNextCmd = false;
@@ -1505,23 +1579,6 @@ VMDDecoder::Frame::~Frame() {
 	delete[] parts;
 }
 
-
-const uint16 VMDDecoder::_tableDPCM[128] = {
-	0x0000, 0x0008, 0x0010, 0x0020, 0x0030, 0x0040, 0x0050, 0x0060, 0x0070, 0x0080,
-	0x0090, 0x00A0, 0x00B0, 0x00C0, 0x00D0, 0x00E0, 0x00F0, 0x0100, 0x0110, 0x0120,
-	0x0130, 0x0140, 0x0150, 0x0160, 0x0170, 0x0180, 0x0190, 0x01A0, 0x01B0, 0x01C0,
-	0x01D0, 0x01E0, 0x01F0, 0x0200, 0x0208, 0x0210, 0x0218, 0x0220, 0x0228, 0x0230,
-	0x0238, 0x0240, 0x0248, 0x0250, 0x0258, 0x0260, 0x0268, 0x0270, 0x0278, 0x0280,
-	0x0288, 0x0290, 0x0298, 0x02A0, 0x02A8, 0x02B0, 0x02B8, 0x02C0, 0x02C8, 0x02D0,
-	0x02D8, 0x02E0, 0x02E8, 0x02F0, 0x02F8, 0x0300, 0x0308, 0x0310, 0x0318, 0x0320,
-	0x0328, 0x0330, 0x0338, 0x0340, 0x0348, 0x0350, 0x0358, 0x0360, 0x0368, 0x0370,
-	0x0378, 0x0380, 0x0388, 0x0390, 0x0398, 0x03A0, 0x03A8, 0x03B0, 0x03B8, 0x03C0,
-	0x03C8, 0x03D0, 0x03D8, 0x03E0, 0x03E8, 0x03F0, 0x03F8, 0x0400, 0x0440, 0x0480,
-	0x04C0, 0x0500, 0x0540, 0x0580, 0x05C0, 0x0600, 0x0640, 0x0680, 0x06C0, 0x0700,
-	0x0740, 0x0780, 0x07C0, 0x0800, 0x0900, 0x0A00, 0x0B00, 0x0C00, 0x0D00, 0x0E00,
-	0x0F00, 0x1000, 0x1400, 0x1800, 0x1C00, 0x2000, 0x3000, 0x4000
-};
-
 VMDDecoder::VMDDecoder(Audio::Mixer *mixer, Audio::Mixer::SoundType soundType) : CoktelDecoder(mixer, soundType),
 	_stream(0), _version(0), _flags(0), _frameInfoOffset(0), _partsPerFrame(0), _frames(0),
 	_soundFlags(0), _soundFreq(0), _soundSliceSize(0), _soundSlicesCount(0),
@@ -1529,7 +1586,7 @@ VMDDecoder::VMDDecoder(Audio::Mixer *mixer, Audio::Mixer::SoundType soundType) :
 	_soundLastFilledFrame(0), _audioFormat(kAudioFormat8bitRaw),
 	_hasVideo(false), _videoCodec(0), _blitMode(0), _bytesPerPixel(0),
 	_firstFramePos(0), _videoBufferSize(0), _externalCodec(false), _codec(0),
-	_subtitle(-1), _isPaletted(true) {
+	_subtitle(-1), _isPaletted(true), _autoStartSound(true) {
 
 	_videoBuffer   [0] = 0;
 	_videoBuffer   [1] = 0;
@@ -1541,6 +1598,21 @@ VMDDecoder::VMDDecoder(Audio::Mixer *mixer, Audio::Mixer::SoundType soundType) :
 
 VMDDecoder::~VMDDecoder() {
 	close();
+}
+
+bool VMDDecoder::reloadStream(Common::SeekableReadStream *stream) {
+	if (!_stream)
+		return false;
+
+	if (!stream->seek(_stream->pos())) {
+		close();
+		return false;
+	}
+
+	delete _stream;
+	_stream = stream;
+
+	return true;
 }
 
 bool VMDDecoder::seek(int32 frame, int whence, bool restart) {
@@ -1976,8 +2048,6 @@ bool VMDDecoder::readFiles() {
 }
 
 void VMDDecoder::close() {
-	reset();
-
 	CoktelDecoder::close();
 
 	delete _stream;
@@ -2057,7 +2127,6 @@ void VMDDecoder::processFrame() {
 
 	_dirtyRects.clear();
 
-	_paletteDirty = false;
 	_subtitle     = -1;
 
 	bool startSound = false;
@@ -2177,8 +2246,9 @@ void VMDDecoder::processFrame() {
 
 	if (startSound && _soundEnabled) {
 		if (_hasSound && _audioStream) {
-			_mixer->playStream(_soundType, &_audioHandle, _audioStream,
-					-1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
+			if (_autoStartSound)
+				_mixer->playStream(_soundType, &_audioHandle, _audioStream,
+						-1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 			_soundStage = kSoundPlaying;
 		} else
 			_soundStage = kSoundNone;
@@ -2402,33 +2472,36 @@ void VMDDecoder::blit24(const Graphics::Surface &srcSurf, Common::Rect &rect) {
 }
 
 void VMDDecoder::emptySoundSlice(uint32 size) {
-	byte *sound = soundEmpty(size);
+	byte *soundBuf = (byte *)malloc(size);
 
-	if (sound) {
+	if (soundBuf) {
 		uint32 flags = 0;
+		memset(soundBuf, 0, size);
 		flags |= (_soundBytesPerSample == 2) ? Audio::FLAG_16BITS : 0;
 		flags |= (_soundStereo > 0) ? Audio::FLAG_STEREO : 0;
 
-		_audioStream->queueBuffer(sound, size, DisposeAfterUse::YES, flags);
+		_audioStream->queueBuffer(soundBuf, size, DisposeAfterUse::YES, flags);
 	}
 }
 
 void VMDDecoder::filledSoundSlice(uint32 size) {
-	byte *sound = 0;
-	if (_audioFormat == kAudioFormat8bitRaw)
-		sound = sound8bitRaw(size);
-	else if (_audioFormat == kAudioFormat16bitDPCM)
-		sound = sound16bitDPCM(size);
-	else if (_audioFormat == kAudioFormat16bitADPCM)
-		sound = sound16bitADPCM(size);
-
-	if (sound) {
-		uint32 flags = 0;
-		flags |= (_soundBytesPerSample == 2) ? Audio::FLAG_16BITS : 0;
-		flags |= (_soundStereo > 0) ? Audio::FLAG_STEREO : 0;
-
-		_audioStream->queueBuffer(sound, size, DisposeAfterUse::YES, flags);
+	if (!_audioStream) {
+		_stream->skip(size);
+		return;
 	}
+
+	Common::SeekableReadStream *data = _stream->readStream(size);
+	Audio::AudioStream *sliceStream = 0;
+
+	if (_audioFormat == kAudioFormat8bitRaw)
+		sliceStream = create8bitRaw(data);
+	else if (_audioFormat == kAudioFormat16bitDPCM)
+		sliceStream = create16bitDPCM(data);
+	else if (_audioFormat == kAudioFormat16bitADPCM)
+		sliceStream = create16bitADPCM(data);
+
+	if (sliceStream)
+		_audioStream->queueAudioStream(sliceStream);
 }
 
 void VMDDecoder::filledSoundSlices(uint32 size, uint32 mask) {
@@ -2475,173 +2548,120 @@ uint8 VMDDecoder::evaluateMask(uint32 mask, bool *fillInfo, uint8 &max) {
 	return n;
 }
 
-byte *VMDDecoder::soundEmpty(uint32 &size) {
-	if (!_audioStream)
-		return 0;
+Audio::AudioStream *VMDDecoder::create8bitRaw(Common::SeekableReadStream *stream) {
+	int flags = Audio::FLAG_UNSIGNED;
 
-	byte *soundBuf = (byte *)malloc(size);
-	memset(soundBuf, 0, size);
+	if (_soundStereo != 0)
+		flags |= Audio::FLAG_STEREO;
 
-	return soundBuf;
+	return Audio::makeRawStream(stream, _soundFreq, flags, DisposeAfterUse::YES);
 }
 
-byte *VMDDecoder::sound8bitRaw(uint32 &size) {
-	if (!_audioStream) {
-		_stream->skip(size);
-		return 0;
+class DPCMStream : public Audio::AudioStream {
+public:
+	DPCMStream(Common::SeekableReadStream *stream, int rate, int channels) {
+		_stream = stream;
+		_rate = rate;
+		_channels = channels;
 	}
 
-	byte *soundBuf = (byte *)malloc(size);
-	_stream->read(soundBuf, size);
-	unsignedToSigned(soundBuf, size);
+	~DPCMStream() {
+		delete _stream;
+	}
 
-	return soundBuf;
+	int readBuffer(int16 *buffer, const int numSamples);
+	bool isStereo() const { return _channels == 2; }
+	int getRate() const { return _rate; }
+	bool endOfData() const { return _stream->pos() >= _stream->size() || _stream->eos() || _stream->err(); }
+
+private:
+	Common::SeekableReadStream *_stream;
+	int _channels;
+	int _rate;
+	int _buffer[2];
+};
+
+int DPCMStream::readBuffer(int16 *buffer, const int numSamples) {
+	static const uint16 tableDPCM[128] = {
+		0x0000, 0x0008, 0x0010, 0x0020, 0x0030, 0x0040, 0x0050, 0x0060, 0x0070, 0x0080,
+		0x0090, 0x00A0, 0x00B0, 0x00C0, 0x00D0, 0x00E0, 0x00F0, 0x0100, 0x0110, 0x0120,
+		0x0130, 0x0140, 0x0150, 0x0160, 0x0170, 0x0180, 0x0190, 0x01A0, 0x01B0, 0x01C0,
+		0x01D0, 0x01E0, 0x01F0, 0x0200, 0x0208, 0x0210, 0x0218, 0x0220, 0x0228, 0x0230,
+		0x0238, 0x0240, 0x0248, 0x0250, 0x0258, 0x0260, 0x0268, 0x0270, 0x0278, 0x0280,
+		0x0288, 0x0290, 0x0298, 0x02A0, 0x02A8, 0x02B0, 0x02B8, 0x02C0, 0x02C8, 0x02D0,
+		0x02D8, 0x02E0, 0x02E8, 0x02F0, 0x02F8, 0x0300, 0x0308, 0x0310, 0x0318, 0x0320,
+		0x0328, 0x0330, 0x0338, 0x0340, 0x0348, 0x0350, 0x0358, 0x0360, 0x0368, 0x0370,
+		0x0378, 0x0380, 0x0388, 0x0390, 0x0398, 0x03A0, 0x03A8, 0x03B0, 0x03B8, 0x03C0,
+		0x03C8, 0x03D0, 0x03D8, 0x03E0, 0x03E8, 0x03F0, 0x03F8, 0x0400, 0x0440, 0x0480,
+		0x04C0, 0x0500, 0x0540, 0x0580, 0x05C0, 0x0600, 0x0640, 0x0680, 0x06C0, 0x0700,
+		0x0740, 0x0780, 0x07C0, 0x0800, 0x0900, 0x0A00, 0x0B00, 0x0C00, 0x0D00, 0x0E00,
+		0x0F00, 0x1000, 0x1400, 0x1800, 0x1C00, 0x2000, 0x3000, 0x4000
+	};
+
+	assert((numSamples % _channels) == 0);
+
+	int samples = 0;
+
+	// Our starting position
+	if (_stream->pos() == 0) {
+		for (int i = 0; i < _channels; i++)
+			*buffer++ = _buffer[i] = _stream->readSint16LE();
+
+		samples += _channels;
+	}
+
+	while (!endOfData() && samples < numSamples) {
+		for (int i = 0; i < _channels; i++) {
+			byte data = _stream->readByte();
+
+			if (data & 0x80)
+				_buffer[i] -= tableDPCM[data & 0x7f];
+			else
+				_buffer[i] += tableDPCM[data];
+
+			*buffer++ = _buffer[i] = CLIP<int32>(_buffer[i], -32768, 32767);
+		}
+
+		samples += _channels;
+	}
+
+	return samples;
 }
 
-byte *VMDDecoder::sound16bitDPCM(uint32 &size) {
-	if (!_audioStream) {
-		_stream->skip(size);
-		return 0;
-	}
-
-	int32 init[2];
-
-	init[0] = _stream->readSint16LE();
-	size -= 2;
-
-	if (_soundStereo > 0) {
-		init[1] = _stream->readSint16LE();
-		size -= 2;
-	}
-
-	byte *data  = new byte[size];
-	byte *sound = 0;
-
-	if (_stream->read(data, size) == size)
-		sound = deDPCM(data, size, init);
-
-	delete[] data;
-
-	return sound;
+Audio::AudioStream *VMDDecoder::create16bitDPCM(Common::SeekableReadStream *stream) {
+	return new DPCMStream(stream, _soundFreq, (_soundStereo == 0) ? 1 : 2);
 }
 
-byte *VMDDecoder::sound16bitADPCM(uint32 &size) {
-	if (!_audioStream) {
-		_stream->skip(size);
-		return 0;
+class VMD_ADPCMStream : public Audio::DVI_ADPCMStream {
+public:
+	VMD_ADPCMStream(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeAfterUse,
+			int rate, int channels) : Audio::DVI_ADPCMStream(stream, disposeAfterUse, stream->size(), rate, channels, 0) {
+		// FIXME: Using the same predictor/index for two channels probably won't work
+		// properly However, we have no samples of this, so an assert is here for now.
+		// Also, since the DPCM stereo has a second predictor, I'm lead to believe
+		// all VMD with ADPCM are mono unless they changed the code in a later
+		// revision.
+		assert(channels == 1);
+		_startPredictorValue = stream->readSint16LE();
+		_startIndexValue = stream->readByte();
+		_startpos = 3;
+		reset();
 	}
 
-	int32 init = _stream->readSint16LE();
-	size -= 2;
-
-	int32 index = _stream->readByte();
-	size--;
-
-	byte *data  = new byte[size];
-	byte *sound = 0;
-
-	if (_stream->read(data, size) == size)
-		sound = deADPCM(data, size, init, index);
-
-	delete[] data;
-
-	return sound;
-}
-
-byte *VMDDecoder::deDPCM(const byte *data, uint32 &size, int32 init[2]) {
-	if (!data || (size == 0))
-		return 0;
-
-	int channels = (_soundStereo > 0) ? 2 : 1;
-
-	uint32 inSize  = size;
-	uint32 outSize = size + channels;
-
-	int16 *out   = (int16 *)malloc(outSize * 2);
-	byte  *sound = (byte *)out;
-
-	if (!out)
-		return 0;
-
-	int channel = 0;
-
-	for (int i = 0; i < channels; i++) {
-		*out++ = TO_BE_16(init[channel]);
-
-		channel = (channel + 1) % channels;
+protected:
+	virtual void reset() {
+		Audio::DVI_ADPCMStream::reset();
+		_status.ima_ch[0].last = _startPredictorValue;
+		_status.ima_ch[0].stepIndex = _startIndexValue;
 	}
 
-	while (inSize-- > 0) {
-		if (*data & 0x80)
-			init[channel] -= _tableDPCM[*data++ & 0x7F];
-		else
-			init[channel] += _tableDPCM[*data++];
+private:
+	int32 _startPredictorValue;
+	int32 _startIndexValue;
+};
 
-		init[channel] = CLIP<int32>(init[channel], -32768, 32767);
-		*out++        = TO_BE_16(init[channel]);
-
-		channel = (channel + 1) % channels;
-	}
-
-	size = outSize * 2;
-	return sound;
-}
-
-// Yet another IMA ADPCM variant
-byte *VMDDecoder::deADPCM(const byte *data, uint32 &size, int32 init, int32 index) {
-	if (!data || (size == 0))
-		return 0;
-
-	uint32 outSize = size * 2;
-
-	int16 *out   = (int16 *)malloc(outSize * 2);
-	byte  *sound = (byte *) out;
-
-	index = CLIP<int32>(index, 0, 88);
-
-	int32 predictor = Audio::Ima_ADPCMStream::_imaTable[index];
-
-	uint32 dataByte = 0;
-	bool newByte = true;
-
-	size *= 2;
-	while (size -- > 0) {
-		byte code = 0;
-
-		if (newByte) {
-			dataByte = *data++;
-			code = (dataByte >> 4) & 0xF;
-		} else
-			code = dataByte & 0xF;
-
-		newByte = !newByte;
-
-		index += Audio::ADPCMStream::_stepAdjustTable[code];
-		index  = CLIP<int32>(index, 0, 88);
-
-		int32 value = predictor / 8;
-
-		if (code & 4)
-			value += predictor;
-		if (code & 2)
-			value += predictor / 2;
-		if (code & 1)
-			value += predictor / 4;
-
-		if (code & 8)
-			init -= value;
-		else
-			init += value;
-
-		init = CLIP<int32>(init, -32768, 32767);
-
-		predictor = Audio::Ima_ADPCMStream::_imaTable[index];
-
-		*out++ = TO_BE_16(init);
-	}
-
-	size = outSize * 2;
-	return sound;
+Audio::AudioStream *VMDDecoder::create16bitADPCM(Common::SeekableReadStream *stream) {
+	return new VMD_ADPCMStream(stream, DisposeAfterUse::YES, _soundFreq, (_soundStereo == 0) ? 1 : 2);
 }
 
 Graphics::PixelFormat VMDDecoder::getPixelFormat() const {
@@ -2752,6 +2772,94 @@ bool VMDDecoder::hasVideo() const {
 
 bool VMDDecoder::isPaletted() const {
 	return _isPaletted;
+}
+
+void VMDDecoder::setAutoStartSound(bool autoStartSound) {
+	_autoStartSound = autoStartSound;
+}
+
+AdvancedVMDDecoder::AdvancedVMDDecoder(Audio::Mixer::SoundType soundType) {
+	_decoder = new VMDDecoder(g_system->getMixer(), soundType);
+	_decoder->setAutoStartSound(false);
+}
+
+AdvancedVMDDecoder::~AdvancedVMDDecoder() {
+	close();
+	delete _decoder;
+}
+
+bool AdvancedVMDDecoder::loadStream(Common::SeekableReadStream *stream) {
+	close();
+
+	if (!_decoder->loadStream(stream))
+		return false;
+
+	if (_decoder->hasVideo()) {
+		_videoTrack = new VMDVideoTrack(_decoder);
+		addTrack(_videoTrack);
+	}
+
+	if (_decoder->hasSound()) {
+		_audioTrack = new VMDAudioTrack(_decoder);
+		addTrack(_audioTrack);
+	}
+
+	return true;
+}
+
+void AdvancedVMDDecoder::close() {
+	VideoDecoder::close();
+	_decoder->close();
+}
+
+AdvancedVMDDecoder::VMDVideoTrack::VMDVideoTrack(VMDDecoder *decoder) : _decoder(decoder) {
+}
+
+uint16 AdvancedVMDDecoder::VMDVideoTrack::getWidth() const {
+	return _decoder->getWidth();
+}
+
+uint16 AdvancedVMDDecoder::VMDVideoTrack::getHeight() const {
+	return _decoder->getHeight();
+}
+
+Graphics::PixelFormat AdvancedVMDDecoder::VMDVideoTrack::getPixelFormat() const {
+	return _decoder->getPixelFormat();
+}
+
+int AdvancedVMDDecoder::VMDVideoTrack::getCurFrame() const {
+	return _decoder->getCurFrame();
+}
+
+int AdvancedVMDDecoder::VMDVideoTrack::getFrameCount() const {
+	return _decoder->getFrameCount();
+}
+
+const Graphics::Surface *AdvancedVMDDecoder::VMDVideoTrack::decodeNextFrame() {
+	return _decoder->decodeNextFrame();
+}
+
+const byte *AdvancedVMDDecoder::VMDVideoTrack::getPalette() const {
+	return _decoder->getPalette();
+}
+
+bool AdvancedVMDDecoder::VMDVideoTrack::hasDirtyPalette() const {
+	return _decoder->hasDirtyPalette();
+}
+
+Common::Rational AdvancedVMDDecoder::VMDVideoTrack::getFrameRate() const {
+	return _decoder->getFrameRate();
+}
+
+AdvancedVMDDecoder::VMDAudioTrack::VMDAudioTrack(VMDDecoder *decoder) : _decoder(decoder) {
+}
+
+Audio::Mixer::SoundType AdvancedVMDDecoder::VMDAudioTrack::getSoundType() const {
+	return _decoder->getSoundType();
+}
+
+Audio::AudioStream *AdvancedVMDDecoder::VMDAudioTrack::getAudioStream() const {
+	return _decoder->getAudioStream();
 }
 
 } // End of namespace Video

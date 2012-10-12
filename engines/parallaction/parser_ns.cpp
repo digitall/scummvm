@@ -246,7 +246,7 @@ DECLARE_ANIM_PARSER(file)  {
 
 	char vC8[200];
 	strcpy(vC8, _tokens[1]);
-	if (_engineFlags & kEngineTransformedDonna) {
+	if (g_engineFlags & kEngineTransformedDonna) {
 		if (!scumm_stricmp(_tokens[1], "donnap") || !scumm_stricmp(_tokens[1], "donnapa")) {
 			strcat(vC8, "tras");
 		}
@@ -534,7 +534,7 @@ DECLARE_INSTRUCTION_PARSER(endscript)  {
 
 void ProgramParser_ns::parseRValue(ScriptVar &v, const char *str) {
 
-	if (isdigit(static_cast<unsigned char>(str[0])) || str[0] == '-') {
+	if (Common::isDigit(str[0]) || str[0] == '-') {
 		v.setImmediate(atoi(str));
 		return;
 	}
@@ -1107,7 +1107,7 @@ void LocationParser_ns::init() {
 	_locationZoneStmt = new Table(ARRAYSIZE(_locationZoneStmtRes_ns), _locationZoneStmtRes_ns);
 	_locationAnimStmt = new Table(ARRAYSIZE(_locationAnimStmtRes_ns), _locationAnimStmtRes_ns);
 
-	Common::Array<const Opcode*> *table = 0;
+	Common::Array<const Opcode *> *table = 0;
 
 	SetOpcodeTable(_commandParsers);
 	WARNING_PARSER(unexpected);
@@ -1177,7 +1177,7 @@ void ProgramParser_ns::init() {
 
 	_instructionNames = new Table(ARRAYSIZE(_instructionNamesRes_ns), _instructionNamesRes_ns);
 
-	Common::Array<const Opcode*> *table = 0;
+	Common::Array<const Opcode *> *table = 0;
 	SetOpcodeTable(_instructionParsers);
 	INSTRUCTION_PARSER(defLocal);	// invalid opcode -> local definition
 	INSTRUCTION_PARSER(animation);	// on
@@ -1334,6 +1334,21 @@ void LocationParser_ns::parseGetData(ZonePtr z) {
 		obj->x = z->getX();
 		obj->y = z->getY();
 		obj->_prog = _zoneProg;
+
+		// WORKAROUND for script bug #2969913
+		// The katana object has the same default z index (kGfxObjGetZ or -100)
+		// as the cripta object (the safe) - a script bug.
+		// Game scripts do not set an explicit z for the katana (as it isn't an
+		// animation), but rather rely on the draw order to draw it over the
+		// safe. In this particular case, the safe is added to the scene after
+		// the katana, thus it is drawn over the katana. We explicitly set the
+		// z index of the katana to be higher than the safe, so that the katana
+		// is drawn correctly over it.
+		// This is a regression from the graphics rewrite (commits be2c5d3,
+		// 3c2c16c and 44906f5).
+		if (!scumm_stricmp(obj->getName(), "katana"))
+			obj->z = 0;
+
 		bool visible = (z->_flags & kFlagsRemove) == 0;
 		_vm->_gfx->showGfxObj(obj, visible);
 		data->_gfxobj = obj;

@@ -32,7 +32,7 @@
 #include <e32def.h>
 
 #include <e32std.h>
-#include <math.h>
+#include <libc\math.h>
 
 /* define pi */
 #ifndef M_PI
@@ -125,7 +125,7 @@ typedef signed long int int32;
 		PS2. http://gcc.gnu.org/ml/gcc-bugs/2004-01/msg01596.html might have found out the same problem there
 	*/
 
-#elif defined (__WINS__) // WINS
+#elif defined(__WINS__) // WINS
 	extern "C" int symbian_snprintf(char *text, size_t maxlen, const char *fmt, ...);
 	extern "C" int symbian_vsnprintf(char *text, size_t maxlen, const char *fmt, va_list ap);
 	#define snprintf(buf,len,args...) symbian_snprintf(buf,len,args)
@@ -157,6 +157,10 @@ void *scumm_bsearch(const void *key, const void *base, size_t nmemb, size_t size
 #define FORBIDDEN_SYMBOL_EXCEPTION_FILE
 #define FORBIDDEN_SYMBOL_EXCEPTION_fclose
 #define FORBIDDEN_SYMBOL_EXCEPTION_fopen
+#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
+#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
+#define FORBIDDEN_SYMBOL_EXCEPTION_stdout
+#define FORBIDDEN_SYMBOL_EXCEPTION_stderr
 
 // we cannot include SymbianOS.h everywhere, but this works too (functions code is in SymbianOS.cpp)
 namespace Symbian {

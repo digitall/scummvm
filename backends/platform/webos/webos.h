@@ -31,7 +31,6 @@ public:
 	OSystem_SDL_WebOS();
 
 	virtual void initBackend();
-	virtual Common::HardwareKeySet *getHardwareKeySet();
 };
 
 #endif

@@ -152,22 +152,22 @@ void Gfx::freeCharacterObjects() {
 	freeDialogueObjects();
 }
 
-void BackgroundInfo::loadGfxObjMask(const char *name, GfxObj *obj) {
+void BackgroundInfo::loadGfxObjMask(Parallaction *vm, const char *name, GfxObj *obj) {
 	debugC(1, kDebugGraphics, "BackgroundInfo::loadGfxObjMask(\"%s\")", name);
 	Common::Rect rect;
 	obj->getRect(0, rect);
 
-	MaskBuffer *buf = _vm->_disk->loadMask(name, rect.width(), rect.height());
+	MaskBuffer *buf = vm->_disk->loadMask(name, rect.width(), rect.height());
 
 	obj->_maskId = addMaskPatch(buf);
 	obj->_hasMask = true;
 }
 
-void BackgroundInfo::loadGfxObjPath(const char *name, GfxObj *obj) {
+void BackgroundInfo::loadGfxObjPath(Parallaction *vm, const char *name, GfxObj *obj) {
 	Common::Rect rect;
 	obj->getRect(0, rect);
 
-	PathBuffer *buf = _vm->_disk->loadPath(name, rect.width(), rect.height());
+	PathBuffer *buf = vm->_disk->loadPath(name, rect.width(), rect.height());
 
 	obj->_pathId = addPathPatch(buf);
 	obj->_hasPath = true;
@@ -226,6 +226,11 @@ void Gfx::drawGfxObject(GfxObj *obj, Graphics::Surface &surf) {
 	rect.translate(x, y);
 	data = obj->getData(obj->frame);
 
+	// WORKAROUND: During the end credits, game scripts try to show a
+	// non-existing frame. We change it to an existing one here.
+	if (obj->frame == 14 && obj->getNum() == 9 && !strcmp(obj->getName(), "Dinor"))
+		obj->frame = 8;
+
 	if (obj->getSize(obj->frame) == obj->getRawSize(obj->frame)) {
 		blt(rect, data, &surf, obj->layer, obj->scale, obj->transparentKey);
 	} else {
@@ -235,7 +240,7 @@ void Gfx::drawGfxObject(GfxObj *obj, Graphics::Surface &surf) {
 }
 
 void Gfx::drawText(Font *font, Graphics::Surface* surf, uint16 x, uint16 y, const char *text, byte color) {
-	byte *dst = (byte*)surf->getBasePtr(x, y);
+	byte *dst = (byte *)surf->getBasePtr(x, y);
 	font->setColor(color);
 	font->drawString(dst, surf->w, text);
 }
@@ -308,7 +313,7 @@ void Gfx::bltMaskScale(const Common::Rect& r, byte *data, Graphics::Surface *sur
 	dp.y = dstRect.top;
 
 	byte *s = data + srcRect.left + srcRect.top * width;
-	byte *d = (byte*)surf->getBasePtr(dp.x, dp.y);
+	byte *d = (byte *)surf->getBasePtr(dp.x, dp.y);
 
 	uint line = 0, col = 0;
 
@@ -380,7 +385,7 @@ void Gfx::bltMaskNoScale(const Common::Rect& r, byte *data, Graphics::Surface *s
 	q.translate(-r.left, -r.top);
 
 	byte *s = data + q.left + q.top * r.width();
-	byte *d = (byte*)surf->getBasePtr(dp.x, dp.y);
+	byte *d = (byte *)surf->getBasePtr(dp.x, dp.y);
 
 	uint sPitch = r.width() - q.width();
 	uint dPitch = surf->w - q.width();
@@ -422,7 +427,7 @@ void Gfx::bltNoMaskNoScale(const Common::Rect& r, byte *data, Graphics::Surface 
 	q.translate(-r.left, -r.top);
 
 	byte *s = data + q.left + q.top * r.width();
-	byte *d = (byte*)surf->getBasePtr(dp.x, dp.y);
+	byte *d = (byte *)surf->getBasePtr(dp.x, dp.y);
 
 	uint sPitch = r.width() - q.width();
 	uint dPitch = surf->w - q.width();

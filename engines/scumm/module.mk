@@ -27,6 +27,7 @@ MODULE_OBJS := \
 	imuse/imuse_part.o \
 	imuse/imuse_player.o \
 	imuse/instrument.o \
+	imuse/mac_m68k.o \
 	imuse/pcspk.o \
 	imuse/sysex_samnmax.o \
 	imuse/sysex_scumm.o \
@@ -34,6 +35,7 @@ MODULE_OBJS := \
 	midiparser_ro.o \
 	object.o \
 	palette.o \
+	player_apple2.o \
 	player_mod.o \
 	player_nes.o \
 	player_pce.o \

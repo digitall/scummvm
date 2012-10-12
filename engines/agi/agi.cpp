@@ -46,6 +46,8 @@
 #include "agi/keyboard.h"
 #include "agi/menu.h"
 
+#include "gui/predictivedialog.h"
+
 namespace Agi {
 
 void AgiEngine::allowSynthetic(bool allow) {
@@ -58,9 +60,25 @@ void AgiEngine::processEvents() {
 
 	while (_eventMan->pollEvent(event)) {
 		switch (event.type) {
-		case Common::EVENT_PREDICTIVE_DIALOG:
-			if (_predictiveDialogRunning)
-				break;
+		case Common::EVENT_PREDICTIVE_DIALOG: {
+			GUI::PredictiveDialog _predictiveDialog;
+			_predictiveDialog.runModal();
+			strcpy(_predictiveResult, _predictiveDialog.getResult());
+			if (strcmp(_predictiveResult, "")) {
+				if (_game.inputMode == INPUT_NORMAL) {
+					strcpy((char *)_game.inputBuffer, _predictiveResult);
+					handleKeys(KEY_ENTER);
+				} else if (_game.inputMode == INPUT_GETSTRING) {
+					strcpy(_game.strings[_stringdata.str], _predictiveResult);
+					newInputMode(INPUT_NORMAL);
+					_gfx->printCharacter(_stringdata.x + strlen(_game.strings[_stringdata.str]) + 1,
+							_stringdata.y, ' ', _game.colorFg, _game.colorBg);
+				} else if (_game.inputMode == INPUT_NONE) {
+					for (int n = 0; _predictiveResult[n]; n++)
+						keyEnqueue(_predictiveResult[n]);
+				}
+			}
+			/*
 			if (predictiveDialog()) {
 				if (_game.inputMode == INPUT_NORMAL) {
 					strcpy((char *)_game.inputBuffer, _predictiveResult);
@@ -74,6 +92,8 @@ void AgiEngine::processEvents() {
 					for (int n = 0; _predictiveResult[n]; n++)
 						keyEnqueue(_predictiveResult[n]);
 				}
+			}
+			*/
 			}
 			break;
 		case Common::EVENT_LBUTTONDOWN:
@@ -131,65 +151,46 @@ void AgiEngine::processEvents() {
 			switch (key = event.kbd.keycode) {
 			case Common::KEYCODE_LEFT:
 			case Common::KEYCODE_KP4:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP4)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_LEFT;
 				break;
 			case Common::KEYCODE_RIGHT:
 			case Common::KEYCODE_KP6:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP6)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_RIGHT;
 				break;
 			case Common::KEYCODE_UP:
 			case Common::KEYCODE_KP8:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP8)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_UP;
 				break;
 			case Common::KEYCODE_DOWN:
 			case Common::KEYCODE_KP2:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP2)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_DOWN;
 				break;
 			case Common::KEYCODE_PAGEUP:
 			case Common::KEYCODE_KP9:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP9)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_UP_RIGHT;
 				break;
 			case Common::KEYCODE_PAGEDOWN:
 			case Common::KEYCODE_KP3:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP3)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_DOWN_RIGHT;
 				break;
 			case Common::KEYCODE_HOME:
 			case Common::KEYCODE_KP7:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP7)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_UP_LEFT;
 				break;
 			case Common::KEYCODE_END:
 			case Common::KEYCODE_KP1:
-				if (_predictiveDialogRunning && key == Common::KEYCODE_KP1)
-					key = event.kbd.ascii;
-				else if (_allowSynthetic || !event.synthetic)
+				if (_allowSynthetic || !event.synthetic)
 					key = KEY_DOWN_LEFT;
 				break;
 			case Common::KEYCODE_KP5:
-				if (_predictiveDialogRunning)
-					key = event.kbd.ascii;
-				else
-					key = KEY_STATIONARY;
+				key = KEY_STATIONARY;
 				break;
 			case Common::KEYCODE_PLUS:
 				key = '+';
@@ -250,19 +251,7 @@ void AgiEngine::processEvents() {
 				// Not a special key, so get the ASCII code for it
 				key = event.kbd.ascii;
 
-				// Function isalpha is defined in <ctype.h> so the following applies to it:
-				//
-				// The C Programming Language Standard states:
-				//   The header <ctype.h> declares several functions useful for classifying
-				//   and mapping characters. In all cases the argument is an int, the value
-				//   of which shall be representable as an unsigned char or shall equal the
-				//   value of the macro EOF. If the argument has any other value, the
-				//   behavior is undefined.
-				//
-				// For a concrete example (e.g. in Microsoft Visual Studio 2003):
-				//   When used with a debug CRT library, isalpha will display a CRT assert
-				//   if passed a parameter that isn't EOF or in the range of 0 through 0xFF.
-				if (key >= 0 && key <= 0xFF && isalpha(key)) {
+				if (Common::isAlpha(key)) {
 					// Key is A-Z.
 					// Map Ctrl-A to 1, Ctrl-B to 2, etc.
 					if (event.kbd.flags & Common::KBD_CTRL) {
@@ -362,9 +351,15 @@ int AgiEngine::agiInit() {
 
 	initPriTable();
 
-	// clear string buffer
-	for (i = 0; i < MAX_STRINGS; i++)
-		_game.strings[i][0] = 0;
+	// Clear the string buffer on startup, but not when the game restarts, as
+	// some scripts expect that the game strings remain unaffected after a
+	// restart. An example is script 98 in SQ2, which is not invoked on restart
+	// to ask Ego's name again. The name is supposed to be maintained in string 1.
+	// Fixes bug #3292784.
+	if (!_restartGame) {
+		for (i = 0; i < MAX_STRINGS; i++)
+			_game.strings[i][0] = 0;
+	}
 
 	// setup emulation
 
@@ -416,7 +411,9 @@ int AgiEngine::agiInit() {
 #ifdef __DS__
 	// Normally, the engine loads the predictive text dictionary when the predictive dialog
 	// is shown.  On the DS version, the word completion feature needs the dictionary too.
-	loadDict();
+
+	// FIXME - loadDict() no long exists in AGI as this has been moved to within the
+	// GUI Predictive Dialog, but DS Word Completion is probably broken due to this...
 #endif
 
 	_egoHoldKey = false;
@@ -501,6 +498,9 @@ static const GameSettings agiSettings[] = {
 };
 
 AgiBase::AgiBase(OSystem *syst, const AGIGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
+	// Assign default values to the config manager, in case settings are missing
+	ConfMan.registerDefault("originalsaveload", "false");
+
 	_noSaveLoadAllowed = false;
 
 	_rnd = new Common::RandomSource("agi");
@@ -516,6 +516,21 @@ AgiBase::~AgiBase() {
 	if (_sound) {
 		_sound->deinitSound();
 		delete _sound;
+	}
+}
+
+void AgiBase::initRenderMode() {
+	_renderMode = Common::kRenderEGA;
+
+	if (ConfMan.hasKey("platform")) {
+		Common::Platform platform = Common::parsePlatform(ConfMan.get("platform"));
+		_renderMode = (platform == Common::kPlatformAmiga) ? Common::kRenderAmiga : Common::kRenderEGA;
+	}
+
+	if (ConfMan.hasKey("render_mode")) {
+		Common::RenderMode tmpMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
+		if (tmpMode != Common::kRenderDefault)
+			_renderMode = tmpMode;
 	}
 }
 
@@ -566,17 +581,9 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 
 	_oldMode = INPUT_NONE;
 
-	_predictiveDialogRunning = false;
-	_predictiveDictText = NULL;
-	_predictiveDictLine = NULL;
-	_predictiveDictLineCount = 0;
 	_firstSlot = 0;
 
-	// NOTE: On game reload the keys do not get set again,
-	// thus it is incorrect to reset it in agiInit(). Fixes bug #2823762
-	_game.lastController = 0;
-	for (int i = 0; i < MAX_DIRS; i++)
-		_game.controllerOccured[i] = false;
+	resetControllers();
 
 	setupOpcodes();
 	_game._curLogic = NULL;
@@ -618,23 +625,7 @@ void AgiEngine::initialize() {
 		}
 	}
 
-	if (ConfMan.hasKey("render_mode")) {
-		_renderMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
-	} else if (ConfMan.hasKey("platform")) {
-		switch (Common::parsePlatform(ConfMan.get("platform"))) {
-		case Common::kPlatformAmiga:
-			_renderMode = Common::kRenderAmiga;
-			break;
-		case Common::kPlatformPC:
-			_renderMode = Common::kRenderEGA;
-			break;
-		default:
-			_renderMode = Common::kRenderEGA;
-			break;
-		}
-	} else {
-		_renderMode = Common::kRenderDefault;
-	}
+	initRenderMode();
 
 	_buttonStyle = AgiButtonStyle(_renderMode);
 	_defaultButtonStyle = AgiButtonStyle();
@@ -695,9 +686,6 @@ AgiEngine::~AgiEngine() {
 	_gfx->deinitMachine();
 	delete _gfx;
 	delete _console;
-
-	free(_predictiveDictLine);
-	free(_predictiveDictText);
 }
 
 Common::Error AgiBase::init() {
@@ -714,6 +702,7 @@ Common::Error AgiBase::init() {
 
 Common::Error AgiEngine::go() {
 	CursorMan.showMouse(true);
+	setTotalPlayTime(0);
 
 	if (_game.state < STATE_LOADED) {
 		do {

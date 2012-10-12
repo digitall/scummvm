@@ -32,7 +32,8 @@ namespace Gob {
 #define RENDERFLAG_COLLISIONS        0x0004
 #define RENDERFLAG_CAPTUREPOP        0x0008
 #define RENDERFLAG_USEDELTAS         0x0010
-#define RENDERFLAG_UNKNOWN           0x0080
+#define RENDERFLAG_BORDERHOTSPOTS    0x0040
+#define RENDERFLAG_HASWINDOWS        0x0080
 #define RENDERFLAG_NOBLITINVALIDATED 0x0200
 #define RENDERFLAG_NOSUBTITLES       0x0400
 #define RENDERFLAG_FROMSPLIT         0x0800
@@ -133,6 +134,9 @@ public:
 	int32 _cursorHotspotXVar;
 	int32 _cursorHotspotYVar;
 
+	int32 _cursorHotspotX;
+	int32 _cursorHotspotY;
+
 	SurfacePtr _cursorSprites;
 	SurfacePtr _cursorSpritesBack;
 	SurfacePtr _scummvmCursor;
@@ -141,6 +145,15 @@ public:
 	int8 _cursorAnimLow[40];
 	int8 _cursorAnimHigh[40];
 	int8 _cursorAnimDelays[40];
+
+	int32 _cursorCount;
+	bool *_doCursorPalettes;
+	byte *_cursorPalettes;
+	byte *_cursorKeyColors;
+	uint16 *_cursorPaletteStarts;
+	uint16 *_cursorPaletteCounts;
+	int32 *_cursorHotspotsX;
+	int32 *_cursorHotspotsY;
 
 	int16 _palLoadData1[4];
 	int16 _palLoadData2[4];
@@ -181,8 +194,6 @@ public:
 		adjustCoords(adjust, (int16 *)coord1, (int16 *)coord2);
 	}
 	int stringLength(const char *str, uint16 fontIndex);
-	void drawString(const char *str, int16 x, int16 y, int16 color1, int16 color2,
-			int16 transp, Surface &dest, const Font &font);
 	void printTextCentered(int16 id, int16 left, int16 top, int16 right,
 			int16 bottom, const char *str, int16 fontIndex, int16 color);
 	void oPlaytoons_sub_F_1B( uint16 id, int16 left, int16 top, int16 right, int16 bottom, char *paramStr, int16 var3, int16 var4, int16 shortId);
@@ -246,6 +257,8 @@ public:
 
 private:
 	uint8 _mayorWorkaroundStatus;
+
+	void fixLittleRedStrings();
 };
 
 class Draw_Bargon: public Draw_v2 {

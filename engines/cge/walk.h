@@ -34,10 +34,7 @@
 
 namespace CGE {
 
-#define kMapXCnt       40
-#define kMapZCnt       20
 #define kMapArrSize    (kMapZCnt * kMapXCnt)
-#define kMapTop        80
 #define kMapHig        80
 #define kMapGridX      (kScrWidth / kMapXCnt)
 #define kMapGridZ      (kMapHig / kMapZCnt)
@@ -47,15 +44,12 @@ enum Dir { kDirNone = -1, kDirNorth, kDirEast, kDirSouth, kDirWest };
 
 class Cluster {
 public:
-	static uint8 _map[kMapZCnt][kMapXCnt];
-	static CGEEngine *_vm;
+	CGEEngine *_vm;
 	Common::Point _pt;
-
-	static void init(CGEEngine *vm);
 public:
 	uint8 &cell();
-	Cluster(int16 a, int16 b) { _pt = Common::Point(a, b); }
-	Cluster() { _pt = Common::Point(-1, -1); }
+	Cluster(CGEEngine *vm, int16 a, int16 b);
+	Cluster(CGEEngine *vm);
 	bool chkBar() const;
 	bool isValid() const;
 };
@@ -69,10 +63,11 @@ public:
 	int _level;
 	int _findLevel;
 	Common::Point _target;
-	Cluster _trace[kMaxFindLevel];
+	Common::Array<Cluster *> _trace;
 
 	Dir _dir;
 	Walk(CGEEngine *vm, BitmapPtr *shpl);
+	~Walk();
 	void tick();
 	void findWay(Cluster c);
 	void findWay(Sprite *spr);
@@ -85,10 +80,6 @@ public:
 	void noWay();
 	bool find1Way(Cluster c);
 };
-
-Cluster XZ(int16 x, int16 y);
-
-extern Walk *_hero;
 
 } // End of namespace CGE
 

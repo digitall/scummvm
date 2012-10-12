@@ -74,17 +74,13 @@ reg_t kLock(EngineState *s, int argc, reg_t *argv) {
 	case 0 :
 		if (id.getNumber() == 0xFFFF) {
 			// Unlock all resources of the requested type
-			Common::List<ResourceId> *resources = g_sci->getResMan()->listResources(type);
-			Common::List<ResourceId>::iterator itr = resources->begin();
-
-			while (itr != resources->end()) {
+			Common::List<ResourceId> resources = g_sci->getResMan()->listResources(type);
+			Common::List<ResourceId>::iterator itr;
+			for (itr = resources.begin(); itr != resources.end(); ++itr) {
 				Resource *res = g_sci->getResMan()->testResource(*itr);
 				if (res->isLocked())
 					g_sci->getResMan()->unlockResource(res);
-				++itr;
 			}
-
-			delete resources;
 		} else {
 			which = g_sci->getResMan()->findResource(id, 0);
 
@@ -144,7 +140,7 @@ reg_t kClone(EngineState *s, int argc, reg_t *argv) {
 
 	debugC(kDebugLevelMemory, "Attempting to clone from %04x:%04x", PRINT_REG(parentAddr));
 
-	uint16 infoSelector = parentObj->getInfoSelector().offset;
+	uint16 infoSelector = parentObj->getInfoSelector().getOffset();
 	cloneObj = s->_segMan->allocateClone(&cloneAddr);
 
 	if (!cloneObj) {
@@ -173,8 +169,8 @@ reg_t kClone(EngineState *s, int argc, reg_t *argv) {
 	cloneObj->setSpeciesSelector(cloneObj->getPos());
 	if (parentObj->isClass())
 		cloneObj->setSuperClassSelector(parentObj->getPos());
-	s->_segMan->getScript(parentObj->getPos().segment)->incrementLockers();
-	s->_segMan->getScript(cloneObj->getPos().segment)->incrementLockers();
+	s->_segMan->getScript(parentObj->getPos().getSegment())->incrementLockers();
+	s->_segMan->getScript(cloneObj->getPos().getSegment())->incrementLockers();
 
 	return cloneAddr;
 }
@@ -195,7 +191,7 @@ reg_t kDisposeClone(EngineState *s, int argc, reg_t *argv) {
 	//  At least kq4early relies on this behavior. The scripts clone "Sound", then set bit 1 manually
 	//  and call kDisposeClone later. In that case we may not free it, otherwise we will run into issues
 	//  later, because kIsObject would then return false and Sound object wouldn't get checked.
-	uint16 infoSelector = object->getInfoSelector().offset;
+	uint16 infoSelector = object->getInfoSelector().getOffset();
 	if ((infoSelector & 3) == kInfoFlagClone)
 		object->markAsFreed();
 
@@ -207,7 +203,7 @@ reg_t kScriptID(EngineState *s, int argc, reg_t *argv) {
 	int script = argv[0].toUint16();
 	uint16 index = (argc > 1) ? argv[1].toUint16() : 0;
 
-	if (argv[0].segment)
+	if (argv[0].getSegment())
 		return argv[0];
 
 	SegmentId scriptSeg = s->_segMan->getScriptSegment(script, SCRIPT_GET_LOAD);
@@ -227,11 +223,6 @@ reg_t kScriptID(EngineState *s, int argc, reg_t *argv) {
 		if (argc == 2)
 			error("Script 0x%x does not have a dispatch table and export %d "
 					"was requested from it", script, index);
-		return NULL_REG;
-	}
-
-	if (index > scr->getExportsNr()) {
-		error("Dispatch index too big: %d > %d", index, scr->getExportsNr());
 		return NULL_REG;
 	}
 
@@ -255,12 +246,12 @@ reg_t kScriptID(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDisposeScript(EngineState *s, int argc, reg_t *argv) {
-	int script = argv[0].offset;
+	int script = argv[0].getOffset();
 
 	SegmentId id = s->_segMan->getScriptSegment(script);
 	Script *scr = s->_segMan->getScriptIfLoaded(id);
 	if (scr && !scr->isMarkedAsDeleted()) {
-		if (s->_executionStack.back().addr.pc.segment != id)
+		if (s->_executionStack.back().addr.pc.getSegment() != id)
 			scr->setLockers(1);
 	}
 
@@ -277,7 +268,7 @@ reg_t kDisposeScript(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kIsObject(EngineState *s, int argc, reg_t *argv) {
-	if (argv[0].offset == SIGNAL_OFFSET) // Treated specially
+	if (argv[0].getOffset() == SIGNAL_OFFSET) // Treated specially
 		return NULL_REG;
 	else
 		return make_reg(0, s->_segMan->isHeapObject(argv[0]));

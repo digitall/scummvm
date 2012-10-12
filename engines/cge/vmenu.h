@@ -51,7 +51,6 @@ private:
 	CGEEngine *_vm;
 };
 
-
 class Vmenu : public Talk {
 public:
 	static Vmenu *_addr;
@@ -59,7 +58,7 @@ public:
 	MenuBar *_bar;
 	Vmenu(CGEEngine *vm, Choice *list, int x, int y);
 	~Vmenu();
-	virtual void touch(uint16 mask, int x, int y);
+	virtual void touch(uint16 mask, int x, int y, Common::KeyCode keyCode);
 private:
 	char *_vmgt;
 	CGEEngine *_vm;

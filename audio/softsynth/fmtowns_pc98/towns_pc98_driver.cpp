@@ -387,8 +387,6 @@ void TownsPC98_MusicChannel::reset() {
 
 	_totalLevel = 0;
 	_algorithm = 0;
-	_flags = CHS_EOT;
-	_algorithm = 0;
 
 	_block = 0;
 	_frequency = 0;
@@ -1177,7 +1175,7 @@ void TownsPC98_AudioDriver::loadMusicData(uint8 *data, bool loadPaused) {
 	_patches = src_a + 4;
 	_finishedChannelsFlag = _finishedSSGFlag = _finishedRhythmFlag = 0;
 
-	_musicPlaying = (loadPaused ? false : true);
+	_musicPlaying = !loadPaused;
 }
 
 void TownsPC98_AudioDriver::loadSoundEffectData(uint8 *data, uint8 trackNum) {

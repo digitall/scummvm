@@ -20,20 +20,19 @@
  *
  */
 
+#if defined(GPH_DEVICE)
+
 // Disable symbol overrides so that we can use system headers.
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include "backends/platform/sdl/sdl-sys.h"
 
-// #include "backends/platform/gph/gph-options.h"
 #include "backends/mixer/doublebuffersdl/doublebuffersdl-mixer.h"
 #include "backends/platform/gph/gph-hw.h"
-#include "backends/platform/gph/gph-sdl.h"
+#include "backends/platform/gph/gph.h"
 #include "backends/plugins/posix/posix-provider.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
-
-#include "base/main.h"
 
 #include "common/archive.h"
 #include "common/config-manager.h"
@@ -51,7 +50,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <time.h>	// for getTimeAndDate()
+#include <time.h>   // for getTimeAndDate()
 
 /* Dump console info to files. */
 #define DUMP_STDOUT
@@ -64,23 +63,6 @@ OSystem_GPH::OSystem_GPH()
 void OSystem_GPH::initBackend() {
 
 	assert(!_inited);
-
-	// Create the events manager
-	if (_eventSource == 0)
-		_eventSource = new GPHEventSource();
-
-	// Create the graphics manager
-	if (_graphicsManager == 0) {
-		_graphicsManager = new GPHGraphicsManager(_eventSource);
-	}
-
-	// Create the mixer manager
-	if (_mixer == 0) {
-		_mixerManager = new DoubleBufferSDLMixerManager();
-
-		// Setup and start mixer
-		_mixerManager->init();
-	}
 
 	/* Setup default save path to be workingdir/saves */
 
@@ -104,49 +86,50 @@ void OSystem_GPH::initBackend() {
 
 	_savefileManager = new DefaultSaveFileManager(savePath);
 
-	#ifdef DUMP_STDOUT
-		// The GP2X Wiz has a serial console on the breakout board but most users do not use this so we
-		// output all our STDOUT and STDERR to files for debug purposes.
-		char STDOUT_FILE[PATH_MAX+1];
-		char STDERR_FILE[PATH_MAX+1];
+#ifdef DUMP_STDOUT
+	// The GPH devices have a serial console on the breakout board
+	// but most users do not use this so we output all our STDOUT
+	// and STDERR to files for debug purposes.
+	char STDOUT_FILE[PATH_MAX+1];
+	char STDERR_FILE[PATH_MAX+1];
 
-		strcpy(STDOUT_FILE, workDirName);
-		strcpy(STDERR_FILE, workDirName);
-		strcat(STDOUT_FILE, "/scummvm.stdout.txt");
-		strcat(STDERR_FILE, "/scummvm.stderr.txt");
+	strcpy(STDOUT_FILE, workDirName);
+	strcpy(STDERR_FILE, workDirName);
+	strcat(STDOUT_FILE, "/scummvm.stdout.txt");
+	strcat(STDERR_FILE, "/scummvm.stderr.txt");
 
-		// Flush the output in case anything is queued
-		fclose(stdout);
-		fclose(stderr);
+	// Flush the output in case anything is queued
+	fclose(stdout);
+	fclose(stderr);
 
-		// Redirect standard input and standard output
-		FILE *newfp = freopen(STDOUT_FILE, "w", stdout);
-		if (newfp == NULL) {
-		#if !defined(stdout)
-			stdout = fopen(STDOUT_FILE, "w");
-		#else
-			newfp = fopen(STDOUT_FILE, "w");
-			if (newfp) {
-				*stdout = *newfp;
-			}
-		#endif
+	// Redirect standard input and standard output
+	FILE *newfp = freopen(STDOUT_FILE, "w", stdout);
+	if (newfp == NULL) {
+#if !defined(stdout)
+		stdout = fopen(STDOUT_FILE, "w");
+#else
+		newfp = fopen(STDOUT_FILE, "w");
+		if (newfp) {
+			*stdout = *newfp;
 		}
+#endif
+	}
 
-		newfp = freopen(STDERR_FILE, "w", stderr);
-		if (newfp == NULL) {
-		#if !defined(stderr)
-			stderr = fopen(STDERR_FILE, "w");
-		#else
-			newfp = fopen(STDERR_FILE, "w");
-			if (newfp) {
-				*stderr = *newfp;
-			}
-		#endif
+	newfp = freopen(STDERR_FILE, "w", stderr);
+	if (newfp == NULL) {
+#if !defined(stderr)
+		stderr = fopen(STDERR_FILE, "w");
+#else
+		newfp = fopen(STDERR_FILE, "w");
+		if (newfp) {
+			*stderr = *newfp;
 		}
+#endif
+	}
 
-		setbuf(stderr, NULL);
-		printf("%s\n", "Debug: STDOUT and STDERR redirected to text files.");
-	#endif /* DUMP_STDOUT */
+	setbuf(stderr, NULL);
+	printf("%s\n", "Debug: STDOUT and STDERR redirected to text files.");
+#endif /* DUMP_STDOUT */
 
 	/* Initialize any GP2X Wiz specific stuff we may want (Batt Status, scaler etc.) */
 	WIZ_HW::deviceInit();
@@ -165,17 +148,40 @@ void OSystem_GPH::initBackend() {
 	/* Make sure that aspect ratio correction is enabled on the 1st run to stop
 	   users asking me what the 'wasted space' at the bottom is ;-). */
 	ConfMan.registerDefault("aspect_ratio", true);
+	ConfMan.registerDefault("fullscreen", true);
 
 	/* Make sure SDL knows that we have a joystick we want to use. */
 	ConfMan.setInt("joystick_num", 0);
 
-	/* Now setup any device specific user options (Left handed mode, that sort of thing). */
-	// GPH::setOptions();
+	// Create the events manager
+	if (_eventSource == 0)
+		_eventSource = new GPHEventSource();
+
+	// Create the graphics manager
+	if (_graphicsManager == 0) {
+		_graphicsManager = new GPHGraphicsManager(_eventSource);
+	}
 
 	/* Pass to POSIX method to do the heavy lifting */
 	OSystem_POSIX::initBackend();
 
 	_inited = true;
+}
+
+void OSystem_GPH::initSDL() {
+	// Check if SDL has not been initialized
+	if (!_initedSDL) {
+
+		uint32 sdlFlags = SDL_INIT_EVENTTHREAD;
+		if (ConfMan.hasKey("disable_sdl_parachute"))
+			sdlFlags |= SDL_INIT_NOPARACHUTE;
+
+		// Initialize SDL (SDL Subsystems are initiliazed in the corresponding sdl managers)
+		if (SDL_Init(sdlFlags) == -1)
+			error("Could not initialize SDL: %s", SDL_GetError());
+
+		_initedSDL = true;
+	}
 }
 
 void OSystem_GPH::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
@@ -217,11 +223,13 @@ void OSystem_GPH::quit() {
 
 	WIZ_HW::deviceDeinit();
 
-	#ifdef DUMP_STDOUT
-		printf("%s\n", "Debug: STDOUT and STDERR text files closed.");
-		fclose(stdout);
-		fclose(stderr);
-	#endif /* DUMP_STDOUT */
+#ifdef DUMP_STDOUT
+	printf("%s\n", "Debug: STDOUT and STDERR text files closed.");
+	fclose(stdout);
+	fclose(stderr);
+#endif /* DUMP_STDOUT */
 
 	OSystem_POSIX::quit();
 }
+
+#endif

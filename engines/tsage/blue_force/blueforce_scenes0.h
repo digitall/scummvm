@@ -50,8 +50,8 @@ class Scene20 : public SceneExt {
 public:
 	Action1 _action1;
 	ScenePalette _scenePalette;
-	SceneObject _object1, _object2, _object3, _object4;
-	SceneObject _object5, _object6, _object7, _object8;
+	SceneObject _tsunamiWave, _letterT, _letterS, _letterU;
+	SceneObject _letterN, _letterA, _letterM, _letterI;
 
 	virtual void postInit(SceneObjectList *OwnerList = NULL);
 };
@@ -65,7 +65,7 @@ class Scene50: public SceneExt {
 		int _locationId;
 	public:
 		Tooltip();
-		void set(const Rect &bounds, int v60, const Common::String &msg, int v62);
+		void set(const Rect &bounds, int sceneNum, const Common::String &msg, int locationId);
 		void update();
 		void highlight(bool btnDown);
 
@@ -81,7 +81,6 @@ class Scene50: public SceneExt {
 		virtual void dispatch();
 	};
 public:
-	int _field380, _field382;
 	int _sceneNumber;
 	SceneText _text;
 	SceneItemType2 _item;
@@ -90,8 +89,11 @@ public:
 	Timer _timer;
 public:
 	Scene50();
+
 	virtual Common::String getClassName() { return "Scene50"; }
-	virtual void postInit(SceneObjectList *OwnerList = NULL);	
+	virtual void synchronize(Serializer &s);
+
+	virtual void postInit(SceneObjectList *OwnerList = NULL);
 	virtual void remove();
 	virtual void signal();
 	virtual void process(Event &event);
@@ -99,25 +101,25 @@ public:
 
 class Scene60 : public SceneExt {
 	/* Items */
-	class Item2: public NamedHotspot {
+	class Ignition: public NamedHotspot {
 	private:
 		bool check1();
 		bool check2();
 	public:
 		virtual bool startAction(CursorType action, Event &event);
-	};	
+	};
 	class Item3: public NamedHotspot {
 	public:
 		virtual bool startAction(CursorType action, Event &event);
-	};	
+	};
 	class Radio: public NamedHotspot {
 	public:
 		virtual bool startAction(CursorType action, Event &event);
-	};	
+	};
 	class Compartment: public NamedHotspot {
 	public:
 		virtual bool startAction(CursorType action, Event &event);
-	};	
+	};
 
 	/* Objects */
 	class MirandaCard: public NamedObject {
@@ -133,7 +135,7 @@ class Scene60 : public SceneExt {
 		bool _flag;
 		virtual bool startAction(CursorType action, Event &event);
 	};
-	
+
 	/* Actions */
 	class Action1: public ActionExt {
 	private:
@@ -159,9 +161,9 @@ public:
 	TicketBook _ticketBook;
 	CompartmentDoor _compartmentDoor;
 	SceneObject _dashboard;
-	AltSceneObject _car;
+	BackgroundSceneObject _car;
 	NamedHotspot _item1;
-	Item2 _item2;
+	Ignition _ignition;
 	Item3 _item3;
 	Radio _radio;
 	Compartment _compartment;
@@ -172,11 +174,13 @@ public:
 	int _sceneNumber;
 	int _visage;
 	CursorType _cursorId;
+	// TODO: Check if really useless in original
 	bool _field1222;
 
 	Scene60();
 	virtual void synchronize(Serializer &s);
 	virtual void postInit(SceneObjectList *OwnerList = NULL);
+	virtual void remove();
 	virtual void signal();
 	virtual void dispatch();
 };

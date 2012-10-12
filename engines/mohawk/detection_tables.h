@@ -34,7 +34,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -52,7 +52,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		GF_DEMO,
@@ -70,7 +70,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -88,7 +88,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -106,7 +106,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -124,7 +124,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::JA_JPN,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -142,7 +142,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -160,7 +160,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MAKINGOF,
 		0,
@@ -178,7 +178,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::JA_JPN,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MAKINGOF,
 		0,
@@ -196,25 +196,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
-		},
-		GType_MYST,
-		GF_ME,
-		0,
-	},
-
-	// Myst Masterpiece Edition
-	// English Windows
-	// From clone2727
-	{
-		{
-			"myst",
-			"Masterpiece Edition",
-			AD_ENTRY1("MYST.DAT", "c4cae9f143b5947262e6cb2397e1617e"),
-			Common::EN_ANY,
-			Common::kPlatformMacintosh,
-			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		GF_ME,
@@ -232,7 +214,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		GF_ME,
@@ -250,7 +232,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		GF_ME,
@@ -268,7 +250,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		0,
@@ -286,7 +268,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		0,
@@ -304,7 +286,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		0,
@@ -322,7 +304,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		GF_DVD,
@@ -340,7 +322,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		GF_DVD,
@@ -358,7 +340,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		GF_DVD,
@@ -376,7 +358,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO2(GUIO_NOASPECT, GUIO_NOLAUNCHLOAD)
 		},
 		GType_RIVEN,
 		GF_DEMO,
@@ -391,7 +373,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_CSTIME,
 		0,
@@ -406,7 +388,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_CSTIME,
 		GF_DEMO,
@@ -422,7 +404,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_ZOOMBINI,
 		GF_HASMIDI,
@@ -437,7 +419,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_ZOOMBINI,
 		GF_HASMIDI,
@@ -452,7 +434,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_ZOOMBINI,
 		GF_HASMIDI,
@@ -467,7 +449,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_ZOOMBINI,
 		GF_HASMIDI,
@@ -482,7 +464,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_ZOOMBINI,
 		GF_HASMIDI,
@@ -497,7 +479,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_CSWORLD,
 		0,
@@ -512,7 +494,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_CSWORLD,
 		0,
@@ -527,7 +509,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_CSAMTRAK,
 		0,
@@ -545,7 +527,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -563,7 +545,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -581,7 +563,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -597,7 +579,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -613,7 +595,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -629,7 +611,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -646,7 +628,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -663,7 +645,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -678,7 +660,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV5,
 		0,
@@ -693,11 +675,27 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV5,
 		0,
 		0
+	},
+
+	// From afholman in bug #3309306
+	{
+		{
+			"lbsampler",
+			"v3",
+			AD_ENTRY1("outline", "8397cea6bed1ff90029f7602ef37684d"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		"Living Books Sampler"
 	},
 
 	{
@@ -708,7 +706,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -723,7 +721,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -738,7 +736,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_JAMESMATH,
 		GF_HASMIDI,
@@ -754,7 +752,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_JAMESMATH,
 		GF_HASMIDI,
@@ -769,7 +767,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_TREEHOUSE,
 		GF_HASMIDI,
@@ -784,7 +782,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -800,7 +798,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -815,7 +813,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -830,7 +828,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -846,7 +844,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -861,7 +859,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -876,7 +874,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		GF_DEMO,
@@ -891,7 +889,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_1STDEGREE,
 		GF_HASMIDI,
@@ -909,7 +907,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_1STDEGREE,
 		GF_HASMIDI,
@@ -924,7 +922,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_CSUSA,
 		0,
@@ -939,7 +937,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -956,7 +954,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -972,7 +970,39 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"tortoise",
+			"",
+			AD_ENTRY1("TORTB.LB", "9a80b66e7d95c7f59bdfd2c280e03e6e"),
+			Common::EN_GRB,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// Tortoise and the Hare Hebrew variant - From georgeqgreg on bug #3441928
+	{
+		{
+			"tortoise",
+			"",
+			AD_ENTRY1("TORTB.LB", "23135777370cf1ff00aa7247e93642d3"),
+			Common::HE_ISR,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -988,7 +1018,23 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"tortoise",
+			"",
+			AD_ENTRY1("TORTD.LB", "5d4d830116fe965ee35e328db85743b7"),
+			Common::DE_DEU,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1004,7 +1050,23 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"tortoise",
+			"",
+			AD_ENTRY1("TORTF.LB", "89f23bc3a1d1797bfe07dd0eaa7c13c4"),
+			Common::FR_FRA,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1019,7 +1081,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1034,7 +1096,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1050,7 +1112,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1065,7 +1127,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1080,7 +1142,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_LB_10,
@@ -1097,7 +1159,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_LB_10,
@@ -1113,7 +1175,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_LB_10,
@@ -1129,7 +1191,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_LB_10,
@@ -1144,7 +1206,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO | GF_LB_10,
@@ -1159,7 +1221,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1175,7 +1237,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1190,7 +1252,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO | GF_LB_10,
@@ -1205,7 +1267,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1221,8 +1283,25 @@ static const MohawkGameDescription gameDescriptions[] = {
 			AD_ENTRY1("OUTLINE", "159c18b663c58d1aa17ad5e1ab1f0e12"),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		0
+	},
+
+	// Just Grandma and Me 2.0 Macintosh
+	// From aluff in bug #3461368
+	{
+		{
+			"grandma",
+			"v2.0",
+			AD_ENTRY1("BookOutline", "99fe5c8ace79f0542e6390bc3b58f25a"),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1239,7 +1318,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_LB_10,
@@ -1255,11 +1334,59 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_LB_10,
 		"GRANDMA.EXE"
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"grandma",
+			"",
+			AD_ENTRY1("JGMB.LB", "400b68a6f23b88ca23a01cfd11c6ef9f"),
+			Common::EN_GRB,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"grandma",
+			"",
+			AD_ENTRY1("JGMD.LB", "c4fbfd73f805a2266cf9e15caa1b7462"),
+			Common::DE_DEU,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"grandma",
+			"",
+			AD_ENTRY1("JGMF.LB", "0c3305e109a027f8b62a6bd8c5d2addb"),
+			Common::FR_FRA,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
 	},
 
 	{
@@ -1270,7 +1397,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO | GF_LB_10,
@@ -1285,7 +1412,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1301,7 +1428,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1316,7 +1443,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO | GF_LB_10,
@@ -1331,7 +1458,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1348,7 +1475,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1364,7 +1491,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1379,7 +1506,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1395,7 +1522,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1410,7 +1537,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1426,7 +1553,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1443,7 +1570,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1459,7 +1586,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1474,7 +1601,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1489,7 +1616,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1505,7 +1632,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1520,7 +1647,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1535,7 +1662,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1551,7 +1678,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1566,7 +1693,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1582,7 +1709,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1598,11 +1725,93 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
 		"Living Books Player"
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"arthurbday",
+			"",
+			AD_ENTRY1("AB16B.LB", "54223967c507a48e572902802650412f"),
+			Common::EN_GRB,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"arthurbday",
+			"",
+			AD_ENTRY1("AB16D.LB", "1154bfdb9fe8c42ad8692e68071ec175"),
+			Common::DE_DEU,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#3422652
+	{
+		{
+			"arthurbday",
+			"",
+			AD_ENTRY1("AB16F.LB", "60f439aa56c22a400bda27c9574115a9"),
+			Common::FR_FRA,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// Arthur Birthday (English) Version 2.0 Windows(R) August 8, 1997
+	// From jacecen in bug #3413119
+	{
+		{
+			"arthurbday",
+			"",
+			AD_ENTRY1("Outline", "3b793adf2b303722e0fb6c632f94e1fb"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		0
+	},
+
+	// Arthur Birthday (English) Version 2.0 Macintosh
+	// From aluff in bug #3461368
+	{
+		{
+			"arthurbday",
+			"",
+			AD_ENTRY1("BookOutline", "8e4fddb5b761c8cf2a3b448dd38422be"),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		0
 	},
 
 	{
@@ -1613,7 +1822,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1629,7 +1838,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1644,7 +1853,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1659,7 +1868,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1674,7 +1883,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1690,7 +1899,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1706,7 +1915,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1722,7 +1931,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1738,7 +1947,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1754,7 +1963,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1770,7 +1979,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1786,7 +1995,23 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		GF_DEMO,
+		"MONSTER.EXE"
+	},
+
+	// From GeorgeQGreg
+	{
+		{
+			"lilmonster",
+			"Demo",
+			AD_ENTRY1("MONSTER.512", "f603f04c1824d1034ec0366416a059c9"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
@@ -1801,7 +2026,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1816,7 +2041,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1831,7 +2056,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV4,
 		0,
@@ -1846,7 +2071,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV4,
 		0,
@@ -1864,7 +2089,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV4,
 		0,
@@ -1879,7 +2104,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1894,7 +2119,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1909,7 +2134,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -1925,7 +2150,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1940,7 +2165,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1955,7 +2180,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -1970,7 +2195,24 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		0,
+		"FIGHT.EXE"
+	},
+
+	// The Berenstain Bears Get in a Fight (English and Spanish) Version 1.0 1995
+	// From jacecen in bug #3413119
+	{
+		{
+			"bearfight",
+			"",
+			AD_ENTRY1("FIGHT.512", "e313242a4cba2fffcd8cded5ca23c68a"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -1985,7 +2227,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV1,
 		0,
@@ -2001,7 +2243,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -2018,7 +2260,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -2034,7 +2276,23 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		0
+	},
+
+	// From aluff in bug #3461368
+	{
+		{
+			"beardark",
+			"",
+			AD_ENTRY1("BookOutline", "b56746b3b2c062c8588bfb6b28e137c1"),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV3,
 		0,
@@ -2049,7 +2307,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV4,
 		0,
@@ -2064,7 +2322,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV4,
 		0,
@@ -2081,7 +2339,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2097,7 +2355,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2113,7 +2371,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2130,7 +2388,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2146,7 +2404,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2162,7 +2420,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2178,7 +2436,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2194,7 +2452,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2210,7 +2468,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::EN_GRB,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2226,7 +2484,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2242,7 +2500,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformMacintosh,
 			ADGF_NO_FLAGS,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_LIVINGBOOKSV2,
 		0,
@@ -2265,7 +2523,7 @@ static const MohawkGameDescription fallbackDescs[] = {
 			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		0,
@@ -2280,7 +2538,7 @@ static const MohawkGameDescription fallbackDescs[] = {
 			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MAKINGOF,
 		0,
@@ -2295,7 +2553,7 @@ static const MohawkGameDescription fallbackDescs[] = {
 			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_MYST,
 		GF_ME,
@@ -2310,7 +2568,7 @@ static const MohawkGameDescription fallbackDescs[] = {
 			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		0,
@@ -2325,7 +2583,7 @@ static const MohawkGameDescription fallbackDescs[] = {
 			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			Common::GUIO_NONE
+			GUIO1(GUIO_NOASPECT)
 		},
 		GType_RIVEN,
 		GF_DVD,

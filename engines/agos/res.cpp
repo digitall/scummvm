@@ -23,6 +23,8 @@
 // Resource file routines for Simon1/Simon2
 
 
+#include "common/archive.h"
+#include "common/installshield_cab.h"
 #include "common/file.h"
 #include "common/memstream.h"
 #include "common/textconsole.h"
@@ -31,7 +33,6 @@
 #include "agos/agos.h"
 #include "agos/intern.h"
 #include "agos/sound.h"
-#include "agos/installshield_cab.h"
 
 #include "common/zlib.h"
 
@@ -43,16 +44,44 @@ ArchiveMan::ArchiveMan() {
 
 #ifdef ENABLE_AGOS2
 void ArchiveMan::registerArchive(const Common::String &filename, int priority) {
-	add(filename, makeInstallShieldArchive(filename), priority);
+	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(filename);
+
+	if (stream)
+		add(filename, makeInstallShieldArchive(stream, DisposeAfterUse::YES), priority);
 }
 #endif
 
-Common::SeekableReadStream *ArchiveMan::open(const Common::String &filename) {
+bool ArchiveMan::hasFile(const Common::String &name) const {
+	if (_fallBack && SearchMan.hasFile(name))
+		return true;
+
+	return Common::SearchSet::hasFile(name);
+}
+
+int ArchiveMan::listMatchingMembers(Common::ArchiveMemberList &list, const Common::String &pattern) const {
+	const int matches = _fallBack ? SearchMan.listMatchingMembers(list, pattern) : 0;
+	return matches + Common::SearchSet::listMatchingMembers(list, pattern);
+}
+
+int ArchiveMan::listMembers(Common::ArchiveMemberList &list) const {
+	const int matches = _fallBack ? SearchMan.listMembers(list) : 0;
+	return matches + Common::SearchSet::listMembers(list);
+}
+
+const Common::ArchiveMemberPtr ArchiveMan::getMember(const Common::String &name) const {
+	Common::ArchiveMemberPtr ptr = _fallBack ? SearchMan.getMember(name) : Common::ArchiveMemberPtr();
+	if (ptr)
+		return ptr;
+
+	return Common::SearchSet::getMember(name);
+}
+
+Common::SeekableReadStream *ArchiveMan::createReadStreamForMember(const Common::String &filename) const {
 	if (_fallBack && SearchMan.hasFile(filename)) {
 		return SearchMan.createReadStreamForMember(filename);
 	}
 
-	return createReadStreamForMember(filename);
+	return Common::SearchSet::createReadStreamForMember(filename);
 }
 
 #ifdef ENABLE_AGOS2
@@ -173,7 +202,7 @@ void AGOSEngine_PN::loadGamePcFile() {
 
 	if (getFileName(GAME_BASEFILE) != NULL) {
 		// Read dataBase
-		in = _archives.open(getFileName(GAME_BASEFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_BASEFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load database file '%s'", getFileName(GAME_BASEFILE));
 		}
@@ -191,7 +220,7 @@ void AGOSEngine_PN::loadGamePcFile() {
 
 	if (getFileName(GAME_TEXTFILE) != NULL) {
 		// Read textBase
-		in = _archives.open(getFileName(GAME_TEXTFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_TEXTFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load textbase file '%s'", getFileName(GAME_TEXTFILE));
 		}
@@ -214,7 +243,7 @@ void AGOSEngine::loadGamePcFile() {
 
 	if (getFileName(GAME_BASEFILE) != NULL) {
 		/* Read main gamexx file */
-		in = _archives.open(getFileName(GAME_BASEFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_BASEFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load gamexx file '%s'", getFileName(GAME_BASEFILE));
 		}
@@ -240,7 +269,7 @@ void AGOSEngine::loadGamePcFile() {
 
 	if (getFileName(GAME_TBLFILE) != NULL) {
 		/* Read list of TABLE resources */
-		in = _archives.open(getFileName(GAME_TBLFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_TBLFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load table resources file '%s'", getFileName(GAME_TBLFILE));
 		}
@@ -261,7 +290,7 @@ void AGOSEngine::loadGamePcFile() {
 
 	if (getFileName(GAME_STRFILE) != NULL) {
 		/* Read list of TEXT resources */
-		in = _archives.open(getFileName(GAME_STRFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_STRFILE));
 		if (!in)
 			error("loadGamePcFile: Can't load text resources file '%s'", getFileName(GAME_STRFILE));
 
@@ -275,7 +304,7 @@ void AGOSEngine::loadGamePcFile() {
 
 	if (getFileName(GAME_STATFILE) != NULL) {
 		/* Read list of ROOM STATE resources */
-		in = _archives.open(getFileName(GAME_STATFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_STATFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load state resources file '%s'", getFileName(GAME_STATFILE));
 		}
@@ -298,7 +327,7 @@ void AGOSEngine::loadGamePcFile() {
 
 	if (getFileName(GAME_RMSLFILE) != NULL) {
 		/* Read list of ROOM ITEMS resources */
-		in = _archives.open(getFileName(GAME_RMSLFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_RMSLFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load room resources file '%s'", getFileName(GAME_RMSLFILE));
 		}
@@ -314,7 +343,7 @@ void AGOSEngine::loadGamePcFile() {
 
 	if (getFileName(GAME_XTBLFILE) != NULL) {
 		/* Read list of XTABLE resources */
-		in = _archives.open(getFileName(GAME_XTBLFILE));
+		in = _archives.createReadStreamForMember(getFileName(GAME_XTBLFILE));
 		if (!in) {
 			error("loadGamePcFile: Can't load xtable resources file '%s'", getFileName(GAME_XTBLFILE));
 		}
@@ -799,7 +828,7 @@ void AGOSEngine::loadVGABeardFile(uint16 id) {
 	uint32 offs, size;
 
 	if (getFeatures() & GF_OLD_BUNDLE) {
-		Common::File in;
+		Common::SeekableReadStream *in;
 		char filename[15];
 		if (id == 23)
 			id = 112;
@@ -815,22 +844,22 @@ void AGOSEngine::loadVGABeardFile(uint16 id) {
 			sprintf(filename, "0%d.VGA", id);
 		}
 
-		in.open(filename);
-		if (in.isOpen() == false)
+		in = _archives.createReadStreamForMember(filename);
+		if (!in)
 			error("loadSimonVGAFile: Can't load %s", filename);
 
-		size = in.size();
+		size = in->size();
 		if (getFeatures() & GF_CRUNCHED) {
 			byte *srcBuffer = (byte *)malloc(size);
-			if (in.read(srcBuffer, size) != size)
+			if (in->read(srcBuffer, size) != size)
 				error("loadSimonVGAFile: Read failed");
 			decrunchFile(srcBuffer, _vgaBufferPointers[11].vgaFile2, size);
 			free(srcBuffer);
 		} else {
-			if (in.read(_vgaBufferPointers[11].vgaFile2, size) != size)
+			if (in->read(_vgaBufferPointers[11].vgaFile2, size) != size)
 				error("loadSimonVGAFile: Read failed");
 		}
-		in.close();
+		delete in;
 	} else {
 		offs = _gameOffsetsPtr[id];
 
@@ -840,7 +869,7 @@ void AGOSEngine::loadVGABeardFile(uint16 id) {
 }
 
 void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
-	Common::File in;
+	Common::SeekableReadStream *in;
 	char filename[15];
 	byte *dst;
 	uint32 file, offs, srcSize, dstSize;
@@ -893,8 +922,8 @@ void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
 			}
 		}
 
-		in.open(filename);
-		if (in.isOpen() == false) {
+		in = _archives.createReadStreamForMember(filename);
+		if (!in) {
 			if (useError)
 				error("loadVGAVideoFile: Can't load %s", filename);
 
@@ -902,11 +931,11 @@ void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
 			return;
 		}
 
-		dstSize = srcSize = in.size();
+		dstSize = srcSize = in->size();
 		if (getGameType() == GType_PN && getPlatform() == Common::kPlatformPC && id == 17 && type == 2) {
 			// The A2.out file isn't compressed in PC version of Personal Nightmare
 			dst = allocBlock(dstSize + extraBuffer);
-			if (in.read(dst, dstSize) != dstSize)
+			if (in->read(dst, dstSize) != dstSize)
 				error("loadVGAVideoFile: Read failed");
 		} else if (getGameType() == GType_PN && (getFeatures() & GF_CRUNCHED)) {
 			Common::Stack<uint32> data;
@@ -914,7 +943,7 @@ void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
 			int dataOutSize = 0;
 
 			for (uint i = 0; i < srcSize / 4; ++i) {
-				uint32 dataVal = in.readUint32BE();
+				uint32 dataVal = in->readUint32BE();
 				// Correct incorrect byte, in corrupt 72.out file, included in some PC versions.
 				if (dataVal == 168042714)
 					data.push(168050906);
@@ -928,7 +957,7 @@ void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
 			delete[] dataOut;
 		} else if (getFeatures() & GF_CRUNCHED) {
 			byte *srcBuffer = (byte *)malloc(srcSize);
-			if (in.read(srcBuffer, srcSize) != srcSize)
+			if (in->read(srcBuffer, srcSize) != srcSize)
 				error("loadVGAVideoFile: Read failed");
 
 			dstSize = READ_BE_UINT32(srcBuffer + srcSize - 4);
@@ -937,10 +966,10 @@ void AGOSEngine::loadVGAVideoFile(uint16 id, uint8 type, bool useError) {
 			free(srcBuffer);
 		} else {
 			dst = allocBlock(dstSize + extraBuffer);
-			if (in.read(dst, dstSize) != dstSize)
+			if (in->read(dst, dstSize) != dstSize)
 				error("loadVGAVideoFile: Read failed");
 		}
-		in.close();
+		delete in;
 	} else {
 		id = id * 2 + (type - 1);
 		offs = _gameOffsetsPtr[id];

@@ -62,8 +62,9 @@ SwordEngine::SwordEngine(OSystem *syst)
 	SearchMan.addSubDirectoryMatching(gameDataDir, "speech");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "video");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "smackshi");
-	SearchMan.addSubDirectoryMatching(gameDataDir, "english");//PSX Demo
-	SearchMan.addSubDirectoryMatching(gameDataDir, "italian");//PSX Demo
+	SearchMan.addSubDirectoryMatching(gameDataDir, "streams"); // PSX videos
+	SearchMan.addSubDirectoryMatching(gameDataDir, "english"); // PSX Demo
+	SearchMan.addSubDirectoryMatching(gameDataDir, "italian"); // PSX Demo
 
 	_console = new SwordConsole(this);
 }
@@ -115,8 +116,9 @@ Common::Error SwordEngine::init() {
 	_systemVars.controlPanelMode = CP_NEWGAME;
 	_systemVars.forceRestart = false;
 	_systemVars.wantFade = true;
+	_systemVars.realLanguage = Common::parseLanguage(ConfMan.get("language"));
 
-	switch (Common::parseLanguage(ConfMan.get("language"))) {
+	switch (_systemVars.realLanguage) {
 	case Common::DE_DEU:
 		_systemVars.language = BS1_GERMAN;
 		break;
@@ -137,6 +139,7 @@ Common::Error SwordEngine::init() {
 		break;
 	default:
 		_systemVars.language = BS1_ENGLISH;
+		break;
 	}
 
 	_systemVars.showText = ConfMan.getBool("subtitles");

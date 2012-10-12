@@ -49,7 +49,7 @@ MenuBar::MenuBar(CGEEngine *vm, uint16 w) : Talk(vm), _vm(vm) {
 	}
 
 	_ts = new BitmapPtr[2];
-	_ts[0] = new Bitmap(w, h, p);
+	_ts[0] = new Bitmap(_vm, w, h, p);
 	_ts[1] = NULL;
 	setShapeList(_ts);
 
@@ -63,7 +63,7 @@ Vmenu *Vmenu::_addr = NULL;
 int Vmenu::_recent = -1;
 
 Vmenu::Vmenu(CGEEngine *vm, Choice *list, int x, int y)
-	: Talk(vm, VMGather(list), kTBRect), _menu(list), _bar(NULL), _vm(vm) {
+	: Talk(vm, VMGather(list), kTBRect), _menu(list), _bar(NULL), _vmgt(NULL), _vm(vm) {
 	Choice *cp;
 
 	_addr = this;
@@ -77,10 +77,10 @@ Vmenu::Vmenu(CGEEngine *vm, Choice *list, int x, int y)
 		center();
 	else
 		gotoxy(x - _w / 2, y - (kTextVMargin + kFontHigh / 2));
-	_vga->_showQ->insert(this, _vga->_showQ->last());
+	_vm->_vga->_showQ->insert(this, _vm->_vga->_showQ->last());
 	_bar = new MenuBar(_vm, _w - 2 * kTextHMargin);
 	_bar->gotoxy(_x + kTextHMargin - kMenuBarHM, _y + kTextVMargin - kMenuBarVM);
-	_vga->_showQ->insert(_bar, _vga->_showQ->last());
+	_vm->_vga->_showQ->insert(_bar, _vm->_vga->_showQ->last());
 }
 
 Vmenu::~Vmenu() {
@@ -89,11 +89,11 @@ Vmenu::~Vmenu() {
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
-void Vmenu::touch(uint16 mask, int x, int y) {
+void Vmenu::touch(uint16 mask, int x, int y, Common::KeyCode keyCode) {
 	if (!_items)
 		return;
 
-	Sprite::touch(mask, x, y);
+	Sprite::touch(mask, x, y, keyCode);
 
 	y -= kTextVMargin - 1;
 	int n = 0;
@@ -112,7 +112,7 @@ void Vmenu::touch(uint16 mask, int x, int y) {
 
 	if (ok && (mask & kMouseLeftUp)) {
 		_items = 0;
-		_snail_->addCom(kSnKill, -1, 0, this);
+		_vm->_commandHandlerTurbo->addCommand(kCmdKill, -1, 0, this);
 		_recent = n;
 		assert(_menu[n].Proc);
 		CALL_MEMBER_FN(*_vm, _menu[n].Proc)();

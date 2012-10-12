@@ -188,7 +188,7 @@ int8 KyraEngine_LoK::getChatPartnerNum() {
 
 	for (int i = 1; i < 6; i++) {
 		if (_currentCharacter->sceneId == sceneTable[pos]) {
-			partner = sceneTable[pos+1];
+			partner = sceneTable[pos + 1];
 			break;
 		}
 		pos += 2;
@@ -296,10 +296,8 @@ void KyraEngine_LoK::characterSays(int vocFile, const char *chatStr, int8 charNu
 		_animator->restoreAllObjectBackgrounds();
 
 		_screen->copyRegion(12, _text->_talkMessageY, 12, 136, 296, _text->_talkMessageH, 2, 2);
-		_screen->hideMouse();
 
 		_text->printCharacterText(processedString, charNum, _characterList[charNum].x1);
-		_screen->showMouse();
 	}
 
 	if (chatDuration == -2)
@@ -317,10 +315,8 @@ void KyraEngine_LoK::characterSays(int vocFile, const char *chatStr, int8 charNu
 		_screen->copyRegion(12, 136, 12, _text->_talkMessageY, 296, _text->_talkMessageH, 2, 2);
 		_animator->preserveAllBackgrounds();
 		_animator->prepDrawAllObjects();
-		_screen->hideMouse();
 
 		_screen->copyRegion(12, _text->_talkMessageY, 12, _text->_talkMessageY, 296, _text->_talkMessageH, 2, 0);
-		_screen->showMouse();
 		_animator->flagAllObjectsForRefresh();
 		_animator->copyChangedObjectsForward(0);
 	}
@@ -332,7 +328,6 @@ void KyraEngine_LoK::characterSays(int vocFile, const char *chatStr, int8 charNu
 }
 
 void KyraEngine_LoK::drawSentenceCommand(const char *sentence, int color) {
-	_screen->hideMouse();
 	_screen->fillRect(8, 143, 311, 152, _flags.platform == Common::kPlatformAmiga ? 19 : 12);
 
 	if (_flags.platform == Common::kPlatformAmiga) {
@@ -342,19 +337,18 @@ void KyraEngine_LoK::drawSentenceCommand(const char *sentence, int color) {
 			_currSentenceColor[2] = 0x3F;
 
 			_screen->setInterfacePalette(_screen->getPalette(1),
-					_currSentenceColor[0], _currSentenceColor[1], _currSentenceColor[2]);
+			                             _currSentenceColor[0], _currSentenceColor[1], _currSentenceColor[2]);
 		}
 	} else if (_startSentencePalIndex != color || _fadeText != false) {
-		_currSentenceColor[0] = _screen->getPalette(0)[765] = _screen->getPalette(0)[color*3+0];
-		_currSentenceColor[1] = _screen->getPalette(0)[766] = _screen->getPalette(0)[color*3+1];
-		_currSentenceColor[2] = _screen->getPalette(0)[767] = _screen->getPalette(0)[color*3+2];
+		_currSentenceColor[0] = _screen->getPalette(0)[765] = _screen->getPalette(0)[color * 3 + 0];
+		_currSentenceColor[1] = _screen->getPalette(0)[766] = _screen->getPalette(0)[color * 3 + 1];
+		_currSentenceColor[2] = _screen->getPalette(0)[767] = _screen->getPalette(0)[color * 3 + 2];
 
 		_screen->setScreenPalette(_screen->getPalette(0));
 		_startSentencePalIndex = color;
 	}
 
 	_text->printText(sentence, 8, 143, 0xFF, _flags.platform == Common::kPlatformAmiga ? 19 : 12, 0);
-	_screen->showMouse();
 	setTextFadeTimerCountdown(15);
 	_fadeText = false;
 }
@@ -377,16 +371,15 @@ void KyraEngine_LoK::updateTextFade() {
 	for (int i = 0; i < 3; i++) {
 		if (_currSentenceColor[i] > 4)
 			_currSentenceColor[i] -= 4;
-		else
-			if (_currSentenceColor[i]) {
-				_currSentenceColor[i] = 0;
-				finished = true;
-			}
+		else if (_currSentenceColor[i]) {
+			_currSentenceColor[i] = 0;
+			finished = true;
+		}
 	}
 
 	if (_flags.platform == Common::kPlatformAmiga) {
 		_screen->setInterfacePalette(_screen->getPalette(1),
-				_currSentenceColor[0], _currSentenceColor[1], _currSentenceColor[2]);
+		                             _currSentenceColor[0], _currSentenceColor[1], _currSentenceColor[2]);
 	} else {
 		_screen->getPalette(0)[765] = _currSentenceColor[0];
 		_screen->getPalette(0)[766] = _currSentenceColor[1];
