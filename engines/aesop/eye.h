@@ -41,16 +41,16 @@ const char lvl_txt[] = "SAVEGAME\\LVLxx_yy.TXT";
 const char lvl_tmp[] = "SAVEGAME\\LVLxx.TMP";
 const char itm_tmp[] = "SAVEGAME\\ITEMS.TMP";
 
-char *savegame_dir[NUM_SAVEGAMES][SAVE_LEN+1];
+//char *savegame_dir[NUM_SAVEGAMES][SAVE_LEN+1];
 
-int8 DX_offset[6][4] = { {0, 0, 0, 0},
+const int8 DX_offset[6][4] = { {0, 0, 0, 0},
 						 {0, 1, 0, -1},
 						 {0, 0, 0, 0},
 						 {-1, 0, 1, 0},
 						 {0, -1, 0, 1},
 						 {1, 0, -1, 0} };
 
-int8 DY_offset[6][4] = { {0, 0, 0, 0},
+const int8 DY_offset[6][4] = { {0, 0, 0, 0},
 						 {-1, 0, 1, 0},
 						 {0, 0, 0, 0},
 						 {0, -1, 0, 1},

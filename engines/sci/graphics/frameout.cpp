@@ -28,6 +28,7 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 #include "engines/engine.h"
+#include "graphics/palette.h"
 #include "graphics/surface.h"
 
 #include "sci/sci.h"
@@ -196,7 +197,7 @@ void GfxFrameout::kernelUpdatePlane(reg_t object) {
 			} else {
 				it->planeOffsetX = 0;
 			}
-			
+
 			if (it->planeRect.top < 0) {
 				it->planeOffsetY = -it->planeRect.top;
 				it->planeRect.top = 0;
@@ -419,7 +420,7 @@ void GfxFrameout::deletePlaneItems(reg_t planeObject) {
 		} else {
 			objectMatches = true;
 		}
-		
+
 		if (objectMatches) {
 			FrameoutEntry *itemEntry = *listIterator;
 			listIterator = _screenItems.erase(listIterator);
@@ -488,7 +489,7 @@ void GfxFrameout::showVideo() {
 	uint16 y = videoDecoder->getPos().y;
 
 	if (videoDecoder->hasDirtyPalette())
-		videoDecoder->setSystemPalette();
+		g_system->getPaletteManager()->setPalette(videoDecoder->getPalette(), 0, 256);
 
 	while (!g_engine->shouldQuit() && !videoDecoder->endOfVideo() && !skipVideo) {
 		if (videoDecoder->needsUpdate()) {
@@ -497,7 +498,7 @@ void GfxFrameout::showVideo() {
 				g_system->copyRectToScreen(frame->pixels, frame->pitch, x, y, frame->w, frame->h);
 
 				if (videoDecoder->hasDirtyPalette())
-					videoDecoder->setSystemPalette();
+					g_system->getPaletteManager()->setPalette(videoDecoder->getPalette(), 0, 256);
 
 				g_system->updateScreen();
 			}
@@ -660,7 +661,7 @@ void GfxFrameout::kernelFrameout() {
 
 			if (!itemEntry->visible)
 				continue;
-			
+
 			if (itemEntry->object.isNull()) {
 				// Picture cel data
 				_coordAdjuster->fromScriptToDisplay(itemEntry->y, itemEntry->x);
@@ -702,7 +703,7 @@ void GfxFrameout::kernelFrameout() {
 						view->getCelRect(itemEntry->loopNo, itemEntry->celNo,
 							itemEntry->x, itemEntry->y, itemEntry->z, itemEntry->celRect);
 					else
-						view->getCelScaledRect(itemEntry->loopNo, itemEntry->celNo, 
+						view->getCelScaledRect(itemEntry->loopNo, itemEntry->celNo,
 							itemEntry->x, itemEntry->y, itemEntry->z, itemEntry->scaleX,
 							itemEntry->scaleY, itemEntry->celRect);
 
@@ -728,7 +729,9 @@ void GfxFrameout::kernelFrameout() {
 					g_sci->_gfxCompare->setNSRect(itemEntry->object, nsRect);
 				}
 
-				// FIXME: When does this happen, and why?
+				// Don't attempt to draw sprites that are outside the visible
+				// screen area. An example is the random people walking in
+				// Jackson Square in GK1.
 				if (itemEntry->celRect.bottom < 0 || itemEntry->celRect.top  >= _screen->getDisplayHeight() ||
 				    itemEntry->celRect.right  < 0 || itemEntry->celRect.left >= _screen->getDisplayWidth())
 					continue;
@@ -752,10 +755,10 @@ void GfxFrameout::kernelFrameout() {
 				if (view) {
 					if (!clipRect.isEmpty()) {
 						if ((itemEntry->scaleX == 128) && (itemEntry->scaleY == 128))
-							view->draw(itemEntry->celRect, clipRect, translatedClipRect, 
+							view->draw(itemEntry->celRect, clipRect, translatedClipRect,
 								itemEntry->loopNo, itemEntry->celNo, 255, 0, view->isSci2Hires());
 						else
-							view->drawScaled(itemEntry->celRect, clipRect, translatedClipRect, 
+							view->drawScaled(itemEntry->celRect, clipRect, translatedClipRect,
 								itemEntry->loopNo, itemEntry->celNo, 255, itemEntry->scaleX, itemEntry->scaleY);
 					}
 				}
@@ -814,7 +817,7 @@ void GfxFrameout::printPlaneItemList(Console *con, reg_t planeObject) {
 	for (FrameoutList::iterator listIterator = _screenItems.begin(); listIterator != _screenItems.end(); listIterator++) {
 		FrameoutEntry *e = *listIterator;
 		reg_t itemPlane = readSelector(_segMan, e->object, SELECTOR(plane));
-			
+
 		if (planeObject == itemPlane) {
 			Common::String curItemName = _segMan->getObjectName(e->object);
 			Common::Rect icr = e->celRect;

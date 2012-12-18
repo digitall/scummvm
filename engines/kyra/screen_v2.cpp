@@ -162,6 +162,34 @@ void Screen_v2::getFadeParams(const Palette &pal, int delay, int &delayInc, int 
 	}
 }
 
+bool Screen_v2::timedPaletteFadeStep(uint8 *pal1, uint8 *pal2, uint32 elapsedTime, uint32 totalTime) {
+	Palette &p1 = getPalette(1);
+
+	bool res = false;
+	for (int i = 0; i < p1.getNumColors() * 3; i++) {
+		uint8 out = 0;
+
+		if (elapsedTime < totalTime) {
+			int32 d = ((pal2[i] & 0x3f) - (pal1[i] & 0x3f));
+			if (d)
+				res = true;
+
+			int32 val = ((((d << 8) / (int32)totalTime) * (int32)elapsedTime) >> 8);
+			out = ((pal1[i] & 0x3f) + (int8)val);
+		} else {
+			out = p1[i] = (pal2[i] & 0x3f);
+			res = false;
+		}
+
+		(*_internFadePalette)[i] = out;
+	}
+
+	setScreenPalette(*_internFadePalette);
+	updateScreen();
+
+	return res;
+}
+
 const uint8 *Screen_v2::getPtrToShape(const uint8 *shpFile, int shape) {
 	uint16 shapes = READ_LE_UINT16(shpFile);
 
@@ -320,6 +348,48 @@ void Screen_v2::wsaFrameAnimationStep(int x1, int y1, int x2, int y2,
 
 	if (!dstPage)
 		addDirtyRect(x2, y2, w2, h2);
+}
+
+void Screen_v2::copyPageMemory(int srcPage, int srcPos, int dstPage, int dstPos, int numBytes) {
+	const uint8 *src = getPagePtr(srcPage) + srcPos;
+	uint8 *dst = getPagePtr(dstPage) + dstPos;
+	memcpy(dst, src, numBytes);
+}
+
+void Screen_v2::copyRegionEx(int srcPage, int srcW, int srcH, int dstPage, int dstX, int dstY, int dstW, int dstH, const ScreenDim *dim, bool flag) {
+	int x0 = dim->sx << 3;
+	int y0 = dim->sy;
+	int w0 = dim->w << 3;
+	int h0 = dim->h;
+
+	int x1 = dstX;
+	int y1 = dstY;
+	int w1 = dstW;
+	int h1 = dstH;
+
+	int x2, y2, w2;
+
+	calcBounds(w0, h0, x1, y1, w1, h1, x2, y2, w2);
+
+	const uint8 *src = getPagePtr(srcPage) + (320 * srcH) + srcW;
+	uint8 *dst = getPagePtr(dstPage) + 320 * (y0 + y1);
+
+	for (int y = 0; y < h1; y++) {
+		const uint8 *s = src + x2;
+		uint8 *d = dst + x0 + x1;
+
+		if (flag)
+			d += (h1 >> 1);
+
+		for (int x = 0; x < w1; x++) {
+			if (*s)
+				*d = *s;
+			s++;
+			d++;
+		}
+		dst += 320;
+		src += 320;
+	}
 }
 
 bool Screen_v2::calcBounds(int w0, int h0, int &x1, int &y1, int &w1, int &h1, int &x2, int &y2, int &w2) {

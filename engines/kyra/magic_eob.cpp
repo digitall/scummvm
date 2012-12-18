@@ -60,7 +60,7 @@ void EoBCoreEngine::useMagicBookOrSymbol(int charIndex, int type) {
 	}
 
 	if (!_updateFlags)
-		_screen->copyRegion(64, 121, 0, 0, 112, 56, 0, _useHiResDithering ? 4 : 10, Screen::CR_NO_P_CHECK);
+		_screen->copyRegion(64, 121, 0, 0, 112, 56, 0, 10, Screen::CR_NO_P_CHECK);
 	_updateFlags = 1;
 	gui_setPlayFieldButtons();
 	gui_drawSpellbook();
@@ -179,7 +179,7 @@ void EoBCoreEngine::castSpell(int spell, int weaponSlot) {
 
 	if ((s->flags & 0x100) && (c->effectFlags & 0x40))
 		// remove invisibility effect
-		removeCharacterEffect(10, _openBookChar, 1);
+		removeCharacterEffect(_flags.gameID == GI_EOB1 ? 8 : 10, _openBookChar, 1);
 
 	int ci = _openBookChar;
 	if (ci > 3)

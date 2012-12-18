@@ -181,7 +181,7 @@ Entities::Entities(LastExpressEngine *engine) : _engine(engine) {
 Entities::~Entities() {
 	SAFE_DELETE(_header);
 
-	for (int i = 0; i < (int)_entities.size(); i++)
+	for (uint i = 0; i < _entities.size(); i++)
 		SAFE_DELETE(_entities[i]);
 
 	_entities.clear();
@@ -669,7 +669,7 @@ void Entities::executeCallbacks() {
 //////////////////////////////////////////////////////////////////////////
 // Processing
 //////////////////////////////////////////////////////////////////////////
-void Entities::incrementDirectionCounter(EntityData::EntityCallData *data) {
+void Entities::incrementDirectionCounter(EntityData::EntityCallData *data) const {
 	data->doProcessEntity = false;
 
 	if (data->direction == kDirectionRight || (data->direction == kDirectionSwitch && data->directionSwitch == kDirectionRight))
@@ -2278,7 +2278,7 @@ label_process_entity:
 
 							if (getScenes()->checkPosition(kSceneNone, SceneManager::kCheckPositionLookingUp)) {
 								 getSavePoints()->push(kEntityPlayer, entity, kActionExcuseMeCath);
-							} else if (getScenes()->checkPosition(kSceneNone, SceneManager::kCheckPositionLookingDown) || getScenes()->checkCurrentPosition(false)){
+							} else if (getScenes()->checkPosition(kSceneNone, SceneManager::kCheckPositionLookingDown) || getScenes()->checkCurrentPosition(false)) {
 								 getSavePoints()->push(kEntityPlayer, entity, kActionExcuseMe);
 
 								 if (getScenes()->checkCurrentPosition(false))

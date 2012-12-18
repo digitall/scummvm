@@ -26,9 +26,14 @@
 
 #include "lastexpress/game/action.h"
 #include "lastexpress/game/entities.h"
+#include "lastexpress/game/logic.h"
 #include "lastexpress/game/object.h"
 #include "lastexpress/game/savegame.h"
+#include "lastexpress/game/savepoint.h"
+#include "lastexpress/game/state.h"
 #include "lastexpress/game/scenes.h"
+
+#include "lastexpress/lastexpress.h"
 
 namespace LastExpress {
 
@@ -45,12 +50,14 @@ EntityData::EntityCallData::~EntityCallData() {
 	SAFE_DELETE(sequence3);
 }
 
-void EntityData::EntityCallData::syncString(Common::Serializer &s, Common::String &string, int length) {
+void EntityData::EntityCallData::syncString(Common::Serializer &s, Common::String &string, uint length) const {
 	char seqName[13];
 	memset(&seqName, 0, length);
 
-	if (s.isSaving()) strcpy((char *)&seqName, string.c_str());
-		s.syncBytes((byte *)&seqName, length);
+	if (s.isSaving())
+		strcpy((char *)&seqName, string.c_str());
+
+	s.syncBytes((byte *)&seqName, length);
 
 	if (s.isLoading())
 		string = seqName;
@@ -88,7 +95,13 @@ void EntityData::EntityCallData::saveLoadWithSerializer(Common::Serializer &s) {
 	syncString(s, sequenceNameCopy, 13);
 
 	// Skip pointers to frame & sequences
-	s.skip(5 * 4);
+	// (we are using a compressed stream, so we cannot seek on load)
+	if (s.isLoading()) {
+		byte empty[5 * 4];
+		s.syncBytes(empty, 5 * 4);
+	} else {
+		s.skip(5 * 4);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -104,7 +117,7 @@ EntityData::EntityParameters *EntityData::getParameters(uint callback, byte inde
 	return _parameters[callback].parameters[index];
 }
 
-int EntityData::getCallback(uint callback) const {
+byte EntityData::getCallback(uint callback) const {
 	if (callback >= 16)
 		error("[EntityData::getCallback] Invalid callback value (was: %d, max: 16)", callback);
 
@@ -603,6 +616,48 @@ void Entity::setup(const char *name, uint index) {
 	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
 }
 
+void Entity::setupI(const char *name, uint index, uint param1) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u)", name, param1);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersIIII>();
+
+	EntityData::EntityParametersIIII *params = (EntityData::EntityParametersIIII *)_data->getCurrentParameters();
+	params->param1 = (unsigned int)param1;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupII(const char *name, uint index, uint param1, uint param2) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u, %u)", name, param1, param2);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersIIII>();
+
+	EntityData::EntityParametersIIII *params = (EntityData::EntityParametersIIII *)_data->getCurrentParameters();
+	params->param1 = param1;
+	params->param2 = param2;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupIII(const char *name, uint index, uint param1, uint param2, uint param3) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u, %u, %u)", name, param1, param2, param3);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersIIII>();
+
+	EntityData::EntityParametersIIII *params = (EntityData::EntityParametersIIII *)_data->getCurrentParameters();
+	params->param1 = param1;
+	params->param2 = param2;
+	params->param3 = param3;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
 void Entity::setupS(const char *name, uint index, const char *seq1) {
 	debugC(6, kLastExpressDebugLogic, "Entity: %s(%s)", name, seq1);
 
@@ -611,7 +666,7 @@ void Entity::setupS(const char *name, uint index, const char *seq1) {
 	_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
 
 	EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS*)_data->getCurrentParameters();
-	strncpy((char *)&params->seq1, seq1, 12);
+	strncpy(params->seq1, seq1, 12);
 
 	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
 }
@@ -624,8 +679,144 @@ void Entity::setupSS(const char *name, uint index, const char *seq1, const char 
 	_data->resetCurrentParameters<EntityData::EntityParametersSSII>();
 
 	EntityData::EntityParametersSSII *params = (EntityData::EntityParametersSSII*)_data->getCurrentParameters();
-	strncpy((char *)&params->seq1, seq1, 12);
-	strncpy((char *)&params->seq2, seq2, 12);
+	strncpy(params->seq1, seq1, 12);
+	strncpy(params->seq2, seq2, 12);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupSI(const char *name, uint index, const char *seq1, uint param4) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %u)", name, seq1, param4);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
+
+	EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS *)_data->getCurrentParameters();
+	strncpy(params->seq1, seq1, 12);
+	params->param4 = param4;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupSII(const char *name, uint index, const char *seq1, uint param4, uint param5) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %u, %u)", name, seq1, param4, param5);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
+
+	EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS *)_data->getCurrentParameters();
+	strncpy(params->seq1, seq1, 12);
+	params->param4 = param4;
+	params->param5 = param5;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupSIII(const char *name, uint index, const char *seq, uint param4, uint param5, uint param6) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %u, %u, %u)", name, seq, param4, param5, param6);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersSIII>();
+
+	EntityData::EntityParametersSIII *params = (EntityData::EntityParametersSIII *)_data->getCurrentParameters();
+	strncpy(params->seq, seq, 12);
+	params->param4 = param4;
+	params->param5 = param5;
+	params->param6 = param6;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupSIIS(const char *name, uint index, const char *seq1, uint param4, uint param5, const char *seq2) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %u, %u, %s)", name, seq1, param4, param5, seq2);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
+
+	EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS *)_data->getCurrentParameters();
+	strncpy(params->seq1, seq1, 12);
+	params->param4 = param4;
+	params->param5 = param5;
+	strncpy(params->seq2, seq2, 12);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupSSI(const char *name, uint index, const char *seq1, const char *seq2, uint param7) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %s, %u)", name, seq1, seq2, param7);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersSSII>();
+
+	EntityData::EntityParametersSSII *params = (EntityData::EntityParametersSSII *)_data->getCurrentParameters();
+	strncpy(params->seq1, seq1, 12);
+	strncpy(params->seq2, seq2, 12);
+	params->param7 = param7;
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupIS(const char *name, uint index, uint param1, const char *seq) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u, %s)", name, param1, seq);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersISII>();
+
+	EntityData::EntityParametersISII *params = (EntityData::EntityParametersISII *)_data->getCurrentParameters();
+	params->param1 = (unsigned int)param1;
+	strncpy(params->seq, seq, 12);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupISS(const char *name, uint index, uint param1, const char *seq1, const char *seq2) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u, %s, %s)", name, param1, seq1, seq2);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersISSI>();
+
+	EntityData::EntityParametersISSI *params = (EntityData::EntityParametersISSI *)_data->getCurrentParameters();
+	params->param1 = param1;
+	strncpy(params->seq1, seq1, 12);
+	strncpy(params->seq2, seq2, 12);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupIIS(const char *name, uint index, uint param1, uint param2, const char *seq) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u, %u, %s)", name, param1, param2, seq);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersIISI>();
+
+	EntityData::EntityParametersIISI *params = (EntityData::EntityParametersIISI *)_data->getCurrentParameters();
+	params->param1 = param1;
+	params->param2 = param2;
+	strncpy(params->seq, seq, 12);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
+}
+
+void Entity::setupIISS(const char *name, uint index, uint param1, uint param2, const char *seq1, const char *seq2) {
+	debugC(6, kLastExpressDebugLogic, "Entity: %s(%u, %u, %s, %s)", name, param1, param2, seq1, seq2);
+
+	_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
+	_data->setCurrentCallback(index);
+	_data->resetCurrentParameters<EntityData::EntityParametersIISS>();
+
+	EntityData::EntityParametersIISS *params = (EntityData::EntityParametersIISS *)_data->getCurrentParameters();
+	params->param1 = param1;
+	params->param2 = param2;
+	strncpy(params->seq1, seq1, 12);
+	strncpy(params->seq2, seq2, 12);
 
 	_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
 }
@@ -634,7 +825,7 @@ void Entity::setupSS(const char *name, uint index, const char *seq1, const char 
 // Helper functions
 //////////////////////////////////////////////////////////////////////////
 
-bool Entity::updateParameter(uint &parameter, uint timeType, uint delta) {
+bool Entity::updateParameter(uint &parameter, uint timeType, uint delta) const {
 	if (!parameter)
 		parameter = (uint)(timeType + delta);
 
@@ -646,7 +837,7 @@ bool Entity::updateParameter(uint &parameter, uint timeType, uint delta) {
 	return true;
 }
 
-bool Entity::updateParameterTime(TimeValue timeValue, bool check, uint &parameter, uint delta) {
+bool Entity::updateParameterTime(TimeValue timeValue, bool check, uint &parameter, uint delta) const {
 	if (getState()->time <= timeValue) {
 		if (check || !parameter)
 			parameter = (uint)(getState()->time + delta);
@@ -660,7 +851,7 @@ bool Entity::updateParameterTime(TimeValue timeValue, bool check, uint &paramete
 	return true;
 }
 
-bool Entity::updateParameterCheck(uint &parameter, uint timeType, uint delta) {
+bool Entity::updateParameterCheck(uint &parameter, uint timeType, uint delta) const {
 	if (parameter && parameter >= timeType)
 		return false;
 
@@ -670,7 +861,7 @@ bool Entity::updateParameterCheck(uint &parameter, uint timeType, uint delta) {
 	return true;
 }
 
-bool Entity::timeCheck(TimeValue timeValue, uint &parameter, Common::Functor0<void> *function) {
+bool Entity::timeCheck(TimeValue timeValue, uint &parameter, Common::Functor0<void> *function) const {
 	if (getState()->time > timeValue && !parameter) {
 		parameter = 1;
 		(*function)();
@@ -745,14 +936,14 @@ bool Entity::timeCheckCar(TimeValue timeValue, uint &parameter, byte callback, C
 	return false;
 }
 
-void Entity::timeCheckSavepoint(TimeValue timeValue, uint &parameter, EntityIndex entity1, EntityIndex entity2, ActionIndex action) {
+void Entity::timeCheckSavepoint(TimeValue timeValue, uint &parameter, EntityIndex entity1, EntityIndex entity2, ActionIndex action) const {
 	if (getState()->time > timeValue && !parameter) {
 		parameter = 1;
 		getSavePoints()->push(entity1, entity2, action);
 	}
 }
 
-void Entity::timeCheckObject(TimeValue timeValue, uint &parameter, ObjectIndex object, ObjectLocation location) {
+void Entity::timeCheckObject(TimeValue timeValue, uint &parameter, ObjectIndex object, ObjectLocation location) const {
 	if (getState()->time > timeValue && !parameter) {
 		parameter = 1;
 		getObjects()->updateLocation2(object, location);

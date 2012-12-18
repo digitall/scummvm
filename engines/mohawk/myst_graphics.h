@@ -43,13 +43,12 @@ public:
 	MystGraphics(MohawkEngine_Myst*);
 	~MystGraphics();
 
-	void loadExternalPictureFile(uint16 stack);
 	void copyImageSectionToScreen(uint16 image, Common::Rect src, Common::Rect dest);
 	void copyImageSectionToBackBuffer(uint16 image, Common::Rect src, Common::Rect dest);
 	void copyImageToScreen(uint16 image, Common::Rect dest);
 	void copyImageToBackBuffer(uint16 image, Common::Rect dest);
 	void copyBackBufferToScreen(Common::Rect r);
-	void runTransition(uint16 type, Common::Rect rect, uint16 steps, uint16 delay);
+	void runTransition(TransitionType type, Common::Rect rect, uint16 steps, uint16 delay);
 	void drawRect(Common::Rect rect, RectState state);
 	void drawLine(const Common::Point &p1, const Common::Point &p2, uint32 color);
 	void enableDrawingTimeSimulation(bool enable);
@@ -61,24 +60,16 @@ protected:
 	MohawkEngine *getVM() { return (MohawkEngine *)_vm; }
 	void simulatePreviousDrawDelay(const Common::Rect &dest);
 	void copyBackBufferToScreenWithSaturation(int16 saturation);
-
+	void transitionDissolve(Common::Rect rect, uint step);
+	void transitionSlideToLeft(Common::Rect rect, uint16 steps, uint16 delay);
+	void transitionSlideToRight(Common::Rect rect, uint16 steps, uint16 delay);
+	void transitionSlideToTop(Common::Rect rect, uint16 steps, uint16 delay);
+	void transitionSlideToBottom(Common::Rect rect, uint16 steps, uint16 delay);
+	void transitionPartialToRight(Common::Rect rect, uint32 width, uint32 steps);
+	void transitionPartialToLeft(Common::Rect rect, uint32 width, uint32 steps);
 private:
 	MohawkEngine_Myst *_vm;
 	MystBitmap *_bmpDecoder;
-
-	struct PictureFile {
-		uint32 pictureCount;
-		struct PictureEntry {
-			uint32 offset;
-			uint32 size;
-			uint16 id;
-			uint16 type;
-			uint16 width;
-			uint16 height;
-		} *entries;
-
-		Common::File picFile;
-	} _pictureFile;
 
 	Graphics::Surface *_backBuffer;
 	Graphics::PixelFormat _pixelFormat;

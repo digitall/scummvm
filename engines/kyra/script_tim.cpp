@@ -299,7 +299,7 @@ void TIMInterpreter::displayText(uint16 textId, int16 flags) {
 
 	const bool isPC98 = (_vm->gameFlags().platform == Common::kPlatformPC98);
 	if (filename[0] && (_vm->speechEnabled() || !_vm->gameFlags().isTalkie))
-		_vm->sound()->voicePlay(filename);
+		_vm->sound()->voicePlay(filename, 0, 255, 255, !_vm->gameFlags().isTalkie);
 
 	if (text[0] == '$')
 		text = strchr(text + 1, '$') + 1;
@@ -736,7 +736,7 @@ int TIMInterpreter::cmd_playVocFile(const uint16 *param) {
 	const int volume = (param[1] * 255) / 100;
 
 	if (index < ARRAYSIZE(_vocFiles) && !_vocFiles[index].empty())
-		_vm->sound()->voicePlay(_vocFiles[index].c_str(), 0, volume, true);
+		_vm->sound()->voicePlay(_vocFiles[index].c_str(), 0, volume, 255, true);
 	else if (index == 7 && !_vm->gameFlags().isTalkie)
 		_vm->sound()->playTrack(index);
 	else

@@ -612,7 +612,7 @@ Value stepY(int argc, Value *argv) {
 		yy += static_cast<byte>(distance * DY_offset[mtype-1][fdir]);
 	}
 
-	ret.fullValue == yy & (LVL_Y - 1);
+	ret.fullValue = yy & (LVL_Y - 1);
 	return ret;
 }
 
