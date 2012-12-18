@@ -25,13 +25,8 @@
 
 #include "lastexpress/shared.h"
 
-#include "lastexpress/game/logic.h"
-#include "lastexpress/game/savepoint.h"
-#include "lastexpress/game/state.h"
-
 #include "lastexpress/sound/sound.h"
 
-#include "lastexpress/lastexpress.h"
 #include "lastexpress/helpers.h"
 
 #include "common/array.h"
@@ -147,7 +142,7 @@ struct SavePoint;
 // setup with one uint parameter
 #define IMPLEMENT_FUNCTION_I(index, class, name, paramType) \
 	void class::setup_##name(paramType param1) { \
-		Entity::setupI<paramType>(#class "::setup_" #name, index, param1); \
+		Entity::setupI(#class "::setup_" #name, index, param1); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersIIII) \
@@ -156,7 +151,7 @@ struct SavePoint;
 // setup with two uint parameters
 #define IMPLEMENT_FUNCTION_II(index, class, name, paramType1, paramType2) \
 	void class::setup_##name(paramType1 param1, paramType2 param2) { \
-		Entity::setupII<paramType1, paramType2>(#class "::setup_" #name, index, param1, param2); \
+		Entity::setupII(#class "::setup_" #name, index, param1, param2); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersIIII) \
@@ -165,7 +160,7 @@ struct SavePoint;
 // setup with three uint parameters
 #define IMPLEMENT_FUNCTION_III(index, class, name, paramType1, paramType2, paramType3) \
 	void class::setup_##name(paramType1 param1, paramType2 param2, paramType3 param3) { \
-		Entity::setupIII<paramType1, paramType2, paramType3>(#class "::setup_" #name, index, param1, param2, param3); \
+		Entity::setupIII(#class "::setup_" #name, index, param1, param2, param3); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersIIII) \
@@ -183,7 +178,7 @@ struct SavePoint;
 // setup with one char *parameter and one uint
 #define IMPLEMENT_FUNCTION_SI(index, class, name, paramType2) \
 	void class::setup_##name(const char *seq1, paramType2 param4) { \
-		Entity::setupSI<paramType2>(#class "::setup_" #name, index, seq1, param4); \
+		Entity::setupSI(#class "::setup_" #name, index, seq1, param4); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersSIIS) \
@@ -192,7 +187,7 @@ struct SavePoint;
 // setup with one char *parameter and two uints
 #define IMPLEMENT_FUNCTION_SII(index, class, name, paramType2, paramType3) \
 	void class::setup_##name(const char *seq1, paramType2 param4, paramType3 param5) { \
-		Entity::setupSII<paramType2, paramType3>(#class "::setup_" #name, index, seq1, param4, param5); \
+		Entity::setupSII(#class "::setup_" #name, index, seq1, param4, param5); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersSIIS) \
@@ -201,7 +196,7 @@ struct SavePoint;
 // setup with one char *parameter and three uints
 #define IMPLEMENT_FUNCTION_SIII(index, class, name, paramType2, paramType3, paramType4) \
 	void class::setup_##name(const char *seq, paramType2 param4, paramType3 param5, paramType4 param6) { \
-		Entity::setupSIII<paramType2, paramType3, paramType4>(#class "::setup_" #name, index, seq, param4, param5, param6); \
+		Entity::setupSIII(#class "::setup_" #name, index, seq, param4, param5, param6); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersSIII) \
@@ -209,7 +204,7 @@ struct SavePoint;
 
 #define IMPLEMENT_FUNCTION_SIIS(index, class, name, paramType2, paramType3) \
 	void class::setup_##name(const char *seq1, paramType2 param4, paramType3 param5, const char *seq2) { \
-		Entity::setupSIIS<paramType2, paramType3>(#class "::setup_" #name, index, seq1, param4, param5, seq2); \
+		Entity::setupSIIS(#class "::setup_" #name, index, seq1, param4, param5, seq2); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersSIIS) \
@@ -225,7 +220,7 @@ struct SavePoint;
 
 #define IMPLEMENT_FUNCTION_SSI(index, class, name, paramType3) \
 	void class::setup_##name(const char *seq1, const char *seq2, paramType3 param7) { \
-		Entity::setupSSI<paramType3>(#class "::setup_" #name, index, seq1, seq2, param7); \
+		Entity::setupSSI(#class "::setup_" #name, index, seq1, seq2, param7); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersSSII) \
@@ -233,7 +228,7 @@ struct SavePoint;
 
 #define IMPLEMENT_FUNCTION_IS(index, class, name, paramType) \
 	void class::setup_##name(paramType param1, const char *seq) { \
-		Entity::setupIS<paramType>(#class "::setup_" #name, index, param1, seq); \
+		Entity::setupIS(#class "::setup_" #name, index, param1, seq); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersISII) \
@@ -241,7 +236,7 @@ struct SavePoint;
 
 #define IMPLEMENT_FUNCTION_ISS(index, class, name, paramType) \
 	void class::setup_##name(paramType param1, const char *seq1, const char *seq2) { \
-		Entity::setupISS<paramType>(#class "::setup_" #name, index, param1, seq1, seq2); \
+		Entity::setupISS(#class "::setup_" #name, index, param1, seq1, seq2); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersISSI) \
@@ -249,7 +244,7 @@ struct SavePoint;
 
 #define IMPLEMENT_FUNCTION_IIS(index, class, name, paramType1, paramType2) \
 	void class::setup_##name(paramType1 param1, paramType2 param2, const char *seq) { \
-		Entity::setupIIS<paramType1, paramType2>(#class "::setup_" #name, index, param1, param2, seq); \
+		Entity::setupIIS(#class "::setup_" #name, index, param1, param2, seq); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersIISI) \
@@ -257,7 +252,7 @@ struct SavePoint;
 
 #define IMPLEMENT_FUNCTION_IISS(index, class, name, paramType1, paramType2) \
 	void class::setup_##name(paramType1 param1, paramType2 param2, const char *seq1, const char *seq2) { \
-		Entity::setupIISS<paramType1, paramType2>(#class "::setup_" #name, index, param1, param2, seq1, seq2); \
+		Entity::setupIISS(#class "::setup_" #name, index, param1, param2, seq1, seq2); \
 	} \
 	void class::name(const SavePoint &savepoint) { \
 		EXPOSE_PARAMS(EntityData::EntityParametersIISS) \
@@ -268,7 +263,7 @@ struct SavePoint;
 class EntityData : Common::Serializable {
 public:
 
-	struct EntityParameters : Common::Serializable{
+	struct EntityParameters : Common::Serializable {
 		virtual ~EntityParameters() {}
 		virtual Common::String toString() = 0;
 
@@ -827,7 +822,7 @@ public:
 		 * @param	string	The string.
 		 * @param	length	Length of the string.
 		 */
-		void syncString(Common::Serializer &s, Common::String &string, int length);
+		void syncString(Common::Serializer &s, Common::String &string, uint length) const;
 
 		// Serializable
 		void saveLoadWithSerializer(Common::Serializer &s);
@@ -844,20 +839,21 @@ public:
 			params->parameters[i] = new T();
 	}
 
-	EntityCallData 	  *getCallData() { return &_data; }
+	EntityCallData       *getCallData() { return &_data; }
 
-	EntityParameters  *getParameters(uint callback, byte index) const;
-	EntityParameters  *getCurrentParameters(byte index = 0) { return getParameters(_data.currentCall, index); }
+	EntityParameters     *getParameters(uint callback, byte index) const;
+	EntityParameters     *getCurrentParameters(byte index = 0) { return getParameters(_data.currentCall, index); }
+	EntityCallParameters *getCurrentCallParameters() { return &_parameters[_data.currentCall]; }
 
-	int                getCallback(uint callback) const;
-	int                getCurrentCallback() { return getCallback(_data.currentCall); }
-	void               setCallback(uint callback, byte index);
-	void               setCurrentCallback(uint index) { setCallback(_data.currentCall, index); }
+	byte                  getCallback(uint callback) const;
+	byte                  getCurrentCallback() { return getCallback(_data.currentCall); }
+	void                  setCallback(uint callback, byte index);
+	void                  setCurrentCallback(uint index) { setCallback(_data.currentCall, index); }
 
-	void               updateParameters(uint32 index) const;
+	void                  updateParameters(uint32 index) const;
 
 	// Serializable
-	void               saveLoadWithSerializer(Common::Serializer &ser);
+	void                  saveLoadWithSerializer(Common::Serializer &ser);
 
 private:
 
@@ -1069,215 +1065,37 @@ protected:
 	// Setup functions
 	//////////////////////////////////////////////////////////////////////////
 	void setup(const char *name, uint index);
+	void setupI(const char *name, uint index, uint param1);
+	void setupII(const char *name, uint index, uint param1, uint param2);
+	void setupIII(const char *name, uint index, uint param1, uint param2, uint param3);
 	void setupS(const char *name, uint index, const char *seq1);
 	void setupSS(const char *name, uint index, const char *seq1, const char *seq2);
-
-	template<typename T>
-	void setupI(const char *name, uint index, T param1) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d)", name, param1);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersIIII>();
-
-		EntityData::EntityParametersIIII *params = (EntityData::EntityParametersIIII*)_data->getCurrentParameters();
-		params->param1 = (unsigned int)param1;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2>
-	void setupII(const char *name, uint index, T1 param1, T2 param2) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d, %d)", name, param1, param2);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersIIII>();
-
-		EntityData::EntityParametersIIII *params = (EntityData::EntityParametersIIII*)_data->getCurrentParameters();
-		params->param1 = param1;
-		params->param2 = param2;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2, typename T3>
-	void setupIII(const char *name, uint index, T1 param1, T2 param2, T3 param3) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d, %d, %d)", name, param1, param2, param3);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersIIII>();
-
-		EntityData::EntityParametersIIII *params = (EntityData::EntityParametersIIII*)_data->getCurrentParameters();
-		params->param1 = param1;
-		params->param2 = param2;
-		params->param3 = param3;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T>
-	void setupSI(const char *name, uint index, const char *seq1, T param4) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %d)", name, seq1, param4);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
-
-		EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS*)_data->getCurrentParameters();
-		strncpy((char *)&params->seq1, seq1, 12);
-		params->param4 = param4;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2>
-	void setupSII(const char *name, uint index, const char *seq1, T1 param4, T2 param5) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %d, %d)", name, seq1, param4, param5);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
-
-		EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS*)_data->getCurrentParameters();
-		strncpy((char *)&params->seq1, seq1, 12);
-		params->param4 = param4;
-		params->param5 = param5;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2, typename T3>
-	void setupSIII(const char *name, uint index, const char *seq, T1 param4, T2 param5, T3 param6) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %d, %d, %d)", name, seq, param4, param5, param6);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersSIII>();
-
-		EntityData::EntityParametersSIII *params = (EntityData::EntityParametersSIII*)_data->getCurrentParameters();
-		strncpy((char *)&params->seq, seq, 12);
-		params->param4 = param4;
-		params->param5 = param5;
-		params->param6 = param6;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2>
-	void setupSIIS(const char *name, uint index, const char *seq1, T1 param4, T2 param5, const char *seq2) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %d, %d, %s)", name, seq1, param4, param5, seq2);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersSIIS>();
-
-		EntityData::EntityParametersSIIS *params = (EntityData::EntityParametersSIIS*)_data->getCurrentParameters();
-		strncpy((char *)&params->seq1, seq1, 12);
-		params->param4 = param4;
-		params->param5 = param5;
-		strncpy((char *)&params->seq2, seq2, 12);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T>
-	void setupSSI(const char *name, uint index, const char *seq1, const char *seq2, T param7) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%s, %s, %d)", name, seq1, seq2, param7);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersSSII>();
-
-		EntityData::EntityParametersSSII *params = (EntityData::EntityParametersSSII*)_data->getCurrentParameters();
-		strncpy((char *)&params->seq1, seq1, 12);
-		strncpy((char *)&params->seq2, seq2, 12);
-		params->param7 = param7;
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T>
-	void setupIS(const char *name, uint index, T param1, const char *seq) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d, %s)", name, param1, seq);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersISII>();
-
-		EntityData::EntityParametersISII *params = (EntityData::EntityParametersISII*)_data->getCurrentParameters();
-		params->param1 = (unsigned int)param1;
-		strncpy((char *)&params->seq, seq, 12);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T>
-	void setupISS(const char *name, uint index, T param1, const char *seq1, const char *seq2) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d, %s, %s)", name, param1, seq1, seq2);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersISSI>();
-
-		EntityData::EntityParametersISSI *params = (EntityData::EntityParametersISSI*)_data->getCurrentParameters();
-		params->param1 = param1;
-		strncpy((char *)&params->seq1, seq1, 12);
-		strncpy((char *)&params->seq2, seq2, 12);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2>
-	void setupIIS(const char *name, uint index, T1 param1, T2 param2, const char *seq) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d, %d, %s)", name, param1, param2, seq);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersIISI>();
-
-		EntityData::EntityParametersIISI *params = (EntityData::EntityParametersIISI*)_data->getCurrentParameters();
-		params->param1 = param1;
-		params->param2 = param2;
-		strncpy((char *)&params->seq, seq, 12);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
-
-	template<typename T1, typename T2>
-	void setupIISS(const char *name, uint index, T1 param1, T2 param2, const char *seq1, const char *seq2) {
-		debugC(6, kLastExpressDebugLogic, "Entity: %s(%d, %d, %s, %s)", name, param1, param2, seq1, seq2);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->setCallback(_entityIndex, _callbacks[index]);
-		_data->setCurrentCallback(index);
-		_data->resetCurrentParameters<EntityData::EntityParametersIISS>();
-
-		EntityData::EntityParametersIISS *params = (EntityData::EntityParametersIISS*)_data->getCurrentParameters();
-		params->param1 = param1;
-		params->param2 = param2;
-		strncpy((char *)&params->seq1, seq1, 12);
-		strncpy((char *)&params->seq2, seq2, 12);
-
-		_engine->getGameLogic()->getGameState()->getGameSavePoints()->call(_entityIndex, _entityIndex, kActionDefault);
-	}
+	void setupSI(const char *name, uint index, const char *seq1, uint param4);
+	void setupSII(const char *name, uint index, const char *seq1, uint param4, uint param5);
+	void setupSIII(const char *name, uint index, const char *seq, uint param4, uint param5, uint param6);
+	void setupSIIS(const char *name, uint index, const char *seq1, uint param4, uint param5, const char *seq2);
+	void setupSSI(const char *name, uint index, const char *seq1, const char *seq2, uint param7);
+	void setupIS(const char *name, uint index, uint param1, const char *seq);
+	void setupISS(const char *name, uint index, uint param1, const char *seq1, const char *seq2);
+	void setupIIS(const char *name, uint index, uint param1, uint param2, const char *seq);
+	void setupIISS(const char *name, uint index, uint param1, uint param2, const char *seq1, const char *seq2);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Helper functions
 	//////////////////////////////////////////////////////////////////////////
 
-	bool updateParameter(uint &parameter, uint timeType, uint delta);
-	bool updateParameterCheck(uint &parameter, uint timeType, uint delta);
-	bool updateParameterTime(TimeValue timeValue, bool check, uint &parameter, uint delta);
+	bool updateParameter(uint &parameter, uint timeType, uint delta) const;
+	bool updateParameterCheck(uint &parameter, uint timeType, uint delta) const;
+	bool updateParameterTime(TimeValue timeValue, bool check, uint &parameter, uint delta) const;
 
-	bool timeCheck(TimeValue timeValue, uint &parameter, Common::Functor0<void> *function);
+	bool timeCheck(TimeValue timeValue, uint &parameter, Common::Functor0<void> *function) const;
 	bool timeCheckCallback(TimeValue timeValue, uint &parameter, byte callback, Common::Functor0<void> *function);
 	bool timeCheckCallback(TimeValue timeValue, uint &parameter, byte callback, const char *str, Common::Functor1<const char *, void> *function);
 	bool timeCheckCallback(TimeValue timeValue, uint &parameter, byte callback, bool check, Common::Functor1<bool, void> *function);
 	bool timeCheckCallbackInventory(TimeValue timeValue, uint &parameter, byte callback, Common::Functor0<void> *function);
 	bool timeCheckCar(TimeValue timeValue, uint &parameter, byte callback, Common::Functor0<void> *function);
-	void timeCheckSavepoint(TimeValue timeValue, uint &parameter, EntityIndex entity1, EntityIndex entity2, ActionIndex action);
-	void timeCheckObject(TimeValue timeValue, uint &parameter, ObjectIndex index, ObjectLocation location);
+	void timeCheckSavepoint(TimeValue timeValue, uint &parameter, EntityIndex entity1, EntityIndex entity2, ActionIndex action) const;
+	void timeCheckObject(TimeValue timeValue, uint &parameter, ObjectIndex index, ObjectLocation location) const;
 	bool timeCheckCallbackAction(TimeValue timeValue, uint &parameter);
 	bool timeCheckPlaySoundUpdatePosition(TimeValue timeValue, uint &parameter, byte callback, const char* sound, EntityPosition position);
 

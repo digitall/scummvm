@@ -48,7 +48,6 @@
 
 #include "lastexpress/sound/queue.h"
 
-#include "lastexpress/graphics.h"
 #include "lastexpress/lastexpress.h"
 #include "lastexpress/resource.h"
 
@@ -86,16 +85,6 @@ Logic::~Logic() {
 //////////////////////////////////////////////////////////////////////////
 // Event Handling
 //////////////////////////////////////////////////////////////////////////
-#define REDRAW_CURSOR() { \
-	if (getInventory()->isMagnifierInUse()) \
-		_engine->getCursor()->setStyle(kCursorMagnifier); \
-	if (getInventory()->isPortraitHighlighted() \
-	|| getInventory()->isOpened() \
-	|| getInventory()->isEggHighlighted()) \
-		_engine->getCursor()->setStyle(kCursorNormal); \
-	return; \
-}
-
 void Logic::eventMouse(const Common::Event &ev) {
 	bool hotspotHandled = false;
 
@@ -166,7 +155,9 @@ void Logic::eventMouse(const Common::Event &ev) {
 				getInventory()->unselectItem();
 		}
 
-		REDRAW_CURSOR()
+		redrawCursor();
+
+		return;
 	}
 
 	// Handle match case
@@ -192,7 +183,9 @@ void Logic::eventMouse(const Common::Event &ev) {
 			getScenes()->processScene();
 		}
 
-		REDRAW_CURSOR()
+		redrawCursor();
+
+		return;
 	}
 
 	// Handle entity item case
@@ -313,7 +306,7 @@ void Logic::eventTick(const Common::Event &) {
 	//////////////////////////////////////////////////////////////////////////
 	// Draw the blinking egg if needed
 	if (getGlobalTimer() && !getFlags()->shouldDrawEggOrHourGlass)
-		getInventory()->drawBlinkingEgg();
+		getInventory()->drawBlinkingEgg(ticks);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Adjust time and save game if needed
@@ -412,9 +405,9 @@ void Logic::resetState() {
 	getScenes()->setCoordinates(Common::Rect(80, 0, 559, 479));
 
 	SAFE_DELETE(_entities);
-	SAFE_DELETE(_state);
 	_entities = new Entities(_engine);
-	_state    = new State(_engine);
+
+	_state->reset();
 }
 
 /**
@@ -594,6 +587,16 @@ void Logic::updateCursor(bool) const { /* the cursor is always updated, even whe
 		style = kCursorNormal;
 
 	_engine->getCursor()->setStyle(style);
+}
+
+void Logic::redrawCursor() const {
+	if (getInventory()->isMagnifierInUse())
+		_engine->getCursor()->setStyle(kCursorMagnifier);
+
+	if (getInventory()->isPortraitHighlighted()
+	 || getInventory()->isOpened()
+	 || getInventory()->isEggHighlighted())
+		_engine->getCursor()->setStyle(kCursorNormal);
 }
 
 } // End of namespace LastExpress

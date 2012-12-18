@@ -49,8 +49,6 @@ MystGraphics::MystGraphics(MohawkEngine_Myst* vm) : GraphicsManager(), _vm(vm) {
 	if (_pixelFormat.bytesPerPixel == 1)
 		error("Myst requires greater than 256 colors to run");
 
-	_pictureFile.entries = NULL;
-
 	// Initialize our buffer
 	_backBuffer = new Graphics::Surface();
 	_backBuffer->create(_vm->_system->getWidth(), _vm->_system->getHeight(), _pixelFormat);
@@ -61,122 +59,50 @@ MystGraphics::MystGraphics(MohawkEngine_Myst* vm) : GraphicsManager(), _vm(vm) {
 
 MystGraphics::~MystGraphics() {
 	delete _bmpDecoder;
-	delete[] _pictureFile.entries;
 
 	_backBuffer->free();
 	delete _backBuffer;
 }
 
-static const char *s_picFileNames[] = {
-	"CHpics",
-	"",
-	"",
-	"DUpics",
-	"INpics",
-	"",
-	"MEpics",
-	"MYpics",
-	"SEpics",
-	"",
-	"",
-	"STpics"
-};
-
-void MystGraphics::loadExternalPictureFile(uint16 stack) {
-	if (_vm->getPlatform() != Common::kPlatformMacintosh)
-		return;
-
-	if (_pictureFile.picFile.isOpen())
-		_pictureFile.picFile.close();
-	delete[] _pictureFile.entries;
-
-	if (!scumm_stricmp(s_picFileNames[stack], ""))
-		return;
-
-	if (!_pictureFile.picFile.open(s_picFileNames[stack]))
-		error ("Could not open external picture file \'%s\'", s_picFileNames[stack]);
-
-	_pictureFile.pictureCount = _pictureFile.picFile.readUint32BE();
-	_pictureFile.entries = new PictureFile::PictureEntry[_pictureFile.pictureCount];
-
-	for (uint32 i = 0; i < _pictureFile.pictureCount; i++) {
-		_pictureFile.entries[i].offset = _pictureFile.picFile.readUint32BE();
-		_pictureFile.entries[i].size = _pictureFile.picFile.readUint32BE();
-		_pictureFile.entries[i].id = _pictureFile.picFile.readUint16BE();
-		_pictureFile.entries[i].type = _pictureFile.picFile.readUint16BE();
-		_pictureFile.entries[i].width = _pictureFile.picFile.readUint16BE();
-		_pictureFile.entries[i].height = _pictureFile.picFile.readUint16BE();
-	}
-}
-
 MohawkSurface *MystGraphics::decodeImage(uint16 id) {
+	// We need to grab the image from the current stack archive, however, we  don't know
+	// if it's a PICT or WDIB resource. If it's Myst ME it's most likely a PICT, and if it's
+	// original it's definitely a WDIB. However, Myst ME throws us another curve ball in
+	// that PICT resources can contain WDIB's instead of PICT's.
+	Common::SeekableReadStream *dataStream = NULL;
+
+	if (_vm->getFeatures() & GF_ME && _vm->hasResource(ID_PICT, id)) {
+		// The PICT resource exists. However, it could still contain a MystBitmap
+		// instead of a PICT image...
+		dataStream = _vm->getResource(ID_PICT, id);
+	} else {
+		// No PICT, so the WDIB must exist. Let's go grab it.
+		dataStream = _vm->getResource(ID_WDIB, id);
+	}
+
+	bool isPict = false;
+
+	if (_vm->getFeatures() & GF_ME) {
+		// Here we detect whether it's really a PICT or a WDIB. Since a MystBitmap
+		// would be compressed, there's no way to detect for the BM without a hack.
+		// So, we search for the PICT version opcode for detection.
+		dataStream->seek(512 + 10); // 512 byte pict header
+		isPict = (dataStream->readUint32BE() == 0x001102FF);
+		dataStream->seek(0);
+	}
+
 	MohawkSurface *mhkSurface = 0;
 
-	// Myst ME uses JPEG/PICT images instead of compressed Windows Bitmaps for room images,
-	// though there are a few weird ones that use that format. For further nonsense with images,
-	// the Macintosh version stores images in external "picture files." We check them before
-	// going to check for a PICT resource.
-	if (_vm->getFeatures() & GF_ME && _vm->getPlatform() == Common::kPlatformMacintosh && _pictureFile.picFile.isOpen()) {
-		for (uint32 i = 0; i < _pictureFile.pictureCount; i++)
-			if (_pictureFile.entries[i].id == id) {
-				if (_pictureFile.entries[i].type == 0) {
-					Graphics::JPEGDecoder jpeg;
-					Common::SeekableSubReadStream subStream(&_pictureFile.picFile, _pictureFile.entries[i].offset, _pictureFile.entries[i].offset + _pictureFile.entries[i].size);
+	if (isPict) {
+		Graphics::PICTDecoder pict;
 
-					if (!jpeg.loadStream(subStream))
-						error("Could not decode Myst ME Mac JPEG");
+		if (!pict.loadStream(*dataStream))
+			error("Could not decode Myst ME PICT");
 
-					mhkSurface = new MohawkSurface(jpeg.getSurface()->convertTo(_pixelFormat));
-				} else if (_pictureFile.entries[i].type == 1) {
-					Graphics::PICTDecoder pict;
-					Common::SeekableSubReadStream subStream(&_pictureFile.picFile, _pictureFile.entries[i].offset, _pictureFile.entries[i].offset + _pictureFile.entries[i].size);
-
-					if (!pict.loadStream(subStream))
-						error("Could not decode Myst ME Mac PICT");
-
-					mhkSurface = new MohawkSurface(pict.getSurface()->convertTo(_pixelFormat));
-				} else
-					error ("Unknown Picture File type %d", _pictureFile.entries[i].type);
-				break;
-			}
-	}
-
-	// We're not using the external Mac files, so it's time to delve into the main Mohawk
-	// archives. However, we still don't know if it's a PICT or WDIB resource. If it's Myst
-	// ME it's most likely a PICT, and if it's original it's definitely a WDIB. However,
-	// Myst ME throws us another curve ball in that PICT resources can contain WDIB's instead
-	// of PICT's.
-	if (!mhkSurface) {
-		bool isPict = false;
-		Common::SeekableReadStream *dataStream = NULL;
-
-		if (_vm->getFeatures() & GF_ME && _vm->hasResource(ID_PICT, id)) {
-			// The PICT resource exists. However, it could still contain a MystBitmap
-			// instead of a PICT image...
-			dataStream = _vm->getResource(ID_PICT, id);
-		} else // No PICT, so the WDIB must exist. Let's go grab it.
-			dataStream = _vm->getResource(ID_WDIB, id);
-
-		if (_vm->getFeatures() & GF_ME) {
-			// Here we detect whether it's really a PICT or a WDIB. Since a MystBitmap
-			// would be compressed, there's no way to detect for the BM without a hack.
-			// So, we search for the PICT version opcode for detection.
-			dataStream->seek(512 + 10); // 512 byte pict header
-			isPict = (dataStream->readUint32BE() == 0x001102FF);
-			dataStream->seek(0);
-		}
-
-		if (isPict) {
-			Graphics::PICTDecoder pict;
-
-			if (!pict.loadStream(*dataStream))
-				error("Could not decode Myst ME PICT");
-
-			mhkSurface = new MohawkSurface(pict.getSurface()->convertTo(_pixelFormat));
-		} else {
-			mhkSurface = _bmpDecoder->decodeImage(dataStream);
-			mhkSurface->convertToTrueColor();
-		}
+		mhkSurface = new MohawkSurface(pict.getSurface()->convertTo(_pixelFormat));
+	} else {
+		mhkSurface = _bmpDecoder->decodeImage(dataStream);
+		mhkSurface->convertToTrueColor();
 	}
 
 	assert(mhkSurface);
@@ -283,15 +209,15 @@ void MystGraphics::copyBackBufferToScreen(Common::Rect r) {
 	_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(r.left, r.top), _backBuffer->pitch, r.left, r.top, r.width(), r.height());
 }
 
-void MystGraphics::runTransition(uint16 type, Common::Rect rect, uint16 steps, uint16 delay) {
+void MystGraphics::runTransition(TransitionType type, Common::Rect rect, uint16 steps, uint16 delay) {
 
 	// Do not artificially delay during transitions
 	int oldEnableDrawingTimeSimulation = _enableDrawingTimeSimulation;
 	_enableDrawingTimeSimulation = 0;
 
 	switch (type) {
-	case 0:	{
-			debugC(kDebugScript, "Left to Right");
+	case kTransitionLeftToRight:	{
+			debugC(kDebugView, "Left to Right");
 
 			uint16 step = (rect.right - rect.left) / steps;
 			Common::Rect area = rect;
@@ -313,8 +239,8 @@ void MystGraphics::runTransition(uint16 type, Common::Rect rect, uint16 steps, u
 			}
 		}
 		break;
-	case 1:	{
-			debugC(kDebugScript, "Right to Left");
+	case kTransitionRightToLeft:	{
+			debugC(kDebugView, "Right to Left");
 
 			uint16 step = (rect.right - rect.left) / steps;
 			Common::Rect area = rect;
@@ -336,8 +262,25 @@ void MystGraphics::runTransition(uint16 type, Common::Rect rect, uint16 steps, u
 			}
 		}
 		break;
-	case 5:	{
-			debugC(kDebugScript, "Top to Bottom");
+	case kTransitionSlideToLeft:
+		debugC(kDebugView, "Slide to left");
+		transitionSlideToLeft(rect, steps, delay);
+		break;
+	case kTransitionSlideToRight:
+		debugC(kDebugView, "Slide to right");
+		transitionSlideToRight(rect, steps, delay);
+		break;
+	case kTransitionDissolve: {
+			debugC(kDebugView, "Dissolve");
+
+			for (int16 step = 0; step < 8; step++) {
+				simulatePreviousDrawDelay(rect);
+				transitionDissolve(rect, step);
+			}
+		}
+		break;
+	case kTransitionTopToBottom:	{
+			debugC(kDebugView, "Top to Bottom");
 
 			uint16 step = (rect.bottom - rect.top) / steps;
 			Common::Rect area = rect;
@@ -359,8 +302,8 @@ void MystGraphics::runTransition(uint16 type, Common::Rect rect, uint16 steps, u
 			}
 		}
 		break;
-	case 6:	{
-			debugC(kDebugScript, "Bottom to Top");
+	case kTransitionBottomToTop:	{
+			debugC(kDebugView, "Bottom to Top");
 
 			uint16 step = (rect.bottom - rect.top) / steps;
 			Common::Rect area = rect;
@@ -382,16 +325,258 @@ void MystGraphics::runTransition(uint16 type, Common::Rect rect, uint16 steps, u
 			}
 		}
 		break;
-	default:
-		warning("Unknown Update Direction");
+	case kTransitionSlideToTop:
+		debugC(kDebugView, "Slide to top");
+		transitionSlideToTop(rect, steps, delay);
+		break;
+	case kTransitionSlideToBottom:
+		debugC(kDebugView, "Slide to bottom");
+		transitionSlideToBottom(rect, steps, delay);
+		break;
+	case kTransitionPartToRight: {
+			debugC(kDebugView, "Partial left to right");
 
-		//TODO: Replace minimal implementation
+			transitionPartialToRight(rect, 75, 3);
+		}
+		break;
+	case kTransitionPartToLeft: {
+			debugC(kDebugView, "Partial right to left");
+
+			transitionPartialToLeft(rect, 75, 3);
+		}
+		break;
+	case kTransitionCopy:
 		copyBackBufferToScreen(rect);
 		_vm->_system->updateScreen();
 		break;
+	default:
+		error("Unknown transition %d", type);
 	}
 
 	_enableDrawingTimeSimulation = oldEnableDrawingTimeSimulation;
+}
+
+void MystGraphics::transitionDissolve(Common::Rect rect, uint step) {
+	static const bool pattern[][4][4] = {
+		{
+			{ true,  false, false, false },
+			{ false, false, false, false },
+			{ false, false, true,  false },
+			{ false, false, false, false }
+		},
+		{
+			{ false, false, true,  false },
+			{ false, false, false, false },
+			{ true,  false, false, false },
+			{ false, false, false, false }
+		},
+		{
+			{ false, false, false, false },
+			{ false, true,  false, false },
+			{ false, false, false, false },
+			{ false, false, false, true  }
+		},
+		{
+			{ false, false, false, false },
+			{ false, false, false, true  },
+			{ false, false, false, false },
+			{ false, true,  false, false }
+		},
+		{
+			{ false, false, false, false },
+			{ false, false, true,  false },
+			{ false, true,  false, false },
+			{ false, false, false, false }
+		},
+		{
+			{ false, true,  false, false },
+			{ false, false, false, false },
+			{ false, false, false, false },
+			{ false, false, true,  false }
+		},
+		{
+			{ false, false, false, false },
+			{ true,  false, false, false },
+			{ false, false, false, true  },
+			{ false, false, false, false }
+		},
+		{
+			{ false, false, false, true  },
+			{ false, false, false, false },
+			{ false, false, false, false },
+			{ true,  false, false, false }
+		}
+	};
+
+	rect.clip(_viewport);
+
+	Graphics::Surface *screen = _vm->_system->lockScreen();
+
+	for (uint16 y = rect.top; y < rect.bottom; y++) {
+		const bool *linePattern = pattern[step][y % 4];
+
+		if (!linePattern[0] && !linePattern[1] && !linePattern[2] && !linePattern[3])
+			continue;
+
+		for (uint16 x = rect.left; x < rect.right; x++) {
+			if (linePattern[x % 4]) {
+				if (_pixelFormat.bytesPerPixel == 2) {
+					uint16 *dst = (uint16 *)screen->getBasePtr(x, y);
+					*dst = *(const uint16 *)_backBuffer->getBasePtr(x, y);
+				} else {
+					uint32 *dst = (uint32 *)screen->getBasePtr(x, y);
+					*dst = *(const uint32 *)_backBuffer->getBasePtr(x, y);
+				}
+			}
+		}
+	}
+
+	_vm->_system->unlockScreen();
+	_vm->_system->updateScreen();
+}
+
+void MystGraphics::transitionSlideToLeft(Common::Rect rect, uint16 steps, uint16 delay) {
+	rect.clip(_viewport);
+
+	uint32 stepWidth = (rect.right - rect.left) / steps;
+	Common::Rect srcRect = Common::Rect(rect.right, rect.top, rect.right, rect.bottom);
+	Common::Rect dstRect = Common::Rect(rect.left, rect.top, rect.left, rect.bottom);
+
+	for (uint step = 1; step <= steps; step++) {
+		dstRect.right = dstRect.left + step * stepWidth;
+		srcRect.left = srcRect.right - step * stepWidth;
+
+		_vm->_system->delayMillis(delay);
+
+		simulatePreviousDrawDelay(dstRect);
+		_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(dstRect.left, dstRect.top),
+				_backBuffer->pitch, srcRect.left, srcRect.top, srcRect.width(), srcRect.height());
+		_vm->_system->updateScreen();
+	}
+
+	if (dstRect.right != rect.right) {
+		copyBackBufferToScreen(rect);
+		_vm->_system->updateScreen();
+	}
+}
+
+void MystGraphics::transitionSlideToRight(Common::Rect rect, uint16 steps, uint16 delay) {
+	rect.clip(_viewport);
+
+	uint32 stepWidth = (rect.right - rect.left) / steps;
+	Common::Rect srcRect = Common::Rect(rect.left, rect.top, rect.left, rect.bottom);
+	Common::Rect dstRect = Common::Rect(rect.right, rect.top, rect.right, rect.bottom);
+
+	for (uint step = 1; step <= steps; step++) {
+		dstRect.left = dstRect.right - step * stepWidth;
+		srcRect.right = srcRect.left + step * stepWidth;
+
+		_vm->_system->delayMillis(delay);
+
+		simulatePreviousDrawDelay(dstRect);
+		_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(dstRect.left, dstRect.top),
+				_backBuffer->pitch, srcRect.left, srcRect.top, srcRect.width(), srcRect.height());
+		_vm->_system->updateScreen();
+	}
+
+	if (dstRect.left != rect.left) {
+		copyBackBufferToScreen(rect);
+		_vm->_system->updateScreen();
+	}
+}
+
+void MystGraphics::transitionSlideToTop(Common::Rect rect, uint16 steps, uint16 delay) {
+	rect.clip(_viewport);
+
+	uint32 stepWidth = (rect.bottom - rect.top) / steps;
+	Common::Rect srcRect = Common::Rect(rect.left, rect.bottom, rect.right, rect.bottom);
+	Common::Rect dstRect = Common::Rect(rect.left, rect.top, rect.right, rect.top);
+
+	for (uint step = 1; step <= steps; step++) {
+		dstRect.bottom = dstRect.top + step * stepWidth;
+		srcRect.top = srcRect.bottom - step * stepWidth;
+
+		_vm->_system->delayMillis(delay);
+
+		simulatePreviousDrawDelay(dstRect);
+		_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(dstRect.left, dstRect.top),
+				_backBuffer->pitch, srcRect.left, srcRect.top, srcRect.width(), srcRect.height());
+		_vm->_system->updateScreen();
+	}
+
+
+	if (dstRect.bottom < rect.bottom) {
+		copyBackBufferToScreen(rect);
+		_vm->_system->updateScreen();
+	}
+}
+
+void MystGraphics::transitionSlideToBottom(Common::Rect rect, uint16 steps, uint16 delay) {
+	rect.clip(_viewport);
+
+	uint32 stepWidth = (rect.bottom - rect.top) / steps;
+	Common::Rect srcRect = Common::Rect(rect.left, rect.top, rect.right, rect.top);
+	Common::Rect dstRect = Common::Rect(rect.left, rect.bottom, rect.right, rect.bottom);
+
+	for (uint step = 1; step <= steps; step++) {
+		dstRect.top = dstRect.bottom - step * stepWidth;
+		srcRect.bottom = srcRect.top + step * stepWidth;
+
+		_vm->_system->delayMillis(delay);
+
+		simulatePreviousDrawDelay(dstRect);
+		_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(dstRect.left, dstRect.top),
+				_backBuffer->pitch, srcRect.left, srcRect.top, srcRect.width(), srcRect.height());
+		_vm->_system->updateScreen();
+	}
+
+
+	if (dstRect.top > rect.top) {
+		copyBackBufferToScreen(rect);
+		_vm->_system->updateScreen();
+	}
+}
+
+void MystGraphics::transitionPartialToRight(Common::Rect rect, uint32 width, uint32 steps) {
+	rect.clip(_viewport);
+
+	uint32 stepWidth = width / steps;
+	Common::Rect srcRect = Common::Rect(rect.right, rect.top, rect.right, rect.bottom);
+	Common::Rect dstRect = Common::Rect(rect.left, rect.top, rect.left, rect.bottom);
+
+	for (uint step = 1; step <= steps; step++) {
+		dstRect.right = dstRect.left + step * stepWidth;
+		srcRect.left = srcRect.right - step * stepWidth;
+
+		simulatePreviousDrawDelay(dstRect);
+		_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(dstRect.left, dstRect.top),
+				_backBuffer->pitch, srcRect.left, srcRect.top, srcRect.width(), srcRect.height());
+		_vm->_system->updateScreen();
+	}
+
+	copyBackBufferToScreen(rect);
+	_vm->_system->updateScreen();
+}
+
+void MystGraphics::transitionPartialToLeft(Common::Rect rect, uint32 width, uint32 steps) {
+	rect.clip(_viewport);
+
+	uint32 stepWidth = width / steps;
+	Common::Rect srcRect = Common::Rect(rect.left, rect.top, rect.left, rect.bottom);
+	Common::Rect dstRect = Common::Rect(rect.right, rect.top, rect.right, rect.bottom);
+
+	for (uint step = 1; step <= steps; step++) {
+		dstRect.left = dstRect.right - step * stepWidth;
+		srcRect.right = srcRect.left + step * stepWidth;
+
+		simulatePreviousDrawDelay(dstRect);
+		_vm->_system->copyRectToScreen(_backBuffer->getBasePtr(dstRect.left, dstRect.top),
+				_backBuffer->pitch, srcRect.left, srcRect.top, srcRect.width(), srcRect.height());
+		_vm->_system->updateScreen();
+	}
+
+	copyBackBufferToScreen(rect);
+	_vm->_system->updateScreen();
 }
 
 void MystGraphics::drawRect(Common::Rect rect, RectState state) {

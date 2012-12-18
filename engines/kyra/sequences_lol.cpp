@@ -36,10 +36,16 @@ namespace Kyra {
 #pragma mark - Intro
 
 int LoLEngine::processPrologue() {
-	setupPrologueData(true);
-
-	if (!saveFileLoadable(0) || _flags.isDemo)
-		showIntro();
+	// There are two non-interactive demos (one which plays the intro and another one) which plays a number of specific scenes.
+	// We try to identify the latter one by looking for a specific file.
+	_res->loadPakFile("GENERAL.PAK");
+	if (_flags.isDemo && _res->exists("scene1.cps")) {
+		return playDemo();
+	} else {
+		setupPrologueData(true);
+		if (!saveFileLoadable(0) || _flags.isDemo)
+			showIntro();
+	}
 
 	if (_flags.isDemo) {
 		_screen->fadePalette(_screen->getPalette(1), 30, 0);
@@ -176,7 +182,7 @@ void LoLEngine::setupPrologueData(bool load) {
 		memset(_selectionAnimTimers, 0, sizeof(_selectionAnimTimers));
 		_screen->getPalette(1).clear();
 
-		_sound->setSoundList(&_soundData[kMusicIntro]);
+		_sound->selectAudioResourceSet(kMusicIntro);
 
 		// We have three sound.dat files, one for the intro, one for the
 		// end sequence and one for ingame, each contained in a different
@@ -197,7 +203,7 @@ void LoLEngine::setupPrologueData(bool load) {
 			return;
 
 		_eventList.clear();
-		_sound->setSoundList(0);
+		_sound->selectAudioResourceSet(kMusicIntro);
 	}
 }
 
@@ -1035,7 +1041,7 @@ void LoLEngine::setupEpilogueData(bool load) {
 	_screen->clearPage(3);
 
 	if (load) {
-		_sound->setSoundList(&_soundData[kMusicFinale]);
+		_sound->selectAudioResourceSet(kMusicFinale);
 
 		// We have three sound.dat files, one for the intro, one for the
 		// end sequence and one for ingame, each contained in a different
@@ -1051,7 +1057,7 @@ void LoLEngine::setupEpilogueData(bool load) {
 			return;
 
 		_eventList.clear();
-		_sound->setSoundList(0);
+		_sound->selectAudioResourceSet(kMusicIntro);
 	}
 }
 

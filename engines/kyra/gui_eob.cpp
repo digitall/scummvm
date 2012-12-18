@@ -321,7 +321,7 @@ void EoBCoreEngine::gui_drawWeaponSlotStatus(int x, int y, int status) {
 		break;
 	}
 
-	int textColor= (_configRenderMode == Common::kRenderCGA) ? 2 : 15;
+	int textColor = (_configRenderMode == Common::kRenderCGA) ? 2 : 15;
 
 	if (!tmpStr2.empty()) {
 		_screen->printText(tmpStr.c_str(), x + (16 - tmpStr.size() * 3), y + 2, textColor, 0);
@@ -485,7 +485,7 @@ void EoBCoreEngine::gui_drawInventoryItem(int slot, int special, int pageNum) {
 
 		uint8 col1 = guiSettings()->colors.frame1;
 		uint8 col2 = guiSettings()->colors.frame2;
-		if (_configRenderMode == Common::kRenderCGA ) {
+		if (_configRenderMode == Common::kRenderCGA) {
 			col1 = 1;
 			col2 = 3;
 		}
@@ -777,11 +777,11 @@ int EoBCoreEngine::clickedCamp(Button *button) {
 	}
 
 	_screen->copyPage(0, 7);
-	_screen->copyRegion(0, 120, 0, 0, 176, 24, 0, _useHiResDithering ? 1 : 12, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, 120, 0, 0, 176, 24, 0, 12, Screen::CR_NO_P_CHECK);
 
 	_gui->runCampMenu();
 
-	_screen->copyRegion(0, 0, 0, 120, 176, 24, _useHiResDithering ? 1 : 12, 2, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, 0, 0, 120, 176, 24, 12, 2, Screen::CR_NO_P_CHECK);
 	_screen->setScreenDim(cd);
 	drawScene(0);
 
@@ -1170,7 +1170,7 @@ int EoBCoreEngine::clickedSceneSpecial(Button *button) {
 
 int EoBCoreEngine::clickedSpellbookAbort(Button *button) {
 	_updateFlags = 0;
-	_screen->copyRegion(0, 0, 64, 121, 112, 56, _useHiResDithering ? 4 : 10, 0, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, 0, 64, 121, 112, 56, 10, 0, Screen::CR_NO_P_CHECK);
 	_screen->updateScreen();
 	gui_drawCompass(true);
 	gui_toggleButtons();
@@ -1568,8 +1568,8 @@ int GUI_EoB::processButtonList(Kyra::Button *buttonList, uint16 inputFlags, int8
 
 			// UNUSED
 			//if (buttonList->flags2 & 0x20) {
-				//if (_processButtonListExtraCallback)
-				//	this->*_processButtonListExtraCallback(buttonList);
+			//	if (_processButtonListExtraCallback)
+			//		this->*_processButtonListExtraCallback(buttonList);
 			//}
 
 			if (buttonList->nextButton)
@@ -2172,7 +2172,7 @@ void GUI_EoB::runCampMenu() {
 				if (cnt > 4) {
 					_vm->dropCharacter(selectCharacterDialogue(53));
 					_vm->gui_drawPlayField(false);
-					_screen->copyRegion(0, 120, 0, 0, 176, 24, 0, _vm->_useHiResDithering ? 1 : 12, Screen::CR_NO_P_CHECK);
+					_screen->copyRegion(0, 120, 0, 0, 176, 24, 0, 12, Screen::CR_NO_P_CHECK);
 					_screen->setFont(Screen::FID_6_FNT);
 					_vm->gui_drawAllCharPortraitsWithStats();
 					_screen->setFont(Screen::FID_8_FNT);
@@ -2607,7 +2607,7 @@ Common::String GUI_EoB::transferTargetMenu(Common::Array<Common::String> &target
 			break;
 	} while (_saveSlotIdTemp[slot] == -1);
 
-	_screen->copyRegion(72, 14, 72, 14, 176, 144, _vm->_useHiResDithering ? 7 : 12, 0, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(72, 14, 72, 14, 176, 144, 12, 0, Screen::CR_NO_P_CHECK);
 	_screen->modifyScreenDim(11, xo, yo, dm->w, dm->h);
 
 	return (slot < 6) ? _savegameList[_savegameOffset + slot] : Common::String();
@@ -2650,7 +2650,7 @@ void GUI_EoB::createScreenThumbnail(Graphics::Surface &dst) {
 	_screen->getRealPalette(0, screenPal);
 	uint16 width = Screen::SCREEN_W;
 	uint16 height = Screen::SCREEN_H;
-	if (_vm->_useHiResDithering) {
+	if (_vm->gameFlags().useHiRes) {
 		width <<= 1;
 		height <<= 1;
 	}
@@ -2705,11 +2705,20 @@ bool GUI_EoB::runSaveMenu(int x, int y) {
 			for (int in = -1; in == -1 && !_vm->shouldQuit();) {
 				_screen->fillRect(fx - 2, fy, fx + 160, fy + 8, _vm->guiSettings()->colors.fill);
 				in = getTextInput(_saveSlotStringsTemp[slot], x + 1, fy, 19, 2, 0, 8);
+				if (in == -1) {
+					useSlot = false;
+					break;
+				}
+
 				if (!strlen(_saveSlotStringsTemp[slot])) {
 					messageDialogue(11, 54, 6);
 					in = -1;
 				}
-			};
+			}
+
+			if (!useSlot) {
+				continue;
+			}
 
 			_screen->fillRect(fx - 2, fy, fx + 160, fy + 8, _vm->guiSettings()->colors.fill);
 			_screen->printShadedText(_saveSlotStringsTemp[slot], (x + 1) << 3, fy, 15, 0);

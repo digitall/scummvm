@@ -489,7 +489,7 @@ bool SceneManager::checkCurrentPosition(bool doCheckOtherCars) const {
 	if (position == 99)
 		return true;
 
-	switch (car){
+	switch (car) {
 	default:
 		break;
 
@@ -739,7 +739,7 @@ void SceneManager::resetQueue() {
 	_queue.clear();
 }
 
-void SceneManager::setCoordinates(Common::Rect rect) {
+void SceneManager::setCoordinates(const Common::Rect &rect) {
 	_flagCoordinates = true;
 
 	if (_coords.right > rect.right)

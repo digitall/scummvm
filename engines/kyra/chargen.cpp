@@ -1206,7 +1206,7 @@ void CharacterGenerator::finish() {
 		static const int8 itemList1[] = { 1, 2, 0, 17, -1, 0, 0 };
 		static const int8 itemList2[] = { 2, 56, 1, 17, 31, 0, 1, 23, 1, 17, 31, 0, 1 };
 		static const int8 itemList3[] = { 2, 1, 1, 17, 31, 1, 1, 1, 0, 17, 31, 2, 1 };
-		static const int8 *itemList[] = { itemList0, itemList1, itemList2, itemList3 };
+		static const int8 *const itemList[] = { itemList0, itemList1, itemList2, itemList3 };
 
 		for (int i = 0; i < 4; i++) {
 			EoBCharacter *c = &_characters[i];
@@ -1496,7 +1496,7 @@ TransferPartyWiz::~TransferPartyWiz() {
 }
 
 bool TransferPartyWiz::start() {
-	_screen->copyPage(0, _vm->_useHiResDithering ? 1 : 12);
+	_screen->copyPage(0, 12);
 
 	if (!selectAndLoadTransferFile())
 		return false;
@@ -1536,7 +1536,7 @@ bool TransferPartyWiz::start() {
 
 bool TransferPartyWiz::selectAndLoadTransferFile() {
 	do {
-		_screen->copyPage(_vm->_useHiResDithering ? 1 : 12, 0);
+		_screen->copyPage(12, 0);
 		 if (transferFileDialogue(_vm->_savegameFilename))
 			 break;
 	} while (_vm->_gui->confirmDialogue2(15, 68, 1));
@@ -1566,7 +1566,7 @@ bool TransferPartyWiz::selectAndLoadTransferFile() {
 		return false;
 
 	Common::String target = _vm->_gui->transferTargetMenu(eobTargets);
-	_screen->copyPage(_vm->_useHiResDithering ? 1 : 12, 0);
+	_screen->copyPage(12, 0);
 
 	if (target.empty())
 		return true;
@@ -1579,10 +1579,10 @@ bool TransferPartyWiz::selectAndLoadTransferFile() {
 			return true;
 	}
 
-	_screen->copyPage(_vm->_useHiResDithering ? 1 : 12, 0);
+	_screen->copyPage(12, 0);
 
 	bool result = _vm->_gui->transferFileMenu(target, dest);
-	_screen->copyPage(_vm->_useHiResDithering ? 1 : 12, 0);
+	_screen->copyPage(12, 0);
 
 	return result;
 }
