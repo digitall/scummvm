@@ -19,7 +19,7 @@ union Value {
 		uint16 low;
 		uint16 high;
 	} value;
-};  
+};
 
 #include "common/pack-start.h"
 
@@ -137,6 +137,8 @@ struct ExternalReference {
 
 typedef Value (*CodeResource)(int argc, Value *argv);
 
+class AesopEngine;
+
 class Thunk {
 public:
 	Thunk() { }
@@ -146,6 +148,7 @@ public:
 	Common::Array<ExternalReference> externalReferences;
 	Common::HashMap<uint32, byte *> messageHandlers;
 	byte* codeBase;
+	AesopEngine *engine;
 };
 
 class Object {
@@ -153,8 +156,9 @@ public:
 	Object(uint32 objectId, Thunk *thunk);
 	~Object();
 
-	uint32 execute(uint32 messageNumber, uint32 vector);
-private: 
+	uint32 execute(uint32 messageNumber, uint32 vector, byte *stackPointer);
+private:
+	uint32 execute(byte *instructionPointer, byte *stackPointer, uint16 autoSize);
 	byte* getMessageHandlerAddress(int messageNumber, uint16 &autoSize);
 
 	uint32 _objectId;

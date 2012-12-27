@@ -3,13 +3,6 @@
 
 namespace Aesop {
 
-// FIXME: global variables bad!
-extern AesopEngine *g_engine;
-extern byte *g_stackBase;
-extern Value *g_stackPointer;
-extern Value *g_framePointer;
-extern byte *g_instructionPointer;
-
 Object::Object(uint32 objectId, Thunk *thunk) : _objectId(objectId), _thunk(thunk) {
 	_thunk->useCount++;
 }
@@ -21,257 +14,419 @@ Object::~Object() {
 	}
 }
 
-uint32 Object::execute(uint32 messageNumber, uint32 vector) {
-	Value temp;
-	Value *tempPtr;
-	int numberOfCases;
-	int idx;
-	int argc;
-	Value *argv;
-	uint32 msg;
-	uint16 autoSize;
-	byte *autoVars;
-	
+uint32 Object::execute(uint32 messageNumber, uint32 vector, byte *stackPointer) {
 	// FIXME: needed??
 	if(vector == -1) {
 		// TODO: get vector for messageNumber
 	}
 
 	// TODO save pointers before setting (ip, sp, etc.)
+	// Does below code take care of this since I am using native stack to pass pointers?
 
-	g_instructionPointer = getMessageHandlerAddress(messageNumber, autoSize);
-	autoVars = static_cast<byte *>(malloc(autoSize));
+	uint16 autoSize;
+	byte *instructionPointer = getMessageHandlerAddress(messageNumber, autoSize);
+	return execute(instructionPointer, stackPointer, autoSize);
+}
+
+uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 autoSize) {
+	byte *framePointer = stackPointer;	// framePointer is the stackPointer at entry
+	// TODO: initialize manifest THIS var
+	stackPointer -= autoSize;		// make room for auto variables
+	stackPointer -= sizeof(Value);	// point to first free stack location
 
 	while(true) {
-		switch(*g_instructionPointer) {
+		switch(*instructionPointer) {
 		case OP_BRT:
-			if((g_stackPointer->value.low | g_stackPointer->value.high) != 0)
 			{
-				idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-				g_instructionPointer = _thunk->codeBase + idx;
-				continue;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				if((valuePointer->value.low | valuePointer->value.high) != 0)
+				{
+					int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+					instructionPointer = _thunk->codeBase + idx;
+					continue;
+				}
+				instructionPointer += 2;
 			}
-			g_instructionPointer += 2;
 			break;
 		case OP_BRF:
-			if((g_stackPointer->value.low | g_stackPointer->value.high) == 0)
 			{
-				idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-				g_instructionPointer = _thunk->codeBase + idx;
-				continue;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				if((valuePointer->value.low | valuePointer->value.high) == 0)
+				{
+					int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+					instructionPointer = _thunk->codeBase + idx;
+					continue;
+				}
+				instructionPointer += 2;
 			}
-			g_instructionPointer += 2;
 			break;
 		case OP_BRA:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer = _thunk->codeBase + idx;
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer = _thunk->codeBase + idx;
+			}
 			continue;
 		case OP_CASE:
-			temp = *g_stackPointer;
-			g_instructionPointer++;
-			numberOfCases = *(reinterpret_cast<uint16 *>(g_instructionPointer));
-			g_instructionPointer += 2;
-			if(numberOfCases != 0)
 			{
-				for(int i = numberOfCases; i > 0; i--)
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				Value temp = *valuePointer;
+				instructionPointer++;
+				int numberOfCases = *(reinterpret_cast<uint16 *>(instructionPointer));
+				instructionPointer += 2;
+				int idx;
+				if(numberOfCases != 0)
 				{
-					if(temp.fullValue == *(reinterpret_cast<uint32 *>(g_instructionPointer)))
+					for(int i = numberOfCases; i > 0; i--)
 					{
-						g_instructionPointer += 4;
-						idx = *reinterpret_cast<uint16 *>(g_instructionPointer);
-						g_instructionPointer = _thunk->codeBase + idx;
-						continue;
-					}
-					else 
-					{
-						g_instructionPointer += 6;
+						if(temp.fullValue == *(reinterpret_cast<uint32 *>(instructionPointer)))
+						{
+							instructionPointer += 4;
+							idx = *reinterpret_cast<uint16 *>(instructionPointer);
+							instructionPointer = _thunk->codeBase + idx;
+							continue;
+						}
+						else 
+						{
+							instructionPointer += 6;
+						}
 					}
 				}
+				// case default
+				idx = *reinterpret_cast<uint16 *>(instructionPointer);
+				instructionPointer = _thunk->codeBase + idx;
 			}
-			// case default
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer);
-			g_instructionPointer = _thunk->codeBase + idx;
 			continue;
 		case OP_PUSH:
-			g_stackPointer--;
-			g_stackPointer->fullValue = 0;
+			{
+				stackPointer -= sizeof(Value);
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = 0;
+			}
 			break;
 		case OP_DUP:
-			temp = *g_stackPointer;
-			g_stackPointer--;
-			*g_stackPointer = temp;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				Value temp = *valuePointer;
+				stackPointer -= sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				*valuePointer = temp;
+			}
 			break;
 		case OP_NOT:
-			temp.value.low = g_stackPointer->value.low | g_stackPointer->value.high;
-			temp.value.high = 0;
-			g_stackPointer->fullValue = temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.value.low = valuePointer->value.low | valuePointer->value.high;
+				temp.value.high = 0;
+				valuePointer->fullValue = temp.fullValue;
+			}
 			break;
 		case OP_SETB:
-			temp.value.low = !(g_stackPointer->value.low | g_stackPointer->value.high);
-			temp.value.high = 0;
-			g_stackPointer->fullValue = temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.value.low = !(valuePointer->value.low | valuePointer->value.high);
+				temp.value.high = 0;
+				valuePointer->fullValue = temp.fullValue;
+			}
 			break;
 		case OP_NEG:
-			g_stackPointer->fullValue *= -1;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue *= -1;
+			}
 			break;
 		case OP_ADD:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue += temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue += temp.fullValue;
+			}
 			break;
 		case OP_SUB:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue -= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue -= temp.fullValue;
+			}
 			break;
 		case OP_MUL:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue *= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue *= temp.fullValue;
+			}
 			break;
 		case OP_DIV:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue /= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue /= temp.fullValue;
+			}
 			break;
 		case OP_MOD:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue %= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue %= temp.fullValue;
+			}
 			break;
 		case OP_EXP:
-			temp.value.low = g_stackPointer->value.low;
-			g_stackPointer++;
-			g_stackPointer->fullValue = pow(static_cast<double>(g_stackPointer->fullValue), static_cast<int>(temp.value.low));
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.value.low = valuePointer->value.low;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = pow(static_cast<double>(valuePointer->fullValue), static_cast<int>(temp.value.low));
+			}
 			break;
 		case OP_BAND:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue &= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue &= temp.fullValue;
+			}
 			break;
 		case OP_BOR:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue |= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue |= temp.fullValue;
+			}
 			break;
 		case OP_XOR:
-			temp.fullValue = g_stackPointer->fullValue;
-			g_stackPointer++;
-			g_stackPointer->fullValue ^= temp.fullValue;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue ^= temp.fullValue;
+			}
 			break;
 		case OP_BNOT:
-			g_stackPointer->fullValue = ~g_stackPointer->fullValue;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = ~valuePointer->fullValue;
+			}
 			break;
 		case OP_SHL:
-			temp.value.low = g_stackPointer->value.low;
-			g_stackPointer++;
-			g_stackPointer->fullValue <<= temp.value.low;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue <<= temp.fullValue;
+			}
 			break;
 		case OP_SHR:
-			temp.value.low = g_stackPointer->value.low;
-			g_stackPointer++;
-			g_stackPointer->fullValue >>= temp.value.low;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.fullValue = valuePointer->fullValue;
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue >>= temp.fullValue;
+			}
 			break;
 		case OP_LT:
-			(g_stackPointer + 1)->fullValue = g_stackPointer->fullValue < (g_stackPointer + 1)->fullValue;
-			g_stackPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				(valuePointer + 1)->fullValue = valuePointer->fullValue < (valuePointer + 1)->fullValue;
+				stackPointer += sizeof(Value);
+			}
 			break;
 		case OP_LE:
-			(g_stackPointer + 1)->fullValue = g_stackPointer->fullValue <= (g_stackPointer + 1)->fullValue;
-			g_stackPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				(valuePointer + 1)->fullValue = valuePointer->fullValue <= (valuePointer + 1)->fullValue;
+				stackPointer += sizeof(Value);
+			}
 			break;
 		case OP_EQ:
-			(g_stackPointer + 1)->fullValue = g_stackPointer->fullValue == (g_stackPointer + 1)->fullValue;
-			g_stackPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				(valuePointer + 1)->fullValue = valuePointer->fullValue == (valuePointer + 1)->fullValue;
+				stackPointer += sizeof(Value);
+			}
 			break;
 		case OP_NE:
-			(g_stackPointer + 1)->fullValue = g_stackPointer->fullValue != (g_stackPointer + 1)->fullValue;
-			g_stackPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				(valuePointer + 1)->fullValue = valuePointer->fullValue != (valuePointer + 1)->fullValue;
+				stackPointer += sizeof(Value);
+			}
 			break;
 		case OP_GE:
-			(g_stackPointer + 1)->fullValue = g_stackPointer->fullValue >= (g_stackPointer + 1)->fullValue;
-			g_stackPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				(valuePointer + 1)->fullValue = valuePointer->fullValue >= (valuePointer + 1)->fullValue;
+				stackPointer += sizeof(Value);
+			}
 			break;
 		case OP_GT:
-			(g_stackPointer + 1)->fullValue = g_stackPointer->fullValue > (g_stackPointer + 1)->fullValue;
-			g_stackPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				(valuePointer + 1)->fullValue = valuePointer->fullValue > (valuePointer + 1)->fullValue;
+				stackPointer += sizeof(Value);
+			}
 			break;
 		case OP_INC:
-			g_stackPointer->fullValue++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue++;
+			}
 			break;
 		case OP_DEC:
-			g_stackPointer->fullValue--;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue--;
+			}
 			break;
 		case OP_SHTC:
-			g_stackPointer->fullValue = *(g_instructionPointer + 1);
-			g_instructionPointer++;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = *(instructionPointer + 1);
+				instructionPointer++;
+			}
 			break;
 		case OP_INTC:
-			g_stackPointer->fullValue = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);	// FIXME: should these be cast to uint16* ??
-			g_instructionPointer += 2;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = *reinterpret_cast<int16 *>(instructionPointer + 1);	// FIXME: should these be cast to uint16* ??
+				instructionPointer += 2;
+			}
 			break;
 		case OP_LNGC:
-			g_stackPointer->fullValue = *reinterpret_cast<uint32 *>(g_instructionPointer + 1);	// FIXME: should these be cast to uint16* ??
-			g_instructionPointer += 4;
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = *reinterpret_cast<int32 *>(instructionPointer + 1);	// FIXME: should these be cast to uint16* ??
+				instructionPointer += 4;
+			}
 			break;
 		case OP_RCRS:
-			// We are dividing here because the original virtual machine
-			// used offsets into an array of 32-bit code pointers and this gets
-			// us the index into the array.
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_stackPointer->address = reinterpret_cast<uintptr_t>(_thunk->externalCodeResources[idx / 4]);
-			g_instructionPointer += 2;
+			{
+				// We are dividing here because the original virtual machine
+				// used offsets into an array of 32-bit code pointers and this gets
+				// us the index into the array.
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->address = reinterpret_cast<uintptr_t>(_thunk->externalCodeResources[idx / 4]);
+				instructionPointer += 2;
+			}
 			break;
 		case OP_CALL:
-			argc = *(g_instructionPointer + 1);
-			g_instructionPointer++;
-			argv = new Value[argc];
-			// Arguments have been pushed in reverse order (I think)
-			for(int i = argc - 1; i >= 0; i--)
 			{
-				argv[i] = *g_stackPointer;
-				g_stackPointer++;
+				int argc = *(instructionPointer + 1);
+				instructionPointer++;
+				Value* argv = new Value[argc];
+				// Arguments have been pushed in reverse order (I think)
+				for(int i = argc - 1; i >= 0; i--)
+				{
+					argv[i] = *reinterpret_cast<Value *>(stackPointer);
+					stackPointer += sizeof(Value);
+				}
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+
+				// FIXME: hackish way to save stack pointer context
+				_thunk->engine->setStackPointer(stackPointer);
+				byte *oldSp = stackPointer;
+				*valuePointer = reinterpret_cast<CodeResource>(valuePointer->address)(argc, argv);
+				_thunk->engine->setStackPointer(oldSp);
+
+				delete argv;
 			}
-			*g_stackPointer = reinterpret_cast<CodeResource>(g_stackPointer->address)(argc, argv);
-			delete argv;
 			break;
 		case OP_SEND:
-			argc = *(g_instructionPointer + 1);
-			// Set up arguments in reverse order;
-			tempPtr = g_stackPointer;
-			for(int i = argc - 1; i >= 0; i--)
 			{
-				tempPtr--;
-				temp = *g_stackPointer;
-				*tempPtr = temp;
-				g_stackPointer++;
+				int argc = *(instructionPointer + 1);
+				// Set up arguments in reverse order
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				// FIXME: set up arguments in reverse order
+				/*Value *tempPtr = valuePointer;
+				for(int i = argc - 1; i >= 0; i--)
+				{
+					tempPtr--;
+					Value temp = *valuePointer;
+					*tempPtr = temp;
+					stackPointer++;
+				}*/
+				int msg = *reinterpret_cast<uint16 *>(instructionPointer + 2);
+				int idx = valuePointer->fullValue;
+
+				// FIXME: hackish way to save stack pointer context
+				_thunk->engine->setStackPointer(stackPointer);
+				byte *oldSp = stackPointer;
+				valuePointer->fullValue = _thunk->engine->execute(idx, msg, -1);
+				_thunk->engine->setStackPointer(oldSp);
+				
+				instructionPointer += 3;
 			}
-			msg = *reinterpret_cast<uint16 *>(g_instructionPointer + 2);
-			idx = g_stackPointer->fullValue;
-			g_stackPointer->fullValue = g_engine->execute(idx, msg, -1);
-			g_instructionPointer += 3;
 			break;
 		case OP_PASS:
+			// FIXME: hackish way to save stack pointer context as well?
 			__debugbreak();
 			break;
 		case OP_JSR:
-			__debugbreak();
+			{
+				byte *hdr = instructionPointer + *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				int newAutoSize = *reinterpret_cast<uint16 *>(hdr);
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				// FIXME: are we jumping to the right place?
+				valuePointer->fullValue = execute(hdr + 2, stackPointer, newAutoSize);
+				instructionPointer += 2;
+			}
 			break;
 		case OP_RTS:
-			__debugbreak();
+			{
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				return valuePointer->fullValue;
+			}
 			break;
 		case OP_AIM:
-			temp.value.low = g_stackPointer->value.low * *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_stackPointer++;
-			g_stackPointer->fullValue = temp.fullValue;
-			g_instructionPointer += 2;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.value.low = valuePointer->value.low * *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				stackPointer += sizeof(Value);
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = temp.fullValue;
+				instructionPointer += 2;
+			}
 			break;
 		case OP_AIS:
-			temp.value.low = g_stackPointer->value.low;
-			temp.fullValue <<= *(g_instructionPointer + 1);
-			g_stackPointer++;
-			g_stackPointer->fullValue = temp.fullValue;
-			g_instructionPointer++;
+			{
+				Value temp;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				temp.value.low = valuePointer->value.low;
+				temp.fullValue <<= *(instructionPointer + 1);
+				stackPointer += sizeof(Value);
+				valuePointer->fullValue = temp.fullValue;
+				instructionPointer++;
+			}
 			break;
 		case OP_LTBA:
 			break;
@@ -282,127 +437,181 @@ uint32 Object::execute(uint32 messageNumber, uint32 vector) {
 		case OP_LETA:
 			break;
 		case OP_LAB:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer += 2;
-			g_stackPointer->value.low = *(autoVars + idx);
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->value.low = *(framePointer + idx);
+			}
 			break;
 		case OP_LAW:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer += 2;
-			g_stackPointer->value.low = *reinterpret_cast<uint16 *>(autoVars + idx);
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->value.low = *reinterpret_cast<uint16 *>(framePointer + idx);
+			}
 			break;
 		case OP_LAD:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer += 2;
-			g_stackPointer->fullValue = *reinterpret_cast<uint32 *>(autoVars + idx);
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->fullValue = *reinterpret_cast<uint32 *>(framePointer + idx);
+			}
 			break;
 		case OP_SAB:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer += 2;
-			*(autoVars + idx) = static_cast<byte>(g_stackPointer->value.low);
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				*(framePointer + idx) = static_cast<byte>(valuePointer->value.low);
+			}
 		case OP_SAW:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer += 2;
-			*reinterpret_cast<uint16 *>(autoVars + idx) = g_stackPointer->value.low;
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				*reinterpret_cast<uint16 *>(framePointer + idx) = valuePointer->value.low;
+			}
 			break;
 		case OP_SAD:
-			idx = *reinterpret_cast<uint16 *>(g_instructionPointer + 1);
-			g_instructionPointer += 2;
-			*reinterpret_cast<uint32 *>(autoVars + idx) = g_stackPointer->fullValue;
+			{
+				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				*reinterpret_cast<uint32 *>(framePointer + idx) = valuePointer->fullValue;
+			}
 			break;
 		case OP_LABA:
-			//g_stackPointer->fullValue = *(g_framePointer - *reinterpret_cast<uint16 *>(g_instructionPointer + 1) + g_stackPointer->value.low);
-			//g_instructionPointer += 2;
+			__debugbreak();
+			//stackPointer->fullValue = *(g_framePointer - *reinterpret_cast<uint16 *>(instructionPointer + 1) + stackPointer->value.low);
+			//instructionPointer += 2;
 			break;
 		case OP_LAWA:
-			//g_stackPointer->fullValue = *reinterpret_cast<uint16*>((g_framePointer - *reinterpret_cast<uint16 *>(g_instructionPointer + 1) + g_stackPointer->value.low));
-			//g_instructionPointer += 2;
+			__debugbreak();
+			//stackPointer->fullValue = *reinterpret_cast<uint16*>((g_framePointer - *reinterpret_cast<uint16 *>(instructionPointer + 1) + stackPointer->value.low));
+			//instructionPointer += 2;
 			break;
 		case OP_LADA:
-			//g_stackPointer->fullValue = *reinterpret_cast<uint32*>((g_framePointer - *reinterpret_cast<uint16 *>(g_instructionPointer + 1) + g_stackPointer->value.low));
-			//g_instructionPointer += 2;
+			__debugbreak();
+			//stackPointer->fullValue = *reinterpret_cast<uint32*>((g_framePointer - *reinterpret_cast<uint16 *>(instructionPointer + 1) + stackPointer->value.low));
+			//instructionPointer += 2;
 			break;
 		case OP_SABA:
+			__debugbreak();
 			break;
 		case OP_SAWA:
+			__debugbreak();
 			break;
 		case OP_SADA:
+			__debugbreak();
 			break;
 		case OP_LEAA:
+			__debugbreak();
 			break;
 		case OP_LSB:
+			__debugbreak();
 			break;
 		case OP_LSW:
+			__debugbreak();
 			break;
 		case OP_LSD:
+			__debugbreak();
 			break;
 		case OP_SSB:
+			__debugbreak();
 			break;
 		case OP_SSW:
+			__debugbreak();
 			break;
 		case OP_SSD:
+			__debugbreak();
 			break;
 		case OP_LSBA:
+			__debugbreak();
 			break;
 		case OP_LSWA:
+			__debugbreak();
 			break;
 		case OP_LSDA:
+			__debugbreak();
 			break;
 		case OP_SSBA:
+			__debugbreak();
 			break;
 		case OP_SSWA:
+			__debugbreak();
 			break;
 		case OP_SSDA:
+			__debugbreak();
 			break;
 		case OP_LESA:
+			__debugbreak();
 			break;
 		case OP_LXB:
+			__debugbreak();
 			break;
 		case OP_LXW:
+			__debugbreak();
 			break;
 		case OP_LXD:
+			__debugbreak();
 			break;
 		case OP_SXB:
+			__debugbreak();
 			break;
 		case OP_SXW:
+			__debugbreak();
 			break;
 		case OP_SXD:
+			__debugbreak();
 			break;
 		case OP_LXBA:
+			__debugbreak();
 			break;
 		case OP_LXWA:
+			__debugbreak();
 			break;
 		case OP_LXDA:
+			__debugbreak();
 			break;
 		case OP_SXBA:
+			__debugbreak();
 			break;
 		case OP_SXWA:
+			__debugbreak();
 			break;
 		case OP_SXDA:
+			__debugbreak();
 			break;
 		case OP_LEXA:
+			__debugbreak();
 			break;
 		case OP_SXAS:
+			__debugbreak();
 			break;
 		case OP_LECA:
+			__debugbreak();
 			break;
 		case OP_SOLE:
+			__debugbreak();
 			break;
 		case OP_END:
+			__debugbreak();
 			break;
 		case OP_BRK:
+			__debugbreak();
 			break;
 		default:
 			__debugbreak();
 		}
-		g_instructionPointer++;
+		instructionPointer++;
 	}
 
 	// TODO restore pointers before exiting
 
-	free(autoVars);
-
-	return 0; // FIXME
+	return 0; // FIXME: or -1 for "no value"?
 }
 
 byte* Object::getMessageHandlerAddress(int messageNumber, uint16 &autoSize) {

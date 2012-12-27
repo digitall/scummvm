@@ -6,8 +6,7 @@
 #include "common/debug.h"
 
 #include "script.h"
-#include "eye.h"
-#include "hack.h"
+#include "aesop.h"
 
 namespace Aesop
 {
