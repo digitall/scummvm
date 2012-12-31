@@ -17,6 +17,13 @@
 namespace Aesop {
 
 AesopEngine* AesopEngine::s_engine = NULL;
+char* AesopEngine::SAVEDIR_FN = "SAVEGAME\\SAVEGAME.DIR";
+char* AesopEngine::items_bin = "SAVEGAME\\ITEMS_yy.BIN";
+char* AesopEngine::items_txt = "SAVEGAME\\ITEMS_yy.TXT";
+char* AesopEngine::lvl_bin = "SAVEGAME\\LVLxx_yy.BIN";
+char* AesopEngine::lvl_txt = "SAVEGAME\\LVLxx_yy.TXT";
+char* AesopEngine::lvl_tmp = "SAVEGAME\\LVLxx.TMP";
+char* AesopEngine::itm_tmp = "SAVEGAME\\ITEMS.TMP";
 
 AesopEngine::AesopEngine(OSystem *syst) : Engine(syst) {
 	debug("AesopEngine::AesopEngine");
@@ -39,13 +46,16 @@ AesopEngine::~AesopEngine() {
 Common::Error AesopEngine::run() {
 	uint32 ret;
 	
-	//initGraphics(320, 200, false);
 	_console = new Console(this);
 	_resMan = new ResourceManager();
 	_resMan->init("eye.res");
 	ret = createProgram(BOOTSTRAP, "start");
 	
 	return Common::kNoError;
+}
+
+void AesopEngine::initalizeGraphics() {
+	initGraphics(320, 200, false);
 }
 
 void AesopEngine::initObjectList() {
@@ -225,6 +235,21 @@ uint32 AesopEngine::execute(int index, uint32 messageNumber, uint32 vector) {
 
 void AesopEngine::setStackPointer(byte *sp) {
 	_stackPointer = sp;
+}
+
+void AesopEngine::setSaveSlotnum(int slot) {
+	char num[3];
+
+	sprintf(num, "%02u", slot);
+
+	strncpy(&items_bin[15], num, 2);
+	strncpy(&items_txt[15], num, 2);
+	strncpy(&lvl_bin[15], num, 2);
+	strncpy(&lvl_txt[15], num, 2);
+}
+
+void AesopEngine::translateFile(const char *txtFilename, const char *binFilename, int first, int last) {
+	
 }
 
 // Eye of the Beholder III code resource functions
@@ -411,7 +436,8 @@ Value AesopEngine::flushInputEvents(int argc, Value *argv) {
 }
 
 Value AesopEngine::initInterface(int argc, Value *argv) {
-	__debugbreak();
+	// Yet another no-op. Looks to initalize mouse
+	// and callback functions in original engine.
 	return Value(-1);
 }
 
@@ -475,8 +501,8 @@ Value AesopEngine::getkey(int argc, Value *argv) {
 	return Value(-1);
 }
 
-Value AesopEngine::initGraphics(int argc, Value *argv) {
-	__debugbreak();
+Value AesopEngine::myInitGraphics(int argc, Value *argv) {
+	s_engine->initalizeGraphics();
 	return Value(-1);
 }
 
@@ -711,7 +737,8 @@ Value AesopEngine::solidBarGraph(int argc, Value *argv) {
 }
 
 Value AesopEngine::initSound(int argc, Value *argv) {
-	__debugbreak();
+	// I think another no-op, because ScummVM's audio
+	// mixer should already be present.
 	return Value(-1);
 }
 
@@ -1101,12 +1128,31 @@ Value AesopEngine::writeInitialTempfiles(int argc, Value *argv) {
 }
 
 Value AesopEngine::createInitialBinaryFiles(int argc, Value *argv) {
-	__debugbreak();
+	/*setSaveSlotnum(0);
+
+	// if(file_time(items_txt) >= file_time(items_bin)) then the below
+	debug("Translating %s to %s\n", items_txt, items_bin);
+	translateFile(items_txt, items_bin, FIRST_ITEM, LAST_ITEM);
+
+	for(int lvl = 1; lvl <= NUM_LEVELS; lvl++)
+	{
+		setSaveSlotnum(lvl);
+		//if(file_time(lvl_txt) < file_time(lvl_bin)) continue;
+		debug("Translating %s to %s\n", lvl_txt, lvl_bin);
+		translateFile(lvl_txt, lvl_bin, FIRST_LVL_OBJ, LAST_LVL_OBJ);
+	}*/
+
+	// I actually think this might be a no-op. The game appears to already
+	// come with these binary files and I can't find the source text files.
+	// This may have just been a development thing in the engine.
+
 	return Value(-1);
 }
 
 Value AesopEngine::launch(int argc, Value *argv) {
-	__debugbreak();
+	// Another no-op.
+	// FIXME: need to intercept calls to cine.exe and chargen.exe
+	// and do the appropriate thing
 	return Value(-1);
 }
 

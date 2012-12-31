@@ -363,18 +363,25 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 		case OP_SEND:
 			{
 				int argc = *(instructionPointer + 1);
-				// Set up arguments in reverse order
-				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
-				// FIXME: set up arguments in reverse order
-				/*Value *tempPtr = valuePointer;
-				for(int i = argc - 1; i >= 0; i--)
-				{
-					tempPtr--;
-					Value temp = *valuePointer;
-					*tempPtr = temp;
-					stackPointer++;
-				}*/
 				int msg = *reinterpret_cast<uint16 *>(instructionPointer + 2);
+							
+				// Set up arguments in reverse order
+				Value *valuePointer;
+				// FIXME: the below is f---ed up and doesn't work.
+				// I am currently debugging case for one parameter so just skip for now
+				/*for(int i = argc - 1; i >= 0; i--)
+				{
+					byte *tempPtr = stackPointer;
+					tempPtr -= sizeof(Value);
+					Value temp;
+					valuePointer = reinterpret_cast<Value *>(stackPointer);
+					temp.fullValue = valuePointer->fullValue;
+					valuePointer = reinterpret_cast<Value *>(tempPtr);
+					valuePointer->fullValue = temp.fullValue;
+					stackPointer += sizeof(Value);
+				}*/
+				
+				valuePointer = reinterpret_cast<Value *>(stackPointer);
 				int idx = valuePointer->fullValue;
 
 				// FIXME: hackish way to save stack pointer context
@@ -592,7 +599,12 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 			__debugbreak();
 			break;
 		case OP_LECA:
-			__debugbreak();
+			{
+				int offset = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->address = reinterpret_cast<uintptr_t>(_thunk->codeBase + offset); 
+			}
 			break;
 		case OP_SOLE:
 			__debugbreak();

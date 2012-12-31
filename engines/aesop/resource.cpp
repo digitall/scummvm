@@ -156,7 +156,7 @@ void ResourceManager::loadCodeResources() {
 	_codeResources->setVal("lock_mouse", AesopEngine::lockMouse);
 	_codeResources->setVal("unlock_mouse", AesopEngine::unlockMouse);
 	_codeResources->setVal("getkey", AesopEngine::getkey);
-	_codeResources->setVal("init_graphics", AesopEngine::initGraphics);
+	_codeResources->setVal("init_graphics", AesopEngine::myInitGraphics);
 	_codeResources->setVal("draw_dot", AesopEngine::drawDot);
 	_codeResources->setVal("draw_line", AesopEngine::drawLine);
 	_codeResources->setVal("line_to", AesopEngine::lineTo);

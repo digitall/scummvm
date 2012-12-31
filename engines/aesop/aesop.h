@@ -37,14 +37,6 @@ enum MovementTypeEquate {
 const int LVL_Y = 32;	// Max. Y-dimension of level map = 32 (must be 2^^n)
 const int LVL_X = 32;	// Max. X-dimension of level map = 32 (must be 2^^n)
 
-const char SAVEDIR_FN[] = "SAVEGAME\\SAVEGAME.DIR";
-const char items_bin[] = "SAVEGAME\\ITEMS_yy.BIN";
-const char items_txt[] = "SAVEGAME\\ITEMS_yy.TXT";
-const char lvl_bin[] = "SAVEGAME\\LVLxx_yy.BIN";
-const char lvl_txt[] = "SAVEGAME\\LVLxx_yy.TXT";
-const char lvl_tmp[] = "SAVEGAME\\LVLxx.TMP";
-const char itm_tmp[] = "SAVEGAME\\ITEMS.TMP";
-
 //char *savegame_dir[NUM_SAVEGAMES][SAVE_LEN+1];
 
 const int8 DX_offset[6][4] = { {0, 0, 0, 0},
@@ -62,9 +54,22 @@ const int8 DY_offset[6][4] = { {0, 0, 0, 0},
 						 {0, 1, 0, -1} };
 
 const int VM_STACK_SIZE = 4096 * sizeof(void *); // 16K for 32-bit binary, 32K for 64-bit binary
-const int BOOTSTRAP	= 2000;		// Object which launches AESOP application
 const int NUM_OBJECTS = 2048;	// Up to 2,048 objects in Eye III universe
 const int NUM_ENTITIES = 2000;	// Up to 2,000 physical entities in Eye III universe
+const int FIRST_ITEM = 0;		// Object # range for global "items"
+const int LAST_ITEM = 999;
+const int FIRST_LVL_OBJ = 1000;	// Object # range for level features & monsters
+const int LAST_LVL_OBJ = 1999;
+const int FIRST_PC = 32;		// Object # range for player characters
+const int LAST_PC = 47;
+const int FIRST_D_ITM = 48;		// Object # range for spells/temporary objects
+const int LAST_D_ITM = 99;
+const int FIRST_D_NPC = 1990;	// Object # range for generated monsters
+const int LAST_D_NPC = 1999;
+const int NUM_SAVEGAMES = 12;	// 12 possible savegame positions
+const int SAVE_LEN = 26;		// Max. # of characters in savegame title
+const int NUM_LEVELS = 14;		// # of "levels" (feature/monster regions) in game
+const int BOOTSTRAP	= 2000;		// Object which launches AESOP application
 
 class Console;
 class ResourceManager;
@@ -77,6 +82,7 @@ public:
 	virtual Common::Error run();
 	uint32 execute(int index, uint32 messageNumber, uint32 vector);
 	void setStackPointer(byte *sp);
+	void initalizeGraphics();
 
 	// Eye of the Beholder III code resource functions
 	static Value loadString(int argc, Value *argv);
@@ -120,7 +126,7 @@ public:
 	static Value lockMouse(int argc, Value *argv);
 	static Value unlockMouse(int argc, Value *argv);
 	static Value getkey(int argc, Value *argv);
-	static Value initGraphics(int argc, Value *argv);
+	static Value myInitGraphics(int argc, Value *argv);
 	static Value drawDot(int argc, Value *argv);
 	static Value drawLine(int argc, Value *argv);
 	static Value lineTo(int argc, Value *argv);
@@ -269,7 +275,21 @@ private:
 	Object* createInstance(uint32 objectId);
 	Thunk* constructThunk(uint32 objectId);
 
+	// UNUSED ??
+	static void setSaveSlotnum(int slot);
+	static void translateFile(const char *txtFilename, const char *binFilename, int first, int last);
+	// UNUSED ??
+
 	static AesopEngine *s_engine;
+	// UNUSED ??
+	static char *SAVEDIR_FN;
+	static char *items_bin;
+	static char *items_txt;
+	static char *lvl_bin;
+	static char *lvl_txt;
+	static char *lvl_tmp;
+	static char *itm_tmp;
+	// UNUSED ??
 
 	Console *_console;
 	Common::RandomSource *_rnd;
