@@ -3,7 +3,7 @@
 
 namespace Aesop {
 
-Object::Object(uint32 objectId, Thunk *thunk) : _objectId(objectId), _thunk(thunk) {
+Object::Object(uint32 objectId, int index, Thunk *thunk) : _objectId(objectId), _index(index), _thunk(thunk) {
 	_thunk->useCount++;
 }
 
@@ -383,6 +383,10 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 				
 				valuePointer = reinterpret_cast<Value *>(stackPointer);
 				int idx = valuePointer->fullValue;
+				if(idx == -1)
+				{
+					idx = _index;
+				}
 
 				// FIXME: hackish way to save stack pointer context
 				_thunk->engine->setStackPointer(stackPointer);

@@ -2,10 +2,10 @@ MODULE := engines/aesop
 
 MODULE_OBJS := \
 	aesop.o \
-	detection.o
-	eye.o
-	hack.o
-	resource.o
+	detection.o \
+	eye.o \
+	hack.o \
+	resource.o \
 	script.o
 	
 MODULE_DIRS += \

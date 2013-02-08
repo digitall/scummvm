@@ -153,7 +153,7 @@ public:
 
 class Object {
 public:
-	Object(uint32 objectId, Thunk *thunk);
+	Object(uint32 objectId, int index, Thunk *thunk);
 	~Object();
 
 	uint32 execute(uint32 messageNumber, uint32 vector, byte *stackPointer);
@@ -162,6 +162,7 @@ private:
 	byte* getMessageHandlerAddress(int messageNumber, uint16 &autoSize);
 
 	uint32 _objectId;
+	uint32 _index;
 	Thunk *_thunk;
 };
 

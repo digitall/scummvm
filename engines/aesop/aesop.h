@@ -272,7 +272,7 @@ private:
 	uint32 createProgram(int index, uint32 resource);
 	int findFreeEntry(int min, int end);
 	void createSOPInstance(uint32 objectId, int index);
-	Object* createInstance(uint32 objectId);
+	Object* createInstance(uint32 objectId, int index);
 	Thunk* constructThunk(uint32 objectId);
 
 	// UNUSED ??

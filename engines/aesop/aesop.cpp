@@ -98,18 +98,18 @@ int AesopEngine::findFreeEntry(int min, int end) {
 }
 
 void AesopEngine::createSOPInstance(uint32 objectId, int index) {
-   objectList[index] = createInstance(objectId);
+   objectList[index] = createInstance(objectId, index);
    objectList[index]->execute(MSG_CREATE, -1, _stackPointer);
 }
 
-Object* AesopEngine::createInstance(uint32 objectId) {
+Object* AesopEngine::createInstance(uint32 objectId, int index) {
 	Resource *res = _resMan->getResource(objectId);
 	
 	if(res->thunk == NULL) {
 		res->thunk = constructThunk(objectId);
 	}
 
-	return new Object(objectId, res->thunk);
+	return new Object(objectId, index, res->thunk);
 }
 
 Thunk* AesopEngine::constructThunk(uint32 objectId) {
