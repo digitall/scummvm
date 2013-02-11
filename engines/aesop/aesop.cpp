@@ -26,19 +26,26 @@ char* AesopEngine::lvl_tmp = "SAVEGAME\\LVLxx.TMP";
 char* AesopEngine::itm_tmp = "SAVEGAME\\ITEMS.TMP";
 
 AesopEngine::AesopEngine(OSystem *syst) : Engine(syst) {
-	debug("AesopEngine::AesopEngine");
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
 	
+	DebugMan.addDebugChannel(kAesopDebugCodeResource, "codeResource", "debug code resource calls");
+	DebugMan.addDebugChannel(kAesopDebugOpcode, "opcode", "debug opcode execution");
+
 	_rnd = new Common::RandomSource("aesop");
 
 	s_engine = this;
 	_stackBase = new byte[VM_STACK_SIZE];
 	_stackPointer = _stackBase + VM_STACK_SIZE;
+
+	debug("AesopEngine::AesopEngine");
 }
 
 AesopEngine::~AesopEngine() {
 	debug("AesopEngine::~AesopEngine");
 	
+	// Remove all of our debug levels here
+	DebugMan.clearAllDebugChannels();
+
 	delete _rnd;
 	delete [] _stackBase;
 }
@@ -172,7 +179,7 @@ Thunk* AesopEngine::constructThunk(uint32 objectId) {
 
 					switch(tag[0]) {
 					case 'C':	// Code
-						thunk->externalCodeResources.push_back(_resMan->getCodeResource(&tag[2]));
+						thunk->externalCodeResources.setVal(atoi(def), _resMan->getCodeResource(&tag[2]));
 						break;
 					case 'B':	// Byte
 					case 'W':	// Word

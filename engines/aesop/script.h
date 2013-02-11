@@ -144,7 +144,7 @@ public:
 	Thunk() { }
 
 	int useCount;
-	Common::Array<CodeResource> externalCodeResources;
+	Common::HashMap<uint32, CodeResource> externalCodeResources;
 	Common::Array<ExternalReference> externalReferences;
 	Common::HashMap<uint32, byte *> messageHandlers;
 	byte* codeBase;

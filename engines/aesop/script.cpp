@@ -24,6 +24,9 @@ uint32 Object::execute(uint32 messageNumber, uint32 vector, byte *stackPointer) 
 	// Does below code take care of this since I am using native stack to pass pointers?
 
 	uint16 autoSize;
+	if(!_thunk->messageHandlers.contains(messageNumber)) {
+		return 0;
+	}
 	byte *instructionPointer = getMessageHandlerAddress(messageNumber, autoSize);
 	return execute(instructionPointer, stackPointer, autoSize);
 }
@@ -329,12 +332,9 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 			break;
 		case OP_RCRS:
 			{
-				// We are dividing here because the original virtual machine
-				// used offsets into an array of 32-bit code pointers and this gets
-				// us the index into the array.
 				int idx = *reinterpret_cast<uint16 *>(instructionPointer + 1);
 				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
-				valuePointer->address = reinterpret_cast<uintptr_t>(_thunk->externalCodeResources[idx / 4]);
+				valuePointer->address = reinterpret_cast<uintptr_t>(_thunk->externalCodeResources.getVal(idx));
 				instructionPointer += 2;
 			}
 			break;
@@ -364,14 +364,14 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 			{
 				int argc = *(instructionPointer + 1);
 				int msg = *reinterpret_cast<uint16 *>(instructionPointer + 2);
-							
+				
 				// Set up arguments in reverse order
 				Value *valuePointer;
-				// FIXME: the below is f---ed up and doesn't work.
+				// FIXME: the below is f---ed up and doesn't work??
 				// I am currently debugging case for one parameter so just skip for now
-				/*for(int i = argc - 1; i >= 0; i--)
+				byte *tempPtr = stackPointer;
+				for(int i = argc - 1; i >= 0; i--)
 				{
-					byte *tempPtr = stackPointer;
 					tempPtr -= sizeof(Value);
 					Value temp;
 					valuePointer = reinterpret_cast<Value *>(stackPointer);
@@ -379,11 +379,13 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 					valuePointer = reinterpret_cast<Value *>(tempPtr);
 					valuePointer->fullValue = temp.fullValue;
 					stackPointer += sizeof(Value);
-				}*/
-				
+				}
+
+				// instance handle is part of arguments
 				valuePointer = reinterpret_cast<Value *>(stackPointer);
 				int idx = valuePointer->fullValue;
-				if(idx == -1)
+				// FIXME: hackish, but seems to work correctly
+				if(idx < 0)
 				{
 					idx = _index;
 				}
@@ -440,12 +442,16 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 			}
 			break;
 		case OP_LTBA:
+			__debugbreak();
 			break;
 		case OP_LTWA:
+			__debugbreak();
 			break;
 		case OP_LTDA:
+			__debugbreak();
 			break;
 		case OP_LETA:
+			__debugbreak();
 			break;
 		case OP_LAB:
 			{

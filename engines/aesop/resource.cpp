@@ -6,7 +6,7 @@ Resource::Resource() : thunk(NULL) {
 }
 
 Resource::~Resource() {
-	free(this->data);
+	delete[] this->data;
 }
 
 ResourceManager::~ResourceManager() {
@@ -75,7 +75,7 @@ Resource* ResourceManager::getResource(uint32 resourceId) {
 		res = new Resource;
 		res->id = resourceId;
 		res->size = this->seek(resourceId);
-		res->data = static_cast<byte *>(malloc(res->size));
+		res->data = new byte[res->size];
 		_file->read(res->data, res->size);
 		_resourceCache->setVal(resourceId, res);
 	}
