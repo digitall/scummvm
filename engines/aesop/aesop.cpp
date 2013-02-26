@@ -11,12 +11,16 @@
 
 #include "engines/util.h"
 
+#include "graphics/palette.h"
+
 #include "aesop/aesop.h"
 #include "aesop/resource.h"
 
 namespace Aesop {
 
 AesopEngine* AesopEngine::s_engine = NULL;
+Resource* AesopEngine::s_soundEffects[64];
+
 char* AesopEngine::SAVEDIR_FN = "SAVEGAME\\SAVEGAME.DIR";
 char* AesopEngine::items_bin = "SAVEGAME\\ITEMS_yy.BIN";
 char* AesopEngine::items_txt = "SAVEGAME\\ITEMS_yy.TXT";
@@ -24,6 +28,105 @@ char* AesopEngine::lvl_bin = "SAVEGAME\\LVLxx_yy.BIN";
 char* AesopEngine::lvl_txt = "SAVEGAME\\LVLxx_yy.TXT";
 char* AesopEngine::lvl_tmp = "SAVEGAME\\LVLxx.TMP";
 char* AesopEngine::itm_tmp = "SAVEGAME\\ITEMS.TMP";
+
+const int FBEG = 0;
+const int FCNT = 192;
+const int BLU_BEG = 0x55;
+const int BLU_NUM = 11;
+const int GRN_BEG = 0x70;
+const int GRN_NUM = 11;
+const int GRY_BEG = 0x67;
+const int GRY_NUM = 9;
+const int RED_BEG = 0x22;
+const int RED_NUM = 9;
+const int BRN_BEG = 0x96;
+const int BRN_NUM = 7;
+const int FIX_WHT = 0x0B;
+const int PAL_FIXED = 0;
+const int PAL_WALLS = 1;
+const int PAL_M1 = 2;
+const int PAL_M2 = 3;
+const int PAL_OUT = 4;
+const int F_BLU = 11;
+const int F_GRN = 12;
+const int F_RED = 13;
+const int F_GRY = 14;
+const int M_GRY = 11;
+const int M_WHT = 12;
+const int M_GRN = 13;
+const int M_BLU = 14;
+const int M_BRN = 15;
+const int XCOLOR = 0;
+const int DK_GRN = 1;
+const int LT_GRN = 2;
+const int GRN = 2;
+const int YEL = 3;
+const int LT_RED = 4;
+const int DK_RED = 6;
+const int RED = 4;
+const int BLU = 8;
+const int BLK = 10;
+const int WHT = 11;
+const int VIO = 0x80;
+const int CYN = 0x57;
+const int LT_CYN = 7;
+const int LT_BLU = 8;
+const int BRN_1 = 0x12;
+const int BRN_2 = 0x14;
+const int BRN_3 = 0x16;
+const int MAX_BITMAP_WIDTH = 2500;
+const int MAX_BITMAP_HEIGHT = 2500;
+
+byte F_fade[11][256];
+byte W_fade[11][16];
+byte M1_fade[11][32];
+byte M2_fade[11][32];
+
+byte M1_gry[32];
+byte M1_wht[32];
+byte M2_gry[32];
+byte M2_wht[32];
+byte M1_blu[32];
+byte M2_blu[32];
+byte M1_grn[32];
+byte M2_grn[32];
+byte M1_brn[32];
+byte M2_brn[32];
+byte F_grn[256];
+byte F_blu[256];
+byte F_red[256];
+byte F_gry[256];
+
+uint16 first_color[5] = { 0x00, 0xb0, 0xc0, 0xe0, 0xb0 };
+uint16 num_colors[5] = { 256, 16, 32, 32, 80 };
+byte *fade_tables[5][16] = { { F_fade[0], F_fade[1], F_fade[2], F_fade[3],
+							   F_fade[4], F_fade[5], F_fade[6], F_fade[7],
+							   F_fade[8], F_fade[9], F_fade[10],
+							   F_blu, F_grn, F_red, F_gry, NULL },
+							 { W_fade[0], W_fade[1], W_fade[2], W_fade[3],
+							   W_fade[4], W_fade[5], W_fade[6], W_fade[7],
+							   W_fade[8], W_fade[9], W_fade[10],
+							   NULL, NULL, NULL, NULL, NULL },
+							 { M1_fade[0], M1_fade[1], M1_fade[2], M1_fade[3],
+							   M1_fade[4], M1_fade[5], M1_fade[6], M1_fade[7],
+							   M1_fade[8], M1_fade[9], M1_fade[10],
+							   M1_gry, M1_wht, M1_grn, M1_blu, M1_brn },
+							 { M2_fade[0], M2_fade[1], M2_fade[2], M2_fade[3],
+							   M2_fade[4], M2_fade[5], M2_fade[6], M2_fade[7],
+							   M2_fade[8], M2_fade[9], M2_fade[10],
+							   M2_gry, M2_wht, M2_grn, M2_blu, M2_brn },
+							 { NULL, NULL, NULL, NULL,
+							   NULL, NULL, NULL, NULL,
+							   NULL, NULL, NULL,
+							   NULL, NULL, NULL, NULL, NULL } };
+
+byte blu_inten[BLU_NUM];
+byte grn_inten[GRN_NUM];
+byte gry_inten[GRY_NUM];
+byte red_inten[RED_NUM];
+byte brn_inten[BRN_NUM];
+
+byte text_colors[9] = { DK_GRN, LT_GRN, YEL, LT_RED, DK_RED, BLK, WHT, WHT, WHT };
 
 AesopEngine::AesopEngine(OSystem *syst) : Engine(syst) {
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
@@ -106,7 +209,7 @@ int AesopEngine::findFreeEntry(int min, int end) {
 
 void AesopEngine::createSOPInstance(uint32 objectId, int index) {
    objectList[index] = createInstance(objectId, index);
-   objectList[index]->execute(MSG_CREATE, -1, _stackPointer);
+   objectList[index]->execute(MSG_CREATE, static_cast<uint32>(-1), _stackPointer);
 }
 
 Object* AesopEngine::createInstance(uint32 objectId, int index) {
@@ -356,7 +459,7 @@ Value AesopEngine::dice(int argc, Value *argv) {
 	uint32 bonus = argv[2].fullValue;
 
 	total = bonus;
-	for (int i = 0; i < ndice; i++) {
+	for (uint32 i = 0; i < ndice; i++) {
       total += s_engine->_rnd->getRandomNumberRng(1, nsides); 
 	}
 	ret.fullValue = total;
@@ -549,7 +652,107 @@ Value AesopEngine::getBitmapHeight(int argc, Value *argv) {
 }
 
 Value AesopEngine::drawBitmap(int argc, Value *argv) {
-	__debugbreak();
+	uint32 page = argv[0].fullValue;
+	uint32 table = argv[1].fullValue;
+	uint32 number = argv[2].fullValue;
+	int32 x = argv[3].fullValue;
+	int32 y = argv[4].fullValue;
+	uint32 scale = argv[5].fullValue;
+	uint32 flip = argv[6].fullValue;
+	uint32 fade_table = argv[7].fullValue;
+	uint32 fade_level = argv[8].fullValue;
+
+	static Resource *lastResource = NULL;
+	static uint32 lastTable;
+	Resource *res;
+	byte *lookaside;
+
+	if(table == lastTable) {
+		res = lastResource;
+	}
+	else {
+		res = s_engine->_resMan->getResource(table);
+		lastResource = res;
+		lastTable = table;
+	}
+
+	if((fade_level > 10) && (!scale)) {
+		scale = 256;
+	}
+
+	lookaside = fade_tables[fade_table][fade_level] - first_color[fade_table];
+
+	// Convert SHP format data to bitmap
+	uint32 size = res->data[0] | (res->data[1] << 8) | (res->data[2] << 16) | (res->data[3] << 24);
+	assert(size == res->size);
+
+	int subPictures = res->data[4] | (res->data[5] << 8);
+	int offset = res->data[6 + number * 4] | (res->data[6 + number * 4 + 1] << 8) | (res->data[6 + number * 4 + 2 ] << 16) | (res->data[6 + number * 4 + 3] << 24);
+	int width = res->data[offset] | (res->data[offset + 1] << 8);
+	assert(width > 0 && width <= MAX_BITMAP_WIDTH);
+	
+	int height = res->data[offset + 2] | (res->data[offset + 3] << 8);
+	assert(height > 0 && height <= MAX_BITMAP_HEIGHT);
+
+	offset += 4;
+	byte *bitmap = new byte[width * height];
+	while(true) {
+		int y = res->data[offset];
+		if(y == 0xff) {
+			break;
+		}
+		assert(y >= 0 && y < height);
+		offset++;
+
+		while(true) {
+			int x;
+			int isLast;
+			int RLEwidth;
+			int RLEbytes;
+
+			x = res->data[offset];
+			offset++;
+
+			isLast = res->data[offset];
+			offset++;
+
+			RLEwidth = res->data[offset];
+			offset++;
+
+			RLEbytes = res->data[offset];
+			offset++;
+
+			while(RLEwidth > 0) {
+				int mode = res->data[offset] & 1;
+				int amount = (res->data[offset] >> 1) + 1;
+				offset++;
+
+				if(mode == 0) {			// Copy
+					memcpy(bitmap + x + y * width, res->data + offset, amount);
+					offset += amount;
+				}
+				else if(mode == 1) {	// Fill
+					int value = res->data[offset];
+					offset++;
+					memset(bitmap + x + y * width, value, amount);
+				}
+				x += amount;
+				RLEwidth -= amount;
+			}
+
+			assert(RLEwidth == 0);
+
+			if(isLast == 0x80) {
+				break;
+			}
+		}
+	}
+
+	// FIXME
+	//GIL2VFXDrawBitmap(page, x, y, flip, scale, lookaside, res, number);
+	//s_engine->_system->copyRectToScreen(bitmap, 0, 0, 0, 320, 200);
+	//s_engine->_system->updateScreen();
+
 	return Value(-1);
 }
 
@@ -559,7 +762,187 @@ Value AesopEngine::visibleBitmapRect(int argc, Value *argv) {
 }
 
 Value AesopEngine::setPalette(int argc, Value *argv) {
-	__debugbreak();
+	uint32 region = argv[0].fullValue;
+	uint32 resource = argv[1].fullValue;
+
+	Resource *res = s_engine->_resMan->getResource(resource);
+	PaletteHeader *phdr = reinterpret_cast<PaletteHeader *>(res->data);
+	int f, n, m, d, dm, j;
+
+	if(region == PAL_FIXED
+		|| region == PAL_WALLS
+		|| region == PAL_M1
+		|| region == PAL_M2) {
+		for(int i = 0; i < 11; i++) {
+			byte *fade = res->data + phdr->fade[i];
+			for(int j = 0; j < phdr->ncolors; j++) {
+				fade_tables[region][i][j] = first_color[region] + fade[j];
+			}
+		}
+	}
+
+	
+	// FIXME: is this call correct??
+	s_engine->_system->getPaletteManager()->setPalette(res->data + phdr->RGB, 0, phdr->ncolors);
+	RGB *array = reinterpret_cast<RGB *>(res->data + phdr->RGB);
+
+	switch(region) {
+	case PAL_FIXED:
+		for(int n = 0, i = BLU_BEG; n < BLU_NUM; n++, i++) {
+			blu_inten[n] = array[i].r + array[i].g + array[i].b;
+		}
+		for(int n = 0, i = RED_BEG; n < RED_NUM; n++, i ++) {
+			red_inten[n] = array[i].r + array[i].g + array[i].b;
+		}
+		for(int n = 0, i = GRN_BEG; n < GRN_NUM; n++, i++) {
+			grn_inten[n] = array[i].r + array[i].g + array[i].b;
+		}
+		for(int n = 0, i = GRY_BEG; n < GRY_NUM; n++, i++) {
+			gry_inten[n] = array[i].r + array[i].g + array[i].b;
+		}
+		for(int n = 0, i = BRN_BEG; n < BRN_NUM; n++, i++) {
+			brn_inten[n] = array[i].r + array[i].g + array[i].b;
+		}
+
+		f = first_color[region];
+		n = num_colors[region];
+	
+		for(int i = 0; i < n; i++) {
+			j = array[i].r + array[i].g + array[i].b;
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < BLU_NUM; k++) {
+				d = abs(j - blu_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			F_blu[i] = BLU_BEG + m;
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < GRN_NUM; k++) {
+				d = abs(j - grn_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			F_grn[i] = GRN_BEG + m;
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < RED_NUM; k++) {
+				d = abs(j - red_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			F_red[i] = RED_BEG + m;
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < GRY_NUM; k++) {
+				d = abs(j - gry_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			F_gry[i] = GRY_BEG + m;
+		}
+		break;
+	case PAL_M1:
+	case PAL_M2:
+		f = first_color[region];
+		n = num_colors[region];
+		for(int i = 0; i < n; i++) {
+			j = array[i].r + array[i].g + array[i].b;
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < BRN_NUM; k++) {
+				d = abs(j - brn_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			if(region == PAL_M1) {
+				M1_brn[i] = BRN_BEG + m;
+			}
+			else {
+				M2_brn[i] = BRN_BEG + m;
+			}
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < GRY_NUM; k++) {
+				d = abs(j - gry_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			if(region == PAL_M1) {
+				M1_gry[i] = GRY_BEG + m;
+			}
+			else {
+				M2_gry[i] = GRY_BEG + m;
+			}
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < GRN_NUM; k++) {
+				d = abs(j - grn_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			if(region == PAL_M1) {
+				M1_grn[i] = GRN_BEG + m;
+			}
+			else {
+				M2_grn[i] = GRN_BEG + m;
+			}
+
+			m = 0;
+			dm = 32767;
+			for(int k = 0; k < BLU_NUM; k++) {
+				d = abs(j - blu_inten[k]);
+				if(d < dm) {
+					dm = d;
+					m = k;
+				}
+			}
+
+			if(region == PAL_M1) {
+				M1_blu[i] = BLU_BEG + m;
+			}
+			else {
+				M2_blu[i] = BLU_BEG + m;
+			}
+
+			if(region == PAL_M1) {
+				M1_wht[i] = FIX_WHT;
+			}
+			else {
+				M2_wht[i] = FIX_WHT;
+			}
+		}
+		break;
+	}
+
 	return Value(-1);
 }
 
@@ -755,7 +1138,21 @@ Value AesopEngine::shutdownSound(int argc, Value *argv) {
 }
 
 Value AesopEngine::loadSoundBlock(int argc, Value *argv) {
-	__debugbreak();
+	uint32 firstBlock = argv[0].fullValue;
+	uint32 lastBlock = argv[1].fullValue;
+	uint32* array = reinterpret_cast<uint32 *>(argv[2].address);
+
+	int index = (firstBlock == BLK_COMMON) ? FIRST_COMMON : FIRST_LEVEL;
+	while(*array != 0) {
+		if(index > 63) {
+			// there are only 64 spaces in the array
+			__debugbreak();
+		}
+		s_soundEffects[index] = s_engine->_resMan->getResource(*array);
+		array++;
+		index++;
+	}
+	
 	return Value(-1);
 }
 

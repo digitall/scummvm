@@ -78,9 +78,16 @@ const int NUM_SAVEGAMES = 12;	// 12 possible savegame positions
 const int SAVE_LEN = 26;		// Max. # of characters in savegame title
 const int NUM_LEVELS = 14;		// # of "levels" (feature/monster regions) in game
 const int BOOTSTRAP	= 2000;		// Object which launches AESOP application
+const int BLK_COMMON = 0;       // COMMON sounds at EMS blocks 0-8
+const int END_COMMON = 8;
+const int BLK_LEVEL = 9;        // LEVEL sounds at EMS blocks 9-14
+const int END_LEVEL = 14;
+const int FIRST_COMMON = 0;     // COMMON sound array indices = 0-49
+const int FIRST_LEVEL = 50;     // LEVEL sound array indices = 50-63
 
 class Console;
 class ResourceManager;
+class Resource;
 
 class AesopEngine : public Engine {
 public:
@@ -289,6 +296,7 @@ private:
 	// UNUSED ??
 
 	static AesopEngine *s_engine;
+	static Resource* s_soundEffects[64];
 	// UNUSED ??
 	static char *SAVEDIR_FN;
 	static char *items_bin;

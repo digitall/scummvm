@@ -30,7 +30,7 @@ void ResourceManager::init(const char *filename) {
 	_file->read(_header, sizeof(RESGlobalHeader));
 	assert(strcmp(_header->signature, "AESOP/16 V1.00") == 0);
 
-	_currentDirBlockNumber = -1;
+	_currentDirBlockNumber = static_cast<uint32>(-1);
 
 	// load resource names (i.e. Table 0)
 	_resourceNames = new ResourceMap;

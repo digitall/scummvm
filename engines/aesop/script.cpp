@@ -81,7 +81,7 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 				{
 					for(int i = numberOfCases; i > 0; i--)
 					{
-						if(temp.fullValue == *(reinterpret_cast<uint32 *>(instructionPointer)))
+						if(static_cast<uint32>(temp.fullValue) == *(reinterpret_cast<uint32 *>(instructionPointer)))
 						{
 							instructionPointer += 4;
 							idx = *reinterpret_cast<uint16 *>(instructionPointer);
@@ -393,7 +393,7 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 				// FIXME: hackish way to save stack pointer context
 				_thunk->engine->setStackPointer(stackPointer);
 				byte *oldSp = stackPointer;
-				valuePointer->fullValue = _thunk->engine->execute(idx, msg, -1);
+				valuePointer->fullValue = _thunk->engine->execute(idx, msg, static_cast<uint32>(-1));
 				_thunk->engine->setStackPointer(oldSp);
 				
 				instructionPointer += 3;
@@ -450,8 +450,13 @@ uint32 Object::execute(byte *instructionPointer, byte *stackPointer, uint16 auto
 		case OP_LTDA:
 			__debugbreak();
 			break;
-		case OP_LETA:
-			__debugbreak();
+		case OP_LETA:	// FIXME: this appears to work but implementation makes it the same as LECA, perhaps because we aren't using 286 segments?
+			{
+				int offset = *reinterpret_cast<uint16 *>(instructionPointer + 1);
+				instructionPointer += 2;
+				Value *valuePointer = reinterpret_cast<Value *>(stackPointer);
+				valuePointer->address = reinterpret_cast<uintptr_t>(_thunk->codeBase + offset);
+			}
 			break;
 		case OP_LAB:
 			{

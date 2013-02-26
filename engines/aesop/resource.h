@@ -39,6 +39,18 @@ struct RESTableHeader {
 	uint32 offsets[512];
 } PACKED_STRUCT;
 
+struct PaletteHeader {
+	uint16 ncolors;
+	uint16 RGB;
+	uint16 fade[11];
+} PACKED_STRUCT;
+
+struct RGB {
+	byte r;
+	byte g;
+	byte b;
+} PACKED_STRUCT;
+
 #include "common/pack-end.h"
 
 class Resource {
