@@ -247,7 +247,8 @@ uint32 Animation::computeCurrentFrame(uint32 ticks) {
 			break;
 
 		case 2:
-			if (((ticks - _ticks) / _field_53) == 0)
+			offset = ((ticks - _ticks) / _field_53);
+			if (offset == 0)
 				break;
 
 			_ticks = ticks;
