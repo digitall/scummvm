@@ -813,8 +813,8 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 	}
 
 	// Check bpp
-	if (imageFrom->getBPP() != 24 || imageTo->getBPP() != 24) {
-		warning("[Application::displayFade] Depths are not 24bpp (from: %d, to: %d)", imageFrom->getBPP(), imageTo->getBPP());
+	if (imageFrom->getBPP() != 32 || imageTo->getBPP() != 32) {
+		warning("[Application::displayFade] Depths are not 32bpp (from: %d, to: %d)", imageFrom->getBPP(), imageTo->getBPP());
 		goto cleanup;
 	}
 
@@ -826,7 +826,7 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 	diff    = (uint16 *)surface.pixels;
 	srcFrom = (uint16 *)imageFrom->getSurface()->pixels;
 	srcTo   = (uint16 *)imageTo->getSurface()->pixels;
-	for (uint32 i = 0; i < (uint32)(surface.w * surface.h * surface.format.bytesPerPixel); i++)
+	for (uint32 i = 0; i < (uint32)(surface.w * surface.h); i++)
 		diff[i] = (srcFrom[i] - srcTo[i]) / (uint16)frameCount;
 
 	// Create animation
@@ -840,11 +840,12 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 		uint32 currentFrame = 1;
 		while (!checkEscape()) {
 			// Update imageFrom buffer
-			for (uint32 i = 0; i < (uint32)(surface.w * surface.h * surface.format.bytesPerPixel); i++)
+			for (uint32 i = 0; i < (uint32)(surface.w * surface.h); i++)
 				srcFrom[i] -= diff[i];
 
 			// Draw updated frame
 			_screenManager->drawAndUpdate(imageFrom, Common::Point(0, 16));
+			g_system->updateScreen();
 
 			// Progress to next frame
 			while (animation->getCurrentFrame() == currentFrame)
@@ -863,6 +864,7 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 
 	// Draw target image
 	_screenManager->drawAndUpdate(imageTo, Common::Point(0, 16));
+	g_system->updateScreen();
 
 	// Cleanup
 	surface.free();
