@@ -614,9 +614,6 @@ void AquatorStream::initChannel(Common::SeekableReadStream *stream, uint32 index
 
 	imageHeader->init(stream);
 
-	// Cleanup
-	delete stream;
-
 	imageHeader->update(_entry);
 
 	if (imageHeader->getField4() == 0)
