@@ -77,6 +77,7 @@ RingEngine::RingEngine(OSystem *syst, const RingGameDescription *gd) :
 	DebugMan.addDebugChannel(kRingDebugSound, "Sound", "Debug sound playback");
 	DebugMan.addDebugChannel(kRingDebugSavegame, "Savegame", "Debug savegame");
 	DebugMan.addDebugChannel(kRingDebugLogic, "Logic", "Debug logic");
+	DebugMan.addDebugChannel(kRingDebugMovie, "Movie", "Movie decoding");
 	DebugMan.addDebugChannel(kRingDebugUnknown, "Unknown", "Debug unknown data");
 }
 
