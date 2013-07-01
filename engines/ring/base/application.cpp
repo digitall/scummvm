@@ -772,8 +772,7 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 	uint16 *diff = NULL;
 	uint16 *srcFrom = NULL;
 	uint16 *srcTo = NULL;
-	Graphics::PixelFormat format = g_system->getScreenFormat();
-
+	
 	if (archiveType == kArchiveInvalid)
 		archiveType = getArchiveType(getCurrentZone());
 
@@ -812,22 +811,31 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 		goto cleanup;
 	}
 
-	// Check bpp
+	// Check bpp (24 bpp BMPs are decoded into a 32bpp surface)
 	if (imageFrom->getBPP() != 32 || imageTo->getBPP() != 32) {
 		warning("[Application::displayFade] Depths are not 32bpp (from: %d, to: %d)", imageFrom->getBPP(), imageTo->getBPP());
 		goto cleanup;
 	}
 
 	// Create new surface to hold the difference frame
-	format.bytesPerPixel = imageFrom->getBPP() / 8;
-	surface.create((uint16)imageFrom->getWidth(), (uint16)imageFrom->getHeight(), format);
+	surface.create((uint16)imageFrom->getWidth(), (uint16)imageFrom->getHeight(), imageFrom->getSurface()->format);
 
-	// Put difference frame data into surface
-	diff    = (uint16 *)surface.pixels;
-	srcFrom = (uint16 *)imageFrom->getSurface()->pixels;
-	srcTo   = (uint16 *)imageTo->getSurface()->pixels;
-	for (uint32 i = 0; i < (uint32)(surface.w * surface.h); i++)
-		diff[i] = (srcFrom[i] - srcTo[i]) / (uint16)frameCount;
+	// Compute delta frame between images
+	for (int i = 0; i < surface.h; i++) {
+		byte *dst = (byte *) surface.getBasePtr(0, i);
+		byte *from = (byte *) imageFrom->getSurface()->getBasePtr(0, i);
+		byte *to = (byte *) imageTo->getSurface()->getBasePtr(0, i);
+
+		for (int j = 0; j < surface.w; j++) {
+			*dst++ = (*from++ - *to++) / frameCount;
+			*dst++ = (*from++ - *to++) / frameCount;
+			*dst++ = (*from++ - *to++) / frameCount;
+
+			*dst++;
+			*from++;
+			*to++;
+		}
+	}
 
 	// Create animation
 	animation = new Animation();
@@ -840,8 +848,19 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 		uint32 currentFrame = 1;
 		while (!checkEscape()) {
 			// Update imageFrom buffer
-			for (uint32 i = 0; i < (uint32)(surface.w * surface.h); i++)
-				srcFrom[i] -= diff[i];
+			for (int i = 0; i < surface.h; i++) {
+				byte *from = (byte *) imageFrom->getSurface()->getBasePtr(0, i);
+				byte *diff = (byte *) surface.getBasePtr(0, i);
+				
+				for (int j = 0; j < surface.w; j++) {
+					*from++ -= *diff++;
+					*from++ -= *diff++;
+					*from++ -= *diff++;
+
+					*from++;
+					diff++;
+				}
+			}	
 
 			// Draw updated frame
 			_screenManager->drawAndUpdate(imageFrom, Common::Point(0, 16));
