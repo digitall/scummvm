@@ -274,7 +274,7 @@ Common::Rect Image::draw(Graphics::Surface *screen, const Common::Point &dest, u
 	//////////////////////////////////////////////////////////////////////////
 
 	if (!crossBlit((byte *)screen->getBasePtr(dest.x, dest.y),
-	               (byte *)_surface->getBasePtr(srcX, (int)getHeight() - (offset + 1)),
+	               (byte *)_surface->getBasePtr(srcX, 0 + offset),
 	               screen->pitch,
 	               _surface->pitch,
 	               destRect.width(),
@@ -282,7 +282,7 @@ Common::Rect Image::draw(Graphics::Surface *screen, const Common::Point &dest, u
 	               offset,
 	               screen->format,
 	               _surface->format,
-	               false,
+	               true,
 	               useAlpha))
 		error("[Image::draw] Cannot convert image to proper screen format");
 

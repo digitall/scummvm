@@ -125,7 +125,7 @@ void CursorImage::draw() {
 		memset(buf, 0, size);
 
 		if (!Image::crossBlit(buf,
-		                 (byte *)_image->getSurface()->getBasePtr(0, _image->getHeight() - 1),
+		                 (byte *)_image->getSurface()->getBasePtr(0, 0),
 		                 _image->getWidth() * formatScreen.bytesPerPixel,
 		                 _image->getSurface()->pitch,
 		                 _image->getWidth(),
@@ -133,7 +133,7 @@ void CursorImage::draw() {
 		                 0,
 		                 formatScreen,
 		                 formatCursor,
-		                 false))
+		                 true))
 			error("[CursorImage::draw] Cannot convert cursor image to proper screen format");
 
 		// Replace cursor

@@ -204,9 +204,44 @@ bool ImageLoaderBMA::readImage(Image *image) {
 	imageData->read(surface->pixels, _header.seqWidth * _header.seqHeight * 2);
 	delete imageData;
 
-	image->setSurface(surface);
+	Graphics::Surface *surfaceInvert = new Graphics::Surface();
+	copySurface(surfaceInvert, *surface);
+
+	image->setSurface(surfaceInvert);
 
 	return true;
+}
+
+void ImageLoaderBMA::copySurface(Graphics::Surface *out, const Graphics::Surface &in) {
+
+	// Images should be decoded with origin at the top
+	out->create(in.w, in.h, in.format);
+
+	switch (in.format.bytesPerPixel) {
+	default:
+		error("[ImageLoader::copySurface] Unsupported pixel depth (%s)", _filename.c_str());
+
+	// FIXME Handle endianess
+	case 2:
+		for (int i = 0; i < out->h; i++) {
+			uint16 *dst = (uint16 *) out->getBasePtr(0, out->h - i - 1);
+			uint16 *orig = (uint16 *) in.getBasePtr(0, i);
+
+			for (int j = 0; j < out->w; j++)
+				*dst++ = *orig++;
+		}
+		break;
+
+	case 4:
+		for (int i = 0; i < out->h; i++) {
+			uint32 *dst = (uint32 *) out->getBasePtr(0, out->h - i - 1);
+			uint32 *orig = (uint32 *) in.getBasePtr(0, i);
+
+			for (int j = 0; j < out->w; j++)
+				*dst++ = *orig++;
+		}
+		break;
+	}
 }
 
 #pragma endregion
@@ -246,7 +281,7 @@ bool ImageLoaderTGC::load(Image *image, ArchiveType type, ZoneId zone, LoadFrom 
 	}
 
 	Graphics::Surface *surface = new Graphics::Surface();
-	copySurface(surface, tga->getSurface());
+	surface->copyFrom(*tga->getSurface());
 
 	image->setSurface(surface);
 
@@ -316,57 +351,13 @@ bool ImageLoaderTGA::load(Image *image, ArchiveType, ZoneId, LoadFrom, DrawType)
 	}
 
 	Graphics::Surface *surface = new Graphics::Surface();
-	copySurface(surface, tga->getSurface());
+	surface->copyFrom(*tga->getSurface());
 
 	image->setSurface(surface);
 
 	delete stream;
 
 	return true;
-}
-
-void ImageLoaderTGA::copySurface(Graphics::Surface *out, const Graphics::Surface *in) {
-
-	// TGA images should be decode with origin at the top, but they are wrongly detected
-	out->create(in->w, in->h, in->format);
-
-	switch (in->format.bytesPerPixel) {
-	default:
-		error("[ImageLoaderTGA::copySurface] Unsupported pixel depth (%s)", _filename.c_str());
-
-//	case 3:
-//		for (int i = 0; i < out->h; i++) {
-//			byte *dst = (byte *)out->getBasePtr(0, out->h - i - 1);
-//			byte *orig = (byte *)in->getBasePtr(0, i);
-//
-//			for (int j = 0; j < out->w; j++) {
-//				byte r = *orig++;
-//				byte g = *orig++;
-//				byte b = *orig;
-//
-//#ifdef SCUMM_LITTLE_ENDIAN
-//				*dst++ = r;
-//				*dst++ = g;
-//				*dst++ = b;
-//#else
-//				*dst++ = b;
-//				*dst++ = g;
-//				*dst++ = r;
-//#endif
-//			}
-//		}
-//		break;
-
-	case 4:
-		for (int i = 0; i < out->h; i++) {
-			uint32 *dst = (uint32 *)out->getBasePtr(0, out->h - i - 1);
-			uint32 *orig = (uint32 *)in->getBasePtr(0, i);
-
-			for (int j = 0; j < out->w; j++)
-				*dst++ = *orig++;
-		}
-		break;
-	}
 }
 
 #pragma endregion

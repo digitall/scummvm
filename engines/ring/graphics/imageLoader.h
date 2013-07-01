@@ -95,6 +95,7 @@ private:
 	void deinit();
 	bool readHeader();
 	bool readImage(Image *image);
+	void copySurface(Graphics::Surface *out, const Graphics::Surface &in);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -103,9 +104,6 @@ public:
 	virtual ~ImageLoaderTGA() {};
 
 	virtual bool load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
-
-protected:
-	void copySurface(Graphics::Surface *out, const Graphics::Surface *in);
 };
 
 //////////////////////////////////////////////////////////////////////////
