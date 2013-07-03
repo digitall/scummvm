@@ -253,7 +253,7 @@ bool Cinematic1::sControl(byte* buffer) {
 	// FIXME This is broken (crashes scummvm), so disable for now
 	seek(header.size, SEEK_CUR);
 	return true;
-
+	
 	// Read stream
 	uint32 dataSize = 2 * _tControlHeader.field_C + 2;
 
@@ -1014,7 +1014,7 @@ void Movie::play(const Common::Point &point) {
 					error("[Movie::play] Chunk S: Error reading image (index: %d)", chunkIndex);
 
 				// Draw frame
-				//screen->draw(image, point, kDrawType1);
+				screen->draw(image, point, kDrawTypeNormal);
 
 				if (_hasDialog)
 					getApp()->getDialogHandler()->play();
@@ -1029,6 +1029,7 @@ void Movie::play(const Common::Point &point) {
 				}
 
 				screen->updateScreen();
+				g_system->updateScreen();
 
 				// Process sound
 				if (soundHandler->getField0()) {
