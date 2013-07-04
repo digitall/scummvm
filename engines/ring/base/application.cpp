@@ -765,14 +765,12 @@ bool Application::scrollImage(Common::String filename, uint32 ticksWait, LoadFro
 }
 
 void Application::displayFade(Common::String filenameFrom, Common::String filenameTo, uint32 frameCount, uint32 ticksWait, LoadFrom loadFrom, ArchiveType archiveType) {
-#if RING_DEBUG_SKIPMOVIES != 1
-	Graphics::Surface surface;
+#if RING_DEBUG_INTRO != 1
 	Image *imageTo = NULL;
 	Animation *animation = NULL;
-	uint16 *diff = NULL;
-	uint16 *srcFrom = NULL;
-	uint16 *srcTo = NULL;
-	
+	char *pixels = NULL;
+
+
 	if (archiveType == kArchiveInvalid)
 		archiveType = getArchiveType(getCurrentZone());
 
@@ -817,24 +815,17 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 		goto cleanup;
 	}
 
-	// Create new surface to hold the difference frame
-	surface.create((uint16)imageFrom->getWidth(), (uint16)imageFrom->getHeight(), imageFrom->getSurface()->format);
-
+	// Create buffer to hold the difference frame
+	pixels = (char *)calloc(imageFrom->getWidth() * imageFrom->getHeight(), imageFrom->getSurface()->format.bytesPerPixel);
+	
 	// Compute delta frame between images
-	for (int i = 0; i < surface.h; i++) {
-		byte *dst = (byte *) surface.getBasePtr(0, i);
+	for (int i = 0; i < (int16)imageFrom->getHeight(); i++) {
+		char *dst = (char *) (pixels + i * imageFrom->getSurface()->pitch);
 		byte *from = (byte *) imageFrom->getSurface()->getBasePtr(0, i);
 		byte *to = (byte *) imageTo->getSurface()->getBasePtr(0, i);
 
-		for (int j = 0; j < surface.w; j++) {
-			*dst++ = (*from++ - *to++) / frameCount;
-			*dst++ = (*from++ - *to++) / frameCount;
-			*dst++ = (*from++ - *to++) / frameCount;
-
-			*dst++;
-			*from++;
-			*to++;
-		}
+		for (int j = 0; j < imageFrom->getSurface()->pitch; j++)
+			*dst++ = (*from++ - *to++) / (int16)frameCount;
 	}
 
 	// Create animation
@@ -848,19 +839,13 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 		uint32 currentFrame = 1;
 		while (!checkEscape()) {
 			// Update imageFrom buffer
-			for (int i = 0; i < surface.h; i++) {
+			for (int i = 0; i < (int16)imageFrom->getHeight(); i++) {
 				byte *from = (byte *) imageFrom->getSurface()->getBasePtr(0, i);
-				byte *diff = (byte *) surface.getBasePtr(0, i);
+				char *diff = (char *) (pixels + i * imageFrom->getSurface()->pitch);
 				
-				for (int j = 0; j < surface.w; j++) {
+				for (int j = 0; j < imageFrom->getSurface()->pitch; j++)
 					*from++ -= *diff++;
-					*from++ -= *diff++;
-					*from++ -= *diff++;
-
-					*from++;
-					diff++;
-				}
-			}	
+			}
 
 			// Draw updated frame
 			_screenManager->drawAndUpdate(imageFrom, Common::Point(0, 16));
@@ -875,8 +860,8 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 				break;
 
 			currentFrame = nextFrame;
-
-			if (nextFrame > frameCount)
+			
+			if (currentFrame > frameCount)
 				break;
 		}
 	}
@@ -885,15 +870,13 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 	_screenManager->drawAndUpdate(imageTo, Common::Point(0, 16));
 	g_system->updateScreen();
 
-	// Cleanup
-	surface.free();
-
 	waitForEscape(ticksWait);
 
 cleanup:
 	SAFE_DELETE(animation);
 	SAFE_DELETE(imageFrom);
 	SAFE_DELETE(imageTo);
+	free(pixels);
 #endif
 }
 

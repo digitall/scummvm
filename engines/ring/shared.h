@@ -42,7 +42,11 @@ namespace Ring {
 #endif
 
 #ifndef RING_DEBUG_SKIPMOVIES
-#define RING_DEBUG_SKIPMOVIES  0    // Skip all movies and intro pictures
+#define RING_DEBUG_SKIPMOVIES  0    // Skip all movies
+#endif
+
+#ifndef RING_DEBUG_SKIPINTRO
+#define RING_DEBUG_SKIPINTRO   0    // Skip intro pictures
 #endif
 
 #ifndef RING_DEBUG_SKIPMENU
