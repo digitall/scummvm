@@ -106,7 +106,7 @@ void CursorImage::draw() {
 		error("[CursorImage::draw] Invalid bit depth (%d)", _image->getBPP());
 
 	case 16:
-		CursorMan.replaceCursor((byte *)_image->getSurface()->pixels, _image->getWidth(), _image->getHeight(), -_offset.x, -_offset.y, 0, 1, &_image->getSurface()->format);
+		CursorMan.replaceCursor((byte *)_image->getSurface()->getPixels(), _image->getWidth(), _image->getHeight(), -_offset.x, -_offset.y, 0, 1, &_image->getSurface()->format);
 		CursorMan.disableCursorPalette(true);
 		CursorMan.showMouse(true);
 		break;
@@ -178,7 +178,7 @@ void CursorAnimation::draw() {
 
 	// Replace cursor
 	Graphics::PixelFormat format = g_system->getScreenFormat();
-	CursorMan.replaceCursor((byte *)getCurrentImage()->getSurface()->pixels, getCurrentImage()->getWidth(), getCurrentImage()->getHeight(), _offset.x, _offset.y, 0, 1, &format);
+	CursorMan.replaceCursor((byte *)getCurrentImage()->getSurface()->getPixels(), getCurrentImage()->getWidth(), getCurrentImage()->getHeight(), _offset.x, _offset.y, 0, 1, &format);
 	CursorMan.disableCursorPalette(true);
 	CursorMan.showMouse(true);
 }

@@ -286,7 +286,7 @@ void ImageHeaderEntry::drawBuffer(Graphics::Surface *surface) {
 		return;
 
 	// Setup buffers
-	byte  *surfacePtr = (byte *)surface->pixels;
+	byte  *surfacePtr = (byte *)surface->getPixels();
 	int32 *bufferPtr  = buffer;
 
 	// Draw buffer to surface

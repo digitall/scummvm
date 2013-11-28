@@ -72,8 +72,10 @@ public:
 	uint32 getFeatures() const;
 	uint16 getVersion() const;
 	Common::Platform getPlatform() const;
+	Common::Language getLanguage() const;
 	bool hasFeature(EngineFeature f) const;
 	bool isDemo() const;
+	bool applyResourceFixes() const;
 	Common::String getTargetName() { return _targetName; };
 
 	Common::RandomSource *_rnd;
@@ -93,7 +95,7 @@ public:
 	AudioResourceMan *_audioResourceMan;
 
 public:
-	
+
 	/* Save/load */
 
 	enum kReadSaveHeaderError {
@@ -118,7 +120,7 @@ public:
 
 	bool canLoadGameStateCurrently() { return _isSaveAllowed; }
 	bool canSaveGameStateCurrently() { return _isSaveAllowed; }
-	
+
 	Common::Error loadGameState(int slot);
 	Common::Error saveGameState(int slot, const Common::String &description);
 	Common::Error removeGameState(int slot);
@@ -135,9 +137,12 @@ public:
 	NPoint getMousePos();
 
 	void toggleSoundUpdate(bool state) { _updateSound = state; }
+	void toggleMusic(bool state) { _enableMusic = state; }
+	bool musicIsEnabled() { return _enableMusic; }
 
 private:
 	bool _updateSound;
+	bool _enableMusic;
 
 };
 

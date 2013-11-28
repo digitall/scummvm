@@ -201,7 +201,7 @@ bool ImageLoaderBMA::readImage(Image *image) {
 	surface->create((uint16)_header.seqWidth, (uint16)_header.seqHeight, format); // FIXME: Always 16bpp BMPs?
 
 	// Read from compressed stream
-	imageData->read(surface->pixels, _header.seqWidth * _header.seqHeight * 2);
+	imageData->read(surface->getPixels(), _header.seqWidth * _header.seqHeight * 2);
 	delete imageData;
 
 	Graphics::Surface *surfaceInvert = new Graphics::Surface();
@@ -481,7 +481,7 @@ bool ImageLoaderCIN::readImage(Image *image, byte bitdepth, DrawType) {
 	_widthAndPadding = _width + 3;
 	_stride = _widthAndPadding * 3;
 
-	if (!_cinematic->sControl((byte *)image->getSurface()->pixels))
+	if (!_cinematic->sControl((byte *)image->getSurface()->getPixels()))
 		error("[ImageLoaderCIN::readImage] Cannot read image");
 
 	return true;
@@ -706,7 +706,7 @@ bool ImageLoaderCI2::readImage(Image *image, byte bitdepth, DrawType drawType) {
 
 		free(buffer);
 	} else {
-		if (!_cinematic->sControl((byte *)image->getSurface()->pixels, bitdepth)) {
+		if (!_cinematic->sControl((byte *)image->getSurface()->getPixels(), bitdepth)) {
 			warning("[ImageLoaderCI2::readImage] Error when decompressing image %s", _filename.c_str());
 			return false;
 		}

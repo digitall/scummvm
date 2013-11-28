@@ -817,7 +817,7 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 
 	// Create buffer to hold the difference frame
 	pixels = (char *)calloc(imageFrom->getWidth() * imageFrom->getHeight(), imageFrom->getSurface()->format.bytesPerPixel);
-	
+
 	// Compute delta frame between images
 	for (int i = 0; i < (int16)imageFrom->getHeight(); i++) {
 		char *dst = (char *) (pixels + i * imageFrom->getSurface()->pitch);
@@ -842,7 +842,7 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 			for (int i = 0; i < (int16)imageFrom->getHeight(); i++) {
 				byte *from = (byte *) imageFrom->getSurface()->getBasePtr(0, i);
 				char *diff = (char *) (pixels + i * imageFrom->getSurface()->pitch);
-				
+
 				for (int j = 0; j < imageFrom->getSurface()->pitch; j++)
 					*from++ -= *diff++;
 			}
@@ -860,7 +860,7 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 				break;
 
 			currentFrame = nextFrame;
-			
+
 			if (currentFrame > frameCount)
 				break;
 		}
@@ -889,7 +889,7 @@ void Application::fadeOut(uint32 frameCount, Color colorTo, uint32 ticksWait) {
 	Image *image = new Image();
 	image->create((byte)(bpp * 8), 2, 640, 480);
 	_screenManager->copySurface(image);
-	byte *buffer = (byte *)image->getSurface()->pixels;
+	byte *buffer = (byte *)image->getSurface()->getPixels();
 
 	// Setup animation
 	Animation *animation = new Animation();
