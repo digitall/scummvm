@@ -229,6 +229,8 @@ _port_mk="ports.mk"
 TMPO=./scummvm-conf
 TMPC=${TMPO}.cpp
 TMPLOG=config.log
+TMPKEEP=0
+VIRUSTEST=VIRUSTEST
 
 cc_check_no_clean() {
 	echo >> "$TMPLOG"
@@ -242,6 +244,9 @@ cc_check_no_clean() {
 		( $CXX $LDFLAGS $CXXFLAGS "$TMPC" -o "$TMPO$HOSTEXEEXT" "$@" ) >> "$TMPLOG" 2>&1
 	fi
 	TMPR="$?"
+	if test "$TMPKEEP" = "1" ; then
+		cp -v "$TMPO$HOSTEXEEXT" "$TMPO$HOSTEXEEXT$VIRUSTEST" >> "$TMPLOG" 2>&1
+	fi
 	echo "return code: $TMPR" >> "$TMPLOG"
 	echo >> "$TMPLOG"
 	return "$TMPR"
@@ -3780,6 +3785,7 @@ if test "$_opengl" = auto ; then
 		# 2) OpenGL/gl.h     This is used on Mac OS X
 		# 3) GLES/gl.h       This is used for OpenGL ES 1.x
 		for i in "GL/gl.h" "OpenGL/gl.h" "GLES/gl.h"; do
+			TMPKEEP=$((TMPKEEP+1))
 			# Test the current header for OpenGL
 			cat > $TMPC << EOF
 #include <$i>
@@ -3787,6 +3793,7 @@ if test "$_opengl" = auto ; then
 int main(void) { printf("ANTIVIRUS FALSE POSITIVE WORKAROUND"); return GL_VERSION_1_1; }
 EOF
 			cc_check $DEFINES $OPENGL_CFLAGS $OPENGL_LIBS && _opengl=yes && break
+			TMPKEEP=$((TMPKEEP+1))
 
 			# Test the current header for OpenGL ES
 			cat > $TMPC << EOF
