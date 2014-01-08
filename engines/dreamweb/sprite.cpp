@@ -744,7 +744,7 @@ void DreamGenContext::initRain() {
 
 void DreamGenContext::intro1Text() {
 	if ((data.byte(kIntrocount) == 2 || data.byte(kIntrocount) == 4 || data.byte(kIntrocount) == 6) &&
-		data.byte(kCh1playing) == 255) {
+		data.byte(kCh1playing) != 255) {
 		data.byte(kIntrocount) = data.byte(kIntrocount) - 1;
 	} else {
 		if (data.byte(kIntrocount) == 2)
