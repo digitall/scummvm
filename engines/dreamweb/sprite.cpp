@@ -744,107 +744,54 @@ void DreamGenContext::initRain() {
 
 void DreamGenContext::textForEnd() {
 	if (data.byte(kIntrocount) == 20)
-		al = 0;
+		setupTimedTemp(0, 83, 34, 20, 60, 1);
 	else if (data.byte(kIntrocount) == (isCD() ? 50 : 65))
-		al = 1;
+		setupTimedTemp(1, 83, 34, 20, 60, 1);
 	else if (data.byte(kIntrocount) == (isCD() ? 85 : 110))
-		al = 2;
-	else
-		return;
+		setupTimedTemp(2, 83, 34, 20, 60, 1);
+}
 
-	bl = 34;
-	bh = 20;
-	cx = 60;
-	dx = 1;
-	ah = 83;
-	setupTimedTemp();
+void DreamGenContext::textForMonkHelper(uint8 textIndex, uint8 voiceIndex, uint8 x, uint8 y, uint16 countToTimed, uint16 timeCount) {
+	if (isCD() && data.byte(kCh1playing) != 255)
+		data.byte(kIntrocount)--;
+	else
+		setupTimedTemp(textIndex, voiceIndex, x, y, countToTimed, timeCount);
 }
 
 void DreamGenContext::textForMonk() {
-	if (data.byte(kIntrocount) == 1) {
-		al = 19;
-		bl = 68;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 5) {
-		al = 20;
-		bl = 68;
-		bh = 38;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 9) {
-		al = 21;
-		bl = 48;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 13) {
-		al = 22;
-		bl = 68;
-		bh = 38;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == (isCD() ? 15 : 17)) {
-		al = 23;
-		bl = 68;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 21) {
-		al = 24;
-		bl = 68;
-		bh = 38;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 25) {
-		al = 25;
-		bl = 68;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 29) {
-		al = 26;
-		bl = 68;
-		bh = 38;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 33) {
-		al = 27;
-		bl = 68;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 37) {
-		al = 28;
-		bl = 68;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 41) {
-		al = 29;
-		bl = 68;
-		bh = 38;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == 45) {
-		al = 30;
-		bl = 68;
-		bh = 154;
-		cx = 120;
-	} else if (data.byte(kIntrocount) == (isCD() ? 52 : 49)) {
-		al = 31;
-		bl = 68;
-		bh = 154;
-		cx = 220;
-	} else if (data.byte(kIntrocount) == 53) {
+	if (data.byte(kIntrocount) == 1)
+		textForMonkHelper(19, 82, 68, 154, 120, 1);
+	else if (data.byte(kIntrocount) == 5)
+		textForMonkHelper(20, 82, 68, 38, 120, 1);
+	else if (data.byte(kIntrocount) == 9)
+		textForMonkHelper(21, 82, 48, 154, 120, 1);
+	else if (data.byte(kIntrocount) == 13)
+		textForMonkHelper(22, 82, 68, 38, 120, 1);
+	else if (data.byte(kIntrocount) == (isCD() ? 15 : 17))
+		textForMonkHelper(23, 82, 68, 154, 120, 1);
+	else if (data.byte(kIntrocount) == 21)
+		textForMonkHelper(24, 82, 68, 38, 120, 1);
+	else if (data.byte(kIntrocount) == 25)
+		textForMonkHelper(25, 82, 68, 154, 120, 1);
+	else if (data.byte(kIntrocount) == 29)
+		textForMonkHelper(26, 82, 68, 38, 120, 1);
+	else if (data.byte(kIntrocount) == 33)
+		textForMonkHelper(27, 82, 68, 154, 120, 1);
+	else if (data.byte(kIntrocount) == 37)
+		textForMonkHelper(28, 82, 68, 154, 120, 1);
+	else if (data.byte(kIntrocount) == 41)
+		textForMonkHelper(29, 82, 68, 38, 120, 1);
+	else if (data.byte(kIntrocount) == 45)
+		textForMonkHelper(30, 82, 68, 154, 120, 1);
+	else if (data.byte(kIntrocount) == (isCD() ? 52 : 49))
+		textForMonkHelper(31, 82, 68, 154, 220, 1);
+	else if (data.byte(kIntrocount) == 53) {
 		fadeScreenDowns();
 		if (isCD()) {
 			data.byte(kVolumeto) = 7;
 			data.byte(kVolumedirection) = 1;
 		}
-		return;
-	} else {
-		return;	
 	}
-
-	dx = 1;
-	ah = 82;
-	if (isCD() && data.byte(kCh1playing) != 255) {
-		data.byte(kIntrocount)--;
-		return;
-	}
-
-	setupTimedTemp();
 }
 
 void DreamGenContext::reelsOnScreen() {
