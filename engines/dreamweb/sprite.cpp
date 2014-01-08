@@ -742,6 +742,20 @@ void DreamGenContext::initRain() {
 	rain->x = 0xff;
 }
 
+void DreamGenContext::intro1Text() {
+	if ((data.byte(kIntrocount) == 2 || data.byte(kIntrocount) == 4 || data.byte(kIntrocount) == 6) &&
+		data.byte(kCh1playing) == 255) {
+		data.byte(kIntrocount) = data.byte(kIntrocount) - 1;
+	} else {
+		if (data.byte(kIntrocount) == 2)
+			setupTimedTemp(40, 82, 34, 130, 90, 1);
+		else if (data.byte(kIntrocount) == 4)
+			setupTimedTemp(41, 82, 34, 130, 90, 1);
+		else if (data.byte(kIntrocount) == 6)
+			setupTimedTemp(42, 82, 34, 130, 90, 1);
+	}
+}
+
 void DreamGenContext::textForEnd() {
 	if (data.byte(kIntrocount) == 20)
 		setupTimedTemp(0, 83, 34, 20, 60, 1);

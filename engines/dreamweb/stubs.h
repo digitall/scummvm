@@ -304,6 +304,7 @@
 	void textForMonk();
 	void textForMonkHelper(uint8 textIndex, uint8 voiceIndex, uint8 x, uint8 y, uint16 countToTimed, uint16 timeCount);
 	void textForEnd();
+	void intro1Text();
 	void readSetData();
 	void loadRoomsSample();
 	void fadeupYellows();

@@ -662,7 +662,6 @@ public:
 	void introMagic3();
 	void showDiaryPage();
 	void dumpSymbol();
-	void intro1Text();
 	void transferToEx();
 	void reExFromInv();
 	void examineInventory();

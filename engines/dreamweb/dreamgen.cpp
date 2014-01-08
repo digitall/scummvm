@@ -1022,47 +1022,6 @@ gotmonks2text:
 	setupTimedTemp();
 }
 
-void DreamGenContext::intro1Text() {
-	STACK_CHECK;
-	_cmp(data.byte(kIntrocount), 2);
-	if (!flags.z())
-		goto notintro1text1;
-	al = 40;
-	bl = 34;
-	bh = 130;
-	cx = 90;
-	goto gotintro1text;
-notintro1text1:
-	_cmp(data.byte(kIntrocount), 4);
-	if (!flags.z())
-		goto notintro1text2;
-	al = 41;
-	bl = 34;
-	bh = 130;
-	cx = 90;
-	goto gotintro1text;
-notintro1text2:
-	_cmp(data.byte(kIntrocount), 6);
-	if (!flags.z())
-		return /* (notintro1text3) */;
-	al = 42;
-	bl = 34;
-	bh = 130;
-	cx = 90;
-	goto gotintro1text;
-	return;
-gotintro1text:
-	dx = 1;
-	ah = 82;
-	_cmp(data.byte(kCh1playing), 255);
-	if (flags.z())
-		goto oktalk2;
-	_dec(data.byte(kIntrocount));
-	return;
-oktalk2:
-	setupTimedTemp();
-}
-
 void DreamGenContext::intro2Text() {
 	STACK_CHECK;
 	_cmp(ax, 5);
