@@ -306,6 +306,7 @@
 	void textForEnd();
 	void intro1Text();
 	void intro2Text();
+	void intro3Text();
 	void readSetData();
 	void loadRoomsSample();
 	void fadeupYellows();

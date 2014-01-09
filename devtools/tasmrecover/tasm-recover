@@ -337,6 +337,7 @@ generator = cpp(context, "DreamGen", blacklist = [
 	'intro',
 	'intro1text',
 	'intro2text',
+	'intro3text',
 	'intromagic1',
 	'intromusic',
 	'inventory',

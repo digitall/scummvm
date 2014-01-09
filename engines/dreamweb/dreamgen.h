@@ -728,7 +728,6 @@ public:
 	void dumpCurrent();
 	void showDiaryKeys();
 	void dontLoadSeg();
-	void intro3Text();
 	void allocateMem();
 	void useOpened();
 	void fillOpen();

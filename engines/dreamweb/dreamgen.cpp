@@ -1022,32 +1022,6 @@ gotmonks2text:
 	setupTimedTemp();
 }
 
-void DreamGenContext::intro3Text() {
-	STACK_CHECK;
-	_cmp(ax, 107);
-	if (!flags.z())
-		goto notintro3text1;
-	al = 45;
-	bl = 36;
-	bh = 56;
-	cx = 100;
-	goto gotintro3text;
-notintro3text1:
-	_cmp(ax, 108);
-	if (!flags.z())
-		return /* (notintro3text2) */;
-	al = 46;
-	bl = 36;
-	bh = 56;
-	cx = 100;
-	goto gotintro3text;
-	return;
-gotintro3text:
-	dx = 1;
-	ah = 82;
-	setupTimedTemp();
-}
-
 void DreamGenContext::monkAndRyan() {
 	STACK_CHECK;
 	checkSpeed();

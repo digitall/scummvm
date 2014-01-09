@@ -763,6 +763,13 @@ void DreamGenContext::intro2Text() {
 		setupTimedTemp(44, 82, 34, 40, 90, 1);
 }
 
+void DreamGenContext::intro3Text() {
+	if (ax == 107)
+		setupTimedTemp(45, 82, 36, 56, 100, 1);
+	else if (ax == 108)
+		setupTimedTemp(46, 82, 36, 56, 100, 1);
+}
+
 void DreamGenContext::textForEnd() {
 	if (data.byte(kIntrocount) == 20)
 		setupTimedTemp(0, 83, 34, 20, 60, 1);
