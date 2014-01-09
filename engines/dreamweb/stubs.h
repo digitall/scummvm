@@ -82,7 +82,6 @@
 	void printMessage();
 	void useTimedText();
 	void dumpTimedText();
-	void setupTimedTemp();
 	void setupTimedTemp(uint8 textIndex, uint8 voiceIndex, uint8 x, uint8 y, uint16 countToTimed, uint16 timeCount);
 	void getUnderTimed();
 	void putUnderTimed();
