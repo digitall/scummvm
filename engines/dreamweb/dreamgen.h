@@ -627,7 +627,6 @@ public:
 	void runIntroSeq();
 	void advisor();
 	void attendant();
-	void monks2text();
 	void clearPalette();
 	void cantDrop();
 	void copper();

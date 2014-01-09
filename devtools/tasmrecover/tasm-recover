@@ -395,6 +395,7 @@ generator = cpp(context, "DreamGen", blacklist = [
 	'modifychar',
 	'monmessage',
 	'monprint',
+	'monks2text',
 	'movemap',
 	'multidump',
 	'multiget',

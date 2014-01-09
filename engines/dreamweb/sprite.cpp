@@ -770,6 +770,31 @@ void DreamGenContext::intro3Text() {
 		setupTimedTemp(46, 82, 36, 56, 100, 1);
 }
 
+void DreamGenContext::monks2text() {
+	if (data.byte(kIntrocount) == 1)
+		setupTimedTemp(8, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 4)
+		setupTimedTemp(9, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 7)
+		setupTimedTemp(10, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 10)
+		setupTimedTemp(11, 82, 0, 105, 120, 1);
+	else if (data.byte(kIntrocount) == 13)
+		setupTimedTemp(12, 82, 0, 120, 120, 1);
+	else if (data.byte(kIntrocount) == 16)
+		setupTimedTemp(13, 82, 0, 135, 120, 1);
+	else if (data.byte(kIntrocount) == 19)
+		setupTimedTemp(14, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 22)
+		setupTimedTemp(15, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 25)
+		setupTimedTemp(16, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 27)
+		setupTimedTemp(17, 82, 36, 160, 120, 1);
+	else if (data.byte(kIntrocount) == 31)
+		setupTimedTemp(18, 82, 36, 160, 120, 1);
+}
+
 void DreamGenContext::textForEnd() {
 	if (data.byte(kIntrocount) == 20)
 		setupTimedTemp(0, 83, 34, 20, 60, 1);
