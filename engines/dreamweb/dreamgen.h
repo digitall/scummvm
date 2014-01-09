@@ -643,7 +643,6 @@ public:
 	void workoutFrames();
 	void dumpSymBox();
 	void rollEndCredits();
-	void intro2Text();
 	void interviewer();
 	void getKeyAndLogo();
 	void selectOb();

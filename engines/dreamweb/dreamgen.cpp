@@ -1022,32 +1022,6 @@ gotmonks2text:
 	setupTimedTemp();
 }
 
-void DreamGenContext::intro2Text() {
-	STACK_CHECK;
-	_cmp(ax, 5);
-	if (!flags.z())
-		goto notintro2text1;
-	al = 43;
-	bl = 34;
-	bh = 40;
-	cx = 90;
-	goto gotintro2text;
-notintro2text1:
-	_cmp(ax, 15);
-	if (!flags.z())
-		return /* (notintro2text2) */;
-	al = 44;
-	bl = 34;
-	bh = 40;
-	cx = 90;
-	goto gotintro2text;
-	return;
-gotintro2text:
-	dx = 1;
-	ah = 82;
-	setupTimedTemp();
-}
-
 void DreamGenContext::intro3Text() {
 	STACK_CHECK;
 	_cmp(ax, 107);
