@@ -761,8 +761,14 @@ void LauncherDialog::updateListing() {
 			// Insert the game into the launcher list
 			int pos = 0, size = l.size();
 
-			while (pos < size && (scumm_stricmp(description.c_str(), l[pos].c_str()) > 0))
+			// This is the code which inserts the game in alphabetical order
+			//while (pos < size && (scumm_stricmp(description.c_str(), l[pos].c_str()) > 0))
+			//	pos++;
+
+			// This is the code to insert in game id order
+			while (pos < size && (scumm_stricmp(gameid.c_str(), (domains[_domains[pos]]).getVal("gameid").c_str()) > 0))
 				pos++;
+
 			l.insert_at(pos, description);
 			_domains.insert_at(pos, iter->_key);
 		}
