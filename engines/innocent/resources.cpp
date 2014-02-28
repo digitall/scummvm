@@ -241,7 +241,7 @@ Image *Resources::loadImage(uint16 index) const {
 	img = new Image;
 	img->create(320, 200, ::Graphics::PixelFormat::createFormatCLUT8());
 	assert(img->pitch == 320);
-	loadImage(index, reinterpret_cast<byte *>(img->pixels), 320*200);
+	loadImage(index, reinterpret_cast<byte *>(img->getPixels()), 320*200);
 	cache[index] = img;
 	return img;
 }
@@ -304,7 +304,7 @@ Surface *Resources::loadBackdrop(uint16 index, byte *palette) {
 	Surface *backdrop = new Surface;
 	backdrop->create(width, height, ::Graphics::PixelFormat::createFormatCLUT8());
 
-	decodeImage(stream, reinterpret_cast<byte *>(backdrop->pixels), width * height);
+	decodeImage(stream, reinterpret_cast<byte *>(backdrop->getPixels()), width * height);
 
 	stream->readByte(); // skip zero
 
@@ -342,7 +342,7 @@ Sprite *Image::cut(Common::Rect rect) const {
 	sprite->create(rect.width(), rect.height(), ::Graphics::PixelFormat::createFormatCLUT8());
 
 	const byte *src = reinterpret_cast<const byte *>(getBasePtr(rect.left, rect.top));
-	byte *dest = reinterpret_cast<byte *>(sprite->pixels);
+	byte *dest = reinterpret_cast<byte *>(sprite->getPixels());
 	for (uint16 y = 0; y < rect.height(); y++) {
 		std::copy(src, src + rect.width(), dest);
 		src += pitch;

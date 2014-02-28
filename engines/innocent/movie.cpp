@@ -91,7 +91,7 @@ void Movie::loadKeyFrame() {
 	h = _f->readUint16LE();
 	assert (w == 320 && h == 200);
 
-	Resources::decodeImage(_f, reinterpret_cast<byte *>(_s.pixels), w * h);
+	Resources::decodeImage(_f, reinterpret_cast<byte *>(_s.getPixels()), w * h);
 
 	(void) _f->readByte();
 	Resources::readPalette(_f, _pal);
@@ -108,7 +108,7 @@ void Movie::loadIFrame() {
 	assert(_s.pitch == 320);
 
 	int left = 320 * 200;
-	byte *dest = reinterpret_cast<byte *>(_s.pixels);
+	byte *dest = reinterpret_cast<byte *>(_s.getPixels());
 
 	while (left) {
 		byte b = _f->readByte();
@@ -133,7 +133,7 @@ void Movie::loadIFrame() {
 
 void Movie::showFrame() {
 	Engine::instance()._system->copyRectToScreen(
-		reinterpret_cast<byte *>(_s.pixels), _s.pitch, 0, 0, _s.w, _s.h);
+		reinterpret_cast<byte *>(_s.getPixels()), _s.pitch, 0, 0, _s.w, _s.h);
 
 	Engine::instance()._system->updateScreen();
 }

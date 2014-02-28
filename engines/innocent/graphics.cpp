@@ -106,7 +106,7 @@ void Graphics::loadInterface() {
 	debugC(1, kDebugLevelGraphics, "loading interface");
 	_interface = new Surface;
 	_interface->create(320, 50, ::Graphics::PixelFormat::createFormatCLUT8());
-	_resources->loadInterfaceImage(reinterpret_cast<byte *>(_interface->pixels), _interfacePalette);
+	_resources->loadInterfaceImage(reinterpret_cast<byte *>(_interface->getPixels()), _interfacePalette);
 }
 
 void Graphics::prepareInterfacePalette() {
@@ -224,7 +224,7 @@ uint16 Graphics::ask(uint16 left, uint16 top, byte width, byte height, byte *str
 	// (but it does look nicer this way)
 	paintText(10, 16, 254, string, &frame);
 
-	_system->copyRectToScreen(reinterpret_cast<byte *>(frame.pixels), frame.pitch, left, top, width * kFrameTileWidth, height * kFrameTileHeight+4);
+	_system->copyRectToScreen(reinterpret_cast<byte *>(frame.getPixels()), frame.pitch, left, top, width * kFrameTileWidth, height * kFrameTileHeight+4);
 
 	bool show = true;
 	while (show) {
@@ -494,7 +494,7 @@ Common::Point Graphics::cursorPosition() const {
 }
 
 void Graphics::updateScreen() {
-	_system->copyRectToScreen(reinterpret_cast<byte *>(_framebuffer->pixels), _framebuffer->pitch, 0, 0, 320, 200);
+	_system->copyRectToScreen(reinterpret_cast<byte *>(_framebuffer->getPixels()), _framebuffer->pitch, 0, 0, 320, 200);
 
 	if (_willFadein && (_fadeFlags & kPartialFade)) {
 		debugC(3, kDebugLevelGraphics, "performing partial fade in");
@@ -512,7 +512,7 @@ void Graphics::showCursor() {
 	Sprite *cursor = _resources->getCursor();
 	assert(cursor->pitch == cursor->w);
 	::Graphics::CursorManager &m = ::Graphics::CursorManager::instance();
-	m.replaceCursor(reinterpret_cast<byte *>(cursor->pixels), cursor->w, cursor->h, cursor->_hotPoint.x, cursor->_hotPoint.y, 0);
+	m.replaceCursor(reinterpret_cast<byte *>(cursor->getPixels()), cursor->w, cursor->h, cursor->_hotPoint.x, cursor->_hotPoint.y, 0);
 	m.showMouse(true);
 }
 

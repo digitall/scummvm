@@ -160,7 +160,7 @@ Tune::Tune(uint16 index) {
 	const byte *channels = beat + 8 * nbeats;
 
 	for (uint i = 0; i < _beats.size(); i++) {
-		debugC(2, kDebugLevelMusic, "found beat at offset 0x%x", beat - _data);
+		debugC(2, kDebugLevelMusic, "found beat at offset 0x%lx", beat - _data);
 		_beats[i] = Beat(beat, channels, _data);
 		beat += 8;
 	}
@@ -189,7 +189,7 @@ Beat::Beat(const byte *def, const byte *channels, const byte *tune) {
 	for (int i = 0; i < 8; i++)
 		if (def[i]) {
 			uint16 off = 16 * def[i];
-			debugC(2, kDebugLevelMusic, "found channel at offset 0x%x", off + channels - tune);
+			debugC(2, kDebugLevelMusic, "found channel at offset 0x%lx", off + channels - tune);
 			_channels[i] = Channel(channels + off, tune, i + 2);
 		}
 }
