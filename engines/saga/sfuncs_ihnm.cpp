@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -168,17 +168,25 @@ void Script::sfSetChapterPoints(SCRIPTFUNC_PARAMS) {
 	_vm->_ethicsPoints[chapter] = thread->pop();
 	int16 barometer = thread->pop();
 	static PalEntry cur_pal[PAL_ENTRIES];
+	PalEntry portraitBgColor = _vm->_interface->_portraitBgColor;
+	byte portraitColor = (_vm->getLanguage() == Common::ES_ESP) ? 253 : 254;
 
 	_vm->_spiritualBarometer = _vm->_ethicsPoints[chapter] * 256 / barometer;
 	_vm->_scene->setChapterPointsChanged(true);		// don't save this music when saving in IHNM
 
+	// Set the portrait bg color, in case a saved state is restored from the
+	// launcher. In this case, sfSetPortraitBgColor is not called, thus the
+	// portrait color will always be 0 (black).
+	if (portraitBgColor.red == 0 && portraitBgColor.green == 0 && portraitBgColor.blue == 0)
+		portraitBgColor.green = 255;
+
 	if (_vm->_spiritualBarometer > 255)
-		_vm->_gfx->setPaletteColor(kIHNMColorPortrait, 0xff, 0xff, 0xff);
+		_vm->_gfx->setPaletteColor(portraitColor, 0xff, 0xff, 0xff);
 	else
-		_vm->_gfx->setPaletteColor(kIHNMColorPortrait,
-			_vm->_spiritualBarometer * _vm->_interface->_portraitBgColor.red / 256,
-			_vm->_spiritualBarometer * _vm->_interface->_portraitBgColor.green / 256,
-			_vm->_spiritualBarometer * _vm->_interface->_portraitBgColor.blue / 256);
+		_vm->_gfx->setPaletteColor(portraitColor,
+			_vm->_spiritualBarometer * portraitBgColor.red / 256,
+			_vm->_spiritualBarometer * portraitBgColor.green / 256,
+			_vm->_spiritualBarometer * portraitBgColor.blue / 256);
 
 	_vm->_gfx->getCurrentPal(cur_pal);
 	_vm->_gfx->setPalette(cur_pal);

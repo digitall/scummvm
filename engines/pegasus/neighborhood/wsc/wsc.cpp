@@ -646,11 +646,13 @@ uint WSC::getNumHints() {
 			return 1;
 		break;
 	case MakeRoomView(kWSC03, kNorth):
-		if (inSynthesizerGame() || (_vm->getEnergyDeathReason() == kDeathDidntStopPoison &&
-				!_privateFlags.getFlag(kWSCPrivateInMoleculeGameFlag) &&
-				!GameState.getWSCDesignedAntidote()))
-			return 3;
-		break;
+		// WORKAROUND: The original game is missing the first two hint movies and
+		// just plays nothing in its stead. We'll just return that we have one
+		// hint available.
+		if (inSynthesizerGame())
+			return 1;
+
+		// fall through
 	case MakeRoomView(kWSC01, kNorth):
 	case MakeRoomView(kWSC01, kSouth):
 	case MakeRoomView(kWSC01, kEast):
@@ -779,10 +781,12 @@ Common::String WSC::getHintMovie(uint hintNum) {
 		}
 		break;
 	case MakeRoomView(kWSC03, kNorth):
+		// WORKAROUND: The original game is missing the first two hint movies and
+		// just plays nothing in its stead. We just make it the first hint.
 		if (inSynthesizerGame())
-			return Common::String::format("Images/AI/WSC/XW03NH%d", hintNum);
+			return "Images/AI/WSC/XW03NH3";
 
-		return Common::String::format("Images/AI/WSC/XWPH%d", hintNum);
+		// fall through
 	case MakeRoomView(kWSC01, kNorth):
 	case MakeRoomView(kWSC01, kSouth):
 	case MakeRoomView(kWSC01, kEast):
@@ -2332,13 +2336,16 @@ Hotspot *WSC::getItemScreenSpot(Item *item, DisplayElement *element) {
 void WSC::pickedUpItem(Item *item) {
 	switch (item->getObjectID()) {
 	case kAntidote:
+		// WORKAROUND: Make sure the poison is cleared separately from deactivating
+		// the synthesizer video.
+		GameState.setWSCPoisoned(false);
+		GameState.setWSCRemovedDart(false);
+		_privateFlags.setFlag(kWSCDraggingAntidoteFlag, false);
+		playSpotSoundSync(kDrinkAntidoteIn, kDrinkAntidoteOut);
+		setUpPoison();
+
 		if (!GameState.getWSCPickedUpAntidote()) {
-			GameState.setWSCPoisoned(false);
-			GameState.setWSCRemovedDart(false);
 			GameState.setWSCPickedUpAntidote(true);
-			_privateFlags.setFlag(kWSCDraggingAntidoteFlag, false);
-			playSpotSoundSync(kDrinkAntidoteIn, kDrinkAntidoteOut);
-			setUpPoison();
 			startExtraSequence(kW03SouthDeactivate, kExtraCompletedFlag, kFilterNoInput);
 		}
 		break;

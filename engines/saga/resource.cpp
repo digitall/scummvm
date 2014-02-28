@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -200,15 +200,15 @@ bool Resource::createContexts() {
 
 	//// Detect and add voice files /////////////////////////////////////////////
 	SoundFileInfo voiceFiles[] = {
-		{	GID_ITE,	"voices.rsc",					false	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
-		{	GID_ITE,	"voices.cmp",					true	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
-		{	GID_ITE,	"voicesd.rsc",					false	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
-		{	GID_ITE,	"voicesd.cmp",					true	,	(_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0},
+		{	GID_ITE,	"voices.rsc",					false	,	(uint16)((_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0)},
+		{	GID_ITE,	"voices.cmp",					true	,	(uint16)((_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0)},
+		{	GID_ITE,	"voicesd.rsc",					false	,	(uint16)((_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0)},
+		{	GID_ITE,	"voicesd.cmp",					true	,	(uint16)((_soundFileName[0] == 0) ? GAME_SOUNDFILE : 0)},
 		// The resources in the Wyrmkeep combined Windows/Mac/Linux CD version are little endian, but
 		// the voice file is big endian. If we got such a version with mixed files, mark this voice file
 		// as big endian
-		{	GID_ITE,	"inherit the earth voices",		false	,	_vm->isBigEndian() ? 0 : GAME_SWAPENDIAN},
-		{	GID_ITE,	"inherit the earth voices.cmp",	true	,	_vm->isBigEndian() ? 0 : GAME_SWAPENDIAN},
+		{	GID_ITE,	"inherit the earth voices",		false	,	(uint16)(_vm->isBigEndian() ? 0 : GAME_SWAPENDIAN)},
+		{	GID_ITE,	"inherit the earth voices.cmp",	true	,	(uint16)(_vm->isBigEndian() ? 0 : GAME_SWAPENDIAN)},
 		{	GID_ITE,	"ite voices.bin",				false	,	GAME_MACBINARY},
 #ifdef ENABLE_IHNM
 		{	GID_IHNM,	"voicess.res",					false	,	0},

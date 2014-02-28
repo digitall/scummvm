@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef COMMON_FUNC_H
@@ -535,6 +536,6 @@ GENERATE_TRIVIAL_HASH_FUNCTOR(unsigned long);
 
 #undef GENERATE_TRIVIAL_HASH_FUNCTOR
 
-}	// End of namespace Common
+} // End of namespace Common
 
 #endif

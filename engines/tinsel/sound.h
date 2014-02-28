@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -51,7 +51,8 @@ protected:
 	enum {
 		kChannelTalk = 0,
 		kChannelTinsel1 = 0, // Always using this channel for DW1
-		kChannelSFX = 1
+		kChannelSFX = 1,
+		kChannelDW1MacMusic = 2
 	};
 	static const int kNumChannels = kChannelSFX + kNumSFX;
 
@@ -108,6 +109,7 @@ public:
 	bool playSample(int id, Audio::Mixer::SoundType type, Audio::SoundHandle *handle = 0);
 	bool playSample(int id, int sub, bool bLooped, int x, int y, int priority,
 			Audio::Mixer::SoundType type, Audio::SoundHandle *handle = 0);
+	void playDW1MacMusic(Common::File &s, uint32 length);
 
 	void stopAllSamples();                // Stops any currently playing sample
 	void stopSpecSample(int id, int sub = 0); // Stops a specific sample
@@ -115,11 +117,13 @@ public:
 	void setSFXVolumes(uint8 volume);
 
 	bool sampleExists(int id);
-	bool sampleIsPlaying(int id = -1);
+	bool sampleIsPlaying();
 
-	// TODO: Internal method, make this protected?
 	void openSampleFiles();
 	void closeSampleStream();
+
+private:
+	void showSoundError(const char *errorMsg, const char *soundFile);
 };
 
 } // End of namespace Tinsel

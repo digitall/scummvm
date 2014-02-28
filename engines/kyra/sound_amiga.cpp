@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -53,10 +53,26 @@ bool SoundAmiga::init() {
 	return _driver != 0 && _tableSfxIntro && _tableSfxGame;
 }
 
+void SoundAmiga::initAudioResourceInfo(int set, void *info) {
+	// See comment below
+}
+
+void SoundAmiga::selectAudioResourceSet(int set) {
+	// It seems that loadSoundFile() is doing what would normally be done in here.
+	// As long as this driver is only required for one single target (Kyra 1 Amiga)
+	// this doesn't matter much.
+}
+
+bool SoundAmiga::hasSoundFile(uint file) const {
+	if (file < 3)
+		return true;
+	return false;
+}
+
 void SoundAmiga::loadSoundFile(uint file) {
 	debugC(5, kDebugLevelSound, "SoundAmiga::loadSoundFile(%d)", file);
 
-	static const char * const tableFilenames[3][2] = {
+	static const char *const tableFilenames[3][2] = {
 		{ "introscr.mx",  "introinst.mx" },
 		{ "kyramusic.mx", 0 },
 		{ "finalescr.mx", "introinst.mx" }

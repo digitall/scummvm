@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -48,6 +48,7 @@ bool SaveLoad::loadGame(const Common::String &filename, BaseGame *gameRef) {
 
 	bool ret;
 
+	gameRef->stopVideo();
 	gameRef->_renderer->initSaveLoad(false);
 
 	gameRef->_loadInProgress = true;
@@ -75,10 +76,10 @@ bool SaveLoad::loadGame(const Common::String &filename, BaseGame *gameRef) {
 
 	gameRef->_renderer->endSaveLoad();
 
-	//_gameRef->LOG(0, "Load end %d", BaseUtils::GetUsedMemMB());
+	//BaseEngine::LOG(0, "Load end %d", BaseUtils::GetUsedMemMB());
 	// AdGame:
 	if (DID_SUCCEED(ret)) {
-		SystemClassRegistry::getInstance()->enumInstances(SaveLoad::afterLoadRegion, "AdRegion", NULL);
+		SystemClassRegistry::getInstance()->enumInstances(SaveLoad::afterLoadRegion, "AdRegion", nullptr);
 	}
 	return ret;
 }
@@ -114,13 +115,13 @@ bool SaveLoad::saveGame(int slot, const char *desc, bool quickSave, BaseGame *ga
 
 //////////////////////////////////////////////////////////////////////////
 bool SaveLoad::initAfterLoad() {
-	SystemClassRegistry::getInstance()->enumInstances(afterLoadRegion,   "BaseRegion",   NULL);
-	SystemClassRegistry::getInstance()->enumInstances(afterLoadSubFrame, "BaseSubFrame", NULL);
-	SystemClassRegistry::getInstance()->enumInstances(afterLoadSound,    "BaseSound",    NULL);
-	SystemClassRegistry::getInstance()->enumInstances(afterLoadFont,     "BaseFontTT",   NULL);
-	SystemClassRegistry::getInstance()->enumInstances(afterLoadScript,   "ScScript",  NULL);
+	SystemClassRegistry::getInstance()->enumInstances(afterLoadRegion,   "BaseRegion",   nullptr);
+	SystemClassRegistry::getInstance()->enumInstances(afterLoadSubFrame, "BaseSubFrame", nullptr);
+	SystemClassRegistry::getInstance()->enumInstances(afterLoadSound,    "BaseSound",    nullptr);
+	SystemClassRegistry::getInstance()->enumInstances(afterLoadFont,     "BaseFontTT",   nullptr);
+	SystemClassRegistry::getInstance()->enumInstances(afterLoadScript,   "ScScript",  nullptr);
 	// AdGame:
-	SystemClassRegistry::getInstance()->enumInstances(afterLoadScene,   "AdScene",   NULL);
+	SystemClassRegistry::getInstance()->enumInstances(afterLoadScene,   "AdScene",   nullptr);
 	return STATUS_OK;
 }
 
@@ -201,4 +202,4 @@ bool SaveLoad::emptySaveSlot(int slot) {
 }
 
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -29,6 +29,7 @@
 #include "engines/wintermute/ad/ad_game.h"
 #include "engines/wintermute/base/base_script_holder.h"
 #include "engines/wintermute/base/base_parser.h"
+#include "engines/wintermute/base/base_engine.h"
 #include "engines/wintermute/base/scriptables/script_value.h"
 #include "engines/wintermute/base/scriptables/script_engine.h"
 #include "engines/wintermute/base/scriptables/script.h"
@@ -43,7 +44,7 @@ BaseScriptHolder::BaseScriptHolder(BaseGame *inGame) : BaseScriptable(inGame) {
 	setName("<unnamed>");
 
 	_freezable = true;
-	_filename = NULL;
+	_filename = nullptr;
 }
 
 
@@ -56,11 +57,11 @@ BaseScriptHolder::~BaseScriptHolder() {
 //////////////////////////////////////////////////////////////////////////
 bool BaseScriptHolder::cleanup() {
 	delete[] _filename;
-	_filename = NULL;
+	_filename = nullptr;
 
 	for (uint32 i = 0; i < _scripts.size(); i++) {
 		_scripts[i]->finish(true);
-		_scripts[i]->_owner = NULL;
+		_scripts[i]->_owner = nullptr;
 	}
 	_scripts.clear();
 
@@ -69,15 +70,15 @@ bool BaseScriptHolder::cleanup() {
 
 //////////////////////////////////////////////////////////////////////
 void BaseScriptHolder::setFilename(const char *filename) {
-	if (_filename != NULL) {
+	if (_filename != nullptr) {
 		delete[] _filename;
-		_filename = NULL;
+		_filename = nullptr;
 	}
-	if (filename == NULL) {
+	if (filename == nullptr) {
 		return;
 	}
 	_filename = new char [strlen(filename) + 1];
-	if (_filename != NULL) {
+	if (_filename != nullptr) {
 		strcpy(_filename, filename);
 	}
 }
@@ -279,14 +280,14 @@ bool BaseScriptHolder::saveAsText(BaseDynamicBuffer *buffer, int indent) {
 bool BaseScriptHolder::persist(BasePersistenceManager *persistMgr) {
 	BaseScriptable::persist(persistMgr);
 
-	persistMgr->transfer(TMEMBER(_filename));
-	persistMgr->transfer(TMEMBER(_freezable));
+	persistMgr->transferCharPtr(TMEMBER(_filename));
+	persistMgr->transferBool(TMEMBER(_freezable));
 	if (persistMgr->getIsSaving()) {
 		const char *name = getName();
-		persistMgr->transfer(TMEMBER(name));
+		persistMgr->transferConstChar(TMEMBER(name));
 	} else {
 		char *name;
-		persistMgr->transfer(TMEMBER(name));
+		persistMgr->transferCharPtr(TMEMBER(name));
 		setName(name);
 		delete[] name;
 	}
@@ -301,7 +302,7 @@ bool BaseScriptHolder::addScript(const char *filename) {
 	for (uint32 i = 0; i < _scripts.size(); i++) {
 		if (scumm_stricmp(_scripts[i]->_filename, filename) == 0) {
 			if (_scripts[i]->_state != SCRIPT_FINISHED) {
-				_gameRef->LOG(0, "BaseScriptHolder::AddScript - trying to add script '%s' mutiple times (obj: '%s')", filename, getName());
+				BaseEngine::LOG(0, "BaseScriptHolder::AddScript - trying to add script '%s' mutiple times (obj: '%s')", filename, getName());
 				return STATUS_OK;
 			}
 		}
@@ -342,7 +343,7 @@ bool BaseScriptHolder::removeScript(ScScript *script) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool BaseScriptHolder::canHandleEvent(const char *EventName) {
+bool BaseScriptHolder::canHandleEvent(const char *EventName) const {
 	for (uint32 i = 0; i < _scripts.size(); i++) {
 		if (!_scripts[i]->_thread && _scripts[i]->canHandleEvent(EventName)) {
 			return true;
@@ -353,7 +354,7 @@ bool BaseScriptHolder::canHandleEvent(const char *EventName) {
 
 
 //////////////////////////////////////////////////////////////////////////
-bool BaseScriptHolder::canHandleMethod(const char *MethodName) {
+bool BaseScriptHolder::canHandleMethod(const char *MethodName) const {
 	for (uint32 i = 0; i < _scripts.size(); i++) {
 		if (!_scripts[i]->_thread && _scripts[i]->canHandleMethod(MethodName)) {
 			return true;
@@ -369,35 +370,35 @@ TOKEN_DEF(NAME)
 TOKEN_DEF(VALUE)
 TOKEN_DEF_END
 //////////////////////////////////////////////////////////////////////////
-bool BaseScriptHolder::parseProperty(byte *buffer, bool complete) {
+bool BaseScriptHolder::parseProperty(char *buffer, bool complete) {
 	TOKEN_TABLE_START(commands)
 	TOKEN_TABLE(PROPERTY)
 	TOKEN_TABLE(NAME)
 	TOKEN_TABLE(VALUE)
 	TOKEN_TABLE_END
 
-	byte *params;
+	char *params;
 	int cmd;
 	BaseParser parser;
 
 	if (complete) {
-		if (parser.getCommand((char **)&buffer, commands, (char **)&params) != TOKEN_PROPERTY) {
-			_gameRef->LOG(0, "'PROPERTY' keyword expected.");
+		if (parser.getCommand(&buffer, commands, &params) != TOKEN_PROPERTY) {
+			BaseEngine::LOG(0, "'PROPERTY' keyword expected.");
 			return STATUS_FAILED;
 		}
 		buffer = params;
 	}
 
-	char *propName = NULL;
-	char *propValue = NULL;
+	char *propName = nullptr;
+	char *propValue = nullptr;
 
-	while ((cmd = parser.getCommand((char **)&buffer, commands, (char **)&params)) > 0) {
+	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
 		case TOKEN_NAME:
 			delete[] propName;
-			propName = new char[strlen((char *)params) + 1];
+			propName = new char[strlen(params) + 1];
 			if (propName) {
-				strcpy(propName, (char *)params);
+				strcpy(propName, params);
 			} else {
 				cmd = PARSERR_GENERIC;
 			}
@@ -405,9 +406,9 @@ bool BaseScriptHolder::parseProperty(byte *buffer, bool complete) {
 
 		case TOKEN_VALUE:
 			delete[] propValue;
-			propValue = new char[strlen((char *)params) + 1];
+			propValue = new char[strlen(params) + 1];
 			if (propValue) {
-				strcpy(propValue, (char *)params);
+				strcpy(propValue, params);
 			} else {
 				cmd = PARSERR_GENERIC;
 			}
@@ -418,17 +419,17 @@ bool BaseScriptHolder::parseProperty(byte *buffer, bool complete) {
 	if (cmd == PARSERR_TOKENNOTFOUND) {
 		delete[] propName;
 		delete[] propValue;
-		propName = NULL;
-		propValue = NULL;
-		_gameRef->LOG(0, "Syntax error in PROPERTY definition");
+		propName = nullptr;
+		propValue = nullptr;
+		BaseEngine::LOG(0, "Syntax error in PROPERTY definition");
 		return STATUS_FAILED;
 	}
-	if (cmd == PARSERR_GENERIC || propName == NULL || propValue == NULL) {
+	if (cmd == PARSERR_GENERIC || propName == nullptr || propValue == nullptr) {
 		delete[] propName;
 		delete[] propValue;
-		propName = NULL;
-		propValue = NULL;
-		_gameRef->LOG(0, "Error loading PROPERTY definition");
+		propName = nullptr;
+		propValue = nullptr;
+		BaseEngine::LOG(0, "Error loading PROPERTY definition");
 		return STATUS_FAILED;
 	}
 
@@ -440,8 +441,8 @@ bool BaseScriptHolder::parseProperty(byte *buffer, bool complete) {
 	delete val;
 	delete[] propName;
 	delete[] propValue;
-	propName = NULL;
-	propValue = NULL;
+	propName = nullptr;
+	propValue = nullptr;
 
 	return STATUS_OK;
 }
@@ -474,7 +475,7 @@ ScScript *BaseScriptHolder::invokeMethodThread(const char *methodName) {
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -499,4 +500,4 @@ bool BaseScriptHolder::sendEvent(const char *eventName) {
 	return DID_SUCCEED(applyEvent(eventName));
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

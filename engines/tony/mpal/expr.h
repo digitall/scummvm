@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 /*
@@ -70,16 +69,16 @@ namespace MPAL {
  * Mathamatical framework to manage operations
  */
 typedef struct {
-	byte _type;                     // Object Type (see enum ExprListTypes)
+	byte _type;          // Object Type (see enum ExprListTypes)
 
 	union {
-		int _num;                   // Identifier (if type == ELT_NUMBER)
-		char *_name;                // Variable name (if type == ELT_VAR)
-		MpalHandle _son;            // Handle expressions (if type == ELT_PARENTH)
-		byte *_pson;                // Handle lockato (if type == ELT_PARENTH2)
+		int _num;        // Identifier (if type == ELT_NUMBER)
+		char *_name;     // Variable name (if type == ELT_VAR)
+		MpalHandle _son; // Handle expressions (if type == ELT_PARENTH)
+		byte *_pson;     // Handle lockato (if type == ELT_PARENTH2)
 	} _val;
 
-	byte _symbol;                   // Mathematic symbols (see #define OP_*)
+	byte _symbol;        // Mathematic symbols (see #define OP_*)
 
 } Expression;
 typedef Expression *LpExpression;

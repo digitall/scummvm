@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -111,8 +111,19 @@ void Part::saveLoadWithSerializer(Serializer *ser) {
 }
 
 void Part::set_detune(int8 detune) {
-	_detune_eff = clamp((_detune = detune) + _player->getDetune(), -128, 127);
-	sendPitchBend();
+	// Sam&Max does not have detune, so we just ignore this here. We still get
+	// this called, since Sam&Max uses the same controller for a different
+	// purpose.
+	if (_se->_game_id == GID_SAMNMAX) {
+#if 0
+		if (_mc) {
+			_mc->controlChange(17, detune + 0x40);
+		}
+#endif
+	} else {
+		_detune_eff = clamp((_detune = detune) + _player->getDetune(), -128, 127);
+		sendPitchBend();
+	}
 }
 
 void Part::pitchBend(int16 value) {

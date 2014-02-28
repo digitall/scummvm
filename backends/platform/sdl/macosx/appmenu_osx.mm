@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -35,9 +35,8 @@
 - (void)setAppleMenu:(NSMenu *)menu;
 @end
 
-NSString *constructNSStringFromCString(const char* rawCString, NSStringEncoding stringEncoding) {
-        NSData *nsData = [NSData dataWithBytes:rawCString length:strlen(rawCString)];
-        return [[NSString alloc] initWithData:nsData encoding:stringEncoding];
+NSString *constructNSStringFromCString(const char *rawCString, CFStringEncoding stringEncoding) {
+	return (NSString *)CFStringCreateWithCString(NULL, rawCString, stringEncoding);
 }
 
 void replaceApplicationMenuItems() {
@@ -59,11 +58,11 @@ void replaceApplicationMenuItems() {
 
 	// Get current encoding
 #ifdef USE_TRANSLATION
-	nsString = constructNSStringFromCString((TransMan.getCurrentCharset()).c_str(), NSASCIIStringEncoding);
-	NSStringEncoding stringEncoding = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding((CFStringRef)nsString));
+	nsString = constructNSStringFromCString(TransMan.getCurrentCharset().c_str(), NSASCIIStringEncoding);
+	CFStringEncoding stringEncoding = CFStringConvertIANACharSetNameToEncoding((CFStringRef)nsString);
 	[nsString release];
 #else
-	NSStringEncoding stringEncoding = NSASCIIStringEncoding;
+	CFStringEncoding stringEncoding = kCFStringEncodingASCII;
 #endif
 
 	// Add "About ScummVM" menu item

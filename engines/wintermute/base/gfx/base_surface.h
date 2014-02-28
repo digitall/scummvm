@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -32,6 +32,7 @@
 #include "engines/wintermute/base/base.h"
 #include "engines/wintermute/math/rect32.h"
 #include "graphics/surface.h"
+#include "engines/wintermute/graphics/transform_struct.h"
 
 namespace Wintermute {
 
@@ -41,7 +42,7 @@ public:
 	virtual bool prepareToDraw();
 	uint32 _lastUsedTime;
 	bool _valid;
-	int _lifeTime;
+	int32 _lifeTime;
 
 	bool _pixelOpReady;
 	BaseSurface(BaseGame *inGame);
@@ -53,8 +54,9 @@ public:
 	virtual bool displayTrans(int x, int y, Rect32 rect, uint32 alpha = 0xFFFFFFFF, TSpriteBlendMode blendMode = BLEND_NORMAL, bool mirrorX = false, bool mirrorY = false) = 0;
 	virtual bool displayTransOffset(int x, int y, Rect32 rect, uint32 alpha = 0xFFFFFFFF, TSpriteBlendMode blendMode = BLEND_NORMAL, bool mirrorX = false, bool mirrorY = false, int offsetX = 0, int offsetY = 0) = 0;
 	virtual bool display(int x, int y, Rect32 rect, TSpriteBlendMode blendMode = BLEND_NORMAL, bool mirrorX = false, bool mirrorY = false) = 0;
+	virtual bool displayTransform(int x, int y, Rect32 rect, Rect32 newRect, const TransformStruct &transform) = 0;
 	virtual bool displayZoom(int x, int y, Rect32 rect, float zoomX, float zoomY, uint32 alpha = 0xFFFFFFFF, bool transparent = false, TSpriteBlendMode blendMode = BLEND_NORMAL, bool mirrorX = false, bool mirrorY = false) = 0;
-	virtual bool displayTransform(int x, int y, int hotX, int hotY, Rect32 rect, float zoomX, float zoomY, uint32 alpha, float rotate, TSpriteBlendMode blendMode = BLEND_NORMAL, bool mirrorX = false, bool mirrorY = false) = 0;
+	virtual bool displayTiled(int x, int y, Rect32 rect, int numTimesX, int numTimesY) = 0;
 	virtual bool restore();
 	virtual bool create(const Common::String &filename, bool defaultCK, byte ckRed, byte ckGreen, byte ckBlue, int lifeTime = -1, bool keepLoaded = false) = 0;
 	virtual bool create(int width, int height);
@@ -62,7 +64,7 @@ public:
 		return STATUS_FAILED;
 	}
 	virtual bool putPixel(int x, int y, byte r, byte g, byte b, int a = -1);
-	virtual bool getPixel(int x, int y, byte *r, byte *g, byte *b, byte *a = NULL);
+	virtual bool getPixel(int x, int y, byte *r, byte *g, byte *b, byte *a = nullptr);
 	virtual bool comparePixel(int x, int y, byte r, byte g, byte b, int a = -1);
 	virtual bool startPixelOp();
 	virtual bool endPixelOp();
@@ -79,7 +81,7 @@ public:
 	}
 	Common::String getFileNameStr() { return _filename; }
 	const char* getFileName() { return _filename.c_str(); }
-	//void SetWidth(int Width){ _width = Width;    }
+	//void SetWidth(int Width) { _width = Width;    }
 	//void SetHeight(int Height){ _height = Height; }
 protected:
 	bool _ckDefault;
@@ -89,11 +91,11 @@ protected:
 
 	bool _keepLoaded;
 	Common::String _filename;
-	int _height;
-	int _width;
+	int32 _height;
+	int32 _width;
 
 };
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute
 
 #endif

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -23,7 +23,6 @@
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/events.h"
-#include "common/EventRecorder.h"
 #include "common/file.h"
 #include "common/func.h"
 #include "common/system.h"
@@ -200,7 +199,7 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	_saveLoadPage = 0;
 	_currentSlot = 0;
 	_cursorPos = 0;
-	_colourPos = 0;
+	_colorPos = 0;
 	_fadeDirection = 0;
 	_numToFade = 0;
 	_fadeCount = 0;
@@ -208,7 +207,7 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	_addToRed = 0;
 	_addToBlue = 0;
 	_lastSoundReel = 0;
-	_lastHardKey = 0;
+	_lastHardKey = Common::KEYCODE_INVALID;
 	_bufferIn = 0;
 	_bufferOut = 0;
 	_blinkFrame = 23;
@@ -226,6 +225,49 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	_linePointer = 0;
 	_lineDirection = 0;
 	_lineLength = 0;
+
+	_subtitles = 0;
+	_foreignRelease = 0;
+	_wonGame = 0;
+	_hasSpeech = 0;
+	_roomsSample = 0;
+	_copyProtection = 0;
+
+	for (uint i = 0; i < 128; i++)
+		memset(&_setDat[i], 0, sizeof(SetObject));
+
+	for (uint i = 0; i < 80; i++)
+		memset(&_freeDat[i], 0, sizeof(DynObject));
+
+	for (uint i = 0; i < kNumExObjects; i++)
+		memset(&_exData[i], 0, sizeof(DynObject));
+
+	memset(&_vars, 0, sizeof(GameVars));
+
+	for (uint i = 0; i < 96; i++)
+		memset(&_backdropFlags[i], 0, sizeof(BackdropMapFlag));
+
+	for (uint i = 0; i < kNumReelRoutines+1; i++)
+		memset(&_reelRoutines[i], 0, sizeof(ReelRoutine));
+
+	_personData = 0;
+
+	for (uint i = 0; i < 16; i++)
+		memset(&_openInvList[i], 0, sizeof(ObjectRef));
+
+	for (uint i = 0; i < 30; i++)
+		memset(&_ryanInvList[i], 0, sizeof(ObjectRef));
+
+	for (uint i = 0; i < 11*10; i++)
+		memset(&_mapFlags[i], 0, sizeof(MapFlag));
+
+	for (uint i = 0; i < kNumChanges; i++)
+		memset(&_listOfChanges[i], 0, sizeof(Change));
+
+	_currentCharset = 0;
+
+	for (uint i = 0; i < 36; i++)
+		memset(&_pathData[i], 0, sizeof(RoomPaths));
 }
 
 DreamWebEngine::~DreamWebEngine() {
@@ -263,7 +305,7 @@ void DreamWebEngine::waitForVSync() {
 
 void DreamWebEngine::quit() {
 	_quitRequested = true;
-	_lastHardKey = 1;
+	_lastHardKey = Common::KEYCODE_ESCAPE;
 }
 
 void DreamWebEngine::processEvents() {
@@ -274,7 +316,7 @@ void DreamWebEngine::processEvents() {
 
 	_sound->soundHandler();
 	Common::Event event;
-	int softKey, hardKey;
+	int softKey;
 	while (_eventMan->pollEvent(event)) {
 		switch(event.type) {
 		case Common::EVENT_RTL:
@@ -309,27 +351,20 @@ void DreamWebEngine::processEvents() {
 				return; //do not pass ctrl + key to the engine
 			}
 
-			// Some parts of the ASM code uses the hardware key
-			// code directly. We don't have that code, so we fake
-			// it for the keys where it's needed and assume it's
-			// 0 (which is actually an invalid value, as far as I
-			// know) otherwise.
-
-			hardKey = 0;
+			// Some parts of the code uses the hardware key
+			// code directly.
 
 			switch (event.kbd.keycode) {
 			case Common::KEYCODE_ESCAPE:
-				hardKey = 1;
+				_lastHardKey = Common::KEYCODE_ESCAPE;
 				break;
 			case Common::KEYCODE_SPACE:
-				hardKey = 57;
+				_lastHardKey = Common::KEYCODE_SPACE;
 				break;
 			default:
-				hardKey = 0;
+				_lastHardKey = Common::KEYCODE_INVALID;
 				break;
 			}
-
-			_lastHardKey = hardKey;
 
 			// The rest of the keys are converted to ASCII. This
 			// is fairly restrictive, and eventually we may want
@@ -338,11 +373,13 @@ void DreamWebEngine::processEvents() {
 
 			softKey = 0;
 
-			if (event.kbd.keycode >= Common::KEYCODE_a && event.kbd.keycode <= Common::KEYCODE_z) {
-				softKey = event.kbd.ascii & ~0x20;
-			} else if (event.kbd.keycode == Common::KEYCODE_MINUS ||
-				event.kbd.keycode == Common::KEYCODE_SPACE ||
-				(event.kbd.keycode >= Common::KEYCODE_0 && event.kbd.keycode <= Common::KEYCODE_9)) {
+			debug(1, "DreamWebEngine::processEvents() KeyDown keycode:%d ascii:0x%02x", event.kbd.keycode, event.kbd.ascii);
+			if ((event.kbd.ascii >= 'a' && event.kbd.ascii <= 'z') ||
+				(event.kbd.ascii >= 'A' && event.kbd.ascii <= 'Z')) {
+				softKey = event.kbd.ascii & ~0x20; // (& ~0x20) forces ascii codes for a-z to map to A-Z
+			} else if (event.kbd.ascii == '-' ||
+				event.kbd.ascii == ' ' ||
+				(event.kbd.ascii >= '0' && event.kbd.ascii <= '9')) {
 				softKey = event.kbd.ascii;
 			} else if (event.kbd.keycode >= Common::KEYCODE_KP0 && event.kbd.keycode <= Common::KEYCODE_KP9) {
 				softKey = event.kbd.keycode - Common::KEYCODE_KP0 + '0';
@@ -374,6 +411,7 @@ Common::Error DreamWebEngine::run() {
 	ConfMan.registerDefault("bright_palette", true);
 	_hasSpeech = Common::File::exists(_speechDirName + "/r01c0000.raw") && !ConfMan.getBool("speech_mute");
 	_brightPalette = ConfMan.getBool("bright_palette");
+	_copyProtection = ConfMan.getBool("copy_protection");
 
 	_timer->installTimerProc(vSyncInterrupt, 1000000 / 70, this, "dreamwebVSync");
 	dreamweb();
@@ -403,14 +441,14 @@ Common::String DreamWebEngine::getSavegameFilename(int slot) const {
 
 void DreamWebEngine::keyPressed(uint16 ascii) {
 	debug(2, "key pressed = %04x", ascii);
-	uint16 in = (_bufferIn + 1) & 0x0f;
+	uint16 in = (_bufferIn + 1) % ARRAYSIZE(_keyBuffer);
 	uint16 out = _bufferOut;
 	if (in == out) {
 		warning("keyboard buffer is full");
 		return;
 	}
 	_bufferIn = in;
-	DreamWeb::g_keyBuffer[in] = ascii;
+	_keyBuffer[in] = ascii;
 }
 
 void DreamWebEngine::getPalette(uint8 *data, uint start, uint count) {
@@ -421,7 +459,7 @@ void DreamWebEngine::getPalette(uint8 *data, uint start, uint count) {
 
 void DreamWebEngine::setPalette(const uint8 *data, uint start, uint count) {
 	assert(start + count <= 256);
-	uint8 fixed[768];
+	uint8 fixed[3*256];
 	for (uint i = 0; i < count * 3; ++i) {
 		fixed[i] = data[i] << 2;
 	}
@@ -429,10 +467,10 @@ void DreamWebEngine::setPalette(const uint8 *data, uint start, uint count) {
 }
 
 void DreamWebEngine::blit(const uint8 *src, int pitch, int x, int y, int w, int h) {
-	if (y + h > 200)
-		h = 200 - y;
-	if (x + w > 320)
-		w = 320 - x;
+	if (y + h > (int)kScreenheight)
+		h = kScreenheight - y;
+	if (x + w > (int)kScreenwidth)
+		w = kScreenwidth - x;
 	if (h <= 0 || w <= 0)
 		return;
 	_system->copyRectToScreen(src, pitch, x, y, w, h);

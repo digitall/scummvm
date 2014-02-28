@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -84,7 +84,7 @@ bool KyraEngine_HoF::dropItem(int unk1, Item item, int x, int y, int unk2) {
 
 	bool success = processItemDrop(_mainCharacter.sceneId, item, x, y, unk1, unk2);
 	if (!success) {
-		snd_playSoundEffect(0x0d);
+		snd_playSoundEffect(0x0D);
 		if (countAllItems() >= 30)
 			showMessageFromCCode(5, 0x84, 0);
 	}
@@ -205,7 +205,7 @@ void KyraEngine_HoF::itemDropDown(int startX, int startY, int dstX, int dstY, in
 	if (startX == dstX && startY == dstY) {
 		if (_layerFlagTable[_screen->getLayer(dstX, dstY)] && item != 13) {
 			updateCharFacing();
-			snd_playSoundEffect(0x2d);
+			snd_playSoundEffect(0x2D);
 			removeHandItem();
 			objectChat(getTableString(0xFF, _cCodeBuffer, 1), 0, 0x83, 0xFF);
 		} else {
@@ -213,7 +213,7 @@ void KyraEngine_HoF::itemDropDown(int startX, int startY, int dstX, int dstY, in
 			_itemList[itemSlot].y = dstY;
 			_itemList[itemSlot].id = item;
 			_itemList[itemSlot].sceneId = _mainCharacter.sceneId;
-			snd_playSoundEffect(0x0c);
+			snd_playSoundEffect(0x0C);
 			addItemToAnimList(itemSlot);
 		}
 	} else {
@@ -283,7 +283,7 @@ void KyraEngine_HoF::itemDropDown(int startX, int startY, int dstX, int dstY, in
 
 		if (_layerFlagTable[_screen->getLayer(dstX, dstY)] && item != 13) {
 			updateCharFacing();
-			snd_playSoundEffect(0x2d);
+			snd_playSoundEffect(0x2D);
 			removeHandItem();
 			_screen->showMouse();
 			objectChat(getTableString(0xFF, _cCodeBuffer, 1), 0, 0x83, 0xFF);
@@ -292,7 +292,7 @@ void KyraEngine_HoF::itemDropDown(int startX, int startY, int dstX, int dstY, in
 			_itemList[itemSlot].y = dstY;
 			_itemList[itemSlot].id = item;
 			_itemList[itemSlot].sceneId = _mainCharacter.sceneId;
-			snd_playSoundEffect(0x0c);
+			snd_playSoundEffect(0x0C);
 			addItemToAnimList(itemSlot);
 			_screen->showMouse();
 		}
@@ -307,7 +307,7 @@ void KyraEngine_HoF::exchangeMouseItem(int itemPos) {
 	_itemInHand = itemId;
 
 	addItemToAnimList(itemPos);
-	snd_playSoundEffect(0x0b);
+	snd_playSoundEffect(0x0B);
 	setMouseCursor(_itemInHand);
 	int str2 = 7;
 
@@ -331,7 +331,7 @@ bool KyraEngine_HoF::pickUpItem(int x, int y) {
 		deleteItemAnimEntry(itemPos);
 		int itemId = _itemList[itemPos].id;
 		_itemList[itemPos].id = kItemNone;
-		snd_playSoundEffect(0x0b);
+		snd_playSoundEffect(0x0B);
 		setMouseCursor(itemId);
 		int str2 = 7;
 

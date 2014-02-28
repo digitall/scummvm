@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #include "gui/browser.h"
@@ -32,7 +33,8 @@ namespace GUI {
 
 enum {
 	kChooseCmd = 'Chos',
-	kGoUpCmd = 'GoUp'
+	kGoUpCmd = 'GoUp',
+	kHiddenCmd = 'Hidd'
 };
 
 /* We want to use this as a general directory selector at some point... possible uses
@@ -47,6 +49,7 @@ BrowserDialog::BrowserDialog(const char *title, bool dirBrowser)
 	_isDirBrowser = dirBrowser;
 	_fileList = NULL;
 	_currentPath = NULL;
+	_showHidden = ConfMan.getBool("gui_browser_show_hidden", Common::ConfigManager::kApplicationDomain);
 
 	// Headline - TODO: should be customizable during creation time
 	new StaticTextWidget(this, "Browser.Headline", title);
@@ -60,6 +63,9 @@ BrowserDialog::BrowserDialog(const char *title, bool dirBrowser)
 	_fileList->setEditable(false);
 
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundPlain;
+
+	// Checkbox for the "show hidden files" state.
+	_showHiddenWidget = new CheckboxWidget(this, "Browser.Hidden", _("Show hidden files"), _("Show files marked with the hidden attribute"), kHiddenCmd);
 
 	// Buttons
 	if (g_system->getOverlayWidth() > 320)
@@ -132,6 +138,15 @@ void BrowserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 		if (data != (uint32)-1 && _isDirBrowser && !_nodeContent[data].isDirectory())
 			_fileList->setSelected(-1);
 		break;
+	case kHiddenCmd:
+		// Update whether the user wants hidden files to be shown
+		_showHidden = _showHiddenWidget->getState();
+		// We save the state in the application domain to avoid cluttering and
+		// to prevent odd behavior.
+		ConfMan.setBool("gui_browser_show_hidden", _showHidden, Common::ConfigManager::kApplicationDomain);
+		// Update the file listing
+		updateListing();
+		break;
 	default:
 		Dialog::handleCommand(sender, cmd, data);
 	}
@@ -145,7 +160,7 @@ void BrowserDialog::updateListing() {
 	ConfMan.set("browser_lastpath", _node.getPath());
 
 	// Read in the data from the file system
-	if (!_node.getChildren(_nodeContent, Common::FSNode::kListAll))
+	if (!_node.getChildren(_nodeContent, Common::FSNode::kListAll, _showHidden))
 		_nodeContent.clear();
 	else
 		Common::sort(_nodeContent.begin(), _nodeContent.end());

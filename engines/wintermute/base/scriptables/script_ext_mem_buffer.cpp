@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -44,7 +44,7 @@ BaseScriptable *makeSXMemBuffer(BaseGame *inGame, ScStack *stack) {
 //////////////////////////////////////////////////////////////////////////
 SXMemBuffer::SXMemBuffer(BaseGame *inGame, ScStack *stack) : BaseScriptable(inGame) {
 	stack->correctParams(1);
-	_buffer = NULL;
+	_buffer = nullptr;
 	_size = 0;
 
 	int newSize = stack->pop()->getInt();
@@ -73,7 +73,7 @@ void SXMemBuffer::cleanup() {
 	if (_size) {
 		free(_buffer);
 	}
-	_buffer = NULL;
+	_buffer = nullptr;
 	_size = 0;
 }
 
@@ -109,7 +109,7 @@ bool SXMemBuffer::resize(int newSize) {
 
 //////////////////////////////////////////////////////////////////////////
 bool SXMemBuffer::checkBounds(ScScript *script, int start, int length) {
-	if (_buffer == NULL) {
+	if (_buffer == nullptr) {
 		script->runtimeError("Cannot use Set/Get methods on an uninitialized memory buffer");
 		return false;
 	}
@@ -476,15 +476,15 @@ bool SXMemBuffer::scSetProperty(const char *name, ScValue *value) {
 	//////////////////////////////////////////////////////////////////////////
 	// Length
 	//////////////////////////////////////////////////////////////////////////
-	if (strcmp(name, "Length")==0){
+	if (strcmp(name, "Length")==0) {
 	    int origLength = _length;
 	    _length = max(value->getInt(0), 0);
 
 	    char propName[20];
-	    if (_length < OrigLength){
-	        for(int i=_length; i<OrigLength; i++){
-	            sprintf(PropName, "%d", i);
-	            _values->DeleteProp(PropName);
+	    if (_length < origLength) {
+	        for(int i=_length; i < origLength; i++) {
+	            sprintf(propName, "%d", i);
+	            _values->DeleteProp(propName);
 	        }
 	    }
 	    return STATUS_OK;
@@ -498,7 +498,7 @@ bool SXMemBuffer::persist(BasePersistenceManager *persistMgr) {
 
 	BaseScriptable::persist(persistMgr);
 
-	persistMgr->transfer(TMEMBER(_size));
+	persistMgr->transferSint32(TMEMBER(_size));
 
 	if (persistMgr->getIsSaving()) {
 		if (_size > 0) {
@@ -509,7 +509,7 @@ bool SXMemBuffer::persist(BasePersistenceManager *persistMgr) {
 			_buffer = malloc(_size);
 			persistMgr->getBytes((byte *)_buffer, _size);
 		} else {
-			_buffer = NULL;
+			_buffer = nullptr;
 		}
 	}
 
@@ -526,4 +526,4 @@ int SXMemBuffer::scCompare(BaseScriptable *val) {
 	}
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

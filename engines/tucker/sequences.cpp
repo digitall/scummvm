@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -763,7 +763,7 @@ bool AnimationSequencePlayer::decodeNextAnimationFrame(int index, bool copyDirty
 
 	if (!copyDirtyRects) {
 		for (uint16 y = 0; (y < surface->h) && (y < kScreenHeight); y++)
-			memcpy(_offscreenBuffer + y * kScreenWidth, (byte *)surface->pixels + y * surface->pitch, surface->w);
+			memcpy(_offscreenBuffer + y * kScreenWidth, (const byte *)surface->getBasePtr(0, y), surface->w);
 	} else {
 		_flicPlayer[index].copyDirtyRectsToBuffer(_offscreenBuffer, kScreenWidth);
 	}
@@ -811,7 +811,7 @@ void AnimationSequencePlayer::playIntroSeq19_20() {
 	if (surface)
 		for (int i = 0; i < kScreenWidth * kScreenHeight; ++i)
 			if (_offscreenBuffer[i] == 0)
-				_offscreenBuffer[i] = *((byte *)surface->pixels + i);
+				_offscreenBuffer[i] = *((const byte *)surface->getPixels() + i);
 
 	if (!framesLeft)
 		_changeToNextSequence = true;

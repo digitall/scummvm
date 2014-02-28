@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 
@@ -136,6 +135,7 @@ struct TalkTextItem {
 	byte color;
 	byte lineCount;
 	TextRect lines[15];
+	bool alwaysDisplayed;
 };
 
 struct GuiTextWrapState {
@@ -166,7 +166,6 @@ public:
 	// Sprite list
 	void addStaticSprite(byte *spriteItem);
 	void addAnimatedSprite(int16 x, int16 y, int16 fragmentId, byte *data, int16 *spriteArray, bool loop, int mode);
-	void clearSprites();
 
 	// Sprite drawing
 	void drawSprite(const SpriteDrawItem &sprite);
@@ -177,10 +176,12 @@ public:
 	void updateVerbLine(int16 slotIndex, int16 slotOffset);
 
 	// Talk text
-	void updateTalkText(int16 slotIndex, int16 slotOffset);
+	void updateTalkText(int16 slotIndex, int16 slotOffset, bool alwaysDisplayed);
 	void addTalkTextRect(Font &font, int16 x, int16 &y, int16 length, int16 width, TalkTextItem *item);
 	void addTalkTextItemsToRenderQueue();
 	int16 getTalkTextDuration();
+	bool isTalkTextActive(int16 slotIndex);
+	void finishTalkTextItem(int16 slotIndex);
 	void finishTalkTextItems();
 	void keepTalkTextItemsAlive();
 

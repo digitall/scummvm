@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #include "common/util.h"
@@ -78,4 +79,4 @@ void drawThickLine(int x0, int y0, int x1, int y1, int penX, int penY, int color
 			drawLine(x0 + x, y0 + y, x1 + x, y1 + y, color, plotProc, data);
 }
 
-}	// End of namespace Graphics
+} // End of namespace Graphics

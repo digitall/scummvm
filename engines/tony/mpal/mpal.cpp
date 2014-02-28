@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 /*
@@ -196,7 +195,6 @@ static int locGetOrderFromNum(uint32 nLoc) {
 	return -1;
 }
 
-
 /**
  * Find the index of a message within the messages array
  * @param nMsg				Message number to search for
@@ -233,7 +231,6 @@ static int itemGetOrderFromNum(uint32 nItem) {
 	return -1;
 }
 
-
 /**
  * Find the index of a script within the scripts array
  * @param nScript			Script number to search for
@@ -252,7 +249,6 @@ static int scriptGetOrderFromNum(uint32 nScript) {
 	return -1;
 }
 
-
 /**
  * Find the index of a dialog within the dialogs array
  * @param nDialog			Dialog number to search for
@@ -270,7 +266,6 @@ static int dialogGetOrderFromNum(uint32 nDialog) {
 
 	return -1;
 }
-
 
 /**
  * Duplicates a message
@@ -301,7 +296,6 @@ static char *DuplicateMessage(uint32 nMsgOrd) {
 
 	return clonemsg;
 }
-
 
 /**
  * Duplicate a sentence of a dialog
@@ -339,7 +333,6 @@ static char *duplicateDialogPeriod(uint32 nPeriod) {
 
 	return NULL;
 }
-
 
 /**
  * Load a resource from the MPR file
@@ -415,7 +408,7 @@ static uint32 *getSelectList(uint32 i) {
 			sl[k++] = dialog->_choice[i]._select[j]._dwData;
 	}
 
-	sl[k] = (uint32)NULL;
+	sl[k] = 0;
 	return sl;
 }
 
@@ -442,7 +435,7 @@ static uint32 *GetItemList(uint32 nLoc) {
 		}
 	}
 
-	il[j] = (uint32)NULL;
+	il[j] = 0;
 	return il;
 }
 
@@ -461,16 +454,16 @@ static LpItem getItemData(uint32 nOrdItem) {
 	dat = (char *)globalLock(hDat);
 
 	if (dat[0] == 'D' && dat[1] == 'A' && dat[2] == 'T') {
-		int i = dat[3];			// For version 1.0!!
+		int i = dat[3]; // For version 1.0!!
 		dat += 4;
 
-		if (i >= 0x10) {	// From 1.0, there's a destination point for each object
+		if (i >= 0x10) { // From 1.0, there's a destination point for each object
 			ret->_destX = (int16)READ_LE_UINT16(dat);
 			ret->_destY = (int16)READ_LE_UINT16(dat + 2);
 			dat += 4;
 		}
 
-		if (i >= 0x11) {	// From 1.1, there's animation speed
+		if (i >= 0x11) { // From 1.1, there's animation speed
 			ret->_speed = READ_LE_UINT16(dat);
 			dat += 2;
 		} else
@@ -511,7 +504,7 @@ static LpItem getItemData(uint32 nOrdItem) {
 	for (int i = 1; i < ret->_numpattern; i++) {
 		for (int j = 0; j < patlength[i]; j++)
 			ret->_pattern[i][j] = dat[j];
-		ret->_pattern[i][(int)patlength[i]] = 255;   // Terminate pattern
+		ret->_pattern[i][(int)patlength[i]] = 255; // Terminate pattern
 		dat += patlength[i];
 	}
 
@@ -527,17 +520,17 @@ static LpItem getItemData(uint32 nOrdItem) {
 		dat += dim;
 	}
 
-	// Check if we've got to the end of the file
 	int i = READ_LE_UINT16(dat);
-	if (i != 0xABCD)
-		return NULL;
 
 	globalUnlock(hDat);
 	globalFree(hDat);
 
+	// Check if we've got to the end of the file
+	if (i != 0xABCD)
+		return NULL;
+
 	return ret;
 }
-
 
 /**
  * Thread that calls a custom function. It is used in scripts, so that each script
@@ -561,7 +554,6 @@ void CustomThread(CORO_PARAM, const void *param) {
 
 	CORO_END_CODE;
 }
-
 
 /**
  * Main process for running a script.
@@ -587,7 +579,7 @@ void ScriptThread(CORO_PARAM, const void *param) {
 	_ctx->dwStartTime = g_vm->getTime();
 	_ctx->numHandles = 0;
 
-// debugC(DEBUG_BASIC, kTonyDebugMPAL, "PlayScript(): Moments: %u\n", s->_nMoments);
+	//debugC(DEBUG_BASIC, kTonyDebugMPAL, "PlayScript(): Moments: %u\n", s->_nMoments);
 	for (_ctx->i = 0; _ctx->i < s->_nMoments; _ctx->i++) {
 		// Sleep for the required time
 		if (s->_moment[_ctx->i]._dwTime == -1) {
@@ -596,7 +588,7 @@ void ScriptThread(CORO_PARAM, const void *param) {
 		} else {
 			_ctx->dwCurTime = g_vm->getTime();
 			if (_ctx->dwCurTime < _ctx->dwStartTime + (s->_moment[_ctx->i]._dwTime * 100)) {
-  //     debugC(DEBUG_BASIC, kTonyDebugMPAL, "PlayScript(): Sleeping %lums\n",_ctx->dwStartTime + (s->_moment[_ctx->i]._dwTime*100) - _ctx->dwCurTime);
+				//debugC(DEBUG_BASIC, kTonyDebugMPAL, "PlayScript(): Sleeping %lums\n",_ctx->dwStartTime + (s->_moment[_ctx->i]._dwTime*100) - _ctx->dwCurTime);
 				CORO_INVOKE_1(CoroScheduler.sleep, _ctx->dwStartTime + (s->_moment[_ctx->i]._dwTime * 100) - _ctx->dwCurTime);
 			}
 		}
@@ -654,7 +646,6 @@ void ScriptThread(CORO_PARAM, const void *param) {
 
 	CORO_END_CODE;
 }
-
 
 /**
  * Thread that performs an action on an item. the thread always executes the action,
@@ -752,10 +743,8 @@ void ShutUpActionThread(CORO_PARAM, const void *param) {
 		CORO_INVOKE_1(g_vm->loadState, _ctx->slotNumber);
 	}
 
-
 	CORO_END_CODE;
 }
-
 
 /**
  * Polls one location (starting point of a process)
@@ -764,14 +753,14 @@ void ShutUpActionThread(CORO_PARAM, const void *param) {
  */
 void LocationPollThread(CORO_PARAM, const void *param) {
 	typedef struct {
-		uint32     _nItem, _nAction;
+		uint32 _nItem, _nAction;
 
-		uint16     _wTime;
-		byte       _perc;
+		uint16 _wTime;
+		byte _perc;
 		MpalHandle _when;
-		byte       _nCmds;
-		uint16     _cmdNum[MAX_COMMANDS_PER_ACTION];
-		uint32     _dwLastTime;
+		byte _nCmds;
+		uint16 _cmdNum[MAX_COMMANDS_PER_ACTION];
+		uint32 _dwLastTime;
 	} MYACTION;
 
 	typedef struct {
@@ -842,7 +831,7 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 
 		if (_ctx->k == 0)
 			// We can remove this item from the list
-			_ctx->il[_ctx->i] = (uint32)NULL;
+			_ctx->il[_ctx->i] = 0;
 		else
 			_ctx->nRealItems++;
 	}
@@ -861,7 +850,6 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 		CORO_KILL_SELF();
 		return;
 	}
-
 
 	// We have established that there is at least one item that contains idle actions.
 	// Now we created the mirrored copies of the idle actions.
@@ -905,7 +893,6 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 	// We don't need the item list anymore
 	globalDestroy(_ctx->il);
 
-
 	// Here's the main loop
 	while (1) {
 		// Searching for idle actions requiring time to execute
@@ -944,7 +931,7 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 			if (_ctx->curTime >= _ctx->myActions[_ctx->k]._dwLastTime + _ctx->myActions[_ctx->k]._wTime) {
 				_ctx->myActions[_ctx->k]._dwLastTime += _ctx->myActions[_ctx->k]._wTime;
 
-			   // It's time to check to see if fortune is on the side of the idle action
+				// It's time to check to see if fortune is on the side of the idle action
 				byte randomVal = (byte)g_vm->_randomSource.getRandomNumber(99);
 				if (randomVal < _ctx->myActions[_ctx->k]._perc) {
 					// Check if there is an action running on the item
@@ -975,7 +962,7 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 
 					// Ok, we can perform the action. For convenience, we do it in a new process
 					_ctx->newItem = (LpMpalItem)globalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(MpalItem));
-					if (_ctx->newItem == false) {
+					if (!_ctx->newItem) {
 						globalDestroy(_ctx->myThreads);
 						globalDestroy(_ctx->myActions);
 
@@ -1016,7 +1003,6 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 		}
 	}
 
-
 	// Set idle skip on
 	CORO_INVOKE_4(GLOBALS._lplpFunctions[200], 0, 0, 0, 0);
 
@@ -1037,7 +1023,6 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 
 	CORO_END_CODE;
 }
-
 
 /**
  * Wait for the end of the dialog execution thread, and then restore global
@@ -1070,7 +1055,6 @@ void ShutUpDialogThread(CORO_PARAM, const void *param) {
 }
 
 void doChoice(CORO_PARAM, uint32 nChoice);
-
 
 /**
  * Executes a group of the current dialog. Can 'be the Starting point of a process.
@@ -1148,7 +1132,6 @@ void GroupThread(CORO_PARAM, const void *param) {
 
 	CORO_END_CODE;
 }
-
 
 /**
  * Make a choice in the current dialog.
@@ -1246,7 +1229,6 @@ void doChoice(CORO_PARAM, uint32 nChoice) {
 
 	CORO_END_CODE;
 }
-
 
 /**
  * Perform an action on a certain item.
@@ -1353,7 +1335,6 @@ static uint32 doDialog(uint32 nDlgOrd, uint32 nGroup) {
 	return h;
 }
 
-
 /**
  * Takes note of the selection chosen by the user, and warns the process that was running
  * the box that it can continue.
@@ -1378,7 +1359,6 @@ bool doSelection(uint32 i, uint32 dwData) {
 	CoroScheduler.setEvent(GLOBALS._hDoneChoice);
 	return true;
 }
-
 
 /**
  * @defgroup Exported functions
@@ -1502,6 +1482,8 @@ bool mpalInit(const char *lpszMpcFileName, const char *lpszMprFileName,
 	lzo1x_decompress((const byte *)cmpbuf, dwSizeComp, (byte *)GLOBALS._lpResources, (uint32 *)&nBytesRead);
 	if (nBytesRead != (uint32)GLOBALS._nResources * 8)
 		return false;
+	for (int i = 0; i < 2*GLOBALS._nResources; ++i)
+		GLOBALS._lpResources[i] = FROM_LE_32(GLOBALS._lpResources[i]);
 
 	globalDestroy(cmpbuf);
 
@@ -1884,7 +1866,6 @@ MpalHandle mpalQueryHANDLE(uint16 wQueryType, ...) {
 	return hRet;
 }
 
-
 /**
  * This is a general function to communicate with the library, to request information
  * about what is in the .MPC file
@@ -1894,13 +1875,10 @@ MpalHandle mpalQueryHANDLE(uint16 wQueryType, ...) {
  * @remarks		This is the specialised version of the original single mpalQuery
  * method that needs to run within a co-routine context.
  */
-void mpalQueryCORO(CORO_PARAM, uint16 wQueryType, uint32 *dwRet, ...) {
+void mpalQueryCORO(CORO_PARAM, uint16 wQueryType, uint32 *dwRet) {
 	CORO_BEGIN_CONTEXT;
 		uint32 dwRet;
 	CORO_END_CONTEXT(_ctx);
-
-	va_list v;
-	va_start(v, dwRet);
 
 	CORO_BEGIN_CODE(_ctx);
 
@@ -1927,8 +1905,6 @@ void mpalQueryCORO(CORO_PARAM, uint16 wQueryType, uint32 *dwRet, ...) {
 	}
 
 	CORO_END_CODE;
-
-	va_end(v);
 }
 
 /**
@@ -1958,7 +1934,7 @@ bool mpalExecuteScript(int nScript) {
 
 	// !!! New process management
 	if (CoroScheduler.createProcess(ScriptThread, &s, sizeof(LpMpalScript)) == CORO_INVALID_PID_VALUE)
- 		return false;
+		return false;
 
 	return true;
 }
@@ -2004,7 +1980,6 @@ bool mpalStartIdlePoll(int nLoc) {
 
 	return false;
 }
-
 
 /**
  * Stop processing the idle actions of the items on one location.
@@ -2059,10 +2034,15 @@ int mpalGetSaveStateSize() {
 void mpalSaveState(byte *buf) {
 	lockVar();
 	WRITE_LE_UINT32(buf, GLOBALS._nVars);
-	memcpy(buf + 4, (byte *)GLOBALS._lpmvVars, GLOBALS._nVars * sizeof(MpalVar));
+	buf += 4;
+	for (uint i = 0; i < GLOBALS._nVars; ++i) {
+		LpMpalVar var = &GLOBALS._lpmvVars[i];
+		WRITE_LE_UINT32(buf, var->_dwVal);
+		memcpy(buf + 4, var->_lpszVarName, sizeof(var->_lpszVarName));
+		buf += (4 + sizeof(var->_lpszVarName));
+	}
 	unlockVar();
 }
-
 
 /**
  * Load a save state from a buffer.
@@ -2075,10 +2055,16 @@ int mpalLoadState(byte *buf) {
 	globalFree(GLOBALS._hVars);
 
 	GLOBALS._nVars = READ_LE_UINT32(buf);
+	buf += 4;
 
 	GLOBALS._hVars = globalAllocate(GMEM_ZEROINIT | GMEM_MOVEABLE, GLOBALS._nVars * sizeof(MpalVar));
 	lockVar();
-	memcpy((byte *)GLOBALS._lpmvVars, buf + 4, GLOBALS._nVars * sizeof(MpalVar));
+	for (uint i = 0; i < GLOBALS._nVars; ++i) {
+		LpMpalVar var = &GLOBALS._lpmvVars[i];
+		var->_dwVal = READ_LE_UINT32(buf);
+		memcpy(var->_lpszVarName, buf + 4, sizeof(var->_lpszVarName));
+		buf += (4 + sizeof(var->_lpszVarName));
+	}
 	unlockVar();
 
 	return GLOBALS._nVars * sizeof(MpalVar) + 4;

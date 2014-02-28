@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -729,11 +729,11 @@ void Selenitic::o_mazeRunnerDoorButton(uint16 op, uint16 var, uint16 argc, uint1
 	uint16 cardIdEntry = argv[1];
 
 	if (_mazeRunnerPosition == 288) {
-		_vm->changeToCard(cardIdEntry, false);
+		_vm->changeToCard(cardIdEntry, kNoTransition);
 		_vm->_sound->replaceSoundMyst(cardIdEntry);
 		animatedUpdate(argv[2], &argv[3], 10);
 	} else if (_mazeRunnerPosition == 289) {
-		_vm->changeToCard(cardIdExit, false);
+		_vm->changeToCard(cardIdExit, kNoTransition);
 		_vm->_sound->replaceSoundMyst(cardIdExit);
 		animatedUpdate(argv[2], &argv[3], 10);
 	}
@@ -895,9 +895,9 @@ void Selenitic::o_soundLockButton(uint16 op, uint16 var, uint16 argc, uint16 *ar
 		uint16 cardIdClosed = argv[0];
 		uint16 cardIdOpen = argv[1];
 
-		_vm->changeToCard(cardIdClosed, true);
+		_vm->changeToCard(cardIdClosed, kTransitionDissolve);
 
-		_vm->changeToCard(cardIdOpen, false);
+		_vm->changeToCard(cardIdOpen, kNoTransition);
 		_vm->_sound->replaceSoundMyst(argv[2]);
 
 		animatedUpdate(argv[4], &argv[5], argv[3]);

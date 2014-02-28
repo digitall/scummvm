@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -105,7 +105,7 @@ inline uint32 pow2Fixed(int32 val) {
 }
 #endif
 
-}	// End of namespace
+} // End of anonymous namespace
 
 namespace Audio {
 
@@ -211,7 +211,7 @@ void MaxTrax::interrupt() {
 					goto endOfEventLoop;
 
 				case 0xA0: 	// SPECIAL
-					switch (curEvent->stopTime >> 8){
+					switch (curEvent->stopTime >> 8) {
 					case 0x01:	// SPECIAL_SYNC
 						_playerCtx.syncCallBack(curEvent->stopTime & 0xFF);
 						break;
@@ -1032,6 +1032,6 @@ void MaxTrax::outPutEvent(const Event &ev, int num) {}
 void MaxTrax::outPutScore(const Score &sc, int num) {}
 #endif	// #ifndef NDEBUG
 
-}	// End of namespace Audio
+} // End of namespace Audio
 
 #endif // #if defined(AUDIO_MODS_MAXTRAX_H)

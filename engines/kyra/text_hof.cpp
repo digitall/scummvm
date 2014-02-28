@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -430,7 +430,7 @@ void KyraEngine_HoF::updateDlgBuffer() {
 	Common::String filename = Common::String::format("CH%.02d-S%.02d.DL", _currentChapter, _npcTalkDlgIndex);
 
 	const char *suffix = _flags.isTalkie ? suffixTalkie : suffixTowns;
-	if (_flags.platform != Common::kPlatformPC || _flags.isTalkie)
+	if (_flags.platform != Common::kPlatformDOS || _flags.isTalkie)
 		filename += suffix[_lang];
 	else
 		filename += 'G';
@@ -464,9 +464,9 @@ void KyraEngine_HoF::processDialogue(int dlgOffset, int vocH, int csEntry) {
 		nextTimSequence = READ_LE_UINT16(&_ingameTalkObjIndex[cmd]);
 
 		if (nextTimSequence == 10) {
-			if (queryGameFlag(0x3e))
+			if (queryGameFlag(0x3E))
 				nextTimSequence = 14;
-			if (queryGameFlag(0x3f))
+			if (queryGameFlag(0x3F))
 				nextTimSequence = 15;
 			if (queryGameFlag(0x40))
 				nextTimSequence = 16;

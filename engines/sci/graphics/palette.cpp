@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -386,9 +386,9 @@ void GfxPalette::setRemappingPercentGray(byte color, byte percent) {
 
 	// Note: This is not what the original does, but the results are the same visually
 	for (int i = 0; i < 256; i++) {
-		byte rComponent = _sysPalette.colors[i].r * _remappingPercentToSet * 0.30 / 100;
-		byte gComponent = _sysPalette.colors[i].g * _remappingPercentToSet * 0.59 / 100;
-		byte bComponent = _sysPalette.colors[i].b * _remappingPercentToSet * 0.11 / 100;
+		byte rComponent = (byte)(_sysPalette.colors[i].r * _remappingPercentToSet * 0.30 / 100);
+		byte gComponent = (byte)(_sysPalette.colors[i].g * _remappingPercentToSet * 0.59 / 100);
+		byte bComponent = (byte)(_sysPalette.colors[i].b * _remappingPercentToSet * 0.11 / 100);
 		byte luminosity = rComponent + gComponent + bComponent;
 		_remappingByPercent[i] = kernelFindColor(luminosity, luminosity, luminosity);
 	}
@@ -722,11 +722,6 @@ void GfxPalette::kernelRestore(reg_t memoryHandle) {
 }
 
 void GfxPalette::kernelAssertPalette(GuiResourceId resourceId) {
-	// Sometimes invalid viewIds are asked for, ignore those (e.g. qfg1vga)
-	//if (!_resMan->testResource(ResourceId(kResourceTypeView, resourceId)))
-	//	return;
-	// maybe we took the wrong parameter before, if this causes invalid view again, enable to commented out code again
-
 	GfxView *view = g_sci->_gfxCache->getView(resourceId);
 	Palette *viewPalette = view->getPalette();
 	if (viewPalette) {
@@ -856,7 +851,7 @@ int16 GfxPalette::kernelPalVaryReverse(int16 ticks, uint16 stepStop, int16 direc
 
 	if (!_palVaryTicks) {
 		_palVaryDirection = _palVaryStepStop - _palVaryStep;
-		// ffs. see palVaryInit right above, we fix the code here as well
+		// see palVaryInit above, we fix the code here as well
 		//  just in case
 		palVaryProcess(1, true);
 	} else {

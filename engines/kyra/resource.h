@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -62,7 +62,7 @@ public:
 	bool isInCacheList(Common::String name);
 
 	bool loadFileList(const Common::String &filedata);
-	bool loadFileList(const char * const *filelist, uint32 numFiles);
+	bool loadFileList(const char *const *filelist, uint32 numFiles);
 
 	// This unloads *all* pakfiles, even kyra.dat and protected ones.
 	// It does not remove files from cache though!
@@ -87,7 +87,7 @@ protected:
 	Common::Archive *loadArchive(const Common::String &name, Common::ArchiveMemberPtr member);
 	Common::Archive *loadInstallerArchive(const Common::String &file, const Common::String &ext, const uint8 offset);
 
-	bool loadProtectedFiles(const char * const * list);
+	bool loadProtectedFiles(const char *const * list);
 
 	void initializeLoaders();
 
@@ -566,50 +566,50 @@ enum KyraResources {
 
 	kEoB2IntroStrings,
 	kEoB2IntroCPSFiles,
-	kEob2IntroAnimData00,
-	kEob2IntroAnimData01,
-	kEob2IntroAnimData02,
-	kEob2IntroAnimData03,
-	kEob2IntroAnimData04,
-	kEob2IntroAnimData05,
-	kEob2IntroAnimData06,
-	kEob2IntroAnimData07,
-	kEob2IntroAnimData08,
-	kEob2IntroAnimData09,
-	kEob2IntroAnimData10,
-	kEob2IntroAnimData11,
-	kEob2IntroAnimData12,
-	kEob2IntroAnimData13,
-	kEob2IntroAnimData14,
-	kEob2IntroAnimData15,
-	kEob2IntroAnimData16,
-	kEob2IntroAnimData17,
-	kEob2IntroAnimData18,
-	kEob2IntroAnimData19,
-	kEob2IntroAnimData20,
-	kEob2IntroAnimData21,
-	kEob2IntroAnimData22,
-	kEob2IntroAnimData23,
-	kEob2IntroAnimData24,
-	kEob2IntroAnimData25,
-	kEob2IntroAnimData26,
-	kEob2IntroAnimData27,
-	kEob2IntroAnimData28,
-	kEob2IntroAnimData29,
-	kEob2IntroAnimData30,
-	kEob2IntroAnimData31,
-	kEob2IntroAnimData32,
-	kEob2IntroAnimData33,
-	kEob2IntroAnimData34,
-	kEob2IntroAnimData35,
-	kEob2IntroAnimData36,
-	kEob2IntroAnimData37,
-	kEob2IntroAnimData38,
-	kEob2IntroAnimData39,
-	kEob2IntroAnimData40,
-	kEob2IntroAnimData41,
-	kEob2IntroAnimData42,
-	kEob2IntroAnimData43,
+	kEoB2IntroAnimData00,
+	kEoB2IntroAnimData01,
+	kEoB2IntroAnimData02,
+	kEoB2IntroAnimData03,
+	kEoB2IntroAnimData04,
+	kEoB2IntroAnimData05,
+	kEoB2IntroAnimData06,
+	kEoB2IntroAnimData07,
+	kEoB2IntroAnimData08,
+	kEoB2IntroAnimData09,
+	kEoB2IntroAnimData10,
+	kEoB2IntroAnimData11,
+	kEoB2IntroAnimData12,
+	kEoB2IntroAnimData13,
+	kEoB2IntroAnimData14,
+	kEoB2IntroAnimData15,
+	kEoB2IntroAnimData16,
+	kEoB2IntroAnimData17,
+	kEoB2IntroAnimData18,
+	kEoB2IntroAnimData19,
+	kEoB2IntroAnimData20,
+	kEoB2IntroAnimData21,
+	kEoB2IntroAnimData22,
+	kEoB2IntroAnimData23,
+	kEoB2IntroAnimData24,
+	kEoB2IntroAnimData25,
+	kEoB2IntroAnimData26,
+	kEoB2IntroAnimData27,
+	kEoB2IntroAnimData28,
+	kEoB2IntroAnimData29,
+	kEoB2IntroAnimData30,
+	kEoB2IntroAnimData31,
+	kEoB2IntroAnimData32,
+	kEoB2IntroAnimData33,
+	kEoB2IntroAnimData34,
+	kEoB2IntroAnimData35,
+	kEoB2IntroAnimData36,
+	kEoB2IntroAnimData37,
+	kEoB2IntroAnimData38,
+	kEoB2IntroAnimData39,
+	kEoB2IntroAnimData40,
+	kEoB2IntroAnimData41,
+	kEoB2IntroAnimData42,
+	kEoB2IntroAnimData43,
 	kEoB2IntroShapes00,
 	kEoB2IntroShapes01,
 	kEoB2IntroShapes04,
@@ -618,27 +618,27 @@ enum KyraResources {
 	kEoB2FinaleStrings,
 	kEoB2CreditsData,
 	kEoB2FinaleCPSFiles,
-	kEob2FinaleAnimData00,
-	kEob2FinaleAnimData01,
-	kEob2FinaleAnimData02,
-	kEob2FinaleAnimData03,
-	kEob2FinaleAnimData04,
-	kEob2FinaleAnimData05,
-	kEob2FinaleAnimData06,
-	kEob2FinaleAnimData07,
-	kEob2FinaleAnimData08,
-	kEob2FinaleAnimData09,
-	kEob2FinaleAnimData10,
-	kEob2FinaleAnimData11,
-	kEob2FinaleAnimData12,
-	kEob2FinaleAnimData13,
-	kEob2FinaleAnimData14,
-	kEob2FinaleAnimData15,
-	kEob2FinaleAnimData16,
-	kEob2FinaleAnimData17,
-	kEob2FinaleAnimData18,
-	kEob2FinaleAnimData19,
-	kEob2FinaleAnimData20,
+	kEoB2FinaleAnimData00,
+	kEoB2FinaleAnimData01,
+	kEoB2FinaleAnimData02,
+	kEoB2FinaleAnimData03,
+	kEoB2FinaleAnimData04,
+	kEoB2FinaleAnimData05,
+	kEoB2FinaleAnimData06,
+	kEoB2FinaleAnimData07,
+	kEoB2FinaleAnimData08,
+	kEoB2FinaleAnimData09,
+	kEoB2FinaleAnimData10,
+	kEoB2FinaleAnimData11,
+	kEoB2FinaleAnimData12,
+	kEoB2FinaleAnimData13,
+	kEoB2FinaleAnimData14,
+	kEoB2FinaleAnimData15,
+	kEoB2FinaleAnimData16,
+	kEoB2FinaleAnimData17,
+	kEoB2FinaleAnimData18,
+	kEoB2FinaleAnimData19,
+	kEoB2FinaleAnimData20,
 	kEoB2FinaleShapes00,
 	kEoB2FinaleShapes03,
 	kEoB2FinaleShapes07,
@@ -679,7 +679,10 @@ enum KyraResources {
 	kLoLCharDefsKieran,
 	kLoLCharDefsAkshel,
 	kLoLExpRequirements,
-	kLoLMonsterModifiers,
+	kLoLMonsterModifiers1,
+	kLoLMonsterModifiers2,
+	kLoLMonsterModifiers3,
+	kLoLMonsterModifiers4,
 	kLoLMonsterShiftOffsets,
 	kLoLMonsterDirFlags,
 	kLoLMonsterScaleY,
@@ -742,6 +745,8 @@ enum KyraResources {
 struct Shape;
 struct Room;
 struct AmigaSfxTable;
+struct HoFSeqData;
+struct HoFSeqItemAnimData;
 
 class StaticResource {
 public:
@@ -755,13 +760,13 @@ public:
 	bool init();
 	void deinit();
 
-	const char * const *loadStrings(int id, int &strings);
+	const char *const *loadStrings(int id, int &strings);
 	const uint8 *loadRawData(int id, int &size);
 	const Shape *loadShapeTable(int id, int &entries);
 	const AmigaSfxTable *loadAmigaSfxTable(int id, int &entries);
 	const Room *loadRoomTable(int id, int &entries);
-	const HofSeqData *loadHofSequenceData(int id, int &entries);
-	const ItemAnimData_v1 *loadShapeAnimData_v1(int id, int &entries);
+	const HoFSeqData *loadHoFSequenceData(int id, int &entries);
+	const HoFSeqItemAnimData *loadHoFSeqItemAnimData(int id, int &entries);
 	const ItemAnimDefinition *loadItemAnimDefinition(int id, int &entries);
 #if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	const uint16 *loadRawDataBe16(int id, int &entries);
@@ -803,8 +808,8 @@ private:
 	bool loadShapeTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadAmigaSfxTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadRoomTable(Common::SeekableReadStream &stream, void *&ptr, int &size);
-	bool loadHofSequenceData(Common::SeekableReadStream &stream, void *&ptr, int &size);
-	bool loadShapeAnimData_v1(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadHoFSequenceData(Common::SeekableReadStream &stream, void *&ptr, int &size);
+	bool loadHoFSeqItemAnimData(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadItemAnimDefinition(Common::SeekableReadStream &stream, void *&ptr, int &size);
 #if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	bool loadRawDataBe16(Common::SeekableReadStream &stream, void *&ptr, int &size);
@@ -829,8 +834,8 @@ private:
 	void freeShapeTable(void *&ptr, int &size);
 	void freeAmigaSfxTable(void *&ptr, int &size);
 	void freeRoomTable(void *&ptr, int &size);
-	void freeHofSequenceData(void *&ptr, int &size);
-	void freeHofShapeAnimDataV1(void *&ptr, int &size);
+	void freeHoFSequenceData(void *&ptr, int &size);
+	void freeHoFSeqItemAnimData(void *&ptr, int &size);
 	void freeItemAnimDefinition(void *&ptr, int &size);
 #if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	void freeRawDataBe16(void *&ptr, int &size);
@@ -857,7 +862,7 @@ private:
 		kAmigaSfxTable = 4,
 
 		k2SeqData = 5,
-		k2ShpAnimDataV1 = 6,
+		k2SeqItemAnimData = 6,
 		k2ItemAnimDefinition = 7,
 
 		kLoLCharData = 8,

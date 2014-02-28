@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -610,10 +610,7 @@ void ToucheEngine::res_stopSound() {
 
 void ToucheEngine::res_loadMusic(int num) {
 	debugC(9, kDebugResource, "ToucheEngine::res_loadMusic() num=%d", num);
-	uint32 size;
-	const uint32 offs = res_getDataOffset(kResourceTypeMusic, num, &size);
-	_fData.seek(offs);
-	_midiPlayer->play(_fData, size, true);
+	startMusic(num);
 }
 
 void ToucheEngine::res_loadSpeech(int num) {

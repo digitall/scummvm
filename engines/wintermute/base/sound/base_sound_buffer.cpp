@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -49,15 +49,16 @@ namespace Wintermute {
 
 //////////////////////////////////////////////////////////////////////////
 BaseSoundBuffer::BaseSoundBuffer(BaseGame *inGame) : BaseClass(inGame) {
-	_stream = NULL;
-	_handle = NULL;
-//	_sync = NULL;
+	_stream = nullptr;
+	_handle = nullptr;
+//	_sync = nullptr;
 
 	_streamed = false;
 	_filename = "";
-	_file = NULL;
+	_file = nullptr;
 	_privateVolume = 255;
 	_volume = 255;
+	_pan = 0;
 
 	_looping = false;
 	_loopStart = 0;
@@ -76,10 +77,10 @@ BaseSoundBuffer::~BaseSoundBuffer() {
 	if (_handle) {
 		g_system->getMixer()->stopHandle(*_handle);
 		delete _handle;
-		_handle = NULL;
+		_handle = nullptr;
 	}
 	delete _stream;
-	_stream = NULL;
+	_stream = nullptr;
 }
 
 
@@ -111,7 +112,7 @@ bool BaseSoundBuffer::loadFromFile(const Common::String &filename, bool forceRel
 		if (Audio::loadWAVFromStream(*_file, waveSize, waveRate, waveFlags, &waveType)) {
 			if (waveType == 1) {
 				// We need to wrap the file in a substream to make sure the size is right.
-				_file = new Common::SeekableSubReadStream(_file, 0, waveSize);
+				_file = new Common::SeekableSubReadStream(_file, _file->pos(), waveSize + _file->pos(), DisposeAfterUse::YES);
 				_stream = Audio::makeRawStream(_file, waveRate, waveFlags, DisposeAfterUse::YES);
 			} else {
 				error("BSoundBuffer::LoadFromFile - WAVE not supported yet for %s with type %d", filename.c_str(), waveType);
@@ -134,7 +135,7 @@ bool BaseSoundBuffer::play(bool looping, uint32 startSample) {
 	if (_handle) {
 		g_system->getMixer()->stopHandle(*_handle);
 		delete _handle;
-		_handle = NULL;
+		_handle = nullptr;
 	}
 	// Store the loop-value for save-games.
 	setLooping(looping);
@@ -143,9 +144,9 @@ bool BaseSoundBuffer::play(bool looping, uint32 startSample) {
 		_handle = new Audio::SoundHandle;
 		if (_looping) {
 			Audio::AudioStream *loopStream = new Audio::LoopingAudioStream(_stream, 0, DisposeAfterUse::NO);
-			g_system->getMixer()->playStream(_type, _handle, loopStream, -1, _volume, 0, DisposeAfterUse::YES);
+			g_system->getMixer()->playStream(_type, _handle, loopStream, -1, _volume, _pan, DisposeAfterUse::YES);
 		} else {
-			g_system->getMixer()->playStream(_type, _handle, _stream, -1, _volume, 0, DisposeAfterUse::NO);
+			g_system->getMixer()->playStream(_type, _handle, _stream, -1, _volume, _pan, DisposeAfterUse::NO);
 		}
 	}
 
@@ -268,8 +269,11 @@ bool BaseSoundBuffer::setLoopStart(uint32 pos) {
 
 //////////////////////////////////////////////////////////////////////////
 bool BaseSoundBuffer::setPan(float pan) {
+	pan = MAX(pan, -1.0f);
+	pan = MIN(pan, 1.0f);
+	_pan = (int8)(pan * 127);
 	if (_handle) {
-		g_system->getMixer()->setChannelBalance(*_handle, (int8)(pan * 127));
+		g_system->getMixer()->setChannelBalance(*_handle, _pan);
 	}
 	return STATUS_OK;
 }
@@ -292,4 +296,4 @@ bool BaseSoundBuffer::applyFX(TSFXType type, float param1, float param2, float p
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -86,10 +86,16 @@ public:
 	// Common opcodes
 	DECLARE_OPCODE(o_toggleVar);
 	DECLARE_OPCODE(o_setVar);
-	DECLARE_OPCODE(o_changeCardSwitch);
+	DECLARE_OPCODE(o_changeCardSwitch4);
+	DECLARE_OPCODE(o_changeCardSwitchLtR);
+	DECLARE_OPCODE(o_changeCardSwitchRtL);
 	DECLARE_OPCODE(o_takePage);
 	DECLARE_OPCODE(o_redrawCard);
 	DECLARE_OPCODE(o_goToDest);
+	DECLARE_OPCODE(o_goToDestForward);
+	DECLARE_OPCODE(o_goToDestLeft);
+	DECLARE_OPCODE(o_goToDestRight);
+	DECLARE_OPCODE(o_goToDestUp);
 	DECLARE_OPCODE(o_triggerMovie);
 	DECLARE_OPCODE(o_toggleVarNoRedraw);
 	DECLARE_OPCODE(o_drawAreaState);

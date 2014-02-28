@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -94,7 +94,7 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 	{ SIG_SOUNDSCI0,       7, MAP_CALL(DoSoundResumeAfterRestore), "",                     NULL },
 	{ SIG_SOUNDSCI0,       8, MAP_CALL(DoSoundMasterVolume),       "(i)",                  NULL },
 	{ SIG_SOUNDSCI0,       9, MAP_CALL(DoSoundUpdate),             "o",                    NULL },
-	{ SIG_SOUNDSCI0,      10, MAP_CALL(DoSoundFade),               "o",                    kDoSoundFade_workarounds },
+	{ SIG_SOUNDSCI0,      10, MAP_CALL(DoSoundFade),               "[o0]",                 kDoSoundFade_workarounds },
 	{ SIG_SOUNDSCI0,      11, MAP_CALL(DoSoundGetPolyphony),       "",                     NULL },
 	{ SIG_SOUNDSCI0,      12, MAP_CALL(DoSoundStopAll),            "",                     NULL },
 	{ SIG_SOUNDSCI1EARLY,  0, MAP_CALL(DoSoundMasterVolume),       NULL,                   NULL },
@@ -156,7 +156,7 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 	//        signature for SCI21 should be "o"
 	{ SIG_SOUNDSCI21,      9, MAP_CALL(DoSoundStop),               NULL,                   NULL },
 	{ SIG_SOUNDSCI21,     10, MAP_CALL(DoSoundPause),              NULL,                   NULL },
-	{ SIG_SOUNDSCI21,     11, MAP_CALL(DoSoundFade),               NULL,                   NULL },
+	{ SIG_SOUNDSCI21,     11, MAP_CALL(DoSoundFade),               NULL,                   kDoSoundFade_workarounds },
 	{ SIG_SOUNDSCI21,     12, MAP_CALL(DoSoundSetHold),            NULL,                   NULL },
 	{ SIG_SOUNDSCI21,     13, MAP_CALL(DoSoundDummy),              NULL,                   NULL },
 	{ SIG_SOUNDSCI21,     14, MAP_CALL(DoSoundSetVolume),          NULL,                   NULL },
@@ -202,7 +202,10 @@ static const SciKernelMapSubEntry kPalVary_subops[] = {
 	{ SIG_SCIALL,          4, MAP_CALL(PalVaryChangeTarget),       "i",                    NULL },
 	{ SIG_SCIALL,          5, MAP_CALL(PalVaryChangeTicks),        "i",                    NULL },
 	{ SIG_SCIALL,          6, MAP_CALL(PalVaryPauseResume),        "i",                    NULL },
+#ifdef ENABLE_SCI32
 	{ SIG_SCI32,           8, MAP_CALL(PalVaryUnknown),            "i",                    NULL },
+	{ SIG_SCI32,           9, MAP_CALL(PalVaryUnknown2),           "i",                    NULL },
+#endif
 	SCI_SUBOPENTRY_TERMINATOR
 };
 
@@ -418,7 +421,7 @@ static SciKernelMapEntry s_kernelMap[] = {
 	{ MAP_CALL(PrevNode),          SIG_EVERYWHERE,           "n",                     NULL,            NULL },
 	{ MAP_CALL(PriCoord),          SIG_EVERYWHERE,           "i",                     NULL,            NULL },
 	{ MAP_CALL(Random),            SIG_EVERYWHERE,           "i(i)(i)",               NULL,            NULL },
-	{ MAP_CALL(ReadNumber),        SIG_EVERYWHERE,           "r",                     NULL,            NULL },
+	{ MAP_CALL(ReadNumber),        SIG_EVERYWHERE,           "r",                     NULL,            kReadNumber_workarounds },
 	{ MAP_CALL(RemapColors),       SIG_SCI11, SIGFOR_ALL,    "i(i)(i)(i)(i)",         NULL,            NULL },
 #ifdef ENABLE_SCI32
 	{ "RemapColors", kRemapColors32, SIG_SCI32, SIGFOR_ALL,  "i(i)(i)(i)(i)(i)",      NULL,            NULL },
@@ -428,7 +431,7 @@ static SciKernelMapEntry s_kernelMap[] = {
 	{ MAP_CALL(RestartGame),       SIG_EVERYWHERE,           "",                      NULL,            NULL },
 	{ MAP_CALL(RestoreGame),       SIG_EVERYWHERE,           "[r0]i[r0]",             NULL,            NULL },
 	{ MAP_CALL(Said),              SIG_EVERYWHERE,           "[r0]",                  NULL,            NULL },
-	{ MAP_CALL(SaveGame),          SIG_EVERYWHERE,           "[r0]i[r0](r)",          NULL,            NULL },
+	{ MAP_CALL(SaveGame),          SIG_EVERYWHERE,           "[r0]i[r0](r0)",         NULL,            NULL },
 	{ MAP_CALL(ScriptID),          SIG_EVERYWHERE,           "[io](i)",               NULL,            NULL },
 	{ MAP_CALL(SetCursor),         SIG_SCI21, SIGFOR_ALL,    "i(i)([io])(i*)",        NULL,            NULL },
 	// TODO: SCI2.1 may supply an object optionally (mother goose sci21 right on startup) - find out why
@@ -451,7 +454,7 @@ static SciKernelMapEntry s_kernelMap[] = {
 	{ MAP_CALL(StrAt),             SIG_EVERYWHERE,           "ri(i)",                 NULL,            kStrAt_workarounds },
 	{ MAP_CALL(StrCat),            SIG_EVERYWHERE,           "rr",                    NULL,            NULL },
 	{ MAP_CALL(StrCmp),            SIG_EVERYWHERE,           "rr(i)",                 NULL,            NULL },
-	{ MAP_CALL(StrCpy),            SIG_EVERYWHERE,           "r[r0](i)",              NULL,            NULL },
+	{ MAP_CALL(StrCpy),            SIG_EVERYWHERE,           "r[r0](i)",              NULL,            kStrCpy_workarounds },
 	{ MAP_CALL(StrEnd),            SIG_EVERYWHERE,           "r",                     NULL,            NULL },
 	{ MAP_CALL(StrLen),            SIG_EVERYWHERE,           "[r0]",                  NULL,            kStrLen_workarounds },
 	{ MAP_CALL(StrSplit),          SIG_EVERYWHERE,           "rr[r0]",                NULL,            NULL },

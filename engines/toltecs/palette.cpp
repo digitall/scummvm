@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 
@@ -32,6 +31,8 @@ namespace Toltecs {
 Palette::Palette(ToltecsEngine *vm) : _vm(vm) {
 	clearFragments();
 
+	memset(_mainPalette, 0, sizeof(_mainPalette));
+	memset(_animPalette, 0, sizeof(_animPalette));
 	memset(_colorTransTable, 0, sizeof(_colorTransTable));
 }
 
@@ -138,50 +139,46 @@ void Palette::clearFragments() {
 	_fragments.clear();
 }
 
+byte Palette::getMatchingColor(byte r, byte g, byte b) {
+	int bestIndex = 0;
+	uint16 bestMatch = 0xFFFF;
+
+	for (int j = 0; j < 256; j++) {
+		byte distance = ABS(_mainPalette[j * 3 + 0] - r) + ABS(_mainPalette[j * 3 + 1] - g) + ABS(_mainPalette[j * 3 + 2] - b);
+		byte maxColor = MAX(_mainPalette[j * 3 + 0], MAX(_mainPalette[j * 3 + 1], _mainPalette[j * 3 + 2]));
+		uint16 match = (distance << 8) | maxColor;
+		if (match < bestMatch) {
+			bestMatch = match;
+			bestIndex = j;
+		}
+	}
+
+	return bestIndex;
+}
+
 void Palette::buildColorTransTable(byte limit, int8 deltaValue, byte mask) {
 	byte r = 0, g = 0, b = 0;
 
 	mask &= 7;
 
+	if (deltaValue < 0)	// unused
+		error("buildColorTransTable called with a negative delta value(limit %d, delta %d, mask %02X)", limit, deltaValue, mask);
+
 	for (int i = 0; i < 256; i++) {
-
-		if (deltaValue < 0) {
-			// TODO (probably unused)
-			warning("Palette::buildColorTransTable(%d, %d, %02X) not yet implemented!", limit, deltaValue, mask);
-		} else {
-			r = _mainPalette[i * 3 + 0];
-			g = _mainPalette[i * 3 + 1];
-			b = _mainPalette[i * 3 + 2];
-			if (MAX(r, MAX(b, g)) >= limit) {
-				if ((mask & 1) && r >= deltaValue)
-					r -= deltaValue;
-				if ((mask & 2) && g >= deltaValue)
-					g -= deltaValue;
-				if ((mask & 4) && b >= deltaValue)
-					b -= deltaValue;
-			}
+		r = _mainPalette[i * 3 + 0];
+		g = _mainPalette[i * 3 + 1];
+		b = _mainPalette[i * 3 + 2];
+		if (MAX(r, MAX(b, g)) >= limit) {
+			if ((mask & 1) && r >= deltaValue)
+				r -= deltaValue;
+			if ((mask & 2) && g >= deltaValue)
+				g -= deltaValue;
+			if ((mask & 4) && b >= deltaValue)
+				b -= deltaValue;
 		}
 
-		int bestIndex = 0;
-		uint16 bestMatch = 0xFFFF;
-
-		for (int j = 0; j < 256; j++) {
-			byte distance = ABS(_mainPalette[j * 3 + 0] - r) + ABS(_mainPalette[j * 3 + 1] - g) + ABS(_mainPalette[j * 3 + 2] - b);
-			byte maxColor = MAX(_mainPalette[j * 3 + 0], MAX(_mainPalette[j * 3 + 1], _mainPalette[j * 3 + 2]));
-			uint16 match = (distance << 8) | maxColor;
-			if (match < bestMatch) {
-				bestMatch = match;
-				bestIndex = j;
-			}
-		}
-
-		_colorTransTable[i] = bestIndex;
-
+		_colorTransTable[i] = getMatchingColor(r, g, b);
 	}
-}
-
-void Palette::buildColorTransTable2(byte limit, int8 deltaValue, byte mask) {
-	// TODO
 }
 
 void Palette::saveState(Common::WriteStream *out) {

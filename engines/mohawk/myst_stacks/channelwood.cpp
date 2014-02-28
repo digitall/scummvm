@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -341,7 +341,7 @@ void Channelwood::o_drawImageChangeCardAndVolume(uint16 op, uint16 var, uint16 a
 	_vm->_gfx->copyImageToScreen(imageId, Common::Rect(0, 0, 544, 333));
 	_vm->_system->updateScreen();
 
-	_vm->changeToCard(cardId, true);
+	_vm->changeToCard(cardId, kTransitionPartToLeft);
 
 	if (argc == 3) {
 		uint16 volume = argv[2];
@@ -476,9 +476,12 @@ void Channelwood::o_stairsDoorToggle(uint16 op, uint16 var, uint16 argc, uint16 
 	MystResourceType6 *movie = static_cast<MystResourceType6 *>(_invokingResource);
 
 	if (_state.stairsUpperDoorState) {
-		// TODO: Play backwards
+		// Close door, play the open movie backwards
+		movie->setDirection(-1);
 		movie->playMovie();
 	} else {
+		// Open door
+		movie->setDirection(1);
 		movie->playMovie();
 	}
 }

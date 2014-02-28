@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -41,7 +41,7 @@ SystemClass::SystemClass(const AnsiString &name, PERSISTBUILD build, PERSISTLOAD
 
 	_build = build;
 	_load = load;
-	_next = NULL;
+	_next = nullptr;
 	_savedID = -1;
 	_persistent = persistentClass;
 	_numInst = 0;
@@ -119,7 +119,7 @@ void *SystemClass::idToPointer(int savedID) {
 			return (it->_value)->getInstance();
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -217,4 +217,4 @@ void SystemClass::instanceCallback(SYS_INSTANCE_CALLBACK lpCallback, void *lpDat
 	}
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

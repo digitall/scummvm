@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -48,6 +48,9 @@ public:
 	WintermuteEngine();
 	~WintermuteEngine();
 
+	virtual GUI::Debugger *getDebugger() { return _debugger; }
+	void trigDebugger() { _trigDebug = true; }
+
 	virtual Common::Error run();
 	virtual bool hasFeature(EngineFeature f) const;
 	Common::SaveFileManager *getSaveFileMan() { return _saveFileMan; }
@@ -58,19 +61,15 @@ public:
 	// For detection-purposes:
 	static bool getGameInfo(const Common::FSList &fslist, Common::String &name, Common::String &caption);
 private:
+	bool _trigDebug;
 	int init();
 	void deinit();
 	int messageLoop();
-	Console *_console;
+	GUI::Debugger *_debugger;
 	BaseGame *_game;
 	const ADGameDescription *_gameDescription;
-};
 
-// Example console class
-class Console : public GUI::Debugger {
-public:
-	Console(WintermuteEngine *vm) {}
-	virtual ~Console(void) {}
+	friend class Console;
 };
 
 } // End of namespace Wintermute

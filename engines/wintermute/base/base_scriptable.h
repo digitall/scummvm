@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -48,7 +48,7 @@ public:
 	virtual ~BaseScriptable();
 
 	// high level scripting interface
-	virtual bool canHandleMethod(const char *eventMethod);
+	virtual bool canHandleMethod(const char *eventMethod) const;
 	virtual bool scSetProperty(const char *name, ScValue *value);
 	virtual ScValue *scGetProperty(const Common::String &name);
 	virtual bool scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack, const char *name);
@@ -63,7 +63,7 @@ public:
 	virtual void scSetBool(bool val);
 	virtual int scCompare(BaseScriptable *val);
 	virtual void scDebuggerDesc(char *buf, int bufSize);
-	int _refCount;
+	int32 _refCount;
 	ScValue *_scValue;
 	ScValue *_scProp;
 };
@@ -78,6 +78,6 @@ BaseScriptable *makeSXObject(BaseGame *inGame, ScStack *stack);
 BaseScriptable *makeSXStore(BaseGame *inGame);
 BaseScriptable *makeSXString(BaseGame *inGame, ScStack *stack);
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute
 
 #endif

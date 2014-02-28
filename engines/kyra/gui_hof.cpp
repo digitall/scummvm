@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -521,7 +521,7 @@ void KyraEngine_HoF::bookPrintText(int dstPage, const uint8 *str, int x, int y, 
 	Screen::FontId oldFont = _screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_BOOKFONT_FNT);
 	_screen->_charWidth = -2;
 
-	_screen->printText((const char *)str, x, y, color, (_flags.lang == Common::JA_JPN) ? 0xf6 : 0);
+	_screen->printText((const char *)str, x, y, color, (_flags.lang == Common::JA_JPN) ? 0xF6 : 0);
 
 	_screen->_charWidth = 0;
 	_screen->setFont(oldFont);

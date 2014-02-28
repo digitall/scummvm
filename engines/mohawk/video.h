@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -101,12 +101,14 @@ public:
 	int getCurFrame(VideoHandle handle);
 	uint32 getFrameCount(VideoHandle handle);
 	uint32 getTime(VideoHandle handle);
-	uint32 getDuration(VideoHandle videoHandle);
+	Audio::Timestamp getDuration(VideoHandle videoHandle);
 	bool endOfVideo(VideoHandle handle);
 	void setVideoBounds(VideoHandle handle, Audio::Timestamp start, Audio::Timestamp end);
 	void drawVideoFrame(VideoHandle handle, Audio::Timestamp time);
 	void seekToTime(VideoHandle handle, Audio::Timestamp time);
 	void setVideoLooping(VideoHandle handle, bool loop);
+	Common::Rational getVideoRate(VideoHandle handle) const;
+	void setVideoRate(VideoHandle handle, const Common::Rational &rate);
 	void waitUntilMovieEnds(VideoHandle videoHandle);
 	void delayUntilMovieEnds(VideoHandle videoHandle);
 	void pauseMovie(VideoHandle videoHandle, bool pause);

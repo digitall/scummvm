@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -36,18 +36,18 @@ IMPLEMENT_PERSISTENT(AdSceneNode, false)
 //////////////////////////////////////////////////////////////////////////
 AdSceneNode::AdSceneNode(BaseGame *inGame) : BaseObject(inGame) {
 	_type = OBJECT_NONE;
-	_region = NULL;
-	_entity = NULL;
+	_region = nullptr;
+	_entity = nullptr;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 AdSceneNode::~AdSceneNode() {
 	_gameRef->unregisterObject(_region);
-	_region = NULL;
+	_region = nullptr;
 
 	_gameRef->unregisterObject(_entity);
-	_entity = NULL;
+	_entity = nullptr;
 }
 
 
@@ -72,11 +72,11 @@ bool AdSceneNode::persist(BasePersistenceManager *persistMgr) {
 
 	BaseObject::persist(persistMgr);
 
-	persistMgr->transfer(TMEMBER(_entity));
-	persistMgr->transfer(TMEMBER(_region));
-	persistMgr->transfer(TMEMBER_INT(_type));
+	persistMgr->transferPtr(TMEMBER_PTR(_entity));
+	persistMgr->transferPtr(TMEMBER_PTR(_region));
+	persistMgr->transferSint32(TMEMBER_INT(_type));
 
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

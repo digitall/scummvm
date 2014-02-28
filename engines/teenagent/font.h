@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef TEENAGENT_FONT_H
@@ -28,20 +29,24 @@
 namespace TeenAgent {
 
 class Pack;
+
 class Font {
 public:
-	byte grid_color, shadow_color;
-	byte height, width_pack;
-
 	Font();
-	void load(const Pack &pack, int id);
-	uint render(Graphics::Surface *surface, int x, int y, const Common::String &str, byte color, bool grid = false);
+	~Font();
+
+	void load(const Pack &pack, int id, byte height, byte widthPack);
+	uint render(Graphics::Surface *surface, int x, int y, const Common::String &str, byte color, bool showGrid = false);
 	uint render(Graphics::Surface *surface, int x, int y, char c, byte color);
 	static void grid(Graphics::Surface *surface, int x, int y, int w, int h, byte color);
 
-	~Font();
+	byte getHeight() { return _height; }
+	void setShadowColor(byte color) { _shadowColor = color; }
 private:
-	byte *data;
+	byte *_data;
+
+	byte _gridColor, _shadowColor;
+	byte _height, _widthPack;
 };
 
 } // End of namespace TeenAgent

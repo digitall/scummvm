@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -34,10 +34,11 @@
 #include "engines/wintermute/base/base_game.h"
 #include "engines/wintermute/base/base_file_manager.h"
 #include "engines/wintermute/utils/utils.h"
-#include "engines/wintermute/platform_osystem.h"
 #include "engines/wintermute/wintermute.h"
 #include "graphics/fonts/ttf.h"
 #include "graphics/fontman.h"
+#include "common/unzip.h"
+#include "common/config-manager.h" // For Scummmodern.zip
 #include <limits.h>
 
 namespace Wintermute {
@@ -49,13 +50,13 @@ BaseFontTT::BaseFontTT(BaseGame *inGame) : BaseFont(inGame) {
 	_fontHeight = 12;
 	_isBold = _isItalic = _isUnderline = _isStriked = false;
 
-	_fontFile = NULL;
-	_font = NULL;
-	_fallbackFont = NULL;
-	_deletableFont = NULL;
+	_fontFile = nullptr;
+	_font = nullptr;
+	_fallbackFont = nullptr;
+	_deletableFont = nullptr;
 
 	for (int i = 0; i < NUM_CACHED_TEXTS; i++) {
-		_cachedTexts[i] = NULL;
+		_cachedTexts[i] = nullptr;
 	}
 
 	_lineHeight = 0;
@@ -72,10 +73,10 @@ BaseFontTT::~BaseFontTT(void) {
 	_layers.clear();
 
 	delete[] _fontFile;
-	_fontFile = NULL;
+	_fontFile = nullptr;
 
 	delete _deletableFont;
-	_font = NULL;
+	_font = nullptr;
 }
 
 
@@ -85,7 +86,7 @@ void BaseFontTT::clearCache() {
 		if (_cachedTexts[i]) {
 			delete _cachedTexts[i];
 		}
-		_cachedTexts[i] = NULL;
+		_cachedTexts[i] = nullptr;
 	}
 }
 
@@ -95,13 +96,13 @@ void BaseFontTT::initLoop() {
 	if (_gameRef->_constrainedMemory) {
 		// purge all cached images not used in the last frame
 		for (int i = 0; i < NUM_CACHED_TEXTS; i++) {
-			if (_cachedTexts[i] == NULL) {
+			if (_cachedTexts[i] == nullptr) {
 				continue;
 			}
 
 			if (!_cachedTexts[i]->_marked) {
 				delete _cachedTexts[i];
-				_cachedTexts[i] = NULL;
+				_cachedTexts[i] = nullptr;
 			} else {
 				_cachedTexts[i]->_marked = false;
 			}
@@ -110,17 +111,17 @@ void BaseFontTT::initLoop() {
 }
 
 //////////////////////////////////////////////////////////////////////////
-int BaseFontTT::getTextWidth(byte *text, int maxLength) {
+int BaseFontTT::getTextWidth(const byte *text, int maxLength) {
 	WideString textStr;
 
 	if (_gameRef->_textEncoding == TEXT_UTF8) {
-		textStr = StringUtil::utf8ToWide((char *)text);
+		textStr = StringUtil::utf8ToWide((const char *)text);
 	} else {
-		textStr = StringUtil::ansiToWide((char *)text);
+		textStr = StringUtil::ansiToWide((const char *)text);
 	}
 
 	if (maxLength >= 0 && textStr.size() > (uint32)maxLength) {
-		textStr = Common::String(textStr.c_str(), (uint32)maxLength);
+		textStr = WideString(textStr.c_str(), (uint32)maxLength);
 	}
 	//text = text.substr(0, MaxLength); // TODO: Remove
 
@@ -131,13 +132,13 @@ int BaseFontTT::getTextWidth(byte *text, int maxLength) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-int BaseFontTT::getTextHeight(byte *text, int width) {
+int BaseFontTT::getTextHeight(const byte *text, int width) {
 	WideString textStr;
 
 	if (_gameRef->_textEncoding == TEXT_UTF8) {
-		textStr = StringUtil::utf8ToWide((char *)text);
+		textStr = StringUtil::utf8ToWide((const char *)text);
 	} else {
-		textStr = StringUtil::ansiToWide((char *)text);
+		textStr = StringUtil::ansiToWide((const char *)text);
 	}
 
 
@@ -150,43 +151,48 @@ int BaseFontTT::getTextHeight(byte *text, int width) {
 
 //////////////////////////////////////////////////////////////////////////
 void BaseFontTT::drawText(const byte *text, int x, int y, int width, TTextAlign align, int maxHeight, int maxLength) {
-	if (text == NULL || strcmp((const char *)text, "") == 0) {
+	if (text == nullptr || strcmp((const char *)text, "") == 0) {
 		return;
 	}
 
-	WideString textStr = (const char *)text;
+	WideString textStr;
 
 	// TODO: Why do we still insist on Widestrings everywhere?
-	/*  if (_gameRef->_textEncoding == TEXT_UTF8) text = StringUtil::Utf8ToWide((char *)Text);
-	        else text = StringUtil::AnsiToWide((char *)Text);*/
+	// HACK: J.U.L.I.A. uses CP1252, we need to fix that,
+	// And we still don't have any UTF8-support.
+	if (_gameRef->_textEncoding == TEXT_UTF8) {
+		textStr = StringUtil::utf8ToWide((const char *)text);
+	} else {
+		textStr = StringUtil::ansiToWide((const char *)text);
+	}
 
 	if (maxLength >= 0 && textStr.size() > (uint32)maxLength) {
-		textStr = Common::String(textStr.c_str(), (uint32)maxLength);
+		textStr = WideString(textStr.c_str(), (uint32)maxLength);
 	}
 	//text = text.substr(0, MaxLength); // TODO: Remove
 
 	BaseRenderer *renderer = _gameRef->_renderer;
 
 	// find cached surface, if exists
-	int minPriority = INT_MAX;
+	uint32 minUseTime = UINT_MAX;
 	int minIndex = -1;
-	BaseSurface *surface = NULL;
+	BaseSurface *surface = nullptr;
 	int textOffset = 0;
 
 	for (int i = 0; i < NUM_CACHED_TEXTS; i++) {
-		if (_cachedTexts[i] == NULL) {
-			minPriority = 0;
+		if (_cachedTexts[i] == nullptr) {
+			minUseTime = 0;
 			minIndex = i;
 		} else {
 			if (_cachedTexts[i]->_text == textStr && _cachedTexts[i]->_align == align && _cachedTexts[i]->_width == width && _cachedTexts[i]->_maxHeight == maxHeight && _cachedTexts[i]->_maxLength == maxLength) {
 				surface = _cachedTexts[i]->_surface;
 				textOffset = _cachedTexts[i]->_textOffset;
-				_cachedTexts[i]->_priority++;
 				_cachedTexts[i]->_marked = true;
+				_cachedTexts[i]->_lastUsed = g_system->getMillis();
 				break;
 			} else {
-				if (_cachedTexts[i]->_priority < minPriority) {
-					minPriority = _cachedTexts[i]->_priority;
+				if (_cachedTexts[i]->_lastUsed < minUseTime) {
+					minUseTime = _cachedTexts[i]->_lastUsed;
 					minIndex = i;
 				}
 			}
@@ -199,7 +205,7 @@ void BaseFontTT::drawText(const byte *text, int x, int y, int width, TTextAlign 
 		surface = renderTextToTexture(textStr, width, align, maxHeight, textOffset);
 		if (surface) {
 			// write surface to cache
-			if (_cachedTexts[minIndex] != NULL) {
+			if (_cachedTexts[minIndex] != nullptr) {
 				delete _cachedTexts[minIndex];
 			}
 			_cachedTexts[minIndex] = new BaseCachedTTFontText;
@@ -209,10 +215,10 @@ void BaseFontTT::drawText(const byte *text, int x, int y, int width, TTextAlign 
 			_cachedTexts[minIndex]->_width = width;
 			_cachedTexts[minIndex]->_maxHeight = maxHeight;
 			_cachedTexts[minIndex]->_maxLength = maxLength;
-			_cachedTexts[minIndex]->_priority = 1;
 			_cachedTexts[minIndex]->_text = textStr;
 			_cachedTexts[minIndex]->_textOffset = textOffset;
 			_cachedTexts[minIndex]->_marked = true;
+			_cachedTexts[minIndex]->_lastUsed = g_system->getMillis();
 		}
 	}
 
@@ -220,7 +226,7 @@ void BaseFontTT::drawText(const byte *text, int x, int y, int width, TTextAlign 
 	// and paint it
 	if (surface) {
 		Rect32 rc;
-		BasePlatform::setRect(&rc, 0, 0, surface->getWidth(), surface->getHeight());
+		rc.setRect(0, 0, surface->getWidth(), surface->getHeight());
 		for (uint32 i = 0; i < _layers.size(); i++) {
 			uint32 color = _layers[i]->_color;
 			uint32 origForceAlpha = renderer->_forceAlphaColor;
@@ -242,14 +248,14 @@ BaseSurface *BaseFontTT::renderTextToTexture(const WideString &text, int width, 
 	//TextLineList lines;
 	// TODO: Use WideString-conversion here.
 	//WrapText(text, width, maxHeight, lines);
-	Common::Array<Common::String> lines;
+	Common::Array<WideString> lines;
 	_font->wordWrapText(text, width, lines);
 
 	while (maxHeight > 0 && lines.size() * _lineHeight > maxHeight) {
 		lines.pop_back();
 	}
 	if (lines.size() == 0) {
-		return NULL;
+		return nullptr;
 	}
 
 	Graphics::TextAlign alignment = Graphics::kTextAlignInvalid;
@@ -261,16 +267,13 @@ BaseSurface *BaseFontTT::renderTextToTexture(const WideString &text, int width, 
 		alignment = Graphics::kTextAlignRight;
 	}
 
-	debugC(kWintermuteDebugFont, "%s %d %d %d %d", text.c_str(), RGBCOLGetR(_layers[0]->_color), RGBCOLGetG(_layers[0]->_color), RGBCOLGetB(_layers[0]->_color), RGBCOLGetA(_layers[0]->_color));
+	// TODO: This debug call does not work with WideString because text.c_str() returns an uint32 array.
+	//debugC(kWintermuteDebugFont, "%s %d %d %d %d", text.c_str(), RGBCOLGetR(_layers[0]->_color), RGBCOLGetG(_layers[0]->_color), RGBCOLGetB(_layers[0]->_color), RGBCOLGetA(_layers[0]->_color));
 //	void drawString(Surface *dst, const Common::String &str, int x, int y, int w, uint32 color, TextAlign align = kTextAlignLeft, int deltax = 0, bool useEllipsis = true) const;
 	Graphics::Surface *surface = new Graphics::Surface();
-	if (_deletableFont) { // We actually have a TTF
-		surface->create((uint16)width, (uint16)(_lineHeight * lines.size()), Graphics::PixelFormat(4, 8, 8, 8, 8, 16, 8, 0, 24));
-	} else { // We are using a fallback, they can't do 32bpp
-		surface->create((uint16)width, (uint16)(_lineHeight * lines.size()), Graphics::PixelFormat(2, 5, 5, 5, 1, 11, 6, 1, 0));
-	}
+	surface->create((uint16)width, (uint16)(_lineHeight * lines.size()), _gameRef->_renderer->getPixelFormat());
 	uint32 useColor = 0xffffffff;
-	Common::Array<Common::String>::iterator it;
+	Common::Array<WideString>::iterator it;
 	int heightOffset = 0;
 	for (it = lines.begin(); it != lines.end(); ++it) {
 		_font->drawString(surface, *it, 0, heightOffset, width, useColor, alignment);
@@ -278,12 +281,29 @@ BaseSurface *BaseFontTT::renderTextToTexture(const WideString &text, int width, 
 	}
 
 	BaseSurface *retSurface = _gameRef->_renderer->createSurface();
-	Graphics::Surface *convertedSurface = surface->convertTo(Graphics::PixelFormat(4, 8, 8, 8, 8, 16, 8, 0, 24));
-	retSurface->putSurface(*convertedSurface, true);
-	convertedSurface->free();
+
+	if (_deletableFont) {
+		// Reconstruct the alpha channel of the font.
+
+		// Since we painted it with color 0xFFFFFFFF onto a black background,
+		// the alpha channel is gone, but the color value of each pixel corresponds
+		// to its original alpha value.
+
+		Graphics::PixelFormat format = _gameRef->_renderer->getPixelFormat();
+		uint32 *pixels = (uint32 *)surface->getPixels();
+
+		// This is a Surface we created ourselves, so no empty space between rows.
+		for (int i = 0; i < surface->w * surface->h; ++i) {
+			uint8 a, r, g, b;
+			format.colorToRGB(*pixels, r, g, b);
+			a = r;
+			*pixels++ = format.ARGBToColor(a, r, g, b);
+		}
+	}
+
+	retSurface->putSurface(*surface, true);
 	surface->free();
 	delete surface;
-	delete convertedSurface;
 	return retSurface;
 	// TODO: _isUnderline, _isBold, _isItalic, _isStriked
 }
@@ -297,8 +317,8 @@ int BaseFontTT::getLetterHeight() {
 
 //////////////////////////////////////////////////////////////////////
 bool BaseFontTT::loadFile(const Common::String &filename) {
-	byte *buffer = BaseFileManager::getEngineInstance()->readWholeFile(filename);
-	if (buffer == NULL) {
+	char *buffer = (char *)BaseFileManager::getEngineInstance()->readWholeFile(filename);
+	if (buffer == nullptr) {
 		_gameRef->LOG(0, "BaseFontTT::LoadFile failed for file '%s'", filename.c_str());
 		return STATUS_FAILED;
 	}
@@ -334,7 +354,7 @@ TOKEN_DEF(OFFSET_X)
 TOKEN_DEF(OFFSET_Y)
 TOKEN_DEF_END
 //////////////////////////////////////////////////////////////////////
-bool BaseFontTT::loadBuffer(byte *buffer) {
+bool BaseFontTT::loadBuffer(char *buffer) {
 	TOKEN_TABLE_START(commands)
 	TOKEN_TABLE(TTFONT)
 	TOKEN_TABLE(SIZE)
@@ -354,15 +374,15 @@ bool BaseFontTT::loadBuffer(byte *buffer) {
 	int cmd;
 	BaseParser parser;
 
-	if (parser.getCommand((char **)&buffer, commands, (char **)&params) != TOKEN_TTFONT) {
+	if (parser.getCommand(&buffer, commands, &params) != TOKEN_TTFONT) {
 		_gameRef->LOG(0, "'TTFONT' keyword expected.");
 		return STATUS_FAILED;
 	}
-	buffer = (byte *)params;
+	buffer = params;
 
 	uint32 baseColor = 0x00000000;
 
-	while ((cmd = parser.getCommand((char **)&buffer, commands, (char **)&params)) > 0) {
+	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
 		case TOKEN_SIZE:
 			parser.scanStr(params, "%d", &_fontHeight);
@@ -412,11 +432,11 @@ bool BaseFontTT::loadBuffer(byte *buffer) {
 
 		case TOKEN_LAYER: {
 			BaseTTFontLayer *layer = new BaseTTFontLayer;
-			if (layer && DID_SUCCEED(parseLayer(layer, (byte *)params))) {
+			if (layer && DID_SUCCEED(parseLayer(layer, params))) {
 				_layers.add(layer);
 			} else {
 				delete layer;
-				layer = NULL;
+				layer = nullptr;
 				cmd = PARSERR_TOKENNOTFOUND;
 			}
 		}
@@ -445,7 +465,7 @@ bool BaseFontTT::loadBuffer(byte *buffer) {
 
 
 //////////////////////////////////////////////////////////////////////////
-bool BaseFontTT::parseLayer(BaseTTFontLayer *layer, byte *buffer) {
+bool BaseFontTT::parseLayer(BaseTTFontLayer *layer, char *buffer) {
 	TOKEN_TABLE_START(commands)
 	TOKEN_TABLE(OFFSET_X)
 	TOKEN_TABLE(OFFSET_Y)
@@ -457,7 +477,7 @@ bool BaseFontTT::parseLayer(BaseTTFontLayer *layer, byte *buffer) {
 	int cmd;
 	BaseParser parser;
 
-	while ((cmd = parser.getCommand((char **)&buffer, commands, (char **)&params)) > 0) {
+	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
 		case TOKEN_OFFSET_X:
 			parser.scanStr(params, "%d", &layer->_offsetX);
@@ -494,25 +514,25 @@ bool BaseFontTT::parseLayer(BaseTTFontLayer *layer, byte *buffer) {
 bool BaseFontTT::persist(BasePersistenceManager *persistMgr) {
 	BaseFont::persist(persistMgr);
 
-	persistMgr->transfer(TMEMBER(_isBold));
-	persistMgr->transfer(TMEMBER(_isItalic));
-	persistMgr->transfer(TMEMBER(_isUnderline));
-	persistMgr->transfer(TMEMBER(_isStriked));
-	persistMgr->transfer(TMEMBER(_fontHeight));
-	persistMgr->transfer(TMEMBER(_fontFile));
+	persistMgr->transferBool(TMEMBER(_isBold));
+	persistMgr->transferBool(TMEMBER(_isItalic));
+	persistMgr->transferBool(TMEMBER(_isUnderline));
+	persistMgr->transferBool(TMEMBER(_isStriked));
+	persistMgr->transferSint32(TMEMBER(_fontHeight));
+	persistMgr->transferCharPtr(TMEMBER(_fontFile));
 
 
 	// persist layers
-	int numLayers;
+	int32 numLayers;
 	if (persistMgr->getIsSaving()) {
 		numLayers = _layers.size();
-		persistMgr->transfer(TMEMBER(numLayers));
+		persistMgr->transferSint32(TMEMBER(numLayers));
 		for (int i = 0; i < numLayers; i++) {
 			_layers[i]->persist(persistMgr);
 		}
 	} else {
 		numLayers = _layers.size();
-		persistMgr->transfer(TMEMBER(numLayers));
+		persistMgr->transferSint32(TMEMBER(numLayers));
 		for (int i = 0; i < numLayers; i++) {
 			BaseTTFontLayer *layer = new BaseTTFontLayer;
 			layer->persist(persistMgr);
@@ -522,9 +542,9 @@ bool BaseFontTT::persist(BasePersistenceManager *persistMgr) {
 
 	if (!persistMgr->getIsSaving()) {
 		for (int i = 0; i < NUM_CACHED_TEXTS; i++) {
-			_cachedTexts[i] = NULL;
+			_cachedTexts[i] = nullptr;
 		}
-		_fallbackFont = _font = _deletableFont = NULL;
+		_fallbackFont = _font = _deletableFont = nullptr;
 	}
 
 	return STATUS_OK;
@@ -541,26 +561,73 @@ bool BaseFontTT::initFont() {
 	if (!_fontFile) {
 		return STATUS_FAILED;
 	}
+#ifdef USE_FREETYPE2
+	Common::String fallbackFilename;
+	// Handle Bold atleast for the fallback-case.
+	// TODO: Handle italic. (Needs a test-case)
+	if (_isBold) {
+		fallbackFilename = "FreeSansBold.ttf";
+	} else {
+		fallbackFilename = "FreeSans.ttf";
+	}
 
 	Common::SeekableReadStream *file = BaseFileManager::getEngineInstance()->openFile(_fontFile);
 	if (!file) {
-		//TODO: Try to fallback from Arial to FreeSans
-		/*
-		// the requested font file is not in wme file space; try loading a system font
-		AnsiString fontFileName = PathUtil::combine(BasePlatform::getSystemFontPath(), PathUtil::getFileName(_fontFile));
-		file = BaseFileManager::getEngineInstance()->openFile(fontFileName.c_str(), false);
-		if (!file) {
-		    _gameRef->LOG(0, "Error loading TrueType font '%s'", _fontFile);
-		    //return STATUS_FAILED;
-		}*/
+		if (Common::String(_fontFile) != "arial.ttf") {
+			warning("%s has no replacement font yet, using FreeSans for now (if available)", _fontFile);
+		}
+		// Fallback1: Try to find FreeSans.ttf
+		file = SearchMan.createReadStreamForMember(fallbackFilename);
 	}
 
 	if (file) {
-#ifdef USE_FREETYPE2
-		_deletableFont = Graphics::loadTTFFont(*file, 96, _fontHeight); // Use the same dpi as WME (96 vs 72).
+		_deletableFont = Graphics::loadTTFFont(*file, _fontHeight, 96); // Use the same dpi as WME (96 vs 72).
 		_font = _deletableFont;
-#endif
+		BaseFileManager::getEngineInstance()->closeFile(file);
+		file = nullptr;
 	}
+
+	// Fallback2: Try to find ScummModern.zip, and get the font from there:
+	if (!_font) {
+		Common::SeekableReadStream *themeFile = nullptr;
+		if (ConfMan.hasKey("themepath")) {
+			Common::FSNode themePath(ConfMan.get("themepath"));
+			if (themePath.exists()) {
+				Common::FSNode scummModern = themePath.getChild("scummmodern.zip");
+				if (scummModern.exists()) {
+					themeFile = scummModern.createReadStream();
+				}
+			}
+		}
+		if (!themeFile) { // Fallback 2.5: Search for ScummModern.zip in SearchMan.
+			themeFile = SearchMan.createReadStreamForMember("scummmodern.zip");
+		}
+		if (themeFile) {
+			Common::Archive *themeArchive = Common::makeZipArchive(themeFile);
+			if (themeArchive->hasFile(fallbackFilename)) {
+				file = nullptr;
+				file = themeArchive->createReadStreamForMember(fallbackFilename);
+				_deletableFont = Graphics::loadTTFFont(*file, _fontHeight, 96); // Use the same dpi as WME (96 vs 72).
+				_font = _deletableFont;
+			}
+			// We're not using BaseFileManager, so clean up after ourselves:
+			delete file;
+			file = nullptr;
+			delete themeArchive;
+			themeArchive = nullptr;
+		}
+	}
+
+	// Fallback3: Try to ask FontMan for the FreeSans.ttf ScummModern.zip uses:
+	if (!_font) {
+		// Really not desireable, as we will get a font with dpi-72 then
+		Common::String fontName = Common::String::format("%s-%s@%d", fallbackFilename.c_str(), "ASCII", _fontHeight);
+		warning("Looking for %s", fontName.c_str());
+		_font = FontMan.getFontByName(fontName);
+	}
+#endif // USE_FREETYPE2
+
+	// Fallback4: Just use the Big GUI-font. (REALLY undesireable)
 	if (!_font) {
 		_font = _fallbackFont = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
 		warning("BaseFontTT::InitFont - Couldn't load font: %s", _fontFile);
@@ -574,9 +641,9 @@ void BaseFontTT::measureText(const WideString &text, int maxWidth, int maxHeight
 	//TextLineList lines;
 
 	if (maxWidth >= 0) {
-		Common::Array<Common::String> lines;
+		Common::Array<WideString> lines;
 		_font->wordWrapText(text, maxWidth, lines);
-		Common::Array<Common::String>::iterator it;
+		Common::Array<WideString>::iterator it;
 		textWidth = 0;
 		for (it = lines.begin(); it != lines.end(); ++it) {
 			textWidth = MAX(textWidth, _font->getStringWidth(*it));
@@ -595,8 +662,8 @@ void BaseFontTT::measureText(const WideString &text, int maxWidth, int maxHeight
 	        TextLine *line = (*it);
 	        textWidth = MAX(textWidth, line->GetWidth());
 	        delete line;
-	        line = NULL;
+	        line = nullptr;
 	    }*/
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

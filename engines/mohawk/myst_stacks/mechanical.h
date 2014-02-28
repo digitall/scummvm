@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -80,9 +80,9 @@ private:
 	DECLARE_OPCODE(o_elevatorWindowMovie);
 	DECLARE_OPCODE(o_elevatorGoMiddle);
 	DECLARE_OPCODE(o_elevatorTopMovie);
-	DECLARE_OPCODE(opcode_124);
+	DECLARE_OPCODE(o_fortressRotationSetPosition);
 	DECLARE_OPCODE(o_mystStaircaseMovie);
-	DECLARE_OPCODE(opcode_126);
+	DECLARE_OPCODE(o_elevatorWaitTimeout);
 	DECLARE_OPCODE(o_crystalEnterYellow);
 	DECLARE_OPCODE(o_crystalEnterGreen);
 	DECLARE_OPCODE(o_crystalEnterRed);
@@ -104,13 +104,19 @@ private:
 	bool _mystStaircaseState; // 76
 
 	bool _fortressRotationRunning;
+	bool _gearsWereRunning;
 	uint16 _fortressRotationSpeed; // 78
 	uint16 _fortressRotationBrake; // 80
 	uint16 _fortressPosition; // 82
 	uint16 _fortressRotationSounds[4]; // 86 to 92
 	MystResourceType6 *_fortressRotationGears; // 172
 
+	bool _fortressRotationShortMovieWorkaround;
+	uint32 _fortressRotationShortMovieCount;
+	uint32 _fortressRotationShortMovieLast;
+
 	bool _fortressSimulationRunning;
+	bool _fortressSimulationInit; // 94
 	uint16 _fortressSimulationSpeed; // 96
 	uint16 _fortressSimulationBrake; // 98
 	uint16 _fortressSimulationStartSound1; // 102

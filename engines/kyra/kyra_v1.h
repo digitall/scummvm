@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -140,14 +140,6 @@ enum {
 	GI_EOB2 = 6
 };
 
-struct AudioDataStruct {
-	const char *const *fileList;
-	int fileListLen;
-	const void *cdaTracks;
-	int cdaNumTracks;
-	int extraOffset;
-};
-
 // TODO: this is just the start of makeing the debug output of the kyra engine a bit more useable
 // in the future we maybe merge some flags  and/or create new ones
 enum DebugLevels {
@@ -164,7 +156,7 @@ enum DebugLevels {
 	kDebugLevelTimer       = 1 << 10  ///< debug level for "TimerManager" functions
 };
 
-enum MusicDataID {
+enum AudioResourceSet {
 	kMusicIntro = 0,
 	kMusicIngame,
 	kMusicFinale
@@ -188,6 +180,7 @@ friend class GUI;
 friend class GUI_v1;
 friend class GUI_EoB;
 friend class SoundMidiPC;    // For _eventMan
+friend class SeqPlayer_HOF; // For skipFlag()
 friend class TransferPartyWiz; // For save state API
 public:
 	KyraEngine_v1(OSystem *system, const GameFlags &flags);
@@ -415,14 +408,14 @@ protected:
 		Graphics::Surface *thumbnail;
 	};
 
-	enum kReadSaveHeaderError {
+	enum ReadSaveHeaderError {
 		kRSHENoError = 0,
 		kRSHEInvalidType = 1,
 		kRSHEInvalidVersion = 2,
 		kRSHEIoError = 3
 	};
 
-	static kReadSaveHeaderError readSaveHeader(Common::SeekableReadStream *file, bool loadThumbnail, SaveHeader &header);
+	static ReadSaveHeaderError readSaveHeader(Common::SeekableReadStream *file, bool loadThumbnail, SaveHeader &header);
 
 	void loadGameStateCheck(int slot);
 	virtual Common::Error loadGameState(int slot) = 0;

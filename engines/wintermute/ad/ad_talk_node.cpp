@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -39,11 +39,11 @@ IMPLEMENT_PERSISTENT(AdTalkNode, false)
 
 //////////////////////////////////////////////////////////////////////////
 AdTalkNode::AdTalkNode(BaseGame *inGame) : BaseClass(inGame) {
-	_sprite = NULL;
-	_spriteFilename = NULL;
-	_spriteSet = NULL;
-	_spriteSetFilename = NULL;
-	_comment = NULL;
+	_sprite = nullptr;
+	_spriteFilename = nullptr;
+	_spriteSet = nullptr;
+	_spriteSetFilename = nullptr;
+	_comment = nullptr;
 
 	_startTime = _endTime = 0;
 	_playToEnd = false;
@@ -58,11 +58,11 @@ AdTalkNode::~AdTalkNode() {
 	delete[] _spriteSetFilename;
 	delete _spriteSet;
 	delete _comment;
-	_spriteFilename = NULL;
-	_sprite = NULL;
-	_spriteSetFilename = NULL;
-	_spriteSet = NULL;
-	_comment = NULL;
+	_spriteFilename = nullptr;
+	_sprite = nullptr;
+	_spriteSetFilename = nullptr;
+	_spriteSet = nullptr;
+	_comment = nullptr;
 }
 
 
@@ -79,7 +79,7 @@ TOKEN_DEF(PRECACHE)
 TOKEN_DEF(EDITOR_PROPERTY)
 TOKEN_DEF_END
 //////////////////////////////////////////////////////////////////////////
-bool AdTalkNode::loadBuffer(byte *buffer, bool complete) {
+bool AdTalkNode::loadBuffer(char *buffer, bool complete) {
 	TOKEN_TABLE_START(commands)
 	TOKEN_TABLE(ACTION)
 	TOKEN_TABLE(SPRITESET_FILE)
@@ -92,12 +92,12 @@ bool AdTalkNode::loadBuffer(byte *buffer, bool complete) {
 	TOKEN_TABLE(EDITOR_PROPERTY)
 	TOKEN_TABLE_END
 
-	byte *params;
+	char *params;
 	int cmd;
 	BaseParser parser;
 
 	if (complete) {
-		if (parser.getCommand((char **)&buffer, commands, (char **)&params) != TOKEN_ACTION) {
+		if (parser.getCommand(&buffer, commands, &params) != TOKEN_ACTION) {
 			_gameRef->LOG(0, "'ACTION' keyword expected.");
 			return STATUS_FAILED;
 		}
@@ -108,14 +108,14 @@ bool AdTalkNode::loadBuffer(byte *buffer, bool complete) {
 	_playToEnd = false;
 	_preCache = false;
 
-	while ((cmd = parser.getCommand((char **)&buffer, commands, (char **)&params)) > 0) {
+	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
 		case TOKEN_SPRITE:
-			BaseUtils::setString(&_spriteFilename, (char *)params);
+			BaseUtils::setString(&_spriteFilename, params);
 			break;
 
 		case TOKEN_SPRITESET_FILE:
-			BaseUtils::setString(&_spriteSetFilename, (char *)params);
+			BaseUtils::setString(&_spriteSetFilename, params);
 			break;
 
 		case TOKEN_SPRITESET: {
@@ -123,27 +123,27 @@ bool AdTalkNode::loadBuffer(byte *buffer, bool complete) {
 			_spriteSet = new AdSpriteSet(_gameRef);
 			if (!_spriteSet || DID_FAIL(_spriteSet->loadBuffer(params, false))) {
 				delete _spriteSet;
-				_spriteSet = NULL;
+				_spriteSet = nullptr;
 				cmd = PARSERR_GENERIC;
 			}
 		}
 		break;
 
 		case TOKEN_START_TIME:
-			parser.scanStr((char *)params, "%d", &_startTime);
+			parser.scanStr(params, "%d", &_startTime);
 			break;
 
 		case TOKEN_END_TIME:
-			parser.scanStr((char *)params, "%d", &_endTime);
+			parser.scanStr(params, "%d", &_endTime);
 			break;
 
 		case TOKEN_PRECACHE:
-			parser.scanStr((char *)params, "%b", &_preCache);
+			parser.scanStr(params, "%b", &_preCache);
 			break;
 
 		case TOKEN_COMMENT:
 			if (_gameRef->_editorMode) {
-				BaseUtils::setString(&_comment, (char *)params);
+				BaseUtils::setString(&_comment, params);
 			}
 			break;
 
@@ -191,14 +191,14 @@ bool AdTalkNode::loadBuffer(byte *buffer, bool complete) {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdTalkNode::persist(BasePersistenceManager *persistMgr) {
-	persistMgr->transfer(TMEMBER(_comment));
-	persistMgr->transfer(TMEMBER(_startTime));
-	persistMgr->transfer(TMEMBER(_endTime));
-	persistMgr->transfer(TMEMBER(_playToEnd));
-	persistMgr->transfer(TMEMBER(_sprite));
-	persistMgr->transfer(TMEMBER(_spriteFilename));
-	persistMgr->transfer(TMEMBER(_spriteSet));
-	persistMgr->transfer(TMEMBER(_spriteSetFilename));
+	persistMgr->transferCharPtr(TMEMBER(_comment));
+	persistMgr->transferUint32(TMEMBER(_startTime));
+	persistMgr->transferUint32(TMEMBER(_endTime));
+	persistMgr->transferBool(TMEMBER(_playToEnd));
+	persistMgr->transferPtr(TMEMBER_PTR(_sprite));
+	persistMgr->transferCharPtr(TMEMBER(_spriteFilename));
+	persistMgr->transferPtr(TMEMBER_PTR(_spriteSet));
+	persistMgr->transferCharPtr(TMEMBER(_spriteSetFilename));
 
 	return STATUS_OK;
 }
@@ -240,7 +240,7 @@ bool AdTalkNode::loadSprite() {
 		_sprite = new BaseSprite(_gameRef);
 		if (!_sprite || DID_FAIL(_sprite->loadFile(_spriteFilename))) {
 			delete _sprite;
-			_sprite = NULL;
+			_sprite = nullptr;
 			return STATUS_FAILED;
 		} else {
 			return STATUS_OK;
@@ -249,7 +249,7 @@ bool AdTalkNode::loadSprite() {
 		_spriteSet = new AdSpriteSet(_gameRef);
 		if (!_spriteSet || DID_FAIL(_spriteSet->loadFile(_spriteSetFilename))) {
 			delete _spriteSet;
-			_spriteSet = NULL;
+			_spriteSet = nullptr;
 			return STATUS_FAILED;
 		} else {
 			return STATUS_OK;
@@ -264,9 +264,9 @@ bool AdTalkNode::loadSprite() {
 bool AdTalkNode::isInTimeInterval(uint32 time, TDirection dir) {
 	if (time >= _startTime) {
 		if (_playToEnd) {
-			if ((_spriteFilename && _sprite == NULL) || (_sprite && _sprite->isFinished() == false)) {
+			if ((_spriteFilename && _sprite == nullptr) || (_sprite && _sprite->isFinished() == false)) {
 				return true;
-			} else if ((_spriteSetFilename && _spriteSet == NULL) || (_spriteSet && _spriteSet->getSprite(dir) && _spriteSet->getSprite(dir)->isFinished() == false)) {
+			} else if ((_spriteSetFilename && _spriteSet == nullptr) || (_spriteSet && _spriteSet->getSprite(dir) && _spriteSet->getSprite(dir)->isFinished() == false)) {
 				return true;
 			} else {
 				return false;
@@ -288,8 +288,8 @@ BaseSprite *AdTalkNode::getSprite(TDirection dir) {
 	} else if (_spriteSet) {
 		return _spriteSet->getSprite(dir);
 	} else {
-		return NULL;
+		return nullptr;
 	}
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

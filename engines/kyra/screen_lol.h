@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -65,7 +65,6 @@ public:
 	void loadSpecialColors(Palette &dst);
 	void copyColor(int dstColorIndex, int srcColorIndex);
 	bool fadeColor(int dstColorIndex, int srcColorIndex, uint32 elapsedTicks, uint32 totalTicks);
-	bool fadePaletteStep(uint8 *pal1, uint8 *pal2, uint32 elapsedTime, uint32 targetTime);
 	Palette **generateFadeTable(Palette **dst, Palette *src1, Palette *src2, int numTabs);
 
 	void generateGrayOverlay(const Palette &Pal, uint8 *grayOverlay, int factor, int addR, int addG, int addB, int lastColor, bool skipSpecialColors);

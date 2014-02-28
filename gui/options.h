@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef OPTIONS_DIALOG_H
@@ -30,6 +31,10 @@
 
 #ifdef SMALL_SCREEN_DEVICE
 #include "gui/KeysDialog.h"
+#endif
+
+#ifdef USE_FLUIDSYNTH
+#include "gui/fluidsynth-dialog.h"
 #endif
 
 namespace GUI {
@@ -207,6 +212,9 @@ public:
 protected:
 #ifdef SMALL_SCREEN_DEVICE
 	KeysDialog *_keysDialog;
+#endif
+#ifdef USE_FLUIDSYNTH
+	FluidSynthSettingsDialog *_fluidSynthSettingsDialog;
 #endif
 	StaticTextWidget *_savePath;
 	ButtonWidget	 *_savePathClearButton;

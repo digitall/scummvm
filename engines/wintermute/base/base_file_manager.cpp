@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -31,7 +31,6 @@
 #include "engines/wintermute/base/file/base_disk_file.h"
 #include "engines/wintermute/base/file/base_save_thumb_file.h"
 #include "engines/wintermute/base/file/base_package.h"
-#include "engines/wintermute/base/file/base_resources.h"
 #include "engines/wintermute/base/base_engine.h"
 #include "engines/wintermute/wintermute.h"
 #include "common/debug.h"
@@ -45,6 +44,7 @@
 #include "common/file.h"
 #include "common/savefile.h"
 #include "common/fs.h"
+#include "common/unzip.h"
 
 namespace Wintermute {
 
@@ -53,8 +53,11 @@ namespace Wintermute {
 //////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////
-BaseFileManager::BaseFileManager(Common::Language lang) {
+BaseFileManager::BaseFileManager(Common::Language lang, bool detectionMode) {
+	_detectionMode = detectionMode;
 	_language = lang;
+	_resources = nullptr;
+	initResources();
 	initPaths();
 	registerPackages();
 }
@@ -79,37 +82,41 @@ bool BaseFileManager::cleanup() {
 	// delete packages
 	_packages.clear();
 
+	// get rid of the resources:
+	delete _resources;
+	_resources = NULL;
+
 	return STATUS_OK;
 }
 
 //////////////////////////////////////////////////////////////////////
 byte *BaseFileManager::readWholeFile(const Common::String &filename, uint32 *size, bool mustExist) {
-	byte *buffer = NULL;
+	byte *buffer = nullptr;
 
 	Common::SeekableReadStream *file = openFile(filename);
 	if (!file) {
 		if (mustExist) {
 			debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "Error opening file '%s'", filename.c_str());
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	buffer = new byte[file->size() + 1];
-	if (buffer == NULL) {
+	if (buffer == nullptr) {
 		debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "Error allocating buffer for file '%s' (%d bytes)", filename.c_str(), file->size() + 1);
 		closeFile(file);
-		return NULL;
+		return nullptr;
 	}
 
 	if (file->read(buffer, (uint32)file->size()) != (uint32)file->size()) {
 		debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "Error reading file '%s'", filename.c_str());
 		closeFile(file);
 		delete[] buffer;
-		return NULL;
+		return nullptr;
 	};
 
 	buffer[file->size()] = '\0';
-	if (size != NULL) {
+	if (size != nullptr) {
 		*size = file->size();
 	}
 	closeFile(file);
@@ -161,15 +168,20 @@ bool BaseFileManager::initPaths() {
 	if (languageSubFolder.exists()) {
 		addPath(PATH_PACKAGE, languageSubFolder);
 	}
+	// Also add languages/ for Reversion1.
+	languageSubFolder = gameData.getChild("languages");
+	if (languageSubFolder.exists()) {
+		addPath(PATH_PACKAGE, languageSubFolder);
+	}
 	return STATUS_OK;
 }
 
 bool BaseFileManager::registerPackages(const Common::FSList &fslist) {
 	for (Common::FSList::const_iterator it = fslist.begin(); it != fslist.end(); ++it) {
-		debugC(kWintermuteDebugFileAccess, "Adding %s", (*it).getName().c_str());
-		if ((*it).getName().contains(".dcp")) {
-			if (registerPackage((*it))) {
-				addPath(PATH_PACKAGE, (*it));
+		debugC(kWintermuteDebugFileAccess, "Adding %s", it->getName().c_str());
+		if (it->getName().contains(".dcp")) {
+			if (registerPackage(*it)) {
+				addPath(PATH_PACKAGE, *it);
 			}
 		}
 	}
@@ -180,34 +192,77 @@ bool BaseFileManager::registerPackages(const Common::FSList &fslist) {
 bool BaseFileManager::registerPackages() {
 	debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "Scanning packages");
 
+	// We need the target name as a Common::String to perform some game-specific hacks.
+	Common::String targetName = BaseEngine::instance().getGameTargetName();
+
 	// Register without using SearchMan, as otherwise the FSNode-based lookup in openPackage will fail
 	// and that has to be like that to support the detection-scheme.
 	Common::FSList files;
-	for (Common::FSList::iterator it = _packagePaths.begin(); it != _packagePaths.end(); ++it) {
-		debugC(kWintermuteDebugFileAccess, "Should register folder: %s %s", (*it).getPath().c_str(), (*it).getName().c_str());
-		(*it).getChildren(files, Common::FSNode::kListFilesOnly);
-		for (Common::FSList::iterator fileIt = files.begin(); fileIt != files.end(); ++fileIt) {
-			if (!fileIt->getName().hasSuffix(".dcp")) {
+	for (Common::FSList::const_iterator it = _packagePaths.begin(); it != _packagePaths.end(); ++it) {
+		debugC(kWintermuteDebugFileAccess, "Should register folder: %s %s", it->getPath().c_str(), it->getName().c_str());
+		if (!it->getChildren(files, Common::FSNode::kListFilesOnly)) {
+			warning("getChildren() failed for path: %s", it->getDisplayName().c_str());
+		}
+		for (Common::FSList::const_iterator fileIt = files.begin(); fileIt != files.end(); ++fileIt) {
+			// To prevent any case sensitivity issues we make the filename
+			// all lowercase here. This makes the code slightly prettier
+			// than the equivalent of using equalsIgnoreCase.
+			Common::String fileName = fileIt->getName();
+			fileName.toLowercase();
+
+			if (!fileName.hasSuffix(".dcp")) {
 				continue;
 			}
-			// Avoid registering all the language files
-			// TODO: Select based on the gameDesc.
-			if (_language != Common::UNK_LANG && fileIt->getParent().getName() == "language") {
-				Common::String parentName = fileIt->getParent().getName();
-				Common::String dcpName = fileIt->getName();
-				if (_language == Common::EN_ANY && fileIt->getName() != "english.dcp") {
-					continue;
-				} else if (_language == Common::CZ_CZE && fileIt->getName() != "czech.dcp") {
-					continue;
-				} else if (_language == Common::IT_ITA && fileIt->getName() != "italian.dcp") {
-					continue;
-				} else if (_language == Common::PL_POL && fileIt->getName() != "polish.dcp") {
-					continue;
-				} else if (_language == Common::RU_RUS && fileIt->getName() != "russian.dcp") {
+			// HACK: for Reversion1, avoid loading xlanguage_pt.dcp from the main folder:
+			if (_language != Common::PT_BRA && targetName.hasPrefix("reversion1")) {
+				if (fileName == "xlanguage_pt.dcp") {
 					continue;
 				}
 			}
-			debugC(kWintermuteDebugFileAccess, "Registering %s %s", (*fileIt).getPath().c_str(), (*fileIt).getName().c_str());
+
+			// Again, make the parent's name all lowercase to avoid any case
+			// issues.
+			Common::String parentName = fileIt->getParent().getName();
+			parentName.toLowercase();
+
+			// Avoid registering all the language files
+			// TODO: Select based on the gameDesc.
+			if (_language != Common::UNK_LANG && (parentName == "language" || parentName == "languages")) {
+				// English
+				if (_language == Common::EN_ANY && (fileName != "english.dcp" && fileName != "xlanguage_en.dcp")) {
+					continue;
+				// Chinese
+				} else if (_language == Common::ZH_CNA && (fileName != "chinese.dcp" && fileName != "xlanguage_nz.dcp")) {
+					continue;
+				// Czech
+				} else if (_language == Common::CZ_CZE && (fileName != "czech.dcp" && fileName != "xlanguage_cz.dcp")) {
+					continue;
+				// French
+				} else if (_language == Common::FR_FRA && (fileName != "french.dcp" && fileName != "xlanguage_fr.dcp")) {
+					continue;
+				// German
+				} else if (_language == Common::DE_DEU && (fileName != "german.dcp" && fileName != "xlanguage_de.dcp")) {
+					continue;
+				// Italian
+				} else if (_language == Common::IT_ITA && (fileName != "italian.dcp" && fileName != "xlanguage_it.dcp")) {
+					continue;
+				// Latvian
+				} else if (_language == Common::LV_LAT && (fileName != "latvian.dcp" && fileName != "xlanguage_lv.dcp")) {
+					// TODO: 'latvian.dcp' is just guesswork. Is there any
+					// game using Latvian and using this filename?
+					continue;
+				// Polish
+				} else if (_language == Common::PL_POL && (fileName != "polish.dcp" && fileName != "xlanguage_pl.dcp")) {
+					continue;
+				// Portuguese
+				} else if (_language == Common::PT_BRA && (fileName != "portuguese.dcp" && fileName != "xlanguage_pt.dcp")) {
+					continue;
+				// Russian
+				} else if (_language == Common::RU_RUS && (fileName != "russian.dcp" && fileName != "xlanguage_ru.dcp")) {
+					continue;
+				}
+			}
+			debugC(kWintermuteDebugFileAccess, "Registering %s %s", fileIt->getPath().c_str(), fileIt->getName().c_str());
 			registerPackage((*fileIt));
 		}
 	}
@@ -224,13 +279,23 @@ bool BaseFileManager::registerPackage(Common::FSNode file, const Common::String 
 	return STATUS_OK;
 }
 
+void BaseFileManager::initResources() {
+	_resources = Common::makeZipArchive("wintermute.zip");
+	if (!_resources && !_detectionMode) { // Wintermute.zip is unavailable during detection
+		error("Couldn't load wintermute.zip");
+	}
+	if (_resources) {
+		assert(_resources->hasFile("syste_font.bmp"));
+		assert(_resources->hasFile("invalid.bmp"));
+		assert(_resources->hasFile("invalid_debug.bmp"));
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 Common::SeekableReadStream *BaseFileManager::openPkgFile(const Common::String &filename) {
 	Common::String upcName = filename;
 	upcName.toUppercase();
-	Common::SeekableReadStream *file = NULL;
-	char fileName[MAX_PATH_LENGTH];
-	strcpy(fileName, upcName.c_str());
+	Common::SeekableReadStream *file = nullptr;
 
 	// correct slashes
 	for (uint32 i = 0; i < upcName.size(); i++) {
@@ -240,7 +305,7 @@ Common::SeekableReadStream *BaseFileManager::openPkgFile(const Common::String &f
 	}
 	Common::ArchiveMemberPtr entry = _packages.getMember(upcName);
 	if (!entry) {
-		return NULL;
+		return nullptr;
 	}
 	file = entry->createReadStream();
 	return file;
@@ -248,7 +313,7 @@ Common::SeekableReadStream *BaseFileManager::openPkgFile(const Common::String &f
 
 bool BaseFileManager::hasFile(const Common::String &filename) {
 	if (scumm_strnicmp(filename.c_str(), "savegame:", 9) == 0) {
-		BasePersistenceManager pm(BaseEngine::instance().getGameId());
+		BasePersistenceManager pm(BaseEngine::instance().getGameTargetName());
 		if (filename.size() <= 9) {
 			return false;
 		}
@@ -261,7 +326,7 @@ bool BaseFileManager::hasFile(const Common::String &filename) {
 	if (_packages.hasFile(filename)) {
 		return true;    // We don't bother checking if the file can actually be opened, something bigger is wrong if that is the case.
 	}
-	if (BaseResources::hasFile(filename)) {
+	if (!_detectionMode && _resources->hasFile(filename)) {
 		return true;
 	}
 	return false;
@@ -270,7 +335,7 @@ bool BaseFileManager::hasFile(const Common::String &filename) {
 //////////////////////////////////////////////////////////////////////////
 Common::SeekableReadStream *BaseFileManager::openFile(const Common::String &filename, bool absPathWarning, bool keepTrackOf) {
 	if (strcmp(filename.c_str(), "") == 0) {
-		return NULL;
+		return nullptr;
 	}
 	debugC(kWintermuteDebugFileAccess, "Open file %s", filename.c_str());
 
@@ -297,7 +362,7 @@ bool BaseFileManager::closeFile(Common::SeekableReadStream *File) {
 
 //////////////////////////////////////////////////////////////////////////
 Common::SeekableReadStream *BaseFileManager::openFileRaw(const Common::String &filename) {
-	Common::SeekableReadStream *ret = NULL;
+	Common::SeekableReadStream *ret = nullptr;
 
 	if (scumm_strnicmp(filename.c_str(), "savegame:", 9) == 0) {
 		if (!BaseEngine::instance().getGameRef()) {
@@ -321,20 +386,22 @@ Common::SeekableReadStream *BaseFileManager::openFileRaw(const Common::String &f
 		return ret;
 	}
 
-	ret = BaseResources::getFile(filename);
+	if (!_detectionMode) {
+		ret = _resources->createReadStreamForMember(filename);
+	}
 	if (ret) {
 		return ret;
 	}
 
 	debugC(kWintermuteDebugFileAccess ,"BFileManager::OpenFileRaw - Failed to open %s", filename.c_str());
-	return NULL;
+	return nullptr;
 }
 
 BaseFileManager *BaseFileManager::getEngineInstance() {
 	if (BaseEngine::instance().getFileManager()) {
 		return BaseEngine::instance().getFileManager();
 	}
-	return NULL;
+	return nullptr;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

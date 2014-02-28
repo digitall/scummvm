@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -45,13 +45,11 @@ public:
 	//DECLARE_PERSISTENT(BaseSoundMgr, BaseClass);
 	byte getMasterVolumePercent();
 	byte getMasterVolume();
-	bool setMasterVolume(byte percent);
 	bool setMasterVolumePercent(byte percent);
 	byte getVolumePercent(Audio::Mixer::SoundType type);
 	bool setVolumePercent(Audio::Mixer::SoundType type, byte percent);
 	bool setVolume(Audio::Mixer::SoundType type, int volume);
-	uint32 _volumeOriginal;
-	int _volumeMaster;
+	int32 _volumeMaster;
 	bool removeSound(BaseSoundBuffer *sound);
 	BaseSoundBuffer *addSound(const Common::String &filename, Audio::Mixer::SoundType type = Audio::Mixer::kSFXSoundType, bool streamed = false);
 	bool addSound(BaseSoundBuffer *sound, Audio::Mixer::SoundType type = Audio::Mixer::kSFXSoundType);
@@ -61,8 +59,11 @@ public:
 	virtual ~BaseSoundMgr();
 	Common::Array<BaseSoundBuffer *> _sounds;
 	void saveSettings();
+private:
+	int32 _volumeMasterPercent; // Necessary to avoid round-offs.
+	bool setMasterVolume(byte percent);
 };
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute
 
 #endif

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -143,9 +143,24 @@ GameDescriptor SwordMetaEngine::findGame(const char *gameid) const {
 	return GameDescriptor();
 }
 
-void Sword1CheckDirectory(const Common::FSList &fslist, bool *filesFound) {
+void Sword1CheckDirectory(const Common::FSList &fslist, bool *filesFound, bool recursion = false) {
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
 		if (!file->isDirectory()) {
+			// The required game data files can be located in the game directory, or in
+			// a subdirectory called "clusters". In the latter case, we don't want to
+			// detect the game in that subdirectory, as this will detect the game twice
+			// when mass add is searching inside a directory. In this case, the first
+			// result (the game directory) will be correct, but the second result (the
+			// clusters subdirectory) will be wrong, as the optional speech, music and
+			// video data files will be ignored. Note that this fix will skip the game
+			// data files if the user has placed them inside a "clusters" subdirectory,
+			// or if he/she points ScummVM directly to the "clusters" directory of the
+			// game CD. Fixes bug #3049346.
+			Common::String directory = file->getParent().getName();
+			directory.toLowercase();
+			if (directory.hasPrefix("clusters") && directory.size() <= 9 && !recursion)
+				continue;
+
 			const char *fileName = file->getName().c_str();
 			for (int cnt = 0; cnt < NUM_FILES_TO_CHECK; cnt++)
 				if (scumm_stricmp(fileName, g_filesToCheck[cnt]) == 0)
@@ -155,7 +170,7 @@ void Sword1CheckDirectory(const Common::FSList &fslist, bool *filesFound) {
 				if (scumm_stricmp(file->getName().c_str(), g_dirNames[cnt]) == 0) {
 					Common::FSList fslist2;
 					if (file->getChildren(fslist2, Common::FSNode::kListFilesOnly))
-						Sword1CheckDirectory(fslist2, filesFound);
+						Sword1CheckDirectory(fslist2, filesFound, true);
 				}
 		}
 	}

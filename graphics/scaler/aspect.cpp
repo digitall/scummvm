@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -23,11 +23,7 @@
 #include "graphics/scaler/intern.h"
 #include "graphics/scaler/aspect.h"
 
-#ifdef OPENPANDORA
-#define NEON_ASPECT_CORRECTOR
-#endif
-
-#ifdef NEON_ASPECT_CORRECTOR
+#ifdef USE_ARM_NEON_ASPECT_CORRECTOR
 #include <arm_neon.h>
 #endif
 
@@ -62,7 +58,7 @@ static inline void interpolate5Line(uint16 *dst, const uint16 *srcA, const uint1
 
 #if ASPECT_MODE == kVeryFastAndGoodAspectMode
 
-#ifdef NEON_ASPECT_CORRECTOR
+#ifdef USE_ARM_NEON_ASPECT_CORRECTOR
 
 template<typename ColorMask>
 static void interpolate5LineNeon(uint16 *dst, const uint16 *srcA, const uint16 *srcB, int width, int k1, int k2) {
@@ -97,31 +93,31 @@ static void interpolate5LineNeon(uint16 *dst, const uint16 *srcA, const uint16 *
 		width -= 4;
 	}
 }
-#endif
+#endif // USE_ARM_NEON_ASPECT_CORRECTOR
 
 template<typename ColorMask, int scale>
 static void interpolate5Line(uint16 *dst, const uint16 *srcA, const uint16 *srcB, int width) {
 	if (scale == 1) {
-#ifdef NEON_ASPECT_CORRECTOR
+#ifdef USE_NEON_ASPECT_CORRECTOR
 		int width4 = width & ~3;
 		interpolate5LineNeon<ColorMask>(dst, srcA, srcB, width4, 7, 1);
 		srcA += width4;
 		srcB += width4;
 		dst += width4;
 		width -= width4;
-#endif
+#endif // USE_ARM_NEON_ASPECT_CORRECTOR
 		while (width--) {
 			*dst++ = interpolate16_7_1<ColorMask>(*srcB++, *srcA++);
 		}
 	} else {
-#ifdef NEON_ASPECT_CORRECTOR
+#ifdef USE_ARM_NEON_ASPECT_CORRECTOR
 		int width4 = width & ~3;
 		interpolate5LineNeon<ColorMask>(dst, srcA, srcB, width4, 5, 3);
 		srcA += width4;
 		srcB += width4;
 		dst += width4;
 		width -= width4;
-#endif
+#endif // USE_ARM_NEON_ASPECT_CORRECTOR
 		while (width--) {
 			*dst++ = interpolate16_5_3<ColorMask>(*srcB++, *srcA++);
 		}

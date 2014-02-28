@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -28,6 +28,7 @@
 #include "common/error.h"
 #include "common/fs.h"
 #include "common/util.h"
+#include "common/translation.h"
 
 #include "engines/metaengine.h"
 
@@ -49,17 +50,33 @@ static ADGameDescription s_fallbackDesc = {
 	ADGF_UNSTABLE,
 	GUIO0()
 };
+
+static const ADExtraGuiOptionsMap gameGuiOptions[] = {
+	{
+		GAMEOPTION_SHOW_FPS,
+		{
+			_s("Show FPS-counter"),
+			_s("Show the current number of frames per second in the upper left corner"),
+			"show_fps",
+			false
+		}
+	},
+	AD_EXTRA_GUI_OPTIONS_TERMINATOR
+};
+
 static char s_fallbackGameIdBuf[256];
 
 static const char *directoryGlobs[] = {
 	"language", // To detect the various languages
+	"languages", // To detect the various languages
 	0
 };
 
 class WintermuteMetaEngine : public AdvancedMetaEngine {
 public:
-	WintermuteMetaEngine() : AdvancedMetaEngine(Wintermute::gameDescriptions, sizeof(ADGameDescription), Wintermute::wintermuteGames) {
+	WintermuteMetaEngine() : AdvancedMetaEngine(Wintermute::gameDescriptions, sizeof(ADGameDescription), Wintermute::wintermuteGames, gameGuiOptions) {
 		_singleid = "wintermute";
+		_guioptions = GUIO2(GUIO_NOMIDI, GAMEOPTION_SHOW_FPS);
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
@@ -165,10 +182,10 @@ public:
 	}
 };
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute
 
 #if PLUGIN_ENABLED_DYNAMIC(WINTERMUTE)
-REGISTER_PLUGIN_DYNAMIC(WINTERMUTE, PLUGIN_TYPE_ENGINE, Wintermute::WintermuteMetaEngine);
+	REGISTER_PLUGIN_DYNAMIC(WINTERMUTE, PLUGIN_TYPE_ENGINE, Wintermute::WintermuteMetaEngine);
 #else
-REGISTER_PLUGIN_STATIC(WINTERMUTE, PLUGIN_TYPE_ENGINE, Wintermute::WintermuteMetaEngine);
+	REGISTER_PLUGIN_STATIC(WINTERMUTE, PLUGIN_TYPE_ENGINE, Wintermute::WintermuteMetaEngine);
 #endif

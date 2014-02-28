@@ -17,29 +17,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef TEENAGENT_SURFACE_LIST_H__
 #define TEENAGENT_SURFACE_LIST_H__
 
 #include "common/stream.h"
+#include "graphics/surface.h"
 
 namespace TeenAgent {
 class Surface;
 
 class SurfaceList {
 public:
-	enum Type { kTypeOn };
-
 	SurfaceList();
 	~SurfaceList();
-	void load(Common::SeekableReadStream &, Type type, int sub_hack = 0);
+
+	void load(Common::SeekableReadStream &, int subHack = 0);
 	void free();
 	void render(Graphics::Surface *surface, const Common::Rect &clip) const;
 
 protected:
 	Surface *surfaces;
-	uint surfaces_n;
+	uint surfacesCount;
 };
 
 }

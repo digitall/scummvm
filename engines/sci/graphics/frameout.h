@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -97,11 +97,18 @@ struct ScrollTextEntry {
 
 typedef Common::Array<ScrollTextEntry> ScrollTextList;
 
+enum ViewScaleSignals32 {
+	kScaleSignalDoScaling32				= 0x0001, // enables scaling when drawing that cel (involves scaleX and scaleY)
+	kScaleSignalUnk1					= 0x0002, // unknown
+	kScaleSignalDisableGlobalScaling32	= 0x0004
+};
+
 class GfxCache;
 class GfxCoordAdjuster32;
 class GfxPaint32;
 class GfxPalette;
 class GfxScreen;
+
 /**
  * Frameout class, kFrameout and relevant functions for SCI32 games
  */
@@ -113,6 +120,7 @@ public:
 	void kernelAddPlane(reg_t object);
 	void kernelUpdatePlane(reg_t object);
 	void kernelDeletePlane(reg_t object);
+	void applyGlobalScaling(FrameoutEntry *itemEntry, Common::Rect planeRect, int16 celHeight);
 	void kernelAddScreenItem(reg_t object);
 	void kernelUpdateScreenItem(reg_t object);
 	void kernelDeleteScreenItem(reg_t object);

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.DisplayMetrics;
@@ -17,6 +18,18 @@ import android.widget.Toast;
 import java.io.File;
 
 public class ScummVMActivity extends Activity {
+
+	/* Establish whether the hover events are available */
+	private static boolean _hoverAvailable;
+
+	static {
+		try {
+			MouseHelper.checkHoverAvailable(); // this throws exception if we're on too old version
+			_hoverAvailable = true;
+		} catch (Throwable t) {
+			_hoverAvailable = false;
+		}
+	}
 
 	private class MyScummVM extends ScummVM {
 		private boolean usingSmallScreen() {
@@ -94,6 +107,7 @@ public class ScummVMActivity extends Activity {
 
 	private MyScummVM _scummvm;
 	private ScummVMEvents _events;
+	private MouseHelper _mouseHelper;
 	private Thread _scummvm_thread;
 
 	@Override
@@ -147,11 +161,23 @@ public class ScummVMActivity extends Activity {
 			"ScummVM",
 			"--config=" + getFileStreamPath("scummvmrc").getPath(),
 			"--path=" + Environment.getExternalStorageDirectory().getPath(),
-			"--gui-theme=scummmodern",
 			"--savepath=" + savePath
 		});
 
-		_events = new ScummVMEvents(this, _scummvm);
+		Log.d(ScummVM.LOG_TAG, "Hover available: " + _hoverAvailable);
+		if (_hoverAvailable) {
+			_mouseHelper = new MouseHelper(_scummvm);
+			_mouseHelper.attach(main_surface);
+		}
+
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR1)
+		{
+			_events = new ScummVMEvents(this, _scummvm, _mouseHelper);
+		}
+		else
+		{
+			_events = new ScummVMEventsHoneycomb(this, _scummvm, _mouseHelper);
+		}
 
 		main_surface.setOnKeyListener(_events);
 		main_surface.setOnTouchListener(_events);
@@ -218,6 +244,14 @@ public class ScummVMActivity extends Activity {
 	public boolean onTrackballEvent(MotionEvent e) {
 		if (_events != null)
 			return _events.onTrackballEvent(e);
+
+		return false;
+	}
+
+	@Override
+	public boolean onGenericMotionEvent(final MotionEvent e) {
+		if (_events != null)
+			return _events.onGenericMotionEvent(e);
 
 		return false;
 	}

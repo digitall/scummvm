@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -73,6 +73,23 @@ enum {
 	kDemoSlidesStack,		// Demo Slideshow
 	kDemoPreviewStack,		// Demo Myst Library Preview
 	kStoneshipStack			// Stoneship Age
+};
+
+// Transitions
+enum TransitionType {
+	kTransitionLeftToRight	= 0,
+	kTransitionRightToLeft	= 1,
+	kTransitionSlideToLeft	= 2,
+	kTransitionSlideToRight	= 3,
+	kTransitionDissolve		= 4,
+	kTransitionTopToBottom	= 5,
+	kTransitionBottomToTop	= 6,
+	kTransitionSlideToTop	= 7,
+	kTransitionSlideToBottom= 8,
+	kTransitionPartToRight	= 9,
+	kTransitionPartToLeft	= 10,
+	kTransitionCopy			= 11,
+	kNoTransition			= 999
 };
 
 const uint16 kMasterpieceOnly = 0xFFFF;
@@ -154,7 +171,7 @@ public:
 	void reloadSaveList();
 
 	void changeToStack(uint16 stack, uint16 card, uint16 linkSrcSound, uint16 linkDstSound);
-	void changeToCard(uint16 card, bool updateScreen);
+	void changeToCard(uint16 card, TransitionType transition);
 	uint16 getCurCard() { return _curCard; }
 	uint16 getCurStack() { return _curStack; }
 	void setMainCursor(uint16 cursor);

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -36,7 +36,7 @@ namespace Wintermute {
 IMPLEMENT_PERSISTENT(BaseSound, false)
 
 BaseSound::BaseSound(BaseGame *inGame) : BaseClass(inGame) {
-	_sound = NULL;
+	_sound = nullptr;
 	_soundFilename = "";
 
 	_soundType = Audio::Mixer::kSFXSoundType;
@@ -57,13 +57,13 @@ BaseSound::~BaseSound() {
 	if (_sound) {
 		_gameRef->_soundMgr->removeSound(_sound);
 	}
-	_sound = NULL;
+	_sound = nullptr;
 }
 
 bool BaseSound::setSound(const Common::String &filename, Audio::Mixer::SoundType type, bool streamed) {
 	if (_sound) {
 		_gameRef->_soundMgr->removeSound(_sound);
-		_sound = NULL;
+		_sound = nullptr;
 	}
 	_soundFilename = Common::String(); // Set empty
 
@@ -164,18 +164,18 @@ bool BaseSound::persist(BasePersistenceManager *persistMgr) {
 		_sFXParam1 = _sFXParam2 = _sFXParam3 = _sFXParam4 = 0;
 	}
 
-	persistMgr->transfer(TMEMBER(_gameRef));
+	persistMgr->transferPtr(TMEMBER_PTR(_gameRef));
 
-	persistMgr->transfer(TMEMBER(_soundFilename));
-	persistMgr->transfer(TMEMBER(_soundLooping));
-	persistMgr->transfer(TMEMBER(_soundPaused));
-	persistMgr->transfer(TMEMBER(_soundFreezePaused));
-	persistMgr->transfer(TMEMBER(_soundPlaying));
-	persistMgr->transfer(TMEMBER(_soundPosition));
-	persistMgr->transfer(TMEMBER(_soundPrivateVolume));
-	persistMgr->transfer(TMEMBER(_soundStreamed));
-	persistMgr->transfer(TMEMBER_INT(_soundType));
-	persistMgr->transfer(TMEMBER(_soundLoopStart));
+	persistMgr->transferString(TMEMBER(_soundFilename));
+	persistMgr->transferBool(TMEMBER(_soundLooping));
+	persistMgr->transferBool(TMEMBER(_soundPaused));
+	persistMgr->transferBool(TMEMBER(_soundFreezePaused));
+	persistMgr->transferBool(TMEMBER(_soundPlaying));
+	persistMgr->transferUint32(TMEMBER(_soundPosition));
+	persistMgr->transferSint32(TMEMBER(_soundPrivateVolume));
+	persistMgr->transferBool(TMEMBER(_soundStreamed));
+	persistMgr->transferSint32(TMEMBER_INT(_soundType));
+	persistMgr->transferUint32(TMEMBER(_soundLoopStart));
 
 	return STATUS_OK;
 }
@@ -289,4 +289,4 @@ bool BaseSound::applyFX(TSFXType type, float param1, float param2, float param3,
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

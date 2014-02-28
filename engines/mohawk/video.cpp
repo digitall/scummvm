@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -245,7 +245,7 @@ bool VideoManager::updateMovies() {
 				// Clip the width/height to make sure we stay on the screen (Myst does this a few times)
 				uint16 width = MIN<int32>(_videoStreams[i]->getWidth(), _vm->_system->getWidth() - _videoStreams[i].x);
 				uint16 height = MIN<int32>(_videoStreams[i]->getHeight(), _vm->_system->getHeight() - _videoStreams[i].y);
-				_vm->_system->copyRectToScreen(frame->pixels, frame->pitch, _videoStreams[i].x, _videoStreams[i].y, width, height);
+				_vm->_system->copyRectToScreen(frame->getPixels(), frame->pitch, _videoStreams[i].x, _videoStreams[i].y, width, height);
 
 				// We've drawn something to the screen, make sure we update it
 				updateScreen = true;
@@ -493,9 +493,9 @@ uint32 VideoManager::getTime(VideoHandle handle) {
 	return _videoStreams[handle]->getTime();
 }
 
-uint32 VideoManager::getDuration(VideoHandle handle) {
+Audio::Timestamp VideoManager::getDuration(VideoHandle handle) {
 	assert(handle != NULL_VID_HANDLE);
-	return _videoStreams[handle]->getDuration().msecs();
+	return _videoStreams[handle]->getDuration();
 }
 
 bool VideoManager::endOfVideo(VideoHandle handle) {
@@ -534,6 +534,16 @@ void VideoManager::seekToTime(VideoHandle handle, Audio::Timestamp time) {
 void VideoManager::setVideoLooping(VideoHandle handle, bool loop) {
 	assert(handle != NULL_VID_HANDLE);
 	_videoStreams[handle].loop = loop;
+}
+
+Common::Rational VideoManager::getVideoRate(VideoHandle handle) const {
+	assert(handle != NULL_VID_HANDLE);
+	return _videoStreams[handle]->getRate();
+}
+
+void VideoManager::setVideoRate(VideoHandle handle, const Common::Rational &rate) {
+	assert(handle != NULL_VID_HANDLE);
+	_videoStreams[handle]->setRate(rate);
 }
 
 void VideoManager::pauseMovie(VideoHandle handle, bool pause) {

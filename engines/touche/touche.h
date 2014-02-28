@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -31,6 +31,7 @@
 #include "common/util.h"
 
 #include "audio/mixer.h"
+#include "audio/audiostream.h"
 
 #include "engines/engine.h"
 
@@ -101,7 +102,7 @@ struct KeyChar {
 	int16 zPosPrev;
 	int16 prevWalkDataNum;
 	uint16 textColor;
-	int16 inventoryItems[4];
+	int16 inventoryItems[5];
 	int16 money;
 	int16 pointsDataNum;
 	int16 currentWalkBox;
@@ -645,6 +646,18 @@ protected:
 	Common::Point getMousePos() const;
 
 	MidiPlayer *_midiPlayer;
+
+	int _musicVolume;
+	Audio::SoundHandle _musicHandle;
+
+	void initMusic();
+public: // To allow access from console
+	void startMusic(int num);
+	void stopMusic();
+protected:
+	int getMusicVolume();
+	void setMusicVolume(int volume);
+	void adjustMusicVolume(int diff);
 
 	Common::Language _language;
 	Common::RandomSource _rnd;

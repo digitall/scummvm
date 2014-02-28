@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -37,7 +37,7 @@ namespace Wintermute {
 Common::SeekableReadStream *BaseFileEntry::createReadStream() const {
 	Common::SeekableReadStream *file = _package->getFilePointer();
 	if (!file) {
-		return NULL;
+		return nullptr;
 	}
 
 	bool compressed = (_compressedLength != 0);
@@ -55,7 +55,7 @@ Common::SeekableReadStream *BaseFileEntry::createReadStream() const {
 
 //////////////////////////////////////////////////////////////////////////
 BaseFileEntry::BaseFileEntry() {
-	_package = NULL;
+	_package = nullptr;
 	_length = _compressedLength = _offset = _flags = 0;
 	_filename = "";
 
@@ -67,7 +67,7 @@ BaseFileEntry::BaseFileEntry() {
 
 //////////////////////////////////////////////////////////////////////////
 BaseFileEntry::~BaseFileEntry() {
-	_package = NULL; // ref only
+	_package = nullptr; // ref only
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

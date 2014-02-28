@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef BROWSER_DIALOG_H
@@ -29,6 +30,7 @@ namespace GUI {
 
 class ListWidget;
 class StaticTextWidget;
+class CheckboxWidget;
 class CommandSender;
 
 class BrowserDialog : public Dialog {
@@ -40,6 +42,7 @@ public:
 	virtual int runModal();
 #else
 	virtual void open();
+
 	virtual void handleCommand(CommandSender *sender, uint32 cmd, uint32 data);
 #endif
 
@@ -48,11 +51,15 @@ public:
 protected:
 #ifdef MACOSX
 	const void *_titleRef;
+	const void *_chooseRef;
+	const void *_hiddenFilesRef;
 #else
 	ListWidget		*_fileList;
 	StaticTextWidget	*_currentPath;
 	Common::FSNode	_node;
 	Common::FSList			_nodeContent;
+	bool _showHidden;
+	CheckboxWidget *_showHiddenWidget;
 #endif
 	Common::FSNode	_choice;
 	bool			_isDirBrowser;

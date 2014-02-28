@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -33,7 +33,6 @@
 #include "engines/wintermute/base/sound/base_sound.h"
 #include "engines/wintermute/base/sound/base_sound_manager.h"
 #include "engines/wintermute/base/base_game.h"
-#include "engines/wintermute/base/base_string_table.h"
 #include "engines/wintermute/base/base_sprite.h"
 #include "engines/wintermute/platform_osystem.h"
 
@@ -60,18 +59,18 @@ BaseObject::BaseObject(BaseGame *inGame) : BaseScriptHolder(inGame) {
 
 	_ready = true;
 
-	_soundEvent = NULL;
+	_soundEvent = nullptr;
 
 	_iD = _gameRef->getSequence();
 
-	BasePlatform::setRectEmpty(&_rect);
+	_rect.setEmpty();
 	_rectSet = false;
 
-	_cursor = NULL;
-	_activeCursor = NULL;
+	_cursor = nullptr;
+	_activeCursor = nullptr;
 	_sharedCursors = false;
 
-	_sFX = NULL;
+	_sFX = nullptr;
 	_sFXStart = 0;
 	_sFXVolume = 100;
 	_autoSoundPanning = true;
@@ -86,7 +85,7 @@ BaseObject::BaseObject(BaseGame *inGame) : BaseScriptHolder(inGame) {
 	_relativeRotate = 0.0f;
 
 	for (int i = 0; i < 7; i++) {
-		_caption[i] = NULL;
+		_caption[i] = nullptr;
 	}
 	_saveState = true;
 
@@ -109,25 +108,25 @@ BaseObject::~BaseObject() {
 //////////////////////////////////////////////////////////////////////////
 bool BaseObject::cleanup() {
 	if (_gameRef && _gameRef->_activeObject == this) {
-		_gameRef->_activeObject = NULL;
+		_gameRef->_activeObject = nullptr;
 	}
 
 	BaseScriptHolder::cleanup();
 	delete[] _soundEvent;
-	_soundEvent = NULL;
+	_soundEvent = nullptr;
 
 	if (!_sharedCursors) {
 		delete _cursor;
 		delete _activeCursor;
-		_cursor = NULL;
-		_activeCursor = NULL;
+		_cursor = nullptr;
+		_activeCursor = nullptr;
 	}
 	delete _sFX;
-	_sFX = NULL;
+	_sFX = nullptr;
 
 	for (int i = 0; i < 7; i++) {
 		delete[] _caption[i];
-		_caption[i] = NULL;
+		_caption[i] = nullptr;
 	}
 
 	_sFXType = SFX_NONE;
@@ -150,7 +149,7 @@ void BaseObject::setCaption(const char *caption, int caseVal) {
 	_caption[caseVal - 1] = new char[strlen(caption) + 1];
 	if (_caption[caseVal - 1]) {
 		strcpy(_caption[caseVal - 1], caption);
-		_gameRef->_stringTable->expand(&_caption[caseVal - 1]);
+		_gameRef->expandStringByStringTable(&_caption[caseVal - 1]);
 	}
 }
 
@@ -160,7 +159,7 @@ const char *BaseObject::getCaption(int caseVal) {
 	if (caseVal == 0) {
 		caseVal = 1;
 	}
-	if (caseVal < 1 || caseVal > 7 || _caption[caseVal - 1] == NULL) {
+	if (caseVal < 1 || caseVal > 7 || _caption[caseVal - 1] == nullptr) {
 		return "";
 	} else {
 		return _caption[caseVal - 1];
@@ -223,9 +222,9 @@ bool BaseObject::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSta
 		stack->correctParams(0);
 		if (!_sharedCursors) {
 			delete _cursor;
-			_cursor = NULL;
+			_cursor = nullptr;
 		} else {
-			_cursor = NULL;
+			_cursor = nullptr;
 
 		}
 		stack->pushNULL();
@@ -317,12 +316,12 @@ bool BaseObject::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSta
 		ScValue *val3 = stack->pop();
 
 		if (val1->_type == VAL_BOOL) {
-			filename = NULL;
+			filename = nullptr;
 			looping = val1->getBool();
 			loopStart = val2->getInt();
 		} else {
 			if (val1->isNULL()) {
-				filename = NULL;
+				filename = nullptr;
 			} else {
 				filename = val1->getString();
 			}
@@ -351,7 +350,7 @@ bool BaseObject::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisSta
 		ScValue *val2 = stack->pop();
 
 		if (val2->isNULL()) {
-			filename = NULL;
+			filename = nullptr;
 			eventName = val1->getString();
 		} else {
 			filename = val1->getString();
@@ -954,53 +953,53 @@ bool BaseObject::persist(BasePersistenceManager *persistMgr) {
 	BaseScriptHolder::persist(persistMgr);
 
 	for (int i = 0; i < 7; i++) {
-		persistMgr->transfer(TMEMBER(_caption[i]));
+		persistMgr->transferCharPtr(TMEMBER(_caption[i]));
 	}
-	persistMgr->transfer(TMEMBER(_activeCursor));
-	persistMgr->transfer(TMEMBER(_alphaColor));
-	persistMgr->transfer(TMEMBER(_autoSoundPanning));
-	persistMgr->transfer(TMEMBER(_cursor));
-	persistMgr->transfer(TMEMBER(_sharedCursors));
-	persistMgr->transfer(TMEMBER(_editorAlwaysRegister));
-	persistMgr->transfer(TMEMBER(_editorOnly));
-	persistMgr->transfer(TMEMBER(_editorSelected));
-	persistMgr->transfer(TMEMBER(_iD));
-	persistMgr->transfer(TMEMBER(_is3D));
-	persistMgr->transfer(TMEMBER(_movable));
-	persistMgr->transfer(TMEMBER(_posX));
-	persistMgr->transfer(TMEMBER(_posY));
-	persistMgr->transfer(TMEMBER(_relativeScale));
-	persistMgr->transfer(TMEMBER(_rotatable));
-	persistMgr->transfer(TMEMBER(_scale));
-	persistMgr->transfer(TMEMBER(_sFX));
-	persistMgr->transfer(TMEMBER(_sFXStart));
-	persistMgr->transfer(TMEMBER(_sFXVolume));
-	persistMgr->transfer(TMEMBER(_ready));
-	persistMgr->transfer(TMEMBER(_rect));
-	persistMgr->transfer(TMEMBER(_rectSet));
-	persistMgr->transfer(TMEMBER(_registrable));
-	persistMgr->transfer(TMEMBER(_shadowable));
-	persistMgr->transfer(TMEMBER(_soundEvent));
-	persistMgr->transfer(TMEMBER(_zoomable));
+	persistMgr->transferPtr(TMEMBER_PTR(_activeCursor));
+	persistMgr->transferUint32(TMEMBER(_alphaColor));
+	persistMgr->transferBool(TMEMBER(_autoSoundPanning));
+	persistMgr->transferPtr(TMEMBER_PTR(_cursor));
+	persistMgr->transferBool(TMEMBER(_sharedCursors));
+	persistMgr->transferBool(TMEMBER(_editorAlwaysRegister));
+	persistMgr->transferBool(TMEMBER(_editorOnly));
+	persistMgr->transferBool(TMEMBER(_editorSelected));
+	persistMgr->transferSint32(TMEMBER(_iD));
+	persistMgr->transferBool(TMEMBER(_is3D));
+	persistMgr->transferBool(TMEMBER(_movable));
+	persistMgr->transferSint32(TMEMBER(_posX));
+	persistMgr->transferSint32(TMEMBER(_posY));
+	persistMgr->transferFloat(TMEMBER(_relativeScale));
+	persistMgr->transferBool(TMEMBER(_rotatable));
+	persistMgr->transferFloat(TMEMBER(_scale));
+	persistMgr->transferPtr(TMEMBER_PTR(_sFX));
+	persistMgr->transferUint32(TMEMBER(_sFXStart));
+	persistMgr->transferSint32(TMEMBER(_sFXVolume));
+	persistMgr->transferBool(TMEMBER(_ready));
+	persistMgr->transferRect32(TMEMBER(_rect));
+	persistMgr->transferBool(TMEMBER(_rectSet));
+	persistMgr->transferBool(TMEMBER(_registrable));
+	persistMgr->transferBool(TMEMBER(_shadowable));
+	persistMgr->transferCharPtr(TMEMBER(_soundEvent));
+	persistMgr->transferBool(TMEMBER(_zoomable));
 
-	persistMgr->transfer(TMEMBER(_scaleX));
-	persistMgr->transfer(TMEMBER(_scaleY));
+	persistMgr->transferFloat(TMEMBER(_scaleX));
+	persistMgr->transferFloat(TMEMBER(_scaleY));
 
-	persistMgr->transfer(TMEMBER(_rotate));
-	persistMgr->transfer(TMEMBER(_rotateValid));
-	persistMgr->transfer(TMEMBER(_relativeRotate));
+	persistMgr->transferFloat(TMEMBER(_rotate));
+	persistMgr->transferBool(TMEMBER(_rotateValid));
+	persistMgr->transferFloat(TMEMBER(_relativeRotate));
 
-	persistMgr->transfer(TMEMBER(_saveState));
-	persistMgr->transfer(TMEMBER(_nonIntMouseEvents));
+	persistMgr->transferBool(TMEMBER(_saveState));
+	persistMgr->transferBool(TMEMBER(_nonIntMouseEvents));
 
-	persistMgr->transfer(TMEMBER_INT(_sFXType));
-	persistMgr->transfer(TMEMBER(_sFXParam1));
-	persistMgr->transfer(TMEMBER(_sFXParam2));
-	persistMgr->transfer(TMEMBER(_sFXParam3));
-	persistMgr->transfer(TMEMBER(_sFXParam4));
+	persistMgr->transferSint32(TMEMBER_INT(_sFXType));
+	persistMgr->transferFloat(TMEMBER(_sFXParam1));
+	persistMgr->transferFloat(TMEMBER(_sFXParam2));
+	persistMgr->transferFloat(TMEMBER(_sFXParam3));
+	persistMgr->transferFloat(TMEMBER(_sFXParam4));
 
 
-	persistMgr->transfer(TMEMBER_INT(_blendMode));
+	persistMgr->transferSint32(TMEMBER_INT(_blendMode));
 
 	return STATUS_OK;
 }
@@ -1010,14 +1009,14 @@ bool BaseObject::persist(BasePersistenceManager *persistMgr) {
 bool BaseObject::setCursor(const char *filename) {
 	if (!_sharedCursors) {
 		delete _cursor;
-		_cursor = NULL;
+		_cursor = nullptr;
 	}
 
 	_sharedCursors = false;
 	_cursor = new BaseSprite(_gameRef);
 	if (!_cursor || DID_FAIL(_cursor->loadFile(filename))) {
 		delete _cursor;
-		_cursor = NULL;
+		_cursor = nullptr;
 		return STATUS_FAILED;
 	} else {
 		return STATUS_OK;
@@ -1031,7 +1030,7 @@ bool BaseObject::setActiveCursor(const char *filename) {
 	_activeCursor = new BaseSprite(_gameRef);
 	if (!_activeCursor || DID_FAIL(_activeCursor->loadFile(filename))) {
 		delete _activeCursor;
-		_activeCursor = NULL;
+		_activeCursor = nullptr;
 		return STATUS_FAILED;
 	} else {
 		return STATUS_OK;
@@ -1040,7 +1039,7 @@ bool BaseObject::setActiveCursor(const char *filename) {
 
 
 //////////////////////////////////////////////////////////////////////////
-int BaseObject::getHeight() {
+int32 BaseObject::getHeight() {
 	return 0;
 }
 
@@ -1066,7 +1065,7 @@ bool BaseObject::handleMouseWheel(int delta) {
 //////////////////////////////////////////////////////////////////////////
 bool BaseObject::playSFX(const char *filename, bool looping, bool playNow, const char *eventName, uint32 loopStart) {
 	// just play loaded sound
-	if (filename == NULL && _sFX) {
+	if (filename == nullptr && _sFX) {
 		if (_gameRef->_editorMode || _sFXStart) {
 			_sFX->setVolumePercent(_sFXVolume);
 			_sFX->setPositionTime(_sFXStart);
@@ -1085,7 +1084,7 @@ bool BaseObject::playSFX(const char *filename, bool looping, bool playNow, const
 		}
 	}
 
-	if (filename == NULL) {
+	if (filename == nullptr) {
 		return STATUS_FAILED;
 	}
 
@@ -1111,7 +1110,7 @@ bool BaseObject::playSFX(const char *filename, bool looping, bool playNow, const
 		}
 	} else {
 		delete _sFX;
-		_sFX = NULL;
+		_sFX = nullptr;
 		return STATUS_FAILED;
 	}
 }
@@ -1123,7 +1122,7 @@ bool BaseObject::stopSFX(bool deleteSound) {
 		_sFX->stop();
 		if (deleteSound) {
 			delete _sFX;
-			_sFX = NULL;
+			_sFX = nullptr;
 		}
 		return STATUS_OK;
 	} else {
@@ -1179,7 +1178,7 @@ bool BaseObject::updateSounds() {
 	if (_soundEvent) {
 		if (_sFX && !_sFX->isPlaying()) {
 			applyEvent(_soundEvent);
-			setSoundEvent(NULL);
+			setSoundEvent(nullptr);
 		}
 	}
 
@@ -1229,7 +1228,7 @@ bool BaseObject::isReady() {
 //////////////////////////////////////////////////////////////////////////
 void BaseObject::setSoundEvent(const char *eventName) {
 	delete[] _soundEvent;
-	_soundEvent = NULL;
+	_soundEvent = nullptr;
 	if (eventName) {
 		_soundEvent = new char[strlen(eventName) + 1];
 		if (_soundEvent) {
@@ -1243,4 +1242,4 @@ bool BaseObject::afterMove() {
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

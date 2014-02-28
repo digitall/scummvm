@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -49,7 +49,7 @@ void LoLEngine::setupTimers() {
 }
 
 void LoLEngine::timerProcessMonsters(int timerNum) {
-	for (int i = timerNum & 0x0f; i < 30; i += 2)
+	for (int i = timerNum & 0x0F; i < 30; i += 2)
 		updateMonster(&_monsters[i]);
 }
 
@@ -77,7 +77,7 @@ void LoLEngine::timerSpecialCharacterUpdate(int timerNum) {
 					if (_characters[i].characterUpdateDelay[ii] > eventsLeft)
 						eventsLeft = _characters[i].characterUpdateDelay[ii];
 				} else {
-					_characters[i].flags &= 0xfffb;
+					_characters[i].flags &= 0xFFFB;
 				}
 
 				gui_drawCharPortraitWithStats(i);
@@ -89,7 +89,7 @@ void LoLEngine::timerSpecialCharacterUpdate(int timerNum) {
 				break;
 
 			case 2:
-				_characters[i].flags &= 0xffbf;
+				_characters[i].flags &= 0xFFBF;
 				gui_drawCharPortraitWithStats(i);
 				break;
 
@@ -104,7 +104,7 @@ void LoLEngine::timerSpecialCharacterUpdate(int timerNum) {
 				break;
 
 			case 4:
-				_characters[i].flags &= 0xfeff;
+				_characters[i].flags &= 0xFEFF;
 				_txt->printMessage(0, getLangString(0x4027), _characters[i].name);
 				gui_drawCharPortraitWithStats(i);
 				break;
@@ -114,7 +114,7 @@ void LoLEngine::timerSpecialCharacterUpdate(int timerNum) {
 				break;
 
 			case 6:
-				_characters[i].flags &= 0xefff;
+				_characters[i].flags &= 0xEFFF;
 				gui_drawCharPortraitWithStats(i);
 				break;
 
@@ -146,7 +146,7 @@ void LoLEngine::timerProcessFlyingObjects(int timerNum) {
 }
 
 void LoLEngine::timerRunSceneAnimScript(int timerNum) {
-	runLevelScript(0x401 + (timerNum & 0x0f), -1);
+	runLevelScript(0x401 + (timerNum & 0x0F), -1);
 }
 
 void LoLEngine::timerRegeneratePoints(int timerNum) {

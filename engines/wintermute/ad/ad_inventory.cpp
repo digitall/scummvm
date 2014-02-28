@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -50,12 +50,12 @@ AdInventory::~AdInventory() {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdInventory::insertItem(const char *name, const char *insertAfter) {
-	if (name == NULL) {
+	if (name == nullptr) {
 		return STATUS_FAILED;
 	}
 
 	AdItem *item = ((AdGame *)_gameRef)->getItemByName(name);
-	if (item == NULL) {
+	if (item == nullptr) {
 		return STATUS_FAILED;
 	}
 
@@ -84,14 +84,14 @@ bool AdInventory::insertItem(const char *name, const char *insertAfter) {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdInventory::removeItem(const char *name) {
-	if (name == NULL) {
+	if (name == nullptr) {
 		return STATUS_FAILED;
 	}
 
 	for (uint32 i = 0; i < _takenItems.size(); i++) {
 		if (scumm_stricmp(_takenItems[i]->getName(), name) == 0) {
 			if (((AdGame *)_gameRef)->_selectedItem == _takenItems[i]) {
-				((AdGame *)_gameRef)->_selectedItem = NULL;
+				((AdGame *)_gameRef)->_selectedItem = nullptr;
 			}
 			_takenItems.remove_at(i);
 			return STATUS_OK;
@@ -105,14 +105,14 @@ bool AdInventory::removeItem(const char *name) {
 
 //////////////////////////////////////////////////////////////////////////
 bool AdInventory::removeItem(AdItem *item) {
-	if (item == NULL) {
+	if (item == nullptr) {
 		return STATUS_FAILED;
 	}
 
 	for (uint32 i = 0; i < _takenItems.size(); i++) {
 		if (_takenItems[i] == item) {
 			if (((AdGame *)_gameRef)->_selectedItem == _takenItems[i]) {
-				((AdGame *)_gameRef)->_selectedItem = NULL;
+				((AdGame *)_gameRef)->_selectedItem = nullptr;
 			}
 			_takenItems.remove_at(i);
 			return STATUS_OK;
@@ -128,9 +128,9 @@ bool AdInventory::persist(BasePersistenceManager *persistMgr) {
 	BaseObject::persist(persistMgr);
 
 	_takenItems.persist(persistMgr);
-	persistMgr->transfer(TMEMBER(_scrollOffset));
+	persistMgr->transferSint32(TMEMBER(_scrollOffset));
 
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -49,7 +49,6 @@ typedef enum {
 	CM_65K
 } RMColorMode;
 
-
 /****************************************************************************\
 *       Class declarations
 \****************************************************************************/
@@ -64,7 +63,6 @@ public:
 public:
 	void readFromStream(Common::ReadStream &ds);
 };
-
 
 /**
  * Sound effect of an object
@@ -86,7 +84,6 @@ public:
 
 	void readFromStream(Common::ReadStream &ds, bool bLOX = false);
 };
-
 
 /**
  * Object pattern
@@ -126,8 +123,8 @@ public:
 
 private:
 	int _speed;
-	RMPoint _pos;      // Parent coordinates
-	RMPoint _curPos;   // Parent + child coordinates
+	RMPoint _pos; // Parent coordinates
+	RMPoint _curPos; // Parent + child coordinates
 	int _bLoop;
 	int _nSlots;
 	int _nCurSlot;
@@ -160,7 +157,6 @@ private:
 	void updateCoord();
 };
 
-
 /**
  * Sprite (frame) animation of an item
  */
@@ -185,7 +181,6 @@ public:
 	void readFromStream(Common::SeekableReadStream &ds, bool bLOX = false);
 };
 
-
 /**
  * Data on an item
  */
@@ -195,7 +190,7 @@ public:
 
 protected:
 	int _z;
-	RMPoint _pos;  // Coordinate ancestor
+	RMPoint _pos; // Coordinate ancestor
 	RMColorMode _cm;
 	RMPoint _curScroll;
 
@@ -285,15 +280,14 @@ protected:
 	virtual RMGfxSourceBuffer *newItemSpriteBuffer(int dimx, int dimy, bool bPreRLE);
 };
 
-
-#define MAXBOXES    50      // Maximum number of allowed boxes
-#define MAXHOTSPOT 20       // Maximum nimber of allowed hotspots
+#define MAXBOXES 50 // Maximum number of allowed boxes
+#define MAXHOTSPOT 20 // Maximum nimber of allowed hotspots
 
 class RMBox {
 public:
 	struct Hotspot {
-		int _hotx, _hoty;        // Hotspot coordinates
-		int _destination;        // Hotspot destination
+		int _hotx, _hoty; // Hotspot coordinates
+		int _destination; // Hotspot destination
 	};
 
 public:
@@ -308,7 +302,6 @@ public:
 
 	void readFromStream(Common::ReadStream &ds);
 };
-
 
 class RMBoxLoc {
 public:
@@ -454,7 +447,6 @@ public:
 	void setSpeed(int speed);
 };
 
-
 class RMWipe : public RMGfxTask {
 private:
 	bool _bFading;
@@ -483,25 +475,24 @@ public:
 	virtual int priority();
 };
 
-
 /**
  * Location
  */
 class RMLocation : public RMGfxTaskSetPrior {
 public:
-	Common::String _name;                // Name
+	Common::String _name; // Name
 
 private:
-	RMColorMode _cmode;            // Color mode
-	RMGfxSourceBuffer *_buf;       // Location picture
+	RMColorMode _cmode;      // Color mode
+	RMGfxSourceBuffer *_buf; // Location picture
 
-	int _nItems;                   // Number of objects
-	RMItem *_items;                // Objects
+	int _nItems;             // Number of objects
+	RMItem *_items;          // Objects
 
-	RMPoint _curScroll;            // Current scroll position
+	RMPoint _curScroll;      // Current scroll position
 	RMPoint _fixedScroll;
 
-	RMPoint _prevScroll;			// Previous scroll position
+	RMPoint _prevScroll;     // Previous scroll position
 	RMPoint _prevFixedScroll;
 
 public:
@@ -551,7 +542,6 @@ public:
 	// Pause sound
 	void pauseSound(bool bPause);
 };
-
 
 /**
  * MPAL message, composed of more ASCIIZ

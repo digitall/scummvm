@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -33,83 +33,104 @@
 #include "common/rect.h"
 #include "graphics/surface.h"
 #include "common/list.h"
+#include "engines/wintermute/graphics/transform_struct.h"
 
 namespace Wintermute {
 class BaseSurfaceOSystem;
-class RenderTicket {
-	Graphics::Surface *_surface;
-public:
-	RenderTicket(BaseSurfaceOSystem *owner, const Graphics::Surface *surf, Common::Rect *srcRect, Common::Rect *dstRest, bool mirrorX = false, bool mirrorY = false, bool disableAlpha = false);
-	RenderTicket() : _isValid(true), _wantsDraw(false), _drawNum(0) {}
-	~RenderTicket();
-	const Graphics::Surface *getSurface() { return _surface; }
-	Common::Rect _srcRect;
-	Common::Rect _dstRect;
-	uint32 _mirror;
-	bool _hasAlpha;
-
-	bool _isValid;
-	bool _wantsDraw;
-	uint32 _drawNum;
-	uint32 _colorMod;
-
-	BaseSurfaceOSystem *_owner;
-	bool operator==(RenderTicket &a);
-};
-
+class RenderTicket;
+/**
+ * A 2D-renderer implementation for WME.
+ * This renderer makes use of a "ticket"-system, where all draw-calls
+ * are stored as tickets until flip() is called, and compared against the tickets
+ * from last frame, to determine which calls were the same as last round
+ * (i.e. in the exact same order, with the exact same arguments), and thus
+ * figure out which parts of the screen need to be redrawn.
+ *
+ * Important concepts to handle here, is the ordered number of any ticket
+ * which is called the "drawNum", every frame this starts from scratch, and
+ * then the incoming tickets created from the draw-calls are checked to see whether
+ * they came before, on, or after the drawNum they had last frame. Everything else
+ * being equal, this information is then used to check whether the draw order changed,
+ * which will then create a need for redrawing, as we draw with an alpha-channel here.
+ *
+ * There is also a draw path that draws without tickets, for debugging purposes,
+ * as well as to accomodate situations with large enough amounts of draw calls,
+ * that there will be too much overhead involved with comparing the generated tickets.
+ */
 class BaseRenderOSystem : public BaseRenderer {
 public:
 	BaseRenderOSystem(BaseGame *inGame);
 	~BaseRenderOSystem();
 
+	typedef Common::List<RenderTicket *>::iterator RenderQueueIterator;
+
 	Common::String getName() const;
 
-	bool initRenderer(int width, int height, bool windowed);
-	bool flip();
+	bool initRenderer(int width, int height, bool windowed) override;
+	bool flip() override;
 	virtual bool indicatorFlip();
-	bool fill(byte r, byte g, byte b, Common::Rect *rect = NULL);
-	Graphics::PixelFormat getPixelFormat() const;
-	void fade(uint16 alpha);
-	void fadeToColor(byte r, byte g, byte b, byte a, Common::Rect *rect = NULL);
+	bool fill(byte r, byte g, byte b, Common::Rect *rect = nullptr) override;
+	Graphics::PixelFormat getPixelFormat() const override;
+	void fade(uint16 alpha) override;
+	void fadeToColor(byte r, byte g, byte b, byte a) override;
 
-	bool drawLine(int x1, int y1, int x2, int y2, uint32 color);
+	bool drawLine(int x1, int y1, int x2, int y2, uint32 color) override;
 
-	BaseImage *takeScreenshot();
+	BaseImage *takeScreenshot() override;
 
-	void setAlphaMod(byte alpha);
-	void setColorMod(byte r, byte g, byte b);
 	void invalidateTicket(RenderTicket *renderTicket);
 	void invalidateTicketsFromSurface(BaseSurfaceOSystem *surf);
+	/**
+	 * Insert a new ticket into the queue, adding a dirty rect
+	 * @param renderTicket the ticket to be added.
+	 */
 	void drawFromTicket(RenderTicket *renderTicket);
+	/**
+	 * Re-insert an existing ticket into the queue, adding a dirty rect
+	 * out-of-order from last draw from the ticket.
+	 * @param ticket iterator pointing to the ticket to be added.
+	 */
+	void drawFromQueuedTicket(const RenderQueueIterator &ticket);
 
-	bool setViewport(int left, int top, int right, int bottom);
-	bool setViewport(Rect32 *rect) { return BaseRenderer::setViewport(rect); }
-	Rect32 getViewPort();
+	bool setViewport(int left, int top, int right, int bottom) override;
+	bool setViewport(Rect32 *rect) override { return BaseRenderer::setViewport(rect); }
+	Rect32 getViewPort() override;
 	void modTargetRect(Common::Rect *rect);
-	void pointFromScreen(Point32 *point);
+	void pointFromScreen(Point32 *point) ;
 	void pointToScreen(Point32 *point);
 
-	void dumpData(const char *filename);
+	void dumpData(const char *filename) override;
 
-	float getScaleRatioX() const {
+	float getScaleRatioX() const override {
 		return _ratioX;
 	}
-	float getScaleRatioY() const {
+	float getScaleRatioY() const override {
 		return _ratioY;
 	}
-
-	void drawSurface(BaseSurfaceOSystem *owner, const Graphics::Surface *surf, Common::Rect *srcRect, Common::Rect *dstRect, bool mirrorX, bool mirrorY, bool disableAlpha = false);
-	BaseSurface *createSurface();
+	virtual bool startSpriteBatch() override;
+	virtual bool endSpriteBatch() override;
+	void endSaveLoad();
+	void drawSurface(BaseSurfaceOSystem *owner, const Graphics::Surface *surf, Common::Rect *srcRect, Common::Rect *dstRect, TransformStruct &transform);
+	BaseSurface *createSurface() override;
 private:
+	/**
+	 * Mark a specified rect of the screen as dirty.
+	 * @param rect the region to be marked as dirty
+	 */
 	void addDirtyRect(const Common::Rect &rect);
+	/**
+	 * Traverse the tickets that are dirty, and draw them
+	 */
 	void drawTickets();
-	void drawFromSurface(RenderTicket *ticket, Common::Rect *clipRect);
-	void drawFromSurface(const Graphics::Surface *surf, Common::Rect *srcRect, Common::Rect *dstRect, Common::Rect *clipRect, uint32 mirror);
-	typedef Common::List<RenderTicket *>::iterator RenderQueueIterator;
+	// Non-dirty-rects:
+	void drawFromSurface(RenderTicket *ticket);
+	// Dirty-rects:
+	void drawFromSurface(RenderTicket *ticket, Common::Rect *dstRect, Common::Rect *clipRect);
 	Common::Rect *_dirtyRect;
 	Common::List<RenderTicket *> _renderQueue;
+
 	bool _needsFlip;
-	uint32 _drawNum;
+	RenderQueueIterator _lastFrameIter;
 	Common::Rect _renderRect;
 	Graphics::Surface *_renderSurface;
 	Graphics::Surface *_blankSurface;
@@ -119,13 +140,15 @@ private:
 	int _borderRight;
 	int _borderBottom;
 
-	static const bool _disableDirtyRects = true;
+	bool _disableDirtyRects;
 	float _ratioX;
 	float _ratioY;
-	uint32 _colorMod;
 	uint32 _clearColor;
+
+	bool _skipThisFrame;
+	int _lastScreenChangeID; // previous value of OSystem::getScreenChangeID()
 };
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute
 
 #endif

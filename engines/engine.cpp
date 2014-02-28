@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
@@ -154,6 +155,10 @@ Engine::~Engine() {
 	CursorMan.popCursorPalette();
 }
 
+void Engine::initializePath(const Common::FSNode &gamePath) {
+	SearchMan.addDirectory(gamePath.getPath(), gamePath, 0, 4);
+}
+
 void initCommonGFX(bool defaultTo1XScaler) {
 	const Common::ConfigManager::Domain *transientDomain = ConfMan.getDomain(Common::ConfigManager::kTransientDomain);
 	const Common::ConfigManager::Domain *gameDomain = ConfMan.getActiveDomain();
@@ -179,7 +184,12 @@ void initCommonGFX(bool defaultTo1XScaler) {
 	} else {
 		// Override global scaler with any game-specific define
 		if (ConfMan.hasKey("gfx_mode")) {
-			g_system->setGraphicsMode(ConfMan.get("gfx_mode").c_str());
+			Common::String gfxMode = ConfMan.get("gfx_mode");
+			g_system->setGraphicsMode(gfxMode.c_str());
+
+			// HACK: For OpenGL modes, we will still honor the graphics scale override
+			if (defaultTo1XScaler && (gfxMode.equalsIgnoreCase("opengl_linear") || gfxMode.equalsIgnoreCase("opengl_nearest")))
+				g_system->resetGraphicsScale();
 		}
 	}
 

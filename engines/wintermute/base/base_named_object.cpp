@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -32,40 +32,40 @@ namespace Wintermute {
 
 //////////////////////////////////////////////////////////////////////////
 BaseNamedObject::BaseNamedObject(BaseGame *inGame) : BaseClass(inGame) {
-	_name = NULL;
+	_name = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 BaseNamedObject::BaseNamedObject() : BaseClass() {
-	_name = NULL;
+	_name = nullptr;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 BaseNamedObject::BaseNamedObject(TDynamicConstructor, TDynamicConstructor) {
-	_name = NULL;
+	_name = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 BaseNamedObject::~BaseNamedObject(void) {
 	delete[] _name;
-	_name = NULL;
+	_name = nullptr;
 }
 
 
 //////////////////////////////////////////////////////////////////////
 void BaseNamedObject::setName(const char *name) {
 	delete[] _name;
-	_name = NULL;
+	_name = nullptr;
 
-	if (name == NULL) {
+	if (name == nullptr) {
 		return;
 	}
 
 	_name = new char [strlen(name) + 1];
-	if (_name != NULL) {
+	if (_name != nullptr) {
 		strcpy(_name, name);
 	}
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

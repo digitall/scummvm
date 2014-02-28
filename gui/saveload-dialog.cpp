@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #include "gui/saveload-dialog.h"
@@ -35,6 +36,14 @@ namespace GUI {
 #ifndef DISABLE_SAVELOADCHOOSER_GRID
 SaveLoadChooserType getRequestedSaveLoadDialog(const MetaEngine &metaEngine) {
 	const Common::String &userConfig = ConfMan.get("gui_saveload_chooser", Common::ConfigManager::kApplicationDomain);
+
+	// Check (and update if necessary) the theme config here. This catches
+	// resolution changes, which happened after the GUI was closed. This
+	// should assure that the correct GUI width/height are returned below and
+	// prevent the logic from picking the grid dialog, even though it is not
+	// possible to use it.
+	g_gui.checkScreenChange();
+
 	if (g_gui.getWidth() >= 640 && g_gui.getHeight() >= 400
 	    && metaEngine.hasFeature(MetaEngine::kSavesSupportMetaInfo)
 	    && metaEngine.hasFeature(MetaEngine::kSavesSupportThumbnail)
@@ -278,6 +287,7 @@ void SaveLoadChooserSimple::handleCommand(CommandSender *sender, uint32 cmd, uin
 		break;
 	case kCloseCmd:
 		setResult(-1);
+		// Fall through
 	default:
 		SaveLoadChooserDialog::handleCommand(sender, cmd, data);
 	}
@@ -587,6 +597,7 @@ void SaveLoadChooserGrid::handleCommand(CommandSender *sender, uint32 cmd, uint3
 
 	case kCloseCmd:
 		setResult(-1);
+		// Fall through
 	default:
 		SaveLoadChooserDialog::handleCommand(sender, cmd, data);
 	}

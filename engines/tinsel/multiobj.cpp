@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -40,22 +40,22 @@ OBJECT *MultiInitObject(const MULTI_INIT *pInitTbl) {
 	OBJECT *pFirst, *pObj;	// object pointers
 	FRAME *pFrame;		// list of images for the multi-part object
 
-	if (FROM_LE_32(pInitTbl->hMulFrame)) {
+	if (FROM_32(pInitTbl->hMulFrame)) {
 		// we have a frame handle
-		pFrame = (FRAME *)LockMem(FROM_LE_32(pInitTbl->hMulFrame));
+		pFrame = (FRAME *)LockMem(FROM_32(pInitTbl->hMulFrame));
 
-		obj_init.hObjImg  = READ_LE_UINT32(pFrame);	// first objects shape
+		obj_init.hObjImg  = READ_32(pFrame);	// first objects shape
 	} else {	// this must be a animation list for a NULL object
 		pFrame = NULL;
 		obj_init.hObjImg = 0;	// first objects shape
 	}
 
 	// init the object init table
-	obj_init.objFlags = (int)FROM_LE_32(pInitTbl->mulFlags);	// all objects have same flags
-	obj_init.objID    = (int)FROM_LE_32(pInitTbl->mulID);	// all objects have same ID
-	obj_init.objX     = (int)FROM_LE_32(pInitTbl->mulX);	// all objects have same X ani pos
-	obj_init.objY     = (int)FROM_LE_32(pInitTbl->mulY);	// all objects have same Y ani pos
-	obj_init.objZ     = (int)FROM_LE_32(pInitTbl->mulZ);	// all objects have same Z pos
+	obj_init.objFlags = (int)FROM_32(pInitTbl->mulFlags);	// all objects have same flags
+	obj_init.objID    = (int)FROM_32(pInitTbl->mulID);	// all objects have same ID
+	obj_init.objX     = (int)FROM_32(pInitTbl->mulX);	// all objects have same X ani pos
+	obj_init.objY     = (int)FROM_32(pInitTbl->mulY);	// all objects have same Y ani pos
+	obj_init.objZ     = (int)FROM_32(pInitTbl->mulZ);	// all objects have same Z pos
 
 	// create and init the first object
 	pObj = pFirst = InitObject(&obj_init);
@@ -65,9 +65,9 @@ OBJECT *MultiInitObject(const MULTI_INIT *pInitTbl) {
 
 		pFrame++;
 
-		while (READ_LE_UINT32(pFrame) != 0) {
+		while (READ_32(pFrame) != 0) {
 			// set next objects shape
-			obj_init.hObjImg = READ_LE_UINT32(pFrame);
+			obj_init.hObjImg = READ_32(pFrame);
 
 			// create next object and link to previous
 			pObj = pObj->pSlave = InitObject(&obj_init);
@@ -378,9 +378,9 @@ void MultiReshape(OBJECT *pMultiObj) {
 		// update previous
 		pMultiObj->hMirror = hFrame;
 
-		while (READ_LE_UINT32(pFrame) != 0 && pMultiObj != NULL) {
+		while (READ_32(pFrame) != 0 && pMultiObj != NULL) {
 			// a normal image - update the current object with this image
-			AnimateObject(pMultiObj, READ_LE_UINT32(pFrame));
+			AnimateObject(pMultiObj, READ_32(pFrame));
 
 			// move to next image for this frame
 			pFrame++;

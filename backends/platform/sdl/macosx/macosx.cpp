@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -31,6 +31,7 @@
 #include "backends/mixer/doublebuffersdl/doublebuffersdl-mixer.h"
 #include "backends/platform/sdl/macosx/appmenu_osx.h"
 #include "backends/updates/macosx/macosx-updates.h"
+#include "backends/taskbar/macosx/macosx-taskbar.h"
 
 #include "common/archive.h"
 #include "common/config-manager.h"
@@ -39,11 +40,20 @@
 
 #include "ApplicationServices/ApplicationServices.h"	// for LSOpenFSRef
 #include "CoreFoundation/CoreFoundation.h"	// for CF* stuff
-#include "CoreServices/CoreServices.h"	// for FSPathMakeRef
 
 OSystem_MacOSX::OSystem_MacOSX()
 	:
 	OSystem_POSIX("Library/Preferences/ScummVM Preferences") {
+}
+
+void OSystem_MacOSX::init() {
+#if defined(USE_TASKBAR)
+	// Initialize taskbar manager
+	_taskbarManager = new MacOSXTaskbarManager();
+#endif
+	
+	// Invoke parent implementation of this method
+	OSystem_POSIX::init();
 }
 
 void OSystem_MacOSX::initBackend() {
@@ -107,13 +117,9 @@ bool OSystem_MacOSX::displayLogFile() {
 	if (_logFilePath.empty())
 		return false;
 
-	FSRef ref;
-	OSStatus err;
-
-	err = FSPathMakeRef((const UInt8 *)_logFilePath.c_str(), &ref, NULL);
-	if (err == noErr) {
-		err = LSOpenFSRef(&ref, NULL);
-	}
+    CFURLRef url = CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault, (const UInt8 *)_logFilePath.c_str(), _logFilePath.size(), false);
+    OSStatus err = LSOpenCFURLRef(url, NULL);
+    CFRelease(url);
 
 	return err != noErr;
 }

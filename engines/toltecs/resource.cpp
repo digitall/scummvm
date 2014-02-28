@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 
@@ -61,16 +60,11 @@ uint32 ArchiveReader::getResourceSize(uint resIndex) {
 	return _offsets[resIndex + 1] - _offsets[resIndex];
 }
 
-void ArchiveReader::dump(uint resIndex, const char *prefix) {
+void ArchiveReader::dump(uint resIndex) {
 	int32 resourceSize = getResourceSize(resIndex);
 	byte *data = new byte[resourceSize];
 
-	Common::String fn;
-
-	if (prefix)
-		fn = Common::String::format("%s_%04X.0", prefix, resIndex);
-	else
-		fn = Common::String::format("%04X.0", resIndex);
+	Common::String fn = Common::String::format("toltecs_res.%03d", resIndex);
 
 	openResource(resIndex);
 	read(data, resourceSize);
@@ -112,11 +106,13 @@ Resource *ResourceCache::load(uint resIndex) {
 	} else {
 		debug(1, "ResourceCache::load(%d) From disk", resIndex);
 
+		int32 curPos = _vm->_arc->pos();
 		Resource *resItem = new Resource();
 		resItem->size = _vm->_arc->openResource(resIndex);
 		resItem->data = new byte[resItem->size];
 		_vm->_arc->read(resItem->data, resItem->size);
 		_vm->_arc->closeResource();
+		_vm->_arc->seek(curPos);
 
 		_cache[resIndex] = resItem;
 

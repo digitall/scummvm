@@ -8,15 +8,16 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_printf
@@ -528,16 +529,13 @@ void OSystem_Wii::updateScreen() {
 }
 
 Graphics::Surface *OSystem_Wii::lockScreen() {
-	_surface.pixels = _gamePixels;
-	_surface.w = _gameWidth;
-	_surface.h = _gameHeight;
+	_surface.init(_gameWidth, _gameHeight,
 #ifdef USE_RGB_COLOR
-	_surface.pitch = _gameWidth * _pfGame.bytesPerPixel;
-	_surface.format = _pfGame;
+	              _gameWidth * _pfGame.bytesPerPixel, _gamePixels, _pfGame
 #else
-	_surface.pitch = _gameWidth;
-	_surface.format = Graphics::PixelFormat::createFormatCLUT8();
+	              _gameWidth, _gamePixels, Graphics::PixelFormat::createFormatCLUT8()
 #endif
+	             );
 
 	return &_surface;
 }
@@ -609,7 +607,7 @@ void OSystem_Wii::copyRectToOverlay(const void *buf, int pitch, int x,
 		return;
 
 	uint16 *dst = _overlayPixels + (y * _overlayWidth + x);
-	if (_overlayWidth == w && pitch == _overlayWidth * sizeof(uint16)) {
+	if (_overlayWidth == (uint16)w && (uint16)pitch == _overlayWidth * sizeof(uint16)) {
 		memcpy(dst, src, h * pitch);
 	} else {
 		do {

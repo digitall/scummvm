@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -324,7 +324,10 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 			// Calculate samplelen from WAVE header
 			int waveSize = 0, waveRate = 0;
 			byte waveFlags = 0;
-			Audio::loadWAVFromStream(*waveStream, waveSize, waveRate, waveFlags);
+			bool ret = Audio::loadWAVFromStream(*waveStream, waveSize, waveRate, waveFlags);
+			if (!ret)
+				error("Failed to load WAV from stream");
+
 			*sampleLen = (waveFlags & Audio::FLAG_16BITS ? waveSize >> 1 : waveSize) * 60 / waveRate;
 
 			waveStream->seek(0, SEEK_SET);
@@ -336,7 +339,10 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 			// Calculate samplelen from AIFF header
 			int waveSize = 0, waveRate = 0;
 			byte waveFlags = 0;
-			Audio::loadAIFFFromStream(*waveStream, waveSize, waveRate, waveFlags);
+			bool ret = Audio::loadAIFFFromStream(*waveStream, waveSize, waveRate, waveFlags);
+			if (!ret)
+				error("Failed to load AIFF from stream");
+
 			*sampleLen = (waveFlags & Audio::FLAG_16BITS ? waveSize >> 1 : waveSize) * 60 / waveRate;
 
 			waveStream->seek(0, SEEK_SET);
@@ -347,6 +353,9 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 			Common::SeekableReadStream *sndStream = new Common::MemoryReadStream(audioRes->data, audioRes->size, DisposeAfterUse::NO);
 
 			audioSeekStream = Audio::makeMacSndStream(sndStream, DisposeAfterUse::YES);
+			if (!audioSeekStream)
+				error("Failed to load Mac sound stream");
+
 		} else {
 			// SCI1 raw audio
 			size = audioRes->size;

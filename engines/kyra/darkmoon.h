@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -72,21 +72,21 @@ private:
 	void seq_playFinale();
 	void seq_playCredits(DarkmoonSequenceHelper *sq, const uint8 *data, int sd, int backupPage, int tempPage, int speed);
 
-	const char * const *_introStrings;
-	const char * const *_cpsFilesIntro;
+	const char *const *_introStrings;
+	const char *const *_cpsFilesIntro;
 	const DarkMoonAnimCommand **_animIntro;
 	const DarkMoonShapeDef **_shapesIntro;
 
-	const char * const *_finaleStrings;
+	const char *const *_finaleStrings;
 	const uint8 *_creditsData;
-	const char * const *_cpsFilesFinale;
+	const char *const *_cpsFilesFinale;
 	const DarkMoonAnimCommand **_animFinale;
 	const DarkMoonShapeDef **_shapesFinale;
 
-	static const char *_palFilesIntroVGA[];
-	static const char *_palFilesIntroEGA[];
-	static const char *_palFilesFinaleVGA[];
-	static const char *_palFilesFinaleEGA[];
+	static const char *const _palFilesIntroVGA[];
+	static const char *const _palFilesIntroEGA[];
+	static const char *const _palFilesFinaleVGA[];
+	static const char *const _palFilesFinaleEGA[];
 
 	// Ingame sequence
 	void seq_nightmare();
@@ -140,7 +140,7 @@ private:
 	static const uint8 _egaDefaultPalette[];
 };
 
-}	// End of namespace Kyra
+} // End of namespace Kyra
 
 #endif
 

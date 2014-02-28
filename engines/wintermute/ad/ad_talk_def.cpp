@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -42,11 +42,11 @@ IMPLEMENT_PERSISTENT(AdTalkDef, false)
 
 //////////////////////////////////////////////////////////////////////////
 AdTalkDef::AdTalkDef(BaseGame *inGame) : BaseObject(inGame) {
-	_defaultSpriteFilename = NULL;
-	_defaultSprite = NULL;
+	_defaultSpriteFilename = nullptr;
+	_defaultSprite = nullptr;
 
-	_defaultSpriteSetFilename = NULL;
-	_defaultSpriteSet = NULL;
+	_defaultSpriteSetFilename = nullptr;
+	_defaultSpriteSet = nullptr;
 }
 
 
@@ -59,20 +59,20 @@ AdTalkDef::~AdTalkDef() {
 
 	delete[] _defaultSpriteFilename;
 	delete _defaultSprite;
-	_defaultSpriteFilename = NULL;
-	_defaultSprite = NULL;
+	_defaultSpriteFilename = nullptr;
+	_defaultSprite = nullptr;
 
 	delete[] _defaultSpriteSetFilename;
 	delete _defaultSpriteSet;
-	_defaultSpriteSetFilename = NULL;
-	_defaultSpriteSet = NULL;
+	_defaultSpriteSetFilename = nullptr;
+	_defaultSpriteSet = nullptr;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 bool AdTalkDef::loadFile(const char *filename) {
-	byte *buffer = BaseFileManager::getEngineInstance()->readWholeFile(filename);
-	if (buffer == NULL) {
+	char *buffer = (char *)BaseFileManager::getEngineInstance()->readWholeFile(filename);
+	if (buffer == nullptr) {
 		_gameRef->LOG(0, "AdTalkDef::LoadFile failed for file '%s'", filename);
 		return STATUS_FAILED;
 	}
@@ -101,7 +101,7 @@ TOKEN_DEF(DEFAULT_SPRITE)
 TOKEN_DEF(EDITOR_PROPERTY)
 TOKEN_DEF_END
 //////////////////////////////////////////////////////////////////////////
-bool AdTalkDef::loadBuffer(byte *buffer, bool complete) {
+bool AdTalkDef::loadBuffer(char *buffer, bool complete) {
 	TOKEN_TABLE_START(commands)
 	TOKEN_TABLE(TALK)
 	TOKEN_TABLE(TEMPLATE)
@@ -112,22 +112,22 @@ bool AdTalkDef::loadBuffer(byte *buffer, bool complete) {
 	TOKEN_TABLE(EDITOR_PROPERTY)
 	TOKEN_TABLE_END
 
-	byte *params;
+	char *params;
 	int cmd;
 	BaseParser parser;
 
 	if (complete) {
-		if (parser.getCommand((char **)&buffer, commands, (char **)&params) != TOKEN_TALK) {
+		if (parser.getCommand(&buffer, commands, &params) != TOKEN_TALK) {
 			_gameRef->LOG(0, "'TALK' keyword expected.");
 			return STATUS_FAILED;
 		}
 		buffer = params;
 	}
 
-	while ((cmd = parser.getCommand((char **)&buffer, commands, (char **)&params)) > 0) {
+	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
 		case TOKEN_TEMPLATE:
-			if (DID_FAIL(loadFile((char *)params))) {
+			if (DID_FAIL(loadFile(params))) {
 				cmd = PARSERR_GENERIC;
 			}
 			break;
@@ -138,18 +138,18 @@ bool AdTalkDef::loadBuffer(byte *buffer, bool complete) {
 				_nodes.add(node);
 			} else {
 				delete node;
-				node = NULL;
+				node = nullptr;
 				cmd = PARSERR_GENERIC;
 			}
 		}
 		break;
 
 		case TOKEN_DEFAULT_SPRITE:
-			BaseUtils::setString(&_defaultSpriteFilename, (char *)params);
+			BaseUtils::setString(&_defaultSpriteFilename, params);
 			break;
 
 		case TOKEN_DEFAULT_SPRITESET_FILE:
-			BaseUtils::setString(&_defaultSpriteSetFilename, (char *)params);
+			BaseUtils::setString(&_defaultSpriteSetFilename, params);
 			break;
 
 		case TOKEN_DEFAULT_SPRITESET: {
@@ -157,7 +157,7 @@ bool AdTalkDef::loadBuffer(byte *buffer, bool complete) {
 			_defaultSpriteSet = new AdSpriteSet(_gameRef);
 			if (!_defaultSpriteSet || DID_FAIL(_defaultSpriteSet->loadBuffer(params, false))) {
 				delete _defaultSpriteSet;
-				_defaultSpriteSet = NULL;
+				_defaultSpriteSet = nullptr;
 				cmd = PARSERR_GENERIC;
 			}
 		}
@@ -181,8 +181,8 @@ bool AdTalkDef::loadBuffer(byte *buffer, bool complete) {
 
 	delete _defaultSprite;
 	delete _defaultSpriteSet;
-	_defaultSprite = NULL;
-	_defaultSpriteSet = NULL;
+	_defaultSprite = nullptr;
+	_defaultSpriteSet = nullptr;
 
 	if (_defaultSpriteFilename) {
 		_defaultSprite = new BaseSprite(_gameRef);
@@ -208,10 +208,10 @@ bool AdTalkDef::persist(BasePersistenceManager *persistMgr) {
 
 	BaseObject::persist(persistMgr);
 
-	persistMgr->transfer(TMEMBER(_defaultSprite));
-	persistMgr->transfer(TMEMBER(_defaultSpriteFilename));
-	persistMgr->transfer(TMEMBER(_defaultSpriteSet));
-	persistMgr->transfer(TMEMBER(_defaultSpriteSetFilename));
+	persistMgr->transferPtr(TMEMBER_PTR(_defaultSprite));
+	persistMgr->transferCharPtr(TMEMBER(_defaultSpriteFilename));
+	persistMgr->transferPtr(TMEMBER_PTR(_defaultSpriteSet));
+	persistMgr->transferCharPtr(TMEMBER(_defaultSpriteSetFilename));
 
 	_nodes.persist(persistMgr);
 
@@ -250,7 +250,7 @@ bool AdTalkDef::loadDefaultSprite() {
 		_defaultSprite = new BaseSprite(_gameRef);
 		if (!_defaultSprite || DID_FAIL(_defaultSprite->loadFile(_defaultSpriteFilename))) {
 			delete _defaultSprite;
-			_defaultSprite = NULL;
+			_defaultSprite = nullptr;
 			return STATUS_FAILED;
 		} else {
 			return STATUS_OK;
@@ -259,7 +259,7 @@ bool AdTalkDef::loadDefaultSprite() {
 		_defaultSpriteSet = new AdSpriteSet(_gameRef);
 		if (!_defaultSpriteSet || DID_FAIL(_defaultSpriteSet->loadFile(_defaultSpriteSetFilename))) {
 			delete _defaultSpriteSet;
-			_defaultSpriteSet = NULL;
+			_defaultSpriteSet = nullptr;
 			return STATUS_FAILED;
 		} else {
 			return STATUS_OK;
@@ -278,8 +278,8 @@ BaseSprite *AdTalkDef::getDefaultSprite(TDirection dir) {
 	} else if (_defaultSpriteSet) {
 		return _defaultSpriteSet->getSprite(dir);
 	} else {
-		return NULL;
+		return nullptr;
 	}
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

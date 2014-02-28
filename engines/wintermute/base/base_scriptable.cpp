@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -39,24 +39,24 @@ BaseScriptable::BaseScriptable(BaseGame *inGame, bool noValue, bool persistable)
 	_refCount = 0;
 
 	if (noValue) {
-		_scValue = NULL;
+		_scValue = nullptr;
 	} else {
 		_scValue = new ScValue(_gameRef);
 	}
 
 	_persistable = persistable;
 
-	_scProp = NULL;
+	_scProp = nullptr;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 BaseScriptable::~BaseScriptable() {
-	//if (_refCount>0) _gameRef->LOG(0, "Warning: Destroying object, _refCount=%d", _refCount);
+	//if (_refCount>0) BaseEngine::LOG(0, "Warning: Destroying object, _refCount=%d", _refCount);
 	delete _scValue;
 	delete _scProp;
-	_scValue = NULL;
-	_scProp = NULL;
+	_scValue = nullptr;
+	_scProp = nullptr;
 }
 
 
@@ -83,7 +83,7 @@ ScValue *BaseScriptable::scGetProperty(const Common::String &name) {
 	if (_scProp) {
 		return _scProp->getProp(name.c_str()); // TODO: Change to Common::String
 	} else {
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -152,10 +152,10 @@ void BaseScriptable::scSetBool(bool val) {
 
 //////////////////////////////////////////////////////////////////////////
 bool BaseScriptable::persist(BasePersistenceManager *persistMgr) {
-	persistMgr->transfer(TMEMBER(_gameRef));
-	persistMgr->transfer(TMEMBER(_refCount));
-	persistMgr->transfer(TMEMBER(_scProp));
-	persistMgr->transfer(TMEMBER(_scValue));
+	persistMgr->transferPtr(TMEMBER_PTR(_gameRef));
+	persistMgr->transferSint32(TMEMBER(_refCount));
+	persistMgr->transferPtr(TMEMBER_PTR(_scProp));
+	persistMgr->transferPtr(TMEMBER_PTR(_scValue));
 
 	return STATUS_OK;
 }
@@ -178,14 +178,14 @@ void BaseScriptable::scDebuggerDesc(char *buf, int bufSize) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool BaseScriptable::canHandleMethod(const char *eventMethod) {
+bool BaseScriptable::canHandleMethod(const char *eventMethod) const {
 	return false;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 ScScript *BaseScriptable::invokeMethodThread(const char *methodName) {
-	return NULL;
+	return nullptr;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

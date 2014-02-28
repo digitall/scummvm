@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -76,8 +76,8 @@ void KyraRpgEngine::gui_drawHorizontalBarGraph(int x, int y, int w, int h, int32
 		screen()->fillRect(x + t, y, x + w - 1, y + h, col2);
 }
 
-void KyraRpgEngine::gui_initButtonsFromList(const int16 *list) {
-	while (*list != -1)
+void KyraRpgEngine::gui_initButtonsFromList(const uint8 *list) {
+	while (*list != 0xFF)
 		gui_initButton(*list++);
 }
 
@@ -107,7 +107,7 @@ bool KyraRpgEngine::clickedShape(int shapeIndex) {
 
 		uint16 s = _levelDecorationProperties[shapeIndex].shapeIndex[1];
 
-		if (s == 0xffff)
+		if (s == 0xFFFF)
 			continue;
 
 		int w = _flags.gameID == GI_LOL ? _levelDecorationShapes[s][3] : (_levelDecorationShapes[s][2] << 3);

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -72,7 +72,7 @@ bool BaseFontStorage::initLoop() {
 //////////////////////////////////////////////////////////////////////////
 BaseFont *BaseFontStorage::addFont(const Common::String &filename) {
 	if (!filename.size()) {
-		return NULL;
+		return nullptr;
 	}
 
 	for (uint32 i = 0; i < _fonts.size(); i++) {
@@ -84,11 +84,11 @@ BaseFont *BaseFontStorage::addFont(const Common::String &filename) {
 
 	/*
 	BaseFont* font = new BaseFont(_gameRef);
-	if (!font) return NULL;
+	if (!font) return nullptr;
 
 	if (DID_FAIL(font->loadFile(filename))) {
 	    delete font;
-	    return NULL;
+	    return nullptr;
 	}
 	else {
 	    font->_refCount = 1;
@@ -132,10 +132,10 @@ bool BaseFontStorage::persist(BasePersistenceManager *persistMgr) {
 		cleanup(false);
 	}
 
-	persistMgr->transfer(TMEMBER(_gameRef));
+	persistMgr->transferPtr(TMEMBER_PTR(_gameRef));
 	_fonts.persist(persistMgr);
 
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

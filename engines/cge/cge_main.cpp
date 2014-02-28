@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -125,9 +125,8 @@ char *CGEEngine::mergeExt(char *buf, const char *name, const char *ext) {
 }
 
 int CGEEngine::takeEnum(const char **tab, const char *text) {
-	const char **e;
 	if (text) {
-		for (e = tab; *e; e++) {
+		for (const char **e = tab; *e; e++) {
 			if (scumm_stricmp(text, *e) == 0) {
 				return e - tab;
 			}
@@ -358,7 +357,7 @@ void CGEEngine::writeSavegameHeader(Common::OutSaveFile *out, SavegameHeader &he
 	// Create a thumbnail and save it
 	Graphics::Surface *thumb = new Graphics::Surface();
 	Graphics::Surface *s = _vga->_page[0];
-	::createThumbnail(thumb, (const byte *)s->pixels, kScrWidth, kScrHeight, thumbPalette);
+	::createThumbnail(thumb, (const byte *)s->getPixels(), kScrWidth, kScrHeight, thumbPalette);
 	Graphics::saveThumbnail(*out, *thumb);
 	thumb->free();
 	delete thumb;
@@ -539,14 +538,12 @@ void CGEEngine::setMapBrick(int x, int z) {
 	debugC(1, kCGEDebugEngine, "CGEEngine::setMapBrick(%d, %d)", x, z);
 
 	Square *s = new Square(this);
-	if (s) {
-		char n[6];
-		s->gotoxy(x * kMapGridX, kMapTop + z * kMapGridZ);
-		sprintf(n, "%02d:%02d", x, z);
-		_clusterMap[z][x] = 1;
-		s->setName(n);
-		_vga->_showQ->insert(s, _vga->_showQ->first());
-	}
+	char n[6];
+	s->gotoxy(x * kMapGridX, kMapTop + z * kMapGridZ);
+	sprintf(n, "%02d:%02d", x, z);
+	_clusterMap[z][x] = 1;
+	s->setName(n);
+	_vga->_showQ->insert(s, _vga->_showQ->first());
 }
 
 void CGEEngine::keyClick() {
@@ -1031,7 +1028,6 @@ void CGEEngine::loadSprite(const char *fname, int ref, int scene, int col = 0, i
 	bool east = false;
 	bool port = false;
 	bool tran = false;
-	int i, lcnt = 0;
 
 	char tmpStr[kLineMax + 1];
 	Common::String line;
@@ -1043,10 +1039,11 @@ void CGEEngine::loadSprite(const char *fname, int ref, int scene, int col = 0, i
 			error("Bad SPR [%s]", tmpStr);
 
 		uint16 len;
+		int i, lcnt = 0;
 		for (line = sprf.readLine(); !sprf.eos(); line = sprf.readLine()) {
 			len = line.size();
 			lcnt++;
-			strcpy(tmpStr, line.c_str());
+			Common::strlcpy(tmpStr, line.c_str(), sizeof(tmpStr));
 			if (len == 0 || *tmpStr == '.')
 				continue;
 
@@ -1132,7 +1129,7 @@ void CGEEngine::loadSprite(const char *fname, int ref, int scene, int col = 0, i
 		_sprite->_flags._bDel = true;
 
 		// Extract the filename, without the extension
-		strcpy(_sprite->_file, fname);
+		Common::strlcpy(_sprite->_file, fname, sizeof(_sprite->_file));
 		char *p = strchr(_sprite->_file, '.');
 		if (p)
 			*p = '\0';
@@ -1158,7 +1155,7 @@ void CGEEngine::loadScript(const char *fname) {
 		char *p;
 
 		lcnt++;
-		strcpy(tmpStr, line.c_str());
+		Common::strlcpy(tmpStr, line.c_str(), sizeof(tmpStr));
 		if ((line.size() == 0) || (*tmpStr == '.'))
 			continue;
 

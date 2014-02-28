@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -47,6 +47,8 @@ SavedObject::~SavedObject() {
 Saver::Saver() {
 	_macroSaveFlag = false;
 	_macroRestoreFlag = false;
+
+	_factoryPtr = nullptr;
 }
 
 Saver::~Saver() {
@@ -127,7 +129,6 @@ Common::Error Saver::save(int slot, const Common::String &saveName) {
 
 	// Set fields
 	_macroSaveFlag = true;
-	_saveSlot = slot;
 
 	// Try and create the save file
 	Common::OutSaveFile *saveFile = g_system->getSavefileManager()->openForSaving(g_vm->generateSaveName(slot));
@@ -151,8 +152,9 @@ Common::Error Saver::save(int slot, const Common::String &saveName) {
 
 	// Save each registered SaveObject descendant object into the savegame file
 	for (SynchronizedList<SavedObject *>::iterator i = _objList.begin(); i != _objList.end(); ++i) {
-		serializer.validate((*i)->getClassName());
-		(*i)->synchronize(serializer);
+		SavedObject *so = *i;
+		serializer.validate(so->getClassName());
+		so->synchronize(serializer);
 	}
 
 	// Save file complete
@@ -176,7 +178,6 @@ Common::Error Saver::restore(int slot) {
 
 	// Set fields
 	_macroRestoreFlag = true;
-	_saveSlot = slot;
 	_unresolvedPtrs.clear();
 
 	// Set up the serializer
@@ -289,7 +290,7 @@ void Saver::writeSavegameHeader(Common::OutSaveFile *out, tSageSavegameHeader &h
 	// Create a thumbnail and save it
 	Graphics::Surface *thumb = new Graphics::Surface();
 	Graphics::Surface s = g_globals->_screenSurface.lockSurface();
-	::createThumbnail(thumb, (const byte *)s.pixels, SCREEN_WIDTH, SCREEN_HEIGHT, thumbPalette);
+	::createThumbnail(thumb, (const byte *)s.getPixels(), SCREEN_WIDTH, SCREEN_HEIGHT, thumbPalette);
 	Graphics::saveThumbnail(*out, *thumb);
 	g_globals->_screenSurface.unlockSurface();
 	thumb->free();

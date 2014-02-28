@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef TEENAGENT_ANIMATION_H
@@ -35,6 +36,8 @@ public:
 	enum Type {kTypeLan, kTypeVaria, kTypeInventory};
 
 	Animation();
+	~Animation();
+
 	void load(Common::SeekableReadStream &, Type type = kTypeLan);
 	void free();
 
@@ -42,8 +45,6 @@ public:
 	Surface *currentFrame(int dt);
 	uint16 currentIndex() const { return index; }
 	void resetIndex() { index = 0; }
-
-	~Animation();
 
 	bool empty() const { return frames == NULL; }
 	void restart();
@@ -53,9 +54,9 @@ public:
 
 protected:
 	byte *data;
-	uint16 data_size;
+	uint16 dataSize;
 
-	uint16 frames_count;
+	uint16 framesCount;
 	Surface *frames;
 	uint16 index;
 };

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -127,9 +127,9 @@ void Intro::introMovies_run() {
 		break;
 	default:
 		if (_vm->getFeatures() & GF_DEMO)
-			_vm->changeToCard(2001, true);
+			_vm->changeToCard(2001, kTransitionRightToLeft);
 		else
-			_vm->changeToCard(2, true);
+			_vm->changeToCard(2, kTransitionRightToLeft);
 	}
 }
 
@@ -148,7 +148,7 @@ void Intro::mystLinkBook_run() {
 			_vm->_gfx->copyBackBufferToScreen(Common::Rect(544, 333));
 		}
 	} else if (!_linkBookMovie->isPlaying()) {
-		_vm->changeToCard(5, true);
+		_vm->changeToCard(5, kTransitionRightToLeft);
 	}
 }
 

@@ -30,6 +30,7 @@
 #include "common/macresman.h"
 #include "common/rect.h"
 #include "common/scummsys.h"
+#include "common/str-array.h"
 #include "common/system.h"
 #include "common/util.h"
 
@@ -94,6 +95,10 @@ public:
 
 	// Misc.
 	bool isDemo() const;
+	bool isDVD() const;
+	bool isDVDDemo() const;
+	bool isOldDemo() const;
+	bool isWindows() const;
 	void addIdler(Idler *idler);
 	void removeIdler(Idler *idler);
 	void addTimeBase(TimeBase *timeBase);
@@ -195,6 +200,7 @@ public:
 	bool saveRequested() const { return _saveRequested; }
 	void requestLoad() { _loadRequested = true; }
 	bool loadRequested() const { return _loadRequested; }
+	static Common::StringArray listSaveFiles();
 
 protected:
 	Common::Error run();
@@ -243,7 +249,7 @@ private:
 	Common::List<TimeBase *> _timeBases;
 
 	// Save/Load
-	bool loadFromStream(Common::ReadStream *stream);
+	bool loadFromStream(Common::SeekableReadStream *stream);
 	bool writeToStream(Common::WriteStream *stream, int saveType);
 	void loadFromContinuePoint();
 	void writeContinueStream(Common::WriteStream *stream);
@@ -265,6 +271,8 @@ private:
 	void doSubChase();
 	uint getNeighborhoodCD(const NeighborhoodID neighborhood) const;
 	uint _currentCD;
+	void initKeymap();
+	InputBits getInputFilter();
 
 	// Menu
 	GameMenu *_gameMenu;

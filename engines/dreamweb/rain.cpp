@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -42,12 +42,12 @@ void DreamWebEngine::showRain() {
 		uint16 offset = (rain.w3 - rain.b5) & 511;
 		rain.w3 = offset;
 		const uint8 *src = frameData + offset;
-		uint8 *dst = workspace() + y * 320 + x;
+		uint8 *dst = workspace() + y * kScreenwidth + x;
 		for (uint16 j = 0; j < size; ++j) {
 			uint8 v = src[j];
 			if (v != 0)
 				*dst = v;
-			dst += 320-1; // advance diagonally
+			dst += kScreenwidth-1; // advance diagonally
 		}
 	}
 

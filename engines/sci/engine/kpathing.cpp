@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -1366,7 +1366,16 @@ static void AStar(PathfindingState *s) {
 			// other, while we apply a penalty to paths traversing it.
 			// This difference might lead to problems, but none are
 			// known at the time of writing.
-			if (s->pointOnScreenBorder(vertex->v))
+
+			// WORKAROUND: This check fails in QFG1VGA, room 81 (bug report #3568452).
+			// However, it is needed in other SCI1.1 games, such as LB2. Therefore, we
+			// add this workaround for that scene in QFG1VGA, until our algorithm matches
+			// better what SSCI is doing. With this workaround, QFG1VGA no longer freezes
+			// in that scene.
+			bool qfg1VgaWorkaround = (g_sci->getGameId() == GID_QFG1VGA &&
+									  g_sci->getEngineState()->currentRoomNumber() == 81);
+
+			if (s->pointOnScreenBorder(vertex->v) && !qfg1VgaWorkaround)
 				new_dist += 10000;
 
 			if (new_dist < vertex->costG) {
@@ -1957,7 +1966,7 @@ static bool isVertexCovered(const Patch &p, unsigned int wi) {
 	//  ---w1--1----p----w2--2----
 	//         ^             \       (inside)
 	if (wi > p.indexw1 && wi <= p.indexw2)
-		return true; 
+		return true;
 
 	//         v             /       (outside)
 	//  ---w2--2----p----w1--1----
@@ -2379,6 +2388,8 @@ reg_t kMergePoly(EngineState *s, int argc, reg_t *argv) {
 				debugN("\n");
 #endif
 			}
+
+			delete polygon;
 		}
 
 		node = s->_segMan->lookupNode(node->succ);

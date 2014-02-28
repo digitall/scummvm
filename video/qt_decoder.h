@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -44,9 +44,11 @@ namespace Graphics {
 struct PixelFormat;
 }
 
-namespace Video {
-
+namespace Image {
 class Codec;
+}
+
+namespace Video {
 
 /**
  * Decoder for QuickTime videos.
@@ -70,7 +72,7 @@ public:
 	Audio::Timestamp getDuration() const { return Audio::Timestamp(0, _duration, _timeScale); }
 
 protected:
-	Common::QuickTimeParser::SampleDesc *readSampleDesc(Common::QuickTimeParser::Track *track, uint32 format);
+	Common::QuickTimeParser::SampleDesc *readSampleDesc(Common::QuickTimeParser::Track *track, uint32 format, uint32 descSize);
 
 private:
 	void init();
@@ -95,7 +97,7 @@ private:
 		char _codecName[32];
 		uint16 _colorTableId;
 		byte *_palette;
-		Codec *_videoCodec;
+		Image::Codec *_videoCodec;
 	};
 
 	// The AudioTrackHandler is currently just a wrapper around some
@@ -136,6 +138,8 @@ private:
 		const Graphics::Surface *decodeNextFrame();
 		const byte *getPalette() const { _dirtyPalette = false; return _curPalette; }
 		bool hasDirtyPalette() const { return _curPalette; }
+		bool setReverse(bool reverse);
+		bool isReversed() const { return _reversed; }
 
 		Common::Rational getScaledWidth() const;
 		Common::Rational getScaledHeight() const;
@@ -151,6 +155,7 @@ private:
 		int32 _durationOverride;
 		const byte *_curPalette;
 		mutable bool _dirtyPalette;
+		bool _reversed;
 
 		Common::SeekableReadStream *getNextFramePacket(uint32 &descId);
 		uint32 getFrameDuration();
@@ -160,6 +165,7 @@ private:
 		uint32 getRateAdjustedFrameTime() const;
 		uint32 getCurEditTimeOffset() const;
 		uint32 getCurEditTrackDuration() const;
+		bool atLastEdit() const;
 	};
 };
 

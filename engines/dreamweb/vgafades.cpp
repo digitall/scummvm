@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -56,8 +56,8 @@ void DreamWebEngine::fadeDOS() {
 	//processEvents will be called from waitForVSync
 	uint8 *dst = _startPal;
 	getPalette(dst, 0, 64);
-	for (int fade = 0; fade < 64; ++fade) {
-		for (int c = 0; c < 768; ++c) { //original sources decrement 768 values -> 256 colors
+	for (uint fade = 0; fade < 64; ++fade) {
+		for (uint c = 0; c < 768; ++c) { //original sources decrement 768 values -> 256 colors
 			if (dst[c]) {
 				--dst[c];
 			}
@@ -72,11 +72,11 @@ void DreamWebEngine::doFade() {
 		return;
 
 	processEvents();
-	uint8 *src = _startPal + 3 * _colourPos;
-	setPalette(src, _colourPos, _numToFade);
+	uint8 *src = _startPal + 3 * _colorPos;
+	setPalette(src, _colorPos, _numToFade);
 
-	_colourPos += _numToFade;
-	if (_colourPos == 0)
+	_colorPos += _numToFade;
+	if (_colorPos == 0)
 		fadeCalculation();
 }
 
@@ -88,7 +88,7 @@ void DreamWebEngine::fadeCalculation() {
 
 	uint8 *startPal = _startPal;
 	const uint8 *endPal = _endPal;
-	for (size_t i = 0; i < 256 * 3; ++i) {
+	for (uint i = 0; i < 256 * 3; ++i) {
 		uint8 s = startPal[i];
 		uint8 e = endPal[i];
 		if (s == e)
@@ -109,7 +109,7 @@ void DreamWebEngine::fadeUpYellows() {
 	memset(_endPal + 246 * 3, 0, 1 * 3);
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 128;
 	hangOn(128);
 }
@@ -121,7 +121,7 @@ void DreamWebEngine::fadeUpMonFirst() {
 	memset(_startPal + 246 * 3, 0, 1 * 3);
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 128;
 	hangOn(64);
 	_sound->playChannel1(26);
@@ -136,7 +136,7 @@ void DreamWebEngine::fadeDownMon() {
 	memset(_endPal + 246 * 3, 0, 1 * 3);
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 128;
 	hangOn(64);
 }
@@ -148,7 +148,7 @@ void DreamWebEngine::fadeUpMon() {
 	memset(_startPal + 246 * 3, 0, 1 * 3);
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 128;
 	hangOn(128);
 }
@@ -166,7 +166,7 @@ void DreamWebEngine::fadeScreenUp() {
 	palToEndPal();
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 128;
 }
 
@@ -175,7 +175,7 @@ void DreamWebEngine::fadeScreenUps() {
 	palToEndPal();
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 64;
 }
 
@@ -184,7 +184,7 @@ void DreamWebEngine::fadeScreenUpHalf() {
 	palToEndPal();
 	_fadeDirection = 1;
 	_fadeCount = 31;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 32;
 }
 
@@ -193,7 +193,7 @@ void DreamWebEngine::fadeScreenDown() {
 	clearEndPal();
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 128;
 }
 
@@ -202,7 +202,7 @@ void DreamWebEngine::fadeScreenDowns() {
 	clearEndPal();
 	_fadeDirection = 1;
 	_fadeCount = 63;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 64;
 }
 
@@ -212,7 +212,7 @@ void DreamWebEngine::fadeScreenDownHalf() {
 
 	const uint8 *startPal = _startPal;
 	uint8 *endPal = _endPal;
-	for (int i = 0; i < 256 * 3; ++i) {
+	for (uint i = 0; i < 256 * 3; ++i) {
 		*endPal >>= 1;
 		endPal++;
 	}
@@ -222,7 +222,7 @@ void DreamWebEngine::fadeScreenDownHalf() {
 
 	_fadeDirection = 1;
 	_fadeCount = 31;
-	_colourPos = 0;
+	_colorPos = 0;
 	_numToFade = 32;
 }
 
@@ -239,7 +239,7 @@ void DreamWebEngine::greyscaleSum() {
 	byte *src = _mainPal;
 	byte *dst = _endPal;
 
-	for (int i = 0; i < 256; ++i) {
+	for (uint i = 0; i < 256; ++i) {
 		const unsigned int r = 20 * *src++;
 		const unsigned int g = 59 * *src++;
 		const unsigned int b = 11 * *src++;

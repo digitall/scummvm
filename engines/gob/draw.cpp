@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -488,7 +488,7 @@ void Draw::oPlaytoons_sub_F_1B(uint16 id, int16 left, int16 top, int16 right, in
 	int16 width;
 	char tmpStr[128];
 
-	strcpy(tmpStr, paramStr);
+	Common::strlcpy(tmpStr, paramStr, 128);
 	adjustCoords(1, &left, &top);
 	adjustCoords(1, &right,  &bottom);
 

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -75,6 +75,7 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
 	{
 		// Tony Tough French "Collection Aventure" provided by Strangerke
 		{
@@ -91,6 +92,7 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
 	{
 		// Tony Tough German "Shoe Box" provided by Strangerke
 		{
@@ -107,6 +109,7 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
 	{
 		// Tony Tough Italian provided by Fabio Barzagli
 		{
@@ -123,6 +126,24 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
+	{
+		// Tony Tough Italian provided by Giovanni Bajo
+		{
+			"tony",
+			0,
+			{
+				{"roasted.mpr", 0, "06203dbbc85fdd1e6dc8fc211c1a6207", 135911071},
+				{"roasted.mpc", 0, "6202816f991b15af82aab84e3e4be011", 380183},
+				AD_LISTEND
+			},
+			Common::IT_ITA,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NONE)
+		},
+	},
+
 	{
 		// Tony Tough Polish provided by Fabio Barzagli
 		{
@@ -139,6 +160,7 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
 	{
 		// Tony Tough German "Gamestar" provided in bug #3566035
 		{
@@ -155,6 +177,7 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
 	{
 		// Tony Tough Czech provided in bug #3565765
 		{
@@ -172,6 +195,41 @@ static const TonyGameDescription gameDescriptions[] = {
 			GUIO1(GUIO_NONE)
 		},
 	},
+
+	{
+		// Tony Tough English Unpacked
+		{
+			"tony",
+			0,
+			{
+				{"roasted.mpr", 0, "06203dbbc85fdd1e6dc8fc211c1a6207", 135911071},
+				{"roasted.mpc", 0, "57c4a3860cf899443c357e0078ea6f49", 366773},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NONE)
+		},
+	},
+
+	{
+		// Tony Tough German "Shoe Box", reported in bug #3582420
+		{
+			"tony",
+				0,
+			{
+				{"roasted.mpr", 0, "06203dbbc85fdd1e6dc8fc211c1a6207", 135911071},
+				{"roasted.mpc", 0, "bc3471f098e591dc509dcad401a8d8a5", 389554},
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NONE)
+		},
+	},
+
 	{ AD_TABLE_END_MARKER }
 };
 

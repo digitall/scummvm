@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 /*
@@ -34,7 +33,6 @@
 namespace Tony {
 
 namespace MPAL {
-
 
 /**
  * Duplicate a mathematical expression.
@@ -140,7 +138,6 @@ static void solve(LpExpression one, int num) {
 	}
 }
 
-
 /**
  * Calculates the result of a mathematical expression, replacing the current
  * value of any variable.
@@ -177,7 +174,6 @@ static int evaluateAndFreeExpression(byte *expr) {
 
 	return val;
 }
-
 
 /**
  * Parses a mathematical expression from the MPC file
@@ -248,7 +244,6 @@ const byte *parseExpression(const byte *lpBuf, MpalHandle *h) {
 
 	return lpBuf;
 }
-
 
 /**
  * Calculate the value of a mathamatical expression

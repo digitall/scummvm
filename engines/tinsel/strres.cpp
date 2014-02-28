@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -165,15 +165,15 @@ static byte *FindStringBase(int id) {
 	// skip to the correct chunk
 	while (chunkSkip-- != 0) {
 		// make sure chunk id is correct
-		assert(READ_LE_UINT32(pText + index) == CHUNK_STRING || READ_LE_UINT32(pText + index) == CHUNK_MBSTRING);
+		assert(READ_32(pText + index) == CHUNK_STRING || READ_32(pText + index) == CHUNK_MBSTRING);
 
-		if (READ_LE_UINT32(pText + index + sizeof(uint32)) == 0) {
+		if (READ_32(pText + index + sizeof(uint32)) == 0) {
 			// string does not exist
 			return NULL;
 		}
 
 		// get index to next chunk
-		index = READ_LE_UINT32(pText + index + sizeof(uint32));
+		index = READ_32(pText + index + sizeof(uint32));
 	}
 
 	// skip over chunk id and offset

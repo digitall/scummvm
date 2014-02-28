@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -28,6 +28,7 @@
 
 #include "engines/wintermute/base/base.h"
 #include "engines/wintermute/base/base_game.h"
+#include "engines/wintermute/base/base_engine.h"
 #include "engines/wintermute/base/base_parser.h"
 #include "engines/wintermute/base/base_dynamic_buffer.h"
 
@@ -42,7 +43,7 @@ BaseClass::BaseClass(BaseGame *gameOwner) {
 
 //////////////////////////////////////////////////////////////////////////
 BaseClass::BaseClass() {
-	_gameRef = NULL;
+	_gameRef = nullptr;
 	_persistable = true;
 }
 
@@ -59,7 +60,7 @@ Common::String BaseClass::getEditorProp(const Common::String &propName, const Co
 	if (_editorPropsIter != _editorProps.end()) {
 		return _editorPropsIter->_value.c_str();
 	} else {
-		return initVal;
+		return initVal; // Used to be NULL
 	}
 }
 
@@ -86,7 +87,7 @@ TOKEN_DEF(NAME)
 TOKEN_DEF(VALUE)
 TOKEN_DEF_END
 //////////////////////////////////////////////////////////////////////////
-bool BaseClass::parseEditorProperty(byte *buffer, bool complete) {
+bool BaseClass::parseEditorProperty(char *buffer, bool complete) {
 	TOKEN_TABLE_START(commands)
 	TOKEN_TABLE(EDITOR_PROPERTY)
 	TOKEN_TABLE(NAME)
@@ -99,28 +100,28 @@ bool BaseClass::parseEditorProperty(byte *buffer, bool complete) {
 	}
 
 
-	byte *params;
+	char *params;
 	int cmd;
 	BaseParser parser;
 
 	if (complete) {
-		if (parser.getCommand((char **)&buffer, commands, (char **)&params) != TOKEN_EDITOR_PROPERTY) {
-			_gameRef->LOG(0, "'EDITOR_PROPERTY' keyword expected.");
+		if (parser.getCommand(&buffer, commands, &params) != TOKEN_EDITOR_PROPERTY) {
+			BaseEngine::LOG(0, "'EDITOR_PROPERTY' keyword expected.");
 			return STATUS_FAILED;
 		}
 		buffer = params;
 	}
 
-	char *propName = NULL;
-	char *propValue = NULL;
+	char *propName = nullptr;
+	char *propValue = nullptr;
 
-	while ((cmd = parser.getCommand((char **)&buffer, commands, (char **)&params)) > 0) {
+	while ((cmd = parser.getCommand(&buffer, commands, &params)) > 0) {
 		switch (cmd) {
 		case TOKEN_NAME:
 			delete[] propName;
-			propName = new char[strlen((char *)params) + 1];
+			propName = new char[strlen(params) + 1];
 			if (propName) {
-				strcpy(propName, (char *)params);
+				strcpy(propName, params);
 			} else {
 				cmd = PARSERR_GENERIC;
 			}
@@ -128,9 +129,9 @@ bool BaseClass::parseEditorProperty(byte *buffer, bool complete) {
 
 		case TOKEN_VALUE:
 			delete[] propValue;
-			propValue = new char[strlen((char *)params) + 1];
+			propValue = new char[strlen(params) + 1];
 			if (propValue) {
-				strcpy(propValue, (char *)params);
+				strcpy(propValue, params);
 			} else {
 				cmd = PARSERR_GENERIC;
 			}
@@ -141,17 +142,17 @@ bool BaseClass::parseEditorProperty(byte *buffer, bool complete) {
 	if (cmd == PARSERR_TOKENNOTFOUND) {
 		delete[] propName;
 		delete[] propValue;
-		propName = NULL;
-		propValue = NULL;
-		_gameRef->LOG(0, "Syntax error in EDITOR_PROPERTY definition");
+		propName = nullptr;
+		propValue = nullptr;
+		BaseEngine::LOG(0, "Syntax error in EDITOR_PROPERTY definition");
 		return STATUS_FAILED;
 	}
-	if (cmd == PARSERR_GENERIC || propName == NULL || propValue == NULL) {
+	if (cmd == PARSERR_GENERIC || propName == nullptr || propValue == nullptr) {
 		delete[] propName;
 		delete[] propValue;
-		propName = NULL;
-		propValue = NULL;
-		_gameRef->LOG(0, "Error loading EDITOR_PROPERTY definition");
+		propName = nullptr;
+		propValue = nullptr;
+		BaseEngine::LOG(0, "Error loading EDITOR_PROPERTY definition");
 		return STATUS_FAILED;
 	}
 
@@ -160,8 +161,8 @@ bool BaseClass::parseEditorProperty(byte *buffer, bool complete) {
 
 	delete[] propName;
 	delete[] propValue;
-	propName = NULL;
-	propValue = NULL;
+	propName = nullptr;
+	propValue = nullptr;
 
 	return STATUS_OK;
 }
@@ -182,4 +183,4 @@ bool BaseClass::saveAsText(BaseDynamicBuffer *buffer, int indent) {
 	return STATUS_OK;
 }
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute

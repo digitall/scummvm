@@ -8,19 +8,19 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
-#include "kyra/sound.h"
+#include "kyra/sound_digital.h"
 #include "kyra/resource.h"
 #include "kyra/kyra_mr.h"
 
@@ -271,8 +271,8 @@ int AUDStream::readChunk(int16 *buffer, const int maxSamples) {
 
 			while (outSize > 0) {
 				input = _inBuffer[i++] << 2;
-				code = (input >> 8) & 0xff;
-				count = (input & 0xff) >> 2;
+				code = (input >> 8) & 0xFF;
+				count = (input & 0xFF) >> 2;
 
 				switch (code) {
 				case 2:
@@ -294,7 +294,7 @@ int AUDStream::readChunk(int16 *buffer, const int maxSamples) {
 					for (; count >= 0; count--) {
 						code = _inBuffer[i++];
 
-						curSample += WSTable4Bit[code & 0x0f];
+						curSample += WSTable4Bit[code & 0x0F];
 						curSample = clip8BitSample(curSample);
 						_outBuffer[j++] = curSample;
 

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -29,9 +29,9 @@ namespace Kyra {
 
 int KyraEngine_LoK::findDuplicateItemShape(int shape) {
 	static const uint8 dupTable[] = {
-		0x48, 0x46, 0x49, 0x47, 0x4a, 0x46, 0x4b, 0x47,
-		0x4c, 0x46, 0x4d, 0x47, 0x5b, 0x5a, 0x5c, 0x5a,
-		0x5d, 0x5a, 0x5e, 0x5a, 0xFF, 0xFF
+		0x48, 0x46, 0x49, 0x47, 0x4A, 0x46, 0x4B, 0x47,
+		0x4C, 0x46, 0x4D, 0x47, 0x5B, 0x5A, 0x5C, 0x5A,
+		0x5D, 0x5A, 0x5E, 0x5A, 0xFF, 0xFF
 	};
 
 	int i = 0;

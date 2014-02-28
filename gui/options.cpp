@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #include "gui/browser.h"
@@ -72,6 +73,12 @@ enum {
 #ifdef SMALL_SCREEN_DEVICE
 enum {
 	kChooseKeyMappingCmd    = 'chma'
+};
+#endif
+
+#ifdef USE_FLUIDSYNTH
+enum {
+	kFluidSynthSettingsCmd		= 'flst'
 };
 #endif
 
@@ -863,6 +870,10 @@ void OptionsDialog::addMIDIControls(GuiObject *boss, const Common::String &prefi
 	_midiGainSlider->setMaxValue(1000);
 	_midiGainLabel = new StaticTextWidget(boss, prefix + "mcMidiGainLabel", "1.00");
 
+#ifdef USE_FLUIDSYNTH
+	new ButtonWidget(boss, prefix + "mcFluidSynthSettings", _("FluidSynth Settings"), 0, kFluidSynthSettingsCmd);
+#endif
+
 	_enableMIDISettings = true;
 }
 
@@ -877,7 +888,7 @@ void OptionsDialog::addMT32Controls(GuiObject *boss, const Common::String &prefi
 		_mt32Checkbox = new CheckboxWidget(boss, prefix + "mcMt32Checkbox", _c("True Roland MT-32 (no GM emulation)", "lowres"), _("Check if you want to use your real hardware Roland-compatible sound device connected to your computer"));
 
 	// GS Extensions setting
-	_enableGSCheckbox = new CheckboxWidget(boss, prefix + "mcGSCheckbox", _("Enable Roland GS Mode"), _("Turns off General MIDI mapping for games with Roland MT-32 soundtrack"));
+	_enableGSCheckbox = new CheckboxWidget(boss, prefix + "mcGSCheckbox", _("Roland GS Device (enable MT-32 mappings)"), _("Check if you want to enable patch mappings to emulate an MT-32 on a Roland GS device"));
 
 	const MusicPlugin::List p = MusicMan.getPlugins();
 	// Make sure the null device is the first one in the list to avoid undesired
@@ -1231,11 +1242,19 @@ GlobalOptionsDialog::GlobalOptionsDialog()
 #ifdef SMALL_SCREEN_DEVICE
 	_keysDialog = new KeysDialog();
 #endif
+
+#ifdef USE_FLUIDSYNTH
+	_fluidSynthSettingsDialog = new FluidSynthSettingsDialog();
+#endif
 }
 
 GlobalOptionsDialog::~GlobalOptionsDialog() {
 #ifdef SMALL_SCREEN_DEVICE
 	delete _keysDialog;
+#endif
+
+#ifdef USE_FLUIDSYNTH
+	delete _fluidSynthSettingsDialog;
 #endif
 }
 
@@ -1464,6 +1483,11 @@ void GlobalOptionsDialog::handleCommand(CommandSender *sender, uint32 cmd, uint3
 #ifdef SMALL_SCREEN_DEVICE
 	case kChooseKeyMappingCmd:
 		_keysDialog->runModal();
+		break;
+#endif
+#ifdef USE_FLUIDSYNTH
+	case kFluidSynthSettingsCmd:
+		_fluidSynthSettingsDialog->runModal();
 		break;
 #endif
 	default:

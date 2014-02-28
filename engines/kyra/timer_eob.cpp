@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -57,7 +57,7 @@ void EoBCoreEngine::setupTimers() {
 
 void EoBCoreEngine::setCharEventTimer(int charIndex, uint32 countdown, int evnt, int updateExistingTimer) {
 	uint32 ntime = _system->getMillis() + countdown * _tickLength;
-	uint8 timerId = 0x30 | (charIndex & 0x0f);
+	uint8 timerId = 0x30 | (charIndex & 0x0F);
 	EoBCharacter *c = &_characters[charIndex];
 
 	if (!_timer->isEnabled(timerId)) {
@@ -118,7 +118,7 @@ void EoBCoreEngine::setupCharacterTimers() {
 		if (!testCharacter(i, 1))
 			continue;
 
-		uint32 nextTimer = 0xffffffff;
+		uint32 nextTimer = 0xFFFFFFFF;
 
 		for (int ii = 0; ii < 10; ii++) {
 			if (c->timers[ii] && c->timers[ii] < nextTimer)
@@ -126,7 +126,7 @@ void EoBCoreEngine::setupCharacterTimers() {
 		}
 		uint32 ctime = _system->getMillis();
 
-		if (nextTimer == 0xffffffff)
+		if (nextTimer == 0xFFFFFFFF)
 			_timer->disable(0x30 | i);
 		else {
 			enableTimer(0x30 | i);
@@ -219,11 +219,11 @@ void EoBCoreEngine::timerProcessFlyingObjects(int timerNum) {
 }
 
 void EoBCoreEngine::timerProcessMonsters(int timerNum) {
-	updateMonsters(timerNum & 0x0f);
+	updateMonsters(timerNum & 0x0F);
 }
 
 void EoBCoreEngine::timerSpecialCharacterUpdate(int timerNum) {
-	int charIndex = timerNum & 0x0f;
+	int charIndex = timerNum & 0x0F;
 	EoBCharacter *c = &_characters[charIndex];
 	uint32 ctime =  _system->getMillis();
 
@@ -249,6 +249,7 @@ void EoBCoreEngine::timerSpecialCharacterUpdate(int timerNum) {
 		case 2:
 		case 3:
 			setCharEventTimer(charIndex, (c->effectFlags & 0x10000) ? 9 : 36, evt + 2, 1);
+			// fall through
 		case 0:
 		case 1:
 		case 4:
@@ -309,13 +310,13 @@ void EoBCoreEngine::timerSpecialCharacterUpdate(int timerNum) {
 		_screen->setFont(of);
 	}
 
-	uint32 nextTimer = 0xffffffff;
+	uint32 nextTimer = 0xFFFFFFFF;
 	for (int i = 0; i < 10; i++) {
 		if (c->timers[i] && c->timers[i] < nextTimer)
 			nextTimer = c->timers[i];
 	}
 
-	if (nextTimer == 0xffffffff)
+	if (nextTimer == 0xFFFFFFFF)
 		_timer->disable(timerNum);
 	else
 		_timer->setCountdown(timerNum, (nextTimer - ctime) / _tickLength);
@@ -346,7 +347,7 @@ void EoBCoreEngine::timerUpdateFoodStatus(int timerNum) {
 }
 
 void EoBCoreEngine::timerUpdateMonsterIdleAnim(int timerNum) {
-	for (int i = 0; i < 18; i++) {
+	for (int i = 0; i < 30; i++) {
 		EoBMonsterInPlay *m = &_monsters[i];
 		if (m->mode == 7 || m->mode == 10 || (m->flags & 0x20) || (rollDice(1, 2, 0) != 1))
 			continue;

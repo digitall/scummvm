@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -332,13 +332,22 @@ int Events::handleOneShot(Event *event) {
 
 #ifdef ENABLE_IHNM
 					if (_vm->getGameId() == GID_IHNM) {
+						PalEntry portraitBgColor = _vm->_interface->_portraitBgColor;
+						byte portraitColor = (_vm->getLanguage() == Common::ES_ESP) ? 253 : 254;
+
+						// Set the portrait bg color, in case a saved state is restored from the
+						// launcher. In this case, sfSetPortraitBgColor is not called, thus the
+						// portrait color will always be 0 (black).
+						if (portraitBgColor.red == 0 && portraitBgColor.green == 0 && portraitBgColor.blue == 0)
+							portraitBgColor.green = 255;
+
 						if (_vm->_spiritualBarometer > 255)
-							_vm->_gfx->setPaletteColor(kIHNMColorPortrait, 0xff, 0xff, 0xff);
+							_vm->_gfx->setPaletteColor(portraitColor, 0xff, 0xff, 0xff);
 						else
-							_vm->_gfx->setPaletteColor(kIHNMColorPortrait,
-								_vm->_spiritualBarometer * _vm->_interface->_portraitBgColor.red / 256,
-								_vm->_spiritualBarometer * _vm->_interface->_portraitBgColor.green / 256,
-								_vm->_spiritualBarometer * _vm->_interface->_portraitBgColor.blue / 256);
+							_vm->_gfx->setPaletteColor(portraitColor,
+								_vm->_spiritualBarometer * portraitBgColor.red / 256,
+								_vm->_spiritualBarometer * portraitBgColor.green / 256,
+								_vm->_spiritualBarometer * portraitBgColor.blue / 256);
 					}
 #endif
 
@@ -524,6 +533,7 @@ int Events::handleOneShot(Event *event) {
 		default:
 			break;
 		}
+		break;
 #ifdef ENABLE_IHNM
 	case kCutawayEvent:
 		switch (event->op) {
@@ -536,6 +546,7 @@ int Events::handleOneShot(Event *event) {
 		default:
 			break;
 		}
+		break;
 #endif
 	case kActorEvent:
 		switch (event->op) {
@@ -545,6 +556,7 @@ int Events::handleOneShot(Event *event) {
 		default:
 			break;
 		}
+		break;
 	default:
 		break;
 	}

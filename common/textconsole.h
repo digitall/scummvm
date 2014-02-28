@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
  */
 
 #ifndef COMMON_CONSOLE_H
@@ -56,7 +57,7 @@ typedef void (*ErrorHandler)(const char *msg);
  */
 void setErrorHandler(ErrorHandler handler);
 
-}	// End of namespace Common
+} // End of namespace Common
 
 
 void NORETURN_PRE error(const char *s, ...) GCC_PRINTF(1, 2) NORETURN_POST;

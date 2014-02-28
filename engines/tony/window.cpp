@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -35,13 +35,12 @@
 
 namespace Tony {
 
-
 /****************************************************************************\
 *       RMWindow Methods
 \****************************************************************************/
 
 RMWindow::RMWindow() {
-	_showDirtyRects = false;
+	reset();
 }
 
 RMWindow::~RMWindow() {
@@ -56,11 +55,21 @@ RMWindow::~RMWindow() {
 void RMWindow::init() {
 	Graphics::PixelFormat pixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0);
 	initGraphics(RM_SX, RM_SY, true, &pixelFormat);
+	
+	reset();
+}
 
+/**
+ * Reset the variables
+ */
+void RMWindow::reset() {
+	_showDirtyRects = false;
 	_bGrabScreenshot = false;
 	_bGrabThumbnail = false;
 	_bGrabMovie = false;
 	_wiping = false;
+
+	_wThumbBuf = nullptr;
 }
 
 void RMWindow::copyRectToScreen(const byte *buf, int pitch, int x, int y, int w, int h) {
@@ -111,7 +120,7 @@ void RMWindow::repaint() {
  */
 void RMWindow::wipeEffect(Common::Rect &rcBoundEllipse) {
 	if ((rcBoundEllipse.left == 0) && (rcBoundEllipse.top == 0) &&
-	        (rcBoundEllipse.right == RM_SX) && (rcBoundEllipse.bottom == RM_SY)) {
+	    (rcBoundEllipse.right == RM_SX) && (rcBoundEllipse.bottom == RM_SY)) {
 		// Full screen clear wanted, so use shortcut method
 		g_system->fillScreen(0);
 	} else {
@@ -331,6 +340,14 @@ void RMSnapshot::grabScreenshot(byte *lpBuf, int dezoom, uint16 *lpDestBuf) {
 				src += RM_BBX * dezoom;
 		}
 	}
+
+#ifdef SCUMM_BIG_ENDIAN
+	if (lpDestBuf != NULL) {
+		for (int i = 0; i < dimx * dimy; i++) {
+			lpDestBuf[i] = SWAP_BYTES_16(lpDestBuf[i]);
+		}
+	}
+#endif
 }
 
 } // End of namespace Tony

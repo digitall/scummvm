@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -43,9 +43,9 @@ public:
 	bool closeFile(Common::SeekableReadStream *File);
 	bool hasFile(const Common::String &filename);
 	Common::SeekableReadStream *openFile(const Common::String &filename, bool absPathWarning = true, bool keepTrackOf = true);
-	byte *readWholeFile(const Common::String &filename, uint32 *size = NULL, bool mustExist = true);
+	byte *readWholeFile(const Common::String &filename, uint32 *size = nullptr, bool mustExist = true);
 
-	BaseFileManager(Common::Language lang);
+	BaseFileManager(Common::Language lang, bool detectionMode = false);
 	virtual ~BaseFileManager();
 	// Used only for detection
 	bool registerPackages(const Common::FSList &fslist);
@@ -59,18 +59,21 @@ private:
 	bool initPaths();
 	bool addPath(TPathType type, const Common::FSNode &path);
 	bool registerPackages();
+	void initResources();
 	Common::SeekableReadStream *openFileRaw(const Common::String &filename);
 	Common::SeekableReadStream *openPkgFile(const Common::String &filename);
 	Common::FSList _packagePaths;
 	bool findPackageSignature(Common::SeekableReadStream *f, uint32 *offset);
 	bool registerPackage(Common::FSNode package, const Common::String &filename = "", bool searchSignature = false);
+	bool _detectionMode;
 	Common::SearchSet _packages;
 	Common::Array<Common::SeekableReadStream *> _openFiles;
 	Common::Language _language;
+	Common::Archive *_resources;
 	// This class is intentionally not a subclass of Base, as it needs to be used by
 	// the detector too, without launching the entire engine:
 };
 
-} // end of namespace Wintermute
+} // End of namespace Wintermute
 
 #endif
