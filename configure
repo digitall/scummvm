@@ -2653,6 +2653,7 @@ if test -n "$_host"; then
 			_windres=$_host-windres
 			_ar="$_host-ar cru"
 			_ranlib=$_host-ranlib
+			_vkeybd=yes
 			;;
 		mips-sgi*)
 			LDFLAGS="$LDFLAGS -static-libgcc"
