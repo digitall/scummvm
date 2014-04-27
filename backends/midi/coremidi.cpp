@@ -28,6 +28,7 @@
 #ifdef MACOSX
 
 #include "common/config-manager.h"
+#include "common/debug.h"
 #include "common/error.h"
 #include "common/textconsole.h"
 #include "common/util.h"
@@ -114,7 +115,7 @@ int MidiDriver_CoreMIDI::open() {
 	//       and then set deviceId accordingly.
 	Common::String deviceIdStr = ConfMan.get("coremidi_device");
 	int deviceId = 0;
-	if (deviceIdStr.length() > 0)
+	if (deviceIdStr.size() > 0)
 		deviceId = atoi(deviceIdStr.c_str());
 
 	if (dests > deviceId && mClient) {
