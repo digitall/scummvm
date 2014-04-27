@@ -88,9 +88,37 @@ int MidiDriver_CoreMIDI::open() {
 
 	mOutPort = 0;
 
+	// TODO: The iteration of the available CoreMIDI devices is currently done to debug output.
+	//       This should be improved to be done to a structure returned to the GUI and the 
+	//       result should be selectable by the GUI and stored in "coremidi_device" config key.
+	//       This probably should be done in CoreMIDIMusicPlugin::getDevices() ?
 	int dests = MIDIGetNumberOfDestinations();
-	if (dests > 0 && mClient) {
-		mDest = MIDIGetDestination(0);
+	debug(1, "CoreMIDI driver found %d destinations:", dests);
+	for(int i = 0; i < dests; i++) {
+		MIDIEndpointRef dest = MIDIGetDestination(i);
+		Common::String destname = "Unknown / Invalid";
+		if (dest) {
+			CFStringRef midiname = 0;
+			if(MIDIObjectGetStringProperty(dest, kMIDIPropertyDisplayName, &midiname) == noErr) {
+				const char *s = CFStringGetCStringPtr(midiname, kCFStringEncodingMacRoman);
+				if (s)
+					destname = Common::String(s);
+			}
+		}
+		debug(1, "\tDestination %d: %s", i, destname.c_str());
+	}
+
+	// TODO: This config key currently holds the numeric value of the device to be used.
+	//       This probably should be changed to a name, if this can be more invariant.
+	//       The code will then need changing to iterate the devices looking for that name
+	//       and then set deviceId accordingly.
+	Common::String deviceIdStr = ConfMan.get("coremidi_device");
+	int deviceId = 0;
+	if (deviceIdStr.length() > 0)
+		deviceId = atoi(deviceIdStr.c_str());
+
+	if (dests > deviceId && mClient) {
+		mDest = MIDIGetDestination(deviceId);
 		err = MIDIOutputPortCreate( mClient,
 									CFSTR("scummvm_output_port"),
 									&mOutPort);
