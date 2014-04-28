@@ -62,6 +62,7 @@
 
 
 #include "common/config-manager.h"
+#include "common/debug.h"
 #include "common/error.h"
 #include "common/textconsole.h"
 #include "common/util.h"
@@ -278,7 +279,10 @@ void MidiDriver_CORE::close() {
 }
 
 void MidiDriver_CORE::send(uint32 b) {
-	assert(isOpen());
+	if (!isOpen()) {
+		warning("MidiDriver_CORE: Got event while not open");
+		return;
+	}
 
 	byte status_byte = (b & 0x000000FF);
 	byte first_byte = (b & 0x0000FF00) >> 8;
@@ -288,6 +292,11 @@ void MidiDriver_CORE::send(uint32 b) {
 }
 
 void MidiDriver_CORE::sysEx(const byte *msg, uint16 length) {
+	if (!isOpen()) {
+		warning("MidiDriver_CORE: Got SysEx while not open");
+		return;
+	}
+
 	unsigned char buf[266];
 
 	assert(length + 2 <= ARRAYSIZE(buf));
