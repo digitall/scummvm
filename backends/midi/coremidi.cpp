@@ -144,7 +144,10 @@ void MidiDriver_CoreMIDI::close() {
 }
 
 void MidiDriver_CoreMIDI::send(uint32 b) {
-	assert(isOpen());
+	if (!isOpen()) {
+		warning("MidiDriver_CoreMIDI: Got event while not open");
+		return;
+	}
 
 	// Extract the MIDI data
 	byte status_byte = (b & 0x000000FF);
@@ -187,7 +190,10 @@ void MidiDriver_CoreMIDI::send(uint32 b) {
 }
 
 void MidiDriver_CoreMIDI::sysEx(const byte *msg, uint16 length) {
-	assert(isOpen());
+	if (!isOpen()) {
+		warning("MidiDriver_CoreMIDI: Got SysEx while not open");
+		return;
+	}
 
 	byte buf[384];
 	MIDIPacketList *packetList = (MIDIPacketList *)buf;
