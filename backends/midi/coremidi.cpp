@@ -215,12 +215,14 @@ MusicDevices CoreMIDIMusicPlugin::getDevices() const {
 	Common::StringArray deviceNames;
 	// TODO: Return a different music type depending on the configuration
 
-	// TODO: List the available devices
+	// List the available devices
 	for(int i = 0; i < dests; i++) {
 		MIDIEndpointRef dest = MIDIGetDestination(i);
 		Common::String destname = "Unknown / Invalid";
 		if (dest) {
 			CFStringRef midiname = 0;
+			// TODO: kMIDIPropertyDisplayName was only added in 10.4 API, so need to use fallback solution
+			//       for PPC which uses 10.2 API.
 			if(MIDIObjectGetStringProperty(dest, kMIDIPropertyDisplayName, &midiname) == noErr) {
 				const char *s = CFStringGetCStringPtr(midiname, kCFStringEncodingMacRoman);
 				if (s) {
