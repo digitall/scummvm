@@ -30,6 +30,7 @@
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/error.h"
+#include "common/str-array.h"
 #include "common/textconsole.h"
 #include "common/util.h"
 #include "audio/musicplugin.h"
@@ -239,7 +240,7 @@ MusicDevices CoreMIDIMusicPlugin::getDevices() const {
 	return devices;
 }
 
-Common::Error CoreMIDIMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
+Common::Error CoreMIDIMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle dev) const {
 	int devIndex = 0;
 	bool found = false;
 
