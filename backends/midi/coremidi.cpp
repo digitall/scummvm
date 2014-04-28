@@ -54,7 +54,7 @@ http://lists.apple.com/archives/coreaudio-api/2003/Jul/msg00137.html
  */
 class MidiDriver_CoreMIDI : public MidiDriver_MPU401 {
 public:
-	MidiDriver_CoreMIDI();
+	MidiDriver_CoreMIDI(int deviceIndex);
 	~MidiDriver_CoreMIDI();
 	int open();
 	bool isOpen() const { return mOutPort != 0 && mDest != 0; }
@@ -63,13 +63,15 @@ public:
 	void sysEx(const byte *msg, uint16 length);
 
 private:
+	int _device;
+
 	MIDIClientRef	mClient;
 	MIDIPortRef		mOutPort;
 	MIDIEndpointRef	mDest;
 };
 
-MidiDriver_CoreMIDI::MidiDriver_CoreMIDI()
-	: mClient(0), mOutPort(0), mDest(0) {
+MidiDriver_CoreMIDI::MidiDriver_CoreMIDI(int deviceIndex)
+	: _device(deviceIndex), mClient(0), mOutPort(0), mDest(0) {
 
 	OSStatus err;
 	err = MIDIClientCreate(CFSTR("ScummVM MIDI Driver for OS X"), NULL, NULL, &mClient);
@@ -89,37 +91,9 @@ int MidiDriver_CoreMIDI::open() {
 
 	mOutPort = 0;
 
-	// TODO: The iteration of the available CoreMIDI devices is currently done to debug output.
-	//       This should be improved to be done to a structure returned to the GUI and the 
-	//       result should be selectable by the GUI and stored in "coremidi_device" config key.
-	//       This probably should be done in CoreMIDIMusicPlugin::getDevices() ?
 	int dests = MIDIGetNumberOfDestinations();
-	debug(1, "CoreMIDI driver found %d destinations:", dests);
-	for(int i = 0; i < dests; i++) {
-		MIDIEndpointRef dest = MIDIGetDestination(i);
-		Common::String destname = "Unknown / Invalid";
-		if (dest) {
-			CFStringRef midiname = 0;
-			if(MIDIObjectGetStringProperty(dest, kMIDIPropertyDisplayName, &midiname) == noErr) {
-				const char *s = CFStringGetCStringPtr(midiname, kCFStringEncodingMacRoman);
-				if (s)
-					destname = Common::String(s);
-			}
-		}
-		debug(1, "\tDestination %d: %s", i, destname.c_str());
-	}
-
-	// TODO: This config key currently holds the numeric value of the device to be used.
-	//       This probably should be changed to a name, if this can be more invariant.
-	//       The code will then need changing to iterate the devices looking for that name
-	//       and then set deviceId accordingly.
-	Common::String deviceIdStr = ConfMan.get("coremidi_device");
-	int deviceId = 0;
-	if (deviceIdStr.size() > 0)
-		deviceId = atoi(deviceIdStr.c_str());
-
-	if (dests > deviceId && mClient) {
-		mDest = MIDIGetDestination(deviceId);
+	if (dests > _device && mClient) {
+		mDest = MIDIGetDestination(_device);
 		err = MIDIOutputPortCreate( mClient,
 									CFSTR("scummvm_output_port"),
 									&mOutPort);
@@ -234,15 +208,53 @@ public:
 
 MusicDevices CoreMIDIMusicPlugin::getDevices() const {
 	MusicDevices devices;
+	int dests = MIDIGetNumberOfDestinations();
+	debug(1, "CoreMIDI driver found %d destinations:", dests);
+
+	Common::StringArray deviceNames;
 	// TODO: Return a different music type depending on the configuration
+
 	// TODO: List the available devices
-	devices.push_back(MusicDevice(this, "", MT_GM));
+	for(int i = 0; i < dests; i++) {
+		MIDIEndpointRef dest = MIDIGetDestination(i);
+		Common::String destname = "Unknown / Invalid";
+		if (dest) {
+			CFStringRef midiname = 0;
+			if(MIDIObjectGetStringProperty(dest, kMIDIPropertyDisplayName, &midiname) == noErr) {
+				const char *s = CFStringGetCStringPtr(midiname, kCFStringEncodingMacRoman);
+				if (s) {
+					destname = Common::String(s);
+					deviceNames.push_back(Common::String(s));
+				}
+			}
+		}
+		debug(1, "\tDestination %d: %s", i, destname.c_str());
+	}
+
+	for (Common::StringArray::iterator i = deviceNames.begin(); i != deviceNames.end(); ++i)
+		// There is no way to detect the "MusicType" so I just set it to MT_GM
+		// The user will have to manually select his MT32 type device and his GM type device.
+		devices.push_back(MusicDevice(this, *i, MT_GM));
+
 	return devices;
 }
 
 Common::Error CoreMIDIMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
-	*mididriver = new MidiDriver_CoreMIDI();
+	int devIndex = 0;
+	bool found = false;
 
+	if (dev) {
+		MusicDevices i = getDevices();
+		for (MusicDevices::iterator d = i.begin(); d != i.end(); d++) {
+			if (d->getCompleteId().equals(MidiDriver::getDeviceString(dev, MidiDriver::kDeviceId))) {
+				found = true;
+				break;
+			}
+			devIndex++;
+		}
+	}
+
+	*mididriver = new MidiDriver_CoreMIDI(found ? devIndex : 0);
 	return Common::kNoError;
 }
 
