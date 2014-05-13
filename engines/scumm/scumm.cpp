@@ -2542,9 +2542,51 @@ void ScummEngine_v90he::runBootscript() {
 }
 #endif
 
+#include "scumm/detection.h"
+#include "common/gui_options.h"
+
 void ScummEngine::startManiac() {
 	debug(0, "stub startManiac()");
-	displayMessage(0, "%s", _("Usually, Maniac Mansion would start now. But ScummVM doesn't do that yet. To play it, go to 'Add Game' in the ScummVM start menu and select the 'Maniac' directory inside the Tentacle game directory."));
+	//displayMessage(0, "%s", _("Usually, Maniac Mansion would start now. But ScummVM doesn't do that yet. To play it, go to 'Add Game' in the ScummVM start menu and select the 'Maniac' directory inside the Tentacle game directory."));
+
+	// Pause engine
+	pauseEngine(true);
+
+	const ::Common::FSNode gameDataDir(::ConfMan.get("path"));
+
+	::SearchMan.addSubDirectoryMatching(gameDataDir, "maniac");
+
+	DetectorResult d;
+	//FilenamePattern fp;
+	d.fp.pattern = "%.2d.LFL";
+	d.fp.genMethod = kGenRoomNum;
+	// GameSettings game;
+	d.game.gameid = "maniac";
+	d.game.variant = "V1";
+	d.game.preferredTag = "v1";
+	d.game.id = GID_MANIAC;
+	d.game.version = 1;
+	d.game.heversion = 0;
+	d.game.midi = MDT_PCSPK | MDT_PCJR;
+	d.game.features = 0;
+	d.game.platform = ::Common::kPlatformDOS;
+	d.game.guioptions = GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI);
+	//Common::Language language;
+	d.language = ::Common::EN_ANY;
+	//Common::String md5;
+	d.md5 = "624cdb93654667c869d204a64af7e57f";
+	//const char *extra;
+	d.extra = "";
+
+	// v1 SCUMM games such as MM are included in the v2 variant engine.
+	ScummEngine *mmSub = new ScummEngine_v2(_system, d);
+	mmSub->init();
+	mmSub->_saveLoadFlag = 0;
+	mmSub->run();
+	delete mmSub;
+
+	// Resume engine
+	pauseEngine(false);
 }
 
 #pragma mark -
