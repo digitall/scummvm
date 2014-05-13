@@ -2553,7 +2553,6 @@ void ScummEngine::startManiac() {
 	pauseEngine(true);
 
 	const ::Common::FSNode gameDataDir(::ConfMan.get("path"));
-
 	::SearchMan.addSubDirectoryMatching(gameDataDir, "maniac");
 
 	DetectorResult d;
@@ -2579,11 +2578,14 @@ void ScummEngine::startManiac() {
 	d.extra = "";
 
 	// v1 SCUMM games such as MM are included in the v2 variant engine.
+	ScummEngine *current = g_scumm;
 	ScummEngine *mmSub = new ScummEngine_v2(_system, d);
 	mmSub->init();
 	mmSub->_saveLoadFlag = 0;
 	mmSub->run();
 	delete mmSub;
+	// Restore global engine pointer
+	g_scumm = current;
 
 	// Resume engine
 	pauseEngine(false);
