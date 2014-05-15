@@ -2586,6 +2586,8 @@ void ScummEngine::startManiac() {
 	delete mmSub;
 	// Restore global engine pointer
 	g_scumm = current;
+	// Reset RTL Flag
+	_system->getEventManager()->resetRTL();
 
 	// Resume engine
 	pauseEngine(false);
