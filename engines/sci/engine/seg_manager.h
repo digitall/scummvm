@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -49,7 +49,7 @@ public:
 	/**
 	 * Initialize the segment manager.
 	 */
-	SegManager(ResourceManager *resMan);
+	SegManager(ResourceManager *resMan, ScriptPatcher *scriptPatcher);
 
 	/**
 	 * Deallocate all memory associated with the segment manager.
@@ -448,6 +448,7 @@ private:
 	Common::HashMap<int, SegmentId> _scriptSegMap;
 
 	ResourceManager *_resMan;
+	ScriptPatcher *_scriptPatcher;
 
 	SegmentId _clonesSegId; ///< ID of the (a) clones segment
 	SegmentId _listsSegId; ///< ID of the (a) list segment

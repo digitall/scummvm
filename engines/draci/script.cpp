@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -634,8 +634,16 @@ void Script::stayOn(const Common::Array<int> &params) {
 		return;
 	}
 
-	int x = params[0];
-	int y = params[1];
+	int x, y;
+	Common::Point afterLoadingPos = _vm->_game->getHeroLoadingPosition();
+	if(_vm->_game->isPositionLoaded() == true) {
+		x = afterLoadingPos.x;
+		y = afterLoadingPos.y;
+	}
+	else {
+		x = params[0];
+		y = params[1];
+	}
 	SightDirection dir = static_cast<SightDirection> (params[2]);
 
 	// Jumps into the given position regardless of the walking map.
@@ -670,6 +678,11 @@ void Script::walkOnPlay(const Common::Array<int> &params) {
 		return;
 	}
 
+	if(_vm->_game->isPositionLoaded() == true) {
+		_vm->_game->setPositionLoaded(false);
+		return;
+	}
+
 	int x = params[0];
 	int y = params[1];
 	SightDirection dir = static_cast<SightDirection> (params[2]);
@@ -685,6 +698,10 @@ void Script::walkOnPlay(const Common::Array<int> &params) {
 void Script::newRoom(const Common::Array<int> &params) {
 	if (_vm->_game->getLoopStatus() == kStatusInventory) {
 		return;
+	}
+
+	if(_vm->_game->isPositionLoaded() == true) {
+		_vm->_game->setPositionLoaded(false);
 	}
 
 	int room = params[0] - 1;

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -72,13 +72,11 @@ public:
 	byte _wearing; // what you're wearing
 
 	Parser(AvalancheEngine *vm);
-
 	void init();
 	void parse();
 	void doThat();
 	void verbOpt(byte verb, Common::String &answer, char &ansKey);
 	void drink();
-
 	void handleInputText(const Common::Event &event);
 	void handleBackspace();
 	void handleReturn();
@@ -89,7 +87,7 @@ public:
 	void tryDropdown();
 	int16 getPos(const Common::String &crit, const Common::String &src);
 	void doVerb(VerbCode id);
-
+	Common::String rank();
 	void resetVariables();
 	void synchronize(Common::Serializer &sz);
 
@@ -112,10 +110,7 @@ private:
 
 	byte wordNum(Common::String word);
 	void replace(Common::String oldChars, byte newChar);
-
-	Common::String rank();
 	Common::String totalTime();
-
 	void clearWords();
 	void cheatParse(Common::String codes);
 	void stripPunctuation(Common::String &word);
@@ -146,6 +141,7 @@ private:
 	void playHarp();
 	void winSequence();
 	void wipeText();
+	void bossKey();
 };
 
 } // End of namespace Avalanche

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -65,8 +65,12 @@ Scene *Ringworld2Game::createScene(int sceneNumber) {
 		// Deck #2 - By Lift
 		return new Scene200();
 	case 205:
-		// Star-field Credits
-		return new Scene205();
+		if (g_vm->getFeatures() & GF_DEMO)
+			// End of Demo
+			return new Scene205Demo();
+		else
+			// Star-field Credits
+			return new Scene205();
 	case 250:
 		// Lift
 		return new Scene250();
@@ -290,7 +294,7 @@ Scene *Ringworld2Game::createScene(int sceneNumber) {
 		// Confrontation
 		return new Scene3400();
 	case 3500:
-		// Flub tube maze 
+		// Flub tube maze
 		return new Scene3500();
 	case 3600:
 		// Cutscene - walking at gunpoint
@@ -368,14 +372,22 @@ void SceneExt::postInit(SceneObjectList *OwnerList) {
 
 	// Initialize fields
 	_action = NULL;
-	_field12 = 0;
 	_sceneMode = 0;
 
 	static_cast<SceneHandlerExt *>(R2_GLOBALS._sceneHandler)->setupPaletteMaps();
 
 	int prevScene = R2_GLOBALS._sceneManager._previousScene;
 	int sceneNumber = R2_GLOBALS._sceneManager._sceneNumber;
-	if (((prevScene == -1) && (sceneNumber != 180) && (sceneNumber != 205) && (sceneNumber != 50))
+	if (g_vm->getFeatures() & GF_DEMO) {
+		if (((prevScene == -1) && (sceneNumber != 180) && (sceneNumber != 205) && (sceneNumber != 50))
+			|| (prevScene == 0) || (sceneNumber == 600)
+			|| ((prevScene == 205 || prevScene == 180) && (sceneNumber == 100))) {
+				R2_GLOBALS._uiElements._active = true;
+				R2_GLOBALS._uiElements.show();
+		} else {
+			R2_GLOBALS._uiElements.updateInventory();
+		}
+	} else if (((prevScene == -1) && (sceneNumber != 180) && (sceneNumber != 205) && (sceneNumber != 50))
 			|| (sceneNumber == 50)
 			|| ((sceneNumber == 100) && (prevScene == 0 || prevScene == 180 || prevScene == 205))) {
 		R2_GLOBALS._uiElements._active = true;
@@ -549,14 +561,14 @@ void SceneExt::saveCharacter(int characterIndex) {
 void SceneExt::scalePalette(int RFactor, int GFactor, int BFactor) {
 	byte *tmpPal = R2_GLOBALS._scenePalette._palette;
 	byte newR, newG, newB;
-	int tmp, varC, varD = 0;
+	int tmp, varD = 0;
 
 	for (int i = 0; i < 256; i++) {
 		newR = (RFactor * tmpPal[(3 * i)]) / 100;
 		newG = (GFactor * tmpPal[(3 * i) + 1]) / 100;
 		newB = (BFactor * tmpPal[(3 * i) + 2]) / 100;
 
-		varC = 769;
+		int varC = 769;
 		for (int j = 255; j >= 0; j--) {
 			tmp = abs(tmpPal[(3 * j)] - newR);
 			if (tmp >= varC)
@@ -611,6 +623,11 @@ void SceneHandlerExt::process(Event &event) {
 
 	if (!event.handled)
 		SceneHandler::process(event);
+}
+
+void SceneHandlerExt::dispatch() {
+	R2_GLOBALS._playStream.dispatch();
+	SceneHandler::dispatch();
 }
 
 void SceneHandlerExt::postLoad(int priorSceneBeforeLoad, int currentSceneBeforeLoad) {
@@ -797,7 +814,7 @@ Ringworld2InvObjectList::Ringworld2InvObjectList():
 		_chargedPowerCapsule(1, 12),
 		_aerosol(1, 13),
 		_remoteControl(1, 14),
-		_opticalFibre(1, 15),
+		_opticalFiber(1, 15),
 		_clamp(1, 16),
 		_attractorHarness(1, 17),
 		_fuelCell(2, 2),
@@ -852,7 +869,7 @@ Ringworld2InvObjectList::Ringworld2InvObjectList():
 	_itemList.push_back(&_chargedPowerCapsule);
 	_itemList.push_back(&_aerosol);
 	_itemList.push_back(&_remoteControl);
-	_itemList.push_back(&_opticalFibre);
+	_itemList.push_back(&_opticalFiber);
 	_itemList.push_back(&_clamp);
 	_itemList.push_back(&_attractorHarness);
 	_itemList.push_back(&_fuelCell);
@@ -916,7 +933,7 @@ void Ringworld2InvObjectList::reset() {
 	setObjectScene(R2_CHARGED_POWER_CAPSULE, 400);
 	setObjectScene(R2_AEROSOL, 500);
 	setObjectScene(R2_REMOTE_CONTROL, 1550);
-	setObjectScene(R2_OPTICAL_FIBRE, 850);
+	setObjectScene(R2_OPTICAL_FIBER, 850);
 	setObjectScene(R2_CLAMP, 850);
 	setObjectScene(R2_ATTRACTOR_CABLE_HARNESS, 0);
 	setObjectScene(R2_FUEL_CELL, 1550);
@@ -1116,7 +1133,6 @@ void Ringworld2Game::start() {
 		R2_GLOBALS._sceneHandler->_loadGameSlot = slot;
 	else {
 		// Switch to the first title screen
-		R2_GLOBALS._events.setCursor(CURSOR_WALK);
 		R2_GLOBALS._uiElements._active = true;
 		R2_GLOBALS._sceneManager.setNewScene(180);
 	}
@@ -1410,7 +1426,7 @@ void SceneExit::process(Event &event) {
 	if (!R2_GLOBALS._insetUp) {
 		SceneArea::process(event);
 
-		if (_enabled) {
+		if (_enabled && R2_GLOBALS._player._enabled) {
 			if (event.eventType == EVENT_BUTTON_DOWN) {
 				if (!_bounds.contains(mousePos))
 					_moving = false;
@@ -1598,12 +1614,13 @@ void MazeUI::draw() {
 		(_cellSize.y - 1)) / _cellSize.y;
 
 	// Loop to handle the cell rows of the visible display area one at a time
-	for (int yCtr = 0; yCtr < _cellsVisible.y; ++yCtr, yPos += ySize) {
+	for (int yCtr = 0; yCtr <= _cellsVisible.y; ++yCtr, yPos += ySize) {
 		int cellY = _mapOffset.y / _cellSize.y + yCtr;
 
 		// Loop to iterate through the horizontal visible cells to build up
-		// an entire cell high horizontal slice of the map
-		for (int xCtr = 0; xCtr < _cellsVisible.x; ++xCtr) {
+		// an entire cell high horizontal slice of the map, plus one extra cell
+		// to allow for partial cell scrolling on-screen on the left/right sides
+		for (int xCtr = 0; xCtr <= _cellsVisible.x; ++xCtr) {
 			int cellX = _mapOffset.x / _cellSize.x + xCtr;
 
 			// Get the type of content to display in the cell
@@ -2317,7 +2334,7 @@ void ScannerDialog::Button::reset() {
 		case 1800:
 			if (R2_GLOBALS._rimLocation < 1201)
 				scanner._obj4.setup(4, 3, 3);
-			else if (R2_GLOBALS._rimLocation < 1201)
+			else if (R2_GLOBALS._rimLocation > 1201)
 				scanner._obj4.setup(4, 3, 4);
 			else
 				scanner._obj4.setup(4, 3, 5);

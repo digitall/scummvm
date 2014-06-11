@@ -97,9 +97,10 @@ endif
 ifneq ($(BACKEND), iphone)
 # Static libaries, used for the scummvm-static and iphone targets
 OSX_STATIC_LIBS := `$(STATICLIBPATH)/bin/sdl-config --static-libs`
+endif
+
 ifdef USE_FREETYPE2
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libfreetype.a $(STATICLIBPATH)/lib/libbz2.a
-endif
 endif
 
 ifdef USE_VORBIS
@@ -155,10 +156,6 @@ ifdef USE_SPARKLE
 OSX_STATIC_LIBS += -framework Sparkle -F$(STATICLIBPATH)
 endif
 
-ifdef USE_TERMCONV
-OSX_ICONV ?= -liconv
-endif
-
 # Special target to create a static linked binary for Mac OS X.
 # We use -force_cpusubtype_ALL to ensure the binary runs on every
 # PowerPC machine.
@@ -166,17 +163,15 @@ scummvm-static: $(OBJS)
 	$(CXX) $(LDFLAGS) -force_cpusubtype_ALL -o scummvm-static $(OBJS) \
 		-framework CoreMIDI \
 		$(OSX_STATIC_LIBS) \
-		$(OSX_ZLIB) \
-		$(OSX_ICONV)
+		$(OSX_ZLIB)
 
 # Special target to create a static linked binary for the iPhone
 iphone: $(OBJS)
 	$(CXX) $(LDFLAGS) -o scummvm $(OBJS) \
 		$(OSX_STATIC_LIBS) \
 		-framework UIKit -framework CoreGraphics -framework OpenGLES \
-		-framework GraphicsServices -framework CoreFoundation -framework QuartzCore \
-		-framework Foundation -framework AudioToolbox -framework CoreAudio \
-		-lobjc -lz
+		-framework CoreFoundation -framework QuartzCore -framework Foundation \
+		-framework AudioToolbox -framework CoreAudio -lobjc -lz
 
 # Special target to create a snapshot disk image for Mac OS X
 # TODO: Replace AUTHORS by Credits.rtf
