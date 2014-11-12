@@ -683,12 +683,56 @@ void AmazonScripts::mWhile(int param1) {
 	}
 }
 
+void AmazonScripts::CHKVLINE() {
+	warning("TODO: CHKVLINE()");
+}
+
+void AmazonScripts::CHKHLINE() {
+	warning("TODO: CHKHLINE()");
+}
+
 void AmazonScripts::guardSee() {
-	warning("TODO: guardSee()");
+	int tmpY = (_vm->_screen->_scrollRow << 4) + _vm->_screen->_scrollY;
+	_game->_flags[140] = 0;
+	if (tmpY > _game->_guard._position.y)
+		return;
+
+	tmpY += _vm->_screen->_vWindowLinesTall;
+	tmpY -= 11;
+
+	if (tmpY < _game->_guard._position.y)
+		return;
+
+	_game->_guardFind = 1;
+	_game->_flags[140] = 1;
+
+	for (uint16 idx = 0; idx < _vm->_room->_plotter._walls.size(); idx++) {
+		_vm->_screen->_orgX1 = _vm->_room->_plotter._walls[idx].left;
+		_vm->_screen->_orgY1 = _vm->_room->_plotter._walls[idx].top;
+		_vm->_screen->_orgX2 = _vm->_room->_plotter._walls[idx].right;
+		_vm->_screen->_orgY2 = _vm->_room->_plotter._walls[idx].bottom;
+		if (_vm->_screen->_orgX1 == _vm->_screen->_orgX2) {
+			CHKVLINE();
+			if (_game->_guardFind == 0)
+				return;
+		} else if (_vm->_screen->_orgY1 == _vm->_screen->_orgY2) {
+			CHKHLINE();
+			if (_game->_guardFind == 0)
+				return;
+		}
+	}
 }
 
 void AmazonScripts::setGuardFrame() {
-	warning("TODO: setGuardFrame()");
+	ImageEntry ie;
+	ie._flags = 8;
+	if (_game->_guardLocation == 4)
+		ie._flags |= 2;
+	ie._spritesPtr = _vm->_objectsTable[37];
+	ie._frameNumber = _game->_guard._guardCel;
+	ie._position = _game->_guard._position;
+	ie._offsetY = 10;
+	_vm->_images.addToList(ie);
 }
 
 void AmazonScripts::guard() {
@@ -731,7 +775,8 @@ void AmazonScripts::guard() {
 		if (_game->_guard._position.y <= 89) {
 			_game->_guard._position.y = 89;
 			_game->_guardLocation = 4;
-			warning("CHECME: unused flag121");
+			if (_game->_flags[121] == 1)
+				_game->_guardLocation = 5;
 		}
 		break;
 	default:
@@ -766,6 +811,243 @@ void AmazonScripts::setInactive() {
 	_game->_charSegSwitch = false;
 
 	mWhile(_game->_rawInactiveY);
+}
+
+void AmazonScripts::plotTorchSpear(int indx, const int *&buf) {
+	int idx = indx;
+
+	ImageEntry ie;
+	ie._flags = 8;
+	ie._spritesPtr = _vm->_objectsTable[62];
+	ie._frameNumber = buf[(idx / 2)];
+	ie._position = Common::Point(_game->_pitPos.x + buf[(idx / 2) + 1], _game->_pitPos.y + buf[(idx / 2) + 2]);
+	ie._offsetY = 255;
+	_vm->_images.addToList(ie);
+}
+
+void AmazonScripts::plotPit(int indx, const int *&buf) {
+	int idx = indx;
+	ImageEntry ie;
+	ie._flags = 8;
+	ie._spritesPtr = _vm->_objectsTable[62];
+	ie._frameNumber = buf[(idx / 2)];
+	ie._position = Common::Point(_game->_pitPos.x, _game->_pitPos.y);
+	ie._offsetY = _game->_pitPos.y;
+	_vm->_images.addToList(ie);
+
+	_vm->_player->_rawPlayer = _game->_pitPos;
+	if (_vm->_inventory->_inv[76]._value == 1) {
+		idx = _game->_torchCel;
+		buf = Amazon::TORCH;
+		_vm->_timers[14]._flag = 1;
+		idx += 6;
+		if (buf[idx / 2] == -1)
+			idx = 0;
+		_game->_torchCel = idx;
+		plotTorchSpear(idx, buf);
+	} else if (!_game->_stabFl && (_vm->_inventory->_inv[78]._value == 1)) {
+		idx = 0;
+		buf = Amazon::SPEAR;
+		plotTorchSpear(idx, buf);
+	}
+}
+
+int AmazonScripts::antHandleRight(int indx, const int *&buf) {
+	int retval = indx;
+	if (_game->_pitDirection == NONE) {
+		_game->_pitDirection = UP;
+		_game->_pitPos.y = 127;
+	}
+	retval = _game->_pitCel;
+	buf = Amazon::PITWALK;
+	if (_game->_pitPos.x < 230) {
+		if (retval == 0) {
+			retval = 48;
+			_game->_pitPos.y = 127;
+		}
+		retval -= 6;
+		_game->_pitPos.x -= buf[(retval / 2) + 1];
+		_game->_pitPos.y -= buf[(retval / 2) + 2];
+		_game->_pitCel = retval;
+	}
+	return retval;
+}
+
+int AmazonScripts::antHandleLeft(int indx, const int *&buf) {
+	int retval = indx;
+	if (_game->_pitDirection == UP) {
+		_game->_pitDirection = NONE;
+		_game->_pitPos.y = 127;
+	}
+	retval = _game->_pitCel;
+	buf = Amazon::PITWALK;
+	retval += 6;
+	if (buf[retval / 2] == -1) {
+		retval = 0;
+		_game->_pitPos.y = 127;
+	}
+	_game->_pitPos.x += buf[(retval / 2) + 1];
+	_game->_pitPos.y += buf[(retval / 2) + 2];
+	_game->_pitCel = retval;
+
+	return retval;
+}
+
+int AmazonScripts::antHandleStab(int indx, const int *&buf) {
+	int retval = indx;
+	if (_vm->_inventory->_inv[78]._value != 1) {
+		if (_game->_stabFl) {
+			buf = Amazon::PITSTAB;
+			retval = _game->_stabCel;
+			if (_game->_timers[13]._flag == 0) {
+				_game->_timers[13]._flag = 1;
+				retval += 6;
+				if (Amazon::PITSTAB[retval] == -1) {
+					_game->_stabFl = false;
+					_game->_pitCel = 0;
+					_game->_pitPos.y = 127;
+					retval = 0;
+					buf = Amazon::PITWALK;
+				} else {
+					_game->_pitPos.x += buf[(retval / 2) + 1];
+					_game->_pitPos.y += buf[(retval / 2) + 2];
+					_game->_pitCel = retval;
+				}
+			}
+		} else {
+			_game->_stabFl = true;
+			_game->_pitCel = 0;
+			retval = 0;
+			_game->_stabCel = 0;
+			int dist = _game->_pitPos.x - _game->_antPos.x;
+			if (_game->_antEatFl && !_game->_antDieFl && (dist <= 80)) {
+				_game->_antDieFl = true;
+				_game->_antCel = 0;
+				_game->_antPos.y = 123;
+				_vm->_sound->playSound(1);
+			}
+		}
+	}
+	return retval;
+}
+
+void AmazonScripts::ANT() {
+	_game->_antDirection = NONE;
+	if (_game->_aniFlag != 1) {
+		_game->_aniFlag = 1;
+		_game->_antCel = 0;
+		_game->_torchCel = 0;
+		_game->_pitCel = 0;
+
+		_game->_timers[15]._timer = 16;
+		_game->_timers[15]._initTm = 16;
+		_game->_timers[15]._flag = 1;
+
+		_game->_timers[13]._timer = 5;
+		_game->_timers[13]._initTm = 5;
+		_game->_timers[13]._flag = 1;
+
+		_game->_timers[14]._timer = 10;
+		_game->_timers[14]._initTm = 10;
+		_game->_timers[14]._flag = 1;
+
+		_game->_antPos = Common::Point(-40, 123);
+		_game->_antDieFl = _game->_antEatFl = false;
+		_game->_stabFl = false;
+		_game->_pitPos = Common::Point(_vm->_player->_rawPlayer.x, 127);
+	}
+
+	const int *buf = nullptr;
+	if (_game->_antDieFl) {
+		buf = Amazon::ANTDIE;
+	} else if (_game->_antEatFl) {
+		buf = Amazon::ANTEAT;
+	} else if (_game->_antPos.x > 120 && _vm->_flags[198] == 1) {
+		_game->_antEatFl = true;
+		_vm->_flags[235] = 1;
+		_game->_antCel = 0;
+		buf = Amazon::ANTEAT;
+	} else {
+		buf = Amazon::ANTWALK;
+		if (_vm->_inventory->_inv[76]._value == 1)
+			_game->_antDirection = UP;
+	}
+
+	int idx = _game->_antCel;
+	if (_game->_timers[15]._flag == 0) {
+		_game->_timers[15]._flag = 1;
+		if (_game->_antDirection == UP) {
+			if (_game->_antPos.x > 10) {
+				if (idx == 0)
+					idx = 36;
+				else
+					idx -= 6;
+
+				_game->_antPos = Common::Point(buf[(idx / 2) + 1], buf[(idx / 2) + 2]);
+				_game->_antCel = idx;
+			}
+		} else {
+			idx += 6;
+			if (buf[(idx / 2)] != -1) {
+				_game->_antPos = Common::Point(buf[(idx / 2) + 1], buf[(idx / 2) + 2]);
+				_game->_antCel = idx;
+			} else if (!_game->_antDieFl) {
+				idx = 0;
+				_game->_antPos = Common::Point(buf[(idx / 2) + 1], buf[(idx / 2) + 2]);
+				_game->_antCel = idx;
+			} else {
+				idx -= 6;
+				if (_game->_flags[200] == 0)
+					_game->_flags[200] = 1;
+			}
+		}
+	}
+
+	ImageEntry ie;
+	ie._flags = 8;
+	ie._spritesPtr = _vm->_objectsTable[61];
+	ie._frameNumber = buf[(idx / 2)];
+	ie._position = Common::Point(_game->_antPos.x, _game->_antPos.y);
+	ie._offsetY = _game->_antPos.y - 70;
+	_vm->_images.addToList(ie);
+	_game->_antCel = idx;
+
+	if (_game->_flags[196] != 1) {
+		idx = _game->_pitCel;
+		if (_game->_stabFl == 1) {
+			idx = antHandleStab(idx, buf);
+		} else {
+			buf = Amazon::PITWALK;
+			if (_game->_timers[13]._flag == 0) {
+				_game->_timers[13]._flag = 1;
+				_vm->_events->pollEvents();
+				if (_vm->_events->_leftButton) {
+					Common::Point pt = _vm->_events->calcRawMouse();
+					if (pt.x < _game->_pitPos.x)
+						idx = antHandleLeft(idx, buf);
+					else if (pt.x > _game->_pitPos.x)
+						idx = antHandleRight(idx, buf);
+				} else {
+					buf = Amazon::PITWALK;
+					if (_vm->_player->_playerDirection == UP)
+						idx = antHandleStab(idx, buf);
+					else if (_vm->_player->_playerDirection == LEFT)
+						idx = antHandleLeft(idx, buf);
+					else if (_vm->_player->_playerDirection == RIGHT)
+						idx = antHandleRight(idx, buf);
+				}
+			}
+		}
+		plotPit(idx, buf);
+	}
+
+	if (!_game->_antDieFl) {
+		int dist = _game->_pitPos.x - _game->_antPos.x;
+		if ((_game->_antEatFl && (dist <= 45)) || (!_game->_antEatFl && (dist <= 80))) {
+			_game->_flags[199] = 1;
+			_game->_aniFlag = 0;
+		}
+	}
 }
 
 void AmazonScripts::boatWalls(int param1, int param2) {
@@ -845,7 +1127,7 @@ void AmazonScripts::executeSpecial(int commandIndex, int param1, int param2) {
 		warning("TODO RIVER");
 		break;
 	case 14:
-		warning("TODO ANT");
+		ANT();
 		break;
 	case 15:
 		boatWalls(param1, param2);
