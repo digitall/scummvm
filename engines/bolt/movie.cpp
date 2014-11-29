@@ -193,7 +193,7 @@ void Movie::loadTimeline(const SharedBuffer &buf) {
 
 	_timeline = buf;
 
-	TimelineHeader header(&(*buf)[0]);
+	TimelineHeader header(&buf[0]);
 	_numTimelineCmds = header.numCommands;
 	_framePeriod = header.framePeriod;
 
@@ -220,7 +220,7 @@ struct TimelineCommand {
 void Movie::loadTimelineCmd() {
 	assert(_timeline);
 
-	TimelineCommand cmd(&(*_timeline)[_timelineCursor]);
+	TimelineCommand cmd(&_timeline[_timelineCursor]);
 	_timelineReps = cmd.reps;
 }
 
@@ -258,9 +258,7 @@ int Movie::getTimelineCmdParamSize(uint16 opcode) {
 }
 
 void Movie::runTimelineCmd() {
-	const Common::Array<byte> &data = *_timeline;
-
-	TimelineCommand cmd(&data[_timelineCursor]);
+	TimelineCommand cmd(&_timeline[_timelineCursor]);
 
 	switch (cmd.opcode) {
 	case TimelineOpcodes::kRenderQueue0: // render queue 0 (param size: 0)
@@ -288,7 +286,7 @@ void Movie::runTimelineCmd() {
 			loadQueue4(fetchVideoBuffer(4));
 		}
 		if (_queue4Buf) {
-			Queue4ImageHeader header(&(*_queue4Buf)[0]);
+			Queue4ImageHeader header(&_queue4Buf[0]);
 			int queue4FrameNum = _curFrameNum - _queue4StartFrameNum;
 			queue4FrameNum = MIN<int>(queue4FrameNum, header.numFrames - 1);
 
@@ -349,14 +347,12 @@ void Movie::advanceTimeline() {
 	assert(_timelineActive);
 	assert(_timeline);
 
-	const Common::Array<byte> &data = *_timeline;
-
 	// Note that there may be a sequence of timeline commands with 0 delay.
 	// We want to process them all before returning.
 	bool done = false;
 	while (!done) {
 
-		TimelineCommand cmd(&data[_timelineCursor]);
+		TimelineCommand cmd(&_timeline[_timelineCursor]);
 
 		if (_timelineReps <= 0) {
 			// Advance to next timeline command
@@ -388,7 +384,7 @@ void Movie::advanceTimeline() {
 
 void Movie::loadQueue4(const SharedBuffer &src) {
 
-	Queue4ImageHeader header(&(*src)[0]);
+	Queue4ImageHeader header(&src[0]);
 
 	_queue4Buf = src;
 	// Do NOT reset queue4 background or camera here.
@@ -426,15 +422,13 @@ namespace Queue4Opcodes {
 void Movie::runQueue4Control() {
 	assert(_queue4Buf);
 
-	const Common::Array<byte> &data = *_queue4Buf;
-
 	// FIXME: It is fairly evident that queue4 commands are different between
 	// Crete and Merlin.
 
 	bool done = false;
 	while (!done) {
 
-		Queue4Command cmd(&data[_queue4ControlCursor]);
+		Queue4Command cmd(&_queue4Buf[_queue4ControlCursor]);
 		int paramsOffset = _queue4ControlCursor + Queue4Command::SIZE;
 
 		// Delay occurs BEFORE command
@@ -446,13 +440,13 @@ void Movie::runQueue4Control() {
 			{
 				_queue4Bg = fetchVideoBuffer(1);
 
-				int cameraX = (int16)READ_BE_UINT16(&data[paramsOffset]);
+				int cameraX = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
 				if (cameraX != 0) {
 					// FIXME: Is X scrolling ever used?
 					warning("queue4 background x scrolling not implemented");
 				}
 
-				_queue4CameraY = (int16)READ_BE_UINT16(&data[paramsOffset + 2]);
+				_queue4CameraY = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset + 2]);
 
 				// FIXME: should camera params be initialized here? original
 				// program doesn't seem to do anything with scroll variables
@@ -467,10 +461,10 @@ void Movie::runQueue4Control() {
 			}
 			case Queue4Opcodes::kLoadForePalette: // modify foreground (???) palette
 			{
-				byte numColors = data[paramsOffset];
+				byte numColors = _queue4Buf[paramsOffset];
 				// FIXME: first color or plane number?
-				byte firstColor = data[paramsOffset + 1];
-				_engine->_graphics.setForePalette(&data[paramsOffset + 2],
+				byte firstColor = _queue4Buf[paramsOffset + 1];
+				_engine->_graphics.setForePalette(&_queue4Buf[paramsOffset + 2],
 					firstColor, numColors);
 
 				_queue4ControlCursor += Queue4Command::SIZE + 2 + numColors * 3;
@@ -482,9 +476,9 @@ void Movie::runQueue4Control() {
 
 				// FIXME: scrolling is broken. Unknown whether these names are
 				// correct.
-				_queue4ScrollTime = (int16)READ_BE_UINT16(&data[paramsOffset]);
-				_queue4ScrollSpeedMult = data[paramsOffset + 2];
-				_queue4ScrollType = data[paramsOffset + 3];
+				_queue4ScrollTime = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
+				_queue4ScrollSpeedMult = _queue4Buf[paramsOffset + 2];
+				_queue4ScrollType = _queue4Buf[paramsOffset + 3];
 
 				debug(3, "scroll params: type %d, time %d, speed mult %d",
 					_queue4ScrollType, _queue4ScrollTime, _queue4ScrollSpeedMult);
@@ -561,7 +555,7 @@ void Movie::readNextPacket() {
 				// FIXME: Make this more efficient by reading directly into a
 				// malloc'ed buffer.
 				byte *sound = (byte*)malloc(_audioBufAssembler.totalSize);
-				memcpy(sound, &(*_audioBufAssembler.buf)[0], _audioBufAssembler.totalSize);
+				memcpy(sound, &_audioBufAssembler.buf[0], _audioBufAssembler.totalSize);
 
 				_audioStream->queueBuffer(sound, _audioBufAssembler.totalSize,
 					DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
@@ -614,8 +608,8 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 	if (!assembler.buf) {
 		// Begin buffer
 		assembler.totalSize = header.totalSize;
-		assembler.buf = SharedBuffer(new Common::Array<byte>());
-		assembler.buf->resize(header.totalSize);
+		assembler.buf = SharedBuffer();
+		assembler.buf.resize(header.totalSize);
 		assembler.cursor = 0;
 	}
 	else if (header.totalSize != assembler.totalSize) {
@@ -628,7 +622,7 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 		partialSize = assembler.totalSize - assembler.cursor;
 	}
 
-	_file->read(&(*assembler.buf)[assembler.cursor], partialSize);
+	_file->read(&assembler.buf[assembler.cursor], partialSize);
 	assembler.cursor += partialSize;
 
 	return assembler.cursor >= assembler.totalSize;
@@ -685,22 +679,20 @@ void Movie::renderQueue0or1ToBack(const SharedBuffer &src, int x, int y) {
 	// Queue 1 buffers contain background frames for use with queue 4
 	// sequences.
 
-	const Common::Array<byte> &data = *src;
-
-	Queue01ImageHeader header(&data[0]);
+	Queue01ImageHeader header(&src[0]);
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
-	_engine->_graphics.setBackPalette(&data[Queue01ImageHeader::SIZE], 0, 128);
+	_engine->_graphics.setBackPalette(&src[Queue01ImageHeader::SIZE], 0, 128);
 
 	if (header.compression) {
 		_engine->_graphics.decodeRL7ToBack(x, y, header.width, header.height,
-			&data[Queue01ImageHeader::SIZE + 128 * 3],
-			data.size() - 128 * 3 - Queue01ImageHeader::SIZE, false);
+			&src[Queue01ImageHeader::SIZE + 128 * 3],
+			src.size() - 128 * 3 - Queue01ImageHeader::SIZE, false);
 	}
 	else {
 		_engine->_graphics.decodeCLUT7ToBack(x, y, header.width, header.height,
-			&data[Queue01ImageHeader::SIZE + 128 * 3],
-			data.size() - 128 * 3 - Queue01ImageHeader::SIZE, false);
+			&src[Queue01ImageHeader::SIZE + 128 * 3],
+			src.size() - 128 * 3 - Queue01ImageHeader::SIZE, false);
 	}
 }
 
@@ -709,23 +701,19 @@ void Movie::renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum) {
 	// Queue 4 buffers contain a sequence of foreground frames and control data
 	// for the background.
 
-	const Common::Array<byte> &data = *src;
-
-	Queue4ImageHeader header(&data[0]);
+	Queue4ImageHeader header(&src[0]);
 	assert(header.queueNum == 4);
 	assert(frameNum < header.numFrames);
 
-	uint32 rl7Offset = READ_BE_UINT32(&data[Queue4ImageHeader::SIZE + frameNum * 8]);
-	uint32 rl7Size = READ_BE_UINT32(&data[Queue4ImageHeader::SIZE + frameNum * 8 + 4]);
+	uint32 rl7Offset = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8]);
+	uint32 rl7Size = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8 + 4]);
 
 	_engine->_graphics.decodeRL7ToFore(0, 0, header.width, header.height,
-		&data[rl7Offset], rl7Size, false);
+		&src[rl7Offset], rl7Size, false);
 }
 
 void Movie::enqueueVideoBuffer(SharedBuffer &buf) {
-	const Common::Array<byte> &data = *buf;
-
-	uint16 queueNum = READ_BE_UINT16(&data[0]);
+	uint16 queueNum = READ_BE_UINT16(&buf[0]);
 	if (queueNum < 5) {
 		_videoQueues[queueNum].push(buf);
 	}
