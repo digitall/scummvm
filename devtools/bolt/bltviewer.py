@@ -79,11 +79,36 @@ def decode_rl7(dst, src, width, height):
             dst[out_y * width + out_x] = color
             out_x += 1
 
-RES_TYPE_HANDLERS = {}
+
+class BltImageWidget(QtGui.QLabel):
+    def __init__(self, data, palette):
+        compression = data[0]
+        offset_x, offset_y, width, height = struct.unpack('>hhHH', data[6:0xE])
+
+        image_data = data[0x18:]
+
+        if compression == 0:
+            # CLUT7
+            super().__init__()
+            image = QtGui.QImage(image_data, width, height, width, QtGui.QImage.Format_Indexed8)
+            image.setColorTable(palette)
+            self.setPixmap(QtGui.QPixmap.fromImage(image).scaled(width * 2, height * 2))
+        elif compression == 1:
+            # RL7
+            super().__init__()
+            decoded_image = bytearray(width * height)
+            decode_rl7(decoded_image, image_data, width, height)
+            image = QtGui.QImage(decoded_image, width, height, width, QtGui.QImage.Format_Indexed8)
+            image.setColorTable(palette)
+            self.setPixmap(QtGui.QPixmap.fromImage(image).scaled(width * 2, height * 2))
+        else:
+            super().__init__("Unsupported compression type {}".format(compression))
+
+_RES_TYPE_HANDLERS = {}
 
 def _register_res_handler(type):
     def decorate(cls):
-        RES_TYPE_HANDLERS[type] = cls
+        _RES_TYPE_HANDLERS[type] = cls
     return decorate
 
 @_register_res_handler(1)
@@ -178,28 +203,9 @@ class ImageHandler:
         newLayout.addWidget(QtGui.QLabel("Compression: {}\nOffset: ({}, {})\nWidth: {}\nHeight: {}".format(
             compression, offset_x, offset_y, width, height)))
 
-        if compression == 0:
-            # CLUT7
-            image_data = res.data[0x18:]
-            image = QtGui.QImage(image_data, width, height, width, QtGui.QImage.Format_Indexed8)
-            image.setColorTable(app.cur_palette)
-            imagePixmap = QtGui.QPixmap.fromImage(image).scaled(width * 2, height * 2)
-            imageWidget = QtGui.QLabel()
-            imageWidget.setPixmap(imagePixmap)
-            newLayout.addWidget(imageWidget)
-        elif compression == 1:
-            # RL7
-            image_data = bytearray(width * height)
-            rl7_data = res.data[0x18:]
-            decode_rl7(image_data, rl7_data, width, height)
-            image = QtGui.QImage(image_data, width, height, width, QtGui.QImage.Format_Indexed8)
-            image.setColorTable(app.cur_palette)
-            imagePixmap = QtGui.QPixmap.fromImage(image).scaled(width * 2, height * 2)
-            imageWidget = QtGui.QLabel()
-            imageWidget.setPixmap(imagePixmap)
-            newLayout.addWidget(imageWidget)
-        else:
-            print("Unhandled image compression {}".format(compression))
+        newLayout.addWidget(QtGui.QLabel("Tip: Load a Palette if colors are wrong"))
+
+        newLayout.addWidget(BltImageWidget(res.data, app.cur_palette))
 
         newWidget = QtGui.QWidget()
         newWidget.setLayout(newLayout)
@@ -426,7 +432,7 @@ class BltViewer:
             for res in dir.res_table:
                 res_item = QtGui.QTreeWidgetItem()
                 res_item.setText(0, res.name)
-                handler = RES_TYPE_HANDLERS.get(res.type)
+                handler = _RES_TYPE_HANDLERS.get(res.type)
                 if handler:
                     res_item.setText(1, "{} ({})".format(handler.name, res.type))
                 else:
@@ -445,7 +451,7 @@ class BltViewer:
         self.content.removeWidget(self.content.currentWidget())
 
         res = self.blt_file.load_resource(res_id)
-        handler = RES_TYPE_HANDLERS.get(res.type)
+        handler = _RES_TYPE_HANDLERS.get(res.type)
         if handler and hasattr(handler, "open"):
             handler.open(res, self.content, self)
         else:
