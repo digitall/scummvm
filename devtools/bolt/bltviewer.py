@@ -26,7 +26,6 @@
 import io
 import struct
 import sys
-import wave
 
 from PySide import QtGui
 from PySide.QtCore import Qt
@@ -79,30 +78,6 @@ def decode_rl7(dst, src, width, height):
             # Single pixel
             dst[out_y * width + out_x] = color
             out_x += 1
-
-# RES_TYPE_HANDLERS = {
-#     1: "8-bit Values",
-#     3: "16-bit Values",
-#     6: "Resource List",
-#     7: "Sound",
-#     8: "Image",
-#     10: "Palette",
-#     26: "Background",
-#     27: "Button Image",
-#     28: "Button Colors",
-#     29: "Button Palette",
-#     30: "Button State",
-#     31: "Button",
-#     32: "Scene",
-#     33: "Main Menu",
-#     34: "File Menu",
-#     35: "Difficulty Menu",
-#     59: "Potion Puzzle",
-#     60: "Potion Ingredient Slot",
-#     61: "Potion Ingredients",
-#     62: "Potion Combo List",
-#     63: "Potion Combos",
-# }
 
 RES_TYPE_HANDLERS = {}
 
@@ -171,7 +146,7 @@ class ResourceListHandler:
         count = len(res.data) // 4
         newWidget.setRowCount(count)
         newWidget.setColumnCount(1)
-        newWidget.setHorizontalHeaderLabels(("Resource ID",))
+        newWidget.setHorizontalHeaderLabels(("ID",))
 
         for i in range(0, count):
             val = struct.unpack('>I', res.data[4*i : 4*i+4])[0]
@@ -246,6 +221,10 @@ class PaletteHandler:
 
         widget.addWidget(QtGui.QLabel("Palette loaded"))
 
+@_register_res_handler(26)
+class BackgroundHandler:
+    name = "Background"
+
 @_register_res_handler(27)
 class ButtonImageHandler:
     name = "Button Image"
@@ -255,6 +234,38 @@ class ButtonImageHandler:
 
         widget.addWidget(QtGui.QLabel("Position: ({}, {})\nImage ID: {:08X}".format(
             x, y, image_id)))
+
+@_register_res_handler(28)
+class ButtonColorsHandler:
+    name = "Button Colors"
+
+@_register_res_handler(29)
+class ButtonPaletteHandler:
+    name = "Button Palette"
+
+@_register_res_handler(30)
+class ButtonStateHandler:
+    name = "Button State"
+
+@_register_res_handler(31)
+class ButtonHandler:
+    name = "Button"
+
+@_register_res_handler(32)
+class SceneHandler:
+    name = "Scene"
+
+@_register_res_handler(33)
+class MainMenuHandler:
+    name = "Main Menu"
+
+@_register_res_handler(34)
+class FileMenuHandler:
+    name = "File Menu"
+
+@_register_res_handler(35)
+class DifficultyMenuHandler:
+    name = "Difficulty Menu"
 
 @_register_res_handler(59)
 class PotionPuzzleHandler:
@@ -285,6 +296,18 @@ class PotionPuzzleHandler:
         label_str += "\nOrigin: ({}, {})".format(origin_x, origin_y)
 
         widget.addWidget(QtGui.QLabel(label_str))
+
+@_register_res_handler(60)
+class PotionIngredientSlotHandler:
+    name = "Potion Ingredient Slot"
+
+@_register_res_handler(61)
+class PotionIngredientsHandler:
+    name = "Potion Ingredients"
+
+@_register_res_handler(62)
+class PotionComboListHandler:
+    name = "Potion Combo List"
 
 POTION_MOVIE_NAMES = (
     'ELEC', 'EXPL', 'FLAM', 'FLSH', 'MIST', 'OOZE', 'SHMR',
