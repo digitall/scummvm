@@ -29,12 +29,11 @@
 
 namespace Bolt {
 
-MovieStatePtr MovieState::create(BoltEngine *engine, uint32 name, StatePtr afterState) {
+MovieStatePtr MovieState::create(BoltEngine *engine, uint32 name) {
 
 	MovieStatePtr self(new MovieState());
 
 	self->_engine = engine;
-	self->_afterState = afterState;
 
 	self->_movie = Movie::create(engine, &engine->_maPfFile, name);
 
@@ -46,13 +45,13 @@ MovieState::MovieState()
 
 void MovieState::process(const Common::Event &event) {
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
-		// Clicked, go to after-movie state
+		// Clicked, stop movie
 		_movie->stop();
-		_engine->_state = _afterState;
+		_engine->endCard();
 	}
 	else if (!_movie->process()) {
-		// Movie done; go to after-movie state
-		_engine->_state = _afterState;
+		// Movie done
+		_engine->endCard();
 	}
 }
 

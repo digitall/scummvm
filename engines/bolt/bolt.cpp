@@ -26,6 +26,7 @@
 #include "common/events.h"
 #include "common/system.h"
 #include "graphics/palette.h"
+#include "gui/message.h"
 
 #include "bolt/menu_state.h"
 #include "bolt/movie_state.h"
@@ -85,18 +86,10 @@ Common::Error BoltEngine::run() {
 #endif
 
 	// Load cursor
-	_cursorImage = _boltlibBltFile.loadShortId(BltShortId(0x9D00));
-	BltImageHeader cursorImageHeader(&_cursorImage->getData()[0]);
-	// Format is expected to be CLUT7
-	_system->setMouseCursor(&_cursorImage->getData()[BltImageHeader::SIZE],
-		cursorImageHeader.width, cursorImageHeader.height,
-		-cursorImageHeader.offsetX, -cursorImageHeader.offsetY, 0);
-	byte cursorColors[3 * 2] = { 0, 0, 0, 0xFF, 0xFF, 0xFF };
-	_system->setCursorPalette(cursorColors, 0, 2);
-	_system->showMouse(true);
+	initCursor();
 
 	// Start game
-	startGameSequence();
+	resetSequence();
 
 	// Main loop
 	while (!shouldQuit()) {
@@ -126,153 +119,155 @@ Common::Error BoltEngine::run() {
 	return Common::kNoError;
 }
 
-void BoltEngine::startGameSequence() {
-	_state = StatePtr(new GameSequenceState(this));
+void BoltEngine::initCursor() {
+	static const uint16 kCursorImageId = 0x9D00;
+	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 0xFF, 0xFF, 0xFF };
+
+	_cursorImage = _boltlibBltFile.loadShortId(BltShortId(kCursorImageId));
+	BltImageHeader cursorImageHeader(&_cursorImage->getData()[0]);
+	// Format is expected to be CLUT7
+	_system->setMouseCursor(&_cursorImage->getData()[BltImageHeader::SIZE],
+		cursorImageHeader.width, cursorImageHeader.height,
+		-cursorImageHeader.offsetX, -cursorImageHeader.offsetY, 0);
+
+	_system->setCursorPalette(kCursorPalette, 0, 2);
+
+	_system->showMouse(true);
 }
 
-const BoltEngine::GameSequenceState::SequenceEntry
-BoltEngine::GameSequenceState::MERLIN_SEQUENCE[] = {
+void BoltEngine::resetSequence() {
+	_sequenceCursor = 0;
+	SEQUENCE[_sequenceCursor].func(this);
+}
 
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('I', 'N', 'T', 'R') },
-	{ BoltEngine::GameSequenceState::MainMenuFunc, 0x0118 }, // main menu
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x027A }, // file select
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x006B }, // difficulty select
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('P', 'L', 'O', 'G') },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x0C31 }, // stage 1 hub
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('L', 'A', 'B', 'T') },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x0E41 },
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('C', 'A', 'V', '1') },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x0D29 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x0337 }, // stage 1 freeplay hub
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x0446 }, // stage 2 freeplay hub
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x0555 }, // stage 3 freeplay hub
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x900D }, // purple star puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x8C0C }, // stained glass puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x8806 }, // cave puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x8706 }, // ingredients puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x8606 }, // frogs & bugs puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x850B }, // spirits puzzle (?)
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x810D }, // gate puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x7D0B }, // solar system puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6817 }, // parchment puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6811 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x680B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6805 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6717 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6711 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x670B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6705 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6617 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6611 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x660B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6605 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6417 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6411 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x640B }, // cave wall puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6405 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6317 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6311 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x630B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6305 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6217 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6211 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x620B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6205 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6017 }, // grave puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6011 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x600B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x6005 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5F17 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5F11 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5F0B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5F05 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5E17 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5E11 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5E0B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x5E05 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x440D }, // spiderweb puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x430D },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x420D },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x400B }, // chest puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3F0B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3E0B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3C0B }, // windowsill puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3B0B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3A0B },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3810 }, // blue cave puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3710 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3610 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x340A }, // raven puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x330A },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x320A },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x3009 }, // leaf puzzle
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x2F09 },
-	{ BoltEngine::GameSequenceState::MenuFunc, 0x2E09 },
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('C', 'R', 'D', 'T') },
+void BoltEngine::endCard() {
+	_sequenceCursor = (_sequenceCursor + 1) % SEQUENCE_SIZE; // restart at end
+	SEQUENCE[_sequenceCursor].func(this);
+}
+
+const BoltEngine::SequenceEntry
+BoltEngine::MERLIN_SEQUENCE[] = {
+
+	// Pre-game menus
+	{ BoltEngine::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('I', 'N', 'T', 'R') },
+	{ BoltEngine::MainMenuFunc, 0x0118 }, // main menu
+	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', 'T') },
+	{ BoltEngine::MenuFunc, 0x027A }, // file select
+	{ BoltEngine::MenuFunc, 0x006B }, // difficulty select
+
+	// Stage 1: Forest
+	{ BoltEngine::PlayMovieFunc, MKTAG('P', 'L', 'O', 'G') },
+	{ BoltEngine::MenuFunc, 0x0C31 }, // stage 1 hub
+	// NOTE: There are many duplicates of these puzzle menus, possibly
+	// corresponding to different variations.
+	{ BoltEngine::MenuFunc, 0x6017 }, // grave puzzle
+	{ BoltEngine::MenuFunc, 0x8606 }, // frogs & bugs puzzle
+	{ BoltEngine::MenuFunc, 0x3009 }, // leaf puzzle
+	{ BoltEngine::MenuFunc, 0x340A }, // raven puzzle
+	{ BoltEngine::MenuFunc, 0x0337 }, // stage 1 freeplay hub
+
+	// Plot Warning
+	{ BoltEngine::PlotWarningFunc, 0 },
+
+	// Stage 2: Laboratory
+	{ BoltEngine::PlayMovieFunc, MKTAG('L', 'A', 'B', 'T') },
+	{ BoltEngine::MenuFunc, 0x0E41 }, // stage 2 hub
+	{ BoltEngine::MenuFunc, 0x8706 }, // pots puzzle
+	{ BoltEngine::MenuFunc, 0x7D0B }, // solar system puzzle
+	{ BoltEngine::MenuFunc, 0x3C0B }, // windowsill puzzle
+	{ BoltEngine::MenuFunc, 0x6817 }, // parchment puzzle
+	{ BoltEngine::MenuFunc, 0x400B }, // chest puzzle
+	{ BoltEngine::MenuFunc, 0x0446 }, // stage 2 freeplay hub
+
+	// Stage 3: Cave
+	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'A', 'V', '1') },
+	{ BoltEngine::MenuFunc, 0x0D29 }, // stage 3 hub
+	{ BoltEngine::MenuFunc, 0x8C0C }, // stained glass puzzle
+	{ BoltEngine::MenuFunc, 0x900D }, // purple star puzzle
+	{ BoltEngine::MenuFunc, 0x8806 }, // cave puzzle
+	{ BoltEngine::MenuFunc, 0x850B }, // spirits puzzle (?)
+	{ BoltEngine::MenuFunc, 0x810D }, // gate puzzle
+	{ BoltEngine::MenuFunc, 0x640B }, // cave wall puzzle
+	{ BoltEngine::MenuFunc, 0x440D }, // spiderweb puzzle
+	{ BoltEngine::MenuFunc, 0x3810 }, // pink crystal puzzle
+	{ BoltEngine::MenuFunc, 0x0555 }, // stage 3 freeplay hub
+
+	// NOTE: I shall deliberately avoid spoiling the finale movie until this
+	// project is complete! (I've never seen it...)
+	//{ BoltEngine::PlayMovieFunc, MKTAG('F', 'N', 'L', 'E') },
 };
 
-const size_t BoltEngine::GameSequenceState::MERLIN_SEQUENCE_SIZE =
-	sizeof(BoltEngine::GameSequenceState::MERLIN_SEQUENCE) /
-	sizeof(BoltEngine::GameSequenceState::SequenceEntry);
+const size_t BoltEngine::MERLIN_SEQUENCE_SIZE =
+	sizeof(BoltEngine::MERLIN_SEQUENCE) /
+	sizeof(BoltEngine::SequenceEntry);
 
-const BoltEngine::GameSequenceState::SequenceEntry
-BoltEngine::GameSequenceState::LABYRINTH_SEQUENCE[] = {
+const BoltEngine::SequenceEntry
+BoltEngine::LABYRINTH_SEQUENCE[] = {
 
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('P', 'L', 'O', 'G') },
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('C', 'R', 'D', '1') },
-	{ BoltEngine::GameSequenceState::PlayMovieFunc, MKTAG('C', 'R', 'D', '2') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('P', 'L', 'O', 'G') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', '1') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', '2') },
 };
 
-const size_t BoltEngine::GameSequenceState::LABYRINTH_SEQUENCE_SIZE =
-	sizeof(BoltEngine::GameSequenceState::LABYRINTH_SEQUENCE) /
-	sizeof(BoltEngine::GameSequenceState::SequenceEntry);
+const size_t BoltEngine::LABYRINTH_SEQUENCE_SIZE =
+	sizeof(BoltEngine::LABYRINTH_SEQUENCE) /
+	sizeof(BoltEngine::SequenceEntry);
 
 #if TEST_LABYRINTH
 
-const BoltEngine::GameSequenceState::SequenceEntry
-*const BoltEngine::GameSequenceState::SEQUENCE =
-BoltEngine::GameSequenceState::LABYRINTH_SEQUENCE;
+const BoltEngine::SequenceEntry
+*const BoltEngine::SEQUENCE =
+BoltEngine::LABYRINTH_SEQUENCE;
 
-const size_t BoltEngine::GameSequenceState::SEQUENCE_SIZE =
-BoltEngine::GameSequenceState::LABYRINTH_SEQUENCE_SIZE;
+const size_t BoltEngine::SEQUENCE_SIZE =
+BoltEngine::LABYRINTH_SEQUENCE_SIZE;
 
 #else
 
-const BoltEngine::GameSequenceState::SequenceEntry
-*const BoltEngine::GameSequenceState::SEQUENCE =
-BoltEngine::GameSequenceState::MERLIN_SEQUENCE;
+const BoltEngine::SequenceEntry
+*const BoltEngine::SEQUENCE =
+BoltEngine::MERLIN_SEQUENCE;
 
-const size_t BoltEngine::GameSequenceState::SEQUENCE_SIZE =
-BoltEngine::GameSequenceState::MERLIN_SEQUENCE_SIZE;
+const size_t BoltEngine::SEQUENCE_SIZE =
+BoltEngine::MERLIN_SEQUENCE_SIZE;
 
 #endif
 
-BoltEngine::GameSequenceState::GameSequenceState(BoltEngine *engine)
-: _engine(engine), _cursor(0)
-{ }
-
-void BoltEngine::GameSequenceState::process(const Common::Event &event) {
-	SEQUENCE[_cursor].func(this);
-	_cursor = (_cursor + 1) % SEQUENCE_SIZE; // Restart at end
+void BoltEngine::PlayMovieFunc(BoltEngine *self) {
+	uint32 param = SEQUENCE[self->_sequenceCursor].param;
+	self->_state = MovieState::create(self, param);
 }
 
-void BoltEngine::GameSequenceState::PlayMovieFunc(GameSequenceState *self) {
-	uint32 param = SEQUENCE[self->_cursor].param;
-	self->_engine->_state = MovieState::create(self->_engine, param,
-		self->_engine->_state);
+void BoltEngine::MainMenuFunc(BoltEngine *self) {
+	BltShortId param(SEQUENCE[self->_sequenceCursor].param);
+	self->startMainMenu(param);
 }
 
-void BoltEngine::GameSequenceState::MainMenuFunc(GameSequenceState *self) {
-	BltShortId param(SEQUENCE[self->_cursor].param);
-	self->_engine->startMainMenu(param);
-}
-
-void BoltEngine::GameSequenceState::MenuFunc(GameSequenceState *self) {
-	BltShortId param(SEQUENCE[self->_cursor].param);
+void BoltEngine::MenuFunc(BoltEngine *self) {
+	BltShortId param(SEQUENCE[self->_sequenceCursor].param);
 	debug(3, "entering menu 0x%.04X", param.value);
-	self->_engine->startMenu(BltLongId(param));
+	self->startMenu(BltLongId(param));
+}
+
+void BoltEngine::PlotWarningFunc(BoltEngine *self) {
+	GUI::MessageDialog dialog(
+		"Warning: Puzzles are not implemented. Continuing will spoil the plot.\n"
+		"Are you sure want to proceed?", "Yes", "No");
+	int result = dialog.runModal();
+
+	// Dialog clobbers cursor, reinitialize it
+	self->initCursor();
+
+	if (result == GUI::kMessageOK) {
+		// Continue
+		self->endCard();
+	}
+	else {
+		// Reset
+		self->resetSequence();
+	}
 }
 
 struct BltMainMenuInfo {
@@ -297,7 +292,7 @@ void BoltEngine::startMainMenu(BltShortId mainMenuId) {
 }
 
 void BoltEngine::startMenu(BltLongId menuId) {
-	_state = MenuState::create(this, menuId, _state);
+	_state = MenuState::create(this, menuId);
 }
 
 void BoltEngine::renderBltImageToBack(BltResourcePtr image, int x, int y,

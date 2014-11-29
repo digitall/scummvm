@@ -111,13 +111,11 @@ struct BltMenuPaletteMod {
 	BltLongId colors;
 };
 
-MenuStatePtr MenuState::create(BoltEngine *engine, BltLongId menuId,
-	StatePtr afterState) {
+MenuStatePtr MenuState::create(BoltEngine *engine, BltLongId menuId) {
 
 	MenuStatePtr self(new MenuState());
 
 	self->_engine = engine;
-	self->_afterState = afterState;
 
 	// Load resources
 	self->_menuBgInfo = engine->_boltlibBltFile.loadLongId(menuId);
@@ -242,8 +240,9 @@ void MenuState::process(const Common::Event &event) {
 	}
 
 	// XXX: on click, leave menu
+	// TODO: process buttons
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
-		_engine->_state = _afterState;
+		_engine->endCard();
 	}
 }
 
