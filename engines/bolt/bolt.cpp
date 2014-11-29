@@ -172,7 +172,7 @@ BoltEngine::MERLIN_SEQUENCE[] = {
 
 	// Stage 2: Laboratory
 	{ BoltEngine::PlayMovieFunc, MKTAG('L', 'A', 'B', 'T') },
-	{ BoltEngine::MenuFunc, 0x0E41 }, // stage 2 hub
+	{ BoltEngine::MenuFunc, 0x0D29 }, // stage 2 hub
 	{ BoltEngine::MenuFunc, 0x8706 }, // pots puzzle
 	{ BoltEngine::MenuFunc, 0x7D0B }, // solar system puzzle
 	{ BoltEngine::MenuFunc, 0x3C0B }, // windowsill puzzle
@@ -182,7 +182,7 @@ BoltEngine::MERLIN_SEQUENCE[] = {
 
 	// Stage 3: Cave
 	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'A', 'V', '1') },
-	{ BoltEngine::MenuFunc, 0x0D29 }, // stage 3 hub
+	{ BoltEngine::MenuFunc, 0x0E41 }, // stage 3 hub
 	{ BoltEngine::MenuFunc, 0x8C0C }, // stained glass puzzle
 	{ BoltEngine::MenuFunc, 0x900D }, // purple star puzzle
 	{ BoltEngine::MenuFunc, 0x8806 }, // cave puzzle
