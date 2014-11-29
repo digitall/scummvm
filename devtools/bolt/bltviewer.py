@@ -27,7 +27,6 @@ import io
 import struct
 import sys
 import wave
-import winsound
 
 from PySide import QtGui
 from PySide.QtCore import Qt
@@ -190,36 +189,6 @@ class ResourceListHandler:
 @_register_res_handler(7)
 class SoundHandler:
     name = "Sound"
-
-    #FIXME: sounds don't work.
-    def open(res, widget, app):
-        class SoundPlayer:
-            def __init__(self, raw_data):
-                # create in-memory .wav file out of raw data
-                wav_io = io.BytesIO()
-                with wave.open(wav_io, 'wb') as wav_out:
-                    wav_out.setparams((1, 1, 22050, 0, 'NONE', 'NONE'))
-                    wav_out.writeframes(raw_data)
-
-                self.wav_data = bytes(wav_io.getbuffer())
-
-            def play_action(self):
-                # FIXME: This code is never reached...
-                print("Playing sound...")
-                winsound.PlaySound(self.wav_data, winsound.SND_MEMORY)
-
-        player = SoundPlayer(res.data)
-
-        newWidget = QtGui.QWidget()
-        newLayout = QtGui.QVBoxLayout()
-        button = QtGui.QPushButton("Play")
-        # FIXME: This doesn't work, possibly because of a PySide bug.
-        # I CAN connect to a global function.
-        button.clicked.connect(player.play_action)
-        newLayout.addWidget(button)
-        newWidget.setLayout(newLayout)
-
-        widget.addWidget(newWidget)
 
 @_register_res_handler(8)
 class ImageHandler:
@@ -389,7 +358,7 @@ class BltViewer:
         self.win.setMenuBar(menuBar)
 
         self.tree = QtGui.QTreeWidget()
-        self.tree.setHeaderLabels(("Name", "Type"))
+        self.tree.setHeaderLabels(("ID", "Type"))
         self.tree.itemActivated.connect(self._tree_item_activated_action)
 
         self.content = QtGui.QStackedWidget()
