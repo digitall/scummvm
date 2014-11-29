@@ -78,6 +78,8 @@ public:
 	virtual ~State() { }
 
 	// BEWARE when changing engine state within process! State may be destroyed!
+	// TODO: Design better system, perhaps a "changeStateLater" function on the
+	// engine, or a return code for process.
 	virtual void process(const Common::Event &event) = 0;
 
 protected:
@@ -108,39 +110,33 @@ private:
 
 	StatePtr _state;
 
-	// Game Sequence State
+	void initCursor();
+	void resetSequence();
+	void endCard();
 
-	void startGameSequence();
+	typedef void (*SequenceFunc)(BoltEngine *self);
 
-	class GameSequenceState : public State {
-	public:
-		GameSequenceState(BoltEngine *engine);
-		virtual void process(const Common::Event &event);
-
-	private:
-		BoltEngine *_engine;
-
-		typedef void (*SequenceFunc)(GameSequenceState *self);
-
-		struct SequenceEntry {
-			SequenceFunc func;
-			uint32 param;
-		};
-
-		static const SequenceEntry MERLIN_SEQUENCE[];
-		static const size_t MERLIN_SEQUENCE_SIZE;
-		static const SequenceEntry LABYRINTH_SEQUENCE[];
-		static const size_t LABYRINTH_SEQUENCE_SIZE;
-
-		static const SequenceEntry *const SEQUENCE;
-		static const size_t SEQUENCE_SIZE;
-
-		static void PlayMovieFunc(GameSequenceState *self);
-		static void MainMenuFunc(GameSequenceState *self);
-		static void MenuFunc(GameSequenceState *self);
-
-		int _cursor;
+	struct SequenceEntry {
+		SequenceFunc func;
+		uint32 param;
 	};
+
+	static const SequenceEntry MERLIN_SEQUENCE[];
+	static const size_t MERLIN_SEQUENCE_SIZE;
+	static const SequenceEntry LABYRINTH_SEQUENCE[];
+	static const size_t LABYRINTH_SEQUENCE_SIZE;
+
+	static const SequenceEntry *const SEQUENCE;
+	static const size_t SEQUENCE_SIZE;
+
+	static void PlayMovieFunc(BoltEngine *self);
+	static void MainMenuFunc(BoltEngine *self);
+	static void MenuFunc(BoltEngine *self);
+	static void PlotWarningFunc(BoltEngine *self);
+
+	int _sequenceCursor;
+
+	// Menus
 
 	void startMainMenu(BltShortId mainMenuId);
 	void startMenu(BltLongId menuId);

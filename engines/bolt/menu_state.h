@@ -40,8 +40,7 @@ typedef Common::SharedPtr<class MenuState> MenuStatePtr;
 
 class MenuState : public State {
 public:
-	static MenuStatePtr create(BoltEngine *engine, BltLongId menuId,
-		StatePtr afterState);
+	static MenuStatePtr create(BoltEngine *engine, BltLongId menuId);
 
 	virtual void process(const Common::Event &event);
 
@@ -49,8 +48,6 @@ private:
 	MenuState();
 
 	BoltEngine *_engine;
-
-	StatePtr _afterState;
 
 	BltResourcePtr _menuBgInfo;
 	BltResourcePtr _menuBgImageAndPalette;

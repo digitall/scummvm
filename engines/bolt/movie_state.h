@@ -42,7 +42,7 @@ typedef Common::SharedPtr<class MovieState> MovieStatePtr;
 
 class MovieState : public State {
 public:
-	static MovieStatePtr create(BoltEngine *engine, uint32 name, StatePtr afterState);
+	static MovieStatePtr create(BoltEngine *engine, uint32 name);
 
 	virtual void process(const Common::Event &event);
 
@@ -52,8 +52,6 @@ private:
 	BoltEngine *_engine;
 
 	MoviePtr _movie;
-
-	StatePtr _afterState;
 };
 
 } // End of namespace Bolt
