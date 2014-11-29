@@ -29,6 +29,8 @@
 
 #include "audio/mixer.h"
 
+#include "bolt/util.h"
+
 class OSystem;
 
 namespace Audio {
@@ -66,8 +68,7 @@ private:
 	BoltEngine *_engine;
 	Common::File *_file;
 
-	// TODO: SharedArray?
-	typedef Common::SharedPtr<Common::Array<byte> > SharedBuffer;
+	typedef SharedArray<byte> SharedBuffer;
 	typedef Common::Queue<SharedBuffer> BufferQueue;
 
 	void fillAudioQueue();
