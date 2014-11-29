@@ -104,6 +104,26 @@ class BltImageWidget(QtGui.QLabel):
         else:
             super().__init__("Unsupported compression type {}".format(compression))
 
+class MyTableWidget(QtGui.QTableWidget):
+    def __init__(self, col_labels):
+        super().__init__()
+
+        self.setColumnCount(len(col_labels))
+        self.setHorizontalHeaderLabels(col_labels)
+
+    def add_row(self, row_label, values):
+        row_num = self.rowCount()
+        self.setRowCount(row_num + 1)
+
+        headerItem = QtGui.QTableWidgetItem(row_label)
+        headerItem.setFlags(Qt.NoItemFlags)
+        self.setVerticalHeaderItem(row_num, headerItem)
+
+        for i in range(0, len(values)):
+            valueItem = QtGui.QTableWidgetItem(values[i])
+            valueItem.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self.setItem(row_num, i, valueItem)
+
 _RES_TYPE_HANDLERS = {}
 
 def _register_res_handler(type):
@@ -116,23 +136,11 @@ class Values8BitHandler:
     name = "8-bit Values"
 
     def open(res, widget, app):
-        newWidget = QtGui.QTableWidget()
+        newWidget = MyTableWidget(("Value",))
 
-        count = len(res.data)
-        newWidget.setRowCount(count)
-        newWidget.setColumnCount(1)
-        newWidget.setHorizontalHeaderLabels(("Value",))
-
-        for i in range(0, count):
+        for i in range(0, len(res.data)):
             val = res.data[i]
-
-            headerItem = QtGui.QTableWidgetItem("{}".format(i))
-            headerItem.setFlags(Qt.NoItemFlags)
-            newWidget.setVerticalHeaderItem(i, headerItem)
-
-            valueItem = QtGui.QTableWidgetItem("0x{:02X}".format(val))
-            valueItem.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 0, valueItem)
+            newWidget.add_row("{}".format(i), ("0x{:02X}".format(val),))
 
         widget.addWidget(newWidget)
 
@@ -141,23 +149,11 @@ class Values16BitHandler:
     name = "16-bit Values"
 
     def open(res, widget, app):
-        newWidget = QtGui.QTableWidget()
+        newWidget = MyTableWidget(("Value",))
 
-        count = len(res.data) // 2
-        newWidget.setRowCount(count)
-        newWidget.setColumnCount(1)
-        newWidget.setHorizontalHeaderLabels(("Value",))
-
-        for i in range(0, count):
-            val = struct.unpack('>H', res.data[2*i : 2*i+2])[0]
-
-            headerItem = QtGui.QTableWidgetItem("{}".format(i))
-            headerItem.setFlags(Qt.NoItemFlags)
-            newWidget.setVerticalHeaderItem(i, headerItem)
-
-            valueItem = QtGui.QTableWidgetItem("0x{:04X}".format(val))
-            valueItem.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 0, valueItem)
+        for i in range(0, len(res.data) // 2):
+            val = struct.unpack('>H', res.data[2*i : 2*(i+1)])[0]
+            newWidget.add_row("{}".format(i), ("0x{:04X}".format(val),))
 
         widget.addWidget(newWidget)
 
@@ -166,23 +162,11 @@ class ResourceListHandler:
     name = "Resource List"
 
     def open(res, widget, app):
-        newWidget = QtGui.QTableWidget()
+        newWidget = MyTableWidget(("ID",))
 
-        count = len(res.data) // 4
-        newWidget.setRowCount(count)
-        newWidget.setColumnCount(1)
-        newWidget.setHorizontalHeaderLabels(("ID",))
-
-        for i in range(0, count):
-            val = struct.unpack('>I', res.data[4*i : 4*i+4])[0]
-
-            headerItem = QtGui.QTableWidgetItem("{}".format(i))
-            headerItem.setFlags(Qt.NoItemFlags)
-            newWidget.setVerticalHeaderItem(i, headerItem)
-
-            valueItem = QtGui.QTableWidgetItem("0x{:08X}".format(val))
-            valueItem.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 0, valueItem)
+        for i in range(0, len(res.data) // 4):
+            val = struct.unpack('>I', res.data[4*i : 4*(i+1)])[0]
+            newWidget.add_row("{}".format(i), ("0x{:08X}".format(val),))
 
         widget.addWidget(newWidget)
 
@@ -315,7 +299,7 @@ class PotionIngredientsHandler:
 class PotionComboListHandler:
     name = "Potion Combo List"
 
-POTION_MOVIE_NAMES = (
+_POTION_MOVIE_NAMES = (
     'ELEC', 'EXPL', 'FLAM', 'FLSH', 'MIST', 'OOZE', 'SHMR',
     'SWRL', 'WIND', 'BOIL', 'BUBL', 'BSPK', 'FBRS', 'FCLD',
     'FFLS', 'FSWR', 'LAVA', 'LFIR', 'LSMK', 'SBLS', 'SCLM',
@@ -330,41 +314,20 @@ class PotionCombosHandler:
     name = "Potion Combos"
 
     def open(res, widget, app):
-        newWidget = QtGui.QTableWidget()
+        newWidget = MyTableWidget(("A", "B", "C", "D", "Movie",))
 
-        count = len(res.data) // 6
-        newWidget.setRowCount(count)
-        newWidget.setColumnCount(5)
-        newWidget.setHorizontalHeaderLabels(("A", "B", "C", "D", "Movie"))
-
-        for i in range(0, count):
+        for i in range(0, len(res.data) // 6):
             a, b, c, d, movie_num = struct.unpack('>BBBBH',
-                res.data[6*i : 6*i+6])
+                res.data[6*i : 6*(i+1)])
 
-            headerItem = QtGui.QTableWidgetItem("{}".format(i))
-            headerItem.setFlags(Qt.NoItemFlags)
-            newWidget.setVerticalHeaderItem(i, headerItem)
-
-            item = QtGui.QTableWidgetItem("0x{:02X}".format(a))
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 0, item)
-
-            item = QtGui.QTableWidgetItem("0x{:02X}".format(b))
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 1, item)
-
-            item = QtGui.QTableWidgetItem("0x{:02X}".format(c))
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 2, item)
-
-            item = QtGui.QTableWidgetItem("0x{:02X}".format(d))
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 3, item)
-
-            movie_str = "{} ({})".format(POTION_MOVIE_NAMES[movie_num], movie_num)
-            item = QtGui.QTableWidgetItem(movie_str)
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            newWidget.setItem(i, 4, item)
+            newWidget.add_row("{}".format(i),
+                (
+                    "0x{:02X}".format(a),
+                    "0x{:02X}".format(b),
+                    "0x{:02X}".format(c),
+                    "0x{:02X}".format(d),
+                    "{} ({})".format(_POTION_MOVIE_NAMES[movie_num], movie_num),
+                ))
 
         widget.addWidget(newWidget)
 
