@@ -133,9 +133,7 @@ private:
 
 	void loadQueue4(const SharedBuffer &buf);
 	void runQueue4Control();
-
-	void renderQueue0or1ToBack(const SharedBuffer &src, int x, int y);
-	void renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum);
+	void updateScroll();
 
 	SharedBuffer _queue4Buf;
 	SharedBuffer _queue4Bg; // Background image
@@ -143,13 +141,21 @@ private:
 	int _lastQueue4ControlFrameNum;
 	int _queue4ControlCursor; // Offset within queue 4 buffer of control data
 
+	int _queue4CameraX;
 	int _queue4CameraY;
 
 	int _queue4ScrollStartFrameNum;
-	int _queue4ScrollSpeed;
+	int _queue4ScrollOriginalX;
+	int _queue4ScrollOriginalY;
+	int _queue4ScrollProgress;
 	int _queue4ScrollTime;
-	int _queue4ScrollSpeedMult;
+	int _queue4ScrollMult;
 	int _queue4ScrollType;
+
+	// DRAWING
+
+	void renderQueue0or1ToBack(const SharedBuffer &src, int x, int y);
+	void renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum);
 };
 
 } // End of namespace Bolt
