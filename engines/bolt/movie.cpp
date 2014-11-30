@@ -128,7 +128,8 @@ bool Movie::process() {
 		// FIXME: Don't use getMillis; use a timer that pauses when you open
 		// the global menu.
 		uint32 curTime = _engine->_system->getMillis();
-		if ((curTime - _curFrameTimeMs) >= _framePeriod) {
+		uint32 timeDelta = curTime - _curFrameTimeMs;
+		if (timeDelta >= _framePeriod) {
 			_curFrameTimeMs += _framePeriod;
 			++_curFrameNum;
 			advanceTimeline();
@@ -293,34 +294,7 @@ void Movie::runTimelineCmd() {
 			runQueue4Control();
 
 			if (_queue4Bg) {
-
-				// FIXME: scrolling is almost completely broken. Reverse-engineer
-				// this more carefully.
-
-				if (_queue4ScrollType != -1)
-				{
-					int scrollFrames = _curFrameNum - _queue4ScrollStartFrameNum;
-					//int scrollFrames = _curFrameNum - _lastQueue4ControlFrameNum;
-					// constant acceleration?
-					if (scrollFrames < _queue4ScrollTime) {
-						_queue4ScrollSpeed += _queue4ScrollSpeedMult;
-					}
-
-					// Update queue4 background camera
-					switch (_queue4ScrollType) {
-					case -1: // Disabled
-						break;
-						// FIXME: Implement other scroll types. Left and Right seem
-						// to be unused, but Up is used in FNLE.
-					case 3: // Down
-						_queue4CameraY += _queue4ScrollSpeed;
-						break;
-					default:
-						warning("unhandled queue4 scroll type %d", _queue4ScrollType);
-						break;
-					}
-				}
-
+				updateScroll();
 				renderQueue0or1ToBack(_queue4Bg, 0, -_queue4CameraY);
 			}
 
@@ -440,21 +414,12 @@ void Movie::runQueue4Control() {
 			{
 				_queue4Bg = fetchVideoBuffer(1);
 
-				int cameraX = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
-				if (cameraX != 0) {
-					// FIXME: Is X scrolling ever used?
-					warning("queue4 background x scrolling not implemented");
-				}
-
+				_queue4CameraX = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
 				_queue4CameraY = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset + 2]);
 
 				// FIXME: should camera params be initialized here? original
 				// program doesn't seem to do anything with scroll variables
 				// other than camera position
-
-				// XXX: I'll try disabling scroll here.
-				_queue4ScrollType = -1;
-				_queue4ScrollSpeed = 0;
 
 				_queue4ControlCursor += Queue4Command::SIZE + 4;
 				break;
@@ -472,16 +437,18 @@ void Movie::runQueue4Control() {
 			}
 			case Queue4Opcodes::kScroll: // start scroll
 				_queue4ScrollStartFrameNum = _curFrameNum;
-				_queue4ScrollSpeed = 0;
+				_queue4ScrollOriginalX = _queue4CameraX;
+				_queue4ScrollOriginalY = _queue4CameraY;
+				_queue4ScrollProgress = 0; // ???
 
 				// FIXME: scrolling is broken. Unknown whether these names are
 				// correct.
 				_queue4ScrollTime = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
-				_queue4ScrollSpeedMult = _queue4Buf[paramsOffset + 2];
+				_queue4ScrollMult = _queue4Buf[paramsOffset + 2];
 				_queue4ScrollType = _queue4Buf[paramsOffset + 3];
 
-				debug(3, "scroll params: type %d, time %d, speed mult %d",
-					_queue4ScrollType, _queue4ScrollTime, _queue4ScrollSpeedMult);
+				debug(3, "scroll params: type %d, time %d, mult %d",
+					_queue4ScrollType, _queue4ScrollTime, _queue4ScrollMult);
 
 				_queue4ControlCursor += Queue4Command::SIZE + 4;
 				break;
@@ -497,6 +464,54 @@ void Movie::runQueue4Control() {
 		}
 		else {
 			done = true;
+		}
+	}
+}
+
+void Movie::updateScroll() {
+	// FIXME: scrolling is almost completely broken. Reverse-engineer
+	// this more carefully.
+
+	if (_queue4ScrollType != -1)
+	{
+		int frames = 1;
+
+		int esi = 0;
+		int ecx = 0;
+		int edi = _queue4ScrollProgress;
+		int ebx = _queue4ScrollTime;
+		int edx = edi;
+		edi += frames;
+		if (edi > ebx) {
+			//edi = ebx;
+		}
+
+		if (edi != edx) {
+			switch (_queue4ScrollType) {
+			case -1: // Disabled
+				break;
+				// FIXME: Left and right may be unused, but Up is used in FNLE.
+				// Please test.
+			case 0:
+				esi = _queue4ScrollMult * edi;
+				break;
+			case 1:
+				esi = -_queue4ScrollMult * edi;
+				break;
+			case 2:
+				ecx = -_queue4ScrollMult * edi;
+				break;
+			case 3: // Down
+				ecx = _queue4ScrollMult * edi;
+				break;
+			default:
+				warning("unhandled queue4 scroll type %d", _queue4ScrollType);
+				break;
+			}
+
+			_queue4ScrollProgress = edi;
+			_queue4CameraX = _queue4ScrollOriginalX + esi;
+			_queue4CameraY = _queue4ScrollOriginalY + ecx;
 		}
 	}
 }
