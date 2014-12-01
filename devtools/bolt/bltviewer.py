@@ -66,8 +66,8 @@ def decode_rl7(dst, src, width, height):
             # line. This is REQUIRED to end every line.
             length = (width - out_x) if length_byte == 0 else length_byte
             if length:
-                dst[out_y * width + out_x : out_y * width + out_x + length] = \
-                    [color] * length
+                dst_idx = out_y * width + out_x
+                dst[dst_idx : dst_idx + length] = [color] * length
                 out_x += length
 
             if length_byte == 0:
@@ -105,13 +105,13 @@ class BltImageWidget(QtGui.QLabel):
             super().__init__("Unsupported compression type {}".format(compression))
 
 class MyTableWidget(QtGui.QTableWidget):
-    def __init__(self, col_labels):
+    def __init__(self, *col_labels):
         super().__init__()
 
         self.setColumnCount(len(col_labels))
         self.setHorizontalHeaderLabels(col_labels)
 
-    def add_row(self, row_label, values):
+    def add_row(self, row_label, *values):
         row_num = self.rowCount()
         self.setRowCount(row_num + 1)
 
@@ -132,50 +132,50 @@ def _register_res_handler(type):
     return decorate
 
 @_register_res_handler(1)
-class Values8BitHandler:
+class _Values8BitHandler:
     name = "8-bit Values"
 
     def open(res, widget, app):
-        newWidget = MyTableWidget(("Value",))
+        newWidget = MyTableWidget("Value")
 
         for i in range(0, len(res.data)):
             val = res.data[i]
-            newWidget.add_row("{}".format(i), ("0x{:02X}".format(val),))
+            newWidget.add_row("{}".format(i), "0x{:02X}".format(val))
 
         widget.addWidget(newWidget)
 
 @_register_res_handler(3)
-class Values16BitHandler:
+class _Values16BitHandler:
     name = "16-bit Values"
 
     def open(res, widget, app):
-        newWidget = MyTableWidget(("Value",))
+        newWidget = MyTableWidget("Value")
 
         for i in range(0, len(res.data) // 2):
-            val = struct.unpack('>H', res.data[2*i : 2*(i+1)])[0]
-            newWidget.add_row("{}".format(i), ("0x{:04X}".format(val),))
+            val = struct.unpack('>H', res.data[2*i:][:2])[0]
+            newWidget.add_row("{}".format(i), "0x{:04X}".format(val))
 
         widget.addWidget(newWidget)
 
 @_register_res_handler(6)
-class ResourceListHandler:
+class _ResourceListHandler:
     name = "Resource List"
 
     def open(res, widget, app):
-        newWidget = MyTableWidget(("ID",))
+        newWidget = MyTableWidget("ID")
 
         for i in range(0, len(res.data) // 4):
-            val = struct.unpack('>I', res.data[4*i : 4*(i+1)])[0]
-            newWidget.add_row("{}".format(i), ("0x{:08X}".format(val),))
+            val = struct.unpack('>I', res.data[4*i:][:4])[0]
+            newWidget.add_row("{}".format(i), "0x{:08X}".format(val))
 
         widget.addWidget(newWidget)
 
 @_register_res_handler(7)
-class SoundHandler:
+class _SoundHandler:
     name = "Sound"
 
 @_register_res_handler(8)
-class ImageHandler:
+class _ImageHandler:
     name = "Image"
 
     def open(res, widget, app):
@@ -196,7 +196,7 @@ class ImageHandler:
         widget.addWidget(newWidget)
 
 @_register_res_handler(10)
-class PaletteHandler:
+class _PaletteHandler:
     name = "Palette"
 
     def open(res, widget, app):
@@ -212,11 +212,11 @@ class PaletteHandler:
         widget.addWidget(QtGui.QLabel("Palette loaded"))
 
 @_register_res_handler(26)
-class BackgroundHandler:
+class _BackgroundHandler:
     name = "Background"
 
 @_register_res_handler(27)
-class ButtonImageHandler:
+class _ButtonImageHandler:
     name = "Button Image"
 
     def open(res, widget, app):
@@ -226,39 +226,39 @@ class ButtonImageHandler:
             x, y, image_id)))
 
 @_register_res_handler(28)
-class ButtonColorsHandler:
+class _ButtonColorsHandler:
     name = "Button Colors"
 
 @_register_res_handler(29)
-class ButtonPaletteHandler:
+class _ButtonPaletteHandler:
     name = "Button Palette"
 
 @_register_res_handler(30)
-class ButtonStateHandler:
+class _ButtonStateHandler:
     name = "Button State"
 
 @_register_res_handler(31)
-class ButtonHandler:
+class _ButtonHandler:
     name = "Button"
 
 @_register_res_handler(32)
-class SceneHandler:
+class _SceneHandler:
     name = "Scene"
 
 @_register_res_handler(33)
-class MainMenuHandler:
+class _MainMenuHandler:
     name = "Main Menu"
 
 @_register_res_handler(34)
-class FileMenuHandler:
+class _FileMenuHandler:
     name = "File Menu"
 
 @_register_res_handler(35)
-class DifficultyMenuHandler:
+class _DifficultyMenuHandler:
     name = "Difficulty Menu"
 
 @_register_res_handler(59)
-class PotionPuzzleHandler:
+class _PotionPuzzleHandler:
     name = "Potion Puzzle"
 
     def open(res, widget, app):
@@ -279,7 +279,7 @@ class PotionPuzzleHandler:
         label_str += "\nPause Time: {} ms".format(pause_time)
 
         for i in range(0, 7):
-            sound_id = struct.unpack('>H', res.data[0x34+2*i : 0x34+2*i+2])[0]
+            sound_id = struct.unpack('>H', res.data[0x34+2*i:][:2])[0]
             label_str += "\nSound {}: {:04X}".format(i+1, sound_id)
 
         origin_x, origin_y = struct.unpack('>hh', res.data[0x42:0x46])
@@ -288,15 +288,15 @@ class PotionPuzzleHandler:
         widget.addWidget(QtGui.QLabel(label_str))
 
 @_register_res_handler(60)
-class PotionIngredientSlotHandler:
+class _PotionIngredientSlotHandler:
     name = "Potion Ingredient Slot"
 
 @_register_res_handler(61)
-class PotionIngredientsHandler:
+class _PotionIngredientsHandler:
     name = "Potion Ingredients"
 
 @_register_res_handler(62)
-class PotionComboListHandler:
+class _PotionComboListHandler:
     name = "Potion Combo List"
 
 _POTION_MOVIE_NAMES = (
@@ -310,24 +310,23 @@ _POTION_MOVIE_NAMES = (
     )
 
 @_register_res_handler(63)
-class PotionCombosHandler:
+class _PotionCombosHandler:
     name = "Potion Combos"
 
     def open(res, widget, app):
-        newWidget = MyTableWidget(("A", "B", "C", "D", "Movie",))
+        newWidget = MyTableWidget("A", "B", "C", "D", "Movie")
 
         for i in range(0, len(res.data) // 6):
             a, b, c, d, movie_num = struct.unpack('>BBBBH',
-                res.data[6*i : 6*(i+1)])
+                res.data[6*i:][:6])
 
             newWidget.add_row("{}".format(i),
-                (
-                    "0x{:02X}".format(a),
-                    "0x{:02X}".format(b),
-                    "0x{:02X}".format(c),
-                    "0x{:02X}".format(d),
-                    "{} ({})".format(_POTION_MOVIE_NAMES[movie_num], movie_num),
-                ))
+                "0x{:02X}".format(a),
+                "0x{:02X}".format(b),
+                "0x{:02X}".format(c),
+                "0x{:02X}".format(d),
+                "{} ({})".format(_POTION_MOVIE_NAMES[movie_num], movie_num),
+                )
 
         widget.addWidget(newWidget)
 
