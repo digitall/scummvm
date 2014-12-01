@@ -377,7 +377,7 @@ class BltViewer:
         self.win.setMenuBar(menuBar)
 
         self.tree = QtGui.QTreeWidget()
-        self.tree.setHeaderLabels(("ID", "Type"))
+        self.tree.setHeaderLabels(("ID", "Type", "Size"))
         self.tree.itemActivated.connect(self._tree_item_activated_action)
 
         self.content = QtGui.QStackedWidget()
@@ -427,6 +427,7 @@ class BltViewer:
                     res_item.setText(1, "{} ({})".format(handler.name, res.type))
                 else:
                     res_item.setText(1, "{}".format(res.type))
+                res_item.setText(2, "{}".format(res.size))
 
                 res_item.setData(0, Qt.UserRole, res.id)
 
