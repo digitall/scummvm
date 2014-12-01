@@ -330,6 +330,34 @@ class _PotionCombosHandler:
 
         widget.addWidget(newWidget)
 
+class MyHexViewerWidget(QtGui.QTextEdit):
+    def __init__(self, data):
+        super().__init__()
+        self.setReadOnly(True)
+        self.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        self.setFontFamily("courier")
+
+        text = ''
+        addr = 0
+        while addr < len(data):
+            text += "{:08X} ".format(addr)
+
+            num_bytes = len(data) - addr
+            if num_bytes > 16:
+                num_bytes = 16
+
+            for i in range(0, num_bytes):
+                if i == 8:
+                    text += " "
+                text += " {:02X}".format(data[addr + i])
+
+            text += "\n"
+            addr += num_bytes
+
+        self.setPlainText(text)
+
+def _open_hex_viewer(res, widget, app):
+    widget.addWidget(MyHexViewerWidget(res.data))
 
 class BltViewer:
     def __init__(self, argv):
@@ -417,7 +445,7 @@ class BltViewer:
         if handler and hasattr(handler, "open"):
             handler.open(res, self.content, self)
         else:
-            self.content.addWidget(QtGui.QLabel("This resource cannot be viewed"))
+            _open_hex_viewer(res, self.content, self)
 
 def main(argv):
     app = BltViewer(argv)
