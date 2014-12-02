@@ -220,10 +220,17 @@ class _ButtonImageHandler:
     name = "Button Image"
 
     def open(res, widget, app):
-        x, y, image_id = struct.unpack('>hhI', res.data[0:8])
+        newWidget = MyTableWidget("Position", "Image ID")
 
-        widget.addWidget(QtGui.QLabel("Position: ({}, {})\nImage ID: {:08X}".format(
-            x, y, image_id)))
+        for i in range(0, len(res.data) // 8):
+            x, y, image_id = struct.unpack('>hhI', res.data[8*i:][:8])
+
+            newWidget.add_row("{}".format(i),
+                "({}, {})".format(x, y),
+                "0x{:08X}".format(image_id))
+
+
+        widget.addWidget(newWidget)
 
 @_register_res_handler(28)
 class _ButtonColorsHandler:
@@ -231,15 +238,74 @@ class _ButtonColorsHandler:
 
 @_register_res_handler(29)
 class _ButtonPaletteHandler:
-    name = "Button Palette"
+    name = "Button Palette Mod"
+
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Index", "Count", "Colors ID")
+
+        for i in range(0, len(res.data) // 6):
+            index, count, colors_id = struct.unpack('>BBI',
+                res.data[6*i:][:6])
+
+            newWidget.add_row("{}".format(i),
+                "{}".format(index),
+                "{}".format(count),
+                "0x{:08X}".format(colors_id))
+
+        widget.addWidget(newWidget)
+
+_BUTTON_GRAPHICS_TYPE_NAMES = {
+    1: "Palette Mods",
+    2: "Images",
+    }
 
 @_register_res_handler(30)
 class _ButtonStateHandler:
-    name = "Button State"
+    name = "Button Graphics"
+
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Type", "Unk @2", "Hovered", "Idle")
+
+        for i in range(0, len(res.data) // 0xE):
+            type_, id1, id2, id3 = struct.unpack('>HIII',
+                res.data[0xE*i:][:0xE])
+            type_name = _BUTTON_GRAPHICS_TYPE_NAMES.get(type_, "Unknown")
+
+            newWidget.add_row("{}".format(i),
+                "{} ({})".format(type_name, type_),
+                "0x{:08X}".format(id1),
+                "0x{:08X}".format(id2),
+                "0x{:08X}".format(id3))
+
+        widget.addWidget(newWidget)
+
+_BUTTON_TYPE_NAMES = {
+    1: "Rectangle",
+    3: "Hotspot Query",
+    }
 
 @_register_res_handler(31)
-class _ButtonHandler:
-    name = "Button"
+class _ButtonsHandler:
+    name = "Buttons"
+
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Type", "(L, R, T, B)", "Plane", "# Graphics",
+            "Unk @E", "Graphics ID")
+
+        for i in range(0, len(res.data) // 0x14):
+            type_, left, right, top, bottom, plane, num_gfx, unkE, gfx_id = \
+                struct.unpack('>HHHHHHHHI', res.data[0x14*i:][:0x14])
+            type_name = _BUTTON_TYPE_NAMES.get(type_, "Unknown")
+
+            newWidget.add_row("{}".format(i),
+                "{} ({})".format(type_name, type_),
+                "({}, {}, {}, {})".format(left, right, top, bottom),
+                "{}".format(plane),
+                "{}".format(num_gfx),
+                "{}".format(unkE),
+                "0x{:08X}".format(gfx_id))
+
+        widget.addWidget(newWidget)
 
 @_register_res_handler(32)
 class _SceneHandler:
