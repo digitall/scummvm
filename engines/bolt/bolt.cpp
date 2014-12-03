@@ -43,25 +43,6 @@ bool BoltEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsRTL);
 }
 
-struct BltImageHeader {
-
-	static const int SIZE = 0x18;
-	BltImageHeader(const byte *src) {
-		compression = src[0];
-		// FIXME: unknown fields
-		offsetX = (int16)READ_BE_UINT16(&src[6]);
-		offsetY = (int16)READ_BE_UINT16(&src[8]);
-		width = READ_BE_UINT16(&src[0xA]);
-		height = READ_BE_UINT16(&src[0xC]);
-	}
-
-	byte compression;
-	int16 offsetX;
-	int16 offsetY;
-	uint16 width;
-	uint16 height;
-};
-
 //#define TEST_LABYRINTH 1
 
 Common::Error BoltEngine::run() {
@@ -123,12 +104,13 @@ void BoltEngine::initCursor() {
 	static const uint16 kCursorImageId = 0x9D00;
 	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 0xFF, 0xFF, 0xFF };
 
-	_cursorImage = _boltlibBltFile.loadShortId(BltShortId(kCursorImageId));
-	BltImageHeader cursorImageHeader(&_cursorImage->getData()[0]);
+	_cursorImage = BltImage::load(&_boltlibBltFile,
+		BltLongId(BltShortId(kCursorImageId)));
+
 	// Format is expected to be CLUT7
-	_system->setMouseCursor(&_cursorImage->getData()[BltImageHeader::SIZE],
-		cursorImageHeader.width, cursorImageHeader.height,
-		-cursorImageHeader.offsetX, -cursorImageHeader.offsetY, 0);
+	_system->setMouseCursor(_cursorImage->getImageData(),
+		_cursorImage->getWidth(), _cursorImage->getHeight(),
+		-_cursorImage->getOffset().x, -_cursorImage->getOffset().y, 0);
 
 	_system->setCursorPalette(kCursorPalette, 0, 2);
 
@@ -293,32 +275,6 @@ void BoltEngine::startMainMenu(BltShortId mainMenuId) {
 
 void BoltEngine::startMenu(BltLongId menuId) {
 	_state = MenuState::create(this, menuId);
-}
-
-void BoltEngine::renderBltImageToBack(BltResourcePtr image, int x, int y,
-	bool transparency) {
-
-	assert(image->getType() == kBltImage);
-
-	const Common::Array<byte> &data = image->getData();
-
-	BltImageHeader header(&data[0]);
-
-	int topLeftX = x + header.offsetX;
-	int topLeftY = y + header.offsetY;
-
-	if (header.compression) {
-		_graphics.decodeRL7ToBack(topLeftX, topLeftY, header.width, header.height,
-			&data[BltImageHeader::SIZE], data.size() - BltImageHeader::SIZE,
-			transparency);
-	}
-	else {
-		_graphics.decodeCLUT7ToBack(topLeftX, topLeftY, header.width, header.height,
-			&data[BltImageHeader::SIZE], data.size() - BltImageHeader::SIZE,
-			transparency);
-	}
-
-	_displayDirty = true;
 }
 
 } // End of namespace Bolt

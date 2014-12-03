@@ -5,6 +5,7 @@ MODULE_OBJS := \
 	bolt.o \
 	detection.o \
 	graphics.o \
+	image.o \
 	menu_state.o \
 	movie.o \
 	movie_state.o \

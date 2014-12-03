@@ -58,29 +58,44 @@ struct BltMenuBgImageAndPalette { // type 26
 	BltLongId hotspotsId;
 };
 
+namespace ButtonTypes {
+	enum {
+		kRectangle = 1,
+		// Type 2 seems to be a normal display query (unused)
+		kHotspotQuery = 3,
+	};
+}
+
 struct BltMenuButtonInfo { // type 31
 
 	static const int SIZE = 0x14;
 	BltMenuButtonInfo(const byte *src) {
 		// FIXME: unknown fields. unknown whether this is correct.
-		// I believe field 0 is a type. type 1 indicates a rectangular frame.
+		type = READ_BE_UINT16(&src[0]);
 		rect = Rect(&src[2]);
 		hoverInfoId = BltLongId(READ_BE_UINT32(&src[0x10]));
 	}
 
+	uint16 type;
 	Rect rect;
 	BltLongId hoverInfoId;
 };
 
+namespace ButtonGraphicsTypes {
+	enum {
+		kPaletteMods = 1,
+		kImages = 2,
+	};
+}
 struct BltMenuHoverInfo { // type 30
 	BltMenuHoverInfo(const byte *src) {
-		action = READ_BE_UINT16(&src[0]);
+		type = READ_BE_UINT16(&src[0]);
 		param1Id = BltLongId(READ_BE_UINT32(&src[2]));
 		param2Id = BltLongId(READ_BE_UINT32(&src[6]));
 		param3Id = BltLongId(READ_BE_UINT32(&src[0xA]));
 	}
 
-	uint16 action;
+	uint16 type;
 	BltLongId param1Id;
 	BltLongId param2Id;
 	BltLongId param3Id;
@@ -88,14 +103,13 @@ struct BltMenuHoverInfo { // type 30
 
 struct BltLocImage { // type 27
 	BltLocImage(const byte *src) {
-		// FIXME: signed?
-		x = READ_BE_UINT16(&src[0]);
-		y = READ_BE_UINT16(&src[2]);
+		x = (int16)READ_BE_UINT16(&src[0]);
+		y = (int16)READ_BE_UINT16(&src[2]);
 		imageId = BltLongId(READ_BE_UINT32(&src[4]));
 	}
 
-	uint16 x;
-	uint16 y;
+	int16 x;
+	int16 y;
 	BltLongId imageId;
 };
 
@@ -112,122 +126,107 @@ struct BltMenuPaletteMod {
 };
 
 MenuStatePtr MenuState::create(BoltEngine *engine, BltLongId menuId) {
-
 	MenuStatePtr self(new MenuState());
+	self->init(engine, menuId);
+	return self;
+}
 
-	self->_engine = engine;
+void MenuState::init(BoltEngine *engine, BltLongId menuId) {
+	_engine = engine;
 
 	// Load resources
-	self->_menuBgInfo = engine->_boltlibBltFile.loadLongId(menuId);
-	assert(self->_menuBgInfo->getType() == kBltMenuBgInfo);
+	_menuBgInfo = engine->_boltlibBltFile.loadLongId(menuId);
+	assert(_menuBgInfo->getType() == kBltMenuBgInfo);
 
-	BltMenuBgInfo bgInfoStruct(&self->_menuBgInfo->getData()[0]);
-	self->_menuBgImageAndPalette = engine->_boltlibBltFile.loadLongId(bgInfoStruct.imageAndPaletteId);
-	if (self->_menuBgImageAndPalette) {
-		assert(self->_menuBgImageAndPalette->getType() == kBltMenuBgImageAndPalette);
+	BltMenuBgInfo bgInfoStruct(&_menuBgInfo->getData()[0]);
+	_menuBgImageAndPalette = engine->_boltlibBltFile.loadLongId(bgInfoStruct.imageAndPaletteId);
+	if (_menuBgImageAndPalette) {
+		assert(_menuBgImageAndPalette->getType() == kBltMenuBgImageAndPalette);
 
-		BltMenuBgImageAndPalette imageAndPaletteStruct(&self->_menuBgImageAndPalette->getData()[0]);
-		self->_menuBgImage = engine->_boltlibBltFile.loadLongId(imageAndPaletteStruct.imageId);
-		assert(self->_menuBgImage->getType() == kBltImage);
-		self->_menuBgPalette = engine->_boltlibBltFile.loadLongId(imageAndPaletteStruct.paletteId);
-		assert(self->_menuBgPalette->getType() == kBltPalette);
+		BltMenuBgImageAndPalette imageAndPaletteStruct(&_menuBgImageAndPalette->getData()[0]);
+		_menuBgImage = BltImage::load(&_engine->_boltlibBltFile,
+			imageAndPaletteStruct.imageId);
+		_menuBgPalette = engine->_boltlibBltFile.loadLongId(imageAndPaletteStruct.paletteId);
+		assert(_menuBgPalette->getType() == kBltPalette);
 	}
 	else {
-		self->_menuBgImage.reset();
-		self->_menuBgPalette.reset();
+		_menuBgImage.reset();
+		_menuBgPalette.reset();
 	}
 
-	self->_menuButtonInfo = engine->_boltlibBltFile.loadLongId(bgInfoStruct.buttonInfoId);
-	assert(self->_menuButtonInfo->getType() == kBltMenuButtonInfo);
+	_menuButtonInfo = engine->_boltlibBltFile.loadLongId(bgInfoStruct.buttonInfoId);
+	assert(_menuButtonInfo->getType() == kBltMenuButtonInfo);
 
-	self->_menuButtons.resize(bgInfoStruct.numButtons);
+	_menuButtons.resize(bgInfoStruct.numButtons);
 	for (int i = 0; i < bgInfoStruct.numButtons; ++i) {
-
 		BltMenuButtonInfo buttonInfo(
-			&self->_menuButtonInfo->getData()[i * BltMenuButtonInfo::SIZE]);
+			&_menuButtonInfo->getData()[i * BltMenuButtonInfo::SIZE]);
 
-		self->_menuButtons[i].rect = buttonInfo.rect;
-		self->_menuButtons[i].rect.translate(-bgInfoStruct.buttonOriginX, -bgInfoStruct.buttonOriginY);
-		self->_menuButtons[i].hoverAction = MenuButton::kNone;
+		_menuButtons[i].rect = buttonInfo.rect;
+		_menuButtons[i].rect.translate(-bgInfoStruct.buttonOriginX, -bgInfoStruct.buttonOriginY);
+		_menuButtons[i].gfxType = MenuButton::kNone;
 
 		BltResourcePtr hoverInfoRes = engine->_boltlibBltFile.loadLongId(buttonInfo.hoverInfoId);
 		if (hoverInfoRes) {
 			assert(hoverInfoRes->getType() == kBltMenuHoverInfo);
 			BltMenuHoverInfo hoverInfo(&hoverInfoRes->getData()[0]);
-			if (hoverInfo.action == 0) {
-				// image
-				self->_menuButtons[i].hoverAction = MenuButton::kImage;
-				// TODO: handle
-				warning("Image hover actions not handled");
-			}
-			else if (hoverInfo.action == 1) {
-				// palette mod
-				self->_menuButtons[i].hoverAction = MenuButton::kPaletteMod;
+			if (hoverInfo.type == ButtonGraphicsTypes::kPaletteMods) {
+				_menuButtons[i].gfxType = MenuButton::kPaletteMods;
 
 				BltResourcePtr activePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param2Id);
 				assert(activePalModRes->getType() == kBltMenuPaletteMod);
 				BltMenuPaletteMod activePalMod(&activePalModRes->getData()[0]);
-				self->_menuButtons[i].activePalStart = activePalMod.start;
-				self->_menuButtons[i].activePalNum = activePalMod.num;
-				self->_menuButtons[i].activePalColors = engine->_boltlibBltFile.loadLongId(activePalMod.colors);
-				assert(self->_menuButtons[i].activePalColors->getType() == kBltColors);
+				_menuButtons[i].activePalStart = activePalMod.start;
+				_menuButtons[i].activePalNum = activePalMod.num;
+				_menuButtons[i].activePalColors = engine->_boltlibBltFile.loadLongId(activePalMod.colors);
+				assert(_menuButtons[i].activePalColors->getType() == kBltColors);
 
 				BltResourcePtr inactivePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param3Id);
 				assert(inactivePalModRes->getType() == kBltMenuPaletteMod);
 				BltMenuPaletteMod inactivePalMod(&inactivePalModRes->getData()[0]);
-				self->_menuButtons[i].inactivePalStart = inactivePalMod.start;
-				self->_menuButtons[i].inactivePalNum = inactivePalMod.num;
-				self->_menuButtons[i].inactivePalColors = engine->_boltlibBltFile.loadLongId(inactivePalMod.colors);
-				assert(self->_menuButtons[i].inactivePalColors->getType() == kBltColors);
+				_menuButtons[i].inactivePalStart = inactivePalMod.start;
+				_menuButtons[i].inactivePalNum = inactivePalMod.num;
+				_menuButtons[i].inactivePalColors = engine->_boltlibBltFile.loadLongId(inactivePalMod.colors);
+				assert(_menuButtons[i].inactivePalColors->getType() == kBltColors);
 			}
-			else if (hoverInfo.action == 2) {
-				// dual image
-				self->_menuButtons[i].hoverAction = MenuButton::kDualImage;
+			else if (hoverInfo.type == ButtonGraphicsTypes::kImages) {
+				_menuButtons[i].gfxType = MenuButton::kImages;
 
 				BltResourcePtr activeLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param2Id);
 				if (activeLocImageRes) {
 					assert(activeLocImageRes->getType() == kBltLocImage);
 					BltLocImage activeLocImage(&activeLocImageRes->getData()[0]);
-					self->_menuButtons[i].activeImageX = activeLocImage.x - bgInfoStruct.buttonOriginX;
-					self->_menuButtons[i].activeImageY = activeLocImage.y - bgInfoStruct.buttonOriginY;
-					self->_menuButtons[i].activeImage = engine->_boltlibBltFile.loadLongId(
+					_menuButtons[i].hoveredImagePos.x = activeLocImage.x - bgInfoStruct.buttonOriginX;
+					_menuButtons[i].hoveredImagePos.y = activeLocImage.y - bgInfoStruct.buttonOriginY;
+					_menuButtons[i].hoveredImage = BltImage::load(&_engine->_boltlibBltFile,
 						activeLocImage.imageId);
-					assert(self->_menuButtons[i].activeImage->getType() == kBltImage);
 				}
 				else {
-					self->_menuButtons[i].activeImage.reset();
+					_menuButtons[i].hoveredImage.reset();
 				}
 
 				BltResourcePtr inactiveLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param3Id);
 				if (inactiveLocImageRes) {
 					assert(inactiveLocImageRes->getType() == kBltLocImage);
 					BltLocImage inactiveLocImage(&inactiveLocImageRes->getData()[0]);
-					self->_menuButtons[i].inactiveImageX = inactiveLocImage.x - bgInfoStruct.buttonOriginX;
-					self->_menuButtons[i].inactiveImageY = inactiveLocImage.y - bgInfoStruct.buttonOriginY;
-					self->_menuButtons[i].inactiveImage = engine->_boltlibBltFile.loadLongId(
+					_menuButtons[i].idleImagePos.x = inactiveLocImage.x - bgInfoStruct.buttonOriginX;
+					_menuButtons[i].idleImagePos.y = inactiveLocImage.y - bgInfoStruct.buttonOriginY;
+					_menuButtons[i].idleImage = BltImage::load(&_engine->_boltlibBltFile,
 						inactiveLocImage.imageId);
-					assert(self->_menuButtons[i].inactiveImage->getType() == kBltImage);
 				}
 				else {
-					self->_menuButtons[i].inactiveImage.reset();
+					_menuButtons[i].idleImage.reset();
 				}
 			}
 			else {
-				self->_menuButtons[i].hoverAction = MenuButton::kNone;
-				warning("Unhandled hover action type %d", (int)hoverInfo.action);
+				_menuButtons[i].gfxType = MenuButton::kNone;
+				warning("Unhandled button graphics type %d", (int)hoverInfo.type);
 			}
-
-			debug(3, "Hover action type %d params 0x%.08X, 0x%.08X, 0x%.08X",
-				(int)hoverInfo.action, hoverInfo.param1Id, hoverInfo.param2Id,
-				hoverInfo.param3Id);
 		}
 	}
 
 	engine->_graphics.clearForeground();
-
-	self->render();
-
-	return self;
+	render();
 }
 
 MenuState::MenuState()
@@ -253,7 +252,8 @@ void MenuState::render() {
 	}
 
 	if (_menuBgImage) {
-		_engine->renderBltImageToBack(_menuBgImage, 0, 0, false);
+		_menuBgImage->drawToBack(&_engine->_graphics, 0, 0, false);
+		_engine->_displayDirty = true;
 	}
 
 	for (size_t i = 0; i < _menuButtons.size(); ++i) {
@@ -270,31 +270,33 @@ void MenuState::render() {
 }
 
 void MenuState::renderMenuButton(const MenuButton &button, bool active) {
-	if (button.hoverAction == MenuButton::kPaletteMod) {
+	if (button.gfxType == MenuButton::kPaletteMods) {
 		if (active) {
-			// apply active colors
+			// apply hovered colors
 			_engine->_graphics.setBackPalette(&button.activePalColors->getData()[0],
 				button.activePalStart, button.activePalNum);
 		}
 		else {
-			// apply inactive colors
+			// apply idle colors
 			_engine->_graphics.setBackPalette(&button.inactivePalColors->getData()[0],
 				button.inactivePalStart, button.inactivePalNum);
 		}
 	}
-	else if (button.hoverAction == MenuButton::kDualImage) {
+	else if (button.gfxType == MenuButton::kImages) {
 		if (active) {
-			// apply active image
-			if (button.activeImage) {
-				_engine->renderBltImageToBack(button.activeImage, button.activeImageX,
-					button.activeImageY, true);
+			// apply hovered image
+			if (button.hoveredImage) {
+				button.hoveredImage->drawToBack(&_engine->_graphics,
+					button.hoveredImagePos.x, button.hoveredImagePos.y, true);
+				_engine->_displayDirty = true;
 			}
 		}
 		else {
-			// apply inactive image
-			if (button.inactiveImage) {
-				_engine->renderBltImageToBack(button.inactiveImage, button.inactiveImageX,
-					button.inactiveImageY, true);
+			// apply idle image
+			if (button.idleImage) {
+				button.idleImage->drawToBack(&_engine->_graphics,
+					button.idleImagePos.x, button.idleImagePos.y, true);
+				_engine->_displayDirty = true;
 			}
 		}
 	}

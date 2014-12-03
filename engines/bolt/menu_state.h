@@ -28,6 +28,8 @@
 #include "common/array.h"
 #include "common/rect.h"
 
+#include "bolt/image.h"
+
 namespace Common {
 struct Event;
 };
@@ -47,24 +49,24 @@ public:
 private:
 	MenuState();
 
+	void init(BoltEngine *engine, BltLongId menuId);
+
 	BoltEngine *_engine;
 
 	BltResourcePtr _menuBgInfo;
 	BltResourcePtr _menuBgImageAndPalette;
-	BltResourcePtr _menuBgImage;
+	BltImagePtr _menuBgImage;
 	BltResourcePtr _menuBgPalette;
 	BltResourcePtr _menuButtonInfo;
 
 	struct MenuButton {
-		enum HoverAction {
+		enum GraphicsType {
 			kNone,
-			kImage, // param 2: image
-			kPaletteMod, // param 2: palette mod
-			kDualImage, // param 2: active placed image, param 3: inactive placed image
+			kPaletteMods, // param 2: palette mod
+			kImages, // param 2: active placed image, param 3: inactive placed image
 		};
-		// TODO: hitbox info
-		HoverAction hoverAction;
 
+		GraphicsType gfxType;
 		Rect rect;
 
 		uint activePalStart;
@@ -75,13 +77,11 @@ private:
 		uint inactivePalNum;
 		BltResourcePtr inactivePalColors;
 
-		int activeImageX;
-		int activeImageY;
-		BltResourcePtr activeImage;
+		Common::Point hoveredImagePos;
+		BltImagePtr hoveredImage;
 
-		int inactiveImageX;
-		int inactiveImageY;
-		BltResourcePtr inactiveImage;
+		Common::Point idleImagePos;
+		BltImagePtr idleImage;
 	};
 
 	Common::Array<MenuButton> _menuButtons;
