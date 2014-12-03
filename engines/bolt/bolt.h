@@ -29,6 +29,7 @@
 
 #include "bolt/blt_file.h"
 #include "bolt/graphics.h"
+#include "bolt/image.h"
 #include "bolt/pf_file.h"
 
 struct ADGameDescription;
@@ -106,7 +107,7 @@ private:
 
 	BltFile _boltlibBltFile;
 	PfFile _maPfFile;
-	BltResourcePtr _cursorImage;
+	BltImagePtr _cursorImage;
 
 	StatePtr _state;
 
@@ -142,10 +143,6 @@ private:
 	void startMenu(BltLongId menuId);
 
 	BltResourcePtr _mainMenuRes;
-
-	// Common Functions
-
-	void renderBltImageToBack(BltResourcePtr image, int x, int y, bool transparency);
 };
 
 } // End of namespace Bolt
