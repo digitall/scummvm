@@ -33,13 +33,16 @@
 
 namespace Bolt {
 
-static void decodeCLUT7NoTransparency(byte *dst, int dstPitch, int dstW, int dstH,
+static void decodeCLUT7NoTransparency(::Graphics::Surface &dst,
 	int x, int y, int w, int h, const byte *src, int srcLen) {
 
 	assert(srcLen >= w * h);
+	assert(dst.format.bytesPerPixel == 1);
+
+	byte *dstPixels = (byte*)dst.getPixels();
 
 	// Out-of-bounds check
-	if (x >= dstW || (x + w) <= 0 || y >= dstH || (y + h) <= 0) {
+	if (x >= dst.w || (x + w) <= 0 || y >= dst.h || (y + h) <= 0) {
 		return;
 	}
 
@@ -53,7 +56,7 @@ static void decodeCLUT7NoTransparency(byte *dst, int dstPitch, int dstW, int dst
 	}
 
 	// Render visible lines
-	while (dstY < dstH && srcY < h) {
+	while (dstY < dst.h && srcY < h) {
 		int srcX = 0;
 		int dstX = x;
 		// Left clipping
@@ -64,21 +67,23 @@ static void decodeCLUT7NoTransparency(byte *dst, int dstPitch, int dstW, int dst
 		// TODO: Test all clipping cases
 		// NOTE: Out-of-bounds check above prevents trying to copy "negative"
 		// amounts of memory.
-		memcpy(&dst[dstY * dstPitch + dstX], &src[srcY * w + srcX],
-			MIN<int>(dstW - dstX, w - srcX));
+		memcpy(&dstPixels[dstY * dst.pitch + dstX], &src[srcY * w + srcX],
+			MIN<int>(dst.w - dstX, w - srcX));
 		++dstY;
 		++srcY;
 	}
 }
 
-static void decodeCLUT7WithTransparency(byte *dst, int dstPitch, int dstW, int dstH,
+static void decodeCLUT7WithTransparency(::Graphics::Surface &dst,
 	int x, int y, int w, int h, const byte *src, int srcLen) {
 
-	// NOTE: srcLen is not checked. src must have w * h bytes.
 	assert(srcLen >= w * h);
+	assert(dst.format.bytesPerPixel == 1);
+
+	byte *dstPixels = (byte*)dst.getPixels();
 
 	// Out-of-bounds check
-	if (x >= dstW || (x + w) <= 0 || y >= dstH || (y + h) <= 0) {
+	if (x >= dst.w || (x + w) <= 0 || y >= dst.h || (y + h) <= 0) {
 		return;
 	}
 
@@ -92,7 +97,7 @@ static void decodeCLUT7WithTransparency(byte *dst, int dstPitch, int dstW, int d
 	}
 
 	// Render visible lines
-	while (dstY < dstH && srcY < h) {
+	while (dstY < dst.h && srcY < h) {
 		int srcX = 0;
 		int dstX = x;
 		// Left clipping
@@ -102,11 +107,11 @@ static void decodeCLUT7WithTransparency(byte *dst, int dstPitch, int dstW, int d
 		}
 
 		// TODO: Test all clipping cases
-		int len = MIN<int>(dstW - dstX, w - srcX);
+		int len = MIN<int>(dst.w - dstX, w - srcX);
 		for (int i = 0; i < len; ++i) {
 			byte b = src[srcY * w + srcX];
 			if (b != 0) {
-				dst[dstY * dstPitch + dstX] = b;
+				dstPixels[dstY * dst.pitch + dstX] = b;
 			}
 
 			++dstX;
@@ -121,28 +126,29 @@ static void decodeCLUT7WithTransparency(byte *dst, int dstPitch, int dstW, int d
 	}
 }
 
-void decodeCLUT7(byte *dst, int dstPitch, int dstW, int dstH,
-	int x, int y, int w, int h, const byte *src, int srcLen,
-	bool transparency) {
+void decodeCLUT7(::Graphics::Surface &dst, int x, int y, int w, int h,
+	const byte *src, int srcLen, bool transparency) {
 
 	if (transparency) {
-		decodeCLUT7WithTransparency(dst, dstPitch, dstW, dstH,
-			x, y, w, h, src, srcLen);
+		decodeCLUT7WithTransparency(dst, x, y, w, h, src, srcLen);
 	}
 	else {
-		decodeCLUT7NoTransparency(dst, dstPitch, dstW, dstH,
-			x, y, w, h, src, srcLen);
+		decodeCLUT7NoTransparency(dst, x, y, w, h, src, srcLen);
 	}
 }
 
 template<bool transparency>
-inline void decodeRL7Internal(byte *dst, int dstPitch, int dstW, int dstH,
+inline void decodeRL7Internal(::Graphics::Surface &dst,
 	int x, int y, int w, int h, const byte *src, int srcLen) {
 
+	assert(dst.format.bytesPerPixel == 1);
+
 	// Out-of-bounds check
-	if (x >= dstW || (x + w) <= 0 || y >= dstH || (y + h) <= 0) {
+	if (x >= dst.w || (x + w) <= 0 || y >= dst.h || (y + h) <= 0) {
 		return;
 	}
+
+	byte *dstPixels = (byte*)dst.getPixels();
 
 	// Source index var
 	int in_cursor = 0;
@@ -181,7 +187,7 @@ inline void decodeRL7Internal(byte *dst, int dstPitch, int dstW, int dstH,
 	}
 
 	// Render visible lines
-	while (dstY < dstH && srcY < h) {
+	while (dstY < dst.h && srcY < h) {
 
 		// Fetch byte
 		if (in_cursor >= srcLen) {
@@ -206,8 +212,8 @@ inline void decodeRL7Internal(byte *dst, int dstPitch, int dstW, int dstH,
 			// line. This is REQUIRED at the end of every line.
 			int length = (lengthByte == 0) ? (w - srcX) : lengthByte;
 			for (int i = 0; i < length; ++i) {
-				if (dstX >= 0 && dstX < dstW && srcX < w && (!transparency || color != 0)) {
-					dst[dstY * dstPitch + dstX] = color;
+				if (dstX >= 0 && dstX < dst.w && srcX < w && (!transparency || color != 0)) {
+					dstPixels[dstY * dst.pitch + dstX] = color;
 				}
 				++dstX;
 				++srcX;
@@ -221,8 +227,8 @@ inline void decodeRL7Internal(byte *dst, int dstPitch, int dstW, int dstH,
 		}
 		else {
 			// Single pixel
-			if (dstX >= 0 && dstX < dstW && srcX < w && (!transparency || color != 0)) {
-				dst[dstY * dstPitch + dstX] = color;
+			if (dstX >= 0 && dstX < dst.w && srcX < w && (!transparency || color != 0)) {
+				dstPixels[dstY * dst.pitch + dstX] = color;
 			}
 			++dstX;
 			++srcX;
@@ -230,14 +236,14 @@ inline void decodeRL7Internal(byte *dst, int dstPitch, int dstW, int dstH,
 	}
 }
 
-void decodeRL7(byte *dst, int dstPitch, int dstW, int dstH,
-	int x, int y, int w, int h, const byte *src, int srcLen, bool transparency) {
+void decodeRL7(::Graphics::Surface &dst, int x, int y, int w, int h,
+	const byte *src, int srcLen, bool transparency) {
 
 	if (transparency) {
-		decodeRL7Internal<true>(dst, dstPitch, dstW, dstH, x, y, w, h, src, srcLen);
+		decodeRL7Internal<true>(dst, x, y, w, h, src, srcLen);
 	}
 	else {
-		decodeRL7Internal<false>(dst, dstPitch, dstW, dstH, x, y, w, h, src, srcLen);
+		decodeRL7Internal<false>(dst, x, y, w, h, src, srcLen);
 	}
 }
 
@@ -269,92 +275,33 @@ void Graphics::init(OSystem *system) {
 	setForePalette(palette, 0, 128);
 }
 
-/**
- * Convert an array of CD-I colors to sRGB format.
- *
- * From Green Book section 4.4.1.2 RGB Levels (p. V-40):
- * All images, encoded by whatever method, are decoded [...] to a uniform
- * 8-bit linear representation of the Red, Green, and Blue color components.
- * For each component, black level is at 16 and nominal peak (white) level is
- * at 235.
- */
-static void convertCdiColorsToSrgb(byte *dst, const byte *src, uint num) {
-
-	// This table is generated by a Python script.
-	// i in 16...235 -> BT.601 in 0...1 (clamped) -> Linear -> sRGB
-	// FIXME: link to script (use pastebin or github)
-	// UPDATE: THIS IS WRONG. I found out that the PC versions contain
-	// different graphics resources from the CD-I versions, and they probably
-	// have the colors already converted for display on PC monitors.
-	// When/if we support the CD-I games, we should revisit color conversion.
-	static const byte C_TABLE[256] = {
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 3, 7, 10, 13, 16, 18, 20, 22, 24, 26, 27, 29, 30, 32, 33,
-		34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 50, 51, 52,
-		53, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 66, 67, 68, 69, 70,
-		71, 72, 74, 75, 76, 77, 78, 79, 80, 82, 83, 84, 85, 86, 87, 88,
-		89, 90, 92, 93, 94, 95, 96, 97, 98, 99, 100, 102, 103, 104, 105, 106,
-		107, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 124,
-		125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 136, 137, 138, 139, 140, 141,
-		142, 143, 144, 145, 146, 147, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158,
-		159, 160, 161, 162, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175,
-		176, 177, 178, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192,
-		193, 194, 195, 196, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209,
-		210, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226,
-		227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 242, 243,
-		244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 255, 255, 255, 255,
-		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	};
-
-	for (uint i = 0; i < num; ++i) {
-		byte srcR = src[3 * i + 0];
-		byte srcG = src[3 * i + 1];
-		byte srcB = src[3 * i + 2];
-
-		// FIXME: BT.601 color primaries correction? Probably not worth it.
-		// BT.601 has two sets of RGB primaries for 525 and 625-line systems
-		// (NTSC and PAL). It is not clear which one we should use. Besides,
-		// the BT.709 primaries used by sRGB and HDTV sets is intermediary
-		// between BT.601's two sets.
-		dst[3 * i + 0] = C_TABLE[srcR];
-		dst[3 * i + 1] = C_TABLE[srcG];
-		dst[3 * i + 2] = C_TABLE[srcB];
-	}
-}
-
-// FIXME: Make CD-I-like colors a runtime option, perhaps for an "enhanced
-// CD-I graphics" mode. The PC versions of these games performed no color
-// correction, as far as I know.
-// The CD-I also had a cross-fade effect that the PC version lacked.
-//#define CONVERT_CDI_COLORS 1
-
 void Graphics::setBackPalette(const byte *colors, uint start, uint num) {
 	assert(start < 128);
 	assert(num <= 128);
 	assert(start + num <= 128);
 
-#if CONVERT_CDI_COLORS
-	byte pal[128 * 3];
-	convertCdiColorsToSrgb(pal, colors, num);
-	_system->getPaletteManager()->setPalette(pal, BACK_PALETTE_START + start, num);
-#else
 	_system->getPaletteManager()->setPalette(colors,
 		BACK_PALETTE_START + start, num);
-#endif
 }
 
 void Graphics::decodeCLUT7ToBack(int x, int y, int w, int h, const byte *src, int srcLen,
 	bool transparency) {
 
-	decodeCLUT7(_backPlane, VGA_SCREEN_WIDTH, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT,
-		x, y, w, h, src, srcLen, transparency);
+	::Graphics::Surface surface;
+	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
+		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
+
+	decodeCLUT7(surface, x, y, w, h, src, srcLen, transparency);
 }
 
 void Graphics::decodeRL7ToBack(int x, int y, int w, int h, const byte *src, int srcLen,
 	bool transparency) {
 
-	decodeRL7(_backPlane, VGA_SCREEN_WIDTH, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT,
-		x, y, w, h, src, srcLen, transparency);
+	::Graphics::Surface surface;
+	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
+		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
+
+	decodeRL7(surface, x, y, w, h, src, srcLen, transparency);
 }
 
 void Graphics::clearBackground() {
@@ -366,21 +313,18 @@ void Graphics::setForePalette(const byte *colors, uint start, uint num) {
 	assert(num <= 128);
 	assert(start + num <= 128);
 
-#if CONVERT_CDI_COLORS
-	byte pal[128 * 3];
-	convertCdiColorsToSrgb(pal, colors, num);
-	_system->getPaletteManager()->setPalette(pal, FORE_PALETTE_START + start, num);
-#else
 	_system->getPaletteManager()->setPalette(colors,
 		FORE_PALETTE_START + start, num);
-#endif
 }
 
 void Graphics::decodeRL7ToFore(int x, int y, int w, int h, const byte *src, int srcLen,
 	bool transparency) {
 
-	decodeRL7(_forePlane, VGA_SCREEN_WIDTH, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT,
-		x, y, w, h, src, srcLen, transparency);
+	::Graphics::Surface surface;
+	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
+		_forePlane, ::Graphics::PixelFormat::createFormatCLUT8());
+
+	decodeRL7(surface, x, y, w, h, src, srcLen, transparency);
 }
 
 void Graphics::clearForeground() {
@@ -388,6 +332,7 @@ void Graphics::clearForeground() {
 }
 
 void Graphics::drawRectToBack(const Rect &rect, byte color) {
+
 	::Graphics::Surface surface;
 	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
 		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
