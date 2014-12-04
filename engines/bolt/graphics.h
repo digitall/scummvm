@@ -27,17 +27,19 @@
 
 class OSystem;
 
+namespace Graphics {
+struct Surface;
+}
+
 namespace Bolt {
 
 struct Rect;
 
-void decodeCLUT7(byte *dst, int dstPitch, int dstW, int dstH,
-	int x, int y, int w, int h, const byte *src, int srcLen,
-	bool transparency);
+void decodeCLUT7(::Graphics::Surface &dst, int x, int y, int w, int h,
+	const byte *src, int srcLen, bool transparency);
 
-void decodeRL7(byte *dst, int dstPitch, int dstW, int dstH,
-	int x, int y, int w, int h, const byte *src, int srcLen,
-	bool transparency);
+void decodeRL7(::Graphics::Surface &dst, int x, int y, int w, int h,
+	const byte *src, int srcLen, bool transparency);
 
 // CD-I-like graphics system. There is a foreground and a background plane.
 // Each plane has a separate 128-color palette. Foreground color index 0 is
