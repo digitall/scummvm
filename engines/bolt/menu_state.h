@@ -56,16 +56,25 @@ private:
 	BltResourcePtr _menuBgInfo;
 	BltResourcePtr _menuBgImageAndPalette;
 	BltImagePtr _menuBgImage;
+	BltImagePtr _hotspotsImage;
 	BltResourcePtr _menuBgPalette;
 	BltResourcePtr _menuButtonInfo;
 
 	struct MenuButton {
-		enum GraphicsType {
-			kNone,
-			kPaletteMods, // param 2: palette mod
-			kImages, // param 2: active placed image, param 3: inactive placed image
+		enum HotspotType {
+			kHotspotNone = 0, // unused, for internal use
+			kHotspotRect = 1,
+			// Hotspot type 2 seems to be a normal display query (unused)
+			kHotspotImageQuery = 3, // rect.left: low color, rect.right: high color
 		};
 
+		enum GraphicsType {
+			kGfxNone = 0, // unused, for internal use
+			kGfxPaletteMods = 1,
+			kGfxImages = 2,
+		};
+
+		HotspotType hotspotType;
 		GraphicsType gfxType;
 		Rect rect;
 
@@ -86,6 +95,7 @@ private:
 
 	Common::Array<MenuButton> _menuButtons;
 
+	bool isButtonAtPoint(const MenuButton &button, const Common::Point &pt) const;
 	void render();
 	void renderMenuButton(const MenuButton &button, bool active);
 };
