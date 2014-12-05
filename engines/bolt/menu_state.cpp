@@ -58,14 +58,6 @@ struct BltMenuBgImageAndPalette { // type 26
 	BltLongId hotspotsId;
 };
 
-namespace ButtonTypes {
-	enum {
-		kRectangle = 1,
-		// Type 2 seems to be a normal display query (unused)
-		kHotspotQuery = 3,
-	};
-}
-
 struct BltMenuButtonInfo { // type 31
 
 	static const int SIZE = 0x14;
@@ -81,12 +73,6 @@ struct BltMenuButtonInfo { // type 31
 	BltLongId hoverInfoId;
 };
 
-namespace ButtonGraphicsTypes {
-	enum {
-		kPaletteMods = 1,
-		kImages = 2,
-	};
-}
 struct BltMenuHoverInfo { // type 30
 	BltMenuHoverInfo(const byte *src) {
 		type = READ_BE_UINT16(&src[0]);
@@ -148,6 +134,11 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 			imageAndPaletteStruct.imageId);
 		_menuBgPalette = engine->_boltlibBltFile.loadLongId(imageAndPaletteStruct.paletteId);
 		assert(_menuBgPalette->getType() == kBltPalette);
+
+		if (imageAndPaletteStruct.hotspotsId.value != 0xFFFFFFFFUL) {
+			_hotspotsImage = BltImage::load(&_engine->_boltlibBltFile,
+				imageAndPaletteStruct.hotspotsId);
+		}
 	}
 	else {
 		_menuBgImage.reset();
@@ -162,16 +153,18 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 		BltMenuButtonInfo buttonInfo(
 			&_menuButtonInfo->getData()[i * BltMenuButtonInfo::SIZE]);
 
+		_menuButtons[i].hotspotType = (MenuButton::HotspotType)buttonInfo.type;
 		_menuButtons[i].rect = buttonInfo.rect;
-		_menuButtons[i].rect.translate(-bgInfoStruct.buttonOriginX, -bgInfoStruct.buttonOriginY);
-		_menuButtons[i].gfxType = MenuButton::kNone;
+		if (_menuButtons[i].hotspotType == MenuButton::kHotspotRect) {
+			_menuButtons[i].rect.translate(-bgInfoStruct.buttonOriginX, -bgInfoStruct.buttonOriginY);
+		}
 
 		BltResourcePtr hoverInfoRes = engine->_boltlibBltFile.loadLongId(buttonInfo.hoverInfoId);
 		if (hoverInfoRes) {
 			assert(hoverInfoRes->getType() == kBltMenuHoverInfo);
 			BltMenuHoverInfo hoverInfo(&hoverInfoRes->getData()[0]);
-			if (hoverInfo.type == ButtonGraphicsTypes::kPaletteMods) {
-				_menuButtons[i].gfxType = MenuButton::kPaletteMods;
+			if (hoverInfo.type == MenuButton::kGfxPaletteMods) {
+				_menuButtons[i].gfxType = MenuButton::kGfxPaletteMods;
 
 				BltResourcePtr activePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param2Id);
 				assert(activePalModRes->getType() == kBltMenuPaletteMod);
@@ -189,8 +182,8 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 				_menuButtons[i].inactivePalColors = engine->_boltlibBltFile.loadLongId(inactivePalMod.colors);
 				assert(_menuButtons[i].inactivePalColors->getType() == kBltColors);
 			}
-			else if (hoverInfo.type == ButtonGraphicsTypes::kImages) {
-				_menuButtons[i].gfxType = MenuButton::kImages;
+			else if (hoverInfo.type == MenuButton::kGfxImages) {
+				_menuButtons[i].gfxType = MenuButton::kGfxImages;
 
 				BltResourcePtr activeLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param2Id);
 				if (activeLocImageRes) {
@@ -219,7 +212,7 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 				}
 			}
 			else {
-				_menuButtons[i].gfxType = MenuButton::kNone;
+				_menuButtons[i].gfxType = MenuButton::kGfxNone;
 				warning("Unhandled button graphics type %d", (int)hoverInfo.type);
 			}
 		}
@@ -257,9 +250,14 @@ void MenuState::render() {
 	}
 
 	for (size_t i = 0; i < _menuButtons.size(); ++i) {
-		Common::Point mousePos = _engine->getEventManager()->getMousePos();
-		bool active = _menuButtons[i].rect.contains(mousePos);
-		renderMenuButton(_menuButtons[i], active);
+		if (isButtonAtPoint(_menuButtons[i],
+			_engine->getEventManager()->getMousePos())) {
+
+			renderMenuButton(_menuButtons[i], true);
+		}
+		else {
+			renderMenuButton(_menuButtons[i], false);
+		}
 	}
 
 	for (size_t i = 0; i < _menuButtons.size(); ++i) {
@@ -269,8 +267,20 @@ void MenuState::render() {
 	_engine->_displayDirty = true;
 }
 
+bool MenuState::isButtonAtPoint(const MenuButton &button, const Common::Point &pt) const {
+	if (button.hotspotType == MenuButton::kHotspotRect) {
+		return button.rect.contains(pt);
+	}
+	else if (button.hotspotType == MenuButton::kHotspotImageQuery) {
+		byte color = _hotspotsImage->query(pt);
+		return color >= button.rect.left && color <= button.rect.right;
+	}
+
+	return false;
+}
+
 void MenuState::renderMenuButton(const MenuButton &button, bool active) {
-	if (button.gfxType == MenuButton::kPaletteMods) {
+	if (button.gfxType == MenuButton::kGfxPaletteMods) {
 		if (active) {
 			// apply hovered colors
 			_engine->_graphics.setBackPalette(&button.activePalColors->getData()[0],
@@ -282,7 +292,7 @@ void MenuState::renderMenuButton(const MenuButton &button, bool active) {
 				button.inactivePalStart, button.inactivePalNum);
 		}
 	}
-	else if (button.gfxType == MenuButton::kImages) {
+	else if (button.gfxType == MenuButton::kGfxImages) {
 		if (active) {
 			// apply hovered image
 			if (button.hoveredImage) {

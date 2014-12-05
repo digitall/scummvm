@@ -87,4 +87,66 @@ const byte* BltImage::getImageData() const {
 	return &_res->getData()[BltImageHeader::SIZE];
 }
 
+byte BltImage::query(const Common::Point &pt) const {
+	if (pt.x < 0 || pt.y < 0 || pt.x >= _width || pt.y >= _height) {
+		// Point outside image
+		return 0;
+	}
+
+	const byte *data = getImageData();
+	if (_compression) {
+		// RL7
+		byte result = 0;
+
+		int srcY = 0;
+		int in_cursor = 0;
+		// Skip to line
+		while (srcY < pt.y && srcY < _height) {
+			byte in_byte = data[in_cursor];
+			++in_cursor;
+			if ((in_byte & 0x80) != 0) {
+				byte lengthByte = data[in_cursor];
+				++in_cursor;
+				if (lengthByte == 0) {
+					// length 0 means end-of-line
+					++srcY;
+				}
+			}
+		}
+
+		int srcX = 0;
+		while (srcX < _width) {
+			byte in_byte = data[in_cursor];
+			++in_cursor;
+			result = in_byte & 0x7F;
+			if ((in_byte & 0x80) != 0) {
+				byte lengthByte = data[in_cursor];
+				++in_cursor;
+				if (lengthByte == 0) {
+					break;
+				}
+				else {
+					srcX += lengthByte;
+					if (srcX > pt.x) {
+						break;
+					}
+				}
+			}
+			else {
+				if (srcX >= pt.x) {
+					break;
+				}
+				++srcX;
+			}
+		}
+
+		return result;
+	}
+	else {
+		// CLUT7
+		// TODO: test? may be unused.
+		return data[pt.y * _width + pt.x];
+	}
+}
+
 } // End of namespace Bolt

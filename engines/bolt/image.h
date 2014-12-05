@@ -44,6 +44,7 @@ public:
 	uint16 getWidth() const { return _width; }
 	uint16 getHeight() const { return _height; }
 	const Common::Point& getOffset() const { return _offset; }
+	byte query(const Common::Point &pt) const;
 
 private:
 	BltImage();
