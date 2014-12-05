@@ -29,6 +29,7 @@
 #include "common/system.h"
 #include "common/util.h"
 #include "graphics/palette.h"
+#include "graphics/surface.h"
 
 #include "bolt/bolt.h"
 #include "bolt/graphics.h"
@@ -690,7 +691,7 @@ struct Queue01ImageHeader {
 
 void Movie::renderQueue0or1ToBack(const SharedBuffer &src, int x, int y) {
 
-	// Queue 0 buffers contain background frames.
+	// Queue 0 buffers contain background frames. (FIXME: Really?)
 	// Queue 1 buffers contain background frames for use with queue 4
 	// sequences.
 
@@ -699,15 +700,18 @@ void Movie::renderQueue0or1ToBack(const SharedBuffer &src, int x, int y) {
 
 	_engine->_graphics.setBackPalette(&src[Queue01ImageHeader::SIZE], 0, 128);
 
+	const byte *imageSrc = &src[Queue01ImageHeader::SIZE + 128 * 3];
+	int imageSrcLen = src.size() - 128 * 3 - Queue01ImageHeader::SIZE;
+
+	::Graphics::Surface surface = _engine->_graphics.getBackSurface();
+
 	if (header.compression) {
-		_engine->_graphics.decodeRL7ToBack(x, y, header.width, header.height,
-			&src[Queue01ImageHeader::SIZE + 128 * 3],
-			src.size() - 128 * 3 - Queue01ImageHeader::SIZE, false);
+		decodeRL7(surface, x, y, header.width, header.height,
+			imageSrc, imageSrcLen, false);
 	}
 	else {
-		_engine->_graphics.decodeCLUT7ToBack(x, y, header.width, header.height,
-			&src[Queue01ImageHeader::SIZE + 128 * 3],
-			src.size() - 128 * 3 - Queue01ImageHeader::SIZE, false);
+		decodeCLUT7(surface, x, y, header.width, header.height,
+			imageSrc, imageSrcLen, false);
 	}
 }
 
@@ -723,7 +727,8 @@ void Movie::renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum) {
 	uint32 rl7Offset = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8]);
 	uint32 rl7Size = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8 + 4]);
 
-	_engine->_graphics.decodeRL7ToFore(0, 0, header.width, header.height,
+	::Graphics::Surface surface = _engine->_graphics.getForeSurface();
+	decodeRL7(surface, 0, 0, header.width, header.height,
 		&src[rl7Offset], rl7Size, false);
 }
 

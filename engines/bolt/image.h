@@ -28,6 +28,10 @@
 
 #include "bolt/blt_file.h"
 
+namespace Graphics {
+struct Surface;
+}
+
 namespace Bolt {
 
 class Graphics;
@@ -38,13 +42,13 @@ class BltImage {
 public:
 	static BltImagePtr load(BltFile *bltFile, BltLongId id);
 
-	void drawToBack(Graphics *graphics, int x, int y, bool transparency) const;
+	void draw(::Graphics::Surface &surface, bool transparency) const;
+	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
+	byte query(int x, int y) const;
 
-	const byte* getImageData() const;
 	uint16 getWidth() const { return _width; }
 	uint16 getHeight() const { return _height; }
 	const Common::Point& getOffset() const { return _offset; }
-	byte query(const Common::Point &pt) const;
 
 private:
 	BltImage();

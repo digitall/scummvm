@@ -65,88 +65,43 @@ void BltImage::init(BltFile *bltFile, BltLongId id) {
 	_offset.y = header.offsetY;
 }
 
-void BltImage::drawToBack(Graphics *graphics, int x, int y, bool transparency) const {
+void BltImage::draw(::Graphics::Surface &surface, bool transparency) const {
+	const byte *src = &_res->getData()[BltImageHeader::SIZE];
+	int srcLen = _res->getData().size() - BltImageHeader::SIZE;
+
+	if (_compression) {
+		decodeRL7(surface, 0, 0, _width, _height, src, srcLen, transparency);
+	}
+	else {
+		decodeCLUT7(surface, 0, 0, _width, _height, src, srcLen, transparency);
+	}
+}
+
+void BltImage::drawAt(::Graphics::Surface &surface, int x, int y,
+	bool transparency) const {
+
 	int topLeftX = x + _offset.x;
 	int topLeftY = y + _offset.y;
 
-	const Common::Array<byte> &data = _res->getData();
+	const byte *src = &_res->getData()[BltImageHeader::SIZE];
+	int srcLen = _res->getData().size() - BltImageHeader::SIZE;
 
 	if (_compression) {
-		graphics->decodeRL7ToBack(topLeftX, topLeftY, _width, _height,
-			&data[BltImageHeader::SIZE], data.size() - BltImageHeader::SIZE,
+		decodeRL7(surface, topLeftX, topLeftY, _width, _height, src, srcLen,
 			transparency);
 	}
 	else {
-		graphics->decodeCLUT7ToBack(topLeftX, topLeftY, _width, _height,
-			&data[BltImageHeader::SIZE], data.size() - BltImageHeader::SIZE,
+		decodeCLUT7(surface, topLeftX, topLeftY, _width, _height, src, srcLen,
 			transparency);
 	}
 }
 
-const byte* BltImage::getImageData() const {
-	return &_res->getData()[BltImageHeader::SIZE];
-}
-
-byte BltImage::query(const Common::Point &pt) const {
-	if (pt.x < 0 || pt.y < 0 || pt.x >= _width || pt.y >= _height) {
-		// Point outside image
-		return 0;
-	}
-
-	const byte *data = getImageData();
-	if (_compression) {
-		// RL7
-		byte result = 0;
-
-		int srcY = 0;
-		int in_cursor = 0;
-		// Skip to line
-		while (srcY < pt.y && srcY < _height) {
-			byte in_byte = data[in_cursor];
-			++in_cursor;
-			if ((in_byte & 0x80) != 0) {
-				byte lengthByte = data[in_cursor];
-				++in_cursor;
-				if (lengthByte == 0) {
-					// length 0 means end-of-line
-					++srcY;
-				}
-			}
-		}
-
-		int srcX = 0;
-		while (srcX < _width) {
-			byte in_byte = data[in_cursor];
-			++in_cursor;
-			result = in_byte & 0x7F;
-			if ((in_byte & 0x80) != 0) {
-				byte lengthByte = data[in_cursor];
-				++in_cursor;
-				if (lengthByte == 0) {
-					break;
-				}
-				else {
-					srcX += lengthByte;
-					if (srcX > pt.x) {
-						break;
-					}
-				}
-			}
-			else {
-				if (srcX >= pt.x) {
-					break;
-				}
-				++srcX;
-			}
-		}
-
-		return result;
-	}
-	else {
-		// CLUT7
-		// TODO: test? may be unused.
-		return data[pt.y * _width + pt.x];
-	}
+byte BltImage::query(int x, int y) const {
+	const byte *src = &_res->getData()[BltImageHeader::SIZE];
+	int srcLen = _res->getData().size() - BltImageHeader::SIZE;
+	return _compression ?
+		queryRL7(x, y, src, srcLen, _width, _height) :
+		queryCLUT7(x, y, src, srcLen, _width, _height);
 }
 
 } // End of namespace Bolt
