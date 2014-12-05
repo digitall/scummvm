@@ -22,10 +22,11 @@
 
 #include "bolt/menu_state.h"
 
-#include "bolt/bolt.h"
-
 #include "common/events.h"
 #include "common/system.h"
+#include "graphics/surface.h"
+
+#include "bolt/bolt.h"
 
 namespace Bolt {
 
@@ -245,7 +246,8 @@ void MenuState::render() {
 	}
 
 	if (_menuBgImage) {
-		_menuBgImage->drawToBack(&_engine->_graphics, 0, 0, false);
+		::Graphics::Surface surface = _engine->_graphics.getBackSurface();
+		_menuBgImage->drawAt(surface, 0, 0, false);
 		_engine->_displayDirty = true;
 	}
 
@@ -260,10 +262,6 @@ void MenuState::render() {
 		}
 	}
 
-	for (size_t i = 0; i < _menuButtons.size(); ++i) {
-		_engine->_graphics.drawRectToBack(_menuButtons[i].rect, 0x7F);
-	}
-
 	_engine->_displayDirty = true;
 }
 
@@ -272,7 +270,7 @@ bool MenuState::isButtonAtPoint(const MenuButton &button, const Common::Point &p
 		return button.rect.contains(pt);
 	}
 	else if (button.hotspotType == MenuButton::kHotspotImageQuery) {
-		byte color = _hotspotsImage->query(pt);
+		byte color = _hotspotsImage->query(pt.x, pt.y);
 		return color >= button.rect.left && color <= button.rect.right;
 	}
 
@@ -293,10 +291,11 @@ void MenuState::renderMenuButton(const MenuButton &button, bool active) {
 		}
 	}
 	else if (button.gfxType == MenuButton::kGfxImages) {
+		::Graphics::Surface surface = _engine->_graphics.getBackSurface();
 		if (active) {
 			// apply hovered image
 			if (button.hoveredImage) {
-				button.hoveredImage->drawToBack(&_engine->_graphics,
+				button.hoveredImage->drawAt(surface,
 					button.hoveredImagePos.x, button.hoveredImagePos.y, true);
 				_engine->_displayDirty = true;
 			}
@@ -304,7 +303,7 @@ void MenuState::renderMenuButton(const MenuButton &button, bool active) {
 		else {
 			// apply idle image
 			if (button.idleImage) {
-				button.idleImage->drawToBack(&_engine->_graphics,
+				button.idleImage->drawAt(surface,
 					button.idleImagePos.x, button.idleImagePos.y, true);
 				_engine->_displayDirty = true;
 			}

@@ -108,7 +108,15 @@ void BoltEngine::initCursor() {
 		BltLongId(BltShortId(kCursorImageId)));
 
 	// Format is expected to be CLUT7
-	_system->setMouseCursor(_cursorImage->getImageData(),
+	Common::Array<byte> decodedImage;
+	decodedImage.resize(_cursorImage->getWidth() * _cursorImage->getHeight());
+	::Graphics::Surface surface;
+	surface.init(_cursorImage->getWidth(), _cursorImage->getHeight(),
+		_cursorImage->getWidth(), &decodedImage[0],
+		::Graphics::PixelFormat::createFormatCLUT8());
+	_cursorImage->draw(surface, false);
+
+	_system->setMouseCursor(&decodedImage[0],
 		_cursorImage->getWidth(), _cursorImage->getHeight(),
 		-_cursorImage->getOffset().x, -_cursorImage->getOffset().y, 0);
 

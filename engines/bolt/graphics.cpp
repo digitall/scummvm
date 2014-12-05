@@ -247,6 +247,85 @@ void decodeRL7(::Graphics::Surface &dst, int x, int y, int w, int h,
 	}
 }
 
+byte queryCLUT7(int x, int y, const byte *src, int srcLen, int w, int h) {
+	assert(srcLen >= w * h);
+	if (x < 0 || x >= w || y < 0 || y >= h) {
+		// Outside image
+		return 0;
+	}
+
+	return src[y * w + x];
+}
+
+byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h) {
+	if (x < 0 || x >= w || y < 0 || y >= h) {
+		// Outside image
+		return 0;
+	}
+
+	byte result = 0;
+
+	// XXX: The original program stores a cache of line offsets, making most
+	// of the work that we do here unnecessary.
+
+	int srcY = 0;
+	int in_cursor = 0;
+	// Skip to line y
+	while (srcY < y && srcY < h) {
+		if (in_cursor >= srcLen) {
+			return 0;
+		}
+		byte in_byte = src[in_cursor];
+		++in_cursor;
+		if ((in_byte & 0x80) != 0) {
+			if (in_cursor >= srcLen) {
+				return 0;
+			}
+			byte lengthByte = src[in_cursor];
+			++in_cursor;
+			if (lengthByte == 0) {
+				// length 0 means end-of-line
+				++srcY;
+			}
+		}
+	}
+
+	// Decode line until x is reached
+	int srcX = 0;
+	while (srcX < w) {
+		if (in_cursor >= srcLen) {
+			return 0;
+		}
+		byte in_byte = src[in_cursor];
+		++in_cursor;
+		result = in_byte & 0x7F;
+		if ((in_byte & 0x80) != 0) {
+			if (in_cursor >= srcLen) {
+				return 0;
+			}
+			byte lengthByte = src[in_cursor];
+			++in_cursor;
+			if (lengthByte == 0) {
+				break;
+			}
+			else {
+				srcX += lengthByte;
+				if (srcX > x) {
+					break;
+				}
+			}
+		}
+		else {
+			++srcX;
+			if (srcX > x) {
+				break;
+			}
+		}
+	}
+
+	return result;
+}
+
 Graphics::Graphics()
 	: _system(nullptr)
 { }
@@ -284,28 +363,15 @@ void Graphics::setBackPalette(const byte *colors, uint start, uint num) {
 		BACK_PALETTE_START + start, num);
 }
 
-void Graphics::decodeCLUT7ToBack(int x, int y, int w, int h, const byte *src, int srcLen,
-	bool transparency) {
-
-	::Graphics::Surface surface;
-	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
-		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
-
-	decodeCLUT7(surface, x, y, w, h, src, srcLen, transparency);
-}
-
-void Graphics::decodeRL7ToBack(int x, int y, int w, int h, const byte *src, int srcLen,
-	bool transparency) {
-
-	::Graphics::Surface surface;
-	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
-		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
-
-	decodeRL7(surface, x, y, w, h, src, srcLen, transparency);
-}
-
 void Graphics::clearBackground() {
 	memset(&_backPlane[0], 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
+}
+
+::Graphics::Surface Graphics::getBackSurface() {
+	::Graphics::Surface result;
+	result.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
+		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
+	return result;
 }
 
 void Graphics::setForePalette(const byte *colors, uint start, uint num) {
@@ -317,27 +383,15 @@ void Graphics::setForePalette(const byte *colors, uint start, uint num) {
 		FORE_PALETTE_START + start, num);
 }
 
-void Graphics::decodeRL7ToFore(int x, int y, int w, int h, const byte *src, int srcLen,
-	bool transparency) {
-
-	::Graphics::Surface surface;
-	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
-		_forePlane, ::Graphics::PixelFormat::createFormatCLUT8());
-
-	decodeRL7(surface, x, y, w, h, src, srcLen, transparency);
-}
-
 void Graphics::clearForeground() {
 	memset(&_forePlane[0], 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
 }
 
-void Graphics::drawRectToBack(const Rect &rect, byte color) {
-
-	::Graphics::Surface surface;
-	surface.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
-		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
-
-	surface.frameRect(rect, color);
+::Graphics::Surface Graphics::getForeSurface() {
+	::Graphics::Surface result;
+	result.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
+		_forePlane, ::Graphics::PixelFormat::createFormatCLUT8());
+	return result;
 }
 
 void Graphics::present() {

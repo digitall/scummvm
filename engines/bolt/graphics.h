@@ -41,6 +41,10 @@ void decodeCLUT7(::Graphics::Surface &dst, int x, int y, int w, int h,
 void decodeRL7(::Graphics::Surface &dst, int x, int y, int w, int h,
 	const byte *src, int srcLen, bool transparency);
 
+byte queryCLUT7(int x, int y, const byte *src, int srcLen, int w, int h);
+
+byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h);
+
 // CD-I-like graphics system. There is a foreground and a background plane.
 // Each plane has a separate 128-color palette. Foreground color index 0 is
 // transparent.
@@ -56,18 +60,12 @@ public:
 	void init(OSystem *system);
 
 	void setBackPalette(const byte *colors, uint start, uint num);
-	void decodeCLUT7ToBack(int x, int y, int w, int h, const byte *src, int srcLen,
-		bool transparency);
-	void decodeRL7ToBack(int x, int y, int w, int h, const byte *src, int srcLen,
-		bool transparency);
 	void clearBackground();
+	::Graphics::Surface getBackSurface();
 
 	void setForePalette(const byte *colors, uint start, uint num);
-	void decodeRL7ToFore(int x, int y, int w, int h, const byte *src, int srcLen,
-		bool transparency);
 	void clearForeground();
-
-	void drawRectToBack(const Rect &rect, byte color);
+	::Graphics::Surface getForeSurface();
 
 	void present();
 
