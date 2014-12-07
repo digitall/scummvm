@@ -244,7 +244,7 @@ void BoltEngine::MenuFunc(BoltEngine *self) {
 void BoltEngine::PlotWarningFunc(BoltEngine *self) {
 	GUI::MessageDialog dialog(
 		"Warning: Puzzles are not implemented. Continuing will spoil the plot.\n"
-		"Are you sure want to proceed?", "Yes", "No");
+		"Are you sure you want to proceed?", "Yes", "No");
 	int result = dialog.runModal();
 
 	// Dialog clobbers cursor, reinitialize it
