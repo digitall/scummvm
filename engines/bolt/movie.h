@@ -45,6 +45,7 @@ namespace Bolt {
 
 class BoltEngine;
 class PfFile;
+class Plane;
 
 typedef Common::SharedPtr<class Movie> MoviePtr;
 
@@ -154,8 +155,8 @@ private:
 
 	// DRAWING
 
-	void renderQueue0or1ToBack(const SharedBuffer &src, int x, int y);
-	void renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum);
+	void drawQueue0or1(Plane &plane, const SharedBuffer &src, int x, int y);
+	void drawQueue4(Plane &plane, const SharedBuffer &src, uint16 frameNum);
 };
 
 } // End of namespace Bolt

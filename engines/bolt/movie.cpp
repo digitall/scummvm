@@ -264,15 +264,12 @@ void Movie::runTimelineCmd() {
 
 	switch (cmd.opcode) {
 	case TimelineOpcodes::kRenderQueue0: // render queue 0 (param size: 0)
-		_engine->_graphics.clearBackground();
-		renderQueue0or1ToBack(fetchVideoBuffer(0), 0, 0);
+		_engine->_graphics.getBackPlane().clear(); // FIXME: Is it correct to clear back?
+		drawQueue0or1(_engine->_graphics.getForePlane(), fetchVideoBuffer(0), 0, 0);
 		break;
-	case TimelineOpcodes::kRenderQueue1: // clear and render queue 1 (param size: 0)
-		_engine->_graphics.clearBackground();
-		_engine->_graphics.clearForeground();
-		// FIXME: This might be rendered to the fore plane, not the back plane.
-		// See BMPR movie.
-		renderQueue0or1ToBack(fetchVideoBuffer(1), 0, 0);
+	case TimelineOpcodes::kRenderQueue1: // render queue 1 (param size: 0)
+		_engine->_graphics.getForePlane().clear(); // FIXME: Is it correct to clear fore?
+		drawQueue0or1(_engine->_graphics.getBackPlane(), fetchVideoBuffer(1), 0, 0);
 		break;
 	case TimelineOpcodes::kStartPaletteCycling: // start palette cycling (param size: 8)
 		// TODO: Implement
@@ -296,10 +293,11 @@ void Movie::runTimelineCmd() {
 
 			if (_queue4Bg) {
 				updateScroll();
-				renderQueue0or1ToBack(_queue4Bg, 0, -_queue4CameraY);
+				drawQueue0or1(_engine->_graphics.getBackPlane(), _queue4Bg,
+					0, -_queue4CameraY);
 			}
 
-			renderQueue4ToFore(_queue4Buf, queue4FrameNum);
+			drawQueue4(_engine->_graphics.getForePlane(), _queue4Buf, queue4FrameNum);
 		}
 		break;
 	case TimelineOpcodes::kFade: // fade (param size: 4)
@@ -430,7 +428,7 @@ void Movie::runQueue4Control() {
 				byte numColors = _queue4Buf[paramsOffset];
 				// FIXME: first color or plane number?
 				byte firstColor = _queue4Buf[paramsOffset + 1];
-				_engine->_graphics.setForePalette(&_queue4Buf[paramsOffset + 2],
+				_engine->_graphics.getForePlane().setPalette(&_queue4Buf[paramsOffset + 2],
 					firstColor, numColors);
 
 				_queue4ControlCursor += Queue4Command::SIZE + 2 + numColors * 3;
@@ -689,7 +687,7 @@ struct Queue01ImageHeader {
 	byte compression;
 };
 
-void Movie::renderQueue0or1ToBack(const SharedBuffer &src, int x, int y) {
+void Movie::drawQueue0or1(Plane &plane, const SharedBuffer &src, int x, int y) {
 
 	// Queue 0 buffers contain background frames. (FIXME: Really?)
 	// Queue 1 buffers contain background frames for use with queue 4
@@ -698,24 +696,22 @@ void Movie::renderQueue0or1ToBack(const SharedBuffer &src, int x, int y) {
 	Queue01ImageHeader header(&src[0]);
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
-	_engine->_graphics.setBackPalette(&src[Queue01ImageHeader::SIZE], 0, 128);
+	plane.setPalette(&src[Queue01ImageHeader::SIZE], 0, 128);
 
 	const byte *imageSrc = &src[Queue01ImageHeader::SIZE + 128 * 3];
 	int imageSrcLen = src.size() - 128 * 3 - Queue01ImageHeader::SIZE;
 
-	::Graphics::Surface surface = _engine->_graphics.getBackSurface();
-
 	if (header.compression) {
-		decodeRL7(surface, x, y, header.width, header.height,
+		decodeRL7(plane.getSurface(), x, y, header.width, header.height,
 			imageSrc, imageSrcLen, false);
 	}
 	else {
-		decodeCLUT7(surface, x, y, header.width, header.height,
+		decodeCLUT7(plane.getSurface(), x, y, header.width, header.height,
 			imageSrc, imageSrcLen, false);
 	}
 }
 
-void Movie::renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum) {
+void Movie::drawQueue4(Plane &plane, const SharedBuffer &src, uint16 frameNum) {
 
 	// Queue 4 buffers contain a sequence of foreground frames and control data
 	// for the background.
@@ -727,8 +723,7 @@ void Movie::renderQueue4ToFore(const SharedBuffer &src, uint16 frameNum) {
 	uint32 rl7Offset = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8]);
 	uint32 rl7Size = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8 + 4]);
 
-	::Graphics::Surface surface = _engine->_graphics.getForeSurface();
-	decodeRL7(surface, 0, 0, header.width, header.height,
+	decodeRL7(plane.getSurface(), 0, 0, header.width, header.height,
 		&src[rl7Offset], rl7Size, false);
 }
 
