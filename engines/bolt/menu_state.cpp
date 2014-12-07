@@ -219,7 +219,7 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 		}
 	}
 
-	engine->_graphics.clearForeground();
+	engine->_graphics.getForePlane().clear();
 	render();
 }
 
@@ -242,11 +242,11 @@ void MenuState::process(const Common::Event &event) {
 void MenuState::render() {
 
 	if (_menuBgPalette) {
-		_engine->_graphics.setBackPalette(&_menuBgPalette->getData()[6], 0, 128);
+		_engine->_graphics.getBackPlane().setPalette(&_menuBgPalette->getData()[6], 0, 128);
 	}
 
 	if (_menuBgImage) {
-		::Graphics::Surface surface = _engine->_graphics.getBackSurface();
+		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
 		_menuBgImage->drawAt(surface, 0, 0, false);
 		_engine->_displayDirty = true;
 	}
@@ -281,17 +281,17 @@ void MenuState::renderMenuButton(const MenuButton &button, bool active) {
 	if (button.gfxType == MenuButton::kGfxPaletteMods) {
 		if (active) {
 			// apply hovered colors
-			_engine->_graphics.setBackPalette(&button.activePalColors->getData()[0],
+			_engine->_graphics.getBackPlane().setPalette(&button.activePalColors->getData()[0],
 				button.activePalStart, button.activePalNum);
 		}
 		else {
 			// apply idle colors
-			_engine->_graphics.setBackPalette(&button.inactivePalColors->getData()[0],
+			_engine->_graphics.getBackPlane().setPalette(&button.inactivePalColors->getData()[0],
 				button.inactivePalStart, button.inactivePalNum);
 		}
 	}
 	else if (button.gfxType == MenuButton::kGfxImages) {
-		::Graphics::Surface surface = _engine->_graphics.getBackSurface();
+		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
 		if (active) {
 			// apply hovered image
 			if (button.hoveredImage) {

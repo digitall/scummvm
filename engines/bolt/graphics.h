@@ -25,11 +25,9 @@
 
 #include "common/scummsys.h"
 
-class OSystem;
+#include "graphics/surface.h"
 
-namespace Graphics {
-struct Surface;
-}
+class OSystem;
 
 namespace Bolt {
 
@@ -45,38 +43,55 @@ byte queryCLUT7(int x, int y, const byte *src, int srcLen, int w, int h);
 
 byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h);
 
+static const int VGA_SCREEN_WIDTH = 320;
+static const int VGA_SCREEN_HEIGHT = 200;
+static const int CDI_SCREEN_WIDTH = 384;
+static const int CDI_SCREEN_HEIGHT = 240;
+
+class Graphics;
+
+class Plane {
+public:
+	Plane();
+	~Plane();
+
+	void init(Graphics *graphics, int width, int height, byte colorBase);
+
+	::Graphics::Surface& getSurface() { return _surface; }
+	byte getColorBase() const { return _colorBase; }
+
+	void clear();
+	void setPalette(const byte *colors, uint start, uint num);
+
+private:
+	Graphics *_graphics;
+	::Graphics::Surface _surface;
+	byte _colorBase;
+};
+
 // CD-I-like graphics system. There is a foreground and a background plane.
-// Each plane has a separate 128-color palette. Foreground color index 0 is
+// Each plane has a separate 128-color palette. Foreground color 0 is
 // transparent.
 class Graphics {
+	friend class Plane;
 public:
-	static const int VGA_SCREEN_WIDTH = 320;
-	static const int VGA_SCREEN_HEIGHT = 200;
-	static const int CDI_SCREEN_WIDTH = 384;
-	static const int CDI_SCREEN_HEIGHT = 240;
-
 	Graphics();
 
 	void init(OSystem *system);
 
-	void setBackPalette(const byte *colors, uint start, uint num);
-	void clearBackground();
-	::Graphics::Surface getBackSurface();
-
-	void setForePalette(const byte *colors, uint start, uint num);
-	void clearForeground();
-	::Graphics::Surface getForeSurface();
+	Plane& getBackPlane() { return _backPlane; }
+	Plane& getForePlane() { return _forePlane; }
 
 	void present();
 
 private:
 	OSystem *_system;
 
-	static const byte BACK_PALETTE_START = 0;
-	static const byte FORE_PALETTE_START = 128;
+	static const byte BACK_COLOR_BASE = 0;
+	static const byte FORE_COLOR_BASE = 128;
 
-	byte _backPlane[VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT];
-	byte _forePlane[VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT];
+	Plane _backPlane;
+	Plane _forePlane;
 };
 
 } // End of namespace Bolt

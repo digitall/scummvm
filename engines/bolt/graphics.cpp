@@ -326,6 +326,33 @@ byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h) {
 	return result;
 }
 
+Plane::Plane()
+	: _graphics(nullptr)
+{ }
+
+Plane::~Plane() {
+	_surface.free();
+}
+
+void Plane::init(Graphics *graphics, int width, int height, byte colorBase) {
+	_graphics = graphics;
+	_surface.create(width, height, ::Graphics::PixelFormat::createFormatCLUT8());
+	_colorBase = colorBase;
+}
+
+void Plane::clear() {
+	memset(_surface.getPixels(), 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
+}
+
+void Plane::setPalette(const byte *colors, uint start, uint num) {
+	assert(start < 128);
+	assert(num <= 128);
+	assert(start + num <= 128);
+
+	_graphics->_system->getPaletteManager()->setPalette(colors,
+		_colorBase + start, num);
+}
+
 Graphics::Graphics()
 	: _system(nullptr)
 { }
@@ -335,8 +362,8 @@ void Graphics::init(OSystem *system) {
 
 	initGraphics(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, false);
 
-	clearBackground();
-	clearForeground();
+	_backPlane.init(this, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, BACK_COLOR_BASE);
+	_forePlane.init(this, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, FORE_COLOR_BASE);
 
 	// XXX: Load a generic testing palette into both planes
 	byte palette[128 * 3];
@@ -350,65 +377,34 @@ void Graphics::init(OSystem *system) {
 			}
 		}
 	}
-	setBackPalette(palette, 0, 128);
-	setForePalette(palette, 0, 128);
-}
-
-void Graphics::setBackPalette(const byte *colors, uint start, uint num) {
-	assert(start < 128);
-	assert(num <= 128);
-	assert(start + num <= 128);
-
-	_system->getPaletteManager()->setPalette(colors,
-		BACK_PALETTE_START + start, num);
-}
-
-void Graphics::clearBackground() {
-	memset(&_backPlane[0], 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
-}
-
-::Graphics::Surface Graphics::getBackSurface() {
-	::Graphics::Surface result;
-	result.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
-		_backPlane, ::Graphics::PixelFormat::createFormatCLUT8());
-	return result;
-}
-
-void Graphics::setForePalette(const byte *colors, uint start, uint num) {
-	assert(start < 128);
-	assert(num <= 128);
-	assert(start + num <= 128);
-
-	_system->getPaletteManager()->setPalette(colors,
-		FORE_PALETTE_START + start, num);
-}
-
-void Graphics::clearForeground() {
-	memset(&_forePlane[0], 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
-}
-
-::Graphics::Surface Graphics::getForeSurface() {
-	::Graphics::Surface result;
-	result.init(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, VGA_SCREEN_WIDTH,
-		_forePlane, ::Graphics::PixelFormat::createFormatCLUT8());
-	return result;
+	_backPlane.setPalette(palette, 0, 128);
+	_forePlane.setPalette(palette, 0, 128);
 }
 
 void Graphics::present() {
 	// TODO: Track dirty rectangles for more efficiency
 
 	// Render display
-	::Graphics::Surface *surface = _system->lockScreen();
 
-	byte *dst = (byte*)surface->getPixels();
+	::Graphics::Surface *dstSurface = _system->lockScreen();
+
+	::Graphics::Surface &backSurface = _backPlane.getSurface();
+	::Graphics::Surface &foreSurface = _forePlane.getSurface();
+
+	byte *dstLine = (byte*)dstSurface->getPixels();
+	const byte *backLine = (const byte*)backSurface.getPixels();
+	const byte *foreLine = (const byte*)foreSurface.getPixels();
+
 	for (int y = 0; y < VGA_SCREEN_HEIGHT; ++y) {
 		for (int x = 0; x < VGA_SCREEN_WIDTH; ++x) {
-			int dstIndex = y * surface->pitch + x;
-			int srcIndex = y * VGA_SCREEN_WIDTH + x;
-			dst[dstIndex] = (_forePlane[srcIndex] != 0) ?
-				(_forePlane[srcIndex] + FORE_PALETTE_START) :
-				(_backPlane[srcIndex] + BACK_PALETTE_START);
+			dstLine[x] = (foreLine[x] != 0) ?
+				(foreLine[x] + _forePlane.getColorBase()) :
+				(backLine[x] + _backPlane.getColorBase());
 		}
+
+		dstLine += dstSurface->pitch;
+		backLine += backSurface.pitch;
+		foreLine += foreSurface.pitch;
 	}
 
 	_system->unlockScreen();
