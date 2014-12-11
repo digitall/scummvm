@@ -452,6 +452,8 @@ class BltViewer:
         splitter = QtGui.QSplitter()
         splitter.addWidget(self.tree)
         splitter.addWidget(self.content)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
 
         self.win.setCentralWidget(splitter)
 
