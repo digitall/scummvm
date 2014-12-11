@@ -507,12 +507,20 @@ class BltViewer:
     def _load_resource(self, res_id):
         self.content.removeWidget(self.content.currentWidget())
 
+        tabWidget = QtGui.QTabWidget()
+
         res = self.blt_file.load_resource(res_id)
         handler = _RES_TYPE_HANDLERS.get(res.type)
         if handler and hasattr(handler, "open"):
-            handler.open(res, self.content, self)
-        else:
-            _open_hex_viewer(res, self.content, self)
+            resTab = QtGui.QStackedWidget()
+            handler.open(res, resTab, self)
+            tabWidget.addTab(resTab, "Resource")
+
+        hexViewerTab = QtGui.QStackedWidget()
+        _open_hex_viewer(res, hexViewerTab, self)
+        tabWidget.addTab(hexViewerTab, "Hex")
+
+        self.content.addWidget(tabWidget)
 
 def main(argv):
     app = BltViewer(argv)
