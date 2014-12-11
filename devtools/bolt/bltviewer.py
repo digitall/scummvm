@@ -311,6 +311,20 @@ class _ButtonsHandler:
 class _SceneHandler:
     name = "Scene"
 
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Value")
+
+        background_id = struct.unpack('>I', res.data[4:][:4])[0]
+        newWidget.add_row("Background ID", "0x{:08X}".format(background_id))
+
+        num_buttons, buttons_id, origin_x, origin_y = \
+            struct.unpack('>HIhh', res.data[0x1A:][:0xA])
+        newWidget.add_row("# Buttons", "{}".format(num_buttons))
+        newWidget.add_row("Buttons ID", "0x{:08X}".format(buttons_id))
+        newWidget.add_row("Origin", "({}, {})".format(origin_x, origin_y))
+
+        widget.addWidget(newWidget)
+
 @_register_res_handler(33)
 class _MainMenuHandler:
     name = "Main Menu"
