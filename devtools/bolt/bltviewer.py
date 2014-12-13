@@ -184,8 +184,12 @@ class _ImageHandler:
 
         newLayout = QtGui.QVBoxLayout()
 
-        newLayout.addWidget(QtGui.QLabel("Compression: {}\nOffset: ({}, {})\nWidth: {}\nHeight: {}".format(
-            compression, offset_x, offset_y, width, height)))
+        info_table = MyTableWidget("Value")
+        info_table.add_row("Compression", "{}".format(compression))
+        info_table.add_row("Offset", "({}, {})".format(offset_x, offset_y))
+        info_table.add_row("Width", "{}".format(width))
+        info_table.add_row("Height", "{}".format(height))
+        newLayout.addWidget(info_table)
 
         newLayout.addWidget(QtGui.QLabel("Tip: Load a Palette if colors are wrong"))
 
@@ -214,6 +218,19 @@ class _PaletteHandler:
 @_register_res_handler(26)
 class _BackgroundHandler:
     name = "Background"
+
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Value")
+
+        image_id, palette_id, hotspots_id, unk_c = \
+            struct.unpack('>IIII', res.data[:0x10])
+
+        newWidget.add_row("Image ID", "0x{:08X}".format(image_id))
+        newWidget.add_row("Palette ID", "0x{:08X}".format(palette_id))
+        newWidget.add_row("Hotspots ID", "0x{:08X}".format(hotspots_id))
+        newWidget.add_row("Unk @C", "0x{:08X}".format(unk_c))
+
+        widget.addWidget(newWidget)
 
 @_register_res_handler(27)
 class _ButtonImageHandler:
@@ -328,6 +345,18 @@ class _SceneHandler:
 @_register_res_handler(33)
 class _MainMenuHandler:
     name = "Main Menu"
+
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Value")
+
+        scene_id, colorbars_id, colorbars_pal_id = \
+            struct.unpack('>III', res.data)
+
+        newWidget.add_row("Scene ID", "0x{:08X}".format(scene_id))
+        newWidget.add_row("Color-bars ID", "0x{:08X}".format(colorbars_id))
+        newWidget.add_row("Color-bars Palette ID", "0x{:08X}".format(colorbars_pal_id))
+
+        widget.addWidget(newWidget)
 
 @_register_res_handler(34)
 class _FileMenuHandler:
