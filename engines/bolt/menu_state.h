@@ -86,6 +86,9 @@ private:
 		uint inactivePalNum;
 		BltResourcePtr inactivePalColors;
 
+		Common::Point defaultImagePos;
+		BltImagePtr defaultImage;
+
 		Common::Point hoveredImagePos;
 		BltImagePtr hoveredImage;
 
