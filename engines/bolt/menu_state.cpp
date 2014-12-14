@@ -77,15 +77,15 @@ struct BltMenuButtonInfo { // type 31
 struct BltMenuHoverInfo { // type 30
 	BltMenuHoverInfo(const byte *src) {
 		type = READ_BE_UINT16(&src[0]);
-		param1Id = BltLongId(READ_BE_UINT32(&src[2]));
-		param2Id = BltLongId(READ_BE_UINT32(&src[6]));
-		param3Id = BltLongId(READ_BE_UINT32(&src[0xA]));
+		defaultId = BltLongId(READ_BE_UINT32(&src[2]));
+		hoveredId = BltLongId(READ_BE_UINT32(&src[6]));
+		idleId = BltLongId(READ_BE_UINT32(&src[0xA]));
 	}
 
 	uint16 type;
-	BltLongId param1Id;
-	BltLongId param2Id;
-	BltLongId param3Id;
+	BltLongId defaultId;
+	BltLongId hoveredId;
+	BltLongId idleId;
 };
 
 struct BltLocImage { // type 27
@@ -164,10 +164,24 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 		if (hoverInfoRes) {
 			assert(hoverInfoRes->getType() == kBltMenuHoverInfo);
 			BltMenuHoverInfo hoverInfo(&hoverInfoRes->getData()[0]);
+
+			BltResourcePtr defaultRes = _engine->_boltlibBltFile.loadLongId(hoverInfo.defaultId);
+			if (defaultRes) {
+				assert(defaultRes->getType() == kBltLocImage);
+				BltLocImage defaultLocImage(&defaultRes->getData()[0]);
+				_menuButtons[i].defaultImagePos.x = defaultLocImage.x - bgInfoStruct.buttonOriginX;
+				_menuButtons[i].defaultImagePos.y = defaultLocImage.y - bgInfoStruct.buttonOriginY;
+				_menuButtons[i].defaultImage = BltImage::load(
+					&_engine->_boltlibBltFile, defaultLocImage.imageId);
+			}
+			else {
+				_menuButtons[i].defaultImage.reset();
+			}
+
 			if (hoverInfo.type == MenuButton::kGfxPaletteMods) {
 				_menuButtons[i].gfxType = MenuButton::kGfxPaletteMods;
 
-				BltResourcePtr activePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param2Id);
+				BltResourcePtr activePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.hoveredId);
 				assert(activePalModRes->getType() == kBltMenuPaletteMod);
 				BltMenuPaletteMod activePalMod(&activePalModRes->getData()[0]);
 				_menuButtons[i].activePalStart = activePalMod.start;
@@ -175,7 +189,7 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 				_menuButtons[i].activePalColors = engine->_boltlibBltFile.loadLongId(activePalMod.colors);
 				assert(_menuButtons[i].activePalColors->getType() == kBltColors);
 
-				BltResourcePtr inactivePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param3Id);
+				BltResourcePtr inactivePalModRes = engine->_boltlibBltFile.loadLongId(hoverInfo.idleId);
 				assert(inactivePalModRes->getType() == kBltMenuPaletteMod);
 				BltMenuPaletteMod inactivePalMod(&inactivePalModRes->getData()[0]);
 				_menuButtons[i].inactivePalStart = inactivePalMod.start;
@@ -186,7 +200,7 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 			else if (hoverInfo.type == MenuButton::kGfxImages) {
 				_menuButtons[i].gfxType = MenuButton::kGfxImages;
 
-				BltResourcePtr activeLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param2Id);
+				BltResourcePtr activeLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.hoveredId);
 				if (activeLocImageRes) {
 					assert(activeLocImageRes->getType() == kBltLocImage);
 					BltLocImage activeLocImage(&activeLocImageRes->getData()[0]);
@@ -199,7 +213,7 @@ void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 					_menuButtons[i].hoveredImage.reset();
 				}
 
-				BltResourcePtr inactiveLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.param3Id);
+				BltResourcePtr inactiveLocImageRes = engine->_boltlibBltFile.loadLongId(hoverInfo.idleId);
 				if (inactiveLocImageRes) {
 					assert(inactiveLocImageRes->getType() == kBltLocImage);
 					BltLocImage inactiveLocImage(&inactiveLocImageRes->getData()[0]);
@@ -279,6 +293,12 @@ bool MenuState::isButtonAtPoint(const MenuButton &button, const Common::Point &p
 
 void MenuState::renderMenuButton(const MenuButton &button, bool active) {
 	if (button.gfxType == MenuButton::kGfxPaletteMods) {
+		if (button.defaultImage) {
+			button.defaultImage->drawAt(
+				_engine->_graphics.getBackPlane().getSurface(),
+				button.defaultImagePos.x, button.defaultImagePos.y, true);
+		}
+
 		if (active) {
 			// apply hovered colors
 			_engine->_graphics.getBackPlane().setPalette(&button.activePalColors->getData()[0],

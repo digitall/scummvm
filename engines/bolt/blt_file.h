@@ -51,6 +51,7 @@ struct BltLongId {
 	BltLongId() : value(0xFFFFFFFFUL) { }
 	explicit BltLongId(uint32 v) : value(v) { }
 	explicit BltLongId(BltShortId shortId) : value(shortId.value << 16) { }
+	bool isValid() const { return value != 0xFFFFFFFFUL; }
 	uint32 value;
 };
 
