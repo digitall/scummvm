@@ -27,13 +27,12 @@
 namespace Bolt {
 
 BltImagePtr BltImage::load(BltFile *bltFile, BltLongId id) {
-	BltImagePtr self(new BltImage());
-	self->init(bltFile, id);
-	return self;
-}
+	if (!id.isValid()) {
+		return BltImagePtr();
+	}
 
-BltImage::BltImage()
-{ }
+	return BltImagePtr(new BltImage(bltFile, id));
+}
 
 struct BltImageHeader {
 
@@ -54,8 +53,9 @@ struct BltImageHeader {
 	uint16 height;
 };
 
-void BltImage::init(BltFile *bltFile, BltLongId id) {
+BltImage::BltImage(BltFile *bltFile, BltLongId id) {
 	_res = bltFile->loadLongId(id);
+	assert(_res->getType() == kBltImage);
 
 	BltImageHeader header(&_res->getData()[0]);
 	_compression = header.compression;

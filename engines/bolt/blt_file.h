@@ -31,19 +31,20 @@ enum BltType {
 	kBltError = 0, // Not present in game data; only for internal use
 	kBltImage = 8,
 	kBltPalette = 10,
-	kBltMenuBgImageAndPalette = 26,
-	kBltLocImage = 27, // image ref plus x, y location?
-	kBltColors = 28, // just some colors, used by palette mod
-	kBltMenuPaletteMod = 29,
-	kBltMenuHoverInfo = 30,
-	kBltMenuButtonInfo = 31,
-	kBltMenuBgInfo = 32,
-	kBltMainMenuInfo = 33,
+	kBltPlane = 26, // image, palette, hotspots
+	kBltButtonImage = 27, // image ref plus x, y location?
+	kBltButtonColors = 28, // just some colors, used by palette mod
+	kBltButtonPaletteMod = 29,
+	kBltButtonGraphics = 30,
+	kBltButtons = 31,
+	kBltScene = 32,
+	kBltMainMenu = 33,
 };
 
 struct BltShortId {
 	BltShortId() : value(0xFFFFU) { }
 	explicit BltShortId(uint16 v) : value(v) { }
+
 	uint16 value;
 };
 
@@ -52,6 +53,7 @@ struct BltLongId {
 	explicit BltLongId(uint32 v) : value(v) { }
 	explicit BltLongId(BltShortId shortId) : value(shortId.value << 16) { }
 	bool isValid() const { return value != 0xFFFFFFFFUL; }
+
 	uint32 value;
 };
 

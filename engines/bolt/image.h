@@ -51,9 +51,7 @@ public:
 	const Common::Point& getOffset() const { return _offset; }
 
 private:
-	BltImage();
-
-	void init(BltFile *bltFile, BltLongId id);
+	BltImage(BltFile *bltFile, BltLongId id);
 
 	BltResourcePtr _res;
 	byte _compression;

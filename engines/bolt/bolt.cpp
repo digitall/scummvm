@@ -274,7 +274,7 @@ struct BltMainMenuInfo {
 
 void BoltEngine::startMainMenu(BltShortId mainMenuId) {
 	_mainMenuRes = _boltlibBltFile.loadShortId(mainMenuId);
-	assert(_mainMenuRes->getType() == kBltMainMenuInfo);
+	assert(_mainMenuRes->getType() == kBltMainMenu);
 
 	BltMainMenuInfo info(&_mainMenuRes->getData()[0]);
 

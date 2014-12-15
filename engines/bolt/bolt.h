@@ -93,6 +93,7 @@ class BoltEngine : public Engine {
 	friend class MenuState;
 	friend class MovieState;
 	friend class Movie;
+	friend class Scene;
 public:
 	BoltEngine(OSystem *syst, const ADGameDescription *gd);
 
