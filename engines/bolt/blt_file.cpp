@@ -191,8 +191,7 @@ BltResourcePtr BltFile::loadShortId(BltShortId id) {
 
 BltResourcePtr BltFile::loadLongId(BltLongId id) {
 
-	if (id.value == 0xFFFFFFFFUL) {
-		// Special value meaning "nothing"
+	if (!id.isValid()) {
 		return BltResourcePtr();
 	}
 

@@ -9,7 +9,8 @@ MODULE_OBJS := \
 	menu_state.o \
 	movie.o \
 	movie_state.o \
-	pf_file.o
+	pf_file.o \
+	scene.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_BOLT), DYNAMIC_PLUGIN)
