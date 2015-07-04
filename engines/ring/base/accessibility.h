@@ -43,7 +43,7 @@ public:
 	void disableHotspot();
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	Object *getObject() { return _object; }
 

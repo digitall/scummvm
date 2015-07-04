@@ -58,7 +58,7 @@ public:
 	ObjectPresentation *getPresentation() { return _objectPresentation; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	// Data

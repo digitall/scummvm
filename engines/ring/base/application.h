@@ -467,7 +467,7 @@ public:
 	Configuration      getConfiguration()     { return _configuration; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 protected:
 	RingEngine *_vm;

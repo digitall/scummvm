@@ -44,7 +44,7 @@ public:
 	virtual void dealloc() = 0;
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s) {}
+	void saveLoadWithSerializer(Common::Serializer &s) override {}
 
 	// Accessors
 	void setType(uint32 type) { _type = type; }

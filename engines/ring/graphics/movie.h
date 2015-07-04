@@ -47,13 +47,13 @@ public:
 	virtual void setState(bool state) = 0;
 
 	// ReadStream
-	virtual bool eos() const;
-	virtual uint32 read(void *dataPtr, uint32 dataSize);
+	bool eos() const override;
+	uint32 read(void *dataPtr, uint32 dataSize) override;
 
 	// SeekableReadStream
-	virtual int32 pos() const;
-	virtual int32 size() const;
-	virtual bool seek(int32 offset, int whence = SEEK_SET);
+	int32 pos() const override;
+	int32 size() const override;
+	bool seek(int32 offset, int whence = SEEK_SET) override;
 
 protected:
 	Common::SeekableReadStream *_stream;    ///< The movie file stream
@@ -72,12 +72,12 @@ public:
 	bool init(Common::String name);
 	void deinit();
 
-	virtual void skipFrame();
-	virtual bool tControl();
+	void skipFrame() override;
+	bool tControl() override;
 	bool sControl(byte* buffer);
 
 	// Accessors
-	virtual void setState(bool state) { _state = state; }
+	void setState(bool state) override { _state = state; }
 
 private:
 	struct FrameHeader {
@@ -159,11 +159,11 @@ public:
 
 	bool allocBuffer(size_t bufferSize);
 
-	virtual void skipFrame();
-	virtual bool tControl();
+	void skipFrame() override;
+	bool tControl() override;
 	bool sControl(byte* buffer, uint32 bitdepth);
 
-	virtual void setState(bool state) { _state = state; }
+	void setState(bool state) override { _state = state; }
 
 private:
 	struct TControlHeader {

@@ -45,7 +45,7 @@ public:
 	void setVolume(int32 volume);
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	SoundEntry *getSoundEntry() { return _entry; }

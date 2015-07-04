@@ -55,7 +55,7 @@ private:
 	ActionType      _action;    //< Action type for postEnter event
 	Common::String  _filename;
 
-	virtual void postEnter();
+	void postEnter() override;
 
 	bool cmdHelpRing(int argc, const char **argv);
 	bool cmdListFiles(int argc, const char **argv);

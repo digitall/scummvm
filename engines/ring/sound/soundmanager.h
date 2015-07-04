@@ -63,7 +63,7 @@ public:
 	Audio::Mixer *getMixer() { return _mixer; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	struct SavedSound {

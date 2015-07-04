@@ -57,7 +57,7 @@ public:
 	void setRideName(Common::String name) { _name = name; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	struct Coords {

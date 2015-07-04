@@ -35,10 +35,10 @@ public:
 	Zone17Faust(ApplicationFaust *application);
 	~Zone17Faust();
 
-	virtual void onInit();
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onSound(Id id, SoundType type, uint32 a3, bool process);
-	virtual void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType);
+	void onInit() override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+	void onSound(Id id, SoundType type, uint32 a3, bool process) override;
+	void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) override;
 
 private:
 	ApplicationFaust *_app;

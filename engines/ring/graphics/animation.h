@@ -50,7 +50,7 @@ public:
 	void setStartFrame(uint32 frame);
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	byte getField26() { return _field_26; }
@@ -108,9 +108,9 @@ public:
 	virtual ~AnimationImage();
 
 	void init(Common::String name, ImageType imageType, const Common::Point &point, uint32 a5, DrawType drawType, uint32 frameCount, float framerate, uint32 startFrame, byte a10, byte imageCount, uint32 priority, LoadFrom loadFrom, ArchiveType archiveType);
-	void alloc();
-	void allocActive();
-	void dealloc();
+	virtual void alloc();
+	virtual void allocActive();
+	virtual void dealloc();
 
 	void playFrame(bool visible = true);
 	void playFrame(const Common::Point &point, bool visible = true);
@@ -126,7 +126,7 @@ public:
 	void updateCurrentImage();
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	Common::Array<ImageHandle *> _imageHandles;

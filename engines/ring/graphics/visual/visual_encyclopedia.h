@@ -96,14 +96,13 @@ public:
 	VisualObjectEncyclopedia(Id id);
 	~VisualObjectEncyclopedia();
 
-	virtual void draw();
-	virtual uint32 handleLeftButtonUp(const Common::Point &point);
-	virtual uint32 handleUpdate(const Common::Point &point);
-
-	virtual uint32 handleLeftButtonDown(Common::Point point);
-	virtual bool handleKey(Common::KeyCode key);
-	virtual void alloc();
-	virtual void dealloc();
+	void draw() override;
+	uint32 handleLeftButtonUp(const Common::Point &point) override;
+	uint32 handleUpdate(const Common::Point &point) override;
+	uint32 handleLeftButtonDown(Common::Point point) override;
+	bool handleKey(Common::KeyCode key) override;
+	void alloc() override;
+	void dealloc() override;
 
 	void init(const Common::String &name, ArchiveType archiveType);
 
@@ -119,7 +118,7 @@ public:
 	void showFile(const Common::String &filename);
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	bool                                _isLoaded;

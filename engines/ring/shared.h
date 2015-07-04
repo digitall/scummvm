@@ -473,7 +473,7 @@ protected:
 template<class T>
 class AssociativeArray : public Common::Array<T>, public Common::Serializable {
 public:
-	void saveLoadWithSerializer(Common::Serializer &s) {
+	void saveLoadWithSerializer(Common::Serializer &s) override {
 		uint32 count = this->size();
 		s.syncAsUint32LE(count);
 

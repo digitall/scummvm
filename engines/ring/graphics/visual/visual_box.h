@@ -40,19 +40,19 @@ public:
 	VisualObjectBox(Id id);
 	~VisualObjectBox();
 
-	virtual void draw();
-	virtual uint32 handleLeftButtonUp(const Common::Point &point);
-	virtual uint32 handleUpdate(const Common::Point &point);
-	virtual uint32 handleLeftButtonDown(Common::Point point);
-	virtual void alloc();
-	virtual void dealloc();
+	void draw() override;
+	uint32 handleLeftButtonUp(const Common::Point &point) override;
+	uint32 handleUpdate(const Common::Point &point) override;
+	uint32 handleLeftButtonDown(Common::Point point) override;
+	void alloc() override;
+	void dealloc() override;
 
 	void init(const Common::String &name, ArchiveType archiveType);
 	void setParameters(Id keywordId, const Common::Point &point);
 	void hide();
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	struct Keyword : public Common::Serializable {

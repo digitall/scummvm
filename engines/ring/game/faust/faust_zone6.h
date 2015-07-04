@@ -35,14 +35,14 @@ public:
 	Zone6Faust(ApplicationFaust *application);
 	~Zone6Faust();
 
-	virtual void onInit();
-	virtual void onSetup(SetupType type);
-	virtual void onTimer(TimerId id);
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount);
-	virtual void onUpdateBag(const Common::Point &point);
-	virtual void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point);
-	virtual void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType);
+	void onInit() override;
+	void onSetup(SetupType type) override;
+	void onTimer(TimerId id) override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+	void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount) override;
+	void onUpdateBag(const Common::Point &point) override;
+	void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point) override;
+	void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) override;
 
 private:
 	ApplicationFaust *_app;

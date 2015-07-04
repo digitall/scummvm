@@ -40,31 +40,31 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Initialization
-	virtual void initFont();
-	virtual void setup();
-	virtual void initZones();
-	virtual void initBag();
-	virtual void initData();
+	void initFont() override;
+	void setup() override;
+	void initZones() override;
+	void initBag() override;
+	void initData() override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Startup & Menu
-	virtual void showStartupScreen();
-	virtual void startMenu(bool savegame);
-	virtual void showMenu(ZoneId zone, MenuAction menuAction);
-	virtual void showCredits();
-	virtual void startGame();
+	void showStartupScreen() override;
+	void startMenu(bool savegame) override;
+	void showMenu(ZoneId zone, MenuAction menuAction) override;
+	void showCredits() override;
+	void startGame() override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Drawing
-	virtual void draw();
+	void draw() override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Event handlers
-	virtual void onMouseLeftButtonUp(const Common::Event &evt, bool isControlPressed);
-	virtual void onMouseLeftButtonDown(const Common::Event &evt);
-	virtual void onMouseRightButtonUp(const Common::Event &evt);
-	virtual void onKeyDown(Common::Event &evt);
-	virtual void onTimer(TimerId id);
+	void onMouseLeftButtonUp(const Common::Event &evt, bool isControlPressed) override;
+	void onMouseLeftButtonDown(const Common::Event &evt) override;
+	void onMouseRightButtonUp(const Common::Event &evt) override;
+	void onKeyDown(Common::Event &evt) override;
+	void onTimer(TimerId id) override;
 
 private:
 	// Event handlers

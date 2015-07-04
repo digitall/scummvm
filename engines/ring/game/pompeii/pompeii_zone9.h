@@ -35,12 +35,12 @@ public:
 	Zone9Pompeii(ApplicationPompeii *application);
 	~Zone9Pompeii();
 
-	virtual void onInit();
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
+	void onInit() override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
 
-	virtual void onTimer(TimerId id);
-	virtual void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount);
-	virtual void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point);
+	void onTimer(TimerId id) override;
+	void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount) override;
+	void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point) override;
 
 private:
 	ApplicationPompeii *_app;

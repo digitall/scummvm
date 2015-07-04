@@ -96,8 +96,8 @@ class Debugger;
 class RingEngine : public Engine {
 protected:
 	// Engine APIs
-	Common::Error run();
-	virtual Debugger *getDebugger() { return _debugger; }
+	Common::Error run() override;
+	virtual Debugger *getDebugger() override { return _debugger; }
 
 public:
 	RingEngine(OSystem *syst, const RingGameDescription *gd);
@@ -107,8 +107,8 @@ public:
 	void update();
 
 	// Features
-	virtual bool hasFeature(EngineFeature f) const;
-	virtual void syncSoundSettings();
+	bool hasFeature(EngineFeature f) const override;
+	void syncSoundSettings() override;
 
 	// Game type
 	const RingGameDescription *getGameDescription() { return _gameDescription; }

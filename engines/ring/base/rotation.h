@@ -102,7 +102,7 @@ public:
 	AssociativeArray<SoundItem *> *getSoundItems() { return &_soundItems; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	void setFreOnOff(bool state);

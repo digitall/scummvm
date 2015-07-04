@@ -37,7 +37,7 @@ class ImageLoader;
 class ImageSurface {
 public:
 	ImageSurface();
-	~ImageSurface();
+	virtual ~ImageSurface();
 
 	void create(byte depth, uint32 direction, uint32 width, uint32 height);
 	void destroy();
@@ -85,7 +85,7 @@ public:
 	void loadImage();
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	Common::String getNameId() { return _nameId; }

@@ -44,7 +44,7 @@ public:
 	Common::Point getCenter() const;
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	void setKey(Common::KeyCode key) { _key = key; }

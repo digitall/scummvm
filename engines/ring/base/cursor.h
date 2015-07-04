@@ -63,9 +63,9 @@ public:
 	~CursorImage();
 
 	void init(CursorId id, Common::String name, CursorType cursorType, byte frameCount, ArchiveType archiveType);
-	virtual void alloc();
-	virtual void dealloc();
-	virtual void draw();
+	void alloc() override;
+	void dealloc() override;
+	void draw() override;
 
 private:
 	ImageSurface *_image;
@@ -79,9 +79,9 @@ public:
 	~CursorAnimation();
 
 	void init(CursorId id, Common::String name, CursorType cursorType, byte imageCount, uint32 frameCount, float frameRate, byte a7, LoadFrom loadFrom, ArchiveType archiveType);
-	virtual void alloc();
-	virtual void dealloc();
-	virtual void draw();
+	void alloc() override;
+	void dealloc() override;
+	void draw() override;
 };
 
 //////////////////////////////////////////////////////////////////////////

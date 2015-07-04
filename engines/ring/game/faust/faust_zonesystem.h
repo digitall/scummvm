@@ -35,16 +35,16 @@ public:
 	ZoneSystemFaust(ApplicationFaust *application);
 	~ZoneSystemFaust();
 
-	virtual void onInit();
-	virtual void onTimer(TimerId id);
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onButtonDown(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount);
-	virtual void onSound(Id id, SoundType type, uint32 a3, bool process);
-	virtual void onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, DragControl *dragControl, byte type);
-	virtual void onUpdateBag(const Common::Point &point);
-	virtual void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point);
-	virtual void onVisualList(Id id, uint32 type, const Common::Point &point);
+	void onInit() override;
+	void onTimer(TimerId id) override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+	void onButtonDown(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+	void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount) override;
+	void onSound(Id id, SoundType type, uint32 a3, bool process) override;
+	void onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, DragControl *dragControl, byte type) override;
+	void onUpdateBag(const Common::Point &point) override;
+	void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point) override;
+	void onVisualList(Id id, uint32 type, const Common::Point &point) override;
 
 private:
 	ApplicationFaust *_app;

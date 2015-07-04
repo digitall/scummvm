@@ -641,7 +641,7 @@ void ApplicationFaust::initZone() {
 }
 
 
-void ApplicationFaust::initMenuSave(bool savegame)  {
+void ApplicationFaust::initMenuSave(bool savegame) {
 	int8 slot = varGetByte(98001);
 
 	varSetByte(99000, 0);

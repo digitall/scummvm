@@ -73,7 +73,7 @@ public:
 	bool has(ObjectId objectId);
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	bool isInitialized() { return _isInitialized; }

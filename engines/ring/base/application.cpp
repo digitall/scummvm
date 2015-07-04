@@ -902,7 +902,7 @@ void Application::fadeOut(uint32 frameCount, Color colorTo, uint32 ticksWait) {
 	if (!diffBuffer)
 		error("[Application::fadeOut] Cannot allocate buffer for fade");
 
-	error("[Application::fadeOut] Not implemented");;
+	error("[Application::fadeOut] Not implemented");
 
 	// Fade out image
 	if (frameCount >= 1) {
@@ -910,7 +910,7 @@ void Application::fadeOut(uint32 frameCount, Color colorTo, uint32 ticksWait) {
 		bool stop = false;
 		do {
 
-			error("[Application::fadeOut] Not implemented");;
+			error("[Application::fadeOut] Not implemented");
 
 			// Wait until next frame
 			while (animation->getCurrentFrame() == activeFrame && !stop)

@@ -124,9 +124,9 @@ public:
 	CompressedSoundMono();
 	~CompressedSoundMono();
 
-	virtual bool decompressHeader();
-	virtual bool decompress(SoundBuffer *buffer);
-	virtual bool getChunk();
+	bool decompressHeader() override;
+	bool decompress(SoundBuffer *buffer) override;
+	bool getChunk() override;
 
 private:
 	int16 _compressedDataOffset;
@@ -137,9 +137,9 @@ public:
 	CompressedSoundStereo();
 	~CompressedSoundStereo();
 
-	virtual bool decompressHeader();
-	virtual bool decompress(SoundBuffer *buffer);
-	virtual bool getChunk();
+	bool decompressHeader() override;
+	bool decompress(SoundBuffer *buffer) override;
+	bool getChunk() override;
 
 private:
 	uint32 _compressedDataOffset;

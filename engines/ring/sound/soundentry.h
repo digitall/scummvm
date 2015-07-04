@@ -111,9 +111,9 @@ public:
 	SoundEntryStream(Id soundId, SoundType type, Common::String name, LoadFrom loadFrom, SoundFormat format, int32 soundChunk);
 	~SoundEntryStream();
 
-	virtual void play(bool loop);
-	virtual void stop();
-	virtual void stopAndClear();
+	void play(bool loop) override;
+	void stop() override;
+	void stopAndClear() override;
 
 private:
 	SoundLoader   *_loader;
@@ -145,12 +145,12 @@ public:
 	SoundEntryData(Id soundId, SoundType type, Common::String name, LoadFrom loadFrom, SoundFormat format);
 	~SoundEntryData();
 
-	virtual void play(bool loop);
-	virtual void stop();
-	virtual void stopAndClear();
-	virtual void preload();
-	virtual void unload();
-	virtual bool isPreloaded() { return _isPreloaded; }
+	void play(bool loop) override;
+	void stop() override;
+	void stopAndClear() override;
+	void preload() override;
+	void unload() override;
+	bool isPreloaded() override { return _isPreloaded; }
 
 private:
 	Audio::RewindableAudioStream *_audioStream;

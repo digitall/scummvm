@@ -48,7 +48,7 @@ struct ObjectCursor : public Common::Serializable {
 	ArchiveType archiveType;
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	ObjectCursor() {
 		frameCount  = 0;
@@ -100,7 +100,7 @@ public:
 	void hideAndRemove();
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	// Accessors
 	bool isShown() { return _isShown; }
@@ -187,7 +187,7 @@ public:
 	ObjectCursor *getPassiveDrawCursor() { return &_passiveDrawCursor; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	Application *_application;

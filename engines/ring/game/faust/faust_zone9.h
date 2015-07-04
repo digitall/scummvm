@@ -35,10 +35,10 @@ public:
 	Zone9Faust(ApplicationFaust *application);
 	~Zone9Faust();
 
-	virtual void onInit();
-	virtual void onTimer(TimerId id);
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount);
+	void onInit() override;
+	void onTimer(TimerId id) override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+	void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount) override;
 
 private:
 	ApplicationFaust *_app;

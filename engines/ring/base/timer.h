@@ -44,7 +44,7 @@ public:
 	uint32 getElapseTime() { return _elapseTime; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	uint32 _tickStart;
@@ -68,7 +68,7 @@ public:
 	void incrementFiredCount(TimerId id);
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	AssociativeArray<Timer *> _timers;

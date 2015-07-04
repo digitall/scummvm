@@ -35,13 +35,13 @@ public:
 	Zone2Faust(ApplicationFaust *application);
 	~Zone2Faust();
 
-	virtual void onInit();
-	virtual void onSetup(SetupType type);
-	virtual void onTimer(TimerId id);
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onBagClickedObject(ObjectId objectId);
-	virtual void onBeforeRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType);
-	virtual void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType);
+	void onInit() override;
+	void onSetup(SetupType type) override;
+	void onTimer(TimerId id) override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+	void onBagClickedObject(ObjectId objectId) override;
+	void onBeforeRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) override;
+	void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) override;
 
 private:
 	ApplicationFaust *_app;

@@ -35,8 +35,8 @@ public:
 	Zone9Pilgrim3(ApplicationPilgrim3 *application);
 	~Zone9Pilgrim3();
 
-	virtual void onInit();
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
+	void onInit() override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
 
 private:
 	ApplicationPilgrim3 *_app;

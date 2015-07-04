@@ -51,50 +51,50 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Initialization
-	virtual void initLanguages();
-	virtual void initFont();
-	virtual void setup();
-	virtual void initZones();
-	virtual void initBag();
+	void initLanguages() override;
+	void initFont() override;
+	void setup() override;
+	void initZones() override;
+	void initBag() override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Startup & Menu
-	virtual void showStartupScreen();
-	virtual void startMenu(bool savegame);
-	virtual void showMenu(ZoneId zone, MenuAction menuAction);
-	virtual void showCredits();
-	virtual void startGame();
+	void showStartupScreen() override;
+	void startMenu(bool savegame) override;
+	void showMenu(ZoneId zone, MenuAction menuAction) override;
+	void showCredits() override;
+	void startGame() override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Drawing
-	virtual void draw();
+	void draw() override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Messages
-	virtual void messageInsertCd(ZoneId zone);
+	void messageInsertCd(ZoneId zone) override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Zone
-	virtual void setupZone(ZoneId zone, SetupType type);
+	void setupZone(ZoneId zone, SetupType type) override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Event handler
-	virtual void onMouseLeftButtonUp(const Common::Event &evt, bool isControlPressed);
-	virtual void onMouseLeftButtonDown(const Common::Event &evt);
-	virtual void onMouseRightButtonUp(const Common::Event &evt);
-	virtual void onKeyDown(Common::Event &evt);
-	virtual void onTimer(TimerId id);
+	void onMouseLeftButtonUp(const Common::Event &evt, bool isControlPressed) override;
+	void onMouseLeftButtonDown(const Common::Event &evt) override;
+	void onMouseRightButtonUp(const Common::Event &evt) override;
+	void onKeyDown(Common::Event &evt) override;
+	void onTimer(TimerId id) override;
 
-	virtual void onSound(Id id, SoundType type, uint32 a3);
-	virtual void onSetup(ZoneId zone, SetupType type);
-	virtual void onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, DragControl *dragControl, byte type);
-	virtual void onBagClickedObject(ObjectId id);
-	virtual void onUpdateBag(const Common::Point &point);
-	virtual void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point);
-	virtual void onBeforeRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType);
-	virtual void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType);
-	virtual void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount);\
-	virtual void onVisualList(Id id, uint32 type, const Common::Point &point);
+	void onSound(Id id, SoundType type, uint32 a3) override;
+	void onSetup(ZoneId zone, SetupType type) override;
+	void onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, DragControl *dragControl, byte type) override;
+	void onBagClickedObject(ObjectId id) override;
+	void onUpdateBag(const Common::Point &point) override;
+	void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point) override;
+	void onBeforeRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) override;
+	void onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) override;
+	void onAnimationNextFrame(Id animationId, const Common::String &name, uint32 frame, uint32 frameCount) override;
+	void onVisualList(Id id, uint32 type, const Common::Point &point) override;
 
 protected:
 	//////////////////////////////////////////////////////////////////////////
@@ -106,7 +106,8 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Zone switching
 	//////////////////////////////////////////////////////////////////////////
-	void onSwitchZone(ZoneId zone, uint32 type);
+	// FIXME Implement zone switch
+	//void onSwitchZone(ZoneId zone, uint32 type);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Helper functions

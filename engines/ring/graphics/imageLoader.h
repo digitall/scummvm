@@ -63,16 +63,16 @@ class ImageLoaderBMP : public ImageLoader {
 public:
 	virtual ~ImageLoaderBMP() {};
 
-	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
 class ImageLoaderBMA : public ImageLoader {
 public:
 	ImageLoaderBMA();
-	virtual ~ImageLoaderBMA();
+	~ImageLoaderBMA();
 
-	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
 
 private:
 	struct Header {
@@ -101,9 +101,9 @@ private:
 //////////////////////////////////////////////////////////////////////////
 class ImageLoaderTGA : public ImageLoader {
 public:
-	virtual ~ImageLoaderTGA() {};
+	~ImageLoaderTGA() {};
 
-	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ public:
 	ImageLoaderTGC();
 	virtual ~ImageLoaderTGC();
 
-	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
 
 private:
 	CompressedStream *_stream;
@@ -150,20 +150,21 @@ public:
 	};
 
 	ImageLoaderCIN();
-	virtual ~ImageLoaderCIN();
+	~ImageLoaderCIN();
 
-	virtual bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	// ImageLoader
+	bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
 
 	// ImageLoaderMovie
-	bool init(Common::String filename, ArchiveType type = kArchiveFile, ZoneId zone = kZoneNone, LoadFrom loadFrom = kLoadFromCd);
-	virtual bool readImage(ImageSurface *image, byte bitdepth = 16, DrawType drawType = kDrawTypeNormal);
+	bool init(Common::String filename, ArchiveType type = kArchiveFile, ZoneId zone = kZoneNone, LoadFrom loadFrom = kLoadFromCd) override;
+	virtual bool readImage(ImageSurface *image, byte bitdepth = 16, DrawType drawType = kDrawTypeNormal) override;
 
-	virtual Cinematic *getCinematic()     { return (Cinematic *)_cinematic; }
-	virtual uint32 getChunkCount()        { return _header.chunkCount; }
-	virtual uint32 getFrameRate()         { return _header.frameRate; }
-	virtual byte getChannels(uint32)      { return _header.channels; }
-	virtual byte getBitsPerSample(uint32) { return _header.bitsPerSample; }
-	virtual byte getSamplesPerSec(uint32) { return _header.samplesPerSec; }
+	Cinematic *getCinematic()     override { return (Cinematic *)_cinematic; }
+	uint32 getChunkCount()        override { return _header.chunkCount; }
+	uint32 getFrameRate()         override { return _header.frameRate; }
+	byte getChannels(uint32)      override { return _header.channels; }
+	byte getBitsPerSample(uint32) override { return _header.bitsPerSample; }
+	byte getSamplesPerSec(uint32) override { return _header.samplesPerSec; }
 
 private:
 	Cinematic1 *_cinematic;
@@ -253,20 +254,21 @@ public:
 	};
 
 	ImageLoaderCI2();
-	virtual ~ImageLoaderCI2();
+	~ImageLoaderCI2();
 
-	virtual bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	// ImageLoader
+	bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
 
 	// ImageLoaderMovie
-	virtual bool init(Common::String path, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom);
-	virtual bool readImage(ImageSurface *image, byte bitdepth, DrawType drawType);
+	bool init(Common::String path, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom) override;
+	bool readImage(ImageSurface *image, byte bitdepth, DrawType drawType) override;
 
-	virtual Cinematic *getCinematic()             { return (Cinematic *)_cinematic; }
-	virtual uint32 getChunkCount()                { return _header.chunkCount; }
-	virtual uint32 getFrameRate()                 { return _header.frameRate; }
-	virtual byte getChannels(uint32 index)        { return _soundConfigs[index].channels; }
-	virtual byte getBitsPerSample(uint32 index)   { return _soundConfigs[index].bitsPerSample; }
-	virtual byte getSamplesPerSec(uint32 index)   { return _soundConfigs[index].samplesPerSec; }
+	Cinematic *getCinematic()           override { return (Cinematic *)_cinematic; }
+	uint32 getChunkCount()              override { return _header.chunkCount; }
+	uint32 getFrameRate()               override { return _header.frameRate; }
+	byte getChannels(uint32 index)      override { return _soundConfigs[index].channels; }
+	byte getBitsPerSample(uint32 index) override { return _soundConfigs[index].bitsPerSample; }
+	byte getSamplesPerSec(uint32 index) override { return _soundConfigs[index].samplesPerSec; }
 
 private:
 	Cinematic2         *_cinematic;

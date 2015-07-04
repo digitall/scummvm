@@ -97,7 +97,7 @@ public:
 	Visual *getVisual(Id visualId) { return _visuals.get(visualId); }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	Application *_application;

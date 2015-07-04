@@ -36,11 +36,11 @@ public:
 	VisualObjectList(Id id);
 	~VisualObjectList();
 
-	virtual void draw();
-	virtual uint32 handleLeftButtonUp(const Common::Point &point);
-	virtual uint32 handleUpdate(const Common::Point &point);
-	virtual void alloc();
-	virtual void dealloc();
+	void draw() override;
+	uint32 handleLeftButtonUp(const Common::Point &point) override;
+	uint32 handleUpdate(const Common::Point &point) override;
+	void alloc() override;
+	void dealloc() override;
 
 	// Init
 	void init(uint32 a1,

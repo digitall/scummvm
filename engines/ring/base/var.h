@@ -36,7 +36,7 @@ public:
 	T get() { return _value; }
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	T _value;
@@ -64,7 +64,7 @@ public:
 #undef DEFINE_FUNCTIONS
 
 	// Serializable
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	AssociativeArray<VarEntry<int8> *>           _bytes;

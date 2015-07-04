@@ -35,14 +35,15 @@ public:
 	ZoneSystemRing(ApplicationRing *application);
 	~ZoneSystemRing();
 
-	virtual void onInit();
-	virtual void onKeyDown(const Common::KeyState &keyState);
-	virtual void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point);
-	virtual void onSound(Id id, SoundType type, uint32 a3, bool process);
-	virtual void onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, DragControl *dragControl, byte type);
-	virtual void onUpdateBag(const Common::Point &point);
-	virtual void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point);
-	virtual void onVisualList(Id id, uint32 type, const Common::Point &point);
+	void onInit() override;
+	void onButtonUp(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, const Common::Point &point) override;
+
+	void onKeyDown(const Common::KeyState &keyState) override;	
+	void onSound(Id id, SoundType type, uint32 a3, bool process) override;
+	void onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, DragControl *dragControl, byte type) override;
+	void onUpdateBag(const Common::Point &point) override;
+	void onUpdateBefore(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, const Common::Point &point) override;
+	void onVisualList(Id id, uint32 type, const Common::Point &point) override;
 
 	void showPreferences();
 
