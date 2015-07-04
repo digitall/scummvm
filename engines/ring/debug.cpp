@@ -420,7 +420,7 @@ bool Debugger::cmdShow(int argc, const char ** argv) {
 	if (argc == 2) {
 		Common::String filename(const_cast<char *>(argv[1]));
 
-		Image *image = new Image();
+		ImageSurface *image = new ImageSurface();
 		if (!image->load(filename, kArchiveFile, kZoneNone, kLoadFromDisk, kDrawTypeNormal)) {
 			debugPrintf("Cannot load image: %s", filename.c_str());
 
@@ -438,7 +438,7 @@ bool Debugger::cmdShow(int argc, const char ** argv) {
 	} else if (argc == 3) {
 		Common::String filename(const_cast<char *>(argv[1]));
 
-		Image *image = new Image();
+		ImageSurface *image = new ImageSurface();
 		if (!image->load(filename, kArchiveArt, (ZoneId)getNumber(argv[2]), kLoadFromDisk, kDrawTypeNormal)) {
 			debugPrintf("Cannot load image: %s", filename.c_str());
 

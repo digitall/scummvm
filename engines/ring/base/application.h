@@ -41,7 +41,7 @@ class DragControl;
 class LanguageHandler;
 class FontHandler;
 class Game;
-class Image;
+class ImageSurface;
 class ObjectHandler;
 class Object;
 class PreferenceHandler;
@@ -428,7 +428,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	// Accessors
 	ArchiveType getArchiveType(ZoneId zone) const;
-	Image *getThumbnail() { return _thumbnail; }
+	ImageSurface *getThumbnail() { return _thumbnail; }
 	bool getField6A() { return _field_6A; }
 	LoadFrom getLoadFrom() { return _loadFrom; }
 	bool isRotationCompressed() { return _isRotationCompressed; }
@@ -476,7 +476,7 @@ protected:
 	ZoneId                        _systemZone;
 
 	// Game screen (when showing menu)
-	Image                        *_thumbnail;
+	ImageSurface                 *_thumbnail;
 
 	// Application objects
 	ScreenManager                *_screenManager;

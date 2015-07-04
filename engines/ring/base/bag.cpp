@@ -500,7 +500,7 @@ void Bag::loadBackground(Common::String background, Common::String, Common::Stri
 	_text->init("", Common::Point(0, 0), _fontId, _foregroundColor, _backgroundColor);
 }
 
-void Bag::loadImage(Common::String filename, Image **image, ArchiveType archiveType) const {
+void Bag::loadImage(Common::String filename, ImageSurface **image, ArchiveType archiveType) const {
 	Common::String path;
 
 	if (archiveType == kArchiveFile)
@@ -509,7 +509,7 @@ void Bag::loadImage(Common::String filename, Image **image, ArchiveType archiveT
 		path = Common::String::format("/LIST/%s", filename.c_str());
 
 	SAFE_DELETE(*image);
-	*image = new Image();
+	*image = new ImageSurface();
 
 	if (!(*image)->load(path, archiveType, getZoneSY(), kLoadFromDisk, kDrawTypeNormal))
 		error("[Bag::LoadImage] Cannot load image: %s", path.c_str());

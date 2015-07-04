@@ -30,7 +30,7 @@
 
 namespace Ring {
 
-class Image;
+class ImageSurface;
 class Text;
 
 class ScreenManager {
@@ -41,11 +41,11 @@ public:
 	void init();
 	//void createFont()
 	void clear();
-	void drawAndUpdate(Image *image);
-	void drawAndUpdate(Image *image, const Common::Point &point);
-	void draw(Image *image, const Common::Point &point, DrawType type);
-	void draw(Image *image, DrawType type);
-	void drawImage(Image *image, const Common::Point &dest, uint32 srcWidth, uint32 srcHeight, int32 srcX, int32 offset);
+	void drawAndUpdate(ImageSurface *image);
+	void drawAndUpdate(ImageSurface *image, const Common::Point &point);
+	void draw(ImageSurface *image, const Common::Point &point, DrawType type);
+	void draw(ImageSurface *image, DrawType type);
+	void drawImage(ImageSurface *image, const Common::Point &dest, uint32 srcWidth, uint32 srcHeight, int32 srcX, int32 offset);
 	void drawRectangle(const Common::Rect &rect, uint32 color);
 	//
 	//void readPalette();
@@ -54,7 +54,7 @@ public:
 	void drawText(Text *text);
 	void drawText(Text *text, const Common::Rect &exclude, const Common::Rect &exclude2);
 
-	void copySurface(Image *image) const;
+	void copySurface(ImageSurface *image) const;
 
 	void updateScreen();
 

@@ -297,7 +297,7 @@ Common::Array<SaveManager::SaveEntry *> *SaveManager::loadUsers() {
 	error("[SaveManager::loadUsers] Not implemented");
 }
 
-void SaveManager::setThumbnail(Image *image) {
+void SaveManager::setThumbnail(ImageSurface *image) {
 	_header.setThumbnail(image->getSurface());
 }
 

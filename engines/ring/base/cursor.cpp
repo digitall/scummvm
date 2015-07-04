@@ -66,7 +66,7 @@ void CursorImage::init(CursorId id, Common::String name, CursorType cursorType, 
 	CursorBase::init(id, name, cursorType, imageCount);
 
 	_archiveType = archiveType;
-	_image = new Image();
+	_image = new ImageSurface();
 
 	if (imageCount == 1)
 		alloc();
@@ -124,7 +124,7 @@ void CursorImage::draw() {
 
 		memset(buf, 0, size);
 
-		if (!Image::crossBlit(buf,
+		if (!ImageSurface::crossBlit(buf,
 		                 (byte *)_image->getSurface()->getBasePtr(0, 0),
 		                 _image->getWidth() * formatScreen.bytesPerPixel,
 		                 _image->getSurface()->pitch,

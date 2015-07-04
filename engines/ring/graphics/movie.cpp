@@ -892,7 +892,7 @@ void Movie::play(const Common::Point &point) {
 
 	// Setup
 	Cinematic *cinematic = _image->getCinematic();
-	Image *image = new Image();
+	ImageSurface *image = new ImageSurface();
 	bool setupSound = true;
 	bool readFrame = false;
 	uint32 chunkIndex = 0;

@@ -28,7 +28,7 @@
 
 namespace Ring {
 
-class Image;
+class ImageSurface;
 
 //////////////////////////////////////////////////////////////////////////
 class CursorBase : public BaseObject {
@@ -68,8 +68,8 @@ public:
 	virtual void draw();
 
 private:
-	Image *_image;
-	ArchiveType _archiveType;
+	ImageSurface *_image;
+	ArchiveType   _archiveType;
 };
 
 //////////////////////////////////////////////////////////////////////////

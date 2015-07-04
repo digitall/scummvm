@@ -807,7 +807,7 @@ void ZoneSystemPompeii::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId
 
 		// Store the thumbnail image
 		if (_app->getThumbnail() != NULL) {
-			Image *thumbnail = _app->getThumbnail()->zoom(0.40645f, 1.0f);
+			ImageSurface *thumbnail = _app->getThumbnail()->zoom(0.40645f, 1.0f);
 			_app->getSaveManager()->setThumbnail(thumbnail);
 			delete thumbnail;
 		}

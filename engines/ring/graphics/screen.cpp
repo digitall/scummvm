@@ -54,22 +54,22 @@ void ScreenManager::clear() {
 	debugDrawing();
 }
 
-void ScreenManager::drawAndUpdate(Image *image) {
+void ScreenManager::drawAndUpdate(ImageSurface *image) {
 	drawAndUpdate(image, Common::Point(0, 0));
 }
 
-void ScreenManager::drawAndUpdate(Image *image, const Common::Point &point) {
+void ScreenManager::drawAndUpdate(ImageSurface *image, const Common::Point &point) {
 	draw(image, point, kDrawTypeNormal);
 	updateScreen();
 }
 
-void ScreenManager::draw(Image *image, DrawType type) {
+void ScreenManager::draw(ImageSurface *image, DrawType type) {
 	draw(image, Common::Point(0, 0), type);
 
 	debugDrawing();
 }
 
-void ScreenManager::draw(Image *image, const Common::Point &point, DrawType type) {
+void ScreenManager::draw(ImageSurface *image, const Common::Point &point, DrawType type) {
 	if (!image)
 		error("[ScreenManager::draw] Invalid image pointer!");
 
@@ -113,7 +113,7 @@ void ScreenManager::draw(Image *image, const Common::Point &point, DrawType type
 	debugDrawing();
 }
 
-void ScreenManager::drawImage(Image *image, const Common::Point &dest, uint32 srcWidth, uint32 srcHeight, int32 srcX, int32 offset) {
+void ScreenManager::drawImage(ImageSurface *image, const Common::Point &dest, uint32 srcWidth, uint32 srcHeight, int32 srcX, int32 offset) {
 	image->draw(&_screen, dest, srcWidth, srcHeight, srcX, offset);
 
 	updateScreen();
@@ -170,7 +170,7 @@ void ScreenManager::drawText(Text *text, const Common::Rect &exclude, const Comm
 	drawText(text);
 }
 
-void ScreenManager::copySurface(Image *image) const {
+void ScreenManager::copySurface(ImageSurface *image) const {
 	image->getSurface()->copyFrom(_screen);
 }
 

@@ -33,7 +33,7 @@
 namespace Ring {
 
 class Application;
-class Image;
+class ImageSurface;
 
 class SaveManager {
 public:
@@ -138,7 +138,7 @@ public:
 	bool deleteSavegame(Common::String name);
 
 	// Thumbnail image
-	void setThumbnail(Image *image);
+	void setThumbnail(ImageSurface *image);
 
 	// Accessors
 	bool isSaving() const;

@@ -30,14 +30,14 @@ class Cinematic;
 class Cinematic1;
 class Cinematic2;
 class CompressedStream;
-class Image;
+class ImageSurface;
 
 //////////////////////////////////////////////////////////////////////////
 class ImageLoader {
 public:
 	virtual ~ImageLoader() {};
 
-	virtual bool load(Image *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType) = 0;
+	virtual bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType) = 0;
 
 protected:
 	Common::String _filename;
@@ -48,7 +48,7 @@ public:
 	virtual ~ImageLoaderMovie() {};
 
 	virtual bool init(Common::String path, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom) = 0;
-	virtual bool readImage(Image *image, byte bitdepth, DrawType drawType) = 0;
+	virtual bool readImage(ImageSurface *image, byte bitdepth, DrawType drawType) = 0;
 
 	virtual Cinematic *getCinematic() = 0;
 	virtual uint32 getChunkCount() = 0;
@@ -63,7 +63,7 @@ class ImageLoaderBMP : public ImageLoader {
 public:
 	virtual ~ImageLoaderBMP() {};
 
-	virtual bool load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ public:
 	ImageLoaderBMA();
 	virtual ~ImageLoaderBMA();
 
-	virtual bool load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
 
 private:
 	struct Header {
@@ -94,7 +94,7 @@ private:
 	bool init(ArchiveType type, ZoneId zone, LoadFrom loadFrom);
 	void deinit();
 	bool readHeader();
-	bool readImage(Image *image);
+	bool readImage(ImageSurface *image);
 	void copySurface(Graphics::Surface *out, const Graphics::Surface &in);
 };
 
@@ -103,7 +103,7 @@ class ImageLoaderTGA : public ImageLoader {
 public:
 	virtual ~ImageLoaderTGA() {};
 
-	virtual bool load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ public:
 	ImageLoaderTGC();
 	virtual ~ImageLoaderTGC();
 
-	virtual bool load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	virtual bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
 
 private:
 	CompressedStream *_stream;
@@ -152,11 +152,11 @@ public:
 	ImageLoaderCIN();
 	virtual ~ImageLoaderCIN();
 
-	virtual bool load(Image *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	virtual bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
 
 	// ImageLoaderMovie
 	bool init(Common::String filename, ArchiveType type = kArchiveFile, ZoneId zone = kZoneNone, LoadFrom loadFrom = kLoadFromCd);
-	virtual bool readImage(Image *image, byte bitdepth = 16, DrawType drawType = kDrawTypeNormal);
+	virtual bool readImage(ImageSurface *image, byte bitdepth = 16, DrawType drawType = kDrawTypeNormal);
 
 	virtual Cinematic *getCinematic()     { return (Cinematic *)_cinematic; }
 	virtual uint32 getChunkCount()        { return _header.chunkCount; }
@@ -255,11 +255,11 @@ public:
 	ImageLoaderCI2();
 	virtual ~ImageLoaderCI2();
 
-	virtual bool load(Image *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
+	virtual bool load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
 
 	// ImageLoaderMovie
 	virtual bool init(Common::String path, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom);
-	virtual bool readImage(Image *image, byte bitdepth, DrawType drawType);
+	virtual bool readImage(ImageSurface *image, byte bitdepth, DrawType drawType);
 
 	virtual Cinematic *getCinematic()             { return (Cinematic *)_cinematic; }
 	virtual uint32 getChunkCount()                { return _header.chunkCount; }

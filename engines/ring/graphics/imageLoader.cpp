@@ -37,7 +37,7 @@ namespace Ring {
 
 #pragma region BMP
 
-bool ImageLoaderBMP::load(Image *image, ArchiveType, ZoneId, LoadFrom, DrawType) {
+bool ImageLoaderBMP::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, DrawType) {
 	if (!image)
 		error("[ImageLoaderBMP::load] Invalid image pointer!");
 
@@ -85,7 +85,7 @@ ImageLoaderBMA::~ImageLoaderBMA() {
 	deinit();
 }
 
-bool ImageLoaderBMA::load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType) {
+bool ImageLoaderBMA::load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType) {
 	if (!image)
 		error("[ImageLoaderBMA::load] Invalid image pointer!");
 
@@ -179,7 +179,7 @@ bool ImageLoaderBMA::readHeader() {
 	return true;
 }
 
-bool ImageLoaderBMA::readImage(Image *image) {
+bool ImageLoaderBMA::readImage(ImageSurface *image) {
 	if (!_stream)
 		error("[ImageLoaderBMA::readImage] Stream not initialized");
 
@@ -256,7 +256,7 @@ ImageLoaderTGC::~ImageLoaderTGC() {
 	deinit();
 }
 
-bool ImageLoaderTGC::load(Image *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType) {
+bool ImageLoaderTGC::load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType) {
 	if (!image)
 		error("[ImageLoaderTGC::load] Invalid image pointer!");
 
@@ -327,7 +327,7 @@ void ImageLoaderTGC::deinit() {
 
 #pragma region TGA
 
-bool ImageLoaderTGA::load(Image *image, ArchiveType, ZoneId, LoadFrom, DrawType) {
+bool ImageLoaderTGA::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, DrawType) {
 	if (!image)
 		error("[ImageLoaderTGA::load] Invalid image pointer!");
 
@@ -378,7 +378,7 @@ ImageLoaderCIN::~ImageLoaderCIN() {
 	deinit();
 }
 
-bool ImageLoaderCIN::load(Image *image, ArchiveType, ZoneId, LoadFrom, DrawType) {
+bool ImageLoaderCIN::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, DrawType) {
 	if (!image)
 		error("[ImageLoaderCNM::load] Invalid image pointer!");
 
@@ -467,7 +467,7 @@ bool ImageLoaderCIN::readHeader() {
 	return true;
 }
 
-bool ImageLoaderCIN::readImage(Image *image, byte bitdepth, DrawType) {
+bool ImageLoaderCIN::readImage(ImageSurface *image, byte bitdepth, DrawType) {
 	if (!_cinematic)
 		error("[ImageLoaderCIN::readImage] Cinematic not initialized properly");
 
@@ -517,7 +517,7 @@ ImageLoaderCI2::~ImageLoaderCI2() {
 	deinit();
 }
 
-bool ImageLoaderCI2::load(Image *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType) {
+bool ImageLoaderCI2::load(ImageSurface *image, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom, DrawType drawType) {
 	if (!image)
 		error("[ImageLoaderCI2::load] Invalid image pointer");
 
@@ -672,7 +672,7 @@ bool ImageLoaderCI2::readHeader() {
 	return true;
 }
 
-bool ImageLoaderCI2::readImage(Image *image, byte bitdepth, DrawType drawType) {
+bool ImageLoaderCI2::readImage(ImageSurface *image, byte bitdepth, DrawType drawType) {
 	if (!_cinematic)
 		error("[ImageLoaderCI2::readImage] Cinematic not initialized properly");
 

@@ -33,7 +33,7 @@ namespace Ring {
 
 #pragma region ImageHandle
 
-ImageHandle::ImageHandle() : Image() {
+ImageHandle::ImageHandle() : ImageSurface() {
 	_isActive = false;
 	_drawType = kDrawTypeInvalid;
 	_priority = 0;
@@ -49,11 +49,11 @@ ImageHandle::ImageHandle() : Image() {
 	_index = 0;
 }
 
-ImageHandle::ImageHandle(Common::String nameId, const Common::Point &point, bool active, DrawType drawType, uint32 priority, byte imageCount, ZoneId zone, LoadFrom loadFrom, ImageType imageType, ArchiveType archiveType) : Image() {
+ImageHandle::ImageHandle(Common::String nameId, const Common::Point &point, bool active, DrawType drawType, uint32 priority, byte imageCount, ZoneId zone, LoadFrom loadFrom, ImageType imageType, ArchiveType archiveType) : ImageSurface() {
 	init(nameId, point, active, drawType, priority, imageCount, zone, loadFrom, imageType, archiveType);
 }
 
-ImageHandle::ImageHandle(Common::String nameId, const Common::Point &point, bool active, ZoneId zone, LoadFrom loadFrom, ImageType imageType, ArchiveType archiveType) : Image() {
+ImageHandle::ImageHandle(Common::String nameId, const Common::Point &point, bool active, ZoneId zone, LoadFrom loadFrom, ImageType imageType, ArchiveType archiveType) : ImageSurface() {
 	init(nameId, point, active, kDrawTypeNormal, 0, 0, zone, loadFrom, imageType, archiveType);
 }
 
@@ -117,15 +117,15 @@ void ImageHandle::saveLoadWithSerializer(Common::Serializer &s) {
 
 #pragma region Image
 
-Image::Image() {
+ImageSurface::ImageSurface() {
 	_surface = NULL;
 }
 
-Image::~Image() {
+ImageSurface::~ImageSurface() {
 	destroy();
 }
 
-void Image::create(byte depth, uint32, uint32 width, uint32 height) {
+void ImageSurface::create(byte depth, uint32, uint32 width, uint32 height) {
 	if (_surface)
 		_surface->free();
 
@@ -136,14 +136,14 @@ void Image::create(byte depth, uint32, uint32 width, uint32 height) {
 	_surface->create((uint16)width, (uint16)height, format);
 }
 
-void Image::destroy() {
+void ImageSurface::destroy() {
 	if (_surface)
 		_surface->free();
 
 	SAFE_DELETE(_surface);
 }
 
-bool Image::load(Common::String filename, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) {
+bool ImageSurface::load(Common::String filename, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) {
 	if (filename.empty())
 		return false;
 
@@ -152,7 +152,7 @@ bool Image::load(Common::String filename, ArchiveType type, ZoneId zone, LoadFro
 
 	ImageLoader *loader = getLoader(filename, type);
 	if (!loader)
-		error("[Image::load] Cannot find an image loader for file %s", filename.c_str());
+		error("[ImageSurface::load] Cannot find an image loader for file %s", filename.c_str());
 
 	if (!loader->load(this, type, zone, loadFrom, drawType)) {
 		delete loader;
@@ -165,7 +165,7 @@ bool Image::load(Common::String filename, ArchiveType type, ZoneId zone, LoadFro
 	return true;
 }
 
-ImageLoader *Image::getLoader(Common::String filename, ArchiveType type) const {
+ImageLoader *ImageSurface::getLoader(Common::String filename, ArchiveType type) const {
 	switch (((RingEngine *)g_engine)->getGameType()) {
 	default:
 	case GameTypeRing:
@@ -199,7 +199,7 @@ ImageLoader *Image::getLoader(Common::String filename, ArchiveType type) const {
 			loader = new ImageLoaderBMA();
 	} else if (filename.hasSuffix(".cnm")) {
 		if (type == kArchiveArt)
-			error("[Image::load] Archive files do not contains cinematic files (%s)", filename.c_str());
+			error("[ImageSurface::load] Archive files do not contains cinematic files (%s)", filename.c_str());
 
 		loader = new ImageLoaderCIN();
 	} else if (filename.hasSuffix(".tga")) {
@@ -225,18 +225,18 @@ ImageLoader *Image::getLoader(Common::String filename, ArchiveType type) const {
 	return loader;
 }
 
-Image *Image::zoom(float xZoom, float yZoom) {
+ImageSurface *ImageSurface::zoom(float xZoom, float yZoom) {
 	if (!isInitialized())
-		error("[Image::zoom] Image not initialized!");
+		error("[ImageSurface::zoom] ImageSurface not initialized!");
 
 	if (getBPP() != 24)
-		error("[Image::zoom] Not a 24bpp image!");
+		error("[ImageSurface::zoom] Not a 24bpp image!");
 
 	// Create new image to store zoomed image
 	uint32 width = (uint32)(getWidth() * xZoom);
 	uint32 height = (uint32)(getHeight() * yZoom);
 
-	Image *image = new Image();
+	ImageSurface *image = new ImageSurface();
 	image->create(24, 2, width, height);
 
 	byte *zoomedData = (byte *)image->getSurface()->getBasePtr(0, 0);
@@ -256,13 +256,13 @@ Image *Image::zoom(float xZoom, float yZoom) {
 	return image;
 }
 
-Common::Rect Image::draw(Graphics::Surface *screen, const Common::Point &dest, bool useAlpha) {
+Common::Rect ImageSurface::draw(Graphics::Surface *screen, const Common::Point &dest, bool useAlpha) {
 	return draw(screen, dest, _surface->w, _surface->h, 0, 0, useAlpha);
 }
 
-Common::Rect Image::draw(Graphics::Surface *screen, const Common::Point &dest, uint32 srcWidth, uint32 srcHeight, int32 srcX, int32 offset, bool useAlpha) {
+Common::Rect ImageSurface::draw(Graphics::Surface *screen, const Common::Point &dest, uint32 srcWidth, uint32 srcHeight, int32 srcX, int32 offset, bool useAlpha) {
 	if (!_surface)
-		error("[Image::draw] Image surface not initialized properly");
+		error("[ImageSurface::draw] ImageSurface surface not initialized properly");
 
 	// Compute destination rectangle
 	Common::Rect destRect(dest.x, dest.y, dest.x + (int16)srcWidth, dest.y + (int16)srcHeight);
@@ -284,14 +284,14 @@ Common::Rect Image::draw(Graphics::Surface *screen, const Common::Point &dest, u
 	               _surface->format,
 	               true,
 	               useAlpha))
-		error("[Image::draw] Cannot convert image to proper screen format");
+		error("[ImageSurface::draw] Cannot convert image to proper screen format");
 
 	return destRect;
 }
 
 // Function to blit a rect from one color format to another (copied from conversion.cpp)
 // Added support for downsampling and copying data from bottom to top (our images are decoded that way)
-bool Image::crossBlit(byte *dst, const byte *src, int dstpitch, int srcpitch, int w, int h, int offset, const Graphics::PixelFormat &dstFmt, const Graphics::PixelFormat &srcFmt, bool topDown, bool useAlpha) {
+bool ImageSurface::crossBlit(byte *dst, const byte *src, int dstpitch, int srcpitch, int w, int h, int offset, const Graphics::PixelFormat &dstFmt, const Graphics::PixelFormat &srcFmt, bool topDown, bool useAlpha) {
 
 	// Error out if conversion is impossible
 	if ((srcFmt.bytesPerPixel == 1)
@@ -324,7 +324,7 @@ bool Image::crossBlit(byte *dst, const byte *src, int dstpitch, int srcpitch, in
 	if (dstFmt.bytesPerPixel == 2) {
 		switch (srcFmt.bytesPerPixel) {
 		default:
-			warning("[Image::crossBlit] Unsupported bit depth for downsampling to 16bpp (%d)", srcFmt.bytesPerPixel * 8);
+			warning("[ImageSurface::crossBlit] Unsupported bit depth for downsampling to 16bpp (%d)", srcFmt.bytesPerPixel * 8);
 			return false;
 
 		case 2:
@@ -375,7 +375,7 @@ bool Image::crossBlit(byte *dst, const byte *src, int dstpitch, int srcpitch, in
 		}
 	} else if (dstFmt.bytesPerPixel == 3) {
 		if (srcFmt.bytesPerPixel > dstFmt.bytesPerPixel)
-			error("[Image::crossBlit] Downsampling to 24bpp not implemented");
+			error("[ImageSurface::crossBlit] Downsampling to 24bpp not implemented");
 
 		uint32 color;
 		uint8 *col = (uint8 *) &color;
@@ -456,7 +456,7 @@ bool Image::crossBlit(byte *dst, const byte *src, int dstpitch, int srcpitch, in
 	return true;
 }
 
-void Image::setSurface(Graphics::Surface *surface) {
+void ImageSurface::setSurface(Graphics::Surface *surface) {
 	destroy();
 
 	_surface = surface;

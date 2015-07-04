@@ -711,7 +711,7 @@ void Application::showImage(Common::String filename, const Common::Point &point,
 	else
 		path = Common::String::format("/IMAGE/%s", filename.c_str());
 
-	Image *image = new Image();
+	ImageSurface *image = new ImageSurface();
 	if (!image->load(path, archiveType, getCurrentZone(), loadFrom, kDrawTypeNormal)) {
 		delete image;
 		return;
@@ -734,7 +734,7 @@ bool Application::scrollImage(Common::String filename, uint32 ticksWait, LoadFro
 	else
 		path = Common::String::format("/IMAGE/%s", filename.c_str());
 
-	Image *image = new Image();
+	ImageSurface *image = new ImageSurface();
 	if (!image->load(path, archiveType, getCurrentZone(), loadFrom, kDrawTypeNormal)) {
 		warning("[Application::scrollImage] Cannot load image (%s)", path.c_str());
 
@@ -766,7 +766,7 @@ bool Application::scrollImage(Common::String filename, uint32 ticksWait, LoadFro
 
 void Application::displayFade(Common::String filenameFrom, Common::String filenameTo, uint32 frameCount, uint32 ticksWait, LoadFrom loadFrom, ArchiveType archiveType) {
 #if RING_DEBUG_INTRO != 1
-	Image *imageTo = NULL;
+	ImageSurface *imageTo = NULL;
 	Animation *animation = NULL;
 	char *pixels = NULL;
 
@@ -786,13 +786,13 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 	}
 
 	// Load images
-	Image *imageFrom = new Image();
+	ImageSurface *imageFrom = new ImageSurface();
 	if (!imageFrom->load(pathFrom, archiveType, getCurrentZone(), loadFrom, kDrawTypeNormal)) {
 		warning("[Application::displayFade] Cannot load imageFrom (%s)", pathFrom.c_str());
 		goto cleanup;
 	}
 
-	imageTo = new Image();
+	imageTo = new ImageSurface();
 	if (!imageTo->load(pathTo, archiveType, getCurrentZone(), loadFrom, kDrawTypeNormal)) {
 		warning("[Application::displayFade] Cannot load imageTo (%s)", pathTo.c_str());
 		goto cleanup;
@@ -886,7 +886,7 @@ void Application::fadeOut(uint32 frameCount, Color colorTo, uint32 ticksWait) {
 
 	// Get screen image
 	byte bpp = _screenManager->getSurface()->format.bytesPerPixel;
-	Image *image = new Image();
+	ImageSurface *image = new ImageSurface();
 	image->create((byte)(bpp * 8), 2, 640, 480);
 	_screenManager->copySurface(image);
 	byte *buffer = (byte *)image->getSurface()->getPixels();

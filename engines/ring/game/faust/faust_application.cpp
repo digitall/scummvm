@@ -265,7 +265,7 @@ void ApplicationFaust::startMenu(bool savegame) {
 		// Save a copy of the screen surface for savegame
 		SAFE_DELETE(_thumbnail);
 
-		_thumbnail = new Image();
+		_thumbnail = new ImageSurface();
 		_thumbnail->create(24, 2, 640, 480);
 
 		// Save a copy of the screen to our image

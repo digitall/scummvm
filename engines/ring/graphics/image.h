@@ -34,16 +34,16 @@ class AnimationImage;
 class ObjectPresentation;
 class ImageLoader;
 
-class Image {
+class ImageSurface {
 public:
-	Image();
-	~Image();
+	ImageSurface();
+	~ImageSurface();
 
 	void create(byte depth, uint32 direction, uint32 width, uint32 height);
 	void destroy();
 
 	bool load(Common::String filename, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType);
-	Image *zoom(float xZoom, float yZoom);
+	ImageSurface *zoom(float xZoom, float yZoom);
 
 	// Drawing
 	Common::Rect draw(Graphics::Surface *surface, const Common::Point &dest, bool useAlpha = false);
@@ -75,7 +75,7 @@ protected:
 	ImageLoader *getLoader(Common::String filename, ArchiveType type) const;
 };
 
-class ImageHandle : public Image, public Common::Serializable {
+class ImageHandle : public ImageSurface, public Common::Serializable {
 public:
 	ImageHandle();
 	ImageHandle(Common::String nameId, const Common::Point &point, bool active, ZoneId zone, LoadFrom loadFrom, ImageType imageType, ArchiveType archiveType);
