@@ -48,7 +48,7 @@ public:
 	LanguageHandler();
 	~LanguageHandler();
 
-	void add(LanguageId id, Common::String name, Common::String folder, uint channel);
+	void add(LanguageId id, Common::String name, Common::String folder, uint32 channel);
 	void setActiveLanguage(Common::String name);
 
 	// Accessors

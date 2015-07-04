@@ -30,7 +30,7 @@ namespace Ring {
 Language::Language() : BaseObject(kLanguageInvalid), _channel(0) {
 }
 
-Language::Language(LanguageId id, Common::String name, Common::String folder, uint channel) :
+Language::Language(LanguageId id, Common::String name, Common::String folder, uint32 channel) :
 	BaseObject(id), _name(name), _folder(folder), _channel(channel) {
 }
 
@@ -45,7 +45,7 @@ LanguageHandler::~LanguageHandler() {
 	CLEAR_ARRAY(Language, _languages);
 }
 
-void LanguageHandler::add(LanguageId id, Common::String name, Common::String folder, uint channel) {
+void LanguageHandler::add(LanguageId id, Common::String name, Common::String folder, uint32 channel) {
 	if (_languages.has(id))
 		error("[LanguageHandler::add] ID already exists (%d)", id);
 
