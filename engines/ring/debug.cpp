@@ -31,11 +31,11 @@
 #include "ring/ring.h"
 
 #include "common/debug-channels.h"
-#include "common/file.h"
 
 #ifdef RING_DUMP
-// For mkdir
+#include "common/file.h"
 
+// For mkdir
 #ifdef WIN32
 #include <direct.h>
 #include <sys/stat.h>
@@ -88,7 +88,7 @@ Debugger::Debugger(RingEngine *engine) : _engine(engine), _action(kActionNone) {
 	// Register the debugger commands
 
 	// General
-	registerCmd("help",      WRAP_METHOD(Debugger, cmdHelp));
+	registerCmd("help_ring", WRAP_METHOD(Debugger, cmdHelpRing));
 
 	// Data
 	registerCmd("ls",        WRAP_METHOD(Debugger, cmdListFiles));
@@ -199,17 +199,13 @@ int Debugger::getNumber(const char *arg) const {
 	return strtol(arg, (char **)nullptr, 0);
 }
 
-bool Debugger::cmdHelp(int, const char **) {
-	debugPrintf("Debug flags\n");
-	debugPrintf("-----------\n");
-	debugPrintf(" debugflag_list - Lists the available debug flags and their status\n");
-	debugPrintf(" debugflag_enable - Enables a debug flag\n");
-	debugPrintf(" debugflag_disable - Disables a debug flag\n");
-	debugPrintf("\n");
+bool Debugger::cmdHelpRing(int, const char **) {
 	debugPrintf("Commands\n");
 	debugPrintf("--------\n");
 	debugPrintf(" ls   - list files in the archive\n");
+#ifdef RING_DUMP
 	debugPrintf(" dump - dump the files from an archive\n");
+#endif
 	debugPrintf("\n");
 	debugPrintf(" enc - load the encyclopedia");
 	debugPrintf("\n");

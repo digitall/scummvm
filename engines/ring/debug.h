@@ -57,11 +57,14 @@ private:
 
 	virtual void postEnter();
 
-	bool cmdHelp(int argc, const char **argv);
+	bool cmdHelpRing(int argc, const char **argv);
 	bool cmdListFiles(int argc, const char **argv);
-	bool cmdDumpArchive(int argc, const char **argv);
 	bool cmdClear(int argc, const char **argv);
 	bool cmdShow(int argc, const char **argv);
+
+#ifdef RING_DUMP
+	bool cmdDumpArchive(int argc, const char **argv);
+#endif
 
 	// Widgets
 	bool cmdEncyclopedia(int argc, const char **argv);
