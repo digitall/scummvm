@@ -212,11 +212,11 @@ void Rotation::setCoordinates(Common::Point *point, Common::KeyCode keycode) {
 		float alpDiff = point->x * 0.0015625f    - 0.5f;
 		float betDiff = point->y * 0.0020833334f - 0.5f;
 
-		if (abs(alpDiff) > 0.25f)
-			_alp += (abs(alpDiff) - 0.25f) * 48.0f * alpDiff;
+		if (ABS(alpDiff) > 0.25f)
+			_alp += (ABS(alpDiff) - 0.25f) * 48.0f * alpDiff;
 
-		if (abs(betDiff) > 0.25f)
-			_bet += (abs(betDiff) - 0.25f) * 48.0f * betDiff;
+		if (ABS(betDiff) > 0.25f)
+			_bet += (ABS(betDiff) - 0.25f) * 48.0f * betDiff;
 
 		if (keycode == Common::KEYCODE_UP)
 			_ran -= 1.0f;
@@ -316,23 +316,23 @@ void Rotation::updateView() {
 	float movementDelta = (_ticks - _startTicks) * 0.001f;
 
 	if (_field_65) {
-		float angle = movementDelta * _field_3D;
+		float currentAngle = movementDelta * _field_3D;
 
 		// Adjust pixel values
-		_pixel0.a1 = -((sin(angle * 0.82999998f + _field_49) * _field_31 * _field_45 + 1.0f) * angle0);
-		_pixel0.a2 = -((sin(angle * 0.72000003f + _field_45) * _field_49 * _field_31 + 1.0f) * angle1);
+		_pixel0.a1 = -((sin(currentAngle * 0.82999998f + _field_49) * _field_31 * _field_45 + 1.0f) * angle0);
+		_pixel0.a2 = -((sin(currentAngle * 0.72000003f + _field_45) * _field_49 * _field_31 + 1.0f) * angle1);
 		_pixel0.a3 = cos1;
 
-		_pixel1.a1 =   (cos(angle * 0.91000003f + _field_51) * _field_31 * _field_4D + 1.0f) * angle0;
-		_pixel1.a2 = -((cos(angle * 1.13f       + _field_4D) * _field_31 * _field_51 + 1.0f) * angle1);
+		_pixel1.a1 =   (cos(currentAngle * 0.91000003f + _field_51) * _field_31 * _field_4D + 1.0f) * angle0;
+		_pixel1.a2 = -((cos(currentAngle * 1.13f       + _field_4D) * _field_31 * _field_51 + 1.0f) * angle1);
 		_pixel1.a3 = cos1;
 
-		_pixel2.a1 = -((sin(angle * 0.92000002f + _field_59) * _field_55 * _field_31 + 1.0f) * angle0);
-		_pixel2.a2 =   (sin(angle * 0.75f       + _field_55) * _field_31 * _field_59 + 1.0f) * angle1;
+		_pixel2.a1 = -((sin(currentAngle * 0.92000002f + _field_59) * _field_55 * _field_31 + 1.0f) * angle0);
+		_pixel2.a2 =   (sin(currentAngle * 0.75f       + _field_55) * _field_31 * _field_59 + 1.0f) * angle1;
 		_pixel2.a3 = cos1;
 
-		_pixel3.a1 =   (cos(angle * 0.88999999f + _field_61) * _field_31 * _field_5D + 1.0f) * angle0;
-		_pixel3.a2 =   (cos(angle * 0.99f       + _field_5D) * _field_31 * _field_61 + 1.0f) * angle1;
+		_pixel3.a1 =   (cos(currentAngle * 0.88999999f + _field_61) * _field_31 * _field_5D + 1.0f) * angle0;
+		_pixel3.a2 =   (cos(currentAngle * 0.99f       + _field_5D) * _field_31 * _field_61 + 1.0f) * angle1;
 		_pixel3.a3 = cos1;
 	} else {
 		_stream->getEntry()->updateData(-angle0, -angle1, angle0, -angle1, -angle0, angle1, angle0, angle1);
@@ -362,7 +362,7 @@ void Rotation::updateView() {
 		for (uint32 i = 0; i < _tableHeight; i++) {
 			for (uint32 j = 0; j < _tableWidth; j++) {
 
-				Pixel::PixelData pixel;
+				//Pixel::PixelData pixel;
 				float val;
 
 				float tableValue = _rotationTable[i * 64 + j];
@@ -549,9 +549,9 @@ bool Rotation::setRolTo(float alp, float bet, float ran) {
 		alp += 360.0f;
 
 	// Compute differences
-	float betDiff = abs(bet - _bet);
-	float alpDiff = abs(alp - _alp);
-	float ranDiff = abs(ran - _ran);
+	float betDiff = ABS(bet - _bet);
+	float alpDiff = ABS(alp - _alp);
+	float ranDiff = ABS(ran - _ran);
 
 	// Get the higher difference
 	if (alpDiff > 180) {

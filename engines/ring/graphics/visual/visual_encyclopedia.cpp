@@ -826,7 +826,7 @@ void VisualObjectEncyclopedia::setHotspot() {
 	if (y >= 0) {
 		_sliderCoordinates.x = 49;
 	} else {
-		_sliderCoordinates.x = (int16)(((float)text->getHeight() + abs(y)) / ((float)((int32)_field_74 - _clippingRect.bottom) * 386.0f + 49.0f));
+		_sliderCoordinates.x = (int16)(((float)text->getHeight() + ABS(y)) / ((float)((int32)_field_74 - _clippingRect.bottom) * 386.0f + 49.0f));
 		if (_sliderCoordinates.x > 421)
 			_sliderCoordinates.x = 421;
 
