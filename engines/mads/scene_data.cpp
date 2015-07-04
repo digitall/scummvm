@@ -86,7 +86,8 @@ void ARTHeader::load(Common::SeekableReadStream *f, bool isV2) {
 void SceneInfo::SpriteInfo::load(Common::SeekableReadStream *f) {
 	f->skip(3);
 	_spriteSetIndex = f->readByte();
-	f->skip(2);
+	_frameNumber = f->readSByte();
+	f->skip(1);
 	_position.x = f->readSint16LE();
 	_position.y = f->readSint16LE();
 	_depth = f->readByte();
@@ -151,30 +152,34 @@ void SceneInfo::load(int sceneId, int variant, const Common::String &resName,
 		_sceneId = sceneId;
 	}
 
-	// TODO: The following isn't quite right for V2 games (it's all 0)
-	_artFileNum = infoStream->readUint16LE();
-	_depthStyle = infoStream->readUint16LE();
-	_width = infoStream->readUint16LE();
-	_height = infoStream->readUint16LE();
+	int nodeCount = 20;
 
-	// HACK for V2 games (for now)
-	if (_vm->getGameID() != GType_RexNebular) {
+	if (_vm->getGameID() == GType_RexNebular) {
+		_artFileNum = infoStream->readUint16LE();
+		_depthStyle = infoStream->readUint16LE();
+		_width = infoStream->readUint16LE();
+		_height = infoStream->readUint16LE();
+
+		infoStream->skip(24);
+
+		nodeCount = infoStream->readUint16LE();
+		_yBandsEnd = infoStream->readUint16LE();
+		_yBandsStart = infoStream->readUint16LE();
+		_maxScale = infoStream->readUint16LE();
+		_minScale = infoStream->readUint16LE();
+		for (int i = 0; i < DEPTH_BANDS_SIZE; ++i)
+			_depthList[i] = infoStream->readUint16LE();
+		_field4A = infoStream->readUint16LE();
+	} else {
+		_artFileNum = sceneId;
+		_depthStyle = 0;
 		_width = 320;
 		_height = 156;
+
+		infoStream->skip(140);
 	}
 
-	infoStream->skip(24);
-
-	int nodeCount = infoStream->readUint16LE();
-	_yBandsEnd = infoStream->readUint16LE();
-	_yBandsStart = infoStream->readUint16LE();
-	_maxScale = infoStream->readUint16LE();
-	_minScale = infoStream->readUint16LE();
-	for (int i = 0; i < DEPTH_BANDS_SIZE; ++i)
-		_depthList[i] = infoStream->readUint16LE();
-	_field4A = infoStream->readUint16LE();
-
-	// Load the set of objects that are associated with the scene
+	// Load the scene's walk nodes
 	for (int i = 0; i < 20; ++i) {
 		WalkNode node;
 		node.load(infoStream);
@@ -213,7 +218,7 @@ void SceneInfo::load(int sceneId, int variant, const Common::String &resName,
 	int width = _width;
 	int height = _height;
 
-	if (!bgSurface.getPixels()) {
+	if (!bgSurface.getPixels() || (bgSurface.w != width) || (bgSurface.h != height)) {
 		bgSurface.setSize(width, height);
 	}
 
@@ -223,21 +228,16 @@ void SceneInfo::load(int sceneId, int variant, const Common::String &resName,
 		depthSurface.setSize(width, height);
 	}
 
-	if (_vm->getGameID() == GType_RexNebular) {
-		// Load the depth surface with the scene codes
-		Common::SeekableReadStream *depthStream = infoPack.getItemStream(variant + 1);
-		loadCodes(depthSurface, depthStream);
-		delete depthStream;
-	}
-
+	loadCodes(depthSurface, variant);
+	depthSurface._depthStyle = _depthStyle;
 	infoFile.close();
 
 	if (_vm->getGameID() == GType_RexNebular) {
-		loadMadsV1Background(sceneId, resName, flags, bgSurface);
-		loadPalette(sceneId, _artFileNum, resName, flags, bgSurface);
+		loadMadsV1Background(_artFileNum, resName, flags, bgSurface);
+		loadPalette(_sceneId, _artFileNum, resName, flags, bgSurface);
 	} else {
-		loadMadsV2Background(sceneId, resName, flags, bgSurface);
-		loadPalette(sceneId, sceneId, resName, flags, bgSurface);
+		loadMadsV2Background(_sceneId, resName, flags, bgSurface);
+		loadPalette(_sceneId, _sceneId, resName, flags, bgSurface);
 	}
 
 	Common::Array<SpriteAsset *> spriteSets;
@@ -264,9 +264,9 @@ void SceneInfo::load(int sceneId, int variant, const Common::String &resName,
 		SpriteAsset *asset = spriteSets[si._spriteSetIndex];
 		assert(asset && _depthStyle != 2);
 
-		MSprite *spr = asset->getFrame(asset->getCount() - 1);
-		bgSurface.copyFrom(spr, si._position, si._depth, &depthSurface, 
-			si._scale, spr->getTransparencyIndex());
+		MSprite *spr = asset->getFrame(si._frameNumber);
+		bgSurface.copyFrom(spr, si._position, si._depth, &depthSurface,
+			si._scale, false, spr->getTransparencyIndex());
 	}
 
 	// Free the sprite sets
@@ -300,6 +300,7 @@ void SceneInfo::loadPalette(int sceneId, int artFileNum, const Common::String &r
 	delete stream;
 
 	// Copy out the palette animation data
+	_paletteCycles.clear();
 	for (uint i = 0; i < artHeader._paletteCycles.size(); ++i)
 		_paletteCycles.push_back(artHeader._paletteCycles[i]);
 
@@ -334,7 +335,7 @@ void SceneInfo::loadMadsV1Background(int sceneId, const Common::String &resName,
 
 	// Get the ART resource
 	if (sceneFlag) {
-		resourceName = Resources::formatName(RESPREFIX_RM, _artFileNum, ".ART");
+		resourceName = Resources::formatName(RESPREFIX_RM, sceneId, ".ART");
 	} else {
 		resourceName = "*" + Resources::formatResource(resName, resName);
 	}
@@ -343,13 +344,33 @@ void SceneInfo::loadMadsV1Background(int sceneId, const Common::String &resName,
 	File artFile(resourceName);
 	MadsPack artResource(&artFile);
 
-	// Read in the background surface data
-	assert(_width == bgSurface.w && _height == bgSurface.h);
+	// Read inhh the background surface data
+	assert(_width  && _height == bgSurface.h);
 	stream = artResource.getItemStream(1);
 	stream->read(bgSurface.getPixels(), bgSurface.w * bgSurface.h);
+	delete stream;
+
+	if (flags & SCENEFLAG_TRANSLATE) {
+		// Load in the palette and translate it
+		Common::SeekableReadStream *palStream = artResource.getItemStream(0);
+		Common::Array<RGB6> palette;
+
+		_width = palStream->readUint16LE();
+		_height = palStream->readUint16LE();
+
+		int numColors = palStream->readUint16LE();
+		assert(numColors <= 252);
+		palette.resize(numColors);
+		for (int i = 0; i < numColors; ++i)
+			palette[i].load(palStream);
+		delete palStream;
+
+		// Translate the surface
+		_vm->_palette->_paletteUsage.process(palette, 0);
+		bgSurface.translate(palette);
+	}
 
 	// Close the ART file
-	delete stream;
 	artFile.close();
 }
 
@@ -448,6 +469,7 @@ void SceneInfo::loadMadsV2Background(int sceneId, const Common::String &resName,
 			for (int i = 0; i < tileIndex; i++)
 				++tile;
 			((*tile).get())->copyTo(&bgSurface, Common::Point(x * tileWidth, y * tileHeight));
+			((*tile).get())->free();
 		}
 	}
 	tileSet.clear();

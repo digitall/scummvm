@@ -4,10 +4,13 @@ MODULE_OBJS := \
 	dragonsphere/game_dragonsphere.o \
 	dragonsphere/dragonsphere_scenes.o \
 	phantom/game_phantom.o \
+	phantom/globals_phantom.o \
 	phantom/phantom_scenes.o \
+	phantom/phantom_scenes1.o \
 	nebular/dialogs_nebular.o \
 	nebular/game_nebular.o \
 	nebular/globals_nebular.o \
+	nebular/menu_nebular.o \
 	nebular/sound_nebular.o \
 	nebular/nebular_scenes.o \
 	nebular/nebular_scenes1.o \
@@ -34,6 +37,7 @@ MODULE_OBJS := \
 	hotspots.o \
 	inventory.o \
 	mads.o \
+	menu_views.o \
 	messages.o \
 	msurface.o \
 	palette.o \

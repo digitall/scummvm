@@ -316,6 +316,7 @@ ScummEngine::ScummEngine(OSystem *syst, const DetectorResult &dr)
 	_NES_lastTalkingActor = 0;
 	_NES_talkColor = 0;
 	_keepText = false;
+	_msgCount = 0;
 	_costumeLoader = NULL;
 	_costumeRenderer = NULL;
 	_2byteFontPtr = 0;
@@ -466,6 +467,8 @@ ScummEngine::ScummEngine(OSystem *syst, const DetectorResult &dr)
 
 	VAR_NUM_SCRIPT_CYCLES = 0xFF;
 	VAR_SCRIPT_CYCLE = 0xFF;
+
+	VAR_QUIT_SCRIPT = 0xFF;
 
 	VAR_NUM_GLOBAL_OBJS = 0xFF;
 
@@ -714,7 +717,7 @@ ScummEngine_v2::ScummEngine_v2(OSystem *syst, const DetectorResult &dr)
 
 ScummEngine_v0::ScummEngine_v0(OSystem *syst, const DetectorResult &dr)
 	: ScummEngine_v2(syst, dr) {
-
+	_drawDemo = false;
 	_currentMode = 0;
 	_currentLights = 0;
 
@@ -729,6 +732,9 @@ ScummEngine_v0::ScummEngine_v0(OSystem *syst, const DetectorResult &dr)
 	VAR_ACTIVE_OBJECT2 = 0xFF;
 	VAR_IS_SOUND_RUNNING = 0xFF;
 	VAR_ACTIVE_VERB = 0xFF;
+
+	if (strcmp(dr.fp.pattern, "maniacdemo.d64") == 0 )
+		_game.features |= GF_DEMO; 
 }
 
 ScummEngine_v6::ScummEngine_v6(OSystem *syst, const DetectorResult &dr)
@@ -1026,6 +1032,35 @@ Common::Error ScummEngine::init() {
 	}
 #endif
 
+	// Extra directories needed for the Steam versions
+	if (_filenamePattern.genMethod == kGenDiskNumSteam || _filenamePattern.genMethod == kGenRoomNumSteam) {
+		if (_game.platform == Common::kPlatformWindows) {
+			switch (_game.id) {
+			case GID_INDY3 :
+				SearchMan.addSubDirectoryMatching(gameDataDir, "indy3");
+				break;
+			case GID_INDY4 :
+				SearchMan.addSubDirectoryMatching(gameDataDir, "atlantis");
+				break;
+			case GID_LOOM :
+				SearchMan.addSubDirectoryMatching(gameDataDir, "loom");
+				break;
+#ifdef ENABLE_SCUMM_7_8
+			case GID_DIG :
+				SearchMan.addSubDirectoryMatching(gameDataDir, "dig");
+				SearchMan.addSubDirectoryMatching(gameDataDir, "dig/video");
+				break;
+#endif
+			default:
+				break;
+			}
+		} else {
+			SearchMan.addSubDirectoryMatching(gameDataDir, "Contents");
+			SearchMan.addSubDirectoryMatching(gameDataDir, "Contents/MacOS");
+			SearchMan.addSubDirectoryMatching(gameDataDir, "Contents/Resources");
+			SearchMan.addSubDirectoryMatching(gameDataDir, "Contents/Resources/video");
+		}
+	}
 
 	// The	kGenUnchanged method is only used for 'container files', i.e. files
 	// that contain the real game files bundled together in an archive format.
@@ -1060,8 +1095,13 @@ Common::Error ScummEngine::init() {
 			const char *tmpBuf1, *tmpBuf2;
 			assert(_game.id == GID_MANIAC || _game.id == GID_ZAK);
 			if (_game.id == GID_MANIAC) {
-				tmpBuf1 = "maniac1.d64";
-				tmpBuf2 = "maniac2.d64";
+				if (_game.features & GF_DEMO) {
+					tmpBuf1 = "maniacdemo.d64";
+					tmpBuf2 = "maniacdemo.d64";
+				} else {
+					tmpBuf1 = "maniac1.d64";
+					tmpBuf2 = "maniac2.d64";
+				}
 			} else {
 				tmpBuf1 = "zak1.d64";
 				tmpBuf2 = "zak2.d64";
@@ -1126,14 +1166,29 @@ Common::Error ScummEngine::init() {
 				error("Couldn't find known subfile inside container file '%s'", _containerFile.c_str());
 
 			_fileHandle->close();
-
 		} else {
 			error("kGenUnchanged used with unsupported platform");
 		}
 	} else {
-		// Regular access, no container file involved
-		_fileHandle = new ScummFile();
+		if (_filenamePattern.genMethod == kGenDiskNumSteam || _filenamePattern.genMethod == kGenRoomNumSteam) {
+			// Steam game versions have the index file embedded in the main executable
+			const SteamIndexFile *indexFile = lookUpSteamIndexFile(_filenamePattern.pattern, _game.platform);
+			if (!indexFile || indexFile->id != _game.id) {
+				error("Couldn't find index file description for Steam version");
+			} else {
+				_fileHandle = new ScummSteamFile(*indexFile);
+			}
+		} else {
+			// Regular access, no container file involved
+			_fileHandle = new ScummFile();
+		}
 	}
+
+	// Steam Win and Mac versions share the same DOS data files. We show Windows or Mac
+	// for the platform the detector, but internally we force the platform to DOS, so that
+	// the code for handling the original DOS data files is used.
+	if (_filenamePattern.genMethod == kGenDiskNumSteam || _filenamePattern.genMethod == kGenRoomNumSteam)
+		_game.platform = Common::kPlatformDOS;
 
 	// Load CJK font, if present
 	// Load it earlier so _useCJKMode variable could be set
@@ -1218,7 +1273,7 @@ Common::Error ScummEngine::init() {
 
 void ScummEngine::setupScumm() {
 	// On some systems it's not safe to run CD audio games from the CD.
-	if (_game.features & GF_AUDIOTRACKS) {
+	if (_game.features & GF_AUDIOTRACKS && !Common::File::exists("CDDA.SOU")) {
 		checkCD();
 
 		int cd_num = ConfMan.getInt("cdrom");
@@ -2029,6 +2084,7 @@ Common::Error ScummEngine::go() {
 
 		if (shouldQuit()) {
 			// TODO: Maybe perform an autosave on exit?
+			runQuitScript();
 		}
 	}
 
@@ -2525,7 +2581,7 @@ void ScummEngine::runBootscript() {
 	int args[NUM_SCRIPT_LOCAL];
 	memset(args, 0, sizeof(args));
 	args[0] = _bootParam;
-	if (_game.id == GID_MANIAC && (_game.features & GF_DEMO))
+	if (_game.id == GID_MANIAC && (_game.features & GF_DEMO) && (_game.platform != Common::kPlatformC64))
 		runScript(9, 0, 0, args);
 	else
 		runScript(1, 0, 0, args);
@@ -2542,9 +2598,52 @@ void ScummEngine_v90he::runBootscript() {
 }
 #endif
 
-void ScummEngine::startManiac() {
-	debug(0, "stub startManiac()");
-	displayMessage(0, "%s", _("Usually, Maniac Mansion would start now. But ScummVM doesn't do that yet. To play it, go to 'Add Game' in the ScummVM start menu and select the 'Maniac' directory inside the Tentacle game directory."));
+bool ScummEngine::startManiac() {
+	Common::String currentPath = ConfMan.get("path");
+	Common::String maniacTarget;
+
+	if (!ConfMan.hasKey("easter_egg")) {
+		// Look for a game with a game path pointing to a 'Maniac' directory
+		// as a subdirectory to the current game.
+		Common::ConfigManager::DomainMap::iterator iter = ConfMan.beginGameDomains();
+		for (; iter != ConfMan.endGameDomains(); ++iter) {
+			Common::ConfigManager::Domain &dom = iter->_value;
+			Common::String path = dom.getVal("path");
+
+			if (path.hasPrefix(currentPath)) {
+				path.erase(0, currentPath.size() + 1);
+				if (path.equalsIgnoreCase("maniac")) {
+					maniacTarget = iter->_key;
+					break;
+				}
+			}
+		}
+	} else {
+		maniacTarget = ConfMan.get("easter_egg");
+	}
+
+	if (!maniacTarget.empty()) {
+		// Request a temporary save game to be made.
+		_saveLoadFlag = 1;
+		_saveLoadSlot = 100;
+		_saveTemporaryState = true;
+
+		// Set up the chanined games to Maniac Mansion, and then back
+		// to the current game again with that save slot.
+		ChainedGamesMan.push(maniacTarget);
+		ChainedGamesMan.push(ConfMan.getActiveDomainName(), 100);
+
+		// Force a return to the launcher. This will start the first
+		// chained game.
+		Common::EventManager *eventMan = g_system->getEventManager();
+		Common::Event event;
+		event.type = Common::EVENT_RTL;
+		eventMan->pushEvent(event);
+		return true;
+	} else {
+		displayMessage(0, "%s", _("Usually, Maniac Mansion would start now. But for that to work, the game files for Maniac Mansion have to be in the 'Maniac' directory inside the Tentacle game directory, and the game has to be added to ScummVM."));
+		return false;
+	}
 }
 
 #pragma mark -

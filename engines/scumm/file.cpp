@@ -185,6 +185,30 @@ uint32 ScummFile::read(void *dataPtr, uint32 dataSize) {
 }
 
 #pragma mark -
+#pragma mark --- ScummSteamFile ---
+#pragma mark -
+
+bool ScummSteamFile::open(const Common::String &filename) {
+	if (filename.equalsIgnoreCase(_indexFile.indexFileName)) {
+		return openWithSubRange(_indexFile.executableName, _indexFile.start, _indexFile.len);
+	} else {
+		// Regular non-bundled file
+		return ScummFile::open(filename);
+	}
+}
+
+bool ScummSteamFile::openWithSubRange(const Common::String &filename, int32 subFileStart, int32 subFileLen) {
+	if (ScummFile::open(filename)) {
+		_subFileStart = subFileStart;
+		_subFileLen = subFileLen;
+		seek(0, SEEK_SET);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+#pragma mark -
 #pragma mark --- ScummDiskImage ---
 #pragma mark -
 
@@ -195,6 +219,15 @@ static const int maniacResourcesPerFile[55] = {
 	12, 12,  2,  8,  1,  1,  2,  1,  9,  1,
 	 3,  7,  3,  3, 13,  5,  4,  3,  1,  1,
 	 3, 10,  1,  0,  0
+};
+
+static const int maniacDemoResourcesPerFile[55] = {
+	 0, 12,  0,  2,  1, 12,  1, 13,  6,  0,
+	 31, 0,  1,  0,  0,  0,  0,  1,  1,  1,
+	 0,  1,  0,  0,  2,  0,  0,  1,  0,  0,
+	 2,  7,  1, 11,  0,  0,  5,  1,  0,  0,
+	 1,  0,  1,  3,  4,  3,  1,  0,  0,  1,
+	 2,  2,  0,  0,  0
 };
 
 static const int zakResourcesPerFile[59] = {
@@ -229,9 +262,17 @@ ScummDiskImage::ScummDiskImage(const char *disk1, const char *disk2, GameSetting
 		_numGlobalObjects = 256;
 		_numRooms = 55;
 		_numCostumes = 25;
-		_numScripts = 160;
-		_numSounds = 70;
-		_resourcesPerFile = maniacResourcesPerFile;
+		
+		if (_game.features & GF_DEMO) {
+			_numScripts = 55;
+			_numSounds = 40;
+			_resourcesPerFile = maniacDemoResourcesPerFile;
+		} else {
+			_numScripts = 160;
+			_numSounds = 70;
+			_resourcesPerFile = maniacResourcesPerFile;
+		}
+
 	} else {
 		_numGlobalObjects = 775;
 		_numRooms = 59;
@@ -302,6 +343,9 @@ bool ScummDiskImage::open(const Common::String &filename) {
 	}
 
 	extractIndex(0); // Fill in resource arrays
+
+	if (_game.features & GF_DEMO)
+		return true;
 
 	openDisk(2);
 

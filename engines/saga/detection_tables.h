@@ -192,9 +192,9 @@ static const SAGAGameDescription gameDescriptions[] = {
 			ADGF_DEMO,
 			GUIO1(GUIO_NOSPEECH)
 		},
-		GID_ITE, // Game id
-		GF_OLD_ITE_DOS, // features
-		ITE_DEFAULT_SCENE, // Starting scene number
+		GID_ITE,
+		GF_ITE_DOS_DEMO,
+		ITE_DEFAULT_SCENE,
 		&ITEDemo_Resources,
 		ARRAYSIZE(ITEDEMO_GameFonts),
 		ITEDEMO_GameFonts,
@@ -582,6 +582,30 @@ static const SAGAGameDescription gameDescriptions[] = {
 	{ NULL, 0, NULL, 0}
 			},
 			Common::IT_ITA,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOSPEECH)
+		},
+		GID_ITE,
+		GF_ITE_FLOPPY,
+		ITE_DEFAULT_SCENE,
+		&ITE_Resources,
+		ARRAYSIZE(ITE_GameFonts),
+		ITE_GameFonts,
+		ITEPatch_Files,
+	},
+
+	// Inherit the earth - Chinese Disk version
+	{
+		{
+			"ite",
+			"Floppy",
+			{
+	{"ite.rsc",		GAME_RESOURCEFILE,					"8f4315a9bb10ec839253108a032c8b54", 8901704},
+	{"scripts.rsc",	GAME_SCRIPTFILE,					"516f7330f8410057b834424ea719d1ef", 281071},
+	{ NULL, 0, NULL, 0}
+			},
+			Common::ZH_CNA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
 			GUIO1(GUIO_NOSPEECH)

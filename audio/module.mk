@@ -9,11 +9,14 @@ MODULE_OBJS := \
 	midiparser_xmidi.o \
 	midiparser.o \
 	midiplayer.o \
+	miles_adlib.o \
+	miles_mt32.o \
 	mixer.o \
 	mpu401.o \
 	musicplugin.o \
 	null.o \
 	timestamp.o \
+	decoders/3do.o \
 	decoders/aac.o \
 	decoders/adpcm.o \
 	decoders/aiff.o \

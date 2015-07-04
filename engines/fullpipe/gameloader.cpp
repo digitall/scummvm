@@ -84,7 +84,29 @@ GameLoader::~GameLoader() {
 	delete _interactionController;
 	delete _inputController;
 
-	warning("STUB: GameLoader::~GameLoader()");
+	g_fp->_gameLoader = 0;
+
+	for (uint i = 0; i < _sc2array.size(); i++) {
+		if (_sc2array[i]._defPicAniInfos)
+			delete _sc2array[i]._defPicAniInfos;
+
+		if (_sc2array[i]._picAniInfos)
+			delete _sc2array[i]._picAniInfos;
+
+		if (_sc2array[i]._motionController)
+			delete _sc2array[i]._motionController;
+
+		if (_sc2array[i]._data1)
+			free(_sc2array[i]._data1);
+
+		if (_sc2array[i]._entranceData)
+			free(_sc2array[i]._entranceData);
+	}
+
+	delete _gameVar;
+	_gameVar = 0;
+
+	_sc2array.clear();
 }
 
 bool GameLoader::load(MfcArchive &file) {
@@ -301,7 +323,7 @@ bool preloadCallback(PreloadItem &pre, int flag) {
 
 		if (!g_fp->_loaderScene) {
 			g_fp->_gameLoader->loadScene(SC_LDR);
-			g_fp->_loaderScene = g_fp->accessScene(SC_LDR);;
+			g_fp->_loaderScene = g_fp->accessScene(SC_LDR);
 		}
 
 		StaticANIObject *pbar = g_fp->_loaderScene->getStaticANIObject1ById(ANI_PBAR, -1);
@@ -635,7 +657,16 @@ bool readSavegameHeader(Common::InSaveFile *in, FullpipeSavegameHeader &header) 
 }
 
 void GameLoader::restoreDefPicAniInfos() {
-	warning("STUB: restoreDefPicAniInfos()");
+	for (uint i = 0; i < _sc2array.size(); i++) {
+		if (_sc2array[i]._picAniInfos) {
+			free(_sc2array[i]._picAniInfos);
+			_sc2array[i]._picAniInfos = 0;
+			_sc2array[i]._picAniInfosCount = 0;
+		}
+
+		if (_sc2array[i]._scene)
+			applyPicAniInfos(_sc2array[i]._scene, _sc2array[i]._defPicAniInfos, _sc2array[i]._defPicAniInfosCount);
+	}
 }
 
 GameVar *FullpipeEngine::getGameLoaderGameVar() {

@@ -131,7 +131,7 @@ protected:
 	 *
 	 * @param defaultFormat      The new default format for the game screen
 	 *                           (this is used for the CLUT8 game screens).
-	 * @param defaultFromatAlpha The new default format with an alpha channel
+	 * @param defaultFormatAlpha The new default format with an alpha channel
 	 *                           (this is used for the overlay and cursor).
 	 */
 	void notifyContextCreate(const Graphics::PixelFormat &defaultFormat, const Graphics::PixelFormat &defaultFormatAlpha);
@@ -155,7 +155,7 @@ protected:
 	 * @param x X coordinate in physical coordinates.
 	 * @param y Y coordinate in physical coordinates.
 	 */
-	void setMousePosition(int x, int y) { _cursorX = x; _cursorY = y; }
+	void setMousePosition(int x, int y);
 
 	/**
 	 * Query the mouse position in physical coordinates.
@@ -394,6 +394,16 @@ private:
 	int _cursorY;
 
 	/**
+	 * X coordinate used for drawing the cursor.
+	 */
+	int _cursorDisplayX;
+
+	/**
+	 * Y coordinate used for drawing the cursor.
+	 */
+	int _cursorDisplayY;
+
+	/**
 	 * The X offset for the cursor hotspot in unscaled coordinates.
 	 */
 	int _cursorHotspotX;
@@ -453,6 +463,11 @@ private:
 	 * The special cursor palette in case enabled.
 	 */
 	byte _cursorPalette[3 * 256];
+
+	/**
+	 * Draws a rectangle
+	 */
+	void drawRect(GLfloat x, GLfloat y, GLfloat w, GLfloat h);
 
 #ifdef USE_OSD
 	//

@@ -127,6 +127,8 @@ int BrowserDialog::runModal() {
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
 	[panel setCanChooseFiles:!_isDirBrowser];
 	[panel setCanChooseDirectories:_isDirBrowser];
+	if (_isDirBrowser)
+		[panel setTreatsFilePackagesAsDirectories:true];
 	[panel setTitle:(NSString *)_titleRef];
 	[panel setPrompt:(NSString *)_chooseRef];
 
@@ -152,7 +154,11 @@ int BrowserDialog::runModal() {
 		[showHiddenFilesButton setAction:@selector(showHiddenFiles:)];
 	}
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= 1090
 	if ([panel runModal] == NSOKButton) {
+#else
+	if ([panel runModal] == NSModalResponseOK) {
+#endif
 		NSURL *url = [panel URL];
 		if ([url isFileURL]) {
 			const char *filename = [[url path] UTF8String];

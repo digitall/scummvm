@@ -1,14 +1,14 @@
 # Russian translation for ScummVM.
-# Copyright (C) 2010-2014 ScummVM Team
+# Copyright (C) 2010-2015 The ScummVM Team
 # This file is distributed under the same license as the ScummVM package.
-# Eugene Sandulenko <sev@scummvm.org>, 2010`
+# Eugene Sandulenko <sev@scummvm.org>, 2010-2014
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-06-07 23:06+0100\n"
-"PO-Revision-Date: 2013-05-08 22:24+0300\n"
+"POT-Creation-Date: 2015-06-30 20:57+0100\n"
+"PO-Revision-Date: 2014-07-02 17:20+0300\n"
 "Last-Translator: Eugene Sandulenko <sev@scummvm.org>\n"
 "Language-Team: Russian\n"
 "Language: Russian\n"
@@ -55,10 +55,11 @@ msgstr "Вверх"
 
 #: gui/browser.cpp:75 gui/chooser.cpp:46 gui/KeysDialog.cpp:43
 #: gui/launcher.cpp:351 gui/massadd.cpp:95 gui/options.cpp:1239
+#: gui/recorderdialog.cpp:70 gui/recorderdialog.cpp:156
 #: gui/saveload-dialog.cpp:216 gui/saveload-dialog.cpp:276
-#: gui/saveload-dialog.cpp:547 gui/saveload-dialog.cpp:922
+#: gui/saveload-dialog.cpp:547 gui/saveload-dialog.cpp:931
 #: gui/themebrowser.cpp:55 gui/fluidsynth-dialog.cpp:152
-#: engines/engine.cpp:452 backends/platform/wii/options.cpp:48
+#: engines/engine.cpp:483 backends/platform/wii/options.cpp:48
 #: backends/events/default/default-events.cpp:196
 #: backends/events/default/default-events.cpp:218
 #: engines/drascula/saveload.cpp:49 engines/parallaction/saveload.cpp:274
@@ -71,9 +72,9 @@ msgid "Choose"
 msgstr "Выбрать"
 
 #: gui/gui-manager.cpp:117 backends/keymapper/remap-dialog.cpp:53
-#: engines/scumm/help.cpp:125 engines/scumm/help.cpp:140
-#: engines/scumm/help.cpp:165 engines/scumm/help.cpp:191
-#: engines/scumm/help.cpp:209
+#: engines/scumm/help.cpp:126 engines/scumm/help.cpp:141
+#: engines/scumm/help.cpp:166 engines/scumm/help.cpp:192
+#: engines/scumm/help.cpp:210
 msgid "Close"
 msgstr "Закрыть"
 
@@ -89,8 +90,8 @@ msgstr "Показать клавиатуру"
 msgid "Remap keys"
 msgstr "Переназначить клавиши"
 
-#: gui/gui-manager.cpp:131 base/main.cpp:326
-msgid "Toggle FullScreen"
+#: gui/gui-manager.cpp:131 base/main.cpp:326 engines/scumm/help.cpp:87
+msgid "Toggle fullscreen"
 msgstr "Переключение на весь экран"
 
 #: gui/KeysDialog.h:36 gui/KeysDialog.cpp:145
@@ -103,19 +104,21 @@ msgstr "Назначить"
 
 #: gui/KeysDialog.cpp:42 gui/launcher.cpp:352 gui/launcher.cpp:1048
 #: gui/launcher.cpp:1052 gui/massadd.cpp:92 gui/options.cpp:1240
-#: gui/saveload-dialog.cpp:923 gui/fluidsynth-dialog.cpp:153
-#: engines/engine.cpp:371 engines/engine.cpp:382
+#: gui/saveload-dialog.cpp:932 gui/fluidsynth-dialog.cpp:153
+#: engines/engine.cpp:402 engines/engine.cpp:413
 #: backends/platform/wii/options.cpp:47
 #: backends/platform/wince/CELauncherDialog.cpp:54
 #: engines/agos/animation.cpp:558 engines/drascula/saveload.cpp:49
-#: engines/groovie/script.cpp:399 engines/parallaction/saveload.cpp:274
-#: engines/scumm/dialogs.cpp:193 engines/scumm/scumm.cpp:1779
-#: engines/sky/compact.cpp:131 engines/sky/compact.cpp:141
-#: engines/sword1/animation.cpp:524 engines/sword1/animation.cpp:545
-#: engines/sword1/animation.cpp:561 engines/sword1/animation.cpp:569
-#: engines/sword1/control.cpp:865 engines/sword1/logic.cpp:1633
-#: engines/sword2/animation.cpp:425 engines/sword2/animation.cpp:445
-#: engines/sword2/animation.cpp:461 engines/sword2/animation.cpp:471
+#: engines/groovie/script.cpp:408 engines/parallaction/saveload.cpp:274
+#: engines/scumm/dialogs.cpp:193 engines/scumm/scumm.cpp:1834
+#: engines/scumm/players/player_v3m.cpp:130
+#: engines/scumm/players/player_v5m.cpp:108 engines/sky/compact.cpp:131
+#: engines/sky/compact.cpp:141 engines/sword1/animation.cpp:524
+#: engines/sword1/animation.cpp:545 engines/sword1/animation.cpp:561
+#: engines/sword1/animation.cpp:569 engines/sword1/control.cpp:865
+#: engines/sword1/logic.cpp:1633 engines/sword2/animation.cpp:425
+#: engines/sword2/animation.cpp:445 engines/sword2/animation.cpp:461
+#: engines/sword2/animation.cpp:471
 msgid "OK"
 msgstr "OK"
 
@@ -151,7 +154,7 @@ msgstr "ID:"
 
 #: gui/launcher.cpp:197 gui/launcher.cpp:199 gui/launcher.cpp:200
 msgid ""
-"Short game identifier used for referring to savegames and running the game "
+"Short game identifier used for referring to saved games and running the game "
 "from the command line"
 msgstr ""
 "Короткий идентификатор, используемый для имён сохранений игр и для запуска "
@@ -306,7 +309,7 @@ msgid "Extra Path:"
 msgstr "Доп. путь:"
 
 #: gui/launcher.cpp:330 gui/launcher.cpp:332 gui/launcher.cpp:333
-msgid "Specifies path to additional data used the game"
+msgid "Specifies path to additional data used by the game"
 msgstr "Указывает путь к дополнительным файлам данных для игры"
 
 #: gui/launcher.cpp:332 gui/options.cpp:1152
@@ -320,7 +323,7 @@ msgstr "Сохранения игр:"
 
 #: gui/launcher.cpp:339 gui/launcher.cpp:341 gui/launcher.cpp:342
 #: gui/options.cpp:1134 gui/options.cpp:1136 gui/options.cpp:1137
-msgid "Specifies where your savegames are put"
+msgid "Specifies where your saved games are put"
 msgstr "Указывает путь к сохранениям игры"
 
 #: gui/launcher.cpp:341 gui/options.cpp:1136
@@ -356,7 +359,7 @@ msgstr "Выберите директорию с файлами игры"
 msgid "Select additional game directory"
 msgstr "Выберите дополнительную директорию игры"
 
-#: gui/launcher.cpp:559
+#: gui/launcher.cpp:559 gui/options.cpp:1379
 msgid "Select directory for saved games"
 msgstr "Выберите директорию для сохранений"
 
@@ -401,7 +404,7 @@ msgid "~L~oad..."
 msgstr "~З~агрузить..."
 
 #: gui/launcher.cpp:633
-msgid "Load savegame for selected game"
+msgid "Load saved game for selected game"
 msgstr "Загрузить сохрнение для выбранной игры"
 
 #: gui/launcher.cpp:638
@@ -426,7 +429,7 @@ msgstr "~У~далить игру"
 
 #: gui/launcher.cpp:642 gui/launcher.cpp:649
 msgid "Remove game from the list. The game data files stay intact"
-msgstr "Удалить игру из списка. Не удаляет игру с жесткого диска"
+msgstr "Удалить игру из списка. Не удаляет игру с носителя"
 
 #: gui/launcher.cpp:645
 msgctxt "lowres"
@@ -453,7 +456,7 @@ msgstr "Поиск:"
 
 #: gui/launcher.cpp:685 engines/dialogs.cpp:115 engines/cruise/menu.cpp:214
 #: engines/mohawk/myst.cpp:245 engines/mohawk/riven.cpp:718
-#: engines/pegasus/pegasus.cpp:353
+#: engines/pegasus/pegasus.cpp:353 engines/tsage/scenes.cpp:600
 msgid "Load game:"
 msgstr "Загрузить игру:"
 
@@ -462,7 +465,7 @@ msgstr "Загрузить игру:"
 #: backends/platform/wince/CEActionsSmartphone.cpp:231
 #: engines/cruise/menu.cpp:214 engines/mohawk/myst.cpp:245
 #: engines/mohawk/riven.cpp:718 engines/pegasus/pegasus.cpp:353
-#: engines/scumm/dialogs.cpp:189
+#: engines/scumm/dialogs.cpp:189 engines/tsage/scenes.cpp:600
 msgid "Load"
 msgstr "Загрузить"
 
@@ -476,19 +479,21 @@ msgstr ""
 
 #: gui/launcher.cpp:793 gui/launcher.cpp:941 gui/launcher.cpp:1000
 #: gui/fluidsynth-dialog.cpp:217
-#: backends/events/symbiansdl/symbiansdl-events.cpp:184
+#: backends/events/symbiansdl/symbiansdl-events.cpp:186
 #: backends/platform/wince/CEActionsPocket.cpp:326
 #: backends/platform/wince/CEActionsSmartphone.cpp:287
 #: backends/platform/wince/CELauncherDialog.cpp:83
+#: engines/kyra/saveload_eob.cpp:557 engines/kyra/saveload_eob.cpp:590
 msgid "Yes"
 msgstr "Да"
 
 #: gui/launcher.cpp:793 gui/launcher.cpp:941 gui/launcher.cpp:1000
 #: gui/fluidsynth-dialog.cpp:217
-#: backends/events/symbiansdl/symbiansdl-events.cpp:184
+#: backends/events/symbiansdl/symbiansdl-events.cpp:186
 #: backends/platform/wince/CEActionsPocket.cpp:326
 #: backends/platform/wince/CEActionsSmartphone.cpp:287
 #: backends/platform/wince/CELauncherDialog.cpp:83
+#: engines/kyra/saveload_eob.cpp:557 engines/kyra/saveload_eob.cpp:590
 msgid "No"
 msgstr "Нет"
 
@@ -509,9 +514,8 @@ msgid "Do you really want to remove this game configuration?"
 msgstr "Вы действительно хотите удалить настройки для этой игры?"
 
 #: gui/launcher.cpp:999
-#, fuzzy
-msgid "Do you want to load savegame?"
-msgstr "Вы хотите загрузить либо сохранить игру?"
+msgid "Do you want to load saved game?"
+msgstr "Вы хотите загрузить игру?"
 
 #: gui/launcher.cpp:1048
 msgid "This game does not support loading games from the launcher."
@@ -520,6 +524,14 @@ msgstr "Эта игра не поддерживает загрузку сохранений через главное меню."
 #: gui/launcher.cpp:1052
 msgid "ScummVM could not find any engine capable of running the selected game!"
 msgstr "ScummVM не смог найти движок для запуска выбранной игры!"
+
+#: gui/launcher.cpp:1159
+msgid "Mass Add..."
+msgstr "Много игр..."
+
+#: gui/launcher.cpp:1161
+msgid "Record..."
+msgstr ""
 
 #: gui/massadd.cpp:79 gui/massadd.cpp:82
 msgid "... progress ..."
@@ -569,7 +581,7 @@ msgid "8 kHz"
 msgstr "8 кГц"
 
 #: gui/options.cpp:87
-msgid "11kHz"
+msgid "11 kHz"
 msgstr "11 кГц"
 
 #: gui/options.cpp:87
@@ -592,7 +604,7 @@ msgstr "Не задан"
 
 #: gui/options.cpp:389
 msgid "Failed to apply some of the graphic options changes:"
-msgstr "Не удалось применить изменения некторых графических настроек:"
+msgstr "Не удалось применить изменения некоторых графических настроек:"
 
 #: gui/options.cpp:401
 msgid "the video mode could not be changed."
@@ -619,7 +631,7 @@ msgid "Special dithering modes supported by some games"
 msgstr "Специальные режимы рендеринга, поддерживаемые некоторыми играми"
 
 #: gui/options.cpp:760
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2249
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2298
 msgid "Fullscreen mode"
 msgstr "Полноэкранный режим"
 
@@ -699,9 +711,10 @@ msgid "SoundFont:"
 msgstr "SoundFont:"
 
 #: gui/options.cpp:856 gui/options.cpp:858 gui/options.cpp:859
-msgid "SoundFont is supported by some audio cards, Fluidsynth and Timidity"
+msgid "SoundFont is supported by some audio cards, FluidSynth and Timidity"
 msgstr ""
-"SoundFontы поддерживаются некоторыми звуковыми картами, Fluidsynth и Timidity"
+"SoundFont'ы поддерживаются некоторыми звуковыми картами, FluidSynth и "
+"Timidity"
 
 #: gui/options.cpp:858
 msgctxt "lowres"
@@ -714,7 +727,7 @@ msgstr "Смешанный режим AdLib/MIDI"
 
 #: gui/options.cpp:864
 msgid "Use both MIDI and AdLib sound generation"
-msgstr "Использовать и MIDI и AdLib для генерации звука"
+msgstr "Использовать и MIDI, и AdLib для генерации звука"
 
 #: gui/options.cpp:867
 msgid "MIDI gain:"
@@ -752,15 +765,16 @@ msgid "True Roland MT-32 (no GM emulation)"
 msgstr "Настоящий Roland MT-32 (без эмуляции GM)"
 
 #: gui/options.cpp:891
-#, fuzzy
 msgid "Roland GS Device (enable MT-32 mappings)"
-msgstr "Режим Roland GS (запретить маппинг GM)"
+msgstr "Устройство Roland GS (разрешить маппинг MT-32)"
 
 #: gui/options.cpp:891
 msgid ""
 "Check if you want to enable patch mappings to emulate an MT-32 on a Roland "
 "GS device"
 msgstr ""
+"Отметьте, если хотите разрешить маппинг для эмуляции MT-32 на устройстве "
+"Roland GS"
 
 #: gui/options.cpp:900
 msgid "Don't use Roland MT-32 music"
@@ -914,10 +928,6 @@ msgstr "Язык графического интерфейса ScummVM"
 msgid "You have to restart ScummVM before your changes will take effect."
 msgstr "Вы должны перезапустить ScummVM, чтобы применить изменения."
 
-#: gui/options.cpp:1379
-msgid "Select directory for savegames"
-msgstr "Выберите директорию для сохранений"
-
 #: gui/options.cpp:1386
 msgid "The chosen directory cannot be written to. Please select another one."
 msgstr "Не могу писать в выбранную директорию. Пожалуйста, укажите другую."
@@ -942,6 +952,43 @@ msgstr ""
 "Тема, выбранная вами, не поддерживает текущий язык. Если вы хотите "
 "использовать эту тему, вам необходимо сначала переключиться на другой язык."
 
+#: gui/recorderdialog.cpp:64
+msgid "Recorder or Playback Gameplay"
+msgstr ""
+
+#: gui/recorderdialog.cpp:69 gui/recorderdialog.cpp:156
+#: gui/saveload-dialog.cpp:220 gui/saveload-dialog.cpp:276
+msgid "Delete"
+msgstr "Удалить"
+
+#: gui/recorderdialog.cpp:71
+msgid "Record"
+msgstr ""
+
+#: gui/recorderdialog.cpp:72
+#, fuzzy
+msgid "Playback"
+msgstr "Играть"
+
+#: gui/recorderdialog.cpp:74
+msgid "Edit"
+msgstr ""
+
+#: gui/recorderdialog.cpp:86 gui/recorderdialog.cpp:243
+#: gui/recorderdialog.cpp:253
+msgid "Author: "
+msgstr ""
+
+#: gui/recorderdialog.cpp:87 gui/recorderdialog.cpp:244
+#: gui/recorderdialog.cpp:254
+msgid "Notes: "
+msgstr ""
+
+#: gui/recorderdialog.cpp:155
+#, fuzzy
+msgid "Do you really want to delete this record?"
+msgstr "Вы действительно хотите удалить это сохранение?"
+
 #: gui/saveload-dialog.cpp:167
 msgid "List view"
 msgstr "Вид списка"
@@ -962,23 +1009,19 @@ msgstr "Время не записано"
 msgid "No playtime saved"
 msgstr "Время игры не записано"
 
-#: gui/saveload-dialog.cpp:220 gui/saveload-dialog.cpp:276
-msgid "Delete"
-msgstr "Удалить"
-
 #: gui/saveload-dialog.cpp:275
-msgid "Do you really want to delete this savegame?"
+msgid "Do you really want to delete this saved game?"
 msgstr "Вы действительно хотите удалить это сохранение?"
 
-#: gui/saveload-dialog.cpp:385 gui/saveload-dialog.cpp:875
+#: gui/saveload-dialog.cpp:385 gui/saveload-dialog.cpp:884
 msgid "Date: "
 msgstr "Дата: "
 
-#: gui/saveload-dialog.cpp:389 gui/saveload-dialog.cpp:881
+#: gui/saveload-dialog.cpp:389 gui/saveload-dialog.cpp:890
 msgid "Time: "
 msgstr "Время: "
 
-#: gui/saveload-dialog.cpp:395 gui/saveload-dialog.cpp:889
+#: gui/saveload-dialog.cpp:395 gui/saveload-dialog.cpp:898
 msgid "Playtime: "
 msgstr "Время игры: "
 
@@ -994,19 +1037,19 @@ msgstr "Следующий"
 msgid "Prev"
 msgstr "Предыдущий"
 
-#: gui/saveload-dialog.cpp:739
+#: gui/saveload-dialog.cpp:748
 msgid "New Save"
 msgstr "Новое сохранение"
 
-#: gui/saveload-dialog.cpp:739
+#: gui/saveload-dialog.cpp:748
 msgid "Create a new save game"
 msgstr "Создать новую запись игры"
 
-#: gui/saveload-dialog.cpp:868
+#: gui/saveload-dialog.cpp:877
 msgid "Name: "
 msgstr "Название: "
 
-#: gui/saveload-dialog.cpp:940
+#: gui/saveload-dialog.cpp:949
 #, c-format
 msgid "Enter a description for slot %d:"
 msgstr "Введите описание слота %d:"
@@ -1025,23 +1068,20 @@ msgid "Disabled GFX"
 msgstr "Без графики"
 
 #: gui/ThemeEngine.cpp:348
-#, fuzzy
 msgid "Standard Renderer"
-msgstr "Стандартный растеризатор (16bpp)"
+msgstr "Стандартный растеризатор"
 
-#: gui/ThemeEngine.cpp:348 engines/scumm/dialogs.cpp:659
+#: gui/ThemeEngine.cpp:348 engines/scumm/dialogs.cpp:661
 msgid "Standard"
 msgstr "Стандартный"
 
 #: gui/ThemeEngine.cpp:350
-#, fuzzy
 msgid "Antialiased Renderer"
-msgstr "Растеризатор со сглаживанием (16bpp)"
+msgstr "Растеризатор со сглаживанием"
 
 #: gui/ThemeEngine.cpp:350
-#, fuzzy
 msgid "Antialiased"
-msgstr "Растеризатор со сглаживанием (16bpp)"
+msgstr "Со сглаживанием"
 
 #: gui/widget.cpp:323 gui/widget.cpp:325 gui/widget.cpp:331 gui/widget.cpp:333
 msgid "Clear value"
@@ -1052,7 +1092,6 @@ msgid "Reverb"
 msgstr "Реверберация"
 
 #: gui/fluidsynth-dialog.cpp:70 gui/fluidsynth-dialog.cpp:102
-#, fuzzy
 msgid "Active"
 msgstr "Активно"
 
@@ -1082,7 +1121,7 @@ msgstr "N:"
 
 #: gui/fluidsynth-dialog.cpp:118
 msgid "Speed:"
-msgstr "Озвучка"
+msgstr "Скорость:"
 
 #: gui/fluidsynth-dialog.cpp:125
 msgid "Depth:"
@@ -1126,7 +1165,7 @@ msgstr "Сброс"
 
 #: gui/fluidsynth-dialog.cpp:150
 msgid "Reset all FluidSynth settings to their default values."
-msgstr "Сбросить все установки FluidSynth в значения по умолчанию"
+msgstr "Сбросить все установки FluidSynth в значения по умолчанию."
 
 #: gui/fluidsynth-dialog.cpp:217
 msgid ""
@@ -1163,7 +1202,7 @@ msgstr "Пропустить строку"
 msgid "Error running game:"
 msgstr "Ошибка запуска игры:"
 
-#: base/main.cpp:536
+#: base/main.cpp:554
 msgid "Could not find any engine capable of running the selected game"
 msgstr "Не могу найти движок для запуска выбранной игры"
 
@@ -1280,8 +1319,9 @@ msgstr "~В~ главное меню"
 
 #: engines/dialogs.cpp:116 engines/agi/saveload.cpp:803
 #: engines/cruise/menu.cpp:212 engines/drascula/saveload.cpp:336
-#: engines/neverhood/menumodule.cpp:873 engines/pegasus/pegasus.cpp:377
-#: engines/sci/engine/kfile.cpp:758 engines/toltecs/menu.cpp:281
+#: engines/dreamweb/saveload.cpp:261 engines/neverhood/menumodule.cpp:873
+#: engines/pegasus/pegasus.cpp:377 engines/sci/engine/kfile.cpp:759
+#: engines/toltecs/menu.cpp:281 engines/tsage/scenes.cpp:598
 msgid "Save game:"
 msgstr "Сохранить игру:"
 
@@ -1291,9 +1331,10 @@ msgstr "Сохранить игру:"
 #: backends/platform/wince/CEActionsSmartphone.cpp:45
 #: backends/platform/wince/CEActionsSmartphone.cpp:231
 #: engines/agi/saveload.cpp:803 engines/cruise/menu.cpp:212
-#: engines/drascula/saveload.cpp:336 engines/neverhood/menumodule.cpp:873
-#: engines/pegasus/pegasus.cpp:377 engines/sci/engine/kfile.cpp:758
-#: engines/scumm/dialogs.cpp:188 engines/toltecs/menu.cpp:281
+#: engines/drascula/saveload.cpp:336 engines/dreamweb/saveload.cpp:261
+#: engines/neverhood/menumodule.cpp:873 engines/pegasus/pegasus.cpp:377
+#: engines/sci/engine/kfile.cpp:759 engines/scumm/dialogs.cpp:188
+#: engines/toltecs/menu.cpp:281 engines/tsage/scenes.cpp:598
 msgid "Save"
 msgstr "Сохранить"
 
@@ -1318,12 +1359,12 @@ msgstr ""
 "помощь."
 
 #: engines/dialogs.cpp:307 engines/mohawk/dialogs.cpp:109
-#: engines/mohawk/dialogs.cpp:170
+#: engines/mohawk/dialogs.cpp:170 engines/tsage/dialogs.cpp:106
 msgid "~O~K"
 msgstr "~O~K"
 
 #: engines/dialogs.cpp:308 engines/mohawk/dialogs.cpp:110
-#: engines/mohawk/dialogs.cpp:171
+#: engines/mohawk/dialogs.cpp:171 engines/tsage/dialogs.cpp:107
 msgid "~C~ancel"
 msgstr "О~т~мена"
 
@@ -1331,23 +1372,23 @@ msgstr "О~т~мена"
 msgid "~K~eys"
 msgstr "~К~лавиши"
 
-#: engines/engine.cpp:245
+#: engines/engine.cpp:276
 msgid "Could not initialize color format."
 msgstr "Не могу инициализировать формат цвета."
 
-#: engines/engine.cpp:253
+#: engines/engine.cpp:284
 msgid "Could not switch to video mode: '"
 msgstr "Не удалось переключить видеорежим: '"
 
-#: engines/engine.cpp:262
+#: engines/engine.cpp:293
 msgid "Could not apply aspect ratio setting."
 msgstr "Не удалось использовать коррекцию соотношения сторон."
 
-#: engines/engine.cpp:267
+#: engines/engine.cpp:298
 msgid "Could not apply fullscreen setting."
 msgstr "Не могу применить полноэкранный режим."
 
-#: engines/engine.cpp:367
+#: engines/engine.cpp:398
 msgid ""
 "You appear to be playing this game directly\n"
 "from the CD. This is known to cause problems,\n"
@@ -1361,7 +1402,7 @@ msgstr ""
 "на жёсткий диск. Подробности можно найти в\n"
 "файле README."
 
-#: engines/engine.cpp:378
+#: engines/engine.cpp:409
 msgid ""
 "This game has audio tracks in its disk. These\n"
 "tracks need to be ripped from the disk using\n"
@@ -1376,7 +1417,7 @@ msgstr ""
 "появится музыка. Подробности можно найти в\n"
 "файле README."
 
-#: engines/engine.cpp:436
+#: engines/engine.cpp:467
 #, c-format
 msgid ""
 "Gamestate load failed (%s)! Please consult the README for basic information, "
@@ -1386,7 +1427,7 @@ msgstr ""
 "README за базовой информацией, а также инструкциями о том, как получить "
 "дальнейшую помощь."
 
-#: engines/engine.cpp:449
+#: engines/engine.cpp:480
 msgid ""
 "WARNING: The game you are about to start is not yet fully supported by "
 "ScummVM. As such, it is likely to be unstable, and any saves you make might "
@@ -1396,7 +1437,7 @@ msgstr ""
 "поддерживается ScummVM полностью. Она, скорее всего, не будет работать "
 "стабильно, и сохранения игр могут не работать в будущих версиях ScummVM."
 
-#: engines/engine.cpp:452
+#: engines/engine.cpp:483
 msgid "Start anyway"
 msgstr "Всё равно запустить"
 
@@ -1524,11 +1565,11 @@ msgstr "Главное меню ScummVM"
 
 #: backends/platform/ds/arm9/source/dsoptions.cpp:63
 msgid "~L~eft handed mode"
-msgstr "Леворукий режим"
+msgstr "~Л~еворукий режим"
 
 #: backends/platform/ds/arm9/source/dsoptions.cpp:64
 msgid "~I~ndy fight controls"
-msgstr "Управление боями в Indy"
+msgstr "~У~правление боями в Indy"
 
 #: backends/platform/ds/arm9/source/dsoptions.cpp:65
 msgid "Show mouse cursor"
@@ -1606,11 +1647,11 @@ msgstr "Режим тачпада включён."
 msgid "Touchpad mode disabled."
 msgstr "Режим тачпада выключен."
 
-#: backends/platform/maemo/maemo.cpp:209
+#: backends/platform/maemo/maemo.cpp:208
 msgid "Click Mode"
 msgstr "Режим щелчка"
 
-#: backends/platform/maemo/maemo.cpp:215
+#: backends/platform/maemo/maemo.cpp:214
 #: backends/platform/symbian/src/SymbianActions.cpp:42
 #: backends/platform/wince/CEActionsPocket.cpp:60
 #: backends/platform/wince/CEActionsSmartphone.cpp:43
@@ -1618,11 +1659,11 @@ msgstr "Режим щелчка"
 msgid "Left Click"
 msgstr "Левый щелчок"
 
-#: backends/platform/maemo/maemo.cpp:218
+#: backends/platform/maemo/maemo.cpp:217
 msgid "Middle Click"
 msgstr "Средний щелчок"
 
-#: backends/platform/maemo/maemo.cpp:221
+#: backends/platform/maemo/maemo.cpp:220
 #: backends/platform/symbian/src/SymbianActions.cpp:43
 #: backends/platform/wince/CEActionsSmartphone.cpp:44
 #: backends/platform/tizen/form.cpp:267
@@ -1659,30 +1700,29 @@ msgctxt "lowres"
 msgid "Normal (no scaling)"
 msgstr "Без увеличения"
 
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2148
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2197
 msgid "Enabled aspect ratio correction"
 msgstr "Коррекция соотношения сторон включена"
 
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2154
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2203
 msgid "Disabled aspect ratio correction"
 msgstr "Коррекция соотношения сторон выключена"
 
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2209
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2258
 msgid "Active graphics filter:"
 msgstr "Активный графический фильтр:"
 
-#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2251
+#: backends/graphics/surfacesdl/surfacesdl-graphics.cpp:2300
 msgid "Windowed mode"
 msgstr "Оконный режим"
 
 #: backends/graphics/opengl/opengl-graphics.cpp:118
-#, fuzzy
 msgid "OpenGL"
-msgstr "Открыть"
+msgstr "OpenGL"
 
 #: backends/graphics/opengl/opengl-graphics.cpp:119
 msgid "OpenGL (No filtering)"
-msgstr ""
+msgstr "OpenGL (без фильтров)"
 
 #: backends/platform/symbian/src/SymbianActions.cpp:38
 #: backends/platform/wince/CEActionsSmartphone.cpp:39
@@ -1731,8 +1771,8 @@ msgstr "Быстрый режим"
 #: backends/platform/wince/CEActionsPocket.cpp:44
 #: backends/platform/wince/CEActionsSmartphone.cpp:52
 #: backends/events/default/default-events.cpp:218
-#: engines/scumm/dialogs.cpp:192 engines/scumm/help.cpp:82
-#: engines/scumm/help.cpp:84
+#: engines/scumm/dialogs.cpp:192 engines/scumm/help.cpp:83
+#: engines/scumm/help.cpp:85
 msgid "Quit"
 msgstr "Выход"
 
@@ -1752,7 +1792,7 @@ msgstr "Виртуальная клавиатура"
 msgid "Key mapper"
 msgstr "Назначение клавиш"
 
-#: backends/events/symbiansdl/symbiansdl-events.cpp:184
+#: backends/events/symbiansdl/symbiansdl-events.cpp:186
 msgid "Do you want to quit ?"
 msgstr "Вы действительно хотите выйти?"
 
@@ -2011,37 +2051,37 @@ msgstr "Главное меню"
 msgid "Do you really want to quit?"
 msgstr "Вы действительно хотите выйти?"
 
-#: backends/events/gph/gph-events.cpp:386
-#: backends/events/gph/gph-events.cpp:429
+#: backends/events/gph/gph-events.cpp:385
+#: backends/events/gph/gph-events.cpp:428
 #: backends/events/openpandora/op-events.cpp:168
 msgid "Touchscreen 'Tap Mode' - Left Click"
 msgstr "Режим 'касаний' тачскрина - Левый клик"
 
-#: backends/events/gph/gph-events.cpp:388
-#: backends/events/gph/gph-events.cpp:431
+#: backends/events/gph/gph-events.cpp:387
+#: backends/events/gph/gph-events.cpp:430
 #: backends/events/openpandora/op-events.cpp:170
 msgid "Touchscreen 'Tap Mode' - Right Click"
 msgstr "Режим 'касаний' тачскрина - Правый клик"
 
-#: backends/events/gph/gph-events.cpp:390
-#: backends/events/gph/gph-events.cpp:433
+#: backends/events/gph/gph-events.cpp:389
+#: backends/events/gph/gph-events.cpp:432
 #: backends/events/openpandora/op-events.cpp:172
 msgid "Touchscreen 'Tap Mode' - Hover (No Click)"
 msgstr "Режим 'касаний' тачскрина - Пролёт (без клика)"
 
-#: backends/events/gph/gph-events.cpp:410
+#: backends/events/gph/gph-events.cpp:409
 msgid "Maximum Volume"
 msgstr "Максимальная громкость"
 
-#: backends/events/gph/gph-events.cpp:412
+#: backends/events/gph/gph-events.cpp:411
 msgid "Increasing Volume"
 msgstr "Увеличение громкости"
 
-#: backends/events/gph/gph-events.cpp:418
+#: backends/events/gph/gph-events.cpp:417
 msgid "Minimal Volume"
 msgstr "Минимальная громкость"
 
-#: backends/events/gph/gph-events.cpp:420
+#: backends/events/gph/gph-events.cpp:419
 msgid "Decreasing Volume"
 msgstr "Уменьшение громкости"
 
@@ -2077,41 +2117,64 @@ msgstr "Показать клавиатуру"
 msgid "Control Mouse"
 msgstr "Управление мышью"
 
-#: backends/events/maemosdl/maemosdl-events.cpp:192
+#: backends/events/maemosdl/maemosdl-events.cpp:180
 msgid "Clicking Enabled"
 msgstr "Щелчки включены"
 
-#: backends/events/maemosdl/maemosdl-events.cpp:192
+#: backends/events/maemosdl/maemosdl-events.cpp:180
 msgid "Clicking Disabled"
 msgstr "Щелчки выключены"
 
-#: engines/agi/detection.cpp:142 engines/drascula/detection.cpp:302
+#: engines/agi/detection.cpp:147 engines/drascula/detection.cpp:302
 #: engines/dreamweb/detection.cpp:47 engines/neverhood/detection.cpp:160
-#: engines/sci/detection.cpp:394 engines/toltecs/detection.cpp:186
+#: engines/sci/detection.cpp:394 engines/toltecs/detection.cpp:200
+#: engines/zvision/detection.cpp:246
 msgid "Use original save/load screens"
 msgstr "Использовать оригинальные экраны записи/чтения игры"
 
-#: engines/agi/detection.cpp:143 engines/drascula/detection.cpp:303
+#: engines/agi/detection.cpp:148 engines/drascula/detection.cpp:303
 #: engines/dreamweb/detection.cpp:48 engines/neverhood/detection.cpp:161
-#: engines/sci/detection.cpp:395 engines/toltecs/detection.cpp:187
+#: engines/sci/detection.cpp:395 engines/toltecs/detection.cpp:201
+#: engines/zvision/detection.cpp:247
 msgid "Use the original save/load screens, instead of the ScummVM ones"
 msgstr ""
 "Использовать оригинальные экраны записи и сохранения игры вместо сделанных в "
 "ScummVM"
 
+#: engines/agi/detection.cpp:157
+#, fuzzy
+msgid "Use an alternative palette"
+msgstr "Использовать альтернативное вступление (только для CD версии игры)"
+
+#: engines/agi/detection.cpp:158
+msgid ""
+"Use an alternative palette, common for all Amiga games. This was the old "
+"behavior"
+msgstr ""
+
+#: engines/agi/detection.cpp:167
+#, fuzzy
+msgid "Mouse support"
+msgstr "Поддержка пропусков"
+
+#: engines/agi/detection.cpp:168
+msgid ""
+"Enables mouse support. Allows to use mouse for movement and in game menus."
+msgstr ""
+
 #: engines/agi/saveload.cpp:816 engines/drascula/saveload.cpp:349
-#: engines/neverhood/menumodule.cpp:886 engines/sci/engine/kfile.cpp:857
-#: engines/toltecs/menu.cpp:256
+#: engines/dreamweb/saveload.cpp:169 engines/neverhood/menumodule.cpp:886
+#: engines/sci/engine/kfile.cpp:858 engines/toltecs/menu.cpp:256
 msgid "Restore game:"
 msgstr "Восстановить игру:"
 
 #: engines/agi/saveload.cpp:816 engines/drascula/saveload.cpp:349
-#: engines/neverhood/menumodule.cpp:886 engines/sci/engine/kfile.cpp:857
-#: engines/toltecs/menu.cpp:256
+#: engines/dreamweb/saveload.cpp:169 engines/neverhood/menumodule.cpp:886
+#: engines/sci/engine/kfile.cpp:858 engines/toltecs/menu.cpp:256
 msgid "Restore"
 msgstr "Восстановить"
 
-#: engines/agos/saveload.cpp:160 engines/scumm/scumm.cpp:2321
+#: engines/agos/saveload.cpp:160 engines/scumm/scumm.cpp:2377
 #, c-format
 msgid ""
 "Failed to load game state from file:\n"
@@ -2122,7 +2185,7 @@ msgstr ""
 "\n"
 "%s"
 
-#: engines/agos/saveload.cpp:195 engines/scumm/scumm.cpp:2314
+#: engines/agos/saveload.cpp:195 engines/scumm/scumm.cpp:2370
 #, c-format
 msgid ""
 "Failed to save game state to file:\n"
@@ -2133,7 +2196,7 @@ msgstr ""
 "\n"
 "%s"
 
-#: engines/agos/saveload.cpp:203 engines/scumm/scumm.cpp:2332
+#: engines/agos/saveload.cpp:203 engines/scumm/scumm.cpp:2388
 #, c-format
 msgid ""
 "Successfully saved game state in file:\n"
@@ -2149,8 +2212,16 @@ msgstr ""
 msgid "Cutscene file '%s' not found!"
 msgstr "Файл заставки '%s' не найден!"
 
-#: engines/drascula/saveload.cpp:47
+#: engines/cge/detection.cpp:105 engines/cge2/detection.cpp:101
 #, fuzzy
+msgid "Color Blind Mode"
+msgstr "Режим щелчка"
+
+#: engines/cge/detection.cpp:106 engines/cge2/detection.cpp:102
+msgid "Enable Color Blind Mode by default"
+msgstr ""
+
+#: engines/drascula/saveload.cpp:47
 msgid ""
 "ScummVM found that you have old savefiles for Drascula that should be "
 "converted.\n"
@@ -2160,9 +2231,10 @@ msgid ""
 "Press OK to convert them now, otherwise you will be asked again the next "
 "time you start the game.\n"
 msgstr ""
-"ScummVM обнаружил у вас сохранения игры Drascula в старом формате.\n"
-"Старый формат больше не поддерживается, и, чтобы загрузить сохранения, они "
-"должны быть переведены в новый формат.\n"
+"ScummVM обнаружил у вас сохранения игры Drascula в старом формате, которые "
+"необходимо преобразовать.\n"
+"Старый формат больше не поддерживается, и вы не сможете загрузить сохранения "
+"если не преобразуете их.\n"
 "\n"
 "Нажмите ОК, чтобы перевести их в новый формат сейчас, в противном случае это "
 "сообщение появится снова при следующем запуске игры.\n"
@@ -2176,11 +2248,12 @@ msgid "Display graphics using the game's bright palette"
 msgstr "Рисует графику с использованием яркой палитры игры"
 
 #: engines/gob/inter_playtoons.cpp:256 engines/gob/inter_v2.cpp:1470
-#: engines/tinsel/saveload.cpp:532
+#: engines/gob/inter_geisha.cpp:232 engines/tinsel/saveload.cpp:532
 msgid "Failed to load game state from file."
 msgstr "Не удалось загрузить сохранённую игру из файла."
 
-#: engines/gob/inter_v2.cpp:1540 engines/tinsel/saveload.cpp:545
+#: engines/gob/inter_v2.cpp:1540 engines/gob/inter_geisha.cpp:263
+#: engines/tinsel/saveload.cpp:545
 msgid "Failed to save game state to file."
 msgstr "Не удалось сохранить игру в файл."
 
@@ -2196,9 +2269,17 @@ msgstr "Режим ускоренного видео"
 msgid "Play movies at an increased speed"
 msgstr "Воспроизводит видеоролики с увеличенной скоростью"
 
-#: engines/groovie/script.cpp:399
+#: engines/groovie/script.cpp:408
 msgid "Failed to save game"
 msgstr "Не удалось сохранить игру"
+
+#: engines/hopkins/detection.cpp:76 engines/hopkins/detection.cpp:86
+msgid "Gore Mode"
+msgstr ""
+
+#: engines/hopkins/detection.cpp:77 engines/hopkins/detection.cpp:87
+msgid "Enable Gore Mode when available"
+msgstr ""
 
 #. I18N: Studio audience adds an applause and cheering sounds whenever
 #. Malcolm makes a joke.
@@ -2321,47 +2402,76 @@ msgstr ""
 "может так получиться, что некоторые треки будут\n"
 "сыграны неверно."
 
+#: engines/kyra/saveload_eob.cpp:557
+#, c-format
+msgid ""
+"The following original save game file has been found in your game path:\n"
+"\n"
+"%s %s\n"
+"\n"
+"Do you wish to use this save game file with ScummVM?\n"
+"\n"
+msgstr ""
+
+#: engines/kyra/saveload_eob.cpp:590
+#, c-format
+msgid ""
+"A save game file was found in the specified slot %d. Overwrite?\n"
+"\n"
+msgstr ""
+
+#: engines/kyra/saveload_eob.cpp:623
+#, c-format
+msgid ""
+"%d original save game files have been successfully imported into\n"
+"ScummVM. If you want to manually import original save game files later you "
+"will\n"
+"need to open the ScummVM debug console and use the command "
+"'import_savefile'.\n"
+"\n"
+msgstr ""
+
 #. I18N: Option for fast scene switching
 #: engines/mohawk/dialogs.cpp:92 engines/mohawk/dialogs.cpp:167
 msgid "~Z~ip Mode Activated"
-msgstr "Режим быстрого перехода активирован"
+msgstr "~Р~ежим быстрого перехода активирован"
 
 #: engines/mohawk/dialogs.cpp:93
 msgid "~T~ransitions Enabled"
-msgstr "Переходы активированы"
+msgstr "~П~ереходы активированы"
 
 #. I18N: Drop book page
 #: engines/mohawk/dialogs.cpp:95
 msgid "~D~rop Page"
-msgstr "Выбросить страницу"
+msgstr "~В~ыбросить страницу"
 
 #: engines/mohawk/dialogs.cpp:99
 msgid "~S~how Map"
-msgstr "Показать карту"
+msgstr "П~о~казать карту"
 
 #: engines/mohawk/dialogs.cpp:105
 msgid "~M~ain Menu"
-msgstr "Главное меню"
+msgstr "~Г~лавное меню"
 
 #: engines/mohawk/dialogs.cpp:168
 msgid "~W~ater Effect Enabled"
-msgstr "Эффекты воды включены"
+msgstr "~Э~ффекты воды включены"
 
 #: engines/neverhood/detection.cpp:167
 msgid "Skip the Hall of Records storyboard scenes"
-msgstr ""
+msgstr "Пропустить сцены из Галереи Истории"
 
 #: engines/neverhood/detection.cpp:168
 msgid "Allows the player to skip past the Hall of Records storyboard scenes"
-msgstr ""
+msgstr "Позволяет игроку пропустить все сцены в Галерее Истории"
 
 #: engines/neverhood/detection.cpp:174
 msgid "Scale the making of videos to full screen"
-msgstr ""
+msgstr "Растянуть на весь экран видео о создании игры"
 
 #: engines/neverhood/detection.cpp:175
 msgid "Scale the making of videos, so that they use the whole screen"
-msgstr ""
+msgstr "Растягивает видео о создании игры так, что оно занимает весь экран"
 
 #: engines/parallaction/saveload.cpp:133
 #, c-format
@@ -2448,17 +2558,21 @@ msgstr "Показать/Спрятать инфоэкран"
 msgid "Display/Hide Pause Menu"
 msgstr "Показать/Спрятать меню паузы"
 
-#: engines/pegasus/pegasus.cpp:2517
-msgid "???"
-msgstr "???"
+#: engines/queen/detection.cpp:56
+msgid "Alternative intro"
+msgstr "Альтернативное вступление"
+
+#: engines/queen/detection.cpp:57
+msgid "Use an alternative game intro (CD version only)"
+msgstr "Использовать альтернативное вступление (только для CD версии игры)"
 
 #: engines/sci/detection.cpp:374
-msgid "EGA undithering"
-msgstr "EGA без растра"
+msgid "Skip EGA dithering pass (full color backgrounds)"
+msgstr ""
 
 #: engines/sci/detection.cpp:375
-msgid "Enable undithering in EGA games"
-msgstr "Включает режим без растрирования в EGA играх"
+msgid "Skip dithering pass in EGA games, graphics are shown with full colors"
+msgstr ""
 
 #: engines/sci/detection.cpp:384
 msgid "Prefer digital sound effects"
@@ -2535,12 +2649,14 @@ msgstr "Игра остановлена.  Нажмите пробел, чтобы продолжить."
 #. "Moechten Sie wirklich neu starten?  (J/N)J"
 #. Will react to J as 'Yes'
 #: engines/scumm/dialogs.cpp:183
-msgid "Are you sure you want to restart?  (Y/N)"
+#, fuzzy
+msgid "Are you sure you want to restart?  (Y/N)Y"
 msgstr "Вы уверены, что хотите начать снова?  (Y/N)"
 
 #. I18N: you may specify 'Yes' symbol at the end of the line. See previous comment
 #: engines/scumm/dialogs.cpp:185
-msgid "Are you sure you want to quit?  (Y/N)"
+#, fuzzy
+msgid "Are you sure you want to quit?  (Y/N)Y"
 msgstr "Вы уверены, что хотите выйти?  (Y/N)"
 
 #: engines/scumm/dialogs.cpp:190
@@ -2595,553 +2711,574 @@ msgstr "~П~ред"
 msgid "~N~ext"
 msgstr "~С~лед"
 
-#: engines/scumm/dialogs.cpp:598
+#: engines/scumm/dialogs.cpp:600
 msgid "Speech Only"
 msgstr "Только озвучка"
 
-#: engines/scumm/dialogs.cpp:599
+#: engines/scumm/dialogs.cpp:601
 msgid "Speech and Subtitles"
 msgstr "Озвучка и субтитры"
 
-#: engines/scumm/dialogs.cpp:600
+#: engines/scumm/dialogs.cpp:602
 msgid "Subtitles Only"
 msgstr "Только субтитры"
 
-#: engines/scumm/dialogs.cpp:608
+#: engines/scumm/dialogs.cpp:610
 msgctxt "lowres"
 msgid "Speech & Subs"
 msgstr "Озвучка и текст"
 
-#: engines/scumm/dialogs.cpp:654
+#: engines/scumm/dialogs.cpp:656
 msgid "Select a Proficiency Level."
 msgstr "Выберите уровень сложности."
 
-#: engines/scumm/dialogs.cpp:656
+#: engines/scumm/dialogs.cpp:658
 msgid "Refer to your Loom(TM) manual for help."
 msgstr "За помощью обратитесь к инстукции Loom(TM)"
 
-#: engines/scumm/dialogs.cpp:660
+#: engines/scumm/dialogs.cpp:662
 msgid "Practice"
 msgstr "Практикант"
 
-#: engines/scumm/dialogs.cpp:661
+#: engines/scumm/dialogs.cpp:663
 msgid "Expert"
 msgstr "Эксперт"
 
-#: engines/scumm/help.cpp:73
+#: engines/scumm/help.cpp:74
 msgid "Common keyboard commands:"
 msgstr "Общие клавиатурные команды:"
 
-#: engines/scumm/help.cpp:74
+#: engines/scumm/help.cpp:75
 msgid "Save / Load dialog"
 msgstr "Диалог записи / чтения"
 
-#: engines/scumm/help.cpp:76
+#: engines/scumm/help.cpp:77
 msgid "Skip line of text"
 msgstr "Пропустить строку"
 
-#: engines/scumm/help.cpp:77
+#: engines/scumm/help.cpp:78
 msgid "Esc"
 msgstr "Esc"
 
-#: engines/scumm/help.cpp:77
+#: engines/scumm/help.cpp:78
 msgid "Skip cutscene"
 msgstr "Пропустить заставку"
 
-#: engines/scumm/help.cpp:78
+#: engines/scumm/help.cpp:79
 msgid "Space"
 msgstr "Пробел"
 
-#: engines/scumm/help.cpp:78
+#: engines/scumm/help.cpp:79
 msgid "Pause game"
 msgstr "Пауза игры"
 
-#: engines/scumm/help.cpp:79 engines/scumm/help.cpp:84
-#: engines/scumm/help.cpp:95 engines/scumm/help.cpp:96
-#: engines/scumm/help.cpp:97 engines/scumm/help.cpp:98
-#: engines/scumm/help.cpp:99 engines/scumm/help.cpp:100
-#: engines/scumm/help.cpp:101 engines/scumm/help.cpp:102
+#: engines/scumm/help.cpp:80 engines/scumm/help.cpp:85
+#: engines/scumm/help.cpp:96 engines/scumm/help.cpp:97
+#: engines/scumm/help.cpp:98 engines/scumm/help.cpp:99
+#: engines/scumm/help.cpp:100 engines/scumm/help.cpp:101
+#: engines/scumm/help.cpp:102 engines/scumm/help.cpp:103
 msgid "Ctrl"
 msgstr "Ctrl"
 
-#: engines/scumm/help.cpp:79
+#: engines/scumm/help.cpp:80
 msgid "Load game state 1-10"
 msgstr "Загрузить игру 1-10"
 
-#: engines/scumm/help.cpp:80 engines/scumm/help.cpp:84
-#: engines/scumm/help.cpp:86 engines/scumm/help.cpp:100
-#: engines/scumm/help.cpp:101 engines/scumm/help.cpp:102
+#: engines/scumm/help.cpp:81 engines/scumm/help.cpp:85
+#: engines/scumm/help.cpp:87 engines/scumm/help.cpp:101
+#: engines/scumm/help.cpp:102 engines/scumm/help.cpp:103
 msgid "Alt"
 msgstr "Alt"
 
-#: engines/scumm/help.cpp:80
+#: engines/scumm/help.cpp:81
 msgid "Save game state 1-10"
 msgstr "Сохранить игру 1-10"
 
-#: engines/scumm/help.cpp:86 engines/scumm/help.cpp:89
+#: engines/scumm/help.cpp:87 engines/scumm/help.cpp:90
 msgid "Enter"
 msgstr "Ввод"
 
-#: engines/scumm/help.cpp:86
-msgid "Toggle fullscreen"
-msgstr "Переключить на весь экран"
-
-#: engines/scumm/help.cpp:87
+#: engines/scumm/help.cpp:88
 msgid "Music volume up / down"
 msgstr "Громкость музыки увеличить / уменьшить"
 
-#: engines/scumm/help.cpp:88
+#: engines/scumm/help.cpp:89
 msgid "Text speed slower / faster"
 msgstr "Скорость текста быстрее / медленнее"
 
-#: engines/scumm/help.cpp:89
+#: engines/scumm/help.cpp:90
 msgid "Simulate left mouse button"
 msgstr "Эмуляция нажатия левой клавиши мыши"
 
-#: engines/scumm/help.cpp:90
+#: engines/scumm/help.cpp:91
 msgid "Tab"
 msgstr "Tab"
 
-#: engines/scumm/help.cpp:90
+#: engines/scumm/help.cpp:91
 msgid "Simulate right mouse button"
 msgstr "Эмуляция правой клавиши мыши"
 
-#: engines/scumm/help.cpp:93
+#: engines/scumm/help.cpp:94
 msgid "Special keyboard commands:"
 msgstr "Специальные клавиатурные команды:"
 
-#: engines/scumm/help.cpp:94
+#: engines/scumm/help.cpp:95
 msgid "Show / Hide console"
 msgstr "Показать / Убрать консоль"
 
-#: engines/scumm/help.cpp:95
+#: engines/scumm/help.cpp:96
 msgid "Start the debugger"
 msgstr "Запуск отладчика"
 
-#: engines/scumm/help.cpp:96
+#: engines/scumm/help.cpp:97
 msgid "Show memory consumption"
 msgstr "Показать потребление памяти"
 
-#: engines/scumm/help.cpp:97
+#: engines/scumm/help.cpp:98
 msgid "Run in fast mode (*)"
 msgstr "Запустить быстрый режим (*)"
 
-#: engines/scumm/help.cpp:98
+#: engines/scumm/help.cpp:99
 msgid "Run in really fast mode (*)"
 msgstr "Запустить очень быстрый режим (*)"
 
-#: engines/scumm/help.cpp:99
+#: engines/scumm/help.cpp:100
 msgid "Toggle mouse capture"
 msgstr "Переключение перехвата мыши"
 
-#: engines/scumm/help.cpp:100
+#: engines/scumm/help.cpp:101
 msgid "Switch between graphics filters"
 msgstr "Переключение между графическими фильтрами"
 
-#: engines/scumm/help.cpp:101
+#: engines/scumm/help.cpp:102
 msgid "Increase / Decrease scale factor"
 msgstr "Увеличить/уменьшить масштаб"
 
-#: engines/scumm/help.cpp:102
+#: engines/scumm/help.cpp:103
 msgid "Toggle aspect-ratio correction"
 msgstr "Переключение коррекции соотношения сторон"
 
-#: engines/scumm/help.cpp:107
+#: engines/scumm/help.cpp:108
 msgid "* Note that using ctrl-f and"
 msgstr "* Использование ctrl-f и"
 
-#: engines/scumm/help.cpp:108
+#: engines/scumm/help.cpp:109
 msgid "  ctrl-g are not recommended"
 msgstr "  ctrl-g не рекомендуется,"
 
-#: engines/scumm/help.cpp:109
+#: engines/scumm/help.cpp:110
 msgid "  since they may cause crashes"
 msgstr "  так как они могут привести к"
 
-#: engines/scumm/help.cpp:110
+#: engines/scumm/help.cpp:111
 msgid "  or incorrect game behavior."
 msgstr "  неверной работе игры."
 
-#: engines/scumm/help.cpp:114
+#: engines/scumm/help.cpp:115
 msgid "Spinning drafts on the keyboard:"
 msgstr "Изменяемые черновики на клавиатуре:"
 
-#: engines/scumm/help.cpp:116
+#: engines/scumm/help.cpp:117
 msgid "Main game controls:"
 msgstr "Основное управление игрой:"
 
-#: engines/scumm/help.cpp:121 engines/scumm/help.cpp:136
-#: engines/scumm/help.cpp:161
+#: engines/scumm/help.cpp:122 engines/scumm/help.cpp:137
+#: engines/scumm/help.cpp:162
 msgid "Push"
 msgstr "Толкать"
 
-#: engines/scumm/help.cpp:122 engines/scumm/help.cpp:137
-#: engines/scumm/help.cpp:162
+#: engines/scumm/help.cpp:123 engines/scumm/help.cpp:138
+#: engines/scumm/help.cpp:163
 msgid "Pull"
 msgstr "Тянуть"
 
-#: engines/scumm/help.cpp:123 engines/scumm/help.cpp:138
-#: engines/scumm/help.cpp:163 engines/scumm/help.cpp:197
-#: engines/scumm/help.cpp:207
+#: engines/scumm/help.cpp:124 engines/scumm/help.cpp:139
+#: engines/scumm/help.cpp:164 engines/scumm/help.cpp:198
+#: engines/scumm/help.cpp:208
 msgid "Give"
 msgstr "Дать"
 
-#: engines/scumm/help.cpp:124 engines/scumm/help.cpp:139
-#: engines/scumm/help.cpp:164 engines/scumm/help.cpp:190
-#: engines/scumm/help.cpp:208
+#: engines/scumm/help.cpp:125 engines/scumm/help.cpp:140
+#: engines/scumm/help.cpp:165 engines/scumm/help.cpp:191
+#: engines/scumm/help.cpp:209
 msgid "Open"
 msgstr "Открыть"
 
-#: engines/scumm/help.cpp:126
+#: engines/scumm/help.cpp:127
 msgid "Go to"
 msgstr "Идти"
 
-#: engines/scumm/help.cpp:127
+#: engines/scumm/help.cpp:128
 msgid "Get"
 msgstr "Взять"
 
-#: engines/scumm/help.cpp:128 engines/scumm/help.cpp:152
-#: engines/scumm/help.cpp:170 engines/scumm/help.cpp:198
-#: engines/scumm/help.cpp:213 engines/scumm/help.cpp:224
-#: engines/scumm/help.cpp:250
+#: engines/scumm/help.cpp:129 engines/scumm/help.cpp:153
+#: engines/scumm/help.cpp:171 engines/scumm/help.cpp:199
+#: engines/scumm/help.cpp:214 engines/scumm/help.cpp:225
+#: engines/scumm/help.cpp:251
 msgid "Use"
 msgstr "Использовать"
 
-#: engines/scumm/help.cpp:129 engines/scumm/help.cpp:141
+#: engines/scumm/help.cpp:130 engines/scumm/help.cpp:142
 msgid "Read"
 msgstr "Читать"
 
-#: engines/scumm/help.cpp:130 engines/scumm/help.cpp:147
+#: engines/scumm/help.cpp:131 engines/scumm/help.cpp:148
 msgid "New kid"
 msgstr "Новый перс"
 
-#: engines/scumm/help.cpp:131 engines/scumm/help.cpp:153
-#: engines/scumm/help.cpp:171
+#: engines/scumm/help.cpp:132 engines/scumm/help.cpp:154
+#: engines/scumm/help.cpp:172
 msgid "Turn on"
 msgstr "Включить"
 
-#: engines/scumm/help.cpp:132 engines/scumm/help.cpp:154
-#: engines/scumm/help.cpp:172
+#: engines/scumm/help.cpp:133 engines/scumm/help.cpp:155
+#: engines/scumm/help.cpp:173
 msgid "Turn off"
 msgstr "Выключить"
 
-#: engines/scumm/help.cpp:142 engines/scumm/help.cpp:167
-#: engines/scumm/help.cpp:194
+#: engines/scumm/help.cpp:143 engines/scumm/help.cpp:168
+#: engines/scumm/help.cpp:195
 msgid "Walk to"
 msgstr "Идти к"
 
-#: engines/scumm/help.cpp:143 engines/scumm/help.cpp:168
-#: engines/scumm/help.cpp:195 engines/scumm/help.cpp:210
-#: engines/scumm/help.cpp:227
+#: engines/scumm/help.cpp:144 engines/scumm/help.cpp:169
+#: engines/scumm/help.cpp:196 engines/scumm/help.cpp:211
+#: engines/scumm/help.cpp:228
 msgid "Pick up"
 msgstr "Поднять"
 
-#: engines/scumm/help.cpp:144 engines/scumm/help.cpp:169
+#: engines/scumm/help.cpp:145 engines/scumm/help.cpp:170
 msgid "What is"
 msgstr "Что такое"
 
-#: engines/scumm/help.cpp:146
+#: engines/scumm/help.cpp:147
 msgid "Unlock"
 msgstr "Открыть"
 
-#: engines/scumm/help.cpp:149
+#: engines/scumm/help.cpp:150
 msgid "Put on"
 msgstr "Положить"
 
-#: engines/scumm/help.cpp:150
+#: engines/scumm/help.cpp:151
 msgid "Take off"
 msgstr "Поднять"
 
-#: engines/scumm/help.cpp:156
+#: engines/scumm/help.cpp:157
 msgid "Fix"
 msgstr "Исправить"
 
-#: engines/scumm/help.cpp:158
+#: engines/scumm/help.cpp:159
 msgid "Switch"
 msgstr "Переключить"
 
-#: engines/scumm/help.cpp:166 engines/scumm/help.cpp:228
+#: engines/scumm/help.cpp:167 engines/scumm/help.cpp:229
 msgid "Look"
 msgstr "Смотреть"
 
-#: engines/scumm/help.cpp:173 engines/scumm/help.cpp:223
+#: engines/scumm/help.cpp:174 engines/scumm/help.cpp:224
 msgid "Talk"
 msgstr "Говорить"
 
-#: engines/scumm/help.cpp:174
+#: engines/scumm/help.cpp:175
 msgid "Travel"
 msgstr "Путешествовать"
 
-#: engines/scumm/help.cpp:175
+#: engines/scumm/help.cpp:176
 msgid "To Henry / To Indy"
 msgstr "Генри/Инди"
 
 #. I18N: These are different musical notes
-#: engines/scumm/help.cpp:179
+#: engines/scumm/help.cpp:180
 msgid "play C minor on distaff"
 msgstr "играть до минор на прялке"
 
-#: engines/scumm/help.cpp:180
+#: engines/scumm/help.cpp:181
 msgid "play D on distaff"
 msgstr "играть ре на прялке"
 
-#: engines/scumm/help.cpp:181
+#: engines/scumm/help.cpp:182
 msgid "play E on distaff"
 msgstr "играть ми на прялке"
 
-#: engines/scumm/help.cpp:182
+#: engines/scumm/help.cpp:183
 msgid "play F on distaff"
 msgstr "играть фа на прялке"
 
-#: engines/scumm/help.cpp:183
+#: engines/scumm/help.cpp:184
 msgid "play G on distaff"
 msgstr "играть соль на прялке"
 
-#: engines/scumm/help.cpp:184
+#: engines/scumm/help.cpp:185
 msgid "play A on distaff"
 msgstr "играть ля на прялке"
 
-#: engines/scumm/help.cpp:185
+#: engines/scumm/help.cpp:186
 msgid "play B on distaff"
 msgstr "играть си на прялке"
 
-#: engines/scumm/help.cpp:186
+#: engines/scumm/help.cpp:187
 msgid "play C major on distaff"
 msgstr "играть до мажор на прялке"
 
-#: engines/scumm/help.cpp:192 engines/scumm/help.cpp:214
+#: engines/scumm/help.cpp:193 engines/scumm/help.cpp:215
 msgid "puSh"
 msgstr "толкать"
 
-#: engines/scumm/help.cpp:193 engines/scumm/help.cpp:215
+#: engines/scumm/help.cpp:194 engines/scumm/help.cpp:216
 msgid "pull (Yank)"
 msgstr "тянуть (цеплять)"
 
-#: engines/scumm/help.cpp:196 engines/scumm/help.cpp:212
-#: engines/scumm/help.cpp:248
+#: engines/scumm/help.cpp:197 engines/scumm/help.cpp:213
+#: engines/scumm/help.cpp:249
 msgid "Talk to"
 msgstr "Говорить с"
 
-#: engines/scumm/help.cpp:199 engines/scumm/help.cpp:211
+#: engines/scumm/help.cpp:200 engines/scumm/help.cpp:212
 msgid "Look at"
 msgstr "Смотреть на"
 
-#: engines/scumm/help.cpp:200
+#: engines/scumm/help.cpp:201
 msgid "turn oN"
 msgstr "включить"
 
-#: engines/scumm/help.cpp:201
+#: engines/scumm/help.cpp:202
 msgid "turn oFf"
 msgstr "выключить"
 
-#: engines/scumm/help.cpp:217
+#: engines/scumm/help.cpp:218
 msgid "KeyUp"
 msgstr "Вверх"
 
-#: engines/scumm/help.cpp:217
+#: engines/scumm/help.cpp:218
 msgid "Highlight prev dialogue"
 msgstr "Подсветить предыдущий диалог"
 
-#: engines/scumm/help.cpp:218
+#: engines/scumm/help.cpp:219
 msgid "KeyDown"
 msgstr "Вниз"
 
-#: engines/scumm/help.cpp:218
+#: engines/scumm/help.cpp:219
 msgid "Highlight next dialogue"
 msgstr "Подсветить следующий диалог"
 
-#: engines/scumm/help.cpp:222
+#: engines/scumm/help.cpp:223
 msgid "Walk"
 msgstr "Идти"
 
-#: engines/scumm/help.cpp:225 engines/scumm/help.cpp:234
-#: engines/scumm/help.cpp:241 engines/scumm/help.cpp:249
+#: engines/scumm/help.cpp:226 engines/scumm/help.cpp:235
+#: engines/scumm/help.cpp:242 engines/scumm/help.cpp:250
 msgid "Inventory"
 msgstr "Инвентарь"
 
-#: engines/scumm/help.cpp:226
+#: engines/scumm/help.cpp:227
 msgid "Object"
 msgstr "Объект"
 
-#: engines/scumm/help.cpp:229
+#: engines/scumm/help.cpp:230
 msgid "Black and White / Color"
 msgstr "Черно-белый / Цветной"
 
-#: engines/scumm/help.cpp:232
+#: engines/scumm/help.cpp:233
 msgid "Eyes"
 msgstr "Глаза"
 
-#: engines/scumm/help.cpp:233
+#: engines/scumm/help.cpp:234
 msgid "Tongue"
 msgstr "Язык"
 
-#: engines/scumm/help.cpp:235
+#: engines/scumm/help.cpp:236
 msgid "Punch"
 msgstr "Удар"
 
-#: engines/scumm/help.cpp:236
+#: engines/scumm/help.cpp:237
 msgid "Kick"
 msgstr "Ногой"
 
-#: engines/scumm/help.cpp:239 engines/scumm/help.cpp:247
+#: engines/scumm/help.cpp:240 engines/scumm/help.cpp:248
 msgid "Examine"
 msgstr "Проверить"
 
-#: engines/scumm/help.cpp:240
+#: engines/scumm/help.cpp:241
 msgid "Regular cursor"
 msgstr "Обычный курсор"
 
 #. I18N: Comm is a communication device
-#: engines/scumm/help.cpp:243
+#: engines/scumm/help.cpp:244
 msgid "Comm"
 msgstr "Комм"
 
-#: engines/scumm/help.cpp:246
+#: engines/scumm/help.cpp:247
 msgid "Save / Load / Options"
 msgstr "Загрузить / Сохранить / Настройки"
 
-#: engines/scumm/help.cpp:255
+#: engines/scumm/help.cpp:256
 msgid "Other game controls:"
 msgstr "Остальное управление игрой:"
 
-#: engines/scumm/help.cpp:257 engines/scumm/help.cpp:267
+#: engines/scumm/help.cpp:258 engines/scumm/help.cpp:268
 msgid "Inventory:"
 msgstr "Инвентарь:"
 
-#: engines/scumm/help.cpp:258 engines/scumm/help.cpp:274
+#: engines/scumm/help.cpp:259 engines/scumm/help.cpp:275
 msgid "Scroll list up"
 msgstr "Прокрутить список вверх"
 
-#: engines/scumm/help.cpp:259 engines/scumm/help.cpp:275
+#: engines/scumm/help.cpp:260 engines/scumm/help.cpp:276
 msgid "Scroll list down"
 msgstr "Прокрутить список вниз"
 
-#: engines/scumm/help.cpp:260 engines/scumm/help.cpp:268
+#: engines/scumm/help.cpp:261 engines/scumm/help.cpp:269
 msgid "Upper left item"
 msgstr "Верхний левый предмет"
 
-#: engines/scumm/help.cpp:261 engines/scumm/help.cpp:270
+#: engines/scumm/help.cpp:262 engines/scumm/help.cpp:271
 msgid "Lower left item"
 msgstr "Нижний левый предмет"
 
-#: engines/scumm/help.cpp:262 engines/scumm/help.cpp:271
+#: engines/scumm/help.cpp:263 engines/scumm/help.cpp:272
 msgid "Upper right item"
 msgstr "Верхний правый предмет"
 
-#: engines/scumm/help.cpp:263 engines/scumm/help.cpp:273
+#: engines/scumm/help.cpp:264 engines/scumm/help.cpp:274
 msgid "Lower right item"
 msgstr "Нижний правый предмет"
 
-#: engines/scumm/help.cpp:269
+#: engines/scumm/help.cpp:270
 msgid "Middle left item"
 msgstr "Средний левый предмет"
 
-#: engines/scumm/help.cpp:272
+#: engines/scumm/help.cpp:273
 msgid "Middle right item"
 msgstr "Средний правый предмет"
 
-#: engines/scumm/help.cpp:279 engines/scumm/help.cpp:284
+#: engines/scumm/help.cpp:280 engines/scumm/help.cpp:285
 msgid "Switching characters:"
 msgstr "Смена героя:"
 
-#: engines/scumm/help.cpp:281
+#: engines/scumm/help.cpp:282
 msgid "Second kid"
 msgstr "Второй герой"
 
-#: engines/scumm/help.cpp:282
+#: engines/scumm/help.cpp:283
 msgid "Third kid"
 msgstr "Третий герой"
 
-#: engines/scumm/help.cpp:294
+#: engines/scumm/help.cpp:292
+#, fuzzy
+msgid "Toggle Inventory/IQ Points display"
+msgstr "Включить показ данных в центре экрана"
+
+#: engines/scumm/help.cpp:293
+msgid "Toggle Keyboard/Mouse Fighting (*)"
+msgstr ""
+
+#: engines/scumm/help.cpp:295
+msgid "* Keyboard Fighting is always on,"
+msgstr ""
+
+#: engines/scumm/help.cpp:296
+msgid "  so despite the in-game message this"
+msgstr ""
+
+#: engines/scumm/help.cpp:297
+msgid "  actually toggles Mouse Fighting Off/On"
+msgstr ""
+
+#: engines/scumm/help.cpp:304
 msgid "Fighting controls (numpad):"
 msgstr "Управление боем (цифровые клавиши)"
 
-#: engines/scumm/help.cpp:295 engines/scumm/help.cpp:296
-#: engines/scumm/help.cpp:297
+#: engines/scumm/help.cpp:305 engines/scumm/help.cpp:306
+#: engines/scumm/help.cpp:307
 msgid "Step back"
 msgstr "Шаг назад"
 
-#: engines/scumm/help.cpp:298
+#: engines/scumm/help.cpp:308
 msgid "Block high"
 msgstr "Защита сверху"
 
-#: engines/scumm/help.cpp:299
+#: engines/scumm/help.cpp:309
 msgid "Block middle"
 msgstr "Защита посередине"
 
-#: engines/scumm/help.cpp:300
+#: engines/scumm/help.cpp:310
 msgid "Block low"
 msgstr "Защита снизу"
 
-#: engines/scumm/help.cpp:301
+#: engines/scumm/help.cpp:311
 msgid "Punch high"
 msgstr "Удар сверху"
 
-#: engines/scumm/help.cpp:302
+#: engines/scumm/help.cpp:312
 msgid "Punch middle"
 msgstr "Удар посередине"
 
-#: engines/scumm/help.cpp:303
+#: engines/scumm/help.cpp:313
 msgid "Punch low"
 msgstr "Удар снизу"
 
-#: engines/scumm/help.cpp:306
+#: engines/scumm/help.cpp:315
+msgid "Sucker punch"
+msgstr ""
+
+#: engines/scumm/help.cpp:318
 msgid "These are for Indy on left."
 msgstr "Это когда Инди слева."
 
-#: engines/scumm/help.cpp:307
+#: engines/scumm/help.cpp:319
 msgid "When Indy is on the right,"
 msgstr "Когда Инди справа,"
 
-#: engines/scumm/help.cpp:308
+#: engines/scumm/help.cpp:320
 msgid "7, 4, and 1 are switched with"
 msgstr "7, 4 и 1 меняются с"
 
-#: engines/scumm/help.cpp:309
+#: engines/scumm/help.cpp:321
 msgid "9, 6, and 3, respectively."
 msgstr "9, 6 и 3 соответственно."
 
-#: engines/scumm/help.cpp:316
+#: engines/scumm/help.cpp:328
 msgid "Biplane controls (numpad):"
 msgstr "Управление самолётом (цифровые клавиши)"
 
-#: engines/scumm/help.cpp:317
+#: engines/scumm/help.cpp:329
 msgid "Fly to upper left"
 msgstr "Лететь влево-вверх"
 
-#: engines/scumm/help.cpp:318
+#: engines/scumm/help.cpp:330
 msgid "Fly to left"
 msgstr "Лететь влево"
 
-#: engines/scumm/help.cpp:319
+#: engines/scumm/help.cpp:331
 msgid "Fly to lower left"
 msgstr "Лететь влево-вниз"
 
-#: engines/scumm/help.cpp:320
+#: engines/scumm/help.cpp:332
 msgid "Fly upwards"
 msgstr "Лететь вверх"
 
-#: engines/scumm/help.cpp:321
+#: engines/scumm/help.cpp:333
 msgid "Fly straight"
 msgstr "Лететь прямо"
 
-#: engines/scumm/help.cpp:322
+#: engines/scumm/help.cpp:334
 msgid "Fly down"
 msgstr "Лететь вниз"
 
-#: engines/scumm/help.cpp:323
+#: engines/scumm/help.cpp:335
 msgid "Fly to upper right"
 msgstr "Лететь вправо-вверх"
 
-#: engines/scumm/help.cpp:324
+#: engines/scumm/help.cpp:336
 msgid "Fly to right"
 msgstr "Лететь вправо"
 
-#: engines/scumm/help.cpp:325
+#: engines/scumm/help.cpp:337
 msgid "Fly to lower right"
 msgstr "Лететь вправо-вниз"
 
-#: engines/scumm/scumm.cpp:1777
+#: engines/scumm/scumm.cpp:1832
 #, c-format
 msgid ""
 "Native MIDI support requires the Roland Upgrade from LucasArts,\n"
@@ -3150,15 +3287,28 @@ msgstr ""
 "Режим \"родного\" MIDI требует обновление Roland Upgrade от\n"
 "LucasArts, но не хватает %s. Переключаюсь на AdLib."
 
-#: engines/scumm/scumm.cpp:2547
+#: engines/scumm/scumm.cpp:2644
+#, fuzzy
 msgid ""
-"Usually, Maniac Mansion would start now. But ScummVM doesn't do that yet. To "
-"play it, go to 'Add Game' in the ScummVM start menu and select the 'Maniac' "
-"directory inside the Tentacle game directory."
+"Usually, Maniac Mansion would start now. But for that to work, the game "
+"files for Maniac Mansion have to be in the 'Maniac' directory inside the "
+"Tentacle game directory, and the game has to be added to ScummVM."
 msgstr ""
 "Сейчас должна запуститься игра Maniac Mansion. Но ScummVM пока этого не "
 "умеет. Чтобы сыграть, нажмите 'Новая игра' в стартовом меню ScummVM, а затем "
 "выберите директорию Maniac внутри директории с игрой Tentacle."
+
+#: engines/scumm/players/player_v3m.cpp:129
+msgid ""
+"Could not find the 'Loom' Macintosh executable to read the\n"
+"instruments from. Music will be disabled."
+msgstr ""
+
+#: engines/scumm/players/player_v5m.cpp:107
+msgid ""
+"Could not find the 'Monkey Island' Macintosh executable to read the\n"
+"instruments from. Music will be disabled."
+msgstr ""
 
 #: engines/sky/compact.cpp:130
 msgid ""
@@ -3190,16 +3340,15 @@ msgid "PSX stream cutscene '%s' cannot be played in paletted mode"
 msgstr "Заставка PSX '%s' не может быть проиграна в режиме с палитрой"
 
 #: engines/sword1/animation.cpp:545 engines/sword2/animation.cpp:445
-msgid "DXA cutscenes found but ScummVM has been built without zlib support"
+msgid "DXA cutscenes found but ScummVM has been built without zlib"
 msgstr ""
 "Найдены заставки в формате DXA, но ScummVM был собран без поддержки zlib"
 
-#: engines/sword1/animation.cpp:561
-#, fuzzy
-msgid "MPEG-2 cutscenes found but ScummVM has been built without MPEG-2"
+#: engines/sword1/animation.cpp:561 engines/sword2/animation.cpp:461
+msgid ""
+"MPEG-2 cutscenes found but ScummVM has been built without MPEG-2 support"
 msgstr ""
-"Найдены заставки в формате PSX, но ScummVM был собран без поддержки RGB "
-"цветов"
+"Найдены заставки в формате MPEG-2, но ScummVM был собран без поддержки MPEG-2"
 
 #: engines/sword1/animation.cpp:568 engines/sword2/animation.cpp:470
 #, c-format
@@ -3251,13 +3400,6 @@ msgstr ""
 "Найдены заставки в формате PSX, но ScummVM был собран без поддержки RGB "
 "цветов"
 
-#: engines/sword2/animation.cpp:461
-#, fuzzy
-msgid ""
-"MPEG-2 cutscenes found but ScummVM has been built without MPEG-2 support"
-msgstr ""
-"Найдены заставки в формате DXA, но ScummVM был собран без поддержки zlib"
-
 #: engines/sword2/sword2.cpp:79
 msgid "Show object labels"
 msgstr "Показывать названия объектов"
@@ -3280,10 +3422,62 @@ msgstr ""
 "Файл teenagent.dat сжат, но zlib не включено в эту программу. Пожалуйста, "
 "распакуйте его"
 
-#~ msgctxt "lowres"
-#~ msgid "Mass Add..."
-#~ msgstr "Много игр..."
+#: engines/wintermute/detection.cpp:58
+msgid "Show FPS-counter"
+msgstr ""
 
+#: engines/wintermute/detection.cpp:59
+msgid "Show the current number of frames per second in the upper left corner"
+msgstr ""
+
+#: engines/zvision/detection.cpp:256
+msgid "Double FPS"
+msgstr ""
+
+#: engines/zvision/detection.cpp:257
+msgid "Increase game FPS from 30 to 60"
+msgstr ""
+
+#: engines/zvision/detection.cpp:266
+#, fuzzy
+msgid "Enable Venus"
+msgstr "Включить режим гелия"
+
+#: engines/zvision/detection.cpp:267
+msgid "Enable the Venus help system"
+msgstr ""
+
+#: engines/zvision/detection.cpp:276
+msgid "Disable animation while turning"
+msgstr ""
+
+#: engines/zvision/detection.cpp:277
+msgid "Disable animation while turning in panoramic mode"
+msgstr ""
+
+#: engines/zvision/detection.cpp:286
+msgid "Use the hires MPEG movies"
+msgstr ""
+
+#: engines/zvision/detection.cpp:287
+#, fuzzy
+msgid ""
+"Use the hires MPEG movies of the DVD version, instead of the lowres AVI ones"
+msgstr ""
+"Использовать альтернативный набор серебряных курсоров вместо обычных золотых"
+
+#~ msgid "EGA undithering"
+#~ msgstr "EGA без растра"
+
+#~ msgid "Enable undithering in EGA games"
+#~ msgstr "Включает режим без растрирования в EGA играх"
+
+#~ msgid "MPEG-2 cutscenes found but ScummVM has been built without MPEG-2"
+#~ msgstr ""
+#~ "Найдены заставки в формате MPEG-2, но ScummVM был собран без поддержки "
+#~ "MPEG-2"
+
+#~ msgctxt "lowres"
 #~ msgid "Mass Add..."
 #~ msgstr "Много игр..."
 
@@ -3295,12 +3489,6 @@ msgstr ""
 
 #~ msgid "Standard (16bpp)"
 #~ msgstr "Стандартный растеризатор (16bpp)"
-
-#~ msgid "Alternative intro"
-#~ msgstr "Альтернативное вступление"
-
-#~ msgid "Use an alternative game intro (CD version only)"
-#~ msgstr "Использовать альтернативное вступление (только для CD версии игры)"
 
 #~ msgid "MPEG2 cutscenes are no longer supported"
 #~ msgstr "Заставки в формате MPEG2 больше не поддерживаются"

@@ -105,10 +105,6 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 	{ SIG_SOUNDSCI1EARLY,  5, MAP_CALL(DoSoundInit),               NULL,                   NULL },
 	{ SIG_SOUNDSCI1EARLY,  6, MAP_CALL(DoSoundDispose),            NULL,                   NULL },
 	{ SIG_SOUNDSCI1EARLY,  7, MAP_CALL(DoSoundPlay),               "oi",                   NULL },
-	// ^^ TODO: In SCI1-SCI1.1 DoSound (play) is called by 2 methods of the Sound object: play and
-	//  playBed. The methods are the same, apart from the second integer parameter: it's 0 in
-	//  play and 1 in playBed, to distinguish the caller. It's passed on, we should find out what
-	//  it actually does internally
 	{ SIG_SOUNDSCI1EARLY,  8, MAP_CALL(DoSoundStop),               NULL,                   NULL },
 	{ SIG_SOUNDSCI1EARLY,  9, MAP_CALL(DoSoundPause),              "[o0]i",                NULL },
 	{ SIG_SOUNDSCI1EARLY, 10, MAP_CALL(DoSoundFade),               "oiiii",                kDoSoundFade_workarounds },
@@ -468,7 +464,8 @@ static SciKernelMapEntry s_kernelMap[] = {
 	{ MAP_CALL(TimesSin),          SIG_EVERYWHERE,           "ii",                    NULL,            NULL },
 	{ "SinMult", kTimesSin,        SIG_EVERYWHERE,           "ii",                    NULL,            NULL },
 	{ MAP_CALL(TimesTan),          SIG_EVERYWHERE,           "ii",                    NULL,            NULL },
-	{ MAP_CALL(UnLoad),            SIG_EVERYWHERE,           "i[ri]",                 NULL,            kUnLoad_workarounds },
+	{ MAP_CALL(UnLoad),            SIG_EVERYWHERE,           "i[ir!]",                NULL,            kUnLoad_workarounds },
+	// ^ We allow invalid references here (e.g. bug #6600), since they will be invalidated anyway by the call itself
 	{ MAP_CALL(ValidPath),         SIG_EVERYWHERE,           "r",                     NULL,            NULL },
 	{ MAP_CALL(Wait),              SIG_EVERYWHERE,           "i",                     NULL,            NULL },
 

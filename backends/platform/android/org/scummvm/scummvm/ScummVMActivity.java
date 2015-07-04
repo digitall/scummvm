@@ -3,6 +3,7 @@ package org.scummvm.scummvm;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -80,13 +81,6 @@ public class ScummVMActivity extends Activity {
 						setTitle(caption);
 					}
 				});
-		}
-
-		@Override
-		protected String[] getPluginDirectories() {
-			String[] dirs = new String[1];
-			dirs[0] = ScummVMApplication.getLastCacheDir().getPath();
-			return dirs;
 		}
 
 		@Override
@@ -201,6 +195,7 @@ public class ScummVMActivity extends Activity {
 
 		if (_scummvm != null)
 			_scummvm.setPause(false);
+		showMouseCursor(false);
 	}
 
 	@Override
@@ -211,6 +206,7 @@ public class ScummVMActivity extends Activity {
 
 		if (_scummvm != null)
 			_scummvm.setPause(true);
+		showMouseCursor(true);
 	}
 
 	@Override
@@ -266,5 +262,16 @@ public class ScummVMActivity extends Activity {
 		else
 			imm.hideSoftInputFromWindow(main_surface.getWindowToken(),
 										InputMethodManager.HIDE_IMPLICIT_ONLY);
+	}
+
+	private void showMouseCursor(boolean show) {
+		/* Currently hiding the system mouse cursor is only
+		   supported on OUYA.  If other systems provide similar
+		   intents, please add them here as well */
+		Intent intent =
+			new Intent(show?
+				   "tv.ouya.controller.action.SHOW_CURSOR" :
+				   "tv.ouya.controller.action.HIDE_CURSOR");
+		sendBroadcast(intent);
 	}
 }

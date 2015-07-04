@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -31,7 +31,7 @@
 namespace MADS {
 
 Scene::Scene(MADSEngine *vm)
-	: _vm(vm), _action(_vm), _depthSurface(vm),
+	: _vm(vm), _action(_vm), _depthSurface(),
 	  _dirtyAreas(_vm),  _dynamicHotspots(vm), _hotspots(vm),
 	  _kernelMessages(vm), _sequences(vm), _sprites(vm), _spriteSlots(vm),
 	  _textDisplay(vm), _userInterface(vm) {
@@ -52,7 +52,7 @@ Scene::Scene(MADSEngine *vm)
 	_activeAnimation = nullptr;
 	_textSpacing = -1;
 	_frameStartTime = 0;
-	_layer = LAYER_GUI;
+	_mode = SCREENMODE_VGA;
 	_lookFlag = false;
 	_bandsRange = 0;
 	_scaleRange = 0;
@@ -63,8 +63,7 @@ Scene::Scene(MADSEngine *vm)
 	_paletteUsageF.push_back(PaletteUsage::UsageEntry(0xF));
 
 	// Set up a scene surface that maps to our physical screen drawing surface
-	_sceneSurface.init(MADS_SCREEN_WIDTH, MADS_SCENE_HEIGHT, MADS_SCREEN_WIDTH,
-		_vm->_screen.getPixels(), Graphics::PixelFormat::createFormatCLUT8());
+	restrictScene();
 
 	// Set up the verb list
 	_verbList.push_back(VerbInit(VERB_LOOK, VERB_THAT, PREP_NONE));
@@ -82,6 +81,12 @@ Scene::Scene(MADSEngine *vm)
 Scene::~Scene() {
 	delete _sceneLogic;
 	delete _sceneInfo;
+	delete _animationData;
+}
+
+void Scene::restrictScene() {
+	_sceneSurface.init(MADS_SCREEN_WIDTH, MADS_SCENE_HEIGHT, MADS_SCREEN_WIDTH,
+		_vm->_screen.getPixels(), Graphics::PixelFormat::createFormatCLUT8());
 }
 
 void Scene::clearVocab() {
@@ -177,7 +182,7 @@ void Scene::loadScene(int sceneId, const Common::String &prefix, bool palFlag) {
 		flags |= ANIMFLAG_LOAD_BACKGROUND_ONLY;
 
 	_animationData = Animation::init(_vm, this);
-	DepthSurface depthSurface(_vm);
+	DepthSurface depthSurface;
 	_animationData->load(_userInterface, depthSurface, prefix, flags, nullptr, nullptr);
 
 	_vm->_palette->_paletteUsage.load(&_scenePaletteUsage);
@@ -196,21 +201,24 @@ void Scene::loadScene(int sceneId, const Common::String &prefix, bool palFlag) {
 }
 
 void Scene::loadHotspots() {
-	File f(Resources::formatName(RESPREFIX_RM, _currentSceneId, ".HH"));
-	MadsPack madsPack(&f);
-	bool isV2 = (_vm->getGameID() != GType_RexNebular);
-
-	Common::SeekableReadStream *stream = madsPack.getItemStream(0);
-	int count = stream->readUint16LE();
-	delete stream;
-
-	stream = madsPack.getItemStream(1);
 	_hotspots.clear();
-	for (int i = 0; i < count; ++i)
-		_hotspots.push_back(Hotspot(*stream, isV2));
 
-	delete stream;
-	f.close();
+	Common::File f;
+	if (f.open(Resources::formatName(RESPREFIX_RM, _currentSceneId, ".HH"))) {
+		MadsPack madsPack(&f);
+		bool isV2 = (_vm->getGameID() != GType_RexNebular);
+
+		Common::SeekableReadStream *stream = madsPack.getItemStream(0);
+		int count = stream->readUint16LE();
+		delete stream;
+
+		stream = madsPack.getItemStream(1);
+		for (int i = 0; i < count; ++i)
+			_hotspots.push_back(Hotspot(*stream, isV2));
+
+		delete stream;
+		f.close();
+	}
 }
 
 void Scene::loadVocab() {
@@ -346,12 +354,15 @@ void Scene::loop() {
 		// Handle drawing a game frame
 		doFrame();
 
-		// TODO: Verify correctness of frame wait
+		// Wait for the next frame
 		_vm->_events->waitForNextFrame();
 
 		if (_vm->_dialogs->_pendingDialog != DIALOG_NONE && !_vm->_game->_trigger
 			&& _vm->_game->_player._stepEnabled)
 			_reloadSceneFlag = true;
+
+		if (_vm->_game->_winStatus)
+			break;
 	}
 }
 
@@ -489,14 +500,12 @@ void  Scene::drawElements(ScreenTransition transitionType, bool surfaceFlag) {
 	_dirtyAreas.copy(&_backgroundSurface, &_vm->_screen, _posAdjust);
 
 	// Handle dirty areas for foreground objects
-	if (_vm->getGameID() == GType_RexNebular)	// TODO: Implement for V2 games
-		_spriteSlots.setDirtyAreas();
+	_spriteSlots.setDirtyAreas();
 	_textDisplay.setDirtyAreas2();
 	_dirtyAreas.merge(1, DIRTY_AREAS_SIZE);
 
 	// Draw sprites that have changed
-	if (_vm->getGameID() == GType_RexNebular)	// TODO: Implement for V2 games
-		_spriteSlots.drawSprites(&_sceneSurface);
+	_spriteSlots.drawSprites(&_sceneSurface);
 
 	// Draw text elements onto the view
 	_textDisplay.draw(&_vm->_screen);
@@ -507,7 +516,7 @@ void  Scene::drawElements(ScreenTransition transitionType, bool surfaceFlag) {
 		_vm->_sound->startQueuedCommands();
 	} else {
 		// Copy dirty areas to the screen
-		_dirtyAreas.copyToScreen(_vm->_screen._offset);
+		_dirtyAreas.copyToScreen();
 	}
 
 	_spriteSlots.cleanUp();
@@ -581,12 +590,14 @@ void Scene::doSceneStep() {
 }
 
 void Scene::checkKeyboard() {
-	if (_vm->_events->isKeyPressed()) {
-		Common::Event evt = _vm->_events->_pendingKeys.pop();
+	EventsManager &events = *_vm->_events;
+
+	if (events.isKeyPressed()) {
+		Common::KeyState evt = events.getKey();
 		_vm->_game->handleKeypress(evt);
 	}
 
-	if ((_vm->_events->_mouseStatus & 3) == 3 && _vm->_game->_player._stepEnabled) {
+	if ((events._mouseStatus & 3) == 3 && _vm->_game->_player._stepEnabled) {
 		_reloadSceneFlag = true;
 		_vm->_dialogs->_pendingDialog = DIALOG_GAME_MENU;
 		_action.clear();
@@ -600,7 +611,7 @@ void Scene::loadAnimation(const Common::String &resName, int trigger) {
 	if (_activeAnimation)
 		freeAnimation();
 
-	DepthSurface depthSurface(_vm);
+	DepthSurface depthSurface;
 	UserInterface interfaceSurface(_vm);
 
 	_activeAnimation = Animation::init(_vm, this);
@@ -653,6 +664,7 @@ void Scene::freeCurrentScene() {
 	}
 
 	_vm->_palette->_paletteUsage.load(nullptr);
+	_cyclingActive = false;
 	_hotspots.clear();
 	_backgroundSurface.free();
 	_depthSurface.free();

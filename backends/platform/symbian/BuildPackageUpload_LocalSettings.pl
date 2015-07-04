@@ -2,33 +2,37 @@
 ##################################################################################################################
 
 	@WorkingEngines = qw(
-		agos agi bbvs cine cge composer cruise draci
-		drascula hugo gob groovie kyra lastexpress
-		lure made mohawk parallaction pegasus queen
-		saga sci scumm sky sword1 sword2 teenagent tinsel
-		toltecs tony toon touche tsage tucker wintermute
-		dreamweb fullpipe hopkins mortevielle mads
-		neverhood testbed avalanche zvision voyeur
+		agos agi cine cge composer cruise draci dreamweb
+		drascula hugo gob groovie hopkins kyra lastexpress
+		lure made mohawk mortevielle neverhood parallaction
+		pegasus queen saga sci scumm sky sword1 sword2
+		teenagent tinsel toltecs tony toon touche tsage
+		tucker voyeur wintermute
+		access avalanche bbvs cge2 fullpipe mads prince
+		testbed zvision
 	);
-#### New engines
-####		sword25
+	
+####	sword25 yet not added
+
+#### In progress engines are :
+####  access avalanche bbvs cge2 fullpipe mads prince
+####  testbed zvision
 
 	@WorkingEngines_1st = qw(
 		cine composer cruise drascula groovie
-		lastexpress made parallaction queen
-		saga scumm touche tucker wintermute
-		avalanche zvision voyeur
+		lastexpress made parallaction queen saga
+		scumm touche tucker wintermute voyeur
+		access avalanche cge2 zvision
 	);
 
 	@WorkingEngines_2nd = qw(
-		agi agos bbvs cge draci gob hopkins
-		hugo kyra lure mohawk pegasus sci
-		sky sword1 sword2 teenagent mads
+		agi agos cge draci dreamweb gob hopkins
+		hugo kyra lure mohawk mortevielle neverhood  
+		pegasus sci sky sword1 sword2 teenagent
 		tinsel tsage toltecs tony toon
-		dreamweb fullpipe mortevielle
-		neverhood testbed
+		bbvs fullpipe mads prince testbed
 	);
-####		sword25
+####	sword25 yet not added
 
 	@TestingEngines = qw(
 
@@ -227,7 +231,7 @@
 		$SDK_RootDirs{'UIQ3'}= "G:\\UIQ3";
 		#$SDK_RootDirs{'S60v1'}= "D:\\S60v1";
 		#$SDK_RootDirs{'S60v2'}= "D:\\S60v2";
-		$SDK_RootDirs{'S60v3'}= "G:\\S60v3";
+		$SDK_RootDirs{'S60v3'}= "G:\\S60v5";
 		#$SDK_RootDirs{'S80'}= "D:\\S80";
 		#$SDK_RootDirs{'S90'}= "D:\\S90";
 		#$ECompXL_BinDir= "D:\\ECompXL\\";

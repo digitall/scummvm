@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -28,7 +28,7 @@
 #include "mads/msurface.h"
 #include "mads/phantom/game_phantom.h"
 //#include "mads/nebular/dialogs_nebular.h"
-//#include "mads/nebular/globals_nebular.h"
+#include "mads/phantom/globals_phantom.h"
 #include "mads/phantom/phantom_scenes.h"
 
 namespace MADS {
@@ -42,39 +42,85 @@ GamePhantom::GamePhantom(MADSEngine *vm)
 }
 
 void GamePhantom::startGame() {
+	_scene._priorSceneId = 0;
+	_scene._currentSceneId = -1;
+	_scene._nextSceneId = 101;
+
 	initializeGlobals();
 }
 
 void GamePhantom::initializeGlobals() {
-	//int count, count2;
-	//int bad;
-
 	_globals.reset();
-	//_globals[kTalkInanimateCount] = 8;
 
-	/* Section #1 variables */
-	// TODO
-
-	/* Section #2 variables */
-	// TODO
-
-	/* Section #3 variables */
-	// TODO
-
-	/* Section #4 variables */
-	// TODO
-
-	/* Section #5 variables */
-	// TODO
-
-	/* Section #9 variables */
-	// TODO
+	// TODO: Catacombs setup
 
 	_player._facing = FACING_NORTH;
 	_player._turnToFacing = FACING_NORTH;
 
-	//Player::preloadSequences("RXM", 1);
-	//Player::preloadSequences("ROX", 1);
+	_globals[kTempVar]                 = false;
+	_globals[kRoom103104Transition]    = 1;		// new room
+	_globals[kCurrentYear]             = 1993;
+	_globals[kTrapDoorStatus]          = 0;		// open
+	_globals[kChristineDoorStatus]     = 0;		// Christine is in her room
+	_globals[kSandbagStatus]           = 0;		// sandbag is secure
+	_globals[kJacquesStatus]           = 0;		// alive
+	_globals[kChrisFStatus]            = 1;		// Christine F. is alive in 1993
+	_globals[kBrieTalkStatus]          = 0;		// before Brie motions
+	_globals[kPanelIn206]              = 0;		// not discovered
+	_globals[kFightStatus]             = 0;
+	_globals[kJuliesDoor]              = 1;		// cracked open
+	_globals[kPrompterStandStatus]     = 0;
+	_globals[kChrisDStatus]            = 0;		// before love
+	_globals[kJulieNameIsKnown]        = 0;
+	_globals[kDoorsIn205]              = 0;		// both locked
+	_globals[kMadameGiryLocation]      = 1;		// middle
+	_globals[kTicketPeoplePresent]     = 0;
+	_globals[kCoffinStatus]            = 0;		// closed and locked
+	_globals[kDoneBrieConv203]         = 0;
+	_globals[kFlorentNameIsKnown]      = 0;
+	_globals[kDegasNameIsKnown]        = 0;
+	_globals[kMadameGiryShowsUp]       = false;
+	_globals[kJacquesNameIsKnown]      = 0;
+	_globals[kCharlesNameIsKnown]      = false;
+	_globals[kTopFloorLocked]          = true;
+	_globals[kMadameNameIsKnown]       = 0;
+	_globals[kChrisKickedRaoulOut]     = false;
+	_globals[kLookedAtCase]            = false;
+	_globals[kRingIsOnFinger]          = false;
+	_globals[kHeListened]              = false;
+	_globals[kKnockedOverHead]         = false;
+	_globals[kObservedPhan104]         = false;
+	_globals[kReadBook]                = false;
+	_globals[kCanFindBookInLibrary]    = false;
+	_globals[kLookedAtSkullFace]       = false;
+	_globals[kScannedBookcase]         = false;
+	_globals[kRanConvIn205]            = false;
+	_globals[kDoneRichConv203]         = false;
+	_globals[kHintThatDaaeIsHome1]     = false;
+	_globals[kHintThatDaaeIsHome2]     = false;
+	_globals[kMakeBrieLeave203]        = false;
+	_globals[kMakeRichLeave203]        = false;
+	_globals[kCameFromFade]            = false;
+	_globals[kChristineToldEnvelope]   = false;
+	_globals[kLeaveAngelMusicOn]       = false;
+	_globals[kDoorIn409IsOpen]         = false;
+	_globals[kUnknown]                 = false;
+	_globals[kCobwebIsCut]             = false;
+	_globals[kChristineIsInBoat]       = false;
+	_globals[kRightDoorIsOpen504]      = false;
+	_globals[kChrisLeft505]            = false;
+	_globals[kChrisWillTakeSeat]       = true;
+	_globals[kFlickedLever1]           = 0;
+	_globals[kFlickedLever2]           = 0;
+	_globals[kFlickedLever3]           = 0;
+	_globals[kFlickedLever4]           = 0;
+	_globals[kPlayerScore]             = 0;
+	_globals[kPlayerScoreFlags]        = 0;
+
+	_globals[kMusicSelected] = _vm->getRandomNumber(1, 4);
+
+	_player._spritesPrefix = "RAL";	// Fixed prefix
+	Player::preloadSequences("RAL", 1);
 }
 
 void GamePhantom::setSectionHandler() {
@@ -105,6 +151,11 @@ void GamePhantom::checkShowDialog() {
 	// TODO: Copied from Nebular
 	if (_vm->_dialogs->_pendingDialog && _player._stepEnabled && !_globals[5]) {
 		_player.releasePlayerSprites();
+
+		// HACK: Skip the main menu (since it'll then try to show Rex's main menu)
+		if (_vm->_dialogs->_pendingDialog == DIALOG_MAIN_MENU)
+			_vm->_dialogs->_pendingDialog = DIALOG_NONE;
+
 		_vm->_dialogs->showDialog();
 		_vm->_dialogs->_pendingDialog = DIALOG_NONE;
 	}

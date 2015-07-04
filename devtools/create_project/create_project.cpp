@@ -125,6 +125,7 @@ int main(int argc, char *argv[]) {
 
 	ProjectType projectType = kProjectNone;
 	int msvcVersion = 9;
+	bool useSDL2 = false;
 
 	// Parse command line arguments
 	using std::cout;
@@ -175,7 +176,7 @@ int main(int argc, char *argv[]) {
 
 			msvcVersion = atoi(argv[++i]);
 
-			if (msvcVersion != 8 && msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11 && msvcVersion != 12) {
+			if (msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11 && msvcVersion != 12) {
 				std::cerr << "ERROR: Unsupported version: \"" << msvcVersion << "\" passed to \"--msvc-version\"!\n";
 				return -1;
 			}
@@ -267,6 +268,8 @@ int main(int argc, char *argv[]) {
 			setup.devTools = true;
 		} else if (!std::strcmp(argv[i], "--tests")) {
 			setup.tests = true;
+		} else if (!std::strcmp(argv[i], "--sdl2")) {
+			useSDL2 = true;
 		} else {
 			std::cerr << "ERROR: Unknown parameter \"" << argv[i] << "\"\n";
 			return -1;
@@ -335,7 +338,13 @@ int main(int argc, char *argv[]) {
 	// Windows only has support for the SDL backend, so we hardcode it here (along with winmm)
 	setup.defines.push_back("WIN32");
 	setup.defines.push_back("SDL_BACKEND");
-	setup.libraries.push_back("sdl");
+	if (!useSDL2) {
+		cout << "\nLinking to SDL 1.2\n\n";
+		setup.libraries.push_back("sdl");
+	} else {
+		cout << "\nLinking to SDL 2.0\n\n";
+		setup.libraries.push_back("sdl2");
+	}
 	setup.libraries.push_back("winmm");
 
 	// Add additional project-specific library
@@ -526,7 +535,7 @@ int main(int argc, char *argv[]) {
 
 		projectWarnings["m4"].push_back("4355");
 
-		if (msvcVersion == 8 || msvcVersion == 9)
+		if (msvcVersion == 9)
 			provider = new CreateProjectTool::VisualStudioProvider(globalWarnings, projectWarnings, msvcVersion);
 		else
 			provider = new CreateProjectTool::MSBuildProvider(globalWarnings, projectWarnings, msvcVersion);
@@ -619,10 +628,10 @@ void displayHelp(const char *exe) {
 	        "\n"
 	        "MSVC specific settings:\n"
 	        " --msvc-version version   set the targeted MSVC version. Possible values:\n"
-	        "                           8 stands for \"Visual Studio 2005\"\n"
 	        "                           9 stands for \"Visual Studio 2008\"\n"
 	        "                           10 stands for \"Visual Studio 2010\"\n"
 	        "                           11 stands for \"Visual Studio 2012\"\n"
+	        "                           12 stands for \"Visual Studio 2013\"\n"
 	        "                           The default is \"9\", thus \"Visual Studio 2008\"\n"
 	        " --build-events           Run custom build events as part of the build\n"
 	        "                          (default: false)\n"
@@ -645,6 +654,9 @@ void displayHelp(const char *exe) {
 	        "Optional features settings:\n"
 	        " --enable-<name>          enable inclusion of the feature \"name\"\n"
 	        " --disable-<name>         disable inclusion of the feature \"name\"\n"
+			"\n"
+			"SDL settings:\n"
+			" --sdl2                   link to SDL 2.0, instead of SDL 1.2\n"
 	        "\n"
 	        " There are the following features available:\n"
 	        "\n";

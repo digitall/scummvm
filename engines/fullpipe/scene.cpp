@@ -162,7 +162,7 @@ bool Scene::load(MfcArchive &file) {
 	Background::load(file);
 
 	_sceneId = file.readUint16LE();
-	
+
 	_sceneName = file.readPascalString();
 	debug(0, "scene: <%s> %d", transCyrillic((byte *)_sceneName), _sceneId);
 
@@ -654,7 +654,7 @@ void Scene::drawContent(int minPri, int maxPri, bool drawBg) {
 		g_fp->_globalPalette = _palette->_data;
 	}
 
-	debug(8, "Scene::drawContent(>%d, <%d, %d)", minPri, maxPri, drawBg);
+	debug(1, "Scene::drawContent(>%d, <%d, %d)", minPri, maxPri, drawBg);
 
 	if (_picObjList.size() > 2) { // We need to z-sort them
 		objectList_sortByPriority(_picObjList, true);
@@ -666,11 +666,12 @@ void Scene::drawContent(int minPri, int maxPri, bool drawBg) {
 	if (maxPri == -1)
 		maxPri = 60000;
 
-	debug(8, "-> Scene::drawContent(>%d, <%d, %d)", minPri, maxPri, drawBg);
+	debug(1, "-> Scene::drawContent(>%d, <%d, %d)", minPri, maxPri, drawBg);
 
 	Common::Point point;
 
-	debug(8, "_bigPict: %d objlist: %d", _bigPictureArray1Count, _picObjList.size());
+	debug(1, "_bigPict: %d objlist: %d", _bigPictureArray1Count, _picObjList.size());
+
 	if (drawBg && _bigPictureArray1Count && _picObjList.size()) {
 
 		_bigPictureArray[0][0]->getDimensions(&point);
@@ -737,7 +738,6 @@ void Scene::drawContent(int minPri, int maxPri, bool drawBg) {
 	for (uint i = 1; i < _picObjList.size(); i++) {
 		PictureObject *obj = (PictureObject *)_picObjList[i];
 
-		debug(8, "pri: %d", obj->_priority);
 		if (obj->_priority < minPri || obj->_priority >= maxPri)
 			continue;
 

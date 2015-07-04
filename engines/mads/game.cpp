@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -64,6 +64,7 @@ Game::Game(MADSEngine *vm)
 	_loadGameSlot = -1;
 	_lastSave = -1;
 	_saveFile = nullptr;
+	_saveThumb = nullptr;
 	_statusFlag = 0;
 	_sectionHandler = nullptr;
 	_sectionNumber = 1;
@@ -93,14 +94,18 @@ Game::Game(MADSEngine *vm)
 }
 
 Game::~Game() {
+	if (_saveThumb) {
+		_saveThumb->free();
+		delete _saveThumb;
+	}
+
 	delete _saveFile;
+	_surface->free();
 	delete _surface;
 	delete _sectionHandler;
 }
 
 void Game::run() {
-	initializeGlobals();
-
 	// If requested, load a savegame instead of showing the intro
 	if (ConfMan.hasKey("save_slot")) {
 		int saveSlot = ConfMan.getInt("save_slot");
@@ -110,15 +115,17 @@ void Game::run() {
 
 	_statusFlag = true;
 
-	if (_loadGameSlot == -1) {
-		startGame();
+	while (!_vm->shouldQuit()) {
+		if (_loadGameSlot == -1) {
+			startGame();
+		}
+
+		// Get the initial starting time for the first scene
+		_scene._frameStartTime = _vm->_events->getFrameCounter();
+
+		if (!_vm->shouldQuit())
+			gameLoop();
 	}
-
-	// Get the initial starting time for the first scene
-	_scene._frameStartTime = _vm->_events->getFrameCounter();
-
-	if (!_vm->shouldQuit())
-		gameLoop();
 }
 
 void Game::splitQuote(const Common::String &source, Common::String &line1, Common::String &line2) {
@@ -134,7 +141,7 @@ void Game::splitQuote(const Common::String &source, Common::String &line1, Commo
 }
 
 void Game::gameLoop() {
-	while (!_vm->shouldQuit() && _statusFlag) {
+	while (!_vm->shouldQuit() && _statusFlag && !_winStatus) {
 		if (_loadGameSlot != -1) {
 			loadGame(_loadGameSlot);
 			_loadGameSlot = -1;
@@ -152,7 +159,7 @@ void Game::gameLoop() {
 			sectionLoop();
 
 		_player.releasePlayerSprites();
-		assert(_scene._sprites._assetCount == 0);
+		assert(_scene._sprites.size() == 0);
 
 		_vm->_palette->unlock();
 		_vm->_events->waitCursor();
@@ -162,7 +169,8 @@ void Game::gameLoop() {
 }
 
 void Game::sectionLoop() {
-	while (!_vm->shouldQuit() && _statusFlag && (_sectionNumber == _currentSectionNumber)) {
+	while (!_vm->shouldQuit() && _statusFlag && !_winStatus &&
+			(_sectionNumber == _currentSectionNumber)) {
 		_kernelMode = KERNEL_ROOM_PRELOAD;
 		_player._spritesChanged = true;
 		_quoteEmergency = false;
@@ -234,7 +242,7 @@ void Game::sectionLoop() {
 			_fx = kTransitionFadeOutIn;
 			break;
 		case SCREEN_FADE_FAST:
-			_fx = kCenterVertTransition;
+			_fx = kNullPaletteCopy;
 			break;
 		default:
 			_fx = kTransitionNone;
@@ -318,7 +326,7 @@ void Game::initSection(int sectionNumber) {
 	_vm->_palette->resetGamePalette(18, 10);
 	_vm->_palette->setLowRange();
 
-	if (_scene._layer == LAYER_GUI)
+	if (_scene._mode == SCREENMODE_VGA)
 		_vm->_palette->setPalette(_vm->_palette->_mainPalette, 0, 4);
 
 	_vm->_events->loadCursors("*CURSOR.SS");
@@ -397,12 +405,12 @@ Common::StringArray Game::getMessage(uint32 id) {
 
 static const char *const DEBUG_STRING = "WIDEPIPE";
 
-void Game::handleKeypress(const Common::Event &event) {
-	if (event.kbd.flags & Common::KBD_CTRL) {
+void Game::handleKeypress(const Common::KeyState &kbd) {
+	if (kbd.flags & Common::KBD_CTRL) {
 		if (_widepipeCtr == 8) {
 			// Implement original game cheating keys here someday
 		} else {
-			if (event.kbd.keycode == (Common::KEYCODE_a +
+			if (kbd.keycode == (Common::KEYCODE_a +
 					(DEBUG_STRING[_widepipeCtr] - 'a'))) {
 				if (++_widepipeCtr == 8) {
 					MessageDialog *dlg = new MessageDialog(_vm, 2,
@@ -414,7 +422,8 @@ void Game::handleKeypress(const Common::Event &event) {
 		}
 	}
 
-	switch (event.kbd.keycode) {
+	Scene &scene = _vm->_game->_scene;
+	switch (kbd.keycode) {
 	case Common::KEYCODE_F1:
 		_vm->_dialogs->_pendingDialog = DIALOG_GAME_MENU;
 		break;
@@ -424,11 +433,19 @@ void Game::handleKeypress(const Common::Event &event) {
 	case Common::KEYCODE_F7:
 		_vm->_dialogs->_pendingDialog = DIALOG_RESTORE;
 		break;
+	case Common::KEYCODE_PAGEUP:
+		scene._userInterface._scrollbarStrokeType = SCROLLBAR_UP;
+		scene._userInterface.changeScrollBar();
+		break;
+	case Common::KEYCODE_PAGEDOWN:
+		scene._userInterface._scrollbarStrokeType = SCROLLBAR_DOWN;
+		scene._userInterface.changeScrollBar();
+		break;
+
+
 	default:
 		break;
 	}
-
-	warning("TODO: handleKeypress - %d", (int)event.kbd.keycode);
 }
 
 void Game::synchronize(Common::Serializer &s, bool phase1) {
@@ -548,16 +565,14 @@ void Game::writeSavegameHeader(Common::OutSaveFile *out, MADSSavegameHeader &hea
 	out->write(header._saveName.c_str(), header._saveName.size());
 	out->writeByte('\0');
 
-	// Get the active palette
-	uint8 thumbPalette[256 * 3];
-	g_system->getPaletteManager()->grabPalette(thumbPalette, 0, 256);
+	// Handle the thumbnail. If there's already one set by the game, create one
+	if (!_saveThumb)
+		createThumbnail();
+	Graphics::saveThumbnail(*out, *_saveThumb);
 
-	// Create a thumbnail and save it
-	Graphics::Surface *thumb = new Graphics::Surface();
-	::createThumbnail(thumb, _vm->_screen.getData(), MADS_SCREEN_WIDTH, MADS_SCREEN_HEIGHT, thumbPalette);
-	Graphics::saveThumbnail(*out, *thumb);
-	thumb->free();
-	delete thumb;
+	_saveThumb->free();
+	delete _saveThumb;
+	_saveThumb = nullptr;
 
 	// Write out the save date/time
 	TimeDate td;
@@ -568,6 +583,18 @@ void Game::writeSavegameHeader(Common::OutSaveFile *out, MADSSavegameHeader &hea
 	out->writeSint16LE(td.tm_hour);
 	out->writeSint16LE(td.tm_min);
 	out->writeUint32LE(_vm->_events->getFrameCounter());
+}
+
+void Game::createThumbnail() {
+	if (_saveThumb) {
+		_saveThumb->free();
+		delete _saveThumb;
+	}
+
+	uint8 thumbPalette[PALETTE_SIZE];
+	_vm->_palette->grabPalette(thumbPalette, 0, PALETTE_COUNT);
+	_saveThumb = new Graphics::Surface();
+	::createThumbnail(_saveThumb, _vm->_screen.getData(), MADS_SCREEN_WIDTH, MADS_SCREEN_HEIGHT, thumbPalette);
 }
 
 } // End of namespace MADS

@@ -59,7 +59,7 @@ protected:
 	State _state;
 
 	Timestamp _length;
-	mad_timer_t _totalTime;
+	mad_timer_t _curTime;
 
 	mad_stream _stream;
 	mad_frame _frame;
@@ -99,7 +99,7 @@ MP3Stream::MP3Stream(Common::SeekableReadStream *inStream, DisposeAfterUse::Flag
 	_posInFrame(0),
 	_state(MP3_STATE_INIT),
 	_length(0, 1000),
-	_totalTime(mad_timer_zero) {
+	_curTime(mad_timer_zero) {
 
 	// The MAD_BUFFER_GUARD must always contain zeros (the reason
 	// for this is that the Layer III Huffman decoder of libMAD
@@ -119,7 +119,7 @@ MP3Stream::MP3Stream(Common::SeekableReadStream *inStream, DisposeAfterUse::Flag
 	// Note that we allow "MAD_ERROR_BUFLEN" as error code here, since according
 	// to mad.h it is also set on EOF.
 	if ((_stream.error == MAD_ERROR_NONE || _stream.error == MAD_ERROR_BUFLEN) && getRate() > 0)
-		_length = Timestamp(mad_timer_count(_totalTime, MAD_UNITS_MILLISECONDS), getRate());
+		_length = Timestamp(mad_timer_count(_curTime, MAD_UNITS_MILLISECONDS), getRate());
 
 	deinitStream();
 
@@ -166,6 +166,8 @@ void MP3Stream::decodeMP3Data() {
 				}
 			}
 
+			// Sum up the total playback time so far
+			mad_timer_add(&_curTime, _frame.header.duration);
 			// Synthesize PCM data
 			mad_synth_frame(&_synth, &_frame);
 			_posInFrame = 0;
@@ -220,10 +222,10 @@ bool MP3Stream::seek(const Timestamp &where) {
 	mad_timer_t destination;
 	mad_timer_set(&destination, time / 1000, time % 1000, 1000);
 
-	if (_state != MP3_STATE_READY || mad_timer_compare(destination, _totalTime) < 0)
+	if (_state != MP3_STATE_READY || mad_timer_compare(destination, _curTime) < 0)
 		initStream();
 
-	while (mad_timer_compare(destination, _totalTime) > 0 && _state != MP3_STATE_EOS)
+	while (mad_timer_compare(destination, _curTime) > 0 && _state != MP3_STATE_EOS)
 		readHeader();
 
 	decodeMP3Data();
@@ -242,8 +244,25 @@ void MP3Stream::initStream() {
 
 	// Reset the stream data
 	_inStream->seek(0, SEEK_SET);
-	_totalTime = mad_timer_zero;
+	_curTime = mad_timer_zero;
 	_posInFrame = 0;
+	
+	// Skip ID3 TAG if any
+	// ID3v1 (beginning with with 'TAG') is located at the end of files. So we can ignore those.
+	// ID3v2 can be located at the start of files and begins with a 10 bytes header, the first 3 bytes being 'ID3'.
+	// The tag size is coded on the last 4 bytes of the 10 bytes header as a 32 bit synchsafe integer.
+	// See http://id3.org/id3v2.4.0-structure for details.
+	char data[10];
+	_inStream->read(data, 10);
+	if (data[0] == 'I' && data[1] == 'D' && data[2] == '3') {
+		uint32 size = data[9] + 128 * (data[8] + 128 * (data[7] + 128 * data[6]));
+		// This size does not include an optional 10 bytes footer. Check if it is present.
+		if (data[5] & 0x10)
+			size += 10;
+		debug("Skipping ID3 TAG (%d bytes)", size + 10);
+		_inStream->seek(size, SEEK_CUR);
+	} else
+		_inStream->seek(0, SEEK_SET);
 
 	// Update state
 	_state = MP3_STATE_READY;
@@ -280,7 +299,7 @@ void MP3Stream::readHeader() {
 		}
 
 		// Sum up the total playback time so far
-		mad_timer_add(&_totalTime, _frame.header.duration);
+		mad_timer_add(&_curTime, _frame.header.duration);
 		break;
 	}
 

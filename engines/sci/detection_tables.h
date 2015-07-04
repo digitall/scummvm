@@ -904,16 +904,14 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformDOS, 0, GUIO5(GUIO_NOSPEECH, GAMEOPTION_EGA_UNDITHER, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
 
-#if 0 // TODO: unknown if these files are corrupt
-	// Hoyle 1 - English Amiga (from www.back2roots.org)
-	// SCI interpreter version 0.000.519 - FIXME: some have 0.000.530, others x.yyy.zzz
+	// Hoyle 1 - English Amiga (from www.back2roots.org - verified by waltervn in bug report #6870)
+	// Game version 1.000.139, SCI interpreter version x.yyy.zzz
 	{"hoyle1", "", {
 		{"resource.map", 0, "2a72b1aba65fa6e339370eb86d8601d1", 5166},
 		{"resource.001", 0, "e0dd44069a62a463fd124974b915f10d", 218755},
 		{"resource.002", 0, "e0dd44069a62a463fd124974b915f10d", 439502},
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformAmiga, 0, GUIO4(GUIO_NOSPEECH, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
-#endif
 
 	// Hoyle 2 - English DOS
 	// SCI interpreter version 0.000.572
@@ -1552,6 +1550,17 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformDOS, ADGF_DEMO, GUIO4(GUIO_NOSPEECH, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
 
+	// King's Quest 6 - English DOS Playable CD "Sneak Peaks" Demo (first island fully playable)
+	//  (supplied by KQ5 G5 in bug report #6824)
+	// Executable scanning reports "1.cfs.158 Not a release version", VERSION file reports "1.000.000"
+	// SCI interpreter version ???
+	{"kq6", "Demo/CD", {
+		{"resource.000", 0, "233394a5f33b475ae5975e7e9a420865", 8345598},
+		{"resource.map", 0, "eb9e177281b7cde188dc0d83194cd365", 8960},
+		{"resource.msg", 0, "3cf5de44de36191f109d425b8450efc8", 259510},
+		AD_LISTEND},
+		Common::EN_ANY, Common::kPlatformDOS, ADGF_CD | ADGF_DEMO, GUIO4(GUIO_NOSPEECH, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+
 	// King's Quest 6 - English DOS Floppy
 	// SCI interpreter version 1.001.054
 	{"kq6", "", {
@@ -1832,15 +1841,12 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformDOS, 0, GUIO4(GUIO_NOSPEECH, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
 
-#if 0
-	// The resource.002 file, contained in disk 3, is broken in this version
-	// (it contains a large chunk of zeroes and several broken resources,
-	// e.g. pic 250 and views 250 and 251).
-	// Thus this detection entry isn't accurate.
-
-	// Larry 1 Remake - English Amiga (from www.back2roots.org)
+	// Larry 1 Remake - English Amiga
 	// Executable scanning reports "1.004.024"
 	// SCI interpreter version 1.000.784
+	// NOTE: The resource.002 file, contained in disk 3, is broken in the
+	// www.back2roots.org version (it contains a large chunk of zeroes and
+	// several broken resources, e.g. pic 250 and views 250 and 251).
 	{"lsl1sci", "SCI", {
 		{"resource.map", 0, "7d115a9e27dc8ac71e8d5ef33d589bd5", 3366},
 		{"resource.000", 0, "e67fd129d5810fc7ad8ea509d891cc00", 363073},
@@ -1849,7 +1855,6 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.003", 0, "4a34c3367c2fe7eb380d741374da1989", 572251},
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformAmiga, 0, GUIO4(GUIO_NOSPEECH, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
-#endif
 
 	// Larry 1 VGA Remake - English DOS (from spookypeanut)
 	// Executable scanning reports "1.000.577", VERSION file reports "2.1"
@@ -2070,6 +2075,20 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.002", 0, "3827a9b17b926e12dcc336860f50612a", 672403},
 		{"resource.003", 0, "3827a9b17b926e12dcc336860f50612a", 587036},
 		{"resource.004", 0, "3827a9b17b926e12dcc336860f50612a", 691932},
+		AD_LISTEND},
+		Common::DE_DEU, Common::kPlatformDOS, ADGF_ADDENGLISH, GUIO5(GUIO_NOSPEECH, GAMEOPTION_EGA_UNDITHER, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+
+	// Larry 3 - German DOS (German+English, 5 1/4" floppies)
+	// SCI interpreter version S.old.114 (executable), VERSION is "1.056"
+	{"lsl3", "", {
+		{"resource.map", 0, "2468da5d664bb6ca3df866074a05e43c", 8910},
+		{"resource.001", 0, "3827a9b17b926e12dcc336860f50612a", 163326},
+		{"resource.002", 0, "3827a9b17b926e12dcc336860f50612a", 312436},
+		{"resource.003", 0, "3827a9b17b926e12dcc336860f50612a", 347307},
+		{"resource.004", 0, "3827a9b17b926e12dcc336860f50612a", 332369},
+		{"resource.005", 0, "3827a9b17b926e12dcc336860f50612a", 347654},
+		{"resource.006", 0, "3827a9b17b926e12dcc336860f50612a", 326011},
+		{"resource.007", 0, "3827a9b17b926e12dcc336860f50612a", 309553},
 		AD_LISTEND},
 		Common::DE_DEU, Common::kPlatformDOS, ADGF_ADDENGLISH, GUIO5(GUIO_NOSPEECH, GAMEOPTION_EGA_UNDITHER, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
 
@@ -2607,6 +2626,48 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformDOS, ADGF_UNSTABLE, GUIO5(GUIO_NOSPEECH, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
 
+	// Phantasmagoria - German DOS/Windows
+	// Windows executable scanning reports "unknown" - "Sep 19 1995 09:39:48"
+	// DOS executable scanning reports "unknown" - "Sep 19 1995 16:18:34"
+	// VERSION file reports "1.100.000"
+	// Supplied by AReim1982
+	{"phantasmagoria", "", {
+		{"resmap.001", 0, "d5048f972d2e1abd5f6b6a3ea8a466b0", 11524},
+		{"ressci.001", 0, "3aae6559aa1df273bc542d5ac6330d75", 71063082},
+		{"resmap.002", 0, "ae0105261e04826324daf7dd2d534465", 12064},
+		{"ressci.002", 0, "3aae6559aa1df273bc542d5ac6330d75", 80283368},
+		{"resmap.003", 0, "50786a4f54c6432ec31b52be90b3a8ba", 12340},
+		{"ressci.003", 0, "3aae6559aa1df273bc542d5ac6330d75", 82360370},
+		{"resmap.004", 0, "4cd3bbff8b81bad85db52c0c8407bd81", 12562},
+		{"ressci.004", 0, "3aae6559aa1df273bc542d5ac6330d75", 84453560},
+		{"resmap.005", 0, "779bd12802da6cfe54ce482140824a46", 12616},
+		{"ressci.005", 0, "3aae6559aa1df273bc542d5ac6330d75", 85113663},
+		{"resmap.006", 0, "2299f97876493cc29b6a48e1cfe9619d", 12538},
+		{"ressci.006", 0, "3aae6559aa1df273bc542d5ac6330d75", 87602346},
+		{"resmap.007", 0, "06309b8043aecb85bd507b15d16cb544", 7984},
+		//{"ressci.007", 0, "3aae6559aa1df273bc542d5ac6330d75", 26898681},
+		AD_LISTEND},
+		Common::DE_DEU, Common::kPlatformDOS, ADGF_UNSTABLE, GUIO5(GUIO_NOSPEECH, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI) },
+
+	// Phantasmagoria - French DOS
+	// Supplied by Kervala in bug #6574
+	{"phantasmagoria", "", {
+		{"resmap.001", 0, "4da82dd336d4b9cd8c16f3cc11f0c615", 11524},
+		{"ressci.001", 0, "3aae6559aa1df273bc542d5ac6330d75", 69963685},
+		{"resmap.002", 0, "4f40f43f2b60bf765864433069752bb9", 12064},
+		{"ressci.002", 0, "3aae6559aa1df273bc542d5ac6330d75", 78362841},
+		{"resmap.003", 0, "6a392a86f14b6ddb4422978ee71e54ac", 12340},
+		{"ressci.003", 0, "3aae6559aa1df273bc542d5ac6330d75", 80431189},
+		{"resmap.004", 0, "df2e9462c41202de5f3843908c95a715", 12562},
+		{"ressci.004", 0, "3aae6559aa1df273bc542d5ac6330d75", 82542844},
+		{"resmap.005", 0, "43efd3fe834286c70a2c8b4cd747c1e2", 12616},
+		{"ressci.005", 0, "3aae6559aa1df273bc542d5ac6330d75", 83790486},
+		{"resmap.006", 0, "b3065e54a00190752a06dacd201b5058", 12538},
+		{"ressci.006", 0, "3aae6559aa1df273bc542d5ac6330d75", 85415107},
+		{"resmap.007", 0, "5633960bc106c39ca91d2d8fce18fd2d", 7984},
+		AD_LISTEND},
+		Common::FR_FRA, Common::kPlatformDOS, ADGF_UNSTABLE, GUIO5(GUIO_NOSPEECH, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+
 	// Phantasmagoria - English DOS Demo
 	// Executable scanning reports "2.100.002"
 	{"phantasmagoria", "Demo", {
@@ -2658,6 +2719,25 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"ressci.005", 0, "05f9fe2bee749659acb3cd2c90252fc5", 67905112},
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformWindows, ADGF_UNSTABLE, GUIO5(GUIO_NOSPEECH, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+
+	// Phantasmagoria 2 - German DOS/Windows
+	// Windows executable scanning reports "unknown" - "Dec 07 1996 15:42:02"
+	// DOS executable scanning reports "unknown" - "Dec 07 1996 08:35:12"
+	// VERSION file reports "000.1.0vu" (HEX: 30 30 30 2E 31 00 2E 30 76 FA 0D 0A)
+	// Supplied by AReim1982
+	{"phantasmagoria2", "", {
+		{"resmap.001", 0, "d62f48ff8bddb39503b97e33439482c9", 1114},
+		{"ressci.001", 0, "4ebc2b8455c74ad205ae592eec27313a", 24590716},
+		{"resmap.002", 0, "642a1f85ad8a4ce1d3850b10ad082200", 1138},
+		{"ressci.002", 0, "4ebc2b8455c74ad205ae592eec27313a", 34681672},
+		{"resmap.003", 0, "e08316864ef77735bb7f8f208110c43b", 1174},
+		{"ressci.003", 0, "4ebc2b8455c74ad205ae592eec27313a", 38930933},
+		{"resmap.004", 0, "875cf07df77fbaa1518a06ffed616c5f", 1300},
+		{"ressci.004", 0, "4ebc2b8455c74ad205ae592eec27313a", 42750325},
+		{"resmap.005", 0, "2fc48a4a5a73b726994f189da51a8b2a", 1954},
+		{"ressci.005", 0, "e94005890d22dd3b7f605a2a7c025803", 68232146},
+		AD_LISTEND},
+		Common::DE_DEU, Common::kPlatformWindows, ADGF_UNSTABLE, GUIO5(GUIO_NOSPEECH, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI) },
 
 	// Phantasmagoria 2 - English DOS (GOG version) - ressci.* merged in ressci.000
 	// Executable scanning reports "3.000.000" - "Dec 07 1996 09:29:03"
@@ -4100,6 +4180,7 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 	FANMADE("Knight's Quest Demo 1.0", "5e816edf993956752ed06fccfeeae6d9", 1260, "959321f88a22905fa1f8c6d897874744", 703836),
 	FANMADE("LockerGnome Quest", "3eeff9130206cad0c4e1551e2b9dd2c5", 420, "ae05ca90806fd90cc43f147c82d3547c", 158906),
 	FANMADE("LockerGnome Quest Redux", "55b0081dbdd77a07807c76cec3606970", 492, "75c9c5e8a475a7b5f1a6cb18edad67f2", 168069),
+	FANMADE("LockerGnome Quest Redux", "6299578d8ab709cc181baea6b984a0a7", 492, "c0ff4bfcc62fb111337343967e4001fd", 167383),
 	FANMADE("New Year's Mystery", "e4dcab1b1d3cb4a2c070a07a9c9589e0", 708, "e00ca5e44fd4e98d8174b467b31b0f21", 295425),
 	FANMADE("New Year's Mystery (Updated)", "efd1beb5120293725065c95959144f81", 714, "b3bd3c2372ed6efa28adb12403c4c31a", 305027),
 	FANMADE("Ocean Battle", "c2304a0568e0eb84f8e9a0915f01170a", 408, "46c520c1ac9b63528854d0f58c7e1b74", 142234),

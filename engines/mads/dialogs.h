@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -29,6 +29,8 @@
 #include "mads/msurface.h"
 
 namespace MADS {
+
+#define DIALOG_TOP 22
 
 class Dialog {
 private:
@@ -201,7 +203,9 @@ public:
 
 enum DialogId {
 	DIALOG_NONE = 0, DIALOG_GAME_MENU = 1, DIALOG_SAVE = 2, DIALOG_RESTORE = 3,
-	DIALOG_OPTIONS = 4, DIALOG_DIFFICULTY = 5, DIALOG_ERROR = 6
+	DIALOG_OPTIONS = 4, DIALOG_DIFFICULTY = 5, DIALOG_ERROR = 6,
+	DIALOG_MAIN_MENU = 7, DIALOG_TEXTVIEW = 8, DIALOG_ANIMVIEW = 9,
+	DIALOG_ADVERT = 10
 };
 
 class Dialogs {
@@ -222,6 +226,36 @@ public:
 	virtual void showItem(int objectId, int messageId, int speech = 0) = 0;
 	virtual Common::String getVocab(int vocabId) = 0;
 	virtual bool show(int messageId, int objectId = -1) = 0;
+};
+
+class FullScreenDialog: public EventTarget {
+protected:
+	/**
+	 * Engine reference
+	 */
+	MADSEngine *_vm;
+
+	/**
+	 * Screen/scene to show background from
+	 */
+	int _screenId;
+
+	/**
+	 * Flag for palette initialization
+	 */
+	bool _palFlag;
+
+	/**
+	 * Handles displaying the screen background and dialog
+	 */
+	virtual void display();
+public:
+	/**
+	 * Constructor
+	 */
+	FullScreenDialog(MADSEngine *vm);
+
+	virtual ~FullScreenDialog();
 };
 
 } // End of namespace MADS
