@@ -30,8 +30,8 @@
 
 #include "common/archive.h"
 
-#include "graphics/decoders/bmp.h"
-#include "graphics/decoders/tga.h"
+#include "image/bmp.h"
+#include "image/tga.h"
 
 namespace Ring {
 
@@ -49,7 +49,7 @@ bool ImageLoaderBMP::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, Dr
 	}
 
 	// Get image surface
-	Graphics::BitmapDecoder *bmp = new Graphics::BitmapDecoder();
+	Image::BitmapDecoder *bmp = new Image::BitmapDecoder();
 	bool loaded = bmp->loadStream(*stream);
 	if (!loaded) {
 		warning("[ImageLoaderBMP::load] Cannot decode image (%s)", image->getName().c_str());
@@ -271,7 +271,7 @@ bool ImageLoaderTGC::load(ImageSurface *image, ArchiveType type, ZoneId zone, Lo
 	}
 
 	// Get image surface
-	Graphics::TGADecoder *tga = new Graphics::TGADecoder();
+	Image::TGADecoder *tga = new Image::TGADecoder();
 	bool loaded = tga->loadStream(*decompressedData);
 	if (!loaded) {
 		warning("[ImageLoaderBMP::load] Cannot decode image (%s)", image->getName().c_str());
@@ -342,7 +342,7 @@ bool ImageLoaderTGA::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, Dr
 	}
 
 	// Get image surface
-	Graphics::TGADecoder *tga = new Graphics::TGADecoder();
+	Image::TGADecoder *tga = new Image::TGADecoder();
 	bool loaded = tga->loadStream(*stream);
 	if (!loaded) {
 		warning("[ImageLoaderBMP::load] Cannot decode image (%s)", image->getName().c_str());
