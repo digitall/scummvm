@@ -115,7 +115,7 @@ public:
 	void adjustCoordinates(Common::Point *point);
 	void updateData(float a1, float a2, float a3, float a4, float a5, float a6, float a7, float a8);
 
-	bool isInitialized() { return _buffer != NULL; }
+	bool isInitialized() { return _buffer != nullptr; }
 	const Header &getHeader() { return _header; }
 	void *getBuffer() { return _buffer; }
 

@@ -40,7 +40,7 @@ ZoneSystemFaust::ZoneSystemFaust(ApplicationFaust *application) : _app(applicati
 
 ZoneSystemFaust::~ZoneSystemFaust() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneSystemFaust::onInit() {

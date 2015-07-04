@@ -40,8 +40,8 @@ ImageHandle::ImageHandle() : ImageSurface() {
 	_imageCount = 0;
 	_field_6C = 0;
 	_imageType = kImageTypeBMP;
-	_objectPresentation = NULL;
-	_animation = NULL;
+	_objectPresentation = nullptr;
+	_animation = nullptr;
 	_zone = kZoneNone;
 	_loadFrom = kLoadFromInvalid;
 	_archiveType = kArchiveInvalid;
@@ -59,8 +59,8 @@ ImageHandle::ImageHandle(Common::String nameId, const Common::Point &point, bool
 
 ImageHandle::~ImageHandle() {
 	// Zero-out passed pointers
-	_objectPresentation = NULL;
-	_animation = NULL;
+	_objectPresentation = nullptr;
+	_animation = nullptr;
 }
 
 void ImageHandle::init(Common::String nameId, const Common::Point &point, bool active, DrawType drawType, uint32 priority, byte imageCount, ZoneId zone, LoadFrom loadFrom, ImageType imageType, ArchiveType archiveType) {
@@ -73,15 +73,15 @@ void ImageHandle::init(Common::String nameId, const Common::Point &point, bool a
 	_imageCount = imageCount;
 	_field_6C = 1;
 	_imageType = imageType;
-	_objectPresentation = NULL;
-	_animation = NULL;
+	_objectPresentation = nullptr;
+	_animation = nullptr;
 	_zone = zone;
 	_loadFrom = loadFrom;
 	_archiveType = archiveType;
 
 	_filename = "";
 	_directory = "";
-	_surface = NULL;
+	_surface = nullptr;
 
 	_index = 0;
 }
@@ -118,7 +118,7 @@ void ImageHandle::saveLoadWithSerializer(Common::Serializer &s) {
 #pragma region Image
 
 ImageSurface::ImageSurface() {
-	_surface = NULL;
+	_surface = nullptr;
 }
 
 ImageSurface::~ImageSurface() {
@@ -182,7 +182,7 @@ ImageLoader *ImageSurface::getLoader(Common::String filename, ArchiveType type) 
 		break;
 	}
 
-	ImageLoader *loader = NULL;
+	ImageLoader *loader;
 	filename.toLowercase();
 
 	// Special case for files with no extension

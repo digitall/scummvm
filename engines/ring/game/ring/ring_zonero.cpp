@@ -43,7 +43,7 @@ ZoneRORing::ZoneRORing(ApplicationRing *application) : _app(application) {
 
 ZoneRORing::~ZoneRORing() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneRORing::onInit() {

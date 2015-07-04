@@ -33,8 +33,8 @@ namespace Ring {
 #pragma region SoundResource
 
 SoundResource::SoundResource() {
-	_buffer  = NULL;
-	_currentPointer = NULL;
+	_buffer  = nullptr;
+	_currentPointer = nullptr;
 	_size    = 0;
 }
 
@@ -44,7 +44,7 @@ SoundResource::~SoundResource() {
 
 void SoundResource::cleanup() {
 	SAFE_FREE(_buffer);
-	_currentPointer = NULL;
+	_currentPointer = nullptr;
 	_size = 0;
 }
 
@@ -52,7 +52,7 @@ void SoundResource::add(void *data, uint32 dataSize) {
 	if (!_buffer)
 		error("[SoundResource::add] Buffer not initialized properly");
 
-	if (data == NULL)
+	if (data == nullptr)
 		error("[SoundResource::add] Invalid data pointer");
 
 	if (dataSize == 0)
@@ -115,7 +115,7 @@ void SoundResource::getBuffer(SoundBuffer *buffer, uint32 size) {
 		}
 	} else {
 		cleanup();
-		buffer->buffer = NULL;
+		buffer->buffer = nullptr;
 		buffer->size   = 0;
 	}
 }
@@ -129,11 +129,11 @@ void SoundResource::getBuffer(SoundBuffer *buffer) {
 #pragma region CompressedSound
 
 CompressedSound::CompressedSound() {
-	_stream = NULL;
-	_buffer = NULL;
+	_stream = nullptr;
+	_buffer = nullptr;
 	_field_C = 0;
 	_field_10 = 0;
-	_resource = NULL;
+	_resource = nullptr;
 
 	// WAV related
 	_type = 0;
@@ -386,7 +386,7 @@ SoundLoader::SoundLoader(SoundFormat format) {
 	_blockAlign = 0;
 	_bitsPerSample = 0;
 	//_field_10 = 0;
-	_compressedStream = NULL;
+	_compressedStream = nullptr;
 	_field_16 = false;
 	//_field_1A = 0;
 	_format = format;

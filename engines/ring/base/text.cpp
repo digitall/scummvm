@@ -38,11 +38,11 @@ Text::Text() {
 	_height = 0;
 	_transparentBackground = false;
 	_backgroundColor = 0;
-	_objectPresentation = NULL;
+	_objectPresentation = nullptr;
 }
 
 Text::~Text() {
-	_objectPresentation = NULL;
+	_objectPresentation = nullptr;
 }
 
 void Text::init(Common::String text, const Common::Point &point, FontId fontId, Color foreground, Color background) {
@@ -50,17 +50,16 @@ void Text::init(Common::String text, const Common::Point &point, FontId fontId, 
 	_fontId = fontId;
 	_point = point;
 	_foregroundColor = foreground.getColor();
+	_objectPresentation = nullptr;
 
 	set(text);
 
 	if (!background.isTransparent()) {
 		_transparentBackground = false;
-		_objectPresentation = NULL;
 		_backgroundColor = background.getColor();
 	} else {
 		_transparentBackground = true;
 		_backgroundColor = 0;
-		_objectPresentation = NULL;
 	}
 }
 

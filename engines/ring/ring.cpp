@@ -58,8 +58,8 @@
 namespace Ring {
 
 RingEngine::RingEngine(OSystem *syst, const RingGameDescription *gd) :
-	Engine(syst), _gameDescription(gd), _debugger(NULL), _random("ring"),
-	_application(NULL), _mouseButtonPressed(false) , _flag(true) {
+	Engine(syst), _gameDescription(gd), _debugger(nullptr), _random("ring"),
+	_application(nullptr), _mouseButtonPressed(false) , _flag(true) {
 
 	// Adding the default directories
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
@@ -88,7 +88,7 @@ RingEngine::~RingEngine() {
 	delete _debugger;
 
 	// Zero passed pointers
-	_gameDescription = NULL;
+	_gameDescription = nullptr;
 }
 
 Common::Error RingEngine::run() {
@@ -378,7 +378,7 @@ const char *RingEngine::gameIdFromTarget(const char *target) {
 	// Get the game id from the target: remove everything after the first -
 	char *tok = strtok(const_cast<char *>(target), "-");
 
-	return Common::String::format("%s", (tok == NULL) ? target : tok).c_str();
+	return Common::String::format("%s", (tok == nullptr) ? target : tok).c_str();
 }
 
 #pragma region Floating point

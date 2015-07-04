@@ -37,7 +37,7 @@ Zone11Faust::Zone11Faust(ApplicationFaust *application) : _app(application) {
 
 Zone11Faust::~Zone11Faust() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void Zone11Faust::onInit() {

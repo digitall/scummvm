@@ -40,7 +40,7 @@ ZoneASRing::ZoneASRing(ApplicationRing *application) : _app(application) {
 
 ZoneASRing::~ZoneASRing() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneASRing::onInit() {

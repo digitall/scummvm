@@ -41,8 +41,8 @@ SoundManager::~SoundManager() {
 	CLEAR_ARRAY(SoundEntry, _entries);
 
 	// Zero-out passed pointers
-	_app = NULL;
-	_mixer = NULL;
+	_app   = nullptr;
+	_mixer = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ void SoundManager::play(Id soundId, bool loop) {
 	}
 
 	// Setup and play entry
-	Dialog *dialog = NULL;
+	Dialog *dialog = nullptr;
 	if (entry->getType() == kSoundTypeDialog) {
 		dialog = new Dialog(soundId, entry->getName());
 		_app->getDialogHandler()->addDialog(dialog);
@@ -83,7 +83,7 @@ void SoundManager::play(Id soundId, bool loop) {
 	entry->play(loop);
 	entry->setPlaying(true);
 
-	if (entry->getType() == kSoundTypeDialog && dialog != NULL)
+	if (entry->getType() == kSoundTypeDialog && dialog != nullptr)
 		dialog->setTicks();
 }
 
@@ -241,7 +241,7 @@ void SoundManager::addEntry(Id soundId, SoundType type, Common::String filename,
 	if (getEntry(soundId))
 		return;
 
-	SoundEntry *entry = NULL;
+	SoundEntry *entry;
 	if (a4)
 		entry = new SoundEntryStream(soundId, type, filename, loadFrom, format, soundChunk);
 	else
@@ -252,7 +252,7 @@ void SoundManager::addEntry(Id soundId, SoundType type, Common::String filename,
 
 SoundEntry *SoundManager::getEntry(Id soundId) {
 	if (!_entries.has(soundId))
-		return NULL;
+		return nullptr;
 
 	return _entries.get(soundId);
 }

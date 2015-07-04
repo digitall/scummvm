@@ -31,7 +31,7 @@
 
 namespace Ring {
 
-CompressedStream::CompressedStream() : _fileStream(NULL), _artStream(NULL) {
+CompressedStream::CompressedStream() : _fileStream(nullptr), _artStream(nullptr) {
 	memset(&_decBuffer, 0, sizeof(_decBuffer));
 	_type = 1;
 }
@@ -83,7 +83,7 @@ Common::SeekableReadStream *CompressedStream::getCompressedStream() {
 	if (_artStream)
 		return _artStream;
 
-	return NULL;
+	return nullptr;
 }
 
 void CompressedStream::initDecompression() {
@@ -208,7 +208,7 @@ Common::MemoryReadStream *CompressedStream::decompressNode() {
 	uint32 bufferSize = size + 129652;
 	if (bufferSize > 10000000) {
 		warning("[CompressedStream::decompressNode] Invalid node buffer size (%d)", bufferSize);
-		return NULL;
+		return nullptr;
 	}
 
 	// Initialize buffer
@@ -258,7 +258,7 @@ Common::MemoryReadStream *CompressedStream::decompressChannel() {
 	uint32 bufferSize = size + 12;
 	if (bufferSize > 10000000) {
 		warning("[CompressedStream::decompressChannel] Invalid channel buffer size (%d)", bufferSize);
-		return NULL;
+		return nullptr;
 	}
 
 	// Initialize buffer

@@ -550,14 +550,14 @@ AnimationImage::AnimationImage() : Animation() {
 	_field_79 = 0;
 	_drawType = kDrawTypeInvalid;
 	_imageCount = 0;
-	_currentImage = NULL;
+	_currentImage = nullptr;
 	_field_89 = 0;
 }
 
 AnimationImage::~AnimationImage() {
 	CLEAR_ARRAY(ImageHandle, _imageHandles);
 
-	_currentImage = NULL;
+	_currentImage = nullptr;
 }
 
 void AnimationImage::init(Common::String name, ImageType imageType, const Common::Point &point, uint32 a5, DrawType drawType, uint32 frameCount, float framerate, uint32 startFrame, byte a10, byte imageCount, uint32 priority, LoadFrom loadFrom, ArchiveType archiveType) {

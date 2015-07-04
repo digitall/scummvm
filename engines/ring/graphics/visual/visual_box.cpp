@@ -42,8 +42,8 @@ VisualObjectBox::DialogList::~DialogList() {
 VisualObjectBox::VisualObjectBox(Id id) : Visual(id) {
 	_isLoaded       = false;
 	_archiveType    = kArchiveInvalid;
-	_name           = NULL;
-	_background  = NULL;
+	_name           = nullptr;
+	_background     = nullptr;
 	_isSetup        = false;
 	_keywordId      = 0;
 	_isFirstTime    = true;

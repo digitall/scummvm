@@ -37,7 +37,7 @@ ZoneFORing::ZoneFORing(ApplicationRing *application) : _app(application) {
 
 ZoneFORing::~ZoneFORing() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneFORing::onInit() {

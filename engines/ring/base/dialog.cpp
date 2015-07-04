@@ -327,8 +327,8 @@ void DialogHandler::play() {
 
 	int32 index = dialog->getLineIndex();
 	if (index != -1) {
-		Text *line1 = NULL;
-		Text *line2 = NULL;
+		Text *line1 = nullptr;
+		Text *line2 = nullptr;
 
 		// Create text from dialog lines
 		Common::String dialogLine1 = dialog->getLine1((uint32)index);

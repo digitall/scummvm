@@ -55,7 +55,7 @@ void CursorBase::init(CursorId id, Common::String name, CursorType cursorType, b
 
 CursorImage::CursorImage() {
 	_archiveType = kArchiveInvalid;
-	_image = NULL;
+	_image = nullptr;
 }
 
 CursorImage::~CursorImage() {
@@ -199,7 +199,7 @@ void CursorHandler::add(CursorId id, Common::String name, CursorType cursorType,
 	if (_cursors.has(id))
 		error("[CursorHandler::add] ID already exists (%d)", id);
 
-	CursorBase *cursor = NULL;
+	CursorBase *cursor = nullptr;
 	switch (cursorType) {
 	default:
 		error("[CursorHandler::add] Invalid cursor type (%d)", cursorType);

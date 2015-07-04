@@ -74,7 +74,7 @@ bool ImageLoaderBMP::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, Dr
 #pragma region BMA
 
 ImageLoaderBMA::ImageLoaderBMA() {
-	_stream = NULL;
+	_stream = nullptr;
 	memset(&_header, 0, sizeof(_header));
 	_coreSize = 0;
 	_seqSize = 0;
@@ -89,7 +89,7 @@ bool ImageLoaderBMA::load(ImageSurface *image, ArchiveType type, ZoneId zone, Lo
 	if (!image)
 		error("[ImageLoaderBMA::load] Invalid image pointer!");
 
-	_stream = NULL;
+	_stream = nullptr;
 	_filename = image->getName();
 
 	if (!init(type, zone, loadFrom)){
@@ -249,7 +249,7 @@ void ImageLoaderBMA::copySurface(Graphics::Surface *out, const Graphics::Surface
 #pragma region TGC
 
 ImageLoaderTGC::ImageLoaderTGC() {
-	_stream = NULL;
+	_stream = nullptr;
 }
 
 ImageLoaderTGC::~ImageLoaderTGC() {
@@ -260,7 +260,7 @@ bool ImageLoaderTGC::load(ImageSurface *image, ArchiveType type, ZoneId zone, Lo
 	if (!image)
 		error("[ImageLoaderTGC::load] Invalid image pointer!");
 
-	_stream = NULL;
+	_stream = nullptr;
 	_filename = image->getName();
 
 	Common::SeekableReadStream *decompressedData = init(type, zone, loadFrom);
@@ -298,16 +298,16 @@ Common::SeekableReadStream *ImageLoaderTGC::init(ArchiveType type, ZoneId zone, 
 	switch (type) {
 	default:
 		warning("[ImageLoaderTGC::init] Invalid archive type (%d)!", type);
-		return NULL;
+		return nullptr;
 
 	case kArchiveFile:
 		if (!_stream->init(_filename, 1, 0))
-			return NULL;
+			return nullptr;
 		break;
 
 	case kArchiveArt:
 		if (!_stream->initArt(_filename, zone, loadFrom))
-			return NULL;
+			return nullptr;
 		break;
 	}
 
@@ -365,7 +365,7 @@ bool ImageLoaderTGA::load(ImageSurface *image, ArchiveType, ZoneId, LoadFrom, Dr
 #pragma region CNM
 
 ImageLoaderCIN::ImageLoaderCIN() {
-	_cinematic = NULL;
+	_cinematic = nullptr;
 	memset(&_header, 0, sizeof(_header));
 	_stride = 0;
 	_widthAndPadding = 0;
@@ -503,10 +503,10 @@ bool ImageLoaderCI2::SoundConfiguration::read(Common::SeekableReadStream *stream
 }
 
 ImageLoaderCI2::ImageLoaderCI2() {
-	_cinematic = NULL;
+	_cinematic = nullptr;
 	memset(&_header, 0, sizeof(_header));
 	memset(_soundConfigs, 0, ARRAYSIZE(_soundConfigs));
-	_controlTable = NULL;
+	_controlTable = nullptr;
 	_widthAndPadding = 0;
 	_stride = 0;
 	_width = 0;
@@ -552,7 +552,7 @@ cleanup:
 }
 
 bool ImageLoaderCI2::init(Common::String filename, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom) {
-	_controlTable = NULL;
+	_controlTable = nullptr;
 	_cinematic = new Cinematic2();
 
 	if (!_cinematic->init(filename, archiveType, zone, loadFrom)) {
@@ -718,7 +718,7 @@ bool ImageLoaderCI2::readImage(ImageSurface *image, byte bitdepth, DrawType draw
 void ImageLoaderCI2::deinit() {
 	SAFE_DELETE(_cinematic);
 	free(_controlTable);
-	_controlTable = NULL;
+	_controlTable = nullptr;
 }
 
 #pragma endregion

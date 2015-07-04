@@ -38,7 +38,7 @@ struct SoundBuffer {
 	uint32  size;
 
 	SoundBuffer() {
-		buffer = NULL;
+		buffer = nullptr;
 		field_4 = 0;
 		size   = 0;
 	}

@@ -46,9 +46,9 @@ SaveManager::SaveManager(Application *application) : _app(application) {
 	_currentTicks = 0;
 	_slot = 0;
 
-	_ser = NULL;
-	_load = NULL;
-	_save = NULL;
+	_ser = nullptr;
+	_load = nullptr;
+	_save = nullptr;
 }
 
 
@@ -58,13 +58,13 @@ SaveManager::~SaveManager() {
 	SAFE_DELETE(_save);
 
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 // Header
 bool SaveManager::readSavegameHeader(Common::InSaveFile *in, SavegameHeader &header) {
 	char saveIdent[7];
-	header.thumbnail = NULL;
+	header.thumbnail = nullptr;
 
 	// Validate the header Id
 	in->read(saveIdent, 6);
@@ -128,12 +128,12 @@ bool SaveManager::open(Common::String filename, LoadSaveType type) {
 
 	case kLoadSaveRead:
 		_load = g_system->getSavefileManager()->openForLoading(path);
-		_ser = new Common::Serializer(_load, NULL);
+		_ser = new Common::Serializer(_load, nullptr);
 		break;
 
 	case kLoadSaveWrite:
 		_save = g_system->getSavefileManager()->openForSaving(path);
-		_ser = new Common::Serializer(NULL, _save);
+		_ser = new Common::Serializer(nullptr, _save);
 		break;
 	}
 
@@ -277,7 +277,7 @@ bool SaveManager::isSaving() const {
 }
 
 void SaveManager::loadSaveSounds() {
-	if (_type == kLoadSaveInvalid || _ser == NULL)
+	if (_type == kLoadSaveInvalid || _ser == nullptr)
 		error("[SaveManager::loadSaveSounds] Savegame not initialized");
 
 	_app->getSoundManager()->saveLoadWithSerializer(*_ser);

@@ -56,7 +56,7 @@ public:
 			date = 0;
 			time = 0;
 			playtime = 0;
-			thumbnail = NULL;
+			thumbnail = nullptr;
 		}
 
 		~SavegameHeader() {
@@ -193,7 +193,7 @@ void SaveManager::syncArray(Common::Serializer &s, Common::Array<T *> *arr) {
 template<class T>
 void SaveManager::syncWithFlag(Common::Serializer &s, T *instance) {
 	// Check hotspot
-	bool isPresent = (instance != NULL);
+	bool isPresent = (instance != nullptr);
 	s.syncAsByte(isPresent);
 
 	if (s.isSaving())

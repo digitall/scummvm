@@ -185,7 +185,7 @@ void SoundEntry::convertPan(int32 &pan) {
 #pragma region SoundEntryStream
 
 SoundEntryStream::SoundEntryStream(Id soundId, SoundType type, Common::String name, LoadFrom loadFrom, SoundFormat format, int32 soundChunk) : SoundEntry(soundId, type, name, loadFrom, format) {
-	_audioStream = NULL;
+	_audioStream = nullptr;
 	_field_136 = 0;
 	_size = 0;
 	_bufferOffset = 0;
@@ -198,10 +198,10 @@ SoundEntryStream::SoundEntryStream(Id soundId, SoundType type, Common::String na
 	//_event1 = 0;
 	//_event2 = 0;
 	_isBufferPlaying = false;
-	//_event = NULL;
+	//_event = nullptr;
 	_soundChunk = soundChunk;
 
-	_loader = NULL;
+	_loader = nullptr;
 }
 
 SoundEntryStream::~SoundEntryStream() {
@@ -326,7 +326,7 @@ void SoundEntryStream::loadDataChunk() {
 #pragma region SoundEntryData
 
 SoundEntryData::SoundEntryData(Id soundId, SoundType type, Common::String name, LoadFrom loadFrom, SoundFormat format) : SoundEntry(soundId, type, name, loadFrom, format) {
-	_audioStream = NULL;
+	_audioStream = nullptr;
 	_isPreloaded = 0;
 }
 

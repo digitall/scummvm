@@ -116,12 +116,12 @@ Common::SeekableReadStream *Art::createReadStreamForMember(const Common::String 
 
 	RecordMap::const_iterator fDesc = _records.find(filename);
 	if (fDesc == _records.end())
-		return NULL;
+		return nullptr;
 
 	Common::File *archive = new Common::File();
 	if (!archive->open(_path)) {
 		delete archive;
-		return NULL;
+		return nullptr;
 	}
 
 	return new Common::SeekableSubReadStream(archive, fDesc->_value.offset, fDesc->_value.offset + fDesc->_value.size, DisposeAfterUse::YES);
@@ -138,7 +138,7 @@ ArtHandler::~ArtHandler() {
 	CLEAR_ARRAY(Art, _arts);
 
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ArtHandler::open(ZoneId zone, LoadFrom loadFrom) {
@@ -199,7 +199,7 @@ Common::SeekableReadStream *ArtHandler::get(Common::String filename, ZoneId zone
 
 	if (index == -1) {
 		warning("[ArtHandler::get] File for Zone %d and LoadFrom %d not opened!", zone, loadFrom);
-		return NULL;
+		return nullptr;
 	}
 
 	return _arts[index]->createReadStreamForMember(filename);

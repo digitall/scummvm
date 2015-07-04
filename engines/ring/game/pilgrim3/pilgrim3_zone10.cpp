@@ -37,7 +37,7 @@ Zone10Pilgrim3::Zone10Pilgrim3(ApplicationPilgrim3 *application) : _app(applicat
 
 Zone10Pilgrim3::~Zone10Pilgrim3() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void Zone10Pilgrim3::onInit() {

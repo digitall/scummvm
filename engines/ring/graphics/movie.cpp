@@ -101,19 +101,19 @@ bool Cinematic::seek(int32 offset, int whence) {
 #pragma region Cinematic1
 
 Cinematic1::Cinematic1() {
-	_stream = NULL;
-	_buffer = NULL;
-	_buffer2 = NULL;
-	_state = false;
-	_backBuffer = NULL;
-	_tControlBuffer = NULL;
-	_cacheBuffer = NULL;
-	_compressedData = NULL;
-	_compressedDataEnd = NULL;
-	_compressedBuffer = NULL;
-	_compressedBufferEnd = NULL;
-	_field_46 = 0;
-	_isStreaming = false;
+	_stream              = nullptr;
+	_buffer              = nullptr;
+	_buffer2             = nullptr;
+	_state               = false;
+	_backBuffer          = nullptr;
+	_tControlBuffer      = nullptr;
+	_cacheBuffer         = nullptr;
+	_compressedData      = nullptr;
+	_compressedDataEnd   = nullptr;
+	_compressedBuffer    = nullptr;
+	_compressedBufferEnd = nullptr;
+	_field_46            = 0;
+	_isStreaming         = false;
 }
 
 Cinematic1::~Cinematic1() {
@@ -147,10 +147,10 @@ bool Cinematic1::init(Common::String filename) {
 	if (!_cacheBuffer)
 		error("[Cinematic1::init] Error creating cache buffer!");
 
-	_compressedData = NULL;
-	_compressedDataEnd = NULL;
-	_compressedBuffer = NULL;
-	_compressedBufferEnd = NULL;
+	_compressedData = nullptr;
+	_compressedDataEnd = nullptr;
+	_compressedBuffer = nullptr;
+	_compressedBufferEnd = nullptr;
 	_field_46 = 0;
 
 	return true;
@@ -161,15 +161,15 @@ void Cinematic1::deinit() {
 
 	// Free buffers
 	free(_buffer);
-	_buffer2 = NULL;
+	_buffer2 = nullptr;
 
 	free(_backBuffer);
 	free(_tControlBuffer);
 	free(_cacheBuffer);
 	free(_compressedData);
-	_compressedDataEnd = NULL;
-	_compressedBuffer = NULL;
-	_compressedBufferEnd = NULL;
+	_compressedDataEnd = nullptr;
+	_compressedBuffer = nullptr;
+	_compressedBufferEnd = nullptr;
 	_field_46 = 0;
 }
 
@@ -470,7 +470,7 @@ void Cinematic1::updateBufferControl(int index, int **buffer) {
 	if (count == 0)
 		return;
 
-	if (pBuffer == NULL)
+	if (pBuffer == nullptr)
 		error("[Cinematic1::updateBufferControl] Invalid control buffer");
 
 	do {
@@ -486,13 +486,13 @@ void Cinematic1::updateBufferControl(int index, int **buffer) {
 #pragma region Cinematic2
 
 Cinematic2::Cinematic2() {
-	_stream = NULL;
-	_seqBuffer = NULL;
+	_stream = nullptr;
+	_seqBuffer = nullptr;
 
 	_state = false;
 
-	_frameBuffer = NULL;
-	_tControlBuffer = NULL;
+	_frameBuffer = nullptr;
+	_tControlBuffer = nullptr;
 
 	memset(_buffer1, 0, sizeof(_buffer1));
 }
@@ -501,7 +501,7 @@ Cinematic2::~Cinematic2() {
 	SAFE_DELETE(_stream);
 
 	free(_seqBuffer);
-	_seqBuffer = NULL;
+	_seqBuffer = nullptr;
 
 	free(_frameBuffer);
 	_frameBuffer = 0;
@@ -526,11 +526,11 @@ bool Cinematic2::init(Common::String filename, ArchiveType type, ZoneId zone, Lo
 		break;
 	}
 
-	if (_stream == NULL)
+	if (_stream == nullptr)
 		return false;
 
 	_state = false;
-	_seqBuffer = NULL;
+	_seqBuffer = nullptr;
 
 	return true;
 }
@@ -538,7 +538,7 @@ bool Cinematic2::init(Common::String filename, ArchiveType type, ZoneId zone, Lo
 bool Cinematic2::allocBuffer(size_t bufferSize) {
 	_seqBuffer = malloc(bufferSize);
 
-	return _seqBuffer != NULL;
+	return _seqBuffer != nullptr;
 }
 
 void Cinematic2::skipFrame() {
@@ -680,7 +680,7 @@ CinematicSound::CinematicSound() {
 	_avgBytesPerSec = 0;
 	_blockAlign     = 0;
 	_bitsPerSample  = 0;
-	_audioStream    = NULL;
+	_audioStream    = nullptr;
 	_isPlaying      = false;
 	_volume         = 1.0f;
 }
@@ -720,7 +720,7 @@ void CinematicSound::deinit() {
 	}
 
 	// Close the audio stream
-	_audioStream = NULL;
+	_audioStream = nullptr;
 }
 
 void CinematicSound::play() {
@@ -775,7 +775,7 @@ void CinematicSound::queueBuffer(Common::SeekableReadStream *stream) {
 #pragma region Movie
 
 Movie::Movie(ScreenManager *screen) : _screen(screen) {
-	_image     = NULL;
+	_image     = nullptr;
 	_isSoundInitialized = false;
 	_field_5B  = false;
 	_framerate = 0.0f;
@@ -791,7 +791,7 @@ Movie::~Movie() {
 	SAFE_DELETE(_sound);
 
 	// Zero-out passed pointers
-	_screen = NULL;
+	_screen = nullptr;
 }
 
 bool Movie::init(const Common::String &path, Common::String filename, const Common::String &languageFolder, uint32 channel) {
@@ -874,7 +874,7 @@ load_movie:
 void Movie::deinit() {
 	SAFE_DELETE(_image);
 
-	_screen = NULL;
+	_screen = nullptr;
 	_field_5B = true;
 }
 

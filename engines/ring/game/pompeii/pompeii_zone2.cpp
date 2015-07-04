@@ -38,7 +38,7 @@ Zone2Pompeii::Zone2Pompeii(ApplicationPompeii *application) : _app(application) 
 
 Zone2Pompeii::~Zone2Pompeii() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void Zone2Pompeii::onInit() {

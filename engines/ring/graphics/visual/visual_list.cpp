@@ -41,17 +41,17 @@ namespace Ring {
 #pragma region VisualObjectList
 
 VisualObjectList::VisualObjectList(Id id) : Visual(id) {
-	_backgroundImage = NULL;
-	_upGun = NULL;
-	_upGur = NULL;
-	_upGus = NULL;
-	_upGua = NULL;
-	_downGun = NULL;
-	_downGur = NULL;
-	_downGus = NULL;
-	_downGua = NULL;
-	_cliImageP = NULL;
-	_cliImageA = NULL;
+	_backgroundImage = nullptr;
+	_upGun     = nullptr;
+	_upGur     = nullptr;
+	_upGus     = nullptr;
+	_upGua     = nullptr;
+	_downGun   = nullptr;
+	_downGur   = nullptr;
+	_downGus   = nullptr;
+	_downGua   = nullptr;
+	_cliImageP = nullptr;
+	_cliImageA = nullptr;
 	_field_59 = 0;
 	_field_5D = 0;
 	_field_61 = 0;
@@ -79,8 +79,8 @@ VisualObjectList::VisualObjectList(Id id) : Visual(id) {
 	_objectIdClicked = 0;
 	_objectIndex = 0;
 	_itemCount = 0;
-	_text1 = NULL;
-	_text2 = NULL;
+	_text1 = nullptr;
+	_text2 = nullptr;
 	_fontId = kFontDefault;
 	_backgroundColor = Color(0, 0, 0);
 	_archiveType = kArchiveFile;
@@ -152,7 +152,7 @@ Hotspot *VisualObjectList::getHotspot(const Common::Point &point) {
 		if ((*it)->contains(point))
 			return (*it);
 
-	return NULL;
+	return nullptr;
 }
 
 void VisualObjectList::dealloc() {
@@ -625,7 +625,7 @@ void VisualObjectList::add(ObjectId objectId) {
 	}
 
 	Object *object = getApp()->getObject(objectId);
-	ImageHandle *image = NULL;
+	ImageHandle *image;
 
 	if (object->getAnimationImage()) {
 		object->getAnimationImage()->updateCurrentImage();

@@ -39,7 +39,7 @@ ZoneN2Ring::ZoneN2Ring(ApplicationRing *application) : _app(application) {
 
 ZoneN2Ring::~ZoneN2Ring() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneN2Ring::onInit() {

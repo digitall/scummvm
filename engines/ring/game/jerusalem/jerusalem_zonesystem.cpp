@@ -37,7 +37,7 @@ ZoneSystemJerusalem::ZoneSystemJerusalem(ApplicationJerusalem *application) : _a
 
 ZoneSystemJerusalem::~ZoneSystemJerusalem() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneSystemJerusalem::onInit() {

@@ -512,7 +512,7 @@ public:
 		for (uint32 i = 0; i < this->size();) {
 			if (((BaseObject *)(*this)[i])->getId() == id) {
 				delete (*this)[i];
-				(*this)[i] = NULL;
+				(*this)[i] = nullptr;
 				this->remove_at(i);
 			} else {
 				++i;

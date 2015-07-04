@@ -185,7 +185,7 @@ public:
 
 	void reset();
 
-	bool hasCurrentPuzzle() { return _puzzle != NULL; }
+	bool hasCurrentPuzzle() { return _puzzle != nullptr; }
 	Puzzle *getCurrentPuzzle() { return _puzzle; }
 	PuzzleId getCurrentPuzzleId();
 
@@ -288,7 +288,7 @@ public:
 	void rotationSetActive(Id rotationId, bool a2 = true, bool a3 = true);
 
 	// Current rotation
-	bool hasCurrentRotation() { return _rotation != NULL; }
+	bool hasCurrentRotation() { return _rotation != nullptr; }
 	Id getCurrentRotationId();
 	Rotation *getCurrentRotation() { return _rotation; }
 	void setupCurrentRotation();

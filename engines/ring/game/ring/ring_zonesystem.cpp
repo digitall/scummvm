@@ -56,7 +56,7 @@ ZoneSystemRing::ZoneSystemRing(ApplicationRing *application) : _app(application)
 
 ZoneSystemRing::~ZoneSystemRing() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneSystemRing::onInit() {
@@ -613,7 +613,7 @@ void ZoneSystemRing::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId*/,
 		_app->objectPresentationSetTextCoordinatesToPuzzle(kObjectSaveName, 0, 1, Common::Point(344, 155));
 
 		// Store the thumbnail image
-		if (_app->getThumbnail() != NULL) {
+		if (_app->getThumbnail() != nullptr) {
 			ImageSurface *thumbnail = _app->getThumbnail()->zoom(0.40645f, 1.0f);
 			_app->getSaveManager()->setThumbnail(thumbnail);
 			delete thumbnail;

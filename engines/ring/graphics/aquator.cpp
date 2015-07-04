@@ -184,23 +184,23 @@ void ImageHeaderEntry::InternalData::init(float a1, float a2, float a3, float a4
 }
 
 ImageHeaderEntry::ImageHeaderEntry() {
-	_buffer      = NULL;
-	_bufferData  = NULL;
+	_buffer      = nullptr;
+	_bufferData  = nullptr;
 	_hasAdditionnalData = false;
 }
 
 ImageHeaderEntry::~ImageHeaderEntry() {
 	free(_buffer);
-	_buffer = NULL;
+	_buffer = nullptr;
 
-	_bufferData = NULL;
+	_bufferData = nullptr;
 }
 
 void ImageHeaderEntry::reset() {
 	free(_buffer);
-	_buffer = NULL;
+	_buffer = nullptr;
 
-	_bufferData = NULL;
+	_bufferData = nullptr;
 }
 
 void ImageHeaderEntry::init(Common::SeekableReadStream *stream, bool hasAdditionnalData) {
@@ -445,7 +445,7 @@ void ImageHeaderEntry::updateData(float a1, float a2, float a3, float a4, float 
 
 ImageHeader::ImageHeader() {
 	_field_4 = 0;
-	_current = NULL;
+	_current = nullptr;
 	_field_4C = -1;
 }
 

@@ -53,7 +53,7 @@ ZoneSystemPompeii::ZoneSystemPompeii(ApplicationPompeii *application) : _app(app
 
 ZoneSystemPompeii::~ZoneSystemPompeii() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void ZoneSystemPompeii::onInit() {
@@ -806,7 +806,7 @@ void ZoneSystemPompeii::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId
 		_app->varSetByte(98003, 0);
 
 		// Store the thumbnail image
-		if (_app->getThumbnail() != NULL) {
+		if (_app->getThumbnail() != nullptr) {
 			ImageSurface *thumbnail = _app->getThumbnail()->zoom(0.40645f, 1.0f);
 			_app->getSaveManager()->setThumbnail(thumbnail);
 			delete thumbnail;

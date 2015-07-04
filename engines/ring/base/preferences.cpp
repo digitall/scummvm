@@ -42,7 +42,7 @@ PreferenceHandler::PreferenceHandler(Application *application) : _app(applicatio
 
 PreferenceHandler::~PreferenceHandler() {
 	// Zero-out passed pointers
-	_app = NULL;
+	_app = nullptr;
 }
 
 void PreferenceHandler::load() {

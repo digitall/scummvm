@@ -29,14 +29,14 @@
 
 namespace Ring {
 
-Accessibility::Accessibility(Object *object) : _object(object), _hotspot(NULL) {
+Accessibility::Accessibility(Object *object) : _object(object), _hotspot(nullptr) {
 }
 
 Accessibility::~Accessibility() {
 	SAFE_DELETE(_hotspot);
 
 	// Zero-out passed pointers
-	_object = NULL;
+	_object = nullptr;
 }
 
 Hotspot *Accessibility::getHotspot() {

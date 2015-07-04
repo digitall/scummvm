@@ -219,7 +219,7 @@ bool RingMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGame
 	if (desc)
 		*engine = new RingEngine(syst, (const RingGameDescription *)desc);
 
-	return desc != 0;
+	return desc != nullptr;
 }
 
 } // End of namespace Ring

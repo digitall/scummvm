@@ -62,7 +62,7 @@ public:
 	void setSurface(Graphics::Surface *surface);
 	Graphics::Surface *getSurface() { return _surface; }
 
-	bool isInitialized() { return _surface != NULL; }
+	bool isInitialized() { return _surface != nullptr; }
 
 protected:
 	//bool _loaded;

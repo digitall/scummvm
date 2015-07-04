@@ -47,10 +47,10 @@ Bag::Bag() {
 	_field_24 = 0;
 	_field_28 = 0;
 	_objectCount = 0;
-	_background = NULL;
-	_image2 = NULL;
-	_image3 = NULL;
-	_image4 = NULL;
+	_background = nullptr;
+	_image2 = nullptr;
+	_image3 = nullptr;
+	_image4 = nullptr;
 	_field_48 = 0;
 	_field_4C = 0;
 	_field_50 = 0;
@@ -59,14 +59,14 @@ Bag::Bag() {
 	_field_5C = 0;
 	_field_60 = 0;
 	_field_64 = 0;
-	_image5 = NULL;
-	_image6 = NULL;
-	_image7 = NULL;
+	_image5 = nullptr;
+	_image6 = nullptr;
+	_image7 = nullptr;
 	_field_74 = 0;
 	_field_78 = 0;
 	_field_7C = 0;
 	_field_80 = 0;
-	_image8 = NULL;
+	_image8 = nullptr;
 	_field_88 = 0;
 	_field_8C = 0;
 	_field_90 = 6;
@@ -75,14 +75,14 @@ Bag::Bag() {
 	_field_99 = 0;
 	_tickInterval = 0;
 	_ticks = 0;
-	_text = NULL;
+	_text = nullptr;
 	_fontId = kFontDefault;
 	_foregroundColor = Color(245, 235, 50);
 	_backgroundColor = Color(0, 0, 0);
 	_field_C5 = 90;
 	_archiveType = kArchiveInvalid;
-	_imageErdaGun = NULL;
-	_imageErdaGur = NULL;
+	_imageErdaGun = nullptr;
+	_imageErdaGur = nullptr;
 	_enabled = false;
 
 	_fre = false;
@@ -310,7 +310,7 @@ Hotspot *Bag::getHotspot(const Common::Point &point) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void Bag::draw(){
@@ -547,7 +547,7 @@ void Bag::add(ObjectId objectId) {
 	_objects.push_back(object);
 
 	// Setup animation image
-	ImageHandle *imageHandle = NULL;
+	ImageHandle *imageHandle;
 	AnimationImage *animationImage = object->getAnimationImage();
 	if (animationImage) {
 		animationImage->updateCurrentImage();

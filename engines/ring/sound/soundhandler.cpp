@@ -35,7 +35,7 @@ namespace Ring {
 #pragma region SoundItem
 
 SoundItem::SoundItem(Id id) : BaseObject(id) {
-	_entry    = NULL;
+	_entry    = nullptr;
 	_volume  = 0;
 	_pan  = 0;
 	_field_10 = 0;
@@ -54,7 +54,7 @@ SoundItem::SoundItem(Id id) : BaseObject(id) {
 }
 
 SoundItem::~SoundItem() {
-	_entry = NULL;
+	_entry = nullptr;
 }
 
 void SoundItem::init(SoundEntry *entry, uint32 volume, int32 pan, bool isTurnedOn, uint32 fadeFrames, uint32 a6, uint32 a7) {
@@ -202,8 +202,8 @@ void SoundItem::saveLoadWithSerializer(Common::Serializer &s) {
 
 SoundHandler::SoundHandler() {
 	_field_0 = false;
-	_sounds1 = NULL;
-	_sounds2 = NULL;
+	_sounds1 = nullptr;
+	_sounds2 = nullptr;
 
 	_direction = -1.0;
 }
@@ -215,14 +215,14 @@ SoundHandler::~SoundHandler() {
 	CLEAR_ARRAY(SoundItem, _soundItems4);
 
 	// Zero-out passed pointers
-	_sounds1 = NULL;
-	_sounds2 = NULL;
+	_sounds1 = nullptr;
+	_sounds2 = nullptr;
 }
 
 void SoundHandler::reset() {
 	_field_0 = false;
-	_sounds1 = NULL;
-	_sounds2 = NULL;
+	_sounds1 = nullptr;
+	_sounds2 = nullptr;
 }
 
 void SoundHandler::turnOffSounds1(bool process) {
@@ -241,7 +241,7 @@ bool SoundHandler::processSounds() {
 	for (Common::Array<SoundItem *>::iterator it = _sounds1->begin(); it != _sounds1->end(); it++) {
 		byte foundType = 0;
 		SoundItem *item (*it);
-		SoundItem* item2 = NULL;
+		SoundItem* item2 = nullptr;
 
 		if (_sounds2->has(item->getId())) {
 			foundType = 1;
@@ -372,7 +372,7 @@ bool SoundHandler::updateItems2(uint32 chunkCount) {
 
 	for (uint32 i = 0; i < _soundItems2.size();) {
 		SoundItem *item = _soundItems2[i];
-		if (item == NULL)
+		if (item == nullptr)
 			continue;
 
 		if (item->getField3D() <= chunkCount) {

@@ -34,7 +34,7 @@ namespace Ring {
 Movability::Movability(const BaseId &from, const BaseId &to, Common::String name, MovabilityType type) {
 	_field_0 = 0;
 	_from = from;
-	_hotspot = NULL;
+	_hotspot = nullptr;
 	_to = to;
 	_name = name;
 	_type = type;

@@ -109,7 +109,7 @@ Debugger::~Debugger() {
 	DebugMan.clearAllDebugChannels();
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 void Debugger::postEnter() {
@@ -196,7 +196,7 @@ void Debugger::postEnter() {
 }
 
 int Debugger::getNumber(const char *arg) const {
-	return strtol(arg, (char **)NULL, 0);
+	return strtol(arg, (char **)nullptr, 0);
 }
 
 bool Debugger::cmdHelp(int, const char **) {
@@ -393,7 +393,7 @@ bool Debugger::cmdEncyclopedia(int argc, const char **argv) {
 		if (argc == 2)
 			_filename = const_cast<char *>(argv[1]);
 
-		return cmdExit(0, 0);
+		return cmdExit(0, nullptr);
 	} else {
 		debugPrintf("Syntax: %s <filename> - load the encyclopedia\n", argv[0]);
 	}

@@ -60,21 +60,21 @@
 namespace Ring {
 
 Application::Application(RingEngine *engine) : _vm(engine),
-	_screenManager(NULL),        _artHandler(NULL),          _fontHandler(NULL),   _dialogHandler(NULL),        _languageHandler(NULL),
-	_isRotationCompressed(true), _archiveType(kArchiveFile), _cursorHandler(NULL), _loadFrom(kLoadFromInvalid), _field_5E(0),
-	_soundHandler(NULL),         _state(kStateNone),         _field_6A(false),
-	_currentGameZone(kZoneNone), _menuAction(kMenuAction0),  _field_74(false),     _field_75(false),            _field_76(false),
-	_field_77(false),            _field_78(false),           _puzzle(NULL),        _rotation(NULL),             _bag(NULL),
-	_timerHandler(NULL),         _var(NULL),                 _dragControl(NULL),   _objectHandler(NULL),        _preferenceHandler(NULL),
-	_zoneHandler(NULL) {
+	_screenManager(nullptr),     _artHandler(nullptr),       _fontHandler(nullptr),   _dialogHandler(nullptr),     _languageHandler(nullptr),
+	_isRotationCompressed(true), _archiveType(kArchiveFile), _cursorHandler(nullptr), _loadFrom(kLoadFromInvalid), _field_5E(0),
+	_soundHandler(nullptr),      _state(kStateNone),         _field_6A(false),
+	_currentGameZone(kZoneNone), _menuAction(kMenuAction0),  _field_74(false),        _field_75(false),            _field_76(false),
+	_field_77(false),            _field_78(false),           _puzzle(nullptr),        _rotation(nullptr),          _bag(nullptr),
+	_timerHandler(nullptr),      _var(nullptr),              _dragControl(nullptr),   _objectHandler(nullptr),     _preferenceHandler(nullptr),
+	_zoneHandler(nullptr) {
 
 	// Start managers
 	_saveManager = new SaveManager(this);
 	_soundManager = new SoundManager(this, _vm->_mixer);
 
-	_currentRotation = NULL;
+	_currentRotation = nullptr;
 
-	_thumbnail = NULL;
+	_thumbnail = nullptr;
 
 	// System zone
 	_systemZone = kZone1;
@@ -102,14 +102,14 @@ Application::~Application() {
 	SAFE_DELETE(_saveManager);
 	SAFE_DELETE(_soundManager);
 
-	_puzzle = NULL;
-	_rotation = NULL;
-	_currentRotation = NULL;
+	_puzzle = nullptr;
+	_rotation = nullptr;
+	_currentRotation = nullptr;
 
 	SAFE_DELETE(_thumbnail);
 
 	// Zero-out passed pointers
-	_vm = NULL;
+	_vm = nullptr;
 }
 
 void Application::saveLoadWithSerializer(Common::Serializer &s) {
@@ -191,7 +191,7 @@ void Application::init() {
 	_archiveType = kArchiveFile;
 	_currentGameZone = kZoneNone;
 
-	_rotation = NULL;
+	_rotation = nullptr;
 
 	// Setup bag
 	if (_configuration.artBAG)
@@ -660,7 +660,7 @@ void Application::updateBag(const Common::Point &point) {
 	if (_bag->isInitialized() || !_dragControl->getField20())
 		return;
 
-	Hotspot *hotspot = NULL;
+	Hotspot *hotspot = nullptr;
 
 	if (_dragControl->getField45() == 2)
 		hotspot = _dragControl->getHotspot();
@@ -766,9 +766,9 @@ bool Application::scrollImage(Common::String filename, uint32 ticksWait, LoadFro
 
 void Application::displayFade(Common::String filenameFrom, Common::String filenameTo, uint32 frameCount, uint32 ticksWait, LoadFrom loadFrom, ArchiveType archiveType) {
 #if RING_DEBUG_INTRO != 1
-	ImageSurface *imageTo = NULL;
-	Animation *animation = NULL;
-	char *pixels = NULL;
+	ImageSurface *imageTo = nullptr;
+	Animation *animation = nullptr;
+	char *pixels = nullptr;
 
 
 	if (archiveType == kArchiveInvalid)
@@ -1328,7 +1328,7 @@ void Application::puzzleAdd(PuzzleId puzzleId) {
 
 Puzzle *Application::getPuzzle(PuzzleId puzzleId) {
 	if (!_puzzles.has(puzzleId))
-		return NULL;
+		return nullptr;
 
 	return _puzzles.get(puzzleId);
 }
@@ -1534,11 +1534,11 @@ void Application::reset() {
 	// Those are reference to existing objects in the _puzzles and _rotations arrays
 	if (_puzzle)
 		_puzzle->dealloc();
-	_puzzle = NULL;
+	_puzzle = nullptr;
 
 	if (_rotation)
 		_rotation->dealloc();
-	_rotation = NULL;
+	_rotation = nullptr;
 
 	soundStop(kSoundTypeEffect, 16);
 	soundStop(kSoundTypeDialog, 16);
@@ -1560,7 +1560,7 @@ Id Application::getCurrentRotationId() {
 
 void Application::setupCurrentRotation() {
 	if (!hasCurrentRotation()) {
-		_currentRotation = NULL;
+		_currentRotation = nullptr;
 		return;
 	}
 
@@ -2016,7 +2016,7 @@ void Application::initObjectDrawCursors(ObjectId objectId) {
 
 Rotation *Application::getRotation(Id rotationId) {
 	if (!_rotations.has(rotationId))
-		return NULL;
+		return nullptr;
 
 	return _rotations.get(rotationId);
 }

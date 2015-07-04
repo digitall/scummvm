@@ -34,8 +34,8 @@ DragControl::DragControl() {
 	_field_20 = false;
 	_objectId = kObjectInvalid;
 	_accessibilityIndex = 0;
-	_object = NULL;
-	_hotspot2 = NULL;
+	_object = nullptr;
+	_hotspot2 = nullptr;
 	_target = 0;
 	_puzzleRotationId = 0;
 	_field_39 = 0;
@@ -46,8 +46,8 @@ DragControl::DragControl() {
 }
 
 DragControl::~DragControl() {
-	_object = NULL;
-	_hotspot2 = NULL;
+	_object = nullptr;
+	_hotspot2 = nullptr;
 
 	SAFE_DELETE(_hotspot);
 }
@@ -74,8 +74,8 @@ void DragControl::reset() {
 	_field_20 = false;
 	_objectId = kObjectInvalid;
 	_accessibilityIndex = 0;
-	_object = NULL;
-	_hotspot2 = NULL;
+	_object = nullptr;
+	_hotspot2 = nullptr;
 	_target = 0;
 	_puzzleRotationId = 0;
 	_field_39 = 0;

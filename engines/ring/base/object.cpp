@@ -76,7 +76,7 @@ ObjectPresentation::~ObjectPresentation() {
 	// _textRotationPtr are pointers to existing objects
 
 	// Zero-out passed pointers
-	_object = NULL;
+	_object = nullptr;
 }
 
 void ObjectPresentation::addTextToPuzzle(Puzzle *puzzle, Common::String text, const Common::Point &point, FontId fontId, const Color &foreground, const Color &background) {
@@ -323,7 +323,7 @@ Object::Object(Application *application, ObjectId id, Common::String description
 	_description = description;
 	_name = name;
 	_field_C  = a5;
-	_animationImage = NULL;
+	_animationImage = nullptr;
 }
 
 Object::~Object() {
@@ -332,7 +332,7 @@ Object::~Object() {
 	SAFE_DELETE(_animationImage);
 
 	// Zero-out passed pointers
-	_application = NULL;
+	_application = nullptr;
 }
 
 #pragma region Presentation

@@ -80,7 +80,7 @@ Rotation::Rotation(Id id, Common::String name, byte a3, LoadFrom, uint32 nodeCou
 	_bet       = 0;
 	_ran       = 85.0f;
 
-	_imageHandle = NULL;
+	_imageHandle = nullptr;
 
 	_ticks       = 0;
 	_startTicks  = 0;
@@ -427,8 +427,8 @@ void Rotation::drawText() {
 }
 
 void Rotation::addAccessibility(Accessibility *accessibility) {
-	if (accessibility == NULL)
-		error("[Rotation::addAccessibility] Accessibility is NULL!");
+	if (accessibility == nullptr)
+		error("[Rotation::addAccessibility] Accessibility is not set!");
 
 	_accessibilities.push_back(accessibility);
 }
@@ -454,7 +454,7 @@ Accessibility *Rotation::getAccessibility(const Common::Point &point) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 Accessibility *Rotation::getAccessibility(Common::KeyCode key) {
@@ -466,12 +466,12 @@ Accessibility *Rotation::getAccessibility(Common::KeyCode key) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void Rotation::addMovability(Movability *movability) {
-	if (movability == NULL)
-		error("[Rotation::addMovability] Movability is NULL!");
+	if (movability == nullptr)
+		error("[Rotation::addMovability] Movability is not set!");
 
 	_movabilities.push_back(movability);
 }
@@ -533,7 +533,7 @@ Movability *Rotation::getMovability(const Common::Point &point) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void Rotation::setMovabilityRideName(uint32 movabilityIndex, Common::String name) {
@@ -607,7 +607,7 @@ bool Rotation::setRolTo(float alp, float bet, float ran) {
 
 Animation *Rotation::addPresentationAnimation(ObjectPresentation *presentation, uint32 layer, uint32 frameCount, float frameRate, byte a5) {
 	if (!presentation)
-		error("[Rotation::addPresentationAnimation] Presentation is NULL!");
+		error("[Rotation::addPresentationAnimation] Presentation is not set!");
 
 	if (layer >= _animations.size())
 		error("[Rotation::addPresentationAnimation] Invalid layer index (was: %d, max:%d)", layer, _animations.size() - 1);
@@ -730,7 +730,7 @@ SoundItem *Rotation::getSoundItem(Id soundId) {
 			return *i;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 #pragma endregion

@@ -44,7 +44,7 @@
 namespace Ring {
 
 Puzzle::Puzzle(Application *application, PuzzleId id) : BaseObject(id), _application(application) {
-	_background = NULL;
+	_background = nullptr;
 	_field_24 = 1;
 	_field_28 = 0;
 	_selectedId = 0;
@@ -62,7 +62,7 @@ Puzzle::~Puzzle() {
 	CLEAR_ARRAY(Visual, _visuals);
 
 	// Zero-out passed pointers
-	_application = NULL;
+	_application = nullptr;
 }
 
 void Puzzle::alloc() {
@@ -275,7 +275,7 @@ Accessibility *Puzzle::getAccessibility(const Common::Point &point) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 Accessibility *Puzzle::getAccessibility(Common::KeyCode key) {
@@ -287,7 +287,7 @@ Accessibility *Puzzle::getAccessibility(Common::KeyCode key) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 #pragma endregion
@@ -339,7 +339,7 @@ Movability *Puzzle::getMovability(const Common::Point &point) {
 			return (*it);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int32 Puzzle::getMovabilityIndex(const Common::Point &point) {
@@ -506,7 +506,7 @@ SoundItem *Puzzle::getSoundItem(Id soundId) {
 			return *i;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool Puzzle::imagePriorityCompare(ImageHandle *image1, ImageHandle *image2) {
