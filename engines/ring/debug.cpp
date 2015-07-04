@@ -88,21 +88,21 @@ Debugger::Debugger(RingEngine *engine) : _engine(engine), _action(kActionNone) {
 	// Register the debugger commands
 
 	// General
-	DCmd_Register("help",      WRAP_METHOD(Debugger, cmdHelp));
+	registerCmd("help",      WRAP_METHOD(Debugger, cmdHelp));
 
 	// Data
-	DCmd_Register("ls",        WRAP_METHOD(Debugger, cmdListFiles));
+	registerCmd("ls",        WRAP_METHOD(Debugger, cmdListFiles));
 
 #ifdef RING_DUMP
-	DCmd_Register("dump",      WRAP_METHOD(Debugger, cmdDumpArchive));
+	registerCmd("dump",      WRAP_METHOD(Debugger, cmdDumpArchive));
 #endif
 
 	// Widgets
-	DCmd_Register("enc",       WRAP_METHOD(Debugger, cmdEncyclopedia));
+	registerCmd("enc",       WRAP_METHOD(Debugger, cmdEncyclopedia));
 
 	// Graphics
-	DCmd_Register("clear",     WRAP_METHOD(Debugger, cmdClear));
-	DCmd_Register("show",      WRAP_METHOD(Debugger, cmdShow));
+	registerCmd("clear",     WRAP_METHOD(Debugger, cmdClear));
+	registerCmd("show",      WRAP_METHOD(Debugger, cmdShow));
 }
 
 Debugger::~Debugger() {
@@ -200,22 +200,22 @@ int Debugger::getNumber(const char *arg) const {
 }
 
 bool Debugger::cmdHelp(int, const char **) {
-	DebugPrintf("Debug flags\n");
-	DebugPrintf("-----------\n");
-	DebugPrintf(" debugflag_list - Lists the available debug flags and their status\n");
-	DebugPrintf(" debugflag_enable - Enables a debug flag\n");
-	DebugPrintf(" debugflag_disable - Disables a debug flag\n");
-	DebugPrintf("\n");
-	DebugPrintf("Commands\n");
-	DebugPrintf("--------\n");
-	DebugPrintf(" ls   - list files in the archive\n");
-	DebugPrintf(" dump - dump the files from an archive\n");
-	DebugPrintf("\n");
-	DebugPrintf(" enc - load the encyclopedia");
-	DebugPrintf("\n");
-	DebugPrintf(" clear - clear the screen\n");
-	DebugPrintf(" show  - show an image\n");
-	DebugPrintf("\n");
+	debugPrintf("Debug flags\n");
+	debugPrintf("-----------\n");
+	debugPrintf(" debugflag_list - Lists the available debug flags and their status\n");
+	debugPrintf(" debugflag_enable - Enables a debug flag\n");
+	debugPrintf(" debugflag_disable - Disables a debug flag\n");
+	debugPrintf("\n");
+	debugPrintf("Commands\n");
+	debugPrintf("--------\n");
+	debugPrintf(" ls   - list files in the archive\n");
+	debugPrintf(" dump - dump the files from an archive\n");
+	debugPrintf("\n");
+	debugPrintf(" enc - load the encyclopedia");
+	debugPrintf("\n");
+	debugPrintf(" clear - clear the screen\n");
+	debugPrintf(" show  - show an image\n");
+	debugPrintf("\n");
 	return true;
 }
 
@@ -228,9 +228,9 @@ bool Debugger::cmdListFiles(int argc, const char **argv) {
 		Common::ArchiveMemberList list;
 		int count = SearchMan.listMatchingMembers(list, filter);
 
-		DebugPrintf("Number of matches: %d\n", count);
+		debugPrintf("Number of matches: %d\n", count);
 		for (Common::ArchiveMemberList::iterator it = list.begin(); it != list.end(); ++it)
-			DebugPrintf(" %s\n", (*it)->getName().c_str());
+			debugPrintf(" %s\n", (*it)->getName().c_str());
 	} else if (argc == 3) {
 		Common::String filter(const_cast<char *>(argv[1]));
 		Common::String filename(const_cast<char *>(argv[2]));
@@ -240,7 +240,7 @@ bool Debugger::cmdListFiles(int argc, const char **argv) {
 			filename += ".at2";
 
 		if (!SearchMan.hasFile(filename)) {
-			DebugPrintf("Cannot find file: %s\n", filename.c_str());
+			debugPrintf("Cannot find file: %s\n", filename.c_str());
 			return true;
 		}
 
@@ -251,13 +251,13 @@ bool Debugger::cmdListFiles(int argc, const char **argv) {
 		Common::ArchiveMemberList list;
 		int count = archive->listMatchingMembers(list, filter);
 
-		DebugPrintf("Number of matches: %d\n", count);
+		debugPrintf("Number of matches: %d\n", count);
 		for (Common::ArchiveMemberList::iterator it = list.begin(); it != list.end(); ++it)
-			DebugPrintf(" %s\n", (*it)->getName().c_str());
+			debugPrintf(" %s\n", (*it)->getName().c_str());
 
 		delete archive;
 	} else {
-		DebugPrintf("Syntax: ls <filter> (<archive>) (use * for all) \n");
+		debugPrintf("Syntax: ls <filter> (<archive>) (use * for all) \n");
 	}
 
 	return true;
@@ -272,13 +272,13 @@ bool Debugger::cmdDumpArchive(int argc, const char **argv) {
 			Common::ArchiveMemberList list;
 			int count = SearchMan.listMatchingMembers(list, "*.at2");
 
-			DebugPrintf("Dumping %d archives\n", count);
+			debugPrintf("Dumping %d archives\n", count);
 			for (Common::ArchiveMemberList::iterator it = list.begin(); it != list.end(); ++it)
 				dumpFile((*it)->getName());
 		} else
 			dumpFile(filename);
 	} else {
-		DebugPrintf("Syntax: dump <filename>.at2 (use * to dump all archives) \n");
+		debugPrintf("Syntax: dump <filename>.at2 (use * to dump all archives) \n");
 	}
 
 	return true;
@@ -288,7 +288,7 @@ void Debugger::dumpFile(Common::String filename) {
 #define CREATE_FOLDER(name) { \
 	int ret = my_mkdir(name.c_str(), 600); \
 	if (ret == -1 && errno != EEXIST) { \
-		DebugPrintf("Cannot create folder: %s (error: %s)", name.c_str(), strerror(errno)); \
+		debugPrintf("Cannot create folder: %s (error: %s)", name.c_str(), strerror(errno)); \
 		delete archive; \
 		return; \
 	} \
@@ -299,7 +299,7 @@ void Debugger::dumpFile(Common::String filename) {
 		filename += ".at2";
 
 	if (!SearchMan.hasFile(filename)) {
-		DebugPrintf("Cannot find file: %s\n", filename.c_str());
+		debugPrintf("Cannot find file: %s\n", filename.c_str());
 		return;
 	}
 
@@ -325,14 +325,14 @@ void Debugger::dumpFile(Common::String filename) {
 	CREATE_FOLDER(dumpPath);
 
 	// Dump all members
-	DebugPrintf("Dumping %d files from archive %s\n", count, filename.c_str());
+	debugPrintf("Dumping %d files from archive %s\n", count, filename.c_str());
 	for (Common::ArchiveMemberList::iterator it = list.begin(); it != list.end(); ++it) {
 		Common::String name = (*it)->getName();
 		Common::SeekableReadStream *stream = archive->createReadStreamForMember(name);
 
 		byte *data = (byte *)calloc((size_t)stream->size(), 1);
 		if (!data) {
-			DebugPrintf("Cannot allocated data for file %s (size: %d)", name.c_str(), stream->size());
+			debugPrintf("Cannot allocated data for file %s (size: %d)", name.c_str(), stream->size());
 			delete archive;
 			delete stream;
 			return;
@@ -366,10 +366,10 @@ void Debugger::dumpFile(Common::String filename) {
 
 		delete stream;
 
-		DebugPrintf("  - %s\n", name.c_str());
+		debugPrintf("  - %s\n", name.c_str());
 	}
 
-	DebugPrintf("\n");
+	debugPrintf("\n");
 
 	delete archive;
 
@@ -393,9 +393,9 @@ bool Debugger::cmdEncyclopedia(int argc, const char **argv) {
 		if (argc == 2)
 			_filename = const_cast<char *>(argv[1]);
 
-		return Cmd_Exit(0, 0);
+		return cmdExit(0, 0);
 	} else {
-		DebugPrintf("Syntax: %s <filename> - load the encyclopedia\n", argv[0]);
+		debugPrintf("Syntax: %s <filename> - load the encyclopedia\n", argv[0]);
 	}
 
 	return true;
@@ -410,7 +410,7 @@ bool Debugger::cmdClear(int argc, const char **) {
 	if (argc == 1) {
 		_engine->getApplication()->_screenManager->clear();
 	} else {
-		DebugPrintf("Syntax: clear - clear the screen\n");
+		debugPrintf("Syntax: clear - clear the screen\n");
 	}
 
 	return true;
@@ -422,7 +422,7 @@ bool Debugger::cmdShow(int argc, const char ** argv) {
 
 		Image *image = new Image();
 		if (!image->load(filename, kArchiveFile, kZoneNone, kLoadFromDisk, kDrawTypeNormal)) {
-			DebugPrintf("Cannot load image: %s", filename.c_str());
+			debugPrintf("Cannot load image: %s", filename.c_str());
 
 			delete image;
 			return true;
@@ -440,7 +440,7 @@ bool Debugger::cmdShow(int argc, const char ** argv) {
 
 		Image *image = new Image();
 		if (!image->load(filename, kArchiveArt, (ZoneId)getNumber(argv[2]), kLoadFromDisk, kDrawTypeNormal)) {
-			DebugPrintf("Cannot load image: %s", filename.c_str());
+			debugPrintf("Cannot load image: %s", filename.c_str());
 
 			delete image;
 			return true;
@@ -454,7 +454,7 @@ bool Debugger::cmdShow(int argc, const char ** argv) {
 		g_system->updateScreen();
 
 	} else {
-		DebugPrintf("Syntax: show <filename> (<zone>)- Show an image\n");
+		debugPrintf("Syntax: show <filename> (<zone>)- Show an image\n");
 	}
 
 	return true;
