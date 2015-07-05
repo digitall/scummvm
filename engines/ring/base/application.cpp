@@ -40,7 +40,7 @@
 #include "ring/graphics/dragControl.h"
 #include "ring/graphics/image.h"
 #include "ring/graphics/hotspot.h"
-#include "ring/graphics/movie.h"
+#include "ring/graphics/movies/movie.h"
 #include "ring/graphics/screen.h"
 #include "ring/graphics/visual/visual_bar.h"
 #include "ring/graphics/visual/visual_box.h"

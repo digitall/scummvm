@@ -25,9 +25,18 @@ MODULE_OBJS := \
 	graphics/dragControl.o \
 	graphics/hotspot.o \
 	graphics/image.o \
-	graphics/imageLoader.o \
-	graphics/movie.o \
 	graphics/screen.o \
+	graphics/codecs/imageloader_bma.o \
+	graphics/codecs/imageloader_bmp.o \
+	graphics/codecs/imageloader_cin.o \
+	graphics/codecs/imageloader_ci2.o \
+	graphics/codecs/imageloader_tga.o \
+	graphics/codecs/imageloader_tgc.o \
+	graphics/movies/cinematic.o \
+	graphics/movies/cinematic1.o \
+	graphics/movies/cinematic2.o \
+	graphics/movies/cinematic_sound.o \
+	graphics/movies/movie.o \
 	graphics/visual/visual_bar.o \
 	graphics/visual/visual_box.o \
 	graphics/visual/visual_encyclopedia.o \

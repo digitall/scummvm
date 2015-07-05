@@ -21,9 +21,12 @@
 
 #include "ring/graphics/image.h"
 
-#include "ring/base/object.h"
-
-#include "ring/graphics/imageLoader.h"
+#include "codecs/imageloader_ci2.h"
+#include "codecs/imageloader_bmp.h"
+#include "codecs/imageloader_bma.h"
+#include "codecs/imageloader_cin.h"
+#include "codecs/imageloader_tga.h"
+#include "codecs/imageloader_tgc.h"
 
 #include "ring/debug.h"
 #include "ring/helpers.h"

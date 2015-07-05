@@ -22,12 +22,11 @@
 #include "ring/graphics/visual/visual_encyclopedia.h"
 
 #include "ring/base/application.h"
-#include "ring/base/object.h"
 #include "ring/base/text.h"
 
 #include "ring/graphics/hotspot.h"
 #include "ring/graphics/image.h"
-#include "ring/graphics/movie.h"
+#include "ring/graphics/movies/movie.h"
 #include "ring/graphics/screen.h"
 
 #include "ring/helpers.h"
