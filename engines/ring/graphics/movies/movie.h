@@ -63,7 +63,7 @@ private:
 	ScreenManager    *_screen;
 	CinematicSound   *_sound;
 	bool              _isSoundInitialized;
-	bool              _field_5B;
+	bool              _enableFrameSkipping;
 	float             _framerate;
 	bool              _hasDialog;
 	uint32            _channel;

@@ -161,43 +161,11 @@ bool ImageLoaderBMA::readImage(ImageSurface *image) {
 	delete imageData;
 
 	Graphics::Surface *surfaceInvert = new Graphics::Surface();
-	copySurface(surfaceInvert, *surface);
+	invertSurface(surfaceInvert, *surface);
 
 	image->setSurface(surfaceInvert);
 
 	return true;
-}
-
-void ImageLoaderBMA::copySurface(Graphics::Surface *out, const Graphics::Surface &in) {
-
-	// Images should be decoded with origin at the top
-	out->create(in.w, in.h, in.format);
-
-	switch (in.format.bytesPerPixel) {
-	default:
-		error("[ImageLoader::copySurface] Unsupported pixel depth (%s)", _filename.c_str());
-
-	// FIXME Handle endianess
-	case 2:
-		for (int i = 0; i < out->h; i++) {
-			uint16 *dst = static_cast<uint16 *>(out->getBasePtr(0, out->h - i - 1));
-			const uint16 *orig = static_cast<const uint16 *>(in.getBasePtr(0, i));
-
-			for (int j = 0; j < out->w; j++)
-				*dst++ = *orig++;
-		}
-		break;
-
-	case 4:
-		for (int i = 0; i < out->h; i++) {
-			uint32 *dst = static_cast<uint32 *>(out->getBasePtr(0, out->h - i - 1));
-			const uint32 *orig = static_cast<const uint32 *>(in.getBasePtr(0, i));
-
-			for (int j = 0; j < out->w; j++)
-				*dst++ = *orig++;
-		}
-		break;
-	}
 }
 
 } // End of namespace Ring

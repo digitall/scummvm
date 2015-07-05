@@ -26,6 +26,7 @@ MODULE_OBJS := \
 	graphics/hotspot.o \
 	graphics/image.o \
 	graphics/screen.o \
+    graphics/codecs/imageloader.o \
 	graphics/codecs/imageloader_bma.o \
 	graphics/codecs/imageloader_bmp.o \
 	graphics/codecs/imageloader_cin.o \

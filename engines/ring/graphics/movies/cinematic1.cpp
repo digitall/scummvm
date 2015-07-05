@@ -28,10 +28,12 @@
 
 namespace Ring {
 
+#define CINEMATIC_FILEBUFFER_SIZE      1130048
 #define CINEMATIC_BUFFER_SIZE          1024
 #define CINEMATIC_BACKBUFFER_SIZE      1200000
-#define CINEMATIC_TCONTROLBUFFER_SIZE  8192
+#define CINEMATIC_TCONTROLBUFFER_SIZE  0x4000
 #define CINEMATIC_CACHEBUFFER_SIZE     512
+#define CINEMATIC_MAX_BUFFER_SIZE      577536
 
 Cinematic1::Cinematic1() {
 	_stream              = nullptr;
@@ -68,19 +70,19 @@ bool Cinematic1::init(Common::String filename) {
 	_buffer2 = _buffer;
 	_state = false;
 
-	_backBuffer = (byte *)calloc(CINEMATIC_BACKBUFFER_SIZE, 1);
+	_backBuffer = static_cast<byte *>(calloc(CINEMATIC_BACKBUFFER_SIZE, 1));
 	if (!_backBuffer)
 		error("[Cinematic1::init] Error creating back buffer!");
 
-	_tControlBuffer = (TControl *)calloc(CINEMATIC_TCONTROLBUFFER_SIZE, sizeof(TControl));
+	_tControlBuffer = static_cast<TControl *>(calloc(CINEMATIC_TCONTROLBUFFER_SIZE, sizeof(TControl)));
 	if (!_tControlBuffer)
 		error("[Cinematic1::init] Error creating control buffer!");
 
-	_cacheBuffer = (byte *)calloc(CINEMATIC_CACHEBUFFER_SIZE, 1);
+	_cacheBuffer = static_cast<byte *>(calloc(CINEMATIC_CACHEBUFFER_SIZE, 1));
 	if (!_cacheBuffer)
 		error("[Cinematic1::init] Error creating cache buffer!");
 
-	_compressedData = nullptr;
+	_compressedData = static_cast<byte *>(calloc(CINEMATIC_FILEBUFFER_SIZE, 1));
 	_compressedDataEnd = nullptr;
 	_compressedBuffer = nullptr;
 	_compressedBufferEnd = nullptr;
@@ -143,19 +145,13 @@ bool Cinematic1::tControl() {
 
 	// Read data
 	uint32 dataSize = 2 * _tControlHeader.field_C + 2;
-
-	free(_compressedData);
-	_compressedData = (byte *)malloc(dataSize + _tControlHeader.size);
-	if (!_compressedData)
-		error("[Cinematic1::tControl] Cannot allocate memory for control data");
-
 	_stream->read(_compressedData, dataSize + _tControlHeader.size);
 
 	// Process
-	_compressedDataEnd   = _compressedData + dataSize;
+	_compressedDataEnd   = &_compressedData[dataSize];
 	_field_46            = _tControlHeader.field_8;
-	_compressedBuffer    = _compressedData + 2 * (_tControlHeader.field_8 * _tControlHeader.field_A) + dataSize;
-	_compressedBufferEnd = _compressedData + 1 * (_tControlHeader.size    - _tControlHeader.field_4) + dataSize;
+	_compressedBuffer    = &_compressedData[2 * (_tControlHeader.field_8 * _tControlHeader.field_A) + dataSize];
+	_compressedBufferEnd = &_compressedData[1 * (_tControlHeader.size    - _tControlHeader.field_4) + dataSize];
 
 	// Decompress data
 	uint32 decompressedSize = decompress(_compressedBuffer, _backBuffer, _compressedBufferEnd - _compressedBuffer);
@@ -174,7 +170,7 @@ bool Cinematic1::sControl(byte* buffer) {
 		error("[Cinematic1::readFrameHeader] Buffers not initialized properly");
 
 	// Reset tControl buffer
-	memset(_tControlBuffer, 0, CINEMATIC_TCONTROLBUFFER_SIZE * sizeof(TControl));
+	memset(_tControlBuffer, 0, CINEMATIC_TCONTROLBUFFER_SIZE);
 
 	// Read frame header
 	FrameHeader header;
@@ -182,26 +178,16 @@ bool Cinematic1::sControl(byte* buffer) {
 
 	debugC(kRingDebugMovie, "    Reading Frame header (size: %d, field_4: %d, field_8: %d, field_A: %d, width: %d, height: %d)",
 	       header.size, header.field_4, header.field_8, header.field_A, header.width, header.height);
-
-	// FIXME This is broken (crashes scummvm), so disable for now
-	seek(header.size, SEEK_CUR);
-	return true;
 	
 	// Read stream
 	uint32 dataSize = 2 * _tControlHeader.field_C + 2;
-
-	free(_compressedData);
-	_compressedData = (byte *)malloc(dataSize + header.size);
-	if (!_compressedData)
-		error("[Cinematic1::sControl] Cannot allocate memory for control data");
-
-	_stream->read(_compressedData, dataSize + header.size);
+	_stream->read(&_compressedData[dataSize], header.size);
 
 	// Process
-	_compressedDataEnd   = _compressedData + dataSize;
+	_compressedDataEnd   = &_compressedData[dataSize];
 	_field_46            = header.field_8;
-	_compressedBuffer    = _compressedData + 2 * (header.field_8 * header.field_A) + dataSize;
-	_compressedBufferEnd = _compressedData + 1 * (header.size    - header.field_4) + dataSize;
+	_compressedBuffer    = &_compressedData[2 * (header.field_8 * header.field_A) + dataSize];
+	_compressedBufferEnd = &_compressedData[header.size + dataSize - header.field_4];
 
 	// Update control buffer
 	if (!_tControlBuffer[1920].count) {
@@ -211,9 +197,9 @@ bool Cinematic1::sControl(byte* buffer) {
 		if (compressedData < _compressedDataEnd) {
 			int index = 1920;
 			do {
-				uint32 offset = *compressedData * 8;
+				uint32 offset = 8 * *reinterpret_cast<int16 *>(compressedData);
 
-				_tControlBuffer[index].pBuffer = (int *)backBuffer;
+				_tControlBuffer[index].pBuffer = reinterpret_cast<int *>(backBuffer);
 				_tControlBuffer[index].count   = offset;
 
 				compressedData += 2;
@@ -225,7 +211,7 @@ bool Cinematic1::sControl(byte* buffer) {
 
 	// Decompress data
 	uint32 decompressedSize = decompress(_compressedBuffer, buffer, _compressedBufferEnd - _compressedBuffer);
-	if (decompressedSize >= 577536) {
+	if (decompressedSize >= CINEMATIC_MAX_BUFFER_SIZE) {
 		warning("[Cinematic1::sControl] Buffer overrun");
 		return false;
 	}
@@ -239,23 +225,17 @@ uint32 Cinematic1::decompress(byte *data, byte *output, uint32 dataSize) {
 	if (!_cacheBuffer || !_compressedDataEnd || !_compressedBufferEnd || !_tControlBuffer)
 		error("[Cinematic1::decompress] Buffers not initialized properly");
 
-	// TODO: Reduce code duplication
-
-#define UPDATE_BUFFER_CONTROL(index) updateBufferControl(index, &buffer);
-#define UPDATE_BUFFER(index) updateBuffer(index, compressedDataEnd, &buffer);
+	bool check = false;
 
 	// Get start and end of buffer
 	byte *start = data;
 	byte *end   = &data[dataSize];
 
 	// Store buffers position
-	int *buffer            = (int *)output;
-	int *bufferStart       = buffer;
-	int *cacheBuffer       = (int *)_cacheBuffer;
-	int *cacheBufferStart  = (int *)_cacheBuffer;
-	int *compressedDataEnd = (int *)_compressedDataEnd;
+	const int *cacheBufferStart = reinterpret_cast<int *>(_cacheBuffer);
 
-	bool check = false;
+	int *buffer = reinterpret_cast<int *>(output);
+	int *cacheBuffer = reinterpret_cast<int *>(_cacheBuffer);
 
 	while (end > start) {
 
@@ -269,123 +249,124 @@ uint32 Cinematic1::decompress(byte *data, byte *output, uint32 dataSize) {
 
 			if (state < 8) {
 
-				*cacheBuffer = *start++ + (state << 8);
+				int controlIndex = *start++ + (state << 8);
+				*cacheBuffer = controlIndex;
 
-				if (*cacheBuffer > _field_46) {
-					if (*cacheBuffer >= 1920) {
-						UPDATE_BUFFER_CONTROL(2 * *cacheBuffer);
+				if (controlIndex > _field_46) {
+					if (controlIndex >= 1920) {
+						updateBufferControl(controlIndex, &buffer);
 					} else {
-
-						uint32 total = *cacheBuffer - (_field_46 + 1);
+						uint32 skip = controlIndex - (_field_46 + 1);
 						byte *offset;
 						for (offset = _compressedBufferEnd; ; offset += *offset + 1) {
-							if (total-- < 1)
+							if (skip-- < 1)
 								break;
 						}
-						total = *offset >> 1;
 
 						// Setup control buffer
-						_tControlBuffer[2 * *cacheBuffer].pBuffer = buffer;
-						_tControlBuffer[2 * *cacheBuffer].count   = 8 * total;
+						uint32 total = static_cast<int>(*offset) >> 1;
+						_tControlBuffer[controlIndex].pBuffer = buffer;
+						_tControlBuffer[controlIndex].count   = 8 * total;
 
-						int16 *index2 = (int16 *)(offset + 1);
+						uint16 *index2 = reinterpret_cast<uint16 *>(offset + 1);
 						while (true) {
 							if (total-- < 1)
 								break;
 
-							UPDATE_BUFFER(2 * *index2);
+							updateBuffer(*index2, &buffer);
 
 							index2++;
 						}
 
 					}
 				} else {
-					if (_tControlBuffer[*cacheBuffer].count) {
-						UPDATE_BUFFER_CONTROL(2 * *cacheBuffer);
+					if (_tControlBuffer[controlIndex].count) {
+						updateBufferControl(controlIndex, &buffer);
 					} else {
-						UPDATE_BUFFER(2 * *cacheBuffer);
+						updateBuffer(controlIndex, &buffer);
 
 						// Setup control buffer
-						_tControlBuffer[2 * *cacheBuffer].pBuffer = &compressedDataEnd[*cacheBuffer];
-						_tControlBuffer[2 * *cacheBuffer].count   = 8;
+						_tControlBuffer[controlIndex].pBuffer = reinterpret_cast<int *>(&_compressedDataEnd[8 * controlIndex]);
+						_tControlBuffer[controlIndex].count   = 8;
 					}
 				}
 
 				// Advance cache (and loop if necessary)
 				++cacheBuffer;
 
-				if ((cacheBuffer - cacheBufferStart) >= 128)
-					cacheBuffer = cacheBufferStart;
+				if (cacheBuffer - cacheBufferStart >= 128)
+					cacheBuffer = const_cast<int *>(cacheBufferStart);
 
 				check = false;
 
 			} else {
-				UPDATE_BUFFER_CONTROL(2 * cacheBufferStart[(*start >> 4) + 16 * state - 128]);
+				updateBufferControl(cacheBufferStart[(*start >> 4) + 16 * state - 128], &buffer);
 			}
 
 		} else {
 			if (val < 128) {
 
-				*cacheBuffer = 16 * val + (*start >> 4);
+				int controlIndex = 16 * val + (*start >> 4);
+				*cacheBuffer = controlIndex;
 
-				if (*cacheBuffer > _field_46) {
-					if (*cacheBuffer >= 1920) {
-						UPDATE_BUFFER_CONTROL(2 * *cacheBuffer);
+				if (controlIndex > _field_46) {
+					if (controlIndex >= 1920) {
+						updateBufferControl(controlIndex, &buffer);
 					} else {
 
-						uint32 total = *cacheBuffer - _field_46 - 1;
+						uint32 skip = controlIndex - (_field_46 + 1);
 						byte *offset;
 						for (offset = _compressedBufferEnd; ; offset += *offset + 1) {
-							if (total-- < 1)
+							if (skip-- < 1)
 								break;
 						}
-						total = *offset >> 1;
 
 						// Setup control buffer
-						_tControlBuffer[*cacheBuffer].pBuffer = buffer;
-						_tControlBuffer[*cacheBuffer].count   = 8 * total;
+						uint32 total = *offset >> 1;
+						_tControlBuffer[controlIndex].pBuffer = buffer;
+						_tControlBuffer[controlIndex].count   = 8 * total;
 
-						int16 *index2 = (int16 *)(offset + 1);
+						uint16 *index2 = reinterpret_cast<uint16 *>(offset + 1);
 						while (true) {
 							if (total-- < 1)
 								break;
 
-							UPDATE_BUFFER(2 * *index2);
+							updateBuffer(*index2, &buffer);
 
-							index2++;
+							++index2;
 						}
 					}
 				} else {
-					if (_tControlBuffer[*cacheBuffer].count) {
-						UPDATE_BUFFER_CONTROL(2 * *cacheBuffer);
+					if (_tControlBuffer[controlIndex].count) {
+						updateBufferControl(controlIndex, &buffer);
 					} else {
-						UPDATE_BUFFER(2 * *cacheBuffer);
+						updateBuffer(controlIndex, &buffer);
 
 						// Setup control buffer
-						_tControlBuffer[2 * *cacheBuffer].pBuffer = &compressedDataEnd[*cacheBuffer];
-						_tControlBuffer[2 * *cacheBuffer].count = 8;
+						_tControlBuffer[controlIndex].pBuffer = reinterpret_cast<int *>(&_compressedDataEnd[8 * controlIndex]);
+						_tControlBuffer[controlIndex].count = 8;
 					}
 				}
 
 				// Advance cache (and loop if necessary)
 				++cacheBuffer;
 
-				if ((cacheBuffer - cacheBufferStart) >= 128)
-					cacheBuffer = cacheBufferStart;
+				if (cacheBuffer - cacheBufferStart >= 128)
+					cacheBuffer = const_cast<int *>(cacheBufferStart);
 
 				check = true;
 
 			} else {
-				UPDATE_BUFFER_CONTROL(2 * cacheBufferStart[val - 128]);
+				updateBufferControl(cacheBufferStart[val - 128], &buffer);
 			}
 		}
 	}
 
-	return (uint32)(buffer - bufferStart);
+	return reinterpret_cast<byte *>(buffer) - output;
 }
 
-void Cinematic1::updateBuffer(int index, int *compressedDataEnd, int **buffer) {
-	int *control = &compressedDataEnd[index];
+void Cinematic1::updateBuffer(const int index, int **buffer) {
+	int *control = reinterpret_cast<int *>(&_compressedDataEnd[8 * index]);
 	uint32 count = 2;
 
 	do {
@@ -396,7 +377,7 @@ void Cinematic1::updateBuffer(int index, int *compressedDataEnd, int **buffer) {
 	} while (count);
 }
 
-void Cinematic1::updateBufferControl(int index, int **buffer) {
+void Cinematic1::updateBufferControl(const int index, int **buffer) {
 	int    *pBuffer = _tControlBuffer[index].pBuffer;
 	uint32  count   = _tControlBuffer[index].count >> 2;
 

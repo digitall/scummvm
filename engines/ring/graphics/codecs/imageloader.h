@@ -37,6 +37,8 @@ public:
 
 protected:
 	Common::String _filename;
+
+	void invertSurface(Graphics::Surface *out, const Graphics::Surface &in);
 };
 
 #define CINEMATIC_FORMAT 0x53

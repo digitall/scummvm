@@ -117,8 +117,8 @@ private:
 	bool    _isStreaming;
 
 	uint32 decompress(byte *data, byte *buffer, uint32 size);
-	void updateBuffer(int index, int *compressedDataEnd, int **buffer);
-	void updateBufferControl(int index, int **buffer);
+	void updateBuffer(const int index, int **buffer);
+	void updateBufferControl(const int index, int **buffer);
 };
 
 } // End of namespace Ring

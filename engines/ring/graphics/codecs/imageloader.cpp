@@ -19,48 +19,42 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef RING_IMAGELOADER_BMA_H
-#define RING_IMAGELOADER_BMA_H
-
 #include "ring/graphics/codecs/imageloader.h"
 
-#include "ring/shared.h"
+#include "ring/graphics/image.h"
 
 namespace Ring {
 
-class CompressedStream;
-class ImageSurface;
+void ImageLoader::invertSurface(Graphics::Surface *out, const Graphics::Surface &in) {
 
-class ImageLoaderBMA : public ImageLoader {
-public:
-	ImageLoaderBMA();
-	~ImageLoaderBMA();
+	// Images should be decoded with origin at the top
+	out->create(in.w, in.h, in.format);
 
-	bool load(ImageSurface *image, ArchiveType type, ZoneId zone, LoadFrom loadFrom, DrawType drawType) override;
+	switch (in.format.bytesPerPixel) {
+	default:
+		error("[ImageLoader::copySurface] Unsupported pixel depth (%s)", _filename.c_str());
 
-private:
-	struct Header {
-		uint16 coreWidth;
-		uint16 coreHeight;
-		uint32 seqWidth;
-		uint32 seqHeight;
-		uint32 field_C;
-		uint16 field_10;
-	};
+	// FIXME Handle endianess
+	case 2:
+		for (int i = 0; i < out->h; i++) {
+			uint16 *dst = static_cast<uint16 *>(out->getBasePtr(0, out->h - i - 1));
+			const uint16 *orig = static_cast<const uint16 *>(in.getBasePtr(0, i));
 
-	Header _header;
-	uint32 _coreSize;
-	uint32 _seqSize;
-	uint32 _blockSize;
+			for (int j = 0; j < out->w; j++)
+				*dst++ = *orig++;
+		}
+		break;
 
-	CompressedStream *_stream;
+	case 4:
+		for (int i = 0; i < out->h; i++) {
+			uint32 *dst = static_cast<uint32 *>(out->getBasePtr(0, out->h - i - 1));
+			const uint32 *orig = static_cast<const uint32 *>(in.getBasePtr(0, i));
 
-	bool init(ArchiveType type, ZoneId zone, LoadFrom loadFrom);
-	void deinit();
-	bool readHeader();
-	bool readImage(ImageSurface *image);
-};
+			for (int j = 0; j < out->w; j++)
+				*dst++ = *orig++;
+		}
+		break;
+	}
+}
 
 } // End of namespace Ring
-
-#endif // RING_IMAGELOADER_BMA_H

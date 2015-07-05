@@ -47,7 +47,7 @@ namespace Ring {
 Movie::Movie(ScreenManager *screen) : _screen(screen) {
 	_image     = nullptr;
 	_isSoundInitialized = false;
-	_field_5B  = false;
+	_enableFrameSkipping  = false;
 	_framerate = 0.0f;
 	_hasDialog = false;
 	_channel   = 0;
@@ -114,7 +114,7 @@ load_movie:
 	_sound->setVolume(getApp()->getPreferenceHandler()->getVolume());
 
 	// Setup framerate
-	_field_5B = true;
+	_enableFrameSkipping = true;
 	_framerate = 1000.0f / (_image->getFrameRate() * 0.01f);
 
 	// Setup sound handler
@@ -145,7 +145,7 @@ void Movie::deinit() {
 	SAFE_DELETE(_image);
 
 	_screen = nullptr;
-	_field_5B = true;
+	_enableFrameSkipping = true;
 }
 
 void Movie::play(const Common::Point &point) {
@@ -241,7 +241,7 @@ void Movie::play(const Common::Point &point) {
 
 			case kChunkS:
 			case kChunkU:    // CI2 movies
-				if (_field_5B) {
+				if (_enableFrameSkipping) {
 					uint32 tickInterval = (g_system->getMillis() - ticks);
 
 					if (((chunkIndex + 1) * _framerate) < tickInterval) {
@@ -280,7 +280,7 @@ void Movie::play(const Common::Point &point) {
 					}
 				}
 
-				if (!_image->readImage(image, 32, kDrawTypeNormal))
+				if (!_image->readImage(image, 17, kDrawTypeNormal))
 					error("[Movie::play] Chunk S: Error reading image (index: %d)", chunkIndex);
 
 				// Draw frame

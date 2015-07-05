@@ -140,14 +140,32 @@ bool ImageLoaderCIN::readImage(ImageSurface *image, byte bitdepth, DrawType) {
 		error("[ImageLoaderCIN::readImage] Invalid image pointer!");
 
 	if (!image->isInitialized())
-		image->create(bitdepth, 2, _width, _height);
+		image->create(bitdepth == 17 ? 16 : bitdepth, 2, _width, _height);
 
 	// Compute stride
 	_widthAndPadding = _width + 3;
 	_stride = _widthAndPadding * 3;
 
-	if (!_cinematic->sControl((byte *)image->getSurface()->getPixels()))
+	// Create buffer
+	byte *buffer = static_cast<byte *>(image->getSurface()->getPixels());
+	if (bitdepth == 17) {
+		// When decoding a video, data is stored past the normal surface size
+		buffer = static_cast<byte *>(malloc(_width * _height * 16 + 4096));
+	}
+
+	if (!_cinematic->sControl(buffer))
 		error("[ImageLoaderCIN::readImage] Cannot read image");
+
+	if (bitdepth == 17) {
+		image->getSurface()->copyRectToSurface(buffer, image->getSurface()->pitch, 0, 0, _width, _height);
+	}
+
+	Graphics::Surface *surfaceInvert = new Graphics::Surface();
+	invertSurface(surfaceInvert, *image->getSurface());
+
+	image->setSurface(surfaceInvert);
+
+	return true;
 
 	return true;
 }
