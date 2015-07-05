@@ -224,8 +224,8 @@ void ImageLoaderBMA::copySurface(Graphics::Surface *out, const Graphics::Surface
 	// FIXME Handle endianess
 	case 2:
 		for (int i = 0; i < out->h; i++) {
-			uint16 *dst = (uint16 *) out->getBasePtr(0, out->h - i - 1);
-			uint16 *orig = (uint16 *) in.getBasePtr(0, i);
+			uint16 *dst = static_cast<uint16 *>(out->getBasePtr(0, out->h - i - 1));
+			const uint16 *orig = static_cast<const uint16 *>(in.getBasePtr(0, i));
 
 			for (int j = 0; j < out->w; j++)
 				*dst++ = *orig++;
@@ -234,8 +234,8 @@ void ImageLoaderBMA::copySurface(Graphics::Surface *out, const Graphics::Surface
 
 	case 4:
 		for (int i = 0; i < out->h; i++) {
-			uint32 *dst = (uint32 *) out->getBasePtr(0, out->h - i - 1);
-			uint32 *orig = (uint32 *) in.getBasePtr(0, i);
+			uint32 *dst = static_cast<uint32 *>(out->getBasePtr(0, out->h - i - 1));
+			const uint32 *orig = static_cast<const uint32 *>(in.getBasePtr(0, i));
 
 			for (int j = 0; j < out->w; j++)
 				*dst++ = *orig++;
