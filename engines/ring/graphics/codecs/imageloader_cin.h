@@ -38,9 +38,7 @@ public:
 		char   signature[8];
 		byte   channels;
 		byte   bitsPerSample;
-		byte   samplesPerSec;
-		byte   field_B;
-		uint16 field_C;
+		uint32 samplesPerSec;
 		uint32 chunkCount;
 		uint32 frameRate;
 		byte   field_16;

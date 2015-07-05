@@ -105,25 +105,23 @@ bool ImageLoaderCIN::readHeader() {
 
 	// Read header (size: 0x40)
 	_cinematic->read(&_header.signature, sizeof(_header.signature));
-	_header.channels    = _cinematic->readByte();
-	_header.bitsPerSample    = _cinematic->readByte();
-	_header.samplesPerSec    = _cinematic->readByte();
-	_header.field_B    = _cinematic->readByte();
-	_header.field_C    = _cinematic->readUint16LE();
-	_header.chunkCount = _cinematic->readUint32LE();
-	_header.frameRate   = _cinematic->readUint32LE();
-	_header.field_16   = _cinematic->readByte();
-	_header.width      = _cinematic->readUint32LE();
-	_header.height     = _cinematic->readUint32LE();
-	_header.field_1F   = _cinematic->readByte();
-	_header.field_20   = _cinematic->readUint32LE();
-	_header.field_24   = _cinematic->readUint32LE();
-	_header.field_28   = _cinematic->readUint32LE();
-	_header.field_2C   = _cinematic->readUint32LE();
-	_header.field_30   = _cinematic->readUint32LE();
-	_header.field_34   = _cinematic->readUint32LE();
-	_header.field_38   = _cinematic->readUint32LE();
-	_header.field_3C   = _cinematic->readUint32LE();
+	_header.channels      = _cinematic->readByte();
+	_header.bitsPerSample = _cinematic->readByte();
+	_header.samplesPerSec = _cinematic->readUint32LE();
+	_header.chunkCount    = _cinematic->readUint32LE();
+	_header.frameRate     = _cinematic->readUint32LE();
+	_header.field_16      = _cinematic->readByte();
+	_header.width         = _cinematic->readUint32LE();
+	_header.height        = _cinematic->readUint32LE();
+	_header.field_1F      = _cinematic->readByte();
+	_header.field_20      = _cinematic->readUint32LE();
+	_header.field_24      = _cinematic->readUint32LE();
+	_header.field_28      = _cinematic->readUint32LE();
+	_header.field_2C      = _cinematic->readUint32LE();
+	_header.field_30      = _cinematic->readUint32LE();
+	_header.field_34      = _cinematic->readUint32LE();
+	_header.field_38      = _cinematic->readUint32LE();
+	_header.field_3C      = _cinematic->readUint32LE();
 
 	// Update width and height
 	_width = _header.width;

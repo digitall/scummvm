@@ -66,7 +66,7 @@ void CinematicSound::init(uint32 channels, uint32 bitsPerSample, uint32 samplesP
 	       _channels, _bitsPerSample, _blockAlign, _samplesPerSec, _avgBytesPerSec);
 
 	// Create an audio stream where the decoded chunks will be appended
-	_audioStream = Audio::makeQueuingAudioStream(22050 /*samplesPerSec * 1000*/, channels == 1 ? false : true);
+	_audioStream = Audio::makeQueuingAudioStream(_samplesPerSec, channels == 1 ? false : true);
 }
 
 void CinematicSound::deinit() {
@@ -121,14 +121,14 @@ void CinematicSound::queueBuffer(Common::SeekableReadStream *stream) {
 	if (!_audioStream)
 		error("[CinematicSound::play] Audiostream not initialized properly");
 
-	Audio::RewindableAudioStream *adpcm = Audio::makeADPCMStream(stream, DisposeAfterUse::YES, stream->size(), Audio::kADPCMMS, 22050/*_samplesPerSec * 1000*/, _channels, _blockAlign);
+	Audio::RewindableAudioStream *adpcm = Audio::makeADPCMStream(stream, DisposeAfterUse::YES, stream->size(), Audio::kADPCMMS, _samplesPerSec, _channels, _blockAlign);
 	if (!adpcm) {
 		warning("[CinematicSound::queueBuffer] Cannot decode sound stream");
 		return;
 	}
 
-	// TODO Queue the stream
-	//_audioStream->queueAudioStream(adpcm);
+	// Queue the stream
+	_audioStream->queueAudioStream(adpcm);
 }
 
 #pragma endregion
