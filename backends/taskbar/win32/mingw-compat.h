@@ -40,12 +40,16 @@
 #include <initguid.h>
 #include <shlwapi.h>
 #include <shlguid.h>
-#define CMIC_MASK_ASYNCOK SEE_MASK_ASYNCOK
-
-extern const GUID CLSID_ShellLink;
+#include <shobjidl.h>
 
 // Shard enumeration value
 #define SHARD_LINK 0x00000006
+
+#ifndef __ITaskbarList3_INTERFACE_DEFINED__
+
+#define CMIC_MASK_ASYNCOK SEE_MASK_ASYNCOK
+
+extern const GUID CLSID_ShellLink;
 
 // Taskbar GUID definitions
 DEFINE_GUID(CLSID_TaskbarList,0x56fdf344,0xfd6d,0x11d0,0x95,0x8a,0x0,0x60,0x97,0xc9,0xa0,0x90);
@@ -143,6 +147,8 @@ private:
 };
 
 typedef ITaskbarList3 *LPITaskbarList3;
+
+#endif
 
 #endif // __MINGW32__
 #endif // __GNUC__
