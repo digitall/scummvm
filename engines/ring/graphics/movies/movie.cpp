@@ -280,7 +280,7 @@ void Movie::play(const Common::Point &point) {
 					}
 				}
 
-				if (!_image->readImage(image, 17, kDrawTypeNormal))
+				if (!_image->readImage(image, kChunkS ? 17 : 32, kDrawTypeNormal))
 					error("[Movie::play] Chunk S: Error reading image (index: %d)", chunkIndex);
 
 				// Draw frame
