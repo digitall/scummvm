@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/config-manager.h"
 #include "common/file.h"
 #include "common/textconsole.h"
 
@@ -71,6 +72,7 @@ static const uint8 egaPalette[16 * 3] = {
  * from Donald Duck's Playground (1986) to Manhunter II (1989).
  * 16 RGB colors. 3 bits per color component.
  */
+#if 0
 static const uint8 atariStAgiPalette[16 * 3] = {
 	0x0, 0x0, 0x0,
 	0x0, 0x0, 0x7,
@@ -89,6 +91,7 @@ static const uint8 atariStAgiPalette[16 * 3] = {
 	0x7, 0x7, 0x4,
 	0x7, 0x7, 0x7
 };
+#endif
 
 /**
  * Second generation Apple IIGS AGI palette.
@@ -108,6 +111,8 @@ static const uint8 atariStAgiPalette[16 * 3] = {
  * 3.001 (Black Cauldron        v1.0O 1989-02-24 (CE))
  * 3.003 (Gold Rush!            v1.0M 1989-02-28 (CE))
  */
+#if 0
+// FIXME: Identical to amigaAgiPaletteV2
 static const uint8 appleIIgsAgiPaletteV2[16 * 3] = {
 	0x0, 0x0, 0x0,
 	0x0, 0x0, 0xF,
@@ -126,6 +131,7 @@ static const uint8 appleIIgsAgiPaletteV2[16 * 3] = {
 	0xE, 0xE, 0x0,
 	0xF, 0xF, 0xF
 };
+#endif
 
 /**
  * First generation Amiga & Apple IIGS AGI palette.
@@ -220,7 +226,7 @@ static const uint8 amigaAgiPaletteV3[16 * 3] = {
 /**
  * 16 color amiga-ish palette.
  */
-static const uint8 newPalette[16 * 3] = {
+static const uint8 altAmigaPalette[16 * 3] = {
 	0x00, 0x00, 0x00,
 	0x00, 0x00, 0x3f,
 	0x00, 0x2A, 0x00,
@@ -615,6 +621,8 @@ void GfxMgr::putTextCharacter(int l, int x, int y, unsigned char c, int fg, int 
 	int x1, y1, xx, yy, cc;
 	const uint8 *p;
 
+	assert(font);
+
 	p = font + ((unsigned int)c * CHAR_LINES);
 	for (y1 = 0; y1 < CHAR_LINES; y1++) {
 		for (x1 = 0; x1 < CHAR_COLS; x1++) {
@@ -698,7 +706,7 @@ void GfxMgr::printCharacter(int x, int y, char c, int fg, int bg) {
 	x *= CHAR_COLS;
 	y *= CHAR_LINES;
 
-	putTextCharacter(0, x, y, c, fg, bg);
+	putTextCharacter(0, x, y, c, fg, bg, false, _vm->getFontData());
 	// redundant! already inside put_text_character!
 	// flush_block (x, y, x + CHAR_COLS - 1, y + CHAR_LINES - 1);
 }
@@ -753,7 +761,7 @@ void GfxMgr::rawDrawButton(int x, int y, const char *s, int fgcolor, int bgcolor
 	drawRectangle(x1, y1, x2, y2, border ? BUTTON_BORDER : MSG_BOX_COLOR);
 
 	while (*s) {
-		putTextCharacter(0, x + textOffset, y + textOffset, *s++, fgcolor, bgcolor);
+		putTextCharacter(0, x + textOffset, y + textOffset, *s++, fgcolor, bgcolor, false, _vm->getFontData());
 		x += CHAR_COLS;
 	}
 
@@ -904,6 +912,7 @@ static const byte sciMouseCursor[] = {
 	0,0,0,0,0,0,1,2,2,1,0
 };
 
+#if 0
 /**
  * A black and white Apple IIGS style arrow cursor (9x11).
  * 0 = Transparent.
@@ -923,6 +932,7 @@ static const byte appleIIgsMouseCursor[] = {
 	2,2,2,0,2,1,1,2,0,
 	0,0,0,0,0,2,2,2,0
 };
+#endif
 
 /**
  * RGB-palette for the black and white SCI and Apple IIGS arrow cursors.
@@ -1030,8 +1040,22 @@ int GfxMgr::initVideo() {
 		initPalette(vgaPalette, 256, 8);
 	else if (_vm->_renderMode == Common::kRenderEGA)
 		initPalette(egaPalette);
-	else
-		initPalette(newPalette);
+	else if (_vm->_renderMode == Common::kRenderAmiga) {
+		if (!ConfMan.getBool("altamigapalette")) {
+			// Set the correct Amiga palette
+			if (_vm->getVersion() < 0x2936)
+				// TODO: This palette isn't used for Apple IIGS games yet, as
+				// we don't set a separate render mode for them yet
+				initPalette(amigaAgiPaletteV1, 16, 4);
+			else if (_vm->getVersion() == 0x2936)
+				initPalette(amigaAgiPaletteV2, 16, 4);
+			else if (_vm->getVersion() > 0x2936)
+				initPalette(amigaAgiPaletteV3, 16, 4);
+		} else
+			// Set the old common alternative Amiga palette
+			initPalette(altAmigaPalette);
+	} else
+		error("initVideo: Unhandled render mode");
 
 	if ((_agiScreen = (uint8 *)calloc(GFX_WIDTH, GFX_HEIGHT)) == NULL)
 		return errNotEnoughMemory;

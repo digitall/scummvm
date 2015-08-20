@@ -207,6 +207,7 @@ static const Engines::ObsoleteGameID obsoleteGameIDsTable[] = {
 static const GameSettings gameVariantsTable[] = {
 	{"maniac", "Apple II",   0, GID_MANIAC, 0, 0, MDT_APPLEIIGS, 0, Common::kPlatformApple2GS, GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI)},
 	{"maniac", "C64",        0, GID_MANIAC, 0, 0, MDT_C64, 0, Common::kPlatformC64, GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI) },
+	{"maniac", "C64 Demo",   0, GID_MANIAC, 0, 0, MDT_C64, GF_DEMO, Common::kPlatformC64, GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI) },
 	{"maniac", "V1",      "v1", GID_MANIAC, 1, 0, MDT_PCSPK | MDT_PCJR, 0, Common::kPlatformDOS, GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI)},
 	{"maniac", "V1 Demo", "v1", GID_MANIAC, 1, 0, MDT_PCSPK | MDT_PCJR, GF_DEMO, Common::kPlatformDOS, GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI)},
 	{"maniac", "NES",        0, GID_MANIAC, 1, 0, MDT_NONE,  0, Common::kPlatformNES, GUIO3(GUIO_NOSPEECH, GUIO_NOMIDI, GUIO_NOASPECT)},
@@ -305,11 +306,11 @@ static const GameSettings gameVariantsTable[] = {
 
 	// Humongous Entertainment Scumm Version 7.2
 	{"airport", "", 0, GID_HEGAME, 6, 72, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
+	{"farm", "", 0, GID_HEGAME, 6, 72, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
 
 	// Changed o_getResourceSize to cover all resource types
-	{"farm", "", 0, GID_HEGAME, 6, 73, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
 	{"puttzoo", "", 0, GID_PUTTZOO, 6, 73, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
-	{"puttzoo", "HE 72", 0, GID_PUTTZOO, 6, 72, MDT_NONE, GF_USE_KEY | GF_HE_985, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
+	{"puttzoo", "HE 72", 0, GID_PUTTZOO, 6, 72, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
 	{"puttzoo", "HE 98.5", 0, GID_PUTTZOO, 6, 98, MDT_NONE, GF_USE_KEY | GF_HE_985, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
 	{"puttzoo", "HE 99", 0, GID_PUTTZOO, 6, 99, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
 	{"puttzoo", "HE 100", 0, GID_PUTTZOO, 6, 100, MDT_NONE, GF_USE_KEY, UNK, GUIO3(GUIO_NOLAUNCHLOAD, GUIO_NOMIDI, GUIO_NOASPECT)},
@@ -448,6 +449,7 @@ static const GameFilenamePattern gameFilenamesTable[] = {
 	{ "maniac", "%02d.MAN", kGenRoomNum, UNK_LANG, UNK, "V1 Demo" },
 	{ "maniac", "maniac1.d64", kGenUnchanged, UNK_LANG, Common::kPlatformC64, "C64" },   // ... and maniac2.d64
 	{ "maniac", "maniac1.dsk", kGenUnchanged, UNK_LANG, Common::kPlatformApple2GS, "Apple II" },   // ... and maniac2.dsk
+	{ "maniac", "maniacdemo.d64", kGenUnchanged, UNK_LANG, Common::kPlatformC64, "C64 Demo" },
 	{ "maniac", "Maniac Mansion (E).prg", kGenUnchanged, Common::EN_GRB, Common::kPlatformNES, "NES" },
 	{ "maniac", "Maniac Mansion (F).prg", kGenUnchanged, Common::FR_FRA, Common::kPlatformNES, "NES" },
 	{ "maniac", "Maniac Mansion (SW).prg", kGenUnchanged, Common::SE_SWE, Common::kPlatformNES, "NES" },
@@ -664,6 +666,7 @@ static const GameFilenamePattern gameFilenamesTable[] = {
 	{ "dog", "Springparadijs", kGenHEMac, Common::NL_NLD, Common::kPlatformMacintosh, 0 },
 
 	{ "farm", "farm", kGenHEPC, UNK_LANG, UNK, 0 },
+	{ "farm", "farm", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
 	{ "farm", "farmdemo", kGenHEPC, UNK_LANG, UNK, 0 },
 	{ "farm", "Farm Demo", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
 
@@ -809,6 +812,7 @@ static const GameFilenamePattern gameFilenamesTable[] = {
 	{ "pajama3", "PyjamaHG", kGenHEPC, Common::FR_FRA, UNK, 0 },
 	{ "pajama3", "PyjamaSKS", kGenHEPC, Common::DE_DEU, UNK, 0 },
 	{ "pajama3", "PyjamaSKS", kGenHEMac, Common::DE_DEU, Common::kPlatformMacintosh, 0 },
+	{ "pajama3", "SamLDM", kGenHEPC, Common::IT_ITA, Common::kPlatformWindows, 0 },
 	{ "pajama3", "UKPajamaEAT", kGenHEPC, Common::RU_RUS, UNK, 0 },
 
 	{ "puttcircus", "puttcircus", kGenHEPC, UNK_LANG, UNK, 0 },
@@ -827,6 +831,7 @@ static const GameFilenamePattern gameFilenamesTable[] = {
 	{ "puttrace", "500demo", kGenHEPC, Common::NL_NLD, Common::kPlatformWindows, 0 },
 	{ "puttrace", "course", kGenHEPC, Common::FR_FRA, UNK, 0 },
 	{ "puttrace", "CourseDemo", kGenHEPC, Common::FR_FRA, UNK, 0 },
+	{ "puttrace", "GasGasEG", kGenHEPC, Common::IT_ITA, Common::kPlatformWindows, 0 },
 	{ "puttrace", "racedemo", kGenHEPC, UNK_LANG, Common::kPlatformWindows, 0 },
 	{ "puttrace", "RaceDemo", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
 	{ "puttrace", "Rennen", kGenHEPC, Common::DE_DEU, UNK, 0 },
@@ -855,7 +860,7 @@ static const GameFilenamePattern gameFilenamesTable[] = {
 	{ "putttime", "PuttTijd", kGenHEMac, Common::NL_NLD, Common::kPlatformMacintosh, 0 },
 	{ "putttime", "Putt Time", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
 	{ "putttime", "PuttTTT", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
-	{ "putttime", "PuttTTT", kGenHEPC, UNK_LANG, UNK, 0 },
+	{ "putttime", "PuttTTT", kGenHEPC, UNK_LANG, Common::kPlatformWindows, 0 },
 	{ "putttime", "TIJDDEMO", kGenHEPC, Common::NL_NLD, Common::kPlatformWindows, 0 },
 	{ "putttime", "TijdDemo", kGenHEMac, Common::NL_NLD, Common::kPlatformMacintosh, 0 },
 	{ "putttime", "timedemo", kGenHEPC, UNK_LANG, UNK, 0 },
@@ -917,12 +922,13 @@ static const GameFilenamePattern gameFilenamesTable[] = {
 	{ "spyfox", "JR-Demo", kGenHEMac, Common::FR_FRA, Common::kPlatformMacintosh, 0 },
 	{ "spyfox", "game", kGenHEIOS, Common::EN_ANY, Common::kPlatformIOS, 0 },
 
-	{ "spyfox2", "spyfox2", kGenHEPC, UNK_LANG, UNK, 0 },
+	{ "spyfox2", "spyfox2", kGenHEPC, UNK_LANG, Common::kPlatformWindows, 0 },
 	{ "spyfox2", "sf2-demo", kGenHEPC, UNK_LANG, UNK, 0 },
 	{ "spyfox2", "sf2demo", kGenHEPC, UNK_LANG, Common::kPlatformWindows, 0 },
 	{ "spyfox2", "Sf2demo", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
 	{ "spyfox2", "Spy Fox 2", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
 	{ "spyfox2", "Spy Fox 2 - Demo", kGenHEMac, UNK_LANG, Common::kPlatformMacintosh, 0 },
+	{ "spyfox2", "SPyFoxMCR", kGenHEPC, Common::IT_ITA, Common::kPlatformWindows, 0 },
 	{ "spyfox2", "SpyFoxOR", kGenHEPC, Common::DE_DEU, UNK, 0 },
 	{ "spyfox2", "SpyFoxOR", kGenHEMac, Common::DE_DEU, Common::kPlatformMacintosh, 0 },
 	{ "spyfox2", "SPYFoxORE", kGenHEPC, Common::FR_FRA, UNK, 0 },
