@@ -37,12 +37,6 @@
 
 namespace Bolt {
 
-MoviePtr Movie::create(BoltEngine *engine, PfFile *pfFile, uint32 name) {
-	MoviePtr self(new Movie);
-	self->init(engine, pfFile, name);
-	return self;
-}
-
 Movie::Movie()
 	: _engine(nullptr),
 	_audioStream(nullptr),

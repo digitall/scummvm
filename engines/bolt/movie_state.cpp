@@ -35,7 +35,7 @@ MovieStatePtr MovieState::create(BoltEngine *engine, uint32 name) {
 
 	self->_engine = engine;
 
-	self->_movie = Movie::create(engine, &engine->_maPfFile, name);
+	self->_movie.init(engine, &engine->_maPfFile, name);
 
 	return self;
 }
@@ -46,10 +46,10 @@ MovieState::MovieState()
 void MovieState::process(const Common::Event &event) {
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
 		// Clicked, stop movie
-		_movie->stop();
+		_movie.stop();
 		_engine->endCard();
 	}
-	else if (!_movie->process()) {
+	else if (!_movie.process()) {
 		// Movie done
 		_engine->endCard();
 	}

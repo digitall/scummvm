@@ -183,8 +183,7 @@ BoltEngine::MERLIN_SEQUENCE[] = {
 	{ BoltEngine::MenuFunc, 0x3810 }, // pink crystal puzzle
 	{ BoltEngine::MenuFunc, 0x0555 }, // stage 3 freeplay hub
 
-	// NOTE: I shall deliberately avoid spoiling the finale movie until this
-	// project is complete! (I've never seen it...)
+	// NOTE: I will not watch the finale until the project is done!
 	//{ BoltEngine::PlayMovieFunc, MKTAG('F', 'N', 'L', 'E') },
 };
 
@@ -244,7 +243,7 @@ void BoltEngine::MenuFunc(BoltEngine *self) {
 void BoltEngine::PlotWarningFunc(BoltEngine *self) {
 	GUI::MessageDialog dialog(
 		"Warning: Puzzles are not implemented. Continuing will spoil the plot.\n"
-		"Are you sure you want to proceed?", "Yes", "No");
+		"Proceed?", "Yes", "No");
 	int result = dialog.runModal();
 
 	// Dialog clobbers cursor, reinitialize it

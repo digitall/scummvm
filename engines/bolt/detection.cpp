@@ -36,28 +36,26 @@ static const ADGameDescription gameDescriptions[] = {
 	{
 		"merlin",
 		0,
-		// FIXME: BOLTLIB.BLT is not detected by ScummVM because it is marked
-		// "Hidden". Players are forced to use Windows Explorer to uncheck the
-		// "Hidden" checkbox in the file properties. Please fix ScummVM so it
-		// can detect these files!
-		// NOTE: This is MD5 of first 5000 bytes.
+		// FIXME: ScummVM will not detect BOLTLIB.BLT until you uncheck its
+		// "Hidden" property with Explorer.
+		// Fix ScummVM so it can detect hidden files!
 		AD_ENTRY1("BOLTLIB.BLT", "58ef3e35e1f6369056272a30c67bb94d"),
 		Common::EN_ANY,
 		// Games were released for Win and Mac on the same CD-ROM. There are no
-		// significant platform differences.
+		// notable differences between the platforms.
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
 		GUIO0()
 	},
 
 	/*
-	 * Notes about the CD-I version:
-	 * The CD-I has a screen resolution of 384x240, and the backgrounds are
-	 * sized accordingly. For the CD-ROM release, the backgrounds were cropped
-	 * to the 320x200 "safe area".
-	 * The CD-I version had a cross-fade effect that is absent in the CD-ROM
+	 * Notes about the CD-I games:
+	 * The CD-I games have a screen resolution of 384x240. For Win/Mac, the
+	 * resolution is 320x200 and graphics are cropped to fit.
+	 * The CD-I games have a cross-fade effect that is absent in the CD-ROM
 	 * version.
-	 * CD-I colors are different from sRGB colors. (FIXME: Investigate)
+	 * The CD-I games have three redundant copies of the BOLTLIB file.
+	 * The CD-I games have a different (but similar) movie format.
 	 */
 
 	AD_TABLE_END_MARKER
