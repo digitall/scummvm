@@ -47,22 +47,18 @@ class BoltEngine;
 class PfFile;
 class Plane;
 
-typedef Common::SharedPtr<class Movie> MoviePtr;
-
 class Movie {
 public:
-	static MoviePtr create(BoltEngine *engine, PfFile *pfFile, uint32 name);
+	Movie();
 	~Movie();
 
+	void init(BoltEngine *engine, PfFile *pfFile, uint32 name);
 	void stop();
 
 	// Returns true if movie is running, false if movie is finished.
 	bool process();
 
 private:
-	Movie();
-	void init(BoltEngine *engine, PfFile *pfFile, uint32 name);
-
 	void stopAudio();
 	bool isAudioRunning() const;
 

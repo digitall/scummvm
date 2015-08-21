@@ -51,7 +51,7 @@ private:
 
 	BoltEngine *_engine;
 
-	MoviePtr _movie;
+	Movie _movie;
 };
 
 } // End of namespace Bolt

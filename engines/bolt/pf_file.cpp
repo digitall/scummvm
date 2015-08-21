@@ -26,9 +26,9 @@
 
 namespace Bolt {
 
-// I believe PF stands for "packet file". PF files contain movies identified by
-// four-character names. A movie consists of a sequence of interleaved sound
-// video packets.
+// PF probably stands for "packet file". PF files contain a collection of
+// movies, each identified with a four character name. A movie is a stream
+// of interleaved sound and video packets.
 bool PfFile::load(const Common::String &filename) {
 
 	debug(3, "opening %s", filename.c_str());
