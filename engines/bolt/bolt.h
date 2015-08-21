@@ -87,8 +87,6 @@ protected:
 	State() { }
 };
 
-typedef Common::SharedPtr<State> StatePtr;
-
 class BoltEngine : public Engine {
 	friend class MenuState;
 	friend class MovieState;
@@ -110,6 +108,7 @@ private:
 	PfFile _maPfFile;
 	BltImagePtr _cursorImage;
 
+	typedef Common::ScopedPtr<State> StatePtr;
 	StatePtr _state;
 
 	void initCursor();

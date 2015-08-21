@@ -149,8 +149,8 @@ BoltEngine::MERLIN_SEQUENCE[] = {
 	// Stage 1: Forest
 	{ BoltEngine::PlayMovieFunc, MKTAG('P', 'L', 'O', 'G') },
 	{ BoltEngine::MenuFunc, 0x0C31 }, // stage 1 hub
-	// NOTE: There are many duplicates of these puzzle menus, possibly
-	// corresponding to different variations.
+	// NOTE: There are many duplicates of these puzzle scenes, probably
+	// for different variants of the puzzle.
 	{ BoltEngine::MenuFunc, 0x6017 }, // grave puzzle
 	{ BoltEngine::MenuFunc, 0x8606 }, // frogs & bugs puzzle
 	{ BoltEngine::MenuFunc, 0x3009 }, // leaf puzzle
@@ -226,7 +226,10 @@ BoltEngine::MERLIN_SEQUENCE_SIZE;
 
 void BoltEngine::PlayMovieFunc(BoltEngine *self) {
 	uint32 param = SEQUENCE[self->_sequenceCursor].param;
-	self->_state = MovieState::create(self, param);
+	self->_state.reset();
+	MovieState* movieState = new MovieState;
+	movieState->init(self, param);
+	self->_state.reset(movieState);
 }
 
 void BoltEngine::MainMenuFunc(BoltEngine *self) {
@@ -246,7 +249,7 @@ void BoltEngine::PlotWarningFunc(BoltEngine *self) {
 		"Proceed?", "Yes", "No");
 	int result = dialog.runModal();
 
-	// Dialog clobbers cursor, reinitialize it
+	// Dialog clobbers cursor; reinitialize the cursor
 	self->initCursor();
 
 	if (result == GUI::kMessageOK) {
@@ -281,7 +284,10 @@ void BoltEngine::startMainMenu(BltShortId mainMenuId) {
 }
 
 void BoltEngine::startMenu(BltLongId menuId) {
-	_state = MenuState::create(this, menuId);
+	_state.reset();
+	MenuState* menuState = new MenuState;
+	menuState->init(this, menuId);
+	_state.reset(menuState);
 }
 
 } // End of namespace Bolt

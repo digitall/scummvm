@@ -131,8 +131,8 @@ public:
 		if (r._refCount)
 			++(*r._refCount);
 
-		// Temporary copies are required to prevent crash in rare situations
-		// where decRef may indirectly delete r.
+		// Make temporary copies to prevent crash if decRef causes r to be
+		// deleted.
 		RefValue *newRefCount = r._refCount;
 		SharedPtrDeletionInternal *newDeletion = r._deletion;
 		PointerType newPointer = r._pointer;
@@ -151,8 +151,8 @@ public:
 		if (r._refCount)
 			++(*r._refCount);
 
-		// Temporary copies are required to prevent crash in rare situations
-		// where decRef may indirectly delete r.
+		// Make temporary copies to prevent crash if decRef causes r to be
+		// deleted.
 		RefValue *newRefCount = r._refCount;
 		SharedPtrDeletionInternal *newDeletion = r._deletion;
 		PointerType newPointer = r._pointer;

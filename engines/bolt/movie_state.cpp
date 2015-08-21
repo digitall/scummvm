@@ -29,19 +29,10 @@
 
 namespace Bolt {
 
-MovieStatePtr MovieState::create(BoltEngine *engine, uint32 name) {
-
-	MovieStatePtr self(new MovieState());
-
-	self->_engine = engine;
-
-	self->_movie.init(engine, &engine->_maPfFile, name);
-
-	return self;
+void MovieState::init(BoltEngine *engine, uint32 name) {
+	_engine = engine;
+	_movie.init(engine, &engine->_maPfFile, name);
 }
-
-MovieState::MovieState()
-{ }
 
 void MovieState::process(const Common::Event &event) {
 	if (event.type == Common::EVENT_LBUTTONDOWN) {

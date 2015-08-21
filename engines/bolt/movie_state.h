@@ -38,19 +38,13 @@ namespace Bolt {
 
 class BoltEngine;
 
-typedef Common::SharedPtr<class MovieState> MovieStatePtr;
-
 class MovieState : public State {
 public:
-	static MovieStatePtr create(BoltEngine *engine, uint32 name);
-
+	void init(BoltEngine *engine, uint32 name);
 	virtual void process(const Common::Event &event);
 
 private:
-	MovieState();
-
 	BoltEngine *_engine;
-
 	Movie _movie;
 };
 
