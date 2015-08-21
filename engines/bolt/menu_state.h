@@ -34,22 +34,14 @@ namespace Bolt {
 
 class BoltEngine;
 
-typedef Common::SharedPtr<class MenuState> MenuStatePtr;
-
 class MenuState : public State {
 public:
-	static MenuStatePtr create(BoltEngine *engine, BltLongId sceneId);
-
+	void init(BoltEngine *engine, BltLongId sceneId);
 	virtual void process(const Common::Event &event);
 
 private:
-	MenuState();
-
-	void init(BoltEngine *engine, BltLongId menuId);
 	void draw();
-
 	BoltEngine *_engine;
-
 	Scene _scene;
 };
 

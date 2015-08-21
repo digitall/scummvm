@@ -30,15 +30,6 @@
 
 namespace Bolt {
 
-MenuStatePtr MenuState::create(BoltEngine *engine, BltLongId menuId) {
-	MenuStatePtr self(new MenuState());
-	self->init(engine, menuId);
-	return self;
-}
-
-MenuState::MenuState()
-{ }
-
 void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 	_engine = engine;
 	_scene.init(engine, &_engine->_boltlibBltFile, menuId);
