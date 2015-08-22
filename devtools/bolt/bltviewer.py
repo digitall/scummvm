@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 
 # ScummVM - Graphic Adventure Engine
 #
@@ -29,6 +29,8 @@ import sys
 
 from PySide import QtGui
 from PySide.QtCore import Qt
+
+from construct import *
 
 from internal.bltfile import BltFile
 
@@ -80,27 +82,34 @@ def decode_rl7(dst, src, width, height):
             out_x += 1
 
 
+_ImageHeaderStruct = Struct("_ImageHeaderStruct",
+    UBInt8("compression"),
+    Padding(5),
+    SBInt16("offset_x"),
+    SBInt16("offset_y"),
+    UBInt16("width"),
+    UBInt16("height"),
+    )
+
 class BltImageWidget(QtGui.QLabel):
     def __init__(self, data, palette):
-        compression = data[0]
-        offset_x, offset_y, width, height = struct.unpack('>hhHH', data[6:0xE])
-
+        header = _ImageHeaderStruct.parse(data)
         image_data = data[0x18:]
 
-        if compression == 0:
+        if header.compression == 0:
             # CLUT7
             super().__init__()
-            image = QtGui.QImage(image_data, width, height, width, QtGui.QImage.Format_Indexed8)
+            image = QtGui.QImage(image_data, header.width, header.height, header.width, QtGui.QImage.Format_Indexed8)
             image.setColorTable(palette)
-            self.setPixmap(QtGui.QPixmap.fromImage(image).scaled(width * 2, height * 2))
-        elif compression == 1:
+            self.setPixmap(QtGui.QPixmap.fromImage(image).scaled(header.width * 2, header.height * 2))
+        elif header.compression == 1:
             # RL7
             super().__init__()
-            decoded_image = bytearray(width * height)
-            decode_rl7(decoded_image, image_data, width, height)
-            image = QtGui.QImage(decoded_image, width, height, width, QtGui.QImage.Format_Indexed8)
+            decoded_image = bytearray(header.width * header.height)
+            decode_rl7(decoded_image, image_data, header.width, header.height)
+            image = QtGui.QImage(decoded_image, header.width, header.height, header.width, QtGui.QImage.Format_Indexed8)
             image.setColorTable(palette)
-            self.setPixmap(QtGui.QPixmap.fromImage(image).scaled(width * 2, height * 2))
+            self.setPixmap(QtGui.QPixmap.fromImage(image).scaled(header.width * 2, header.height * 2))
         else:
             super().__init__("Unsupported compression type {}".format(compression))
 
@@ -179,16 +188,15 @@ class _ImageHandler:
     name = "Image"
 
     def open(res, widget, app):
-        compression = res.data[0]
-        offset_x, offset_y, width, height = struct.unpack('>hhHH', res.data[6:0xE])
+        header = _ImageHeaderStruct.parse(res.data)
 
         newLayout = QtGui.QVBoxLayout()
 
         info_table = MyTableWidget("Value")
-        info_table.add_row("Compression", "{}".format(compression))
-        info_table.add_row("Offset", "({}, {})".format(offset_x, offset_y))
-        info_table.add_row("Width", "{}".format(width))
-        info_table.add_row("Height", "{}".format(height))
+        info_table.add_row("Compression", "{}".format(header.compression))
+        info_table.add_row("Offset", "({}, {})".format(header.offset_x, header.offset_y))
+        info_table.add_row("Width", "{}".format(header.width))
+        info_table.add_row("Height", "{}".format(header.height))
         newLayout.addWidget(info_table)
 
         newLayout.addWidget(QtGui.QLabel("Tip: Load a Palette if colors are wrong"))
@@ -215,6 +223,13 @@ class _PaletteHandler:
 
         widget.addWidget(QtGui.QLabel("Palette loaded"))
 
+_BackgroundStruct = Struct("_BackgroundStruct",
+    UBInt32("image_id"),
+    UBInt32("palette_id"),
+    UBInt32("hotspots_id"),
+    UBInt32("unk_c"),
+    )
+
 @_register_res_handler(26)
 class _BackgroundHandler:
     name = "Background"
@@ -222,16 +237,23 @@ class _BackgroundHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Value")
 
-        image_id, palette_id, hotspots_id, unk_c = \
-            struct.unpack('>IIII', res.data[:0x10])
-
-        newWidget.add_row("Image ID", "0x{:08X}".format(image_id))
-        newWidget.add_row("Palette ID", "0x{:08X}".format(palette_id))
-        newWidget.add_row("Hotspots ID", "0x{:08X}".format(hotspots_id))
-        newWidget.add_row("Unk @C", "0x{:08X}".format(unk_c))
+        parsed = _BackgroundStruct.parse(res.data)
+        newWidget.add_row("Image ID", "0x{:08X}".format(parsed.image_id))
+        newWidget.add_row("Palette ID", "0x{:08X}".format(parsed.palette_id))
+        newWidget.add_row("Hotspots ID", "0x{:08X}".format(parsed.hotspots_id))
+        newWidget.add_row("Unk @C", "0x{:08X}".format(parsed.unk_c))
 
         widget.addWidget(newWidget)
 
+_ButtonImageStruct = Struct("_ButtonImageStruct",
+    SBInt16("x"),
+    SBInt16("y"),
+    UBInt32("image_id"),
+    )
+
+_ButtonImageArray = GreedyRange(_ButtonImageStruct)
+
+# Ex: 370E
 @_register_res_handler(27)
 class _ButtonImageHandler:
     name = "Button Image"
@@ -239,12 +261,11 @@ class _ButtonImageHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Position", "Image ID")
 
-        for i in range(0, len(res.data) // 8):
-            x, y, image_id = struct.unpack('>hhI', res.data[8*i:][:8])
-
+        parsed = _ButtonImageArray.parse(res.data)
+        for i in range(0, len(parsed)):
             newWidget.add_row("{}".format(i),
-                "({}, {})".format(x, y),
-                "0x{:08X}".format(image_id))
+                "({}, {})".format(parsed[i].x, parsed[i].y),
+                "0x{:08X}".format(parsed[i].image_id))
 
 
         widget.addWidget(newWidget)
@@ -366,35 +387,36 @@ class _FileMenuHandler:
 class _DifficultyMenuHandler:
     name = "Difficulty Menu"
 
+# Ex: 9C0E
 @_register_res_handler(59)
 class _PotionPuzzleHandler:
     name = "Potion Puzzle"
 
     def open(res, widget, app):
-        label_str = "Potion Puzzle:"
+        newWidget = MyTableWidget("Value")
 
         dd0_blt3, dd4_bg_image, dd8_palette, ddC = struct.unpack('>IIII', res.data[0:0x10])
-        label_str += "\n@0 Resource: {:08X}".format(dd0_blt3)
-        label_str += "\nBackground Image: {:08X}".format(dd4_bg_image)
-        label_str += "\nPalette: {:08X}".format(dd8_palette)
-        label_str += "\n@0Ch Resource: {:08X}".format(ddC)
+        newWidget.add_row("@0 Resource", "0x{:08X}".format(dd0_blt3))
+        newWidget.add_row("Background Image", "0x{:08X}".format(dd4_bg_image))
+        newWidget.add_row("Palette", "0x{:08X}".format(dd8_palette))
+        newWidget.add_row("@0Ch Resource", "0x{:08X}".format(ddC))
 
         dd18_blt60, dd1C_blt1, dd20_blt60 = struct.unpack('>III', res.data[0x18:0x24])
-        label_str += "\n@18h Ingredient Slots: {:08X}".format(dd18_blt60)
-        label_str += "\n@1Ch Resource: {:08X}".format(dd1C_blt1)
-        label_str += "\n@20h Ingredient Slots: {:08X}".format(dd20_blt60)
+        newWidget.add_row("@18h Ingredient Slots", "0x{:08X}".format(dd18_blt60))
+        newWidget.add_row("@1Ch Resource", "0x{:08X}".format(dd1C_blt1))
+        newWidget.add_row("@20h Ingredient Slots", "0x{:08X}".format(dd20_blt60))
 
         pause_time = struct.unpack('>H', res.data[0x32:0x34])[0]
-        label_str += "\nPause Time: {} ms".format(pause_time)
+        newWidget.add_row("Pause Time", "{} ms".format(pause_time))
 
         for i in range(0, 7):
             sound_id = struct.unpack('>H', res.data[0x34+2*i:][:2])[0]
-            label_str += "\nSound {}: {:04X}".format(i+1, sound_id)
+            newWidget.add_row("Sound {}".format(i+1), "0x{:04X}".format(sound_id))
 
         origin_x, origin_y = struct.unpack('>hh', res.data[0x42:0x46])
-        label_str += "\nOrigin: ({}, {})".format(origin_x, origin_y)
+        newWidget.add_row("Origin", "({}, {})".format(origin_x, origin_y))
 
-        widget.addWidget(QtGui.QLabel(label_str))
+        widget.addWidget(newWidget)
 
 @_register_res_handler(60)
 class _PotionIngredientSlotHandler:
@@ -408,6 +430,7 @@ class _PotionIngredientsHandler:
 class _PotionComboListHandler:
     name = "Potion Combo List"
 
+# Movie list extracted from MERLIN.EXE
 _POTION_MOVIE_NAMES = (
     'ELEC', 'EXPL', 'FLAM', 'FLSH', 'MIST', 'OOZE', 'SHMR',
     'SWRL', 'WIND', 'BOIL', 'BUBL', 'BSPK', 'FBRS', 'FCLD',
