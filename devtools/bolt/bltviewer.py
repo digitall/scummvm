@@ -24,7 +24,6 @@
 """BLT Viewer main program."""
 
 import io
-import struct
 import sys
 
 from PySide import QtGui
@@ -82,9 +81,16 @@ def decode_rl7(dst, src, width, height):
             out_x += 1
 
 
+_IMAGE_COMPRESSION_NAMES = {
+    0: "CLUT7",
+    1: "RL7",
+    }
+
 _ImageHeaderStruct = Struct("_ImageHeaderStruct",
     UBInt8("compression"),
-    Padding(5),
+    UBInt8("unk_1"),
+    UBInt16("unk_2"),
+    UBInt16("unk_4"),
     SBInt16("offset_x"),
     SBInt16("offset_y"),
     UBInt16("width"),
@@ -160,9 +166,9 @@ class _Values16BitHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Value")
 
-        for i in range(0, len(res.data) // 2):
-            val = struct.unpack('>H', res.data[2*i:][:2])[0]
-            newWidget.add_row("{}".format(i), "0x{:04X}".format(val))
+        parsed = GreedyRange(UBInt16("value")).parse(res.data)
+        for i in range(0, len(parsed)):
+            newWidget.add_row("{}".format(i), "0x{:04X}".format(parsed[i]))
 
         widget.addWidget(newWidget)
 
@@ -173,9 +179,9 @@ class _ResourceListHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("ID")
 
-        for i in range(0, len(res.data) // 4):
-            val = struct.unpack('>I', res.data[4*i:][:4])[0]
-            newWidget.add_row("{}".format(i), "0x{:08X}".format(val))
+        parsed = GreedyRange(UBInt32("value")).parse(res.data)
+        for i in range(0, len(parsed)):
+            newWidget.add_row("{}".format(i), "0x{:08X}".format(parsed[i]))
 
         widget.addWidget(newWidget)
 
@@ -193,13 +199,17 @@ class _ImageHandler:
         newLayout = QtGui.QVBoxLayout()
 
         info_table = MyTableWidget("Value")
-        info_table.add_row("Compression", "{}".format(header.compression))
+        compression_name = _IMAGE_COMPRESSION_NAMES.get(header.compression, "Unknown")
+        info_table.add_row("Compression", "{} ({})".format(compression_name, header.compression))
+        info_table.add_row("Unk @1", "0x{:02X}".format(header.unk_1))
+        info_table.add_row("Unk @2", "0x{:04X}".format(header.unk_2))
+        info_table.add_row("Unk @4", "0x{:04X}".format(header.unk_4))
         info_table.add_row("Offset", "({}, {})".format(header.offset_x, header.offset_y))
         info_table.add_row("Width", "{}".format(header.width))
         info_table.add_row("Height", "{}".format(header.height))
         newLayout.addWidget(info_table)
 
-        newLayout.addWidget(QtGui.QLabel("Tip: Load a Palette if colors are wrong"))
+        newLayout.addWidget(QtGui.QLabel("Tip: If colors look wrong, load a palette."))
 
         newLayout.addWidget(BltImageWidget(res.data, app.cur_palette))
 
@@ -274,6 +284,14 @@ class _ButtonImageHandler:
 class _ButtonColorsHandler:
     name = "Button Colors"
 
+_ButtonPaletteModStruct = Struct("_ButtonPaletteModStruct",
+    UBInt8("index"),
+    UBInt8("count"),
+    UBInt32("colors_id"),
+    )
+
+_ButtonPaletteModArray = GreedyRange(_ButtonPaletteModStruct)
+
 @_register_res_handler(29)
 class _ButtonPaletteHandler:
     name = "Button Palette Mod"
@@ -281,14 +299,12 @@ class _ButtonPaletteHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Index", "Count", "Colors ID")
 
-        for i in range(0, len(res.data) // 6):
-            index, count, colors_id = struct.unpack('>BBI',
-                res.data[6*i:][:6])
-
+        parsed = _ButtonPaletteModArray.parse(res.data)
+        for i in range(0, len(parsed)):
             newWidget.add_row("{}".format(i),
-                "{}".format(index),
-                "{}".format(count),
-                "0x{:08X}".format(colors_id))
+                "{}".format(parsed[i].index),
+                "{}".format(parsed[i].count),
+                "0x{:08X}".format(parsed[i].colors_id))
 
         widget.addWidget(newWidget)
 
@@ -297,23 +313,31 @@ _BUTTON_GRAPHICS_TYPE_NAMES = {
     2: "Images",
     }
 
+_ButtonGraphicsStruct = Struct("_ButtonGraphicsStruct",
+    UBInt16("type"),
+    UBInt32("unk_2"),
+    UBInt32("hovered_id"),
+    UBInt32("idle_id"),
+    )
+
+_ButtonGraphicsArray = GreedyRange(_ButtonGraphicsStruct)
+
+# Ex: 69B5
 @_register_res_handler(30)
-class _ButtonStateHandler:
+class _ButtonGraphicsHandler:
     name = "Button Graphics"
 
     def open(res, widget, app):
         newWidget = MyTableWidget("Type", "Unk @2", "Hovered", "Idle")
 
-        for i in range(0, len(res.data) // 0xE):
-            type_, id1, id2, id3 = struct.unpack('>HIII',
-                res.data[0xE*i:][:0xE])
-            type_name = _BUTTON_GRAPHICS_TYPE_NAMES.get(type_, "Unknown")
-
+        parsed = _ButtonGraphicsArray.parse(res.data)
+        for i in range(0, len(parsed)):
+            type_name = _BUTTON_GRAPHICS_TYPE_NAMES.get(parsed[i].type, "Unknown")
             newWidget.add_row("{}".format(i),
-                "{} ({})".format(type_name, type_),
-                "0x{:08X}".format(id1),
-                "0x{:08X}".format(id2),
-                "0x{:08X}".format(id3))
+                "{} ({})".format(type_name, parsed[i].type),
+                "0x{:08X}".format(parsed[i].unk_2),
+                "0x{:08X}".format(parsed[i].hovered_id),
+                "0x{:08X}".format(parsed[i].idle_id))
 
         widget.addWidget(newWidget)
 
@@ -322,6 +346,21 @@ _BUTTON_TYPE_NAMES = {
     3: "Hotspot Query",
     }
 
+_ButtonStruct = Struct("_ButtonStruct",
+    UBInt16("type"),
+    UBInt16("left"),
+    UBInt16("right"),
+    UBInt16("top"),
+    UBInt16("bottom"),
+    UBInt16("plane"),
+    UBInt16("num_graphics"),
+    UBInt16("unk_e"),
+    UBInt32("graphics_id"),
+    )
+
+_ButtonArray = GreedyRange(_ButtonStruct)
+
+# Ex: 312D
 @_register_res_handler(31)
 class _ButtonsHandler:
     name = "Buttons"
@@ -330,21 +369,34 @@ class _ButtonsHandler:
         newWidget = MyTableWidget("Type", "(L, R, T, B)", "Plane", "# Graphics",
             "Unk @E", "Graphics ID")
 
-        for i in range(0, len(res.data) // 0x14):
-            type_, left, right, top, bottom, plane, num_gfx, unkE, gfx_id = \
-                struct.unpack('>HHHHHHHHI', res.data[0x14*i:][:0x14])
-            type_name = _BUTTON_TYPE_NAMES.get(type_, "Unknown")
-
+        parsed = _ButtonArray.parse(res.data)
+        for i in range(0, len(parsed)):
+            type_name = _BUTTON_TYPE_NAMES.get(parsed[i].type, "Unknown")
             newWidget.add_row("{}".format(i),
-                "{} ({})".format(type_name, type_),
-                "({}, {}, {}, {})".format(left, right, top, bottom),
-                "{}".format(plane),
-                "{}".format(num_gfx),
-                "{}".format(unkE),
-                "0x{:08X}".format(gfx_id))
+                "{} ({})".format(type_name, parsed[i].type),
+                "({}, {}, {}, {})".format(parsed[i].left, parsed[i].right, parsed[i].top, parsed[i].bottom),
+                "{}".format(parsed[i].plane),
+                "{}".format(parsed[i].num_graphics),
+                "{}".format(parsed[i].unk_e),
+                "0x{:08X}".format(parsed[i].graphics_id))
 
         widget.addWidget(newWidget)
 
+_SceneStruct = Struct("_SceneStruct",
+    UBInt32("unk_0"), # 0
+    UBInt32("background_id"), # 4
+    UBInt16("unk_8"), # 8
+    UBInt32("unk_a"), # A
+    UBInt32("unk_e"), # E
+    UBInt32("unk_12"), # 12
+    UBInt32("unk_16"), # 16
+    UBInt16("num_buttons"), # 1A
+    UBInt32("buttons_id"), # 1C
+    SBInt16("origin_x"), # 20
+    SBInt16("origin_y"), # 22
+    )
+
+# Ex: 3A0B
 @_register_res_handler(32)
 class _SceneHandler:
     name = "Scene"
@@ -352,17 +404,27 @@ class _SceneHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Value")
 
-        background_id = struct.unpack('>I', res.data[4:][:4])[0]
-        newWidget.add_row("Background ID", "0x{:08X}".format(background_id))
-
-        num_buttons, buttons_id, origin_x, origin_y = \
-            struct.unpack('>HIhh', res.data[0x1A:][:0xA])
-        newWidget.add_row("# Buttons", "{}".format(num_buttons))
-        newWidget.add_row("Buttons ID", "0x{:08X}".format(buttons_id))
-        newWidget.add_row("Origin", "({}, {})".format(origin_x, origin_y))
+        parsed = _SceneStruct.parse(res.data)
+        newWidget.add_row("Unk @0", "0x{:08X}".format(parsed.unk_0))
+        newWidget.add_row("Background ID", "0x{:08X}".format(parsed.background_id))
+        newWidget.add_row("Unk @8", "0x{:04X}".format(parsed.unk_8))
+        newWidget.add_row("Unk @Ah", "0x{:08X}".format(parsed.unk_a))
+        newWidget.add_row("Unk @Eh", "0x{:08X}".format(parsed.unk_e))
+        newWidget.add_row("Unk @12h", "0x{:08X}".format(parsed.unk_12))
+        newWidget.add_row("Unk @16h", "0x{:08X}".format(parsed.unk_16))
+        newWidget.add_row("# Buttons", "{}".format(parsed.num_buttons))
+        newWidget.add_row("Buttons ID", "0x{:08X}".format(parsed.buttons_id))
+        newWidget.add_row("Origin", "({}, {})".format(parsed.origin_x, parsed.origin_y))
 
         widget.addWidget(newWidget)
 
+_MainMenuStruct = Struct("_MainMenuStruct",
+    UBInt32("scene_id"),
+    UBInt32("colorbars_id"),
+    UBInt32("colorbars_palette_id"),
+    )
+
+# Ex: 0118
 @_register_res_handler(33)
 class _MainMenuHandler:
     name = "Main Menu"
@@ -370,22 +432,42 @@ class _MainMenuHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Value")
 
-        scene_id, colorbars_id, colorbars_pal_id = \
-            struct.unpack('>III', res.data)
-
-        newWidget.add_row("Scene ID", "0x{:08X}".format(scene_id))
-        newWidget.add_row("Color-bars ID", "0x{:08X}".format(colorbars_id))
-        newWidget.add_row("Color-bars Palette ID", "0x{:08X}".format(colorbars_pal_id))
+        parsed = _MainMenuStruct.parse(res.data)
+        newWidget.add_row("Scene ID", "0x{:08X}".format(parsed.scene_id))
+        newWidget.add_row("Color Bars ID", "0x{:08X}".format(parsed.colorbars_id))
+        newWidget.add_row("Color Bars Palette ID", "0x{:08X}".format(parsed.colorbars_palette_id))
 
         widget.addWidget(newWidget)
 
+# Ex: 02A0
 @_register_res_handler(34)
 class _FileMenuHandler:
     name = "File Menu"
 
+# Ex: 006E
 @_register_res_handler(35)
 class _DifficultyMenuHandler:
     name = "Difficulty Menu"
+
+_PotionPuzzleStruct = Struct("_PotionPuzzleStruct",
+    UBInt32("unk_0"), # 0
+    UBInt32("bg_image_id"), # 4
+    UBInt32("palette_id"), # 8
+    UBInt32("unk_c"), # C
+    UBInt32("unk_10"), # 10
+    UBInt32("unk_14"), # 14
+    UBInt32("unk_18"), # 18
+    UBInt32("unk_1c"), # 1C
+    UBInt32("unk_20"), # 20
+    UBInt32("unk_24"), # 24
+    UBInt32("unk_28"), # 28
+    UBInt32("unk_2c"), # 2C
+    UBInt16("unk_30"), # 30
+    UBInt16("delay"), # 32
+    Array(7, UBInt16("sound_id")), # 34
+    SBInt16("origin_x"), # 42
+    SBInt16("origin_y"), # 44
+    )
 
 # Ex: 9C0E
 @_register_res_handler(59)
@@ -395,37 +477,38 @@ class _PotionPuzzleHandler:
     def open(res, widget, app):
         newWidget = MyTableWidget("Value")
 
-        dd0_blt3, dd4_bg_image, dd8_palette, ddC = struct.unpack('>IIII', res.data[0:0x10])
-        newWidget.add_row("@0 Resource", "0x{:08X}".format(dd0_blt3))
-        newWidget.add_row("Background Image", "0x{:08X}".format(dd4_bg_image))
-        newWidget.add_row("Palette", "0x{:08X}".format(dd8_palette))
-        newWidget.add_row("@0Ch Resource", "0x{:08X}".format(ddC))
-
-        dd18_blt60, dd1C_blt1, dd20_blt60 = struct.unpack('>III', res.data[0x18:0x24])
-        newWidget.add_row("@18h Ingredient Slots", "0x{:08X}".format(dd18_blt60))
-        newWidget.add_row("@1Ch Resource", "0x{:08X}".format(dd1C_blt1))
-        newWidget.add_row("@20h Ingredient Slots", "0x{:08X}".format(dd20_blt60))
-
-        pause_time = struct.unpack('>H', res.data[0x32:0x34])[0]
-        newWidget.add_row("Pause Time", "{} ms".format(pause_time))
-
-        for i in range(0, 7):
-            sound_id = struct.unpack('>H', res.data[0x34+2*i:][:2])[0]
-            newWidget.add_row("Sound {}".format(i+1), "0x{:04X}".format(sound_id))
-
-        origin_x, origin_y = struct.unpack('>hh', res.data[0x42:0x46])
-        newWidget.add_row("Origin", "({}, {})".format(origin_x, origin_y))
+        parsed = _PotionPuzzleStruct.parse(res.data)
+        newWidget.add_row("Unk @0", "0x{:08X}".format(parsed.unk_0))
+        newWidget.add_row("Background Image ID", "0x{:08X}".format(parsed.bg_image_id))
+        newWidget.add_row("Palette ID", "0x{:08X}".format(parsed.palette_id))
+        newWidget.add_row("Unk @Ch", "0x{:08X}".format(parsed.unk_c))
+        newWidget.add_row("Unk @10h", "0x{:08X}".format(parsed.unk_10))
+        newWidget.add_row("Unk @14h", "0x{:08X}".format(parsed.unk_14))
+        newWidget.add_row("Unk @18h", "0x{:08X}".format(parsed.unk_18))
+        newWidget.add_row("Unk @1Ch", "0x{:08X}".format(parsed.unk_1c))
+        newWidget.add_row("Unk @20h", "0x{:08X}".format(parsed.unk_20))
+        newWidget.add_row("Unk @24h", "0x{:08X}".format(parsed.unk_24))
+        newWidget.add_row("Unk @28h", "0x{:08X}".format(parsed.unk_28))
+        newWidget.add_row("Unk @2Ch", "0x{:08X}".format(parsed.unk_2c))
+        newWidget.add_row("Unk @30h", "0x{:04X}".format(parsed.unk_30))
+        newWidget.add_row("Delay", "{} ms".format(parsed.delay))
+        for i in range(0, len(parsed.sound_id)):
+            newWidget.add_row("Sound {}".format(i+1), "0x{:04X}".format(parsed.sound_id[i]))
+        newWidget.add_row("Origin", "({}, {})".format(parsed.origin_x, parsed.origin_y))
 
         widget.addWidget(newWidget)
 
+# Ex: 9C0A
 @_register_res_handler(60)
 class _PotionIngredientSlotHandler:
     name = "Potion Ingredient Slot"
 
+# Ex: 9B23
 @_register_res_handler(61)
 class _PotionIngredientsHandler:
     name = "Potion Ingredients"
 
+# Ex: 9B22
 @_register_res_handler(62)
 class _PotionComboListHandler:
     name = "Potion Combo List"
@@ -441,23 +524,33 @@ _POTION_MOVIE_NAMES = (
     'SQID', 'CLOD', 'SWIR', 'VOLC', 'WORM',
     )
 
+_PotionComboStruct = Struct("_PotionComboStruct",
+    UBInt8("a"),
+    UBInt8("b"),
+    UBInt8("c"),
+    UBInt8("d"),
+    UBInt16("movie"),
+    )
+
+_PotionComboArray = GreedyRange(_PotionComboStruct)
+
+# Ex: 9B17
 @_register_res_handler(63)
 class _PotionCombosHandler:
     name = "Potion Combos"
 
     def open(res, widget, app):
         newWidget = MyTableWidget("A", "B", "C", "D", "Movie")
-
-        for i in range(0, len(res.data) // 6):
-            a, b, c, d, movie_num = struct.unpack('>BBBBH',
-                res.data[6*i:][:6])
-
+        
+        parsed = _PotionComboArray.parse(res.data)
+        for i in range(0, len(parsed)):
+            movie_name = _POTION_MOVIE_NAMES.get(parsed[i].movie, "Unknown")
             newWidget.add_row("{}".format(i),
-                "0x{:02X}".format(a),
-                "0x{:02X}".format(b),
-                "0x{:02X}".format(c),
-                "0x{:02X}".format(d),
-                "{} ({})".format(_POTION_MOVIE_NAMES[movie_num], movie_num),
+                "0x{:02X}".format(parsed[i].a),
+                "0x{:02X}".format(parsed[i].b),
+                "0x{:02X}".format(parsed[i].c),
+                "0x{:02X}".format(parsed[i].d),
+                "{} ({})".format(movie_name, parsed[i].movie),
                 )
 
         widget.addWidget(newWidget)
