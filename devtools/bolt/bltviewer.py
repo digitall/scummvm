@@ -439,15 +439,74 @@ class _MainMenuHandler:
 
         widget.addWidget(newWidget)
 
+_FileMenuStruct = Struct("_FileMenuStruct",
+    UBInt32("scene_id"), # 0
+    UBInt32("select_game_piece_id"), # 4
+    UBInt32("set_new_id"), # 8
+    UBInt32("new_id"), # C
+    UBInt32("solved_id"), # 10
+    UBInt32("one_more_id"), # 14
+    UBInt32("x_more_id"), # 18
+    UBInt32("xx_more_id"), # 1C
+    UBInt32("unk_20"), # 20
+    UBInt32("unk_24"), # 24
+    Array(10, UBInt32("tens_digit_id")), # 28
+    Array(10, UBInt32("ones_digit_id")), # 50
+    Array(10, UBInt32("unk_digit_id")), # 78
+    UBInt32("unk_a0"), # A0
+    UBInt16("sound_id"), # A4
+    )
+
 # Ex: 02A0
 @_register_res_handler(34)
 class _FileMenuHandler:
     name = "File Menu"
+    
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Value")
+
+        parsed = _FileMenuStruct.parse(res.data)
+        newWidget.add_row("Scene ID", "0x{:08X}".format(parsed.scene_id))
+        newWidget.add_row("Select Game Piece ID", "0x{:08X}".format(parsed.select_game_piece_id))
+        newWidget.add_row("Set New ID", "0x{:08X}".format(parsed.set_new_id))
+        newWidget.add_row("New ID", "0x{:08X}".format(parsed.new_id))
+        newWidget.add_row("Solved ID", "0x{:08X}".format(parsed.solved_id))
+        newWidget.add_row("One More ID", "0x{:08X}".format(parsed.one_more_id))
+        newWidget.add_row("X More ID", "0x{:08X}".format(parsed.x_more_id))
+        newWidget.add_row("XX More ID", "0x{:08X}".format(parsed.xx_more_id))
+        newWidget.add_row("Unk @20h", "0x{:08X}".format(parsed.unk_20))
+        newWidget.add_row("Unk @24h", "0x{:08X}".format(parsed.unk_24))
+        for i in range(0, len(parsed.tens_digit_id)):
+            newWidget.add_row("Tens Digit {} ID".format(i), "0x{:08X}".format(parsed.tens_digit_id[i]))
+        for i in range(0, len(parsed.ones_digit_id)):
+            newWidget.add_row("Ones Digit {} ID".format(i), "0x{:08X}".format(parsed.ones_digit_id[i]))
+        for i in range(0, len(parsed.unk_digit_id)):
+            newWidget.add_row("Unk Digit {} ID".format(i), "0x{:08X}".format(parsed.unk_digit_id[i]))
+        newWidget.add_row("Unk @A0h", "0x{:08X}".format(parsed.unk_a0))
+        newWidget.add_row("Sound ID", "0x{:04X}".format(parsed.sound_id))
+
+        widget.addWidget(newWidget)
+
+_DifficultyMenuStruct = Struct("_DifficultyMenuStruct",
+    UBInt32("scene_id"),
+    UBInt32("choose_difficulty_id"),
+    UBInt32("change_difficulty_id"),
+    )
 
 # Ex: 006E
 @_register_res_handler(35)
 class _DifficultyMenuHandler:
     name = "Difficulty Menu"
+
+    def open(res, widget, app):
+        newWidget = MyTableWidget("Value")
+
+        parsed = _DifficultyMenuStruct.parse(res.data)
+        newWidget.add_row("Scene ID", "0x{:08X}".format(parsed.scene_id))
+        newWidget.add_row("Choose Difficulty ID", "0x{:08X}".format(parsed.choose_difficulty_id))
+        newWidget.add_row("Change Difficulty ID", "0x{:08X}".format(parsed.change_difficulty_id))
+
+        widget.addWidget(newWidget)
 
 _PotionPuzzleStruct = Struct("_PotionPuzzleStruct",
     UBInt32("unk_0"), # 0
