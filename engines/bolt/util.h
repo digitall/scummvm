@@ -26,10 +26,12 @@
 namespace Bolt {
 
 template<class T>
-class SharedArray {
+class ScopedArray {
 public:
-	SharedArray()
-		: _ptr(new InternalArray())
+	typedef Common::Array<T>* Movable;
+
+	ScopedArray(Movable o = nullptr)
+		: _ptr(o)
 	{ }
 
 	operator bool() const {
@@ -41,12 +43,14 @@ public:
 		return _ptr->size();
 	}
 
-	void reset() {
-		_ptr = InternalPtr(new InternalArray());
+	void reset(Movable o = nullptr) {
+		_ptr.reset(o);
 	}
 
 	void resize(uint sz) {
-		assert(_ptr);
+		if (!_ptr) {
+			_ptr.reset(new Common::Array<T>());
+		}
 		_ptr->resize(sz);
 	}
 
@@ -60,9 +64,13 @@ public:
 		return (*_ptr)[idx];
 	}
 
+	Movable release() {
+		return _ptr.release();
+	}
+
 private:
 	typedef Common::Array<T> InternalArray;
-	typedef Common::SharedPtr<InternalArray> InternalPtr;
+	typedef Common::ScopedPtr<InternalArray> InternalPtr;
 	InternalPtr _ptr;
 };
 

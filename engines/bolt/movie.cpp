@@ -185,11 +185,11 @@ struct TimelineHeader {
 	uint16 framePeriod;
 };
 
-void Movie::loadTimeline(const SharedBuffer &buf) {
+void Movie::loadTimeline(ScopedBuffer::Movable buf) {
 
-	_timeline = buf;
+	_timeline.reset(buf);
 
-	TimelineHeader header(&buf[0]);
+	TimelineHeader header(&_timeline[0]);
 	_numTimelineCmds = header.numCommands;
 	_framePeriod = header.framePeriod;
 
@@ -349,11 +349,12 @@ void Movie::advanceTimeline() {
 	}
 }
 
-void Movie::loadQueue4(const SharedBuffer &src) {
+void Movie::loadQueue4(ScopedBuffer::Movable buf) {
 
-	Queue4ImageHeader header(&src[0]);
+	_queue4Buf.reset(buf);
 
-	_queue4Buf = src;
+	Queue4ImageHeader header(&_queue4Buf[0]);
+
 	// Do NOT reset queue4 background or camera here.
 	// It remains after queue4 is finished.
 	_queue4StartFrameNum = _curFrameNum;
@@ -405,7 +406,7 @@ void Movie::runQueue4Control() {
 
 			case Queue4Opcodes::kLoadBack: // load background from queue 1
 			{
-				_queue4Bg = fetchVideoBuffer(1);
+				_queue4Bg.reset(fetchVideoBuffer(1));
 
 				_queue4CameraX = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
 				_queue4CameraY = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset + 2]);
@@ -551,7 +552,7 @@ void Movie::readNextPacket() {
 
 	case kPfTimeline:
 		if (readIntoBuffer(_timelineBufAssembler, header)) {
-			_timelineQueue.push(_timelineBufAssembler.buf);
+			_timelineQueue.push(_timelineBufAssembler.buf.release());
 			_timelineBufAssembler.buf.reset();
 		}
 		break;
@@ -576,7 +577,7 @@ void Movie::readNextPacket() {
 
 	case kPfVideo:
 		if (readIntoBuffer(_videoBufAssembler, header)) {
-			enqueueVideoBuffer(_videoBufAssembler.buf);
+			enqueueVideoBuffer(_videoBufAssembler.buf.release());
 			_videoBufAssembler.buf.reset();
 		}
 		break;
@@ -587,7 +588,7 @@ void Movie::readNextPacket() {
 			// believe auxiliary video is nothing more than a second video
 			// stream, allowing large video buffers (like background images)
 			// to be loaded alongside regular video.
-			enqueueVideoBuffer(_auxVideoBufAssembler.buf);
+			enqueueVideoBuffer(_auxVideoBufAssembler.buf.release());
 			_auxVideoBufAssembler.buf.reset();
 		}
 		break;
@@ -616,7 +617,7 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 	if (!assembler.buf) {
 		// Begin buffer
 		assembler.totalSize = header.totalSize;
-		assembler.buf = SharedBuffer();
+		assembler.buf.reset();
 		assembler.buf.resize(header.totalSize);
 		assembler.cursor = 0;
 	}
@@ -636,7 +637,7 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 	return assembler.cursor >= assembler.totalSize;
 }
 
-Movie::SharedBuffer Movie::fetchTimelineBuffer() {
+Movie::ScopedBuffer::Movable Movie::fetchTimelineBuffer() {
 
 	while (_parserActive && _timelineQueue.empty()) {
 		readNextPacket();
@@ -644,13 +645,13 @@ Movie::SharedBuffer Movie::fetchTimelineBuffer() {
 
 	if (_timelineQueue.empty()) {
 		error("Failed to fetch PF timeline");
-		return SharedBuffer();
+		return nullptr;
 	}
 
 	return _timelineQueue.pop();
 }
 
-Movie::SharedBuffer Movie::fetchVideoBuffer(uint16 queueNum) {
+Movie::ScopedBuffer::Movable Movie::fetchVideoBuffer(uint16 queueNum) {
 
 	while (_parserActive && _videoQueues[queueNum].empty()) {
 		readNextPacket();
@@ -658,7 +659,7 @@ Movie::SharedBuffer Movie::fetchVideoBuffer(uint16 queueNum) {
 
 	if (_videoQueues[queueNum].empty()) {
 		error("Failed to fetch PF video");
-		return SharedBuffer();
+		return nullptr;
 	}
 
 	return _videoQueues[queueNum].pop();
@@ -681,7 +682,7 @@ struct Queue01ImageHeader {
 	byte compression;
 };
 
-void Movie::drawQueue0or1(Plane &plane, const SharedBuffer &src, int x, int y) {
+void Movie::drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y) {
 
 	// Queue 0 buffers contain background frames. (FIXME: Really?)
 	// Queue 1 buffers contain background frames for use with queue 4
@@ -705,7 +706,7 @@ void Movie::drawQueue0or1(Plane &plane, const SharedBuffer &src, int x, int y) {
 	}
 }
 
-void Movie::drawQueue4(Plane &plane, const SharedBuffer &src, uint16 frameNum) {
+void Movie::drawQueue4(Plane &plane, const ScopedBuffer &src, uint16 frameNum) {
 
 	// Queue 4 buffers contain a sequence of foreground frames and control data
 	// for the background.
@@ -721,10 +722,11 @@ void Movie::drawQueue4(Plane &plane, const SharedBuffer &src, uint16 frameNum) {
 		&src[rl7Offset], rl7Size, false);
 }
 
-void Movie::enqueueVideoBuffer(SharedBuffer &buf) {
-	uint16 queueNum = READ_BE_UINT16(&buf[0]);
+void Movie::enqueueVideoBuffer(ScopedBuffer::Movable buf) {
+	ScopedBuffer myBuf(buf);
+	uint16 queueNum = READ_BE_UINT16(&myBuf[0]);
 	if (queueNum < 5) {
-		_videoQueues[queueNum].push(buf);
+		_videoQueues[queueNum].push(myBuf.release());
 	}
 	else {
 		warning("Unknown PF image stream queue num %u", queueNum);
