@@ -65,8 +65,20 @@ private:
 	BoltEngine *_engine;
 	Common::File *_file;
 
-	typedef SharedArray<byte> SharedBuffer;
-	typedef Common::Queue<SharedBuffer> BufferQueue;
+	typedef ScopedArray<byte> ScopedBuffer;
+
+	class BufferQueue : public Common::Queue<ScopedBuffer::Movable>
+	{
+	public:
+		~BufferQueue()
+		{
+			// Correctly delete all contents
+			while (!empty()) {
+				ScopedBuffer buf(pop());
+				buf.reset();
+			}
+		}
+	};
 
 	void fillAudioQueue();
 	void ensureAudioStarted();
@@ -82,13 +94,13 @@ private:
 
 	void readNextPacket();
 
-	SharedBuffer fetchTimelineBuffer();
-	SharedBuffer fetchVideoBuffer(uint16 queueNum);
+	ScopedBuffer::Movable fetchTimelineBuffer();
+	ScopedBuffer::Movable fetchVideoBuffer(uint16 queueNum);
 
-	void enqueueVideoBuffer(SharedBuffer &buf);
+	void enqueueVideoBuffer(ScopedBuffer::Movable buf);
 
 	struct BufferAssembler {
-		SharedBuffer buf;
+		ScopedBuffer buf;
 		uint32 totalSize;
 		uint32 cursor;
 	};
@@ -109,7 +121,7 @@ private:
 
 	// TIMELINE
 
-	void loadTimeline(const SharedBuffer &buf);
+	void loadTimeline(ScopedBuffer::Movable buf);
 	void loadTimelineCmd(); // load from _timelineCursor
 	void advanceTimeline();
 	int getTimelineCmdParamSize(uint16 opcode);
@@ -118,7 +130,7 @@ private:
 	uint32 _curFrameTimeMs; // Time of currently-displayed frame in milliseconds
 	int _curFrameNum; // Number of currently-displayed frame
 
-	SharedBuffer _timeline;
+	ScopedBuffer _timeline;
 	uint16 _numTimelineCmds;
 	uint16 _framePeriod; // In milliseconds
 	int _lastTimelineCmdFrameNum;
@@ -128,12 +140,12 @@ private:
 
 	// QUEUE 4 VIDEO SEQUENCES
 
-	void loadQueue4(const SharedBuffer &buf);
+	void loadQueue4(ScopedBuffer::Movable buf);
 	void runQueue4Control();
 	void updateScroll();
 
-	SharedBuffer _queue4Buf;
-	SharedBuffer _queue4Bg; // Background image
+	ScopedBuffer _queue4Buf;
+	ScopedBuffer _queue4Bg; // Background image
 	int _queue4StartFrameNum;
 	int _lastQueue4ControlFrameNum;
 	int _queue4ControlCursor; // Offset within queue 4 buffer of control data
@@ -151,8 +163,8 @@ private:
 
 	// DRAWING
 
-	void drawQueue0or1(Plane &plane, const SharedBuffer &src, int x, int y);
-	void drawQueue4(Plane &plane, const SharedBuffer &src, uint16 frameNum);
+	void drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y);
+	void drawQueue4(Plane &plane, const ScopedBuffer &src, uint16 frameNum);
 };
 
 } // End of namespace Bolt
