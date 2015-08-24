@@ -28,50 +28,56 @@ namespace Bolt {
 template<class T>
 class ScopedArray {
 public:
-	typedef Common::Array<T>* Movable;
+	struct Movable
+	{
+		Movable() : data(nullptr), size(0) { }
+		T* data;
+		uint size;
+	};
 
-	ScopedArray(Movable o = nullptr)
-		: _ptr(o)
+	explicit ScopedArray(Movable o = Movable())
+		: _internal(o)
 	{ }
 
+	~ScopedArray() {
+		delete[] _internal.data;
+	}
+
 	operator bool() const {
-		return _ptr && !_ptr->empty();
+		return _internal.data;
 	}
 
 	uint size() const {
-		assert(_ptr);
-		return _ptr->size();
+		return _internal.size;
 	}
 
-	void reset(Movable o = nullptr) {
-		_ptr.reset(o);
+	void reset(Movable o = Movable()) {
+		delete[] _internal.data;
+		_internal = o;
 	}
 
-	void resize(uint sz) {
-		if (!_ptr) {
-			_ptr.reset(new Common::Array<T>());
-		}
-		_ptr->resize(sz);
+	void reset(uint size) {
+		delete[] _internal.data;
+		_internal.data = new T[size];
+		_internal.size = size;
 	}
 
 	T& operator[](uint idx) {
-		assert(*this);
-		return (*_ptr)[idx];
+		return _internal.data[idx];
 	}
 
 	const T& operator[](uint idx) const {
-		assert(*this);
-		return (*_ptr)[idx];
+		return _internal.data[idx];
 	}
 
 	Movable release() {
-		return _ptr.release();
+		Movable result = _internal;
+		_internal = Movable();
+		return result;
 	}
 
 private:
-	typedef Common::Array<T> InternalArray;
-	typedef Common::ScopedPtr<InternalArray> InternalPtr;
-	InternalPtr _ptr;
+	Movable _internal;
 };
 
 } // End of namespace Bolt

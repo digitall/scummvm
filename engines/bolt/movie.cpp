@@ -259,11 +259,11 @@ void Movie::runTimelineCmd() {
 	switch (cmd.opcode) {
 	case TimelineOpcodes::kRenderQueue0: // render queue 0 (param size: 0)
 		_engine->_graphics.getBackPlane().clear(); // FIXME: Is it correct to clear back?
-		drawQueue0or1(_engine->_graphics.getForePlane(), fetchVideoBuffer(0), 0, 0);
+		drawQueue0or1(_engine->_graphics.getForePlane(), ScopedBuffer(fetchVideoBuffer(0)), 0, 0);
 		break;
 	case TimelineOpcodes::kRenderQueue1: // render queue 1 (param size: 0)
 		_engine->_graphics.getForePlane().clear(); // FIXME: Is it correct to clear fore?
-		drawQueue0or1(_engine->_graphics.getBackPlane(), fetchVideoBuffer(1), 0, 0);
+		drawQueue0or1(_engine->_graphics.getBackPlane(), ScopedBuffer(fetchVideoBuffer(1)), 0, 0);
 		break;
 	case TimelineOpcodes::kStartPaletteCycling: // start palette cycling (param size: 8)
 		// TODO: Implement
@@ -617,8 +617,7 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 	if (!assembler.buf) {
 		// Begin buffer
 		assembler.totalSize = header.totalSize;
-		assembler.buf.reset();
-		assembler.buf.resize(header.totalSize);
+		assembler.buf.reset(header.totalSize);
 		assembler.cursor = 0;
 	}
 	else if (header.totalSize != assembler.totalSize) {
@@ -645,7 +644,7 @@ Movie::ScopedBuffer::Movable Movie::fetchTimelineBuffer() {
 
 	if (_timelineQueue.empty()) {
 		error("Failed to fetch PF timeline");
-		return nullptr;
+		return Movie::ScopedBuffer::Movable();
 	}
 
 	return _timelineQueue.pop();
@@ -659,7 +658,7 @@ Movie::ScopedBuffer::Movable Movie::fetchVideoBuffer(uint16 queueNum) {
 
 	if (_videoQueues[queueNum].empty()) {
 		error("Failed to fetch PF video");
-		return nullptr;
+		return Movie::ScopedBuffer::Movable();
 	}
 
 	return _videoQueues[queueNum].pop();
