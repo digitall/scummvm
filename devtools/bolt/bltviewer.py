@@ -181,21 +181,57 @@ class _ImageHandler:
         newWidget.setLayout(newLayout)
         container.addWidget(newWidget)
 
+_ColorStruct = Struct("_ColorStruct",
+    UBInt8("r"),
+    UBInt8("g"),
+    UBInt8("b"),
+    )
+
+class _PaletteWidget(QtGui.QWidget):
+    """A grid of colors."""
+
+    _NUM_COLUMNS = 16
+
+    def __init__(self, colors):
+        """Initialize widget with an iterable of _ColorStruct's."""
+
+        super().__init__()
+        layout = QtGui.QGridLayout()
+        self.setLayout(layout)
+        for i in range(0, len(colors)):
+            row = i // self._NUM_COLUMNS
+            col = i % self._NUM_COLUMNS
+            item = QtGui.QWidget()
+            item.setAutoFillBackground(True)
+            item_palette = QtGui.QPalette()
+            qcolor = QtGui.QColor(colors[i].r, colors[i].g, colors[i].b)
+            item_palette.setColor(QtGui.QPalette.Background, qcolor)
+            item.setPalette(item_palette)
+            layout.addWidget(item, row, col)
+
 @_register_res_handler(10)
 class _PaletteHandler:
     name = "Palette"
 
     def open(res, container, app):
+
+        # TODO: parse 6 bytes of header info (plane, number of colors, etc.)
+        colors = GreedyRange(_ColorStruct).parse(res.data[6:])
+
+        palette_widget = _PaletteWidget(colors)
+
         # TODO: handle planes
         app.cur_palette = [0] * 256
-        for i in range(0, 128):
-            r = res.data[6 + i * 3 + 0]
-            g = res.data[6 + i * 3 + 1]
-            b = res.data[6 + i * 3 + 2]
-            app.cur_palette[i] = 0xFF000000 | (r << 16) | (g << 8) | b
-        app.cur_palette[128:256] = app.cur_palette[0:128]
+        for i in range(0, len(colors)):
+            app.cur_palette[i] = 0xFF000000 | (colors[i].r << 16) | (colors[i].g << 8) | colors[i].b
 
-        container.addWidget(QtGui.QLabel("Palette loaded"))
+        new_layout = QtGui.QVBoxLayout()
+        new_layout.addWidget(palette_widget)
+        new_layout.addWidget(QtGui.QLabel("Palette loaded."))
+
+        new_widget = QtGui.QWidget()
+        new_widget.setLayout(new_layout)
+        container.addWidget(new_widget)
 
 _BackgroundStruct = Struct("_BackgroundStruct",
     UBInt32("image_id"),
