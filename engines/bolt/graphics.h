@@ -61,6 +61,7 @@ public:
 	byte getColorBase() const { return _colorBase; }
 
 	void clear();
+	void grabPalette(byte *colors, uint start, uint num);
 	void setPalette(const byte *colors, uint start, uint num);
 
 private:

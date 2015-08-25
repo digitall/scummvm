@@ -32,25 +32,19 @@ namespace Bolt {
 
 void MenuState::init(BoltEngine *engine, BltLongId menuId) {
 	_engine = engine;
-	_scene.init(engine, &_engine->_boltlibBltFile, menuId);
-	draw();
+	_scene.load(engine, &_engine->_boltlibBltFile, menuId);
+	_scene.enter();
 }
 
 void MenuState::process(const Common::Event &event) {
 
-	if (event.type == Common::EVENT_MOUSEMOVE) {
-		draw();
-	}
+	_scene.process();
 
 	// XXX: on click, leave menu
 	// TODO: process buttons
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
 		_engine->endCard();
 	}
-}
-
-void MenuState::draw() {
-	_scene.draw();
 }
 
 } // End of namespace Bolt

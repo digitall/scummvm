@@ -40,7 +40,6 @@ public:
 	virtual void process(const Common::Event &event);
 
 private:
-	void draw();
 	BoltEngine *_engine;
 	Scene _scene;
 };

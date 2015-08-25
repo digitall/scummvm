@@ -33,6 +33,8 @@ enum BltType {
 	kBltError = 0, // Not present in game data; only for internal use
 	kBltImage = 8,
 	kBltPalette = 10,
+	kBltColorCycles = 11,
+	kBltColorCycleSlot = 12,
 	kBltPlane = 26, // image, palette, hotspots
 	kBltSprites = 27, // image, x, y
 	kBltButtonColors = 28, // just some colors, used by palette mod

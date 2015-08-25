@@ -356,6 +356,15 @@ void Plane::clear() {
 	memset(_surface.getPixels(), 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
 }
 
+void Plane::grabPalette(byte *colors, uint start, uint num) {
+	assert(start < 128);
+	assert(num <= 128);
+	assert(start + num <= 128);
+
+	_graphics->_system->getPaletteManager()->grabPalette(colors,
+		_colorBase + start, num);
+}
+
 void Plane::setPalette(const byte *colors, uint start, uint num) {
 	assert(start < 128);
 	assert(num <= 128);
