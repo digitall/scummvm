@@ -174,7 +174,7 @@ BoltEngine::MERLIN_SEQUENCE[] = {
 	{ BoltEngine::MenuFunc, 0x0E41 }, // stage 3 hub
 	{ BoltEngine::MenuFunc, 0x8C0C }, // stained glass puzzle
 	{ BoltEngine::MenuFunc, 0x900D }, // purple star puzzle
-	{ BoltEngine::MenuFunc, 0x8806 }, // cave puzzle
+	{ BoltEngine::MenuFunc, 0x8806 }, // cave memory puzzle
 	{ BoltEngine::MenuFunc, 0x850B }, // spirits puzzle (?)
 	{ BoltEngine::MenuFunc, 0x810D }, // gate puzzle
 	{ BoltEngine::MenuFunc, 0x640B }, // cave wall puzzle

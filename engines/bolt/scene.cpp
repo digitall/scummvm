@@ -32,6 +32,8 @@ struct BltScene { // type 32
 	BltScene(const byte *src) {
 		forePlaneId = BltLongId(READ_BE_UINT32(&src[0]));
 		backPlaneId = BltLongId(READ_BE_UINT32(&src[4]));
+		numSprites = src[0x8];
+		spritesId = BltLongId(READ_BE_UINT32(&src[0xA]));
 		// FIXME: unknown fields
 		numButtons = READ_BE_UINT16(&src[0x1A]);
 		buttonsId = BltLongId(READ_BE_UINT32(&src[0x1C]));
@@ -41,6 +43,8 @@ struct BltScene { // type 32
 
 	BltLongId forePlaneId;
 	BltLongId backPlaneId;
+	uint8 numSprites;
+	BltLongId spritesId;
 	uint16 numButtons;
 	BltLongId buttonsId;
 	Common::Point origin;
@@ -93,8 +97,9 @@ struct BltButtonPaletteMod { // type 29
 	BltLongId colorsId;
 };
 
-struct BltButtonImage { // type 27
-	BltButtonImage(const byte *src) {
+struct BltSprite { // type 27
+	static const int SIZE = 0x8;
+	BltSprite(const byte *src) {
 		pos.x = (int16)READ_BE_UINT16(&src[0]);
 		pos.y = (int16)READ_BE_UINT16(&src[2]);
 		imageId = BltLongId(READ_BE_UINT32(&src[4]));
@@ -128,6 +133,18 @@ void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 	loadPlane(_forePlane, bltFile, sceneInfo.forePlaneId);
 	loadPlane(_backPlane, bltFile, sceneInfo.backPlaneId);
 
+	if (sceneInfo.spritesId.isValid()) {
+		BltResource spritesRes(bltFile->loadLongId(sceneInfo.spritesId, kBltSprites));
+		_sprites.reserve(sceneInfo.numSprites);
+		for (byte i = 0; i < sceneInfo.numSprites; ++i) {
+			SpritePtr newSprite(new Sprite);
+			BltSprite s(&spritesRes[i * BltSprite::SIZE]);
+			newSprite->pos = s.pos;
+			newSprite->image.init(bltFile, s.imageId);
+			_sprites.push_back(newSprite);
+		}
+	}
+
 	BltResource buttonsRes(bltFile->loadLongId(sceneInfo.buttonsId, kBltButtons));
 	_buttons.reserve(sceneInfo.numButtons);
 	for (uint16 i = 0; i < sceneInfo.numButtons; ++i) {
@@ -138,6 +155,7 @@ void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 }
 
 void Scene::draw() {
+	// Draw back plane
 	if (_backPlane.palette) {
 		_engine->_graphics.getBackPlane().setPalette(&_backPlane.palette[6], 0, 128);
 	}
@@ -149,6 +167,7 @@ void Scene::draw() {
 		_engine->_graphics.getBackPlane().clear();
 	}
 
+	// Draw fore plane
 	if (_forePlane.palette) {
 		_engine->_graphics.getForePlane().setPalette(&_forePlane.palette[6], 0, 128);
 	}
@@ -160,6 +179,17 @@ void Scene::draw() {
 		_engine->_graphics.getForePlane().clear();
 	}
 
+	// Draw sprites
+	for (size_t i = 0; i < _sprites.size(); ++i) {
+		Common::Point pos = _sprites[i]->pos;
+		pos.x -= _origin.x;
+		pos.y -= _origin.y;
+		// FIXME: Are sprites drawn to back or fore plane? Is it somehow selectable?
+		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
+		_sprites[i]->image.drawAt(surface, pos.x, pos.y, true);
+	}
+
+	// Draw buttons
 	for (size_t i = 0; i < _buttons.size(); ++i) {
 		if (isButtonAtPoint(*_buttons[i],
 			_engine->getEventManager()->getMousePos())) {
@@ -218,7 +248,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 
 		if (buttonGfx.defaultId.isValid()) {
 			BltResource defaultRes(bltFile->loadLongId(buttonGfx.defaultId, kBltSprites));
-			BltButtonImage defaultButtonImage(&defaultRes[0]);
+			BltSprite defaultButtonImage(&defaultRes[0]);
 			button.defaultImagePos = defaultButtonImage.pos;
 			button.defaultImagePos.x -= _origin.x;
 			button.defaultImagePos.y -= _origin.y;
@@ -229,7 +259,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 			if (buttonGfx.hoveredId.isValid()) {
 				// TODO: Factor out repetitive code
 				BltResource hoveredRes(bltFile->loadLongId(buttonGfx.hoveredId, kBltSprites));
-				BltButtonImage hoveredButtonImage(&hoveredRes[0]);
+				BltSprite hoveredButtonImage(&hoveredRes[0]);
 				button.hoveredImagePos = hoveredButtonImage.pos;
 				button.hoveredImagePos.x -= _origin.x;
 				button.hoveredImagePos.y -= _origin.y;
@@ -237,7 +267,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 			}
 			if (buttonGfx.idleId.isValid()) {
 				BltResource idleRes(bltFile->loadLongId(buttonGfx.idleId, kBltSprites));
-				BltButtonImage idleButtonImage(&idleRes[0]);
+				BltSprite idleButtonImage(&idleRes[0]);
 				button.idleImagePos = idleButtonImage.pos;
 				button.idleImagePos.x -= _origin.x;
 				button.idleImagePos.y -= _origin.y;
