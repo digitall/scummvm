@@ -120,56 +120,54 @@ void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 {
 	_engine = engine;
 
-	BltResourcePtr sceneInfoRes = bltFile->loadLongId(sceneId);
-	assert(sceneInfoRes->getType() == kBltScene);
-	BltScene sceneInfo(&sceneInfoRes->getData()[0]);
+	BltResource sceneInfoRes(bltFile->loadLongId(sceneId, kBltScene));
+	BltScene sceneInfo(&sceneInfoRes[0]);
 
 	_origin = sceneInfo.origin;
 
 	loadPlane(_forePlane, bltFile, sceneInfo.forePlaneId);
 	loadPlane(_backPlane, bltFile, sceneInfo.backPlaneId);
 
-	BltResourcePtr buttonsRes = bltFile->loadLongId(sceneInfo.buttonsId);
-	assert(buttonsRes->getType() == kBltButtons);
+	BltResource buttonsRes(bltFile->loadLongId(sceneInfo.buttonsId, kBltButtons));
 	_buttons.reserve(sceneInfo.numButtons);
 	for (uint16 i = 0; i < sceneInfo.numButtons; ++i) {
-		Button newButton;
-		loadButton(newButton, bltFile, &buttonsRes->getData()[i * BltButton::SIZE]);
+		ButtonPtr newButton(new Button);
+		loadButton(*newButton, bltFile, &buttonsRes[i * BltButton::SIZE]);
 		_buttons.push_back(newButton);
 	}
 }
 
 void Scene::draw() {
 	if (_backPlane.palette) {
-		_engine->_graphics.getBackPlane().setPalette(&_backPlane.palette->getData()[6], 0, 128);
+		_engine->_graphics.getBackPlane().setPalette(&_backPlane.palette[6], 0, 128);
 	}
-	if (_backPlane.image) {
+	if (_backPlane.image.isLoaded()) {
 		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
-		_backPlane.image->drawAt(surface, 0, 0, false);
+		_backPlane.image.drawAt(surface, 0, 0, false);
 	}
 	else {
 		_engine->_graphics.getBackPlane().clear();
 	}
 
 	if (_forePlane.palette) {
-		_engine->_graphics.getForePlane().setPalette(&_forePlane.palette->getData()[6], 0, 128);
+		_engine->_graphics.getForePlane().setPalette(&_forePlane.palette[6], 0, 128);
 	}
-	if (_forePlane.image) {
+	if (_forePlane.image.isLoaded()) {
 		::Graphics::Surface surface = _engine->_graphics.getForePlane().getSurface();
-		_forePlane.image->drawAt(surface, 0, 0, false);
+		_forePlane.image.drawAt(surface, 0, 0, false);
 	}
 	else {
 		_engine->_graphics.getForePlane().clear();
 	}
 
 	for (size_t i = 0; i < _buttons.size(); ++i) {
-		if (isButtonAtPoint(_buttons[i],
+		if (isButtonAtPoint(*_buttons[i],
 			_engine->getEventManager()->getMousePos())) {
 
-			drawButton(_buttons[i], true);
+			drawButton(*_buttons[i], true);
 		}
 		else {
-			drawButton(_buttons[i], false);
+			drawButton(*_buttons[i], false);
 		}
 	}
 
@@ -181,12 +179,11 @@ void Scene::loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId) {
 		return;
 	}
 
-	BltResourcePtr planeRes = bltFile->loadLongId(planeId);
-	assert(planeRes->getType() == kBltPlane);
-	BltPlane planeInfo(&planeRes->getData()[0]);
-	plane.image = BltImage::load(bltFile, planeInfo.imageId);
-	plane.palette = bltFile->loadLongId(planeInfo.paletteId);
-	plane.hotspots = BltImage::load(bltFile, planeInfo.hotspotsId);
+	BltResource planeRes(bltFile->loadLongId(planeId, kBltPlane));
+	BltPlane planeInfo(&planeRes[0]);
+	plane.image.init(bltFile, planeInfo.imageId);
+	plane.palette.reset(bltFile->loadLongId(planeInfo.paletteId, kBltPalette));
+	plane.hotspots.init(bltFile, planeInfo.hotspotsId);
 }
 
 Scene::Plane& Scene::getScenePlane(uint16 num) {
@@ -212,64 +209,56 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 	}
 
 	if (buttonInfo.graphicsId.isValid()) {
-		BltResourcePtr buttonGfxRes = bltFile->loadLongId(buttonInfo.graphicsId);
-		assert(buttonGfxRes->getType() == kBltButtonGraphics);
+		BltResource buttonGfxRes(bltFile->loadLongId(buttonInfo.graphicsId, kBltButtonGraphics));
 		// FIXME: Some buttons have multiple graphics entries corresponding to
 		// different states of the button.
-		BltButtonGraphics buttonGfx(&buttonGfxRes->getData()[0]);
+		BltButtonGraphics buttonGfx(&buttonGfxRes[0]);
 
 		button.graphicsType = (Button::GraphicsType)buttonGfx.type;
 
 		if (buttonGfx.defaultId.isValid()) {
-			BltResourcePtr defaultRes = bltFile->loadLongId(buttonGfx.defaultId);
-			assert(defaultRes->getType() == kBltButtonImage);
-			BltButtonImage defaultButtonImage(&defaultRes->getData()[0]);
+			BltResource defaultRes(bltFile->loadLongId(buttonGfx.defaultId, kBltSprites));
+			BltButtonImage defaultButtonImage(&defaultRes[0]);
 			button.defaultImagePos = defaultButtonImage.pos;
 			button.defaultImagePos.x -= _origin.x;
 			button.defaultImagePos.y -= _origin.y;
-			button.defaultImage = BltImage::load(bltFile, defaultButtonImage.imageId);
+			button.defaultImage.init(bltFile, defaultButtonImage.imageId);
 		}
 
 		if (button.graphicsType == Button::kGfxImages) {
 			if (buttonGfx.hoveredId.isValid()) {
 				// TODO: Factor out repetitive code
-				BltResourcePtr hoveredRes = bltFile->loadLongId(buttonGfx.hoveredId);
-				assert(hoveredRes->getType() == kBltButtonImage);
-				BltButtonImage hoveredButtonImage(&hoveredRes->getData()[0]);
+				BltResource hoveredRes(bltFile->loadLongId(buttonGfx.hoveredId, kBltSprites));
+				BltButtonImage hoveredButtonImage(&hoveredRes[0]);
 				button.hoveredImagePos = hoveredButtonImage.pos;
 				button.hoveredImagePos.x -= _origin.x;
 				button.hoveredImagePos.y -= _origin.y;
-				button.hoveredImage = BltImage::load(bltFile, hoveredButtonImage.imageId);
+				button.hoveredImage.init(bltFile, hoveredButtonImage.imageId);
 			}
 			if (buttonGfx.idleId.isValid()) {
-				BltResourcePtr idleRes = bltFile->loadLongId(buttonGfx.idleId);
-				assert(idleRes->getType() == kBltButtonImage);
-				BltButtonImage idleButtonImage(&idleRes->getData()[0]);
+				BltResource idleRes(bltFile->loadLongId(buttonGfx.idleId, kBltSprites));
+				BltButtonImage idleButtonImage(&idleRes[0]);
 				button.idleImagePos = idleButtonImage.pos;
 				button.idleImagePos.x -= _origin.x;
 				button.idleImagePos.y -= _origin.y;
-				button.idleImage = BltImage::load(bltFile, idleButtonImage.imageId);
+				button.idleImage.init(bltFile, idleButtonImage.imageId);
 			}
 		}
 		else if (button.graphicsType == Button::kGfxPaletteMods) {
 			if (buttonGfx.hoveredId.isValid()) {
 				// TODO: Factor out repetitive code
-				BltResourcePtr hoveredRes = bltFile->loadLongId(buttonGfx.hoveredId);
-				assert(hoveredRes->getType() == kBltButtonPaletteMod);
-				BltButtonPaletteMod hoveredPalMod(&hoveredRes->getData()[0]);
+				BltResource hoveredRes(bltFile->loadLongId(buttonGfx.hoveredId, kBltButtonPaletteMod));
+				BltButtonPaletteMod hoveredPalMod(&hoveredRes[0]);
 				button.hoveredPalStart = hoveredPalMod.start;
 				button.hoveredPalNum = hoveredPalMod.num;
-				button.hoveredColors = bltFile->loadLongId(hoveredPalMod.colorsId);
-				assert(button.hoveredColors->getType() == kBltButtonColors);
+				button.hoveredColors.reset(bltFile->loadLongId(hoveredPalMod.colorsId, kBltButtonColors));
 			}
 			if (buttonGfx.idleId.isValid()) {
-				BltResourcePtr idleRes = bltFile->loadLongId(buttonGfx.idleId);
-				assert(idleRes->getType() == kBltButtonPaletteMod);
-				BltButtonPaletteMod idlePalMod(&idleRes->getData()[0]);
+				BltResource idleRes(bltFile->loadLongId(buttonGfx.idleId, kBltButtonPaletteMod));
+				BltButtonPaletteMod idlePalMod(&idleRes[0]);
 				button.idlePalStart = idlePalMod.start;
 				button.idlePalNum = idlePalMod.num;
-				button.idleColors = bltFile->loadLongId(idlePalMod.colorsId);
-				assert(button.idleColors->getType() == kBltButtonColors);
+				button.idleColors.reset(bltFile->loadLongId(idlePalMod.colorsId, kBltButtonColors));
 			}
 		}
 		else {
@@ -283,7 +272,7 @@ bool Scene::isButtonAtPoint(const Button &button, const Common::Point &pt) const
 		return button.rect.contains(pt);
 	}
 	else if (button.hotspotType == Button::kHotspotImageQuery) {
-		byte color = getScenePlane(button.plane).hotspots->query(pt.x, pt.y);
+		byte color = getScenePlane(button.plane).hotspots.query(pt.x, pt.y);
 		return color >= button.rect.left && color <= button.rect.right;
 	}
 
@@ -292,9 +281,9 @@ bool Scene::isButtonAtPoint(const Button &button, const Common::Point &pt) const
 
 void Scene::drawButton(const Button &button, bool hovered) {
 	if (button.graphicsType == Button::kGfxPaletteMods) {
-		if (button.defaultImage) {
+		if (button.defaultImage.isLoaded()) {
 			// FIXME: This might not be the correct usage of defaultImage.
-			button.defaultImage->drawAt(
+			button.defaultImage.drawAt(
 				getGraphicsPlane(button.plane).getSurface(),
 				button.defaultImagePos.x, button.defaultImagePos.y, true);
 		}
@@ -302,14 +291,14 @@ void Scene::drawButton(const Button &button, bool hovered) {
 		if (hovered) {
 			// apply hovered colors
 			if (button.hoveredColors) {
-				getGraphicsPlane(button.plane).setPalette(&button.hoveredColors->getData()[0],
+				getGraphicsPlane(button.plane).setPalette(&button.hoveredColors[0],
 					button.hoveredPalStart, button.hoveredPalNum);
 			}
 		}
 		else {
 			// apply idle colors
 			if (button.idleColors) {
-				getGraphicsPlane(button.plane).setPalette(&button.idleColors->getData()[0],
+				getGraphicsPlane(button.plane).setPalette(&button.idleColors[0],
 					button.idlePalStart, button.idlePalNum);
 			}
 		}
@@ -318,15 +307,15 @@ void Scene::drawButton(const Button &button, bool hovered) {
 		::Graphics::Surface surface = getGraphicsPlane(button.plane).getSurface();
 		if (hovered) {
 			// apply hovered image
-			if (button.hoveredImage) {
-				button.hoveredImage->drawAt(surface,
+			if (button.hoveredImage.isLoaded()) {
+				button.hoveredImage.drawAt(surface,
 					button.hoveredImagePos.x, button.hoveredImagePos.y, true);
 			}
 		}
 		else {
 			// apply idle image
-			if (button.idleImage) {
-				button.idleImage->drawAt(surface,
+			if (button.idleImage.isLoaded()) {
+				button.idleImage.drawAt(surface,
 					button.idleImagePos.x, button.idleImagePos.y, true);
 			}
 		}

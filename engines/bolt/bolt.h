@@ -106,7 +106,7 @@ private:
 
 	BltFile _boltlibBltFile;
 	PfFile _maPfFile;
-	BltImagePtr _cursorImage;
+	BltImage _cursorImage;
 
 	typedef Common::ScopedPtr<State> StatePtr;
 	StatePtr _state;
@@ -142,7 +142,7 @@ private:
 	void startMainMenu(BltShortId mainMenuId);
 	void startMenu(BltLongId menuId);
 
-	BltResourcePtr _mainMenuRes;
+	BltResource _mainMenuRes;
 };
 
 } // End of namespace Bolt

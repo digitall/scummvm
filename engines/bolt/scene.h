@@ -34,7 +34,7 @@ namespace Bolt {
 
 class BoltEngine;
 
-class Scene {
+class Scene : Common::NonCopyable {
 public:
 	void init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId);
 	void draw();
@@ -43,9 +43,9 @@ private:
 	BoltEngine *_engine;
 
 	struct Plane {
-		BltImagePtr image;
-		BltResourcePtr palette;
-		BltImagePtr hotspots;
+		BltImage image;
+		BltResource palette;
+		BltImage hotspots;
 	};
 
 	Plane _forePlane;
@@ -76,28 +76,29 @@ private:
 		GraphicsType graphicsType;
 
 		Common::Point defaultImagePos;
-		BltImagePtr defaultImage;
+		BltImage defaultImage;
 
 		// For Palette Mods graphics
 		uint hoveredPalStart;
 		uint hoveredPalNum;
-		BltResourcePtr hoveredColors;
+		BltResource hoveredColors;
 
 		// For Images graphics
 		Common::Point hoveredImagePos;
-		BltImagePtr hoveredImage;
+		BltImage hoveredImage;
 
 		// For Palette Mods graphics
 		uint idlePalStart;
 		uint idlePalNum;
-		BltResourcePtr idleColors;
+		BltResource idleColors;
 
 		// For Images graphics
 		Common::Point idleImagePos;
-		BltImagePtr idleImage;
+		BltImage idleImage;
 	};
 
-	Common::Array<Button> _buttons;
+	typedef Common::SharedPtr<Button> ButtonPtr;
+	Common::Array<ButtonPtr> _buttons;
 
 	void loadButton(Button &button, BltFile *bltFile, const byte *src);
 

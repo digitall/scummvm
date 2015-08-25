@@ -36,11 +36,13 @@ namespace Bolt {
 
 class Graphics;
 
-typedef Common::SharedPtr<class BltImage> BltImagePtr;
-
 class BltImage {
 public:
-	static BltImagePtr load(BltFile *bltFile, BltLongId id);
+	void init(BltFile *bltFile, BltLongId id);
+
+	bool isLoaded() const {
+		return _res;
+	}
 
 	void draw(::Graphics::Surface &surface, bool transparency) const;
 	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
@@ -51,9 +53,7 @@ public:
 	const Common::Point& getOffset() const { return _offset; }
 
 private:
-	BltImage(BltFile *bltFile, BltLongId id);
-
-	BltResourcePtr _res;
+	BltResource _res;
 	byte _compression;
 	uint16 _width;
 	uint16 _height;

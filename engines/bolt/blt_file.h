@@ -25,6 +25,8 @@
 
 #include "common/file.h"
 
+#include "bolt/util.h"
+
 namespace Bolt {
 
 enum BltType {
@@ -32,7 +34,7 @@ enum BltType {
 	kBltImage = 8,
 	kBltPalette = 10,
 	kBltPlane = 26, // image, palette, hotspots
-	kBltButtonImage = 27, // image ref plus x, y location?
+	kBltSprites = 27, // image, x, y
 	kBltButtonColors = 28, // just some colors, used by palette mod
 	kBltButtonPaletteMod = 29,
 	kBltButtonGraphics = 30,
@@ -57,27 +59,14 @@ struct BltLongId {
 	uint32 value;
 };
 
-class BltResource {
-	friend class BltFile;
-public:
-	uint32 getType() const { return _type; }
-	const Common::Array<byte>& getData() const { return _data; }
-
-private:
-	BltResource() : _type(kBltError) { }; // BltFile can create these
-
-	uint32 _type;
-	Common::Array<byte> _data;
-};
-
-typedef Common::SharedPtr<BltResource> BltResourcePtr;
+typedef ScopedArray<byte> BltResource;
 
 class BltFile {
 public:
 	bool init(const Common::String &filename);
 
-	BltResourcePtr loadShortId(BltShortId id); // id is two bytes: <dir num> <res num>
-	BltResourcePtr loadLongId(BltLongId id); // id is two words: <short id> <offset>
+	BltResource::Movable loadShortId(BltShortId id, uint32 expectType); // id is two bytes: <dir num> <res num>
+	BltResource::Movable loadLongId(BltLongId id, uint32 expectType); // id is two words: <short id> <offset>
 
 private:
 	// Warning: may clobber file cursor
