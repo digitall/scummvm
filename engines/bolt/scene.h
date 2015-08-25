@@ -34,7 +34,7 @@ namespace Bolt {
 
 class BoltEngine;
 
-class Scene : Common::NonCopyable {
+class Scene {
 public:
 	void init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId);
 	void draw();
@@ -50,6 +50,14 @@ private:
 
 	Plane _forePlane;
 	Plane _backPlane;
+
+	struct Sprite {
+		Common::Point pos;
+		BltImage image;
+	};
+	typedef Common::SharedPtr<Sprite> SpritePtr;
+
+	Common::Array<SpritePtr> _sprites;
 
 	void loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId);
 	Plane& getScenePlane(uint16 num);
