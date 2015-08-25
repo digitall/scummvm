@@ -137,6 +137,81 @@ void decodeCLUT7(::Graphics::Surface &dst, int x, int y, int w, int h,
 	}
 }
 
+// Decodes an RL7 line from src to dst. dst is the start of a destination
+// line. Returns number of bytes consumed from src.
+template<bool draw, bool transparency>
+inline int decodeRL7Line(byte *dst, int dstW, int x, int w,
+	const byte *src, int srcLen) {
+
+	int inCursor = 0;
+	int dstX = x;
+	int srcX = 0;
+	bool end = false;
+	while (!end)
+	{
+		// Fetch byte
+		if (inCursor >= srcLen) {
+			return inCursor;
+		}
+		byte inByte = src[inCursor];
+		++inCursor;
+
+		byte color = inByte & 0x7F;
+		int length = 1;
+
+		if ((inByte & 0x80) != 0) {
+			// Run of pixels
+
+			// Fetch byte
+			if (inCursor >= srcLen) {
+				return inCursor;
+			}
+			byte lengthByte = src[inCursor];
+			++inCursor;
+
+			if (lengthByte == 0) {
+				// length 0 means run to end of line
+				length = w - srcX;
+				end = true;
+			}
+			else {
+				length = lengthByte;
+			}
+		}
+
+		if (draw && (!transparency || color != 0)) {
+
+			// Draw clipped run
+			int dstL = dstX;
+			int dstR = dstX + length;
+			int srcL = srcX;
+			int srcR = srcX + length;
+
+			if (dstL < 0) {
+				srcL += -dstL;
+				dstL = 0;
+			}
+			if (dstR > dstW) {
+				srcR -= (dstR - dstW);
+				dstR = dstW;
+			}
+			if (srcR > w) {
+				dstR -= (w - srcR);
+				srcR = w;
+			}
+
+			for (int i = dstL; i < dstR; ++i) {
+				dst[i] = color;
+			}
+		}
+
+		dstX += length;
+		srcX += length;
+	}
+
+	return inCursor;
+}
+
 template<bool transparency>
 inline void decodeRL7Internal(::Graphics::Surface &dst,
 	int x, int y, int w, int h, const byte *src, int srcLen) {
@@ -151,88 +226,34 @@ inline void decodeRL7Internal(::Graphics::Surface &dst,
 	byte *dstPixels = (byte*)dst.getPixels();
 
 	// Source index var
-	int in_cursor = 0;
+	int inCursor = 0;
 
 	// Pixel plotting vars
-	int srcX = 0;
 	int srcY = 0;
-	int dstX = x;
 	int dstY = y;
 
 	// Top clipping
 	while (dstY < 0 && srcY < h) {
 
-		// Fetch byte
-		if (in_cursor >= srcLen) {
-			return;
-		}
-		byte in_byte = src[in_cursor];
-		++in_cursor;
-
-		if ((in_byte & 0x80) != 0) {
-
-			// Fetch byte
-			if (in_cursor >= srcLen) {
-				return;
-			}
-			byte lengthByte = src[in_cursor];
-			++in_cursor;
-
-			if (lengthByte == 0) {
-				// length 0 means end-of-line
-				++dstY;
-				++srcY;
-			}
-		}
+		// Skip lines
+		inCursor += decodeRL7Line<false, false>(nullptr, dst.w, x, w,
+			&src[inCursor], srcLen - inCursor);
+		++dstY;
+		++srcY;
 	}
 
-	// Render visible lines
+
+	// Draw visible lines
+	int outCursor = dstY * dst.pitch;
 	while (dstY < dst.h && srcY < h) {
 
-		// Fetch byte
-		if (in_cursor >= srcLen) {
-			return;
-		}
-		byte in_byte = src[in_cursor];
-		++in_cursor;
-
-		byte color = in_byte & 0x7F;
-
-		if ((in_byte & 0x80) != 0) {
-			// Run of pixels
-
-			// Fetch byte
-			if (in_cursor >= srcLen) {
-				return;
-			}
-			byte lengthByte = src[in_cursor];
-			++in_cursor;
-
-			// lengthByte 0 means continue until end of line, then go to next
-			// line. This is REQUIRED at the end of every line.
-			int length = (lengthByte == 0) ? (w - srcX) : lengthByte;
-			for (int i = 0; i < length; ++i) {
-				if (dstX >= 0 && dstX < dst.w && srcX < w && (!transparency || color != 0)) {
-					dstPixels[dstY * dst.pitch + dstX] = color;
-				}
-				++dstX;
-				++srcX;
-			}
-			if (lengthByte == 0) {
-				dstX = x;
-				srcX = 0;
-				++dstY;
-				++srcY;
-			}
-		}
-		else {
-			// Single pixel
-			if (dstX >= 0 && dstX < dst.w && srcX < w && (!transparency || color != 0)) {
-				dstPixels[dstY * dst.pitch + dstX] = color;
-			}
-			++dstX;
-			++srcX;
-		}
+		inCursor += decodeRL7Line<true, transparency>(
+			&dstPixels[outCursor], dst.w, x, w,
+			&src[inCursor], srcLen - inCursor
+			);
+		++dstY;
+		++srcY;
+		outCursor += dst.pitch;
 	}
 }
 
@@ -263,48 +284,39 @@ byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h) {
 		return 0;
 	}
 
-	byte result = 0;
-
-	// XXX: The original program stores a cache of line offsets, making most
-	// of the work that we do here unnecessary.
-
 	int srcY = 0;
-	int in_cursor = 0;
+	int inCursor = 0;
+
 	// Skip to line y
+	// NOTE: The original program avoids this step by caching line offsets.
 	while (srcY < y && srcY < h) {
-		if (in_cursor >= srcLen) {
-			return 0;
-		}
-		byte in_byte = src[in_cursor];
-		++in_cursor;
-		if ((in_byte & 0x80) != 0) {
-			if (in_cursor >= srcLen) {
-				return 0;
-			}
-			byte lengthByte = src[in_cursor];
-			++in_cursor;
-			if (lengthByte == 0) {
-				// length 0 means end-of-line
-				++srcY;
-			}
-		}
+
+		inCursor += decodeRL7Line<false, false>(nullptr, w, 0, w,
+			&src[inCursor], srcLen - inCursor);
+		++srcY;
 	}
 
 	// Decode line until x is reached
+	byte color = 0;
 	int srcX = 0;
 	while (srcX < w) {
-		if (in_cursor >= srcLen) {
+
+		if (inCursor >= srcLen) {
 			return 0;
 		}
-		byte in_byte = src[in_cursor];
-		++in_cursor;
-		result = in_byte & 0x7F;
-		if ((in_byte & 0x80) != 0) {
-			if (in_cursor >= srcLen) {
+		byte inByte = src[inCursor];
+		++inCursor;
+
+		color = inByte & 0x7F;
+
+		if ((inByte & 0x80) != 0) {
+
+			if (inCursor >= srcLen) {
 				return 0;
 			}
-			byte lengthByte = src[in_cursor];
-			++in_cursor;
+			byte lengthByte = src[inCursor];
+			++inCursor;
+
 			if (lengthByte == 0) {
 				break;
 			}
@@ -323,7 +335,7 @@ byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h) {
 		}
 	}
 
-	return result;
+	return color;
 }
 
 Plane::Plane()
