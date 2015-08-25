@@ -23,6 +23,7 @@
 #include "bolt/scene.h"
 
 #include "common/events.h"
+#include "common/system.h"
 
 #include "bolt/bolt.h"
 
@@ -35,6 +36,7 @@ struct BltScene { // type 32
 		numSprites = src[0x8];
 		spritesId = BltLongId(READ_BE_UINT32(&src[0xA]));
 		// FIXME: unknown fields
+		colorCyclesId = BltLongId(READ_BE_UINT32(&src[0x16]));
 		numButtons = READ_BE_UINT16(&src[0x1A]);
 		buttonsId = BltLongId(READ_BE_UINT32(&src[0x1C]));
 		origin.x = (int16)READ_BE_UINT16(&src[0x20]);
@@ -45,6 +47,7 @@ struct BltScene { // type 32
 	BltLongId backPlaneId;
 	uint8 numSprites;
 	BltLongId spritesId;
+	BltLongId colorCyclesId;
 	uint16 numButtons;
 	BltLongId buttonsId;
 	Common::Point origin;
@@ -121,7 +124,33 @@ struct BltPlane { // type 26
 	BltLongId hotspotsId;
 };
 
-void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
+struct BltColorCycleSlot { // type 12
+	BltColorCycleSlot(const byte *src) {
+		start = READ_BE_UINT16(&src[0]);
+		end = READ_BE_UINT16(&src[2]);
+		delay = src[4];
+	}
+
+	uint16 start;
+	uint16 end;
+	byte delay;
+};
+
+struct BltColorCycles { // type 11
+	BltColorCycles(const byte *src) {
+		for (int i = 0; i < 4; ++i) {
+			numSlots[i] = READ_BE_UINT16(&src[i * 2]);
+		}
+		for (int i = 0; i < 4; ++i) {
+			slotIds[i] = BltLongId(READ_BE_UINT32(&src[8 + i * 4]));
+		}
+	}
+
+	uint16 numSlots[4];
+	BltLongId slotIds[4];
+};
+
+void Scene::load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 {
 	_engine = engine;
 
@@ -130,9 +159,11 @@ void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 
 	_origin = sceneInfo.origin;
 
+	// Load planes
 	loadPlane(_forePlane, bltFile, sceneInfo.forePlaneId);
 	loadPlane(_backPlane, bltFile, sceneInfo.backPlaneId);
 
+	// Load sprites
 	if (sceneInfo.spritesId.isValid()) {
 		BltResource spritesRes(bltFile->loadLongId(sceneInfo.spritesId, kBltSprites));
 		_sprites.reserve(sceneInfo.numSprites);
@@ -145,6 +176,7 @@ void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 		}
 	}
 
+	// Load buttons
 	BltResource buttonsRes(bltFile->loadLongId(sceneInfo.buttonsId, kBltButtons));
 	_buttons.reserve(sceneInfo.numButtons);
 	for (uint16 i = 0; i < sceneInfo.numButtons; ++i) {
@@ -152,9 +184,34 @@ void Scene::init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 		loadButton(*newButton, bltFile, &buttonsRes[i * BltButton::SIZE]);
 		_buttons.push_back(newButton);
 	}
+
+	// Load color cycles
+	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
+		_colorCycles[i] = ColorCycle();
+	}
+	if (sceneInfo.colorCyclesId.isValid()) {
+		BltResource cyclesRes(bltFile->loadLongId(sceneInfo.colorCyclesId, kBltColorCycles));
+		BltColorCycles cyclesInfo(&cyclesRes[0]);
+		for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
+			if (cyclesInfo.slotIds[i].isValid()) {
+				if (cyclesInfo.numSlots[i] != 1) {
+					warning("Cycle slot does not have 1 palette region (%d)...", cyclesInfo.numSlots[i]);
+				}
+				else {
+					BltResource cycleSlotRes(bltFile->loadLongId(cyclesInfo.slotIds[i], kBltColorCycleSlot));
+					BltColorCycleSlot cycleSlotInfo(&cycleSlotRes[0]);
+					_colorCycles[i].start = cycleSlotInfo.start;
+					_colorCycles[i].num = cycleSlotInfo.end - cycleSlotInfo.start + 1;
+					// FIXME: How fast are color cycles really? Is this correct at all?
+					_colorCycles[i].delay = cycleSlotInfo.delay * 10;
+				}
+			}
+		}
+	}
 }
 
-void Scene::draw() {
+void Scene::enter() {
+
 	// Draw back plane
 	if (_backPlane.palette) {
 		_engine->_graphics.getBackPlane().setPalette(&_backPlane.palette[6], 0, 128);
@@ -187,6 +244,51 @@ void Scene::draw() {
 		// FIXME: Are sprites drawn to back or fore plane? Is it somehow selectable?
 		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
 		_sprites[i]->image.drawAt(surface, pos.x, pos.y, true);
+	}
+
+	// Reset color cycles
+	// FIXME: Use a timer that pauses when game is inactive
+	uint32 enterTime = _engine->_system->getMillis();
+	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
+		_colorCycles[i].curTime = enterTime;
+	}
+
+	process();
+
+	_engine->_displayDirty = true;
+}
+
+void Scene::process() {
+
+	// FIXME: Use a timer that pauses when game is inactive
+	uint32 curTime = _engine->_system->getMillis();
+
+	// Update color cycles
+	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
+		if (_colorCycles[i].num > 0) {
+			uint32 timeDiff = curTime - _colorCycles[i].curTime;
+			if (timeDiff >= _colorCycles[i].delay) {
+
+				byte colors[128 * 3];
+				// FIXME: Should we cycle fore or back plane? Is it selectable?
+				_engine->_graphics.getBackPlane().grabPalette(colors,
+					_colorCycles[i].start, _colorCycles[i].num);
+
+				// Rotate colors right by one
+				byte r = colors[3 * (_colorCycles[i].num - 1) + 0];
+				byte g = colors[3 * (_colorCycles[i].num - 1) + 1];
+				byte b = colors[3 * (_colorCycles[i].num - 1) + 2];
+				memmove(&colors[3], &colors[0], 3 * (_colorCycles[i].num - 1));
+				colors[0] = r;
+				colors[1] = g;
+				colors[2] = b;
+
+				_engine->_graphics.getBackPlane().setPalette(colors,
+					_colorCycles[i].start, _colorCycles[i].num);
+
+				_colorCycles[i].curTime += _colorCycles[i].delay;
+			}
+		}
 	}
 
 	// Draw buttons

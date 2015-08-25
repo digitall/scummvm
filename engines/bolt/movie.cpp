@@ -57,6 +57,7 @@ void Movie::init(BoltEngine *engine, PfFile *pfFile, uint32 name) {
 	_parserActive = true;
 	_timelineActive = true;
 
+	// FIXME: Use a timer that pauses when game is inactive
 	_curFrameTimeMs = engine->_system->getMillis();
 	_curFrameNum = 0;
 

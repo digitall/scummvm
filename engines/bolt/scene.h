@@ -36,8 +36,9 @@ class BoltEngine;
 
 class Scene {
 public:
-	void init(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId);
-	void draw();
+	void load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId);
+	void enter();
+	void process();
 
 private:
 	BoltEngine *_engine;
@@ -58,6 +59,17 @@ private:
 	typedef Common::SharedPtr<Sprite> SpritePtr;
 
 	Common::Array<SpritePtr> _sprites;
+
+	struct ColorCycle {
+		ColorCycle() : start(0), num(0), delay(0) { }
+		uint16 start;
+		uint16 num;
+		byte delay;
+		uint32 curTime;
+	};
+
+	static const int NUM_COLOR_CYCLES = 4;
+	ColorCycle _colorCycles[NUM_COLOR_CYCLES];
 
 	void loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId);
 	Plane& getScenePlane(uint16 num);
