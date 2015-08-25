@@ -77,6 +77,13 @@ public:
 	}
 
 private:
+	// Prevent copying instances by accident
+	// XXX: Class is made noncopyable here (instead of inheriting from
+	// Common::NonCopyable) because VS2015 C++ compiler emits unhelpful error
+	// messages in that case.
+	ScopedArray(const ScopedArray&);
+	ScopedArray& operator=(const ScopedArray&);
+
 	Movable _internal;
 };
 

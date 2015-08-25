@@ -102,23 +102,22 @@ Common::Error BoltEngine::run() {
 
 void BoltEngine::initCursor() {
 	static const uint16 kCursorImageId = 0x9D00;
-	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 0xFF, 0xFF, 0xFF };
+	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 255, 255, 255 };
 
-	_cursorImage = BltImage::load(&_boltlibBltFile,
-		BltLongId(BltShortId(kCursorImageId)));
+	_cursorImage.init(&_boltlibBltFile, BltLongId(BltShortId(kCursorImageId)));
 
 	// Format is expected to be CLUT7
 	Common::Array<byte> decodedImage;
-	decodedImage.resize(_cursorImage->getWidth() * _cursorImage->getHeight());
+	decodedImage.resize(_cursorImage.getWidth() * _cursorImage.getHeight());
 	::Graphics::Surface surface;
-	surface.init(_cursorImage->getWidth(), _cursorImage->getHeight(),
-		_cursorImage->getWidth(), &decodedImage[0],
+	surface.init(_cursorImage.getWidth(), _cursorImage.getHeight(),
+		_cursorImage.getWidth(), &decodedImage[0],
 		::Graphics::PixelFormat::createFormatCLUT8());
-	_cursorImage->draw(surface, false);
+	_cursorImage.draw(surface, false);
 
 	_system->setMouseCursor(&decodedImage[0],
-		_cursorImage->getWidth(), _cursorImage->getHeight(),
-		-_cursorImage->getOffset().x, -_cursorImage->getOffset().y, 0);
+		_cursorImage.getWidth(), _cursorImage.getHeight(),
+		-_cursorImage.getOffset().x, -_cursorImage.getOffset().y, 0);
 
 	_system->setCursorPalette(kCursorPalette, 0, 2);
 
@@ -275,10 +274,9 @@ struct BltMainMenuInfo {
 };
 
 void BoltEngine::startMainMenu(BltShortId mainMenuId) {
-	_mainMenuRes = _boltlibBltFile.loadShortId(mainMenuId);
-	assert(_mainMenuRes->getType() == kBltMainMenu);
+	_mainMenuRes.reset(_boltlibBltFile.loadShortId(mainMenuId, kBltMainMenu));
 
-	BltMainMenuInfo info(&_mainMenuRes->getData()[0]);
+	BltMainMenuInfo info(&_mainMenuRes[0]);
 
 	startMenu(info.menuInfoId);
 }

@@ -88,16 +88,16 @@ bool BltFile::init(const Common::String &filename) {
 
 // Decompress a BOLT LZ-compressed resource. dst must be sized to fit the
 // decompressed data.
-static void decompressBoltLZ(Common::Array<byte> &dst,
-	const Common::Array<byte> &src) {
+static void decompressBoltLZ(ScopedArray<byte> &dst,
+	const ScopedArray<byte> &src) {
 
 	// BOLT's compression algorithm is an LZ variant with some questionable
 	// design choices.
-	int in_cursor = 0;
-	int out_cursor = 0;
-	while (out_cursor < dst.size()) {
-		byte control = src[in_cursor];
-		++in_cursor;
+	int inCursor = 0;
+	int outCursor = 0;
+	while (outCursor < dst.size()) {
+		byte control = src[inCursor];
+		++inCursor;
 
 		byte comp = control >> 6;
 		byte flag = (control >> 5) & 1;
@@ -107,47 +107,45 @@ static void decompressBoltLZ(Common::Array<byte> &dst,
 			// Raw bytes
 			int count = 31 - num; // 32 or 33 would have been more efficient.
 			// Consider: If num == 31, count becomes 0 and this byte is wasted.
-			memcpy(&dst[out_cursor], &src[in_cursor], count);
-			out_cursor += count;
-			in_cursor += count;
+			memcpy(&dst[outCursor], &src[inCursor], count);
+			outCursor += count;
+			inCursor += count;
 		}
 		else if (comp == 1) {
-			// Small repeat from previously-decoded window
+			// Small repeat from previous data
 			int count = 35 - num; // 35 makes the compression factor break even.
-			int offset = src[in_cursor] + (flag ? 256 : 0);
-			++in_cursor;
-			// We must use byte-by-byte copy to support situation where count
-			// exceeds offset, causing the window to repeat.
+			int offset = src[inCursor] + (flag ? 256 : 0);
+			++inCursor;
+			// We must use byte-by-byte copy to behave correctly when count
+			// exceeds offset causing data to repeat multiple times.
 			for (byte i = 0; i < count; ++i) {
-				dst[out_cursor] = dst[out_cursor - offset];
-				++out_cursor;
+				dst[outCursor] = dst[outCursor - offset];
+				++outCursor;
 			}
 		}
 		else if (comp == 2) {
-			// Big repeat from previously-decoded window
+			// Big repeat from previous data
 			int count = (32 - num) * 4 + (flag ? 2 : 0);
-			int offset = src[in_cursor] * 2;
-			++in_cursor;
+			int offset = src[inCursor] * 2;
+			++inCursor;
 			for (int i = 0; i < count; ++i) {
-				dst[out_cursor] = dst[out_cursor - offset];
-				++out_cursor;
+				dst[outCursor] = dst[outCursor - offset];
+				++outCursor;
 			}
 		}
 		else if (comp == 3 && flag) {
-			// Original checked for end of data in here. I check on every loop
-			// iteration.
-			// Sometimes, they trigger this check even when the data has not
-			// ended. It's a wasted byte!
+			// Original program checked for end of data here. We check on every
+			// loop iteration.
 		}
 		else if (comp == 3 && !flag) {
-			// Big block filled with single byte
-			int count = (32 - num + 32 * src[in_cursor]) * 4;
-			++in_cursor;
-			++in_cursor; // Ignored!
-			byte b = src[in_cursor];
-			++in_cursor;
-			memset(&dst[out_cursor], b, count);
-			out_cursor += count;
+			// Big block filled with constant byte
+			int count = (32 - num + 32 * src[inCursor]) * 4;
+			++inCursor;
+			++inCursor; // This byte is ignored!
+			byte b = src[inCursor];
+			++inCursor;
+			memset(&dst[outCursor], b, count);
+			outCursor += count;
 		}
 		else {
 			assert(false); // Unreachable
@@ -155,56 +153,71 @@ static void decompressBoltLZ(Common::Array<byte> &dst,
 	}
 }
 
-BltResourcePtr BltFile::loadShortId(BltShortId id) {
+BltResource::Movable BltFile::loadShortId(BltShortId id, uint32 expectType) {
 	byte dirNum = id.value >> 8;
 	byte resNum = id.value & 0xFF;
 
-	ensureDirLoaded(dirNum);
+	if (dirNum >= _dirs.size()) {
+		error("Tried to load non-existent resource 0x%.04X", (int)id.value);
+		return BltResource::Movable();
+	}
 
+	ensureDirLoaded(dirNum);
 	Directory &dir = _dirs[dirNum];
+
+	if (resNum >= dir.resEntries.size()) {
+		error("Tried to load non-existent resource 0x%.04X", (int)id.value);
+		return BltResource::Movable();
+	}
+
 	ResourceEntry &res = dir.resEntries[resNum];
 
+	if (res.type != expectType) {
+		error("Tried to load wrong resource type %d instead of %d",
+			(int)res.type, (int)expectType);
+		return BltResource::Movable();
+	}
+
 	// Load and decompress resource
-	BltResourcePtr ptr(new BltResource);
-	ptr->_type = res.type;
-	ptr->_data.resize(res.size);
+	BltResource ptr;
+	ptr.reset(res.size);
 	if (res.compression == 0) {
 		// BOLT-LZ
-		Common::Array<byte> buf;
-		buf.resize(dir.entry.compBufSize);
+		ScopedArray<byte> buf;
+		buf.reset(dir.entry.compBufSize);
 		_file.seek(res.offset);
 		_file.read(&buf[0], dir.entry.compBufSize);
-		decompressBoltLZ(ptr->_data, buf);
+		decompressBoltLZ(ptr, buf);
 	}
 	else if (res.compression == 8) {
 		// Raw
 		_file.seek(res.offset);
-		_file.read(&ptr->_data[0], res.size);
+		_file.read(&ptr[0], res.size);
 	}
 	else {
 		error("Unknown compression type %d", (int)res.compression);
-		return BltResourcePtr();
+		return BltResource::Movable();
 	}
 
-	return ptr;
+	return ptr.release();
 }
 
-BltResourcePtr BltFile::loadLongId(BltLongId id) {
+BltResource::Movable BltFile::loadLongId(BltLongId id, uint32 expectType) {
 
 	if (!id.isValid()) {
-		return BltResourcePtr();
+		return BltResource::Movable();
 	}
 
 	BltShortId shortId = BltShortId(id.value >> 16);
 	uint16 offset = id.value & 0xFFFF;
 
 	if (offset != 0) {
-		// XXX: offset is not handled. I don't believe it is ever non-zero.
-		error("offset field in resource id is not 0 (it is 0x%.04X)", (int)offset);
-		return BltResourcePtr();
+		// XXX: offset is not handled. It is always zero.
+		error("offset part of long resource id is not 0 (it is 0x%.04X)", (int)offset);
+		return BltResource::Movable();
 	}
 
-	return loadShortId(shortId);
+	return loadShortId(shortId, expectType);
 }
 
 void BltFile::ensureDirLoaded(byte dirNum) {

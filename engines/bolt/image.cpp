@@ -26,14 +26,6 @@
 
 namespace Bolt {
 
-BltImagePtr BltImage::load(BltFile *bltFile, BltLongId id) {
-	if (!id.isValid()) {
-		return BltImagePtr();
-	}
-
-	return BltImagePtr(new BltImage(bltFile, id));
-}
-
 struct BltImageHeader {
 
 	static const int SIZE = 0x18;
@@ -53,21 +45,21 @@ struct BltImageHeader {
 	uint16 height;
 };
 
-BltImage::BltImage(BltFile *bltFile, BltLongId id) {
-	_res = bltFile->loadLongId(id);
-	assert(_res->getType() == kBltImage);
-
-	BltImageHeader header(&_res->getData()[0]);
-	_compression = header.compression;
-	_width = header.width;
-	_height = header.height;
-	_offset.x = header.offsetX;
-	_offset.y = header.offsetY;
+void BltImage::init(BltFile *bltFile, BltLongId id) {
+	_res.reset(bltFile->loadLongId(id, kBltImage));
+	if (_res) {
+		BltImageHeader header(&_res[0]);
+		_compression = header.compression;
+		_width = header.width;
+		_height = header.height;
+		_offset.x = header.offsetX;
+		_offset.y = header.offsetY;
+	}
 }
 
 void BltImage::draw(::Graphics::Surface &surface, bool transparency) const {
-	const byte *src = &_res->getData()[BltImageHeader::SIZE];
-	int srcLen = _res->getData().size() - BltImageHeader::SIZE;
+	const byte *src = &_res[BltImageHeader::SIZE];
+	int srcLen = _res.size() - BltImageHeader::SIZE;
 
 	if (_compression) {
 		decodeRL7(surface, 0, 0, _width, _height, src, srcLen, transparency);
@@ -83,8 +75,8 @@ void BltImage::drawAt(::Graphics::Surface &surface, int x, int y,
 	int topLeftX = x + _offset.x;
 	int topLeftY = y + _offset.y;
 
-	const byte *src = &_res->getData()[BltImageHeader::SIZE];
-	int srcLen = _res->getData().size() - BltImageHeader::SIZE;
+	const byte *src = &_res[BltImageHeader::SIZE];
+	int srcLen = _res.size() - BltImageHeader::SIZE;
 
 	if (_compression) {
 		decodeRL7(surface, topLeftX, topLeftY, _width, _height, src, srcLen,
@@ -97,8 +89,8 @@ void BltImage::drawAt(::Graphics::Surface &surface, int x, int y,
 }
 
 byte BltImage::query(int x, int y) const {
-	const byte *src = &_res->getData()[BltImageHeader::SIZE];
-	int srcLen = _res->getData().size() - BltImageHeader::SIZE;
+	const byte *src = &_res[BltImageHeader::SIZE];
+	int srcLen = _res.size() - BltImageHeader::SIZE;
 	return _compression ?
 		queryRL7(x, y, src, srcLen, _width, _height) :
 		queryCLUT7(x, y, src, srcLen, _width, _height);
