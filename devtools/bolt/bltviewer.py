@@ -233,7 +233,48 @@ class _PaletteHandler:
         new_widget.setLayout(new_layout)
         container.addWidget(new_widget)
 
-_BackgroundStruct = Struct("_BackgroundStruct",
+_ColorCyclesStruct = Struct("_ColorCyclesStruct",
+    Array(4, UBInt16("num_slots")),
+    Array(4, UBInt32("slot_ids")),
+    )
+
+@_register_res_handler(11)
+class _ColorCyclesHandler:
+    name = "Color Cycles"
+
+    def open(res, container, app):
+        new_widget = MyTableWidget("# Slots", "Slots ID")
+
+        parsed = _ColorCyclesStruct.parse(res.data)
+        for i in range(0, 4):
+            new_widget.add_row("{}".format(i),
+                "{}".format(parsed.num_slots[i]),
+                "0x{:08X}".format(parsed.slot_ids[i])
+                )
+
+        container.addWidget(new_widget)
+
+_ColorCycleSlotStruct = Struct("_ColorCycleSlotStruct",
+    UBInt16("start"),
+    UBInt16("end"),
+    UBInt16("unk_4"),
+    )
+
+@_register_res_handler(12)
+class _ColorCycleSlotHandler:
+    name = "Color Cycle Slot"
+
+    def open(res, container, app):
+        new_widget = MyTableWidget("Value")
+
+        parsed = _ColorCycleSlotStruct.parse(res.data)
+        new_widget.add_row("Start", "{}".format(parsed.start))
+        new_widget.add_row("End", "{}".format(parsed.end))
+        new_widget.add_row("Unk @4", "0x{:04X}".format(parsed.unk_4))
+
+        container.addWidget(new_widget)
+
+_PlaneStruct = Struct("_PlaneStruct",
     UBInt32("image_id"),
     UBInt32("palette_id"),
     UBInt32("hotspots_id"),
@@ -241,13 +282,13 @@ _BackgroundStruct = Struct("_BackgroundStruct",
     )
 
 @_register_res_handler(26)
-class _BackgroundHandler:
-    name = "Background"
+class _PlaneHandler:
+    name = "Plane"
 
     def open(res, container, app):
         newWidget = MyTableWidget("Value")
 
-        parsed = _BackgroundStruct.parse(res.data)
+        parsed = _PlaneStruct.parse(res.data)
         newWidget.add_row("Image ID", "0x{:08X}".format(parsed.image_id))
         newWidget.add_row("Palette ID", "0x{:08X}".format(parsed.palette_id))
         newWidget.add_row("Hotspots ID", "0x{:08X}".format(parsed.hotspots_id))
@@ -255,7 +296,7 @@ class _BackgroundHandler:
 
         container.addWidget(newWidget)
 
-_ButtonImagesStruct = Struct("_ButtonImageStruct",
+_SpriteStruct = Struct("_SpriteStruct",
     SBInt16("x"),
     SBInt16("y"),
     UBInt32("image_id"),
@@ -263,13 +304,13 @@ _ButtonImagesStruct = Struct("_ButtonImageStruct",
 
 # Ex: 370E
 @_register_res_handler(27)
-class _ButtonImagesHandler:
-    name = "Button Images"
+class _SpritesHandler:
+    name = "Sprites"
 
     def open(res, container, app):
         newWidget = MyTableWidget("Position", "Image ID")
 
-        parsed = GreedyRange(_ButtonImagesStruct).parse(res.data)
+        parsed = GreedyRange(_SpriteStruct).parse(res.data)
         for i in range(0, len(parsed)):
             newWidget.add_row("{}".format(i),
                 "({}, {})".format(parsed[i].x, parsed[i].y),
@@ -279,23 +320,27 @@ class _ButtonImagesHandler:
         container.addWidget(newWidget)
 
 @_register_res_handler(28)
-class _ButtonColorsHandler:
-    name = "Button Colors"
+class _ColorsHandler:
+    name = "Colors"
 
-_ButtonPaletteModStruct = Struct("_ButtonPaletteModStruct",
+    def open(res, container, app):
+        colors = GreedyRange(_ColorStruct).parse(res.data)
+        container.addWidget(_PaletteWidget(colors))
+
+_PaletteModStruct = Struct("_ButtonPaletteModStruct",
     UBInt8("index"),
     UBInt8("count"),
     UBInt32("colors_id"),
     )
 
 @_register_res_handler(29)
-class _ButtonPaletteHandler:
-    name = "Button Palette Mod"
+class _PaletteModHandler:
+    name = "Palette Mod"
 
     def open(res, container, app):
         newWidget = MyTableWidget("Index", "Count", "Colors ID")
 
-        parsed = GreedyRange(_ButtonPaletteModStruct).parse(res.data)
+        parsed = GreedyRange(_PaletteModStruct).parse(res.data)
         for i in range(0, len(parsed)):
             newWidget.add_row("{}".format(i),
                 "{}".format(parsed[i].index),
@@ -306,7 +351,7 @@ class _ButtonPaletteHandler:
 
 _BUTTON_GRAPHICS_TYPE_NAMES = {
     1: "Palette Mods",
-    2: "Images",
+    2: "Sprites",
     }
 
 _ButtonGraphicsStruct = Struct("_ButtonGraphicsStruct",
@@ -375,13 +420,14 @@ class _ButtonsHandler:
         container.addWidget(newWidget)
 
 _SceneStruct = Struct("_SceneStruct",
-    UBInt32("unk_0"), # 0
-    UBInt32("background_id"), # 4
-    UBInt16("unk_8"), # 8
-    UBInt32("unk_a"), # A
+    UBInt32("fore_plane_id"), # 0
+    UBInt32("back_plane_id"), # 4
+    UBInt8("num_sprites"), # 8
+    UBInt8("unk_9"), # 8
+    UBInt32("sprites_id"), # A
     UBInt32("unk_e"), # E
     UBInt32("unk_12"), # 12
-    UBInt32("unk_16"), # 16
+    UBInt32("color_cycles_id"), # 16
     UBInt16("num_buttons"), # 1A
     UBInt32("buttons_id"), # 1C
     SBInt16("origin_x"), # 20
@@ -397,13 +443,14 @@ class _SceneHandler:
         newWidget = MyTableWidget("Value")
 
         parsed = _SceneStruct.parse(res.data)
-        newWidget.add_row("Unk @0", "0x{:08X}".format(parsed.unk_0))
-        newWidget.add_row("Background ID", "0x{:08X}".format(parsed.background_id))
-        newWidget.add_row("Unk @8", "0x{:04X}".format(parsed.unk_8))
-        newWidget.add_row("Unk @Ah", "0x{:08X}".format(parsed.unk_a))
+        newWidget.add_row("Fore Plane ID", "0x{:08X}".format(parsed.fore_plane_id))
+        newWidget.add_row("Back Plane ID", "0x{:08X}".format(parsed.back_plane_id))
+        newWidget.add_row("# Sprites", "0x{:02X}".format(parsed.num_sprites))
+        newWidget.add_row("Unk @9", "0x{:02X}".format(parsed.unk_9))
+        newWidget.add_row("Sprites ID", "0x{:08X}".format(parsed.sprites_id))
         newWidget.add_row("Unk @Eh", "0x{:08X}".format(parsed.unk_e))
         newWidget.add_row("Unk @12h", "0x{:08X}".format(parsed.unk_12))
-        newWidget.add_row("Unk @16h", "0x{:08X}".format(parsed.unk_16))
+        newWidget.add_row("Color Cycles ID", "0x{:08X}".format(parsed.color_cycles_id))
         newWidget.add_row("# Buttons", "{}".format(parsed.num_buttons))
         newWidget.add_row("Buttons ID", "0x{:08X}".format(parsed.buttons_id))
         newWidget.add_row("Origin", "({}, {})".format(parsed.origin_x, parsed.origin_y))
