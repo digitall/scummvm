@@ -103,14 +103,31 @@ class MyTableWidget(QtGui.QTableWidget):
             valueItem.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             self.setItem(row_num, i, valueItem)
 
-_RES_TYPE_HANDLERS = {}
 
-def _register_res_handler(type):
+_BOLTLIB_FILE_SIZE_PLATFORMS = {
+    11724174: ("Labyrinth of Crete PC/Mac", "PC"),
+    8007558: ("Merlin's Apprentice CD-I", "CDI"),
+    }
+
+_RES_TYPE_HANDLERS = {
+    "PC": {},
+    "CDI": {},
+    }
+
+def _pc_res_handler(type):
     def decorate(cls):
-        _RES_TYPE_HANDLERS[type] = cls
+        _RES_TYPE_HANDLERS["PC"][type] = cls
+        return cls
     return decorate
 
-@_register_res_handler(1)
+def _cdi_res_handler(type):
+    def decorate(cls):
+        _RES_TYPE_HANDLERS["CDI"][type] = cls
+        return cls
+    return decorate
+
+@_pc_res_handler(1)
+@_cdi_res_handler(1)
 class _Values8BitHandler:
     name = "8-bit Values"
 
@@ -123,7 +140,7 @@ class _Values8BitHandler:
 
         container.addWidget(newWidget)
 
-@_register_res_handler(3)
+@_pc_res_handler(3)
 class _Values16BitHandler:
     name = "16-bit Values"
 
@@ -136,7 +153,8 @@ class _Values16BitHandler:
 
         container.addWidget(newWidget)
 
-@_register_res_handler(6)
+@_pc_res_handler(6)
+@_cdi_res_handler(6)
 class _ResourceListHandler:
     name = "Resource List"
 
@@ -149,11 +167,12 @@ class _ResourceListHandler:
 
         container.addWidget(newWidget)
 
-@_register_res_handler(7)
-class _SoundHandler:
+@_pc_res_handler(7)
+class _PcSoundHandler:
     name = "Sound"
 
-@_register_res_handler(8)
+@_pc_res_handler(8)
+@_cdi_res_handler(8)
 class _ImageHandler:
     name = "Image"
 
@@ -209,7 +228,8 @@ class _PaletteWidget(QtGui.QWidget):
             item.setPalette(item_palette)
             layout.addWidget(item, row, col)
 
-@_register_res_handler(10)
+@_pc_res_handler(10)
+@_cdi_res_handler(10)
 class _PaletteHandler:
     name = "Palette"
 
@@ -238,7 +258,8 @@ _ColorCyclesStruct = Struct("_ColorCyclesStruct",
     Array(4, UBInt32("slot_ids")),
     )
 
-@_register_res_handler(11)
+@_pc_res_handler(11)
+@_cdi_res_handler(11)
 class _ColorCyclesHandler:
     name = "Color Cycles"
 
@@ -260,7 +281,8 @@ _ColorCycleSlotStruct = Struct("_ColorCycleSlotStruct",
     UBInt16("unk_4"),
     )
 
-@_register_res_handler(12)
+@_pc_res_handler(12)
+@_cdi_res_handler(12)
 class _ColorCycleSlotHandler:
     name = "Color Cycle Slot"
 
@@ -274,6 +296,10 @@ class _ColorCycleSlotHandler:
 
         container.addWidget(new_widget)
 
+@_cdi_res_handler(19)
+class _CdiSoundHandler:
+    name = "Sound"
+
 _PlaneStruct = Struct("_PlaneStruct",
     UBInt32("image_id"),
     UBInt32("palette_id"),
@@ -281,7 +307,8 @@ _PlaneStruct = Struct("_PlaneStruct",
     UBInt32("unk_c"),
     )
 
-@_register_res_handler(26)
+@_pc_res_handler(26)
+@_cdi_res_handler(27)
 class _PlaneHandler:
     name = "Plane"
 
@@ -303,7 +330,8 @@ _SpriteStruct = Struct("_SpriteStruct",
     )
 
 # Ex: 370E
-@_register_res_handler(27)
+@_pc_res_handler(27)
+@_cdi_res_handler(28)
 class _SpritesHandler:
     name = "Sprites"
 
@@ -319,7 +347,8 @@ class _SpritesHandler:
 
         container.addWidget(newWidget)
 
-@_register_res_handler(28)
+@_pc_res_handler(28)
+@_cdi_res_handler(29)
 class _ColorsHandler:
     name = "Colors"
 
@@ -333,7 +362,8 @@ _PaletteModStruct = Struct("_ButtonPaletteModStruct",
     UBInt32("colors_id"),
     )
 
-@_register_res_handler(29)
+@_pc_res_handler(29)
+@_cdi_res_handler(30)
 class _PaletteModHandler:
     name = "Palette Mod"
 
@@ -362,7 +392,8 @@ _ButtonGraphicsStruct = Struct("_ButtonGraphicsStruct",
     )
 
 # Ex: 69B5
-@_register_res_handler(30)
+@_pc_res_handler(30)
+@_cdi_res_handler(31)
 class _ButtonGraphicsHandler:
     name = "Button Graphics"
 
@@ -398,7 +429,8 @@ _ButtonStruct = Struct("_ButtonStruct",
     )
 
 # Ex: 312D
-@_register_res_handler(31)
+@_pc_res_handler(31)
+@_cdi_res_handler(32)
 class _ButtonsHandler:
     name = "Buttons"
 
@@ -419,7 +451,7 @@ class _ButtonsHandler:
 
         container.addWidget(newWidget)
 
-_SceneStruct = Struct("_SceneStruct",
+_PcSceneStruct = Struct("_PcSceneStruct",
     UBInt32("fore_plane_id"), # 0
     UBInt32("back_plane_id"), # 4
     UBInt8("num_sprites"), # 8
@@ -435,14 +467,14 @@ _SceneStruct = Struct("_SceneStruct",
     )
 
 # Ex: 3A0B
-@_register_res_handler(32)
+@_pc_res_handler(32)
 class _SceneHandler:
     name = "Scene"
 
     def open(res, container, app):
         newWidget = MyTableWidget("Value")
 
-        parsed = _SceneStruct.parse(res.data)
+        parsed = _PcSceneStruct.parse(res.data)
         newWidget.add_row("Fore Plane ID", "0x{:08X}".format(parsed.fore_plane_id))
         newWidget.add_row("Back Plane ID", "0x{:08X}".format(parsed.back_plane_id))
         newWidget.add_row("# Sprites", "0x{:02X}".format(parsed.num_sprites))
@@ -456,6 +488,39 @@ class _SceneHandler:
         newWidget.add_row("Origin", "({}, {})".format(parsed.origin_x, parsed.origin_y))
 
         container.addWidget(newWidget)
+        
+_CdiSceneStruct = Struct("_CdiSceneStruct",
+    UBInt32("fore_plane_id"), # 0
+    UBInt32("back_plane_id"), # 4
+    UBInt8("num_sprites"), # 8
+    UBInt8("unk_9"), # 8
+    UBInt32("sprites_id"), # A
+    UBInt32("unk_e"), # E
+    UBInt32("unk_12"), # 12
+    UBInt32("color_cycles_id"), # 16
+    UBInt16("num_buttons"), # 1A
+    UBInt32("buttons_id"), # 1C
+    )
+@_cdi_res_handler(33)
+class _CdiSceneHandler:
+    name = "Scene"
+    
+    def open(res, container, app):
+        newWidget = MyTableWidget("Value")
+
+        parsed = _CdiSceneStruct.parse(res.data)
+        newWidget.add_row("Fore Plane ID", "0x{:08X}".format(parsed.fore_plane_id))
+        newWidget.add_row("Back Plane ID", "0x{:08X}".format(parsed.back_plane_id))
+        newWidget.add_row("# Sprites", "0x{:02X}".format(parsed.num_sprites))
+        newWidget.add_row("Unk @9", "0x{:02X}".format(parsed.unk_9))
+        newWidget.add_row("Sprites ID", "0x{:08X}".format(parsed.sprites_id))
+        newWidget.add_row("Unk @Eh", "0x{:08X}".format(parsed.unk_e))
+        newWidget.add_row("Unk @12h", "0x{:08X}".format(parsed.unk_12))
+        newWidget.add_row("Color Cycles ID", "0x{:08X}".format(parsed.color_cycles_id))
+        newWidget.add_row("# Buttons", "{}".format(parsed.num_buttons))
+        newWidget.add_row("Buttons ID", "0x{:08X}".format(parsed.buttons_id))
+
+        container.addWidget(newWidget)
 
 _MainMenuStruct = Struct("_MainMenuStruct",
     UBInt32("scene_id"),
@@ -464,7 +529,7 @@ _MainMenuStruct = Struct("_MainMenuStruct",
     )
 
 # Ex: 0118
-@_register_res_handler(33)
+@_pc_res_handler(33)
 class _MainMenuHandler:
     name = "Main Menu"
 
@@ -497,7 +562,7 @@ _FileMenuStruct = Struct("_FileMenuStruct",
     )
 
 # Ex: 02A0
-@_register_res_handler(34)
+@_pc_res_handler(34)
 class _FileMenuHandler:
     name = "File Menu"
     
@@ -533,7 +598,7 @@ _DifficultyMenuStruct = Struct("_DifficultyMenuStruct",
     )
 
 # Ex: 006E
-@_register_res_handler(35)
+@_pc_res_handler(35)
 class _DifficultyMenuHandler:
     name = "Difficulty Menu"
 
@@ -568,7 +633,7 @@ _PotionPuzzleStruct = Struct("_PotionPuzzleStruct",
     )
 
 # Ex: 9C0E
-@_register_res_handler(59)
+@_pc_res_handler(59)
 class _PotionPuzzleHandler:
     name = "Potion Puzzle"
 
@@ -597,17 +662,17 @@ class _PotionPuzzleHandler:
         container.addWidget(newWidget)
 
 # Ex: 9C0A
-@_register_res_handler(60)
+@_pc_res_handler(60)
 class _PotionIngredientSlotHandler:
     name = "Potion Ingredient Slot"
 
 # Ex: 9B23
-@_register_res_handler(61)
+@_pc_res_handler(61)
 class _PotionIngredientsHandler:
     name = "Potion Ingredients"
 
 # Ex: 9B22
-@_register_res_handler(62)
+@_pc_res_handler(62)
 class _PotionComboListHandler:
     name = "Potion Combo List"
 
@@ -631,7 +696,7 @@ _PotionComboStruct = Struct("_PotionComboStruct",
     )
 
 # Ex: 9B17
-@_register_res_handler(63)
+@_pc_res_handler(63)
 class _PotionCombosHandler:
     name = "Potion Combos"
 
@@ -737,10 +802,30 @@ class BltViewer:
             self._load_resource(res_id)
 
     def _load_blt_file(self, in_file):
+
+        # Clean up widgets
+        self.tree.clear()
+        self.content.removeWidget(self.content.currentWidget())
+
+        # Open file
         print("Opening BLT file...")
         self.blt_file = BltFile(in_file)
 
-        self.tree.clear()
+        # Detect platform by file size
+        if self.blt_file.file_size in _BOLTLIB_FILE_SIZE_PLATFORMS:
+            game_name, self.platform = _BOLTLIB_FILE_SIZE_PLATFORMS[self.blt_file.file_size]
+            self.content.addWidget(QtGui.QLabel(
+                "Detected game: {}\n"
+                "Please double-click on a resource.".format(game_name)
+                ))
+        else:
+            self.content.addWidget(QtGui.QLabel(
+                "Detected unknown game (file size: {} bytes). Assuming PC platform.\n"
+                "Please double-click on a resource.".format(self.blt_file.file_size)
+                ))
+            self.platform = "PC"
+
+        # Build resource tree
         for dir in self.blt_file.dir_table:
             dir_item = QtGui.QTreeWidgetItem()
             dir_item.setText(0, dir.name)
@@ -748,7 +833,7 @@ class BltViewer:
             for res in dir.res_table:
                 res_item = QtGui.QTreeWidgetItem()
                 res_item.setText(0, res.name)
-                handler = _RES_TYPE_HANDLERS.get(res.type)
+                handler = _RES_TYPE_HANDLERS[self.platform].get(res.type)
                 if handler:
                     res_item.setText(1, "{} ({})".format(handler.name, res.type))
                 else:
@@ -761,21 +846,24 @@ class BltViewer:
 
             self.tree.addTopLevelItem(dir_item)
 
-        self.content.removeWidget(self.content.currentWidget())
-        self.content.addWidget(QtGui.QLabel("Please double-click on a resource"))
-
     def _load_resource(self, res_id):
+
+        # Clean up widgets
         self.content.removeWidget(self.content.currentWidget())
 
         tabWidget = QtGui.QTabWidget()
 
+        # Load resource
         res = self.blt_file.load_resource(res_id)
-        handler = _RES_TYPE_HANDLERS.get(res.type)
+
+        # Create Resource tab via handler if available
+        handler = _RES_TYPE_HANDLERS[self.platform].get(res.type)
         if handler and hasattr(handler, "open"):
             resTab = QtGui.QStackedWidget()
             handler.open(res, resTab, self)
             tabWidget.addTab(resTab, "Resource")
 
+        # Create Hex tab
         hexViewerTab = QtGui.QStackedWidget()
         _open_hex_viewer(res, hexViewerTab, self)
         tabWidget.addTab(hexViewerTab, "Hex")

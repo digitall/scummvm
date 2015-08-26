@@ -1,4 +1,4 @@
-
+﻿
 # ScummVM - Graphic Adventure Engine
 #
 # ScummVM is the legal property of its developers, whose names
@@ -103,8 +103,8 @@ class BltFile:
         num_dirs = in_file.read(1)[0]
         print("Number of directories: {}".format(num_dirs))
 
-        file_size = struct.unpack('>I', in_file.read(4))[0]
-        if file_size != _get_file_size(in_file):
+        self.file_size = struct.unpack('>I', in_file.read(4))[0]
+        if self.file_size != _get_file_size(in_file):
             raise ValueError("Invalid file size field")
 
         self.dir_table = [None] * num_dirs
