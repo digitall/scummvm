@@ -58,7 +58,7 @@ void Movie::init(BoltEngine *engine, PfFile *pfFile, uint32 name) {
 	_timelineActive = true;
 
 	// FIXME: Use a timer that pauses when game is inactive
-	_curFrameTimeMs = engine->_system->getMillis();
+	_curFrameTimeMs = engine->getTotalPlayTime();
 	_curFrameNum = 0;
 
 	// Load timeline (it should be the first packet)
@@ -121,9 +121,7 @@ bool Movie::process() {
 	fillAudioQueue();
 
 	if (_timelineActive) {
-		// FIXME: Don't use getMillis; use a timer that pauses when you open
-		// the global menu.
-		uint32 curTime = _engine->_system->getMillis();
+		uint32 curTime = _engine->getTotalPlayTime();
 		uint32 timeDelta = curTime - _curFrameTimeMs;
 		if (timeDelta >= _framePeriod) {
 			_curFrameTimeMs += _framePeriod;
