@@ -325,7 +325,9 @@ void Movie::advanceTimeline() {
 			_timelineCursor += TimelineCommand::SIZE + getTimelineCmdParamSize(cmd.opcode);
 			++_curTimelineCmd;
 			if (_curTimelineCmd >= _numTimelineCmds) {
-				_engine->_graphics.present();
+				// TODO: Guarantee start of audio coincides with first frame of
+				// movie.
+				_engine->scheduleDisplayUpdate();
 				ensureAudioStarted();
 				_timelineActive = false;
 				done = true;
@@ -336,7 +338,7 @@ void Movie::advanceTimeline() {
 		}
 		else if ((_curFrameNum - _lastTimelineCmdFrameNum) < cmd.delay) {
 			// Delay occurs BEFORE command.
-			_engine->_graphics.present();
+			_engine->scheduleDisplayUpdate();
 			ensureAudioStarted();
 			done = true;
 		}

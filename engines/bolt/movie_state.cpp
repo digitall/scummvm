@@ -38,11 +38,11 @@ void MovieState::process(const Common::Event &event) {
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
 		// Clicked, stop movie
 		_movie.stop();
-		_engine->endCard();
+		_engine->scheduleAdvanceSequence();
 	}
 	else if (!_movie.process()) {
 		// Movie done
-		_engine->endCard();
+		_engine->scheduleAdvanceSequence();
 	}
 }
 

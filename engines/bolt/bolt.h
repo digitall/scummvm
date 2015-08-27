@@ -112,10 +112,13 @@ private:
 	StatePtr _state;
 
 	void scheduleDisplayUpdate();
+	void scheduleResetSequence();
+	void scheduleAdvanceSequence();
+
+	bool _resetScheduled;
+	bool _advanceScheduled;
 
 	void initCursor();
-	void resetSequence();
-	void endCard();
 
 	typedef void (*SequenceFunc)(BoltEngine *self);
 

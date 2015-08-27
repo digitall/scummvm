@@ -69,11 +69,16 @@ Common::Error BoltEngine::run() {
 	initCursor();
 
 	// Start game
-	resetSequence();
+	_resetScheduled = false;
+	_advanceScheduled = false;
+	_sequenceCursor = 0;
+	SEQUENCE[_sequenceCursor].func(this);
 
 	// Main loop
 	while (!shouldQuit()) {
 
+		// TODO: Instead of polling for events constantly, design a function
+		// to sleep until event or time-delay occurs.
 		Common::Event event;
 		if (_eventMan->pollEvent(event)) {
 			// process event
@@ -91,6 +96,19 @@ Common::Error BoltEngine::run() {
 			_state->process(event);
 		}
 
+		if (_resetScheduled) {
+			_resetScheduled = false;
+			_sequenceCursor = 0;
+			SEQUENCE[_sequenceCursor].func(this);
+		}
+
+		// Use while loop to allow multiple advances before game proceeds
+		while (_advanceScheduled) {
+			_advanceScheduled = false;
+			_sequenceCursor = (_sequenceCursor + 1) % SEQUENCE_SIZE; // restart at end
+			SEQUENCE[_sequenceCursor].func(this);
+		}
+
 		if (_displayDirty) {
 			_graphics.present();
 			_displayDirty = false;
@@ -102,6 +120,14 @@ Common::Error BoltEngine::run() {
 
 void BoltEngine::scheduleDisplayUpdate() {
 	_displayDirty = true;
+}
+
+void BoltEngine::scheduleAdvanceSequence() {
+	_advanceScheduled = true;
+}
+
+void BoltEngine::scheduleResetSequence() {
+	_resetScheduled = true;
 }
 
 void BoltEngine::initCursor() {
@@ -126,16 +152,6 @@ void BoltEngine::initCursor() {
 	_system->setCursorPalette(kCursorPalette, 0, 2);
 
 	_system->showMouse(true);
-}
-
-void BoltEngine::resetSequence() {
-	_sequenceCursor = 0;
-	SEQUENCE[_sequenceCursor].func(this);
-}
-
-void BoltEngine::endCard() {
-	_sequenceCursor = (_sequenceCursor + 1) % SEQUENCE_SIZE; // restart at end
-	SEQUENCE[_sequenceCursor].func(this);
 }
 
 const BoltEngine::SequenceEntry
@@ -257,11 +273,11 @@ void BoltEngine::PlotWarningFunc(BoltEngine *self) {
 
 	if (result == GUI::kMessageOK) {
 		// Continue
-		self->endCard();
+		self->scheduleAdvanceSequence();
 	}
 	else {
 		// Reset
-		self->resetSequence();
+		self->scheduleResetSequence();
 	}
 }
 
