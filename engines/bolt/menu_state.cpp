@@ -43,7 +43,7 @@ void MenuState::process(const Common::Event &event) {
 	// XXX: on click, leave menu
 	// TODO: process buttons
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
-		_engine->endCard();
+		_engine->scheduleAdvanceSequence();
 	}
 }
 
