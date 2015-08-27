@@ -247,21 +247,19 @@ void Scene::enter() {
 	}
 
 	// Reset color cycles
-	// FIXME: Use a timer that pauses when game is inactive
-	uint32 enterTime = _engine->_system->getMillis();
+	uint32 enterTime = _engine->getTotalPlayTime();
 	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
 		_colorCycles[i].curTime = enterTime;
 	}
 
 	process();
 
-	_engine->_displayDirty = true;
+	_engine->scheduleDisplayUpdate();
 }
 
 void Scene::process() {
 
-	// FIXME: Use a timer that pauses when game is inactive
-	uint32 curTime = _engine->_system->getMillis();
+	uint32 curTime = _engine->getTotalPlayTime();
 
 	// Update color cycles
 	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
@@ -303,7 +301,7 @@ void Scene::process() {
 		}
 	}
 
-	_engine->_displayDirty = true;
+	_engine->scheduleDisplayUpdate();
 }
 
 void Scene::loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId) {

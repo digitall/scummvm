@@ -48,7 +48,6 @@ bool BoltEngine::hasFeature(EngineFeature f) const {
 Common::Error BoltEngine::run() {
 
 	_graphics.init(_system);
-	_displayDirty = true;
 
 	// Load BOLTLIB.BLT file
 	if (!_boltlibBltFile.init("BOLTLIB.BLT")) {
@@ -74,12 +73,13 @@ Common::Error BoltEngine::run() {
 
 	// Main loop
 	while (!shouldQuit()) {
+
 		Common::Event event;
 		if (_eventMan->pollEvent(event)) {
 			// process event
 			if (event.type == Common::EVENT_MOUSEMOVE) {
 				// Update cursor
-				_displayDirty = true;
+				scheduleDisplayUpdate();
 			}
 		}
 		else {
@@ -98,6 +98,10 @@ Common::Error BoltEngine::run() {
 	}
 
 	return Common::kNoError;
+}
+
+void BoltEngine::scheduleDisplayUpdate() {
+	_displayDirty = true;
 }
 
 void BoltEngine::initCursor() {

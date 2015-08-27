@@ -111,6 +111,8 @@ private:
 	typedef Common::ScopedPtr<State> StatePtr;
 	StatePtr _state;
 
+	void scheduleDisplayUpdate();
+
 	void initCursor();
 	void resetSequence();
 	void endCard();
