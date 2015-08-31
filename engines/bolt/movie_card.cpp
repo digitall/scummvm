@@ -20,7 +20,7 @@
  *
  */
 
-#include "bolt/movie_state.h"
+#include "bolt/movie_card.h"
 
 #include "bolt/bolt.h"
 
@@ -29,12 +29,15 @@
 
 namespace Bolt {
 
-void MovieState::init(BoltEngine *engine, uint32 name) {
+void MovieCard::init(BoltEngine *engine, uint32 name) {
 	_engine = engine;
 	_movie.init(engine, &engine->_maPfFile, name);
 }
 
-void MovieState::process(const Common::Event &event) {
+void MovieCard::enter() {
+}
+
+void MovieCard::process(const Common::Event &event) {
 	if (event.type == Common::EVENT_LBUTTONDOWN) {
 		// Clicked, stop movie
 		_movie.stop();

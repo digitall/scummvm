@@ -20,7 +20,7 @@
  *
  */
 
-#include "bolt/menu_state.h"
+#include "bolt/menu_card.h"
 
 #include "common/events.h"
 #include "common/system.h"
@@ -30,13 +30,16 @@
 
 namespace Bolt {
 
-void MenuState::init(BoltEngine *engine, BltLongId menuId) {
+void MenuCard::init(BoltEngine *engine, BltLongId menuId) {
 	_engine = engine;
 	_scene.load(engine, &_engine->_boltlibBltFile, menuId);
+}
+
+void MenuCard::enter() {
 	_scene.enter();
 }
 
-void MenuState::process(const Common::Event &event) {
+void MenuCard::process(const Common::Event &event) {
 
 	_scene.process();
 

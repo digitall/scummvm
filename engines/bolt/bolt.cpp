@@ -28,8 +28,8 @@
 #include "graphics/palette.h"
 #include "gui/message.h"
 
-#include "bolt/menu_state.h"
-#include "bolt/movie_state.h"
+#include "bolt/menu_card.h"
+#include "bolt/movie_card.h"
 
 namespace Bolt {
 
@@ -91,9 +91,9 @@ Common::Error BoltEngine::run() {
 			event.type = Common::EVENT_INVALID;
 		}
 
-		// process game
-		if (_state) {
-			_state->process(event);
+		// process current card
+		if (_currentCard) {
+			_currentCard->process(event);
 		}
 
 		if (_resetScheduled) {
@@ -245,10 +245,12 @@ BoltEngine::MERLIN_SEQUENCE_SIZE;
 
 void BoltEngine::PlayMovieFunc(BoltEngine *self) {
 	uint32 param = SEQUENCE[self->_sequenceCursor].param;
-	self->_state.reset();
-	MovieState* movieState = new MovieState;
-	movieState->init(self, param);
-	self->_state.reset(movieState);
+	self->_currentCard.reset();
+	MovieCard* movieCard = new MovieCard;
+	movieCard->init(self, param);
+	self->_currentCard.reset(movieCard);
+
+	movieCard->enter();
 }
 
 void BoltEngine::MainMenuFunc(BoltEngine *self) {
@@ -302,10 +304,12 @@ void BoltEngine::startMainMenu(BltShortId mainMenuId) {
 }
 
 void BoltEngine::startMenu(BltLongId menuId) {
-	_state.reset();
-	MenuState* menuState = new MenuState;
-	menuState->init(this, menuId);
-	_state.reset(menuState);
+	_currentCard.reset();
+	MenuCard* menuCard = new MenuCard;
+	menuCard->init(this, menuId);
+	_currentCard.reset(menuCard);
+
+	menuCard->enter();
 }
 
 } // End of namespace Bolt
