@@ -6,9 +6,9 @@ MODULE_OBJS := \
 	detection.o \
 	graphics.o \
 	image.o \
-	menu_state.o \
+	menu_card.o \
 	movie.o \
-	movie_state.o \
+	movie_card.o \
 	pf_file.o \
 	scene.o
 

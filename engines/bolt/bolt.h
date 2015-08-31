@@ -74,22 +74,20 @@ struct Rect {
 	int16 bottom;
 };
 
-class State {
+class Card {
 public:
-	virtual ~State() { }
+	virtual ~Card() { }
 
-	// BEWARE when changing engine state within process! State may be destroyed!
-	// TODO: Design better system, perhaps a "changeStateLater" function on the
-	// engine, or a return code for process.
+	virtual void enter() = 0;
 	virtual void process(const Common::Event &event) = 0;
 
 protected:
-	State() { }
+	Card() { }
 };
 
 class BoltEngine : public Engine {
-	friend class MenuState;
-	friend class MovieState;
+	friend class MenuCard;
+	friend class MovieCard;
 	friend class Movie;
 	friend class Scene;
 public:
@@ -108,8 +106,8 @@ private:
 	PfFile _maPfFile;
 	BltImage _cursorImage;
 
-	typedef Common::ScopedPtr<State> StatePtr;
-	StatePtr _state;
+	typedef Common::ScopedPtr<Card> CardPtr;
+	CardPtr _currentCard;
 
 	void scheduleDisplayUpdate();
 	void scheduleResetSequence();
