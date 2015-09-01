@@ -39,13 +39,13 @@ void MenuCard::enter() {
 	_scene.enter();
 }
 
-void MenuCard::process(const Common::Event &event) {
+void MenuCard::process(const BoltEvent &event) {
 
 	_scene.process();
 
 	// XXX: on click, leave menu
 	// TODO: process buttons
-	if (event.type == Common::EVENT_LBUTTONDOWN) {
+	if (event.type == BoltEvent::Click) {
 		_engine->scheduleAdvanceSequence();
 	}
 }

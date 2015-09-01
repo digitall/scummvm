@@ -74,12 +74,28 @@ struct Rect {
 	int16 bottom;
 };
 
+struct BoltEvent {
+	enum Type {
+		Invalid,
+		Hover,
+		Click,
+		Tick,
+		// TODO: Timer, AudioEnded
+	};
+
+	BoltEvent() : type(Invalid) { }
+
+	Type type;
+	uint32 time;
+	Common::Point point;
+};
+
 class Card {
 public:
 	virtual ~Card() { }
 
 	virtual void enter() = 0;
-	virtual void process(const Common::Event &event) = 0;
+	virtual void process(const BoltEvent &event) = 0;
 
 protected:
 	Card() { }
@@ -108,6 +124,9 @@ private:
 
 	typedef Common::ScopedPtr<Card> CardPtr;
 	CardPtr _currentCard;
+
+	void processEvent(const BoltEvent &event);
+	uint32 _eventTime; // time of current or last received event
 
 	void scheduleDisplayUpdate();
 	void scheduleResetSequence();

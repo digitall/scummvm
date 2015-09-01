@@ -69,6 +69,7 @@ Common::Error BoltEngine::run() {
 	initCursor();
 
 	// Start game
+	_eventTime = getTotalPlayTime();
 	_resetScheduled = false;
 	_advanceScheduled = false;
 	_sequenceCursor = 0;
@@ -77,61 +78,91 @@ Common::Error BoltEngine::run() {
 	// Main loop
 	while (!shouldQuit()) {
 
-		// TODO: Instead of polling for events constantly, design a function
-		// to sleep until event or time-delay occurs.
+		_eventTime = getTotalPlayTime();
+
+		// TODO: Instead of constantly polling for events in a loop, design a
+		// function to sleep until event or time-delay occurs. This will make
+		// the game more power-efficient.
 		Common::Event event;
-		if (_eventMan->pollEvent(event)) {
-			// process event
-			if (event.type == Common::EVENT_MOUSEMOVE) {
-				// Update cursor
-				scheduleDisplayUpdate();
-			}
-		}
-		else {
+		if (!_eventMan->pollEvent(event)) {
 			event.type = Common::EVENT_INVALID;
 		}
 
-		// process current card
-		if (_currentCard) {
-			_currentCard->process(event);
+		if (event.type == Common::EVENT_MOUSEMOVE) {
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::Hover;
+			boltEvent.time = _eventTime;
+			boltEvent.point = event.mouse;
+			processEvent(boltEvent);
+		}
+		else if (event.type == Common::EVENT_LBUTTONDOWN) {
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::Click;
+			boltEvent.time = _eventTime;
+			boltEvent.point = event.mouse;
+			processEvent(boltEvent);
+		}
+		else {
+			// Emit "tick" event
+			// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
+			// other stuff that can be reacted to instead of polled.
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::Tick;
+			boltEvent.time = _eventTime;
+			processEvent(boltEvent);
 		}
 
-		if (_resetScheduled) {
-			_resetScheduled = false;
-			_sequenceCursor = 0;
-			SEQUENCE[_sequenceCursor].func(this);
-		}
-
-		// Use while loop to allow multiple advances before game proceeds
-		while (_advanceScheduled) {
-			_advanceScheduled = false;
-			_sequenceCursor = (_sequenceCursor + 1) % SEQUENCE_SIZE; // restart at end
-			SEQUENCE[_sequenceCursor].func(this);
-		}
-
-		if (_displayDirty) {
-			_graphics.present();
-			_displayDirty = false;
-		}
 	}
 
 	return Common::kNoError;
+}
+
+void BoltEngine::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		// Update cursor
+		// TODO: Only update if cursor is visible (there is no way to query
+		// system for cursor visibility status)
+		scheduleDisplayUpdate();
+	}
+
+	// process current card
+	if (_currentCard) {
+		_currentCard->process(event);
+	}
+
+	if (_resetScheduled) {
+		_resetScheduled = false;
+		_sequenceCursor = 0;
+		SEQUENCE[_sequenceCursor].func(this);
+	}
+
+	// Use while loop to allow multiple advances before game proceeds
+	while (_advanceScheduled) {
+		_advanceScheduled = false;
+		_sequenceCursor = (_sequenceCursor + 1) % SEQUENCE_SIZE; // restart at end
+		SEQUENCE[_sequenceCursor].func(this);
+	}
+
+	if (_displayDirty) {
+		_graphics.present();
+		_displayDirty = false;
+	}
 }
 
 void BoltEngine::scheduleDisplayUpdate() {
 	_displayDirty = true;
 }
 
-void BoltEngine::scheduleAdvanceSequence() {
-	_advanceScheduled = true;
-}
-
 void BoltEngine::scheduleResetSequence() {
 	_resetScheduled = true;
 }
 
+void BoltEngine::scheduleAdvanceSequence() {
+	_advanceScheduled = true;
+}
+
 void BoltEngine::initCursor() {
-	static const uint16 kCursorImageId = 0x9D00;
+	static const uint16 kCursorImageId = 0x9D00; // FIXME: Merlin only, different for Crete
 	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 255, 255, 255 };
 
 	_cursorImage.init(&_boltlibBltFile, BltLongId(BltShortId(kCursorImageId)));
