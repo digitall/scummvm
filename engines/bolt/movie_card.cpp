@@ -37,8 +37,8 @@ void MovieCard::init(BoltEngine *engine, uint32 name) {
 void MovieCard::enter() {
 }
 
-void MovieCard::process(const Common::Event &event) {
-	if (event.type == Common::EVENT_LBUTTONDOWN) {
+void MovieCard::process(const BoltEvent &event) {
+	if (event.type == BoltEvent::Click) {
 		// Clicked, stop movie
 		_movie.stop();
 		_engine->scheduleAdvanceSequence();

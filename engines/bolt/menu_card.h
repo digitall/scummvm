@@ -39,7 +39,7 @@ public:
 	void init(BoltEngine *engine, BltLongId sceneId);
 
 	virtual void enter();
-	virtual void process(const Common::Event &event);
+	virtual void process(const BoltEvent &event);
 
 private:
 	BoltEngine *_engine;
