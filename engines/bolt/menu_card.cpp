@@ -40,13 +40,14 @@ void MenuCard::enter() {
 }
 
 void MenuCard::process(const BoltEvent &event) {
-
-	_scene.process();
-
-	// XXX: on click, leave menu
-	// TODO: process buttons
 	if (event.type == BoltEvent::Click) {
+		int buttonNum = _scene.getButtonAtPoint(event.point);
+		debug(3, "Clicked button %d", buttonNum);
+		// TODO: Take action depending on what button was pressed
 		_engine->scheduleAdvanceSequence();
+	}
+	else {
+		_scene.process();
 	}
 }
 
