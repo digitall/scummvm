@@ -192,6 +192,7 @@ BoltEngine::MERLIN_SEQUENCE[] = {
 	{ BoltEngine::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
 	{ BoltEngine::PlayMovieFunc, MKTAG('I', 'N', 'T', 'R') },
 	{ BoltEngine::MainMenuFunc, 0x0118 }, // main menu
+	{ BoltEngine::PlayMovieFunc, MKTAG('T', 'O', 'U', 'R') },
 	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', 'T') },
 	{ BoltEngine::MenuFunc, 0x027A }, // file select
 	{ BoltEngine::MenuFunc, 0x006B }, // difficulty select

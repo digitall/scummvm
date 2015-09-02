@@ -304,6 +304,16 @@ void Scene::process() {
 	_engine->scheduleDisplayUpdate();
 }
 
+int Scene::getButtonAtPoint(const Common::Point &pt) {
+	for (int i = 0; i < _buttons.size(); ++i) {
+		if (isButtonAtPoint(*_buttons[i], pt)) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
 void Scene::loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId) {
 	if (!planeId.isValid()) {
 		return;

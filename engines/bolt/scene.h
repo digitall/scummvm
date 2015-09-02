@@ -40,6 +40,9 @@ public:
 	void enter();
 	void process();
 
+	// Return number of button at point. Returns -1 if there is no button.
+	int getButtonAtPoint(const Common::Point &pt);
+
 private:
 	BoltEngine *_engine;
 
