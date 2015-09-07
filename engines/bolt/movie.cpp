@@ -116,6 +116,10 @@ bool Movie::isAudioRunning() const {
 		_engine->_mixer->isSoundHandleActive(_audioHandle);
 }
 
+bool Movie::isRunning() const {
+	return _engine && (_timelineActive || isAudioRunning());
+}
+
 bool Movie::process() {
 
 	fillAudioQueue();
@@ -130,7 +134,7 @@ bool Movie::process() {
 		}
 	}
 
-	return _timelineActive || isAudioRunning();
+	return isRunning();
 }
 
 void Movie::fillAudioQueue() {

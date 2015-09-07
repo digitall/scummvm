@@ -10,7 +10,6 @@ MODULE_OBJS := \
 	menu_card.o \
 	merlin.o \
 	movie.o \
-	movie_card.o \
 	pf_file.o \
 	scene.o
 

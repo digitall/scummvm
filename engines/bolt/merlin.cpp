@@ -27,7 +27,6 @@
 
 #include "bolt/bolt.h"
 #include "bolt/menu_card.h"
-#include "bolt/movie_card.h"
 
 namespace Bolt {
 
@@ -43,6 +42,7 @@ void MerlinEngine::init(BoltEngine *engine) {
 
 	// Load PF files
 	_maPfFile.load("MA.PF"); // TODO: error handling
+	_helpPfFile.load("HELP.PF");
 
 	// Load cursor
 	initCursor();
@@ -52,10 +52,30 @@ void MerlinEngine::init(BoltEngine *engine) {
 }
 
 void MerlinEngine::processEvent(const BoltEvent &event) {
-	if (_currentCard) {
+	// If a movie is playing, play it over anything else
+	if (_movie.isRunning()) {
+		// Click to stop movie
+		if (event.type == BoltEvent::Click) {
+			_movie.stop();
+		}
+		else {
+			_movie.process();
+		}
+		if (!_movie.isRunning()) {
+			// Re-enter current card
+			if (_currentCard) {
+				_currentCard->enter();
+			}
+		}
+	}
+	else if (_currentCard) {
+		// Process current card
 		if (_currentCard->processEvent(event) == Card::Ended) {
 			advanceSequence();
 		}
+	}
+	else {
+		advanceSequence();
 	}
 }
 
@@ -107,28 +127,73 @@ struct BltMainMenuInfo {
 	BltLongId hotspotPaletteId; // FIXME: correct?
 };
 
-void MerlinEngine::startMainMenu(BltLongId id) {
-	BltResource mainMenuRes(_boltlibBltFile.loadLongId(id, kBltMainMenu));
+class MerlinMainMenuCard : public MenuCard {
+public:
+	MerlinMainMenuCard();
+	void init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id);
+protected:
+	Status processButtonClick(int num);
+private:
+	MerlinEngine *_merlin;
+};
+
+MerlinMainMenuCard::MerlinMainMenuCard()
+	: _merlin(nullptr)
+{ }
+
+void MerlinMainMenuCard::init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id) {
+	_merlin = merlin;
+
+	BltResource mainMenuRes(bltFile.loadLongId(id, kBltMainMenu));
 	BltMainMenuInfo info(&mainMenuRes[0]);
-	startMenu(info.menuInfoId);
+	MenuCard::init(merlin->getBoltEngine(), bltFile, info.menuInfoId);
+}
+
+Card::Status MerlinMainMenuCard::processButtonClick(int num) {
+	switch (num) {
+	case -1: // No button
+		return None;
+	case 0: // Play
+		return Ended;
+	case 1: // Credits
+		_merlin->startMovie(_merlin->getMaPfFile(), MKTAG('C', 'R', 'D', 'T'));
+		return None;
+	case 4: // Tour
+		_merlin->startMovie(_merlin->getMaPfFile(), MKTAG('T', 'O', 'U', 'R'));
+		return None;
+	default:
+		warning("unknown main menu button %d", num);
+		return None;
+	}
+}
+
+void MerlinEngine::startMainMenu(BltLongId id) {
+	_currentCard.reset();
+
+	MerlinMainMenuCard* card = new MerlinMainMenuCard;
+	_currentCard.reset(card);
+	card->init(this, _boltlibBltFile, id);
+	card->enter();
 }
 
 void MerlinEngine::startMenu(BltLongId id) {
 	_currentCard.reset();
 
-	MenuCard* menuCard = new MenuCard;
+	GenericMenuCard* menuCard = new GenericMenuCard;
 	_currentCard.reset(menuCard);
 	menuCard->init(_engine, _boltlibBltFile, id);
 	menuCard->enter();
 }
 
+void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
+	_movie.stop();
+	_movie.init(_engine, pfFile, name);
+	_movie.process();
+}
+
 void MerlinEngine::PlayMovieFunc(MerlinEngine *self, uint32 param) {
 	self->_currentCard.reset();
-
-	MovieCard *movieCard = new MovieCard;
-	self->_currentCard.reset(movieCard);
-	movieCard->init(self->_engine, self->_maPfFile, param);
-	movieCard->enter();
+	self->startMovie(self->_maPfFile, param);
 }
 
 void MerlinEngine::MainMenuFunc(MerlinEngine *self, uint32 param) {
@@ -165,8 +230,6 @@ MerlinEngine::SEQUENCE[] = {
 	{ MerlinEngine::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
 	{ MerlinEngine::PlayMovieFunc, MKTAG('I', 'N', 'T', 'R') },
 	{ MerlinEngine::MainMenuFunc, 0x0118 }, // main menu
-	{ MerlinEngine::PlayMovieFunc, MKTAG('T', 'O', 'U', 'R') },
-	{ MerlinEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', 'T') },
 	{ MerlinEngine::MenuFunc, 0x027A }, // file select
 	{ MerlinEngine::MenuFunc, 0x006B }, // difficulty select
 

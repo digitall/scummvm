@@ -55,6 +55,7 @@ public:
 	void init(BoltEngine *engine, PfFile &pfFile, uint32 name);
 	void stop();
 
+	bool isRunning() const;
 	// Returns true if movie is running, false if movie is finished.
 	bool process();
 

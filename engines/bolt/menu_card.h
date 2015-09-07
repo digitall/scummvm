@@ -36,16 +36,22 @@ class BoltEngine;
 
 class MenuCard : public Card {
 public:
-	void init(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId);
-
 	virtual void enter();
 	virtual Status processEvent(const BoltEvent &event);
 
 protected:
-	virtual Status processButtonClick(int num);
+	void init(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId);
+	virtual Status processButtonClick(int num) = 0;
 
 	BoltEngine *_engine;
 	Scene _scene;
+};
+
+class GenericMenuCard : public MenuCard {
+public:
+	void init(BoltEngine *engine, BltFile &bltFile, BltLongId id);
+protected:
+	virtual Status processButtonClick(int num);
 };
 
 } // End of namespace Bolt
