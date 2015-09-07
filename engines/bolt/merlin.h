@@ -20,35 +20,51 @@
  *
  */
 
-#include "bolt/movie_card.h"
+#ifndef BOLT_MERLIN_H
+#define BOLT_MERLIN_H
 
 #include "bolt/bolt.h"
 
-#include "common/endian.h"
-#include "common/events.h"
-
 namespace Bolt {
 
-void MovieCard::init(BoltEngine *engine, PfFile &pfFile, uint32 name) {
-	_engine = engine;
-	_movie.init(engine, pfFile, name);
-}
+class MerlinEngine : public SubEngine {
+public:
+	MerlinEngine();
 
-void MovieCard::enter() {
-}
+	virtual void init(BoltEngine *engine);
+	virtual void processEvent(const BoltEvent &event);
 
-Card::Status MovieCard::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
-		// Clicked, stop movie
-		_movie.stop();
-		return Ended;
-	}
-	else if (!_movie.process()) {
-		// Movie done
-		return Ended;
-	}
+private:
+	void initCursor();
+	void resetSequence();
+	void advanceSequence();
+	void startMainMenu(BltLongId id);
+	void startMenu(BltLongId id);
 
-	return None;
-}
+	BoltEngine *_engine;
+
+	BltFile _boltlibBltFile;
+	PfFile _maPfFile;
+
+	CardPtr _currentCard;
+
+	int _sequenceCursor;
+
+	typedef void(*SequenceFunc)(MerlinEngine *self, uint32 param);
+	struct SequenceEntry {
+		SequenceFunc func;
+		uint32 param;
+	};
+
+	static void PlayMovieFunc(MerlinEngine *self, uint32 param);
+	static void MainMenuFunc(MerlinEngine *self, uint32 param);
+	static void MenuFunc(MerlinEngine *self, uint32 param);
+	static void PlotWarningFunc(MerlinEngine *self, uint32 param);
+
+	static const SequenceEntry SEQUENCE[];
+	static const size_t SEQUENCE_SIZE;
+};
 
 } // End of namespace Bolt
+
+#endif

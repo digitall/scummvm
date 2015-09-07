@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -47,10 +47,10 @@ Movie::~Movie() {
 	stopAudio();
 }
 
-void Movie::init(BoltEngine *engine, PfFile *pfFile, uint32 name) {
+void Movie::init(BoltEngine *engine, PfFile &pfFile, uint32 name) {
 
 	_engine = engine;
-	_file = pfFile->seekMovieAndGetFile(name);
+	_file = pfFile.seekMovieAndGetFile(name);
 
 	stop();
 
@@ -424,6 +424,7 @@ void Movie::runQueue4Control() {
 				byte numColors = _queue4Buf[paramsOffset];
 				// FIXME: first color or plane number?
 				byte firstColor = _queue4Buf[paramsOffset + 1];
+				debug(3, "Queue4 cmd: load fore palette num %d first %d", (int)numColors, (int)firstColor);
 				_engine->_graphics.getForePlane().setPalette(&_queue4Buf[paramsOffset + 2],
 					firstColor, numColors);
 

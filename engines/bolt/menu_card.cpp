@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -30,25 +30,31 @@
 
 namespace Bolt {
 
-void MenuCard::init(BoltEngine *engine, BltLongId menuId) {
+void MenuCard::init(BoltEngine *engine, BltFile &bltFile, BltLongId menuId) {
 	_engine = engine;
-	_scene.load(engine, &_engine->_boltlibBltFile, menuId);
+	_scene.load(engine, bltFile, menuId);
 }
 
 void MenuCard::enter() {
 	_scene.enter();
 }
 
-void MenuCard::process(const BoltEvent &event) {
+Card::Status MenuCard::processEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		debug(3, "Clicked button %d", buttonNum);
-		// TODO: Take action depending on what button was pressed
-		_engine->scheduleAdvanceSequence();
+		return processButtonClick(buttonNum);
 	}
 	else {
 		_scene.process();
 	}
+
+	return None;
+}
+
+Card::Status MenuCard::processButtonClick(int num) {
+	// Default behavior: Just end the card.
+	return Ended;
 }
 
 } // End of namespace Bolt

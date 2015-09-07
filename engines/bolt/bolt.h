@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -90,20 +90,31 @@ struct BoltEvent {
 	Common::Point point;
 };
 
+class BoltEngine;
+
 class Card {
 public:
+	enum Status {
+		Invalid,
+		None,
+		Ended,
+	};
+
 	virtual ~Card() { }
-
 	virtual void enter() = 0;
-	virtual void process(const BoltEvent &event) = 0;
+	virtual Status processEvent(const BoltEvent &event) = 0;
+};
 
-protected:
-	Card() { }
+typedef Common::ScopedPtr<Card> CardPtr;
+
+class SubEngine {
+public:
+	virtual ~SubEngine() { }
+	virtual void init(BoltEngine *engine) = 0;
+	virtual void processEvent(const BoltEvent &event) = 0;
 };
 
 class BoltEngine : public Engine {
-	friend class MenuCard;
-	friend class MovieCard;
 	friend class Movie;
 	friend class Scene;
 public:
@@ -115,56 +126,16 @@ protected:
 	virtual Common::Error run();
 
 private:
+	void processEvent(const BoltEvent &event);
+	void scheduleDisplayUpdate();
+
 	Graphics _graphics;
 	bool _displayDirty;
 
-	BltFile _boltlibBltFile;
-	PfFile _maPfFile;
-	BltImage _cursorImage;
-
-	typedef Common::ScopedPtr<Card> CardPtr;
-	CardPtr _currentCard;
-
-	void processEvent(const BoltEvent &event);
 	uint32 _eventTime; // time of current or last received event
 
-	void scheduleDisplayUpdate();
-	void scheduleResetSequence();
-	void scheduleAdvanceSequence();
-
-	bool _resetScheduled;
-	bool _advanceScheduled;
-
-	void initCursor();
-
-	typedef void (*SequenceFunc)(BoltEngine *self);
-
-	struct SequenceEntry {
-		SequenceFunc func;
-		uint32 param;
-	};
-
-	static const SequenceEntry MERLIN_SEQUENCE[];
-	static const size_t MERLIN_SEQUENCE_SIZE;
-	static const SequenceEntry LABYRINTH_SEQUENCE[];
-	static const size_t LABYRINTH_SEQUENCE_SIZE;
-
-	static const SequenceEntry *const SEQUENCE;
-	static const size_t SEQUENCE_SIZE;
-
-	static void PlayMovieFunc(BoltEngine *self);
-	static void MainMenuFunc(BoltEngine *self);
-	static void MenuFunc(BoltEngine *self);
-	static void PlotWarningFunc(BoltEngine *self);
-
-	int _sequenceCursor;
-
-	// Menus
-
-	void startMainMenu(BltShortId mainMenuId);
-	void startMenu(BltLongId menuId);
-
-	BltResource _mainMenuRes;
+	typedef Common::ScopedPtr<SubEngine> SubEnginePtr;
+	SubEnginePtr _subEngine;
 };
 
 } // End of namespace Bolt
