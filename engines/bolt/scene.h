@@ -36,7 +36,7 @@ class BoltEngine;
 
 class Scene {
 public:
-	void load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId);
+	void load(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId);
 	void enter();
 	void process();
 
@@ -74,7 +74,7 @@ private:
 	static const int NUM_COLOR_CYCLES = 4;
 	ColorCycle _colorCycles[NUM_COLOR_CYCLES];
 
-	void loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId);
+	void loadPlane(Plane &plane, BltFile &bltFile, BltLongId planeId);
 	Plane& getScenePlane(uint16 num);
 	const Plane& getScenePlane(uint16 num) const;
 	Bolt::Plane& getGraphicsPlane(uint16 num);
@@ -123,7 +123,7 @@ private:
 	typedef Common::SharedPtr<Button> ButtonPtr;
 	Common::Array<ButtonPtr> _buttons;
 
-	void loadButton(Button &button, BltFile *bltFile, const byte *src);
+	void loadButton(Button &button, BltFile &bltFile, const byte *src);
 
 	Common::Point _origin;
 

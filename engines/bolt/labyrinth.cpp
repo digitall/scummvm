@@ -20,35 +20,26 @@
  *
  */
 
-#include "bolt/movie_card.h"
-
 #include "bolt/bolt.h"
-
-#include "common/endian.h"
-#include "common/events.h"
 
 namespace Bolt {
 
-void MovieCard::init(BoltEngine *engine, PfFile &pfFile, uint32 name) {
-	_engine = engine;
-	_movie.init(engine, pfFile, name);
-}
+	// XXX: Labyrinth of Crete is not implemented.
+#if 0
 
-void MovieCard::enter() {
-}
+const BoltEngine::SequenceEntry
+BoltEngine::LABYRINTH_SEQUENCE[] = {
 
-Card::Status MovieCard::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
-		// Clicked, stop movie
-		_movie.stop();
-		return Ended;
-	}
-	else if (!_movie.process()) {
-		// Movie done
-		return Ended;
-	}
+	{ BoltEngine::PlayMovieFunc, MKTAG('B', 'M', 'P', 'R') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('P', 'L', 'O', 'G') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', '1') },
+	{ BoltEngine::PlayMovieFunc, MKTAG('C', 'R', 'D', '2') },
+};
 
-	return None;
-}
+const size_t BoltEngine::LABYRINTH_SEQUENCE_SIZE =
+	sizeof(BoltEngine::LABYRINTH_SEQUENCE) /
+	sizeof(BoltEngine::SequenceEntry);
+
+#endif
 
 } // End of namespace Bolt

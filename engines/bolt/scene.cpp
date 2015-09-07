@@ -150,11 +150,11 @@ struct BltColorCycles { // type 11
 	BltLongId slotIds[4];
 };
 
-void Scene::load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
+void Scene::load(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId)
 {
 	_engine = engine;
 
-	BltResource sceneInfoRes(bltFile->loadLongId(sceneId, kBltScene));
+	BltResource sceneInfoRes(bltFile.loadLongId(sceneId, kBltScene));
 	BltScene sceneInfo(&sceneInfoRes[0]);
 
 	_origin = sceneInfo.origin;
@@ -165,7 +165,7 @@ void Scene::load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 
 	// Load sprites
 	if (sceneInfo.spritesId.isValid()) {
-		BltResource spritesRes(bltFile->loadLongId(sceneInfo.spritesId, kBltSprites));
+		BltResource spritesRes(bltFile.loadLongId(sceneInfo.spritesId, kBltSprites));
 		_sprites.reserve(sceneInfo.numSprites);
 		for (byte i = 0; i < sceneInfo.numSprites; ++i) {
 			SpritePtr newSprite(new Sprite);
@@ -177,7 +177,7 @@ void Scene::load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 	}
 
 	// Load buttons
-	BltResource buttonsRes(bltFile->loadLongId(sceneInfo.buttonsId, kBltButtons));
+	BltResource buttonsRes(bltFile.loadLongId(sceneInfo.buttonsId, kBltButtons));
 	_buttons.reserve(sceneInfo.numButtons);
 	for (uint16 i = 0; i < sceneInfo.numButtons; ++i) {
 		ButtonPtr newButton(new Button);
@@ -190,15 +190,18 @@ void Scene::load(BoltEngine *engine, BltFile *bltFile, BltLongId sceneId)
 		_colorCycles[i] = ColorCycle();
 	}
 	if (sceneInfo.colorCyclesId.isValid()) {
-		BltResource cyclesRes(bltFile->loadLongId(sceneInfo.colorCyclesId, kBltColorCycles));
+		BltResource cyclesRes(bltFile.loadLongId(sceneInfo.colorCyclesId, kBltColorCycles));
 		BltColorCycles cyclesInfo(&cyclesRes[0]);
 		for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
 			if (cyclesInfo.slotIds[i].isValid()) {
 				if (cyclesInfo.numSlots[i] != 1) {
-					warning("Cycle slot does not have 1 palette region (%d)...", cyclesInfo.numSlots[i]);
+					warning("Cycle slot does not have one palette region (it has %d)...", cyclesInfo.numSlots[i]);
+				}
+				else if (cyclesInfo.numSlots[i] == 0) {
+					// No slots; skip
 				}
 				else {
-					BltResource cycleSlotRes(bltFile->loadLongId(cyclesInfo.slotIds[i], kBltColorCycleSlot));
+					BltResource cycleSlotRes(bltFile.loadLongId(cyclesInfo.slotIds[i], kBltColorCycleSlot));
 					BltColorCycleSlot cycleSlotInfo(&cycleSlotRes[0]);
 					_colorCycles[i].start = cycleSlotInfo.start;
 					_colorCycles[i].num = cycleSlotInfo.end - cycleSlotInfo.start + 1;
@@ -305,7 +308,7 @@ void Scene::process() {
 }
 
 int Scene::getButtonAtPoint(const Common::Point &pt) {
-	for (int i = 0; i < _buttons.size(); ++i) {
+	for (int i = 0; i < (int)_buttons.size(); ++i) {
 		if (isButtonAtPoint(*_buttons[i], pt)) {
 			return i;
 		}
@@ -314,15 +317,15 @@ int Scene::getButtonAtPoint(const Common::Point &pt) {
 	return -1;
 }
 
-void Scene::loadPlane(Plane &plane, BltFile *bltFile, BltLongId planeId) {
+void Scene::loadPlane(Plane &plane, BltFile &bltFile, BltLongId planeId) {
 	if (!planeId.isValid()) {
 		return;
 	}
 
-	BltResource planeRes(bltFile->loadLongId(planeId, kBltPlane));
+	BltResource planeRes(bltFile.loadLongId(planeId, kBltPlane));
 	BltPlane planeInfo(&planeRes[0]);
 	plane.image.init(bltFile, planeInfo.imageId);
-	plane.palette.reset(bltFile->loadLongId(planeInfo.paletteId, kBltPalette));
+	plane.palette.reset(bltFile.loadLongId(planeInfo.paletteId, kBltPalette));
 	plane.hotspots.init(bltFile, planeInfo.hotspotsId);
 }
 
@@ -338,7 +341,7 @@ Bolt::Plane& Scene::getGraphicsPlane(uint16 num) {
 	return num ? _engine->_graphics.getBackPlane() : _engine->_graphics.getForePlane();
 }
 
-void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
+void Scene::loadButton(Button &button, BltFile &bltFile, const byte *src) {
 	BltButton buttonInfo(&src[0]);
 	button.hotspotType = (Button::HotspotType)buttonInfo.type;
 	button.rect = buttonInfo.rect;
@@ -349,7 +352,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 	}
 
 	if (buttonInfo.graphicsId.isValid()) {
-		BltResource buttonGfxRes(bltFile->loadLongId(buttonInfo.graphicsId, kBltButtonGraphics));
+		BltResource buttonGfxRes(bltFile.loadLongId(buttonInfo.graphicsId, kBltButtonGraphics));
 		// FIXME: Some buttons have multiple graphics entries corresponding to
 		// different states of the button.
 		BltButtonGraphics buttonGfx(&buttonGfxRes[0]);
@@ -357,7 +360,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 		button.graphicsType = (Button::GraphicsType)buttonGfx.type;
 
 		if (buttonGfx.defaultId.isValid()) {
-			BltResource defaultRes(bltFile->loadLongId(buttonGfx.defaultId, kBltSprites));
+			BltResource defaultRes(bltFile.loadLongId(buttonGfx.defaultId, kBltSprites));
 			BltSprite defaultButtonImage(&defaultRes[0]);
 			button.defaultImagePos = defaultButtonImage.pos;
 			button.defaultImagePos.x -= _origin.x;
@@ -368,7 +371,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 		if (button.graphicsType == Button::kGfxImages) {
 			if (buttonGfx.hoveredId.isValid()) {
 				// TODO: Factor out repetitive code
-				BltResource hoveredRes(bltFile->loadLongId(buttonGfx.hoveredId, kBltSprites));
+				BltResource hoveredRes(bltFile.loadLongId(buttonGfx.hoveredId, kBltSprites));
 				BltSprite hoveredButtonImage(&hoveredRes[0]);
 				button.hoveredImagePos = hoveredButtonImage.pos;
 				button.hoveredImagePos.x -= _origin.x;
@@ -376,7 +379,7 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 				button.hoveredImage.init(bltFile, hoveredButtonImage.imageId);
 			}
 			if (buttonGfx.idleId.isValid()) {
-				BltResource idleRes(bltFile->loadLongId(buttonGfx.idleId, kBltSprites));
+				BltResource idleRes(bltFile.loadLongId(buttonGfx.idleId, kBltSprites));
 				BltSprite idleButtonImage(&idleRes[0]);
 				button.idleImagePos = idleButtonImage.pos;
 				button.idleImagePos.x -= _origin.x;
@@ -387,18 +390,18 @@ void Scene::loadButton(Button &button, BltFile *bltFile, const byte *src) {
 		else if (button.graphicsType == Button::kGfxPaletteMods) {
 			if (buttonGfx.hoveredId.isValid()) {
 				// TODO: Factor out repetitive code
-				BltResource hoveredRes(bltFile->loadLongId(buttonGfx.hoveredId, kBltButtonPaletteMod));
+				BltResource hoveredRes(bltFile.loadLongId(buttonGfx.hoveredId, kBltButtonPaletteMod));
 				BltButtonPaletteMod hoveredPalMod(&hoveredRes[0]);
 				button.hoveredPalStart = hoveredPalMod.start;
 				button.hoveredPalNum = hoveredPalMod.num;
-				button.hoveredColors.reset(bltFile->loadLongId(hoveredPalMod.colorsId, kBltButtonColors));
+				button.hoveredColors.reset(bltFile.loadLongId(hoveredPalMod.colorsId, kBltButtonColors));
 			}
 			if (buttonGfx.idleId.isValid()) {
-				BltResource idleRes(bltFile->loadLongId(buttonGfx.idleId, kBltButtonPaletteMod));
+				BltResource idleRes(bltFile.loadLongId(buttonGfx.idleId, kBltButtonPaletteMod));
 				BltButtonPaletteMod idlePalMod(&idleRes[0]);
 				button.idlePalStart = idlePalMod.start;
 				button.idlePalNum = idlePalMod.num;
-				button.idleColors.reset(bltFile->loadLongId(idlePalMod.colorsId, kBltButtonColors));
+				button.idleColors.reset(bltFile.loadLongId(idlePalMod.colorsId, kBltButtonColors));
 			}
 		}
 		else {

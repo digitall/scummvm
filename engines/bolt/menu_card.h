@@ -36,12 +36,14 @@ class BoltEngine;
 
 class MenuCard : public Card {
 public:
-	void init(BoltEngine *engine, BltLongId sceneId);
+	void init(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId);
 
 	virtual void enter();
-	virtual void process(const BoltEvent &event);
+	virtual Status processEvent(const BoltEvent &event);
 
-private:
+protected:
+	virtual Status processButtonClick(int num);
+
 	BoltEngine *_engine;
 	Scene _scene;
 };
