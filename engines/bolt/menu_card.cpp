@@ -52,8 +52,12 @@ Card::Status MenuCard::processEvent(const BoltEvent &event) {
 	return None;
 }
 
-Card::Status MenuCard::processButtonClick(int num) {
-	// Default behavior: Just end the card.
+void GenericMenuCard::init(BoltEngine *engine, BltFile &bltFile, BltLongId id) {
+	MenuCard::init(engine, bltFile, id);
+}
+
+Card::Status GenericMenuCard::processButtonClick(int num) {
+	// Generic behavior: Just end the card.
 	return Ended;
 }
 

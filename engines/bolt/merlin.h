@@ -24,6 +24,7 @@
 #define BOLT_MERLIN_H
 
 #include "bolt/bolt.h"
+#include "bolt/movie.h"
 
 namespace Bolt {
 
@@ -33,6 +34,12 @@ public:
 
 	virtual void init(BoltEngine *engine);
 	virtual void processEvent(const BoltEvent &event);
+
+	// Internal interface
+	BoltEngine* getBoltEngine() { return _engine; }
+	PfFile& getMaPfFile() { return _maPfFile; }
+	PfFile& getHelpPfFile() { return _helpPfFile; }
+	void startMovie(PfFile &pfFile, uint32 name);
 
 private:
 	void initCursor();
@@ -45,8 +52,10 @@ private:
 
 	BltFile _boltlibBltFile;
 	PfFile _maPfFile;
+	PfFile _helpPfFile;
 
 	CardPtr _currentCard;
+	Movie _movie;
 
 	int _sequenceCursor;
 
