@@ -146,7 +146,7 @@ void MerlinMainMenuCard::init(MerlinEngine *merlin, BltFile &bltFile, BltLongId 
 
 	BltResource mainMenuRes(bltFile.loadLongId(id, kBltMainMenu));
 	BltMainMenuInfo info(&mainMenuRes[0]);
-	MenuCard::init(merlin->getBoltEngine(), bltFile, info.menuInfoId);
+	MenuCard::init(merlin->_engine, bltFile, info.menuInfoId);
 }
 
 Card::Status MerlinMainMenuCard::processButtonClick(int num) {
@@ -156,10 +156,10 @@ Card::Status MerlinMainMenuCard::processButtonClick(int num) {
 	case 0: // Play
 		return Ended;
 	case 1: // Credits
-		_merlin->startMovie(_merlin->getMaPfFile(), MKTAG('C', 'R', 'D', 'T'));
+		_merlin->startMovie(_merlin->_maPfFile, MKTAG('C', 'R', 'D', 'T'));
 		return None;
 	case 4: // Tour
-		_merlin->startMovie(_merlin->getMaPfFile(), MKTAG('T', 'O', 'U', 'R'));
+		_merlin->startMovie(_merlin->_maPfFile, MKTAG('T', 'O', 'U', 'R'));
 		return None;
 	default:
 		warning("unknown main menu button %d", num);
@@ -187,7 +187,7 @@ void MerlinEngine::startMenu(BltLongId id) {
 
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
 	_movie.stop();
-	_movie.init(_engine, pfFile, name);
+	_movie.load(_engine, pfFile, name);
 	_movie.process();
 }
 

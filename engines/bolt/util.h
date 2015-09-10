@@ -23,6 +23,8 @@
 #ifndef BOLT_UTIL_H
 #define BOLT_UTIL_H
 
+#include "common/queue.h"
+
 namespace Bolt {
 
 template<class T>
@@ -30,7 +32,10 @@ class ScopedArray {
 public:
 	struct Movable
 	{
+		friend class ScopedArray;
+	public:
 		Movable() : data(nullptr), size(0) { }
+	private:
 		T* data;
 		uint size;
 	};
@@ -52,11 +57,13 @@ public:
 	}
 
 	void reset(Movable o = Movable()) {
-		delete[] _internal.data;
-		_internal = o;
+		if (o.data != _internal.data) {
+			delete[] _internal.data;
+			_internal = o;
+		}
 	}
 
-	void reset(uint size) {
+	void alloc(uint size) {
 		delete[] _internal.data;
 		_internal.data = new T[size];
 		_internal.size = size;
@@ -77,14 +84,49 @@ public:
 	}
 
 private:
-	// Prevent copying instances by accident
+	// Prevent accidentally copying a ScopedArray
 	// XXX: Class is made noncopyable here (instead of inheriting from
-	// Common::NonCopyable) because VS2015 C++ compiler emits unhelpful error
-	// messages in that case.
+	// Common::NonCopyable) because VS2015 emits very unhelpful error messages.
 	ScopedArray(const ScopedArray&);
 	ScopedArray& operator=(const ScopedArray&);
 
 	Movable _internal;
+};
+
+template<class T>
+class ScopedArrayQueue
+{
+public:
+	ScopedArrayQueue() { }
+	~ScopedArrayQueue() {
+		// Correctly delete all contents
+		while (!_queue.empty()) {
+			ScopedArray<T> item(_queue.pop());
+			item.reset();
+		}
+	}
+
+	bool empty() const {
+		return _queue.empty();
+	}
+
+	void clear() {
+		_queue.clear();
+	}
+
+	void push(typename ScopedArray<T>::Movable item) {
+		_queue.push(item);
+	}
+
+	typename ScopedArray<T>::Movable pop() {
+		return _queue.pop();
+	}
+
+private:
+	ScopedArrayQueue(const ScopedArrayQueue&);
+	ScopedArrayQueue& operator=(const ScopedArrayQueue&);
+
+	Common::Queue<typename ScopedArray<T>::Movable> _queue;
 };
 
 } // End of namespace Bolt

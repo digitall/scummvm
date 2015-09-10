@@ -180,11 +180,11 @@ BltResource::Movable BltFile::loadShortId(BltShortId id, uint32 expectType) {
 
 	// Load and decompress resource
 	BltResource ptr;
-	ptr.reset(res.size);
+	ptr.alloc(res.size);
 	if (res.compression == 0) {
 		// BOLT-LZ
 		ScopedArray<byte> buf;
-		buf.reset(dir.entry.compBufSize);
+		buf.alloc(dir.entry.compBufSize);
 		_file.seek(res.offset);
 		_file.read(&buf[0], dir.entry.compBufSize);
 		decompressBoltLZ(ptr, buf);

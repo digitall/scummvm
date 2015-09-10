@@ -47,7 +47,7 @@ Movie::~Movie() {
 	stopAudio();
 }
 
-void Movie::init(BoltEngine *engine, PfFile &pfFile, uint32 name) {
+void Movie::load(BoltEngine *engine, PfFile &pfFile, uint32 name) {
 
 	_engine = engine;
 	_file = pfFile.seekMovieAndGetFile(name);
@@ -623,7 +623,7 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 	if (!assembler.buf) {
 		// Begin buffer
 		assembler.totalSize = header.totalSize;
-		assembler.buf.reset(header.totalSize);
+		assembler.buf.alloc(header.totalSize);
 		assembler.cursor = 0;
 	}
 	else if (header.totalSize != assembler.totalSize) {

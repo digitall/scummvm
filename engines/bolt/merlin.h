@@ -29,17 +29,12 @@
 namespace Bolt {
 
 class MerlinEngine : public SubEngine {
+	friend class MerlinMainMenuCard;
 public:
 	MerlinEngine();
 
 	virtual void init(BoltEngine *engine);
 	virtual void processEvent(const BoltEvent &event);
-
-	// Internal interface
-	BoltEngine* getBoltEngine() { return _engine; }
-	PfFile& getMaPfFile() { return _maPfFile; }
-	PfFile& getHelpPfFile() { return _helpPfFile; }
-	void startMovie(PfFile &pfFile, uint32 name);
 
 private:
 	void initCursor();
@@ -47,6 +42,7 @@ private:
 	void advanceSequence();
 	void startMainMenu(BltLongId id);
 	void startMenu(BltLongId id);
+	void startMovie(PfFile &pfFile, uint32 name);
 
 	BoltEngine *_engine;
 

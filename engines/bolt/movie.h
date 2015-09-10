@@ -23,10 +23,6 @@
 #ifndef BOLT_MOVIE_H
 #define BOLT_MOVIE_H
 
-#include "common/array.h"
-#include "common/ptr.h"
-#include "common/queue.h"
-
 #include "audio/mixer.h"
 
 #include "bolt/util.h"
@@ -52,7 +48,7 @@ public:
 	Movie();
 	~Movie();
 
-	void init(BoltEngine *engine, PfFile &pfFile, uint32 name);
+	void load(BoltEngine *engine, PfFile &pfFile, uint32 name);
 	void stop();
 
 	bool isRunning() const;
@@ -67,19 +63,7 @@ private:
 	Common::File *_file;
 
 	typedef ScopedArray<byte> ScopedBuffer;
-
-	class BufferQueue : public Common::Queue<ScopedBuffer::Movable>
-	{
-	public:
-		~BufferQueue()
-		{
-			// Correctly delete all contents
-			while (!empty()) {
-				ScopedBuffer buf(pop());
-				buf.reset();
-			}
-		}
-	};
+	typedef ScopedArrayQueue<byte> ScopedBufferQueue;
 
 	void fillAudioQueue();
 	void ensureAudioStarted();
@@ -117,8 +101,8 @@ private:
 	BufferAssembler _videoBufAssembler;
 	BufferAssembler _auxVideoBufAssembler;
 
-	BufferQueue _timelineQueue;
-	BufferQueue _videoQueues[5];
+	ScopedBufferQueue _timelineQueue;
+	ScopedBufferQueue _videoQueues[5];
 
 	// TIMELINE
 
