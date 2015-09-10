@@ -30,7 +30,7 @@
 
 namespace Sherlock {
 
-#define GAME_FRAME_RATE 60
+#define GAME_FRAME_RATE 30
 #define GAME_FRAME_TIME (1000 / GAME_FRAME_RATE)
 
 enum CursorId { ARROW = 0, MAGNIFY = 1, WAIT = 2, EXIT_ZONES_START = 5, INVALID_CURSOR = -1 };
@@ -45,6 +45,8 @@ private:
 	ImageFile *_cursorImages;
 	int _mouseButtons;
 	Common::Point _mousePos;
+	int _waitCounter;
+	uint _frameRate;
 
 	/**
 	 * Check whether it's time to display the next screen frame
@@ -142,6 +144,11 @@ public:
 	Common::Point mousePos() const;
 
 	/**
+	 * Override the default frame rate
+	 */
+	void setFrameRate(int newRate);
+
+	/**
 	 * Return the current game frame number
 	 */
 	uint32 getFrameCounter() const { return _frameCounter; }
@@ -188,6 +195,16 @@ public:
 	 * Checks to see to see if a key or a mouse button is pressed.
 	 */
 	bool checkInput();
+
+	/**
+	 * Increment the wait counter
+	 */
+	void incWaitCounter();
+
+	/**
+	 * Decrement the wait counter
+	 */
+	void decWaitCounter();
 };
 
 } // End of namespace Sherlock

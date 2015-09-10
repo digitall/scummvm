@@ -486,8 +486,8 @@ void TattooPerson::setWalking() {
 	}
 
 	// See if the new walk sequence is the same as the old. If it's a new one,
-	// we need to reset the frame number to zero so it's animation starts at
-	// it's beginning. Otherwise, if it's the same sequence, we can leave it
+	// we need to reset the frame number to zero so its animation starts at
+	// its beginning. Otherwise, if it's the same sequence, we can leave it
 	// as is, so it keeps the animation going at wherever it was up to
 	if (_sequenceNumber != _oldWalkSequence) {
 		if (_seqTo) {
@@ -962,6 +962,11 @@ void TattooPerson::checkWalkGraphics() {
 		_seqTo = _seqCounter = _seqCounter2 = _seqStack = _startSeq = 0;
 		_sequences = &_walkSequences[_sequenceNumber]._sequences[0];
 		_seqSize = _walkSequences[_sequenceNumber]._sequences.size();
+
+		// WORKAROUND: Occassionally when switching to a new walk sequence the existing frame number may be outside
+		// the allowed range for the new sequence. In such cases, reset the frame number
+		if (_frameNumber < 0 || _frameNumber >= (int)_seqSize || _walkSequences[_sequenceNumber][_frameNumber] == 0)
+			_frameNumber = 0;
 	}
 
 	setImageFrame();
@@ -990,6 +995,8 @@ void TattooPerson::synchronize(Serializer &s) {
 	s.syncAsSint32LE(_npcPause);
 	s.syncAsByte(_lookHolmes);
 	s.syncAsByte(_updateNPCPath);
+	if (s.isLoading())
+		_npcIndex = 0;
 
 	// Verbs
 	for (int idx = 0; idx < 2; ++idx)
@@ -1004,6 +1011,9 @@ void TattooPerson::walkHolmesToNPC() {
 	Talk &talk = *_vm->_talk;
 	TattooPerson &holmes = people[HOLMES];
 	int facing;
+
+	// Save the character's details
+	pushNPCPath();
 
 	// If the NPC is moving, stop him at his current position
 	if (_walkCount) {
@@ -1273,8 +1283,7 @@ void TattooPeople::setTalkSequence(int speaker, int sequenceNum) {
 		if (obj.hasAborts()) {
 			talk.pushSequenceEntry(&obj);
 			obj._gotoSeq = sequenceNum;
-		}
-		else {
+		} else {
 			obj.setObjTalkSequence(sequenceNum);
 		}
 	} else if (objNum != -1) {
@@ -1478,7 +1487,7 @@ const Common::Point TattooPeople::restrictToZone(int zoneId, const Common::Point
 	else if (destPos.x < r.left && r.top < destPos.y && destPos.y < r.bottom)
 		return Common::Point(r.left, destPos.y);
 	else if (destPos.x > r.right && r.top < destPos.y && destPos.y < r.bottom)
-		return Common::Point(r.bottom, destPos.y);
+		return Common::Point(r.right, destPos.y);
 
 	// Find which corner of the zone the point is closet to
 	if (destPos.x <= r.left) {

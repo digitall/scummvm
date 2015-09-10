@@ -113,6 +113,7 @@ Talk::Talk(SherlockEngine *vm) : _vm(vm) {
 	_scriptSaveIndex = -1;
 	_opcodes = nullptr;
 	_opcodeTable = nullptr;
+	_3doSpeechIndex = -1;
 
 	_charCount = 0;
 	_line = 0;
@@ -126,7 +127,7 @@ Talk::Talk(SherlockEngine *vm) : _vm(vm) {
 	_talkHistory.resize(IS_ROSE_TATTOO ? 1500 : 500);
 }
 
-void Talk::talkTo(const Common::String &filename) {
+void Talk::talkTo(const Common::String filename) {
 	Events &events = *_vm->_events;
 	Inventory &inv = *_vm->_inventory;
 	Journal &journal = *_vm->_journal;
@@ -398,7 +399,6 @@ void Talk::talkTo(const Common::String &filename) {
 					if (_talkTo != -1 && !_talkHistory[_converseNum][select])
 						journal.record(_converseNum, select, true);
 					_talkHistory[_converseNum][select] = true;
-
 				}
 
 				ui._key = ui._oldKey = Scalpel::COMMANDS[TALK_MODE - 1];
@@ -438,12 +438,6 @@ void Talk::talkTo(const Common::String &filename) {
 	// If a script was added to the script stack, restore state so that the
 	// previous script can continue
 	popStack();
-
-	if (IS_SERRATED_SCALPEL && filename == "Tube59c") {
-		// WORKAROUND: Original game bug causes the results of testing the powdery substance
-		// to disappear too quickly. Introduce a delay to allow it to be properly displayed
-		ui._menuCounter = 30;
-	}
 
 	events.setCursor(ARROW);
 }
@@ -575,6 +569,8 @@ void Talk::loadTalkFile(const Common::String &filename) {
 	// Create the base of the sound filename used for talking in Rose Tattoo
 	if (IS_ROSE_TATTOO && _scriptMoreFlag != 1)
 		sound._talkSoundFile = Common::String(filename.c_str(), filename.c_str() + 7) + ".";
+	else if (IS_3DO)
+		_3doSpeechIndex = 1;
 
 	// Open the talk file for reading
 	Common::SeekableReadStream *talkStream = res.load(talkFile);
@@ -674,6 +670,7 @@ void Talk::doScript(const Common::String &script) {
 			Tattoo::TattooPerson &p = (*(Tattoo::TattooPeople *)_vm->_people)[idx];
 			p._savedNpcSequence = p._sequenceNumber;
 			p._savedNpcFrame = p._frameNumber;
+			p._resetNPCPath = true;
 		}
 	}
 
@@ -744,9 +741,6 @@ void Talk::doScript(const Common::String &script) {
 		}
 	}
 
-	bool  speakerSwitched = true;
-	uint16 subIndex = 1;
-
 	do {
 		Common::String tempString;
 		_wait = 0;
@@ -769,9 +763,6 @@ void Talk::doScript(const Common::String &script) {
 				break;
 			}
 
-			if (c == _opcodes[OP_SWITCH_SPEAKER])
-				speakerSwitched = true;
-
 			++str;
 		} else {
 			// Handle drawing the talk interface with the text
@@ -788,12 +779,6 @@ void Talk::doScript(const Common::String &script) {
 
 			ui._windowOpen = true;
 			_openTalkWindow = false;
-		}
-
-		if ((_wait) && (speakerSwitched)) {
-			switchSpeaker(subIndex);
-			speakerSwitched = false;
-			++subIndex;
 		}
 
 		if (_wait)
@@ -839,11 +824,12 @@ int Talk::waitForMore(int delay) {
 	}
 
 	// Handle playing any speech associated with the text being displayed
-	if (IS_ROSE_TATTOO && sound._speechOn) {
+	switchSpeaker();
+	if (sound._speechOn && IS_ROSE_TATTOO) {
 		sound.playSpeech(sound._talkSoundFile);
 		sound._talkSoundFile.setChar(sound._talkSoundFile.lastChar() + 1, sound._talkSoundFile.size() - 1);
-		playingSpeech = sound.isSpeechPlaying();
 	}
+	playingSpeech = sound.isSpeechPlaying();
 
 	do {
 		if (IS_SERRATED_SCALPEL && sound._speechOn && !sound.isSpeechPlaying())
@@ -1062,6 +1048,8 @@ OpcodeReturn Talk::cmdPauseWithoutControl(const byte *&str) {
 	Scene &scene = *_vm->_scene;
 	++str;
 
+	events.incWaitCounter();
+
 	for (int idx = 0; idx < (str[0] - 1); ++idx) {
 		scene.doBgAnim();
 		if (_talkToAbort)
@@ -1072,6 +1060,9 @@ OpcodeReturn Talk::cmdPauseWithoutControl(const byte *&str) {
 		events.setButtonState();
 	}
 
+	events.decWaitCounter();
+
+	_endStr = false;
 	return RET_SUCCESS;
 }
 
@@ -1098,7 +1089,9 @@ OpcodeReturn Talk::cmdRunCAnimation(const byte *&str) {
 		return RET_EXIT;
 
 	// Check if next character is changing side or changing portrait
-	if (_charCount && (str[1] == _opcodes[OP_SWITCH_SPEAKER] || str[1] == _opcodes[OP_ASSIGN_PORTRAIT_LOCATION]))
+	_wait = 0;
+	if (_charCount && (str[1] == _opcodes[OP_SWITCH_SPEAKER] ||
+			(IS_SERRATED_SCALPEL && str[1] == _opcodes[OP_ASSIGN_PORTRAIT_LOCATION])))
 		_wait = 1;
 
 	return RET_SUCCESS;

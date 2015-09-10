@@ -90,7 +90,7 @@ BaseObject::BaseObject() {
 bool BaseObject::hasAborts() const {
 	int seqNum = _talkSeq;
 
-	// See if the object is in it's regular sequence
+	// See if the object is in its regular sequence
 	bool startChecking = !seqNum || _type == CHARACTER;
 
 	uint idx = 0;
@@ -350,10 +350,10 @@ bool BaseObject::checkEndOfSequence() {
 	if (_type == REMOVE || _type == INVALID)
 		return false;
 
-	if (_sequences[_frameNumber] == 0 || _frameNumber >= checkFrame) {
+	if (_frameNumber < 0 || _frameNumber >= checkFrame || _sequences[_frameNumber] == 0) {
 		result = true;
 
-		if (_frameNumber >= (checkFrame - 1)) {
+		if (_frameNumber < 0 || _frameNumber >= (checkFrame - 1)) {
 			_frameNumber = START_FRAME;
 		}  else {
 			// Determine next sequence to use
@@ -445,7 +445,7 @@ void BaseObject::setObjSequence(int seq, bool wait) {
 				// Use the saved start of the sequence to reset the frame
 				_frameNumber = _startSeq;
 			} else {
-				// For Scalpel, scan backwards from the end of the sequence to find it's start
+				// For Scalpel, scan backwards from the end of the sequence to find its start
 				do {
 					--_frameNumber;
 				} while (_frameNumber > 0 && _sequences[_frameNumber] != 0);

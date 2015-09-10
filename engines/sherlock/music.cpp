@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/algorithm.h"
 #include "common/config-manager.h"
 #include "common/mutex.h"
 #include "sherlock/sherlock.h"
@@ -577,6 +578,39 @@ bool Music::waitUntilMSec(uint32 msecTarget, uint32 msecMax, uint32 additionalDe
 void Music::setMusicVolume(int volume) {
 	_musicVolume = volume;
 	_vm->_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, volume);
+}
+
+void Music::getSongNames(Common::StringArray &songs) {
+	songs.clear();
+	if (IS_SERRATED_SCALPEL) {
+		if (IS_3DO) {
+			Common::FSDirectory gameDirectory(ConfMan.get("path"));
+			Common::FSDirectory *musicDirectory = gameDirectory.getSubDirectory("music");
+			Common::ArchiveMemberList files;
+
+			musicDirectory->listMatchingMembers(files, "*_mw22.aifc");
+
+			for (Common::ArchiveMemberList::iterator i = files.begin(); i != files.end(); ++i) {
+				Common::String name = (*i)->getName();
+				name.erase(name.size() - 10);
+				songs.push_back(name);
+			}
+		} else {
+			for (int i = 0; i < ARRAYSIZE(SONG_NAMES); i++) {
+				songs.push_back(SONG_NAMES[i]);
+			}
+		}
+	} else {
+		Common::StringArray fileList;
+		_vm->_res->getResourceNames("music.lib", fileList);
+		for (Common::StringArray::iterator i = fileList.begin(); i != fileList.end(); ++i) {
+			if ((*i).matchString("*.XMI", true)) {
+				(*i).erase((*i).size() - 4);
+				songs.push_back(*i);
+			}
+		}
+	}
+	Common::sort(songs.begin(), songs.end());
 }
 
 } // End of namespace Sherlock

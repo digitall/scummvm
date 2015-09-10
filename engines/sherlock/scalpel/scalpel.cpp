@@ -21,6 +21,8 @@
  */
 
 #include "engines/util.h"
+#include "gui/saveload.h"
+#include "common/translation.h"
 #include "sherlock/scalpel/scalpel.h"
 #include "sherlock/scalpel/scalpel_fixed_text.h"
 #include "sherlock/scalpel/scalpel_map.h"
@@ -174,12 +176,71 @@ const PeopleData PEOPLE_DATA[MAX_PEOPLE] = {
 	{ "INSP", "Inspector Lestrade", { 4, 0, 0 }, { 2, 0, 0 } }
 };
 
+uint INFO_BLACK;
+uint BORDER_COLOR;
+uint COMMAND_BACKGROUND;
+uint BUTTON_BACKGROUND;
+uint TALK_FOREGROUND;
+uint TALK_NULL;
+uint BUTTON_TOP;
+uint BUTTON_MIDDLE;
+uint BUTTON_BOTTOM;
+uint COMMAND_FOREGROUND;
+uint COMMAND_HIGHLIGHTED;
+uint COMMAND_NULL;
+uint INFO_FOREGROUND;
+uint INFO_BACKGROUND;
+uint INV_FOREGROUND;
+uint INV_BACKGROUND;
+uint PEN_COLOR;
+
 /*----------------------------------------------------------------*/
+
+#define FROM_RGB(r, g, b) pixelFormatRGB565.RGBToColor(r, g, b)
 
 ScalpelEngine::ScalpelEngine(OSystem *syst, const SherlockGameDescription *gameDesc) :
 		SherlockEngine(syst, gameDesc) {
 	_darts = nullptr;
 	_mapResult = 0;
+
+	if (getPlatform() == Common::kPlatform3DO) {
+		const Graphics::PixelFormat pixelFormatRGB565 = Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+		INFO_BLACK = FROM_RGB(0, 0, 0);
+		BORDER_COLOR = FROM_RGB(0x6d, 0x38, 0x10);
+		COMMAND_BACKGROUND = FROM_RGB(0x38, 0x38, 0xce);
+		BUTTON_BACKGROUND = FROM_RGB(0x95, 0x5d, 0x24);
+		TALK_FOREGROUND = FROM_RGB(0xff, 0x55, 0x55);
+		TALK_NULL = FROM_RGB(0xce, 0xc6, 0xc2);
+		BUTTON_TOP = FROM_RGB(0xbe, 0x85, 0x3c);
+		BUTTON_MIDDLE = FROM_RGB(0x9d, 0x40, 0);
+		BUTTON_BOTTOM = FROM_RGB(0x69, 0x24, 0);
+		COMMAND_FOREGROUND = FROM_RGB(0xFF, 0xFF, 0xFF);
+		COMMAND_HIGHLIGHTED = FROM_RGB(0x55, 0xff, 0x55);
+		COMMAND_NULL = FROM_RGB(0x69, 0x24, 0);
+		INFO_FOREGROUND = FROM_RGB(0x55, 0xff, 0xff);
+		INFO_BACKGROUND = FROM_RGB(0, 0, 0x48);
+		INV_FOREGROUND = FROM_RGB(0xff, 0xff, 0x55);
+		INV_BACKGROUND = FROM_RGB(0, 0, 0x48);
+		PEN_COLOR = FROM_RGB(0x50, 0x18, 0);
+	} else {
+		INFO_BLACK = 1;
+		BORDER_COLOR = 237;
+		COMMAND_BACKGROUND = 4;
+		BUTTON_BACKGROUND = 235;
+		TALK_FOREGROUND = 12;
+		TALK_NULL = 16;
+		BUTTON_TOP = 233;
+		BUTTON_MIDDLE = 244;
+		BUTTON_BOTTOM = 248;
+		COMMAND_FOREGROUND = 15;
+		COMMAND_HIGHLIGHTED = 10;
+		COMMAND_NULL = 248;
+		INFO_FOREGROUND = 11;
+		INFO_BACKGROUND = 1;
+		INV_FOREGROUND = 14;
+		INV_BACKGROUND = 1;
+		PEN_COLOR = 250;
+	}
 }
 
 ScalpelEngine::~ScalpelEngine() {
@@ -242,6 +303,8 @@ void ScalpelEngine::showOpening() {
 	if (isDemo() && _interactiveFl)
 		return;
 
+	_events->setFrameRate(60);
+
 	if (getPlatform() == Common::kPlatform3DO) {
 		show3DOSplash();
 
@@ -255,20 +318,22 @@ void ScalpelEngine::showOpening() {
 
 		_events->clearEvents();
 		_music->stopMusic();
-		return;
+	} else {
+		TsAGE::Logo::show(this);
+
+		finished = showCityCutscene();
+		if (finished)
+			finished = showAlleyCutscene();
+		if (finished)
+			finished = showStreetCutscene();
+		if (finished)
+			showOfficeCutscene();
+
+		_events->clearEvents();
+		_music->stopMusic();
 	}
 
-	TsAGE::Logo::show(this);
-	finished = showCityCutscene();
-	if (finished)
-		finished = showAlleyCutscene();
-	if (finished)
-		finished = showStreetCutscene();
-	if (finished)
-		showOfficeCutscene();
-
-	_events->clearEvents();
-	_music->stopMusic();
+	_events->setFrameRate(GAME_FRAME_RATE);
 }
 
 bool ScalpelEngine::showCityCutscene() {
@@ -1062,7 +1127,7 @@ void ScalpelEngine::startScene() {
 	_mapResult = _scene->_goToScene;
 }
 
-void ScalpelEngine::eraseMirror12() {
+void ScalpelEngine::eraseBrumwellMirror() {
 	Common::Point pt((*_people)[HOLMES]._position.x / FIXED_INT_MULTIPLIER, (*_people)[HOLMES]._position.y / FIXED_INT_MULTIPLIER);
 
 	// If player is in range of the mirror, then restore background from the secondary back buffer
@@ -1072,7 +1137,7 @@ void ScalpelEngine::eraseMirror12() {
 	}
 }
 
-void ScalpelEngine::doMirror12() {
+void ScalpelEngine::doBrumwellMirror() {
 	People &people = *_people;
 	Person &player = people[HOLMES];
 
@@ -1147,12 +1212,33 @@ void ScalpelEngine::doMirror12() {
 	}
 }
 
-void ScalpelEngine::flushMirror12() {
+void ScalpelEngine::flushBrumwellMirror() {
 	Common::Point pt((*_people)[HOLMES]._position.x / FIXED_INT_MULTIPLIER, (*_people)[HOLMES]._position.y / FIXED_INT_MULTIPLIER);
 
 	// If player is in range of the mirror, then draw the entire mirror area to the screen
 	if (Common::Rect(70, 100, 200, 200).contains(pt))
 		_screen->slamArea(137, 18, 47, 56);
+}
+
+
+void ScalpelEngine::showScummVMSaveDialog() {
+	GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
+
+	int slot = dialog->runModalWithCurrentTarget();
+	if (slot >= 0) {
+		Common::String desc = dialog->getResultString();
+
+		saveGameState(slot, desc);
+	}
+}
+
+void ScalpelEngine::showScummVMRestoreDialog() {
+	GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
+
+	int slot = dialog->runModalWithCurrentTarget();
+	if (slot >= 0) {
+		loadGameState(slot);
+	}
 }
 
 } // End of namespace Scalpel

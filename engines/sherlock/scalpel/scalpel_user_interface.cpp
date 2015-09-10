@@ -65,6 +65,7 @@ const int INVENTORY_POINTS[8][3] = {
 };
 
 const char COMMANDS[13] = "LMTPOCIUGJFS";
+const char COMMANDS_3DO[13] = "LMTPOCIUGSFF";
 const char INVENTORY_COMMANDS[9] = { "ELUG-+,." };
 const char *const PRESS_KEY_FOR_MORE = "Press any Key for More.";
 const char *const PRESS_KEY_TO_CONTINUE = "Press any Key to Continue.";
@@ -118,10 +119,18 @@ void ScalpelUserInterface::drawInterface(int bufferNum) {
 	const ImageFrame &src = (*_controlPanel)[0];
 	int16 x = (!IS_3DO) ? 0 : UI_OFFSET_3DO;
 
-	if (bufferNum & 1)
+	if (bufferNum & 1) {
+		if (IS_3DO)
+			screen._backBuffer1.fillRect(Common::Rect(0, CONTROLS_Y,
+				SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT), BLACK);
 		screen._backBuffer1.transBlitFrom(src, Common::Point(x, CONTROLS_Y));
-	if (bufferNum & 2)
+	}
+	if (bufferNum & 2) {
+		if (IS_3DO)
+			screen._backBuffer2.fillRect(Common::Rect(0, CONTROLS_Y,
+				SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT), BLACK);
 		screen._backBuffer2.transBlitFrom(src, Common::Point(x, CONTROLS_Y));
+	}
 	if (bufferNum == 3)
 		screen._backBuffer2.fillRect(0, INFO_LINE, SHERLOCK_SCREEN_WIDTH, INFO_LINE + 10, INFO_BLACK);
 }
@@ -459,8 +468,8 @@ void ScalpelUserInterface::toggleButton(int num) {
 
 void ScalpelUserInterface::clearInfo() {
 	if (_infoFlag) {
-		_vm->_screen->vgaBar(Common::Rect(16, INFO_LINE, SHERLOCK_SCREEN_WIDTH - 19,
-			INFO_LINE + 10), INFO_BLACK);
+		_vm->_screen->vgaBar(Common::Rect(IS_3DO ? 33 : 16, INFO_LINE, 
+			SHERLOCK_SCREEN_WIDTH - (IS_3DO ? 33 : 19), INFO_LINE + 10), INFO_BLACK);
 		_infoFlag = false;
 		_oldLook = -1;
 	}
@@ -860,7 +869,7 @@ void ScalpelUserInterface::doEnvControl() {
 				// Check whether there are more pending D keys pressed
 				moreKeys = false;
 				if (events.kbHit()) {
-					Common::KeyState keyState;
+					Common::KeyState keyState = events.getKey();
 					_key = toupper(keyState.keycode);
 
 					moreKeys = _key == 'D';
@@ -1264,10 +1273,12 @@ void ScalpelUserInterface::doLookControl() {
 }
 
 void ScalpelUserInterface::doMainControl() {
+	ScalpelEngine &vm = *(ScalpelEngine *)_vm;
 	Events &events = *_vm->_events;
 	ScalpelInventory &inv = *(ScalpelInventory *)_vm->_inventory;
 	ScalpelSaveManager &saves = *(ScalpelSaveManager *)_vm->_saves;
 	Common::Point pt = events.mousePos();
+	const char *commands = IS_3DO ? COMMANDS_3DO : COMMANDS;
 
 	if ((events._pressed || events._released) && pt.y > CONTROLS_Y) {
 		events.clearKeyboard();
@@ -1282,7 +1293,7 @@ void ScalpelUserInterface::doMainControl() {
 				r.right += UI_OFFSET_3DO - 1;
 			}
 			if (r.contains(pt))
-				_key = COMMANDS[_temp];
+				_key = commands[_temp];
 		}
 		--_temp;
 	} else if (_keyPress) {
@@ -1290,8 +1301,8 @@ void ScalpelUserInterface::doMainControl() {
 		_keyboardInput = true;
 
 		if (_keyPress >= 'A' && _keyPress <= 'Z') {
-			const char *c = strchr(COMMANDS, _keyPress);
-			_temp = !c ? 12 : c - COMMANDS;
+			const char *c = strchr(commands, _keyPress);
+			_temp = !c ? 12 : c - commands;
 		} else {
 			_temp = 12;
 		}
@@ -1372,28 +1383,38 @@ void ScalpelUserInterface::doMainControl() {
 			journalControl();
 			break;
 		case 'F':
-			pushButton(10);
-
-			// Create a thumbnail of the current screen before the files dialog is shown, in case
-			// the user saves the game
-			saves.createThumbnail();
-
-			_selector = _oldSelector = -1;
-
-			if (_vm->_showOriginalSavesDialog) {
-				// Show the original dialog
-				_menuMode = FILES_MODE;
-				saves.drawInterface();
-				_windowOpen = true;
+			if (IS_3DO) {
+				if (_temp == 10) {
+					pushButton(10);
+					vm.showScummVMRestoreDialog();
+				} else if (_temp == 11) {
+					pushButton(11);
+					vm.showScummVMSaveDialog();
+				}
 			} else {
-				// Show the ScummVM GMM instead
-				_vm->_canLoadSave = true;
-				_vm->openMainMenuDialog();
-				_vm->_canLoadSave = false;
+				pushButton(10);
+
+				// Create a thumbnail of the current screen before the files dialog is shown, in case
+				// the user saves the game
+				saves.createThumbnail();
+
+				_selector = _oldSelector = -1;
+
+				if (_vm->_showOriginalSavesDialog) {
+					// Show the original dialog
+					_menuMode = FILES_MODE;
+					saves.drawInterface();
+					_windowOpen = true;
+				} else {
+					// Show the ScummVM GMM instead
+					_vm->_canLoadSave = true;
+					_vm->openMainMenuDialog();
+					_vm->_canLoadSave = false;
+				}
 			}
 			break;
 		case 'S':
-			pushButton(11);
+			pushButton(IS_3DO ? 9 : 11);
 			_menuMode = SETUP_MODE;
 			Settings::show(_vm);
 			break;

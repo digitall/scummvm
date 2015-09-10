@@ -43,6 +43,8 @@ Events::Events(SherlockEngine *vm): _vm(vm) {
 	_rightPressed = _rightReleased = false;
 	_oldButtons = _oldRightButton = false;
 	_firstPress = false;
+	_waitCounter = 0;
+	_frameRate = GAME_FRAME_RATE;
 
 	if (_vm->_interactiveFl)
 		loadCursors("rmouse.vgs");
@@ -67,7 +69,7 @@ void Events::loadCursors(const Common::String &filename) {
 }
 
 void Events::setCursor(CursorId cursorId) {
-	if (cursorId == _cursorId)
+	if (cursorId == _cursorId || _waitCounter > 0)
 		return;
 
 	int hotspotX, hotspotY;
@@ -231,10 +233,14 @@ Common::Point Events::mousePos() const {
 	return _vm->_screen->_currentScroll + _mousePos;
 }
 
+void Events::setFrameRate(int newRate) {
+	_frameRate = newRate;
+}
+
 bool Events::checkForNextFrameCounter() {
 	// Check for next game frame
 	uint32 milli = g_system->getMillis();
-	if ((milli - _priorFrameTime) >= GAME_FRAME_TIME) {
+	if ((milli - _priorFrameTime) >= (1000 / _frameRate)) {
 		++_frameCounter;
 		_priorFrameTime = milli;
 
@@ -302,7 +308,7 @@ void Events::clearKeyboard() {
 }
 
 void Events::wait(int numFrames) {
-	uint32 totalMilli = numFrames * 1000 / GAME_FRAME_RATE;
+	uint32 totalMilli = numFrames * 1000 / _frameRate;
 	delay(totalMilli);
 }
 
@@ -359,6 +365,16 @@ void Events::setButtonState() {
 bool Events::checkInput() {
 	setButtonState();
 	return kbHit() || _pressed || _released || _rightPressed || _rightReleased;
+}
+
+void Events::incWaitCounter() {
+	setCursor(WAIT);
+	++_waitCounter;		
+}
+
+void Events::decWaitCounter() {
+	assert(_waitCounter > 0);
+	--_waitCounter;
 }
 
 } // End of namespace Sherlock

@@ -183,6 +183,25 @@ TattooTalk::TattooTalk(SherlockEngine *vm) : Talk(vm), _talkWidget(vm), _passwor
 	_opcodeTable = OPCODE_METHODS;
 }
 
+void TattooTalk::talkTo(const Common::String filename) {
+	Events &events = *_vm->_events;
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+
+	// WORKAROUND: Keep wait cursor active until very end of the cutscene of the monkey
+	// stealing the cap, which is finished by calling the 30cuend script
+	if (filename == "wilb29a")
+		events.incWaitCounter();
+
+	Talk::talkTo(filename);
+
+	if (filename == "wilb29a")
+		ui._menuMode = TALK_MODE;
+	if (filename == "30cuend") {
+		events.decWaitCounter();
+		events.setCursor(ARROW);
+	}
+}
+
 void TattooTalk::talkInterface(const byte *&str) {
 	TattooEngine &vm = *(TattooEngine *)_vm;
 	Sound &sound = *_vm->_sound;
@@ -621,7 +640,7 @@ OpcodeReturn TattooTalk::cmdSetNPCTalkFile(const byte *&str) {
 		memset(person._npcPath, 0, 100);
 	}
 
-	person._npcPath[person._npcIndex] = 3;
+	person._npcPath[person._npcIndex] = NPCPATH_SET_TALK_FILE;
 	for (int i = 1; i <= 8; i++)
 		person._npcPath[person._npcIndex + i] = str[i];
 
