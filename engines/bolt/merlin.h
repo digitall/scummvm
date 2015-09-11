@@ -30,6 +30,8 @@ namespace Bolt {
 
 class MerlinEngine : public SubEngine {
 	friend class MerlinMainMenuCard;
+	friend class MerlinHubCard;
+	friend class MerlinPuzzleCard;
 public:
 	MerlinEngine();
 
@@ -44,27 +46,34 @@ private:
 	void startMenu(BltLongId id);
 	void startMovie(PfFile &pfFile, uint32 name);
 
+	static void MovieTrigger(void *param, uint16 triggerType);
+
 	BoltEngine *_engine;
 
 	BltFile _boltlibBltFile;
 	PfFile _maPfFile;
 	PfFile _helpPfFile;
+	PfFile _potionPfFile;
+	PfFile _challdirPfFile;
 
 	CardPtr _currentCard;
 	Movie _movie;
 
 	int _sequenceCursor;
 
-	typedef void(*SequenceFunc)(MerlinEngine *self, uint32 param);
+	typedef void(*SequenceFunc)(MerlinEngine *self, const void *param);
 	struct SequenceEntry {
 		SequenceFunc func;
-		uint32 param;
+		const void *param;
 	};
 
-	static void PlayMovieFunc(MerlinEngine *self, uint32 param);
-	static void MainMenuFunc(MerlinEngine *self, uint32 param);
-	static void MenuFunc(MerlinEngine *self, uint32 param);
-	static void PlotWarningFunc(MerlinEngine *self, uint32 param);
+	static void PlotWarningFunc(MerlinEngine *self, const void *param);
+	static void PlotMovieFunc(MerlinEngine *self, const void *param);
+	static void MainMenuFunc(MerlinEngine *self, const void *param);
+	static void FileMenuFunc(MerlinEngine *self, const void *param);
+	static void DifficultyMenuFunc(MerlinEngine *self, const void *param);
+	static void HubFunc(MerlinEngine *self, const void *param);
+	static void PuzzleFunc(MerlinEngine *self, const void *param);
 
 	static const SequenceEntry SEQUENCE[];
 	static const size_t SEQUENCE_SIZE;
