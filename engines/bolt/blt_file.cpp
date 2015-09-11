@@ -42,7 +42,7 @@ struct BltFileHeader {
 
 BltFile::DirectoryEntry::DirectoryEntry(Common::File &file) {
 	numResources = file.readUint32BE();
-	compBufSize = file.readUint32BE();
+	compressedSize = file.readUint32BE();
 	offset = file.readUint32BE();
 	// Unknown. FIXME: What is this?
 	file.readUint32BE();
@@ -62,7 +62,7 @@ BltFile::ResourceEntry::ResourceEntry(Common::File &file) {
 // arranged in directories.
 // A resource is addressed by two bytes: <directory number> <resource number>.
 // For example, the resource 0x9D01 refers to resource 1 in directory 0x9D.
-bool BltFile::init(const Common::String &filename) {
+bool BltFile::load(const Common::String &filename) {
 
 	// Open the file
 	if (!_file.open(filename)) {
@@ -153,9 +153,22 @@ static void decompressBoltLZ(ScopedArray<byte> &dst,
 	}
 }
 
-BltResource::Movable BltFile::loadShortId(BltShortId id, uint32 expectType) {
-	byte dirNum = id.value >> 8;
-	byte resNum = id.value & 0xFF;
+BltResource::Movable BltFile::loadResource(BltLongId id, uint32 expectedType) {
+	if (!id.isValid()) {
+		return BltResource::Movable();
+	}
+
+	BltShortId shortId = BltShortId(id.value >> 16);
+	uint16 offset = id.value & 0xFFFF;
+
+	if (offset != 0) {
+		// XXX: offset is not handled. It is always zero.
+		error("offset part of long resource id is not 0 (it is 0x%.04X)", (int)offset);
+		return BltResource::Movable();
+	}
+
+	byte dirNum = shortId.value >> 8;
+	byte resNum = shortId.value & 0xFF;
 
 	if (dirNum >= _dirs.size()) {
 		error("Tried to load non-existent resource 0x%.04X", (int)id.value);
@@ -172,52 +185,34 @@ BltResource::Movable BltFile::loadShortId(BltShortId id, uint32 expectType) {
 
 	ResourceEntry &res = dir.resEntries[resNum];
 
-	if (res.type != expectType) {
+	if (res.type != expectedType) {
 		error("Tried to load wrong resource type %d instead of %d",
-			(int)res.type, (int)expectType);
+			(int)res.type, (int)expectedType);
 		return BltResource::Movable();
 	}
 
 	// Load and decompress resource
-	BltResource ptr;
-	ptr.alloc(res.size);
+	BltResource resourceData;
+	resourceData.alloc(res.size);
 	if (res.compression == 0) {
 		// BOLT-LZ
-		ScopedArray<byte> buf;
-		buf.alloc(dir.entry.compBufSize);
+		ScopedArray<byte> compressedData;
+		compressedData.alloc(dir.entry.compressedSize);
 		_file.seek(res.offset);
-		_file.read(&buf[0], dir.entry.compBufSize);
-		decompressBoltLZ(ptr, buf);
+		_file.read(&compressedData[0], dir.entry.compressedSize);
+		decompressBoltLZ(resourceData, compressedData);
 	}
 	else if (res.compression == 8) {
 		// Raw
 		_file.seek(res.offset);
-		_file.read(&ptr[0], res.size);
+		_file.read(&resourceData[0], res.size);
 	}
 	else {
 		error("Unknown compression type %d", (int)res.compression);
 		return BltResource::Movable();
 	}
 
-	return ptr.release();
-}
-
-BltResource::Movable BltFile::loadLongId(BltLongId id, uint32 expectType) {
-
-	if (!id.isValid()) {
-		return BltResource::Movable();
-	}
-
-	BltShortId shortId = BltShortId(id.value >> 16);
-	uint16 offset = id.value & 0xFFFF;
-
-	if (offset != 0) {
-		// XXX: offset is not handled. It is always zero.
-		error("offset part of long resource id is not 0 (it is 0x%.04X)", (int)offset);
-		return BltResource::Movable();
-	}
-
-	return loadShortId(shortId, expectType);
+	return resourceData.release();
 }
 
 void BltFile::ensureDirLoaded(byte dirNum) {

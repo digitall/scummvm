@@ -55,6 +55,9 @@ public:
 	// Returns true if movie is running, false if movie is finished.
 	bool process();
 
+	typedef void (*TriggerCallback)(void *param, uint16 triggerType);
+	void setTriggerCallback(TriggerCallback callback, void *param);
+
 private:
 	void stopAudio();
 	bool isAudioRunning() const;
@@ -123,10 +126,14 @@ private:
 	int _timelineCursor;
 	byte _timelineReps;
 
+	TriggerCallback _triggerCallback;
+	void *_triggerCallbackParam;
+
 	// QUEUE 4 VIDEO SEQUENCES
 
 	void loadQueue4(ScopedBuffer::Movable buf);
 	void runQueue4Control();
+	void drawBackground();
 	void updateScroll();
 
 	ScopedBuffer _queue4Buf;

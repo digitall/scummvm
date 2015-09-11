@@ -53,6 +53,7 @@ bool PfFile::load(const Common::String &filename) {
 	for (uint32 i = 0; i < numMovies; ++i) {
 		uint32 name = _file.readUint32BE();
 		uint32 offset = _file.readUint32BE();
+		debug(3, "%c%c%c%c", (name >> 24) & 0xff, (name >> 16) & 0xff, (name >> 8) & 0xff, name & 0xff);
 		_movies[name] = offset;
 	}
 

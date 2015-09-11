@@ -40,7 +40,9 @@ namespace Bolt {
 Movie::Movie()
 	: _engine(nullptr),
 	_audioStream(nullptr),
-	_audioStarted(false)
+	_audioStarted(false),
+	_triggerCallback(nullptr),
+	_triggerCallbackParam(nullptr)
 { }
 
 Movie::~Movie() {
@@ -48,6 +50,9 @@ Movie::~Movie() {
 }
 
 void Movie::load(BoltEngine *engine, PfFile &pfFile, uint32 name) {
+
+	debug(3, "loading movie %c%c%c%c ...",
+		(name >> 24) & 0xff, (name >> 16) & 0xff, (name >> 8) & 0xff, name & 0xff);
 
 	_engine = engine;
 	_file = pfFile.seekMovieAndGetFile(name);
@@ -135,6 +140,11 @@ bool Movie::process() {
 	}
 
 	return isRunning();
+}
+
+void Movie::setTriggerCallback(TriggerCallback callback, void *param) {
+	_triggerCallback = callback;
+	_triggerCallbackParam = param;
 }
 
 void Movie::fillAudioQueue() {
@@ -290,9 +300,9 @@ void Movie::runTimelineCmd() {
 
 			if (_queue4Bg) {
 				updateScroll();
-				drawQueue0or1(_engine->_graphics.getBackPlane(), _queue4Bg,
-					0, -_queue4CameraY);
 			}
+			// Do NOT always draw background here. Only redraw background if it is
+			// changed or scrolled. (Required for win movies to work right)
 
 			drawQueue4(_engine->_graphics.getForePlane(), _queue4Buf, queue4FrameNum);
 		}
@@ -305,7 +315,9 @@ void Movie::runTimelineCmd() {
 		break;
 	case TimelineOpcodes::kTriggerEvent1: // trigger event (param size: 0, used in INTR)
 	case TimelineOpcodes::kTriggerEvent2: // trigger event (param size: 0, used to switch scene during potion movies)
-		// TODO: Implement
+		if (_triggerCallback) {
+			_triggerCallback(_triggerCallbackParam, cmd.opcode);
+		}
 		break;
 	default:
 		error("Unimplemented timeline command 0x%X", (int)cmd.opcode);
@@ -420,6 +432,9 @@ void Movie::runQueue4Control() {
 				// program doesn't seem to do anything with scroll variables
 				// other than camera position
 
+				// FIXME: is it correct to draw background here?
+				drawBackground();
+
 				_queue4ControlCursor += Queue4Command::SIZE + 4;
 				break;
 			}
@@ -468,6 +483,11 @@ void Movie::runQueue4Control() {
 	}
 }
 
+void Movie::drawBackground() {
+	drawQueue0or1(_engine->_graphics.getBackPlane(), _queue4Bg,
+		0, -_queue4CameraY);
+}
+
 void Movie::updateScroll() {
 	// FIXME: scrolling is almost completely broken. Reverse-engineer
 	// this more carefully.
@@ -512,6 +532,8 @@ void Movie::updateScroll() {
 			_queue4ScrollProgress = edi;
 			_queue4CameraX = _queue4ScrollOriginalX + esi;
 			_queue4CameraY = _queue4ScrollOriginalY + ecx;
+
+			drawBackground();
 		}
 	}
 }

@@ -46,7 +46,7 @@ struct BltImageHeader {
 };
 
 void BltImage::init(BltFile &bltFile, BltLongId id) {
-	_res.reset(bltFile.loadLongId(id, kBltImage));
+	_res.reset(bltFile.loadResource(id, kBltImage));
 	if (_res) {
 		BltImageHeader header(&_res[0]);
 		_compression = header.compression;

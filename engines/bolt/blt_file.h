@@ -49,15 +49,18 @@ struct BltShortId {
 	BltShortId() : value(0xFFFFU) { }
 	explicit BltShortId(uint16 v) : value(v) { }
 
+	// ID is made of two 8-bit parts: <directory number> <resource number>.
 	uint16 value;
 };
 
 struct BltLongId {
 	BltLongId() : value(0xFFFFFFFFUL) { }
+	BltLongId(BltShortId shortId) : value(shortId.value << 16) { }
 	explicit BltLongId(uint32 v) : value(v) { }
-	explicit BltLongId(BltShortId shortId) : value(shortId.value << 16) { }
 	bool isValid() const { return value != 0xFFFFFFFFUL; }
 
+	// ID is made of two 16-bit parts: <short id> <offset>.
+	// offset should always be zero.
 	uint32 value;
 };
 
@@ -65,10 +68,9 @@ typedef ScopedArray<byte> BltResource;
 
 class BltFile {
 public:
-	bool init(const Common::String &filename);
+	bool load(const Common::String &filename);
 
-	BltResource::Movable loadShortId(BltShortId id, uint32 expectType); // id is two bytes: <dir num> <res num>
-	BltResource::Movable loadLongId(BltLongId id, uint32 expectType); // id is two words: <short id> <offset>
+	BltResource::Movable loadResource(BltLongId id, uint32 expectedType);
 
 private:
 	// Warning: may clobber file cursor
@@ -83,7 +85,7 @@ private:
 		DirectoryEntry(Common::File &file);
 
 		uint32 numResources;
-		uint32 compBufSize; // Number of bytes to read for decompression
+		uint32 compressedSize; // Number of bytes to read for decompression
 		uint32 offset; // Offset of the resource table of this directory
 		// (relative to beginning of file)
 	};
