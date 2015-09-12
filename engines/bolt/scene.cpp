@@ -245,7 +245,7 @@ void Scene::enter() {
 		pos.x -= _origin.x;
 		pos.y -= _origin.y;
 		// FIXME: Are sprites drawn to back or fore plane? Is it somehow selectable?
-		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
+		::Graphics::Surface surface = _engine->_graphics.getForePlane().getSurface();
 		_sprites[i]->image.drawAt(surface, pos.x, pos.y, true);
 	}
 
