@@ -43,6 +43,7 @@ enum BltType {
 	kBltButtons = 31,
 	kBltScene = 32,
 	kBltMainMenu = 33,
+	kBltHub = 40,
 };
 
 struct BltShortId {

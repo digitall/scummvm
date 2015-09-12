@@ -265,7 +265,7 @@ void MerlinEngine::DifficultyMenuFunc(MerlinEngine *self, const void *param) {
 }
 
 struct HubEntry {
-	uint16 sceneShortId;
+	uint16 hubId;
 };
 
 class MerlinHubCard : public MenuCard {
@@ -279,12 +279,31 @@ protected:
 	Status processButtonClick(int num);
 };
 
-const HubEntry MerlinHubCard::STAGE1 = { 0x0C31 };
-const HubEntry MerlinHubCard::STAGE2 = { 0x0D29 };
-const HubEntry MerlinHubCard::STAGE3 = { 0x0E41 };
+const HubEntry MerlinHubCard::STAGE1 = { 0x0C0B };
+const HubEntry MerlinHubCard::STAGE2 = { 0x0D34 };
+const HubEntry MerlinHubCard::STAGE3 = { 0x0E4F };
+
+struct BltHub { // type 40
+	BltHub(const byte *src) {
+		sceneId = BltLongId(READ_BE_UINT32(&src[0]));
+		// FIXME: unknown field at offset 4
+		bgPlaneId = BltLongId(READ_BE_UINT32(&src[6]));
+		// FIXME: unknown field at offset 0xA
+		numItems = src[0xB];
+		itemListId = BltLongId(READ_BE_UINT32(&src[0xC]));
+	}
+
+	BltLongId sceneId;
+	BltLongId bgPlaneId;
+	byte numItems;
+	BltLongId itemListId;
+};
 
 void MerlinHubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
-	MenuCard::init(merlin->_engine, merlin->_boltlibBltFile, BltShortId(entry.sceneShortId));
+	BltResource hubRes(merlin->_boltlibBltFile.loadResource(BltShortId(entry.hubId), kBltHub));
+	BltHub hubInfo(&hubRes[0]);
+	MenuCard::init(merlin->_engine, merlin->_boltlibBltFile, hubInfo.sceneId);
+	_scene.setBackPlane(merlin->_boltlibBltFile, hubInfo.bgPlaneId);
 }
 
 Card::Status MerlinHubCard::processButtonClick(int num) {
