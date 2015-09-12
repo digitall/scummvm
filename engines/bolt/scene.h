@@ -40,6 +40,8 @@ public:
 	void enter();
 	void process();
 
+	void setBackPlane(BltFile &bltFile, BltLongId id);
+
 	// Return number of button at point. Returns -1 if there is no button.
 	int getButtonAtPoint(const Common::Point &pt);
 
