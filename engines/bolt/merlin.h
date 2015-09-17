@@ -39,6 +39,7 @@ public:
 	virtual void processEvent(const BoltEvent &event);
 
 private:
+	Graphics &getGraphics();
 	void initCursor();
 	void resetSequence();
 	void advanceSequence();
@@ -50,11 +51,11 @@ private:
 
 	BoltEngine *_engine;
 
-	BltFile _boltlibBltFile;
-	PfFile _maPfFile;
-	PfFile _helpPfFile;
-	PfFile _potionPfFile;
-	PfFile _challdirPfFile;
+	BltFile _boltlib;
+	PfFile _maPf;
+	PfFile _helpPf;
+	PfFile _potionPf;
+	PfFile _challdirPf;
 
 	CardPtr _currentCard;
 	Movie _movie;

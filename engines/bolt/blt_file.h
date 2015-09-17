@@ -31,6 +31,7 @@ namespace Bolt {
 
 enum BltType {
 	kBltError = 0, // Not present in game data; only for internal use
+	kBltResourceList = 6,
 	kBltImage = 8,
 	kBltPalette = 10,
 	kBltColorCycles = 11,
@@ -44,6 +45,7 @@ enum BltType {
 	kBltScene = 32,
 	kBltMainMenu = 33,
 	kBltHub = 40,
+	kBltHubItem = 41,
 };
 
 struct BltShortId {

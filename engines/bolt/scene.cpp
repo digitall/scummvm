@@ -166,23 +166,19 @@ void Scene::load(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId)
 	// Load sprites
 	if (sceneInfo.spritesId.isValid()) {
 		BltResource spritesRes(bltFile.loadResource(sceneInfo.spritesId, kBltSprites));
-		_sprites.reserve(sceneInfo.numSprites);
-		for (byte i = 0; i < sceneInfo.numSprites; ++i) {
-			SpritePtr newSprite(new Sprite);
+		_sprites.alloc(sceneInfo.numSprites);
+		for (int i = 0; i < sceneInfo.numSprites; ++i) {
 			BltSprite s(&spritesRes[i * BltSprite::SIZE]);
-			newSprite->pos = s.pos;
-			newSprite->image.init(bltFile, s.imageId);
-			_sprites.push_back(newSprite);
+			_sprites[i].pos = s.pos;
+			_sprites[i].image.init(bltFile, s.imageId);
 		}
 	}
 
 	// Load buttons
 	BltResource buttonsRes(bltFile.loadResource(sceneInfo.buttonsId, kBltButtons));
-	_buttons.reserve(sceneInfo.numButtons);
+	_buttons.alloc(sceneInfo.numButtons);
 	for (uint16 i = 0; i < sceneInfo.numButtons; ++i) {
-		ButtonPtr newButton(new Button);
-		loadButton(*newButton, bltFile, &buttonsRes[i * BltButton::SIZE]);
-		_buttons.push_back(newButton);
+		loadButton(_buttons[i], bltFile, &buttonsRes[i * BltButton::SIZE]);
 	}
 
 	// Load color cycles
@@ -241,12 +237,12 @@ void Scene::enter() {
 
 	// Draw sprites
 	for (size_t i = 0; i < _sprites.size(); ++i) {
-		Common::Point pos = _sprites[i]->pos;
+		Common::Point pos = _sprites[i].pos;
 		pos.x -= _origin.x;
 		pos.y -= _origin.y;
 		// FIXME: Are sprites drawn to back or fore plane? Is it somehow selectable?
 		::Graphics::Surface surface = _engine->_graphics.getForePlane().getSurface();
-		_sprites[i]->image.drawAt(surface, pos.x, pos.y, true);
+		_sprites[i].image.drawAt(surface, pos.x, pos.y, true);
 	}
 
 	// Reset color cycles
@@ -293,15 +289,9 @@ void Scene::process() {
 	}
 
 	// Draw buttons
-	for (size_t i = 0; i < _buttons.size(); ++i) {
-		if (isButtonAtPoint(*_buttons[i],
-			_engine->getEventManager()->getMousePos())) {
-
-			drawButton(*_buttons[i], true);
-		}
-		else {
-			drawButton(*_buttons[i], false);
-		}
+	int hoveredButton = getButtonAtPoint(_engine->getEventManager()->getMousePos());
+	for (uint i = 0; i < _buttons.size(); ++i) {
+		drawButton(_buttons[i], (int)i == hoveredButton);
 	}
 
 	_engine->scheduleDisplayUpdate();
@@ -313,7 +303,7 @@ void Scene::setBackPlane(BltFile &bltFile, BltLongId id) {
 
 int Scene::getButtonAtPoint(const Common::Point &pt) {
 	for (int i = 0; i < (int)_buttons.size(); ++i) {
-		if (isButtonAtPoint(*_buttons[i], pt)) {
+		if (isButtonAtPoint(_buttons[i], pt)) {
 			return i;
 		}
 	}

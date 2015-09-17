@@ -61,9 +61,8 @@ private:
 		Common::Point pos;
 		BltImage image;
 	};
-	typedef Common::SharedPtr<Sprite> SpritePtr;
 
-	Common::Array<SpritePtr> _sprites;
+	ScopedArray<Sprite> _sprites;
 
 	struct ColorCycle {
 		ColorCycle() : start(0), num(0), delay(0) { }
@@ -122,8 +121,7 @@ private:
 		BltImage idleImage;
 	};
 
-	typedef Common::SharedPtr<Button> ButtonPtr;
-	Common::Array<ButtonPtr> _buttons;
+	ScopedArray<Button> _buttons;
 
 	void loadButton(Button &button, BltFile &bltFile, const byte *src);
 
