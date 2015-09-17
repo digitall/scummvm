@@ -38,13 +38,13 @@ void MerlinEngine::init(BoltEngine *engine) {
 	_engine = engine;
 
 	// Load BOLTLIB.BLT file
-	_boltlibBltFile.load("BOLTLIB.BLT"); // TODO: error handling
+	_boltlib.load("BOLTLIB.BLT"); // TODO: error handling
 
 	// Load PF files
-	_maPfFile.load("MA.PF"); // TODO: error handling
-	_helpPfFile.load("HELP.PF");
-	_potionPfFile.load("POTION.PF");
-	_challdirPfFile.load("CHALLDIR.PF");
+	_maPf.load("MA.PF"); // TODO: error handling
+	_helpPf.load("HELP.PF");
+	_potionPf.load("POTION.PF");
+	_challdirPf.load("CHALLDIR.PF");
 
 	_movie.setTriggerCallback(MerlinEngine::MovieTrigger, this);
 
@@ -94,7 +94,7 @@ void MerlinEngine::initCursor() {
 	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 255, 255, 255 };
 
 	BltImage cursorImage;
-	cursorImage.init(_boltlibBltFile, BltShortId(kCursorImageId));
+	cursorImage.init(_boltlib, BltShortId(kCursorImageId));
 
 	// Format is expected to be CLUT7
 	Common::Array<byte> decodedImage;
@@ -178,10 +178,10 @@ Card::Status MerlinMainMenuCard::processButtonClick(int num) {
 	case 0: // Play
 		return Ended;
 	case 1: // Credits
-		_merlin->startMovie(_merlin->_maPfFile, MKTAG('C', 'R', 'D', 'T'));
+		_merlin->startMovie(_merlin->_maPf, MKTAG('C', 'R', 'D', 'T'));
 		return None;
 	case 4: // Tour
-		_merlin->startMovie(_merlin->_maPfFile, MKTAG('T', 'O', 'U', 'R'));
+		_merlin->startMovie(_merlin->_maPf, MKTAG('T', 'O', 'U', 'R'));
 		return None;
 	default:
 		warning("unknown main menu button %d", num);
@@ -194,7 +194,7 @@ void MerlinEngine::startMainMenu(BltLongId id) {
 
 	MerlinMainMenuCard* card = new MerlinMainMenuCard;
 	_currentCard.reset(card);
-	card->init(this, _boltlibBltFile, id);
+	card->init(this, _boltlib, id);
 }
 
 void MerlinEngine::startMenu(BltLongId id) {
@@ -202,7 +202,7 @@ void MerlinEngine::startMenu(BltLongId id) {
 
 	GenericMenuCard* menuCard = new GenericMenuCard;
 	_currentCard.reset(menuCard);
-	menuCard->init(_engine, _boltlibBltFile, id);
+	menuCard->init(_engine, _boltlib, id);
 }
 
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
@@ -246,7 +246,7 @@ void MerlinEngine::PlotWarningFunc(MerlinEngine *self, const void *param) {
 void MerlinEngine::PlotMovieFunc(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	uint32 name = *reinterpret_cast<const uint32*>(param);
-	self->startMovie(self->_maPfFile, name);
+	self->startMovie(self->_maPf, name);
 }
 
 void MerlinEngine::MainMenuFunc(MerlinEngine *self, const void *param) {
@@ -275,8 +275,13 @@ public:
 	static const HubEntry STAGE3;
 
 	void init(MerlinEngine *merlin, const HubEntry &entry);
+	void enter();
 protected:
 	Status processButtonClick(int num);
+
+private:
+	MerlinEngine *_merlin;
+	ScopedArray<BltImage> _itemImages;
 };
 
 const HubEntry MerlinHubCard::STAGE1 = { 0x0C0B };
@@ -299,11 +304,45 @@ struct BltHub { // type 40
 	BltLongId itemListId;
 };
 
+struct BltHubItem { // type 41
+	BltHubItem(const byte *src) {
+		// FIXME: unknown fields
+		imageId = BltLongId(READ_BE_UINT32(&src[4]));
+	}
+
+	BltLongId imageId;
+};
+
 void MerlinHubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
-	BltResource hubRes(merlin->_boltlibBltFile.loadResource(BltShortId(entry.hubId), kBltHub));
+	_merlin = merlin;
+
+	BltResource hubRes(merlin->_boltlib.loadResource(BltShortId(entry.hubId), kBltHub));
 	BltHub hubInfo(&hubRes[0]);
-	MenuCard::init(merlin->_engine, merlin->_boltlibBltFile, hubInfo.sceneId);
-	_scene.setBackPlane(merlin->_boltlibBltFile, hubInfo.bgPlaneId);
+
+	MenuCard::init(merlin->_engine, merlin->_boltlib, hubInfo.sceneId);
+	_scene.setBackPlane(merlin->_boltlib, hubInfo.bgPlaneId);
+
+	BltResource hubItemsList(merlin->_boltlib.loadResource(hubInfo.itemListId, kBltResourceList));
+	_itemImages.alloc(hubInfo.numItems);
+	for (uint i = 0; i < hubInfo.numItems; ++i) {
+		BltLongId hubItemId(READ_BE_UINT32(&hubItemsList[i * 4]));
+		BltResource hubItem(merlin->_boltlib.loadResource(hubItemId, kBltHubItem));
+		BltHubItem parsedHubItem(&hubItem[0]);
+		_itemImages[i].init(merlin->_boltlib, parsedHubItem.imageId);
+	}
+}
+
+Graphics& MerlinEngine::getGraphics() {
+	return _engine->_graphics;
+}
+
+void MerlinHubCard::enter() {
+	MenuCard::enter();
+
+	// Draw item images to back plane
+	for (uint i = 0; i < _itemImages.size(); ++i) {
+		_itemImages[i].drawAt(_merlin->getGraphics().getBackPlane().getSurface(), 0, 0, true);
+	}
 }
 
 Card::Status MerlinHubCard::processButtonClick(int num) {
@@ -404,13 +443,13 @@ const PuzzleEntry MerlinPuzzleCard::STAGE3_PUZZLE12 = { 0x8806, MKTAG('S', 'T', 
 void MerlinPuzzleCard::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
 	_merlin = merlin;
 	_winMovieName = entry.winMovieName;
-	MenuCard::init(merlin->_engine, merlin->_boltlibBltFile, BltShortId(entry.sceneShortId));
+	MenuCard::init(merlin->_engine, merlin->_boltlib, BltShortId(entry.sceneShortId));
 }
 
 Card::Status MerlinPuzzleCard::processButtonClick(int num) {
 	// TODO: implement puzzle
 	if (_winMovieName) {
-		_merlin->startMovie(_merlin->_challdirPfFile, _winMovieName);
+		_merlin->startMovie(_merlin->_challdirPf, _winMovieName);
 	}
 	return Ended;
 }

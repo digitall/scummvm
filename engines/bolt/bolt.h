@@ -117,6 +117,7 @@ public:
 class BoltEngine : public Engine {
 	friend class Movie;
 	friend class Scene;
+	friend class MerlinEngine;
 public:
 	BoltEngine(OSystem *syst, const ADGameDescription *gd);
 
