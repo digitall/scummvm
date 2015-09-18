@@ -38,7 +38,7 @@ class Graphics;
 
 class BltImage {
 public:
-	void init(BltFile &bltFile, BltLongId id);
+	void load(BltFile &bltFile, BltLongId id);
 
 	bool isLoaded() const {
 		return _res;
@@ -48,16 +48,12 @@ public:
 	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
 	byte query(int x, int y) const;
 
-	uint16 getWidth() const { return _width; }
-	uint16 getHeight() const { return _height; }
-	const Common::Point& getOffset() const { return _offset; }
+	uint16 getWidth() const;
+	uint16 getHeight() const;
+	Common::Point getOffset() const;
 
 private:
 	BltResource _res;
-	byte _compression;
-	uint16 _width;
-	uint16 _height;
-	Common::Point _offset;
 };
 
 } // End of namespace Bolt

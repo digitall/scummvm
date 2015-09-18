@@ -47,10 +47,10 @@ namespace Bolt {
 struct Rect {
 	Rect() : left(0), right(0), top(0), bottom(0) { }
 	Rect(const byte *src) {
-		left = (int16)READ_BE_UINT16(&src[0]);
-		right = (int16)READ_BE_UINT16(&src[2]);
-		top = (int16)READ_BE_UINT16(&src[4]);
-		bottom = (int16)READ_BE_UINT16(&src[6]);
+		left = READ_BE_INT16(&src[0]);
+		right = READ_BE_INT16(&src[2]);
+		top = READ_BE_INT16(&src[4]);
+		bottom = READ_BE_INT16(&src[6]);
 	}
 
 	operator Common::Rect() const {

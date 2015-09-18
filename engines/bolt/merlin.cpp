@@ -94,7 +94,7 @@ void MerlinEngine::initCursor() {
 	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 255, 255, 255 };
 
 	BltImage cursorImage;
-	cursorImage.init(_boltlib, BltShortId(kCursorImageId));
+	cursorImage.load(_boltlib, BltShortId(kCursorImageId));
 
 	// Format is expected to be CLUT7
 	Common::Array<byte> decodedImage;
@@ -316,19 +316,17 @@ struct BltHubItem { // type 41
 void MerlinHubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
 	_merlin = merlin;
 
-	BltResource hubRes(merlin->_boltlib.loadResource(BltShortId(entry.hubId), kBltHub));
-	BltHub hubInfo(&hubRes[0]);
+	BltHub hubInfo(&BltResource(merlin->_boltlib.loadResource(BltShortId(entry.hubId), kBltHub))[0]);
 
 	MenuCard::init(merlin->_engine, merlin->_boltlib, hubInfo.sceneId);
 	_scene.setBackPlane(merlin->_boltlib, hubInfo.bgPlaneId);
 
-	BltResource hubItemsList(merlin->_boltlib.loadResource(hubInfo.itemListId, kBltResourceList));
+	BltResourceList hubItemsList(merlin->_boltlib, hubInfo.itemListId);
 	_itemImages.alloc(hubInfo.numItems);
 	for (uint i = 0; i < hubInfo.numItems; ++i) {
-		BltLongId hubItemId(READ_BE_UINT32(&hubItemsList[i * 4]));
-		BltResource hubItem(merlin->_boltlib.loadResource(hubItemId, kBltHubItem));
-		BltHubItem parsedHubItem(&hubItem[0]);
-		_itemImages[i].init(merlin->_boltlib, parsedHubItem.imageId);
+		BltHubItem hubItem(&BltResource(merlin->_boltlib.loadResource(
+			hubItemsList.get(i), kBltHubItem))[0]);
+		_itemImages[i].load(merlin->_boltlib, hubItem.imageId);
 	}
 }
 

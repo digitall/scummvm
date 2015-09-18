@@ -113,6 +113,20 @@ private:
 	Common::Array<Directory> _dirs;
 };
 
+class BltResourceList { // type 6
+public:
+	BltResourceList(BltFile &bltFile, BltLongId id) {
+		_res.reset(bltFile.loadResource(id, kBltResourceList));
+	}
+
+	BltLongId get(uint i) const {
+		assert(i < (_res.size() / 4));
+		return BltLongId(READ_BE_UINT32(&_res[i * 4]));
+	}
+private:
+	BltResource _res;
+};
+
 } // End of namespace Bolt
 
 #endif

@@ -32,68 +32,80 @@ struct BltImageHeader {
 	BltImageHeader(const byte *src) {
 		compression = src[0];
 		// FIXME: unknown fields
-		offsetX = (int16)READ_BE_UINT16(&src[6]);
-		offsetY = (int16)READ_BE_UINT16(&src[8]);
+		offset.x = READ_BE_INT16(&src[6]);
+		offset.y = READ_BE_INT16(&src[8]);
 		width = READ_BE_UINT16(&src[0xA]);
 		height = READ_BE_UINT16(&src[0xC]);
 	}
 
 	byte compression;
-	int16 offsetX;
-	int16 offsetY;
+	Common::Point offset;
 	uint16 width;
 	uint16 height;
 };
 
-void BltImage::init(BltFile &bltFile, BltLongId id) {
+void BltImage::load(BltFile &bltFile, BltLongId id) {
 	_res.reset(bltFile.loadResource(id, kBltImage));
-	if (_res) {
-		BltImageHeader header(&_res[0]);
-		_compression = header.compression;
-		_width = header.width;
-		_height = header.height;
-		_offset.x = header.offsetX;
-		_offset.y = header.offsetY;
-	}
 }
 
 void BltImage::draw(::Graphics::Surface &surface, bool transparency) const {
+	assert(_res);
+
+	BltImageHeader header(&_res[0]);
 	const byte *src = &_res[BltImageHeader::SIZE];
 	int srcLen = _res.size() - BltImageHeader::SIZE;
 
-	if (_compression) {
-		decodeRL7(surface, 0, 0, _width, _height, src, srcLen, transparency);
+	if (header.compression) {
+		decodeRL7(surface, 0, 0, header.width, header.height, src, srcLen, transparency);
 	}
 	else {
-		decodeCLUT7(surface, 0, 0, _width, _height, src, srcLen, transparency);
+		decodeCLUT7(surface, 0, 0, header.width, header.height, src, srcLen, transparency);
 	}
 }
 
 void BltImage::drawAt(::Graphics::Surface &surface, int x, int y,
 	bool transparency) const {
+	assert(_res);
 
-	int topLeftX = x + _offset.x;
-	int topLeftY = y + _offset.y;
+	BltImageHeader header(&_res[0]);
+	int topLeftX = x + header.offset.x;
+	int topLeftY = y + header.offset.y;
 
 	const byte *src = &_res[BltImageHeader::SIZE];
 	int srcLen = _res.size() - BltImageHeader::SIZE;
 
-	if (_compression) {
-		decodeRL7(surface, topLeftX, topLeftY, _width, _height, src, srcLen,
+	if (header.compression) {
+		decodeRL7(surface, topLeftX, topLeftY, header.width, header.height, src, srcLen,
 			transparency);
 	}
 	else {
-		decodeCLUT7(surface, topLeftX, topLeftY, _width, _height, src, srcLen,
+		decodeCLUT7(surface, topLeftX, topLeftY, header.width, header.height, src, srcLen,
 			transparency);
 	}
 }
 
 byte BltImage::query(int x, int y) const {
+	BltImageHeader header(&_res[0]);
 	const byte *src = &_res[BltImageHeader::SIZE];
 	int srcLen = _res.size() - BltImageHeader::SIZE;
-	return _compression ?
-		queryRL7(x, y, src, srcLen, _width, _height) :
-		queryCLUT7(x, y, src, srcLen, _width, _height);
+	return header.compression ?
+		queryRL7(x, y, src, srcLen, header.width, header.height) :
+		queryCLUT7(x, y, src, srcLen, header.width, header.height);
+}
+
+uint16 BltImage::getWidth() const {
+	BltImageHeader header(&_res[0]);
+	return header.width;
+}
+
+uint16 BltImage::getHeight() const {
+	BltImageHeader header(&_res[0]);
+	return header.height;
+}
+
+Common::Point BltImage::getOffset() const {
+	BltImageHeader header(&_res[0]);
+	return header.offset;
 }
 
 } // End of namespace Bolt
