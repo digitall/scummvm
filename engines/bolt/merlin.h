@@ -68,6 +68,9 @@ private:
 		const void *param;
 	};
 
+	SequenceFunc _cardEndFunc; // Optional function to call when current card ends (process returns Ended status)
+	const void *_cardEndFuncParam;
+
 	static void PlotWarningFunc(MerlinEngine *self, const void *param);
 	static void PlotMovieFunc(MerlinEngine *self, const void *param);
 	static void MainMenuFunc(MerlinEngine *self, const void *param);
