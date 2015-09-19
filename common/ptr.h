@@ -262,8 +262,10 @@ public:
 	 * Resets the pointer with the new value. Old object will be destroyed
 	 */
 	void reset(PointerType o = 0) {
-		delete _pointer;
-		_pointer = o;
+		if (o != _pointer) {
+			delete _pointer;
+			_pointer = o;
+		}
 	}
 
 	/**

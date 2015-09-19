@@ -36,8 +36,8 @@ MerlinEngine::MerlinEngine()
 
 void MerlinEngine::init(BoltEngine *engine) {
 	_engine = engine;
-	_cardEndFunc = nullptr;
-	_cardEndFuncParam = nullptr;
+	_cardEndCallback.func = nullptr;
+	_cardEndCallback.param = nullptr;
 
 	// Load BOLTLIB.BLT file
 	_boltlib.load("BOLTLIB.BLT"); // TODO: error handling
@@ -81,12 +81,11 @@ void MerlinEngine::processEvent(const BoltEvent &event) {
 		else if (_currentCard) {
 			// Process current card
 			if (_currentCard->processEvent(event) == Card::Ended) {
-				if (_cardEndFunc) {
-					SequenceFunc tempCardEndFunc = _cardEndFunc;
-					const void *tempCardEndFuncParam = _cardEndFuncParam;
-					_cardEndFunc = nullptr;
-					_cardEndFuncParam = nullptr;
-					tempCardEndFunc(this, tempCardEndFuncParam);
+				if (_cardEndCallback.func) {
+					Callback temp = _cardEndCallback;
+					_cardEndCallback.func = nullptr;
+					_cardEndCallback.param = nullptr;
+					temp.func(this, temp.param);
 				}
 				else {
 					advanceSequence();
@@ -104,21 +103,22 @@ void MerlinEngine::initCursor() {
 	static const uint16 kCursorImageId = 0x9D00;
 	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 255, 255, 255 };
 
-	BltImage cursorImage;
-	cursorImage.load(_boltlib, BltShortId(kCursorImageId));
+	if (!_cursorImage.isLoaded()) {
+		_cursorImage.load(_boltlib, BltShortId(kCursorImageId));
+	}
 
 	// Format is expected to be CLUT7
 	Common::Array<byte> decodedImage;
-	decodedImage.resize(cursorImage.getWidth() * cursorImage.getHeight());
+	decodedImage.resize(_cursorImage.getWidth() * _cursorImage.getHeight());
 	::Graphics::Surface surface;
-	surface.init(cursorImage.getWidth(), cursorImage.getHeight(),
-		cursorImage.getWidth(), &decodedImage[0],
+	surface.init(_cursorImage.getWidth(), _cursorImage.getHeight(),
+		_cursorImage.getWidth(), &decodedImage[0],
 		::Graphics::PixelFormat::createFormatCLUT8());
-	cursorImage.draw(surface, false);
+	_cursorImage.draw(surface, false);
 
 	_engine->_system->setMouseCursor(&decodedImage[0],
-		cursorImage.getWidth(), cursorImage.getHeight(),
-		-cursorImage.getOffset().x, -cursorImage.getOffset().y, 0);
+		_cursorImage.getWidth(), _cursorImage.getHeight(),
+		-_cursorImage.getOffset().x, -_cursorImage.getOffset().y, 0);
 
 	_engine->_system->setCursorPalette(kCursorPalette, 0, 2);
 
@@ -128,24 +128,12 @@ void MerlinEngine::initCursor() {
 void MerlinEngine::resetSequence() {
 	_sequenceCursor = 0;
 	SEQUENCE[_sequenceCursor].func(this, SEQUENCE[_sequenceCursor].param);
-	if (!_movie.isRunning()) {
-		// If there is no movie playing now, enter next card
-		if (_currentCard) {
-			_currentCard->enter();
-		}
-	}
 }
 
 void MerlinEngine::advanceSequence() {
 	// advance sequence
 	_sequenceCursor = (_sequenceCursor + 1) % SEQUENCE_SIZE; // reset at end
 	SEQUENCE[_sequenceCursor].func(this, SEQUENCE[_sequenceCursor].param);
-	if (!_movie.isRunning()) {
-		// If there is no movie playing now, enter next card
-		if (_currentCard) {
-			_currentCard->enter();
-		}
-	}
 }
 
 struct BltMainMenuInfo {
@@ -202,18 +190,16 @@ Card::Status MerlinMainMenuCard::processButtonClick(int num) {
 
 void MerlinEngine::startMainMenu(BltLongId id) {
 	_currentCard.reset();
-
 	MerlinMainMenuCard* card = new MerlinMainMenuCard;
-	_currentCard.reset(card);
 	card->init(this, _boltlib, id);
+	setCurrentCard(card);
 }
 
 void MerlinEngine::startMenu(BltLongId id) {
 	_currentCard.reset();
-
 	GenericMenuCard* menuCard = new GenericMenuCard;
-	_currentCard.reset(menuCard);
 	menuCard->init(_engine, _boltlib, id);
+	setCurrentCard(menuCard);
 }
 
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
@@ -235,23 +221,17 @@ void MerlinEngine::MovieTrigger(void *param, uint16 triggerType) {
 	}
 }
 
-void MerlinEngine::PlotWarningFunc(MerlinEngine *self, const void *param) {
-	GUI::MessageDialog dialog(
-		"Warning: Puzzles are not implemented. Continuing will spoil the plot.\n"
-		"Proceed?", "Yes", "No");
-	int result = dialog.runModal();
-
-	// Reinitialize cursor because dialog clobbers it
-	self->initCursor();
-
-	if (result == GUI::kMessageOK) {
-		// Continue
-		self->advanceSequence();
+void MerlinEngine::setCurrentCard(Card *card) {
+	_currentCard.reset(card);
+	if (!_movie.isRunning() && _currentCard) {
+		// If there is no movie playing, enter new card now
+		_currentCard->enter();
 	}
-	else {
-		// Reset
-		self->resetSequence();
-	}
+}
+
+void MerlinEngine::setCardEndCallback(CallbackFunc func, const void *param) {
+	_cardEndCallback.func = func;
+	_cardEndCallback.param = param;
 }
 
 void MerlinEngine::PlotMovieFunc(MerlinEngine *self, const void *param) {
@@ -282,6 +262,7 @@ struct PuzzleEntry {
 
 struct HubEntry {
 	uint16 hubId;
+	int numPuzzles;
 	const PuzzleEntry *puzzles;
 };
 
@@ -306,7 +287,7 @@ private:
 };
 
 
-const HubEntry MerlinHubCard::STAGE1 = { 0x0C0B, MerlinHubCard::STAGE1_PUZZLES };
+const HubEntry MerlinHubCard::STAGE1 = { 0x0C0B, 6, MerlinHubCard::STAGE1_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE1_PUZZLES[6] = {
 	{ 0x6017, MKTAG('S', 'E', 'E', 'D') }, // seeds (TODO: correct scene)
 	{ 0x6017, MKTAG('G', 'R', 'A', 'V') }, // grave
@@ -316,11 +297,11 @@ const PuzzleEntry MerlinHubCard::STAGE1_PUZZLES[6] = {
 	{ 0x340A, MKTAG('R', 'A', 'V', 'N') }, // raven
 };
 
-const HubEntry MerlinHubCard::STAGE2 = { 0x0D34, MerlinHubCard::STAGE2_PUZZLES };
+const HubEntry MerlinHubCard::STAGE2 = { 0x0D34, 9, MerlinHubCard::STAGE2_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE2_PUZZLES[9] = {
 	{ 0x400B, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
-	{ 0x400B, MKTAG('P', 'L', 'A', 'Q') }, // ??? (TODO: correct)
-	{ 0x7D0B, MKTAG('S', 'N', 'O', 'W') }, // ??? (TODO: correct)
+	{ 0x400B, MKTAG('P', 'L', 'A', 'Q') }, // ??? (TODO: correct scene)
+	{ 0x7D0B, MKTAG('S', 'N', 'O', 'W') }, // ??? (TODO: correct scene)
 	{ 0x7D0B, MKTAG('P', 'L', 'N', 'T') }, // planets
 	{ 0x6817, MKTAG('P', 'R', 'C', 'H') }, // parchment
 	{ 0x6817, MKTAG('B', 'B', 'L', 'E') }, // ??? (TODO: correct scene)
@@ -329,7 +310,7 @@ const PuzzleEntry MerlinHubCard::STAGE2_PUZZLES[9] = {
 	{ 0x8706, MKTAG('M', 'I', 'R', 'R') }, // ??? (TODO: correct scene)
 };
 
-const HubEntry MerlinHubCard::STAGE3 = { 0x0E4F, MerlinHubCard::STAGE3_PUZZLES };
+const HubEntry MerlinHubCard::STAGE3 = { 0x0E4F, 12, MerlinHubCard::STAGE3_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE3_PUZZLES[12] = {
 	{ 0x8C0C, MKTAG('W', 'N', 'D', 'W') }, // window
 	{ 0x8C0C, MKTAG('O', 'C', 'T', 'A') }, // ??? (TODO: correct scene)
@@ -339,7 +320,7 @@ const PuzzleEntry MerlinHubCard::STAGE3_PUZZLES[12] = {
 	{ 0x810D, MKTAG('G', 'E', 'M', 'S') }, // ??? (TODO: correct scene)
 	{ 0x3810, MKTAG('C', 'S', 'T', 'L') }, // crystal
 	{ 0x3810, MKTAG('D', 'E', 'M', 'N') }, // ??? (TODO: correct scene)
-	{ 0x3810, MKTAG('T', 'I', 'L', 'E') }, // ??? (TODO: correct)
+	{ 0x3810, MKTAG('T', 'I', 'L', 'E') }, // ??? (TODO: correct scene)
 	{ 0x440D, MKTAG('S', 'P', 'I', 'D') }, // spider
 	{ 0x640B, MKTAG('T', 'B', 'L', 'T') }, // tablet
 	{ 0x8806, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
@@ -383,7 +364,7 @@ void MerlinHubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
 	_itemImages.alloc(hubInfo.numItems);
 	for (uint i = 0; i < hubInfo.numItems; ++i) {
 		BltHubItem hubItem(&BltResource(merlin->_boltlib.loadResource(
-			hubItemsList.get(i), kBltHubItem))[0]);
+			hubItemsList.get(i).value, kBltHubItem))[0]);
 		_itemImages[i].load(merlin->_boltlib, hubItem.imageId);
 	}
 }
@@ -402,9 +383,8 @@ void MerlinHubCard::enter() {
 }
 
 Card::Status MerlinHubCard::processButtonClick(int num) {
-	if (num >= 0) {
-		_merlin->_cardEndFunc = MerlinEngine::PuzzleFunc;
-		_merlin->_cardEndFuncParam = &_hubEntry->puzzles[num];
+	if (num >= 0 && num < _hubEntry->numPuzzles) {
+		_merlin->setCardEndCallback(MerlinEngine::PuzzleFunc, &_hubEntry->puzzles[num]);
 		return Ended;
 	}
 
@@ -414,17 +394,10 @@ Card::Status MerlinHubCard::processButtonClick(int num) {
 
 void MerlinEngine::HubFunc(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
-
 	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
 	MerlinHubCard *card = new MerlinHubCard;
-	self->_currentCard.reset(card);
 	card->init(self, *entry);
-	if (!self->_movie.isRunning()) {
-		// If there is no movie playing now, enter next card
-		if (self->_currentCard) {
-			self->_currentCard->enter();
-		}
-	}
+	self->setCurrentCard(card);
 }
 
 class MerlinPuzzleCard : public MenuCard {
@@ -457,19 +430,12 @@ void MerlinEngine::PuzzleFunc(MerlinEngine *self, const void *param) {
 	// Extract current hub card entry to support returning to it
 	const HubEntry *currentHub = reinterpret_cast<const HubEntry*>(SEQUENCE[self->_sequenceCursor].param);
 	// Set it up so that when puzzle ends, you return to hub
-	self->_cardEndFunc = HubFunc;
-	self->_cardEndFuncParam = currentHub;
+	self->setCardEndCallback(HubFunc, currentHub);
 
 	const PuzzleEntry *entry = reinterpret_cast<const PuzzleEntry*>(param);
 	MerlinPuzzleCard *card = new MerlinPuzzleCard;
-	self->_currentCard.reset(card);
 	card->init(self, *entry);
-	if (!self->_movie.isRunning()) {
-		// If there is no movie playing now, enter next card
-		if (self->_currentCard) {
-			self->_currentCard->enter();
-		}
-	}
+	self->setCurrentCard(card);
 }
 
 static const uint32 PLOT_MOVIE_BMPR = MKTAG('B', 'M', 'P', 'R');
@@ -479,7 +445,7 @@ static const uint32 PLOT_MOVIE_LABT = MKTAG('L', 'A', 'B', 'T');
 static const uint32 PLOT_MOVIE_CAV1 = MKTAG('C', 'A', 'V', '1');
 static const uint32 PLOT_MOVIE_FNLE = MKTAG('F', 'N', 'L', 'E');
 
-const MerlinEngine::SequenceEntry
+const MerlinEngine::Callback
 MerlinEngine::SEQUENCE[] = {
 	
 	// Pre-game menus
@@ -510,6 +476,6 @@ MerlinEngine::SEQUENCE[] = {
 
 const size_t MerlinEngine::SEQUENCE_SIZE =
 	sizeof(MerlinEngine::SEQUENCE) /
-	sizeof(MerlinEngine::SequenceEntry);
+	sizeof(MerlinEngine::Callback);
 
 } // End of namespace Bolt

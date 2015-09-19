@@ -99,9 +99,6 @@ private:
 
 		GraphicsType graphicsType;
 
-		Common::Point defaultImagePos;
-		BltImage defaultImage;
-
 		// For Palette Mods graphics
 		uint hoveredPalStart;
 		uint hoveredPalNum;
@@ -123,7 +120,28 @@ private:
 
 	ScopedArray<Button> _buttons;
 
-	void loadButton(Button &button, BltFile &bltFile, const byte *src);
+	struct BltButtonStruct { // type 31
+		static const uint32 kType = kBltButtonList;
+		static const uint kSize = 0x14;
+		BltButtonStruct(const byte *src) {
+			type = READ_BE_UINT16(&src[0]);
+			rect = Rect(&src[2]);
+			plane = READ_BE_UINT16(&src[0xA]);
+			numGraphics = READ_BE_UINT16(&src[0xC]);
+			// FIXME: unknown field at 0xE. Always 0 in game data.
+			graphicsId = BltLongId(READ_BE_UINT32(&src[0x10]));
+		}
+
+		uint16 type;
+		Rect rect;
+		uint16 plane;
+		uint16 numGraphics;
+		BltLongId graphicsId;
+	};
+
+	typedef BltSimpleReader<BltButtonStruct> BltButtonList;
+
+	void loadButton(Button &button, BltFile &bltFile, const BltButtonStruct &buttonInfo);
 
 	Common::Point _origin;
 

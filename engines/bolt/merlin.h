@@ -57,21 +57,31 @@ private:
 	PfFile _potionPf;
 	PfFile _challdirPf;
 
+	BltImage _cursorImage;
+
 	CardPtr _currentCard;
 	Movie _movie;
 
+	// Set current card and enter it if no movie is playing. If a movie is
+	// playing, the new card will be entered when the movie ends.
+	// Deletes old card and takes ownership of new card.
+	// Beware: If this function is called within a method of the old card,
+	// the old card is deleted. Thereafter, accessing its members will crash
+	// ScummVM. It is safer to use a card end callback to transition to a new
+	// card.
+	void setCurrentCard(Card *card);
+
 	int _sequenceCursor;
 
-	typedef void(*SequenceFunc)(MerlinEngine *self, const void *param);
-	struct SequenceEntry {
-		SequenceFunc func;
+	typedef void (*CallbackFunc)(MerlinEngine *self, const void *param);
+	struct Callback {
+		CallbackFunc func;
 		const void *param;
 	};
 
-	SequenceFunc _cardEndFunc; // Optional function to call when current card ends (process returns Ended status)
-	const void *_cardEndFuncParam;
+	Callback _cardEndCallback;
+	void setCardEndCallback(CallbackFunc func, const void *param);
 
-	static void PlotWarningFunc(MerlinEngine *self, const void *param);
 	static void PlotMovieFunc(MerlinEngine *self, const void *param);
 	static void MainMenuFunc(MerlinEngine *self, const void *param);
 	static void FileMenuFunc(MerlinEngine *self, const void *param);
@@ -79,7 +89,7 @@ private:
 	static void HubFunc(MerlinEngine *self, const void *param);
 	static void PuzzleFunc(MerlinEngine *self, const void *param);
 
-	static const SequenceEntry SEQUENCE[];
+	static const Callback SEQUENCE[];
 	static const size_t SEQUENCE_SIZE;
 };
 
