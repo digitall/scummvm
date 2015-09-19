@@ -30,18 +30,17 @@
 namespace Bolt {
 
 enum BltType {
-	kBltError = 0, // Not present in game data; only for internal use
 	kBltResourceList = 6,
 	kBltImage = 8,
 	kBltPalette = 10,
 	kBltColorCycles = 11,
 	kBltColorCycleSlot = 12,
 	kBltPlane = 26, // image, palette, hotspots
-	kBltSprites = 27, // image, x, y
+	kBltSpriteList = 27, // image, x, y
 	kBltButtonColors = 28, // just some colors, used by palette mod
 	kBltButtonPaletteMod = 29,
 	kBltButtonGraphics = 30,
-	kBltButtons = 31,
+	kBltButtonList = 31,
 	kBltScene = 32,
 	kBltMainMenu = 33,
 	kBltHub = 40,
@@ -113,19 +112,38 @@ private:
 	Common::Array<Directory> _dirs;
 };
 
-class BltResourceList { // type 6
+template<class T>
+class BltSimpleReader {
+	// Generic template for creating a simple loader and parser for a BLT
+	// resource.
+	// Template parameter T must have:
+	// - static const uint32 kType equal to the resource type number
+	// - static const uint kSize equal to the size of the resource in bytes
+	// - constructor T(const byte *src) which parses from src into a T structure
 public:
-	BltResourceList(BltFile &bltFile, BltLongId id) {
-		_res.reset(bltFile.loadResource(id, kBltResourceList));
+	BltSimpleReader(BltFile &bltFile, BltLongId id) {
+		_res.reset(bltFile.loadResource(id, T::kType));
 	}
 
-	BltLongId get(uint i) const {
-		assert(i < (_res.size() / 4));
-		return BltLongId(READ_BE_UINT32(&_res[i * 4]));
+	T get(uint i) const {
+		assert(i < _res.size() / T::kSize);
+		return T(&_res[i * T::kSize]);
 	}
 private:
 	BltResource _res;
 };
+
+struct BltResourceListStruct { // type 6
+	static const uint32 kType = kBltResourceList;
+	static const uint kSize = 4;
+	BltResourceListStruct(const byte *src) {
+		value = BltLongId(READ_BE_UINT32(&src[0]));
+	}
+
+	BltLongId value;
+};
+
+typedef BltSimpleReader<BltResourceListStruct> BltResourceList;
 
 } // End of namespace Bolt
 
