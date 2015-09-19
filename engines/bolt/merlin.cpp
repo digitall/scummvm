@@ -438,6 +438,15 @@ void MerlinEngine::PuzzleFunc(MerlinEngine *self, const void *param) {
 	self->setCurrentCard(card);
 }
 
+void MerlinEngine::FreeplayHubFunc(MerlinEngine *self, const void *param) {
+	self->_currentCard.reset();
+
+	uint16 scene = *reinterpret_cast<const uint16*>(param);
+	GenericMenuCard *card = new GenericMenuCard;
+	card->init(self->_engine, self->_boltlib, BltShortId(scene));
+	self->setCurrentCard(card);
+}
+
 static const uint32 PLOT_MOVIE_BMPR = MKTAG('B', 'M', 'P', 'R');
 static const uint32 PLOT_MOVIE_INTR = MKTAG('I', 'N', 'T', 'R');
 static const uint32 PLOT_MOVIE_PLOG = MKTAG('P', 'L', 'O', 'G');
@@ -445,15 +454,19 @@ static const uint32 PLOT_MOVIE_LABT = MKTAG('L', 'A', 'B', 'T');
 static const uint32 PLOT_MOVIE_CAV1 = MKTAG('C', 'A', 'V', '1');
 static const uint32 PLOT_MOVIE_FNLE = MKTAG('F', 'N', 'L', 'E');
 
+static const uint16 FREEPLAY1_SCENE = 0x0337;
+static const uint16 FREEPLAY2_SCENE = 0x0446;
+static const uint16 FREEPLAY3_SCENE = 0x0555;
+
 const MerlinEngine::Callback
 MerlinEngine::SEQUENCE[] = {
 	
 	// Pre-game menus
 	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_BMPR },
 	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_INTR },
-	{ MerlinEngine::MainMenuFunc, nullptr }, // main menu
-	{ MerlinEngine::FileMenuFunc, nullptr }, // file select
-	{ MerlinEngine::DifficultyMenuFunc, nullptr }, // difficulty select
+	{ MerlinEngine::MainMenuFunc, nullptr },
+	{ MerlinEngine::FileMenuFunc, nullptr },
+	{ MerlinEngine::DifficultyMenuFunc, nullptr },
 
 	// Stage 1: Forest
 	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_PLOG },
@@ -467,11 +480,12 @@ MerlinEngine::SEQUENCE[] = {
 	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_CAV1 },
 	{ MerlinEngine::HubFunc, &MerlinHubCard::STAGE3 },
 
-#if 0
-	{ MerlinEngine::MenuFunc, 0x0337 }, // stage 1 freeplay hub
-	{ MerlinEngine::MenuFunc, 0x0446 }, // stage 2 freeplay hub
-	{ MerlinEngine::MenuFunc, 0x0555 }, // stage 3 freeplay hub
-#endif
+	// NOTE: The Finale movie is hidden until the game is fully implemented.
+	//{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_FNLE },
+
+	{ MerlinEngine::FreeplayHubFunc, &FREEPLAY1_SCENE },
+	{ MerlinEngine::FreeplayHubFunc, &FREEPLAY2_SCENE },
+	{ MerlinEngine::FreeplayHubFunc, &FREEPLAY3_SCENE },
 };
 
 const size_t MerlinEngine::SEQUENCE_SIZE =
