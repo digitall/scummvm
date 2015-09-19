@@ -88,6 +88,7 @@ private:
 	static void DifficultyMenuFunc(MerlinEngine *self, const void *param);
 	static void HubFunc(MerlinEngine *self, const void *param);
 	static void PuzzleFunc(MerlinEngine *self, const void *param);
+	static void FreeplayHubFunc(MerlinEngine *self, const void *param);
 
 	static const Callback SEQUENCE[];
 	static const size_t SEQUENCE_SIZE;
