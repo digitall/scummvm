@@ -40,7 +40,7 @@ class BltImage {
 public:
 	void load(BltFile &bltFile, BltLongId id);
 
-	bool isLoaded() const {
+	operator bool() const {
 		return _res;
 	}
 

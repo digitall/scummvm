@@ -103,7 +103,7 @@ void MerlinEngine::initCursor() {
 	static const uint16 kCursorImageId = 0x9D00;
 	static const byte kCursorPalette[3 * 2] = { 0, 0, 0, 255, 255, 255 };
 
-	if (!_cursorImage.isLoaded()) {
+	if (!_cursorImage) {
 		_cursorImage.load(_boltlib, BltShortId(kCursorImageId));
 	}
 

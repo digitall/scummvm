@@ -39,7 +39,7 @@ enum BltType {
 	kBltSpriteList = 27, // image, x, y
 	kBltButtonColors = 28, // just some colors, used by palette mod
 	kBltButtonPaletteMod = 29,
-	kBltButtonGraphics = 30,
+	kBltButtonGraphicsList = 30,
 	kBltButtonList = 31,
 	kBltScene = 32,
 	kBltMainMenu = 33,
@@ -115,28 +115,48 @@ private:
 template<class T>
 class BltSimpleReader {
 	// Generic template for creating a simple loader and parser for a BLT
-	// resource.
+	// resource. This template supports resources that are simple constant-
+	// -sized elements in an array.
 	// Template parameter T must have:
 	// - static const uint32 kType equal to the resource type number
 	// - static const uint kSize equal to the size of the resource in bytes
-	// - constructor T(const byte *src) which parses from src into a T structure
+	// - void load(const byte *src, BltFile &bltFile) which parses from src
+	//   into a T structure. The function may load additional resources from
+	//   bltFile.
 public:
+	BltSimpleReader() { }
 	BltSimpleReader(BltFile &bltFile, BltLongId id) {
-		_res.reset(bltFile.loadResource(id, T::kType));
+		load(bltFile, id);
 	}
 
-	T get(uint i) const {
-		assert(i < _res.size() / T::kSize);
-		return T(&_res[i * T::kSize]);
+	operator bool() const {
+		return _array;
+	}
+
+	void load(BltFile &bltFile, BltLongId id) {
+		BltResource res(bltFile.loadResource(id, T::kType));
+		uint numItems = res.size() / T::kSize;
+		_array.alloc(numItems);
+		for (uint i = 0; i < numItems; ++i) {
+			_array[i].load(&res[i * T::kSize], bltFile);
+		}
+	}
+
+	uint size() const {
+		return _array.size();
+	}
+
+	const T& get(uint i) const {
+		return _array[i];
 	}
 private:
-	BltResource _res;
+	ScopedArray<T> _array;
 };
 
 struct BltResourceListStruct { // type 6
 	static const uint32 kType = kBltResourceList;
 	static const uint kSize = 4;
-	BltResourceListStruct(const byte *src) {
+	void load(const byte *src, BltFile &bltFile) {
 		value = BltLongId(READ_BE_UINT32(&src[0]));
 	}
 

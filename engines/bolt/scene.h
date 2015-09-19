@@ -57,12 +57,22 @@ private:
 	Plane _forePlane;
 	Plane _backPlane;
 
-	struct Sprite {
+	struct BltSpriteStruct { // type 27
+		static const uint32 kType = kBltSpriteList;
+		static const uint kSize = 0x8;
+		void load(const byte *src, BltFile &bltFile) {
+			pos.x = READ_BE_INT16(&src[0]);
+			pos.y = READ_BE_INT16(&src[2]);
+			image.load(bltFile, BltLongId(READ_BE_UINT32(&src[4])));
+		}
+
 		Common::Point pos;
 		BltImage image;
 	};
 
-	ScopedArray<Sprite> _sprites;
+	typedef BltSimpleReader<BltSpriteStruct> BltSpriteList;
+
+	BltSpriteList _sprites;
 
 	struct ColorCycle {
 		ColorCycle() : start(0), num(0), delay(0) { }
@@ -80,73 +90,90 @@ private:
 	const Plane& getScenePlane(uint16 num) const;
 	Bolt::Plane& getGraphicsPlane(uint16 num);
 
-	struct Button {
-		enum HotspotType {
-			kHotspotNone = 0, // unused, for internal use
-			kHotspotRect = 1,
-			// Hotspot type 2 seems to be a normal display query (unused)
-			kHotspotImageQuery = 3, // rect.left: low color, rect.right: high color
-		};
-		enum GraphicsType {
-			kGfxNone = 0, // unused, for internal use
-			kGfxPaletteMods = 1,
-			kGfxImages = 2,
-		};
+	struct BltButtonPaletteMod { // type 29
+		void load(const byte *src, BltFile &bltFile) {
+			start = src[0];
+			num = src[1];
+			colors.reset(bltFile.loadResource(BltLongId(READ_BE_UINT32(&src[2])), kBltButtonColors));
+		}
 
-		HotspotType hotspotType;
-		Rect rect;
-		uint16 plane;
-
-		GraphicsType graphicsType;
-
-		// For Palette Mods graphics
-		uint hoveredPalStart;
-		uint hoveredPalNum;
-		BltResource hoveredColors;
-
-		// For Images graphics
-		Common::Point hoveredImagePos;
-		BltImage hoveredImage;
-
-		// For Palette Mods graphics
-		uint idlePalStart;
-		uint idlePalNum;
-		BltResource idleColors;
-
-		// For Images graphics
-		Common::Point idleImagePos;
-		BltImage idleImage;
+		byte start;
+		byte num;
+		BltResource colors;
 	};
 
-	ScopedArray<Button> _buttons;
+	struct BltButtonGraphicsStruct { // type 30
+		static const uint32 kType = kBltButtonGraphicsList;
+		static const uint kSize = 0xC;
+		enum GraphicsType {
+			PaletteMods = 1,
+			Sprites = 2,
+		};
+
+		void load(const byte *src, BltFile &bltFile) {
+			type = READ_BE_UINT16(&src[0]);
+			// FIXME: unknown field at 2. It is used in the buttons on sliding
+			// and points to an image.
+			BltLongId hoveredId(READ_BE_UINT32(&src[6]));
+			BltLongId idleId(READ_BE_UINT32(&src[0xA]));
+			if (type == PaletteMods) {
+				hoveredPaletteMod.load(&BltResource(bltFile.loadResource(
+					hoveredId, kBltButtonPaletteMod))[0], bltFile);
+				idlePaletteMod.load(&BltResource(bltFile.loadResource(
+					idleId, kBltButtonPaletteMod))[0], bltFile);
+			}
+			else if (type == Sprites) {
+				hoveredSprites.load(bltFile, hoveredId);
+				idleSprites.load(bltFile, idleId);
+			}
+		}
+
+		uint16 type;
+
+		// For palette mod type graphics
+		BltButtonPaletteMod hoveredPaletteMod;
+		BltButtonPaletteMod idlePaletteMod;
+
+		// For image type graphics
+		BltSpriteList hoveredSprites;
+		BltSpriteList idleSprites;
+	};
+
+	typedef BltSimpleReader<BltButtonGraphicsStruct> BltButtonGraphicsList;
 
 	struct BltButtonStruct { // type 31
 		static const uint32 kType = kBltButtonList;
 		static const uint kSize = 0x14;
-		BltButtonStruct(const byte *src) {
+		void load(const byte *src, BltFile &bltFile) {
 			type = READ_BE_UINT16(&src[0]);
 			rect = Rect(&src[2]);
 			plane = READ_BE_UINT16(&src[0xA]);
 			numGraphics = READ_BE_UINT16(&src[0xC]);
 			// FIXME: unknown field at 0xE. Always 0 in game data.
-			graphicsId = BltLongId(READ_BE_UINT32(&src[0x10]));
+			graphics.load(bltFile, BltLongId(READ_BE_UINT32(&src[0x10])));
 		}
+
+		enum HotspotType {
+			Rectangle = 1,
+			// 2 is regular display query (unused)
+			HotspotQuery = 3,
+		};
 
 		uint16 type;
 		Rect rect;
 		uint16 plane;
 		uint16 numGraphics;
-		BltLongId graphicsId;
+		BltButtonGraphicsList graphics;
 	};
 
 	typedef BltSimpleReader<BltButtonStruct> BltButtonList;
 
-	void loadButton(Button &button, BltFile &bltFile, const BltButtonStruct &buttonInfo);
+	BltButtonList _buttons;
 
 	Common::Point _origin;
 
-	bool isButtonAtPoint(const Button &button, const Common::Point &pt) const;
-	void drawButton(const Button &button, bool hovered);
+	bool isButtonAtPoint(const BltButtonStruct &button, const Common::Point &pt) const;
+	void drawButton(const BltButtonStruct &button, bool hovered);
 };
 
 } // End of namespace Bolt
