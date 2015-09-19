@@ -65,15 +65,20 @@ public:
 
 	void alloc(uint size) {
 		delete[] _internal.data;
-		_internal.data = new T[size];
+		_internal.data = nullptr;
 		_internal.size = size;
+		if (size > 0) {
+			_internal.data = new T[size];
+		}
 	}
 
 	T& operator[](uint idx) {
+		assert(idx < _internal.size);
 		return _internal.data[idx];
 	}
 
 	const T& operator[](uint idx) const {
+		assert(idx < _internal.size);
 		return _internal.data[idx];
 	}
 
