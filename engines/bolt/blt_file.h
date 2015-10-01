@@ -113,7 +113,42 @@ private:
 };
 
 template<class T>
-class BltSimpleReader {
+class BltLoader {
+	// Generic template for creating a simple loader and parser for a BLT
+	// resource.
+	// Template parameter T must have:
+	// - static const uint32 kType equal to the resource type number
+	// - T() default constructor which initializes T with a default unloaded
+	//   state
+	// - void load(const byte *src, BltFile &bltFile) which parses from src
+	//   into a T structure. The function may load additional resources from
+	//   bltFile.
+	// Use arrow operator -> to access.
+public:
+	BltLoader() { }
+	BltLoader(BltFile &bltFile, BltLongId id) {
+		load(bltFile, id);
+	}
+
+	void load(BltFile &bltFile, BltLongId id) {
+		BltResource res(bltFile.loadResource(id, T::kType));
+		// Reset _data to unloaded state
+		_data.~T();
+		new(&_data) T();
+		if (res) {
+			_data.load(&res[0], bltFile);
+		}
+	}
+
+	const T* operator->() const {
+		return &_data;
+	}
+private:
+	T _data;
+};
+
+template<class T>
+class BltArrayLoader {
 	// Generic template for creating a simple loader and parser for a BLT
 	// resource. This template supports resources that are simple constant-
 	// -sized elements in an array.
@@ -123,9 +158,10 @@ class BltSimpleReader {
 	// - void load(const byte *src, BltFile &bltFile) which parses from src
 	//   into a T structure. The function may load additional resources from
 	//   bltFile.
+	// Use array indexing operator [] to access.
 public:
-	BltSimpleReader() { }
-	BltSimpleReader(BltFile &bltFile, BltLongId id) {
+	BltArrayLoader() { }
+	BltArrayLoader(BltFile &bltFile, BltLongId id) {
 		load(bltFile, id);
 	}
 
@@ -146,7 +182,7 @@ public:
 		return _array.size();
 	}
 
-	const T& get(uint i) const {
+	const T& operator[](uint i) const {
 		return _array[i];
 	}
 private:
@@ -163,7 +199,7 @@ struct BltResourceListStruct { // type 6
 	BltLongId value;
 };
 
-typedef BltSimpleReader<BltResourceListStruct> BltResourceList;
+typedef BltArrayLoader<BltResourceListStruct> BltResourceList;
 
 } // End of namespace Bolt
 

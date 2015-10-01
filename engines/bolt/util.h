@@ -46,6 +46,7 @@ public:
 
 	~ScopedArray() {
 		delete[] _internal.data;
+		_internal.data = nullptr;
 	}
 
 	operator bool() const {

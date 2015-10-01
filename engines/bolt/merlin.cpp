@@ -286,6 +286,15 @@ private:
 	ScopedArray<BltImage> _itemImages;
 };
 
+// From MERLIN.EXE:
+//
+// Action puzzles:
+//   SeedsDD    4921
+//   LeavesDD   4D19
+//   BubblesDD  5113
+//   SnowflakDD 551C
+//   GemsDD     5918
+//   DemonsDD   5D17
 
 const HubEntry MerlinHubCard::STAGE1 = { 0x0C0B, 6, MerlinHubCard::STAGE1_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE1_PUZZLES[6] = {
@@ -364,7 +373,7 @@ void MerlinHubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
 	_itemImages.alloc(hubInfo.numItems);
 	for (uint i = 0; i < hubInfo.numItems; ++i) {
 		BltHubItem hubItem(&BltResource(merlin->_boltlib.loadResource(
-			hubItemsList.get(i).value, kBltHubItem))[0]);
+			hubItemsList[i].value, kBltHubItem))[0]);
 		_itemImages[i].load(merlin->_boltlib, hubItem.imageId);
 	}
 }
