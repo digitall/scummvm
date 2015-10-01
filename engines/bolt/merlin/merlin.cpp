@@ -28,6 +28,7 @@
 #include "bolt/bolt.h"
 #include "bolt/menu_card.h"
 #include "bolt/merlin/action_puzzle.h"
+#include "bolt/merlin/tangram_puzzle.h"
 #include "bolt/merlin/hub.h"
 #include "bolt/merlin/main_menu.h"
 
@@ -266,6 +267,11 @@ Card::Status TestPuzzleCard::processButtonClick(int num) {
 //   SpiderDD 453F
 //   QuartzDD 393F
 //
+// Synchronization puzzles:
+//   PlanetDD 7D12
+//   DoorDD   8114
+//   SphereDD 8512
+//
 // Color puzzles:
 //   WindowDD 8C13
 //   StarDD   9014
@@ -293,27 +299,27 @@ const PuzzleEntry MerlinEngine::STAGE1_PUZZLES[6] = {
 const HubEntry MerlinEngine::STAGE2 = { 0x0D34, 9, MerlinEngine::STAGE2_PUZZLES };
 const PuzzleEntry MerlinEngine::STAGE2_PUZZLES[9] = {
 	{ TestPuzzleCard::loadFunc, 0x400B, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
-	{ TestPuzzleCard::loadFunc, 0x400B, MKTAG('P', 'L', 'A', 'Q') }, // ??? (TODO: correct scene)
-	{ ActionPuzzleCard::loadFunc, 0x551C, MKTAG('S', 'N', 'O', 'W') }, // ??? (TODO: correct scene)
+	{ TangramPuzzleCard::loadFunc, 0x6D15, MKTAG('P', 'L', 'A', 'Q') }, // plaque
+	{ ActionPuzzleCard::loadFunc, 0x551C, MKTAG('S', 'N', 'O', 'W') }, // snow
 	{ TestPuzzleCard::loadFunc, 0x7D0B, MKTAG('P', 'L', 'N', 'T') }, // planets
 	{ TestPuzzleCard::loadFunc, 0x6817, MKTAG('P', 'R', 'C', 'H') }, // parchment
-	{ ActionPuzzleCard::loadFunc, 0x5113, MKTAG('B', 'B', 'L', 'E') }, // ??? (TODO: correct scene)
+	{ ActionPuzzleCard::loadFunc, 0x5113, MKTAG('B', 'B', 'L', 'E') }, // bubbles
 	{ TestPuzzleCard::loadFunc, 0x3C0B, MKTAG('S', 'K', 'L', 'T') }, // skeleton
 	{ TestPuzzleCard::loadFunc, 0x8706, MKTAG('F', 'L', 'S', 'K') }, // flasks
-	{ TestPuzzleCard::loadFunc, 0x8706, MKTAG('M', 'I', 'R', 'R') }, // ??? (TODO: correct scene)
+	{ TangramPuzzleCard::loadFunc, 0x7115, MKTAG('M', 'I', 'R', 'R') }, // mirror
 };
 
 const HubEntry MerlinEngine::STAGE3 = { 0x0E4F, 12, MerlinEngine::STAGE3_PUZZLES };
 const PuzzleEntry MerlinEngine::STAGE3_PUZZLES[12] = {
 	{ TestPuzzleCard::loadFunc, 0x8C0C, MKTAG('W', 'N', 'D', 'W') }, // window
-	{ TestPuzzleCard::loadFunc, 0x8C0C, MKTAG('O', 'C', 'T', 'A') }, // ??? (TODO: correct scene)
+	{ TangramPuzzleCard::loadFunc, 0x7515, MKTAG('O', 'C', 'T', 'A') }, // octagon
 	{ TestPuzzleCard::loadFunc, 0x850B, MKTAG('S', 'P', 'R', 'T') }, // spirits
 	{ TestPuzzleCard::loadFunc, 0x900D, MKTAG('S', 'T', 'A', 'R') }, // star
 	{ TestPuzzleCard::loadFunc, 0x810D, MKTAG('D', 'O', 'O', 'R') }, // door
-	{ ActionPuzzleCard::loadFunc, 0x5918, MKTAG('G', 'E', 'M', 'S') }, // ??? (TODO: correct scene)
+	{ ActionPuzzleCard::loadFunc, 0x5918, MKTAG('G', 'E', 'M', 'S') }, // gems
 	{ TestPuzzleCard::loadFunc, 0x3810, MKTAG('C', 'S', 'T', 'L') }, // crystal
-	{ ActionPuzzleCard::loadFunc, 0x5D17, MKTAG('D', 'E', 'M', 'N') }, // ??? (TODO: correct scene)
-	{ TestPuzzleCard::loadFunc, 0x3810, MKTAG('T', 'I', 'L', 'E') }, // ??? (TODO: correct scene)
+	{ ActionPuzzleCard::loadFunc, 0x5D17, MKTAG('D', 'E', 'M', 'N') }, // demons
+	{ TangramPuzzleCard::loadFunc, 0x7915, MKTAG('T', 'I', 'L', 'E') }, // tile
 	{ TestPuzzleCard::loadFunc, 0x440D, MKTAG('S', 'P', 'I', 'D') }, // spider
 	{ TestPuzzleCard::loadFunc, 0x640B, MKTAG('T', 'B', 'L', 'T') }, // tablet
 	{ TestPuzzleCard::loadFunc, 0x8806, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites

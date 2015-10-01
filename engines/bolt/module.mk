@@ -12,6 +12,7 @@ MODULE_OBJS := \
 	merlin/hub.o \
 	merlin/main_menu.o \
 	merlin/merlin.o \
+	merlin/tangram_puzzle.o \
 	movie.o \
 	pf_file.o \
 	scene.o
