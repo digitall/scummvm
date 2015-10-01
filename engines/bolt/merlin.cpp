@@ -234,30 +234,34 @@ void MerlinEngine::setCardEndCallback(CallbackFunc func, const void *param) {
 	_cardEndCallback.param = param;
 }
 
-void MerlinEngine::PlotMovieFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::plotMovieFunc(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	uint32 name = *reinterpret_cast<const uint32*>(param);
 	self->startMovie(self->_maPf, name);
 }
 
-void MerlinEngine::MainMenuFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::mainMenuFunc(MerlinEngine *self, const void *param) {
 	static const uint16 kMainMenuId = 0x0118;
 	self->startMainMenu(BltShortId(kMainMenuId));
 }
 
-void MerlinEngine::FileMenuFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::fileMenuFunc(MerlinEngine *self, const void *param) {
 	static const uint16 kFileMenuId = 0x027A;
 	self->startMenu(BltShortId(kFileMenuId));
 }
 
-void MerlinEngine::DifficultyMenuFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::difficultyMenuFunc(MerlinEngine *self, const void *param) {
 	static const uint16 kDifficultyMenuId = 0x006B;
 	self->startMenu(BltShortId(kDifficultyMenuId));
 }
 
+struct PuzzleEntry;
+typedef Card* (*PuzzleLoadFunc)(MerlinEngine *merlin, const PuzzleEntry &entry);
+
 struct PuzzleEntry {
-	uint16 sceneShortId;
-	uint32 winMovieName;
+	PuzzleLoadFunc loadFunc;
+	uint16 resId;
+	uint32 winMovie;
 };
 
 struct HubEntry {
@@ -286,6 +290,90 @@ private:
 	ScopedArray<BltImage> _itemImages;
 };
 
+class TestPuzzleCard : public MenuCard {
+public:
+	static Card* loadFunc(MerlinEngine *merlin, const PuzzleEntry &entry);
+	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
+protected:
+	Status processButtonClick(int num);
+
+	MerlinEngine *_merlin;
+	uint32 _winMovie;
+};
+
+Card* TestPuzzleCard::loadFunc(MerlinEngine *merlin, const PuzzleEntry &entry) {
+	TestPuzzleCard *card = new TestPuzzleCard;
+	card->init(merlin, entry);
+	return card;
+}
+
+void TestPuzzleCard::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
+	_merlin = merlin;
+	_winMovie = entry.winMovie;
+	MenuCard::init(merlin->_engine, merlin->_boltlib, BltShortId(entry.resId));
+}
+
+Card::Status TestPuzzleCard::processButtonClick(int num) {
+	// TODO: implement puzzle
+	if (_winMovie) {
+		_merlin->startMovie(_merlin->_challdirPf, _winMovie);
+	}
+	return Ended;
+}
+
+class ActionPuzzleCard : public Card {
+public:
+	static Card* loadFunc(MerlinEngine *merlin, const PuzzleEntry &entry);
+	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
+	void enter();
+	Card::Status processEvent(const BoltEvent &event);
+protected:
+	MerlinEngine *_merlin;
+	uint32 _winMovie;
+	BltImage _bgImage;
+	BltResource _palette;
+};
+
+Card* ActionPuzzleCard::loadFunc(MerlinEngine *merlin, const PuzzleEntry &entry) {
+	ActionPuzzleCard *card = new ActionPuzzleCard;
+	card->init(merlin, entry);
+	return card;
+}
+
+void ActionPuzzleCard::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
+	_merlin = merlin;
+	_winMovie = entry.winMovie;
+
+	BltResourceList resourceList;
+	resourceList.load(_merlin->_boltlib, BltShortId(entry.resId));
+	BltLongId bgImageId = resourceList[2].value;
+	BltLongId paletteId = resourceList[3].value;
+
+	_bgImage.load(_merlin->_boltlib, bgImageId);
+	_palette.reset(_merlin->_boltlib.loadResource(paletteId, kBltPalette));
+}
+
+void ActionPuzzleCard::enter() {
+	if (_palette) {
+		_merlin->getGraphics().getBackPlane().setPalette(&_palette[6], 0, 128);
+		// NOTE: these palettes usually have 256 entries!
+	}
+	_bgImage.drawAt(_merlin->getGraphics().getBackPlane().getSurface(), 0, 0, false);
+	_merlin->scheduleDisplayUpdate();
+}
+
+Card::Status ActionPuzzleCard::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Click) {
+		// TODO: implement puzzle
+		if (_winMovie) {
+			_merlin->startMovie(_merlin->_challdirPf, _winMovie);
+		}
+		return Ended;
+	}
+
+	return None;
+}
+
 // From MERLIN.EXE:
 //
 // Action puzzles:
@@ -295,44 +383,77 @@ private:
 //   SnowflakDD 551C
 //   GemsDD     5918
 //   DemonsDD   5D17
+//
+// Word puzzles:
+//   GraveDD  61E3
+//   ParchDD  69E1
+//   TabletDD 65E1
+//
+// Tangram puzzles:
+//   MirrorDD  7115
+//   PlaqueDD  6D15
+//   OctagonDD 7515
+//   TileDD    7915
+//
+// Sliding puzzles:
+//   RavenDD  353F
+//   LeafDD   313F
+//   SnakeDD  4140
+//   SkeltnDD 3D3F
+//   SpiderDD 453F
+//   QuartzDD 393F
+//
+// Color puzzles:
+//   WindowDD 8C13
+//   StarDD   9014
+//
+// Potion puzzles:
+//   ForestDD 940C
+//   LabratDD 980C
+//   CavernDD 9C0E
+//
+// Memory puzzles:
+//   PondDD   865E
+//   FlasksDD 8797
+//   StalacDD 887B
 
 const HubEntry MerlinHubCard::STAGE1 = { 0x0C0B, 6, MerlinHubCard::STAGE1_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE1_PUZZLES[6] = {
-	{ 0x6017, MKTAG('S', 'E', 'E', 'D') }, // seeds (TODO: correct scene)
-	{ 0x6017, MKTAG('G', 'R', 'A', 'V') }, // grave
-	{ 0x3009, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
-	{ 0x8606, MKTAG('P', 'O', 'N', 'D') }, // pond
-	{ 0x8606, MKTAG('L', 'E', 'A', 'V') }, // leaves (TODO: correct scene)
-	{ 0x340A, MKTAG('R', 'A', 'V', 'N') }, // raven
+	{ ActionPuzzleCard::loadFunc, 0x4921, MKTAG('S', 'E', 'E', 'D') }, // seeds
+	{ TestPuzzleCard::loadFunc, 0x6017, MKTAG('G', 'R', 'A', 'V') }, // grave
+	{ TestPuzzleCard::loadFunc, 0x3009, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
+	{ TestPuzzleCard::loadFunc, 0x8606, MKTAG('P', 'O', 'N', 'D') }, // pond
+	{ ActionPuzzleCard::loadFunc, 0x4D19, MKTAG('L', 'E', 'A', 'V') }, // leaves
+	{ TestPuzzleCard::loadFunc, 0x340A, MKTAG('R', 'A', 'V', 'N') }, // raven
 };
 
 const HubEntry MerlinHubCard::STAGE2 = { 0x0D34, 9, MerlinHubCard::STAGE2_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE2_PUZZLES[9] = {
-	{ 0x400B, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
-	{ 0x400B, MKTAG('P', 'L', 'A', 'Q') }, // ??? (TODO: correct scene)
-	{ 0x7D0B, MKTAG('S', 'N', 'O', 'W') }, // ??? (TODO: correct scene)
-	{ 0x7D0B, MKTAG('P', 'L', 'N', 'T') }, // planets
-	{ 0x6817, MKTAG('P', 'R', 'C', 'H') }, // parchment
-	{ 0x6817, MKTAG('B', 'B', 'L', 'E') }, // ??? (TODO: correct scene)
-	{ 0x3C0B, MKTAG('S', 'K', 'L', 'T') }, // skeleton
-	{ 0x8706, MKTAG('F', 'L', 'S', 'K') }, // flasks
-	{ 0x8706, MKTAG('M', 'I', 'R', 'R') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x400B, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
+	{ TestPuzzleCard::loadFunc, 0x400B, MKTAG('P', 'L', 'A', 'Q') }, // ??? (TODO: correct scene)
+	{ ActionPuzzleCard::loadFunc, 0x551C, MKTAG('S', 'N', 'O', 'W') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x7D0B, MKTAG('P', 'L', 'N', 'T') }, // planets
+	{ TestPuzzleCard::loadFunc, 0x6817, MKTAG('P', 'R', 'C', 'H') }, // parchment
+	{ ActionPuzzleCard::loadFunc, 0x5113, MKTAG('B', 'B', 'L', 'E') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x3C0B, MKTAG('S', 'K', 'L', 'T') }, // skeleton
+	{ TestPuzzleCard::loadFunc, 0x8706, MKTAG('F', 'L', 'S', 'K') }, // flasks
+	{ TestPuzzleCard::loadFunc, 0x8706, MKTAG('M', 'I', 'R', 'R') }, // ??? (TODO: correct scene)
 };
 
 const HubEntry MerlinHubCard::STAGE3 = { 0x0E4F, 12, MerlinHubCard::STAGE3_PUZZLES };
 const PuzzleEntry MerlinHubCard::STAGE3_PUZZLES[12] = {
-	{ 0x8C0C, MKTAG('W', 'N', 'D', 'W') }, // window
-	{ 0x8C0C, MKTAG('O', 'C', 'T', 'A') }, // ??? (TODO: correct scene)
-	{ 0x850B, MKTAG('S', 'P', 'R', 'T') }, // spirits
-	{ 0x900D, MKTAG('S', 'T', 'A', 'R') }, // star
-	{ 0x810D, MKTAG('D', 'O', 'O', 'R') }, // door
-	{ 0x810D, MKTAG('G', 'E', 'M', 'S') }, // ??? (TODO: correct scene)
-	{ 0x3810, MKTAG('C', 'S', 'T', 'L') }, // crystal
-	{ 0x3810, MKTAG('D', 'E', 'M', 'N') }, // ??? (TODO: correct scene)
-	{ 0x3810, MKTAG('T', 'I', 'L', 'E') }, // ??? (TODO: correct scene)
-	{ 0x440D, MKTAG('S', 'P', 'I', 'D') }, // spider
-	{ 0x640B, MKTAG('T', 'B', 'L', 'T') }, // tablet
-	{ 0x8806, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
+	{ TestPuzzleCard::loadFunc, 0x8C0C, MKTAG('W', 'N', 'D', 'W') }, // window
+	{ TestPuzzleCard::loadFunc, 0x8C0C, MKTAG('O', 'C', 'T', 'A') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x850B, MKTAG('S', 'P', 'R', 'T') }, // spirits
+	{ TestPuzzleCard::loadFunc, 0x900D, MKTAG('S', 'T', 'A', 'R') }, // star
+	{ TestPuzzleCard::loadFunc, 0x810D, MKTAG('D', 'O', 'O', 'R') }, // door
+	{ ActionPuzzleCard::loadFunc, 0x5918, MKTAG('G', 'E', 'M', 'S') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x3810, MKTAG('C', 'S', 'T', 'L') }, // crystal
+	{ ActionPuzzleCard::loadFunc, 0x5D17, MKTAG('D', 'E', 'M', 'N') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x3810, MKTAG('T', 'I', 'L', 'E') }, // ??? (TODO: correct scene)
+	{ TestPuzzleCard::loadFunc, 0x440D, MKTAG('S', 'P', 'I', 'D') }, // spider
+	{ TestPuzzleCard::loadFunc, 0x640B, MKTAG('T', 'B', 'L', 'T') }, // tablet
+	{ TestPuzzleCard::loadFunc, 0x8806, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
 };
 
 struct BltHub { // type 40
@@ -382,6 +503,10 @@ Graphics& MerlinEngine::getGraphics() {
 	return _engine->_graphics;
 }
 
+void MerlinEngine::scheduleDisplayUpdate() {
+	_engine->scheduleDisplayUpdate();
+}
+
 void MerlinHubCard::enter() {
 	MenuCard::enter();
 
@@ -393,7 +518,7 @@ void MerlinHubCard::enter() {
 
 Card::Status MerlinHubCard::processButtonClick(int num) {
 	if (num >= 0 && num < _hubEntry->numPuzzles) {
-		_merlin->setCardEndCallback(MerlinEngine::PuzzleFunc, &_hubEntry->puzzles[num]);
+		_merlin->setCardEndCallback(MerlinEngine::puzzleFunc, &_hubEntry->puzzles[num]);
 		return Ended;
 	}
 
@@ -401,7 +526,7 @@ Card::Status MerlinHubCard::processButtonClick(int num) {
 	return Ended;
 }
 
-void MerlinEngine::HubFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::hubFunc(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
 	MerlinHubCard *card = new MerlinHubCard;
@@ -409,45 +534,20 @@ void MerlinEngine::HubFunc(MerlinEngine *self, const void *param) {
 	self->setCurrentCard(card);
 }
 
-class MerlinPuzzleCard : public MenuCard {
-public:
-	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
-protected:
-	Status processButtonClick(int num);
-
-	MerlinEngine *_merlin;
-	uint32 _winMovieName;
-};
-
-void MerlinPuzzleCard::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
-	_merlin = merlin;
-	_winMovieName = entry.winMovieName;
-	MenuCard::init(merlin->_engine, merlin->_boltlib, BltShortId(entry.sceneShortId));
-}
-
-Card::Status MerlinPuzzleCard::processButtonClick(int num) {
-	// TODO: implement puzzle
-	if (_winMovieName) {
-		_merlin->startMovie(_merlin->_challdirPf, _winMovieName);
-	}
-	return Ended;
-}
-
-void MerlinEngine::PuzzleFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::puzzleFunc(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 
 	// Extract current hub card entry to support returning to it
 	const HubEntry *currentHub = reinterpret_cast<const HubEntry*>(SEQUENCE[self->_sequenceCursor].param);
 	// Set it up so that when puzzle ends, you return to hub
-	self->setCardEndCallback(HubFunc, currentHub);
+	self->setCardEndCallback(hubFunc, currentHub);
 
 	const PuzzleEntry *entry = reinterpret_cast<const PuzzleEntry*>(param);
-	MerlinPuzzleCard *card = new MerlinPuzzleCard;
-	card->init(self, *entry);
+	Card *card = entry->loadFunc(self, *entry);
 	self->setCurrentCard(card);
 }
 
-void MerlinEngine::FreeplayHubFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::freeplayHubFunc(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 
 	uint16 scene = *reinterpret_cast<const uint16*>(param);
@@ -471,30 +571,30 @@ const MerlinEngine::Callback
 MerlinEngine::SEQUENCE[] = {
 	
 	// Pre-game menus
-	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_BMPR },
-	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_INTR },
-	{ MerlinEngine::MainMenuFunc, nullptr },
-	{ MerlinEngine::FileMenuFunc, nullptr },
-	{ MerlinEngine::DifficultyMenuFunc, nullptr },
+	{ MerlinEngine::plotMovieFunc, &PLOT_MOVIE_BMPR },
+	{ MerlinEngine::plotMovieFunc, &PLOT_MOVIE_INTR },
+	{ MerlinEngine::mainMenuFunc, nullptr },
+	{ MerlinEngine::fileMenuFunc, nullptr },
+	{ MerlinEngine::difficultyMenuFunc, nullptr },
 
 	// Stage 1: Forest
-	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_PLOG },
-	{ MerlinEngine::HubFunc, &MerlinHubCard::STAGE1 },
+	{ MerlinEngine::plotMovieFunc, &PLOT_MOVIE_PLOG },
+	{ MerlinEngine::hubFunc, &MerlinHubCard::STAGE1 },
 
 	// Stage 2: Laboratory
-	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_LABT },
-	{ MerlinEngine::HubFunc, &MerlinHubCard::STAGE2 },
+	{ MerlinEngine::plotMovieFunc, &PLOT_MOVIE_LABT },
+	{ MerlinEngine::hubFunc, &MerlinHubCard::STAGE2 },
 
 	// Stage 3: Cave
-	{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_CAV1 },
-	{ MerlinEngine::HubFunc, &MerlinHubCard::STAGE3 },
+	{ MerlinEngine::plotMovieFunc, &PLOT_MOVIE_CAV1 },
+	{ MerlinEngine::hubFunc, &MerlinHubCard::STAGE3 },
 
 	// NOTE: The Finale movie is hidden until the game is fully implemented.
-	//{ MerlinEngine::PlotMovieFunc, &PLOT_MOVIE_FNLE },
+	//{ MerlinEngine::plotMovieFunc, &PLOT_MOVIE_FNLE },
 
-	{ MerlinEngine::FreeplayHubFunc, &FREEPLAY1_SCENE },
-	{ MerlinEngine::FreeplayHubFunc, &FREEPLAY2_SCENE },
-	{ MerlinEngine::FreeplayHubFunc, &FREEPLAY3_SCENE },
+	{ MerlinEngine::freeplayHubFunc, &FREEPLAY1_SCENE },
+	{ MerlinEngine::freeplayHubFunc, &FREEPLAY2_SCENE },
+	{ MerlinEngine::freeplayHubFunc, &FREEPLAY3_SCENE },
 };
 
 const size_t MerlinEngine::SEQUENCE_SIZE =
