@@ -48,14 +48,26 @@ public:
 private:
 	BoltEngine *_engine;
 
-	struct Plane {
+	struct BltPlaneStruct { // type 26
+		static const uint32 kType = kBltPlane;
+		void load(const byte *src, BltFile &bltFile) {
+			BltLongId imageId(READ_BE_UINT32(&src[0]));
+			image.load(bltFile, imageId);
+			BltLongId paletteId(READ_BE_UINT32(&src[4]));
+			palette.reset(bltFile.loadResource(paletteId, kBltPalette));
+			BltLongId hotspotsId(READ_BE_UINT32(&src[8]));
+			hotspots.load(bltFile, hotspotsId);
+		}
+
 		BltImage image;
 		BltResource palette;
 		BltImage hotspots;
 	};
 
-	Plane _forePlane;
-	Plane _backPlane;
+	typedef BltLoader<BltPlaneStruct> BltPlane;
+
+	BltPlane _forePlane;
+	BltPlane _backPlane;
 
 	struct BltSpriteStruct { // type 27
 		static const uint32 kType = kBltSpriteList;
@@ -63,14 +75,15 @@ private:
 		void load(const byte *src, BltFile &bltFile) {
 			pos.x = READ_BE_INT16(&src[0]);
 			pos.y = READ_BE_INT16(&src[2]);
-			image.load(bltFile, BltLongId(READ_BE_UINT32(&src[4])));
+			BltLongId imageId(READ_BE_UINT32(&src[4]));
+			image.load(bltFile, imageId);
 		}
 
 		Common::Point pos;
 		BltImage image;
 	};
 
-	typedef BltSimpleReader<BltSpriteStruct> BltSpriteList;
+	typedef BltArrayLoader<BltSpriteStruct> BltSpriteList;
 
 	BltSpriteList _sprites;
 
@@ -85,9 +98,6 @@ private:
 	static const int NUM_COLOR_CYCLES = 4;
 	ColorCycle _colorCycles[NUM_COLOR_CYCLES];
 
-	void loadPlane(Plane &plane, BltFile &bltFile, BltLongId planeId);
-	Plane& getScenePlane(uint16 num);
-	const Plane& getScenePlane(uint16 num) const;
 	Bolt::Plane& getGraphicsPlane(uint16 num);
 
 	struct BltButtonPaletteMod { // type 29
@@ -139,7 +149,7 @@ private:
 		BltSpriteList idleSprites;
 	};
 
-	typedef BltSimpleReader<BltButtonGraphicsStruct> BltButtonGraphicsList;
+	typedef BltArrayLoader<BltButtonGraphicsStruct> BltButtonGraphicsList;
 
 	struct BltButtonStruct { // type 31
 		static const uint32 kType = kBltButtonList;
@@ -166,13 +176,12 @@ private:
 		BltButtonGraphicsList graphics;
 	};
 
-	typedef BltSimpleReader<BltButtonStruct> BltButtonList;
+	typedef BltArrayLoader<BltButtonStruct> BltButtonList;
 
 	BltButtonList _buttons;
 
 	Common::Point _origin;
 
-	bool isButtonAtPoint(const BltButtonStruct &button, const Common::Point &pt) const;
 	void drawButton(const BltButtonStruct &button, bool hovered);
 };
 
