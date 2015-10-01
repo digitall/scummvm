@@ -20,19 +20,35 @@
  *
  */
 
-#ifndef BOLT_MERLIN_H
-#define BOLT_MERLIN_H
+#ifndef BOLT_MERLIN_MERLIN_H
+#define BOLT_MERLIN_MERLIN_H
 
 #include "bolt/bolt.h"
 #include "bolt/movie.h"
 
 namespace Bolt {
+	
+struct PuzzleEntry;
+
+struct HubEntry {
+	uint16 hubId;
+	int numPuzzles;
+	const PuzzleEntry *puzzles;
+};
+
+typedef Card* (*PuzzleLoadFunc)(MerlinEngine *merlin, const PuzzleEntry &entry);
+
+struct PuzzleEntry {
+	PuzzleLoadFunc loadFunc;
+	uint16 resId;
+	uint32 winMovie;
+};
 
 class MerlinEngine : public SubEngine {
-	friend class MerlinMainMenuCard;
-	friend class MerlinHubCard;
-	friend class TestPuzzleCard;
+	friend class MainMenuCard;
+	friend class HubCard;
 	friend class ActionPuzzleCard;
+	friend class TestPuzzleCard;
 public:
 	MerlinEngine();
 
@@ -49,7 +65,7 @@ private:
 	void startMenu(BltLongId id);
 	void startMovie(PfFile &pfFile, uint32 name);
 
-	static void MovieTrigger(void *param, uint16 triggerType);
+	static void movieTrigger(void *param, uint16 triggerType);
 
 	BoltEngine *_engine;
 
@@ -91,6 +107,13 @@ private:
 	static void hubFunc(MerlinEngine *self, const void *param);
 	static void puzzleFunc(MerlinEngine *self, const void *param);
 	static void freeplayHubFunc(MerlinEngine *self, const void *param);
+
+	static const HubEntry STAGE1;
+	static const PuzzleEntry STAGE1_PUZZLES[6];
+	static const HubEntry STAGE2;
+	static const PuzzleEntry STAGE2_PUZZLES[9];
+	static const HubEntry STAGE3;
+	static const PuzzleEntry STAGE3_PUZZLES[12];
 
 	static const Callback SEQUENCE[];
 	static const size_t SEQUENCE_SIZE;

@@ -6,9 +6,12 @@ MODULE_OBJS := \
 	detection.o \
 	graphics.o \
 	image.o \
-	labyrinth.o \
+	labyrinth/labyrinth.o \
 	menu_card.o \
-	merlin.o \
+	merlin/action_puzzle.o \
+	merlin/hub.o \
+	merlin/main_menu.o \
+	merlin/merlin.o \
 	movie.o \
 	pf_file.o \
 	scene.o

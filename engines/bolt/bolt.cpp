@@ -27,7 +27,7 @@
 #include "common/system.h"
 #include "graphics/palette.h"
 
-#include "bolt/merlin.h"
+#include "bolt/merlin/merlin.h"
 
 namespace Bolt {
 
