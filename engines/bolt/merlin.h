@@ -31,7 +31,8 @@ namespace Bolt {
 class MerlinEngine : public SubEngine {
 	friend class MerlinMainMenuCard;
 	friend class MerlinHubCard;
-	friend class MerlinPuzzleCard;
+	friend class TestPuzzleCard;
+	friend class ActionPuzzleCard;
 public:
 	MerlinEngine();
 
@@ -40,6 +41,7 @@ public:
 
 private:
 	Graphics &getGraphics();
+	void scheduleDisplayUpdate();
 	void initCursor();
 	void resetSequence();
 	void advanceSequence();
@@ -82,13 +84,13 @@ private:
 	Callback _cardEndCallback;
 	void setCardEndCallback(CallbackFunc func, const void *param);
 
-	static void PlotMovieFunc(MerlinEngine *self, const void *param);
-	static void MainMenuFunc(MerlinEngine *self, const void *param);
-	static void FileMenuFunc(MerlinEngine *self, const void *param);
-	static void DifficultyMenuFunc(MerlinEngine *self, const void *param);
-	static void HubFunc(MerlinEngine *self, const void *param);
-	static void PuzzleFunc(MerlinEngine *self, const void *param);
-	static void FreeplayHubFunc(MerlinEngine *self, const void *param);
+	static void plotMovieFunc(MerlinEngine *self, const void *param);
+	static void mainMenuFunc(MerlinEngine *self, const void *param);
+	static void fileMenuFunc(MerlinEngine *self, const void *param);
+	static void difficultyMenuFunc(MerlinEngine *self, const void *param);
+	static void hubFunc(MerlinEngine *self, const void *param);
+	static void puzzleFunc(MerlinEngine *self, const void *param);
+	static void freeplayHubFunc(MerlinEngine *self, const void *param);
 
 	static const Callback SEQUENCE[];
 	static const size_t SEQUENCE_SIZE;
