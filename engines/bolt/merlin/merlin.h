@@ -48,6 +48,7 @@ class MerlinEngine : public SubEngine {
 	friend class MainMenuCard;
 	friend class HubCard;
 	friend class ActionPuzzleCard;
+	friend class TangramPuzzleCard;
 	friend class TestPuzzleCard;
 public:
 	MerlinEngine();
