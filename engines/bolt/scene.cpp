@@ -129,7 +129,7 @@ void Scene::enter() {
 
 	// Draw back plane
 	if (_backPlane->palette) {
-		_engine->_graphics.getBackPlane().setPalette(&_backPlane->palette[6], 0, 128);
+		_backPlane->palette.set(_engine->_graphics, BltPalette::kBack);
 	}
 	if (_backPlane->image) {
 		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
@@ -141,7 +141,7 @@ void Scene::enter() {
 
 	// Draw fore plane
 	if (_forePlane->palette) {
-		_engine->_graphics.getForePlane().setPalette(&_forePlane->palette[6], 0, 128);
+		_forePlane->palette.set(_engine->_graphics, BltPalette::kFore);
 	}
 	if (_forePlane->image) {
 		::Graphics::Surface surface = _engine->_graphics.getForePlane().getSurface();

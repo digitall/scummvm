@@ -27,9 +27,9 @@
 
 namespace Bolt {
 
-class MainMenuCard : public MenuCard {
+class MainMenu : public MenuCard {
 public:
-	MainMenuCard();
+	MainMenu();
 	void init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id);
 protected:
 	Status processButtonClick(int num);

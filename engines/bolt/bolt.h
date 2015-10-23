@@ -29,7 +29,6 @@
 
 #include "bolt/blt_file.h"
 #include "bolt/graphics.h"
-#include "bolt/image.h"
 #include "bolt/pf_file.h"
 
 struct ADGameDescription;

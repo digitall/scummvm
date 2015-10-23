@@ -5,7 +5,6 @@ MODULE_OBJS := \
 	bolt.o \
 	detection.o \
 	graphics.o \
-	image.o \
 	labyrinth/labyrinth.o \
 	menu_card.o \
 	merlin/action_puzzle.o \
