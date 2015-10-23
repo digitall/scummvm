@@ -24,13 +24,13 @@
 
 namespace Bolt {
 	
-Card* TangramPuzzleCard::loadFunc(MerlinEngine *merlin, const PuzzleEntry &entry) {
-	TangramPuzzleCard *card = new TangramPuzzleCard;
+Card* TangramPuzzle::make(MerlinEngine *merlin, const PuzzleEntry &entry) {
+	TangramPuzzle *card = new TangramPuzzle;
 	card->init(merlin, entry);
 	return card;
 }
 
-void TangramPuzzleCard::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
+void TangramPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
 	_merlin = merlin;
 	_winMovie = entry.winMovie;
 
@@ -40,19 +40,18 @@ void TangramPuzzleCard::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
 	BltLongId paletteId = resourceList[3].value;
 
 	_bgImage.load(_merlin->_boltlib, bgImageId);
-	_palette.reset(_merlin->_boltlib.loadResource(paletteId, kBltPalette));
+	_palette.load(_merlin->_boltlib, paletteId);
 }
 
-void TangramPuzzleCard::enter() {
+void TangramPuzzle::enter() {
 	if (_palette) {
-		_merlin->getGraphics().getBackPlane().setPalette(&_palette[6], 0, 128);
-		// NOTE: these palettes usually have 256 entries!
+		_palette.set(_merlin->getGraphics(), BltPalette::kBack);
 	}
 	_bgImage.drawAt(_merlin->getGraphics().getBackPlane().getSurface(), 0, 0, false);
 	_merlin->scheduleDisplayUpdate();
 }
 
-Card::Status TangramPuzzleCard::processEvent(const BoltEvent &event) {
+Card::Status TangramPuzzle::processEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		// TODO: implement puzzle
 		if (_winMovie) {

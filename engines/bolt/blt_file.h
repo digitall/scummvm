@@ -81,20 +81,18 @@ private:
 	Common::File _file;
 
 	struct DirectoryEntry {
-
-		static const int SIZE = 0x10;
+		//static const int kSize = 0x10;
 		DirectoryEntry() { }
 		DirectoryEntry(Common::File &file);
 
 		uint32 numResources;
-		uint32 compressedSize; // Number of bytes to read for decompression
+		uint32 compReadSize; // Number of bytes to read for decompression
 		uint32 offset; // Offset of the resource table of this directory
 		// (relative to beginning of file)
 	};
 
 	struct ResourceEntry {
-
-		static const int SIZE = 0x10;
+		//static const int kSize = 0x10;
 		ResourceEntry() { }
 		ResourceEntry(Common::File &file);
 
@@ -117,12 +115,11 @@ class BltLoader {
 	// Generic template for creating a simple loader and parser for a BLT
 	// resource.
 	// Template parameter T must have:
-	// - static const uint32 kType equal to the resource type number
-	// - T() default constructor which initializes T with a default unloaded
-	//   state
-	// - void load(const byte *src, BltFile &bltFile) which parses from src
-	//   into a T structure. The function may load additional resources from
-	//   bltFile.
+	// - static const uint32 kType: resource type number
+	// - static const uint kSize: expected size
+	// - T(): initialize T to default unloaded state.
+	// - void load(const byte *src, BltFile &bltFile): parse from src.
+	//   Additional resources may be loaded from bltFile.
 	// Use arrow operator -> to access.
 public:
 	BltLoader() { }
@@ -136,6 +133,7 @@ public:
 		_data.~T();
 		new(&_data) T();
 		if (res) {
+			assert(res.size() == T::kSize);
 			_data.load(&res[0], bltFile);
 		}
 	}
@@ -153,12 +151,12 @@ class BltArrayLoader {
 	// resource. This template supports resources that are simple constant-
 	// -sized elements in an array.
 	// Template parameter T must have:
-	// - static const uint32 kType equal to the resource type number
-	// - static const uint kSize equal to the size of the resource in bytes
-	// - void load(const byte *src, BltFile &bltFile) which parses from src
-	//   into a T structure. The function may load additional resources from
-	//   bltFile.
-	// Use array indexing operator [] to access.
+	// - static const uint32 kType: resource type number
+	// - static const uint kSize: expected size of an element
+	// - T(): initialize T to default unloaded state.
+	// - void load(const byte *src, BltFile &bltFile): parse from src.
+	//   Additional resources may be loaded from bltFile.
+	// Use array indexing [] to access.
 public:
 	BltArrayLoader() { }
 	BltArrayLoader(BltFile &bltFile, BltLongId id) {
@@ -169,7 +167,7 @@ public:
 		return _array;
 	}
 
-	void load(BltFile &bltFile, BltLongId id) {
+	void load(BltFile &bltFile, BltLongId id) { // FIXME: expectedCount? Count is usually known in advance...
 		BltResource res(bltFile.loadResource(id, T::kType));
 		uint numItems = res.size() / T::kSize;
 		_array.alloc(numItems);

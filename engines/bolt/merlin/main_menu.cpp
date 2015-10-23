@@ -26,31 +26,34 @@
 
 namespace Bolt {
 	
-struct BltMainMenuInfo {
-	BltMainMenuInfo(const byte *src) {
-		menuInfoId = BltLongId(READ_BE_UINT32(&src[0]));
-		hotspotImageId = BltLongId(READ_BE_UINT32(&src[4]));
-		hotspotPaletteId = BltLongId(READ_BE_UINT32(&src[8]));
+struct BltMainMenuStruct {
+	static const uint32 kType = kBltMainMenu;
+	static const uint32 kSize = 0xC;
+	void load(const byte *src, BltFile &bltFile) {
+		sceneId = BltLongId(READ_BE_UINT32(&src[0]));
+		colorbarsImageId = BltLongId(READ_BE_UINT32(&src[4]));
+		colorbarsPaletteId = BltLongId(READ_BE_UINT32(&src[8]));
 	}
 
-	BltLongId menuInfoId;
-	BltLongId hotspotImageId; // FIXME: correct?
-	BltLongId hotspotPaletteId; // FIXME: correct?
+	BltLongId sceneId;
+	BltLongId colorbarsImageId;
+	BltLongId colorbarsPaletteId;
 };
 
-MainMenuCard::MainMenuCard()
+typedef BltLoader<BltMainMenuStruct> BltMainMenu;
+
+MainMenu::MainMenu()
 	: _merlin(nullptr)
 { }
 
-void MainMenuCard::init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id) {
+void MainMenu::init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id) {
 	_merlin = merlin;
 
-	BltResource mainMenuRes(bltFile.loadResource(id, kBltMainMenu));
-	BltMainMenuInfo info(&mainMenuRes[0]);
-	MenuCard::init(merlin->_engine, bltFile, info.menuInfoId);
+	BltMainMenu mainMenu(bltFile, id);
+	MenuCard::init(merlin->_engine, bltFile, mainMenu->sceneId);
 }
 
-Card::Status MainMenuCard::processButtonClick(int num) {
+Card::Status MainMenu::processButtonClick(int num) {
 	switch (num) {
 	case -1: // No button
 		return None;

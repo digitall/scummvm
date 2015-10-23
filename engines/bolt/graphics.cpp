@@ -353,7 +353,7 @@ void Plane::init(Graphics *graphics, int width, int height, byte colorBase) {
 }
 
 void Plane::clear() {
-	memset(_surface.getPixels(), 0, VGA_SCREEN_WIDTH * VGA_SCREEN_HEIGHT);
+	memset(_surface.getPixels(), 0, _surface.w * _surface.h);
 }
 
 void Plane::grabPalette(byte *colors, uint start, uint num) {
@@ -381,10 +381,10 @@ Graphics::Graphics()
 void Graphics::init(OSystem *system) {
 	_system = system;
 
-	initGraphics(VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, false);
+	initGraphics(kVgaScreenWidth, kVgaScreenHeight, false);
 
-	_backPlane.init(this, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, BACK_COLOR_BASE);
-	_forePlane.init(this, VGA_SCREEN_WIDTH, VGA_SCREEN_HEIGHT, FORE_COLOR_BASE);
+	_backPlane.init(this, kVgaScreenWidth, kVgaScreenHeight, kBackColorBase);
+	_forePlane.init(this, kVgaScreenWidth, kVgaScreenHeight, kForeColorBase);
 
 	// XXX: Load a generic testing palette into both planes
 	byte palette[128 * 3];
@@ -416,8 +416,8 @@ void Graphics::present() {
 	const byte *backLine = (const byte*)backSurface.getPixels();
 	const byte *foreLine = (const byte*)foreSurface.getPixels();
 
-	for (int y = 0; y < VGA_SCREEN_HEIGHT; ++y) {
-		for (int x = 0; x < VGA_SCREEN_WIDTH; ++x) {
+	for (int y = 0; y < kVgaScreenHeight; ++y) {
+		for (int x = 0; x < kVgaScreenWidth; ++x) {
 			dstLine[x] = (foreLine[x] != 0) ?
 				(foreLine[x] + _forePlane.getColorBase()) :
 				(backLine[x] + _backPlane.getColorBase());
@@ -431,6 +431,141 @@ void Graphics::present() {
 	_system->unlockScreen();
 
 	_system->updateScreen();
+}
+
+struct BltImageHeader {
+	static const int kSize = 0x18;
+	BltImageHeader(const byte *src) {
+		compression = src[0];
+		// FIXME: unknown fields
+		offset.x = READ_BE_INT16(&src[6]);
+		offset.y = READ_BE_INT16(&src[8]);
+		width = READ_BE_UINT16(&src[0xA]);
+		height = READ_BE_UINT16(&src[0xC]);
+	}
+
+	byte compression;
+	Common::Point offset;
+	uint16 width;
+	uint16 height;
+};
+
+void BltImage::load(BltFile &bltFile, BltLongId id) {
+	_res.reset(bltFile.loadResource(id, kBltImage));
+}
+
+void BltImage::draw(::Graphics::Surface &surface, bool transparency) const {
+	drawWithTopLeftAnchor(surface, 0, 0, transparency);
+}
+
+void BltImage::drawAt(::Graphics::Surface &surface, int x, int y,
+	bool transparency) const {
+	assert(_res);
+
+	BltImageHeader header(&_res[0]);
+	int topLeftX = x + header.offset.x;
+	int topLeftY = y + header.offset.y;
+
+	drawWithTopLeftAnchor(surface, topLeftX, topLeftY, transparency);
+}
+
+void BltImage::drawWithTopLeftAnchor(
+	::Graphics::Surface &surface, int x, int y, bool transparency) const {
+
+	assert(_res);
+
+	BltImageHeader header(&_res[0]);
+	const byte *imageData = &_res[BltImageHeader::kSize];
+	int imageDataSize = _res.size() - BltImageHeader::kSize;
+
+	if (header.compression) {
+		decodeRL7(surface, x, y, header.width, header.height,
+			imageData, imageDataSize, transparency);
+	}
+	else {
+		decodeCLUT7(surface, x, y, header.width, header.height,
+			imageData, imageDataSize, transparency);
+	}
+}
+
+byte BltImage::query(int x, int y) const {
+	BltImageHeader header(&_res[0]);
+	const byte *src = &_res[BltImageHeader::kSize];
+	int srcLen = _res.size() - BltImageHeader::kSize;
+	return header.compression ?
+		queryRL7(x, y, src, srcLen, header.width, header.height) :
+		queryCLUT7(x, y, src, srcLen, header.width, header.height);
+}
+
+uint16 BltImage::getWidth() const {
+	BltImageHeader header(&_res[0]);
+	return header.width;
+}
+
+uint16 BltImage::getHeight() const {
+	BltImageHeader header(&_res[0]);
+	return header.height;
+}
+
+Common::Point BltImage::getOffset() const {
+	BltImageHeader header(&_res[0]);
+	return header.offset;
+}
+
+struct BltPaletteHeader {
+	static const uint32 kSize = 6;
+	BltPaletteHeader(const byte *src) {
+		target = READ_BE_UINT16(&src[0]);
+		bottom = READ_BE_UINT16(&src[2]);
+		top = READ_BE_UINT16(&src[4]);
+	}
+
+	uint16 target; // ??? (usually 2)
+	uint16 bottom; // ??? (usually 0)
+	uint16 top; // ??? (usually 127)
+};
+
+void BltPalette::load(BltFile &bltFile, BltLongId id) {
+	_res.reset(bltFile.loadResource(id, kBltPalette));
+}
+
+void BltPalette::set(Graphics &graphics, Target target) const {
+	BltPaletteHeader header(&_res[0]);
+	if (header.target == 0) {
+		debug(3, "setting palette with target type 0 to both planes");
+		// Both fore and back planes
+		if (header.bottom != 0) {
+			warning("palette target 0 bottom color is not 0");
+		}
+		if (header.top != 255) {
+			warning("palette target 0 top color is not 255");
+		}
+
+		graphics.getBackPlane().setPalette(&_res[BltPaletteHeader::kSize], 0, 128);
+		graphics.getForePlane().setPalette(&_res[BltPaletteHeader::kSize + 128 * 3], 0, 128);
+	}
+	else if (header.target == 2) {
+		// Auto? Back or fore not specified in palette resource.
+		Plane *plane = nullptr;
+		if (target == kBack) {
+			debug(3, "setting palette with target type 2 to back");
+			plane = &graphics.getBackPlane();
+		}
+		else if (target == kFore) {
+			debug(3, "setting palette with target type 2 to fore");
+			plane = &graphics.getForePlane();
+		}
+		else {
+			assert(false); // Unreachable, target must be valid
+		}
+
+		uint num = header.top - header.bottom + 1;
+		plane->setPalette(&_res[BltPaletteHeader::kSize],
+			header.bottom, num);
+	}
+	else {
+		warning("Unknown palette target %d", (int)header.target);
+	}
 }
 
 } // End of namespace Bolt

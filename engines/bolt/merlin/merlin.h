@@ -36,20 +36,20 @@ struct HubEntry {
 	const PuzzleEntry *puzzles;
 };
 
-typedef Card* (*PuzzleLoadFunc)(MerlinEngine *merlin, const PuzzleEntry &entry);
+typedef Card* (*MakePuzzleFunc)(MerlinEngine *merlin, const PuzzleEntry &entry);
 
 struct PuzzleEntry {
-	PuzzleLoadFunc loadFunc;
+	MakePuzzleFunc makeFunc;
 	uint16 resId;
 	uint32 winMovie;
 };
 
 class MerlinEngine : public SubEngine {
-	friend class MainMenuCard;
+	friend class MainMenu;
 	friend class HubCard;
-	friend class ActionPuzzleCard;
-	friend class TangramPuzzleCard;
-	friend class TestPuzzleCard;
+	friend class ActionPuzzle;
+	friend class TangramPuzzle;
+	friend class TestPuzzle;
 public:
 	MerlinEngine();
 
@@ -109,15 +109,15 @@ private:
 	static void puzzleFunc(MerlinEngine *self, const void *param);
 	static void freeplayHubFunc(MerlinEngine *self, const void *param);
 
-	static const HubEntry STAGE1;
-	static const PuzzleEntry STAGE1_PUZZLES[6];
-	static const HubEntry STAGE2;
-	static const PuzzleEntry STAGE2_PUZZLES[9];
-	static const HubEntry STAGE3;
-	static const PuzzleEntry STAGE3_PUZZLES[12];
+	static const HubEntry kStage1;
+	static const PuzzleEntry kStage1Puzzles[6];
+	static const HubEntry kStage2;
+	static const PuzzleEntry kStage2Puzzles[9];
+	static const HubEntry kStage3;
+	static const PuzzleEntry kStage3Puzzles[12];
 
-	static const Callback SEQUENCE[];
-	static const size_t SEQUENCE_SIZE;
+	static const Callback kSequence[];
+	static const size_t kSequenceSize;
 };
 
 } // End of namespace Bolt

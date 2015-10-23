@@ -25,8 +25,6 @@
 namespace Bolt {
 
 struct BltFileHeader {
-
-	static const int SIZE = 0x10;
 	BltFileHeader(Common::File &file) {
 		magic = file.readUint32BE();
 		// Skip 7 unknown bytes (FIXME: what do these mean?)
@@ -42,7 +40,7 @@ struct BltFileHeader {
 
 BltFile::DirectoryEntry::DirectoryEntry(Common::File &file) {
 	numResources = file.readUint32BE();
-	compressedSize = file.readUint32BE();
+	compReadSize = file.readUint32BE();
 	offset = file.readUint32BE();
 	// Unknown. FIXME: What is this?
 	file.readUint32BE();
@@ -197,9 +195,9 @@ BltResource::Movable BltFile::loadResource(BltLongId id, uint32 expectedType) {
 	if (res.compression == 0) {
 		// BOLT-LZ
 		ScopedArray<byte> compressedData;
-		compressedData.alloc(dir.entry.compressedSize);
+		compressedData.alloc(dir.entry.compReadSize);
 		_file.seek(res.offset);
-		_file.read(&compressedData[0], dir.entry.compressedSize);
+		_file.read(&compressedData[0], dir.entry.compReadSize);
 		decompressBoltLZ(resourceData, compressedData);
 	}
 	else if (res.compression == 8) {
@@ -218,7 +216,6 @@ BltResource::Movable BltFile::loadResource(BltLongId id, uint32 expectedType) {
 void BltFile::ensureDirLoaded(byte dirNum) {
 	Directory& dir = _dirs[dirNum];
 	if (dir.resEntries.empty()) {
-
 		// Seek to position of resource entries
 		_file.seek(dir.entry.offset);
 

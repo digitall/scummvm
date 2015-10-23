@@ -23,9 +23,11 @@
 #ifndef BOLT_GRAPHICS_H
 #define BOLT_GRAPHICS_H
 
+#include "common/rect.h"
 #include "common/scummsys.h"
 
 #include "graphics/surface.h"
+#include "bolt/blt_file.h"
 
 class OSystem;
 
@@ -43,10 +45,10 @@ byte queryCLUT7(int x, int y, const byte *src, int srcLen, int w, int h);
 
 byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h);
 
-static const int VGA_SCREEN_WIDTH = 320;
-static const int VGA_SCREEN_HEIGHT = 200;
-static const int CDI_SCREEN_WIDTH = 384;
-static const int CDI_SCREEN_HEIGHT = 240;
+static const int kVgaScreenWidth = 320;
+static const int kVgaScreenHeight = 200;
+static const int kCdiScreenWidth = 384;
+static const int kCdiScreenHeight = 240;
 
 class Graphics;
 
@@ -88,11 +90,50 @@ public:
 private:
 	OSystem *_system;
 
-	static const byte BACK_COLOR_BASE = 0;
-	static const byte FORE_COLOR_BASE = 128;
+	static const byte kBackColorBase = 0;
+	static const byte kForeColorBase = 128;
 
 	Plane _backPlane;
 	Plane _forePlane;
+};
+
+class BltImage { // type 8
+public:
+	operator bool() const {
+		return _res;
+	}
+
+	void load(BltFile &bltFile, BltLongId id);
+
+	void draw(::Graphics::Surface &surface, bool transparency) const;
+	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
+	byte query(int x, int y) const;
+
+	uint16 getWidth() const;
+	uint16 getHeight() const;
+	Common::Point getOffset() const;
+
+private:
+	void drawWithTopLeftAnchor(::Graphics::Surface &surface, int x, int y, bool transparency) const;
+
+	BltResource _res;
+};
+
+class BltPalette { // type 10
+public:
+	operator bool() const {
+		return _res;
+	}
+
+	void load(BltFile &bltFile, BltLongId id);
+
+	enum Target {
+		kBack,
+		kFore,
+	};
+	void set(Graphics &graphics, Target target) const;
+private:
+	BltResource _res;
 };
 
 } // End of namespace Bolt

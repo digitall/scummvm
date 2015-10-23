@@ -28,7 +28,6 @@
 
 #include "bolt/bolt.h"
 #include "bolt/blt_file.h"
-#include "bolt/image.h"
 
 namespace Bolt {
 
@@ -50,17 +49,18 @@ private:
 
 	struct BltPlaneStruct { // type 26
 		static const uint32 kType = kBltPlane;
+		static const uint kSize = 0x10;
 		void load(const byte *src, BltFile &bltFile) {
 			BltLongId imageId(READ_BE_UINT32(&src[0]));
 			image.load(bltFile, imageId);
 			BltLongId paletteId(READ_BE_UINT32(&src[4]));
-			palette.reset(bltFile.loadResource(paletteId, kBltPalette));
+			palette.load(bltFile, paletteId);
 			BltLongId hotspotsId(READ_BE_UINT32(&src[8]));
 			hotspots.load(bltFile, hotspotsId);
 		}
 
 		BltImage image;
-		BltResource palette;
+		BltPalette palette;
 		BltImage hotspots;
 	};
 
@@ -104,7 +104,8 @@ private:
 		void load(const byte *src, BltFile &bltFile) {
 			start = src[0];
 			num = src[1];
-			colors.reset(bltFile.loadResource(BltLongId(READ_BE_UINT32(&src[2])), kBltButtonColors));
+			BltLongId colorsId(READ_BE_UINT32(&src[2]));
+			colors.reset(bltFile.loadResource(colorsId, kBltButtonColors));
 		}
 
 		byte start;

@@ -28,9 +28,9 @@
 
 namespace Bolt {
 	
-class ActionPuzzleCard : public Card {
+class ActionPuzzle : public Card {
 public:
-	static Card* loadFunc(MerlinEngine *merlin, const PuzzleEntry &entry);
+	static Card* make(MerlinEngine *merlin, const PuzzleEntry &entry);
 	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
 	void enter();
 	Card::Status processEvent(const BoltEvent &event);
@@ -38,7 +38,7 @@ protected:
 	MerlinEngine *_merlin;
 	uint32 _winMovie;
 	BltImage _bgImage;
-	BltResource _palette;
+	BltPalette _palette;
 };
 
 } // End of namespace Bolt
