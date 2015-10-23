@@ -62,6 +62,7 @@ private:
 	void initCursor();
 	void resetSequence();
 	void advanceSequence();
+	void enterSequenceEntry();
 	void startMainMenu(BltLongId id);
 	void startMenu(BltLongId id);
 	void startMovie(PfFile &pfFile, uint32 name);
@@ -91,6 +92,7 @@ private:
 	void setCurrentCard(Card *card);
 
 	int _sequenceCursor;
+	const PuzzleEntry *_currentPuzzle;
 
 	typedef void (*CallbackFunc)(MerlinEngine *self, const void *param);
 	struct Callback {
@@ -101,13 +103,14 @@ private:
 	Callback _cardEndCallback;
 	void setCardEndCallback(CallbackFunc func, const void *param);
 
-	static void plotMovieFunc(MerlinEngine *self, const void *param);
-	static void mainMenuFunc(MerlinEngine *self, const void *param);
-	static void fileMenuFunc(MerlinEngine *self, const void *param);
-	static void difficultyMenuFunc(MerlinEngine *self, const void *param);
-	static void hubFunc(MerlinEngine *self, const void *param);
-	static void puzzleFunc(MerlinEngine *self, const void *param);
-	static void freeplayHubFunc(MerlinEngine *self, const void *param);
+	static void plotMovie(MerlinEngine *self, const void *param);
+	static void mainMenu(MerlinEngine *self, const void *param);
+	static void fileMenu(MerlinEngine *self, const void *param);
+	static void difficultyMenu(MerlinEngine *self, const void *param);
+	static void hub(MerlinEngine *self, const void *param);
+	static void puzzle(MerlinEngine *self, const void *param);
+	static void win(MerlinEngine *self, const void *param);
+	static void freeplayHub(MerlinEngine *self, const void *param);
 
 	static const HubEntry kStage1;
 	static const PuzzleEntry kStage1Puzzles[6];

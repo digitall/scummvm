@@ -131,12 +131,17 @@ void MerlinEngine::initCursor() {
 
 void MerlinEngine::resetSequence() {
 	_sequenceCursor = 0;
-	kSequence[_sequenceCursor].func(this, kSequence[_sequenceCursor].param);
+	enterSequenceEntry();
 }
 
 void MerlinEngine::advanceSequence() {
 	// advance sequence
 	_sequenceCursor = (_sequenceCursor + 1) % kSequenceSize; // reset at end
+	enterSequenceEntry();
+}
+
+void MerlinEngine::enterSequenceEntry() {
+	_currentPuzzle = nullptr;
 	kSequence[_sequenceCursor].func(this, kSequence[_sequenceCursor].param);
 }
 
@@ -186,23 +191,23 @@ void MerlinEngine::setCardEndCallback(CallbackFunc func, const void *param) {
 	_cardEndCallback.param = param;
 }
 
-void MerlinEngine::plotMovieFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::plotMovie(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	uint32 name = *reinterpret_cast<const uint32*>(param);
 	self->startMovie(self->_maPf, name);
 }
 
-void MerlinEngine::mainMenuFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::mainMenu(MerlinEngine *self, const void *param) {
 	static const uint16 kMainMenuId = 0x0118;
 	self->startMainMenu(BltShortId(kMainMenuId));
 }
 
-void MerlinEngine::fileMenuFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::fileMenu(MerlinEngine *self, const void *param) {
 	static const uint16 kFileMenuId = 0x027A;
 	self->startMenu(BltShortId(kFileMenuId));
 }
 
-void MerlinEngine::difficultyMenuFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::difficultyMenu(MerlinEngine *self, const void *param) {
 	static const uint16 kDifficultyMenuId = 0x006B;
 	self->startMenu(BltShortId(kDifficultyMenuId));
 }
@@ -232,9 +237,7 @@ void TestPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
 
 Card::Status TestPuzzle::processButtonClick(int num) {
 	// TODO: implement puzzle
-	if (_winMovie) {
-		_merlin->startMovie(_merlin->_challdirPf, _winMovie);
-	}
+	_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
 	return Ended;
 }
 
@@ -333,7 +336,7 @@ void MerlinEngine::scheduleDisplayUpdate() {
 	_engine->scheduleDisplayUpdate();
 }
 
-void MerlinEngine::hubFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::hub(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
 	HubCard *card = new HubCard;
@@ -341,20 +344,23 @@ void MerlinEngine::hubFunc(MerlinEngine *self, const void *param) {
 	self->setCurrentCard(card);
 }
 
-void MerlinEngine::puzzleFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::puzzle(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
-
-	// Extract current hub card entry to support returning to it
-	const HubEntry *currentHub = reinterpret_cast<const HubEntry*>(kSequence[self->_sequenceCursor].param);
-	// Set it up so that when puzzle ends, you return to hub
-	self->setCardEndCallback(hubFunc, currentHub);
-
-	const PuzzleEntry *entry = reinterpret_cast<const PuzzleEntry*>(param);
-	Card *card = entry->makeFunc(self, *entry);
+	self->_currentPuzzle = reinterpret_cast<const PuzzleEntry*>(param);
+	Card *card = self->_currentPuzzle->makeFunc(self, *self->_currentPuzzle);
 	self->setCurrentCard(card);
 }
 
-void MerlinEngine::freeplayHubFunc(MerlinEngine *self, const void *param) {
+void MerlinEngine::win(MerlinEngine *self, const void *param) {
+	self->_currentCard.reset();
+	assert(self->_currentPuzzle);
+	if (self->_currentPuzzle->winMovie) {
+		self->startMovie(self->_challdirPf, self->_currentPuzzle->winMovie);
+	}
+	self->enterSequenceEntry(); // Return to hub
+}
+
+void MerlinEngine::freeplayHub(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 
 	uint16 scene = *reinterpret_cast<const uint16*>(param);
@@ -378,30 +384,30 @@ const MerlinEngine::Callback
 MerlinEngine::kSequence[] = {
 	
 	// Pre-game menus
-	{ MerlinEngine::plotMovieFunc, &kPlotMovieBMPR },
-	{ MerlinEngine::plotMovieFunc, &kPlotMovieINTR },
-	{ MerlinEngine::mainMenuFunc, nullptr },
-	{ MerlinEngine::fileMenuFunc, nullptr },
-	{ MerlinEngine::difficultyMenuFunc, nullptr },
+	{ MerlinEngine::plotMovie, &kPlotMovieBMPR },
+	{ MerlinEngine::plotMovie, &kPlotMovieINTR },
+	{ MerlinEngine::mainMenu, nullptr },
+	{ MerlinEngine::fileMenu, nullptr },
+	{ MerlinEngine::difficultyMenu, nullptr },
 
 	// Stage 1: Forest
-	{ MerlinEngine::plotMovieFunc, &kPlotMoviePLOG },
-	{ MerlinEngine::hubFunc, &MerlinEngine::kStage1 },
+	{ MerlinEngine::plotMovie, &kPlotMoviePLOG },
+	{ MerlinEngine::hub, &MerlinEngine::kStage1 },
 
 	// Stage 2: Laboratory
-	{ MerlinEngine::plotMovieFunc, &kPlotMovieLABT },
-	{ MerlinEngine::hubFunc, &MerlinEngine::kStage2 },
+	{ MerlinEngine::plotMovie, &kPlotMovieLABT },
+	{ MerlinEngine::hub, &MerlinEngine::kStage2 },
 
 	// Stage 3: Cave
-	{ MerlinEngine::plotMovieFunc, &kPlotMovieCAV1 },
-	{ MerlinEngine::hubFunc, &MerlinEngine::kStage3 },
+	{ MerlinEngine::plotMovie, &kPlotMovieCAV1 },
+	{ MerlinEngine::hub, &MerlinEngine::kStage3 },
 
 	// NOTE: The Finale movie is hidden until the game is fully implemented.
-	//{ MerlinEngine::plotMovieFunc, &kPlotMovieFNLE },
+	//{ MerlinEngine::plotMovie, &kPlotMovieFNLE },
 
-	{ MerlinEngine::freeplayHubFunc, &kFreeplayScene1 },
-	{ MerlinEngine::freeplayHubFunc, &kFreeplayScene2 },
-	{ MerlinEngine::freeplayHubFunc, &kFreeplayScene3 },
+	{ MerlinEngine::freeplayHub, &kFreeplayScene1 },
+	{ MerlinEngine::freeplayHub, &kFreeplayScene2 },
+	{ MerlinEngine::freeplayHub, &kFreeplayScene3 },
 };
 
 const size_t MerlinEngine::kSequenceSize =
