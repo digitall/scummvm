@@ -80,7 +80,7 @@ void HubCard::enter() {
 
 Card::Status HubCard::processButtonClick(int num) {
 	if (num >= 0 && num < _hubEntry->numPuzzles) {
-		_merlin->setCardEndCallback(MerlinEngine::puzzleFunc, &_hubEntry->puzzles[num]);
+		_merlin->setCardEndCallback(MerlinEngine::puzzle, &_hubEntry->puzzles[num]);
 		return Ended;
 	}
 

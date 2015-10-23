@@ -53,9 +53,7 @@ void ActionPuzzle::enter() {
 Card::Status ActionPuzzle::processEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		// TODO: implement puzzle
-		if (_winMovie) {
-			_merlin->startMovie(_merlin->_challdirPf, _winMovie);
-		}
+		_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
 		return Ended;
 	}
 
