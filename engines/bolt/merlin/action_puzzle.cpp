@@ -32,7 +32,6 @@ Card* ActionPuzzle::make(MerlinEngine *merlin, const PuzzleEntry &entry) {
 
 void ActionPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
 	_merlin = merlin;
-	_winMovie = entry.winMovie;
 
 	BltResourceList resourceList(_merlin->_boltlib, BltShortId(entry.resId));
 	BltLongId bgImageId = resourceList[2].value;
