@@ -20,39 +20,46 @@
  *
  */
 
-#include "bolt/merlin/tangram_puzzle.h"
+#include "bolt/merlin/memory_puzzle.h"
+
+#include "bolt/blt_file.h"
 
 namespace Bolt {
-	
-Card* TangramPuzzle::make(MerlinEngine *merlin, const PuzzleEntry &entry) {
-	TangramPuzzle *card = new TangramPuzzle;
+
+Card* MemoryPuzzle::make(MerlinEngine *merlin, const PuzzleEntry &entry) {
+	MemoryPuzzle *card = new MemoryPuzzle;
 	card->init(merlin, entry);
 	return card;
 }
 
-void TangramPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
+void MemoryPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
 	_merlin = merlin;
 
-	BltResourceList resourceList;
-	resourceList.load(_merlin->_boltlib, BltShortId(entry.resId));
-	BltLongId bgImageId = resourceList[2].value;
-	BltLongId paletteId = resourceList[3].value;
-
-	_bgImage.load(_merlin->_boltlib, bgImageId);
-	_palette.load(_merlin->_boltlib, paletteId);
+	BltResourceList resourceList(_merlin->_boltlib, BltShortId(entry.resId));
+	BltLongId sceneId(resourceList[1].value);
+	_scene.load(_merlin->_engine, _merlin->_boltlib, sceneId);
 }
 
-void TangramPuzzle::enter() {
-	if (_palette) {
-		_palette.set(_merlin->getGraphics(), BltPalette::kBack);
-	}
-	_bgImage.drawAt(_merlin->getGraphics().getBackPlane().getSurface(), 0, 0, false);
-	_merlin->scheduleDisplayUpdate();
+void MemoryPuzzle::enter() {
+	_scene.enter();
 }
 
-Card::Status TangramPuzzle::processEvent(const BoltEvent &event) {
+Card::Status MemoryPuzzle::processEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
-		// TODO: implement puzzle
+		int buttonNum = _scene.getButtonAtPoint(event.point);
+		return processButtonClick(buttonNum);
+	}
+	else {
+		_scene.process();
+	}
+
+	return None;
+}
+
+Card::Status MemoryPuzzle::processButtonClick(int num) {
+	debug(3, "Clicked button %d", num);
+	// TODO: implement puzzle
+	if (num != -1) {
 		_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
 		return Ended;
 	}

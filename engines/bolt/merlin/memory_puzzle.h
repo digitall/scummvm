@@ -20,23 +20,25 @@
  *
  */
 
-#ifndef BOLT_MERLIN_TANGRAM_PUZZLE_H
-#define BOLT_MERLIN_TANGRAM_PUZZLE_H
+#ifndef BOLT_MERLIN_MEMORY_PUZZLE_H
+#define BOLT_MERLIN_MEMORY_PUZZLE_H
 
 #include "bolt/merlin/merlin.h"
+#include "bolt/scene.h"
 
 namespace Bolt {
-	
-class TangramPuzzle : public Card {
+
+class MemoryPuzzle : public Card {
 public:
 	static Card* make(MerlinEngine *merlin, const PuzzleEntry &entry);
 	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
 	void enter();
 	Card::Status processEvent(const BoltEvent &event);
 protected:
+	Card::Status processButtonClick(int num);
+
 	MerlinEngine *_merlin;
-	BltImage _bgImage;
-	BltPalette _palette;
+	Scene _scene;
 };
 
 } // End of namespace Bolt

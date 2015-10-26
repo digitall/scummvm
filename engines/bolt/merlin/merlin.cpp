@@ -28,6 +28,7 @@
 #include "bolt/bolt.h"
 #include "bolt/menu_card.h"
 #include "bolt/merlin/action_puzzle.h"
+#include "bolt/merlin/memory_puzzle.h"
 #include "bolt/merlin/tangram_puzzle.h"
 #include "bolt/merlin/hub.h"
 #include "bolt/merlin/main_menu.h"
@@ -294,7 +295,7 @@ const PuzzleEntry MerlinEngine::kStage1Puzzles[6] = {
 	{ ActionPuzzle::make, 0x4921, MKTAG('S', 'E', 'E', 'D') }, // seeds
 	{ TestPuzzle::make, 0x6017, MKTAG('G', 'R', 'A', 'V') }, // grave
 	{ TestPuzzle::make, 0x3009, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
-	{ TestPuzzle::make, 0x8606, MKTAG('P', 'O', 'N', 'D') }, // pond
+	{ MemoryPuzzle::make, 0x865E, MKTAG('P', 'O', 'N', 'D') }, // pond
 	{ ActionPuzzle::make, 0x4D19, MKTAG('L', 'E', 'A', 'V') }, // leaves
 	{ TestPuzzle::make, 0x340A, MKTAG('R', 'A', 'V', 'N') }, // raven
 };
@@ -308,7 +309,7 @@ const PuzzleEntry MerlinEngine::kStage2Puzzles[9] = {
 	{ TestPuzzle::make, 0x6817, MKTAG('P', 'R', 'C', 'H') }, // parchment
 	{ ActionPuzzle::make, 0x5113, MKTAG('B', 'B', 'L', 'E') }, // bubbles
 	{ TestPuzzle::make, 0x3C0B, MKTAG('S', 'K', 'L', 'T') }, // skeleton
-	{ TestPuzzle::make, 0x8706, MKTAG('F', 'L', 'S', 'K') }, // flasks
+	{ MemoryPuzzle::make, 0x8797, MKTAG('F', 'L', 'S', 'K') }, // flasks
 	{ TangramPuzzle::make, 0x7115, MKTAG('M', 'I', 'R', 'R') }, // mirror
 };
 
@@ -325,7 +326,7 @@ const PuzzleEntry MerlinEngine::kStage3Puzzles[12] = {
 	{ TangramPuzzle::make, 0x7915, MKTAG('T', 'I', 'L', 'E') }, // tile
 	{ TestPuzzle::make, 0x440D, MKTAG('S', 'P', 'I', 'D') }, // spider
 	{ TestPuzzle::make, 0x640B, MKTAG('T', 'B', 'L', 'T') }, // tablet
-	{ TestPuzzle::make, 0x8806, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
+	{ MemoryPuzzle::make, 0x887B, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
 };
 
 Graphics& MerlinEngine::getGraphics() {

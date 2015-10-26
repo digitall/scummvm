@@ -36,7 +36,6 @@ public:
 	Card::Status processEvent(const BoltEvent &event);
 protected:
 	MerlinEngine *_merlin;
-	uint32 _winMovie;
 	BltImage _bgImage;
 	BltPalette _palette;
 };
