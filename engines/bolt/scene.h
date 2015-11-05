@@ -35,11 +35,11 @@ class BoltEngine;
 
 class Scene {
 public:
-	void load(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId);
+	void load(BoltEngine *engine, BltFile &bltFile, BltId sceneId);
 	void enter();
 	void process();
 
-	void setBackPlane(BltFile &bltFile, BltLongId id);
+	void setBackPlane(BltFile &bltFile, BltId id);
 
 	// Return number of button at point. Returns -1 if there is no button.
 	int getButtonAtPoint(const Common::Point &pt);
@@ -51,11 +51,11 @@ private:
 		static const uint32 kType = kBltPlane;
 		static const uint kSize = 0x10;
 		void load(const byte *src, BltFile &bltFile) {
-			BltLongId imageId(READ_BE_UINT32(&src[0]));
+			BltId imageId(READ_BE_UINT32(&src[0]));
 			image.load(bltFile, imageId);
-			BltLongId paletteId(READ_BE_UINT32(&src[4]));
+			BltId paletteId(READ_BE_UINT32(&src[4]));
 			palette.load(bltFile, paletteId);
-			BltLongId hotspotsId(READ_BE_UINT32(&src[8]));
+			BltId hotspotsId(READ_BE_UINT32(&src[8]));
 			hotspots.load(bltFile, hotspotsId);
 		}
 
@@ -75,7 +75,7 @@ private:
 		void load(const byte *src, BltFile &bltFile) {
 			pos.x = READ_BE_INT16(&src[0]);
 			pos.y = READ_BE_INT16(&src[2]);
-			BltLongId imageId(READ_BE_UINT32(&src[4]));
+			BltId imageId(READ_BE_UINT32(&src[4]));
 			image.load(bltFile, imageId);
 		}
 
@@ -104,7 +104,7 @@ private:
 		void load(const byte *src, BltFile &bltFile) {
 			start = src[0];
 			num = src[1];
-			BltLongId colorsId(READ_BE_UINT32(&src[2]));
+			BltId colorsId(READ_BE_UINT32(&src[2]));
 			colors.reset(bltFile.loadResource(colorsId, kBltButtonColors));
 		}
 
@@ -125,8 +125,8 @@ private:
 			type = READ_BE_UINT16(&src[0]);
 			// FIXME: unknown field at 2. It is used in the buttons on sliding
 			// and points to an image.
-			BltLongId hoveredId(READ_BE_UINT32(&src[6]));
-			BltLongId idleId(READ_BE_UINT32(&src[0xA]));
+			BltId hoveredId(READ_BE_UINT32(&src[6]));
+			BltId idleId(READ_BE_UINT32(&src[0xA]));
 			if (type == PaletteMods) {
 				hoveredPaletteMod.load(&BltResource(bltFile.loadResource(
 					hoveredId, kBltButtonPaletteMod))[0], bltFile);
@@ -161,7 +161,7 @@ private:
 			plane = READ_BE_UINT16(&src[0xA]);
 			numGraphics = READ_BE_UINT16(&src[0xC]);
 			// FIXME: unknown field at 0xE. Always 0 in game data.
-			graphics.load(bltFile, BltLongId(READ_BE_UINT32(&src[0x10])));
+			graphics.load(bltFile, BltId(READ_BE_UINT32(&src[0x10])));
 		}
 
 		enum HotspotType {

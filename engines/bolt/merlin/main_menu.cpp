@@ -30,14 +30,14 @@ struct BltMainMenuStruct {
 	static const uint32 kType = kBltMainMenu;
 	static const uint32 kSize = 0xC;
 	void load(const byte *src, BltFile &bltFile) {
-		sceneId = BltLongId(READ_BE_UINT32(&src[0]));
-		colorbarsImageId = BltLongId(READ_BE_UINT32(&src[4]));
-		colorbarsPaletteId = BltLongId(READ_BE_UINT32(&src[8]));
+		sceneId = BltId(READ_BE_UINT32(&src[0]));
+		colorbarsImageId = BltId(READ_BE_UINT32(&src[4]));
+		colorbarsPaletteId = BltId(READ_BE_UINT32(&src[8]));
 	}
 
-	BltLongId sceneId;
-	BltLongId colorbarsImageId;
-	BltLongId colorbarsPaletteId;
+	BltId sceneId;
+	BltId colorbarsImageId;
+	BltId colorbarsPaletteId;
 };
 
 typedef BltLoader<BltMainMenuStruct> BltMainMenu;
@@ -46,7 +46,7 @@ MainMenu::MainMenu()
 	: _merlin(nullptr)
 { }
 
-void MainMenu::init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id) {
+void MainMenu::init(MerlinEngine *merlin, BltFile &bltFile, BltId id) {
 	_merlin = merlin;
 
 	BltMainMenu mainMenu(bltFile, id);

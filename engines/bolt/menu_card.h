@@ -40,7 +40,7 @@ public:
 	virtual Status processEvent(const BoltEvent &event);
 
 protected:
-	void init(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId);
+	void init(BoltEngine *engine, BltFile &bltFile, BltId sceneId);
 	virtual Status processButtonClick(int num) = 0;
 
 	BoltEngine *_engine;
@@ -49,7 +49,7 @@ protected:
 
 class GenericMenuCard : public MenuCard {
 public:
-	void init(BoltEngine *engine, BltFile &bltFile, BltLongId id);
+	void init(BoltEngine *engine, BltFile &bltFile, BltId id);
 protected:
 	virtual Status processButtonClick(int num);
 };

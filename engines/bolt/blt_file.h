@@ -30,6 +30,7 @@
 namespace Bolt {
 
 enum BltType {
+	kBlt16BitValues = 3,
 	kBltResourceList = 6,
 	kBltImage = 8,
 	kBltPalette = 10,
@@ -45,21 +46,26 @@ enum BltType {
 	kBltMainMenu = 33,
 	kBltHub = 40,
 	kBltHubItem = 41,
+	kBltSlidingPuzzle = 44,
 };
 
 struct BltShortId {
-	BltShortId() : value(0xFFFFU) { }
+	static const uint16 INVALID_VALUE = 0xFFFF;
+
+	BltShortId() : value(INVALID_VALUE) { }
 	explicit BltShortId(uint16 v) : value(v) { }
 
 	// ID is made of two 8-bit parts: <directory number> <resource number>.
 	uint16 value;
 };
 
-struct BltLongId {
-	BltLongId() : value(0xFFFFFFFFUL) { }
-	BltLongId(BltShortId shortId) : value(shortId.value << 16) { }
-	explicit BltLongId(uint32 v) : value(v) { }
-	bool isValid() const { return value != 0xFFFFFFFFUL; }
+struct BltId {
+	static const uint32 INVALID_VALUE = 0xFFFFFFFFUL;
+
+	BltId() : value(INVALID_VALUE) { }
+	BltId(BltShortId shortId) : value(shortId.value << 16) { }
+	explicit BltId(uint32 v) : value(v) { }
+	bool isValid() const { return value != INVALID_VALUE; }
 
 	// ID is made of two 16-bit parts: <short id> <offset>.
 	// offset should always be zero.
@@ -72,7 +78,7 @@ class BltFile {
 public:
 	bool load(const Common::String &filename);
 
-	BltResource::Movable loadResource(BltLongId id, uint32 expectedType);
+	BltResource::Movable loadResource(BltId id, uint32 expectedType);
 
 private:
 	// Warning: may clobber file cursor
@@ -81,7 +87,6 @@ private:
 	Common::File _file;
 
 	struct DirectoryEntry {
-		//static const int kSize = 0x10;
 		DirectoryEntry() { }
 		DirectoryEntry(Common::File &file);
 
@@ -92,7 +97,6 @@ private:
 	};
 
 	struct ResourceEntry {
-		//static const int kSize = 0x10;
 		ResourceEntry() { }
 		ResourceEntry(Common::File &file);
 
@@ -123,11 +127,11 @@ class BltLoader {
 	// Use arrow operator -> to access.
 public:
 	BltLoader() { }
-	BltLoader(BltFile &bltFile, BltLongId id) {
+	BltLoader(BltFile &bltFile, BltId id) {
 		load(bltFile, id);
 	}
 
-	void load(BltFile &bltFile, BltLongId id) {
+	void load(BltFile &bltFile, BltId id) {
 		BltResource res(bltFile.loadResource(id, T::kType));
 		// Reset _data to unloaded state
 		_data.~T();
@@ -159,7 +163,7 @@ class BltArrayLoader {
 	// Use array indexing [] to access.
 public:
 	BltArrayLoader() { }
-	BltArrayLoader(BltFile &bltFile, BltLongId id) {
+	BltArrayLoader(BltFile &bltFile, BltId id) {
 		load(bltFile, id);
 	}
 
@@ -167,7 +171,7 @@ public:
 		return _array;
 	}
 
-	void load(BltFile &bltFile, BltLongId id) { // FIXME: expectedCount? Count is usually known in advance...
+	void load(BltFile &bltFile, BltId id) { // FIXME: expectedCount? Count is usually known in advance...
 		BltResource res(bltFile.loadResource(id, T::kType));
 		uint numItems = res.size() / T::kSize;
 		_array.alloc(numItems);
@@ -187,14 +191,26 @@ private:
 	ScopedArray<T> _array;
 };
 
+struct Blt16BitValuesStruct { // type 3
+	static const uint32 kType = kBlt16BitValues;
+	static const uint kSize = 2;
+	void load(const byte *src, BltFile &bltFile) {
+		value = READ_BE_UINT16(src);
+	}
+
+	uint16 value;
+};
+
+typedef BltArrayLoader<Blt16BitValuesStruct> Blt16BitValues;
+
 struct BltResourceListStruct { // type 6
 	static const uint32 kType = kBltResourceList;
 	static const uint kSize = 4;
 	void load(const byte *src, BltFile &bltFile) {
-		value = BltLongId(READ_BE_UINT32(&src[0]));
+		value = BltId(READ_BE_UINT32(&src[0]));
 	}
 
-	BltLongId value;
+	BltId value;
 };
 
 typedef BltArrayLoader<BltResourceListStruct> BltResourceList;

@@ -450,7 +450,7 @@ struct BltImageHeader {
 	uint16 height;
 };
 
-void BltImage::load(BltFile &bltFile, BltLongId id) {
+void BltImage::load(BltFile &bltFile, BltId id) {
 	_res.reset(bltFile.loadResource(id, kBltImage));
 }
 
@@ -525,7 +525,7 @@ struct BltPaletteHeader {
 	uint16 top; // ??? (usually 127)
 };
 
-void BltPalette::load(BltFile &bltFile, BltLongId id) {
+void BltPalette::load(BltFile &bltFile, BltId id) {
 	_res.reset(bltFile.loadResource(id, kBltPalette));
 }
 

@@ -36,7 +36,7 @@ struct HubEntry {
 	const PuzzleEntry *puzzles;
 };
 
-typedef Card* (*MakePuzzleFunc)(MerlinEngine *merlin, const PuzzleEntry &entry);
+typedef Card* (*MakePuzzleFunc)(MerlinEngine *merlin, BltId resId);
 
 struct PuzzleEntry {
 	MakePuzzleFunc makeFunc;
@@ -48,8 +48,12 @@ class MerlinEngine : public SubEngine {
 	friend class MainMenu;
 	friend class HubCard;
 	friend class ActionPuzzle;
+	friend class ColorPuzzle;
 	friend class MemoryPuzzle;
+	friend class SlidingPuzzle;
+	friend class SynchPuzzle;
 	friend class TangramPuzzle;
+	friend class WordPuzzle;
 	friend class TestPuzzle;
 public:
 	MerlinEngine();
@@ -64,8 +68,8 @@ private:
 	void resetSequence();
 	void advanceSequence();
 	void enterSequenceEntry();
-	void startMainMenu(BltLongId id);
-	void startMenu(BltLongId id);
+	void startMainMenu(BltId id);
+	void startMenu(BltId id);
 	void startMovie(PfFile &pfFile, uint32 name);
 
 	static void movieTrigger(void *param, uint16 triggerType);

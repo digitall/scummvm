@@ -20,31 +20,54 @@
  *
  */
 
-#include "bolt/merlin/memory_puzzle.h"
-
-#include "bolt/blt_file.h"
+#include "bolt/merlin/sliding_puzzle.h"
 
 namespace Bolt {
-
-Card* MemoryPuzzle::make(MerlinEngine *merlin, BltId resId) {
-	MemoryPuzzle *card = new MemoryPuzzle;
+	
+Card* SlidingPuzzle::make(MerlinEngine *merlin, BltId resId) {
+	SlidingPuzzle *card = new SlidingPuzzle;
 	card->init(merlin, resId);
 	return card;
 }
 
-void MemoryPuzzle::init(MerlinEngine *merlin, BltId resId) {
+struct BltSlidingPuzzleStruct { // type 44
+	static const uint32 kType = kBltSlidingPuzzle;
+	static const uint kSize = 0xC;
+	void load(const byte *src, BltFile &bltFile) {
+		unk1 = READ_BE_UINT16(&src[0]);
+		difficulty1 = BltShortId(READ_BE_UINT16(&src[2]));
+		unk2 = READ_BE_UINT16(&src[4]);
+		difficulty2 = BltShortId(READ_BE_UINT16(&src[6]));
+		unk3 = READ_BE_UINT16(&src[8]);
+		difficulty3 = BltShortId(READ_BE_UINT16(&src[0xA]));
+	}
+
+	uint16 unk1;
+	BltShortId difficulty1;
+	uint16 unk2;
+	BltShortId difficulty2;
+	uint16 unk3;
+	BltShortId difficulty3;
+};
+
+typedef BltLoader<BltSlidingPuzzleStruct> BltSlidingPuzzle;
+
+void SlidingPuzzle::init(MerlinEngine *merlin, BltId resId) {
 	_merlin = merlin;
 
 	BltResourceList resourceList(_merlin->_boltlib, resId);
-	BltId sceneId = resourceList[1].value;
-	_scene.load(_merlin->_engine, _merlin->_boltlib, sceneId);
+	BltSlidingPuzzle slidingPuzzleInfo(_merlin->_boltlib, resourceList[1].value);
+	// TODO: select proper difficulty based on player setting
+	BltResourceList difficultyInfo(_merlin->_boltlib, slidingPuzzleInfo->difficulty1); // Ex: 3A34, 3B34, 3C34
+
+	_scene.load(_merlin->_engine, _merlin->_boltlib, difficultyInfo[1].value);
 }
 
-void MemoryPuzzle::enter() {
+void SlidingPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Status MemoryPuzzle::processEvent(const BoltEvent &event) {
+Card::Status SlidingPuzzle::processEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return processButtonClick(buttonNum);
@@ -56,7 +79,7 @@ Card::Status MemoryPuzzle::processEvent(const BoltEvent &event) {
 	return None;
 }
 
-Card::Status MemoryPuzzle::processButtonClick(int num) {
+Card::Status SlidingPuzzle::processButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	if (num != -1) {

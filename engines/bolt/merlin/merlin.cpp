@@ -28,8 +28,12 @@
 #include "bolt/bolt.h"
 #include "bolt/menu_card.h"
 #include "bolt/merlin/action_puzzle.h"
+#include "bolt/merlin/color_puzzle.h"
 #include "bolt/merlin/memory_puzzle.h"
+#include "bolt/merlin/sliding_puzzle.h"
+#include "bolt/merlin/synch_puzzle.h"
 #include "bolt/merlin/tangram_puzzle.h"
+#include "bolt/merlin/word_puzzle.h"
 #include "bolt/merlin/hub.h"
 #include "bolt/merlin/main_menu.h"
 
@@ -146,14 +150,14 @@ void MerlinEngine::enterSequenceEntry() {
 	kSequence[_sequenceCursor].func(this, kSequence[_sequenceCursor].param);
 }
 
-void MerlinEngine::startMainMenu(BltLongId id) {
+void MerlinEngine::startMainMenu(BltId id) {
 	_currentCard.reset();
 	MainMenu* card = new MainMenu;
 	card->init(this, _boltlib, id);
 	setCurrentCard(card);
 }
 
-void MerlinEngine::startMenu(BltLongId id) {
+void MerlinEngine::startMenu(BltId id) {
 	_currentCard.reset();
 	GenericMenuCard* menuCard = new GenericMenuCard;
 	menuCard->init(_engine, _boltlib, id);
@@ -213,35 +217,6 @@ void MerlinEngine::difficultyMenu(MerlinEngine *self, const void *param) {
 	self->startMenu(BltShortId(kDifficultyMenuId));
 }
 
-class TestPuzzle : public MenuCard {
-public:
-	static Card* make(MerlinEngine *merlin, const PuzzleEntry &entry);
-	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
-protected:
-	Status processButtonClick(int num);
-
-	MerlinEngine *_merlin;
-	uint32 _winMovie;
-};
-
-Card* TestPuzzle::make(MerlinEngine *merlin, const PuzzleEntry &entry) {
-	TestPuzzle *card = new TestPuzzle;
-	card->init(merlin, entry);
-	return card;
-}
-
-void TestPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
-	_merlin = merlin;
-	_winMovie = entry.winMovie;
-	MenuCard::init(merlin->_engine, merlin->_boltlib, BltShortId(entry.resId));
-}
-
-Card::Status TestPuzzle::processButtonClick(int num) {
-	// TODO: implement puzzle
-	_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-	return Ended;
-}
-
 // From MERLIN.EXE:
 //
 // Action puzzles:
@@ -292,41 +267,41 @@ Card::Status TestPuzzle::processButtonClick(int num) {
 
 const HubEntry MerlinEngine::kStage1 = { 0x0C0B, 6, MerlinEngine::kStage1Puzzles };
 const PuzzleEntry MerlinEngine::kStage1Puzzles[6] = {
-	{ ActionPuzzle::make, 0x4921, MKTAG('S', 'E', 'E', 'D') }, // seeds
-	{ TestPuzzle::make, 0x6017, MKTAG('G', 'R', 'A', 'V') }, // grave
-	{ TestPuzzle::make, 0x3009, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
-	{ MemoryPuzzle::make, 0x865E, MKTAG('P', 'O', 'N', 'D') }, // pond
-	{ ActionPuzzle::make, 0x4D19, MKTAG('L', 'E', 'A', 'V') }, // leaves
-	{ TestPuzzle::make, 0x340A, MKTAG('R', 'A', 'V', 'N') }, // raven
+	{ ActionPuzzle::make,  0x4921, MKTAG('S', 'E', 'E', 'D') }, // seeds
+	{ WordPuzzle::make,    0x61E3, MKTAG('G', 'R', 'A', 'V') }, // grave
+	{ SlidingPuzzle::make, 0x313F, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
+	{ MemoryPuzzle::make,  0x865E, MKTAG('P', 'O', 'N', 'D') }, // pond
+	{ ActionPuzzle::make,  0x4D19, MKTAG('L', 'E', 'A', 'V') }, // leaves
+	{ SlidingPuzzle::make, 0x353F, MKTAG('R', 'A', 'V', 'N') }, // raven
 };
 
 const HubEntry MerlinEngine::kStage2 = { 0x0D34, 9, MerlinEngine::kStage2Puzzles };
 const PuzzleEntry MerlinEngine::kStage2Puzzles[9] = {
-	{ TestPuzzle::make, 0x400B, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
+	{ SlidingPuzzle::make, 0x4140, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
 	{ TangramPuzzle::make, 0x6D15, MKTAG('P', 'L', 'A', 'Q') }, // plaque
-	{ ActionPuzzle::make, 0x551C, MKTAG('S', 'N', 'O', 'W') }, // snow
-	{ TestPuzzle::make, 0x7D0B, MKTAG('P', 'L', 'N', 'T') }, // planets
-	{ TestPuzzle::make, 0x6817, MKTAG('P', 'R', 'C', 'H') }, // parchment
-	{ ActionPuzzle::make, 0x5113, MKTAG('B', 'B', 'L', 'E') }, // bubbles
-	{ TestPuzzle::make, 0x3C0B, MKTAG('S', 'K', 'L', 'T') }, // skeleton
-	{ MemoryPuzzle::make, 0x8797, MKTAG('F', 'L', 'S', 'K') }, // flasks
+	{ ActionPuzzle::make,  0x551C, MKTAG('S', 'N', 'O', 'W') }, // snow
+	{ SynchPuzzle::make,   0x7D12, MKTAG('P', 'L', 'N', 'T') }, // planets
+	{ WordPuzzle::make,    0x69E1, MKTAG('P', 'R', 'C', 'H') }, // parchment
+	{ ActionPuzzle::make,  0x5113, MKTAG('B', 'B', 'L', 'E') }, // bubbles
+	{ SlidingPuzzle::make, 0x3D3F, MKTAG('S', 'K', 'L', 'T') }, // skeleton
+	{ MemoryPuzzle::make,  0x8797, MKTAG('F', 'L', 'S', 'K') }, // flasks
 	{ TangramPuzzle::make, 0x7115, MKTAG('M', 'I', 'R', 'R') }, // mirror
 };
 
 const HubEntry MerlinEngine::kStage3 = { 0x0E4F, 12, MerlinEngine::kStage3Puzzles };
 const PuzzleEntry MerlinEngine::kStage3Puzzles[12] = {
-	{ TestPuzzle::make, 0x8C0C, MKTAG('W', 'N', 'D', 'W') }, // window
+	{ ColorPuzzle::make,   0x8C13, MKTAG('W', 'N', 'D', 'W') }, // window
 	{ TangramPuzzle::make, 0x7515, MKTAG('O', 'C', 'T', 'A') }, // octagon
-	{ TestPuzzle::make, 0x850B, MKTAG('S', 'P', 'R', 'T') }, // spirits
-	{ TestPuzzle::make, 0x900D, MKTAG('S', 'T', 'A', 'R') }, // star
-	{ TestPuzzle::make, 0x810D, MKTAG('D', 'O', 'O', 'R') }, // door
-	{ ActionPuzzle::make, 0x5918, MKTAG('G', 'E', 'M', 'S') }, // gems
-	{ TestPuzzle::make, 0x3810, MKTAG('C', 'S', 'T', 'L') }, // crystal
-	{ ActionPuzzle::make, 0x5D17, MKTAG('D', 'E', 'M', 'N') }, // demons
+	{ SynchPuzzle::make,   0x8512, MKTAG('S', 'P', 'R', 'T') }, // spirits
+	{ ColorPuzzle::make,   0x9014, MKTAG('S', 'T', 'A', 'R') }, // star
+	{ SynchPuzzle::make,   0x8114, MKTAG('D', 'O', 'O', 'R') }, // door
+	{ ActionPuzzle::make,  0x5918, MKTAG('G', 'E', 'M', 'S') }, // gems
+	{ SlidingPuzzle::make, 0x393F, MKTAG('C', 'S', 'T', 'L') }, // crystal
+	{ ActionPuzzle::make,  0x5D17, MKTAG('D', 'E', 'M', 'N') }, // demons
 	{ TangramPuzzle::make, 0x7915, MKTAG('T', 'I', 'L', 'E') }, // tile
-	{ TestPuzzle::make, 0x440D, MKTAG('S', 'P', 'I', 'D') }, // spider
-	{ TestPuzzle::make, 0x640B, MKTAG('T', 'B', 'L', 'T') }, // tablet
-	{ MemoryPuzzle::make, 0x887B, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
+	{ SlidingPuzzle::make, 0x453F, MKTAG('S', 'P', 'I', 'D') }, // spider
+	{ WordPuzzle::make,    0x65E1, MKTAG('T', 'B', 'L', 'T') }, // tablet
+	{ MemoryPuzzle::make,  0x887B, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
 };
 
 Graphics& MerlinEngine::getGraphics() {
@@ -348,7 +323,7 @@ void MerlinEngine::hub(MerlinEngine *self, const void *param) {
 void MerlinEngine::puzzle(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	self->_currentPuzzle = reinterpret_cast<const PuzzleEntry*>(param);
-	Card *card = self->_currentPuzzle->makeFunc(self, *self->_currentPuzzle);
+	Card *card = self->_currentPuzzle->makeFunc(self, BltShortId(self->_currentPuzzle->resId));
 	self->setCurrentCard(card);
 }
 
@@ -377,13 +352,13 @@ static const uint32 kPlotMovieLABT = MKTAG('L', 'A', 'B', 'T');
 static const uint32 kPlotMovieCAV1 = MKTAG('C', 'A', 'V', '1');
 static const uint32 kPlotMovieFNLE = MKTAG('F', 'N', 'L', 'E');
 
-static const uint16 kFreeplayScene1 = 0x0337;
+static const uint16 kFreeplayScenes = 0x0600; // TODO: contains ID's for freeplay hubs
+static const uint16 kFreeplayScene1 = 0x0337; // so stop hardcoding these
 static const uint16 kFreeplayScene2 = 0x0446;
 static const uint16 kFreeplayScene3 = 0x0555;
 
 const MerlinEngine::Callback
 MerlinEngine::kSequence[] = {
-	
 	// Pre-game menus
 	{ MerlinEngine::plotMovie, &kPlotMovieBMPR },
 	{ MerlinEngine::plotMovie, &kPlotMovieINTR },

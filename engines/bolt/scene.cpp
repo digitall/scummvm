@@ -31,25 +31,25 @@ namespace Bolt {
 
 struct BltScene { // type 32
 	BltScene(const byte *src) {
-		forePlaneId = BltLongId(READ_BE_UINT32(&src[0]));
-		backPlaneId = BltLongId(READ_BE_UINT32(&src[4]));
+		forePlaneId = BltId(READ_BE_UINT32(&src[0]));
+		backPlaneId = BltId(READ_BE_UINT32(&src[4]));
 		numSprites = src[0x8];
-		spritesId = BltLongId(READ_BE_UINT32(&src[0xA]));
+		spritesId = BltId(READ_BE_UINT32(&src[0xA]));
 		// FIXME: unknown fields
-		colorCyclesId = BltLongId(READ_BE_UINT32(&src[0x16]));
+		colorCyclesId = BltId(READ_BE_UINT32(&src[0x16]));
 		numButtons = READ_BE_UINT16(&src[0x1A]);
-		buttonsId = BltLongId(READ_BE_UINT32(&src[0x1C]));
+		buttonsId = BltId(READ_BE_UINT32(&src[0x1C]));
 		origin.x = READ_BE_INT16(&src[0x20]);
 		origin.y = READ_BE_INT16(&src[0x22]);
 	}
 
-	BltLongId forePlaneId;
-	BltLongId backPlaneId;
+	BltId forePlaneId;
+	BltId backPlaneId;
 	uint8 numSprites;
-	BltLongId spritesId;
-	BltLongId colorCyclesId;
+	BltId spritesId;
+	BltId colorCyclesId;
 	uint16 numButtons;
-	BltLongId buttonsId;
+	BltId buttonsId;
 	Common::Point origin;
 };
 
@@ -71,33 +71,26 @@ struct BltColorCycles { // type 11
 			numSlots[i] = READ_BE_UINT16(&src[i * 2]);
 		}
 		for (int i = 0; i < 4; ++i) {
-			slotIds[i] = BltLongId(READ_BE_UINT32(&src[8 + i * 4]));
+			slotIds[i] = BltId(READ_BE_UINT32(&src[8 + i * 4]));
 		}
 	}
 
 	uint16 numSlots[4];
-	BltLongId slotIds[4];
+	BltId slotIds[4];
 };
 
-void Scene::load(BoltEngine *engine, BltFile &bltFile, BltLongId sceneId)
+void Scene::load(BoltEngine *engine, BltFile &bltFile, BltId sceneId)
 {
 	_engine = engine;
 
 	BltScene sceneInfo(&BltResource(bltFile.loadResource(sceneId, kBltScene))[0]);
 
 	_origin = sceneInfo.origin;
-
-	// Load planes
 	_forePlane.load(bltFile, sceneInfo.forePlaneId);
 	_backPlane.load(bltFile, sceneInfo.backPlaneId);
-
-	// Load sprites
 	_sprites.load(bltFile, sceneInfo.spritesId);
-
-	// Load buttons
 	_buttons.load(bltFile, sceneInfo.buttonsId);
 
-	// Load color cycles
 	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
 		_colorCycles[i] = ColorCycle();
 	}
@@ -211,7 +204,7 @@ void Scene::process() {
 	_engine->scheduleDisplayUpdate();
 }
 
-void Scene::setBackPlane(BltFile &bltFile, BltLongId id) {
+void Scene::setBackPlane(BltFile &bltFile, BltId id) {
 	_backPlane.load(bltFile, id);
 }
 

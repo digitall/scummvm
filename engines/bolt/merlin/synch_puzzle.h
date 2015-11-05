@@ -20,51 +20,28 @@
  *
  */
 
-#include "bolt/merlin/memory_puzzle.h"
+#ifndef BOLT_MERLIN_SYNCH_PUZZLE_H
+#define BOLT_MERLIN_SYNCH_PUZZLE_H
 
-#include "bolt/blt_file.h"
+#include "bolt/merlin/merlin.h"
+#include "bolt/scene.h"
 
 namespace Bolt {
 
-Card* MemoryPuzzle::make(MerlinEngine *merlin, BltId resId) {
-	MemoryPuzzle *card = new MemoryPuzzle;
-	card->init(merlin, resId);
-	return card;
-}
+class SynchPuzzle : public Card {
+public:
+	static Card* make(MerlinEngine *merlin, BltId resId);
+	void init(MerlinEngine *merlin, BltId resId);
+	void enter();
+	Card::Status processEvent(const BoltEvent &event);
 
-void MemoryPuzzle::init(MerlinEngine *merlin, BltId resId) {
-	_merlin = merlin;
+protected:
+	Card::Status processButtonClick(int num);
 
-	BltResourceList resourceList(_merlin->_boltlib, resId);
-	BltId sceneId = resourceList[1].value;
-	_scene.load(_merlin->_engine, _merlin->_boltlib, sceneId);
-}
-
-void MemoryPuzzle::enter() {
-	_scene.enter();
-}
-
-Card::Status MemoryPuzzle::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
-		int buttonNum = _scene.getButtonAtPoint(event.point);
-		return processButtonClick(buttonNum);
-	}
-	else {
-		_scene.process();
-	}
-
-	return None;
-}
-
-Card::Status MemoryPuzzle::processButtonClick(int num) {
-	debug(3, "Clicked button %d", num);
-	// TODO: implement puzzle
-	if (num != -1) {
-		_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-		return Ended;
-	}
-
-	return None;
-}
+	MerlinEngine *_merlin;
+	Scene _scene;
+};
 
 } // End of namespace Bolt
+
+#endif
