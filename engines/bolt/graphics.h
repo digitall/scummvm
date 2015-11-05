@@ -103,7 +103,7 @@ public:
 		return _res;
 	}
 
-	void load(BltFile &bltFile, BltLongId id);
+	void load(BltFile &bltFile, BltId id);
 
 	void draw(::Graphics::Surface &surface, bool transparency) const;
 	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
@@ -125,7 +125,7 @@ public:
 		return _res;
 	}
 
-	void load(BltFile &bltFile, BltLongId id);
+	void load(BltFile &bltFile, BltId id);
 
 	enum Target {
 		kBack,

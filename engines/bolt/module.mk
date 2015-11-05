@@ -8,10 +8,15 @@ MODULE_OBJS := \
 	labyrinth/labyrinth.o \
 	menu_card.o \
 	merlin/action_puzzle.o \
+	merlin/color_puzzle.o \
 	merlin/hub.o \
 	merlin/main_menu.o \
+	merlin/memory_puzzle.o \
 	merlin/merlin.o \
+	merlin/sliding_puzzle.o \
+	merlin/synch_puzzle.o \
 	merlin/tangram_puzzle.o \
+	merlin/word_puzzle.o \
 	movie.o \
 	pf_file.o \
 	scene.o

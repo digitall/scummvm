@@ -30,7 +30,7 @@ namespace Bolt {
 class MainMenu : public MenuCard {
 public:
 	MainMenu();
-	void init(MerlinEngine *merlin, BltFile &bltFile, BltLongId id);
+	void init(MerlinEngine *merlin, BltFile &bltFile, BltId id);
 protected:
 	Status processButtonClick(int num);
 private:

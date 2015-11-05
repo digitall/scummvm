@@ -28,27 +28,27 @@ namespace Bolt {
 
 struct BltHub { // type 40
 	BltHub(const byte *src) {
-		sceneId = BltLongId(READ_BE_UINT32(&src[0]));
+		sceneId = BltId(READ_BE_UINT32(&src[0]));
 		// FIXME: unknown field at offset 4
-		bgPlaneId = BltLongId(READ_BE_UINT32(&src[6]));
+		bgPlaneId = BltId(READ_BE_UINT32(&src[6]));
 		// FIXME: unknown field at offset 0xA
 		numItems = src[0xB];
-		itemListId = BltLongId(READ_BE_UINT32(&src[0xC]));
+		itemListId = BltId(READ_BE_UINT32(&src[0xC]));
 	}
 
-	BltLongId sceneId;
-	BltLongId bgPlaneId;
+	BltId sceneId;
+	BltId bgPlaneId;
 	byte numItems;
-	BltLongId itemListId;
+	BltId itemListId;
 };
 
 struct BltHubItem { // type 41
 	BltHubItem(const byte *src) {
 		// FIXME: unknown fields
-		imageId = BltLongId(READ_BE_UINT32(&src[4]));
+		imageId = BltId(READ_BE_UINT32(&src[4]));
 	}
 
-	BltLongId imageId;
+	BltId imageId;
 };
 
 void HubCard::init(MerlinEngine *merlin, const HubEntry &entry) {

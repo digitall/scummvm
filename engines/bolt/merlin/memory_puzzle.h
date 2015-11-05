@@ -30,8 +30,8 @@ namespace Bolt {
 
 class MemoryPuzzle : public Card {
 public:
-	static Card* make(MerlinEngine *merlin, const PuzzleEntry &entry);
-	void init(MerlinEngine *merlin, const PuzzleEntry &entry);
+	static Card* make(MerlinEngine *merlin, BltId resId);
+	void init(MerlinEngine *merlin, BltId resId);
 	void enter();
 	Card::Status processEvent(const BoltEvent &event);
 protected:

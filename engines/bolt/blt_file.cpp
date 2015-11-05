@@ -151,7 +151,7 @@ static void decompressBoltLZ(ScopedArray<byte> &dst,
 	}
 }
 
-BltResource::Movable BltFile::loadResource(BltLongId id, uint32 expectedType) {
+BltResource::Movable BltFile::loadResource(BltId id, uint32 expectedType) {
 	if (!id.isValid()) {
 		return BltResource::Movable();
 	}

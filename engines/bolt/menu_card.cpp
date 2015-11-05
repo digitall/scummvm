@@ -30,7 +30,7 @@
 
 namespace Bolt {
 
-void MenuCard::init(BoltEngine *engine, BltFile &bltFile, BltLongId menuId) {
+void MenuCard::init(BoltEngine *engine, BltFile &bltFile, BltId menuId) {
 	_engine = engine;
 	_scene.load(engine, bltFile, menuId);
 }
@@ -52,7 +52,7 @@ Card::Status MenuCard::processEvent(const BoltEvent &event) {
 	return None;
 }
 
-void GenericMenuCard::init(BoltEngine *engine, BltFile &bltFile, BltLongId id) {
+void GenericMenuCard::init(BoltEngine *engine, BltFile &bltFile, BltId id) {
 	MenuCard::init(engine, bltFile, id);
 }
 

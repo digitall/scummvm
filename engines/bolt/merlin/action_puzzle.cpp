@@ -24,18 +24,18 @@
 
 namespace Bolt {
 
-Card* ActionPuzzle::make(MerlinEngine *merlin, const PuzzleEntry &entry) {
+Card* ActionPuzzle::make(MerlinEngine *merlin, BltId resId) {
 	ActionPuzzle *card = new ActionPuzzle;
-	card->init(merlin, entry);
+	card->init(merlin, resId);
 	return card;
 }
 
-void ActionPuzzle::init(MerlinEngine *merlin, const PuzzleEntry &entry) {
+void ActionPuzzle::init(MerlinEngine *merlin, BltId resId) {
 	_merlin = merlin;
 
-	BltResourceList resourceList(_merlin->_boltlib, BltShortId(entry.resId));
-	BltLongId bgImageId = resourceList[2].value;
-	BltLongId paletteId = resourceList[3].value;
+	BltResourceList resourceList(_merlin->_boltlib, resId);
+	BltId bgImageId = resourceList[2].value;
+	BltId paletteId = resourceList[3].value;
 
 	_bgImage.load(_merlin->_boltlib, bgImageId);
 	_palette.load(_merlin->_boltlib, paletteId);
