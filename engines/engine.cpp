@@ -244,6 +244,7 @@ void initCommonGFX(bool defaultTo1XScaler) {
 		g_system->setFeatureState(OSystem::kFeatureFullscreenMode, ConfMan.getBool("fullscreen"));
 }
 
+#ifdef ENABLE_SPLASHSCREEN
 // Please leave the splash screen in working order for your releases, even if they're commercial.
 // This is a proper and good way to show your appreciation for our hard work over these years.
 bool splash = false;
@@ -299,6 +300,7 @@ void splashScreen() {
 
 	splash = true;
 }
+#endif
 
 void initGraphics(int width, int height, bool defaultTo1xScaler, const Graphics::PixelFormat *format) {
 
@@ -318,8 +320,10 @@ void initGraphics(int width, int height, bool defaultTo1xScaler, const Graphics:
 
 	OSystem::TransactionError gfxError = g_system->endGFXTransaction();
 
+#ifdef ENABLE_SPLASHSCREEN
 	if (!splash && !GUI::GuiManager::instance()._launched)
 		splashScreen();
+#endif
 
 	if (gfxError == OSystem::kTransactionSuccess)
 		return;
