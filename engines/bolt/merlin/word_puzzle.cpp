@@ -37,7 +37,7 @@ void WordPuzzle::init(MerlinEngine *merlin, BltId resId) {
 	Blt16BitValues difficulties(_merlin->_boltlib, resourceList[0].value);
 	// There are three difficulties, choose one here
 	BltResourceList difficulty(_merlin->_boltlib, BltShortId(difficulties[0].value)); // Difficulty 0
-	_scene.load(_merlin->_engine, _merlin->_boltlib, difficulty[19].value);
+	_scene.load(_merlin, _merlin->_boltlib, difficulty[19].value);
 }
 
 void WordPuzzle::enter() {

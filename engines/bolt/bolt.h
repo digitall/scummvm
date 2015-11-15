@@ -89,8 +89,6 @@ struct BoltEvent {
 	Common::Point point;
 };
 
-class BoltEngine;
-
 class Card {
 public:
 	enum Status {
@@ -106,36 +104,32 @@ public:
 
 typedef Common::ScopedPtr<Card> CardPtr;
 
-class SubEngine {
-public:
-	virtual ~SubEngine() { }
-	virtual void init(BoltEngine *engine) = 0;
-	virtual void processEvent(const BoltEvent &event) = 0;
-};
-
 class BoltEngine : public Engine {
 	friend class Movie;
 	friend class Scene;
-	friend class MerlinEngine;
 public:
-	BoltEngine(OSystem *syst, const ADGameDescription *gd);
-
 	virtual bool hasFeature(EngineFeature f) const;
 
-protected:
-	virtual Common::Error run();
-
-private:
-	void processEvent(const BoltEvent &event);
+	// TODO: put this somewhere else
 	void scheduleDisplayUpdate();
 
+protected:
+	BoltEngine(OSystem *syst, const ADGameDescription *gd);
+
+	virtual Common::Error run(); // From Engine
+
+	// Provided by subclass
+	virtual void init() = 0;
+	virtual void processEvent(const BoltEvent &event) = 0;
+
 	Graphics _graphics;
+
+private:
+	void topLevelProcessEvent(const BoltEvent &event);
+
 	bool _displayDirty;
 
 	uint32 _eventTime; // time of current or last received event
-
-	typedef Common::ScopedPtr<SubEngine> SubEnginePtr;
-	SubEnginePtr _subEngine;
 };
 
 } // End of namespace Bolt

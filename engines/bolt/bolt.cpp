@@ -32,9 +32,8 @@
 namespace Bolt {
 
 BoltEngine::BoltEngine(OSystem *syst, const ADGameDescription *gd) :
-	Engine(syst) {
-
-}
+	Engine(syst)
+{ }
 
 bool BoltEngine::hasFeature(EngineFeature f) const {
 	return
@@ -42,17 +41,13 @@ bool BoltEngine::hasFeature(EngineFeature f) const {
 }
 
 Common::Error BoltEngine::run() {
-
 	_graphics.init(_system);
 	scheduleDisplayUpdate();
 
-	// Start game
-	_subEngine.reset(new MerlinEngine);
-	_subEngine->init(this);
+	init();
 
 	// Main loop
 	while (!shouldQuit()) {
-
 		_eventTime = getTotalPlayTime();
 
 		// TODO: Instead of constantly polling for events in a loop, design a
@@ -68,14 +63,14 @@ Common::Error BoltEngine::run() {
 			boltEvent.type = BoltEvent::Hover;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
-			processEvent(boltEvent);
+			topLevelProcessEvent(boltEvent);
 		}
 		else if (event.type == Common::EVENT_LBUTTONDOWN) {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::Click;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
-			processEvent(boltEvent);
+			topLevelProcessEvent(boltEvent);
 		}
 		else {
 			// Emit "tick" event
@@ -84,15 +79,14 @@ Common::Error BoltEngine::run() {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::Tick;
 			boltEvent.time = _eventTime;
-			processEvent(boltEvent);
+			topLevelProcessEvent(boltEvent);
 		}
-
 	}
 
 	return Common::kNoError;
 }
 
-void BoltEngine::processEvent(const BoltEvent &event) {
+void BoltEngine::topLevelProcessEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Hover) {
 		// Update cursor
 		// TODO: Only update if cursor is visible (there is no way to query
@@ -100,7 +94,7 @@ void BoltEngine::processEvent(const BoltEvent &event) {
 		scheduleDisplayUpdate();
 	}
 
-	_subEngine->processEvent(event);
+	processEvent(event);
 
 	if (_displayDirty) {
 		_graphics.present();

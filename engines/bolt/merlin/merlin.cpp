@@ -39,20 +39,16 @@
 
 namespace Bolt {
 
-MerlinEngine::MerlinEngine()
-	: _engine(nullptr)
+MerlinEngine::MerlinEngine(OSystem *syst, const ADGameDescription *gd)
+	: BoltEngine(syst, gd)
 { }
 
-void MerlinEngine::init(BoltEngine *engine) {
-	_engine = engine;
-	_cardEndCallback.func = nullptr;
-	_cardEndCallback.param = nullptr;
+void MerlinEngine::init() {
+	setCardEndCallback(nullptr, nullptr);
 
-	// Load BOLTLIB.BLT file
-	_boltlib.load("BOLTLIB.BLT"); // TODO: error handling
+	_boltlib.load("BOLTLIB.BLT");
 
-	// Load PF files
-	_maPf.load("MA.PF"); // TODO: error handling
+	_maPf.load("MA.PF");
 	_helpPf.load("HELP.PF");
 	_potionPf.load("POTION.PF");
 	_challdirPf.load("CHALLDIR.PF");
@@ -92,8 +88,7 @@ void MerlinEngine::processEvent(const BoltEvent &event) {
 			if (_currentCard->processEvent(event) == Card::Ended) {
 				if (_cardEndCallback.func) {
 					Callback temp = _cardEndCallback;
-					_cardEndCallback.func = nullptr;
-					_cardEndCallback.param = nullptr;
+					setCardEndCallback(nullptr, nullptr);
 					temp.func(this, temp.param);
 				}
 				else {
@@ -116,7 +111,6 @@ void MerlinEngine::initCursor() {
 		_cursorImage.load(_boltlib, BltShortId(kCursorImageId));
 	}
 
-	// Format is expected to be CLUT7
 	Common::Array<byte> decodedImage;
 	decodedImage.resize(_cursorImage.getWidth() * _cursorImage.getHeight());
 	::Graphics::Surface surface;
@@ -125,13 +119,13 @@ void MerlinEngine::initCursor() {
 		::Graphics::PixelFormat::createFormatCLUT8());
 	_cursorImage.draw(surface, false);
 
-	_engine->_system->setMouseCursor(&decodedImage[0],
+	_system->setMouseCursor(&decodedImage[0],
 		_cursorImage.getWidth(), _cursorImage.getHeight(),
 		-_cursorImage.getOffset().x, -_cursorImage.getOffset().y, 0);
 
-	_engine->_system->setCursorPalette(kCursorPalette, 0, 2);
+	_system->setCursorPalette(kCursorPalette, 0, 2);
 
-	_engine->_system->showMouse(true);
+	_system->showMouse(true);
 }
 
 void MerlinEngine::resetSequence() {
@@ -140,7 +134,6 @@ void MerlinEngine::resetSequence() {
 }
 
 void MerlinEngine::advanceSequence() {
-	// advance sequence
 	_sequenceCursor = (_sequenceCursor + 1) % kSequenceSize; // reset at end
 	enterSequenceEntry();
 }
@@ -160,13 +153,13 @@ void MerlinEngine::startMainMenu(BltId id) {
 void MerlinEngine::startMenu(BltId id) {
 	_currentCard.reset();
 	GenericMenuCard* menuCard = new GenericMenuCard;
-	menuCard->init(_engine, _boltlib, id);
+	menuCard->init(this, _boltlib, id);
 	setCurrentCard(menuCard);
 }
 
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
 	_movie.stop();
-	_movie.load(_engine, pfFile, name);
+	_movie.load(this, pfFile, name);
 	_movie.process();
 }
 
@@ -217,7 +210,9 @@ void MerlinEngine::difficultyMenu(MerlinEngine *self, const void *param) {
 	self->startMenu(BltShortId(kDifficultyMenuId));
 }
 
-// From MERLIN.EXE:
+// Hardcoded values from MERLIN.EXE:
+//
+// TODO: there are others: cursor, menus, etc.
 //
 // Action puzzles:
 //   SeedsDD    4921
@@ -305,11 +300,7 @@ const PuzzleEntry MerlinEngine::kStage3Puzzles[12] = {
 };
 
 Graphics& MerlinEngine::getGraphics() {
-	return _engine->_graphics;
-}
-
-void MerlinEngine::scheduleDisplayUpdate() {
-	_engine->scheduleDisplayUpdate();
+	return _graphics;
 }
 
 void MerlinEngine::hub(MerlinEngine *self, const void *param) {
@@ -341,7 +332,7 @@ void MerlinEngine::freeplayHub(MerlinEngine *self, const void *param) {
 
 	uint16 scene = *reinterpret_cast<const uint16*>(param);
 	GenericMenuCard *card = new GenericMenuCard;
-	card->init(self->_engine, self->_boltlib, BltShortId(scene));
+	card->init(self, self->_boltlib, BltShortId(scene));
 	self->setCurrentCard(card);
 }
 

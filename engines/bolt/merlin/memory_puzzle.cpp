@@ -37,7 +37,7 @@ void MemoryPuzzle::init(MerlinEngine *merlin, BltId resId) {
 
 	BltResourceList resourceList(_merlin->_boltlib, resId);
 	BltId sceneId = resourceList[1].value;
-	_scene.load(_merlin->_engine, _merlin->_boltlib, sceneId);
+	_scene.load(_merlin, _merlin->_boltlib, sceneId);
 }
 
 void MemoryPuzzle::enter() {

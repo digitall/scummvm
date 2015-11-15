@@ -61,8 +61,6 @@ BltFile::ResourceEntry::ResourceEntry(Common::File &file) {
 // A resource is addressed by two bytes: <directory number> <resource number>.
 // For example, the resource 0x9D01 refers to resource 1 in directory 0x9D.
 bool BltFile::load(const Common::String &filename) {
-
-	// Open the file
 	if (!_file.open(filename)) {
 		warning("Failed to open %s", filename.c_str());
 		return false;

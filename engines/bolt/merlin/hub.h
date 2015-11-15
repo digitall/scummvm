@@ -27,6 +27,7 @@
 
 namespace Bolt {
 
+class MerlinEngine;
 struct HubEntry;
 	
 class HubCard : public MenuCard {

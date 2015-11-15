@@ -57,7 +57,7 @@ void HubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
 
 	BltHub hubInfo(&BltResource(merlin->_boltlib.loadResource(BltShortId(entry.hubId), kBltHub))[0]);
 
-	MenuCard::init(merlin->_engine, merlin->_boltlib, hubInfo.sceneId);
+	MenuCard::init(merlin, merlin->_boltlib, hubInfo.sceneId);
 	_scene.setBackPlane(merlin->_boltlib, hubInfo.bgPlaneId);
 
 	BltResourceList hubItemsList(merlin->_boltlib, hubInfo.itemListId);

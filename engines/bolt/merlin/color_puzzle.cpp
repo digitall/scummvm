@@ -34,7 +34,7 @@ void ColorPuzzle::init(MerlinEngine *merlin, BltId resId) {
 	_merlin = merlin;
 
 	BltResourceList resourceList(_merlin->_boltlib, resId);
-	_scene.load(_merlin->_engine, _merlin->_boltlib, resourceList[3].value);
+	_scene.load(_merlin, _merlin->_boltlib, resourceList[3].value);
 }
 
 void ColorPuzzle::enter() {
