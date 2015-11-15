@@ -27,6 +27,8 @@
 #include "bolt/movie.h"
 
 namespace Bolt {
+
+class MerlinEngine;
 	
 struct PuzzleEntry;
 
@@ -44,7 +46,7 @@ struct PuzzleEntry {
 	uint32 winMovie;
 };
 
-class MerlinEngine : public SubEngine {
+class MerlinEngine : public BoltEngine {
 	friend class MainMenu;
 	friend class HubCard;
 	friend class ActionPuzzle;
@@ -56,14 +58,14 @@ class MerlinEngine : public SubEngine {
 	friend class WordPuzzle;
 	friend class TestPuzzle;
 public:
-	MerlinEngine();
+	MerlinEngine(OSystem *syst, const ADGameDescription *gd);
 
-	virtual void init(BoltEngine *engine);
+protected:
+	virtual void init();
 	virtual void processEvent(const BoltEvent &event);
 
 private:
 	Graphics &getGraphics();
-	void scheduleDisplayUpdate();
 	void initCursor();
 	void resetSequence();
 	void advanceSequence();
@@ -73,8 +75,6 @@ private:
 	void startMovie(PfFile &pfFile, uint32 name);
 
 	static void movieTrigger(void *param, uint16 triggerType);
-
-	BoltEngine *_engine;
 
 	BltFile _boltlib;
 	PfFile _maPf;

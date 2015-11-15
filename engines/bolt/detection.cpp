@@ -21,6 +21,7 @@
  */
 
 #include "bolt/bolt.h"
+#include "bolt/merlin/merlin.h"
 
 #include "engines/advancedDetector.h"
 
@@ -87,10 +88,15 @@ const char *BoltMetaEngine::getOriginalCopyright() const {
 
 bool BoltMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const
 {
+	*engine = nullptr;
+
 	if (desc) {
-		*engine = new Bolt::BoltEngine(syst, desc);
+		if (Common::String("merlin").compareTo(desc->gameid) == 0) {
+			*engine = new MerlinEngine(syst, desc);
+		}
 	}
-	return desc != 0;
+
+	return *engine != nullptr;
 }
 
 } // End of namespace Bolt

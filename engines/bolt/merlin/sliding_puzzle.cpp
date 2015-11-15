@@ -60,7 +60,7 @@ void SlidingPuzzle::init(MerlinEngine *merlin, BltId resId) {
 	// TODO: select proper difficulty based on player setting
 	BltResourceList difficultyInfo(_merlin->_boltlib, slidingPuzzleInfo->difficulty1); // Ex: 3A34, 3B34, 3C34
 
-	_scene.load(_merlin->_engine, _merlin->_boltlib, difficultyInfo[1].value);
+	_scene.load(_merlin, _merlin->_boltlib, difficultyInfo[1].value);
 }
 
 void SlidingPuzzle::enter() {

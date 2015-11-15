@@ -50,7 +50,7 @@ void MainMenu::init(MerlinEngine *merlin, BltFile &bltFile, BltId id) {
 	_merlin = merlin;
 
 	BltMainMenu mainMenu(bltFile, id);
-	MenuCard::init(merlin->_engine, bltFile, mainMenu->sceneId);
+	MenuCard::init(merlin, bltFile, mainMenu->sceneId);
 }
 
 Card::Status MainMenu::processButtonClick(int num) {

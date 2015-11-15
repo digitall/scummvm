@@ -27,6 +27,8 @@
 
 namespace Bolt {
 
+class MerlinEngine;
+
 class MainMenu : public MenuCard {
 public:
 	MainMenu();
