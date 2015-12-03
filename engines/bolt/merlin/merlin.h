@@ -27,8 +27,6 @@
 #include "bolt/movie.h"
 
 namespace Bolt {
-
-class MerlinEngine;
 	
 struct PuzzleEntry;
 
@@ -38,34 +36,23 @@ struct HubEntry {
 	const PuzzleEntry *puzzles;
 };
 
-typedef Card* (*MakePuzzleFunc)(MerlinEngine *merlin, BltId resId);
-
 struct PuzzleEntry {
-	MakePuzzleFunc makeFunc;
+	typedef Card* (*PuzzleFunc)(Graphics *graphics, BltFile &boltlib, BltId resId);
+	PuzzleFunc puzzle;
 	uint16 resId;
 	uint32 winMovie;
 };
 
 class MerlinEngine : public BoltEngine {
-	friend class MainMenu;
-	friend class HubCard;
-	friend class ActionPuzzle;
-	friend class ColorPuzzle;
-	friend class MemoryPuzzle;
-	friend class SlidingPuzzle;
-	friend class SynchPuzzle;
-	friend class TangramPuzzle;
-	friend class WordPuzzle;
-	friend class TestPuzzle;
 public:
 	MerlinEngine(OSystem *syst, const ADGameDescription *gd);
 
 protected:
+	// From BoltEngine
 	virtual void init();
 	virtual void processEvent(const BoltEvent &event);
 
 private:
-	Graphics &getGraphics();
 	void initCursor();
 	void resetSequence();
 	void advanceSequence();
@@ -75,6 +62,11 @@ private:
 	void startMovie(PfFile &pfFile, uint32 name);
 
 	static void movieTrigger(void *param, uint16 triggerType);
+
+	void handleEventInMovie(const BoltEvent &event);
+	void handleEventInCard(const BoltEvent &event);
+	void win();
+	void puzzle(const PuzzleEntry *entry);
 
 	BltFile _boltlib;
 	PfFile _maPf;
@@ -97,6 +89,7 @@ private:
 	void setCurrentCard(Card *card);
 
 	int _sequenceCursor;
+	const HubEntry *_currentHub;
 	const PuzzleEntry *_currentPuzzle;
 
 	typedef void (*CallbackFunc)(MerlinEngine *self, const void *param);
@@ -105,16 +98,12 @@ private:
 		const void *param;
 	};
 
-	Callback _cardEndCallback;
-	void setCardEndCallback(CallbackFunc func, const void *param);
-
+	// TODO: Use pointers to member functions (C++ supports them!)
 	static void plotMovie(MerlinEngine *self, const void *param);
 	static void mainMenu(MerlinEngine *self, const void *param);
 	static void fileMenu(MerlinEngine *self, const void *param);
 	static void difficultyMenu(MerlinEngine *self, const void *param);
 	static void hub(MerlinEngine *self, const void *param);
-	static void puzzle(MerlinEngine *self, const void *param);
-	static void win(MerlinEngine *self, const void *param);
 	static void freeplayHub(MerlinEngine *self, const void *param);
 
 	static const HubEntry kStage1;
@@ -125,7 +114,7 @@ private:
 	static const PuzzleEntry kStage3Puzzles[12];
 
 	static const Callback kSequence[];
-	static const size_t kSequenceSize;
+	static const int kSequenceSize;
 };
 
 } // End of namespace Bolt

@@ -85,7 +85,8 @@ public:
 	Plane& getBackPlane() { return _backPlane; }
 	Plane& getForePlane() { return _forePlane; }
 
-	void present();
+	void markDirty();
+	void presentIfDirty();
 
 private:
 	OSystem *_system;
@@ -95,6 +96,7 @@ private:
 
 	Plane _backPlane;
 	Plane _forePlane;
+	bool _dirty;
 };
 
 class BltImage { // type 8

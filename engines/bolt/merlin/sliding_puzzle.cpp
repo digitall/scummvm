@@ -23,12 +23,6 @@
 #include "bolt/merlin/sliding_puzzle.h"
 
 namespace Bolt {
-	
-Card* SlidingPuzzle::make(MerlinEngine *merlin, BltId resId) {
-	SlidingPuzzle *card = new SlidingPuzzle;
-	card->init(merlin, resId);
-	return card;
-}
 
 struct BltSlidingPuzzleStruct { // type 44
 	static const uint32 kType = kBltSlidingPuzzle;
@@ -52,42 +46,39 @@ struct BltSlidingPuzzleStruct { // type 44
 
 typedef BltLoader<BltSlidingPuzzleStruct> BltSlidingPuzzle;
 
-void SlidingPuzzle::init(MerlinEngine *merlin, BltId resId) {
-	_merlin = merlin;
-
-	BltResourceList resourceList(_merlin->_boltlib, resId);
-	BltSlidingPuzzle slidingPuzzleInfo(_merlin->_boltlib, resourceList[1].value);
+void SlidingPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	BltResourceList resourceList(boltlib, resId);
+	BltSlidingPuzzle slidingPuzzleInfo(boltlib, resourceList[1].value);
 	// TODO: select proper difficulty based on player setting
-	BltResourceList difficultyInfo(_merlin->_boltlib, slidingPuzzleInfo->difficulty1); // Ex: 3A34, 3B34, 3C34
+	BltResourceList difficultyInfo(boltlib, slidingPuzzleInfo->difficulty1); // Ex: 3A34, 3B34, 3C34
 
-	_scene.load(_merlin, _merlin->_boltlib, difficultyInfo[1].value);
+	_scene.load(graphics, boltlib, difficultyInfo[1].value);
 }
 
 void SlidingPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Status SlidingPuzzle::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+Card::Signal SlidingPuzzle::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		_scene.handleHover(event.point);
+	}
+	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return processButtonClick(buttonNum);
 	}
-	else {
-		_scene.process();
-	}
 
-	return None;
+	return kNull;
 }
 
-Card::Status SlidingPuzzle::processButtonClick(int num) {
+Card::Signal SlidingPuzzle::processButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	if (num != -1) {
-		_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-		return Ended;
+		return kWin;
 	}
 
-	return None;
+	return kNull;
 }
 
 } // End of namespace Bolt

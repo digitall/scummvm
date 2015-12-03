@@ -30,14 +30,13 @@ namespace Bolt {
 
 class MemoryPuzzle : public Card {
 public:
-	static Card* make(MerlinEngine *merlin, BltId resId);
-	void init(MerlinEngine *merlin, BltId resId);
+	static Card* make(Graphics *graphics, BltFile &boltlib, BltId resId);
+	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void enter();
-	Card::Status processEvent(const BoltEvent &event);
+	Signal processEvent(const BoltEvent &event);
 protected:
-	Card::Status processButtonClick(int num);
-
-	MerlinEngine *_merlin;
+	Signal processButtonClick(int num);
+private:
 	Scene _scene;
 };
 

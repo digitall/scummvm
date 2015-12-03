@@ -24,40 +24,37 @@
 
 namespace Bolt {
 	
-Card* ColorPuzzle::make(MerlinEngine *merlin, BltId resId) {
+Card* ColorPuzzle::make(Graphics *graphics, BltFile &boltlib, BltId resId) {
 	ColorPuzzle *card = new ColorPuzzle;
-	card->init(merlin, resId);
+	card->init(graphics, boltlib, resId);
 	return card;
 }
 
-void ColorPuzzle::init(MerlinEngine *merlin, BltId resId) {
-	_merlin = merlin;
-
-	BltResourceList resourceList(_merlin->_boltlib, resId);
-	_scene.load(_merlin, _merlin->_boltlib, resourceList[3].value);
+void ColorPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	BltResourceList resourceList(boltlib, resId);
+	_scene.load(graphics, boltlib, resourceList[3].value);
 }
 
 void ColorPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Status ColorPuzzle::processEvent(const BoltEvent &event) {
+Card::Signal ColorPuzzle::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		_scene.handleHover(event.point);
+	}
 	if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return processButtonClick(buttonNum);
 	}
-	else {
-		_scene.process();
-	}
 
-	return None;
+	return kNull;
 }
 
-Card::Status ColorPuzzle::processButtonClick(int num) {
+Card::Signal ColorPuzzle::processButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
-	_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-	return Ended;
+	return kWin;
 }
 
 } // End of namespace Bolt

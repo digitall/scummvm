@@ -51,21 +51,20 @@ struct BltHubItem { // type 41
 	BltId imageId;
 };
 
-void HubCard::init(MerlinEngine *merlin, const HubEntry &entry) {
-	_merlin = merlin;
-	_hubEntry = &entry;
+void HubCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	_graphics = graphics;
 
-	BltHub hubInfo(&BltResource(merlin->_boltlib.loadResource(BltShortId(entry.hubId), kBltHub))[0]);
+	BltHub hubInfo(&BltResource(boltlib.loadResource(resId, kBltHub))[0]);
 
-	MenuCard::init(merlin, merlin->_boltlib, hubInfo.sceneId);
-	_scene.setBackPlane(merlin->_boltlib, hubInfo.bgPlaneId);
+	MenuCard::init(_graphics, boltlib, hubInfo.sceneId);
+	_scene.setBackPlane(boltlib, hubInfo.bgPlaneId);
 
-	BltResourceList hubItemsList(merlin->_boltlib, hubInfo.itemListId);
+	BltResourceList hubItemsList(boltlib, hubInfo.itemListId);
 	_itemImages.alloc(hubInfo.numItems);
 	for (uint i = 0; i < hubInfo.numItems; ++i) {
-		BltHubItem hubItem(&BltResource(merlin->_boltlib.loadResource(
+		BltHubItem hubItem(&BltResource(boltlib.loadResource(
 			hubItemsList[i].value, kBltHubItem))[0]);
-		_itemImages[i].load(merlin->_boltlib, hubItem.imageId);
+		_itemImages[i].load(boltlib, hubItem.imageId);
 	}
 }
 
@@ -73,19 +72,20 @@ void HubCard::enter() {
 	MenuCard::enter();
 
 	// Draw item images to back plane
+	// FIXME: Only draw items that are unlocked.
 	for (uint i = 0; i < _itemImages.size(); ++i) {
-		_itemImages[i].drawAt(_merlin->getGraphics().getBackPlane().getSurface(), 0, 0, true);
+		_itemImages[i].drawAt(_graphics->getBackPlane().getSurface(), 0, 0, true);
 	}
 }
 
-Card::Status HubCard::processButtonClick(int num) {
-	if (num >= 0 && num < _hubEntry->numPuzzles) {
-		_merlin->setCardEndCallback(MerlinEngine::puzzle, &_hubEntry->puzzles[num]);
-		return Ended;
+Card::Signal HubCard::processButtonClick(int num) {
+	if (num == -1) {
+		// If no button was clicked, complete stage and transition to next hub.
+		return kEnd;
 	}
-
-	// If no button was clicked, complete stage and transition to next hub.
-	return Ended;
+	else {
+		return (Signal)(kEnterPuzzleFirst + num);
+	}
 }
 
 } // End of namespace Bolt

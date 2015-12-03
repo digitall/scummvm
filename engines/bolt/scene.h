@@ -35,17 +35,17 @@ class BoltEngine;
 
 class Scene {
 public:
-	void load(BoltEngine *engine, BltFile &bltFile, BltId sceneId);
+	void load(Graphics *graphics, BltFile &boltlib, BltId sceneId);
 	void enter();
-	void process();
+	void handleHover(const Common::Point &pt);
+	// Return number of button at a point, or -1 if there is no button.
+	int getButtonAtPoint(const Common::Point &pt);
 
 	void setBackPlane(BltFile &bltFile, BltId id);
 
-	// Return number of button at point. Returns -1 if there is no button.
-	int getButtonAtPoint(const Common::Point &pt);
 
 private:
-	BoltEngine *_engine;
+	Graphics *_graphics;
 
 	struct BltPlaneStruct { // type 26
 		static const uint32 kType = kBltPlane;

@@ -30,15 +30,14 @@ namespace Bolt {
 
 class SlidingPuzzle : public Card {
 public:
-	static Card* make(MerlinEngine *merlin, BltId resId);
-	void init(MerlinEngine *merlin, BltId resId);
+	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void enter();
-	Card::Status processEvent(const BoltEvent &event);
+	Signal processEvent(const BoltEvent &event);
 
 protected:
-	Card::Status processButtonClick(int num);
+	Signal processButtonClick(int num);
 
-	MerlinEngine *_merlin;
+private:
 	Scene _scene;
 };
 

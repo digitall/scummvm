@@ -23,41 +23,32 @@
 #include "bolt/merlin/synch_puzzle.h"
 
 namespace Bolt {
-	
-Card* SynchPuzzle::make(MerlinEngine *merlin, BltId resId) {
-	SynchPuzzle *card = new SynchPuzzle;
-	card->init(merlin, resId);
-	return card;
-}
 
-void SynchPuzzle::init(MerlinEngine *merlin, BltId resId) {
-	_merlin = merlin;
-
-	BltResourceList resourceList(_merlin->_boltlib, resId);
-	_scene.load(_merlin, _merlin->_boltlib, resourceList[4].value);
+void SynchPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	BltResourceList resourceList(boltlib, resId);
+	_scene.load(graphics, boltlib, resourceList[4].value);
 }
 
 void SynchPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Status SynchPuzzle::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+Card::Signal SynchPuzzle::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		_scene.handleHover(event.point);
+	}
+	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return processButtonClick(buttonNum);
 	}
-	else {
-		_scene.process();
-	}
 
-	return None;
+	return kNull;
 }
 
-Card::Status SynchPuzzle::processButtonClick(int num) {
+Card::Signal SynchPuzzle::processButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
-	_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-	return Ended;
+	return kWin;
 }
 
 } // End of namespace Bolt

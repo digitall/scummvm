@@ -30,12 +30,12 @@ namespace Bolt {
 	
 class ActionPuzzle : public Card {
 public:
-	static Card* make(MerlinEngine *merlin, BltId resId);
-	void init(MerlinEngine *merlin, BltId resId);
+	static Card* make(Graphics *graphics, BltFile &boltlib, BltId resId);
+	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void enter();
-	Card::Status processEvent(const BoltEvent &event);
+	Signal processEvent(const BoltEvent &event);
 protected:
-	MerlinEngine *_merlin;
+	Graphics *_graphics;
 	BltImage _bgImage;
 	BltPalette _palette;
 };

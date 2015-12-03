@@ -44,8 +44,6 @@ MerlinEngine::MerlinEngine(OSystem *syst, const ADGameDescription *gd)
 { }
 
 void MerlinEngine::init() {
-	setCardEndCallback(nullptr, nullptr);
-
 	_boltlib.load("BOLTLIB.BLT");
 
 	_maPf.load("MA.PF");
@@ -63,43 +61,15 @@ void MerlinEngine::init() {
 }
 
 void MerlinEngine::processEvent(const BoltEvent &event) {
-	bool eventProcessed = false;
-	while (!eventProcessed) {
-		// TODO: clean up and simplify
-		// If a movie is playing, play it over anything else
-		if (_movie.isRunning()) {
-			// Click to stop movie
-			if (event.type == BoltEvent::Click) {
-				_movie.stop();
-			}
-			else {
-				_movie.process();
-			}
-			if (!_movie.isRunning()) {
-				// When movie stops, enter current card
-				if (_currentCard) {
-					_currentCard->enter();
-				}
-			}
-			eventProcessed = true;
-		}
-		else if (_currentCard) {
-			// Process current card
-			if (_currentCard->processEvent(event) == Card::Ended) {
-				if (_cardEndCallback.func) {
-					Callback temp = _cardEndCallback;
-					setCardEndCallback(nullptr, nullptr);
-					temp.func(this, temp.param);
-				}
-				else {
-					advanceSequence();
-				}
-			}
-			eventProcessed = true;
-		}
-		else {
-			advanceSequence();
-		}
+	// Play movie over anything else
+	if (_movie.isRunning()) {
+		handleEventInMovie(event);
+	}
+	else if (_currentCard) {
+		handleEventInCard(event);
+	}
+	else {
+		assert(false); // Unreachable; there must be an active movie or card
 	}
 }
 
@@ -129,16 +99,23 @@ void MerlinEngine::initCursor() {
 }
 
 void MerlinEngine::resetSequence() {
-	_sequenceCursor = 0;
-	enterSequenceEntry();
+	_sequenceCursor = -1;
+	advanceSequence();
 }
 
 void MerlinEngine::advanceSequence() {
-	_sequenceCursor = (_sequenceCursor + 1) % kSequenceSize; // reset at end
-	enterSequenceEntry();
+	// Advance sequence until movie or card becomes active
+	do {
+		++_sequenceCursor;
+		if (_sequenceCursor >= kSequenceSize) {
+			_sequenceCursor = 0;
+		}
+		enterSequenceEntry();
+	} while (!_movie.isRunning() && !_currentCard);
 }
 
 void MerlinEngine::enterSequenceEntry() {
+	_currentHub = nullptr;
 	_currentPuzzle = nullptr;
 	kSequence[_sequenceCursor].func(this, kSequence[_sequenceCursor].param);
 }
@@ -146,21 +123,21 @@ void MerlinEngine::enterSequenceEntry() {
 void MerlinEngine::startMainMenu(BltId id) {
 	_currentCard.reset();
 	MainMenu* card = new MainMenu;
-	card->init(this, _boltlib, id);
+	card->init(&_graphics, _boltlib, id);
 	setCurrentCard(card);
 }
 
 void MerlinEngine::startMenu(BltId id) {
 	_currentCard.reset();
 	GenericMenuCard* menuCard = new GenericMenuCard;
-	menuCard->init(this, _boltlib, id);
+	menuCard->init(&_graphics, _boltlib, id);
 	setCurrentCard(menuCard);
 }
 
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
 	_movie.stop();
-	_movie.load(this, pfFile, name);
-	_movie.process();
+	_movie.load(&_graphics, _mixer, pfFile, name, _eventTime);
+	_movie.process(_eventTime);
 }
 
 void MerlinEngine::movieTrigger(void *param, uint16 triggerType) {
@@ -176,17 +153,86 @@ void MerlinEngine::movieTrigger(void *param, uint16 triggerType) {
 	}
 }
 
+void MerlinEngine::handleEventInMovie(const BoltEvent &event) {
+	// Click to stop movie
+	if (event.type == BoltEvent::Click) {
+		_movie.stop();
+	}
+	else {
+		_movie.process(event.time);
+	}
+
+	if (!_movie.isRunning()) {
+		// When movie stops, enter current card
+		if (_currentCard) {
+			_currentCard->enter();
+		}
+		else {
+			advanceSequence();
+		}
+	}
+}
+
+void MerlinEngine::handleEventInCard(const BoltEvent &event) {
+	assert(_currentCard);
+
+	Card::Signal signal = _currentCard->processEvent(event);
+	switch (signal) {
+	case Card::kInvalid:
+		assert(false); // Unreachable
+		break;
+	case Card::kNull:
+		break;
+	case Card::kEnd:
+		advanceSequence();
+		break;
+	case Card::kWin:
+		win();
+		break;
+	case Card::kPlayHelp:
+		// TODO: help
+		break;
+	case Card::kPlayTour:
+		startMovie(_maPf, MKTAG('T', 'O', 'U', 'R'));
+		break;
+	case Card::kPlayCredits:
+		startMovie(_maPf, MKTAG('C', 'R', 'D', 'T'));
+		break;
+	default:
+		if (_currentHub &&
+			signal >= Card::kEnterPuzzleFirst &&
+			signal < Card::kEnterPuzzleFirst + _currentHub->numPuzzles)
+		{
+			int puzzleNum = signal - Card::kEnterPuzzleFirst;
+			puzzle(&_currentHub->puzzles[puzzleNum]);
+		}
+		else {
+			assert(false); // Unreachable; signal must be valid
+		}
+		break;
+	}
+}
+
+void MerlinEngine::win() {
+	_currentCard.reset();
+	assert(_currentPuzzle);
+	startMovie(_challdirPf, _currentPuzzle->winMovie);
+	enterSequenceEntry(); // Return to hub
+}
+
+void MerlinEngine::puzzle(const PuzzleEntry *entry) {
+	_currentCard.reset();
+	_currentPuzzle = entry;
+	Card *card = _currentPuzzle->puzzle(&_graphics, _boltlib, BltShortId(_currentPuzzle->resId));
+	setCurrentCard(card);
+}
+
 void MerlinEngine::setCurrentCard(Card *card) {
 	_currentCard.reset(card);
 	if (!_movie.isRunning() && _currentCard) {
 		// If there is no movie playing, enter new card now
 		_currentCard->enter();
 	}
-}
-
-void MerlinEngine::setCardEndCallback(CallbackFunc func, const void *param) {
-	_cardEndCallback.func = func;
-	_cardEndCallback.param = param;
 }
 
 void MerlinEngine::plotMovie(MerlinEngine *self, const void *param) {
@@ -260,71 +306,67 @@ void MerlinEngine::difficultyMenu(MerlinEngine *self, const void *param) {
 //   FlasksDD 8797
 //   StalacDD 887B
 
+template<class T>
+static Card* makePuzzle(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	T *card = new T;
+	card->init(graphics, boltlib, resId);
+	return card;
+}
+
+static const PuzzleEntry::PuzzleFunc makeActionPuzzle = makePuzzle<ActionPuzzle>;
+static const PuzzleEntry::PuzzleFunc makeWordPuzzle = makePuzzle<WordPuzzle>;
+static const PuzzleEntry::PuzzleFunc makeSlidingPuzzle = makePuzzle<SlidingPuzzle>;
+static const PuzzleEntry::PuzzleFunc makeMemoryPuzzle = makePuzzle <MemoryPuzzle>;
+static const PuzzleEntry::PuzzleFunc makeTangramPuzzle = makePuzzle<TangramPuzzle>;
+static const PuzzleEntry::PuzzleFunc makeSynchPuzzle = makePuzzle<SynchPuzzle>;
+static const PuzzleEntry::PuzzleFunc makeColorPuzzle = makePuzzle<ColorPuzzle>;
+
 const HubEntry MerlinEngine::kStage1 = { 0x0C0B, 6, MerlinEngine::kStage1Puzzles };
 const PuzzleEntry MerlinEngine::kStage1Puzzles[6] = {
-	{ ActionPuzzle::make,  0x4921, MKTAG('S', 'E', 'E', 'D') }, // seeds
-	{ WordPuzzle::make,    0x61E3, MKTAG('G', 'R', 'A', 'V') }, // grave
-	{ SlidingPuzzle::make, 0x313F, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
-	{ MemoryPuzzle::make,  0x865E, MKTAG('P', 'O', 'N', 'D') }, // pond
-	{ ActionPuzzle::make,  0x4D19, MKTAG('L', 'E', 'A', 'V') }, // leaves
-	{ SlidingPuzzle::make, 0x353F, MKTAG('R', 'A', 'V', 'N') }, // raven
+	{ makeActionPuzzle,  0x4921, MKTAG('S', 'E', 'E', 'D') }, // seeds
+	{ makeWordPuzzle,    0x61E3, MKTAG('G', 'R', 'A', 'V') }, // grave
+	{ makeSlidingPuzzle, 0x313F, MKTAG('O', 'A', 'K', 'L') }, // oak leaf
+	{ makeMemoryPuzzle,  0x865E, MKTAG('P', 'O', 'N', 'D') }, // pond
+	{ makeActionPuzzle,  0x4D19, MKTAG('L', 'E', 'A', 'V') }, // leaves
+	{ makeSlidingPuzzle, 0x353F, MKTAG('R', 'A', 'V', 'N') }, // raven
 };
 
 const HubEntry MerlinEngine::kStage2 = { 0x0D34, 9, MerlinEngine::kStage2Puzzles };
 const PuzzleEntry MerlinEngine::kStage2Puzzles[9] = {
-	{ SlidingPuzzle::make, 0x4140, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
-	{ TangramPuzzle::make, 0x6D15, MKTAG('P', 'L', 'A', 'Q') }, // plaque
-	{ ActionPuzzle::make,  0x551C, MKTAG('S', 'N', 'O', 'W') }, // snow
-	{ SynchPuzzle::make,   0x7D12, MKTAG('P', 'L', 'N', 'T') }, // planets
-	{ WordPuzzle::make,    0x69E1, MKTAG('P', 'R', 'C', 'H') }, // parchment
-	{ ActionPuzzle::make,  0x5113, MKTAG('B', 'B', 'L', 'E') }, // bubbles
-	{ SlidingPuzzle::make, 0x3D3F, MKTAG('S', 'K', 'L', 'T') }, // skeleton
-	{ MemoryPuzzle::make,  0x8797, MKTAG('F', 'L', 'S', 'K') }, // flasks
-	{ TangramPuzzle::make, 0x7115, MKTAG('M', 'I', 'R', 'R') }, // mirror
+	{ makeSlidingPuzzle, 0x4140, MKTAG('R', 'T', 'T', 'L') }, // rattlesnake
+	{ makeTangramPuzzle, 0x6D15, MKTAG('P', 'L', 'A', 'Q') }, // plaque
+	{ makeActionPuzzle,  0x551C, MKTAG('S', 'N', 'O', 'W') }, // snow
+	{ makeSynchPuzzle,   0x7D12, MKTAG('P', 'L', 'N', 'T') }, // planets
+	{ makeWordPuzzle,    0x69E1, MKTAG('P', 'R', 'C', 'H') }, // parchment
+	{ makeActionPuzzle,  0x5113, MKTAG('B', 'B', 'L', 'E') }, // bubbles
+	{ makeSlidingPuzzle, 0x3D3F, MKTAG('S', 'K', 'L', 'T') }, // skeleton
+	{ makeMemoryPuzzle,  0x8797, MKTAG('F', 'L', 'S', 'K') }, // flasks
+	{ makeTangramPuzzle, 0x7115, MKTAG('M', 'I', 'R', 'R') }, // mirror
 };
 
 const HubEntry MerlinEngine::kStage3 = { 0x0E4F, 12, MerlinEngine::kStage3Puzzles };
 const PuzzleEntry MerlinEngine::kStage3Puzzles[12] = {
-	{ ColorPuzzle::make,   0x8C13, MKTAG('W', 'N', 'D', 'W') }, // window
-	{ TangramPuzzle::make, 0x7515, MKTAG('O', 'C', 'T', 'A') }, // octagon
-	{ SynchPuzzle::make,   0x8512, MKTAG('S', 'P', 'R', 'T') }, // spirits
-	{ ColorPuzzle::make,   0x9014, MKTAG('S', 'T', 'A', 'R') }, // star
-	{ SynchPuzzle::make,   0x8114, MKTAG('D', 'O', 'O', 'R') }, // door
-	{ ActionPuzzle::make,  0x5918, MKTAG('G', 'E', 'M', 'S') }, // gems
-	{ SlidingPuzzle::make, 0x393F, MKTAG('C', 'S', 'T', 'L') }, // crystal
-	{ ActionPuzzle::make,  0x5D17, MKTAG('D', 'E', 'M', 'N') }, // demons
-	{ TangramPuzzle::make, 0x7915, MKTAG('T', 'I', 'L', 'E') }, // tile
-	{ SlidingPuzzle::make, 0x453F, MKTAG('S', 'P', 'I', 'D') }, // spider
-	{ WordPuzzle::make,    0x65E1, MKTAG('T', 'B', 'L', 'T') }, // tablet
-	{ MemoryPuzzle::make,  0x887B, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
+	{ makeColorPuzzle,   0x8C13, MKTAG('W', 'N', 'D', 'W') }, // window
+	{ makeTangramPuzzle, 0x7515, MKTAG('O', 'C', 'T', 'A') }, // octagon
+	{ makeSynchPuzzle,   0x8512, MKTAG('S', 'P', 'R', 'T') }, // spirits
+	{ makeColorPuzzle,   0x9014, MKTAG('S', 'T', 'A', 'R') }, // star
+	{ makeSynchPuzzle,   0x8114, MKTAG('D', 'O', 'O', 'R') }, // door
+	{ makeActionPuzzle,  0x5918, MKTAG('G', 'E', 'M', 'S') }, // gems
+	{ makeSlidingPuzzle, 0x393F, MKTAG('C', 'S', 'T', 'L') }, // crystal
+	{ makeActionPuzzle,  0x5D17, MKTAG('D', 'E', 'M', 'N') }, // demons
+	{ makeTangramPuzzle, 0x7915, MKTAG('T', 'I', 'L', 'E') }, // tile
+	{ makeSlidingPuzzle, 0x453F, MKTAG('S', 'P', 'I', 'D') }, // spider
+	{ makeWordPuzzle,    0x65E1, MKTAG('T', 'B', 'L', 'T') }, // tablet
+	{ makeMemoryPuzzle,  0x887B, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
 };
-
-Graphics& MerlinEngine::getGraphics() {
-	return _graphics;
-}
 
 void MerlinEngine::hub(MerlinEngine *self, const void *param) {
 	self->_currentCard.reset();
 	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
+	self->_currentHub = entry;
 	HubCard *card = new HubCard;
-	card->init(self, *entry);
+	card->init(&self->_graphics, self->_boltlib, BltShortId(entry->hubId));
 	self->setCurrentCard(card);
-}
-
-void MerlinEngine::puzzle(MerlinEngine *self, const void *param) {
-	self->_currentCard.reset();
-	self->_currentPuzzle = reinterpret_cast<const PuzzleEntry*>(param);
-	Card *card = self->_currentPuzzle->makeFunc(self, BltShortId(self->_currentPuzzle->resId));
-	self->setCurrentCard(card);
-}
-
-void MerlinEngine::win(MerlinEngine *self, const void *param) {
-	self->_currentCard.reset();
-	assert(self->_currentPuzzle);
-	if (self->_currentPuzzle->winMovie) {
-		self->startMovie(self->_challdirPf, self->_currentPuzzle->winMovie);
-	}
-	self->enterSequenceEntry(); // Return to hub
 }
 
 void MerlinEngine::freeplayHub(MerlinEngine *self, const void *param) {
@@ -332,7 +374,7 @@ void MerlinEngine::freeplayHub(MerlinEngine *self, const void *param) {
 
 	uint16 scene = *reinterpret_cast<const uint16*>(param);
 	GenericMenuCard *card = new GenericMenuCard;
-	card->init(self, self->_boltlib, BltShortId(scene));
+	card->init(&self->_graphics, self->_boltlib, BltShortId(scene));
 	self->setCurrentCard(card);
 }
 
@@ -377,7 +419,7 @@ MerlinEngine::kSequence[] = {
 	{ MerlinEngine::freeplayHub, &kFreeplayScene3 },
 };
 
-const size_t MerlinEngine::kSequenceSize =
+const int MerlinEngine::kSequenceSize =
 	sizeof(MerlinEngine::kSequence) /
 	sizeof(MerlinEngine::Callback);
 

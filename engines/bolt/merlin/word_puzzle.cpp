@@ -23,48 +23,39 @@
 #include "bolt/merlin/word_puzzle.h"
 
 namespace Bolt {
-	
-Card* WordPuzzle::make(MerlinEngine *merlin, BltId resId) {
-	WordPuzzle *card = new WordPuzzle;
-	card->init(merlin, resId);
-	return card;
-}
 
-void WordPuzzle::init(MerlinEngine *merlin, BltId resId) {
-	_merlin = merlin;
-
-	BltResourceList resourceList(_merlin->_boltlib, resId);
-	Blt16BitValues difficulties(_merlin->_boltlib, resourceList[0].value);
+void WordPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	BltResourceList resourceList(boltlib, resId);
+	Blt16BitValues difficulties(boltlib, resourceList[0].value);
 	// There are three difficulties, choose one here
-	BltResourceList difficulty(_merlin->_boltlib, BltShortId(difficulties[0].value)); // Difficulty 0
-	_scene.load(_merlin, _merlin->_boltlib, difficulty[19].value);
+	BltResourceList difficulty(boltlib, BltShortId(difficulties[0].value)); // Difficulty 0
+	_scene.load(graphics, boltlib, difficulty[19].value);
 }
 
 void WordPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Status WordPuzzle::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+Card::Signal WordPuzzle::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		_scene.handleHover(event.point);
+	}
+	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return processButtonClick(buttonNum);
 	}
-	else {
-		_scene.process();
-	}
 
-	return None;
+	return kNull;
 }
 
-Card::Status WordPuzzle::processButtonClick(int num) {
+Card::Signal WordPuzzle::processButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	if (num != -1) {
-		_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-		return Ended;
+		return kWin;
 	}
 
-	return None;
+	return kNull;
 }
 
 } // End of namespace Bolt
