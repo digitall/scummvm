@@ -44,7 +44,7 @@ void TangramPuzzle::enter() {
 	_graphics->markDirty();
 }
 
-Card::Signal TangramPuzzle::processEvent(const BoltEvent &event) {
+Card::Signal TangramPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		// TODO: implement puzzle
 		return kWin;

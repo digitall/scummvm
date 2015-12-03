@@ -37,11 +37,11 @@ class BoltEngine;
 class MenuCard : public Card {
 public:
 	virtual void enter();
-	virtual Signal processEvent(const BoltEvent &event);
+	virtual Signal handleEvent(const BoltEvent &event);
 
 protected:
 	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
-	virtual Signal processButtonClick(int num) = 0;
+	virtual Signal handleButtonClick(int num) = 0;
 
 	BoltEngine *_engine;
 	Scene _scene;
@@ -51,7 +51,7 @@ class GenericMenuCard : public MenuCard {
 public:
 	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 protected:
-	virtual Signal processButtonClick(int num);
+	virtual Signal handleButtonClick(int num);
 };
 
 } // End of namespace Bolt

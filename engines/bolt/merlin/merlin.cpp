@@ -22,6 +22,7 @@
 
 #include "bolt/merlin/merlin.h"
 
+#include "common/events.h"
 #include "common/system.h"
 #include "gui/message.h"
 
@@ -60,7 +61,7 @@ void MerlinEngine::init() {
 	resetSequence();
 }
 
-void MerlinEngine::processEvent(const BoltEvent &event) {
+void MerlinEngine::handleEvent(const BoltEvent &event) {
 	// Play movie over anything else
 	if (_movie.isRunning()) {
 		handleEventInMovie(event);
@@ -114,10 +115,15 @@ void MerlinEngine::advanceSequence() {
 	} while (!_movie.isRunning() && !_currentCard);
 }
 
+// Call pointer to member function.
+// See <https://isocpp.org/wiki/faq/pointers-to-members>
+#define CALL_MEMBER_FN(object, fn) ((object).*(fn))
+
 void MerlinEngine::enterSequenceEntry() {
 	_currentHub = nullptr;
 	_currentPuzzle = nullptr;
-	kSequence[_sequenceCursor].func(this, kSequence[_sequenceCursor].param);
+	const Callback &callback = kSequence[_sequenceCursor];
+	CALL_MEMBER_FN(*this, callback.func)(callback.param);
 }
 
 void MerlinEngine::startMainMenu(BltId id) {
@@ -145,7 +151,7 @@ void MerlinEngine::movieTrigger(void *param, uint16 triggerType) {
 	if (triggerType == 0x8002) {
 		// Enter next card; used during win movies to transition back to hub card
 		if (self->_currentCard) {
-			self->_currentCard->enter();
+			self->enterCurrentCard(false);
 		}
 	}
 	else {
@@ -165,7 +171,7 @@ void MerlinEngine::handleEventInMovie(const BoltEvent &event) {
 	if (!_movie.isRunning()) {
 		// When movie stops, enter current card
 		if (_currentCard) {
-			_currentCard->enter();
+			enterCurrentCard(true);
 		}
 		else {
 			advanceSequence();
@@ -176,11 +182,8 @@ void MerlinEngine::handleEventInMovie(const BoltEvent &event) {
 void MerlinEngine::handleEventInCard(const BoltEvent &event) {
 	assert(_currentCard);
 
-	Card::Signal signal = _currentCard->processEvent(event);
+	Card::Signal signal = _currentCard->handleEvent(event);
 	switch (signal) {
-	case Card::kInvalid:
-		assert(false); // Unreachable
-		break;
 	case Card::kNull:
 		break;
 	case Card::kEnd:
@@ -200,10 +203,10 @@ void MerlinEngine::handleEventInCard(const BoltEvent &event) {
 		break;
 	default:
 		if (_currentHub &&
-			signal >= Card::kEnterPuzzleFirst &&
-			signal < Card::kEnterPuzzleFirst + _currentHub->numPuzzles)
+			signal >= Card::kEnterPuzzleX &&
+			signal < Card::kEnterPuzzleX + _currentHub->numPuzzles)
 		{
-			int puzzleNum = signal - Card::kEnterPuzzleFirst;
+			int puzzleNum = signal - Card::kEnterPuzzleX;
 			puzzle(&_currentHub->puzzles[puzzleNum]);
 		}
 		else {
@@ -231,34 +234,61 @@ void MerlinEngine::setCurrentCard(Card *card) {
 	_currentCard.reset(card);
 	if (!_movie.isRunning() && _currentCard) {
 		// If there is no movie playing, enter new card now
-		_currentCard->enter();
+		enterCurrentCard(true);
 	}
 }
 
-void MerlinEngine::plotMovie(MerlinEngine *self, const void *param) {
-	self->_currentCard.reset();
+void MerlinEngine::enterCurrentCard(bool cursorActive) {
+	assert(_currentCard);
+	_currentCard->enter();
+	if (cursorActive) {
+		BoltEvent hoverEvent;
+		hoverEvent.type = BoltEvent::Hover;
+		hoverEvent.time = _eventTime;
+		hoverEvent.point = getEventManager()->getMousePos();
+		_currentCard->handleEvent(hoverEvent);
+	}
+}
+
+void MerlinEngine::plotMovie(const void *param) {
+	_currentCard.reset();
 	uint32 name = *reinterpret_cast<const uint32*>(param);
-	self->startMovie(self->_maPf, name);
+	startMovie(_maPf, name);
 }
 
-void MerlinEngine::mainMenu(MerlinEngine *self, const void *param) {
+void MerlinEngine::mainMenu(const void *param) {
 	static const uint16 kMainMenuId = 0x0118;
-	self->startMainMenu(BltShortId(kMainMenuId));
+	startMainMenu(BltShortId(kMainMenuId));
 }
 
-void MerlinEngine::fileMenu(MerlinEngine *self, const void *param) {
+void MerlinEngine::fileMenu(const void *param) {
 	static const uint16 kFileMenuId = 0x027A;
-	self->startMenu(BltShortId(kFileMenuId));
+	startMenu(BltShortId(kFileMenuId));
 }
 
-void MerlinEngine::difficultyMenu(MerlinEngine *self, const void *param) {
+void MerlinEngine::difficultyMenu(const void *param) {
 	static const uint16 kDifficultyMenuId = 0x006B;
-	self->startMenu(BltShortId(kDifficultyMenuId));
+	startMenu(BltShortId(kDifficultyMenuId));
+}
+
+void MerlinEngine::hub(const void *param) {
+	_currentCard.reset();
+	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
+	_currentHub = entry;
+	HubCard *card = new HubCard;
+	card->init(&_graphics, _boltlib, BltShortId(entry->hubId));
+	setCurrentCard(card);
+}
+
+void MerlinEngine::freeplayHub(const void *param) {
+	_currentCard.reset();
+	uint16 sceneId = *reinterpret_cast<const uint16*>(param);
+	GenericMenuCard *card = new GenericMenuCard;
+	card->init(&_graphics, _boltlib, BltShortId(sceneId));
+	setCurrentCard(card);
 }
 
 // Hardcoded values from MERLIN.EXE:
-//
-// TODO: there are others: cursor, menus, etc.
 //
 // Action puzzles:
 //   SeedsDD    4921
@@ -305,6 +335,8 @@ void MerlinEngine::difficultyMenu(MerlinEngine *self, const void *param) {
 //   PondDD   865E
 //   FlasksDD 8797
 //   StalacDD 887B
+//
+// TODO: there are more: cursor, menus, etc.
 
 template<class T>
 static Card* makePuzzle(Graphics *graphics, BltFile &boltlib, BltId resId) {
@@ -360,24 +392,6 @@ const PuzzleEntry MerlinEngine::kStage3Puzzles[12] = {
 	{ makeMemoryPuzzle,  0x887B, MKTAG('S', 'T', 'L', 'C') }, // stalactites & stalagmites
 };
 
-void MerlinEngine::hub(MerlinEngine *self, const void *param) {
-	self->_currentCard.reset();
-	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
-	self->_currentHub = entry;
-	HubCard *card = new HubCard;
-	card->init(&self->_graphics, self->_boltlib, BltShortId(entry->hubId));
-	self->setCurrentCard(card);
-}
-
-void MerlinEngine::freeplayHub(MerlinEngine *self, const void *param) {
-	self->_currentCard.reset();
-
-	uint16 scene = *reinterpret_cast<const uint16*>(param);
-	GenericMenuCard *card = new GenericMenuCard;
-	card->init(&self->_graphics, self->_boltlib, BltShortId(scene));
-	self->setCurrentCard(card);
-}
-
 static const uint32 kPlotMovieBMPR = MKTAG('B', 'M', 'P', 'R');
 static const uint32 kPlotMovieINTR = MKTAG('I', 'N', 'T', 'R');
 static const uint32 kPlotMoviePLOG = MKTAG('P', 'L', 'O', 'G');
@@ -393,30 +407,30 @@ static const uint16 kFreeplayScene3 = 0x0555;
 const MerlinEngine::Callback
 MerlinEngine::kSequence[] = {
 	// Pre-game menus
-	{ MerlinEngine::plotMovie, &kPlotMovieBMPR },
-	{ MerlinEngine::plotMovie, &kPlotMovieINTR },
-	{ MerlinEngine::mainMenu, nullptr },
-	{ MerlinEngine::fileMenu, nullptr },
-	{ MerlinEngine::difficultyMenu, nullptr },
+	{ &MerlinEngine::plotMovie, &kPlotMovieBMPR },
+	{ &MerlinEngine::plotMovie, &kPlotMovieINTR },
+	{ &MerlinEngine::mainMenu, nullptr },
+	{ &MerlinEngine::fileMenu, nullptr },
+	{ &MerlinEngine::difficultyMenu, nullptr },
 
 	// Stage 1: Forest
-	{ MerlinEngine::plotMovie, &kPlotMoviePLOG },
-	{ MerlinEngine::hub, &MerlinEngine::kStage1 },
+	{ &MerlinEngine::plotMovie, &kPlotMoviePLOG },
+	{ &MerlinEngine::hub, &MerlinEngine::kStage1 },
 
 	// Stage 2: Laboratory
-	{ MerlinEngine::plotMovie, &kPlotMovieLABT },
-	{ MerlinEngine::hub, &MerlinEngine::kStage2 },
+	{ &MerlinEngine::plotMovie, &kPlotMovieLABT },
+	{ &MerlinEngine::hub, &MerlinEngine::kStage2 },
 
 	// Stage 3: Cave
-	{ MerlinEngine::plotMovie, &kPlotMovieCAV1 },
-	{ MerlinEngine::hub, &MerlinEngine::kStage3 },
+	{ &MerlinEngine::plotMovie, &kPlotMovieCAV1 },
+	{ &MerlinEngine::hub, &MerlinEngine::kStage3 },
 
-	// NOTE: The Finale movie is hidden until the game is fully implemented.
-	//{ MerlinEngine::plotMovie, &kPlotMovieFNLE },
+	// Finale movie is hidden until the game is fully implemented. 
+	//{ &MerlinEngine::plotMovie, &kPlotMovieFNLE },
 
-	{ MerlinEngine::freeplayHub, &kFreeplayScene1 },
-	{ MerlinEngine::freeplayHub, &kFreeplayScene2 },
-	{ MerlinEngine::freeplayHub, &kFreeplayScene3 },
+	{ &MerlinEngine::freeplayHub, &kFreeplayScene1 },
+	{ &MerlinEngine::freeplayHub, &kFreeplayScene2 },
+	{ &MerlinEngine::freeplayHub, &kFreeplayScene3 },
 };
 
 const int MerlinEngine::kSequenceSize =

@@ -100,12 +100,12 @@ public:
 		kPlayHelp,
 		kPlayTour,
 		kPlayCredits,
-		kEnterPuzzleFirst = 100, // 100-1xx: enter puzzle xx
+		kEnterPuzzleX = 100, // 100-1xx: enter puzzle xx
 	};
 
 	virtual ~Card() { }
 	virtual void enter() = 0;
-	virtual Signal processEvent(const BoltEvent &event) = 0;
+	virtual Signal handleEvent(const BoltEvent &event) = 0;
 };
 
 typedef Common::ScopedPtr<Card> CardPtr;
@@ -123,13 +123,13 @@ protected:
 
 	// Provided by subclass
 	virtual void init() = 0;
-	virtual void processEvent(const BoltEvent &event) = 0;
+	virtual void handleEvent(const BoltEvent &event) = 0;
 
 	Graphics _graphics;
 	uint32 _eventTime; // time of current or last received event
 
 private:
-	void topLevelProcessEvent(const BoltEvent &event);
+	void topLevelHandleEvent(const BoltEvent &event);
 };
 
 } // End of namespace Bolt

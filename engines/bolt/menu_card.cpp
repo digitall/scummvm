@@ -38,14 +38,14 @@ void MenuCard::enter() {
 	_scene.enter();
 }
 
-Card::Signal MenuCard::processEvent(const BoltEvent &event) {
+Card::Signal MenuCard::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Hover) {
 		_scene.handleHover(event.point);
 	}
 	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		debug(3, "Clicked button %d", buttonNum);
-		return processButtonClick(buttonNum);
+		return handleButtonClick(buttonNum);
 	}
 
 	return kNull;
@@ -55,7 +55,7 @@ void GenericMenuCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
 	MenuCard::init(graphics, boltlib, resId);
 }
 
-Card::Signal GenericMenuCard::processButtonClick(int num) {
+Card::Signal GenericMenuCard::handleButtonClick(int num) {
 	// Generic behavior: Just end the card.
 	return kEnd;
 }

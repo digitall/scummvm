@@ -31,7 +31,7 @@ class MainMenu : public MenuCard {
 public:
 	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 protected:
-	Signal processButtonClick(int num);
+	Signal handleButtonClick(int num);
 };
 
 } // End of namespace Bolt

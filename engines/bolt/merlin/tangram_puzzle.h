@@ -31,7 +31,7 @@ class TangramPuzzle : public Card {
 public:
 	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void enter();
-	Signal processEvent(const BoltEvent &event);
+	Signal handleEvent(const BoltEvent &event);
 
 private:
 	Graphics *_graphics;

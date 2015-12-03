@@ -36,19 +36,19 @@ void MemoryPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Signal MemoryPuzzle::processEvent(const BoltEvent &event) {
+Card::Signal MemoryPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Hover) {
 		_scene.handleHover(event.point);
 	}
 	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
-		return processButtonClick(buttonNum);
+		return handleButtonClick(buttonNum);
 	}
 
 	return kNull;
 }
 
-Card::Signal MemoryPuzzle::processButtonClick(int num) {
+Card::Signal MemoryPuzzle::handleButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	if (num != -1) {
