@@ -63,14 +63,14 @@ Common::Error BoltEngine::run() {
 			boltEvent.type = BoltEvent::Hover;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
-			topLevelProcessEvent(boltEvent);
+			topLevelHandleEvent(boltEvent);
 		}
 		else if (event.type == Common::EVENT_LBUTTONDOWN) {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::Click;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
-			topLevelProcessEvent(boltEvent);
+			topLevelHandleEvent(boltEvent);
 		}
 		else {
 			// Emit "tick" event
@@ -79,14 +79,14 @@ Common::Error BoltEngine::run() {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::Tick;
 			boltEvent.time = _eventTime;
-			topLevelProcessEvent(boltEvent);
+			topLevelHandleEvent(boltEvent);
 		}
 	}
 
 	return Common::kNoError;
 }
 
-void BoltEngine::topLevelProcessEvent(const BoltEvent &event) {
+void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Hover) {
 		// Update cursor
 		// TODO: Only update if cursor is visible (there is no way to query
@@ -94,7 +94,7 @@ void BoltEngine::topLevelProcessEvent(const BoltEvent &event) {
 		_graphics.markDirty();
 	}
 
-	processEvent(event);
+	handleEvent(event);
 	_graphics.presentIfDirty();
 }
 

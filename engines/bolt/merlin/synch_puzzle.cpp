@@ -33,19 +33,19 @@ void SynchPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Signal SynchPuzzle::processEvent(const BoltEvent &event) {
+Card::Signal SynchPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Hover) {
 		_scene.handleHover(event.point);
 	}
 	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
-		return processButtonClick(buttonNum);
+		return handleButtonClick(buttonNum);
 	}
 
 	return kNull;
 }
 
-Card::Signal SynchPuzzle::processButtonClick(int num) {
+Card::Signal SynchPuzzle::handleButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	return kWin;

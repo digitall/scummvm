@@ -22,9 +22,6 @@
 
 #include "bolt/scene.h"
 
-#include "common/events.h"
-#include "common/system.h"
-
 #include "bolt/bolt.h"
 
 namespace Bolt {

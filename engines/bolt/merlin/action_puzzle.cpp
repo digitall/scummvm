@@ -49,7 +49,7 @@ void ActionPuzzle::enter() {
 	_graphics->markDirty();
 }
 
-Card::Signal ActionPuzzle::processEvent(const BoltEvent &event) {
+Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		// TODO: implement puzzle
 		return kWin;

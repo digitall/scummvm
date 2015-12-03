@@ -39,19 +39,19 @@ void ColorPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Signal ColorPuzzle::processEvent(const BoltEvent &event) {
+Card::Signal ColorPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Hover) {
 		_scene.handleHover(event.point);
 	}
 	if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
-		return processButtonClick(buttonNum);
+		return handleButtonClick(buttonNum);
 	}
 
 	return kNull;
 }
 
-Card::Signal ColorPuzzle::processButtonClick(int num) {
+Card::Signal ColorPuzzle::handleButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	return kWin;

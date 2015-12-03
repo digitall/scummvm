@@ -50,7 +50,7 @@ public:
 protected:
 	// From BoltEngine
 	virtual void init();
-	virtual void processEvent(const BoltEvent &event);
+	virtual void handleEvent(const BoltEvent &event);
 
 private:
 	void initCursor();
@@ -87,24 +87,25 @@ private:
 	// ScummVM. It is safer to use a card end callback to transition to a new
 	// card.
 	void setCurrentCard(Card *card);
+	void enterCurrentCard(bool cursorActive);
 
 	int _sequenceCursor;
 	const HubEntry *_currentHub;
 	const PuzzleEntry *_currentPuzzle;
 
-	typedef void (*CallbackFunc)(MerlinEngine *self, const void *param);
+	typedef void (MerlinEngine::*CallbackFunc)(const void *param);
 	struct Callback {
 		CallbackFunc func;
 		const void *param;
 	};
 
 	// TODO: Use pointers to member functions (C++ supports them!)
-	static void plotMovie(MerlinEngine *self, const void *param);
-	static void mainMenu(MerlinEngine *self, const void *param);
-	static void fileMenu(MerlinEngine *self, const void *param);
-	static void difficultyMenu(MerlinEngine *self, const void *param);
-	static void hub(MerlinEngine *self, const void *param);
-	static void freeplayHub(MerlinEngine *self, const void *param);
+	void plotMovie(const void *param);
+	void mainMenu(const void *param);
+	void fileMenu(const void *param);
+	void difficultyMenu(const void *param);
+	void hub(const void *param);
+	void freeplayHub(const void *param);
 
 	static const HubEntry kStage1;
 	static const PuzzleEntry kStage1Puzzles[6];

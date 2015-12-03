@@ -78,13 +78,13 @@ void HubCard::enter() {
 	}
 }
 
-Card::Signal HubCard::processButtonClick(int num) {
+Card::Signal HubCard::handleButtonClick(int num) {
 	if (num == -1) {
 		// If no button was clicked, complete stage and transition to next hub.
 		return kEnd;
 	}
 	else {
-		return (Signal)(kEnterPuzzleFirst + num);
+		return (Signal)(kEnterPuzzleX + num);
 	}
 }
 

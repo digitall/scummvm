@@ -47,7 +47,7 @@ void MainMenu::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
 	MenuCard::init(graphics, boltlib, mainMenu->sceneId);
 }
 
-Card::Signal MainMenu::processButtonClick(int num) {
+Card::Signal MainMenu::handleButtonClick(int num) {
 	switch (num) {
 	case -1: // No button
 		return kNull;

@@ -33,11 +33,12 @@ public:
 	static Card* make(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void enter();
-	Signal processEvent(const BoltEvent &event);
+	Signal handleEvent(const BoltEvent &event);
 
 protected:
-	Signal processButtonClick(int num);
+	Signal handleButtonClick(int num);
 
+private:
 	Scene _scene;
 };
 
