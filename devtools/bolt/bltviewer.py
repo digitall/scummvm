@@ -108,6 +108,7 @@ class MyTableWidget(QtGui.QTableWidget):
 
 _BOLTLIB_FILE_SIZE_PLATFORMS = {
     11724174: ("Labyrinth of Crete PC/Mac", "PC"),
+    10452486: ("Merlin's Apprentice PC/Mac", "PC"),
     8007558: ("Merlin's Apprentice CD-I", "CDI"),
     }
 
