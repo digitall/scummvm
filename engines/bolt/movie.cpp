@@ -38,7 +38,8 @@
 namespace Bolt {
 
 Movie::Movie()
-	: _engine(nullptr),
+	: _graphics(nullptr),
+	_mixer(nullptr),
 	_audioStream(nullptr),
 	_audioStarted(false),
 	_triggerCallback(nullptr),
@@ -49,12 +50,14 @@ Movie::~Movie() {
 	stopAudio();
 }
 
-void Movie::load(BoltEngine *engine, PfFile &pfFile, uint32 name) {
+void Movie::load(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime) {
 
 	debug(3, "loading movie %c%c%c%c ...",
 		(name >> 24) & 0xff, (name >> 16) & 0xff, (name >> 8) & 0xff, name & 0xff);
 
-	_engine = engine;
+	_graphics = graphics;
+	_mixer = mixer;
+
 	_file = pfFile.seekMovieAndGetFile(name);
 
 	stop();
@@ -63,7 +66,7 @@ void Movie::load(BoltEngine *engine, PfFile &pfFile, uint32 name) {
 	_timelineActive = true;
 
 	// FIXME: Use a timer that pauses when game is inactive
-	_curFrameTimeMs = engine->getTotalPlayTime();
+	_curFrameTimeMs = curTime;
 	_curFrameNum = 0;
 
 	// Load timeline (it should be the first packet)
@@ -104,7 +107,7 @@ void Movie::stop() {
 void Movie::stopAudio() {
 	if (_audioStream) {
 		if (_audioStarted) {
-			_engine->_mixer->stopHandle(_audioHandle); // Mixer deletes audio stream
+			_mixer->stopHandle(_audioHandle); // Mixer deletes audio stream
 		}
 		else {
 			delete _audioStream;
@@ -118,19 +121,18 @@ void Movie::stopAudio() {
 
 bool Movie::isAudioRunning() const {
 	return _audioStarted && _audioStream &&
-		_engine->_mixer->isSoundHandleActive(_audioHandle);
+		_mixer->isSoundHandleActive(_audioHandle);
 }
 
 bool Movie::isRunning() const {
-	return _engine && (_timelineActive || isAudioRunning());
+	return _graphics && (_timelineActive || isAudioRunning());
 }
 
-bool Movie::process() {
+bool Movie::process(uint32 curTime) {
 
 	fillAudioQueue();
 
 	if (_timelineActive) {
-		uint32 curTime = _engine->getTotalPlayTime();
 		uint32 timeDelta = curTime - _curFrameTimeMs;
 		if (timeDelta >= _framePeriod) {
 			_curFrameTimeMs += _framePeriod;
@@ -159,17 +161,16 @@ void Movie::fillAudioQueue() {
 
 void Movie::ensureAudioStarted() {
 	if (_audioStream && !_audioStarted) {
-		// PF audio is premixed -- there are not separate channels for speech
-		// and music.
-		_engine->_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioHandle,
+		// PF audio is premixed; speech and music volumes cannot be controlled
+		// independently.
+		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioHandle,
 			_audioStream);
 		_audioStarted = true;
 	}
 }
 
 struct Queue4ImageHeader {
-
-	static const int SIZE = 0x14;
+	static const int kSize = 0x14;
 	Queue4ImageHeader(const byte *src) {
 		queueNum = READ_BE_UINT16(&src[0]);
 		width = READ_BE_UINT16(&src[2]);
@@ -187,8 +188,7 @@ struct Queue4ImageHeader {
 };
 
 struct TimelineHeader {
-
-	static const int SIZE = 0xC;
+	static const int kSize = 0xC;
 	TimelineHeader(const byte *src) {
 		numCommands = READ_BE_UINT16(&src[8]);
 		framePeriod = READ_BE_UINT16(&src[0xA]);
@@ -207,7 +207,7 @@ void Movie::loadTimeline(ScopedBuffer::Movable buf) {
 	_framePeriod = header.framePeriod;
 
 	_curTimelineCmd = 0;
-	_timelineCursor = TimelineHeader::SIZE;
+	_timelineCursor = TimelineHeader::kSize;
 	_lastTimelineCmdFrameNum = _curFrameNum;
 	loadTimelineCmd();
 }
@@ -271,12 +271,12 @@ void Movie::runTimelineCmd() {
 
 	switch (cmd.opcode) {
 	case TimelineOpcodes::kRenderQueue0: // render queue 0 (param size: 0)
-		_engine->_graphics.getBackPlane().clear(); // FIXME: Is it correct to clear back?
-		drawQueue0or1(_engine->_graphics.getForePlane(), ScopedBuffer(fetchVideoBuffer(0)), 0, 0);
+		_graphics->getBackPlane().clear(); // FIXME: Is it correct to clear back?
+		drawQueue0or1(_graphics->getForePlane(), ScopedBuffer(fetchVideoBuffer(0)), 0, 0);
 		break;
 	case TimelineOpcodes::kRenderQueue1: // render queue 1 (param size: 0)
-		_engine->_graphics.getForePlane().clear(); // FIXME: Is it correct to clear fore?
-		drawQueue0or1(_engine->_graphics.getBackPlane(), ScopedBuffer(fetchVideoBuffer(1)), 0, 0);
+		_graphics->getForePlane().clear(); // FIXME: Is it correct to clear fore?
+		drawQueue0or1(_graphics->getBackPlane(), ScopedBuffer(fetchVideoBuffer(1)), 0, 0);
 		break;
 	case TimelineOpcodes::kStartPaletteCycling: // start palette cycling (param size: 8)
 		// TODO: Implement
@@ -304,7 +304,7 @@ void Movie::runTimelineCmd() {
 			// Do NOT always draw background here. Only redraw background if it is
 			// changed or scrolled. (Required for win movies to work right)
 
-			drawQueue4(_engine->_graphics.getForePlane(), _queue4Buf, queue4FrameNum);
+			drawQueue4(_graphics->getForePlane(), _queue4Buf, queue4FrameNum);
 		}
 		break;
 	case TimelineOpcodes::kFade: // fade (param size: 4)
@@ -343,7 +343,7 @@ void Movie::advanceTimeline() {
 			if (_curTimelineCmd >= _numTimelineCmds) {
 				// TODO: Guarantee start of audio coincides with first frame of
 				// movie.
-				_engine->scheduleDisplayUpdate();
+				_graphics->markDirty();
 				ensureAudioStarted();
 				_timelineActive = false;
 				done = true;
@@ -354,7 +354,7 @@ void Movie::advanceTimeline() {
 		}
 		else if ((_curFrameNum - _lastTimelineCmdFrameNum) < cmd.delay) {
 			// Delay occurs BEFORE command.
-			_engine->scheduleDisplayUpdate();
+			_graphics->markDirty();
 			ensureAudioStarted();
 			done = true;
 		}
@@ -444,7 +444,7 @@ void Movie::runQueue4Control() {
 				// FIXME: first color or plane number?
 				byte firstColor = _queue4Buf[paramsOffset + 1];
 				debug(3, "Queue4 cmd: load fore palette num %d first %d", (int)numColors, (int)firstColor);
-				_engine->_graphics.getForePlane().setPalette(&_queue4Buf[paramsOffset + 2],
+				_graphics->getForePlane().setPalette(&_queue4Buf[paramsOffset + 2],
 					firstColor, numColors);
 
 				_queue4ControlCursor += Queue4Command::SIZE + 2 + numColors * 3;
@@ -484,7 +484,7 @@ void Movie::runQueue4Control() {
 }
 
 void Movie::drawBackground() {
-	drawQueue0or1(_engine->_graphics.getBackPlane(), _queue4Bg,
+	drawQueue0or1(_graphics->getBackPlane(), _queue4Bg,
 		0, -_queue4CameraY);
 }
 
@@ -742,8 +742,8 @@ void Movie::drawQueue4(Plane &plane, const ScopedBuffer &src, uint16 frameNum) {
 	assert(header.queueNum == 4);
 	assert(frameNum < header.numFrames);
 
-	uint32 rl7Offset = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8]);
-	uint32 rl7Size = READ_BE_UINT32(&src[Queue4ImageHeader::SIZE + frameNum * 8 + 4]);
+	uint32 rl7Offset = READ_BE_UINT32(&src[Queue4ImageHeader::kSize + frameNum * 8]);
+	uint32 rl7Size = READ_BE_UINT32(&src[Queue4ImageHeader::kSize + frameNum * 8 + 4]);
 
 	decodeRL7(plane.getSurface(), 0, 0, header.width, header.height,
 		&src[rl7Offset], rl7Size, false);

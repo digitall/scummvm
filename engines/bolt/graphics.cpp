@@ -375,11 +375,13 @@ void Plane::setPalette(const byte *colors, uint start, uint num) {
 }
 
 Graphics::Graphics()
-	: _system(nullptr)
+	: _system(nullptr),
+	_dirty(false)
 { }
 
 void Graphics::init(OSystem *system) {
 	_system = system;
+	_dirty = true;
 
 	initGraphics(kVgaScreenWidth, kVgaScreenHeight, false);
 
@@ -402,35 +404,36 @@ void Graphics::init(OSystem *system) {
 	_forePlane.setPalette(palette, 0, 128);
 }
 
-void Graphics::present() {
-	// TODO: Track dirty rectangles for more efficiency
+void Graphics::markDirty() {
+	_dirty = true;
+}
 
-	// Render display
+void Graphics::presentIfDirty() {
+	if (_dirty) {
+		// TODO: Track dirty rectangles for more efficiency
+		::Graphics::Surface *dstSurface = _system->lockScreen();
+		::Graphics::Surface &backSurface = _backPlane.getSurface();
+		::Graphics::Surface &foreSurface = _forePlane.getSurface();
 
-	::Graphics::Surface *dstSurface = _system->lockScreen();
-
-	::Graphics::Surface &backSurface = _backPlane.getSurface();
-	::Graphics::Surface &foreSurface = _forePlane.getSurface();
-
-	byte *dstLine = (byte*)dstSurface->getPixels();
-	const byte *backLine = (const byte*)backSurface.getPixels();
-	const byte *foreLine = (const byte*)foreSurface.getPixels();
-
-	for (int y = 0; y < kVgaScreenHeight; ++y) {
-		for (int x = 0; x < kVgaScreenWidth; ++x) {
-			dstLine[x] = (foreLine[x] != 0) ?
-				(foreLine[x] + _forePlane.getColorBase()) :
-				(backLine[x] + _backPlane.getColorBase());
+		byte *dstLine = (byte*)dstSurface->getPixels();
+		const byte *backLine = (const byte*)backSurface.getPixels();
+		const byte *foreLine = (const byte*)foreSurface.getPixels();
+		for (int y = 0; y < kVgaScreenHeight; ++y) {
+			for (int x = 0; x < kVgaScreenWidth; ++x) {
+				dstLine[x] = (foreLine[x] != 0) ?
+					(foreLine[x] + _forePlane.getColorBase()) :
+					(backLine[x] + _backPlane.getColorBase());
+			}
+			dstLine += dstSurface->pitch;
+			backLine += backSurface.pitch;
+			foreLine += foreSurface.pitch;
 		}
+		_system->unlockScreen();
 
-		dstLine += dstSurface->pitch;
-		backLine += backSurface.pitch;
-		foreLine += foreSurface.pitch;
+		_system->updateScreen();
+
+		_dirty = false;
 	}
-
-	_system->unlockScreen();
-
-	_system->updateScreen();
 }
 
 struct BltImageHeader {

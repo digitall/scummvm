@@ -26,45 +26,36 @@
 
 namespace Bolt {
 
-Card* MemoryPuzzle::make(MerlinEngine *merlin, BltId resId) {
-	MemoryPuzzle *card = new MemoryPuzzle;
-	card->init(merlin, resId);
-	return card;
-}
-
-void MemoryPuzzle::init(MerlinEngine *merlin, BltId resId) {
-	_merlin = merlin;
-
-	BltResourceList resourceList(_merlin->_boltlib, resId);
+void MemoryPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	BltResourceList resourceList(boltlib, resId);
 	BltId sceneId = resourceList[1].value;
-	_scene.load(_merlin, _merlin->_boltlib, sceneId);
+	_scene.load(graphics, boltlib, sceneId);
 }
 
 void MemoryPuzzle::enter() {
 	_scene.enter();
 }
 
-Card::Status MemoryPuzzle::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+Card::Signal MemoryPuzzle::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		_scene.handleHover(event.point);
+	}
+	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return processButtonClick(buttonNum);
 	}
-	else {
-		_scene.process();
-	}
 
-	return None;
+	return kNull;
 }
 
-Card::Status MemoryPuzzle::processButtonClick(int num) {
+Card::Signal MemoryPuzzle::processButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	// TODO: implement puzzle
 	if (num != -1) {
-		_merlin->setCardEndCallback(MerlinEngine::win, nullptr);
-		return Ended;
+		return kWin;
 	}
 
-	return None;
+	return kNull;
 }
 
 } // End of namespace Bolt

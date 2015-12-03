@@ -27,16 +27,11 @@
 
 namespace Bolt {
 
-class MerlinEngine;
-
 class MainMenu : public MenuCard {
 public:
-	MainMenu();
-	void init(MerlinEngine *merlin, BltFile &bltFile, BltId id);
+	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 protected:
-	Status processButtonClick(int num);
-private:
-	MerlinEngine *_merlin;
+	Signal processButtonClick(int num);
 };
 
 } // End of namespace Bolt

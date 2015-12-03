@@ -91,45 +91,45 @@ struct BoltEvent {
 
 class Card {
 public:
-	enum Status {
-		Invalid,
-		None,
-		Ended,
+	// Signal codes returned by cards after handling an event
+	enum Signal {
+		kInvalid = -1,
+		kNull = 0,
+		kEnd,
+		kWin,
+		kPlayHelp,
+		kPlayTour,
+		kPlayCredits,
+		kEnterPuzzleFirst = 100, // 100-1xx: enter puzzle xx
 	};
 
 	virtual ~Card() { }
 	virtual void enter() = 0;
-	virtual Status processEvent(const BoltEvent &event) = 0;
+	virtual Signal processEvent(const BoltEvent &event) = 0;
 };
 
 typedef Common::ScopedPtr<Card> CardPtr;
 
 class BoltEngine : public Engine {
-	friend class Movie;
-	friend class Scene;
 public:
+	// From Engine
 	virtual bool hasFeature(EngineFeature f) const;
-
-	// TODO: put this somewhere else
-	void scheduleDisplayUpdate();
 
 protected:
 	BoltEngine(OSystem *syst, const ADGameDescription *gd);
 
-	virtual Common::Error run(); // From Engine
+	// From Engine
+	virtual Common::Error run();
 
 	// Provided by subclass
 	virtual void init() = 0;
 	virtual void processEvent(const BoltEvent &event) = 0;
 
 	Graphics _graphics;
+	uint32 _eventTime; // time of current or last received event
 
 private:
 	void topLevelProcessEvent(const BoltEvent &event);
-
-	bool _displayDirty;
-
-	uint32 _eventTime; // time of current or last received event
 };
 
 } // End of namespace Bolt

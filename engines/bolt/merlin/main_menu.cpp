@@ -42,32 +42,24 @@ struct BltMainMenuStruct {
 
 typedef BltLoader<BltMainMenuStruct> BltMainMenu;
 
-MainMenu::MainMenu()
-	: _merlin(nullptr)
-{ }
-
-void MainMenu::init(MerlinEngine *merlin, BltFile &bltFile, BltId id) {
-	_merlin = merlin;
-
-	BltMainMenu mainMenu(bltFile, id);
-	MenuCard::init(merlin, bltFile, mainMenu->sceneId);
+void MainMenu::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	BltMainMenu mainMenu(boltlib, resId);
+	MenuCard::init(graphics, boltlib, mainMenu->sceneId);
 }
 
-Card::Status MainMenu::processButtonClick(int num) {
+Card::Signal MainMenu::processButtonClick(int num) {
 	switch (num) {
 	case -1: // No button
-		return None;
+		return kNull;
 	case 0: // Play
-		return Ended;
+		return kEnd;
 	case 1: // Credits
-		_merlin->startMovie(_merlin->_maPf, MKTAG('C', 'R', 'D', 'T'));
-		return None;
+		return kPlayCredits;
 	case 4: // Tour
-		_merlin->startMovie(_merlin->_maPf, MKTAG('T', 'O', 'U', 'R'));
-		return None;
+		return kPlayTour;
 	default:
 		warning("unknown main menu button %d", num);
-		return None;
+		return kNull;
 	}
 }
 

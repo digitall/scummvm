@@ -79,23 +79,23 @@ struct BltColorCycles { // type 11
 	BltId slotIds[4];
 };
 
-void Scene::load(BoltEngine *engine, BltFile &bltFile, BltId sceneId)
+void Scene::load(Graphics *graphics, BltFile &boltlib, BltId sceneId)
 {
-	_engine = engine;
+	_graphics = graphics;
 
-	BltScene sceneInfo(&BltResource(bltFile.loadResource(sceneId, kBltScene))[0]);
+	BltScene sceneInfo(&BltResource(boltlib.loadResource(sceneId, kBltScene))[0]);
 
 	_origin = sceneInfo.origin;
-	_forePlane.load(bltFile, sceneInfo.forePlaneId);
-	_backPlane.load(bltFile, sceneInfo.backPlaneId);
-	_sprites.load(bltFile, sceneInfo.spritesId);
-	_buttons.load(bltFile, sceneInfo.buttonsId);
+	_forePlane.load(boltlib, sceneInfo.forePlaneId);
+	_backPlane.load(boltlib, sceneInfo.backPlaneId);
+	_sprites.load(boltlib, sceneInfo.spritesId);
+	_buttons.load(boltlib, sceneInfo.buttonsId);
 
 	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
 		_colorCycles[i] = ColorCycle();
 	}
 	if (sceneInfo.colorCyclesId.isValid()) {
-		BltColorCycles cyclesInfo(&BltResource(bltFile.loadResource(
+		BltColorCycles cyclesInfo(&BltResource(boltlib.loadResource(
 			sceneInfo.colorCyclesId, kBltColorCycles))[0]);
 		for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
 			if (cyclesInfo.slotIds[i].isValid()) {
@@ -106,7 +106,7 @@ void Scene::load(BoltEngine *engine, BltFile &bltFile, BltId sceneId)
 					// No slots; skip
 				}
 				else {
-					BltColorCycleSlot cycleSlotInfo(&BltResource(bltFile.loadResource(
+					BltColorCycleSlot cycleSlotInfo(&BltResource(boltlib.loadResource(
 						cyclesInfo.slotIds[i], kBltColorCycleSlot))[0]);
 					_colorCycles[i].start = cycleSlotInfo.start;
 					_colorCycles[i].num = cycleSlotInfo.end - cycleSlotInfo.start + 1;
@@ -122,49 +122,52 @@ void Scene::enter() {
 
 	// Draw back plane
 	if (_backPlane->palette) {
-		_backPlane->palette.set(_engine->_graphics, BltPalette::kBack);
+		_backPlane->palette.set(*_graphics, BltPalette::kBack);
 	}
 	if (_backPlane->image) {
-		::Graphics::Surface surface = _engine->_graphics.getBackPlane().getSurface();
+		::Graphics::Surface surface = _graphics->getBackPlane().getSurface();
 		_backPlane->image.drawAt(surface, 0, 0, false);
 	}
 	else {
-		_engine->_graphics.getBackPlane().clear();
+		_graphics->getBackPlane().clear();
 	}
 
 	// Draw fore plane
 	if (_forePlane->palette) {
-		_forePlane->palette.set(_engine->_graphics, BltPalette::kFore);
+		_forePlane->palette.set(*_graphics, BltPalette::kFore);
 	}
 	if (_forePlane->image) {
-		::Graphics::Surface surface = _engine->_graphics.getForePlane().getSurface();
+		::Graphics::Surface surface = _graphics->getForePlane().getSurface();
 		_forePlane->image.drawAt(surface, 0, 0, false);
 	}
 	else {
-		_engine->_graphics.getForePlane().clear();
+		_graphics->getForePlane().clear();
 	}
 
 	// Draw sprites
 	for (size_t i = 0; i < _sprites.size(); ++i) {
 		Common::Point pos = _sprites[i].pos - _origin;
 		// FIXME: Are sprites drawn to back or fore plane? Is it somehow selectable?
-		::Graphics::Surface surface = _engine->_graphics.getForePlane().getSurface();
+		::Graphics::Surface surface = _graphics->getForePlane().getSurface();
 		_sprites[i].image.drawAt(surface, pos.x, pos.y, true);
 	}
 
+	// TODO: move color cycling to Graphics class
+#if 0
 	// Reset color cycles
 	uint32 enterTime = _engine->getTotalPlayTime();
 	for (int i = 0; i < NUM_COLOR_CYCLES; ++i) {
 		_colorCycles[i].curTime = enterTime;
 	}
+#endif
 
-	process();
-
-	_engine->scheduleDisplayUpdate();
+	_graphics->markDirty();
 }
 
-void Scene::process() {
+void Scene::handleHover(const Common::Point &pt) {
 
+	// TODO: move color cycling to Graphics class
+#if 0
 	uint32 curTime = _engine->getTotalPlayTime();
 
 	// Update color cycles
@@ -194,14 +197,15 @@ void Scene::process() {
 			}
 		}
 	}
+#endif
 
 	// Draw buttons
-	int hoveredButton = getButtonAtPoint(_engine->getEventManager()->getMousePos());
+	int hoveredButton = getButtonAtPoint(pt);
 	for (uint i = 0; i < _buttons.size(); ++i) {
 		drawButton(_buttons[i], (int)i == hoveredButton);
 	}
 
-	_engine->scheduleDisplayUpdate();
+	_graphics->markDirty();
 }
 
 void Scene::setBackPlane(BltFile &bltFile, BltId id) {
@@ -238,7 +242,7 @@ int Scene::getButtonAtPoint(const Common::Point &pt) {
 }
 
 Bolt::Plane& Scene::getGraphicsPlane(uint16 num) {
-	return num ? _engine->_graphics.getBackPlane() : _engine->_graphics.getForePlane();
+	return num ? _graphics->getBackPlane() : _graphics->getForePlane();
 }
 
 void Scene::drawButton(const BltButtonStruct &button, bool hovered) {

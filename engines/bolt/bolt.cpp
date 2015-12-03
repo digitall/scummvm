@@ -42,8 +42,8 @@ bool BoltEngine::hasFeature(EngineFeature f) const {
 
 Common::Error BoltEngine::run() {
 	_graphics.init(_system);
-	scheduleDisplayUpdate();
 
+	_eventTime = getTotalPlayTime();
 	init();
 
 	// Main loop
@@ -91,19 +91,11 @@ void BoltEngine::topLevelProcessEvent(const BoltEvent &event) {
 		// Update cursor
 		// TODO: Only update if cursor is visible (there is no way to query
 		// system for cursor visibility status)
-		scheduleDisplayUpdate();
+		_graphics.markDirty();
 	}
 
 	processEvent(event);
-
-	if (_displayDirty) {
-		_graphics.present();
-		_displayDirty = false;
-	}
-}
-
-void BoltEngine::scheduleDisplayUpdate() {
-	_displayDirty = true;
+	_graphics.presentIfDirty();
 }
 
 } // End of namespace Bolt

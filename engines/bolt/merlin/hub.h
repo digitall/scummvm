@@ -32,14 +32,13 @@ struct HubEntry;
 	
 class HubCard : public MenuCard {
 public:
-	void init(MerlinEngine *merlin, const HubEntry &entry);
+	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
 	void enter();
 protected:
-	Status processButtonClick(int num);
+	Signal processButtonClick(int num);
 
 private:
-	MerlinEngine *_merlin;
-	const HubEntry *_hubEntry;
+	Graphics *_graphics;
 	ScopedArray<BltImage> _itemImages;
 };
 

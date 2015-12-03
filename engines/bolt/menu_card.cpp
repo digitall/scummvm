@@ -30,35 +30,34 @@
 
 namespace Bolt {
 
-void MenuCard::init(BoltEngine *engine, BltFile &bltFile, BltId menuId) {
-	_engine = engine;
-	_scene.load(engine, bltFile, menuId);
+void MenuCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	_scene.load(graphics, boltlib, resId);
 }
 
 void MenuCard::enter() {
 	_scene.enter();
 }
 
-Card::Status MenuCard::processEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+Card::Signal MenuCard::processEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		_scene.handleHover(event.point);
+	}
+	else if (event.type == BoltEvent::Click) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		debug(3, "Clicked button %d", buttonNum);
 		return processButtonClick(buttonNum);
 	}
-	else {
-		_scene.process();
-	}
 
-	return None;
+	return kNull;
 }
 
-void GenericMenuCard::init(BoltEngine *engine, BltFile &bltFile, BltId id) {
-	MenuCard::init(engine, bltFile, id);
+void GenericMenuCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+	MenuCard::init(graphics, boltlib, resId);
 }
 
-Card::Status GenericMenuCard::processButtonClick(int num) {
+Card::Signal GenericMenuCard::processButtonClick(int num) {
 	// Generic behavior: Just end the card.
-	return Ended;
+	return kEnd;
 }
 
 } // End of namespace Bolt
