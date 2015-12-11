@@ -379,8 +379,10 @@ Graphics::Graphics()
 	_dirty(false)
 { }
 
-void Graphics::init(OSystem *system) {
+void Graphics::init(OSystem *system, uint32 time) {
 	_system = system;
+	_curTime = time;
+	_colorCycleTime = time;
 	_dirty = true;
 
 	initGraphics(kVgaScreenWidth, kVgaScreenHeight, false);
@@ -402,6 +404,67 @@ void Graphics::init(OSystem *system) {
 	}
 	_backPlane.setPalette(palette, 0, 128);
 	_forePlane.setPalette(palette, 0, 128);
+}
+
+void Graphics::setTime(uint32 time) {
+	_curTime = time;
+
+	// Handle color cycling
+	uint32 diff = _curTime - _colorCycleTime;
+	// FIXME: Use correct cycling speed
+	if (diff >= kColorCycleMillis) {
+		bool colorCyclesEnabled = false;
+		// Cycle!
+		for (int i = 0; i < kNumColorCycles; ++i) {
+			if (_colorCycles[i].num > 0) {
+				colorCyclesEnabled = true;
+
+				byte colors[128 * 3];
+				// FIXME: Can the front plane have color cycles, or do
+				// color cycles exclusively affect the back plane palette?
+				_backPlane.grabPalette(colors, _colorCycles[i].start,
+					_colorCycles[i].num);
+
+				// Rotate colors right by one
+				byte r = colors[3 * (_colorCycles[i].num - 1) + 0];
+				byte g = colors[3 * (_colorCycles[i].num - 1) + 1];
+				byte b = colors[3 * (_colorCycles[i].num - 1) + 2];
+				memmove(&colors[3], &colors[0], 3 * (_colorCycles[i].num - 1));
+				colors[0] = r;
+				colors[1] = g;
+				colors[2] = b;
+
+				_backPlane.setPalette(colors, _colorCycles[i].start, _colorCycles[i].num);
+			}
+		}
+
+		if (colorCyclesEnabled) {
+			// We only rotate once, that should be enough unless there are big delays
+			_colorCycleTime += kColorCycleMillis;
+			markDirty();
+		}
+	}
+}
+
+void Graphics::resetColorCycles() {
+	for (int i = 0; i < kNumColorCycles; ++i) {
+		_colorCycles[i].num = 0;
+	}
+}
+
+void Graphics::setColorCycle(int slot, uint16 start, uint16 num) {
+	assert(slot >= 0 && slot < kNumColorCycles);
+	if (start >= 0 && (start + num) <= 128) {
+		_colorCycles[slot].start = start;
+		_colorCycles[slot].num = num;
+	}
+	else {
+		warning("Invalid color cycle start %d, num %d", (int)start, (int)num);
+		_colorCycles[slot].num = 0;
+	}
+
+	// Start cycling now
+	_colorCycleTime = _curTime;
 }
 
 void Graphics::markDirty() {

@@ -79,13 +79,6 @@ private:
 	CardPtr _currentCard;
 	Movie _movie;
 
-	// Set current card and enter it if no movie is playing. If a movie is
-	// playing, the new card will be entered when the movie ends.
-	// Deletes old card and takes ownership of new card.
-	// Beware: If this function is called within a method of the old card,
-	// the old card is deleted. Thereafter, accessing its members will crash
-	// ScummVM. It is safer to use a card end callback to transition to a new
-	// card.
 	void setCurrentCard(Card *card);
 	void enterCurrentCard(bool cursorActive);
 
@@ -99,7 +92,6 @@ private:
 		const void *param;
 	};
 
-	// TODO: Use pointers to member functions (C++ supports them!)
 	void plotMovie(const void *param);
 	void mainMenu(const void *param);
 	void fileMenu(const void *param);

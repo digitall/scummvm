@@ -41,9 +41,9 @@ bool BoltEngine::hasFeature(EngineFeature f) const {
 }
 
 Common::Error BoltEngine::run() {
-	_graphics.init(_system);
-
 	_eventTime = getTotalPlayTime();
+
+	_graphics.init(_system, _eventTime);
 	init();
 
 	// Main loop
@@ -87,6 +87,7 @@ Common::Error BoltEngine::run() {
 }
 
 void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {
+	_graphics.setTime(event.time);
 	if (event.type == BoltEvent::Hover) {
 		// Update cursor
 		// TODO: Only update if cursor is visible (there is no way to query
