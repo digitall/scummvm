@@ -80,11 +80,15 @@ class Graphics {
 public:
 	Graphics();
 
-	void init(OSystem *system);
+	void init(OSystem *system, uint32 time);
 
 	Plane& getBackPlane() { return _backPlane; }
 	Plane& getForePlane() { return _forePlane; }
 
+	// TODO: better system for timing
+	void setTime(uint32 time);
+	void resetColorCycles();
+	void setColorCycle(int slot, uint16 start, uint16 numColors);
 	void markDirty();
 	void presentIfDirty();
 
@@ -96,6 +100,20 @@ private:
 
 	Plane _backPlane;
 	Plane _forePlane;
+
+	struct ColorCycle {
+		ColorCycle() : start(0), num(0) { }
+		uint16 start;
+		uint16 num;
+		// FIXME: it is not known whether color cycle delays are fixed or adjustable
+	};
+
+	static const int kNumColorCycles = 4;
+	static const int kColorCycleMillis = 100;
+	ColorCycle _colorCycles[kNumColorCycles];
+	uint32 _curTime; // Time of current event
+	uint32 _colorCycleTime; // Time of last color modification due to cycling
+
 	bool _dirty;
 };
 

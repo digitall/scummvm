@@ -87,16 +87,48 @@ private:
 
 	BltSpriteList _sprites;
 
-	struct ColorCycle {
-		ColorCycle() : start(0), num(0), delay(0) { }
+	struct BltColorCycleSlotStruct { // type 12
+		static const uint32 kType = kBltColorCycleSlot;
+		static const uint kSize = 6;
+		void load(const byte *src, BltFile &boltlib) {
+			start = READ_BE_UINT16(&src[0]);
+			end = READ_BE_UINT16(&src[2]);
+			// FIXME: unknown value at offset 4
+			// delay? num colors?
+		}
+
 		uint16 start;
-		uint16 num;
-		byte delay;
-		uint32 curTime;
+		uint16 end;
 	};
 
-	static const int NUM_COLOR_CYCLES = 4;
-	ColorCycle _colorCycles[NUM_COLOR_CYCLES];
+	typedef BltLoader<BltColorCycleSlotStruct> BltColorCycleSlot;
+
+	struct BltColorCyclesStruct { // type 11
+		static const uint32 kType = kBltColorCycles;
+		static const uint kSize = 0x18;
+		void load(const byte *src, BltFile &boltlib) {
+			for (int i = 0; i < 4; ++i) {
+				numSlots[i] = READ_BE_UINT16(&src[i * 2]); // Should be 1 or 0.
+			}
+			for (int i = 0; i < 4; ++i) {
+				BltId slotId = BltId(READ_BE_UINT32(&src[8 + i * 4]));
+				if (slotId.isValid()) {
+					slots[i].reset(new BltColorCycleSlot);
+					slots[i]->load(boltlib, slotId);
+				}
+				else {
+					slots[i].reset();
+				}
+			}
+		}
+
+		uint16 numSlots[4];
+		Common::ScopedPtr<BltColorCycleSlot> slots[4];
+	};
+
+	typedef BltLoader<BltColorCyclesStruct> BltColorCycles;
+
+	Common::ScopedPtr<BltColorCycles> _colorCycles;
 
 	Bolt::Plane& getGraphicsPlane(uint16 num);
 
