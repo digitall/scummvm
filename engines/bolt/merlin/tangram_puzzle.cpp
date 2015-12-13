@@ -24,7 +24,7 @@
 
 namespace Bolt {
 
-void TangramPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
 	BltResourceList resourceList;

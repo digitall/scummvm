@@ -27,7 +27,7 @@
 
 #include "engines/engine.h"
 
-#include "bolt/blt_file.h"
+#include "bolt/boltlib/boltlib.h"
 #include "bolt/graphics.h"
 #include "bolt/pf_file.h"
 

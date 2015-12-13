@@ -50,7 +50,7 @@ struct BltScene { // type 32
 	Common::Point origin;
 };
 
-void Scene::load(Graphics *graphics, BltFile &boltlib, BltId sceneId)
+void Scene::load(Graphics *graphics, Boltlib &boltlib, BltId sceneId)
 {
 	_graphics = graphics;
 
@@ -126,7 +126,7 @@ void Scene::handleHover(const Common::Point &pt) {
 	_graphics->markDirty();
 }
 
-void Scene::setBackPlane(BltFile &bltFile, BltId id) {
+void Scene::setBackPlane(Boltlib &bltFile, BltId id) {
 	_backPlane.load(bltFile, id);
 }
 

@@ -341,7 +341,7 @@ void MerlinEngine::freeplayHub(const void *param) {
 // TODO: there are more: cursor, menus, etc.
 
 template<class T>
-static Card* makePuzzle(Graphics *graphics, BltFile &boltlib, BltId resId) {
+static Card* makePuzzle(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	T *card = new T;
 	card->init(graphics, boltlib, resId);
 	return card;

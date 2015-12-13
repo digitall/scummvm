@@ -27,7 +27,7 @@
 #include "common/rect.h"
 
 #include "bolt/bolt.h"
-#include "bolt/blt_file.h"
+#include "bolt/boltlib/boltlib.h"
 
 namespace Bolt {
 
@@ -35,13 +35,13 @@ class BoltEngine;
 
 class Scene {
 public:
-	void load(Graphics *graphics, BltFile &boltlib, BltId sceneId);
+	void load(Graphics *graphics, Boltlib &boltlib, BltId sceneId);
 	void enter();
 	void handleHover(const Common::Point &pt);
 	// Return number of button at a point, or -1 if there is no button.
 	int getButtonAtPoint(const Common::Point &pt);
 
-	void setBackPlane(BltFile &bltFile, BltId id);
+	void setBackPlane(Boltlib &bltFile, BltId id);
 
 
 private:
@@ -50,7 +50,7 @@ private:
 	struct BltPlaneStruct { // type 26
 		static const uint32 kType = kBltPlane;
 		static const uint kSize = 0x10;
-		void load(const byte *src, BltFile &bltFile) {
+		void load(const byte *src, Boltlib &bltFile) {
 			BltId imageId(READ_BE_UINT32(&src[0]));
 			image.load(bltFile, imageId);
 			BltId paletteId(READ_BE_UINT32(&src[4]));
@@ -72,7 +72,7 @@ private:
 	struct BltSpriteStruct { // type 27
 		static const uint32 kType = kBltSpriteList;
 		static const uint kSize = 0x8;
-		void load(const byte *src, BltFile &bltFile) {
+		void load(const byte *src, Boltlib &bltFile) {
 			pos.x = READ_BE_INT16(&src[0]);
 			pos.y = READ_BE_INT16(&src[2]);
 			BltId imageId(READ_BE_UINT32(&src[4]));
@@ -90,7 +90,7 @@ private:
 	struct BltColorCycleSlotStruct { // type 12
 		static const uint32 kType = kBltColorCycleSlot;
 		static const uint kSize = 6;
-		void load(const byte *src, BltFile &boltlib) {
+		void load(const byte *src, Boltlib &boltlib) {
 			start = READ_BE_UINT16(&src[0]);
 			end = READ_BE_UINT16(&src[2]);
 			// FIXME: unknown value at offset 4
@@ -106,7 +106,7 @@ private:
 	struct BltColorCyclesStruct { // type 11
 		static const uint32 kType = kBltColorCycles;
 		static const uint kSize = 0x18;
-		void load(const byte *src, BltFile &boltlib) {
+		void load(const byte *src, Boltlib &boltlib) {
 			for (int i = 0; i < 4; ++i) {
 				numSlots[i] = READ_BE_UINT16(&src[i * 2]); // Should be 1 or 0.
 			}
@@ -133,7 +133,7 @@ private:
 	Bolt::Plane& getGraphicsPlane(uint16 num);
 
 	struct BltButtonPaletteMod { // type 29
-		void load(const byte *src, BltFile &bltFile) {
+		void load(const byte *src, Boltlib &bltFile) {
 			start = src[0];
 			num = src[1];
 			BltId colorsId(READ_BE_UINT32(&src[2]));
@@ -153,7 +153,7 @@ private:
 			Sprites = 2,
 		};
 
-		void load(const byte *src, BltFile &bltFile) {
+		void load(const byte *src, Boltlib &bltFile) {
 			type = READ_BE_UINT16(&src[0]);
 			// FIXME: unknown field at 2. It is used in the buttons on sliding
 			// and points to an image.
@@ -187,7 +187,7 @@ private:
 	struct BltButtonStruct { // type 31
 		static const uint32 kType = kBltButtonList;
 		static const uint kSize = 0x14;
-		void load(const byte *src, BltFile &bltFile) {
+		void load(const byte *src, Boltlib &bltFile) {
 			type = READ_BE_UINT16(&src[0]);
 			rect = Rect(&src[2]);
 			plane = READ_BE_UINT16(&src[0xA]);

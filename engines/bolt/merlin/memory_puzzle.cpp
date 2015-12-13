@@ -22,11 +22,11 @@
 
 #include "bolt/merlin/memory_puzzle.h"
 
-#include "bolt/blt_file.h"
+#include "bolt/boltlib/boltlib.h"
 
 namespace Bolt {
 
-void MemoryPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void MemoryPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList(boltlib, resId);
 	BltId sceneId = resourceList[1].value;
 	_scene.load(graphics, boltlib, sceneId);

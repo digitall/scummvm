@@ -23,14 +23,8 @@
 #include "bolt/merlin/color_puzzle.h"
 
 namespace Bolt {
-	
-Card* ColorPuzzle::make(Graphics *graphics, BltFile &boltlib, BltId resId) {
-	ColorPuzzle *card = new ColorPuzzle;
-	card->init(graphics, boltlib, resId);
-	return card;
-}
 
-void ColorPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void ColorPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList(boltlib, resId);
 	_scene.load(graphics, boltlib, resourceList[3].value);
 }

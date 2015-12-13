@@ -5,8 +5,12 @@ MODULE_OBJS := \
 	bolt.o \
 	detection.o \
 	graphics.o \
-	labyrinth/labyrinth.o \
 	menu_card.o \
+	movie.o \
+	pf_file.o \
+	scene.o
+	labyrinth/labyrinth.o \
+	boltlib/boltlib.o \
 	merlin/action_puzzle.o \
 	merlin/color_puzzle.o \
 	merlin/hub.o \
@@ -17,9 +21,6 @@ MODULE_OBJS := \
 	merlin/synch_puzzle.o \
 	merlin/tangram_puzzle.o \
 	merlin/word_puzzle.o \
-	movie.o \
-	pf_file.o \
-	scene.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_BOLT), DYNAMIC_PLUGIN)

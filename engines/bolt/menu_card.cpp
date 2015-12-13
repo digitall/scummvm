@@ -30,7 +30,7 @@
 
 namespace Bolt {
 
-void MenuCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void MenuCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, resId);
 }
 
@@ -51,7 +51,7 @@ Card::Signal MenuCard::handleEvent(const BoltEvent &event) {
 	return kNull;
 }
 
-void GenericMenuCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void GenericMenuCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	MenuCard::init(graphics, boltlib, resId);
 }
 

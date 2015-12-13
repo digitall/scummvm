@@ -30,7 +30,7 @@ namespace Bolt {
 
 class WordPuzzle : public Card {
 public:
-	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
+	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
 	void enter();
 	Signal handleEvent(const BoltEvent &event);
 

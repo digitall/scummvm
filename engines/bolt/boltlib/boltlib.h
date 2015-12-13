@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef BOLT_BLT_FILE_H
-#define BOLT_BLT_FILE_H
+#ifndef BOLT_BOLTLIB_BOLTLIB_H
+#define BOLT_BOLTLIB_BOLTLIB_H
 
 #include "common/file.h"
 
@@ -74,7 +74,7 @@ struct BltId {
 
 typedef ScopedArray<byte> BltResource;
 
-class BltFile {
+class Boltlib {
 public:
 	bool load(const Common::String &filename);
 
@@ -127,11 +127,11 @@ class BltLoader {
 	// Use arrow operator -> to access.
 public:
 	BltLoader() { }
-	BltLoader(BltFile &bltFile, BltId id) {
+	BltLoader(Boltlib &bltFile, BltId id) {
 		load(bltFile, id);
 	}
 
-	void load(BltFile &bltFile, BltId id) {
+	void load(Boltlib &bltFile, BltId id) {
 		BltResource res(bltFile.loadResource(id, T::kType));
 		// Reset _data to unloaded state
 		_data.~T();
@@ -163,7 +163,7 @@ class BltArrayLoader {
 	// Use array indexing [] to access.
 public:
 	BltArrayLoader() { }
-	BltArrayLoader(BltFile &bltFile, BltId id) {
+	BltArrayLoader(Boltlib &bltFile, BltId id) {
 		load(bltFile, id);
 	}
 
@@ -171,7 +171,7 @@ public:
 		return _array;
 	}
 
-	void load(BltFile &bltFile, BltId id) { // FIXME: expectedCount? Count is usually known in advance...
+	void load(Boltlib &bltFile, BltId id) { // FIXME: expectedCount? Count is usually known in advance...
 		BltResource res(bltFile.loadResource(id, T::kType));
 		uint numItems = res.size() / T::kSize;
 		_array.alloc(numItems);
@@ -194,7 +194,7 @@ private:
 struct Blt16BitValuesStruct { // type 3
 	static const uint32 kType = kBlt16BitValues;
 	static const uint kSize = 2;
-	void load(const byte *src, BltFile &bltFile) {
+	void load(const byte *src, Boltlib &bltFile) {
 		value = READ_BE_UINT16(src);
 	}
 
@@ -206,7 +206,7 @@ typedef BltArrayLoader<Blt16BitValuesStruct> Blt16BitValues;
 struct BltResourceListStruct { // type 6
 	static const uint32 kType = kBltResourceList;
 	static const uint kSize = 4;
-	void load(const byte *src, BltFile &bltFile) {
+	void load(const byte *src, Boltlib &bltFile) {
 		value = BltId(READ_BE_UINT32(&src[0]));
 	}
 

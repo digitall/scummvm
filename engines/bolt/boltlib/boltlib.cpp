@@ -20,7 +20,7 @@
  *
  */
 
-#include "bolt/blt_file.h"
+#include "bolt/boltlib/boltlib.h"
 
 namespace Bolt {
 
@@ -38,7 +38,7 @@ struct BltFileHeader {
 	uint32 fileSize;
 };
 
-BltFile::DirectoryEntry::DirectoryEntry(Common::File &file) {
+Boltlib::DirectoryEntry::DirectoryEntry(Common::File &file) {
 	numResources = file.readUint32BE();
 	compReadSize = file.readUint32BE();
 	offset = file.readUint32BE();
@@ -46,7 +46,7 @@ BltFile::DirectoryEntry::DirectoryEntry(Common::File &file) {
 	file.readUint32BE();
 }
 
-BltFile::ResourceEntry::ResourceEntry(Common::File &file) {
+Boltlib::ResourceEntry::ResourceEntry(Common::File &file) {
 	uint32 fullType = file.readUint32BE();
 	compression = fullType >> 24;
 	type = fullType & 0x00FFFFFFUL;
@@ -60,7 +60,7 @@ BltFile::ResourceEntry::ResourceEntry(Common::File &file) {
 // arranged in directories.
 // A resource is addressed by two bytes: <directory number> <resource number>.
 // For example, the resource 0x9D01 refers to resource 1 in directory 0x9D.
-bool BltFile::load(const Common::String &filename) {
+bool Boltlib::load(const Common::String &filename) {
 	if (!_file.open(filename)) {
 		warning("Failed to open %s", filename.c_str());
 		return false;
@@ -149,7 +149,7 @@ static void decompressBoltLZ(ScopedArray<byte> &dst,
 	}
 }
 
-BltResource::Movable BltFile::loadResource(BltId id, uint32 expectedType) {
+BltResource::Movable Boltlib::loadResource(BltId id, uint32 expectedType) {
 	if (!id.isValid()) {
 		return BltResource::Movable();
 	}
@@ -211,7 +211,7 @@ BltResource::Movable BltFile::loadResource(BltId id, uint32 expectedType) {
 	return resourceData.release();
 }
 
-void BltFile::ensureDirLoaded(byte dirNum) {
+void Boltlib::ensureDirLoaded(byte dirNum) {
 	Directory& dir = _dirs[dirNum];
 	if (dir.resEntries.empty()) {
 		// Seek to position of resource entries

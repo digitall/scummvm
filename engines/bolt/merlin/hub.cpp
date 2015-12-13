@@ -51,7 +51,7 @@ struct BltHubItem { // type 41
 	BltId imageId;
 };
 
-void HubCard::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
 	BltHub hubInfo(&BltResource(boltlib.loadResource(resId, kBltHub))[0]);
