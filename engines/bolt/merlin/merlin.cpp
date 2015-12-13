@@ -141,9 +141,7 @@ void MerlinEngine::startMenu(BltId id) {
 }
 
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
-	// FIXME: Do color cycles always reset when starting a movie?
-	// For that matter, do they pause when the right-click menu is opened?
-	_graphics.resetColorCycles();
+	// Color cycles do NOT stop when a movie starts.
 	_movie.stop();
 	_movie.load(&_graphics, _mixer, pfFile, name, _eventTime);
 	_movie.process(_eventTime);
