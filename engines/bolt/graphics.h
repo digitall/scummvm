@@ -109,7 +109,7 @@ private:
 	};
 
 	static const int kNumColorCycles = 4;
-	static const int kColorCycleMillis = 100;
+	static const int kColorCycleMillis = 200; // XXX: based on observation
 	ColorCycle _colorCycles[kNumColorCycles];
 	uint32 _curTime; // Time of current event
 	uint32 _colorCycleTime; // Time of last color modification due to cycling
