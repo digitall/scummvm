@@ -156,6 +156,9 @@ private:
 	int _queue4ScrollMult;
 	int _queue4ScrollType;
 
+	static const int kMaxColorCycles = 4;
+	int _numColorCycles;
+
 	// DRAWING
 
 	void drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y);
