@@ -99,6 +99,8 @@ void Movie::stop() {
 	_queue4Bg.reset();
 	_queue4CameraY = 0;
 	_queue4ScrollType = -1;
+
+	_numColorCycles = 0;
 }
 
 void Movie::stopAudio() {
@@ -230,12 +232,12 @@ void Movie::loadTimelineCmd() {
 
 namespace TimelineOpcodes {
 	enum {
-		kRenderQueue0 = 1, // param size: 0
-		kRenderQueue1 = 2, // param size: 0
-		kStartPaletteCycling = 0xC, // param size: 8
-		kStopPaletteCycling = 0xD, // param size: 0
+		kDrawQueue0 = 1, // param size: 0
+		kDrawQueue1 = 2, // param size: 0
+		kStartColorCycles = 0xC, // param size: 8
+		kStopColorCycles = 0xD, // param size: 0
 		kLoadQueue4 = 0xF, // param size: 0
-		kRenderQueue4 = 0x10, // param size: 0
+		kDrawQueue4 = 0x10, // param size: 0
 		kFade = 0x13, // param size: 4
 		kSetName = 0x7FFF, // param size: 4
 		kTriggerEvent1 = 0x8001, // param size: 0
@@ -245,12 +247,12 @@ namespace TimelineOpcodes {
 
 int Movie::getTimelineCmdParamSize(uint16 opcode) {
 	switch (opcode) {
-	case TimelineOpcodes::kRenderQueue0: return 0;
-	case TimelineOpcodes::kRenderQueue1: return 0;
-	case TimelineOpcodes::kStartPaletteCycling: return 8;
-	case TimelineOpcodes::kStopPaletteCycling: return 0;
+	case TimelineOpcodes::kDrawQueue0: return 0;
+	case TimelineOpcodes::kDrawQueue1: return 0;
+	case TimelineOpcodes::kStartColorCycles: return 8;
+	case TimelineOpcodes::kStopColorCycles: return 0;
 	case TimelineOpcodes::kLoadQueue4: return 0;
-	case TimelineOpcodes::kRenderQueue4: return 0;
+	case TimelineOpcodes::kDrawQueue4: return 0;
 	case TimelineOpcodes::kFade: return 4;
 	case TimelineOpcodes::kSetName: return 4;
 	case TimelineOpcodes::kTriggerEvent1: return 0;
@@ -265,35 +267,44 @@ void Movie::runTimelineCmd() {
 	TimelineCommand cmd(&_timeline[_timelineCursor]);
 
 	switch (cmd.opcode) {
-	case TimelineOpcodes::kRenderQueue0: // render queue 0 (param size: 0)
+	case TimelineOpcodes::kDrawQueue0: // render queue 0 (param size: 0)
 		_graphics->getBackPlane().clear(); // FIXME: Is it correct to clear back?
 		drawQueue0or1(_graphics->getForePlane(), ScopedBuffer(fetchVideoBuffer(0)), 0, 0);
 		break;
-	case TimelineOpcodes::kRenderQueue1: // render queue 1 (param size: 0)
+	case TimelineOpcodes::kDrawQueue1: // render queue 1 (param size: 0)
 		_graphics->getForePlane().clear(); // FIXME: Is it correct to clear fore?
 		drawQueue0or1(_graphics->getBackPlane(), ScopedBuffer(fetchVideoBuffer(1)), 0, 0);
 		break;
-	case TimelineOpcodes::kStartPaletteCycling: // start palette cycling (param size: 8)
+	case TimelineOpcodes::kStartColorCycles: // start palette cycling (param size: 8)
 	{
 		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
+		uint16 start = READ_BE_UINT16(&params[0]);
+		uint16 plane = READ_BE_UINT16(&params[2]); // ?? Always 1 in Merlin
+		uint16 num = READ_BE_UINT16(&params[4]);
+		int16 delay = READ_BE_INT16(&params[6]); // ?? Maybe delay? Negative for backwards?
 		debug(3, "start color cycles (%d, %d, %d, %d)",
-			(int)READ_BE_UINT16(&params[0]),
-			(int)READ_BE_UINT16(&params[2]),
-			(int)READ_BE_UINT16(&params[4]),
-			(int)READ_BE_UINT16(&params[6])
+			(int)start, (int)plane, (int)num, (int)delay
 			);
-		// XXX: let's just try it!
-		// sample params: (108, 1, 4, 116)
-		_graphics->setColorCycle(0, READ_BE_UINT16(&params[0]), READ_BE_UINT16(&params[4]));
+		if (plane != 1) {
+			warning("Color cycling plane not 1 in movie");
+		}
+		if (_numColorCycles < 0 || _numColorCycles >= kMaxColorCycles) {
+			warning("tried to start too many color cycles");
+		}
+		// TODO: use correct delay
+		_graphics->setColorCycle(_numColorCycles, start, num);
+		++_numColorCycles;
 		break;
 	}
-	case TimelineOpcodes::kStopPaletteCycling: // stop palette cycling (param size: 0)
+	case TimelineOpcodes::kStopColorCycles: // stop palette cycling (param size: 0)
+		debug(3, "stop color cycles");
 		_graphics->resetColorCycles();
+		_numColorCycles = 0;
 		break;
 	case TimelineOpcodes::kLoadQueue4: // load queue 4 (param size: 0)
 		loadQueue4(fetchVideoBuffer(4));
 		break;
-	case TimelineOpcodes::kRenderQueue4: // render queue 4 (param size: 0)
+	case TimelineOpcodes::kDrawQueue4: // render queue 4 (param size: 0)
 		if (!_queue4Buf) {
 			loadQueue4(fetchVideoBuffer(4));
 		}
@@ -307,15 +318,21 @@ void Movie::runTimelineCmd() {
 			if (_queue4Bg) {
 				updateScroll();
 			}
-			// Do NOT always draw background here. Only redraw background if it is
-			// changed or scrolled. (Required for win movies to work right)
+
+			// Do NOT redraw background here; it breaks win movies.
 
 			drawQueue4(_graphics->getForePlane(), _queue4Buf, queue4FrameNum);
 		}
 		break;
 	case TimelineOpcodes::kFade: // fade (param size: 4)
-		// TODO: Implement
+	{
+		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
+		uint16 param1 = READ_BE_UINT16(&params[0]);
+		int16 param2 = READ_BE_INT16(&params[2]);
+		debug(3, "fade (%d, %d)", (int)param1, (int)param2);
+		// TODO: implement
 		break;
+	}
 	case TimelineOpcodes::kSetName: // set name (param size: 4, movie name)
 		// Ignored
 		break;
