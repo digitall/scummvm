@@ -51,7 +51,6 @@ Movie::~Movie() {
 }
 
 void Movie::load(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime) {
-
 	debug(3, "loading movie %c%c%c%c ...",
 		(name >> 24) & 0xff, (name >> 16) & 0xff, (name >> 8) & 0xff, name & 0xff);
 
@@ -82,10 +81,8 @@ void Movie::load(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32
 }
 
 void Movie::stop() {
-
 	stopAudio();
 
-	// Teardown and reset playback state (TODO: Complete)
 	_parserActive = false;
 	_timelineActive = false;
 
@@ -199,7 +196,6 @@ struct TimelineHeader {
 };
 
 void Movie::loadTimeline(ScopedBuffer::Movable buf) {
-
 	_timeline.reset(buf);
 
 	TimelineHeader header(&_timeline[0]);
@@ -213,8 +209,7 @@ void Movie::loadTimeline(ScopedBuffer::Movable buf) {
 }
 
 struct TimelineCommand {
-
-	static const int SIZE = 5;
+	static const int kSize = 5;
 	TimelineCommand(const byte *src) {
 		delay = READ_BE_UINT16(&src[0]);
 		opcode = READ_BE_UINT16(&src[2]);
@@ -279,10 +274,21 @@ void Movie::runTimelineCmd() {
 		drawQueue0or1(_graphics->getBackPlane(), ScopedBuffer(fetchVideoBuffer(1)), 0, 0);
 		break;
 	case TimelineOpcodes::kStartPaletteCycling: // start palette cycling (param size: 8)
-		// TODO: Implement
+	{
+		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
+		debug(3, "start color cycles (%d, %d, %d, %d)",
+			(int)READ_BE_UINT16(&params[0]),
+			(int)READ_BE_UINT16(&params[2]),
+			(int)READ_BE_UINT16(&params[4]),
+			(int)READ_BE_UINT16(&params[6])
+			);
+		// XXX: let's just try it!
+		// sample params: (108, 1, 4, 116)
+		_graphics->setColorCycle(0, READ_BE_UINT16(&params[0]), READ_BE_UINT16(&params[4]));
 		break;
+	}
 	case TimelineOpcodes::kStopPaletteCycling: // stop palette cycling (param size: 0)
-		// TODO: Implement
+		_graphics->resetColorCycles();
 		break;
 	case TimelineOpcodes::kLoadQueue4: // load queue 4 (param size: 0)
 		loadQueue4(fetchVideoBuffer(4));
@@ -310,11 +316,11 @@ void Movie::runTimelineCmd() {
 	case TimelineOpcodes::kFade: // fade (param size: 4)
 		// TODO: Implement
 		break;
-	case TimelineOpcodes::kSetName: // set name (param size: 4)
+	case TimelineOpcodes::kSetName: // set name (param size: 4, movie name)
 		// Ignored
 		break;
 	case TimelineOpcodes::kTriggerEvent1: // trigger event (param size: 0, used in INTR)
-	case TimelineOpcodes::kTriggerEvent2: // trigger event (param size: 0, used to switch scene during potion movies)
+	case TimelineOpcodes::kTriggerEvent2: // trigger event (param size: 0, enters hub card in win movies)
 		if (_triggerCallback) {
 			_triggerCallback(_triggerCallbackParam, cmd.opcode);
 		}
@@ -338,7 +344,7 @@ void Movie::advanceTimeline() {
 
 		if (_timelineReps <= 0) {
 			// Advance to next timeline command
-			_timelineCursor += TimelineCommand::SIZE + getTimelineCmdParamSize(cmd.opcode);
+			_timelineCursor += TimelineCommand::kSize + getTimelineCmdParamSize(cmd.opcode);
 			++_curTimelineCmd;
 			if (_curTimelineCmd >= _numTimelineCmds) {
 				// TODO: Guarantee start of audio coincides with first frame of
@@ -382,8 +388,7 @@ void Movie::loadQueue4(ScopedBuffer::Movable buf) {
 }
 
 struct Queue4Command {
-
-	static const int SIZE = 4;
+	static const int kSize = 4;
 	Queue4Command(const byte *src) {
 		delay = src[0];
 		opcode = src[1];
@@ -407,14 +412,14 @@ namespace Queue4Opcodes {
 void Movie::runQueue4Control() {
 	assert(_queue4Buf);
 
-	// FIXME: It is fairly evident that queue4 commands are different between
-	// Crete and Merlin.
+	// FIXME: Queue 4 control commands are different between Merlin and Crete.
+	// Only Merlin commands are implemented.
 
 	bool done = false;
 	while (!done) {
 
 		Queue4Command cmd(&_queue4Buf[_queue4ControlCursor]);
-		int paramsOffset = _queue4ControlCursor + Queue4Command::SIZE;
+		int paramsOffset = _queue4ControlCursor + Queue4Command::kSize;
 
 		// Delay occurs BEFORE command
 		if ((_curFrameNum - _lastQueue4ControlFrameNum) >= cmd.delay) {
@@ -435,7 +440,7 @@ void Movie::runQueue4Control() {
 				// FIXME: is it correct to draw background here?
 				drawBackground();
 
-				_queue4ControlCursor += Queue4Command::SIZE + 4;
+				_queue4ControlCursor += Queue4Command::kSize + 4;
 				break;
 			}
 			case Queue4Opcodes::kLoadForePalette: // modify foreground (???) palette
@@ -447,7 +452,7 @@ void Movie::runQueue4Control() {
 				_graphics->getForePlane().setPalette(&_queue4Buf[paramsOffset + 2],
 					firstColor, numColors);
 
-				_queue4ControlCursor += Queue4Command::SIZE + 2 + numColors * 3;
+				_queue4ControlCursor += Queue4Command::kSize + 2 + numColors * 3;
 				break;
 			}
 			case Queue4Opcodes::kScroll: // start scroll
@@ -465,7 +470,7 @@ void Movie::runQueue4Control() {
 				debug(3, "scroll params: type %d, time %d, mult %d",
 					_queue4ScrollType, _queue4ScrollTime, _queue4ScrollMult);
 
-				_queue4ControlCursor += Queue4Command::SIZE + 4;
+				_queue4ControlCursor += Queue4Command::kSize + 4;
 				break;
 			case Queue4Opcodes::kStop: // stop? (found at end)
 				done = true;

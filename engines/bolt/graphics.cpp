@@ -411,7 +411,7 @@ void Graphics::setTime(uint32 time) {
 
 	// Handle color cycling
 	uint32 diff = _curTime - _colorCycleTime;
-	// FIXME: Use correct cycling speed
+	// FIXME: Cycling speed is probably configurable.
 	if (diff >= kColorCycleMillis) {
 		bool colorCyclesEnabled = false;
 		// Cycle!
@@ -420,8 +420,8 @@ void Graphics::setTime(uint32 time) {
 				colorCyclesEnabled = true;
 
 				byte colors[128 * 3];
-				// FIXME: Can the front plane have color cycles, or do
-				// color cycles exclusively affect the back plane palette?
+				// FIXME: Both planes may have color cycles.
+				// Front plane color cycles are used in the "bubbles" action puzzle.
 				_backPlane.grabPalette(colors, _colorCycles[i].start,
 					_colorCycles[i].num);
 
@@ -457,14 +457,14 @@ void Graphics::setColorCycle(int slot, uint16 start, uint16 num) {
 	if (start >= 0 && (start + num) <= 128) {
 		_colorCycles[slot].start = start;
 		_colorCycles[slot].num = num;
+
+		// Start cycling now
+		_colorCycleTime = _curTime;
 	}
 	else {
 		warning("Invalid color cycle start %d, num %d", (int)start, (int)num);
 		_colorCycles[slot].num = 0;
 	}
-
-	// Start cycling now
-	_colorCycleTime = _curTime;
 }
 
 void Graphics::markDirty() {
