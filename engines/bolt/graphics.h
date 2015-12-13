@@ -27,7 +27,7 @@
 #include "common/scummsys.h"
 
 #include "graphics/surface.h"
-#include "bolt/blt_file.h"
+#include "bolt/boltlib/boltlib.h"
 
 class OSystem;
 
@@ -123,7 +123,7 @@ public:
 		return _res;
 	}
 
-	void load(BltFile &bltFile, BltId id);
+	void load(Boltlib &bltFile, BltId id);
 
 	void draw(::Graphics::Surface &surface, bool transparency) const;
 	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
@@ -145,7 +145,7 @@ public:
 		return _res;
 	}
 
-	void load(BltFile &bltFile, BltId id);
+	void load(Boltlib &bltFile, BltId id);
 
 	enum Target {
 		kBack,

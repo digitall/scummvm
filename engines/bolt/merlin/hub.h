@@ -32,7 +32,7 @@ struct HubEntry;
 	
 class HubCard : public MenuCard {
 public:
-	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
+	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
 	void enter();
 protected:
 	Signal handleButtonClick(int num);

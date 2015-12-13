@@ -24,7 +24,7 @@
 
 namespace Bolt {
 
-void WordPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void WordPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList(boltlib, resId);
 	Blt16BitValues difficulties(boltlib, resourceList[0].value);
 	// There are three difficulties, choose one here

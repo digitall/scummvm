@@ -29,7 +29,7 @@ namespace Bolt {
 
 class MainMenu : public MenuCard {
 public:
-	void init(Graphics *graphics, BltFile &boltlib, BltId resId);
+	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
 protected:
 	Signal handleButtonClick(int num);
 };

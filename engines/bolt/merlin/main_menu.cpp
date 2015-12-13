@@ -29,7 +29,7 @@ namespace Bolt {
 struct BltMainMenuStruct {
 	static const uint32 kType = kBltMainMenu;
 	static const uint32 kSize = 0xC;
-	void load(const byte *src, BltFile &bltFile) {
+	void load(const byte *src, Boltlib &bltFile) {
 		sceneId = BltId(READ_BE_UINT32(&src[0]));
 		colorbarsImageId = BltId(READ_BE_UINT32(&src[4]));
 		colorbarsPaletteId = BltId(READ_BE_UINT32(&src[8]));
@@ -42,7 +42,7 @@ struct BltMainMenuStruct {
 
 typedef BltLoader<BltMainMenuStruct> BltMainMenu;
 
-void MainMenu::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void MainMenu::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltMainMenu mainMenu(boltlib, resId);
 	MenuCard::init(graphics, boltlib, mainMenu->sceneId);
 }

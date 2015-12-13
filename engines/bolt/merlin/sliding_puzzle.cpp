@@ -27,7 +27,7 @@ namespace Bolt {
 struct BltSlidingPuzzleStruct { // type 44
 	static const uint32 kType = kBltSlidingPuzzle;
 	static const uint kSize = 0xC;
-	void load(const byte *src, BltFile &bltFile) {
+	void load(const byte *src, Boltlib &bltFile) {
 		unk1 = READ_BE_UINT16(&src[0]);
 		difficulty1 = BltShortId(READ_BE_UINT16(&src[2]));
 		unk2 = READ_BE_UINT16(&src[4]);
@@ -46,7 +46,7 @@ struct BltSlidingPuzzleStruct { // type 44
 
 typedef BltLoader<BltSlidingPuzzleStruct> BltSlidingPuzzle;
 
-void SlidingPuzzle::init(Graphics *graphics, BltFile &boltlib, BltId resId) {
+void SlidingPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList(boltlib, resId);
 	BltSlidingPuzzle slidingPuzzleInfo(boltlib, resourceList[1].value);
 	// TODO: select proper difficulty based on player setting
