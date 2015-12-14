@@ -382,7 +382,6 @@ Graphics::Graphics()
 void Graphics::init(OSystem *system, uint32 time) {
 	_system = system;
 	_curTime = time;
-	_colorCycleTime = time;
 	_dirty = true;
 
 	initGraphics(kVgaScreenWidth, kVgaScreenHeight, false);
@@ -406,42 +405,58 @@ void Graphics::init(OSystem *system, uint32 time) {
 	_forePlane.setPalette(palette, 0, 128);
 }
 
+static void rotateColorsForward(byte *colors, int num) {
+	byte r = colors[3 * (num - 1) + 0];
+	byte g = colors[3 * (num - 1) + 1];
+	byte b = colors[3 * (num - 1) + 2];
+	memmove(&colors[3], &colors[0], 3 * (num - 1));
+	colors[0] = r;
+	colors[1] = g;
+	colors[2] = b;
+}
+
+static void rotateColorsBackward(byte *colors, int num) {
+	byte r = colors[0];
+	byte g = colors[1];
+	byte b = colors[2];
+	memmove(&colors[0], &colors[3], 3 * (num - 1));
+	colors[3 * (num - 1) + 0] = r;
+	colors[3 * (num - 1) + 1] = g;
+	colors[3 * (num - 1) + 2] = b;
+}
+
 void Graphics::setTime(uint32 time) {
 	_curTime = time;
 
-	// Handle color cycling
-	uint32 diff = _curTime - _colorCycleTime;
-	// FIXME: Cycling speed is probably configurable.
-	if (diff >= kColorCycleMillis) {
-		bool colorCyclesEnabled = false;
-		// Cycle!
-		for (int i = 0; i < kNumColorCycles; ++i) {
-			if (_colorCycles[i].num > 0) {
-				colorCyclesEnabled = true;
+	for (int i = 0; i < kNumColorCycles; ++i) {
+		if (_colorCycles[i].num > 0) {
+			int cycleDelay = _colorCycles[i].delay;
+			if (cycleDelay < 0) {
+				// Negative delay means cycle backwards
+				cycleDelay = -cycleDelay;
+			}
 
+			uint32 diff = _curTime - _colorCycles[i].curTime;
+			if (diff >= (uint32)cycleDelay) {
+				// Rotate colors
 				byte colors[128 * 3];
-				// FIXME: Both planes may have color cycles.
-				// Front plane color cycles are used in the "bubbles" action puzzle.
+				// FIXME: Both planes may have color cycles. Front plane color
+				// cycles are used in the "bubbles" action puzzle.
 				_backPlane.grabPalette(colors, _colorCycles[i].start,
 					_colorCycles[i].num);
 
-				// Rotate colors right by one
-				byte r = colors[3 * (_colorCycles[i].num - 1) + 0];
-				byte g = colors[3 * (_colorCycles[i].num - 1) + 1];
-				byte b = colors[3 * (_colorCycles[i].num - 1) + 2];
-				memmove(&colors[3], &colors[0], 3 * (_colorCycles[i].num - 1));
-				colors[0] = r;
-				colors[1] = g;
-				colors[2] = b;
+				if (_colorCycles[i].delay >= 0) {
+					rotateColorsForward(colors, _colorCycles[i].num);
+				}
+				else {
+					rotateColorsBackward(colors, _colorCycles[i].num);
+				}
 
 				_backPlane.setPalette(colors, _colorCycles[i].start, _colorCycles[i].num);
-			}
-		}
+				markDirty();
 
-		if (colorCyclesEnabled) {
-			// We only rotate once, that should be enough unless there are big delays
-			_colorCycleTime += kColorCycleMillis;
-			markDirty();
+				_colorCycles[i].curTime += cycleDelay;
+			}
 		}
 	}
 }
@@ -452,14 +467,14 @@ void Graphics::resetColorCycles() {
 	}
 }
 
-void Graphics::setColorCycle(int slot, uint16 start, uint16 num) {
+void Graphics::setColorCycle(int slot, uint16 start, uint16 num, int16 delay) {
 	assert(slot >= 0 && slot < kNumColorCycles);
 	if (start >= 0 && (start + num) <= 128) {
 		_colorCycles[slot].start = start;
 		_colorCycles[slot].num = num;
-
+		_colorCycles[slot].delay = delay;
 		// Start cycling now
-		_colorCycleTime = _curTime;
+		_colorCycles[slot].curTime = _curTime;
 	}
 	else {
 		warning("Invalid color cycle start %d, num %d", (int)start, (int)num);

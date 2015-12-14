@@ -100,7 +100,19 @@ void Scene::enter() {
 		for (int i = 0; i < 4; ++i) {
 			BltColorCycleSlot *slot = (*_colorCycles)->slots[i].get();
 			if ((*_colorCycles)->numSlots[i] == 1 && slot) {
-				_graphics->setColorCycle(i, (*slot)->start, (*slot)->end - (*slot)->start + 1);
+				if ((*slot)->frames <= 0) {
+					warning("Invalid color cycle frames");
+				}
+				else {
+					if ((*slot)->end < (*slot)->start) {
+						warning("color cycle end > start; backwards cycle? not supported.");
+					}
+					if ((*slot)->plane != 0) {
+						warning("Color cycle plane was not 0");
+					}
+					_graphics->setColorCycle(i, (*slot)->start, (*slot)->end - (*slot)->start + 1,
+						(*slot)->frames * 1000 / 60);
+				}
 			}
 		}
 	}
