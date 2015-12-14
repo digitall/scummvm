@@ -23,6 +23,7 @@
 #include "bolt/scene.h"
 
 #include "bolt/bolt.h"
+#include "bolt/boltlib/color_cycles.h"
 
 namespace Bolt {
 
@@ -95,24 +96,7 @@ void Scene::enter() {
 		_graphics->getForePlane().clear();
 	}
 
-	_graphics->resetColorCycles();
-	if (_colorCycles) {
-		for (int i = 0; i < 4; ++i) {
-			BltColorCycleSlot *slot = (*_colorCycles)->slots[i].get();
-			if ((*_colorCycles)->numSlots[i] == 1 && slot) {
-				if ((*slot)->frames <= 0) {
-					warning("Invalid color cycle frames");
-				}
-				else {
-					if ((*slot)->plane != 0) {
-						warning("Color cycle plane was not 0");
-					}
-					_graphics->setColorCycle(i, (*slot)->start, (*slot)->end,
-						(*slot)->frames * 1000 / 60);
-				}
-			}
-		}
-	}
+	applyColorCycles(_graphics, _colorCycles.get());
 
 	// Draw sprites
 	for (size_t i = 0; i < _sprites.size(); ++i) {

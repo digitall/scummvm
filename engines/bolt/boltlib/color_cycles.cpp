@@ -20,40 +20,31 @@
  *
  */
 
-#include "bolt/merlin/tangram_puzzle.h"
+#include "bolt/boltlib/color_cycles.h"
+
+#include "bolt/graphics.h"
 
 namespace Bolt {
 
-void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	_graphics = graphics;
-
-	BltResourceList resourceList;
-	resourceList.load(boltlib, resId);
-	BltId bgImageId = resourceList[2].value;
-	BltId paletteId = resourceList[3].value;
-	BltId colorCyclesId = resourceList[4].value;
-
-	_bgImage.load(boltlib, bgImageId);
-	_palette.load(boltlib, paletteId);
-	_colorCycles.load(boltlib, colorCyclesId);
-}
-
-void TangramPuzzle::enter() {
-	if (_palette) {
-		_palette.set(*_graphics, BltPalette::kBack);
+void applyColorCycles(Graphics *graphics, BltColorCycles *cycles) {
+	graphics->resetColorCycles();
+	if (cycles) {
+		for (int i = 0; i < 4; ++i) {
+			BltColorCycleSlot *slot = (*cycles)->slots[i].get();
+			if ((*cycles)->numSlots[i] == 1 && slot) {
+				if ((*slot)->frames <= 0) {
+					warning("Invalid color cycle frames");
+				}
+				else {
+					if ((*slot)->plane != 0) {
+						warning("Color cycle plane was not 0");
+					}
+					graphics->setColorCycle(i, (*slot)->start, (*slot)->end,
+						(*slot)->frames * 1000 / 60);
+				}
+			}
+		}
 	}
-	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
-	applyColorCycles(_graphics, &_colorCycles);
-	_graphics->markDirty();
-}
-
-Card::Signal TangramPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
-		// TODO: implement puzzle
-		return kWin;
-	}
-
-	return kNull;
 }
 
 } // End of namespace Bolt

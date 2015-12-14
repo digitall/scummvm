@@ -106,6 +106,7 @@ void MerlinEngine::resetSequence() {
 
 void MerlinEngine::advanceSequence() {
 	// Advance sequence until movie or card becomes active
+	_graphics.resetColorCycles(); // XXX: keeps cycles from sticking in wrong scenes; might break something?
 	do {
 		++_sequenceCursor;
 		if (_sequenceCursor >= kSequenceSize) {
@@ -122,7 +123,6 @@ void MerlinEngine::advanceSequence() {
 void MerlinEngine::enterSequenceEntry() {
 	_currentHub = nullptr;
 	_currentPuzzle = nullptr;
-	_graphics.resetColorCycles();
 	const Callback &callback = kSequence[_sequenceCursor];
 	CALL_MEMBER_FN(*this, callback.func)(callback.param);
 }

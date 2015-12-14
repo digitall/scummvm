@@ -25,6 +25,7 @@
 
 #include "bolt/bolt.h"
 #include "bolt/merlin/merlin.h"
+#include "bolt/boltlib/color_cycles.h"
 
 namespace Bolt {
 	
@@ -38,6 +39,7 @@ protected:
 	Graphics *_graphics;
 	BltImage _bgImage;
 	BltPalette _palette;
+	BltColorCycles _backColorCycles;
 };
 
 } // End of namespace Bolt

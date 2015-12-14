@@ -28,6 +28,7 @@
 
 #include "bolt/bolt.h"
 #include "bolt/boltlib/boltlib.h"
+#include "bolt/boltlib/color_cycles.h"
 
 namespace Bolt {
 
@@ -86,49 +87,6 @@ private:
 	typedef BltArrayLoader<BltSpriteStruct> BltSpriteList;
 
 	BltSpriteList _sprites;
-
-	struct BltColorCycleSlotStruct { // type 12
-		static const uint32 kType = kBltColorCycleSlot;
-		static const uint kSize = 6;
-		void load(const byte *src, Boltlib &boltlib) {
-			start = READ_BE_UINT16(&src[0]);
-			end = READ_BE_UINT16(&src[2]);
-			frames = src[4];
-			plane = src[5];
-		}
-
-		uint16 start;
-		uint16 end;
-		byte frames;
-		byte plane; // ???
-	};
-
-	typedef BltLoader<BltColorCycleSlotStruct> BltColorCycleSlot;
-
-	struct BltColorCyclesStruct { // type 11
-		static const uint32 kType = kBltColorCycles;
-		static const uint kSize = 0x18;
-		void load(const byte *src, Boltlib &boltlib) {
-			for (int i = 0; i < 4; ++i) {
-				numSlots[i] = READ_BE_UINT16(&src[i * 2]); // Should be 1 or 0.
-			}
-			for (int i = 0; i < 4; ++i) {
-				BltId slotId = BltId(READ_BE_UINT32(&src[8 + i * 4]));
-				if (slotId.isValid()) {
-					slots[i].reset(new BltColorCycleSlot);
-					slots[i]->load(boltlib, slotId);
-				}
-				else {
-					slots[i].reset();
-				}
-			}
-		}
-
-		uint16 numSlots[4];
-		Common::ScopedPtr<BltColorCycleSlot> slots[4];
-	};
-
-	typedef BltLoader<BltColorCyclesStruct> BltColorCycles;
 
 	Common::ScopedPtr<BltColorCycles> _colorCycles;
 

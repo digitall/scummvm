@@ -11,6 +11,7 @@ MODULE_OBJS := \
 	scene.o
 	labyrinth/labyrinth.o \
 	boltlib/boltlib.o \
+	boltlib/color_cycles.o \
 	merlin/action_puzzle.o \
 	merlin/color_puzzle.o \
 	merlin/hub.o \
