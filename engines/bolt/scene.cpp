@@ -104,13 +104,10 @@ void Scene::enter() {
 					warning("Invalid color cycle frames");
 				}
 				else {
-					if ((*slot)->end < (*slot)->start) {
-						warning("color cycle end > start; backwards cycle? not supported.");
-					}
 					if ((*slot)->plane != 0) {
 						warning("Color cycle plane was not 0");
 					}
-					_graphics->setColorCycle(i, (*slot)->start, (*slot)->end - (*slot)->start + 1,
+					_graphics->setColorCycle(i, (*slot)->start, (*slot)->end,
 						(*slot)->frames * 1000 / 60);
 				}
 			}

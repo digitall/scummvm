@@ -122,6 +122,7 @@ void MerlinEngine::advanceSequence() {
 void MerlinEngine::enterSequenceEntry() {
 	_currentHub = nullptr;
 	_currentPuzzle = nullptr;
+	_graphics.resetColorCycles();
 	const Callback &callback = kSequence[_sequenceCursor];
 	CALL_MEMBER_FN(*this, callback.func)(callback.param);
 }

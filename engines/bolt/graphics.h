@@ -88,7 +88,7 @@ public:
 	// TODO: better system for timing
 	void setTime(uint32 time);
 	void resetColorCycles();
-	void setColorCycle(int slot, uint16 start, uint16 numColors, int16 delay);
+	void setColorCycle(int slot, uint16 start, uint16 end, int delay);
 	void markDirty();
 	void presentIfDirty();
 
@@ -102,10 +102,10 @@ private:
 	Plane _forePlane;
 
 	struct ColorCycle {
-		ColorCycle() : start(0), num(0) { }
+		ColorCycle() : start(0), end(0), delay(0) { }
 		uint16 start;
-		uint16 num; // 0 means inactive
-		int16 delay; // Negative delay means cycle backwards
+		uint16 end;
+		int delay; // 0 means this cycle is inactive
 		uint32 curTime; // Time of last color rotation
 	};
 

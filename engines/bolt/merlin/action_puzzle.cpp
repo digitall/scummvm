@@ -24,12 +24,6 @@
 
 namespace Bolt {
 
-Card* ActionPuzzle::make(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	ActionPuzzle *card = new ActionPuzzle;
-	card->init(graphics, boltlib, resId);
-	return card;
-}
-
 void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
