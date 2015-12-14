@@ -93,12 +93,14 @@ private:
 		void load(const byte *src, Boltlib &boltlib) {
 			start = READ_BE_UINT16(&src[0]);
 			end = READ_BE_UINT16(&src[2]);
-			// FIXME: unknown value at offset 4
-			// delay? num colors?
+			frames = src[4];
+			plane = src[5];
 		}
 
 		uint16 start;
 		uint16 end;
+		byte frames;
+		byte plane; // ???
 	};
 
 	typedef BltLoader<BltColorCycleSlotStruct> BltColorCycleSlot;

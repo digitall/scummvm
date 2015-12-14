@@ -292,7 +292,7 @@ void Movie::runTimelineCmd() {
 			warning("tried to start too many color cycles");
 		}
 		// TODO: use correct delay
-		_graphics->setColorCycle(_numColorCycles, start, num);
+		_graphics->setColorCycle(_numColorCycles, start, num, delay);
 		++_numColorCycles;
 		break;
 	}
@@ -327,8 +327,8 @@ void Movie::runTimelineCmd() {
 	case TimelineOpcodes::kFade: // fade (param size: 4)
 	{
 		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
-		uint16 param1 = READ_BE_UINT16(&params[0]);
-		int16 param2 = READ_BE_INT16(&params[2]);
+		uint16 param1 = READ_BE_UINT16(&params[0]); // Duration in milliseconds (or frames?)
+		int16 param2 = READ_BE_INT16(&params[2]); // 1: fade in; -1: fade out
 		debug(3, "fade (%d, %d)", (int)param1, (int)param2);
 		// TODO: implement
 		break;

@@ -88,7 +88,7 @@ public:
 	// TODO: better system for timing
 	void setTime(uint32 time);
 	void resetColorCycles();
-	void setColorCycle(int slot, uint16 start, uint16 numColors);
+	void setColorCycle(int slot, uint16 start, uint16 numColors, int16 delay);
 	void markDirty();
 	void presentIfDirty();
 
@@ -104,15 +104,14 @@ private:
 	struct ColorCycle {
 		ColorCycle() : start(0), num(0) { }
 		uint16 start;
-		uint16 num;
-		// FIXME: it is not known whether color cycle delays are fixed or adjustable
+		uint16 num; // 0 means inactive
+		int16 delay; // Negative delay means cycle backwards
+		uint32 curTime; // Time of last color rotation
 	};
 
 	static const int kNumColorCycles = 4;
-	static const int kColorCycleMillis = 200; // XXX: based on observation
 	ColorCycle _colorCycles[kNumColorCycles];
 	uint32 _curTime; // Time of current event
-	uint32 _colorCycleTime; // Time of last color modification due to cycling
 
 	bool _dirty;
 };
