@@ -281,7 +281,7 @@ void Movie::runTimelineCmd() {
 		uint16 start = READ_BE_UINT16(&params[0]);
 		uint16 plane = READ_BE_UINT16(&params[2]); // ?? Always 1 in Merlin
 		uint16 num = READ_BE_UINT16(&params[4]);
-		int16 delay = READ_BE_INT16(&params[6]); // ?? Maybe delay? Negative for backwards?
+		int16 delay = READ_BE_INT16(&params[6]); // Negative delay means cycle backwards
 		debug(3, "start color cycles (%d, %d, %d, %d)",
 			(int)start, (int)plane, (int)num, (int)delay
 			);
@@ -291,8 +291,14 @@ void Movie::runTimelineCmd() {
 		if (_numColorCycles < 0 || _numColorCycles >= kMaxColorCycles) {
 			warning("tried to start too many color cycles");
 		}
-		// TODO: use correct delay
-		_graphics->setColorCycle(_numColorCycles, start, num, delay);
+		if (delay < 0) {
+			// Cycle backwards
+			_graphics->setColorCycle(_numColorCycles, start + num - 1, start, -delay);
+		}
+		else {
+			// Cycle forwards
+			_graphics->setColorCycle(_numColorCycles, start, start + num - 1, delay);
+		}
 		++_numColorCycles;
 		break;
 	}
