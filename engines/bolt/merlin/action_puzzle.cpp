@@ -33,6 +33,11 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 
 	_bgImage.load(boltlib, bgImageId);
 	_palette.load(boltlib, paletteId);
+
+	Blt16BitValues difficultiesList(boltlib, resourceList[0].value);
+	// TODO: select difficulty based on player selection
+	BltResourceList difficulty(boltlib, BltShortId(difficultiesList[0].value));
+	_backColorCycles.load(boltlib, difficulty[2].value);
 }
 
 void ActionPuzzle::enter() {
@@ -40,6 +45,7 @@ void ActionPuzzle::enter() {
 		_palette.set(*_graphics, BltPalette::kBack);
 	}
 	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+	applyColorCycles(_graphics, &_backColorCycles);
 	_graphics->markDirty();
 }
 

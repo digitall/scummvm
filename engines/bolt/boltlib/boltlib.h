@@ -50,9 +50,9 @@ enum BltType {
 };
 
 struct BltShortId {
-	static const uint16 INVALID_VALUE = 0xFFFF;
+	static const uint16 kInvalid = 0xFFFF;
 
-	BltShortId() : value(INVALID_VALUE) { }
+	BltShortId() : value(kInvalid) { }
 	explicit BltShortId(uint16 v) : value(v) { }
 
 	// ID is made of two 8-bit parts: <directory number> <resource number>.
@@ -60,12 +60,12 @@ struct BltShortId {
 };
 
 struct BltId {
-	static const uint32 INVALID_VALUE = 0xFFFFFFFFUL;
+	static const uint32 kInvalid = 0xFFFFFFFFUL;
 
-	BltId() : value(INVALID_VALUE) { }
+	BltId() : value(kInvalid) { }
 	BltId(BltShortId shortId) : value(shortId.value << 16) { }
 	explicit BltId(uint32 v) : value(v) { }
-	bool isValid() const { return value != INVALID_VALUE; }
+	bool isValid() const { return value != kInvalid; }
 
 	// ID is made of two 16-bit parts: <short id> <offset>.
 	// offset should always be zero.

@@ -24,6 +24,7 @@
 #define BOLT_MERLIN_TANGRAM_PUZZLE_H
 
 #include "bolt/merlin/merlin.h"
+#include "bolt/boltlib/color_cycles.h"
 
 namespace Bolt {
 	
@@ -37,6 +38,7 @@ private:
 	Graphics *_graphics;
 	BltImage _bgImage;
 	BltPalette _palette;
+	BltColorCycles _colorCycles;
 };
 
 } // End of namespace Bolt
