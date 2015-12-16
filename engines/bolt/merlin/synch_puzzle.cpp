@@ -29,7 +29,7 @@ void SynchPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, resourceList[4].value);
 }
 
-void SynchPuzzle::enter() {
+void SynchPuzzle::enter(uint32 time) {
 	_scene.enter();
 }
 

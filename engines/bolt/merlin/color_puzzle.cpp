@@ -29,7 +29,7 @@ void ColorPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, resourceList[3].value);
 }
 
-void ColorPuzzle::enter() {
+void ColorPuzzle::enter(uint32 time) {
 	_scene.enter();
 }
 

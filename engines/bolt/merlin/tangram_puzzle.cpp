@@ -38,12 +38,13 @@ void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_colorCycles.load(boltlib, colorCyclesId);
 }
 
-void TangramPuzzle::enter() {
+void TangramPuzzle::enter(uint32 time) {
 	if (_palette) {
 		_palette.set(*_graphics, BltPalette::kBack);
 	}
 	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
 	applyColorCycles(_graphics, &_colorCycles);
+
 	_graphics->markDirty();
 }
 

@@ -32,7 +32,7 @@ void MemoryPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, sceneId);
 }
 
-void MemoryPuzzle::enter() {
+void MemoryPuzzle::enter(uint32 time) {
 	_scene.enter();
 }
 

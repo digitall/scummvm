@@ -55,7 +55,7 @@ void SlidingPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, difficultyInfo[1].value);
 }
 
-void SlidingPuzzle::enter() {
+void SlidingPuzzle::enter(uint32 time) {
 	_scene.enter();
 }
 

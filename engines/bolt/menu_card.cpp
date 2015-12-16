@@ -34,7 +34,7 @@ void MenuCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, resId);
 }
 
-void MenuCard::enter() {
+void MenuCard::enter(uint32 time) {
 	_scene.enter();
 }
 
