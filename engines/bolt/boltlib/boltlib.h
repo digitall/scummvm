@@ -31,8 +31,8 @@
 namespace Bolt {
 
 enum BltType {
-	kBltPoints = 2,
-	kBlt16BitValues = 3,
+	kBltS16Values = 2, // signed 16-bit values
+	kBltU16Values = 3, // unsigned 16-bit values
 	kBltResourceList = 6,
 	kBltImage = 8,
 	kBltPalette = 10,
@@ -194,22 +194,20 @@ private:
 	ScopedArray<T> _array;
 };
 
-struct BltPointsStruct { // type 2
-	// FIXME: This isn't really points! for example, resource 4E16 has size 202 which is not a multiple of 4.
-	static const uint32 kType = kBltPoints;
-	static const uint kSize = 4;
+struct BltS16ValuesStruct { // type 2
+	static const uint32 kType = kBltS16Values;
+	static const uint kSize = 2;
 	void load(const byte *src, Boltlib &boltlib) {
-		value.x = READ_BE_INT16(&src[0]);
-		value.y = READ_BE_INT16(&src[2]);
+		value = READ_BE_INT16(&src[0]);
 	}
 
-	Common::Point value;
+	int16 value;
 };
 
-typedef BltArrayLoader<BltPointsStruct> BltPoints;
+typedef BltArrayLoader<BltS16ValuesStruct> BltS16Values;
 
-struct Blt16BitValuesStruct { // type 3
-	static const uint32 kType = kBlt16BitValues;
+struct BltU16ValuesStruct { // type 3
+	static const uint32 kType = kBltU16Values;
 	static const uint kSize = 2;
 	void load(const byte *src, Boltlib &bltFile) {
 		value = READ_BE_UINT16(src);
@@ -218,7 +216,7 @@ struct Blt16BitValuesStruct { // type 3
 	uint16 value;
 };
 
-typedef BltArrayLoader<Blt16BitValuesStruct> Blt16BitValues;
+typedef BltArrayLoader<BltU16ValuesStruct> BltU16Values;
 
 struct BltResourceListStruct { // type 6
 	static const uint32 kType = kBltResourceList;

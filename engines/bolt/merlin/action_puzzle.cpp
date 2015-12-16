@@ -59,13 +59,15 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_bgImage.load(boltlib, bgImageId);
 	_backPalette.load(boltlib, backPaletteId);
 
-	Blt16BitValues difficultiesList(boltlib, difficultiesId);
+	BltU16Values difficultiesList(boltlib, difficultiesId);
 	// TODO: select difficulty based on player option
 	BltResourceList difficulty(boltlib, BltShortId(difficultiesList[0].value));
 	BltId forePaletteId = difficulty[1].value;
 	BltId backColorCyclesId = difficulty[2].value;
 	BltId foreColorCyclesId = difficulty[3].value;
 	BltId pathListId = difficulty[4].value;
+	BltId goalsId = difficulty[5].value;
+	BltId goalImagesListId = difficulty[6].value;
 
 	_forePalette.load(boltlib, forePaletteId);
 	_backColorCycles.load(boltlib, backColorCyclesId);
@@ -74,13 +76,41 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltResourceList pathList(boltlib, pathListId);
 	_paths.alloc(pathList.size());
 	for (uint i = 0; i < pathList.size(); ++i) {
-		_paths[i].load(boltlib, pathList[i].value);
+		BltS16Values pathValues(boltlib, pathList[i].value);
+		int16 numPoints = pathValues[0].value;
+		if (numPoints != (int)(pathValues.size() - 1) / 2) {
+			warning("Invalid particle path, specified wrong number of points");
+		}
+		else {
+			_paths[i].alloc(numPoints);
+			for (int16 j = 0; j < numPoints; ++j) {
+				_paths[i][j].x = pathValues[1 + 2 * j].value;
+				_paths[i][j].y = pathValues[1 + 2 * j + 1].value;
+			}
+		}
+	}
+
+	BltS16Values goalsValues(boltlib, goalsId);
+	_goals.alloc(goalsValues.size() / 2);
+	for (uint i = 0; i < _goals.size(); ++i) {
+		_goals[i].x = goalsValues[2 * i].value;
+		_goals[i].y = goalsValues[2 * i + 1].value;
+	}
+
+	BltResourceList goalImagesList(boltlib, goalImagesListId);
+	_goalImages.alloc(goalImagesList.size());
+	for (uint i = 0; i < goalImagesList.size(); ++i) {
+		_goalImages[i].load(boltlib, goalImagesList[i].value);
 	}
 }
 
 void ActionPuzzle::enter(uint32 time) {
 	_curTime = time;
 	_tickNum = 0;
+	// TODO: Load progress from save data
+	// (check original to see if action puzzles are saved)
+	// (and what happens when you change difficulty mid-puzzle?)
+	_goalNum = 0;
 
 	if (_backPalette) {
 		_backPalette.set(*_graphics, BltPalette::kBack);
@@ -91,7 +121,7 @@ void ActionPuzzle::enter(uint32 time) {
 	}
 	// TODO: fore color cycles
 
-	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+	drawBack();
 
 	// XXX: spawn particles on all paths
 	for (uint i = 0; i < _paths.size(); ++i) {
@@ -106,6 +136,9 @@ void ActionPuzzle::enter(uint32 time) {
 Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		// TODO: implement puzzle
+		// Reset to plain background upon winning
+		_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+		_graphics->getForePlane().clear();
 		return kWin;
 	}
 	else if (event.type == BoltEvent::Tick) {
@@ -123,19 +156,32 @@ void ActionPuzzle::spawnParticle(int imageNum, int pathNum) {
 	Particle particle;
 	particle.imageNum = imageNum;
 	particle.pathNum = pathNum;
-	particle.progress = 0; // FIXME: path point 0 is special
+	particle.progress = 1; // FIXME: path point 0 is special
 	// FIXME: particles often don't start and end at the right place
 	_particles.push_back(particle);
+}
+
+void ActionPuzzle::drawBack() {
+	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+	for (uint i = 0; i < _goals.size(); ++i) {
+		if (i < _goalNum) {
+			const Common::Point &pt = _goals[i];
+			// TODO: there may be multiple levels of goals
+			// (player has to complete one set and then the next)
+			_goalImages[0].drawAt(_graphics->getBackPlane().getSurface(), pt.x, pt.y, true);
+		}
+	}
 }
 
 void ActionPuzzle::drawFore() {
 	_graphics->getForePlane().clear();
 	for (ParticleList::const_iterator it = _particles.begin(); it != _particles.end(); ++it) {
 		const Particle &p = *it;
-		Common::Point point = _paths[p.pathNum][p.progress].value;
-		point += _paths[p.pathNum][0].value;
-		_particleImages[p.imageNum].drawAt(_graphics->getForePlane().getSurface(),
-			point.x, point.y, true);
+		if (_paths[p.pathNum]) {
+			Common::Point point = _paths[p.pathNum][p.progress];
+			_particleImages[p.imageNum].drawAt(_graphics->getForePlane().getSurface(),
+				point.x, point.y, true);
+		}
 	}
 }
 
@@ -160,6 +206,16 @@ void ActionPuzzle::tick() {
 	if (_tickNum % kNewParticleTicks == 0) {
 		spawnParticle(_random.getRandomNumber(_particleImages.size()-1),
 			_random.getRandomNumber(_paths.size()-1));
+	}
+
+	// Award new goal every 100 ticks
+	// TODO: implement game
+	static const int kGoalTicks = 100;
+	if (_tickNum % kGoalTicks == 0) {
+		if (_goalNum < _goals.size()) {
+			++_goalNum;
+			drawBack();
+		}
 	}
 
 	drawFore();

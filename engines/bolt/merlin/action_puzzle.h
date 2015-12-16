@@ -45,7 +45,10 @@ protected:
 	BltColorCycles _backColorCycles;
 	BltColorCycles _foreColorCycles;
 	ScopedArray<BltImage> _particleImages;
-	ScopedArray<BltPoints> _paths;
+	typedef ScopedArray<Common::Point> PointArray;
+	ScopedArray<PointArray> _paths;
+	PointArray _goals;
+	ScopedArray<BltImage> _goalImages;
 
 	uint32 _curTime;
 
@@ -59,12 +62,14 @@ protected:
 	ParticleList _particles;
 
 	void spawnParticle(int imageNum, int pathNum);
+	void drawBack();
 	void drawFore();
 	void tick();
 
 	static const int kTickPeriod = 50;
 	Common::RandomSource _random;
 	uint _tickNum;
+	uint _goalNum;
 };
 
 } // End of namespace Bolt
