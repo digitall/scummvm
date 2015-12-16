@@ -31,7 +31,7 @@ namespace Bolt {
 class TangramPuzzle : public Card {
 public:
 	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
-	void enter();
+	void enter(uint32 time);
 	Signal handleEvent(const BoltEvent &event);
 
 private:

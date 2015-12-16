@@ -32,7 +32,7 @@ void WordPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, difficulty[19].value);
 }
 
-void WordPuzzle::enter() {
+void WordPuzzle::enter(uint32 time) {
 	_scene.enter();
 }
 

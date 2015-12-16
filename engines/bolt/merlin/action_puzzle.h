@@ -26,20 +26,45 @@
 #include "bolt/bolt.h"
 #include "bolt/merlin/merlin.h"
 #include "bolt/boltlib/color_cycles.h"
+#include "bolt/boltlib/boltlib.h"
+#include "common/random.h"
 
 namespace Bolt {
 	
 class ActionPuzzle : public Card {
 public:
-	static Card* make(Graphics *graphics, Boltlib &boltlib, BltId resId);
+	ActionPuzzle();
 	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
-	void enter();
+	void enter(uint32 time);
 	Signal handleEvent(const BoltEvent &event);
 protected:
 	Graphics *_graphics;
 	BltImage _bgImage;
-	BltPalette _palette;
+	BltPalette _backPalette;
+	BltPalette _forePalette;
 	BltColorCycles _backColorCycles;
+	BltColorCycles _foreColorCycles;
+	ScopedArray<BltImage> _particleImages;
+	ScopedArray<BltPoints> _paths;
+
+	uint32 _curTime;
+
+	struct Particle {
+		int imageNum;
+		int pathNum;
+		int progress;
+	};
+
+	typedef Common::List<Particle> ParticleList;
+	ParticleList _particles;
+
+	void spawnParticle(int imageNum, int pathNum);
+	void drawFore();
+	void tick();
+
+	static const int kTickPeriod = 50;
+	Common::RandomSource _random;
+	uint _tickNum;
 };
 
 } // End of namespace Bolt

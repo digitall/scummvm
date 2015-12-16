@@ -24,12 +24,14 @@
 #define BOLT_BOLTLIB_BOLTLIB_H
 
 #include "common/file.h"
+#include "common/rect.h"
 
 #include "bolt/util.h"
 
 namespace Bolt {
 
 enum BltType {
+	kBltPoints = 2,
 	kBlt16BitValues = 3,
 	kBltResourceList = 6,
 	kBltImage = 8,
@@ -47,6 +49,7 @@ enum BltType {
 	kBltHub = 40,
 	kBltHubItem = 41,
 	kBltSlidingPuzzle = 44,
+	kBltParticles = 46, // in action puzzles
 };
 
 struct BltShortId {
@@ -190,6 +193,20 @@ public:
 private:
 	ScopedArray<T> _array;
 };
+
+struct BltPointsStruct { // type 2
+	// FIXME: This isn't really points! for example, resource 4E16 has size 202 which is not a multiple of 4.
+	static const uint32 kType = kBltPoints;
+	static const uint kSize = 4;
+	void load(const byte *src, Boltlib &boltlib) {
+		value.x = READ_BE_INT16(&src[0]);
+		value.y = READ_BE_INT16(&src[2]);
+	}
+
+	Common::Point value;
+};
+
+typedef BltArrayLoader<BltPointsStruct> BltPoints;
 
 struct Blt16BitValuesStruct { // type 3
 	static const uint32 kType = kBlt16BitValues;

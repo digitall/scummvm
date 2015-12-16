@@ -68,8 +68,8 @@ void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	}
 }
 
-void HubCard::enter() {
-	MenuCard::enter();
+void HubCard::enter(uint32 time) {
+	MenuCard::enter(time);
 
 	// Draw item images to back plane
 	// FIXME: Only draw items that are unlocked.

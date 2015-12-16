@@ -36,7 +36,7 @@ class BoltEngine;
 
 class MenuCard : public Card {
 public:
-	virtual void enter();
+	virtual void enter(uint32 time);
 	virtual Signal handleEvent(const BoltEvent &event);
 
 protected:

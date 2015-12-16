@@ -104,7 +104,7 @@ public:
 	};
 
 	virtual ~Card() { }
-	virtual void enter() = 0;
+	virtual void enter(uint32 time) = 0;
 	virtual Signal handleEvent(const BoltEvent &event) = 0;
 };
 

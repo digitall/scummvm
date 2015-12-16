@@ -243,7 +243,7 @@ void MerlinEngine::setCurrentCard(Card *card) {
 void MerlinEngine::enterCurrentCard(bool cursorActive) {
 	assert(_currentCard);
 	_graphics.resetColorCycles();
-	_currentCard->enter();
+	_currentCard->enter(_eventTime);
 	if (cursorActive) {
 		BoltEvent hoverEvent;
 		hoverEvent.type = BoltEvent::Hover;
