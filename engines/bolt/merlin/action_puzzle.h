@@ -25,7 +25,7 @@
 
 #include "bolt/bolt.h"
 #include "bolt/merlin/merlin.h"
-#include "bolt/boltlib/color_cycles.h"
+#include "bolt/boltlib/palette.h"
 #include "bolt/boltlib/boltlib.h"
 #include "common/random.h"
 

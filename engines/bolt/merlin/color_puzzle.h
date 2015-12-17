@@ -38,7 +38,20 @@ protected:
 	Signal handleButtonClick(int num);
 
 private:
+	static const int kNumPieces = 4; // XXX: this value probably comes from game data somewhere
+
+	Graphics *_graphics;
 	Scene _scene;
+
+	struct Piece {
+		int numStates;
+		BltPaletteMods paletteMods;
+		int state;
+	};
+	
+	Piece _pieces[kNumPieces];
+
+	void setPieceState(int piece, int state);
 };
 
 } // End of namespace Bolt

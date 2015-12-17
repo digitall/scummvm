@@ -28,7 +28,7 @@
 
 #include "bolt/bolt.h"
 #include "bolt/boltlib/boltlib.h"
-#include "bolt/boltlib/color_cycles.h"
+#include "bolt/boltlib/palette.h"
 
 namespace Bolt {
 
@@ -92,19 +92,6 @@ private:
 
 	Bolt::Plane& getGraphicsPlane(uint16 num);
 
-	struct BltButtonPaletteMod { // type 29
-		void load(const byte *src, Boltlib &bltFile) {
-			start = src[0];
-			num = src[1];
-			BltId colorsId(READ_BE_UINT32(&src[2]));
-			colors.reset(bltFile.loadResource(colorsId, kBltButtonColors));
-		}
-
-		byte start;
-		byte num;
-		BltResource colors;
-	};
-
 	struct BltButtonGraphicsStruct { // type 30
 		static const uint32 kType = kBltButtonGraphicsList;
 		static const uint kSize = 0xC;
@@ -113,29 +100,27 @@ private:
 			Sprites = 2,
 		};
 
-		void load(const byte *src, Boltlib &bltFile) {
+		void load(const byte *src, Boltlib &boltlib) {
 			type = READ_BE_UINT16(&src[0]);
 			// FIXME: unknown field at 2. It is used in the buttons on sliding
 			// and points to an image.
 			BltId hoveredId(READ_BE_UINT32(&src[6]));
 			BltId idleId(READ_BE_UINT32(&src[0xA]));
 			if (type == PaletteMods) {
-				hoveredPaletteMod.load(&BltResource(bltFile.loadResource(
-					hoveredId, kBltButtonPaletteMod))[0], bltFile);
-				idlePaletteMod.load(&BltResource(bltFile.loadResource(
-					idleId, kBltButtonPaletteMod))[0], bltFile);
+				hoveredPaletteMod.load(boltlib, hoveredId);
+				idlePaletteMod.load(boltlib, idleId);
 			}
 			else if (type == Sprites) {
-				hoveredSprites.load(bltFile, hoveredId);
-				idleSprites.load(bltFile, idleId);
+				hoveredSprites.load(boltlib, hoveredId);
+				idleSprites.load(boltlib, idleId);
 			}
 		}
 
 		uint16 type;
 
 		// For palette mod type graphics
-		BltButtonPaletteMod hoveredPaletteMod;
-		BltButtonPaletteMod idlePaletteMod;
+		BltPaletteMods hoveredPaletteMod;
+		BltPaletteMods idlePaletteMod;
 
 		// For image type graphics
 		BltSpriteList hoveredSprites;
