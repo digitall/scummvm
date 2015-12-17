@@ -27,6 +27,24 @@ namespace Bolt {
 ActionPuzzle::ActionPuzzle() : _random("ActionPuzzleRandomSource")
 { }
 
+struct BltParticleDeathsStruct { // type 45
+	static const uint32 kType = kBltParticleDeaths;
+	static const uint kSize = 0x12;
+	void load(const byte *src, Boltlib &boltlib) {
+		numImages[0] = READ_BE_UINT16(&src[0]);
+		imagesListId[0] = BltId(READ_BE_UINT32(&src[2]));
+		numImages[1] = READ_BE_UINT16(&src[6]);
+		imagesListId[1] = BltId(READ_BE_UINT32(&src[8]));
+		numImages[2] = READ_BE_UINT16(&src[0xC]);
+		imagesListId[2] = BltId(READ_BE_UINT32(&src[0xE]));
+	}
+
+	uint16 numImages[3];
+	BltId imagesListId[3];
+};
+
+typedef BltLoader<BltParticleDeathsStruct> BltParticleDeaths;
+
 struct BltParticlesStruct { // type 46
 	static const uint32 kType = kBltParticles;
 	static const uint kSize = 2;
@@ -68,6 +86,7 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltId pathListId = difficulty[4].value;
 	BltId goalsId = difficulty[5].value;
 	BltId goalImagesListId = difficulty[6].value;
+	BltId particleDeathsId = difficulty[8].value;
 
 	_forePalette.load(boltlib, forePaletteId);
 	_backColorCycles.load(boltlib, backColorCyclesId);
@@ -102,6 +121,15 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	for (uint i = 0; i < goalImagesList.size(); ++i) {
 		_goalImages[i].load(boltlib, goalImagesList[i].value);
 	}
+
+	BltParticleDeaths particleDeaths(boltlib, particleDeathsId);
+	for (int i = 0; i < kNumDeathSequences; ++i) {
+		_deathSequences[i].alloc(particleDeaths->numImages[i]);
+		BltResourceList imageList(boltlib, particleDeaths->imagesListId[i]);
+		for (int j = 0; j < particleDeaths->numImages[i]; ++j) {
+			_deathSequences[i][j].load(boltlib, imageList[j].value);
+		}
+	}
 }
 
 void ActionPuzzle::enter(uint32 time) {
@@ -135,11 +163,7 @@ void ActionPuzzle::enter(uint32 time) {
 
 Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
-		// TODO: implement puzzle
-		// Reset to plain background upon winning
-		_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
-		_graphics->getForePlane().clear();
-		return kWin;
+		return handleClick(event.point);
 	}
 	else if (event.type == BoltEvent::Tick) {
 		uint32 diff = event.time - _curTime;
@@ -147,17 +171,60 @@ Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 			_curTime += kTickPeriod;
 			tick();
 		}
+
+		if (_goalNum >= _goals.size()) {
+			// Reset background before starting win movie
+			_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+			_graphics->getForePlane().clear();
+			return kWin;
+		}
 	}
 
 	return kNull;
+}
+
+const BltImage& ActionPuzzle::getParticleImage(const Particle &particle) {
+	if (particle.deathNum > 0) {
+		const ImageArray &deathSequence = _deathSequences[particle.deathNum - 1];
+		return deathSequence[particle.deathProgress];
+	}
+	else {
+		return _particleImages[particle.imageNum];
+	}
+}
+
+Common::Point ActionPuzzle::getParticlePos(const Particle &particle) {
+	return _paths[particle.pathNum][particle.progress];
+}
+
+Card::Signal ActionPuzzle::handleClick(const Common::Point &pt) {
+	for (ParticleList::iterator it = _particles.begin(); it != _particles.end(); ++it) {
+		if (isParticleAtPoint(*it, pt)) {
+			// Kill particle
+			it->deathNum = _random.getRandomNumberRng(1, 3);
+		}
+	}
+
+	return kNull;
+}
+
+bool ActionPuzzle::isParticleAtPoint(const Particle &particle, const Common::Point &pt) {
+	// Only consider particles that are not dying
+	if (particle.deathNum == 0) {
+		Common::Rect rect = getParticleImage(particle).getRect(getParticlePos(particle));
+		return rect.contains(pt);
+	}
+
+	return false;
 }
 
 void ActionPuzzle::spawnParticle(int imageNum, int pathNum) {
 	Particle particle;
 	particle.imageNum = imageNum;
 	particle.pathNum = pathNum;
-	particle.progress = 1; // FIXME: path point 0 is special
-	// FIXME: particles often don't start and end at the right place
+	particle.deathNum = 0;
+	particle.deathProgress = 0;
+	particle.progress = 0;
 	_particles.push_back(particle);
 }
 
@@ -166,7 +233,7 @@ void ActionPuzzle::drawBack() {
 	for (uint i = 0; i < _goals.size(); ++i) {
 		if (i < _goalNum) {
 			const Common::Point &pt = _goals[i];
-			// TODO: there may be multiple levels of goals
+			// TODO: there may be multiple sets of goals
 			// (player has to complete one set and then the next)
 			_goalImages[0].drawAt(_graphics->getBackPlane().getSurface(), pt.x, pt.y, true);
 		}
@@ -175,13 +242,13 @@ void ActionPuzzle::drawBack() {
 
 void ActionPuzzle::drawFore() {
 	_graphics->getForePlane().clear();
+
 	for (ParticleList::const_iterator it = _particles.begin(); it != _particles.end(); ++it) {
 		const Particle &p = *it;
-		if (_paths[p.pathNum]) {
-			Common::Point point = _paths[p.pathNum][p.progress];
-			_particleImages[p.imageNum].drawAt(_graphics->getForePlane().getSurface(),
-				point.x, point.y, true);
-		}
+		const BltImage &image = getParticleImage(p);
+		Common::Point pt = getParticlePos(p);
+		// FIXME: positions of particles in death sequence are wrong
+		image.drawAt(_graphics->getForePlane().getSurface(), pt.x, pt.y, true);
 	}
 }
 
@@ -192,8 +259,17 @@ void ActionPuzzle::tick() {
 		Particle &p = *it;
 		++p.progress;
 
-		if ((uint)p.progress >= _paths[p.pathNum].size()) {
-			// Despawn
+		if (p.deathNum > 0) {
+			++p.deathProgress;
+		}
+
+		bool despawn = (uint)p.progress >= _paths[p.pathNum].size();
+		if (p.deathNum > 0) {
+			const ImageArray &deathSequence = _deathSequences[p.deathNum - 1];
+			despawn |= (uint)p.deathProgress >= deathSequence.size();
+		}
+
+		if (despawn) {
 			it = _particles.erase(it);
 		}
 		else {
