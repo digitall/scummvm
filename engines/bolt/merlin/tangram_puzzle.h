@@ -24,7 +24,7 @@
 #define BOLT_MERLIN_TANGRAM_PUZZLE_H
 
 #include "bolt/merlin/merlin.h"
-#include "bolt/boltlib/color_cycles.h"
+#include "bolt/boltlib/palette.h"
 
 namespace Bolt {
 	

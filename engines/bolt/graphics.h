@@ -139,23 +139,6 @@ private:
 	BltResource _res;
 };
 
-class BltPalette { // type 10
-public:
-	operator bool() const {
-		return _res;
-	}
-
-	void load(Boltlib &bltFile, BltId id);
-
-	enum Target {
-		kBack,
-		kFore,
-	};
-	void set(Graphics &graphics, Target target) const;
-private:
-	BltResource _res;
-};
-
 } // End of namespace Bolt
 
 #endif

@@ -31,6 +31,7 @@
 namespace Bolt {
 
 enum BltType {
+	kBltU8Values = 1,
 	kBltS16Values = 2, // signed 16-bit values
 	kBltU16Values = 3, // unsigned 16-bit values
 	kBltResourceList = 6,
@@ -40,8 +41,8 @@ enum BltType {
 	kBltColorCycleSlot = 12,
 	kBltPlane = 26, // image, palette, hotspots
 	kBltSpriteList = 27, // image, x, y
-	kBltButtonColors = 28, // just some colors, used by palette mod
-	kBltButtonPaletteMod = 29,
+	kBltColors = 28, // just some colors, referenced by palette mods
+	kBltPaletteMods = 29,
 	kBltButtonGraphicsList = 30,
 	kBltButtonList = 31,
 	kBltScene = 32,
@@ -131,18 +132,18 @@ class BltLoader {
 	// Use arrow operator -> to access.
 public:
 	BltLoader() { }
-	BltLoader(Boltlib &bltFile, BltId id) {
-		load(bltFile, id);
+	BltLoader(Boltlib &boltlib, BltId id) {
+		load(boltlib, id);
 	}
 
-	void load(Boltlib &bltFile, BltId id) {
-		BltResource res(bltFile.loadResource(id, T::kType));
+	void load(Boltlib &boltlib, BltId id) {
+		BltResource res(boltlib.loadResource(id, T::kType));
 		// Reset _data to unloaded state
 		_data.~T();
 		new(&_data) T();
 		if (res) {
 			assert(res.size() == T::kSize);
-			_data.load(&res[0], bltFile);
+			_data.load(&res[0], boltlib);
 		}
 	}
 
@@ -167,20 +168,20 @@ class BltArrayLoader {
 	// Use array indexing [] to access.
 public:
 	BltArrayLoader() { }
-	BltArrayLoader(Boltlib &bltFile, BltId id) {
-		load(bltFile, id);
+	BltArrayLoader(Boltlib &boltlib, BltId id) {
+		load(boltlib, id);
 	}
 
 	operator bool() const {
 		return _array;
 	}
 
-	void load(Boltlib &bltFile, BltId id) { // FIXME: expectedCount? Count is usually known in advance...
-		BltResource res(bltFile.loadResource(id, T::kType));
+	void load(Boltlib &boltlib, BltId id) { // FIXME: expectedCount? Count is usually known in advance...
+		BltResource res(boltlib.loadResource(id, T::kType));
 		uint numItems = res.size() / T::kSize;
 		_array.alloc(numItems);
 		for (uint i = 0; i < numItems; ++i) {
-			_array[i].load(&res[i * T::kSize], bltFile);
+			_array[i].load(&res[i * T::kSize], boltlib);
 		}
 	}
 
@@ -194,6 +195,18 @@ public:
 private:
 	ScopedArray<T> _array;
 };
+
+struct BltU8ValuesStruct { // type 1
+	static const uint32 kType = kBltU8Values;
+	static const uint kSize = 1;
+	void load(const byte *src, Boltlib &boltlib) {
+		value = src[0];
+	}
+
+	byte value;
+};
+
+typedef BltArrayLoader<BltU8ValuesStruct> BltU8Values;
 
 struct BltS16ValuesStruct { // type 2
 	static const uint32 kType = kBltS16Values;

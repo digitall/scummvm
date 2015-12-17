@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef BOLT_BOLTLIB_COLOR_CYCLES_H
-#define BOLT_BOLTLIB_COLOR_CYCLES_H
+#ifndef BOLT_BOLTLIB_PALETTE_H
+#define BOLT_BOLTLIB_PALETTE_H
 
 #include "bolt/boltlib/boltlib.h"
 #include "common/ptr.h"
@@ -73,7 +73,38 @@ struct BltColorCyclesStruct { // type 11
 
 typedef BltLoader<BltColorCyclesStruct> BltColorCycles;
 
-void applyColorCycles(Graphics *graphics, BltColorCycles *cycles);
+void applyColorCycles(Graphics *graphics, const BltColorCycles *cycles);
+
+struct BltPalette { // type 10
+	void load(Boltlib &boltlib, BltId id);
+	BltResource data;
+};
+
+enum PaletteTarget {
+	kBack,
+	kFore,
+};
+
+void applyPalette(Graphics *graphics, const BltPalette &palette, PaletteTarget target);
+
+struct BltPaletteModsStruct { // type 29
+	static const uint32 kType = kBltPaletteMods;
+	static const uint kSize = 6;
+	void load(const byte *src, Boltlib &bltFile) {
+		start = src[0];
+		num = src[1];
+		BltId colorsId(READ_BE_UINT32(&src[2]));
+		colors.reset(bltFile.loadResource(colorsId, kBltColors));
+	}
+
+	byte start;
+	byte num;
+	BltResource colors;
+};
+
+typedef BltArrayLoader<BltPaletteModsStruct> BltPaletteMods;
+
+void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int num, PaletteTarget target);
 
 } // End of namespace Bolt
 

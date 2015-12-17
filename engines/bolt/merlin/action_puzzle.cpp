@@ -140,13 +140,9 @@ void ActionPuzzle::enter(uint32 time) {
 	// (and what happens when you change difficulty mid-puzzle?)
 	_goalNum = 0;
 
-	if (_backPalette) {
-		_backPalette.set(*_graphics, BltPalette::kBack);
-	}
+	applyPalette(_graphics, _backPalette, kBack);
 	applyColorCycles(_graphics, &_backColorCycles);
-	if (_forePalette) {
-		_forePalette.set(*_graphics, BltPalette::kFore);
-	}
+	applyPalette(_graphics, _forePalette, kFore);
 	// TODO: fore color cycles
 
 	drawBack();

@@ -23,7 +23,7 @@
 #include "bolt/scene.h"
 
 #include "bolt/bolt.h"
-#include "bolt/boltlib/color_cycles.h"
+#include "bolt/boltlib/palette.h"
 
 namespace Bolt {
 
@@ -72,10 +72,7 @@ void Scene::load(Graphics *graphics, Boltlib &boltlib, BltId sceneId)
 
 void Scene::enter() {
 
-	// Draw back plane
-	if (_backPlane->palette) {
-		_backPlane->palette.set(*_graphics, BltPalette::kBack);
-	}
+	applyPalette(_graphics, _backPlane->palette, kBack);
 	if (_backPlane->image) {
 		::Graphics::Surface surface = _graphics->getBackPlane().getSurface();
 		_backPlane->image.drawAt(surface, 0, 0, false);
@@ -84,10 +81,7 @@ void Scene::enter() {
 		_graphics->getBackPlane().clear();
 	}
 
-	// Draw fore plane
-	if (_forePlane->palette) {
-		_forePlane->palette.set(*_graphics, BltPalette::kFore);
-	}
+	applyPalette(_graphics, _forePlane->palette, kFore);
 	if (_forePlane->image) {
 		::Graphics::Surface surface = _graphics->getForePlane().getSurface();
 		_forePlane->image.drawAt(surface, 0, 0, false);
@@ -160,10 +154,8 @@ void Scene::drawButton(const BltButtonStruct &button, bool hovered) {
 	if (button.graphics) {
 		const BltButtonGraphicsStruct &buttonGfx = button.graphics[0]; // TODO: support states other than 0
 		if (buttonGfx.type == BltButtonGraphicsStruct::PaletteMods) {
-			const BltButtonPaletteMod &paletteMod = hovered ? buttonGfx.hoveredPaletteMod : buttonGfx.idlePaletteMod;
-			if (paletteMod.colors) {
-				getGraphicsPlane(button.plane).setPalette(&paletteMod.colors[0], paletteMod.start, paletteMod.num);
-			}
+			const BltPaletteMods &paletteMod = hovered ? buttonGfx.hoveredPaletteMod : buttonGfx.idlePaletteMod;
+			applyPaletteMod(_graphics, paletteMod, 0, button.plane ? kBack : kFore);
 		}
 		else if (buttonGfx.type == BltButtonGraphicsStruct::Sprites) {
 			::Graphics::Surface surface = getGraphicsPlane(button.plane).getSurface();
