@@ -48,19 +48,29 @@ protected:
 	typedef ScopedArray<Common::Point> PointArray;
 	ScopedArray<PointArray> _paths;
 	PointArray _goals;
-	ScopedArray<BltImage> _goalImages;
+
+	typedef ScopedArray<BltImage> ImageArray;
+	ImageArray _goalImages;
+	static const int kNumDeathSequences = 3;
+	ImageArray _deathSequences[kNumDeathSequences];
 
 	uint32 _curTime;
 
 	struct Particle {
 		int imageNum;
 		int pathNum;
+		int deathNum; // 0: not dying; 1+: in death sequence
+		int deathProgress;
 		int progress;
 	};
 
 	typedef Common::List<Particle> ParticleList;
 	ParticleList _particles;
 
+	const BltImage& getParticleImage(const Particle &particle);
+	Common::Point getParticlePos(const Particle &particle);
+	Signal handleClick(const Common::Point &pt);
+	bool isParticleAtPoint(const Particle &particle, const Common::Point &pt);
 	void spawnParticle(int imageNum, int pathNum);
 	void drawBack();
 	void drawFore();

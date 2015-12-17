@@ -49,7 +49,8 @@ enum BltType {
 	kBltHub = 40,
 	kBltHubItem = 41,
 	kBltSlidingPuzzle = 44,
-	kBltParticles = 46, // in action puzzles
+	kBltParticleDeaths = 45, // action puzzles
+	kBltParticles = 46, // action puzzles
 };
 
 struct BltShortId {

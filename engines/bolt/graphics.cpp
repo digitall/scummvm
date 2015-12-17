@@ -584,6 +584,14 @@ byte BltImage::query(int x, int y) const {
 		queryCLUT7(x, y, src, srcLen, header.width, header.height);
 }
 
+Common::Rect BltImage::getRect(const Common::Point &pos) const {
+	BltImageHeader header(&_res[0]);
+	Common::Rect result(0, 0, header.width, header.height);
+	result.translate(header.offset.x, header.offset.y);
+	result.translate(pos.x, pos.y);
+	return result;
+}
+
 uint16 BltImage::getWidth() const {
 	BltImageHeader header(&_res[0]);
 	return header.width;

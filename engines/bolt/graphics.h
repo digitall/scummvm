@@ -128,6 +128,7 @@ public:
 	void drawAt(::Graphics::Surface &surface, int x, int y, bool transparency) const;
 	byte query(int x, int y) const;
 
+	Common::Rect getRect(const Common::Point &pos = Common::Point(0, 0)) const;
 	uint16 getWidth() const;
 	uint16 getHeight() const;
 	Common::Point getOffset() const;
