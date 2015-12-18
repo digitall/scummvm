@@ -107,6 +107,7 @@ void MerlinEngine::resetSequence() {
 void MerlinEngine::advanceSequence() {
 	// Advance sequence until movie or card becomes active
 	_graphics.resetColorCycles(); // XXX: keeps cycles from sticking in wrong scenes; might break something?
+	_graphics.setFade(1);
 	do {
 		++_sequenceCursor;
 		if (_sequenceCursor >= kSequenceSize) {
@@ -171,6 +172,7 @@ void MerlinEngine::handleEventInMovie(const BoltEvent &event) {
 	}
 
 	if (!_movie.isRunning()) {
+		_graphics.setFade(1);
 		// When movie stops, enter current card
 		if (_currentCard) {
 			enterCurrentCard(true);

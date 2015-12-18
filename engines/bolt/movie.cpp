@@ -101,6 +101,8 @@ void Movie::stop() {
 	_queue4ScrollType = -1;
 
 	_numColorCycles = 0;
+
+	_fadeDirection = 0;
 }
 
 void Movie::stopAudio() {
@@ -130,6 +132,7 @@ bool Movie::isRunning() const {
 bool Movie::process(uint32 curTime) {
 
 	fillAudioQueue();
+	tickFade(curTime);
 
 	if (_timelineActive) {
 		uint32 timeDelta = curTime - _curFrameTimeMs;
@@ -333,10 +336,10 @@ void Movie::runTimelineCmd() {
 	case TimelineOpcodes::kFade: // fade (param size: 4)
 	{
 		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
-		uint16 param1 = READ_BE_UINT16(&params[0]); // Duration in milliseconds (or frames?)
-		int16 param2 = READ_BE_INT16(&params[2]); // 1: fade in; -1: fade out
-		debug(3, "fade (%d, %d)", (int)param1, (int)param2);
-		// TODO: implement
+		uint16 duration = READ_BE_UINT16(&params[0]); // Duration in milliseconds (or frames?)
+		int16 direction = READ_BE_INT16(&params[2]); // 1: fade in; -1: fade out
+		debug(3, "fade (%d, %d)", (int)duration, (int)direction);
+		startFade(duration, direction);
 		break;
 	}
 	case TimelineOpcodes::kSetName: // set name (param size: 4, movie name)
@@ -718,6 +721,49 @@ Movie::ScopedBuffer::Movable Movie::fetchVideoBuffer(uint16 queueNum) {
 	}
 
 	return _videoQueues[queueNum].pop();
+}
+
+void Movie::startFade(uint16 duration, int16 direction) {
+	_fadeStartTime = _curFrameTimeMs;
+	_fadeDuration = duration;
+	if (direction == 1 || direction == -1) {
+		_fadeDirection = direction;
+	}
+	else {
+		warning("Invalid fade direction %d", (int)direction);
+		_fadeDirection = 0;
+	}
+}
+
+void Movie::tickFade(uint32 curTime) {
+	if (_fadeDirection == 1) {
+		// Fade in
+		uint32 fadeProgress = curTime - _fadeStartTime;
+		if (fadeProgress >= _fadeDuration) {
+			_graphics->setFade(1);
+			_fadeDirection = 0;
+		}
+		else {
+			_graphics->setFade(Common::Rational(fadeProgress, _fadeDuration));
+		}
+	}
+	else if (_fadeDirection == -1) {
+		// Fade out
+		uint32 fadeProgress = curTime - _fadeStartTime;
+		if (fadeProgress >= _fadeDuration) {
+			_graphics->setFade(0);
+			_fadeDirection = 0;
+		}
+		else {
+			_graphics->setFade(Common::Rational(_fadeDuration - fadeProgress, _fadeDuration));
+		}
+	}
+	else if (_fadeDirection == 0) {
+		// Do nothing
+	}
+	else {
+		assert(false); // Unreachable; fade direction must be -1, 0, or 1.
+	}
 }
 
 struct Queue01ImageHeader {

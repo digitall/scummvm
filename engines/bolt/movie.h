@@ -159,6 +159,12 @@ private:
 	static const int kMaxColorCycles = 4;
 	int _numColorCycles;
 
+	uint32 _fadeStartTime;
+	uint16 _fadeDuration;
+	int16 _fadeDirection;
+	void startFade(uint16 duration, int16 direction);
+	void tickFade(uint32 curTime);
+
 	// DRAWING
 
 	void drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y);
