@@ -25,6 +25,7 @@
 
 #include "common/rect.h"
 #include "common/scummsys.h"
+#include "common/rational.h"
 
 #include "graphics/surface.h"
 #include "bolt/boltlib/boltlib.h"
@@ -89,10 +90,17 @@ public:
 	void setTime(uint32 time);
 	void resetColorCycles();
 	void setColorCycle(int slot, uint16 start, uint16 end, int delay);
+	void setFade(Common::Rational fade);
 	void markDirty();
 	void presentIfDirty();
 
 private:
+	byte _vgaPalette[256 * 3];
+	void grabVgaPalette(byte *colors, uint start, uint num);
+	void setVgaPalette(const byte *colors, uint start, uint num);
+
+	void commitVgaPalette(uint start, uint num);
+
 	OSystem *_system;
 
 	static const byte kBackColorBase = 0;
@@ -112,6 +120,8 @@ private:
 	static const int kNumColorCycles = 4;
 	ColorCycle _colorCycles[kNumColorCycles];
 	uint32 _curTime; // Time of current event
+
+	Common::Rational _fade;
 
 	bool _dirty;
 };

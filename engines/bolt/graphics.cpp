@@ -361,8 +361,7 @@ void Plane::grabPalette(byte *colors, uint start, uint num) {
 	assert(num <= 128);
 	assert(start + num <= 128);
 
-	_graphics->_system->getPaletteManager()->grabPalette(colors,
-		_colorBase + start, num);
+	_graphics->grabVgaPalette(colors, _colorBase + start, num);
 }
 
 void Plane::setPalette(const byte *colors, uint start, uint num) {
@@ -370,8 +369,7 @@ void Plane::setPalette(const byte *colors, uint start, uint num) {
 	assert(num <= 128);
 	assert(start + num <= 128);
 
-	_graphics->_system->getPaletteManager()->setPalette(colors,
-		_colorBase + start, num);
+	_graphics->setVgaPalette(colors, _colorBase + start, num);
 }
 
 Graphics::Graphics()
@@ -382,6 +380,7 @@ Graphics::Graphics()
 void Graphics::init(OSystem *system, uint32 time) {
 	_system = system;
 	_curTime = time;
+	_fade = Common::Rational(1);
 	_dirty = true;
 
 	initGraphics(kVgaScreenWidth, kVgaScreenHeight, false);
@@ -488,6 +487,12 @@ void Graphics::setColorCycle(int slot, uint16 start, uint16 end, int delay) {
 	}
 }
 
+void Graphics::setFade(Common::Rational fade) {
+	_fade = fade;
+	commitVgaPalette(0, 256);
+	markDirty();
+}
+
 void Graphics::markDirty() {
 	_dirty = true;
 }
@@ -517,6 +522,42 @@ void Graphics::presentIfDirty() {
 		_system->updateScreen();
 
 		_dirty = false;
+	}
+}
+
+void Graphics::grabVgaPalette(byte *colors, uint start, uint num) {
+	assert(start < 256);
+	assert(num <= 256);
+	assert(start + num <= 256);
+
+	memcpy(colors, &_vgaPalette[3 * start], 3 * num);
+}
+
+void Graphics::setVgaPalette(const byte *colors, uint start, uint num) {
+	assert(start < 256);
+	assert(num <= 256);
+	assert(start + num <= 256);
+
+	memcpy(&_vgaPalette[3 * start], colors, 3 * num);
+	commitVgaPalette(start, num);
+}
+
+void Graphics::commitVgaPalette(uint start, uint num) {
+	assert(start < 256);
+	assert(num <= 256);
+	assert(start + num <= 256);
+
+	if (_fade >= 1) {
+		_system->getPaletteManager()->setPalette(&_vgaPalette[3 * start], start, num);
+	}
+	else {
+		byte faded[256 * 3];
+		for (uint i = 0; i < num; ++i) {
+			faded[3 * i + 0] = (_vgaPalette[3 * (start + i) + 0] * _fade).toInt();
+			faded[3 * i + 1] = (_vgaPalette[3 * (start + i) + 1] * _fade).toInt();
+			faded[3 * i + 2] = (_vgaPalette[3 * (start + i) + 2] * _fade).toInt();
+		}
+		_system->getPaletteManager()->setPalette(faded, start, num);
 	}
 }
 
