@@ -50,12 +50,12 @@ public:
 	~Movie();
 
 	// TODO: Find a better way of communicating time to Movie and other classes
-	void load(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime);
+	void start(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime);
 	void stop();
 
 	bool isRunning() const;
-	// Returns true if movie is running, false if movie is finished.
-	bool process(uint32 curTime);
+	// Returns true if movie is running, false if movie finished.
+	bool drive(uint32 curTime);
 
 	typedef void (*TriggerCallback)(void *param, uint16 triggerType);
 	void setTriggerCallback(TriggerCallback callback, void *param);
@@ -71,22 +71,14 @@ private:
 	typedef ScopedArray<byte> ScopedBuffer;
 	typedef ScopedArrayQueue<byte> ScopedBufferQueue;
 
-	void fillAudioQueue();
-	void ensureAudioStarted();
-
 	bool _parserActive; // Set to false when final packet is found
 	bool _timelineActive; // Set to false when timeline is finished
-
-	Audio::QueuingAudioStream *_audioStream;
-	bool _audioStarted;
-	Audio::SoundHandle _audioHandle;
 
 	// PACKET STREAMING
 
 	void readNextPacket();
 
-	ScopedBuffer::Movable fetchTimelineBuffer();
-	ScopedBuffer::Movable fetchVideoBuffer(uint16 queueNum);
+	ScopedBuffer::Movable fetchBuffer(ScopedBufferQueue &queue);
 
 	void enqueueVideoBuffer(ScopedBuffer::Movable buf);
 
@@ -108,67 +100,91 @@ private:
 	BufferAssembler _auxVideoBufAssembler;
 
 	ScopedBufferQueue _timelineQueue;
-	ScopedBufferQueue _videoQueues[5];
+	static const int kNumVideoQueues = 5;
+	ScopedBufferQueue _videoQueues[kNumVideoQueues];
+
+	// AUDIO
+
+	void loadAudio();
+	void driveAudio();
+	void playAudio();
+
+	void fillAudioQueue();
+
+	Audio::QueuingAudioStream *_audioStream;
+	Audio::SoundHandle _audioHandle;
+	bool _audioStarted;
 
 	// TIMELINE
 
-	void loadTimeline(ScopedBuffer::Movable buf);
-	void loadTimelineCmd(); // load from _timelineCursor
-	void advanceTimeline();
-	int getTimelineCmdParamSize(uint16 opcode);
-	void runTimelineCmd(); // at _timelineCursor
+	void startTimeline(ScopedBuffer::Movable buf, uint32 curTime);
+	void driveTimeline(uint32 curTime);
 
-	uint32 _curFrameTimeMs; // Time of currently-displayed frame in milliseconds
-	int _curFrameNum; // Number of currently-displayed frame
+	void stepTimeline();
+	int getTimelineCmdParamSize(uint16 opcode);
+	void loadTimelineCommand(); // From _timelineCursor
+	void runTimelineCommand(); // From _timelineCursor
 
 	ScopedBuffer _timeline;
-	uint16 _numTimelineCmds;
+	uint32 _curFrameTime; // Time of current frame in milliseconds
+	int _curFrameNum; // Number of currently-displayed frame
+	int _curTimelineCmdNum;
 	uint16 _framePeriod; // In milliseconds
-	int _lastTimelineCmdFrameNum;
-	uint16 _curTimelineCmd;
+	uint16 _numTimelineCmds;
+	int _lastTimelineCmdFrame;
 	int _timelineCursor;
 	byte _timelineReps;
 
 	TriggerCallback _triggerCallback;
 	void *_triggerCallbackParam;
 
-	// QUEUE 4 VIDEO SEQUENCES
-
-	void loadQueue4(ScopedBuffer::Movable buf);
-	void runQueue4Control();
-	void drawBackground();
-	void updateScroll();
-
-	ScopedBuffer _queue4Buf;
-	ScopedBuffer _queue4Bg; // Background image
-	int _queue4StartFrameNum;
-	int _lastQueue4ControlFrameNum;
-	int _queue4ControlCursor; // Offset within queue 4 buffer of control data
-
-	int _queue4CameraX;
-	int _queue4CameraY;
-
-	int _queue4ScrollStartFrameNum;
-	int _queue4ScrollOriginalX;
-	int _queue4ScrollOriginalY;
-	int _queue4ScrollProgress;
-	int _queue4ScrollTime;
-	int _queue4ScrollMult;
-	int _queue4ScrollType;
-
 	static const int kMaxColorCycles = 4;
 	int _numColorCycles;
+
+	// QUEUE 4 CEL SEQUENCES
+
+	void loadCels(ScopedBuffer::Movable buf);
+	void stepCels();
+
+	void stepCelCommands();
+	void drawCelBackground();
+	void drawCel(Plane &plane, const ScopedBuffer &src, uint16 frameNum);
+
+	ScopedBuffer _cels;
+	ScopedBuffer _celsBackground;
+	int _celsFrame;
+	int _celsLastControlFrame;
+	int _celControlCursor;
+	int _celCurCameraX;
+	int _celCurCameraY;
+	int _celNextCameraX;
+	int _celNextCameraY;
+
+	// SCROLLING
+
+	void startScroll(int duration, int speed, int type);
+	void advanceScroll();
+
+	int _celScrollDuration; // in steps
+	int _celScrollSpeed;
+	int _celScrollType; // -1 means no scrolling
+	int _celScrollProgress;
+	int _celScrollStartCameraX;
+	int _celScrollStartCameraY;
+
+	// FADING
+
+	void startFade(uint16 duration, int16 direction);
+	void driveFade(uint32 curTime);
 
 	uint32 _fadeStartTime;
 	uint16 _fadeDuration;
 	int16 _fadeDirection;
-	void startFade(uint16 duration, int16 direction);
-	void tickFade(uint32 curTime);
 
 	// DRAWING
 
+	void applyQueue0or1Palette(Plane &plane, const ScopedBuffer &src);
 	void drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y);
-	void drawQueue4(Plane &plane, const ScopedBuffer &src, uint16 frameNum);
 };
 
 } // End of namespace Bolt

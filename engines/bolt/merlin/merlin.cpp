@@ -145,8 +145,7 @@ void MerlinEngine::startMenu(BltId id) {
 void MerlinEngine::startMovie(PfFile &pfFile, uint32 name) {
 	// Color cycles do NOT stop when a movie starts.
 	_movie.stop();
-	_movie.load(&_graphics, _mixer, pfFile, name, _eventTime);
-	_movie.process(_eventTime);
+	_movie.start(&_graphics, _mixer, pfFile, name, _eventTime);
 }
 
 void MerlinEngine::movieTrigger(void *param, uint16 triggerType) {
@@ -168,7 +167,7 @@ void MerlinEngine::handleEventInMovie(const BoltEvent &event) {
 		_movie.stop();
 	}
 	else {
-		_movie.process(event.time);
+		_movie.drive(event.time);
 	}
 
 	if (!_movie.isRunning()) {
