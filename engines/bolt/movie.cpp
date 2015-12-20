@@ -50,7 +50,7 @@ Movie::~Movie() {
 	stopAudio();
 }
 
-void Movie::load(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime) {
+void Movie::start(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime) {
 	debug(3, "loading movie %c%c%c%c ...",
 		(name >> 24) & 0xff, (name >> 16) & 0xff, (name >> 8) & 0xff, name & 0xff);
 
@@ -64,20 +64,10 @@ void Movie::load(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32
 	_parserActive = true;
 	_timelineActive = true;
 
-	// FIXME: Use a timer that pauses when game is inactive
-	_curFrameTimeMs = curTime;
-	_curFrameNum = 0;
+	loadAudio();
 
-	// Load timeline (it should be the first packet)
-	loadTimeline(fetchTimelineBuffer());
-
-	if (!_audioStream) {
-		_audioStream = Audio::makeQueuingAudioStream(22050, false);
-		// Audio will play when first frame is presented.
-	}
-	fillAudioQueue();
-
-	advanceTimeline();
+	// Timeline should be the first packet
+	startTimeline(fetchBuffer(_timelineQueue), curTime);
 }
 
 void Movie::stop() {
@@ -95,10 +85,13 @@ void Movie::stop() {
 	for (int i = 0; i < 5; ++i) {
 		_videoQueues[i].clear();
 	}
-	_queue4Buf.reset();
-	_queue4Bg.reset();
-	_queue4CameraY = 0;
-	_queue4ScrollType = -1;
+	_cels.reset();
+	_celsBackground.reset();
+	_celCurCameraX = 0;
+	_celNextCameraX = 0;
+	_celCurCameraY = 0;
+	_celNextCameraY = 0;
+	_celScrollType = -1;
 
 	_numColorCycles = 0;
 
@@ -129,19 +122,10 @@ bool Movie::isRunning() const {
 	return _graphics && (_timelineActive || isAudioRunning());
 }
 
-bool Movie::process(uint32 curTime) {
-
-	fillAudioQueue();
-	tickFade(curTime);
-
-	if (_timelineActive) {
-		uint32 timeDelta = curTime - _curFrameTimeMs;
-		if (timeDelta >= _framePeriod) {
-			_curFrameTimeMs += _framePeriod;
-			++_curFrameNum;
-			advanceTimeline();
-		}
-	}
+bool Movie::drive(uint32 curTime) {
+	driveAudio();
+	driveFade(curTime);
+	driveTimeline(curTime);
 
 	return isRunning();
 }
@@ -149,6 +133,28 @@ bool Movie::process(uint32 curTime) {
 void Movie::setTriggerCallback(TriggerCallback callback, void *param) {
 	_triggerCallback = callback;
 	_triggerCallbackParam = param;
+}
+
+void Movie::loadAudio() {
+	if (!_audioStream) {
+		_audioStream = Audio::makeQueuingAudioStream(22050, false);
+		fillAudioQueue();
+	}
+}
+
+void Movie::driveAudio() {
+	fillAudioQueue();
+}
+
+void Movie::playAudio() {
+	if (!_audioStarted) {
+		// PF audio is premixed; speech and music volumes cannot be controlled
+		// independently.
+		// TODO: Make start of audio coincide exactly with the first frame of video.
+		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioHandle,
+			_audioStream);
+		_audioStarted = true;
+	}
 }
 
 void Movie::fillAudioQueue() {
@@ -161,34 +167,6 @@ void Movie::fillAudioQueue() {
 	}
 }
 
-void Movie::ensureAudioStarted() {
-	if (_audioStream && !_audioStarted) {
-		// PF audio is premixed; speech and music volumes cannot be controlled
-		// independently.
-		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioHandle,
-			_audioStream);
-		_audioStarted = true;
-	}
-}
-
-struct Queue4ImageHeader {
-	static const int kSize = 0x14;
-	Queue4ImageHeader(const byte *src) {
-		queueNum = READ_BE_UINT16(&src[0]);
-		width = READ_BE_UINT16(&src[2]);
-		height = READ_BE_UINT16(&src[4]);
-		numFrames = READ_BE_UINT16(&src[6]);
-		// FIXME: unknown fields
-		controlDataOffset = READ_BE_UINT32(&src[0xC]);
-	}
-
-	uint16 queueNum;
-	uint16 width;
-	uint16 height;
-	uint16 numFrames;
-	uint32 controlDataOffset;
-};
-
 struct TimelineHeader {
 	static const int kSize = 0xC;
 	TimelineHeader(const byte *src) {
@@ -200,17 +178,32 @@ struct TimelineHeader {
 	uint16 framePeriod;
 };
 
-void Movie::loadTimeline(ScopedBuffer::Movable buf) {
+void Movie::startTimeline(ScopedBuffer::Movable buf, uint32 curTime) {
 	_timeline.reset(buf);
+
+	_curFrameTime = curTime;
+	_curFrameNum = 0;
 
 	TimelineHeader header(&_timeline[0]);
 	_numTimelineCmds = header.numCommands;
 	_framePeriod = header.framePeriod;
-
-	_curTimelineCmd = 0;
 	_timelineCursor = TimelineHeader::kSize;
-	_lastTimelineCmdFrameNum = _curFrameNum;
-	loadTimelineCmd();
+	_curTimelineCmdNum = 0;
+	_lastTimelineCmdFrame = _curFrameNum;
+	loadTimelineCommand();
+
+	stepTimeline();
+}
+
+void Movie::driveTimeline(uint32 curTime) {
+	if (_timelineActive) {
+		uint32 timeDelta = curTime - _curFrameTime;
+		if (timeDelta >= _framePeriod) {
+			_curFrameTime += _framePeriod;
+			++_curFrameNum;
+			stepTimeline();
+		}
+	}
 }
 
 struct TimelineCommand {
@@ -226,38 +219,74 @@ struct TimelineCommand {
 	byte reps;
 };
 
-void Movie::loadTimelineCmd() {
+namespace TimelineOpcodes {
+	enum {
+		kDrawFore = 1, // param size: 0
+		kDrawBack = 2, // param size: 0
+		kStartColorCycles = 12, // param size: 8
+		kStopColorCycles = 13, // param size: 0
+		kStartCelSequence = 15, // param size: 0
+		kStepCelSequence = 16, // param size: 0
+		kFade = 19, // param size: 4
+		kName = 0x7FFF, // param size: 4
+		kTriggerEvent1 = 0x8001, // param size: 0
+		kTriggerEvent2 = 0x8002, // param size: 0
+	};
+}
+
+void Movie::stepTimeline() {
+	assert(_timelineActive);
+	assert(_timeline);
+
+	// There may be one or more timeline commands with 0 delay. Process them all before returning.
+	bool done = false;
+	while (!done) {
+		TimelineCommand cmd(&_timeline[_timelineCursor]);
+		if (_timelineReps <= 0) {
+			// Advance to next timeline command
+			_timelineCursor += TimelineCommand::kSize + getTimelineCmdParamSize(cmd.opcode);
+			++_curTimelineCmdNum;
+			if (_curTimelineCmdNum >= _numTimelineCmds) {
+				_graphics->markDirty();
+				playAudio();
+				_timelineActive = false;
+				done = true;
+			}
+			else {
+				loadTimelineCommand();
+			}
+		}
+		else if ((_curFrameNum - _lastTimelineCmdFrame) < cmd.delay) {
+			// Delay occurs BEFORE command.
+			_graphics->markDirty();
+			playAudio();
+			done = true;
+		}
+		else {
+			runTimelineCommand();
+			_lastTimelineCmdFrame = _curFrameNum;
+			--_timelineReps;
+		}
+	}
+}
+
+void Movie::loadTimelineCommand() {
 	assert(_timeline);
 
 	TimelineCommand cmd(&_timeline[_timelineCursor]);
 	_timelineReps = cmd.reps;
 }
 
-namespace TimelineOpcodes {
-	enum {
-		kDrawQueue0 = 1, // param size: 0
-		kDrawQueue1 = 2, // param size: 0
-		kStartColorCycles = 0xC, // param size: 8
-		kStopColorCycles = 0xD, // param size: 0
-		kLoadQueue4 = 0xF, // param size: 0
-		kDrawQueue4 = 0x10, // param size: 0
-		kFade = 0x13, // param size: 4
-		kSetName = 0x7FFF, // param size: 4
-		kTriggerEvent1 = 0x8001, // param size: 0
-		kTriggerEvent2 = 0x8002, // param size: 0
-	};
-}
-
 int Movie::getTimelineCmdParamSize(uint16 opcode) {
 	switch (opcode) {
-	case TimelineOpcodes::kDrawQueue0: return 0;
-	case TimelineOpcodes::kDrawQueue1: return 0;
+	case TimelineOpcodes::kDrawFore: return 0;
+	case TimelineOpcodes::kDrawBack: return 0;
 	case TimelineOpcodes::kStartColorCycles: return 8;
 	case TimelineOpcodes::kStopColorCycles: return 0;
-	case TimelineOpcodes::kLoadQueue4: return 0;
-	case TimelineOpcodes::kDrawQueue4: return 0;
+	case TimelineOpcodes::kStartCelSequence: return 0;
+	case TimelineOpcodes::kStepCelSequence: return 0;
 	case TimelineOpcodes::kFade: return 4;
-	case TimelineOpcodes::kSetName: return 4;
+	case TimelineOpcodes::kName: return 4;
 	case TimelineOpcodes::kTriggerEvent1: return 0;
 	case TimelineOpcodes::kTriggerEvent2: return 0;
 	default:
@@ -266,25 +295,34 @@ int Movie::getTimelineCmdParamSize(uint16 opcode) {
 	}
 }
 
-void Movie::runTimelineCmd() {
+void Movie::runTimelineCommand() {
 	TimelineCommand cmd(&_timeline[_timelineCursor]);
+	int paramsOffset = _timelineCursor + TimelineCommand::kSize;
 
 	switch (cmd.opcode) {
-	case TimelineOpcodes::kDrawQueue0: // render queue 0 (param size: 0)
-		_graphics->getBackPlane().clear(); // FIXME: Is it correct to clear back?
-		drawQueue0or1(_graphics->getForePlane(), ScopedBuffer(fetchVideoBuffer(0)), 0, 0);
-		break;
-	case TimelineOpcodes::kDrawQueue1: // render queue 1 (param size: 0)
-		_graphics->getForePlane().clear(); // FIXME: Is it correct to clear fore?
-		drawQueue0or1(_graphics->getBackPlane(), ScopedBuffer(fetchVideoBuffer(1)), 0, 0);
-		break;
-	case TimelineOpcodes::kStartColorCycles: // start palette cycling (param size: 8)
+	case TimelineOpcodes::kDrawFore: // param size: 0
 	{
-		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
-		uint16 start = READ_BE_UINT16(&params[0]);
-		uint16 plane = READ_BE_UINT16(&params[2]); // ?? Always 1 in Merlin
-		uint16 num = READ_BE_UINT16(&params[4]);
-		int16 delay = READ_BE_INT16(&params[6]); // Negative delay means cycle backwards
+		// Fetch foreground from queue 0
+		ScopedBuffer buf(fetchBuffer(_videoQueues[0]));
+		applyQueue0or1Palette(_graphics->getForePlane(), buf);
+		drawQueue0or1(_graphics->getForePlane(), buf, 0, 0);
+		break;
+	}
+	case TimelineOpcodes::kDrawBack: // param size: 0
+	{
+		// Clear fore, fetch background from queue 1
+		_graphics->getForePlane().clear();
+		ScopedBuffer buf(fetchBuffer(_videoQueues[1]));
+		applyQueue0or1Palette(_graphics->getBackPlane(), buf);
+		drawQueue0or1(_graphics->getBackPlane(), buf, 0, 0);
+		break;
+	}
+	case TimelineOpcodes::kStartColorCycles: // param size: 8
+	{
+		uint16 start = READ_BE_UINT16(&_timeline[paramsOffset + 0]);
+		uint16 plane = READ_BE_UINT16(&_timeline[paramsOffset + 2]); // ?? Always 1 in Merlin
+		uint16 num = READ_BE_UINT16(&_timeline[paramsOffset + 4]);
+		int16 delay = READ_BE_INT16(&_timeline[paramsOffset + 6]); // Negative delay means cycle backwards
 		debug(3, "start color cycles (%d, %d, %d, %d)",
 			(int)start, (int)plane, (int)num, (int)delay
 			);
@@ -310,39 +348,22 @@ void Movie::runTimelineCmd() {
 		_graphics->resetColorCycles();
 		_numColorCycles = 0;
 		break;
-	case TimelineOpcodes::kLoadQueue4: // load queue 4 (param size: 0)
-		loadQueue4(fetchVideoBuffer(4));
+	case TimelineOpcodes::kStartCelSequence: // param size: 0
+		// Load, but don't do anything yet.
+		loadCels(fetchBuffer(_videoQueues[4]));
 		break;
-	case TimelineOpcodes::kDrawQueue4: // render queue 4 (param size: 0)
-		if (!_queue4Buf) {
-			loadQueue4(fetchVideoBuffer(4));
-		}
-		if (_queue4Buf) {
-			Queue4ImageHeader header(&_queue4Buf[0]);
-			int queue4FrameNum = _curFrameNum - _queue4StartFrameNum;
-			queue4FrameNum = MIN<int>(queue4FrameNum, header.numFrames - 1);
-
-			runQueue4Control();
-
-			if (_queue4Bg) {
-				updateScroll();
-			}
-
-			// Do NOT redraw background here; it breaks win movies.
-
-			drawQueue4(_graphics->getForePlane(), _queue4Buf, queue4FrameNum);
-		}
+	case TimelineOpcodes::kStepCelSequence: // param size: 0
+		stepCels();
 		break;
 	case TimelineOpcodes::kFade: // fade (param size: 4)
 	{
-		const byte *params = &_timeline[_timelineCursor + TimelineCommand::kSize];
-		uint16 duration = READ_BE_UINT16(&params[0]); // Duration in milliseconds (or frames?)
-		int16 direction = READ_BE_INT16(&params[2]); // 1: fade in; -1: fade out
+		uint16 duration = READ_BE_UINT16(&_timeline[paramsOffset + 0]);
+		int16 direction = READ_BE_INT16(&_timeline[paramsOffset + 2]); // 1: fade in; -1: fade out
 		debug(3, "fade (%d, %d)", (int)duration, (int)direction);
 		startFade(duration, direction);
 		break;
 	}
-	case TimelineOpcodes::kSetName: // set name (param size: 4, movie name)
+	case TimelineOpcodes::kName: // set name (param size: 4, movie name)
 		// Ignored
 		break;
 	case TimelineOpcodes::kTriggerEvent1: // trigger event (param size: 0, used in INTR)
@@ -357,76 +378,81 @@ void Movie::runTimelineCmd() {
 	}
 }
 
-void Movie::advanceTimeline() {
-	assert(_timelineActive);
-	assert(_timeline);
-
-	// Note that there may be a sequence of timeline commands with 0 delay.
-	// We want to process them all before returning.
-	bool done = false;
-	while (!done) {
-
-		TimelineCommand cmd(&_timeline[_timelineCursor]);
-
-		if (_timelineReps <= 0) {
-			// Advance to next timeline command
-			_timelineCursor += TimelineCommand::kSize + getTimelineCmdParamSize(cmd.opcode);
-			++_curTimelineCmd;
-			if (_curTimelineCmd >= _numTimelineCmds) {
-				// TODO: Guarantee start of audio coincides with first frame of
-				// movie.
-				_graphics->markDirty();
-				ensureAudioStarted();
-				_timelineActive = false;
-				done = true;
-			}
-			else {
-				loadTimelineCmd();
-			}
-		}
-		else if ((_curFrameNum - _lastTimelineCmdFrameNum) < cmd.delay) {
-			// Delay occurs BEFORE command.
-			_graphics->markDirty();
-			ensureAudioStarted();
-			done = true;
-		}
-		else {
-			runTimelineCmd();
-			_lastTimelineCmdFrameNum = _curFrameNum;
-			--_timelineReps;
-		}
-	}
-}
-
-void Movie::loadQueue4(ScopedBuffer::Movable buf) {
-
-	_queue4Buf.reset(buf);
-
-	Queue4ImageHeader header(&_queue4Buf[0]);
-
-	// Do NOT reset queue4 background or camera here.
-	// It remains after queue4 is finished.
-	_queue4StartFrameNum = _curFrameNum;
-	_lastQueue4ControlFrameNum = _curFrameNum;
-	_queue4ControlCursor = header.controlDataOffset;
-
-	// Do NOT reset scrolling vars here.
-}
-
-struct Queue4Command {
-	static const int kSize = 4;
-	Queue4Command(const byte *src) {
-		delay = src[0];
-		opcode = src[1];
-		// FIXME: unknown fields.
-		// src[2] and src[3] seem to be ignored in original program!
+struct CelsHeader {
+	static const int kSize = 0x14;
+	CelsHeader(const byte *src) {
+		queueNum = READ_BE_UINT16(&src[0]);
+		width = READ_BE_UINT16(&src[2]);
+		height = READ_BE_UINT16(&src[4]);
+		numFrames = READ_BE_UINT16(&src[6]);
+		unk8 = READ_BE_UINT32(&src[8]);
+		controlDataOffset = READ_BE_UINT32(&src[0xC]);
 	}
 
-	byte delay;
-	byte opcode;
+	uint16 queueNum;
+	uint16 width;
+	uint16 height;
+	uint16 numFrames;
+	uint32 unk8;
+	uint32 controlDataOffset;
 };
 
-namespace Queue4Opcodes {
+void Movie::loadCels(ScopedBuffer::Movable buf) {
+	_cels.reset(buf);
+
+	CelsHeader header(&_cels[0]);
+	assert(header.queueNum == 4);
+
+	debug(4, "loading cels width %d, height %d, numFrames %d, unk8 %d",
+		(int)header.width, (int)header.height, (int)header.numFrames, (int)header.unk8);
+
+	// Do NOT reset background or camera here.
+	_celsFrame = 0;
+	_celsLastControlFrame = 0;
+	_celControlCursor = header.controlDataOffset;
+}
+
+void Movie::stepCels() {
+	if (_cels) {
+		CelsHeader header(&_cels[0]);
+		if (_celsFrame >= header.numFrames) {
+			_celsFrame = header.numFrames - 1;
+			warning("Ran past end of cel sequence");
+		}
+
+		//debug(3, "running control on cel %d of %d...", celsFrame+1, (int)header.numFrames);
+		stepCelCommands();
+		advanceScroll();
+
+		if (_celNextCameraX != _celCurCameraX || _celNextCameraY != _celCurCameraY) {
+			_celCurCameraX = _celNextCameraX;
+			_celCurCameraY = _celNextCameraY;
+			drawCelBackground();
+		}
+
+		drawCel(_graphics->getForePlane(), _cels, _celsFrame);
+
+		++_celsFrame;
+	}
+	else {
+		warning("No cels loaded");
+	}
+}
+
+struct CelCommand {
+	static const int kSize = 4;
+	CelCommand(const byte *src) {
+		celNumber = src[0];
+		opcode = src[1];
+		paramSize = READ_BE_UINT16(&src[2]);
+	}
+
+	byte celNumber;
+	byte opcode;
+	uint16 paramSize; // Ignored in original program
+};
+
+namespace CelOpcodes {
 	enum {
 		kLoadBack = 1,
 		kLoadForePalette = 2,
@@ -435,78 +461,78 @@ namespace Queue4Opcodes {
 	};
 }
 
-void Movie::runQueue4Control() {
-	assert(_queue4Buf);
+void Movie::stepCelCommands() {
+	assert(_cels);
 
-	// FIXME: Queue 4 control commands are different between Merlin and Crete.
+	// FIXME: Cel control commands are different between Merlin and Crete.
 	// Only Merlin commands are implemented.
 
 	bool done = false;
 	while (!done) {
+		CelCommand cmd(&_cels[_celControlCursor]);
+		int paramsOffset = _celControlCursor + CelCommand::kSize;
 
-		Queue4Command cmd(&_queue4Buf[_queue4ControlCursor]);
-		int paramsOffset = _queue4ControlCursor + Queue4Command::kSize;
-
-		// Delay occurs BEFORE command
-		if ((_curFrameNum - _lastQueue4ControlFrameNum) >= cmd.delay) {
+		// FIXME: There's still an off-by-one error causing a one frame desync.
+		// Watch TOUR carefully, you can see the background switch a frame too early
+		// in the scene following the Merlin portrait.
+		// FIXME unless this happened in the original.
+		if (_celsFrame >= cmd.celNumber) {
+			if (cmd.opcode != CelOpcodes::kStop) {
+				debug(3, "cel command at %d paramSize %d opcode %d", (int)cmd.celNumber,
+					(int)cmd.paramSize, (int)cmd.opcode);
+			}
 
 			switch (cmd.opcode) {
+			case CelOpcodes::kLoadBack:
+				debug(3, "cel command: load background");
+				_celsBackground.reset(fetchBuffer(_videoQueues[1]));
 
-			case Queue4Opcodes::kLoadBack: // load background from queue 1
-			{
-				_queue4Bg.reset(fetchVideoBuffer(1));
+				_celCurCameraX = READ_BE_INT16(&_cels[paramsOffset]);
+				_celCurCameraY = READ_BE_INT16(&_cels[paramsOffset + 2]);
+				_celNextCameraX = _celCurCameraX;
+				_celNextCameraY = _celCurCameraY;
 
-				_queue4CameraX = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
-				_queue4CameraY = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset + 2]);
+				applyQueue0or1Palette(_graphics->getBackPlane(), _celsBackground);
+				drawCelBackground();
 
-				// FIXME: should camera params be initialized here? original
-				// program doesn't seem to do anything with scroll variables
-				// other than camera position
-
-				// FIXME: is it correct to draw background here?
-				drawBackground();
-
-				_queue4ControlCursor += Queue4Command::kSize + 4;
+				_celControlCursor += CelCommand::kSize + 4;
 				break;
-			}
-			case Queue4Opcodes::kLoadForePalette: // modify foreground (???) palette
+			case CelOpcodes::kLoadForePalette:
 			{
-				byte numColors = _queue4Buf[paramsOffset];
-				// FIXME: first color or plane number?
-				byte firstColor = _queue4Buf[paramsOffset + 1];
-				debug(3, "Queue4 cmd: load fore palette num %d first %d", (int)numColors, (int)firstColor);
-				_graphics->getForePlane().setPalette(&_queue4Buf[paramsOffset + 2],
+				byte numColors = _cels[paramsOffset];
+				byte firstColor = _cels[paramsOffset + 1];
+				debug(3, "cel command: load fore palette num %d first %d",
+					(int)numColors, (int)firstColor);
+				_graphics->getForePlane().setPalette(&_cels[paramsOffset + 2],
 					firstColor, numColors);
 
-				_queue4ControlCursor += Queue4Command::kSize + 2 + numColors * 3;
+				_celControlCursor += CelCommand::kSize + 2 + numColors * 3;
 				break;
 			}
-			case Queue4Opcodes::kScroll: // start scroll
-				_queue4ScrollStartFrameNum = _curFrameNum;
-				_queue4ScrollOriginalX = _queue4CameraX;
-				_queue4ScrollOriginalY = _queue4CameraY;
-				_queue4ScrollProgress = 0; // ???
+			case CelOpcodes::kScroll:
+			{
+				uint16 duration = READ_BE_UINT16(&_cels[paramsOffset]);
+				byte speed = _cels[paramsOffset + 2];
+				byte type = _cels[paramsOffset + 3];
 
-				// FIXME: scrolling is broken. Unknown whether these names are
-				// correct.
-				_queue4ScrollTime = (int16)READ_BE_UINT16(&_queue4Buf[paramsOffset]);
-				_queue4ScrollMult = _queue4Buf[paramsOffset + 2];
-				_queue4ScrollType = _queue4Buf[paramsOffset + 3];
+				debug(3, "cel command: scroll duration %d, speed %d, type %d",
+					(int)duration, (int)speed, (int)type);
 
-				debug(3, "scroll params: type %d, time %d, mult %d",
-					_queue4ScrollType, _queue4ScrollTime, _queue4ScrollMult);
+				startScroll(duration, speed, type);
 
-				_queue4ControlCursor += Queue4Command::kSize + 4;
+				_celControlCursor += CelCommand::kSize + 4;
 				break;
-			case Queue4Opcodes::kStop: // stop? (found at end)
+			}
+			case CelOpcodes::kStop:
+				debug(4, "cel command: stop");
 				done = true;
 				break;
 			default:
-				error("Unknown queue4 control command 0x%X", (int)cmd.opcode);
+				error("Unknown cel command 0x%X", (int)cmd.opcode);
 				break;
 			}
 
-			_lastQueue4ControlFrameNum = _curFrameNum;
+			_celsLastControlFrame = _celsFrame;
 		}
 		else {
 			done = true;
@@ -514,59 +540,72 @@ void Movie::runQueue4Control() {
 	}
 }
 
-void Movie::drawBackground() {
-	drawQueue0or1(_graphics->getBackPlane(), _queue4Bg,
-		0, -_queue4CameraY);
+void Movie::startScroll(int duration, int speed, int type) {
+	_celScrollDuration = duration;
+	_celScrollSpeed = speed;
+	_celScrollType = type;
+
+	_celScrollProgress = 0;
+	_celScrollStartCameraX = _celCurCameraX;
+	_celScrollStartCameraY = _celCurCameraY;
 }
 
-void Movie::updateScroll() {
-	// FIXME: scrolling is almost completely broken. Reverse-engineer
-	// this more carefully.
-
-	if (_queue4ScrollType != -1)
-	{
-		int frames = 1;
-
-		int esi = 0;
-		int ecx = 0;
-		int edi = _queue4ScrollProgress;
-		int ebx = _queue4ScrollTime;
-		int edx = edi;
-		edi += frames;
-		if (edi > ebx) {
-			//edi = ebx;
+void Movie::advanceScroll() {
+	// FIXME: Scrolling is mostly correct, but CAV1 has an error where
+	// scrolling pauses midway before reaching the bottom.
+	if (_celScrollType != -1) {
+		++_celScrollProgress;
+		if (_celScrollProgress > _celScrollDuration) {
+			_celScrollType = -1;
 		}
-
-		if (edi != edx) {
-			switch (_queue4ScrollType) {
-			case -1: // Disabled
+		else {
+			int vx = 0;
+			int vy = 0;
+			switch (_celScrollType) {
+			case 0: // Left (unused)
+				vx = -_celScrollSpeed;
+				vy = 0;
 				break;
-				// FIXME: Left and right may be unused, but Up is used in FNLE.
-				// Please test.
-			case 0:
-				esi = _queue4ScrollMult * edi;
+			case 1: // Right (unused)
+				vx = _celScrollSpeed;
+				vy = 0;
 				break;
-			case 1:
-				esi = -_queue4ScrollMult * edi;
-				break;
-			case 2:
-				ecx = -_queue4ScrollMult * edi;
+			case 2: // Up (used only in finale)
+				vx = 0;
+				vy = -_celScrollSpeed;
 				break;
 			case 3: // Down
-				ecx = _queue4ScrollMult * edi;
+				vx = 0;
+				vy = _celScrollSpeed;
 				break;
 			default:
-				warning("unhandled queue4 scroll type %d", _queue4ScrollType);
+				warning("Invalid scroll type %d", _celScrollType);
 				break;
 			}
 
-			_queue4ScrollProgress = edi;
-			_queue4CameraX = _queue4ScrollOriginalX + esi;
-			_queue4CameraY = _queue4ScrollOriginalY + ecx;
-
-			drawBackground();
+			_celNextCameraX = _celScrollStartCameraX + vx * _celScrollProgress;
+			_celNextCameraY = _celScrollStartCameraY + vy * _celScrollProgress;
 		}
 	}
+}
+
+void Movie::drawCelBackground() {
+	if (_celsBackground) {
+		drawQueue0or1(_graphics->getBackPlane(), _celsBackground, -_celCurCameraX, -_celCurCameraY);
+	}
+}
+
+void Movie::drawCel(Plane &plane, const ScopedBuffer &src, uint16 frameNum) {
+	// Queue 4 buffers define a sequence of foreground cels and background control commands.
+	CelsHeader header(&src[0]);
+	assert(header.queueNum == 4);
+	assert(frameNum < header.numFrames);
+
+	uint32 rl7Offset = READ_BE_UINT32(&src[CelsHeader::kSize + frameNum * 8]);
+	uint32 rl7Size = READ_BE_UINT32(&src[CelsHeader::kSize + frameNum * 8 + 4]);
+
+	decodeRL7(plane.getSurface(), 0, 0, header.width, header.height,
+		&src[rl7Offset], rl7Size, false);
 }
 
 enum PfPacketType {
@@ -582,7 +621,6 @@ enum PfPacketType {
 };
 
 struct Movie::PacketHeader {
-
 	PacketHeader(Common::File &file) {
 		totalSize = file.readUint32BE();
 		partialSize = file.readUint32BE();
@@ -608,17 +646,14 @@ void Movie::readNextPacket() {
 	}
 
 	switch (header.type) {
-
 	case kPfTimeline:
 		if (readIntoBuffer(_timelineBufAssembler, header)) {
 			_timelineQueue.push(_timelineBufAssembler.buf.release());
 			_timelineBufAssembler.buf.reset();
 		}
 		break;
-
 	case kPfAudio:
 		if (readIntoBuffer(_audioBufAssembler, header)) {
-
 			if (_audioStream) {
 				// FIXME: Make this more efficient by reading directly into a
 				// malloc'ed buffer.
@@ -633,14 +668,12 @@ void Movie::readNextPacket() {
 			_audioBufAssembler.buf.reset();
 		}
 		break;
-
 	case kPfVideo:
 		if (readIntoBuffer(_videoBufAssembler, header)) {
 			enqueueVideoBuffer(_videoBufAssembler.buf.release());
 			_videoBufAssembler.buf.reset();
 		}
 		break;
-
 	case kPfAuxVideo:
 		if (readIntoBuffer(_auxVideoBufAssembler, header)) {
 			// FIXME: Is any special handling required for auxiliary video? I
@@ -651,17 +684,15 @@ void Movie::readNextPacket() {
 			_auxVideoBufAssembler.buf.reset();
 		}
 		break;
-
 	case kPfFinal:
-		// Final packet found, but don't stop the movie because the timeline may
-		// still be running.
+		// Final packet found, stop parser.
+		// Movie will stop when timeline and audio are done.
 		if (_audioStream) {
 			_audioStream->finish();
 			_audioStream = nullptr; // Audio stream will be freed by the mixer.
 		}
 		_parserActive = false;
 		break;
-
 	default:
 		warning("Unknown PF packet type %u skipped", header.type);
 		_file->seek(header.partialSize, SEEK_CUR);
@@ -695,36 +726,21 @@ bool Movie::readIntoBuffer(BufferAssembler &assembler, const PacketHeader &heade
 	return assembler.cursor >= assembler.totalSize;
 }
 
-Movie::ScopedBuffer::Movable Movie::fetchTimelineBuffer() {
-
-	while (_parserActive && _timelineQueue.empty()) {
+Movie::ScopedBuffer::Movable Movie::fetchBuffer(ScopedBufferQueue &queue) {
+	while (_parserActive && queue.empty()) {
 		readNextPacket();
 	}
 
-	if (_timelineQueue.empty()) {
-		error("Failed to fetch PF timeline");
+	if (queue.empty()) {
+		warning("Failed to fetch movie data buffer");
 		return Movie::ScopedBuffer::Movable();
 	}
 
-	return _timelineQueue.pop();
-}
-
-Movie::ScopedBuffer::Movable Movie::fetchVideoBuffer(uint16 queueNum) {
-
-	while (_parserActive && _videoQueues[queueNum].empty()) {
-		readNextPacket();
-	}
-
-	if (_videoQueues[queueNum].empty()) {
-		error("Failed to fetch PF video");
-		return Movie::ScopedBuffer::Movable();
-	}
-
-	return _videoQueues[queueNum].pop();
+	return queue.pop();
 }
 
 void Movie::startFade(uint16 duration, int16 direction) {
-	_fadeStartTime = _curFrameTimeMs;
+	_fadeStartTime = _curFrameTime;
 	_fadeDuration = duration;
 	if (direction == 1 || direction == -1) {
 		_fadeDirection = direction;
@@ -735,7 +751,7 @@ void Movie::startFade(uint16 duration, int16 direction) {
 	}
 }
 
-void Movie::tickFade(uint32 curTime) {
+void Movie::driveFade(uint32 curTime) {
 	if (_fadeDirection == 1) {
 		// Fade in
 		uint32 fadeProgress = curTime - _fadeStartTime;
@@ -767,35 +783,49 @@ void Movie::tickFade(uint32 curTime) {
 }
 
 struct Queue01ImageHeader {
-
-	const static int SIZE = 0xD;
+	const static int kSize = 0xD;
 	Queue01ImageHeader(const byte *src) {
 		queueNum = READ_BE_UINT16(&src[0]);
 		width = READ_BE_UINT16(&src[2]);
 		height = READ_BE_UINT16(&src[4]);
 		// FIXME: Unknown fields here
+		unk[0] = src[0x6]; // Always 128
+		unk[1] = src[0x7]; // Always 0
+		unk[2] = src[0x8]; // Always 0
+		unk[3] = src[0x9]; // Always 0
+		unk[4] = src[0xA]; // Something
+		unk[5] = src[0xB]; // Something
 		compression = src[0xC];
 	}
 
 	uint16 queueNum;
 	uint16 width;
 	uint16 height;
+	byte unk[6];
 	byte compression;
 };
 
-void Movie::drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y) {
-
-	// Queue 0 buffers contain background frames. (FIXME: Really?)
-	// Queue 1 buffers contain background frames for use with queue 4
-	// sequences.
-
+void Movie::applyQueue0or1Palette(Plane &plane, const ScopedBuffer &src) {
 	Queue01ImageHeader header(&src[0]);
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
-	plane.setPalette(&src[Queue01ImageHeader::SIZE], 0, 128);
+	plane.setPalette(&src[Queue01ImageHeader::kSize], 0, 128);
+}
 
-	const byte *imageSrc = &src[Queue01ImageHeader::SIZE + 128 * 3];
-	int imageSrcLen = src.size() - 128 * 3 - Queue01ImageHeader::SIZE;
+void Movie::drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y) {
+	// Queue 0 buffers define background frames for scene changes.
+	// Queue 1 buffers define background frames for use with cel sequences.
+	Queue01ImageHeader header(&src[0]);
+	assert(header.queueNum == 0 || header.queueNum == 1);
+
+	/*debug(3, "drawing background: queue %d, width %d, height %d, compression %d,",
+		(int)header.queueNum, (int)header.width, (int)header.height, (int)header.compression);
+	debug(3, "                    unk %d %d %d %d %d %d",
+		(int)header.unk[0], (int)header.unk[1], (int)header.unk[2], (int)header.unk[3],
+		(int)header.unk[4], (int)header.unk[5]);*/
+
+	const byte *imageSrc = &src[Queue01ImageHeader::kSize + 128 * 3];
+	int imageSrcLen = src.size() - 128 * 3 - Queue01ImageHeader::kSize;
 
 	if (header.compression) {
 		decodeRL7(plane.getSurface(), x, y, header.width, header.height,
@@ -805,22 +835,6 @@ void Movie::drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y) {
 		decodeCLUT7(plane.getSurface(), x, y, header.width, header.height,
 			imageSrc, imageSrcLen, false);
 	}
-}
-
-void Movie::drawQueue4(Plane &plane, const ScopedBuffer &src, uint16 frameNum) {
-
-	// Queue 4 buffers contain a sequence of foreground frames and control data
-	// for the background.
-
-	Queue4ImageHeader header(&src[0]);
-	assert(header.queueNum == 4);
-	assert(frameNum < header.numFrames);
-
-	uint32 rl7Offset = READ_BE_UINT32(&src[Queue4ImageHeader::kSize + frameNum * 8]);
-	uint32 rl7Size = READ_BE_UINT32(&src[Queue4ImageHeader::kSize + frameNum * 8 + 4]);
-
-	decodeRL7(plane.getSurface(), 0, 0, header.width, header.height,
-		&src[rl7Offset], rl7Size, false);
 }
 
 void Movie::enqueueVideoBuffer(ScopedBuffer::Movable buf) {
