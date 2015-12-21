@@ -26,6 +26,10 @@
 #include "bolt/boltlib/boltlib.h"
 #include "common/ptr.h"
 
+namespace Common {
+	class Rational;
+}
+
 namespace Bolt {
 
 class Graphics;
@@ -104,7 +108,9 @@ struct BltPaletteModsStruct { // type 29
 
 typedef BltArrayLoader<BltPaletteModsStruct> BltPaletteMods;
 
-void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int num, PaletteTarget target);
+void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int state, PaletteTarget target);
+void applyPaletteModMorph(Graphics *graphics, const BltPaletteMods &mod, int stateA, int stateB,
+	PaletteTarget target, Common::Rational t);
 
 } // End of namespace Bolt
 
