@@ -105,7 +105,7 @@ void applyPalette(Graphics *graphics, const BltPalette &palette, PaletteTarget t
 	}
 }
 
-void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int num, PaletteTarget target) {
+void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int state, PaletteTarget target) {
 	Plane *plane = nullptr;
 	if (target == kBack) {
 		plane = &graphics->getBackPlane();
@@ -117,7 +117,55 @@ void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int num, Pal
 		assert(false); // Unreachable, target must be valid
 	}
 
-	plane->setPalette(&mod[num].colors[0], mod[num].start, mod[num].num);
+	plane->setPalette(&mod[state].colors[0], mod[state].start, mod[state].num);
+}
+
+static int lerp(int a, int b, Common::Rational t) {
+	return a + ((b - a) * t).toInt();
+}
+
+void applyPaletteModMorph(Graphics *graphics, const BltPaletteMods &mod, int stateA, int stateB,
+	PaletteTarget target, Common::Rational t) {
+	if (mod[stateA].start != mod[stateB].start ||
+		mod[stateA].num != mod[stateB].num) {
+		warning("Mismatched ranges in palette morph");
+		return;
+	}
+
+	int firstColor = mod[stateA].start;
+	int numColors = mod[stateA].num;
+	if (firstColor + numColors > 128) {
+		warning("Invalid range in palette morph");
+		return;
+	}
+
+	if (t <= 0) {
+		applyPaletteMod(graphics, mod, stateA, target);
+	}
+	else if (t >= 1) {
+		applyPaletteMod(graphics, mod, stateB, target);
+	}
+	else {
+		byte morphed[128 * 3];
+		for (int i = 0; i < numColors * 3; ++i) {
+			byte a = mod[stateA].colors[i];
+			byte b = mod[stateB].colors[i];
+			morphed[i] = lerp(a, b, t);
+		}
+
+		Plane *plane = nullptr;
+		if (target == kBack) {
+			plane = &graphics->getBackPlane();
+		}
+		else if (target == kFore) {
+			plane = &graphics->getForePlane();
+		}
+		else {
+			assert(false); // Unreachable, target must be valid
+		}
+
+		plane->setPalette(morphed, firstColor, numColors);
+	}
 }
 
 } // End of namespace Bolt
