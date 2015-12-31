@@ -140,9 +140,9 @@ void ActionPuzzle::enter(uint32 time) {
 	// (and what happens when you change difficulty mid-puzzle?)
 	_goalNum = 0;
 
-	applyPalette(_graphics, _backPalette, kBack);
+	applyPalette(_graphics, kBack, _backPalette);
 	applyColorCycles(_graphics, &_backColorCycles);
-	applyPalette(_graphics, _forePalette, kFore);
+	applyPalette(_graphics, kFore, _forePalette);
 	// TODO: fore color cycles
 
 	drawBack();
@@ -170,8 +170,8 @@ Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 
 		if (_goalNum >= _goals.size()) {
 			// Reset background before starting win movie
-			_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
-			_graphics->getForePlane().clear();
+			_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
+			_graphics->clearPlane(kFore);
 			return kWin;
 		}
 	}
@@ -225,26 +225,26 @@ void ActionPuzzle::spawnParticle(int imageNum, int pathNum) {
 }
 
 void ActionPuzzle::drawBack() {
-	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+	_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
 	for (uint i = 0; i < _goals.size(); ++i) {
 		if (i < _goalNum) {
 			const Common::Point &pt = _goals[i];
 			// TODO: there may be multiple sets of goals
 			// (player has to complete one set and then the next)
-			_goalImages[0].drawAt(_graphics->getBackPlane().getSurface(), pt.x, pt.y, true);
+			_goalImages[0].drawAt(_graphics->getPlaneSurface(kBack), pt.x, pt.y, true);
 		}
 	}
 }
 
 void ActionPuzzle::drawFore() {
-	_graphics->getForePlane().clear();
+	_graphics->clearPlane(kFore);
 
 	for (ParticleList::const_iterator it = _particles.begin(); it != _particles.end(); ++it) {
 		const Particle &p = *it;
 		const BltImage &image = getParticleImage(p);
 		Common::Point pt = getParticlePos(p);
 		// FIXME: positions of particles in death sequence are wrong
-		image.drawAt(_graphics->getForePlane().getSurface(), pt.x, pt.y, true);
+		image.drawAt(_graphics->getPlaneSurface(kFore), pt.x, pt.y, true);
 	}
 }
 

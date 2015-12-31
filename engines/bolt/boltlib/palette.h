@@ -84,33 +84,28 @@ struct BltPalette { // type 10
 	BltResource data;
 };
 
-enum PaletteTarget {
-	kBack,
-	kFore,
-};
-
-void applyPalette(Graphics *graphics, const BltPalette &palette, PaletteTarget target);
+void applyPalette(Graphics *graphics, int plane, const BltPalette &palette);
 
 struct BltPaletteModsStruct { // type 29
 	static const uint32 kType = kBltPaletteMods;
 	static const uint kSize = 6;
 	void load(const byte *src, Boltlib &bltFile) {
-		start = src[0];
+		first = src[0];
 		num = src[1];
 		BltId colorsId(READ_BE_UINT32(&src[2]));
 		colors.reset(bltFile.loadResource(colorsId, kBltColors));
 	}
 
-	byte start;
+	byte first;
 	byte num;
 	BltResource colors;
 };
 
 typedef BltArrayLoader<BltPaletteModsStruct> BltPaletteMods;
 
-void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int state, PaletteTarget target);
-void applyPaletteModMorph(Graphics *graphics, const BltPaletteMods &mod, int stateA, int stateB,
-	PaletteTarget target, Common::Rational t);
+void applyPaletteMod(Graphics *graphics, int plane, const BltPaletteMods &mod, int state);
+void applyPaletteModBlended(Graphics *graphics, int plane, const BltPaletteMods &mod,
+	int stateA, int stateB, Common::Rational t);
 
 } // End of namespace Bolt
 

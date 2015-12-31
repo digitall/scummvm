@@ -338,40 +338,6 @@ byte queryRL7(int x, int y, const byte *src, int srcLen, int w, int h) {
 	return color;
 }
 
-Plane::Plane()
-	: _graphics(nullptr)
-{ }
-
-Plane::~Plane() {
-	_surface.free();
-}
-
-void Plane::init(Graphics *graphics, int width, int height, byte colorBase) {
-	_graphics = graphics;
-	_surface.create(width, height, ::Graphics::PixelFormat::createFormatCLUT8());
-	_colorBase = colorBase;
-}
-
-void Plane::clear() {
-	memset(_surface.getPixels(), 0, _surface.w * _surface.h);
-}
-
-void Plane::grabPalette(byte *colors, uint start, uint num) {
-	assert(start < 128);
-	assert(num <= 128);
-	assert(start + num <= 128);
-
-	_graphics->grabVgaPalette(colors, _colorBase + start, num);
-}
-
-void Plane::setPalette(const byte *colors, uint start, uint num) {
-	assert(start < 128);
-	assert(num <= 128);
-	assert(start + num <= 128);
-
-	_graphics->setVgaPalette(colors, _colorBase + start, num);
-}
-
 Graphics::Graphics()
 	: _system(nullptr),
 	_dirty(false)
@@ -385,23 +351,38 @@ void Graphics::init(OSystem *system, uint32 time) {
 
 	initGraphics(kVgaScreenWidth, kVgaScreenHeight, false);
 
-	_backPlane.init(this, kVgaScreenWidth, kVgaScreenHeight, kBackColorBase);
-	_forePlane.init(this, kVgaScreenWidth, kVgaScreenHeight, kForeColorBase);
+	initPlane(_backPlane, kVgaScreenWidth, kVgaScreenHeight, kBackVgaFirst);
+	initPlane(_forePlane, kVgaScreenWidth, kVgaScreenHeight, kForeVgaFirst);
+}
 
-	// XXX: Load a generic testing palette into both planes
-	byte palette[128 * 3];
-	for (int r = 0; r < 4; ++r) {
-		for (int g = 0; g < 8; ++g) {
-			for (int b = 0; b < 4; ++b) {
-				int i = 8 * 4 * r + 4 * g + b;
-				palette[3 * i + 0] = r * 255 / 3;
-				palette[3 * i + 1] = g * 255 / 7;
-				palette[3 * i + 2] = b * 255 / 3;
-			}
-		}
+::Graphics::Surface& Graphics::getPlaneSurface(int plane) {
+	Plane *p = getPlaneObject(plane);
+	assert(p);
+
+	return p->surface;
+}
+
+void Graphics::setPlanePalette(int plane, const byte *colors, int first, int num) {
+	Plane *p = getPlaneObject(plane);
+	if (!p) {
+		return;
 	}
-	_backPlane.setPalette(palette, 0, 128);
-	_forePlane.setPalette(palette, 0, 128);
+
+	if (first < 0 || num < 0 || (first + num) > 128) {
+		warning("Invalid plane palette range first %d num %d", first, num);
+		return;
+	}
+
+	setVgaPalette(colors, p->vgaFirst + first, num);
+}
+
+void Graphics::clearPlane(int plane) {
+	Plane *p = getPlaneObject(plane);
+	if (!p) {
+		return;
+	}
+
+	memset(p->surface.getPixels(), 0, p->surface.w * p->surface.h);
 }
 
 static void rotateColorsForward(byte *colors, int num) {
@@ -448,14 +429,14 @@ void Graphics::setTime(uint32 time) {
 				byte colors[128 * 3];
 				// FIXME: Both planes may have color cycles. Front plane color
 				// cycles are used in the "bubbles" action puzzle.
-				_backPlane.grabPalette(colors, firstColor, numColors);
+				grabPlanePalette(kBack, colors, firstColor, numColors);
 				if (backwards) {
 					rotateColorsBackward(colors, numColors);
 				}
 				else {
 					rotateColorsForward(colors, numColors);
 				}
-				_backPlane.setPalette(colors, firstColor, numColors);
+				setPlanePalette(kBack, colors, firstColor, numColors);
 
 				markDirty();
 
@@ -499,23 +480,22 @@ void Graphics::markDirty() {
 
 void Graphics::presentIfDirty() {
 	if (_dirty) {
-		// TODO: Track dirty rectangles for more efficiency
+		// TODO: Only update dirty rectangles
+		// TODO: Use hardware acceleration if possible
 		::Graphics::Surface *dstSurface = _system->lockScreen();
-		::Graphics::Surface &backSurface = _backPlane.getSurface();
-		::Graphics::Surface &foreSurface = _forePlane.getSurface();
 
 		byte *dstLine = (byte*)dstSurface->getPixels();
-		const byte *backLine = (const byte*)backSurface.getPixels();
-		const byte *foreLine = (const byte*)foreSurface.getPixels();
+		const byte *backLine = (const byte*)_backPlane.surface.getPixels();
+		const byte *foreLine = (const byte*)_forePlane.surface.getPixels();
 		for (int y = 0; y < kVgaScreenHeight; ++y) {
 			for (int x = 0; x < kVgaScreenWidth; ++x) {
 				dstLine[x] = (foreLine[x] != 0) ?
-					(foreLine[x] + _forePlane.getColorBase()) :
-					(backLine[x] + _backPlane.getColorBase());
+					(foreLine[x] + _forePlane.vgaFirst) :
+					(backLine[x] + _backPlane.vgaFirst);
 			}
 			dstLine += dstSurface->pitch;
-			backLine += backSurface.pitch;
-			foreLine += foreSurface.pitch;
+			backLine += _backPlane.surface.pitch;
+			foreLine += _forePlane.surface.pitch;
 		}
 		_system->unlockScreen();
 
@@ -525,39 +505,72 @@ void Graphics::presentIfDirty() {
 	}
 }
 
-void Graphics::grabVgaPalette(byte *colors, uint start, uint num) {
-	assert(start < 256);
-	assert(num <= 256);
-	assert(start + num <= 256);
-
-	memcpy(colors, &_vgaPalette[3 * start], 3 * num);
+Graphics::Plane::~Plane() {
+	surface.free();
 }
 
-void Graphics::setVgaPalette(const byte *colors, uint start, uint num) {
-	assert(start < 256);
-	assert(num <= 256);
-	assert(start + num <= 256);
-
-	memcpy(&_vgaPalette[3 * start], colors, 3 * num);
-	commitVgaPalette(start, num);
+Graphics::Plane* Graphics::getPlaneObject(int plane) {
+	if (plane == kFore) {
+		return &_forePlane;
+	}
+	else if (plane == kBack) {
+		return &_backPlane;
+	}
+	else {
+		warning("Invalid plane number %d", plane);
+		return nullptr;
+	}
 }
 
-void Graphics::commitVgaPalette(uint start, uint num) {
-	assert(start < 256);
-	assert(num <= 256);
-	assert(start + num <= 256);
+void Graphics::initPlane(Plane &plane, int width, int height, byte vgaFirst) {
+	plane.surface.create(width, height, ::Graphics::PixelFormat::createFormatCLUT8());
+	plane.vgaFirst = vgaFirst;
+}
+
+void Graphics::grabPlanePalette(int plane, byte *colors, int first, int num) {
+	assert(first >= 0);
+	assert(num >= 0);
+	assert(first + num <= kNumPlaneColors);
+
+	Plane *p = getPlaneObject(plane);
+	if (!p) {
+		return;
+	}
+
+	grabVgaPalette(colors, p->vgaFirst + first, num);
+}
+
+void Graphics::grabVgaPalette(byte *colors, int first, int num) {
+	assert(first >= 0);
+	assert(num >= 0);
+	assert(first + num <= kNumVgaColors);
+
+	memcpy(colors, &_vgaPalette[3 * first], 3 * num);
+}
+
+void Graphics::setVgaPalette(const byte *colors, int first, int num) {
+	assert(first >= 0);
+	assert(num >= 0);
+	assert(first + num <= kNumVgaColors);
+
+	memcpy(&_vgaPalette[3 * first], colors, 3 * num);
+	commitVgaPalette(first, num);
+}
+
+void Graphics::commitVgaPalette(int first, int num) {
+	assert(first >= 0);
+	assert(num >= 0);
+	assert(first + num <= kNumVgaColors);
 
 	if (_fade >= 1) {
-		_system->getPaletteManager()->setPalette(&_vgaPalette[3 * start], start, num);
+		_system->getPaletteManager()->setPalette(&_vgaPalette[3 * first], first, num);
 	}
 	else {
 		byte faded[256 * 3];
-		for (uint i = 0; i < num; ++i) {
-			faded[3 * i + 0] = (_vgaPalette[3 * (start + i) + 0] * _fade).toInt();
-			faded[3 * i + 1] = (_vgaPalette[3 * (start + i) + 1] * _fade).toInt();
-			faded[3 * i + 2] = (_vgaPalette[3 * (start + i) + 2] * _fade).toInt();
+		for (int i = 0; i < num * 3; ++i) {
+			faded[i] = (_vgaPalette[3 * first + i] * _fade).toInt();
 		}
-		_system->getPaletteManager()->setPalette(faded, start, num);
+		_system->getPaletteManager()->setPalette(faded, first, num);
 	}
 }
 

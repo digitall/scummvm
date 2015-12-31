@@ -74,7 +74,7 @@ void HubCard::enter(uint32 time) {
 	// Draw item images to back plane
 	// FIXME: Only draw items that are unlocked.
 	for (uint i = 0; i < _itemImages.size(); ++i) {
-		_itemImages[i].drawAt(_graphics->getBackPlane().getSurface(), 0, 0, true);
+		_itemImages[i].drawAt(_graphics->getPlaneSurface(kBack), 0, 0, true);
 	}
 }
 

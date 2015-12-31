@@ -71,23 +71,20 @@ void Scene::load(Graphics *graphics, Boltlib &boltlib, BltId sceneId)
 }
 
 void Scene::enter() {
-
-	applyPalette(_graphics, _backPlane->palette, kBack);
+	applyPalette(_graphics, kBack, _backPlane->palette);
 	if (_backPlane->image) {
-		::Graphics::Surface surface = _graphics->getBackPlane().getSurface();
-		_backPlane->image.drawAt(surface, 0, 0, false);
+		_backPlane->image.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
 	}
 	else {
-		_graphics->getBackPlane().clear();
+		_graphics->clearPlane(kBack);
 	}
 
-	applyPalette(_graphics, _forePlane->palette, kFore);
+	applyPalette(_graphics, kFore, _forePlane->palette);
 	if (_forePlane->image) {
-		::Graphics::Surface surface = _graphics->getForePlane().getSurface();
-		_forePlane->image.drawAt(surface, 0, 0, false);
+		_forePlane->image.drawAt(_graphics->getPlaneSurface(kFore), 0, 0, false);
 	}
 	else {
-		_graphics->getForePlane().clear();
+		_graphics->clearPlane(kFore);
 	}
 
 	applyColorCycles(_graphics, _colorCycles.get());
@@ -96,8 +93,7 @@ void Scene::enter() {
 	for (size_t i = 0; i < _sprites.size(); ++i) {
 		Common::Point pos = _sprites[i].pos - _origin;
 		// FIXME: Are sprites drawn to back or fore plane? Is it somehow selectable?
-		::Graphics::Surface surface = _graphics->getForePlane().getSurface();
-		_sprites[i].image.drawAt(surface, pos.x, pos.y, true);
+		_sprites[i].image.drawAt(_graphics->getPlaneSurface(kFore), pos.x, pos.y, true);
 	}
 
 	_graphics->markDirty();
@@ -146,25 +142,20 @@ int Scene::getButtonAtPoint(const Common::Point &pt) {
 	return -1;
 }
 
-Bolt::Plane& Scene::getGraphicsPlane(uint16 num) {
-	return num ? _graphics->getBackPlane() : _graphics->getForePlane();
-}
-
 void Scene::drawButton(const BltButtonStruct &button, bool hovered) {
 	if (button.graphics) {
 		const BltButtonGraphicsStruct &buttonGfx = button.graphics[0]; // TODO: support states other than 0
 		if (buttonGfx.type == BltButtonGraphicsStruct::PaletteMods) {
 			const BltPaletteMods &paletteMod = hovered ? buttonGfx.hoveredPaletteMod : buttonGfx.idlePaletteMod;
-			applyPaletteMod(_graphics, paletteMod, 0, button.plane ? kBack : kFore);
+			applyPaletteMod(_graphics, button.plane, paletteMod, 0);
 		}
 		else if (buttonGfx.type == BltButtonGraphicsStruct::Sprites) {
-			::Graphics::Surface surface = getGraphicsPlane(button.plane).getSurface();
 			const BltSpriteList &spriteList = hovered ? buttonGfx.hoveredSprites : buttonGfx.idleSprites;
 			if (spriteList) {
 				const BltSpriteStruct &sprite = spriteList[0];
 				Common::Point pos = sprite.pos - _origin;
 				if (sprite.image) {
-					sprite.image.drawAt(surface, pos.x, pos.y, true);
+					sprite.image.drawAt(_graphics->getPlaneSurface(button.plane), pos.x, pos.y, true);
 				}
 			}
 		}

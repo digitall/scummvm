@@ -39,8 +39,8 @@ void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 }
 
 void TangramPuzzle::enter(uint32 time) {
-	applyPalette(_graphics, _palette, kBack);
-	_bgImage.drawAt(_graphics->getBackPlane().getSurface(), 0, 0, false);
+	applyPalette(_graphics, kBack, _palette);
+	_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
 	applyColorCycles(_graphics, &_colorCycles);
 
 	_graphics->markDirty();

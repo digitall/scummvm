@@ -98,7 +98,7 @@ Card::Signal ColorPuzzle::handleButtonClick(int num, uint32 curTime) {
 
 void ColorPuzzle::setPieceState(int piece, int state) {
 	_pieces[piece].state = state;
-	applyPaletteMod(_graphics, _pieces[piece].paletteMods, state, kFore);
+	applyPaletteMod(_graphics, kFore, _pieces[piece].paletteMods, state);
 	_graphics->markDirty();
 }
 
@@ -123,12 +123,13 @@ bool ColorPuzzle::isMorphing() const {
 void ColorPuzzle::driveMorph(uint32 curTime) {
 	uint32 progress = curTime - _morphStartTime;
 	if (progress >= kMorphDuration) {
-		applyPaletteMod(_graphics, *_morphPaletteMods, _morphEndState, kFore);
+		applyPaletteMod(_graphics, kFore, *_morphPaletteMods, _morphEndState);
 		// Transition back to accepting input
 		_morphPaletteMods = nullptr;
 	}
 	else {
-		applyPaletteModMorph(_graphics, *_morphPaletteMods, _morphStartState, _morphEndState, kFore,
+		applyPaletteModBlended(_graphics, kFore, *_morphPaletteMods,
+			_morphStartState, _morphEndState,
 			Common::Rational(progress, kMorphDuration));
 	}
 

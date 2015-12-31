@@ -51,40 +51,23 @@ static const int kVgaScreenHeight = 200;
 static const int kCdiScreenWidth = 384;
 static const int kCdiScreenHeight = 240;
 
-class Graphics;
-
-class Plane {
-public:
-	Plane();
-	~Plane();
-
-	void init(Graphics *graphics, int width, int height, byte colorBase);
-
-	::Graphics::Surface& getSurface() { return _surface; }
-	byte getColorBase() const { return _colorBase; }
-
-	void clear();
-	void grabPalette(byte *colors, uint start, uint num);
-	void setPalette(const byte *colors, uint start, uint num);
-
-private:
-	Graphics *_graphics;
-	::Graphics::Surface _surface;
-	byte _colorBase;
+enum { // plane numbers
+	kFore = 0,
+	kBack = 1,
 };
 
 // CD-I-like graphics system. There is a foreground and a background plane.
 // Each plane has a separate 128-color palette. Foreground color 0 is
 // transparent.
 class Graphics {
-	friend class Plane;
 public:
 	Graphics();
 
 	void init(OSystem *system, uint32 time);
 
-	Plane& getBackPlane() { return _backPlane; }
-	Plane& getForePlane() { return _forePlane; }
+	::Graphics::Surface& getPlaneSurface(int plane);
+	void setPlanePalette(int plane, const byte *colors, int first, int num);
+	void clearPlane(int plane);
 
 	// TODO: better system for timing
 	void setTime(uint32 time);
@@ -95,19 +78,30 @@ public:
 	void presentIfDirty();
 
 private:
-	byte _vgaPalette[256 * 3];
-	void grabVgaPalette(byte *colors, uint start, uint num);
-	void setVgaPalette(const byte *colors, uint start, uint num);
-
-	void commitVgaPalette(uint start, uint num);
-
 	OSystem *_system;
 
-	static const byte kBackColorBase = 0;
-	static const byte kForeColorBase = 128;
+	static const int kNumVgaColors = 256;
+	static const int kNumPlaneColors = 128;
+	static const byte kForeVgaFirst = 0;
+	static const byte kBackVgaFirst = 128;
 
-	Plane _backPlane;
+	struct Plane {
+		~Plane();
+
+		::Graphics::Surface surface;
+		byte vgaFirst;
+	};
+
+	Plane* getPlaneObject(int plane);
+	void initPlane(Plane &plane, int width, int height, byte vgaFirst);
+	void grabPlanePalette(int plane, byte *colors, int first, int num);
+	void grabVgaPalette(byte *colors, int first, int num);
+	void setVgaPalette(const byte *colors, int first, int num);
+	void commitVgaPalette(int first, int num);
+
 	Plane _forePlane;
+	Plane _backPlane;
+	byte _vgaPalette[kNumVgaColors * 3]; // Unfaded
 
 	struct ColorCycle {
 		ColorCycle() : start(0), end(0), delay(0) { }

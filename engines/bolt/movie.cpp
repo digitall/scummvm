@@ -304,17 +304,17 @@ void Movie::runTimelineCommand() {
 	{
 		// Fetch foreground from queue 0
 		ScopedBuffer buf(fetchBuffer(_videoQueues[0]));
-		applyQueue0or1Palette(_graphics->getForePlane(), buf);
-		drawQueue0or1(_graphics->getForePlane(), buf, 0, 0);
+		applyQueue0or1Palette(kFore, buf);
+		drawQueue0or1(kFore, buf, 0, 0);
 		break;
 	}
 	case TimelineOpcodes::kDrawBack: // param size: 0
 	{
 		// Clear fore, fetch background from queue 1
-		_graphics->getForePlane().clear();
+		_graphics->clearPlane(kFore);
 		ScopedBuffer buf(fetchBuffer(_videoQueues[1]));
-		applyQueue0or1Palette(_graphics->getBackPlane(), buf);
-		drawQueue0or1(_graphics->getBackPlane(), buf, 0, 0);
+		applyQueue0or1Palette(kBack, buf);
+		drawQueue0or1(kBack, buf, 0, 0);
 		break;
 	}
 	case TimelineOpcodes::kStartColorCycles: // param size: 8
@@ -430,7 +430,7 @@ void Movie::stepCels() {
 			drawCelBackground();
 		}
 
-		drawCel(_graphics->getForePlane(), _cels, _celsFrame);
+		drawCel(_cels, _celsFrame);
 
 		++_celsFrame;
 	}
@@ -492,7 +492,7 @@ void Movie::stepCelCommands() {
 				_celNextCameraX = _celCurCameraX;
 				_celNextCameraY = _celCurCameraY;
 
-				applyQueue0or1Palette(_graphics->getBackPlane(), _celsBackground);
+				applyQueue0or1Palette(kBack, _celsBackground);
 				drawCelBackground();
 
 				_celControlCursor += CelCommand::kSize + 4;
@@ -503,7 +503,7 @@ void Movie::stepCelCommands() {
 				byte firstColor = _cels[paramsOffset + 1];
 				debug(3, "cel command: load fore palette num %d first %d",
 					(int)numColors, (int)firstColor);
-				_graphics->getForePlane().setPalette(&_cels[paramsOffset + 2],
+				_graphics->setPlanePalette(kFore, &_cels[paramsOffset + 2],
 					firstColor, numColors);
 
 				_celControlCursor += CelCommand::kSize + 2 + numColors * 3;
@@ -591,11 +591,11 @@ void Movie::advanceScroll() {
 
 void Movie::drawCelBackground() {
 	if (_celsBackground) {
-		drawQueue0or1(_graphics->getBackPlane(), _celsBackground, -_celCurCameraX, -_celCurCameraY);
+		drawQueue0or1(kBack, _celsBackground, -_celCurCameraX, -_celCurCameraY);
 	}
 }
 
-void Movie::drawCel(Plane &plane, const ScopedBuffer &src, uint16 frameNum) {
+void Movie::drawCel(const ScopedBuffer &src, uint16 frameNum) {
 	// Queue 4 buffers define a sequence of foreground cels and background control commands.
 	CelsHeader header(&src[0]);
 	assert(header.queueNum == 4);
@@ -604,7 +604,7 @@ void Movie::drawCel(Plane &plane, const ScopedBuffer &src, uint16 frameNum) {
 	uint32 rl7Offset = READ_BE_UINT32(&src[CelsHeader::kSize + frameNum * 8]);
 	uint32 rl7Size = READ_BE_UINT32(&src[CelsHeader::kSize + frameNum * 8 + 4]);
 
-	decodeRL7(plane.getSurface(), 0, 0, header.width, header.height,
+	decodeRL7(_graphics->getPlaneSurface(kFore), 0, 0, header.width, header.height,
 		&src[rl7Offset], rl7Size, false);
 }
 
@@ -788,13 +788,14 @@ struct Queue01ImageHeader {
 		queueNum = READ_BE_UINT16(&src[0]);
 		width = READ_BE_UINT16(&src[2]);
 		height = READ_BE_UINT16(&src[4]);
-		// FIXME: Unknown fields here
+		// FIXME: Unknown fields
 		unk[0] = src[0x6]; // Always 128
 		unk[1] = src[0x7]; // Always 0
 		unk[2] = src[0x8]; // Always 0
 		unk[3] = src[0x9]; // Always 0
 		unk[4] = src[0xA]; // Something
-		unk[5] = src[0xB]; // Something
+		unk[5] = src[0xB]; // Something (probably data size)
+		dataSizePerhaps = READ_BE_UINT16(&src[0xA]);
 		compression = src[0xC];
 	}
 
@@ -802,37 +803,33 @@ struct Queue01ImageHeader {
 	uint16 width;
 	uint16 height;
 	byte unk[6];
+	uint16 dataSizePerhaps;
 	byte compression;
 };
 
-void Movie::applyQueue0or1Palette(Plane &plane, const ScopedBuffer &src) {
+void Movie::applyQueue0or1Palette(int plane, const ScopedBuffer &src) {
 	Queue01ImageHeader header(&src[0]);
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
-	plane.setPalette(&src[Queue01ImageHeader::kSize], 0, 128);
+	_graphics->setPlanePalette(plane, &src[Queue01ImageHeader::kSize], 0, 128);
 }
 
-void Movie::drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y) {
+void Movie::drawQueue0or1(int plane, const ScopedBuffer &src, int x, int y) {
 	// Queue 0 buffers define background frames for scene changes.
 	// Queue 1 buffers define background frames for use with cel sequences.
 	Queue01ImageHeader header(&src[0]);
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
-	/*debug(3, "drawing background: queue %d, width %d, height %d, compression %d,",
-		(int)header.queueNum, (int)header.width, (int)header.height, (int)header.compression);
-	debug(3, "                    unk %d %d %d %d %d %d",
-		(int)header.unk[0], (int)header.unk[1], (int)header.unk[2], (int)header.unk[3],
-		(int)header.unk[4], (int)header.unk[5]);*/
-
 	const byte *imageSrc = &src[Queue01ImageHeader::kSize + 128 * 3];
 	int imageSrcLen = src.size() - 128 * 3 - Queue01ImageHeader::kSize;
+	debug(3, "data size: %d, imageSrcLen: %d", (int)header.dataSizePerhaps, imageSrcLen);
 
 	if (header.compression) {
-		decodeRL7(plane.getSurface(), x, y, header.width, header.height,
+		decodeRL7(_graphics->getPlaneSurface(plane), x, y, header.width, header.height,
 			imageSrc, imageSrcLen, false);
 	}
 	else {
-		decodeCLUT7(plane.getSurface(), x, y, header.width, header.height,
+		decodeCLUT7(_graphics->getPlaneSurface(plane), x, y, header.width, header.height,
 			imageSrc, imageSrcLen, false);
 	}
 }
