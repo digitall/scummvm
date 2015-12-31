@@ -148,7 +148,7 @@ private:
 
 	void stepCelCommands();
 	void drawCelBackground();
-	void drawCel(Plane &plane, const ScopedBuffer &src, uint16 frameNum);
+	void drawCel(const ScopedBuffer &src, uint16 frameNum);
 
 	ScopedBuffer _cels;
 	ScopedBuffer _celsBackground;
@@ -183,8 +183,8 @@ private:
 
 	// DRAWING
 
-	void applyQueue0or1Palette(Plane &plane, const ScopedBuffer &src);
-	void drawQueue0or1(Plane &plane, const ScopedBuffer &src, int x, int y);
+	void applyQueue0or1Palette(int plane, const ScopedBuffer &src);
+	void drawQueue0or1(int plane, const ScopedBuffer &src, int x, int y);
 };
 
 } // End of namespace Bolt

@@ -90,8 +90,6 @@ private:
 
 	Common::ScopedPtr<BltColorCycles> _colorCycles;
 
-	Bolt::Plane& getGraphicsPlane(uint16 num);
-
 	struct BltButtonGraphicsStruct { // type 30
 		static const uint32 kType = kBltButtonGraphicsList;
 		static const uint kSize = 0xC;

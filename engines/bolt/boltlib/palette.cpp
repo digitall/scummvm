@@ -64,11 +64,10 @@ void BltPalette::load(Boltlib &boltlib, BltId id) {
 	data.reset(boltlib.loadResource(id, kBltPalette));
 }
 
-void applyPalette(Graphics *graphics, const BltPalette &palette, PaletteTarget target) {
+void applyPalette(Graphics *graphics, int plane, const BltPalette &palette) {
 	if (palette.data) {
 		BltPaletteHeader header(&palette.data[0]);
 		if (header.target == 0) {
-			debug(3, "setting palette with target type 0 to both planes");
 			// Both fore and back planes
 			if (header.bottom != 0) {
 				warning("palette target 0 bottom color is not 0");
@@ -77,26 +76,13 @@ void applyPalette(Graphics *graphics, const BltPalette &palette, PaletteTarget t
 				warning("palette target 0 top color is not 255");
 			}
 
-			graphics->getBackPlane().setPalette(&palette.data[BltPaletteHeader::kSize], 0, 128);
-			graphics->getForePlane().setPalette(&palette.data[BltPaletteHeader::kSize + 128 * 3], 0, 128);
+			graphics->setPlanePalette(kBack, &palette.data[BltPaletteHeader::kSize], 0, 128);
+			graphics->setPlanePalette(kFore, &palette.data[BltPaletteHeader::kSize + 128 * 3], 0, 128);
 		}
 		else if (header.target == 2) {
 			// Auto? Back or fore not specified in palette resource.
-			Plane *plane = nullptr;
-			if (target == kBack) {
-				debug(3, "setting palette with target type 2 to back");
-				plane = &graphics->getBackPlane();
-			}
-			else if (target == kFore) {
-				debug(3, "setting palette with target type 2 to fore");
-				plane = &graphics->getForePlane();
-			}
-			else {
-				assert(false); // Unreachable, target must be valid
-			}
-
 			uint num = header.top - header.bottom + 1;
-			plane->setPalette(&palette.data[BltPaletteHeader::kSize],
+			graphics->setPlanePalette(plane, &palette.data[BltPaletteHeader::kSize],
 				header.bottom, num);
 		}
 		else {
@@ -105,66 +91,44 @@ void applyPalette(Graphics *graphics, const BltPalette &palette, PaletteTarget t
 	}
 }
 
-void applyPaletteMod(Graphics *graphics, const BltPaletteMods &mod, int state, PaletteTarget target) {
-	Plane *plane = nullptr;
-	if (target == kBack) {
-		plane = &graphics->getBackPlane();
-	}
-	else if (target == kFore) {
-		plane = &graphics->getForePlane();
-	}
-	else {
-		assert(false); // Unreachable, target must be valid
-	}
-
-	plane->setPalette(&mod[state].colors[0], mod[state].start, mod[state].num);
+void applyPaletteMod(Graphics *graphics, int plane, const BltPaletteMods &mod, int state) {
+	graphics->setPlanePalette(plane, &mod[state].colors[0], mod[state].first, mod[state].num);
 }
 
 static int lerp(int a, int b, Common::Rational t) {
 	return a + ((b - a) * t).toInt();
 }
 
-void applyPaletteModMorph(Graphics *graphics, const BltPaletteMods &mod, int stateA, int stateB,
-	PaletteTarget target, Common::Rational t) {
-	if (mod[stateA].start != mod[stateB].start ||
+void applyPaletteModBlended(Graphics *graphics, int plane, const BltPaletteMods &mod,
+	int stateA, int stateB, Common::Rational t) {
+	if (mod[stateA].first != mod[stateB].first ||
 		mod[stateA].num != mod[stateB].num) {
 		warning("Mismatched ranges in palette morph");
 		return;
 	}
 
-	int firstColor = mod[stateA].start;
-	int numColors = mod[stateA].num;
-	if (firstColor + numColors > 128) {
+	int first = mod[stateA].first;
+	int num = mod[stateA].num;
+	if (first + num > 128) {
 		warning("Invalid range in palette morph");
 		return;
 	}
 
 	if (t <= 0) {
-		applyPaletteMod(graphics, mod, stateA, target);
+		applyPaletteMod(graphics, plane, mod, stateA);
 	}
 	else if (t >= 1) {
-		applyPaletteMod(graphics, mod, stateB, target);
+		applyPaletteMod(graphics, plane, mod, stateB);
 	}
 	else {
 		byte morphed[128 * 3];
-		for (int i = 0; i < numColors * 3; ++i) {
+		for (int i = 0; i < num * 3; ++i) {
 			byte a = mod[stateA].colors[i];
 			byte b = mod[stateB].colors[i];
 			morphed[i] = lerp(a, b, t);
 		}
 
-		Plane *plane = nullptr;
-		if (target == kBack) {
-			plane = &graphics->getBackPlane();
-		}
-		else if (target == kFore) {
-			plane = &graphics->getForePlane();
-		}
-		else {
-			assert(false); // Unreachable, target must be valid
-		}
-
-		plane->setPalette(morphed, firstColor, numColors);
+		graphics->setPlanePalette(plane, morphed, first, num);
 	}
 }
 

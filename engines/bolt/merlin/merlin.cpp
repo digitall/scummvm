@@ -82,21 +82,16 @@ void MerlinEngine::initCursor() {
 		_cursorImage.load(_boltlib, BltShortId(kCursorImageId));
 	}
 
-	Common::Array<byte> decodedImage;
-	decodedImage.resize(_cursorImage.getWidth() * _cursorImage.getHeight());
 	::Graphics::Surface surface;
-	surface.init(_cursorImage.getWidth(), _cursorImage.getHeight(),
-		_cursorImage.getWidth(), &decodedImage[0],
+	surface.create(_cursorImage.getWidth(), _cursorImage.getHeight(),
 		::Graphics::PixelFormat::createFormatCLUT8());
 	_cursorImage.draw(surface, false);
-
-	_system->setMouseCursor(&decodedImage[0],
+	_system->setMouseCursor(surface.getPixels(),
 		_cursorImage.getWidth(), _cursorImage.getHeight(),
 		-_cursorImage.getOffset().x, -_cursorImage.getOffset().y, 0);
-
 	_system->setCursorPalette(kCursorPalette, 0, 2);
-
 	_system->showMouse(true);
+	surface.free();
 }
 
 void MerlinEngine::resetSequence() {
