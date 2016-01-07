@@ -23,7 +23,7 @@
 
 # Requires Pillow and construct library
 
-from collections import namedtuple
+from collections import namedtuple, deque
 import io
 import os
 import struct
@@ -33,7 +33,6 @@ import PIL.Image
 from construct import *
 from internal.rl7 import decode_rl7
 
-# Generate _TEST_PALETTE
 _TEST_PALETTE = [0] * 768 # holds r, g, b bytes
 for r in range(0, 4):
     for g in range(0, 8):
@@ -43,32 +42,138 @@ for r in range(0, 4):
             _TEST_PALETTE[3*i+1] = g * 255 // 7
             _TEST_PALETTE[3*i+2] = b * 255 // 3
 # Repeat for both planes
-_TEST_PALETTE[128:256] = _TEST_PALETTE[0:128]
+_TEST_PALETTE[128*3:256*3] = _TEST_PALETTE[0*3:128*3]
 
 class PacketType:
-    HEADER = 0x0000
-    AUDIO = 0x0100
-    IMAGE0200 = 0x0200
-    IMAGE0300 = 0x0300 # Used for big scrolling backgrounds
-    UNK0400 = 0x0400 # Occurs at 26th packet of help dialogues, 0 size
-    UNK0600 = 0x0600 # Occurs in ma.pf, 0 size
-    UNKFE00 = 0xFE00 # Occurs at 27th packet of help dialogues, 0 size
-    UNKFF00 = 0xFF00 # Occurs in ma.pf, 0 size, possibly stop marker at eof?
-Packet = namedtuple('Packet', 'offset total_size partial_size type data')
+    TIMELINE = 0
+    AUDIO = 1
+    VIDEO = 2
+    AUX_VIDEO = 3 # Used for big scrolling backgrounds
+    UNK4 = 4 # Occurs at 26th packet of help dialogues, 0 size
+    UNK6 = 6 # Occurs in ma.pf, 0 size
+    UNKFE = 0xFE # Occurs at 27th packet of help dialogues, 0 size
+    FINAL = 0xFF # Occurs at end of file
+
+_PacketHeader = Struct("_PacketHeader",
+    UBInt32('total_size'),
+    UBInt32('partial_size'),
+    UBInt8('type'),
+    UBInt8('unk'),
+    )
 
 def read_packet(in_file):
-    offset = in_file.tell()
-    header = in_file.read(10)
+    class Packet:
+        pass
+    packet = Packet()
+    packet.header = _PacketHeader.parse_stream(in_file)
+    packet.data = in_file.read(packet.header.partial_size)
+    return packet
 
-    total_size, partial_size, type_ = struct.unpack('>IIH', header)
+class BufferQueue:
+    def __init__(self):
+        self._queue = deque()
+        self._buffer = None
+        self._cursor = 0
 
-    data = in_file.read(partial_size)
+    def is_empty(self):
+        return bool(self._queue)
 
-    return Packet(offset=offset,
-        total_size=total_size,
-        partial_size=partial_size,
-        type=type_,
-        data=data,)
+    def pop(self):
+        return self._queue.popleft()
+
+    def add_packet(self, packet):
+        if not self._buffer:
+            self._buffer = bytearray(packet.header.total_size)
+            self._cursor = 0
+
+        if packet.header.total_size != len(self._buffer):
+            raise ValueError("Mismatched buffer sizes")
+        if self._cursor + len(packet.data) > len(self._buffer):
+            raise ValueError("Buffer overflow")
+        self._buffer[self._cursor : self._cursor + len(packet.data)] = \
+            packet.data[:]
+        self._cursor += len(packet.data)
+
+        if self._cursor >= len(self._buffer):
+            # Buffer finished
+            self._queue.append(self._buffer)
+            self._buffer = None
+            self._cursor = 0
+
+_TimelineHeader = Struct('_TimelineHeader',
+    UBInt32('unk_00'),
+    UBInt32('unk_04'),
+    UBInt16('num_commands'),
+    UBInt16('frame_period'),
+    )
+
+_TimelineCommand = Struct('_TimelineCommand',
+    UBInt16('delay'),
+    UBInt16('opcode'),
+    UBInt8('reps'),
+    )
+
+_TIMELINE_COMMANDS = {
+    1: ('DrawQueue0', 0),
+    2: ('DrawQueue1', 0),
+    12: ('StartColorCycles', 8),
+    13: ('StopColorCycles', 0),
+    15: ('StartCels', 0),
+    16: ('AdvanceCels', 0),
+    19: ('Fade', 4),
+    0x7FFF: ('Name', 4),
+    0x8001: ('Trigger1', 0),
+}
+
+class Movie:
+    def __init__(self, in_file):
+        self._in_file = in_file
+        self._timeline_queue = BufferQueue()
+        self._aux_video_queue = BufferQueue()
+        self._timeline = None
+        self._timeline_cursor = 0
+        self._timeline_active = False
+
+    def simulate_play(self):
+        print("Starting...")
+        self._timeline = self._fetch_buffer(self._timeline_queue)
+        self._timeline_cursor = _TimelineHeader.sizeof()
+        self._timeline_active = True
+
+        # Print listing of timeline
+        timeline_header = _TimelineHeader.parse(self._timeline)
+        print("unk_00: {}".format(timeline_header.unk_00))
+        print("unk_04: {}".format(timeline_header.unk_04))
+        print("num commands: {}".format(timeline_header.num_commands))
+        print("frame period: {}".format(timeline_header.frame_period))
+
+        cursor = self._timeline_cursor
+        for i in range(timeline_header.num_commands):
+            command = _TimelineCommand.parse(self._timeline[cursor:])
+            cursor += _TimelineCommand.sizeof()
+            name, param_size = _TIMELINE_COMMANDS[command.opcode]
+            print("@{} *{} {}".format(command.delay, command.reps, name), end='')
+            for j in range(param_size):
+                print(" {}".format(self._timeline[cursor+j]), end='')
+            print('')
+
+            cursor += param_size
+
+        print('')
+
+    def _fetch_buffer(self, queue):
+        while not queue.is_empty():
+            self._read_next_packet()
+        return queue.pop()
+
+    def _read_next_packet(self):
+        packet = read_packet(self._in_file)
+        if packet.header.type == PacketType.TIMELINE:
+            self._timeline_queue.add_packet(packet)
+        elif packet.header.type == PacketType.AUX_VIDEO:
+            self._aux_video_queue.add_packet(packet)
+        else:
+            raise ValueError("Invalid packet type {}".format(packet.header.type))
 
 # FIXME: Don't use global variable for this.
 current_palette = _TEST_PALETTE
@@ -152,7 +257,7 @@ def extract_movie_header(out_dir, name, data):
             out_file.write('\n')
 
 
-def extract_scene(out_dir, name, in_file):
+def _XXX_OLD_extract_movie(out_dir, name, in_file):
     wav_path = os.path.join(out_dir, name + '.wav')
     with wave.open(wav_path, 'wb') as wav_file:
         wav_file.setparams((1, 1, 22050, 0, 'NONE', 'NONE'))
@@ -227,6 +332,10 @@ def extract_scene(out_dir, name, in_file):
                 print("unknown packet type", hex(packet.type), "at offset",
                     hex(packet.offset))
 
+def extract_movie(out_dir, name, in_file):
+    movie = Movie(in_file)
+    movie.simulate_play()
+
 def extract_pf_file(out_dir, in_file):
     os.makedirs(out_dir, exist_ok=True)
 
@@ -244,11 +353,11 @@ def extract_pf_file(out_dir, in_file):
 
         cursor = in_file.tell()
         in_file.seek(offset)
-        extract_scene(out_dir, name, in_file)
+        extract_movie(out_dir, name, in_file)
         in_file.seek(cursor)
 
 def main(argv):
-    print("Welcome to Merlin's Apprentice PF extractor")
+    print("Merlin's Apprentice PF extractor")
 
     if len(argv) < 2:
         print("Please specify a PF file")

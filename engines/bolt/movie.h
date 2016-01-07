@@ -153,7 +153,6 @@ private:
 	ScopedBuffer _cels;
 	ScopedBuffer _celsBackground;
 	int _celsFrame;
-	int _celsLastControlFrame;
 	int _celControlCursor;
 	int _celCurCameraX;
 	int _celCurCameraY;

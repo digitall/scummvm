@@ -26,6 +26,7 @@
 #include "common/events.h"
 #include "common/system.h"
 #include "graphics/palette.h"
+#include "engines/advancedDetector.h"
 
 #include "bolt/merlin/merlin.h"
 
@@ -33,7 +34,11 @@ namespace Bolt {
 
 BoltEngine::BoltEngine(OSystem *syst, const ADGameDescription *gd) :
 	Engine(syst)
-{ }
+{
+	if (Common::String("merlin").compareTo(gd->gameid) == 0) {
+		_game.reset(new MerlinGame);
+	}
+}
 
 bool BoltEngine::hasFeature(EngineFeature f) const {
 	return
@@ -44,7 +49,7 @@ Common::Error BoltEngine::run() {
 	_eventTime = getTotalPlayTime();
 
 	_graphics.init(_system, _eventTime);
-	init();
+	_game->init(_system, &_graphics, _mixer, _eventTime);
 
 	// Main loop
 	while (!shouldQuit()) {
@@ -95,7 +100,7 @@ void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {
 		_graphics.markDirty();
 	}
 
-	handleEvent(event);
+	_game->handleEvent(event);
 	_graphics.presentIfDirty();
 }
 
