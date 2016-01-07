@@ -91,9 +91,7 @@ bool BoltMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGame
 	*engine = nullptr;
 
 	if (desc) {
-		if (Common::String("merlin").compareTo(desc->gameid) == 0) {
-			*engine = new MerlinEngine(syst, desc);
-		}
+		*engine = new BoltEngine(syst, desc);
 	}
 
 	return *engine != nullptr;

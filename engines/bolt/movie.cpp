@@ -238,7 +238,7 @@ void Movie::stepTimeline() {
 	assert(_timelineActive);
 	assert(_timeline);
 
-	// There may be one or more timeline commands with 0 delay. Process them all before returning.
+	// There may be one or more timeline commands with 0 delay. Run them all in this step.
 	bool done = false;
 	while (!done) {
 		TimelineCommand cmd(&_timeline[_timelineCursor]);
@@ -247,8 +247,6 @@ void Movie::stepTimeline() {
 			_timelineCursor += TimelineCommand::kSize + getTimelineCmdParamSize(cmd.opcode);
 			++_curTimelineCmdNum;
 			if (_curTimelineCmdNum >= _numTimelineCmds) {
-				_graphics->markDirty();
-				playAudio();
 				_timelineActive = false;
 				done = true;
 			}
@@ -258,8 +256,6 @@ void Movie::stepTimeline() {
 		}
 		else if ((_curFrameNum - _lastTimelineCmdFrame) < cmd.delay) {
 			// Delay occurs BEFORE command.
-			_graphics->markDirty();
-			playAudio();
 			done = true;
 		}
 		else {
@@ -268,6 +264,9 @@ void Movie::stepTimeline() {
 			--_timelineReps;
 		}
 	}
+
+	_graphics->markDirty();
+	playAudio();
 }
 
 void Movie::loadTimelineCommand() {
@@ -408,7 +407,6 @@ void Movie::loadCels(ScopedBuffer::Movable buf) {
 
 	// Do NOT reset background or camera here.
 	_celsFrame = 0;
-	_celsLastControlFrame = 0;
 	_celControlCursor = header.controlDataOffset;
 }
 
@@ -531,8 +529,6 @@ void Movie::stepCelCommands() {
 				error("Unknown cel command 0x%X", (int)cmd.opcode);
 				break;
 			}
-
-			_celsLastControlFrame = _celsFrame;
 		}
 		else {
 			done = true;
@@ -795,7 +791,6 @@ struct Queue01ImageHeader {
 		unk[3] = src[0x9]; // Always 0
 		unk[4] = src[0xA]; // Something
 		unk[5] = src[0xB]; // Something (probably data size)
-		dataSizePerhaps = READ_BE_UINT16(&src[0xA]);
 		compression = src[0xC];
 	}
 
@@ -803,7 +798,6 @@ struct Queue01ImageHeader {
 	uint16 width;
 	uint16 height;
 	byte unk[6];
-	uint16 dataSizePerhaps;
 	byte compression;
 };
 
@@ -821,16 +815,15 @@ void Movie::drawQueue0or1(int plane, const ScopedBuffer &src, int x, int y) {
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
 	const byte *imageSrc = &src[Queue01ImageHeader::kSize + 128 * 3];
-	int imageSrcLen = src.size() - 128 * 3 - Queue01ImageHeader::kSize;
-	debug(3, "data size: %d, imageSrcLen: %d", (int)header.dataSizePerhaps, imageSrcLen);
+	int imageDataLen = src.size() - 128 * 3 - Queue01ImageHeader::kSize;
 
 	if (header.compression) {
 		decodeRL7(_graphics->getPlaneSurface(plane), x, y, header.width, header.height,
-			imageSrc, imageSrcLen, false);
+			imageSrc, imageDataLen, false);
 	}
 	else {
 		decodeCLUT7(_graphics->getPlaneSurface(plane), x, y, header.width, header.height,
-			imageSrc, imageSrcLen, false);
+			imageSrc, imageDataLen, false);
 	}
 }
 

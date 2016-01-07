@@ -43,13 +43,10 @@ struct PuzzleEntry {
 	uint32 winMovie;
 };
 
-class MerlinEngine : public BoltEngine {
+class MerlinGame : public BoltGame {
 public:
-	MerlinEngine(OSystem *syst, const ADGameDescription *gd);
-
-protected:
-	// From BoltEngine
-	virtual void init();
+	// From BoltGame
+	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, uint32 curTime);
 	virtual void handleEvent(const BoltEvent &event);
 
 private:
@@ -67,6 +64,11 @@ private:
 	void handleEventInCard(const BoltEvent &event);
 	void win();
 	void puzzle(const PuzzleEntry *entry);
+
+	OSystem *_system;
+	Graphics *_graphics;
+	Audio::Mixer *_mixer;
+	uint32 _eventTime;
 
 	Boltlib _boltlib;
 	PfFile _maPf;
@@ -86,7 +88,7 @@ private:
 	const HubEntry *_currentHub;
 	const PuzzleEntry *_currentPuzzle;
 
-	typedef void (MerlinEngine::*CallbackFunc)(const void *param);
+	typedef void (MerlinGame::*CallbackFunc)(const void *param);
 	struct Callback {
 		CallbackFunc func;
 		const void *param;

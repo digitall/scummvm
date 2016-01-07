@@ -110,23 +110,26 @@ public:
 
 typedef Common::ScopedPtr<Card> CardPtr;
 
+class BoltGame {
+public:
+	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, uint32 curTime) = 0;
+	virtual void handleEvent(const BoltEvent &event) = 0;
+};
+
 class BoltEngine : public Engine {
 public:
+	BoltEngine(OSystem *syst, const ADGameDescription *gd);
+
 	// From Engine
 	virtual bool hasFeature(EngineFeature f) const;
 
 protected:
-	BoltEngine(OSystem *syst, const ADGameDescription *gd);
-
 	// From Engine
 	virtual Common::Error run();
 
-	// Provided by subclass
-	virtual void init() = 0;
-	virtual void handleEvent(const BoltEvent &event) = 0;
-
 	Graphics _graphics;
 	uint32 _eventTime; // time of current or last received event
+	Common::ScopedPtr<BoltGame> _game;
 
 private:
 	void topLevelHandleEvent(const BoltEvent &event);
