@@ -161,6 +161,10 @@ Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::Click) {
 		return handleClick(event.point);
 	}
+	else if (event.type == BoltEvent::RightClick) {
+		// Right click to win instantly
+		return win();
+	}
 	else if (event.type == BoltEvent::Tick) {
 		uint32 diff = event.time - _curTime;
 		if (diff >= kTickPeriod) {
@@ -169,10 +173,7 @@ Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 		}
 
 		if (_goalNum >= _goals.size()) {
-			// Reset background before starting win movie
-			_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
-			_graphics->clearPlane(kFore);
-			return kWin;
+			return win();
 		}
 	}
 
@@ -292,6 +293,13 @@ void ActionPuzzle::tick() {
 
 	drawFore();
 	_graphics->markDirty();
+}
+
+Card::Signal ActionPuzzle::win() {
+	// Redraw background before starting win movie
+	_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
+	_graphics->clearPlane(kFore);
+	return kWin;
 }
 
 } // End of namespace Bolt

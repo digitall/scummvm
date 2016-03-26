@@ -78,6 +78,7 @@ struct BoltEvent {
 		Invalid,
 		Hover,
 		Click,
+		RightClick,
 		Tick,
 		// TODO: Timer, AudioEnded
 	};

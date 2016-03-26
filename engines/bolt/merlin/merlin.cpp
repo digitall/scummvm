@@ -31,6 +31,7 @@
 #include "bolt/merlin/action_puzzle.h"
 #include "bolt/merlin/color_puzzle.h"
 #include "bolt/merlin/memory_puzzle.h"
+#include "bolt/merlin/potion_puzzle.h"
 #include "bolt/merlin/sliding_puzzle.h"
 #include "bolt/merlin/synch_puzzle.h"
 #include "bolt/merlin/tangram_puzzle.h"
@@ -75,6 +76,20 @@ void MerlinGame::handleEvent(const BoltEvent &event) {
 	else {
 		assert(false); // Unreachable; there must be an active movie or card
 	}
+}
+
+
+Graphics* MerlinGame::getGraphics() {
+	return _graphics;
+}
+
+void MerlinGame::startPotionMovie(int num) {
+	if (num < 0 || num >= kNumPotionMovies) {
+		warning("Tried to play invalid potion movie %d", num);
+		return;
+	}
+
+	startMovie(_potionPf, kPotionMovies[num]);
 }
 
 void MerlinGame::initCursor() {
@@ -248,7 +263,7 @@ void MerlinGame::enterCurrentCard(bool cursorActive) {
 		hoverEvent.type = BoltEvent::Hover;
 		hoverEvent.time = _eventTime;
 		hoverEvent.point = _system->getEventManager()->getMousePos();
-		_currentCard->handleEvent(hoverEvent);
+		handleEventInCard(hoverEvent);
 	}
 }
 
@@ -287,6 +302,14 @@ void MerlinGame::freeplayHub(const void *param) {
 	uint16 sceneId = *reinterpret_cast<const uint16*>(param);
 	GenericMenuCard *card = new GenericMenuCard;
 	card->init(_graphics, _boltlib, BltShortId(sceneId));
+	setCurrentCard(card);
+}
+
+void MerlinGame::potionPuzzle(const void *param) {
+	_currentCard.reset();
+	uint16 id = *reinterpret_cast<const uint16*>(param);
+	PotionPuzzle *card = new PotionPuzzle;
+	card->init(this, _boltlib, BltShortId(id));
 	setCurrentCard(card);
 }
 
@@ -337,6 +360,15 @@ void MerlinGame::freeplayHub(const void *param) {
 //   PondDD   865E
 //   FlasksDD 8797
 //   StalacDD 887B
+//
+// Potion movies:
+//   'ELEC', 'EXPL', 'FLAM', 'FLSH', 'MIST', 'OOZE', 'SHMR',
+//   'SWRL', 'WIND', 'BOIL', 'BUBL', 'BSPK', 'FBRS', 'FCLD',
+//   'FFLS', 'FSWR', 'LAVA', 'LFIR', 'LSMK', 'SBLS', 'SCLM',
+//   'SFLS', 'SPRE', 'WSTM', 'WSWL', 'BUGS', 'CRYS', 'DNCR',
+//   'FISH', 'GLAC', 'GOLM', 'EYEB', 'MOLE', 'MOTH', 'MUDB',
+//   'ROCK', 'SHTR', 'SLUG', 'SNAK', 'SPKB', 'SPKM', 'SPDR',
+//   'SQID', 'CLOD', 'SWIR', 'VOLC', 'WORM',
 //
 // TODO: there are more: cursor, menus, etc.
 
@@ -406,6 +438,10 @@ static const uint16 kFreeplayScene1 = 0x0337; // so stop hardcoding these
 static const uint16 kFreeplayScene2 = 0x0446;
 static const uint16 kFreeplayScene3 = 0x0555;
 
+static const uint16 kPotionPuzzle1 = 0x940C;
+static const uint16 kPotionPuzzle2 = 0x980C;
+static const uint16 kPotionPuzzle3 = 0x9C0E;
+
 const MerlinGame::Callback
 MerlinGame::kSequence[] = {
 	// Pre-game menus
@@ -431,12 +467,37 @@ MerlinGame::kSequence[] = {
 	//{ &MerlinGame::plotMovie, &kPlotMovieFNLE },
 
 	{ &MerlinGame::freeplayHub, &kFreeplayScene1 },
+	{ &MerlinGame::potionPuzzle, &kPotionPuzzle1 },
 	{ &MerlinGame::freeplayHub, &kFreeplayScene2 },
+	{ &MerlinGame::potionPuzzle, &kPotionPuzzle2 },
 	{ &MerlinGame::freeplayHub, &kFreeplayScene3 },
+	{ &MerlinGame::potionPuzzle, &kPotionPuzzle3 },
 };
 
 const int MerlinGame::kSequenceSize =
 	sizeof(MerlinGame::kSequence) /
 	sizeof(MerlinGame::Callback);
+
+const uint32 MerlinGame::kPotionMovies[] = {
+	MKTAG('E','L','E','C'), MKTAG('E','X','P','L'), MKTAG('F','L','A','M'),
+	MKTAG('F','L','S','H'), MKTAG('M','I','S','T'), MKTAG('O','O','Z','E'),
+	MKTAG('S','H','M','R'), MKTAG('S','W','R','L'), MKTAG('W','I','N','D'),
+	MKTAG('B','O','I','L'), MKTAG('B','U','B','L'), MKTAG('B','S','P','K'),
+	MKTAG('F','B','R','S'), MKTAG('F','C','L','D'), MKTAG('F','F','L','S'),
+	MKTAG('F','S','W','R'), MKTAG('L','A','V','A'), MKTAG('L','F','I','R'),
+	MKTAG('L','S','M','K'), MKTAG('S','B','L','S'), MKTAG('S','C','L','M'),
+	MKTAG('S','F','L','S'), MKTAG('S','P','R','E'), MKTAG('W','S','T','M'),
+	MKTAG('W','S','W','L'), MKTAG('B','U','G','S'), MKTAG('C','R','Y','S'),
+	MKTAG('D','N','C','R'), MKTAG('F','I','S','H'), MKTAG('G','L','A','C'),
+	MKTAG('G','O','L','M'), MKTAG('E','Y','E','B'), MKTAG('M','O','L','E'),
+	MKTAG('M','O','T','H'), MKTAG('M','U','D','B'), MKTAG('R','O','C','K'),
+	MKTAG('S','H','T','R'), MKTAG('S','L','U','G'), MKTAG('S','N','A','K'),
+	MKTAG('S','P','K','B'), MKTAG('S','P','K','M'), MKTAG('S','P','D','R'),
+	MKTAG('S','Q','I','D'), MKTAG('C','L','O','D'), MKTAG('S','W','I','R'),
+	MKTAG('V','O','L','C'), MKTAG('W','O','R','M'),
+};
+
+const int MerlinGame::kNumPotionMovies =
+	sizeof(MerlinGame::kPotionMovies) / sizeof(uint32);
 
 } // End of namespace Bolt

@@ -31,6 +31,8 @@ namespace Bolt {
 class SlidingPuzzle : public Card {
 public:
 	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
+
+	// From Card
 	void enter(uint32 time);
 	Signal handleEvent(const BoltEvent &event);
 

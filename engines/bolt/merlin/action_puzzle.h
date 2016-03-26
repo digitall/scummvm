@@ -75,6 +75,7 @@ protected:
 	void drawBack();
 	void drawFore();
 	void tick();
+	Signal win();
 
 	static const int kTickPeriod = 50;
 	Common::RandomSource _random;

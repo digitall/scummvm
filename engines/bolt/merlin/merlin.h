@@ -49,6 +49,11 @@ public:
 	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, uint32 curTime);
 	virtual void handleEvent(const BoltEvent &event);
 
+	Graphics* getGraphics();
+	void startPotionMovie(int num);
+
+	static const int kNumPotionMovies;
+
 private:
 	void initCursor();
 	void resetSequence();
@@ -100,6 +105,7 @@ private:
 	void difficultyMenu(const void *param);
 	void hub(const void *param);
 	void freeplayHub(const void *param);
+	void potionPuzzle(const void *param);
 
 	static const HubEntry kStage1;
 	static const PuzzleEntry kStage1Puzzles[6];
@@ -110,6 +116,8 @@ private:
 
 	static const Callback kSequence[];
 	static const int kSequenceSize;
+
+	static const uint32 kPotionMovies[];
 };
 
 } // End of namespace Bolt

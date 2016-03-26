@@ -57,9 +57,13 @@ void Movie::start(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint3
 	_graphics = graphics;
 	_mixer = mixer;
 
-	_file = pfFile.seekMovieAndGetFile(name);
-
 	stop();
+
+	_file = pfFile.seekMovieAndGetFile(name);
+	if (!_file) {
+		warning("Movie not found");
+		return;
+	}
 
 	_parserActive = true;
 	_timelineActive = true;
