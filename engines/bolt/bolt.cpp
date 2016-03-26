@@ -77,6 +77,13 @@ Common::Error BoltEngine::run() {
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
 		}
+		else if (event.type == Common::EVENT_RBUTTONDOWN) {
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::RightClick;
+			boltEvent.time = _eventTime;
+			boltEvent.point = event.mouse;
+			topLevelHandleEvent(boltEvent);
+		}
 		else {
 			// Emit "tick" event
 			// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
@@ -99,7 +106,6 @@ void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {
 		// system for cursor visibility status)
 		_graphics.markDirty();
 	}
-
 	_game->handleEvent(event);
 	_graphics.presentIfDirty();
 }

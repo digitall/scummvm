@@ -23,7 +23,26 @@
 #ifndef BOLT_MERLIN_POTION_PUZZLE_H
 #define BOLT_MERLIN_POTION_PUZZLE_H
 
+#include "bolt/merlin/merlin.h"
+#include "bolt/boltlib/palette.h"
+
 namespace Bolt {
+
+class PotionPuzzle : public Card {
+public:
+	void init(MerlinGame *game, Boltlib &boltlib, BltId resId);
+
+	// From Card
+	void enter(uint32 time);
+	Signal handleEvent(const BoltEvent &event);
+
+private:
+	MerlinGame *_game;
+	Graphics *_graphics;
+	BltImage _bgImage;
+	BltPalette _bgPalette;
+	int _progress;
+};
 
 } // End of namespace Bolt
 

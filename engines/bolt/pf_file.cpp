@@ -61,6 +61,10 @@ bool PfFile::load(const Common::String &filename) {
 }
 
 Common::File* PfFile::seekMovieAndGetFile(uint32 name) {
+	if (!_movies.contains(name)) {
+		return nullptr;
+	}
+
 	_file.seek(_movies[name]);
 	return &_file;
 }

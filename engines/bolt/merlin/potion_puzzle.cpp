@@ -24,4 +24,45 @@
 
 namespace Bolt {
 
+struct BltPotionPuzzleStruct { // type 59
+	static const uint32 kType = kBltPotionPuzzle;
+	static const uint kSize = 0x46;
+	void load(const byte *src, Boltlib &boltlib) {
+		bgImageId = BltId(READ_BE_UINT32(&src[4]));
+		bgPaletteId = BltId(READ_BE_UINT32(&src[8]));
+	}
+
+	BltId bgImageId;
+	BltId bgPaletteId;
+};
+
+typedef BltLoader<BltPotionPuzzleStruct> BltPotionPuzzle;
+
+void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
+	_game = game;
+	_graphics = _game->getGraphics();
+
+	BltPotionPuzzle puzzle(boltlib, resId);
+	_bgImage.load(boltlib, puzzle->bgImageId);
+	_bgPalette.load(boltlib, puzzle->bgPaletteId);
+	_progress = 0;
+}
+
+void PotionPuzzle::enter(uint32 time) {
+	applyPalette(_graphics, kBack, _bgPalette);
+	_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
+}
+
+Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
+	// TODO: implement
+	// XXX: play all potion movies in sequence
+	_game->startPotionMovie(_progress);
+	++_progress;
+	if (_progress >= MerlinGame::kNumPotionMovies) {
+		return kEnd;
+	}
+
+	return kNull;
+}
+
 } // End of namespace Bolt
