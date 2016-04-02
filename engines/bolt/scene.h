@@ -42,13 +42,13 @@ public:
 	// Return number of button at a point, or -1 if there is no button.
 	int getButtonAtPoint(const Common::Point &pt);
 
-	void setBackPlane(Boltlib &bltFile, BltId id);
+	void setBackPlane(Boltlib &boltlib, BltId id);
 
 
 private:
 	Graphics *_graphics;
 
-	struct BltPlaneStruct { // type 26
+	struct BltPlane { // type 26
 		static const uint32 kType = kBltPlane;
 		static const uint kSize = 0x10;
 		void load(const byte *src, Boltlib &bltFile) {
@@ -65,12 +65,10 @@ private:
 		BltImage hotspots;
 	};
 
-	typedef BltLoader<BltPlaneStruct> BltPlane;
-
 	BltPlane _forePlane;
 	BltPlane _backPlane;
 
-	struct BltSpriteStruct { // type 27
+	struct BltSpriteElement { // type 27
 		static const uint32 kType = kBltSpriteList;
 		static const uint kSize = 0x8;
 		void load(const byte *src, Boltlib &bltFile) {
@@ -84,13 +82,13 @@ private:
 		BltImage image;
 	};
 
-	typedef BltArrayLoader<BltSpriteStruct> BltSpriteList;
+	typedef ScopedArray<BltSpriteElement> BltSpriteList;
 
 	BltSpriteList _sprites;
 
 	Common::ScopedPtr<BltColorCycles> _colorCycles;
 
-	struct BltButtonGraphicsStruct { // type 30
+	struct BltButtonGraphicElement { // type 30
 		static const uint32 kType = kBltButtonGraphicsList;
 		static const uint kSize = 0xC;
 		enum GraphicsType {
@@ -105,12 +103,12 @@ private:
 			BltId hoveredId(READ_BE_UINT32(&src[6]));
 			BltId idleId(READ_BE_UINT32(&src[0xA]));
 			if (type == PaletteMods) {
-				hoveredPaletteMod.load(boltlib, hoveredId);
-				idlePaletteMod.load(boltlib, idleId);
+				loadBltResourceArray(hoveredPaletteMod, boltlib, hoveredId);
+				loadBltResourceArray(idlePaletteMod, boltlib, idleId);
 			}
 			else if (type == Sprites) {
-				hoveredSprites.load(boltlib, hoveredId);
-				idleSprites.load(boltlib, idleId);
+				loadBltResourceArray(hoveredSprites, boltlib, hoveredId);
+				loadBltResourceArray(idleSprites, boltlib, idleId);
 			}
 		}
 
@@ -125,18 +123,19 @@ private:
 		BltSpriteList idleSprites;
 	};
 
-	typedef BltArrayLoader<BltButtonGraphicsStruct> BltButtonGraphicsList;
+	typedef ScopedArray<BltButtonGraphicElement> BltButtonGraphicsList;
 
-	struct BltButtonStruct { // type 31
+	struct BltButtonElement { // type 31
 		static const uint32 kType = kBltButtonList;
 		static const uint kSize = 0x14;
-		void load(const byte *src, Boltlib &bltFile) {
+		void load(const byte *src, Boltlib &boltlib) {
 			type = READ_BE_UINT16(&src[0]);
 			rect = Rect(&src[2]);
 			plane = READ_BE_UINT16(&src[0xA]);
 			numGraphics = READ_BE_UINT16(&src[0xC]);
+			BltId graphicsId = BltId(READ_BE_UINT32(&src[0x10]));
 			// FIXME: unknown field at 0xE. Always 0 in game data.
-			graphics.load(bltFile, BltId(READ_BE_UINT32(&src[0x10])));
+			loadBltResourceArray(graphics, boltlib, graphicsId);
 		}
 
 		enum HotspotType {
@@ -152,13 +151,13 @@ private:
 		BltButtonGraphicsList graphics;
 	};
 
-	typedef BltArrayLoader<BltButtonStruct> BltButtonList;
+	typedef ScopedArray<BltButtonElement> BltButtonList;
 
 	BltButtonList _buttons;
 
 	Common::Point _origin;
 
-	void drawButton(const BltButtonStruct &button, bool hovered);
+	void drawButton(const BltButtonElement &button, bool hovered);
 };
 
 } // End of namespace Bolt

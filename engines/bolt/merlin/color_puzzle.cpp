@@ -28,25 +28,30 @@ void ColorPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 	_morphPaletteMods = nullptr;
 
-	BltResourceList resourceList(boltlib, resId);
+	BltResourceList resourceList;
+	loadBltResourceArray(resourceList, boltlib, resId);
 	BltId difficultiesId = resourceList[0].value;
 	BltId sceneId = resourceList[3].value;
 
 	_scene.load(graphics, boltlib, sceneId);
 
-	BltU16Values difficultyIds(boltlib, difficultiesId);
+	BltU16Values difficultyIds;
+	loadBltResourceArray(difficultyIds, boltlib, difficultiesId);
 	// TODO: Load player's chosen difficulty
-	BltResourceList difficulty(boltlib, BltShortId(difficultyIds[0].value));
+	BltResourceList difficulty;
+	loadBltResourceArray(difficulty, boltlib, BltShortId(difficultyIds[0].value));
 	BltId numStatesId = difficulty[0].value;
 	BltId statePaletteModsId = difficulty[1].value;
 
-	BltU8Values numStates(boltlib, numStatesId);
-	BltResourceList statePaletteMods(boltlib, statePaletteModsId);
+	BltU8Values numStates;
+	loadBltResourceArray(numStates, boltlib, numStatesId);
+	BltResourceList statePaletteMods;
+	loadBltResourceArray(statePaletteMods, boltlib, statePaletteModsId);
 
 	for (int i = 0; i < kNumPieces; ++i) {
 		Piece &p = _pieces[i];
 		p.numStates = numStates[i].value;
-		p.paletteMods.load(boltlib, statePaletteMods[i].value);
+		loadBltResourceArray(p.paletteMods, boltlib, statePaletteMods[i].value);
 		// FIXME: What is initial state? Is it random or chosen from a predefined set?
 		p.state = 1;
 	}

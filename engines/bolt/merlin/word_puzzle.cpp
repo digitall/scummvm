@@ -25,10 +25,13 @@
 namespace Bolt {
 
 void WordPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	BltResourceList resourceList(boltlib, resId);
-	BltU16Values difficulties(boltlib, resourceList[0].value);
+	BltResourceList resourceList;
+	loadBltResourceArray(resourceList, boltlib, resId);
+	BltU16Values difficulties;
+	loadBltResourceArray(difficulties, boltlib, resourceList[0].value);
 	// There are three difficulties, choose one here
-	BltResourceList difficulty(boltlib, BltShortId(difficulties[0].value)); // Difficulty 0
+	BltResourceList difficulty;
+	loadBltResourceArray(difficulty, boltlib, BltShortId(difficulties[0].value)); // Difficulty 0
 	_scene.load(graphics, boltlib, difficulty[19].value);
 }
 

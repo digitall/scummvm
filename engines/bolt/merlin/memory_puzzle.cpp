@@ -27,7 +27,8 @@
 namespace Bolt {
 
 void MemoryPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	BltResourceList resourceList(boltlib, resId);
+	BltResourceList resourceList;
+	loadBltResourceArray(resourceList, boltlib, resId);
 	BltId sceneId = resourceList[1].value;
 	_scene.load(graphics, boltlib, sceneId);
 }

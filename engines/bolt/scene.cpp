@@ -58,30 +58,30 @@ void Scene::load(Graphics *graphics, Boltlib &boltlib, BltId sceneId)
 	BltScene sceneInfo(&BltResource(boltlib.loadResource(sceneId, kBltScene))[0]);
 
 	_origin = sceneInfo.origin;
-	_forePlane.load(boltlib, sceneInfo.forePlaneId);
-	_backPlane.load(boltlib, sceneInfo.backPlaneId);
-	_sprites.load(boltlib, sceneInfo.spritesId);
-	_buttons.load(boltlib, sceneInfo.buttonsId);
+	loadBltResource(_forePlane, boltlib, sceneInfo.forePlaneId);
+	loadBltResource(_backPlane, boltlib, sceneInfo.backPlaneId);
+	loadBltResourceArray(_sprites, boltlib, sceneInfo.spritesId);
+	loadBltResourceArray(_buttons, boltlib, sceneInfo.buttonsId);
 
 	_colorCycles.reset();
 	if (sceneInfo.colorCyclesId.isValid()) {
 		_colorCycles.reset(new BltColorCycles);
-		_colorCycles->load(boltlib, sceneInfo.colorCyclesId);
+		loadBltResource(*_colorCycles, boltlib, sceneInfo.colorCyclesId);
 	}
 }
 
 void Scene::enter() {
-	applyPalette(_graphics, kBack, _backPlane->palette);
-	if (_backPlane->image) {
-		_backPlane->image.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
+	applyPalette(_graphics, kBack, _backPlane.palette);
+	if (_backPlane.image) {
+		_backPlane.image.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
 	}
 	else {
 		_graphics->clearPlane(kBack);
 	}
 
-	applyPalette(_graphics, kFore, _forePlane->palette);
-	if (_forePlane->image) {
-		_forePlane->image.drawAt(_graphics->getPlaneSurface(kFore), 0, 0, false);
+	applyPalette(_graphics, kFore, _forePlane.palette);
+	if (_forePlane.image) {
+		_forePlane.image.drawAt(_graphics->getPlaneSurface(kFore), 0, 0, false);
 	}
 	else {
 		_graphics->clearPlane(kFore);
@@ -109,29 +109,29 @@ void Scene::handleHover(const Common::Point &pt) {
 	_graphics->markDirty();
 }
 
-void Scene::setBackPlane(Boltlib &bltFile, BltId id) {
-	_backPlane.load(bltFile, id);
+void Scene::setBackPlane(Boltlib &boltlib, BltId id) {
+	loadBltResource(_backPlane, boltlib, id);
 }
 
 int Scene::getButtonAtPoint(const Common::Point &pt) {
 	byte foreHotspotColor = 0;
-	if (_forePlane->hotspots) {
-		foreHotspotColor = _forePlane->hotspots.query(pt.x, pt.y);
+	if (_forePlane.hotspots) {
+		foreHotspotColor = _forePlane.hotspots.query(pt.x, pt.y);
 	}
 
 	byte backHotspotColor = 0;
-	if (_backPlane->hotspots) {
-		backHotspotColor = _backPlane->hotspots.query(pt.x, pt.y);
+	if (_backPlane.hotspots) {
+		backHotspotColor = _backPlane.hotspots.query(pt.x, pt.y);
 	}
 
 	for (int i = 0; i < (int)_buttons.size(); ++i) {
-		const BltButtonStruct &button = _buttons[i];
-		if (button.type == BltButtonStruct::Rectangle) {
+		const BltButtonElement &button = _buttons[i];
+		if (button.type == BltButtonElement::Rectangle) {
 			if (button.rect.contains(_origin + pt)) {
 				return i;
 			}
 		}
-		else if (button.type == BltButtonStruct::HotspotQuery) {
+		else if (button.type == BltButtonElement::HotspotQuery) {
 			byte color = button.plane ? backHotspotColor : foreHotspotColor;
 			if (color >= button.rect.left && color <= button.rect.right) {
 				return i;
@@ -142,17 +142,17 @@ int Scene::getButtonAtPoint(const Common::Point &pt) {
 	return -1;
 }
 
-void Scene::drawButton(const BltButtonStruct &button, bool hovered) {
+void Scene::drawButton(const BltButtonElement &button, bool hovered) {
 	if (button.graphics) {
-		const BltButtonGraphicsStruct &buttonGfx = button.graphics[0]; // TODO: support states other than 0
-		if (buttonGfx.type == BltButtonGraphicsStruct::PaletteMods) {
+		const BltButtonGraphicElement &buttonGfx = button.graphics[0]; // TODO: support states other than 0
+		if (buttonGfx.type == BltButtonGraphicElement::PaletteMods) {
 			const BltPaletteMods &paletteMod = hovered ? buttonGfx.hoveredPaletteMod : buttonGfx.idlePaletteMod;
 			applyPaletteMod(_graphics, button.plane, paletteMod, 0);
 		}
-		else if (buttonGfx.type == BltButtonGraphicsStruct::Sprites) {
+		else if (buttonGfx.type == BltButtonGraphicElement::Sprites) {
 			const BltSpriteList &spriteList = hovered ? buttonGfx.hoveredSprites : buttonGfx.idleSprites;
 			if (spriteList) {
-				const BltSpriteStruct &sprite = spriteList[0];
+				const BltSpriteElement &sprite = spriteList[0];
 				Common::Point pos = sprite.pos - _origin;
 				if (sprite.image) {
 					sprite.image.drawAt(_graphics->getPlaneSurface(button.plane), pos.x, pos.y, true);

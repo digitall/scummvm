@@ -24,7 +24,7 @@
 
 namespace Bolt {
 
-struct BltPotionPuzzleStruct { // type 59
+struct BltPotionPuzzleDef {
 	static const uint32 kType = kBltPotionPuzzle;
 	static const uint kSize = 0x46;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -36,15 +36,14 @@ struct BltPotionPuzzleStruct { // type 59
 	BltId bgPaletteId;
 };
 
-typedef BltLoader<BltPotionPuzzleStruct> BltPotionPuzzle;
-
 void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	_game = game;
 	_graphics = _game->getGraphics();
 
-	BltPotionPuzzle puzzle(boltlib, resId);
-	_bgImage.load(boltlib, puzzle->bgImageId);
-	_bgPalette.load(boltlib, puzzle->bgPaletteId);
+	BltPotionPuzzleDef puzzle;
+	loadBltResource(puzzle, boltlib, resId);
+	_bgImage.load(boltlib, puzzle.bgImageId);
+	_bgPalette.load(boltlib, puzzle.bgPaletteId);
 	_progress = 0;
 }
 
