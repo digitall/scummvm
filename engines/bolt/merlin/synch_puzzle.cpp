@@ -25,7 +25,8 @@
 namespace Bolt {
 
 void SynchPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	BltResourceList resourceList(boltlib, resId);
+	BltResourceList resourceList;
+	loadBltResourceArray(resourceList, boltlib, resId);
 	_scene.load(graphics, boltlib, resourceList[4].value);
 }
 

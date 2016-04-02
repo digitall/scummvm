@@ -27,7 +27,7 @@ namespace Bolt {
 ActionPuzzle::ActionPuzzle() : _random("ActionPuzzleRandomSource")
 { }
 
-struct BltParticleDeathsStruct { // type 45
+struct BltParticleDeaths { // type 45
 	static const uint32 kType = kBltParticleDeaths;
 	static const uint kSize = 0x12;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -43,9 +43,7 @@ struct BltParticleDeathsStruct { // type 45
 	BltId imagesListId[3];
 };
 
-typedef BltLoader<BltParticleDeathsStruct> BltParticleDeaths;
-
-struct BltParticlesStruct { // type 46
+struct BltParticles { // type 46
 	static const uint32 kType = kBltParticles;
 	static const uint kSize = 2;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -55,31 +53,34 @@ struct BltParticlesStruct { // type 46
 	uint16 numParticles;
 };
 
-typedef BltLoader<BltParticlesStruct> BltParticles;
-
 void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
-	BltResourceList resourceList(boltlib, resId);
+	BltResourceList resourceList;
+	loadBltResourceArray(resourceList, boltlib, resId);
 	BltId difficultiesId = resourceList[0].value;
 	BltId particlesId = resourceList[1].value;
 	BltId bgImageId = resourceList[2].value;
 	BltId backPaletteId = resourceList[3].value;
 	BltId particleImagesId = resourceList[4].value;
 
-	BltParticles particles(boltlib, particlesId);
-	_particleImages.alloc(particles->numParticles);
-	BltResourceList particleImagesList(boltlib, particleImagesId);
-	for (uint16 i = 0; i < particles->numParticles; ++i) {
+	BltParticles particles;
+	loadBltResource(particles, boltlib, particlesId);
+	_particleImages.alloc(particles.numParticles);
+	BltResourceList particleImagesList;
+	loadBltResourceArray(particleImagesList, boltlib, particleImagesId);
+	for (uint16 i = 0; i < particles.numParticles; ++i) {
 		_particleImages[i].load(boltlib, particleImagesList[i].value);
 	}
 
 	_bgImage.load(boltlib, bgImageId);
 	_backPalette.load(boltlib, backPaletteId);
 
-	BltU16Values difficultiesList(boltlib, difficultiesId);
+	BltU16Values difficultiesList;
+	loadBltResourceArray(difficultiesList, boltlib, difficultiesId);
 	// TODO: select difficulty based on player option
-	BltResourceList difficulty(boltlib, BltShortId(difficultiesList[0].value));
+	BltResourceList difficulty;
+	loadBltResourceArray(difficulty, boltlib, BltShortId(difficultiesList[0].value));
 	BltId forePaletteId = difficulty[1].value;
 	BltId backColorCyclesId = difficulty[2].value;
 	BltId foreColorCyclesId = difficulty[3].value;
@@ -89,13 +90,15 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	BltId particleDeathsId = difficulty[8].value;
 
 	_forePalette.load(boltlib, forePaletteId);
-	_backColorCycles.load(boltlib, backColorCyclesId);
-	_foreColorCycles.load(boltlib, foreColorCyclesId);
+	loadBltResource(_backColorCycles, boltlib, backColorCyclesId);
+	loadBltResource(_foreColorCycles, boltlib, foreColorCyclesId);
 
-	BltResourceList pathList(boltlib, pathListId);
+	BltResourceList pathList;
+	loadBltResourceArray(pathList, boltlib, pathListId);
 	_paths.alloc(pathList.size());
 	for (uint i = 0; i < pathList.size(); ++i) {
-		BltS16Values pathValues(boltlib, pathList[i].value);
+		BltS16Values pathValues;
+		loadBltResourceArray(pathValues, boltlib, pathList[i].value);
 		int16 numPoints = pathValues[0].value;
 		if (numPoints != (int)(pathValues.size() - 1) / 2) {
 			warning("Invalid particle path, specified wrong number of points");
@@ -109,24 +112,28 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 		}
 	}
 
-	BltS16Values goalsValues(boltlib, goalsId);
+	BltS16Values goalsValues;
+	loadBltResourceArray(goalsValues, boltlib, goalsId);
 	_goals.alloc(goalsValues.size() / 2);
 	for (uint i = 0; i < _goals.size(); ++i) {
 		_goals[i].x = goalsValues[2 * i].value;
 		_goals[i].y = goalsValues[2 * i + 1].value;
 	}
 
-	BltResourceList goalImagesList(boltlib, goalImagesListId);
+	BltResourceList goalImagesList;
+	loadBltResourceArray(goalImagesList, boltlib, goalImagesListId);
 	_goalImages.alloc(goalImagesList.size());
 	for (uint i = 0; i < goalImagesList.size(); ++i) {
 		_goalImages[i].load(boltlib, goalImagesList[i].value);
 	}
 
-	BltParticleDeaths particleDeaths(boltlib, particleDeathsId);
+	BltParticleDeaths particleDeaths;
+	loadBltResource(particleDeaths, boltlib, particleDeathsId);
 	for (int i = 0; i < kNumDeathSequences; ++i) {
-		_deathSequences[i].alloc(particleDeaths->numImages[i]);
-		BltResourceList imageList(boltlib, particleDeaths->imagesListId[i]);
-		for (int j = 0; j < particleDeaths->numImages[i]; ++j) {
+		_deathSequences[i].alloc(particleDeaths.numImages[i]);
+		BltResourceList imageList;
+		loadBltResourceArray(imageList, boltlib, particleDeaths.imagesListId[i]);
+		for (int j = 0; j < particleDeaths.numImages[i]; ++j) {
 			_deathSequences[i][j].load(boltlib, imageList[j].value);
 		}
 	}

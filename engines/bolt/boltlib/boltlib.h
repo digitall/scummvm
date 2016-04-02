@@ -120,84 +120,31 @@ private:
 	Common::Array<Directory> _dirs;
 };
 
+// Common template function for loading a simple resource.
 template<class T>
-class BltLoader {
-	// Generic template for creating a simple loader and parser for a BLT
-	// resource.
-	// Template parameter T must have:
-	// - static const uint32 kType: resource type number
-	// - static const uint kSize: expected size
-	// - T(): initialize T to default unloaded state.
-	// - void load(const byte *src, BltFile &bltFile): parse from src.
-	//   Additional resources may be loaded from bltFile.
-	// Use arrow operator -> to access.
-public:
-	BltLoader() { }
-	BltLoader(Boltlib &boltlib, BltId id) {
-		load(boltlib, id);
+void loadBltResource(T &obj, Boltlib &boltlib, BltId id) {
+	BltResource res(boltlib.loadResource(id, T::kType));
+	// Reset obj to unloaded state
+	obj.~T();
+	new(&obj) T();
+	if (res) {
+		assert(res.size() == T::kSize);
+		obj.load(&res[0], boltlib);
 	}
+}
 
-	void load(Boltlib &boltlib, BltId id) {
-		BltResource res(boltlib.loadResource(id, T::kType));
-		// Reset _data to unloaded state
-		_data.~T();
-		new(&_data) T();
-		if (res) {
-			assert(res.size() == T::kSize);
-			_data.load(&res[0], boltlib);
-		}
-	}
-
-	const T* operator->() const {
-		return &_data;
-	}
-private:
-	T _data;
-};
-
+// Common template function for loading a simple resource array.
 template<class T>
-class BltArrayLoader {
-	// Generic template for creating a simple loader and parser for a BLT
-	// resource. This template supports resources that are simple constant-
-	// -sized elements in an array.
-	// Template parameter T must have:
-	// - static const uint32 kType: resource type number
-	// - static const uint kSize: expected size of an element
-	// - T(): initialize T to default unloaded state.
-	// - void load(const byte *src, BltFile &bltFile): parse from src.
-	//   Additional resources may be loaded from bltFile.
-	// Use array indexing [] to access.
-public:
-	BltArrayLoader() { }
-	BltArrayLoader(Boltlib &boltlib, BltId id) {
-		load(boltlib, id);
+void loadBltResourceArray(ScopedArray<T>& array, Boltlib &boltlib, BltId id) {
+	BltResource res(boltlib.loadResource(id, T::kType));
+	uint numItems = res.size() / T::kSize;
+	array.alloc(numItems);
+	for (uint i = 0; i < numItems; ++i) {
+		array[i].load(&res[i * T::kSize], boltlib);
 	}
+}
 
-	operator bool() const {
-		return _array;
-	}
-
-	void load(Boltlib &boltlib, BltId id) { // FIXME: expectedCount? Count is usually known in advance...
-		BltResource res(boltlib.loadResource(id, T::kType));
-		uint numItems = res.size() / T::kSize;
-		_array.alloc(numItems);
-		for (uint i = 0; i < numItems; ++i) {
-			_array[i].load(&res[i * T::kSize], boltlib);
-		}
-	}
-
-	uint size() const {
-		return _array.size();
-	}
-
-	const T& operator[](uint i) const {
-		return _array[i];
-	}
-private:
-	ScopedArray<T> _array;
-};
-
-struct BltU8ValuesStruct { // type 1
+struct BltU8ValueElement { // type 1
 	static const uint32 kType = kBltU8Values;
 	static const uint kSize = 1;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -207,9 +154,9 @@ struct BltU8ValuesStruct { // type 1
 	byte value;
 };
 
-typedef BltArrayLoader<BltU8ValuesStruct> BltU8Values;
+typedef ScopedArray<BltU8ValueElement> BltU8Values;
 
-struct BltS16ValuesStruct { // type 2
+struct BltS16ValueElement { // type 2
 	static const uint32 kType = kBltS16Values;
 	static const uint kSize = 2;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -219,9 +166,9 @@ struct BltS16ValuesStruct { // type 2
 	int16 value;
 };
 
-typedef BltArrayLoader<BltS16ValuesStruct> BltS16Values;
+typedef ScopedArray<BltS16ValueElement> BltS16Values;
 
-struct BltU16ValuesStruct { // type 3
+struct BltU16ValueElement { // type 3
 	static const uint32 kType = kBltU16Values;
 	static const uint kSize = 2;
 	void load(const byte *src, Boltlib &bltFile) {
@@ -231,9 +178,9 @@ struct BltU16ValuesStruct { // type 3
 	uint16 value;
 };
 
-typedef BltArrayLoader<BltU16ValuesStruct> BltU16Values;
+typedef ScopedArray<BltU16ValueElement> BltU16Values;
 
-struct BltResourceListStruct { // type 6
+struct BltResourceListElement { // type 6
 	static const uint32 kType = kBltResourceList;
 	static const uint kSize = 4;
 	void load(const byte *src, Boltlib &bltFile) {
@@ -243,7 +190,7 @@ struct BltResourceListStruct { // type 6
 	BltId value;
 };
 
-typedef BltArrayLoader<BltResourceListStruct> BltResourceList;
+typedef ScopedArray<BltResourceListElement> BltResourceList;
 
 } // End of namespace Bolt
 

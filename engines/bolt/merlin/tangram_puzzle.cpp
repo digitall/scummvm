@@ -28,14 +28,14 @@ void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
 	BltResourceList resourceList;
-	resourceList.load(boltlib, resId);
+	loadBltResourceArray(resourceList, boltlib, resId);
 	BltId bgImageId = resourceList[2].value;
 	BltId paletteId = resourceList[3].value;
 	BltId colorCyclesId = resourceList[4].value;
 
 	_bgImage.load(boltlib, bgImageId);
 	_palette.load(boltlib, paletteId);
-	_colorCycles.load(boltlib, colorCyclesId);
+	loadBltResource(_colorCycles, boltlib, colorCyclesId);
 }
 
 void TangramPuzzle::enter(uint32 time) {

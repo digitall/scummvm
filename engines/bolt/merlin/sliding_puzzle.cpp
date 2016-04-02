@@ -24,7 +24,7 @@
 
 namespace Bolt {
 
-struct BltSlidingPuzzleStruct { // type 44
+struct BltSlidingPuzzle { // type 44
 	static const uint32 kType = kBltSlidingPuzzle;
 	static const uint kSize = 0xC;
 	void load(const byte *src, Boltlib &bltFile) {
@@ -44,13 +44,14 @@ struct BltSlidingPuzzleStruct { // type 44
 	BltShortId difficulty3;
 };
 
-typedef BltLoader<BltSlidingPuzzleStruct> BltSlidingPuzzle;
-
 void SlidingPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	BltResourceList resourceList(boltlib, resId);
-	BltSlidingPuzzle slidingPuzzleInfo(boltlib, resourceList[1].value);
+	BltResourceList resourceList;
+	loadBltResourceArray(resourceList, boltlib, resId);
+	BltSlidingPuzzle slidingPuzzleInfo;
+	loadBltResource(slidingPuzzleInfo, boltlib, resourceList[1].value);
 	// TODO: select proper difficulty based on player setting
-	BltResourceList difficultyInfo(boltlib, slidingPuzzleInfo->difficulty1); // Ex: 3A34, 3B34, 3C34
+	BltResourceList difficultyInfo;
+	loadBltResourceArray(difficultyInfo, boltlib, slidingPuzzleInfo.difficulty1); // Ex: 3A34, 3B34, 3C34
 
 	_scene.load(graphics, boltlib, difficultyInfo[1].value);
 }

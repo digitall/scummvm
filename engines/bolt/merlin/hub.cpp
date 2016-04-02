@@ -59,7 +59,8 @@ void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	MenuCard::init(_graphics, boltlib, hubInfo.sceneId);
 	_scene.setBackPlane(boltlib, hubInfo.bgPlaneId);
 
-	BltResourceList hubItemsList(boltlib, hubInfo.itemListId);
+	BltResourceList hubItemsList;
+	loadBltResourceArray(hubItemsList, boltlib, hubInfo.itemListId);
 	_itemImages.alloc(hubInfo.numItems);
 	for (uint i = 0; i < hubInfo.numItems; ++i) {
 		BltHubItem hubItem(&BltResource(boltlib.loadResource(

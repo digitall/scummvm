@@ -34,7 +34,7 @@ namespace Bolt {
 
 class Graphics;
 	
-struct BltColorCycleSlotStruct { // type 12
+struct BltColorCycleSlot {
 	static const uint32 kType = kBltColorCycleSlot;
 	static const uint kSize = 6;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -50,9 +50,7 @@ struct BltColorCycleSlotStruct { // type 12
 	byte plane; // ???
 };
 
-typedef BltLoader<BltColorCycleSlotStruct> BltColorCycleSlot;
-
-struct BltColorCyclesStruct { // type 11
+struct BltColorCycles {
 	static const uint32 kType = kBltColorCycles;
 	static const uint kSize = 0x18;
 	void load(const byte *src, Boltlib &boltlib) {
@@ -63,7 +61,7 @@ struct BltColorCyclesStruct { // type 11
 			BltId slotId = BltId(READ_BE_UINT32(&src[8 + i * 4]));
 			if (slotId.isValid()) {
 				slots[i].reset(new BltColorCycleSlot);
-				slots[i]->load(boltlib, slotId);
+				loadBltResource(*slots[i], boltlib, slotId);
 			}
 			else {
 				slots[i].reset();
@@ -75,8 +73,6 @@ struct BltColorCyclesStruct { // type 11
 	Common::ScopedPtr<BltColorCycleSlot> slots[4];
 };
 
-typedef BltLoader<BltColorCyclesStruct> BltColorCycles;
-
 void applyColorCycles(Graphics *graphics, const BltColorCycles *cycles);
 
 struct BltPalette { // type 10
@@ -86,7 +82,7 @@ struct BltPalette { // type 10
 
 void applyPalette(Graphics *graphics, int plane, const BltPalette &palette);
 
-struct BltPaletteModsStruct { // type 29
+struct BltPaletteModElement { // type 29
 	static const uint32 kType = kBltPaletteMods;
 	static const uint kSize = 6;
 	void load(const byte *src, Boltlib &bltFile) {
@@ -101,7 +97,7 @@ struct BltPaletteModsStruct { // type 29
 	BltResource colors;
 };
 
-typedef BltArrayLoader<BltPaletteModsStruct> BltPaletteMods;
+typedef ScopedArray<BltPaletteModElement> BltPaletteMods;
 
 void applyPaletteMod(Graphics *graphics, int plane, const BltPaletteMods &mod, int state);
 void applyPaletteModBlended(Graphics *graphics, int plane, const BltPaletteMods &mod,
