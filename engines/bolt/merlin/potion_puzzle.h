@@ -41,6 +41,9 @@ private:
 	Graphics *_graphics;
 	BltImage _bgImage;
 	BltPalette _bgPalette;
+	Common::Point _origin;
+	ScopedArray<BltImage> _ingredientImages;
+	ScopedArray<Common::Point> _ingredientPos;
 	int _progress;
 };
 
