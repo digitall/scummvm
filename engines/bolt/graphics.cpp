@@ -385,6 +385,15 @@ void Graphics::clearPlane(int plane) {
 	memset(p->surface.getPixels(), 0, p->surface.w * p->surface.h);
 }
 
+void Graphics::drawRect(int plane, const Rect &rc, byte color) {
+	Plane *p = getPlaneObject(plane);
+	if (!p) {
+		return;
+	}
+
+	p->surface.frameRect(rc, color);
+}
+
 static void rotateColorsForward(byte *colors, int num) {
 	byte r = colors[3 * (num - 1) + 0];
 	byte g = colors[3 * (num - 1) + 1];

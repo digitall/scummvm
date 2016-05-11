@@ -68,6 +68,7 @@ public:
 	::Graphics::Surface& getPlaneSurface(int plane);
 	void setPlanePalette(int plane, const byte *colors, int first, int num);
 	void clearPlane(int plane);
+	void drawRect(int plane, const Rect &rc, byte color);
 
 	// TODO: better system for timing
 	void setTime(uint32 time);
