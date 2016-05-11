@@ -83,6 +83,10 @@ Graphics* MerlinGame::getGraphics() {
 	return _graphics;
 }
 
+bool MerlinGame::isInMovie() const {
+	return _movie.isRunning();
+}
+
 void MerlinGame::startPotionMovie(int num) {
 	if (num < 0 || num >= kNumPotionMovies) {
 		warning("Tried to play invalid potion movie %d", num);

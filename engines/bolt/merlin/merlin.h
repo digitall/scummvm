@@ -50,6 +50,7 @@ public:
 	virtual void handleEvent(const BoltEvent &event);
 
 	Graphics* getGraphics();
+	bool isInMovie() const;
 	void startPotionMovie(int num);
 
 	static const int kNumPotionMovies;

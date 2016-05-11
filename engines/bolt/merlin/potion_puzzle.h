@@ -37,14 +37,34 @@ public:
 	Signal handleEvent(const BoltEvent &event);
 
 private:
+	void draw();
+	void drawIngredient(int num, Common::Point pos);
+	Rect getIngredientHitbox(int num, Common::Point pos);
+
+	enum State
+	{
+		STATE_ACCEPTING_INPUT,
+		STATE_PLACING_1,
+		STATE_PLACING_2,
+	};
+
+	// TODO: Placing states should last as long as the "plunk" sound... I think.
+	static const uint32 kPlacing1Time = 500;
+	static const uint32 kPlacing2Time = 500;
+
 	MerlinGame *_game;
 	Graphics *_graphics;
 	BltImage _bgImage;
 	BltPalette _bgPalette;
 	Common::Point _origin;
 	ScopedArray<BltImage> _ingredientImages;
-	ScopedArray<Common::Point> _ingredientPos;
-	int _progress;
+	ScopedArray<Common::Point> _shelfPoints;
+	ScopedArray<bool> _slotStates; // False: Empty; True: Filled
+	int _bowlSlots[2]; // Ingredients in bowl
+	State _state;
+	uint32 _timeoutStart;
+
+	int _clickedPiece;
 };
 
 } // End of namespace Bolt

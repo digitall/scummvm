@@ -45,6 +45,8 @@ namespace Bolt {
 //   rectangle
 struct Rect {
 	Rect() : left(0), right(0), top(0), bottom(0) { }
+	Rect(int16 l, int16 t, int16 r, int16 b)
+		: left(l), right(r), top(t), bottom(b) { }
 	Rect(const byte *src) {
 		left = READ_BE_INT16(&src[0]);
 		right = READ_BE_INT16(&src[2]);
