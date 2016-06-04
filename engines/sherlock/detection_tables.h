@@ -32,7 +32,7 @@ static const SherlockGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("talk.lib", "ad0c4d6865edf15da4e9204c08815875", 238928),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
+			ADGF_NO_FLAGS,
 			GUIO6(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,
 				GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
 		},
@@ -50,8 +50,44 @@ static const SherlockGameDescription gameDescriptions[] = {
 				AD_LISTEND},
 			Common::DE_DEU,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
+			ADGF_NO_FLAGS,
 			GUIO6(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,
+				GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
+		},
+		GType_SerratedScalpel,
+	},
+
+	{
+		// Case of the Serrated Scalpel - German
+		// Provided by mgerhardy
+		{
+			"scalpel",
+			0, {
+				{"talk.lib", 0, "44652e54172e13b1b075b1ef7d89de24", 284043},
+				{"music.lib", 0, "68ae2f7684ecf903bd60a00bb6bae195", 366465},
+				AD_LISTEND},
+			Common::DE_DEU,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO6(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,
+				GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
+		},
+		GType_SerratedScalpel,
+	},
+
+	{
+		// Case of the Serrated Scalpel - German
+		// Provided by max565
+		{
+			"scalpel",
+			0, {
+				{"talk.lib", 0, "3d813fd8505b391a1f8b3a16b1aa7f2e", 284195},
+				{"music.lib", 0, "68ae2f7684ecf903bd60a00bb6bae195", 366465},
+				AD_LISTEND },
+				Common::DE_DEU,
+				Common::kPlatformDOS,
+				ADGF_NO_FLAGS,
+				GUIO6(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,
 				GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
 		},
 		GType_SerratedScalpel,
@@ -68,7 +104,7 @@ static const SherlockGameDescription gameDescriptions[] = {
 				AD_LISTEND},
 			Common::ES_ESP,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
+			ADGF_NO_FLAGS,
 			GUIO6(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,
 				GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
 		},
@@ -84,8 +120,7 @@ static const SherlockGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatform3DO,
 			ADGF_UNSTABLE,
-			GUIO6(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,
-				GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
+			GUIO4(GAMEOPTION_FADE_STYLE, GAMEOPTION_HELP_STYLE,GAMEOPTION_PORTRAITS_ON, GAMEOPTION_WINDOW_STYLE)
 		},
 		GType_SerratedScalpel,
 	},
@@ -99,7 +134,7 @@ static const SherlockGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("talk.lib", "dbdc8a20c96900aa7e4d02f3fe8a274c", 121102),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE | ADGF_DEMO,
+			ADGF_DEMO,
 			GUIO1(GUIO_NOSPEECH)
 		},
 		GType_SerratedScalpel,
@@ -114,7 +149,7 @@ static const SherlockGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("music.lib", "ec19a09b7fef6fd90b1ab812ce6e9739", 38563),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE | ADGF_DEMO,
+			ADGF_DEMO,
 			GUIO1(GUIO_NOSPEECH)
 		},
 		GType_SerratedScalpel,
@@ -127,10 +162,10 @@ static const SherlockGameDescription gameDescriptions[] = {
 			"rosetattoo",
 			"CD",
 			AD_ENTRY1s("talk.lib", "22e8e6406dd2fbbb238c9898928df42e", 770756),
-			Common::EN_ANY,
+			Common::FR_FRA,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
-			GUIO0()
+			ADGF_NO_FLAGS,
+			GUIO3(GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_HELP_STYLE, GAMEOPTION_TRANSPARENT_WINDOWS)
 		},
 		GType_RoseTattoo
 	},
@@ -144,8 +179,8 @@ static const SherlockGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("talk.lib", "9639a756b0993ebd71cb5f4d8b78b2dc", 765134),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
-			GUIO0()
+			ADGF_NO_FLAGS,
+			GUIO3(GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_HELP_STYLE, GAMEOPTION_TRANSPARENT_WINDOWS)
 		},
 		GType_RoseTattoo,
 	},
@@ -159,8 +194,23 @@ static const SherlockGameDescription gameDescriptions[] = {
 			AD_ENTRY1s("talk.lib", "5027aa72f0d263ed3b1c764a6c397911", 873864),
   			Common::DE_DEU,
 			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
-			GUIO0()
+			ADGF_NO_FLAGS,
+			GUIO3(GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_HELP_STYLE, GAMEOPTION_TRANSPARENT_WINDOWS)
+		},
+		GType_RoseTattoo,
+	},
+
+	{
+		// Case of the Rose Tattoo - Spanish CD
+		// Provided by dianiu
+		{
+			"rosetattoo",
+			"CD",
+			AD_ENTRY1s("talk.lib", "4f3ccf50e1012445624569cd605d7449", 783713),
+			Common::ES_ESP,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO3(GAMEOPTION_ORIGINAL_SAVES, GAMEOPTION_HELP_STYLE, GAMEOPTION_TRANSPARENT_WINDOWS)
 		},
 		GType_RoseTattoo,
 	},

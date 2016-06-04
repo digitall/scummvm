@@ -33,6 +33,9 @@
 namespace Sherlock {
 
 #define LINES_PER_PAGE (IS_SERRATED_SCALPEL ? 11 : 17)
+#define JOURNAL_MAX_WIDTH (IS_SERRATED_SCALPEL ? 230 : 422)
+#define JOURNAL_MAX_CHARS 80
+#define JOURNAL_LEFT_X (IS_SERRATED_SCALPEL ? 53 : 156)
 
 class SherlockEngine;
 
@@ -69,6 +72,11 @@ protected:
 	 *		first time, or being reloaded
 	 */
 	void loadJournalFile(bool alreadyLoaded);
+
+	/**
+	 * Returns true if a given character is printable
+	 */
+	bool isPrintable(byte ch) const;
 public:
 	static Journal *init(SherlockEngine *vm);
 	virtual ~Journal() {}
@@ -77,6 +85,11 @@ public:
 	* Displays a page of the journal at the current index
 	*/
 	bool drawJournal(int direction, int howFar);
+
+	/**
+	 * Synchronize the data for a savegame
+	 */
+	void synchronize(Serializer &s);
 public:
 	/**
 	 * Draw the journal background, frame, and interface buttons
@@ -84,20 +97,15 @@ public:
 	virtual void drawFrame() = 0;
 
 	/**
-	 * Records statements that are said, in the order which they are said. The player
-	 * can then read the journal to review them
-	 */
-	virtual void record(int converseNum, int statementNum, bool replyOnly = false) {}
-
-	/**
 	 * Reset viewing position to the start of the journal
 	 */
 	virtual void resetPosition() {}
 
 	/**
-	 * Synchronize the data for a savegame
+	 * Records statements that are said, in the order which they are said. The player
+	 * can then read the journal to review them
 	 */
-	virtual void synchronize(Serializer &s) = 0;
+	virtual void record(int converseNum, int statementNum, bool replyOnly = false);
 };
 
 } // End of namespace Sherlock

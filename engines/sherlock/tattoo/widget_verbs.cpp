@@ -38,18 +38,19 @@ WidgetVerbs::WidgetVerbs(SherlockEngine *vm) : WidgetBase(vm) {
 
 void WidgetVerbs::load(bool objectsOn) {
 	Events &events = *_vm->_events;
+	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Talk &talk = *_vm->_talk;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
-	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Common::Point mousePos = events.mousePos();
 	bool isWatson = false;
 
 	if (talk._talkToAbort)
 		return;
 
+	ui._activeObj = ui._bgFound;
 	_outsideMenu = false;
-
 	_verbCommands.clear();
+	_selector = _oldSelector = -1;
 
 	// Check if we need to show options for the highlighted object
 	if (objectsOn) {
@@ -57,9 +58,8 @@ void WidgetVerbs::load(bool objectsOn) {
 		// person or an object
 		if (ui._personFound) {
 			TattooPerson &person = people[ui._activeObj - 1000];
-			TattooPerson &npc = people[ui._activeObj - 1001];
 
-			if (!scumm_strnicmp(npc._npcName.c_str(), "WATS", 4))
+			if (!scumm_strnicmp(person._npcName.c_str(), "WATS", 4))
 				isWatson = true;
 
 
@@ -89,9 +89,10 @@ void WidgetVerbs::load(bool objectsOn) {
 
 			// Add any extra active verbs from the object's verb list
 			for (int idx = 0; idx < 6; ++idx) {
-				if (!ui._bgShape->_use[idx]._verb.empty() && !ui._bgShape->_use[idx]._verb.hasPrefix(" ") &&
-					(ui._bgShape->_use[idx]._target.empty() || ui._bgShape->_use[idx]._target.hasPrefix(" "))) {
-					_verbCommands.push_back(ui._bgShape->_use[idx]._verb);
+				UseType &use = ui._bgShape->_use[idx];
+				if (!use._verb.empty() && !use._verb.hasPrefix(" ") && !use._verb.hasPrefix("*") &&
+					(use._target.empty() || use._target.hasPrefix("*") || use._target.hasPrefix(" "))) {
+					_verbCommands.push_back(use._verb);
 				}
 			}
 		}
@@ -126,7 +127,7 @@ void WidgetVerbs::render() {
 
 	// Create the drawing surface
 	_surface.create(_bounds.width(), _bounds.height());
-	_surface.fill(TRANSPARENCY);
+	_surface.clear(TRANSPARENCY);
 
 	// Draw basic background
 	makeInfoArea();
@@ -141,8 +142,8 @@ void WidgetVerbs::render() {
 			_surface.hLine(3, (_surface.fontHeight() + 7) * (idx + 1) + 1, _bounds.width() - 4, INFO_MIDDLE);
 			_surface.hLine(3, (_surface.fontHeight() + 7) * (idx + 1) + 2, _bounds.width() - 4, INFO_BOTTOM);
 
-			_surface.transBlitFrom(images[4], Common::Point(0, (_surface.fontHeight() + 7) * (idx + 1) - 1));
-			_surface.transBlitFrom(images[5], Common::Point(_bounds.width() - images[5]._width, 
+			_surface.SHtransBlitFrom(images[4], Common::Point(0, (_surface.fontHeight() + 7) * (idx + 1) - 1));
+			_surface.SHtransBlitFrom(images[5], Common::Point(_bounds.width() - images[5]._width, 
 				(_surface.fontHeight() + 7) * (idx + 1) - 1));
 		}
 	}
@@ -156,8 +157,6 @@ void WidgetVerbs::handleEvents() {
 	Talk &talk = *_vm->_talk;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 	Common::Point mousePos = events.mousePos();
-	Common::Point scenePos = mousePos + ui._currentScroll;
-	bool noDesc = false;
 
 	Common::String strLook = fixedText.getText(kFixedText_Look);
 	Common::String strTalk = fixedText.getText(kFixedText_Talk);
@@ -177,20 +176,18 @@ void WidgetVerbs::handleEvents() {
 		// See if they want to close the menu (they clicked outside of the menu)
 		if (!_bounds.contains(mousePos)) {
 			if (_outsideMenu) {
-				// Free the current menu graphics & erase the menu
-				banishWindow();
-
 				if (events._rightReleased) {
-					// Reset the selected shape to what was clicked on
-					ui._bgFound = scene.findBgShape(scenePos);
+					// Change to the item (if any) that was right-clicked on, and re-draw the verb menu
+					ui._bgFound = scene.findBgShape(mousePos);
 					ui._personFound = ui._bgFound >= 1000;
-					Object *_bgShape = ui._personFound ? nullptr : &scene._bgShapes[ui._bgFound];
+					ui._bgShape = ui._personFound || ui._bgFound == -1 ? nullptr : &scene._bgShapes[ui._bgFound];
 
+					bool noDesc = false;
 					if (ui._personFound) {
 						if (people[ui._bgFound - 1000]._description.empty() || people[ui._bgFound - 1000]._description.hasPrefix(" "))
 							noDesc = true;
 					} else if (ui._bgFound != -1) {
-						if (_bgShape->_description.empty() || _bgShape->_description.hasPrefix(" "))
+						if (ui._bgShape->_description.empty() || ui._bgShape->_description.hasPrefix(" "))
 							noDesc = true;
 					} else {
 						noDesc = true;
@@ -199,14 +196,19 @@ void WidgetVerbs::handleEvents() {
 					// Call the Routine to turn on the Commands for this Object
 					load(!noDesc);
 				} else {
-					// See if we're in a Lab Table Room
+					// Close the window and clear the events
+					banishWindow();
+					events.clearEvents();
+
+					// Reset the active UI mode
 					ui._menuMode = scene._labTableScene ? LAB_MODE : STD_MODE;
 				}
 			}
-		} else if (_bounds.contains(mousePos)) {
+		} else if (_bounds.contains(mousePos) && _selector != -1) {
 			// Mouse is within the menu
 			// Erase the menu
 			banishWindow();
+			events.clearEvents();
 
 			// See if they are activating the Look Command
 			if (!_verbCommands[_selector].compareToIgnoreCase(strLook)) {
@@ -222,7 +224,7 @@ void WidgetVerbs::handleEvents() {
 
 			} else if (!_verbCommands[_selector].compareToIgnoreCase(strTalk)) {
 				// Talk command is being activated
-				talk.talk(ui._activeObj);
+				talk.initTalk(ui._activeObj);
 				ui._activeObj = -1;
 			
 			} else if (!_verbCommands[_selector].compareToIgnoreCase(strJournal)) {

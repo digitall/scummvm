@@ -64,7 +64,7 @@ void Cache::load(const Common::String &name, Common::SeekableReadStream &stream)
 
 	// Check whether the file is compressed
 	if (signature == MKTAG('L', 'Z', 'V', 26)) {
-		// It's compressed, so decompress the file and store it's data in the cache entry
+		// It's compressed, so decompress the file and store its data in the cache entry
 		Common::SeekableReadStream *decompressed = _vm->_res->decompress(stream);
 		cacheEntry.resize(decompressed->size());
 		decompressed->read(&cacheEntry[0], decompressed->size());
@@ -116,6 +116,10 @@ Resources::Resources(SherlockEngine *vm) : _vm(vm), _cache(vm) {
 }
 
 void Resources::addToCache(const Common::String &filename) {
+	// Return immediately if the library has already been loaded
+	if (_indexes.contains(filename))
+		return;
+	
 	_cache.load(filename);
 
 	// Check to see if the file is a library
@@ -191,16 +195,27 @@ void Resources::decompressIfNecessary(Common::SeekableReadStream *&stream) {
 	}
 }
 
-Common::SeekableReadStream *Resources::load(const Common::String &filename, const Common::String &libraryFile) {
+Common::SeekableReadStream *Resources::load(const Common::String &filename, const Common::String &libraryFile,
+		bool suppressErrors) {
 	// Open up the library for access
 	Common::SeekableReadStream *libStream = load(libraryFile);
 
-	// Check if the library has already had it's index read, and if not, load it
+	// Check if the library has already had its index read, and if not, load it
 	if (!_indexes.contains(libraryFile))
 		loadLibraryIndex(libraryFile, libStream, false);
+	LibraryIndex &libIndex = _indexes[libraryFile];
+
+	// Handle if resource is not present
+	if (!libIndex.contains(filename)) {
+		if (!suppressErrors)
+			error("Could not find resource - %s", filename.c_str());
+
+		delete libStream;
+		return nullptr;
+	}
 
 	// Extract the data for the specified resource and return it
-	LibraryEntry &entry = _indexes[libraryFile][filename];
+	LibraryEntry &entry = libIndex[filename];
 	libStream->seek(entry._offset);
 	Common::SeekableReadStream *stream = libStream->readStream(entry._size);
 	decompressIfNecessary(stream);
@@ -217,6 +232,10 @@ bool Resources::exists(const Common::String &filename) const {
 void Resources::loadLibraryIndex(const Common::String &libFilename,
 		Common::SeekableReadStream *stream, bool isNewStyle) {
 	uint32 offset, nextOffset;
+
+	// Return immediately if the library has already been loaded
+	if (_indexes.contains(libFilename))
+		return;
 
 	// Create an index entry
 	_indexes[libFilename] = LibraryIndex();
@@ -293,6 +312,14 @@ void Resources::loadLibraryIndex(const Common::String &libFilename,
 
 int Resources::resourceIndex() const {
 	return _resourceIndex;
+}
+
+void Resources::getResourceNames(const Common::String &libraryFile, Common::StringArray &names) {
+	addToCache(libraryFile);
+	LibraryIndex &libIndex = _indexes[libraryFile];
+	for (LibraryIndex::iterator i = libIndex.begin(); i != libIndex.end(); ++i) {
+		names.push_back(i->_key);
+	}
 }
 
 Common::SeekableReadStream *Resources::decompress(Common::SeekableReadStream &source) {

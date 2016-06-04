@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SHERLOCK_HOLMES_H
-#define SHERLOCK_HOLMES_H
+#ifndef SHERLOCK_SHERLOCK_H
+#define SHERLOCK_SHERLOCK_H
 
 #include "common/scummsys.h"
 #include "common/array.h"
@@ -63,13 +63,16 @@ enum GameType {
 	GType_RoseTattoo = 1
 };
 
-#define SHERLOCK_SCREEN_WIDTH _vm->_screen->w()
-#define SHERLOCK_SCREEN_HEIGHT _vm->_screen->h()
+#define SHERLOCK_SCREEN_WIDTH _vm->_screen->width()
+#define SHERLOCK_SCREEN_HEIGHT _vm->_screen->height()
+#define SHERLOCK_SCENE_WIDTH _vm->_screen->_backBuffer1.width()
 #define SHERLOCK_SCENE_HEIGHT (IS_SERRATED_SCALPEL ? 138 : 480)
 #define SCENES_COUNT (IS_SERRATED_SCALPEL ? 63 : 101)
+#define MAX_BGSHAPES (IS_SERRATED_SCALPEL ? 64 : 150)
 
 #define COL_INFO_FOREGROUND (IS_SERRATED_SCALPEL ? (byte)Scalpel::INFO_FOREGROUND : (byte)Tattoo::INFO_FOREGROUND)
 #define COL_PEN_COLOR (IS_SERRATED_SCALPEL ? (byte)Scalpel::PEN_COLOR : (byte)Tattoo::PEN_COLOR)
+#define COL_PEN_HIGHLIGHT (IS_SERRATED_SCALPEL ? 15 : 129)
 
 struct SherlockGameDescription;
 
@@ -77,6 +80,7 @@ class Resource;
 
 class SherlockEngine : public Engine {
 private:
+\
 	/**
 	 * Main loop for displaying a scene and handling all that occurs within it
 	 */
@@ -86,11 +90,6 @@ private:
 	 * Handle all player input
 	 */
 	void handleInput();
-
-	/**
-	 * Load game configuration esttings
-	 */
-	void loadConfig();
 protected:
 	/**
 	 * Does basic initialization of the game engine
@@ -105,6 +104,11 @@ protected:
 	 * Returns a list of features the game itself supports
 	 */
 	virtual bool hasFeature(EngineFeature f) const;
+
+	/**
+	 * Load game configuration esttings
+	 */
+	virtual void loadConfig();
 public:
 	const SherlockGameDescription *_gameDescription;
 	Animation *_animation;
@@ -130,6 +134,7 @@ public:
 	bool _canLoadSave;
 	bool _showOriginalSavesDialog;
 	bool _interactiveFl;
+	bool _isScreenDoubled;
 public:
 	SherlockEngine(OSystem *syst, const SherlockGameDescription *gameDesc);
 	virtual ~SherlockEngine();
@@ -163,6 +168,11 @@ public:
 	 * Called by the engine when sound settings are updated
 	 */
 	virtual void syncSoundSettings();
+
+	/**
+	 * Saves game configuration information
+	 */
+	virtual void saveConfig();
 
 	/**
 	 * Returns whether the version is a demo
@@ -207,11 +217,6 @@ public:
 	 * @remarks		We don't use the global setFlags method because we don't want to check scene flags
 	 */
 	void setFlagsDirect(int flagNum);
-
-	/**
-	 * Saves game configuration information
-	 */
-	void saveConfig();
 
 	/**
 	 * Synchronize the data for a savegame

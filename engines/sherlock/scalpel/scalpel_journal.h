@@ -35,15 +35,43 @@ namespace Sherlock {
 
 namespace Scalpel {
 
-#define JOURNAL_MAX_WIDTH 230
-#define JOURNAL_MAX_CHARS 80
-
 enum JournalButton {
 	BTN_NONE, BTN_EXIT, BTN_BACK10, BTN_UP, BTN_DOWN, BTN_AHEAD110, BTN_SEARCH,
 	BTN_FIRST_PAGE, BTN_LAST_PAGE, BTN_PRINT_TEXT
 };
 
 class ScalpelJournal: public Journal {
+public:
+	Common::String _fixedTextWatsonsJournal;
+	Common::String _fixedTextExit;
+	Common::String _fixedTextBack10;
+	Common::String _fixedTextUp;
+	Common::String _fixedTextDown;
+	Common::String _fixedTextAhead10;
+	Common::String _fixedTextSearch;
+	Common::String _fixedTextFirstPage;
+	Common::String _fixedTextLastPage;
+	Common::String _fixedTextPrintText;
+
+	byte _hotkeyExit;
+	byte _hotkeyBack10;
+	byte _hotkeyUp;
+	byte _hotkeyDown;
+	byte _hotkeyAhead10;
+	byte _hotkeySearch;
+	byte _hotkeyFirstPage;
+	byte _hotkeyLastPage;
+	byte _hotkeyPrintText;
+
+	Common::String _fixedTextSearchExit;
+	Common::String _fixedTextSearchBackward;
+	Common::String _fixedTextSearchForward;
+	Common::String _fixedTextSearchNotFound;
+
+	byte _hotkeySearchExit;
+	byte _hotkeySearchBackward;
+	byte _hotkeySearchForward;
+
 private:
 	/**
 	 * Load the list of journal locations
@@ -84,20 +112,15 @@ public:
 	virtual void drawFrame();
 
 	/**
-	 * Records statements that are said, in the order which they are said. The player
-	 * can then read the journal to review them
-	 */
-	virtual void record(int converseNum, int statementNum, bool replyOnly = false);
-
-	/**
 	 * Reset viewing position to the start of the journal
 	 */
 	virtual void resetPosition();
 
 	/**
-	 * Synchronize the data for a savegame
+	 * Records statements that are said, in the order which they are said. The player
+	 * can then read the journal to review them
 	 */
-	virtual void synchronize(Serializer &s);
+	virtual void record(int converseNum, int statementNum, bool replyOnly = false);
 };
 
 } // End of namespace Scalpel

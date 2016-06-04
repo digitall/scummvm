@@ -23,14 +23,12 @@
 #ifndef SHERLOCK_MUSIC_H
 #define SHERLOCK_MUSIC_H
 
-#include "audio/midiplayer.h"
 #include "audio/midiparser.h"
-//#include "audio/mididrv.h"
-#include "sherlock/scalpel/drivers/mididriver.h"
+#include "audio/mididrv.h"
 // for 3DO digital music
-#include "audio/audiostream.h"
 #include "audio/mixer.h"
 #include "common/mutex.h"
+#include "common/str-array.h"
 
 namespace Sherlock {
 
@@ -52,7 +50,7 @@ protected:
 
 public:
 	bool loadMusic(byte *musData, uint32 musSize);
-	void unloadMusic();
+	virtual void unloadMusic();
 
 private:
 	byte  *_musData;
@@ -67,6 +65,12 @@ private:
 	MidiDriver *_midiDriver;
 	Audio::SoundHandle _digitalMusicHandle;
 	MusicType _musicType;
+	byte *_midiMusicData;
+	
+	/**
+	 * Play the specified music resource
+	 */
+	bool playMusic(const Common::String &name);
 public:
 	bool _musicPlaying;
 	bool _musicOn;
@@ -101,19 +105,12 @@ public:
 	 * Free any currently loaded song
 	 */
 	void freeSong();
-	
-	/**
-	 * Play the specified music resource
-	 */
-	bool playMusic(const Common::String &name);
 
 	/**
 	 * Stop playing the music
 	 */
 	void stopMusic();
 	
-	void waitTimerRoland(uint time);
-
 	bool isPlaying();
 	uint32 getCurrentPosition();
 
@@ -122,10 +119,20 @@ public:
 	/**
 	 * Sets the volume of the MIDI music with a value ranging from 0 to 127
 	 */
-	void setMIDIVolume(int volume);
+	void setMusicVolume(int volume);
+
+	/**
+	 * Gets the names of all the songs in the game. Used by the debugger.
+	 */
+	void getSongNames(Common::StringArray &songs);
+
+	/**
+	 * Checks to see if the currently playing song has finished, then the music specified
+	 * in _nextSongName will be started
+	 */
+	void checkSongProgress();
 };
 
 } // End of namespace Sherlock
 
 #endif
-

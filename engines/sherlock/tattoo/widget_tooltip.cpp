@@ -22,6 +22,7 @@
 
 #include "sherlock/tattoo/widget_tooltip.h"
 #include "sherlock/tattoo/tattoo_map.h"
+#include "sherlock/tattoo/tattoo_scene.h"
 #include "sherlock/tattoo/tattoo_user_interface.h"
 #include "sherlock/tattoo/tattoo.h"
 
@@ -33,19 +34,21 @@ namespace Tattoo {
 
 void WidgetTooltipBase::draw() {
 	Screen &screen = *_vm->_screen;
-	const Common::Point &currentScroll = getCurrentScroll();
 
 	// If there was a previously drawn frame in a different position that hasn't yet been erased, then erase it
 	if (_oldBounds.width() > 0 && _oldBounds != _bounds)
 		erase();
 
 	if (_bounds.width() > 0 && !_surface.empty()) {
+		restrictToScreen();
+
 		// Blit the affected area to the screen
-		screen.slamRect(_bounds, currentScroll);
+		screen.slamRect(_bounds);
 		
 		// Draw the widget directly onto the screen. Unlike other widgets, we don't draw to the back buffer,
 		// since nothing should be drawing on top of tooltips, so there's no need to store in the back buffer
-		screen.transBlitFrom(_surface, Common::Point(_bounds.left, _bounds.top));
+		screen.SHtransBlitFrom(_surface, Common::Point(_bounds.left - screen._currentScroll.x, 
+			_bounds.top - screen._currentScroll.y));
 
 		// Store a copy of the drawn area for later erasing
 		_oldBounds = _bounds;
@@ -54,11 +57,10 @@ void WidgetTooltipBase::draw() {
 
 void WidgetTooltipBase::erase() {
 	Screen &screen = *_vm->_screen;
-	const Common::Point &currentScroll = getCurrentScroll();
 
 	if (_oldBounds.width() > 0) {
 		// Restore the affected area from the back buffer to the screen
-		screen.slamRect(_oldBounds, currentScroll);
+		screen.slamRect(_oldBounds);
 
 		// Reset the old bounds so it won't be erased again
 		_oldBounds = Common::Rect(0, 0, 0, 0);
@@ -67,7 +69,7 @@ void WidgetTooltipBase::erase() {
 
 /*----------------------------------------------------------------*/
 
-WidgetTooltip::WidgetTooltip(SherlockEngine *vm) : WidgetTooltipBase (vm) {
+WidgetTooltip::WidgetTooltip(SherlockEngine *vm) : WidgetTooltipBase (vm), _offsetY(0) {
 }
 
 void WidgetTooltip::setText(const Common::String &str) {
@@ -124,7 +126,7 @@ void WidgetTooltip::setText(const Common::String &str) {
 
 		// Reallocate the text surface with the new size
 		_surface.create(width, height);
-		_surface.fill(TRANSPARENCY);
+		_surface.clear(TRANSPARENCY);
 
 		if (line2.empty()) {
 			// Only a single line
@@ -141,8 +143,8 @@ void WidgetTooltip::setText(const Common::String &str) {
 		}
 
 		// Set the initial display position for the tooltip text
-		int tagX = CLIP(mousePos.x - width / 2, 0, SHERLOCK_SCREEN_WIDTH - width);
-		int tagY = MAX(mousePos.y - height, 0);
+		int tagX = mousePos.x - width / 2;
+		int tagY = mousePos.y - height - _offsetY;
 
 		_bounds = Common::Rect(tagX, tagY, tagX + width, tagY + height);
 	} else {
@@ -159,8 +161,8 @@ void WidgetTooltip::handleEvents() {
 	Common::Point mousePos = events.mousePos();
 
 	// Set the new position for the tooltip
-	int xp = CLIP(mousePos.x - _bounds.width() / 2, 0, SHERLOCK_SCREEN_WIDTH - _bounds.width());
-	int yp = MAX(mousePos.y - _bounds.height(), 0);
+	int xp = mousePos.x - _bounds.width() / 2;
+	int yp = mousePos.y - _bounds.height() - _offsetY;
 
 	_bounds.moveTo(xp, yp);
 }
@@ -183,12 +185,16 @@ void WidgetSceneTooltip::handleEvents() {
 			Common::String str;
 			if (ui._bgFound != -1) {
 				// Clear the Arrow Zone fields so it won't think we're displaying an Arrow Zone cursor
-				if (scene._currentScene != 90)  // RRR Take out the cludge for room 90
+				if (scene._currentScene != OVERHEAD_MAP2)
 					ui._arrowZone = ui._oldArrowZone = -1;
 
 				// Get the description string
 				str = (ui._bgFound < 1000) ? scene._bgShapes[ui._bgFound]._description :
 					people[ui._bgFound - 1000]._description;
+
+				// WORKAORUND: On the train ride to Cambridge, don't show any tooltips
+				if (scene._currentScene == TRAIN_RIDE)
+					str = "";
 			} else {
 				// Get the exit zone description
 				str = scene._exits[ui._arrowZone]._dest;
@@ -201,24 +207,15 @@ void WidgetSceneTooltip::handleEvents() {
 
 		ui._oldBgFound = ui._bgFound;
 	} else {
-
 		// Set the new position for the tooltip
 		int tagX = CLIP(mousePos.x - _bounds.width() / 2, 0, SHERLOCK_SCREEN_WIDTH - _bounds.width());
-		int tagY = MAX(mousePos.y - _bounds.height(), 0);
-
+		int tagY = MAX(mousePos.y - _bounds.height() - _offsetY, 0);
 		_bounds.moveTo(tagX, tagY);
 	}
 
 	ui._oldArrowZone = ui._arrowZone;
 
 	WidgetTooltip::handleEvents();
-}
-
-/*----------------------------------------------------------------*/
-
-const Common::Point &WidgetMapTooltip::getCurrentScroll() const {
-	TattooMap &map = *(TattooMap *)_vm->_map;
-	return map._currentScroll;
 }
 
 } // End of namespace Tattoo

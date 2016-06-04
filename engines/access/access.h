@@ -42,6 +42,7 @@
 #include "access/font.h"
 #include "access/inventory.h"
 #include "access/player.h"
+#include "access/resources.h"
 #include "access/room.h"
 #include "access/screen.h"
 #include "access/scripts.h"
@@ -137,12 +138,17 @@ protected:
 public:
 	AnimationManager *_animation;
 	BubbleBox *_bubbleBox;
+	BubbleBox *_helpBox;
+	BubbleBox *_travelBox;
+	BubbleBox *_invBox;
+	BubbleBox *_aboutBox;
 	CharManager *_char;
 	Debugger *_debugger;
 	EventsManager *_events;
 	FileManager *_files;
 	InventoryManager *_inventory;
 	Player *_player;
+	Resources *_res;
 	Room *_room;
 	Screen *_screen;
 	Scripts *_scripts;
@@ -150,8 +156,8 @@ public:
 	MusicManager *_midi;
 	VideoPlayer *_video;
 
-	ASurface *_destIn;
-	ASurface *_current;
+	BaseSurface *_destIn;
+	BaseSurface *_current;
 	ASurface _buffer1;
 	ASurface _buffer2;
 	ASurface _vidBuf;
@@ -173,10 +179,9 @@ public:
 	ImageEntryList _images;
 	int _mouseMode;
 
+	int _playerDataCount;
 	int _currentManOld;
 	int _converseMode;
-	int _startAboutBox;
-	int _startTravelBox;
 	bool _currentCharFlag;
 	bool _boxSelect;
 	int _scale;
@@ -204,6 +209,26 @@ public:
 	uint32 _newDate;
 	int _flags[256];
 
+	// Fields used by MM
+	// TODO: Refactor
+	int _travel[60];
+	int _ask[40];
+	int _startTravelItem;
+	int _startTravelBox;
+	int _startAboutItem;
+	int _startAboutBox;
+	int _boxDataStart;
+	bool _boxDataEnd;
+	int _boxSelectY;
+	int _boxSelectYOld;
+	int _numLines;
+	byte _byte26CB5;
+	int _bcnt;
+	byte *_tempList;
+	int _pictureTaken;
+	//
+
+	bool _vidEnd;
 	bool _clearSummaryFlag;
 	bool _cheatFl;
 	bool _restartFl;
@@ -250,15 +275,13 @@ public:
 
 	void copyBF2Vid();
 
-	void doLoadSave();
-
 	void freeChar();
 
 	/**
 	 * Draw a string on a given surface and update text positioning
 	 */
-	void printText(ASurface *s, const Common::String &msg);
-	void speakText(ASurface *s, const Common::String &msg);
+	void printText(BaseSurface *s, const Common::String &msg);
+	void speakText(BaseSurface *s, const Common::String &msg);
 
 	/**
 	 * Load a savegame
@@ -289,6 +312,11 @@ public:
 	 * Write out a savegame header
 	 */
 	void writeSavegameHeader(Common::OutSaveFile *out, AccessSavegameHeader &header);
+
+	void SPRINTCHR(char c, int fontNum);
+	void PRINTCHR(Common::String msg, int fontNum);
+
+	bool playMovie(const Common::String &filename, const Common::Point &pos);
 };
 
 } // End of namespace Access

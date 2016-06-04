@@ -23,28 +23,35 @@
 #include "sherlock/debugger.h"
 #include "sherlock/sherlock.h"
 #include "sherlock/music.h"
-
-#include "sherlock/scalpel/3do/movie_decoder.h"
-
-#include "audio/mixer.h"
-#include "audio/decoders/aiff.h"
-#include "audio/decoders/wave.h"
-#include "audio/decoders/3do.h"
+#include "sherlock/scalpel/scalpel.h"
+#include "sherlock/scalpel/scalpel_debugger.h"
+#include "sherlock/tattoo/tattoo_debugger.h"
+#include "common/str-array.h"
 
 namespace Sherlock {
 
+Debugger *Debugger::init(SherlockEngine *vm) {
+	if (vm->getGameID() == GType_RoseTattoo)
+		return new Tattoo::TattooDebugger(vm);
+	else
+		return new Scalpel::ScalpelDebugger(vm);
+}
+
 Debugger::Debugger(SherlockEngine *vm) : GUI::Debugger(), _vm(vm) {
+	_showAllLocations = LOC_DISABLED;
+
 	registerCmd("continue",	     WRAP_METHOD(Debugger, cmdExit));
 	registerCmd("scene",         WRAP_METHOD(Debugger, cmdScene));
-	registerCmd("3do_playmovie", WRAP_METHOD(Debugger, cmd3DO_PlayMovie));
-	registerCmd("3do_playaudio", WRAP_METHOD(Debugger, cmd3DO_PlayAudio));
 	registerCmd("song",          WRAP_METHOD(Debugger, cmdSong));
+	registerCmd("songs",         WRAP_METHOD(Debugger, cmdListSongs));
+	registerCmd("listfiles",     WRAP_METHOD(Debugger, cmdListFiles));
 	registerCmd("dumpfile",      WRAP_METHOD(Debugger, cmdDumpFile));
+	registerCmd("locations",     WRAP_METHOD(Debugger, cmdLocations));
 }
 
 void Debugger::postEnter() {
 	if (!_3doPlayMovieFile.empty()) {
-		Scalpel3DOMoviePlay(_3doPlayMovieFile.c_str(), Common::Point(0, 0));
+		static_cast<Scalpel::ScalpelEngine *>(_vm)->play3doMovie(_3doPlayMovieFile, Common::Point(0, 0));
 
 		_3doPlayMovieFile.clear();
 	}
@@ -78,67 +85,42 @@ bool Debugger::cmdScene(int argc, const char **argv) {
 	}
 }
 
-bool Debugger::cmd3DO_PlayMovie(int argc, const char **argv) {
+bool Debugger::cmdSong(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Format: 3do_playmovie <3do-movie-file>\n");
+		debugPrintf("Format: song <name>\n");
 		return true;
 	}
 
-	// play gets postboned until debugger is closed
-	Common::String filename = argv[1];
-	_3doPlayMovieFile = filename;
+	Common::StringArray songs;
+	_vm->_music->getSongNames(songs);
 
-	return cmdExit(0, 0);
-}
-
-bool Debugger::cmd3DO_PlayAudio(int argc, const char **argv) {
-	if (argc != 2) {
-		debugPrintf("Format: 3do_playaudio <3do-audio-file>\n");
-		return true;
-	}
-
-	Common::File *file = new Common::File();
-	if (!file->open(argv[1])) {
-		debugPrintf("can not open specified audio file\n");
-		return true;
-	}
-
-	Audio::AudioStream *testStream;
-	Audio::SoundHandle testHandle;
-
-	// Try to load the given file as AIFF/AIFC
-	testStream = Audio::makeAIFFStream(file, DisposeAfterUse::YES);
-
-	if (testStream) {
-		g_system->getMixer()->playStream(Audio::Mixer::kPlainSoundType, &testHandle, testStream);
-		_vm->_events->clearEvents();
-
-		while ((!_vm->shouldQuit()) && g_system->getMixer()->isSoundHandleActive(testHandle)) {
-			_vm->_events->pollEvents();
-			g_system->delayMillis(10);
-			if (_vm->_events->kbHit()) {
-				break;
-			}
+	for (uint i = 0; i < songs.size(); i++) {
+		if (songs[i].equalsIgnoreCase(argv[1])) {
+			_vm->_music->loadSong(songs[i]);
+			return false;
 		}
-
-		debugPrintf("playing completed\n");
-		g_system->getMixer()->stopHandle(testHandle);
 	}
 
+	debugPrintf("Invalid song. Use the 'songs' command to see which ones are available.\n");
 	return true;
 }
 
-bool Debugger::cmdSong(int argc, const char **argv) {
-	if (argc != 2) {
-		debugPrintf("Format: song <room>\n");
-		return true;
-	}
+bool Debugger::cmdListSongs(int argc, const char **argv) {
+	Common::StringArray songs;
+	_vm->_music->getSongNames(songs);
+	debugPrintColumns(songs);
+	return true;
+}
 
-	if (!_vm->_music->loadSong(strToInt(argv[1]))) {
-		debugPrintf("Invalid song number.\n");
+bool Debugger::cmdListFiles(int argc, const char **argv) {
+	if (argc != 2) {
+		debugPrintf("Format: listfiles <resource file>\n");
 		return true;
 	}
-	return false;
+	Common::StringArray files;
+	_vm->_res->getResourceNames(Common::String(argv[1]), files);
+	debugPrintColumns(files);
+	return true;
 }
 
 bool Debugger::cmdDumpFile(int argc, const char **argv) {
@@ -169,5 +151,13 @@ bool Debugger::cmdDumpFile(int argc, const char **argv) {
 
 	return true;
 }
+
+bool Debugger::cmdLocations(int argc, const char **argv) {
+	_showAllLocations = LOC_REFRESH;
+
+	debugPrintf("Now showing all map locations\n");
+	return false;
+}
+
 
 } // End of namespace Sherlock

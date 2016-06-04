@@ -52,6 +52,9 @@ private:
 	int _talkTextX;
 	uint32 _dialogTimer;
 
+	/**
+	 * Get the needed size for a talk window
+	 */
 	void getTalkWindowSize();
 
 	/**

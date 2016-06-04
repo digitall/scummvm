@@ -26,18 +26,13 @@
 #include "sherlock/scalpel/scalpel.h"
 #include "sherlock/scalpel/scalpel_people.h"
 #include "sherlock/scalpel/scalpel_scene.h"
+#include "sherlock/scalpel/scalpel_screen.h"
+#include "sherlock/scalpel/3do/scalpel_3do_screen.h"
 #include "sherlock/tattoo/tattoo.h"
 #include "sherlock/tattoo/tattoo_scene.h"
 #include "sherlock/tattoo/tattoo_user_interface.h"
 
 namespace Sherlock {
-
-static const int FS_TRANS[8] = {
-	Scalpel::STOP_UP, Scalpel::STOP_UPRIGHT, Scalpel::STOP_RIGHT, Scalpel::STOP_DOWNRIGHT, 
-	Scalpel::STOP_DOWN, Scalpel::STOP_DOWNLEFT, Scalpel::STOP_LEFT, Scalpel::STOP_UPLEFT
-};
-
-/*----------------------------------------------------------------*/
 
 BgFileHeader::BgFileHeader() {
 	_numStructs = -1;
@@ -214,14 +209,14 @@ Scene *Scene::init(SherlockEngine *vm) {
 
 Scene::Scene(SherlockEngine *vm): _vm(vm) {
 	_sceneStats = new bool *[SCENES_COUNT];
-	_sceneStats[0] = new bool[SCENES_COUNT * 65];
-	Common::fill(&_sceneStats[0][0], &_sceneStats[0][SCENES_COUNT * 65], false);
+	_sceneStats[0] = new bool[SCENES_COUNT * (MAX_BGSHAPES + 1)];
+	Common::fill(&_sceneStats[0][0], &_sceneStats[0][SCENES_COUNT * (MAX_BGSHAPES + 1)], false);
 	for (int idx = 1; idx < SCENES_COUNT; ++idx) {
-		_sceneStats[idx] = _sceneStats[idx - 1] + 65;
+		_sceneStats[idx] = _sceneStats[idx - 1] + (MAX_BGSHAPES + 1);
 	}
+
 	_currentScene = -1;
 	_goToScene = -1;
-	_loadingSavedGame = false;
 	_walkedInScene = false;
 	_version = 0;
 	_compressed = false;
@@ -251,9 +246,6 @@ void Scene::selectScene() {
 	ui._windowOpen = ui._infoFlag = false;
 	ui._menuMode = STD_MODE;
 
-	// Free any previous scene
-	freeScene();
-
 	// Load the scene
 	Common::String sceneFile = Common::String::format("res%02d", _goToScene);
 	// _rrmName gets set during loadScene()
@@ -282,19 +274,20 @@ void Scene::selectScene() {
 }
 
 void Scene::freeScene() {
+	SaveManager &saves = *_vm->_saves;
+
 	if (_currentScene == -1)
 		return;
 
 	_vm->_ui->clearWindow();
 	_vm->_talk->freeTalkVars();
+	_vm->_talk->clearSequences();
 	_vm->_inventory->freeInv();
 	_vm->_music->freeSong();
 	_vm->_sound->freeLoadedSounds();
 
-	if (!_loadingSavedGame)
+	if (!saves._justLoaded)
 		saveSceneStatus();
-	else
-		_loadingSavedGame = false;
 
 	_sequenceBuffer.clear();
 	_descText.clear();
@@ -364,7 +357,7 @@ bool Scene::loadScene(const Common::String &filename) {
 			if (IS_ROSE_TATTOO) {
 				// Resize the screen if necessary
 				int fullWidth = SHERLOCK_SCREEN_WIDTH + bgHeader._scrollSize;
-				if (screen._backBuffer1.w() != fullWidth) {
+				if (screen._backBuffer1.width() != fullWidth) {
 					screen._backBuffer1.create(fullWidth, SHERLOCK_SCREEN_HEIGHT);
 					screen._backBuffer2.create(fullWidth, SHERLOCK_SCREEN_HEIGHT);
 				}
@@ -372,9 +365,8 @@ bool Scene::loadScene(const Common::String &filename) {
 				// Handle initializing the palette
 				screen.initPaletteFade(bgHeader._bytesWritten);
 				rrmStream->read(screen._cMap, PALETTE_SIZE);
-				screen.translatePalette(screen._cMap);
-
 				paletteLoaded();
+				screen.translatePalette(screen._cMap);
 
 				// Read in background
 				if (_compressed) {
@@ -571,33 +563,36 @@ bool Scene::loadScene(const Common::String &filename) {
 
 			// Read in the walk data
 			size = rrmStream->readUint16LE();
-			Common::SeekableReadStream *walkStream = !_compressed ? rrmStream :
+			Common::SeekableReadStream *walkStream = !_compressed ? rrmStream->readStream(size) :
 				res.decompress(*rrmStream, size);
-
-			int startPos = walkStream->pos();
-			while ((walkStream->pos() - startPos) < size) {
-				_walkPoints.push_back(WalkArray());
-				_walkPoints[_walkPoints.size() - 1]._fileOffset = walkStream->pos() - startPos;
-				_walkPoints[_walkPoints.size() - 1].load(*walkStream, IS_ROSE_TATTOO);
-			}
-
-			if (_compressed)
-				delete walkStream;
 
 			// Translate the file offsets of the walk directory to indexes in the loaded walk data
 			for (uint idx1 = 0; idx1 < _zones.size(); ++idx1) {
 				for (uint idx2 = 0; idx2 < _zones.size(); ++idx2) {
-					int fileOffset = _walkDirectory[idx1][idx2];
-					if (fileOffset == -1)
+					int dataOffset = _walkDirectory[idx1][idx2];
+					if (dataOffset == -1)
 						continue;
 
+					// Check to see if we've already loaded the walk set for the given data offset
 					uint dataIndex = 0;
-					while (dataIndex < _walkPoints.size() && _walkPoints[dataIndex]._fileOffset != fileOffset)
+					while (dataIndex < _walkPoints.size() && _walkPoints[dataIndex]._fileOffset != dataOffset)
 						++dataIndex;
-					assert(dataIndex < _walkPoints.size());
+
+					if (dataIndex == _walkPoints.size()) {
+						// Walk data for that offset hasn't been loaded yet, so load it now
+						_walkPoints.push_back(WalkArray());
+
+						walkStream->seek(dataOffset);
+						_walkPoints[_walkPoints.size() - 1]._fileOffset = dataOffset;
+						_walkPoints[_walkPoints.size() - 1].load(*walkStream, IS_ROSE_TATTOO);
+						dataIndex = _walkPoints.size() - 1;
+					}
+
 					_walkDirectory[idx1][idx2] = dataIndex;
 				}
 			}
+
+			delete walkStream;
 
 			if (IS_ROSE_TATTOO) {
 				// Read in the entrance
@@ -655,7 +650,7 @@ bool Scene::loadScene(const Common::String &filename) {
 			}
 
 			// Backup the image and set the palette
-			screen._backBuffer2.blitFrom(screen._backBuffer1);
+			screen._backBuffer2.SHblitFrom(screen._backBuffer1);
 			screen.setPalette(screen._cMap);
 
 			delete rrmStream;
@@ -901,27 +896,37 @@ bool Scene::loadScene(const Common::String &filename) {
 		// === WALK DATA === Read in the walk data
 		roomStream->seek(header3DO_walkData_offset);
 
-		int startPos = roomStream->pos();
-		while ((roomStream->pos() - startPos) < (int)header3DO_walkData_size) {
-			_walkPoints.push_back(WalkArray());
-			_walkPoints[_walkPoints.size() - 1]._fileOffset = roomStream->pos() - startPos;
-			_walkPoints[_walkPoints.size() - 1].load(*roomStream, false);
-		}
+		// Read in the walk data
+		Common::SeekableReadStream *walkStream = !_compressed ? roomStream->readStream(header3DO_walkData_size) :
+			res.decompress(*roomStream, header3DO_walkData_size);
 
 		// Translate the file offsets of the walk directory to indexes in the loaded walk data
 		for (uint idx1 = 0; idx1 < _zones.size(); ++idx1) {
 			for (uint idx2 = 0; idx2 < _zones.size(); ++idx2) {
-				int fileOffset = _walkDirectory[idx1][idx2];
-				if (fileOffset == -1)
+				int dataOffset = _walkDirectory[idx1][idx2];
+				if (dataOffset == -1)
 					continue;
 
+				// Check to see if we've already loaded the walk set for the given data offset
 				uint dataIndex = 0;
-				while (dataIndex < _walkPoints.size() && _walkPoints[dataIndex]._fileOffset != fileOffset)
+				while (dataIndex < _walkPoints.size() && _walkPoints[dataIndex]._fileOffset != dataOffset)
 					++dataIndex;
-				assert(dataIndex < _walkPoints.size());
+
+				if (dataIndex == _walkPoints.size()) {
+					// Walk data for that offset hasn't been loaded yet, so load it now
+					_walkPoints.push_back(WalkArray());
+
+					walkStream->seek(dataOffset);
+					_walkPoints[_walkPoints.size() - 1]._fileOffset = dataOffset;
+					_walkPoints[_walkPoints.size() - 1].load(*walkStream, IS_ROSE_TATTOO);
+					dataIndex = _walkPoints.size() - 1;
+				}
+
 				_walkDirectory[idx1][idx2] = dataIndex;
 			}
 		}
+
+		delete walkStream;
 
 		// === EXITS === Read in the exits
 		roomStream->seek(header3DO_exits_offset);
@@ -992,12 +997,12 @@ bool Scene::loadScene(const Common::String &filename) {
 
 #if 0
 		// code to show the background
-		screen.blitFrom(screen._backBuffer1);
+		screen.SHblitFrom(screen._backBuffer1);
 		_vm->_events->wait(10000);
 #endif
 
 		// Backup the image
-		screen._backBuffer2.blitFrom(screen._backBuffer1);
+		screen._backBuffer2.SHblitFrom(screen._backBuffer1);
 	}
 
 	// Handle drawing any on-screen interface
@@ -1057,11 +1062,11 @@ void Scene::loadSceneSounds() {
 }
 
 void Scene::checkSceneStatus() {
-	if (_sceneStats[_currentScene][64]) {
-		for (uint idx = 0; idx < 64; ++idx) {
+	if (_sceneStats[_currentScene][MAX_BGSHAPES]) {
+		for (int idx = 0; idx < MAX_BGSHAPES; ++idx) {
 			bool flag = _sceneStats[_currentScene][idx];
 
-			if (idx < _bgShapes.size()) {
+			if (idx < (int)_bgShapes.size()) {
 				Object &obj = _bgShapes[idx];
 
 				if (flag) {
@@ -1083,7 +1088,7 @@ void Scene::checkSceneStatus() {
 
 void Scene::saveSceneStatus() {
 	// Flag any objects for the scene that have been altered
-	int count = MIN((int)_bgShapes.size(), 64);
+	int count = MIN((int)_bgShapes.size(), MAX_BGSHAPES);
 	for (int idx = 0; idx < count; ++idx) {
 		Object &obj = _bgShapes[idx];
 		_sceneStats[_currentScene][idx] = obj._type == HIDDEN || obj._type == REMOVE
@@ -1091,7 +1096,7 @@ void Scene::saveSceneStatus() {
 	}
 
 	// Flag scene as having been visited
-	_sceneStats[_currentScene][64] = true;
+	_sceneStats[_currentScene][MAX_BGSHAPES] = true;
 }
 
 void Scene::checkSceneFlags(bool flag) {
@@ -1100,8 +1105,14 @@ void Scene::checkSceneFlags(bool flag) {
 	for (uint idx = 0; idx < _bgShapes.size(); ++idx) {
 		Object &o = _bgShapes[idx];
 
-		if (o._requiredFlag) {
-			if (!_vm->readFlags(_bgShapes[idx]._requiredFlag)) {
+		if (o._requiredFlag[0] || o._requiredFlag[1]) {
+			bool objectFlag = true;
+			if (o._requiredFlag[0] != 0)
+				objectFlag = _vm->readFlags(o._requiredFlag[0]);
+			if (o._requiredFlag[1] != 0)
+				objectFlag &= _vm->readFlags(o._requiredFlag[1]);
+
+			if (!objectFlag) {
 				// Kill object
 				if (o._type != HIDDEN && o._type != INVALID) {
 					if (o._images == nullptr || o._images->size() == 0)
@@ -1111,7 +1122,7 @@ void Scene::checkSceneFlags(bool flag) {
 						// Flag it as needing to be hidden after first erasing it
 						o._type = mode;
 				}
-			} else if (_bgShapes[idx]._requiredFlag > 0) {
+			} else if (IS_ROSE_TATTOO || o._requiredFlag[0] > 0) {
 				// Restore object
 				if (o._images == nullptr || o._images->size() == 0)
 					o._type = NO_SHAPE;
@@ -1192,7 +1203,11 @@ void Scene::transitionToScene() {
 		// Note: If a savegame was just loaded, then the data is already correct.
 		// Otherwise, this is a linked scene or entrance info, and must be translated
 		if (hSavedFacing < 8 && !saves._justLoaded) {
-			hSavedFacing = FS_TRANS[hSavedFacing];
+			if (IS_ROSE_TATTOO)
+				hSavedFacing = Tattoo::FS_TRANS[hSavedFacing];
+			else			
+				hSavedFacing = Scalpel::FS_TRANS[hSavedFacing];
+			
 			hSavedPos.x *= FIXED_INT_MULTIPLIER;
 			hSavedPos.y *= FIXED_INT_MULTIPLIER;
 		}
@@ -1200,13 +1215,15 @@ void Scene::transitionToScene() {
 
 	int cAnimNum = -1;
 
-	if (hSavedFacing < 101) {
-		// Standard info, so set it
-		people[HOLMES]._position = hSavedPos;
-		people[HOLMES]._sequenceNumber = hSavedFacing;
-	} else {
-		// It's canimation information
-		cAnimNum = hSavedFacing - 101;
+	if (!saves._justLoaded) {
+		if (hSavedFacing < 101) {
+			// Standard info, so set it
+			people[HOLMES]._position = hSavedPos;
+			people[HOLMES]._sequenceNumber = hSavedFacing;
+		} else {
+			// It's canimation information
+			cAnimNum = hSavedFacing - 101;
+		}
 	}
 
 	// Reset positioning for next load
@@ -1217,6 +1234,11 @@ void Scene::transitionToScene() {
 		// Prevent Holmes from being drawn
 		people[HOLMES]._position = Common::Point(0, 0);
 	}
+
+	// If the scene is capable of scrolling, set the current scroll so that whoever has control 
+	// of the scroll code is in the middle of the screen
+	if (screen._backBuffer1.width() > SHERLOCK_SCREEN_WIDTH)
+		people[people._walkControl].centerScreenOnPerson();
 
 	for (uint objIdx = 0; objIdx < _bgShapes.size(); ++objIdx) {
 		Object &obj = _bgShapes[objIdx];
@@ -1274,10 +1296,10 @@ void Scene::transitionToScene() {
 		} else {
 			// fade in for 3DO
 			screen.clear();
-			screen.fadeIntoScreen3DO(3);
+			static_cast<Scalpel::Scalpel3DOScreen *>(_vm->_screen)->fadeIntoScreen3DO(3);
 		}
 	} else {
-		screen.blitFrom(screen._backBuffer1);
+		screen.slamArea(screen._currentScroll.x, screen._currentScroll.y, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT);
 	}
 	screen.update();
 
@@ -1332,30 +1354,6 @@ Exit *Scene::checkForExit(const Common::Rect &r) {
 	return nullptr;
 }
 
-int Scene::findBgShape(const Common::Rect &r) {
-	if (!_doBgAnimDone)
-		// New frame hasn't been drawn yet
-		return -1;
-
-	for (int idx = (int)_bgShapes.size() - 1; idx >= 0; --idx) {
-		Object &o = _bgShapes[idx];
-		if (o._type != INVALID && o._type != NO_SHAPE && o._type != HIDDEN
-			&& o._aType <= PERSON) {
-			if (r.intersects(o.getNewBounds()))
-				return idx;
-		} else if (o._type == NO_SHAPE) {
-			if (r.intersects(o.getNoShapeBounds()))
-				return idx;
-		}
-	}
-
-	return -1;
-}
-
-int Scene::findBgShape(const Common::Point &pt) {
-	return findBgShape(Common::Rect(pt.x, pt.y, pt.x + 1, pt.y + 1));
-}
-
 int Scene::checkForZones(const Common::Point &pt, int zoneType) {
 	int matches = 0;
 
@@ -1392,11 +1390,10 @@ void Scene::synchronize(Serializer &s) {
 		s.syncAsSint16LE(_currentScene);
 	} else {
 		s.syncAsSint16LE(_goToScene);
-		_loadingSavedGame = true;
 	}
 
-	for (int sceneNum = 0; sceneNum < SCENES_COUNT; ++sceneNum) {
-		for (int flag = 0; flag < 65; ++flag) {
+	for (int sceneNum = 1; sceneNum < SCENES_COUNT; ++sceneNum) {
+		for (int flag = 0; flag <= MAX_BGSHAPES; ++flag) {
 			s.syncAsByte(_sceneStats[sceneNum][flag]);
 		}
 	}

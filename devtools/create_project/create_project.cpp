@@ -20,7 +20,7 @@
  *
  */
 
-//#define ENABLE_XCODE
+#define ENABLE_XCODE
 
 // HACK to allow building with the SDL backend on MinGW
 // see bug #1800764 "TOOLS: MinGW tools building broken"
@@ -124,8 +124,7 @@ int main(int argc, char *argv[]) {
 	setup.features = getAllFeatures();
 
 	ProjectType projectType = kProjectNone;
-	int msvcVersion = 9;
-	bool useSDL2 = false;
+	int msvcVersion = 12;
 
 	// Parse command line arguments
 	using std::cout;
@@ -176,7 +175,7 @@ int main(int argc, char *argv[]) {
 
 			msvcVersion = atoi(argv[++i]);
 
-			if (msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11 && msvcVersion != 12) {
+			if (msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11 && msvcVersion != 12 && msvcVersion != 14) {
 				std::cerr << "ERROR: Unsupported version: \"" << msvcVersion << "\" passed to \"--msvc-version\"!\n";
 				return -1;
 			}
@@ -269,7 +268,7 @@ int main(int argc, char *argv[]) {
 		} else if (!std::strcmp(argv[i], "--tests")) {
 			setup.tests = true;
 		} else if (!std::strcmp(argv[i], "--sdl2")) {
-			useSDL2 = true;
+			setup.useSDL2 = true;
 		} else {
 			std::cerr << "ERROR: Unknown parameter \"" << argv[i] << "\"\n";
 			return -1;
@@ -336,13 +335,42 @@ int main(int argc, char *argv[]) {
 	setup.defines.splice(setup.defines.begin(), featureDefines);
 
 	// Windows only has support for the SDL backend, so we hardcode it here (along with winmm)
-	setup.defines.push_back("WIN32");
+	if (projectType != kProjectXcode) {
+		setup.defines.push_back("WIN32");
+	} else {
+		setup.defines.push_back("POSIX");
+		// Define both MACOSX, and IPHONE, but only one of them will be associated to the
+		// correct target by the Xcode project provider.
+		// This define will help catching up target dependend files, like "browser_osx.mm"
+		// The suffix ("_osx", or "_ios") will be used by the project provider to filter out
+		// the files, according to the target.
+		setup.defines.push_back("MACOSX");
+		setup.defines.push_back("IPHONE");
+	}
+
+	bool updatesEnabled = false;
+	for (FeatureList::const_iterator i = setup.features.begin(); i != setup.features.end(); ++i) {
+		if (i->enable && !strcmp(i->name, "updates"))
+			updatesEnabled = true;
+	}
+	if (updatesEnabled) {
+		setup.defines.push_back("USE_SPARKLE");
+		if (projectType != kProjectXcode)
+			setup.libraries.push_back("winsparkle");
+		else
+			setup.libraries.push_back("sparkle");
+	}
+
 	setup.defines.push_back("SDL_BACKEND");
-	if (!useSDL2) {
-		cout << "\nLinking to SDL 1.2\n\n";
+	if (!setup.useSDL2) {
+		cout << "\nBuilding against SDL 1.2\n\n";
 		setup.libraries.push_back("sdl");
 	} else {
-		cout << "\nLinking to SDL 2.0\n\n";
+		cout << "\nBuilding against SDL 2.0\n\n";
+		// TODO: This also defines USE_SDL2 in the preprocessor, we don't do
+		// this in our configure/make based build system. Adapt create_project
+		// to replicate this behavior.
+		setup.defines.push_back("USE_SDL2");
 		setup.libraries.push_back("sdl2");
 	}
 	setup.libraries.push_back("winmm");
@@ -410,7 +438,6 @@ int main(int argc, char *argv[]) {
 		globalWarnings.push_back("-Wwrite-strings");
 		// The following are not warnings at all... We should consider adding them to
 		// a different list of parameters.
-		globalWarnings.push_back("-fno-rtti");
 		globalWarnings.push_back("-fno-exceptions");
 		globalWarnings.push_back("-fcheck-new");
 
@@ -449,6 +476,9 @@ int main(int argc, char *argv[]) {
 		// 4250 ('class1' : inherits 'class2::member' via dominance)
 		//   two or more members have the same name. Should be harmless
 		//
+		// 4267 ('var' : conversion from 'size_t' to 'type', possible loss of data)
+		//   throws tons and tons of warnings (no immediate plan to fix all usages)
+		//
 		// 4310 (cast truncates constant value)
 		//   used in some engines
 		//
@@ -463,6 +493,8 @@ int main(int argc, char *argv[]) {
 		//
 		// 4512 ('class' : assignment operator could not be generated)
 		//   some classes use const items and the default assignment operator cannot be generated
+		//
+		// 4577 ('noexcept' used with no exception handling mode specified)
 		//
 		// 4702 (unreachable code)
 		//   mostly thrown after error() calls (marked as NORETURN)
@@ -519,6 +551,11 @@ int main(int argc, char *argv[]) {
 		globalWarnings.push_back("6385");
 		globalWarnings.push_back("6386");
 
+		if (msvcVersion == 14) {
+			globalWarnings.push_back("4267");
+			globalWarnings.push_back("4577");
+		}
+
 		projectWarnings["agi"].push_back("4510");
 		projectWarnings["agi"].push_back("4610");
 
@@ -572,7 +609,7 @@ int main(int argc, char *argv[]) {
 		globalWarnings.push_back("-fno-exceptions");
 		globalWarnings.push_back("-fcheck-new");
 
-		provider = new CreateProjectTool::XCodeProvider(globalWarnings, projectWarnings);
+		provider = new CreateProjectTool::XcodeProvider(globalWarnings, projectWarnings);
 		break;
 	}
 
@@ -632,6 +669,7 @@ void displayHelp(const char *exe) {
 	        "                           10 stands for \"Visual Studio 2010\"\n"
 	        "                           11 stands for \"Visual Studio 2012\"\n"
 	        "                           12 stands for \"Visual Studio 2013\"\n"
+	        "                           14 stands for \"Visual Studio 2015\"\n"
 	        "                           The default is \"9\", thus \"Visual Studio 2008\"\n"
 	        " --build-events           Run custom build events as part of the build\n"
 	        "                          (default: false)\n"
@@ -654,9 +692,9 @@ void displayHelp(const char *exe) {
 	        "Optional features settings:\n"
 	        " --enable-<name>          enable inclusion of the feature \"name\"\n"
 	        " --disable-<name>         disable inclusion of the feature \"name\"\n"
-			"\n"
-			"SDL settings:\n"
-			" --sdl2                   link to SDL 2.0, instead of SDL 1.2\n"
+	        "\n"
+	        "SDL settings:\n"
+	        " --sdl2                   link to SDL 2.0, instead of SDL 1.2\n"
 	        "\n"
 	        " There are the following features available:\n"
 	        "\n";
@@ -914,16 +952,17 @@ TokenList tokenize(const std::string &input, char separator) {
 namespace {
 const Feature s_features[] = {
 	// Libraries
-	{    "libz",        "USE_ZLIB", "zlib",             true, "zlib (compression) support" },
-	{     "mad",         "USE_MAD", "libmad",           true, "libmad (MP3) support" },
-	{  "vorbis",      "USE_VORBIS", "libvorbisfile_static libvorbis_static libogg_static", true, "Ogg Vorbis support" },
-	{    "flac",        "USE_FLAC", "libFLAC_static",   true, "FLAC support" },
-	{     "png",         "USE_PNG", "libpng",           true, "libpng support" },
-	{    "faad",        "USE_FAAD", "libfaad",          false, "AAC support" },
-	{   "mpeg2",       "USE_MPEG2", "libmpeg2",         false, "MPEG-2 support" },
-	{  "theora",   "USE_THEORADEC", "libtheora_static", true, "Theora decoding support" },
-	{"freetype",   "USE_FREETYPE2", "freetype",         true, "FreeType support" },
-	{    "jpeg",        "USE_JPEG", "jpeg-static",      true, "libjpeg support" },
+	{      "libz",        "USE_ZLIB", "zlib",             true,  "zlib (compression) support" },
+	{       "mad",         "USE_MAD", "libmad",           true,  "libmad (MP3) support" },
+	{    "vorbis",      "USE_VORBIS", "libvorbisfile_static libvorbis_static libogg_static", true, "Ogg Vorbis support" },
+	{      "flac",        "USE_FLAC", "libFLAC_static win_utf8_io_static",   true, "FLAC support" },
+	{       "png",         "USE_PNG", "libpng16",         true,  "libpng support" },
+	{      "faad",        "USE_FAAD", "libfaad",          false, "AAC support" },
+	{     "mpeg2",       "USE_MPEG2", "libmpeg2",         false, "MPEG-2 support" },
+	{    "theora",   "USE_THEORADEC", "libtheora_static", true,  "Theora decoding support" },
+	{  "freetype",   "USE_FREETYPE2", "freetype",         true,  "FreeType support" },
+	{      "jpeg",        "USE_JPEG", "jpeg-static",      true,  "libjpeg support" },
+	{"fluidsynth",  "USE_FLUIDSYNTH", "libfluidsynth",    true,  "FluidSynth support" },
 
 	// Feature flags
 	{            "bink",             "USE_BINK",         "", true,  "Bink video support" },
@@ -932,12 +971,14 @@ const Feature s_features[] = {
 	{           "16bit",        "USE_RGB_COLOR",         "", true,  "16bit color support" },
 	{         "mt32emu",          "USE_MT32EMU",         "", true,  "integrated MT-32 emulator" },
 	{            "nasm",             "USE_NASM",         "", true,  "IA-32 assembly support" }, // This feature is special in the regard, that it needs additional handling.
-	{          "opengl",           "USE_OPENGL", "opengl32", true,  "OpenGL support" },
+	{          "opengl",           "USE_OPENGL",         "", true,  "OpenGL support" },
+	{        "opengles",             "USE_GLES",         "", true,  "forced OpenGL ES mode" },
 	{         "taskbar",          "USE_TASKBAR",         "", true,  "Taskbar integration support" },
 	{     "translation",      "USE_TRANSLATION",         "", true,  "Translation support" },
 	{          "vkeybd",        "ENABLE_VKEYBD",         "", false, "Virtual keyboard support"},
 	{       "keymapper",     "ENABLE_KEYMAPPER",         "", false, "Keymapper support"},
 	{   "eventrecorder", "ENABLE_EVENTRECORDER",         "", false, "Event recorder support"},
+	{         "updates",          "USE_UPDATES",         "", false, "Updates support"},
 	{      "langdetect",       "USE_DETECTLANG",         "", true,  "System language detection support" } // This feature actually depends on "translation", there
 	                                                                                                      // is just no current way of properly detecting this...
 };
@@ -1035,18 +1076,24 @@ void splitFilename(const std::string &fileName, std::string &name, std::string &
 	ext = (dot == std::string::npos) ? std::string() : fileName.substr(dot + 1);
 }
 
+std::string basename(const std::string &fileName) {
+	const std::string::size_type slash = fileName.find_last_of('/');
+	if (slash == std::string::npos) return fileName;
+	return fileName.substr(slash + 1);
+}
+
 bool producesObjectFile(const std::string &fileName) {
 	std::string n, ext;
 	splitFilename(fileName, n, ext);
 
-	if (ext == "cpp" || ext == "c" || ext == "asm")
+	if (ext == "cpp" || ext == "c" || ext == "asm" || ext == "m" || ext == "mm")
 		return true;
 	else
 		return false;
 }
 
 std::string toString(int num) {
-    return static_cast<std::ostringstream*>(&(std::ostringstream() << num))->str();
+	return static_cast<std::ostringstream*>(&(std::ostringstream() << num))->str();
 }
 
 /**
@@ -1279,8 +1326,9 @@ void ProjectProvider::createProject(BuildSetup &setup) {
 	for (UUIDMap::const_iterator i = _uuidMap.begin(); i != _uuidMap.end(); ++i) {
 		if (i->first == setup.projectName)
 			continue;
-
+		// Retain the files between engines if we're creating a single project
 		in.clear(); ex.clear();
+
 		const std::string moduleDir = setup.srcDir + targetFolder + i->first;
 
 		createModuleList(moduleDir, setup.defines, setup.testDirs, in, ex);
@@ -1290,7 +1338,6 @@ void ProjectProvider::createProject(BuildSetup &setup) {
 	if (setup.tests) {
 		// Create the main project file.
 		in.clear(); ex.clear();
-
 		createModuleList(setup.srcDir + "/backends", setup.defines, setup.testDirs, in, ex);
 		createModuleList(setup.srcDir + "/backends/platform/sdl", setup.defines, setup.testDirs, in, ex);
 		createModuleList(setup.srcDir + "/base", setup.defines, setup.testDirs, in, ex);
@@ -1305,7 +1352,6 @@ void ProjectProvider::createProject(BuildSetup &setup) {
 	} else if (!setup.devTools) {
 		// Last but not least create the main project file.
 		in.clear(); ex.clear();
-
 		// File list for the Project file
 		createModuleList(setup.srcDir + "/backends", setup.defines, setup.testDirs, in, ex);
 		createModuleList(setup.srcDir + "/backends/platform/sdl", setup.defines, setup.testDirs, in, ex);
@@ -1320,8 +1366,7 @@ void ProjectProvider::createProject(BuildSetup &setup) {
 		createModuleList(setup.srcDir + "/image", setup.defines, setup.testDirs, in, ex);
 
 		// Resource files
-		in.push_back(setup.srcDir + "/icons/" + setup.projectName + ".ico");
-		in.push_back(setup.srcDir + "/dists/" + setup.projectName + ".rc");
+		addResourceFiles(setup, in, ex);
 
 		// Various text files
 		in.push_back(setup.srcDir + "/AUTHORS");

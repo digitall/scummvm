@@ -55,14 +55,12 @@ static const uint8 creativeADPCM_AdjustMap[64] = {
 Sound::Sound(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 	_digitized = false;
 	_voices = 0;
-	_diskSoundPlaying = false;
 	_soundPlaying = false;
-	_soundIsOn = &_soundPlaying;
+	_speechPlaying = false;
 	_curPriority = 0;
-	_digiBuf = nullptr;
-
-	_soundOn = true;
-	_speechOn = true;
+	_soundVolume = ConfMan.hasKey("sfx_volume") ? ConfMan.getInt("sfx_volume") : 255;
+	_soundOn = ConfMan.hasKey("mute") ? !ConfMan.getBool("mute") : true;
+	_speechOn = ConfMan.hasKey("speech_mute") ? !ConfMan.getBool("speech_mute") : true;
 
 	if (IS_3DO) {
 		// 3DO: we don't need to prepare anything for sound
@@ -90,7 +88,8 @@ Sound::Sound(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 
 void Sound::syncSoundSettings() {
 	_digitized = !ConfMan.getBool("mute");
-	_voices = !ConfMan.getBool("mute") && !ConfMan.getBool("speech_mute") ? 1 : 0;
+	_speechOn = !ConfMan.getBool("mute") && !ConfMan.getBool("speech_mute");
+	_voices = _digitized ? 1 : 0;
 }
 
 void Sound::loadSound(const Common::String &name, int priority) {
@@ -121,10 +120,42 @@ byte Sound::decodeSample(byte sample, byte &reference, int16 &scale) {
 }
 
 bool Sound::playSound(const Common::String &name, WaitType waitType, int priority, const char *libraryFilename) {
-	Resources &res = *_vm->_res;
-	stopSound();
+	// Scalpel has only a single sound handle, so it must be stopped before starting a new sound
+	if (IS_SERRATED_SCALPEL)
+		stopSound();
 
+	Common::String filename = formFilename(name);
+
+	Audio::SoundHandle &soundHandle = (IS_SERRATED_SCALPEL) ? _scalpelEffectsHandle : getFreeSoundHandle();
+	if (!playSoundResource(filename, libraryFilename, Audio::Mixer::kSFXSoundType, soundHandle))
+		error("Could not find sound resource - %s", filename.c_str());
+
+	_soundPlaying = true;
+	_curPriority = priority;
+
+	if (waitType == WAIT_RETURN_IMMEDIATELY) {
+		return true;
+	}
+
+	bool retval = true;
+	do {
+		_vm->_events->pollEvents();
+		g_system->delayMillis(10);
+		if ((waitType == WAIT_KBD_OR_FINISH) && _vm->_events->kbHit()) {
+			retval = false;
+			break;
+		}
+	} while (!_vm->shouldQuit() && _mixer->isSoundHandleActive(soundHandle));
+
+	_soundPlaying = false;
+	_mixer->stopHandle(soundHandle);
+
+	return retval;
+}
+
+Common::String Sound::formFilename(const Common::String &name) {
 	Common::String filename = name;
+
 	if (!filename.contains('.')) {
 		if (!IS_3DO) {
 			if (IS_SERRATED_SCALPEL) {
@@ -142,80 +173,31 @@ bool Sound::playSound(const Common::String &name, WaitType waitType, int priorit
 		}
 	}
 
-	Common::String libFilename(libraryFilename);
-	Common::SeekableReadStream *stream = libFilename.empty() ? res.load(filename) : res.load(filename, libFilename);
+	return filename;
+}
 
-	Audio::AudioStream *audioStream;
-
-	if (!IS_3DO) {
-		if (IS_SERRATED_SCALPEL) {
-			stream->skip(2);
-			int size = stream->readUint32BE();
-			int rate = stream->readUint16BE();
-			byte *data = (byte *)malloc(size);
-			byte *ptr = data;
-			stream->read(ptr, size);
-			delete stream;
-
-			assert(size > 2);
-
-			byte *decoded = (byte *)malloc((size - 1) * 2);
-
-			// Holmes uses Creative ADPCM 4-bit data
-			int counter = 0;
-			byte reference = ptr[0];
-			int16 scale = 0;
-
-			for(int i = 1; i < size; i++) {
-				decoded[counter++] = decodeSample((ptr[i]>>4)&0x0f, reference, scale);
-				decoded[counter++] = decodeSample((ptr[i]>>0)&0x0f, reference, scale);
-			}
-
-			free(data);
-
-#if 0
-			// Debug : used to dump files
-			Common::DumpFile outFile;
-			outFile.open(filename);
-			outFile.write(decoded, (size - 2) * 2);
-			outFile.flush();
-			outFile.close();
-#endif
-
-			audioStream = Audio::makeRawStream(decoded, (size - 2) * 2, rate, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
-		} else {
-			audioStream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
-		}
+void Sound::playAiff(const Common::String &name, int volume, bool loop) {
+	Common::File *file = new Common::File();
+	if (!file->open(name)) {
+		delete file;
+		return;
+	}
+	Audio::AudioStream *stream;
+	Audio::RewindableAudioStream *audioStream = Audio::makeAIFFStream(file, DisposeAfterUse::YES);
+	if (loop) {
+		Audio::AudioStream *loopingStream = Audio::makeLoopingAudioStream(audioStream, 0);
+		stream = loopingStream;
 	} else {
-		// 3DO: AIFF file
-		audioStream = Audio::makeAIFFStream(stream, DisposeAfterUse::YES);
+		stream = audioStream;
 	}
+	stopAiff();
+	_mixer->playStream(Audio::Mixer::kSFXSoundType, &_aiffHandle, stream, -1, volume);
+}
 
-	Audio::SoundHandle effectsHandle = (IS_SERRATED_SCALPEL) ? _scalpelEffectsHandle : getFreeSoundHandle();
-
-	_mixer->playStream(Audio::Mixer::kPlainSoundType, &effectsHandle, audioStream, -1,  Audio::Mixer::kMaxChannelVolume);
-	_soundPlaying = true;
-	_curPriority = priority;
-
-	if (waitType == WAIT_RETURN_IMMEDIATELY) {
-		_diskSoundPlaying = true;
-		return true;
+void Sound::stopAiff() {
+	if (_mixer->isSoundHandleActive(_aiffHandle)) {
+		_mixer->stopHandle(_aiffHandle);
 	}
-
-	bool retval = true;
-	do {
-		_vm->_events->pollEvents();
-		g_system->delayMillis(10);
-		if ((waitType == WAIT_KBD_OR_FINISH) && _vm->_events->kbHit()) {
-			retval = false;
-			break;
-		}
-	} while (!_vm->shouldQuit() && _mixer->isSoundHandleActive(effectsHandle));
-
-	_soundPlaying = false;
-	_mixer->stopHandle(effectsHandle);
-
-	return retval;
 }
 
 void Sound::playLoadedSound(int bufNum, WaitType waitType) {
@@ -244,25 +226,115 @@ void Sound::stopSound() {
 	}
 }
 
-void Sound::stopSndFuncPtr(int v1, int v2) {
-	// TODO
-	warning("TODO: Sound::stopSndFuncPtr");
-}
-
 void Sound::freeDigiSound() {
-	delete[] _digiBuf;
-	_digiBuf = nullptr;
-	_diskSoundPlaying = false;
 	_soundPlaying = false;
 }
 
-Audio::SoundHandle Sound::getFreeSoundHandle() {
+Audio::SoundHandle &Sound::getFreeSoundHandle() {
 	for (int i = 0; i < MAX_MIXER_CHANNELS; i++) {
 		if (!_mixer->isSoundHandleActive(_tattooEffectsHandle[i]))
 			return _tattooEffectsHandle[i];
 	}
 
 	error("getFreeSoundHandle: No sound handle found");
+}
+
+void Sound::setVolume(int volume) {
+	_soundVolume = volume;
+	_vm->_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, volume);
+	_vm->_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, volume);
+	_vm->_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType, volume);
+}
+
+void Sound::playSpeech(const Common::String &name) {
+	Resources &res = *_vm->_res;
+	Scene &scene = *_vm->_scene;
+
+	// Stop any previously playing speech
+	stopSpeech();
+
+	if (IS_SERRATED_SCALPEL) {
+		Common::String filename = formFilename(name);
+		if (playSoundResource(filename, Common::String(), Audio::Mixer::kSFXSoundType, _speechHandle))
+			_speechPlaying = true;
+	} else {
+		// Figure out which speech library to use
+		Common::String libraryName = Common::String::format("speech%02d.lib", scene._currentScene);
+		if ((!scumm_strnicmp(name.c_str(), "SLVE12S", 7)) || (!scumm_strnicmp(name.c_str(), "WATS12X", 7))
+				|| (!scumm_strnicmp(name.c_str(), "HOLM12X", 7)))
+			libraryName = "SPEECH12.LIB";
+
+		// If the speech library file doesn't even exist, then we can't play anything
+		Common::File f;
+		if (!f.exists(libraryName))
+			return;
+
+		// Ensure the given library is in the cache
+		res.addToCache(libraryName);
+
+		if (playSoundResource(name, libraryName, Audio::Mixer::kSpeechSoundType, _speechHandle))
+			_speechPlaying = true;
+	}
+}
+
+void Sound::stopSpeech() {
+	_mixer->stopHandle(_speechHandle);
+	_speechPlaying = false;
+}
+
+bool Sound::isSpeechPlaying() {
+	_speechPlaying = _mixer->isSoundHandleActive(_speechHandle);
+	return _speechPlaying;
+}
+
+bool Sound::playSoundResource(const Common::String &name, const Common::String &libFilename,
+		Audio::Mixer::SoundType soundType, Audio::SoundHandle &handle) {
+	Resources &res = *_vm->_res;
+	Common::SeekableReadStream *stream = libFilename.empty() ? res.load(name) : res.load(name, libFilename, true);
+	if (!stream)
+		return false;
+
+	Audio::AudioStream *audioStream;
+	if (IS_ROSE_TATTOO && soundType == Audio::Mixer::kSpeechSoundType) {
+		audioStream = Audio::makeRawStream(stream, 11025, Audio::FLAG_UNSIGNED);
+	} else if (IS_3DO) {
+		// 3DO: AIFF file
+		audioStream = Audio::makeAIFFStream(stream, DisposeAfterUse::YES);
+	} else if (IS_SERRATED_SCALPEL) {
+		stream->skip(2);
+		int size = stream->readUint32BE();
+		int rate = stream->readUint16BE();
+		byte *data = (byte *)malloc(size);
+		byte *ptr = data;
+		stream->read(ptr, size);
+		delete stream;
+
+		assert(size > 2);
+
+		byte *decoded = (byte *)malloc((size - 1) * 2);
+
+		// Holmes uses Creative ADPCM 4-bit data
+		int counter = 0;
+		byte reference = ptr[0];
+		int16 scale = 0;
+
+		for (int i = 1; i < size; i++) {
+			decoded[counter++] = decodeSample((ptr[i] >> 4) & 0x0f, reference, scale);
+			decoded[counter++] = decodeSample((ptr[i] >> 0) & 0x0f, reference, scale);
+		}
+
+		free(data);
+
+		audioStream = Audio::makeRawStream(decoded, (size - 2) * 2, rate, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
+	} else {
+		audioStream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
+	}
+
+	if (!audioStream)
+		return false;
+
+	_mixer->playStream(soundType, &handle, audioStream, -1, Audio::Mixer::kMaxChannelVolume);
+	return true;
 }
 
 } // End of namespace Sherlock

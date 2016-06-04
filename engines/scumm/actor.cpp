@@ -861,7 +861,7 @@ L2C36:;
 			stopActorMoving();
 			return;
 		}
-		// 2C98: Yes, an exact copy of what just occured.. the original does this, so im doing it...
+		// 2C98: Yes, an exact copy of what just occurred.. the original does this, so im doing it...
 		//       Just to keep me sane when going over it :)
 		if (A == 0xFF) {
 			setActorFromTmp();
@@ -2479,6 +2479,13 @@ void ScummEngine::setActorRedrawFlags() {
 			_actors[j]->_needRedraw = true;
 		}
 	} else {
+		if (_game.heversion >= 72) {
+			for (j = 1; j < _numActors; j++) {
+				if (_actors[j]->_costume && _actors[j]->_heXmapNum)
+					_actors[j]->_needRedraw = true;
+			}
+		}
+
 		for (i = 0; i < _gdi->_numStrips; i++) {
 			int strip = _screenStartStrip + i;
 			if (testGfxAnyUsageBits(strip)) {

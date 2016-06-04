@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SCUMM_H
-#define SCUMM_H
+#ifndef SCUMM_SCUMM_H
+#define SCUMM_SCUMM_H
 
 #include "engines/engine.h"
 
@@ -704,6 +704,7 @@ protected:
 	virtual int readVar(uint var);
 	virtual void writeVar(uint var, int value);
 
+protected:
 	void beginCutscene(int *args);
 	void endCutscene();
 	void abortCutscene();

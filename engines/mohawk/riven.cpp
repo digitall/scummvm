@@ -25,6 +25,7 @@
 #include "common/keyboard.h"
 #include "common/translation.h"
 #include "common/system.h"
+#include "gui/saveload.h"
 
 #include "mohawk/cursors.h"
 #include "mohawk/installer_archive.h"
@@ -54,9 +55,19 @@ MohawkEngine_Riven::MohawkEngine_Riven(OSystem *syst, const MohawkGameDescriptio
 	_gameOver = false;
 	_activatedSLST = false;
 	_ignoreNextMouseUp = false;
-	_extrasFile = 0;
+	_extrasFile = nullptr;
 	_curStack = kStackUnknown;
-	_hotspots = 0;
+	_hotspots = nullptr;
+	_gfx = nullptr;
+	_externalScriptHandler = nullptr;
+	_rnd = nullptr;
+	_scriptMan = nullptr;
+	_console = nullptr;
+	_saveLoad = nullptr;
+	_optionsDialog = nullptr;
+	_curCard = 0;
+	_hotspotCount = 0;
+	_curHotspot = -1;
 	removeTimer();
 
 	// NOTE: We can never really support CD swapping. All of the music files
@@ -828,7 +839,7 @@ static void sunnersTopStairsTimer(MohawkEngine_Riven *vm) {
 	VideoHandle oldHandle = vm->_video->findVideoHandleRiven(1);
 	uint32 timerTime = 500;
 
-	if (oldHandle == NULL_VID_HANDLE || vm->_video->endOfVideo(oldHandle)) {
+	if (!oldHandle || oldHandle->endOfVideo()) {
 		uint32 &sunnerTime = vm->_vars["jsunnertime"];
 
 		if (sunnerTime == 0) {
@@ -836,7 +847,7 @@ static void sunnersTopStairsTimer(MohawkEngine_Riven *vm) {
 		} else if (sunnerTime < vm->getTotalPlayTime()) {
 			VideoHandle handle = vm->_video->playMovieRiven(vm->_rnd->getRandomNumberRng(1, 3));
 
-			timerTime = vm->_video->getDuration(handle).msecs() + vm->_rnd->getRandomNumberRng(2, 15) * 1000;
+			timerTime = handle->getDuration().msecs() + vm->_rnd->getRandomNumberRng(2, 15) * 1000;
 		}
 
 		sunnerTime = timerTime + vm->getTotalPlayTime();
@@ -858,7 +869,7 @@ static void sunnersMidStairsTimer(MohawkEngine_Riven *vm) {
 	VideoHandle oldHandle = vm->_video->findVideoHandleRiven(1);
 	uint32 timerTime = 500;
 
-	if (oldHandle == NULL_VID_HANDLE || vm->_video->endOfVideo(oldHandle)) {
+	if (!oldHandle || oldHandle->endOfVideo()) {
 		uint32 &sunnerTime = vm->_vars["jsunnertime"];
 
 		if (sunnerTime == 0) {
@@ -874,7 +885,7 @@ static void sunnersMidStairsTimer(MohawkEngine_Riven *vm) {
 
 			VideoHandle handle = vm->_video->playMovieRiven(movie);
 
-			timerTime = vm->_video->getDuration(handle).msecs() + vm->_rnd->getRandomNumberRng(1, 10) * 1000;
+			timerTime = handle->getDuration().msecs() + vm->_rnd->getRandomNumberRng(1, 10) * 1000;
 		}
 
 		sunnerTime = timerTime + vm->getTotalPlayTime();
@@ -896,7 +907,7 @@ static void sunnersLowerStairsTimer(MohawkEngine_Riven *vm) {
 	VideoHandle oldHandle = vm->_video->findVideoHandleRiven(1);
 	uint32 timerTime = 500;
 
-	if (oldHandle == NULL_VID_HANDLE || vm->_video->endOfVideo(oldHandle)) {
+	if (!oldHandle || oldHandle->endOfVideo()) {
 		uint32 &sunnerTime = vm->_vars["jsunnertime"];
 
 		if (sunnerTime == 0) {
@@ -904,7 +915,7 @@ static void sunnersLowerStairsTimer(MohawkEngine_Riven *vm) {
 		} else if (sunnerTime < vm->getTotalPlayTime()) {
 			VideoHandle handle = vm->_video->playMovieRiven(vm->_rnd->getRandomNumberRng(3, 5));
 
-			timerTime = vm->_video->getDuration(handle).msecs() + vm->_rnd->getRandomNumberRng(1, 30) * 1000;
+			timerTime = handle->getDuration().msecs() + vm->_rnd->getRandomNumberRng(1, 30) * 1000;
 		}
 
 		sunnerTime = timerTime + vm->getTotalPlayTime();
@@ -926,7 +937,7 @@ static void sunnersBeachTimer(MohawkEngine_Riven *vm) {
 	VideoHandle oldHandle = vm->_video->findVideoHandleRiven(3);
 	uint32 timerTime = 500;
 
-	if (oldHandle == NULL_VID_HANDLE || vm->_video->endOfVideo(oldHandle)) {
+	if (!oldHandle || oldHandle->endOfVideo()) {
 		uint32 &sunnerTime = vm->_vars["jsunnertime"];
 
 		if (sunnerTime == 0) {
@@ -938,7 +949,7 @@ static void sunnersBeachTimer(MohawkEngine_Riven *vm) {
 			vm->_video->activateMLST(mlstID, vm->getCurCard());
 			VideoHandle handle = vm->_video->playMovieRiven(mlstID);
 
-			timerTime = vm->_video->getDuration(handle).msecs() + vm->_rnd->getRandomNumberRng(1, 30) * 1000;
+			timerTime = handle->getDuration().msecs() + vm->_rnd->getRandomNumberRng(1, 30) * 1000;
 		}
 
 		sunnerTime = timerTime + vm->getTotalPlayTime();
@@ -969,7 +980,7 @@ void MohawkEngine_Riven::installCardTimer() {
 }
 
 void MohawkEngine_Riven::doVideoTimer(VideoHandle handle, bool force) {
-	assert(handle != NULL_VID_HANDLE);
+	assert(handle);
 
 	uint16 id = _scriptMan->getStoredMovieOpcodeID();
 
@@ -977,7 +988,7 @@ void MohawkEngine_Riven::doVideoTimer(VideoHandle handle, bool force) {
 		return;
 
 	// Run the opcode if we can at this point
-	if (force || _video->getTime(handle) >= _scriptMan->getStoredMovieOpcodeTime())
+	if (force || handle->getTime() >= _scriptMan->getStoredMovieOpcodeTime())
 		_scriptMan->runStoredMovieOpcode();
 }
 
@@ -1003,7 +1014,7 @@ void MohawkEngine_Riven::checkSunnerAlertClick() {
 
 	// If the alert video is no longer playing, we have nothing left to do
 	VideoHandle handle = _video->findVideoHandleRiven(1);
-	if (handle == NULL_VID_HANDLE || _video->endOfVideo(handle))
+	if (!handle || handle->endOfVideo())
 		return;
 
 	sunners = 1;

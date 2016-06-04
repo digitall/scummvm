@@ -30,7 +30,6 @@
 #include "engines/util.h"
 
 #include "gui/message.h"
-#include "gui/gui-manager.h"
 
 #include "graphics/cursorman.h"
 
@@ -67,6 +66,7 @@
 #include "scumm/players/player_v5m.h"
 #include "scumm/resource.h"
 #include "scumm/he/resource_he.h"
+#include "scumm/he/moonbase/moonbase.h"
 #include "scumm/scumm_v0.h"
 #include "scumm/scumm_v8.h"
 #include "scumm/sound.h"
@@ -734,7 +734,7 @@ ScummEngine_v0::ScummEngine_v0(OSystem *syst, const DetectorResult &dr)
 	VAR_ACTIVE_VERB = 0xFF;
 
 	if (strcmp(dr.fp.pattern, "maniacdemo.d64") == 0 )
-		_game.features |= GF_DEMO; 
+		_game.features |= GF_DEMO;
 }
 
 ScummEngine_v6::ScummEngine_v6(OSystem *syst, const DetectorResult &dr)
@@ -875,7 +875,7 @@ ScummEngine_v90he::ScummEngine_v90he(OSystem *syst, const DetectorResult &dr)
 	memset(_videoParams.filename, 0, sizeof(_videoParams.filename));
 	_videoParams.status = 0;
 	_videoParams.flags = 0;
-	_videoParams.unk2 = 0;
+	_videoParams.number = 0;
 	_videoParams.wizResNum = 0;
 
 	VAR_NUM_SPRITE_GROUPS = 0xFF;
@@ -896,6 +896,25 @@ ScummEngine_v90he::~ScummEngine_v90he() {
 	if (_game.heversion >= 99) {
 		free(_hePalettes);
 	}
+}
+
+ScummEngine_v100he::ScummEngine_v100he(OSystem *syst, const DetectorResult &dr) : ScummEngine_v99he(syst, dr) {
+	/* Moonbase stuff */
+	_moonbase = 0;
+
+	if (_game.id == GID_MOONBASE)
+		_moonbase = new Moonbase(this);
+
+	VAR_U32_USER_VAR_A = 0xFF;
+	VAR_U32_USER_VAR_B = 0xFF;
+	VAR_U32_USER_VAR_C = 0xFF;
+	VAR_U32_USER_VAR_D = 0xFF;
+	VAR_U32_USER_VAR_E = 0xFF;
+	VAR_U32_USER_VAR_F = 0xFF;
+}
+
+ScummEngine_v100he::~ScummEngine_v100he() {
+	delete _moonbase;
 }
 
 ScummEngine_vCUPhe::ScummEngine_vCUPhe(OSystem *syst, const DetectorResult &dr) : Engine(syst){
@@ -1275,10 +1294,7 @@ void ScummEngine::setupScumm() {
 	// On some systems it's not safe to run CD audio games from the CD.
 	if (_game.features & GF_AUDIOTRACKS && !Common::File::exists("CDDA.SOU")) {
 		checkCD();
-
-		int cd_num = ConfMan.getInt("cdrom");
-		if (cd_num >= 0)
-			_system->getAudioCDManager()->openCD(cd_num);
+		_system->getAudioCDManager()->open();
 	}
 
 	// Create the sound manager
@@ -1905,7 +1921,7 @@ void ScummEngine::setupMusic(int midi) {
 		// EGA/VGA. However, we support multi MIDI for that game and we cannot
 		// support this with the Player_AD code at the moment. The reason here
 		// is that multi MIDI is supported internally by our iMuse output.
-		_musicEngine = new Player_AD(this, _mixer);
+		_musicEngine = new Player_AD(this);
 	} else if (_game.version >= 3 && _game.heversion <= 62) {
 		MidiDriver *nativeMidiDriver = 0;
 		MidiDriver *adlibMidiDriver = 0;
@@ -2611,8 +2627,12 @@ bool ScummEngine::startManiac() {
 			Common::String path = dom.getVal("path");
 
 			if (path.hasPrefix(currentPath)) {
-				path.erase(0, currentPath.size() + 1);
-				if (path.equalsIgnoreCase("maniac")) {
+				path.erase(0, currentPath.size());
+				// Do a case-insensitive non-path-mode match of the remainder.
+				// While strictly speaking it's too broad, this matchString
+				// ignores the presence or absence of trailing path separators
+				// in either currentPath or path.
+				if (path.matchString("*maniac*", true, false)) {
 					maniacTarget = iter->_key;
 					break;
 				}

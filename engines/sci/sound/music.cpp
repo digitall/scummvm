@@ -73,7 +73,7 @@ void SciMusic::init() {
 	// Default to MIDI in SCI2.1+ games, as many don't have AdLib support.
 	// Also, default to MIDI for Windows versions of SCI1.1 games, as their
 	// soundtrack is written for GM.
-	if (getSciVersion() >= SCI_VERSION_2_1 || g_sci->_features->useAltWinGMSound())
+	if (getSciVersion() >= SCI_VERSION_2_1_EARLY || g_sci->_features->useAltWinGMSound())
 		deviceFlags |= MDT_PREFER_GM;
 
 	// Currently our CMS implementation only supports SCI1(.1)
@@ -131,6 +131,12 @@ void SciMusic::init() {
 			// HACK: The Fun Seeker's Guide demo doesn't have patch 3 and the version
 			// of the Adlib driver (adl.drv) that it includes is unsupported. That demo
 			// doesn't have any sound anyway, so this shouldn't be fatal.
+		} else if (g_sci->getGameId() == GID_MOTHERGOOSEHIRES) {
+			// HACK: Mixed-Up Mother Goose Deluxe does not seem to use synthesized music,
+			// so just set a default tempo (for fading)
+			// TODO: Review this
+			_dwTempo = 1000000 / 250;
+			warning("Temporary music hack for MUMG Deluxe");
 		} else {
 			error("Failed to initialize sound driver");
 		}

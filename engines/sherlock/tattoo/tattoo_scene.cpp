@@ -22,6 +22,7 @@
 
 #include "sherlock/tattoo/tattoo_scene.h"
 #include "sherlock/tattoo/tattoo_people.h"
+#include "sherlock/tattoo/tattoo_talk.h"
 #include "sherlock/tattoo/tattoo_user_interface.h"
 #include "sherlock/tattoo/tattoo.h"
 #include "sherlock/events.h"
@@ -31,25 +32,37 @@ namespace Sherlock {
 
 namespace Tattoo {
 
+const int FS_TRANS[8] = {
+	STOP_UP, STOP_UPRIGHT, STOP_RIGHT, STOP_DOWNRIGHT, STOP_DOWN, STOP_DOWNLEFT, STOP_LEFT, STOP_UPLEFT
+};
+
+/*----------------------------------------------------------------*/
+
 struct ShapeEntry {
 	Object *_shape;
 	TattooPerson *_person;
 	bool _isAnimation;
 	int _yp;
+	int _ordering;
 
-	ShapeEntry(TattooPerson *person, int yp) : _shape(nullptr), _person(person), _yp(yp), _isAnimation(false) {}
-	ShapeEntry(Object *shape, int yp) : _shape(shape), _person(nullptr), _yp(yp), _isAnimation(false) {}
-	ShapeEntry(int yp) : _shape(nullptr), _person(nullptr), _yp(yp), _isAnimation(true) {}
+	ShapeEntry(TattooPerson *person, int yp, int ordering) :
+		_shape(nullptr), _person(person), _yp(yp), _isAnimation(false), _ordering(ordering) {}
+	ShapeEntry(Object *shape, int yp, int ordering) :
+		_shape(shape), _person(nullptr), _yp(yp), _isAnimation(false), _ordering(ordering) {}
+	ShapeEntry(int yp, int ordering) : 
+		_shape(nullptr), _person(nullptr), _yp(yp), _isAnimation(true), _ordering(ordering) {}
 };
 typedef Common::List<ShapeEntry> ShapeList;
 
 static bool sortImagesY(const ShapeEntry &s1, const ShapeEntry &s2) {
-	return s1._yp <= s2._yp;
+	// Objects are order by the calculated Y position first and then, when both are equal,
+	// by the order in which the entries were added
+	return s1._yp < s2._yp || (s1._yp == s2._yp && s1._ordering < s2._ordering);
 }
 
 /*----------------------------------------------------------------*/
 
-TattooScene::TattooScene(SherlockEngine *vm) : Scene(vm) {
+TattooScene::TattooScene(SherlockEngine *vm) : Scene(vm), _labWidget(vm) {
 	_labTableScene = false;
 }
 
@@ -77,21 +90,25 @@ bool TattooScene::loadScene(const Common::String &filename) {
 		}
 	}
 
-	// Set the NPC paths for the scene
-	setNPCPath(0);
-
 	// Handle loading music for the scene
-	if (music._musicOn) {
-		if (talk._scriptMoreFlag != 1 && talk._scriptMoreFlag != 3)
-			music._nextSongName = Common::String::format("res%02d", _currentScene);
+	if (talk._scriptMoreFlag != 1 && talk._scriptMoreFlag != 3)
+		music._nextSongName = Common::String::format("res%02d", _currentScene);
 
-		// If it's a new song, then start it up
-		if (music._currentSongName.compareToIgnoreCase(music._nextSongName)) {
-			if (music.loadSong(music._nextSongName)) {
-				music.setMIDIVolume(music._musicVolume);
-				if (music._musicOn)
-					music.startSong();
-			}
+	// Set the NPC paths for the scene
+	setNPCPath(WATSON);
+
+	// If it's a new song, then start it up
+	if (music._currentSongName.compareToIgnoreCase(music._nextSongName)) {
+		// WORKAROUND: Stop playing music after Diogenes fire scene in the intro, 
+		// since it overlaps slightly into the next scene
+		if (talk._scriptName == "prol80p" && _currentScene == 80) {
+			music.stopMusic();
+			events.wait(5);
+		}
+
+		if (music.loadSong(music._nextSongName)) {
+			if (music._musicOn)
+				music.startSong();
 		}
 	}
 
@@ -101,6 +118,9 @@ bool TattooScene::loadScene(const Common::String &filename) {
 		// Set the menu/ui mode and whether we're in a lab table close-up scene
 		_labTableScene = _currentScene > 91 && _currentScene < 100;
 		ui._menuMode = _labTableScene ? LAB_MODE : STD_MODE;
+
+		if (_labTableScene)
+			ui.addFixedWidget(&_labWidget);
 	}
 
 	return result;
@@ -109,11 +129,11 @@ bool TattooScene::loadScene(const Common::String &filename) {
 void TattooScene::drawAllShapes() {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Screen &screen = *_vm->_screen;
-	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 	ShapeList shapeList;
+	int ordering = 0;
 
 	// Draw all objects and animations that are set to behind
-	screen.setDisplayBounds(Common::Rect(ui._currentScroll.x, 0, ui._currentScroll.x + SHERLOCK_SCREEN_WIDTH,  SHERLOCK_SCREEN_HEIGHT));
+	screen.setDisplayBounds(Common::Rect(0, 0, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT));
 
 	// Draw all active shapes which are behind the person
 	for (uint idx = 0; idx < _bgShapes.size(); ++idx) {
@@ -121,15 +141,15 @@ void TattooScene::drawAllShapes() {
 
 		if (obj._type == ACTIVE_BG_SHAPE && obj._misc == BEHIND) {
 			if (obj._quickDraw && obj._scaleVal == SCALE_THRESHOLD)
-				screen._backBuffer1.blitFrom(*obj._imageFrame, obj._position);
+				screen._backBuffer1.SHblitFrom(*obj._imageFrame, obj._position);
 			else
-				screen._backBuffer1.transBlitFrom(*obj._imageFrame, obj._position, obj._flags & OBJ_FLIPPED, 0, obj._scaleVal);
+				screen._backBuffer1.SHtransBlitFrom(*obj._imageFrame, obj._position, obj._flags & OBJ_FLIPPED, 0, obj._scaleVal);
 		}
 	}
 
 	// Draw the animation if it is behind the person
 	if (_activeCAnim.active() && _activeCAnim._zPlacement == BEHIND)
-		screen._backBuffer1.transBlitFrom(_activeCAnim._imageFrame, _activeCAnim._position,
+		screen._backBuffer1.SHtransBlitFrom(_activeCAnim._imageFrame, _activeCAnim._position,
 			(_activeCAnim._flags & 4) >> 1, 0, _activeCAnim._scaleVal);
 
 	screen.resetDisplayBounds();
@@ -141,10 +161,10 @@ void TattooScene::drawAllShapes() {
 		if (obj._type == ACTIVE_BG_SHAPE && (obj._misc == NORMAL_BEHIND || obj._misc == NORMAL_FORWARD)) {
 			if (obj._scaleVal == SCALE_THRESHOLD)
 				shapeList.push_back(ShapeEntry(&obj, obj._position.y + obj._imageFrame->_offset.y +
-					obj._imageFrame->_height));
+					obj._imageFrame->_height, ordering++));
 			else
 				shapeList.push_back(ShapeEntry(&obj, obj._position.y + obj._imageFrame->sDrawYOffset(obj._scaleVal) +
-					obj._imageFrame->sDrawYSize(obj._scaleVal)));
+					obj._imageFrame->sDrawYSize(obj._scaleVal), ordering++));
 		}
 	}
 
@@ -152,16 +172,16 @@ void TattooScene::drawAllShapes() {
 	if (_activeCAnim.active() && (_activeCAnim._zPlacement == NORMAL_BEHIND || _activeCAnim._zPlacement == NORMAL_FORWARD)) {
 		if (_activeCAnim._scaleVal == SCALE_THRESHOLD)
 			shapeList.push_back(ShapeEntry(_activeCAnim._position.y + _activeCAnim._imageFrame._offset.y +
-				_activeCAnim._imageFrame._height));
+				_activeCAnim._imageFrame._height, ordering++));
 		else
 			shapeList.push_back(ShapeEntry(_activeCAnim._position.y + _activeCAnim._imageFrame.sDrawYOffset(_activeCAnim._scaleVal) +
-				_activeCAnim._imageFrame.sDrawYSize(_activeCAnim._scaleVal)));
+				_activeCAnim._imageFrame.sDrawYSize(_activeCAnim._scaleVal), ordering++));
 	}
 
 	// Queue all active characters for drawing
 	for (int idx = 0; idx < MAX_CHARACTERS; ++idx) {
 		if (people[idx]._type == CHARACTER && people[idx]._walkLoaded)
-			shapeList.push_back(ShapeEntry(&people[idx], people[idx]._position.y / FIXED_INT_MULTIPLIER));
+			shapeList.push_back(ShapeEntry(&people[idx], people[idx]._position.y / FIXED_INT_MULTIPLIER, ordering++));
 	}
 
 	// Sort the list
@@ -174,13 +194,13 @@ void TattooScene::drawAllShapes() {
 		if (se._shape) {
 			// it's a bg shape
 			if (se._shape->_quickDraw && se._shape->_scaleVal == SCALE_THRESHOLD)
-				screen._backBuffer1.blitFrom(*se._shape->_imageFrame, se._shape->_position);
+				screen._backBuffer1.SHblitFrom(*se._shape->_imageFrame, se._shape->_position);
 			else
-				screen._backBuffer1.transBlitFrom(*se._shape->_imageFrame, se._shape->_position,
+				screen._backBuffer1.SHtransBlitFrom(*se._shape->_imageFrame, se._shape->_position,
 					se._shape->_flags & OBJ_FLIPPED, 0, se._shape->_scaleVal);
 		} else if (se._isAnimation) {
 			// It's an active animation
-			screen._backBuffer1.transBlitFrom(_activeCAnim._imageFrame, _activeCAnim._position,
+			screen._backBuffer1.SHtransBlitFrom(_activeCAnim._imageFrame, _activeCAnim._position,
 				(_activeCAnim._flags & 4) >> 1, 0, _activeCAnim._scaleVal);
 		} else {
 			// Drawing person
@@ -192,7 +212,7 @@ void TattooScene::drawAllShapes() {
 
 			if (p._tempScaleVal == SCALE_THRESHOLD) {
 				p._tempX += adjust.x;
-				screen._backBuffer1.transBlitFrom(*p._imageFrame, Common::Point(p._tempX, p._position.y / FIXED_INT_MULTIPLIER
+				screen._backBuffer1.SHtransBlitFrom(*p._imageFrame, Common::Point(p._tempX, p._position.y / FIXED_INT_MULTIPLIER
 					- p.frameHeight() - adjust.y), p._walkSequences[p._sequenceNumber]._horizFlip, 0, p._tempScaleVal);
 			} else {
 				if (adjust.x) {
@@ -222,7 +242,7 @@ void TattooScene::drawAllShapes() {
 						++adjust.y;
 				}
 
-				screen._backBuffer1.transBlitFrom(*p._imageFrame, Common::Point(p._tempX, p._position.y / FIXED_INT_MULTIPLIER
+				screen._backBuffer1.SHtransBlitFrom(*p._imageFrame, Common::Point(p._tempX, p._position.y / FIXED_INT_MULTIPLIER
 					- p._imageFrame->sDrawYSize(p._tempScaleVal) - adjust.y), p._walkSequences[p._sequenceNumber]._horizFlip, 0, p._tempScaleVal);
 			}
 		}
@@ -235,15 +255,15 @@ void TattooScene::drawAllShapes() {
 
 		if (obj._type == ACTIVE_BG_SHAPE && obj._misc == FORWARD) {
 			if (obj._quickDraw && obj._scaleVal == SCALE_THRESHOLD)
-				screen._backBuffer1.blitFrom(*obj._imageFrame, obj._position);
+				screen._backBuffer1.SHblitFrom(*obj._imageFrame, obj._position);
 			else
-				screen._backBuffer1.transBlitFrom(*obj._imageFrame, obj._position, obj._flags & OBJ_FLIPPED, 0, obj._scaleVal);
+				screen._backBuffer1.SHtransBlitFrom(*obj._imageFrame, obj._position, obj._flags & OBJ_FLIPPED, 0, obj._scaleVal);
 		}
 	}
 
 	// Draw the canimation if it is set as FORWARD
 	if (_activeCAnim.active() && _activeCAnim._zPlacement == FORWARD)
-		screen._backBuffer1.transBlitFrom(_activeCAnim._imageFrame, _activeCAnim._position, (_activeCAnim._flags & 4) >> 1, 0, _activeCAnim._scaleVal);
+		screen._backBuffer1.SHtransBlitFrom(_activeCAnim._imageFrame, _activeCAnim._position, (_activeCAnim._flags & 4) >> 1, 0, _activeCAnim._scaleVal);
 
 	// Draw all NO_SHAPE shapes which have their flag bits clear
 	for (uint idx = 0; idx < _bgShapes.size(); ++idx) {
@@ -284,6 +304,16 @@ void TattooScene::checkBgShapes() {
 	}
 }
 
+void TattooScene::freeScene() {
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+	Scene::freeScene();
+
+	// Delete any scene overlays that were used by the scene
+	delete ui._mask;
+	delete ui._mask1;
+	ui._mask = ui._mask1 = nullptr;
+}
+
 void TattooScene::doBgAnimCheckCursor() {
 	Events &events = *_vm->_events;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
@@ -315,12 +345,14 @@ void TattooScene::doBgAnimCheckCursor() {
 void TattooScene::doBgAnim() {
 	TattooEngine &vm = *(TattooEngine *)_vm;
 	Events &events = *_vm->_events;
+	Music &music = *_vm->_music;
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Screen &screen = *_vm->_screen;
 	Talk &talk = *_vm->_talk;
 	TattooUserInterface &ui = *((TattooUserInterface *)_vm->_ui);
 
 	doBgAnimCheckCursor();
+	music.checkSongProgress();
 
 	talk._talkToAbort = false;
 
@@ -329,7 +361,7 @@ void TattooScene::doBgAnim() {
 		if (people[idx]._type == CHARACTER)
 			people[idx].checkSprite();
 	}
-
+	
 	for (uint idx = 0; idx < _bgShapes.size(); ++idx) {
 		if (_bgShapes[idx]._type == ACTIVE_BG_SHAPE)
 			_bgShapes[idx].checkObject();
@@ -348,20 +380,29 @@ void TattooScene::doBgAnim() {
 
 	ui.drawInterface();
 
-	if (vm._creditsActive)
-		vm.blitCredits();
-
-	if (!vm._fastMode)
-		events.wait(3);
+	if (ui._creditsWidget.active())
+		ui._creditsWidget.blitCredits();
 
 	if (screen._flushScreen) {
-		screen.slamRect(Common::Rect(0, 0, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT), ui._currentScroll);
+		screen.slamArea(screen._currentScroll.x, screen._currentScroll.y, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT);
 		screen._flushScreen = false;
 	}
 
 	screen._flushScreen = false;
 	_doBgAnimDone = true;
 	ui._drawMenu = false;
+
+	// Handle drawing tooltips
+	if (ui._menuMode == STD_MODE || ui._menuMode == LAB_MODE)
+		ui._tooltipWidget.draw();
+	if (!ui._postRenderWidgets.empty()) {
+		for (WidgetList::iterator i = ui._postRenderWidgets.begin(); i != ui._postRenderWidgets.end(); ++i)
+			(*i)->draw();
+		ui._postRenderWidgets.clear();
+	}
+
+	if (!vm._fastMode)
+		events.wait(3);
 
 	for (int idx = 1; idx < MAX_CHARACTERS; ++idx) {
 		if (people[idx]._updateNPCPath)
@@ -468,7 +509,6 @@ void TattooScene::updateBackground() {
 void TattooScene::doBgAnimDrawSprites() {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Screen &screen = *_vm->_screen;
-	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 
 	for (int idx = 0; idx < MAX_CHARACTERS; ++idx) {
 		TattooPerson &person = people[idx];
@@ -534,10 +574,8 @@ void TattooScene::doBgAnimDrawSprites() {
 		if (_activeCAnim._zPlacement != REMOVE) {
 			screen.flushImage(&_activeCAnim._imageFrame, _activeCAnim._position, _activeCAnim._oldBounds, _activeCAnim._scaleVal);
 		} else {
-			screen.slamArea(_activeCAnim._removeBounds.left - ui._currentScroll.x, _activeCAnim._removeBounds.top, 
-				_activeCAnim._removeBounds.width(), _activeCAnim._removeBounds.height());
-			_activeCAnim._removeBounds.left = _activeCAnim._removeBounds.top = 0;
-			_activeCAnim._removeBounds.right = _activeCAnim._removeBounds.bottom = 0;
+			screen.slamRect(_activeCAnim._removeBounds);
+			_activeCAnim._removeBounds = Common::Rect(0, 0, 0, 0);
 			_activeCAnim._zPlacement = -1;		// Reset _zPlacement so we don't REMOVE again
 		}
 	}
@@ -622,8 +660,6 @@ int TattooScene::startCAnim(int cAnimNum, int playRate) {
 	if (ui._windowOpen)
 		ui.banishWindow();
 	
-	//_activeCAnim._filesize = cAnim._size;
-
 	// Open up the room resource file and get the data for the animation
 	Common::SeekableReadStream *stream = res.load(_roomFilename);
 	stream->seek(44 + cAnimNum * 4);
@@ -640,9 +676,10 @@ int TattooScene::startCAnim(int cAnimNum, int playRate) {
 
 	_activeCAnim.load(animStream, _compressed);
 
-	while (_activeCAnim.active() && !_vm->shouldQuit()) {
+	while (!_vm->shouldQuit()) {
 		// Get the next frame
-		_activeCAnim.getNextFrame();
+		if (!_activeCAnim.getNextFrame())
+			break;
 
 		// Draw the frame
 		doBgAnim();
@@ -658,6 +695,7 @@ int TattooScene::startCAnim(int cAnimNum, int playRate) {
 				_goToScene = STARTING_GAME_SCENE;
 				talk._talkToAbort = true;
 				_activeCAnim.close();
+				break;
 			}
 		}
 	}
@@ -684,6 +722,7 @@ int TattooScene::startCAnim(int cAnimNum, int playRate) {
 	// Flag the Canimation to be cleared
 	_activeCAnim._zPlacement = REMOVE;
 	_activeCAnim._removeBounds = _activeCAnim._oldBounds;
+	_vm->_ui->_bgFound = -1;
 
 	// Free up the animation
 	_activeCAnim.close();
@@ -693,10 +732,15 @@ int TattooScene::startCAnim(int cAnimNum, int playRate) {
 
 void TattooScene::setNPCPath(int npc) {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
+	SaveManager &saves = *_vm->_saves;
 	Talk &talk = *_vm->_talk;
 
+	// Don't do initial scene setup if a savegame has just been loaded
+	if (saves._justLoaded)
+		return;
+
 	people[npc].clearNPC();
-	people[npc]._name = Common::String::format("WATS%.2dA", _currentScene);
+	people[npc]._npcName = Common::String::format("WATS%.2dA", _currentScene);
 
 	// If we're in the middle of a script that will continue once the scene is loaded,
 	// return without calling the path script
@@ -712,24 +756,72 @@ void TattooScene::setNPCPath(int npc) {
 	talk.talkTo(pathFile);
 }
 
+int TattooScene::findBgShape(const Common::Point &pt) {
+	People &people = *_vm->_people;
+	UserInterface &ui = *_vm->_ui;
+
+	if (!_doBgAnimDone)
+		// New frame hasn't been drawn yet
+		return -1;
+
+	int result = -1;
+	for (int idx = (int)_bgShapes.size() - 1; idx >= 0 && result == -1; --idx) {
+		Object &o = _bgShapes[idx];
+
+		if (o._type != INVALID && o._type != NO_SHAPE && o._type != HIDDEN && 
+				(o._aType <= PERSON || (ui._menuMode == LAB_MODE && o._aType == SOLID))) {
+			if (o.getNewBounds().contains(pt))
+				result = idx;
+		} else if (o._type == NO_SHAPE) {
+			if (o.getNoShapeBounds().contains(pt))
+				result = idx;
+		}
+	}
+
+	// Now check for the mouse being over an NPC. If so, it overrides any found bg object
+	for (int idx = 1; idx < MAX_CHARACTERS; ++idx) {
+		Person &person = people[idx];
+
+		if (person._type == CHARACTER) {
+			int scaleVal = getScaleVal(person._position);
+			Common::Rect charRect;
+
+			if (scaleVal == SCALE_THRESHOLD)
+				charRect = Common::Rect(person.frameWidth(), person.frameHeight());
+			else
+				charRect = Common::Rect(person._imageFrame->sDrawXSize(scaleVal), person._imageFrame->sDrawYSize(scaleVal));
+			charRect.moveTo(person._position.x / FIXED_INT_MULTIPLIER, person._position.y / FIXED_INT_MULTIPLIER
+				- charRect.height());
+
+			if (charRect.contains(pt))
+				result = 1000 + idx;
+		}
+	}
+
+	return result;
+}
+
 void TattooScene::synchronize(Serializer &s) {
 	TattooEngine &vm = *(TattooEngine *)_vm;
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 	Scene::synchronize(s);
 
-	if (s.isLoading())
+	if (s.isLoading()) {
+		// In case we were showing the intro prologue or the ending credits, stop them
 		vm._runningProlog = false;
+		ui._creditsWidget.close();
+	}
 }
 
 int TattooScene::closestZone(const Common::Point &pt) {
 	int zone = -1;
 	int dist = 9999;
-	int d;
 
 	for (uint idx = 0; idx < _zones.size(); ++idx) {
 		Common::Rect &r = _zones[idx];
 
 		// Check the distance from the point to the center of the zone
-		d = ABS(r.left + (r.width() / 2) - pt.x) + ABS(r.top + (r.height() / 2) - pt.y);
+		int d = ABS(r.left + (r.width() / 2) - pt.x) + ABS(r.top + (r.height() / 2) - pt.y);
 		if (d < dist) {
 			dist = d;
 			zone = idx;

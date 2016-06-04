@@ -574,7 +574,7 @@ void ZoneSystemRing::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId*/,
 
 	case kObjectMenuLoad: {
 		// Get the list of games
-		SaveStateList list = engine->listSaves(engine->getGameDescription()->desc.gameid);
+		SaveStateList list = engine->listSaves(engine->getGameDescription()->desc.gameId);
 
 		for (uint32 i = 0; i < list.size(); i++) {
 			SaveStateDescriptor desc = list[i];
@@ -658,7 +658,7 @@ void ZoneSystemRing::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId*/,
 		uint32 slot = _app->visualListGetItemCount(1, kObjectMenuLoad) - ((uint32)imageIndex + 1);
 
 		// Get a list of saves
-		SaveStateList list = engine->listSaves(engine->getGameDescription()->desc.gameid);
+		SaveStateList list = engine->listSaves(engine->getGameDescription()->desc.gameId);
 
 		// Prepare loading of game
 		_app->visualListRemove(1, kPuzzleLoad, true);
@@ -1064,7 +1064,6 @@ bool ZoneSystemRing::removeSavedTimers(uint32 slot) const {
 
 	if (!saveFileMan->removeSavefile(SaveManager::getTimerFile("BRU", slot)))
 		return false;
-
 
 	return true;
 }

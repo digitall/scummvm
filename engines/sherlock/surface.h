@@ -20,164 +20,108 @@
  *
  */
 
-#ifndef SHERLOCK_GRAPHICS_H
-#define SHERLOCK_GRAPHICS_H
+#ifndef SHERLOCK_SURFACE_H
+#define SHERLOCK_SURFACE_H
 
 #include "common/rect.h"
 #include "common/platform.h"
-#include "graphics/surface.h"
+#include "graphics/screen.h"
 #include "sherlock/fonts.h"
+#include "sherlock/image_file.h"
 
 namespace Sherlock {
 
 #define SCALE_THRESHOLD 0x100
 #define TRANSPARENCY 255
 
-struct ImageFrame;
-
-class Surface: public Fonts {
-private:
-	bool _freePixels;
-
-	/**
-	 * Clips the given source bounds so the passed destBounds will be entirely on-screen
-	 */
-	bool clip(Common::Rect &srcBounds, Common::Rect &destBounds);
-
-	/**
-	 * Copy a surface into this one
-	 */
-	void blitFrom(const Graphics::Surface &src);
-
-	/**
-	 * Draws a surface at a given position within this surface
-	 */
-	void blitFrom(const Graphics::Surface &src, const Common::Point &pt);
-
-	/**
-	 * Draws a sub-section of a surface at a given position within this surface
-	 */
-	void blitFrom(const Graphics::Surface &src, const Common::Point &pt, const Common::Rect &srcBounds);
-
-	/**
-	 * Draws a surface at a given position within this surface with transparency
-	 */
-	void transBlitFromUnscaled(const Graphics::Surface &src, const Common::Point &pt, bool flipped, 
-		int overrideColor);
-
-protected:
-	Graphics::Surface _surface;
-
-	virtual void addDirtyRect(const Common::Rect &r) {}
+/**
+ * Implements a base surface that combines both a managed surface and the font
+ * drawing code. It also introduces a series of drawing method stubs that the 3DO
+ * Serrated Scalpel screen overrides to implement sprite doubling
+ */
+class BaseSurface: public Graphics::Screen, public Fonts {
 public:
-	Surface(uint16 width, uint16 height);
-	Surface();
-	virtual ~Surface();
+	/**
+	 * Constructor
+	 */
+	BaseSurface();
 
 	/**
-	 * Sets up an internal surface with the specified dimensions that will be automatically freed
-	 * when the surface object is destroyed
+	 * Constructor
 	 */
-	void create(uint16 width, uint16 height);
-
-	Graphics::PixelFormat getPixelFormat();
+	BaseSurface(int width, int height);
 
 	/**
-	 * Copy a surface into this one
+	 * Draws a surface on this surface
 	 */
-	void blitFrom(const Surface &src);
-
-	/**
-	 * Copy an image frame into this surface
-	 */
-	void blitFrom(const ImageFrame &src);
+	virtual void SHblitFrom(const Graphics::Surface &src) {
+		Graphics::ManagedSurface::blitFrom(src);
+	}
 
 	/**
 	 * Draws a surface at a given position within this surface
 	 */
-	void blitFrom(const Surface &src, const Common::Point &pt);
-
-	/**
-	 * Copy an image frame onto this surface at a given position
-	 */
-	void blitFrom(const ImageFrame &src, const Common::Point &pt);
+	virtual void SHblitFrom(const Graphics::Surface &src, const Common::Point &destPos) {
+		Graphics::ManagedSurface::blitFrom(src, destPos);
+	}
 
 	/**
 	 * Draws a sub-section of a surface at a given position within this surface
 	 */
-	void blitFrom(const Surface &src, const Common::Point &pt, const Common::Rect &srcBounds);
-
-	/**
-	 * Copy a sub-area of a source image frame into this surface at a given position
-	 */
-	void blitFrom(const ImageFrame &src, const Common::Point &pt, const Common::Rect &srcBounds);
+	virtual void SHblitFrom(const Graphics::Surface &src, const Common::Point &destPos, const Common::Rect &srcBounds) {
+		Graphics::ManagedSurface::blitFrom(src, srcBounds, destPos);
+	}
 
 	/**
 	 * Draws an image frame at a given position within this surface with transparency
 	 */
-	void transBlitFrom(const ImageFrame &src, const Common::Point &pt,
-		bool flipped = false, int overrideColor = 0, int scaleVal = 256);
-	
-	/**
-	* Draws a surface at a given position within this surface with transparency
-	*/
-	void transBlitFrom(const Surface &src, const Common::Point &pt,
-		bool flipped = false, int overrideColor = 0, int scaleVal = 256);
+	void SHtransBlitFrom(const ImageFrame &src, const Common::Point &pt,
+		bool flipped = false, int overrideColor = 0, int scaleVal = SCALE_THRESHOLD);
 
 	/**
-	 * Draws a surface at a given position within this surface with transparency
+	 * Draws an image frame at a given position within this surface with transparency
 	 */
-	void transBlitFrom(const Graphics::Surface &src, const Common::Point &pt,
-		bool flipped = false, int overrideColor = 0, int scaleVal = 256);
+	void SHtransBlitFrom(const Graphics::Surface &src, const Common::Point &pt,
+		bool flipped = false, int overrideColor = 0, int scaleVal = SCALE_THRESHOLD);
 
 	/**
 	 * Fill a given area of the surface with a given color
 	 */
-	void fillRect(int x1, int y1, int x2, int y2, byte color);
-	
-	/**
-	 * Fill a given area of the surface with a given color
-	 */
-	void fillRect(const Common::Rect &r, byte color);
-
-	void fill(uint16 color);
-
-	void maskArea(const ImageFrame &src, const Common::Point &pt, int scrollX);
+	virtual void SHfillRect(const Common::Rect &r, uint color) {
+		Graphics::ManagedSurface::fillRect(r, color);
+	}
 
 	/**
-	 * Clear the surface
+	 * Return the width of the surface
 	 */
-	void clear();
+	virtual uint16 width() const { return this->w; }
 
 	/**
-	 * Free the underlying surface
+	 * Return the height of the surface
 	 */
-	void free();
-
-	/**
-	 * Returns true if the surface is empty
-	 */
-	bool empty() const { return _surface.getPixels() == nullptr; }
-
-	/**
-	 * Set the pixels for the surface to an existing data block
-	 */
-	void setPixels(byte *pixels, int width, int height, Graphics::PixelFormat format);
+	virtual uint16 height() const { return this->h; }
 
 	/**
 	 * Draws the given string into the back buffer using the images stored in _font
 	 */
-	virtual void writeString(const Common::String &str, const Common::Point &pt, byte overrideColor);
-	void writeFancyString(const Common::String &str, const Common::Point &pt, byte overrideColor1, byte overrideColor2);
+	void writeString(const Common::String &str, const Common::Point &pt, uint overrideColor);
 
-	inline uint16 w() const { return _surface.w; }
-	inline uint16 h() const { return _surface.h; }
-	inline const byte *getPixels() const { return (const byte *)_surface.getPixels(); }
-	inline byte *getPixels() { return (byte *)_surface.getPixels(); }
-	inline byte *getBasePtr(int x, int y) { return (byte *)_surface.getBasePtr(x, y); }
-	inline const byte *getBasePtr(int x, int y) const { return (const byte *)_surface.getBasePtr(x, y); }
-	inline void hLine(int x, int y, int x2, uint32 color) { _surface.hLine(x, y, x2, color); }
-	inline void vLine(int x, int y, int y2, uint32 color) { _surface.vLine(x, y, y2, color); }
+	/**
+	 * Draws a fancy version of the given string at the given position
+	 */
+	void writeFancyString(const Common::String &str, const Common::Point &pt, uint overrideColor1, uint overrideColor2);
+};
+
+class Surface : public BaseSurface {
+protected:
+	/**
+	* Override the addDirtyRect from Graphics::Screen, since for standard
+	* surfaces we don't need dirty rects to be tracked
+	*/
+	virtual void addDirtyRect(const Common::Rect &r) {}
+public:
+	Surface() : BaseSurface() {}
+	Surface(int width, int height) : BaseSurface(width, height) {}
 };
 
 } // End of namespace Sherlock

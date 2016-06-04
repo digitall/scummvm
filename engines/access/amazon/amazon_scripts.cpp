@@ -33,6 +33,8 @@ namespace Amazon {
 
 AmazonScripts::AmazonScripts(AccessEngine *vm) : Scripts(vm) {
 	_game = (AmazonEngine *)_vm;
+
+	setOpcodes_v2();
 }
 
 void AmazonScripts::cLoop() {
@@ -378,20 +380,20 @@ void AmazonScripts::executeSpecial(int commandIndex, int param1, int param2) {
 typedef void(AmazonScripts::*AmazonScriptMethodPtr)();
 
 void AmazonScripts::executeCommand(int commandIndex) {
-	static const AmazonScriptMethodPtr COMMAND_LIST[] = {
-		&AmazonScripts::cmdHelp, &AmazonScripts::cmdCycleBack,
+	static const AmazonScriptMethodPtr AMAZON_COMMAND_LIST[] = {
+		&AmazonScripts::cmdHelp_v2, &AmazonScripts::cmdCycleBack,
 		&AmazonScripts::cmdChapter, &AmazonScripts::cmdSetHelp,
 		&AmazonScripts::cmdCenterPanel, &AmazonScripts::cmdMainPanel,
 		&AmazonScripts::CMDRETFLASH
 	};
 
 	if (commandIndex >= 73)
-		(this->*COMMAND_LIST[commandIndex - 73])();
+		(this->*AMAZON_COMMAND_LIST[commandIndex - 73])();
 	else
 		Scripts::executeCommand(commandIndex);
 }
 
-void AmazonScripts::cmdHelp() {
+void AmazonScripts::cmdHelp_v2() {
 	Common::String helpMessage = readString();
 
 	if (_game->_helpLevel == 0) {
@@ -399,10 +401,10 @@ void AmazonScripts::cmdHelp() {
 		_game->_useItem = 0;
 
 		if (_game->_noHints) {
-			printString(NO_HELP_MESSAGE);
+			printString(AMRES.NO_HELP_MESSAGE);
 			return;
 		} else if (_game->_hintLevel == 0) {
-			printString(NO_HINTS_MESSAGE);
+			printString(AMRES.NO_HINTS_MESSAGE);
 			return;
 		}
 	}
@@ -471,12 +473,29 @@ void AmazonScripts::cmdCycleBack() {
 	if (_vm->_startup == -1)
 		_vm->_screen->cyclePaletteBackwards();
 }
+
 void AmazonScripts::cmdChapter() {
+	Resource *activeScript = nullptr;
+
 	if (_vm->isDemo()) {
 		cmdSetHelp();
 	} else {
 		int chapter = _data->readByte();
+
+		if (!_vm->isCD()) {
+			// For floppy version, the current script remains active even
+			// after the end of the chapter start, so we need to save it
+			activeScript = _resource;
+			_resource = nullptr;
+			_data = nullptr;
+		}
+
 		_game->startChapter(chapter);
+
+		if (!_vm->isCD()) {
+			assert(!_resource);
+			setScript(activeScript, false);
+		}
 	}
 }
 

@@ -185,16 +185,24 @@ void CampScene::mWhileDoOpen() {
 	_vm->_numAnimTimers = 0;
 	_vm->_images.clear();
 
-	if (_vm->_conversation == 2) {
-		// Cutscene at end of Chapter 6
-		Resource *spriteData = _vm->_files->loadFile(28, 37);
-		_vm->_objectsTable[28] = new SpriteResource(_vm, spriteData);
-		delete spriteData;
+	if (_vm->isCD()) {
+		if (_vm->_conversation == 2) {
+			// Cutscene at end of Chapter 6
+			Resource *spriteData = _vm->_files->loadFile(28, 37);
+			_vm->_objectsTable[28] = new SpriteResource(_vm, spriteData);
+			delete spriteData;
 
-		_vm->_animation->freeAnimationData();
-		animResource = _vm->_files->loadFile(28, 38);
-		_vm->_animation->loadAnimations(animResource);
-		delete animResource;
+			_vm->_animation->freeAnimationData();
+			animResource = _vm->_files->loadFile(28, 38);
+			_vm->_animation->loadAnimations(animResource);
+			delete animResource;
+		}
+	} else {
+		_vm->freeCells();
+		_vm->_oldRects.clear();
+		_vm->_newRects.clear();
+		_vm->_numAnimTimers = 0;
+		_vm->_images.clear();
 	}
 }
 
@@ -326,16 +334,8 @@ void Opening::doTitle() {
 		_vm->_buffer2.copyFrom(*_vm->_screen);
 		_vm->_buffer1.copyFrom(*_vm->_screen);
 		screen.forceFadeIn();
-		_vm->_sound->playSound(1);
 
-		// WORKAROUND: This delay has been added to replace original game delay that
-		// came from loading resources, since nowadays it would be too fast to be visible
-		// nowadays to be visible.
-		_vm->_events->_vbCount = 70;
-		while (!_vm->shouldQuit() && _vm->_events->_vbCount > 0)
-			_vm->_events->pollEventsAndWait();
-		if (_vm->shouldQuit())
-			return;
+		_vm->_sound->playSound(1, true);
 
 		Resource *spriteData = _vm->_files->loadFile(0, 2);
 		_vm->_objectsTable[0] = new SpriteResource(_vm, spriteData);
@@ -343,7 +343,6 @@ void Opening::doTitle() {
 
 		_vm->_files->_setPaletteFlag = false;
 		_vm->_files->loadScreen(0, 4);
-		_vm->_sound->playSound(1);
 
 		_vm->_buffer2.copyFrom(*_vm->_screen);
 		_vm->_buffer1.copyFrom(*_vm->_screen);
@@ -356,7 +355,6 @@ void Opening::doTitle() {
 			_vm->_buffer2.plotImage(_vm->_objectsTable[0], id, Common::Point(xp, 71));
 			_vm->_buffer2.copyTo(_vm->_screen);
 
-			_vm->_sound->playSound(1);
 			_vm->_events->_vbCount = 70;
 			while (!_vm->shouldQuit() && _vm->_events->_vbCount > 0 && !_skipStart) {
 				_vm->_events->pollEventsAndWait();
@@ -368,6 +366,7 @@ void Opening::doTitle() {
 			return;
 
 		_vm->_sound->stopSound();
+		_vm->_sound->checkSoundQueue(); // HACK: Clear sound 1 from the queue
 		_vm->_sound->playSound(0);
 		screen.forceFadeOut();
 		_vm->_events->_vbCount = 100;
@@ -386,7 +385,7 @@ void Opening::doTitle() {
 		_vm->_buffer1.blitFrom(*_vm->_screen);
 		screen.forceFadeIn();
 		_vm->_midi->newMusic(1, 0);
-		_vm->_events->_vbCount = 700;
+		_vm->_events->_vbCount = 950;
 		while (!_vm->shouldQuit() && (_vm->_events->_vbCount > 0) && !_vm->_events->isKeyMousePressed()) {
 			_vm->_events->pollEventsAndWait();
 		}
@@ -1260,6 +1259,9 @@ Cast::Cast(AmazonEngine *vm) : PannedScene(vm) {
 void Cast::doCast(int param1) {
 	Screen &screen = *_vm->_screen;
 
+	_vm->_buffer1.create(_vm->_screen->w, _vm->_screen->h);
+	_vm->_buffer2.create(_vm->_screen->w, _vm->_screen->h);
+
 	screen.setDisplayScan();
 	_vm->_events->hideCursor();
 	screen.forceFadeOut();
@@ -1303,8 +1305,8 @@ void Cast::doCast(int param1) {
 		_pan[i]._pObjXl = _pan[i]._pObjYl = 0;
 	}
 
-	_pNumObj = 4;
-	for (int i = 0; i < _pNumObj; i++) {
+	_pNumObj += 4;
+	for (int i = 0; i < 4; i++) {
 		_pan[26 + i]._pObject = _vm->_objectsTable[1];
 		_pan[26 + i]._pImgNum = CAST_END_OBJ1[i][0];
 		_pan[26 + i]._pObjX = CAST_END_OBJ1[i][1];
@@ -1328,20 +1330,16 @@ void Cast::doCast(int param1) {
 		_vm->plotList();
 		_vm->copyBlocks();
 
-		_vm->_events->pollEvents();
+		for (int idx = 0; idx < 5 && !_vm->shouldQuit() &&
+				!_vm->_events->isKeyMousePressed(); ++idx)
+			_vm->_events->pollEventsAndWait();
+		
 		if (_vm->_events->isKeyMousePressed())
 			break;
 
 		if (_yCam < -7550) {
-			_vm->_events->_vbCount = 50;
-
-			while (!_vm->shouldQuit() && !_vm->_events->isKeyMousePressed() && _vm->_events->_vbCount > 0) {
-				_vm->_events->pollEventsAndWait();
-			}
-
 			while (!_vm->shouldQuit() && !_vm->_midi->checkMidiDone())
 				_vm->_events->pollEventsAndWait();
-
 			break;
 		}
 	}
@@ -1605,9 +1603,9 @@ void River::moveCanoe() {
 		moveCanoe2();
 	} else {
 		if (events._leftButton && pt.y >= 140) {
-			if (pt.x < RMOUSE[8][0]) {
+			if (pt.x < _vm->_room->_rMouse[8][0]) {
 				// Disk icon wasn't clicked
-				_vm->_scripts->printString(BAR_MESSAGE);
+				_vm->_scripts->printString(AMRES.BAR_MESSAGE);
 			} else {
 				// Clicked on the Disc icon. Show the ScummVM menu
 				_vm->_room->handleCommand(9);

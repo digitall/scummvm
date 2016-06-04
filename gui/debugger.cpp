@@ -42,6 +42,7 @@
 #elif defined(USE_READLINE)
 	#include <readline/readline.h>
 	#include <readline/history.h>
+	#include "common/events.h"
 #endif
 
 
@@ -87,6 +88,19 @@ Debugger::~Debugger() {
 
 
 // Initialisation Functions
+int Debugger::getCharsPerLine() {
+#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
+	const int charsPerLine = _debuggerDialog->getCharsPerLine();
+#elif defined(USE_READLINE)
+	int charsPerLine, rows;
+	rl_get_screen_size(&rows, &charsPerLine);
+#else
+	// Can we do better?
+	const int charsPerLine = 80;
+#endif
+	return charsPerLine;
+}
+
 int Debugger::debugPrintf(const char *format, ...) {
 	va_list	argptr;
 
@@ -99,6 +113,37 @@ int Debugger::debugPrintf(const char *format, ...) {
 #endif
 	va_end (argptr);
 	return count;
+}
+
+void Debugger::debugPrintColumns(const Common::StringArray &list) {
+	uint maxLength = 0;
+	uint i, j;
+
+	for (i = 0; i < list.size(); i++) {
+		if (list[i].size() > maxLength)
+			maxLength = list[i].size();
+	}
+
+	uint charsPerLine = getCharsPerLine();
+	uint columnWidth = maxLength + 2;
+	uint columns = charsPerLine / columnWidth;
+
+	uint lines = list.size() / columns;
+
+	if (list.size() % columns)
+		lines++;
+
+	// This won't always use all available columns, but even if it did the
+	// number of lines should be the same so that's good enough.
+	for (i = 0; i < lines; i++) {
+		for (j = 0; j < columns; j++) {
+			uint pos = i + j * lines;
+			if (pos < list.size()) {
+				debugPrintf("%*s", -columnWidth, list[pos].c_str());
+			}
+		}
+		debugPrintf("\n");
+	}
 }
 
 void Debugger::preEnter() {
@@ -147,6 +192,15 @@ char *readline_completionFunction(const char *text, int state) {
 	return g_readline_debugger->readlineComplete(text, state);
 }
 
+void readline_eventFunction() {
+	Common::EventManager *eventMan = g_system->getEventManager();
+
+	Common::Event event;
+	while (eventMan->pollEvent(event)) {
+		// drop all events
+	}
+}
+
 #ifdef USE_READLINE_INT_COMPLETION
 typedef int RLCompFunc_t(const char *, int);
 #else
@@ -184,6 +238,7 @@ void Debugger::enter() {
 
 	g_readline_debugger = this;
 	rl_completion_entry_function = (RLCompFunc_t *)&readline_completionFunction;
+	rl_event_hook = (rl_hook_func_t *)&readline_eventFunction;
 
 	char *line_read = 0;
 	do {
@@ -447,15 +502,7 @@ bool Debugger::cmdExit(int argc, const char **argv) {
 // Print a list of all registered commands (and variables, if any),
 // nicely word-wrapped.
 bool Debugger::cmdHelp(int argc, const char **argv) {
-#ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
-	const int charsPerLine = _debuggerDialog->getCharsPerLine();
-#elif defined(USE_READLINE)
-	int charsPerLine, rows;
-	rl_get_screen_size(&rows, &charsPerLine);
-#else
-	// Can we do better?
-	const int charsPerLine = 80;
-#endif
+	const int charsPerLine = getCharsPerLine();
 	int width, size;
 	uint i;
 

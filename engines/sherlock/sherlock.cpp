@@ -51,6 +51,7 @@ SherlockEngine::SherlockEngine(OSystem *syst, const SherlockGameDescription *gam
 	_canLoadSave = false;
 	_showOriginalSavesDialog = false;
 	_interactiveFl = true;
+	_isScreenDoubled = false;
 }
 
 SherlockEngine::~SherlockEngine() {
@@ -93,7 +94,7 @@ void SherlockEngine::initialize() {
 
 	_res = new Resources(this);
 	_animation = new Animation(this);
-	_debugger = new Debugger(this);
+	_debugger = Debugger::init(this);
 	_events = new Events(this);
 	_fixedText = FixedText::init(this);
 	_inventory = Inventory::init(this);
@@ -128,7 +129,7 @@ Common::Error SherlockEngine::run() {
 	// If requested, load a savegame instead of showing the intro
 	if (ConfMan.hasKey("save_slot")) {
 		int saveSlot = ConfMan.getInt("save_slot");
-		if (saveSlot >= 1 && saveSlot <= MAX_SAVEGAME_SLOTS)
+		if (saveSlot >= 0 && saveSlot <= MAX_SAVEGAME_SLOTS)
 			_loadGameSlot = saveSlot;
 	}
 
@@ -188,11 +189,10 @@ void SherlockEngine::sceneLoop() {
 
 	_scene->freeScene();
 	_people->freeWalk();
-
 }
 
 void SherlockEngine::handleInput() {
-	_canLoadSave = true;
+	_canLoadSave = _ui->_menuMode == STD_MODE || _ui->_menuMode == LAB_MODE;
 	_events->pollEventsAndWait();
 	_canLoadSave = false;
 
@@ -238,7 +238,10 @@ void SherlockEngine::loadConfig() {
 void SherlockEngine::saveConfig() {
 	ConfMan.setBool("mute", !_sound->_digitized);
 	ConfMan.setBool("music_mute", !_music->_musicOn);
-	ConfMan.setBool("speech_mute", !_sound->_voices);
+	ConfMan.setBool("speech_mute", !_sound->_speechOn);
+	ConfMan.setInt("music_volume", _music->_musicVolume);
+	ConfMan.setInt("sfx_volume", _sound->_soundVolume);
+	ConfMan.setInt("speech_volume", _sound->_soundVolume);
 
 	ConfMan.setInt("font", _screen->fontNumber());
 	ConfMan.setBool("fade_style", _screen->_fadeStyle);
@@ -280,4 +283,4 @@ Common::Error SherlockEngine::saveGameState(int slot, const Common::String &desc
 	return Common::kNoError;
 }
 
-} // End of namespace Comet
+} // End of namespace Sherlock

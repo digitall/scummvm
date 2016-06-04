@@ -63,6 +63,8 @@ MystConsole::MystConsole(MohawkEngine_Myst *vm) : GUI::Debugger(), _vm(vm) {
 	registerCmd("disableInitOpcodes",	WRAP_METHOD(MystConsole, Cmd_DisableInitOpcodes));
 	registerCmd("cache",				WRAP_METHOD(MystConsole, Cmd_Cache));
 	registerCmd("resources",			WRAP_METHOD(MystConsole, Cmd_Resources));
+	registerCmd("quickTest",            WRAP_METHOD(MystConsole, Cmd_QuickTest));
+	registerVar("show_resource_rects",  &_vm->_showResourceRects);
 }
 
 MystConsole::~MystConsole() {
@@ -119,7 +121,7 @@ static const uint16 default_start_card[12] = {
 	10000,
 	2000,
 	5038,
-	2, // TODO: Should be 1?
+	1,
 	1,
 	6122,
 	4134,
@@ -248,9 +250,9 @@ bool MystConsole::Cmd_PlayMovie(int argc, const char **argv) {
 		return true;
 	}
 
-	int8 stackNum = 0;
-
+	Common::String fileName;
 	if (argc == 3 || argc > 4) {
+		int8 stackNum = 0;
 		for (byte i = 1; i <= ARRAYSIZE(mystStackNames); i++)
 			if (!scumm_stricmp(argv[2], mystStackNames[i - 1])) {
 				stackNum = i;
@@ -261,16 +263,27 @@ bool MystConsole::Cmd_PlayMovie(int argc, const char **argv) {
 			debugPrintf("\'%s\' is not a stack name!\n", argv[2]);
 			return true;
 		}
+
+		fileName = _vm->wrapMovieFilename(argv[1], stackNum - 1);
+	} else {
+		fileName = argv[1];
 	}
 
-	if (argc == 2)
-		_vm->_video->playMovie(argv[1], 0, 0);
-	else if (argc == 3)
-		_vm->_video->playMovie(_vm->wrapMovieFilename(argv[1], stackNum - 1), 0, 0);
-	else if (argc == 4)
-		_vm->_video->playMovie(argv[1], atoi(argv[2]), atoi(argv[3]));
-	else
-		_vm->_video->playMovie(_vm->wrapMovieFilename(argv[1], stackNum - 1), atoi(argv[3]), atoi(argv[4]));
+	VideoHandle handle = _vm->_video->playMovie(fileName);
+	if (!handle) {
+		debugPrintf("Failed to open movie '%s'\n", fileName.c_str());
+		return true;
+	}
+
+	if (argc == 4) {
+		handle->setX(atoi(argv[2]));
+		handle->setY(atoi(argv[3]));
+	} else if (argc > 4) {
+		handle->setX(atoi(argv[3]));
+		handle->setY(atoi(argv[4]));
+	} else {
+		handle->center();
+	}
 
 	return false;
 }
@@ -313,6 +326,44 @@ bool MystConsole::Cmd_Resources(int argc, const char **argv) {
 
 	for (uint i = 0; i < _vm->_resources.size(); i++) {
 		debugPrintf("#%2d %s\n", i, _vm->_resources[i]->describe().c_str());
+	}
+
+	return true;
+}
+
+bool MystConsole::Cmd_QuickTest(int argc, const char **argv) {
+	// Go through all the ages, all the views and click random stuff
+	for (uint i = 0; i < ARRAYSIZE(mystStackNames); i++) {
+		if (i == 2 || i == 5 || i == 9 || i == 10) continue;
+		debug("Loading stack %s", mystStackNames[i]);
+		_vm->changeToStack(i, default_start_card[i], 0, 0);
+
+		Common::Array<uint16> ids = _vm->getResourceIDList(ID_VIEW);
+		for (uint j = 0; j < ids.size(); j++) {
+			if (ids[j] == 4632) continue;
+
+			debug("Loading card %d", ids[j]);
+			_vm->changeToCard(ids[j], kTransitionCopy);
+
+			_vm->_video->updateMovies();
+			_vm->_scriptParser->runPersistentScripts();
+			_vm->_system->updateScreen();
+
+			int16 resIndex = _vm->_rnd->getRandomNumber(_vm->_resources.size()) - 1;
+			if (resIndex >= 0 && _vm->_resources[resIndex]->isEnabled()) {
+				_vm->_resources[resIndex]->handleMouseDown();
+				_vm->_resources[resIndex]->handleMouseUp();
+			}
+
+			_vm->_video->updateMovies();
+			_vm->_scriptParser->runPersistentScripts();
+			_vm->_system->updateScreen();
+
+			if (_vm->getCurStack() != i) {
+				// Clicking may have linked us to another age
+				_vm->changeToStack(i, default_start_card[i], 0, 0);
+			}
+		}
 	}
 
 	return true;

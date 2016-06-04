@@ -31,10 +31,17 @@ namespace Access {
 void InventoryEntry::load(const Common::String &name, const int *data) {
 	_value = ITEM_NOT_FOUND;
 	_name = name;
-	_otherItem1 = *data++;
-	_newItem1 = *data++;
-	_otherItem2 = *data++;
-	_newItem2 = *data;
+	if (data) {
+		_otherItem1 = *data++;
+		_newItem1 = *data++;
+		_otherItem2 = *data++;
+		_newItem2 = *data;
+	} else {
+		_otherItem1 = -1;
+		_newItem1 = -1;
+		_otherItem2 = -1;
+		_newItem2 = -1;
+	}
 }
 
 int InventoryEntry::checkItem(int itemId) {
@@ -59,27 +66,9 @@ InventoryManager::InventoryManager(AccessEngine *vm) : Manager(vm) {
 	_iconDisplayFlag = true;
 	_boxNum = 0;
 
-	const char *const *names;
-	const int *combineP;
-
-	switch (vm->getGameID()) {
-	case GType_Amazon:
-		names = Amazon::INVENTORY_NAMES;
-		combineP = &Amazon::COMBO_TABLE[0][0];
-		_inv.resize(85);
-		break;
-	case GType_MartianMemorandum:
-		names = Martian::INVENTORY_NAMES;
-		combineP = &Martian::COMBO_TABLE[0][0];
-		_inv.resize(54);
-		break;
-	default:
-		error("Unknown game");
-	}
-
-	for (uint i = 0; i < _inv.size(); ++i, combineP += 4) {
-		_inv[i].load(names[i], combineP);
-	}
+	_inv.resize(_vm->_res->INVENTORY.size());
+	for (uint idx = 0; idx < _inv.size(); ++idx)
+		_inv[idx].load(_vm->_res->INVENTORY[idx]._desc, _vm->_res->INVENTORY[idx]._combo);
 
 	for (uint i = 0; i < 26; ++i) {
 		const int *r = INVCOORDS[i];
@@ -131,6 +120,7 @@ int InventoryManager::newDisplayInv() {
 	getList();
 	initFields();
 
+	files._setPaletteFlag = false;
 	files.loadScreen(&_vm->_buffer1, 99, 0);
 	_vm->_buffer1.copyTo(&_vm->_buffer2);
 	_vm->copyBF2Vid();
@@ -207,6 +197,35 @@ int InventoryManager::newDisplayInv() {
 	_invRefreshFlag = false;
 	_invChangeFlag = false;
 	return result;
+}
+
+int InventoryManager::displayInv() {
+	int *inv = (int *) malloc(_vm->_res->INVENTORY.size() * sizeof(int));
+	const char **names = (const char **)malloc(_vm->_res->INVENTORY.size() * sizeof(const char *));
+
+	for (uint i = 0; i < _vm->_res->INVENTORY.size(); i++) {
+		inv[i] = _inv[i]._value;
+		names[i] = _inv[i]._name.c_str();
+	}
+	_vm->_events->forceSetCursor(CURSOR_CROSSHAIRS);
+	_vm->_invBox->getList(names, inv);
+
+	int btnSelected = 0;
+	int boxX = _vm->_invBox->doBox_v1(_startInvItem, _startInvBox, btnSelected);
+	_startInvItem = _vm->_boxDataStart;
+	_startInvBox = _vm->_boxSelectY;
+
+	if (boxX == -1)
+		btnSelected = 2;
+
+	if (btnSelected != 2)
+		_vm->_useItem = _vm->_invBox->_tempListIdx[boxX];
+	else
+		_vm->_useItem = -1;
+
+	free(names);
+	free(inv);
+	return 0;
 }
 
 void InventoryManager::savedFields() {

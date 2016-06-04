@@ -181,12 +181,11 @@ static const RingGameDescription gameDescriptions[] = {
 	{AD_TABLE_END_MARKER, 0, 0}
 };
 
-
 class RingMetaEngine : public AdvancedMetaEngine {
 public:
 	RingMetaEngine() : AdvancedMetaEngine(gameDescriptions, sizeof(Ring::RingGameDescription), ringGames) {
-		_singleid = "ring";
-		_guioptions = GUIO1(GUIO_NOSFX);
+		_singleId = "ring";
+		_guiOptions = GUIO1(GUIO_NOSFX);
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}

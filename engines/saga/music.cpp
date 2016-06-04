@@ -32,7 +32,10 @@
 #include "audio/midiparser.h"
 #include "audio/midiparser_qt.h"
 #include "audio/miles.h"
+#include "audio/decoders/flac.h"
+#include "audio/decoders/mp3.h"
 #include "audio/decoders/raw.h"
+#include "audio/decoders/vorbis.h"
 #include "common/config-manager.h"
 #include "common/file.h"
 #include "common/substream.h"
@@ -48,11 +51,15 @@ MusicDriver::MusicDriver() : _isGM(false) {
 
 	switch (_driverType) {
 	case MT_ADLIB:
-		_milesAudioMode = true;
 		if (Common::File::exists("INSTR.AD") && Common::File::exists("INSTR.OPL")) {
+			_milesAudioMode = true;
 			_driver = Audio::MidiDriver_Miles_AdLib_create("INSTR.AD", "INSTR.OPL");
+		} else if (Common::File::exists("SAMPLE.AD") && Common::File::exists("SAMPLE.OPL")) {
+			_milesAudioMode = true;
+			_driver = Audio::MidiDriver_Miles_AdLib_create("SAMPLE.AD", "SAMPLE.OPL");
 		} else {
-			_driver = Audio::MidiDriver_Miles_AdLib_create("SAMPLE.AD", "SAMPLE.OPL");		
+			_milesAudioMode = false;
+			MidiPlayer::createDriver();
 		}
 		break;
 	case MT_MT32:
@@ -220,6 +227,9 @@ void Music::musicVolumeGaugeCallback(void *refCon) {
 }
 
 void Music::musicVolumeGauge() {
+	// CHECKME: This is potentially called from a different thread because it is
+	// called from a timer callback. However, it does not seem to take any
+	// precautions to avoid race conditions.
 	int volume;
 
 	_currentVolumePercent += 10;

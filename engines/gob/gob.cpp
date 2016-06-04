@@ -26,6 +26,7 @@
 #include "base/plugins.h"
 #include "common/config-manager.h"
 #include "audio/mididrv.h"
+#include "audio/mixer.h"
 
 #include "gui/gui-manager.h"
 #include "gui/dialog.h"
@@ -296,9 +297,7 @@ Common::Error GobEngine::run() {
 	if (isCD())
 		checkCD();
 
-	int cd_num = ConfMan.getInt("cdrom");
-	if (cd_num >= 0)
-		_system->getAudioCDManager()->openCD(cd_num);
+	_system->getAudioCDManager()->open();
 
 	_global->_debugFlag = 1;
 	_video->_doRangeClamp = true;
@@ -389,6 +388,9 @@ void GobEngine::syncSoundSettings() {
 	Engine::syncSoundSettings();
 
 	_init->updateConfig();
+
+	if (_sound)
+		_sound->adlibSyncVolume();
 }
 
 void GobEngine::pauseGame() {

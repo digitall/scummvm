@@ -84,27 +84,8 @@ void Person::goAllTheWay() {
 	if (_destZone == -1) {
 		_destZone = scene.closestZone(_walkDest);
 
-		// The destination isn't in a zone
-		if (_walkDest.x >= (SHERLOCK_SCREEN_WIDTH - 1))
-			_walkDest.x = SHERLOCK_SCREEN_WIDTH - 2;
-
-		// Trace a line between the centroid of the found closest zone to
-		// the destination, to find the point at which the zone will be left
-		const Common::Rect &destRect = scene._zones[_destZone];
-		const Common::Point destCenter((destRect.left + destRect.right) / 2,
-			(destRect.top + destRect.bottom) / 2);
-		const Common::Point delta = _walkDest - destCenter;
-		Point32 pt(destCenter.x * FIXED_INT_MULTIPLIER, destCenter.y * FIXED_INT_MULTIPLIER);
-
-		// Move along the line until the zone is left
-		do {
-			pt += delta;
-		} while (destRect.contains(pt.x / FIXED_INT_MULTIPLIER, pt.y / FIXED_INT_MULTIPLIER));
-
-		// Set the new walk destination to the last point that was in the
-		// zone just before it was left
-		_walkDest = Common::Point((pt.x - delta.x * 2) / FIXED_INT_MULTIPLIER,
-			(pt.y - delta.y * 2) / FIXED_INT_MULTIPLIER);
+		// Check for any restriction of final destination position
+		_walkDest = _vm->_people->restrictToZone(_destZone, _walkDest);
 	}
 
 	// Only do a walk if both zones are acceptable
@@ -193,6 +174,8 @@ People::~People() {
 }
 
 void People::reset() {
+	SaveManager &saves = *_vm->_saves;
+	Talk &talk = *_vm->_talk;
 	_data[HOLMES]->_description = "Sherlock Holmes!";
 
 	// Note: Serrated Scalpel only uses a single Person slot for Sherlock.. Watson is handled by scene sprites
@@ -200,20 +183,25 @@ void People::reset() {
 	for (int idx = 0; idx < count; ++idx) {
 		Person &p = *_data[idx];
 
-		p._type = (idx == 0) ? CHARACTER : INVALID;
-		if (IS_SERRATED_SCALPEL)
-			p._position = Point32(100 * FIXED_INT_MULTIPLIER, 110 * FIXED_INT_MULTIPLIER);
-		else
+		if (IS_SERRATED_SCALPEL) {
+			p._type = _holmesOn ? CHARACTER : HIDDEN;
+			if (!saves._justLoaded)
+				p._position = Point32(100 * FIXED_INT_MULTIPLIER, 110 * FIXED_INT_MULTIPLIER);
+		} else if (!talk._scriptMoreFlag && !saves._justLoaded) {
+			p._type = (idx == 0) ? CHARACTER : INVALID;
 			p._position = Point32(36 * FIXED_INT_MULTIPLIER, 29 * FIXED_INT_MULTIPLIER);
+			p._use[0]._verb = "";
+			p._use[1]._verb = "";
+		}
 
 		p._sequenceNumber = IS_SERRATED_SCALPEL ? (int)Scalpel::STOP_DOWNRIGHT : (int)Tattoo::STOP_DOWNRIGHT;
 		p._imageFrame = nullptr;
 		p._frameNumber = 1;
+		p._startSeq = 0;
 		p._delta = Point32(0, 0);
 		p._oldPosition = Common::Point(0, 0);
 		p._oldSize = Common::Point(0, 0);
 		p._misc = 0;
-		p._walkCount = 0;
 		p._pickUp = "";
 		p._allow = 0;
 		p._noShapeSize = Common::Point(0, 0);
@@ -231,6 +219,7 @@ void People::reset() {
 		p._adjust = Common::Point(0, 0);
 
 		// Load the default walk sequences
+		p._walkCount = 0;
 		p._walkTo.clear();
 		p._oldWalkSequence = -1;
 		p._walkSequences.clear();
@@ -310,34 +299,6 @@ void People::clearTalking() {
 
 		if (!talk._talkToAbort)
 			_portraitLoaded = false;
-	}
-}
-
-void People::synchronize(Serializer &s) {
-	s.syncAsByte(_holmesOn);
-
-	if (IS_SERRATED_SCALPEL) {
-		s.syncAsSint16LE(_data[HOLMES]->_position.x);
-		s.syncAsSint16LE(_data[HOLMES]->_position.y);
-		s.syncAsSint16LE(_data[HOLMES]->_sequenceNumber);
-	} else {
-		for (uint idx = 0; idx < _data.size(); ++idx) {
-			Person &p = *_data[idx];
-			s.syncAsSint16LE(p._position.x);
-			s.syncAsSint16LE(p._position.y);
-			s.syncAsSint16LE(p._sequenceNumber);
-			s.syncAsSint16LE(p._type);
-			s.syncString(p._walkVGSName);
-			s.syncString(p._description);
-			s.syncString(p._examine);
-		}
-	}
-
-	s.syncAsSint16LE(_holmesQuotient);
-
-	if (s.isLoading()) {
-		_savedPos = _data[HOLMES]->_position;
-		_savedPos._facing = _data[HOLMES]->_sequenceNumber;
 	}
 }
 

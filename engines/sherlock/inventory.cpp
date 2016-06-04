@@ -47,6 +47,7 @@ void InventoryItem::synchronize(Serializer &s) {
 	s.syncString(_name);
 	s.syncString(_description);
 	s.syncString(_examine);
+	_verb.synchronize(s);
 }
 
 /*----------------------------------------------------------------*/
@@ -199,7 +200,7 @@ void Inventory::copyToInventory(Object &obj) {
 	invItem._description = obj._description;
 	invItem._examine = obj._examine;
 	invItem._lookFlag = obj._lookFlag;
-	invItem._requiredFlag = obj._requiredFlag;
+	invItem._requiredFlag = obj._requiredFlag[0];
 
 	insert_at(_holdings, invItem);
 	++_holdings;

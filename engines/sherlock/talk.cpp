@@ -28,15 +28,21 @@
 #include "sherlock/scalpel/scalpel_talk.h"
 #include "sherlock/scalpel/scalpel_user_interface.h"
 #include "sherlock/tattoo/tattoo.h"
+#include "sherlock/tattoo/tattoo_fixed_text.h"
 #include "sherlock/tattoo/tattoo_people.h"
+#include "sherlock/tattoo/tattoo_scene.h"
 #include "sherlock/tattoo/tattoo_talk.h"
+#include "sherlock/tattoo/tattoo_user_interface.h"
 
 namespace Sherlock {
 
 SequenceEntry::SequenceEntry() {
 	_objNum = 0;
-	_frameNumber = 0;
+	_obj = nullptr;
+	_seqStack = 0;
 	_seqTo = 0;
+	_sequenceNumber = _frameNumber = 0;
+	_seqCounter = _seqCounter2 = 0;
 }
 
 /*----------------------------------------------------------------*/
@@ -86,17 +92,6 @@ TalkHistoryEntry::TalkHistoryEntry() {
 
 /*----------------------------------------------------------------*/
 
-TalkSequence::TalkSequence() {
-	_obj = nullptr;
-	_frameNumber = 0;
-	_sequenceNumber = 0;
-	_seqStack = 0;
-	_seqTo = 0;
-	_seqCounter = _seqCounter2 = 0;
-}
-
-/*----------------------------------------------------------------*/
-
 Talk *Talk::init(SherlockEngine *vm) {
 	if (vm->getGameID() == GType_SerratedScalpel)
 		return new Scalpel::ScalpelTalk(vm);
@@ -120,6 +115,7 @@ Talk::Talk(SherlockEngine *vm) : _vm(vm) {
 	_scriptSaveIndex = -1;
 	_opcodes = nullptr;
 	_opcodeTable = nullptr;
+	_3doSpeechIndex = -1;
 
 	_charCount = 0;
 	_line = 0;
@@ -133,13 +129,14 @@ Talk::Talk(SherlockEngine *vm) : _vm(vm) {
 	_talkHistory.resize(IS_ROSE_TATTOO ? 1500 : 500);
 }
 
-void Talk::talkTo(const Common::String &filename) {
+void Talk::talkTo(const Common::String filename) {
 	Events &events = *_vm->_events;
 	Inventory &inv = *_vm->_inventory;
 	Journal &journal = *_vm->_journal;
 	People &people = *_vm->_people;
 	Scene &scene = *_vm->_scene;
 	Screen &screen = *_vm->_screen;
+	Sound &sound = *_vm->_sound;
 	UserInterface &ui = *_vm->_ui;
 	Common::Rect savedBounds = screen.getDisplayBounds();
 	bool abortFlag = false;
@@ -150,7 +147,11 @@ void Talk::talkTo(const Common::String &filename) {
 
 	// If there any canimations currently running, or a portrait is being cleared,
 	// save the filename for later executing when the canimation is done
-	if (scene._canimShapes.size() > 0 || people._clearingThePortrait) {
+	bool ongoingAnim = scene._canimShapes.size() > 0;
+	if (IS_ROSE_TATTOO) {
+		ongoingAnim = static_cast<Tattoo::TattooScene *>(_vm->_scene)->_activeCAnim.active();
+	}
+	if (ongoingAnim || people._clearingThePortrait) {
 		// Make sure we're not in the middle of a script
 		if (!_scriptMoreFlag) {
 			_scriptName = filename;
@@ -171,7 +172,7 @@ void Talk::talkTo(const Common::String &filename) {
 	// Turn on the Exit option
 	ui._endKeyActive = true;
 
-	if (people[HOLMES]._walkCount || (people[HOLMES]._walkTo.size() > 0 && 
+	if (people[HOLMES]._walkCount || (!people[HOLMES]._walkTo.empty() && 
 			(IS_SERRATED_SCALPEL || people._allowWalkAbort))) {
 		// Only interrupt if trying to do an action, and not just if player is walking around the scene
 		if (people._allowWalkAbort)
@@ -197,8 +198,12 @@ void Talk::talkTo(const Common::String &filename) {
 		}
 	}
 
-	while (!_sequenceStack.empty())
+	if (IS_ROSE_TATTOO) {
 		pullSequence();
+	} else {
+		while (!isSequencesEmpty())
+			pullSequence();
+	}
 
 	if (IS_SERRATED_SCALPEL) {
 		// Restore any pressed button
@@ -303,8 +308,14 @@ void Talk::talkTo(const Common::String &filename) {
 	if (_scriptMoreFlag && _scriptSelect != 100)
 		select = _scriptSelect;
 
-	if (select == -1)
+	if (select == -1) {
+		if (IS_ROSE_TATTOO) {
+			static_cast<Tattoo::TattooUserInterface *>(&ui)->putMessage(
+				"%s", _vm->_fixedText->getText(Tattoo::kFixedText_NoEffect));
+			return;
+		}
 		error("Couldn't find statement to display");
+	}
 
 	// Add the statement into the journal and talk history
 	if (_talkTo != -1 && !_talkHistory[_converseNum][select])
@@ -334,8 +345,18 @@ void Talk::talkTo(const Common::String &filename) {
 			_scriptSelect = select;
 			_speaker = _talkTo;
 
-			Statement &statement = _statements[select];
+			// Set up the talk file extension
+			if (IS_ROSE_TATTOO && sound._speechOn && _scriptMoreFlag != 1)
+				sound._talkSoundFile += Common::String::format("%02dB", select + 1);
+
+			// Make a copy of the statement (in case the script frees the statement list), and then execute it
+			Statement statement = _statements[select];
 			doScript(_statements[select]._reply);
+
+			if (IS_ROSE_TATTOO) {
+				for (int idx = 0; idx < MAX_CHARACTERS; ++idx)
+					people[idx]._misc = 0;
+			}
 
 			if (_talkToAbort)
 				return;
@@ -374,8 +395,7 @@ void Talk::talkTo(const Common::String &filename) {
 
 				// If the new conversion is a reply first, then we don't need
 				// to display any choices, since the reply needs to be shown
-				if (!newStatement._statement.hasPrefix("*") &&
-						!newStatement._statement.hasPrefix("^")) {
+				if (!newStatement._statement.hasPrefix("*") && !newStatement._statement.hasPrefix("^")) {
 					_talkIndex = select;
 					showTalk();
 
@@ -387,23 +407,26 @@ void Talk::talkTo(const Common::String &filename) {
 					if (_talkTo != -1 && !_talkHistory[_converseNum][select])
 						journal.record(_converseNum, select, true);
 					_talkHistory[_converseNum][select] = true;
-
 				}
 
-				ui._key = ui._oldKey = Scalpel::COMMANDS[TALK_MODE - 1];
+				ui._key = ui._oldKey = 'T'; // FIXME: I'm not sure what to do here, I need ScalpelUI->_hotkeyTalk
 				ui._temp = ui._oldTemp = 0;
 				ui._menuMode = TALK_MODE;
 				_talkToFlag = 2;
 			} else {
 				freeTalkVars();
 
-				if (!ui._lookScriptFlag) {
-					ui.drawInterface(2);
-					ui.banishWindow();
-					ui._windowBounds.top = CONTROLS_Y1;
-					ui._menuMode = STD_MODE;
+				if (IS_SERRATED_SCALPEL) {
+					if (!ui._lookScriptFlag) {
+						ui.drawInterface(2);
+						ui._menuMode = STD_MODE;
+						ui._windowBounds.top = CONTROLS_Y1;
+					}
+				} else {
+					ui._menuMode = static_cast<Tattoo::TattooScene *>(_vm->_scene)->_labTableScene ? LAB_MODE : STD_MODE;
 				}
 
+				ui.banishWindow();
 				break;
 			}
 		}
@@ -424,27 +447,21 @@ void Talk::talkTo(const Common::String &filename) {
 	// previous script can continue
 	popStack();
 
-	if (IS_SERRATED_SCALPEL && filename == "Tube59c") {
-		// WORKAROUND: Original game bug causes the results of testing the powdery substance
-		// to disappear too quickly. Introduce a delay to allow it to be properly displayed
-		ui._menuCounter = 30;
-	}
-
 	events.setCursor(ARROW);
 }
 
-void Talk::talk(int objNum) {
+void Talk::initTalk(int objNum) {
 	Events &events = *_vm->_events;
 	People &people = *_vm->_people;
 	Scene &scene = *_vm->_scene;
-	Screen &screen = *_vm->_screen;
 	UserInterface &ui = *_vm->_ui;
-	Object &obj = scene._bgShapes[objNum];
 
 	ui._windowBounds.top = CONTROLS_Y;
 	ui._infoFlag = true;
 	_speaker = SPEAKER_REMOVE;
-	loadTalkFile(scene._bgShapes[objNum]._name);
+
+	Common::String talkFilename = (objNum >= 1000) ? people[objNum - 1000]._npcName : scene._bgShapes[objNum]._name;
+	loadTalkFile(talkFilename);
 
 	// Find the first statement with the correct flags
 	int select = -1;
@@ -454,8 +471,15 @@ void Talk::talk(int objNum) {
 			break;
 		}
 	}
-	if (select == -1)
-		error("No entry matched all required flags");
+
+	if (select == -1) {
+		freeTalkVars();
+		if (!scumm_strnicmp(talkFilename.c_str(), "PATH", 4))
+			error("No entries found to execute in path file");
+
+		nothingToSay();
+		return;
+	}
 
 	// See if the statement is a stealth mode reply
 	Statement &statement = _statements[select];
@@ -465,33 +489,44 @@ void Talk::talk(int objNum) {
 		// Start talk in stealth mode
 		_talkStealth = 2;
 
-		talkTo(obj._name);
+		talkTo(talkFilename);
 	} else if (statement._statement.hasPrefix("*")) {
 		// Character being spoken to will speak first
-		clearSequences();
-		pushSequence(_talkTo);
-		setStillSeq(_talkTo);
+		if (objNum > 1000) {
+			(*static_cast<Tattoo::TattooPeople *>(_vm->_people))[objNum - 1000].walkHolmesToNPC();
+		} else {
+			Object &obj = scene._bgShapes[objNum];
+			clearSequences();
+			pushSequence(_talkTo);
+			people.setListenSequence(_talkTo, 129);
 
-		events.setCursor(WAIT);
-		if (obj._lookPosition.y != 0)
-			// Need to walk to character first
-			people[HOLMES].walkToCoords(obj._lookPosition, obj._lookPosition._facing);
-		events.setCursor(ARROW);
+			events.setCursor(WAIT);
+			if (obj._lookPosition.y != 0)
+				// Need to walk to character first
+				people[HOLMES].walkToCoords(obj._lookPosition, obj._lookPosition._facing);
+			events.setCursor(ARROW);
+		}
 
 		if (!_talkToAbort)
-			talkTo(obj._name);
+			talkTo(talkFilename);
 	} else {
 		// Holmes will be speaking first
-		clearSequences();
-		pushSequence(_talkTo);
-		setStillSeq(_talkTo);
-
 		_talkToFlag = false;
-		events.setCursor(WAIT);
-		if (obj._lookPosition.y != 0)
-			// Walk over to person to talk to
-			people[HOLMES].walkToCoords(obj._lookPosition, obj._lookPosition._facing);
-		events.setCursor(ARROW);
+
+		if (objNum > 1000) {
+			(*static_cast<Tattoo::TattooPeople *>(_vm->_people))[objNum - 1000].walkHolmesToNPC();
+		} else {
+			Object &obj = scene._bgShapes[objNum];
+			clearSequences();
+			pushSequence(_talkTo);
+			people.setListenSequence(_talkTo, 129);
+
+			events.setCursor(WAIT);
+			if (obj._lookPosition.y != 0)
+				// Walk over to person to talk to
+				people[HOLMES].walkToCoords(obj._lookPosition, obj._lookPosition._facing);
+			events.setCursor(ARROW);
+		}
 
 		if (!_talkToAbort) {
 			// See if walking over triggered a conversation
@@ -502,21 +537,11 @@ void Talk::talk(int objNum) {
 					pullSequence();
 				}
 			} else {
-				drawInterface();
-
-				events._pressed = events._released = false;
 				_talkIndex = select;
-				displayTalk(false);
-				ui._selector = ui._oldSelector = -1;
+				showTalk();
 
-				if (!ui._slideWindows) {
-					screen.slamRect(Common::Rect(0, CONTROLS_Y, SHERLOCK_SCREEN_WIDTH,
-						SHERLOCK_SCREEN_HEIGHT));
-				} else {
-					ui.summonWindow();
-				}
-
-				ui._windowOpen = true;
+				// Break out of loop now that we're waiting for player input
+				events.setCursor(ARROW);
 			}
 
 			_talkToFlag = -1;
@@ -549,11 +574,16 @@ void Talk::loadTalkFile(const Common::String &filename) {
 	Common::String talkFile = chP ? Common::String(filename.c_str(), chP) + ".tlk" :
 		Common::String(filename.c_str(), filename.c_str() + 7) + ".tlk";
 
+	// Create the base of the sound filename used for talking in Rose Tattoo
+	if (IS_ROSE_TATTOO && _scriptMoreFlag != 1)
+		sound._talkSoundFile = Common::String(filename.c_str(), filename.c_str() + 7) + ".";
+
 	// Open the talk file for reading
 	Common::SeekableReadStream *talkStream = res.load(talkFile);
 	_converseNum = res.resourceIndex();
 	talkStream->skip(2);	// Skip talk file version num
 
+	_statements.clear();
 	_statements.resize(talkStream->readByte());
 	for (uint idx = 0; idx < _statements.size(); ++idx)
 		_statements[idx].load(*talkStream, IS_ROSE_TATTOO);
@@ -576,7 +606,7 @@ void Talk::stripVoiceCommands() {
 				// rest of the name following it
 				statement._reply = Common::String(statement._reply.c_str(),
 					statement._reply.c_str() + idx) + " " +
-					Common::String(statement._reply.c_str() + 9);
+					Common::String(statement._reply.c_str() + idx + 9);
 			}
 		}
 
@@ -605,113 +635,15 @@ void Talk::setTalkMap() {
 	}
 }
 
-void Talk::clearSequences() {
-	_sequenceStack.clear();
-}
-
-void Talk::pullSequence() {
-	Scene &scene = *_vm->_scene;
-
-	if (_sequenceStack.empty() || IS_ROSE_TATTOO)
-		return;
-
-	SequenceEntry seq = _sequenceStack.pop();
-	if (seq._objNum != -1) {
-		Object &obj = scene._bgShapes[seq._objNum];
-
-		if (obj._seqSize < MAX_TALK_SEQUENCES) {
-			warning("Tried to restore too few frames");
-		} else {
-			for (int idx = 0; idx < MAX_TALK_SEQUENCES; ++idx)
-				obj._sequences[idx] = seq._sequences[idx];
-
-			obj._frameNumber = seq._frameNumber;
-			obj._seqTo = seq._seqTo;
-		}
-	}
-}
-
 void Talk::pushSequence(int speaker) {
 	People &people = *_vm->_people;
 	Scene &scene = *_vm->_scene;
 
 	// Only proceed if a speaker is specified
-	if (speaker == -1 || IS_ROSE_TATTOO)
-		return;
-
-	SequenceEntry seqEntry;
-	if (!speaker) {
-		seqEntry._objNum = -1;
-	} else {
-		seqEntry._objNum = people.findSpeaker(speaker);
-
-		if (seqEntry._objNum != -1) {
-			Object &obj = scene._bgShapes[seqEntry._objNum];
-			for (uint idx = 0; idx < MAX_TALK_SEQUENCES; ++idx)
-				seqEntry._sequences.push_back(obj._sequences[idx]);
-
-			seqEntry._frameNumber = obj._frameNumber;
-			seqEntry._seqTo = obj._seqTo;
-		}
-	}
-
-	_sequenceStack.push(seqEntry);
-	if (_scriptStack.size() >= 5)
-		error("script stack overflow");
-}
-
-void Talk::pushTalkSequence(Object *obj) {
-	// Check if the shape is already on the stack
-	for (uint idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
-		if (_talkSequenceStack[idx]._obj == obj)
-			return;
-	}
-
-	// Find a free slot and save the details in it
-	for (uint idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
-		TalkSequence &ts = _talkSequenceStack[idx];
-		if (ts._obj == nullptr) {
-			ts._obj = obj;
-			ts._frameNumber = obj->_frameNumber;
-			ts._sequenceNumber = obj->_sequenceNumber;
-			ts._seqStack = obj->_seqStack;
-			ts._seqTo = obj->_seqTo;
-			ts._seqCounter = obj->_seqCounter;
-			ts._seqCounter2 = obj->_seqCounter2;
-			return;
-		}
-	}
-
-	error("Ran out of talk sequence stack space");
-}
-
-void Talk::setStillSeq(int speaker) {
-	People &people = *_vm->_people;
-	Scene &scene = *_vm->_scene;
-
-	// Don't bother doing anything if no specific speaker is specified
-	if (speaker == -1)
-		return;
-
-	if (speaker) {
+	if (speaker != -1) {
 		int objNum = people.findSpeaker(speaker);
-		if (objNum != -1) {
-			Object &obj = scene._bgShapes[objNum];
-
-			if (obj._seqSize < MAX_TALK_SEQUENCES) {
-				warning("Tried to copy too few still frames");
-			} else {
-				for (uint idx = 0; idx < MAX_TALK_SEQUENCES; ++idx) {
-					obj._sequences[idx] = people._characters[speaker]._stillSequences[idx];
-					if (idx > 0 && !people._characters[speaker]._talkSequences[idx] &&
-							!people._characters[speaker]._talkSequences[idx - 1])
-						break;
-				}
-
-				obj._frameNumber = 0;
-				obj._seqTo = 0;
-			}
-		}
+		if (objNum != -1)
+			pushSequenceEntry(&scene._bgShapes[objNum]);
 	}
 }
 
@@ -745,6 +677,7 @@ void Talk::doScript(const Common::String &script) {
 			Tattoo::TattooPerson &p = (*(Tattoo::TattooPeople *)_vm->_people)[idx];
 			p._savedNpcSequence = p._sequenceNumber;
 			p._savedNpcFrame = p._frameNumber;
+			p._resetNPCPath = true;
 		}
 	}
 
@@ -758,17 +691,23 @@ void Talk::doScript(const Common::String &script) {
 		_talkStealth = 2;
 		_speaker |= SPEAKER_REMOVE;
 	} else {
-		pushSequence(_speaker);
+		if (IS_SERRATED_SCALPEL)
+			pushSequence(_speaker);
 		if (IS_SERRATED_SCALPEL || ui._windowOpen)
 			ui.clearWindow();
 
 		// Need to switch speakers?
 		if (str[0] == _opcodes[OP_SWITCH_SPEAKER]) {
 			_speaker = str[1] - 1;
-			str += IS_SERRATED_SCALPEL ? 2 : 3;
 
-			pullSequence();
-			pushSequence(_speaker);
+			if (IS_SERRATED_SCALPEL) {
+				str += 2;
+				pullSequence();
+				pushSequence(_speaker);
+			} else {
+				str += 3;
+			}
+
 			people.setTalkSequence(_speaker);
 		} else {
 			people.setTalkSequence(_speaker);
@@ -809,9 +748,6 @@ void Talk::doScript(const Common::String &script) {
 		}
 	}
 
-	bool   trigger3DOMovie = true;
-	uint16 subIndex = 1;
-
 	do {
 		Common::String tempString;
 		_wait = 0;
@@ -824,15 +760,28 @@ void Talk::doScript(const Common::String &script) {
 			while (*str++ != '}')
 				;
 		} else if (isOpcode(c)) {
+			// the original interpreter checked for c being >= 0x80
+			// and if that is the case, it tried to process it as opcode, BUT ALSO ALWAYS skipped over it
+			// This was done inside the Spanish + German interpreters of Serrated Scalpel, not the original
+			// English interpreter (reverse engineered from the binaries).
+			//
+			// This resulted in special characters not getting shown in case they occurred at the start
+			// of sentences like for example the inverted exclamation mark and the inverted question mark.
+			// For further study see fonts.cpp
+			//
+			// We create an inverted exclamation mark for the Spanish version and we show it.
+			//
+			// Us not skipping over those characters may result in an assert() happening inside fonts.cpp
+			// in case more invalid characters exist.
+			// More information see bug #6931
+			//
+
 			// Handle control code
 			switch ((this->*_opcodeTable[c - _opcodes[0]])(str)) {
 			case RET_EXIT:
 				return;
 			case RET_CONTINUE:
 				continue;
-			case OP_SWITCH_SPEAKER:
-				trigger3DOMovie = true;
-				break;
 			default:
 				break;
 			}
@@ -855,14 +804,6 @@ void Talk::doScript(const Common::String &script) {
 			_openTalkWindow = false;
 		}
 
-		if ((_wait) && (trigger3DOMovie)) {
-			// Trigger to play 3DO movie
-			talk3DOMovieTrigger(subIndex);
-
-			trigger3DOMovie = false; // wait for next switch speaker opcode
-			subIndex++;
-		}
-
 		if (_wait)
 			// Handling pausing
 			talkWait(str);
@@ -880,11 +821,13 @@ void Talk::doScript(const Common::String &script) {
 		}
 
 		pullSequence();
-		if (_speaker >= 0 && _speaker < SPEAKER_REMOVE)
-			people.clearTalking();
 
-		if (IS_ROSE_TATTOO)
+		if (IS_SERRATED_SCALPEL) {
+			if (_speaker >= 0 && _speaker < SPEAKER_REMOVE)
+				people.clearTalking();
+		} else {
 			static_cast<Tattoo::TattooPeople *>(_vm->_people)->pullNPCPaths();
+		}
 	}
 }
 
@@ -896,14 +839,23 @@ int Talk::waitForMore(int delay) {
 	UserInterface &ui = *_vm->_ui;
 	CursorId oldCursor = events.getCursor();
 	int key2 = 254;
+	bool playingSpeech = false;
 
 	// Unless we're in stealth mode, show the appropriate cursor
 	if (!_talkStealth) {
 		events.setCursor(ui._lookScriptFlag ? MAGNIFY : ARROW);
 	}
 
+	// Handle playing any speech associated with the text being displayed
+	switchSpeaker();
+	if (sound._speechOn && IS_ROSE_TATTOO) {
+		sound.playSpeech(sound._talkSoundFile);
+		sound._talkSoundFile.setChar(sound._talkSoundFile.lastChar() + 1, sound._talkSoundFile.size() - 1);
+	}
+	playingSpeech = sound.isSpeechPlaying();
+
 	do {
-		if (sound._speechOn && !*sound._soundIsOn)
+		if (IS_SERRATED_SCALPEL && playingSpeech && !sound.isSpeechPlaying())
 			people._portrait._frameNumber = -1;
 
 		scene.doBgAnim();
@@ -914,11 +866,21 @@ int Talk::waitForMore(int delay) {
 			events._released = true;
 		} else {
 			// See if there's been a button press
+			events.pollEventsAndWait();
 			events.setButtonState();
 
 			if (events.kbHit()) {
 				Common::KeyState keyState = events.getKey();
-				if (Common::isPrint(keyState.ascii))
+				if (keyState.keycode == Common::KEYCODE_ESCAPE) {
+					if (IS_ROSE_TATTOO && static_cast<Tattoo::TattooEngine *>(_vm)->_runningProlog) {
+						// Skip out of the introduction
+						_vm->setFlags(-76);
+						_vm->setFlags(396);
+						scene._goToScene = 1;
+					}
+					break;
+
+				} else if (Common::isPrint(keyState.ascii))
 					key2 = keyState.keycode;
 			}
 
@@ -932,18 +894,17 @@ int Talk::waitForMore(int delay) {
 		if ((delay > 0 && !ui._invLookFlag && !ui._lookScriptFlag) || _talkStealth)
 			--delay;
 
-		// If there are voices playing, reset delay so that they keep playing
-		if (sound._voices == 2 && *sound._soundIsOn)
+		if (playingSpeech && !sound.isSpeechPlaying())
 			delay = 0;
-	} while (!_vm->shouldQuit() && key2 == 254 && (delay || (sound._voices == 2 && *sound._soundIsOn))
+	} while (!_vm->shouldQuit() && key2 == 254 && (delay || (playingSpeech && sound.isSpeechPlaying()))
 		&& !events._released && !events._rightReleased);
 
-	// If voices was set 2 to indicate a voice file was place, then reset it back to 1
+	// If voices was set 2 to indicate a Scalpel voice file was playing, then reset it back to 1
 	if (sound._voices == 2)
 		sound._voices = 1;
 
-	if (delay > 0 && sound._diskSoundPlaying)
-		sound.stopSndFuncPtr(0, 0);
+	if (delay > 0 && sound.isSpeechPlaying())
+		sound.stopSpeech();
 
 	// Adjust _talkStealth mode:
 	// mode 1 - It was by a pause without stealth being on before the pause, so reset back to 0
@@ -960,7 +921,8 @@ int Talk::waitForMore(int delay) {
 		break;
 	}
 
-	sound._speechOn = false;
+
+	sound.stopSpeech();
 	events.setCursor(_talkToAbort ? ARROW : oldCursor);
 	events._pressed = events._released = false;
 
@@ -1040,6 +1002,10 @@ OpcodeReturn Talk::cmdAdjustObjectSequence(const byte *&str) {
 	_seqCount = str[1];
 	str += (str[0] & 127) + 2;
 
+	// WORKAROUND: Original German Scalpel crash when moving box at Tobacconists
+	if (_vm->getLanguage() == Common::DE_DEU && _scriptName == "Alfr30Z")
+		_seqCount = 16;
+
 	// Copy in the new sequence
 	for (int idx = 0; idx < _seqCount; ++idx, ++str)
 		scene._bgShapes[objId]._sequences[idx] = str[0] - 1;
@@ -1069,42 +1035,6 @@ OpcodeReturn Talk::cmdBanishWindow(const byte *&str) {
 	return RET_SUCCESS;
 }
 
-OpcodeReturn Talk::cmdCallTalkFile(const byte *&str) {
-	Common::String tempString;
-
-	++str;
-	for (int idx = 0; idx < 8 && str[idx] != '~'; ++idx)
-		tempString += str[idx];
-	str += 8;
-
-	int scriptCurrentIndex = str - _scriptStart;
-
-	// Save the current script position and new talk file
-	if (_scriptStack.size() < 9) {
-		ScriptStackEntry rec1;
-		rec1._name = _scriptName;
-		rec1._currentIndex = scriptCurrentIndex;
-		rec1._select = _scriptSelect;
-		_scriptStack.push(rec1);
-
-		// Push the new talk file onto the stack
-		ScriptStackEntry rec2;
-		rec2._name = tempString;
-		rec2._currentIndex = 0;
-		rec2._select = 100;
-		_scriptStack.push(rec2);
-	}
-	else {
-		error("Script stack overflow");
-	}
-
-	_scriptMoreFlag = 1;
-	_endStr = true;
-	_wait = 0;
-
-	return RET_SUCCESS;
-}
-
 OpcodeReturn Talk::cmdDisableEndKey(const byte *&str) {
 	_vm->_ui->_endKeyActive = false;
 	return RET_SUCCESS;
@@ -1122,6 +1052,7 @@ OpcodeReturn Talk::cmdEndTextWindow(const byte *&str) {
 OpcodeReturn Talk::cmdHolmesOff(const byte *&str) {
 	People &people = *_vm->_people;
 	people[HOLMES]._type = REMOVE;
+	people._holmesOn = false;
 
 	return RET_SUCCESS;
 }
@@ -1129,6 +1060,7 @@ OpcodeReturn Talk::cmdHolmesOff(const byte *&str) {
 OpcodeReturn Talk::cmdHolmesOn(const byte *&str) {
 	People &people = *_vm->_people;
 	people[HOLMES]._type = CHARACTER;
+	people._holmesOn = true;
 
 	return RET_SUCCESS;
 }
@@ -1145,6 +1077,8 @@ OpcodeReturn Talk::cmdPauseWithoutControl(const byte *&str) {
 	Scene &scene = *_vm->_scene;
 	++str;
 
+	events.incWaitCounter();
+
 	for (int idx = 0; idx < (str[0] - 1); ++idx) {
 		scene.doBgAnim();
 		if (_talkToAbort)
@@ -1155,6 +1089,9 @@ OpcodeReturn Talk::cmdPauseWithoutControl(const byte *&str) {
 		events.setButtonState();
 	}
 
+	events.decWaitCounter();
+
+	_endStr = false;
 	return RET_SUCCESS;
 }
 
@@ -1181,7 +1118,9 @@ OpcodeReturn Talk::cmdRunCAnimation(const byte *&str) {
 		return RET_EXIT;
 
 	// Check if next character is changing side or changing portrait
-	if (_charCount && (str[1] == _opcodes[OP_SWITCH_SPEAKER] || str[1] == _opcodes[OP_ASSIGN_PORTRAIT_LOCATION]))
+	_wait = 0;
+	if (_charCount && (str[1] == _opcodes[OP_SWITCH_SPEAKER] ||
+			(IS_SERRATED_SCALPEL && str[1] == _opcodes[OP_ASSIGN_PORTRAIT_LOCATION])))
 		_wait = 1;
 
 	return RET_SUCCESS;
@@ -1269,7 +1208,7 @@ void Talk::talkWait(const byte *&str) {
 		_endStr = true;
 
 	// If a key was pressed to finish the window, see if further voice files should be skipped
-	if (_wait >= 0 && _wait < 254) {
+	if (IS_SERRATED_SCALPEL && _wait >= 0 && _wait < 254) {
 		if (str[0] == _opcodes[OP_SFX_COMMAND])
 			str += 9;
 	}

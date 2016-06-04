@@ -24,6 +24,8 @@
 #define SHERLOCK_TATTOO_H
 
 #include "sherlock/sherlock.h"
+#include "sherlock/tattoo/tattoo_darts.h"
+#include "sherlock/tattoo/widget_foolscap.h"
 
 namespace Sherlock {
 
@@ -45,8 +47,16 @@ enum {
 	PEN_HIGHLIGHT_COLOR	= 129
 };
 
+enum {
+	FLAG_PLAYER_IS_HOLMES	= 76,
+	FLAG_ALT_MAP_MUSIC		= 525
+};
+
 class TattooEngine : public SherlockEngine {
 private:
+	Darts _darts;
+	WidgetFoolscap _foolscapWidget;
+
 	/**
 	 * Loads the initial palette for the game
 	 */
@@ -68,31 +78,34 @@ protected:
 	 * Starting a scene within the game
 	 */
 	virtual void startScene();
+
+	/**
+	 * Load configuration options
+	 */
+	virtual void loadConfig();
 public:
-	bool _creditsActive;
 	bool _runningProlog;
 	bool _fastMode, _allowFastMode;
 	bool _transparentMenus;
+	bool _textWindowsOn;
 public:
 	TattooEngine(OSystem *syst, const SherlockGameDescription *gameDesc);
 	virtual ~TattooEngine();
 
 	/**
-	 * Draw credits on the screen
+	 * Shows the foolscap puzzle
 	 */
-	void drawCredits();
+	void doFoolscapPuzzle();
 
 	/**
-	 * Blit the drawn credits to the screen
+	 * Save the game configuration
 	 */
-	void blitCredits();
+	virtual void saveConfig();
 
 	/**
-	 * Erase any area of the screen covered by credits
+	 * Returns true if the game can be saved
 	 */
-	void eraseCredits();
-
-	void doHangManPuzzle();
+	virtual bool canSaveGameStateCurrently();
 };
 
 } // End of namespace Tattoo

@@ -24,6 +24,7 @@
 #include "sherlock/surface.h"
 #include "sherlock/sherlock.h"
 #include "sherlock/scalpel/scalpel_saveload.h"
+#include "sherlock/tattoo/widget_files.h"
 #include "common/system.h"
 #include "graphics/scaler.h"
 #include "graphics/thumbnail.h"
@@ -40,13 +41,12 @@ SaveManager *SaveManager::init(SherlockEngine *vm, const Common::String &target)
 	if (vm->getGameID() == GType_SerratedScalpel)
 		return new Scalpel::ScalpelSaveManager(vm, target);
 	else
-		return new SaveManager(vm, target);
+		return new Tattoo::WidgetFiles(vm, target);
 }
 
 SaveManager::SaveManager(SherlockEngine *vm, const Common::String &target) :
 		_vm(vm), _target(target) {
 	_saveThumb = nullptr;
-	_envMode = SAVEMODE_NONE;
 	_justLoaded = false;
 	_savegameIndex = 0;
 }
@@ -67,7 +67,7 @@ void SaveManager::createSavegameList() {
 
 	SaveStateList saveList = getSavegameList(_target);
 	for (uint idx = 0; idx < saveList.size(); ++idx) {
-		int slot = saveList[idx].getSaveSlot() - 1;
+		int slot = saveList[idx].getSaveSlot();
 		if (slot >= 0 && slot < MAX_SAVEGAME_SLOTS)
 			_savegames[slot] = saveList[idx].getDescription();
 	}
@@ -201,6 +201,7 @@ void SaveManager::createThumbnail() {
 }
 
 void SaveManager::loadGame(int slot) {
+	Events &events = *_vm->_events;
 	Common::InSaveFile *saveFile = g_system->getSavefileManager()->openForLoading(
 		generateSaveName(slot));
 	if (!saveFile)
@@ -222,9 +223,11 @@ void SaveManager::loadGame(int slot) {
 	synchronize(s);
 
 	delete saveFile;
+	events.clearEvents();
 }
 
 void SaveManager::saveGame(int slot, const Common::String &name) {
+	Events &events = *_vm->_events;
 	Common::OutSaveFile *out = g_system->getSavefileManager()->openForSaving(
 		generateSaveName(slot));
 
@@ -239,6 +242,7 @@ void SaveManager::saveGame(int slot, const Common::String &name) {
 
 	out->finalize();
 	delete out;
+	events.clearEvents();
 }
 
 Common::String SaveManager::generateSaveName(int slot) {
@@ -268,7 +272,7 @@ void SaveManager::synchronize(Serializer &s) {
 	if (screen.fontNumber() != oldFont)
 		journal.resetPosition();
 
-	_justLoaded = true;
+	_justLoaded = s.isLoading();
 }
 
 bool SaveManager::isSlotEmpty(int slot) const {

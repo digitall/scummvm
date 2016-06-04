@@ -84,7 +84,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 
 	if (getSciVersion() == SCI_VERSION_0_EARLY) {
 		_bufSize += READ_LE_UINT16(script->data) * 2;
-	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 		// In SCI1.1 - SCI2.1, the heap was in a separate space from the script. We append
 		// it to the end of the script, and adjust addressing accordingly.
 		// However, since we address the heap with a 16-bit pointer, the
@@ -121,8 +121,8 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 		//
 		// TODO: Remove this once such a mechanism is in place
 		if (script->size > 65535)
-			error("TODO: SCI script %d is over 64KB - it's %d bytes long. This can't "
-			      "be handled at the moment, thus stopping", script_nr, script->size);
+			warning("TODO: SCI script %d is over 64KB - it's %d bytes long. This can't "
+			      "be fully handled at the moment", script_nr, script->size);
 	}
 
 	uint extraLocalsWorkaround = 0;
@@ -142,7 +142,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 	assert(_bufSize >= script->size);
 	memcpy(_buf, script->data, script->size);
 
-	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 		Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, _nr), 0);
 		assert(heap != 0);
 
@@ -171,7 +171,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 			_localsOffset = localsBlock - _buf + 4;
 			_localsCount = (READ_LE_UINT16(_buf + _localsOffset - 2) - 4) >> 1;	// half block size
 		}
-	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 		if (READ_LE_UINT16(_buf + 1 + 5) > 0) {	// does the script have an export table?
 			_exportTable = (const uint16 *)(_buf + 1 + 5 + 2);
 			_numExports = READ_SCI11ENDIAN_UINT16(_exportTable - 1);
@@ -387,7 +387,7 @@ void Script::identifyOffsets() {
 			scriptDataLeft -= blockSize;
 		} while (1);
 
-	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 		// Strings in SCI1.1 up to SCI2 come after the object instances
 		scriptDataPtr = _heapStart;
 		scriptDataLeft = _heapSize;
@@ -668,7 +668,7 @@ static bool relocateBlock(Common::Array<reg_t> &block, int block_location, Segme
 		return false;
 	}
 	block[idx].setSegment(segment); // Perform relocation
-	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1)
+	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE)
 		block[idx].incOffset(scriptSize);
 
 	return true;
@@ -702,7 +702,7 @@ void Script::relocateSci0Sci21(reg_t block) {
 	uint16 heapSize = (uint16)_bufSize;
 	uint16 heapOffset = 0;
 
-	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 		heap = _heapStart;
 		heapSize = (uint16)_heapSize;
 		heapOffset = _scriptSize;
@@ -930,7 +930,7 @@ void Script::initializeClasses(SegManager *segMan) {
 	if (getSciVersion() <= SCI_VERSION_1_LATE) {
 		seeker = findBlockSCI0(SCI_OBJ_CLASS);
 		mult = 1;
-	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 		seeker = _heapStart + 4 + READ_SCI11ENDIAN_UINT16(_heapStart + 2) * 2;
 		mult = 2;
 	} else if (getSciVersion() == SCI_VERSION_3) {
@@ -962,7 +962,7 @@ void Script::initializeClasses(SegManager *segMan) {
 			if (isClass)
 				species = READ_SCI11ENDIAN_UINT16(seeker + 12);
 			classpos += 12;
-		} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1) {
+		} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
 			isClass = (READ_SCI11ENDIAN_UINT16(seeker + 14) & kInfoFlagClass);	// -info- selector
 			species = READ_SCI11ENDIAN_UINT16(seeker + 10);
 		} else if (getSciVersion() == SCI_VERSION_3) {
@@ -1086,9 +1086,14 @@ void Script::initializeObjectsSci3(SegManager *segMan, SegmentId segmentId) {
 	const byte *seeker = getSci3ObjectsPointer();
 
 	while (READ_SCI11ENDIAN_UINT16(seeker) == SCRIPT_OBJECT_MAGIC_NUMBER) {
-		reg_t reg = make_reg(segmentId, seeker - _buf);
-		Object *obj = scriptObjInit(reg);
+		// We call setSegment and setOffset directly here, instead of using
+		// make_reg, as in large scripts, seeker - _buf can be larger than
+		// a 16-bit integer
+		reg_t reg;
+		reg.setSegment(segmentId);
+		reg.setOffset(seeker - _buf);
 
+		Object *obj = scriptObjInit(reg);
 		obj->setSuperClassSelector(segMan->getClassAddress(obj->getSuperClassSelector().getOffset(), SCRIPT_GET_LOCK, 0));
 		seeker += READ_SCI11ENDIAN_UINT16(seeker + 2);
 	}
@@ -1099,7 +1104,7 @@ void Script::initializeObjectsSci3(SegManager *segMan, SegmentId segmentId) {
 void Script::initializeObjects(SegManager *segMan, SegmentId segmentId) {
 	if (getSciVersion() <= SCI_VERSION_1_LATE)
 		initializeObjectsSci0(segMan, segmentId);
-	else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1)
+	else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE)
 		initializeObjectsSci11(segMan, segmentId);
 	else if (getSciVersion() == SCI_VERSION_3)
 		initializeObjectsSci3(segMan, segmentId);

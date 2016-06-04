@@ -36,8 +36,8 @@ namespace Sherlock {
 #define ONSCREEN_FILES_COUNT 5
 
 enum {
-	CURRENT_SAVEGAME_VERSION = 2,
-	MINIMUM_SAVEGAME_VERSION = 2
+	CURRENT_SAVEGAME_VERSION = 4,
+	MINIMUM_SAVEGAME_VERSION = 4
 };
 
 enum SaveMode { SAVEMODE_NONE = 0, SAVEMODE_LOAD = 1, SAVEMODE_SAVE = 2 };
@@ -87,7 +87,6 @@ protected:
 public:
 	Common::StringArray _savegames;
 	int _savegameIndex;
-	SaveMode _envMode;
 	bool _justLoaded;
 public:
 	static SaveManager *init(SherlockEngine *vm, const Common::String &target);

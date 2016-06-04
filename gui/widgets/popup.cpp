@@ -144,6 +144,8 @@ PopUpDialog::PopUpDialog(PopUpWidget *boss, int clickX, int clickY)
 	_clickY = clickY - _y;
 
 	_openTime = 0;
+	_buffer = nullptr;
+	_entriesPerColumn = 1;
 }
 
 void PopUpDialog::drawDialog() {
@@ -380,6 +382,17 @@ PopUpWidget::PopUpWidget(GuiObject *boss, const String &name, const char *toolti
 	_type = kPopUpWidget;
 
 	_selectedItem = -1;
+	_leftPadding = _rightPadding = 0;
+}
+
+PopUpWidget::PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip)
+	: Widget(boss, x, y, w, h, tooltip), CommandSender(boss) {
+	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_IGNORE_DRAG);
+	_type = kPopUpWidget;
+
+	_selectedItem = -1;
+
+	_leftPadding = _rightPadding = 0;
 }
 
 void PopUpWidget::handleMouseDown(int x, int y, int button, int clickCount) {

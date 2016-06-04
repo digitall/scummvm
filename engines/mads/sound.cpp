@@ -20,12 +20,15 @@
  *
  */
 
-#include "audio/audiostream.h"
-#include "audio/decoders/raw.h"
+#include "audio/fmopl.h"
 #include "common/memstream.h"
 #include "mads/sound.h"
 #include "mads/mads.h"
 #include "mads/nebular/sound_nebular.h"
+
+namespace Audio {
+class Mixer;
+}
 
 namespace MADS {
 
@@ -38,8 +41,10 @@ SoundManager::SoundManager(MADSEngine *vm, Audio::Mixer *mixer) {
 	_newSoundsPaused = false;
 	_masterVolume = 255;
 
+	_preferRoland = false;
+
 	_opl = OPL::Config::create();
-	_opl->init(11025);
+	_opl->init();
 
 	// Validate sound files
 	switch (_vm->getGameID()) {

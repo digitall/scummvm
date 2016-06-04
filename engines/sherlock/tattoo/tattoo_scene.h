@@ -25,27 +25,32 @@
 
 #include "common/scummsys.h"
 #include "sherlock/scene.h"
+#include "sherlock/tattoo/widget_lab.h"
 
 namespace Sherlock {
 
 namespace Tattoo {
 
+extern const int FS_TRANS[8];
+
 enum {
-	STARTING_GAME_SCENE = 1,  STARTING_INTRO_SCENE = 91, OVERHEAD_MAP2 = 99, OVERHEAD_MAP = 100
+	STARTING_GAME_SCENE = 1, WEARY_PUNT = 52, TRAIN_RIDE = 69, STARTING_INTRO_SCENE = 91, OVERHEAD_MAP2 = 90, OVERHEAD_MAP = 100
 };
 
 struct SceneTripEntry {
-	bool _flag;
+	int _flag;
 	int _sceneNumber;
 	int _numTimes;
 
-	SceneTripEntry() : _flag(false), _sceneNumber(0), _numTimes(0) {}
-	SceneTripEntry(bool flag, int sceneNumber, int numTimes) : _flag(flag),
+	SceneTripEntry() : _flag(0), _sceneNumber(0), _numTimes(0) {}
+	SceneTripEntry(int flag, int sceneNumber, int numTimes) : _flag(flag),
 		_sceneNumber(sceneNumber), _numTimes(numTimes) {}
 };
 
 class TattooScene : public Scene {
 private:
+	WidgetLab _labWidget;
+
 	void doBgAnimCheckCursor();
 
 	/**
@@ -113,6 +118,11 @@ public:
 	int getScaleVal(const Point32 &pt);
 
 	/**
+	 * Fres all the graphics and other dynamically allocated data for the scene
+	 */
+	virtual void freeScene();
+
+	/**
 	 * Draw all objects and characters.
 	 */
 	virtual void doBgAnim();
@@ -132,6 +142,12 @@ public:
 	 *		A negative playRate can also be specified to play the animation in reverse
 	 */
 	virtual int startCAnim(int cAnimNum, int playRate = 1);
+
+	/**
+	 * Attempts to find a background shape within the passed bounds. If found,
+	 * it will return the shape number, or -1 on failure.
+	 */
+	virtual int findBgShape(const Common::Point &pt);
 };
 
 } // End of namespace Tattoo

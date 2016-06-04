@@ -24,13 +24,15 @@
 #define ACCESS_SOUND_H
 
 #include "common/scummsys.h"
-#include "audio/audiostream.h"
-#include "audio/mixer.h"
 #include "access/files.h"
 #include "audio/midiplayer.h"
-#include "audio/midiparser.h"
 
 #define MAX_SOUNDS 20
+
+namespace Audio {
+class AudioStream;
+class SoundHandle;
+}
 
 namespace Access {
 
@@ -45,24 +47,34 @@ struct SoundEntry {
 };
 
 class SoundManager {
+	struct QueuedSound {
+		Audio::AudioStream *_stream;
+		int _soundId;
+
+		QueuedSound() : _stream(nullptr), _soundId(-1) {}
+		QueuedSound(Audio::AudioStream *stream, int soundId) : _stream(stream), _soundId(soundId) {}
+	};
 private:
 	AccessEngine *_vm;
 	Audio::Mixer *_mixer;
-	Audio::SoundHandle _effectsHandle;
-	Common::Array<Audio::RewindableAudioStream *> _queue;
+	Audio::SoundHandle *_effectsHandle;
+	Common::Array<QueuedSound> _queue;
 
 	void clearSounds();
 
-	void playSound(Resource *res, int priority);
+	void playSound(Resource *res, int priority, bool loop, int soundIndex = -1);
+
+	bool isSoundQueued(int soundId) const;
 public:
 	Common::Array<SoundEntry> _soundTable;
+	bool _playingSound;
 public:
 	SoundManager(AccessEngine *vm, Audio::Mixer *mixer);
 	~SoundManager();
 
 	void loadSoundTable(int idx, int fileNum, int subfile, int priority = 1);
 
-	void playSound(int soundIndex);
+	void playSound(int soundIndex, bool loop = false);
 	void checkSoundQueue();
 	bool isSFXPlaying();
 
@@ -84,6 +96,7 @@ private:
 
 public:
 	Resource *_music;
+	bool _byte1F781;
 
 public:
 	MusicManager(AccessEngine *vm);

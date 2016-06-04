@@ -65,11 +65,15 @@ void UserInterface::checkAction(ActionType &action, int objNum, FixedTextActionI
 	Talk &talk = *_vm->_talk;
 	Point32 pt(-1, -1);
 
-	if (objNum >= 1000)
+	if (action._useFlag)
+		// Automatically set the given flag
+		_vm->setFlags(action._useFlag);
+
+	if (IS_SERRATED_SCALPEL && objNum >= 1000)
 		// Ignore actions done on characters
 		return;
 
-	if (!action._cAnimSpeed) {
+	if (IS_SERRATED_SCALPEL && !action._cAnimSpeed) {
 		// Invalid action, to print error message
 		_infoFlag = true;
 		clearInfo();
@@ -80,7 +84,11 @@ void UserInterface::checkAction(ActionType &action, int objNum, FixedTextActionI
 		// Set how long to show the message
 		_menuCounter = 30;
 	} else {
-		Object &obj = scene._bgShapes[objNum];
+		BaseObject *obj;
+		if (objNum >= 1000)
+			obj = &people[objNum - 1000];
+		else
+			obj = &scene._bgShapes[objNum];
 
 		int cAnimNum;
 		if (action._cAnimNum == 0)
@@ -115,7 +123,7 @@ void UserInterface::checkAction(ActionType &action, int objNum, FixedTextActionI
 		for (int nameIdx = 0; nameIdx < NAMES_COUNT; ++nameIdx) {
 			if (action._names[nameIdx].hasPrefix("*") && action._names[nameIdx].size() >= 2
 					&& toupper(action._names[nameIdx][1]) == 'W') {
-				if (obj.checkNameForCodes(Common::String(action._names[nameIdx].c_str() + 2), fixedTextActionId)) {
+				if (obj->checkNameForCodes(Common::String(action._names[nameIdx].c_str() + 2), fixedTextActionId)) {
 					if (!talk._talkToAbort)
 						printed = true;
 				}
@@ -156,7 +164,7 @@ void UserInterface::checkAction(ActionType &action, int objNum, FixedTextActionI
 		for (int nameIdx = 0; nameIdx < NAMES_COUNT; ++nameIdx) {
 			if (action._names[nameIdx].hasPrefix("*") && action._names[nameIdx].size() >= 2
 					&& toupper(action._names[nameIdx][1]) == 'F') {
-				if (obj.checkNameForCodes(action._names[nameIdx].c_str() + 2, fixedTextActionId)) {
+				if (obj->checkNameForCodes(action._names[nameIdx].c_str() + 2, fixedTextActionId)) {
 					if (!talk._talkToAbort)
 						printed = true;
 				}
@@ -168,14 +176,14 @@ void UserInterface::checkAction(ActionType &action, int objNum, FixedTextActionI
 
 		if (!talk._talkToAbort) {
 			for (int nameIdx = 0; nameIdx < NAMES_COUNT && !talk._talkToAbort; ++nameIdx) {
-				if (obj.checkNameForCodes(action._names[nameIdx], fixedTextActionId)) {
+				if (obj->checkNameForCodes(action._names[nameIdx], fixedTextActionId)) {
 					if (!talk._talkToAbort)
 						printed = true;
 				}
 			}
 
 			// Unless we're leaving the scene, print a "Done" message unless the printed flag has been set
-			if (scene._goToScene != 1 && !printed && !talk._talkToAbort) {
+			if (IS_SERRATED_SCALPEL && scene._goToScene != 1 && !printed && !talk._talkToAbort) {
 				_infoFlag = true;
 				clearInfo();
 				screen.print(Common::Point(0, INFO_LINE + 1), COL_INFO_FOREGROUND, "Done...");

@@ -40,7 +40,7 @@ class VideoPlayer : public Manager {
 		VideoFlags _flags;
 	};
 private:
-	ASurface *_vidSurface;
+	BaseSurface *_vidSurface;
 	Resource *_videoData;
 	VideoHeader _header;
 	byte *_startCoord;
@@ -51,6 +51,7 @@ private:
 	Common::Rect _videoBounds;
 
 	void getFrame();
+	void setVideo(BaseSurface *vidSurface, const Common::Point &pt, int rate);
 public:
 	int _videoFrame;
 	bool _soundFlag;
@@ -63,7 +64,8 @@ public:
 	/**
 	 * Start up a video
 	 */
-	void setVideo(ASurface *vidSurface, const Common::Point &pt, const FileIdent &videoFile, int rate);
+	void setVideo(BaseSurface *vidSurface, const Common::Point &pt, const FileIdent &videoFile, int rate);
+	void setVideo(BaseSurface *vidSurface, const Common::Point &pt, const Common::String filename, int rate);
 
 	/**
 	 * Decodes a frame of the video

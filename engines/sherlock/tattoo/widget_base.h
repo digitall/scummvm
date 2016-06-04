@@ -36,6 +36,8 @@ class ImageFile;
 namespace Tattoo {
 
 class WidgetBase {
+private:
+	uint32 _dialogTimer;
 protected:
 	SherlockEngine *_vm;
 	Common::Rect _bounds;
@@ -65,6 +67,16 @@ protected:
 	void makeInfoArea();
 
 	/**
+	 * Draw a dialog rectangle
+	 */
+	void drawDialogRect(const Common::Rect &r, bool raised = true);
+
+	/**
+	 * Return the area of a widget that the scrollbar will be drawn in
+	 */
+	virtual Common::Rect getScrollBarBounds() const;
+
+	/**
 	 * Draw the scrollbar for the dialog
 	 */
 	void drawScrollBar(int index, int pageSize, int count);
@@ -75,9 +87,14 @@ protected:
 	void handleScrollbarEvents(int index, int pageSize, int count);
 
 	/**
-	 * Returns the current scroll position
+	 * Handle adjusting a passed scrolling index as necessary
 	 */
-	virtual const Common::Point &getCurrentScroll() const;
+	void handleScrolling(int &scrollIndex, int pageSize, int max);
+
+	/**
+	 * Close the dialog
+	 */
+	void close();
 
 	/**
 	 * Handle drawing the background on the area the widget is going to cover
@@ -86,6 +103,11 @@ protected:
 public:
 	WidgetBase(SherlockEngine *vm);
 	virtual ~WidgetBase() {}
+
+	/**
+	 * Returns true if the given widget is active in the user interface's widget list
+	 */
+	bool active() const;
 
 	/**
 	 * Erase any previous display of the widget on the screen

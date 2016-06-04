@@ -111,7 +111,7 @@ int SdlEventSource::mapKey(SDLKey sdlKey, SDLMod mod, Uint16 unicode) {
 	Common::KeyCode key = SDLToOSystemKeycode(sdlKey);
 
 	if (key >= Common::KEYCODE_F1 && key <= Common::KEYCODE_F9) {
-		return key - SDLK_F1 + Common::ASCII_F1;
+		return key - Common::KEYCODE_F1 + Common::ASCII_F1;
 	} else if (key >= Common::KEYCODE_KP0 && key <= Common::KEYCODE_KP9) {
 		return key - Common::KEYCODE_KP0 + '0';
 	} else if (key >= Common::KEYCODE_UP && key <= Common::KEYCODE_PAGEDOWN) {
@@ -314,7 +314,7 @@ Common::KeyCode SdlEventSource::SDLToOSystemKeycode(const SDLKey key) {
 	case SDLK_y: return Common::KEYCODE_y;
 	case SDLK_z: return Common::KEYCODE_z;
 	case SDLK_DELETE: return Common::KEYCODE_DELETE;
-#if SDL_VERSION_ATLEAST(1, 3, 0)
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	case SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_GRAVE): return Common::KEYCODE_TILDE;
 #else
 	case SDLK_WORLD_16: return Common::KEYCODE_TILDE;
@@ -545,8 +545,8 @@ bool SdlEventSource::handleKeyDown(SDL_Event &ev, Common::Event &event) {
 		return true;
 	}
 #else
-	// Ctrl-z and Alt-X quit
-	if ((event.kbd.hasFlags(Common::KBD_CTRL) && ev.key.keysym.sym == 'z') || (event.kbd.hasFlags(Common::KBD_ALT) && ev.key.keysym.sym == 'x')) {
+	// Ctrl-z quits
+	if ((event.kbd.hasFlags(Common::KBD_CTRL) && ev.key.keysym.sym == 'z')) {
 		event.type = Common::EVENT_QUIT;
 		return true;
 	}
@@ -603,11 +603,6 @@ bool SdlEventSource::handleKeyUp(SDL_Event &ev, Common::Event &event) {
 #if defined(MACOSX)
 	if ((mod & KMOD_META) && ev.key.keysym.sym == 'q')
 		return false;	// On Macintosh, Cmd-Q quits
-#elif defined(POSIX)
-	// Control Q has already been handled above
-#else
-	if ((mod & KMOD_ALT) && ev.key.keysym.sym == 'x')
-		return false;	// Alt-x quit
 #endif
 
 	// If we reached here, this isn't an event handled by handleKeyDown(), thus
@@ -737,16 +732,16 @@ bool SdlEventSource::handleJoyButtonUp(SDL_Event &ev, Common::Event &event) {
 
 bool SdlEventSource::handleJoyAxisMotion(SDL_Event &ev, Common::Event &event) {
 	int axis = ev.jaxis.value;
-	if ( axis > JOY_DEADZONE) {
+	if (axis > JOY_DEADZONE) {
 		axis -= JOY_DEADZONE;
 		event.type = Common::EVENT_MOUSEMOVE;
-	} else if ( axis < -JOY_DEADZONE ) {
+	} else if (axis < -JOY_DEADZONE) {
 		axis += JOY_DEADZONE;
 		event.type = Common::EVENT_MOUSEMOVE;
 	} else
 		axis = 0;
 
-	if ( ev.jaxis.axis == JOY_XAXIS) {
+	if (ev.jaxis.axis == JOY_XAXIS) {
 #ifdef JOY_ANALOG
 		_km.x_vel = axis / 2000;
 		_km.x_down_count = 0;
@@ -759,7 +754,6 @@ bool SdlEventSource::handleJoyAxisMotion(SDL_Event &ev, Common::Event &event) {
 			_km.x_down_count = 0;
 		}
 #endif
-
 	} else if (ev.jaxis.axis == JOY_YAXIS) {
 #ifndef JOY_INVERT_Y
 		axis = -axis;
@@ -877,6 +871,21 @@ bool SdlEventSource::handleResizeEvent(Common::Event &event, int w, int h) {
 uint32 SdlEventSource::obtainUnicode(const SDL_keysym keySym) {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Event events[2];
+
+	// Update the event queue here to give SDL a chance to insert TEXTINPUT
+	// events for KEYDOWN events. Otherwise we have a high chance that on
+	// Windows the TEXTINPUT event is not in the event queue at this point.
+	// In this case we will get two events with ascii values due to mapKey
+	// and dispatchSDLEvent. This results in nasty double input of characters
+	// in the GUI.
+	//
+	// FIXME: This is all a bit fragile because in mapKey we derive the ascii
+	// value from the key code if no unicode value is given. This is legacy
+	// behavior and should be removed anyway. If that is removed, we might not
+	// even need to do this peeking here but instead can rely on the
+	// SDL_TEXTINPUT case in dispatchSDLEvent to introduce keydown/keyup with
+	// proper ASCII values (but with KEYCODE_INVALID as keycode).
+	SDL_PumpEvents();
 
 	// In SDL2, the unicode field has been removed from the keysym struct.
 	// Instead a SDL_TEXTINPUT event is generated on key combinations that

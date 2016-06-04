@@ -145,8 +145,6 @@ public:
 
 class Scene {
 private:
-	bool _loadingSavedGame;
-
 	/**
 	 * Loads sounds for the scene
 	 */
@@ -220,7 +218,7 @@ public:
 	Common::String _comments;
 	Common::Array<char> _descText;
 	Common::Array<Common::Rect> _zones;
-	Common::Array<Object> _bgShapes;
+	ObjectArray _bgShapes;
 	Common::Array<CAnim> _cAnim;
 	Common::Array<byte> _sequenceBuffer;
 	Common::Array<SceneImage> _images;
@@ -229,7 +227,7 @@ public:
 	Common::Array<Exit> _exits;
 	SceneEntry _entrance;
 	Common::Array<SceneSound> _sounds;
-	ObjectArray _canimShapes;
+	Common::Array<Object *> _canimShapes;
 	Common::Array<ScaleZone> _scaleZones;
 	Common::StringArray _objSoundList;
 	bool _restoreFlag;
@@ -245,11 +243,6 @@ public:
 	 * Handles loading the scene specified by _goToScene
 	 */
 	void selectScene();
-
-	/**
-	 * Fres all the graphics and other dynamically allocated data for the scene
-	 */
-	void freeScene();
 
 	/**
 	 * Check the scene's objects against the game flags. If false is passed,
@@ -270,18 +263,6 @@ public:
 	int toggleObject(const Common::String &name);
 
 	/**
-	 * Attempts to find a background shape within the passed bounds. If found,
-	 * it will return the shape number, or -1 on failure.
-	 */
-	int findBgShape(const Common::Rect &r);
-
-	/**
-	 * Attempts to find a background shape within the passed bounds. If found,
-	 * it will return the shape number, or -1 on failure.
-	 */
-	int findBgShape(const Common::Point &pt);
-
-	/**
 	 * Checks to see if the given position in the scene belongs to a given zone type.
 	 * If it is, the zone is activated and used just like a TAKL zone or aFLAG_SET zone.
 	 */
@@ -293,9 +274,20 @@ public:
 	int whichZone(const Common::Point &pt);
 
 	/**
+	 * Fres all the graphics and other dynamically allocated data for the scene
+	 */
+	virtual void freeScene();
+
+	/**
 	 * Returns the index of the closest zone to a given point.
 	 */
 	virtual int closestZone(const Common::Point &pt) = 0;
+
+	/**
+	 * Attempts to find a background shape within the passed bounds. If found,
+	 * it will return the shape number, or -1 on failure.
+	 */
+	virtual int findBgShape(const Common::Point &pt) = 0;
 
 	/**
 	 * Synchronize the data for a savegame

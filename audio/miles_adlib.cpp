@@ -27,7 +27,6 @@
 #include "common/textconsole.h"
 
 #include "audio/fmopl.h"
-#include "audio/softsynth/emumidi.h"
 
 namespace Audio {
 
@@ -116,9 +115,9 @@ uint16 milesAdLibVolumeSensitivityTable[] = {
 };
 
 
-class MidiDriver_Miles_AdLib : public MidiDriver_Emulated {
+class MidiDriver_Miles_AdLib : public MidiDriver {
 public:
-	MidiDriver_Miles_AdLib(Audio::Mixer *mixer, InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount);
+	MidiDriver_Miles_AdLib(InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount);
 	virtual ~MidiDriver_Miles_AdLib();
 
 	// MidiDriver
@@ -128,17 +127,13 @@ public:
 	MidiChannel *allocateChannel() { return NULL; }
 	MidiChannel *getPercussionChannel() { return NULL; }
 
-	// AudioStream
-	bool isStereo() const { return _modeStereo; }
-	int getRate() const { return _mixer->getOutputRate(); }
-	int getPolyphony() const { return _modePhysicalFmVoicesCount; }
-	bool hasRhythmChannel() const { return false; }
-
-	// MidiDriver_Emulated
-	void generateSamples(int16 *buf, int len);
+	bool isOpen() const { return _isOpen; }
+	uint32 getBaseTempo() { return 1000000 / OPL::OPL::kDefaultCallbackFrequency; }
 
 	void setVolume(byte volume);
 	virtual uint32 property(int prop, uint32 param);
+
+	void setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc);
 
 private:
 	bool _modeOPL3;
@@ -222,6 +217,11 @@ private:
 	OPL::OPL *_opl;
 	int _masterVolume;
 
+	Common::TimerManager::TimerProc _adlibTimerProc;
+	void *_adlibTimerParam;
+
+	bool _isOpen;
+
 	// stores information about all MIDI channels (not the actual OPL FM voice channels!)
 	MidiChannelEntry _midiChannels[MILES_MIDI_CHANNEL_COUNT];
 
@@ -238,10 +238,8 @@ private:
 	bool circularPhysicalAssignment;
 	byte circularPhysicalAssignmentFmVoice;
 
-protected:
 	void onTimer();
 
-private:
 	void resetData();
 	void resetAdLib();
 	void resetAdLibOperatorRegisters(byte baseRegister, byte value);
@@ -271,8 +269,9 @@ private:
 	void pitchBendChange(byte MIDIchannel, byte parameter1, byte parameter2);
 };
 
-MidiDriver_Miles_AdLib::MidiDriver_Miles_AdLib(Audio::Mixer *mixer, InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount)
-	: MidiDriver_Emulated(mixer), _masterVolume(15), _opl(0) {
+MidiDriver_Miles_AdLib::MidiDriver_Miles_AdLib(InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount)
+	: _masterVolume(15), _opl(0),
+	  _adlibTimerProc(0), _adlibTimerParam(0), _isOpen(false) {
 
 	_instrumentTablePtr = instrumentTablePtr;
 	_instrumentTableCount = instrumentTableCount;
@@ -298,8 +297,6 @@ MidiDriver_Miles_AdLib::~MidiDriver_Miles_AdLib() {
 }
 
 int MidiDriver_Miles_AdLib::open() {
-	int rate = _mixer->getOutputRate();
-
 	if (_modeOPL3) {
 		// Try to create OPL3 first
 		_opl = OPL::Config::create(OPL::Config::kOpl3);
@@ -319,11 +316,11 @@ int MidiDriver_Miles_AdLib::open() {
 		return -1;
 	}
 
-	_opl->init(rate);
+	_opl->init();
 
-	MidiDriver_Emulated::open();
+	_isOpen = true;
 
-	_mixer->playStream(Audio::Mixer::kPlainSoundType, &_mixerSoundHandle, this, -1, _mixer->kMaxChannelVolume, 0, DisposeAfterUse::NO);
+	_opl->start(new Common::Functor0Mem<void, MidiDriver_Miles_AdLib>(this, &MidiDriver_Miles_AdLib::onTimer));
 
 	resetAdLib();
 
@@ -331,9 +328,8 @@ int MidiDriver_Miles_AdLib::open() {
 }
 
 void MidiDriver_Miles_AdLib::close() {
-	_mixer->stopHandle(_mixerSoundHandle);
-
 	delete _opl;
+	_isOpen = false;
 }
 
 void MidiDriver_Miles_AdLib::setVolume(byte volume) {
@@ -342,6 +338,8 @@ void MidiDriver_Miles_AdLib::setVolume(byte volume) {
 }
 
 void MidiDriver_Miles_AdLib::onTimer() {
+	if (_adlibTimerProc)
+		(*_adlibTimerProc)(_adlibTimerParam);
 }
 
 void MidiDriver_Miles_AdLib::resetData() {
@@ -350,18 +348,15 @@ void MidiDriver_Miles_AdLib::resetData() {
 	memset(_physicalFmVoices, 0, sizeof(_physicalFmVoices));
 
 	for (byte midiChannel = 0; midiChannel < MILES_MIDI_CHANNEL_COUNT; midiChannel++) {
-		_midiChannels[midiChannel].currentPitchBender = MILES_PITCHBENDER_DEFAULT;
-		_midiChannels[midiChannel].currentPitchRange = 12;
-		// Miles Audio 2: hardcoded pitch range as a global (not channel specific), set to 12
-		// Miles Audio 3: pitch range per MIDI channel
+		// defaults, were sent to driver during driver initialization
+		_midiChannels[midiChannel].currentVolume = 0x7F;
+		_midiChannels[midiChannel].currentPanning = 0x40; // center
 		_midiChannels[midiChannel].currentVolumeExpression = 127;
 
-		// TODO: Miles Audio had currentPanning initialized to 0 inside the driver
-		// Simon the sorcerer 2 as well as Return To Zork don't change this control at all
-		// inside their XMIDI files, so currentPanning set to 0 will create output output on
-		// one speaker only. Maybe there were some default MIDI commands sent to the driver before
-		// playing the music. Needs to get investigated further.
-		_midiChannels[midiChannel].currentPanning = 63; // center
+		// Miles Audio 2: hardcoded pitch range as a global (not channel specific), set to 12
+		// Miles Audio 3: pitch range per MIDI channel
+		_midiChannels[midiChannel].currentPitchBender = MILES_PITCHBENDER_DEFAULT;
+		_midiChannels[midiChannel].currentPitchRange = 12;
 	}
 
 }
@@ -441,11 +436,9 @@ void MidiDriver_Miles_AdLib::send(uint32 b) {
 	}
 }
 
-void MidiDriver_Miles_AdLib::generateSamples(int16 *data, int len) {
-	if (_modeStereo)
-		len *= 2;
-
-	_opl->readBuffer(data, len);
+void MidiDriver_Miles_AdLib::setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) {
+	_adlibTimerProc = timerProc;
+	_adlibTimerParam = timerParam;
 }
 
 int16 MidiDriver_Miles_AdLib::searchFreeVirtualFmVoiceChannel() {
@@ -1060,14 +1053,21 @@ uint32 MidiDriver_Miles_AdLib::property(int prop, uint32 param) {
 	return 0;
 }
 
-MidiDriver *MidiDriver_Miles_AdLib_create(const Common::String &instrumentDataFilename, const Common::String &instrumentDataFilenameOPL3, const byte *instrumentRawDataPtr, uint32 instrumentRawDataSize) {
+MidiDriver *MidiDriver_Miles_AdLib_create(const Common::String &filenameAdLib, const Common::String &filenameOPL3, Common::SeekableReadStream *streamAdLib, Common::SeekableReadStream *streamOPL3) {
 	// Load adlib instrument data from file SAMPLE.AD (OPL3: SAMPLE.OPL)
-	Common::File *fileStream = NULL;
+	Common::String              timbreFilename;
+	Common::SeekableReadStream *timbreStream = nullptr;
+
+	bool          preferOPL3 = false;
+
+	Common::File *fileStream = new Common::File();
 	uint32        fileSize = 0;
-	byte         *fileDataReadPtr = nullptr;
-	const byte   *fileDataPtr = nullptr;
 	uint32        fileDataOffset = 0;
 	uint32        fileDataLeft = 0;
+
+
+	uint32        streamSize = 0;
+	byte         *streamDataPtr = nullptr;
 
 	byte curBankId = 0;
 	byte curPatchId = 0;
@@ -1078,29 +1078,124 @@ MidiDriver *MidiDriver_Miles_AdLib_create(const Common::String &instrumentDataFi
 	uint32           instrumentOffset = 0;
 	uint16           instrumentDataSize = 0;
 
-	if (!instrumentDataFilename.empty()) {
-		// Filename was passed to us (this is the common case for most games)
-		fileStream = new Common::File();
+	// Logic:
+	// We prefer OPL3 timbre data in case OPL3 is available in ScummVM
+	// If it's not or OPL3 timbre data is not available, we go for AdLib timbre data
+	// And if OPL3 is not available in ScummVM and also AdLib timbre data is not available,
+	// we then still go for OPL3 timbre data.
+	//
+	// Note: for most games OPL3 timbre data + AdLib timbre data is the same.
+	//       And at least in theory we should still be able to use OPL3 timbre data even for AdLib.
+	//       However there is a special OPL3-specific timbre format, which is currently not supported.
+	//       In this case the error message "unsupported instrument size" should appear. I haven't found
+	//       a game that uses it, which is why I haven't implemented it yet.
 
-		if (!fileStream->open(instrumentDataFilename))
-			error("MILES-ADLIB: could not open instrument file");
-
-		fileSize = fileStream->size();
-
-		fileDataReadPtr = new byte[fileSize];
-
-		if (fileStream->read(fileDataReadPtr, fileSize) != fileSize)
-			error("MILES-ADLIB: error while reading instrument file");
-		fileStream->close();
-		delete fileStream;
-
-		fileDataPtr = fileDataReadPtr;
-
-	} else if (instrumentRawDataPtr) {
-		// instrument data was passed directly (currently used by Amazon Guardians of Eden
-		fileDataPtr = instrumentRawDataPtr;
-		fileSize = instrumentRawDataSize;
+	if (OPL::Config::detect(OPL::Config::kOpl3) >= 0) {
+		// OPL3 available, prefer OPL3 timbre data because of this
+		preferOPL3 = true;
 	}
+
+	// Check if streams were passed to us and select one of them
+	if ((streamAdLib) || (streamOPL3)) {
+		// At least one stream was passed by caller
+		if (preferOPL3) {
+			// Prefer OPL3 timbre stream in case OPL3 is available
+			timbreStream = streamOPL3;
+		}
+		if (!timbreStream) {
+			// Otherwise prefer AdLib timbre stream first
+			if (streamAdLib) {
+				timbreStream = streamAdLib;
+			} else {
+				// If not available, use OPL3 timbre stream
+				if (streamOPL3) {
+					timbreStream = streamOPL3;
+				}
+			}
+		}
+	}
+
+	// Now check if any filename was passed to us
+	if ((!filenameAdLib.empty()) || (!filenameOPL3.empty())) {
+		// If that's the case, check if one of those exists
+		if (preferOPL3) {
+			// OPL3 available
+			if (!filenameOPL3.empty()) {
+				if (fileStream->exists(filenameOPL3)) {
+					// If OPL3 available, prefer OPL3 timbre file in case file exists
+					timbreFilename = filenameOPL3;
+				}
+			}
+			if (timbreFilename.empty()) {
+				if (!filenameAdLib.empty()) {
+					if (fileStream->exists(filenameAdLib)) {
+						// otherwise use AdLib timbre file, if it exists
+						timbreFilename = filenameAdLib;
+					}
+				}
+			}
+		} else {
+			// OPL3 not available
+			// Prefer the AdLib one for now
+			if (!filenameAdLib.empty()) {
+				if (fileStream->exists(filenameAdLib)) {
+					// if AdLib file exists, use it
+					timbreFilename = filenameAdLib;
+				}
+			}
+			if (timbreFilename.empty()) {
+				if (!filenameOPL3.empty()) {
+					if (fileStream->exists(filenameOPL3)) {
+						// if OPL3 file exists, use it
+						timbreFilename = filenameOPL3;
+					}
+				}
+			}
+		}
+		if (timbreFilename.empty() && (!timbreStream)) {
+			// If none of them exists and also no stream was passed, we can't do anything about it
+			if (!filenameAdLib.empty()) {
+				if (!filenameOPL3.empty()) {
+					error("MILES-ADLIB: could not open timbre file (%s or %s)", filenameAdLib.c_str(), filenameOPL3.c_str());
+				} else {
+					error("MILES-ADLIB: could not open timbre file (%s)", filenameAdLib.c_str());
+				}
+			} else {
+				error("MILES-ADLIB: could not open timbre file (%s)", filenameOPL3.c_str());
+			}
+		}
+	}
+
+	if (!timbreFilename.empty()) {
+		// Filename was passed to us and file exists (this is the common case for most games)
+		// We prefer this situation
+
+		if (!fileStream->open(timbreFilename))
+			error("MILES-ADLIB: could not open timbre file (%s)", timbreFilename.c_str());
+
+		streamSize = fileStream->size();
+
+		streamDataPtr = new byte[streamSize];
+
+		if (fileStream->read(streamDataPtr, streamSize) != streamSize)
+			error("MILES-ADLIB: error while reading timbre file (%s)", timbreFilename.c_str());
+		fileStream->close();
+
+	} else if (timbreStream) {
+		// Timbre data was passed directly (possibly read from resource file by caller)
+		// Currently used by "Amazon Guardians of Eden", "Simon 2" and "Return To Zork"
+		streamSize = timbreStream->size();
+
+		streamDataPtr = new byte[streamSize];
+
+		if (timbreStream->read(streamDataPtr, streamSize) != streamSize)
+			error("MILES-ADLIB: error while reading timbre stream");
+
+	} else {
+		error("MILES-ADLIB: timbre filenames nor timbre stream were passed");
+	}
+
+	delete fileStream;
 
 	// File is like this:
 	// [patch:BYTE] [bank:BYTE] [patchoffset:UINT32]
@@ -1109,13 +1204,13 @@ MidiDriver *MidiDriver_Miles_AdLib_create(const Common::String &instrumentDataFi
 
 	// First we check how many entries there are
 	fileDataOffset = 0;
-	fileDataLeft = fileSize;
+	fileDataLeft = streamSize;
 	while (1) {
 		if (fileDataLeft < 6)
 			error("MILES-ADLIB: unexpected EOF in instrument file");
 
-		curPatchId = fileDataPtr[fileDataOffset++];
-		curBankId  = fileDataPtr[fileDataOffset++];
+		curPatchId = streamDataPtr[fileDataOffset++];
+		curBankId  = streamDataPtr[fileDataOffset++];
 
 		if ((curBankId == 0xFF) && (curPatchId == 0xFF))
 			break;
@@ -1136,45 +1231,43 @@ MidiDriver *MidiDriver_Miles_AdLib_create(const Common::String &instrumentDataFi
 	fileDataOffset = 0;
 	fileDataLeft = fileSize;
 	while (1) {
-		curPatchId = fileDataPtr[fileDataOffset++];
-		curBankId  = fileDataPtr[fileDataOffset++];
+		curPatchId = streamDataPtr[fileDataOffset++];
+		curBankId  = streamDataPtr[fileDataOffset++];
 
 		if ((curBankId == 0xFF) && (curPatchId == 0xFF))
 			break;
 
-		instrumentOffset = READ_LE_UINT32(fileDataPtr + fileDataOffset);
+		instrumentOffset = READ_LE_UINT32(streamDataPtr + fileDataOffset);
 		fileDataOffset += 4;
 
 		instrumentPtr->bankId = curBankId;
 		instrumentPtr->patchId = curPatchId;
 
-		instrumentDataSize = READ_LE_UINT16(fileDataPtr + instrumentOffset);
+		instrumentDataSize = READ_LE_UINT16(streamDataPtr + instrumentOffset);
 		if (instrumentDataSize != 14)
 			error("MILES-ADLIB: unsupported instrument size");
 
-		instrumentPtr->transposition = (signed char)fileDataPtr[instrumentOffset + 2];
-		instrumentPtr->reg20op1 = fileDataPtr[instrumentOffset + 3];
-		instrumentPtr->reg40op1 = fileDataPtr[instrumentOffset + 4];
-		instrumentPtr->reg60op1 = fileDataPtr[instrumentOffset + 5];
-		instrumentPtr->reg80op1 = fileDataPtr[instrumentOffset + 6];
-		instrumentPtr->regE0op1 = fileDataPtr[instrumentOffset + 7];
-		instrumentPtr->regC0    = fileDataPtr[instrumentOffset + 8];
-		instrumentPtr->reg20op2 = fileDataPtr[instrumentOffset + 9];
-		instrumentPtr->reg40op2 = fileDataPtr[instrumentOffset + 10];
-		instrumentPtr->reg60op2 = fileDataPtr[instrumentOffset + 11];
-		instrumentPtr->reg80op2 = fileDataPtr[instrumentOffset + 12];
-		instrumentPtr->regE0op2 = fileDataPtr[instrumentOffset + 13];
+		instrumentPtr->transposition = (signed char)streamDataPtr[instrumentOffset + 2];
+		instrumentPtr->reg20op1 = streamDataPtr[instrumentOffset + 3];
+		instrumentPtr->reg40op1 = streamDataPtr[instrumentOffset + 4];
+		instrumentPtr->reg60op1 = streamDataPtr[instrumentOffset + 5];
+		instrumentPtr->reg80op1 = streamDataPtr[instrumentOffset + 6];
+		instrumentPtr->regE0op1 = streamDataPtr[instrumentOffset + 7];
+		instrumentPtr->regC0    = streamDataPtr[instrumentOffset + 8];
+		instrumentPtr->reg20op2 = streamDataPtr[instrumentOffset + 9];
+		instrumentPtr->reg40op2 = streamDataPtr[instrumentOffset + 10];
+		instrumentPtr->reg60op2 = streamDataPtr[instrumentOffset + 11];
+		instrumentPtr->reg80op2 = streamDataPtr[instrumentOffset + 12];
+		instrumentPtr->regE0op2 = streamDataPtr[instrumentOffset + 13];
 
 		// Instrument read, next instrument please
 		instrumentPtr++;
 	}
 
-	if (fileDataReadPtr) {
-		// Free instrument file data in case it was read by us
-		delete[] fileDataReadPtr;
-	}
+	// Free instrument file/stream data
+	delete[] streamDataPtr;
 
-	return new MidiDriver_Miles_AdLib(g_system->getMixer(), instrumentTablePtr, instrumentTableCount);
+	return new MidiDriver_Miles_AdLib(instrumentTablePtr, instrumentTableCount);
 }
 
 } // End of namespace Audio

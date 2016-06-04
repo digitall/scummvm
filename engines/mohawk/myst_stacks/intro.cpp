@@ -28,8 +28,6 @@
 #include "mohawk/video.h"
 #include "mohawk/myst_stacks/intro.h"
 
-#include "gui/message.h"
-
 namespace Mohawk {
 namespace MystStacks {
 
@@ -98,10 +96,16 @@ void Intro::introMovies_run() {
 	// Play Intro Movies
 	// This is all quite messy...
 
+	VideoHandle handle;
+
 	switch (_introStep) {
 	case 0:
 		_introStep = 1;
-		_vm->_video->playMovie(_vm->wrapMovieFilename("broder", kIntroStack));
+		handle = _vm->_video->playMovie(_vm->wrapMovieFilename("broder", kIntroStack));
+		if (!handle)
+			error("Failed to open broder movie");
+
+		handle->center();
 		break;
 	case 1:
 		if (!_vm->_video->isVideoPlaying())
@@ -109,7 +113,11 @@ void Intro::introMovies_run() {
 		break;
 	case 2:
 		_introStep = 3;
-		_vm->_video->playMovie(_vm->wrapMovieFilename("cyanlogo", kIntroStack));
+		handle = _vm->_video->playMovie(_vm->wrapMovieFilename("cyanlogo", kIntroStack));
+		if (!handle)
+			error("Failed to open cyanlogo movie");
+
+		handle->center();
 		break;
 	case 3:
 		if (!_vm->_video->isVideoPlaying())
@@ -118,8 +126,13 @@ void Intro::introMovies_run() {
 	case 4:
 		_introStep = 5;
 
-		if (!(_vm->getFeatures() & GF_DEMO)) // The demo doesn't have the intro video
-			_vm->_video->playMovie(_vm->wrapMovieFilename("intro", kIntroStack));
+		if (!(_vm->getFeatures() & GF_DEMO)) { // The demo doesn't have the intro video
+			handle = _vm->_video->playMovie(_vm->wrapMovieFilename("intro", kIntroStack));
+			if (!handle)
+				error("Failed to open intro movie");
+
+			handle->center();
+		}
 		break;
 	case 5:
 		if (!_vm->_video->isVideoPlaying())
@@ -155,7 +168,7 @@ void Intro::mystLinkBook_run() {
 void Intro::o_mystLinkBook_init(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Myst link book init", op);
 
-	_linkBookMovie = static_cast<MystResourceType6 *>(_invokingResource);
+	_linkBookMovie = getInvokingResource<MystAreaVideo>();
 	_startTime = 1;
 	_linkBookRunning = true;
 }

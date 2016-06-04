@@ -26,14 +26,12 @@
 #include "common/scummsys.h"
 #include "common/rect.h"
 #include "common/stream.h"
+#include "graphics/screen.h"
 #include "access/asurface.h"
 
 namespace Access {
 
 class AccessEngine;
-
-#define PALETTE_COUNT 256
-#define PALETTE_SIZE (256 * 3)
 
 struct ScreenSave {
 	int _clipWidth;
@@ -47,7 +45,7 @@ struct ScreenSave {
 	int _screenYOff;
 };
 
-class Screen : public ASurface {
+class Screen : public BaseSurface {
 private:
 	AccessEngine *_vm;
 	byte _tempPalette[PALETTE_SIZE];
@@ -66,10 +64,6 @@ private:
 	Common::List<Common::Rect> _dirtyRects;
 
 	void updatePalette();
-
-	void mergeDirtyRects();
-
-	bool unionRectangle(Common::Rect &destRect, const Common::Rect &src1, const Common::Rect &src2);
 public:
 	int _vesaMode;
 	int _startColor, _numColors;
@@ -85,22 +79,22 @@ public:
 	int _bufferBytesWide;
 	int _vWindowLinesTall;
 	bool _screenChangeFlag;
+	bool _fadeIn;
 public:
-	virtual void copyBlock(ASurface *src, const Common::Rect &bounds);
+	/**
+	 * Updates the screen
+	 */
+	virtual void update();
+
+	virtual void copyBlock(BaseSurface *src, const Common::Rect &bounds);
 
 	virtual void restoreBlock();
 
 	virtual void drawRect();
 
-	virtual void transBlitFrom(ASurface *src, const Common::Point &destPos);
+	virtual void drawBox();
 
-	virtual void transBlitFrom(ASurface *src, const Common::Rect &bounds);
-
-	virtual void blitFrom(Graphics::Surface &src);
-
-	virtual void copyBuffer(Graphics::Surface *src);
-
-	virtual void addDirtyRect(const Common::Rect &r);
+	virtual void copyBuffer(Graphics::ManagedSurface *src);
 public:
 	Screen(AccessEngine *vm);
 
@@ -109,11 +103,6 @@ public:
 	void setDisplayScan();
 
 	void setPanel(int num);
-
-	/**
-	 * Update the underlying screen
-	 */
-	void updateScreen();
 
 	/**
 	 * Fade out screen
@@ -137,7 +126,12 @@ public:
 	/**
 	 * Set icon palette
 	 */
-	void setIconPalette() {}
+	void setIconPalette();
+
+	/**
+	 * Set Tex palette (Martian Memorandum)
+	 */
+	void setManPalette();
 
 	void loadPalette(int fileNum, int subfile);
 
@@ -150,6 +144,8 @@ public:
 	void restorePalette();
 
 	void getPalette(byte *pal);
+
+	void flashPalette(int count);
 
 	/**
 	 * Copy a buffer to the screen

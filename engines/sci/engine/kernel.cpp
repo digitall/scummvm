@@ -35,6 +35,9 @@ namespace Sci {
 
 Kernel::Kernel(ResourceManager *resMan, SegManager *segMan)
 	: _resMan(resMan), _segMan(segMan), _invalid("<invalid>") {
+#ifdef ENABLE_SCI32
+	_kernelFunc_StringId = 0;
+#endif
 }
 
 Kernel::~Kernel() {
@@ -118,7 +121,7 @@ void Kernel::loadSelectorNames() {
 
 	// Starting with KQ7, Mac versions have a BE name table. GK1 Mac and earlier (and all
 	// other platforms) always use LE.
-	bool isBE = (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2_1
+	bool isBE = (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2_1_EARLY
 			&& g_sci->getGameId() != GID_GK1);
 
 	if (!r) { // No such resource?
@@ -603,6 +606,10 @@ void Kernel::mapFunctions() {
 		}
 
 #ifdef ENABLE_SCI32
+		if (kernelName == "String") {
+			_kernelFunc_StringId = id;
+		}
+
 		// HACK: Phantasmagoria Mac uses a modified kDoSound (which *nothing*
 		// else seems to use)!
 		if (g_sci->getPlatform() == Common::kPlatformMacintosh && g_sci->getGameId() == GID_PHANTASMAGORIA && kernelName == "DoSound") {
@@ -842,11 +849,11 @@ void Kernel::loadKernelNames(GameFeatures *features) {
 			// In the Windows version of KQ6 CD, the empty kSetSynonyms
 			// function has been replaced with kPortrait. In KQ6 Mac,
 			// kPlayBack has been replaced by kShowMovie.
-			if (g_sci->getPlatform() == Common::kPlatformWindows)
+			if ((g_sci->getPlatform() == Common::kPlatformWindows) || (g_sci->forceHiresGraphics()))
 				_kernelNames[0x26] = "Portrait";
 			else if (g_sci->getPlatform() == Common::kPlatformMacintosh)
 				_kernelNames[0x84] = "ShowMovie";
-		} else if (g_sci->getGameId() == GID_QFG4 && g_sci->isDemo()) {
+		} else if (g_sci->getGameId() == GID_QFG4DEMO) {
 			_kernelNames[0x7b] = "RemapColors"; // QFG4 Demo has this SCI2 function instead of StrSplit
 		}
 
@@ -863,7 +870,9 @@ void Kernel::loadKernelNames(GameFeatures *features) {
 		_kernelNames = Common::StringArray(sci2_default_knames, kKernelEntriesSci2);
 		break;
 
-	case SCI_VERSION_2_1:
+	case SCI_VERSION_2_1_EARLY:
+	case SCI_VERSION_2_1_MIDDLE:
+	case SCI_VERSION_2_1_LATE:
 		if (features->detectSci21KernelType() == SCI_VERSION_2) {
 			// Some early SCI2.1 games use a modified SCI2 kernel table instead of
 			// the SCI2.1 kernel table. We detect which version to use based on

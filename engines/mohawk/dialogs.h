@@ -29,8 +29,14 @@
 #include "common/str.h"
 #include "gui/dialog.h"
 #include "gui/options.h"
-#include "gui/widget.h"
-#include "gui/widgets/list.h"
+
+namespace GUI {
+class SaveLoadChooser;
+class ButtonWidget;
+class CheckboxWidget;
+class CommandSender;
+class StaticTextWidget;
+}
 
 namespace Mohawk {
 
@@ -70,20 +76,32 @@ public:
 
 class MohawkEngine_Myst;
 
-class MystOptionsDialog : public GUI::OptionsDialog {
+class MystOptionsDialog : public GUI::Dialog {
 public:
 	MystOptionsDialog(MohawkEngine_Myst *vm);
 	~MystOptionsDialog();
 	void open();
 
+	virtual void reflowLayout() override;
 	virtual void handleCommand(GUI::CommandSender*, uint32, uint32);
 private:
 	MohawkEngine_Myst *_vm;
+
 	GUI::CheckboxWidget *_zipModeCheckbox;
 	GUI::CheckboxWidget *_transitionsCheckbox;
+
 	GUI::ButtonWidget *_dropPageButton;
 	GUI::ButtonWidget *_showMapButton;
 	GUI::ButtonWidget *_returnToMenuButton;
+
+	GUI::ButtonWidget    *_loadButton;
+	GUI::ButtonWidget    *_saveButton;
+
+	GUI::SaveLoadChooser *_loadDialog;
+	GUI::SaveLoadChooser *_saveDialog;
+
+	void save();
+	void load();
 };
 
 #endif

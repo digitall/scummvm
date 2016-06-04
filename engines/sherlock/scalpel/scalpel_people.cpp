@@ -315,8 +315,8 @@ void ScalpelPerson::setWalking() {
 	}
 
 	// See if the new walk sequence is the same as the old. If it's a new one,
-	// we need to reset the frame number to zero so it's animation starts at
-	// it's beginning. Otherwise, if it's the same sequence, we can leave it
+	// we need to reset the frame number to zero so its animation starts at
+	// its beginning. Otherwise, if it's the same sequence, we can leave it
 	// as is, so it keeps the animation going at wherever it was up to
 	if (_sequenceNumber != _oldWalkSequence)
 		_frameNumber = 0;
@@ -368,6 +368,14 @@ void ScalpelPerson::walkToCoords(const Point32 &destPos, int destDir) {
 Common::Point ScalpelPerson::getSourcePoint() const {
 	return Common::Point(_position.x / FIXED_INT_MULTIPLIER + frameWidth() / 2,
 		_position.y / FIXED_INT_MULTIPLIER);
+}
+
+void ScalpelPerson::synchronize(Serializer &s) {
+	if (_walkCount)
+		gotoStand();
+
+	s.syncAsSint32LE(_position.x);
+	s.syncAsSint32LE(_position.y);
 }
 
 /*----------------------------------------------------------------*/
@@ -436,11 +444,9 @@ void ScalpelPeople::setTalking(int speaker) {
 }
 
 void ScalpelPeople::synchronize(Serializer &s) {
-	s.syncAsByte(_holmesOn);
-	s.syncAsSint32LE(_data[HOLMES]->_position.x);
-	s.syncAsSint32LE(_data[HOLMES]->_position.y);
-	s.syncAsSint16LE(_data[HOLMES]->_sequenceNumber);
+	(*this)[HOLMES].synchronize(s);
 	s.syncAsSint16LE(_holmesQuotient);
+	s.syncAsByte(_holmesOn);
 
 	if (s.isLoading()) {
 		_savedPos = _data[HOLMES]->_position;
@@ -463,8 +469,7 @@ void ScalpelPeople::setTalkSequence(int speaker, int sequenceNum) {
 
 			if (obj._seqSize < MAX_TALK_SEQUENCES) {
 				warning("Tried to copy too many talk frames");
-			}
-			else {
+			} else {
 				for (int idx = 0; idx < MAX_TALK_SEQUENCES; ++idx) {
 					obj._sequences[idx] = people._characters[speaker]._talkSequences[idx];
 					if (idx > 0 && !obj._sequences[idx] && !obj._sequences[idx - 1])
@@ -498,6 +503,63 @@ bool ScalpelPeople::loadWalk() {
 
 	_forceWalkReload = false;
 	return result;
+}
+
+const Common::Point ScalpelPeople::restrictToZone(int zoneId, const Common::Point &destPos) {
+	Scene &scene = *_vm->_scene;
+	Common::Point walkDest = destPos;
+
+	// The destination isn't in a zone
+	if (walkDest.x >= (SHERLOCK_SCREEN_WIDTH - 1))
+		walkDest.x = SHERLOCK_SCREEN_WIDTH - 2;
+
+	// Trace a line between the centroid of the found closest zone to
+	// the destination, to find the point at which the zone will be left
+	const Common::Rect &destRect = scene._zones[zoneId];
+	const Common::Point destCenter((destRect.left + destRect.right) / 2,
+		(destRect.top + destRect.bottom) / 2);
+	const Common::Point delta = walkDest - destCenter;
+	Point32 pt(destCenter.x * FIXED_INT_MULTIPLIER, destCenter.y * FIXED_INT_MULTIPLIER);
+
+	// Move along the line until the zone is left
+	do {
+		pt += delta;
+	} while (destRect.contains(pt.x / FIXED_INT_MULTIPLIER, pt.y / FIXED_INT_MULTIPLIER));
+
+	// Set the new walk destination to the last point that was in the
+	// zone just before it was left
+	return Common::Point((pt.x - delta.x * 2) / FIXED_INT_MULTIPLIER,
+		(pt.y - delta.y * 2) / FIXED_INT_MULTIPLIER);
+}
+
+void ScalpelPeople::setListenSequence(int speaker, int sequenceNum) {
+	People &people = *_vm->_people;
+	Scene &scene = *_vm->_scene;
+
+	// Don't bother doing anything if no specific speaker is specified
+	if (speaker == -1)
+		return;
+
+	if (speaker) {
+		int objNum = people.findSpeaker(speaker);
+		if (objNum != -1) {
+			Object &obj = scene._bgShapes[objNum];
+
+			if (obj._seqSize < MAX_TALK_SEQUENCES) {
+				warning("Tried to copy too few still frames");
+			} else {
+				for (uint idx = 0; idx < MAX_TALK_SEQUENCES; ++idx) {
+					obj._sequences[idx] = people._characters[speaker]._stillSequences[idx];
+					if (idx > 0 && !people._characters[speaker]._talkSequences[idx] &&
+						!people._characters[speaker]._talkSequences[idx - 1])
+						break;
+				}
+
+				obj._frameNumber = 0;
+				obj._seqTo = 0;
+			}
+		}
+	}
 }
 
 } // End of namespace Scalpel

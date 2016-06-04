@@ -21,9 +21,11 @@
  */
 
 #include "sherlock/tattoo/tattoo_talk.h"
+#include "sherlock/tattoo/tattoo_fixed_text.h"
 #include "sherlock/tattoo/tattoo_people.h"
+#include "sherlock/tattoo/tattoo_scene.h"
 #include "sherlock/tattoo/tattoo_user_interface.h"
-#include "sherlock/sherlock.h"
+#include "sherlock/tattoo/tattoo.h"
 #include "sherlock/screen.h"
 
 namespace Sherlock {
@@ -109,7 +111,7 @@ const byte TATTOO_OPCODES[] = {
 
 /*----------------------------------------------------------------*/
 
-TattooTalk::TattooTalk(SherlockEngine *vm) : Talk(vm), _talkWidget(vm) {
+TattooTalk::TattooTalk(SherlockEngine *vm) : Talk(vm), _talkWidget(vm), _passwordWidget(vm) {
 	static OpcodeMethod OPCODE_METHODS[] = {
 		(OpcodeMethod)&TattooTalk::cmdSwitchSpeaker,
 
@@ -172,6 +174,7 @@ TattooTalk::TattooTalk(SherlockEngine *vm) : Talk(vm), _talkWidget(vm) {
 		(OpcodeMethod)&TattooTalk::cmdSetNPCVerbScript,
 		nullptr,
 		(OpcodeMethod)&TattooTalk::cmdRestorePeopleSequence,
+		nullptr,
 		(OpcodeMethod)&TattooTalk::cmdSetNPCVerbTarget,
 		(OpcodeMethod)&TattooTalk::cmdTurnSoundsOff
 	};
@@ -180,27 +183,66 @@ TattooTalk::TattooTalk(SherlockEngine *vm) : Talk(vm), _talkWidget(vm) {
 	_opcodeTable = OPCODE_METHODS;
 }
 
+void TattooTalk::talkTo(const Common::String filename) {
+	Events &events = *_vm->_events;
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+
+	// WORKAROUND: Keep wait cursor active until very end of the cutscene of the monkey
+	// stealing the cap, which is finished by calling the 30cuend script
+	if (filename == "wilb29a")
+		events.incWaitCounter();
+
+	Talk::talkTo(filename);
+
+	if (filename == "wilb29a")
+		ui._menuMode = TALK_MODE;
+	if (filename == "30cuend") {
+		events.decWaitCounter();
+		events.setCursor(ARROW);
+	}
+}
+
 void TattooTalk::talkInterface(const byte *&str) {
+	TattooEngine &vm = *(TattooEngine *)_vm;
+	Sound &sound = *_vm->_sound;
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 	const byte *s = str;
 
 	// Move to past the end of the text string
+	_wait = 1;
 	_charCount = 0;
 	while ((*str < TATTOO_OPCODES[0] || *str == TATTOO_OPCODES[OP_NULL]) && *str) {
 		++_charCount;
 		++str;
 	}
 
+	// If speech is on, and text windows (subtitles) are off, then don't show the text window
+	if (!vm._textWindowsOn && sound._speechOn && _speaker != -1)
+		return;
+
 	// Display the text window
 	ui.banishWindow();
 	ui._textWidget.load(Common::String((const char *)s, (const char *)str), _speaker);
 	ui._textWidget.summonWindow();
-	_wait = true;
 }
 
-void TattooTalk::openTalkWindow() {
+void TattooTalk::nothingToSay() {
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+	ui.putMessage("%s", FIXED(NothingToSay));
+}
+
+void TattooTalk::showTalk() {
+	TattooPeople &people = *(TattooPeople *)_vm->_people;
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+
+	people.setListenSequence(_talkTo, 129);
+
 	_talkWidget.load();
 	_talkWidget.summonWindow();
+	_talkWidget.refresh();
+
+	if (ui._menuMode != MESSAGE_MODE)
+		ui._menuMode = TALK_MODE;
 }
 
 OpcodeReturn TattooTalk::cmdSwitchSpeaker(const byte *&str) {
@@ -239,15 +281,15 @@ OpcodeReturn TattooTalk::cmdWalkHolmesToCoords(const byte *&str) {
 	People &people = *_vm->_people;
 	++str;
 
-	int x = (str[0] - 1) * 256 + str[1] - 1;
-	if (x > 16384)
-		x = -1 * (x - 16384);
-	warning("TODO: cmdWalkHolmesToCoords - call RT walkToCoords variant");
-	people[HOLMES].walkToCoords(
-		Point32(x * FIXED_INT_MULTIPLIER, ((str[2] - 1) * 256 + str[3] - 1) * FIXED_INT_MULTIPLIER),
-		DIRECTION_CONVERSION[str[4] - 1]
-		//HOLMES
-	);
+	int xp = (str[0] - 1) * 256 + str[1] - 1;
+	if (xp > 16384)
+		// Negative X
+		xp = -1 * (xp - 16384);
+	int yp = (str[2] - 1) * 256 + str[3] - 1;
+	
+	people[HOLMES].walkToCoords(Point32(xp * FIXED_INT_MULTIPLIER, yp * FIXED_INT_MULTIPLIER),
+		DIRECTION_CONVERSION[str[4] - 1]);
+
 	if (_talkToAbort)
 		return RET_EXIT;
 
@@ -261,7 +303,7 @@ OpcodeReturn TattooTalk::cmdGotoScene(const byte *&str) {
 	Scene &scene = *_vm->_scene;
 	scene._goToScene = str[1] - 1;
 
-	if (scene._goToScene != 100) {
+	if (scene._goToScene != OVERHEAD_MAP) {
 		// Not going to the map overview
 		map._oldCharPoint = scene._goToScene;
 
@@ -269,18 +311,18 @@ OpcodeReturn TattooTalk::cmdGotoScene(const byte *&str) {
 		if (str[2] > 100) {
 			people._savedPos = PositionFacing(160, 100, str[2]);
 		} else {
-			int32 posX = (str[3] - 1) * 256 + str[4] - 1;
+			int posX = (str[3] - 1) * 256 + str[4] - 1;
 			if (posX > 16384)
 				posX = -1 * (posX - 16384);
-			int32 posY = (str[5] - 1) * 256 + str[6] - 1;
+			int posY = (str[5] - 1) * 256 + str[6] - 1;
 			people._savedPos = PositionFacing(posX, posY, str[2] - 1);
 		}
 
 		_scriptMoreFlag = 1;
-	}	// if (scene._goToScene != 100)
+	}
 
 	str += 7;
-	if (scene._goToScene != 100)
+	if (scene._goToScene != OVERHEAD_MAP)
 		_scriptSaveIndex = str - _scriptStart;
 
 	_endStr = true;
@@ -295,13 +337,13 @@ OpcodeReturn TattooTalk::cmdNextSong(const byte *&str) {
 	// Get the name of the next song to play
 	++str;
 	music._nextSongName = "";
-	for (int idx = 0; idx < 8; ++idx) {
-		if (str[idx] != '~')
-			music._nextSongName += str[idx];
-		else
-			break;
-	}
+	for (int idx = 0; idx < 8 && str[idx] != '~'; ++idx)
+		music._nextSongName += str[idx];
 	str += 7;
+
+	// WORKAROUND: Original game set wrong music name at the end of the introduction sequence
+	if (_scriptName == "prol80p" && music._nextSongName == "default")
+		music._nextSongName = "01cue90";
 
 	return RET_SUCCESS;
 }
@@ -365,7 +407,11 @@ OpcodeReturn TattooTalk::cmdNPCLabelSet(const byte *&str) {
 	return RET_SUCCESS;
 }
 
-OpcodeReturn TattooTalk::cmdPassword(const byte *&str) { error("TODO: script opcode (cmdPassword)"); }
+OpcodeReturn TattooTalk::cmdPassword(const byte *&str) {
+	_vm->_ui->clearWindow();
+	_passwordWidget.show();
+	return RET_EXIT;
+}
 
 OpcodeReturn TattooTalk::cmdPlaySong(const byte *&str) { 
 	Music &music = *_vm->_music;
@@ -374,16 +420,12 @@ OpcodeReturn TattooTalk::cmdPlaySong(const byte *&str) {
 	// Get the name of the song to play
 	music._currentSongName = "";
 	str++;
-	for (int idx = 0; idx < 8; ++idx) {
-		if (str[idx] != '~')
-			music._currentSongName += str[idx];
-		else
-			break;
-	}
+	for (int idx = 0; idx < 8 && str[idx] != '~'; ++idx)
+		music._currentSongName += str[idx];
 	str += 7;
 
 	// Play the song
-	music.playMusic(music._currentSongName);
+	music.loadSong(music._currentSongName);
 
 	// Copy the old song name to _nextSongName so that when the new song is finished, the old song will restart
 	music._nextSongName = currentSong;
@@ -416,6 +458,7 @@ OpcodeReturn TattooTalk::cmdSetNPCDescOnOff(const byte *&str) {
 
 	// Copy over the NPC examine text until we reach a stop marker, which is
 	// the same as a start marker, or we reach the end of the file
+	person._examine = "";
 	while (*str && *str != _opcodes[OP_NPC_DESC_ON_OFF])
 		person._examine += *str++;
 
@@ -553,12 +596,12 @@ OpcodeReturn TattooTalk::cmdSetNPCPosition(const byte *&str) {
 	++str;
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	TattooPerson &person = people[npcNum];
-	int32 posX = (str[0] - 1) * 256 + str[1] - 1;
+	int posX = (str[0] - 1) * 256 + str[1] - 1;
 	if (posX > 16384)
 		posX = -1 * (posX - 16384);
-	int32 posY = (str[2] - 1) * 256 + str[3] - 1;
+	int posY = (str[2] - 1) * 256 + str[3] - 1;
 	
-	people[npcNum]._position = Point32(posX * FIXED_INT_MULTIPLIER, posY * FIXED_INT_MULTIPLIER);
+	person._position = Point32(posX * FIXED_INT_MULTIPLIER, posY * FIXED_INT_MULTIPLIER);
 	if (person._seqTo && person._walkLoaded) {
 		person._walkSequences[person._sequenceNumber]._sequences[person._frameNumber] = person._seqTo;
 		person._seqTo = 0;
@@ -582,7 +625,7 @@ OpcodeReturn TattooTalk::cmdSetNPCPosition(const byte *&str) {
 					break;
 				}
 			}
-		} while(!done);
+		} while (!done);
 	}
 
 	str += 4;
@@ -601,7 +644,7 @@ OpcodeReturn TattooTalk::cmdSetNPCTalkFile(const byte *&str) {
 		memset(person._npcPath, 0, 100);
 	}
 
-	person._npcPath[person._npcIndex] = 3;
+	person._npcPath[person._npcIndex] = NPCPATH_SET_TALK_FILE;
 	for (int i = 1; i <= 8; i++)
 		person._npcPath[person._npcIndex + i] = str[i];
 
@@ -617,23 +660,16 @@ OpcodeReturn TattooTalk::cmdSetNPCVerb(const byte *&str) {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Common::String &verb = people[npcNum]._use[verbNum]._verb;
 
-	for (int x = 0; x < 12; x++) {
-		if (str[x + 1] != '~')
-			verb.setChar(str[x + 1], x);
-		else
-			verb.setChar(0, x);
-	}
+	// Get the verb name
+	verb = "";
+	for (int idx = 0; idx < 12 && str[idx + 1] != '~'; ++idx)
+		verb += str[idx + 1];
 
-	verb.setChar(0, 11);
+	// Strip off any trailing whitespace
+	while (verb.hasSuffix(" "))
+		verb.deleteLastChar();
 
-	uint len = verb.size() - 1;
-	while (verb[len] == ' ' && len)
-		len--;
-	verb.setChar(0, len + 1);
-	if (verb != " ")
-		verb.clear();
 	str += 12;
-
 	return RET_SUCCESS;
 }
 
@@ -655,18 +691,13 @@ OpcodeReturn TattooTalk::cmdSetNPCVerbScript(const byte *&str) {
 	int verbNum = *++str - 1;
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	UseType &useType = people[npcNum]._use[verbNum];
+	
 	Common::String &name = useType._names[0];
-	name.setChar('*', 0);
-	name.setChar('C', 1);
+	name = "*C";
 
-	for (int x = 0; x < 8; x++) {
-		if (str[x + 1] != '~')
-			name.setChar(str[x + 1], x + 2);
-		else
-			name.setChar(0, x + 2);
-	}
+	for (int idx = 0; idx < 8 && str[idx + 1] != '~'; ++idx)
+		name += str[idx + 1];
 
-	name.setChar(0, 11);
 	useType._cAnimNum = 99;
 	useType._cAnimSpeed = 1;
 	str += 8;
@@ -680,21 +711,14 @@ OpcodeReturn TattooTalk::cmdSetNPCVerbTarget(const byte *&str) {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
 	Common::String &target = people[npcNum]._use[verbNum]._target;
 
-	for (int x = 0; x < 12; x++) {
-		if (str[x + 1] != '~')
-			target.setChar(str[x + 1], x);
-		else
-			target.setChar(0, x);
-	}
+	target = "";
+	for (int idx = 0; idx < 12 && str[idx + 1] != '~'; ++idx)
+		target += str[idx + 1];
 
-	target.setChar(0, 11);
+	while (target.hasSuffix(" "))
+		target.deleteLastChar();
 
-	uint len = target.size() - 1;
-	while (target[len] == ' ' && len)
-		len--;
-	target.setChar(0, len + 1);
 	str += 12;
-
 	return RET_SUCCESS;
 }
 
@@ -705,21 +729,42 @@ OpcodeReturn TattooTalk::cmdSetNPCWalkGraphics(const byte *&str) {
 
 	// Build up walk library name for the given NPC
 	person._walkVGSName = "";
-	for (int idx = 0; idx < 8; ++idx) {
-		if (str[idx + 1] != '~')
-			person._walkVGSName += str[idx + 1];
-		else
-			break;
-	}
-	person._walkVGSName += ".VGS";
+	for (int idx = 0; idx < 8 && str[idx + 1] != '~'; ++idx)
+		person._walkVGSName += str[idx + 1];
 
+	person._walkVGSName += ".VGS";
 	people._forceWalkReload = true;
 	str += 8;
 
 	return RET_SUCCESS;
 }
 
-OpcodeReturn TattooTalk::cmdSetSceneEntryFlag(const byte *&str) { error("TODO: script opcode (cmdSetSceneEntryFlag)"); }
+OpcodeReturn TattooTalk::cmdSetSceneEntryFlag(const byte *&str) {
+	TattooScene &scene = *(TattooScene *)_vm->_scene;
+	++str;
+	int flag = (str[0] - 1) * 256 + str[1] - 1 - (str[1] == 1);
+
+	int flag1 = flag & 16383;
+	if (flag > 16383)
+		flag1 *= -1;
+
+	str += 2;
+
+	// Make sure that this instance is not already being tracked
+	bool found = false;
+	for (uint idx = 0; idx < scene._sceneTripCounters.size() && !found; ++idx) {
+		SceneTripEntry &entry = scene._sceneTripCounters[idx];
+		if (entry._flag == flag1 && entry._sceneNumber == str[0] - 1)
+			found = true;
+	}
+
+	// Only add it if it's not being tracked already
+	if (!found)
+		scene._sceneTripCounters.push_back(SceneTripEntry(flag1, str[0] - 1, str[1] - 1));
+
+	++str;
+	return RET_SUCCESS;
+}
 
 OpcodeReturn TattooTalk::cmdSetTalkSequence(const byte *&str) {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
@@ -750,7 +795,10 @@ OpcodeReturn TattooTalk::cmdTalkInterruptsDisable(const byte *&str) { error("Dum
 // Dummy opcode
 OpcodeReturn TattooTalk::cmdTalkInterruptsEnable(const byte *&str) { error("Dummy opcode cmdTalkInterruptsEnable called"); }
 
-OpcodeReturn TattooTalk::cmdTurnSoundsOff(const byte *&str) { error("TODO: script opcode (cmdTurnSoundsOff)"); }
+OpcodeReturn TattooTalk::cmdTurnSoundsOff(const byte *&str) {
+	_vm->_sound->stopSound();
+	return RET_SUCCESS;
+}
 
 OpcodeReturn TattooTalk::cmdWalkHolmesAndNPCToCAnimation(const byte *&str) {
 	int npcNum = *++str;
@@ -764,14 +812,8 @@ OpcodeReturn TattooTalk::cmdWalkHolmesAndNPCToCAnimation(const byte *&str) {
 		person.pushNPCPath();
 	person._npcMoved = true;
 
-	warning("TODO: cmdWalkNPCToCAnimation - walkBothToCoords call");
-	person.walkToCoords(
-		Point32(anim._goto[1].x * FIXED_INT_MULTIPLIER, anim._goto[1].y * FIXED_INT_MULTIPLIER),
-		anim._goto[1]._facing
-		//Point32(anim._goto[1].x * FIXED_INT_MULTIPLIER, anim._goto[1].y * FIXED_INT_MULTIPLIER),
-		//anim._goto[1]._facing,
-		//npcNum + 1
-	);
+	person.walkToCoords(anim._goto[1], anim._goto[1]._facing);
+
 	if (_talkToAbort)
 		return RET_EXIT;
 
@@ -790,12 +832,8 @@ OpcodeReturn TattooTalk::cmdWalkNPCToCAnimation(const byte *&str) {
 		person.pushNPCPath();
 	person._npcMoved = true;
 
-	warning("TODO: cmdWalkNPCToCAnimation - call RT walkToCoords variant");
-	person.walkToCoords(
-		Point32(anim._goto[1].x * FIXED_INT_MULTIPLIER, anim._goto[1].y * FIXED_INT_MULTIPLIER),
-		anim._goto[1]._facing
-		// npcNum + 1
-	);
+	person.walkToCoords(anim._goto[1], anim._goto[1]._facing);
+
 	if (_talkToAbort)
 		return RET_EXIT;
 
@@ -812,16 +850,13 @@ OpcodeReturn TattooTalk::cmdWalkNPCToCoords(const byte *&str) {
 		person.pushNPCPath();
 	person._npcMoved = true;
 
-	int x = (str[0] - 1) * 256 + str[1] - 1;
-	if (x > 16384)
-		x = -1 * (x - 16384);
+	int xp = (str[0] - 1) * 256 + str[1] - 1;
+	if (xp > 16384)
+		xp = -1 * (xp - 16384);
+	int yp = (str[2] - 1) * 256 + str[3] - 1;
 
-	warning("TODO: cmdWalkNPCToCoords - call RT walkToCoords variant");
-	person.walkToCoords(
-		Point32(x * FIXED_INT_MULTIPLIER, ((str[2] - 1) * 256 + str[3] - 1) * FIXED_INT_MULTIPLIER),
-		DIRECTION_CONVERSION[str[4] - 1]
-		// npcNum + 1
-	);
+	person.walkToCoords(Point32(xp * FIXED_INT_MULTIPLIER, yp * FIXED_INT_MULTIPLIER),
+		DIRECTION_CONVERSION[str[4] - 1]);
 	if (_talkToAbort)
 		return RET_EXIT;
 
@@ -839,21 +874,22 @@ OpcodeReturn TattooTalk::cmdWalkHomesAndNPCToCoords(const byte *&str) {
 		person.pushNPCPath();
 	person._npcMoved = true;
 
-	int x = (str[0] - 1) * 256 + str[1] - 1;
-	if (x > 16384)
-		x = -1 * (x - 16384);
-	//int x1 = (str[5] - 1) * 256 + str[6] - 1;
-	//if (x1 > 16384)
-	//	x1 = -1 * (x1 - 16384);
+	// Get destination position and facing for Holmes
+	int xp = (str[0] - 1) * 256 + str[1] - 1;
+	if (xp > 16384)
+		xp = -1 * (xp - 16384);
+	int yp = (str[2] - 1) * 256 + str[3] - 1;
+	PositionFacing holmesDest(xp * FIXED_INT_MULTIPLIER, yp * FIXED_INT_MULTIPLIER, DIRECTION_CONVERSION[str[4] - 1]);
 
-	warning("TODO: cmdWalkHomesAndNPCToCoords - walkBothToCoords call");
-	person.walkToCoords(
-		Point32(x * FIXED_INT_MULTIPLIER, ((str[2] - 1) * 256 + str[3] - 1) * FIXED_INT_MULTIPLIER),
-		DIRECTION_CONVERSION[str[4] - 1]
-		//Point32(x1 * FIXED_INT_MULTIPLIER, ((str[7] - 1) * 256 + str[8] - 1) * FIXED_INT_MULTIPLIER),
-		//DIRECTION_CONVERSION[str[9] - 1],
-		//npcNum + 1
-	);
+	// Get destination position and facing for specified NPC
+	xp = (str[5] - 1) * 256 + str[6] - 1;
+	if (xp > 16384)
+		xp = -1 * (xp - 16384);
+	yp = (str[7] - 1) * 256 + str[8] - 1;
+	PositionFacing npcDest(xp * FIXED_INT_MULTIPLIER, yp * FIXED_INT_MULTIPLIER, DIRECTION_CONVERSION[str[9] - 1]);
+
+	person.walkBothToCoords(holmesDest, npcDest);
+
 	if (_talkToAbort)
 		return RET_EXIT;
 
@@ -861,12 +897,122 @@ OpcodeReturn TattooTalk::cmdWalkHomesAndNPCToCoords(const byte *&str) {
 	return RET_SUCCESS;
 }
 
-void TattooTalk::showTalk() {
+OpcodeReturn TattooTalk::cmdCallTalkFile(const byte *&str) {
 	TattooPeople &people = *(TattooPeople *)_vm->_people;
-	
-	_sequenceStack.clear();
-	people.setListenSequence(_talkTo, 129);
-	_talkWidget.refresh();
+	Common::String tempString;
+
+	int npc = *++str;
+	assert(npc >= 1 && npc < MAX_CHARACTERS);
+	TattooPerson &person = people[npc];
+
+	if (person._resetNPCPath) {
+		person._npcIndex = person._npcPause = 0;
+		person._resetNPCPath = false;
+		Common::fill(&person._npcPath[0], &person._npcPath[100], 0);
+	}
+
+	// Set the path control code and copy the filename
+	person._npcPath[person._npcIndex] = 4;
+	for (int idx = 1; idx <= 8; ++idx)
+		person._npcPath[person._npcIndex + idx] = str[idx];
+
+	person._npcIndex += 9;
+	str += 8;
+
+	return RET_SUCCESS;
+}
+
+void TattooTalk::pushSequenceEntry(Object *obj) {
+	// Check if the shape is already on the stack
+	for (uint idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
+		if (_sequenceStack[idx]._obj == obj)
+			return;
+	}
+
+	// Find a free slot and save the details in it
+	for (uint idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
+		SequenceEntry &seq = _sequenceStack[idx];
+		if (seq._obj == nullptr) {
+			seq._obj = obj;
+			seq._frameNumber = obj->_frameNumber;
+			seq._sequenceNumber = obj->_sequenceNumber;
+			seq._seqStack = obj->_seqStack;
+			seq._seqTo = obj->_seqTo;
+			seq._seqCounter = obj->_seqCounter;
+			seq._seqCounter2 = obj->_seqCounter2;
+			return;
+		}
+	}
+
+	error("Ran out of talk sequence stack space");
+}
+
+void TattooTalk::pullSequence(int slot) {
+	People &people = *_vm->_people;
+
+	for (int idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
+		SequenceEntry &seq = _sequenceStack[idx];
+		if (slot != -1 && idx != slot)
+			continue;
+
+		// Check for an entry in this slot
+		if (seq._obj) {
+			Object &o = *seq._obj;
+			
+			// See if we're not supposed to restore it until an Allow Talk Interrupt
+			if (slot == -1 && seq._obj->hasAborts()) {
+				seq._obj->_gotoSeq = -1;
+				seq._obj->_restoreSlot = idx;
+			} else {
+				// Restore the object's sequence information immediately
+				o._frameNumber = seq._frameNumber;
+				o._sequenceNumber = seq._sequenceNumber;
+				o._seqStack = seq._seqStack;
+				o._seqTo = seq._seqTo;
+				o._seqCounter = seq._seqCounter;
+				o._seqCounter2 = seq._seqCounter2;
+				o._gotoSeq = 0;
+				o._talkSeq = 0;
+
+				// Flag the slot as free again
+				seq._obj = nullptr;
+			}
+		}
+	}
+
+	// Handle restoring any character positioning
+	for (int idx = 0; idx < MAX_CHARACTERS; ++idx) {
+		Person &person = people[idx];
+
+		if (person._type == CHARACTER && !person._walkSequences.empty() && person._sequenceNumber >= TALK_UPRIGHT
+				&& person._sequenceNumber <= LISTEN_UPLEFT) {
+			person.gotoStand();
+
+			bool done = false;
+			do {
+				person.checkSprite();
+				for (int frameNum = 0; frameNum < person._frameNumber; ++frameNum) {
+					if (person._walkSequences[person._sequenceNumber]._sequences[frameNum] == 0)
+						done = true;
+				}
+			} while (!done);
+		}
+	}
+}
+
+bool TattooTalk::isSequencesEmpty() const {
+	for (int idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
+		if (_sequenceStack[idx]._obj)
+			return false;
+	}
+
+	return true;
+}
+
+void TattooTalk::clearSequences() {
+	for (int idx = 0; idx < TALK_SEQUENCE_STACK_SIZE; ++idx) {
+		_sequenceStack[idx]._obj = nullptr;
+	}
 }
 
 } // End of namespace Tattoo

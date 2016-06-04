@@ -163,6 +163,7 @@ Object::Object() {
 	_angle = _changeCtr = 0;
 	_walkStartFrame = 0;
 	_majorDiff = _minorDiff = 0;
+	_updateStartFrame = 0;
 }
 
 void Object::setVisage(int visage, int strip) {
@@ -216,7 +217,7 @@ void Object::erase() {
 	Screen &screen = *_vm->_screen;
 	
 	if (_visage.isLoaded() && !_oldBounds.isEmpty())
-		screen.blitFrom(screen._backBuffer1, Common::Point(_oldBounds.left, _oldBounds.top), _oldBounds);
+		screen.SHblitFrom(screen._backBuffer1, Common::Point(_oldBounds.left, _oldBounds.top), _oldBounds);
 }
 
 void Object::update() {
@@ -245,9 +246,9 @@ void Object::update() {
 		_visage.getFrame(s, _frame);
 
 		// Display the frame
-		_oldBounds = Common::Rect(_position.x, _position.y, _position.x + s.w(), _position.y + s.h());
+		_oldBounds = Common::Rect(_position.x, _position.y, _position.x + s.width(), _position.y + s.height());
 		_oldBounds.translate(-s._centroid.x, -s._centroid.y);
-		screen.transBlitFrom(s, Common::Point(_oldBounds.left, _oldBounds.top));
+		screen.SHtransBlitFrom(s, Common::Point(_oldBounds.left, _oldBounds.top));
 	}
 }
 
@@ -399,8 +400,9 @@ bool Logo::show(ScalpelEngine *vm) {
 		for (int idx = 0; idx < 4; ++idx)
 			logo->_objects[idx].update();
 
-		events.wait(2);
+		events.delay(10);
 		events.setButtonState();
+		++logo->_frameCounter;
 
 		interrupted = vm->shouldQuit() || events.kbHit() || events._pressed;
 		if (interrupted) {
@@ -422,6 +424,7 @@ Logo::Logo(ScalpelEngine *vm) : _vm(vm), _lib("sf3.rlb") {
 
 	// Initialize counter
 	_counter = 0;
+	_frameCounter = 0;
 
 	// Initialize wait frame counters
 	_waitFrames = 0;
@@ -476,7 +479,7 @@ void Logo::nextFrame() {
 	Screen &screen = *_vm->_screen;
 
 	if (_waitFrames) {
-		uint32 currFrame = _vm->_events->getFrameCounter();
+		uint32 currFrame = _frameCounter;
 		if (currFrame - _waitStartFrame < _waitFrames) {
 			return;
 		}
@@ -485,7 +488,7 @@ void Logo::nextFrame() {
 	}
 
 	if (_animateFrames) {
-		uint32 currFrame = _vm->_events->getFrameCounter();
+		uint32 currFrame = _frameCounter;
 		if (currFrame > _animateStartFrame + _animateFrameDelay) {
 			AnimationFrame animationFrame = _animateFrames[_animateFrame];
 			if (animationFrame.frame) {
@@ -611,14 +614,14 @@ void Logo::nextFrame() {
 
 void Logo::waitFrames(uint frames) {
 	_waitFrames = frames;
-	_waitStartFrame = _vm->_events->getFrameCounter();
+	_waitStartFrame = _frameCounter;
 }
 
 void Logo::startAnimation(uint object, uint frameDelay, const AnimationFrame *frames) {
 	_animateObject = object;
 	_animateFrameDelay = frameDelay;
 	_animateFrames = frames;
-	_animateStartFrame = _vm->_events->getFrameCounter();
+	_animateStartFrame = _frameCounter;
 	_animateFrame = 1;
 
 	_objects[object]._frame = frames[0].frame;
@@ -649,7 +652,7 @@ void Logo::loadBackground() {
 	screen.setPalette(palette);
 
 	// Copy the surface to the screen
-	screen.blitFrom(screen._backBuffer1);
+	screen.SHblitFrom(screen._backBuffer1);
 }
 
 void Logo::fade(const byte palette[PALETTE_SIZE], int step) {

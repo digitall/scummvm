@@ -1728,12 +1728,12 @@ void MortevielleEngine::showMoveMenuAlert() {
 void MortevielleEngine::showConfigScreen() {
 	// FIXME: need a DOS palette, index 9 (light blue). Also we should show DOS font here
 	Common::String tmpStr;
-	int width, cy = 0;
+	int cy = 0;
 	clearScreen();
  	do {
  		++cy;
  		tmpStr = getString(cy + kStartingScreenStringIndex);
- 		width = _screenSurface->getStringWidth(tmpStr);
+ 		int width = _screenSurface->getStringWidth(tmpStr);
  		_text->displayStr(tmpStr, 320 - width / 2, cy * 8, 80, 1, 2);
  	} while (cy != 20);
 
@@ -2115,8 +2115,12 @@ void MortevielleEngine::music() {
 	_reloadCFIEC = true;
 
 	Common::File f;
-	if (!f.open("mort.img"))
-		error("Missing file - mort.img");
+	if (!f.open("mort.img")) {
+		// Some DOS versions use MORTP2 instead of MORT.IMG
+		// Some have both and they are identical
+		if (!f.open("mortp2"))
+			error("Missing file - mort.img");
+	}
 
 	int size = f.size();
 	byte *compMusicBuf = (byte *)malloc(sizeof(byte) * size);

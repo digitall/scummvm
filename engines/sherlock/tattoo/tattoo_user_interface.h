@@ -24,10 +24,15 @@
 #define SHERLOCK_TATTOO_UI_H
 
 #include "common/scummsys.h"
+#include "common/list.h"
 #include "sherlock/saveload.h"
 #include "sherlock/screen.h"
 #include "sherlock/user_interface.h"
+#include "sherlock/tattoo/widget_credits.h"
+#include "sherlock/tattoo/widget_files.h"
 #include "sherlock/tattoo/widget_inventory.h"
+#include "sherlock/tattoo/widget_options.h"
+#include "sherlock/tattoo/widget_quit.h"
 #include "sherlock/tattoo/widget_text.h"
 #include "sherlock/tattoo/widget_tooltip.h"
 #include "sherlock/tattoo/widget_verbs.h"
@@ -36,24 +41,30 @@ namespace Sherlock {
 
 namespace Tattoo {
 
-#define BUTTON_SIZE 15				// Button width/height
+// Button width/height
+#define BUTTON_SIZE 15				
+// How long to play the intro before it can be skipped
+#define STARTUP_KEYS_DISABLED_DELAY 200
 
 class WidgetBase;
 
 enum ScrollHighlight { SH_NONE = 0, SH_SCROLL_UP = 1, SH_PAGE_UP = 2, SH_THUMBNAIL = 3, SH_PAGE_DOWN = 4, SH_SCROLL_DOWN = 5 };
 
+class WidgetList : public Common::List <WidgetBase *> {
+public:
+	bool contains(const WidgetBase *item) const;
+};
+
 class TattooUserInterface : public UserInterface {
 	friend class WidgetBase;
 private:
-	int _lockoutTimer;
-	SaveMode _fileMode;
 	int _scriptZone;
 	int _cAnimFramePause;
 	WidgetInventory _inventoryWidget;
-	WidgetSceneTooltip _tooltipWidget;
-	WidgetVerbs _verbsWidget;
 	WidgetMessage _messageWidget;
-	WidgetBase *_widget;
+	WidgetQuit _quitWidget;
+	WidgetList _fixedWidgets;
+	WidgetList _widgets;
 	byte _lookupTable[PALETTE_COUNT];
 	byte _lookupTable1[PALETTE_COUNT];
 private:
@@ -76,34 +87,13 @@ private:
 	 * Handle input while the verb menu is open
 	 */
 	void doVerbControl();
-	
-	/**
-	 * Handles input when the player is in the Lab Table scene
-	 */
-	void doLabControl();
-
-	/**
-	 * If the mouse cursor is point at the cursor, then display the name of the object on the screen.
-	 * If there is no object being pointed it, clear any previously displayed name
-	 */
-	void displayObjectNames();
-
-	/**
-	 * Set up to display the Files menu
-	 */
-	void initFileMenu();
-
-	/**
-	 * Handle displaying the quit menu
-	 */
-	void doQuitMenu();
 
 	/**
 	 * Free any active menu
 	 */
 	void freeMenu();
 public:
-	Common::Point _currentScroll, _targetScroll;
+	Common::Point _targetScroll;
 	int _scrollSize, _scrollSpeed;
 	bool _drawMenu;
 	int _arrowZone, _oldArrowZone;
@@ -113,12 +103,17 @@ public:
 	Common::KeyState _keyState;
 	Common::Point _lookPos;
 	ScrollHighlight _scrollHighlight;
-	ImageFile *_mask, *_mask1;
+	Common::SeekableReadStream *_mask, *_mask1;
 	Common::Point _maskOffset;
 	int _maskCounter;
+	int _lockoutTimer;
 	ImageFile *_interfaceImages;
+	WidgetCredits _creditsWidget;
+	WidgetOptions _optionsWidget;
 	WidgetText _textWidget;
-	Common::String _action;
+	WidgetSceneTooltip _tooltipWidget;
+	WidgetVerbs _verbsWidget;
+	WidgetList _postRenderWidgets;
 public:
 	TattooUserInterface(SherlockEngine *vm);
 	virtual ~TattooUserInterface();
@@ -166,6 +161,11 @@ public:
 	void doControls();
 
 	/**
+	 * Handle the display of the quit menu
+	 */
+	void doQuitMenu();
+
+	/**
 	 * Pick up the selected object
 	 */
 	void pickUpObject(int objNum);
@@ -185,7 +185,17 @@ public:
 	 */
 	void doBgAnimEraseBackground();
 
+	/**
+	 * Draws overlays onto the scene. Basically, the smoke effects some scenes have
+	 */
 	void drawMaskArea(bool mode);
+
+	/**
+	 * Takes the data passed in the image and apply it to the surface at the given position.
+	 * The src mask data is encoded with a different color for each item. To highlight one,
+	 the runs that do not match the highlight number will be darkened
+	 */
+	void maskArea(Common::SeekableReadStream &mask, const Common::Point &pt);
 
 	/**
 	 * Translate a given area of the back buffer to greyscale shading
@@ -196,6 +206,28 @@ public:
 	 * Draws all the dialog rectangles for any items that need them
 	 */
 	void drawDialogRect(Surface &s, const Common::Rect &r, bool raised);
+
+	/**
+	 * If the mouse cursor is point at the cursor, then display the name of the object on the screen.
+	 * If there is no object being pointed it, clear any previously displayed name
+	 */
+	void displayObjectNames();
+
+	/**
+	 * Show the load game dialog, and allow the user to load a game
+	 */
+	void loadGame();
+
+	/**
+	 * Show the save game dialog, and allow the user to save the game
+	 */
+	void saveGame();
+
+	/**
+	 * Add a widget to the current scene to be executed if there are no active widgets in the
+	 * main _widgets list
+	 */
+	void addFixedWidget(WidgetBase *widget);
 public:
 	/**
 	 * Resets the user interface
@@ -219,8 +251,10 @@ public:
 
 	/**
 	 * Banish any active window
+	 * @remarks		Tattoo doesn't use sliding windows, but the parameter is in the base
+	 * UserInterface class as a convenience for Scalpel UI code
 	 */
-	virtual void banishWindow();
+	virtual void banishWindow(bool slideUp = true);
 };
 
 } // End of namespace Tattoo

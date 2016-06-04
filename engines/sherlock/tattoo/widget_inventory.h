@@ -40,7 +40,6 @@ class WidgetInventory;
 class WidgetInventoryTooltip: public WidgetTooltipBase {
 private:
 	WidgetInventory *_owner;
-	Common::Rect _oldInvGraphicBounds, _invGraphicBounds;
 protected:
 	/**
 	* Overriden from base class, since tooltips have a completely transparent background
@@ -61,24 +60,38 @@ public:
 	virtual void handleEvents();
 };
 
+class WidgetInventoryVerbs : public WidgetBase {
+private:
+	WidgetInventory *_owner;
+	Common::StringArray _inventCommands;
+
+	void highlightControls();
+public:
+	int _invVerbSelect, _oldInvVerbSelect;
+public:
+	WidgetInventoryVerbs(SherlockEngine *vm, WidgetInventory *owner);
+	virtual ~WidgetInventoryVerbs() {}
+
+	void load();
+
+	/**
+	 * Handle updating the tooltip state
+	 */
+	virtual void handleEvents();
+};
+
 class WidgetInventory: public WidgetBase {
 	friend class WidgetInventoryTooltip;
+	friend class WidgetInventoryVerbs;
 private:
 	int _invVerbMode;
-	int _invSelect, _oldInvSelect;
 	int _selector, _oldSelector;
-	int _invVerbSelect, _oldInvVerbSelect;
-	int _dialogTimer;
-	Common::StringArray _inventCommands;
+	int _invSelect, _oldInvSelect;
 	WidgetInventoryTooltip _tooltipWidget;
-	Common::String _invVerb;
-	Common::String _invTarget;
-	Common::String _action;
-	Common::Rect _invGraphicBounds;
-	Surface _invGraphic;
+	WidgetInventoryVerbs _verbList;
 	bool _swapItems;
-	Common::Rect _menuBounds, _oldMenuBounds;
 	Surface _menuSurface;
+	Common::String _invTarget;
 
 	/**
 	 * Draw the bars within the dialog
@@ -96,16 +109,26 @@ private:
 	void highlightControls();
 public:
 	int _invMode;
+	Common::String _action;
+	Common::String _verb;
 public:
 	WidgetInventory(SherlockEngine *vm);
 	virtual ~WidgetInventory() {}
 
+	/**
+	 * Load the inventory window
+	 */
 	void load(int mode);
 
 	/**
 	 * Draw the inventory on the surface
 	 */
 	void drawInventory();
+
+	/**
+	 * Close the window
+	 */
+	void close();
 
 	/**
 	 * Handle events whilst the widget is on-screen

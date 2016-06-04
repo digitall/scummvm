@@ -46,6 +46,11 @@ struct ImageFrame {
 	Graphics::Surface _frame;
 
 	/**
+	 * Converts an ImageFrame record to a surface for convenience in passing to drawing methods
+	 */
+	operator const Graphics::Surface &() { return _frame; }
+
+	/**
 	 * Decompress a single frame for the sprite
 	 */
 	void decompressFrame(const byte *src, bool isRoseTattoo);
@@ -90,7 +95,7 @@ public:
 	ImageFile();
 	ImageFile(const Common::String &name, bool skipPal = false, bool animImages = false);
 	ImageFile(Common::SeekableReadStream &stream, bool skipPal = false);
-	~ImageFile();
+	virtual ~ImageFile();
 	static void setVm(SherlockEngine *vm);
 };
 
@@ -150,7 +155,6 @@ private:
 public:
 	ImageFile3DO(const Common::String &name, ImageFile3DOType imageFile3DOType);
 	ImageFile3DO(Common::SeekableReadStream &stream, bool isRoomData = false);
-	~ImageFile3DO();
 	static void setVm(SherlockEngine *vm);
 };
 
@@ -160,8 +164,9 @@ class StreamingImageFile {
 private:
 	int _frameNumber;
 	Common::SeekableReadStream *_stream;
-	bool _compressed;
 	byte _buffer[STREAMING_BUFFER_SIZE];
+	bool _compressed;
+	bool _active;
 public:
 	ImageFrame _imageFrame;
 
@@ -189,12 +194,12 @@ public:
 	/**
 	 * Get the next frame of the file
 	 */
-	void getNextFrame();
+	bool getNextFrame();
 
 	/**
 	 * Returns whether there are any remaining frames or not
 	 */
-	bool active() const { return _stream != nullptr && _stream->pos() < _stream->size(); }
+	bool active() const { return _active; }
 
 	/**
 	 * Return the current frame number

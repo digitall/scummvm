@@ -44,7 +44,8 @@ namespace Groovie {
 
 MusicPlayer::MusicPlayer(GroovieEngine *vm) :
 	_vm(vm), _isPlaying(false), _backgroundFileRef(0), _gameVolume(100),
-	_prevCDtrack(0), _backgroundDelay(0) {
+	_prevCDtrack(0), _backgroundDelay(0), _fadingStartTime(0), _fadingStartVolume(0),
+	_fadingEndVolume(0), _fadingDuration(0), _userVolume(0) {
 }
 
 MusicPlayer::~MusicPlayer() {
@@ -390,6 +391,8 @@ MusicPlayerXMI::MusicPlayerXMI(GroovieEngine *vm, const Common::String &gtlName)
 	_milesAudioMode = false;
 	bool milesAudioEnabled = true;
 	MidiParser::XMidiNewTimbreListProc newTimbreListProc = NULL;
+
+	_musicType = 0;
 
 	if (milesAudioEnabled) {
 		// 7th Guest uses FAT.AD/FAT.OPL/FAT.MT
@@ -934,16 +937,18 @@ bool MusicPlayerIOS::load(uint32 fileref, bool loop) {
 	}
 
 	// Create the audio stream
-	Audio::AudioStream *audStream = Audio::SeekableAudioStream::openStreamFile(info.filename);
+	Audio::SeekableAudioStream *seekStream = Audio::SeekableAudioStream::openStreamFile(info.filename);
 
-	if (!audStream) {
+	if (!seekStream) {
 		warning("Could not play audio file '%s'", info.filename.c_str());
 		return false;
 	}
 
+	Audio::AudioStream *audStream = seekStream;
+
 	// Loop if requested
 	if (loop)
-		audStream = Audio::makeLoopingAudioStream((Audio::RewindableAudioStream *)audStream, 0);
+		audStream = Audio::makeLoopingAudioStream(seekStream, 0);
 
 	// MIDI player handles volume reset on load, IOS player doesn't - force update here
 	updateVolume();

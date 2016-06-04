@@ -41,8 +41,6 @@
 #include "scumm/he/sprite_he.h"
 #include "scumm/verbs.h"
 
-#include "audio/mixer.h"
-
 #include "backends/audiocd/audiocd.h"
 
 #include "graphics/thumbnail.h"
@@ -1303,7 +1301,7 @@ void ScummEngine::saveOrLoad(Serializer *s) {
 
 	if (hasTownsData) {
 		// Skip FM-Towns specific data
-		for (int i = 69 * sizeof(uint8) + 44 * sizeof(int16); i; i--)
+		for (i = 69 * sizeof(uint8) + 44 * sizeof(int16); i; i--)
 			s->loadByte();
 	}
 

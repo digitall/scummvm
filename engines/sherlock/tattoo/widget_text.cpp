@@ -39,40 +39,37 @@ void WidgetText::load(const Common::String &str, int speaker) {
 	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
 	Common::StringArray lines;
 
-	// If bounds for a window have not yet been calculated, figure them out
-	if (_surface.empty()) {
-		int width = SHERLOCK_SCREEN_WIDTH / 3;
-		int height;
+	int width = SHERLOCK_SCREEN_WIDTH / 3;
+	int height;
 
-		for (;;) {
-			splitLines(str, lines, width - _surface.widestChar() * 2, 100);
-			height = (screen.fontHeight() + 1) * lines.size() + 9;
+	for (;;) {
+		splitLines(str, lines, width - _surface.widestChar() * 2, 100);
+		height = (screen.fontHeight() + 1) * lines.size() + 9;
 
-			if ((width - _surface.widestChar() * 2 > height * 3 / 2) || (width - _surface.widestChar() * 2
-					> SHERLOCK_SCREEN_WIDTH * 3 / 4))
-				break;
+		if ((width - _surface.widestChar() * 2 > height * 3 / 2) || (width - _surface.widestChar() * 2
+				> SHERLOCK_SCREEN_WIDTH * 3 / 4))
+			break;
 
-			width += (width / 4);
-		}
+		width += (width / 4);
+	}
 
-		// See if it's only a single line long
-		if (height == _surface.fontHeight() + 10) {
-			width = _surface.widestChar() * 2 + 6;
+	// See if it's only a single line long
+	if (height == _surface.fontHeight() + 10) {
+		width = _surface.widestChar() * 2 + 6;
 			
-			const char *strP = str.c_str();
-			while (*strP && (*strP < talk._opcodes[OP_SWITCH_SPEAKER] || *strP == talk._opcodes[OP_NULL]))
-				width += _surface.charWidth(*strP++);
-		}
+		const char *strP = str.c_str();
+		while (*strP && (*strP < talk._opcodes[OP_SWITCH_SPEAKER] || *strP == talk._opcodes[OP_NULL]))
+			width += _surface.charWidth(*strP++);
+	}
 
-		_bounds = Common::Rect(width, height);
+	_bounds = Common::Rect(width, height);
 		
-		if (speaker == -1) {
-			// No speaker specified, so center window on look position
-			_bounds.translate(ui._lookPos.x - width / 2, ui._lookPos.y - height / 2);
-		} else {
-			// Speaker specified, so center the window above them
-			centerWindowOnSpeaker(speaker);
-		}
+	if (speaker == -1) {
+		// No speaker specified, so center window on look position
+		_bounds.translate(ui._lookPos.x - width / 2, ui._lookPos.y - height / 2);
+	} else {
+		// Speaker specified, so center the window above them
+		centerWindowOnSpeaker(speaker);
 	}
 
 	render(str);
@@ -83,7 +80,8 @@ void WidgetText::centerWindowOnSpeaker(int speaker) {
 	TattooScene &scene = *(TattooScene *)_vm->_scene;
 	Common::Point pt;
 
-	bool flag = _vm->readFlags(76);
+	speaker &= 0x7f;
+	bool flag = _vm->readFlags(FLAG_PLAYER_IS_HOLMES);
 	if (people[HOLMES]._type == CHARACTER && ((speaker == HOLMES && flag) || (speaker == WATSON && !flag))) {
 		// Place the window centered above the player
 		pt.x = people[HOLMES]._position.x / FIXED_INT_MULTIPLIER - _bounds.width() / 2;
@@ -103,6 +101,11 @@ void WidgetText::centerWindowOnSpeaker(int speaker) {
 
 		// Check each NPC to see if they are the one that is talking
 		for (int idx = 1; idx < MAX_CHARACTERS; ++idx) {
+			// WORKAROUND: Fixes an original game bug where the positioning for Watson's dialogs
+			// during conversations at the Park Lake lake scene is in the incorrect position
+			if (speaker == 1 && scene._currentScene == 30)
+				continue;
+
 			if (people[idx]._type == CHARACTER) {
 				if (!scumm_strnicmp(people[idx]._npcName.c_str(), people._characters[speaker]._portrait, 4)) {
 					// Place the window above the player
@@ -163,7 +166,7 @@ void WidgetText::render(const Common::String &str) {
 
 	// Allocate a surface for the window
 	_surface.create(_bounds.width(), _bounds.height());
-	_surface.fill(TRANSPARENCY);
+	_surface.clear(TRANSPARENCY);
 
 	// Form the background for the new window
 	makeInfoArea();
@@ -192,7 +195,7 @@ void WidgetMessage::load(const Common::String &str, int time) {
 
 	// Allocate a surface for the window
 	_surface.create(_bounds.width(), _bounds.height());
-	_surface.fill(TRANSPARENCY);
+	_surface.clear(TRANSPARENCY);
 
 	// Form the background for the new window and write the line of text
 	makeInfoArea();

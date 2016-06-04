@@ -30,6 +30,11 @@ namespace Sherlock {
 
 namespace Tattoo {
 
+enum JournalHighlight {
+	JH_NONE = -1, JH_CLOSE = 0, JH_SEARCH = 1, JH_SAVE = 2,
+	JH_SCROLL_LEFT = 3, JH_PAGE_LEFT = 4, JH_PAGE_RIGHT = 5, JH_SCROLL_RIGHT = 6, JH_THUMBNAIL = 7
+};
+
 class TattooJournal : public Journal {
 private:
 	ImageFile *_journalImages;
@@ -81,6 +86,16 @@ private:
 	 * Get in a name to search through the journal for
 	 */
 	int getFindName(bool printError);
+
+	/**
+	 * Save the journal to file
+	 */
+	void saveJournal();
+
+	/**
+	 * Show a message that the journal has been saved to file
+	 */
+	void showSavedDialog();
 public:
 	TattooJournal(SherlockEngine *vm);
 	virtual ~TattooJournal() {}
@@ -96,9 +111,10 @@ public:
 	virtual void drawFrame();
 
 	/**
-	 * Synchronize the data for a savegame
+	 * Records statements that are said, in the order which they are said. The player
+	 * can then read the journal to review them
 	 */
-	virtual void synchronize(Serializer &s);
+	virtual void record(int converseNum, int statementNum, bool replyOnly = false);
 };
 
 } // End of namespace Tattoo

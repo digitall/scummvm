@@ -60,11 +60,13 @@ BaseObject::BaseObject() {
 	_sequences = nullptr;
 	_images = nullptr;
 	_imageFrame = nullptr;
+	_sequenceNumber = 0;
+	_startSeq = 0;
 	_walkCount = 0;
 	_allow = 0;
 	_frameNumber = 0;
 	_lookFlag = 0;
-	_requiredFlag = 0;
+	_requiredFlag[0] = _requiredFlag[1] = 0;
 	_status = 0;
 	_misc = 0;
 	_maxFrames = 0;
@@ -80,7 +82,6 @@ BaseObject::BaseObject() {
 	_seqSize = 0;
 	_quickDraw = 0;
 	_scaleVal = 0;
-	_requiredFlags1 = 0;
 	_gotoSeq = 0;
 	_talkSeq = 0;
 	_restoreSlot = 0;
@@ -89,7 +90,7 @@ BaseObject::BaseObject() {
 bool BaseObject::hasAborts() const {
 	int seqNum = _talkSeq;
 
-	// See if the object is in it's regular sequence
+	// See if the object is in its regular sequence
 	bool startChecking = !seqNum || _type == CHARACTER;
 
 	uint idx = 0;
@@ -105,14 +106,14 @@ bool BaseObject::hasAborts() const {
 		// If we've started checking and we've encountered another Talk or Listen Sequence Code,
 		// then we're done checking this sequence because this is where it would repeat
 		if (startChecking && (v == TALK_SEQ_CODE || v == TALK_LISTEN_CODE))
-			return false;
+			break;
 
 		// See if we've found the beginning of a Talk Sequence
 		if ((v == TALK_SEQ_CODE && seqNum < 128) || (v == TALK_LISTEN_CODE && seqNum >= 128)) {
 			// If checking was already on and we came across one of these codes, then there couldn't
 			// have been an Allow Talk Interrupt code in the sequence we were checking, so we're done.
 			if (startChecking)
-				return false;
+				break;
 
 			seqNum--;
 			// See if we're at the correct Talk Sequence Number
@@ -133,7 +134,7 @@ bool BaseObject::hasAborts() const {
 		}
 	} while (idx < _seqSize);
 
-	return true;
+	return false;
 }
 
 void BaseObject::checkObject() {
@@ -179,6 +180,7 @@ void BaseObject::checkObject() {
 			if (IS_ROSE_TATTOO && v == ALLOW_TALK_CODE) {
 				if (_gotoSeq) {
 					setObjTalkSequence(_gotoSeq);
+					_gotoSeq = 0;
 				} else {
 					++_frameNumber;
 				}
@@ -348,19 +350,23 @@ bool BaseObject::checkEndOfSequence() {
 	if (_type == REMOVE || _type == INVALID)
 		return false;
 
-	if (_sequences[_frameNumber] == 0 || _frameNumber >= checkFrame) {
+	if (_frameNumber < 0 || _frameNumber >= checkFrame || _sequences[_frameNumber] == 0) {
 		result = true;
 
-		if (_frameNumber >= (checkFrame - 1)) {
+		if (_frameNumber < 0 || _frameNumber >= (checkFrame - 1)) {
 			_frameNumber = START_FRAME;
 		}  else {
 			// Determine next sequence to use
 			int seq = _sequences[_frameNumber + 1];
 
+			// If the object has been turned off, we're going nowhere
+			if (IS_ROSE_TATTOO && (_type == HIDE_SHAPE || _type == HIDDEN || _type == REMOVE))
+				return false;
+
 			if (seq == 99) {
 				--_frameNumber;
-				screen._backBuffer1.transBlitFrom(*_imageFrame, _position);
-				screen._backBuffer2.transBlitFrom(*_imageFrame, _position);
+				screen._backBuffer1.SHtransBlitFrom(*_imageFrame, _position);
+				screen._backBuffer2.SHtransBlitFrom(*_imageFrame, _position);
 				_type = INVALID;
 			} else if (IS_ROSE_TATTOO && _talkSeq && seq == 0) {
 				setObjTalkSequence(_talkSeq);
@@ -398,6 +404,10 @@ void BaseObject::setObjSequence(int seq, bool wait) {
 	Scene &scene = *_vm->_scene;
 	int checkFrame = _allow ? MAX_FRAME : FRAMES_END;
 
+	if (IS_ROSE_TATTOO && (seq == -1 || seq == 255))
+		// This means goto beginning
+		seq = 0;
+
 	if (seq >= 128) {
 		// Loop the sequence until the count exceeded
 		seq -= 128;
@@ -420,6 +430,10 @@ void BaseObject::setObjSequence(int seq, bool wait) {
 			if (_frameNumber >= checkFrame)
 				_frameNumber = 0;
 
+			// For Rose Tattoo, save the starting frame for new sequences
+			if (IS_ROSE_TATTOO)
+				_startSeq = _frameNumber;
+
 			_seqCounter = 0;
 			if (_sequences[_frameNumber] == 0)
 				seq = _sequences[_frameNumber + 1];
@@ -427,12 +441,18 @@ void BaseObject::setObjSequence(int seq, bool wait) {
 				return;
 		} else {
 			// Find beginning of sequence
-			do {
-				--_frameNumber;
-			} while (_frameNumber > 0 && _sequences[_frameNumber] != 0);
+			if (IS_ROSE_TATTOO) {
+				// Use the saved start of the sequence to reset the frame
+				_frameNumber = _startSeq;
+			} else {
+				// For Scalpel, scan backwards from the end of the sequence to find its start
+				do {
+					--_frameNumber;
+				} while (_frameNumber > 0 && _sequences[_frameNumber] != 0);
 
-			if (_frameNumber != 0)
-				_frameNumber += 2;
+				if (_frameNumber != 0)
+					_frameNumber += 2;
+			}
 
 			return;
 		}
@@ -445,16 +465,35 @@ void BaseObject::setObjSequence(int seq, bool wait) {
 	int seqCc = 0;
 
 	while (seqCc < seq && idx < checkFrame) {
-		++idx;
-		if (_sequences[idx] == 0) {
-			++seqCc;
-			idx += 2;
+		if (IS_SERRATED_SCALPEL) {
+			++idx;
+
+			if (_sequences[idx] == 0) {
+				++seqCc;
+				idx += 2;
+			}
+		} else {
+			byte s = _sequences[idx];
+
+			if (s == 0) {
+				++seqCc;
+				++idx;
+			} else if (s == MOVE_CODE || s == TELEPORT_CODE) {
+				idx += 4;
+			} else if (s == CALL_TALK_CODE) {
+				idx += 8;
+			} else if (s == HIDE_CODE) {
+				idx += 2;
+			}
+
+			++idx;
 		}
 	}
 
 	if (idx >= checkFrame)
 		idx = 0;
 	_frameNumber = idx;
+	_startSeq = idx;
 
 	if (wait) {
 		seqCc = idx;
@@ -500,7 +539,7 @@ int BaseObject::checkNameForCodes(const Common::String &name, FixedTextActionId 
 			// G: Have object go somewhere
 			// A: Add onto existing co-ordinates
 			Common::String sx(name.c_str() + 2, name.c_str() + 5);
-			Common::String sy(name.c_str() + 6, name.c_str() + 9);
+			Common::String sy(name.c_str() + 5, name.c_str() + 8);
 
 			if (ch == 'G')
 				_position = Common::Point(atoi(sx.c_str()), atoi(sy.c_str()));
@@ -508,6 +547,10 @@ int BaseObject::checkNameForCodes(const Common::String &name, FixedTextActionId 
 				_position += Common::Point(atoi(sx.c_str()), atoi(sy.c_str()));
 			break;
 		}
+
+		case 'V':
+			// Do nothing for Verb codes. This is only a flag for Inventory syntax
+			break;
 
 		default:
 			if (ch >= '0' && ch <= '9') {
@@ -577,8 +620,9 @@ void Sprite::clear() {
 	_images = nullptr;
 	_imageFrame = nullptr;
 	_walkCount = 0;
+	_oldWalkSequence = 0;
 	_allow = 0;
-	_frameNumber = _sequenceNumber = 0;
+	_frameNumber = 0;
 	_position.x = _position.y = 0;
 	_delta.x = _delta.y = 0;
 	_oldPosition.x = _oldPosition.y = 0;
@@ -591,6 +635,7 @@ void Sprite::clear() {
 	_misc = 0;
 	_altImages = nullptr;
 	_altSeq = 0;
+	_centerWalk = 0;
 	Common::fill(&_stopFrames[0], &_stopFrames[8], (ImageFrame *)nullptr);
 }
 
@@ -856,6 +901,7 @@ WalkSequences &WalkSequences::operator=(const WalkSequences &src) {
 
 ActionType::ActionType() {
 	_cAnimNum = _cAnimSpeed = 0;
+	_useFlag = 0;
 }
 
 void ActionType::load(Common::SeekableReadStream &s) {
@@ -875,7 +921,6 @@ void ActionType::load(Common::SeekableReadStream &s) {
 /*----------------------------------------------------------------*/
 
 UseType::UseType(): ActionType() {
-	_useFlag = 0;
 }
 
 void UseType::load(Common::SeekableReadStream &s, bool isRoseTattoo) {
@@ -918,10 +963,20 @@ void UseType::load3DO(Common::SeekableReadStream &s) {
 	_target = Common::String(buffer);
 }
 
+void UseType::synchronize(Serializer &s) {
+	s.syncString(_verb);
+	s.syncAsSint16LE(_cAnimNum);
+	s.syncAsSint16LE(_cAnimSpeed);
+	s.syncAsSint16LE(_useFlag);
+
+	for (int idx = 0; idx < 4; ++idx)
+		s.syncString(_names[idx]);
+	s.syncString(_target);
+}
+
 /*----------------------------------------------------------------*/
 
 Object::Object(): BaseObject() {
-	_sequenceNumber = 0;
 	_sequenceOffset = 0;
 	_pickup = 0;
 	_defaultCommand = 0;
@@ -969,7 +1024,7 @@ void Object::load(Common::SeekableReadStream &s, bool isRoseTattoo) {
 	_defaultCommand = isRoseTattoo ? 0 : s.readByte();
 	_lookFlag = s.readSint16LE();
 	_pickupFlag = isRoseTattoo ? 0 : s.readSint16LE();
-	_requiredFlag = s.readSint16LE();
+	_requiredFlag[0] = s.readSint16LE();
 	_noShapeSize.x = s.readUint16LE();
 	_noShapeSize.y = s.readUint16LE();
 	_status = s.readUint16LE();
@@ -1006,9 +1061,14 @@ void Object::load(Common::SeekableReadStream &s, bool isRoseTattoo) {
 		for (int idx = 0; idx < 6; ++idx)
 			_use[idx].load(s, true);
 
+		// WORKAROUND: Fix German version using hatpin/pin in pillow in Pratt's loft
+		if (_use[1]._target == "Nadel" && _use[1]._verb == "Untersuche"
+				&& _use[2]._target == "Nadel" && _use[2]._verb == "Untersuche")
+			_use[1]._target = "Alte Nadel";
+
 		_quickDraw = s.readByte();
 		_scaleVal = s.readUint16LE();
-		_requiredFlags1 = s.readSint16LE();
+		_requiredFlag[1] = s.readSint16LE();
 		_gotoSeq = s.readByte();
 		_talkSeq = s.readByte();
 		_restoreSlot = s.readByte();
@@ -1063,7 +1123,7 @@ void Object::load3DO(Common::SeekableReadStream &s) {
 	// Unverified
 	_lookFlag = s.readSint16BE();
 	_pickupFlag = s.readSint16BE();
-	_requiredFlag = s.readSint16BE();
+	_requiredFlag[0] = s.readSint16BE();
 	_noShapeSize.x = s.readUint16BE();
 	_noShapeSize.y = s.readUint16BE();
 	_status = s.readUint16BE();
@@ -1175,26 +1235,16 @@ void Object::setObjTalkSequence(int seq) {
 
 	// See if we're supposed to restore the object's sequence from the talk sequence stack
 	if (seq == -1) {
-		TalkSequence &ts = talk._talkSequenceStack[_restoreSlot];
 		if (_seqTo != 0)
 			_sequences[_frameNumber] = _seqTo;
-		_frameNumber = ts._frameNumber;
-		_sequenceNumber = ts._sequenceNumber;
-		_seqStack = ts._seqStack;
-		_seqTo = ts._seqTo;
-		_seqCounter = ts._seqCounter;
-		_seqCounter2 = ts._seqCounter2;
-		_talkSeq = 0;
 
-		// Flag this slot as free again
-		ts._obj = nullptr;
-
+		talk.pullSequence(_restoreSlot);
 		return;
 	}
 
 	assert(_type != CHARACTER);
 
-	talk.pushTalkSequence(this);
+	talk.pushSequenceEntry(this);
 	int talkSeqNum = seq;
 
 	// Find where the talk sequence data begins in the object
@@ -1293,7 +1343,7 @@ void Object::adjustObject() {
 			frame = 0;
 
 		int imgNum = _sequences[frame];
-		if (imgNum > _maxFrames)
+		if (imgNum > _maxFrames || imgNum == 0)
 			imgNum = 1;
 
 		_imageFrame = &(*_images)[imgNum - 1];
@@ -1379,8 +1429,19 @@ int Object::pickUpObject(FixedTextActionId fixedTextActionId) {
 			ui.clearInfo();
 
 			Common::String itemName = _description;
-			itemName.setChar(tolower(itemName[0]), 0);
-			screen.print(Common::Point(0, INFO_LINE + 1), COL_INFO_FOREGROUND, "Picked up %s", itemName.c_str());
+
+			// It's an item, make it lowercase
+			switch (_vm->getLanguage()) {
+			case Common::DE_DEU:
+				// don't do this for German version
+				break;
+			default:
+				// do it for English + Spanish version
+				itemName.setChar(tolower(itemName[0]), 0);
+				break;
+			}
+
+			screen.print(Common::Point(0, INFO_LINE + 1), COL_INFO_FOREGROUND, fixedText.getObjectPickedUpText(), itemName.c_str());
 			ui._menuCounter = 25;
 		}
 	}

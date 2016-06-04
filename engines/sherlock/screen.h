@@ -25,87 +25,57 @@
 
 #include "common/list.h"
 #include "common/rect.h"
+#include "sherlock/image_file.h"
 #include "sherlock/surface.h"
 #include "sherlock/resources.h"
 #include "sherlock/saveload.h"
 
 namespace Sherlock {
 
-#define PALETTE_SIZE 768
-#define PALETTE_COUNT 256
 #define VGA_COLOR_TRANS(x) ((x) * 255 / 63)
 #define BG_GREYSCALE_RANGE_END 229
-
-enum {
-	BLACK				= 0,
-	INFO_BLACK			= 1,
-	BORDER_COLOR		= 237,
-	COMMAND_BACKGROUND	= 4,
-	BUTTON_BACKGROUND	= 235,
-	TALK_FOREGROUND		= 12,
-	TALK_NULL			= 16
-};
+#define BLACK 0
 
 class SherlockEngine;
 
-class Screen : public Surface {
+class Screen : public BaseSurface {
 private:
-	SherlockEngine *_vm;
-	Common::List<Common::Rect> _dirtyRects;
 	uint32 _transitionSeed;
-	Surface _sceneSurface;
 
 	// Rose Tattoo fields
 	int _fadeBytesRead, _fadeBytesToRead;
 	int _oldFadePercent;
-private:
-	/**
-	 * Merges together overlapping dirty areas of the screen
-	 */
-	void mergeDirtyRects();
-
-	/**
-	 * Returns the union of two dirty area rectangles
-	 */
-	bool unionRectangle(Common::Rect &destRect, const Common::Rect &src1, const Common::Rect &src2);
 protected:
-	/**
-	 * Adds a rectangle to the list of modified areas of the screen during the
-	 * current frame
-	 */
-	virtual void addDirtyRect(const Common::Rect &r);
+	SherlockEngine *_vm;
+	Surface _backBuffer;
+
 public:
 	Surface _backBuffer1, _backBuffer2;
-	Surface *_backBuffer;
 	bool _fadeStyle;
 	byte _cMap[PALETTE_SIZE];
 	byte _sMap[PALETTE_SIZE];
 	byte _tMap[PALETTE_SIZE];
 	bool _flushScreen;
+	Common::Point _currentScroll;
 public:
 	static Screen *init(SherlockEngine *vm);
 	Screen(SherlockEngine *vm);
 	virtual ~Screen();
 
 	/**
-	 * Handles updating any dirty areas of the screen Surface object to the physical screen
+	 * Obtain the currently active back buffer.
 	 */
-	void update();
+	Surface *getBackBuffer() { return &_backBuffer; }
 
 	/**
-	 * Makes the whole screen dirty, Hack for 3DO movie playing
+	 * Makes first back buffer active.
 	 */
-	void makeAllDirty();
+	void activateBackBuffer1();
 
 	/**
-	 * Return the currently active palette
+	 * Makes second back buffer active.
 	 */
-	void getPalette(byte palette[PALETTE_SIZE]);
-
-	/**
-	 * Set the palette
-	 */
-	void setPalette(const byte palette[PALETTE_SIZE]);
+	void activateBackBuffer2();
 
 	/**
 	 * Fades from the currently active palette to the passed palette
@@ -133,22 +103,15 @@ public:
 	void verticalTransition();
 
 	/**
-	 * Fade backbuffer 1 into screen (3DO RGB!)
-	 */
-	void fadeIntoScreen3DO(int speed);
-
-	void blitFrom3DOcolorLimit(uint16 color);
-
-	/**
 	 * Prints the text passed onto the back buffer at the given position and color.
 	 * The string is then blitted to the screen
 	 */
-	void print(const Common::Point &pt, byte color, const char *formatStr, ...) GCC_PRINTF(4, 5);
+	void print(const Common::Point &pt, uint color, const char *formatStr, ...) GCC_PRINTF(4, 5);
 
 	/**
 	 * Print a strings onto the back buffer without blitting it to the screen
 	 */
-	void gPrint(const Common::Point &pt, byte color, const char *formatStr, ...) GCC_PRINTF(4, 5);
+	void gPrint(const Common::Point &pt, uint color, const char *formatStr, ...) GCC_PRINTF(4, 5);
 
 	/**
 	 * Copies a section of the second back buffer into the main back buffer
@@ -164,11 +127,6 @@ public:
 	 * Copies a given area to the screen
 	 */
 	void slamRect(const Common::Rect &r);
-
-	/**
-	 * Copies a given area to the screen
-	 */
-	void slamRect(const Common::Rect &r, const Common::Point &currentScroll);
 
 	/**
 	 * Copy an image from the back buffer to the screen, taking care of both the
@@ -190,14 +148,14 @@ public:
 	void flushImage(ImageFrame *frame, const Common::Point &pt, Common::Rect &newBounds, int scaleVal);
 
 	/**
-	 * Copies data from the back buffer to the screen, taking into account scrolling position
+	 * Copies data from the back buffer to the screen
 	 */
-	void blockMove(const Common::Rect &r, const Common::Point &scrollPos);
+	void blockMove(const Common::Rect &r);
 
 	/**
-	 * Copies the entire screen from the back buffer, taking into account scrolling position
+	 * Copies the entire screen from the back buffer
 	 */
-	void blockMove(const Common::Point &scorllPos);
+	void blockMove();
 
 	/**
 	 * Fills an area on the back buffer, and then copies it to the screen
@@ -227,7 +185,7 @@ public:
 	/**
 	 * Draws the given string into the back buffer using the images stored in _font
 	 */
-	virtual void writeString(const Common::String &str, const Common::Point &pt, byte overrideColor);
+	virtual void writeString(const Common::String &str, const Common::Point &pt, uint overrideColor);
 
 
 	// Rose Tattoo specific methods

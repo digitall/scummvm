@@ -51,7 +51,6 @@ SaveManager::SaveManager(Application *application) : _app(application) {
 	_save = nullptr;
 }
 
-
 SaveManager::~SaveManager() {
 	SAFE_DELETE(_ser);
 	SAFE_DELETE(_load);
@@ -317,7 +316,7 @@ bool SaveManager::remove(uint32 slot) const {
 }
 
 const char *SaveManager::getSavegameFile(int slot) {
-	return getSavegameFile(((RingEngine *)g_engine)->getGameDescription()->desc.gameid, slot);
+	return getSavegameFile(((RingEngine *)g_engine)->getGameDescription()->desc.gameId, slot);
 }
 
 const char *SaveManager::getSavegameFile(const char *gameid, int slot) {
@@ -329,13 +328,13 @@ const char *SaveManager::getSavegameFile(const char *gameid, int slot) {
 }
 
 Common::String SaveManager::getTimerFile(Common::String zone, uint32 slot) {
-	return Common::String::format("%s_%s.s%02d", ((RingEngine *)g_engine)->getGameDescription()->desc.gameid, zone.c_str(), slot);
+	return Common::String::format("%s_%s.s%02d", ((RingEngine *)g_engine)->getGameDescription()->desc.gameId, zone.c_str(), slot);
 }
 
 uint32 SaveManager::getNextSlot() const {
 	RingEngine *engine = (RingEngine *)g_engine;
 
-	return engine->listSaves(engine->getGameDescription()->desc.gameid).size() - 1;
+	return engine->listSaves(engine->getGameDescription()->desc.gameId).size() - 1;
 }
 
 } // End of namespace Ring

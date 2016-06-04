@@ -34,14 +34,10 @@
 #include "common/timer.h"
 #include "common/util.h"
 
+#include "audio/audiostream.h"
 #include "audio/decoders/adpcm.h"
-#include "audio/decoders/flac.h"
-#include "audio/mididrv.h"
 #include "audio/mixer.h"
-#include "audio/decoders/mp3.h"
 #include "audio/decoders/raw.h"
-#include "audio/decoders/voc.h"
-#include "audio/decoders/vorbis.h"
 #include "audio/decoders/wave.h"
 
 namespace Scumm {
@@ -55,10 +51,12 @@ SoundHE::SoundHE(ScummEngine *parent, Audio::Mixer *mixer)
 	_heMusicTracks(0) {
 
 	memset(_heChannel, 0, sizeof(_heChannel));
+	_heSoundChannels = new Audio::SoundHandle[8]();
 }
 
 SoundHE::~SoundHE() {
 	free(_heMusic);
+	delete[] _heSoundChannels;
 }
 
 void SoundHE::addSoundToQueue(int sound, int heOffset, int heChannel, int heFlags) {
@@ -474,6 +472,10 @@ void SoundHE::processSoundOpcodes(int sound, byte *codePtr, int *soundVars) {
 			if (arg == 2) {
 				val = getSoundVar(sound, val);
 			}
+			if (!val) {
+				val = 1; // Safeguard for division by zero
+				warning("Incorrect value 0 for processSoundOpcodes() kludge DIV");
+			}
 			val = getSoundVar(sound, var) / val;
 			setSoundVar(sound, var, val);
 			break;
@@ -636,7 +638,7 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 		if (heFlags & 1) {
 			_heChannel[heChannel].timer = 0;
 		} else {
-			_heChannel[heChannel].timer = size * 1000 / rate;
+			_heChannel[heChannel].timer = size * 1000 / (rate * blockAlign);
 		}
 
 		_mixer->stopHandle(_heSoundChannels[heChannel]);
@@ -658,7 +660,7 @@ void SoundHE::playHESound(int soundID, int heOffset, int heChannel, int heFlags)
 
 			_heChannel[heChannel].rate = rate;
 			if (_heChannel[heChannel].timer)
-				_heChannel[heChannel].timer = size * 1000 / rate;
+				_heChannel[heChannel].timer = size * 1000 / (rate * blockAlign);
 
 			// makeADPCMStream returns a stream in native endianness, but RawMemoryStream
 			// defaults to big endian. If we're on a little endian system, set the LE flag.

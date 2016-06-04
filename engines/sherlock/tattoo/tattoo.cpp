@@ -20,11 +20,13 @@
  *
  */
 
+#include "common/config-manager.h"
 #include "engines/util.h"
 #include "sherlock/tattoo/tattoo.h"
 #include "sherlock/tattoo/tattoo_fixed_text.h"
 #include "sherlock/tattoo/tattoo_resources.h"
 #include "sherlock/tattoo/tattoo_scene.h"
+#include "sherlock/tattoo/tattoo_user_interface.h"
 #include "sherlock/tattoo/widget_base.h"
 #include "sherlock/people.h"
 
@@ -33,19 +35,19 @@ namespace Sherlock {
 namespace Tattoo {
 
 TattooEngine::TattooEngine(OSystem *syst, const SherlockGameDescription *gameDesc) :
-		SherlockEngine(syst, gameDesc) {
-	_creditsActive = false;
+		SherlockEngine(syst, gameDesc), _darts(this), _foolscapWidget(this) {
 	_runningProlog = false;
 	_fastMode = false;
 	_allowFastMode = true;
 	_transparentMenus = true;
+	_textWindowsOn = true;
 }
 
 TattooEngine::~TattooEngine() {
 }
 
 void TattooEngine::showOpening() {
-	// TODO
+	// No implementation - opening is done using in-game scenes
 }
 
 void TattooEngine::initialize() {
@@ -63,10 +65,15 @@ void TattooEngine::initialize() {
 	_res->addToCache("walk.lib");
 	
 	// Set up list of people
+	TattooFixedText &fixedText = *(TattooFixedText *)_fixedText;
+	const char *peopleNamePtr = nullptr;
+
 	for (int idx = 0; idx < TATTOO_MAX_PEOPLE; ++idx) {
+		peopleNamePtr = fixedText.getText(PEOPLE_DATA[idx].fixedTextId);
+
 		_people->_characters.push_back(PersonData(
-			getLanguage() == Common::FR_FRA ? FRENCH_NAMES[idx] : ENGLISH_NAMES[idx],
-			PORTRAITS[idx], nullptr, nullptr));
+			peopleNamePtr,
+			PEOPLE_DATA[idx].portrait, nullptr, nullptr));
 	}
 
 	// Load the inventory
@@ -80,16 +87,57 @@ void TattooEngine::initialize() {
 }
 
 void TattooEngine::startScene() {
-	if (_scene->_goToScene == OVERHEAD_MAP || _scene->_goToScene == OVERHEAD_MAP2) {
+	TattooUserInterface &ui = *(TattooUserInterface *)_ui;
+
+	switch (_scene->_goToScene) {
+	case 7:
+	case 8:
+	case 18:
+	case 53:
+	case 68:
+		// Load overlay mask(s) for the scene
+		ui._mask = _res->load(Common::String::format("res%02d.msk", _scene->_goToScene));
+		if (_scene->_goToScene == 8)
+			ui._mask1 = _res->load("res08a.msk");
+		else if (_scene->_goToScene == 18 || _scene->_goToScene == 68)
+			ui._mask1 = _res->load("res08a.msk");
+		break;
+
+	case STARTING_INTRO_SCENE:
+		// Disable input so that the intro can't be skipped until the game's logo has been shown
+		ui._lockoutTimer = STARTUP_KEYS_DISABLED_DELAY;
+		break;
+
+	case OVERHEAD_MAP:
+	case OVERHEAD_MAP2:
 		// Show the map
 		_scene->_currentScene = OVERHEAD_MAP;
 		_scene->_goToScene = _map->show();
 
 		_people->_savedPos = Common::Point(-1, -1);
 		_people->_savedPos._facing = -1;
+		break;
+
+	case 101:
+		// Darts Board minigame
+		_darts.playDarts(GAME_CRICKET);
+		break;
+	
+	case 102:
+		// Darts Board minigame
+		_darts.playDarts(GAME_301);
+		break;
+
+	case 103:
+		// Darts Board minigame
+		_darts.playDarts(GAME_501);
+		break;
+
+	default:
+		break;
 	}
 
-	// TODO
+	_events->setCursor(ARROW);
 }
 
 void TattooEngine::loadInitialPalette() {
@@ -132,25 +180,33 @@ void TattooEngine::loadInventory() {
 	inv.push_back(InventoryItem(0, inv5, invDesc5, "_ITEM05A"));
 
 	// Hidden items
-	inv.push_back(InventoryItem(0, inv6, invDesc6, "_PAP212D", solve));
-	inv.push_back(InventoryItem(0, inv7, invDesc7, "_PAP212I"));
-	inv.push_back(InventoryItem(0, inv8, invDesc8, "_LANT02I"));
+	inv.push_back(InventoryItem(295, inv6, invDesc6, "_PAP212D", solve));
+	inv.push_back(InventoryItem(294, inv7, invDesc7, "_PAP212I"));
+	inv.push_back(InventoryItem(818, inv8, invDesc8, "_LANT02I"));
 }
 
-void TattooEngine::drawCredits() {
-	// TODO
+void TattooEngine::doFoolscapPuzzle() {
+	_foolscapWidget.show();
 }
 
-void TattooEngine::blitCredits() {
-	// TODO
+void TattooEngine::loadConfig() {
+	SherlockEngine::loadConfig();
+
+	_transparentMenus = ConfMan.getBool("transparent_windows");
+	_textWindowsOn = ConfMan.getBool("subtitles") || !_sound->_speechOn;
 }
 
-void TattooEngine::eraseCredits() {
-	// TODO
+void TattooEngine::saveConfig() {
+	SherlockEngine::saveConfig();
+
+	ConfMan.setBool("transparent_windows", _transparentMenus);
+	ConfMan.setBool("subtitles", _textWindowsOn);
+	ConfMan.flushToDisk();
 }
 
-void TattooEngine::doHangManPuzzle() {
-	// TODO
+bool TattooEngine::canSaveGameStateCurrently() {
+	TattooUserInterface &ui = *(TattooUserInterface *)_ui;
+	return _canLoadSave && !ui._creditsWidget.active() && !_runningProlog;
 }
 
 } // End of namespace Tattoo

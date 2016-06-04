@@ -29,7 +29,6 @@
 #include "audio/midiparser.h"
 // Miles Audio for Discworld 1
 #include "audio/miles.h"
-#include "audio/decoders/adpcm.h"
 
 #include "backends/audiocd/audiocd.h"
 
@@ -378,18 +377,68 @@ void DeleteMidiBuffer() {
 MidiMusicPlayer::MidiMusicPlayer(TinselEngine *vm) {
 	_driver = NULL;
 	_milesAudioMode = false;
-	bool milesAudioEnabled = true;
+	bool milesAudioEnabled = false;
 
-	if ((vm->getGameId() == GID_DW1) && (milesAudioEnabled)) {
-		// Discworld 1 uses Miles Audio 3
+	if (vm->getPlatform() == Common::kPlatformDOS) {
+		// Enable Miles Audio for DOS platform only...
+		switch (vm->getGameID()) {
+		case GID_DW1:
+			if (!vm->getIsADGFDemo()) {
+				// ...for Discworld 1
+				milesAudioEnabled = true;
+			} else {
+				if (vm->isV1CD()) {
+					// ...and for Discworld 1 CD Demo
+					milesAudioEnabled = true;
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (milesAudioEnabled) {
+		// Discworld 1 (DOS) uses Miles Audio 3
 		// use our own Miles Audio drivers
-		// DW1 has SAMPLE.AD + SAMPLE.OPL, but no SAMPLE.MT
+		// 
+		// It seems that there are multiple versions of Discworld 1
+		//
+		// Version 1:
+		// Has SAMPLE.AD for AdLib and SAMPLE.OPL for OPL-3
+		// Timbre files are inside a subdirectory of the CD called "/drivers". Main game files are in
+		// another subdirectory, which means the user has to copy those files over.
+		// Installer script copies all drivers directly to harddrive without name changes
+		//
+		// Version 2:
+		// Has FAT.OPL only (gets copied by the installer into MIDPAK.AD or MIDPAK.OPL)
+		// Timbre file is inside subdirectory "drivers" right in the main game directory.
+		// Installer copies FAT.OPL to MIDPAK.AD all the time, even when user selected AWE32
+		//
+		// Neither have timbre data for MT32
+
 		::MidiDriver::DeviceHandle dev = ::MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_GM);
 		::MusicType musicType = ::MidiDriver::getMusicType(dev);
+		Common::File fileClass;
 
 		switch (musicType) {
 		case MT_ADLIB:
-			_driver = Audio::MidiDriver_Miles_AdLib_create("SAMPLE.AD", "SAMPLE.OPL");
+			if (fileClass.exists("FAT.OPL")) {
+				// Version 2: fat.opl, may be in drivers-subdirectory
+				_driver = Audio::MidiDriver_Miles_AdLib_create("", "FAT.OPL");
+			} else {
+				if (fileClass.exists("MIDPAK.AD")) {
+					// Version 2: drivers got installed and fat.opl got copied over by the user
+					_driver = Audio::MidiDriver_Miles_AdLib_create("MIDPAK.AD", "");
+				} else {
+					if ((fileClass.exists("SAMPLE.AD")) || (fileClass.exists("SAMPLE.OPL"))) {
+						// Version 1: sample.ad / sample.opl, have to be copied over by the user for this version
+						_driver = Audio::MidiDriver_Miles_AdLib_create("SAMPLE.AD", "SAMPLE.OPL");
+					} else {
+						error("MILES-ADLIB: timbre file not found (may be called FAT.OPL, MIDPAK.AD, SAMPLE.AD or SAMPLE.OPL, may be in a subdirectory)");
+					}
+				}
+			}
 			break;
 		case MT_MT32:
 			// Discworld 1 doesn't have a MT32 timbre file

@@ -36,6 +36,8 @@ EditTextWidget::EditTextWidget(GuiObject *boss, int x, int y, int w, int h, cons
 
 	setEditString(text);
 	setFontStyle(ThemeEngine::kFontStyleNormal);
+
+	_leftPadding = _rightPadding = 0;
 }
 
 EditTextWidget::EditTextWidget(GuiObject *boss, const String &name, const String &text, const char *tooltip, uint32 cmd, uint32 finishCmd)
@@ -46,6 +48,8 @@ EditTextWidget::EditTextWidget(GuiObject *boss, const String &name, const String
 
 	setEditString(text);
 	setFontStyle(ThemeEngine::kFontStyleNormal);
+
+	_leftPadding = _rightPadding = 0;
 }
 
 void EditTextWidget::setEditString(const String &str) {
@@ -62,6 +66,9 @@ void EditTextWidget::reflowLayout() {
 
 
 void EditTextWidget::handleMouseDown(int x, int y, int button, int clickCount) {
+	if (!isEnabled())
+		return;
+
 	// First remove caret
 	if (_caretVisible)
 		drawCaret(true);

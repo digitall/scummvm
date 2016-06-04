@@ -29,6 +29,7 @@
 #include "common/str.h"
 #include "sherlock/image_file.h"
 #include "sherlock/fixed_text.h"
+#include "sherlock/saveload.h"
 
 namespace Sherlock {
 
@@ -155,6 +156,7 @@ struct ActionType {
 	int _cAnimNum;
 	int _cAnimSpeed;
 	Common::String _names[NAMES_COUNT];
+	int _useFlag;					// Which flag USE will set (if any)
 
 	ActionType();
 
@@ -165,7 +167,6 @@ struct ActionType {
 };
 
 struct UseType: public ActionType {
-	int _useFlag;					// Which flag USE will set (if any)
 	Common::String _target;
 	Common::String _verb;
 
@@ -176,6 +177,11 @@ struct UseType: public ActionType {
 	 */
 	void load(Common::SeekableReadStream &s, bool isRoseTattoo);
 	void load3DO(Common::SeekableReadStream &s);
+
+	/**
+	 * Synchronize the data for a savegame
+	 */
+	void synchronize(Serializer &s);
 };
 
 class BaseObject {
@@ -202,6 +208,8 @@ public:
 	byte *_sequences;				// Holds animation sequences
 	ImageFile *_images;				// Sprite images
 	ImageFrame *_imageFrame;		// Pointer to shape in the images
+	int _sequenceNumber;			// Sequence being used
+	int _startSeq;					// Frame sequence starts at
 	int _walkCount;					// Walk counter
 	int _allow;						// Allowed UI commands
 	int _frameNumber;				// Frame number in rame sequence to draw
@@ -212,7 +220,7 @@ public:
 	Point32 _goto;					// Walk destination
 
 	int _lookFlag;					// Which flag LOOK   will set (if any)
-	int _requiredFlag;				// Object will be hidden if not set
+	int _requiredFlag[2];			// Object will be hidden if not set
 	Common::Point _noShapeSize;		// Size of a NO_SHAPE
 	int _status;					// Status (open/closed, moved/not)
 	int8 _misc;						// Misc field -- use varies with type
@@ -231,7 +239,6 @@ public:
 	UseType _use[6];				// Serrated Scalpel uses 4, Rose Tattoo 6
 	int _quickDraw;					// Flag telling whether to use quick draw routine or not
 	int _scaleVal;					// Tells how to scale the sprite
-	int _requiredFlags1;			// This flag must also be set, or the sprite is hidden
 	int _gotoSeq;					// Used by Talk to tell which sequence to goto when able
 	int _talkSeq;					// Tells which talk sequence currently in use (Talk or Listen)
 	int _restoreSlot;				// Used when talk returns to the previous sequence
@@ -278,13 +285,11 @@ public:
 	Common::String _pickUp;				// Message for if you can't pick up object
 
 	WalkSequences _walkSequences;		// Holds animation sequences
-	int _sequenceNumber;				// Sequence being used
 	Common::Point _noShapeSize;			// Size of a NO_SHAPE
 	int _status;						// Status: open/closed, moved/not moved
 	int8 _misc;							// Miscellaneous use
 
 	// Rose Tattoo fields
-	int _startSeq;						// Frame sequence starts at
 	ImageFrame *_stopFrames[8];			// Stop/rest frame for each direction
 	ImageFile *_altImages;				// Images used for alternate NPC sequences
 	int _altSeq;						// Which of the sequences the alt graphics apply to (0: main, 1=NPC seq)
@@ -360,7 +365,6 @@ class Object: public BaseObject {
 public:
 	Common::String _name;			// Name
 	Common::String _examine;		// Examine in-depth description
-	int _sequenceNumber;
 	int _sequenceOffset;
 	int _pickup;
 	int _defaultCommand;			// Default right-click command

@@ -68,6 +68,7 @@ public:
 	bool _walkLoaded;
 	Common::String _portrait;
 	Common::Point _walkDest;
+	Common::String _npcName;
 
 	// Rose Tattoo fields
 	Common::String _walkVGSName;		// Name of walk library person is using
@@ -86,6 +87,11 @@ public:
 	 * Walk to the co-ordinates passed, and then face the given direction
 	 */
 	virtual void walkToCoords(const Point32 &destPos, int destDir) = 0;
+
+	/**
+	 * Center the visible screen so that the person is in the center of the screen
+	 */
+	virtual void centerScreenOnPerson() {}
 };
 
 class SherlockEngine;
@@ -156,6 +162,21 @@ public:
 	 */
 	virtual bool loadWalk() = 0;
 
+	/**
+	 * Restrict passed point to zone using Sherlock's positioning rules
+	 */
+	virtual const Common::Point restrictToZone(int zoneId, const Common::Point &destPos) = 0;
+
+	/**
+	 * If the specified speaker is a background object, it will set it so that it uses 
+	 * the Listen Sequence (specified by the sequence number). If the current sequence 
+	 * has an Allow Talk Code in it, the _gotoSeq field will be set so that the object 
+	 * begins listening as soon as it hits the Allow Talk Code. If there is no Abort Code, 
+	 * the Listen Sequence will begin immediately.
+	 * @param speaker		Who is speaking
+	 * @param sequenceNum	Which listen sequence to use
+	 */
+	virtual void setListenSequence(int speaker, int sequenceNum = 1) = 0;
 };
 
 } // End of namespace Sherlock

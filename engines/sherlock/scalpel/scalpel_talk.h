@@ -37,9 +37,17 @@ namespace Scalpel {
 
 class ScalpelTalk : public Talk {
 private:
+	Common::Stack<SequenceEntry> _sequenceStack;
+
+	/**
+	 * Get the center position for the current speaker, if any
+	 */
+	Common::Point get3doPortraitPosition() const;
+
 	OpcodeReturn cmdSwitchSpeaker(const byte *&str);
 	OpcodeReturn cmdAssignPortraitLocation(const byte *&str);
 	OpcodeReturn cmdGotoScene(const byte *&str);
+	OpcodeReturn cmdCallTalkFile(const byte *&str);
 	OpcodeReturn cmdClearInfoLine(const byte *&str);
 	OpcodeReturn cmdClearWindow(const byte *&str);
 	OpcodeReturn cmdDisplayInfoLine(const byte *&str);
@@ -63,9 +71,14 @@ protected:
 	virtual void talkWait(const byte *&str);
 
 	/**
-	 * Trigger to play a 3DO talk dialog movie
+	 * Called when the active speaker is switched
 	 */
-	virtual void talk3DOMovieTrigger(int subIndex);
+	virtual void switchSpeaker();
+
+	/**
+	 * Called when a character being spoken to has no talk options to display
+	 */
+	virtual void nothingToSay();
 
 	/**
 	 * Show the talk display
@@ -74,6 +87,36 @@ protected:
 public:
 	ScalpelTalk(SherlockEngine *vm);
 	virtual ~ScalpelTalk() {}
+
+	Common::String _fixedTextWindowExit;
+	Common::String _fixedTextWindowUp;
+	Common::String _fixedTextWindowDown;
+
+	byte _hotkeyWindowExit;
+	byte _hotkeyWindowUp;
+	byte _hotkeyWindowDown;
+
+	/**
+	 * Opens the talk file 'talk.tlk' and searches the index for the specified
+	 * conversation. If found, the data for that conversation is loaded
+	 */
+	virtual void loadTalkFile(const Common::String &filename);
+
+	/**
+	 * Called whenever a conversation or item script needs to be run. For standard conversations,
+	 * it opens up a description window similar to how 'talk' does, but shows a 'reply' directly
+	 * instead of waiting for a statement option.
+	 * @remarks		It seems that at some point, all item scripts were set up to use this as well.
+	 *	In their case, the conversation display is simply suppressed, and control is passed on to
+	 *	doScript to implement whatever action is required.
+	 */
+	virtual void talkTo(const Common::String filename);
+
+	/**
+	 * When the talk window has been displayed, waits a period of time proportional to
+	 * the amount of text that's been displayed
+	 */
+	virtual int waitForMore(int delay);
 
 	/**
 	 * Draws the interface for conversation display
@@ -90,6 +133,37 @@ public:
 	 * Prints a single conversation option in the interface window
 	 */
 	int talkLine(int lineNum, int stateNum, byte color, int lineY, bool slamIt);
+
+	/**
+	 * Trigger to play a 3DO talk dialog movie
+	 */
+	bool talk3DOMovieTrigger(int subIndex);
+
+	/**
+	 * Handles skipping over bad text in conversations
+	 */
+	static void skipBadText(const byte *&msgP);
+
+	/**
+	 * Push the details of a passed object onto the saved sequences stack
+	 */
+	virtual void pushSequenceEntry(Object *obj);
+
+	/**
+	 * Pulls a background object sequence from the sequence stack and restore's the
+	 * object's sequence
+	 */
+	virtual void pullSequence(int slot = -1);
+
+	/**
+	 * Returns true if the script stack is empty
+	 */
+	virtual bool isSequencesEmpty() const { return _sequenceStack.empty(); }
+
+	/**
+	 * Clears the stack of pending object sequences associated with speakers in the scene
+	 */
+	virtual void clearSequences();
 };
 
 } // End of namespace Scalpel

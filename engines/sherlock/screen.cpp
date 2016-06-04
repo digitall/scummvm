@@ -23,6 +23,8 @@
 #include "sherlock/screen.h"
 #include "sherlock/sherlock.h"
 #include "sherlock/scalpel/scalpel_screen.h"
+#include "sherlock/scalpel/3do/scalpel_3do_screen.h"
+#include "sherlock/tattoo/tattoo_screen.h"
 #include "common/system.h"
 #include "common/util.h"
 #include "graphics/palette.h"
@@ -30,16 +32,17 @@
 namespace Sherlock {
 
 Screen *Screen::init(SherlockEngine *vm) {
-	if (vm->getGameID() == GType_SerratedScalpel)
-		return new Scalpel::ScalpelScreen(vm);
+	if (vm->getGameID() == GType_RoseTattoo)
+		return new Tattoo::TattooScreen(vm);
+	else if (vm->getPlatform() == Common::kPlatform3DO)
+		return new Scalpel::Scalpel3DOScreen(vm);
 	else
-		return new Screen(vm);
+		return new Scalpel::ScalpelScreen(vm);
 }
 
-Screen::Screen(SherlockEngine *vm) : Surface(g_system->getWidth(), g_system->getHeight()), _vm(vm),
-		_backBuffer1(g_system->getWidth(), g_system->getHeight()),
-		_backBuffer2(g_system->getWidth(), g_system->getHeight()),
-		_backBuffer(&_backBuffer1) {
+Screen::Screen(SherlockEngine *vm) : BaseSurface(), _vm(vm),
+		_backBuffer1(vm->getGameID() == GType_RoseTattoo ? 640 : 320, vm->getGameID() == GType_RoseTattoo ? 480 : 200),
+		_backBuffer2(vm->getGameID() == GType_RoseTattoo ? 640 : 320, vm->getGameID() == GType_RoseTattoo ? 480 : 200) {
 	_transitionSeed = 1;
 	_fadeStyle = false;
 	Common::fill(&_cMap[0], &_cMap[PALETTE_SIZE], 0);
@@ -53,40 +56,21 @@ Screen::Screen(SherlockEngine *vm) : Surface(g_system->getWidth(), g_system->get
 	_fadeBytesRead = _fadeBytesToRead = 0;
 	_oldFadePercent = 0;
 	_flushScreen = false;
+
+	create(_backBuffer1.w, _backBuffer1.h);
+	_backBuffer.create(_backBuffer1, _backBuffer1.getBounds());
 }
 
 Screen::~Screen() {
-	Fonts::free();
+	Fonts::freeFont();
 }
 
-void Screen::update() {
-	// Merge the dirty rects
-	mergeDirtyRects();
-
-	// Loop through copying dirty areas to the physical screen
-	Common::List<Common::Rect>::iterator i;
-	for (i = _dirtyRects.begin(); i != _dirtyRects.end(); ++i) {
-		const Common::Rect &r = *i;
-		const byte *srcP = (const byte *)getBasePtr(r.left, r.top);
-		g_system->copyRectToScreen(srcP, _surface.pitch, r.left, r.top,
-			r.width(), r.height());
-	}
-
-	// Signal the physical screen to update
-	g_system->updateScreen();
-	_dirtyRects.clear();
+void Screen::activateBackBuffer1() {
+	_backBuffer.create(_backBuffer1, _backBuffer1.getBounds());
 }
 
-void Screen::makeAllDirty() {
-	addDirtyRect(Common::Rect(0, 0, this->w(), this->h()));
-}
-
-void Screen::getPalette(byte palette[PALETTE_SIZE]) {
-	g_system->getPaletteManager()->grabPalette(palette, 0, PALETTE_COUNT);
-}
-
-void Screen::setPalette(const byte palette[PALETTE_SIZE]) {
-	g_system->getPaletteManager()->setPalette(palette, 0, PALETTE_COUNT);
+void Screen::activateBackBuffer2() {
+	_backBuffer.create(_backBuffer2, _backBuffer2.getBounds());
 }
 
 int Screen::equalizePalette(const byte palette[PALETTE_SIZE]) {
@@ -122,7 +106,7 @@ void Screen::fadeToBlack(int speed) {
 	}
 
 	setPalette(tempPalette);
-	fillRect(Common::Rect(0, 0, _surface.w, _surface.h), 0);
+	fillRect(Common::Rect(0, 0, this->w, this->h), 0);
 }
 
 void Screen::fadeIn(const byte palette[PALETTE_SIZE], int speed) {
@@ -134,59 +118,23 @@ void Screen::fadeIn(const byte palette[PALETTE_SIZE], int speed) {
 	setPalette(palette);
 }
 
-void Screen::addDirtyRect(const Common::Rect &r) {
-	_dirtyRects.push_back(r);
-	assert(r.width() > 0 && r.height() > 0);
-}
-
-void Screen::mergeDirtyRects() {
-	Common::List<Common::Rect>::iterator rOuter, rInner;
-
-	// Process the dirty rect list to find any rects to merge
-	for (rOuter = _dirtyRects.begin(); rOuter != _dirtyRects.end(); ++rOuter) {
-		rInner = rOuter;
-		while (++rInner != _dirtyRects.end()) {
-
-			if ((*rOuter).intersects(*rInner)) {
-				// these two rectangles overlap or
-				// are next to each other - merge them
-
-				unionRectangle(*rOuter, *rOuter, *rInner);
-
-				// remove the inner rect from the list
-				_dirtyRects.erase(rInner);
-
-				// move back to beginning of list
-				rInner = rOuter;
-			}
-		}
-	}
-}
-
-bool Screen::unionRectangle(Common::Rect &destRect, const Common::Rect &src1, const Common::Rect &src2) {
-	destRect = src1;
-	destRect.extend(src2);
-
-	return !destRect.isEmpty();
-}
-
 void Screen::randomTransition() {
 	Events &events = *_vm->_events;
 	const int TRANSITION_MULTIPLIER = 0x15a4e35;
-	_dirtyRects.clear();
+	clearDirtyRects();
 	assert(IS_SERRATED_SCALPEL);
 
 	for (int idx = 0; idx <= 65535 && !_vm->shouldQuit(); ++idx) {
 		_transitionSeed = _transitionSeed * TRANSITION_MULTIPLIER + 1;
 		int offset = _transitionSeed & 0xFFFF;
 
-		if (offset < (this->w() * this->h()))
-			*((byte *)getPixels() + offset) = *((const byte *)_backBuffer->getPixels() + offset);
+		if (offset < (this->width() * this->height()))
+			*((byte *)getPixels() + offset) = *((const byte *)_backBuffer.getPixels() + offset);
 
 		if (idx != 0 && (idx % 300) == 0) {
 			// Ensure there's a full screen dirty rect for the next frame update
-			if (_dirtyRects.empty())
-				addDirtyRect(Common::Rect(0, 0, _surface.w, _surface.h));
+			if (!isDirty())
+				addDirtyRect(Common::Rect(0, 0, this->w, this->h));
 
 			events.pollEvents();
 			events.delay(1);
@@ -194,7 +142,7 @@ void Screen::randomTransition() {
 	}
 
 	// Make sure everything has been transferred
-	blitFrom(*_backBuffer);
+	SHblitFrom(_backBuffer);
 }
 
 void Screen::verticalTransition() {
@@ -203,13 +151,13 @@ void Screen::verticalTransition() {
 	byte table[640];
 	Common::fill(&table[0], &table[640], 0);
 
-	for (int yp = 0; yp < this->h(); ++yp) {
-		for (int xp = 0; xp < this->w(); ++xp) {
-			int temp = (table[xp] >= (this->h() - 3)) ? this->h() - table[xp] :
+	for (int yp = 0; yp < this->height(); ++yp) {
+		for (int xp = 0; xp < this->width(); ++xp) {
+			int temp = (table[xp] >= (this->height() - 3)) ? this->height() - table[xp] :
 				_vm->getRandomNumber(3) + 1;
 
 			if (temp) {
-				blitFrom(_backBuffer1, Common::Point(xp, table[xp]),
+				SHblitFrom(_backBuffer1, Common::Point(xp, table[xp]),
 					Common::Rect(xp, table[xp], xp + 1, table[xp] + temp));
 				table[xp] += temp;
 			}
@@ -219,138 +167,9 @@ void Screen::verticalTransition() {
 	}
 }
 
-void Screen::fadeIntoScreen3DO(int speed) {
-	Events &events = *_vm->_events;
-	uint16 *currentScreenBasePtr = (uint16 *)getPixels();
-	uint16 *targetScreenBasePtr = (uint16 *)_backBuffer->getPixels();
-	uint16  currentScreenPixel = 0;
-	uint16  targetScreenPixel = 0;
-
-	uint16  currentScreenPixelRed = 0;
-	uint16  currentScreenPixelGreen = 0;
-	uint16  currentScreenPixelBlue = 0;
-
-	uint16  targetScreenPixelRed = 0;
-	uint16  targetScreenPixelGreen = 0;
-	uint16  targetScreenPixelBlue = 0;
-
-	uint16  screenWidth = this->w();
-	uint16  screenHeight = this->h();
-	uint16  screenX = 0;
-	uint16  screenY = 0;
-	uint16  pixelsChanged = 0;
-
-	_dirtyRects.clear();
-
-	do {
-		pixelsChanged = 0;
-		uint16 *currentScreenPtr = currentScreenBasePtr;
-		uint16 *targetScreenPtr = targetScreenBasePtr;
-
-		for (screenY = 0; screenY < screenHeight; screenY++) {
-			for (screenX = 0; screenX < screenWidth; screenX++) {
-				currentScreenPixel = *currentScreenPtr;
-				targetScreenPixel  = *targetScreenPtr;
-
-				if (currentScreenPixel != targetScreenPixel) {
-					// pixel doesn't match, adjust accordingly
-					currentScreenPixelRed   = currentScreenPixel & 0xF800;
-					currentScreenPixelGreen = currentScreenPixel & 0x07E0;
-					currentScreenPixelBlue  = currentScreenPixel & 0x001F;
-					targetScreenPixelRed    = targetScreenPixel & 0xF800;
-					targetScreenPixelGreen  = targetScreenPixel & 0x07E0;
-					targetScreenPixelBlue   = targetScreenPixel & 0x001F;
-
-					if (currentScreenPixelRed != targetScreenPixelRed) {
-						if (currentScreenPixelRed < targetScreenPixelRed) {
-							currentScreenPixelRed += 0x0800;
-						} else {
-							currentScreenPixelRed -= 0x0800;
-						}
-					}
-					if (currentScreenPixelGreen != targetScreenPixelGreen) {
-						// Adjust +2/-2 because we are running RGB555 at RGB565
-						if (currentScreenPixelGreen < targetScreenPixelGreen) {
-							currentScreenPixelGreen += 0x0040;
-						} else {
-							currentScreenPixelGreen -= 0x0040;
-						}
-					}
-					if (currentScreenPixelBlue != targetScreenPixelBlue) {
-						if (currentScreenPixelBlue < targetScreenPixelBlue) {
-							currentScreenPixelBlue += 0x0001;
-						} else {
-							currentScreenPixelBlue -= 0x0001;
-						}
-					}
-					*currentScreenPtr = currentScreenPixelRed | currentScreenPixelGreen | currentScreenPixelBlue;
-					pixelsChanged++;
-				}
-
-				currentScreenPtr++;
-				targetScreenPtr++;
-			}
-		}
-
-		// Too much considered dirty at the moment
-		addDirtyRect(Common::Rect(0, 0, screenWidth, screenHeight));
-
-		events.pollEvents();
-		events.delay(10 * speed);
-	} while ((pixelsChanged) && (!_vm->shouldQuit()));
-}
-
-void Screen::blitFrom3DOcolorLimit(uint16 limitColor) {
-	uint16 *currentScreenPtr = (uint16 *)getPixels();
-	uint16 *targetScreenPtr = (uint16 *)_backBuffer->getPixels();
-	uint16  currentScreenPixel = 0;
-
-	uint16  screenWidth = this->w();
-	uint16  screenHeight = this->h();
-	uint16  screenX = 0;
-	uint16  screenY = 0;
-
-	uint16  currentScreenPixelRed = 0;
-	uint16  currentScreenPixelGreen = 0;
-	uint16  currentScreenPixelBlue = 0;
-
-	uint16  limitPixelRed = limitColor & 0xF800;
-	uint16  limitPixelGreen = limitColor & 0x07E0;
-	uint16  limitPixelBlue = limitColor & 0x001F;
-
-	for (screenY = 0; screenY < screenHeight; screenY++) {
-		for (screenX = 0; screenX < screenWidth; screenX++) {
-			currentScreenPixel = *targetScreenPtr;
-
-			currentScreenPixelRed   = currentScreenPixel & 0xF800;
-			currentScreenPixelGreen = currentScreenPixel & 0x07E0;
-			currentScreenPixelBlue  = currentScreenPixel & 0x001F;
-
-			if (currentScreenPixelRed < limitPixelRed)
-				currentScreenPixelRed = limitPixelRed;
-			if (currentScreenPixelGreen < limitPixelGreen)
-				currentScreenPixelGreen = limitPixelGreen;
-			if (currentScreenPixelBlue < limitPixelBlue)
-				currentScreenPixelBlue = limitPixelBlue;
-
-			*currentScreenPtr = currentScreenPixelRed | currentScreenPixelGreen | currentScreenPixelBlue;
-			currentScreenPtr++;
-			targetScreenPtr++;
-		}
-	}
-
-	// Too much considered dirty at the moment
-	addDirtyRect(Common::Rect(0, 0, screenWidth, screenHeight));
-}
-
 void Screen::restoreBackground(const Common::Rect &r) {
-	if (r.width() > 0 && r.height() > 0) {
-		Common::Rect tempRect = r;
-		tempRect.clip(Common::Rect(0, 0, this->w(), SHERLOCK_SCENE_HEIGHT));
-
-		if (tempRect.isValidRect())
-			_backBuffer1.blitFrom(_backBuffer2, Common::Point(tempRect.left, tempRect.top), tempRect);
-	}
+	if (r.width() > 0 && r.height() > 0)
+		_backBuffer.SHblitFrom(_backBuffer2, Common::Point(r.left, r.top), r);
 }
 
 void Screen::slamArea(int16 xp, int16 yp, int16 width, int16 height) {
@@ -359,18 +178,9 @@ void Screen::slamArea(int16 xp, int16 yp, int16 width, int16 height) {
 
 void Screen::slamRect(const Common::Rect &r) {
 	if (r.width() && r.height() > 0) {
-		Common::Rect tempRect = r;
-		tempRect.clip(Common::Rect(0, 0, this->w(), this->h()));
-
-		if (tempRect.isValidRect())
-			blitFrom(*_backBuffer, Common::Point(tempRect.left, tempRect.top), tempRect);
-	}
-}
-
-void Screen::slamRect(const Common::Rect &r, const Common::Point &currentScroll) {
-	if (r.width() && r.height() > 0) {
 		Common::Rect srcRect = r, destRect = r;
-		srcRect.translate(currentScroll.x, currentScroll.y);
+
+		destRect.translate(-_currentScroll.x, -_currentScroll.y);
 
 		if (destRect.left < 0) {
 			srcRect.left += -destRect.left;
@@ -390,10 +200,9 @@ void Screen::slamRect(const Common::Rect &r, const Common::Point &currentScroll)
 		}
 
 		if (srcRect.isValidRect())
-			blitFrom(*_backBuffer, Common::Point(destRect.left, destRect.top), srcRect);
+			SHblitFrom(_backBuffer, Common::Point(destRect.left, destRect.top), srcRect);
 	}
 }
-
 
 void Screen::flushImage(ImageFrame *frame, const Common::Point &pt, int16 *xp, int16 *yp, 
 		int16 *width, int16 *height) {
@@ -425,7 +234,7 @@ void Screen::flushImage(ImageFrame *frame, const Common::Point &pt, int16 *xp, i
 
 void Screen::flushScaleImage(ImageFrame *frame, const Common::Point &pt, int16 *xp, int16 *yp,
 		int16 *width, int16 *height, int scaleVal) {
-	Common::Point imgPos = pt + frame->_offset;
+	Common::Point imgPos(pt.x + frame->sDrawXOffset(scaleVal), pt.y + frame->sDrawYOffset(scaleVal));
 	Common::Rect newBounds(imgPos.x, imgPos.y, imgPos.x + frame->sDrawXSize(scaleVal), 
 		imgPos.y + frame->sDrawYSize(scaleVal));
 	Common::Rect oldBounds(*xp, *yp, *xp + *width, *yp + *height);
@@ -453,9 +262,10 @@ void Screen::flushScaleImage(ImageFrame *frame, const Common::Point &pt, int16 *
 }
 
 void Screen::flushImage(ImageFrame *frame, const Common::Point &pt, Common::Rect &newBounds, int scaleVal) {
-	Common::Point newPos, newSize;
+	Common::Point newPos(newBounds.left, newBounds.top);
+	Common::Point newSize(newBounds.width(), newBounds.height());
 
-	if (scaleVal == 256)
+	if (scaleVal == SCALE_THRESHOLD)
 		flushImage(frame, pt, &newPos.x, &newPos.y, &newSize.x, &newSize.y);
 	else
 		flushScaleImage(frame, pt, &newPos.x, &newPos.y, &newSize.x, &newSize.y, scaleVal);
@@ -464,17 +274,16 @@ void Screen::flushImage(ImageFrame *frame, const Common::Point &pt, Common::Rect
 	newBounds = Common::Rect(newPos.x, newPos.y, newPos.x + newSize.x, newPos.y + newSize.y);
 }
 
-void Screen::blockMove(const Common::Rect &r, const Common::Point &scrollPos) {
+void Screen::blockMove(const Common::Rect &r) {
 	Common::Rect bounds = r;
-	bounds.translate(scrollPos.x, scrollPos.y);
 	slamRect(bounds);
 }
 
-void Screen::blockMove(const Common::Point &scrollPos) {
-	blockMove(Common::Rect(0, 0, w(), h()), scrollPos);
+void Screen::blockMove() {
+	blockMove(Common::Rect(0, 0, width(), height()));
 }
 
-void Screen::print(const Common::Point &pt, byte color, const char *formatStr, ...) {
+void Screen::print(const Common::Point &pt, uint color, const char *formatStr, ...) {
 	// Create the string to display
 	va_list args;
 	va_start(args, formatStr);
@@ -487,13 +296,13 @@ void Screen::print(const Common::Point &pt, byte color, const char *formatStr, .
 	pos.y--;		// Font is always drawing one line higher
 	if (!pos.x)
 		// Center text horizontally
-		pos.x = (this->w() - width) / 2;
+		pos.x = (this->width() - width) / 2;
 
 	Common::Rect textBounds(pos.x, pos.y, pos.x + width, pos.y + _fontHeight);
-	if (textBounds.right > this->w())
-		textBounds.moveTo(this->w() - width, textBounds.top);
-	if (textBounds.bottom > this->h())
-		textBounds.moveTo(textBounds.left, this->h() - _fontHeight);
+	if (textBounds.right > this->width())
+		textBounds.moveTo(this->width() - width, textBounds.top);
+	if (textBounds.bottom > this->height())
+		textBounds.moveTo(textBounds.left, this->height() - _fontHeight);
 
 	// Write out the string at the given position
 	writeString(str, Common::Point(textBounds.left, textBounds.top), color);
@@ -502,7 +311,7 @@ void Screen::print(const Common::Point &pt, byte color, const char *formatStr, .
 	slamRect(textBounds);
 }
 
-void Screen::gPrint(const Common::Point &pt, byte color, const char *formatStr, ...) {
+void Screen::gPrint(const Common::Point &pt, uint color, const char *formatStr, ...) {
 	// Create the string to display
 	va_list args;
 	va_start(args, formatStr);
@@ -513,28 +322,27 @@ void Screen::gPrint(const Common::Point &pt, byte color, const char *formatStr, 
 	writeString(str, pt, color);
 }
 
-void Screen::writeString(const Common::String &str, const Common::Point &pt, byte overrideColor) {
-	Fonts::writeString(_backBuffer, str, pt, overrideColor);
+void Screen::writeString(const Common::String &str, const Common::Point &pt, uint overrideColor) {
+	Fonts::writeString(&_backBuffer, str, pt, overrideColor);
 }
 
 void Screen::vgaBar(const Common::Rect &r, int color) {
-	_backBuffer->fillRect(r, color);
+	_backBuffer.fillRect(r, color);
 	slamRect(r);
 }
 
 void Screen::setDisplayBounds(const Common::Rect &r) {
-	_sceneSurface.setPixels(_backBuffer1.getBasePtr(r.left, r.top), r.width(), r.height(), _backBuffer1.getPixelFormat());
-
-	_backBuffer = &_sceneSurface;
+	_backBuffer.create(_backBuffer1, r);
+	assert(_backBuffer.width()  == r.width());
+	assert(_backBuffer.height() == r.height());
 }
 
 void Screen::resetDisplayBounds() {
-	_backBuffer = &_backBuffer1;
+	_backBuffer.create(_backBuffer1, _backBuffer1.getBounds());
 }
 
 Common::Rect Screen::getDisplayBounds() {
-	return (_backBuffer == &_sceneSurface) ? Common::Rect(0, 0, _sceneSurface.w(), _sceneSurface.h()) :
-		Common::Rect(0, 0, this->w(), this->h());
+	return _backBuffer.getBounds();
 }
 
 void Screen::synchronize(Serializer &s) {

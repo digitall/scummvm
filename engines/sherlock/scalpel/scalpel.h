@@ -24,31 +24,43 @@
 #define SHERLOCK_SCALPEL_H
 
 #include "sherlock/sherlock.h"
-#include "sherlock/scalpel/darts.h"
+#include "sherlock/scalpel/scalpel_darts.h"
 
 namespace Sherlock {
 
 namespace Scalpel {
 
-enum {
-	BUTTON_TOP			= 233,
-	BUTTON_MIDDLE		= 244,
-	BUTTON_BOTTOM		= 248,
-	COMMAND_FOREGROUND	= 15,
-	COMMAND_HIGHLIGHTED = 10,
-	COMMAND_NULL		= 248,
-	INFO_FOREGROUND		= 11,
-	INFO_BACKGROUND		= 1,
-	INV_FOREGROUND		= 14,
-	INV_BACKGROUND		= 1,
-	PEN_COLOR			= 250
-};
+extern uint BUTTON_TOP;
+extern uint BUTTON_MIDDLE;
+extern uint BUTTON_BOTTOM;
+extern uint COMMAND_FOREGROUND;
+extern uint COMMAND_HIGHLIGHTED;
+extern uint COMMAND_NULL;
+extern uint INFO_FOREGROUND;
+extern uint INFO_BACKGROUND;
+extern uint INV_FOREGROUND;
+extern uint INV_BACKGROUND;
+extern uint PEN_COLOR;
+extern uint INFO_BLACK;
+extern uint BORDER_COLOR;
+extern uint COMMAND_BACKGROUND;
+extern uint BUTTON_BACKGROUND;
+extern uint TALK_FOREGROUND;
+extern uint TALK_NULL;
 
 class ScalpelEngine : public SherlockEngine {
 private:
 	Darts *_darts;
 	int _mapResult;
 
+	/**
+	 * Initialize graphics mode
+	 */
+	void setupGraphics();
+
+	/**
+	 * Show the 3DO splash screen
+	 */
 	bool show3DOSplash();
 
 	/**
@@ -113,17 +125,32 @@ public:
 	/**
 	 * Takes care of clearing the mirror in scene 12 (mansion drawing room), in case anything drew over it
 	 */
-	void eraseMirror12();
+	void eraseBrumwellMirror();
 
 	/**
 	 * Takes care of drawing Holme's reflection onto the mirror in scene 12 (mansion drawing room)
 	 */
-	void doMirror12();
+	void doBrumwellMirror();
 
 	/**
 	 * This clears the mirror in scene 12 (mansion drawing room) in case anything messed draw over it
 	 */
-	void flushMirror12();
+	void flushBrumwellMirror();
+
+	/**
+	 * Show the ScummVM restore savegame dialog
+	 */
+	void showScummVMSaveDialog();
+
+	/**
+	 * Show the ScummVM restore savegame dialog
+	 */
+	void showScummVMRestoreDialog();
+
+	/**
+	 * Play back a 3do movie
+	 */
+	bool play3doMovie(const Common::String &filename, const Common::Point &pos, bool isPortrait = false);
 };
 
 } // End of namespace Scalpel

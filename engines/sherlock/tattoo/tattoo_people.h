@@ -88,12 +88,12 @@ struct SavedNPCPath {
 	byte _path[MAX_NPC_PATH];
 	int _npcIndex;
 	int _npcPause;
-	Common::Point _walkDest;
+	Point32 _position;
 	int _npcFacing;
 	bool _lookHolmes;
 
 	SavedNPCPath();
-	SavedNPCPath(byte path[MAX_NPC_PATH], int npcIndex, int npcPause, const Common::Point &walkDest,
+	SavedNPCPath(byte path[MAX_NPC_PATH], int npcIndex, int npcPause, const Point32 &position,
 		int npcFacing, bool lookHolmes);
 };
 
@@ -117,7 +117,6 @@ public:
 	int _npcIndex;
 	int _npcPause;
 	byte _npcPath[MAX_NPC_PATH];
-	Common::String _npcName;
 	bool _npcMoved;
 	int _npcFacing;
 	bool _resetNPCPath;
@@ -129,7 +128,7 @@ public:
 	bool _lookHolmes;
 public:
 	TattooPerson();
-	virtual ~TattooPerson() {}
+	virtual ~TattooPerson();
 
 	/**
 	 * Clear the NPC related data
@@ -173,7 +172,23 @@ public:
 	void checkWalkGraphics();
 
 	/**
-	 * This adjusts the sprites position, as well as it's animation sequence:
+	 * Synchronize the data for a savegame
+	 */
+	void synchronize(Serializer &s);
+
+
+	/**
+	 * Walk Holmes to the NPC
+	 */
+	void walkHolmesToNPC();
+
+	/**
+	 * Walk both the specified character and Holmes to specified destination positions
+	 */
+	void walkBothToCoords(const PositionFacing &holmesDest, const PositionFacing &npcDest);
+
+	/**
+	 * This adjusts the sprites position, as well as its animation sequence:
 	 */
 	virtual void adjustSprite();
 
@@ -201,6 +216,11 @@ public:
 	 * @remarks		1: First talk seq, 2: second talk seq, etc.
 	 */
 	virtual void setObjTalkSequence(int seq);
+
+	/**
+	 * Center the visible screen so that the person is in the center of the screen
+	 */
+	virtual void centerScreenOnPerson();
 };
 
 class TattooPeople : public People {
@@ -210,17 +230,6 @@ public:
 
 	TattooPerson &operator[](PeopleId id) { return *(TattooPerson *)_data[id]; }
 	TattooPerson &operator[](int idx) { return *(TattooPerson *)_data[idx]; }
-
-	/**
-	 * If the specified speaker is a background object, it will set it so that it uses 
-	 * the Listen Sequence (specified by the sequence number). If the current sequence 
-	 * has an Allow Talk Code in it, the _gotoSeq field will be set so that the object 
-	 * begins listening as soon as it hits the Allow Talk Code. If there is no Abort Code, 
-	 * the Listen Sequence will begin immediately.
-	 * @param speaker		Who is speaking
-	 * @param sequenceNum	Which listen sequence to use
-	 */
-	void setListenSequence(int speaker, int sequenceNum = 1);
 
 	/**
 	 * Restore any saved NPC walk path data from any of the NPCs
@@ -246,11 +255,26 @@ public:
 	 * Load the walking images for Sherlock
 	 */
 	virtual bool loadWalk();
+
+	/**
+	 * Restrict passed point to zone using Sherlock's positioning rules
+	 */
+	virtual const Common::Point restrictToZone(int zoneId, const Common::Point &destPos);
+
+	/**
+	 * If the specified speaker is a background object, it will set it so that it uses 
+	 * the Listen Sequence (specified by the sequence number). If the current sequence 
+	 * has an Allow Talk Code in it, the _gotoSeq field will be set so that the object 
+	 * begins listening as soon as it hits the Allow Talk Code. If there is no Abort Code, 
+	 * the Listen Sequence will begin immediately.
+	 * @param speaker		Who is speaking
+	 * @param sequenceNum	Which listen sequence to use
+	 */
+	virtual void setListenSequence(int speaker, int sequenceNum = 1);
 };
 
-} // End of namespace Scalpel
+} // End of namespace Tattoo
 
 } // End of namespace Sherlock
-
 
 #endif

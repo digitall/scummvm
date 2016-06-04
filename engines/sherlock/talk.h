@@ -35,7 +35,6 @@ namespace Sherlock {
 
 #define SPEAKER_REMOVE 0x80
 #define MAX_TALK_SEQUENCES 11
-#define TALK_SEQUENCE_STACK_SIZE 20
 
 enum {
 	OP_SWITCH_SPEAKER			= 0,
@@ -120,8 +119,13 @@ typedef OpcodeReturn(Talk::*OpcodeMethod)(const byte *&str);
 struct SequenceEntry {
 	int _objNum;
 	Common::Array<byte> _sequences;
-	int _frameNumber;
-	int _seqTo;
+	Object *_obj;			// Pointer to the bgshape that these values go to
+	short _frameNumber;		// Frame number in frame sequence to draw
+	short _sequenceNumber;	// Start frame of sequences that are repeated
+	int _seqStack;			// Allows gosubs to return to calling frame
+	int _seqTo;				// Allows 1-5, 8-3 type sequences encoded 
+	int _seqCounter;		// How many times this sequence has been executed
+	int _seqCounter2;
 
 	SequenceEntry();
 };
@@ -158,19 +162,6 @@ struct TalkHistoryEntry {
 	bool &operator[](int index) { return _data[index]; }
 };
 
-struct TalkSequence {
-	Object *_obj;			// Pointer to the bgshape that these values go to
-	short _frameNumber;		// Frame number in frame sequence to draw
-	short _sequenceNumber;	// Start frame of sequences that are repeated
-	int _seqStack;			// Allows gosubs to return to calling frame
-	int _seqTo;				// Allows 1-5, 8-3 type sequences encoded 
-	int _seqCounter;		// How many times this sequence has been executed
-	int _seqCounter2;
-
-	TalkSequence();
-};
-
-
 class Talk {
 	friend class Scalpel::ScalpelUserInterface;
 private:
@@ -178,25 +169,18 @@ private:
 	 * Remove any voice commands from a loaded statement list
 	 */
 	void stripVoiceCommands();
-
-	/**
-	 * Parses a reply for control codes and display text. The found text is printed within
-	 * the text window, handles delays, animations, and animating portraits.
-	 */
-	void doScript(const Common::String &script);
 protected:
 	SherlockEngine *_vm;
 	OpcodeMethod *_opcodeTable;
 	Common::Stack<SequenceEntry> _savedSequences;
-	Common::Stack<SequenceEntry> _sequenceStack;
 	Common::Stack<ScriptStackEntry> _scriptStack;
 	Common::Array<TalkHistoryEntry> _talkHistory;
-	int _speaker;
 	int _talkIndex;
 	int _scriptSelect;
 	int _talkStealth;
 	int _talkToFlag;
 	int _scriptSaveIndex;
+	int _3doSpeechIndex;
 
 	// These fields are used solely by doScript, but are fields because all the script opcodes are
 	// separate methods now, and need access to these fields
@@ -214,7 +198,6 @@ protected:
 	OpcodeReturn cmdAddItemToInventory(const byte *&str);
 	OpcodeReturn cmdAdjustObjectSequence(const byte *&str);
 	OpcodeReturn cmdBanishWindow(const byte *&str);
-	OpcodeReturn cmdCallTalkFile(const byte *&str);
 	OpcodeReturn cmdDisableEndKey(const byte *&str);
 	OpcodeReturn cmdEnableEndKey(const byte *&str);
 	OpcodeReturn cmdEndTextWindow(const byte *&str);
@@ -232,10 +215,10 @@ protected:
 	OpcodeReturn cmdWalkToCAnimation(const byte *&str);
 protected:
 	/**
-	 * Checks, if a character is an opcode
+	 * Checks if a character is an opcode
 	 */
 	bool isOpcode(byte checkCharacter);
-	
+
 	/**
 	 * Form a table of the display indexes for statements
 	 */
@@ -245,7 +228,7 @@ protected:
 	 * When the talk window has been displayed, waits a period of time proportional to
 	 * the amount of text that's been displayed
 	 */
-	int waitForMore(int delay);
+	virtual int waitForMore(int delay);
 
 	/**
 	 * Display the talk interface window
@@ -258,16 +241,20 @@ protected:
 	virtual void talkWait(const byte *&str);
 
 	/**
-	 * Trigger to play a 3DO talk dialog movie
-	 */
-	virtual void talk3DOMovieTrigger(int subIndex) {};
-	
-	/**
 	 * Show the talk display
 	 */
 	virtual void showTalk() = 0;
+
+	/**
+	 * Called when a character being spoken to has no talk options to display
+	 */
+	virtual void nothingToSay() = 0;
+
+	/**
+	 * Called when the active speaker is switched
+	 */
+	virtual void switchSpeaker() {}
 public:
-	TalkSequence _talkSequenceStack[TALK_SEQUENCE_STACK_SIZE];
 	Common::Array<Statement> _statements;
 	bool _talkToAbort;
 	int _talkCounter;
@@ -278,6 +265,7 @@ public:
 	bool _moreTalkUp, _moreTalkDown;
 	int _converseNum;
 	const byte *_opcodes;
+	int _speaker;
 public:
 	static Talk *init(SherlockEngine *vm);
 	virtual ~Talk() {}
@@ -295,7 +283,13 @@ public:
 	 *	In their case, the conversation display is simply suppressed, and control is passed on to
 	 *	doScript to implement whatever action is required.
 	 */
-	void talkTo(const Common::String &filename);
+	virtual void talkTo(const Common::String filename);
+
+	/**
+	 * Parses a reply for control codes and display text. The found text is printed within
+	 * the text window, handles delays, animations, and animating portraits.
+	 */
+	void doScript(const Common::String &script);
 
 	/**
 	 * Main method for handling conversations when a character to talk to has been
@@ -303,7 +297,7 @@ public:
 	 * interface window for the conversation and passes on control to give the
 	 * player a list of options to make a selection from
 	 */
-	void talk(int objNum);
+	void initTalk(int objNum);
 
 	/**
 	 * Clear loaded talk data
@@ -314,24 +308,7 @@ public:
 	 * Opens the talk file 'talk.tlk' and searches the index for the specified
 	 * conversation. If found, the data for that conversation is loaded
 	 */
-	void loadTalkFile(const Common::String &filename);
-
-	/**
-	 * Change the sequence of a background object corresponding to a given speaker.
-	 * The new sequence will display the character as "listening"
-	 */
-	void setStillSeq(int speaker);
-
-	/**
-	 * Clears the stack of pending object sequences associated with speakers in the scene
-	 */
-	void clearSequences();
-	
-	/**
-	 * Pulls a background object sequence from the sequence stack and restore's the
-	 * object's sequence
-	 */
-	void pullSequence();
+	virtual void loadTalkFile(const Common::String &filename);
 
 	/**
 	 * Push the sequence of a background object that's an NPC that needs to be
@@ -340,14 +317,14 @@ public:
 	void pushSequence(int speaker);
 	
 	/**
-	 * Push a given shape's sequence data onto the Rose Tattoo talk sequence stack
+	 * Push the details of a passed object onto the saved sequences stack
 	 */
-	void pushTalkSequence(Object *obj);
+	virtual void pushSequenceEntry(Object *obj) = 0;
 
 	/**
-	 * Returns true if the script stack is empty
+	 * Clears the stack of pending object sequences associated with speakers in the scene
 	 */
-	bool isSequencesEmpty() const { return _scriptStack.empty(); }
+	virtual void clearSequences() = 0;
 
 	/**
 	 * Pops an entry off of the script stack
@@ -374,6 +351,17 @@ public:
 	 * Prints a single conversation option in the interface window
 	 */
 	virtual int talkLine(int lineNum, int stateNum, byte color, int lineY, bool slamIt) { return 0; }
+	
+	/**
+	 * Pulls a background object sequence from the sequence stack and restore's the
+	 * object's sequence
+	 */
+	virtual void pullSequence(int slot = -1) = 0;
+
+	/**
+	 * Returns true if the script stack is empty
+	 */
+	virtual bool isSequencesEmpty() const = 0;
 };
 
 } // End of namespace Sherlock

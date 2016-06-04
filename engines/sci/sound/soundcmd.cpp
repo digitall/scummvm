@@ -21,6 +21,8 @@
  */
 
 #include "common/config-manager.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 #include "sci/sound/audio.h"
 #include "sci/sound/music.h"
 #include "sci/sound/soundcmd.h"
@@ -44,7 +46,7 @@ SoundCommandParser::SoundCommandParser(ResourceManager *resMan, SegManager *segM
 	// resource number, but it's totally unrelated to the menu music).
 	// The GK1 demo (very late SCI1.1) does the same thing
 	// TODO: Check the QFG4 demo
-	_useDigitalSFX = (getSciVersion() >= SCI_VERSION_2 || g_sci->getGameId() == GID_GK1 || ConfMan.getBool("prefer_digitalsfx"));
+	_useDigitalSFX = (getSciVersion() >= SCI_VERSION_2 || g_sci->getGameId() == GID_GK1DEMO || ConfMan.getBool("prefer_digitalsfx"));
 
 	_music = new SciMusic(_soundVersion, _useDigitalSFX);
 	_music->init();

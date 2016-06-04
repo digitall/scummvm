@@ -44,21 +44,21 @@
 
 namespace GUI {
 
-const char * const ThemeEngine::kImageLogo = "logo.bmp";
-const char * const ThemeEngine::kImageLogoSmall = "logo_small.bmp";
-const char * const ThemeEngine::kImageSearch = "search.bmp";
-const char * const ThemeEngine::kImageEraser = "eraser.bmp";
-const char * const ThemeEngine::kImageDelbtn = "delbtn.bmp";
-const char * const ThemeEngine::kImageList = "list.bmp";
-const char * const ThemeEngine::kImageGrid = "grid.bmp";
-const char * const ThemeEngine::kImageStopbtn = "stopbtn.bmp";
-const char * const ThemeEngine::kImageEditbtn = "editbtn.bmp";
-const char * const ThemeEngine::kImageSwitchModebtn = "switchbtn.bmp";
-const char * const ThemeEngine::kImageFastReplaybtn = "fastreplay.bmp";
-const char * const ThemeEngine::kImageStopSmallbtn = "stopbtn_small.bmp";
-const char * const ThemeEngine::kImageEditSmallbtn = "editbtn_small.bmp";
-const char * const ThemeEngine::kImageSwitchModeSmallbtn = "switchbtn_small.bmp";
-const char * const ThemeEngine::kImageFastReplaySmallbtn = "fastreplay_small.bmp";
+const char *const ThemeEngine::kImageLogo = "logo.bmp";
+const char *const ThemeEngine::kImageLogoSmall = "logo_small.bmp";
+const char *const ThemeEngine::kImageSearch = "search.bmp";
+const char *const ThemeEngine::kImageEraser = "eraser.bmp";
+const char *const ThemeEngine::kImageDelButton = "delbtn.bmp";
+const char *const ThemeEngine::kImageList = "list.bmp";
+const char *const ThemeEngine::kImageGrid = "grid.bmp";
+const char *const ThemeEngine::kImageStopButton = "stopbtn.bmp";
+const char *const ThemeEngine::kImageEditButton = "editbtn.bmp";
+const char *const ThemeEngine::kImageSwitchModeButton = "switchbtn.bmp";
+const char *const ThemeEngine::kImageFastReplayButton = "fastreplay.bmp";
+const char *const ThemeEngine::kImageStopSmallButton = "stopbtn_small.bmp";
+const char *const ThemeEngine::kImageEditSmallButton = "editbtn_small.bmp";
+const char *const ThemeEngine::kImageSwitchModeSmallButton = "switchbtn_small.bmp";
+const char *const ThemeEngine::kImageFastReplaySmallButton = "fastreplay_small.bmp";
 
 struct TextDrawData {
 	const Graphics::Font *_fontPtr;
@@ -164,7 +164,7 @@ struct DrawDataInfo {
 	DrawData id;        ///< The actual ID of the DrawData item.
 	const char *name;   ///< The name of the DrawData item as it appears in the Theme Description files
 	bool buffer;        ///< Sets whether this item is buffered on the backbuffer or drawn directly to the screen.
-	DrawData parent;    ///< Parent DrawData item, for items that overlay. E.g. kButtonIdle -> kButtonHover
+	DrawData parent;    ///< Parent DrawData item, for items that overlay. E.g. kDDButtonIdle -> kDDButtonHover
 };
 
 /**
@@ -310,6 +310,12 @@ ThemeEngine::ThemeEngine(Common::String id, GraphicsMode mode) :
 	_graphicsMode = mode;
 	_themeArchive = 0;
 	_initOk = false;
+
+	_cursorHotspotX = _cursorHotspotY = 0;
+	_cursorWidth = _cursorHeight = 0;
+	_cursorPalSize = 0;
+
+	_needPaletteUpdates = false;
 
 	// We prefer files in archive bundles over the common search paths.
 	_themeFiles.add("default", &SearchMan, 0, false);
@@ -739,12 +745,23 @@ bool ThemeEngine::loadDefaultXML() {
 	// Use the Python script "makedeftheme.py" to convert a normal XML theme
 	// into the "default.inc" file, which is ready to be included in the code.
 #ifndef DISABLE_GUI_BUILTIN_THEME
-	const char *defaultXML =
 #include "themes/default.inc"
-	    ;
+	int xmllen = 0;
 
-	if (!_parser->loadBuffer((const byte *)defaultXML, strlen(defaultXML)))
+	for (int i = 0; i < ARRAYSIZE(defaultXML); i++)
+		xmllen += strlen(defaultXML[i]);
+
+	byte *tmpXML = (byte *)malloc(xmllen + 1);
+	tmpXML[0] = '\0';
+
+	for (int i = 0; i < ARRAYSIZE(defaultXML); i++)
+		strncat((char *)tmpXML, defaultXML[i], xmllen);
+
+	if (!_parser->loadBuffer(tmpXML, xmllen)) {
+		free(tmpXML);
+
 		return false;
+	}
 
 	_themeName = "ScummVM Classic Theme (Builtin Version)";
 	_themeId = "builtin";
@@ -752,6 +769,8 @@ bool ThemeEngine::loadDefaultXML() {
 
 	bool result = _parser->parse();
 	_parser->close();
+
+	free(tmpXML);
 
 	return result;
 #else
@@ -1246,8 +1265,15 @@ void ThemeEngine::updateScreen(bool render) {
 		_screenQueue.clear();
 	}
 
-	if (render)
+	if (render) {
+#ifdef LAYOUT_DEBUG_DIALOG
+		_vectorRenderer->fillSurface();
+		_themeEval->debugDraw(&_screen, _font);
+		_vectorRenderer->copyWholeFrame(_system);
+#else
 		renderDirtyScreen();
+#endif
+	}
 }
 
 void ThemeEngine::addDirtyRect(Common::Rect r) {
@@ -1446,7 +1472,7 @@ const Graphics::Font *ThemeEngine::loadScalableFont(const Common::String &filena
 	for (Common::ArchiveMemberList::const_iterator i = members.begin(), end = members.end(); i != end; ++i) {
 		Common::SeekableReadStream *stream = (*i)->createReadStream();
 		if (stream) {
-			font = Graphics::loadTTFFont(*stream, pointsize, 0, Graphics::kTTFRenderModeLight,
+			font = Graphics::loadTTFFont(*stream, pointsize, Graphics::kTTFSizeModeCharacter, 0, Graphics::kTTFRenderModeLight,
 #ifdef USE_TRANSLATION
 			                             TransMan.getCharsetMapping()
 #else

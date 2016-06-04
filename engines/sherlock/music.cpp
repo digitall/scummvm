@@ -20,11 +20,13 @@
  *
  */
 
+#include "common/algorithm.h"
 #include "common/config-manager.h"
 #include "common/mutex.h"
 #include "sherlock/sherlock.h"
 #include "sherlock/music.h"
 #include "sherlock/scalpel/drivers/mididriver.h"
+#include "audio/audiostream.h"
 // for Miles Audio (Sherlock Holmes 2)
 #include "audio/miles.h"
 // for 3DO digital music
@@ -210,6 +212,8 @@ void MidiParser_SH::unloadMusic() {
 		_musData = NULL;
 		_musDataSize = 0;
 	}
+
+	MidiParser::unloadMusic();
 }
 
 /*----------------------------------------------------------------*/
@@ -219,13 +223,13 @@ Music::Music(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 	_midiParser = NULL;
 	_musicType = MT_NULL;
 	_musicPlaying = false;
-	_musicOn = false;
 	_midiOption = false;
-	_musicVolume = 0;
+	_midiMusicData = nullptr;
+	_musicVolume = ConfMan.hasKey("music_volume") ? ConfMan.getInt("music_volume") : 255;
 
 	if (IS_3DO) {
 		// 3DO - uses digital samples for music
-		_musicOn = true;
+		_musicOn = ConfMan.hasKey("music_mute") ? !ConfMan.getBool("music_mute") : true;
 		return;
 	}
 
@@ -324,7 +328,7 @@ Music::Music(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 			}
 		}
 
-		_musicOn = true;
+		_musicOn = ConfMan.hasKey("music_mute") ? !ConfMan.getBool("music_mute") : true;
 	}
 }
 
@@ -394,6 +398,7 @@ bool Music::playMusic(const Common::String &name) {
 	if (!_musicOn)
 		return false;
 
+	_nextSongName = _currentSongName = name;
 	debugC(kDebugLevelMusic, "Music: playMusic('%s')", name.c_str());
 
 	if (!IS_3DO) {
@@ -409,15 +414,6 @@ bool Music::playMusic(const Common::String &name) {
 
 		stream->read(midiMusicData, midiMusicDataSize);
 		delete stream;
-
-		// for dumping the music tracks
-#if 0
-		Common::DumpFile outFile;
-		outFile.open(name + ".RAW");
-		outFile.write(data, stream->size());
-		outFile.flush();
-		outFile.close();
-#endif
 
 		if (midiMusicDataSize < 14) {
 			warning("Music: not enough data in music file");
@@ -475,8 +471,8 @@ bool Music::playMusic(const Common::String &name) {
 			}
 		}
 
+		_midiMusicData = midiMusicData;
 		_midiParser->loadMusic(midiMusicData, midiMusicDataSize);
-
 	} else {
 		// 3DO: sample based
 		Audio::AudioStream *musicStream;
@@ -500,27 +496,17 @@ bool Music::playMusic(const Common::String &name) {
 		}
 		_mixer->playStream(Audio::Mixer::kMusicSoundType, &_digitalMusicHandle, musicStream);
 	}
+
+	_musicPlaying = true;
 	return true;
 }
 
 void Music::stopMusic() {
-	if (isPlaying()) {
-		if (!IS_3DO)
-			_midiParser->stopPlaying();
-		else
-			_mixer->stopHandle(_digitalMusicHandle);
-	}
-
-	_musicPlaying = false;
+	freeSong();
 }
 
 void Music::startSong() {
-	if (!_musicOn)
-		return;
-
-	// TODO
-	warning("TODO: Sound::startSong");
-	_musicPlaying = true;
+	// No implementation needed for ScummVM
 }
 
 void Music::freeSong() {
@@ -531,11 +517,9 @@ void Music::freeSong() {
 		// Free the MIDI MUS data buffer
 		_midiParser->unloadMusic();
 	}
-}
 
-void Music::waitTimerRoland(uint time) {
-	// TODO
-	warning("TODO: Sound::waitTimerRoland");
+	_midiMusicData = nullptr;
+	_musicPlaying = false;
 }
 
 bool Music::isPlaying() {
@@ -594,8 +578,49 @@ bool Music::waitUntilMSec(uint32 msecTarget, uint32 msecMax, uint32 additionalDe
 	}
 }
 
-void Music::setMIDIVolume(int volume) {
-	warning("TODO: Music::setMIDIVolume");
+void Music::setMusicVolume(int volume) {
+	_musicVolume = volume;
+	_musicOn = volume > 0;
+	_vm->_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, volume);
+}
+
+void Music::getSongNames(Common::StringArray &songs) {
+	songs.clear();
+	if (IS_SERRATED_SCALPEL) {
+		if (IS_3DO) {
+			Common::FSDirectory gameDirectory(ConfMan.get("path"));
+			Common::FSDirectory *musicDirectory = gameDirectory.getSubDirectory("music");
+			Common::ArchiveMemberList files;
+
+			musicDirectory->listMatchingMembers(files, "*_mw22.aifc");
+
+			for (Common::ArchiveMemberList::iterator i = files.begin(); i != files.end(); ++i) {
+				Common::String name = (*i)->getName();
+				name.erase(name.size() - 10);
+				songs.push_back(name);
+			}
+		} else {
+			for (int i = 0; i < ARRAYSIZE(SONG_NAMES); i++) {
+				songs.push_back(SONG_NAMES[i]);
+			}
+		}
+	} else {
+		Common::StringArray fileList;
+		_vm->_res->getResourceNames("music.lib", fileList);
+		for (Common::StringArray::iterator i = fileList.begin(); i != fileList.end(); ++i) {
+			if ((*i).matchString("*.XMI", true)) {
+				(*i).erase((*i).size() - 4);
+				songs.push_back(*i);
+			}
+		}
+	}
+	Common::sort(songs.begin(), songs.end());
+}
+
+void Music::checkSongProgress() {
+	if (!isPlaying()) {
+		playMusic(_nextSongName);
+	}
 }
 
 } // End of namespace Sherlock

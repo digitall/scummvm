@@ -26,8 +26,6 @@
 #include "common/str.h"
 #include "common/rect.h"
 
-#include "audio/mixer.h"
-
 namespace ZVision {
 
 // Forward declaration of ZVision. This file is included before ZVision is declared
@@ -269,7 +267,6 @@ public:
 	bool execute();
 
 private:
-	uint32 _animationKey;
 	uint32 _controlKey;
 	uint32 _x1;
 	uint32 _y1;

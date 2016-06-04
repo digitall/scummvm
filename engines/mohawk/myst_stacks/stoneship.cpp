@@ -50,6 +50,8 @@ Stoneship::Stoneship(MohawkEngine_Myst *vm) :
 	_chestDrawersOpen = 0;
 	_chestAchenarBottomDrawerClosed = 1;
 
+	_brotherDoorOpen = 0;
+
 	// Drop key
 	if (_state.trapdoorKeyState == 1)
 		_state.trapdoorKeyState = 2;
@@ -402,9 +404,9 @@ void Stoneship::o_pumpTurnOff(uint16 op, uint16 var, uint16 argc, uint16 *argv) 
 		}
 
 		for (uint i = 0; i < _vm->_resources.size(); i++) {
-			MystResource *resource = _vm->_resources[i];
-			if (resource->type == kMystConditionalImage && resource->getType8Var() == buttonVar) {
-				static_cast<MystResourceType8 *>(resource)->drawConditionalDataToScreen(0, true);
+			MystArea *resource = _vm->_resources[i];
+			if (resource->type == kMystAreaImageSwitch && resource->getImageSwitchVar() == buttonVar) {
+				static_cast<MystAreaImageSwitch *>(resource)->drawConditionalDataToScreen(0, true);
 				break;
 			}
 		}
@@ -425,17 +427,21 @@ void Stoneship::o_cabinBookMovie(uint16 op, uint16 var, uint16 argc, uint16 *arg
 	uint16 startTime = argv[0];
 	uint16 endTime = argv[1];
 
-	VideoHandle book = _vm->_video->playMovie(_vm->wrapMovieFilename("bkroom", kStoneshipStack), 159, 99);
-	_vm->_video->setVideoBounds(book, Audio::Timestamp(0, startTime, 600), Audio::Timestamp(0, endTime, 600));
+	VideoHandle book = _vm->_video->playMovie(_vm->wrapMovieFilename("bkroom", kStoneshipStack));
+	if (!book)
+		error("Failed to open bkroom movie");
+
+	book->moveTo(159, 99);
+	book->setBounds(Audio::Timestamp(0, startTime, 600), Audio::Timestamp(0, endTime, 600));
 	_vm->_video->waitUntilMovieEnds(book);
 }
 
 void Stoneship::o_drawerOpenSirius(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Open drawer", op);
 
-	MystResourceType8 *drawer = static_cast<MystResourceType8 *>(_vm->_resources[argv[0]]);
+	MystAreaImageSwitch *drawer = _vm->getViewResource<MystAreaImageSwitch>(argv[0]);
 
-	if (drawer->getType8Var() == 35) {
+	if (drawer->getImageSwitchVar() == 35) {
 		drawer->drawConditionalDataToScreen(getVar(102), 0);
 	} else {
 		drawer->drawConditionalDataToScreen(0, 0);
@@ -462,7 +468,7 @@ void Stoneship::o_telescopeStart(uint16 op, uint16 var, uint16 argc, uint16 *arg
 void Stoneship::o_telescopeMove(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Telescope move", op);
 
-	MystResourceType11 *display = static_cast<MystResourceType11 *>(_invokingResource);
+	MystAreaDrag *display = getInvokingResource<MystAreaDrag>();
 	const Common::Point &mouse = _vm->_system->getEventManager()->getMousePos();
 
 	// Compute telescope position
@@ -485,7 +491,7 @@ void Stoneship::o_telescopeStop(uint16 op, uint16 var, uint16 argc, uint16 *argv
 void Stoneship::o_generatorStart(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Generator start", op);
 
-	MystResourceType11 *handle = static_cast<MystResourceType11 *>(_invokingResource);
+	MystAreaDrag *handle = getInvokingResource<MystAreaDrag>();
 
 	uint16 soundId = handle->getList1(0);
 	if (soundId)
@@ -500,7 +506,7 @@ void Stoneship::o_generatorStart(uint16 op, uint16 var, uint16 argc, uint16 *arg
 	_batteryNextTime = _vm->_system->getMillis() + 1000;
 
 	// Start handle movie
-	MystResourceType6 *movie = static_cast<MystResourceType6 *>(handle->getSubResource(0));
+	MystAreaVideo *movie = static_cast<MystAreaVideo *>(handle->getSubResource(0));
 	movie->playMovie();
 
 	soundId = handle->getList2(0);
@@ -526,8 +532,8 @@ void Stoneship::o_generatorStop(uint16 op, uint16 var, uint16 argc, uint16 *argv
 	}
 
 	// Pause handle movie
-	MystResourceType11 *handle = static_cast<MystResourceType11 *>(_invokingResource);
-	MystResourceType6 *movie = static_cast<MystResourceType6 *>(handle->getSubResource(0));
+	MystAreaDrag *handle = getInvokingResource<MystAreaDrag>();
+	MystAreaVideo *movie = static_cast<MystAreaVideo *>(handle->getSubResource(0));
 	movie->pauseMovie(true);
 
 	uint16 soundId = handle->getList3(0);
@@ -578,7 +584,7 @@ void Stoneship::batteryDeplete_run() {
 void Stoneship::o_drawerOpenAchenar(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Open drawer", op);
 
-	MystResourceType8 *drawer = static_cast<MystResourceType8 *>(_vm->_resources[argv[0]]);
+	MystAreaImageSwitch *drawer = _vm->getViewResource<MystAreaImageSwitch>(argv[0]);
 	drawer->drawConditionalDataToScreen(0, 0);
 	_vm->_gfx->runTransition(kTransitionTopToBottom, drawer->getRect(), 25, 5);
 }
@@ -597,9 +603,9 @@ void Stoneship::o_hologramPlayback(uint16 op, uint16 var, uint16 argc, uint16 *a
 	if (_hologramTurnedOn) {
 		if (_hologramDisplayPos)
 			endPoint = _hologramDisplayPos;
-		_vm->_video->setVideoBounds(displayMovie, Audio::Timestamp(0, startPoint, 600), Audio::Timestamp(0, endPoint, 600));
+		displayMovie->setBounds(Audio::Timestamp(0, startPoint, 600), Audio::Timestamp(0, endPoint, 600));
 	} else {
-		_vm->_video->setVideoBounds(displayMovie, Audio::Timestamp(0, startPoint, 600), Audio::Timestamp(0, endPoint, 600));
+		displayMovie->setBounds(Audio::Timestamp(0, startPoint, 600), Audio::Timestamp(0, endPoint, 600));
 	}
 
 	_vm->_video->delayUntilMovieEnds(displayMovie);
@@ -613,7 +619,7 @@ void Stoneship::o_hologramSelectionStart(uint16 op, uint16 var, uint16 argc, uin
 void Stoneship::o_hologramSelectionMove(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Hologram move", op);
 
-	MystResourceType11 *handle = static_cast<MystResourceType11 *>(_invokingResource);
+	MystAreaDrag *handle = getInvokingResource<MystAreaDrag>();
 	const Common::Point &mouse = _vm->_system->getEventManager()->getMousePos();
 
 	if (handle->getRect().contains(mouse)) {
@@ -673,29 +679,45 @@ void Stoneship::o_chestValveVideos(uint16 op, uint16 var, uint16 argc, uint16 *a
 
 	if (_state.chestValveState) {
 		// Valve closing
-		VideoHandle valve = _vm->_video->playMovie(movie, 97, 267);
-		_vm->_video->setVideoBounds(valve, Audio::Timestamp(0, 0, 600), Audio::Timestamp(0, 350, 600));
+		VideoHandle valve = _vm->_video->playMovie(movie);
+		if (!valve)
+			error("Failed to open '%s'", movie.c_str());
+
+		valve->moveTo(97, 267);
+		valve->setBounds(Audio::Timestamp(0, 0, 600), Audio::Timestamp(0, 350, 600));
 		_vm->_video->waitUntilMovieEnds(valve);
 	} else if (_state.chestWaterState) {
 		// Valve opening, spilling water
-		VideoHandle valve = _vm->_video->playMovie(movie, 97, 267);
-		_vm->_video->setVideoBounds(valve, Audio::Timestamp(0, 350, 600), Audio::Timestamp(0, 650, 600));
+		VideoHandle valve = _vm->_video->playMovie(movie);
+		if (!valve)
+			error("Failed to open '%s'", movie.c_str());
+
+		valve->moveTo(97, 267);
+		valve->setBounds(Audio::Timestamp(0, 350, 600), Audio::Timestamp(0, 650, 600));
 		_vm->_video->waitUntilMovieEnds(valve);
 
 		_vm->_sound->playSound(3132);
 
 		for (uint i = 0; i < 25; i++) {
-			valve = _vm->_video->playMovie(movie, 97, 267);
-			_vm->_video->setVideoBounds(valve, Audio::Timestamp(0, 650, 600), Audio::Timestamp(0, 750, 600));
+			valve = _vm->_video->playMovie(movie);
+			if (!valve)
+				error("Failed to open '%s'", movie.c_str());
+
+			valve->moveTo(97, 267);
+			valve->setBounds(Audio::Timestamp(0, 650, 600), Audio::Timestamp(0, 750, 600));
 			_vm->_video->waitUntilMovieEnds(valve);
 		}
 
 		_vm->_sound->resumeBackgroundMyst();
 	} else {
 		// Valve opening
-		VideoHandle valve = _vm->_video->playMovie(movie, 97, 267);
-		_vm->_video->seekToTime(valve, Audio::Timestamp(0, 350, 600));
-		_vm->_video->setVideoRate(valve, -1);
+		VideoHandle valve = _vm->_video->playMovie(movie);
+		if (!valve)
+			error("Failed to open '%s'", movie.c_str());
+
+		valve->moveTo(97, 267);
+		valve->seek(Audio::Timestamp(0, 350, 600));
+		valve->setRate(-1);
 		_vm->_video->waitUntilMovieEnds(valve);
 	}
 }
@@ -716,14 +738,22 @@ void Stoneship::o_trapLockOpen(uint16 op, uint16 var, uint16 argc, uint16 *argv)
 
 	Common::String movie = _vm->wrapMovieFilename("openloc", kStoneshipStack);
 
-	VideoHandle lock = _vm->_video->playMovie(movie, 187, 71);
-	_vm->_video->setVideoBounds(lock, Audio::Timestamp(0, 0, 600), Audio::Timestamp(0, 750, 600));
+	VideoHandle lock = _vm->_video->playMovie(movie);
+	if (!lock)
+		error("Failed to open '%s'", movie.c_str());
+
+	lock->moveTo(187, 71);
+	lock->setBounds(Audio::Timestamp(0, 0, 600), Audio::Timestamp(0, 750, 600));
 	_vm->_video->waitUntilMovieEnds(lock);
 
 	_vm->_sound->playSound(2143);
 
-	lock = _vm->_video->playMovie(movie, 187, 71);
-	_vm->_video->setVideoBounds(lock, Audio::Timestamp(0, 750, 600), Audio::Timestamp(0, 10000, 600));
+	lock = _vm->_video->playMovie(movie);
+	if (!lock)
+		error("Failed to open '%s'", movie.c_str());
+
+	lock->moveTo(187, 71);
+	lock->setBounds(Audio::Timestamp(0, 750, 600), Audio::Timestamp(0, 10000, 600));
 	_vm->_video->waitUntilMovieEnds(lock);
 
 	if (_state.pumpState != 4)
@@ -778,7 +808,7 @@ void Stoneship::o_cloudOrbLeave(uint16 op, uint16 var, uint16 argc, uint16 *argv
 
 	_cloudOrbMovie->pauseMovie(true);
 	_vm->_sound->replaceSoundMyst(_cloudOrbStopSound);
-	_vm->_gfx->runTransition(kTransitionTopToBottom, _invokingResource->getRect(), 4, 0);
+	_vm->_gfx->runTransition(kTransitionTopToBottom, getInvokingResource<MystArea>()->getRect(), 4, 0);
 }
 
 void Stoneship::o_drawerCloseOpened(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
@@ -794,20 +824,20 @@ void Stoneship::drawerClose(uint16 drawer) {
 	_vm->drawCardBackground();
 	_vm->drawResourceImages();
 
-	MystResource *res = _vm->_resources[drawer];
+	MystArea *res = _vm->_resources[drawer];
 	_vm->_gfx->runTransition(kTransitionBottomToTop, res->getRect(), 25, 5);
 }
 
 void Stoneship::o_hologramDisplay_init(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Hologram display init", op);
-	_hologramDisplay = static_cast<MystResourceType6 *>(_invokingResource);
+	_hologramDisplay = getInvokingResource<MystAreaVideo>();
 
 	_hologramDisplayPos = 0;
 }
 
 void Stoneship::o_hologramSelection_init(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Hologram selection init", op);
-	_hologramSelection = static_cast<MystResourceType6 *>(_invokingResource);
+	_hologramSelection = getInvokingResource<MystAreaVideo>();
 }
 
 void Stoneship::batteryGaugeUpdate() {
@@ -828,7 +858,7 @@ void Stoneship::o_battery_init(uint16 op, uint16 var, uint16 argc, uint16 *argv)
 	// Used for Card 2160 (Lighthouse Battery Pack Closeup)
 	debugC(kDebugScript, "Opcode %d: Battery init", op);
 
-	_batteryGauge = static_cast<MystResourceType8 *>(_invokingResource);
+	_batteryGauge = getInvokingResource<MystAreaImageSwitch>();
 
 	batteryGaugeUpdate();
 }
@@ -986,7 +1016,7 @@ void Stoneship::o_achenarDrawers_init(uint16 op, uint16 var, uint16 argc, uint16
 void Stoneship::o_cloudOrb_init(uint16 op, uint16 var, uint16 argc, uint16 *argv) {
 	debugC(kDebugScript, "Opcode %d: Cloud orb init", op);
 
-	_cloudOrbMovie = static_cast<MystResourceType6 *>(_invokingResource);
+	_cloudOrbMovie = getInvokingResource<MystAreaVideo>();
 	_cloudOrbSound = argv[0];
 	_cloudOrbStopSound = argv[1];
 }

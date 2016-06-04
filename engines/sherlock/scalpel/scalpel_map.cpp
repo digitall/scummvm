@@ -100,6 +100,21 @@ void ScalpelMap::loadData() {
 		while ((c = txtStream->readByte()) != '\0')
 			line += c;
 
+		// WORKAROUND: Special fixes for faulty translations
+		// Was obviously not done in the original interpreter
+		if (_vm->getLanguage() == Common::ES_ESP) {
+			// Spanish version
+			if (line == " Alley") {
+				// The "Alley" location was not translated, we do this now
+				// see bug #6931
+				line = " Callejon";
+			} else if (line == " Alamacen") {
+				// "Warehouse" location has a typo, we fix it
+				// see bug #6931
+				line = " Almacen";
+			}
+		}
+
 		_locationNames.push_back(line);
 	}
 
@@ -122,6 +137,7 @@ void ScalpelMap::loadData() {
 }
 
 int ScalpelMap::show() {
+	Debugger &debugger = *_vm->_debugger;
 	Events &events = *_vm->_events;
 	People &people = *_vm->_people;
 	Screen &screen = *_vm->_screen;
@@ -151,13 +167,13 @@ int ScalpelMap::show() {
 	setupSprites();
 
 	if (!IS_3DO) {
-		screen._backBuffer1.blitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
-		screen._backBuffer1.blitFrom((*bigMap)[1], Common::Point(-_bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
-		screen._backBuffer1.blitFrom((*bigMap)[2], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, -_bigPos.y));
-		screen._backBuffer1.blitFrom((*bigMap)[3], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
+		screen._backBuffer1.SHblitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
+		screen._backBuffer1.SHblitFrom((*bigMap)[1], Common::Point(-_bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
+		screen._backBuffer1.SHblitFrom((*bigMap)[2], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, -_bigPos.y));
+		screen._backBuffer1.SHblitFrom((*bigMap)[3], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
 	} else {
-		screen._backBuffer1.blitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
-		screen.blitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
+		screen._backBuffer1.SHblitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
+		screen.SHblitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
 	}
 
 	_drawMap = true;
@@ -174,6 +190,11 @@ int ScalpelMap::show() {
 	while (!_vm->shouldQuit() && !exitFlag) {
 		events.pollEventsAndWait();
 		events.setButtonState();
+
+		if (debugger._showAllLocations == LOC_REFRESH) {
+			showPlaces();
+			screen.slamArea(screen._currentScroll.x, screen._currentScroll.y, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_WIDTH);
+		}
 
 		// Keyboard handling
 		if (events.kbHit()) {
@@ -217,12 +238,12 @@ int ScalpelMap::show() {
 			changed = false;
 
 			if (!IS_3DO) {
-				screen._backBuffer1.blitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
-				screen._backBuffer1.blitFrom((*bigMap)[1], Common::Point(-_bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
-				screen._backBuffer1.blitFrom((*bigMap)[2], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, -_bigPos.y));
-				screen._backBuffer1.blitFrom((*bigMap)[3], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
+				screen._backBuffer1.SHblitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
+				screen._backBuffer1.SHblitFrom((*bigMap)[1], Common::Point(-_bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
+				screen._backBuffer1.SHblitFrom((*bigMap)[2], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, -_bigPos.y));
+				screen._backBuffer1.SHblitFrom((*bigMap)[3], Common::Point(SHERLOCK_SCREEN_WIDTH - _bigPos.x, SHERLOCK_SCREEN_HEIGHT - _bigPos.y));
 			} else {
-				screen._backBuffer1.blitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
+				screen._backBuffer1.SHblitFrom((*bigMap)[0], Common::Point(-_bigPos.x, -_bigPos.y));
 			}
 
 			showPlaces();
@@ -338,35 +359,41 @@ void ScalpelMap::freeSprites() {
 	delete _mapCursors;
 	delete _shapes;
 	delete _iconShapes;
-	_iconSave.free();
 }
 
 void ScalpelMap::showPlaces() {
+	Debugger &debugger = *_vm->_debugger;
 	Screen &screen = *_vm->_screen;
 
 	for (uint idx = 0; idx < _points.size(); ++idx) {
 		const MapEntry &pt = _points[idx];
 
 		if (pt.x != 0 && pt.y != 0) {
+			if (debugger._showAllLocations != LOC_DISABLED)
+				_vm->setFlagsDirect(idx);
+
 			if (pt.x >= _bigPos.x && (pt.x - _bigPos.x) < SHERLOCK_SCREEN_WIDTH
 					&& pt.y >= _bigPos.y && (pt.y - _bigPos.y) < SHERLOCK_SCREEN_HEIGHT) {
 				if (_vm->readFlags(idx)) {
-					screen._backBuffer1.transBlitFrom((*_iconShapes)[pt._translate],
+					screen._backBuffer1.SHtransBlitFrom((*_iconShapes)[pt._translate],
 						Common::Point(pt.x - _bigPos.x - 6, pt.y - _bigPos.y - 12));
 				}
 			}
 		}
 	}
+
+	if (debugger._showAllLocations == LOC_REFRESH)
+		debugger._showAllLocations = LOC_ALL;
 }
 
 void ScalpelMap::saveTopLine() {
-	_topLine.blitFrom(_vm->_screen->_backBuffer1, Common::Point(0, 0), Common::Rect(0, 0, SHERLOCK_SCREEN_WIDTH, 12));
+	_topLine.SHblitFrom(_vm->_screen->_backBuffer1, Common::Point(0, 0), Common::Rect(0, 0, SHERLOCK_SCREEN_WIDTH, 12));
 }
 
 void ScalpelMap::eraseTopLine() {
 	Screen &screen = *_vm->_screen;
-	screen._backBuffer1.blitFrom(_topLine, Common::Point(0, 0));
-	screen.slamArea(0, 0, SHERLOCK_SCREEN_WIDTH, _topLine.h());
+	screen._backBuffer1.SHblitFrom(_topLine, Common::Point(0, 0));
+	screen.slamArea(0, 0, SHERLOCK_SCREEN_WIDTH, _topLine.height());
 }
 
 void ScalpelMap::showPlaceName(int idx, bool highlighted) {
@@ -381,7 +408,7 @@ void ScalpelMap::showPlaceName(int idx, bool highlighted) {
 
 		bool flipped = people[HOLMES]._sequenceNumber == MAP_DOWNLEFT || people[HOLMES]._sequenceNumber == MAP_LEFT
 			|| people[HOLMES]._sequenceNumber == MAP_UPLEFT;
-		screen._backBuffer1.transBlitFrom(*people[HOLMES]._imageFrame, _lDrawnPos, flipped);
+		screen._backBuffer1.SHtransBlitFrom(*people[HOLMES]._imageFrame, _lDrawnPos, flipped);
 	}
 
 	if (highlighted) {
@@ -423,9 +450,9 @@ void ScalpelMap::updateMap(bool flushScreen) {
 	saveIcon(people[HOLMES]._imageFrame, hPos);
 	if (people[HOLMES]._sequenceNumber == MAP_DOWNLEFT || people[HOLMES]._sequenceNumber == MAP_LEFT
 			|| people[HOLMES]._sequenceNumber == MAP_UPLEFT)
-		screen._backBuffer1.transBlitFrom(*people[HOLMES]._imageFrame, hPos, true);
+		screen._backBuffer1.SHtransBlitFrom(*people[HOLMES]._imageFrame, hPos, true);
 	else
-		screen._backBuffer1.transBlitFrom(*people[HOLMES]._imageFrame, hPos, false);
+		screen._backBuffer1.SHtransBlitFrom(*people[HOLMES]._imageFrame, hPos, false);
 
 	if (flushScreen) {
 		screen.slamArea(0, 0, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT);
@@ -525,8 +552,8 @@ void ScalpelMap::saveIcon(ImageFrame *src, const Common::Point &pt) {
 		return;
 	}
 
-	assert(size.x <= _iconSave.w() && size.y <= _iconSave.h());
-	_iconSave.blitFrom(screen._backBuffer1, Common::Point(0, 0),
+	assert(size.x <= _iconSave.width() && size.y <= _iconSave.height());
+	_iconSave.SHblitFrom(screen._backBuffer1, Common::Point(0, 0),
 		Common::Rect(pos.x, pos.y, pos.x + size.x, pos.y + size.y));
 	_savedPos = pos;
 	_savedSize = size;
@@ -537,7 +564,7 @@ void ScalpelMap::restoreIcon() {
 
 	if (_savedPos.x >= 0 && _savedPos.y >= 0 && _savedPos.x <= SHERLOCK_SCREEN_WIDTH
 			&& _savedPos.y < SHERLOCK_SCREEN_HEIGHT)
-		screen._backBuffer1.blitFrom(_iconSave, _savedPos, Common::Rect(0, 0, _savedSize.x, _savedSize.y));
+		screen._backBuffer1.SHblitFrom(_iconSave, _savedPos, Common::Rect(0, 0, _savedSize.x, _savedSize.y));
 }
 
 void ScalpelMap::highlightIcon(const Common::Point &pt) {

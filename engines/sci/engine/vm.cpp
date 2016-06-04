@@ -258,6 +258,10 @@ static void _exec_varselectors(EngineState *s) {
 			if (xs.argc) { // write?
 				*var = xs.variables_argp[1];
 
+#ifdef ENABLE_SCI32
+				updateInfoFlagViewVisible(s->_segMan->getObject(xs.addr.varp.obj), xs.addr.varp.varindex);
+#endif
+
 			} else // No, read
 				s->r_acc = *var;
 		}
@@ -974,21 +978,24 @@ void run_vm(EngineState *s) {
 
 			break;
 
-		case 0x26: // (38)
-		case 0x27: // (39)
-			if (getSciVersion() == SCI_VERSION_3) {
-				if (extOpcode == 0x4c)
-					s->r_acc = obj->getInfoSelector();
-				else if (extOpcode == 0x4d)
-					PUSH32(obj->getInfoSelector());
-				else if (extOpcode == 0x4e)
-					s->r_acc = obj->getSuperClassSelector();	// TODO: is this correct?
-				// TODO: There are also opcodes in
-				// here to get the superclass, and possibly the species too.
-				else
-					error("Dummy opcode 0x%x called", opcode);	// should never happen
-			} else
+		case op_infoToa: // (38)
+			if (getSciVersion() < SCI_VERSION_3)
 				error("Dummy opcode 0x%x called", opcode);	// should never happen
+
+			if (!(extOpcode & 1))
+				s->r_acc = obj->getInfoSelector();
+			else
+				PUSH32(obj->getInfoSelector());
+			break;
+
+		case op_superToa: // (39)
+			if (getSciVersion() < SCI_VERSION_3)
+				error("Dummy opcode 0x%x called", opcode);	// should never happen
+
+			if (!(extOpcode & 1))
+				s->r_acc = obj->getSuperClassSelector();
+			else
+				PUSH32(obj->getSuperClassSelector());
 			break;
 
 		case op_class: // 0x28 (40)
@@ -1092,6 +1099,9 @@ void run_vm(EngineState *s) {
 		case op_aTop: // 0x32 (50)
 			// Accumulator To Property
 			validate_property(s, obj, opparams[0]) = s->r_acc;
+#ifdef ENABLE_SCI32
+			updateInfoFlagViewVisible(obj, opparams[0]>>1);
+#endif
 			break;
 
 		case op_pTos: // 0x33 (51)
@@ -1102,6 +1112,9 @@ void run_vm(EngineState *s) {
 		case op_sTop: // 0x34 (52)
 			// Stack To Property
 			validate_property(s, obj, opparams[0]) = POP32();
+#ifdef ENABLE_SCI32
+			updateInfoFlagViewVisible(obj, opparams[0]>>1);
+#endif
 			break;
 
 		case op_ipToa: // 0x35 (53)
@@ -1116,7 +1129,9 @@ void run_vm(EngineState *s) {
 				opProperty += 1;
 			else
 				opProperty -= 1;
-
+#ifdef ENABLE_SCI32
+			updateInfoFlagViewVisible(obj, opparams[0]>>1);
+#endif
 			if (opcode == op_ipToa || opcode == op_dpToa)
 				s->r_acc = opProperty;
 			else

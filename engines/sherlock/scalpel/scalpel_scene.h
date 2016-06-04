@@ -35,6 +35,8 @@ namespace Sherlock {
 
 namespace Scalpel {
 
+extern const int FS_TRANS[8];
+
 enum { BLACKWOOD_CAPTURE = 2, BAKER_STREET = 4, DRAWING_ROOM = 12, STATION = 17, PUB_INTERIOR = 19,
 	LAWYER_OFFICE = 27, BAKER_ST_EXTERIOR = 39, RESCUE_ANNA = 52, MOOREHEAD_DEATH = 53, EXIT_GAME = 55,
 	BRUMWELL_SUICIDE = 70, OVERHEAD_MAP2 = 98, DARTS_GAME = 99, OVERHEAD_MAP = 100 };
@@ -73,6 +75,8 @@ protected:
 public:
 	ScalpelScene(SherlockEngine *vm) : Scene(vm) {}
 
+	virtual ~ScalpelScene();
+
 	/**
 	 * Draw all objects and characters.
 	 */
@@ -87,6 +91,12 @@ public:
 	 *		A negative playRate can also be specified to play the animation in reverse
 	 */
 	virtual int startCAnim(int cAnimNum, int playRate = 1);
+
+	/**
+	 * Attempts to find a background shape within the passed bounds. If found,
+	 * it will return the shape number, or -1 on failure.
+	 */
+	virtual int findBgShape(const Common::Point &pt);
 };
 
 } // End of namespace Scalpel

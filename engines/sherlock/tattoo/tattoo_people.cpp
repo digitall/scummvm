@@ -32,6 +32,7 @@ namespace Tattoo {
 
 #define FACING_PLAYER 16
 #define NUM_ADJUSTED_WALKS 21
+#define CHARACTERS_INDEX 256
 
 struct AdjustWalk {
 	char _vgsName[9];
@@ -98,8 +99,8 @@ SavedNPCPath::SavedNPCPath() {
 	_lookHolmes = false;
 }
 
-SavedNPCPath::SavedNPCPath(byte path[MAX_NPC_PATH], int npcIndex, int npcPause, const Common::Point &walkDest,
-	int npcFacing, bool lookHolmes) : _npcIndex(npcIndex), _npcPause(npcPause), _walkDest(walkDest),
+SavedNPCPath::SavedNPCPath(byte path[MAX_NPC_PATH], int npcIndex, int npcPause, const Point32 &position,
+	int npcFacing, bool lookHolmes) : _npcIndex(npcIndex), _npcPause(npcPause), _position(position),
 		_npcFacing(npcFacing), _lookHolmes(lookHolmes) {
 	Common::copy(&path[0], &path[MAX_NPC_PATH], &_path[0]);
 }
@@ -120,12 +121,13 @@ TattooPerson::TattooPerson() : Person() {
 	_lookHolmes = false;
 }
 
-void TattooPerson::freeAltGraphics() {
-	if (_altImages != nullptr) {
-		delete _altImages;
-		_altImages = nullptr;
-	}
+TattooPerson::~TattooPerson() {
+	delete _altImages;
+}
 
+void TattooPerson::freeAltGraphics() {
+	delete _altImages;
+	_altImages = nullptr;
 	_altSeq = 0;
 }
 
@@ -485,8 +487,8 @@ void TattooPerson::setWalking() {
 	}
 
 	// See if the new walk sequence is the same as the old. If it's a new one,
-	// we need to reset the frame number to zero so it's animation starts at
-	// it's beginning. Otherwise, if it's the same sequence, we can leave it
+	// we need to reset the frame number to zero so its animation starts at
+	// its beginning. Otherwise, if it's the same sequence, we can leave it
 	// as is, so it keeps the animation going at wherever it was up to
 	if (_sequenceNumber != _oldWalkSequence) {
 		if (_seqTo) {
@@ -526,7 +528,7 @@ void TattooPerson::walkToCoords(const Point32 &destPos, int destDir) {
 		people._allowWalkAbort = true;
 	} else {
 		// Clear the path Variables
-		_npcIndex = _npcPause;
+		_npcIndex = _npcPause = 0;
 		Common::fill(_npcPath, _npcPath + 100, 0);
 		_npcFacing = destDir;
 	}
@@ -847,13 +849,12 @@ void TattooPerson::pullNPCPath() {
 
 	// Handle the first case if the NPC was paused
 	if (_npcPause) {
-		_walkDest = Common::Point(path._walkDest.x / FIXED_INT_MULTIPLIER, path._walkDest.y / FIXED_INT_MULTIPLIER);
 		_npcFacing = path._npcFacing;
 		_lookHolmes = path._lookHolmes;
 
-		// See if the NPC was moved
-		if (_walkDest.x != (_position.x / FIXED_INT_MULTIPLIER) ||
-				_walkDest.y != (_position.y / FIXED_INT_MULTIPLIER)) {
+		// See if the NPC has moved from where they originally were
+		if (path._position != _position) {
+			_walkDest = Point32(path._position.x / FIXED_INT_MULTIPLIER, path._position.y / FIXED_INT_MULTIPLIER);
 			goAllTheWay();
 			_npcPause = 0;
 			_npcIndex -= 3;
@@ -874,8 +875,8 @@ Common::Point TattooPerson::getSourcePoint() const {
 	TattooScene &scene = *(TattooScene *)_vm->_scene;
 	int scaleVal = scene.getScaleVal(_position);
 
-	return Common::Point(_position.x / FIXED_INT_MULTIPLIER + _imageFrame->sDrawXSize(scaleVal) / 2,
-		_position.y / FIXED_INT_MULTIPLIER);
+	return Common::Point(_position.x / FIXED_INT_MULTIPLIER + 
+		(_imageFrame ? _imageFrame->sDrawXSize(scaleVal) / 2 : 0), _position.y / FIXED_INT_MULTIPLIER);
 }
 
 void TattooPerson::setObjTalkSequence(int seq) {
@@ -921,7 +922,7 @@ void TattooPerson::checkWalkGraphics() {
 	// See if we're already using Alternate Graphics
 	if (_altSeq) {
 		// See if the VGS file called for is different than the alternate graphics already loaded
-		if (!_walkSequences[_sequenceNumber]._vgsName.compareToIgnoreCase(_walkSequences[_altSeq - 1]._vgsName)) {
+		if (_walkSequences[_sequenceNumber]._vgsName.compareToIgnoreCase(_walkSequences[_altSeq - 1]._vgsName)) {
 			// Different AltGraphics, Free the old ones
 			freeAltGraphics();
 		}
@@ -962,9 +963,216 @@ void TattooPerson::checkWalkGraphics() {
 		_seqTo = _seqCounter = _seqCounter2 = _seqStack = _startSeq = 0;
 		_sequences = &_walkSequences[_sequenceNumber]._sequences[0];
 		_seqSize = _walkSequences[_sequenceNumber]._sequences.size();
+
+		// WORKAROUND: Occassionally when switching to a new walk sequence the existing frame number may be outside
+		// the allowed range for the new sequence. In such cases, reset the frame number
+		if (_frameNumber < 0 || _frameNumber >= (int)_seqSize || _walkSequences[_sequenceNumber][_frameNumber] == 0)
+			_frameNumber = 0;
 	}
 
 	setImageFrame();
+}
+
+void TattooPerson::synchronize(Serializer &s) {
+	if (s.isSaving()) {
+		SpriteType type = (_type == INVALID && _walkLoaded) ? HIDDEN_CHARACTER : _type;
+		s.syncAsSint16LE(type);
+	} else {
+		if (_walkCount)
+			gotoStand();
+
+		s.syncAsSint16LE(_type);
+	}
+
+	s.syncAsSint32LE(_position.x);
+	s.syncAsSint32LE(_position.y);
+	s.syncString(_walkVGSName);
+	s.syncString(_description);
+	s.syncString(_examine);
+
+	// NPC specific properties
+	s.syncBytes(&_npcPath[0], MAX_NPC_PATH);
+	s.syncString(_npcName);
+	s.syncAsSint32LE(_npcPause);
+	s.syncAsByte(_lookHolmes);
+	s.syncAsByte(_updateNPCPath);
+	if (s.isLoading())
+		_npcIndex = 0;
+
+	// Verbs
+	for (int idx = 0; idx < 2; ++idx)
+		_use[idx].synchronize(s);
+}
+
+void TattooPerson::walkHolmesToNPC() {
+	Events &events = *_vm->_events;
+	TattooScene &scene = *(TattooScene *)_vm->_scene;
+	TattooPeople &people = *(TattooPeople *)_vm->_people;
+	Screen &screen = *_vm->_screen;
+	Talk &talk = *_vm->_talk;
+	TattooPerson &holmes = people[HOLMES];
+
+	// Save the character's details
+	pushNPCPath();
+
+	// If the NPC is moving, stop him at his current position
+	if (_walkCount) {
+		// Reset the facing so the NPC will stop facing the direction he was going,
+		// rather than the direction he was supposed to when he finished wlaking
+		_npcFacing = -1;
+		gotoStand();
+	}
+
+	int scaleVal = scene.getScaleVal(_position);
+	ImageFrame &imgFrame = (*holmes._images)[0];
+
+	// Clear the path variables
+	memset(_npcPath, 0, 100);
+	
+	// Set the NPC path so he pauses for 250 while looking at Holmes
+	_npcPath[0] = 6;
+	_npcPath[1] = 1;
+	_npcPath[2] = 251;
+	_npcIndex = 0;
+	_npcPause = 250;
+	_lookHolmes = true;
+
+	// See where Holmes is with respect to the NPC (x coords)
+	if (holmes._position.x < _position.x) {
+		holmes._walkDest.x = MAX(_position.x / FIXED_INT_MULTIPLIER - imgFrame.sDrawXSize(scaleVal), 0);
+	} else {
+		holmes._walkDest.x = MIN(_position.x / FIXED_INT_MULTIPLIER + imgFrame.sDrawXSize(scaleVal) * 2,
+			screen._backBuffer1.width() - 1);
+	}
+
+	// See where Holmes is with respect to the NPC (y coords)
+	if (holmes._position.y < (_position.y - imgFrame.sDrawXSize(scaleVal) * 500)) {
+		holmes._walkDest.y = MAX(_position.y / FIXED_INT_MULTIPLIER - imgFrame.sDrawXSize(scaleVal) / 2, 0);
+	} else {
+		if (holmes._position.y > (_position.y + imgFrame.sDrawXSize(scaleVal) * 500)) {
+			// Holmes is below the NPC
+			holmes._walkDest.y = MIN(_position.y / FIXED_INT_MULTIPLIER + imgFrame.sDrawXSize(scaleVal) / 2,
+				SHERLOCK_SCREEN_HEIGHT - 1);
+		} else {
+			// Holmes is roughly on the same Y as the NPC
+			holmes._walkDest.y = _position.y / FIXED_INT_MULTIPLIER;
+		}
+	}
+
+	events.setCursor(WAIT);
+
+	_walkDest.x += 10;
+	people._allowWalkAbort = true;
+	holmes.goAllTheWay();
+
+	// Do doBgAnim should be called over and over until walk is done
+	do {
+		events.wait(1);
+		scene.doBgAnim();
+	} while (holmes._walkCount);
+
+	if (!talk._talkToAbort) {
+		// Setup correct direction for Holmes to face
+		// See where Holmes is with respect to the NPC (x coords)
+		int facing = (holmes._position.x < _position.x) ? STOP_RIGHT : STOP_LEFT;
+
+		// See where Holmes is with respect to the NPC (y coords)
+		if (holmes._position.y < (_position.y - (10 * FIXED_INT_MULTIPLIER))) {
+			// Holmes is above the NPC. Reset the facing to the diagonal downs
+			facing = (facing == STOP_RIGHT) ? STOP_DOWNRIGHT : STOP_DOWNLEFT;
+		} else {
+			if (holmes._position.y > (_position.y + 10 * FIXED_INT_MULTIPLIER)) {
+				// Holmes is below the NPC. Reset the facing to the diagonal ups
+				facing = (facing == STOP_RIGHT) ? STOP_UPRIGHT : STOP_UPLEFT;
+			}
+		}
+
+		holmes._sequenceNumber = facing;
+		holmes.gotoStand();
+
+		events.setCursor(ARROW);
+	}
+}
+
+void TattooPerson::walkBothToCoords(const PositionFacing &holmesDest, const PositionFacing &npcDest) {
+	Events &events = *_vm->_events;
+	TattooPeople &people = *(TattooPeople *)_vm->_people;
+	Scene &scene = *_vm->_scene;
+	Talk &talk = *_vm->_talk;
+	TattooPerson &holmes = people[HOLMES];
+	bool holmesStopped = false, npcStopped = false;
+
+	// Save the current cursor and change to the wait cursor
+	CursorId oldCursor = events.getCursor();
+	events.setCursor(WAIT);
+
+	holmes._centerWalk = false;
+	_centerWalk = false;
+
+	// Start Holmes walking to his dest
+	holmes._walkDest = Common::Point(holmesDest.x / FIXED_INT_MULTIPLIER + 10, holmesDest.y / FIXED_INT_MULTIPLIER);
+	people._allowWalkAbort = true;
+	holmes.goAllTheWay();
+
+	// Start the NPC walking to their dest
+	_walkDest = Common::Point(npcDest.x / FIXED_INT_MULTIPLIER + 10, npcDest.y / FIXED_INT_MULTIPLIER);
+	goAllTheWay();
+
+	// Clear the path variables
+	_npcIndex = _npcPause = 0;
+	Common::fill(&_npcPath[0], &_npcPath[100], 0);
+	_npcFacing = npcDest._facing;
+
+	// Now loop until both stop walking
+	do {
+		events.pollEvents();
+		scene.doBgAnim();
+
+		if (!holmes._walkCount && !holmesStopped) {
+			// Holmes finished walking
+			holmesStopped = true;
+
+			// Ensure Holmes is on the exact destination spot
+			holmes._position = holmesDest;
+			holmes._sequenceNumber = holmesDest._facing;
+			holmes.gotoStand();
+		}
+
+		if (!_walkCount && !npcStopped) {
+			// NPC finished walking
+			npcStopped = true;
+
+			// Ensure NPC is on the exact destination spot
+			_position = npcDest;
+			_sequenceNumber = npcDest._facing;
+			gotoStand();
+		}
+
+	} while (!_vm->shouldQuit() && (holmes._walkCount || _walkCount));
+
+	holmes._centerWalk = true;
+	_centerWalk = true;
+
+	// Do one last frame draw so that the lsat person to stop will be drawn in their final position
+	scene.doBgAnim();
+
+	_updateNPCPath = true;
+
+	if (!talk._talkToAbort)
+		// Restore original mouse cursor
+		events.setCursor(oldCursor);
+}
+
+void TattooPerson::centerScreenOnPerson() {
+	Screen &screen = *_vm->_screen;
+	TattooUserInterface &ui = *(TattooUserInterface *)_vm->_ui;
+
+	ui._targetScroll.x = CLIP(_position.x / FIXED_INT_MULTIPLIER - SHERLOCK_SCREEN_WIDTH / 2,
+		0, screen._backBuffer1.width() - SHERLOCK_SCREEN_WIDTH);
+	screen._currentScroll = ui._targetScroll;
+
+	// Reset the default look position to the center of the screen
+	ui._lookPos = screen._currentScroll + Common::Point(SHERLOCK_SCREEN_WIDTH / 2, SHERLOCK_SCREEN_HEIGHT / 2);
 }
 
 /*----------------------------------------------------------------*/
@@ -982,7 +1190,7 @@ void TattooPeople::setListenSequence(int speaker, int sequenceNum) {
 		return;
 
 	int objNum = findSpeaker(speaker);
-	if (objNum < 256 && objNum != -1) {
+	if (objNum < CHARACTERS_INDEX && objNum != -1) {
 		// See if the Object has to wait for an Abort Talk Code
 		Object &obj = scene._bgShapes[objNum];
 		if (obj.hasAborts())
@@ -990,7 +1198,7 @@ void TattooPeople::setListenSequence(int speaker, int sequenceNum) {
 		else
 			obj.setObjTalkSequence(sequenceNum);
 	} else if (objNum != -1) {
-		objNum -= 256;
+		objNum -= CHARACTERS_INDEX;
 		TattooPerson &person = (*this)[objNum];
 
 		int newDir = person._sequenceNumber;
@@ -1067,20 +1275,18 @@ void TattooPeople::setTalkSequence(int speaker, int sequenceNum) {
 		return;
 
 	int objNum = people.findSpeaker(speaker);
-	if (objNum != -1 && objNum < 256) {
+	if (objNum != -1 && objNum < CHARACTERS_INDEX) {
 		Object &obj = scene._bgShapes[objNum];
 
 		// See if the Object has to wait for an Abort Talk Code
 		if (obj.hasAborts()) {
-			talk.pushTalkSequence(&obj);
+			talk.pushSequenceEntry(&obj);
 			obj._gotoSeq = sequenceNum;
-		}
-		else {
+		} else {
 			obj.setObjTalkSequence(sequenceNum);
 		}
-	}
-	else if (objNum != -1) {
-		objNum -= 256;
+	} else if (objNum != -1) {
+		objNum -= CHARACTERS_INDEX;
 		TattooPerson &person = people[objNum];
 		int newDir = person._sequenceNumber;
 
@@ -1148,16 +1354,19 @@ void TattooPeople::setTalkSequence(int speaker, int sequenceNum) {
 
 
 int TattooPeople::findSpeaker(int speaker) {
+	speaker &= 0x7f;
 	int result = People::findSpeaker(speaker);
 	const char *portrait = _characters[speaker]._portrait;
 
 	// Fallback that Rose Tattoo uses if no speaker was found
 	if (result == -1) {
-		bool flag = _vm->readFlags(76);
+		bool flag = _vm->readFlags(FLAG_PLAYER_IS_HOLMES);
 
-		if (_data[HOLMES]->_type == CHARACTER && ((speaker == 0 && flag) || (speaker == 1 && !flag)))
-			return -1;
+		if (_data[HOLMES]->_type == CHARACTER && ((speaker == HOLMES && flag) || (speaker == WATSON && !flag)))
+			// Return the offset index for the first character
+			return 0 + CHARACTERS_INDEX;
 
+		// Otherwise, scan through the list of the remaining characters to find a name match
 		for (uint idx = 1; idx < _data.size(); ++idx) {
 			TattooPerson &p = (*this)[idx];
 
@@ -1165,27 +1374,19 @@ int TattooPeople::findSpeaker(int speaker) {
 				Common::String name(p._name.c_str(), p._name.c_str() + 4);
 
 				if (name.equalsIgnoreCase(portrait) && p._npcName[4] >= '0' && p._npcName[4] <= '9')
-					return idx + 256;
+					return idx + CHARACTERS_INDEX;
 			}
 		}
 	}
 
-	return -1;
+	return result;
 }
 
 void TattooPeople::synchronize(Serializer &s) {
 	s.syncAsByte(_holmesOn);
 
-	for (uint idx = 0; idx < _data.size(); ++idx) {
-		Person &p = *_data[idx];
-		s.syncAsSint32LE(p._position.x);
-		s.syncAsSint32LE(p._position.y);
-		s.syncAsSint16LE(p._sequenceNumber);
-		s.syncAsSint16LE(p._type);
-		s.syncString(p._walkVGSName);
-		s.syncString(p._description);
-		s.syncString(p._examine);
-	}
+	for (uint idx = 0; idx < _data.size(); ++idx)
+		(*this)[idx].synchronize(s);
 
 	s.syncAsSint16LE(_holmesQuotient);
 
@@ -1271,6 +1472,31 @@ void TattooPeople::pullNPCPaths() {
 		}
 	}
 }
+
+const Common::Point TattooPeople::restrictToZone(int zoneId, const Common::Point &destPos) {
+	Scene &scene = *_vm->_scene;
+	Screen &screen = *_vm->_screen;
+	Common::Rect &r = scene._zones[zoneId];
+
+	if (destPos.x < 0 || destPos.x > screen._backBuffer1.width())
+		return destPos;
+	else if (destPos.y < r.top && r.left < destPos.x && destPos.x < r.right)
+		return Common::Point(destPos.x, r.top);
+	else if (destPos.y > r.bottom && r.left < destPos.x && destPos.x < r.right)
+		return Common::Point(destPos.x, r.bottom);
+	else if (destPos.x < r.left && r.top < destPos.y && destPos.y < r.bottom)
+		return Common::Point(r.left, destPos.y);
+	else if (destPos.x > r.right && r.top < destPos.y && destPos.y < r.bottom)
+		return Common::Point(r.right, destPos.y);
+
+	// Find which corner of the zone the point is closet to
+	if (destPos.x <= r.left) {
+		return Common::Point(r.left, (destPos.y <= r.top) ? r.top : r.bottom);
+	} else {
+		return Common::Point(r.right, (destPos.y <= r.top) ? r.top : r.bottom);
+	}
+}
+
 
 } // End of namespace Tattoo
 
