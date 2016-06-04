@@ -640,7 +640,6 @@ void ApplicationFaust::initZone() {
 	varSetByte(98001, _zone);
 }
 
-
 void ApplicationFaust::initMenuSave(bool savegame) {
 	int8 slot = varGetByte(98001);
 
@@ -796,19 +795,19 @@ void ApplicationFaust::draw() {
 			error("[ApplicationRing::draw] No active rotation!");
 
 		if (!checkEscape()) {
-			if (_rotation->getField28() != 0) {
-				if (_rotation->getField28() == 3) {
+			if (_rotation->getState() != 0) {
+				if (_rotation->getState() == 3) {
 					_rotation->destroyImage();
-					_rotation->setField28(0);
+					_rotation->setState(0);
 				}
 			} else {
 				if (_rotation->hasImage())
-					_rotation->setField28(3);
+					_rotation->setState(3);
 			}
 		}
 
-		if (_rotation->getField28() != 0) {
-			if (_rotation->getField28() == 3) {
+		if (_rotation->getState() != 0) {
+			if (_rotation->getState() == 3) {
 				_rotation->loadImage();
 				_rotation->drawImage();
 				_rotation->drawText();

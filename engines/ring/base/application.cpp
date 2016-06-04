@@ -566,7 +566,7 @@ void Application::update(const Common::Point &point) {
 	}
 
 	// Current rotation
-	if (_rotation && !_rotation->getField28()) {
+	if (_rotation && !_rotation->getState()) {
 
 		// Check accessibilities
 		Accessibility *accessibility = _rotation->getAccessibility(point);
@@ -769,7 +769,6 @@ void Application::displayFade(Common::String filenameFrom, Common::String filena
 	ImageSurface *imageTo = nullptr;
 	Animation *animation = nullptr;
 	char *pixels = nullptr;
-
 
 	if (archiveType == kArchiveInvalid)
 		archiveType = getArchiveType(getCurrentZone());
@@ -1640,7 +1639,6 @@ void Application::objectSetPuzzleAccessibilityKey(ObjectId objectId, uint32 acce
 	_objects.get(objectId)->setAccessibilityKey(accessibilityIndex, key);
 }
 
-
 void Application::objectSetAccessibilityOnOrOff(ObjectId objectId, bool enableHotspot, uint32 fromAcceleration, uint32 toAcceleration) {
 	if (!_objects.has(objectId))
 		error("[Application::objectSetAccessibilityOnOrOff] Object Id doesn't exist (%d)", objectId.id());
@@ -1926,7 +1924,6 @@ void Application::objectPresentationHideAndRemove(ObjectId objectId) {
 
 	_objects.get(objectId)->hideAndRemove();
 }
-
 
 void Application::initObjectCursors(ObjectId objectId) {
 	if (!_objects.has(objectId))
@@ -2525,7 +2522,6 @@ void Application::visualListAddToPuzzle(Id visualId, PuzzleId puzzleId, uint32 a
 										const Color &foreground, const Color &foregroundSelected, const Color &background, FontId fontId,
 										ArchiveType archiveType) {
 
-
 	if (!_puzzles.has(puzzleId))
 		error("[Application::visualAddListToPuzzle] Puzzle Id doesn't exist (%d)", puzzleId.id());
 
@@ -2885,7 +2881,6 @@ bool Application::dragControlXHigher1() {
 
 	return _dragControl->getCurrentCoords().x > _dragControl->getCoords1().x;
 }
-
 
 uint32 Application::dragControlGetOffsetX() const {
 	if (!_dragControl)

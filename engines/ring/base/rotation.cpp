@@ -43,7 +43,7 @@ namespace Ring {
 
 #pragma region Rotation
 
-Rotation::Rotation(Id id, Common::String name, byte a3, LoadFrom, uint32 nodeCount, bool isCompressedStream) : BaseObject(id) {
+Rotation::Rotation(Id id, Common::String name, byte state, LoadFrom, uint32 nodeCount, bool isCompressedStream) : BaseObject(id) {
 	_isCompressedStream = isCompressedStream;
 	_comBufferLength = 0;
 
@@ -54,7 +54,7 @@ Rotation::Rotation(Id id, Common::String name, byte a3, LoadFrom, uint32 nodeCou
 	for (uint32 i = 0; i < nodeCount; i++)
 		_animations.push_back(new Animation());
 
-	_field_28 = a3;
+	_state = state;
 
 	// Init stream
 	_stream = new AquatorStream(nodeCount, _path);
@@ -94,6 +94,8 @@ Rotation::Rotation(Id id, Common::String name, byte a3, LoadFrom, uint32 nodeCou
 	_float3 = 180.0f;
 	_float4 = 1024.0f;
 	_float5 = 1024.0f;
+	_float6 = 0.0f;
+	_float7 = 0.0f;
 
 	// Initialize rotation values
 	_width = 640;
@@ -496,7 +498,6 @@ void Rotation::setMovabilityOnOrOff(bool enableHotspot, uint32 fromMovability, u
 	if (toMovability >= _movabilities.size())
 		error("[Rotation::setMovabilityOnOrOff] To acceleration is not in range (was:%d, max:%d)", fromMovability, _movabilities.size() - 1);
 
-
 	for (uint32 i = fromMovability; i <= toMovability; i++) {
 		if (enableHotspot)
 			_movabilities[i]->enableHotspot();
@@ -754,7 +755,7 @@ void Rotation::saveLoadWithSerializer(Common::Serializer &s) {
 	}
 
 	SaveManager::syncArray(s, &_soundItems);
-	s.syncAsByte(_field_28);
+	s.syncAsByte(_state);
 	s.syncAsUint32LE(_field_31);
 	s.syncAsUint32LE(_field_35);
 	s.syncAsUint32LE(_amplitude);

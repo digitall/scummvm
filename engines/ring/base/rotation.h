@@ -79,10 +79,10 @@ public:
 	void setRan(float ran) { _ran = ran; }
 	bool setRolTo(float alp, float bet, float ran);
 
-	float getAlp() { return _alp; };
-	float getBet() { return _bet; }
-	float getRan() { return _ran; }
-	bool  getFre() { return _fre; }
+	float getAlp() const { return _alp; };
+	float getBet() const { return _bet; }
+	float getRan() const { return _ran; }
+	bool  getFre() const { return _fre; }
 
 	// Presentation
 	Animation *addPresentationAnimation(ObjectPresentation *presentation, uint32 layer, uint32 frameCount, float frameRate, byte a5);
@@ -108,9 +108,9 @@ public:
 	void setFreOnOff(bool state);
 	void setAmplitudeAndSpeed(float amplitude, float speed);
 	void setCompressionBufferLength(uint32 length) { _comBufferLength = length; }
-	void setField28(byte val) { _field_28 = val; }
-	byte getField28() { return _field_28; }
-	bool hasImage() { return _imageHandle != nullptr; }
+	void setState(byte val) { _state = val; }
+	byte getState() const { return _state; }
+	bool hasImage() const { return _imageHandle != nullptr; }
 
 private:
 	Common::String                      _path;
@@ -122,7 +122,7 @@ private:
 	Common::Array<Animation *>          _animations;
 	Common::Array<Text *>               _texts;
 	AssociativeArray<SoundItem *>       _soundItems;
-	byte                                _field_28;
+	byte                                _state;
 	ImageHandle                        *_imageHandle;
 	AquatorStream                      *_stream;
 	float                               _field_31;
