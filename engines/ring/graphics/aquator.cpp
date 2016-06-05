@@ -445,7 +445,7 @@ void ImageHeaderEntry::updateData(float a1, float a2, float a3, float a4, float 
 
 ImageHeader::ImageHeader() {
 	_field_4 = 0;
-	_current = nullptr;
+	_current = new ImageHeaderEntry();
 	_field_4C = -1;
 }
 
@@ -455,7 +455,7 @@ ImageHeader::~ImageHeader() {
 
 void ImageHeader::reset() {
 	CLEAR_ARRAY(ImageHeaderEntry, _entries);
-	SAFE_DELETE(_current);
+	_current->reset();
 }
 
 void ImageHeader::init(Common::SeekableReadStream *stream) {
