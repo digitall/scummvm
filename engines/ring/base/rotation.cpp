@@ -33,8 +33,8 @@
 #include "ring/graphics/image.h"
 #include "ring/graphics/screen.h"
 
-#include "ring/sound/soundentry.h"
-#include "ring/sound/soundhandler.h"
+#include "ring/sound/sound_entry.h"
+#include "ring/sound/sound_handler.h"
 
 #include "ring/helpers.h"
 #include "ring/ring.h"

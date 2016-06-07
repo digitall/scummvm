@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef RING_SOUNDMANAGER_H
-#define RING_SOUNDMANAGER_H
+#ifndef RING_SOUND_MANAGER_H
+#define RING_SOUND_MANAGER_H
 
 #include "ring/shared.h"
 
@@ -87,4 +87,4 @@ private:
 
 } // End of namespace Ring
 
-#endif // RING_SOUNDMANAGER_H
+#endif // RING_SOUND_MANAGER_H

@@ -22,7 +22,7 @@ MODULE_OBJS := \
 	base/zone.o \
 	graphics/animation.o \
 	graphics/aquator.o \
-	graphics/dragControl.o \
+	graphics/drag_control.o \
 	graphics/hotspot.o \
 	graphics/image.o \
 	graphics/screen.o \
@@ -42,10 +42,10 @@ MODULE_OBJS := \
 	graphics/visual/visual_box.o \
 	graphics/visual/visual_encyclopedia.o \
 	graphics/visual/visual_list.o \
-	sound/soundentry.o \
-	sound/soundhandler.o \
-	sound/soundloader.o \
-	sound/soundmanager.o \
+	sound/sound_entry.o \
+	sound/sound_handler.o \
+	sound/sound_loader.o \
+	sound/sound_manager.o \
 	debug.o \
 	detection.o \
 	ring.o

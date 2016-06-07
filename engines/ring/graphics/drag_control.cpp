@@ -19,7 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "ring/graphics/dragControl.h"
+#include "ring/graphics/drag_control.h"
 
 #include "ring/base/application.h"
 

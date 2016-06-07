@@ -45,11 +45,11 @@
 #include "ring/game/pompeii/pompeii_zone11.h"
 #include "ring/game/pompeii/pompeii_zone12.h"
 
-#include "ring/graphics/dragControl.h"
+#include "ring/graphics/drag_control.h"
 #include "ring/graphics/image.h"
 #include "ring/graphics/screen.h"
 
-#include "ring/sound/soundhandler.h"
+#include "ring/sound/sound_handler.h"
 
 #include "ring/debug.h"
 #include "ring/helpers.h"

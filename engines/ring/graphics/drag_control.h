@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef RING_DRAGCONTROL_H
-#define RING_DRAGCONTROL_H
+#ifndef RING_DRAG_CONTROL_H
+#define RING_DRAG_CONTROL_H
 
 #include "ring/shared.h"
 
@@ -86,4 +86,4 @@ private:
 
 } // End of namespace Ring
 
-#endif // RING_DRAGCONTROL_H
+#endif // RING_DRAG_CONTROL_H

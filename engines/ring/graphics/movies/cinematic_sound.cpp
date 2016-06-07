@@ -23,8 +23,8 @@
 
 #include "ring/base/application.h"
 
-#include "ring/sound/soundentry.h"
-#include "ring/sound/soundmanager.h"
+#include "ring/sound/sound_entry.h"
+#include "ring/sound/sound_manager.h"
 
 #include "ring/ring.h"
 #include "ring/helpers.h"

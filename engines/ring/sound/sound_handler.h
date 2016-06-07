@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef RING_SOUNDHANDLER_H
-#define RING_SOUNDHANDLER_H
+#ifndef RING_SOUND_HANDLER_H
+#define RING_SOUND_HANDLER_H
 
 #include "ring/shared.h"
 

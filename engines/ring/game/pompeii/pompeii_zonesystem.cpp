@@ -28,7 +28,7 @@
 #include "ring/game/pompeii/pompeii_application.h"
 #include "ring/game/pompeii/pompeii_shared.h"
 
-#include "ring/graphics/dragControl.h"
+#include "ring/graphics/drag_control.h"
 #include "ring/graphics/image.h"
 
 #include "ring/debug.h"

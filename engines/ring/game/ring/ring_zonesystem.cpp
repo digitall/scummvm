@@ -27,7 +27,7 @@
 #include "ring/game/ring/ring_application.h"
 #include "ring/game/ring/ring_shared.h"
 
-#include "ring/graphics/dragControl.h"
+#include "ring/graphics/drag_control.h"
 #include "ring/graphics/image.h"
 
 #include "ring/debug.h"

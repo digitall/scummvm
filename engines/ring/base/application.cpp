@@ -37,7 +37,7 @@
 #include "ring/base/var.h"
 #include "ring/base/zone.h"
 
-#include "ring/graphics/dragControl.h"
+#include "ring/graphics/drag_control.h"
 #include "ring/graphics/image.h"
 #include "ring/graphics/hotspot.h"
 #include "ring/graphics/movies/movie.h"
@@ -47,9 +47,9 @@
 #include "ring/graphics/visual/visual_encyclopedia.h"
 #include "ring/graphics/visual/visual_list.h"
 
-#include "ring/sound/soundentry.h"
-#include "ring/sound/soundhandler.h"
-#include "ring/sound/soundmanager.h"
+#include "ring/sound/sound_entry.h"
+#include "ring/sound/sound_handler.h"
+#include "ring/sound/sound_manager.h"
 
 #include "ring/helpers.h"
 #include "ring/ring.h"

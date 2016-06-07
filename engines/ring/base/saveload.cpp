@@ -27,7 +27,7 @@
 
 #include "ring/graphics/image.h"
 
-#include "ring/sound/soundmanager.h"
+#include "ring/sound/sound_manager.h"
 
 #include "ring/helpers.h"
 #include "ring/ring.h"
