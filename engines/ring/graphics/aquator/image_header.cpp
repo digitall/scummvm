@@ -35,6 +35,7 @@ ImageHeader::ImageHeader() {
 
 ImageHeader::~ImageHeader() {
 	reset();
+	delete _current;
 }
 
 void ImageHeader::reset() {
@@ -50,14 +51,14 @@ void ImageHeader::init(Common::SeekableReadStream *stream) {
 	_field_4C = stream->readUint32LE();
 
 	// Create entries
-	for (uint32 i = 0; i < count; i++)
-		_entries.push_back(new ImageHeaderEntry());
+	for (uint32 i = 0; i < count; i++) {
+		ImageHeaderEntry *entry = new ImageHeaderEntry();
+		entry->init(stream, false);
+		_entries.push_back(entry);
+	}
 
 	if (count == 1)
 		_field_4C = -1;
-
-	for (uint32 i = 0; i < count; i++)
-		_entries[i]->init(stream, false);
 }
 
 void ImageHeader::update(ImageHeaderEntry* entry) {
@@ -65,7 +66,7 @@ void ImageHeader::update(ImageHeaderEntry* entry) {
 		error("[ImageHeader::update] entry not initialized properly");
 
 	_current->init(_entries[0]);
-	entry->update(_current, false);
+	entry->update(_current);
 }
 
 ImageHeaderEntry *ImageHeader::get(uint32 index) {
