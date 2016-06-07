@@ -22,7 +22,7 @@
 #ifndef RING_ROTATION_H
 #define RING_ROTATION_H
 
-#include "ring/graphics/aquator.h"
+#include "ring/graphics/pixel.h"
 
 #include "ring/shared.h"
 

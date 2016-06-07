@@ -21,12 +21,16 @@ MODULE_OBJS := \
 	base/var.o \
 	base/zone.o \
 	graphics/animation.o \
-	graphics/aquator.o \
 	graphics/drag_control.o \
 	graphics/hotspot.o \
 	graphics/image.o \
+	graphics/pixel.o \
 	graphics/screen.o \
-    graphics/codecs/imageloader.o \
+	graphics/aquator/aquator_image_header.o \
+	graphics/aquator/aquator_stream.o \
+	graphics/aquator/image_header.o \
+	graphics/aquator/image_header_entry.o \
+	graphics/codecs/imageloader.o \
 	graphics/codecs/imageloader_bma.o \
 	graphics/codecs/imageloader_bmp.o \
 	graphics/codecs/imageloader_cin.o \

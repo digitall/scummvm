@@ -28,6 +28,8 @@
 #include "ring/base/saveload.h"
 #include "ring/base/text.h"
 
+#include "ring/graphics/aquator/aquator_stream.h"
+
 #include "ring/graphics/animation.h"
 #include "ring/graphics/hotspot.h"
 #include "ring/graphics/image.h"

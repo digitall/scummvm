@@ -24,7 +24,7 @@
 #include "ring/base/application.h"
 #include "ring/base/art.h"
 
-#include "ring/graphics/aquator.h"
+#include "ring/graphics/aquator/image_header_entry.h"
 
 #include "ring/helpers.h"
 #include "ring/ring.h"
