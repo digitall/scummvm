@@ -33,6 +33,7 @@ struct BltPotionPuzzleDef {
 		bgPaletteId = BltId(READ_BE_UINT32(&src[8]));
 		numShelfPoints = READ_BE_UINT16(&src[0x16]);
 		shelfPointsId = BltId(READ_BE_UINT32(&src[0x18]));
+		basinPointsId = BltId(READ_BE_UINT32(&src[0x20]));
 		origin.x = READ_BE_INT16(&src[0x42]);
 		origin.y = READ_BE_INT16(&src[0x44]);
 	}
@@ -42,11 +43,12 @@ struct BltPotionPuzzleDef {
 	BltId bgPaletteId;
 	uint16 numShelfPoints;
 	BltId shelfPointsId;
+	BltId basinPointsId;
 	Common::Point origin;
 };
 
-struct BltPotionPuzzleIngredientPosElement {
-	static const uint32 kType = kBltPotionPuzzleIngredientPos;
+struct BltPotionPuzzleSpritePointElement {
+	static const uint32 kType = kBltPotionPuzzleSpritePoints;
 	static const uint kSize = 0x4;
 	void load(const byte *src, Boltlib &boltlib) {
 		pos.x = READ_BE_INT16(&src[0]);
@@ -56,7 +58,7 @@ struct BltPotionPuzzleIngredientPosElement {
 	Common::Point pos;
 };
 
-typedef ScopedArray<BltPotionPuzzleIngredientPosElement> BltPotionPuzzleIngredientPos;
+typedef ScopedArray<BltPotionPuzzleSpritePointElement> BltPotionPuzzleSpritePoints;
 
 struct BltPotionPuzzleDifficultyDef {
 	static const uint32 kType = kBltPotionPuzzleDifficulty;
@@ -78,7 +80,8 @@ void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	BltU16Values difficultyIds;
 	BltPotionPuzzleDifficultyDef difficulty;
 	BltResourceList ingredientImagesList;
-	BltPotionPuzzleIngredientPos ingredientPos;
+	BltPotionPuzzleSpritePoints shelfPoints;
+	BltPotionPuzzleSpritePoints basinPoints;
 
 	loadBltResource(puzzle, boltlib, resId);
 	loadBltResourceArray(difficultyIds, boltlib, puzzle.difficultiesId);
@@ -88,7 +91,8 @@ void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	BltId difficultyId = BltShortId(difficultyIds[0].value); // TODO: Use player's chosen difficulty
 	loadBltResource(difficulty, boltlib, difficultyId);
 	loadBltResourceArray(ingredientImagesList, boltlib, difficulty.ingredientImagesId);
-	loadBltResourceArray(ingredientPos, boltlib, puzzle.shelfPointsId);
+	loadBltResourceArray(shelfPoints, boltlib, puzzle.shelfPointsId);
+	loadBltResourceArray(basinPoints, boltlib, puzzle.basinPointsId);
 
 	_origin = puzzle.origin;
 	_bowlSlots[0] = -1;
@@ -107,7 +111,14 @@ void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 
 	_shelfPoints.alloc(puzzle.numShelfPoints);
 	for (uint16 i = 0; i < puzzle.numShelfPoints; ++i) {
-		_shelfPoints[i] = ingredientPos[i].pos;
+		_shelfPoints[i] = shelfPoints[i].pos;
+	}
+
+	if (basinPoints.size() != 3) {
+		error("Invalid number of basin points %d", basinPoints.size());
+	}
+	for (int i = 0; i < 3; ++i) {
+		_basinPoints[i] = basinPoints[i].pos;
 	}
 }
 
@@ -123,7 +134,7 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 	case STATE_ACCEPTING_INPUT:
 		if (event.type == BoltEvent::Click) {
 			// Determine which piece was clicked
-			for (int i = 0; i < _shelfPoints.size(); ++i) {
+			for (uint i = 0; i < _shelfPoints.size(); ++i) {
 				if (getIngredientHitbox(i, _shelfPoints[i]).contains(event.point)) {
 					// Enter STATE_PLACING_1
 					debug(3, "clicked piece %d", i);
@@ -132,6 +143,8 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 					_state = STATE_PLACING_1;
 				}
 			}
+		} else if (event.type == BoltEvent::RightClick) {
+			return kEnd;
 		}
 		return kNull;
 	case STATE_PLACING_1:
@@ -140,7 +153,11 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 		if (delta >= kPlacing1Time) {
 			// Enter STATE_PLACING_2
 			_slotStates[_clickedPiece] = false;
-			_bowlSlots[0] = _clickedPiece;
+			if (_bowlSlots[0] == -1) {
+				_bowlSlots[0] = _clickedPiece;
+			} else if (_bowlSlots[1] == -1) {
+				_bowlSlots[1] = _clickedPiece;
+			}
 			draw();
 			_timeoutStart = event.time;
 			_state = STATE_PLACING_2;
@@ -151,11 +168,7 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 	{
 		uint32 delta = event.time - _timeoutStart;
 		if (delta >= kPlacing2Time) {
-			// Play potion movie and return to STATE_ACCEPTING_INPUT
-			// TODO: Play correct potion movie. Movie is determined by looking up ingredients in a table.
-			_bowlSlots[0] = -1;
-			_game->startPotionMovie(0);
-			_state = STATE_ACCEPTING_INPUT;
+			reactIngredients();
 		}
 		return kNull;
 	}
@@ -173,18 +186,20 @@ void PotionPuzzle::draw() {
 		_graphics->clearPlane(kFore);
 	}
 
-	for (int i = 0; i < _shelfPoints.size(); ++i) {
+	for (uint i = 0; i < _shelfPoints.size(); ++i) {
 		if (_slotStates[i]) {
 			drawIngredient(i, _shelfPoints[i]);
 		}
 	}
 
-	for (int i = 0; i < 2; ++i) {
-		if (_bowlSlots[i] != -1) {
-			int ingredient = _bowlSlots[i];
-			// TODO: Draw pieces in bowl at correct position.
-			drawIngredient(ingredient, Common::Point(160, 100));
-		}
+	if (_bowlSlots[0] != -1 && _bowlSlots[1] == -1) {
+		// Draw one ingredient in basin
+		drawIngredient(_bowlSlots[0], _basinPoints[1]);
+	} else if (_bowlSlots[0] != -1 && _bowlSlots[1] != -1) {
+		// Draw two ingredients in basin
+		// FIXME: basin points are wrong
+		drawIngredient(_bowlSlots[0], _basinPoints[0]);
+		drawIngredient(_bowlSlots[1], _basinPoints[2]);
 	}
 
 	_graphics->markDirty();
@@ -207,6 +222,20 @@ Rect PotionPuzzle::getIngredientHitbox(int num, Common::Point pos) {
 	Rect rc(0, 0, _ingredientImages[num].getWidth(), _ingredientImages[num].getHeight());
 	rc.translate(pos.x, pos.y);
 	return rc;
+}
+
+void PotionPuzzle::reactIngredients() {
+	// Play potion movie and return to STATE_ACCEPTING_INPUT
+	// TODO: Play correct potion movie. Movie is determined by looking up ingredients in a table.
+	if (_bowlSlots[0] != -1 && _bowlSlots[1] != -1) {
+		_bowlSlots[0] = -1;
+		_bowlSlots[1] = -1;
+		_game->startPotionMovie(0);
+		_state = STATE_ACCEPTING_INPUT;
+	} else {
+		// No ingredient reaction
+		_state = STATE_ACCEPTING_INPUT;
+	}
 }
 
 } // End of namespace Bolt

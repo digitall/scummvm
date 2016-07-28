@@ -40,6 +40,7 @@ private:
 	void draw();
 	void drawIngredient(int num, Common::Point pos);
 	Rect getIngredientHitbox(int num, Common::Point pos);
+	void reactIngredients();
 
 	enum State
 	{
@@ -59,6 +60,7 @@ private:
 	Common::Point _origin;
 	ScopedArray<BltImage> _ingredientImages;
 	ScopedArray<Common::Point> _shelfPoints;
+	Common::Point _basinPoints[3];
 	ScopedArray<bool> _slotStates; // False: Empty; True: Filled
 	int _bowlSlots[2]; // Ingredients in bowl
 	State _state;
