@@ -53,7 +53,7 @@ enum BltType {
 	kBltParticleDeaths = 45, // action puzzles
 	kBltParticles = 46, // action puzzles
 	kBltPotionPuzzle = 59,
-	kBltPotionPuzzleIngredientPos = 60, // potion puzzles
+	kBltPotionPuzzleSpritePoints = 60, // potion puzzles
 	kBltPotionPuzzleDifficulty = 61, // potion puzzles
 };
 
