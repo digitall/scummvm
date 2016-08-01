@@ -55,6 +55,8 @@ enum BltType {
 	kBltPotionPuzzle = 59,
 	kBltPotionPuzzleSpritePoints = 60, // potion puzzles
 	kBltPotionPuzzleDifficulty = 61, // potion puzzles
+	kBltPotionPuzzleComboTableList = 62,
+	kBltPotionPuzzleComboTable = 63,
 };
 
 struct BltShortId {
@@ -130,7 +132,9 @@ void loadBltResource(T &obj, Boltlib &boltlib, BltId id) {
 	obj.~T();
 	new(&obj) T();
 	if (res) {
-		assert(res.size() == T::kSize);
+		if (res.size() != T::kSize) {
+			error("Invalid size for resource type %u: %u", (uint)T::kType, (uint)res.size());
+		}
 		obj.load(&res[0], boltlib);
 	}
 }

@@ -66,11 +66,27 @@ struct BltPotionPuzzleDifficultyDef {
 	void load(const byte *src, Boltlib &boltlib) {
 		numIngredients = READ_BE_UINT16(&src[0]);
 		ingredientImagesId = BltId(READ_BE_UINT32(&src[2]));
+		comboTableListId = BltId(READ_BE_UINT32(&src[6]));
 	}
 
 	uint16 numIngredients;
 	BltId ingredientImagesId;
+	BltId comboTableListId;
 };
+
+struct BltPotionPuzzleComboTableListElement {
+	static const uint32 kType = kBltPotionPuzzleComboTableList;
+	static const uint kSize = 0x1E;
+	void load(const byte *src, Boltlib &boltlib) {
+		numCombos = READ_BE_UINT16(&src[0]);
+		comboTableId = BltId(READ_BE_UINT32(&src[2]));
+	}
+
+	uint16 numCombos;
+	BltId comboTableId;
+};
+
+typedef ScopedArray<BltPotionPuzzleComboTableListElement> BltPotionPuzzleComboTableList;
 
 void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	_game = game;
@@ -82,6 +98,7 @@ void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	BltResourceList ingredientImagesList;
 	BltPotionPuzzleSpritePoints shelfPoints;
 	BltPotionPuzzleSpritePoints basinPoints;
+	BltPotionPuzzleComboTableList comboTableList;
 
 	loadBltResource(puzzle, boltlib, resId);
 	loadBltResourceArray(difficultyIds, boltlib, puzzle.difficultiesId);
@@ -93,6 +110,8 @@ void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	loadBltResourceArray(ingredientImagesList, boltlib, difficulty.ingredientImagesId);
 	loadBltResourceArray(shelfPoints, boltlib, puzzle.shelfPointsId);
 	loadBltResourceArray(basinPoints, boltlib, puzzle.basinPointsId);
+	loadBltResourceArray(comboTableList, boltlib, difficulty.comboTableListId); // TODO: which combo table should we choose?
+	loadBltResourceArray(_comboTable, boltlib, comboTableList[0].comboTableId);
 
 	_origin = puzzle.origin;
 	_bowlSlots[0] = -1;
@@ -153,10 +172,12 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 		if (delta >= kPlacing1Time) {
 			// Enter STATE_PLACING_2
 			_slotStates[_clickedPiece] = false;
-			if (_bowlSlots[0] == -1) {
+			if (_bowlSlots[0] < 0) {
 				_bowlSlots[0] = _clickedPiece;
-			} else if (_bowlSlots[1] == -1) {
+			} else if (_bowlSlots[1] < 0) {
 				_bowlSlots[1] = _clickedPiece;
+			} else {
+				error("Could not place potion ingredient");
 			}
 			draw();
 			_timeoutStart = event.time;
@@ -192,10 +213,13 @@ void PotionPuzzle::draw() {
 		}
 	}
 
-	if (_bowlSlots[0] != -1 && _bowlSlots[1] == -1) {
+	if (_bowlSlots[0] >= 0 && _bowlSlots[1] < 0) {
 		// Draw one ingredient in basin
 		drawIngredient(_bowlSlots[0], _basinPoints[1]);
-	} else if (_bowlSlots[0] != -1 && _bowlSlots[1] != -1) {
+	} else if (_bowlSlots[0] < 0 && _bowlSlots[1] >= 0) {
+		// Draw one ingredient in basin (slot 1)
+		drawIngredient(_bowlSlots[1], _basinPoints[1]);
+	} else if (_bowlSlots[0] >= 0 && _bowlSlots[1] >= 0) {
 		// Draw two ingredients in basin
 		// FIXME: basin points are wrong
 		drawIngredient(_bowlSlots[0], _basinPoints[0]);
@@ -226,12 +250,30 @@ Rect PotionPuzzle::getIngredientHitbox(int num, Common::Point pos) {
 
 void PotionPuzzle::reactIngredients() {
 	// Play potion movie and return to STATE_ACCEPTING_INPUT
-	// TODO: Play correct potion movie. Movie is determined by looking up ingredients in a table.
-	if (_bowlSlots[0] != -1 && _bowlSlots[1] != -1) {
-		_bowlSlots[0] = -1;
-		_bowlSlots[1] = -1;
-		_game->startPotionMovie(0);
-		_state = STATE_ACCEPTING_INPUT;
+	if (_bowlSlots[0] >= 0 && _bowlSlots[1] >= 0) {
+		// FIXME: how does combo lookup actually work?
+		// why are there multiple combo tables?
+		uint i = 0;
+		for (i = 0; i < _comboTable.size(); ++i) {
+			debug(3, "checking combo %d, %d, %d, %d, %d", (int)_comboTable[i].a,
+				(int)_comboTable[i].b,
+				(int)_comboTable[i].c,
+				(int)_comboTable[i].d,
+				(int)_comboTable[i].movie);
+			// -1 is "default" - if -1 is found in the combo table, it matches any ingredient.
+			// (FIXME: The above might be true for the a field, but is it true for b?)
+			// TODO: I believe c=-1, d=-1 marks the Win condition.
+			if ((_bowlSlots[0] == _comboTable[i].a || _comboTable[i].a == -1) && _bowlSlots[1] == _comboTable[i].b) {
+				_bowlSlots[0] = _comboTable[i].c;
+				_bowlSlots[1] = _comboTable[i].d;
+				_game->startPotionMovie(_comboTable[i].movie);
+				_state = STATE_ACCEPTING_INPUT;
+				break;
+			}
+		}
+		if (i >= _comboTable.size()) {
+			error("No combo found for ingredients %d, %d", _bowlSlots[0], _bowlSlots[1]);
+		}
 	} else {
 		// No ingredient reaction
 		_state = STATE_ACCEPTING_INPUT;

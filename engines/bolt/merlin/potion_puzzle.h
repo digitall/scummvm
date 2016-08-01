@@ -27,6 +27,26 @@
 #include "bolt/boltlib/palette.h"
 
 namespace Bolt {
+	
+struct BltPotionPuzzleComboTableElement {
+	static const uint32 kType = kBltPotionPuzzleComboTable;
+	static const uint kSize = 0x6;
+	void load(const byte *src, Boltlib &boltlib) {
+		a = src[0];
+		b = src[1];
+		c = src[2];
+		d = src[3];
+		movie = READ_BE_UINT16(&src[4]);
+	}
+
+	int8 a;
+	int8 b;
+	int8 c;
+	int8 d;
+	uint16 movie;
+};
+
+typedef ScopedArray<BltPotionPuzzleComboTableElement> BltPotionPuzzleComboTable;
 
 class PotionPuzzle : public Card {
 public:
@@ -61,6 +81,7 @@ private:
 	ScopedArray<BltImage> _ingredientImages;
 	ScopedArray<Common::Point> _shelfPoints;
 	Common::Point _basinPoints[3];
+	BltPotionPuzzleComboTable _comboTable;
 	ScopedArray<bool> _slotStates; // False: Empty; True: Filled
 	int _bowlSlots[2]; // Ingredients in bowl
 	State _state;
