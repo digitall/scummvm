@@ -30,6 +30,7 @@
 #include "bolt/boltlib/boltlib.h"
 #include "bolt/graphics.h"
 #include "bolt/pf_file.h"
+#include "bolt/util.h"
 
 struct ADGameDescription;
 
@@ -44,14 +45,15 @@ namespace Bolt {
 // - All edges are inclusive, i.e. right and bottom are included in the
 //   rectangle
 struct Rect {
+	static const uint kSize = 8;
 	Rect() : left(0), right(0), top(0), bottom(0) { }
 	Rect(int16 l, int16 t, int16 r, int16 b)
 		: left(l), right(r), top(t), bottom(b) { }
-	Rect(const byte *src) {
-		left = READ_BE_INT16(&src[0]);
-		right = READ_BE_INT16(&src[2]);
-		top = READ_BE_INT16(&src[4]);
-		bottom = READ_BE_INT16(&src[6]);
+	Rect(const ConstSizedDataView<kSize> src) {
+		left = src.readInt16BE(0);
+		right = src.readInt16BE(2);
+		top = src.readInt16BE(4);
+		bottom = src.readInt16BE(6);
 	}
 
 	operator Common::Rect() const {

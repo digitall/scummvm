@@ -27,13 +27,13 @@ namespace Bolt {
 struct BltSlidingPuzzle { // type 44
 	static const uint32 kType = kBltSlidingPuzzle;
 	static const uint kSize = 0xC;
-	void load(const byte *src, Boltlib &bltFile) {
-		unk1 = READ_BE_UINT16(&src[0]);
-		difficulty1 = BltShortId(READ_BE_UINT16(&src[2]));
-		unk2 = READ_BE_UINT16(&src[4]);
-		difficulty2 = BltShortId(READ_BE_UINT16(&src[6]));
-		unk3 = READ_BE_UINT16(&src[8]);
-		difficulty3 = BltShortId(READ_BE_UINT16(&src[0xA]));
+	void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
+		unk1 = src.readUint16BE(0);
+		difficulty1 = BltShortId(src.readUint16BE(2));
+		unk2 = src.readUint16BE(4);
+		difficulty2 = BltShortId(src.readUint16BE(6));
+		unk3 = src.readUint16BE(8);
+		difficulty3 = BltShortId(src.readUint16BE(0xA));
 	}
 
 	uint16 unk1;

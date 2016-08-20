@@ -172,10 +172,10 @@ void Movie::fillAudioQueue() {
 }
 
 struct TimelineHeader {
-	static const int kSize = 0xC;
-	TimelineHeader(const byte *src) {
-		numCommands = READ_BE_UINT16(&src[8]);
-		framePeriod = READ_BE_UINT16(&src[0xA]);
+	static const uint kSize = 0xC;
+	TimelineHeader(const ConstSizedDataView<kSize> src) {
+		numCommands = src.readUint16BE(8);
+		framePeriod = src.readUint16BE(0xA);
 	}
 
 	uint16 numCommands;
@@ -188,7 +188,7 @@ void Movie::startTimeline(ScopedBuffer::Movable buf, uint32 curTime) {
 	_curFrameTime = curTime;
 	_curFrameNum = 0;
 
-	TimelineHeader header(&_timeline[0]);
+	TimelineHeader header(_timeline.slice(0));
 	_numTimelineCmds = header.numCommands;
 	_framePeriod = header.framePeriod;
 	_timelineCursor = TimelineHeader::kSize;
@@ -212,15 +212,15 @@ void Movie::driveTimeline(uint32 curTime) {
 
 struct TimelineCommand {
 	static const int kSize = 5;
-	TimelineCommand(const byte *src) {
-		delay = READ_BE_UINT16(&src[0]);
-		opcode = READ_BE_UINT16(&src[2]);
-		reps = src[4];
+	TimelineCommand(const ConstSizedDataView<kSize> src) {
+		delay = src.readUint16BE(0);
+		opcode = src.readUint16BE(2);
+		reps = src.readUint8(4);
 	}
 
 	uint16 delay;
 	uint16 opcode;
-	byte reps;
+	uint8 reps;
 };
 
 namespace TimelineOpcodes {
@@ -245,7 +245,7 @@ void Movie::stepTimeline() {
 	// There may be one or more timeline commands with 0 delay. Run them all in this step.
 	bool done = false;
 	while (!done) {
-		TimelineCommand cmd(&_timeline[_timelineCursor]);
+		TimelineCommand cmd(_timeline.slice(_timelineCursor));
 		if (_timelineReps <= 0) {
 			// Advance to next timeline command
 			_timelineCursor += TimelineCommand::kSize + getTimelineCmdParamSize(cmd.opcode);
@@ -276,7 +276,7 @@ void Movie::stepTimeline() {
 void Movie::loadTimelineCommand() {
 	assert(_timeline);
 
-	TimelineCommand cmd(&_timeline[_timelineCursor]);
+	TimelineCommand cmd(_timeline.slice(_timelineCursor));
 	_timelineReps = cmd.reps;
 }
 
@@ -299,7 +299,7 @@ int Movie::getTimelineCmdParamSize(uint16 opcode) {
 }
 
 void Movie::runTimelineCommand() {
-	TimelineCommand cmd(&_timeline[_timelineCursor]);
+	TimelineCommand cmd(_timeline.slice(_timelineCursor));
 	int paramsOffset = _timelineCursor + TimelineCommand::kSize;
 
 	switch (cmd.opcode) {
@@ -383,13 +383,13 @@ void Movie::runTimelineCommand() {
 
 struct CelsHeader {
 	static const int kSize = 0x14;
-	CelsHeader(const byte *src) {
-		queueNum = READ_BE_UINT16(&src[0]);
-		width = READ_BE_UINT16(&src[2]);
-		height = READ_BE_UINT16(&src[4]);
-		numFrames = READ_BE_UINT16(&src[6]);
-		unk8 = READ_BE_UINT32(&src[8]);
-		controlDataOffset = READ_BE_UINT32(&src[0xC]);
+	CelsHeader(const ConstSizedDataView<kSize> src) {
+		queueNum = src.readUint16BE(0);
+		width = src.readUint16BE(2);
+		height = src.readUint16BE(4);
+		numFrames = src.readUint16BE(6);
+		unk8 = src.readUint32BE(8);
+		controlDataOffset = src.readUint32BE(0xC);
 	}
 
 	uint16 queueNum;
@@ -403,7 +403,7 @@ struct CelsHeader {
 void Movie::loadCels(ScopedBuffer::Movable buf) {
 	_cels.reset(buf);
 
-	CelsHeader header(&_cels[0]);
+	CelsHeader header(_cels.slice(0));
 	assert(header.queueNum == 4);
 
 	debug(4, "loading cels width %d, height %d, numFrames %d, unk8 %d",
@@ -416,7 +416,7 @@ void Movie::loadCels(ScopedBuffer::Movable buf) {
 
 void Movie::stepCels() {
 	if (_cels) {
-		CelsHeader header(&_cels[0]);
+		CelsHeader header(_cels.slice(0));
 		if (_celsFrame >= header.numFrames) {
 			_celsFrame = header.numFrames - 1;
 			warning("Ran past end of cel sequence");
@@ -443,15 +443,15 @@ void Movie::stepCels() {
 
 struct CelCommand {
 	static const int kSize = 4;
-	CelCommand(const byte *src) {
-		celNumber = src[0];
-		opcode = src[1];
-		paramSize = READ_BE_UINT16(&src[2]);
+	CelCommand(const ConstSizedDataView<kSize> src) {
+		celNumber = src.readUint8(0);
+		opcode = src.readUint8(1);
+		paramSize = src.readUint16BE(2);
 	}
 
 	byte celNumber;
 	byte opcode;
-	uint16 paramSize; // Ignored in original program
+	uint16 paramSize; // This field is ignored in original program. Param size depends on opcode.
 };
 
 namespace CelOpcodes {
@@ -471,7 +471,7 @@ void Movie::stepCelCommands() {
 
 	bool done = false;
 	while (!done) {
-		CelCommand cmd(&_cels[_celControlCursor]);
+		CelCommand cmd(_cels.slice(_celControlCursor));
 		int paramsOffset = _celControlCursor + CelCommand::kSize;
 
 		// FIXME: There's still an off-by-one error causing a one frame desync.
@@ -486,10 +486,13 @@ void Movie::stepCelCommands() {
 
 			switch (cmd.opcode) {
 			case CelOpcodes::kLoadBack:
+			{
 				debug(3, "cel command: load background");
+				const ConstSizedDataView<4> params = _cels.slice(paramsOffset);
+
 				_celsBackground.reset(fetchBuffer(_videoQueues[1]));
 
-				_celCurCameraX = READ_BE_INT16(&_cels[paramsOffset]);
+				_celCurCameraX = params.readInt16BE(0);
 				_celCurCameraY = READ_BE_INT16(&_cels[paramsOffset + 2]);
 				_celNextCameraX = _celCurCameraX;
 				_celNextCameraY = _celCurCameraY;
@@ -499,13 +502,16 @@ void Movie::stepCelCommands() {
 
 				_celControlCursor += CelCommand::kSize + 4;
 				break;
+			}
 			case CelOpcodes::kLoadForePalette:
 			{
-				byte numColors = _cels[paramsOffset];
-				byte firstColor = _cels[paramsOffset + 1];
+				const ConstSizedDataView<2> params = _cels.slice(paramsOffset);
+
+				byte numColors = params.readUint8(0);
+				byte firstColor = params.readUint8(1);
 				debug(3, "cel command: load fore palette num %d first %d",
 					(int)numColors, (int)firstColor);
-				_graphics->setPlanePalette(kFore, &_cels[paramsOffset + 2],
+				_graphics->setPlanePalette(kFore, &_cels[paramsOffset + 2], // TODO: utilize dataview here
 					firstColor, numColors);
 
 				_celControlCursor += CelCommand::kSize + 2 + numColors * 3;
@@ -513,9 +519,11 @@ void Movie::stepCelCommands() {
 			}
 			case CelOpcodes::kScroll:
 			{
-				uint16 duration = READ_BE_UINT16(&_cels[paramsOffset]);
-				byte speed = _cels[paramsOffset + 2];
-				byte type = _cels[paramsOffset + 3];
+				const ConstSizedDataView<4> params = _cels.slice(paramsOffset);
+
+				uint16 duration = params.readUint16BE(0);
+				byte speed = params.readUint8(2);
+				byte type = params.readUint8(3);
 
 				debug(3, "cel command: scroll duration %d, speed %d, type %d",
 					(int)duration, (int)speed, (int)type);
@@ -597,7 +605,7 @@ void Movie::drawCelBackground() {
 
 void Movie::drawCel(const ScopedBuffer &src, uint16 frameNum) {
 	// Queue 4 buffers define a sequence of foreground cels and background control commands.
-	CelsHeader header(&src[0]);
+	CelsHeader header(src.slice(0));
 	assert(header.queueNum == 4);
 	assert(frameNum < header.numFrames);
 
@@ -784,18 +792,18 @@ void Movie::driveFade(uint32 curTime) {
 
 struct Queue01ImageHeader {
 	const static int kSize = 0xD;
-	Queue01ImageHeader(const byte *src) {
-		queueNum = READ_BE_UINT16(&src[0]);
-		width = READ_BE_UINT16(&src[2]);
-		height = READ_BE_UINT16(&src[4]);
+	Queue01ImageHeader(const ConstSizedDataView<kSize> src) {
+		queueNum = src.readUint16BE(0);
+		width = src.readUint16BE(2);
+		height = src.readUint16BE(4);
 		// FIXME: Unknown fields
-		unk[0] = src[0x6]; // Always 128
-		unk[1] = src[0x7]; // Always 0
-		unk[2] = src[0x8]; // Always 0
-		unk[3] = src[0x9]; // Always 0
-		unk[4] = src[0xA]; // Something
-		unk[5] = src[0xB]; // Something (probably data size)
-		compression = src[0xC];
+		unk[0] = src.readUint8(6); // Always 128
+		unk[1] = src.readUint8(7); // Always 0
+		unk[2] = src.readUint8(8); // Always 0
+		unk[3] = src.readUint8(9); // Always 0
+		unk[4] = src.readUint8(0xA); // Something
+		unk[5] = src.readUint8(0xB); // Something (probably data size)
+		compression = src.readUint8(0xC);
 	}
 
 	uint16 queueNum;
@@ -806,7 +814,7 @@ struct Queue01ImageHeader {
 };
 
 void Movie::applyQueue0or1Palette(int plane, const ScopedBuffer &src) {
-	Queue01ImageHeader header(&src[0]);
+	Queue01ImageHeader header(src.slice(0));
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
 	_graphics->setPlanePalette(plane, &src[Queue01ImageHeader::kSize], 0, 128);
@@ -815,7 +823,7 @@ void Movie::applyQueue0or1Palette(int plane, const ScopedBuffer &src) {
 void Movie::drawQueue0or1(int plane, const ScopedBuffer &src, int x, int y) {
 	// Queue 0 buffers define background frames for scene changes.
 	// Queue 1 buffers define background frames for use with cel sequences.
-	Queue01ImageHeader header(&src[0]);
+	Queue01ImageHeader header(src.slice(0));
 	assert(header.queueNum == 0 || header.queueNum == 1);
 
 	const byte *imageSrc = &src[Queue01ImageHeader::kSize + 128 * 3];

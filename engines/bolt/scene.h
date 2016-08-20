@@ -51,12 +51,12 @@ private:
 	struct BltPlane { // type 26
 		static const uint32 kType = kBltPlane;
 		static const uint kSize = 0x10;
-		void load(const byte *src, Boltlib &bltFile) {
-			BltId imageId(READ_BE_UINT32(&src[0]));
+		void load(const ConstSizedDataView<kSize> src, Boltlib &bltFile) {
+			BltId imageId(src.readUint32BE(0));
 			image.load(bltFile, imageId);
-			BltId paletteId(READ_BE_UINT32(&src[4]));
+			BltId paletteId(src.readUint32BE(4));
 			palette.load(bltFile, paletteId);
-			BltId hotspotsId(READ_BE_UINT32(&src[8]));
+			BltId hotspotsId(src.readUint32BE(8));
 			hotspots.load(bltFile, hotspotsId);
 		}
 
@@ -71,10 +71,10 @@ private:
 	struct BltSpriteElement { // type 27
 		static const uint32 kType = kBltSpriteList;
 		static const uint kSize = 0x8;
-		void load(const byte *src, Boltlib &bltFile) {
-			pos.x = READ_BE_INT16(&src[0]);
-			pos.y = READ_BE_INT16(&src[2]);
-			BltId imageId(READ_BE_UINT32(&src[4]));
+		void load(const ConstSizedDataView<kSize> src, Boltlib &bltFile) {
+			pos.x = src.readInt16BE(0);
+			pos.y = src.readInt16BE(2);
+			BltId imageId(src.readUint32BE(4));
 			image.load(bltFile, imageId);
 		}
 
@@ -90,18 +90,17 @@ private:
 
 	struct BltButtonGraphicElement { // type 30
 		static const uint32 kType = kBltButtonGraphicsList;
-		static const uint kSize = 0xC;
+		static const uint kSize = 0xE;
 		enum GraphicsType {
 			PaletteMods = 1,
 			Sprites = 2,
 		};
 
-		void load(const byte *src, Boltlib &boltlib) {
-			type = READ_BE_UINT16(&src[0]);
-			// FIXME: unknown field at 2. It is used in the buttons on sliding
-			// and points to an image.
-			BltId hoveredId(READ_BE_UINT32(&src[6]));
-			BltId idleId(READ_BE_UINT32(&src[0xA]));
+		void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
+			type = src.readUint16BE(0);
+			// FIXME: unknown field at 2. It points to an image in sliding puzzle button definitions.
+			BltId hoveredId(src.readUint32BE(6));
+			BltId idleId(src.readUint32BE(0xA));
 			if (type == PaletteMods) {
 				loadBltResourceArray(hoveredPaletteMod, boltlib, hoveredId);
 				loadBltResourceArray(idlePaletteMod, boltlib, idleId);
@@ -128,12 +127,12 @@ private:
 	struct BltButtonElement { // type 31
 		static const uint32 kType = kBltButtonList;
 		static const uint kSize = 0x14;
-		void load(const byte *src, Boltlib &boltlib) {
-			type = READ_BE_UINT16(&src[0]);
-			rect = Rect(&src[2]);
-			plane = READ_BE_UINT16(&src[0xA]);
-			numGraphics = READ_BE_UINT16(&src[0xC]);
-			BltId graphicsId = BltId(READ_BE_UINT32(&src[0x10]));
+		void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
+			type = src.readUint16BE(0);
+			rect = Rect(src.slice(2));
+			plane = src.readUint16BE(0xA);
+			numGraphics = src.readUint16BE(0xC);
+			BltId graphicsId = BltId(src.readUint32BE(0x10));
 			// FIXME: unknown field at 0xE. Always 0 in game data.
 			loadBltResourceArray(graphics, boltlib, graphicsId);
 		}
