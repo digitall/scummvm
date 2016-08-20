@@ -27,13 +27,15 @@
 namespace Bolt {
 
 struct BltHub { // type 40
-	BltHub(const byte *src) {
-		sceneId = BltId(READ_BE_UINT32(&src[0]));
+	static const uint32 kType = kBltHub;
+	static const uint kSize = 0x10;
+	void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
+		sceneId = BltId(src.readUint32BE(0));
 		// FIXME: unknown field at offset 4
-		bgPlaneId = BltId(READ_BE_UINT32(&src[6]));
+		bgPlaneId = BltId(src.readUint32BE(6));
 		// FIXME: unknown field at offset 0xA
-		numItems = src[0xB];
-		itemListId = BltId(READ_BE_UINT32(&src[0xC]));
+		numItems = src.readUint8(0xB);
+		itemListId = BltId(src.readUint32BE(0xC));
 	}
 
 	BltId sceneId;
@@ -43,9 +45,11 @@ struct BltHub { // type 40
 };
 
 struct BltHubItem { // type 41
-	BltHubItem(const byte *src) {
+	static const uint32 kType = kBltHubItem;
+	static const uint kSize = 0x10;
+	void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
 		// FIXME: unknown fields
-		imageId = BltId(READ_BE_UINT32(&src[4]));
+		imageId = BltId(src.readUint32BE(4));
 	}
 
 	BltId imageId;
@@ -54,7 +58,8 @@ struct BltHubItem { // type 41
 void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
-	BltHub hubInfo(&BltResource(boltlib.loadResource(resId, kBltHub))[0]);
+	BltHub hubInfo;
+	loadBltResource(hubInfo, boltlib, resId);
 
 	MenuCard::init(_graphics, boltlib, hubInfo.sceneId);
 	_scene.setBackPlane(boltlib, hubInfo.bgPlaneId);
@@ -63,8 +68,8 @@ void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	loadBltResourceArray(hubItemsList, boltlib, hubInfo.itemListId);
 	_itemImages.alloc(hubInfo.numItems);
 	for (uint i = 0; i < hubInfo.numItems; ++i) {
-		BltHubItem hubItem(&BltResource(boltlib.loadResource(
-			hubItemsList[i].value, kBltHubItem))[0]);
+		BltHubItem hubItem;
+		loadBltResource(hubItem, boltlib, hubItemsList[i].value);
 		_itemImages[i].load(boltlib, hubItem.imageId);
 	}
 }

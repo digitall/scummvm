@@ -28,17 +28,19 @@
 namespace Bolt {
 
 struct BltScene { // type 32
-	BltScene(const byte *src) {
-		forePlaneId = BltId(READ_BE_UINT32(&src[0]));
-		backPlaneId = BltId(READ_BE_UINT32(&src[4]));
-		numSprites = src[0x8];
-		spritesId = BltId(READ_BE_UINT32(&src[0xA]));
-		// FIXME: unknown fields
-		colorCyclesId = BltId(READ_BE_UINT32(&src[0x16]));
-		numButtons = READ_BE_UINT16(&src[0x1A]);
-		buttonsId = BltId(READ_BE_UINT32(&src[0x1C]));
-		origin.x = READ_BE_INT16(&src[0x20]);
-		origin.y = READ_BE_INT16(&src[0x22]);
+	static const uint32 kType = kBltScene;
+	static const uint32 kSize = 0x24;
+	void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
+		forePlaneId = BltId(src.readUint32BE(0));
+		backPlaneId = BltId(src.readUint32BE(4));
+		numSprites = src.readUint8(0x8);
+		spritesId = BltId(src.readUint32BE(0xA));
+		// FIXME: unknown fields at 0xD..0x16
+		colorCyclesId = BltId(src.readUint32BE(0x16));
+		numButtons = src.readUint16BE(0x1A);
+		buttonsId = BltId(src.readUint32BE(0x1C));
+		origin.x = src.readInt16BE(0x20);
+		origin.y = src.readInt16BE(0x22);
 	}
 
 	BltId forePlaneId;
@@ -55,7 +57,8 @@ void Scene::load(Graphics *graphics, Boltlib &boltlib, BltId sceneId)
 {
 	_graphics = graphics;
 
-	BltScene sceneInfo(&BltResource(boltlib.loadResource(sceneId, kBltScene))[0]);
+	BltScene sceneInfo;
+	loadBltResource(sceneInfo, boltlib, sceneId);
 
 	_origin = sceneInfo.origin;
 	loadBltResource(_forePlane, boltlib, sceneInfo.forePlaneId);

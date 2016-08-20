@@ -437,7 +437,7 @@ static const uint32 kPlotMovieLABT = MKTAG('L', 'A', 'B', 'T');
 static const uint32 kPlotMovieCAV1 = MKTAG('C', 'A', 'V', '1');
 static const uint32 kPlotMovieFNLE = MKTAG('F', 'N', 'L', 'E');
 
-static const uint16 kFreeplayScenes = 0x0600; // TODO: contains ID's for freeplay hubs
+static const uint16 kFreeplayScenes = 0x0600; // TODO: 0600 contains ID's for freeplay hubs
 static const uint16 kFreeplayScene1 = 0x0337; // so stop hardcoding these
 static const uint16 kFreeplayScene2 = 0x0446;
 static const uint16 kFreeplayScene3 = 0x0555;
