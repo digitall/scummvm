@@ -42,7 +42,8 @@ _pictureId(-1),
 _created(g_sci->_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
-_mirrorX(false) {
+_mirrorX(false),
+_drawBlackLines(false) {
 	SegManager *segMan = g_sci->getEngineState()->_segMan;
 
 	setFromObject(segMan, object, true, true);
@@ -62,7 +63,8 @@ _pictureId(-1),
 _created(g_sci->_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
-_mirrorX(false) {}
+_mirrorX(false),
+_drawBlackLines(false) {}
 
 ScreenItem::ScreenItem(const reg_t plane, const CelInfo32 &celInfo, const Common::Rect &rect) :
 _plane(plane),
@@ -77,7 +79,8 @@ _pictureId(-1),
 _created(g_sci->_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
-_mirrorX(false) {
+_mirrorX(false),
+_drawBlackLines(false) {
 	if (celInfo.type == kCelTypeColor) {
 		_insetRect = rect;
 	}
@@ -97,7 +100,8 @@ _pictureId(-1),
 _created(g_sci->_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
-_mirrorX(false) {}
+_mirrorX(false),
+_drawBlackLines(false) {}
 
 ScreenItem::ScreenItem(const ScreenItem &other) :
 _plane(other._plane),
@@ -108,7 +112,8 @@ _celObj(nullptr),
 _object(other._object),
 _mirrorX(other._mirrorX),
 _scaledPosition(other._scaledPosition),
-_screenRect(other._screenRect) {
+_screenRect(other._screenRect),
+_drawBlackLines(other._drawBlackLines) {
 	if (other._useInsetRect) {
 		_insetRect = other._insetRect;
 	}
@@ -134,6 +139,7 @@ void ScreenItem::operator=(const ScreenItem &other) {
 	}
 	_scale = other._scale;
 	_scaledPosition = other._scaledPosition;
+	_drawBlackLines = other._drawBlackLines;
 }
 
 ScreenItem::~ScreenItem() {
@@ -172,7 +178,9 @@ void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const boo
 			const uint8 loopCount = view->data[2];
 			const uint8 loopSize = view->data[12];
 
-			if (_celInfo.loopNo >= loopCount) {
+			// loopNo is set to be an unsigned integer in SSCI, so if it's a
+			// negative value, it'll be fixed accordingly
+			if ((uint16)_celInfo.loopNo >= loopCount) {
 				const int maxLoopNo = loopCount - 1;
 				_celInfo.loopNo = maxLoopNo;
 				writeSelectorValue(segMan, object, SELECTOR(loop), maxLoopNo);
@@ -183,8 +191,11 @@ void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const boo
 			if (seekEntry != -1) {
 				loopData = view->data + headerSize + (seekEntry * loopSize);
 			}
+
+			// celNo is set to be an unsigned integer in SSCI, so if it's a
+			// negative value, it'll be fixed accordingly
 			const uint8 celCount = loopData[2];
-			if (_celInfo.celNo >= celCount) {
+			if ((uint16)_celInfo.celNo >= celCount) {
 				const int maxCelNo = celCount - 1;
 				_celInfo.celNo = maxCelNo;
 				writeSelectorValue(segMan, object, SELECTOR(cel), maxCelNo);
@@ -273,7 +284,9 @@ void ScreenItem::calcRects(const Plane &plane) {
 		// Cel may use a coordinate system that is not the same size as the
 		// script coordinate system (usually this means high-resolution
 		// pictures with low-resolution scripts)
-		if (celObj._scaledWidth != scriptWidth || celObj._scaledHeight != scriptHeight) {
+		if (celObj._scaledWidth != kLowResX || celObj._scaledHeight != kLowResY) {
+			// high resolution coordinates
+
 			if (_useInsetRect) {
 				const Ratio scriptToCelX(celObj._scaledWidth, scriptWidth);
 				const Ratio scriptToCelY(celObj._scaledHeight, scriptHeight);
@@ -294,7 +307,30 @@ void ScreenItem::calcRects(const Plane &plane) {
 			}
 
 			if (!scaleX.isOne() || !scaleY.isOne()) {
-				mulinc(_screenItemRect, scaleX, scaleY);
+				// Different games use a different cel scaling mode, but the
+				// difference isn't consistent across SCI versions; instead,
+				// it seems to be related to an update that happened during
+				// SCI2.1mid where games started using hi-resolution game
+				// scripts
+				if (scriptWidth == kLowResX) {
+					mulinc(_screenItemRect, scaleX, scaleY);
+				} else {
+					_screenItemRect.left = (_screenItemRect.left * scaleX).toInt();
+					_screenItemRect.top = (_screenItemRect.top * scaleY).toInt();
+
+					if (scaleX.getNumerator() > scaleX.getDenominator()) {
+						_screenItemRect.right = (_screenItemRect.right * scaleX).toInt();
+					} else {
+						_screenItemRect.right = ((_screenItemRect.right - 1) * scaleX).toInt() + 1;
+					}
+
+					if (scaleY.getNumerator() > scaleY.getDenominator()) {
+						_screenItemRect.bottom = (_screenItemRect.bottom * scaleY).toInt();
+					} else {
+						_screenItemRect.bottom = ((_screenItemRect.bottom - 1) * scaleY).toInt() + 1;
+					}
+				}
+
 				displaceX = (displaceX * scaleX).toInt();
 				displaceY = (displaceY * scaleY).toInt();
 			}
@@ -345,6 +381,8 @@ void ScreenItem::calcRects(const Plane &plane) {
 			_ratioX = scaleX * celToScreenX;
 			_ratioY = scaleY * celToScreenY;
 		} else {
+			// low resolution coordinates
+
 			int displaceX = celObj._displace.x;
 			if (_mirrorX != celObj._mirrorX && _celInfo.type != kCelTypePic) {
 				displaceX = celObj._width - celObj._displace.x - 1;
@@ -515,8 +553,25 @@ void ScreenItem::update(const reg_t object) {
 	_deleted = 0;
 }
 
-// TODO: This code is quite similar to calcRects, so try to deduplicate
-// if possible
+void ScreenItem::update() {
+	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(_plane);
+	if (plane == nullptr) {
+		error("ScreenItem::update: Invalid plane %04x:%04x", PRINT_REG(_plane));
+	}
+
+	if (plane->_screenItemList.findByObject(_object) == nullptr) {
+		error("ScreenItem::update: %04x:%04x not in plane %04x:%04x", PRINT_REG(_object), PRINT_REG(_plane));
+	}
+
+	if (!_created) {
+		_updated = g_sci->_gfxFrameout->getScreenCount();
+	}
+	_deleted = 0;
+
+	delete _celObj;
+	_celObj = nullptr;
+}
+
 Common::Rect ScreenItem::getNowSeenRect(const Plane &plane) const {
 	CelObj &celObj = getCelObj();
 
@@ -524,10 +579,7 @@ Common::Rect ScreenItem::getNowSeenRect(const Plane &plane) const {
 	Common::Rect nsRect;
 
 	if (_useInsetRect) {
-		// TODO: This is weird. Checking to see if the inset rect is
-		// fully inside the bounds of the celObjRect, and then
-		// clipping to the celObjRect, is pretty useless.
-		if (_insetRect.right > 0 && _insetRect.bottom > 0 && _insetRect.left < celObj._width && _insetRect.top < celObj._height) {
+		if (_insetRect.intersects(celObjRect)) {
 			nsRect = _insetRect;
 			nsRect.clip(celObjRect);
 		} else {
@@ -563,16 +615,15 @@ Common::Rect ScreenItem::getNowSeenRect(const Plane &plane) const {
 		displaceX = celObj._width - displaceX - 1;
 	}
 
-	if (celObj._scaledWidth != scriptWidth || celObj._scaledHeight != scriptHeight) {
+	if (celObj._scaledWidth != kLowResX || celObj._scaledHeight != kLowResY) {
+		// high resolution coordinates
+
 		if (_useInsetRect) {
 			Ratio scriptToCelX(celObj._scaledWidth, scriptWidth);
 			Ratio scriptToCelY(celObj._scaledHeight, scriptHeight);
 			mulru(nsRect, scriptToCelX, scriptToCelY, 0);
 
-			// TODO: This is weird. Checking to see if the inset rect is
-			// fully inside the bounds of the celObjRect, and then
-			// clipping to the celObjRect, is pretty useless.
-			if (nsRect.right > 0 && nsRect.bottom > 0 && nsRect.left < celObj._width && nsRect.top < celObj._height) {
+			if (nsRect.intersects(celObjRect)) {
 				nsRect.clip(celObjRect);
 			} else {
 				nsRect = Common::Rect();
@@ -580,12 +631,34 @@ Common::Rect ScreenItem::getNowSeenRect(const Plane &plane) const {
 		}
 
 		if (!scaleX.isOne() || !scaleY.isOne()) {
-			mulinc(nsRect, scaleX, scaleY);
-			// TODO: This was in the original code, baked into the
-			// multiplication though it is not immediately clear
-			// why this is the only one that reduces the BR corner
-			nsRect.right -= 1;
-			nsRect.bottom -= 1;
+			// Different games use a different cel scaling mode, but the
+			// difference isn't consistent across SCI versions; instead,
+			// it seems to be related to an update that happened during
+			// SCI2.1mid where games started using hi-resolution game
+			// scripts
+			if (scriptWidth == kLowResX) {
+				mulinc(nsRect, scaleX, scaleY);
+				// TODO: This was in the original code, baked into the
+				// multiplication though it is not immediately clear
+				// why this is the only one that reduces the BR corner
+				nsRect.right -= 1;
+				nsRect.bottom -= 1;
+			} else {
+				nsRect.left = (nsRect.left * scaleX).toInt();
+				nsRect.top = (nsRect.top * scaleY).toInt();
+
+				if (scaleX.getNumerator() > scaleX.getDenominator()) {
+					nsRect.right = (nsRect.right * scaleX).toInt();
+				} else {
+					nsRect.right = ((nsRect.right - 1) * scaleX).toInt() + 1;
+				}
+
+				if (scaleY.getNumerator() > scaleY.getDenominator()) {
+					nsRect.bottom = (nsRect.bottom * scaleY).toInt();
+				} else {
+					nsRect.bottom = ((nsRect.bottom - 1) * scaleY).toInt() + 1;
+				}
+			}
 		}
 
 		Ratio celToScriptX(scriptWidth, celObj._scaledWidth);
@@ -597,6 +670,8 @@ Common::Rect ScreenItem::getNowSeenRect(const Plane &plane) const {
 		mulinc(nsRect, celToScriptX, celToScriptY);
 		nsRect.translate(_position.x - displaceX, _position.y - displaceY);
 	} else {
+		// low resolution coordinates
+
 		if (!scaleX.isOne() || !scaleY.isOne()) {
 			mulinc(nsRect, scaleX, scaleY);
 			// TODO: This was in the original code, baked into the
@@ -630,23 +705,43 @@ ScreenItem *ScreenItemList::findByObject(const reg_t object) const {
 	return *screenItemIt;
 }
 void ScreenItemList::sort() {
-	// TODO: SCI engine used _unsorted as an array of indexes into the
-	// list itself and then performed the same swap operations on the
-	// _unsorted array as the _storage array during sorting, but the
-	// only reason to do this would be if some of the pointers in the
-	// list were replaced so the pointer values themselves couldn’t
-	// simply be recorded and then restored later. It is not yet
-	// verified whether this simplification of the sort/unsort is
-	// safe.
-	for (size_type i = 0; i < size(); ++i) {
-		_unsorted[i] = (*this)[i];
+	if (size() < 2) {
+		return;
 	}
 
-	Common::sort(begin(), end(), sortHelper);
+	for (size_type i = 0; i < size(); ++i) {
+		_unsorted[i] = i;
+	}
+
+	for (size_type i = size() - 1; i > 0; --i) {
+		bool swap = false;
+
+		for (size_type j = 0; j < i; ++j)  {
+			value_type &a = operator[](j);
+			value_type &b = operator[](j + 1);
+
+			if (a == nullptr || *a > *b) {
+				SWAP(a, b);
+				SWAP(_unsorted[j], _unsorted[j + 1]);
+				swap = true;
+			}
+		}
+
+		if (!swap) {
+			break;
+		}
+	}
 }
 void ScreenItemList::unsort() {
+	if (size() < 2) {
+		return;
+	}
+
 	for (size_type i = 0; i < size(); ++i) {
-		(*this)[i] = _unsorted[i];
+		while (_unsorted[i] != i) {
+			SWAP(operator[](_unsorted[i]), operator[](i));
+			SWAP(_unsorted[_unsorted[i]], _unsorted[i]);
+		}
 	}
 }
 

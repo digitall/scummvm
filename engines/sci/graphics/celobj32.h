@@ -31,6 +31,20 @@
 namespace Sci {
 typedef Common::Rational Ratio;
 
+// SCI32 has four different coordinate systems:
+// 1. low resolution, 2. game/script resolution,
+// 3. text/bitmap resolution, 4. screen resolution
+//
+// In CelObj, these values are used when there is
+// no baked in resolution of cels.
+//
+// In ScreenItem, it is used when deciding which
+// path to take to calculate dimensions.
+enum {
+	kLowResX = 320,
+	kLowResY = 200
+};
+
 enum CelType {
 	kCelTypeView  = 0,
 	kCelTypePic   = 1,
@@ -133,7 +147,7 @@ struct CelScalerTable {
 	 * the correct column to read from the source bitmap
 	 * when drawing a scaled version of the source bitmap.
 	 */
-	int valuesX[1024];
+	int valuesX[4096];
 
 	/**
 	 * The ratio used to generate the x-values.
@@ -145,7 +159,7 @@ struct CelScalerTable {
 	 * the correct row to read from a source bitmap when
 	 * drawing a scaled version of the source bitmap.
 	 */
-	int valuesY[1024];
+	int valuesY[4096];
 
 	/**
 	 * The ratio used to generate the y-values.
@@ -213,6 +227,18 @@ class ScreenItem;
  */
 class CelObj {
 protected:
+	/**
+	 * When true, every second line of the cel will be
+	 * rendered as a black line.
+	 *
+	 * @see ScreenItem::_drawBlackLines
+	 * @note Using a static member because otherwise this
+	 * would otherwise need to be copied down through
+	 * several calls. (SSCI did similar, using a global
+	 * variable.)
+	 */
+	static bool _drawBlackLines;
+
 	/**
 	 * When true, this cel will be horizontally mirrored
 	 * when it is drawn. This is an internal flag that is
@@ -374,7 +400,7 @@ public:
 	 * Reads the pixel at the given coordinates. This method
 	 * is valid only for CelObjView and CelObjPic.
 	 */
-	virtual uint8 readPixel(uint16 x, uint16 y, bool mirrorX) const;
+	virtual uint8 readPixel(const uint16 x, const uint16 y, const bool mirrorX) const;
 
 	/**
 	 * Submits the palette from this cel to the palette
@@ -478,6 +504,9 @@ public:
 	virtual ~CelObjView() override {};
 
 	using CelObj::draw;
+
+	static int16 getNumLoops(const GuiResourceId viewId);
+	static int16 getNumCels(const GuiResourceId viewId, const int16 loopNo);
 
 	/**
 	 * Draws the cel to the target buffer using the

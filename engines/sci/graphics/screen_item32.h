@@ -31,6 +31,7 @@ namespace Sci {
 
 enum ScaleSignals32 {
 	kScaleSignalNone                    = 0,
+	// TODO: rename to 'manual'
 	kScaleSignalDoScaling32				= 1, // enables scaling when drawing that cel (involves scaleX and scaleY)
 	kScaleSignalUseVanishingPoint       = 2,
 	// TODO: Is this actually a thing? I have not seen it and
@@ -64,12 +65,12 @@ private:
 	 */
 	static uint16 _nextObjectId;
 
+public:
 	/**
 	 * The parent plane of this screen item.
 	 */
 	reg_t _plane;
 
-public:
 	/**
 	 * Scaling data used to calculate the final screen
 	 * dimensions of the screen item as well as the scaling
@@ -88,15 +89,23 @@ private:
 	Common::Rect _screenItemRect;
 
 	/**
-	 * TODO: Document
+	 * If true, the `_insetRect` rectangle will be used
+	 * when calculating the dimensions of the screen item
+	 * instead of the cel's intrinsic width and height.
+	 *
+	 * In other words, using an inset rect means that
+	 * the cel is cropped to the dimensions given in
+	 * `_insetRect`.
 	 */
 	bool _useInsetRect;
 
 	/**
-	 * TODO: Documentation
-	 * The insetRect is also used to describe the fill
-	 * rectangle of a screen item that is drawn using
-	 * CelObjColor.
+	 * The cropping rectangle used when `_useInsetRect`
+	 * is true.
+	 *
+	 * `_insetRect` is also used to describe the fill
+	 * rectangle of a screen item with a CelObjColor
+	 * cel.
 	 */
 	Common::Rect _insetRect;
 
@@ -172,7 +181,7 @@ public:
 	 *   plane is a pic type and its picture resource ID has
 	 *   changed
 	 */
-	int _created, _updated, _deleted; // ?
+	int _created, _updated, _deleted;
 
 	/**
 	 * For screen items that represent picture cels, this
@@ -206,6 +215,14 @@ public:
 	Common::Rect _screenRect;
 
 	/**
+	 * Whether or not the screen item should be drawn
+	 * with black lines drawn every second line. This is
+	 * used when pixel doubling videos to improve apparent
+	 * sharpness at the cost of your eyesight.
+	 */
+	bool _drawBlackLines;
+
+	/**
 	 * Initialises static Plane members.
 	 */
 	static void init();
@@ -230,6 +247,24 @@ public:
 
 			if (_position.y + _z == other._position.y + other._z) {
 				return _object < other._object;
+			}
+		}
+
+		return false;
+	}
+
+	inline bool operator>(const ScreenItem &other) const {
+		if (_priority > other._priority) {
+			return true;
+		}
+
+		if (_priority == other._priority) {
+			if (_position.y + _z > other._position.y + other._z) {
+				return true;
+			}
+
+			if (_position.y + _z == other._position.y + other._z) {
+				return _object > other._object;
 			}
 		}
 
@@ -261,6 +296,12 @@ public:
 	void update(const reg_t object);
 
 	/**
+	 * Updates the properties of the screen item for one not belonging
+	 * to a VM object. Originally GraphicsMgr::UpdateScreenItem.
+	 */
+	void update();
+
+	/**
 	 * Gets the "now seen" rect for the screen item, which
 	 * represents the current size and position of the
 	 * screen item on the screen in script coordinates.
@@ -273,12 +314,10 @@ public:
 
 typedef StablePointerArray<ScreenItem, 250> ScreenItemListBase;
 class ScreenItemList : public ScreenItemListBase {
-	inline static bool sortHelper(const ScreenItem *a, const ScreenItem *b) {
-		return *a < *b;
-	}
-public:
-	ScreenItem *_unsorted[250];
+private:
+	size_type _unsorted[250];
 
+public:
 	ScreenItem *findByObject(const reg_t object) const;
 	void sort();
 	void unsort();

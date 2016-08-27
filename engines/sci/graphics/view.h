@@ -55,6 +55,7 @@ struct LoopInfo {
 
 class GfxScreen;
 class GfxPalette;
+class Resource;
 
 /**
  * View class, handles loading of view resources and drawing contained cels to screen
@@ -91,7 +92,7 @@ private:
 	void unditherBitmap(byte *bitmap, int16 width, int16 height, byte clearKey);
 
 	ResourceManager *_resMan;
-	GfxCoordAdjuster *_coordAdjuster;
+	GfxCoordAdjuster16 *_coordAdjuster;
 	GfxScreen *_screen;
 	GfxPalette *_palette;
 

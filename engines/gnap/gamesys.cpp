@@ -1116,7 +1116,10 @@ void GameSys::fatUpdateFrame() {
 	if (_newSpriteDrawItemsCount > 0) {
 		debugC(kDebugBasic, "_newSpriteDrawItemsCount: %d", _newSpriteDrawItemsCount);
 		for (int k = 0; k < _newSpriteDrawItemsCount; ++k) {
-			if (_gfxItemsCount < 50) {
+			// The original was allowing a buffer overflow.
+			// In order to fit in memory, insertIndex + 1 + (_gfxItemsCount - InsertIndex) must be
+			// smaller than the size _gfxItems array (50).
+			if (_gfxItemsCount + 1 < 50) {
 				int insertIndex;
 				seqLocateGfx(-1, _newSpriteDrawItems[k]._id, &insertIndex);
 				if (_gfxItemsCount != insertIndex)
@@ -1138,7 +1141,7 @@ void GameSys::fatUpdateFrame() {
 				gfxItem->_currFrame._duration = 0;
 				gfxItem->_currFrame._isScaled = false;
 				gfxItem->_currFrame._rect = _newSpriteDrawItems[k]._rect;
-				gfxItem->_currFrame._spriteId = _newSpriteDrawItems[k]._surface ? 0xCAFEBABE : -1;// TODO
+				gfxItem->_currFrame._spriteId = _newSpriteDrawItems[k]._surface ? (int32)0xCAFEBABE : -1;// TODO
 				gfxItem->_currFrame._soundId = -1;
 				_animationsDone = false;
 			}

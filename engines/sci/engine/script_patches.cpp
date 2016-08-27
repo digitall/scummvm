@@ -379,12 +379,40 @@ static const SciScriptPatcherEntry ecoquest2Signatures[] = {
 };
 
 // ===========================================================================
+// Fan-made games
+// Attention: Try to make script patches as specific as possible
+
+// CascadeQuest::autosave in script 994 is called various times to auto-save the game.
+// The script use a fixed slot "999" for this purpose. This doesn't work in ScummVM, because we do not let
+//  scripts save directly into specific slots, but instead use virtual slots / detect scripts wanting to
+//  create a new slot.
+//
+// For this game we patch the code to use slot 99 instead. kSaveGame also checks for Cascade Quest,
+//  will then check, if slot 99 is asked for and will then use the actual slot 0, which is the official
+//  ScummVM auto-save slot.
+//
+// Responsible method: CascadeQuest::autosave
+// Fixes bug: #7007
+static const uint16 fanmadeSignatureCascadeQuestFixAutoSaving[] = {
+	SIG_MAGICDWORD,
+	0x38, SIG_UINT16(0x03e7),        // pushi 3E7 (999d) -> save game slot 999
+	0x74, SIG_UINT16(0x06f8),        // lofss "AutoSave"
+	0x89, 0x1e,                      // lsg global[1E]
+	0x43, 0x2d, 0x08,                // callk SaveGame
+	SIG_END
+};
+
+static const uint16 fanmadePatchCascadeQuestFixAutoSaving[] = {
+	0x38, PATCH_UINT16((SAVEGAMEID_OFFICIALRANGE_START - 1)), // fix slot
+	PATCH_END
+};
+
 // EventHandler::handleEvent in Demo Quest has a bug, and it jumps to the
 // wrong address when an incorrect word is typed, therefore leading to an
 // infinite loop. This script bug was not apparent in SSCI, probably because
 // event handling was slightly different there, so it was never discovered.
 // Fixes bug: #5120
-static const uint16 fanmadeSignatureInfiniteLoop[] = {
+static const uint16 fanmadeSignatureDemoQuestInfiniteLoop[] = {
 	0x38, SIG_UINT16(0x004c),        // pushi 004c
 	0x39, 0x00,                      // pushi 00
 	0x87, 0x01,                      // lap 01
@@ -395,15 +423,16 @@ static const uint16 fanmadeSignatureInfiniteLoop[] = {
 	SIG_END
 };
 
-static const uint16 fanmadePatchInfiniteLoop[] = {
+static const uint16 fanmadePatchDemoQuestInfiniteLoop[] = {
 	PATCH_ADDTOOFFSET(+10),
-	0x30, SIG_UINT16(0x0032),        // bnt 0032  [06a8] --> pushi 004c
+	0x30, PATCH_UINT16(0x0032),      // bnt 0032  [06a8] --> pushi 004c
 	PATCH_END
 };
 
-//          script, description,                                      signature                     patch
+//          script, description,                                      signature                                  patch
 static const SciScriptPatcherEntry fanmadeSignatures[] = {
-	{  true,   999, "infinite loop on typo",                       1, fanmadeSignatureInfiniteLoop, fanmadePatchInfiniteLoop },
+	{  true,   994, "Cascade Quest: fix auto-saving",              1, fanmadeSignatureCascadeQuestFixAutoSaving, fanmadePatchCascadeQuestFixAutoSaving },
+	{  true,   999, "Demo Quest: infinite loop on typo",           1, fanmadeSignatureDemoQuestInfiniteLoop,     fanmadePatchDemoQuestInfiniteLoop },
 	SCI_SIGNATUREENTRY_TERMINATOR
 };
 
@@ -1424,6 +1453,167 @@ static const SciScriptPatcherEntry kq6Signatures[] = {
 };
 
 // ===========================================================================
+
+// King's Quest 7 has really weird subtitles. It seems as if the subtitles were
+// not fully finished.
+//
+// Method kqMessager::findTalker in script 0 tries to figure out, which class to use for
+// displaying subtitles. It uses the "talker" data of the given message to do that.
+// Strangely this "talker" data seems to be quite broken.
+// For example chapter 2 starts with a cutscene.
+// Troll king: "Welcome, most beautiful of princesses!" - talker 6
+// Which is followed by the princess going
+// "Hmm?" - which is set to talker 99, normally the princess is talker 7.
+//
+// Talker 99 is seen as unknown and thus treated as "narrator", which makes
+// the scripts put the text at the top of the game screen and even use a
+// different font.
+//
+// In other cases, when the player character thinks to himself talker 99
+// is also used. In such situations it may make somewhat sense to do so,
+// but putting the text at the top of the screen is also irritating to the player.
+// It's really weird.
+//
+// The scripts also put the regular text in the middle of the screen, blocking
+// animations.
+//
+// And for certain rooms, the subtitle box may use another color
+// like for example pink/purple at the start of chapter 5.
+//
+// We fix all of that (hopefully - lots of testing is required).
+// We put the text at the bottom of the play screen.
+// We also make the scripts use the regular KQTalker instead of KQNarrator.
+// And we also make the subtitle box use color 255, which is fixed white.
+//
+// Applies to at least: PC CD 1.4 English, 1.51 English, 1.51 German, 2.00 English
+// Patched method: KQNarrator::init (script 31)
+static const uint16 kq7SignatureSubtitleFix1[] = {
+	SIG_MAGICDWORD,
+	0x39, 0x25,                         // pushi 25h (fore)
+	0x78,                               // push1
+	0x39, 0x06,                         // pushi 06 - sets back to 6
+	0x39, 0x26,                         // pushi 26 (back)
+	0x78,                               // push1
+	0x78,                               // push1 - sets back to 1
+	0x39, 0x2a,                         // pushi 2Ah (font)
+	0x78,                               // push1
+	0x89, 0x16,                         // lsg global[16h] - sets font to global[16h]
+	0x7a,                               // push2 (y)
+	0x78,                               // push1
+	0x76,                               // push0 - sets y to 0
+	0x54, SIG_UINT16(0x0018),           // self 18h
+	SIG_END
+};
+
+static const uint16 kq7PatchSubtitleFix1[] = {
+	0x33, 0x12,                         // jmp [skip special init code]
+	PATCH_END
+};
+
+// Applies to at least: PC CD 1.51 English, 1.51 German, 2.00 English
+// Patched method: Narrator::init (script 64928)
+static const uint16 kq7SignatureSubtitleFix2[] = {
+	SIG_MAGICDWORD,
+	0x89, 0x5a,                         // lsg global[5a]
+	0x35, 0x02,                         // ldi 02
+	0x12,                               // and
+	0x31, 0x1e,                         // bnt [skip audio volume code]
+	0x38, SIG_ADDTOOFFSET(+2),          // pushi masterVolume (0212h for 2.00, 0219h for 1.51)
+	0x76,                               // push0
+	0x81, 0x01,                         // lag global[1]
+	0x4a, 0x04, 0x00,                   // send 04
+	0x65, 0x32,                         // aTop curVolume
+	0x38, SIG_ADDTOOFFSET(+2),          // pushi masterVolume (0212h for 2.00, 0219h for 1.51)
+	0x78,                               // push1
+	0x67, 0x32,                         // pTos curVolume
+	0x35, 0x02,                         // ldi 02
+	0x06,                               // mul
+	0x36,                               // push
+	0x35, 0x03,                         // ldi 03
+	0x08,                               // div
+	0x36,                               // push
+	0x81, 0x01,                         // lag global[1]
+	0x4a, 0x06, 0x00,                   // send 06
+	// end of volume code
+	0x35, 0x01,                         // ldi 01
+	0x65, 0x28,                         // aTop initialized
+	SIG_END
+};
+
+static const uint16 kq7PatchSubtitleFix2[] = {
+	PATCH_ADDTOOFFSET(+5),              // skip to bnt
+	0x31, 0x1b,                         // bnt [skip audio volume code]
+	PATCH_ADDTOOFFSET(+15),             // right after "aTop curVolume / pushi masterVolume / push1"
+	0x7a,                               // push2
+	0x06,                               // mul (saves 3 bytes in total)
+	0x36,                               // push
+	0x35, 0x03,                         // ldi 03
+	0x08,                               // div
+	0x36,                               // push
+	0x81, 0x01,                         // lag global[1]
+	0x4a, 0x06, 0x00,                   // send 06
+	// end of volume code
+	0x35, 118,                          // ldi 118d
+	0x65, 0x16,                         // aTop y
+	0x78,                               // push1 (saves 1 byte)
+	0x69, 0x28,                         // sTop initialized
+	PATCH_END
+};
+
+// Applies to at least: PC CD 1.51 English, 1.51 German, 2.00 English
+// Patched method: Narrator::say (script 64928)
+static const uint16 kq7SignatureSubtitleFix3[] = {
+	SIG_MAGICDWORD,
+	0x63, 0x28,                         // pToa initialized
+	0x18,                               // not
+	0x31, 0x07,                         // bnt [skip init code]
+	0x38, SIG_ADDTOOFFSET(+2),          // pushi init (008Eh for 2.00, 0093h for 1.51)
+	0x76,                               // push0
+	0x54, SIG_UINT16(0x0004),           // self 04
+	// end of init code
+	0x8f, 0x00,                         // lsp param[0]
+	0x35, 0x01,                         // ldi 01
+	0x1e,                               // gt?
+	0x31, 0x08,                         // bnt [set acc to 0]
+	0x87, 0x02,                         // lap param[2]
+	0x31, 0x04,                         // bnt [set acc to 0]
+	0x87, 0x02,                         // lap param[2]
+	0x33, 0x02,                         // jmp [over set acc to 0 code]
+	0x35, 0x00,                         // ldi 00
+	0x65, 0x18,                         // aTop caller
+	SIG_END
+};
+
+static const uint16 kq7PatchSubtitleFix3[] = {
+	PATCH_ADDTOOFFSET(+2),              // skip over "pToa initialized code"
+	0x2f, 0x0c,                         // bt [skip init code] - saved 1 byte
+	0x38, 
+	PATCH_GETORIGINALBYTE(+6),
+	PATCH_GETORIGINALBYTE(+7),          // pushi (init)
+	0x76,                               // push0
+	0x54, PATCH_UINT16(0x0004),           // self 04
+	// additionally set background color here (5 bytes)
+	0x34, PATCH_UINT16(255),            // pushi 255d
+	0x65, 0x2e,                         // aTop back
+	// end of init code
+	0x8f, 0x00,                         // lsp param[0]
+	0x35, 0x01,                         // ldi 01 - this may get optimized to get another byte
+	0x1e,                               // gt?
+	0x31, 0x04,                         // bnt [set acc to 0]
+	0x87, 0x02,                         // lap param[2]
+	0x2f, 0x02,                         // bt [over set acc to 0 code]
+	PATCH_END
+};
+
+//          script, description,                                      signature                                 patch
+static const SciScriptPatcherEntry kq7Signatures[] = {
+	{  true,    31, "subtitle fix 1/3",                            1, kq7SignatureSubtitleFix1,                 kq7PatchSubtitleFix1 },
+	{  true, 64928, "subtitle fix 2/3",                            1, kq7SignatureSubtitleFix2,                 kq7PatchSubtitleFix2 },
+	{  true, 64928, "subtitle fix 3/3",                            1, kq7SignatureSubtitleFix3,                 kq7PatchSubtitleFix3 },
+	SCI_SIGNATUREENTRY_TERMINATOR
+};
+
+// ===========================================================================
 // Script 210 in the German version of Longbow handles the case where Robin
 // hands out the scroll to Marion and then types his name using the hand code.
 // The German version script contains a typo (probably a copy/paste error),
@@ -1463,9 +1653,109 @@ static const uint16 longbowPatchShowHandCode[] = {
 	PATCH_END
 };
 
+// When walking through the forest, arithmetic errors may occur at "random".
+// The scripts try to add a value and a pointer to the object "berryBush".
+//
+// This is caused by a local variable overflow.
+//
+// The scripts create berry bush objects dynamically. The array storage for
+// those bushes may hold a total of 8 bushes. But sometimes 10 bushes
+// are created. This overwrites 2 additional locals in script 225 and
+// those locals are used normally for value lookups.
+//
+// Changing the total of bushes could cause all sorts of other issues,
+// that's why I rather patched the code, that uses the locals for a lookup.
+// Which means it doesn't matter anymore when those locals are overwritten.
+//
+// Applies to at least: English PC floppy, German PC floppy, English Amiga floppy
+// Responsible method: export 2 of script 225
+// Fixes bug: #6751
+static const uint16 longbowSignatureBerryBushFix[] = {
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x03,                      // ldi 03h
+	0x1a,                            // eq?
+	0x2e, SIG_UINT16(0x002d),        // bt [process code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x04,                      // ldi 04h
+	0x1a,                            // eq?
+	0x2e, SIG_UINT16(0x0025),        // bt [process code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x05,                      // ldi 05h
+	0x1a,                            // eq?
+	0x2e, SIG_UINT16(0x001d),        // bt [process code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x06,                      // ldi 06h
+	0x1a,                            // eq?
+	0x2e, SIG_UINT16(0x0015),        // bt [process code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x18,                      // ldi 18h
+	0x1a,                            // eq?
+	0x2e, SIG_UINT16(0x000d),        // bt [process code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x19,                      // ldi 19h
+	0x1a,                            // eq?
+	0x2e, SIG_UINT16(0x0005),        // bt [process code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x1a,                      // ldi 1Ah
+	0x1a,                            // eq?
+	// jump location for the "bt" instructions
+	0x30, SIG_UINT16(0x0011),        // bnt [skip over follow up code, to offset 0c35]
+	// 55 bytes until here
+	0x85, 00,                        // lat temp[0]
+	SIG_MAGICDWORD,
+	0x9a, SIG_UINT16(0x0110),        // lsli local[110h] -> 110h points normally to 110h / 2Bh
+	// 5 bytes
+	0x7a,                            // push2
+	SIG_END
+};
+
+static const uint16 longbowPatchBerryBushFix[] = {
+	PATCH_ADDTOOFFSET(+4),           // keep: lsg global[70h], ldi 03h
+	0x22,                            // lt? (global < 03h)
+	0x2f, 0x42,                      // bt [skip over all the code directly]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x06,                      // ldi 06h
+	0x24,                            // le? (global <= 06h)
+	0x2f, 0x0e,                      // bt [to kRandom code]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x18,                      // ldi 18h
+	0x22,                            // lt? (global < 18h)
+	0x2f, 0x34,                      // bt [skip over all the code directly]
+	0x89, 0x70,                      // lsg global[70h]
+	0x35, 0x1a,                      // ldi 1Ah
+	0x24,                            // le? (global <= 1Ah)
+	0x31, 0x2d,                      // bnt [skip over all the code directly]
+	// 28 bytes, 27 bytes saved
+	// kRandom code
+	0x85, 0x00,                      // lat temp[0]
+	0x2f, 0x05,                      // bt [skip over case 0]
+	// temp[0] == 0
+	0x38, SIG_UINT16(0x0110),        // pushi 0110h - that's what's normally at local[110h]
+	0x33, 0x18,                      // jmp [kRandom call]
+	// check temp[0] further
+	0x78,                            // push1
+	0x1a,                            // eq?
+	0x31, 0x05,                      // bt [skip over case 1]
+	// temp[0] == 1
+	0x38, SIG_UINT16(0x002b),        // pushi 002Bh - that's what's normally at local[111h]
+	0x33, 0x0F,                      // jmp [kRandom call]
+	// temp[0] >= 2
+	0x8d, 00,                        // lst temp[0]
+	0x35, 0x02,                      // ldi 02
+	0x04,                            // sub
+	0x9a, SIG_UINT16(0x0112),        // lsli local[112h] -> look up value in 2nd table
+	                                 // this may not be needed at all and was just added for safety reasons
+	// waste 9 spare bytes
+	0x35, 0x00,                      // ldi 00
+	0x35, 0x00,                      // ldi 00
+	0x34, PATCH_UINT16(0x0000),      // ldi 0000
+	PATCH_END
+};
+
 //          script, description,                                      signature                     patch
 static const SciScriptPatcherEntry longbowSignatures[] = {
 	{  true,   210, "hand code crash",                             5, longbowSignatureShowHandCode, longbowPatchShowHandCode },
+	{  true,   225, "arithmetic berry bush fix",                   1, longbowSignatureBerryBushFix, longbowPatchBerryBushFix },
 	SCI_SIGNATUREENTRY_TERMINATOR
 };
 
@@ -1654,9 +1944,160 @@ static const uint16 laurabow1PatchEasterEggViewFix[] = {
 	PATCH_END
 };
 
+// When oiling the armor or opening the visor of the armor, the scripts
+//  first check if Laura/ego is near the armor and if she is not, they will move her
+//  to the armor. After that further code is executed.
+//
+// The current location is checked by a ego::inRect() call.
+//
+// The given rect for the inRect call inside openVisor::changeState was made larger for Atari ST/Amiga versions.
+//  We change the PC version to use the same rect.
+//
+// Additionally the coordinate, that Laura is moved to, is 152, 107 and may not be reachable depending on where
+//  Laura/ego was, when "use oil on helmet of armor" / "open visor of armor" got entered.
+//  Bad coordinates are for example 82, 110, which then cause collisions and effectively an endless loop.
+//  Game will effectively "freeze" and the user is only able to restore a previous game.
+//  This also happened, when using the original interpreter.
+//  We change the destination coordinate to 152, 110, which seems to be reachable all the time.
+//
+// The following patch fixes the rect for the PC version of the game.
+//
+// Applies to at least: English PC Floppy
+// Responsible method: openVisor::changeState (script 37)
+// Fixes bug: #7119
+static const uint16 laurabow1SignatureArmorOpenVisorFix[] = {
+	0x39, 0x04,                         // pushi 04
+	SIG_MAGICDWORD,
+	0x39, 0x6a,                         // pushi 6a (106d)
+	0x38, SIG_UINT16(0x96),             // pushi 0096 (150d)
+	0x39, 0x6c,                         // pushi 6c (108d)
+	0x38, SIG_UINT16(0x98),             // pushi 0098 (152d)
+	SIG_END
+};
+
+static const uint16 laurabow1PatchArmorOpenVisorFix[] = {
+	PATCH_ADDTOOFFSET(+2),
+	0x39, 0x68,                         // pushi 68 (104d)   (-2)
+	0x38, SIG_UINT16(0x94),             // pushi 0094 (148d) (-2)
+	0x39, 0x6f,                         // pushi 6f (111d)   (+3)
+	0x38, SIG_UINT16(0x9a),             // pushi 009a (154d) (+2)
+	PATCH_END
+};
+
+// This here fixes the destination coordinate (exact details are above).
+//
+// Applies to at least: English PC Floppy, English Atari ST Floppy, English Amiga Floppy
+// Responsible method: openVisor::changeState, oiling::changeState (script 37)
+// Fixes bug: #7119
+static const uint16 laurabow1SignatureArmorMoveToFix[] = {
+	SIG_MAGICDWORD,
+	0x36,                               // push
+	0x39, 0x6b,                         // pushi 6B (107d)
+	0x38, SIG_UINT16(0x0098),           // pushi 98 (152d)
+	0x7c,                               // pushSelf
+	0x81, 0x00,                         // lag global[0]
+	SIG_END
+};
+
+static const uint16 laurabow1PatchArmorMoveToFix[] = {
+	PATCH_ADDTOOFFSET(+1),
+	0x39, 0x6e,                         // pushi 6E (110d) - adjust x, so that no collision can occur anymore
+	PATCH_END
+};
+
+// In some cases like for example when the player oils the arm of the armor, command input stays
+// disabled, even when the player exits fast enough, so that Laura doesn't die.
+//
+// This is caused by the scripts only enabling control (directional movement), but do not enable command input as well.
+//
+// This bug also happens, when using the original interpreter.
+// And it was fixed for the Atari ST + Amiga versions of the game.
+//
+// Applies to at least: English PC Floppy
+// Responsible method: 2nd subroutine in script 37, called by oiling::changeState(7)
+// Fixes bug: #7154
+static const uint16 laurabow1SignatureArmorOilingArmFix[] = {
+	0x38, SIG_UINT16(0x0089),           // pushi 89h
+	0x76,                               // push0
+	SIG_MAGICDWORD,
+	0x72, SIG_UINT16(0x1a5c),           // lofsa "Can" - offsets are not skipped to make sure only the PC version gets patched
+	0x4a, 0x04,                         // send 04
+	0x38, SIG_UINT16(0x0089),           // pushi 89h
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x19a1),           // lofsa "Visor"
+	0x4a, 0x04,                         // send 04
+	0x38, SIG_UINT16(0x0089),           // pushi 89h
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x194a),           // lofsa "note"
+	0x4a, 0x04,                         // send 04
+	0x38, SIG_UINT16(0x0089),           // pushi 89h
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x18f3),           // lofsa "valve"
+	0x4a, 0x04,                         // send 04
+	0x8b, 0x34,                         // lsl local[34h]
+	0x35, 0x02,                         // ldi 02
+	0x1c,                               // ne?
+	0x30, SIG_UINT16(0x0014),           // bnt [to ret]
+	0x8b, 0x34,                         // lsl local[34h]
+	0x35, 0x05,                         // ldi 05
+	0x1c,                               // ne?
+	0x30, SIG_UINT16(0x000c),           // bnt [to ret]
+	0x8b, 0x34,                         // lsl local[34h]
+	0x35, 0x06,                         // ldi 06
+	0x1c,                               // ne?
+	0x30, SIG_UINT16(0x0004),           // bnt [to ret]
+	// followed by code to call script 0 export to re-enable controls and call setMotion
+	SIG_END
+};
+
+static const uint16 laurabow1PatchArmorOilingArmFix[] = {
+	PATCH_ADDTOOFFSET(+3),              // skip over pushi 89h
+	0x3c,                               // dup
+	0x3c,                               // dup
+	0x3c,                               // dup
+	// saves a total of 6 bytes
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x1a59),           // lofsa "Can"
+	0x4a, 0x04,                         // send 04
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x19a1),           // lofsa "Visor"
+	0x4a, 0x04,                         // send 04
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x194d),           // lofsa "note"
+	0x4a, 0x04,                         // send 04
+	0x76,                               // push0
+	0x72, SIG_UINT16(0x18f9),           // lofsa "valve" 18f3
+	0x4a, 0x04,                         // send 04
+	// new code to enable input as well, needs 9 spare bytes
+	0x38, SIG_UINT16(0x00e2),           // canInput
+	0x78,                               // push1
+	0x78,                               // push1
+	0x51, 0x2b,                         // class User
+	0x4a, 0x06,                         // send 06 -> call User::canInput(1)
+	// original code, but changed a bit to save some more bytes
+	0x8b, 0x34,                         // lsl local[34h]
+	0x35, 0x02,                         // ldi 02
+	0x04,                               // sub
+	0x31, 0x12,                         // bnt [to ret]
+	0x36,                               // push
+	0x35, 0x03,                         // ldi 03
+	0x04,                               // sub
+	0x31, 0x0c,                         // bnt [to ret]
+	0x78,                               // push1
+	0x1a,                               // eq?
+	0x2f, 0x08,                         // bt [to ret]
+	// saves 7 bytes, we only need 3, so waste 4 bytes
+	0x35, 0x00,                         // ldi 0
+	0x35, 0x00,                         // ldi 0
+	PATCH_END
+};
+
 //          script, description,                                      signature                           patch
 static const SciScriptPatcherEntry laurabow1Signatures[] = {
-	{  true,     4, "easter egg view fix",                         1, laurabow1SignatureEasterEggViewFix, laurabow1PatchEasterEggViewFix },
+	{  true,     4, "easter egg view fix",                         1, laurabow1SignatureEasterEggViewFix,  laurabow1PatchEasterEggViewFix },
+	{  true,    37, "armor open visor fix",                        1, laurabow1SignatureArmorOpenVisorFix, laurabow1PatchArmorOpenVisorFix },
+	{  true,    37, "armor move to fix",                           2, laurabow1SignatureArmorMoveToFix,    laurabow1PatchArmorMoveToFix },
+	{  true,    37, "allowing input, after oiling arm",            1, laurabow1SignatureArmorOilingArmFix, laurabow1PatchArmorOilingArmFix },
 	SCI_SIGNATUREENTRY_TERMINATOR
 };
 
@@ -2761,7 +3202,7 @@ static const uint16 qfg3PatchImportDialog[] = {
 // Teller::doChild. We jump to this call of hero::solvePuzzle to get that same
 // behaviour.
 // Applies to at least: English, German, Italian, French, Spanish Floppy
-// Responsible method: unknown
+// Responsible method: uhuraTell::doChild
 // Fixes bug: #5172
 static const uint16 qfg3SignatureWooDialog[] = {
 	SIG_MAGICDWORD,
@@ -3071,6 +3512,86 @@ static const uint16 qfg3PatchCombatSpeedThrottling2[] = {
 	PATCH_END
 };
 
+// In room #750, when the hero enters from the top east path (room #755), it
+// could go out of the contained-access polygon bounds, and be able to travel
+// freely in the room.
+// The reason is that the cutoff y value (42) that determines whether the hero
+// enters from the top or bottom path is inaccurate: it's possible to enter the
+// top path from as low as y=45.
+// This patch changes the cutoff to be 50 which should be low enough.
+// It also changes the position in which the hero enters from the top east path
+// as the current location is hidden behind the tree.
+//
+// Applies to: English, French, German, Italian, Spanish and the GOG release.
+// Responsible method: enterEast::changeState (script 750)
+// Fixes bug #6693
+static const uint16 qfg3SignatureRoom750Bounds1[] = {
+	// (if (< (ego y?) 42)
+	0x76,                               // push0 ("y")
+	0x76,                               // push0
+	0x81, 0x00,                         // lag global[0] (ego)
+	0x4a, 0x04,                         // send 4
+	SIG_MAGICDWORD,
+	0x36,                               // push
+	0x35,   42,                         // ldi 42 <-- comparing ego.y with 42
+	0x22,                               // lt?
+	SIG_END
+};
+
+static const uint16 qfg3PatchRoom750Bounds1[] = {
+	// (if (< (ego y?) 50)
+	PATCH_ADDTOOFFSET(+8),
+	50,                                 // 42 --> 50
+	PATCH_END
+};
+
+static const uint16 qfg3SignatureRoom750Bounds2[] = {
+	// (ego x: 294 y: 39)
+	0x78,                               // push1 ("x")
+	0x78,                               // push1 
+	0x38, SIG_UINT16(294),              // pushi 294
+	0x76,                               // push0 ("y")
+	0x78,                               // push1
+	SIG_MAGICDWORD,
+	0x39,   29,                         // pushi 29
+	0x81, 0x00,                         // lag global[0] (ego)
+	0x4a, 0x0c,                         // send 12
+	SIG_END
+};
+
+static const uint16 qfg3PatchRoom750Bounds2[] = {
+	// (ego x: 320 y: 39)
+	PATCH_ADDTOOFFSET(+3),
+	PATCH_UINT16(320),                  // 294 --> 320
+	PATCH_ADDTOOFFSET(+3),
+	39,                                 //  29 -->  39
+	PATCH_END
+};
+
+static const uint16 qfg3SignatureRoom750Bounds3[] = {
+	// (ego setMotion: MoveTo 282 29 self)
+	0x38, SIG_SELECTOR16(setMotion),    // pushi "setMotion" 0x133 in QfG3
+	0x39, 0x04,                         // pushi 4
+	0x51, SIG_ADDTOOFFSET(+1),          // class MoveTo
+	0x36,                               // push
+	0x38, SIG_UINT16(282),              // pushi 282
+	SIG_MAGICDWORD,
+	0x39,   29,                         // pushi 29
+	0x7c,                               // pushSelf
+	0x81, 0x00,                         // lag global[0] (ego)
+	0x4a, 0x0c,                         // send 12
+	SIG_END
+};
+
+static const uint16 qfg3PatchRoom750Bounds3[] = {
+	// (ego setMotion: MoveTo 309 35 self)
+	PATCH_ADDTOOFFSET(+9),
+	PATCH_UINT16(309),                  // 282 --> 309
+	PATCH_ADDTOOFFSET(+1),
+	35,                                 //  29 -->  35
+	PATCH_END
+};
+
 //          script, description,                                      signature                    patch
 static const SciScriptPatcherEntry qfg3Signatures[] = {
 	{  true,   944, "import dialog continuous calls",                     1, qfg3SignatureImportDialog,           qfg3PatchImportDialog },
@@ -3084,6 +3605,9 @@ static const SciScriptPatcherEntry qfg3Signatures[] = {
 	{  true,   285, "missing points for telling about initiation script", 1, qfg3SignatureMissingPoints2b,        qfg3PatchMissingPoints2 },
 	{  true,   550, "combat speed throttling script",                     1, qfg3SignatureCombatSpeedThrottling1, qfg3PatchCombatSpeedThrottling1 },
 	{  true,   550, "combat speed throttling heap",                       1, qfg3SignatureCombatSpeedThrottling2, qfg3PatchCombatSpeedThrottling2 },
+	{  true,   750, "hero goes out of bounds in room 750",                2, qfg3SignatureRoom750Bounds1,         qfg3PatchRoom750Bounds1 },
+	{  true,   750, "hero goes out of bounds in room 750",                2, qfg3SignatureRoom750Bounds2,         qfg3PatchRoom750Bounds2 },
+	{  true,   750, "hero goes out of bounds in room 750",                2, qfg3SignatureRoom750Bounds3,         qfg3PatchRoom750Bounds3 },
 	SCI_SIGNATUREENTRY_TERMINATOR
 };
 
@@ -3514,23 +4038,34 @@ static const uint16 sq1vgaSignatureSpiderDroidTiming[] = {
 	0x30, SIG_UINT16(0x0005),           // bnt [further method code]
 	0x35, 0x00,                         // ldi 00
 	0x32, SIG_UINT16(0x0052),           // jmp [super-call]
-	0x89, 0xa6,                         // lsg global[a6]
+	0x89, 0xa6,                         // lsg global[a6] <-- flag gets set to 1 when ego went up the skeleton tail, when going down it's set to 2
 	0x35, 0x01,                         // ldi 01
 	0x1a,                               // eq?
-	0x30, SIG_UINT16(0x0012),           // bnt [2nd code], in case global A6 <> 1
+	0x30, SIG_UINT16(0x0012),           // bnt [PChase set code], in case global A6 <> 1
 	0x81, 0xb5,                         // lag global[b5]
-	0x30, SIG_UINT16(0x000d),           // bnt [2nd code], in case global B5 == 0
+	0x30, SIG_UINT16(0x000d),           // bnt [PChase set code], in case global B5 == 0
 	0x38, SIG_UINT16(0x008c),           // pushi 008c
 	0x78,                               // push1
 	0x72, SIG_UINT16(0x1cb6),           // lofsa 1CB6 (moveToPath)
 	0x36,                               // push
 	0x54, 0x06,                         // self 06
 	0x32, SIG_UINT16(0x0038),           // jmp [super-call]
+	// PChase set call
 	0x81, 0xb5,                         // lag global[B5]
 	0x18,                               // not
 	0x30, SIG_UINT16(0x0032),           // bnt [super-call], in case global B5 <> 0
+	// followed by:
+	// is spider in current room
+	// is global A6h == 2? -> set PChase
 	SIG_END
 }; // 58 bytes)
+
+// Global A6h <> 1 (did NOT went up the skeleton)
+//  Global B5h = 0 -> set PChase
+//  Global B5h <> 0 -> do not do anything
+// Global A6h = 1 (did went up the skeleton)
+//  Global B5h = 0 -> set PChase
+//  Global B5h <> 0 -> set moveToPath
 
 static const uint16 sq1vgaPatchSpiderDroidTiming[] = {
 	0x63, 0x4e,                         // pToa script
@@ -3556,8 +4091,8 @@ static const uint16 sq1vgaPatchSpiderDroidTiming[] = {
 	0x65, 0x4c,                         // aTop cycleSpeed
 	0x65, 0x5e,                         // aTop moveSpeed
 	// new code end
-	0x89, 0xb5,                         // lsg global[B5]
-	0x31, 0x13,                         // bnt [2nd code chunk]
+	0x81, 0xb5,                         // lag global[B5]
+	0x31, 0x13,                         // bnt [PChase code chunk]
 	0x89, 0xa6,                         // lsg global[A6]
 	0x35, 0x01,                         // ldi 01
 	0x1a,                               // eq?
@@ -3864,7 +4399,7 @@ int32 ScriptPatcher::findSignature(const SciScriptPatcherEntry *patchEntry, cons
 	return findSignature(runtimeEntry->magicDWord, runtimeEntry->magicOffset, patchEntry->signatureData, patchEntry->description, scriptData, scriptSize);
 }
 
-// Attention: Magic DWord is returns using platform specific byte order. This is done on purpose for performance.
+// Attention: Magic DWord is returned using platform specific byte order. This is done on purpose for performance.
 void ScriptPatcher::calculateMagicDWordAndVerify(const char *signatureDescription, const uint16 *signatureData, bool magicDWordIncluded, uint32 &calculatedMagicDWord, int &calculatedMagicDWordOffset) {
 	Selector curSelector = -1;
 	int magicOffset;
@@ -3945,7 +4480,7 @@ void ScriptPatcher::calculateMagicDWordAndVerify(const char *signatureDescriptio
 				}
 				if (!magicDWordLeft) {
 					// Magic DWORD is now known, convert to platform specific byte order
-					calculatedMagicDWord = READ_LE_UINT32(magicDWord);
+					calculatedMagicDWord = READ_UINT32(magicDWord);
 				}
 			}
 			break;
@@ -3970,7 +4505,8 @@ void ScriptPatcher::calculateMagicDWordAndVerify(const char *signatureDescriptio
 				magicDWord[4 - magicDWordLeft] = (byte)curValue;
 				magicDWordLeft--;
 				if (!magicDWordLeft) {
-					calculatedMagicDWord = READ_LE_UINT32(magicDWord);
+					// Magic DWORD is now known, convert to platform specific byte order
+					calculatedMagicDWord = READ_UINT32(magicDWord);
 				}
 			}
 			break;
@@ -4077,6 +4613,9 @@ void ScriptPatcher::processScript(uint16 scriptNr, byte *scriptData, const uint3
 		break;
 	case GID_KQ6:
 		signatureTable = kq6Signatures;
+		break;
+	case GID_KQ7:
+		signatureTable = kq7Signatures;
 		break;
 	case GID_LAURABOW:
 		signatureTable = laurabow1Signatures;

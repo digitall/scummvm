@@ -41,9 +41,7 @@
 #include "sci/graphics/cache.h"
 #include "sci/graphics/cursor.h"
 #include "sci/graphics/screen.h"
-#include "sci/graphics/paint.h"
 #include "sci/graphics/paint16.h"
-#include "sci/graphics/paint32.h"
 #include "sci/graphics/palette.h"
 #include "sci/graphics/ports.h"
 #include "sci/graphics/view.h"
@@ -54,8 +52,8 @@
 #include "sci/video/seq_decoder.h"
 #ifdef ENABLE_SCI32
 #include "sci/graphics/frameout.h"
+#include "sci/graphics/paint32.h"
 #include "video/coktel_decoder.h"
-#include "sci/video/robot_decoder.h"
 #endif
 
 #include "common/file.h"
@@ -267,8 +265,6 @@ void Console::postEnter() {
 #ifdef ENABLE_SCI32
 		} else if (_videoFile.hasSuffix(".vmd")) {
 			videoDecoder = new Video::AdvancedVMDDecoder();
-		} else if (_videoFile.hasSuffix(".rbt")) {
-			videoDecoder = new RobotDecoder(_engine->getPlatform() == Common::kPlatformMacintosh);
 		} else if (_videoFile.hasSuffix(".duk")) {
 			duckMode = true;
 			videoDecoder = new Video::AVIDecoder();
@@ -490,6 +486,7 @@ bool Console::cmdGetVersion(int argc, const char **argv) {
 	debugPrintf("Lofs type: %s\n", getSciVersionDesc(_engine->_features->detectLofsType()));
 	debugPrintf("Move count type: %s\n", (_engine->_features->handleMoveCount()) ? "increment" : "ignore");
 	debugPrintf("SetCursor type: %s\n", getSciVersionDesc(_engine->_features->detectSetCursorType()));
+	debugPrintf("PseudoMouse ability: %s\n", _engine->_features->detectPseudoMouseAbility() == kPseudoMouseAbilityTrue ? "yes" : "no");
 #ifdef ENABLE_SCI32
 	if ((getSciVersion() >= SCI_VERSION_2_1_EARLY) && (getSciVersion() <= SCI_VERSION_2_1_LATE))
 		debugPrintf("SCI2.1 kernel table: %s\n", (_engine->_features->detectSci21KernelType() == SCI_VERSION_2) ? "modified SCI2 (old)" : "SCI2.1 (new)");
@@ -498,8 +495,10 @@ bool Console::cmdGetVersion(int argc, const char **argv) {
 	if (getSciVersion() <= SCI_VERSION_1_1) {
 		debugPrintf("kAnimate fastCast enabled: %s\n", g_sci->_gfxAnimate->isFastCastEnabled() ? "yes" : "no");
 	}
-	debugPrintf("Uses palette merging: %s\n", g_sci->_gfxPalette16->isMerging() ? "yes" : "no");
-	debugPrintf("Uses 16 bit color matching: %s\n", g_sci->_gfxPalette16->isUsing16bitColorMatch() ? "yes" : "no");
+	if (getSciVersion() < SCI_VERSION_2) {
+		debugPrintf("Uses palette merging: %s\n", g_sci->_gfxPalette16->isMerging() ? "yes" : "no");
+		debugPrintf("Uses 16 bit color matching: %s\n", g_sci->_gfxPalette16->isUsing16bitColorMatch() ? "yes" : "no");
+	}
 	debugPrintf("Resource volume version: %s\n", g_sci->getResMan()->getVolVersionDesc());
 	debugPrintf("Resource map version: %s\n", g_sci->getResMan()->getMapVersionDesc());
 	debugPrintf("Contains selector vocabulary (vocab.997): %s\n", hasVocab997 ? "yes" : "no");
@@ -1621,13 +1620,20 @@ bool Console::cmdParserNodes(int argc, const char **argv) {
 
 bool Console::cmdSetPalette(int argc, const char **argv) {
 	if (argc < 2) {
-		debugPrintf("Sets a palette resource\n");
+		debugPrintf("Sets a palette resource (SCI16)\n");
 		debugPrintf("Usage: %s <resourceId>\n", argv[0]);
 		debugPrintf("where <resourceId> is the number of the palette resource to set\n");
 		return true;
 	}
 
 	uint16 resourceId = atoi(argv[1]);
+
+#ifdef ENABLE_SCI32
+	if (getSciVersion() >= SCI_VERSION_2) {
+		debugPrintf("This SCI version does not support this command\n");
+		return true;
+	}
+#endif
 
 	_engine->_gfxPalette16->kernelSetFromResource(resourceId, true);
 	return true;
@@ -1648,7 +1654,7 @@ bool Console::cmdDrawPic(int argc, const char **argv) {
 #endif
 
 	uint16 resourceId = atoi(argv[1]);
-	_engine->_gfxPaint->kernelDrawPicture(resourceId, 100, false, false, false, 0);
+	_engine->_gfxPaint16->kernelDrawPicture(resourceId, 100, false, false, false, 0);
 	_engine->_gfxScreen->copyToScreen();
 	_engine->sleep(2000);
 
@@ -2072,6 +2078,10 @@ bool Console::cmdPrintSegmentTable(int argc, const char **argv) {
 			case SEG_TYPE_STRING:
 				debugPrintf("T  SCI32 strings (%d)", (*(StringTable *)mobj).entries_used);
 				break;
+
+			case SEG_TYPE_BITMAP:
+				debugPrintf("T  SCI32 bitmaps (%d)", (*(BitmapTable *)mobj).entries_used);
+				break;
 #endif
 
 			default:
@@ -2205,6 +2215,9 @@ bool Console::segmentInfo(int nr) {
 		break;
 	case SEG_TYPE_ARRAY:
 		debugPrintf("SCI32 arrays\n");
+		break;
+	case SEG_TYPE_BITMAP:
+		debugPrintf("SCI32 bitmaps\n");
 		break;
 #endif
 
@@ -2807,6 +2820,12 @@ bool Console::cmdViewReference(int argc, const char **argv) {
 					hexDumpReg(array->getRawData(), array->getSize(), 4, 0, true);
 					break;
 				}
+				case SEG_TYPE_BITMAP: {
+					debugPrintf("SCI32 bitmap:\n");
+					const SciBitmap *bitmap = _engine->_gamestate->_segMan->lookupBitmap(reg);
+					Common::hexdump((const byte *) bitmap->getRawData(), bitmap->getRawSize(), 16, 0);
+					break;
+				}
 #endif
 				default: {
 					const SegmentRef block = _engine->_gamestate->_segMan->dereference(reg);
@@ -3095,7 +3114,10 @@ bool Console::cmdBacktrace(int argc, const char **argv) {
 			break;
 
 		case EXEC_STACK_TYPE_KERNEL: // Kernel function
-			debugPrintf(" %x:[%x]  k%s(", i, call.debugOrigin, _engine->getKernel()->getKernelName(call.debugSelector).c_str());
+			if (call.debugKernelSubFunction == -1)
+				debugPrintf(" %x:[%x]  k%s(", i, call.debugOrigin, _engine->getKernel()->getKernelName(call.debugKernelFunction).c_str());
+			else
+				debugPrintf(" %x:[%x]  k%s(", i, call.debugOrigin, _engine->getKernel()->getKernelName(call.debugKernelFunction, call.debugKernelSubFunction).c_str());
 			break;
 
 		case EXEC_STACK_TYPE_VARSELECTOR:

@@ -32,17 +32,30 @@
 
 namespace Adl {
 
-#define GAMEOPTION_COLOR      GUIO_GAMEOPTIONS1
-#define GAMEOPTION_SCANLINES  GUIO_GAMEOPTIONS2
+// Mystery House was designed for monochrome display, so we default to
+// monochrome mode there. All the other games default to color mode.
+#define GAMEOPTION_COLOR_DEFAULT_OFF GUIO_GAMEOPTIONS1
+#define GAMEOPTION_SCANLINES         GUIO_GAMEOPTIONS2
+#define GAMEOPTION_COLOR_DEFAULT_ON  GUIO_GAMEOPTIONS3
 
 static const ADExtraGuiOptionsMap optionsList[] = {
 	{
-		GAMEOPTION_COLOR,
+		GAMEOPTION_COLOR_DEFAULT_OFF,
 		{
 			_s("Color mode"),
 			_s("Use color graphics"),
 			"color",
 			false
+		}
+	},
+
+	{
+		GAMEOPTION_COLOR_DEFAULT_ON,
+		{
+			_s("Color mode"),
+			_s("Use color graphics"),
+			"color",
+			true
 		}
 	},
 
@@ -60,26 +73,104 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 };
 
 static const PlainGameDescriptor adlGames[] = {
-	{"hires1", "Hi-Res Adventure #1: Mystery House"},
-	{0, 0}
+	{ "hires0", "Hi-Res Adventure #0: Mission Asteroid" },
+	{ "hires1", "Hi-Res Adventure #1: Mystery House" },
+	{ "hires2", "Hi-Res Adventure #2: Wizard and the Princess" },
+	{ "hires4", "Hi-Res Adventure #4: Ulysses and the Golden Fleece" },
+	{ "hires6", "Hi-Res Adventure #6: The Dark Crystal" },
+	{ 0, 0 }
 };
 
 static const AdlGameDescription gameDescriptions[] = {
-	{ // Hi-Res Adventure #1: Mystery House - Apple II - 1987 PD release
+	{ // Hi-Res Adventure #1: Mystery House - Apple II - 1987 PD release - Plain files
 		{
 			"hires1", 0,
 			{
-				{"ADVENTURE", 0, "22d9e63a11d69fa033ba1738715ad09a", 29952},
-				{"AUTO LOAD OBJ", 0, "23bfccfe9fcff9b22cf6c41bde9078ac", 12291},
-				{"MYSTERY.HELLO", 0, "2289b7fea300b506e902a4c597968369", 836},
+				{ "ADVENTURE", 0, "22d9e63a11d69fa033ba1738715ad09a", 29952 },
+				{ "AUTO LOAD OBJ", 0, "23bfccfe9fcff9b22cf6c41bde9078ac", 12291 },
+				{ "MYSTERY.HELLO", 0, "2289b7fea300b506e902a4c597968369", 836 },
 				AD_LISTEND
 			},
 			Common::EN_ANY,
-			Common::kPlatformApple2GS, // FIXME
-			ADGF_NO_FLAGS,
-			GUIO2(GAMEOPTION_COLOR, GAMEOPTION_SCANLINES)
+			Common::kPlatformApple2,
+			ADGF_TESTING,
+			GUIO2(GAMEOPTION_COLOR_DEFAULT_OFF, GAMEOPTION_SCANLINES)
 		},
 		GAME_TYPE_HIRES1
+	},
+	{ // Hi-Res Adventure #1: Mystery House - Apple II - 1987 PD release - .DSK format
+		{
+			"hires1", 0,
+			{
+				{ "MYSTHOUS.DSK", 0, "34ba05e62bf51404c4475c349ca48921", 143360 },
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformApple2,
+			ADGF_TESTING,
+			GUIO2(GAMEOPTION_COLOR_DEFAULT_OFF, GAMEOPTION_SCANLINES)
+		},
+		GAME_TYPE_HIRES1
+	},
+	{ // Hi-Res Adventure #2: Wizard and the Princess - Apple II - Roberta Williams Anthology
+		{
+			"hires2", 0,
+			{
+				{ "WIZARD.DSK", 0, "816fdfc35e25496213c8db40ecf26569", 143360 },
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformApple2,
+			ADGF_TESTING,
+			GUIO2(GAMEOPTION_COLOR_DEFAULT_ON, GAMEOPTION_SCANLINES)
+		},
+		GAME_TYPE_HIRES2
+	},
+	{ // Hi-Res Adventure #0: Mission Asteroid - Apple II - Roberta Williams Anthology
+		{
+			"hires0", 0,
+			{
+				{ "MISSION.NIB", 0, "b158f6f79681d4edd651e1932f9e01d7", 232960 },
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformApple2,
+			ADGF_TESTING,
+			GUIO2(GAMEOPTION_COLOR_DEFAULT_ON, GAMEOPTION_SCANLINES)
+		},
+		GAME_TYPE_HIRES0
+	},
+	{ // Hi-Res Adventure #4: Ulysses and the Golden Fleece - Atari 8-bit - Re-release
+		{
+			"hires4", 0,
+			{
+				{ "ULYS1A.XFD", 0, "26365d2b06509fd21e7a7919e33f7199", 92160 },
+				// FIXME: Add sides 1B and 2C
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformAtariST, // FIXME
+			ADGF_UNSTABLE,
+			GUIO2(GAMEOPTION_COLOR_DEFAULT_ON, GAMEOPTION_SCANLINES)
+		},
+		GAME_TYPE_HIRES4
+	},
+	{ // Hi-Res Adventure #6: The Dark Crystal - Apple II - Roberta Williams Anthology
+		{
+			"hires6", 0,
+			{
+				{ "DARK1A.DSK", 0, "00c2646d6943d1405717332a6f42d493", 143360 },
+				{ "DARK2A.NIB", 0, "271eb92db107e8d5829437f8ba77991e", 232960 },
+				{ "DARK1B.NIB", 0, "dbedd736617343ade0e6bead8bf2b10c", 232960 },
+				{ "DARK2B.NIB", 0, "cb72044a9b391c4285f4752f746bea2e", 232960 },
+				AD_LISTEND
+			},
+			Common::EN_ANY,
+			Common::kPlatformApple2,
+			ADGF_UNSTABLE,
+			GUIO2(GAMEOPTION_COLOR_DEFAULT_ON, GAMEOPTION_SCANLINES)
+		},
+		GAME_TYPE_HIRES6
 	},
 	{ AD_TABLE_END_MARKER, GAME_TYPE_NONE }
 };
@@ -220,6 +311,10 @@ void AdlMetaEngine::removeSaveState(const char *target, int slot) const {
 }
 
 Engine *HiRes1Engine_create(OSystem *syst, const AdlGameDescription *gd);
+Engine *HiRes2Engine_create(OSystem *syst, const AdlGameDescription *gd);
+Engine *HiRes0Engine_create(OSystem *syst, const AdlGameDescription *gd);
+Engine *HiRes4Engine_create(OSystem *syst, const AdlGameDescription *gd);
+Engine *HiRes6Engine_create(OSystem *syst, const AdlGameDescription *gd);
 
 bool AdlMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *gd) const {
 	if (!gd)
@@ -230,6 +325,18 @@ bool AdlMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameD
 	switch (adlGd->gameType) {
 	case GAME_TYPE_HIRES1:
 		*engine = HiRes1Engine_create(syst, adlGd);
+		break;
+	case GAME_TYPE_HIRES2:
+		*engine = HiRes2Engine_create(syst, adlGd);
+		break;
+	case GAME_TYPE_HIRES0:
+		*engine = HiRes0Engine_create(syst, adlGd);
+		break;
+	case GAME_TYPE_HIRES4:
+		*engine = HiRes4Engine_create(syst, adlGd);
+		break;
+	case GAME_TYPE_HIRES6:
+		*engine = HiRes6Engine_create(syst, adlGd);
 		break;
 	default:
 		error("Unknown GameType");

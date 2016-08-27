@@ -43,12 +43,12 @@
 
 #include "sci/sound/audio.h"
 #include "sci/sound/music.h"
+#include "sci/sound/sync.h"
 #include "sci/sound/soundcmd.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
 #include "sci/graphics/controls16.h"
-#include "sci/graphics/controls32.h"
 #include "sci/graphics/coordadjuster.h"
 #include "sci/graphics/cursor.h"
 #include "sci/graphics/maciconbar.h"
@@ -64,18 +64,20 @@
 #include "sci/graphics/transitions.h"
 
 #ifdef ENABLE_SCI32
-#include "sci/graphics/palette32.h"
-#include "sci/graphics/text32.h"
+#include "sci/graphics/controls32.h"
+#include "sci/graphics/cursor32.h"
 #include "sci/graphics/frameout.h"
-#include "sci/video/robot_decoder.h"
+#include "sci/graphics/palette32.h"
+#include "sci/graphics/remap32.h"
+#include "sci/graphics/text32.h"
+#include "sci/graphics/transitions32.h"
+#include "sci/graphics/video32.h"
+#include "sci/sound/audio32.h"
 #endif
 
 namespace Sci {
 
 SciEngine *g_sci = 0;
-
-
-class GfxDriver;
 
 SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gameId)
 		: Engine(syst), _gameDescription(desc), _gameId(gameId), _rng("sci") {
@@ -86,6 +88,12 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gam
 	_gfxMacIconBar = 0;
 
 	_audio = 0;
+	_sync = nullptr;
+#ifdef ENABLE_SCI32
+	_audio32 = nullptr;
+	_video32 = nullptr;
+	_gfxCursor32 = nullptr;
+#endif
 	_features = 0;
 	_resMan = 0;
 	_gamestate = 0;
@@ -119,6 +127,7 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gam
 	DebugMan.addDebugChannel(kDebugLevelScripts, "Scripts", "Notifies when scripts are unloaded");
 	DebugMan.addDebugChannel(kDebugLevelScriptPatcher, "ScriptPatcher", "Notifies when scripts are patched");
 	DebugMan.addDebugChannel(kDebugLevelWorkarounds, "Workarounds", "Notifies when workarounds are triggered");
+	DebugMan.addDebugChannel(kDebugLevelVideo, "Video", "Video (SEQ, VMD, RBT) debugging");
 	DebugMan.addDebugChannel(kDebugLevelGC, "GC", "Garbage Collector debugging");
 	DebugMan.addDebugChannel(kDebugLevelResMan, "ResMan", "Resource manager debugging");
 	DebugMan.addDebugChannel(kDebugLevelOnStartup, "OnStartup", "Enter debugger at start of game");
@@ -157,20 +166,25 @@ SciEngine::~SciEngine() {
 	DebugMan.clearAllDebugChannels();
 
 #ifdef ENABLE_SCI32
-	// _gfxPalette32 is the same as _gfxPalette16
-	// and will be destroyed when _gfxPalette16 is
-	// destroyed
 	delete _gfxControls32;
+	delete _gfxPaint32;
 	delete _gfxText32;
-	delete _robotDecoder;
+	// GfxFrameout and GfxPalette32 must be deleted after Video32 since
+	// destruction of screen items in the Video32 destructor relies on these
+	// components
+	delete _video32;
+	delete _gfxCursor32;
+	delete _gfxPalette32;
+	delete _gfxTransitions32;
 	delete _gfxFrameout;
 	delete _gfxRemap32;
+	delete _audio32;
 #endif
 	delete _gfxMenu;
 	delete _gfxControls16;
 	delete _gfxText16;
 	delete _gfxAnimate;
-	delete _gfxPaint;
+	delete _gfxPaint16;
 	delete _gfxTransitions;
 	delete _gfxCompare;
 	delete _gfxCoordAdjuster;
@@ -182,6 +196,7 @@ SciEngine::~SciEngine() {
 	delete _gfxScreen;
 
 	delete _audio;
+	delete _sync;
 	delete _soundCmd;
 	delete _kernel;
 	delete _vocabulary;
@@ -227,35 +242,31 @@ Common::Error SciEngine::run() {
 	_scriptPatcher = new ScriptPatcher();
 	SegManager *segMan = new SegManager(_resMan, _scriptPatcher);
 
-	// Read user option for hires graphics
+	// Read user option for forcing hires graphics
 	// Only show/selectable for:
 	//  - King's Quest 6 CD
 	//  - King's Quest 6 CD demo
 	//  - Gabriel Knight 1 CD
 	//  - Police Quest 4 CD
 	// TODO: Check, if Gabriel Knight 1 floppy supports high resolution
-	// TODO: Check, if Gabriel Knight 1 on Mac supports high resolution
-	switch (getPlatform()) {
-	case Common::kPlatformDOS:
-	case Common::kPlatformWindows:
-		// Only DOS+Windows
-		switch (_gameId) {
-		case GID_KQ6:
-		case GID_GK1:
-		case GID_PQ4:
-			if (isCD())
-				_forceHiresGraphics = ConfMan.getBool("enable_high_resolution_graphics");
-			break;
-		default:
-			break;
-		}
-	default:
-		break;
-	};
+	//
+	// Gabriel Knight 1 on Mac is hi-res only, so it should NOT get this option.
+	// Confirmed by [md5] and originally by clone2727.
+	if (Common::checkGameGUIOption(GAMEOPTION_HIGH_RESOLUTION_GRAPHICS, ConfMan.get("guioptions"))) {
+		// GAMEOPTION_HIGH_RESOLUTION_GRAPHICS is available for the currently detected game,
+		// so read the user option now.
+		// We need to do this, because the option's default is "true", but we don't want "true"
+		// for any game that does not have this option.
+		_forceHiresGraphics = ConfMan.getBool("enable_high_resolution_graphics");
+	}
 
-	// Initialize the game screen
-	_gfxScreen = new GfxScreen(_resMan);
-	_gfxScreen->enableUndithering(ConfMan.getBool("disable_dithering"));
+	if (getSciVersion() < SCI_VERSION_2) {
+		// Initialize the game screen
+		_gfxScreen = new GfxScreen(_resMan);
+		_gfxScreen->enableUndithering(ConfMan.getBool("disable_dithering"));
+	} else {
+		_gfxScreen = nullptr;
+	}
 
 	_kernel = new Kernel(_resMan, segMan);
 	_kernel->init();
@@ -266,9 +277,21 @@ Common::Error SciEngine::run() {
 	// Also, XMAS1990 apparently had a parser too. Refer to http://forums.scummvm.org/viewtopic.php?t=9135
 	if (getGameId() == GID_CHRISTMAS1990)
 		_vocabulary = new Vocabulary(_resMan, false);
-	_audio = new AudioPlayer(_resMan);
+
 	_gamestate = new EngineState(segMan);
 	_eventMan = new EventManager(_resMan->detectFontExtended());
+#ifdef ENABLE_SCI32
+	if (getSciVersion() >= SCI_VERSION_2_1_EARLY) {
+		_audio32 = new Audio32(_resMan);
+	} else
+#endif
+		_audio = new AudioPlayer(_resMan);
+#ifdef ENABLE_SCI32
+	if (getSciVersion() >= SCI_VERSION_2) {
+		_video32 = new Video32(segMan, _eventMan);
+	}
+#endif
+	_sync = new Sync(_resMan, segMan);
 
 	// Create debugger console. It requires GFX and _gamestate to be initialized
 	_console = new Console(this);
@@ -339,6 +362,17 @@ Common::Error SciEngine::run() {
 			                  "the latest patch for this game by Sierra to avoid possible "
 			                  "problems");
 		}
+	}
+
+	if (getGameId() == GID_KQ7 && ConfMan.getBool("subtitles")) {
+		showScummVMDialog("Subtitles are enabled, but subtitling in King's"
+						  " Quest 7 was unfinished and disabled in the release"
+						  " version of the game. ScummVM allows the subtitles"
+						  " to be re-enabled, but because they were removed from"
+						  " the original game, they do not always render"
+						  " properly or reflect the actual game speech."
+						  " This is not a ScummVM bug -- it is a problem with"
+						  " the game's assets.");
 	}
 
 	// Show a warning if the user has selected a General MIDI device, no GM patch exists
@@ -660,7 +694,6 @@ void SciEngine::initGraphics() {
 	_gfxCursor = 0;
 	_gfxMacIconBar = 0;
 	_gfxMenu = 0;
-	_gfxPaint = 0;
 	_gfxPaint16 = 0;
 	_gfxPalette16 = 0;
 	_gfxRemap16 = 0;
@@ -670,11 +703,12 @@ void SciEngine::initGraphics() {
 #ifdef ENABLE_SCI32
 	_gfxControls32 = 0;
 	_gfxText32 = 0;
-	_robotDecoder = 0;
 	_gfxFrameout = 0;
 	_gfxPaint32 = 0;
 	_gfxPalette32 = 0;
 	_gfxRemap32 = 0;
+	_gfxTransitions32 = 0;
+	_gfxCursor32 = 0;
 #endif
 
 	if (hasMacIconBar())
@@ -682,9 +716,8 @@ void SciEngine::initGraphics() {
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		_gfxPalette32 = new GfxPalette32(_resMan, _gfxScreen);
-		_gfxPalette16 = _gfxPalette32;
-		_gfxRemap32 = new GfxRemap32(_gfxPalette32);
+		_gfxPalette32 = new GfxPalette32(_resMan);
+		_gfxRemap32 = new GfxRemap32();
 	} else {
 #endif
 		_gfxPalette16 = new GfxPalette(_resMan, _gfxScreen);
@@ -695,31 +728,29 @@ void SciEngine::initGraphics() {
 #endif
 
 	_gfxCache = new GfxCache(_resMan, _gfxScreen, _gfxPalette16);
-	_gfxCursor = new GfxCursor(_resMan, _gfxPalette16, _gfxScreen);
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
 		// SCI32 graphic objects creation
-		_gfxCoordAdjuster = new GfxCoordAdjuster32(_gamestate->_segMan);
-		_gfxCursor->init(_gfxCoordAdjuster, _eventMan);
-		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, _gfxScreen, _gfxCoordAdjuster);
-		_gfxPaint32 = new GfxPaint32(_resMan, _gfxCoordAdjuster, _gfxScreen, _gfxPalette32);
-		_gfxPaint = _gfxPaint32;
-		_robotDecoder = new RobotDecoder(getPlatform() == Common::kPlatformMacintosh);
-		_gfxFrameout = new GfxFrameout(_gamestate->_segMan, _resMan, _gfxCoordAdjuster, _gfxCache, _gfxScreen, _gfxPalette32, _gfxPaint32);
+		_gfxCursor32 = new GfxCursor32();
+		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
+		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
+		_gfxTransitions32 = new GfxTransitions32(_gamestate->_segMan);
+		_gfxFrameout = new GfxFrameout(_gamestate->_segMan, _gfxPalette32, _gfxTransitions32, _gfxCursor32);
+		_gfxCursor32->init(_gfxFrameout->getCurrentBuffer());
 		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache);
 		_gfxControls32 = new GfxControls32(_gamestate->_segMan, _gfxCache, _gfxText32);
 		_gfxFrameout->run();
 	} else {
 #endif
 		// SCI0-SCI1.1 graphic objects creation
+		_gfxCursor = new GfxCursor(_resMan, _gfxPalette16, _gfxScreen);
 		_gfxPorts = new GfxPorts(_gamestate->_segMan, _gfxScreen);
 		_gfxCoordAdjuster = new GfxCoordAdjuster16(_gfxPorts);
 		_gfxCursor->init(_gfxCoordAdjuster, _eventMan);
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, _gfxScreen, _gfxCoordAdjuster);
 		_gfxTransitions = new GfxTransitions(_gfxScreen, _gfxPalette16);
 		_gfxPaint16 = new GfxPaint16(_resMan, _gamestate->_segMan, _gfxCache, _gfxPorts, _gfxCoordAdjuster, _gfxScreen, _gfxPalette16, _gfxTransitions, _audio);
-		_gfxPaint = _gfxPaint16;
 		_gfxAnimate = new GfxAnimate(_gamestate, _scriptPatcher, _gfxCache, _gfxPorts, _gfxPaint16, _gfxScreen, _gfxPalette16, _gfxCursor, _gfxTransitions);
 		_gfxText16 = new GfxText16(_gfxCache, _gfxPorts, _gfxPaint16, _gfxScreen);
 		_gfxControls16 = new GfxControls16(_gamestate->_segMan, _gfxPorts, _gfxPaint16, _gfxText16, _gfxScreen);
@@ -734,8 +765,10 @@ void SciEngine::initGraphics() {
 	}
 #endif
 
-	// Set default (EGA, amiga or resource 999) palette
-	_gfxPalette16->setDefault();
+	if (getSciVersion() < SCI_VERSION_2) {
+		// Set default (EGA, amiga or resource 999) palette
+		_gfxPalette16->setDefault();
+	}
 }
 
 void SciEngine::initStackBaseWithSelector(Selector selector) {
@@ -801,7 +834,10 @@ void SciEngine::runGame() {
 void SciEngine::exitGame() {
 	if (_gamestate->abortScriptProcessing != kAbortLoadGame) {
 		_gamestate->_executionStack.clear();
-		_audio->stopAllAudio();
+		if (_audio) {
+			_audio->stopAllAudio();
+		}
+		_sync->stop();
 		_soundCmd->clearPlayList();
 	}
 
@@ -887,14 +923,23 @@ Common::String SciEngine::getFilePrefix() const {
 }
 
 Common::String SciEngine::wrapFilename(const Common::String &name) const {
-	return getFilePrefix() + "-" + name;
+	Common::String prefix = getFilePrefix() + "-";
+	if (name.hasPrefix(prefix.c_str()))
+		return name;
+	else
+		return prefix + name;
 }
 
 Common::String SciEngine::unwrapFilename(const Common::String &name) const {
 	Common::String prefix = getFilePrefix() + "-";
 	if (name.hasPrefix(prefix.c_str()))
 		return Common::String(name.c_str() + prefix.size());
-	return name;
+	else
+		return name;
+}
+
+const char *SciEngine::getGameObjectName() {
+	return _gamestate->_segMan->getObjectName(_gameObjectAddress);
 }
 
 int SciEngine::inQfGImportRoom() const {
@@ -995,17 +1040,19 @@ void SciEngine::syncIngameAudioOptions() {
 			case GID_SQ6: // SCI2.1
 			case GID_TORIN: // SCI2.1
 			case GID_QFG4: // SCI2.1
+			case GID_PQ4:	// SCI2
+			case GID_PHANTASMAGORIA:	// SCI2.1
+			case GID_MOTHERGOOSEHIRES:	// SCI2.1
 				useGlobal90 = true;
 				break;
 			case GID_LSL6: // SCI2.1
 				// TODO: Uses gameFlags array
 				break;
+			// Shivers does not use global 90
+			// Police Quest: SWAT does not use global 90
+			//
 			// TODO: Unknown at the moment:
-			// Shivers - seems not to use global 90
-			// Police Quest: SWAT - unable to check
-			// Police Quest 4 - unable to check
-			// Mixed Up Mother Goose - unable to check
-			// Phantasmagoria - seems to use global 90, unable to check for subtitles atm
+			// LSL7, Lighthouse, RAMA, Phantasmagoria 2
 			default:
 				return;
 			}
@@ -1039,6 +1086,9 @@ void SciEngine::syncIngameAudioOptions() {
 				case GID_SQ6: // SCI2.1, SQ6 seems to always use subtitles anyway
 				case GID_TORIN: // SCI2.1
 				case GID_QFG4: // SCI2.1
+				case GID_PQ4:	// SCI2
+				// Phantasmagoria does not support simultaneous speech + subtitles
+				// Mixed Up Mother Goose Deluxe does not support simultaneous speech + subtitles
 #endif // ENABLE_SCI32
 					_gamestate->variables[VAR_GLOBAL][90] = make_reg(0, 3);	// speech + subtitles
 					break;

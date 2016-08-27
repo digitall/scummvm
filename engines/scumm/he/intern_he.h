@@ -121,13 +121,24 @@ class ScummEngine_v70he : public ScummEngine_v60he {
 	friend class ResExtractor;
 
 protected:
+	enum HESndFlags {
+		HE_SND_LOOP = 1,
+		HE_SND_APPEND = 2,
+		HE_SND_SOFT_SOUND = 4,
+		HE_SND_QUICK_START = 8,
+		HE_SND_OFFSET = 16,
+		HE_SND_VOL = 32,
+		HE_SND_FREQUENCY = 64,
+		HE_SND_PAN = 128
+	};
+
 	ResExtractor *_resExtractor;
 
 	byte *_heV7DiskOffsets;
 	byte *_heV7RoomOffsets;
 	uint32 *_heV7RoomIntOffsets;
 
-	int32 _heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags, _heSndSoundFreq;
+	int32 _heSndSoundId, _heSndOffset, _heSndChannel, _heSndFlags, _heSndSoundFreq, _heSndPan, _heSndVol;
 
 	int _numStoredFlObjects;
 	ObjectData *_storedFlObjects;
@@ -168,7 +179,7 @@ protected:
 	virtual void setDefaultCursor();
 
 	/* HE version 70 script opcodes */
-	void o70_startSound();
+	void o70_soundOps();
 	void o70_pickupObject();
 	void o70_getActorRoom();
 	void o70_resourceRoutines();
@@ -622,7 +633,7 @@ protected:
 	void o100_redimArray();
 	void o100_roomOps();
 	void o100_setSystemMessage();
-	void o100_startSound();
+	void o100_soundOps();
 	void o100_setSpriteInfo();
 	void o100_startScript();
 	void o100_systemOps();

@@ -41,8 +41,6 @@ namespace Adl {
 #define DISPLAY_PITCH (DISPLAY_WIDTH / 7)
 #define DISPLAY_SIZE (DISPLAY_PITCH * DISPLAY_HEIGHT)
 
-#define TEXT_WIDTH 40
-#define TEXT_HEIGHT 24
 #define TEXT_BUF_SIZE (TEXT_WIDTH * TEXT_HEIGHT)
 
 #define COLOR_PALETTE_ENTRIES 8
@@ -56,6 +54,9 @@ static const byte colorPalette[COLOR_PALETTE_ENTRIES * 3] = {
 	0x0d, 0xa1, 0xff,
 	0xf2, 0x5e, 0x00
 };
+
+// Opacity of the optional scanlines (percentage)
+#define SCANLINE_OPACITY 75
 
 // Corresponding color in second palette
 #define PAL2(X) ((X) | 0x04)
@@ -111,8 +112,6 @@ Display::Display() :
 		_cursorPos(0),
 		_showCursor(false) {
 
-	initGraphics(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, true);
-
 	_monochrome = !ConfMan.getBool("color");
 	_scanlines = ConfMan.getBool("scanlines");
 
@@ -137,6 +136,8 @@ Display::Display() :
 	_textBufSurface->create(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, Graphics::PixelFormat::createFormatCLUT8());
 
 	createFont();
+
+	_startMillis = g_system->getMillis();
 }
 
 Display::~Display() {
@@ -221,17 +222,35 @@ void Display::loadFrameBuffer(Common::ReadStream &stream) {
 
 void Display::putPixel(const Common::Point &p, byte color) {
 	byte offset = p.x / 7;
+	byte mask = 0x80 | (1 << (p.x % 7));
 
+	// Since white and black are in both palettes, we leave
+	// the palette bit alone
+	if ((color & 0x7f) == 0x7f || (color & 0x7f) == 0)
+		mask &= 0x7f;
+
+	// Adjust colors starting with bits '01' or '10' for
+	// odd offsets
 	if (offset & 1) {
 		byte c = color << 1;
 		if (c >= 0x40 && c < 0xc0)
 			color ^= 0x7f;
 	}
 
-	byte *b = _frameBuf + p.y * DISPLAY_PITCH + offset;
-	color ^= *b;
-	color &= 1 << (p.x % 7);
-	*b ^= color;
+	writeFrameBuffer(p, color, mask);
+}
+
+void Display::setPixelBit(const Common::Point &p, byte color) {
+	writeFrameBuffer(p, color, 1 << (p.x % 7));
+}
+
+void Display::setPixelPalette(const Common::Point &p, byte color) {
+	writeFrameBuffer(p, color, 0x80);
+}
+
+bool Display::getPixelBit(const Common::Point &p) const {
+	byte *b = _frameBuf + p.y * DISPLAY_PITCH + p.x / 7;
+	return *b & (1 << (p.x % 7));
 }
 
 void Display::clear(byte color) {
@@ -271,21 +290,23 @@ void Display::moveCursorTo(const Common::Point &pos) {
 		error("Cursor position (%i, %i) out of bounds", pos.x, pos.y);
 }
 
+// FIXME: This does not currently update the surfaces
+void Display::printChar(char c) {
+	if (c == APPLECHAR('\r'))
+		_cursorPos = (_cursorPos / TEXT_WIDTH + 1) * TEXT_WIDTH;
+	else if ((byte)c < 0x80 || (byte)c >= 0xa0) {
+		setCharAtCursor(c);
+		++_cursorPos;
+	}
+
+	if (_cursorPos == TEXT_BUF_SIZE)
+		scrollUp();
+}
+
 void Display::printString(const Common::String &str) {
 	Common::String::const_iterator c;
-	for (c = str.begin(); c != str.end(); ++c) {
-		byte b = *c;
-
-		if (*c == APPLECHAR('\r'))
-			_cursorPos = (_cursorPos / TEXT_WIDTH + 1) * TEXT_WIDTH;
-		else if (b < 0x80 || b >= 0xa0) {
-			setCharAtCursor(b);
-			++_cursorPos;
-		}
-
-		if (_cursorPos == TEXT_BUF_SIZE)
-			scrollUp();
-	}
+	for (c = str.begin(); c != str.end(); ++c)
+		printChar(*c);
 
 	updateTextScreen();
 }
@@ -308,15 +329,24 @@ void Display::showCursor(bool enable) {
 	_showCursor = enable;
 }
 
-void Display::showScanlines(bool enable) {
-	byte pal[COLOR_PALETTE_ENTRIES * 3] = { };
+void Display::writeFrameBuffer(const Common::Point &p, byte color, byte mask) {
+	byte *b = _frameBuf + p.y * DISPLAY_PITCH + p.x / 7;
+	color ^= *b;
+	color &= mask;
+	*b ^= color;
+}
 
-	if (enable)
-		g_system->getPaletteManager()->setPalette(pal, COLOR_PALETTE_ENTRIES, COLOR_PALETTE_ENTRIES);
-	else {
-		g_system->getPaletteManager()->grabPalette(pal, 0, COLOR_PALETTE_ENTRIES);
-		g_system->getPaletteManager()->setPalette(pal, COLOR_PALETTE_ENTRIES, COLOR_PALETTE_ENTRIES);
+void Display::showScanlines(bool enable) {
+	byte pal[COLOR_PALETTE_ENTRIES * 3];
+
+	g_system->getPaletteManager()->grabPalette(pal, 0, COLOR_PALETTE_ENTRIES);
+
+	if (enable) {
+		for (uint i = 0; i < ARRAYSIZE(pal); ++i)
+			pal[i] = pal[i] * (100 - SCANLINE_OPACITY) / 100;
 	}
+
+	g_system->getPaletteManager()->setPalette(pal, COLOR_PALETTE_ENTRIES, COLOR_PALETTE_ENTRIES);
 }
 
 static byte processColorBits(uint16 &bits, bool &odd, bool secondPal) {
@@ -464,7 +494,11 @@ void Display::updateTextSurface() {
 			r.translate(((c & 0x3f) % 16) * 7 * 2, (c & 0x3f) / 16 * 8 * 2);
 
 			if (!(c & 0x80)) {
-				if (!(c & 0x40) || ((g_system->getMillis() / 270) & 1))
+				// Blink text. We subtract _startMillis to make this compatible
+				// with the event recorder, which returns offsetted values on
+				// playback.
+				const uint32 millisPassed = g_system->getMillis() - _startMillis;
+				if (!(c & 0x40) || ((millisPassed / 270) & 1))
 					r.translate(0, 4 * 8 * 2);
 			}
 

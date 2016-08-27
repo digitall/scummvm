@@ -158,6 +158,7 @@ public:
 
 	uint getKernelNamesSize() const;
 	const Common::String &getKernelName(uint number) const;
+	Common::String getKernelName(uint number, uint subFunction) const;
 
 	/**
 	 * Determines the selector ID of a selector by its name.
@@ -412,7 +413,7 @@ reg_t kPlatform(EngineState *s, int argc, reg_t *argv);
 reg_t kTextColors(EngineState *s, int argc, reg_t *argv);
 reg_t kTextFonts(EngineState *s, int argc, reg_t *argv);
 reg_t kShow(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapColors16(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColors(EngineState *s, int argc, reg_t *argv);
 reg_t kDummy(EngineState *s, int argc, reg_t *argv);
 reg_t kEmpty(EngineState *s, int argc, reg_t *argv);
 reg_t kStub(EngineState *s, int argc, reg_t *argv);
@@ -420,6 +421,68 @@ reg_t kStubNull(EngineState *s, int argc, reg_t *argv);
 
 #ifdef ENABLE_SCI32
 // SCI2 Kernel Functions
+reg_t kSetCursor32(EngineState *s, int argc, reg_t *argv);
+reg_t kSetNowSeen32(EngineState *s, int argc, reg_t *argv);
+reg_t kBaseSetter32(EngineState *s, int argc, reg_t *argv);
+reg_t kShakeScreen32(EngineState *s, int argc, reg_t *argv);
+reg_t kPlatform32(EngineState *s, int argc, reg_t *argv);
+reg_t kGlobalToLocal32(EngineState *s, int argc, reg_t *argv);
+reg_t kLocalToGlobal32(EngineState *s, int argc, reg_t *argv);
+
+reg_t kDoAudio32(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioInit(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioWaitForPlay(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioPlay(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioStop(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioPause(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioResume(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioPosition(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioRate(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioVolume(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioGetCapability(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioBitDepth(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioDistort(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioMixing(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioChannels(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioPreload(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioFade(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioHasSignal(EngineState *s, int argc, reg_t *argv);
+reg_t kDoAudioSetLoop(EngineState *s, int argc, reg_t *argv);
+
+reg_t kRobot(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotOpen(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotShowFrame(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotGetFrameSize(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotPlay(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotGetIsFinished(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotGetIsPlaying(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotClose(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotGetCue(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotPause(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotGetFrameNo(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotSetPriority(EngineState *s, int argc, reg_t *argv);
+
+reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDOpen(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDInit(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDClose(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDGetStatus(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDPlayUntilEvent(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDShowCursor(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDSetBlackoutArea(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDRestrictPalette(EngineState *s, int argc, reg_t *argv);
+
+reg_t kShowMovie32(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWin(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinOpen(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinInit(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinPlay(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinClose(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinCue(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinGetDuration(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinPlayUntilEvent(EngineState *s, int argc, reg_t *argv);
+reg_t kShowMovieWinInitDouble(EngineState *s, int argc, reg_t *argv);
+
 reg_t kIsHiRes(EngineState *s, int argc, reg_t *argv);
 reg_t kArray(EngineState *s, int argc, reg_t *argv);
 reg_t kListAt(EngineState *s, int argc, reg_t *argv);
@@ -447,19 +510,28 @@ reg_t kStringTrnExclude(EngineState *s, int argc, reg_t *argv);
 
 reg_t kScrollWindowCreate(EngineState *s, int argc, reg_t *argv);
 reg_t kScrollWindowAdd(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowPageUp(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowPageDown(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowUpArrow(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowDownArrow(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowHome(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowEnd(EngineState *s, int argc, reg_t *argv);
 reg_t kScrollWindowWhere(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowGo(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowModify(EngineState *s, int argc, reg_t *argv);
+reg_t kScrollWindowHide(EngineState *s, int argc, reg_t *argv);
 reg_t kScrollWindowShow(EngineState *s, int argc, reg_t *argv);
 reg_t kScrollWindowDestroy(EngineState *s, int argc, reg_t *argv);
 
 reg_t kMulDiv(EngineState *s, int argc, reg_t *argv);
 
-reg_t kRemapColors(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapOff(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapByRange(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapByPercent(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapToGray(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapToPercentGray(EngineState *s, int argc, reg_t *argv);
-reg_t kRemapSetNoMatchRange(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColors32(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColorsOff(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColorsByRange(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColorsByPercent(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColorsToGray(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColorsToPercentGray(EngineState *s, int argc, reg_t *argv);
+reg_t kRemapColorsBlockRange(EngineState *s, int argc, reg_t *argv);
 
 reg_t kAddScreenItem(EngineState *s, int argc, reg_t *argv);
 reg_t kUpdateScreenItem(EngineState *s, int argc, reg_t *argv);
@@ -508,8 +580,18 @@ reg_t kMakeSaveCatName(EngineState *s, int argc, reg_t *argv);
 reg_t kMakeSaveFileName(EngineState *s, int argc, reg_t *argv);
 reg_t kSetScroll(EngineState *s, int argc, reg_t *argv);
 
-reg_t kPalCycle(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteSetFromResource32(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteFindColor32(EngineState *s, int argc, reg_t *argv);
 reg_t kPaletteSetFade(EngineState *s, int argc, reg_t *argv);
+reg_t kPaletteSetGamma(EngineState *s, int argc, reg_t *argv);
+
+reg_t kPalCycle(EngineState *s, int argc, reg_t *argv);
+reg_t kPalCycleSetCycle(EngineState *s, int argc, reg_t *argv);
+reg_t kPalCycleDoCycle(EngineState *s, int argc, reg_t *argv);
+reg_t kPalCyclePause(EngineState *s, int argc, reg_t *argv);
+reg_t kPalCycleOn(EngineState *s, int argc, reg_t *argv);
+reg_t kPalCycleOff(EngineState *s, int argc, reg_t *argv);
+
 reg_t kPalVarySetVary(EngineState *s, int argc, reg_t *argv);
 reg_t kPalVarySetPercent(EngineState *s, int argc, reg_t *argv);
 reg_t kPalVaryGetPercent(EngineState *s, int argc, reg_t *argv);
@@ -528,15 +610,16 @@ reg_t kTextWidth(EngineState *s, int argc, reg_t *argv);
 reg_t kSave(EngineState *s, int argc, reg_t *argv);
 reg_t kAutoSave(EngineState *s, int argc, reg_t *argv);
 reg_t kList(EngineState *s, int argc, reg_t *argv);
-reg_t kRobot(EngineState *s, int argc, reg_t *argv);
-reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv);
 reg_t kCD(EngineState *s, int argc, reg_t *argv);
+reg_t kCheckCD(EngineState *s, int argc, reg_t *argv);
+reg_t kGetSavedCD(EngineState *s, int argc, reg_t *argv);
 reg_t kAddPicAt(EngineState *s, int argc, reg_t *argv);
 reg_t kAddBefore(EngineState *s, int argc, reg_t *argv);
 reg_t kMoveToFront(EngineState *s, int argc, reg_t *argv);
 reg_t kMoveToEnd(EngineState *s, int argc, reg_t *argv);
 reg_t kGetWindowsOption(EngineState *s, int argc, reg_t *argv);
 reg_t kWinHelp(EngineState *s, int argc, reg_t *argv);
+reg_t kMessageBox(EngineState *s, int argc, reg_t *argv);
 reg_t kGetConfig(EngineState *s, int argc, reg_t *argv);
 reg_t kGetSierraProfileInt(EngineState *s, int argc, reg_t *argv);
 reg_t kCelInfo(EngineState *s, int argc, reg_t *argv);
@@ -558,7 +641,6 @@ reg_t kPlayDuck(EngineState *s, int argc, reg_t *argv);
 
 reg_t kDoSoundInit(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundPlay(EngineState *s, int argc, reg_t *argv);
-reg_t kDoSoundRestore(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundDispose(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv);
@@ -573,7 +655,6 @@ reg_t kDoSoundUpdateCues(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundSetHold(EngineState *s, int argc, reg_t *argv);
-reg_t kDoSoundDummy(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundSetVolume(EngineState *s, int argc, reg_t *argv);

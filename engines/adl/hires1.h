@@ -26,6 +26,8 @@
 #include "common/str.h"
 
 #include "adl/adl.h"
+#include "adl/graphics.h"
+#include "adl/disk.h"
 
 namespace Common {
 class ReadStream;
@@ -40,10 +42,10 @@ namespace Adl {
 #define IDS_HR1_MESSAGES "MESSAGES"
 
 #define IDI_HR1_NUM_ROOMS         41
-#define IDI_HR1_NUM_PICS          98
+#define IDI_HR1_NUM_PICS          97
 #define IDI_HR1_NUM_VARS          20
 #define IDI_HR1_NUM_ITEM_OFFSETS  21
-#define IDI_HR1_NUM_MESSAGES     167
+#define IDI_HR1_NUM_MESSAGES     168
 
 // Messages used outside of scripts
 #define IDI_HR1_MSG_CANT_GO_THERE      137
@@ -63,6 +65,7 @@ namespace Adl {
 #define IDI_HR1_OFS_STR_DONT_UNDERSTAND 0x6c51
 #define IDI_HR1_OFS_STR_GETTING_DARK    0x6c7c
 #define IDI_HR1_OFS_STR_PRESS_RETURN    0x5f68
+#define IDI_HR1_OFS_STR_LINE_FEEDS      0x59d4
 
 #define IDI_HR1_OFS_PD_TEXT_0    0x005d
 #define IDI_HR1_OFS_PD_TEXT_1    0x012b
@@ -77,34 +80,52 @@ namespace Adl {
 
 #define IDI_HR1_OFS_ITEMS        0x0100
 #define IDI_HR1_OFS_ROOMS        0x050a
-#define IDI_HR1_OFS_PICS         0x4b00
+#define IDI_HR1_OFS_PICS         0x4b03
 #define IDI_HR1_OFS_CMDS_0       0x3c00
 #define IDI_HR1_OFS_CMDS_1       0x3d00
+#define IDI_HR1_OFS_MSGS         0x4d00
 
 #define IDI_HR1_OFS_ITEM_OFFSETS 0x68ff
-#define IDI_HR1_OFS_LINE_ART     0x4f00
+#define IDI_HR1_OFS_CORNERS      0x4f00
 
 #define IDI_HR1_OFS_VERBS        0x3800
 #define IDI_HR1_OFS_NOUNS        0x0f00
 
 class HiRes1Engine : public AdlEngine {
 public:
-	HiRes1Engine(OSystem *syst, const AdlGameDescription *gd) : AdlEngine(syst, gd) { }
+	HiRes1Engine(OSystem *syst, const AdlGameDescription *gd) :
+			AdlEngine(syst, gd),
+			_files(nullptr),
+			_messageDelay(true) { }
+	~HiRes1Engine() { delete _files; }
 
 private:
 	// AdlEngine
 	void runIntro() const;
-	void loadData();
-	void initState();
+	void init();
+	void initGameState();
 	void restartGame();
-	void drawPic(byte pic, Common::Point pos) const;
-	void printMessage(uint idx, bool wait = true) const;
+	void printString(const Common::String &str);
+	Common::String loadMessage(uint idx) const;
+	void printMessage(uint idx);
+	void drawItems();
+	void drawItem(Item &item, const Common::Point &pos);
+	void loadRoom(byte roomNr);
+	void showRoom();
 
-	void drawLine(const Common::Point &p1, const Common::Point &p2, byte color) const;
-	void drawPic(Common::ReadStream &stream, const Common::Point &pos) const;
+	void wordWrap(Common::String &str) const;
+
+	Files *_files;
+	Common::File _exe;
+	Common::Array<DataBlockPtr> _corners;
+	Common::Array<byte> _roomDesc;
+	bool _messageDelay;
 
 	struct {
-		Common::String pressReturn;
+		Common::String cantGoThere;
+		Common::String dontHaveIt;
+		Common::String dontUnderstand;
+		Common::String gettingDark;
 	} _gameStrings;
 };
 

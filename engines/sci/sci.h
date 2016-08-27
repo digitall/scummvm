@@ -45,6 +45,18 @@ struct ADGameDescription;
  */
 namespace Sci {
 
+// GUI-options, primarily used by detection_tables.h
+#define GAMEOPTION_PREFER_DIGITAL_SFX       GUIO_GAMEOPTIONS1
+#define GAMEOPTION_ORIGINAL_SAVELOAD        GUIO_GAMEOPTIONS2
+#define GAMEOPTION_FB01_MIDI                GUIO_GAMEOPTIONS3
+#define GAMEOPTION_JONES_CDAUDIO            GUIO_GAMEOPTIONS4
+#define GAMEOPTION_KQ6_WINDOWS_CURSORS      GUIO_GAMEOPTIONS5
+#define GAMEOPTION_SQ4_SILVER_CURSORS       GUIO_GAMEOPTIONS6
+#define GAMEOPTION_EGA_UNDITHER             GUIO_GAMEOPTIONS7
+// HIGH_RESOLUTION_GRAPHICS availability is checked for in SciEngine::run()
+#define GAMEOPTION_HIGH_RESOLUTION_GRAPHICS GUIO_GAMEOPTIONS8
+#define GAMEOPTION_ENABLE_BLACK_LINED_VIDEO GUIO_GAMEOPTIONS9
+
 struct EngineState;
 class Vocabulary;
 class ResourceManager;
@@ -56,17 +68,17 @@ class SoundCommandParser;
 class EventManager;
 class SegManager;
 class ScriptPatcher;
+class Sync;
 
 class GfxAnimate;
 class GfxCache;
 class GfxCompare;
 class GfxControls16;
 class GfxControls32;
-class GfxCoordAdjuster;
+class GfxCoordAdjuster16;
 class GfxCursor;
 class GfxMacIconBar;
 class GfxMenu;
-class GfxPaint;
 class GfxPaint16;
 class GfxPaint32;
 class GfxPalette;
@@ -80,8 +92,11 @@ class GfxText32;
 class GfxTransitions;
 
 #ifdef ENABLE_SCI32
-class RobotDecoder;
 class GfxFrameout;
+class Audio32;
+class Video32;
+class GfxTransitions32;
+class GfxCursor32;
 #endif
 
 // our engine debug levels
@@ -109,7 +124,8 @@ enum kDebugLevels {
 	kDebugLevelOnStartup     = 1 << 20,
 	kDebugLevelDebugMode     = 1 << 21,
 	kDebugLevelScriptPatcher = 1 << 22,
-	kDebugLevelWorkarounds   = 1 << 23
+	kDebugLevelWorkarounds   = 1 << 23,
+	kDebugLevelVideo         = 1 << 24
 };
 
 enum SciGameId {
@@ -137,7 +153,9 @@ enum SciGameId {
 	GID_HOYLE2,
 	GID_HOYLE3,
 	GID_HOYLE4,
+	GID_HOYLE5,
 	GID_ICEMAN,
+	GID_INNDEMO,
 	GID_ISLANDBRAIN,
 	GID_JONES,
 	GID_KQ1,
@@ -302,6 +320,8 @@ public:
 	/** Remove the 'TARGET-' prefix of the given filename, if present. */
 	Common::String unwrapFilename(const Common::String &name) const;
 
+	const char *getGameObjectName(); // Gets the name of the game object (should only be used for identifying fanmade games)
+
 	/**
 	 * Checks if we are in a QfG import screen, where special handling
 	 * of file-listings is performed.
@@ -349,14 +369,13 @@ public:
 	GfxCompare *_gfxCompare;
 	GfxControls16 *_gfxControls16; // Controls for 16-bit gfx
 	GfxControls32 *_gfxControls32; // Controls for 32-bit gfx
-	GfxCoordAdjuster *_gfxCoordAdjuster;
+	GfxCoordAdjuster16 *_gfxCoordAdjuster;
 	GfxCursor *_gfxCursor;
 	GfxMenu *_gfxMenu; // Menu for 16-bit gfx
 	GfxPalette *_gfxPalette16;
 	GfxPalette32 *_gfxPalette32; // Palette for 32-bit gfx
 	GfxRemap *_gfxRemap16;	// Remapping for the QFG4 demo
 	GfxRemap32 *_gfxRemap32; // Remapping for 32-bit gfx
-	GfxPaint *_gfxPaint;
 	GfxPaint16 *_gfxPaint16; // Painting in 16-bit gfx
 	GfxPaint32 *_gfxPaint32; // Painting in 32-bit gfx
 	GfxPorts *_gfxPorts; // Port managment for 16-bit gfx
@@ -367,11 +386,15 @@ public:
 	GfxMacIconBar *_gfxMacIconBar; // Mac Icon Bar manager
 
 #ifdef ENABLE_SCI32
-	RobotDecoder *_robotDecoder;
+	Audio32 *_audio32;
+	Video32 *_video32;
 	GfxFrameout *_gfxFrameout; // kFrameout and the like for 32-bit gfx
+	GfxTransitions32 *_gfxTransitions32;
+	GfxCursor32 *_gfxCursor32;
 #endif
 
 	AudioPlayer *_audio;
+	Sync *_sync;
 	SoundCommandParser *_soundCmd;
 	GameFeatures *_features;
 

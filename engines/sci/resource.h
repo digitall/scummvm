@@ -84,7 +84,10 @@ enum ResourceType {
 	kResourceTypePatch,
 	kResourceTypeBitmap,
 	kResourceTypePalette,
-	kResourceTypeCdAudio,
+	kResourceTypeCdAudio = 12,
+#ifdef ENABLE_SCI32
+	kResourceTypeWave = 12,
+#endif
 	kResourceTypeAudio,
 	kResourceTypeSync,
 	kResourceTypeMessage,
@@ -212,6 +215,10 @@ public:
 		return (_type == other._type) && (_number == other._number) && (_tuple == other._tuple);
 	}
 
+	bool operator!=(const ResourceId &other) const {
+		return !operator==(other);
+	}
+
 	bool operator<(const ResourceId &other) const {
 		return (_type < other._type) || ((_type == other._type) && (_number < other._number))
 			    || ((_type == other._type) && (_number == other._number) && (_tuple < other._tuple));
@@ -259,6 +266,10 @@ public:
 	 */
 	void writeToStream(Common::WriteStream *stream) const;
 
+#ifdef ENABLE_SCI32
+	Common::SeekableReadStream *makeStream() const;
+#endif
+
 	const Common::String &getResourceLocation() const;
 
 	// FIXME: This audio specific method is a hack. After all, why should a
@@ -285,6 +296,7 @@ protected:
 
 typedef Common::HashMap<ResourceId, Resource *, ResourceIdHash> ResourceMap;
 
+class IntMapResourceSource;
 class ResourceManager {
 	// FIXME: These 'friend' declarations are meant to be a temporary hack to
 	// ease transition to the ResourceSource class system.
@@ -386,6 +398,30 @@ public:
 	 * resource manager.
 	 */
 	void addResourcesFromChunk(uint16 id);
+
+	/**
+	 * Updates the currently active disc number.
+	 */
+	void findDisc(const int16 discNo);
+
+	/**
+	 * Gets the currently active disc number.
+	 */
+	int16 getCurrentDiscNo() const { return _currentDiscNo; }
+
+private:
+	/**
+	 * The currently active disc number.
+	 */
+	int16 _currentDiscNo;
+
+	/**
+	 * If true, the game has multiple audio volumes that contain different
+	 * audio files for each disc.
+	 */
+	bool _multiDiscAudio;
+
+public:
 #endif
 
 	bool detectHires();
@@ -509,7 +545,7 @@ protected:
 	 * @param map The map
 	 * @return 0 on success, an SCI_ERROR_* code otherwise
 	 */
-	int readAudioMapSCI11(ResourceSource *map);
+	int readAudioMapSCI11(IntMapResourceSource *map);
 
 	/**
 	 * Reads SCI1 audio map files.

@@ -39,21 +39,27 @@
 namespace Sci {
 
 int16 GfxText32::_defaultFontId = 0;
+int16 GfxText32::_scaledWidth = 0;
+int16 GfxText32::_scaledHeight = 0;
 
 GfxText32::GfxText32(SegManager *segMan, GfxCache *fonts) :
 	_segMan(segMan),
 	_cache(fonts),
-	_scaledWidth(g_sci->_gfxFrameout->getCurrentBuffer().scriptWidth),
-	_scaledHeight(g_sci->_gfxFrameout->getCurrentBuffer().scriptHeight),
 	// Not a typo, the original engine did not initialise height, only width
 	_width(0),
 	_text(""),
 	_bitmap(NULL_REG) {
 		_fontId = _defaultFontId;
 		_font = _cache->getFont(_defaultFontId);
+
+		if (_scaledWidth == 0) {
+			// initialize the statics
+			_scaledWidth = g_sci->_gfxFrameout->getCurrentBuffer().scriptWidth;
+			_scaledHeight = g_sci->_gfxFrameout->getCurrentBuffer().scriptHeight;
+		}
 	}
 
-reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect &rect, const Common::String &text, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const GuiResourceId fontId, const TextAlign alignment, const int16 borderColor, const bool dimmed, const bool doScaling) {
+reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect &rect, const Common::String &text, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const GuiResourceId fontId, const TextAlign alignment, const int16 borderColor, const bool dimmed, const bool doScaling, const bool gc) {
 
 	_borderColor = borderColor;
 	_text = text;
@@ -90,8 +96,7 @@ reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect 
 		_textRect = Common::Rect();
 	}
 
-	BitmapResource bitmap(_segMan, _width, _height, _skipColor, 0, 0, _scaledWidth, _scaledHeight, 0, false);
-	_bitmap = bitmap.getObject();
+	_segMan->allocateBitmap(&_bitmap, _width, _height, _skipColor, 0, 0, _scaledWidth, _scaledHeight, 0, false, gc);
 
 	erase(bitmapRect, false);
 
@@ -103,7 +108,7 @@ reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect 
 	return _bitmap;
 }
 
-reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &rect, const Common::String &text, const int16 foreColor, const int16 backColor, const GuiResourceId fontId, const int16 skipColor, const int16 borderColor, const bool dimmed) {
+reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &rect, const Common::String &text, const int16 foreColor, const int16 backColor, const GuiResourceId fontId, const int16 skipColor, const int16 borderColor, const bool dimmed, const bool gc) {
 	_borderColor = borderColor;
 	_text = text;
 	_textRect = rect;
@@ -115,7 +120,6 @@ reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &
 	int16 scriptWidth = g_sci->_gfxFrameout->getCurrentBuffer().scriptWidth;
 	int16 scriptHeight = g_sci->_gfxFrameout->getCurrentBuffer().scriptHeight;
 
-	int borderSize = 1;
 	mulinc(_textRect, Ratio(_scaledWidth, scriptWidth), Ratio(_scaledHeight, scriptHeight));
 
 	CelObjView view(celInfo.resourceId, celInfo.loopNo, celInfo.celNo);
@@ -130,9 +134,7 @@ reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &
 		_textRect = Common::Rect();
 	}
 
-	BitmapResource bitmap(_segMan, _width, _height, _skipColor, 0, 0, _scaledWidth, _scaledHeight, 0, false);
-	_bitmap = bitmap.getObject();
-	Buffer buffer(_width, _height, bitmap.getPixels());
+	SciBitmap &bitmap = *_segMan->allocateBitmap(&_bitmap, _width, _height, _skipColor, 0, 0, _scaledWidth, _scaledHeight, 0, false, gc);
 
 	// NOTE: The engine filled the bitmap pixels with 11 here, which is silly
 	// because then it just erased the bitmap using the skip color. So we don't
@@ -142,7 +144,7 @@ reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &
 	erase(bitmapRect, false);
 	_backColor = backColor;
 
-	view.draw(buffer, bitmapRect, Common::Point(0, 0), false, Ratio(_scaledWidth, view._scaledWidth), Ratio(_scaledHeight, view._scaledHeight));
+	view.draw(bitmap.getBuffer(), bitmapRect, Common::Point(0, 0), false, Ratio(_scaledWidth, view._scaledWidth), Ratio(_scaledHeight, view._scaledHeight));
 
 	if (_backColor != skipColor && _foreColor != skipColor) {
 		erase(_textRect, false);
@@ -153,7 +155,7 @@ reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &
 			error("TODO: Implement transparent text");
 		} else {
 			if (borderColor != -1) {
-				drawFrame(bitmapRect, borderSize, _borderColor, false);
+				drawFrame(bitmapRect, 1, _borderColor, false);
 			}
 
 			drawTextBox();
@@ -176,8 +178,8 @@ void GfxText32::setFont(const GuiResourceId fontId) {
 void GfxText32::drawFrame(const Common::Rect &rect, const int16 size, const uint8 color, const bool doScaling) {
 	Common::Rect targetRect = doScaling ? scaleRect(rect) : rect;
 
-	byte *bitmap = _segMan->getHunkPointer(_bitmap);
-	byte *pixels = bitmap + READ_SCI11ENDIAN_UINT32(bitmap + 28) + rect.top * _width + rect.left;
+	SciBitmap &bitmap = *_segMan->lookupBitmap(_bitmap);
+	byte *pixels = bitmap.getPixels() + rect.top * _width + rect.left;
 
 	// NOTE: Not fully disassembled, but this should be right
 	int16 rectWidth = targetRect.width();
@@ -206,8 +208,8 @@ void GfxText32::drawFrame(const Common::Rect &rect, const int16 size, const uint
 }
 
 void GfxText32::drawChar(const char charIndex) {
-	byte *bitmap = _segMan->getHunkPointer(_bitmap);
-	byte *pixels = bitmap + READ_SCI11ENDIAN_UINT32(bitmap + 28);
+	SciBitmap &bitmap = *_segMan->lookupBitmap(_bitmap);
+	byte *pixels = bitmap.getPixels();
 
 	_font->drawToBuffer(charIndex, _drawPosition.y, _drawPosition.x, _foreColor, _dimmed, pixels, _width, _height);
 	_drawPosition.x += _font->getCharWidth(charIndex);
@@ -231,8 +233,11 @@ void GfxText32::drawTextBox() {
 	int16 textRectWidth = _textRect.width();
 	_drawPosition.y = _textRect.top;
 	uint charIndex = 0;
-	if (getLongest(&charIndex, textRectWidth) == 0) {
-		error("DrawTextBox GetLongest=0");
+
+	if (g_sci->getGameId() == GID_SQ6 || g_sci->getGameId() == GID_MOTHERGOOSEHIRES) {
+		if (getLongest(&charIndex, textRectWidth) == 0) {
+			error("DrawTextBox GetLongest=0");
+		}
 	}
 
 	charIndex = 0;
@@ -311,20 +316,24 @@ void GfxText32::drawText(const uint index, uint length) {
 				++text;
 				--length;
 			}
+			if (length > 0) {
+				++text;
+				--length;
+			}
 		} else {
 			drawChar(currentChar);
 		}
 	}
 }
 
-void GfxText32::invertRect(const reg_t bitmap, int16 bitmapStride, const Common::Rect &rect, const uint8 foreColor, const uint8 backColor, const bool doScaling) {
+void GfxText32::invertRect(const reg_t bitmapId, int16 bitmapStride, const Common::Rect &rect, const uint8 foreColor, const uint8 backColor, const bool doScaling) {
 	Common::Rect targetRect = rect;
 	if (doScaling) {
 		bitmapStride = bitmapStride * _scaledWidth / g_sci->_gfxFrameout->getCurrentBuffer().scriptWidth;
 		targetRect = scaleRect(rect);
 	}
 
-	byte *bitmapData = _segMan->getHunkPointer(bitmap);
+	SciBitmap &bitmap = *_segMan->lookupBitmap(bitmapId);
 
 	// NOTE: SCI code is super weird here; it seems to be trying to look at the
 	// entire size of the bitmap including the header, instead of just the pixel
@@ -334,14 +343,14 @@ void GfxText32::invertRect(const reg_t bitmap, int16 bitmapStride, const Common:
 	// function was never updated to match? Or maybe they exploit the
 	// configurable stride length somewhere else to do stair stepping inverts...
 	uint32 invertSize = targetRect.height() * bitmapStride + targetRect.width();
-	uint32 bitmapSize = READ_SCI11ENDIAN_UINT32(bitmapData + 12);
+	uint32 bitmapSize = bitmap.getDataSize();
 
 	if (invertSize >= bitmapSize) {
 		error("InvertRect too big: %u >= %u", invertSize, bitmapSize);
 	}
 
 	// NOTE: Actual engine just added the bitmap header size hardcoded here
-	byte *pixel = bitmapData + READ_SCI11ENDIAN_UINT32(bitmapData + 28) + bitmapStride * targetRect.top + targetRect.left;
+	byte *pixel = bitmap.getPixels() + bitmapStride * targetRect.top + targetRect.left;
 
 	int16 stride = bitmapStride - targetRect.width();
 	int16 targetHeight = targetRect.height();
@@ -498,7 +507,7 @@ int16 GfxText32::getTextWidth(const uint index, uint length) const {
 					--length;
 
 					fontId = fontId * 10 + currentChar - '0';
-				} while (length > 0 && currentChar >= '0' && currentChar <= '9');
+				} while (length > 0 && *text >= '0' && *text <= '9');
 
 				if (length > 0) {
 					font = _cache->getFont(fontId);
@@ -506,7 +515,11 @@ int16 GfxText32::getTextWidth(const uint index, uint length) const {
 			}
 
 			// Forward through any more unknown control character data
-			while (length > 0 && currentChar != '|') {
+			while (length > 0 && *text != '|') {
+				++text;
+				--length;
+			}
+			if (length > 0) {
 				++text;
 				--length;
 			}
@@ -514,8 +527,10 @@ int16 GfxText32::getTextWidth(const uint index, uint length) const {
 			width += font->getCharWidth(currentChar);
 		}
 
-		currentChar = *text++;
-		--length;
+		if (length > 0) {
+			currentChar = *text++;
+			--length;
+		}
 	}
 
 	return width;
@@ -573,11 +588,16 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 		}
 	} else {
 		result.right = getTextWidth(0, 10000);
-		// NOTE: In the original engine code, the bottom was not decremented
-		// by 1, which means that the rect was actually a pixel taller than
-		// the height of the font. This was not the case in the other branch,
-		// which decremented the bottom by 1 at the end of the loop.
-		result.bottom = _font->getHeight() + 1;
+
+		if (getSciVersion() < SCI_VERSION_2_1_MIDDLE) {
+			result.bottom = 0;
+		} else {
+			// NOTE: In the original engine code, the bottom was not decremented
+			// by 1, which means that the rect was actually a pixel taller than
+			// the height of the font. This was not the case in the other branch,
+			// which decremented the bottom by 1 at the end of the loop.
+			result.bottom = _font->getHeight() + 1;
+		}
 	}
 
 	if (doScaling) {
@@ -593,14 +613,8 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 void GfxText32::erase(const Common::Rect &rect, const bool doScaling) {
 	Common::Rect targetRect = doScaling ? scaleRect(rect) : rect;
 
-	byte *bitmap = _segMan->getHunkPointer(_bitmap);
-	byte *pixels = bitmap + READ_SCI11ENDIAN_UINT32(bitmap + 28);
-
-	// NOTE: There is an extra optimisation within the SCI code to
-	// do a single memset if the scaledRect is the same size as
-	// the bitmap, not implemented here.
-	Buffer buffer(_width, _height, pixels);
-	buffer.fillRect(targetRect, _backColor);
+	SciBitmap &bitmap = *_segMan->lookupBitmap(_bitmap);
+	bitmap.getBuffer().fillRect(targetRect, _backColor);
 }
 
 int16 GfxText32::getStringWidth(const Common::String &text) {
@@ -633,6 +647,70 @@ int16 GfxText32::getTextCount(const Common::String &text, const uint index, cons
 int16 GfxText32::getTextCount(const Common::String &text, const uint index, const GuiResourceId fontId, const Common::Rect &textRect, const bool doScaling) {
 	setFont(fontId);
 	return getTextCount(text, index, textRect, doScaling);
+}
+
+void GfxText32::scrollLine(const Common::String &lineText, int numLines, uint8 color, TextAlign align, GuiResourceId fontId, ScrollDirection dir) {
+	SciBitmap &bmr = *_segMan->lookupBitmap(_bitmap);
+	byte *pixels = bmr.getPixels();
+
+	int h = _font->getHeight();
+
+	if (dir == kScrollUp) {
+		// Scroll existing text down
+		for (int i = 0; i < (numLines - 1) * h; ++i) {
+			int y = _textRect.top + numLines * h - i - 1;
+			memcpy(pixels + y * _width + _textRect.left,
+			       pixels + (y - h) * _width + _textRect.left,
+			       _textRect.width());
+		}
+	} else {
+		// Scroll existing text up
+		for (int i = 0; i < (numLines - 1) * h; ++i) {
+			int y = _textRect.top + i;
+			memcpy(pixels + y * _width + _textRect.left,
+			       pixels + (y + h) * _width + _textRect.left,
+			       _textRect.width());
+		}
+	}
+
+	Common::Rect lineRect = _textRect;
+
+	if (dir == kScrollUp) {
+		lineRect.bottom = lineRect.top + h;
+	} else {
+		// It is unclear to me what the purpose of this bottom++ is.
+		// It does not seem to be the usual inc/exc issue.
+		lineRect.top += (numLines - 1) * h;
+		lineRect.bottom++;
+	}
+
+	erase(lineRect, false);
+
+	_drawPosition.x = _textRect.left;
+	_drawPosition.y = _textRect.top;
+	if (dir == kScrollDown) {
+		_drawPosition.y += (numLines - 1) * h;
+	}
+
+	_foreColor = color;
+	_alignment = align;
+	//int fc = _foreColor;
+
+	setFont(fontId);
+
+	_text = lineText;
+	int16 textWidth = getTextWidth(0, lineText.size());
+
+	if (_alignment == kTextAlignCenter) {
+		_drawPosition.x += (_textRect.width() - textWidth) / 2;
+	} else if (_alignment == kTextAlignRight) {
+		_drawPosition.x += _textRect.width() - textWidth;
+	}
+
+	//_foreColor = fc;
+	//setFont(fontId);
+
+	drawText(0, lineText.size());
 }
 
 
