@@ -46,7 +46,7 @@ struct PuzzleEntry {
 class MerlinGame : public BoltGame {
 public:
 	// From BoltGame
-	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, uint32 curTime);
+	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, BoltEventLoop *eventLoop);
 	virtual void handleEvent(const BoltEvent &event);
 
 	Graphics* getGraphics();
@@ -74,7 +74,7 @@ private:
 	OSystem *_system;
 	Graphics *_graphics;
 	Audio::Mixer *_mixer;
-	uint32 _eventTime;
+	BoltEventLoop *_eventLoop;
 
 	Boltlib _boltlib;
 	PfFile _maPf;
