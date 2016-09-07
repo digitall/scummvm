@@ -114,7 +114,7 @@ Common::Error BoltEngine::run() {
 	Handler handler(this);
 	_eventLoop.init(this, &handler);
 
-	_graphics.init(_system, _eventLoop.getEventTime());
+	_graphics.init(_system, &_eventLoop);
 	_game->init(_system, &_graphics, _mixer, &_eventLoop);
 
 	_eventLoop.run();
@@ -123,7 +123,7 @@ Common::Error BoltEngine::run() {
 }
 
 void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {
-	_graphics.setTime(event.time);
+	_graphics.drive();
 	if (event.type == BoltEvent::Hover) {
 		// Update cursor
 		// TODO: Only update if cursor is visible (there is no way to query
