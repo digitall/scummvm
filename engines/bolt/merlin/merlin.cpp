@@ -41,11 +41,11 @@
 
 namespace Bolt {
 
-void MerlinGame::init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, uint32 curTime) {
+void MerlinGame::init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, BoltEventLoop *eventLoop) {
 	_system = system;
 	_graphics = graphics;
 	_mixer = mixer;
-	_eventTime = curTime;
+	_eventLoop = eventLoop;
 
 	_boltlib.load("BOLTLIB.BLT");
 
@@ -64,8 +64,6 @@ void MerlinGame::init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, 
 }
 
 void MerlinGame::handleEvent(const BoltEvent &event) {
-	_eventTime = event.time;
-
 	// Play movie over anything else
 	if (_movie.isRunning()) {
 		handleEventInMovie(event);
@@ -162,7 +160,7 @@ void MerlinGame::startMenu(BltId id) {
 void MerlinGame::startMovie(PfFile &pfFile, uint32 name) {
 	// Color cycles do NOT stop when a movie starts.
 	_movie.stop();
-	_movie.start(_graphics, _mixer, pfFile, name, _eventTime);
+	_movie.start(_graphics, _mixer, pfFile, name, _eventLoop->getEventTime());
 }
 
 void MerlinGame::movieTrigger(void *param, uint16 triggerType) {
@@ -261,11 +259,11 @@ void MerlinGame::setCurrentCard(Card *card) {
 void MerlinGame::enterCurrentCard(bool cursorActive) {
 	assert(_currentCard);
 	_graphics->resetColorCycles();
-	_currentCard->enter(_eventTime);
+	_currentCard->enter(_eventLoop->getEventTime());
 	if (cursorActive) {
 		BoltEvent hoverEvent;
 		hoverEvent.type = BoltEvent::Hover;
-		hoverEvent.time = _eventTime;
+		hoverEvent.time = _eventLoop->getEventTime();
 		hoverEvent.point = _system->getEventManager()->getMousePos();
 		handleEventInCard(hoverEvent);
 	}

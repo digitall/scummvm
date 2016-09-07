@@ -84,6 +84,8 @@ struct BoltEvent {
 		Click,
 		RightClick,
 		Tick,
+		Timer,
+		AudioEnded,
 		// TODO: Timer, AudioEnded
 	};
 
@@ -115,10 +117,38 @@ public:
 
 typedef Common::ScopedPtr<Card> CardPtr;
 
+class BoltEventLoop;
+
 class BoltGame {
 public:
-	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, uint32 curTime) = 0;
+	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, BoltEventLoop *eventLoop) = 0;
 	virtual void handleEvent(const BoltEvent &event) = 0;
+};
+
+class IBoltEventHandler {
+public:
+	virtual void handleEvent(const BoltEvent &event) = 0;
+};
+
+class BoltEngine;
+
+class BoltEventLoop {
+public:
+	void init(BoltEngine *engine, IBoltEventHandler *handler);
+	void run();
+	uint32 getEventTime() const;
+
+private:
+	BoltEngine* _engine;
+	IBoltEventHandler *_handler;
+	uint32 _eventTime; // time of current or last received event
+
+	struct Timer {
+		// NOTE: times are in milliseconds
+		uint32 alertTime; // absolute time of alert
+		void* data;
+	};
+	Common::List<Timer> _timers;
 };
 
 class BoltEngine : public Engine {
@@ -132,12 +162,13 @@ protected:
 	// From Engine
 	virtual Common::Error run();
 
-	Graphics _graphics;
-	uint32 _eventTime; // time of current or last received event
-	Common::ScopedPtr<BoltGame> _game;
-
 private:
 	void topLevelHandleEvent(const BoltEvent &event);
+	
+	Graphics _graphics;
+	BoltEventLoop _eventLoop;
+	Common::ScopedPtr<BoltGame> _game;
+
 };
 
 } // End of namespace Bolt
