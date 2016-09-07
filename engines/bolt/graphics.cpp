@@ -343,9 +343,11 @@ Graphics::Graphics()
 	_dirty(false)
 { }
 
-void Graphics::init(OSystem *system, uint32 time) {
+void Graphics::init(OSystem *system, BoltEventLoop *eventLoop) {
 	_system = system;
-	_curTime = time;
+	_eventLoop = eventLoop;
+
+	_curTime = _eventLoop->getEventTime();
 	_fade = Common::Rational(1);
 	_dirty = true;
 
@@ -414,8 +416,8 @@ static void rotateColorsBackward(byte *colors, int num) {
 	colors[3 * (num - 1) + 2] = b;
 }
 
-void Graphics::setTime(uint32 time) {
-	_curTime = time;
+void Graphics::drive() {
+	_curTime = _eventLoop->getEventTime();
 
 	for (int i = 0; i < kNumColorCycles; ++i) {
 		if (_colorCycles[i].delay > 0) {

@@ -56,6 +56,8 @@ enum { // plane numbers
 	kBack = 1,
 };
 
+class BoltEventLoop;
+
 // CD-I-like graphics system. There is a foreground and a background plane.
 // Each plane has a separate 128-color palette. Foreground color 0 is
 // transparent.
@@ -63,15 +65,15 @@ class Graphics {
 public:
 	Graphics();
 
-	void init(OSystem *system, uint32 time);
+	void init(OSystem *system, BoltEventLoop *eventLoop);
 
 	::Graphics::Surface& getPlaneSurface(int plane);
 	void setPlanePalette(int plane, const byte *colors, int first, int num);
 	void clearPlane(int plane);
 	void drawRect(int plane, const Rect &rc, byte color);
 
-	// TODO: better system for timing
-	void setTime(uint32 time);
+	// TODO: eliminate drive function in favor of Timer events
+	void drive();
 	void resetColorCycles();
 	void setColorCycle(int slot, uint16 start, uint16 end, int delay);
 	void setFade(Common::Rational fade);
@@ -80,6 +82,7 @@ public:
 
 private:
 	OSystem *_system;
+	BoltEventLoop *_eventLoop;
 
 	static const int kNumVgaColors = 256;
 	static const int kNumPlaneColors = 128;
