@@ -50,12 +50,13 @@ Movie::~Movie() {
 	stopAudio();
 }
 
-void Movie::start(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime) {
+void Movie::start(Graphics *graphics, Audio::Mixer *mixer, IBoltEventLoop *eventLoop, PfFile &pfFile, uint32 name) {
 	debug(3, "loading movie %c%c%c%c ...",
 		(name >> 24) & 0xff, (name >> 16) & 0xff, (name >> 8) & 0xff, name & 0xff);
 
 	_graphics = graphics;
 	_mixer = mixer;
+	_eventLoop = eventLoop;
 
 	stop();
 
@@ -71,7 +72,10 @@ void Movie::start(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint3
 	loadAudio();
 
 	// Timeline should be the first packet
-	startTimeline(fetchBuffer(_timelineQueue), curTime);
+	startTimeline(fetchBuffer(_timelineQueue), _eventLoop->getEventTime());
+
+	// Kick-off the movie timer
+	_eventLoop->setMovieTimer(_framePeriod);
 }
 
 void Movie::stop() {
@@ -126,12 +130,30 @@ bool Movie::isRunning() const {
 	return _graphics && (_timelineActive || isAudioRunning());
 }
 
-bool Movie::drive(uint32 curTime) {
-	driveAudio();
-	driveFade(curTime);
-	driveTimeline(curTime);
+void Movie::handleEvent(const BoltEvent &event) {
+	bool handled = false;
+	if (event.type == BoltEvent::AnimationFrame) {
+		handled = true;
+		// Fades animate smoothly, i.e. at a higher frame rate than movie cels
+		driveFade(event.time);
+	} else if (event.type == BoltEvent::MovieTimer) {
+		handled = true;
+		driveAudio();
+		driveFade(event.time);
+		driveTimeline(event.time);
 
-	return isRunning();
+		if (isRunning()) {
+			// Set movie timer to send event for next frame
+			_eventLoop->setMovieTimer(_framePeriod);
+		}
+	}
+
+	if (handled) {
+		if (_fadeDirection != 0) {
+			// Request animation frame for fading
+			_eventLoop->requestAnimationFrame();
+		}
+	}
 }
 
 void Movie::setTriggerCallback(TriggerCallback callback, void *param) {
