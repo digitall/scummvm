@@ -84,13 +84,33 @@ Common::Error BoltEngine::run() {
 			topLevelHandleEvent(boltEvent);
 		}
 		else {
-			// Emit "tick" event
-			// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
-			// other stuff that can be reacted to instead of polled.
-			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::Tick;
-			boltEvent.time = _eventTime;
-			topLevelHandleEvent(boltEvent);
+			const uint32 movieTimerDelta = _eventTime - _movieTimerStart;
+			if (_movieTimerActive && movieTimerDelta >= _movieTimerInterval) {
+				_movieTimerActive = false; // Event handler must set movie timer again if it wants more movie timer events.
+				// FIXME: rewrite to be more robust. events with later times should never appear before events with earlier times.
+				// Perhaps the "time" of timer events should be the time of handling, not the time of triggering.
+				_eventTime = _movieTimerStart + _movieTimerInterval;
+				BoltEvent boltEvent;
+				boltEvent.type = BoltEvent::MovieTimer;
+				boltEvent.time = _eventTime;
+				topLevelHandleEvent(boltEvent);
+			} else if (_animationFrameRequested) {
+				// FIXME: animation frames are handled rapidly and use 100% of the cpu.
+				// Change this so animation frames are handled at a reasonable pace.
+				_animationFrameRequested = false;
+				BoltEvent boltEvent;
+				boltEvent.type = BoltEvent::AnimationFrame;
+				boltEvent.time = _eventTime;
+				topLevelHandleEvent(boltEvent);
+			} else {
+				// Emit "tick" event
+				// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
+				// other stuff that can be reacted to instead of polled.
+				BoltEvent boltEvent;
+				boltEvent.type = BoltEvent::Tick;
+				boltEvent.time = _eventTime;
+				topLevelHandleEvent(boltEvent);
+			}
 		}
 	}
 
@@ -99,6 +119,16 @@ Common::Error BoltEngine::run() {
 
 uint32 BoltEngine::getEventTime() const {
 	return _eventTime;
+}
+
+void BoltEngine::requestAnimationFrame() {
+	_animationFrameRequested = true;
+}
+
+void BoltEngine::setMovieTimer(const uint32 intervalMs) {
+	_movieTimerActive = true;
+	_movieTimerStart = _eventTime;
+	_movieTimerInterval = intervalMs;
 }
 
 void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {

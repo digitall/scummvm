@@ -160,7 +160,7 @@ void MerlinGame::startMenu(BltId id) {
 void MerlinGame::startMovie(PfFile &pfFile, uint32 name) {
 	// Color cycles do NOT stop when a movie starts.
 	_movie.stop();
-	_movie.start(_graphics, _mixer, pfFile, name, _eventLoop->getEventTime());
+	_movie.start(_graphics, _mixer, _eventLoop, pfFile, name);
 }
 
 void MerlinGame::movieTrigger(void *param, uint16 triggerType) {
@@ -182,12 +182,12 @@ void MerlinGame::handleEventInMovie(const BoltEvent &event) {
 		_movie.stop();
 	}
 	else {
-		_movie.drive(event.time);
+		_movie.handleEvent(event);
 	}
 
 	if (!_movie.isRunning()) {
+		// When movie stops...
 		_graphics->setFade(1);
-		// When movie stops, enter current card
 		if (_currentCard) {
 			enterCurrentCard(true);
 		}

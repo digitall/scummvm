@@ -39,6 +39,8 @@ class File;
 
 namespace Bolt {
 
+struct BoltEvent;
+class IBoltEventLoop;
 class BoltEngine;
 class Graphics;
 class PfFile;
@@ -49,13 +51,11 @@ public:
 	Movie();
 	~Movie();
 
-	// TODO: Find a better way of communicating time to Movie and other classes
-	void start(Graphics *graphics, Audio::Mixer *mixer, PfFile &pfFile, uint32 name, uint32 curTime);
+	void start(Graphics *graphics, Audio::Mixer *mixer, IBoltEventLoop *eventLoop, PfFile &pfFile, uint32 name);
 	void stop();
 
 	bool isRunning() const;
-	// Returns true if movie is running, false if movie finished.
-	bool drive(uint32 curTime);
+	void handleEvent(const BoltEvent &event);
 
 	typedef void (*TriggerCallback)(void *param, uint16 triggerType);
 	void setTriggerCallback(TriggerCallback callback, void *param);
@@ -66,6 +66,7 @@ private:
 
 	Graphics *_graphics;
 	Audio::Mixer *_mixer;
+	IBoltEventLoop *_eventLoop;
 	Common::File *_file;
 
 	typedef ScopedArray<byte> ScopedBuffer;

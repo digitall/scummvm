@@ -83,10 +83,11 @@ struct BoltEvent {
 		Hover,
 		Click,
 		RightClick,
-		Tick,
+		AnimationFrame,
+		MovieTimer, // TODO: implement generic Timer, eliminate MovieTimer
+		Tick, // TODO: eliminate Tick
 		Timer,
 		AudioEnded,
-		// TODO: Timer, AudioEnded
 	};
 
 	BoltEvent() : type(Invalid) { }
@@ -121,12 +122,8 @@ class IBoltEventLoop {
 public:
 	virtual ~IBoltEventLoop() { }
 	virtual uint32 getEventTime() const = 0;
-};
-
-class IBoltEventHandler {
-public:
-	virtual ~IBoltEventHandler() { }
-	virtual void handleEvent(const BoltEvent &event) = 0;
+	virtual void requestAnimationFrame() = 0;
+	virtual void setMovieTimer(uint32 intervalMs) = 0;
 };
 
 class BoltGame {
@@ -143,8 +140,10 @@ public:
 	// From Engine
 	virtual bool hasFeature(EngineFeature f) const;
 
-	// From IBoltEventLoop
+	// From IBoltEventLoop (for internal game use)
 	virtual uint32 getEventTime() const;
+	virtual void requestAnimationFrame();
+	virtual void setMovieTimer(uint32 intervalMs);
 
 protected:
 	// From Engine
@@ -157,6 +156,10 @@ private:
 	uint32 _eventTime;
 	Common::ScopedPtr<BoltGame> _game;
 
+	bool _movieTimerActive;
+	uint32 _movieTimerStart;
+	uint32 _movieTimerInterval;
+	bool _animationFrameRequested;
 };
 
 } // End of namespace Bolt
