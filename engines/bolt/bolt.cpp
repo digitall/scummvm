@@ -32,65 +32,13 @@
 
 namespace Bolt {
 
-void BoltEventLoop::init(BoltEngine *engine, IBoltEventHandler *handler) {
-	_engine = engine;
-	_handler = handler;
-	_eventTime = _engine->getTotalPlayTime();
-}
-
-void BoltEventLoop::run() {
-	bool breakout = false;
-	while (!breakout && !_engine->shouldQuit())
-	{
-		_eventTime = _engine->getTotalPlayTime();
-
-		Common::Event event;
-		if (!_engine->getEventManager()->pollEvent(event)) {
-			event.type = Common::EVENT_INVALID;
-		}
-
-		if (event.type == Common::EVENT_MOUSEMOVE) {
-			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::Hover;
-			boltEvent.time = _eventTime;
-			boltEvent.point = event.mouse;
-			_handler->handleEvent(boltEvent);
-		}
-		else if (event.type == Common::EVENT_LBUTTONDOWN) {
-			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::Click;
-			boltEvent.time = _eventTime;
-			boltEvent.point = event.mouse;
-			_handler->handleEvent(boltEvent);
-		}
-		else if (event.type == Common::EVENT_RBUTTONDOWN) {
-			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::RightClick;
-			boltEvent.time = _eventTime;
-			boltEvent.point = event.mouse;
-			_handler->handleEvent(boltEvent);
-		}
-		else {
-			// Emit "tick" event
-			// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
-			// other stuff that can be reacted to instead of polled.
-			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::Tick;
-			boltEvent.time = _eventTime;
-			_handler->handleEvent(boltEvent);
-		}
-	}
-}
-
-uint32 BoltEventLoop::getEventTime() const {
-	return _eventTime;
-}
-
 BoltEngine::BoltEngine(OSystem *syst, const ADGameDescription *gd) :
 	Engine(syst)
 {
 	if (Common::String("merlin").compareTo(gd->gameid) == 0) {
 		_game.reset(new MerlinGame);
+	} else {
+		assert(false && "BoltEngine does not support this game.");
 	}
 }
 
@@ -100,26 +48,57 @@ bool BoltEngine::hasFeature(EngineFeature f) const {
 }
 
 Common::Error BoltEngine::run() {
-	class Handler : public IBoltEventHandler
-	{
-	public:
-		Handler(BoltEngine *engine) : _engine(engine) { }
-		virtual void handleEvent(const BoltEvent &event) {
-			_engine->topLevelHandleEvent(event);
+	assert(_game);
+
+	_eventTime = getTotalPlayTime();
+	_graphics.init(_system, this);
+	_game->init(_system, &_graphics, _mixer, this);
+	
+	while (!shouldQuit()) {
+		_eventTime = getTotalPlayTime();
+
+		Common::Event event;
+		if (!_eventMan->pollEvent(event)) {
+			event.type = Common::EVENT_INVALID;
 		}
-	private:
-		BoltEngine *_engine;
-	};
 
-	Handler handler(this);
-	_eventLoop.init(this, &handler);
-
-	_graphics.init(_system, &_eventLoop);
-	_game->init(_system, &_graphics, _mixer, &_eventLoop);
-
-	_eventLoop.run();
+		if (event.type == Common::EVENT_MOUSEMOVE) {
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::Hover;
+			boltEvent.time = _eventTime;
+			boltEvent.point = event.mouse;
+			topLevelHandleEvent(boltEvent);
+		}
+		else if (event.type == Common::EVENT_LBUTTONDOWN) {
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::Click;
+			boltEvent.time = _eventTime;
+			boltEvent.point = event.mouse;
+			topLevelHandleEvent(boltEvent);
+		}
+		else if (event.type == Common::EVENT_RBUTTONDOWN) {
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::RightClick;
+			boltEvent.time = _eventTime;
+			boltEvent.point = event.mouse;
+			topLevelHandleEvent(boltEvent);
+		}
+		else {
+			// Emit "tick" event
+			// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
+			// other stuff that can be reacted to instead of polled.
+			BoltEvent boltEvent;
+			boltEvent.type = BoltEvent::Tick;
+			boltEvent.time = _eventTime;
+			topLevelHandleEvent(boltEvent);
+		}
+	}
 
 	return Common::kNoError;
+}
+
+uint32 BoltEngine::getEventTime() const {
+	return _eventTime;
 }
 
 void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {

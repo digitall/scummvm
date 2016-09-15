@@ -343,7 +343,7 @@ Graphics::Graphics()
 	_dirty(false)
 { }
 
-void Graphics::init(OSystem *system, BoltEventLoop *eventLoop) {
+void Graphics::init(OSystem *system, IBoltEventLoop *eventLoop) {
 	_system = system;
 	_eventLoop = eventLoop;
 

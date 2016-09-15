@@ -117,46 +117,34 @@ public:
 
 typedef Common::ScopedPtr<Card> CardPtr;
 
-class BoltEventLoop;
-
-class BoltGame {
+class IBoltEventLoop {
 public:
-	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, BoltEventLoop *eventLoop) = 0;
-	virtual void handleEvent(const BoltEvent &event) = 0;
+	virtual ~IBoltEventLoop() { }
+	virtual uint32 getEventTime() const = 0;
 };
 
 class IBoltEventHandler {
 public:
+	virtual ~IBoltEventHandler() { }
 	virtual void handleEvent(const BoltEvent &event) = 0;
 };
 
-class BoltEngine;
-
-class BoltEventLoop {
+class BoltGame {
 public:
-	void init(BoltEngine *engine, IBoltEventHandler *handler);
-	void run();
-	uint32 getEventTime() const;
-
-private:
-	BoltEngine* _engine;
-	IBoltEventHandler *_handler;
-	uint32 _eventTime; // time of current or last received event
-
-	struct Timer {
-		// NOTE: times are in milliseconds
-		uint32 alertTime; // absolute time of alert
-		void* data;
-	};
-	Common::List<Timer> _timers;
+	virtual ~BoltGame() { }
+	virtual void init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, IBoltEventLoop *eventLoop) = 0;
+	virtual void handleEvent(const BoltEvent &event) = 0;
 };
 
-class BoltEngine : public Engine {
+class BoltEngine : public Engine, public IBoltEventLoop {
 public:
 	BoltEngine(OSystem *syst, const ADGameDescription *gd);
 
 	// From Engine
 	virtual bool hasFeature(EngineFeature f) const;
+
+	// From IBoltEventLoop
+	virtual uint32 getEventTime() const;
 
 protected:
 	// From Engine
@@ -166,7 +154,7 @@ private:
 	void topLevelHandleEvent(const BoltEvent &event);
 	
 	Graphics _graphics;
-	BoltEventLoop _eventLoop;
+	uint32 _eventTime;
 	Common::ScopedPtr<BoltGame> _game;
 
 };
