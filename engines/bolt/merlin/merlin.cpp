@@ -41,7 +41,7 @@
 
 namespace Bolt {
 
-void MerlinGame::init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, BoltEventLoop *eventLoop) {
+void MerlinGame::init(OSystem *system, Graphics *graphics, Audio::Mixer *mixer, IBoltEventLoop *eventLoop) {
 	_system = system;
 	_graphics = graphics;
 	_mixer = mixer;
