@@ -347,7 +347,6 @@ void Graphics::init(OSystem *system, IBoltEventLoop *eventLoop) {
 	_system = system;
 	_eventLoop = eventLoop;
 
-	_curTime = _eventLoop->getEventTime();
 	_fade = Common::Rational(1);
 	_dirty = true;
 
@@ -397,61 +396,62 @@ void Graphics::drawRect(int plane, const Rect &rc, byte color) {
 }
 
 static void rotateColorsForward(byte *colors, int num) {
-	byte r = colors[3 * (num - 1) + 0];
-	byte g = colors[3 * (num - 1) + 1];
-	byte b = colors[3 * (num - 1) + 2];
+	byte rgb[3];
+	memcpy(rgb, &colors[3 * (num - 1)], 3);
 	memmove(&colors[3], &colors[0], 3 * (num - 1));
-	colors[0] = r;
-	colors[1] = g;
-	colors[2] = b;
+	memcpy(&colors[0], rgb, 3);
 }
 
 static void rotateColorsBackward(byte *colors, int num) {
-	byte r = colors[0];
-	byte g = colors[1];
-	byte b = colors[2];
+	byte rgb[3];
+	memcpy(rgb, &colors[0], 3);
 	memmove(&colors[0], &colors[3], 3 * (num - 1));
-	colors[3 * (num - 1) + 0] = r;
-	colors[3 * (num - 1) + 1] = g;
-	colors[3 * (num - 1) + 2] = b;
+	memcpy(&colors[3 * (num - 1)], rgb, 3);
 }
 
-void Graphics::drive() {
-	_curTime = _eventLoop->getEventTime();
+void Graphics::handleEvent(const BoltEvent &event) {
+	if (event.type == BoltEvent::Hover) {
+		// Draw cursor at new position
+		// TODO: markDirty only if cursor is visible (there is currently no way to query
+		// cursor visibility status...)
+		markDirty();
+	} else if (event.type == BoltEvent::Tick) {
+		// TODO: eliminate Tick events in favor of Timers
+		// Drive color cycles
+		for (int i = 0; i < kNumColorCycles; ++i) {
+			if (_colorCycles[i].delay > 0) {
+				uint32 diff = event.time - _colorCycles[i].curTime;
+				if (diff >= (uint32)_colorCycles[i].delay) {
+					bool backwards = _colorCycles[i].end < _colorCycles[i].start;
 
-	for (int i = 0; i < kNumColorCycles; ++i) {
-		if (_colorCycles[i].delay > 0) {
-			uint32 diff = _curTime - _colorCycles[i].curTime;
-			if (diff >= (uint32)_colorCycles[i].delay) {
-				bool backwards = _colorCycles[i].end < _colorCycles[i].start;
+					uint16 firstColor;
+					uint16 numColors;
+					if (backwards) {
+						firstColor = _colorCycles[i].end;
+						numColors = _colorCycles[i].start - _colorCycles[i].end + 1;
+					}
+					else {
+						firstColor = _colorCycles[i].start;
+						numColors = _colorCycles[i].end - _colorCycles[i].start + 1;
+					}
 
-				uint16 firstColor;
-				uint16 numColors;
-				if (backwards) {
-					firstColor = _colorCycles[i].end;
-					numColors = _colorCycles[i].start - _colorCycles[i].end + 1;
+					// Rotate colors
+					byte colors[128 * 3];
+					// FIXME: Both planes may have color cycles. Front plane color
+					// cycles are used in the "bubbles" action puzzle.
+					grabPlanePalette(kBack, colors, firstColor, numColors);
+					if (backwards) {
+						rotateColorsBackward(colors, numColors);
+					}
+					else {
+						rotateColorsForward(colors, numColors);
+					}
+					setPlanePalette(kBack, colors, firstColor, numColors);
+
+					markDirty();
+
+					_colorCycles[i].curTime += _colorCycles[i].delay;
 				}
-				else {
-					firstColor = _colorCycles[i].start;
-					numColors = _colorCycles[i].end - _colorCycles[i].start + 1;
-				}
-
-				// Rotate colors
-				byte colors[128 * 3];
-				// FIXME: Both planes may have color cycles. Front plane color
-				// cycles are used in the "bubbles" action puzzle.
-				grabPlanePalette(kBack, colors, firstColor, numColors);
-				if (backwards) {
-					rotateColorsBackward(colors, numColors);
-				}
-				else {
-					rotateColorsForward(colors, numColors);
-				}
-				setPlanePalette(kBack, colors, firstColor, numColors);
-
-				markDirty();
-
-				_colorCycles[i].curTime += _colorCycles[i].delay;
 			}
 		}
 	}
@@ -471,7 +471,7 @@ void Graphics::setColorCycle(int slot, uint16 start, uint16 end, int delay) {
 		_colorCycles[slot].end = end;
 		_colorCycles[slot].delay = delay;
 		// Start cycling now
-		_colorCycles[slot].curTime = _curTime;
+		_colorCycles[slot].curTime = _eventLoop->getEventTime();
 	}
 	else {
 		warning("Invalid color cycle start %d, end %d", (int)start, (int)end);

@@ -32,7 +32,7 @@
 
 namespace Bolt {
 
-BoltEngine::BoltEngine(OSystem *syst, const ADGameDescription *gd) :
+BoltEngine::BoltEngine(OSystem *const syst, const ADGameDescription *const gd) :
 	Engine(syst)
 {
 	if (Common::String("merlin").compareTo(gd->gameid) == 0) {
@@ -42,7 +42,7 @@ BoltEngine::BoltEngine(OSystem *syst, const ADGameDescription *gd) :
 	}
 }
 
-bool BoltEngine::hasFeature(EngineFeature f) const {
+bool BoltEngine::hasFeature(const EngineFeature f) const {
 	return
 		(f == kSupportsRTL);
 }
@@ -132,14 +132,9 @@ void BoltEngine::setMovieTimer(const uint32 intervalMs) {
 }
 
 void BoltEngine::topLevelHandleEvent(const BoltEvent &event) {
-	_graphics.drive();
-	if (event.type == BoltEvent::Hover) {
-		// Update cursor
-		// TODO: Only update if cursor is visible (there is no way to query
-		// system for cursor visibility status)
-		_graphics.markDirty();
-	}
 	_game->handleEvent(event);
+	_graphics.handleEvent(event);
+	// TODO: Present after all pending events have been handled.
 	_graphics.presentIfDirty();
 }
 
