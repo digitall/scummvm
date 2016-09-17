@@ -56,6 +56,7 @@ enum { // plane numbers
 	kBack = 1,
 };
 
+struct BoltEvent;
 class IBoltEventLoop;
 
 // CD-I-like graphics system. There is a foreground and a background plane.
@@ -72,8 +73,7 @@ public:
 	void clearPlane(int plane);
 	void drawRect(int plane, const Rect &rc, byte color);
 
-	// TODO: eliminate drive function in favor of Timer events
-	void drive();
+	void handleEvent(const BoltEvent &event);
 	void resetColorCycles();
 	void setColorCycle(int slot, uint16 start, uint16 end, int delay);
 	void setFade(Common::Rational fade);
@@ -91,7 +91,6 @@ private:
 
 	struct Plane {
 		~Plane();
-
 		::Graphics::Surface surface;
 		byte vgaFirst;
 	};
@@ -117,7 +116,6 @@ private:
 
 	static const int kNumColorCycles = 4;
 	ColorCycle _colorCycles[kNumColorCycles];
-	uint32 _curTime; // Time of current event
 
 	Common::Rational _fade;
 
