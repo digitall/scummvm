@@ -24,21 +24,21 @@
 
 namespace Bolt {
 
-void SynchPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void SynchPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList;
 	loadBltResourceArray(resourceList, boltlib, resId);
 	_scene.load(graphics, boltlib, resourceList[4].value);
 }
 
-void SynchPuzzle::enter(uint32 time) {
+void SynchPuzzle::enter() {
 	_scene.enter();
 }
 
 Card::Signal SynchPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Hover) {
+	if (event.type == BoltEvent::kHover) {
 		_scene.handleHover(event.point);
 	}
-	else if (event.type == BoltEvent::Click) {
+	else if (event.type == BoltEvent::kClick) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return handleButtonClick(buttonNum);
 	}

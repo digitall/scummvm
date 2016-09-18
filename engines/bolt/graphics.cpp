@@ -410,13 +410,13 @@ static void rotateColorsBackward(byte *colors, int num) {
 }
 
 void Graphics::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Hover) {
+	if (event.type == BoltEvent::kHover) {
 		// Draw cursor at new position
 		// TODO: markDirty only if cursor is visible (there is currently no way to query
 		// cursor visibility status...)
 		markDirty();
-	} else if (event.type == BoltEvent::Tick) {
-		// TODO: eliminate Tick events in favor of Timers
+	} else if (event.type == BoltEvent::kDrive) {
+		// TODO: eliminate Drive events in favor of Timers
 		// Drive color cycles
 		for (int i = 0; i < kNumColorCycles; ++i) {
 			if (_colorCycles[i].delay > 0) {

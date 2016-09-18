@@ -50,11 +50,10 @@ typedef ScopedArray<BltPotionPuzzleComboTableElement> BltPotionPuzzleComboTable;
 
 class PotionPuzzle : public Card {
 public:
-	void init(MerlinGame *game, Boltlib &boltlib, BltId resId);
-
 	// From Card
-	void enter(uint32 time);
-	Signal handleEvent(const BoltEvent &event);
+	virtual void init(MerlinGame *game, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId);
+	virtual void enter();
+	virtual Signal handleEvent(const BoltEvent &event);
 
 private:
 	void draw();

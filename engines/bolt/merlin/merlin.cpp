@@ -146,14 +146,14 @@ void MerlinGame::enterSequenceEntry() {
 void MerlinGame::startMainMenu(BltId id) {
 	_currentCard.reset();
 	MainMenu* card = new MainMenu;
-	card->init(_graphics, _boltlib, id);
+	card->init(_graphics, _eventLoop, _boltlib, id);
 	setCurrentCard(card);
 }
 
 void MerlinGame::startMenu(BltId id) {
 	_currentCard.reset();
 	GenericMenuCard* menuCard = new GenericMenuCard;
-	menuCard->init(_graphics, _boltlib, id);
+	menuCard->init(_graphics, _eventLoop, _boltlib, id);
 	setCurrentCard(menuCard);
 }
 
@@ -178,20 +178,18 @@ void MerlinGame::movieTrigger(void *param, uint16 triggerType) {
 
 void MerlinGame::handleEventInMovie(const BoltEvent &event) {
 	// Click to stop movie
-	if (event.type == BoltEvent::Click) {
+	if (event.type == BoltEvent::kClick) {
 		_movie.stop();
-	}
-	else {
+	} else {
 		_movie.handleEvent(event);
 	}
 
 	if (!_movie.isRunning()) {
-		// When movie stops...
+		// If movie has stopped...
 		_graphics->setFade(1);
 		if (_currentCard) {
 			enterCurrentCard(true);
-		}
-		else {
+		} else {
 			advanceSequence();
 		}
 	}
@@ -244,7 +242,7 @@ void MerlinGame::win() {
 void MerlinGame::puzzle(const PuzzleEntry *entry) {
 	_currentCard.reset();
 	_currentPuzzle = entry;
-	Card *card = _currentPuzzle->puzzle(_graphics, _boltlib, BltShortId(_currentPuzzle->resId));
+	Card *card = _currentPuzzle->puzzle(_graphics, _eventLoop, _boltlib, BltShortId(_currentPuzzle->resId));
 	setCurrentCard(card);
 }
 
@@ -259,10 +257,10 @@ void MerlinGame::setCurrentCard(Card *card) {
 void MerlinGame::enterCurrentCard(bool cursorActive) {
 	assert(_currentCard);
 	_graphics->resetColorCycles();
-	_currentCard->enter(_eventLoop->getEventTime());
+	_currentCard->enter();
 	if (cursorActive) {
 		BoltEvent hoverEvent;
-		hoverEvent.type = BoltEvent::Hover;
+		hoverEvent.type = BoltEvent::kHover;
 		hoverEvent.time = _eventLoop->getEventTime();
 		hoverEvent.point = _system->getEventManager()->getMousePos();
 		handleEventInCard(hoverEvent);
@@ -295,7 +293,7 @@ void MerlinGame::hub(const void *param) {
 	const HubEntry *entry = reinterpret_cast<const HubEntry*>(param);
 	_currentHub = entry;
 	HubCard *card = new HubCard;
-	card->init(_graphics, _boltlib, BltShortId(entry->hubId));
+	card->init(_graphics, _eventLoop, _boltlib, BltShortId(entry->hubId));
 	setCurrentCard(card);
 }
 
@@ -303,7 +301,7 @@ void MerlinGame::freeplayHub(const void *param) {
 	_currentCard.reset();
 	uint16 sceneId = *reinterpret_cast<const uint16*>(param);
 	GenericMenuCard *card = new GenericMenuCard;
-	card->init(_graphics, _boltlib, BltShortId(sceneId));
+	card->init(_graphics, _eventLoop, _boltlib, BltShortId(sceneId));
 	setCurrentCard(card);
 }
 
@@ -311,7 +309,7 @@ void MerlinGame::potionPuzzle(const void *param) {
 	_currentCard.reset();
 	uint16 id = *reinterpret_cast<const uint16*>(param);
 	PotionPuzzle *card = new PotionPuzzle;
-	card->init(this, _boltlib, BltShortId(id));
+	card->init(this, _eventLoop, _boltlib, BltShortId(id));
 	setCurrentCard(card);
 }
 
@@ -375,9 +373,9 @@ void MerlinGame::potionPuzzle(const void *param) {
 // TODO: there are more: cursor, menus, etc.
 
 template<class T>
-static Card* makePuzzle(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+static Card* makePuzzle(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	T *card = new T;
-	card->init(graphics, boltlib, resId);
+	card->init(graphics, eventLoop, boltlib, resId);
 	return card;
 }
 

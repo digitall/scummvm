@@ -55,13 +55,13 @@ struct BltHubItem { // type 41
 	BltId imageId;
 };
 
-void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void HubCard::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
 	BltHub hubInfo;
 	loadBltResource(hubInfo, boltlib, resId);
 
-	MenuCard::init(_graphics, boltlib, hubInfo.sceneId);
+	MenuCard::init(_graphics, eventLoop, boltlib, hubInfo.sceneId);
 	_scene.setBackPlane(boltlib, hubInfo.bgPlaneId);
 
 	BltResourceList hubItemsList;
@@ -74,8 +74,8 @@ void HubCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	}
 }
 
-void HubCard::enter(uint32 time) {
-	MenuCard::enter(time);
+void HubCard::enter() {
+	MenuCard::enter();
 
 	// Draw item images to back plane
 	// FIXME: Only draw items that are unlocked.

@@ -26,22 +26,22 @@
 
 namespace Bolt {
 
-void MemoryPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void MemoryPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList;
 	loadBltResourceArray(resourceList, boltlib, resId);
 	BltId sceneId = resourceList[1].value;
 	_scene.load(graphics, boltlib, sceneId);
 }
 
-void MemoryPuzzle::enter(uint32 time) {
+void MemoryPuzzle::enter() {
 	_scene.enter();
 }
 
 Card::Signal MemoryPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Hover) {
+	if (event.type == BoltEvent::kHover) {
 		_scene.handleHover(event.point);
 	}
-	else if (event.type == BoltEvent::Click) {
+	else if (event.type == BoltEvent::kClick) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return handleButtonClick(buttonNum);
 	}

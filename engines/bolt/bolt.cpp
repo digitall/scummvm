@@ -64,21 +64,21 @@ Common::Error BoltEngine::run() {
 
 		if (event.type == Common::EVENT_MOUSEMOVE) {
 			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::Hover;
+			boltEvent.type = BoltEvent::kHover;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
 		}
 		else if (event.type == Common::EVENT_LBUTTONDOWN) {
 			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::Click;
+			boltEvent.type = BoltEvent::kClick;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
 		}
 		else if (event.type == Common::EVENT_RBUTTONDOWN) {
 			BoltEvent boltEvent;
-			boltEvent.type = BoltEvent::RightClick;
+			boltEvent.type = BoltEvent::kRightClick;
 			boltEvent.time = _eventTime;
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
@@ -91,23 +91,23 @@ Common::Error BoltEngine::run() {
 				// Perhaps the "time" of timer events should be the time of handling, not the time of triggering.
 				_eventTime = _movieTimerStart + _movieTimerInterval;
 				BoltEvent boltEvent;
-				boltEvent.type = BoltEvent::MovieTimer;
+				boltEvent.type = BoltEvent::kMovieTimer;
 				boltEvent.time = _eventTime;
 				topLevelHandleEvent(boltEvent);
-			} else if (_animationFrameRequested) {
-				// FIXME: animation frames are handled rapidly and use 100% of the cpu.
-				// Change this so animation frames are handled at a reasonable pace.
-				_animationFrameRequested = false;
+			} else if (_smoothAnimationRequested) {
+				// FIXME: smooth animation events are handled rapidly and use 100% of the cpu.
+				// Change this so smooth animation events are handled at a reasonable rate.
+				_smoothAnimationRequested = false;
 				BoltEvent boltEvent;
-				boltEvent.type = BoltEvent::AnimationFrame;
+				boltEvent.type = BoltEvent::kSmoothAnimation;
 				boltEvent.time = _eventTime;
 				topLevelHandleEvent(boltEvent);
 			} else {
-				// Emit "tick" event
-				// TODO: Eliminate Tick events in favor of Timer, AudioEnded, and
-				// other stuff that can be reacted to instead of polled.
+				// Emit Drive event
+				// TODO: Eliminate Drive events in favor of Timers, SmoothAnimation and AudioEnded.
+				// Generally, events signify things that are reacted to instead of polled.
 				BoltEvent boltEvent;
-				boltEvent.type = BoltEvent::Tick;
+				boltEvent.type = BoltEvent::kDrive;
 				boltEvent.time = _eventTime;
 				topLevelHandleEvent(boltEvent);
 			}
@@ -121,8 +121,8 @@ uint32 BoltEngine::getEventTime() const {
 	return _eventTime;
 }
 
-void BoltEngine::requestAnimationFrame() {
-	_animationFrameRequested = true;
+void BoltEngine::requestSmoothAnimation() {
+	_smoothAnimationRequested = true;
 }
 
 void BoltEngine::setMovieTimer(const uint32 intervalMs) {

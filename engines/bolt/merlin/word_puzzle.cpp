@@ -24,7 +24,7 @@
 
 namespace Bolt {
 
-void WordPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void WordPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList;
 	loadBltResourceArray(resourceList, boltlib, resId);
 	BltU16Values difficulties;
@@ -35,15 +35,15 @@ void WordPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, difficulty[19].value);
 }
 
-void WordPuzzle::enter(uint32 time) {
+void WordPuzzle::enter() {
 	_scene.enter();
 }
 
 Card::Signal WordPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Hover) {
+	if (event.type == BoltEvent::kHover) {
 		_scene.handleHover(event.point);
 	}
-	else if (event.type == BoltEvent::Click) {
+	else if (event.type == BoltEvent::kClick) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return handleButtonClick(buttonNum);
 	}

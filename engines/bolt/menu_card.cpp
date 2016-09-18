@@ -30,19 +30,19 @@
 
 namespace Bolt {
 
-void MenuCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void MenuCard::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, resId);
 }
 
-void MenuCard::enter(uint32 time) {
+void MenuCard::enter() {
 	_scene.enter();
 }
 
 Card::Signal MenuCard::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Hover) {
+	if (event.type == BoltEvent::kHover) {
 		_scene.handleHover(event.point);
 	}
-	else if (event.type == BoltEvent::Click) {
+	else if (event.type == BoltEvent::kClick) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		debug(3, "Clicked button %d", buttonNum);
 		return handleButtonClick(buttonNum);
@@ -51,8 +51,8 @@ Card::Signal MenuCard::handleEvent(const BoltEvent &event) {
 	return kNull;
 }
 
-void GenericMenuCard::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
-	MenuCard::init(graphics, boltlib, resId);
+void GenericMenuCard::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
+	MenuCard::init(graphics, eventLoop, boltlib, resId);
 }
 
 Card::Signal GenericMenuCard::handleButtonClick(int num) {

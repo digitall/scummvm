@@ -44,7 +44,7 @@ struct BltSlidingPuzzle { // type 44
 	BltShortId difficulty3;
 };
 
-void SlidingPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void SlidingPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	BltResourceList resourceList;
 	loadBltResourceArray(resourceList, boltlib, resId);
 	BltSlidingPuzzle slidingPuzzleInfo;
@@ -56,15 +56,14 @@ void SlidingPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	_scene.load(graphics, boltlib, difficultyInfo[1].value);
 }
 
-void SlidingPuzzle::enter(uint32 time) {
+void SlidingPuzzle::enter() {
 	_scene.enter();
 }
 
 Card::Signal SlidingPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Hover) {
+	if (event.type == BoltEvent::kHover) {
 		_scene.handleHover(event.point);
-	}
-	else if (event.type == BoltEvent::Click) {
+	} else if (event.type == BoltEvent::kClick) {
 		int buttonNum = _scene.getButtonAtPoint(event.point);
 		return handleButtonClick(buttonNum);
 	}

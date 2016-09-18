@@ -79,18 +79,18 @@ struct Rect {
 
 struct BoltEvent {
 	enum Type {
-		Invalid,
-		Hover,
-		Click,
-		RightClick,
-		AnimationFrame,
-		MovieTimer, // TODO: implement generic Timer, eliminate MovieTimer
-		Tick, // TODO: eliminate Tick
-		Timer,
-		AudioEnded,
+		kInvalid,
+		kHover,
+		kClick,
+		kRightClick,
+		kSmoothAnimation,
+		kMovieTimer, // TODO: implement generic Timers and eliminate MovieTimer
+		kDrive, // Drive events are fired constantly. TODO: eliminate Drive
+		kTimer, // TODO: implement
+		kAudioEnded, // TODO: implement
 	};
 
-	BoltEvent() : type(Invalid) { }
+	BoltEvent() : type(kInvalid) { }
 
 	Type type;
 	uint32 time;
@@ -112,7 +112,7 @@ public:
 	};
 
 	virtual ~Card() { }
-	virtual void enter(uint32 time) = 0;
+	virtual void enter() = 0;
 	virtual Signal handleEvent(const BoltEvent &event) = 0;
 };
 
@@ -122,7 +122,7 @@ class IBoltEventLoop {
 public:
 	virtual ~IBoltEventLoop() { }
 	virtual uint32 getEventTime() const = 0;
-	virtual void requestAnimationFrame() = 0;
+	virtual void requestSmoothAnimation() = 0;
 	virtual void setMovieTimer(uint32 intervalMs) = 0;
 };
 
@@ -142,7 +142,7 @@ public:
 
 	// From IBoltEventLoop (for internal game use)
 	virtual uint32 getEventTime() const;
-	virtual void requestAnimationFrame();
+	virtual void requestSmoothAnimation();
 	virtual void setMovieTimer(uint32 intervalMs);
 
 protected:
@@ -159,7 +159,7 @@ private:
 	bool _movieTimerActive;
 	uint32 _movieTimerStart;
 	uint32 _movieTimerInterval;
-	bool _animationFrameRequested;
+	bool _smoothAnimationRequested;
 };
 
 } // End of namespace Bolt

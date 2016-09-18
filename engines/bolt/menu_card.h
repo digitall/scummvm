@@ -36,11 +36,11 @@ class BoltEngine;
 
 class MenuCard : public Card {
 public:
-	virtual void enter(uint32 time);
+	virtual void enter();
 	virtual Signal handleEvent(const BoltEvent &event);
 
 protected:
-	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
+	void init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId);
 	virtual Signal handleButtonClick(int num) = 0;
 
 	BoltEngine *_engine;
@@ -49,7 +49,7 @@ protected:
 
 class GenericMenuCard : public MenuCard {
 public:
-	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
+	void init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId);
 protected:
 	virtual Signal handleButtonClick(int num);
 };

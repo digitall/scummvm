@@ -30,17 +30,17 @@ namespace Bolt {
 
 class ColorPuzzle : public Card {
 public:
-	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
-	void enter(uint32 time);
+	void init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId);
+	void enter();
 	Signal handleEvent(const BoltEvent &event);
 
-protected:
-	Signal handleButtonClick(int num, uint32 curTime);
-
 private:
+	Signal handleButtonClick(int num);
+
 	static const int kNumPieces = 4; // XXX: this value probably comes from game data somewhere
 
 	Graphics *_graphics;
+	IBoltEventLoop *_eventLoop;
 	Scene _scene;
 
 	struct Piece {
@@ -52,7 +52,7 @@ private:
 	Piece _pieces[kNumPieces];
 
 	void setPieceState(int piece, int state);
-	void morphPiece(int piece, int state, uint32 curTime);
+	void morphPiece(int piece, int state);
 
 	// MORPHING
 
@@ -63,7 +63,7 @@ private:
 	BltPaletteMods *_morphPaletteMods;
 	int _morphStartState;
 	int _morphEndState;
-	void startMorph(BltPaletteMods *paletteMods, int startState, int endState, uint32 curTime);
+	void startMorph(BltPaletteMods *paletteMods, int startState, int endState);
 	bool isMorphing() const;
 	void driveMorph(uint32 curTime);
 };

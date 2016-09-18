@@ -132,11 +132,11 @@ bool Movie::isRunning() const {
 
 void Movie::handleEvent(const BoltEvent &event) {
 	bool handled = false;
-	if (event.type == BoltEvent::AnimationFrame) {
+	if (event.type == BoltEvent::kSmoothAnimation) {
 		handled = true;
-		// Fades animate smoothly, i.e. at a higher frame rate than movie cels
+		// Fades have smooth animation, i.e. they have a higher frame rate than movie cels
 		driveFade(event.time);
-	} else if (event.type == BoltEvent::MovieTimer) {
+	} else if (event.type == BoltEvent::kMovieTimer) {
 		handled = true;
 		driveAudio();
 		driveFade(event.time);
@@ -150,8 +150,8 @@ void Movie::handleEvent(const BoltEvent &event) {
 
 	if (handled) {
 		if (_fadeDirection != 0) {
-			// Request animation frame for fading
-			_eventLoop->requestAnimationFrame();
+			// Fades have smooth animation
+			_eventLoop->requestSmoothAnimation();
 		}
 	}
 }
