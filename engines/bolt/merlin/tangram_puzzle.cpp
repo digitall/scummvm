@@ -24,7 +24,7 @@
 
 namespace Bolt {
 
-void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void TangramPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 
 	BltResourceList resourceList;
@@ -38,7 +38,7 @@ void TangramPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	loadBltResource(_colorCycles, boltlib, colorCyclesId);
 }
 
-void TangramPuzzle::enter(uint32 time) {
+void TangramPuzzle::enter() {
 	applyPalette(_graphics, kBack, _palette);
 	_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
 	applyColorCycles(_graphics, &_colorCycles);
@@ -47,7 +47,7 @@ void TangramPuzzle::enter(uint32 time) {
 }
 
 Card::Signal TangramPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+	if (event.type == BoltEvent::kClick) {
 		// TODO: implement puzzle
 		return kWin;
 	}

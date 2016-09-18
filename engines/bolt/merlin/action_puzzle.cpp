@@ -53,8 +53,9 @@ struct BltParticles { // type 46
 	uint16 numParticles;
 };
 
-void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void ActionPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
+	_eventLoop = eventLoop;
 
 	BltResourceList resourceList;
 	loadBltResourceArray(resourceList, boltlib, resId);
@@ -139,8 +140,8 @@ void ActionPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	}
 }
 
-void ActionPuzzle::enter(uint32 time) {
-	_curTime = time;
+void ActionPuzzle::enter() {
+	_curTime = _eventLoop->getEventTime();
 	_tickNum = 0;
 	// TODO: Load progress from save data
 	// (check original to see if action puzzles are saved)
@@ -165,14 +166,16 @@ void ActionPuzzle::enter(uint32 time) {
 }
 
 Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
-	if (event.type == BoltEvent::Click) {
+	if (event.type == BoltEvent::kClick) {
 		return handleClick(event.point);
 	}
-	else if (event.type == BoltEvent::RightClick) {
+	else if (event.type == BoltEvent::kRightClick) {
 		// Right click to win instantly
+		// TODO: remove
 		return win();
 	}
-	else if (event.type == BoltEvent::Tick) {
+	else if (event.type == BoltEvent::kDrive) {
+		// TODO: eliminate Drive events in favor of Timers
 		uint32 diff = event.time - _curTime;
 		if (diff >= kTickPeriod) {
 			_curTime += kTickPeriod;

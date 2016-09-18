@@ -24,8 +24,9 @@
 
 namespace Bolt {
 
-void ColorPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void ColorPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
+	_eventLoop = eventLoop;
 	_morphPaletteMods = nullptr;
 
 	BltResourceList resourceList;
@@ -57,7 +58,7 @@ void ColorPuzzle::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
 	}
 }
 
-void ColorPuzzle::enter(uint32 time) {
+void ColorPuzzle::enter() {
 	_scene.enter();
 	_morphPaletteMods = nullptr;
 
@@ -69,28 +70,28 @@ void ColorPuzzle::enter(uint32 time) {
 Card::Signal ColorPuzzle::handleEvent(const BoltEvent &event) {
 	if (isMorphing()) {
 		// NOTE: original game does not allow opening right-click menu during morph animation
-		if (event.type == BoltEvent::Tick) {
+		if (event.type == BoltEvent::kDrive) {
 			driveMorph(event.time);
 		}
 	}
 	else {
-		if (event.type == BoltEvent::Hover) {
+		if (event.type == BoltEvent::kHover) {
 			_scene.handleHover(event.point);
 		}
-		if (event.type == BoltEvent::Click) {
+		if (event.type == BoltEvent::kClick) {
 			int buttonNum = _scene.getButtonAtPoint(event.point);
-			return handleButtonClick(buttonNum, event.time);
+			return handleButtonClick(buttonNum);
 		}
 	}
 
 	return kNull;
 }
 
-Card::Signal ColorPuzzle::handleButtonClick(int num, uint32 curTime) {
+Card::Signal ColorPuzzle::handleButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	if (num >= 0 && num < kNumPieces) {
 		// TODO: change states according to puzzle definition
-		morphPiece(num, (_pieces[num].state + 1) % _pieces[num].numStates, curTime);
+		morphPiece(num, (_pieces[num].state + 1) % _pieces[num].numStates);
 	}
 	else {
 		// TODO: clicking outside of pieces should show the solution
@@ -107,15 +108,15 @@ void ColorPuzzle::setPieceState(int piece, int state) {
 	_graphics->markDirty();
 }
 
-void ColorPuzzle::morphPiece(int piece, int state, uint32 curTime) {
+void ColorPuzzle::morphPiece(int piece, int state) {
 	debug(3, "morphing piece %d to state %d", piece, state);
 	int oldState = _pieces[piece].state;
 	_pieces[piece].state = state;
-	startMorph(&_pieces[piece].paletteMods, oldState, state, curTime);
+	startMorph(&_pieces[piece].paletteMods, oldState, state);
 }
 
-void ColorPuzzle::startMorph(BltPaletteMods *paletteMods, int startState, int endState, uint32 curTime) {
-	_morphStartTime = curTime;
+void ColorPuzzle::startMorph(BltPaletteMods *paletteMods, int startState, int endState) {
+	_morphStartTime = _eventLoop->getEventTime();
 	_morphPaletteMods = paletteMods;
 	_morphStartState = startState;
 	_morphEndState = endState;

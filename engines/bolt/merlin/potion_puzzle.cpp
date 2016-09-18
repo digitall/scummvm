@@ -88,7 +88,7 @@ struct BltPotionPuzzleComboTableListElement {
 
 typedef ScopedArray<BltPotionPuzzleComboTableListElement> BltPotionPuzzleComboTableList;
 
-void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
+void PotionPuzzle::init(MerlinGame *game, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_game = game;
 	_graphics = _game->getGraphics();
 
@@ -141,7 +141,7 @@ void PotionPuzzle::init(MerlinGame *game, Boltlib &boltlib, BltId resId) {
 	}
 }
 
-void PotionPuzzle::enter(uint32 time) {
+void PotionPuzzle::enter() {
 	draw();
 }
 
@@ -151,7 +151,7 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 	switch (_state)
 	{
 	case STATE_ACCEPTING_INPUT:
-		if (event.type == BoltEvent::Click) {
+		if (event.type == BoltEvent::kClick) {
 			// Determine which piece was clicked
 			for (uint i = 0; i < _shelfPoints.size(); ++i) {
 				if (getIngredientHitbox(i, _shelfPoints[i]).contains(event.point)) {
@@ -162,7 +162,7 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 					_state = STATE_PLACING_1;
 				}
 			}
-		} else if (event.type == BoltEvent::RightClick) {
+		} else if (event.type == BoltEvent::kRightClick) {
 			return kEnd;
 		}
 		return kNull;

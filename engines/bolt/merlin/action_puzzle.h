@@ -34,11 +34,12 @@ namespace Bolt {
 class ActionPuzzle : public Card {
 public:
 	ActionPuzzle();
-	void init(Graphics *graphics, Boltlib &boltlib, BltId resId);
-	void enter(uint32 time);
+	void init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId);
+	void enter();
 	Signal handleEvent(const BoltEvent &event);
 protected:
 	Graphics *_graphics;
+	IBoltEventLoop *_eventLoop;
 	BltImage _bgImage;
 	BltPalette _backPalette;
 	BltPalette _forePalette;

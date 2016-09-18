@@ -40,10 +40,10 @@ struct BltMainMenu {
 	BltId colorbarsPaletteId;
 };
 
-void MainMenu::init(Graphics *graphics, Boltlib &boltlib, BltId resId) {
+void MainMenu::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	BltMainMenu mainMenu;
 	loadBltResource(mainMenu, boltlib, resId);
-	MenuCard::init(graphics, boltlib, mainMenu.sceneId);
+	MenuCard::init(graphics, eventLoop, boltlib, mainMenu.sceneId);
 }
 
 Card::Signal MainMenu::handleButtonClick(int num) {

@@ -37,7 +37,7 @@ struct HubEntry {
 };
 
 struct PuzzleEntry {
-	typedef Card* (*PuzzleFunc)(Graphics *graphics, Boltlib &boltlib, BltId resId);
+	typedef Card* (*PuzzleFunc)(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId);
 	PuzzleFunc puzzle;
 	uint16 resId;
 	uint32 winMovie;
