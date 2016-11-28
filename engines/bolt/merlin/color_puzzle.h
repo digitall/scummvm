@@ -35,13 +35,43 @@ public:
 	Signal handleEvent(const BoltEvent &event);
 
 private:
-	Signal handleButtonClick(int num);
+	// Action to take after drive()
+	enum DriveResult {
+		// Invalid; this must never occur
+		kInvalidDriveResult,
+		// Continue driving
+		kContinue,
+		// Yield and return _signal from handleEvent
+		kYield,
+	};
 
-	static const int kNumPieces = 4; // XXX: this value probably comes from game data somewhere
+	DriveResult drive();
+	DriveResult driveWaitForPlayer();
+	DriveResult driveChangeState();
+	DriveResult handleButtonClick(int num);
+
+	// The current event being handled
+	BoltEvent _curEvent;
+	// When drive() yields, this is the signal to return from handleEvent
+	Card::Signal _signal;
+
+	static const int kNumPieces = 4; // XXX: this value probably comes from game data somewhere. All color puzzles in Merlin's Apprentice have 4 pieces.
 
 	Graphics *_graphics;
 	IBoltEventLoop *_eventLoop;
 	Scene _scene;
+
+	// Current mode of puzzle
+	enum Mode {
+		// Invalid mode; this must never occur
+		kInvalidMode,
+		// Wait for player input
+		kWaitForPlayer,
+		// Play animations for changing puzzle state
+		kChangeState,
+	};
+
+	Mode _mode;
 
 	struct Piece {
 		int numStates;
@@ -64,8 +94,6 @@ private:
 	int _morphStartState;
 	int _morphEndState;
 	void startMorph(BltPaletteMods *paletteMods, int startState, int endState);
-	bool isMorphing() const;
-	void driveMorph(uint32 curTime);
 };
 
 } // End of namespace Bolt

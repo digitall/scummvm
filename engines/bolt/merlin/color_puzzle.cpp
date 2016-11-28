@@ -27,6 +27,7 @@ namespace Bolt {
 void ColorPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &boltlib, BltId resId) {
 	_graphics = graphics;
 	_eventLoop = eventLoop;
+
 	_morphPaletteMods = nullptr;
 
 	BltResourceList resourceList;
@@ -59,6 +60,7 @@ void ColorPuzzle::init(Graphics *graphics, IBoltEventLoop *eventLoop, Boltlib &b
 }
 
 void ColorPuzzle::enter() {
+	_mode = kWaitForPlayer;
 	_scene.enter();
 	_morphPaletteMods = nullptr;
 
@@ -68,38 +70,96 @@ void ColorPuzzle::enter() {
 }
 
 Card::Signal ColorPuzzle::handleEvent(const BoltEvent &event) {
-	if (isMorphing()) {
-		// NOTE: original game does not allow opening right-click menu during morph animation
-		if (event.type == BoltEvent::kDrive) {
-			driveMorph(event.time);
-		}
-	}
-	else {
-		if (event.type == BoltEvent::kHover) {
-			_scene.handleHover(event.point);
-		}
-		if (event.type == BoltEvent::kClick) {
-			int buttonNum = _scene.getButtonAtPoint(event.point);
-			return handleButtonClick(buttonNum);
+	_curEvent = event;
+	_signal = kNull;
+
+	bool yield = false;
+	while (!yield) {
+		DriveResult result = drive();
+
+		switch (result) {
+		case kContinue:
+			break;
+		case kYield:
+			yield = true;
+			break;
+		default:
+			assert(false && "Invalid drive result");
+			return Card::Signal::kInvalid;
 		}
 	}
 
-	return kNull;
+	return _signal;
 }
 
-Card::Signal ColorPuzzle::handleButtonClick(int num) {
+ColorPuzzle::DriveResult ColorPuzzle::handleButtonClick(int num) {
 	debug(3, "Clicked button %d", num);
 	if (num >= 0 && num < kNumPieces) {
 		// TODO: change states according to puzzle definition
 		morphPiece(num, (_pieces[num].state + 1) % _pieces[num].numStates);
+		_mode = kChangeState;
+		// Proceed to morphing mode; do not yield
+		return kContinue;
 	}
 	else {
 		// TODO: clicking outside of pieces should show the solution
 		// TODO: check win condition: all pieces must be in state 0.
-		return kWin;
+		_signal = kWin;
+		return kYield;
 	}
 
-	return kNull;
+	return kYield;
+}
+
+ColorPuzzle::DriveResult ColorPuzzle::drive() {
+	switch (_mode) {
+	case kWaitForPlayer:
+		return driveWaitForPlayer();
+	case kChangeState:
+		return driveChangeState();
+	default:
+		assert(false && "Invalid color puzzle mode");
+		return kInvalidDriveResult;
+	}
+}
+
+ColorPuzzle::DriveResult ColorPuzzle::driveWaitForPlayer() {
+	if (_curEvent.type == BoltEvent::kHover) {
+		_scene.handleHover(_curEvent.point);
+		_curEvent = BoltEvent(); // eat event
+	} else if (_curEvent.type == BoltEvent::kClick) {
+		int buttonNum = _scene.getButtonAtPoint(_curEvent.point);
+		DriveResult result = handleButtonClick(buttonNum);
+		_curEvent = BoltEvent(); // eat event
+		return result;
+	}
+
+	return DriveResult::kYield;
+}
+
+ColorPuzzle::DriveResult ColorPuzzle::driveChangeState() {
+	// TODO: eliminate kDrive events in favor of smooth animation, timers, etc.
+	if (_curEvent.type == BoltEvent::kDrive) {
+		uint32 progress = _curEvent.eventTime - _morphStartTime;
+		if (progress >= kMorphDuration) {
+			applyPaletteMod(_graphics, kFore, *_morphPaletteMods, _morphEndState);
+			// Transition back to accepting input
+			_morphPaletteMods = nullptr;
+			_mode = kWaitForPlayer;
+			_graphics->markDirty();
+			// Proceed to WaitForPlayer mode. Do NOT yield here.
+			return DriveResult::kContinue;
+		}
+		else {
+			applyPaletteModBlended(_graphics, kFore, *_morphPaletteMods,
+				_morphStartState, _morphEndState,
+				Common::Rational(progress, kMorphDuration));
+			_graphics->markDirty();
+			return DriveResult::kYield;
+		}
+	}
+
+	return DriveResult::kYield;
 }
 
 void ColorPuzzle::setPieceState(int piece, int state) {
@@ -120,26 +180,6 @@ void ColorPuzzle::startMorph(BltPaletteMods *paletteMods, int startState, int en
 	_morphPaletteMods = paletteMods;
 	_morphStartState = startState;
 	_morphEndState = endState;
-}
-
-bool ColorPuzzle::isMorphing() const {
-	return _morphPaletteMods != nullptr;
-}
-
-void ColorPuzzle::driveMorph(uint32 curTime) {
-	uint32 progress = curTime - _morphStartTime;
-	if (progress >= kMorphDuration) {
-		applyPaletteMod(_graphics, kFore, *_morphPaletteMods, _morphEndState);
-		// Transition back to accepting input
-		_morphPaletteMods = nullptr;
-	}
-	else {
-		applyPaletteModBlended(_graphics, kFore, *_morphPaletteMods,
-			_morphStartState, _morphEndState,
-			Common::Rational(progress, kMorphDuration));
-	}
-
-	_graphics->markDirty();
 }
 
 } // End of namespace Bolt

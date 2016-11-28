@@ -56,21 +56,35 @@ public:
 	virtual Signal handleEvent(const BoltEvent &event);
 
 private:
+	enum DriveResult {
+		kInvalidDriveResult,
+		kContinue,
+		kYield,
+	};
+
+	DriveResult drive();
+	DriveResult driveWaitForPlayer();
+	DriveResult driveChangeState();
+
 	void draw();
 	void drawIngredient(int num, Common::Point pos);
 	Rect getIngredientHitbox(int num, Common::Point pos);
 	void reactIngredients();
 
-	enum State
+	enum Mode
 	{
-		STATE_ACCEPTING_INPUT,
-		STATE_PLACING_1,
-		STATE_PLACING_2,
+		kInvalidMode,
+		kWaitForPlayer,
+		kChangeState,
 	};
 
 	// TODO: Placing states should last as long as the "plunk" sound... I think.
 	static const uint32 kPlacing1Time = 500;
 	static const uint32 kPlacing2Time = 500;
+
+	Mode _mode;
+	BoltEvent _curEvent;
+	Card::Signal _signal;
 
 	MerlinGame *_game;
 	Graphics *_graphics;
@@ -83,10 +97,12 @@ private:
 	BltPotionPuzzleComboTable _comboTable;
 	ScopedArray<bool> _slotStates; // False: Empty; True: Filled
 	int _bowlSlots[2]; // Ingredients in bowl
-	State _state;
-	uint32 _timeoutStart;
 
-	int _clickedPiece;
+	bool _timeoutActive;
+	uint32 _timeoutStart;
+	uint32 _timeoutLength;
+
+	int _requestedPiece; // 1: no requested piece
 };
 
 } // End of namespace Bolt

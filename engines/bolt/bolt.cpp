@@ -65,21 +65,21 @@ Common::Error BoltEngine::run() {
 		if (event.type == Common::EVENT_MOUSEMOVE) {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::kHover;
-			boltEvent.time = _eventTime;
+			boltEvent.eventTime = _eventTime;
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
 		}
 		else if (event.type == Common::EVENT_LBUTTONDOWN) {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::kClick;
-			boltEvent.time = _eventTime;
+			boltEvent.eventTime = _eventTime;
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
 		}
 		else if (event.type == Common::EVENT_RBUTTONDOWN) {
 			BoltEvent boltEvent;
 			boltEvent.type = BoltEvent::kRightClick;
-			boltEvent.time = _eventTime;
+			boltEvent.eventTime = _eventTime;
 			boltEvent.point = event.mouse;
 			topLevelHandleEvent(boltEvent);
 		}
@@ -92,7 +92,7 @@ Common::Error BoltEngine::run() {
 				_eventTime = _movieTimerStart + _movieTimerInterval;
 				BoltEvent boltEvent;
 				boltEvent.type = BoltEvent::kMovieTimer;
-				boltEvent.time = _eventTime;
+				boltEvent.eventTime = _eventTime;
 				topLevelHandleEvent(boltEvent);
 			} else if (_smoothAnimationRequested) {
 				// FIXME: smooth animation events are handled rapidly and use 100% of the cpu.
@@ -100,7 +100,7 @@ Common::Error BoltEngine::run() {
 				_smoothAnimationRequested = false;
 				BoltEvent boltEvent;
 				boltEvent.type = BoltEvent::kSmoothAnimation;
-				boltEvent.time = _eventTime;
+				boltEvent.eventTime = _eventTime;
 				topLevelHandleEvent(boltEvent);
 			} else {
 				// Emit Drive event
@@ -108,7 +108,7 @@ Common::Error BoltEngine::run() {
 				// Generally, events signify things that are reacted to instead of polled.
 				BoltEvent boltEvent;
 				boltEvent.type = BoltEvent::kDrive;
-				boltEvent.time = _eventTime;
+				boltEvent.eventTime = _eventTime;
 				topLevelHandleEvent(boltEvent);
 			}
 		}

@@ -420,7 +420,7 @@ void Graphics::handleEvent(const BoltEvent &event) {
 		// Drive color cycles
 		for (int i = 0; i < kNumColorCycles; ++i) {
 			if (_colorCycles[i].delay > 0) {
-				uint32 diff = event.time - _colorCycles[i].curTime;
+				uint32 diff = event.eventTime - _colorCycles[i].curTime;
 				if (diff >= (uint32)_colorCycles[i].delay) {
 					bool backwards = _colorCycles[i].end < _colorCycles[i].start;
 
