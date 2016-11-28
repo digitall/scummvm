@@ -116,7 +116,7 @@ void PotionPuzzle::init(MerlinGame *game, IBoltEventLoop *eventLoop, Boltlib &bo
 	_origin = puzzle.origin;
 	_bowlSlots[0] = -1;
 	_bowlSlots[1] = -1;
-	_state = STATE_ACCEPTING_INPUT;
+	_mode = kWaitForPlayer;
 	
 	_slotStates.alloc(puzzle.numShelfPoints);
 	for (int i = 0; i < puzzle.numShelfPoints; ++i) {
@@ -146,57 +146,114 @@ void PotionPuzzle::enter() {
 }
 
 Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
-	// TODO: implement
-	// XXX: play all potion movies in sequence
-	switch (_state)
-	{
-	case STATE_ACCEPTING_INPUT:
-		if (event.type == BoltEvent::kClick) {
-			// Determine which piece was clicked
-			for (uint i = 0; i < _shelfPoints.size(); ++i) {
-				if (getIngredientHitbox(i, _shelfPoints[i]).contains(event.point)) {
-					// Enter STATE_PLACING_1
-					debug(3, "clicked piece %d", i);
-					_clickedPiece = i;
-					_timeoutStart = event.time;
-					_state = STATE_PLACING_1;
-				}
-			}
-		} else if (event.type == BoltEvent::kRightClick) {
-			return kEnd;
+	_curEvent = event;
+	_signal = kNull;
+
+	bool yield = false;
+	while (!yield) {
+		DriveResult result = drive();
+
+		switch (result) {
+		case kContinue:
+			break;
+		case kYield:
+			yield = true;
+			break;
+		default:
+			assert(false && "Invalid drive result");
+			return Card::Signal::kInvalid;
 		}
-		return kNull;
-	case STATE_PLACING_1:
-	{
-		uint32 delta = event.time - _timeoutStart;
-		if (delta >= kPlacing1Time) {
-			// Enter STATE_PLACING_2
-			_slotStates[_clickedPiece] = false;
-			if (_bowlSlots[0] < 0) {
-				_bowlSlots[0] = _clickedPiece;
-			} else if (_bowlSlots[1] < 0) {
-				_bowlSlots[1] = _clickedPiece;
-			} else {
-				error("Could not place potion ingredient");
-			}
-			draw();
-			_timeoutStart = event.time;
-			_state = STATE_PLACING_2;
-		}
-		return kNull;
-	}
-	case STATE_PLACING_2:
-	{
-		uint32 delta = event.time - _timeoutStart;
-		if (delta >= kPlacing2Time) {
-			reactIngredients();
-		}
-		return kNull;
-	}
 	}
 
-	assert(false); // Unreachable
-	return kEnd;
+	return _signal;
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::drive() {
+	switch (_mode) {
+	case kWaitForPlayer:
+		return driveWaitForPlayer();
+	case kChangeState:
+		return driveChangeState();
+	default:
+		assert(false && "Invalid potion puzzle state");
+		return kInvalidDriveResult;
+	}
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::driveWaitForPlayer() {
+	if (_curEvent.type == BoltEvent::kClick) {
+		// Determine which piece was clicked
+		for (uint i = 0; i < _shelfPoints.size(); ++i) {
+			if (getIngredientHitbox(i, _shelfPoints[i]).contains(_curEvent.point) && _slotStates[i]) {
+				debug(3, "clicked piece %d", i);
+				_requestedPiece = i;
+				// TODO: play select piece sound
+				_timeoutStart = _curEvent.eventTime;
+				_timeoutLength = kPlacing1Time;
+				_timeoutActive = true;
+				_mode = kChangeState;
+				_curEvent = BoltEvent(); // eat event
+				// Continue to ChangeState mode
+				return kContinue;
+			}
+		}
+	} else if (_curEvent.type == BoltEvent::kRightClick) {
+		_curEvent = BoltEvent(); // eat event
+		_signal = kEnd;
+		return kYield;
+	}
+
+	return kYield;
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::driveChangeState() {
+	// TODO: use timer events, eliminate Drive events
+	if (_curEvent.type == BoltEvent::kDrive) {
+		// Wait for timeout
+		if (_timeoutActive) {
+			uint32 delta = _curEvent.eventTime - _timeoutStart;
+			if (delta >= _timeoutLength) {
+				// Timeout finished; disable timeout and continue driving
+				_timeoutActive = false;
+				return kContinue;
+			}
+
+			// Timeout active; yield
+			return kYield;
+		}
+
+		// Examine state and decide what action to take
+		if (_bowlSlots[0] >= 0 && _bowlSlots[1] >= 0) {
+			// Both bowl slots occupied, cause reaction
+			reactIngredients();
+		} else if (_requestedPiece >= 0) {
+			// Piece selected; move piece to bowl
+			_slotStates[_requestedPiece] = false;
+			if (_bowlSlots[0] < 0) {
+				_bowlSlots[0] = _requestedPiece;
+			} else if (_bowlSlots[1] < 0) {
+				_bowlSlots[1] = _requestedPiece;
+			} else {
+				assert(false && "Could not place potion ingredient");
+			}
+			_requestedPiece = -1;
+			draw();
+
+			// TODO: Play "plunk" sound
+			_timeoutStart = _curEvent.eventTime;
+			_timeoutLength = kPlacing2Time;
+			_timeoutActive = true;
+
+			// Continue into ChangeState mode with active timeout
+			return kContinue;
+		} else {
+			// No action to take; change to WaitForPlayer mode
+			_mode = kWaitForPlayer;
+			return kContinue;
+		}
+	}
+
+	return kYield;
 }
 
 void PotionPuzzle::draw() {
@@ -249,34 +306,33 @@ Rect PotionPuzzle::getIngredientHitbox(int num, Common::Point pos) {
 }
 
 void PotionPuzzle::reactIngredients() {
-	// Play potion movie and return to STATE_ACCEPTING_INPUT
+	// Play potion movie and return to WaitForPlayer mode
 	if (_bowlSlots[0] >= 0 && _bowlSlots[1] >= 0) {
 		// FIXME: how does combo lookup actually work?
 		// why are there multiple combo tables?
-		uint i = 0;
-		for (i = 0; i < _comboTable.size(); ++i) {
-			debug(3, "checking combo %d, %d, %d, %d, %d", (int)_comboTable[i].a,
-				(int)_comboTable[i].b,
-				(int)_comboTable[i].c,
-				(int)_comboTable[i].d,
-				(int)_comboTable[i].movie);
+		// Find reaction
+		uint reactionNum = 0;
+		for (reactionNum = 0; reactionNum < _comboTable.size(); ++reactionNum) {
+			const BltPotionPuzzleComboTableElement &combo = _comboTable[reactionNum];
+			debug(3, "checking combo %d, %d, %d, %d, %d",
+				(int)combo.a, (int)combo.b, (int)combo.c, (int)combo.d, (int)combo.movie);
 			// -1 is "default" - if -1 is found in the combo table, it matches any ingredient.
 			// (FIXME: The above might be true for the a field, but is it true for b?)
 			// TODO: I believe c=-1, d=-1 marks the Win condition.
-			if ((_bowlSlots[0] == _comboTable[i].a || _comboTable[i].a == -1) && _bowlSlots[1] == _comboTable[i].b) {
-				_bowlSlots[0] = _comboTable[i].c;
-				_bowlSlots[1] = _comboTable[i].d;
-				_game->startPotionMovie(_comboTable[i].movie);
-				_state = STATE_ACCEPTING_INPUT;
+			if ((_bowlSlots[0] == combo.a || combo.a == -1) && _bowlSlots[1] == combo.b) {
+				// Cause reaction NOW
+				_bowlSlots[0] = combo.c;
+				_bowlSlots[1] = combo.d;
+				_game->startPotionMovie(combo.movie);
 				break;
 			}
 		}
-		if (i >= _comboTable.size()) {
-			error("No combo found for ingredients %d, %d", _bowlSlots[0], _bowlSlots[1]);
+		if (reactionNum >= _comboTable.size()) {
+			warning("No reaction found for ingredients %d, %d", _bowlSlots[0], _bowlSlots[1]);
+			// Empty the bowl. This should never happen.
+			_bowlSlots[0] = -1;
+			_bowlSlots[1] = -1;
 		}
-	} else {
-		// No ingredient reaction
-		_state = STATE_ACCEPTING_INPUT;
 	}
 }
 

@@ -176,7 +176,7 @@ Card::Signal ActionPuzzle::handleEvent(const BoltEvent &event) {
 	}
 	else if (event.type == BoltEvent::kDrive) {
 		// TODO: eliminate Drive events in favor of Timers
-		uint32 diff = event.time - _curTime;
+		uint32 diff = event.eventTime - _curTime;
 		if (diff >= kTickPeriod) {
 			_curTime += kTickPeriod;
 			tick();

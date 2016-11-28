@@ -135,12 +135,12 @@ void Movie::handleEvent(const BoltEvent &event) {
 	if (event.type == BoltEvent::kSmoothAnimation) {
 		handled = true;
 		// Fades have smooth animation, i.e. they have a higher frame rate than movie cels
-		driveFade(event.time);
+		driveFade(event.eventTime);
 	} else if (event.type == BoltEvent::kMovieTimer) {
 		handled = true;
 		driveAudio();
-		driveFade(event.time);
-		driveTimeline(event.time);
+		driveFade(event.eventTime);
+		driveTimeline(event.eventTime);
 
 		if (isRunning()) {
 			// Set movie timer to send event for next frame

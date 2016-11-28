@@ -261,7 +261,7 @@ void MerlinGame::enterCurrentCard(bool cursorActive) {
 	if (cursorActive) {
 		BoltEvent hoverEvent;
 		hoverEvent.type = BoltEvent::kHover;
-		hoverEvent.time = _eventLoop->getEventTime();
+		hoverEvent.eventTime = _eventLoop->getEventTime();
 		hoverEvent.point = _system->getEventManager()->getMousePos();
 		handleEventInCard(hoverEvent);
 	}

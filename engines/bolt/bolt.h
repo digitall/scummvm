@@ -79,7 +79,7 @@ struct Rect {
 
 struct BoltEvent {
 	enum Type {
-		kInvalid,
+		kNone,
 		kHover,
 		kClick,
 		kRightClick,
@@ -90,10 +90,10 @@ struct BoltEvent {
 		kAudioEnded, // TODO: implement
 	};
 
-	BoltEvent() : type(kInvalid) { }
+	BoltEvent() : type(kNone), eventTime(0) { }
 
 	Type type;
-	uint32 time;
+	uint32 eventTime; // NOTE: We can't name this member "time" due to symbol conflicts.
 	Common::Point point;
 };
 
