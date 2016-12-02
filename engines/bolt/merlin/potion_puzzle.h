@@ -56,53 +56,64 @@ public:
 	virtual Signal handleEvent(const BoltEvent &event);
 
 private:
+	static const int kNoIngredient = -1;
+	// TODO: Placing an ingredient should last as long as the "plunk" sound... I think.
+	static const uint32 kPlacing1Time = 500;
+	static const uint32 kPlacing2Time = 500;
+
+	enum Mode {
+		kInvalidMode,
+		kWaitForPlayer,
+		kTransition,
+	};
+	
 	enum DriveResult {
 		kInvalidDriveResult,
 		kContinue,
 		kYield,
 	};
 
+	void enterWaitForPlayerMode();
+	void enterTransitionMode();
+	void eatCurrentEvent();
+
 	DriveResult drive();
 	DriveResult driveWaitForPlayer();
-	DriveResult driveChangeState();
+	DriveResult driveTransition();
+
+	bool isValidIngredient(int ingredient) const;
+	void setTimeout(uint32 length);
+	Rect getIngredientHitbox(int num, Common::Point pos) const;
+	void requestIngredient(int ingredient);
+	void performReaction();
 
 	void draw();
 	void drawIngredient(int num, Common::Point pos);
-	Rect getIngredientHitbox(int num, Common::Point pos);
-	void reactIngredients();
-
-	enum Mode
-	{
-		kInvalidMode,
-		kWaitForPlayer,
-		kChangeState,
-	};
-
-	// TODO: Placing states should last as long as the "plunk" sound... I think.
-	static const uint32 kPlacing1Time = 500;
-	static const uint32 kPlacing2Time = 500;
-
-	Mode _mode;
-	BoltEvent _curEvent;
-	Card::Signal _signal;
 
 	MerlinGame *_game;
+	IBoltEventLoop *_eventLoop;
 	Graphics *_graphics;
 	BltImage _bgImage;
 	BltPalette _bgPalette;
 	Common::Point _origin;
+	int _numIngredients;
 	ScopedArray<BltImage> _ingredientImages;
 	ScopedArray<Common::Point> _shelfPoints;
-	Common::Point _basinPoints[3];
-	BltPotionPuzzleComboTable _comboTable;
-	ScopedArray<bool> _slotStates; // False: Empty; True: Filled
-	int _bowlSlots[2]; // Ingredients in bowl
+	Common::Point _bowlPoints[3];
+	BltPotionPuzzleComboTable _reactionTable;
+	
+	Mode _mode;
+	BoltEvent _curEvent;
+	Card::Signal _signal;
 
+	ScopedArray<bool> _shelfSlotOccupied; // False: Empty; True: Filled
+	int _bowlSlots[2]; // Ingredients in bowl
+	
 	bool _timeoutActive;
 	uint32 _timeoutStart;
 	uint32 _timeoutLength;
 
-	int _requestedPiece; // 1: no requested piece
+	int _requestedIngredient; // -1: no requested piece
 };
 
 } // End of namespace Bolt
