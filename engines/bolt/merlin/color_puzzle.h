@@ -35,60 +35,55 @@ public:
 	Signal handleEvent(const BoltEvent &event);
 
 private:
-	// Action to take after drive()
+	// TODO: this value probably comes from Boltlib.blt somewhere.
+	// All color puzzles in Merlin's Apprentice have 4 pieces.
+	static const int kNumPieces = 4;
+	// FIXME: morph duration is probably set in game data
+	// or it may last as long as the sound
+	static const uint kMorphDuration = 500;
+
 	enum DriveResult {
-		// Invalid; this must never occur
 		kInvalidDriveResult,
-		// Continue driving
 		kContinue,
-		// Yield and return _signal from handleEvent
 		kYield,
+	};
+
+	enum Mode {
+		kInvalidMode,
+		kWaitForPlayer,
+		kTransition,
+	};
+
+	struct Piece {
+		int numStates;
+		BltPaletteMods palettes;
+		int currentState;
 	};
 
 	DriveResult drive();
 	DriveResult driveWaitForPlayer();
-	DriveResult driveChangeState();
+	DriveResult driveTransition();
 	DriveResult handleButtonClick(int num);
 
-	// The current event being handled
-	BoltEvent _curEvent;
-	// When drive() yields, this is the signal to return from handleEvent
-	Card::Signal _signal;
-
-	static const int kNumPieces = 4; // XXX: this value probably comes from game data somewhere. All color puzzles in Merlin's Apprentice have 4 pieces.
+	void enterWaitForPlayerMode();
+	void enterTransitionMode();
+	void eatCurrentEvent();
+	void selectPiece(int piece);
+	void setPieceState(int piece, int state);
+	void morphPiece(int piece, int state);
 
 	Graphics *_graphics;
 	IBoltEventLoop *_eventLoop;
 	Scene _scene;
 
-	// Current mode of puzzle
-	enum Mode {
-		// Invalid mode; this must never occur
-		kInvalidMode,
-		// Wait for player input
-		kWaitForPlayer,
-		// Play animations for changing puzzle state
-		kChangeState,
-	};
-
 	Mode _mode;
+	BoltEvent _curEvent;
+	Card::Signal _signal;
 
-	struct Piece {
-		int numStates;
-		BltPaletteMods paletteMods;
-		int state;
-	};
-	
 	Piece _pieces[kNumPieces];
-
-	void setPieceState(int piece, int state);
-	void morphPiece(int piece, int state);
 
 	// MORPHING
 
-	// FIXME: morph duration is probably set in game data
-	// or it may last as long as the sound
-	static const uint kMorphDuration = 500;
 	uint32 _morphStartTime;
 	BltPaletteMods *_morphPaletteMods;
 	int _morphStartState;
