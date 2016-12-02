@@ -167,7 +167,7 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 			break;
 		default:
 			assert(false && "Invalid potion puzzle drive result");
-			break;
+			return Card::Signal::kInvalid;
 		}
 	}
 
@@ -222,7 +222,7 @@ PotionPuzzle::DriveResult PotionPuzzle::driveWaitForPlayer() {
 		return kYield;
 	}
 
-	// Event not handled.
+	// Event was not handled.
 	return kYield;
 }
 

@@ -108,12 +108,11 @@ private:
 
 	ScopedArray<bool> _shelfSlotOccupied; // False: Empty; True: Filled
 	int _bowlSlots[2]; // Ingredients in bowl
+	int _requestedIngredient;
 	
 	bool _timeoutActive;
 	uint32 _timeoutStart;
 	uint32 _timeoutLength;
-
-	int _requestedIngredient; // -1: no requested piece
 };
 
 } // End of namespace Bolt
