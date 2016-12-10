@@ -56,7 +56,7 @@ public:
 	virtual Signal handleEvent(const BoltEvent &event);
 
 private:
-	static const int kNoIngredient = -1;
+	static const int kNoIngredient = -1; // NOTE: original game uses 0xFE for this value...
 	// TODO: Placing an ingredient should last as long as the "plunk" sound... I think.
 	static const uint32 kPlacing1Time = 500;
 	static const uint32 kPlacing2Time = 500;
@@ -88,7 +88,6 @@ private:
 	void performReaction();
 
 	void draw();
-	void drawIngredient(int num, Common::Point pos);
 
 	MerlinGame *_game;
 	IBoltEventLoop *_eventLoop;
@@ -107,7 +106,8 @@ private:
 	Card::Signal _signal;
 
 	ScopedArray<bool> _shelfSlotOccupied; // False: Empty; True: Filled
-	int _bowlSlots[2]; // Ingredients in bowl
+	static const int kNumBowlSlots = 3;
+	int _bowlSlots[kNumBowlSlots]; // Ingredients in bowl
 	int _requestedIngredient;
 	
 	bool _timeoutActive;

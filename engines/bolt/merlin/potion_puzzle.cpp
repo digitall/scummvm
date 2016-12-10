@@ -129,23 +129,27 @@ void PotionPuzzle::init(MerlinGame *game, IBoltEventLoop *eventLoop, Boltlib &bo
 	}
 
 	// TODO: clean up seemingly redundant / unnecessarily complex code
-	if (bowlPoints.size() != 3) {
+	if (bowlPoints.size() != kNumBowlSlots) {
 		error("Invalid number of bowl points %d", bowlPoints.size());
 	}
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < kNumBowlSlots; ++i) {
 		_bowlPoints[i] = bowlPoints[i].pos;
 	}
 	
 	_mode = kWaitForPlayer;
 	_signal = kNull;
 	_timeoutActive = false;
-	_bowlSlots[0] = kNoIngredient;
-	_bowlSlots[1] = kNoIngredient;
 	
 	_shelfSlotOccupied.alloc(puzzle.numShelfPoints);
 	for (int i = 0; i < puzzle.numShelfPoints; ++i) {
 		_shelfSlotOccupied[i] = true;
 	}
+
+	for (int i = 0; i < kNumBowlSlots; ++i) {
+		_bowlSlots[i] = kNoIngredient;
+	}
+
+	_requestedIngredient = kNoIngredient;
 }
 
 void PotionPuzzle::enter() {
@@ -244,12 +248,10 @@ PotionPuzzle::DriveResult PotionPuzzle::driveTransition() {
 		return kYield;
 	}
 
-	// Examine state to decide what action to perform
-	const bool bowlSlot0Occupied = isValidIngredient(_bowlSlots[0]);
-	const bool bowlSlot1Occupied = isValidIngredient(_bowlSlots[1]);
+	// Examine state to decide what action to take
 
-	if (bowlSlot0Occupied && bowlSlot1Occupied) {
-		// Both bowl slots occupied; perform reaction
+	if (isValidIngredient(_bowlSlots[0]) && isValidIngredient(_bowlSlots[2])) {
+		// Left and right bowl slots occupied; perform reaction
 		performReaction();
 		return kYield;
 	}
@@ -257,12 +259,14 @@ PotionPuzzle::DriveResult PotionPuzzle::driveTransition() {
 	if (isValidIngredient(_requestedIngredient)) {
 		// Piece selected; move piece to bowl
 		_shelfSlotOccupied[_requestedIngredient] = false;
-		if (!bowlSlot0Occupied) {
-			_bowlSlots[0] = _requestedIngredient;
-		} else if (!bowlSlot1Occupied) {
-			_bowlSlots[1] = _requestedIngredient;
+		if (isValidIngredient(_bowlSlots[1])) {
+			_bowlSlots[0] = _bowlSlots[1];
+			_bowlSlots[1] = kNoIngredient;
+			_bowlSlots[2] = _requestedIngredient;
 		} else {
-			assert(false && "Could not place potion ingredient");
+			_bowlSlots[0] = kNoIngredient;
+			_bowlSlots[1] = _requestedIngredient;
+			_bowlSlots[2] = kNoIngredient;
 		}
 		_requestedIngredient = kNoIngredient;
 
@@ -274,7 +278,7 @@ PotionPuzzle::DriveResult PotionPuzzle::driveTransition() {
 	}
 
 	// No action taken; change to WaitForPlayer mode
-	_mode = kWaitForPlayer;
+	enterWaitForPlayerMode();
 	return kContinue;
 }
 
@@ -288,37 +292,44 @@ void PotionPuzzle::draw() {
 	}
 
 	for (uint i = 0; i < _shelfPoints.size(); ++i) {
+		// FIXME: can different ingredients be placed on the shelf? i.e. can the ingredient index be
+		//        different from the shelf-slot index?
 		if (_shelfSlotOccupied[i]) {
-			drawIngredient(i, _shelfPoints[i]);
+			// Draw ingredient on shelf, anchored at south point of image
+			const BltImage &image = _ingredientImages[i];
+			Common::Point pos = _shelfPoints[i] -
+				Common::Point(image.getWidth() / 2, image.getHeight()) - _origin;
+			image.drawAt(_graphics->getPlaneSurface(kBack), pos.x, pos.y, true);
 		}
 	}
 
-	bool bowlSlot0Occupied = isValidIngredient(_bowlSlots[0]);
-	bool bowlSlot1Occupied = isValidIngredient(_bowlSlots[1]);
+	// TODO: use ingredient number -> ingredient image lookup table, as original game seems to do.
 
-	if (bowlSlot0Occupied && !bowlSlot1Occupied) {
-		drawIngredient(_bowlSlots[0], _bowlPoints[1]);
-	} else if (!bowlSlot0Occupied && bowlSlot1Occupied) {
-		drawIngredient(_bowlSlots[1], _bowlPoints[1]);
-	} else if (bowlSlot0Occupied && bowlSlot1Occupied) {
-		// FIXME: bowl points are wrong
-		drawIngredient(_bowlSlots[0], _bowlPoints[0]);
-		drawIngredient(_bowlSlots[1], _bowlPoints[2]);
+	if (isValidIngredient(_bowlSlots[0])) {
+		// Draw ingredient at bowl slot 0, anchored at southeast point of image
+		const BltImage &image = _ingredientImages[_bowlSlots[0]];
+		Common::Point pos = _bowlPoints[0] -
+			Common::Point(image.getWidth(), image.getHeight()) - _origin;
+		image.drawAt(_graphics->getPlaneSurface(kBack), pos.x, pos.y, true);
+	}
+
+	if (isValidIngredient(_bowlSlots[1])) {
+		// Draw ingredient at bowl slot 1, anchored at south point of image
+		const BltImage &image = _ingredientImages[_bowlSlots[1]];
+		Common::Point pos = _bowlPoints[1] -
+			Common::Point(image.getWidth() / 2, image.getHeight()) - _origin;
+		image.drawAt(_graphics->getPlaneSurface(kBack), pos.x, pos.y, true);
+	}
+
+	if (isValidIngredient(_bowlSlots[2])) {
+		// Draw ingredient at bowl slot 2, anchored at southwest point of image
+		const BltImage &image = _ingredientImages[_bowlSlots[2]];
+		Common::Point pos = _bowlPoints[2] -
+			Common::Point(0, image.getHeight()) - _origin;
+		image.drawAt(_graphics->getPlaneSurface(kBack), pos.x, pos.y, true);
 	}
 
 	_graphics->markDirty();
-}
-
-static Common::Point getSouthPointOfImage(const BltImage &image) {
-	return Common::Point(image.getWidth() / 2, image.getHeight());
-}
-
-void PotionPuzzle::drawIngredient(int num, Common::Point pos) {
-	// Anchor images by their south point
-	pos -= getSouthPointOfImage(_ingredientImages[num]);
-	pos -= _origin;
-	_ingredientImages[num].drawAt(_graphics->getPlaneSurface(kBack),
-		pos.x, pos.y, true);
 }
 
 bool PotionPuzzle::isValidIngredient(int ingredient) const {
@@ -332,10 +343,11 @@ void PotionPuzzle::setTimeout(uint32 length) {
 }
 
 Rect PotionPuzzle::getIngredientHitbox(int num, Common::Point pos) const {
-	// Anchor images by their south point
-	pos -= getSouthPointOfImage(_ingredientImages[num]);
+	// FIXME: this function is probably wrong.
+	const BltImage &image = _ingredientImages[num];
+	pos -= Common::Point(image.getWidth() / 2, image.getHeight());
 	pos -= _origin;
-	Rect rc(0, 0, _ingredientImages[num].getWidth(), _ingredientImages[num].getHeight());
+	Rect rc(0, 0, image.getWidth(), image.getHeight());
 	rc.translate(pos.x, pos.y);
 	return rc;
 }
@@ -348,40 +360,48 @@ void PotionPuzzle::requestIngredient(int ingredient) {
 }
 
 void PotionPuzzle::performReaction() {
-	assert(isValidIngredient(_bowlSlots[0]) && isValidIngredient(_bowlSlots[1]) &&
-		"Both bowl slots must be occupied");
-	
+	const int ingredientA = _bowlSlots[0];
+	const int ingredientB = _bowlSlots[2];
+
+	assert(isValidIngredient(ingredientA) && isValidIngredient(ingredientB) &&
+		"Bowl slot 0 and 2 must be occupied");
+
 	uint reactionNum = 0;
 	const BltPotionPuzzleComboTableElement *reactionInfo = nullptr;
 
-	// FIXME: how does combo lookup actually work?
-	// why are there multiple combo tables?
+	// FIXME: how do reactions actually work? I don't know how to interpret the puzzle data.
+
 	// Find reaction
 	for (reactionNum = 0; reactionNum < _reactionTable.size(); ++reactionNum) {
 		reactionInfo = &_reactionTable[reactionNum]; // TODO: rename comboTable to reactionTable
 		debug(3, "checking combo %d, %d, %d, %d, %d",
 			(int)reactionInfo->a, (int)reactionInfo->b, (int)reactionInfo->c, (int)reactionInfo->d,
 			(int)reactionInfo->movie);
-		// -1 is "default" - if -1 is found in the combo table, it matches any ingredient.
+		// -1 is "default" - if -1 is found in the reaction table, it matches any ingredient (?)
 		// (FIXME: The above might be true for the a field, but is it true for b?)
-		// TODO: I believe c=-1, d=-1 marks the Win condition.
-		if ((_bowlSlots[0] == reactionInfo->a || reactionInfo->a == -1) && _bowlSlots[1] == reactionInfo->b) {
+		// TODO: I believe c=-1, d=-1 signifies the Win condition. Maybe.
+		if ((ingredientA == reactionInfo->a || reactionInfo->a == -1) && ingredientB == reactionInfo->b) {
 			break;
 		}
 	}
 
 	if (reactionNum >= _reactionTable.size()) {
-		warning("No reaction found for ingredients %d, %d", _bowlSlots[0], _bowlSlots[1]);
+		warning("No reaction found for ingredients %d, %d", ingredientA, ingredientB);
 		// Empty the bowl. This should never happen.
 		_bowlSlots[0] = kNoIngredient;
 		_bowlSlots[1] = kNoIngredient;
+		_bowlSlots[2] = kNoIngredient;
 		draw();
 		return;
 	}
 
 	// Perform reaction
-	_bowlSlots[0] = reactionInfo->c;
+	// FIXME: what should we do here? What does reactionInfo->c mean, if anything?
+	_bowlSlots[0] = kNoIngredient;
 	_bowlSlots[1] = reactionInfo->d;
+	_bowlSlots[2] = kNoIngredient;
+	// NOTE: New puzzle state is not drawn until midway through the movie, when the movie
+	//       sends a draw command.
 	_game->startPotionMovie(reactionInfo->movie);
 }
 
