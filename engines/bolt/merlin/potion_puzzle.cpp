@@ -203,19 +203,8 @@ PotionPuzzle::DriveResult PotionPuzzle::drive() {
 }
 
 PotionPuzzle::DriveResult PotionPuzzle::driveWaitForPlayer() {
-
 	if (_curEvent.type == BoltEvent::kClick) {
-		// Determine which piece was clicked
-		for (uint i = 0; i < _shelfPoints.size(); ++i) {
-			if (_shelfSlotOccupied[i] && getIngredientHitbox(i, _shelfPoints[i]).contains(_curEvent.point)) {
-				debug(3, "clicked piece %d", i);
-				eatCurrentEvent();
-				requestIngredient(i);
-				return kContinue;
-			}
-		}
-
-		return kYield;
+		return handleClick(_curEvent.point);
 	}
 
 	if (_curEvent.type == BoltEvent::kRightClick) {
@@ -231,7 +220,6 @@ PotionPuzzle::DriveResult PotionPuzzle::driveWaitForPlayer() {
 }
 
 PotionPuzzle::DriveResult PotionPuzzle::driveTransition() {
-
 	// TODO: Eliminate Drive events. Transitions should be driven primarily by Timer and AudioEnded,
 	// once those event types are implemented.
 	if (_curEvent.type != BoltEvent::kDrive) {
@@ -239,21 +227,14 @@ PotionPuzzle::DriveResult PotionPuzzle::driveTransition() {
 	}
 
 	if (_timeoutActive) {
-		const uint32 delta = _curEvent.eventTime - _timeoutStart;
-		if (delta >= _timeoutLength) {
-			_timeoutActive = false;
-			return kContinue;
-		}
-
-		return kYield;
+		return driveTimeout();
 	}
 
 	// Examine state to decide what action to take
 
 	if (isValidIngredient(_bowlSlots[0]) && isValidIngredient(_bowlSlots[2])) {
 		// Left and right bowl slots occupied; perform reaction
-		performReaction();
-		return kYield;
+		return performReaction();
 	}
 	
 	if (isValidIngredient(_requestedIngredient)) {
@@ -282,6 +263,116 @@ PotionPuzzle::DriveResult PotionPuzzle::driveTransition() {
 	return kContinue;
 }
 
+PotionPuzzle::DriveResult PotionPuzzle::driveTimeout() {
+	const uint32 delta = _curEvent.eventTime - _timeoutStart;
+	if (delta >= _timeoutLength) {
+		_timeoutActive = false;
+		return kContinue;
+	}
+
+	return kYield;
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::handleClick(Common::Point point) {
+	eatCurrentEvent();
+
+	// Check if middle bowl piece was clicked. If it was clicked, undo the last action.
+	if (isValidIngredient(_bowlSlots[1])) {
+		// TODO: look up image in ingredient id -> ingredient image table?
+		const BltImage &image = _ingredientImages[_bowlSlots[1]];
+		Common::Point imagePos = _bowlPoints[1] -
+			Common::Point(image.getWidth() / 2, image.getHeight()) - _origin;
+		// FIXME: should anchor point specified by image be ignored here?
+		Common::Rect rect = image.getRect(imagePos);
+		if (rect.contains(point)) {
+			if (image.query(point.x - rect.left, point.y - rect.top)) {
+				return requestUndo();
+			}
+		}
+	}
+
+	// Determine which shelf piece was clicked.
+	for (uint i = 0; i < _shelfPoints.size(); ++i) {
+		if (_shelfSlotOccupied[i]) {
+			// TODO: look up image in ingredient id -> ingredient image table?
+			const BltImage &image = _ingredientImages[i];
+			Common::Point imagePos = _shelfPoints[i] -
+				Common::Point(image.getWidth() / 2, image.getHeight()) - _origin;
+			// FIXME: should anchor point specified by image be ignored here?
+			Common::Rect rect = image.getRect(imagePos);
+			if (rect.contains(point)) {
+				if (image.query(point.x - rect.left, point.y - rect.top)) {
+					return requestIngredient(i);
+				}
+			}
+		}
+	}
+
+	return kYield;
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::requestIngredient(int ingredient) {
+	_requestedIngredient = ingredient;
+	// TODO: play selection sound
+	setTimeout(kPlacing1Time);
+	enterTransitionMode();
+	return kContinue;
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::requestUndo() {
+	// TODO
+	warning("Undo not implemented");
+	return kYield;
+}
+
+PotionPuzzle::DriveResult PotionPuzzle::performReaction() {
+	const int ingredientA = _bowlSlots[0];
+	const int ingredientB = _bowlSlots[2];
+
+	assert(isValidIngredient(ingredientA) && isValidIngredient(ingredientB) &&
+		"Bowl slot 0 and 2 must be occupied");
+
+	uint reactionNum = 0;
+	const BltPotionPuzzleComboTableElement *reactionInfo = nullptr;
+
+	// FIXME: how do reactions actually work? I don't know how to interpret the puzzle data.
+
+	// Find reaction
+	for (reactionNum = 0; reactionNum < _reactionTable.size(); ++reactionNum) {
+		reactionInfo = &_reactionTable[reactionNum]; // TODO: rename comboTable to reactionTable
+		debug(3, "checking reaction %d, %d, %d, %d, %d",
+			(int)reactionInfo->a, (int)reactionInfo->b, (int)reactionInfo->c, (int)reactionInfo->d,
+			(int)reactionInfo->movie);
+		// -1 is "default" - if -1 is found in the reaction table, it matches any ingredient (?)
+		// (FIXME: The above might be true for the a field, but is it true for b?)
+		// TODO: I believe c=-1, d=-1 signifies the Win condition. Maybe.
+		if ((ingredientA == reactionInfo->a || reactionInfo->a == -1) && ingredientB == reactionInfo->b) {
+			break;
+		}
+	}
+
+	if (reactionNum >= _reactionTable.size()) {
+		warning("No reaction found for ingredients %d, %d", ingredientA, ingredientB);
+		// Empty the bowl. This should never happen.
+		_bowlSlots[0] = kNoIngredient;
+		_bowlSlots[1] = kNoIngredient;
+		_bowlSlots[2] = kNoIngredient;
+		draw();
+		return kYield;
+	}
+
+	// Perform reaction
+	// FIXME: what should we do here? What does reactionInfo->c mean, if anything?
+	_bowlSlots[0] = kNoIngredient;
+	_bowlSlots[1] = reactionInfo->d;
+	_bowlSlots[2] = kNoIngredient;
+	// NOTE: The game doesn't draw the new puzzle state until midway through the movie. The movie
+	//       sends a special trigger command.
+	_game->startPotionMovie(reactionInfo->movie);
+
+	return kYield;
+}
+
 void PotionPuzzle::draw() {
 	applyPalette(_graphics, kBack, _bgPalette);
 	_bgImage.drawAt(_graphics->getPlaneSurface(kBack), 0, 0, false);
@@ -299,6 +390,7 @@ void PotionPuzzle::draw() {
 			const BltImage &image = _ingredientImages[i];
 			Common::Point pos = _shelfPoints[i] -
 				Common::Point(image.getWidth() / 2, image.getHeight()) - _origin;
+			// FIXME: is image-specified anchor point ignored here?
 			image.drawAt(_graphics->getPlaneSurface(kBack), pos.x, pos.y, true);
 		}
 	}
@@ -340,69 +432,6 @@ void PotionPuzzle::setTimeout(uint32 length) {
 	_timeoutStart = _eventLoop->getEventTime();
 	_timeoutLength = length;
 	_timeoutActive = true;
-}
-
-Rect PotionPuzzle::getIngredientHitbox(int num, Common::Point pos) const {
-	// FIXME: this function is probably wrong.
-	const BltImage &image = _ingredientImages[num];
-	pos -= Common::Point(image.getWidth() / 2, image.getHeight());
-	pos -= _origin;
-	Rect rc(0, 0, image.getWidth(), image.getHeight());
-	rc.translate(pos.x, pos.y);
-	return rc;
-}
-
-void PotionPuzzle::requestIngredient(int ingredient) {
-	_requestedIngredient = ingredient;
-	// TODO: play selection sound
-	setTimeout(kPlacing1Time);
-	enterTransitionMode();
-}
-
-void PotionPuzzle::performReaction() {
-	const int ingredientA = _bowlSlots[0];
-	const int ingredientB = _bowlSlots[2];
-
-	assert(isValidIngredient(ingredientA) && isValidIngredient(ingredientB) &&
-		"Bowl slot 0 and 2 must be occupied");
-
-	uint reactionNum = 0;
-	const BltPotionPuzzleComboTableElement *reactionInfo = nullptr;
-
-	// FIXME: how do reactions actually work? I don't know how to interpret the puzzle data.
-
-	// Find reaction
-	for (reactionNum = 0; reactionNum < _reactionTable.size(); ++reactionNum) {
-		reactionInfo = &_reactionTable[reactionNum]; // TODO: rename comboTable to reactionTable
-		debug(3, "checking combo %d, %d, %d, %d, %d",
-			(int)reactionInfo->a, (int)reactionInfo->b, (int)reactionInfo->c, (int)reactionInfo->d,
-			(int)reactionInfo->movie);
-		// -1 is "default" - if -1 is found in the reaction table, it matches any ingredient (?)
-		// (FIXME: The above might be true for the a field, but is it true for b?)
-		// TODO: I believe c=-1, d=-1 signifies the Win condition. Maybe.
-		if ((ingredientA == reactionInfo->a || reactionInfo->a == -1) && ingredientB == reactionInfo->b) {
-			break;
-		}
-	}
-
-	if (reactionNum >= _reactionTable.size()) {
-		warning("No reaction found for ingredients %d, %d", ingredientA, ingredientB);
-		// Empty the bowl. This should never happen.
-		_bowlSlots[0] = kNoIngredient;
-		_bowlSlots[1] = kNoIngredient;
-		_bowlSlots[2] = kNoIngredient;
-		draw();
-		return;
-	}
-
-	// Perform reaction
-	// FIXME: what should we do here? What does reactionInfo->c mean, if anything?
-	_bowlSlots[0] = kNoIngredient;
-	_bowlSlots[1] = reactionInfo->d;
-	_bowlSlots[2] = kNoIngredient;
-	// NOTE: New puzzle state is not drawn until midway through the movie, when the movie
-	//       sends a draw command.
-	_game->startPotionMovie(reactionInfo->movie);
 }
 
 } // End of namespace Bolt
