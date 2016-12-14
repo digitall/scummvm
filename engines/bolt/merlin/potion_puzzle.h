@@ -80,12 +80,16 @@ private:
 	DriveResult drive();
 	DriveResult driveWaitForPlayer();
 	DriveResult driveTransition();
+	DriveResult driveTimeout();
+	DriveResult driveReaction();
+
+	DriveResult handleClick(Common::Point point);
+	DriveResult requestIngredient(int ingredient);
+	DriveResult requestUndo();
+	DriveResult performReaction();
 
 	bool isValidIngredient(int ingredient) const;
 	void setTimeout(uint32 length);
-	Rect getIngredientHitbox(int num, Common::Point pos) const;
-	void requestIngredient(int ingredient);
-	void performReaction();
 
 	void draw();
 
