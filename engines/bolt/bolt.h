@@ -36,7 +36,7 @@ struct ADGameDescription;
 
 namespace Common {
 struct Event;
-};
+}
 
 namespace Bolt {
 
@@ -87,7 +87,7 @@ struct BoltEvent {
 		kMovieTimer, // TODO: implement generic Timers and eliminate MovieTimer
 		kDrive, // Drive events are fired constantly. TODO: eliminate Drive
 		kTimer, // TODO: implement
-		kAudioEnded, // TODO: implement
+		kAudioEnded // TODO: implement
 	};
 
 	BoltEvent() : type(kNone), eventTime(0) { }
@@ -108,7 +108,7 @@ public:
 		kPlayHelp,
 		kPlayTour,
 		kPlayCredits,
-		kEnterPuzzleX = 100, // 100-1xx: enter puzzle xx
+		kEnterPuzzleX = 100 // 100-1xx: enter puzzle xx
 	};
 
 	virtual ~Card() { }

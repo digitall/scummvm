@@ -41,8 +41,8 @@ namespace Bolt {
 // DataView with dynamic size that can only be read
 class ConstDataView {
 public:
-	ConstDataView(const byte* const data, const uint size) 
-		: _data(data), _size(size)
+	ConstDataView(const byte* const data, const uint dataSize)
+		: _data(data), _dataSize(dataSize)
 	{ }
 
 	const byte* ptr() const {
@@ -50,14 +50,14 @@ public:
 	}
 
 	uint size() const {
-		return _size;
+		return _dataSize;
 	}
 
 	// TODO
 
 private:
 	const byte* _data;
-	uint _size;
+	uint _dataSize;
 };
 
 // DataView with static size that can only be read
@@ -154,12 +154,12 @@ public:
 		}
 	}
 
-	void alloc(uint size) {
+	void alloc(uint arraySize) {
 		delete[] _internal.data;
 		_internal.data = nullptr;
-		_internal.size = size;
-		if (size > 0) {
-			_internal.data = new T[size];
+		_internal.size = arraySize;
+		if (arraySize > 0) {
+			_internal.data = new T[arraySize];
 		}
 	}
 

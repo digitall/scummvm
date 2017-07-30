@@ -93,7 +93,7 @@ private:
 		static const uint kSize = 0xE;
 		enum GraphicsType {
 			PaletteMods = 1,
-			Sprites = 2,
+			Sprites = 2
 		};
 
 		void load(const ConstSizedDataView<kSize> src, Boltlib &boltlib) {
@@ -140,7 +140,7 @@ private:
 		enum HotspotType {
 			Rectangle = 1,
 			// 2 is regular display query (unused)
-			HotspotQuery = 3,
+			HotspotQuery = 3
 		};
 
 		uint16 type;

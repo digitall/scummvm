@@ -64,13 +64,13 @@ private:
 	enum Mode {
 		kInvalidMode,
 		kWaitForPlayer,
-		kTransition,
+		kTransition
 	};
 	
 	enum DriveResult {
 		kInvalidDriveResult,
 		kContinue,
-		kYield,
+		kYield
 	};
 
 	void enterWaitForPlayerMode();

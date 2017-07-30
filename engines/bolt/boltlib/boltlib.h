@@ -56,7 +56,7 @@ enum BltType {
 	kBltPotionPuzzleSpritePoints = 60, // potion puzzles
 	kBltPotionPuzzleDifficulty = 61, // potion puzzles
 	kBltPotionPuzzleComboTableList = 62,
-	kBltPotionPuzzleComboTable = 63,
+	kBltPotionPuzzleComboTable = 63
 };
 
 struct BltShortId {

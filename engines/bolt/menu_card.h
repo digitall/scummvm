@@ -28,7 +28,7 @@
 
 namespace Common {
 struct Event;
-};
+}
 
 namespace Bolt {
 

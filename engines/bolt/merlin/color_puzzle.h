@@ -45,13 +45,13 @@ private:
 	enum DriveResult {
 		kInvalidDriveResult,
 		kContinue,
-		kYield,
+		kYield
 	};
 
 	enum Mode {
 		kInvalidMode,
 		kWaitForPlayer,
-		kTransition,
+		kTransition
 	};
 
 	struct Piece {
