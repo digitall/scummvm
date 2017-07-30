@@ -256,7 +256,7 @@ namespace TimelineOpcodes {
 		kFade = 19, // param size: 4
 		kName = 0x7FFF, // param size: 4
 		kTriggerEvent1 = 0x8001, // param size: 0
-		kTriggerEvent2 = 0x8002, // param size: 0
+		kTriggerEvent2 = 0x8002 // param size: 0
 	};
 }
 
@@ -344,12 +344,12 @@ void Movie::runTimelineCommand() {
 	}
 	case TimelineOpcodes::kStartColorCycles: // param size: 8
 	{
-		uint16 start = READ_BE_UINT16(&_timeline[paramsOffset + 0]);
+		uint16 startC = READ_BE_UINT16(&_timeline[paramsOffset + 0]);
 		uint16 plane = READ_BE_UINT16(&_timeline[paramsOffset + 2]); // ?? Always 1 in Merlin
 		uint16 num = READ_BE_UINT16(&_timeline[paramsOffset + 4]);
 		int16 delay = READ_BE_INT16(&_timeline[paramsOffset + 6]); // Negative delay means cycle backwards
 		debug(3, "start color cycles (%d, %d, %d, %d)",
-			(int)start, (int)plane, (int)num, (int)delay
+			(int)startC, (int)plane, (int)num, (int)delay
 			);
 		if (plane != 1) {
 			warning("Color cycling plane not 1 in movie");
@@ -359,11 +359,11 @@ void Movie::runTimelineCommand() {
 		}
 		if (delay < 0) {
 			// Cycle backwards
-			_graphics->setColorCycle(_numColorCycles, start + num - 1, start, -delay);
+			_graphics->setColorCycle(_numColorCycles, startC + num - 1, startC, -delay);
 		}
 		else {
 			// Cycle forwards
-			_graphics->setColorCycle(_numColorCycles, start, start + num - 1, delay);
+			_graphics->setColorCycle(_numColorCycles, startC, startC + num - 1, delay);
 		}
 		++_numColorCycles;
 		break;
@@ -481,7 +481,7 @@ namespace CelOpcodes {
 		kLoadBack = 1,
 		kLoadForePalette = 2,
 		kScroll = 3,
-		kStop = 0xFF,
+		kStop = 0xFF
 	};
 }
 
@@ -647,7 +647,7 @@ enum PfPacketType {
 	// when it encounters a type 4 packet.
 	// NOTE: type 0xFE occurs near the end. It might signal the end of sound
 	// packets.
-	kPfFinal = 0xFF, // End of packets
+	kPfFinal = 0xFF // End of packets
 };
 
 struct Movie::PacketHeader {

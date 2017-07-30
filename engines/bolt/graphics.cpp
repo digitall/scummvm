@@ -466,7 +466,7 @@ void Graphics::resetColorCycles() {
 void Graphics::setColorCycle(int slot, uint16 start, uint16 end, int delay) {
 	assert(slot >= 0 && slot < kNumColorCycles);
 	assert(delay >= 0);
-	if (start >= 0 && start < 128 && end >= 0 && end < 128) {
+	if (start < 128 && end < 128) {
 		_colorCycles[slot].start = start;
 		_colorCycles[slot].end = end;
 		_colorCycles[slot].delay = delay;

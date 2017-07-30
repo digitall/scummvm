@@ -53,7 +53,7 @@ static const int kCdiScreenHeight = 240;
 
 enum { // plane numbers
 	kFore = 0,
-	kBack = 1,
+	kBack = 1
 };
 
 struct BoltEvent;

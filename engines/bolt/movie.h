@@ -35,7 +35,7 @@ class QueuingAudioStream;
 
 namespace Common {
 class File;
-};
+}
 
 namespace Bolt {
 
