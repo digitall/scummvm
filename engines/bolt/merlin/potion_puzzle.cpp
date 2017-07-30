@@ -171,7 +171,7 @@ Card::Signal PotionPuzzle::handleEvent(const BoltEvent &event) {
 			break;
 		default:
 			assert(false && "Invalid potion puzzle drive result");
-			return Card::Signal::kInvalid;
+			return kInvalid;
 		}
 	}
 
