@@ -84,7 +84,7 @@ Card::Signal ColorPuzzle::handleEvent(const BoltEvent &event) {
 			break;
 		default:
 			assert(false && "Invalid drive result");
-			return Card::Signal::kInvalid;
+			return kInvalid;
 		}
 	}
 
@@ -115,7 +115,7 @@ ColorPuzzle::DriveResult ColorPuzzle::driveWaitForPlayer() {
 	}
 
 	// Event was not handled.
-	return DriveResult::kYield;
+	return kYield;
 }
 
 ColorPuzzle::DriveResult ColorPuzzle::driveTransition() {
