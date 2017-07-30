@@ -277,7 +277,7 @@ uint32 BigHuffmanTree::getCode(Common::BitStream &bs) {
 	return v;
 }
 
-SmackerDecoder::SmackerDecoder(Audio::Mixer::SoundType soundType) : _soundType(soundType) {
+SmackerDecoder::SmackerDecoder() {
 	_fileStream = 0;
 	_firstFrameStart = 0;
 	_frameTypes = 0;
@@ -369,7 +369,7 @@ bool SmackerDecoder::loadStream(Common::SeekableReadStream *stream) {
 			if (_header.audioInfo[i].compression == kCompressionRDFT || _header.audioInfo[i].compression == kCompressionDCT)
 				warning("Unhandled Smacker v2 audio compression");
 
-			addTrack(new SmackerAudioTrack(_header.audioInfo[i], _soundType));
+			addTrack(new SmackerAudioTrack(_header.audioInfo[i], getSoundType()));
 		}
 	}
 
@@ -386,7 +386,7 @@ bool SmackerDecoder::loadStream(Common::SeekableReadStream *stream) {
 	byte *huffmanTrees = (byte *) malloc(_header.treesSize);
 	_fileStream->read(huffmanTrees, _header.treesSize);
 
-	Common::BitStream8LSB bs(new Common::MemoryReadStream(huffmanTrees, _header.treesSize, DisposeAfterUse::YES), true);
+	Common::BitStream8LSB bs(new Common::MemoryReadStream(huffmanTrees, _header.treesSize, DisposeAfterUse::YES), DisposeAfterUse::YES);
 	videoTrack->readTrees(bs, _header.mMapSize, _header.mClrSize, _header.fullSize, _header.typeSize);
 
 	_firstFrameStart = _fileStream->pos();
@@ -469,7 +469,7 @@ void SmackerDecoder::readNextPacket() {
 
 	_fileStream->read(frameData, frameDataSize);
 
-	Common::BitStream8LSB bs(new Common::MemoryReadStream(frameData, frameDataSize + 1, DisposeAfterUse::YES), true);
+	Common::BitStream8LSB bs(new Common::MemoryReadStream(frameData, frameDataSize + 1, DisposeAfterUse::YES), DisposeAfterUse::YES);
 	videoTrack->decodeFrame(bs);
 
 	_fileStream->seek(startPos + frameSize);
@@ -754,7 +754,8 @@ void SmackerDecoder::SmackerVideoTrack::unpackPalette(Common::SeekableReadStream
 }
 
 SmackerDecoder::SmackerAudioTrack::SmackerAudioTrack(const AudioInfo &audioInfo, Audio::Mixer::SoundType soundType) :
-		_audioInfo(audioInfo), _soundType(soundType) {
+		AudioTrack(soundType),
+		_audioInfo(audioInfo) {
 	_audioStream = Audio::makeQueuingAudioStream(_audioInfo.sampleRate, _audioInfo.isStereo);
 }
 
@@ -773,7 +774,7 @@ Audio::AudioStream *SmackerDecoder::SmackerAudioTrack::getAudioStream() const {
 }
 
 void SmackerDecoder::SmackerAudioTrack::queueCompressedBuffer(byte *buffer, uint32 bufferSize, uint32 unpackedSize) {
-	Common::BitStream8LSB audioBS(new Common::MemoryReadStream(buffer, bufferSize), true);
+	Common::BitStream8LSB audioBS(new Common::MemoryReadStream(buffer, bufferSize), DisposeAfterUse::YES);
 	bool dataPresent = audioBS.getBit();
 
 	if (!dataPresent)

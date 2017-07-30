@@ -53,6 +53,14 @@ private:
 	Darts *_darts;
 	int _mapResult;
 
+	/**
+	 * Initialize graphics mode
+	 */
+	void setupGraphics();
+
+	/**
+	 * Show the 3DO splash screen
+	 */
 	bool show3DOSplash();
 
 	/**
@@ -138,6 +146,11 @@ public:
 	 * Show the ScummVM restore savegame dialog
 	 */
 	void showScummVMRestoreDialog();
+
+	/**
+	 * Play back a 3do movie
+	 */
+	bool play3doMovie(const Common::String &filename, const Common::Point &pos, bool isPortrait = false);
 };
 
 } // End of namespace Scalpel

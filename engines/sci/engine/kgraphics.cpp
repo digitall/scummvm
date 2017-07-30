@@ -21,6 +21,7 @@
  */
 
 #include "common/system.h"
+#include "common/translation.h"
 
 #include "engines/util.h"
 #include "graphics/cursorman.h"
@@ -32,6 +33,7 @@
 #include "sci/event.h"
 #include "sci/resource.h"
 #include "sci/engine/features.h"
+#include "sci/engine/guest_additions.h"
 #include "sci/engine/savegame.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
@@ -45,6 +47,7 @@
 #include "sci/graphics/paint16.h"
 #include "sci/graphics/picture.h"
 #include "sci/graphics/ports.h"
+#include "sci/graphics/remap.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/text16.h"
 #include "sci/graphics/view.h"
@@ -68,7 +71,7 @@ static int16 adjustGraphColor(int16 color) {
 }
 
 void showScummVMDialog(const Common::String &message) {
-	GUI::MessageDialog dialog(message, "OK");
+	GUI::MessageDialog dialog(message, _("OK"));
 	dialog.runModal();
 }
 
@@ -254,7 +257,7 @@ reg_t kGraph(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kGraphGetColorCount(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_gfxPalette->getTotalColorCount());
+	return make_reg(0, g_sci->_gfxPalette16->getTotalColorCount());
 }
 
 reg_t kGraphDrawLine(EngineState *s, int argc, reg_t *argv) {
@@ -355,16 +358,11 @@ reg_t kTextSize(EngineState *s, int argc, reg_t *argv) {
 	}
 
 	textWidth = dest[3].toUint16(); textHeight = dest[2].toUint16();
-	
+
 	uint16 languageSplitter = 0;
 	Common::String splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter, sep);
 
-#ifdef ENABLE_SCI32
-	if (g_sci->_gfxText32)
-		g_sci->_gfxText32->kernelTextSize(splitText.c_str(), font_nr, maxwidth, &textWidth, &textHeight);
-	else
-#endif
-		g_sci->_gfxText16->kernelTextSize(splitText.c_str(), languageSplitter, font_nr, maxwidth, &textWidth, &textHeight);
+	g_sci->_gfxText16->kernelTextSize(splitText.c_str(), languageSplitter, font_nr, maxwidth, &textWidth, &textHeight);
 
 	// One of the game texts in LB2 German contains loads of spaces in
 	// its end. We trim the text here, otherwise the graphics code will
@@ -401,9 +399,7 @@ reg_t kWait(EngineState *s, int argc, reg_t *argv) {
 
 	s->wait(sleep_time);
 
-	if (s->_delayedRestoreGame) {
-		// delayed restore game from ScummVM menu got triggered
-		gamestate_delayedrestore(s);
+	if (g_sci->_guestAdditions->kWaitHook()) {
 		return NULL_REG;
 	}
 
@@ -445,8 +441,15 @@ reg_t kCantBeHere(EngineState *s, int argc, reg_t *argv) {
 	reg_t curObject = argv[0];
 	reg_t listReference = (argc > 1) ? argv[1] : NULL_REG;
 
-	reg_t canBeHere = g_sci->_gfxCompare->kernelCanBeHere(curObject, listReference);
-	return canBeHere;
+#ifdef ENABLE_SCI32
+	if (getSciVersion() >= SCI_VERSION_2) {
+		return g_sci->_gfxCompare->kernelCantBeHere32(curObject, listReference);
+	} else {
+#endif
+		return g_sci->_gfxCompare->kernelCanBeHere(curObject, listReference);
+#ifdef ENABLE_SCI32
+	}
+#endif
 }
 
 reg_t kIsItSkip(EngineState *s, int argc, reg_t *argv) {
@@ -492,7 +495,7 @@ reg_t kNumLoops(EngineState *s, int argc, reg_t *argv) {
 
 	loopCount = g_sci->_gfxCache->kernelViewGetLoopCount(viewId);
 
-	debugC(kDebugLevelGraphics, "NumLoops(view.%d) = %d", viewId, loopCount);
+	debugC(9, kDebugLevelGraphics, "NumLoops(view.%d) = %d", viewId, loopCount);
 
 	return make_reg(0, loopCount);
 }
@@ -505,7 +508,7 @@ reg_t kNumCels(EngineState *s, int argc, reg_t *argv) {
 
 	celCount = g_sci->_gfxCache->kernelViewGetCelCount(viewId, loopNo);
 
-	debugC(kDebugLevelGraphics, "NumCels(view.%d, %d) = %d", viewId, loopNo, celCount);
+	debugC(9, kDebugLevelGraphics, "NumCels(view.%d, %d) = %d", viewId, loopNo, celCount);
 
 	return make_reg(0, celCount);
 }
@@ -577,7 +580,6 @@ reg_t kBaseSetter(EngineState *s, int argc, reg_t *argv) {
 
 reg_t kSetNowSeen(EngineState *s, int argc, reg_t *argv) {
 	g_sci->_gfxCompare->kernelSetNowSeen(argv[0]);
-
 	return s->r_acc;
 }
 
@@ -596,10 +598,10 @@ reg_t kPaletteSetFromResource(EngineState *s, int argc, reg_t *argv) {
 	// Non-VGA games don't use palette resources.
 	// This has been changed to 64 colors because Longbow Amiga does have
 	// one palette (palette 999).
-	if (g_sci->_gfxPalette->getTotalColorCount() < 64)
+	if (g_sci->_gfxPalette16->getTotalColorCount() < 64)
 		return s->r_acc;
 
-	g_sci->_gfxPalette->kernelSetFromResource(resourceId, force);
+	g_sci->_gfxPalette16->kernelSetFromResource(resourceId, force);
 	return s->r_acc;
 }
 
@@ -607,7 +609,7 @@ reg_t kPaletteSetFlag(EngineState *s, int argc, reg_t *argv) {
 	uint16 fromColor = CLIP<uint16>(argv[0].toUint16(), 1, 255);
 	uint16 toColor = CLIP<uint16>(argv[1].toUint16(), 1, 255);
 	uint16 flags = argv[2].toUint16();
-	g_sci->_gfxPalette->kernelSetFlag(fromColor, toColor, flags);
+	g_sci->_gfxPalette16->kernelSetFlag(fromColor, toColor, flags);
 	return s->r_acc;
 }
 
@@ -615,7 +617,7 @@ reg_t kPaletteUnsetFlag(EngineState *s, int argc, reg_t *argv) {
 	uint16 fromColor = CLIP<uint16>(argv[0].toUint16(), 1, 255);
 	uint16 toColor = CLIP<uint16>(argv[1].toUint16(), 1, 255);
 	uint16 flags = argv[2].toUint16();
-	g_sci->_gfxPalette->kernelUnsetFlag(fromColor, toColor, flags);
+	g_sci->_gfxPalette16->kernelUnsetFlag(fromColor, toColor, flags);
 	return s->r_acc;
 }
 
@@ -626,10 +628,10 @@ reg_t kPaletteSetIntensity(EngineState *s, int argc, reg_t *argv) {
 	bool setPalette = (argc < 4) ? true : (argv[3].isNull()) ? true : false;
 
 	// Palette intensity in non-VGA SCI1 games has been removed
-	if (g_sci->_gfxPalette->getTotalColorCount() < 256)
+	if (g_sci->_gfxPalette16->getTotalColorCount() < 256)
 		return s->r_acc;
 
-	g_sci->_gfxPalette->kernelSetIntensity(fromColor, toColor, intensity, setPalette);
+	g_sci->_gfxPalette16->kernelSetIntensity(fromColor, toColor, intensity, setPalette);
 	return s->r_acc;
 }
 
@@ -637,7 +639,7 @@ reg_t kPaletteFindColor(EngineState *s, int argc, reg_t *argv) {
 	uint16 r = argv[0].toUint16();
 	uint16 g = argv[1].toUint16();
 	uint16 b = argv[2].toUint16();
-	return make_reg(0, g_sci->_gfxPalette->kernelFindColor(r, g, b));
+	return make_reg(0, g_sci->_gfxPalette16->kernelFindColor(r, g, b));
 }
 
 reg_t kPaletteAnimate(EngineState *s, int argc, reg_t *argv) {
@@ -645,18 +647,18 @@ reg_t kPaletteAnimate(EngineState *s, int argc, reg_t *argv) {
 	bool paletteChanged = false;
 
 	// Palette animation in non-VGA SCI1 games has been removed
-	if (g_sci->_gfxPalette->getTotalColorCount() < 256)
+	if (g_sci->_gfxPalette16->getTotalColorCount() < 256)
 		return s->r_acc;
 
 	for (argNr = 0; argNr < argc; argNr += 3) {
 		uint16 fromColor = argv[argNr].toUint16();
 		uint16 toColor = argv[argNr + 1].toUint16();
 		int16 speed = argv[argNr + 2].toSint16();
-		if (g_sci->_gfxPalette->kernelAnimate(fromColor, toColor, speed))
+		if (g_sci->_gfxPalette16->kernelAnimate(fromColor, toColor, speed))
 			paletteChanged = true;
 	}
 	if (paletteChanged)
-		g_sci->_gfxPalette->kernelAnimateSet();
+		g_sci->_gfxPalette16->kernelAnimateSet();
 
 	// WORKAROUND: The game scripts in SQ4 floppy count the number of elapsed
 	// cycles in the intro from the number of successive kAnimate calls during
@@ -669,18 +671,23 @@ reg_t kPaletteAnimate(EngineState *s, int argc, reg_t *argv) {
 	// palette animation effect slower and visible, and not have the logo screen
 	// get skipped because the scripts don't wait between animation steps. Fixes
 	// bug #3537232.
-	if (g_sci->getGameId() == GID_SQ4 && !g_sci->isCD() && s->currentRoomNumber() == 1)
+	// The original workaround was for the intro SQ4 logo (room#1).
+	// This problem also happens in the time pod (room#531).
+	// This problem also happens in the ending cutscene time rip (room#21).
+	// This workaround affects astro chicken's (room#290) and is also called once
+	// right after a gameover (room#376)
+	if (g_sci->getGameId() == GID_SQ4 && !g_sci->isCD())
 		g_sci->sleep(10);
 
 	return s->r_acc;
 }
 
 reg_t kPaletteSave(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_gfxPalette->kernelSave();
+	return g_sci->_gfxPalette16->kernelSave();
 }
 
 reg_t kPaletteRestore(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxPalette->kernelRestore(argv[0]);
+	g_sci->_gfxPalette16->kernelRestore(argv[0]);
 	return argv[0];
 }
 
@@ -695,7 +702,7 @@ reg_t kPalVaryInit(EngineState *s, int argc, reg_t *argv) {
 	uint16 ticks = argv[1].toUint16();
 	uint16 stepStop = argc >= 3 ? argv[2].toUint16() : 64;
 	uint16 direction = argc >= 4 ? argv[3].toUint16() : 1;
-	if (g_sci->_gfxPalette->kernelPalVaryInit(paletteId, ticks, stepStop, direction))
+	if (g_sci->_gfxPalette16->kernelPalVaryInit(paletteId, ticks, stepStop, direction))
 		return SIGNAL_REG;
 	return NULL_REG;
 }
@@ -705,40 +712,40 @@ reg_t kPalVaryReverse(EngineState *s, int argc, reg_t *argv) {
 	int16 stepStop = argc >= 2 ? argv[1].toUint16() : 0;
 	int16 direction = argc >= 3 ? argv[2].toSint16() : -1;
 
-	return make_reg(0, g_sci->_gfxPalette->kernelPalVaryReverse(ticks, stepStop, direction));
+	return make_reg(0, g_sci->_gfxPalette16->kernelPalVaryReverse(ticks, stepStop, direction));
 }
 
 reg_t kPalVaryGetCurrentStep(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_gfxPalette->kernelPalVaryGetCurrentStep());
+	return make_reg(0, g_sci->_gfxPalette16->kernelPalVaryGetCurrentStep());
 }
 
 reg_t kPalVaryDeinit(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxPalette->kernelPalVaryDeinit();
+	g_sci->_gfxPalette16->kernelPalVaryDeinit();
 	return NULL_REG;
 }
 
 reg_t kPalVaryChangeTarget(EngineState *s, int argc, reg_t *argv) {
 	GuiResourceId paletteId = argv[0].toUint16();
-	int16 currentStep = g_sci->_gfxPalette->kernelPalVaryChangeTarget(paletteId);
+	int16 currentStep = g_sci->_gfxPalette16->kernelPalVaryChangeTarget(paletteId);
 	return make_reg(0, currentStep);
 }
 
 reg_t kPalVaryChangeTicks(EngineState *s, int argc, reg_t *argv) {
 	uint16 ticks = argv[0].toUint16();
-	g_sci->_gfxPalette->kernelPalVaryChangeTicks(ticks);
+	g_sci->_gfxPalette16->kernelPalVaryChangeTicks(ticks);
 	return NULL_REG;
 }
 
 reg_t kPalVaryPauseResume(EngineState *s, int argc, reg_t *argv) {
 	bool pauseState = !argv[0].isNull();
-	g_sci->_gfxPalette->kernelPalVaryPause(pauseState);
+	g_sci->_gfxPalette16->kernelPalVaryPause(pauseState);
 	return NULL_REG;
 }
 
 reg_t kAssertPalette(EngineState *s, int argc, reg_t *argv) {
 	GuiResourceId paletteId = argv[0].toUint16();
 
-	g_sci->_gfxPalette->kernelAssertPalette(paletteId);
+	g_sci->_gfxPalette16->kernelAssertPalette(paletteId);
 	return s->r_acc;
 }
 
@@ -817,8 +824,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 	int16 celNo;
 	int16 priority;
 	reg_t listSeeker;
-	Common::String *listStrings = NULL;
-	const char **listEntries = NULL;
+	Common::String *listStrings = nullptr;
 	bool isAlias = false;
 
 	rect = kControlCreateRect(x, y,
@@ -830,7 +836,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 
 	uint16 languageSplitter = 0;
 	Common::String splitText;
-	
+
 	switch (type) {
 	case SCI_CONTROLS_TYPE_BUTTON:
 	case SCI_CONTROLS_TYPE_TEXTEDIT:
@@ -915,11 +921,9 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 		if (listCount) {
 			// We create a pointer-list to the different strings, we also find out whats upper and cursor position
 			listSeeker = textReference;
-			listEntries = (const char**)malloc(sizeof(char *) * listCount);
 			listStrings = new Common::String[listCount];
 			for (i = 0; i < listCount; i++) {
 				listStrings[i] = s->_segMan->getString(listSeeker);
-				listEntries[i] = listStrings[i].c_str();
 				if (listSeeker.getOffset() == upperOffset)
 					upperPos = i;
 				if (listSeeker.getOffset() == cursorOffset)
@@ -929,8 +933,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 		}
 
 		debugC(kDebugLevelGraphics, "drawing list control %04x:%04x to %d,%d, diff %d", PRINT_REG(controlObject), x, y, SCI_MAX_SAVENAME_LENGTH);
-		g_sci->_gfxControls16->kernelDrawList(rect, controlObject, maxChars, listCount, listEntries, fontId, style, upperPos, cursorPos, isAlias, hilite);
-		free(listEntries);
+		g_sci->_gfxControls16->kernelDrawList(rect, controlObject, maxChars, listCount, listStrings, fontId, style, upperPos, cursorPos, isAlias, hilite);
 		delete[] listStrings;
 		return;
 
@@ -979,12 +982,12 @@ reg_t kDrawControl(EngineState *s, int argc, reg_t *argv) {
 		if (!changeDirButton.isNull()) {
 			// check if checkDirButton is still enabled, in that case we are called the first time during that room
 			if (!(readSelectorValue(s->_segMan, changeDirButton, SELECTOR(state)) & SCI_CONTROLS_STYLE_DISABLED)) {
-				showScummVMDialog("Characters saved inside ScummVM are shown "
+				showScummVMDialog(_("Characters saved inside ScummVM are shown "
 						"automatically. Character files saved in the original "
 						"interpreter need to be put inside ScummVM's saved games "
 						"directory and a prefix needs to be added depending on which "
 						"game it was saved in: 'qfg1-' for Quest for Glory 1, 'qfg2-' "
-						"for Quest for Glory 2. Example: 'qfg2-thief.sav'.");
+						"for Quest for Glory 2. Example: 'qfg2-thief.sav'."));
 			}
 		}
 
@@ -1189,7 +1192,7 @@ reg_t kDisplay(EngineState *s, int argc, reg_t *argv) {
 		argc--; argc--; argv++; argv++;
 		text = g_sci->getKernel()->lookupText(textp, index);
 	}
-	
+
 	uint16 languageSplitter = 0;
 	Common::String splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter);
 
@@ -1253,16 +1256,16 @@ reg_t kRemapColors(EngineState *s, int argc, reg_t *argv) {
 	switch (operation) {
 	case 0: { // remap by percent
 		uint16 percent = argv[1].toUint16();
-		g_sci->_gfxPalette->resetRemapping();
-		g_sci->_gfxPalette->setRemappingPercent(254, percent);
+		g_sci->_gfxRemap16->resetRemapping();
+		g_sci->_gfxRemap16->setRemappingPercent(254, percent);
 		}
 		break;
 	case 1:	{ // remap by range
 		uint16 from = argv[1].toUint16();
 		uint16 to = argv[2].toUint16();
 		uint16 base = argv[3].toUint16();
-		g_sci->_gfxPalette->resetRemapping();
-		g_sci->_gfxPalette->setRemappingRange(254, from, to, base);
+		g_sci->_gfxRemap16->resetRemapping();
+		g_sci->_gfxRemap16->setRemappingRange(254, from, to, base);
 		}
 		break;
 	case 2:	// turn remapping off (unused)

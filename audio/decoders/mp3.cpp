@@ -330,8 +330,11 @@ MP3Stream::MP3Stream(Common::SeekableReadStream *inStream, DisposeAfterUse::Flag
 		_inStream(skipID3(inStream, dispose)),
 		_length(0, 1000) {
 
-	// Initialize the stream with some data
+	// Initialize the stream with some data and set the channels and rate
+	// variables
 	decodeMP3Data(*_inStream);
+	_channels = MAD_NCHANNELS(&_frame.header);
+	_rate = _frame.header.samplerate;
 
 	// Calculate the length of the stream
 	while (_state != MP3_STATE_EOS)
@@ -352,12 +355,8 @@ MP3Stream::MP3Stream(Common::SeekableReadStream *inStream, DisposeAfterUse::Flag
 	_state = MP3_STATE_INIT;
 	_inStream->seek(0);
 
-	// Decode the first chunk of data. This is necessary so that _frame
-	// is setup and we can retrieve channels/rate.
+	// Decode the first chunk of data to set up the stream again.
 	decodeMP3Data(*_inStream);
-
-	_channels = MAD_NCHANNELS(&_frame.header);
-	_rate = _frame.header.samplerate;
 }
 
 int MP3Stream::readBuffer(int16 *buffer, const int numSamples) {
@@ -439,6 +438,7 @@ PacketizedMP3Stream::PacketizedMP3Stream(uint channels, uint rate) :
 }
 
 PacketizedMP3Stream::~PacketizedMP3Stream() {
+	Common::StackLock lock(_mutex);
 	while (!_queue.empty()) {
 		delete _queue.front();
 		_queue.pop();
@@ -448,12 +448,13 @@ PacketizedMP3Stream::~PacketizedMP3Stream() {
 int PacketizedMP3Stream::readBuffer(int16 *buffer, const int numSamples) {
 	int samples = 0;
 
+	Common::StackLock lock(_mutex);
 	while (samples < numSamples) {
-		Common::StackLock lock(_mutex);
-
-		// Empty? Bail out for now
-		if (_queue.empty())
+		// Empty? Bail out for now, and mark the stream as ended
+		if (_queue.empty()) {
+			_state = MP3_STATE_EOS;
 			return samples;
+		}
 
 		Common::SeekableReadStream *packet = _queue.front();
 
@@ -472,6 +473,12 @@ int PacketizedMP3Stream::readBuffer(int16 *buffer, const int numSamples) {
 			_queue.pop();
 			delete packet;
 		}
+	}
+
+	// This will happen if the audio runs out just as the last sample is
+	// decoded. But there may still be more audio queued up.
+	if (_state == MP3_STATE_EOS && !_queue.empty()) {
+		_state = MP3_STATE_READY;
 	}
 
 	return samples;
@@ -493,6 +500,12 @@ void PacketizedMP3Stream::queuePacket(Common::SeekableReadStream *packet) {
 	Common::StackLock lock(_mutex);
 	assert(!_finished);
 	_queue.push(packet);
+
+	// If the audio had finished (buffer underrun?), there is more to
+	// decode now.
+	if (_state == MP3_STATE_EOS) {
+		_state = MP3_STATE_READY;
+	}
 }
 
 void PacketizedMP3Stream::finish() {

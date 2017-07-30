@@ -568,6 +568,8 @@ public:
 	bool loadStream(Common::SeekableReadStream *stream);
 	void close();
 
+	void setSurfaceMemory(void *mem, uint16 width, uint16 height, uint8 bpp);
+
 private:
 	class VMDVideoTrack : public FixedRateVideoTrack {
 	public:
@@ -592,8 +594,6 @@ private:
 	class VMDAudioTrack : public AudioTrack {
 	public:
 		VMDAudioTrack(VMDDecoder *decoder);
-
-		Audio::Mixer::SoundType getSoundType() const;
 
 	protected:
 		virtual Audio::AudioStream *getAudioStream() const;

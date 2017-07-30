@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SHERLOCK_HOLMES_H
-#define SHERLOCK_HOLMES_H
+#ifndef SHERLOCK_SHERLOCK_H
+#define SHERLOCK_SHERLOCK_H
 
 #include "common/scummsys.h"
 #include "common/array.h"
@@ -63,9 +63,9 @@ enum GameType {
 	GType_RoseTattoo = 1
 };
 
-#define SHERLOCK_SCREEN_WIDTH _vm->_screen->w()
-#define SHERLOCK_SCREEN_HEIGHT _vm->_screen->h()
-#define SHERLOCK_SCENE_WIDTH _vm->_screen->_backBuffer1.w()
+#define SHERLOCK_SCREEN_WIDTH _vm->_screen->width()
+#define SHERLOCK_SCREEN_HEIGHT _vm->_screen->height()
+#define SHERLOCK_SCENE_WIDTH _vm->_screen->_backBuffer1.width()
 #define SHERLOCK_SCENE_HEIGHT (IS_SERRATED_SCALPEL ? 138 : 480)
 #define SCENES_COUNT (IS_SERRATED_SCALPEL ? 63 : 101)
 #define MAX_BGSHAPES (IS_SERRATED_SCALPEL ? 64 : 150)
@@ -80,6 +80,7 @@ class Resource;
 
 class SherlockEngine : public Engine {
 private:
+\
 	/**
 	 * Main loop for displaying a scene and handling all that occurs within it
 	 */
@@ -133,6 +134,7 @@ public:
 	bool _canLoadSave;
 	bool _showOriginalSavesDialog;
 	bool _interactiveFl;
+	bool _isScreenDoubled;
 public:
 	SherlockEngine(OSystem *syst, const SherlockGameDescription *gameDesc);
 	virtual ~SherlockEngine();

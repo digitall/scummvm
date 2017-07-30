@@ -81,17 +81,17 @@ public:
 	SDL_Window *getSDLWindow() const { return _window; }
 
 	/**
-	 * Creates a new SDL window (and destroies the old one).
+	 * Creates or updates the SDL window.
 	 *
 	 * @param width   Width of the window.
 	 * @param height  Height of the window.
 	 * @param flags   SDL flags passed to SDL_CreateWindow
 	 * @return true on success, false otherwise
 	 */
-	bool createWindow(int width, int height, uint32 flags);
+	bool createOrUpdateWindow(int width, int height, uint32 flags);
 
 	/**
-	 * Destroies the current SDL window.
+	 * Destroys the current SDL window.
 	 */
 	void destroyWindow();
 
@@ -99,6 +99,15 @@ protected:
 	SDL_Window *_window;
 
 private:
+	uint32 _lastFlags;
+
+	/**
+	 * Switching between software and OpenGL modes requires the window to be
+	 * destroyed and recreated. These properties store the position of the last
+	 * window so the new window will be created in the same place.
+	 */
+	int _lastX, _lastY;
+
 	bool _inputGrabState;
 	Common::String _windowCaption;
 #endif

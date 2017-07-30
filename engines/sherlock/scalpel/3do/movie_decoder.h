@@ -88,7 +88,7 @@ private:
 
 	class StreamAudioTrack : public AudioTrack {
 	public:
-		StreamAudioTrack(uint32 codecTag, uint32 sampleRate, uint32 channels);
+		StreamAudioTrack(uint32 codecTag, uint32 sampleRate, uint32 channels, Audio::Mixer::SoundType soundType);
 		~StreamAudioTrack();
 
 		void queueAudio(Common::SeekableReadStream *stream, uint32 size);
@@ -118,9 +118,6 @@ private:
 	StreamVideoTrack *_videoTrack;
 	StreamAudioTrack *_audioTrack;
 };
-
-// Testing
-extern bool Scalpel3DOMoviePlay(const char *filename, Common::Point pos);
 
 } // End of namespace Sherlock
 

@@ -203,11 +203,11 @@ void GfxMacIconBar::setInventoryIcon(int16 icon) {
 Graphics::Surface *GfxMacIconBar::loadPict(ResourceId id) {
 	Resource *res = g_sci->getResMan()->findResource(id, false);
 
-	if (!res || res->size == 0)
+	if (!res || res->size() == 0)
 		return 0;
 
 	Image::PICTDecoder pictDecoder;
-	Common::MemoryReadStream stream(res->data, res->size);
+	Common::MemoryReadStream stream(res->toStream());
 	if (!pictDecoder.loadStream(stream))
 		return 0;
 
@@ -234,7 +234,7 @@ void GfxMacIconBar::remapColors(Graphics::Surface *surf, const byte *palette) {
 		byte g = palette[color * 3 + 1];
 		byte b = palette[color * 3 + 2];
 
-		*pixels++ = g_sci->_gfxPalette->findMacIconBarColor(r, g, b);
+		*pixels++ = g_sci->_gfxPalette16->findMacIconBarColor(r, g, b);
 	}
 }
 

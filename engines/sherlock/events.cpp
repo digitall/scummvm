@@ -28,6 +28,7 @@
 #include "sherlock/sherlock.h"
 #include "sherlock/events.h"
 #include "sherlock/surface.h"
+#include "sherlock/tattoo/tattoo.h"
 
 namespace Sherlock {
 
@@ -93,13 +94,31 @@ void Events::setCursor(CursorId cursorId) {
 void Events::setCursor(const Graphics::Surface &src, int hotspotX, int hotspotY) {
 	_cursorId = INVALID_CURSOR;
 	_hotspotPos = Common::Point(hotspotX, hotspotY);
-	
+
 	if (!IS_3DO) {
 		// PC 8-bit palettized
 		CursorMan.replaceCursor(src.getPixels(), src.w, src.h, hotspotX, hotspotY, 0xff);
-	} else {
-		// 3DO RGB565
+	} else if (!_vm->_isScreenDoubled) {
 		CursorMan.replaceCursor(src.getPixels(), src.w, src.h, hotspotX, hotspotY, 0x0000, false, &src.format);
+	} else {
+		Graphics::Surface tempSurface;
+		tempSurface.create(2 * src.w, 2 * src.h, src.format);
+
+		for (int y = 0; y < src.h; y++) {
+			const uint16 *srcP = (const uint16 *)src.getBasePtr(0, y);
+			uint16 *destP = (uint16 *)tempSurface.getBasePtr(0, 2 * y);
+			for (int x = 0; x < src.w; ++x, ++srcP, destP += 2) {
+				*destP = *srcP;
+				*(destP + 1) = *srcP;
+				*(destP + 2 * src.w) = *srcP;
+				*(destP + 2 * src.w + 1) = *srcP;
+			}
+		}
+
+		// 3DO RGB565
+		CursorMan.replaceCursor(tempSurface.getPixels(), tempSurface.w, tempSurface.h, 2 * hotspotX, 2 * hotspotY, 0x0000, false, &src.format);
+
+		tempSurface.free();
 	}
 	showCursor();
 }
@@ -124,7 +143,7 @@ void Events::setCursor(CursorId cursorId, const Common::Point &cursorPos, const 
 
 	// Form a single surface containing both frames
 	Surface s(r.width(), r.height());
-	s.fill(TRANSPARENCY);
+	s.clear(TRANSPARENCY);
 
 	// Draw the passed image
 	Common::Point drawPos;
@@ -132,11 +151,11 @@ void Events::setCursor(CursorId cursorId, const Common::Point &cursorPos, const 
 		drawPos.x = -cursorPt.x;
 	if (cursorPt.y < 0)
 		drawPos.y = -cursorPt.y;
-	s.blitFrom(surface, Common::Point(drawPos.x, drawPos.y));
+	s.SHblitFrom(surface, Common::Point(drawPos.x, drawPos.y));
 
 	// Draw the cursor image
 	drawPos = Common::Point(MAX(cursorPt.x, (int16)0), MAX(cursorPt.y, (int16)0));
-	s.transBlitFrom(cursorImg, Common::Point(drawPos.x, drawPos.y));
+	s.SHtransBlitFrom(cursorImg, Common::Point(drawPos.x, drawPos.y));
 
 	// Set up hotspot position for cursor, adjusting for cursor image's position within the surface
 	Common::Point hotspot;
@@ -144,7 +163,7 @@ void Events::setCursor(CursorId cursorId, const Common::Point &cursorPos, const 
 		hotspot = Common::Point(8, 8);
 	hotspot += drawPos;
 	// Set the cursor
-	setCursor(s.getRawSurface(), hotspot.x, hotspot.y);
+	setCursor(s, hotspot.x, hotspot.y);
 }
 
 void Events::animateCursorIfNeeded() {
@@ -155,7 +174,8 @@ void Events::animateCursorIfNeeded() {
 }
 
 void Events::showCursor() {
-	CursorMan.showMouse(true);
+	if (IS_SERRATED_SCALPEL || !static_cast<Tattoo::TattooEngine *>(_vm)->_runningProlog)
+		CursorMan.showMouse(true);
 }
 
 void Events::hideCursor() {
@@ -176,6 +196,8 @@ void Events::pollEvents() {
 	Common::Event event;
 	while (g_system->getEventManager()->pollEvent(event)) {
 		_mousePos = event.mouse;
+		if (_vm->_isScreenDoubled)
+			_mousePos = Common::Point(_mousePos.x / 2, _mousePos.y / 2);
 
 		// Handle events
 		switch (event.type) {
@@ -219,7 +241,11 @@ void Events::pollEventsAndWait() {
 }
 
 void Events::warpMouse(const Common::Point &pt) {
-	_mousePos = pt - _vm->_screen->_currentScroll;	
+	Common::Point pos = pt;
+	if (_vm->_isScreenDoubled)
+		pos = Common::Point(pt.x / 2, pt.y);
+
+	_mousePos = pos - _vm->_screen->_currentScroll;
 	g_system->warpMouse(_mousePos.x, _mousePos.y);
 }
 
@@ -235,6 +261,10 @@ Common::Point Events::mousePos() const {
 
 void Events::setFrameRate(int newRate) {
 	_frameRate = newRate;
+}
+
+void Events::toggleSpeed() {
+	_frameRate = (_frameRate == GAME_FRAME_RATE) ? GAME_FRAME_RATE * 2 : GAME_FRAME_RATE;
 }
 
 bool Events::checkForNextFrameCounter() {
@@ -320,7 +350,8 @@ bool Events::delay(uint32 time, bool interruptable) {
 		g_system->delayMillis(time);
 		bool result = !(interruptable && (kbHit() || _pressed || _vm->shouldQuit()));
 
-		clearEvents();
+		if (interruptable)
+			clearEvents();
 		return result;
 	} else {
 		// For long periods go into a loop where we delay by 10ms at a time and then
@@ -369,7 +400,7 @@ bool Events::checkInput() {
 
 void Events::incWaitCounter() {
 	setCursor(WAIT);
-	++_waitCounter;		
+	++_waitCounter;
 }
 
 void Events::decWaitCounter() {

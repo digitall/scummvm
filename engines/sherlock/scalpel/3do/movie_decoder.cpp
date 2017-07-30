@@ -25,7 +25,6 @@
 #include "common/textconsole.h"
 
 #include "audio/audiostream.h"
-#include "audio/decoders/raw.h"
 #include "audio/decoders/3do.h"
 
 #include "sherlock/scalpel/3do/movie_decoder.h"
@@ -141,13 +140,13 @@ bool Scalpel3DOMovieDecoder::loadStream(Common::SeekableReadStream *stream) {
 				_stream->readUint32BE(); // Unknown 0x00004000
 				_stream->readUint32BE(); // Unknown 0x00000000
 				_stream->readUint32BE(); // Unknown 0x00000010
-				audioSampleRate = _stream->readUint32BE();			
+				audioSampleRate = _stream->readUint32BE();
 				audioChannels = _stream->readUint32BE();
 				audioCodecTag = _stream->readUint32BE();
 				_stream->readUint32BE(); // Unknown 0x00000004 compression ratio?
 				_stream->readUint32BE(); // Unknown 0x00000A2C
 
-				_audioTrack = new StreamAudioTrack(audioCodecTag, audioSampleRate, audioChannels);
+				_audioTrack = new StreamAudioTrack(audioCodecTag, audioSampleRate, audioChannels, getSoundType());
 				addTrack(_audioTrack);
 				break;
 
@@ -394,7 +393,8 @@ void Scalpel3DOMovieDecoder::StreamVideoTrack::decodeFrame(Common::SeekableReadS
 	_curFrame++;
 }
 
-Scalpel3DOMovieDecoder::StreamAudioTrack::StreamAudioTrack(uint32 codecTag, uint32 sampleRate, uint32 channels) {
+Scalpel3DOMovieDecoder::StreamAudioTrack::StreamAudioTrack(uint32 codecTag, uint32 sampleRate, uint32 channels, Audio::Mixer::SoundType soundType) :
+		AudioTrack(soundType) {
 	switch (codecTag) {
 	case MKTAG('A','D','P','4'):
 	case MKTAG('S','D','X','2'):
@@ -462,49 +462,6 @@ void Scalpel3DOMovieDecoder::StreamAudioTrack::queueAudio(Common::SeekableReadSt
 
 Audio::AudioStream *Scalpel3DOMovieDecoder::StreamAudioTrack::getAudioStream() const {
 	return _audioStream;
-}
-
-// Test-code
-
-// Code for showing a movie. Only meant for testing/debug purposes
-bool Scalpel3DOMoviePlay(const char *filename, Common::Point pos) {
-	Scalpel3DOMovieDecoder *videoDecoder = new Scalpel3DOMovieDecoder();
-
-	if (!videoDecoder->loadFile(filename)) {
-		warning("Scalpel3DOMoviePlay: could not open '%s'", filename);
-		return false;
-	}
-
-	bool skipVideo = false;
-	//byte bytesPerPixel = videoDecoder->getPixelFormat().bytesPerPixel;
-	uint16 width = videoDecoder->getWidth();
-	uint16 height = videoDecoder->getHeight();
-	//uint16 pitch = videoDecoder->getWidth() * bytesPerPixel;
-
-	videoDecoder->start();
-
-	while (!g_engine->shouldQuit() && !videoDecoder->endOfVideo() && (!skipVideo)) {
-		if (videoDecoder->needsUpdate()) {
-			const Graphics::Surface *frame = videoDecoder->decodeNextFrame();
-
-			if (frame) {
-				g_system->copyRectToScreen(frame->getPixels(), frame->pitch, pos.x, pos.y, width, height);
-				g_system->updateScreen();
-			}
-		}
-
-		Common::Event event;
-		while (g_system->getEventManager()->pollEvent(event)) {
-			if ((event.type == Common::EVENT_KEYDOWN && event.kbd.keycode == Common::KEYCODE_ESCAPE))
-				skipVideo = true;
-		}
-
-		g_system->delayMillis(10);
-	}
-	videoDecoder->close();
-	delete videoDecoder;
-
-	return !skipVideo;
 }
 
 } // End of namespace Sherlock

@@ -71,7 +71,7 @@ enum {
 	OP_ENABLE_END_KEY			= 31,
 	OP_DISABLE_END_KEY			= 32,
 	OP_END_TEXT_WINDOW			= 33,
-	
+
 	OP_MOUSE_OFF_ON				= 34,
 	OP_SET_WALK_CONTROL			= 35,
 	OP_SET_TALK_SEQUENCE		= 36,
@@ -123,7 +123,7 @@ struct SequenceEntry {
 	short _frameNumber;		// Frame number in frame sequence to draw
 	short _sequenceNumber;	// Start frame of sequences that are repeated
 	int _seqStack;			// Allows gosubs to return to calling frame
-	int _seqTo;				// Allows 1-5, 8-3 type sequences encoded 
+	int _seqTo;				// Allows 1-5, 8-3 type sequences encoded
 	int _seqCounter;		// How many times this sequence has been executed
 	int _seqCounter2;
 
@@ -215,10 +215,10 @@ protected:
 	OpcodeReturn cmdWalkToCAnimation(const byte *&str);
 protected:
 	/**
-	 * Checks, if a character is an opcode
+	 * Checks if a character is an opcode
 	 */
 	bool isOpcode(byte checkCharacter);
-	
+
 	/**
 	 * Form a table of the display indexes for statements
 	 */
@@ -228,7 +228,7 @@ protected:
 	 * When the talk window has been displayed, waits a period of time proportional to
 	 * the amount of text that's been displayed
 	 */
-	int waitForMore(int delay);
+	virtual int waitForMore(int delay);
 
 	/**
 	 * Display the talk interface window
@@ -308,14 +308,14 @@ public:
 	 * Opens the talk file 'talk.tlk' and searches the index for the specified
 	 * conversation. If found, the data for that conversation is loaded
 	 */
-	void loadTalkFile(const Common::String &filename);
+	virtual void loadTalkFile(const Common::String &filename);
 
 	/**
 	 * Push the sequence of a background object that's an NPC that needs to be
 	 * saved onto the sequence stack.
 	 */
 	void pushSequence(int speaker);
-	
+
 	/**
 	 * Push the details of a passed object onto the saved sequences stack
 	 */
@@ -351,7 +351,7 @@ public:
 	 * Prints a single conversation option in the interface window
 	 */
 	virtual int talkLine(int lineNum, int stateNum, byte color, int lineY, bool slamIt) { return 0; }
-	
+
 	/**
 	 * Pulls a background object sequence from the sequence stack and restore's the
 	 * object's sequence

@@ -674,13 +674,13 @@ void GfxPorts::priorityBandsInit(int16 bandCount, int16 top, int16 bottom) {
 		_priorityBottom--;
 }
 
-void GfxPorts::priorityBandsInit(byte *data) {
+void GfxPorts::priorityBandsInit(const SciSpan<const byte> &data) {
 	int i = 0, inx;
 	byte priority = 0;
 
 	for (inx = 0; inx < 14; inx++) {
-		priority = *data++;
-		while (i < priority)
+		priority = data[inx];
+		while (i < priority && i < 200)
 			_priorityBands[i++] = inx;
 	}
 	while (i < 200)
@@ -688,13 +688,13 @@ void GfxPorts::priorityBandsInit(byte *data) {
 }
 
 // Gets used to read priority bands data from sci1.1 pictures
-void GfxPorts::priorityBandsInitSci11(byte *data) {
+void GfxPorts::priorityBandsInitSci11(SciSpan<const byte> data) {
 	byte priorityBands[14];
 	for (int bandNo = 0; bandNo < 14; bandNo++) {
-		priorityBands[bandNo] = READ_LE_UINT16(data);
+		priorityBands[bandNo] = data.getUint16LEAt(0);
 		data += 2;
 	}
-	priorityBandsInit(priorityBands);
+	priorityBandsInit(SciSpan<const byte>(priorityBands, 14));
 }
 
 void GfxPorts::kernelInitPriorityBands() {
@@ -717,8 +717,10 @@ void GfxPorts::kernelGraphAdjustPriority(int top, int bottom) {
 }
 
 byte GfxPorts::kernelCoordinateToPriority(int16 y) {
-	if (y < _priorityTop)
-		return _priorityBands[_priorityTop];
+	if (y < 0) // Sierra did not check this, we do for safety reasons
+		return _priorityBands[0];
+	// do NOT check for _priorityTop in here. Sierra never did that and it would cause
+	// at least priority issues in room 54 of lsl2 (airplane)
 	if (y > _priorityBottom)
 		return _priorityBands[_priorityBottom];
 	return _priorityBands[y];

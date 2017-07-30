@@ -39,7 +39,6 @@
 #include "engines/util.h"
 
 #include "gui/message.h"
-#include "gui/gui-manager.h"
 
 namespace Sword1 {
 
@@ -155,7 +154,7 @@ Common::Error SwordEngine::init() {
 
 	_systemVars.showText = ConfMan.getBool("subtitles");
 
-	_systemVars.playSpeech = 1;
+	_systemVars.playSpeech = true;
 	_mouseState = 0;
 
 	// Some Mac versions use big endian for the speech files but not all of them.

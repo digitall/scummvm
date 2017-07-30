@@ -103,6 +103,14 @@ public:
 		flush();
 	}
 
+	/**
+	* Obtains the current value of the stream position indicator of the
+	* stream.
+	*
+	* @return the current position indicator, or -1 if an error occurred.
+	 */
+	virtual int32 pos() const = 0;
+
 
 	// The remaining methods all have default implementations; subclasses
 	// need not (and should not) overload them.
@@ -176,6 +184,32 @@ public:
 		writeUint64BE((uint64)value);
 	}
 #endif
+
+
+	/**
+	 * Write the given 32-bit floating point value stored
+	 * in little endian(LSB first) order into the stream.
+	 */
+	FORCEINLINE void writeFloatLE(float value) {
+		uint32 n;
+
+		memcpy(&n, &value, 4);
+
+		writeUint32LE(n);
+	}
+
+
+	/**
+	 * Write the given 32-bit floating point value stored
+	 * in big endian order into the stream.
+	 */
+	FORCEINLINE void writeFloatBE(float value) {
+		uint32 n;
+
+		memcpy(&n, &value, 4);
+
+		writeUint32BE(n);
+	}
 
 	/**
 	 * Write the given string to the stream.
@@ -394,6 +428,38 @@ public:
 #endif
 
 	/**
+	 * Read a 32-bit floating point value stored in little endian (LSB first)
+	 * order from the stream and return it.
+	 * Performs no error checking. The return value is undefined
+	 * if a read error occurred (for which client code can check by
+	 * calling err() and eos() ).
+	 */
+	FORCEINLINE float readFloatLE() {
+		uint32 n = readUint32LE();
+		float f;
+
+		memcpy(&f, &n, 4);
+
+		return f;
+	}
+
+	/**
+	 * Read a 32-bit floating point value stored in big endian
+	 * order from the stream and return it.
+	 * Performs no error checking. The return value is undefined
+	 * if a read error occurred (for which client code can check by
+	 * calling err() and eos() ).
+	 */
+	FORCEINLINE float readFloatBE() {
+		uint32 n = readUint32BE();
+		float f;
+
+		memcpy(&f, &n, 4);
+
+		return f;
+	}
+
+	/**
 	 * Read the specified amount of data into a malloc'ed buffer
 	 * which then is wrapped into a MemoryReadStream.
 	 * The returned stream might contain less data than requested,
@@ -402,6 +468,14 @@ public:
 	 * calling err() and eos().
 	 */
 	SeekableReadStream *readStream(uint32 dataSize);
+
+	/**
+	 * Read stream in Pascal format, that is, one byte is
+	 * string length, followed by string data
+	 *
+	 * @param transformCR	if set (default), then transform \r into \n
+	 */
+	Common::String readPascalString(bool transformCR = true);
 
 };
 
@@ -490,6 +564,15 @@ public:
 	 * err() or eos() to determine whether an exception occurred.
 	 */
 	virtual String readLine();
+
+	/**
+	 * Print a hexdump of the stream while maintaing position. The number
+	 * of bytes per line is customizable.
+	 * @param len	the length of that data
+	 * @param bytesPerLine	number of bytes to print per line (default: 16)
+	 * @param startOffset	shift the shown offsets by the starting offset (default: 0)
+	 */
+	void hexdump(int len, int bytesPerLine = 16, int startOffset = 0);
 };
 
 /**

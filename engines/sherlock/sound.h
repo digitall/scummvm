@@ -25,11 +25,8 @@
 
 #include "common/scummsys.h"
 #include "common/str.h"
-#include "audio/audiostream.h"
 #include "audio/mixer.h"
 #include "access/files.h"
-#include "audio/midiplayer.h"
-#include "audio/midiparser.h"
 
 namespace Sherlock {
 
@@ -46,6 +43,7 @@ private:
 	SherlockEngine *_vm;
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _scalpelEffectsHandle;
+	Audio::SoundHandle _aiffHandle;
 	Audio::SoundHandle _tattooEffectsHandle[MAX_MIXER_CHANNELS];
 	Audio::SoundHandle _speechHandle;
 	int _curPriority;
@@ -60,6 +58,11 @@ private:
 	 */
 	bool playSoundResource(const Common::String &name, const Common::String &libFilename,
 		Audio::Mixer::SoundType soundType, Audio::SoundHandle &handle);
+
+	/**
+	 * Form a filename from a passed sound resource name
+	 */
+	Common::String formFilename(const Common::String &name);
 public:
 	bool _digitized;
 	int _voices;
@@ -82,22 +85,32 @@ public:
 	 * Load a sound
 	 */
 	void loadSound(const Common::String &name, int priority);
-	
+
 	/**
 	 * Play the sound in the specified resource
 	 */
 	bool playSound(const Common::String &name, WaitType waitType, int priority = 100, const char *libraryFilename = nullptr);
-	
+
+	/**
+	 * Play the specified AIFF file. (Used for the 3DO Scalpel intro.)
+	 */
+	void playAiff(const Common::String &name, int volume = Audio::Mixer::kMaxChannelVolume, bool loop = false);
+
+	/**
+	 * Stop the AIFF sound that was started with playAiff().
+	 */
+	void stopAiff();
+
 	/**
 	 * Play a previously loaded sound
 	 */
 	void playLoadedSound(int bufNum, WaitType waitType);
-	
+
 	/**
 	 * Free any previously loaded sounds
 	 */
 	void freeLoadedSounds();
-	
+
 	/**
 	 * Stop playing any active sound
 	 */
@@ -105,8 +118,14 @@ public:
 
 	void freeDigiSound();
 
-	Audio::SoundHandle getFreeSoundHandle();
+	/**
+	 * Return a sound handle to use
+	 */
+	Audio::SoundHandle &getFreeSoundHandle();
 
+	/**
+	 * Set the volume
+	 */
 	void setVolume(int volume);
 
 	/**

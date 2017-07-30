@@ -267,8 +267,10 @@ void QuickTimeDecoder::VideoSampleDesc::initCodec() {
 	_videoCodec = Image::createQuickTimeCodec(_codecTag, _parentTrack->width, _parentTrack->height, _bitsPerSample & 0x1f);
 }
 
-QuickTimeDecoder::AudioTrackHandler::AudioTrackHandler(QuickTimeDecoder *decoder, QuickTimeAudioTrack *audioTrack)
-		: _decoder(decoder), _audioTrack(audioTrack) {
+QuickTimeDecoder::AudioTrackHandler::AudioTrackHandler(QuickTimeDecoder *decoder, QuickTimeAudioTrack *audioTrack) :
+		SeekableAudioTrack(decoder->getSoundType()),
+		_decoder(decoder),
+		_audioTrack(audioTrack) {
 }
 
 void QuickTimeDecoder::AudioTrackHandler::updateBuffer() {
@@ -447,7 +449,9 @@ const Graphics::Surface *QuickTimeDecoder::VideoTrackHandler::decodeNextFrame() 
 	}
 
 	// Update the edit list, if applicable
-	if (endOfCurEdit()) {
+	// FIXME: Add support for playing backwards videos with more than one edit
+	// For now, stay on the first edit for reversed playback
+	if (endOfCurEdit() && !_reversed) {
 		_curEdit++;
 
 		if (atLastEdit())
