@@ -24,6 +24,8 @@
 #define BOLT_UTIL_H
 
 #include "common/queue.h"
+#include "common/endian.h"
+#include "common/textconsole.h"
 
 namespace Bolt {
 
