@@ -35,7 +35,7 @@ namespace Bolt {
 BoltEngine::BoltEngine(OSystem *const syst, const ADGameDescription *const gd) :
 	Engine(syst)
 {
-	if (Common::String("merlin").compareTo(gd->gameid) == 0) {
+	if (Common::String("merlin").compareTo(gd->gameId) == 0) {
 		_game.reset(new MerlinGame);
 	} else {
 		assert(false && "BoltEngine does not support this game.");

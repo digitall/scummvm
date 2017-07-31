@@ -7,7 +7,7 @@ MODULE_OBJS := \
 	menu_card.o \
 	movie.o \
 	pf_file.o \
-	scene.o
+	scene.o \
 	boltlib/boltlib.o \
 	boltlib/palette.o \
 	labyrinth/labyrinth.o \
