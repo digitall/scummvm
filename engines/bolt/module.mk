@@ -21,7 +21,7 @@ MODULE_OBJS := \
 	merlin/sliding_puzzle.o \
 	merlin/synch_puzzle.o \
 	merlin/tangram_puzzle.o \
-	merlin/word_puzzle.o \
+	merlin/word_puzzle.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_BOLT), DYNAMIC_PLUGIN)
