@@ -127,6 +127,7 @@ namespace {
 const OSystem::GraphicsMode glGraphicsModes[] = {
 	{ "opengl_linear",  _s("OpenGL"),                GFX_LINEAR  },
 	{ "opengl_nearest", _s("OpenGL (No filtering)"), GFX_NEAREST },
+	{ "opengl_xbrz",    _s("OpenGL + xBRZ scaler"),  GFX_XBRZ },
 	{ nullptr, nullptr, 0 }
 };
 
@@ -137,7 +138,7 @@ const OSystem::GraphicsMode *OpenGLGraphicsManager::getSupportedGraphicsModes() 
 }
 
 int OpenGLGraphicsManager::getDefaultGraphicsMode() const {
-	return GFX_LINEAR;
+	return GFX_XBRZ;
 }
 
 bool OpenGLGraphicsManager::setGraphicsMode(int mode) {
@@ -146,14 +147,15 @@ bool OpenGLGraphicsManager::setGraphicsMode(int mode) {
 	switch (mode) {
 	case GFX_LINEAR:
 	case GFX_NEAREST:
+	case GFX_XBRZ:
 		_currentState.graphicsMode = mode;
 
 		if (_gameScreen) {
-			_gameScreen->enableLinearFiltering(mode == GFX_LINEAR);
+			_gameScreen->enableLinearFiltering(mode == GFX_LINEAR || mode == GFX_XBRZ);
 		}
 
 		if (_cursor) {
-			_cursor->enableLinearFiltering(mode == GFX_LINEAR);
+			_cursor->enableLinearFiltering(mode == GFX_LINEAR || mode == GFX_XBRZ);
 		}
 
 		return true;
@@ -286,7 +288,7 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 		}
 
 		_gameScreen->allocate(_currentState.gameWidth, _currentState.gameHeight);
-		_gameScreen->enableLinearFiltering(_currentState.graphicsMode == GFX_LINEAR);
+		_gameScreen->enableLinearFiltering(_currentState.graphicsMode == GFX_LINEAR || _currentState.graphicsMode == GFX_XBRZ);
 		// We fill the screen to all black or index 0 for CLUT8.
 #ifdef USE_RGB_COLOR
 		if (_currentState.gameFormat.bytesPerPixel == 1) {
@@ -660,7 +662,7 @@ void OpenGLGraphicsManager::setMouseCursor(const void *buf, uint w, uint h, int 
 		}
 		_cursor = createSurface(textureFormat, true);
 		assert(_cursor);
-		_cursor->enableLinearFiltering(_currentState.graphicsMode == GFX_LINEAR);
+		_cursor->enableLinearFiltering(_currentState.graphicsMode == GFX_LINEAR || _currentState.graphicsMode == GFX_XBRZ);
 	}
 
 	_cursorKeyColor = keycolor;
@@ -1080,18 +1082,23 @@ void OpenGLGraphicsManager::setMousePosition(int x, int y) {
 Surface *OpenGLGraphicsManager::createSurface(const Graphics::PixelFormat &format, bool wantAlpha) {
 	GLenum glIntFormat, glFormat, glType;
 	if (format.bytesPerPixel == 1) {
+
+	//-------------- xBRZ support --------------------
+		/*
 #if !USE_FORCED_GLES
 		if (TextureCLUT8GPU::isSupportedByContext()) {
 			return new TextureCLUT8GPU();
 		}
 #endif
+		*/
+	//-------------- /xBRZ support --------------------
 
 		const Graphics::PixelFormat &virtFormat = wantAlpha ? _defaultFormatAlpha : _defaultFormat;
 		const bool supported = getGLPixelFormat(virtFormat, glIntFormat, glFormat, glType);
 		if (!supported) {
 			return nullptr;
 		} else {
-			return new TextureCLUT8(glIntFormat, glFormat, glType, virtFormat);
+			return new TextureCLUT8(glIntFormat, glFormat, glType, virtFormat, _currentState.graphicsMode == GFX_XBRZ);
 		}
 #if !USE_FORCED_GL
 	} else if (isGLESContext() && format == Graphics::PixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0)) {

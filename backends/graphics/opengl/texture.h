@@ -272,8 +272,14 @@ public:
 
 	virtual void allocate(uint width, uint height);
 
-	virtual uint getWidth() const { return _userPixelData.w; }
-	virtual uint getHeight() const { return _userPixelData.h; }
+	//virtual uint getWidth() const { return _userPixelData.w; }
+	//virtual uint getHeight() const { return _userPixelData.h; }
+
+	virtual uint getWidth () const { return getSurface()->w; }
+	virtual uint getHeight() const { return getSurface()->h; }
+
+	virtual bool xbrzScalingIsActive() const { return false; }
+	virtual int getXbrzScalingFactor() const { return 0; }
 
 	/**
 	 * @return The logical format of the texture data.
@@ -297,7 +303,7 @@ private:
 
 class TextureCLUT8 : public Texture {
 public:
-	TextureCLUT8(GLenum glIntFormat, GLenum glFormat, GLenum glType, const Graphics::PixelFormat &format);
+	TextureCLUT8(GLenum glIntFormat, GLenum glFormat, GLenum glType, const Graphics::PixelFormat& format, bool enableXbrzScaling);
 	virtual ~TextureCLUT8();
 
 	virtual void allocate(uint width, uint height);
@@ -314,6 +320,15 @@ public:
 
 	virtual void updateGLTexture();
 private:
+	bool xbrzScalingIsActive() const override { return xbrzScalingActive_; };
+	int getXbrzScalingFactor() const override { assert(xbrzScaleFactor_ > 0); return xbrzScaleFactor_; };
+
+	// compiler errors: std::vector obviously too "new" for ScummVM!
+	struct XbrzImpl;
+	XbrzImpl* const xbrzPimpl_;
+	const bool xbrzScalingActive_;
+	int xbrzScaleFactor_ = -1; // later linear-scaled to fit screen with openGL
+
 	Graphics::Surface _clut8Data;
 	byte *_palette;
 };
