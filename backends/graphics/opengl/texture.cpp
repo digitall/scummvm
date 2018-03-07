@@ -21,9 +21,10 @@
  */
 
 #include <vector>
-#include <ppl.h>
-#include "../../../../xBRZ/src/xbrz.h"
-#include "../../../../xBRZ/src/xbrz_tools.h"
+// FIXME: Microsoft Parallel Patterns Library is non-portable
+// #include <ppl.h>
+#include "xBRZ/xbrz.h"
+#include "xBRZ/xbrz_tools.h"
 const int TASK_GRANULARITY = 16; // granularity 1 has noticeable overhead for xBRZ
 
 #include "backends/graphics/opengl/texture.h"

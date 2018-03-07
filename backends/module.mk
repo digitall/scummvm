@@ -121,7 +121,8 @@ MODULE_OBJS += \
 	graphics/opengl/pipelines/clut8.o \
 	graphics/opengl/pipelines/fixed.o \
 	graphics/opengl/pipelines/pipeline.o \
-	graphics/opengl/pipelines/shader.o
+	graphics/opengl/pipelines/shader.o \
+	graphics/opengl/xBRZ/xbrz.o
 endif
 
 # SDL specific source files.
