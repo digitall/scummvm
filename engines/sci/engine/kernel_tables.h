@@ -863,6 +863,8 @@ static SciKernelMapEntry s_kernelMap[] = {
 	{ MAP_DUMMY(Record),          SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
 	{ MAP_DUMMY(PlayBack),        SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
 	{ MAP_DUMMY(DbugStr),         SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
+	// Used in Kawa's SCI16+
+	{ MAP_CALL(KawaHacks),        SIG_SCI16, SIGFOR_ALL,    "(.*)",                  NULL,            NULL },
 
 	// =======================================================================================================
 
@@ -1182,6 +1184,8 @@ static const char *const s_defaultKernelNames[] = {
 	/*0x86*/ "SetVideoMode",
 	/*0x87*/ "SetQuitStr",
 	/*0x88*/ "DbugStr"          // for debugging
+	/*0x89*/ "",
+	/*0x8a*/ "",
 };
 
 #ifdef ENABLE_SCI32
