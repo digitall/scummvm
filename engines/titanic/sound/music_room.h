@@ -24,29 +24,18 @@
 #define TITANIC_MUSIC_ROOM_H
 
 #include "common/array.h"
-#include "titanic/sound/music_handler.h"
+#include "titanic/sound/music_room_handler.h"
 
 namespace Titanic {
 
 class CGameManager;
 class CSound;
 
-enum MusicControlArea { BELLS = 0, SNAKE = 1, PIANO = 2, BASS = 3 };
-
 class CMusicRoom {
-	struct Entry {
-		uint _val1;
-		uint _val2;
-		uint _val3;
-		uint _val4;
-		uint _val5;
-
-		Entry() : _val1(0), _val2(0), _val3(0), _val4(0), _val5(0) {}
-	};
 private:
-	Common::Array<Entry> _items;
+	MusicRoomInstrument _instruments[4];
 public:
-	static CMusicHandler *_musicHandler;
+	static CMusicRoomHandler *_musicHandler;
 public:
 	CGameManager *_gameManager;
 	CSound *_sound;
@@ -57,23 +46,52 @@ public:
 	/**
 	 * Creates a music handler
 	 */
-	CMusicHandler *createMusicHandler();
+	CMusicRoomHandler *createMusicHandler();
 
 	/**
 	 * Destroys and currently active music handler
 	 */
 	void destroyMusicHandler();
 
-	void setItem1(MusicControlArea index, int val) { _items[index]._val1 = val; }
-	void setItem2(MusicControlArea index, int val) { _items[index]._val2 = val; }
-	void setItem3(MusicControlArea index, int val) { _items[index]._val3 = val; }
-	void setItem4(MusicControlArea index, int val) { _items[index]._val4 = val; }
-	void setItem5(MusicControlArea index, int val) { _items[index]._val5 = val; }
+	/**
+	 * Sets the speed control for a given instrument
+	 */
+	void setSpeedControl(MusicInstrument instrument, int val) {
+		_instruments[instrument]._speedControl = val;
+	}
 
 	/**
-	 * Start playing a given music number
+	 * Sets the pitch control for a given instrument
 	 */
-	void startMusic(int musicId);
+	void setPitchControl(MusicInstrument instrument, int val) {
+		_instruments[instrument]._pitchControl = val;
+	}
+
+	/**
+	 * Sets the direction control for a given instrument
+	 */
+	void setDirectionControl(MusicInstrument instrument, bool val) {
+		_instruments[instrument]._directionControl = val;
+	}
+
+	/**
+	 * Sets the inversion control for a given instrument
+	 */
+	void setInversionControl(MusicInstrument instrument, bool val) {
+		_instruments[instrument]._inversionControl = val;
+	}
+
+	/**
+	 * Sets the mute control for a given instrument
+	 */
+	void setMuteControl(MusicInstrument instrument, bool val) {
+		_instruments[instrument]._muteControl = val;
+	}
+
+	/**
+	 * Sets up the music controls
+	 */
+	void setupMusic(int volume);
 
 	/**
 	 * Stop playing music

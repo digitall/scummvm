@@ -64,6 +64,7 @@ public:
 	static CScreenManager *setCurrent();
 public:
 	Common::Array<VideoSurfaceEntry> _backSurfaces;
+	Rect _frontSurfaceBounds;
 	CVideoSurface *_frontRenderSurface;
 	CMouseCursor *_mouseCursor;
 	CTextCursor *_textCursor;
@@ -78,7 +79,7 @@ public:
 
 	virtual void setWindowHandle(int v);
 	virtual bool resetWindowHandle(int v);
-	
+
 	/**
 	 * Sets the video mode
 	 */
@@ -88,17 +89,17 @@ public:
 	 * Handles drawing the cursors
 	 */
 	virtual void drawCursors() = 0;
-	
+
 	/**
 	 * Locks a specified surface number for access and returns a pointer to it
 	 */
 	virtual CVideoSurface *lockSurface(SurfaceNum surfaceNum) = 0;
-	
+
 	/**
 	 * Unlocks a previously locked surface
 	 */
 	virtual void unlockSurface(CVideoSurface *surface) = 0;
-	
+
 	/**
 	 * Gets a specified surface number
 	 */
@@ -108,7 +109,7 @@ public:
 	 * Return the front render surface
 	 */
 	virtual CVideoSurface *getFrontRenderSurface() const = 0;
-	
+
 	/**
 	 * Fill an area with a specific color
 	 */
@@ -140,13 +141,13 @@ public:
 	/**
 	 * Write a string
 	 * @param surfaceNum	Destination surface
-	 * @param srcRect		Drawing area
-	 * @param destRect		Bounds of dest surface
+	 * @param destPos		Position to start writing text at
+	 * @param clipRect		Clipping area to constrain text to
 	 * @param str			Line or lines to write
-	 * @param textCursor	Optional text cursor pointer
+	 * @param maxWidth		Maximum allowed line width
 	 */
-	virtual int writeString(int surfaceNum, const Rect &srcRect,
-		const Rect &destRect, const CString &str, CTextCursor *textCursor) = 0;
+	virtual void writeString(int surfaceNum, const Point &destPos,
+		const Rect &clipRect, const CString &str, int maxWidth) = 0;
 
 	/**
 	 * Set the font color
@@ -185,13 +186,13 @@ public:
 	/**
 	 * Resize the passed surface
 	 */
-	virtual void resizeSurface(CVideoSurface *surface, int width, int height) = 0;
+	virtual void resizeSurface(CVideoSurface *surface, int width, int height, int bpp = 16) = 0;
 
 	/**
 	 * Creates a surface of a given size
 	 */
-	virtual CVideoSurface *createSurface(int w, int h) = 0;
-	
+	virtual CVideoSurface *createSurface(int w, int h, int bpp = 16) = 0;
+
 	/**
 	 * Creates a surface from a specified resource
 	 */
@@ -213,7 +214,7 @@ public:
 	 * Show the mouse cursor
 	 */
 	virtual void showCursor() = 0;
-	
+
 	/**
 	 * Hide the mouse cursor
 	 */
@@ -228,6 +229,11 @@ public:
 	 * Set the current font number
 	 */
 	int setFontNumber(int fontNumber);
+
+	/**
+	 * Called when a game is about to be loaded
+	 */
+	void preLoad();
 };
 
 class OSScreenManager: CScreenManager {
@@ -272,12 +278,12 @@ public:
 	 * Locks a specified surface number for access and returns a pointer to it
 	 */
 	virtual CVideoSurface *lockSurface(SurfaceNum surfaceNum);
-	
+
 	/**
 	 * Unlocks a previously locked surface
 	 */
 	virtual void unlockSurface(CVideoSurface *surface);
-	
+
 	/**
 	 * Gets a specified surface number
 	 */
@@ -322,13 +328,13 @@ public:
 	/**
 	 * Write a string
 	 * @param surfaceNum	Destination surface
-	 * @param srcRect		Drawing area
-	 * @param destRect		Bounds of dest surface
+	 * @param destPos		Position to start writing text at
+	 * @param clipRect		Clipping area to constrain text to
 	 * @param str			Line or lines to write
-	 * @param textCursor	Optional text cursor pointer
+	 * @param lineWidth		Width in pixels of the string, if known.
 	 */
-	virtual int writeString(int surfaceNum, const Rect &srcRect,
-		const Rect &destRect, const CString &str, CTextCursor *textCursor);
+	virtual void writeString(int surfaceNum, const Point &destPos,
+		const Rect &clipRect, const CString &str, int lineWidth = 0);
 
 	/**
 	 * Set the font color
@@ -367,13 +373,13 @@ public:
 	/**
 	 * Resize the passed surface
 	 */
-	virtual void resizeSurface(CVideoSurface *surface, int width, int height);
+	virtual void resizeSurface(CVideoSurface *surface, int width, int height, int bpp = 16);
 
 	/**
 	 * Creates a surface of a given size
 	 */
-	virtual CVideoSurface *createSurface(int w, int h);
-	
+	virtual CVideoSurface *createSurface(int w, int h, int bpp = 16);
+
 	/**
 	 * Creates a surface from a specified resource
 	 */
@@ -383,7 +389,7 @@ public:
 	 * Show the mouse cursor
 	 */
 	virtual void showCursor();
-	
+
 	/**
 	 * Hide the mouse cursor
 	 */

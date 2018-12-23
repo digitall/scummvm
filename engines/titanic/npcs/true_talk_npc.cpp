@@ -22,8 +22,9 @@
 
 #include "titanic/npcs/true_talk_npc.h"
 #include "titanic/core/view_item.h"
-#include "titanic/pet_control/pet_control.h"
+#include "titanic/debugger.h"
 #include "titanic/game_manager.h"
+#include "titanic/pet_control/pet_control.h"
 
 namespace Titanic {
 
@@ -40,8 +41,8 @@ BEGIN_MESSAGE_MAP(CTrueTalkNPC, CCharacter)
 END_MESSAGE_MAP()
 
 CTrueTalkNPC::CTrueTalkNPC() : _assetName("z451.dlg"),
-	_assetNumber(0x11170), _fieldE4(0), _npcFlags(0), _soundId(0), _fieldF0(0),
-	_fieldF4(0), _fieldF8(0), _speechTimerId(0), _field100(0), _field104(0) {
+	_assetNumber(0x11170), _fieldE4(0), _npcFlags(0), _speechDuration(0), _startTicks(0),
+	_fieldF4(0), _fieldF8(0), _speechTimerId(0), _speechCounter(0), _field104(0) {
 }
 
 void CTrueTalkNPC::save(SimpleFile *file, int indent) {
@@ -50,12 +51,12 @@ void CTrueTalkNPC::save(SimpleFile *file, int indent) {
 	file->writeQuotedLine(_assetName, indent);
 	file->writeNumberLine(_fieldE4, indent);
 	file->writeNumberLine(_npcFlags, indent);
-	file->writeNumberLine(_soundId, indent);
-	file->writeNumberLine(_fieldF0, indent);
+	file->writeNumberLine(_speechDuration, indent);
+	file->writeNumberLine(_startTicks, indent);
 	file->writeNumberLine(_fieldF4, indent);
 	file->writeNumberLine(_fieldF8, indent);
 	file->writeNumberLine(_speechTimerId, indent);
-	file->writeNumberLine(_field100, indent);
+	file->writeNumberLine(_speechCounter, indent);
 	file->writeNumberLine(_field104, indent);
 
 	CCharacter::save(file, indent);
@@ -67,12 +68,12 @@ void CTrueTalkNPC::load(SimpleFile *file) {
 	_assetName = file->readString();
 	_fieldE4 = file->readNumber();
 	_npcFlags = file->readNumber();
-	_soundId = file->readNumber();
-	_fieldF0 = file->readNumber();
+	_speechDuration = file->readNumber();
+	_startTicks = file->readNumber();
 	_fieldF4 = file->readNumber();
 	_fieldF8 = file->readNumber();
 	_speechTimerId = file->readNumber();
-	_field100 = file->readNumber();
+	_speechCounter = file->readNumber();
 	_field104 = file->readNumber();
 
 	CCharacter::load(file);
@@ -95,25 +96,30 @@ bool CTrueTalkNPC::DismissBotMsg(CDismissBotMsg *msg) {
 }
 
 bool CTrueTalkNPC::TrueTalkNotifySpeechStartedMsg(CTrueTalkNotifySpeechStartedMsg *msg) {
+	debugC(DEBUG_DETAILED, kDebugScripts, "%s TrueTalkNotifySpeechStartedMsg flags=%x dialogueId=%d",
+		getName().c_str(), _npcFlags, msg->_dialogueId);
+
 	_npcFlags |= NPCFLAG_SPEAKING;
-	++_field100;
+	++_speechCounter;
 
-	if (!(_npcFlags & NPCFLAG_8)) {
+	if (!(_npcFlags & NPCFLAG_DOORBOT_IN_HOME)) {
+		// Stop any previous animation
 		if (_speechTimerId)
-			stopTimer(_speechTimerId);
+			stopAnimTimer(_speechTimerId);
+		_speechTimerId = 0;
 
-		_soundId = msg->_soundId;
-		_fieldF0 = getTicksCount();
+		_speechDuration = msg->_speechDuration;
+		_startTicks = getTicksCount();
 
-		if (hasActiveMovie() || (_npcFlags & NPCFLAG_2)) {
-			_npcFlags &= ~NPCFLAG_2;
+		if (!hasActiveMovie() || (_npcFlags & NPCFLAG_IDLING)) {
+			_npcFlags &= ~NPCFLAG_IDLING;
 			stopMovie();
 
-			CNPCPlayTalkingAnimationMsg msg1(_soundId, 0, 0);
+			CNPCPlayTalkingAnimationMsg msg1(_speechDuration, 0, nullptr);
 			msg1.execute(this);
 
 			if (msg1._names) {
-				CNPCPlayAnimationMsg msg2(msg1._names, msg1._value1);
+				CNPCPlayAnimationMsg msg2(msg1._names, msg1._speechDuration);
 				msg2.execute(this);
 			}
 		}
@@ -123,12 +129,17 @@ bool CTrueTalkNPC::TrueTalkNotifySpeechStartedMsg(CTrueTalkNotifySpeechStartedMs
 }
 
 bool CTrueTalkNPC::TrueTalkNotifySpeechEndedMsg(CTrueTalkNotifySpeechEndedMsg *msg) {
-	_npcFlags &= ~NPCFLAG_SPEAKING;
-	--_field100;
-	_soundId = 0;
+	debugC(DEBUG_DETAILED, kDebugScripts, "%s TrueTalkNotifySpeechEndedMsg flags=%x dialogueId=%d", getName().c_str(), _npcFlags, msg->_dialogueId);
 
-	if (!(_npcFlags & NPCFLAG_8)) {
-		CNPCPlayTalkingAnimationMsg msg1(0, 2, 0);
+	if (!getGameManager())
+		return false;
+
+	_npcFlags &= ~NPCFLAG_SPEAKING;
+	--_speechCounter;
+	_speechDuration = 0;
+
+	if (!(_npcFlags & NPCFLAG_DOORBOT_IN_HOME)) {
+		CNPCPlayTalkingAnimationMsg msg1(0, 2, nullptr);
 		msg1.execute(this);
 		CNPCQueueIdleAnimMsg msg2;
 		msg2.execute(this);
@@ -138,8 +149,8 @@ bool CTrueTalkNPC::TrueTalkNotifySpeechEndedMsg(CTrueTalkNotifySpeechEndedMsg *m
 }
 
 bool CTrueTalkNPC::MovieEndMsg(CMovieEndMsg *msg) {
-	if (_npcFlags & NPCFLAG_2) {
-		_npcFlags &= ~NPCFLAG_2;
+	if (_npcFlags & NPCFLAG_IDLING) {
+		_npcFlags &= ~NPCFLAG_IDLING;
 		CNPCQueueIdleAnimMsg idleMsg;
 		idleMsg.execute(this);
 		return true;
@@ -147,13 +158,13 @@ bool CTrueTalkNPC::MovieEndMsg(CMovieEndMsg *msg) {
 		return false;
 	}
 
-	int diff = getTicksCount() - _fieldF0;
-	int ticks = MAX((int)_soundId - diff, 0);
-	CNPCPlayTalkingAnimationMsg msg1(ticks, ticks > 1000 ? 2 : 1, 0);
+	int diff = getTicksCount() - _startTicks;
+	int ticks = MAX((int)_speechDuration - diff, 0);
+	CNPCPlayTalkingAnimationMsg msg1(ticks, ticks > 1000 ? 1 : 2, 0);
 	msg1.execute(this);
 
 	if (msg1._names) {
-		CNPCPlayAnimationMsg msg2(msg1._names, msg1._value1);
+		CNPCPlayAnimationMsg msg2(msg1._names, ticks);
 		msg2.execute(this);
 	}
 
@@ -168,8 +179,8 @@ bool CTrueTalkNPC::NPCQueueIdleAnimMsg(CNPCQueueIdleAnimMsg *msg) {
 }
 
 bool CTrueTalkNPC::TimerMsg(CTimerMsg *msg) {
-	if (_npcFlags & NPCFLAG_4) {
-		if (_field100 > 0)
+	if (_npcFlags & NPCFLAG_START_IDLING) {
+		if (_speechCounter > 0)
 			return false;
 
 		CNPCPlayIdleAnimationMsg idleMsg;
@@ -179,7 +190,7 @@ bool CTrueTalkNPC::TimerMsg(CTimerMsg *msg) {
 				animMsg.execute(this);
 			}
 
-			_npcFlags &= ~NPCFLAG_2;
+			_npcFlags |= NPCFLAG_IDLING;
 		}
 	}
 
@@ -188,7 +199,34 @@ bool CTrueTalkNPC::TimerMsg(CTimerMsg *msg) {
 }
 
 bool CTrueTalkNPC::NPCPlayAnimationMsg(CNPCPlayAnimationMsg *msg) {
-	warning("CTrueTalkNPC::NPCPlayAnimationMsg");
+//	const char *const *nameP = msg->_names;
+	int count;
+	for (count = 0; msg->_names[count]; ++count)
+		;
+
+	if (msg->_maxDuration) {
+		// Randomly pick a clip that's less than the allowed maximum
+		int tries = 10, index;
+		do {
+			index = getRandomNumber(count - 1);
+		} while (getClipDuration(msg->_names[index]) > msg->_maxDuration && --tries);
+
+		if (!tries) {
+			// Sequentially go through the clips to find any below the maximum
+			index = 0;
+			for (int idx = 0; idx < count; ++idx) {
+				if (getClipDuration(msg->_names[idx]) < msg->_maxDuration) {
+					index = idx;
+					break;
+				}
+			}
+		}
+
+		playClip(msg->_names[index], MOVIE_NOTIFY_OBJECT);
+	} else {
+		playClip(msg->_names[getRandomNumber(count - 1)], MOVIE_NOTIFY_OBJECT);
+	}
+
 	return true;
 }
 

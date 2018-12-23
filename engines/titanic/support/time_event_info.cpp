@@ -90,7 +90,7 @@ void CTimeEventInfoList::setPersisent(uint id, bool flag) {
 
 uint CTimeEventInfo::_nextId;
 
-CTimeEventInfo::CTimeEventInfo() : ListItem(), _lockCounter(0), 
+CTimeEventInfo::CTimeEventInfo() : ListItem(), _lockCounter(0),
 		_repeated(false), _firstDuration(0), _repeatDuration(0),
 		_target(nullptr), _actionVal(0), _timerCtr(0), _done(false),
 		_lastTimerTicks(0), _relativeTicks(0), _persisent(true) {
@@ -100,8 +100,8 @@ CTimeEventInfo::CTimeEventInfo() : ListItem(), _lockCounter(0),
 CTimeEventInfo::CTimeEventInfo(uint ticks, bool repeated, uint firstDuration,
 		uint repeatDuration, CTreeItem *target, int endVal, const CString &action) :
 		ListItem(), _lockCounter(0), _repeated(repeated), _firstDuration(firstDuration),
-		_repeatDuration(repeatDuration), _target(target), _actionVal(endVal), _done(false),
-		_timerCtr(0), _lastTimerTicks(ticks), _relativeTicks(0), _persisent(true) {
+		_repeatDuration(repeatDuration), _target(target), _actionVal(endVal), _action(action),
+		_done(false), _timerCtr(0), _lastTimerTicks(ticks), _relativeTicks(0), _persisent(true) {
 	_id = _nextId++;
 }
 
@@ -147,7 +147,7 @@ void CTimeEventInfo::load(SimpleFile *file) {
 void CTimeEventInfo::postLoad(uint ticks, CProjectItem *project) {
 	if (!_persisent || _targetName.empty())
 		_done = true;
-	
+
 	// Get the timer's target
 	if (project)
 		_target = project->findByName(_targetName);

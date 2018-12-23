@@ -107,11 +107,11 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Hopkins Engine";
+		return "Hopkins FBI";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Hopkins FBI (C)1997-2003 MP Entertainment";
+		return "Hopkins FBI (C) 1997-2003 MP Entertainment";
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;
@@ -128,7 +128,8 @@ bool HopkinsMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSupportsLoadingDuringStartup) ||
 		(f == kSupportsDeleteSave) ||
 		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail);
+		(f == kSavesSupportThumbnail) ||
+		(f == kSimpleSavesNames);
 }
 
 bool Hopkins::HopkinsEngine::hasFeature(EngineFeature f) const {
@@ -167,9 +168,6 @@ SaveStateList HopkinsMetaEngine::listSaves(const char *target) const {
 			if (in) {
 				if (Hopkins::SaveLoadManager::readSavegameHeader(in, header)) {
 					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
-
-					header._thumbnail->free();
-					delete header._thumbnail;
 				}
 
 				delete in;
@@ -197,7 +195,11 @@ SaveStateDescriptor HopkinsMetaEngine::querySaveMetaInfos(const char *target, in
 
 	if (f) {
 		Hopkins::hopkinsSavegameHeader header;
-		Hopkins::SaveLoadManager::readSavegameHeader(f, header);
+		if (!Hopkins::SaveLoadManager::readSavegameHeader(f, header, false)) {
+			delete f;
+			return SaveStateDescriptor();
+		}
+
 		delete f;
 
 		// Create the return descriptor

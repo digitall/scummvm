@@ -34,7 +34,7 @@
 #include "titanic/core/room_item.h"
 #include "titanic/pet_control/pet_control.h"
 #include "titanic/game_manager.h"
-#include "titanic/game/placeholder/place_holder_item.h"
+#include "titanic/game/placeholder/place_holder.h"
 
 namespace Titanic {
 
@@ -51,7 +51,7 @@ void CTreeItem::dump(int indent) {
 	CTreeItem *item = getFirstChild();
 	while (item) {
 		item->dump(indent + 1);
-		
+
 		item = item->getNextSibling();
 	}
 }
@@ -96,7 +96,7 @@ bool CTreeItem::isLinkItem() const {
 }
 
 bool CTreeItem::isPlaceHolderItem() const {
-	return isInstanceOf(CPlaceHolderItem::_type);
+	return isInstanceOf(CPlaceHolder::_type);
 }
 
 bool CTreeItem::isNamedItem() const {
@@ -274,7 +274,7 @@ CNamedItem *CTreeItem::findByName(const CString &name, bool subMatch) {
 		itemName.toLowercase();
 
 		if (subMatch) {
-			if (itemName.left(name.size()).compareTo(nameLower))
+			if (!itemName.left(nameLower.size()).compareTo(nameLower))
 				return dynamic_cast<CNamedItem *>(treeItem);
 		} else {
 			if (!itemName.compareTo(nameLower))

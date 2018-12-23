@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -51,10 +51,16 @@
 
 namespace Prince {
 
-struct PrinceGameDescription;
+enum PrinceGameType {
+	kPrinceDataUNK,
+	kPrinceDataDE,
+	kPrinceDataPL
+};
+
 struct SavegameHeader;
 
 class PrinceEngine;
+struct PrinceGameDescription;
 class GraphicsMan;
 class Script;
 class Interpreter;
@@ -69,6 +75,24 @@ class Hero;
 class Animation;
 class Room;
 class Pscr;
+
+enum {
+	GF_TRANSLATED = 1 << 0,
+	GF_EXTRACTED  = 1 << 1,
+	GF_NOVOICES   = 1 << 2
+};
+
+struct SavegameHeader {
+	uint8 version;
+	Common::String saveName;
+	Graphics::Surface *thumbnail;
+	int16 saveYear, saveMonth, saveDay;
+	int16 saveHour, saveMinutes;
+	uint32 playTime;
+};
+
+#define kSavegameStrSize 14
+#define kSavegameStr "SCUMMVM_PRINCE"
 
 struct Text {
 	const char *_str;
@@ -160,7 +184,7 @@ struct Anim {
 		case kAnimX:
 			return _x;
 		default:
-			error("getAnimData() - Wrong offset type: %d", (int) offset);
+			error("getAnimData() - Wrong offset type: %d", (int)offset);
 		}
 	}
 
@@ -168,7 +192,7 @@ struct Anim {
 		if (offset == kAnimX) {
 			_x = value;
 		} else {
-			error("setAnimData() - Wrong offset: %d, value: %d", (int) offset, value);
+			error("setAnimData() - Wrong offset: %d, value: %d", (int)offset, value);
 		}
 	}
 };
@@ -255,6 +279,8 @@ public:
 	PrinceEngine(OSystem *syst, const PrinceGameDescription *gameDesc);
 	virtual ~PrinceEngine();
 
+	bool scummVMSaveLoadDialog(bool isSave);
+
 	virtual bool hasFeature(EngineFeature f) const;
 	virtual void pauseEngineIntern(bool pause);
 	virtual bool canSaveGameStateCurrently();
@@ -264,7 +290,7 @@ public:
 
 	void playVideo(Common::String videoFilename);
 
-	static bool readSavegameHeader(Common::InSaveFile *in, SavegameHeader &header);
+	WARN_UNUSED_RESULT static bool readSavegameHeader(Common::InSaveFile *in, SavegameHeader &header, bool skipThumbnail = true);
 	Common::String generateSaveName(int slot);
 	void writeSavegameHeader(Common::OutSaveFile *out, SavegameHeader &header);
 	void syncGame(Common::SeekableReadStream *readStream, Common::WriteStream *writeStream);

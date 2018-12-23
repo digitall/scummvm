@@ -29,15 +29,21 @@
 namespace Titanic {
 
 class CPhonograph : public CMusicPlayer {
+	DECLARE_MESSAGE_MAP;
+	bool PhonographPlayMsg(CPhonographPlayMsg *msg);
+	bool PhonographStopMsg(CPhonographStopMsg *msg);
+	bool PhonographRecordMsg(CPhonographRecordMsg *msg);
 	bool EnterRoomMsg(CEnterRoomMsg *msg);
+	bool LeaveRoomMsg(CLeaveRoomMsg *msg);
+	bool MusicHasStartedMsg(CMusicHasStartedMsg *msg);
 protected:
-	CString _string2;
-	int _fieldE0;
-	int _fieldE4;
-	int _fieldE8;
-	int _fieldEC;
-	int _fieldF0;
-	int _fieldF4;
+	CString _unused;
+	bool _isPlaying;
+	bool _isRecording;
+	bool _isDisabled;
+	int _playUnpressedFrame;
+	int _playPressedFrame;
+	int _unused5;
 public:
 	CLASSDEF;
 	CPhonograph();

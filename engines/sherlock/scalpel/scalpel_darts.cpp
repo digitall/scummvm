@@ -408,7 +408,7 @@ int Darts::doPowerBar(const Common::Point &pt, byte color, int goToPower, bool i
 
 		if (!(idx % 8))
 			events.wait(1);
-	
+
 		++idx;
 	} while (!done);
 
@@ -470,8 +470,8 @@ Common::Point Darts::getComputerDartDest(int playerNum) {
 			--aim;
 		} while (!done);
 
-		target.x = 75 + ((target.x - 75) * 20 / 27);
-		target.y = 75 + ((target.y - 75) * 2 / 3);
+		target.x = 75 + ((pt.x - 75) * 20 / 27);
+		target.y = 75 + ((pt.y - 75) * 2 / 3);
 	}
 
 	// Pick a level of accuracy. The higher the level, the more accurate their throw will be

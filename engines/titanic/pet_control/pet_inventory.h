@@ -26,7 +26,7 @@
 #include "titanic/support/simple_file.h"
 #include "titanic/pet_control/pet_section.h"
 #include "titanic/pet_control/pet_inventory_glyphs.h"
-#include "titanic/pet_control/pet_text.h"
+#include "titanic/gfx/text_control.h"
 
 namespace Titanic {
 
@@ -35,14 +35,12 @@ namespace Titanic {
  */
 class CPetInventory : public CPetSection {
 private:
-	CPetText _text;
+	CTextControl _text;
 	CPetInventoryGlyphs _items;
 	CGameObject *_itemBackgrounds[46];
-	CGameObject *_itemGlyphs[46];
 	CGameObject *_movie;
-	bool _field290;
-	int _field294;
-	int _field298;
+	bool _isLoading;
+	int _titaniaBitFlags;
 private:
 	/**
 	 * Handles initial setup
@@ -65,7 +63,7 @@ public:
 	 * Sets up the section
 	 */
 	virtual bool setup(CPetControl *petControl);
-	
+
 	/**
 	 * Sets up the section
 	 */
@@ -75,16 +73,21 @@ public:
 	 * Draw the section
 	 */
 	virtual void draw(CScreenManager *screenManager);
-	
+
 	/**
 	 * Get the bounds for the section
 	 */
 	virtual Rect getBounds() const;
-	
+
 	/**
 	 * Called when a general change occurs
 	 */
 	virtual void changed(int changeType);
+
+	/**
+	 * Called when a new room is entered
+	 */
+	virtual void enterRoom(CRoomItem *room);
 
 	/**
 	 * Following are handlers for the various messages that the PET can
@@ -95,6 +98,7 @@ public:
 	virtual bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
 	virtual bool MouseDoubleClickMsg(CMouseDoubleClickMsg *msg);
 	virtual bool VirtualKeyCharMsg(CVirtualKeyCharMsg *msg);
+	virtual bool MouseWheelMsg(CMouseWheelMsg *msg);
 
 	/**
 	 * Returns item a drag-drop operation has dropped on, if any
@@ -134,7 +138,7 @@ public:
 	/**
 	 * Get a reference to the tooltip text associated with the section
 	 */
-	virtual CPetText *getText() { return &_text; }
+	virtual CTextControl *getText() { return &_text; }
 
 	/**
 	 * Special retrieval of glyph background image
@@ -142,7 +146,7 @@ public:
 	virtual CGameObject *getBackground(int index) const;
 
 	/**
-	 * 
+	 *
 	 */
 	void change(CGameObject *item);
 
@@ -161,12 +165,16 @@ public:
 	 */
 	void highlightItem(CGameObject *item);
 
-	CGameObject *getImage(int index);
+	/**
+	 * Gets the object, if any, containing the transformation animation played 
+	 * when pieces of Titania are added to the inventory for the first time.
+	 */
+	CGameObject *getTransformAnimation(int index);
 
 	/**
 	 * Play the animated movie for an object
 	 */
-	void playMovie(CGameObject *movie, int flag);
+	void playMovie(CGameObject *movie, bool repeat = true);
 };
 
 } // End of namespace Titanic

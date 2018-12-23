@@ -36,6 +36,14 @@ public:
 
 	virtual bool displayLogFile();
 
+	virtual bool openUrl(const Common::String &url);
+
+	virtual void logMessage(LogMessageType::Type type, const char *message);
+
+	virtual Common::String getSystemLanguage() const;
+
+	virtual Common::String getScreenshotsPath();
+
 protected:
 	/**
 	 * The path of the currently open log file, if any.

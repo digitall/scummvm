@@ -22,6 +22,7 @@
 
 #include "titanic/moves/exit_pellerator.h"
 #include "titanic/game/transport/pellerator.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -61,18 +62,18 @@ void CExitPellerator::load(SimpleFile *file) {
 
 bool CExitPellerator::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 	CString name = getName();
-	
+
 	if (name == "ExitPellerator") {
 		if (_statics->_v2 != 2) {
 			switch (getRandomNumber(2)) {
 			case 0:
-				CPellerator::_soundHandle = queueSound("z#457.wav", CPellerator::_soundHandle);
+				CPellerator::_soundHandle = queueSound(TRANSLATE("z#457.wav", "z#194.wav"), CPellerator::_soundHandle);
 				break;
 			case 1:
-				CPellerator::_soundHandle = queueSound("z#458.wav", CPellerator::_soundHandle);
+				CPellerator::_soundHandle = queueSound(TRANSLATE("z#458.wav", "z#195.wav"), CPellerator::_soundHandle);
 				break;
 			default:
-				CPellerator::_soundHandle = queueSound("z#464.wav", CPellerator::_soundHandle);
+				CPellerator::_soundHandle = queueSound(TRANSLATE("z#464.wav", "z#201.wav"), CPellerator::_soundHandle);
 				break;
 			}
 		}
@@ -94,21 +95,21 @@ bool CExitPellerator::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 			changeView(_statics->_isWinter ? "FrozenArboretum.Node 4.S" : "Arboretum.Node 4.W");
 			break;
 		default:
-			petDisplayMessage(2, "Please exit from the other side.");
-			CPellerator::_soundHandle = queueSound("z#438.wav", CPellerator::_soundHandle);
+			petDisplayMessage(2, EXIT_FROM_OTHER_SIDE);
+			CPellerator::_soundHandle = queueSound(TRANSLATE("z#438.wav", "z#183.wav"), CPellerator::_soundHandle);
 
 		}
 	} else if (name == "ExitPellerator2") {
 		if (_statics->_v2 == 2) {
 			switch (getRandomNumber(2)) {
 			case 0:
-				CPellerator::_soundHandle = queueSound("z#457.wav", CPellerator::_soundHandle);
+				CPellerator::_soundHandle = queueSound(TRANSLATE("z#457.wav", "z#194.wav"), CPellerator::_soundHandle);
 				break;
 			case 1:
-				CPellerator::_soundHandle = queueSound("z#458.wav", CPellerator::_soundHandle);
+				CPellerator::_soundHandle = queueSound(TRANSLATE("z#458.wav", "z#195.wav"), CPellerator::_soundHandle);
 				break;
 			default:
-				CPellerator::_soundHandle = queueSound("z#464.wav", CPellerator::_soundHandle);
+				CPellerator::_soundHandle = queueSound(TRANSLATE("z#464.wav", "z#201.wav"), CPellerator::_soundHandle);
 				break;
 			}
 		}
@@ -116,8 +117,8 @@ bool CExitPellerator::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 		if (_statics->_v2 == 2) {
 			changeView("Bar.Node 1.N");
 		} else {
-			petDisplayMessage(2, "Please exit from the other side.");
-			CPellerator::_soundHandle = queueSound("z#438.wav", CPellerator::_soundHandle);
+			petDisplayMessage(2, EXIT_FROM_OTHER_SIDE);
+			CPellerator::_soundHandle = queueSound(TRANSLATE("z#438.wav", "z#183.wav"), CPellerator::_soundHandle);
 		}
 	}
 

@@ -55,12 +55,12 @@ public:
 	 */
 	virtual SdlMixerManager *getMixerManager();
 
+	virtual bool hasFeature(Feature f);
+
 	// Override functions from ModularBackend and OSystem
 	virtual void initBackend();
-#if defined(USE_TASKBAR)
 	virtual void engineInit();
 	virtual void engineDone();
-#endif
 	virtual void quit();
 	virtual void fatalError();
 
@@ -68,6 +68,11 @@ public:
 	virtual void logMessage(LogMessageType::Type type, const char *message);
 
 	virtual Common::String getSystemLanguage() const;
+
+	// Clipboard
+	virtual bool hasTextInClipboard();
+	virtual Common::String getTextFromClipboard();
+	virtual bool setTextInClipboard(const Common::String &text);
 
 	virtual void setWindowCaption(const char *caption);
 	virtual void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0);
@@ -78,9 +83,15 @@ public:
 	virtual Common::TimerManager *getTimerManager();
 	virtual Common::SaveFileManager *getSavefileManager();
 
+	//Screenshots
+	virtual Common::String getScreenshotsPath();
+
 protected:
 	bool _inited;
 	bool _initedSDL;
+#ifdef USE_SDL_NET
+	bool _initedSDLnet;
+#endif
 
 	/**
 	 * Mixer manager that configures and setups SDL for

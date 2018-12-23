@@ -35,8 +35,8 @@ class CGlass : public CCarry {
 	bool MouseDragEndMsg(CMouseDragEndMsg *msg);
 	bool TurnOn(CTurnOn *msg);
 	bool TurnOff(CTurnOff *msg);
-private:
-	CString _string6;
+public:
+	CString _condiment;
 public:
 	CLASSDEF;
 	CGlass();

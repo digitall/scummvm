@@ -41,7 +41,7 @@ CString CString::left(uint count) const {
 
 CString CString::right(uint count) const {
 	uint strSize = size();
-	return (count > strSize) ? CString() : 
+	return (count > strSize) ? CString() :
 		CString(c_str() + strSize - count, c_str() + strSize);
 }
 
@@ -77,6 +77,15 @@ int CString::lastIndexOf(char c) const {
 	return charP ? charP - c_str() : -1;
 }
 
+bool CString::containsIgnoreCase(const CString &str) const {
+	CString lowerStr = *this;
+	CString subStr = str;
+	lowerStr.toLowercase();
+	subStr.toLowercase();
+
+	return lowerStr.contains(subStr);
+}
+
 FileType CString::fileTypeSuffix() const {
 	CString ext = right(1);
 	if (ext == "0" || ext == "4")
@@ -85,7 +94,7 @@ FileType CString::fileTypeSuffix() const {
 		return FILETYPE_WAV;
 	else if (ext == "2" || ext == "3")
 		return FILETYPE_MOVIE;
-	
+
 	ext = right(3);
 	if (ext == "tga" || ext == "jpg")
 		return FILETYPE_IMAGE;

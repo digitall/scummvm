@@ -23,8 +23,11 @@
 #ifndef GRAPHICS_SPRITE_3DS_H
 #define GRAPHICS_SPRITE_3DS_H
 
-#include <citro3d.h>
+#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
+
 #include "graphics/surface.h"
+#include <3ds.h>
+#include <citro3d.h>
 
 #define TEXTURE_TRANSFER_FLAGS \
 	(GX_TRANSFER_FLIP_VERT(1) | GX_TRANSFER_OUT_TILED(1) | GX_TRANSFER_RAW_COPY(0) | \
@@ -46,16 +49,16 @@ public:
 	void render();
 	void clear(uint32 color = 0);
 	void markDirty(){ dirtyPixels = true; }
-	
+
 	void setPosition(int x, int y);
 	void setScale(float x, float y);
 	float getScaleX(){ return scaleX; }
 	float getScaleY(){ return scaleY; }
 	C3D_Mtx* getMatrix();
-	
+
 	uint16 actualWidth;
 	uint16 actualHeight;
-	
+
 private:
 	bool dirtyPixels;
 	bool dirtyMatrix;

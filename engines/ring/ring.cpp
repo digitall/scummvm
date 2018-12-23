@@ -94,7 +94,7 @@ RingEngine::~RingEngine() {
 Common::Error RingEngine::run() {
 	// Initialize the graphics
 	const Graphics::PixelFormat dataPixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0);
-	initGraphics(640, 480, true, &dataPixelFormat);
+	initGraphics(640, 480, &dataPixelFormat);
 
 	// We do not support color conversion
 	if (_system->getScreenFormat() != dataPixelFormat)
@@ -155,7 +155,6 @@ Common::Error RingEngine::run() {
 
 #if RING_DEBUG_SKIPINIT != 1
 	_application->initZones();
-
 
 #if RING_DEBUG_SKIPMENU == 1
 	_application->startGame();

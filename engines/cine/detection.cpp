@@ -68,7 +68,7 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 		GAMEOPTION_ORIGINAL_SAVELOAD,
 		{
 			_s("Use original save/load screens"),
-			_s("Use the original save/load screens, instead of the ScummVM ones"),
+			_s("Use the original save/load screens instead of the ScummVM ones"),
 			"originalsaveload",
 			false
 		}
@@ -84,16 +84,16 @@ public:
 		_guiOptions = GUIO2(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVELOAD);
 	}
 
-	virtual GameDescriptor findGame(const char *gameId) const {
+	PlainGameDescriptor findGame(const char *gameId) const override {
 		return Engines::findGameID(gameId, _gameIds, obsoleteGameIDsTable);
 	}
 
 	virtual const char *getName() const {
-		return "Cine";
+		return "Cinematique evo 1";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Future Wars & Operation Stealth (C) Delphine Software";
+		return "Cinematique evo 1 (C) Delphine Software";
 	}
 
 	virtual Common::Error createInstance(OSystem *syst, Engine **engine) const {

@@ -28,16 +28,18 @@ BEGIN_MESSAGE_MAP(CPlugIn, CCarry)
 	ON_MESSAGE(UseWithOtherMsg)
 END_MESSAGE_MAP()
 
-CPlugIn::CPlugIn() : CCarry(), _field12C(0) {
+CPlugIn::CPlugIn() : CCarry(), _unused(0) {
 }
 
 void CPlugIn::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
+	file->writeNumberLine(_unused, indent);
 	CCarry::save(file, indent);
 }
 
 void CPlugIn::load(SimpleFile *file) {
 	file->readNumber();
+	_unused = file->readNumber();
 	CCarry::load(file);
 }
 
@@ -47,18 +49,8 @@ bool CPlugIn::UseWithOtherMsg(CUseWithOtherMsg *msg) {
 
 	if (otherName == "PET") {
 		return CCarry::UseWithOtherMsg(msg);
-	} else if (otherName == "DatasideTransporter") {
-		CString name = getName();
-		if (name == "DatasideTransporter") {
-			// TODO
-			if (name != "SendYourself") {
-				// TODO
-			}
-		} else {
-			// TODO	
-		}
-	} else {
-		CShowTextMsg textMsg("This item is incorrectly calibrated.");
+	} else if (isEquals("DatasideTransporter")) {
+		CShowTextMsg textMsg(INCORRECTLY_CALIBRATED);
 		textMsg.execute("PET");
 	}
 

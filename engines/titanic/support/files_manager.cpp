@@ -22,36 +22,48 @@
 
 #include "common/file.h"
 #include "common/memstream.h"
+#include "common/zlib.h"
 #include "titanic/support/files_manager.h"
 #include "titanic/game_manager.h"
+#include "titanic/titanic.h"
 
 namespace Titanic {
 
-CFilesManager::CFilesManager() : _gameManager(nullptr), _assetsPath("Assets"),
-		_field0(0), _drive(-1), _field18(0), _field1C(0), _field3C(0) {
-	loadResourceIndex();
+CFilesManager::CFilesManager(TitanicEngine *vm) : _vm(vm), _gameManager(nullptr),
+		_assetsPath("Assets"), _drive(-1), _version(0) {
 }
 
 CFilesManager::~CFilesManager() {
 	_datFile.close();
 }
 
-void CFilesManager::loadResourceIndex() {
-	if (!_datFile.open("titanic.dat"))
-		error("Could not find titanic.dat data file");
+bool CFilesManager::loadResourceIndex() {
+	if (!_datFile.open("titanic.dat")) {
+		GUIErrorMessage("Could not find titanic.dat data file");
+		return false;
+	}
 
 	uint headerId = _datFile.readUint32BE();
-	uint version = _datFile.readUint16LE();
-	if (headerId != MKTAG('S', 'V', 'T', 'N') || version < 1)
-		error("Invalid data file");
+	_version = _datFile.readUint16LE();
+	if (headerId != MKTAG('S', 'V', 'T', 'N')) {
+		GUIErrorMessage("titanic.dat has invalid contents");
+		return false;
+	}
+
+	if (_version != 5) {
+		GUIErrorMessage("titanic.dat is out of date");
+		return false;
+	}
 
 	// Read in entries
-	uint offset, size;
+	uint offset, size, flags;
 	char c;
 	Common::String resourceName;
 	for (;;) {
 		offset = _datFile.readUint32LE();
 		size = _datFile.readUint32LE();
+		flags = (_version == 1) ? 0 : _datFile.readUint16LE();
+
 		if (offset == 0 && size == 0)
 			break;
 
@@ -59,8 +71,10 @@ void CFilesManager::loadResourceIndex() {
 		while ((c = _datFile.readByte()) != '\0')
 			resName += c;
 
-		_resources[resName] = ResourceEntry(offset, size);
+		_resources[resName] = ResourceEntry(offset, size, flags);
 	}
+
+	return true;
 }
 
 bool CFilesManager::fileExists(const CString &name) {
@@ -74,7 +88,7 @@ bool CFilesManager::scanForFile(const CString &name) {
 
 	CString filename = name;
 	filename.toLowercase();
-	
+
 	if (filename[0] == 'y' || filename[0] == 'z')
 		return true;
 	else if (filename[0] < 'a' || filename[0] > 'c')
@@ -91,10 +105,10 @@ bool CFilesManager::scanForFile(const CString &name) {
 	if (fileExists(fname))
 		return true;
 
-	// Couldn't find file. Start by calling the game manager's viewChange
+	// Couldn't find file. Start by calling the game manager's roomChange
 	// method, which handles all active scene objects freeing their resources
 	if (_gameManager)
-		_gameManager->viewChange();
+		_gameManager->roomChange();
 
 	return false;
 }
@@ -104,19 +118,16 @@ void CFilesManager::loadDrive() {
 	resetView();
 }
 
-void CFilesManager::debug(CScreenManager *screenManager) {
-	warning("TODO: CFilesManager::debug");
+void CFilesManager::insertCD(CScreenManager *screenManager) {
+	// We don't support running the game directly from the original CDs,
+	// so this method can remain stubbed
 }
 
 void CFilesManager::resetView() {
 	if (_gameManager) {
 		_gameManager->_gameState.setMode(GSMODE_INTERACTIVE);
-		_gameManager->initBounds();
+		_gameManager->markAllDirty();
 	}
-}
-
-void CFilesManager::fn4(const CString &name) {
-	warning("TODO: CFilesManager::fn4");
 }
 
 void CFilesManager::preload(const CString &name) {
@@ -125,10 +136,21 @@ void CFilesManager::preload(const CString &name) {
 
 Common::SeekableReadStream *CFilesManager::getResource(const CString &str) {
 	ResourceEntry resEntry = _resources[str];
+
+	// If we're running the German version, check for the existance of
+	// a German specific version of the given resource
+	if (_vm->isGerman() && _resources.contains(str + "/DE"))
+		resEntry = _resources[str + "/DE"];
+
 	_datFile.seek(resEntry._offset);
 
-	return (resEntry._size > 0) ? _datFile.readStream(resEntry._size) :
+	Common::SeekableReadStream *stream = (resEntry._size > 0) ?
+		_datFile.readStream(resEntry._size) :
 		new Common::MemoryReadStream(nullptr, 0);
+	if (resEntry._flags & FLAG_COMPRESSED)
+		stream = Common::wrapCompressedReadStream(stream);
+
+	return stream;
 }
 
 } // End of namespace Titanic

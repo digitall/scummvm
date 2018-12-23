@@ -22,6 +22,7 @@
 
 #include "titanic/carry/phonograph_cylinder.h"
 #include "titanic/game/phonograph.h"
+#include "titanic/sound/music_room.h"
 
 namespace Titanic {
 
@@ -34,15 +35,15 @@ BEGIN_MESSAGE_MAP(CPhonographCylinder, CCarry)
 END_MESSAGE_MAP()
 
 CPhonographCylinder::CPhonographCylinder() : CCarry(),
-		_bellsMuteControl(false), _bellsPitchControl(false),
-		_bellsSpeedControl(false), _bellsDirectionControl(false),
+		_bellsMuteControl(false), _bellsPitchControl(0),
+		_bellsSpeedControl(0), _bellsDirectionControl(false),
 		_bellsInversionControl(false), _snakeMuteControl(false),
-		_snakeSpeedControl(false), _snakePitchControl(false),
+		_snakeSpeedControl(0), _snakePitchControl(0),
 		_snakeInversionControl(false), _snakeDirectionControl(false),
-		_pianoMuteControl(false), _pianoSpeedControl(false),
-		_pianoPitchControl(false), _pianoInversionControl(false),
+		_pianoMuteControl(false), _pianoSpeedControl(0),
+		_pianoPitchControl(0), _pianoInversionControl(false),
 		_pianoDirectionControl(false), _bassMuteControl(false),
-		_bassSpeedControl(false), _bassPitchControl(false),
+		_bassSpeedControl(0), _bassPitchControl(0),
 		_bassInversionControl(false) {
 }
 
@@ -101,8 +102,9 @@ void CPhonographCylinder::load(SimpleFile *file) {
 }
 
 bool CPhonographCylinder::UseWithOtherMsg(CUseWithOtherMsg *msg) {
-	CPhonograph *phonograph = static_cast<CPhonograph *>(msg->_other);
+	CPhonograph *phonograph = dynamic_cast<CPhonograph *>(msg->_other);
 	if (phonograph) {
+		// Below is redundant, since original never actually executes message
 		CSetVarMsg varMsg("m_RecordStatus", 1);
 		return true;
 	} else {
@@ -117,7 +119,7 @@ bool CPhonographCylinder::QueryCylinderMsg(CQueryCylinderMsg *msg) {
 
 bool CPhonographCylinder::RecordOntoCylinderMsg(CRecordOntoCylinderMsg *msg) {
 	_itemName = "STMusic";
-	
+
 	CQueryMusicControlSettingMsg queryMsg;
 	queryMsg.execute("Bells Mute Control");
 	_bellsMuteControl = queryMsg._value;
@@ -144,7 +146,7 @@ bool CPhonographCylinder::RecordOntoCylinderMsg(CRecordOntoCylinderMsg *msg) {
 	queryMsg.execute("Piano Speed Control");
 	_pianoSpeedControl = queryMsg._value;
 	queryMsg.execute("Piano Pitch Control");
-	_pianoPitchControl = queryMsg._value;	
+	_pianoPitchControl = queryMsg._value;
 	queryMsg.execute("Piano Inversion Control");
 	_pianoInversionControl = queryMsg._value;
 	queryMsg.execute("Piano Direction Control");
@@ -157,15 +159,40 @@ bool CPhonographCylinder::RecordOntoCylinderMsg(CRecordOntoCylinderMsg *msg) {
 	_bassPitchControl = queryMsg._value;
 	queryMsg.execute("Bass Inversion Control");
 	_bassInversionControl = queryMsg._value;
+	queryMsg.execute("Bass Direction Control");
+	_bassDirectionControl = queryMsg._value;
 
 	return true;
 }
 
 bool CPhonographCylinder::SetMusicControlsMsg(CSetMusicControlsMsg *msg) {
-	if (_itemName.left(7) == "STMusic") {
-		//todo
-		warning("TODO");
-	}
+	if (!_itemName.hasPrefix("STMusic"))
+		return true;
+
+	CMusicRoom *musicRoom = getMusicRoom();
+	musicRoom->setMuteControl(BELLS, _bellsMuteControl);
+	musicRoom->setPitchControl(BELLS, _bellsPitchControl);
+	musicRoom->setSpeedControl(BELLS, _bellsSpeedControl);
+	musicRoom->setInversionControl(BELLS, _bellsInversionControl);
+	musicRoom->setDirectionControl(BELLS, _bellsDirectionControl);
+
+	musicRoom->setMuteControl(SNAKE, _snakeMuteControl);
+	musicRoom->setPitchControl(SNAKE, _snakePitchControl);
+	musicRoom->setSpeedControl(SNAKE, _snakeSpeedControl);
+	musicRoom->setInversionControl(SNAKE, _snakeInversionControl);
+	musicRoom->setDirectionControl(SNAKE, _snakeDirectionControl);
+
+	musicRoom->setMuteControl(PIANO, _pianoMuteControl);
+	musicRoom->setPitchControl(PIANO, _pianoPitchControl);
+	musicRoom->setSpeedControl(PIANO, _pianoSpeedControl);
+	musicRoom->setInversionControl(PIANO, _pianoInversionControl);
+	musicRoom->setDirectionControl(PIANO, _pianoDirectionControl);
+
+	musicRoom->setMuteControl(BASS, _bassMuteControl);
+	musicRoom->setPitchControl(BASS, _bassPitchControl);
+	musicRoom->setSpeedControl(BASS, _bassSpeedControl);
+	musicRoom->setInversionControl(BASS, _bassInversionControl);
+	musicRoom->setDirectionControl(BASS, _bassDirectionControl);
 
 	return true;
 }

@@ -28,14 +28,22 @@
 namespace Titanic {
 
 class CRestaurantCylinderHolder : public CDropTarget {
+	DECLARE_MESSAGE_MAP;
+	bool EjectCylinderMsg(CEjectCylinderMsg *msg);
+	bool EnterViewMsg(CEnterViewMsg *msg);
+	bool MovieEndMsg(CMovieEndMsg *msg);
+	bool QueryCylinderHolderMsg(CQueryCylinderHolderMsg *msg);
+	bool QueryCylinderNameMsg(CQueryCylinderNameMsg *msg);
+	bool MouseDragStartMsg(CMouseDragStartMsg *msg);
+	bool DropObjectMsg(CDropObjectMsg *msg);
 private:
-	int _field118;
+	bool _isOpen;
 	int _field11C;
-	CString _string5;
+	CString _target;
 	int _field12C;
 	int _field130;
-	CString _string6;
-	int _field140;
+	CString _ejectSoundName;
+	CursorId _defaultCursorId;
 public:
 	CLASSDEF;
 	CRestaurantCylinderHolder();

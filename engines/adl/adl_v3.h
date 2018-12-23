@@ -38,8 +38,9 @@ protected:
 	virtual void setupOpcodeTables();
 	Common::String getItemDescription(const Item &item) const;
 
+	void loadItemDescriptions(Common::SeekableReadStream &stream, byte count);
+
 	int o3_isNounNotInRoom(ScriptEnv &e);
-	int o3_listInv(ScriptEnv &e);
 
 	Common::Array<Common::String> _itemDesc;
 };

@@ -21,11 +21,11 @@
  */
 
 #include "titanic/sound/sound_manager.h"
+#include "titanic/events.h"
 #include "titanic/titanic.h"
 
 namespace Titanic {
 
-const uint SAMPLING_RATE = 22050;
 const uint LATENCY = 100;
 const uint CHANNELS_COUNT = 16;
 
@@ -33,13 +33,13 @@ CSoundManager::CSoundManager() : _musicPercent(75.0), _speechPercent(75.0),
 	_masterPercent(75.0), _parrotPercent(75.0), _handleCtr(1) {
 }
 
-uint CSoundManager::getModeVolume(int mode) {
+uint CSoundManager::getModeVolume(VolumeMode mode) {
 	switch (mode) {
-	case -1:
+	case VOL_NORMAL:
 		return (uint)_masterPercent;
-	case -2:
+	case VOL_QUIET:
 		return (uint)(_masterPercent * 30 / 100);
-	case -3:
+	case VOL_VERY_QUIET:
 		return (uint)(_masterPercent * 15 / 100);
 	default:
 		return 0;
@@ -109,7 +109,7 @@ QSoundManager::QSoundManager(Audio::Mixer *mixer) : CSoundManager(), QMixer(mixe
 	Common::fill(&_channelsVolume[0], &_channelsVolume[16], 0);
 	Common::fill(&_channelsMode[0], &_channelsMode[16], 0);
 
-	qsWaveMixInitEx(QMIXCONFIG(SAMPLING_RATE, CHANNELS_COUNT, LATENCY));
+	qsWaveMixInitEx(QMIXCONFIG(AUDIO_SAMPLING_RATE, CHANNELS_COUNT, LATENCY));
 	qsWaveMixActivate(true);
 	qsWaveMixOpenChannel(0, QMIX_OPENALL);
 }
@@ -120,7 +120,7 @@ QSoundManager::~QSoundManager() {
 }
 
 CWaveFile *QSoundManager::loadSound(const CString &name) {
-	CWaveFile *waveFile = new CWaveFile();
+	CWaveFile *waveFile = new CWaveFile(_mixer);
 
 	// Try to load the specified sound
 	if (!waveFile->loadSound(name)) {
@@ -132,7 +132,7 @@ CWaveFile *QSoundManager::loadSound(const CString &name) {
 }
 
 CWaveFile *QSoundManager::loadSpeech(CDialogueFile *dialogueFile, int speechId) {
-	CWaveFile *waveFile = new CWaveFile();
+	CWaveFile *waveFile = new CWaveFile(_mixer);
 
 	// Try to load the specified sound
 	if (!waveFile->loadSpeech(dialogueFile, speechId)) {
@@ -144,10 +144,22 @@ CWaveFile *QSoundManager::loadSpeech(CDialogueFile *dialogueFile, int speechId) 
 }
 
 CWaveFile *QSoundManager::loadMusic(const CString &name) {
-	CWaveFile *waveFile = new CWaveFile();
+	CWaveFile *waveFile = new CWaveFile(_mixer);
 
 	// Try to load the specified sound
 	if (!waveFile->loadMusic(name)) {
+		delete waveFile;
+		return nullptr;
+	}
+
+	return waveFile;
+}
+
+CWaveFile *QSoundManager::loadMusic(CAudioBuffer *buffer, DisposeAfterUse::Flag disposeAfterUse) {
+	CWaveFile *waveFile = new CWaveFile(_mixer);
+
+	// Try to load the specified audio buffer
+	if (!waveFile->loadMusic(buffer, disposeAfterUse)) {
 		delete waveFile;
 		return nullptr;
 	}
@@ -171,7 +183,7 @@ int QSoundManager::playSound(CWaveFile &waveFile, CProximity &prox) {
 		}
 	}
 
-	if (channel >= 0 || (channel = resetChannel(prox._channel)) != -1) {
+	if (channel >= 0 || (channel = resetChannel(prox._channelMode)) != -1) {
 		return playWave(&waveFile, channel, flags, prox);
 	}
 
@@ -272,10 +284,11 @@ void QSoundManager::setVolume(int handle, uint volume, uint seconds) {
 	for (uint idx = 0; idx < _slots.size(); ++idx) {
 		Slot &slot = _slots[idx];
 		if (slot._handle == handle) {
+			assert(slot._channel >= 0);
 			_channelsVolume[slot._channel] = volume;
 			updateVolume(slot._channel, seconds * 1000);
 
-			if (volume) {
+			if (!volume) {
 				uint ticks = g_vm->_events->getTicksCount() + seconds * 1000;
 				if (!slot._ticks || ticks >= slot._ticks)
 					slot._ticks = ticks;
@@ -303,14 +316,16 @@ void QSoundManager::setPolarPosition(int handle, double range, double azimuth, d
 		Slot &slot = _slots[idx];
 		if (slot._handle == handle) {
 			qsWaveMixSetPanRate(slot._channel, QMIX_USEONCE, panRate);
-			qsWaveMixSetPolarPosition(slot._channel, QMIX_USEONCE, 
+			qsWaveMixSetPolarPosition(slot._channel, QMIX_USEONCE,
 				QSPOLAR(azimuth, range, elevation));
 			break;
 		}
 	}
 }
 
-bool QSoundManager::isActive(int handle) const {
+bool QSoundManager::isActive(int handle) {
+	resetChannel(10);
+
 	for (uint idx = 0; idx < _slots.size(); ++idx) {
 		if (_slots[idx]._handle == handle)
 			return true;
@@ -319,7 +334,7 @@ bool QSoundManager::isActive(int handle) const {
 	return false;
 }
 
-bool QSoundManager::isActive(const CWaveFile *waveFile) const {
+bool QSoundManager::isActive(const CWaveFile *waveFile) {
 	return _sounds.contains(waveFile);
 }
 
@@ -370,11 +385,14 @@ int QSoundManager::playWave(CWaveFile *waveFile, int iChannel, uint flags, CProx
 		return 0;
 
 	prox._channelVolume = CLIP(prox._channelVolume, 0, 100);
-	prox._fieldC = CLIP(prox._fieldC, -100, 100);
+	prox._balance = CLIP(prox._balance, -100, 100);
 
 	int slotIndex = findFreeSlot();
 	if (slotIndex == -1)
 		return -1;
+
+	// Set the volume
+	setChannelVolume(iChannel, prox._channelVolume, prox._channelMode);
 
 	switch (prox._positioningMode) {
 	case POSMODE_POLAR:
@@ -395,7 +413,7 @@ int QSoundManager::playWave(CWaveFile *waveFile, int iChannel, uint flags, CProx
 		break;
 	}
 
-	if (prox._frequencyMultiplier || prox._field1C != 1.875) {
+	if (prox._frequencyMultiplier || prox._frequencyAdjust != 1.875) {
 		uint freq = (uint)(waveFile->getFrequency() * prox._frequencyMultiplier);
 		qsWaveMixSetFrequency(iChannel, 8, freq);
 	}
@@ -415,7 +433,7 @@ int QSoundManager::playWave(CWaveFile *waveFile, int iChannel, uint flags, CProx
 		return slot._handle;
 	} else {
 		_sounds.flushChannel(waveFile, iChannel);
-		if (prox._freeSoundFlag)
+		if (prox._disposeAfterUse == DisposeAfterUse::YES)
 			delete waveFile;
 		return 0;
 	}
@@ -426,7 +444,7 @@ void QSoundManager::soundFreed(Audio::SoundHandle &handle) {
 }
 
 void QSoundManager::updateVolume(int channel, uint panRate) {
-	uint volume = _channelsVolume[channel] * 327;
+	double volume = _channelsVolume[channel] * 327;
 
 	switch (_channelsMode[channel]) {
 	case 0:
@@ -437,7 +455,7 @@ void QSoundManager::updateVolume(int channel, uint panRate) {
 	case 3:
 	case 4:
 	case 5:
-		volume = (24525 * volume) / 100;
+		volume = (75 * volume) / 100;
 		break;
 	case 6:
 	case 7:
@@ -448,10 +466,10 @@ void QSoundManager::updateVolume(int channel, uint panRate) {
 	default:
 		break;
 	}
-	
+
 	volume = (_musicPercent * volume) / 100;
 	qsWaveMixSetPanRate(channel, 0, panRate);
-	qsWaveMixSetVolume(channel, 0, volume);
+	qsWaveMixSetVolume(channel, 0, (uint)volume);
 }
 
 void QSoundManager::updateVolumes() {

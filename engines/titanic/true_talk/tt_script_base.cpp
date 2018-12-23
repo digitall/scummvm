@@ -20,9 +20,10 @@
  *
  */
 
-#include "common/textconsole.h"
 #include "titanic/true_talk/tt_script_base.h"
+#include "titanic/true_talk/script_handler.h"
 #include "titanic/titanic.h"
+#include "common/textconsole.h"
 
 namespace Titanic {
 
@@ -33,7 +34,7 @@ TTscriptBase::TTscriptBase(int scriptId, const char *charClass, int state,
 		_field20(0), _field24(0), _field28(0), _field2C(0),
 		_field30(0), _state(0), _hist2P(nullptr), _field3C(0),
 		_respHeadP(nullptr), _respTailP(nullptr), _oldResponseP(nullptr) {
-	if (!isValid()) {
+	if (isValid()) {
 		if (!v7 || !getStatus()) {
 			_id = scriptId;
 			_field20 = v3;
@@ -43,7 +44,7 @@ TTscriptBase::TTscriptBase(int scriptId, const char *charClass, int state,
 			_field30 = v7;
 			_state = state;
 		} else {
-			_status = 5;
+			_status = SS_5;
 		}
 	}
 
@@ -65,9 +66,8 @@ TTscriptBase::~TTscriptBase() {
 }
 
 bool TTscriptBase::isValid() {
-	bool result = !_charName.isValid() && !_charClass.isValid();
-	_status = result ? 0 : 11;
-	return result;
+	_status = SS_VALID;
+	return true;
 }
 
 void TTscriptBase::reset() {
@@ -118,37 +118,41 @@ void TTscriptBase::applyResponse() {
 }
 
 void TTscriptBase::deleteResponses() {
-	while (_respTailP) {
-		_respHeadP = _respTailP;
-		_respTailP = _respHeadP->getLink();
-		delete _respHeadP;
+	while (_respHeadP) {
+		_respTailP = _respHeadP;
+		_respHeadP = _respTailP->getLink();
+		delete _respTailP;
 	}
 }
 
-void TTscriptBase::appendResponse(int val1, int *val2, int val3) {
-	if (!val2 || val1 <= *val2) {
-		if (_respHeadP) {
-			_respHeadP = new TTresponse(_respHeadP);
+void TTscriptBase::appendResponse(int index, int *maxP, int id) {
+	if (id && (!maxP || index <= *maxP)) {
+		if (_respTailP) {
+			// Prior fragments already exist, so append to end of chain
+			_respTailP = _respTailP->appendResponse(id);
 		} else {
-			_respHeadP = new TTresponse(val3, 3);
-			if (_respTailP)
-				_respTailP->addLink(_respHeadP);
+			// Currently no tail
+			_respTailP = new TTresponse(id, 3);
+			if (_respHeadP)
+				_respHeadP->addLink(_respTailP);
 			else
-				_respTailP = _respHeadP;
+				_respHeadP = _respTailP;
 		}
 	}
 }
 
-void TTscriptBase::appendResponse(int val1, int *val2, const TTstring &str) {
-	if (!val2 || val1 <= *val2) {
-		if (_respHeadP) {
-			_respHeadP = new TTresponse(str);
+void TTscriptBase::appendResponse(int index, int *maxP, const TTstring &str) {
+	if (!maxP || index <= *maxP) {
+		if (_respTailP) {
+			// Prior fragments already exist, so append to end of chain
+			_respTailP = new TTresponse(str);
 		} else {
-			_respHeadP = new TTresponse(str);
-			if (_respTailP)
-				_respTailP->addLink(_respHeadP);
+			// Currently no tail
+			_respTailP = new TTresponse(str);
+			if (_respHeadP)
+				_respHeadP->addLink(_respTailP);
 			else
-				_respTailP = _respHeadP;
+				_respHeadP = _respTailP;
 		}
 	}
 }

@@ -26,6 +26,7 @@
 #include "adl/adl_v2.h"
 #include "adl/display.h"
 #include "adl/graphics.h"
+#include "adl/detection.h"
 
 namespace Adl {
 
@@ -36,13 +37,24 @@ AdlEngine_v2::~AdlEngine_v2() {
 
 AdlEngine_v2::AdlEngine_v2(OSystem *syst, const AdlGameDescription *gd) :
 		AdlEngine(syst, gd),
-		_linesPrinted(0),
+		_maxLines(4),
 		_disk(nullptr),
+		_currentVolume(0),
 		_itemRemoved(false),
 		_roomOnScreen(0),
 		_picOnScreen(0),
 		_itemsOnScreen(0) {
 	_random = new Common::RandomSource("adl");
+}
+
+void AdlEngine_v2::insertDisk(byte volume) {
+	delete _disk;
+	_disk = new DiskImage();
+
+	if (!_disk->open(getDiskImageName(volume)))
+		error("Failed to open disk volume %d", volume);
+
+	_currentVolume = volume;
 }
 
 typedef Common::Functor1Mem<ScriptEnv &, int, AdlEngine_v2> OpcodeV2;
@@ -151,9 +163,11 @@ void AdlEngine_v2::checkTextOverflow(char c) {
 
 	++_linesPrinted;
 
-	if (_linesPrinted < 4)
-		return;
+	if (_linesPrinted >= _maxLines)
+		handleTextOverflow();
+}
 
+void AdlEngine_v2::handleTextOverflow() {
 	_linesPrinted = 0;
 	_display->updateTextScreen();
 	bell();
@@ -182,31 +196,30 @@ Common::String AdlEngine_v2::loadMessage(uint idx) const {
 
 void AdlEngine_v2::printString(const Common::String &str) {
 	Common::String s(str);
-	byte endPos = TEXT_WIDTH - 1;
-	byte pos = 0;
+	uint endPos = TEXT_WIDTH - 1;
+	uint startPos = 0;
+	uint pos = 0;
 
-	while (true) {
-		while (pos <= endPos && pos != s.size()) {
-			s.setChar(APPLECHAR(s[pos]), pos);
-			++pos;
+	while (pos < s.size()) {
+		s.setChar(APPLECHAR(s[pos]), pos);
+
+		if (pos == endPos) {
+			while (s[pos] != APPLECHAR(' ') && s[pos] != APPLECHAR('\r')) {
+				if (pos-- == startPos)
+					error("Word wrapping failed");
+			}
+
+			s.setChar(APPLECHAR('\r'), pos);
+			endPos = pos + TEXT_WIDTH;
+			startPos = pos + 1;
 		}
 
-		if (pos == s.size())
-			break;
-
-		while (s[pos] != APPLECHAR(' ') && s[pos] != APPLECHAR('\r'))
-			--pos;
-
-		s.setChar(APPLECHAR('\r'), pos);
-		endPos = pos + TEXT_WIDTH;
 		++pos;
 	}
 
-	pos = 0;
-	while (pos != s.size()) {
+	for (pos = 0; pos < s.size(); ++pos) {
 		checkTextOverflow(s[pos]);
 		_display->printChar(s[pos]);
-		++pos;
 	}
 
 	checkTextOverflow(APPLECHAR('\r'));
@@ -222,6 +235,14 @@ void AdlEngine_v2::drawItem(Item &item, const Common::Point &pos) {
 }
 
 void AdlEngine_v2::loadRoom(byte roomNr) {
+	if (Common::find(_brokenRooms.begin(), _brokenRooms.end(), roomNr) != _brokenRooms.end()) {
+		debug("Warning: attempt to load non-existent room %d", roomNr);
+		_roomData.description.clear();
+		_roomData.pictures.clear();
+		_roomData.commands.clear();
+		return;
+	}
+
 	Room &room = getRoom(roomNr);
 	StreamPtr stream(room.data->createReadStream());
 
@@ -245,6 +266,8 @@ void AdlEngine_v2::loadRoom(byte roomNr) {
 		stream->seek(commandOffset);
 		readCommands(*stream, _roomData.commands);
 	}
+
+	applyRoomWorkarounds(roomNr);
 }
 
 void AdlEngine_v2::showRoom() {
@@ -254,7 +277,7 @@ void AdlEngine_v2::showRoom() {
 
 	if (_state.room != _roomOnScreen) {
 		loadRoom(_state.room);
-		clearScreen();
+		_graphics->clearScreen();
 
 		if (!_state.isDark)
 			redrawPic = true;
@@ -281,36 +304,35 @@ void AdlEngine_v2::showRoom() {
 
 	_display->updateHiResScreen();
 	printString(_roomData.description);
-
-	// FIXME: move to main loop?
-	_linesPrinted = 0;
 }
 
+// TODO: Merge this into AdlEngine?
 void AdlEngine_v2::takeItem(byte noun) {
 	Common::List<Item>::iterator item;
 
 	for (item = _state.items.begin(); item != _state.items.end(); ++item) {
-		if (item->noun != noun || item->room != _state.room)
-			continue;
+		if (item->noun == noun && item->room == _state.room && item->region == _state.region) {
+			if (item->state == IDI_ITEM_DOESNT_MOVE) {
+				printMessage(_messageIds.itemDoesntMove);
+				return;
+			}
 
-		if (item->state == IDI_ITEM_DOESNT_MOVE) {
-			printMessage(_messageIds.itemDoesntMove);
-			return;
-		}
-
-		if (item->state == IDI_ITEM_DROPPED) {
-			item->room = IDI_ANY;
-			_itemRemoved = true;
-			return;
-		}
-
-		Common::Array<byte>::const_iterator pic;
-		for (pic = item->roomPictures.begin(); pic != item->roomPictures.end(); ++pic) {
-			if (*pic == getCurRoom().curPicture || *pic == IDI_ANY) {
+			if (item->state == IDI_ITEM_DROPPED) {
 				item->room = IDI_ANY;
 				_itemRemoved = true;
-				item->state = IDI_ITEM_DROPPED;
 				return;
+			}
+
+			Common::Array<byte>::const_iterator pic;
+			for (pic = item->roomPictures.begin(); pic != item->roomPictures.end(); ++pic) {
+				if (*pic == getCurRoom().curPicture || *pic == IDI_ANY) {
+					if (!isInventoryFull()) {
+						item->room = IDI_ANY;
+						_itemRemoved = true;
+						item->state = IDI_ITEM_DROPPED;
+					}
+					return;
+				}
 			}
 		}
 	}
@@ -323,24 +345,20 @@ void AdlEngine_v2::drawItems() {
 
 	for (item = _state.items.begin(); item != _state.items.end(); ++item) {
 		// Skip items not in this room
-		if (item->room != _state.room)
-			continue;
+		if (item->region == _state.region && item->room == _state.room && !item->isOnScreen) {
+			if (item->state == IDI_ITEM_DROPPED) {
+				// Draw dropped item if in normal view
+				if (getCurRoom().picture == getCurRoom().curPicture)
+					drawItem(*item, _itemOffsets[_itemsOnScreen++]);
+			} else {
+				// Draw fixed item if current view is in the pic list
+				Common::Array<byte>::const_iterator pic;
 
-		if (item->isOnScreen)
-			continue;
-
-		if (item->state == IDI_ITEM_DROPPED) {
-			// Draw dropped item if in normal view
-			if (getCurRoom().picture == getCurRoom().curPicture)
-				drawItem(*item, _itemOffsets[_itemsOnScreen++]);
-		} else {
-			// Draw fixed item if current view is in the pic list
-			Common::Array<byte>::const_iterator pic;
-
-			for (pic = item->roomPictures.begin(); pic != item->roomPictures.end(); ++pic) {
-				if (*pic == _state.curPicture || *pic == IDI_ANY) {
-					drawItem(*item, item->position);
-					break;
+				for (pic = item->roomPictures.begin(); pic != item->roomPictures.end(); ++pic) {
+					if (*pic == _state.curPicture || *pic == IDI_ANY) {
+						drawItem(*item, item->position);
+						break;
+					}
 				}
 			}
 		}
@@ -359,7 +377,82 @@ DataBlockPtr AdlEngine_v2::readDataBlockPtr(Common::ReadStream &f) const {
 	if (track == 0 && sector == 0 && offset == 0 && size == 0)
 		return DataBlockPtr();
 
+	adjustDataBlockPtr(track, sector, offset, size);
+
 	return _disk->getDataBlock(track, sector, offset, size);
+}
+
+void AdlEngine_v2::loadItems(Common::ReadStream &stream) {
+	byte id;
+	while ((id = stream.readByte()) != 0xff && !stream.eos() && !stream.err()) {
+		Item item;
+
+		item.id = id;
+		item.noun = stream.readByte();
+		item.room = stream.readByte();
+		item.picture = stream.readByte();
+		item.region = stream.readByte();
+		item.position.x = stream.readByte();
+		item.position.y = stream.readByte();
+		item.state = stream.readByte();
+		item.description = stream.readByte();
+
+		stream.readByte(); // Struct size
+
+		byte picListSize = stream.readByte();
+
+		// Flag to keep track of what has been drawn on the screen
+		stream.readByte();
+
+		for (uint i = 0; i < picListSize; ++i)
+			item.roomPictures.push_back(stream.readByte());
+
+		_state.items.push_back(item);
+	}
+
+	if (stream.eos() || stream.err())
+		error("Error loading items");
+}
+
+void AdlEngine_v2::loadRooms(Common::ReadStream &stream, byte count) {
+	for (uint i = 0; i < count; ++i) {
+		Room room;
+
+		stream.readByte(); // number
+		for (uint j = 0; j < 6; ++j)
+			room.connections[j] = stream.readByte();
+		room.data = readDataBlockPtr(stream);
+		room.picture = stream.readByte();
+		room.curPicture = stream.readByte();
+		room.isFirstTime = stream.readByte();
+
+		_state.rooms.push_back(room);
+	}
+
+	if (stream.eos() || stream.err())
+		error("Error loading rooms");
+}
+
+void AdlEngine_v2::loadMessages(Common::ReadStream &stream, byte count) {
+	for (uint i = 0; i < count; ++i)
+		_messages.push_back(readDataBlockPtr(stream));
+}
+
+void AdlEngine_v2::loadPictures(Common::ReadStream &stream) {
+	byte picNr;
+	while ((picNr = stream.readByte()) != 0xff) {
+		if (stream.eos() || stream.err())
+			error("Error reading global pic list");
+
+		_pictures[picNr] = readDataBlockPtr(stream);
+	}
+}
+
+void AdlEngine_v2::loadItemPictures(Common::ReadStream &stream, byte count) {
+	for (uint i = 0; i < count; ++i) {
+		stream.readByte(); // number
+		_itemPics.push_back(readDataBlockPtr(stream));
+	}
 }
 
 int AdlEngine_v2::o2_isFirstTime(ScriptEnv &e) {
@@ -536,6 +629,19 @@ int AdlEngine_v2::o2_initDisk(ScriptEnv &e) {
 
 	_display->printAsciiString("NOT REQUIRED\r");
 	return 0;
+}
+
+bool AdlEngine_v2::canSaveGameStateCurrently() {
+	if (!_canSaveNow)
+		return false;
+
+	// Back up first visit flag as it may be changed by this test
+	const bool isFirstTime = getCurRoom().isFirstTime;
+	const bool retval = AdlEngine::canSaveGameStateCurrently();
+
+	getCurRoom().isFirstTime = isFirstTime;
+
+	return retval;
 }
 
 int AdlEngine_v2::askForSlot(const Common::String &question) {

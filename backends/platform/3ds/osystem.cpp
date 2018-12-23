@@ -24,6 +24,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h
 #define FORBIDDEN_SYMBOL_EXCEPTION_unistd_h
 
+#include <3ds.h>
 #include "osystem.h"
 
 #include "backends/saves/default/default-saves.h"
@@ -85,7 +86,7 @@ OSystem_3DS::~OSystem_3DS() {
 	destroyEvents();
 	destroyAudio();
 	destroyGraphics();
-	
+
 	delete _timerManager;
 	_timerManager = 0;
 }
@@ -109,7 +110,7 @@ void OSystem_3DS::initBackend() {
 
 	_timerManager = new DefaultTimerManager();
 	_savefileManager = new DefaultSaveFileManager("/3ds/scummvm/saves/");
-	
+
 	initGraphics();
 	initAudio();
 	initEvents();

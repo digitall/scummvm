@@ -22,6 +22,7 @@
 
 #include "titanic/game/parrot/parrot_nut_bowl_actor.h"
 #include "titanic/core/room_item.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -35,7 +36,7 @@ BEGIN_MESSAGE_MAP(CParrotNutBowlActor, CGameObject)
 	ON_MESSAGE(NutPuzzleMsg)
 END_MESSAGE_MAP()
 
-CParrotNutBowlActor::CParrotNutBowlActor() : CGameObject(), 
+CParrotNutBowlActor::CParrotNutBowlActor() : CGameObject(),
 		_puzzleDone(0), _state(0) {
 }
 
@@ -43,7 +44,7 @@ void CParrotNutBowlActor::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
 	file->writeNumberLine(_puzzleDone, indent);
 	file->writeNumberLine(_state, indent);
-	
+
 	CGameObject::save(file, indent);
 }
 
@@ -70,7 +71,7 @@ bool CParrotNutBowlActor::BowlStateChangeMsg(CBowlStateChangeMsg *msg) {
 		if (!_puzzleDone) {
 			CReplaceBowlAndNutsMsg replaceMsg;
 			replaceMsg.execute(findRoom(), nullptr, MSGFLAG_SCAN);
-			playSound("z#47.wav");
+			playSound(TRANSLATE("z#47.wav", "z#578.wav"));
 		}
 
 		_puzzleDone = true;
@@ -79,7 +80,7 @@ bool CParrotNutBowlActor::BowlStateChangeMsg(CBowlStateChangeMsg *msg) {
 	return true;
 }
 
-bool CParrotNutBowlActor::CParrotNutBowlActor::IsEarBowlPuzzleDone(CIsEarBowlPuzzleDone *msg) {
+bool CParrotNutBowlActor::IsEarBowlPuzzleDone(CIsEarBowlPuzzleDone *msg) {
 	msg->_value = _puzzleDone;
 	return true;
 }
@@ -104,9 +105,9 @@ bool CParrotNutBowlActor::LeaveViewMsg(CLeaveViewMsg *msg) {
 }
 
 bool CParrotNutBowlActor::NutPuzzleMsg(CNutPuzzleMsg *msg) {
-	if (msg->_value == "NutsGone")
+	if (msg->_action == "NutsGone")
 		_state = 1;
-	else if (msg->_value == "BowlUnlocked")
+	else if (msg->_action == "BowlUnlocked")
 		_state = 2;
 
 	return true;

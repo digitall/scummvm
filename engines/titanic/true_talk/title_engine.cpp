@@ -21,7 +21,9 @@
  */
 
 #include "titanic/true_talk/title_engine.h"
+#include "titanic/support/files_manager.h"
 #include "titanic/titanic.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -33,15 +35,15 @@ CTitleEngine::~CTitleEngine() {
 	delete _scriptHandler;
 }
 
-void CTitleEngine::setup(int val1, int val2) {
+void CTitleEngine::setup(int val1, VocabMode vocabMode) {
 	_script = new TTTitleScript();
-	_scriptHandler = new CScriptHandler(this, val1, val2);
+	_scriptHandler = new CScriptHandler(this, val1, vocabMode);
 }
 
 /*------------------------------------------------------------------------*/
 
 STtitleEngine::STtitleEngine(): CTitleEngine(),
-		_responseP(nullptr), _field58(0) {
+		_responseP(nullptr), _stream(nullptr) {
 }
 
 STtitleEngine::~STtitleEngine() {
@@ -49,25 +51,21 @@ STtitleEngine::~STtitleEngine() {
 }
 
 void STtitleEngine::reset() {
-	_field58 = 0;
 	_indexes.clear();
 }
 
-void STtitleEngine::setup(int val1, int val2) {
-	CTitleEngine::setup(val1, 3);
+void STtitleEngine::setup(int val1, VocabMode vocabMode) {
+	CTitleEngine::setup(val1, TRANSLATE(VOCAB_MODE_EN, VOCAB_MODE_DE));
 }
 
 int STtitleEngine::setResponse(TTscriptBase *script, TTresponse *response) {
+	_responseP = response;
 	_indexes.clear();
 	for (TTresponse *respP = response; respP; respP = respP->getNext()) {
 		_indexes.push_back(respP->getDialogueId());
 	}
 
 	return 0;
-}
-
-void STtitleEngine::dump(int val1, int val2) {
-	// TODO
 }
 
 SimpleFile *STtitleEngine::open(const CString &name) {

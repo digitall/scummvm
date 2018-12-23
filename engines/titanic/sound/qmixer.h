@@ -156,7 +156,7 @@ struct QMIXPLAYPARAMS {
 	Audio::Mixer::SoundType _soundType;
 
 	QMIXPLAYPARAMS() : dwSize(36), lpImage(nullptr), hwndNotify(0), callback(nullptr),
-		dwUser(nullptr), lStart(0), lStartLoop(0), lEndLoop(0), lEnd(0), 
+		dwUser(nullptr), lStart(0), lStartLoop(0), lEndLoop(0), lEnd(0),
 		lpChannelParams(nullptr), _soundType(Audio::Mixer::kPlainSoundType)  {}
 };
 
@@ -165,7 +165,7 @@ struct QMIXPLAYPARAMS {
  * QSound Labs, Inc. Which itself is apparently based on Microsoft's
  * WaveMix API.
  *
- * It does not currently have any actual code from the library, 
+ * It does not currently have any actual code from the library,
  * and instead remaps calls to ScummVM's existing mixer where possible.
  * This means that advanced features of the QMixer library, like being
  * able to set up both the player and sounds at different positions are
@@ -186,14 +186,38 @@ class QMixer {
 			_started(false), _waveFile(waveFile), _callback(callback), _loops(loops), _userData(userData) {}
 	};
 	struct ChannelEntry {
+		// Currently playing and any following queued sounds for the channel
 		Common::List<SoundEntry> _sounds;
+		// Current channel volume
+		byte _volume;
+		// Current time in milliseconds for paning (volume) changes
+		uint _panRate;
+		// Fields used to transition between volume levels
+		uint _volumeChangeStart;
+		uint _volumeChangeEnd;
+		byte _volumeStart;
+		byte _volumeEnd;
+		// Distance of source
+		double _distance;
+		bool _resetDistance;
+
+		ChannelEntry() : _volume(0), _panRate(0), _volumeChangeStart(0),
+			_volumeChangeEnd(0), _volumeStart(0), _volumeEnd(0),
+			_distance(0.0), _resetDistance(true) {}
+
+		/**
+		 * Calculates the raw volume level to pass to ScummVM playStream, taking
+		 * into the sound's volume level and distance from origin
+		 */
+		byte getRawVolume() const;
 	};
 private:
-	Audio::Mixer *_mixer;
 	Common::Array<ChannelEntry> _channels;
+protected:
+	Audio::Mixer *_mixer;
 public:
 	QMixer(Audio::Mixer *mixer);
-	virtual ~QMixer() {}
+	virtual ~QMixer();
 
 	/**
 	 * Initializes the mixer
@@ -277,7 +301,7 @@ public:
 	void qsWaveMixSetDistanceMapping(int iChannel, uint flags, const QMIX_DISTANCES &distances);
 
 	/**
-	 *
+	 * Sets the frequency/rate of sound playback
 	 */
 	void qsWaveMixSetFrequency(int iChannel, uint flags, uint frequency);
 

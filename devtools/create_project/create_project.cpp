@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 
 			msvcVersion = atoi(argv[++i]);
 
-			if (msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11 && msvcVersion != 12 && msvcVersion != 14) {
+			if (msvcVersion != 9 && msvcVersion != 10 && msvcVersion != 11 && msvcVersion != 12 && msvcVersion != 14 && msvcVersion != 15) {
 				std::cerr << "ERROR: Unsupported version: \"" << msvcVersion << "\" passed to \"--msvc-version\"!\n";
 				return -1;
 			}
@@ -301,6 +301,24 @@ int main(int argc, char *argv[]) {
 			j->enable = false;
 	}
 
+	// Disable engines for which we are missing dependencies
+	for (EngineDescList::const_iterator i = setup.engines.begin(); i != setup.engines.end(); ++i) {
+		if (i->enable) {
+			for (StringList::const_iterator ef = i->requiredFeatures.begin(); ef != i->requiredFeatures.end(); ++ef) {
+				FeatureList::iterator feature = std::find(setup.features.begin(), setup.features.end(), *ef);
+				if (feature != setup.features.end() && !feature->enable) {
+					setEngineBuildState(i->name, setup.engines, false);
+					break;
+				}
+			}
+		}
+	}
+
+	// HACK: Vorbis and Tremor can not be enabled simultaneously
+	if (getFeatureBuildState("tremor", setup.features)) {
+		setFeatureBuildState("vorbis", setup.features, false);
+	}
+
 	// Print status
 	cout << "Enabled engines:\n\n";
 	for (EngineDescList::const_iterator i = setup.engines.begin(); i != setup.engines.end(); ++i) {
@@ -373,11 +391,18 @@ int main(int argc, char *argv[]) {
 #endif
 	}
 
-	bool updatesEnabled = false;
+	bool updatesEnabled = false, curlEnabled = false, sdlnetEnabled = false;
 	for (FeatureList::const_iterator i = setup.features.begin(); i != setup.features.end(); ++i) {
-		if (i->enable && !strcmp(i->name, "updates"))
-			updatesEnabled = true;
+		if (i->enable) {
+			if (!strcmp(i->name, "updates"))
+				updatesEnabled = true;
+			else if (!strcmp(i->name, "libcurl"))
+				curlEnabled = true;
+			else if (!strcmp(i->name, "sdlnet"))
+				sdlnetEnabled = true;
+		}
 	}
+
 	if (updatesEnabled) {
 		setup.defines.push_back("USE_SPARKLE");
 		if (projectType != kProjectXcode)
@@ -385,6 +410,11 @@ int main(int argc, char *argv[]) {
 		else
 			setup.libraries.push_back("sparkle");
 	}
+
+	if (curlEnabled && projectType == kProjectMSVC)
+		setup.defines.push_back("CURL_STATICLIB");
+	if (sdlnetEnabled && projectType == kProjectMSVC)
+		setup.libraries.push_back("iphlpapi");
 
 	setup.defines.push_back("SDL_BACKEND");
 	if (!setup.useSDL2) {
@@ -554,7 +584,7 @@ int main(int argc, char *argv[]) {
 		globalWarnings.push_back("6385");
 		globalWarnings.push_back("6386");
 
-		if (msvcVersion == 14) {
+		if (msvcVersion == 14 || msvcVersion == 15) {
 			globalWarnings.push_back("4267");
 			globalWarnings.push_back("4577");
 		}
@@ -676,10 +706,11 @@ void displayHelp(const char *exe) {
 	        "                           11 stands for \"Visual Studio 2012\"\n"
 	        "                           12 stands for \"Visual Studio 2013\"\n"
 	        "                           14 stands for \"Visual Studio 2015\"\n"
-	        "                           The default is \"9\", thus \"Visual Studio 2008\"\n"
+	        "                           15 stands for \"Visual Studio 2017\"\n"
+	        "                           The default is \"12\", thus \"Visual Studio 2013\"\n"
 	        " --build-events           Run custom build events as part of the build\n"
 	        "                          (default: false)\n"
-	        " --installer              Create NSIS installer after the build (implies --build-events)\n"
+	        " --installer              Create installer after the build (implies --build-events)\n"
 	        "                          (default: false)\n"
 	        " --tools                  Create project files for the devtools\n"
 	        "                          (ignores --build-events and --installer, as well as engine settings)\n"
@@ -894,7 +925,7 @@ namespace {
  */
 bool parseEngine(const std::string &line, EngineDesc &engine) {
 	// Format:
-	// add_engine engine_name "Readable Description" enable_default ["SubEngineList"]
+	// add_engine engine_name "Readable Description" enable_default ["SubEngineList"] ["base games"] ["dependencies"]
 	TokenList tokens = tokenize(line);
 
 	if (tokens.size() < 4)
@@ -909,8 +940,14 @@ bool parseEngine(const std::string &line, EngineDesc &engine) {
 	engine.name = *token; ++token;
 	engine.desc = *token; ++token;
 	engine.enable = (*token == "yes"); ++token;
-	if (token != tokens.end())
+	if (token != tokens.end()) {
 		engine.subEngines = tokenize(*token);
+		++token;
+		if (token != tokens.end())
+			++token;
+		if (token != tokens.end())
+			engine.requiredFeatures = tokenize(*token);
+	}
 
 	return true;
 }
@@ -995,42 +1032,51 @@ const Feature s_features[] = {
 	// Libraries
 	{      "libz",        "USE_ZLIB", "zlib",             true,  "zlib (compression) support" },
 	{       "mad",         "USE_MAD", "libmad",           true,  "libmad (MP3) support" },
-	{    "vorbis",      "USE_VORBIS", "libvorbisfile_static libvorbis_static libogg_static", true, "Ogg Vorbis support" },
+	{       "ogg",         "USE_OGG", "libogg_static",    true,  "Ogg support" },
+	{    "vorbis",      "USE_VORBIS", "libvorbisfile_static libvorbis_static", true, "Vorbis support" },
+	{    "tremor",      "USE_TREMOR", "libtremor", false, "Tremor support" },
 	{      "flac",        "USE_FLAC", "libFLAC_static win_utf8_io_static",   true, "FLAC support" },
 	{       "png",         "USE_PNG", "libpng16",         true,  "libpng support" },
 	{      "faad",        "USE_FAAD", "libfaad",          false, "AAC support" },
 	{     "mpeg2",       "USE_MPEG2", "libmpeg2",         false, "MPEG-2 support" },
-	{    "theora",   "USE_THEORADEC", "libtheora_static", true,  "Theora decoding support" },
-	{  "freetype",   "USE_FREETYPE2", "freetype",         true,  "FreeType support" },
-	{      "jpeg",        "USE_JPEG", "jpeg-static",      true,  "libjpeg support" },
-	{"fluidsynth",  "USE_FLUIDSYNTH", "libfluidsynth",    true,  "FluidSynth support" },
+	{    "theora",   "USE_THEORADEC", "libtheora_static", true, "Theora decoding support" },
+	{  "freetype",   "USE_FREETYPE2", "freetype",         true, "FreeType support" },
+	{      "jpeg",        "USE_JPEG", "jpeg-static",      true, "libjpeg support" },
+	{"fluidsynth",  "USE_FLUIDSYNTH", "libfluidsynth",    true, "FluidSynth support" },
+	{   "libcurl",     "USE_LIBCURL", "libcurl",          true, "libcurl support" },
+	{    "sdlnet",     "USE_SDL_NET", "SDL_net",          true, "SDL_net support" },
 
 	// Feature flags
 	{            "bink",             "USE_BINK",         "", true,  "Bink video support" },
 	{         "scalers",          "USE_SCALERS",         "", true,  "Scalers" },
 	{       "hqscalers",       "USE_HQ_SCALERS",         "", true,  "HQ scalers" },
 	{           "16bit",        "USE_RGB_COLOR",         "", true,  "16bit color support" },
+	{         "highres",          "USE_HIGHRES",         "", true,  "high resolution" },
 	{         "mt32emu",          "USE_MT32EMU",         "", true,  "integrated MT-32 emulator" },
 	{            "nasm",             "USE_NASM",         "", true,  "IA-32 assembly support" }, // This feature is special in the regard, that it needs additional handling.
 	{          "opengl",           "USE_OPENGL",         "", true,  "OpenGL support" },
 	{        "opengles",             "USE_GLES",         "", true,  "forced OpenGL ES mode" },
 	{         "taskbar",          "USE_TASKBAR",         "", true,  "Taskbar integration support" },
+	{           "cloud",            "USE_CLOUD",         "", true,  "Cloud integration support" },
 	{     "translation",      "USE_TRANSLATION",         "", true,  "Translation support" },
 	{          "vkeybd",        "ENABLE_VKEYBD",         "", false, "Virtual keyboard support"},
 	{       "keymapper",     "ENABLE_KEYMAPPER",         "", false, "Keymapper support"},
 	{   "eventrecorder", "ENABLE_EVENTRECORDER",         "", false, "Event recorder support"},
 	{         "updates",          "USE_UPDATES",         "", false, "Updates support"},
+	{         "dialogs",       "USE_SYSDIALOGS",         "", true,  "System dialogs support"},
 	{      "langdetect",       "USE_DETECTLANG",         "", true,  "System language detection support" } // This feature actually depends on "translation", there
 	                                                                                                      // is just no current way of properly detecting this...
 };
 
 const Tool s_tools[] = {
+	{ "create_cryo",         true},
 	{ "create_drascula",     true},
 	{ "create_hugo",         true},
 	{ "create_kyradat",      true},
 	{ "create_lure",         true},
 	{ "create_neverhood",    true},
 	{ "create_teenagent",    true},
+	{ "create_titanic",      true},
 	{ "create_tony",         true},
 	{ "create_toon",         true},
 	{ "create_translations", true},
@@ -1077,6 +1123,15 @@ bool setFeatureBuildState(const std::string &name, FeatureList &features, bool e
 	if (i != features.end()) {
 		i->enable = enable;
 		return true;
+	} else {
+		return false;
+	}
+}
+
+bool getFeatureBuildState(const std::string &name, FeatureList &features) {
+	FeatureList::iterator i = std::find(features.begin(), features.end(), name);
+	if (i != features.end()) {
+		return i->enable;
 	} else {
 		return false;
 	}
@@ -1134,7 +1189,9 @@ bool producesObjectFile(const std::string &fileName) {
 }
 
 std::string toString(int num) {
-	return static_cast<std::ostringstream*>(&(std::ostringstream() << num))->str();
+	std::ostringstream os;
+	os << num;
+	return os.str();
 }
 
 /**
@@ -1512,7 +1569,8 @@ void ProjectProvider::addFilesToProject(const std::string &dir, std::ofstream &p
 	StringList duplicate;
 
 	for (StringList::const_iterator i = includeList.begin(); i != includeList.end(); ++i) {
-		const std::string fileName = getLastPathComponent(*i);
+		std::string fileName = getLastPathComponent(*i);
+		std::transform(fileName.begin(), fileName.end(), fileName.begin(), tolower);
 
 		// Leave out non object file names.
 		if (fileName.size() < 2 || fileName.compare(fileName.size() - 2, 2, ".o"))
@@ -1525,7 +1583,9 @@ void ProjectProvider::addFilesToProject(const std::string &dir, std::ofstream &p
 		// Search for duplicates
 		StringList::const_iterator j = i; ++j;
 		for (; j != includeList.end(); ++j) {
-			if (fileName == getLastPathComponent(*j)) {
+			std::string candidateFileName = getLastPathComponent(*j);
+			std::transform(candidateFileName.begin(), candidateFileName.end(), candidateFileName.begin(), tolower);
+			if (fileName == candidateFileName) {
 				duplicate.push_back(fileName);
 				break;
 			}
@@ -1731,18 +1791,20 @@ void ProjectProvider::createModuleList(const std::string &moduleDir, const Strin
 			if (std::find(defines.begin(), defines.end(), *i) == defines.end())
 				shouldInclude.push(false);
 			else
-				shouldInclude.push(true);
+				shouldInclude.push(true && shouldInclude.top());
 		} else if (*i == "ifndef") {
 			if (tokens.size() < 2)
 				error("Malformed ifndef in " + moduleMkFile);
 			++i;
 
 			if (std::find(defines.begin(), defines.end(), *i) == defines.end())
-				shouldInclude.push(true);
+				shouldInclude.push(true && shouldInclude.top());
 			else
 				shouldInclude.push(false);
 		} else if (*i == "else") {
-			shouldInclude.top() = !shouldInclude.top();
+			bool last = shouldInclude.top();
+			shouldInclude.pop();
+			shouldInclude.push(!last && shouldInclude.top());
 		} else if (*i == "endif") {
 			if (shouldInclude.size() <= 1)
 				error("endif without ifdef found in " + moduleMkFile);

@@ -69,7 +69,7 @@ bool CChevCode::SetChevFloorBits(CSetChevFloorBits *msg) {
 	int section = (msg->_floorNum + 4) / 10;
 	int index = (msg->_floorNum + 4) % 10;
 	_chevCode &= ~0xFF00;
-	
+
 	int val = 0;
 	switch (section) {
 	case 0:
@@ -87,15 +87,15 @@ bool CChevCode::SetChevFloorBits(CSetChevFloorBits *msg) {
 	default:
 		break;
 	}
-	
+
 	_chevCode |= ((index + val) << 8);
 	return true;
 }
 
 bool CChevCode::SetChevRoomBits(CSetChevRoomBits *msg) {
 	_chevCode &= ~0xff;
-	if (msg->_roomNum > 0 && msg->_roomNum < 128)
-		_chevCode |= msg->_roomNum * 2;
+	if (msg->_roomFlags > 0 && msg->_roomFlags < 128)
+		_chevCode |= msg->_roomFlags * 2;
 
 	return true;
 }
@@ -132,7 +132,7 @@ bool CChevCode::GetChevFloorNum(CGetChevFloorNum *msg) {
 		break;
 	}
 
-	msg->_floorNum = (val1 >= 10) ? 0 : val1 * 10;
+	msg->_floorNum = (val1 >= 10) ? 0 : val2 * 10 + val1;
 	return true;
 }
 

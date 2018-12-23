@@ -106,7 +106,7 @@ public:
 
 		for (uint idx = 0; idx < count; ++idx) {
 			// Validate the class start header
-			if (!file->IsClassStart())
+			if (!file->isClassStart())
 				error("Unexpected class end");
 
 			// Get item's class name and use it to instantiate an item
@@ -120,7 +120,7 @@ public:
 			Common::List<T *>::push_back(newItem);
 
 			// Validate the class end footer
-			if (file->IsClassStart())
+			if (file->isClassStart())
 				error("Unexpected class start");
 		}
 	}
@@ -130,7 +130,7 @@ public:
 	 */
 	void destroyContents() {
 		typename Common::List<T *>::iterator i;
-		for (i = Common::List<T *>::begin(); 
+		for (i = Common::List<T *>::begin();
 				i != Common::List<T *>::end(); ++i) {
 			CSaveableObject *obj = *i;
 			delete obj;
@@ -149,7 +149,7 @@ public:
 	}
 
 	bool contains(const T *item) const {
-		for (typename Common::List<T *>::const_iterator i = Common::List<T *>::begin(); 
+		for (typename Common::List<T *>::const_iterator i = Common::List<T *>::begin();
 				i != Common::List<T *>::end(); ++i) {
 			if (*i == item)
 				return true;

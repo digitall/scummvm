@@ -96,8 +96,8 @@ public:
 };
 
 class DirtyAreas : public Common::Array<DirtyArea> {
-private:
-	MADSEngine *_vm;
+//private:
+//	MADSEngine *_vm;
 public:
 	DirtyAreas(MADSEngine *vm);
 
@@ -254,7 +254,7 @@ public:
 	/**
 	 * Return the current drawing/clip area
 	 */
-	const Common::Rect getClipBounds() const { 
+	const Common::Rect getClipBounds() const {
 		const Common::Point pt = getOffsetFromOwner();
 		return Common::Rect(pt.x, pt.y, pt.x + this->w, pt.y + this->h);
 	}

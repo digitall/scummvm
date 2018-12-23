@@ -8,57 +8,31 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * MIT License:
- *
- * Copyright (c) 2009 Alexei Svitkine, Eugene Sandulenko
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 #include "common/array.h"
 #include "common/events.h"
 #include "common/list.h"
-#include "common/unzip.h"
 #include "common/system.h"
-#include "common/stream.h"
+#include "common/timer.h"
 
 #include "graphics/cursorman.h"
-#include "graphics/fonts/bdf.h"
 #include "graphics/managed_surface.h"
 #include "graphics/palette.h"
 #include "graphics/primitives.h"
 #include "graphics/macgui/macwindowmanager.h"
+#include "graphics/macgui/macfontmanager.h"
 #include "graphics/macgui/macwindow.h"
+#include "graphics/macgui/mactextwindow.h"
 #include "graphics/macgui/macmenu.h"
 
 namespace Graphics {
@@ -74,7 +48,9 @@ static const byte palette[] = {
 static byte fillPatterns[][8] = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, // kPatternSolid
 								  { 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55 }, // kPatternStripes
 								  { 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55 }, // kPatternCheckers
-								  { 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa }  // kPatternCheckers2
+								  { 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa }, // kPatternCheckers2
+								  { 0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22 }, // kPatternLightGray
+								  { 0x77, 0xdd, 0x77, 0xdd, 0x77, 0xdd, 0x77, 0xdd }  // kPatternDarkGray
 };
 
 static const byte macCursorArrow[] = {
@@ -114,24 +90,90 @@ static const byte macCursorBeam[] = {
 	3, 3, 0, 3, 0, 3, 3, 3, 3, 3, 3,
 	0, 0, 3, 3, 3, 0, 0, 3, 3, 3, 3,
 };
+static const byte macCursorCrossHair[] = {
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+static const byte macCursorWatch[] = {
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+	1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1,
+	1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,
+	1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,
+	0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+};
+static const byte macCursorCrossBar[] = {
+	0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+	0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+	0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+	0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+	1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0,
+	1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1,
+	1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1,
+	1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1,
+	0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1,
+	0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+	0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+	0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+static void menuTimerHandler(void *refCon);
 
 MacWindowManager::MacWindowManager() {
 	_screen = 0;
+	_screenCopy = 0;
 	_lastId = 0;
 	_activeWindow = -1;
+	_needsRemoval = false;
+
+	_mode = kWMModeNone;
 
 	_menu = 0;
+	_menuDelay = 0;
+	_menuTimerActive = false;
+
+	_engine = nullptr;
+	_pauseEngineCallback = nullptr;
+
+	_colorBlack = 0;
+	_colorWhite = 2;
 
 	_fullRefresh = true;
-
-	_builtInFonts = true;
 
 	for (int i = 0; i < ARRAYSIZE(fillPatterns); i++)
 		_patterns.push_back(fillPatterns[i]);
 
-	loadFonts();
-
 	g_system->getPaletteManager()->setPalette(palette, 0, ARRAYSIZE(palette) / 3);
+
+	_fontMan = new MacFontManager();
 
 	CursorMan.replaceCursorPalette(palette, 0, ARRAYSIZE(palette) / 3);
 	CursorMan.replaceCursor(macCursorArrow, 11, 16, 1, 1, 3);
@@ -142,29 +184,59 @@ MacWindowManager::MacWindowManager() {
 MacWindowManager::~MacWindowManager() {
 	for (int i = 0; i < _lastId; i++)
 		delete _windows[i];
+
+	delete _fontMan;
+	delete _screenCopy;
+
+	g_system->getTimerManager()->removeTimerProc(&menuTimerHandler);
 }
 
 MacWindow *MacWindowManager::addWindow(bool scrollable, bool resizable, bool editable) {
 	MacWindow *w = new MacWindow(_lastId, scrollable, resizable, editable, this);
 
-	_windows.push_back(w);
-	_windowStack.push_back(w);
+	addWindowInitialized(w);
 
-	setActive(_lastId);
-
-	_lastId++;
+	setActive(getNextId());
 
 	return w;
 }
 
-Menu *MacWindowManager::addMenu() {
-	_menu = new Menu(_lastId, _screen->getBounds(), this);
+MacTextWindow *MacWindowManager::addTextWindow(const MacFont *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler) {
+	MacTextWindow *w = new MacTextWindow(this, font, fgcolor, bgcolor, maxWidth, textAlignment, menu, cursorHandler);
+
+	addWindowInitialized(w);
+
+	setActive(getNextId());
+
+	return w;
+}
+
+
+void MacWindowManager::addWindowInitialized(MacWindow *macwindow) {
+	_windows.push_back(macwindow);
+	_windowStack.push_back(macwindow);
+}
+
+MacMenu *MacWindowManager::addMenu() {
+	_menu = new MacMenu(getNextId(), _screen->getBounds(), this);
 
 	_windows.push_back(_menu);
 
-	_lastId++;
-
 	return _menu;
+}
+
+void MacWindowManager::activateMenu() {
+	if (!_menu)
+		return;
+
+	_menu->setVisible(true);
+}
+
+bool MacWindowManager::isMenuActive() {
+	if (!_menu)
+		return false;
+
+	return _menu->isVisible();
 }
 
 void MacWindowManager::setActive(int id) {
@@ -189,18 +261,8 @@ void MacWindowManager::removeWindow(MacWindow *target) {
 	_needsRemoval = true;
 }
 
-struct PlotData {
-	Graphics::ManagedSurface *surface;
-	MacPatterns *patterns;
-	uint fillType;
-	int thickness;
-
-	PlotData(Graphics::ManagedSurface *s, MacPatterns *p, int f, int t) :
-		surface(s), patterns(p), fillType(f), thickness(t) {}
-};
-
-static void drawPixel(int x, int y, int color, void *data) {
-	PlotData *p = (PlotData *)data;
+void macDrawPixel(int x, int y, int color, void *data) {
+	MacPlotData *p = (MacPlotData *)data;
 
 	if (p->fillType > p->patterns->size())
 		return;
@@ -214,7 +276,7 @@ static void drawPixel(int x, int y, int color, void *data) {
 
 			*((byte *)p->surface->getBasePtr(xu, yu)) =
 				(pat[yu % 8] & (1 << (7 - xu % 8))) ?
-					color : kColorWhite;
+					color : p->bgColor;
 		}
 	} else {
 		int x1 = x;
@@ -229,7 +291,7 @@ static void drawPixel(int x, int y, int color, void *data) {
 					uint yu = (uint)y;
 					*((byte *)p->surface->getBasePtr(xu, yu)) =
 						(pat[yu % 8] & (1 << (7 - xu % 8))) ?
-							color : kColorWhite;
+							color : p->bgColor;
 				}
 	}
 }
@@ -237,9 +299,9 @@ static void drawPixel(int x, int y, int color, void *data) {
 void MacWindowManager::drawDesktop() {
 	Common::Rect r(_screen->getBounds());
 
-	PlotData pd(_screen, &_patterns, kPatternCheckers, 1);
+	MacPlotData pd(_screen, &_patterns, kPatternCheckers, 1, _colorWhite);
 
-	Graphics::drawRoundRect(r, kDesktopArc, kColorBlack, true, drawPixel, &pd);
+	Graphics::drawRoundRect(r, kDesktopArc, _colorBlack, true, macDrawPixel, &pd);
 
 	g_system->copyRectToScreen(_screen->getPixels(), _screen->pitch, 0, 0, _screen->w, _screen->h);
 }
@@ -249,7 +311,7 @@ void MacWindowManager::draw() {
 
 	removeMarked();
 
-	if (_fullRefresh)
+	if (_fullRefresh && !(_mode & kWMModeNoDesktop))
 		drawDesktop();
 
 	for (Common::List<BaseMacWindow *>::const_iterator it = _windowStack.begin(); it != _windowStack.end(); it++) {
@@ -259,8 +321,10 @@ void MacWindowManager::draw() {
 
 			Common::Rect clip(w->getDimensions().left - 2, w->getDimensions().top - 2, w->getDimensions().right - 2, w->getDimensions().bottom - 2);
 			clip.clip(_screen->getBounds());
+			clip.clip(Common::Rect(0, 0, g_system->getWidth() - 1, g_system->getHeight() - 1));
 
-			g_system->copyRectToScreen(_screen->getBasePtr(clip.left, clip.top), _screen->pitch, clip.left, clip.top, clip.width(), clip.height());
+			if (!clip.isEmpty())
+				g_system->copyRectToScreen(_screen->getBasePtr(clip.left, clip.top), _screen->pitch, clip.left, clip.top, clip.width(), clip.height());
 		}
 	}
 
@@ -271,25 +335,55 @@ void MacWindowManager::draw() {
 	_fullRefresh = false;
 }
 
+static void menuTimerHandler(void *refCon) {
+	MacWindowManager *wm = (MacWindowManager *)refCon;
+
+	if (wm->_menuHotzone.contains(wm->_lastMousePos)) {
+		wm->activateMenu();
+		if (wm->_mode & kWMModalMenuMode) {
+			if (!wm->_screenCopy)
+				wm->_screenCopy = new ManagedSurface(*wm->_screen);	// Create a copy
+			else
+				*wm->_screenCopy = *wm->_screen;
+			wm->pauseEngine(true);
+		}
+	}
+
+	wm->_menuTimerActive = false;
+
+	g_system->getTimerManager()->removeTimerProc(&menuTimerHandler);
+}
+
 bool MacWindowManager::processEvent(Common::Event &event) {
-	// Menu gets events first fir shortcuts and menu bar
+	if (event.type == Common::EVENT_MOUSEMOVE)
+		_lastMousePos = event.mouse;
+
+	if (_menu && !_menu->isVisible()) {
+		if ((_mode & kWMModeAutohideMenu) && event.type == Common::EVENT_MOUSEMOVE) {
+			if (!_menuTimerActive && _menuHotzone.contains(event.mouse)) {
+				_menuTimerActive = true;
+
+				g_system->getTimerManager()->installTimerProc(&menuTimerHandler, _menuDelay, this, "menuWindowCursor");
+			}
+		}
+	}
+
+	// Menu gets events first for shortcuts and menu bar
 	if (_menu && _menu->processEvent(event))
 		return true;
 
-	if (event.type != Common::EVENT_MOUSEMOVE && event.type != Common::EVENT_LBUTTONDOWN &&
-			event.type != Common::EVENT_LBUTTONUP)
-		return false;
-
-	if (_windows[_activeWindow]->isEditable() && _windows[_activeWindow]->getType() == kWindowWindow &&
-			((MacWindow *)_windows[_activeWindow])->getInnerDimensions().contains(event.mouse.x, event.mouse.y)) {
-		if (_cursorIsArrow) {
-			CursorMan.replaceCursor(macCursorBeam, 11, 16, 3, 8, 3);
-			_cursorIsArrow = false;
-		}
-	} else {
-		if (_cursorIsArrow == false) {
-			CursorMan.replaceCursor(macCursorArrow, 11, 16, 1, 1, 3);
-			_cursorIsArrow = true;
+	if (_activeWindow != -1) {
+		if (_windows[_activeWindow]->isEditable() && _windows[_activeWindow]->getType() == kWindowWindow &&
+				((MacWindow *)_windows[_activeWindow])->getInnerDimensions().contains(event.mouse.x, event.mouse.y)) {
+			if (_cursorIsArrow) {
+				CursorMan.replaceCursor(macCursorBeam, 11, 16, 3, 8, 3);
+				_cursorIsArrow = false;
+			}
+		} else {
+			if (_cursorIsArrow == false) {
+				CursorMan.replaceCursor(macCursorArrow, 11, 16, 1, 1, 3);
+				_cursorIsArrow = true;
+			}
 		}
 	}
 
@@ -297,8 +391,8 @@ bool MacWindowManager::processEvent(Common::Event &event) {
 		it--;
 		BaseMacWindow *w = *it;
 
-
-		if (w->hasAllFocus() || w->getDimensions().contains(event.mouse.x, event.mouse.y)) {
+		if (w->hasAllFocus() || (w->isEditable() && event.type == Common::EVENT_KEYDOWN) ||
+				w->getDimensions().contains(event.mouse.x, event.mouse.y)) {
 			if (event.type == Common::EVENT_LBUTTONDOWN || event.type == Common::EVENT_LBUTTONUP)
 				setActive(w->getId());
 
@@ -322,6 +416,7 @@ void MacWindowManager::removeMarked() {
 	}
 	_windowsToRemove.clear();
 	_needsRemoval = false;
+	_lastId = _windows.size();
 }
 
 void MacWindowManager::removeFromStack(BaseMacWindow *target) {
@@ -345,124 +440,6 @@ void MacWindowManager::removeFromWindowList(BaseMacWindow *target) {
 	_windows.remove_at(ndx);
 }
 
-//////////////////////
-// Font stuff
-//////////////////////
-void MacWindowManager::loadFonts() {
-	Common::Archive *dat;
-
-	dat = Common::makeZipArchive("classicmacfonts.dat");
-
-	if (!dat) {
-		warning("Could not find classicmacfonts.dat. Falling back to built-in fonts");
-		_builtInFonts = true;
-
-		return;
-	}
-
-	Common::ArchiveMemberList list;
-	dat->listMembers(list);
-
-	for (Common::ArchiveMemberList::iterator it = list.begin(); it != list.end(); ++it) {
-		Common::SeekableReadStream *stream = dat->createReadStreamForMember((*it)->getName());
-
-		Graphics::BdfFont *font = Graphics::BdfFont::loadFont(*stream);
-
-		delete stream;
-
-		Common::String fontName = (*it)->getName();
-
-		// Trim the .bdf extension
-		for (int i = fontName.size() - 1; i >= 0; --i) {
-			if (fontName[i] == '.') {
-				while ((uint)i < fontName.size()) {
-					fontName.deleteLastChar();
-				}
-				break;
-			}
-		}
-
-		FontMan.assignFontToName(fontName, font);
-
-		debug(2, " %s", fontName.c_str());
-	}
-
-	_builtInFonts = false;
-
-	delete dat;
-}
-
-const Graphics::Font *MacWindowManager::getFont(const char *name, Graphics::FontManager::FontUsage fallback) {
-	const Graphics::Font *font = 0;
-
-	if (!_builtInFonts) {
-		font = FontMan.getFontByName(name);
-
-		if (!font)
-			warning("Cannot load font %s", name);
-	}
-
-	if (_builtInFonts || !font)
-		font = FontMan.getFontByUsage(fallback);
-
-	return font;
-}
-
-// Source: Apple IIGS Technical Note #41, "Font Family Numbers"
-// http://apple2.boldt.ca/?page=til/tn.iigs.041
-static const char *const fontNames[] = {
-	"Chicago",	// system font
-	"Geneva",	// application font
-	"New York",
-	"Geneva",
-
-	"Monaco",
-	"Venice",
-	"London",
-	"Athens",
-
-	"San Francisco",
-	"Toronto",
-	NULL,
-	"Cairo",
-	"Los Angeles", // 12
-
-	"Zapf Dingbats",
-	"Bookman",
-	"Helvetica Narrow",
-	"Palatino",
-	NULL,
-	"Zapf Chancery",
-	NULL,
-
-	"Times", // 20
-	"Helvetica",
-	"Courier",
-	"Symbol",
-	"Taliesin", // mobile?
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL, // 30
-	NULL,
-	NULL,
-	"Avant Garde",
-	"New Century Schoolbook"
-};
-
-const char *MacWindowManager::getFontName(int id, int size) {
-	static char name[128];
-
-	if (id > ARRAYSIZE(fontNames))
-		return NULL;
-
-	snprintf(name, 128, "%s-%d", fontNames[id], size);
-
-	return name;
-}
-
 /////////////////
 // Cursor stuff
 /////////////////
@@ -470,9 +447,84 @@ void MacWindowManager::pushArrowCursor() {
 	CursorMan.pushCursor(macCursorArrow, 11, 16, 1, 1, 3);
 }
 
+void MacWindowManager::pushBeamCursor() {
+	CursorMan.pushCursor(macCursorBeam, 11, 16, 1, 1, 3);
+}
+
+void MacWindowManager::pushCrossHairCursor() {
+	CursorMan.pushCursor(macCursorCrossHair, 11, 16, 1, 1, 3);
+}
+
+void MacWindowManager::pushCrossBarCursor() {
+	CursorMan.pushCursor(macCursorCrossBar, 11, 16, 1, 1, 3);
+}
+
+void MacWindowManager::pushWatchCursor() {
+	CursorMan.pushCursor(macCursorWatch, 11, 16, 1, 1, 3);
+}
+
 void MacWindowManager::popCursor() {
 	CursorMan.popCursor();
 }
 
+///////////////////
+// Palette stuff
+///////////////////
+void MacWindowManager::passPalette(const byte *pal, uint size) {
+	const byte *p = pal;
+
+	_colorWhite = -1;
+	_colorBlack = -1;
+
+	// Search pure white and black colors
+	for (uint i = 0; i < size; i++) {
+		if (_colorWhite == -1 && p[0] == 0xff && p[1] == 0xff && p[2] == 0xff)
+			_colorWhite = i;
+
+
+		if (_colorBlack == -1 && p[0] == 0x00 && p[1] == 0x00 && p[2] == 0x00)
+			_colorBlack = i;
+
+		p += 3;
+	}
+
+	if (_colorWhite != -1 && _colorBlack != -1)
+		return;
+
+	// We did not find some color. Let's find closest approximations
+	float darkest = 1000.0f, brightest = -1.0f;
+	int di = -1, bi = -1;
+	p = pal;
+
+	for (uint i = 0; i < size; i++) {
+		float gray = p[0] * 0.3f + p[1] * 0.59f + p[2] * 0.11f;
+
+		if (darkest > gray) {
+			darkest = gray;
+			di = i;
+		}
+
+		if (brightest < gray) {
+			brightest = gray;
+			bi = i;
+		}
+
+		p += 3;
+	}
+
+	_colorWhite = bi;
+	_colorBlack = di;
+}
+
+void MacWindowManager::pauseEngine(bool pause) {
+	if (_engine && _pauseEngineCallback) {
+		_pauseEngineCallback(_engine, pause);
+	}
+}
+
+void MacWindowManager::setEnginePauseCallback(void *engine, void (*pauseCallback)(void *, bool)) {
+	_engine = engine;
+	_pauseEngineCallback = pauseCallback;
+}
 
 } // End of namespace Graphics

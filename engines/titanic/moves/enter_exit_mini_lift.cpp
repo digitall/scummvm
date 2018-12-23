@@ -56,7 +56,7 @@ bool CEnterExitMiniLift::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 		if (pet)
 			pet->setRoomsRoomNum(_destRoomNum);
 	} else if (compareRoomNameTo("SGTLittleLift")) {
-		if (_statics->_changeViewFlag) {
+		if (_statics->_miniLiftFloor == 1) {
 			changeView(_statics->_destView);
 		}
 	}
@@ -65,7 +65,8 @@ bool CEnterExitMiniLift::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 }
 
 bool CEnterExitMiniLift::EnterViewMsg(CEnterViewMsg *msg) {
-	_cursorId = _statics->_changeViewFlag ? CURSOR_MOVE_FORWARD : CURSOR_INVALID;
+	// Only show exit cursor when minilift is on the ground level
+	_cursorId = _statics->_miniLiftFloor == 1 ? CURSOR_MOVE_FORWARD : CURSOR_INVALID;
 	return true;
 }
 

@@ -29,6 +29,9 @@
 
 namespace Titanic {
 
+enum ResourceFlag { FLAG_COMPRESSED = 1 };
+
+class TitanicEngine;
 class CGameManager;
 
 class CFilesManagerList : public List<ListItem> {
@@ -38,29 +41,30 @@ class CFilesManager {
 	struct ResourceEntry {
 		uint _offset;
 		uint _size;
-		
-		ResourceEntry() : _offset(0), _size(0) {}
-		ResourceEntry(uint offset, uint size) : _offset(offset), _size(size) {}
+		uint _flags;
+
+		ResourceEntry() : _offset(0), _size(0), _flags(0) {}
+		ResourceEntry(uint offset, uint size, uint flags) :
+			_offset(offset), _size(size), _flags(flags) {}
 	};
 	typedef Common::HashMap<Common::String, ResourceEntry> ResourceHash;
 private:
+	TitanicEngine *_vm;
 	CGameManager *_gameManager;
 	Common::File _datFile;
 	ResourceHash _resources;
 	CFilesManagerList _list;
-	CString _string1;
-	CString _string2;
-	int _field0;
 	int _drive;
-	int _field18;
-	int _field1C;
-	int _field3C;
 	const CString _assetsPath;
-private:
-	void loadResourceIndex();
+	int _version;
 public:
-	CFilesManager();
+	CFilesManager(TitanicEngine *vm);
 	~CFilesManager();
+
+	/**
+	 * Opens up the titanic.dat support file and loads it's index
+	 */
+	bool loadResourceIndex();
 
 	/**
 	 * Sets the game manager
@@ -84,14 +88,15 @@ public:
 	 */
 	void loadDrive();
 
-	void debug(CScreenManager *screenManager);
+	/**
+	 * Shows a dialog for inserting a new CD
+	 */
+	void insertCD(CScreenManager *screenManager);
 
 	/**
 	 * Resets the view being displayed
 	 */
 	void resetView();
-
-	void fn4(const CString &name);
 
 	/**
 	 * Preloads and caches a file for access shortly

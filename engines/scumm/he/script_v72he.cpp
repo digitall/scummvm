@@ -230,6 +230,23 @@ int ScummEngine_v72he::setupStringArray(int size) {
 	return readVar(0);
 }
 
+int ScummEngine_v72he::setupStringArrayFromString(const char *cStr) {
+	// this is PUI_ScummStringArrayFromCString() found in PUSERMAC.cpp
+	// I can see how its done up there in setupStringArray()
+	// yet I'd note that 'SCUMMVAR_user_reserved' var was used instead of 0
+	// and strlen(), not strlen() + 1 was used
+	// plus, this function actually copies the string, not just 'sets up' the array
+
+	writeVar(0, 0);
+
+	int len = strlen(cStr) + 1;
+	byte *ptr = defineArray(0, kStringArray, 0, 0, 0, len);
+	if (ptr != nullptr)
+		Common::strlcpy((char*)ptr, cStr, len);
+
+	return readVar(0);
+}
+
 void ScummEngine_v72he::readArrayFromIndexFile() {
 	int num;
 	int a, b, c;
@@ -1482,6 +1499,26 @@ void ScummEngine_v72he::writeFileFromArray(int slot, int32 resID) {
 	if (slot != -1) {
 		_hOutFileTable[slot]->write(ah->data, size);
 	}
+}
+
+void ScummEngine_v72he::getStringFromArray(int arrayNumber, char *buffer, int maxLength) {
+	// I'm not really sure it belongs here and not some other version
+	// this is ARRAY_GetStringFromArray() from ARRAYS.cpp of SPUTM
+
+	// this function makes a C-string out of <arrayNumber> contents
+
+	VAR(0) = arrayNumber; // it was 0 in original code, but I've seen ScummVM Moonbase code which uses VAR_U32_ARRAY_UNK
+
+	int i, ch;
+	for (i = 0; i < maxLength; ++i) {
+		if (!(ch = readArray(0, 0, i))) {
+			break;
+		}
+
+		buffer[i] = ch;
+	}
+
+	buffer[i] = 0;
 }
 
 void ScummEngine_v72he::o72_writeFile() {

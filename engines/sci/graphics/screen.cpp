@@ -37,7 +37,7 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 
 	// Scale the screen, if needed
 	_upscaledHires = GFX_SCREEN_UPSCALED_DISABLED;
-	
+
 	// we default to scripts running at 320x200
 	_scriptWidth = 320;
 	_scriptHeight = 200;
@@ -45,7 +45,7 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 	_height = 0;
 	_displayWidth = 0;
 	_displayHeight = 0;
-	
+
 	// King's Quest 6 and Gabriel Knight 1 have hires content, gk1/cd was able
 	// to provide that under DOS as well, but as gk1/floppy does support
 	// upscaled hires scriptswise, but doesn't actually have the hires content
@@ -58,7 +58,7 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 	// Japanese versions of games use hi-res font on upscaled version of the game.
 	if ((g_sci->getLanguage() == Common::JA_JPN) && (getSciVersion() <= SCI_VERSION_1_1))
 		_upscaledHires = GFX_SCREEN_UPSCALED_640x400;
-	
+
 	// Macintosh SCI0 games used 480x300, while the scripts were running at 320x200
 	if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
 		if (getSciVersion() <= SCI_VERSION_01) {
@@ -66,7 +66,7 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 			_width = 480;
 			_height = 300; // regular visual, priority and control map are 480x300 (this is different than other upscaled SCI games)
 		}
-	
+
 		// Some Mac SCI1/1.1 games only take up 190 rows and do not
 		// have the menu bar.
 		// TODO: Verify that LSL1 and LSL5 use height 190
@@ -82,11 +82,6 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 		default:
 			break;
 		}
-	}
-
-	if (_resMan->detectHires()) {
-		_scriptWidth = 640;
-		_scriptHeight = 480;
 	}
 
 	// if not yet set, set those to script-width/height
@@ -145,7 +140,7 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 	}
 
 	_displayPixels = _displayWidth * _displayHeight;
-	
+
 	// Allocate visual, priority, control and display screen
 	_visualScreen = (byte *)calloc(_pixels, 1);
 	_priorityScreen = (byte *)calloc(_pixels, 1);
@@ -184,13 +179,13 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 		// We add 2 to the height of the icon bar to add a buffer between the screen and the
 		// icon bar (as did the original interpreter).
 		if (g_sci->getGameId() == GID_KQ6)
-			initGraphics(_displayWidth, _displayHeight + 26 + 2, _displayWidth > 320);
+			initGraphics(_displayWidth, _displayHeight + 26 + 2);
 		else if (g_sci->getGameId() == GID_FREDDYPHARKAS)
-			initGraphics(_displayWidth, _displayHeight + 28 + 2, _displayWidth > 320);
+			initGraphics(_displayWidth, _displayHeight + 28 + 2);
 		else
 			error("Unknown SCI1.1 Mac game");
 	} else
-		initGraphics(_displayWidth, _displayHeight, _displayWidth > 320);
+		initGraphics(_displayWidth, _displayHeight);
 }
 
 GfxScreen::~GfxScreen() {
@@ -314,7 +309,7 @@ void GfxScreen::vectorAdjustLineCoordinates(int16 *left, int16 *top, int16 *righ
 void GfxScreen::vectorPutLinePixel(int16 x, int16 y, byte drawMask, byte color, byte priority, byte control) {
 	if (_upscaledHires == GFX_SCREEN_UPSCALED_480x300) {
 		vectorPutLinePixel480x300(x, y, drawMask, color, priority, control);
-		return;		
+		return;
 	}
 
 	// For anything else forward to the regular putPixel
@@ -628,7 +623,7 @@ void GfxScreen::dither(bool addToFlag) {
 	byte color, ditheredColor;
 	byte *visualPtr = _visualScreen;
 	byte *displayPtr = _displayScreen;
-	
+
 	if (!_unditheringEnabled) {
 		// Do dithering on visual and display-screen
 		for (y = 0; y < _height; y++) {
@@ -724,77 +719,57 @@ void GfxScreen::debugShowMap(int mapNo) {
 	copyToScreen();
 }
 
-void GfxScreen::scale2x(const byte *src, byte *dst, int16 srcWidth, int16 srcHeight, byte bytesPerPixel) {
+void GfxScreen::scale2x(const SciSpan<const byte> &src, SciSpan<byte> &dst, int16 srcWidth, int16 srcHeight, byte bytesPerPixel) {
 	assert(bytesPerPixel == 1 || bytesPerPixel == 2);
 	const int newWidth = srcWidth * 2;
 	const int pitch = newWidth * bytesPerPixel;
-	const byte *srcPtr = src;
+	const byte *srcPtr = src.getUnsafeDataAt(0, srcWidth * srcHeight * bytesPerPixel);
+	byte *dstPtr = dst.getUnsafeDataAt(0, srcWidth * srcHeight * bytesPerPixel);
 
 	if (bytesPerPixel == 1) {
 		for (int y = 0; y < srcHeight; y++) {
 			for (int x = 0; x < srcWidth; x++) {
 				const byte color = *srcPtr++;
-				dst[0] = color;
-				dst[1] = color;
-				dst[newWidth] = color;
-				dst[newWidth + 1] = color;
-				dst += 2;
+				dstPtr[0] = color;
+				dstPtr[1] = color;
+				dstPtr[newWidth] = color;
+				dstPtr[newWidth + 1] = color;
+				dstPtr += 2;
 			}
-			dst += newWidth;
+			dstPtr += newWidth;
 		}
 	} else if (bytesPerPixel == 2) {
 		for (int y = 0; y < srcHeight; y++) {
 			for (int x = 0; x < srcWidth; x++) {
 				const byte color = *srcPtr++;
 				const byte color2 = *srcPtr++;
-				dst[0] = color;
-				dst[1] = color2;
-				dst[2] = color;
-				dst[3] = color2;
-				dst[pitch] = color;
-				dst[pitch + 1] = color2;
-				dst[pitch + 2] = color;
-				dst[pitch + 3] = color2;
-				dst += 4;
+				dstPtr[0] = color;
+				dstPtr[1] = color2;
+				dstPtr[2] = color;
+				dstPtr[3] = color2;
+				dstPtr[pitch] = color;
+				dstPtr[pitch + 1] = color2;
+				dstPtr[pitch + 2] = color;
+				dstPtr[pitch + 3] = color2;
+				dstPtr += 4;
 			}
-			dst += pitch;
+			dstPtr += pitch;
 		}
 	}
 }
 
 struct UpScaledAdjust {
 	GfxScreenUpscaledMode gameHiresMode;
-	Sci32ViewNativeResolution viewNativeRes;
 	int numerator;
 	int denominator;
 };
 
-static const UpScaledAdjust s_upscaledAdjustTable[] = {
-	{ GFX_SCREEN_UPSCALED_640x480, SCI_VIEW_NATIVERES_640x400, 5, 6 }
-};
-
-void GfxScreen::adjustToUpscaledCoordinates(int16 &y, int16 &x, Sci32ViewNativeResolution viewNativeRes) {
+void GfxScreen::adjustToUpscaledCoordinates(int16 &y, int16 &x) {
 	x = _upscaledWidthMapping[x];
 	y = _upscaledHeightMapping[y];
-
-	for (int i = 0; i < ARRAYSIZE(s_upscaledAdjustTable); i++) {
-		if (s_upscaledAdjustTable[i].gameHiresMode == _upscaledHires &&
-				s_upscaledAdjustTable[i].viewNativeRes == viewNativeRes) {
-			y = (y * s_upscaledAdjustTable[i].numerator) / s_upscaledAdjustTable[i].denominator;
-			break;
-		}
-	}
 }
 
-void GfxScreen::adjustBackUpscaledCoordinates(int16 &y, int16 &x, Sci32ViewNativeResolution viewNativeRes) {
-	for (int i = 0; i < ARRAYSIZE(s_upscaledAdjustTable); i++) {
-		if (s_upscaledAdjustTable[i].gameHiresMode == _upscaledHires &&
-				s_upscaledAdjustTable[i].viewNativeRes == viewNativeRes) {
-			y = (y * s_upscaledAdjustTable[i].denominator) / s_upscaledAdjustTable[i].numerator;
-			break;
-		}
-	}
-
+void GfxScreen::adjustBackUpscaledCoordinates(int16 &y, int16 &x) {
 	switch (_upscaledHires) {
 	case GFX_SCREEN_UPSCALED_480x300:
 		x = (x * 4) / 6;

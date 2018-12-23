@@ -61,7 +61,7 @@ public:
 		_flags = kADFlagUseExtraAsHint;
 	}
 	virtual const char *getName() const {
-		return "Mortevielle";
+		return "Mortville Manor";
 	}
 
 	virtual const char *getOriginalCopyright() const {
@@ -90,6 +90,7 @@ bool MortevielleMetaEngine::hasFeature(MetaEngineFeature f) const {
 	case kSavesSupportMetaInfo:
 	case kSavesSupportThumbnail:
 	case kSavesSupportCreationDate:
+	case kSimpleSavesNames:
 		return true;
 	default:
 		return false;

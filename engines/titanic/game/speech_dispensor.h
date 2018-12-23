@@ -28,17 +28,22 @@
 namespace Titanic {
 
 class CSpeechDispensor : public CBackground {
+	DECLARE_MESSAGE_MAP;
+	bool FrameMsg(CFrameMsg *msg);
+	bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
+	bool StatusChangeMsg(CStatusChangeMsg *msg);
+	bool ChangeSeasonMsg(CChangeSeasonMsg *msg);
 private:
-	int _fieldE0;
-	int _fieldE4;
-	int _fieldE8;
-	int _fieldEC;
-	int _fieldF0;
-	int _fieldF4;
-	int _fieldF8;
-	int _fieldFC;
+	int _hitCounter;
+	int _state;
+	CGameObject *_dragItem;
+	bool _speechFallen;
+	Point _itemPos;
+	bool _failureType;
+	Season _seasonNum;
 public:
 	CLASSDEF;
+	CSpeechDispensor();
 
 	/**
 	 * Save the data for the class to file

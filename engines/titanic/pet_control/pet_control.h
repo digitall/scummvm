@@ -31,11 +31,12 @@
 #include "titanic/pet_control/pet_conversations.h"
 #include "titanic/pet_control/pet_frame.h"
 #include "titanic/pet_control/pet_inventory.h"
-#include "titanic/pet_control/pet_message.h"
+#include "titanic/pet_control/pet_translation.h"
 #include "titanic/pet_control/pet_starfield.h"
 #include "titanic/pet_control/pet_real_life.h"
 #include "titanic/pet_control/pet_remote.h"
 #include "titanic/pet_control/pet_rooms.h"
+#include "titanic/support/strings.h"
 #include "titanic/room_flags.h"
 
 namespace Titanic {
@@ -60,7 +61,7 @@ private:
 	CPetRemote _remote;
 	CPetRooms _rooms;
 	CPetRealLife _realLife;
-	CPetMessage _message;
+	CPetTranslation _translation;
 	CPetFrame _frame;
 	CString _activeNPCName;
 	CString _remoteTargetName;
@@ -114,6 +115,7 @@ protected:
 	bool MouseDragEndMsg(CMouseDragEndMsg *msg);
 	bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
 	bool MouseDoubleClickMsg(CMouseDoubleClickMsg *msg);
+	bool MouseWheelMsg(CMouseWheelMsg *msg);
 	bool KeyCharMsg(CKeyCharMsg *msg);
 	bool VirtualKeyCharMsg(CVirtualKeyCharMsg *msg);
 	bool TimerMsg(CTimerMsg *msg);
@@ -146,9 +148,9 @@ public:
 	virtual Rect getBounds() const;
 
 	/**
-	 * Setups the sections within the PET
+	 * Resets the PET, including all the sections within it
 	 */
-	void setup();
+	void reset();
 
 	/**
 	 * Called after loading a game has finished
@@ -178,7 +180,7 @@ public:
 	/**
 	 * Sets the currently viewed area within the PET
 	 */
-	PetArea setArea(PetArea newSection);
+	PetArea setArea(PetArea newSection, bool forceChange = false);
 
 	/**
 	 * Hides the text cursor in the current section, if applicable
@@ -232,7 +234,22 @@ public:
 	/**
 	 * Display a message
 	 */
-	void displayMessage(const CString &msg) const;
+	void displayMessage(StringId stringId, int param = 0) const;
+
+	/**
+	 * Display a message
+	 */
+	void displayMessage(const CString &str, int param = 0) const;
+
+	/**
+	 * Switches to the Translation display, and adds a line to it's content
+	 */
+	void addTranslation(StringId id1, StringId id2);
+
+	/**
+	 * Clears the translation display
+	 */
+	void clearTranslation();
 
 	/**
 	 * Get the first game object stored in the PET
@@ -280,6 +297,11 @@ public:
 	bool checkNode(const CString &name);
 
 	/**
+	 * Handles updates to the sound levels
+	 */
+	void syncSoundSettings();
+
+	/**
 	 * Play a sound
 	 */
 	void playSound(int soundNum);
@@ -323,12 +345,12 @@ public:
 	 * Returns true if all input is currently locked (disabled)
 	 */
 	bool isInputLocked() const { return _inputLockCount > 0; }
-	
+
 	/**
 	 * Increments the input locked count
 	 */
 	void incInputLocks() { ++_inputLockCount; }
-	
+
 	/**
 	 * Decremenst the input locked count
 	 */
@@ -337,7 +359,7 @@ public:
 	/**
 	 * Returns true if the PET is currently unlocked
 	 */
-	bool isAreaActive() const { return _areaLockCount == 0; }
+	bool isAreaUnlocked() const { return _areaLockCount == 0; }
 
 	/**
 	 * Increment the number of PET area (tab) locks
@@ -347,7 +369,7 @@ public:
 	/**
 	 * Decrement the number of PET area (tab) locks
 	 */
-	void decAreaLocks() { 
+	void decAreaLocks() {
 		_areaLockCount = MAX(_areaLockCount - 1, 0);
 	}
 
@@ -358,9 +380,7 @@ public:
 	/**
 	 * Sets the active NPC
 	 */
-	void setActiveNPC(const CString &name) {
-		_conversations.setActiveNPC(name);
-	}
+	void setActiveNPC(const CString &name);
 
 	/**
 	 * Sets the actie NPC
@@ -387,7 +407,7 @@ public:
 	/**
 	 * Resets the conversation dials back to 0 position
 	 */
-	void resetDials0() { _conversations.resetDials0(); }
+	void resetDials0();
 
 	/**
 	 * Resets the dial display in the conversation tab to reflect new values
@@ -406,22 +426,22 @@ public:
 	/**
 	 * Gives the player a new assigned room in the specified passenger class
 	 */
-	void reassignRoom(int passClassNum) {
+	void reassignRoom(PassengerClass passClassNum) {
 		_rooms.reassignRoom(passClassNum);
 	}
 
 	/**
 	 * Change the current location passenger class
 	 */
-	bool changeLocationClass(int newClassNum) {
+	bool changeLocationClass(PassengerClass newClassNum) {
 		return _rooms.changeLocationClass(newClassNum);
 	}
 
 	/**
-	 * Returns true if the Rooms list has a room with the given flags
+	 * Returns true if the player is in the current or previously assigned rooms
 	 */
-	bool hasRoomFlags() const {
-		return _rooms.hasRoomFlags(getRoomFlags());
+	bool isInAssignedRoom() const {
+		return _rooms.isAssignedRoom(getRoomFlags());
 	}
 
 	uint getRoomFlags() const {
@@ -484,11 +504,18 @@ public:
 		return _rooms.getWellEntry();
 	}
 
-	void setRooms1CC(int v) {
-		_rooms.set1CC(v);
+	/**
+	 * Sets the sub-level an SGT or 2nd class room is on
+	 */
+	void setRoomsSublevel(int level) {
+		_rooms.setSublevel(level);
 	}
-	int getRooms1CC() const {
-		return _rooms.get1CC();
+
+	/**
+	 * Gets the current sub-level for a stateroom
+	 */
+	int getRoomsSublevel() const {
+		return _rooms.getSublevel();
 	}
 
 	/**
@@ -507,12 +534,15 @@ public:
 	}
 
 	/**
-	 * Get mail destination given the specified flags
+	 * Get the passenger class of the specified room flags
 	 */
-	int getMailDest(const CRoomFlags &roomFlags) const;
+	PassengerClass getMailDestClass(const CRoomFlags &roomFlags) const;
 
-	bool testRooms5(uint roomFlags) {
-		return CRoomFlags(roomFlags).not5();
+	/**
+	 * Returns whether the given room flags specify a location with a SuccUBus
+	 */
+	bool isSuccUBusDest(uint roomFlags) {
+		return CRoomFlags(roomFlags).isSuccUBusDest();
 	}
 
 	/**
@@ -536,12 +566,18 @@ public:
 		return _rooms.getAssignedElevatorNum();
 	}
 
-	void setRooms1D4(int val) {
-		_rooms.set1D4(val);
+	/**
+	 * Sets the flag for whether elevator 4 has yet been fixed
+	 */
+	void setRoomsElevatorBroken(bool flag) {
+		_rooms.setElevatorBroken(flag);
 	}
 
-	bool isRoom59706() const {
-		return CRoomFlags(getRoomFlags()).is59706();
+	/**
+	 * Returns true if the player is in their 1st class stateroom
+	 */
+	bool isFirstClassSuite() const {
+		return CRoomFlags(getRoomFlags()).isFirstClassSuite();
 	}
 
 	/**
@@ -561,12 +597,12 @@ public:
 	/**
 	 * Sets the status buttons for the starfield control
 	 */
-	void starsSetButtons(int val1, int val2);
+	void starsSetButtons(int matchIndex, bool isMarkerClose);
 
 	/**
-	 * Set whether the user has the galactic reference material
+	 * Sets that the user has the galactic reference material
 	 */
-	void starsSetReference(bool hasRef);
+	void starsSetReference();
 };
 
 } // End of namespace Titanic

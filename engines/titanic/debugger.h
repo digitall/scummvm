@@ -23,15 +23,26 @@
 #ifndef TITANIC_DEBUGGER_H
 #define TITANIC_DEBUGGER_H
 
-#include "common/scummsys.h"
 #include "gui/debugger.h"
-#include "titanic/core/room_item.h"
-#include "titanic/core/node_item.h"
-#include "titanic/core/view_item.h"
+#include "common/scummsys.h"
 
 namespace Titanic {
 
+#define DEBUG_BASIC 1
+#define DEBUG_INTERMEDIATE 2
+#define DEBUG_DETAILED 3
+
+class CNodeItem;
+class CRoomItem;
+class CViewItem;
 class TitanicEngine;
+
+enum TitanicDebugChannels {
+	kDebugCore      = 1 << 0,
+	kDebugScripts	= 1 << 1,
+	kDebugGraphics	= 1 << 2,
+	kDebugStarfield = 1 << 3
+};
 
 class Debugger : public GUI::Debugger {
 private:
@@ -44,27 +55,27 @@ private:
 	 * Find a room by name or number
 	 */
 	CRoomItem *findRoom(const char *name);
-	
+
 	/**
 	 * Find a node within a room by name or number
 	 */
 	CNodeItem *findNode(CRoomItem *room, const char *name);
-	
+
 	/**
 	 * Find a view within a room node by name or number
 	 */
 	CViewItem *findView(CNodeItem *node, const char *name);
-	
+
 	/**
 	 * List all the rooms in the game
 	 */
 	void listRooms();
-	
+
 	/**
 	 * List the nodes within a room
 	 */
 	void listRoom(CRoomItem *room);
-	
+
 	/**
 	 * List the views within a room node
 	 */
@@ -89,6 +100,26 @@ private:
 	 * Item handling
 	 */
 	bool cmdItem(int argc, const char **argv);
+
+	/**
+	 * Shows a movie
+	 */
+	bool cmdMovie(int argc, const char **argv);
+
+	/**
+	 * Play a sound
+	 */
+	bool cmdSound(int argc, const char **argv);
+
+	/**
+	 * Change to the cheat room
+	 */
+	bool cmdCheat(int argc, const char **argv);
+
+	/**
+	 * Set the movie frame for a given object
+	 */
+	bool cmdFrame(int argc, const char **argv);
 protected:
 	TitanicEngine *_vm;
 public:

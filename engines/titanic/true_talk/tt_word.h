@@ -23,6 +23,7 @@
 #ifndef TITANIC_TT_WORD_H
 #define TITANIC_TT_WORD_H
 
+#include "titanic/support/exe_resources.h"
 #include "titanic/support/simple_file.h"
 #include "titanic/true_talk/tt_string.h"
 #include "titanic/true_talk/tt_synonym.h"
@@ -32,7 +33,7 @@ namespace Titanic {
 /**
  * Types of words
  */
-enum WordClass { 
+enum WordClass {
 	WC_UNKNOWN = 0, WC_ACTION = 1, WC_THING = 2, WC_ABSTRACT = 3,
 	WC_ARTICLE = 4, WC_CONJUNCTION = 5, WC_PRONOUN = 6,
 	WC_PREPOSITION = 7, WC_ADJECTIVE = 8, WC_ADVERB = 9
@@ -102,9 +103,10 @@ public:
 	 * Finds a synonym in the word by name, if one exists
 	 * @param str		Name to search for
 	 * @param dest		Destination synonym instance to copy match into
+	 * @param mode		Specifies English or German vocab mode
 	 * @returns			Returns true if a match was found
 	 */
-	bool findSynByName(const TTstring &str, TTsynonym *dest, int mode) const;
+	bool findSynByName(const TTstring &str, TTsynonym *dest, VocabMode mode) const;
 
 	const char *c_str() const { return _text.c_str(); }
 	operator const char *() const { return c_str(); }
@@ -155,7 +157,7 @@ public:
 	 * Creates a copy of the word
 	 */
 	virtual TTword *copy() const;
-	
+
 	virtual bool proc2(int val) const { return false; }
 	virtual int proc3() const { return -1; }
 	virtual void proc4() {}
@@ -165,7 +167,7 @@ public:
 	 * Checks whether the word's tag is a known type
 	 */
 	virtual bool checkTag() const { return false; }
-	
+
 	/**
 	 * Compare the word's tag to a given tag value
 	 */
@@ -175,7 +177,7 @@ public:
 	 * Return the tag associated with the word
 	 */
 	virtual uint getTag() const { return 0; }
-	
+
 	virtual bool proc9(int val) const { return false; }
 	virtual int proc10() const { return 0; }
 	virtual void proc11() {}

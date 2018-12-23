@@ -21,16 +21,17 @@
  */
 
 #include "titanic/pet_control/pet_load.h"
-#include "titanic/pet_control/pet_control.h"
 #include "titanic/core/project_item.h"
 #include "titanic/game_manager.h"
+#include "titanic/main_game_window.h"
+#include "titanic/pet_control/pet_control.h"
 #include "titanic/titanic.h"
 
 namespace Titanic {
 
 bool CPetLoad::reset() {
 	CPetLoadSave::reset();
-	
+
 	CPetControl *pet = getPetControl();
 	if (pet) {
 		setName("PetLoad", pet);
@@ -50,8 +51,8 @@ bool CPetLoad::MouseButtonUpMsg(const Point &pt) {
 	}
 }
 
-void CPetLoad::getTooltip(CPetText *text) {
-	text->setText("Load the game.");
+void CPetLoad::getTooltip(CTextControl *text) {
+	text->setText(LOAD_THE_GAME);
 }
 
 void CPetLoad::execute() {
@@ -63,7 +64,7 @@ void CPetLoad::execute() {
 		// WORKAROUND: Schedule the savegame to be loaded after frame rendering ends
 		window->loadGame(_savegameSlotNum);
 	} else if (pet) {
-		pet->displayMessage("You must select a game to load first.");
+		pet->displayMessage(SELECT_GAME_TO_LOAD);
 	}
 }
 

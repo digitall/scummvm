@@ -24,26 +24,65 @@
 
 namespace Titanic {
 
+BEGIN_MESSAGE_MAP(CWheelButton, CBackground)
+	ON_MESSAGE(SignalObject)
+	ON_MESSAGE(TimerMsg)
+	ON_MESSAGE(LeaveViewMsg)
+END_MESSAGE_MAP()
+
 CWheelButton::CWheelButton() : CBackground(),
-	_fieldE0(0), _fieldE4(0), _fieldE8(0) {
+	_blinking(false), _timerId(0), _unused5(0) {
 }
 
 void CWheelButton::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
-	file->writeNumberLine(_fieldE0, indent);
-	file->writeNumberLine(_fieldE4, indent);
-	file->writeNumberLine(_fieldE8, indent);
+	file->writeNumberLine(_blinking, indent);
+	file->writeNumberLine(_timerId, indent);
+	file->writeNumberLine(_unused5, indent);
 
 	CBackground::save(file, indent);
 }
 
 void CWheelButton::load(SimpleFile *file) {
 	file->readNumber();
-	_fieldE0 = file->readNumber();
-	_fieldE4 = file->readNumber();
-	_fieldE8 = file->readNumber();
+	_blinking = file->readNumber();
+	_timerId = file->readNumber();
+	_unused5 = file->readNumber();
 
 	CBackground::load(file);
+}
+
+bool CWheelButton::SignalObject(CSignalObject *msg) {
+	bool oldBlinking = _blinking;
+	_blinking = msg->_numValue != 0;
+
+	if (oldBlinking != _blinking) {
+		if (_blinking) {
+			_timerId = addTimer(500, 500);
+		} else {
+			stopAnimTimer(_timerId);
+			_timerId = 0;
+			setVisible(false);
+		}
+	}
+
+	return true;
+}
+
+bool CWheelButton::TimerMsg(CTimerMsg *msg) {
+	setVisible(!_visible);
+	makeDirty();
+	return true;
+}
+
+bool CWheelButton::LeaveViewMsg(CLeaveViewMsg *msg) {
+	if (_timerId) {
+		stopAnimTimer(_timerId);
+		_timerId = 0;
+		setVisible(false);
+	}
+
+	return true;
 }
 
 } // End of namespace Titanic

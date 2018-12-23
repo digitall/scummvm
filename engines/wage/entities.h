@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -50,6 +50,7 @@
 
 namespace Graphics {
 	class ManagedSurface;
+	class MacFont;
 }
 
 namespace Wage {
@@ -124,7 +125,7 @@ public:
 
 	void setDesignBounds(Common::Rect *bounds);
 
-	Common::String toString() { if (!this) return "<NULL>"; return _name; }
+	Common::String toString() const { return _name; }
 };
 
 class Chr : public Designed {
@@ -308,8 +309,7 @@ public:
 	Script *_script;
 	Common::String _text;
 	Common::Rect *_textBounds;
-	int _fontSize;
-	int _fontType; // 3 => Geneva, 22 => Courier, param to TextFont() function
+	Graphics::MacFont *_font;
 	bool _blocked[4];
 	Common::String _messages[4];
 	int _soundFrequency; // times a minute, max 3600
@@ -334,7 +334,7 @@ public:
 
 	void paint(Graphics::ManagedSurface *screen, int x, int y);
 
-	const char *getFontName();
+	const Graphics::MacFont *getFont() { return _font; }
 };
 
 } // End of namespace Wage

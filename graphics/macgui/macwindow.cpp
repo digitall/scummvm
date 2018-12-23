@@ -8,46 +8,22 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * MIT License:
- *
- * Copyright (c) 2009 Alexei Svitkine, Eugene Sandulenko
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "graphics/font.h"
 #include "graphics/primitives.h"
 #include "common/events.h"
+#include "graphics/macgui/macfontmanager.h"
 #include "graphics/macgui/macwindowmanager.h"
 #include "graphics/macgui/macwindow.h"
 #include "image/bmp.h"
@@ -69,6 +45,9 @@ MacWindow::MacWindow(int id, bool scrollable, bool resizable, bool editable, Mac
 	_active = false;
 	_borderIsDirty = true;
 
+	_pattern = 0;
+	_hasPattern = false;
+
 	_highlightedPart = kBorderNone;
 
 	_scrollPos = _scrollSize = 0.0;
@@ -89,7 +68,7 @@ MacWindow::~MacWindow() {
 }
 
 const Font *MacWindow::getTitleFont() {
-	return _wm->getFont("Chicago-12", FontManager::kBigGUIFont);
+	return _wm->_fontMan->getFont(Graphics::MacFont(kMacFontChicago, 12));
 }
 
 void MacWindow::setActive(bool active) {
@@ -108,6 +87,10 @@ void MacWindow::resize(int w, int h) {
 
 	_surface.free();
 	_surface.create(w, h, PixelFormat::createFormatCLUT8());
+
+	if (_hasPattern)
+		drawPattern();
+
 	_borderSurface.free();
 	_borderSurface.create(w, h, PixelFormat::createFormatCLUT8());
 	_composeSurface.free();
@@ -140,6 +123,13 @@ void MacWindow::setDimensions(const Common::Rect &r) {
 	_contentIsDirty = true;
 }
 
+void MacWindow::setBackgroundPattern(int pattern) {
+	_pattern = pattern;
+	_hasPattern = true;
+	drawPattern();
+	_contentIsDirty = true;
+}
+
 bool MacWindow::draw(ManagedSurface *g, bool forceRedraw) {
 	if (!_borderIsDirty && !_contentIsDirty && !forceRedraw)
 		return false;
@@ -169,13 +159,15 @@ const int arrowPixels[ARROW_H][ARROW_W] = {
 		{0,1,1,1,1,1,1,1,1,1,1,0},
 		{1,1,1,1,1,1,1,1,1,1,1,1}};
 
+int localColorWhite, localColorBlack;
+
 static void drawPixelInverted(int x, int y, int color, void *data) {
 	ManagedSurface *surface = (ManagedSurface *)data;
 
 	if (x >= 0 && x < surface->w && y >= 0 && y < surface->h) {
 		byte *p = (byte *)surface->getBasePtr(x, y);
 
-		*p = *p == kColorWhite ? kColorBlack : kColorWhite;
+		*p = *p == localColorWhite ? localColorBlack : localColorWhite;
 	}
 }
 
@@ -244,26 +236,26 @@ void MacWindow::drawSimpleBorder(ManagedSurface *g) {
 	drawBox(g, x + width - size + 1, y + size,              size - 4,             height - 2 * size - 1);
 
 	if (active) {
-		fillRect(g, x + size, y + 5,           width - 2 * size - 1, 8, kColorBlack);
-		fillRect(g, x + size, y + height - 13, width - 2 * size - 1, 8, kColorBlack);
-		fillRect(g, x + 5,    y + size,        8,                    height - 2 * size - 1, kColorBlack);
+		fillRect(g, x + size, y + 5,           width - 2 * size - 1, 8, _wm->_colorBlack);
+		fillRect(g, x + size, y + height - 13, width - 2 * size - 1, 8, _wm->_colorBlack);
+		fillRect(g, x + 5,    y + size,        8,                    height - 2 * size - 1, _wm->_colorBlack);
 		if (!scrollable) {
-			fillRect(g, x + width - 13, y + size, 8, height - 2 * size - 1, kColorBlack);
+			fillRect(g, x + width - 13, y + size, 8, height - 2 * size - 1, _wm->_colorBlack);
 		} else {
 			int x1 = x + width - 15;
 			int y1 = y + size + 1;
 
 			for (int yy = 0; yy < ARROW_H; yy++) {
 				for (int xx = 0; xx < ARROW_W; xx++)
-					g->hLine(x1 + xx, y1 + yy, x1 + xx, (arrowPixels[yy][xx] != 0 ? kColorBlack : kColorWhite));
+					g->hLine(x1 + xx, y1 + yy, x1 + xx, (arrowPixels[yy][xx] != 0 ? _wm->_colorBlack : _wm->_colorWhite));
 			}
 
-			fillRect(g, x + width - 13, y + size + ARROW_H, 8, height - 2 * size - 1 - ARROW_H * 2, kColorBlack);
+			fillRect(g, x + width - 13, y + size + ARROW_H, 8, height - 2 * size - 1 - ARROW_H * 2, _wm->_colorBlack);
 
 			y1 += height - 2 * size - ARROW_H - 2;
 			for (int yy = 0; yy < ARROW_H; yy++) {
 				for (int xx = 0; xx < ARROW_W; xx++)
-					g->hLine(x1 + xx, y1 + yy, x1 + xx, (arrowPixels[ARROW_H - yy - 1][xx] != 0 ? kColorBlack : kColorWhite));
+					g->hLine(x1 + xx, y1 + yy, x1 + xx, (arrowPixels[ARROW_H - yy - 1][xx] != 0 ? _wm->_colorBlack : _wm->_colorWhite));
 			}
 
 			if (_highlightedPart == kBorderScrollUp || _highlightedPart == kBorderScrollDown) {
@@ -273,12 +265,15 @@ void MacWindow::drawSimpleBorder(ManagedSurface *g) {
 				int ry2 = ry1 + _dims.height() * _scrollSize;
 				Common::Rect rr(rx1, ry1, rx2, ry2);
 
-				Graphics::drawFilledRect(rr, kColorBlack, drawPixelInverted, g);
+				localColorWhite = _wm->_colorWhite;
+				localColorBlack = _wm->_colorBlack;
+
+				Graphics::drawFilledRect(rr, _wm->_colorBlack, drawPixelInverted, g);
 			}
 		}
 		if (closeable) {
 			if (_highlightedPart == kBorderCloseButton) {
-				fillRect(g, x + 6, y + 6, 6, 6, kColorBlack);
+				fillRect(g, x + 6, y + 6, 6, 6, _wm->_colorBlack);
 			} else {
 				drawBox(g, x + 5, y + 5, 7, 7);
 			}
@@ -287,14 +282,27 @@ void MacWindow::drawSimpleBorder(ManagedSurface *g) {
 
 	if (drawTitle) {
 		const Graphics::Font *font = getTitleFont();
-		int yOff = _wm->hasBuiltInFonts() ? 3 : 1;
+		int yOff = _wm->_fontMan->hasBuiltInFonts() ? 3 : 1;
 
 		int w = font->getStringWidth(_title) + 10;
 		int maxWidth = width - size * 2 - 7;
 		if (w > maxWidth)
 			w = maxWidth;
 		drawBox(g, x + (width - w) / 2, y, w, size);
-		font->drawString(g, _title, x + (width - w) / 2 + 5, y + yOff, w, kColorBlack);
+		font->drawString(g, _title, x + (width - w) / 2 + 5, y + yOff, w, _wm->_colorBlack);
+	}
+}
+
+void MacWindow::drawPattern() {
+	byte *pat = _wm->getPatterns()[_pattern - 1];
+	for (int y = 0; y < _surface.h; y++) {
+		for (int x = 0; x < _surface.w; x++) {
+			byte *dst = (byte *)_surface.getBasePtr(x, y);
+			if (pat[y % 8] & (1 << (7 - (x % 8))))
+				*dst = _wm->_colorBlack;
+			else
+				*dst = _wm->_colorWhite;
+		}
 	}
 }
 
@@ -317,26 +325,27 @@ void MacWindow::setScroll(float scrollPos, float scrollSize) {
 
 void MacWindow::loadBorder(Common::SeekableReadStream &file, bool active, int lo, int ro, int to, int bo) {
 	Image::BitmapDecoder bmpDecoder;
-	Graphics::Surface source;
+	Graphics::Surface *source;
 	Graphics::TransparentSurface *surface = new Graphics::TransparentSurface();
 
 	bmpDecoder.loadStream(file);
-	source = *(bmpDecoder.getSurface());
+	source = bmpDecoder.getSurface()->convertTo(surface->getSupportedPixelFormat(), bmpDecoder.getPalette());
 
-	source.convertToInPlace(surface->getSupportedPixelFormat(), bmpDecoder.getPalette());
-	surface->create(source.w, source.h, source.format);
-	surface->copyFrom(source);
+	surface->create(source->w, source->h, surface->getSupportedPixelFormat());
+	surface->copyFrom(*source);
 	surface->applyColorKey(255, 0, 255, false);
 
 	if (active)
-		_macBorder.addActiveBorder(*surface);
+		_macBorder.addActiveBorder(surface);
 	else
-		_macBorder.addInactiveBorder(*surface);
+		_macBorder.addInactiveBorder(surface);
 
 	if (!_macBorder.hasOffsets())
 		_macBorder.setOffsets(lo, ro, to, bo);
 
 	updateInnerDims();
+	source->free();
+	delete source;
 }
 
 void MacWindow::setCloseable(bool closeable) {
@@ -346,8 +355,8 @@ void MacWindow::setCloseable(bool closeable) {
 void MacWindow::drawBox(ManagedSurface *g, int x, int y, int w, int h) {
 	Common::Rect r(x, y, x + w + 1, y + h + 1);
 
-	g->fillRect(r, kColorWhite);
-	g->frameRect(r, kColorBlack);
+	g->fillRect(r, _wm->_colorWhite);
+	g->frameRect(r, _wm->_colorBlack);
 }
 
 void MacWindow::fillRect(ManagedSurface *g, int x, int y, int w, int h, int color) {
@@ -455,7 +464,9 @@ bool MacWindow::processEvent(Common::Event &event) {
 			_draggedY = event.mouse.y;
 
 			_wm->setFullRefresh(true);
-			(*_callback)(click, event, _dataPtr);
+
+			if (_callback)
+				(*_callback)(click, event, _dataPtr);
 		}
 		break;
 	case Common::EVENT_LBUTTONDOWN:
@@ -490,7 +501,10 @@ bool MacWindow::processEvent(Common::Event &event) {
 		return false;
 	}
 
-	return (*_callback)(click, event, _dataPtr);
+	if (_callback)
+		return (*_callback)(click, event, _dataPtr);
+	else
+		return false;
 }
 
 } // End of namespace Wage

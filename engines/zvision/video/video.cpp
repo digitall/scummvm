@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -23,7 +23,7 @@
 #include "common/scummsys.h"
 #include "common/system.h"
 #include "video/video_decoder.h"
-#ifdef USE_MPEG2
+#if defined(USE_MPEG2) && defined(USE_A52)
 #include "video/mpegps_decoder.h"
 #endif
 #include "engines/util.h"
@@ -48,7 +48,7 @@ Video::VideoDecoder *ZVision::loadAnimation(const Common::String &fileName) {
 		animation = new RLFDecoder();
 	else if (tmpFileName.hasSuffix(".avi"))
 		animation = new ZorkAVIDecoder();
-#ifdef USE_MPEG2
+#if defined(USE_MPEG2) && defined(USE_A52)
 	else if (tmpFileName.hasSuffix(".vob"))
 		animation = new Video::MPEGPSDecoder();
 #endif

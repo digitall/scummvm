@@ -28,11 +28,14 @@
 namespace Titanic {
 
 class CRestaurantPanHandler : public CMovePlayerTo {
+	DECLARE_MESSAGE_MAP;
+	bool ArmPickedUpFromTableMsg(CArmPickedUpFromTableMsg *msg);
+	bool MouseButtonDownMsg(CMouseButtonDownMsg *msg);
 protected:
-	static int _v1;
-
-	CString _string1;
-	CString _string2;
+	CString _armDestination;
+	CString _armlessDestination;
+public:
+	static bool _armPickedUp;
 public:
 	CLASSDEF;
 

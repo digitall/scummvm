@@ -28,10 +28,17 @@
 namespace Titanic {
 
 class CSauceDispensor : public CBackground {
+	DECLARE_MESSAGE_MAP;
+	bool Use(CUse *msg);
+	bool MovieEndMsg(CMovieEndMsg *msg);
+	bool ActMsg(CActMsg *msg);
+	bool LeaveViewMsg(CLeaveViewMsg *msg);
+	bool MouseButtonDownMsg(CMouseButtonDownMsg *msg);
+	bool StatusChangeMsg(CStatusChangeMsg *msg);
 public:
-	CString _string3;
-	int _fieldEC;
-	int _fieldF0;
+	CString _condimentName;
+	bool _pouringCondiment;
+	bool _starlingsDead;
 	Point _pos1;
 	Point _pos2;
 	int _field104;

@@ -8,45 +8,22 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * MIT License:
- *
- * Copyright (c) 2009 Alexei Svitkine, Eugene Sandulenko
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #ifndef GRAPHICS_MACGUI_MACWINDOW_H
 #define GRAPHICS_MACGUI_MACWINDOW_H
+
+#include "common/stream.h"
 
 #include "graphics/managed_surface.h"
 #include "graphics/transparent_surface.h"
@@ -221,7 +198,7 @@ public:
 	 * @param w New width of the window.
 	 * @param h New height of the window.
 	 */
-	void resize(int w, int h);
+	virtual void resize(int w, int h);
 
 	/**
 	 * Change the dimensions of the window ([0, 0, 0, 0] by default).
@@ -241,11 +218,17 @@ public:
 	const Common::Rect &getInnerDimensions() { return _innerDims; }
 
 	/**
+	 * Set a background pattern for the window.
+	 * @param pattern
+	 */
+	void setBackgroundPattern(int pattern);
+
+	/**
 	 * Similar to that described in BaseMacWindow.
 	 * @param g See BaseMacWindow.
 	 * @param forceRedraw If true, the borders are guarranteed to redraw.
 	 */
-	bool draw(ManagedSurface *g, bool forceRedraw = false);
+	virtual bool draw(ManagedSurface *g, bool forceRedraw = false);
 
 	/**
 	 * Mutator to change the active state of the window.
@@ -279,7 +262,7 @@ public:
 	/**
 	 * See BaseMacWindow.
 	 */
-	bool processEvent(Common::Event &event);
+	virtual bool processEvent(Common::Event &event);
 	bool hasAllFocus() { return _beingDragged || _beingResized; }
 
 	/**
@@ -303,42 +286,49 @@ public:
 	void setCloseable(bool closeable);
 
 private:
-	void drawBorder();
 	void prepareBorderSurface(ManagedSurface *g);
 	void drawSimpleBorder(ManagedSurface *g);
 	void drawBorderFromSurface(ManagedSurface *g);
+	void drawPattern();
 	void drawBox(ManagedSurface *g, int x, int y, int w, int h);
 	void fillRect(ManagedSurface *g, int x, int y, int w, int h, int color);
 	const Font *getTitleFont();
 	void updateInnerDims();
-	WindowClick isInBorder(int x, int y);
 
 	bool isInCloseButton(int x, int y);
 	bool isInResizeButton(int x, int y);
 	WindowClick isInScroll(int x, int y);
 
-private:
+protected:
+	void drawBorder();
+	WindowClick isInBorder(int x, int y);
+
+protected:
 	ManagedSurface _borderSurface;
 	ManagedSurface _composeSurface;
 
+	bool _borderIsDirty;
+
+private:
 	MacWindowBorder _macBorder;
+
+	int _pattern;
+	bool _hasPattern;
 
 	bool _scrollable;
 	bool _resizable;
 	bool _active;
-	bool _borderIsDirty;
 
 	bool _closeable;
 
 	int _borderWidth;
+	Common::Rect _innerDims;
 
 	bool _beingDragged, _beingResized;
 	int _draggedX, _draggedY;
 
 	WindowClick _highlightedPart;
 	float _scrollPos, _scrollSize;
-
-	Common::Rect _innerDims;
 
 	Common::String _title;
 };

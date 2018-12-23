@@ -167,6 +167,7 @@ MODULE_OBJS := \
 	game/pet_disabler.o \
 	game/phonograph.o \
 	game/phonograph_lid.o \
+	game/place_holder_item.o \
 	game/play_music_button.o \
 	game/play_on_act.o \
 	game/port_hole.o \
@@ -199,6 +200,7 @@ MODULE_OBJS := \
 	game/titania_still_control.o \
 	game/up_lighter.o \
 	game/useless_lever.o \
+	game/variable_list.o \
 	game/volume_control.o \
 	game/wheel_button.o \
 	game/wheel_hotspot.o \
@@ -242,7 +244,7 @@ MODULE_OBJS := \
 	game/pickup/pick_up_speech_centre.o \
 	game/pickup/pick_up_vis_centre.o \
 	game/placeholder/bar_shelf_vis_centre.o \
-	game/placeholder/place_holder_item.o \
+	game/placeholder/place_holder.o \
 	game/placeholder/lemon_on_bar.o \
 	game/placeholder/tv_on_bar.o \
 	game/transport/gondolier.o \
@@ -277,8 +279,8 @@ MODULE_OBJS := \
 	gfx/chev_right_off.o \
 	gfx/chev_right_on.o \
 	gfx/chev_send_rec_switch.o \
-	gfx/chev_switch.o \
 	gfx/edit_control.o \
+	gfx/text_control.o \
 	gfx/elevator_button.o \
 	gfx/get_from_succ.o \
 	gfx/helmet_on_off.o \
@@ -371,7 +373,6 @@ MODULE_OBJS := \
 	pet_control/pet_gfx_element.o \
 	pet_control/pet_inventory.o \
 	pet_control/pet_inventory_glyphs.o \
-	pet_control/pet_message.o \
 	pet_control/pet_starfield.o \
 	pet_control/pet_real_life.o \
 	pet_control/pet_remote.o \
@@ -379,6 +380,7 @@ MODULE_OBJS := \
 	pet_control/pet_rooms.o \
 	pet_control/pet_rooms_glyphs.o \
 	pet_control/pet_section.o \
+	pet_control/pet_translation.o \
 	pet_control/pet_drag_chev.o \
 	pet_control/pet_graphic2.o \
 	pet_control/pet_graphic.o \
@@ -394,9 +396,10 @@ MODULE_OBJS := \
 	pet_control/pet_pannel3.o \
 	pet_control/pet_quit.o \
 	pet_control/pet_save.o \
+	pet_control/pet_show_translation.o \
 	pet_control/pet_slider.o \
 	pet_control/pet_sound.o \
-	pet_control/pet_text.o \
+	sound/audio_buffer.o \
 	sound/auto_music_player.o \
 	sound/auto_music_player_base.o \
 	sound/auto_sound_player.o \
@@ -406,10 +409,11 @@ MODULE_OBJS := \
 	sound/dome_from_top_of_well.o \
 	sound/enter_view_toggles_other_music.o \
 	sound/gondolier_song.o \
-	sound/music_handler.o \
-	sound/music_room.o \
 	sound/music_player.o \
-	sound/music_wave.o \
+	sound/music_room.o \
+	sound/music_room_handler.o \
+	sound/music_room_instrument.o \
+	sound/music_song.o \
 	sound/node_auto_sound_player.o \
 	sound/proximity.o \
 	sound/qmixer.o \
@@ -427,35 +431,34 @@ MODULE_OBJS := \
 	sound/water_lapping_sounds.o \
 	sound/wave_file.o \
 	star_control/star_control.o \
-	star_control/base_star.o \
-	star_control/dmatrix.o \
-	star_control/dvector.o \
+	star_control/base_stars.o \
+	star_control/camera_auto_mover.o \
+	star_control/camera_mover.o \
 	star_control/fmatrix.o \
 	star_control/fpoint.o \
+	star_control/fpose.o \
+	star_control/frange.o \
+	star_control/frect.o \
 	star_control/fvector.o \
-	star_control/star_control_sub2.o \
-	star_control/star_control_sub4.o \
-	star_control/star_control_sub5.o \
-	star_control/star_control_sub6.o \
-	star_control/star_control_sub7.o \
-	star_control/star_control_sub8.o \
-	star_control/star_control_sub12.o \
-	star_control/star_control_sub13.o \
-	star_control/star_control_sub20.o \
-	star_control/star_control_sub21.o \
-	star_control/star_control_sub22.o \
-	star_control/star_control_sub23.o \
-	star_control/star_control_sub24.o \
-	star_control/star_control_sub25.o \
-	star_control/star_control_sub26.o \
-	star_control/star_control_sub27.o \
+	star_control/marked_auto_mover.o \
+	star_control/marked_camera_mover.o \
+	star_control/matrix_transform.o \
+	star_control/orientation_changer.o \
+	star_control/star_camera.o \
+	star_control/star_closeup.o \
+	star_control/star_crosshairs.o \
+	star_control/star_field_base.o \
 	star_control/star_field.o \
+	star_control/star_markers.o \
 	star_control/star_points1.o \
 	star_control/star_points2.o \
+	star_control/star_ref.o \
 	star_control/star_view.o \
 	star_control/surface_area.o \
-	star_control/surface_fader_base.o \
 	star_control/surface_fader.o \
+	star_control/unmarked_auto_mover.o \
+	star_control/unmarked_camera_mover.o \
+	star_control/viewport.o \
 	support/avi_surface.o \
 	support/direct_draw.o \
 	support/direct_draw_surface.o \
@@ -464,6 +467,7 @@ MODULE_OBJS := \
 	support/font.o \
 	support/image.o \
 	support/image_decoders.o \
+	support/strings.o \
 	support/mouse_cursor.o \
 	support/movie.o \
 	support/movie_clip.o \
@@ -471,6 +475,7 @@ MODULE_OBJS := \
 	support/movie_range_info.o \
 	support/movie_manager.o \
 	support/credit_text.o \
+	support/transparency_surface.o \
 	support/rect.o \
 	support/screen_manager.o \
 	support/simple_file.o \

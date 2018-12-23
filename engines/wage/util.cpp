@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -51,37 +51,27 @@
 
 namespace Wage {
 
-Common::String readPascalString(Common::SeekableReadStream *in) {
-	Common::String s;
-	char *buf;
-	int len;
-	int i;
-
-	len = in->readByte();
-	buf = (char *)malloc(len + 1);
-	for (i = 0; i < len; i++) {
-		buf[i] = in->readByte();
-		if (buf[i] == 0x0d)
-			buf[i] = '\n';
-	}
-
-	buf[i] = 0;
-
-	s = buf;
-	free(buf);
-
-	return s;
-}
-
 Common::Rect *readRect(Common::SeekableReadStream *in) {
 	int x1, y1, x2, y2;
 
-	y1 = in->readUint16BE();
-	x1 = in->readUint16BE();
-	y2 = in->readUint16BE() + 4;
-	x2 = in->readUint16BE() + 4;
+	y1 = in->readSint16BE();
+	x1 = in->readSint16BE();
+	y2 = in->readSint16BE() + 4;
+	x2 = in->readSint16BE() + 4;
 
-	debug(9, "readRect: %d, %d, %d, %d", x1, y1, x2, y2);
+	bool normalized = false;
+
+	if (x1 > x2) {
+		SWAP(x1, x2);
+		normalized = true;
+	}
+
+	if (y1 > y2) {
+		SWAP(y1, y2);
+		normalized = true;
+	}
+
+	debug(9, "readRect: %s%d, %d, %d, %d", normalized ? "norm " : "", x1, y1, x2, y2);
 
 	return new Common::Rect(x1, y1, x2, y2);
 }

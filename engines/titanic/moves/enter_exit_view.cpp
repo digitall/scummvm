@@ -31,7 +31,7 @@ BEGIN_MESSAGE_MAP(CEnterExitView, CGameObject)
 END_MESSAGE_MAP()
 
 CEnterExitView::CEnterExitView() : CGameObject(), _leaveEndFrame(0),
-	_leaveStartFrame(0), _enterEndFrame(0), _enterStartFrame(0), 
+	_leaveStartFrame(0), _enterEndFrame(0), _enterStartFrame(0),
 	_visibleAfterMovie(true) {
 }
 
@@ -65,7 +65,7 @@ bool CEnterExitView::EnterViewMsg(CEnterViewMsg *msg) {
 
 bool CEnterExitView::LeaveViewMsg(CLeaveViewMsg *msg) {
 	setVisible(true);
-	playMovie(_leaveStartFrame, _leaveEndFrame, MOVIE_NOTIFY_OBJECT);
+	playMovie(_leaveStartFrame, _leaveEndFrame, MOVIE_WAIT_FOR_FINISH);
 	return true;
 }
 

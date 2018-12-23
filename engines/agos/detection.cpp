@@ -99,7 +99,7 @@ public:
 		_directoryGlobs = directoryGlobs;
 	}
 
-	virtual GameDescriptor findGame(const char *gameId) const {
+	PlainGameDescriptor findGame(const char *gameId) const override {
 		return Engines::findGameID(gameId, _gameIds, obsoleteGameIDsTable);
 	}
 
@@ -125,7 +125,8 @@ public:
 
 bool AgosMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
-		(f == kSupportsListSaves);
+		(f == kSupportsListSaves) ||
+		(f == kSimpleSavesNames);
 }
 
 bool AGOS::AGOSEngine::hasFeature(EngineFeature f) const {

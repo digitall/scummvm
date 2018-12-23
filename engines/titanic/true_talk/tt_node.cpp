@@ -58,9 +58,10 @@ void TTnode::deleteSiblings() {
 		_priorP->_nextP = nullptr;
 
 	// Iterate through the linked chain of nodes, deleting each in turn
-	for (TTnode *curP = _nextP, *nextP = nullptr; nextP; curP = nextP) {
-		nextP = curP->_nextP;
-		delete curP;
+	while (_nextP) {
+		TTnode *next = _nextP;
+		_nextP = next->_nextP;
+		delete next;
 	}
 }
 
@@ -78,7 +79,7 @@ TTnode *TTnode::getHead() {
 TTnode *TTnode::getTail() {
 	if (_nextP == nullptr)
 		return this;
-	
+
 	TTnode *node = _nextP;
 	while (node->_nextP)
 		node = node->_nextP;

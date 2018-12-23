@@ -42,6 +42,13 @@ struct TitanicSavegameHeader {
 	int _year, _month, _day;
 	int _hour, _minute;
 	int _totalFrames;
+
+	TitanicSavegameHeader() { clear(); }
+
+	/**
+	 * Clear the header
+	 */
+	void clear();
 };
 
 
@@ -66,7 +73,7 @@ public:
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);	
+	virtual void load(SimpleFile *file);
 };
 
 /**
@@ -89,7 +96,7 @@ private:
 	 * Called during save, iterates through the children to do some stuff
 	 */
 	void buildFilesList();
-	
+
 	/**
 	 * Called at the beginning of loading a game
 	 */
@@ -118,7 +125,7 @@ private:
 	/**
 	 * Finds the next sibling occurance of a given class type
 	 */
-	CTreeItem *findSiblingInstanceOf(ClassDef *classDef, CTreeItem *startItem) const;
+	CTreeItem *findSiblingChildInstanceOf(ClassDef *classDef, CTreeItem *startItem) const;
 private:
 	/**
 	 * Load project data from the passed file
@@ -148,10 +155,11 @@ public:
 	/**
 	 * Read in the header information for a savegame
 	 */
-	static bool readSavegameHeader(SimpleFile *file, TitanicSavegameHeader &header);
+	WARN_UNUSED_RESULT static bool readSavegameHeader(SimpleFile *file, TitanicSavegameHeader &header, bool skipThumbnail = true);
 public:
 	CLASSDEF;
 	CProjectItem();
+	virtual ~CProjectItem() { destroyChildren(); }
 
 	/**
 	 * Save the data for the class to file
@@ -161,7 +169,7 @@ public:
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);	
+	virtual void load(SimpleFile *file);
 
 	/**
 	 * Get the game manager for the project
@@ -227,6 +235,22 @@ public:
 	 * Finds a view
 	 */
 	CViewItem *findView(int roomNumber, int nodeNumber, int viewNumber);
+
+	/**
+	 * Parses a view into it's components of room, node, and view,
+	 * and locates the designated view
+	 */
+	CViewItem *parseView(const CString &viewString);
+
+	/**
+	 * Change the view
+	 */
+	bool changeView(const CString &viewName, const CString &clipName);
+
+	/**
+	 * Change the view
+	 */
+	bool changeView(const CString &viewName);
 };
 
 } // End of namespace Titanic

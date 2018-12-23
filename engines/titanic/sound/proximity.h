@@ -23,6 +23,7 @@
 #ifndef TITANIC_PROXIMITY_H
 #define TITANIC_PROXIMITY_H
 
+#include "audio/mixer.h"
 #include "common/scummsys.h"
 
 namespace Titanic {
@@ -35,15 +36,13 @@ typedef void (*CEndTalkerFn)(TTtalker *talker);
 
 class CProximity {
 public:
-	int _field4;
 	int _channelVolume;
-	int _fieldC;
+	int _balance;
 	int _priorSoundHandle;
-	int _field14;
 	double _frequencyMultiplier;
-	double _field1C;
+	double _frequencyAdjust;
 	bool _repeated;
-	int _channel;
+	int _channelMode;
 	PositioningMode _positioningMode;
 	double _azimuth;
 	double _range;
@@ -55,15 +54,14 @@ public:
 	double _velocityX;
 	double _velocityY;
 	double _velocityZ;
-	int _field54;
-	int _field58;
-	int _field5C;
-	bool _freeSoundFlag;
+	DisposeAfterUse::Flag _disposeAfterUse;
 	CEndTalkerFn _endTalkerFn;
 	TTtalker *_talker;
-	int _field6C;
+	uint _soundDuration;
+	Audio::Mixer::SoundType _soundType;
 public:
 	CProximity();
+	CProximity(Audio::Mixer::SoundType soundType, int volume = 100);
 };
 
 } // End of namespace Titanic

@@ -22,12 +22,13 @@
 
 #include "titanic/pet_control/pet_save.h"
 #include "titanic/pet_control/pet_control.h"
+#include "titanic/core/project_item.h"
 
 namespace Titanic {
 
 bool CPetSave::reset() {
 	CPetLoadSave::reset();
-	
+
 	CPetControl *pet = getPetControl();
 	if (pet) {
 		setName("PetSave", pet);
@@ -48,25 +49,49 @@ bool CPetSave::MouseButtonUpMsg(const Point &pt) {
 	}
 }
 
+bool CPetSave::KeyCharMsg(int key) {
+	if (CPetLoadSave::KeyCharMsg(key))
+		return true;
+
+	if (_savegameSlotNum != -1)
+		_slotNames[_savegameSlotNum].handleKey(key);
+
+	return true;
+}
+
 void CPetSave::highlightCurrent(const Point &pt) {
 	resetSlots();
 	highlightSave(_savegameSlotNum);
 }
 
-void CPetSave::getTooltip(CPetText *text) {
-	text->setText("Save the game.");
+void CPetSave::getTooltip(CTextControl *text) {
+	text->setText(SAVE_THE_GAME);
 }
 
 void CPetSave::highlightSave(int index) {
-	warning("TODO: CPetSave::highlightSave");
+	if (index >= 0)
+		_slotNames[index].showCursor(-2);
 }
 
 void CPetSave::unhighlightSave(int index) {
-	warning("TODO: CPetSave::unhighlightSave");
+	if (index >= 0)
+		_slotNames[index].hideCursor();
 }
 
 void CPetSave::execute() {
-	warning("TODO: CPetSave::execute");
+	CPetControl *pet = getPetControl();
+	if (_savegameSlotNum >= 0) {
+		int slotNumber = _savegameSlotNum;
+		highlightSlot(-1);
+		CProjectItem *project = pet ? pet->getRoot() : nullptr;
+
+		if (project) {
+			project->saveGame(slotNumber, _slotNames[slotNumber].getText());
+			pet->displayMessage(BLANK);
+		}
+	} else if (pet) {
+		pet->displayMessage(SELECT_GAME_TO_SAVE);
+	}
 }
 
 } // End of namespace Titanic

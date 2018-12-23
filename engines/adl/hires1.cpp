@@ -27,115 +27,249 @@
 #include "common/stream.h"
 #include "common/ptr.h"
 
-#include "adl/hires1.h"
+#include "adl/adl.h"
+#include "adl/graphics.h"
 #include "adl/display.h"
 
 namespace Adl {
 
-void HiRes1Engine::runIntro() const {
-	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_0));
+#define IDS_HR1_EXE_0    "AUTO LOAD OBJ"
+#define IDS_HR1_EXE_1    "ADVENTURE"
+#define IDS_HR1_MESSAGES "MESSAGES"
 
-	stream->seek(IDI_HR1_OFS_LOGO_0);
-	_display->setMode(DISPLAY_MODE_HIRES);
-	_display->loadFrameBuffer(*stream);
-	_display->updateHiResScreen();
-	delay(4000);
+#define IDI_HR1_NUM_ROOMS         41
+#define IDI_HR1_NUM_PICS          97
+#define IDI_HR1_NUM_VARS          20
+#define IDI_HR1_NUM_ITEM_OFFSETS  21
+#define IDI_HR1_NUM_MESSAGES     168
 
-	if (shouldQuit())
-		return;
+// Messages used outside of scripts
+#define IDI_HR1_MSG_CANT_GO_THERE      137
+#define IDI_HR1_MSG_DONT_UNDERSTAND     37
+#define IDI_HR1_MSG_ITEM_DOESNT_MOVE   151
+#define IDI_HR1_MSG_ITEM_NOT_HERE      152
+#define IDI_HR1_MSG_THANKS_FOR_PLAYING 140
+#define IDI_HR1_MSG_DONT_HAVE_IT       127
+#define IDI_HR1_MSG_GETTING_DARK         7
 
+#define IDI_HR1_OFS_STR_ENTER_COMMAND   0x5bbc
+#define IDI_HR1_OFS_STR_VERB_ERROR      0x5b4f
+#define IDI_HR1_OFS_STR_NOUN_ERROR      0x5b8e
+#define IDI_HR1_OFS_STR_PLAY_AGAIN      0x5f1e
+#define IDI_HR1_OFS_STR_CANT_GO_THERE   0x6c0a
+#define IDI_HR1_OFS_STR_DONT_HAVE_IT    0x6c31
+#define IDI_HR1_OFS_STR_DONT_UNDERSTAND 0x6c51
+#define IDI_HR1_OFS_STR_GETTING_DARK    0x6c7c
+#define IDI_HR1_OFS_STR_PRESS_RETURN    0x5f68
+#define IDI_HR1_OFS_STR_LINE_FEEDS      0x59d4
+
+#define IDI_HR1_OFS_PD_TEXT_0    0x005d
+#define IDI_HR1_OFS_PD_TEXT_1    0x012b
+#define IDI_HR1_OFS_PD_TEXT_2    0x016d
+#define IDI_HR1_OFS_PD_TEXT_3    0x0259
+
+#define IDI_HR1_OFS_INTRO_TEXT   0x0066
+#define IDI_HR1_OFS_GAME_OR_HELP 0x000f
+
+#define IDI_HR1_OFS_LOGO_0       0x1003
+
+#define IDI_HR1_OFS_ITEMS        0x0100
+#define IDI_HR1_OFS_ROOMS        0x050a
+#define IDI_HR1_OFS_PICS         0x4b03
+#define IDI_HR1_OFS_CMDS_0       0x3c00
+#define IDI_HR1_OFS_CMDS_1       0x3d00
+#define IDI_HR1_OFS_MSGS         0x4d00
+
+#define IDI_HR1_OFS_ITEM_OFFSETS 0x68ff
+#define IDI_HR1_OFS_SHAPES       0x4f00
+
+#define IDI_HR1_OFS_VERBS        0x3800
+#define IDI_HR1_OFS_NOUNS        0x0f00
+
+class HiRes1Engine : public AdlEngine {
+public:
+	HiRes1Engine(OSystem *syst, const AdlGameDescription *gd) :
+			AdlEngine(syst, gd),
+			_files(nullptr),
+			_messageDelay(true) { }
+	~HiRes1Engine() { delete _files; }
+
+private:
+	// AdlEngine
+	void runIntro();
+	void init();
+	void initGameState();
+	void restartGame();
+	void printString(const Common::String &str);
+	Common::String loadMessage(uint idx) const;
+	void printMessage(uint idx);
+	void drawItems();
+	void drawItem(Item &item, const Common::Point &pos);
+	void loadRoom(byte roomNr);
+	void showRoom();
+
+	void showInstructions(Common::SeekableReadStream &stream, const uint pages[], bool goHome);
+	void wordWrap(Common::String &str) const;
+
+	Files *_files;
+	Common::File _exe;
+	Common::Array<DataBlockPtr> _corners;
+	Common::Array<byte> _roomDesc;
+	bool _messageDelay;
+
+	struct {
+		Common::String cantGoThere;
+		Common::String dontHaveIt;
+		Common::String dontUnderstand;
+		Common::String gettingDark;
+	} _gameStrings;
+};
+
+void HiRes1Engine::showInstructions(Common::SeekableReadStream &stream, const uint pages[], bool goHome) {
 	_display->setMode(DISPLAY_MODE_TEXT);
 
-	StreamPtr basic(_files->createReadStream(IDS_HR1_LOADER));
+	uint page = 0;
+	while (pages[page] != 0) {
+		if (goHome)
+			_display->home();
+
+		uint count = pages[page++];
+		for (uint i = 0; i < count; ++i) {
+			_display->printString(readString(stream));
+			stream.seek(3, SEEK_CUR);
+		}
+
+		inputString();
+
+		if (shouldQuit())
+			return;
+
+		stream.seek((goHome ? 6 : 3), SEEK_CUR);
+	}
+}
+
+void HiRes1Engine::runIntro() {
+	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_0));
+
+	// Early version have no bitmap in 'AUTO LOAD OBJ'
+	if (getGameVersion() >= GAME_VER_HR1_COARSE) {
+		stream->seek(IDI_HR1_OFS_LOGO_0);
+		_display->setMode(DISPLAY_MODE_HIRES);
+		_display->loadFrameBuffer(*stream);
+		_display->updateHiResScreen();
+
+		if (getGameVersion() == GAME_VER_HR1_PD) {
+			// Only the PD version shows a title screen during the load
+			delay(4000);
+
+			if (shouldQuit())
+				return;
+		}
+	}
+
 	Common::String str;
 
-	str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_0, '"');
-	_display->printAsciiString(str + '\r');
+	// Show the PD disclaimer for the PD release
+	if (getGameVersion() == GAME_VER_HR1_PD) {
+		// The PD release on the Roberta Williams Anthology disc has a PDE
+		// splash screen. The original HELLO file has been renamed to
+		// MYSTERY.HELLO. It's unclear whether or not this splash screen
+		// was present in the original PD release back in 1987.
+		StreamPtr basic(_files->createReadStream("MYSTERY.HELLO"));
 
-	str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_1, '"');
-	_display->printAsciiString(str + "\r\r");
+		_display->setMode(DISPLAY_MODE_TEXT);
+		_display->home();
 
-	str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_2, '"');
-	_display->printAsciiString(str + "\r\r");
+		str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_0, '"');
+		_display->printAsciiString(str + '\r');
 
-	str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_3, '"');
-	_display->printAsciiString(str + '\r');
+		str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_1, '"');
+		_display->printAsciiString(str + "\r\r");
 
-	inputKey();
-	if (g_engine->shouldQuit())
-		return;
+		str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_2, '"');
+		_display->printAsciiString(str + "\r\r");
+
+		str = readStringAt(*basic, IDI_HR1_OFS_PD_TEXT_3, '"');
+		_display->printAsciiString(str + '\r');
+
+		inputKey();
+		if (shouldQuit())
+			return;
+	}
 
 	_display->setMode(DISPLAY_MODE_MIXED);
 
 	str = readStringAt(*stream, IDI_HR1_OFS_GAME_OR_HELP);
 
-	bool instructions = false;
+	if (getGameVersion() >= GAME_VER_HR1_COARSE) {
+		bool instructions = false;
 
-	while (1) {
-		_display->printString(str);
-		Common::String s = inputString();
+		while (1) {
+			_display->printString(str);
+			Common::String s = inputString();
 
-		if (g_engine->shouldQuit())
-			break;
+			if (shouldQuit())
+				break;
 
-		if (s.empty())
-			continue;
+			if (s.empty())
+				continue;
 
-		if (s[0] == APPLECHAR('I')) {
-			instructions = true;
-			break;
-		} else if (s[0] == APPLECHAR('G')) {
-			break;
-		}
-	};
-
-	if (instructions) {
-		_display->setMode(DISPLAY_MODE_TEXT);
-		stream->seek(IDI_HR1_OFS_INTRO_TEXT);
-
-		const uint pages[] = { 6, 6, 4, 5, 8, 7, 0 };
-
-		uint page = 0;
-		while (pages[page] != 0) {
-			_display->home();
-
-			uint count = pages[page++];
-			for (uint i = 0; i < count; ++i) {
-				str = readString(*stream);
-				_display->printString(str);
-				stream->seek(3, SEEK_CUR);
+			if (s[0] == APPLECHAR('I')) {
+				instructions = true;
+				break;
+			} else if (s[0] == APPLECHAR('G')) {
+				break;
 			}
-
-			inputString();
-
-			if (g_engine->shouldQuit())
-				return;
-
-			stream->seek(6, SEEK_CUR);
 		}
+
+		if (instructions) {
+			// This version shows the last page during the loading of the game
+			// We wait for a key instead (even though there's no prompt for that).
+			const uint pages[] = { 6, 6, 4, 5, 8, 7, 0 };
+			stream->seek(IDI_HR1_OFS_INTRO_TEXT);
+			showInstructions(*stream, pages, true);
+			_display->printAsciiString("\r");
+		}
+	} else {
+		const uint pages[] = { 6, 6, 8, 6, 0 };
+		stream->seek(6);
+		showInstructions(*stream, pages, false);
 	}
 
-	_display->printAsciiString("\r");
+	stream.reset(_files->createReadStream(IDS_HR1_EXE_1));
+	stream->seek(0x1800);
+	_display->loadFrameBuffer(*stream);
+	_display->updateHiResScreen();
 
 	_display->setMode(DISPLAY_MODE_MIXED);
 
-	// Title screen shown during loading
-	stream.reset(_files->createReadStream(IDS_HR1_EXE_1));
-	stream->seek(IDI_HR1_OFS_LOGO_1);
-	_display->loadFrameBuffer(*stream);
-	_display->updateHiResScreen();
-	delay(2000);
+	if (getGameVersion() == GAME_VER_HR1_SIMI) {
+		// The original waits for the key after initializing the state.
+		// This causes it to also wait for a key on a blank screen when
+		// a game is restarted. We only wait for a key here during the
+		// intro.
+
+		// This does mean we need to push out some extra line feeds to clear the screen
+		_display->printString(_strings.lineFeeds);
+		inputKey();
+		if (shouldQuit())
+			return;
+	}
 }
 
 void HiRes1Engine::init() {
-	if (Common::File::exists("MYSTHOUS.DSK")) {
-		_files = new Files_DOS33();
-		if (!static_cast<Files_DOS33 *>(_files)->open("MYSTHOUS.DSK"))
-			error("Failed to open MYSTHOUS.DSK");
-	} else
+	if (Common::File::exists("ADVENTURE")) {
 		_files = new Files_Plain();
+	} else {
+		Files_AppleDOS *files = new Files_AppleDOS();
+		// The 2nd release obfuscates the VTOC (same may be true for the 1st release)
+		if (!files->open(getDiskImageName(0), (getGameVersion() == GAME_VER_HR1_COARSE ? 16 : 17)))
+			error("Failed to open '%s'", getDiskImageName(0).c_str());
+		_files = files;
+	}
 
-	_graphics = new Graphics_v1(*_display);
+	_graphics = new GraphicsMan(*_display);
+	_display->moveCursorTo(Common::Point(0, 3));
 
 	StreamPtr stream(_files->createReadStream(IDS_HR1_EXE_1));
 
@@ -183,18 +317,13 @@ void HiRes1Engine::init() {
 
 	// Load dropped item offsets
 	stream->seek(IDI_HR1_OFS_ITEM_OFFSETS);
-	for (uint i = 0; i < IDI_HR1_NUM_ITEM_OFFSETS; ++i) {
-		Common::Point p;
-		p.x = stream->readByte();
-		p.y = stream->readByte();
-		_itemOffsets.push_back(p);
-	}
+	loadDroppedItemOffsets(*stream, IDI_HR1_NUM_ITEM_OFFSETS);
 
-	// Load right-angle line art
-	stream->seek(IDI_HR1_OFS_CORNERS);
+	// Load shapes
+	stream->seek(IDI_HR1_OFS_SHAPES);
 	uint16 cornersCount = stream->readUint16LE();
 	for (uint i = 0; i < cornersCount; ++i)
-		_corners.push_back(_files->getDataBlock(IDS_HR1_EXE_1, IDI_HR1_OFS_CORNERS + stream->readUint16LE()));
+		_corners.push_back(_files->getDataBlock(IDS_HR1_EXE_1, IDI_HR1_OFS_SHAPES + stream->readUint16LE()));
 
 	if (stream->eos() || stream->err())
 		error("Failed to read game data from '" IDS_HR1_EXE_1 "'");
@@ -229,12 +358,13 @@ void HiRes1Engine::initGameState() {
 	stream->seek(IDI_HR1_OFS_ITEMS);
 	byte id;
 	while ((id = stream->readByte()) != 0xff) {
-		Item item = Item();
+		Item item;
+
 		item.id = id;
 		item.noun = stream->readByte();
 		item.room = stream->readByte();
 		item.picture = stream->readByte();
-		item.isLineArt = stream->readByte();
+		item.isShape = stream->readByte();
 		item.position.x = stream->readByte();
 		item.position.y = stream->readByte();
 		item.state = stream->readByte();
@@ -326,9 +456,10 @@ void HiRes1Engine::drawItems() {
 }
 
 void HiRes1Engine::drawItem(Item &item, const Common::Point &pos) {
-	if (item.isLineArt) {
+	if (item.isShape) {
 		StreamPtr stream(_corners[item.picture - 1]->createReadStream());
-		static_cast<Graphics_v1 *>(_graphics)->drawCorners(*stream, pos);
+		Common::Point p(pos);
+		_graphics->drawShape(*stream, p);
 	} else
 		drawPic(item.picture, pos);
 }
@@ -339,7 +470,7 @@ void HiRes1Engine::loadRoom(byte roomNr) {
 
 void HiRes1Engine::showRoom() {
 	_state.curPicture = getCurRoom().curPicture;
-	clearScreen();
+	_graphics->clearScreen();
 	loadRoom(_state.room);
 
 	if (!_state.isDark) {

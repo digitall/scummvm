@@ -21,7 +21,9 @@
  */
 
 #include "titanic/carry/photograph.h"
+#include "titanic/core/dont_save_file_item.h"
 #include "titanic/core/room_item.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -59,8 +61,12 @@ bool CPhotograph::MouseDragEndMsg(CMouseDragEndMsg *msg) {
 	_v1 = 0;
 	CGameObject *target = msg->_dropTarget;
 
-	if (target && target->getName() != "NavigationComputer") {
-		warning("TODO: CPhotograph::MouseDragEndMsg");
+	if (target && target->isEquals("NavigationComputer")) {
+		moveUnder(getDontSave());
+		makeDirty();
+		playSound(TRANSLATE("a#46.wav", "a#39.wav"));
+		starFn(STAR_SET_REFERENCE);
+		showMouse();
 		return true;
 	} else {
 		return CCarry::MouseDragEndMsg(msg);
@@ -78,7 +84,7 @@ bool CPhotograph::MouseDragStartMsg(CMouseDragStartMsg *msg) {
 }
 
 bool CPhotograph::PETGainedObjectMsg(CPETGainedObjectMsg *msg) {
-	if (getRoom()->getName() == "Home") {
+	if (getRoom()->isEquals("Home")) {
 		CActMsg actMsg("PlayerPutsPhotoInPET");
 		actMsg.execute("Doorbot");
 	}
@@ -88,7 +94,7 @@ bool CPhotograph::PETGainedObjectMsg(CPETGainedObjectMsg *msg) {
 
 bool CPhotograph::ActMsg(CActMsg *msg) {
 	if (msg->_action == "BecomeGettable") {
-		_fieldE0 = 1;
+		_canTake = true;
 		_cursorId = CURSOR_HAND;
 	}
 

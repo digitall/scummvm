@@ -26,46 +26,49 @@
 #include "common/file.h"
 #include "common/stream.h"
 
-#include "adl/hires2.h"
+#include "adl/adl_v2.h"
 #include "adl/display.h"
 #include "adl/graphics.h"
 #include "adl/disk.h"
 
 namespace Adl {
 
-void HiRes2Engine::runIntro() const {
-	// This only works for the 16-sector re-release. The original
-	// release is not supported at this time, because we don't have
-	// access to it.
-	_disk->setMode13(false);
-	StreamPtr stream(_disk->createReadStream(0x00, 0xd, 0x17, 1));
+class HiResBaseEngine : public AdlEngine_v2 {
+public:
+	HiResBaseEngine(OSystem *syst, const AdlGameDescription *gd, const byte numRooms, const byte numMsgs, const byte numItemPics);
 
-	_display->setMode(DISPLAY_MODE_TEXT);
+private:
+	// AdlEngine
+	void init();
+	void initGameState();
 
-	Common::String str = readString(*stream);
+	const byte _numRooms, _numMsgs, _numItemPics;
+};
 
-	if (stream->eos() || stream->err())
-		error("Error reading disk image");
+HiResBaseEngine::HiResBaseEngine(OSystem *syst, const AdlGameDescription *gd, const byte numRooms, const byte numMsgs, const byte numItemPics) :
+		AdlEngine_v2(syst, gd),
+		_numRooms(numRooms),
+		_numMsgs(numMsgs),
+		_numItemPics(numItemPics) {
 
-	_display->printString(str);
-	delay(2000);
-
-	_disk->setMode13(true);
+	_messageIds.cantGoThere = 110;
+	_messageIds.dontUnderstand = 112;
+	_messageIds.itemDoesntMove = 114;
+	_messageIds.itemNotHere = 115;
+	_messageIds.thanksForPlaying = 113;
 }
 
-void HiRes2Engine::init() {
-	_graphics = new Graphics_v2(*_display);
+void HiResBaseEngine::init() {
+	_graphics = new GraphicsMan_v2(*_display);
 
 	_disk = new DiskImage();
-	if (!_disk->open(IDS_HR2_DISK_IMAGE))
-		error("Failed to open disk image '" IDS_HR2_DISK_IMAGE "'");
+	if (!_disk->open(getDiskImageName(0)))
+		error("Failed to open disk image '%s'", getDiskImageName(0).c_str());
 
-	_disk->setMode13(true);
+	_disk->setSectorLimit(13);
 
 	StreamPtr stream(_disk->createReadStream(0x1f, 0x2, 0x00, 4));
-
-	for (uint i = 0; i < IDI_HR2_NUM_MESSAGES; ++i)
-		_messages.push_back(readDataBlockPtr(*stream));
+	loadMessages(*stream, _numMsgs);
 
 	// Read parser messages
 	stream.reset(_disk->createReadStream(0x1a, 0x1));
@@ -90,44 +93,24 @@ void HiRes2Engine::init() {
 	_strings.playAgain = readStringAt(*stream, 0x225);
 	_strings.pressReturn = readStringAt(*stream, 0x25f);
 
-	_messageIds.cantGoThere = IDI_HR2_MSG_CANT_GO_THERE;
-	_messageIds.dontUnderstand = IDI_HR2_MSG_DONT_UNDERSTAND;
-	_messageIds.itemDoesntMove = IDI_HR2_MSG_ITEM_DOESNT_MOVE;
-	_messageIds.itemNotHere = IDI_HR2_MSG_ITEM_NOT_HERE;
-	_messageIds.thanksForPlaying = IDI_HR2_MSG_THANKS_FOR_PLAYING;
-
 	// Load global picture data
 	stream.reset(_disk->createReadStream(0x19, 0xa, 0x80, 0));
-	byte picNr;
-	while ((picNr = stream->readByte()) != 0xff) {
-		if (stream->eos() || stream->err())
-			error("Error reading global pic list");
-
-		_pictures[picNr] = readDataBlockPtr(*stream);
-	}
+	loadPictures(*stream);
 
 	// Load item picture data
 	stream.reset(_disk->createReadStream(0x1e, 0x9, 0x05));
-	for (uint i = 0; i < IDI_HR2_NUM_ITEM_PICS; ++i) {
-		stream->readByte(); // number
-		_itemPics.push_back(readDataBlockPtr(*stream));
-	}
+	loadItemPictures(*stream, _numItemPics);
 
 	// Load commands from executable
 	stream.reset(_disk->createReadStream(0x1d, 0x7, 0x00, 4));
 	readCommands(*stream, _roomCommands);
 
-	stream.reset(_disk->createReadStream(0x1f, 0x7, 0x00, 2));
+	stream.reset(_disk->createReadStream(0x1f, 0x7, 0x00, 3));
 	readCommands(*stream, _globalCommands);
 
 	// Load dropped item offsets
 	stream.reset(_disk->createReadStream(0x1b, 0x4, 0x15));
-	for (uint i = 0; i < IDI_HR2_NUM_ITEM_OFFSETS; ++i) {
-		Common::Point p;
-		p.x = stream->readByte();
-		p.y = stream->readByte();
-		_itemOffsets.push_back(p);
-	}
+	loadDroppedItemOffsets(*stream, 16);
 
 	// Load verbs
 	stream.reset(_disk->createReadStream(0x19, 0x0, 0x00, 3));
@@ -138,54 +121,79 @@ void HiRes2Engine::init() {
 	loadWords(*stream, _nouns, _priNouns);
 }
 
-void HiRes2Engine::initGameState() {
-	_state.vars.resize(IDI_HR2_NUM_VARS);
+void HiResBaseEngine::initGameState() {
+	_state.vars.resize(40);
 
 	StreamPtr stream(_disk->createReadStream(0x21, 0x5, 0x0e, 7));
-
-	for (uint i = 0; i < IDI_HR2_NUM_ROOMS; ++i) {
-		Room room;
-		stream->readByte(); // number
-		for (uint j = 0; j < 6; ++j)
-			room.connections[j] = stream->readByte();
-		room.data = readDataBlockPtr(*stream);
-		room.picture = stream->readByte();
-		room.curPicture = stream->readByte();
-		room.isFirstTime = stream->readByte();
-		_state.rooms.push_back(room);
-	}
+	loadRooms(*stream, _numRooms);
 
 	stream.reset(_disk->createReadStream(0x21, 0x0, 0x00, 2));
+	loadItems(*stream);
+}
 
-	byte id;
-	while ((id = stream->readByte()) != 0xff) {
-		Item item = Item();
-		item.id = id;
-		item.noun = stream->readByte();
-		item.room = stream->readByte();
-		item.picture = stream->readByte();
-		item.isLineArt = stream->readByte(); // Is this still used in this way?
-		item.position.x = stream->readByte();
-		item.position.y = stream->readByte();
-		item.state = stream->readByte();
-		item.description = stream->readByte();
+class HiRes2Engine : public HiResBaseEngine {
+public:
+	HiRes2Engine(OSystem *syst, const AdlGameDescription *gd);
 
-		stream->readByte(); // Struct size
+private:
+	// AdlEngine
+	void runIntro();
+};
 
-		byte picListSize = stream->readByte();
+HiRes2Engine::HiRes2Engine(OSystem *syst, const AdlGameDescription *gd) :
+		HiResBaseEngine(syst, gd, 135, 255, 38) {
 
-		// Flag to keep track of what has been drawn on the screen
-		stream->readByte();
+	_messageIds.cantGoThere = 123;
+	_messageIds.dontUnderstand = 19;
+	_messageIds.itemDoesntMove = 242;
+	_messageIds.itemNotHere = 4;
+	_messageIds.thanksForPlaying = 239;
+}
 
-		for (uint i = 0; i < picListSize; ++i)
-			item.roomPictures.push_back(stream->readByte());
+void HiRes2Engine::runIntro() {
+	// This only works for the 16-sector re-release. The original
+	// release is not supported at this time, because we don't have
+	// access to it.
+	_disk->setSectorLimit(0);
+	StreamPtr stream(_disk->createReadStream(0x00, 0xd, 0x17, 1));
 
-		_state.items.push_back(item);
-	}
+	_display->setMode(DISPLAY_MODE_TEXT);
+
+	Common::String str = readString(*stream);
+
+	if (stream->eos() || stream->err())
+		error("Error reading disk image");
+
+	_display->printString(str);
+	delay(2000);
+
+	_disk->setSectorLimit(13);
+}
+
+class HiRes3Engine : public HiResBaseEngine {
+public:
+	HiRes3Engine(OSystem *syst, const AdlGameDescription *gd);
+};
+
+HiRes3Engine::HiRes3Engine(OSystem *syst, const AdlGameDescription *gd) :
+		HiResBaseEngine(syst, gd, 138, 255, 36) {
+
+	const byte brokenRooms[] = { 18, 24, 54, 98, 102, 108 };
+
+	for (int i = 0; i < ARRAYSIZE(brokenRooms); ++i)
+		_brokenRooms.push_back(brokenRooms[i]);
 }
 
 Engine *HiRes2Engine_create(OSystem *syst, const AdlGameDescription *gd) {
 	return new HiRes2Engine(syst, gd);
+}
+
+Engine *HiRes0Engine_create(OSystem *syst, const AdlGameDescription *gd) {
+	return new HiResBaseEngine(syst, gd, 43, 142, 2);
+}
+
+Engine *HiRes3Engine_create(OSystem *syst, const AdlGameDescription *gd) {
+	return new HiRes3Engine(syst, gd);
 }
 
 } // End of namespace Adl

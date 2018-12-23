@@ -34,7 +34,7 @@ void DialogueIndexEntry::load(Common::SeekableReadStream &s) {
 CDialogueFile::CDialogueFile(const CString &filename, uint count) {
 	if (!_file.open(filename))
 		error("Could not locate dialogue file - %s", filename.c_str());
-	
+
 	_cache.resize(count);
 
 	_file.readUint32LE();		// Skip over file Id
@@ -60,7 +60,7 @@ DialogueResource *CDialogueFile::addToCache(int index) {
 
 	// Scan cache for a free slot
 	uint cacheIndex = 0;
-	while (cacheIndex < _cache.size() && !_cache[cacheIndex]._active)
+	while (cacheIndex < _cache.size() && _cache[cacheIndex]._active)
 		++cacheIndex;
 	if (cacheIndex == _cache.size())
 		return nullptr;

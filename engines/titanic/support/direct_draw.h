@@ -32,18 +32,14 @@ namespace Titanic {
 class TitanicEngine;
 
 class DirectDraw {
-private:
-	TitanicEngine *_vm;
 public:
 	bool _windowed;
-	int _fieldC;
 	int _width;
 	int _height;
 	int _bpp;
 	int _numBackSurfaces;
-	int _field24;
 public:
-	DirectDraw(TitanicEngine *vm);
+	DirectDraw();
 
 	/**
 	 * Sets a new display mode
@@ -74,15 +70,9 @@ public:
 	 * @param width				Screen width
 	 * @param height			Screen height
 	 * @param bpp				Bits per pixel
-	 * @param numBackSurfaces	Number of back surfaces	
+	 * @param numBackSurfaces	Number of back surfaces
 	 */
 	void initVideo(int width, int height, int bpp, int numBackSurfaces);
-
-	void setResolution();
-
-	void proc2();
-
-	void proc3();
 
 	/**
 	 * Initializes the surfaces in windowed mode
@@ -97,7 +87,7 @@ public:
 	/**
 	 * Create a surface
 	 */
-	DirectDrawSurface *createSurface(int w, int h, int surfaceNum);
+	DirectDrawSurface *createSurface(int w, int h, int bpp, int surfaceNum);
 };
 
 } // End of namespace Titanic

@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -30,7 +30,7 @@ namespace Prince {
 
 void PrinceEngine::playVideo(Common::String videoFilename) {
         // Set the correct video mode
-        initGraphics(640, 480, true, 0);
+        initGraphics(640, 480, nullptr);
         if (_system->getScreenFormat().bytesPerPixel == 1) {
                 warning("Couldn't switch to a RGB color video mode to play a video.");
                 return;
@@ -42,7 +42,7 @@ void PrinceEngine::playVideo(Common::String videoFilename) {
 	if (!videoDecoder->loadFile(videoFilename)) {
 		delete videoDecoder;
 		warning("Unable to open video %s", videoFilename.c_str());
-		initGraphics(640, 480, true);
+		initGraphics(640, 480);
 		return;
 	}
 
@@ -78,7 +78,7 @@ void PrinceEngine::playVideo(Common::String videoFilename) {
 
 	delete videoDecoder;
 
-	initGraphics(640, 480, true);
+	initGraphics(640, 480);
 }
 
 } // End of namespace Prince

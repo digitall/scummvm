@@ -141,7 +141,8 @@ In find_if(In first, In last, Pred p) {
  */
 template<class In, class Op>
 Op for_each(In first, In last, Op f) {
-	while (first != last) f(*first++);
+	while (first != last)
+		f(*first++);
 	return f;
 }
 
@@ -274,7 +275,7 @@ T gcd(T a, T b) {
  * Replacement algorithm for iterables.
  *
  * Replaces all occurrences of "original" in [begin, end) with occurrences of "replaced".
- * 
+ *
  * @param[in, out] begin: First element to be examined.
  * @param[in] end: Last element in the seubsection. Not examined.
  * @param[in] original: Elements to be replaced.

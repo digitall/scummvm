@@ -8,16 +8,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
  *
  */
 
@@ -28,7 +27,7 @@
 
 namespace Bbvs {
 
-BbvsEngine::kReadSaveHeaderError BbvsEngine::readSaveHeader(Common::SeekableReadStream *in, bool loadThumbnail, SaveHeader &header) {
+WARN_UNUSED_RESULT BbvsEngine::kReadSaveHeaderError BbvsEngine::readSaveHeader(Common::SeekableReadStream *in, SaveHeader &header, bool skipThumbnail) {
 
 	header.version = in->readUint32LE();
 	if (header.version > BBVS_SAVEGAME_VERSION)
@@ -39,10 +38,8 @@ BbvsEngine::kReadSaveHeaderError BbvsEngine::readSaveHeader(Common::SeekableRead
 	while (descriptionLen--)
 		header.description += (char)in->readByte();
 
-	if (loadThumbnail) {
-		header.thumbnail = Graphics::loadThumbnail(*in);
-	} else {
-		Graphics::skipThumbnail(*in);
+	if (!Graphics::loadThumbnail(*in, header.thumbnail, skipThumbnail)) {
+		return kRSHEIoError;
 	}
 
 	// Not used yet, reserved for future usage
@@ -102,7 +99,7 @@ void BbvsEngine::loadgame(const char *filename) {
 
 	SaveHeader header;
 
-	kReadSaveHeaderError errorCode = readSaveHeader(in, false, header);
+	kReadSaveHeaderError errorCode = readSaveHeader(in, header);
 
 	if (errorCode != kRSHENoError) {
 		warning("Error loading savegame '%s'", filename);

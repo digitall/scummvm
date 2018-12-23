@@ -56,9 +56,11 @@ public:
 	Common::Rect _actorClipOverride;	// HE specific
 
 	int _heTimers[16];
+	uint32 _pauseStartTime;
 
 	int getHETimer(int timer);
 	void setHETimer(int timer);
+	void pauseHETimers(bool pause);
 
 public:
 	ScummEngine_v60he(OSystem *syst, const DetectorResult &dr);
@@ -71,7 +73,7 @@ public:
 protected:
 	virtual void setupOpcodes();
 
-	virtual void saveOrLoad(Serializer *s);
+	virtual void saveLoadWithSerializer(Common::Serializer &s);
 
 	void localizeArray(int slot, byte scriptSlot);
 	void redimArray(int arrayId, int newX, int newY, int d);
@@ -94,6 +96,7 @@ protected:
 	Common::WriteStream *openSaveFileForAppending(const byte *fileName);
 	void deleteSaveFile(const byte *fileName);
 	void renameSaveFile(const byte *from, const byte *to);
+	void pauseEngineIntern(bool pause);
 
 	Common::SeekableReadStream *openSaveFileForReading(int slot, bool compat, Common::String &fileName);
 	Common::WriteStream *openSaveFileForWriting(int slot, bool compat, Common::String &fileName);
@@ -160,7 +163,7 @@ protected:
 	virtual void setupScummVars();
 	virtual void resetScummVars();
 
-	virtual void saveOrLoad(Serializer *s);
+	virtual void saveLoadWithSerializer(Common::Serializer &s);
 
 	virtual void readRoomsOffsets();
 	virtual void readGlobalObjects();
@@ -219,7 +222,7 @@ public:
 protected:
 	virtual void setupOpcodes();
 
-	virtual void saveOrLoad(Serializer *s);
+	virtual void saveLoadWithSerializer(Common::Serializer &s);
 
 	virtual void redrawBGAreas();
 
@@ -288,6 +291,8 @@ public:
 
 	virtual byte *getStringAddress(ResId idx);
 	virtual int setupStringArray(int size);
+	virtual int setupStringArrayFromString(const char *cStr);
+	virtual void getStringFromArray(int arrayNumber, char *buffer, int maxLength);
 
 protected:
 	virtual void setupOpcodes();
@@ -485,7 +490,7 @@ protected:
 	virtual void processInput();
 	virtual void clearClickedStatus();
 
-	virtual void saveOrLoad(Serializer *s);
+	virtual void saveLoadWithSerializer(Common::Serializer &s);
 
 	virtual void readMAXS(int blockSize);
 	void setResourceOffHeap(int typeId, int resId, int val);
@@ -576,7 +581,7 @@ protected:
 
 	virtual void readMAXS(int blockSize);
 
-	virtual void saveOrLoad(Serializer *s);
+	virtual void saveLoadWithSerializer(Common::Serializer &s);
 
 	virtual void copyPalColor(int dst, int src);
 	virtual void darkenPalette(int redScale, int greenScale, int blueScale, int startColor, int endColor);
@@ -608,7 +613,7 @@ public:
 protected:
 	virtual void setupOpcodes();
 
-	virtual void saveOrLoad(Serializer *s);
+	virtual void saveLoadWithSerializer(Common::Serializer &s);
 
 	virtual void decodeParseString(int a, int b);
 

@@ -20,19 +20,20 @@
  *
  */
 
-#include "common/textconsole.h"
 #include "titanic/support/text_cursor.h"
+#include "titanic/events.h"
 #include "titanic/support/screen_manager.h"
 #include "titanic/titanic.h"
+#include "common/textconsole.h"
 
 namespace Titanic {
 
-CTextCursor::CTextCursor(CScreenManager *screenManager) : 
+CTextCursor::CTextCursor(CScreenManager *screenManager) :
 		_screenManager(screenManager), _active(false), _blinkVisible(false),
 		_backRenderSurface(nullptr), _frontRenderSurface(nullptr),
 		_blinkDelay(300), _size(2, 10), _priorBlinkTime(0),
 		_cursorR(0), _cursorG(0), _cursorB(0), _mode(-1) {
-	_surface = screenManager->createSurface(10, 10);
+	_surface = screenManager->createSurface(10, 10, 16);
 }
 
 CTextCursor::~CTextCursor() {
@@ -70,7 +71,7 @@ void CTextCursor::draw() {
 	if (_blinkVisible) {
 		Rect cursorRect = getCursorBounds();
 		_surface->blitFrom(Common::Point(0, 0), _backRenderSurface, &cursorRect);
-	
+
 		if (!_screenBounds.isEmpty())
 			// Limit the cursor rect to only within designated screen area
 			cursorRect.constrain(_screenBounds);
@@ -80,7 +81,7 @@ void CTextCursor::draw() {
 			_backRenderSurface->_ddSurface->fillRect(&cursorRect,
 				_cursorR, _cursorG, _cursorB);
 		}
-	
+
 		//_screenManager->blitFrom(SURFACE_BACKBUFFER, _surface, &_pos);
 	}
 }

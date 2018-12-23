@@ -21,14 +21,16 @@
  */
 
 #include "titanic/true_talk/tt_concept.h"
+#include "titanic/true_talk/script_handler.h"
 #include "titanic/true_talk/tt_script_base.h"
 #include "titanic/true_talk/tt_word.h"
 #include "titanic/titanic.h"
 
 namespace Titanic {
 
-TTconcept::TTconcept() : _string1(" "), _string2(" "), 
-		_scriptP(nullptr), _wordP(nullptr) {
+TTconcept::TTconcept() : _string1(" "), _string2(" "),
+		_nextP(nullptr), _scriptP(nullptr), _wordP(nullptr), _word2P(nullptr), _status(SS_VALID),
+		_scriptType(ST_UNKNOWN_SCRIPT), _field14(0), _field20(0), _field34(0) {
 	if (setStatus())
 		setScriptType(ST_UNKNOWN_SCRIPT);
 	else
@@ -36,7 +38,8 @@ TTconcept::TTconcept() : _string1(" "), _string2(" "),
 }
 
 TTconcept::TTconcept(TTscriptBase *script, ScriptType scriptType) :
-		_string1(" "), _string2(" "), _wordP(nullptr), _scriptP(nullptr) {
+		_string1(" "), _string2(" "), _nextP(nullptr), _wordP(nullptr), _word2P(nullptr), _scriptP(nullptr),
+		_status(SS_VALID), _scriptType(ST_UNKNOWN_SCRIPT), _field14(0), _field20(0), _field34(0) {
 	if (!script->getStatus()) {
 		setScriptType(scriptType);
 		_scriptP = script;
@@ -50,8 +53,9 @@ TTconcept::TTconcept(TTscriptBase *script, ScriptType scriptType) :
 }
 
 TTconcept::TTconcept(TTword *word, ScriptType scriptType) :
-	_string1(" "), _string2(" "), _wordP(nullptr), _scriptP(nullptr) {
-	
+		_string1(" "), _string2(" "), _nextP(nullptr), _wordP(nullptr), _scriptP(nullptr),
+		_status(SS_VALID), _scriptType(ST_UNKNOWN_SCRIPT), _field14(0), _field1C(0), _field20(0),
+		_field30(0), _field34(0), _flag(false) {
 	if (!word || !setStatus() || word->getStatus()) {
 		_status = SS_5;
 	} else {
@@ -65,16 +69,17 @@ TTconcept::TTconcept(TTword *word, ScriptType scriptType) :
 }
 
 TTconcept::TTconcept(TTconcept &src) :
-		_string1(src._string1), _string2(src._string2),
-		_wordP(nullptr), _scriptP(nullptr) {
-
+		_string1(src._string1), _string2(src._string2), _nextP(nullptr),
+		_wordP(nullptr), _word2P(nullptr), _scriptP(nullptr), _status(SS_VALID),
+		_scriptType(ST_UNKNOWN_SCRIPT), _field14(0), _field1C(0), _field20(0),
+		_field30(0), _field34(0), _flag(false) {
 	if (src.getStatus()) {
 		_status = SS_5;
 	} else {
 		if (setStatus()) {
 			_status = SS_VALID;
 			_scriptP = src._scriptP;
-			
+
 			if (src._wordP) {
 				_status = initializeWordRef(src._wordP);
 				initialize(src);
@@ -131,7 +136,7 @@ void TTconcept::setScriptType(ScriptType scriptType) {
 
 int TTconcept::initializeWordRef(TTword *word) {
 	delete _wordP;
-	_wordP = word;
+	_wordP = word->copy();
 	return 0;
 }
 
@@ -146,7 +151,7 @@ void TTconcept::reset() {
 }
 
 bool TTconcept::compareTo(const char *str) const {
-	return this != nullptr && _wordP != nullptr &&
+	return _wordP != nullptr &&
 		_wordP->compareTo(str);
 }
 
@@ -177,7 +182,7 @@ void TTconcept::initialize(TTconcept &src) {
 
 	_field30 = src._field30;
 	_field34 = src._field34;
-	
+
 	if (src._flag) {
 		g_vm->_exeResources._owner->setParserConcept(this, &src);
 		src.setFlag(true);
@@ -213,11 +218,9 @@ void TTconcept::copyFrom(TTconcept *src) {
 }
 
 int TTconcept::setOwner(TTconcept *src) {
-	if (this) {
-		if (src->_wordP) {
-			TTword *newWord = src->_wordP->copy();
-			return setOwner(newWord, 1);
-		}
+	if (src->_wordP) {
+		TTword *newWord = src->_wordP->copy();
+		return setOwner(newWord, 1);
 	}
 
 	return 0;
@@ -225,7 +228,7 @@ int TTconcept::setOwner(TTconcept *src) {
 
 int TTconcept::setOwner(TTword *src, bool dontDup) {
 	TTword *word = dontDup ? src : src->copy();
-	
+
 	if (word) {
 		if (!_word2P) {
 			_word2P = word;
@@ -258,7 +261,7 @@ bool TTconcept::checkWordId3() const {
 }
 
 bool TTconcept::checkWordClass() const {
-	return !_scriptP && _wordP && (_wordP->_wordClass == WC_THING || _wordP->_wordClass == WC_PRONOUN);
+	return _scriptP || (_wordP && (_wordP->_wordClass == WC_THING || _wordP->_wordClass == WC_PRONOUN));
 }
 
 const TTstring TTconcept::getText() {
@@ -298,11 +301,11 @@ TTconcept *TTconcept::findBy20(int val) {
 }
 
 bool TTconcept::isWordId(int id) const {
-	return this && _wordP && _wordP->_id == id;
+	return _wordP && _wordP->_id == id;
 }
 
 int TTconcept::getWordId() const {
-	return this && _wordP ? _wordP->_id : 0;
+	return _wordP ? _wordP->_id : 0;
 }
 
 } // End of namespace Titanic

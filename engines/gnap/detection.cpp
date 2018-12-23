@@ -43,7 +43,15 @@ static const ADGameDescription gameDescriptions[] = {
 			{"stock_n.dat", 0, "46819043d019a2f36b727cc2bdd6980f", 12515823},
 			AD_LISTEND
 		},
-		Common::EN_ANY, Common::kPlatformWindows, ADGF_TESTING, GUIO0()
+		Common::EN_ANY, Common::kPlatformWindows, ADGF_NO_FLAGS, GUIO0()
+	},
+	{
+		"gnap", "",
+		{
+			{"stock_n.dat", 0, "46819043d019a2f36b727cc2bdd6980f", 13497301},
+			AD_LISTEND
+		},
+		Common::EN_ANY, Common::kPlatformWindows, ADGF_NO_FLAGS, GUIO0()
 	},
 	{
 		"gnap", "",
@@ -51,7 +59,15 @@ static const ADGameDescription gameDescriptions[] = {
 			{"stock_n.dat", 0, "46819043d019a2f36b727cc2bdd6980f", 12995485},
 			AD_LISTEND
 		},
-		Common::RU_RUS, Common::kPlatformWindows, ADGF_TESTING, GUIO0()
+		Common::RU_RUS, Common::kPlatformWindows, ADGF_NO_FLAGS, GUIO0()
+	},
+	{
+		"gnap", "Fargus",
+		{
+			{"stock_n.dat", 0, "46819043d019a2f36b727cc2bdd6980f", 12847726},
+			AD_LISTEND
+		},
+		Common::RU_RUS, Common::kPlatformWindows, ADGF_NO_FLAGS, GUIO0()
 	},
 
 	AD_TABLE_END_MARKER
@@ -89,7 +105,8 @@ bool GnapMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSupportsDeleteSave) ||
 		(f == kSavesSupportMetaInfo) ||
 		(f == kSavesSupportThumbnail) ||
-		(f == kSavesSupportCreationDate);
+		(f == kSavesSupportCreationDate) ||
+		(f == kSimpleSavesNames);
 }
 
 bool Gnap::GnapEngine::hasFeature(EngineFeature f) const {
@@ -124,13 +141,8 @@ SaveStateList GnapMetaEngine::listSaves(const char *target) const {
 			Common::InSaveFile *in = g_system->getSavefileManager()->openForLoading(*file);
 
 			if (in) {
-				Gnap::GnapEngine::readSavegameHeader(in, header);
-				saveList.push_back(SaveStateDescriptor(slot, header._saveName));
-
-				if (header._thumbnail) {
-					header._thumbnail->free();
-					delete header._thumbnail;
-				}
+				if (Gnap::GnapEngine::readSavegameHeader(in, header))
+					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
 				delete in;
 			}
 		}
@@ -162,7 +174,11 @@ SaveStateDescriptor GnapMetaEngine::querySaveMetaInfos(const char *target, int s
 		SaveStateDescriptor desc(slot, saveName);
 
 		if (version != 1) {
-			Graphics::Surface *const thumbnail = Graphics::loadThumbnail(*file);
+			Graphics::Surface *thumbnail;
+			if (!Graphics::loadThumbnail(*file, thumbnail)) {
+				delete file;
+				return SaveStateDescriptor();
+			}
 			desc.setThumbnail(thumbnail);
 		}
 

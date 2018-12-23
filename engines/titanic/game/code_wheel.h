@@ -33,10 +33,13 @@ class CodeWheel : public CBomb {
 	bool EnterViewMsg(CEnterViewMsg *msg);
 	bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
 	bool MovieEndMsg(CMovieEndMsg *msg);
+	bool CheckCodeWheelsMsg(CCheckCodeWheelsMsg *msg);
 private:
-	int _field108;
-	int _state;
-	int _field110;
+	int _correctValue;
+	int _value;
+	bool _matched;
+	// German specific fields
+	int _row, _column;
 public:
 	CLASSDEF;
 	CodeWheel();
@@ -50,6 +53,11 @@ public:
 	 * Load the data for the class from file
 	 */
 	virtual void load(SimpleFile *file);
+
+	/**
+	 * Resets a code wheel back to the default 'O' value
+	 */
+	void reset();
 };
 
 } // End of namespace Titanic

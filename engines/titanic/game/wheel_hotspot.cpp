@@ -24,20 +24,60 @@
 
 namespace Titanic {
 
+BEGIN_MESSAGE_MAP(CWheelHotSpot, CBackground)
+	ON_MESSAGE(MouseButtonDownMsg)
+	ON_MESSAGE(SignalObject)
+END_MESSAGE_MAP()
+
 void CWheelHotSpot::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
-	file->writeNumberLine(_fieldE0, indent);
-	file->writeNumberLine(_fieldE4, indent);
+	file->writeNumberLine(_active, indent);
+	file->writeNumberLine(_action, indent);
 
 	CBackground::save(file, indent);
 }
 
 void CWheelHotSpot::load(SimpleFile *file) {
 	file->readNumber();
-	_fieldE0 = file->readNumber();
-	_fieldE4 = file->readNumber();
+	_active = file->readNumber();
+	_action = (WheelHotspotAction)file->readNumber();
 
 	CBackground::load(file);
+}
+
+bool CWheelHotSpot::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
+	if (_active) {
+		CActMsg actMsg;
+
+		switch (_action) {
+		case WH_STOP:
+			actMsg._action = "Stop";
+			actMsg.execute("CaptainsWheel");
+			break;
+
+		case WH_CRUISE:
+			actMsg._action = "Cruise";
+			actMsg.execute("CaptainsWheel");
+			break;
+
+		case WH_GO:
+			actMsg._action = "Go";
+			actMsg.execute("CaptainsWheel");
+			break;
+
+		default:
+			break;
+		}
+	} else if (_action == WH_GO) {
+		petDisplayMessage(GO_WHERE);
+	}
+
+	return true;
+}
+
+bool CWheelHotSpot::SignalObject(CSignalObject *msg) {
+	_active = msg->_numValue != 0;
+	return true;
 }
 
 } // End of namespace Titanic

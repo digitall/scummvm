@@ -32,14 +32,36 @@ Common::String AdlEngine_v3::getItemDescription(const Item &item) const {
 	return _itemDesc[item.description - 1];
 }
 
+void AdlEngine_v3::loadItemDescriptions(Common::SeekableReadStream &stream, byte count) {
+	int32 startPos = stream.pos();
+	uint16 baseAddr = stream.readUint16LE();
+
+	// This code assumes that the first pointer points to a string that
+	// directly follows the pointer table
+	assert(baseAddr != 0);
+	baseAddr -= count * 2;
+
+	for (uint i = 0; i < count; ++i) {
+		stream.seek(startPos + i * 2);
+		uint16 offset = stream.readUint16LE();
+
+		if (offset > 0) {
+			stream.seek(startPos + offset - baseAddr);
+			_itemDesc.push_back(readString(stream, 0xff));
+		} else
+			_itemDesc.push_back(Common::String());
+	}
+
+	if (stream.eos() || stream.err())
+		error("Error loading item descriptions");
+}
+
 typedef Common::Functor1Mem<ScriptEnv &, int, AdlEngine_v3> OpcodeV3;
 
 void AdlEngine_v3::setupOpcodeTables() {
 	AdlEngine_v2::setupOpcodeTables();
 	delete _condOpcodes[0x04];
 	_condOpcodes[0x04] = new OpcodeV3(this, &AdlEngine_v3::o3_isNounNotInRoom);
-	delete _actOpcodes[0x04];
-	_actOpcodes[0x04] = new OpcodeV3(this, &AdlEngine_v3::o3_listInv);
 }
 
 int AdlEngine_v3::o3_isNounNotInRoom(ScriptEnv &e) {
@@ -59,18 +81,6 @@ int AdlEngine_v3::o3_isNounNotInRoom(ScriptEnv &e) {
 	}
 
 	return (isAnItem ? 1 : -1);
-}
-
-int AdlEngine_v3::o3_listInv(ScriptEnv &e) {
-	OP_DEBUG_0("\tLIST_INVENTORY()");
-
-	Common::List<Item>::const_iterator item;
-
-	for (item = _state.items.begin(); item != _state.items.end(); ++item)
-		if (item->room == IDI_ANY)
-			printString(_itemDesc[item->description - 1]);
-
-	return 0;
 }
 
 } // End of namespace Adl

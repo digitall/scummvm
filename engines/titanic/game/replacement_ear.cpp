@@ -21,8 +21,13 @@
  */
 
 #include "titanic/game/replacement_ear.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
+
+BEGIN_MESSAGE_MAP(CReplacementEar, CBackground)
+	ON_MESSAGE(VisibleMsg)
+END_MESSAGE_MAP()
 
 void CReplacementEar::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
@@ -32,6 +37,13 @@ void CReplacementEar::save(SimpleFile *file, int indent) {
 void CReplacementEar::load(SimpleFile *file) {
 	file->readNumber();
 	CBackground::load(file);
+}
+
+bool CReplacementEar::VisibleMsg(CVisibleMsg *msg) {
+	setVisible(true);
+	playMovie(MOVIE_WAIT_FOR_FINISH);
+	playSound(TRANSLATE("z#64.wav", "z#595.wav"));
+	return true;
 }
 
 } // End of namespace Titanic

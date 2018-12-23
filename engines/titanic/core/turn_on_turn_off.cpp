@@ -24,30 +24,59 @@
 
 namespace Titanic {
 
-CTurnOnTurnOff::CTurnOnTurnOff() : CBackground(), _fieldE0(0),
-	_fieldE4(0), _fieldE8(0), _fieldEC(0), _fieldF0(0) {
+BEGIN_MESSAGE_MAP(CTurnOnTurnOff, CBackground)
+	ON_MESSAGE(TurnOn)
+	ON_MESSAGE(TurnOff)
+END_MESSAGE_MAP()
+
+CTurnOnTurnOff::CTurnOnTurnOff() : CBackground(), _startFrameOn(0),
+	_endFrameOn(0), _startFrameOff(0), _endFrameOff(0), _isOn(false) {
 }
 
 void CTurnOnTurnOff::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
-	file->writeNumberLine(_fieldE0, indent);
-	file->writeNumberLine(_fieldE4, indent);
-	file->writeNumberLine(_fieldE8, indent);
-	file->writeNumberLine(_fieldEC, indent);
-	file->writeNumberLine(_fieldF0, indent);
+	file->writeNumberLine(_startFrameOn, indent);
+	file->writeNumberLine(_endFrameOn, indent);
+	file->writeNumberLine(_startFrameOff, indent);
+	file->writeNumberLine(_endFrameOff, indent);
+	file->writeNumberLine(_isOn, indent);
 
 	CBackground::save(file, indent);
 }
 
 void CTurnOnTurnOff::load(SimpleFile *file) {
 	file->readNumber();
-	_fieldE0 = file->readNumber();
-	_fieldE4 = file->readNumber();
-	_fieldE8 = file->readNumber();
-	_fieldEC = file->readNumber();
-	_fieldF0 = file->readNumber();
+	_startFrameOn = file->readNumber();
+	_endFrameOn = file->readNumber();
+	_startFrameOff = file->readNumber();
+	_endFrameOff = file->readNumber();
+	_isOn = file->readNumber();
 
 	CBackground::load(file);
+}
+
+bool CTurnOnTurnOff::TurnOn(CTurnOn *msg) {
+	if (!_isOn) {
+		if (_isBlocking)
+			playMovie(_startFrameOn, _endFrameOn, MOVIE_WAIT_FOR_FINISH);
+		else
+			playMovie(_startFrameOn, _endFrameOn, MOVIE_NOTIFY_OBJECT);
+		_isOn = true;
+	}
+
+	return true;
+}
+
+bool CTurnOnTurnOff::TurnOff(CTurnOff *msg) {
+	if (_isOn) {
+		if (_isBlocking)
+			playMovie(_startFrameOff, _endFrameOff, MOVIE_WAIT_FOR_FINISH);
+		else
+			playMovie(_startFrameOff, _endFrameOff, MOVIE_NOTIFY_OBJECT);
+		_isOn = false;
+	}
+
+	return true;
 }
 
 } // End of namespace Titanic

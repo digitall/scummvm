@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -37,7 +37,7 @@ void BbvsEngine::playVideo(int videoNum) {
 		videoFilename = Common::String::format("vid/video%03d.avi", videoNum - 1);
 
 	// Set the correct video mode
-	initGraphics(320, 240, false, 0);
+	initGraphics(320, 240, nullptr);
 	if (_system->getScreenFormat().bytesPerPixel == 1) {
 		warning("Couldn't switch to a RGB color video mode to play a video.");
 		return;
@@ -84,7 +84,7 @@ void BbvsEngine::playVideo(int videoNum) {
 
 	delete videoDecoder;
 
-	initGraphics(320, 240, false);
+	initGraphics(320, 240);
 
 }
 

@@ -26,6 +26,7 @@ namespace Titanic {
 
 BEGIN_MESSAGE_MAP(CPETTransport, CGameObject)
 	ON_MESSAGE(EnterRoomMsg)
+	ON_MESSAGE(LeaveRoomMsg)
 END_MESSAGE_MAP()
 
 void CPETTransport::save(SimpleFile *file, int indent) {
@@ -39,7 +40,12 @@ void CPETTransport::load(SimpleFile *file) {
 }
 
 bool CPETTransport::EnterRoomMsg(CEnterRoomMsg *msg) {
-	warning("CPETTransport::handleEvent");
+	petSetRemoteTarget();
+	return true;
+}
+
+bool CPETTransport::LeaveRoomMsg(CLeaveRoomMsg *msg) {
+	petClear();
 	return true;
 }
 

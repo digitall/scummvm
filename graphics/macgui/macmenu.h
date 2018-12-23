@@ -8,52 +8,34 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * MIT License:
- *
- * Copyright (c) 2009 Alexei Svitkine, Eugene Sandulenko
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #ifndef GRAPHICS_MACGUI_MACMENU_H
 #define GRAPHICS_MACGUI_MACMENU_H
 
+#include "common/str-array.h"
+#include "common/winexe_pe.h"
+
+namespace Common {
+class U32String;
+}
+
 namespace Graphics {
 
-struct MenuItem;
-struct MenuSubItem;
+struct MacMenuItem;
+struct MacMenuSubItem;
 
-struct MenuData {
+struct MacMenuData {
 	int menunum;
 	const char *title;
 	int action;
@@ -61,29 +43,40 @@ struct MenuData {
 	bool enabled;
 };
 
-class Menu : public BaseMacWindow {
+class MacMenu : public BaseMacWindow {
 public:
-	Menu(int id, const Common::Rect &bounds, MacWindowManager *wm);
-	~Menu();
+	MacMenu(int id, const Common::Rect &bounds, MacWindowManager *wm);
+	~MacMenu();
+
+	static Common::StringArray *readMenuFromResource(Common::SeekableReadStream *res);
+	static MacMenu *createMenuFromPEexe(Common::PEResources &exe, MacWindowManager *wm);
 
 	void setCommandsCallback(void (*callback)(int, Common::String &, void *), void *data) { _ccallback = callback; _cdata = data; }
+	void setCommandsCallback(void (*callback)(int, Common::U32String &, void *), void *data) { _unicodeccallback = callback; _cdata = data; }
 
-	void addStaticMenus(const MenuData *data);
+	void addStaticMenus(const MacMenuData *data);
 	void calcDimensions();
 
 	int addMenuItem(const char *name);
+	int addMenuItem(const Common::U32String &name);
 	void addMenuSubItem(int id, const char *text, int action, int style = 0, char shortcut = 0, bool enabled = true);
-	void createSubMenuFromString(int id, const char *string);
+	void addMenuSubItem(int id, const Common::U32String &text, int action, int style = 0, char shortcut = 0, bool enabled = true);
+	void createSubMenuFromString(int id, const char *string, int commandId);
 	void clearSubMenu(int id);
 
 	bool draw(ManagedSurface *g, bool forceRedraw = false);
 	bool processEvent(Common::Event &event);
 
 	void enableCommand(int menunum, int action, bool state);
+	void enableCommand(const char *menuitem, const char *menuaction, bool state);
+	void enableCommand(const Common::U32String &menuitem, const Common::U32String &menuaction, bool state);
 	void disableAllMenus();
 
 	void setActive(bool active) { _menuActivated = active; }
 	bool hasAllFocus() { return _menuActivated; }
+
+	bool isVisible() { return _isVisible; }
+	void setVisible(bool visible) { _isVisible = visible; _contentIsDirty = true; }
 
 	Common::Rect _bbox;
 
@@ -93,10 +86,10 @@ private:
 
 private:
 	const Font *getMenuFont();
-	const char *getAcceleratorString(MenuSubItem *item, const char *prefix);
-	int calculateMenuWidth(MenuItem *menu);
-	void calcMenuBounds(MenuItem *menu);
-	void renderSubmenu(MenuItem *menu);
+	const Common::String getAcceleratorString(MacMenuSubItem *item, const char *prefix);
+	int calculateMenuWidth(MacMenuItem *menu);
+	void calcMenuBounds(MacMenuItem *menu);
+	void renderSubmenu(MacMenuItem *menu);
 
 	bool keyEvent(Common::Event &event);
 	bool mouseClick(int x, int y);
@@ -105,16 +98,18 @@ private:
 
 	bool processMenuShortCut(byte flags, uint16 ascii);
 
-	Common::Array<MenuItem *> _items;
+	Common::Array<MacMenuItem *> _items;
 
 	const Font *_font;
 
 	bool _menuActivated;
+	bool _isVisible;
 
 	int _activeItem;
 	int _activeSubItem;
 
 	void (*_ccallback)(int action, Common::String &text, void *data);
+	void (*_unicodeccallback)(int action, Common::U32String &text, void *data);
 	void *_cdata;
 };
 

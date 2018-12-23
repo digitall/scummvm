@@ -145,7 +145,7 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 		GAMEOPTION_ORIGINAL_SAVELOAD,
 		{
 			_s("Use original save/load screens"),
-			_s("Use the original save/load screens, instead of the ScummVM ones"),
+			_s("Use the original save/load screens instead of the ScummVM ones"),
 			"originalsaveload",
 			false
 		}
@@ -220,7 +220,7 @@ public:
 	virtual void removeSaveState(const char *target, int slot) const;
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
 
-	const ADGameDescription *fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const;
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override;
 };
 
 bool AgiMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -231,7 +231,8 @@ bool AgiMetaEngine::hasFeature(MetaEngineFeature f) const {
 	    (f == kSavesSupportMetaInfo) ||
 	    (f == kSavesSupportThumbnail) ||
 	    (f == kSavesSupportCreationDate) ||
-	    (f == kSavesSupportPlayTime);
+	    (f == kSavesSupportPlayTime) ||
+		(f == kSimpleSavesNames);
 }
 
 bool AgiBase::hasFeature(EngineFeature f) const {
@@ -374,7 +375,11 @@ SaveStateDescriptor AgiMetaEngine::querySaveMetaInfos(const char *target, int sl
 
 		char saveVersion = in->readByte();
 		if (saveVersion >= 4) {
-			Graphics::Surface *const thumbnail = Graphics::loadThumbnail(*in);
+			Graphics::Surface *thumbnail;
+			if (!Graphics::loadThumbnail(*in, thumbnail)) {
+				delete in;
+				return SaveStateDescriptor();
+			}
 
 			descriptor.setThumbnail(thumbnail);
 
@@ -416,7 +421,7 @@ SaveStateDescriptor AgiMetaEngine::querySaveMetaInfos(const char *target, int sl
 	}
 }
 
-const ADGameDescription *AgiMetaEngine::fallbackDetect(const FileMap &allFilesXXX, const Common::FSList &fslist) const {
+ADDetectedGame AgiMetaEngine::fallbackDetect(const FileMap &allFilesXXX, const Common::FSList &fslist) const {
 	typedef Common::HashMap<Common::String, int32> IntMap;
 	IntMap allFiles;
 	bool matchedUsingFilenames = false;
@@ -579,10 +584,10 @@ const ADGameDescription *AgiMetaEngine::fallbackDetect(const FileMap &allFilesXX
 
 		g_system->logMessage(LogMessageType::kWarning, fallbackWarning.c_str());
 
-		return (const ADGameDescription *)&g_fallbackDesc;
+		return ADDetectedGame(&g_fallbackDesc.desc);
 	}
 
-	return 0;
+	return ADDetectedGame();
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(AGI)

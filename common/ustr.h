@@ -27,6 +27,8 @@
 
 namespace Common {
 
+class String;
+
 /**
  * Very simple string class for UTF-32 strings in ScummVM. The main intention
  * behind this class is to feature a simple way of displaying UTF-32 strings
@@ -182,6 +184,7 @@ public:
 	const_iterator end() const {
 		return begin() + size();
 	}
+
 private:
 	void makeUnique();
 	void ensureCapacity(uint32 new_size, bool keep_old);
@@ -189,6 +192,18 @@ private:
 	void decRefCount(int *oldRefCount);
 	void initWithCStr(const value_type *str, uint32 len);
 };
+
+U32String convertUtf8ToUtf32(const String &str);
+
+enum CodePage {
+	kUtf8,
+	kWindows1250,
+	kWindows1251,
+	kWindows1252,
+	kWindows1255
+};
+
+U32String convertToU32String(const char *str, CodePage page = kUtf8);
 
 } // End of namespace Common
 

@@ -27,20 +27,21 @@
 
 namespace Titanic {
 
-enum Season {
-	SPRING = 0,
-	SUMMER = 1,
-	AUTUMN = 2,
-	WINTER = 3
-};
-
 class CSeasonalAdjustment : public CBackground {
-public:
-	int _fieldE0;
-	int _fieldE4;
+	DECLARE_MESSAGE_MAP;
+	bool StatusChangeMsg(CStatusChangeMsg *msg);
+	bool MouseButtonDownMsg(CMouseButtonDownMsg *msg);
+	bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
+	bool MovieEndMsg(CMovieEndMsg *msg);
+	bool TurnOn(CTurnOn *msg);
+	bool TurnOff(CTurnOff *msg);
+	bool ActMsg(CActMsg *msg);
+private:
+	bool _switching;
+	bool _enabled;
 public:
 	CLASSDEF;
-	CSeasonalAdjustment() : CBackground(), _fieldE0(0), _fieldE4(0) {}
+	CSeasonalAdjustment() : CBackground(), _switching(false), _enabled(0) {}
 
 	/**
 	 * Save the data for the class to file

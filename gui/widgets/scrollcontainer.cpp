@@ -28,19 +28,20 @@
 
 namespace GUI {
 
-ScrollContainerWidget::ScrollContainerWidget(GuiObject *boss, int x, int y, int w, int h)
-	: Widget(boss, x, y, w, h) {
+ScrollContainerWidget::ScrollContainerWidget(GuiObject *boss, int x, int y, int w, int h, uint32 reflowCmd)
+	: Widget(boss, x, y, w, h), CommandSender(nullptr), _reflowCmd(reflowCmd) {
 	init();
 }
 
-ScrollContainerWidget::ScrollContainerWidget(GuiObject *boss, const Common::String &name)
-	: Widget(boss, name) {
+ScrollContainerWidget::ScrollContainerWidget(GuiObject *boss, const Common::String &name, uint32 reflowCmd)
+	: Widget(boss, name), CommandSender(nullptr), _reflowCmd(reflowCmd) {
 	init();
 }
 
 void ScrollContainerWidget::init() {
 	setFlags(WIDGET_ENABLED);
 	_type = kScrollContainerWidget;
+	_backgroundType = ThemeEngine::kDialogBackgroundDefault;
 	_verticalScroll = new ScrollBarWidget(this, _w-16, 0, 16, _h);
 	_verticalScroll->setTarget(this);
 	_scrolledX = 0;
@@ -49,17 +50,21 @@ void ScrollContainerWidget::init() {
 	recalc();
 }
 
+void ScrollContainerWidget::handleMouseWheel(int x, int y, int direction) {
+	_verticalScroll->handleMouseWheel(x, y, direction);
+}
+
 void ScrollContainerWidget::recalc() {
 	int scrollbarWidth = g_gui.xmlEval()->getVar("Globals.Scrollbar.Width", 0);
 	_limitH = _h;
-	
+
 	//calculate virtual height
 	const int spacing = g_gui.xmlEval()->getVar("Global.Font.Height", 16); //on the bottom
 	int h = 0;
 	int min = spacing, max = 0;
 	Widget *ptr = _firstWidget;
 	while (ptr) {
-		if (ptr != _verticalScroll) {
+		if (ptr != _verticalScroll && ptr->isVisible()) {
 			int y = ptr->getAbsY() - getChildY();
 			min = MIN(min, y - spacing);
 			max = MAX(max, y + ptr->getHeight() + spacing);
@@ -68,9 +73,12 @@ void ScrollContainerWidget::recalc() {
 	}
 	h = max - min;
 
+	if (h <= _limitH) _scrolledY = 0;
+
 	_verticalScroll->_numEntries = h;
 	_verticalScroll->_currentPos = _scrolledY;
 	_verticalScroll->_entriesPerPage = _limitH;
+	_verticalScroll->_singleStep = kLineHeight;
 	_verticalScroll->setPos(_w - scrollbarWidth, _scrolledY+1);
 	_verticalScroll->setSize(scrollbarWidth, _limitH -2);
 }
@@ -100,8 +108,7 @@ void ScrollContainerWidget::handleCommand(CommandSender *sender, uint32 cmd, uin
 	case kSetPositionCmd:
 		_scrolledY = _verticalScroll->_currentPos;
 		reflowLayout();
-		draw();
-		g_gui.doFullRedraw();
+		g_gui.scheduleTopDialogRedraw();
 		break;
 	}
 }
@@ -115,7 +122,10 @@ void ScrollContainerWidget::reflowLayout() {
 		ptr->reflowLayout();
 		ptr = ptr->next();
 	}
-	
+
+	//hide and move widgets, if needed
+	sendCommand(_reflowCmd, 0);
+
 	//recalculate height
 	recalc();
 
@@ -124,7 +134,7 @@ void ScrollContainerWidget::reflowLayout() {
 	while (ptr) {
 		int y = ptr->getAbsY() - getChildY();
 		int h = ptr->getHeight();
-		bool visible = true;
+		bool visible = ptr->isVisible();
 		if (y + h - _scrolledY < 0) visible = false;
 		if (y - _scrolledY > _limitH) visible = false;
 		ptr->setVisible(visible);
@@ -132,16 +142,35 @@ void ScrollContainerWidget::reflowLayout() {
 	}
 
 	_verticalScroll->setVisible(_verticalScroll->_numEntries > _limitH); //show when there is something to scroll
+	_verticalScroll->recalc();
 }
 
 void ScrollContainerWidget::drawWidget() {
-	g_gui.theme()->drawDialogBackgroundClip(Common::Rect(_x, _y, _x + _w, _y + getHeight() - 1), getBossClipRect(), ThemeEngine::kDialogBackgroundDefault);
+	g_gui.theme()->drawDialogBackground(Common::Rect(_x, _y, _x + _w, _y + getHeight() - 1), _backgroundType);
+}
+
+bool ScrollContainerWidget::containsWidget(Widget *w) const {
+	if (w == _verticalScroll || _verticalScroll->containsWidget(w))
+		return true;
+	return containsWidgetInChain(_firstWidget, w);
 }
 
 Widget *ScrollContainerWidget::findWidget(int x, int y) {
 	if (_verticalScroll->isVisible() && x >= _w - _verticalScroll->getWidth())
 		return _verticalScroll;
-	return Widget::findWidgetInChain(_firstWidget, x + _scrolledX, y + _scrolledY);
+	Widget *w = Widget::findWidgetInChain(_firstWidget, x + _scrolledX, y + _scrolledY);
+	if (w)
+		return w;
+	return this;
+}
+
+Common::Rect ScrollContainerWidget::getClipRect() const {
+	// Make sure the clipping rect contains the scrollbar so it is properly redrawn
+	return Common::Rect(getAbsX(), getAbsY(), getAbsX() + _w, getAbsY() + getHeight());
+}
+
+void ScrollContainerWidget::setBackgroundType(ThemeEngine::DialogBackground backgroundType) {
+	_backgroundType = backgroundType;
 }
 
 } // End of namespace GUI

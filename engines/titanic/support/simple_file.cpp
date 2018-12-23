@@ -52,7 +52,7 @@ SimpleFile::~SimpleFile() {
 }
 
 void SimpleFile::open(Common::SeekableReadStream *stream) {
-	close();	
+	close();
 	_inStream = stream;
 }
 
@@ -290,7 +290,7 @@ void SimpleFile::writeString(const CString &str) const {
 
 	const char *msgP = str.c_str();
 	char c;
-	
+
 	while ((c = *msgP++) != '\0') {
 		switch (c) {
 		case '\r':
@@ -388,7 +388,7 @@ void SimpleFile::writeIndent(uint indent) const {
 		write("\t", 1);
 }
 
-bool SimpleFile::IsClassStart() {
+bool SimpleFile::isClassStart() {
 	char c;
 
 	do {
@@ -422,10 +422,12 @@ bool SimpleFile::scanf(const char *format, ...) {
 	while (!formatStr.empty()) {
 		if (formatStr.hasPrefix(" ")) {
 			formatStr.deleteChar(0);
-			
-			safeRead(&c, 1);			
-			if (!Common::isSpace(c))
+
+			safeRead(&c, 1);
+			if (!Common::isSpace(c)) {
+				va_end(va);
 				return false;
+			}
 
 			// Skip over whitespaces
 			skipSpaces();
@@ -434,7 +436,7 @@ bool SimpleFile::scanf(const char *format, ...) {
 			formatStr = CString(formatStr.c_str() + 2);
 			int *param = (int *)va_arg(va, int *);
 			*param = readNumber();
-			
+
 			if (!eos())
 				_inStream->seek(-1, SEEK_CUR);
 		} else if (formatStr.hasPrefix("%s")) {
@@ -467,7 +469,7 @@ void SimpleFile::skipSpaces() {
 /*------------------------------------------------------------------------*/
 
 bool StdCWadFile::open(const Common::String &filename) {
-	File f;
+	Common::File f;
 	CString name = filename;
 
 	// Check for whether it is indeed a file/resource pair
@@ -476,9 +478,11 @@ bool StdCWadFile::open(const Common::String &filename) {
 	if (idx < 0) {
 		// Nope, so open up file for standard reading
 		assert(!name.empty());
-		f.open(name);
+		if (!f.open(name))
+			return false;
 
 		SimpleFile::open(f.readStream(f.size()));
+		f.close();
 		return true;
 	}
 
@@ -488,8 +492,9 @@ bool StdCWadFile::open(const Common::String &filename) {
 	CString resStr = name.mid(idx + 1, extPos - idx - 1);
 	int resIndex = resStr.readInt();
 
-	// Open up the index for access 
-	f.open(fname);
+	// Open up the index for access
+	if (!f.open(fname))
+		return false;
 	int indexSize = f.readUint32LE() / 4;
 	assert(resIndex < indexSize);
 

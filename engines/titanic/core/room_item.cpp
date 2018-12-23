@@ -36,8 +36,8 @@ void CRoomItem::save(SimpleFile *file, int indent) {
 	_exitMovieKey.save(file, indent);
 
 	file->writeQuotedLine("Room dimensions x 1000", indent);
-	file->writeNumberLine(_roomDimensionX * 1000.0, indent + 1);
-	file->writeNumberLine(_roomDimensionY * 1000.0, indent + 1);
+	file->writeNumberLine((int)(_roomDimensionX * 1000.0), indent + 1);
+	file->writeNumberLine((int)(_roomDimensionY * 1000.0), indent + 1);
 
 	file->writeQuotedLine("Transition Movie", indent);
 	_transitionMovieKey.save(file, indent);
@@ -59,20 +59,20 @@ void CRoomItem::save(SimpleFile *file, int indent) {
 
 void CRoomItem::load(SimpleFile *file) {
 	int val = file->readNumber();
-	
+
 	switch (val) {
 	case 3:
 		// Read exit movie
 		file->readBuffer();
 		_exitMovieKey.load(file);
-		// Deliberate fall-through
+		// Intentional fall-through
 
 	case 2:
 		// Read room dimensions
 		file->readBuffer();
 		_roomDimensionX = (double)file->readNumber() / 1000.0;
 		_roomDimensionY = (double)file->readNumber() / 1000.0;
-		// Deliberate fall-through
+		// Intentional fall-through
 
 	case 1:
 		// Read transition movie key and clip list
@@ -82,7 +82,7 @@ void CRoomItem::load(SimpleFile *file) {
 		file->readBuffer();
 		_clipList.load(file);
 		postLoad();
-		// Deliberate fall-through
+		// Intentional fall-through
 
 	case 0:
 		// Read room rect
@@ -103,10 +103,10 @@ void CRoomItem::load(SimpleFile *file) {
 }
 
 void CRoomItem::postLoad() {
-	if (!_exitMovieKey.exists().empty())
+	if (!_exitMovieKey.getFilename().empty())
 		return;
 
-	CString name = _transitionMovieKey.exists();
+	CString name = _transitionMovieKey.getFilename();
 	if (name.right(7) == "nav.avi") {
 		_exitMovieKey = CResourceKey(name.left(name.size() - 7) + "exit.avi");
 	}
@@ -114,7 +114,7 @@ void CRoomItem::postLoad() {
 
 void CRoomItem::calcNodePosition(const Point &nodePos, double &xVal, double &yVal) const {
 	xVal = yVal = 0.0;
-	
+
 	if (_roomDimensionX >= 0.0 && _roomDimensionY >= 0.0) {
 		xVal = _roomRect.width() / _roomDimensionX;
 		yVal = _roomRect.height() / _roomDimensionY;

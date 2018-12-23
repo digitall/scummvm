@@ -21,7 +21,7 @@
  */
 
 #include "titanic/game/arboretum_gate.h"
-#include "titanic/game/seasonal_adjustment.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -36,156 +36,211 @@ BEGIN_MESSAGE_MAP(CArboretumGate, CBackground)
 	ON_MESSAGE(TurnOn)
 END_MESSAGE_MAP()
 
-int CArboretumGate::_v1;
+bool CArboretumGate::_gotSpeechCentre;
+bool CArboretumGate::_disabled;
 int CArboretumGate::_initialFrame;
-int CArboretumGate::_v3;
 
 CArboretumGate::CArboretumGate() : CBackground() {
-	_viewName1 = "NULL";
-	_viewName2 = "NULL";
-	_seasonNum = 0;
-	_fieldF0 = 0;
-	_winterOffStartFrame = 244;
-	_winterOffEndFrame = 304;
-	_springOffStartFrame = 122;
-	_springOffEndFrame = 182;
-	_summerOffStartFrame1 = 183;
-	_summerOffEndFrame1 = 243;
-	_summerOffStartFrame2 = 665;
-	_summerOffEndFrame2 = 724;
-	_autumnOffStartFrame1 = 61;
-	_autumnOffEndFrame1 = 121;
-	_autumnOffStartFrame2 = 0;
-	_autumnOffEndFrame2 = 60;
-	_winterOnStartFrame = 485;
-	_winterOnEndFrame = 544;
-	_springOnStartFrame = 425;
-	_springOnEndFrame = 484;
-	_summerOnStartFrame1 = 545;
-	_summerOnEndFrame1 = 604;
-	_summerOnStartFrame2 = 605;
-	_summerOnEndFrame2 = 664;
-	_autumnOnStartFrame1 = 305;
-	_autumnOnEndFrame1 = 364;
-	_autumnOnStartFrame2 = 365;
-	_autumnOnEndFrame2 = 424;
+	_arboretumViewName = "NULL";
+	_exitViewName = "NULL";
+	_seasonNum = SEASON_SUMMER;
+	_unused1 = 0;
+	_startFrameSpringOff = 244;
+	_endFrameSpringOff = 304;
+	_startFrameSummerOff = 122;
+	_endFrameSummerOff = 182;
+	_startFrameAutumnOff1 = 183;
+	_endFrameAutumnOff1 = 243;
+	_startFrameAutumnOff2 = 665;
+	_endFrameAutumnOff2 = 724;
+	_startFrameWinterOff1 = 61;
+	_endFrameWinterOff1 = 121;
+	_startFrameWinterOff2 = 0;
+	_endFrameWinterOff2 = 60;
+	_startFrameSpringOn = 485;
+	_endFrameSpringOn = 544;
+	_startFrameSummerOn = 425;
+	_endFrameSummerOn = 484;
+	_startFrameAutumnOn1 = 545;
+	_endFrameAutumnOn1 = 604;
+	_startFrameAutumnOn2 = 605;
+	_endFrameAutumnOn2 = 664;
+	_startFrameWinterOn1 = 305;
+	_endFrameWinterOn1 = 364;
+	_startFrameWinterOn2 = 365;
+	_endFrameWinterOn2 = 424;
 }
 
 void CArboretumGate::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
 	file->writeNumberLine(_seasonNum, indent);
-	file->writeNumberLine(_v1, indent);
+	file->writeNumberLine(_gotSpeechCentre, indent);
 	file->writeNumberLine(_initialFrame, indent);
-	file->writeNumberLine(_v3, indent);
-	file->writeQuotedLine(_viewName1, indent);
-	file->writeNumberLine(_fieldF0, indent);
-	file->writeNumberLine(_winterOffStartFrame, indent);
-	file->writeNumberLine(_winterOffEndFrame, indent);
-	file->writeNumberLine(_springOffStartFrame, indent);
-	file->writeNumberLine(_springOffEndFrame, indent);
-	file->writeNumberLine(_summerOffStartFrame1, indent);
-	file->writeNumberLine(_summerOffEndFrame1, indent);
-	file->writeNumberLine(_summerOffStartFrame2, indent);
-	file->writeNumberLine(_summerOffEndFrame2, indent);
-	file->writeNumberLine(_autumnOffStartFrame1, indent);
-	file->writeNumberLine(_autumnOffEndFrame1, indent);
-	file->writeNumberLine(_autumnOffStartFrame2, indent);
-	file->writeNumberLine(_autumnOffEndFrame2, indent);
-	file->writeNumberLine(_winterOnStartFrame, indent);
-	file->writeNumberLine(_winterOnEndFrame, indent);
-	file->writeNumberLine(_springOnStartFrame, indent);
-	file->writeNumberLine(_springOnEndFrame, indent);
-	file->writeNumberLine(_summerOnStartFrame1, indent);
-	file->writeNumberLine(_summerOnEndFrame1, indent);
-	file->writeNumberLine(_summerOnStartFrame2, indent);
-	file->writeNumberLine(_summerOnEndFrame2, indent);
-	file->writeNumberLine(_autumnOnStartFrame1, indent);
-	file->writeNumberLine(_autumnOnEndFrame1, indent);
-	file->writeNumberLine(_autumnOnStartFrame2, indent);
-	file->writeNumberLine(_autumnOnEndFrame2, indent);
-	file->writeQuotedLine(_viewName2, indent);
+	file->writeNumberLine(_disabled, indent);
+	file->writeQuotedLine(_arboretumViewName, indent);
+	file->writeNumberLine(_unused1, indent);
+	file->writeNumberLine(_startFrameSpringOff, indent);
+	file->writeNumberLine(_endFrameSpringOff, indent);
+	file->writeNumberLine(_startFrameSummerOff, indent);
+	file->writeNumberLine(_endFrameSummerOff, indent);
+	file->writeNumberLine(_startFrameAutumnOff1, indent);
+	file->writeNumberLine(_endFrameAutumnOff1, indent);
+	file->writeNumberLine(_startFrameAutumnOff2, indent);
+	file->writeNumberLine(_endFrameAutumnOff2, indent);
+	file->writeNumberLine(_startFrameWinterOff1, indent);
+	file->writeNumberLine(_endFrameWinterOff1, indent);
+	file->writeNumberLine(_startFrameWinterOff2, indent);
+	file->writeNumberLine(_endFrameWinterOff2, indent);
+	file->writeNumberLine(_startFrameSpringOn, indent);
+	file->writeNumberLine(_endFrameSpringOn, indent);
+	file->writeNumberLine(_startFrameSummerOn, indent);
+	file->writeNumberLine(_endFrameSummerOn, indent);
+	file->writeNumberLine(_startFrameAutumnOn1, indent);
+	file->writeNumberLine(_endFrameAutumnOn1, indent);
+	file->writeNumberLine(_startFrameAutumnOn2, indent);
+	file->writeNumberLine(_endFrameAutumnOn2, indent);
+	file->writeNumberLine(_startFrameWinterOn1, indent);
+	file->writeNumberLine(_endFrameWinterOn1, indent);
+	file->writeNumberLine(_startFrameWinterOn2, indent);
+	file->writeNumberLine(_endFrameWinterOn2, indent);
+	file->writeQuotedLine(_exitViewName, indent);
+
+	if (g_language == Common::DE_DEU) {
+		// German version replicated all the frame fields for some reason
+		file->writeNumberLine(_startFrameSpringOff, indent);
+		file->writeNumberLine(_endFrameSpringOff, indent);
+		file->writeNumberLine(_startFrameSpringOn, indent);
+		file->writeNumberLine(_endFrameSpringOn, indent);
+		file->writeNumberLine(_startFrameAutumnOff2, indent);
+		file->writeNumberLine(_endFrameAutumnOff2, indent);
+		file->writeNumberLine(_endFrameAutumnOn2, indent);
+		file->writeNumberLine(_startFrameAutumnOn2, indent);
+		file->writeNumberLine(_startFrameAutumnOff1, indent);
+		file->writeNumberLine(_endFrameAutumnOff1, indent);
+		file->writeNumberLine(_startFrameAutumnOn1, indent);
+		file->writeNumberLine(_endFrameAutumnOn1, indent);
+		file->writeNumberLine(_startFrameSummerOff, indent);
+		file->writeNumberLine(_endFrameSummerOff, indent);
+		file->writeNumberLine(_startFrameSummerOn, indent);
+		file->writeNumberLine(_endFrameSummerOn, indent);
+		file->writeNumberLine(_startFrameWinterOff2, indent);
+		file->writeNumberLine(_endFrameWinterOff2, indent);
+		file->writeNumberLine(_startFrameWinterOn2, indent);
+		file->writeNumberLine(_endFrameWinterOn2, indent);
+		file->writeNumberLine(_startFrameWinterOff1, indent);
+		file->writeNumberLine(_endFrameWinterOff1, indent);
+		file->writeNumberLine(_startFrameWinterOn1, indent);
+		file->writeNumberLine(_endFrameWinterOn1, indent);
+	}
 
 	CBackground::save(file, indent);
 }
 
 void CArboretumGate::load(SimpleFile *file) {
 	file->readNumber();
-	_seasonNum = file->readNumber();
-	_v1 = file->readNumber();
+	_seasonNum = (Season)file->readNumber();
+	_gotSpeechCentre = file->readNumber();
 	_initialFrame = file->readNumber();
-	_v3 = file->readNumber();
-	_viewName1 = file->readString();
-	_fieldF0 = file->readNumber();
-	_winterOffStartFrame = file->readNumber();
-	_winterOffEndFrame = file->readNumber();
-	_springOffStartFrame = file->readNumber();
-	_springOffEndFrame = file->readNumber();
-	_summerOffStartFrame1 = file->readNumber();
-	_summerOffEndFrame1 = file->readNumber();
-	_summerOffStartFrame2 = file->readNumber();
-	_summerOffEndFrame2 = file->readNumber();
-	_autumnOffStartFrame1 = file->readNumber();
-	_autumnOffEndFrame1 = file->readNumber();
-	_autumnOffStartFrame2 = file->readNumber();
-	_autumnOffEndFrame2 = file->readNumber();
-	_winterOnStartFrame = file->readNumber();
-	_winterOnEndFrame = file->readNumber();
-	_springOnStartFrame = file->readNumber();
-	_springOnEndFrame = file->readNumber();
-	_summerOnStartFrame1 = file->readNumber();
-	_summerOnEndFrame1 = file->readNumber();
-	_summerOnStartFrame2 = file->readNumber();
-	_summerOnEndFrame2 = file->readNumber();
-	_autumnOnStartFrame1 = file->readNumber();
-	_autumnOnEndFrame1 = file->readNumber();
-	_autumnOnStartFrame2 = file->readNumber();
-	_autumnOnEndFrame2 = file->readNumber();
-	_viewName2 = file->readString();
+	_disabled = file->readNumber();
+	_arboretumViewName = file->readString();
+	_unused1 = file->readNumber();
+	_startFrameSpringOff = file->readNumber();
+	_endFrameSpringOff = file->readNumber();
+	_startFrameSummerOff = file->readNumber();
+	_endFrameSummerOff = file->readNumber();
+	_startFrameAutumnOff1 = file->readNumber();
+	_endFrameAutumnOff1 = file->readNumber();
+	_startFrameAutumnOff2 = file->readNumber();
+	_endFrameAutumnOff2 = file->readNumber();
+	_startFrameWinterOff1 = file->readNumber();
+	_endFrameWinterOff1 = file->readNumber();
+	_startFrameWinterOff2 = file->readNumber();
+	_endFrameWinterOff2 = file->readNumber();
+	_startFrameSpringOn = file->readNumber();
+	_endFrameSpringOn = file->readNumber();
+	_startFrameSummerOn = file->readNumber();
+	_endFrameSummerOn = file->readNumber();
+	_startFrameAutumnOn1 = file->readNumber();
+	_endFrameAutumnOn1 = file->readNumber();
+	_startFrameAutumnOn2 = file->readNumber();
+	_endFrameAutumnOn2 = file->readNumber();
+	_startFrameWinterOn1 = file->readNumber();
+	_endFrameWinterOn1 = file->readNumber();
+	_startFrameWinterOn2 = file->readNumber();
+	_endFrameWinterOn2 = file->readNumber();
+	_exitViewName = file->readString();
+
+	if (g_language == Common::DE_DEU) {
+		// German version replicated all the frame fields for some reason
+		_startFrameSpringOff = file->readNumber();
+		_endFrameSpringOff = file->readNumber();
+		_startFrameSpringOn = file->readNumber();
+		_endFrameSpringOn = file->readNumber();
+		_startFrameAutumnOff2 = file->readNumber();
+		_endFrameAutumnOff2 = file->readNumber();
+		_endFrameAutumnOn2 = file->readNumber();
+		_startFrameAutumnOn2 = file->readNumber();
+		_startFrameAutumnOff1 = file->readNumber();
+		_endFrameAutumnOff1 = file->readNumber();
+		_startFrameAutumnOn1 = file->readNumber();
+		_endFrameAutumnOn1 = file->readNumber();
+		_startFrameSummerOff = file->readNumber();
+		_endFrameSummerOff = file->readNumber();
+		_startFrameSummerOn = file->readNumber();
+		_endFrameSummerOn = file->readNumber();
+		_startFrameWinterOff2 = file->readNumber();
+		_endFrameWinterOff2 = file->readNumber();
+		_startFrameWinterOn2 = file->readNumber();
+		_endFrameWinterOn2 = file->readNumber();
+		_startFrameWinterOff1 = file->readNumber();
+		_endFrameWinterOff1 = file->readNumber();
+		_startFrameWinterOn1 = file->readNumber();
+		_endFrameWinterOn1 = file->readNumber();
+	}
 
 	CBackground::load(file);
 }
 
 bool CArboretumGate::ChangeSeasonMsg(CChangeSeasonMsg *msg) {
-	_seasonNum = (_seasonNum + 1) % 4;
+	_seasonNum = (Season)((_seasonNum + 1) % 4);
 	return true;
 }
 
 bool CArboretumGate::ActMsg(CActMsg *msg) {
 	if (msg->_action == "PlayerGetsSpeechCentre") {
-		_v1 = 1;
+		_gotSpeechCentre = true;
 		CVisibleMsg visibleMsg(true);
 		visibleMsg.execute("SpCtrOverlay");
 	} else if (msg->_action == "ExitLFrozen") {
-		if (_v3) {
-			_viewName2 = "FrozenArboretum.Node 2.W";
+		if (_disabled) {
+			_exitViewName = "FrozenArboretum.Node 2.W";
 			CTurnOn onMsg;
 			onMsg.execute(this);
 		} else {
 			changeView("FrozenArboretum.Node 2.W");
 		}
 	} else if (msg->_action == "ExitRFrozen") {
-		if (_v3) {
-			_viewName2 = "FrozenArboretum.Node 2.E";
+		if (_disabled) {
+			_exitViewName = "FrozenArboretum.Node 2.E";
 			CTurnOn onMsg;
 			onMsg.execute(this);
 		} else {
 			changeView("FrozenArboretum.Node 2.E");
 		}
 	} else if (msg->_action == "ExitLNormal") {
-		if (_v3) {
-			_viewName2 = "Arboretum.Node 2.W";
+		if (_disabled) {
+			_exitViewName = "Arboretum.Node 2.W";
 			CTurnOn onMsg;
 			onMsg.execute(this);
 		} else {
 			changeView("Arboretum.Node 2.W");
 		}
 	} else if (msg->_action == "ExitRNormal") {
-		if (_v3) {
-			_viewName2 = "Arboretum.Node 2.E";
+		if (_disabled) {
+			_exitViewName = "Arboretum.Node 2.E";
 			CTurnOn onMsg;
 			onMsg.execute(this);
-		}
-		else {
+		} else {
 			changeView("Arboretum.Node 2.E");
 		}
 	}
@@ -194,13 +249,13 @@ bool CArboretumGate::ActMsg(CActMsg *msg) {
 }
 
 bool CArboretumGate::MovieEndMsg(CMovieEndMsg *msg) {
-	setVisible(!_v3);
+	setVisible(!_disabled);
 
-	if (_viewName1 != "NULL") {
-		changeView(_viewName1);
-	} else if (_viewName2 != "NULL") {
-		changeView(_viewName2);
-		_viewName2 = "NULL";
+	if (_arboretumViewName != "NULL") {
+		changeView(_arboretumViewName);
+	} else if (_exitViewName != "NULL") {
+		changeView(_exitViewName);
+		_exitViewName = "NULL";
 	}
 
 	return true;
@@ -211,38 +266,38 @@ bool CArboretumGate::LeaveViewMsg(CLeaveViewMsg *msg) {
 }
 
 bool CArboretumGate::TurnOff(CTurnOff *msg) {
-	if (!_v3) {
+	if (!_disabled) {
 		switch (_seasonNum) {
-		case SPRING:
-			playMovie(_springOffStartFrame, _springOffEndFrame, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_SUMMER:
+			playMovie(_startFrameSummerOff, _endFrameSummerOff, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			break;
 
-		case SUMMER:
-			if (_v1) {
-				playMovie(_summerOffStartFrame2, _summerOffEndFrame2, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_AUTUMN:
+			if (_gotSpeechCentre) {
+				playMovie(_startFrameAutumnOff2, _endFrameAutumnOff2, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			} else {
-				playMovie(_summerOffStartFrame1, _summerOffEndFrame1, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+				playMovie(_startFrameAutumnOff1, _endFrameAutumnOff1, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			}
 			break;
 
-		case AUTUMN:
-			if (_v1) {
-				playMovie(_autumnOffStartFrame2, _autumnOffEndFrame2, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_WINTER:
+			if (_gotSpeechCentre) {
+				playMovie(_startFrameWinterOff2, _endFrameWinterOff2, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			} else {
-				playMovie(_autumnOffStartFrame1, _autumnOffEndFrame1, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+				playMovie(_startFrameWinterOff1, _endFrameWinterOff1, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			}
 			break;
 
-		case WINTER:
-			playMovie(_winterOffStartFrame, _winterOffEndFrame, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_SPRING:
+			playMovie(_startFrameSpringOff, _endFrameSpringOff, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			break;
 
 		default:
 			break;
 		}
 
-		_v3 = 1;
-		CArboretumGateMsg gateMsg;
+		_disabled = true;
+		CArboretumGateMsg gateMsg(1);
 		gateMsg.execute("Arboretum", nullptr, MSGFLAG_SCAN);
 	}
 
@@ -250,48 +305,48 @@ bool CArboretumGate::TurnOff(CTurnOff *msg) {
 }
 
 bool CArboretumGate::TurnOn(CTurnOn *msg) {
-	if (_v3) {
+	if (_disabled) {
 		CArboretumGateMsg gateMsg(0);
 		gateMsg.execute("Arboretum");
 		setVisible(true);
 
 		switch (_seasonNum) {
-		case SPRING:
-			playMovie(_springOnStartFrame, _springOnEndFrame, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_SUMMER:
+			playMovie(_startFrameSummerOn, _endFrameSummerOn, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			break;
 
-		case SUMMER:
-			if (_v1) {
-				playMovie(_summerOnStartFrame2, _summerOnEndFrame2, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_AUTUMN:
+			if (_gotSpeechCentre) {
+				playMovie(_startFrameAutumnOn2, _endFrameAutumnOn2, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			} else {
-				playMovie(_summerOnStartFrame1, _summerOnEndFrame1, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+				playMovie(_startFrameAutumnOn1, _endFrameAutumnOn1, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			}
 			break;
 
-		case AUTUMN:
-			if (_v1) {
-				playMovie(_autumnOnStartFrame2, _autumnOnEndFrame2, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_WINTER:
+			if (_gotSpeechCentre) {
+				playMovie(_startFrameWinterOn2, _endFrameWinterOn2, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			} else {
-				playMovie(_autumnOnStartFrame1, _autumnOnEndFrame1, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+				playMovie(_startFrameWinterOn1, _endFrameWinterOn1, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			}
 			break;
 
-		case WINTER:
-			playMovie(_winterOnStartFrame, _winterOnEndFrame, MOVIE_GAMESTATE || MOVIE_NOTIFY_OBJECT);
+		case SEASON_SPRING:
+			playMovie(_startFrameSpringOn, _endFrameSpringOn, MOVIE_WAIT_FOR_FINISH | MOVIE_NOTIFY_OBJECT);
 			break;
 
 		default:
 			break;
 		}
 
-		_v3 = 0;
+		_disabled = false;
 	}
 
 	return true;
 }
 
 bool CArboretumGate::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
-	if (!_v3) {
+	if (!_disabled) {
 		CTurnOff offMsg;
 		offMsg.execute(this);
 	}
@@ -300,22 +355,28 @@ bool CArboretumGate::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 }
 
 bool CArboretumGate::EnterViewMsg(CEnterViewMsg *msg) {
-	if (!_v3) {
+	setVisible(!_disabled);
+
+	if (!_disabled) {
+		// Only entered when we enter the Arboretum Gate view when in non-winter.
+		// When in winter, the landing dock by the Arboretum has a different
+		// "frozen water" view, and when the door is open, it changes to the
+		// standard Arboretum.2.N view for the Arboretum, skipping this block
 		switch (_seasonNum) {
-		case SPRING:
-			_initialFrame = _springOffStartFrame;
+		case SEASON_SUMMER:
+			_initialFrame = _startFrameSummerOff;
 			break;
 
-		case SUMMER:
-			_initialFrame = _v1 ? _summerOffStartFrame2 : _summerOffStartFrame1;
+		case SEASON_AUTUMN:
+			_initialFrame = _gotSpeechCentre ? _startFrameAutumnOff2 : _startFrameAutumnOff1;
 			break;
 
-		case AUTUMN:
-			_initialFrame = _v1 ? _autumnOffStartFrame1 : _autumnOffStartFrame2;
+		case SEASON_WINTER:
+			_initialFrame = _gotSpeechCentre ? _startFrameWinterOff2 : _startFrameWinterOff1;
 			break;
 
-		case WINTER:
-			_initialFrame = _winterOffStartFrame;
+		case SEASON_SPRING:
+			_initialFrame = _startFrameSpringOff;
 			break;
 
 		default:

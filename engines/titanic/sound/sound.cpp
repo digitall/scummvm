@@ -26,9 +26,20 @@
 
 namespace Titanic {
 
-CSound::CSound(CGameManager *owner, Audio::Mixer *mixer) : 
+CSoundItem::~CSoundItem() {
+	delete _waveFile;
+}
+
+/*------------------------------------------------------------------------*/
+
+CSound::CSound(CGameManager *owner, Audio::Mixer *mixer) :
 		_gameManager(owner), _soundManager(mixer) {
 	g_vm->_movieManager.setSoundManager(&_soundManager);
+}
+
+CSound::~CSound() {
+	_soundManager.qsWaveMixCloseSession();
+	_sounds.destroyContents();
 }
 
 void CSound::save(SimpleFile *file) const {
@@ -57,7 +68,7 @@ void CSound::preEnterView(CViewItem *newView, bool isNewRoom) {
 	_soundManager.setListenerPosition(xp, yp, zp, cosVal, sinVal, 0, isNewRoom);
 }
 
-bool CSound::isActive(int handle) const {
+bool CSound::isActive(int handle) {
 	if (handle != 0 && handle != -1)
 		return _soundManager.isActive(handle);
 
@@ -68,15 +79,16 @@ void CSound::setVolume(uint handle, uint volume, uint seconds) {
 	_soundManager.setVolume(handle, volume, seconds);
 }
 
-void CSound::activateSound(CWaveFile *waveFile, bool freeFlag) {	
+void CSound::activateSound(CWaveFile *waveFile, DisposeAfterUse::Flag disposeAfterUse) {
 	for (CSoundItemList::iterator i = _sounds.begin(); i != _sounds.end(); ++i) {
 		CSoundItem *sound = *i;
 		if (sound->_waveFile == waveFile) {
 			sound->_active = true;
-			sound->_freeFlag = freeFlag;
+			sound->_disposeAfterUse = disposeAfterUse;
 
-			if (!freeFlag && waveFile->size() > 51200)
-				sound->_freeFlag = true;
+			// Anything bigger than 50Kb is automatically flagged to be free when finished
+			if (waveFile->size() > (50 * 1024))
+				sound->_disposeAfterUse = DisposeAfterUse::YES;
 			break;
 		}
 	}
@@ -87,14 +99,18 @@ void CSound::stopChannel(int channel) {
 }
 
 void CSound::checkSounds() {
-	for (CSoundItemList::iterator i = _sounds.begin(); i != _sounds.end(); ++i) {
+	for (CSoundItemList::iterator i = _sounds.begin(); i != _sounds.end(); ) {
 		CSoundItem *soundItem = *i;
-		if (soundItem->_active && soundItem->_freeFlag) {
-			if (_soundManager.isActive(soundItem->_waveFile)) {
-				_sounds.remove(soundItem);
+
+		if (soundItem->_active && soundItem->_disposeAfterUse == DisposeAfterUse::YES) {
+			if (!_soundManager.isActive(soundItem->_waveFile)) {
+				i = _sounds.erase(i);
 				delete soundItem;
+				continue;
 			}
 		}
+
+		++i;
 	}
 }
 
@@ -154,8 +170,11 @@ int CSound::playSound(const CString &name, CProximity &prox) {
 	if (!waveFile)
 		return -1;
 
-	prox._field6C = waveFile->fn1();
-	activateSound(waveFile, prox._freeSoundFlag);
+	prox._soundDuration = waveFile->getDurationTicks();
+	if (prox._soundType != Audio::Mixer::kPlainSoundType)
+		waveFile->_soundType = prox._soundType;
+
+	activateSound(waveFile, prox._disposeAfterUse);
 
 	return _soundManager.playSound(*waveFile, prox);
 }
@@ -201,9 +220,11 @@ int CSound::playSpeech(CDialogueFile *dialogueFile, int speechId, CProximity &pr
 	if (!waveFile)
 		return -1;
 
-	prox._field6C = waveFile->fn1();
-	activateSound(waveFile, prox._freeSoundFlag);
+	prox._soundDuration = waveFile->getDurationTicks();
+	if (prox._soundType != Audio::Mixer::kPlainSoundType)
+		waveFile->_soundType = prox._soundType;
 
+	activateSound(waveFile, prox._disposeAfterUse);
 	return _soundManager.playSound(*waveFile, prox);
 }
 

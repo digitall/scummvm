@@ -561,7 +561,7 @@ void MidiDriver_Miles_AdLib::noteOff(byte midiChannel, byte note) {
 					_virtualFmVoices[virtualFmVoice].sustained = true;
 					continue;
 				}
-				// 
+				//
 				releaseFmVoice(virtualFmVoice);
 			}
 		}
@@ -601,7 +601,7 @@ void MidiDriver_Miles_AdLib::prioritySort() {
 		}
 	}
 
-	// 	
+	//
 	while (virtualFmVoicesCount) {
 		uint16 unvoicedHighestPriority = 0;
 		byte   unvoicedHighestFmVoice = 0;
@@ -688,7 +688,7 @@ void MidiDriver_Miles_AdLib::releaseFmVoice(byte virtualFmVoice) {
 
 	// One less voice active on this MIDI channel
 	assert(_midiChannels[midiChannel].currentActiveVoicesCount);
-	_midiChannels[midiChannel].currentActiveVoicesCount--;	
+	_midiChannels[midiChannel].currentActiveVoicesCount--;
 }
 
 void MidiDriver_Miles_AdLib::releaseSustain(byte midiChannel) {
@@ -1035,6 +1035,15 @@ void MidiDriver_Miles_AdLib::pitchBendChange(byte midiChannel, byte parameter1, 
 		return;
 	}
 	_midiChannels[midiChannel].currentPitchBender = parameter1 | (parameter2 << 7);
+	for (byte virtualFmVoice = 0; virtualFmVoice < _modeVirtualFmVoicesCount; virtualFmVoice++) {
+		if (_virtualFmVoices[virtualFmVoice].inUse) {
+			// used
+			if (_virtualFmVoices[virtualFmVoice].actualMidiChannel == midiChannel) {
+				// by our current MIDI channel -> update
+				updatePhysicalFmVoice(virtualFmVoice, true, kMilesAdLibUpdateFlags_Reg_A0);
+			}
+		}
+	}
 }
 
 void MidiDriver_Miles_AdLib::setRegister(int reg, int value) {

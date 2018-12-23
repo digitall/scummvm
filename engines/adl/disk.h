@@ -34,6 +34,9 @@ class String;
 
 namespace Adl {
 
+// Used for disk image detection
+int32 computeMD5(const Common::FSNode &node, Common::String &md5, uint32 md5Bytes);
+
 class DataBlock {
 public:
 	virtual ~DataBlock() { }
@@ -74,7 +77,10 @@ class DiskImage {
 public:
 	DiskImage() :
 			_stream(nullptr),
-			_mode13(false) { }
+			_tracks(0),
+			_sectorsPerTrack(0),
+			_bytesPerSector(0),
+			_sectorLimit(0) { }
 
 	~DiskImage() {
 		delete _stream;
@@ -82,32 +88,36 @@ public:
 
 	bool open(const Common::String &filename);
 	const DataBlockPtr getDataBlock(uint track, uint sector, uint offset = 0, uint size = 0) const;
-	Common::SeekableReadStream *createReadStream(uint track, uint sector, uint offset = 0, uint size = 0, uint sectorsPerTrackToRead = 16) const;
-	void setMode13(bool enable) { _mode13 = enable; }
+	Common::SeekableReadStream *createReadStream(uint track, uint sector, uint offset = 0, uint size = 0, uint sectorsUsed = 0) const;
+	void setSectorLimit(uint sectorLimit) { _sectorLimit = sectorLimit; } // Maximum number of sectors to read per track before stepping
+	uint getBytesPerSector() const { return _bytesPerSector; }
+	uint getSectorsPerTrack() const { return _sectorsPerTrack; }
+	uint getTracks() const { return _tracks; }
 
 protected:
 	class DataBlock : public Adl::DataBlock {
 	public:
-		DataBlock(const DiskImage *disk, uint track, uint sector, uint offset, uint size, bool mode13) :
+		DataBlock(const DiskImage *disk, uint track, uint sector, uint offset, uint size, uint sectorLimit) :
 				_track(track),
 				_sector(sector),
 				_offset(offset),
 				_size(size),
-				_mode13(mode13),
+				_sectorLimit(sectorLimit),
 				_disk(disk) { }
 
 		Common::SeekableReadStream *createReadStream() const {
-			return _disk->createReadStream(_track, _sector, _offset, _size, (_mode13 ? 13 : 16));
+			return _disk->createReadStream(_track, _sector, _offset, _size, _sectorLimit);
 		}
 
 	private:
 		uint _track, _sector, _offset, _size;
-		bool _mode13;
+		uint _sectorLimit;
 		const DiskImage *_disk;
 	};
 
 	Common::SeekableReadStream *_stream;
-	bool _mode13; // Older 13-sector format
+	uint _tracks, _sectorsPerTrack, _bytesPerSector;
+	uint _sectorLimit;
 };
 
 // Data in plain files
@@ -118,12 +128,12 @@ public:
 };
 
 // Data in files contained in Apple DOS 3.3 disk image
-class Files_DOS33 : public Files {
+class Files_AppleDOS : public Files {
 public:
-	Files_DOS33();
-	~Files_DOS33();
+	Files_AppleDOS();
+	~Files_AppleDOS();
 
-	bool open(const Common::String &filename);
+	bool open(const Common::String &filename, uint trackVTOC = 17);
 	const DataBlockPtr getDataBlock(const Common::String &filename, uint offset = 0) const;
 	Common::SeekableReadStream *createReadStream(const Common::String &filename, uint offset = 0) const;
 
@@ -131,7 +141,7 @@ private:
 	enum FileType {
 		kFileTypeText = 0,
 		kFileTypeAppleSoft = 2,
-		kFileTypeBinary = 4 
+		kFileTypeBinary = 4
 	};
 
 	enum {
@@ -150,7 +160,7 @@ private:
 		Common::Array<TrackSector> sectors;
 	};
 
-	void readVTOC();
+	void readVTOC(uint trackVTOC);
 	void readSectorList(TrackSector start, Common::Array<TrackSector> &list);
 	Common::SeekableReadStream *createReadStreamText(const TOCEntry &entry) const;
 	Common::SeekableReadStream *createReadStreamBinary(const TOCEntry &entry) const;

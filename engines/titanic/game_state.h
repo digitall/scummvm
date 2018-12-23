@@ -33,23 +33,29 @@ namespace Titanic {
 
 class CGameManager;
 
-enum GameStateMode { 
+enum GameStateMode {
 	GSMODE_NONE = 0, GSMODE_INTERACTIVE = 1, GSMODE_CUTSCENE = 2,
-	GSMODE_3 = 3, GSMODE_4 = 4, GSMODE_5 = 5, GSMODE_PENDING_LOAD = 6
+	GSMODE_3 = 3, GSMODE_4 = 4, GSMODE_INSERT_CD = 5, GSMODE_PENDING_LOAD = 6
 };
 
-PTR_LIST_ITEM(CMovie);
-class CGameStateMovieList : public List<CMovieListItem> {
+enum Season {
+	SEASON_SUMMER = 0,
+	SEASON_AUTUMN = 1,
+	SEASON_WINTER = 2,
+	SEASON_SPRING = 3
+};
+
+class CGameStateMovieList : public Common::List<CMovie *> {
 public:
-	CViewItem *_view;
+	CViewItem *_destView;
 	CMovieClip *_movieClip;
 public:
-	CGameStateMovieList() : List<CMovieListItem>(), _view(nullptr), _movieClip(nullptr) {}
+	CGameStateMovieList() : Common::List<CMovie *>(), _destView(nullptr), _movieClip(nullptr) {}
 
 	/**
-	 * Clear the movie list
+	 * Returns true if there are no movies in the list
 	 */
-	bool clear();
+	bool empty();
 };
 
 class CGameState {
@@ -57,18 +63,18 @@ public:
 	CGameManager *_gameManager;
 	CGameLocation _gameLocation;
 	CGameStateMovieList _movieList;
-	int _passengerClass;
-	int _priorClass;
+	PassengerClass _passengerClass;
+	PassengerClass _priorClass;
 	GameStateMode _mode;
-	int _field14;
+	Season _seasonNum;
 	bool _petActive;
-	bool _field1C;
+	bool _soundMakerAllowed;
 	bool _quitGame;
-	int _field24;
+	bool _parrotMet;
 	uint _nodeChangeCtr;
 	uint32 _nodeEnterTicks;
 	Point _mousePos;
-	int _field38;
+	int _parrotResponseIndex;
 public:
 	CGameState(CGameManager *gameManager);
 
@@ -127,12 +133,38 @@ public:
 	 */
 	void addMovie(CMovie *movie);
 
-	void inc14() { _field14 = (_field14 + 1) & 3; }
-	void set24(int v) { _field24 = v; }
-	int get24() const { return _field24; }
+	/**
+	 * Change to the next season
+	 */
+	void changeSeason() {
+		_seasonNum = (Season)(((int)_seasonNum + 1) & 3);
+	}
+
+	/**
+	 * Sets whether the parrot has been met
+	 */
+	void setParrotMet(bool flag) { _parrotMet = flag; }
+
+	/**
+	 * Gets whether the parrot has been met
+	 */
+	bool getParrotMet() const { return _parrotMet; }
+
+	/**
+	 * Gets the counter for the number of times different nodes have
+	 * been entered
+	 */
 	int getNodeChangedCtr() const { return _nodeChangeCtr; }
+
+	/**
+	 * Gets the node enter ticks amount
+	 */
 	uint32 getNodeEnterTicks() const { return _nodeEnterTicks; }
-	void inc38() { ++_field38; }
+
+	/**
+	 * Increments the index to use for parrot idle responses
+	 */
+	void incParrotResponse() { ++_parrotResponseIndex; }
 };
 
 } // End of namespace Titanic

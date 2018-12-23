@@ -43,6 +43,8 @@ public:
 	int &operator[](int idx) { return _array[idx]; }
 	int *getSlot(int idx) { return &_array[16 + idx * 4]; }
 	void resetFlags();
+
+	void copyData();
 };
 
 class TTnpcScriptBase : public TTscriptBase {
@@ -259,7 +261,7 @@ public:
 	 * and adds it to the response
 	 */
 	virtual void selectResponse(int id);
-	
+
 	/**
 	 * Handles scanning the word list for a given Id, and if
 	 * found adds it to the sentence concept list
@@ -267,7 +269,12 @@ public:
 	virtual bool handleWord(uint id) const;
 
 	virtual int handleQuote(const TTroomScript *roomScript, const TTsentence *sentence,
-		uint val, uint tagId, uint remainder);
+		uint tag1, uint tag2, uint remainder);
+
+	/**
+	 * Returns true if the NPC's dial region affects quote responses
+	 */
+	virtual bool isQuoteDialled() const { return false; }
 
 	/**
 	 * Given an Id for a previously registered set of random number values,
@@ -275,7 +282,7 @@ public:
 	 * either a random value, or each value in turn
 	 */
 	virtual uint getRangeValue(uint id);
-	
+
 	/**
 	 * Resets the prior used index for the specified range
 	 */
@@ -295,7 +302,7 @@ public:
 	 * Returns a bitset of the dials being off or not
 	 */
 	virtual uint getDialsBitset() const { return 0; }
-	
+
 	virtual const TTscriptMapping *getMapping(int index);
 	virtual int doSentenceEntry(int val1, const int *srcIdP, const TTroomScript *roomScript, const TTsentence *sentence);
 
@@ -303,12 +310,16 @@ public:
 	 * Handles any post-response NPC processing
 	 */
 	virtual void postResponse(int v1, const TTsentenceEntry *entry, const TTroomScript *roomScript, const TTsentence *sentence) {}
-	
+
 	virtual void save(SimpleFile *file);
 	virtual void load(SimpleFile *file);
 	virtual void saveBody(SimpleFile *file);
 	virtual void loadBody(SimpleFile *file);
-	virtual int proc31() const;
+
+	/**
+	 * Returns the number of range records that are non-random
+	 */
+	virtual int getRangesCount() const;
 
 	/**
 	 * Sets a given dial to be pointing in a specified region (0 to 2)
@@ -337,7 +348,7 @@ public:
 	 * Handles a randomzied response
 	 */
 	virtual bool randomResponse(uint index);
-	
+
 	virtual uint translateId(uint id) const;
 
 	void preLoad();

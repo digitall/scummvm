@@ -38,6 +38,7 @@ MODULE_OBJS := \
 	palette.o \
 	players/player_ad.o \
 	players/player_apple2.o \
+	players/player_he.o \
 	players/player_mac.o \
 	players/player_mod.o \
 	players/player_nes.o \
@@ -150,6 +151,11 @@ MODULE_OBJS += \
 	he/moonbase/distortion.o \
 	he/moonbase/moonbase.o \
 	he/moonbase/moonbase_fow.o
+
+ifdef USE_SDL_NET
+MODULE_OBJS += \
+	he/moonbase/net_main.o
+endif
 endif
 
 # This module can be built as a plugin

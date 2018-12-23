@@ -22,6 +22,8 @@
 
 #include "titanic/game/long_stick_dispenser.h"
 #include "titanic/core/project_item.h"
+#include "titanic/titanic.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -55,14 +57,14 @@ void CLongStickDispenser::load(SimpleFile *file) {
 }
 
 bool CLongStickDispenser::PuzzleSolvedMsg(CPuzzleSolvedMsg *msg) {
-	if (!_fieldBC && !_fieldC4 && !_fieldC0) {
+	if (!_fieldBC && _fieldC4 == 1 && !_fieldC0) {
 		CStatusChangeMsg statusMsg;
 		statusMsg.execute("ShatterGlass");
 		_fieldC0 = 1;
 		loadFrame(19);
-	} else if (_fieldC0) {
-		playSound("z#63.wav");
-		petDisplayMessage(1, "'This glass is totally and utterly unbreakable.");
+	} else if (_fieldC0 != 1) {
+		playSound(TRANSLATE("z#63.wav", "z#594.wav"));
+		petDisplayMessage(1, GLASS_IS_UNBREAKABLE);
 	}
 
 	return true;
@@ -88,15 +90,14 @@ bool CLongStickDispenser::EnterRoomMsg(CEnterRoomMsg *msg) {
 
 bool CLongStickDispenser::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 	if (!_fieldC0) {
-		playSound("z#62.wav");
+		playSound(TRANSLATE("z#62.wav", "z#593.wav"));
 
 		switch (_fieldBC) {
 		case 0:
-			petDisplayMessage(1, "For emergency long stick, smash glass.");
+			petDisplayMessage(1, FOR_STICK_BREAK_GLASS);
 			break;
 		case 1:
-			petDisplayMessage(1, "This dispenser has suddenly been fitted with unbreakable glass "
-				"to prevent unseemly hoarding of sticks.");
+			petDisplayMessage(1, DISPENSOR_HAS_UNBREAKABLE_GLASS);
 			break;
 		default:
 			break;
@@ -109,9 +110,9 @@ bool CLongStickDispenser::MouseButtonDownMsg(CMouseButtonDownMsg *msg) {
 bool CLongStickDispenser::LeaveViewMsg(CLeaveViewMsg *msg) {
 	if (_fieldC0 == 1) {
 		if (_fieldC4) {
-			playMovie(19, 38, MOVIE_GAMESTATE);
+			playMovie(19, 38, MOVIE_WAIT_FOR_FINISH);
 		} else {
-			playMovie(0, 18, MOVIE_GAMESTATE);
+			playMovie(0, 18, MOVIE_WAIT_FOR_FINISH);
 			_fieldBC = 1;
 		}
 

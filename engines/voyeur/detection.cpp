@@ -71,7 +71,7 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Voyeur Engine";
+		return "Voyeur";
 	}
 
 	virtual const char *getOriginalCopyright() const {
@@ -92,7 +92,8 @@ bool VoyeurMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSupportsLoadingDuringStartup) ||
 		(f == kSupportsDeleteSave) ||
 		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail);
+		(f == kSavesSupportThumbnail) ||
+		(f == kSimpleSavesNames);
 }
 
 bool Voyeur::VoyeurEngine::hasFeature(EngineFeature f) const {
@@ -131,7 +132,6 @@ SaveStateList VoyeurMetaEngine::listSaves(const char *target) const {
 			if (in) {
 				if (header.read(in)) {
 					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
-					header._thumbnail->free();
 				}
 				delete in;
 			}
@@ -158,7 +158,7 @@ SaveStateDescriptor VoyeurMetaEngine::querySaveMetaInfos(const char *target, int
 
 	if (f) {
 		Voyeur::VoyeurSavegameHeader header;
-		header.read(f);
+		header.read(f, false);
 		delete f;
 
 		// Create the return descriptor

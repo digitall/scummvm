@@ -33,15 +33,11 @@
 namespace Titanic {
 
 class CTitleEngine;
-class CScriptHandler;
 
 class CScriptHandler {
 private:
 	CTitleEngine *_owner;
-	CExeResources &_resources;
-	int _field10;
 	int _inputCtr;
-	int _field30;
 private:
 	void handleWord1(const TTstring *str);
 	void handleWord2(const TTstring *str);
@@ -54,13 +50,13 @@ public:
 	TTconcept *_concept3P;
 	TTconcept *_concept4P;
 public:
-	CScriptHandler(CTitleEngine *owner, int val1, int val2);
+	CScriptHandler(CTitleEngine *owner, int val1, VocabMode vocabMode);
 	~CScriptHandler();
 
 	/**
 	 * Set the character and room
 	 */
-	ScriptChangedResult scriptChanged(TTroomScript *roomScript, 
+	ScriptChangedResult scriptChanged(TTroomScript *roomScript,
 		TTnpcScript *npcScript, uint dialogueId);
 
 	int processInput(TTroomScript *roomScript, TTnpcScript *npcScript,

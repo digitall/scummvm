@@ -21,19 +21,44 @@
  */
 
 #include "titanic/game/pet/pet_sounds.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
+BEGIN_MESSAGE_MAP(CPETSounds, CGameObject)
+	ON_MESSAGE(PETPlaySoundMsg)
+	ON_MESSAGE(LoadSuccessMsg)
+END_MESSAGE_MAP()
+
 void CPETSounds::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(1, indent);
-	file->writeNumberLine(_value, indent);
+	file->writeNumberLine(_ticks, indent);
 	CGameObject::save(file, indent);
 }
 
 void CPETSounds::load(SimpleFile *file) {
 	file->readNumber();
-	_value = file->readNumber();
+	_ticks = file->readNumber();
 	CGameObject::load(file);
+}
+
+bool CPETSounds::PETPlaySoundMsg(CPETPlaySoundMsg *msg) {
+	if (msg->_soundNum == 1) {
+		playSound(TRANSLATE("z#65.wav", "z#596.wav"));
+	} else if (msg->_soundNum == 2 && stateGetParrotMet()) {
+		uint ticks = getTicksCount();
+		if (!_ticks || ticks > (_ticks + 12000)) {
+			playSound(TRANSLATE("z#36.wav", "z#568.wav"));
+			_ticks = ticks;
+		}
+	}
+
+	return true;
+}
+
+bool CPETSounds::LoadSuccessMsg(CLoadSuccessMsg *msg) {
+	_ticks = 0;
+	return true;
 }
 
 } // End of namespace Titanic

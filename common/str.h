@@ -47,6 +47,8 @@ class String {
 public:
 	static const uint32 npos = 0xFFFFFFFF;
 
+	static void releaseMemoryPoolMutex();
+
 	typedef char          value_type;
 	/**
 	 * Unsigned version of the underlying type. This can be used to cast
@@ -154,13 +156,20 @@ public:
 
 	bool hasSuffix(const String &x) const;
 	bool hasSuffix(const char *x) const;
+	bool hasSuffixIgnoreCase(const String &x) const;
+	bool hasSuffixIgnoreCase(const char *x) const;
 
 	bool hasPrefix(const String &x) const;
 	bool hasPrefix(const char *x) const;
+	bool hasPrefixIgnoreCase(const String &x) const;
+	bool hasPrefixIgnoreCase(const char *x) const;
 
 	bool contains(const String &x) const;
 	bool contains(const char *x) const;
 	bool contains(char x) const;
+
+	/** Return uint64 corrensponding to String's contents. */
+	uint64 asUint64() const;
 
 	/**
 	 * Simple DOS-style pattern matching function (understands * and ? like used in DOS).
@@ -232,13 +241,24 @@ public:
 	 */
 	void trim();
 
+	/**
+	 * Wraps the text in the string to the given line maximum. Lines will be
+	 * broken at any whitespace character. New lines are assumed to be
+	 * represented using '\n'.
+	 *
+	 * This is a very basic line wrap which does not perform tab stop
+	 * calculation, consecutive whitespace collapsing, auto-hyphenation, or line
+	 * balancing.
+	 */
+	void wordWrap(const uint32 maxLength);
+
 	uint hash() const;
-	 
+
 	/**@{
 	 * Functions to replace some amount of chars with chars from some other string.
 	 *
 	 * @note The implementation follows that of the STL's std::string:
-	 *       http://www.cplusplus.com/reference/string/string/replace/        
+	 *       http://www.cplusplus.com/reference/string/string/replace/
 	 *
 	 * @param pos Starting position for the replace in the original string.
 	 * @param count Number of chars to replace from the original string.
@@ -247,7 +267,7 @@ public:
 	 * @param countOri Same as count
 	 * @param posDest Initial position to read str from.
 	 * @param countDest Number of chars to read from str. npos by default.
-	 */ 
+	 */
 	// Replace 'count' bytes, starting from 'pos' with str.
 	void replace(uint32 pos, uint32 count, const String &str);
 	// The same as above, but accepts a C-like array of characters.
@@ -264,14 +284,14 @@ public:
 	// str[posDest, posDest + countDest)
 	void replace(uint32 posOri, uint32 countOri, const char *str,
 					uint32 posDest, uint32 countDest);
-	/**@}*/ 
+	/**@}*/
 
 	/**
 	 * Print formatted data into a String object. Similar to sprintf,
 	 * except that it stores the result in (variably sized) String
 	 * instead of a fixed size buffer.
 	 */
-	static String format(const char *fmt, ...) GCC_PRINTF(1,2);
+	static String format(const char *fmt, ...) GCC_PRINTF(1, 2);
 
 	/**
 	 * Print formatted data into a String object. Similar to vsprintf,
@@ -387,6 +407,15 @@ String normalizePath(const String &path, const char sep);
  */
 bool matchString(const char *str, const char *pat, bool ignoreCase = false, bool pathMode = false);
 
+/**
+ * Function which replaces substring with the other. It happens in place.
+ * If there is no substring found, original string is not changed.
+ *
+ * @param source String to search and replace substring in.
+ * @param what Substring to replace.
+ * @param with String to replace with.
+ */
+void replace(Common::String &source, const Common::String &what, const Common::String &with);
 
 /**
  * Take a 32 bit value and turn it into a four character string, where each of
@@ -433,6 +462,17 @@ size_t strlcpy(char *dst, const char *src, size_t size);
 size_t strlcat(char *dst, const char *src, size_t size);
 
 /**
+ * Determine the length of a string up to a maximum of `maxSize` characters.
+ * This should be used instead of `strlen` when reading the length of a C string
+ * from potentially unsafe or corrupt sources, like game assets.
+ *
+ * @param src The source string.
+ * @param maxSize The maximum size of the string.
+ * @return The length of the string.
+ */
+size_t strnlen(const char *src, size_t maxSize);
+
+/**
  * Convenience wrapper for tag2string which "returns" a C string.
  * Note: It is *NOT* safe to do anything with the return value other than directly
  * copying or printing it.
@@ -444,5 +484,6 @@ size_t strlcat(char *dst, const char *src, size_t size);
 
 extern int scumm_stricmp(const char *s1, const char *s2);
 extern int scumm_strnicmp(const char *s1, const char *s2, uint n);
+extern char *scumm_strdup(const char *in);
 
 #endif

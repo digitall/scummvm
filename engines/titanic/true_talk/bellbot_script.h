@@ -35,10 +35,7 @@ private:
 	TTsentenceEntries _sentences[20];
 	TTcommonPhraseArray _phrases;
 	int _array[150];
-	int _field2D0;
-	int _field2D4;
-	int _field2D8;
-	int _field2DC;
+	bool _responseFlag;
 	bool _room107First;
 private:
 	/**
@@ -81,7 +78,7 @@ private:
 	bool checkCommonWords(const TTroomScript *roomScript, const TTsentence *sentence);
 
 	uint getRoomDialogueId(const TTroomScript *roomScript);
-	
+
 	/**
 	 * Adds a description of the room to the conversation response
 	 */
@@ -101,7 +98,7 @@ public:
 	virtual ScriptChangedResult scriptChanged(const TTroomScript *roomScript, uint id);
 
 	virtual int handleQuote(const TTroomScript *roomScript, const TTsentence *sentence,
-		uint val, uint tagId, uint remainder);
+		uint tag1, uint tag2, uint remainder);
 
 	/**
 	 * Handles updating NPC state based on specified dialogue Ids and dial positions

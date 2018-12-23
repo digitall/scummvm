@@ -22,6 +22,7 @@
 
 #include "titanic/game/fan_noises.h"
 #include "titanic/core/room_item.h"
+#include "titanic/translation.h"
 
 namespace Titanic {
 
@@ -34,7 +35,7 @@ BEGIN_MESSAGE_MAP(CFanNoises, CGameObject)
 END_MESSAGE_MAP()
 
 CFanNoises::CFanNoises() : CGameObject(), _state(-1),
-	_soundHandle(0), _soundPercent(70), _soundV3(-1), _soundSeconds(0),
+	_soundHandle(0), _soundPercent(70), _soundBalance(0), _soundSeconds(0),
 	_stopSeconds(0), _startFlag(true) {
 }
 
@@ -43,7 +44,7 @@ void CFanNoises::save(SimpleFile *file, int indent) {
 	file->writeNumberLine(_state, indent);
 	file->writeNumberLine(_soundHandle, indent);
 	file->writeNumberLine(_soundPercent, indent);
-	file->writeNumberLine(_soundV3, indent);
+	file->writeNumberLine(_soundBalance, indent);
 	file->writeNumberLine(_soundSeconds, indent);
 	file->writeNumberLine(_stopSeconds, indent);
 	file->writeNumberLine(_startFlag, indent);
@@ -56,7 +57,7 @@ void CFanNoises::load(SimpleFile *file) {
 	_state = file->readNumber();
 	_soundHandle = file->readNumber();
 	_soundPercent = file->readNumber();
-	_soundV3 = file->readNumber();
+	_soundBalance = file->readNumber();
 	_soundSeconds = file->readNumber();
 	_stopSeconds = file->readNumber();
 	_startFlag = file->readNumber();
@@ -75,12 +76,12 @@ bool CFanNoises::EnterRoomMsg(CEnterRoomMsg *msg) {
 
 		switch (_state) {
 		case 1:
-			_soundHandle = playSound("b#60.wav", 0, _soundV3, true);
+			_soundHandle = playSound(TRANSLATE("b#60.wav", "b#40.wav"), 0, _soundBalance, true);
 			setSoundVolume(_soundHandle, _soundPercent, _soundSeconds);
 			_startFlag = true;
 			break;
 		case 2:
-			_soundHandle = playSound("b#58.wav", 0, _soundV3, true);
+			_soundHandle = playSound(TRANSLATE("b#58.wav", "b#38.wav"), 0, _soundBalance, true);
 			setSoundVolume(_soundHandle, _soundPercent, _soundSeconds);
 			_startFlag = true;
 			break;
@@ -96,7 +97,7 @@ bool CFanNoises::LeaveRoomMsg(CLeaveRoomMsg *msg) {
 	if (getParent() == msg->_oldRoom && _soundHandle != -1) {
 		if (isSoundActive(_soundHandle))
 			stopSound(_soundHandle, _stopSeconds);
-		
+
 		_soundHandle = -1;
 		_startFlag = false;
 	}
@@ -122,7 +123,7 @@ bool CFanNoises::StatusChangeMsg(CStatusChangeMsg *msg) {
 			switch (oldState) {
 			case 1:
 			case 2:
-				playSound("b#59.wav", _soundPercent, _soundV3);
+				playSound(TRANSLATE("b#59.wav", "b#39.wav"), _soundPercent, _soundBalance);
 				break;
 			default:
 				break;
@@ -138,9 +139,10 @@ bool CFanNoises::StatusChangeMsg(CStatusChangeMsg *msg) {
 			}
 
 			switch (oldState) {
-			case 1:
+			case 0:
 			case 2:
-				_soundHandle = playSound("b#60.wav", _soundPercent, _soundV3);
+				_soundHandle = playSound(TRANSLATE("b#60.wav", "b#40.wav"), _soundPercent, _soundBalance, true);
+				_startFlag = true;
 				break;
 			default:
 				break;
@@ -156,7 +158,8 @@ bool CFanNoises::StatusChangeMsg(CStatusChangeMsg *msg) {
 			}
 
 			if (oldState == 1) {
-				_soundHandle = playSound("b#58.wav", _soundPercent, _soundV3);
+				_soundHandle = playSound(TRANSLATE("b#58.wav", "b#38.wav"), _soundPercent, _soundBalance, true);
+				_startFlag = true;
 			}
 			break;
 
@@ -184,13 +187,13 @@ bool CFanNoises::LoadSuccessMsg(CLoadSuccessMsg *msg) {
 
 		switch (_state) {
 		case 1:
-			playSound("b#60.wav", 0, _soundV3, true);
+			playSound(TRANSLATE("b#60.wav", "b#40.wav"), 0, _soundBalance, true);
 			setSoundVolume(_soundHandle, _soundPercent, _soundSeconds);
 			_startFlag = true;
 			break;
 
 		case 2:
-			playSound("b#58.wav", 0, _soundV3, true);
+			playSound(TRANSLATE("b#58.wav", "b#38.wav"), 0, _soundBalance, true);
 			setSoundVolume(_soundHandle, _soundPercent, _soundSeconds);
 			_startFlag = true;
 			break;

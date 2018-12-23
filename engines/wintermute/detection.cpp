@@ -22,6 +22,7 @@
 
 #include "engines/advancedDetector.h"
 #include "engines/wintermute/wintermute.h"
+#include "engines/wintermute/game_description.h"
 #include "engines/wintermute/base/base_persistence_manager.h"
 
 #include "common/config-manager.h"
@@ -59,8 +60,19 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 			_s("Show the current number of frames per second in the upper left corner"),
 			"show_fps",
 			false
+		},
+	},
+
+	{
+		GAMEOPTION_BILINEAR,
+		{
+			_s("Sprite bilinear filtering (SLOW)"),
+			_s("Apply bilinear filtering to individual sprites"),
+			"bilinear_filtering",
+			false
 		}
 	},
+
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };
 
@@ -76,7 +88,7 @@ class WintermuteMetaEngine : public AdvancedMetaEngine {
 public:
 	WintermuteMetaEngine() : AdvancedMetaEngine(Wintermute::gameDescriptions, sizeof(WMEGameDescription), Wintermute::wintermuteGames, gameGuiOptions) {
 		_singleId = "wintermute";
-		_guiOptions = GUIO2(GUIO_NOMIDI, GAMEOPTION_SHOW_FPS);
+		_guiOptions = GUIO3(GUIO_NOMIDI, GAMEOPTION_SHOW_FPS, GAMEOPTION_BILINEAR);
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
@@ -88,7 +100,7 @@ public:
 		return "Copyright (C) 2011 Jan Nedoma";
 	}
 
-	virtual const ADGameDescription *fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override {
 		// Set some defaults
 		s_fallbackDesc.extra = "";
 		s_fallbackDesc.language = Common::UNK_LANG;
@@ -118,10 +130,12 @@ public:
 					s_fallbackDesc.extra = offset;
 					s_fallbackDesc.flags |= ADGF_USEEXTRAASTITLE;
 				}
-				return &s_fallbackDesc;
+
+				return ADDetectedGame(&s_fallbackDesc);
 			} // Fall through to return 0;
 		}
-		return 0;
+
+		return ADDetectedGame();
 	}
 
 	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {

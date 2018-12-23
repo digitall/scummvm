@@ -34,7 +34,7 @@ TTroomScriptBase::TTroomScriptBase(int scriptId,
 /*------------------------------------------------------------------------*/
 
 TTroomScript::TTroomScript(int scriptId) :
-	TTroomScriptBase(scriptId, "", "", 0, -1, -1, -1, 0, 0) {
+	TTroomScriptBase(scriptId, "", "", 0, -1, -1, -1, 0, 0), _field54(0) {
 }
 
 bool TTroomScript::proc8() const {
@@ -49,7 +49,7 @@ void TTroomScript::proc9(int v) {
 ScriptChangedResult TTroomScript::scriptChanged(TTscriptBase *npcScript, int id) {
 	if (id == 1)
 		_field54 = 1;
-	
+
 	return SCR_1;
 }
 

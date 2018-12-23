@@ -23,6 +23,7 @@
 #include "titanic/support/screen_manager.h"
 #include "titanic/support/video_surface.h"
 #include "titanic/titanic.h"
+#include "graphics/screen.h"
 
 namespace Titanic {
 
@@ -65,12 +66,19 @@ CScreenManager *CScreenManager::setCurrent() {
 void CScreenManager::setSurfaceBounds(SurfaceNum surfaceNum, const Rect &r) {
 	if (surfaceNum >= 0 && surfaceNum < (int)_backSurfaces.size())
 		_backSurfaces[surfaceNum]._bounds = r;
+	else if (surfaceNum == SURFACE_PRIMARY)
+		_frontSurfaceBounds = r;
 }
 
 int CScreenManager::setFontNumber(int fontNumber) {
 	int oldFontNumber = _fontNumber;
 	_fontNumber = fontNumber;
 	return oldFontNumber;
+}
+
+void CScreenManager::preLoad() {
+	if (_textCursor)
+		_textCursor->hide();
 }
 
 /*------------------------------------------------------------------------*/
@@ -164,6 +172,13 @@ void OSScreenManager::fillRect(SurfaceNum surfaceNum, Rect *rect, byte r, byte g
 		tempRect = surfaceRect;
 	}
 
+	// Constrain the fill area to the set modification area of the surface
+	Rect surfaceBounds = (surfaceNum == SURFACE_PRIMARY) ? _frontSurfaceBounds :
+		_backSurfaces[surfaceNum]._bounds;
+	if (!surfaceBounds.isEmpty())
+		tempRect.constrain(surfaceBounds);
+
+	// If there is any area defined, clear it
 	if (tempRect.isValidRect())
 		surface->fillRect(&tempRect, r, g, b);
 }
@@ -178,18 +193,21 @@ void OSScreenManager::blitFrom(SurfaceNum surfaceNum, CVideoSurface *src,
 		destSurface = _backSurfaces[surfaceNum]._surface;
 	if (!destSurface->hasSurface())
 		return;
-	
+
 	Point destPoint = destPos ? *destPos : Point(0, 0);
 	Rect srcBounds = srcRect ? *srcRect : Rect(0, 0, src->getWidth(), src->getHeight());
 	Rect *bounds = &srcBounds;
 	Rect rect2;
 
-	if (surfaceNum >= 0 && !_backSurfaces[surfaceNum]._bounds.isEmpty()) {
+	Rect surfaceBounds = (surfaceNum == SURFACE_PRIMARY) ? _frontSurfaceBounds :
+		_backSurfaces[surfaceNum]._bounds;
+
+	if (!surfaceBounds.isEmpty()) {
 		// Perform clipping to the bounds of the back surface
 		rect2 = srcBounds;
 		rect2.translate(-srcBounds.left, -srcBounds.top);
 		rect2.translate(destPoint.x, destPoint.y);
-		rect2.constrain(_backSurfaces[surfaceNum]._bounds);
+		rect2.constrain(surfaceBounds);
 
 		rect2.translate(-destPoint.x, -destPoint.y);
 		rect2.translate(srcBounds.left, srcBounds.top);
@@ -220,8 +238,27 @@ void OSScreenManager::blitFrom(SurfaceNum surfaceNum, const Rect *rect, CVideoSu
 		destSurface->blitFrom(Point(rect->left, rect->top), src, rect);
 }
 
-int OSScreenManager::writeString(int surfaceNum, const Rect &destRect, 
+int OSScreenManager::writeString(int surfaceNum, const Rect &destRect,
 		int yOffset, const CString &str, CTextCursor *textCursor) {
+	CVideoSurface *surface;
+	Rect bounds;
+
+	if (surfaceNum >= 0 && surfaceNum < (int)_backSurfaces.size()) {
+		surface = _backSurfaces[surfaceNum]._surface;
+		bounds = _backSurfaces[surfaceNum]._bounds;
+	} else if (surfaceNum == SURFACE_PRIMARY) {
+		surface = _frontRenderSurface;
+		bounds = _frontSurfaceBounds;
+	} else {
+		return -1;
+	}
+
+	return _fonts[_fontNumber].writeString(surface, destRect, bounds,
+		yOffset, str, textCursor);
+}
+
+void OSScreenManager::writeString(int surfaceNum, const Point &destPos,
+		const Rect &clipRect, const CString &str, int lineWidth) {
 	CVideoSurface *surface;
 	Rect bounds;
 
@@ -232,17 +269,13 @@ int OSScreenManager::writeString(int surfaceNum, const Rect &destRect,
 		surface = _frontRenderSurface;
 		bounds = Rect(0, 0, surface->getWidth(), surface->getHeight());
 	} else {
-		return -1;
+		return;
 	}
 
-	return _fonts[_fontNumber].writeString(surface, destRect, bounds,
-		yOffset, str, textCursor);
-}
+	Rect destRect = clipRect;
+	destRect.constrain(bounds);
 
-int OSScreenManager::writeString(int surfaceNum, const Rect &srcRect,
-		const Rect &destRect, const CString &str, CTextCursor *textCursor) {
-	// TODO
-	return 0;
+	_fonts[_fontNumber].writeString(surface, destPos, destRect, str, lineWidth);
 }
 
 void OSScreenManager::setFontColor(byte r, byte g, byte b) {
@@ -278,13 +311,13 @@ void OSScreenManager::clearSurface(SurfaceNum surfaceNum, Rect *bounds) {
 		_directDrawManager._backSurfaces[surfaceNum]->fill(bounds, 0);
 }
 
-void OSScreenManager::resizeSurface(CVideoSurface *surface, int width, int height) {
-	DirectDrawSurface *ddSurface = _directDrawManager.createSurface(width, height, 0);
+void OSScreenManager::resizeSurface(CVideoSurface *surface, int width, int height, int bpp) {
+	DirectDrawSurface *ddSurface = _directDrawManager.createSurface(width, height, bpp, 0);
 	surface->setSurface(this, ddSurface);
 }
 
-CVideoSurface *OSScreenManager::createSurface(int w, int h) {
-	DirectDrawSurface *ddSurface = _directDrawManager.createSurface(w, h, 0);
+CVideoSurface *OSScreenManager::createSurface(int w, int h, int bpp) {
+	DirectDrawSurface *ddSurface = _directDrawManager.createSurface(w, h, bpp, 0);
 	return new OSVideoSurface(this, ddSurface);
 }
 
@@ -293,11 +326,11 @@ CVideoSurface *OSScreenManager::createSurface(const CResourceKey &key) {
 }
 
 void OSScreenManager::showCursor() {
-	CScreenManager::_screenManagerPtr->_mouseCursor->show();
+	CScreenManager::_screenManagerPtr->_mouseCursor->unsuppressCursor();
 }
 
 void OSScreenManager::hideCursor() {
-	CScreenManager::_screenManagerPtr->_mouseCursor->hide();
+	CScreenManager::_screenManagerPtr->_mouseCursor->suppressCursor();
 }
 
 void OSScreenManager::destroyFrontAndBackBuffers() {
@@ -315,7 +348,6 @@ void OSScreenManager::loadCursors() {
 		delete _mouseCursor;
 	}
 	_mouseCursor = new CMouseCursor(this);
-	showCursor();
 
 	if (!_textCursor) {
 		_textCursor = new CTextCursor(this);

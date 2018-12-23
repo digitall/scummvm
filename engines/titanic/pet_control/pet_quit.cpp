@@ -41,7 +41,7 @@ bool CPetQuit::setup(CPetControl *petControl, CPetGlyphs *owner) {
 	Rect btnRect(0, 0, 68, 52);
 	btnRect.moveTo(496, 388);
 	_btnYes.setBounds(btnRect);
-	
+
 	return true;
 }
 
@@ -52,8 +52,8 @@ bool CPetQuit::reset() {
 
 	setName("PetExit", pet);
 
-	uint col = getPetSection()->getColor(0);	
-	_text.setText("Are you sure you want to quit?");
+	uint col = getPetSection()->getColor(0);
+	_text.setText(SURE_YOU_WANT_TO_QUIT);
 	_text.setLineColor(0, col);
 
 	_btnYes.reset("PetQuitOut", pet, MODE_UNSELECTED);
@@ -83,8 +83,8 @@ bool CPetQuit::MouseButtonUpMsg(const Point &pt) {
 	}
 }
 
-void CPetQuit::getTooltip(CPetText *text) {
-	text->setText("Quit the game.");
+void CPetQuit::getTooltip(CTextControl *text) {
+	text->setText(QUIT_THE_GAME);
 }
 
 } // End of namespace Titanic

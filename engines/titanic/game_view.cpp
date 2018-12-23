@@ -55,10 +55,10 @@ void CGameView::deleteView(int roomNumber, int nodeNumber, int viewNumber) {
 
 void CGameView::createSurface(const CResourceKey &key) {
 	// Reset any current view surface
-	_gameManager->initBounds();
+	_gameManager->markAllDirty();
 	delete _surface;
 	_surface = nullptr;
-	
+
 	// Create a fresh surface
 	CScreenManager::setCurrent();
 	_surface = CScreenManager::_currentScreenManagerPtr->createSurface(key);

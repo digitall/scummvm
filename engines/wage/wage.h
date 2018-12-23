@@ -8,12 +8,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
-
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -49,6 +49,7 @@
 #define WAGE_WAGE_H
 
 #include "engines/engine.h"
+#include "audio/mixer.h"
 #include "common/debug.h"
 #include "common/endian.h"
 #include "common/rect.h"
@@ -103,7 +104,6 @@ enum {
 	// the current limitation is 32 debug levels (1 << 31 is the last one)
 };
 
-Common::String readPascalString(Common::SeekableReadStream *in);
 Common::Rect *readRect(Common::SeekableReadStream *in);
 const char *getIndefiniteArticle(const Common::String &word);
 const char *prependGenderSpecificPronoun(int gender);
@@ -126,6 +126,8 @@ public:
 	const char *getGameFile() const;
 	void processTurn(Common::String *textInput, Designed *clickInput);
 	void regen();
+
+	const char *getTargetName() { return _targetName.c_str(); }
 
 private:
 	bool loadWorld(Common::MacResManager *resMan);
@@ -192,6 +194,8 @@ public:
 	bool _isGameOver;
 	bool _commandWasQuick;
 
+	bool _shouldQuit;
+
 	Common::String _inputText;
 
 	void playSound(Common::String soundName);
@@ -234,7 +238,7 @@ private:
 
 	Common::MacResManager *_resManager;
 
-	bool _shouldQuit;
+	Audio::SoundHandle _soundHandle;
 };
 
 // Example console class
