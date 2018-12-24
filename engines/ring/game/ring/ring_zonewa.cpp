@@ -709,7 +709,7 @@ void ZoneWARing::onSetup(SetupType type) {
 		_app->onSetupLoadTimers("bru", 90020, 90024, 90028);
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->bagAdd(kObjectMagicLance);
 		_app->bagAdd(kObjectThread);
 		_app->bagAdd(kObjectGolem1);

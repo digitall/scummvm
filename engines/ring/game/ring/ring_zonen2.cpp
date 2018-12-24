@@ -558,7 +558,7 @@ void ZoneN2Ring::onSetup(SetupType type) {
 		_app->onSetupLoadTimers("log", 90018, 90022, 90026);
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->bagRemoveAll();
 		_app->timerStopAll();
 		_app->bagAdd(kObjectFire);

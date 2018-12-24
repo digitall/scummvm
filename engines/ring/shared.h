@@ -236,19 +236,19 @@ enum LoadSaveType {
 };
 
 enum SetupType {
-	kSetupTypeNone    = 0,
-	kSetupType1       = 1,
-	kSetupType2       = 2,
-	kSetupType3       = 3,
-	kSetupType5       = 5,
-	kSetupType6       = 6,
-	kSetupType10      = 10,
-	kSetupType200     = 200,
-	kSetupType300     = 300,
-	kSetupType400     = 400,
-	kSetupType998     = 998,
-	kSetupType999     = 999,
-	kSetupTypeLoading = 1000
+	kSetupTypeNone      = 0,
+	kSetupType1         = 1,
+	kSetupType2         = 2,
+	kSetupType3         = 3,
+	kSetupType5         = 5,
+	kSetupType6         = 6,
+	kSetupType10        = 10,
+	kSetupType200       = 200,
+	kSetupType300       = 300,
+	kSetupType400       = 400,
+	kSetupType998       = 998,
+	kSetupTypeStartZone = 999,
+	kSetupTypeLoading   = 1000
 };
 
 enum ImageType {

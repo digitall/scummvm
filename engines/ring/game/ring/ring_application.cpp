@@ -364,7 +364,7 @@ void ApplicationRing::startGame() {
 
 	_preferenceHandler->load();
 
-	setupZone(kZoneAS, kSetupType999);
+	setupZone(kZoneAS, kSetupTypeStartZone);
 }
 
 void ApplicationRing::refreshPreferences() {

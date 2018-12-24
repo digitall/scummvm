@@ -997,7 +997,7 @@ void ZoneFORing::onSetup(SetupType type) {
 		_app->onSetupLoadTimers("sie", 90019, 90023, 90027);
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->bagAdd(kObjectWolfInstinct);
 		_app->bagAdd(kObjectKey);
 		_app->bagAdd(kObjectIngot);

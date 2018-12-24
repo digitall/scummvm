@@ -479,7 +479,7 @@ void ZoneRHRing::onSetup(SetupType type) {
 		_app->onSetupLoadTimers("alb", 90017, 90021, 90025);
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->bagRemoveAll();
 		_app->bagAdd(kObjectBrutality);
 		_app->bagAdd(kObjectDivingHelmet2);

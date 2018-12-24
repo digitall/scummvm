@@ -179,7 +179,7 @@ void Zone4Pompeii::onSetup(SetupType type) {
 	default:
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->timerStopAll();
 		_app->bagRemoveAll();
 		_app->setZone(kZone2, kSetupType200);

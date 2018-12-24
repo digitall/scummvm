@@ -506,7 +506,7 @@ void ZoneRORing::onSetup(SetupType type) {
 		_app->onSetupLoadTimers("log", 90018, 90022, 90026);
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->rotationSetAlp(40000, 0.0f);
 		_app->rotationSetRan(40000, 85.3f);
 		_app->rotationSetActive(40000);

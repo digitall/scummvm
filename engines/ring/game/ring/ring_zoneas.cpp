@@ -495,7 +495,7 @@ void ZoneASRing::onSetup(SetupType type) {
 		_app->soundPlay(80100);
 		break;
 
-	case kSetupType999:
+	case kSetupTypeStartZone:
 		_app->rotationSetAlp(80001, 90.0f);
 		_app->rotationSetRan(80001, 85.3f);
 		_app->rotationSetActive(80001);
