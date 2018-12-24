@@ -199,10 +199,6 @@ Common::MemoryReadStream *CompressedStream::decompressNode() {
 	ImageHeaderEntry::Header header;
 	header.load(stream);
 
-	// Get node size
-	stream->seek(streamStart + channelSize + sizeof(header) + 4, SEEK_SET);
-	uint32 nodeSize = stream->readUint32LE();
-
 	// Compute buffer size
 	uint32 size = (uint32)(header.field_0 * header.field_4 * header.field_8 / 4);
 	uint32 bufferSize = size + 129652;
@@ -225,9 +221,14 @@ Common::MemoryReadStream *CompressedStream::decompressNode() {
 	// Decode channel and nodes
 	uint32 delta = (uint32)(stream->pos() - streamStart);
 	uint32 decodedChannelSize = decodeChannel(stream, 8 * delta , 8 * (delta + channelSize), buffer + sizeof(header));
+	stream->seek(streamStart + 4 + sizeof(header) + channelSize, SEEK_SET);
+
+	// Get node size
+	uint32 nodeSize = stream->readUint32LE();
 
 	delta = (uint32)(stream->pos() - streamStart);
 	uint32 decodedNodeSize = decodeNode(stream, 8 * delta, 8 * (delta + nodeSize), buffer + size + sizeof(header));
+	stream->seek(streamStart + 4 + sizeof(header) + channelSize + 4 + nodeSize, SEEK_SET);
 
 	if ((decodedChannelSize + decodedNodeSize) > (bufferSize + 64))
 		warning("[CompressedStream::decompressNode] Error during decompression (buffer overrun)!");
@@ -237,24 +238,24 @@ Common::MemoryReadStream *CompressedStream::decompressNode() {
 }
 
 Common::MemoryReadStream *CompressedStream::decompressChannel() {
+	if (_type == 1)
+		error("[CompressedStream::decompressChannel] Invalid stream type");
+
 	Common::SeekableReadStream *stream = getCompressedStream();
 	if (!stream)
-		error("[CompressedStream::decompressNode] Invalid stream!");
+		error("[CompressedStream::decompressChannel] Invalid stream!");
 
 	int32 streamStart = stream->pos();
-
 	uint32 channelCount = stream->readUint32LE();
-	stream->readUint32LE();
-	stream->readUint32LE();
-	stream->readUint32LE(); // offset
 
 	// Read header
+	stream->seek(12, SEEK_CUR);
 	ImageHeaderEntry::Header header;
 	header.load(stream);
 
 	// Compute buffer size
-	uint32 channelSize = (uint32)header.field_2C / (4 * sizeof(header));
-	uint32 size = channelSize * channelCount;
+	uint32 entrySize = header.field_2C / 4 + sizeof(header);
+	uint32 size = entrySize * channelCount;
 	uint32 bufferSize = size + 12;
 	if (bufferSize > 10000000) {
 		warning("[CompressedStream::decompressChannel] Invalid channel buffer size (%d)", bufferSize);
@@ -266,7 +267,7 @@ Common::MemoryReadStream *CompressedStream::decompressChannel() {
 	if (!buffer)
 		error("[CompressedStream::decompressChannel] Cannot allocate buffer for channels (size: %d)", bufferSize + 1036);
 
-	memset(buffer, 0, bufferSize + 1036);
+	memset(buffer, 0, size + 1036);
 
 	// Copy info
 	stream->seek(streamStart, SEEK_SET);
@@ -276,7 +277,7 @@ Common::MemoryReadStream *CompressedStream::decompressChannel() {
 	uint32 decodedSize = 0;
 	for (uint32 i = 0; i < channelCount; i++) {
 
-		uint32 offset = stream->readUint32LE();
+		uint32 channelSize = stream->readUint32LE();
 
 		// Read header
 		stream->read(pBuffer, sizeof(header));
@@ -284,12 +285,12 @@ Common::MemoryReadStream *CompressedStream::decompressChannel() {
 
 		// Decompress channel
 		uint32 delta = (uint32)(stream->pos() - streamStart);
-		decodedSize += decodeChannel(stream, delta * 8, (delta + offset) * 8, pBuffer);
-		pBuffer += channelSize - sizeof(header);
+		decodedSize += decodeChannel(stream, 8 * delta, 8 * (delta + channelSize), pBuffer);
+		pBuffer += entrySize - sizeof(header);
 	}
 
 	if (decodedSize > (bufferSize + 64))
-		warning("[CompressedStream::decompressNode] Error during decompression (buffer overrun)!");
+		error("[CompressedStream::decompressNode] Error during decompression (buffer overrun)!");
 
 	// Create decompressed stream
 	return new Common::MemoryReadStream(buffer, bufferSize, DisposeAfterUse::YES);
