@@ -70,7 +70,7 @@ RingEngine::RingEngine(OSystem *syst, const RingGameDescription *gd) :
 	SearchMan.addDirectory(gameDataDir.getPath(), gameDataDir, 0, 5);
 
 	// Initialize the custom debug levels
-	DebugMan.addDebugChannel(kRingDebugAll, "All", "Debug everything");
+	DebugMan.addDebugChannel(kRingDebugAll, "Everything", "Debug everything");
 	DebugMan.addDebugChannel(kRingDebugGraphics, "Graphics", "Debug graphics & video playback");
 	DebugMan.addDebugChannel(kRingDebugResource, "Resource", "Debug resource management");
 	DebugMan.addDebugChannel(kRingDebugSound, "Sound", "Debug sound playback");
