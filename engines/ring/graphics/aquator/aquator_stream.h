@@ -38,7 +38,7 @@ public:
 	void alloc(bool isCompressed, const Graphics::PixelFormat &format, uint32 size);
 	void dealloc();
 
-	uint32 sub_410F50(uint32 index);
+	uint32 getField0ByIndex(uint32 index);
 	void updateEntries(float timeOffset);
 	void sub_411530(uint32 index, uint32 a2);
 	void setChannel(uint32 index, uint32 channel);

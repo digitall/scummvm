@@ -139,7 +139,7 @@ void AquatorStream::initChannel(Common::SeekableReadStream *stream, uint32 index
 	aquatorHeader->setField4(aquatorHeader->getChannel());
 }
 
-uint32 AquatorStream::sub_410F50(uint32 index) {
+uint32 AquatorStream::getField0ByIndex(uint32 index) {
 	return _headers[index]->getField0();
 }
 

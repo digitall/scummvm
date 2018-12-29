@@ -175,7 +175,7 @@ void Rotation::update() {
 
 	// Update aquator
 	for (uint32 i = 0; i < _stream->getCount(); i++) {
-		if (!_stream->sub_410F50(i))
+		if (!_stream->getField0ByIndex(i))
 			continue;
 
 		if (_animations[i]->getField26())
