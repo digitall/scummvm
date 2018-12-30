@@ -41,7 +41,7 @@ CompressedStream::~CompressedStream() {
 	SAFE_DELETE(_artStream);
 }
 
-bool CompressedStream::init(Common::String filename, byte type, uint32) {
+bool CompressedStream::init(Common::String filename, byte type, uint32 /* unused IO buffer size */) {
 	if (!initBuffer(filename, type))
 		return false;
 
@@ -249,7 +249,7 @@ Common::MemoryReadStream *CompressedStream::decompressChannel() {
 	uint32 channelCount = stream->readUint32LE();
 
 	// Read header
-	stream->seek(12, SEEK_CUR);
+	stream->seek(12, SEEK_CUR); // Jump over unused data for decompression
 	ImageHeaderEntry::Header header;
 	header.load(stream);
 
@@ -284,7 +284,7 @@ Common::MemoryReadStream *CompressedStream::decompressChannel() {
 		pBuffer += sizeof(header);
 
 		// Decompress channel
-		uint32 delta = (uint32)(stream->pos() - streamStart);
+		uint32 delta = (uint32)stream->pos(); // Delta to beginning of stream (not the starting point when decompressing the channel
 		decodedSize += decodeChannel(stream, 8 * delta, 8 * (delta + channelSize), pBuffer);
 		pBuffer += entrySize - sizeof(header);
 	}
