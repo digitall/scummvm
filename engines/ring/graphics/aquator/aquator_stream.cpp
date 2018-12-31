@@ -151,7 +151,7 @@ void AquatorStream::updateEntries(float timeOffset) {
 			continue;
 
 		if (header->shouldUpdateEntries()) {
-			_entry->updateFromEntry(header->getChannel() ? header->getHeader()->get(header->getField8() * 64) : header->getHeader()->getCurrent());
+			_entry->updateEntry(header->getChannel() ? header->getHeader()->get(header->getField8() * 64) : header->getHeader()->getCurrent(), true);
 			header->shouldUpdateEntries(0);
 		}
 	}

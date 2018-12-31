@@ -28,6 +28,7 @@
 #include "ring/ring.h"
 
 #include "graphics/surface.h"
+#include <jmorecfg.h>
 
 namespace Ring {
 
@@ -157,12 +158,39 @@ void ImageHeaderEntry::initData() {
 	_header.field_2C = (uint32)(_header.field_30 * (_header.end - _header.start));
 }
 
-void ImageHeaderEntry::updateEntry(ImageHeaderEntry *entry) {
-	error("[ImageHeaderEntry::updateEntry] Not implemented");
-}
+void ImageHeaderEntry::updateEntry(ImageHeaderEntry *entry, bool updateFromEntry) {
+	Header header = entry->getHeader();
 
-void ImageHeaderEntry::updateFromEntry(ImageHeaderEntry *entry) {
-	error("[ImageHeaderEntry::updateFromEntry] Not implemented");
+	int start = header.start;
+	int index = header.field_1C / 4 + (_header.field_0 / 4) * start;
+	int stride = (header.field_20 - header.field_1C) / 4;
+	int delta = _header.field_0 / 4 - stride;
+
+	uint16 *entryBuffer = (uint16 *)entry->getBuffer();
+
+	for (uint16 *buffer = &((uint16 *)_buffer)[index]; start < header.end; buffer += delta)
+	{
+		if (stride <= 0)
+			continue;
+
+		int i = stride;
+		do
+		{
+			if (updateFromEntry)
+			{
+				*buffer = *entryBuffer;
+			} else
+			{
+				*entryBuffer = *buffer;
+			}
+
+			++buffer;
+			++entryBuffer;
+			--i;
+		} while (i);
+
+		++start;
+	}
 }
 
 void ImageHeaderEntry::process() {

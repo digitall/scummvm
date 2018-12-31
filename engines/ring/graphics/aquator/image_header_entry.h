@@ -53,8 +53,7 @@ public:
 
 	void init(Common::SeekableReadStream *stream, bool hasAdditionnalData);
 	void init(ImageHeaderEntry *entry);
-	void updateEntry(ImageHeaderEntry *entry);
-	void updateFromEntry(ImageHeaderEntry *entry);
+	void updateEntry(ImageHeaderEntry *entry, bool updateFromEntry = false);
 	void reset();
 
 	// Buffer
