@@ -34,19 +34,19 @@ public:
 	~AquatorImageHeader();
 
 	void setField0(bool state) { _field_0 = state; }
-	void setField4(uint32 val) { _field_4 = val; }
+	void shouldUpdateEntries(uint32 val) { _shouldUpdateEntries = val; }
 	void setField8(uint32 val) { _field_8 = val; }
 	void setChannel(uint32 val);
 
 	bool getField0() { return _field_0; }
-	uint32 getField4() { return _field_4; }
+	uint32 shouldUpdateEntries() { return _shouldUpdateEntries; }
 	uint32 getField8() { return _field_8; }
 	ImageHeader *getHeader() { return _header; }
 	uint32 getChannel() { return _channel; }
 
 private:
 	bool _field_0;
-	uint32 _field_4;
+	uint32 _shouldUpdateEntries;
 	uint32 _field_8;
 	ImageHeader *_header;
 	uint32 _channel;

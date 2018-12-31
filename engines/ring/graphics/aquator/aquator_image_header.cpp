@@ -27,7 +27,7 @@ namespace Ring {
 
 AquatorImageHeader::AquatorImageHeader() {
 	_field_0 = false;
-	_field_4 = 0;
+	_shouldUpdateEntries = 0;
 	_field_8 = 0;
 	_channel = 0;
 
@@ -41,7 +41,7 @@ AquatorImageHeader::~AquatorImageHeader() {
 void AquatorImageHeader::setChannel(uint32 channel) {
 	if (_channel != channel) {
 		_channel = channel;
-		_field_4 = 1;
+		_shouldUpdateEntries = 1;
 	}
 }
 

@@ -43,8 +43,8 @@ ImageHeaderEntry::Header::Header() {
 	field_18 = 0;
 	field_1C = 0;
 	field_20 = 0;
-	field_24 = 0;
-	field_28 = 0;
+	start = 0;
+	end = 0;
 	field_2C = 0;
 	field_30 = 0;
 }
@@ -59,8 +59,8 @@ void ImageHeaderEntry::Header::update(const Header &header) {
 	field_18 = header.field_18;
 	field_1C = header.field_1C;
 	field_20 = header.field_20;
-	field_24 = header.field_24;
-	field_28 = header.field_28;
+	start = header.start;
+	end = header.end;
 	field_2C = header.field_2C;
 	field_30 = header.field_30;
 }
@@ -75,8 +75,8 @@ void ImageHeaderEntry::Header::load(Common::SeekableReadStream *stream) {
 	field_18 = convertIEEEFloat(stream->readUint32LE());
 	field_1C = stream->readUint32LE();
 	field_20 = stream->readUint32LE();
-	field_24 = stream->readUint32LE();
-	field_28 = stream->readUint32LE();
+	start = stream->readUint32LE();
+	end = stream->readUint32LE();
 	field_2C = stream->readUint32LE();
 	field_30 = stream->readUint32LE();
 }
@@ -140,7 +140,7 @@ void ImageHeaderEntry::init(ImageHeaderEntry *entry) {
 	_header.update(entry->getHeader());
 	initData();
 
-	// ALlocate new buffer
+	// Allocate new buffer
 	_buffer = allocBuffer(true);
 	_bufferData = (byte *)_buffer + IMAGEHEADER_BUFFER_SIZE;
 	_hasAdditionnalData = true;
@@ -150,19 +150,23 @@ void ImageHeaderEntry::initData() {
 	if (!_header.field_20)
 		_header.field_20 = _header.field_0;
 
-	if (!_header.field_28)
-		_header.field_28 = _header.field_4;
+	if (!_header.end)
+		_header.end = _header.field_4;
 
 	_header.field_30 = _header.field_8  * (_header.field_20 - _header.field_1C);
-	_header.field_2C = (uint32)(_header.field_30 * (_header.field_28 - _header.field_24));
+	_header.field_2C = (uint32)(_header.field_30 * (_header.end - _header.start));
 }
 
-void ImageHeaderEntry::update(ImageHeaderEntry *entry, bool updateCaller) {
-	error("[ImageHeaderEntry::update] Not implemented");
+void ImageHeaderEntry::updateEntry(ImageHeaderEntry *entry) {
+	error("[ImageHeaderEntry::updateEntry] Not implemented");
+}
+
+void ImageHeaderEntry::updateFromEntry(ImageHeaderEntry *entry) {
+	error("[ImageHeaderEntry::updateFromEntry] Not implemented");
 }
 
 void ImageHeaderEntry::process() {
-	error("[ImageHeaderEntry::update] Not implemented");
+	error("[ImageHeaderEntry::process] Not implemented");
 }
 
 void ImageHeaderEntry::prepareBuffer() {

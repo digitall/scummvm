@@ -66,7 +66,7 @@ void ImageHeader::update(ImageHeaderEntry* entry) {
 		error("[ImageHeader::update] entry not initialized properly");
 
 	_current->init(_entries[0]);
-	entry->update(_current);
+	entry->updateEntry(_current);
 }
 
 ImageHeaderEntry *ImageHeader::get(uint32 index) {

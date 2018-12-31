@@ -136,7 +136,7 @@ void AquatorStream::initChannel(Common::SeekableReadStream *stream, uint32 index
 	else
 		aquatorHeader->setField0(true);
 
-	aquatorHeader->setField4(aquatorHeader->getChannel());
+	aquatorHeader->shouldUpdateEntries(aquatorHeader->getChannel());
 }
 
 uint32 AquatorStream::getField0ByIndex(uint32 index) {
@@ -150,9 +150,9 @@ void AquatorStream::updateEntries(float timeOffset) {
 		if (!header->getHeader()->hasEntries())
 			continue;
 
-		if (header->getField4()) {
-			_entry->update(header->getChannel() ? header->getHeader()->get(header->getField8() * 64) : header->getHeader()->getCurrent());
-			header->setField4(0);
+		if (header->shouldUpdateEntries()) {
+			_entry->updateFromEntry(header->getChannel() ? header->getHeader()->get(header->getField8() * 64) : header->getHeader()->getCurrent());
+			header->shouldUpdateEntries(0);
 		}
 	}
 }
@@ -160,7 +160,7 @@ void AquatorStream::updateEntries(float timeOffset) {
 void AquatorStream::sub_411530(uint32 index, uint32 a2) {
 	if (_headers[index]->getField8() != a2) {
 		_headers[index]->setField8(a2);
-		_headers[index]->setField4(_headers[index]->getChannel());
+		_headers[index]->shouldUpdateEntries(_headers[index]->getChannel());
 	}
 }
 

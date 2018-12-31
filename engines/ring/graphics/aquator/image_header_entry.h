@@ -38,8 +38,8 @@ public:
 		float field_18;
 		int32 field_1C;
 		int32 field_20;
-		int32 field_24;
-		int32 field_28;
+		int32 start;
+		int32 end;
 		int32 field_2C;
 		int32 field_30;
 
@@ -53,7 +53,8 @@ public:
 
 	void init(Common::SeekableReadStream *stream, bool hasAdditionnalData);
 	void init(ImageHeaderEntry *entry);
-	void update(ImageHeaderEntry *entry, bool updateCaller = true);
+	void updateEntry(ImageHeaderEntry *entry);
+	void updateFromEntry(ImageHeaderEntry *entry);
 	void reset();
 
 	// Buffer
