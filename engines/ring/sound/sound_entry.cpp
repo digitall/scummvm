@@ -211,6 +211,9 @@ SoundEntryStream::~SoundEntryStream() {
 void SoundEntryStream::play(bool loop) {
 	// Compute sound path
 	Common::String path = getApp()->getSoundPath(_name, _type);
+
+	debugC(kRingDebugSound, "Playing sound: %s", path.c_str());
+
 	initSoundBuffer(path, _soundChunk, loop, _format);
 
 	// Rewind and play sound
@@ -252,8 +255,7 @@ void SoundEntryStream::initSoundBuffer(const Common::String &path, int32 soundCh
 	}
 
 	// Handle uncompressed wav file
-	if (_audioStream)
-		delete _audioStream;
+	SAFE_DELETE(_audioStream);
 
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(path);
 	if (!stream)
