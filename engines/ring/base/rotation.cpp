@@ -146,14 +146,14 @@ void Rotation::alloc() {
 			_rotationTable[i + j] = rnd((uint32)_amplitude) * 0.000030518509f;
 	}
 
-	_field_45 = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_49 = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_4D = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_51 = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_55 = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_59 = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_5D = rnd((uint32)_field_35) * 0.000030518509f;
-	_field_61 = rnd((uint32)_field_35) * 0.000030518509f;
+	_field_45 = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_49 = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_4D = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_51 = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_55 = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_59 = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_5D = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
+	_field_61 = rnd(RAND_MAX) * _field_35 * 0.000030518509f;
 }
 
 void Rotation::dealloc() {
