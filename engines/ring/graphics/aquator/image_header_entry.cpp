@@ -125,10 +125,10 @@ void ImageHeaderEntry::init(Common::SeekableReadStream *stream, bool hasAddition
 		_bufferData = (byte *)_buffer + IMAGEHEADER_BUFFER_SIZE;
 
 	// Read buffers
-	stream->read(_bufferData, _header.field_2C / 4);
+	stream->read(_buffer, _header.field_2C / 4);
 
 	if (hasAdditionnalData)
-		stream->read(_buffer, IMAGEHEADER_BUFFER_SIZE);
+		stream->read(_bufferData, IMAGEHEADER_BUFFER_SIZE);
 
 	_hasAdditionnalData = hasAdditionnalData;
 }
