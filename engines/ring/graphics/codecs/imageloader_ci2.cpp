@@ -64,29 +64,28 @@ bool ImageLoaderCI2::load(ImageSurface *image, ArchiveType archiveType, ZoneId z
 
 	if (!init(_filename, archiveType, zone, loadFrom)) {
 		warning("[ImageLoaderCI2::load] Error initializing image reader (%s)", _filename.c_str());
-		goto cleanup;
+		deinit();
+		return false;
 	}
 
 	// Check cinematic format
 	format = _cinematic->readByte();
 	if (_cinematic->eos() || _cinematic->err() || format != CINEMATIC_FORMAT) {
 		warning("[ImageLoaderCI2::load] Wrong cinematic format for %s (was: %d, valid: %d)", _filename.c_str(), format, CINEMATIC_FORMAT);
-		goto cleanup;
+		deinit();
+		return false;
 	}
 
 	// Read image data
 	if (!readImage(image, 32, drawType)) {
 		warning("[ImageLoaderCI2::load] Error reading image (%s)", _filename.c_str());
-		goto cleanup;
+		deinit();
+		return false;
 	}
 
 	deinit();
 
 	return true;
-
-cleanup:
-	deinit();
-	return false;
 }
 
 bool ImageLoaderCI2::init(Common::String filename, ArchiveType archiveType, ZoneId zone, LoadFrom loadFrom) {
@@ -239,8 +238,7 @@ bool ImageLoaderCI2::readImage(ImageSurface *image, byte bitdepth, DrawType draw
 			return false;
 		}
 
-		// TODO Copy to image
-		warning("[ImageLoaderCI2::readImage] image copy for kDrawType3 not implemented");
+		image->getSurface()->copyRectToSurface(buffer, _stride, 0, 0, _width, _height);
 
 		free(buffer);
 	} else {

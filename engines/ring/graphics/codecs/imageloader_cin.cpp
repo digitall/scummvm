@@ -38,7 +38,6 @@ ImageLoaderCIN::ImageLoaderCIN() {
 	_height = 0;
 }
 
-
 ImageLoaderCIN::~ImageLoaderCIN() {
 	deinit();
 }
@@ -162,8 +161,6 @@ bool ImageLoaderCIN::readImage(ImageSurface *image, byte bitdepth, DrawType) {
 	invertSurface(surfaceInvert, *image->getSurface());
 
 	image->setSurface(surfaceInvert);
-
-	return true;
 
 	return true;
 }

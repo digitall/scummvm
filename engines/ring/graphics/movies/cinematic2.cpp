@@ -107,14 +107,16 @@ bool Cinematic2::tControl() {
 	// Read tControl header
 	if (!_tControlHeader.read(_stream)) {
 		error("[Cinematic2::tControl] Cannot read tControl header");
-		return false;
 	}
+
+	debugC(kRingDebugMovie, "    Reading T control header (size: %d, decompressedSize: %d, bufferSize: %d)",
+		_tControlHeader.size, _tControlHeader.decompressedSize, _tControlHeader.bufferSize);
 
 	// Reset buffer
 	if (_tControlBuffer)
 		free(_tControlBuffer);
 
-	_tControlBuffer = (byte *)malloc(_tControlHeader.size);
+	_tControlBuffer = static_cast<byte *>(malloc(_tControlHeader.size));
 	if (!_tControlBuffer) {
 		warning("[Cinematic2::tControl] Cannot allocate tControl buffer");
 		return false;
@@ -181,19 +183,22 @@ void Cinematic2::decompressTControl(byte *buffer, uint32 bufferSize, uint16 deco
 	memcpy(_buffer1, buffer, bufferSize);
 
 	if (bufferSize == 16) {
-		int *pBuffer = (int *)&_buffer1[16];
+		int *pBuffer1 = reinterpret_cast<int *>(&_buffer1[16]);
+
+		int64 state = *(reinterpret_cast<int64 *>(buffer) + 2);
+		int64 *pBuffer = (int64 *)(buffer + 24);
 
 		// Iterate over buffer
 		for (uint32 i = 0; i < decompressedSize; i++) {
-			for (uint32 j = 0; j < 9; j++) {
+			for (uint32 j = 0; j < 4; j++) {
 
 
 				//warning("[Cinematic2::decompressTControl] Not implemented");
 
-				++pBuffer;
+				++pBuffer1;
 			}
 
-			pBuffer += 12;
+			pBuffer1 += 12;
 		}
 
 	} else {
@@ -209,11 +214,11 @@ void Cinematic2::decompressTControl(byte *buffer, uint32 bufferSize, uint16 deco
 		}
 	}
 
-
+	error("[Cinematic2::decompressTControl] Not implemented");
 }
 
 void Cinematic2::decompressSeq(byte *buffer) {
-	warning("[Cinematic2::decompressSeq] Not implemented");
+	error("[Cinematic2::decompressSeq] Not implemented");
 }
 
 #pragma endregion
