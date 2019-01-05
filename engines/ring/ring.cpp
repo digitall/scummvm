@@ -166,6 +166,14 @@ Common::Error RingEngine::run() {
 #endif
 
 	while (!shouldQuit()) {
+		// Execute stored commands
+		if (_debugger->hasCommand()) {
+			_debugger->callCommand();
+
+			// re-attach the debugger
+			_debugger->attach();
+		}
+
 		// Show the debugger if required
 		_debugger->onFrame();
 

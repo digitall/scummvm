@@ -31,6 +31,7 @@
 #include "ring/ring.h"
 
 #include "common/debug-channels.h"
+#include "helpers.h"
 
 #ifdef RING_DUMP
 #include "common/file.h"
@@ -82,7 +83,7 @@ static int recursive_mkdir(const char *dir) {
 
 namespace Ring {
 
-Debugger::Debugger(RingEngine *engine) : _engine(engine), _action(kActionNone) {
+Debugger::Debugger(RingEngine *engine) : _engine(engine), _action(kActionNone), _command(nullptr), _numParams(0), _commandParams(nullptr) {
 
 	//////////////////////////////////////////////////////////////////////////
 	// Register the debugger commands
@@ -103,10 +104,20 @@ Debugger::Debugger(RingEngine *engine) : _engine(engine), _action(kActionNone) {
 	// Graphics
 	registerCmd("clear",     WRAP_METHOD(Debugger, cmdClear));
 	registerCmd("show",      WRAP_METHOD(Debugger, cmdShow));
+
+	// Movies
+	registerCmd("play",      WRAP_METHOD(Debugger, cmdPlay));
+
+	resetCommand();
 }
 
 Debugger::~Debugger() {
 	DebugMan.clearAllDebugChannels();
+
+	resetCommand();
+
+	_command = nullptr;
+	_commandParams = nullptr;
 
 	// Zero passed pointers
 	_engine = nullptr;
@@ -179,7 +190,6 @@ void Debugger::postEnter() {
 			g_system->delayMillis(100);
 		}
 
-
 		// Cleanup
 		_filename.clear();
 		enc->dealloc();
@@ -195,9 +205,55 @@ void Debugger::postEnter() {
 	_engine->pauseEngine(false);
 }
 
-int Debugger::getNumber(const char *arg) const {
-	return strtol(arg, (char **)nullptr, 0);
+//////////////////////////////////////////////////////////////////////////
+// Helper functions
+//////////////////////////////////////////////////////////////////////////
+bool Debugger::hasCommand() const {
+	return (_numParams != 0);
 }
+
+void Debugger::resetCommand() {
+	SAFE_DELETE(_command);
+
+	if (_commandParams)
+		for (int i = 0; i < _numParams; i++)
+			free(_commandParams[i]);
+
+	free(_commandParams);
+	_commandParams = NULL;
+	_numParams = 0;
+}
+
+int Debugger::getNumber(const char *arg) const {
+	return strtol(arg, (char **)NULL, 0);
+}
+
+void Debugger::copyCommand(int argc, const char **argv) {
+	_commandParams = (char **)malloc(sizeof(char *) * (uint)argc);
+	if (!_commandParams)
+		return;
+
+	_numParams = argc;
+
+	for (int i = 0; i < _numParams; i++) {
+		_commandParams[i] = (char *)malloc(strlen(argv[i]) + 1);
+		if (_commandParams[i] == NULL)
+			error("[Debugger::copyCommand] Cannot allocate memory for command parameters");
+
+		memset(_commandParams[i], 0, strlen(argv[i]) + 1);
+		strcpy(_commandParams[i], argv[i]);
+	}
+
+	// Exit the debugger!
+	cmdExit(0, 0);
+}
+
+void Debugger::callCommand() {
+	if (_command)
+		(*_command)(_numParams, const_cast<const char **>(_commandParams));
+}
+
+#pragma region Utils
 
 bool Debugger::cmdHelpRing(int, const char **) {
 	debugPrintf("Commands\n");
@@ -212,8 +268,12 @@ bool Debugger::cmdHelpRing(int, const char **) {
 	debugPrintf(" clear - clear the screen\n");
 	debugPrintf(" show  - show an image\n");
 	debugPrintf("\n");
+	debugPrintf(" play  - play a video\n");
+	debugPrintf("\n");
 	return true;
 }
+
+#pragma endregion
 
 #pragma region Data
 
@@ -452,6 +512,38 @@ bool Debugger::cmdShow(int argc, const char ** argv) {
 	} else {
 		debugPrintf("Syntax: show <filename> (<zone>)- Show an image\n");
 	}
+
+	return true;
+}
+
+#pragma endregion
+
+#pragma region Movies
+
+bool Debugger::cmdPlay(int argc, const char **argv) {
+	if (argc != 3) {
+		debugPrintf("Syntax: %s <zone> <filename> - Play a movie\n", argv[0]);
+		return true;
+	}
+
+	// Queue command
+	if (!hasCommand()) {
+		_command = WRAP_METHOD(Debugger, cmdPlay);
+		copyCommand(argc, argv);
+
+		return cmdExit(0, 0);
+	}
+
+	ZoneId zone = static_cast<ZoneId>(getNumber(argv[1]));
+	Common::String name(const_cast<char *>(argv[2]));
+
+	ZoneId previousZone = _engine->getApplication()->getCurrentZone();
+
+	_engine->getApplication()->setCurrentZone(zone);
+	_engine->getApplication()->playMovie(name);
+	_engine->getApplication()->setCurrentZone(previousZone);
+
+	resetCommand();
 
 	return true;
 }

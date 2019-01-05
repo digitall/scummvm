@@ -45,6 +45,9 @@ public:
 	Debugger(RingEngine *engine);
 	~Debugger();
 
+	bool hasCommand() const;
+	void callCommand();
+
 private:
 	enum ActionType {
 		kActionNone         = 0,
@@ -61,19 +64,24 @@ private:
 	bool cmdListFiles(int argc, const char **argv);
 	bool cmdClear(int argc, const char **argv);
 	bool cmdShow(int argc, const char **argv);
+	bool cmdPlay(int argc, const char **argv);
 
 #ifdef RING_DUMP
 	bool cmdDumpArchive(int argc, const char **argv);
+	void dumpFile(Common::String filename);
 #endif
 
 	// Widgets
 	bool cmdEncyclopedia(int argc, const char **argv);
 
 	// Helpers
-#ifdef RING_DUMP
-	void dumpFile(Common::String filename);
-#endif
+	void resetCommand();
+	void copyCommand(int argc, const char **argv);
 	int getNumber(const char *arg) const;
+
+	Debuglet *_command;
+	int _numParams;
+	char **_commandParams;
 };
 
 } // End of namespace Ring
