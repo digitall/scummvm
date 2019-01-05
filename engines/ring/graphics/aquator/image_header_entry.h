@@ -51,7 +51,7 @@ public:
 	ImageHeaderEntry();
 	~ImageHeaderEntry();
 
-	void init(Common::SeekableReadStream *stream, bool hasAdditionnalData);
+	void init(Common::SeekableReadStream *stream, bool hasAdditionalData);
 	void init(ImageHeaderEntry *entry);
 	void updateEntry(ImageHeaderEntry *entry, bool updateFromEntry = false);
 	void reset();

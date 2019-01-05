@@ -28,7 +28,6 @@
 #include "ring/ring.h"
 
 #include "graphics/surface.h"
-#include <jmorecfg.h>
 
 namespace Ring {
 
@@ -113,7 +112,7 @@ void ImageHeaderEntry::reset() {
 	_bufferData = nullptr;
 }
 
-void ImageHeaderEntry::init(Common::SeekableReadStream *stream, bool hasAdditionnalData) {
+void ImageHeaderEntry::init(Common::SeekableReadStream *stream, bool hasAdditionalData) {
 	reset();
 
 	// Read entry header
@@ -121,17 +120,17 @@ void ImageHeaderEntry::init(Common::SeekableReadStream *stream, bool hasAddition
 	initData();
 
 	// Allocate buffer and setup pointers
-	_buffer = allocBuffer(hasAdditionnalData);
-	if (hasAdditionnalData)
+	_buffer = allocBuffer(hasAdditionalData);
+	if (hasAdditionalData)
 		_bufferData = (byte *)_buffer + IMAGEHEADER_BUFFER_SIZE;
 
 	// Read buffers
 	stream->read(_buffer, _header.field_2C / 4);
 
-	if (hasAdditionnalData)
+	if (hasAdditionalData)
 		stream->read(_bufferData, IMAGEHEADER_BUFFER_SIZE);
 
-	_hasAdditionnalData = hasAdditionnalData;
+	_hasAdditionnalData = hasAdditionalData;
 }
 
 void ImageHeaderEntry::init(ImageHeaderEntry *entry) {
@@ -255,6 +254,7 @@ void ImageHeaderEntry::drawBuffer(Graphics::Surface *surface) {
 		bufferPtr  += 64;
 		--count;
 	} while (count > 0);
+
 	error("[ImageHeaderEntry::drawBuffer] Not implemented");
 }
 
@@ -297,9 +297,10 @@ void ImageHeaderEntry::computeCoordinates(Common::Point *point) {
 	float a3 = (float)buffer[offset + 66] * 0.000015258789f;
 	float a4 = (float)buffer[offset + 67] * 0.000015258789f;
 
-	error("[ImageHeaderEntry::updateBuffer] Missing code");
+	warning("[ImageHeaderEntry::computeCoordinates] Possibly invalid coordinate checks");
 
-	if (true /* testing an unknown var related to x / y */) {
+	// TODO verify comparison
+	if (a1 - a2 < dist) {
 		if (a3 - a1 < dist) {
 			if (a4 - a2 >= dist) {
 				a2 += 2048.0f;
@@ -315,7 +316,8 @@ void ImageHeaderEntry::computeCoordinates(Common::Point *point) {
 		if (a3 - a4 < dist) {
 			a2 += 2048.0f;
 
-			if (true /* testing an unknown var related to x / y */) {
+			// TODO verify comparison
+			if (a3 - a2 < dist) {
 				a4 += 2048.0f;
 				a3 += 2048.0f;
 			}
