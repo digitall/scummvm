@@ -242,13 +242,15 @@ enum SetupType {
 	kSetupType3         = 3,
 	kSetupType5         = 5,
 	kSetupType6         = 6,
+	kSetupType9         = 9,
 	kSetupType10        = 10,
 	kSetupType200       = 200,
 	kSetupType300       = 300,
 	kSetupType400       = 400,
 	kSetupType998       = 998,
 	kSetupTypeStartZone = 999,
-	kSetupTypeLoading   = 1000
+	kSetupTypeLoading   = 1000,
+	kSetupType30000     = 30000
 };
 
 enum ImageType {

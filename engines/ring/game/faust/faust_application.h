@@ -106,7 +106,7 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Zone switching
 	//////////////////////////////////////////////////////////////////////////
-	// FIXME Implement zone switch
+	// TODO Implement zone switch
 	//void onSwitchZone(ZoneId zone, uint32 type);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -115,7 +115,10 @@ protected:
 	void setupRotation(uint32 type);
 	void sub_45FF30();
 	void sub_468290(uint32 a1);
+	void sub_4A08E0();
 	void sub_4A2CF0();
+
+	uint32 getCurrentPresentationIndex() { return _currentPresentationIndex; }
 
 private:
 	// Event handlers
@@ -139,6 +142,9 @@ private:
 
 	int32 _slot;
 	ZoneId _zone;
+
+	// Tracking variables
+	uint32 _currentPresentationIndex;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Start menu

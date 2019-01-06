@@ -24,6 +24,8 @@
 #include "ring/game/faust/faust_application.h"
 #include "ring/game/faust/faust_shared.h"
 
+#include "ring/base/saveload.h"
+
 #include "ring/debug.h"
 #include "ring/ring.h"
 #include "ring/helpers.h"
@@ -146,6 +148,7 @@ void Zone2Faust::onInit() {
 	_app->rotationSet3DSoundOff(11005, 11104);
 	_app->rotationSet3DSoundOff(11006, 11104);
 	_app->soundAdd(11001, kSoundTypeDialog, "1037.wac", _app->getConfiguration().dialog.loadFrom, 2, _app->getConfiguration().dialog.soundChunck);
+	// The original uses the ambientEffect soundChunk here
 	_app->soundAdd(11101, kSoundTypeAmbientMusic, "1023.was", _app->getConfiguration().backgroundMusic.loadFrom, 2, _app->getConfiguration().ambientEffect.soundChunck);
 	_app->rotationAddAmbientSound(11001, 11101, 90, 0, 1, 1, 10);
 	_app->rotationAddAmbientSound(11002, 11101, 90, 0, 1, 1, 10);
@@ -159,7 +162,108 @@ void Zone2Faust::onInit() {
 }
 
 void Zone2Faust::onSetup(SetupType type) {
-	error("[Zone2Faust::onSetup] Not implemented");
+	switch (type) {
+	default:
+		break;
+
+	case kSetupType1:
+		_app->timerStopAll();
+		_app->bagRemoveAll();
+		_app->setSpace(kZone2);
+		_app->playMovie("2190");
+		_app->fadeOut(15, Color(0, 0, 0), 0);
+		_app->timerStart(kTimer0, 1000);
+		_app->playMovie("2191");
+		_app->rotationSetAlp(11005, 0.0);
+		_app->rotationSetBet(11005, 0.0);
+		_app->rotationSetRan(11005, 87.0);
+		_app->rotationSetActive(11005, 1, 1);
+		_app->objectSetAccessibilityOff(kObject11002);
+		_app->objectSetAccessibilityOff(kObject11003);
+		_app->objectSetAccessibilityOff(kObject11004);
+		_app->objectSetAccessibilityOff(kObject11005);
+		_app->objectPresentationShow(kObject25, 0);
+		break;
+
+	case kSetupType2:
+		_app->timerStopAll();
+		_app->bagRemoveAll();
+		_app->bagAdd(13899);
+
+		if (_app->getSaveManager()->getData()->progressState == kProgressState1)
+			_app->getSaveManager()->saveProgress(kProgressState3);
+
+		_app->setSpace(kZone7);
+		_app->soundPlay(41001, kSoundLoop);
+		_app->soundPlay(41002, kSoundLoop);
+		_app->rotationSetAlp(41000, 330.0);
+		_app->rotationSetBet(41000, -20.0);
+		_app->rotationSetRan(41000, 87.0);
+		_app->displayFade("a04_black.bmp", "a04s01n01p01.bmp", 15, 0, kLoadFromCd, kArchiveArt);
+		_app->rotationSetActive(41000);
+		break;
+
+	case kSetupType3:
+		_app->timerStopAll();
+		_app->bagRemoveAll();
+		_app->bagAdd(13899);
+		_app->setSpace(kZone6);
+		_app->soundPlay(31003, kSoundLoop);
+		_app->displayFade("a03_black.bmp", "a03s01_e01m09.bmp", 12, 0, kLoadFromCd, kArchiveArt);
+		_app->playMovie("2192");
+		_app->rotationSetAlp(31011, 0.0);
+		_app->rotationSetBet(31011, 0.0);
+		_app->rotationSetRan(31011, 87.0);
+		_app->rotationSetActive(31011, 1, 1);
+		break;
+
+	case kSetupType9:
+		_app->timerStopAll();
+		_app->setSpace(kZone7);
+		_app->puzzleSetActive(kPuzzle49000, 1, 1);
+		_app->playMovie("1396");
+		_app->soundStopAll(1024);
+		_app->soundPlay(41011, kSoundLoop);
+		_app->sub_4A08E0();
+		break;
+
+	case kSetupType30000:
+		switch (_app->getCurrentPresentationIndex())
+		{
+		default:
+			break;
+
+		case 1:
+			_app->setCurrentZone(kZone2);
+			_app->playMovie("2190");
+			break;
+
+		case 2:
+			_app->setCurrentZone(kZone3);
+			_app->playMovie("1127");
+			break;
+
+		case 3:
+			_app->setCurrentZone(kZone3);
+			_app->playMovie("1126");
+			break;
+
+		case 4:
+			_app->setCurrentZone(kZone3);
+			_app->playMovie("1136");
+			break;
+
+		case 5:
+			_app->setCurrentZone(kZone6);
+			_app->playMovie("1375");
+			break;
+		}
+
+		_app->setCurrentZone(kZoneSY);
+		_app->soundPlay(90001, kSoundLoop);
+		_app->puzzleSetActive(kPuzzleGeneralMenu);
+		break;
+	}
 }
 
 void Zone2Faust::onTimer(TimerId id) {

@@ -1708,6 +1708,10 @@ void ApplicationFaust::sub_468290(uint32 a1) {
 	error("[ApplicationFaust::sub_468290] Not implemented");
 }
 
+void ApplicationFaust::sub_4A08E0() {
+	error("[ApplicationFaust::sub_4A08E0] Not implemented");
+}
+
 void ApplicationFaust::sub_4A2CF0() {
 	error("[ApplicationFaust::sub_4A2CF0] Not implemented");
 }
