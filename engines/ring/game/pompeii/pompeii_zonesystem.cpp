@@ -818,7 +818,7 @@ void ZoneSystemPompeii::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId
 		_app->objectPresentationSetAnimationCoordinatesOnPuzzle(kObjectSaveName, 0, Common::Point((int16)(_app->objectPresentationGetTextWidth(kObjectSaveName, 1, 0) + 30), 435));
 		_app->visualListSetOn(1, kPuzzleSave);
 
-		_app->loadSaveList(1, 1, kPuzzleSave);
+		_app->loadSaveList(1, kPuzzleSave);
 		break;
 
 	case kObject99003:
@@ -826,9 +826,9 @@ void ZoneSystemPompeii::onButtonUp(ObjectId id, Id target, Id /*puzzleRotationId
 		_app->objectPresentationShow(kObject99023, 1);
 		_app->visualListSetOn(4, kPuzzleLoad);
 
-		_app->loadSaveList(1, 4, kPuzzleLoad);
+		_app->loadSaveList(4, kPuzzleLoad);
 
-		// FIXME set icon folder to save folder
+		// TODO set icon folder to save folder
 		_app->visualListSetIconDirectory(4, kPuzzleLoad, "");
 		break;
 

@@ -687,7 +687,7 @@ void ApplicationPompeii::draw() {
 	_screenManager->updateScreen();
 
 	// Update engine state
-	//error("[ApplicationPompeii::draw] Engine state update not implemented!");
+	error("[ApplicationPompeii::draw] Engine state update not implemented!");
 }
 
 #pragma endregion
@@ -1600,10 +1600,11 @@ void ApplicationPompeii::restore() {
 	setSpace(_savedZone);
 }
 
-void ApplicationPompeii::loadSaveList(uint32 userId, Id visualId, PuzzleId puzzleId) {
+void ApplicationPompeii::loadSaveList(Id visualId, PuzzleId puzzleId) {
+	// Get the list of saves for the current user
+
 	error("[ApplicationPompeii::loadSaveList] Not implemented");
 }
-
 
 void ApplicationPompeii::onCall(Id callType) {
 	switch (callType) {

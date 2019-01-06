@@ -105,7 +105,7 @@ protected:
 	void showEncyclopedia(uint32 index);
 	void restore();
 
-	void loadSaveList(uint32 userId, Id visualId, PuzzleId puzzleId);
+	void loadSaveList(Id visualId, PuzzleId puzzleId);
 
 private:
 	// Event handlers
