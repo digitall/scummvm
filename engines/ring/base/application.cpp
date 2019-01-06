@@ -358,10 +358,11 @@ void Application::setupZone(ZoneId zone, SetupType type) {
 	if (zone == kZoneSY) {
 		hasData = true;
 	} else {
-		// The original checks for the correct CD,
-		// we should instead check that the zone folder
-		// has been copied properly
-		warning("[Application::setupZone] Zone CD check not implemented");
+		// The original checks for the correct CD defined in cd.ini,
+		// instead we check that the zone archive has been copied properly
+		Common::ArchiveMemberList list;
+		if (SearchMan.listMatchingMembers(list, Common::String::format("DATA/%s/*", getZoneFolder(zone).c_str())))
+			hasData = true;
 	}
 
 	reset();
