@@ -68,7 +68,7 @@ bool SaveManager::readSavegameHeader(Common::InSaveFile *in, SavegameHeader &hea
 	// Validate the header Id
 	in->read(saveIdent, 6);
 	saveIdent[6] = '\0';
-	if (strcmp(saveIdent, ringSavegameIdentification))
+	if (strcmp(saveIdent, ringSavegameIdentification) != 0)
 		return false;
 
 	header.version = in->readByte();
@@ -120,7 +120,6 @@ bool SaveManager::open(Common::String filename, LoadSaveType type) {
 	switch (type) {
 	default:
 		error("[SaveManager::loadSaveTimer] Invalid type (%d)", type);
-		break;
 
 	case kLoadSaveRead:
 		_load = g_system->getSavefileManager()->openForLoading(path);
@@ -151,7 +150,7 @@ bool SaveManager::loadSave(const Common::String &name, LoadSaveType type) {
 }
 
 bool SaveManager::loadSave(uint32 slot, LoadSaveType type) {
-	if (!open(SaveManager::getSavegameFile(slot), type))
+	if (!open(getSavegameFile(slot), type))
 		return false;
 
 	// Set slot (will be used to load timers)
@@ -161,7 +160,6 @@ bool SaveManager::loadSave(uint32 slot, LoadSaveType type) {
 	switch (type) {
 	default:
 		error("[SaveManager::loadSave] Invalid type (%d)", type);
-		break;
 
 	case kLoadSaveRead:
 		// Read savegame header
@@ -309,7 +307,7 @@ void SaveManager::setDescription(const Common::String &description) {
 }
 
 bool SaveManager::remove(uint32 slot) const {
-	return g_system->getSavefileManager()->removeSavefile(SaveManager::getSavegameFile(slot));
+	return g_system->getSavefileManager()->removeSavefile(getSavegameFile(slot));
 }
 
 const char *SaveManager::getSavegameFile(int slot) {
