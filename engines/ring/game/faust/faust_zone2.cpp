@@ -174,10 +174,10 @@ void Zone2Faust::onSetup(SetupType type) {
 		_app->fadeOut(15, Color(0, 0, 0), 0);
 		_app->timerStart(kTimer0, 1000);
 		_app->playMovie("2191");
-		_app->rotationSetAlp(11005, 0.0);
-		_app->rotationSetBet(11005, 0.0);
-		_app->rotationSetRan(11005, 87.0);
-		_app->rotationSetActive(11005, 1, 1);
+		_app->rotationSetAlp(11005, 0.0f);
+		_app->rotationSetBet(11005, 0.0f);
+		_app->rotationSetRan(11005, 87.0f);
+		_app->rotationSetActive(11005);
 		_app->objectSetAccessibilityOff(kObject11002);
 		_app->objectSetAccessibilityOff(kObject11003);
 		_app->objectSetAccessibilityOff(kObject11004);
@@ -196,9 +196,9 @@ void Zone2Faust::onSetup(SetupType type) {
 		_app->setSpace(kZone7);
 		_app->soundPlay(41001, kSoundLoop);
 		_app->soundPlay(41002, kSoundLoop);
-		_app->rotationSetAlp(41000, 330.0);
-		_app->rotationSetBet(41000, -20.0);
-		_app->rotationSetRan(41000, 87.0);
+		_app->rotationSetAlp(41000, 330.0f);
+		_app->rotationSetBet(41000, -20.0f);
+		_app->rotationSetRan(41000, 87.0f);
 		_app->displayFade("a04_black.bmp", "a04s01n01p01.bmp", 15, 0, kLoadFromCd, kArchiveArt);
 		_app->rotationSetActive(41000);
 		break;
@@ -211,16 +211,16 @@ void Zone2Faust::onSetup(SetupType type) {
 		_app->soundPlay(31003, kSoundLoop);
 		_app->displayFade("a03_black.bmp", "a03s01_e01m09.bmp", 12, 0, kLoadFromCd, kArchiveArt);
 		_app->playMovie("2192");
-		_app->rotationSetAlp(31011, 0.0);
-		_app->rotationSetBet(31011, 0.0);
-		_app->rotationSetRan(31011, 87.0);
-		_app->rotationSetActive(31011, 1, 1);
+		_app->rotationSetAlp(31011, 0.0f);
+		_app->rotationSetBet(31011, 0.0f);
+		_app->rotationSetRan(31011, 87.0f);
+		_app->rotationSetActive(31011);
 		break;
 
 	case kSetupType9:
 		_app->timerStopAll();
 		_app->setSpace(kZone7);
-		_app->puzzleSetActive(kPuzzle49000, 1, 1);
+		_app->puzzleSetActive(kPuzzle49000);
 		_app->playMovie("1396");
 		_app->soundStopAll(1024);
 		_app->soundPlay(41011, kSoundLoop);
