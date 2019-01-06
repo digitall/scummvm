@@ -186,19 +186,13 @@ void SoundEntry::convertPan(int32 &pan) {
 
 SoundEntryStream::SoundEntryStream(Id soundId, SoundType type, Common::String name, LoadFrom loadFrom, SoundFormat format, int32 soundChunk) : SoundEntry(soundId, type, name, loadFrom, format) {
 	_audioStream = nullptr;
-	_field_136 = 0;
+	_chunkSize = 0;
 	_size = 0;
 	_bufferOffset = 0;
-	_field_142 = 0;
-	_field_146 = 0;
 	_field_14A = 0;
 	_loop = 0;
 	_field_152 = 0;
-	//_threadId = 0;
-	//_event1 = 0;
-	//_event2 = 0;
 	_isBufferPlaying = false;
-	//_event = nullptr;
 	_soundChunk = soundChunk;
 
 	_loader = nullptr;
@@ -287,36 +281,37 @@ bool SoundEntryStream::loadData(SoundFormat format, const Common::String &path, 
 	if (_loader->load(path, this))
 		return true;
 
-	if (_loader->getType() == 1) { // PCM data
-		if (_loader->getChunk()) {
-			_loader->close();
-			return true;
-		}
-
-		// Adjust entry size
-		if (soundChunk <= 0)
-			_size = -soundChunk;
-		else
-			_size = soundChunk * _loader->getSamplesPerSec() * _loader->getBlockAlign();
-
-		_size >>= 2;
-
-		if (_size % _loader->getBlockAlign())
-			_size += _loader->getBlockAlign() - _size % _loader->getBlockAlign();
-
-		_field_136 = _size * 4;
-		_field_152 = 0;
-		_bufferOffset = 0;
-
-		// Load data chunk
-		loadDataChunk();
-		_field_14A = 0;
-
-		return false;
-	} else {
+	if (_loader->getType() != 1) { // PCM data
 		_loader->close();
 		return true;
 	}
+
+	if (_loader->getChunk()) {
+		_loader->close();
+		return true;
+	}
+
+	// Adjust entry size
+	if (soundChunk <= 0)
+		_size = -soundChunk;
+	else
+		_size = soundChunk * _loader->getSamplesPerSec() * _loader->getBlockAlign();
+
+	_size >>= 2;
+
+	if (_size % _loader->getBlockAlign())
+		_size += _loader->getBlockAlign() - _size % _loader->getBlockAlign();
+
+	_chunkSize = _size * 4;
+	_field_152 = 0;
+	_bufferOffset = 0;
+
+	// Load data chunk
+	loadDataChunk();
+
+	_field_14A = 0;
+
+	return false;
 }
 
 void SoundEntryStream::loadDataChunk() {
