@@ -326,53 +326,52 @@ void DialogHandler::play() {
 	Dialog *dialog = _dialogs[0];
 
 	int32 index = dialog->getLineIndex();
-	if (index != -1) {
-		Text *line1 = nullptr;
-		Text *line2 = nullptr;
+	if (index == -1) {
+		Id dialogId = dialog->getId();
+		removeDialog(dialogId);
+		getApp()->onSound(dialogId, kSoundTypeDialog, 4097);
 
-		// Create text from dialog lines
-		Common::String dialogLine1 = dialog->getLine1((uint32)index);
-		if (!dialogLine1.empty()) {
-			line1 = new Text();
-			line1->init(dialogLine1, Common::Point(0, 0), _fontId, _subtitleColor, _subtitlesBackgroundColor);
-		}
+		return;
+	}
+	Text *line1 = nullptr;
+	Text *line2 = nullptr;
 
-		Common::String dialogLine2 = dialog->getLine2((uint32)index);
-		if (!dialogLine2.empty()) {
-			line2 = new Text();
-			line2->init(dialogLine2, Common::Point(0, 0), _fontId, _subtitleColor, _subtitlesBackgroundColor);
-		}
-
-		// Set text coordinates
-		if (line1) {
-			if (line2) {
-				line1->setCoordinates(Common::Point((int16)(320 - line1->getWidth() / 2), (int16)(_field_1C - (line1->getHeight() + _field_20 + line2->getHeight()))));
-				line2->setCoordinates(Common::Point((int16)(320 - line2->getWidth() / 2), (int16)(_field_1C - line2->getHeight())));
-			} else {
-				line1->setCoordinates(Common::Point((int16)(320 - line1->getWidth() / 2), (int16)(_field_1C - line1->getHeight())));
-			}
-		}
-
-		if (_showSubtitles) {
-			if (line1)
-				getApp()->getScreenManager()->drawText(line1);
-
-			if (line2)
-				getApp()->getScreenManager()->drawText(line2);
-		}
-
-		SAFE_DELETE(line1);
-		SAFE_DELETE(line2);
-
-		if (dialog->isVisible())
-			dialog->show();
-
-		error("[DialogHandler::play] Not implemented");
+	// Create text from dialog lines
+	Common::String dialogLine1 = dialog->getLine1((uint32)index);
+	if (!dialogLine1.empty()) {
+		line1 = new Text();
+		line1->init(dialogLine1, Common::Point(0, 0), _fontId, _subtitleColor, _subtitlesBackgroundColor);
 	}
 
-	Id dialogId = dialog->getId();
-	removeDialog(dialogId);
-	getApp()->onSound(dialogId, kSoundTypeDialog, 4097);
+	Common::String dialogLine2 = dialog->getLine2((uint32)index);
+	if (!dialogLine2.empty()) {
+		line2 = new Text();
+		line2->init(dialogLine2, Common::Point(0, 0), _fontId, _subtitleColor, _subtitlesBackgroundColor);
+	}
+
+	// Set text coordinates
+	if (line1) {
+		if (line2) {
+			line1->setCoordinates(Common::Point((int16)(320 - line1->getWidth() / 2), (int16)(_field_1C - (line1->getHeight() + _field_20 + line2->getHeight()))));
+			line2->setCoordinates(Common::Point((int16)(320 - line2->getWidth() / 2), (int16)(_field_1C - line2->getHeight())));
+		} else {
+			line1->setCoordinates(Common::Point((int16)(320 - line1->getWidth() / 2), (int16)(_field_1C - line1->getHeight())));
+		}
+	}
+
+	if (_showSubtitles) {
+		if (line1)
+			getApp()->getScreenManager()->drawText(line1);
+
+		if (line2)
+			getApp()->getScreenManager()->drawText(line2);
+	}
+
+	SAFE_DELETE(line1);
+	SAFE_DELETE(line2);
+
+	if (dialog->isVisible())
+		dialog->show();
 }
 
 bool DialogHandler::isPlaying(Id id) {
