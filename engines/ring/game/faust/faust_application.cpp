@@ -50,6 +50,7 @@
 #include "ring/game/faust/faust_zone16.h"
 #include "ring/game/faust/faust_zone17.h"
 
+#include "ring/graphics/drag_control.h"
 #include "ring/graphics/image.h"
 #include "ring/graphics/screen.h"
 
@@ -1040,7 +1041,30 @@ void ApplicationFaust::onMouseLeftButtonDown(const Common::Event &evt) {
 }
 
 void ApplicationFaust::onMouseRightButtonUp(const Common::Event &evt) {
-	error("[ApplicationFaust::onMouseRightButtonUp] Not implemented (evt: %d)", evt.type);
+	debugC(kRingDebugLogic, "onMouseRightButtonUp");
+
+	if (getApp()->getDragControl()->getField20() || getApp()->getCurrentGameZone())
+		return;
+
+	Bag *bag = getApp()->getBag();
+	if (bag->isInitialized()) {
+		bag->reset();
+
+		if (getApp()->getCurrentRotation())
+			bag->setRotationFre(false);
+
+		return;
+	}
+
+	getApp()->cursorDelete();
+	sub_45FF30();
+
+	bag->initialize();
+
+	if (getApp()->getCurrentRotation())
+		bag->setRotationFre(getApp()->getCurrentRotation()->getFre());
+
+	getApp()->setupCurrentRotation();
 }
 
 void ApplicationFaust::onKeyDown(Common::Event &evt) {
