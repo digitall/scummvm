@@ -183,17 +183,16 @@ void Cinematic2::decompressTControl(byte *buffer, uint32 bufferSize, uint16 deco
 	memcpy(_buffer1, buffer, bufferSize);
 
 	if (bufferSize == 16) {
-		int *pBuffer1 = reinterpret_cast<int *>(&_buffer1[16]);
+		byte *pBuffer1 = &_buffer1[16];
 
 		int64 state = *(reinterpret_cast<int64 *>(buffer) + 2);
-		int64 *pBuffer = (int64 *)(buffer + 24);
+		int64 *pBuffer = reinterpret_cast<int64 *>(buffer + 24);
 
 		// Iterate over buffer
 		for (uint32 i = 0; i < decompressedSize; i++) {
 			for (uint32 j = 0; j < 4; j++) {
 
-
-				//warning("[Cinematic2::decompressTControl] Not implemented");
+				error("[Cinematic2::decompressTControl] Not implemented");
 
 				++pBuffer1;
 			}
@@ -202,7 +201,7 @@ void Cinematic2::decompressTControl(byte *buffer, uint32 bufferSize, uint16 deco
 		}
 
 	} else {
-		warning("[Cinematic2::decompressTControl] Not implemented");
+		error("[Cinematic2::decompressTControl] Not implemented for bufferSize != 16");
 	}
 
 	if (_state) {
@@ -213,8 +212,6 @@ void Cinematic2::decompressTControl(byte *buffer, uint32 bufferSize, uint16 deco
 			_buffer1[i + 3] = _buffer1[i + 3] * 2;
 		}
 	}
-
-	error("[Cinematic2::decompressTControl] Not implemented");
 }
 
 void Cinematic2::decompressSeq(byte *buffer) {
