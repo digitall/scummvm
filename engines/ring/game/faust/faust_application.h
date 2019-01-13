@@ -114,6 +114,7 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	void setupRotation(uint32 type);
 	void sub_45FF30();
+	void sub_460280();
 	void sub_468290(uint32 a1);
 	void sub_4A08E0();
 	void sub_4A2CF0();

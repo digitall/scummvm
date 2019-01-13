@@ -244,6 +244,7 @@ enum SetupType {
 	kSetupType6         = 6,
 	kSetupType9         = 9,
 	kSetupType10        = 10,
+	kSetupType99        = 99,
 	kSetupType200       = 200,
 	kSetupType300       = 300,
 	kSetupType400       = 400,
@@ -307,7 +308,8 @@ enum ProgressState {
 	kProgressState5    = 5,
 	kProgressState6    = 6,
 	kProgressState7    = 7,
-	kProgressState8    = 8
+	kProgressState8    = 8,
+	kProgressState18   = 18
 };
 
 #pragma endregion

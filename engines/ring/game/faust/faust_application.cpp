@@ -1704,6 +1704,10 @@ void ApplicationFaust::sub_45FF30() {
 	}
 }
 
+void ApplicationFaust::sub_460280() {
+	error("[ApplicationFaust::sub_460280] Not implemented");
+}
+
 void ApplicationFaust::sub_468290(uint32 a1) {
 	error("[ApplicationFaust::sub_468290] Not implemented");
 }

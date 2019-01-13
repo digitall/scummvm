@@ -24,6 +24,8 @@
 #include "ring/game/faust/faust_application.h"
 #include "ring/game/faust/faust_shared.h"
 
+#include "ring/base/saveload.h"
+
 #include "ring/debug.h"
 #include "ring/ring.h"
 #include "ring/helpers.h"
@@ -543,7 +545,100 @@ void Zone3Faust::onInit() {
 }
 
 void Zone3Faust::onSetup(SetupType type) {
-	error("[Zone3Faust::onSetup] Not implemented");
+	switch (type) {
+	default:
+		break;
+
+	case kSetupType1:
+		_app->timerStopAll();
+		_app->bagRemoveAll();
+		_app->bagAdd(13899);
+		_app->setSpace(kZone14);
+		_app->playMovie("2197");
+		_app->fadeOut(15, Color(0, 0, 0), 0);
+		_app->rotationSetAlp(111101, 180.0f);
+		_app->rotationSetBet(111101, 0.0f);
+		_app->rotationSetRan(111101, 87.0f);
+		_app->rotationSetActive(111101);
+		_app->displayFade("a11_black.bmp", "a11s01n01p01.bmp", 15, 0, kLoadFromCd, kArchiveArt);
+		_app->objectPresentationShow(kObject25, 1);
+		_app->timerStart(kTimer0, 12000);
+		break;
+
+	case kSetupType3:
+		_app->timerStopAll();
+		_app->setSpace(kZone10);
+
+		if (_app->getSaveManager()->getData()->progressState == kProgressState2)
+			_app->getSaveManager()->saveProgress(kProgressState18);
+
+		_app->bagAdd(13899);
+		_app->bagAdd(13129);
+		_app->bagAdd(97001);
+		_app->varSetByte(97001, 1);
+		_app->rotationSetAlp(71006, 90.0f);
+		_app->rotationSetBet(71006, 20.0f);
+		_app->rotationSetRan(71006, 87.0f);
+		_app->rotationSetActive(71006);
+		_app->displayFade("a07_black.bmp", "a07s01n06p01.bmp", 15, 0, kLoadFromCd, kArchiveArt);
+		_app->objectPresentationShow(kObject71201, 2);
+		_app->objectPresentationShow(kObject71201, 3);
+		_app->timerStart(kTimer0, 200);
+		break;
+
+	case kSetupType99:
+		_app->timerStopAll();
+		_app->bagRemoveAll();
+		_app->setSpace(kZone14);
+		_app->bagAdd(112021);
+		_app->bagAdd(114501);
+		_app->bagAdd(112025);
+		_app->bagAdd(24);
+		_app->bagAdd(112029);
+		_app->bagAdd(112026);
+		_app->bagAdd(114504);
+		_app->bagAdd(114514);
+		_app->bagAdd(114518);
+		_app->bagAdd(21);
+		_app->bagAdd(112020);
+		_app->bagAdd(114511);
+		_app->bagAdd(112013);
+		_app->bagAdd(112601);
+		_app->bagAdd(112602);
+		_app->bagAdd(112603);
+		_app->bagAdd(112604);
+		_app->bagAdd(112605);
+		_app->bagAdd(112606);
+		_app->bagAdd(112607);
+		_app->bagAdd(112608);
+		_app->bagAdd(112609);
+		_app->bagAdd(112610);
+		_app->sub_460280();
+		_app->rotationSetActive(111301);
+		break;
+
+	case kSetupType30000:
+		switch (_app->getCurrentPresentationIndex())
+		{
+		default:
+			break;
+
+		case 6:
+			_app->setCurrentZone(kZone14);
+			_app->playMovie("1966");
+			break;
+
+		case 7:
+			_app->setCurrentZone(kZone14);
+			_app->playMovie("1001");
+			break;
+		}
+
+		_app->setCurrentZone(kZoneSY);
+		_app->soundPlay(90001, kSoundLoop);
+		_app->puzzleSetActive(kPuzzleGeneralMenu);
+		break;
+	}
 }
 
 void Zone3Faust::onTimer(TimerId id) {
