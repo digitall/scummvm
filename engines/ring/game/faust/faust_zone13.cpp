@@ -516,7 +516,39 @@ void Zone13Faust::onBag(ObjectId id, Id target, Id puzzleRotationId, uint32 a4, 
 }
 
 void Zone13Faust::onAfterRide(Id movabilityFrom, Id movabilityTo, uint32 movabilityIndex, Id target, MovabilityType movabilityType) {
-	error("[EventRideFaust::onAfterRideZone13] Not implemented");
+	if (movabilityFrom >= 93001 && movabilityFrom <= 93036)
+		_app->soundPlay(93002);
+
+	switch (movabilityFrom) {
+	default:
+		break;
+
+	case 91001:
+		if (movabilityType == kMovabilityRotationToRotation && movabilityTo == 91007) {
+			_app->soundPlay(91122);
+			_app->soundStopType(kSoundTypeBackgroundMusic, 1024);
+			_app->soundPlay(91920, kSoundLoop);
+			_app->soundSetVolume(91117, 90);
+			_app->soundSetVolume(91118, 90);
+			_app->soundSetVolume(91119, 90);
+		}
+		break;
+
+	case 91007:
+		if (movabilityType == kMovabilityRotationToRotation && movabilityTo == 91001) {
+			_app->soundStopType(kSoundTypeBackgroundMusic, 1024);
+			_app->soundPlay(91921, kSoundLoop);
+			_app->soundSetVolume(91117, 80);
+			_app->soundSetVolume(91118, 80);
+			_app->soundSetVolume(91119, 80);
+		}
+		break;
+
+	case 93050:
+	case 93051:
+		_app->soundPlay(93002);
+		break;
+	}
 }
 
 } // End of namespace Ring
