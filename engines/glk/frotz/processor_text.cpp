@@ -21,6 +21,7 @@
  */
 
 #include "glk/frotz/processor.h"
+#include "common/ustr.h"
 
 namespace Glk {
 namespace Frotz {
@@ -192,7 +193,7 @@ void Processor::find_resolution() {
 	_encoded = (zchar *)malloc(sizeof(zchar) * _resolution);
 }
 
-void Processor::load_string (zword addr, zword length) {
+void Processor::load_string(zword addr, zword length) {
 	int i = 0;
 
 	if (_resolution == 0)
@@ -560,6 +561,29 @@ zword Processor::lookup_text(int padding, zword dct) {
 	return dct + entry_number * entry_len;
 }
 
+void Processor::handleAbbreviations() {
+	// Construct a unicode string containing the word
+	int wordSize = 0;
+	while (wordSize < (_resolution * 3) && _decoded[wordSize])
+		++wordSize;
+	Common::U32String word(_decoded, _decoded + wordSize);
+
+	// Check for standard abbreviations
+	if (word == "g")
+		word = "again";
+	else if (word == "o")
+		word = "oops";
+	else if (word == "x")
+		word = "examine";
+	else if (word == "z")
+		word = "wait";
+	else
+		return;
+
+	// Found abbreviation, so copy it's long form into buffer
+	Common::copy(word.c_str(), word.c_str() + MIN((int)word.size() + 1, _resolution * 3), _decoded);
+}
+
 void Processor::tokenise_text(zword text, zword length, zword from, zword parse, zword dct, bool flag) {
 	zword addr;
 	zbyte token_max, token_count;
@@ -573,6 +597,9 @@ void Processor::tokenise_text(zword text, zword length, zword from, zword parse,
 		storeb(parse++, token_count + 1);
 
 		load_string((zword)(text + from), length);
+
+		if ((from == 1) && isInfocom() && h_version < 5)
+			handleAbbreviations();
 
 		addr = lookup_text(0x05, dct);
 
@@ -812,7 +839,7 @@ void Processor::z_print_addr() {
 }
 
 void Processor::z_print_char() {
-	print_char (translate_from_zscii(zargs[0]));
+	print_char(translate_from_zscii(zargs[0]));
 }
 
 void Processor::z_print_form() {
@@ -852,7 +879,7 @@ void Processor::z_print_obj() {
 }
 
 void Processor::z_print_paddr() {
-	decode_text (HIGH_STRING, zargs[0]);
+	decode_text(HIGH_STRING, zargs[0]);
 }
 
 void Processor::z_print_ret() {
@@ -879,5 +906,5 @@ void Processor::z_tokenise() {
 	tokenise_line(zargs[0], zargs[1], zargs[2], zargs[3] != 0);
 }
 
-} // End of namespace Scott
+} // End of namespace Frotz
 } // End of namespace Glk

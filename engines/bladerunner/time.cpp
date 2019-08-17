@@ -25,20 +25,25 @@
 #include "bladerunner/bladerunner.h"
 
 #include "common/timer.h"
+#include "common/system.h"
 
 namespace BladeRunner {
 
 Time::Time(BladeRunnerEngine *vm) {
 	_vm = vm;
 
-	_start = _vm->getTotalPlayTime();
+	_start = currentSystem();
 	_pauseCount = 0;
-	_offset = 0;
-	_pauseStart = 0;
+	_offset = 0u;
+	_pauseStart = 0u;
 }
 
-int Time::current() {
-	int time = _vm->getTotalPlayTime() - _offset;
+uint32 Time::currentSystem() {
+	return _vm->getTotalPlayTime();
+}
+
+uint32 Time::current() {
+	uint32 time = currentSystem() - _offset;
 	return time - _start;
 }
 
@@ -49,7 +54,7 @@ int Time::pause() {
 	return ++_pauseCount;
 }
 
-int Time::getPauseStart() {
+uint32 Time::getPauseStart() {
 	return _pauseStart;
 }
 
@@ -63,6 +68,15 @@ int Time::resume() {
 
 bool Time::isLocked() {
 	return _pauseCount > 0;
+}
+
+// To be called before loading a new game, since
+// the offset should be reset to zero and _pauseStart should be current() (ie currentSystem() - _start)
+// TODO Explore if it would make sense to only use the Engine methods for time accounting (pauseEngine, get/setTotalPlatTime)
+//      or do we need separated/independent time accounting and pausing?
+void Time::resetPauseStart() {
+	_offset = 0u;
+	_pauseStart = current();
 }
 
 } // End of namespace BladeRunner

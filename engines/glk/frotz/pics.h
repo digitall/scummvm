@@ -25,6 +25,7 @@
 
 #include "common/archive.h"
 #include "common/array.h"
+#include "common/file.h"
 
 namespace Glk {
 namespace Frotz {
@@ -65,11 +66,17 @@ private:
 	Common::Array<Entry> _index;	///< list of entries
 	uint _entrySize;
 	uint _version;
+	Common::Array<byte> *_palette;
 private:
 	/**
 	 * Returns the filename for the pictures archive
 	 */
 	static Common::String getFilename();
+
+	/**
+	 * Read in the palette
+	 */
+	void loadPalette(Common::File &f, const Entry &e, Common::Array<byte> &palette) const;
 public:
 	/**
 	 * Returns true if an mg1 file exists for the game
@@ -80,6 +87,11 @@ public:
 	 * Constructor
 	 */
 	Pics();
+
+	/**
+	 * Destructor
+	 */
+	~Pics();
 
 	/**
 	 * Return the number of entries in the file

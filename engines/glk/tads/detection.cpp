@@ -22,6 +22,7 @@
 
 #include "glk/tads/detection.h"
 #include "glk/tads/detection_tables.h"
+#include "glk/blorb.h"
 #include "common/debug.h"
 #include "common/file.h"
 #include "common/md5.h"
@@ -31,27 +32,47 @@ namespace Glk {
 namespace TADS {
 
 void TADSMetaEngine::getSupportedGames(PlainGameList &games) {
-	for (const TADSDescriptor *pd = TADS_GAME_LIST; pd->gameId; ++pd) {
+	for (const PlainGameDescriptor *pd = TADS2_GAME_LIST; pd->gameId; ++pd)
 		games.push_back(*pd);
-	}
+	for (const PlainGameDescriptor *pd = TADS3_GAME_LIST; pd->gameId; ++pd)
+		games.push_back(*pd);
 }
 
-TADSDescriptor TADSMetaEngine::findGame(const char *gameId) {
-	for (const TADSDescriptor *pd = TADS_GAME_LIST; pd->gameId; ++pd) {
-		if (!strcmp(gameId, pd->gameId))
-			return *pd;
+GameDescriptor TADSMetaEngine::findGame(const char *gameId) {
+	for (const PlainGameDescriptor *pd = TADS2_GAME_LIST; pd->gameId; ++pd) {
+		if (!strcmp(gameId, pd->gameId)) {
+			GameDescriptor gd = *pd;
+			gd._options = OPTION_TADS2;
+			return gd;
+		}
 	}
 
-	return TADSDescriptor();;
+	for (const PlainGameDescriptor *pd = TADS3_GAME_LIST; pd->gameId; ++pd) {
+		if (!strcmp(gameId, pd->gameId)) {
+			GameDescriptor gd = *pd;
+			gd._options = OPTION_TADS3;
+			return gd;
+		}
+	}
+
+	return GameDescriptor::empty();
 }
 
 bool TADSMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &gameList) {
+	const char *const EXTENSIONS[] = { ".gam", ".t3", nullptr };
+
 	// Loop through the files of the folder
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
 		// Check for a recognised filename
+		if (file->isDirectory())
+			continue;
+
 		Common::String filename = file->getName();
-		if (file->isDirectory() || !(filename.hasSuffixIgnoreCase(".gam")
-				|| filename.hasSuffixIgnoreCase(".blorb")))
+		bool hasExt = Blorb::hasBlorbExt(filename), isBlorb = true;
+		int tadsVersion = -1;
+		for (const char *const *ext = &EXTENSIONS[0]; *ext && !hasExt; ++ext)
+			hasExt = filename.hasSuffixIgnoreCase(*ext);
+		if (!hasExt)
 			continue;
 
 		// Open up the file and calculate the md5
@@ -60,48 +81,70 @@ bool TADSMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &ga
 			continue;
 		Common::String md5 = Common::computeStreamMD5AsString(gameFile, 5000);
 		size_t filesize = gameFile.size();
+		gameFile.seek(0);
+		if (Blorb::isBlorb(gameFile, ID_TAD2))
+			tadsVersion = 2;
+		else if (Blorb::isBlorb(gameFile, ID_TAD3))
+			tadsVersion = 3;
+		else
+			isBlorb = false;
+
+		if (!isBlorb)
+			// Figure out the TADS version
+			tadsVersion = getTADSVersion(gameFile);
+
 		gameFile.close();
 
+		if (tadsVersion == -1)
+			// Not a TADS game, or Blorb containing TADS game, so can be ignored
+			continue;
+
 		// Check for known games
-		const TADSGameDescription *p = TADS_GAMES;
+		const GlkDetectionEntry *p = TADS_GAMES;
 		while (p->_gameId && p->_md5 && (md5 != p->_md5 || filesize != p->_filesize))
 			++p;
 
 		DetectedGame gd;
 		if (!p->_gameId) {
-			if (!filename.hasSuffixIgnoreCase(".gam"))
-				continue;
-
-			if (gDebugLevel > 0) {
-				// Print an entry suitable for putting into the detection_tables.h, using the
-				Common::String fname = filename;
-				const char *dot = strchr(fname.c_str(), '.');
-				if (dot)
-					fname = Common::String(fname.c_str(), dot);
-
-				debug("ENTRY0(\"%s\", \"%s\", %u),", fname.c_str(), md5.c_str(), (uint)filesize);
-			}
-			const TADSDescriptor &desc = TADS_GAME_LIST[0];
-			gd = DetectedGame(desc.gameId, desc.description, Common::UNK_LANG, Common::kPlatformUnknown);
-		}
-		else {
+			const GameDescriptor &desc = tadsVersion == 2 ? TADS2_GAME_LIST[0] : TADS3_GAME_LIST[0];
+			gameList.push_back(GlkDetectedGame(desc._gameId, desc._description, filename, md5, filesize));
+		} else {
 			PlainGameDescriptor gameDesc = findGame(p->_gameId);
 			gd = DetectedGame(p->_gameId, gameDesc.description, p->_language, Common::kPlatformUnknown, p->_extra);
+			gd.addExtraEntry("filename", filename);
+			gameList.push_back(gd);
 		}
-
-		gd.addExtraEntry("filename", filename);
-		gameList.push_back(gd);
 	}
 
 	return !gameList.empty();
 }
 
 void TADSMetaEngine::detectClashes(Common::StringMap &map) {
-	for (const TADSDescriptor *pd = TADS_GAME_LIST; pd->gameId; ++pd) {
+	for (const PlainGameDescriptor *pd = TADS2_GAME_LIST; pd->gameId; ++pd) {
 		if (map.contains(pd->gameId))
 			error("Duplicate game Id found - %s", pd->gameId);
 		map[pd->gameId] = "";
 	}
+	for (const PlainGameDescriptor *pd = TADS3_GAME_LIST; pd->gameId; ++pd) {
+		if (map.contains(pd->gameId))
+			error("Duplicate game Id found - %s", pd->gameId);
+		map[pd->gameId] = "";
+	}
+}
+
+int TADSMetaEngine::getTADSVersion(Common::SeekableReadStream &game) {
+	// Read in the start of the file
+	char buffer[16];
+	game.seek(0);
+	game.read(buffer, 16);
+
+	// Check for valid game headers
+	if (memcmp(buffer, "TADS2 bin\n\r\032", 12) == 0)
+		return 2;
+	else if (memcmp(buffer, "T3-image\r\n\032", 11) == 0)
+		return 3;
+	else
+		return -1;
 }
 
 } // End of namespace TADS

@@ -45,7 +45,7 @@
 
 
 enum {
-	kKyraDatVersion = 90
+	kKyraDatVersion = 94
 };
 
 const ExtractFilename extractFilenames[] = {
@@ -379,6 +379,7 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoBBaseMagicStrings6, kStringList, true },
 	{ kEoBBaseMagicStrings7, kStringList, true },
 	{ kEoBBaseMagicStrings8, kStringList, true },
+	{ kEoBBaseMagicStrings9, kStringList, true },
 
 	{ kEoBBaseExpObjectTlMode, kRawData, false },
 	{ kEoBBaseExpObjectTblIndex, kRawData, false },
@@ -409,6 +410,13 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoBBaseConeOfColdDest4, kRawData, false },
 	{ kEoBBaseConeOfColdGfxTbl, kRawData, false },
 
+	{ kEoBBaseSoundMap, kStringList, false },
+	{ kEoBBaseSoundFilesIntro, kStringList, false },
+	{ kEoBBaseSoundFilesIngame, kStringList, false },
+	{ kEoBBaseSoundFilesFinale, kStringList, false },
+	{ kEoBBaseLevelSoundFiles1, kStringList, false },
+	{ kEoBBaseLevelSoundFiles2, kStringList, false },
+
 	// EYE OF THE BEHOLDER I
 	{ kEoB1MainMenuStrings, kStringList, true },
 	{ kEoB1BonusStrings, kStringList, true },
@@ -433,7 +441,14 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB1IntroTvlY2, kRawData, false },
 	{ kEoB1IntroTvlW, kRawData, false },
 	{ kEoB1IntroTvlH, kRawData, false },
-
+	{ kEoB1IntroOrbFadePal, kRawData, false },
+	{ kEoB1FinaleCouncilAnim1, kRawData, false },
+	{ kEoB1FinaleCouncilAnim2, kRawData, false },
+	{ kEoB1FinaleCouncilAnim3, kRawData, false },
+	{ kEoB1FinaleCouncilAnim4, kRawData, false },
+	{ kEoB1FinaleEyesAnim, kRawData, false },
+	{ kEoB1FinaleHandsAnim, kRawDataBe16, false },
+	{ kEoB1FinaleTextDuration, kRawData, false },
 	{ kEoB1DoorShapeDefs, kRawData, false },
 	{ kEoB1DoorSwitchShapeDefs, kRawData, false },
 	{ kEoB1DoorSwitchCoords, kRawData, false },
@@ -537,6 +552,9 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB2IntroShapes01, kEoB2ShapeData, false },
 	{ kEoB2IntroShapes04, kEoB2ShapeData, false },
 	{ kEoB2IntroShapes07, kEoB2ShapeData, false },
+	{ kEoB2IntroShapes13, kEoB2ShapeData, false },
+	{ kEoB2IntroShapes14, kEoB2ShapeData, false },
+	{ kEoB2IntroShapes15, kEoB2ShapeData, false },
 	{ kEoB2IntroCpsDataStreet1, kRawData, false },
 	{ kEoB2IntroCpsDataStreet2, kRawData, false },
 	{ kEoB2IntroCpsDataDoorway1, kRawData, false },
@@ -851,6 +869,12 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB2PcmSoundEffectsIngame, kRawData, false },
 	{ kEoB2PcmSoundEffectsIntro, kRawData, false },
 	{ kEoB2PcmSoundEffectsFinale, kRawData, false },
+
+	{ kEoB2SoundMapExtra, kStringList, false },
+	{ kEoB2SoundIndex1, kRawData, false },
+	{ kEoB2SoundIndex2, kRawData, false },
+	{ kEoB2SoundFilesIngame2, kStringList, false },
+	{ kEoB2MonsterSoundPatchData, kRawData, false },
 
 	// LANDS OF LORE
 

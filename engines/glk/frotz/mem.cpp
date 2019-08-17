@@ -29,28 +29,15 @@ namespace Glk {
 namespace Frotz {
 
 Mem::Mem() : story_fp(nullptr), story_size(0), first_undo(nullptr), last_undo(nullptr),
-		curr_undo(nullptr), undo_mem(nullptr), zmp(nullptr), prev_zmp(nullptr),
+		curr_undo(nullptr), undo_mem(nullptr), zmp(nullptr), pcp(nullptr), prev_zmp(nullptr),
 		undo_diff(nullptr), undo_count(0), reserve_mem(0) {
 }
 
 void Mem::initialize() {
 	initializeStoryFile();
 	loadGameHeader();
+	loadMemory();
 	initializeUndo();
-
-	// Allocate memory for story data
-	if ((zmp = (zbyte *)realloc(zmp, story_size)) == nullptr)
-		error("Out of memory");
-
-	// Load story file in chunks of 32KB
-	uint n = 0x8000;
-	for (uint size = 64; size < story_size; size += n) {
-		if (story_size - size < 0x8000)
-			n = story_size - size;
-
-		if (story_fp->read(zmp + size, n) != n)
-			error("Story file read error");
-	}
 
 	// Read header extension table
 	hx_table_size = get_header_extension(HX_TABLE_SIZE);
@@ -61,29 +48,6 @@ void Mem::initialize() {
 void Mem::initializeStoryFile() {
 	if (story_fp->size() < 64)
 		error("This file is too small to be a Z-code file.");
-}
-
-void Mem::initializeUndo() {
-	byte *reserved = nullptr;
-
-	if (reserve_mem != 0) {
-		if ((reserved = new byte[reserve_mem]) == nullptr)
-			return;
-	}
-
-	// Allocate h_dynamic_size bytes for previous dynamic zmp state
-	// + 1.5 h_dynamic_size for Quetzal diff + 2.
-	undo_mem = new zbyte[(h_dynamic_size * 5) / 2 + 2];
-	if (undo_mem != nullptr) {
-		prev_zmp = undo_mem;
-		undo_diff = undo_mem + h_dynamic_size;
-		memcpy(prev_zmp, zmp, h_dynamic_size);
-	} else {
-		_undo_slots = 0;
-	}
-
-	if (reserve_mem != 0)
-		delete reserved;
 }
 
 void Mem::loadGameHeader() {
@@ -107,6 +71,45 @@ void Mem::loadGameHeader() {
 		// Some old games lack the file size entry
 		story_size = story_fp->size();
 	}
+}
+
+void Mem::loadMemory() {
+	// Allocate memory for story data
+	if ((zmp = (zbyte *)realloc(zmp, story_size)) == nullptr)
+		error("Out of memory");
+
+	// Load story file in chunks of 32KB
+	uint n = 0x8000;
+	for (uint size = 64; size < story_size; size += n) {
+		if (story_size - size < 0x8000)
+			n = story_size - size;
+
+		if (story_fp->read(zmp + size, n) != n)
+			error("Story file read error");
+	}
+}
+
+void Mem::initializeUndo() {
+	byte *reserved = nullptr;
+
+	if (reserve_mem != 0) {
+		if ((reserved = new byte[reserve_mem]) == nullptr)
+			return;
+	}
+
+	// Allocate h_dynamic_size bytes for previous dynamic zmp state
+	// + 1.5 h_dynamic_size for Quetzal diff + 2.
+	undo_mem = new zbyte[(h_dynamic_size * 5) / 2 + 2];
+	if (undo_mem != nullptr) {
+		prev_zmp = undo_mem;
+		undo_diff = undo_mem + h_dynamic_size;
+		memcpy(prev_zmp, zmp, h_dynamic_size);
+	} else {
+		_undo_slots = 0;
+	}
+
+	if (reserve_mem)
+		delete[] reserved;
 }
 
 zword Mem::get_header_extension(int entry) {
@@ -221,9 +224,9 @@ void Mem::free_undo(int count) {
 		undo_count--;
 	}
 	if (first_undo)
-		first_undo->prev = NULL;
+		first_undo->prev = nullptr;
 	else
-		last_undo = NULL;
+		last_undo = nullptr;
 }
 
 void Mem::reset_memory() {
@@ -303,5 +306,5 @@ void Mem::mem_undiff(zbyte *diff, long diff_length, zbyte *dest) {
 	}
 }
 
-} // End of namespace Scott
+} // End of namespace Frotz
 } // End of namespace Glk

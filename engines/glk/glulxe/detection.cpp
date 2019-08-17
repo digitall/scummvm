@@ -22,6 +22,7 @@
 
 #include "glk/glulxe/detection.h"
 #include "glk/glulxe/detection_tables.h"
+#include "glk/blorb.h"
 #include "common/debug.h"
 #include "common/file.h"
 #include "common/md5.h"
@@ -31,22 +32,22 @@ namespace Glk {
 namespace Glulxe {
 
 void GlulxeMetaEngine::getSupportedGames(PlainGameList &games) {
-	for (const GlulxeDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
+	for (const PlainGameDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
 		games.push_back(*pd);
 	}
 }
 
-GlulxeDescriptor GlulxeMetaEngine::findGame(const char *gameId) {
-	for (const GlulxeDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
+GameDescriptor GlulxeMetaEngine::findGame(const char *gameId) {
+	for (const PlainGameDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
 		if (!strcmp(gameId, pd->gameId))
 			return *pd;
 	}
 
-	return GlulxeDescriptor();
+	return GameDescriptor::empty();
 }
 
 bool GlulxeMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &gameList) {
-	const char *const EXTENSIONS[3] = { ".ulx", ".blb", ".gblorb" };
+	const char *const EXTENSIONS[] = { ".ulx", nullptr };
 
 	// Loop through the files of the folder
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
@@ -54,9 +55,9 @@ bool GlulxeMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &
 		if (file->isDirectory())
 			continue;
 		Common::String filename = file->getName();
-		bool hasExt = false;
-		for (int idx = 0; idx < 3 && !hasExt; ++idx)
-			hasExt = filename.hasSuffixIgnoreCase(EXTENSIONS[idx]);
+		bool hasExt = Blorb::hasBlorbExt(filename), isBlorb = false;
+		for (const char *const *ext = &EXTENSIONS[0]; *ext && !hasExt; ++ext)
+			hasExt = filename.hasSuffixIgnoreCase(*ext);
 		if (!hasExt)
 			continue;
 
@@ -66,48 +67,32 @@ bool GlulxeMetaEngine::detectGames(const Common::FSList &fslist, DetectedGames &
 			continue;
 		Common::String md5 = Common::computeStreamMD5AsString(gameFile, 5000);
 		size_t filesize = gameFile.size();
+		gameFile.seek(0);
+		isBlorb = Blorb::isBlorb(gameFile, ID_GLUL);
 		gameFile.close();
+
+		if (!isBlorb && Blorb::hasBlorbExt(filename))
+			continue;
 
 		// Check for known games
 		const GlulxeGameDescription *p = GLULXE_GAMES;
 		while (p->_gameId && (md5 != p->_md5 || filesize != p->_filesize))
 			++p;
 
-		DetectedGame gd;
 		if (!p->_gameId) {
-			if (filename.hasSuffixIgnoreCase(".blb"))
-				continue;
-
-			if (gDebugLevel > 0) {
-				// Print an entry suitable for putting into the detection_tables.h, using the
-				// name of the parent folder the game is in as the presumed game Id
-				Common::String folderName = file->getParent().getName();
-				if (folderName.hasSuffix("\\"))
-					folderName.deleteLastChar();
-				Common::String fname = filename;
-				const char *dot = strchr(fname.c_str(), '.');
-				if (dot)
-					fname = Common::String(fname.c_str(), dot);
-
-				debug("ENTRY0(\"%s\", \"%s\", %u),", fname.c_str(), md5.c_str(), (uint)filesize);
-			}
 			const PlainGameDescriptor &desc = GLULXE_GAME_LIST[0];
-			gd = DetectedGame(desc.gameId, desc.description, Common::UNK_LANG, Common::kPlatformUnknown);
+			gameList.push_back(GlkDetectedGame(desc.gameId, desc.description, filename, md5, filesize));
 		} else {
 			PlainGameDescriptor gameDesc = findGame(p->_gameId);
-			gd = DetectedGame(p->_gameId, gameDesc.description, p->_language, Common::kPlatformUnknown, p->_extra);
-			gd.setGUIOptions(GUIO4(GUIO_NOSPEECH, GUIO_NOSFX, GUIO_NOMUSIC, GUIO_NOSUBTITLES));
+			gameList.push_back(GlkDetectedGame(p->_gameId, gameDesc.description, filename));
 		}
-
-		gd.addExtraEntry("filename", filename);
-		gameList.push_back(gd);
 	}
 
 	return !gameList.empty();
 }
 
 void GlulxeMetaEngine::detectClashes(Common::StringMap &map) {
-	for (const GlulxeDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
+	for (const PlainGameDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
 		if (map.contains(pd->gameId))
 			error("Duplicate game Id found - %s", pd->gameId);
 		map[pd->gameId] = "";

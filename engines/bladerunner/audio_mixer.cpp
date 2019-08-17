@@ -36,7 +36,7 @@ AudioMixer::AudioMixer(BladeRunnerEngine *vm) {
 	for (int i = 0; i < kChannels; i++) {
 		_channels[i].isPresent = false;
 	}
-	_vm->getTimerManager()->installTimerProc(timerCallback, (1000 / kUpdatesPerSecond) * 1000 , this, "BladeRunnerAudioMixerTimer");
+	_vm->getTimerManager()->installTimerProc(timerCallback, (1000 / kUpdatesPerSecond) * 1000, this, "BladeRunnerAudioMixerTimer");
 }
 
 AudioMixer::~AudioMixer() {
@@ -64,8 +64,10 @@ int AudioMixer::play(Audio::Mixer::SoundType type, Audio::RewindableAudioStream 
 	}
 	if (channel == -1) {
 		if (priority < lowestPriority) {
+			//debug("No available audio channel found - giving up");
 			return -1;
 		}
+		//debug("Stopping lowest priority channel %d with lower prio %d!", lowestPriorityChannel, lowestPriority);
 		stop(lowestPriorityChannel, 0);
 		channel = lowestPriorityChannel;
 	}
@@ -79,7 +81,7 @@ int AudioMixer::playMusic(Audio::RewindableAudioStream *stream, int volume, void
 	return playInChannel(kMusicChannel, Audio::Mixer::kMusicSoundType, stream, 100, false, volume, 0, endCallback, callbackData);
 }
 
-void AudioMixer::stop(int channel, int time) {
+void AudioMixer::stop(int channel, uint32 time) {
 	Common::StackLock lock(_mutex);
 
 	if (_channels[channel].isPresent) {
@@ -136,7 +138,7 @@ void AudioMixer::timerCallback(void *self) {
 	((AudioMixer *)self)->tick();
 }
 
-void AudioMixer::adjustVolume(int channel, int newVolume, int time) {
+void AudioMixer::adjustVolume(int channel, int newVolume, uint32 time) {
 	Common::StackLock lock(_mutex);
 
 	if (_channels[channel].isPresent) {
@@ -145,7 +147,7 @@ void AudioMixer::adjustVolume(int channel, int newVolume, int time) {
 	}
 }
 
-void AudioMixer::adjustPan(int channel, int newPan, int time) {
+void AudioMixer::adjustPan(int channel, int newPan, uint32 time) {
 	Common::StackLock lock(_mutex);
 
 	if (_channels[channel].isPresent) {
@@ -171,7 +173,7 @@ void AudioMixer::tick() {
 				channel->volumeDelta = 0.0f;
 			}
 
-			_vm->_mixer->setChannelVolume(channel->handle, channel->volume * 255 / 100);
+			_vm->_mixer->setChannelVolume(channel->handle, (channel->volume * Audio::Mixer::kMaxChannelVolume) / 100); // map [0..100] to [0..kMaxChannelVolume]
 
 			if (channel->volume <= 0.0f) {
 				stop(i, 0);
@@ -185,7 +187,7 @@ void AudioMixer::tick() {
 				channel->panDelta = 0.0f;
 			}
 
-			_vm->_mixer->setChannelBalance(channel->handle, channel->pan * 127 / 100);
+			_vm->_mixer->setChannelBalance(channel->handle, (channel->pan * 127) / 100); // map [-100..100] to [-127..127]
 		}
 
 		if (!_vm->_mixer->isSoundHandleActive(channel->handle) || channel->stream->endOfStream()) {

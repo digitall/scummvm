@@ -40,14 +40,14 @@ bool Windows::_overrideBgSet;
 bool Windows::_forceRedraw;
 bool Windows::_claimSelect;
 bool Windows::_moreFocus;
-int Windows::_overrideFgVal;
-int Windows::_overrideBgVal;
-int Windows::_zcolor_fg;
-int Windows::_zcolor_bg;
-byte Windows::_zcolor_LightGrey[3];
-byte Windows::_zcolor_Foreground[3];
-byte Windows::_zcolor_Background[3];
-byte Windows::_zcolor_Bright[3];
+uint Windows::_overrideFgVal;
+uint Windows::_overrideBgVal;
+uint Windows::_zcolor_fg;
+uint Windows::_zcolor_bg;
+uint Windows::_zcolor_LightGrey;
+uint Windows::_zcolor_Foreground;
+uint Windows::_zcolor_Background;
+uint Windows::_zcolor_Bright;
 
 /*--------------------------------------------------------------------------*/
 
@@ -64,10 +64,9 @@ Windows::Windows(Graphics::Screen *screen) : _screen(screen), _windowList(nullpt
 	_zcolor_fg = _zcolor_bg = 0;
 	_drawSelect = false;
 
-	_zcolor_LightGrey[0] = _zcolor_LightGrey[1] = _zcolor_LightGrey[2] = 181;
-	_zcolor_Foreground[0] = _zcolor_Foreground[1] = _zcolor_Foreground[2] = 0;
-	_zcolor_Background[0] = _zcolor_Background[1] = _zcolor_Background[2] = 0;
-	_zcolor_Bright[0] = _zcolor_Bright[1] = _zcolor_Bright[2] = 0;
+	_zcolor_LightGrey = g_system->getScreenFormat().RGBToColor(181, 181, 181);
+	_zcolor_Foreground = _zcolor_Background = 0;
+	_zcolor_Bright = 0;
 }
 
 Windows::~Windows() {
@@ -76,7 +75,7 @@ Windows::~Windows() {
 
 Window *Windows::windowOpen(Window *splitwin, uint method, uint size,
 							uint wintype, uint rock) {
-	Window *newwin, *oldparent;
+	Window *newwin, *oldparent = nullptr;
 	PairWindow *pairWin;
 	uint val;
 
@@ -103,16 +102,23 @@ Window *Windows::windowOpen(Window *splitwin, uint method, uint size,
 		}
 
 		val = (method & winmethod_DirMask);
-		if (val != winmethod_Above && val != winmethod_Below
-				&& val != winmethod_Left && val != winmethod_Right) {
+		if (val != winmethod_Above && val != winmethod_Below && val != winmethod_Left
+				&& val != winmethod_Right && val != winmethod_Arbitrary) {
 			warning("window_open: invalid method (bad direction)");
 			return nullptr;
 		}
 
-		oldparent = splitwin->_parent;
-		if (oldparent && oldparent->_type != wintype_Pair) {
-			warning("window_open: parent window is not Pair");
-			return nullptr;
+		if (splitwin->_type == wintype_Pair) {
+			if ((method & winmethod_DirMask) != winmethod_Arbitrary) {
+				warning("window_open: Can only add windows to a Pair window in arbitrary mode");
+				return nullptr;
+			}
+		} else {
+			oldparent = splitwin->_parent;
+			if (oldparent && oldparent->_type != wintype_Pair) {
+				warning("window_open: parent window is not Pair");
+				return nullptr;
+			}
 		}
 	}
 
@@ -125,11 +131,16 @@ Window *Windows::windowOpen(Window *splitwin, uint method, uint size,
 
 	if (!splitwin) {
 		_rootWin = newwin;
+	} else if (splitwin->_type == wintype_Pair) {
+		pairWin = static_cast<PairWindow *>(splitwin);
+		pairWin->_dir = winmethod_Arbitrary;
+		pairWin->_children.push_back(newwin);
+		newwin->_parent = pairWin;
 	} else {
 		// create pairWin, with newwin as the key
 		pairWin = newPairWindow(method, newwin, size);
-		pairWin->_child1 = splitwin;
-		pairWin->_child2 = newwin;
+		pairWin->_children.push_back(splitwin);
+		pairWin->_children.push_back(newwin);
 
 		splitwin->_parent = pairWin;
 		newwin->_parent = pairWin;
@@ -138,10 +149,11 @@ Window *Windows::windowOpen(Window *splitwin, uint method, uint size,
 		if (oldparent) {
 			PairWindow *parentWin = dynamic_cast<PairWindow *>(oldparent);
 			assert(parentWin);
-			if (parentWin->_child1 == splitwin)
-				parentWin->_child1 = pairWin;
-			else
-				parentWin->_child2 = pairWin;
+
+			for (uint idx = 0; idx < parentWin->_children.size(); ++idx) {
+				if (parentWin->_children[idx] == splitwin)
+					parentWin->_children[idx] = pairWin;
+			}
 		} else {
 			_rootWin = pairWin;
 		}
@@ -168,25 +180,38 @@ void Windows::windowClose(Window *win, StreamResult *result) {
 		PairWindow *pairWin = dynamic_cast<PairWindow *>(win->_parent);
 		PairWindow *grandparWin;
 
-		if (win == pairWin->_child1) {
-			sibWin = pairWin->_child2;
-		} else if (win == pairWin->_child2) {
-			sibWin = pairWin->_child1;
-		} else {
-			warning("windowClose: window tree is corrupted");
-			return;
-		}
+		if (pairWin) {
+			int index = pairWin->_children.indexOf(win);
+			if (index == -1) {
+				warning("windowClose: window tree is corrupted");
+				return;
+			}
 
-		grandparWin = dynamic_cast<PairWindow *>(pairWin->_parent);
-		if (!grandparWin) {
-			_rootWin = sibWin;
-			sibWin->_parent = nullptr;
-		} else {
-			if (grandparWin->_child1 == pairWin)
-				grandparWin->_child1 = sibWin;
-			else
-				grandparWin->_child2 = sibWin;
-			sibWin->_parent = grandparWin;
+			// Detach window being closed from parent pair window
+			pairWin->_children.remove_at(index);
+			win->_parent = nullptr;
+
+			if (!(pairWin->_dir & winmethod_Arbitrary)) {
+				// Get the remaining child window
+				assert(pairWin->_children.size() == 1);
+				sibWin = pairWin->_children.front();
+
+				// Detach it from the pair window
+				index = pairWin->_children.indexOf(sibWin);
+				assert(index >= 0);
+				pairWin->_children.remove_at(index);
+
+				// Set up window as either the singular root, or grandparent pair window if one exists
+				grandparWin = dynamic_cast<PairWindow *>(pairWin->_parent);
+				if (!grandparWin) {
+					_rootWin = sibWin;
+					sibWin->_parent = nullptr;
+				} else {
+					index = grandparWin->_children.indexOf(pairWin);
+					grandparWin->_children[index] = sibWin;
+					sibWin->_parent = grandparWin;
+				}
+			}
 		}
 
 		// Begin closation
@@ -196,14 +221,9 @@ void Windows::windowClose(Window *win, StreamResult *result) {
 		// crawl up the tree to the root window.
 		win->close(true);
 
-		// This probably isn't necessary, but the child *is* gone, so just in case.
-		if (win == pairWin->_child1)
-			pairWin->_child1 = nullptr;
-		else if (win == pairWin->_child2)
-			pairWin->_child2 = nullptr;
-
-		// Now we can delete the parent pair.
-		pairWin->close(false);
+		if (pairWin && !(pairWin->_dir & winmethod_Arbitrary))
+			// Now we can delete the parent pair.
+			pairWin->close(false);
 
 		// Sort out the arrangements
 		rearrange();
@@ -253,21 +273,22 @@ PairWindow *Windows::newPairWindow(uint method, Window *key, uint size) {
 void Windows::rearrange() {
 	if (_rootWin) {
 		Rect box;
+		Point cell(g_conf->_monoInfo._cellW, g_conf->_monoInfo._cellH);
 
 		if (g_conf->_lockCols) {
-			int desired_width = g_conf->_wMarginSaveX * 2 + g_conf->_cellW * g_conf->_cols;
+			int desired_width = g_conf->_wMarginSaveX * 2 + cell.x * g_conf->_cols;
 			if (desired_width > g_conf->_imageW)
 				g_conf->_wMarginX = g_conf->_wMarginSaveX;
 			else
-				g_conf->_wMarginX = (g_conf->_imageW - g_conf->_cellW * g_conf->_cols) / 2;
+				g_conf->_wMarginX = (g_conf->_imageW - cell.x * g_conf->_cols) / 2;
 		}
 
 		if (g_conf->_lockRows) {
-			int desired_height = g_conf->_wMarginSaveY * 2 + g_conf->_cellH * g_conf->_rows;
+			int desired_height = g_conf->_wMarginSaveY * 2 + cell.y * g_conf->_rows;
 			if (desired_height > g_conf->_imageH)
 				g_conf->_wMarginY = g_conf->_wMarginSaveY;
 			else
-				g_conf->_wMarginY = (g_conf->_imageH - g_conf->_cellH * g_conf->_rows) / 2;
+				g_conf->_wMarginY = (g_conf->_imageH - cell.y * g_conf->_rows) / 2;
 		}
 
 		box.left = g_conf->_wMarginX;
@@ -342,6 +363,10 @@ void Windows::inputScrollFocus() {
 void Windows::inputHandleKey(uint key) {
 	if (_moreFocus) {
 		inputMoreFocus();
+	} else if (_focusWin && (_focusWin->_lineRequest || _focusWin->_lineRequestUni) &&
+			_focusWin->checkTerminators(key)) {
+		// WORKAROUND: Do line terminators checking first. This was first needed for Beyond Zork,
+		// since it needs the Page Up/Down keys to scroll the description area rathern than the buffer area
 	} else {
 		switch (key) {
 		case keycode_Tab:
@@ -423,18 +448,28 @@ void Windows::repaint(const Rect &box) {
 	g_vm->_events->redraw();
 }
 
-byte *Windows::rgbShift(byte *rgb) {
-	_zcolor_Bright[0] = (rgb[0] + 0x30) < 0xff ? (rgb[0] + 0x30) : 0xff;
-	_zcolor_Bright[1] = (rgb[1] + 0x30) < 0xff ? (rgb[1] + 0x30) : 0xff;
-	_zcolor_Bright[2] = (rgb[2] + 0x30) < 0xff ? (rgb[2] + 0x30) : 0xff;
+uint Windows::rgbShift(uint color) {
+	uint8 r, g, b;
+	Graphics::PixelFormat pf = g_system->getScreenFormat();
+	pf.colorToRGB(color, r, g, b);
 
+	r = ((uint)r + 0x30) < 0xff ? ((uint)r + 0x30) : 0xff;
+	g = ((uint)g + 0x30) < 0xff ? ((uint)g + 0x30) : 0xff;
+	b = ((uint)b + 0x30) < 0xff ? ((uint)b + 0x30) : 0xff;
+
+	_zcolor_Bright = pf.RGBToColor(r, g, b);
 	return _zcolor_Bright;
 }
 
 /*--------------------------------------------------------------------------*/
 
 Windows::iterator &Windows::iterator::operator++() {
-	_current = _windows->iterateTreeOrder(_current);
+	_current = _current->_next;
+	return *this;
+}
+
+Windows::iterator &Windows::iterator::operator--() {
+	_current = _current->_prev;
 	return *this;
 }
 
@@ -458,21 +493,20 @@ Window *Windows::iterateTreeOrder(Window *win) {
 
 	PairWindow *pairWin = dynamic_cast<PairWindow *>(win);
 	if (pairWin) {
-		if (!pairWin->_backward)
-			return pairWin->_child1;
-		else
-			return pairWin->_child2;
+		return pairWin->_backward ? pairWin->_children.back() : pairWin->_children.front();
 	} else {
 		while (win->_parent) {
 			pairWin = dynamic_cast<PairWindow *>(win->_parent);
 			assert(pairWin);
+			int index = pairWin->_children.indexOf(win);
+			assert(index != -1);
 
 			if (!pairWin->_backward) {
-				if (win == pairWin->_child1)
-					return pairWin->_child2;
+				if (index < ((int)pairWin->_children.size() - 1))
+					return pairWin->_children[index + 1];
 			} else {
-				if (win == pairWin->_child2)
-					return pairWin->_child1;
+				if (index > 0)
+					return pairWin->_children[index - 1];
 			}
 
 			win = pairWin;
@@ -489,36 +523,35 @@ Window::Window(Windows *windows, uint rock) : _windows(windows), _rock(rock),
 	_lineRequest(0), _lineRequestUni(0), _charRequest(0), _charRequestUni(0),
 	_mouseRequest(0), _hyperRequest(0), _moreRequest(0), _scrollRequest(0), _imageLoaded(0),
 	_echoLineInputBase(true), _lineTerminatorsBase(nullptr), _termCt(0), _echoStream(nullptr) {
-	_attr.fgset = 0;
-	_attr.bgset = 0;
-	_attr.reverse = 0;
+	_attr.fgset = false;
+	_attr.bgset = false;
+	_attr.reverse = false;
 	_attr.style = 0;
 	_attr.fgcolor = 0;
 	_attr.bgcolor = 0;
 	_attr.hyper = 0;
 
-	Common::copy(&g_conf->_windowColor[0], &g_conf->_windowColor[3], &_bgColor[0]);
-	Common::copy(&g_conf->_moreColor[0], &g_conf->_moreColor[3], _fgColor);
-	_dispRock.num = 0;
+	_bgColor = g_conf->_windowColor;
+	_fgColor = g_conf->_propInfo._moreColor;
 
 	Streams &streams = *g_vm->_streams;
 	_stream = streams.openWindowStream(this);
+
+	if (g_vm->gli_register_obj)
+		_dispRock = (*g_vm->gli_register_obj)(this, gidisp_Class_Window);
 }
 
 Window::~Window() {
 	if (g_vm->gli_unregister_obj)
 		(*g_vm->gli_unregister_obj)(this, gidisp_Class_Window, _dispRock);
 
-	// Remove the window from any parent
+	// Remove the window from the parent's children list
 	PairWindow *parent = dynamic_cast<PairWindow *>(_parent);
-	if (parent && parent->_child1 == this)
-		parent->_child1 = nullptr;
-	if (parent && parent->_child2 == this)
-		parent->_child2 = nullptr;
-
-	// Delete any attached window stream
-	_echoStream = nullptr;
-	delete _stream;
+	if (parent) {
+		int index = parent->_children.indexOf(this);
+		if (index != -1)
+			parent->_children.remove_at(index);
+	}
 
 	delete[] _lineTerminatorsBase;
 
@@ -532,6 +565,10 @@ Window::~Window() {
 		_windows->_windowList = next;
 	if (next)
 		next->_prev = prev;
+
+	// Delete any attached window stream
+	_echoStream = nullptr;
+	delete _stream;
 }
 
 void Window::close(bool recurse) {
@@ -550,12 +587,16 @@ void Window::close(bool recurse) {
 
 	PairWindow *pairWin = dynamic_cast<PairWindow *>(this);
 	if (pairWin) {
-		pairWin->_child1->close(recurse);
-		pairWin->_child2->close(recurse);
+		for (uint idx = 0; idx < pairWin->_children.size(); ++idx)
+			pairWin->_children[idx]->close();
 	}
 
 	// Finally, delete the window
 	delete this;
+}
+
+FontInfo *Window::getFontInfo() {
+	error("Tried to get font info for a non-text window");
 }
 
 void Window::cancelLineEvent(Event *ev) {
@@ -580,7 +621,7 @@ void Window::requestLineEventUni(uint32 *buf, uint maxlen, uint initlen) {
 
 void Window::redraw() {
 	if (Windows::_forceRedraw) {
-		unsigned char *color = Windows::_overrideBgSet ? g_conf->_windowColor : _bgColor;
+		uint color = Windows::_overrideBgSet ? g_conf->_windowColor : _bgColor;
 		int y0 = _yAdj ? _bbox.top - _yAdj : _bbox.top;
 		g_vm->_screen->fillRect(Rect(_bbox.left, y0, _bbox.right, _bbox.bottom), color);
 	}
@@ -633,7 +674,7 @@ const WindowStyle *Window::getStyles() const {
 
 void Window::setTerminatorsLineEvent(const uint32 *keycodes, uint count) {
 	if (dynamic_cast<TextBufferWindow *>(this) || dynamic_cast<TextGridWindow *>(this)) {
-		delete _lineTerminatorsBase;
+		delete[] _lineTerminatorsBase;
 		_lineTerminatorsBase = nullptr;
 
 		if (!keycodes || count == 0) {
@@ -651,13 +692,25 @@ void Window::setTerminatorsLineEvent(const uint32 *keycodes, uint count) {
 	}
 }
 
-bool Window::checkTerminator(uint32 ch) {
+bool Window::checkBasicTerminators(uint32 ch) {
 	if (ch == keycode_Escape)
 		return true;
 	else if (ch >= keycode_Func12 && ch <= keycode_Func1)
 		return true;
 	else
 		return false;
+}
+
+bool Window::checkTerminators(uint32 ch) {
+	if (checkBasicTerminators(ch))
+		return true;
+
+	for (uint idx = 0; idx < _termCt; ++idx) {
+		if (_lineTerminatorsBase[idx] == ch)
+			return true;
+	}
+
+	return false;
 }
 
 bool Window::imageDraw(uint image, uint align, int val1, int val2) {
@@ -682,6 +735,26 @@ void Window::getSize(uint *width, uint *height) const {
 		*height = 0;
 }
 
+void Window::bringToFront() {
+	PairWindow *pairWin = dynamic_cast<PairWindow *>(_parent);
+	
+	if (pairWin && pairWin->_dir == winmethod_Arbitrary && pairWin->_children.back() != this) {
+		pairWin->_children.remove(this);
+		pairWin->_children.push_back(this);
+		Windows::_forceRedraw = true;
+	}
+}
+
+void Window::sendToBack() {
+	PairWindow *pairWin = dynamic_cast<PairWindow *>(_parent);
+
+	if (pairWin && pairWin->_dir == winmethod_Arbitrary && pairWin->_children.front() != this) {
+		pairWin->_children.remove(this);
+		pairWin->_children.insert_at(0, this);
+		Windows::_forceRedraw = true;
+	}
+}
+
 /*--------------------------------------------------------------------------*/
 
 BlankWindow::BlankWindow(Windows *windows, uint rock) : Window(windows, rock) {
@@ -690,9 +763,17 @@ BlankWindow::BlankWindow(Windows *windows, uint rock) : Window(windows, rock) {
 
 /*--------------------------------------------------------------------------*/
 
+WindowStyle::WindowStyle(const WindowStyleStatic &src) : font(src.font), reverse(src.reverse) {
+	Graphics::PixelFormat pf = g_system->getScreenFormat();
+	fg = pf.RGBToColor(src.fg[0], src.fg[1], src.fg[2]);
+	bg = pf.RGBToColor(src.bg[0], src.bg[1], src.bg[1]);
+}
+
+/*--------------------------------------------------------------------------*/
+
 void Attributes::clear() {
-	fgset = 0;
-	bgset = 0;
+	fgset = false;
+	bgset = false;
 	fgcolor = 0;
 	bgcolor = 0;
 	reverse = false;
@@ -700,26 +781,22 @@ void Attributes::clear() {
 	style = 0;
 }
 
-byte *Attributes::attrBg(WindowStyle *styles) {
+uint Attributes::attrBg(const WindowStyle *styles) {
 	int revset = reverse || (styles[style].reverse && !Windows::_overrideReverse);
 
-	int zfset = fgset ? fgset : Windows::_overrideFgSet;
-	int zbset = bgset ? bgset : Windows::_overrideBgSet;
+	bool zfset = fgset ? fgset : Windows::_overrideFgSet;
+	bool zbset = bgset ? bgset : Windows::_overrideBgSet;
 
-	int zfore = fgset ? fgcolor : Windows::_overrideFgVal;
-	int zback = bgset ? bgcolor : Windows::_overrideBgVal;
+	uint zfore = fgset ? fgcolor : Windows::_overrideFgVal;
+	uint zback = bgset ? bgcolor : Windows::_overrideBgVal;
 
 	if (zfset && zfore != Windows::_zcolor_fg) {
-		Windows::_zcolor_Foreground[0] = (zfore >> 16) & 0xff;
-		Windows::_zcolor_Foreground[1] = (zfore >> 8) & 0xff;
-		Windows::_zcolor_Foreground[2] = (zfore) & 0xff;
+		Windows::_zcolor_Foreground = zfore;
 		Windows::_zcolor_fg = zfore;
 	}
 
 	if (zbset && zback != Windows::_zcolor_bg) {
-		Windows::_zcolor_Background[0] = (zback >> 16) & 0xff;
-		Windows::_zcolor_Background[1] = (zback >> 8) & 0xff;
-		Windows::_zcolor_Background[2] = (zback) & 0xff;
+		Windows::_zcolor_Background = zback;
 		Windows::_zcolor_bg = zback;
 	}
 
@@ -734,33 +811,29 @@ byte *Attributes::attrBg(WindowStyle *styles) {
 				return Windows::rgbShift(Windows::_zcolor_Foreground);
 			else
 				return Windows::_zcolor_Foreground;
-		else if (zbset && !memcmp(styles[style].fg, Windows::_zcolor_Background, 3))
+		else if (zbset && styles[style].fg == Windows::_zcolor_Background)
 			return Windows::_zcolor_LightGrey;
 		else
 			return styles[style].fg;
 	}
 }
 
-byte *Attributes::attrFg(WindowStyle *styles) {
+uint Attributes::attrFg(const WindowStyle *styles) {
 	int revset = reverse || (styles[style].reverse && !Windows::_overrideReverse);
 
-	int zfset = fgset ? fgset : Windows::_overrideFgSet;
-	int zbset = bgset ? bgset : Windows::_overrideBgSet;
+	bool zfset = fgset ? fgset : Windows::_overrideFgSet;
+	bool zbset = bgset ? bgset : Windows::_overrideBgSet;
 
-	int zfore = fgset ? fgcolor : Windows::_overrideFgVal;
-	int zback = bgset ? bgcolor : Windows::_overrideBgVal;
+	uint zfore = fgset ? fgcolor : Windows::_overrideFgVal;
+	uint zback = bgset ? bgcolor : Windows::_overrideBgVal;
 
 	if (zfset && zfore != Windows::_zcolor_fg) {
-		Windows::_zcolor_Foreground[0] = (zfore >> 16) & 0xff;
-		Windows::_zcolor_Foreground[1] = (zfore >> 8) & 0xff;
-		Windows::_zcolor_Foreground[2] = (zfore) & 0xff;
+		Windows::_zcolor_Foreground = zfore;
 		Windows::_zcolor_fg = zfore;
 	}
 
 	if (zbset && zback != Windows::_zcolor_bg) {
-		Windows::_zcolor_Background[0] = (zback >> 16) & 0xff;
-		Windows::_zcolor_Background[1] = (zback >> 8) & 0xff;
-		Windows::_zcolor_Background[2] = (zback) & 0xff;
+		Windows::_zcolor_Background = zback;
 		Windows::_zcolor_bg = zback;
 	}
 
@@ -770,7 +843,7 @@ byte *Attributes::attrFg(WindowStyle *styles) {
 				return Windows::rgbShift(Windows::_zcolor_Foreground);
 			else
 				return Windows::_zcolor_Foreground;
-		else if (zbset && !memcmp(styles[style].fg, Windows::_zcolor_Background, 3))
+		else if (zbset && styles[style].fg == Windows::_zcolor_Background)
 			return Windows::_zcolor_LightGrey;
 		else
 			return styles[style].fg;

@@ -34,13 +34,15 @@ PairWindow::PairWindow(Windows *windows, uint method, Window *key, uint size) :
 	_wBorder((method & winmethod_BorderMask) == winmethod_Border),
 	_vertical(_dir == winmethod_Left || _dir == winmethod_Right),
 	_backward(_dir == winmethod_Left || _dir == winmethod_Above),
-	_key(key), _size(size), _keyDamage(0), _child1(nullptr), _child2(nullptr) {
+	_key(key), _size(size), _keyDamage(0) {
 	_type = wintype_Pair;
 }
 
 PairWindow::~PairWindow() {
-	delete _child1;
-	delete _child2;
+	for (uint idx = 0; idx < _children.size(); ++idx) {
+		_children[idx]->_parent = nullptr;
+		delete _children[idx];
+	}
 }
 
 void PairWindow::rearrange(const Rect &box) {
@@ -49,6 +51,20 @@ void PairWindow::rearrange(const Rect &box) {
 	Window *ch1, *ch2;
 
 	_bbox = box;
+
+	if (_dir == winmethod_Arbitrary) {
+		// When a pair window is in "arbitrary" mode, each child window has it's own independant positioning,
+		// so thre's no need to be readjusting it
+		return;
+	}
+
+	if (!_backward) {
+		ch1 = _children[0];
+		ch2 = _children[1];
+	} else {
+		ch1 = _children[1];
+		ch2 = _children[0];
+	}
 
 	if (_vertical) {
 		min = _bbox.left;
@@ -113,25 +129,24 @@ void PairWindow::rearrange(const Rect &box) {
 		box2.right = _bbox.right;
 	}
 
-	if (!_backward) {
-		ch1 = _child1;
-		ch2 = _child2;
-	} else {
-		ch1 = _child2;
-		ch2 = _child1;
-	}
-
 	ch1->rearrange(box1);
 	ch2->rearrange(box2);
 }
 
 void PairWindow::redraw() {
+	// When the windows can be in arbitrary positions, some of them may be transparent, so we always
+	// need to force a full screen redraw in such cases
+	if (_dir == winmethod_Arbitrary)
+		Windows::_forceRedraw = true;
+
 	Window::redraw();
 
-	_child1->redraw();
-	_child2->redraw();
+	for (int ctr = 0, idx = (_backward ? (int)_children.size() - 1 : 0); ctr < (int)_children.size();
+		++ctr, idx += (_backward ? -1 : 1)) {
+		_children[idx]->redraw();
+	}
 
-	Window *child = !_backward ? _child1 : _child2;
+	Window *child = !_backward ? _children.front() : _children.back();
 	Rect box(child->_bbox.left, child->_yAdj ? child->_bbox.top - child->_yAdj : child->_bbox.top,
 			 child->_bbox.right, child->_bbox.bottom);
 
@@ -170,6 +185,7 @@ void PairWindow::getArrangement(uint *method, uint *size, Window **keyWin) {
 void PairWindow::setArrangement(uint method, uint size, Window *keyWin) {
 	uint newDir;
 	bool newVertical, newBackward;
+	assert((method & winmethod_DirMask) != winmethod_Arbitrary && _dir != winmethod_Arbitrary);
 
 	if (_key) {
 		Window *wx;
@@ -212,9 +228,7 @@ void PairWindow::setArrangement(uint method, uint size, Window *keyWin) {
 
 	if ((newBackward && !_backward) || (!newBackward && _backward)) {
 		// switch the children
-		Window *tmpWin = _child1;
-		_child1 = _child2;
-		_child2 = tmpWin;
+		SWAP(_children[0], _children[1]);
 	}
 
 	// set up everything else
@@ -231,11 +245,14 @@ void PairWindow::setArrangement(uint method, uint size, Window *keyWin) {
 }
 
 void PairWindow::click(const Point &newPos) {
-	if (_child1->_bbox.contains(newPos))
-		_child1->click(newPos);
-
-	if (_child2->_bbox.contains(newPos))
-		_child2->click(newPos);
+	// Note in case windows are partially overlapping, we want the top-most window to get the click.
+	// WHich is why we recurse in the opposite of the rendering direction (as the _backward flag) indicates
+	for (int ctr = 0, idx = (!_backward ? (int)_children.size() - 1 : 0); ctr < (int)_children.size();
+		++ctr, idx += (!_backward ? -1 : 1)) {
+		Window *w = _children[idx];
+		if (w->_bbox.contains(newPos))
+			w->click(newPos);
+	}
 }
 
 } // End of namespace Glk

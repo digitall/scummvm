@@ -48,20 +48,16 @@ void Processor::z_draw_picture() {
 
 	flush_buffer();
 
-	if (!x || !y) {
-		// Currently I only support getting the cursor for the text grid area
-		assert(cwin == 1);
-		Point cursPos = gos_upper->getCursor();
-		// use cursor column if x-coordinate is 0
-		if (!x)
-			x = cursPos.x;
-		// use cursor line if y-coordinate is 0
-		if (!y)
-			y = cursPos.y;
+	Window &win = _wp[_wp._cwin];
+	if (_storyId == ZORK_ZERO && _wp._cwin == 0) {
+		// WORKAROUND: Zork Zero has pictures for graphics embedded in the text with specific
+		// co-prdinates. We need to reset it to 0,0 to flag it should be drawn at the cursor
+		x = y = 0;
+	} else {
+		assert(x && y);
+		x += win[X_POS] - 1;
+		y += win[Y_POS] - 1;
 	}
-
-//	y += cwp->y_pos - 1;
-//	x += cwp->x_pos - 1;
 
 	/* The following is necessary to make Amiga and Macintosh story
 	 * files work with MCGA graphics files.  Some screen-filling
@@ -80,20 +76,21 @@ void Processor::z_draw_picture() {
 			os_picture_data(mapper[i].pic2, &height2, &width2);
 
 			if (_storyId == ARTHUR && pic == 54)
-			delta = h_screen_width / 160;
+				delta = h_screen_width / 160;
 
-			os_draw_picture(mapper[i].pic1, gos_lower, Point(x + delta, y + height1));
-			os_draw_picture(mapper[i].pic2, gos_lower, Point(x + width1 - width2 - delta, y + height1));
+			assert(x && y);
+			os_draw_picture(mapper[i].pic1, Point(x + delta, y + height1));
+			os_draw_picture(mapper[i].pic2, Point(x + width1 - width2 - delta, y + height1));
 		}
 	}
 
-	os_draw_picture(pic, gos_lower, Point(x, y));
+	os_draw_picture(pic, Point(x, y));
 
 	if (_storyId == SHOGUN && pic == 3) {
 		uint height, width;
 
 		os_picture_data(59, &height, &width);
-		os_draw_picture(59, gos_lower, Point(h_screen_width - width + 1, y));
+		os_draw_picture(59, Point(h_screen_width - width + 1, y));
 	}
 }
 
@@ -177,35 +174,17 @@ void Processor::z_set_margins() {
 }
 
 void Processor::z_move_window(void) {
-#ifdef TODO
-	zword win = winarg0();
-
 	flush_buffer();
 
-	wp[win].y_pos = zargs[1];
-	wp[win].x_pos = zargs[2];
-
-	if (win == cwin)
-		update_cursor();
-#endif
+	zword win = winarg0();
+	_wp[win].setPosition(Point(zargs[2], zargs[1]));
 }
 
 void Processor::z_window_size() {
-#ifdef TODO
-	zword win = winarg0();
-
 	flush_buffer();
 
-	wp[win].y_size = zargs[1];
-	wp[win].x_size = zargs[2];
-
-	/* Keep the cursor within the window */
-
-	if (wp[win].y_cursor > zargs[1] || wp[win].x_cursor > zargs[2])
-		reset_cursor(win);
-
-	os_window_height(win, wp[win].y_size);
-#endif
+	zword win = winarg0();
+	_wp[win].setSize(Point(zargs[2], zargs[1]));
 }
 
 void Processor::z_window_style() {
@@ -235,39 +214,28 @@ void Processor::z_window_style() {
 }
 
 void Processor::z_get_wind_prop() {
-#ifdef TODO
 	flush_buffer();
 
-	if (zargs[1] < 16)
-		store(((zword *)(wp + winarg0()))[zargs[1]]);
+	zword win = winarg0();
+	zword prop = zargs[1];
 
-	else if (zargs[1] == 16)
-		store(os_to_true_colour(lo(wp[winarg0()].colour)));
-
-	else if (zargs[1] == 17) {
-
-		zword bg = hi(wp[winarg0()].colour);
-
-		if (bg == TRANSPARENT_COLOUR)
-			store((zword)-4);
-		else
-			store(os_to_true_colour(bg));
-
-	}
+	if (prop <= TRUE_BG_COLOR)
+		store(_wp[win][(WindowProperty)prop]);
 	else
 		runtimeError(ERR_ILL_WIN_PROP);
-#endif
 }
 
 void Processor::z_put_wind_prop() {
-#ifdef TODO
 	flush_buffer();
 
-	if (zargs[1] >= 16)
+	zword win = winarg0();
+	WindowProperty prop = (WindowProperty)zargs[1];
+	zword val = zargs[2];
+
+	if (prop >= TRUE_FG_COLOR)
 		runtimeError(ERR_ILL_WIN_PROP);
 
-	((zword *)(wp + winarg0()))[zargs[1]] = zargs[2];
-#endif
+	_wp[win][prop] = val;
 }
 
 void Processor::z_scroll_window() {
@@ -311,7 +279,7 @@ void Processor::z_picture_table() {
 
 zword Processor::winarg0() {
 	if (h_version == V6 && (short)zargs[0] == -3)
-		return cwin;
+		return _wp._cwin;
 
 	if (zargs[0] >= ((h_version == V6) ? 8 : 2))
 		runtimeError(ERR_ILL_WIN);
@@ -321,7 +289,7 @@ zword Processor::winarg0() {
 
 zword Processor::winarg2() {
 	if (zargc < 3 || (short)zargs[2] == -3)
-		return cwin;
+		return _wp._cwin;
 
 	if (zargs[2] >= 8)
 		runtimeError(ERR_ILL_WIN);
@@ -329,5 +297,5 @@ zword Processor::winarg2() {
 	return zargs[2];
 }
 
-} // End of namespace Scott
+} // End of namespace Frotz
 } // End of namespace Glk

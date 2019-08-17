@@ -22,6 +22,7 @@
 
 #include "glk/frotz/processor.h"
 #include "glk/frotz/frotz.h"
+#include "glk/conf.h"
 
 namespace Glk {
 namespace Frotz {
@@ -265,6 +266,7 @@ void Processor::interpret() {
 			// 0OP opcodes
 			(*this.*op0_opcodes[opcode - 0xb0])();
 
+
 		} else {
 			// VAR opcodes
 			zbyte specifier1;
@@ -293,7 +295,7 @@ void Processor::interpret() {
 }
 
 void Processor::call(zword routine, int argc, zword *args, int ct) {
-	long pc;
+	uint32 pc;
 	zword value;
 	zbyte count;
 	int i;
@@ -357,7 +359,7 @@ void Processor::call(zword routine, int argc, zword *args, int ct) {
 }
 
 void Processor::ret(zword value) {
-	long pc;
+	offset_t pc;
 	int ct;
 
 	if (_sp > _fp)
@@ -369,7 +371,7 @@ void Processor::ret(zword value) {
 	_frameCount--;
 	_fp = _stack + 1 + *_sp++;
 	pc = *_sp++;
-	pc = ((long)*_sp++ << 9) | pc;
+	pc = ((offset_t)*_sp++ << 9) | pc;
 
 	SET_PC(pc);
 
@@ -385,7 +387,7 @@ void Processor::ret(zword value) {
 }
 
 void Processor::branch(bool flag) {
-	long pc;
+	offset_t pc;
 	zword offset;
 	zbyte specifier;
 	zbyte off1;
@@ -539,12 +541,12 @@ void Processor::z_check_arg_count() {
 }
 
 void Processor::z_jump() {
-	long pc;
+	offset_t pc;
 	GET_PC(pc);
 
 	pc += (short)zargs[0] - 2;
 
-	if ((uint)pc >= story_size)
+	if (pc >= story_size)
 		runtimeError(ERR_ILL_JUMP_ADDR);
 
 	SET_PC(pc);
@@ -662,5 +664,5 @@ void Processor::z_restore_undo(void) {
 	store((zword)restore_undo());
 }
 
-} // End of namespace Scott
+} // End of namespace Frotz
 } // End of namespace Glk

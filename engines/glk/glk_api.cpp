@@ -36,7 +36,7 @@
 namespace Glk {
 
 GlkAPI::GlkAPI(OSystem *syst, const GlkGameDescription &gameDesc) :
-	GlkEngine(syst, gameDesc), _gliFirstEvent(false) {
+		GlkEngine(syst, gameDesc), _gliFirstEvent(false) {
 	// Set uppercase/lowercase tables
 	int ix, res;
 	for (ix = 0; ix < 256; ix++) {
@@ -138,7 +138,7 @@ uint GlkAPI::glk_gestalt_ext(uint id, uint val, uint *arr, uint arrlen) {
 		return g_conf->_sound;
 
 	case gestalt_LineTerminatorKey:
-		return Window::checkTerminator(val);
+		return Window::checkBasicTerminators(val);
 
 	case gestalt_Timer:
 	case gestalt_Unicode:
@@ -258,10 +258,11 @@ winid_t GlkAPI::glk_window_get_sibling(winid_t win) {
 	if (!parentWin)
 		return nullptr;
 
-	if (parentWin->_child1 == win)
-		return parentWin->_child2;
-	else if (parentWin->_child2 == win)
-		return parentWin->_child1;
+	int index = parentWin->_children.indexOf(win);
+	if (index == ((int)parentWin->_children.size() - 1))
+		return parentWin->_children.front();
+	else if (index >= 0)
+		return parentWin->_children[index + 1];
 
 	return nullptr;
 }
@@ -464,15 +465,11 @@ void GlkAPI::glk_stylehint_set(uint wintype, uint style, uint hint, int val) {
 
 	switch (hint) {
 	case stylehint_TextColor:
-		styles[style].fg[0] = (val >> 16) & 0xff;
-		styles[style].fg[1] = (val >> 8) & 0xff;
-		styles[style].fg[2] = (val) & 0xff;
+		styles[style].fg = val;
 		break;
 
 	case stylehint_BackColor:
-		styles[style].bg[0] = (val >> 16) & 0xff;
-		styles[style].bg[1] = (val >> 8) & 0xff;
-		styles[style].bg[2] = (val) & 0xff;
+		styles[style].bg = val;
 		break;
 
 	case stylehint_ReverseColor:
@@ -504,12 +501,12 @@ void GlkAPI::glk_stylehint_set(uint wintype, uint style, uint hint, int val) {
 	}
 
 	if (wintype == wintype_TextBuffer && style == style_Normal && hint == stylehint_BackColor) {
-		memcpy(g_conf->_windowColor, styles[style].bg, 3);
+		g_conf->_windowColor = styles[style].bg;
 	}
 
 	if (wintype == wintype_TextBuffer && style == style_Normal && hint == stylehint_TextColor) {
-		memcpy(g_conf->_moreColor, styles[style].fg, 3);
-		memcpy(g_conf->_caretColor, styles[style].fg, 3);
+		g_conf->_propInfo._moreColor = styles[style].fg;
+		g_conf->_propInfo._caretColor = styles[style].fg;
 	}
 }
 
@@ -538,15 +535,11 @@ void GlkAPI::glk_stylehint_clear(uint wintype, uint style, uint hint) {
 
 	switch (hint) {
 	case stylehint_TextColor:
-		styles[style].fg[0] = defaults[style].fg[0];
-		styles[style].fg[1] = defaults[style].fg[1];
-		styles[style].fg[2] = defaults[style].fg[2];
+		styles[style].fg = defaults[style].fg;
 		break;
 
 	case stylehint_BackColor:
-		styles[style].bg[0] = defaults[style].bg[0];
-		styles[style].bg[1] = defaults[style].bg[1];
-		styles[style].bg[2] = defaults[style].bg[2];
+		styles[style].bg = defaults[style].bg;
 		break;
 
 	case stylehint_ReverseColor:
@@ -607,13 +600,11 @@ bool GlkAPI::glk_style_measure(winid_t win, uint style, uint hint, uint *result)
 		break;
 
 	case stylehint_TextColor:
-		*result =
-		    (styles[style].fg[0] << 16) | (styles[style].fg[1] << 8) | (styles[style].fg[2]);
+		*result = styles[style].fg;
 		break;
 
 	case stylehint_BackColor:
-		*result =
-		    (styles[style].bg[0] << 16) | (styles[style].bg[1] << 8) | (styles[style].bg[2]);
+		*result = styles[style].bg;
 		break;
 
 	case stylehint_ReverseColor:
@@ -895,9 +886,9 @@ bool GlkAPI::glk_image_draw(winid_t win, uint image, int val1, int val2) {
 		GraphicsWindow *gfxWin = dynamic_cast<GraphicsWindow *>(win);
 
 		if (textWin)
-			textWin->drawPicture(image, val1, false, 0, 0);
+			return textWin->drawPicture(image, val1, false, 0, 0);
 		else if (gfxWin)
-			gfxWin->drawPicture(image, val1, val2, false, 0, 0);
+			return gfxWin->drawPicture(image, val1, val2, false, 0, 0);
 	}
 
 	return false;
@@ -912,9 +903,9 @@ bool GlkAPI::glk_image_draw_scaled(winid_t win, uint image, int val1, int val2,
 		GraphicsWindow *gfxWin = dynamic_cast<GraphicsWindow *>(win);
 
 		if (textWin)
-			textWin->drawPicture(image, val1, true, width, height);
+			return textWin->drawPicture(image, val1, true, width, height);
 		else if (gfxWin)
-			gfxWin->drawPicture(image, val1, val2, true, width, height);
+			return gfxWin->drawPicture(image, val1, val2, true, width, height);
 	}
 
 	return false;
@@ -1206,6 +1197,16 @@ void GlkAPI::garglk_set_reversevideo_stream(strid_t str, uint reverse) {
 	} else {
 		warning("set_reversevideo: Invalid ref");
 	}
+}
+
+void GlkAPI::garglk_window_get_cursor(winid_t win, uint *xpos, uint *ypos) {
+	Point pos = win->getCursor();
+	*xpos = pos.x;
+	*ypos = pos.y;
+}
+
+void GlkAPI::garglk_window_get_cursor_current(uint *xpos, uint *ypos) {
+	garglk_window_get_cursor(_windows->getFocusWindow(), xpos, ypos);
 }
 
 } // End of namespace Glk

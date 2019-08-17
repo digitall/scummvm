@@ -28,7 +28,8 @@
 
 namespace Glk {
 
-TextGridWindow::TextGridWindow(Windows *windows, uint rock) : Window(windows, rock) {
+TextGridWindow::TextGridWindow(Windows *windows, uint rock) : TextWindow(windows, rock),
+		_font(g_conf->_monoInfo) {
 	_type = wintype_TextGrid;
 	_width = _height = 0;
 	_curX = _curY = 0;
@@ -56,8 +57,8 @@ void TextGridWindow::rearrange(const Rect &box) {
 	Window::rearrange(box);
 	int newwid, newhgt;
 
-	newwid = box.width() / g_conf->_cellW;
-	newhgt = box.height() / g_conf->_cellH;
+	newwid = MAX(box.width() / _font._cellW, 0);
+	newhgt = MAX(box.height() / _font._cellH, 0);
 
 	if (newwid == _width && newhgt == _height)
 		return;
@@ -74,13 +75,13 @@ void TextGridWindow::rearrange(const Rect &box) {
 }
 
 void TextGridWindow::touch(int line) {
-	int y = _bbox.top + line * g_conf->_leading;
+	int y = _bbox.top + line * _font._leading;
 	_lines[line].dirty = true;
-	_windows->repaint(Rect(_bbox.left, y, _bbox.right, y + g_conf->_leading));
+	_windows->repaint(Rect(_bbox.left, y, _bbox.right, y + _font._leading));
 }
 
 uint TextGridWindow::getSplit(uint size, bool vertical) const {
-	return vertical ? size * g_conf->_cellW : size * g_conf->_cellH;
+	return vertical ? size * _font._cellW : size * _font._cellH;
 }
 
 void TextGridWindow::putCharUni(uint32 ch) {
@@ -197,7 +198,7 @@ void TextGridWindow::click(const Point &newPos) {
 		_windows->setFocus(this);
 
 	if (_mouseRequest) {
-		g_vm->_events->store(evtype_MouseInput, this, x / g_conf->_cellW, y / g_conf->_leading);
+		g_vm->_events->store(evtype_MouseInput, this, x / _font._cellW, y / _font._leading);
 		_mouseRequest = false;
 		if (g_conf->_safeClicks)
 			g_vm->_events->_forceClick = true;
@@ -264,6 +265,9 @@ void TextGridWindow::requestLineEvent(char *buf, uint maxlen, uint initlen) {
 
 	if (g_vm->gli_register_arr)
 		_inArrayRock = (*g_vm->gli_register_arr)(buf, maxlen, "&+#!Cn");
+
+	// Switch focus to the new window
+	_windows->inputGuessFocus();
 }
 
 void TextGridWindow::requestLineEventUni(uint32 *buf, uint maxlen, uint initlen) {
@@ -316,6 +320,23 @@ void TextGridWindow::requestLineEventUni(uint32 *buf, uint maxlen, uint initlen)
 
 	if (g_vm->gli_register_arr)
 		_inArrayRock = (*g_vm->gli_register_arr)(buf, maxlen, "&+#!Iu");
+
+	// Switch focus to the new window
+	_windows->inputGuessFocus();
+}
+
+void TextGridWindow::requestCharEvent() {
+	_charRequest = true;
+
+	// Switch focus to the new window
+	_windows->inputGuessFocus();
+}
+
+void TextGridWindow::requestCharEventUni() {
+	_charRequestUni = true;
+
+	// Switch focus to the new window
+	_windows->inputGuessFocus();
 }
 
 void TextGridWindow::cancelLineEvent(Event *ev) {
@@ -369,7 +390,7 @@ void TextGridWindow::cancelLineEvent(Event *ev) {
 	_lineRequestUni = false;
 
 	if (_lineTerminators) {
-		free(_lineTerminators);
+		delete[] _lineTerminators;
 		_lineTerminators = nullptr;
 	}
 
@@ -442,7 +463,7 @@ void TextGridWindow::acceptLine(uint32 keycode) {
 		if (val2 == keycode_Return)
 			val2 = 0;
 		g_vm->_events->store(evtype_LineInput, this, _inLen, val2);
-		free(_lineTerminators);
+		delete[] _lineTerminators;
 		_lineTerminators = nullptr;
 	} else {
 		g_vm->_events->store(evtype_LineInput, this, _inLen, 0);
@@ -465,7 +486,7 @@ void TextGridWindow::acceptReadLine(uint32 arg) {
 	if (!_inBuf)
 		return;
 
-	if (_lineTerminators && checkTerminator(arg)) {
+	if (_lineTerminators && checkTerminators(arg)) {
 		const uint32 *cx;
 		for (cx = _lineTerminators; *cx; cx++) {
 			if (*cx == arg) {
@@ -546,7 +567,7 @@ void TextGridWindow::acceptReadLine(uint32 arg) {
 		if (arg < 32 || arg > 0xff)
 			return;
 
-		if (g_conf->_caps && (arg > 0x60 && arg < 0x7b))
+		if (_font._caps && (arg > 0x60 && arg < 0x7b))
 			arg -= 0x20;
 
 		for (ix = _inLen; ix > _inCurs; ix--)
@@ -571,7 +592,7 @@ void TextGridWindow::redraw() {
 	int i, a, b, k, o;
 	uint link;
 	int font;
-	byte *fgcolor, *bgcolor;
+	uint fgcolor, bgcolor;
 	Screen &screen = *g_vm->_screen;
 
 	Window::redraw();
@@ -585,30 +606,30 @@ void TextGridWindow::redraw() {
 			ln->dirty = false;
 
 			x = x0;
-			y = y0 + i * g_conf->_leading;
+			y = y0 + i * _font._leading;
 
 			// clear any stored hyperlink coordinates
-			g_vm->_selection->putHyperlink(0, x0, y, x0 + g_conf->_cellW * _width, y + g_conf->_leading);
+			g_vm->_selection->putHyperlink(0, x0, y, x0 + _font._cellW * _width, y + _font._leading);
 
 			a = 0;
 			for (b = 0; b < _width; b++) {
 				if (ln->_attrs[a] != ln->_attrs[b]) {
 					link = ln->_attrs[a].hyper;
 					font = ln->_attrs[a].attrFont(_styles);
-					fgcolor = link ? g_conf->_linkColor : ln->_attrs[a].attrFg(_styles);
+					fgcolor = link ? _font._linkColor : ln->_attrs[a].attrFg(_styles);
 					bgcolor = ln->_attrs[a].attrBg(_styles);
-					w = (b - a) * g_conf->_cellW;
-					screen.fillRect(Rect::fromXYWH(x, y, w, g_conf->_leading), bgcolor);
+					w = (b - a) * _font._cellW;
+					screen.fillRect(Rect::fromXYWH(x, y, w, _font._leading), bgcolor);
 					o = x;
 
-					for (k = a, o = x; k < b; k++, o += g_conf->_cellW) {
-						screen.drawStringUni(Point(o * GLI_SUBPIX, y + g_conf->_baseLine), font,
+					for (k = a, o = x; k < b; k++, o += _font._cellW) {
+						screen.drawStringUni(Point(o * GLI_SUBPIX, y + _font._baseLine), font,
 											 fgcolor, Common::U32String(&ln->_chars[k], 1), -1);
 					}
 					if (link) {
-						screen.fillRect(Rect::fromXYWH(x, y + g_conf->_baseLine + 1, w,
-													   g_conf->_linkStyle), g_conf->_linkColor);
-						g_vm->_selection->putHyperlink(link, x, y, x + w, y + g_conf->_leading);
+						screen.fillRect(Rect::fromXYWH(x, y + _font._baseLine + 1, w,
+													   _font._linkStyle), _font._linkColor);
+						g_vm->_selection->putHyperlink(link, x, y, x + w, y + _font._leading);
 					}
 
 					x += w;
@@ -617,20 +638,26 @@ void TextGridWindow::redraw() {
 			}
 			link = ln->_attrs[a].hyper;
 			font = ln->_attrs[a].attrFont(_styles);
-			fgcolor = link ? g_conf->_linkColor : ln->_attrs[a].attrFg(_styles);
+			fgcolor = link ? _font._linkColor : ln->_attrs[a].attrFg(_styles);
 			bgcolor = ln->_attrs[a].attrBg(_styles);
-			w = (b - a) * g_conf->_cellW;
+			w = (b - a) * _font._cellW;
 			w += _bbox.right - (x + w);
-			screen.fillRect(Rect::fromXYWH(x, y, w, g_conf->_leading), bgcolor);
+			screen.fillRect(Rect::fromXYWH(x, y, w, _font._leading), bgcolor);
 
-			for (k = a, o = x; k < b; k++, o += g_conf->_cellW) {
-				screen.drawStringUni(Point(o * GLI_SUBPIX, y + g_conf->_baseLine), font,
+			// Draw the caret if necessary
+			if (_windows->getFocusWindow() == this && i == _curY &&
+					(_lineRequest || _lineRequestUni || _charRequest || _charRequestUni)) {
+				_font.drawCaret(Point((x0 + _curX * _font._cellW) * GLI_SUBPIX, y + _font._baseLine));
+			}
+
+			// Write out the text
+			for (k = a, o = x; k < b; k++, o += _font._cellW) {
+				screen.drawStringUni(Point(o * GLI_SUBPIX, y + _font._baseLine), font,
 									 fgcolor, Common::U32String(&ln->_chars[k], 1));
 			}
 			if (link) {
-				screen.fillRect(Rect::fromXYWH(x, y + g_conf->_baseLine + 1, w, g_conf->_linkStyle),
-								g_conf->_linkColor);
-				g_vm->_selection->putHyperlink(link, x, y, x + w, y + g_conf->_leading);
+				screen.fillRect(Rect::fromXYWH(x, y + _font._baseLine + 1, w, _font._linkStyle), _font._linkColor);
+				g_vm->_selection->putHyperlink(link, x, y, x + w, y + _font._leading);
 			}
 		}
 	}
@@ -638,19 +665,22 @@ void TextGridWindow::redraw() {
 
 void TextGridWindow::getSize(uint *width, uint *height) const {
 	if (width)
-		*width = _bbox.width() / g_conf->_cellW;
+		*width = _bbox.width() / _font._cellW;
 	if (height)
-		*height = _bbox.height() / g_conf->_cellH;
+		*height = _bbox.height() / _font._cellH;
 }
 
 /*--------------------------------------------------------------------------*/
 
 void TextGridWindow::TextGridRow::resize(size_t newSize) {
-	_chars.clear();
-	_attrs.clear();
-	_chars.resize(newSize);
-	_attrs.resize(newSize);
-	Common::fill(&_chars[0], &_chars[0] + newSize, ' ');
+	size_t oldSize = _chars.size();
+	if (newSize != oldSize) {
+		_chars.resize(newSize);
+		_attrs.resize(newSize);
+
+		if (newSize > oldSize)
+			Common::fill(&_chars[0] + oldSize, &_chars[0] + newSize, ' ');
+	}
 }
 
 } // End of namespace Glk

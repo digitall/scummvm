@@ -153,8 +153,6 @@ public:
 	Kernel(ResourceManager *resMan, SegManager *segMan);
 	~Kernel();
 
-	void init();
-
 	uint getSelectorNamesSize() const;
 	const Common::String &getSelectorName(uint selector);
 	int findKernelFuncPos(Common::String kernelFuncName);
@@ -169,8 +167,6 @@ public:
 	 * @return The appropriate selector ID, or -1 on error
 	 */
 	int findSelector(const char *selectorName) const;
-
-	bool selectorNamesAvailable();
 
 	// Script dissection/dumping functions
 	void dissectScript(int scriptNumber, Vocabulary *vocab);
@@ -317,7 +313,7 @@ reg_t kMapKeyToDir(EngineState *s, int argc, reg_t *argv);
 reg_t kGlobalToLocal(EngineState *s, int argc, reg_t *argv);
 reg_t kLocalToGlobal(EngineState *s, int argc, reg_t *argv);
 reg_t kWait(EngineState *s, int argc, reg_t *argv);
-reg_t kRestartGame(EngineState *s, int argc, reg_t *argv);
+reg_t kRestartGame16(EngineState *s, int argc, reg_t *argv);
 reg_t kDeviceInfo(EngineState *s, int argc, reg_t *argv);
 reg_t kGetEvent(EngineState *s, int argc, reg_t *argv);
 reg_t kCheckFreeSpace(EngineState *s, int argc, reg_t *argv);
@@ -412,6 +408,7 @@ reg_t kEmpty(EngineState *s, int argc, reg_t *argv);
 reg_t kStub(EngineState *s, int argc, reg_t *argv);
 reg_t kStubNull(EngineState *s, int argc, reg_t *argv);
 reg_t kKawaHacks(EngineState *s, int argc, reg_t *argv);
+reg_t kKawaDbugStr(EngineState *s, int argc, reg_t *argv);
 
 #ifdef ENABLE_SCI32
 // SCI2 Kernel Functions

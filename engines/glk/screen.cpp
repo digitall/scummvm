@@ -39,100 +39,74 @@ Screen::~Screen() {
 }
 
 void Screen::initialize() {
-	if (!loadFonts())
-		error("Could not load fonts.dat");
+	loadFonts();
 
-	// TODO: See if there's any better way for getting the leading and baseline
-	Common::Rect r1 = _fonts[7]->getBoundingBox('o');
-	Common::Rect r2 = _fonts[7]->getBoundingBox('y');
-	double baseLine = (double)r1.bottom;
-	double leading = (double)r2.bottom + 2;
+	for (int idx = 0; idx < 2; ++idx) {
+		FontInfo *i = (idx == 0) ? &g_conf->_monoInfo : &g_conf->_propInfo;
+		const Graphics::Font *f = (idx == 0) ? _fonts[0] : _fonts[7];
 
-	g_conf->_leading = static_cast<int>(MAX((double)g_conf->_leading, leading));
-	g_conf->_baseLine = static_cast<int>(MAX((double)g_conf->_baseLine, baseLine));
-	g_conf->_cellW = _fonts[0]->getStringWidth("0");
-	g_conf->_cellH = g_conf->_leading;
-}
+		// TODO: See if there's any better way for getting the leading and baseline
+		Common::Rect r1 = f->getBoundingBox('o');
+		Common::Rect r2 = f->getBoundingBox('y');
+		double baseLine = (double)r1.bottom;
+		double leading = (double)((idx == 0) ? r2.bottom : r2.bottom + g_conf->_propInfo._lineSeparation);
 
-void Screen::fill(const byte *rgb) {
-	uint color = format.RGBToColor(rgb[0], rgb[1], rgb[2]);
-	clear(color);
-}
-
-void Screen::fillRect(const Rect &box, const byte *rgb) {
-	uint color = format.RGBToColor(rgb[0], rgb[1], rgb[2]);
-	Graphics::Screen::fillRect(box, color);
-}
-
-void Screen::drawCaret(const Point &pos) {
-	const byte *rgb = g_conf->_caretColor;
-	uint color = format.RGBToColor(rgb[0], rgb[1], rgb[2]);
-	int x = pos.x / GLI_SUBPIX, y = pos.y;
-
-	switch (g_conf->_caretShape) {
-	case SMALL_DOT:
-		hLine(x + 0, y + 1, x + 0, color);
-		hLine(x - 1, y + 2, x + 1, color);
-		hLine(x - 2, y + 3, x + 2, color);
-		break;
-
-	case FAT_DOT:
-		hLine(x + 0, y + 1, x + 0, color);
-		hLine(x - 1, y + 2, x + 1, color);
-		hLine(x - 2, y + 3, x + 2, color);
-		hLine(x - 3, y + 4, x + 3, color);
-		break;
-
-	case THIN_LINE:
-		vLine(x, y - g_conf->_baseLine + 1, y - 1, color);
-		break;
-
-	case FAT_LINE:
-		Graphics::Screen::fillRect(Rect(x, y - g_conf->_baseLine + 1, x + 1,  y - 1), color);
-		break;
-
-	default:
-		// BLOCK
-		Graphics::Screen::fillRect(Rect(x, y - g_conf->_baseLine + 1, x + g_conf->_cellW, y - 1), color);
-		break;
+		i->_leading = static_cast<int>(MAX((double)i->_leading, leading));
+		i->_baseLine = static_cast<int>(MAX((double)i->_baseLine, baseLine));
+		i->_cellW = _fonts[0]->getMaxCharWidth();
+		i->_cellH = i->_leading;
 	}
 }
 
-bool Screen::loadFonts() {
+void Screen::fill(uint color) {
+	clear(color);
+}
+
+void Screen::fillRect(const Rect &box, uint color) {
+	if (color != zcolor_Transparent)
+		Graphics::Screen::fillRect(box, color);
+}
+
+void Screen::loadFonts() {
 	Common::Archive *archive = nullptr;
 
 	if (!Common::File::exists(FONTS_FILENAME) || (archive = Common::makeZipArchive(FONTS_FILENAME)) == nullptr)
-		return false;
+		error("Could not locate %s", FONTS_FILENAME);
 
 	// Open the version.txt file within it to validate the version
 	Common::File f;
 	if (!f.open("version.txt", *archive)) {
 		delete archive;
-		return false;
+		error("Could not get version of fonts data. Possibly malformed");
 	}
 
 	// Validate the version
-	char buffer[4];
-	f.read(buffer, 3);
-	buffer[3] = '\0';
+	char buffer[5];
+	f.read(buffer, 4);
+	buffer[4] = '\0';
 
-	if (Common::String(buffer) != "1.1") {
+	int major = 0, minor = 0;
+	if (buffer[1] == '.') {
+		major = buffer[0] - '0';
+		minor = atoi(&buffer[2]);
+	}
+
+	if (major < 1 || minor < 2) {
 		delete archive;
-		return false;
+		error("Out of date fonts. Expected at least %s, but got version %d.%d", "1.2", major, minor);
 	}
 
 	loadFonts(archive);
 
 	delete archive;
-	return true;
 }
 
 void Screen::loadFonts(Common::Archive *archive) {
 	// R ead in the fonts
-	double monoAspect = g_conf->_monoAspect;
-	double propAspect = g_conf->_propAspect;
-	double monoSize = g_conf->_monoSize;
-	double propSize = g_conf->_propSize;
+	double monoAspect = g_conf->_monoInfo._aspect;
+	double propAspect = g_conf->_propInfo._aspect;
+	double monoSize = g_conf->_monoInfo._size;
+	double propSize = g_conf->_propInfo._size;
 
 	_fonts.resize(FONTS_TOTAL);
 	_fonts[0] = loadFont(MONOR, archive, monoSize, monoAspect, FONTR);
@@ -171,20 +145,20 @@ FACES Screen::getFontId(const Common::String &name) {
 	return MONOR;
 }
 
-int Screen::drawString(const Point &pos, int fontIdx, const byte *rgb, const Common::String &text, int spw) {
-	Point pt(pos.x / GLI_SUBPIX, pos.y - g_conf->_baseLine);
+int Screen::drawString(const Point &pos, int fontIdx, uint color, const Common::String &text, int spw) {
+	int baseLine = (fontIdx >= PROPR) ? g_conf->_propInfo._baseLine : g_conf->_monoInfo._baseLine;
+	Point pt(pos.x / GLI_SUBPIX, pos.y - baseLine);
 	const Graphics::Font *font = _fonts[fontIdx];
-	const uint32 color = format.RGBToColor(rgb[0], rgb[1], rgb[2]);
 	font->drawString(this, text, pt.x, pt.y, w - pt.x, color);
 
 	pt.x += font->getStringWidth(text);
 	return MIN((int)pt.x, (int)w) * GLI_SUBPIX;
 }
 
-int Screen::drawStringUni(const Point &pos, int fontIdx, const byte *rgb, const Common::U32String &text, int spw) {
-	Point pt(pos.x / GLI_SUBPIX, pos.y - g_conf->_baseLine);
+int Screen::drawStringUni(const Point &pos, int fontIdx, uint color, const Common::U32String &text, int spw) {
+	int baseLine = (fontIdx >= PROPR) ? g_conf->_propInfo._baseLine : g_conf->_monoInfo._baseLine;
+	Point pt(pos.x / GLI_SUBPIX, pos.y - baseLine);
 	const Graphics::Font *font = _fonts[fontIdx];
-	const uint32 color = format.RGBToColor(rgb[0], rgb[1], rgb[2]);
 	font->drawString(this, text, pt.x, pt.y, w - pt.x, color);
 
 	pt.x += font->getStringWidth(text);

@@ -150,11 +150,22 @@ struct UserOptions {
 	int _err_report_mode;
 	uint _defaultForeground;
 	uint _defaultBackground;
+	bool _color_enabled;
 
 	/**
 	 * Constructor
 	 */
 	UserOptions();
+
+	/**
+	 * Initializes the options
+	 */
+	void initialize(uint hVersion, uint storyId);
+
+	/**
+	 * Returns true if the game being played is one of the original Infocom releases
+	 */
+	bool isInfocom() const;
 };
 
 /**

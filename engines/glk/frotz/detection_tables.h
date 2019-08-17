@@ -39,12 +39,12 @@ struct FrotzGameDescription {
 	const char *const _guiOptions;
 };
 
-const PlainGameDescriptor FROTZ_GAME_LIST[] = {
-	{ "zcode", "Unknown Z-code game" },
-
+/**
+ * Original games from Infocom
+ */
+const PlainGameDescriptor INFOCOM_GAME_LIST[] = {
 	// Infocom games
 	{ "amfv", "A Mind Forever Voyaging" },
-	{ "arthur", "Arthur: The Quest for Excalibur" },
 	{ "ballyhoo", "Ballyhoo" },
 	{ "beyondzork", "Beyond Zork" },
 	{ "borderzone", "Border Zone" },
@@ -57,14 +57,15 @@ const PlainGameDescriptor FROTZ_GAME_LIST[] = {
 	{ "infidel", "Infidel" },
 	{ "journey", "Journey" },
 	{ "lgop", "Leather Goddesses of Phobos" },
+	{ "infocomsampler1", "Infocom Sampler 1" },
+	{ "infocomsampler2", "Infocom Sampler 2" },
 	{ "lurkinghorror", "The Lurking Horror" },
 	{ "minizork1", "Mini Zork I: The Great Underground Empire" },
 	{ "moonmist", "Moonmist" },
 	{ "nordbert", "Nord and Bert Couldn't Make Head or Tail of It" },
 	{ "planetfall", "Planetfall" },
 	{ "plunderedhearts", "Plundered Hearts" },
-	{ "infocomsampler1", "Infocom Sampler 1" },
-	{ "infocomsampler2", "Infocom Sampler 2" },
+	{ "questforexcalibur", "Arthur: The Quest for Excalibur" },
 	{ "seastalker", "Seastalker" },
 	{ "sherlockriddle", "Sherlock: The Riddle of the Crown Jewels" },
 	{ "shogun", "James Clavell's Shogun" },
@@ -82,6 +83,14 @@ const PlainGameDescriptor FROTZ_GAME_LIST[] = {
 	{ "zork2", "Zork II: The Wizard of Frobozz" },
 	{ "zork3", "Zork III: The Dungeon Master" },
 	{ "ztuu", "Zork: The Undiscovered Underground" },
+	{ nullptr, nullptr }
+};
+
+/**
+ * All the other subsequent non-Infocom games using the format
+ */
+const PlainGameDescriptor ZCODE_GAME_LIST[] = {
+	{ "zcode", "Unknown Z-code game" },
 
 	// English games
 	{ "404life",           "404 - Life not found" },
@@ -858,7 +867,7 @@ const PlainGameDescriptor FROTZ_GAME_LIST[] = {
 	{ "nissen", "Pa loftet sidder nissen" },
 
 	// French games
-	{ "basketball", "Champion de basket-ball" },
+	{ "championdebasketball", "Champion de basket-ball" },
 	{ "dreamlands", "Echappee Belle Dans Les Contrees du Reve" },
 	{ "espions", "Les espions ne meurent jamais" },
 	{ "filaments", "Filaments" },
@@ -913,7 +922,7 @@ const PlainGameDescriptor FROTZ_GAME_LIST[] = {
 	{ "zazie", "Zazie, una lettura interattiva" },
 	{ "zenfactorspa", "ZenFactor Spa" },
 	{ "zombie", "Uno Zombie a Deadville" },
-	{ "Zorkita", "Zork I: Il Grande Impero Sotterraneo" },
+	{ "zorkita", "Zork I: Il Grande Impero Sotterraneo" },
 
 	// Slovenian games
 	{ "zenin", "Zenin na begu" },
@@ -925,8 +934,8 @@ const PlainGameDescriptor FROTZ_GAME_LIST[] = {
 	{ "amanda", "Amanda" },
 	{ "aque1", "Aquelarre" },
 	{ "casi", "Casi Muerto" },
-	{ "Celos", "Un Asunto de Celos" },
-	{ "Cerillera", "La Pequena Cerillera" },
+	{ "celos", "Un Asunto de Celos" },
+	{ "cerillera", "La Pequena Cerillera" },
 	{ "churro", "Churro patatero" },
 	{ "csa", "Cacahuetes" },
 	{ "cueva", "La Oscura Cueva" },
@@ -996,8 +1005,6 @@ const FrotzGameDescription FROTZ_GAMES[] = {
 	// Infocom Games - English
 	ENTRY0("amfv", "R77-850814", "b7ffaed0ca4a90450f92b34066133377", 262016),
 	ENTRY0("amfv", "R79-851122", "1e37dbcf7ccc9244dbfc3229796362f4", 262544),
-	ENTRY0("arthur", "R54-890606", "ced2c66d03a49de0e8190b468332f081", 271360),
-	ENTRY0("arthur", "R74-890714", "13d13f375f85a874c82a8ac7ad69dc41", 269200),
 	ENTRY0("ballyhoo", "R97-851218", "7944e832a7d7b34037c7b6791de43dbd", 128556),
 	ENTRY0("beyondzork", "R49-870917", "a5547795def620d0a75a064f9a37ab2d", 261900),
 	ENTRY0("beyondzork", "R51-870923", "73948f415596fa4d9afe442b2c19e61f", 261548),
@@ -1038,6 +1045,8 @@ const FrotzGameDescription FROTZ_GAMES[] = {
 	ENTRY0("planetfall", "R29-840118", "9facd8b974e658520fb762af4c4789dc", 109052),
 	ENTRY0("planetfall", "R37-851003", "01844816673414c97d21dc003304989b",109398),
 	ENTRY0("planetfall", "R10-880531", "34c69f1d24418fd4d2de195a1d7546c4", 136560),
+	ENTRY0("questforexcalibur", "R54-890606", "ced2c66d03a49de0e8190b468332f081", 271360),
+	ENTRY0("questforexcalibur", "R74-890714", "13d13f375f85a874c82a8ac7ad69dc41", 269200),
 	ENTRY0("plunderedhearts", "R26-870730", "fe5b9eb91949d41838166364f1753b10", 128962),
 	ENTRY0("infocomsampler1", "R26-840731", "5483febc51abd55fb5e04c4c97a0b260", 112610),
 	ENTRY0("infocomsampler1", "R53-850407", "47b8b8394e25faec870a798145529688", 126708),
@@ -1841,39 +1850,39 @@ const FrotzGameDescription FROTZ_GAMES[] = {
 	ENTRY0("voodoocastle", "980329", "bff285e6c9291fc6ba77c9743b610c2d", 24064),
 
 	// Mysterious Adventures by Brian Howarth
-	ENTRY0("goldenbaton", "980406", "408b31a15c429f7ca83b2ac80764ffa8", 20992),
-	ENTRY0("timemachine", "980406", "e0a0335705aab9642b7625f26c00eca2", 22016),
-	ENTRY0("arrowofdeath1", "980406", "a3827232bf54c339a5ec5ab906fd1857", 22016),
-	ENTRY0("arrowofdeath2", "980406", "5a437f2cbc4f99d8cd741e83e2abe4cd", 24064),
-	ENTRY0("pulsar7", "980406", "d93cc91cda58c75259b2c872921a17a8", 26112),
-	ENTRY0("circus", "980406", "be7a07e042f5d1b0cde3d3b1cd85dee3", 22528),
-	ENTRY0("feasibility", "980406", "e0c46523e043bc75f8e04714396e17ff", 22528),
-	ENTRY0("akyrz", "980406", "61c29077bee55dce614a729705099282", 24064),
-	ENTRY0("perseus", "980406", "c1ab2f87658691f773599d9973bf72a1", 23040),
-	ENTRY0("10indians", "980406", "b3e4b8376f7c553064ceff8f25936385", 22528),
-	ENTRY0("waxworks", "980406", "98e52d813cb28f899916ef7129c85a0e", 24064),
-	ENTRY0("goldenbaton", "041209", "817ca85193d842b9716d4b688d6fe9d1", 27644),
-	ENTRY0("timemachine", "041209", "460ad097aeb7b800f237692aaec8fda2", 28156),
-	ENTRY0("arrowofdeath1", "041209", "616f481469279a1184d1d8fcad84ed4e", 28156),
-	ENTRY0("arrowofdeath2", "041209", "058dbdf618b22e9dd47f42f7e98e6fdd", 30716),
-	ENTRY0("pulsar7", "041209", "41a2b9048af4600f43c829e2348b5fc6", 32764),
-	ENTRY0("circus", "041209", "0c5a65e665b773fc39bdcbe194ad99cc", 29180),
-	ENTRY0("feasibility", "041209", "2159059c9b506af4f10c7cf9133fdd00", 28672),
-	ENTRY0("akyrz", "041209", "cfbef40e735057b6fbbde3991f6ee4c9", 31232),
-	ENTRY0("perseus", "041209", "1c0fef44034daa16ada548caac232337", 29696),
-	ENTRY0("10indians", "041209", "63b01fa007b977be144bcd3a6f6e8dcf", 29180),
-	ENTRY0("waxworks", "041209", "859a006a14bd69b22135688248756ba0", 30720),
-	ENTRY0("goldenbaton", "110126", "9de3f1a8624e20409c92325b30a3b490", 156156),
-	ENTRY0("timemachine", "110126", "684e96c6adaccfd5f4138dce069d3fc3", 137728),
-	ENTRY0("arrowofdeath1", "110126", "3deca9c9fce4fb995e0681ecdfb39cf2", 173056),
-	ENTRY0("arrowofdeath2", "110126", "4a0c494ff4564e659a29fbd3d67696f6", 172540),
-	ENTRY0("pulsar7", "110126", "5d6897ee80078c0286a52589ae305633", 135168),
-	ENTRY0("circus", "110126", "72721053ed49e1d701146332215f63e9", 118780),
-	ENTRY0("feasibility", "110126", "8f2f18c6fd76be74e612ee9b271055b1", 172540),
-	ENTRY0("akyrz", "110126", "92c5abee1a097f1e8e61f744ba9ddb3f", 119296),
-	ENTRY0("perseus", "110126", "39be8e28753aa0ac87c49b6dedb712a2", 132096),
-	ENTRY0("10indians", "110126", "0c5d25323a3b649ea432025001edb638", 170492),
-	ENTRY0("waxworks", "110126", "c51e911d1228d8adfc07ed138bc90079", 116220),
+	ENTRY0("goldenbatoni5", "980406", "408b31a15c429f7ca83b2ac80764ffa8", 20992),
+	ENTRY0("timemachinei5", "980406", "e0a0335705aab9642b7625f26c00eca2", 22016),
+	ENTRY0("arrowofdeath1i5", "980406", "a3827232bf54c339a5ec5ab906fd1857", 22016),
+	ENTRY0("arrowofdeath2i5", "980406", "5a437f2cbc4f99d8cd741e83e2abe4cd", 24064),
+	ENTRY0("pulsar7i5", "980406", "d93cc91cda58c75259b2c872921a17a8", 26112),
+	ENTRY0("circusi5", "980406", "be7a07e042f5d1b0cde3d3b1cd85dee3", 22528),
+	ENTRY0("feasibilityi5", "980406", "e0c46523e043bc75f8e04714396e17ff", 22528),
+	ENTRY0("akyrzi5", "980406", "61c29077bee55dce614a729705099282", 24064),
+	ENTRY0("perseusi5", "980406", "c1ab2f87658691f773599d9973bf72a1", 23040),
+	ENTRY0("10indiansi5", "980406", "b3e4b8376f7c553064ceff8f25936385", 22528),
+	ENTRY0("waxworksi5", "980406", "98e52d813cb28f899916ef7129c85a0e", 24064),
+	ENTRY0("goldenbatoni5", "041209", "817ca85193d842b9716d4b688d6fe9d1", 27644),
+	ENTRY0("timemachinei5", "041209", "460ad097aeb7b800f237692aaec8fda2", 28156),
+	ENTRY0("arrowofdeath1i5", "041209", "616f481469279a1184d1d8fcad84ed4e", 28156),
+	ENTRY0("arrowofdeath2i5", "041209", "058dbdf618b22e9dd47f42f7e98e6fdd", 30716),
+	ENTRY0("pulsar7i5", "041209", "41a2b9048af4600f43c829e2348b5fc6", 32764),
+	ENTRY0("circusi5", "041209", "0c5a65e665b773fc39bdcbe194ad99cc", 29180),
+	ENTRY0("feasibilityi5", "041209", "2159059c9b506af4f10c7cf9133fdd00", 28672),
+	ENTRY0("akyrzi5", "041209", "cfbef40e735057b6fbbde3991f6ee4c9", 31232),
+	ENTRY0("perseusi5", "041209", "1c0fef44034daa16ada548caac232337", 29696),
+	ENTRY0("10indiansi5", "041209", "63b01fa007b977be144bcd3a6f6e8dcf", 29180),
+	ENTRY0("waxworksi5", "041209", "859a006a14bd69b22135688248756ba0", 30720),
+	ENTRY0("goldenbatoni5", "110126", "9de3f1a8624e20409c92325b30a3b490", 156156),
+	ENTRY0("timemachinei5", "110126", "684e96c6adaccfd5f4138dce069d3fc3", 137728),
+	ENTRY0("arrowofdeath1i5", "110126", "3deca9c9fce4fb995e0681ecdfb39cf2", 173056),
+	ENTRY0("arrowofdeath2i5", "110126", "4a0c494ff4564e659a29fbd3d67696f6", 172540),
+	ENTRY0("pulsar7i5", "110126", "5d6897ee80078c0286a52589ae305633", 135168),
+	ENTRY0("circusi5", "110126", "72721053ed49e1d701146332215f63e9", 118780),
+	ENTRY0("feasibilityi5", "110126", "8f2f18c6fd76be74e612ee9b271055b1", 172540),
+	ENTRY0("akyrzi5", "110126", "92c5abee1a097f1e8e61f744ba9ddb3f", 119296),
+	ENTRY0("perseusi5", "110126", "39be8e28753aa0ac87c49b6dedb712a2", 132096),
+	ENTRY0("10indiansi5", "110126", "0c5d25323a3b649ea432025001edb638", 170492),
+	ENTRY0("waxworksi5", "110126", "c51e911d1228d8adfc07ed138bc90079", 116220),
 
 	// 1992 album Apollo 18, by They Might be Giants
 	ENTRY0("apollo1", "120315", "1aec299147675a5c6e10d548a4eeba05", 251100),
@@ -1916,7 +1925,7 @@ const FrotzGameDescription FROTZ_GAMES[] = {
 
 	// French games
 	ENTRY1("adv", "000531", "50027e3339900e1ca07f72e96396240e", 129536, Common::FR_FRA),
-	ENTRY1("basketball", "180904", "92b21e4bc9163727c3dd586056f26fd8", 64000, Common::FR_FRA),
+	ENTRY1("championdebasketball", "180904", "92b21e4bc9163727c3dd586056f26fd8", 64000, Common::FR_FRA),
 	ENTRY1("dreamlands", "050908", "79cecc22e3f020a3ccc23912122785d4", 79872, Common::FR_FRA),
 	ENTRY1("espions", "070417", "7e59a5199b12376697deb4694cfac744", 124416, Common::FR_FRA),
 	ENTRY1("filaments", "030301", "0aa6d27086b546f6bd4dea84717da6ff", 337920, Common::FR_FRA),

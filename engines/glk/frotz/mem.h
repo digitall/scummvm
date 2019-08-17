@@ -36,13 +36,15 @@ namespace Frotz {
 #define SET_BYTE(addr,v)   zmp[addr] = v
 #define LOW_BYTE(addr,v)   v = zmp[addr]
 
+typedef uint offset_t;
+
 /**
  * Stores undo information
  */
 struct undo_struct {
 	undo_struct *next;
 	undo_struct *prev;
-	long pc;
+	offset_t pc;
 	long diff_size;
 	zword frame_count;
 	zword stack_size;
@@ -72,14 +74,19 @@ private:
 	void initializeStoryFile();
 
 	/**
-	 * Setup undo data
-	 */
-	void initializeUndo();
-
-	/**
 	 * Handles loading the game header
 	 */
 	void loadGameHeader();
+
+	/**
+	 * Initializes memory and loads the story data
+	 */
+	void loadMemory();
+
+	/**
+	 * Setup undo data
+	 */
+	void initializeUndo();
 protected:
 	/**
 	 * Read a value from the header extension (former mouse table).
@@ -145,6 +152,10 @@ public:
 	 * Constructor
 	 */
 	Mem();
+
+	/**
+	 * Destructor
+	 */
 	virtual ~Mem() {}
 
 	/**

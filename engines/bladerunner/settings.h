@@ -29,15 +29,9 @@ class BladeRunnerEngine;
 class SaveFileReadStream;
 class SaveFileWriteStream;
 
-enum PlayerAgenda {
-	kPlayerAgendaPolite = 0,
-	kPlayerAgendaNormal = 1,
-	kPlayerAgendaSurly = 2,
-	kPlayerAgendaErratic = 3,
-	kPlayerAgendaUserChoice = 4
-};
-
 class Settings {
+	static const int kAmmoTypesCount = 3;
+
 	BladeRunnerEngine *_vm;
 
 	int   _chapter;
@@ -63,7 +57,7 @@ class Settings {
 	int   _playerAgenda;
 
 	int   _ammoType;
-	int   _ammoAmounts[3];
+	int   _ammoAmounts[kAmmoTypesCount];
 
 	bool  _learyMode;
 
@@ -125,6 +119,7 @@ public:
 
 	bool openNewScene();
 
+	static int getAmmoTypesCount();
 	int getAmmoType() const;
 	void setAmmoType(int ammoType);
 	int getAmmo(int ammoType) const;

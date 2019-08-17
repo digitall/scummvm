@@ -25,6 +25,8 @@
 #include "bladerunner/audio_player.h"
 #include "bladerunner/bladerunner.h"
 #include "bladerunner/game_info.h"
+#include "bladerunner/time.h"
+#include "bladerunner/game_constants.h"
 #include "bladerunner/ui/kia.h"
 #include "bladerunner/ui/kia_shapes.h"
 
@@ -42,51 +44,54 @@ UICheckBox::UICheckBox(BladeRunnerEngine *vm, UIComponentCallback *valueChangedC
 	_style = style;
 
 	if (isChecked) {
-		_frame = 5;
+		_frame = 5u;
 	} else {
-		_frame = 0;
+		_frame = 0u;
 	}
 
-	_timeLast = _vm->getTotalPlayTime(); // Original game is using system timer
+	_timeLast = _vm->_time->currentSystem();
 	_rect = rect;
 	_isChecked = isChecked;
 }
 
 
 void UICheckBox::draw(Graphics::Surface &surface) {
-	int shapeId;
 	if (_rect.right > _rect.left && _rect.bottom > _rect.top) {
-		uint timeNow = _vm->getTotalPlayTime(); // Original game is using system timer
-		if (timeNow - _timeLast > 67) {
-			int frameDelta = (timeNow - _timeLast) / 67u;
+		uint32 shapeId;
+
+		uint32 timeNow = _vm->_time->currentSystem();
+		// unsigned difference is intentional
+		if (timeNow - _timeLast > 67u) {
+			// unsigned difference is intentional
+			uint32 frameDelta = (timeNow - _timeLast) / 67u;
 			_timeLast = timeNow;
 
 			if (_isChecked) {
-				_frame = MIN(_frame + frameDelta, 5);
+				_frame = MIN<uint32>(_frame + frameDelta, 5u);
 			} else {
-				_frame = MAX(_frame - frameDelta, 0);
+				_frame = (_frame < frameDelta) ? 0 : MAX<uint32>(_frame - frameDelta, 0u);
 			}
 		}
 
 		if (_style) {
 			if (_frame || (_hasFocus && !_isPressed && _isEnabled)) {
-				if (_frame != 5 || (_hasFocus && !_isPressed && _isEnabled)) {
-					shapeId = _frame + 54;
+				if (_frame != 5u || (_hasFocus && !_isPressed && _isEnabled)) {
+					shapeId = _frame + 54u;
 				} else {
-					shapeId = 53;
+					shapeId = 53u;
 				}
 			} else {
-				shapeId = 52;
+				shapeId = 52u;
 			}
 		} else {
 			if (_frame || (_hasFocus && !_isPressed && _isEnabled)) {
-				if (_frame != 5 || (_hasFocus && !_isPressed && _isEnabled)) {
-					shapeId = _frame + 62;
+				if (_frame != 5u || (_hasFocus && !_isPressed && _isEnabled)) {
+					shapeId = _frame + 62u;
 				} else {
-					shapeId = 61;
+					shapeId = 61u;
 				}
 			} else {
-				shapeId = 60;
+				shapeId = 60u;
 			}
 		}
 
@@ -111,7 +116,7 @@ void UICheckBox::setChecked(bool isChecked) {
 void UICheckBox::handleMouseMove(int mouseX, int mouseY) {
 	if (_rect.contains(mouseX, mouseY)) {
 		if (!_hasFocus && _isEnabled && !_isPressed ) {
-			_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(508), 100, 0, 0, 50, 0);
+			_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(kSfxTEXT3), 100, 0, 0, 50, 0);
 		}
 		_hasFocus = true;
 	} else {
@@ -126,7 +131,7 @@ void UICheckBox::handleMouseDown(bool alternateButton) {
 			if (_valueChangedCallback) {
 				_valueChangedCallback(_callbackData, this);
 			}
-			_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(509), 100, 0, 0, 50, 0);
+			_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(kSfxBEEP10), 100, 0, 0, 50, 0);
 		} else {
 			_isPressed = true;
 		}

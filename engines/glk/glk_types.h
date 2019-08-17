@@ -34,23 +34,22 @@ class Window;
  * List of the different sub-engines the engine will likely eventually support
  */
 enum InterpreterType {
-	INTERPRETER_ADVSYS = 0,
-	INTERPRETER_AGILITY = 1,
-	INTERPRETER_ALAN2 = 2,
-	INTERPRETER_ALAN3 = 3,
-	INTERPRETER_BOCFEL = 4,
-	INTERPRETER_FROTZ = 5,
-	INTERPRETER_GEAS = 6,
-	INTERPRETER_GLULXE = 7,
-	INTERPRETER_HUGO = 8,
-	INTERPRETER_JACL = 9,
-	INTERPRETER_LEVEL9 = 10,
-	INTERPRETER_MAGNETIC = 11,
-	INTERPRETER_NITFOL = 12,
-	INTERPRETER_SCARE = 13,
-	INTERPRETER_SCOTT = 14,
-	INTERPRETER_TADS2 = 15,
-	INTERPRETER_TADS3 = 16
+	INTERPRETER_ADVSYS,
+	INTERPRETER_AGILITY,
+	INTERPRETER_ALAN2,
+	INTERPRETER_ALAN3,
+	INTERPRETER_BOCFEL,
+	INTERPRETER_FROTZ,
+	INTERPRETER_GEAS,
+	INTERPRETER_GLULXE,
+	INTERPRETER_HUGO,
+	INTERPRETER_JACL,
+	INTERPRETER_LEVEL9,
+	INTERPRETER_MAGNETIC,
+	INTERPRETER_SCARE,
+	INTERPRETER_SCOTT,
+	INTERPRETER_TADS2,
+	INTERPRETER_TADS3
 };
 
 /**
@@ -150,11 +149,12 @@ enum WinType {
 };
 
 enum WinMethod {
-	winmethod_Left    = 0x00,
-	winmethod_Right   = 0x01,
-	winmethod_Above   = 0x02,
-	winmethod_Below   = 0x03,
-	winmethod_DirMask = 0x0f,
+	winmethod_Left         = 0x00,
+	winmethod_Right        = 0x01,
+	winmethod_Above        = 0x02,
+	winmethod_Below        = 0x03,
+	winmethod_Arbitrary    = 0x04,		///< Newly introduced for ScummGlk
+	winmethod_DirMask      = 0x0f,
 
 	winmethod_Fixed        = 0x10,
 	winmethod_Proportional = 0x20,
@@ -199,10 +199,10 @@ enum giDisp {
 };
 
 enum zcolor {
-	zcolor_Transparent = (uint)-4,
-	zcolor_Cursor      = (uint)-3,
-	zcolor_Current     = (uint)-2,
-	zcolor_Default     = (uint)-1
+	zcolor_Transparent = 0x7FFFFFFCU,
+	zcolor_Cursor      = 0x7FFFFFFDU,
+	zcolor_Current     = 0x7FFFFFFEU,
+	zcolor_Default     = 0x7FFFFFFFU
 };
 
 #ifdef GLK_MODULE_IMAGE
@@ -220,7 +220,29 @@ enum ImageAlign {
 union gidispatch_rock_t {
 	uint num;
 	void *ptr;
+
+	gidispatch_rock_t() : ptr(nullptr) {}
 };
+
+union gluniversal_union {
+	uint _uint;          ///< Iu
+	int32 _sint;         ///< Is
+	void *_opaqueref;    ///< Qa, Qb, Qc...
+	byte _uch;           ///< Cu
+	int8 _sch;           ///< Cs
+	char _ch;            ///< Cn
+	char *_charstr;		 ///< S
+	uint32 *_unicharstr; ///< U
+	void *_array;        ///< all # arguments
+	uint _ptrflag;       ///< [ ... ] or *?
+};
+typedef gluniversal_union gluniversal_t;
+
+struct gidispatch_intconst_struct {
+	const char *name;
+	uint32 val;
+};
+typedef gidispatch_intconst_struct gidispatch_intconst_t;
 
 } // End of namespace Glk
 

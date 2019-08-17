@@ -135,7 +135,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise (e.g. when the directory does not exist).
 	 */
-	bool getChildren(FSList &fslist, ListMode mode = kListDirectoriesOnly, bool hidden = false) const;
+	bool getChildren(FSList &fslist, ListMode mode = kListDirectoriesOnly, bool hidden = true) const;
 
 	/**
 	 * Return a human readable string for this node, usable for display (e.g.
@@ -230,6 +230,23 @@ public:
 	 * @return pointer to the stream object, 0 in case of a failure
 	 */
 	WriteStream *createWriteStream() const;
+
+	/**
+	 * Creates a directory referred by this node. This assumes that this
+	 * node refers to non-existing directory. If this is not the case,
+	 * false is returned.
+	 *
+	 * @return true if the directory was created, false otherwise.
+	 */
+	bool createDirectory() const;
+
+	/**
+	 * Creates a directory referred by this node. The parent directory
+	 * will also be created if it doesn't exist.
+	 *
+	 * @return true if the directory was created, false otherwise.
+	 */
+	bool createDirectoryRecursive() const;
 };
 
 /**

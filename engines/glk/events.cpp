@@ -31,6 +31,8 @@
 
 namespace Glk {
 
+#define TRANSPARENT_RGB 0x80
+
 const byte ARROW[] = {
 	// byte 1: number of skipped pixels
 	// byte 2: number of plotted pixels
@@ -68,7 +70,7 @@ void Events::initializeCursors() {
 	const Graphics::PixelFormat format = g_system->getScreenFormat();
 	const int WHITE = format.RGBToColor(0xff, 0xff, 0xff);
 	const int BLACK = 0;
-	const int TRANSPARENT = format.RGBToColor(0x80, 0x80, 0x80);
+	const int TRANSPARENT = format.RGBToColor(TRANSPARENT_RGB, TRANSPARENT_RGB, TRANSPARENT_RGB);
 
 	// Setup arrow cursor
 	Surface &arr = _cursors[CURSOR_ARROW];
@@ -87,7 +89,7 @@ void Events::initializeCursors() {
 
 	// Setup selection cusor sized to the vertical line size
 	Surface &sel = _cursors[CURSOR_IBEAM];
-	sel.create(5, g_conf->_leading, g_system->getScreenFormat());
+	sel.create(5, g_conf->_propInfo._leading, g_system->getScreenFormat());
 	sel.fillRect(Common::Rect(0, 0, sel.w, sel.h), TRANSPARENT);
 	sel.hLine(0, 0, 4, 0);
 	sel.hLine(0, sel.h - 1, 4, 0);
@@ -182,10 +184,20 @@ void Events::pollEvents() {
 		g_system->getEventManager()->pollEvent(event);
 
 		switch (event.type) {
-		case Common::EVENT_KEYDOWN:
-			setCursor(CURSOR_NONE);
-			handleKeyDown(event.kbd);
+		case Common::EVENT_KEYDOWN: {
+			// Check for debugger
+			Debugger *dbg = g_vm->_debugger;
+			if (dbg && event.kbd.keycode == Common::KEYCODE_d && (event.kbd.flags & Common::KBD_CTRL)) {
+				// Attach to the debugger
+				dbg->attach();
+				dbg->onFrame();
+			} else if (!isModifierKey(event.kbd.keycode)) {
+				// Handle all other keypresses
+				setCursor(CURSOR_NONE);
+				handleKeyDown(event.kbd);
+			}
 			return;
+		}
 
 		case Common::EVENT_LBUTTONDOWN:
 		case Common::EVENT_RBUTTONDOWN:
@@ -218,28 +230,29 @@ void Events::handleKeyDown(const Common::KeyState &ks) {
 	Windows &windows = *g_vm->_windows;
 
 	if (ks.flags & Common::KBD_CTRL) {
-		if (ks.keycode == Common::KEYCODE_a)
-			windows.inputHandleKey(keycode_Home);
-		else if (ks.keycode == Common::KEYCODE_c)
-			clipboard.clipboardSend(CLIPBOARD);
-		else if (ks.keycode == Common::KEYCODE_e)
-			windows.inputHandleKey(keycode_End);
-		else if (ks.keycode == Common::KEYCODE_u)
-			windows.inputHandleKey(keycode_Escape);
-		else if (ks.keycode == Common::KEYCODE_v)
-			clipboard.clipboardReceive(CLIPBOARD);
-		else if (ks.keycode == Common::KEYCODE_x)
-			clipboard.clipboardSend(CLIPBOARD);
-		else if (ks.keycode == Common::KEYCODE_LEFT || ks.keycode == Common::KEYCODE_KP4)
-			windows.inputHandleKey(keycode_SkipWordLeft);
-		else if (ks.keycode == Common::KEYCODE_RIGHT || ks.keycode == Common::KEYCODE_KP6)
-			windows.inputHandleKey(keycode_SkipWordRight);
+		do {
+			if (ks.keycode == Common::KEYCODE_a)
+				windows.inputHandleKey(keycode_Home);
+			else if (ks.keycode == Common::KEYCODE_c)
+				clipboard.clipboardSend(CLIPBOARD);
+			else if (ks.keycode == Common::KEYCODE_e)
+				windows.inputHandleKey(keycode_End);
+			else if (ks.keycode == Common::KEYCODE_u)
+				windows.inputHandleKey(keycode_Escape);
+			else if (ks.keycode == Common::KEYCODE_v)
+				clipboard.clipboardReceive(CLIPBOARD);
+			else if (ks.keycode == Common::KEYCODE_x)
+				clipboard.clipboardSend(CLIPBOARD);
+			else if (ks.keycode == Common::KEYCODE_LEFT || ks.keycode == Common::KEYCODE_KP4)
+				windows.inputHandleKey(keycode_SkipWordLeft);
+			else if (ks.keycode == Common::KEYCODE_RIGHT || ks.keycode == Common::KEYCODE_KP6)
+				windows.inputHandleKey(keycode_SkipWordRight);
+			else
+				break;
 
-		return;
+			return;
+		} while (false);
 	}
-
-	if (ks.flags & Common::KBD_ALT)
-		return;
 
 	switch (ks.keycode) {
 	case Common::KEYCODE_RETURN:
@@ -320,7 +333,6 @@ void Events::handleKeyDown(const Common::KeyState &ks) {
 	default:
 		windows.inputHandleKey(ks.ascii);
 		break;
-		break;
 	}
 }
 
@@ -363,16 +375,34 @@ void Events::handleButtonUp(bool isLeft, const Point &pos) {
 	}
 }
 
-void Events::waitForPress() {
+bool Events::isModifierKey(const Common::KeyCode &keycode) const {
+	return keycode == Common::KEYCODE_LCTRL || keycode == Common::KEYCODE_LALT
+		|| keycode == Common::KEYCODE_RCTRL || keycode == Common::KEYCODE_RALT
+		|| keycode == Common::KEYCODE_LSHIFT || keycode == Common::KEYCODE_RSHIFT
+		|| keycode == Common::KEYCODE_LSUPER || keycode == Common::KEYCODE_RSUPER
+		|| keycode == Common::KEYCODE_CAPSLOCK || keycode == Common::KEYCODE_NUMLOCK
+		|| keycode == Common::KEYCODE_SCROLLOCK;
+}
+
+uint Events::getKeypress() {
 	Common::Event e;
 
-	do {
+	while (!g_vm->shouldQuit()) {
 		g_system->getEventManager()->pollEvent(e);
 		g_system->delayMillis(10);
 		checkForNextFrameCounter();
-	} while (!g_vm->shouldQuit() && e.type != Common::EVENT_KEYDOWN &&
-	         e.type != Common::EVENT_LBUTTONDOWN && e.type != Common::EVENT_RBUTTONDOWN &&
-	         e.type != Common::EVENT_MBUTTONDOWN);
+
+		if (e.type == Common::EVENT_KEYDOWN && !isModifierKey(e.kbd.keycode))
+			return e.kbd.keycode;
+		if (e.type == Common::EVENT_LBUTTONDOWN)
+			return Common::KEYCODE_SPACE;
+	}
+
+	return 0;
+}
+
+void Events::waitForPress() {
+	getKeypress();
 }
 
 void Events::setCursor(CursorId cursorId) {
@@ -384,13 +414,17 @@ void Events::setCursor(CursorId cursorId) {
 				CursorMan.showMouse(true);
 
 			const Surface &s = _cursors[cursorId];
-			const int TRANSPARENT = s.format.RGBToColor(0x80, 0x80, 0x80);
+			const int TRANSPARENT = s.format.RGBToColor(TRANSPARENT_RGB, TRANSPARENT_RGB, TRANSPARENT_RGB);
 
 			CursorMan.replaceCursor(s.getPixels(), s.w, s.h, s._hotspot.x, s._hotspot.y, TRANSPARENT, true, &s.format);
 		}
 
 		_cursorId = cursorId;
 	}
+}
+
+void Events::showMouseCursor(bool visible) {
+	CursorMan.showMouse(visible);
 }
 
 void Events::setTimerInterval(uint milli) {

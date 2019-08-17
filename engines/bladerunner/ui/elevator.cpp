@@ -32,6 +32,7 @@
 #include "bladerunner/time.h"
 #include "bladerunner/ui/ui_image_picker.h"
 #include "bladerunner/vqa_player.h"
+#include "bladerunner/subtitles.h"
 
 #include "common/rect.h"
 #include "common/str.h"
@@ -203,7 +204,7 @@ int Elevator::handleMouseDown(int x, int y) {
 }
 
 void Elevator::tick() {
-	if (!_vm->_gameIsRunning) {
+	if (!_vm->_windowIsActive) {
 		return;
 	}
 
@@ -226,6 +227,8 @@ void Elevator::tick() {
 	_imagePicker->draw(_vm->_surfaceFront);
 	_vm->_mouse->draw(_vm->_surfaceFront, p.x, p.y);
 
+	_vm->_subtitles->tick(_vm->_surfaceFront);
+
 	_vm->blitToScreen(_vm->_surfaceFront);
 	tickDescription();
 	_vm->_system->delayMillis(10);
@@ -241,7 +244,7 @@ void Elevator::reset() {
 	_imagePicker = nullptr;
 	_actorId = -1;
 	_sentenceId = -1;
-	_timeSpeakDescription = 0;
+	_timeSpeakDescriptionStart = 0u;
 	_buttonClicked = false;
 }
 
@@ -280,30 +283,25 @@ void Elevator::buttonFocus(int buttonId) {
 void Elevator::setupDescription(int actorId, int sentenceId) {
 	_actorId = actorId;
 	_sentenceId = sentenceId;
-
-	// TODO: Use proper timer
-	_timeSpeakDescription = _vm->_time->current() + 600;
+	_timeSpeakDescriptionStart = _vm->_time->current();
 }
 
 void Elevator::resetDescription() {
 	_actorId = -1;
 	_sentenceId = -1;
-	_timeSpeakDescription = 0;
+	_timeSpeakDescriptionStart = 0u;
 }
 
 void Elevator::tickDescription() {
-	int now = _vm->_time->current();
-	if (_actorId <= 0 || now < _timeSpeakDescription) {
+	uint32 now = _vm->_time->current();
+	// unsigned difference is intentional
+	if (_actorId <= 0 || (now - _timeSpeakDescriptionStart < 600u)) {
 		return;
 	}
 
 	_vm->_actors[_actorId]->speechPlay(_sentenceId, false);
 	_actorId = -1;
 	_sentenceId = -1;
-}
-
-void Elevator::resume() {
-	// TODO
 }
 
 void Elevator::mouseInCallback(int buttonId, void *self) {
@@ -316,7 +314,7 @@ void Elevator::mouseOutCallback(int, void *self) {
 
 void Elevator::mouseDownCallback(int, void *self) {
 	Elevator *elevator = ((Elevator *)self);
-	elevator->_vm->_audioPlayer->playAud(elevator->_vm->_gameInfo->getSfxTrack(515), 100, 0, 0, 50, 0);
+	elevator->_vm->_audioPlayer->playAud(elevator->_vm->_gameInfo->getSfxTrack(kSfxELEBUTN1), 100, 0, 0, 50, 0);
 }
 
 void Elevator::mouseUpCallback(int buttonId, void *self) {

@@ -53,16 +53,17 @@ struct SaveFileHeader {
 	int                _day;
 	int                _hour;
 	int                _minute;
+	uint32             _playTime;
 	Graphics::Surface *_thumbnail;
 };
 
 class SaveFileManager {
 private:
 	static const uint32 kTag = MKTAG('B', 'R', 'S', 'V');
-	static const uint32 kVersion = 1;
-	static const uint32 kNameLength = 32;
+	static const uint32 kVersion = 2;
 
 public:
+	static const uint32 kNameLength = 32;
 	static const uint32 kThumbnailSize = 9600; // 80x60x16bpp
 
 	static SaveStateList list(const Common::String &target);
@@ -93,10 +94,10 @@ public:
 
 	void padBytes(int count);
 
-	void writeInt(int v);
+	void writeInt(int32 v); // this writes a 4 byte int (uses writeUint32LE)
 	void writeFloat(float v);
 	void writeBool(bool v);
-	void writeStringSz(const Common::String &s, int sz);
+	void writeStringSz(const Common::String &s, uint sz);
 	void writeVector2(const Vector2 &v);
 	void writeVector3(const Vector3 &v);
 	void writeRect(const Common::Rect &v);
@@ -116,10 +117,10 @@ public:
 	int32 size() const override { return _s.size(); }
 	bool seek(int32 offset, int whence = SEEK_SET) override { return _s.seek(offset, whence); }
 
-	int readInt();
+	int32 readInt();
 	float readFloat();
 	bool readBool();
-	Common::String readStringSz(int sz);
+	Common::String readStringSz(uint sz);
 	Vector2 readVector2();
 	Vector3 readVector3();
 	Common::Rect readRect();

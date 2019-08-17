@@ -24,6 +24,7 @@
 
 #include "bladerunner/bladerunner.h"
 #include "bladerunner/font.h"
+#include "bladerunner/game_constants.h"
 #include "bladerunner/mouse.h"
 #include "bladerunner/savefile.h"
 #include "bladerunner/settings.h"
@@ -75,7 +76,6 @@ bool DialogueMenu::show() {
 }
 
 bool DialogueMenu::showAt(int x, int y) {
-	debug("DialogueMenu::showAt %d %d %d", _isVisible, x, y);
 	if (_isVisible) {
 		return false;
 	}
@@ -113,7 +113,17 @@ bool DialogueMenu::addToList(int answer, bool done, int priorityPolite, int prio
 		return false;
 	}
 
+#if BLADERUNNER_ORIGINAL_BUGS
+// Original uses incorrect spelling for entry id 1020: DRAGONFLY JEWERLY
 	const Common::String &text = _textResource->getText(answer);
+#else
+// fix spelling or entry id 1020 to DRAGONFLY JEWELRY in English version
+	const char *answerTextCP = _textResource->getText(answer);
+	if (_vm->_language == Common::EN_ANY && answer == 1020 && strcmp(answerTextCP, "DRAGONFLY JEWERLY") == 0) {
+		answerTextCP = "DRAGONFLY JEWELRY";
+	}
+	const Common::String &text = answerTextCP;
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	if (text.empty() || text.size() >= 50) {
 		return false;
 	}
@@ -125,7 +135,7 @@ bool DialogueMenu::addToList(int answer, bool done, int priorityPolite, int prio
 	_items[index].isDone = done;
 	_items[index].priorityPolite = priorityPolite;
 	_items[index].priorityNormal = priorityNormal;
-	_items[index].prioritySurly = prioritySurly;
+	_items[index].prioritySurly  = prioritySurly;
 
 	// CHECK(madmoose): BLADE.EXE calls this needlessly
 	// calculatePosition();
@@ -133,17 +143,63 @@ bool DialogueMenu::addToList(int answer, bool done, int priorityPolite, int prio
 	return true;
 }
 
-bool DialogueMenu::addToListNeverRepeatOnceSelected(int answer, int priorityPolite, int priorityNormal, int prioritySurly) {
+/**
+* Aux function - used in cut content mode to re-use some NeverRepeatOnceSelected dialogue options for different characters
+*/
+bool DialogueMenu::clearNeverRepeatWasSelectedFlag(int answer) {
+	int foundIndex = -1;
 	for (int i = 0; i != _neverRepeatListSize; ++i) {
-		if (answer == _neverRepeatValues[i] && _neverRepeatWasSelected[i]) {
-			return true;
+		if (answer == _neverRepeatValues[i]) {
+			foundIndex = i;
+			break;
 		}
 	}
 
-	_neverRepeatValues[_neverRepeatListSize] = answer;
-	_neverRepeatWasSelected[_neverRepeatListSize] = false;
-	++_neverRepeatListSize;
+	if (foundIndex >= 0 && _neverRepeatWasSelected[foundIndex]) {
+		_neverRepeatWasSelected[foundIndex] = false;
+		return true;
+	}
+	return false;
+}
+
+bool DialogueMenu::addToListNeverRepeatOnceSelected(int answer, int priorityPolite, int priorityNormal, int prioritySurly) {
+	int foundIndex = -1;
+	for (int i = 0; i != _neverRepeatListSize; ++i) {
+		if (answer == _neverRepeatValues[i]) {
+			foundIndex = i;
+			break;
+		}
+	}
+
+	if (foundIndex >= 0 && _neverRepeatWasSelected[foundIndex]) {
+		return true;
+	}
+
+	if (foundIndex == -1) {
+		_neverRepeatValues[_neverRepeatListSize] = answer;
+		_neverRepeatWasSelected[_neverRepeatListSize] = false;
+		++_neverRepeatListSize;
+
+		assert(_neverRepeatListSize <= 100);
+	}
+
 	return addToList(answer, false, priorityPolite, priorityNormal, prioritySurly);
+}
+
+bool DialogueMenu::removeFromList(int answer) {
+	int index = getAnswerIndex(answer);
+	if (index < 0) {
+		return false;
+	}
+	if (index < _listSize - 1) {
+		for (int i = index; i < _listSize; ++i) {
+			_items[index] = _items[index + 1];
+		}
+	}
+	--_listSize;
+
+	calculatePosition();
+	return true;
 }
 
 int DialogueMenu::queryInput() {
@@ -154,15 +210,30 @@ int DialogueMenu::queryInput() {
 	int answer = -1;
 	if (_listSize == 1) {
 		_selectedItemIndex = 0;
-		answer = _items[0].answerValue;
+		answer = _items[_selectedItemIndex].answerValue;
 	} else if (_listSize == 2) {
+#if BLADERUNNER_ORIGINAL_BUGS
 		if (_items[0].isDone) {
 			_selectedItemIndex = 1;
-			answer = _items[0].answerValue;
+			answer = _items[_selectedItemIndex].answerValue;
 		} else if (_items[1].isDone) {
 			_selectedItemIndex = 0;
-			answer = _items[1].answerValue;
+			answer = _items[_selectedItemIndex].answerValue;
 		}
+#else
+		// In User Choice mode, avoid auto-select of last option
+		// In this mode, player should still have agency to skip the last (non- "DONE")
+		// question instead of automatically asking it because the other remaining option is "DONE"
+		if (_vm->_settings->getPlayerAgenda() != kPlayerAgendaUserChoice) {
+			if (_items[0].isDone) {
+				_selectedItemIndex = 1;
+				answer = _items[_selectedItemIndex].answerValue;
+			} else if (_items[1].isDone) {
+				_selectedItemIndex = 0;
+				answer = _items[_selectedItemIndex].answerValue;
+			}
+		}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	}
 
 	if (answer == -1) {
@@ -170,10 +241,6 @@ int DialogueMenu::queryInput() {
 		if (agenda == kPlayerAgendaUserChoice) {
 			_waitingForInput = true;
 			do {
-				// TODO: game resuming
-				// if (!_vm->_gameRunning)
-				// 	break;
-
 				while (!_vm->playerHasControl()) {
 					_vm->playerGainsControl();
 				}
@@ -225,7 +292,7 @@ int DialogueMenu::queryInput() {
 		}
 	}
 
-	debug("DM Query Input: %d %s", answer, _items[_selectedItemIndex].text.c_str());
+	// debug("DM Query Input: %d %s", answer, _items[_selectedItemIndex].text.c_str());
 
 	return answer;
 }
@@ -276,7 +343,7 @@ void DialogueMenu::draw(Graphics::Surface &s) {
 
 		if (_items[i].colorIntensity < targetColorIntensity) {
 			_items[i].colorIntensity += 4;
-			if(_items[i].colorIntensity > targetColorIntensity) {
+			if (_items[i].colorIntensity > targetColorIntensity) {
 				_items[i].colorIntensity = targetColorIntensity;
 			}
 		} else if (_items[i].colorIntensity > targetColorIntensity) {
@@ -299,10 +366,10 @@ void DialogueMenu::draw(Graphics::Surface &s) {
 
 	Common::Point mouse = _vm->getMousePos();
 	if (mouse.x >= x && mouse.x < x2) {
-		s.vLine(mouse.x, y1 + 8, y2 + 2, 0x2108);
+		s.vLine(mouse.x, y1 + 8, y2 + 2, s.format.RGBToColor(64, 64, 64));
 	}
 	if (mouse.y >= y && mouse.y < y2) {
-		s.hLine(x1 + 8, mouse.y, x2 + 2, 0x2108);
+		s.hLine(x1 + 8, mouse.y, x2 + 2, s.format.RGBToColor(64, 64, 64));
 	}
 
 	_shapes[0].draw(s, x1, y1);
@@ -313,8 +380,8 @@ void DialogueMenu::draw(Graphics::Surface &s) {
 	for (int i = 0; i != _listSize; ++i) {
 		_shapes[1].draw(s, x1, y);
 		_shapes[4].draw(s, x2, y);
-		uint16 color = ((_items[i].colorIntensity >> 1) << 10) | ((_items[i].colorIntensity >> 1) << 5) | _items[i].colorIntensity;
-		_vm->_mainFont->drawColor(_items[i].text, s, x, y, color);
+		uint16 color = s.format.RGBToColor((_items[i].colorIntensity / 2) * (256 / 32), (_items[i].colorIntensity / 2) * (256 / 32), _items[i].colorIntensity * (256 / 32));
+		_vm->_mainFont->drawString(&s, _items[i].text, x, y, s.w, color);
 		y += kLineHeight;
 	}
 	for (; x != x2; ++x) {
@@ -340,7 +407,7 @@ const char *DialogueMenu::getText(int id) const {
 void DialogueMenu::calculatePosition(int unusedX, int unusedY) {
 	_maxItemWidth = 0;
 	for (int i = 0; i != _listSize; ++i) {
-		_maxItemWidth = MAX(_maxItemWidth, _vm->_mainFont->getTextWidth(_items[i].text));
+		_maxItemWidth = MAX(_maxItemWidth, _vm->_mainFont->getStringWidth(_items[i].text));
 	}
 	_maxItemWidth += 2;
 
@@ -354,7 +421,6 @@ void DialogueMenu::calculatePosition(int unusedX, int unusedY) {
 	_screenY = CLIP(_screenY, 0, 480 - h);
 
 	_fadeInItemIndex = 0;
-	debug("calculatePosition: %d %d %d %d %d", _screenX, _screenY, _centerX, _centerY, _maxItemWidth);
 }
 
 void DialogueMenu::mouseUp() {
@@ -395,6 +461,40 @@ void DialogueMenu::load(SaveFileReadStream &f) {
 	_selectedItemIndex = f.readInt();
 	_listSize = f.readInt();
 
+#if 0
+	/* fix for duplicated non-repeated entries in the save game */
+	f.readInt();
+	_neverRepeatListSize = 0;
+	int answer[100];
+	bool selected[100];
+	for (int i = 0; i < 100; ++i) {
+		_neverRepeatValues[i] = -1;
+		answer[i] = f.readInt();
+	}
+	for (int i = 0; i < 100; ++i) {
+		_neverRepeatWasSelected[i] = false;
+		selected[i] = f.readBool();
+	}
+	for (int i = 0; i < 100; ++i) {
+		int found = false;
+		bool value = false;
+
+		for (int j = 0; j < 100; ++j) {
+			if (_neverRepeatValues[j] == answer[i]) {
+				found = true;
+			}
+			if (answer[j] == answer[i]) {
+				value |= selected[j];
+			}
+		}
+
+		if (!found) {
+			_neverRepeatValues[_neverRepeatListSize] = answer[i];
+			_neverRepeatWasSelected[_neverRepeatListSize] = value;
+			++_neverRepeatListSize;
+		}
+	}
+#else
 	_neverRepeatListSize = f.readInt();
 	for (int i = 0; i < 100; ++i) {
 		_neverRepeatValues[i] = f.readInt();
@@ -402,6 +502,8 @@ void DialogueMenu::load(SaveFileReadStream &f) {
 	for (int i = 0; i < 100; ++i) {
 		_neverRepeatWasSelected[i] = f.readBool();
 	}
+#endif
+
 	for (int i = 0; i < 10; ++i) {
 		_items[i].text = f.readStringSz(50);
 		_items[i].answerValue = f.readInt();
@@ -450,8 +552,13 @@ void DialogueMenu::darkenRect(Graphics::Surface &s, int x1, int y1, int x2, int 
 	if (x1 < x2 && y1 < y2) {
 		for (int y = y1; y != y2; ++y) {
 			for (int x = x1; x != x2; ++x) {
-				uint16 *p = (uint16 *)s.getBasePtr(x, y);
-				*p = (*p & 0x739C) >> 2; // 0 11100 11100 11100
+				uint16 *p = (uint16 *)s.getBasePtr(CLIP(x, 0, s.w - 1), CLIP(y, 0, s.h - 1));
+				uint8 r, g, b;
+				s.format.colorToRGB(*p, r, g, b);
+				r /= 4;
+				g /= 4;
+				b /= 4;
+				*p = s.format.RGBToColor(r, g, b);
 			}
 		}
 	}

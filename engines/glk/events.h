@@ -220,6 +220,11 @@ private:
 	 * Handle mouse up events
 	 */
 	void handleButtonUp(bool isLeft, const Point &pos);
+
+	/**
+	 * Returns true if the passed keycode is for the Ctrl or Alt keys
+	 */
+	bool isModifierKey(const Common::KeyCode &keycode) const;
 public:
 	bool _forceClick;
 public:
@@ -242,6 +247,11 @@ public:
 	 * Store an event for retrieval
 	 */
 	void store(EvType type, Window *win, uint val1 = 0, uint val2 = 0);
+
+	/**
+	 * Wait for a keypress
+	 */
+	uint getKeypress();
 
 	/**
 	 * Wait for a keyboard or mouse press
@@ -273,6 +283,13 @@ public:
 	 * Sets the current cursor
 	 */
 	void setCursor(CursorId cursorId);
+
+	/**
+	 * Sets whether the mouse cursor is visible
+	 * @remarks Normally the cursor is visible for all games, even for those that didn't have mouse originally,
+	 * so as to allow for common Glk functionality for selecting ranges of text
+	 */
+	void showMouseCursor(bool visible);
 
 	/**
 	 * Set a timer interval

@@ -167,7 +167,7 @@ void Processor::runtimeError(ErrorCode errNum) {
 
 	if ((_err_report_mode == ERR_REPORT_ALWAYS)
 		|| (_err_report_mode == ERR_REPORT_ONCE && wasfirst)) {
-		long pc;
+		offset_t pc;
 		GET_PC(pc);
 		print_string("Warning: ");
 		print_string(ERR_MESSAGES[errNum - 1]);
@@ -177,8 +177,7 @@ void Processor::runtimeError(ErrorCode errNum) {
 
 		if (_err_report_mode == ERR_REPORT_ONCE) {
 			print_string(" (will ignore further occurrences)");
-		}
-		else {
+		} else {
 			print_string(" (occurence ");
 			print_long(_errorCount[errNum - 1], 10);
 			print_char(')');
@@ -188,5 +187,5 @@ void Processor::runtimeError(ErrorCode errNum) {
 	}
 }
 
-} // End of namespace Scott
+} // End of namespace Frotz
 } // End of namespace Glk

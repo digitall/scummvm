@@ -32,6 +32,8 @@ namespace Glk {
  * Picture/image class
  */
 struct Picture : Graphics::ManagedSurface {
+private:
+	int _transColor;
 public:
 	int _refCount;
 	uint _id;
@@ -40,14 +42,12 @@ public:
 	/**
 	 * Constructor
 	 */
-	Picture() : Graphics::ManagedSurface(), _refCount(0), _id(0), _scaled(false) {}
+	Picture() : Graphics::ManagedSurface(), _refCount(0), _id(0), _scaled(false), _transColor(0x7777) {}
 
 	/**
 	 * Constructor
 	 */
-	Picture(int width, int height, const Graphics::PixelFormat &fmt) :
-		Graphics::ManagedSurface(width, height, fmt), _refCount(0), _id(0), _scaled(false) {}
-
+	Picture(int width, int height, const Graphics::PixelFormat &fmt);
 	/**
 	 * Increment reference counter
 	 */
@@ -62,6 +62,16 @@ public:
 	 * Draw the picture
 	 */
 	void drawPicture(const Common::Point &destPos, const Common::Rect &box);
+
+	/**
+	 * Get the transparency color
+	 */
+	uint getTransparentColor() const { return _transColor; }
+
+	/**
+	 * Set the transparency color
+	 */
+	void setTransparentColor(uint color) { _transColor = color; }
 };
 
 /**
@@ -80,6 +90,8 @@ class Pictures {
 private:
 	int _refCount;
 	Common::Array<PictureEntry> _store;
+	Common::Array<uint> _adaptivePics;
+	Common::Array<byte> _savedPalette;
 private:
 	/**
 	 * Stores an original picture in the store
@@ -94,7 +106,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Pictures() : _refCount(0) {}
+	Pictures();
 
 	/**
 	 * Destructor

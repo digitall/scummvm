@@ -27,9 +27,17 @@
 #include "common/hash-str.h"
 #include "engines/game.h"
 #include "glk/streams.h"
+#include "glk/detection.h"
 
 namespace Glk {
 namespace Frotz {
+
+/**
+ * Game descriptor detection options
+ */
+enum DetectionOption {
+	OPTION_INFOCOM = 1
+};
 
 class FrotzMetaEngine {
 public:
@@ -38,11 +46,10 @@ public:
 	 */
 	static void getSupportedGames(PlainGameList &games);
 
-
 	/**
 	 * Returns a game description for the given game Id, if it's supported
 	 */
-	static PlainGameDescriptor findGame(const char *gameId);
+	static GameDescriptor findGame(const char *gameId);
 
 	/**
 	 * Detect supported games
@@ -53,11 +60,6 @@ public:
 	 * Check for game Id clashes with other sub-engines
 	 */
 	static void detectClashes(Common::StringMap &map);
-
-	/**
-	 * Check a passed stream for a Quetzal save, and if so, get header information
-	 */
-	static bool readSavegameHeader(Common::SeekableReadStream *stream, Glk::SavegameHeader &header);
 };
 
 } // End of namespace Frotz

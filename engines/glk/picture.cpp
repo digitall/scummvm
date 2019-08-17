@@ -30,10 +30,20 @@
 
 namespace Glk {
 
+Pictures::Pictures() : _refCount(0) {
+	Common::File f;
+	if (f.open("apal")) {
+		while (f.pos() < f.size())
+			_adaptivePics.push_back(f.readUint32BE());
+	}
+}
+
 void Pictures::clear() {
 	for (uint idx = 0; idx < _store.size(); ++idx) {
-		_store[idx]._picture->decrement();
-		_store[idx]._scaled->decrement();
+		if (_store[idx]._picture)
+			_store[idx]._picture->decrement();
+		if (_store[idx]._scaled)
+			_store[idx]._scaled->decrement();
 	}
 
 	_store.clear();
@@ -108,6 +118,7 @@ Picture *Pictures::load(uint32 id) {
 	const Graphics::Surface *img;
 	const byte *palette = nullptr;
 	uint palCount = 0;
+	int transColor = -1;
 	Picture *pic;
 
 	// Check if the picture is already in the store
@@ -117,11 +128,14 @@ Picture *Pictures::load(uint32 id) {
 
 	Common::File f;
 	if (f.open(Common::String::format("pic%u.png", id))) {
+		png.setKeepTransparencyPaletted(true);
 		png.loadStream(f);
 		img = png.getSurface();
 		palette = png.getPalette();
 		palCount = png.getPaletteColorCount();
+		transColor = png.getTransparentColor();
 	} else if (f.open(Common::String::format("pic%u.jpg", id))) {
+		jpg.setOutputPixelFormat(g_system->getScreenFormat());
 		jpg.loadStream(f);
 		img = jpg.getSurface();
 	} else if (f.open(Common::String::format("pic%u.raw", id))) {
@@ -129,19 +143,39 @@ Picture *Pictures::load(uint32 id) {
 		img = raw.getSurface();
 		palette = raw.getPalette();
 		palCount = raw.getPaletteColorCount();
+		transColor = raw.getTransparentColor();
 	} else if (f.open(Common::String::format("pic%u.rect", id))) {
-		rectImg.w = f.readUint16LE();
-		rectImg.h = f.readUint16LE();
+		rectImg.w = f.readUint32BE();
+		rectImg.h = f.readUint32BE();
 		img = &rectImg;
 	} else {
 		// No such picture
 		return nullptr;
 	}
 
+	// Also check if it's going to be an adaptive pic
+	bool isAdaptive = false;
+	for (uint idx = 0; idx < _adaptivePics.size() && !isAdaptive; ++idx)
+		isAdaptive = _adaptivePics[idx] == id;
+
+	if (isAdaptive) {
+		// It is, so used previously saved palette
+		assert(!_savedPalette.empty());
+		palette = &_savedPalette[0];
+		palCount = _savedPalette.size() / 3;
+	} else if (palette) {
+		// It's a picture with a valid palette, so save a copy of it for later
+		_savedPalette.resize(palCount * 3);
+		Common::copy(palette, palette + palCount * 3, &_savedPalette[0]);
+	}
+
+	// Create new picture based on the image
 	pic = new Picture(img->w, img->h, g_system->getScreenFormat());
 	pic->_refCount = 1;
     pic->_id = id;
     pic->_scaled = false;
+	if (transColor != -1 || (!palette && img->format.aBits() > 0))
+		pic->clear(pic->getTransparentColor());
 
 	if (!img->getPixels()) {
 		// Area definition without any content
@@ -156,11 +190,13 @@ Picture *Pictures::load(uint32 id) {
 		const byte *srcP = (const byte *)img->getPixels();
 		byte *destP = (byte *)pic->getPixels();
 		for (int idx = 0; idx < img->w * img->h; ++idx, srcP++, destP += pic->format.bytesPerPixel) {
-			uint val = (*srcP >= palCount) ? 0 : pal[*srcP];
-			if (pic->format.bytesPerPixel == 2)
-				WRITE_LE_UINT16(destP, val);
-			else
-				WRITE_LE_UINT32(destP, val);
+			if ((int)*srcP != transColor) {
+				uint val = (*srcP >= palCount) ? 0 : pal[*srcP];
+				if (pic->format.bytesPerPixel == 2)
+					WRITE_LE_UINT16(destP, val);
+				else
+					WRITE_LE_UINT32(destP, val);
+			}
 		}
 	}
 
@@ -186,6 +222,13 @@ Picture *Pictures::scale(Picture *src, size_t sx, size_t sy) {
 
 /*--------------------------------------------------------------------------*/
 
+Picture::Picture(int width, int height, const Graphics::PixelFormat &fmt) :
+		Graphics::ManagedSurface(width, height, fmt), _refCount(0), _id(0), _scaled(false) {
+
+	// Default transparent color chosen at random
+	_transColor = format.RGBToColor(0x77, 0x77, 0x77);
+}
+
 void Picture::increment() {
 	++_refCount;
 }
@@ -198,8 +241,10 @@ void Picture::decrement() {
 }
 
 void Picture::drawPicture(const Common::Point &destPos, const Common::Rect &box) {
-	Graphics::Surface s = g_vm->_screen->getSubArea(box);
-	s.copyRectToSurface(*this, destPos.x - box.left, destPos.y, getBounds());
+	Graphics::ManagedSurface s(*g_vm->_screen, box);
+	Common::Point pt(destPos.x - box.left, destPos.y - box.top);
+
+	s.transBlitFrom(*this, pt, _transColor);
 }
 
 } // End of namespace Glk

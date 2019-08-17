@@ -32,16 +32,13 @@ namespace Glk {
 namespace Frotz {
 
 GlkInterface::GlkInterface(OSystem *syst, const GlkGameDescription &gameDesc) :
-		GlkAPI(syst, gameDesc),
-		_pics(nullptr), oldstyle(0), curstyle(0), cury(1), curx(1), fixforced(0),
-		curr_fg(-2), curr_bg(-2), curr_font(1), prev_font(1), temp_font(0),
-		curr_status_ht(0), mach_status_ht(0), gos_status(nullptr), gos_upper(nullptr),
-		gos_lower(nullptr), gos_curwin(nullptr), gos_linepending(0), gos_linebuf(nullptr),
-		gos_linewin(nullptr), gos_channel(nullptr), cwin(0), mwin(0), mouse_x(0), mouse_y(0),
-		menu_selected(0), enable_wrapping(false), enable_scripting(false),
-		enable_scrolling(false), enable_buffering(false), next_sample(0), next_volume(0),
-		_soundLocked(false), _soundPlaying(false) {
+		GlkAPI(syst, gameDesc), _pics(nullptr), curr_status_ht(0), mach_status_ht(0), gos_status(nullptr),
+		gos_linepending(0), gos_linebuf(nullptr), gos_linewin(nullptr), gos_channel(nullptr), mwin(0),
+		mouse_x(0), mouse_y(0), fixforced(0), menu_selected(0), enable_wrapping(false), enable_scripting(false),
+		enable_scrolling(false), enable_buffering(false), next_sample(0), next_volume(0), _soundLocked(false),
+		_soundPlaying(false), _reverseVideo(false) {
 	Common::fill(&statusline[0], &statusline[256], '\0');
+	Common::fill(&zcolors[0], &zcolors[zcolor_NUMCOLORS], 0);
 }
 
 GlkInterface::~GlkInterface() {
@@ -49,7 +46,28 @@ GlkInterface::~GlkInterface() {
 }
 
 void GlkInterface::initialize() {
-	uint width, height;
+	/* Setup options */
+	UserOptions::initialize(h_version, _storyId);
+
+	/* Setup colors array */
+	const int COLOR_MAP[zcolor_NUMCOLORS - 2] = {
+		0x0000,					///<  2 = black
+		0x001D,					///<  3 = red
+		0x0340,					///<  4 = green
+		0x03BD,					///<  5 = yellow
+		0x59A0,					///<  6 = blue
+		0x7C1F,					///<  7 = magenta
+		0x77A0,					///<  8 = cyan
+		0x7FFF,					///<  9 = white
+		0x5AD6,					///< 10 = light grey
+		0x4631,					///< 11 = medium grey
+		0x2D6B,					///< 12 = dark grey
+	};
+
+	zcolors[0] = zcolor_Current;		// Current
+	zcolors[1] = zcolor_Default;		// Default
+	for (int i = 2; i < zcolor_NUMCOLORS; ++i)
+		zcolors[i] = zRGB(COLOR_MAP[i - 2]);
 
 	/*
 	 * Init glk stuff
@@ -103,14 +121,66 @@ void GlkInterface::initialize() {
 	 * Get the screen size
 	 */
 
-	gos_lower = glk_window_open(0, 0, 0, wintype_TextGrid, 0);
-	if (!gos_lower)
-		gos_lower = glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
-	glk_window_get_size(gos_lower, &width, &height);
-	glk_window_close(gos_lower, nullptr);
-
 	gos_channel = nullptr;
 
+	h_screen_width = g_system->getWidth();
+	h_screen_height = g_system->getHeight();
+	h_font_width = g_conf->_monoInfo._cellW;
+	h_font_height = g_conf->_monoInfo._cellH;
+	h_screen_cols = h_screen_width / h_font_width;
+	h_screen_rows = h_screen_height / h_font_height;
+
+	// Must be after screen dimensions are computed
+	if (g_conf->_graphics) {
+		if (_blorb)
+			// Blorb file containers allow graphics
+			h_flags |= GRAPHICS_FLAG;
+		else if ((h_version == V6 || _storyId == BEYOND_ZORK) && initPictures())
+			// Earlier Infocom game with picture files
+			h_flags |= GRAPHICS_FLAG;
+	}
+
+	// Use the ms-dos interpreter number for v6, because that's the
+	// kind of graphics files we understand
+	h_interpreter_number = h_version == 6 ? INTERP_MSDOS : INTERP_AMIGA;
+	h_interpreter_version = 'F';
+
+	// Set these per spec 8.3.2.
+	h_default_foreground = WHITE_COLOUR;
+	h_default_background = BLACK_COLOUR;
+
+	// Set up the foreground & background
+	_color_enabled = ((h_version >= 5) && (h_flags & COLOUR_FLAG))
+		|| (_defaultForeground != zcolor_Transparent) || (_defaultBackground != zcolor_Transparent);
+
+	if (_color_enabled) {
+		h_config |= CONFIG_COLOUR;
+		h_flags |= COLOUR_FLAG;		// FIXME: beyond zork handling?
+
+		if (h_version == 6) {
+			h_default_foreground = BLACK_COLOUR;
+			h_default_background = WHITE_COLOUR;
+		}
+
+		zcolors[h_default_foreground] = _defaultForeground;
+		zcolors[h_default_background] = _defaultBackground;
+	} else {
+		if (h_flags & COLOUR_FLAG)
+			h_flags &= ~COLOUR_FLAG;
+	}
+
+	/*
+	 * Open the windows
+	 */
+	if (_storyId == BEYOND_ZORK)
+		showBeyondZorkTitle();
+
+	_wp.setup(h_version == 6);
+	for (uint i = 0; i < _wp.size(); ++i) {
+		_wp[i][TRUE_FG_COLOR] = zcolors[h_default_foreground];
+		_wp[i][TRUE_BG_COLOR] = zcolors[h_default_background];
+	}
+	
 	/*
 	 * Icky magic bit setting
 	 */
@@ -118,10 +188,10 @@ void GlkInterface::initialize() {
 	if (h_version == V3 && _tandyBit)
 		h_config |= CONFIG_TANDY;
 
-	if (h_version == V3 && gos_upper)
+	if (h_version == V3 && _wp._upper)
 		h_config |= CONFIG_SPLITSCREEN;
 
-	if (h_version == V3 && !gos_upper)
+	if (h_version == V3 && !_wp._upper)
 		h_config |= CONFIG_NOSTATUSLINE;
 
 	if (h_version >= V4)
@@ -144,56 +214,19 @@ void GlkInterface::initialize() {
 		if (_undo_slots == 0)
 			h_flags &= ~UNDO_FLAG;
 
-	h_screen_cols = width;
-	h_screen_rows = height;
-
-	h_screen_height = h_screen_rows;
-	h_screen_width = h_screen_cols;
-
-	h_font_width = 1;
-	h_font_height = 1;
-
-	// Must be after screen dimensions are computed
-	if (g_conf->_graphics) {
-		if (_blorb)
-			// Blorb file containers allow graphics
-			h_flags |= GRAPHICS_FLAG;
-		else if ((h_version == V6 || _storyId == BEYOND_ZORK) && initPictures())
-			// Earlier Infocom game with picture files
-			h_flags |= GRAPHICS_FLAG;
-	}
-
-	// Use the ms-dos interpreter number for v6, because that's the
-	// kind of graphics files we understand
-	h_interpreter_number = h_version == 6 ? INTERP_MSDOS : INTERP_AMIGA;
-	h_interpreter_version = 'F';
-
-	// Set these per spec 8.3.2.
-	h_default_foreground = WHITE_COLOUR;
-	h_default_background = BLACK_COLOUR;
-	if (h_flags & COLOUR_FLAG)
-		h_flags &= ~COLOUR_FLAG;
-
 	/*
-	 * Open the windows
+	 * Miscellaneous
 	 */
-	if (_storyId == BEYOND_ZORK)
-		showBeyondZorkTitle();
-
-	gos_lower = glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
-	gos_upper = glk_window_open(gos_lower,
-		winmethod_Above | winmethod_Fixed,
-		0,
-		wintype_TextGrid, 0);
-
-	glk_set_window(gos_lower);
-	gos_curwin = gos_lower;
-
-	// Set the screen colors
-	garglk_set_zcolors(_defaultForeground, _defaultBackground);
 
 	// Add any sound folder or zip
 	addSound();
+
+	// For Beyond Zork the Page Up/Down keys are remapped to scroll the description area,
+	// since the arrow keys the original used are in use now for cycling prior commands
+	if (_storyId == BEYOND_ZORK) {
+		uint32 KEYCODES[2] = { keycode_PageUp, keycode_PageDown };
+		glk_set_terminators_line_event(_wp._lower, KEYCODES, 2);
+	}
 }
 
 void GlkInterface::addSound() {
@@ -210,14 +243,12 @@ bool GlkInterface::initPictures() {
 	}
 
 	if (h_version == V6)
-		warning("Could not locate MG1 file");
+		error("Could not locate MG1 file");
 	return false;
 }
 
 int GlkInterface::os_char_width(zchar z) {
-	// Note: I'm presuming this is 1 because Glk Text Grid windows take care of font sizes internally,
-	// so we can pretend that any font has a 1x1 size
-	return 1;
+	return g_conf->_monoInfo._cellW;
 }
 
 int GlkInterface::os_string_width(const zchar *s) {
@@ -277,6 +308,7 @@ void GlkInterface::os_stop_sample(int a) {
 }
 
 void GlkInterface::os_beep(int volume) {
+	beep();
 }
 
 bool GlkInterface::os_picture_data(int picture, uint *height, uint *width) {
@@ -285,7 +317,13 @@ bool GlkInterface::os_picture_data(int picture, uint *height, uint *width) {
 		*height = _pics->size();
 		return true;
 	} else {
-		return glk_image_get_info(picture, width, height);
+		uint fullWidth, fullHeight;
+		bool result = glk_image_get_info(picture, &fullWidth, &fullHeight);
+
+		*width = fullWidth;
+		*height = fullHeight;
+
+		return result;
 	}
 }
 
@@ -315,23 +353,23 @@ void GlkInterface::start_next_sample() {
 
 void GlkInterface::gos_update_width() {
 	uint width;
-	if (gos_upper) {
-		glk_window_get_size(gos_upper, &width, nullptr);
+	if (_wp._upper) {
+		glk_window_get_size(_wp._upper, &width, nullptr);
 		h_screen_cols = width;
 		SET_BYTE(H_SCREEN_COLS, width);
-		if ((uint)curx > width) {
-			glk_window_move_cursor(gos_upper, 0, cury - 1);
-			curx = 1;
-		}
+
+		uint curx = _wp._upper[X_CURSOR];
+		if (curx > width)
+			_wp._upper.setCursor(Point(1, _wp._upper[Y_CURSOR]));
 	}
 }
 
 void GlkInterface::gos_update_height() {
 	uint height_upper;
 	uint height_lower;
-	if (gos_curwin) {
-		glk_window_get_size(gos_upper, nullptr, &height_upper);
-		glk_window_get_size(gos_lower, nullptr, &height_lower);
+	if (_wp.currWin()) {
+		glk_window_get_size(_wp._upper, nullptr, &height_upper);
+		glk_window_get_size(_wp._lower, nullptr, &height_lower);
 		h_screen_rows = height_upper + height_lower + 1;
 		SET_BYTE(H_SCREEN_ROWS, h_screen_rows);
 	}
@@ -339,63 +377,60 @@ void GlkInterface::gos_update_height() {
 
 void GlkInterface::reset_status_ht() {
 	uint height;
-	if (gos_upper) {
-		glk_window_get_size(gos_upper, nullptr, &height);
+	if (_wp._upper && h_version != 6) {
+		glk_window_get_size(_wp._upper, nullptr, &height);
 		if ((uint)mach_status_ht != height) {
-			glk_window_set_arrangement(
-				glk_window_get_parent(gos_upper),
-				winmethod_Above | winmethod_Fixed,
-				mach_status_ht, nullptr);
+			glk_window_set_arrangement(glk_window_get_parent(_wp._upper),
+				winmethod_Above | winmethod_Fixed, mach_status_ht, nullptr);
 		}
 	}
 }
 
 void GlkInterface::erase_window(zword w) {
 	if (w == 0)
-		glk_window_clear(gos_lower);
-	else if (gos_upper) {
-#ifdef GARGLK
-		garglk_set_reversevideo_stream(
-			glk_window_get_stream(gos_upper),
-			true);
-#endif /* GARGLK */
+		_wp._lower.clear();
+
+	else if (_wp._upper) {
+		//os_set_reverse_video(glk_window_get_stream(_wp._upper), true);
 		
 		memset(statusline, ' ', sizeof statusline);
-		glk_window_clear(gos_upper);
+		_wp._upper.clear();
 		reset_status_ht();
 		curr_status_ht = 0;
 	}
 }
 
 void GlkInterface::split_window(zword lines) {
-	if (!gos_upper)
+	if (!_wp._upper)
 		return;
 
 	// The top line is always set for V1 to V3 games
 	if (h_version < V4)
 		lines++;
 
-	if (!lines || lines > curr_status_ht) {
+	if ((!lines || lines > curr_status_ht) && h_version != 6) {
 		uint height;
 
-		glk_window_get_size(gos_upper, nullptr, &height);
+		glk_window_get_size(_wp._upper, nullptr, &height);
 		if (lines != height)
-			glk_window_set_arrangement(
-				glk_window_get_parent(gos_upper),
-				winmethod_Above | winmethod_Fixed,
-				lines, nullptr);
+			glk_window_set_arrangement(glk_window_get_parent(_wp._upper),
+				winmethod_Above | winmethod_Fixed, lines, nullptr);
 		curr_status_ht = lines;
 	}
 	mach_status_ht = lines;
-	if (cury > lines)
-	{
-		glk_window_move_cursor(gos_upper, 0, 0);
-		curx = cury = 1;
-	}
+
+	int curY = _wp._upper[Y_CURSOR];
+	if (curY > lines)
+		_wp._upper.setCursor(Point(1, 1));
 	gos_update_width();
 
 	if (h_version == V3)
-		glk_window_clear(gos_upper);
+		_wp._upper.clear();
+	if (h_version == V6) {
+		_wp._upper.clear();
+		_wp._lower.clear();
+		_wp._background->fillRect(_defaultBackground, Rect(g_system->getWidth(), g_system->getHeight()));
+	}
 }
 
 void GlkInterface::restart_screen() {
@@ -464,9 +499,10 @@ void GlkInterface::smartstatusline() {
 	memcpy(buf + 1 + scoreofs, c, scorelen * sizeof(zchar));
 	memcpy(buf + 1, a, roomlen * sizeof(zchar));
 
-	glk_window_move_cursor(gos_upper, 0, 0);
+	Point cursPos(_wp._upper[X_CURSOR], _wp._upper[Y_CURSOR]);
+	_wp._upper.setCursor(Point(1, 1));
 	glk_put_buffer_uni(buf, h_screen_cols);
-	glk_window_move_cursor(gos_upper, cury - 1, curx - 1);
+	_wp._upper.setCursor(cursPos);
 }
 
 void GlkInterface::gos_cancel_pending_line() {
@@ -477,59 +513,99 @@ void GlkInterface::gos_cancel_pending_line() {
 }
 
 void GlkInterface::showBeyondZorkTitle() {
-	uint winW, winH, imgW, imgH;
-	winid_t win = glk_window_open(0, 0, 0, wintype_Graphics, 0);
-	glk_window_get_size(win, &winW, &winH);
+	int saveSlot = ConfMan.hasKey("save_slot") ? ConfMan.getInt("save_slot") : -1;
 
-	if (os_picture_data(1, &imgW, &imgH)) {
-		os_draw_picture(1, win, Common::Rect(0, 0, winW, winH));
-		_events->waitForPress();
+	if (saveSlot == -1) {
+		winid_t win = glk_window_open(0, 0, 0, wintype_Graphics, 0);
+		if (glk_image_draw_scaled(win, 1, 0, 0, g_vm->_screen->w, g_vm->_screen->h))
+			_events->waitForPress();
+
+		glk_window_close(win, nullptr);
 	}
-
-	glk_window_close(win, nullptr);
 }
 
-void GlkInterface::os_draw_picture(int picture, winid_t win, const Common::Point &pos) {
-	glk_image_draw(win, picture, pos.x - 1, pos.y - 1);
+void GlkInterface::os_draw_picture(int picture, const Common::Point &pos) {
+	if (pos.x && pos.y) {
+		_wp._background->bringToFront();
+		Point pt(pos.x - 1, pos.y - 1);
+		if (h_version < V5) {
+			pt.x *= g_conf->_monoInfo._cellW;
+			pt.y *= g_conf->_monoInfo._cellH;
+		}
+
+		glk_image_draw(_wp._background, picture, pt.x, pt.y);
+	} else {
+		// Picture embedded within the lower text area
+		_wp.currWin().imageDraw(picture, imagealign_MarginLeft, 0);
+	}
 }
 
-void GlkInterface::os_draw_picture(int picture, winid_t win, const Common::Rect &r) {
-	glk_image_draw_scaled(win, picture, r.left, r.top, r.width(), r.height());
+int GlkInterface::os_peek_color() {
+	if (_color_enabled) {
+		return _defaultBackground;
+	} else {
+		return (_reverseVideo) ? h_default_foreground : h_default_background;
+	}
+/*
+ if (u_setup.color_enabled) { */
+#ifdef COLOR_SUPPORT
+	short fg, bg;
+	pair_content(PAIR_NUMBER(inch() & A_COLOR), &fg, &bg);
+	switch(bg) {
+		  case COLOR_BLACK: return BLACK_COLOUR;
+		  case COLOR_RED: return RED_COLOUR;
+		  case COLOR_GREEN: return GREEN_COLOUR;
+		  case COLOR_YELLOW: return YELLOW_COLOUR;
+		  case COLOR_BLUE: return BLUE_COLOUR;
+		  case COLOR_MAGENTA: return MAGENTA_COLOUR;
+		  case COLOR_CYAN: return CYAN_COLOUR;
+		  case COLOR_WHITE: return WHITE_COLOUR;
+	}
+	return 0;
+#endif /* COLOR_SUPPORT */
 }
 
 zchar GlkInterface::os_read_key(int timeout, bool show_cursor) {
-	event_t ev;
-	winid_t win = gos_curwin ? gos_curwin : gos_lower;
+	Window &win = _wp.currWin() ? _wp.currWin() : _wp._lower;
+	uint key;
 
-	if (gos_linepending)
-		gos_cancel_pending_line();
+	if (win) {
+		// Get a keypress from a window
+		if (gos_linepending)
+			gos_cancel_pending_line();
 
-	glk_request_char_event_uni(win);
-	if (timeout != 0)
-		glk_request_timer_events(timeout * 100);
+		glk_request_char_event_uni(win);
+		if (timeout != 0)
+			glk_request_timer_events(timeout * 100);
 
-	while (!shouldQuit()) {
-		glk_select(&ev);
-		if (ev.type == evtype_Arrange) {
-			gos_update_height();
-			gos_update_width();
-		} else if (ev.type == evtype_Timer) {
-			glk_cancel_char_event(win);
-			glk_request_timer_events(0);
-			return ZC_TIME_OUT;
-		} else if (ev.type == evtype_CharInput)
-			break;
+		event_t ev;
+		while (!shouldQuit()) {
+			glk_select(&ev);
+			if (ev.type == evtype_Arrange) {
+				gos_update_height();
+				gos_update_width();
+			} else if (ev.type == evtype_Timer) {
+				glk_cancel_char_event(win);
+				glk_request_timer_events(0);
+				return ZC_TIME_OUT;
+			} else if (ev.type == evtype_CharInput)
+				break;
+		}
+		if (shouldQuit())
+			return 0;
+
+		glk_request_timer_events(0);
+
+		if (_wp._upper && mach_status_ht < curr_status_ht)
+			reset_status_ht();
+		curr_status_ht = 0;
+		key = ev.val1;
+	} else {
+		// No active window, so get a raw keypress
+		key = _events->getKeypress();
 	}
-	if (shouldQuit())
-		return 0;
 
-	glk_request_timer_events(0);
-
-	if (gos_upper && mach_status_ht < curr_status_ht)
-		reset_status_ht();
-	curr_status_ht = 0;
-
-	switch (ev.val1) {
+	switch (key) {
 	case keycode_Escape: return ZC_ESCAPE;
 	case keycode_PageUp: return ZC_ARROW_MIN;
 	case keycode_PageDown: return ZC_ARROW_MAX;
@@ -541,13 +617,13 @@ zchar GlkInterface::os_read_key(int timeout, bool show_cursor) {
 	case keycode_Delete: return ZC_BACKSPACE;
 	case keycode_Tab: return ZC_INDENT;
 	default:
-		return ev.val1;
+		return key;
 	}
 }
 
 zchar GlkInterface::os_read_line(int max, zchar *buf, int timeout, int width, int continued) {
 	event_t ev;
-	winid_t win = gos_curwin ? gos_curwin : gos_lower;
+	winid_t win = _wp.currWin() ? _wp.currWin() : _wp._lower;
 
 	if (!continued && gos_linepending)
 		gos_cancel_pending_line();
@@ -580,12 +656,32 @@ zchar GlkInterface::os_read_line(int max, zchar *buf, int timeout, int width, in
 	glk_request_timer_events(0);
 	buf[ev.val1] = '\0';
 
-	if (gos_upper && mach_status_ht < curr_status_ht)
+	// If the upper status line area was expanded to show a text box/quotation, restore it back
+	if (_wp._upper && mach_status_ht < curr_status_ht)
 		reset_status_ht();
 	curr_status_ht = 0;
+
+	if (ev.val2) {
+		// Line terminator specified, so return it
+		if (_storyId == BEYOND_ZORK && ev.val2 == keycode_PageUp)
+			return ZC_ARROW_UP;
+		else if (_storyId == BEYOND_ZORK && ev.val2 == keycode_PageDown)
+			return ZC_ARROW_DOWN;
+
+		return ev.val2;
+	}
 
 	return ZC_RETURN;
 }
 
-} // End of namespace Scott
+uint GlkInterface::roundDiv(uint x, uint y) {
+	uint quotient = x / y;
+	uint dblremain = (x % y) << 1;
+
+	if ((dblremain > y) || ((dblremain == y) && (quotient & 1)))
+		quotient++;
+	return quotient;
+}
+
+} // End of namespace Frotz
 } // End of namespace Glk

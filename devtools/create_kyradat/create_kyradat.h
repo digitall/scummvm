@@ -382,6 +382,7 @@ enum kExtractID {
 	kEoBBaseMagicStrings6,
 	kEoBBaseMagicStrings7,
 	kEoBBaseMagicStrings8,
+	kEoBBaseMagicStrings9,
 
 	kEoBBaseExpObjectTlMode,
 	kEoBBaseExpObjectTblIndex,
@@ -413,6 +414,13 @@ enum kExtractID {
 	kEoBBaseConeOfColdDest4,
 	kEoBBaseConeOfColdGfxTbl,
 
+	kEoBBaseSoundMap,
+	kEoBBaseSoundFilesIntro,
+	kEoBBaseSoundFilesIngame,
+	kEoBBaseSoundFilesFinale,
+	kEoBBaseLevelSoundFiles1,
+	kEoBBaseLevelSoundFiles2,
+
 	kEoB1MainMenuStrings,
 	kEoB1BonusStrings,
 
@@ -436,6 +444,15 @@ enum kExtractID {
 	kEoB1IntroTvlY2,
 	kEoB1IntroTvlW,
 	kEoB1IntroTvlH,
+	kEoB1IntroOrbFadePal,
+
+	kEoB1FinaleCouncilAnim1,
+	kEoB1FinaleCouncilAnim2,
+	kEoB1FinaleCouncilAnim3,
+	kEoB1FinaleCouncilAnim4,
+	kEoB1FinaleEyesAnim,
+	kEoB1FinaleHandsAnim,
+	kEoB1FinaleTextDuration,
 
 	kEoB1DoorShapeDefs,
 	kEoB1DoorSwitchShapeDefs,
@@ -541,6 +558,9 @@ enum kExtractID {
 	kEoB2IntroShapes01,
 	kEoB2IntroShapes04,
 	kEoB2IntroShapes07,
+	kEoB2IntroShapes13,
+	kEoB2IntroShapes14,
+	kEoB2IntroShapes15,
 
 	kEoB2FinaleStrings,
 	kEoB2CreditsData,
@@ -839,6 +859,12 @@ enum kExtractID {
 	kEoB2PcmSoundEffectsIngame,
 	kEoB2PcmSoundEffectsIntro,
 	kEoB2PcmSoundEffectsFinale,
+
+	kEoB2SoundMapExtra,
+	kEoB2SoundIndex1,
+	kEoB2SoundIndex2,
+	kEoB2SoundFilesIngame2,
+	kEoB2MonsterSoundPatchData,
 
 	kLoLIngamePakFiles,
 	kLoLCharacterDefs,

@@ -25,9 +25,16 @@
 
 #include "glk/glk_api.h"
 #include "glk/frotz/mem.h"
+#include "glk/frotz/windows.h"
 
 namespace Glk {
 namespace Frotz {
+
+#define zB(i) ((((i >> 10) & 0x1F) << 3) | (((i >> 10) & 0x1F) >> 2))
+#define zG(i) ((((i >>  5) & 0x1F) << 3) | (((i >>  5) & 0x1F) >> 2))
+#define zR(i) ((((i      ) & 0x1F) << 3) | (((i      ) & 0x1F) >> 2))
+#define zRGB(i) _screen->format.RGBToColor(zR(i), zG(i), zB(i))
+#define zcolor_NUMCOLORS    (13)
 
 enum SoundEffect {
 	EFFECT_PREPARE     = 1,
@@ -49,35 +56,25 @@ class Pics;
  * and sound effect handling
  */
 class GlkInterface : public GlkAPI, public virtual UserOptions, public virtual Mem {
+private:
+	bool _reverseVideo;
 public:
 	Pics *_pics;
 	zchar statusline[256];
-	int oldstyle;
-	int curstyle;
-	int cury;
-	int curx;
+	uint zcolors[zcolor_NUMCOLORS];
 	int fixforced;
-
-	int curr_fg;
-	int curr_bg;
-	int curr_font;
-	int prev_font;
-	int temp_font;
 
 	int curr_status_ht;
 	int mach_status_ht;
 
+	Windows _wp;
 	winid_t gos_status;
-	winid_t gos_upper;
-	winid_t gos_lower;
-	winid_t gos_curwin;
 	int gos_linepending;
 	zchar *gos_linebuf;
 	winid_t gos_linewin;
 	schanid_t gos_channel;
 
-	// Current window and mouse data
-	int cwin;
+	// Mouse data
 	int mwin;
 	int mouse_y;
 	int mouse_x;
@@ -110,6 +107,11 @@ private:
 	 * Add any Sound subfolder or sound zip file for access
 	 */
 	void addSound();
+
+	/**
+	 * Do a rounding division, rounding to even if fraction part is 1/2.
+	 */
+	uint roundDiv(uint x, uint y);
 protected:
 	/**
 	 * Return the length of the character in screen units.
@@ -171,12 +173,13 @@ protected:
 	/**
 	 * Display a picture at the given coordinates. Top left is (1,1).
 	 */
-	void os_draw_picture(int picture, winid_t win, const Common::Point &pos);
+	void os_draw_picture(int picture, const Common::Point &pos);
 
 	/**
-	 * Display a picture using the specified bounds
+	 * Return the colour of the pixel below the cursor. This is used by V6 games to print
+	 * text on top of pictures. The coulor need not be in the standard set of Z-machine colours.
 	 */
-	void os_draw_picture(int picture, winid_t win, const Common::Rect &r);
+	int os_peek_color();
 
 	/**
 	 * Call the IO interface to play a sample.

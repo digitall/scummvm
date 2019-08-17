@@ -24,13 +24,14 @@
 #define GLK_WINDOW_TEXT_GRID_H
 
 #include "glk/windows.h"
+#include "glk/conf.h"
 
 namespace Glk {
 
 /**
  * Text Grid window
  */
-class TextGridWindow : public Window {
+class TextGridWindow : public TextWindow {
 	/**
 	 * Structure for a row within the grid window
 	 */
@@ -50,6 +51,8 @@ class TextGridWindow : public Window {
 		void resize(size_t newSize);
 	};
 	typedef Common::Array<TextGridRow> TextGridRows;
+private:
+	MonoFontInfo &_font;
 private:
 	/**
 	 * Mark a given text row as modified
@@ -86,6 +89,29 @@ public:
 	 * Destructor
 	 */
 	virtual ~TextGridWindow();
+
+	/**
+	 * Get the font info structure associated with the window
+	 */
+	virtual FontInfo *getFontInfo() override { return &_font; }
+
+	/**
+	 * Set the size of a window
+	 */
+	virtual void setSize(const Point &newSize) {
+		Window::setSize(newSize);
+		_curX = CLIP((int16)_curX, _bbox.left, _bbox.right);
+		_curY = CLIP((int16)_curY, _bbox.top, _bbox.bottom);
+	}
+
+	/**
+	 * Sets the position of a window
+	 */
+	virtual void setPosition(const Point &newPos) {
+		_bbox.moveTo(newPos);
+		_curX = CLIP((int16)_curX, _bbox.left, _bbox.right);
+		_curY = CLIP((int16)_curY, _bbox.top, _bbox.bottom);
+	}
 
 	/**
 	 * Rearranges the window
@@ -145,9 +171,9 @@ public:
 
 	virtual void getSize(uint *width, uint *height) const override;
 
-	virtual void requestCharEvent() override {
-		_charRequest = true;
-	}
+	virtual void requestCharEvent() override;
+
+	virtual void requestCharEventUni() override;
 
 	/**
 	 * Prepare for inputing a line
@@ -169,10 +195,6 @@ public:
 	 */
 	virtual void cancelMouseEvent() override {
 		_mouseRequest = false;
-	}
-
-	virtual void requestCharEventUni() override {
-		_charRequestUni = true;
 	}
 
 	virtual void requestMouseEvent() override {

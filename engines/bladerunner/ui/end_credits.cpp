@@ -26,6 +26,7 @@
 #include "audio/mixer.h"
 
 #include "bladerunner/bladerunner.h"
+#include "bladerunner/game_constants.h"
 #include "bladerunner/ambient_sounds.h"
 #include "bladerunner/audio_speech.h"
 #include "bladerunner/font.h"
@@ -33,6 +34,7 @@
 #include "bladerunner/mouse.h"
 #include "bladerunner/music.h"
 #include "bladerunner/text_resource.h"
+#include "bladerunner/time.h"
 #include "bladerunner/ui/end_credits.h"
 
 namespace BladeRunner {
@@ -51,15 +53,10 @@ void EndCredits::show() {
 	_vm->_ambientSounds->removeAllLoopingSounds(4);
 	_vm->_audioSpeech->stopSpeech();
 
-	_vm->_music->play(_vm->_gameInfo->getMusicTrack(17), 100, 0, 2, -1, 0, 3);
+	_vm->_music->play(_vm->_gameInfo->getMusicTrack(kMusicCredits), 100, 0, 2, -1, 0, 3);
 
-	Font *fontBig = new Font(_vm);
-	fontBig->open("TAHOMA24.FON", 640, 480, -1, 0, 0);
-	fontBig->setSpacing(1, 0);
-
-	Font *fontSmall = new Font(_vm);
-	fontSmall->open("TAHOMA18.FON", 640, 480, -1, 0, 0);
-	fontSmall->setSpacing(1, 0);
+	Font *fontBig = Font::load(_vm, "TAHOMA24.FON", 1, true);
+	Font *fontSmall = Font::load(_vm, "TAHOMA18.FON", 1, true);
 
 	TextResource *textResource = new TextResource(_vm);
 	textResource->open("ENDCRED");
@@ -95,7 +92,7 @@ void EndCredits::show() {
 	_vm->_vqaStopIsRequested = false;
 
 	double position = 0.0;
-	uint32 timeLast = _vm->getTotalPlayTime(); // Original game is using system timer
+	uint32 timeLast = _vm->_time->currentSystem();
 
 	while (!_vm->_vqaStopIsRequested && !_vm->shouldQuit()) {
 		if (position >= textPositions[textCount - 1]) {
@@ -105,14 +102,14 @@ void EndCredits::show() {
 		//soundSystem::tick(SoundSystem);
 		_vm->handleEvents();
 
-		if (!_vm->_gameIsRunning) {
-			timeLast = _vm->getTotalPlayTime(); // Original game is using system timer
+		if (!_vm->_windowIsActive) {
+			timeLast = _vm->_time->currentSystem();
 
 			continue;
 		}
 
-		uint32 timeNow = _vm->getTotalPlayTime(); // Original game is using system timer
-		position += (double)(timeNow - timeLast) * 0.05f;
+		uint32 timeNow = _vm->_time->currentSystem();
+		position += (double)(timeNow - timeLast) * 0.05f; // unsigned difference is intentional
 		timeLast = timeNow;
 
 		_vm->_surfaceFront.fillRect(Common::Rect(640, 480), 0);
@@ -139,10 +136,10 @@ void EndCredits::show() {
 				if (font == fontBig) {
 					x = 280;
 				} else {
-					x = 270 - font->getTextWidth(s);
+					x = 270 - font->getStringWidth(s);
 				}
 
-				font->draw(s, _vm->_surfaceFront, x, y);
+				font->drawString(&_vm->_surfaceFront, s, x, y, _vm->_surfaceFront.w, 0);
 			}
 		}
 

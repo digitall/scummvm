@@ -25,6 +25,7 @@
 #include "sci/engine/kernel.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
+#include "sci/engine/workarounds.h"
 #include "sci/util.h"
 
 namespace Sci {
@@ -183,10 +184,17 @@ public:
 #endif
 
 bool MessageState::getRecord(CursorStack &stack, bool recurse, MessageRecord &record) {
-	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeMessage, stack.getModule()), false);
+	// find a workaround for the requested message and use the prescribed module
+	int module = stack.getModule();
+	MessageTuple &tuple = stack.top();
+	SciMessageWorkaroundSolution workaround = findMessageWorkaround(module, tuple.noun, tuple.verb, tuple.cond, tuple.seq);
+	if (workaround.type != MSG_WORKAROUND_NONE) {
+		module = workaround.module;
+	}
+	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeMessage, module), false);
 
 	if (!res) {
-		warning("Failed to open message resource %d", stack.getModule());
+		warning("Failed to open message resource %d", module);
 		return false;
 	}
 
@@ -224,69 +232,49 @@ bool MessageState::getRecord(CursorStack &stack, bool recurse, MessageRecord &re
 		return false;
 	}
 
+	// apply the message workaround
+	if (workaround.type == MSG_WORKAROUND_REMAP) {
+		// remap the request to a different message record.
+		//  this alters the stack, nextMessage() will return the next
+		//  record in the sequence following the returned record.
+		stack.setModule(module);
+		tuple.noun = workaround.noun;
+		tuple.verb = workaround.verb;
+		tuple.cond = workaround.cond;
+		tuple.seq = workaround.seq;
+	} else if (workaround.type == MSG_WORKAROUND_FAKE) {
+		// return a fake message record hard-coded in the workaround.
+		//  this leaves the stack unchanged.
+		record.tuple = tuple;
+		record.refTuple = MessageTuple();
+		record.string = workaround.text;
+		record.length = strlen(workaround.text);
+		record.talker = workaround.talker;
+		delete reader;
+		return true;
+	} else if (workaround.type == MSG_WORKAROUND_EXTRACT) {
+		// extract and return text from a different message record.
+		//  use the talker provided by the workaround since the correct value
+		//  could be in either, or neither, of the records.
+		//  this leaves the stack unchanged.
+		MessageTuple textTuple(workaround.noun, workaround.verb, workaround.cond, workaround.seq);
+		MessageRecord textRecord;
+		if (reader->findRecord(textTuple, textRecord)) {
+			uint32 textLength = (workaround.substringLength == 0) ? textRecord.length : workaround.substringLength;
+			if (workaround.substringIndex + textLength <= textRecord.length) {
+				record.tuple = tuple;
+				record.refTuple = MessageTuple();
+				record.string = textRecord.string + workaround.substringIndex;
+				record.length = textLength;
+				record.talker = workaround.talker;
+				delete reader;
+				return true;
+			}
+		}
+	}
+
 	while (1) {
 		MessageTuple &t = stack.top();
-
-		// Fix known incorrect message tuples
-		// TODO: Add a more generic mechanism, like the one we have for
-		// script workarounds, for cases with incorrect sync resources,
-		// like the ones below.
-		if (g_sci->getGameId() == GID_QFG1VGA && stack.getModule() == 322 &&
-			t.noun == 14 && t.verb == 1 && t.cond == 19 && t.seq == 1) {
-			// Talking to Kaspar the shopkeeper - bug #3604944
-			t.verb = 2;
-		}
-
-		if (g_sci->getGameId() == GID_PQ1 && stack.getModule() == 38 &&
-			t.noun == 10 && t.verb == 4 && t.cond == 8 && t.seq == 1) {
-			// Using the hand icon on Keith in the Blue Room - bug #3605654
-			t.cond = 9;
-		}
-
-		if (g_sci->getGameId() == GID_PQ1 && stack.getModule() == 38 &&
-			t.noun == 10 && t.verb == 1 && t.cond == 0 && t.seq == 1) {
-			// Using the eye icon on Keith in the Blue Room - bug #3605654
-			t.cond = 13;
-		}
-
-		if (g_sci->getGameId() == GID_QFG4 && stack.getModule() == 579 &&
-			t.noun == 0 && t.verb == 0 && t.cond == 0 && t.seq == 1) {
-			// Talking with the Leshy and telling him about "bush in goo" - bug #10137
-			t.verb = 1;
-		}
-
-		if (g_sci->getGameId() == GID_LAURABOW2 && !g_sci->isCD() && stack.getModule() == 1885 &&
-			t.noun == 1 && t.verb == 6 && t.cond == 16 && t.seq == 4 &&
-			(g_sci->getEngineState()->currentRoomNumber() == 350 ||
-			 g_sci->getEngineState()->currentRoomNumber() == 360 ||
-			 g_sci->getEngineState()->currentRoomNumber() == 370)) {
-			// Asking Yvette about Tut in act 2 party - bug #10723
-			// Skip the last two lines of dialogue about a murder that hasn't occurred yet.
-			// Sierra fixed this in cd version by creating a copy of this message without those lines.
-			// Room-specific as the message is used again later where it should display in full.
-			t.seq += 2;
-		}
-
-		// Fill in known missing message tuples
-		if (g_sci->getGameId() == GID_SQ4 && stack.getModule() == 16 &&
-			t.noun == 7 && t.verb == 0 && t.cond == 3 && t.seq == 1) {
-			// This fixes the error message shown when speech and subtitles are
-			// enabled simultaneously in SQ4 - the (very) long dialog when Roger
-			// is talking with the aliens is missing - bug #3538416.
-			record.tuple = t;
-			record.refTuple = MessageTuple();
-			record.talker = 7;	// Roger
-			// The missing text is just too big to fit in one speech bubble, and
-			// if it's added here manually and drawn on screen, it's painted over
-			// the entrance in the back where the Sequel Police enters, so it
-			// looks very ugly. Perhaps this is why this particular text is missing,
-			// as the text shown in this screen is very short (one-liners).
-			// Just output an empty string here instead of showing an error.
-			record.string = "";
-			record.length = 0;
-			delete reader;
-			return true;
-		}
 
 		if (!reader->findRecord(t, record)) {
 			// Tuple not found
@@ -324,7 +312,7 @@ int MessageState::nextMessage(reg_t buf) {
 
 	if (!buf.isNull()) {
 		if (getRecord(_cursorStack, true, record)) {
-			outputString(buf, processString(record.string));
+			outputString(buf, processString(record.string, record.length));
 			_lastReturned = record.tuple;
 			_lastReturnedModule = _cursorStack.getModule();
 			_cursorStack.top().seq++;
@@ -458,16 +446,21 @@ bool MessageState::stringStage(Common::String &outstr, const Common::String &inS
 	return false;
 }
 
-Common::String MessageState::processString(const char *s) {
+Common::String MessageState::processString(const char *s, uint32 maxLength) {
 	Common::String outStr;
 	Common::String inStr = Common::String(s);
 
 	uint index = 0;
 
-	while (index < inStr.size()) {
-		// Check for hex escape sequence
-		if (stringHex(outStr, inStr, index))
-			continue;
+	while (index < inStr.size() && index < maxLength) {
+		// Check for hex escape sequence.
+		//  SQ4CD predates this interpreter feature but has a message on the
+		//  hintbook screen which appears to contain hex strings and renders
+		//  incorrectly if converted, so exclude it. Fixes #11070
+		if (g_sci->getGameId() != GID_SQ4) {
+			if (stringHex(outStr, inStr, index))
+				continue;
+		}
 
 		// Check for literal escape sequence
 		if (stringLit(outStr, inStr, index))

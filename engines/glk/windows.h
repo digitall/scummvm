@@ -28,6 +28,7 @@
 #include "common/rect.h"
 #include "graphics/screen.h"
 #include "glk/events.h"
+#include "glk/fonts.h"
 #include "glk/glk_types.h"
 #include "glk/screen.h"
 #include "glk/selection.h"
@@ -71,6 +72,11 @@ public:
 		 * Move to next
 		 */
 		iterator &operator++();
+
+		/**
+		 * Move to previous
+		 */
+		iterator &operator--();
 
 		/**
 		 * Equality test
@@ -136,15 +142,15 @@ public:
 	static bool _forceRedraw;
 	static bool _claimSelect;
 	static bool _moreFocus;
-	static int _overrideFgVal;
-	static int _overrideBgVal;
-	static int _zcolor_fg, _zcolor_bg;
-	static byte _zcolor_LightGrey[3];
-	static byte _zcolor_Foreground[3];
-	static byte _zcolor_Background[3];
-	static byte _zcolor_Bright[3];
+	static uint _overrideFgVal;
+	static uint _overrideBgVal;
+	static uint _zcolor_fg, _zcolor_bg;
+	static uint _zcolor_LightGrey;
+	static uint _zcolor_Foreground;
+	static uint _zcolor_Background;
+	static uint _zcolor_Bright;
 
-	static byte *rgbShift(byte *rgb);
+	static uint rgbShift(uint color);
 public:
 	/**
 	 * Constructor
@@ -239,13 +245,33 @@ public:
 };
 
 /**
- * Window styles
+ * Used for the static definition of default styles
  */
-struct WindowStyle {
+struct WindowStyleStatic {
 	FACES font;
 	byte bg[3];
 	byte fg[3];
 	bool reverse;
+};
+
+/**
+ * Window styles
+ */
+struct WindowStyle {
+	FACES font;
+	uint bg;
+	uint fg;
+	bool reverse;
+
+	/**
+	 * Constructor
+	 */
+	WindowStyle() : font(MONOR), fg(0), bg(0), reverse(false) {}
+
+	/**
+	 * Constructor
+	 */
+	WindowStyle(const WindowStyleStatic &src);
 
 	/**
 	 * Equality comparison
@@ -295,14 +321,14 @@ struct WindowStyle {
  * Window attributes
  */
 struct Attributes {
-	unsigned fgset   : 1;
-	unsigned bgset   : 1;
-	unsigned reverse : 1;
-	unsigned         : 1;
-	unsigned style   : 4;
-	unsigned fgcolor : 24;
-	unsigned bgcolor : 24;
-	unsigned hyper   : 32;
+	bool fgset      : 1;
+	bool bgset      : 1;
+	bool reverse    : 1;
+	unsigned        : 1;
+	unsigned style  : 4;
+	uint fgcolor;
+	uint bgcolor;
+	uint hyper;
 
 	/**
 	 * Constructor
@@ -327,7 +353,7 @@ struct Attributes {
 	/**
 	 * Equality comparison
 	 */
-	bool operator==(const Attributes &src) {
+	bool operator==(const Attributes &src) const {
 		return fgset == src.fgset && bgset == src.bgset && reverse == src.reverse
 			   && style == src.style && fgcolor == src.fgcolor && bgcolor == src.bgcolor
 			   && hyper == src.hyper;
@@ -335,7 +361,7 @@ struct Attributes {
 	/**
 	 * Inequality comparison
 	 */
-	bool operator!=(const Attributes &src) {
+	bool operator!=(const Attributes &src) const {
 		return fgset != src.fgset || bgset != src.bgset || reverse != src.reverse
 			   || style != src.style || fgcolor != src.fgcolor || bgcolor != src.bgcolor
 			   || hyper != src.hyper;
@@ -344,17 +370,17 @@ struct Attributes {
 	/**
 	 * Return the background color for the current font style
 	 */
-	byte *attrBg(WindowStyle *styles);
+	uint attrBg(const WindowStyle *styles);
 
 	/**
 	 * Return the foreground color for the current font style
 	 */
-	byte *attrFg(WindowStyle *styles);
+	uint attrFg(const WindowStyle *styles);
 
 	/**
 	 * Get the font for the current font style
 	 */
-	FACES attrFont(WindowStyle *styles) const {
+	FACES attrFont(const WindowStyle *styles) const {
 		return styles[style].font;
 	}
 };
@@ -391,12 +417,11 @@ public:
 	uint _termCt;
 
 	Attributes _attr;
-	byte _bgColor[3];
-	byte _fgColor[3];
+	uint _bgColor, _fgColor;
 
 	gidispatch_rock_t _dispRock;
 public:
-	static bool checkTerminator(uint32 ch);
+	static bool checkBasicTerminators(uint32 ch);
 public:
 	/**
 	 * Constructor
@@ -414,10 +439,32 @@ public:
 	void close(bool recurse = true);
 
 	/**
+	 * Get the font info structure associated with the window
+	 */
+	virtual FontInfo *getFontInfo();
+
+	/**
 	 * Rearranges the window
 	 */
 	virtual void rearrange(const Rect &box) {
 		_bbox = box;
+	}
+
+	/**
+	 * Set the size of a window
+	 */
+	virtual void setSize(const Point &newSize) {
+		_bbox.setWidth(newSize.x);
+		_bbox.setHeight(newSize.y);
+		rearrange(_bbox);
+	}
+
+	/**
+	 * Sets the position of a window
+	 */
+	virtual void setPosition(const Point &newPos) {
+		_bbox.moveTo(newPos);
+		rearrange(_bbox);
 	}
 
 	/**
@@ -498,6 +545,8 @@ public:
 
 	int acceptScroll(uint arg);
 
+	bool checkTerminators(uint32 ch);
+
 	void setTerminatorsLineEvent(const uint32 *keycodes, uint count);
 
 	virtual void acceptReadLine(uint32 arg);
@@ -532,6 +581,16 @@ public:
 	 * Returns a pointer to the styles for the window
 	 */
 	virtual const WindowStyle *getStyles() const;
+
+	/**
+	 * In arbitrary window positioning mode, brings a window to the front of all other windows
+	 */
+	void bringToFront();
+
+	/**
+	 * In arbitrary window positioning mode, sends a window to the back of all other windows
+	 */
+	void sendToBack();
 };
 typedef Window *winid_t;
 
@@ -544,6 +603,17 @@ public:
 	 * Constructor
 	 */
 	BlankWindow(Windows *windows, uint rock);
+};
+
+/**
+ * Abstract common base for the text window classes
+ */
+class TextWindow : public Window {
+public:
+	/**
+	 * Constructor
+	 */
+	TextWindow(Windows *windows, uint rock) : Window(windows, rock) {}
 };
 
 } // End of namespace Glk

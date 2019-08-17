@@ -27,6 +27,7 @@
 #include "common/array.h"
 #include "graphics/screen.h"
 #include "graphics/font.h"
+#include "glk/fonts.h"
 #include "glk/utils.h"
 
 namespace Glk {
@@ -37,10 +38,6 @@ enum CaretShape {
 	SMALL_DOT = 0, FAT_DOT = 1, THIN_LINE = 2, FAT_LINE = 3, BLOCK = 4
 };
 
-enum FACES { MONOR, MONOB, MONOI, MONOZ, PROPR, PROPB, PROPI, PROPZ, CUSTOM, CUSTOM2 };
-enum TYPES { MONOF, PROPF };
-enum STYLES { FONTR, FONTB, FONTI, FONTZ };
-
 /**
  * Screen surface class
  */
@@ -49,7 +46,7 @@ private:
 	/**
 	 * Open the fonts archive and load all the fonts
 	 */
-	bool loadFonts();
+	void loadFonts();
 
 	/**
 	 * Load a single font
@@ -85,41 +82,34 @@ public:
 	void initialize();
 
 	/**
-	 * Fills the screen with a given rgb color
+	 * Fills the screen with a given color
 	 */
-	void fill(const byte *rgb);
+	void fill(uint color);
 
 	/**
-	 * Fill a given area of the screen with an rgb color
+	 * Fill a given area of the screen with a given color
 	 */
-	void fillRect(const Rect &box, const byte *rgb);
-
-	/**
-	 * Draws the text input caret at the given position
-	 * @remarks     The position specifies the caret's bottom-left corner,
-	 *      and the X position is in multiples of GLI_SUBPIX
-	 */
-	void drawCaret(const Point &pos);
+	void fillRect(const Rect &box, uint color);
 
 	/**
 	 * Draws a string using the specified font at the given co-ordinates
 	 * @param pos       Position for the bottom-left corner the text will be drawn with
 	 * @param fontIdx   Which font to use
-	 * @param rgb       RGB tuplet specifying the text color
+	 * @param color     Text color
 	 * @param text      The text to draw
 	 * @param spw       ??
 	 */
-	int drawString(const Point &pos, int fontIdx, const byte *rgb, const Common::String &text, int spw = 0);
+	int drawString(const Point &pos, int fontIdx, uint color, const Common::String &text, int spw = 0);
 
 	/**
 	 * Draws a unicode string using the specified font at the given co-ordinates
 	 * @param pos       Position for the bottom-left corner the text will be drawn with
 	 * @param fontIdx   Which font to use
-	 * @param rgb       RGB tuplet specifying the text color
+	 * @param color     Text color
 	 * @param text      The text to draw
 	 * @param spw       ??
 	 */
-	int drawStringUni(const Point &pos, int fontIdx, const byte *rgb, const Common::U32String &text, int spw = 0);
+	int drawStringUni(const Point &pos, int fontIdx, uint color, const Common::U32String &text, int spw = 0);
 
 	/**
 	 * Get the width in pixels of a string

@@ -22,7 +22,6 @@
 
 #define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h	// sys/stat.h includes sys/time.h
-#define FORBIDDEN_SYMBOL_EXCEPTION_unistd_h
 
 #include "common/scummsys.h"
 #include "common/config-manager.h"
@@ -143,8 +142,10 @@ void OSystem_PSP2::setFeatureState(Feature f, bool enable) {
 	case kFeatureTouchpadMode:
 		ConfMan.setBool("touchpad_mouse_mode", enable);
 		break;
+	default:
+		OSystem_SDL::setFeatureState(f, enable);
+		break;
 	}
-	OSystem_SDL::setFeatureState(f, enable);
 }
 
 bool OSystem_PSP2::getFeatureState(Feature f) {
@@ -168,7 +169,6 @@ Common::String OSystem_PSP2::getDefaultConfigFileName() {
 	return "ux0:data/scummvm/" + _baseConfigName;
 }
 
-Common::WriteStream *OSystem_PSP2::createLogFile() {
-	Common::FSNode file("ux0:data/scummvm/scummvm.log");
-	return file.createWriteStream();
+Common::String OSystem_PSP2::getDefaultLogFileName() {
+	return "ux0:data/scummvm/scummvm.log";
 }

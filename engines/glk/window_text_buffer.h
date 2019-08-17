@@ -26,6 +26,7 @@
 #include "glk/windows.h"
 #include "glk/picture.h"
 #include "glk/speech.h"
+#include "glk/conf.h"
 #include "common/array.h"
 #include "common/ustr.h"
 
@@ -34,7 +35,7 @@ namespace Glk {
 /**
  * Text Buffer window
  */
-class TextBufferWindow : public Window, Speech {
+class TextBufferWindow : public TextWindow, Speech {
 	/**
 	 * Structure for a row within the window
 	 */
@@ -53,6 +54,8 @@ class TextBufferWindow : public Window, Speech {
 		TextBufferRow();
 	};
 	typedef Common::Array<TextBufferRow> TextBufferRows;
+private:
+	PropFontInfo &_font;
 private:
 	void reflow();
 	void touchScroll();
@@ -88,7 +91,7 @@ private:
 
 	void scrollOneLine(bool forced);
 	void scrollResize();
-	int calcWidth(uint32 *chars, Attributes *attrs, int startchar, int numchars, int spw);
+	int calcWidth(const uint32 *chars, const Attributes *attrs, int startchar, int numchars, int spw);
 public:
 	int _width, _height;
 	int _spaced;
@@ -148,6 +151,11 @@ public:
 	int acceptScroll(uint arg);
 
 	uint drawPicture(uint image, uint align, uint scaled, uint width, uint height);
+
+	/**
+	 * Get the font info structure associated with the window
+	 */
+	virtual FontInfo *getFontInfo() override { return &_font; }
 
 	/**
 	 * Rearranges the window
@@ -212,13 +220,9 @@ public:
 
 	virtual void getSize(uint *width, uint *height) const override;
 
-	virtual void requestCharEvent() override {
-		_charRequest = true;
-	}
+	virtual void requestCharEvent() override;
 
-	virtual void requestCharEventUni() override {
-		_charRequestUni = true;
-	}
+	virtual void requestCharEventUni() override;
 
 	virtual void setEchoLineEvent(uint val) override {
 		_echoLineInput = val != 0;

@@ -27,15 +27,15 @@
 #include "bladerunner/bladerunner.h"
 #include "bladerunner/game_info.h"
 #include "bladerunner/savefile.h"
+#include "bladerunner/game_constants.h"
 
 #include "common/timer.h"
-
 namespace BladeRunner {
 
 Music::Music(BladeRunnerEngine *vm) {
 	_vm = vm;
 	_channel = -1;
-	_musicVolume = 65;
+	_musicVolume = BLADERUNNER_ORIGINAL_SETTINGS ? 65 : 100;
 	_isPlaying = false;
 	_isPaused = false;
 	_current.loop = false;
@@ -45,7 +45,7 @@ Music::Music(BladeRunnerEngine *vm) {
 }
 
 Music::~Music() {
-	stop(1);
+	stop(0);
 	while (isPlaying()) {
 		// wait for the mixer to finish
 	}
@@ -54,7 +54,7 @@ Music::~Music() {
 	_vm->getTimerManager()->removeTimerProc(timerCallbackNext);
 }
 
-bool Music::play(const Common::String &trackName, int volume, int pan, int timeFadeIn, int timePlay, int loop, int timeFadeOut) {
+bool Music::play(const Common::String &trackName, int volume, int pan, int32 timeFadeIn, int32 timePlay, int loop, int32 timeFadeOut) {
 	//Common::StackLock lock(_mutex);
 
 	if (_musicVolume <= 0) {
@@ -82,6 +82,9 @@ bool Music::play(const Common::String &trackName, int volume, int pan, int timeF
 			_isNextPresent = true;
 		} else {
 			_current.loop = loop;
+			if (timeFadeIn < 0) {
+				timeFadeIn = 0;
+			}
 			adjustVolume(volumeAdjusted, timeFadeIn);
 			adjustPan(volumeAdjusted, timeFadeIn);
 		}
@@ -99,7 +102,7 @@ bool Music::play(const Common::String &trackName, int volume, int pan, int timeF
 	if (_channel < 0) {
 		delete _stream;
 		_stream = nullptr;
-		delete _data;
+		delete[] _data;
 		_data = nullptr;
 
 		return false;
@@ -125,18 +128,23 @@ bool Music::play(const Common::String &trackName, int volume, int pan, int timeF
 	return true;
 }
 
-void Music::stop(int delay) {
+void Music::stop(uint32 delay) {
 	Common::StackLock lock(_mutex);
 
 	if (_channel < 0) {
 		return;
 	}
 
+#if !BLADERUNNER_ORIGINAL_BUGS
+	// In original game, on queued music was not removed and it started playing after actor left the scene
+	_isNextPresent = false;
+#endif
+
 	_current.loop = false;
-	_vm->_audioMixer->stop(_channel, 60 * delay);
+	_vm->_audioMixer->stop(_channel, 60u * delay);
 }
 
-void Music::adjust(int volume, int pan, int delay) {
+void Music::adjust(int volume, int pan, uint32 delay) {
 	if (volume != -1) {
 		adjustVolume(_musicVolume * volume/ 100, delay);
 	}
@@ -164,7 +172,7 @@ int Music::getVolume() {
 
 void Music::playSample() {
 	if (!isPlaying()) {
-		play(_vm->_gameInfo->getSfxTrack(512), 100, 0, 2, -1, 0, 3);
+		play(_vm->_gameInfo->getSfxTrack(kSfxMUSVOL8), 100, 0, 2, -1, 0, 3);
 	}
 }
 
@@ -230,13 +238,13 @@ void Music::load(SaveFileReadStream &f) {
 	}
 }
 
-void Music::adjustVolume(int volume, int delay) {
+void Music::adjustVolume(int volume, uint32 delay) {
 	if (_channel >= 0) {
 		_vm->_audioMixer->adjustVolume(_channel, volume, delay);
 	}
 }
 
-void Music::adjustPan(int pan, int delay) {
+void Music::adjustPan(int pan, uint32 delay) {
 	if (_channel >= 0) {
 		_vm->_audioMixer->adjustPan(_channel, pan, delay);
 	}
@@ -248,7 +256,7 @@ void Music::ended() {
 	_isPlaying = false;
 	_channel = -1;
 
-	delete _data;
+	delete[] _data;
 	_data = nullptr;
 
 	_vm->getTimerManager()->installTimerProc(timerCallbackNext, 100 * 1000, this, "BladeRunnerMusicNextTimer");
@@ -257,7 +265,10 @@ void Music::ended() {
 void Music::fadeOut() {
 	_vm->getTimerManager()->removeTimerProc(timerCallbackFadeOut);
 	if (_channel >= 0) {
-		_vm->_audioMixer->stop(_channel, 60 * _current.timeFadeOut);
+		if (_current.timeFadeOut < 0) {
+			_current.timeFadeOut = 0;
+		}
+		_vm->_audioMixer->stop(_channel, 60u * _current.timeFadeOut);
 	}
 }
 
@@ -293,12 +304,17 @@ void Music::timerCallbackNext(void *refCon) {
 byte *Music::getData(const Common::String &name) {
 	// NOTE: This is not part original game, loading data is done in the mixer and its using buffering to limit memory usage
 	Common::SeekableReadStream *stream = _vm->getResourceStream(name);
+
 	if (stream == nullptr) {
 		return nullptr;
 	}
+
 	uint32 size = stream->size();
-	byte *data = (byte *)malloc(size);
+	byte *data = new byte[size];
 	stream->read(data, size);
+
+	delete stream;
+
 	return data;
 }
 

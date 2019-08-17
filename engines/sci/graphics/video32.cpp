@@ -573,13 +573,13 @@ VMDPlayer::IOStatus VMDPlayer::open(const Common::String &fileName, const OpenFl
 void VMDPlayer::init(int16 x, int16 y, const PlayFlags flags, const int16 boostPercent, const int16 boostStartColor, const int16 boostEndColor) {
 	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
 	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
-	const bool upscaleVideos = ConfMan.getBool("enable_video_upscale");
+	const bool upscaleVideos = ConfMan.hasKey("enable_video_upscale") ? ConfMan.getBool("enable_video_upscale") : false;
 
 	_doublePixels = (flags & kPlayFlagDoublePixels) || upscaleVideos;
 	_stretchVertical = flags & kPlayFlagStretchVertical;
 
-	const int16 width = _decoder->getWidth() << _doublePixels;
-	const int16 height = _decoder->getHeight() << (_doublePixels || _stretchVertical);
+	const int16 width = _decoder->getWidth() << (_doublePixels ? 1 : 0);
+	const int16 height = _decoder->getHeight() << (_doublePixels || _stretchVertical ? 1 : 0);
 
 	if (getSciVersion() < SCI_VERSION_3) {
 		x &= ~1;
@@ -1052,8 +1052,8 @@ void DuckPlayer::open(const GuiResourceId resourceId, const int displayMode, con
 	// SSCI seems to incorrectly calculate the draw rect by scaling the origin
 	// in addition to the width/height for the BR point
 	setDrawRect(x, y,
-				(_decoder->getWidth() << _doublePixels),
-				(_decoder->getHeight() << _doublePixels));
+				(_decoder->getWidth() << (_doublePixels ? 1 : 0)),
+				(_decoder->getHeight() << (_doublePixels ? 1 : 0)));
 
 	g_sci->_gfxCursor32->hide();
 

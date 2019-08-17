@@ -35,9 +35,10 @@
 
 #include "graphics/surface.h"
 
-//TODO: remove these when game is playable
-#define BLADERUNNER_DEBUG_CONSOLE 0
-#define BLADERUNNER_DEBUG_GAME 0
+//TODO: change this to debugflag
+#define BLADERUNNER_DEBUG_CONSOLE     0
+#define BLADERUNNER_ORIGINAL_SETTINGS 0
+#define BLADERUNNER_ORIGINAL_BUGS     0
 
 namespace Common {
 struct Event;
@@ -51,11 +52,16 @@ struct ADGameDescription;
 
 namespace BladeRunner {
 
+enum DebugLevels {
+	kDebugScript = 1 << 0
+};
+
 class Actor;
 class ActorDialogueQueue;
 class ScreenEffects;
 class AIScripts;
 class AmbientSounds;
+class AudioCache;
 class AudioMixer;
 class AudioPlayer;
 class AudioSpeech;
@@ -88,6 +94,7 @@ class Shape;
 class SliceAnimations;
 class SliceRenderer;
 class Spinner;
+class Subtitles;
 class SuspectsDatabase;
 class TextResource;
 class Time;
@@ -100,23 +107,30 @@ class ZBuffer;
 
 class BladeRunnerEngine : public Engine {
 public:
-#if BLADERUNNER_DEBUG_GAME
-	static const int kArchiveCount = 100;
-#else
-	static const int kArchiveCount = 10;
-#endif
-	static const int kActorCount = 100;
+	static const int kArchiveCount = 12; // +2 to original value (10) to accommodate for SUBTITLES.MIX and one extra resource file, to allow for capability of loading all VQAx.MIX and the MODE.MIX file (debug purposes)
+	static const int kActorCount =  100;
 	static const int kActorVoiceOver = kActorCount - 1;
+	// Incremental number to keep track of significant revisions of the ScummVM bladerunner engine
+	// that could potentially introduce incompatibilities with old save files or require special actions to restore compatibility
+	// This is stored in game global variable "kVariableGameVersion"
+	// Original (classic) save game files will have version number of 0
+	// Values:
+	// 1: alpha testing (from May 15, 2019 to July 17, 2019)
+	// 2: all time code uses uint32 (since July 17 2019),
+	static const int kBladeRunnerScummVMVersion = 2;
 
-	bool           _gameIsRunning;
-	bool           _windowIsActive;
-	int            _playerLosesControlCounter;
-	Common::String _languageCode;
+	bool _gameIsRunning;
+	bool _windowIsActive;
+	int  _playerLosesControlCounter;
+
+	Common::String   _languageCode;
+	Common::Language _language;
 
 	ActorDialogueQueue *_actorDialogueQueue;
 	ScreenEffects      *_screenEffects;
 	AIScripts          *_aiScripts;
 	AmbientSounds      *_ambientSounds;
+	AudioCache         *_audioCache;
 	AudioMixer         *_audioMixer;
 	AudioPlayer        *_audioPlayer;
 	AudioSpeech        *_audioSpeech;
@@ -134,6 +148,7 @@ public:
 	KIA                *_kia;
 	Lights             *_lights;
 	Font               *_mainFont;
+	Subtitles          *_subtitles;
 	Mouse              *_mouse;
 	Music              *_music;
 	Obstacles          *_obstacles;
@@ -169,7 +184,6 @@ public:
 
 	Graphics::Surface  _surfaceFront;
 	Graphics::Surface  _surfaceBack;
-	Graphics::Surface  _surface4;
 
 	ZBuffer           *_zbuffer;
 
@@ -184,21 +198,27 @@ public:
 	bool _interruptWalking;
 	bool _playerActorIdle;
 	bool _playerDead;
-	bool _speechSkipped;
+	bool _actorIsSpeaking;
+	bool _actorSpeakStopIsRequested;
 	bool _gameOver;
-	int  _gameAutoSave;
+	int  _gameAutoSaveTextId;
+	bool _gameIsAutoSaving;
 	bool _gameIsLoading;
 	bool _sceneIsLoading;
 	bool _vqaIsPlaying;
 	bool _vqaStopIsRequested;
+	bool _subtitlesEnabled;  // tracks the state of whether subtitles are enabled or disabled from ScummVM GUI option or KIA checkbox (the states are synched)
+	bool _sitcomMode;
+	bool _shortyMode;
+	bool _cutContent;
 
 	int _walkSoundId;
 	int _walkSoundVolume;
-	int _walkSoundBalance;
+	int _walkSoundPan;
 	int _runningActorId;
 
-	int _mouseClickTimeLast;
-	int _mouseClickTimeDiff;
+	uint32 _mouseClickTimeLast;
+	uint32 _mouseClickTimeDiff;
 
 	int  _walkingToExitId;
 	bool _isInsideScriptExit;
@@ -215,7 +235,8 @@ public:
 	int  _walkingToActorId;
 	bool _isInsideScriptActor;
 
-	int _actorUpdateCounter;
+	int    _actorUpdateCounter;
+	uint32 _actorUpdateTimeLast;
 
 private:
 	MIXArchive _archives[kArchiveCount];
@@ -229,8 +250,11 @@ public:
 	Common::Error loadGameState(int slot) override;
 	bool canSaveGameStateCurrently() override;
 	Common::Error saveGameState(int slot, const Common::String &desc) override;
+	void pauseEngineIntern(bool pause) override;
 
-	Common::Error run();
+	Common::Error run() override;
+
+	bool checkFiles(Common::Array<Common::String> &missingFiles);
 
 	bool startup(bool hasSavegames = false);
 	void initChapterAndScene();
@@ -251,7 +275,7 @@ public:
 	void handleEvents();
 	void handleKeyUp(Common::Event &event);
 	void handleKeyDown(Common::Event &event);
-	void handleMouseAction(int x, int y, bool mainButton, bool buttonDown);
+	void handleMouseAction(int x, int y, bool mainButton, bool buttonDown, int scrollDirection = 0);
 	void handleMouseClickExit(int exitId, int x, int y, bool buttonDown);
 	void handleMouseClickRegion(int regionId, int x, int y, bool buttonDown);
 	void handleMouseClickItem(int itemId, bool buttonDown);
@@ -261,6 +285,7 @@ public:
 
 	void gameWaitForActive();
 	void loopActorSpeaking();
+	void loopQueuedDialogueStillPlaying();
 
 	void outtakePlay(int id, bool no_localization, int container = -1);
 
@@ -268,16 +293,21 @@ public:
 	bool closeArchive(const Common::String &name);
 	bool isArchiveOpen(const Common::String &name) const;
 
+	void syncSoundSettings();
+	bool isSubtitlesEnabled();
+	void setSubtitlesEnabled(bool newVal);
+
 	Common::SeekableReadStream *getResourceStream(const Common::String &name);
 
 	bool playerHasControl();
 	void playerLosesControl();
-	void playerGainsControl();
+	void playerGainsControl(bool force = false);
+	void playerDied();
 
-	bool saveGame(Common::WriteStream &stream, const Graphics::Surface &thumbnail);
+	bool saveGame(Common::WriteStream &stream, Graphics::Surface &thumbnail);
 	bool loadGame(Common::SeekableReadStream &stream);
 	void newGame(int difficulty);
-	void autoSaveGame();
+	void autoSaveGame(int textId, bool endgame);
 
 	void ISez(const Common::String &str);
 
@@ -288,8 +318,13 @@ public:
 	Common::String getTargetName() const;
 };
 
-static inline const Graphics::PixelFormat createRGB555() {
-	return Graphics::PixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0);
+static inline const Graphics::PixelFormat gameDataPixelFormat() {
+	return Graphics::PixelFormat(2, 5, 5, 5, 1, 10, 5, 0, 15);
+}
+
+static inline const Graphics::PixelFormat screenPixelFormat() {
+	// Should be a format supported by Android port
+	return Graphics::PixelFormat(2, 5, 5, 5, 1, 11, 6, 1, 0);
 }
 
 void blit(const Graphics::Surface &src, Graphics::Surface &dst);

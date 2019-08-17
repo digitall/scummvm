@@ -21,6 +21,8 @@
  */
 
 #include "glk/frotz/config.h"
+#include "glk/frotz/detection.h"
+#include "glk/glk.h"
 #include "common/config-manager.h"
 #include "common/textconsole.h"
 
@@ -90,6 +92,7 @@ Header::Header() : h_version(0), h_config(0), h_release(0), h_resident_size(0), 
 }
 
 void Header::loadHeader(Common::SeekableReadStream &f) {
+	f.seek(0);
 	h_version = f.readByte();
 	h_config = f.readByte();
 
@@ -142,7 +145,12 @@ void Header::loadHeader(Common::SeekableReadStream &f) {
 
 /*--------------------------------------------------------------------------*/
 
-UserOptions::UserOptions() : _undo_slots(MAX_UNDO_SLOTS), _sound(true), _quetzal(true) {
+UserOptions::UserOptions() : _undo_slots(MAX_UNDO_SLOTS), _sound(true), _quetzal(true), _color_enabled(false),
+	_err_report_mode(ERR_REPORT_ONCE), _ignore_errors(false), _expand_abbreviations(false), _tandyBit(false),
+	_piracy(false), _script_cols(0), _left_margin(0), _right_margin(0), _defaultBackground(0), _defaultForeground(0) {
+}
+
+void UserOptions::initialize(uint hVersion, uint storyId) {
 	_err_report_mode = getConfigInt("err_report_mode", ERR_REPORT_ONCE, ERR_REPORT_FATAL);
 	_ignore_errors = getConfigBool("ignore_errors");
 	_expand_abbreviations = getConfigBool("expand_abbreviations");
@@ -158,9 +166,22 @@ UserOptions::UserOptions() : _undo_slots(MAX_UNDO_SLOTS), _sound(true), _quetzal
 	_object_locating = getConfigBool("object_locating");
 	_object_movement = getConfigBool("object_movement");
 
-	_defaultForeground = getConfigInt("foreground", 0xffffff, 0xffffff);
-	_defaultBackground = getConfigInt("background", 0x000080, 0xffffff);
+	int defaultFg = hVersion == V6 ? 0 : 0xffffff;
+	int defaultBg = hVersion == V6 ? 0xffffff : 0x80;
+	if (storyId == BEYOND_ZORK)
+		defaultBg = 0;
+
+	defaultFg = getConfigInt("foreground", defaultFg, 0xffffff);
+	defaultBg = getConfigInt("background", defaultBg, 0xffffff);
+
+	Graphics::PixelFormat format = g_system->getScreenFormat();
+	_defaultForeground = format.RGBToColor((defaultFg >> 16) & 0xff, (defaultFg >> 8) & 0xff, defaultFg & 0xff);
+	_defaultBackground = format.RGBToColor((defaultBg >> 16) & 0xff, (defaultBg >> 8) & 0xff, defaultBg & 0xff);
 }
 
-} // End of namespace Scott
+bool UserOptions::isInfocom() const {
+	return g_vm->getOptions() & OPTION_INFOCOM;
+}
+
+} // End of namespace Frotz
 } // End of namespace Glk

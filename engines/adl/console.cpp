@@ -44,6 +44,9 @@ Console::Console(AdlEngine *engine) : GUI::Debugger() {
 	registerCmd("vars", WRAP_METHOD(Console, Cmd_Vars));
 	registerCmd("var", WRAP_METHOD(Console, Cmd_Var));
 	registerCmd("convert_disk", WRAP_METHOD(Console, Cmd_ConvertDisk));
+	registerCmd("run_script", WRAP_METHOD(Console, Cmd_RunScript));
+	registerCmd("stop_script", WRAP_METHOD(Console, Cmd_StopScript));
+	registerCmd("set_script_delay", WRAP_METHOD(Console, Cmd_SetScriptDelay));
 }
 
 Common::String Console::toAscii(const Common::String &str) {
@@ -55,20 +58,20 @@ Common::String Console::toAscii(const Common::String &str) {
 	return ascii;
 }
 
-Common::String Console::toAppleWord(const Common::String &str) {
-	Common::String apple(str);
+Common::String Console::toNative(const Common::String &str) {
+	Common::String native(str);
 
-	if (apple.size() > IDI_WORD_SIZE)
-		apple.erase(IDI_WORD_SIZE);
-	apple.toUppercase();
+	if (native.size() > IDI_WORD_SIZE)
+		native.erase(IDI_WORD_SIZE);
+	native.toUppercase();
 
-	for (uint i = 0; i < apple.size(); ++i)
-		apple.setChar(APPLECHAR(apple[i]), i);
+	for (uint i = 0; i < native.size(); ++i)
+		native.setChar(_engine->_display->asciiToNative(native[i]), i);
 
-	while (apple.size() < IDI_WORD_SIZE)
-		apple += APPLECHAR(' ');
+	while (native.size() < IDI_WORD_SIZE)
+		native += _engine->_display->asciiToNative(' ');
 
-	return apple;
+	return native;
 }
 
 bool Console::Cmd_Verbs(int argc, const char **argv) {
@@ -179,8 +182,8 @@ void Console::prepareGame() {
 	_engine->_graphics->clearScreen();
 	_engine->loadRoom(_engine->_state.room);
 	_engine->showRoom();
-	_engine->_display->updateTextScreen();
-	_engine->_display->updateHiResScreen();
+	_engine->_display->renderText();
+	_engine->_display->renderGraphics();
 }
 
 bool Console::Cmd_Region(int argc, const char **argv) {
@@ -267,7 +270,7 @@ bool Console::Cmd_GiveItem(int argc, const char **argv) {
 	if (*end != 0) {
 		Common::Array<Item *> matches;
 
-		Common::String name = toAppleWord(argv[1]);
+		Common::String name = toNative(argv[1]);
 
 		if (!_engine->_nouns.contains(name)) {
 			debugPrintf("Item '%s' not found\n", argv[1]);
@@ -420,6 +423,41 @@ bool Console::Cmd_ConvertDisk(int argc, const char **argv) {
 		debugPrintf("Failed to write to '%s'", argv[2]);
 
 	delete[] buf;
+	return true;
+}
+
+bool Console::Cmd_RunScript(int argc, const char **argv) {
+	if (argc != 2) {
+		debugPrintf("Usage: %s <file>\n", argv[0]);
+		return true;
+	}
+
+	_engine->runScript(argv[1]);
+
+	return false;
+}
+
+bool Console::Cmd_StopScript(int argc, const char **argv) {
+	if (argc != 1) {
+		debugPrintf("Usage: %s\n", argv[0]);
+		return true;
+	}
+
+	_engine->stopScript();
+
+	return true;
+}
+
+bool Console::Cmd_SetScriptDelay(int argc, const char **argv) {
+	if (argc != 2) {
+		debugPrintf("Usage: %s <delay>\n", argv[0]);
+		debugPrintf("A delay of zero indicates wait-for-key\n");
+		return true;
+	}
+
+	Common::String value(argv[1]);
+	_engine->setScriptDelay((uint)value.asUint64());
+
 	return true;
 }
 

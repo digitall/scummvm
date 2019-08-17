@@ -41,7 +41,7 @@ class Elevator {
 	UIImagePicker         *_imagePicker;
 	int                    _actorId;
 	int                    _sentenceId;
-	int                    _timeSpeakDescription;
+	uint32                 _timeSpeakDescriptionStart;
 
 public:
 	Elevator(BladeRunnerEngine *vm);
@@ -59,7 +59,6 @@ public:
 	void setupDescription(int actorId, int sentenceId);
 	void resetDescription();
 	void tickDescription();
-	void resume();
 
 private:
 	static void mouseInCallback(int, void *);

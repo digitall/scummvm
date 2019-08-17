@@ -346,6 +346,16 @@ protected:
 	 */
 	void screen_word(const zchar *s);
 
+	/**
+	 * Erase the entire screen to background colour.
+	 */
+	void erase_screen(zword win);
+
+	/**
+	 * Erase a window to background colour.
+	 */
+	void erase_window(zword win);
+
 	/**@}*/
 
 	/**
@@ -630,8 +640,12 @@ protected:
 	zword lookup_text(int padding, zword dct);
 
 	/**
-	 * tokenise_text
-	 *
+	 * Handles converting abbreviations that weren't handled by early Infocom games
+	 * into their expanded versions
+	 */
+	void handleAbbreviations();
+
+	/**
 	 * Translate a single word to a token and append it to the token
 	 * buffer. Every token consists of the address of the dictionary
 	 * entry, the length of the word and the offset of the word from
@@ -1730,7 +1744,10 @@ public:
 	/**
 	 * Return the current program execution offset
 	 */
-	uint getPC() const { return pcp - zmp; }
+	uint getPC() const {
+		assert(pcp);
+		return pcp - zmp;
+	}
 
 	/**
 	 * Set the program execution offset

@@ -24,7 +24,9 @@
 #include "glk/frotz/frotz_types.h"
 #include "glk/frotz/screen.h"
 #include "glk/frotz/quetzal.h"
+#include "engines/util.h"
 #include "common/config-manager.h"
+#include "common/translation.h"
 
 namespace Glk {
 namespace Frotz {
@@ -40,12 +42,25 @@ Frotz::~Frotz() {
 	reset_memory();
 }
 
+void Frotz::initGraphicsMode() {
+	_gameFile.seek(0);
+	byte version = _gameFile.readByte();
+
+	if (version == 6) {
+		// The V6 games have graphics that expect 320x200 mode
+		Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+		initGraphics(320, 200, &pixelFormat);
+	} else {
+		GlkEngine::initGraphicsMode();
+	}
+}
+
 Screen *Frotz::createScreen() {
 	return new FrotzScreen();
 }
 
-void Frotz::runGame(Common::SeekableReadStream *gameFile) {
-	story_fp = gameFile;
+void Frotz::runGame() {
+	story_fp = &_gameFile;
 	initialize();
 
 	// If save was selected from the launcher, handle loading it
@@ -76,17 +91,13 @@ void Frotz::initialize() {
 	z_restart();
 }
 
-Common::Error Frotz::saveGameData(strid_t file, const Common::String &desc) {
-	Quetzal q(story_fp);
-	bool success = q.save(*file, this, desc);
+Common::Error Frotz::loadGameState(int slot) {
+	FileReference ref(slot, "", fileusage_SavedGame | fileusage_TextMode);
 
-	if (!success)
-		print_string("Error writing save file\n");
+	strid_t file = _streams->openFileStream(&ref, filemode_Read);
+	if (file == nullptr)
+		return Common::kReadingFailed;
 
-	return Common::kNoError;
-}
-
-Common::Error Frotz::loadGameData(strid_t file) {
 	Quetzal q(story_fp);
 	bool success = q.restore(*file, this) == 2;
 
@@ -109,14 +120,32 @@ Common::Error Frotz::loadGameData(strid_t file) {
 		 * seems to cover up most of the resulting badness.
 		 */
 		if (h_version > V3 && h_version != V6 && (h_screen_rows != old_screen_rows
-					|| h_screen_cols != old_screen_cols))
+			|| h_screen_cols != old_screen_cols))
 			erase_window(1);
 	} else {
-		error("Error reading save file");
+		error("%s", _("Error reading save file"));
 	}
 
 	return Common::kNoError;
 }
 
-} // End of namespace Scott
+Common::Error Frotz::saveGameState(int slot, const Common::String &desc) {
+	Common::String msg;
+	FileReference ref(slot, desc, fileusage_BinaryMode | fileusage_SavedGame);
+
+	strid_t file = _streams->openFileStream(&ref, filemode_Write);
+	if (file == nullptr)
+		return Common::kWritingFailed;
+
+	Quetzal q(story_fp);
+	bool success = q.save(*file, this, desc);
+
+	if (!success)
+		print_string(_("Error writing save file\n"));
+
+	return Common::kNoError;
+
+}
+
+} // End of namespace Frotz
 } // End of namespace Glk

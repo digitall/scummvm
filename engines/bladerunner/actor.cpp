@@ -41,6 +41,7 @@
 #include "bladerunner/slice_animations.h"
 #include "bladerunner/slice_renderer.h"
 #include "bladerunner/time.h"
+#include "bladerunner/subtitles.h"
 #include "bladerunner/waypoints.h"
 #include "bladerunner/zbuffer.h"
 
@@ -52,14 +53,11 @@ Actor::Actor(BladeRunnerEngine *vm, int actorId) {
 
 	_walkInfo      = new ActorWalk(vm);
 	_movementTrack = new MovementTrack();
-	_cluesLimit    = (actorId == 0 || actorId == 99) ? 4 : 2;
+	_cluesLimit    = (actorId == kActorMcCoy || actorId == kActorVoiceOver) ? 4 : 2;
 	_clues         = new ActorClues(vm, _cluesLimit);
 	_combatInfo    = new ActorCombat(vm);
 
 	_friendlinessToOther.resize(_vm->_gameInfo->getActorCount());
-
-	_inWalkLoop                       = false;
-	_damageAnimIfMoving               = false;
 
 	setup(actorId);
 }
@@ -72,50 +70,55 @@ Actor::~Actor() {
 }
 
 void Actor::setup(int actorId) {
-	_id    = actorId;
-	_setId = -1;
+	_id             = actorId;
+	_setId          = -1;
 
-	_position     = Vector3(0.0, 0.0, 0.0);
-	_facing       = 512;
-	_targetFacing = -1;
-	_walkboxId    = -1;
+	_position       = Vector3(0.0, 0.0, 0.0);
+	_facing         = 512;
+	_targetFacing   = -1;
+	_walkboxId      = -1;
 
 	_animationId    = 0;
 	_animationFrame = 0;
 	_fps            = 15;
-	_frameMs       = 1000 / _fps;
+	_frameMs        = 1000 / _fps;
 
-	_isMoving            = false;
-	_isTarget            = false;
-	_inCombat            = false;
-	_isInvisible         = false;
-	_isImmuneToObstacles = false;
-	_isRetired           = false;
+	_mustReachWalkDestination = false;	// Original's _inWalkLoop. Moved here from our constructor, since it's here in the original's init()
+	_isMoving                 = false;
+	_isTarget                 = false;
+	_inCombat                 = false;
+	_isInvisible              = false;
+	_isImmuneToObstacles      = false;
+	_isRetired                = false;
 
-	_width         = 0;
-	_height        = 0;
-	_retiredWidth  = 0;
-	_retiredHeight = 0;
-	_scale         = 1.0f;
+	_width                    = 0;
+	_height                   = 0;
+	_retiredWidth             = 0;
+	_retiredHeight            = 0;
+	_scale                    = 1.0f;
 
-	_timer4RemainDefault = 60000;
+	_timer4RemainDefault      = 60000u;
 
 	_movementTrackWalkingToWaypointId = -1;
 	_movementTrackDelayOnNextWaypoint = -1;
 
-	for (int i = 0; i != 7; ++i) {
-		_timersLeft[i] = 0;
+	for (int i = 0; i != kActorTimers; ++i) {
+		_timersLeft[i] = 0u;
 		_timersLast[i] = _vm->_time->current();
 	}
+	_timersLeft[kActorTimerClueExchange] = _timer4RemainDefault; // This was in original code. We need to init this timer in order to kick off periodic updates for acquireCluesByRelations
 
-	_honesty              = 50;
-	_intelligence         = 50;
-	_combatAggressiveness = 50;
-	_stability            = 50;
+	_honesty                     = 50;
+	_intelligence                = 50;
+	_combatAggressiveness        = 50;
+	_stability                   = 50;
 
-	_currentHP  = 50;
-	_maxHP      = 50;
-	_goalNumber = -1;
+	_currentHP                   = 50;
+	_maxHP                       = 50;
+
+	_damageAnimIfMoving          = true; // Set to true (like in original). And moved here from our constructor, since it's here in the original's init().
+
+	_goalNumber                  = -1;
 
 	_movementTrackPaused         = false;
 	_movementTrackNextWaypointId = -1;
@@ -123,7 +126,7 @@ void Actor::setup(int actorId) {
 	_movementTrackNextAngle      = -1;
 	_movementTrackNextRunning    = false;
 
-	_animationMode   = -1;
+	_animationMode               = -1;
 	_screenRectangle = Common::Rect(-1, -1, -1, -1);
 
 	_animationModeCombatIdle = kAnimationModeCombatIdle;
@@ -134,11 +137,56 @@ void Actor::setup(int actorId) {
 	for (int i = 0; i != actorCount; ++i)
 		_friendlinessToOther[i] = 50;
 
+#if BLADERUNNER_ORIGINAL_BUGS
+#else
+	// if player actor was not idle and had an active _walkInfo then
+	// upon starting a new game, the player actpr wpi;d be put on the old _walkInfo
+	_walkInfo->reset();
+//	// delete _walkInfo and re-allocate it (a reset method would probably be better)
+//	if (_walkInfo != nullptr) {
+//		delete(_walkInfo);
+//	}
+//	_walkInfo = new ActorWalk(_vm);
+#endif // BLADERUNNER_ORIGINAL_BUGS
+
 	_combatInfo->setup();
 	_clues->removeAll();
 	_movementTrack->flush();
 
 	_actorSpeed = Vector3();
+
+	switch (_id) {
+		case kActorMcCoy:
+			_sitcomRatio = 50;
+			break;
+
+		case kActorGordo:
+			_sitcomRatio = 0;
+			break;
+
+		case kActorGuzza:
+		case kActorChew:
+		case kActorVoiceOver:
+			_sitcomRatio = 75;
+			break;
+
+		case kActorCrazylegs:
+		case kActorBulletBob:
+		case kActorRunciter:
+		case kActorZuben:
+		case kActorLeon:
+			_sitcomRatio = 90;
+			break;
+
+		case kActorGrigorian:
+		case kActorMoraji:
+			_sitcomRatio = 100;
+			break;
+
+		default:
+			_sitcomRatio = 33;
+			break;
+	}
 }
 
 void Actor::changeAnimationMode(int animationMode, bool force) {
@@ -155,11 +203,11 @@ void Actor::changeAnimationMode(int animationMode, bool force) {
 void Actor::setFPS(int fps) {
 	_fps = fps;
 
-	if (fps == 0) {
+	if (fps == 0) { // stop actor's animation
 		_frameMs = 0;
-	} else if (fps == -1) {
+	} else if (fps == -1) { // sync actor's animation with scene animation
 		_frameMs = -1000;
-	} else if (fps == -2) {
+	} else if (fps == -2) { // set FPS to default from the model
 		_fps = _vm->_sliceAnimations->getFPS(_animationId);
 		_frameMs = 1000 / _fps;
 	} else {
@@ -172,19 +220,22 @@ void Actor::increaseFPS() {
 	setFPS(fps);
 }
 
-void Actor::timerStart(int timerId, int interval) {
-	assert(timerId >= 0 && timerId < 7);
-	_timersLeft[timerId] = interval;
+void Actor::timerStart(int timerId, int32 interval) {
+	assert(timerId >= 0 && timerId < kActorTimers);
+	if (interval < 0 ) {
+		interval = 0;
+	}
+	_timersLeft[timerId] = (uint32)interval;
 	_timersLast[timerId] = _vm->_time->current();
 }
 
 void Actor::timerReset(int timerId) {
-	assert(timerId >= 0 && timerId < 7);
-	_timersLeft[timerId] = 0;
+	assert(timerId >= 0 && timerId < kActorTimers);
+	_timersLeft[timerId] = 0u;
 }
 
-int Actor::timerLeft(int timerId) {
-	assert(timerId >= 0 && timerId < 7);
+uint32 Actor::timerLeft(int timerId) {
+	assert(timerId >= 0 && timerId < kActorTimers);
 	return _timersLeft[timerId];
 }
 
@@ -195,44 +246,51 @@ void Actor::timersUpdate() {
 }
 
 void Actor::timerUpdate(int timerId) {
-	if (_timersLeft[timerId] == 0) {
+	if (_timersLeft[timerId] == 0u) {
 		return;
 	}
 
 	uint32 timeNow = _vm->_time->current();
-	int timeDiff = timeNow - _timersLast[timerId];
+	uint32 timeDiff = timeNow - _timersLast[timerId]; // unsigned difference is intentional
 	_timersLast[timerId] = timeNow;
-	_timersLeft[timerId] -= timeDiff;
+	// new check is safe-guard against old saves, _timersLeft should never have very big value anyway
+	if ((int32)_timersLeft[timerId] < 0 ) {
+		// this will make it 0u in the next command below
+		_timersLeft[timerId] = 0u;
+	}
+	_timersLeft[timerId] = (_timersLeft[timerId] < timeDiff) ? 0u : (_timersLeft[timerId] - timeDiff);
 
-	if (_timersLeft[timerId] <= 0) {
+	if (_timersLeft[timerId] == 0u) { // original check was <= 0
 		switch (timerId) {
-		case 0:
-		case 1:
-		case 2:
+		case kActorTimerAIScriptCustomTask0:
+			// fall through
+		case kActorTimerAIScriptCustomTask1:
+			// fall through
+		case kActorTimerAIScriptCustomTask2:
 			if (!_vm->_aiScripts->isInsideScript() && !_vm->_sceneScript->isInsideScript()) {
 				_vm->_aiScripts->timerExpired(_id, timerId);
-				_timersLeft[timerId] = 0;
+				_timersLeft[timerId] = 0u;
 			} else {
-				_timersLeft[timerId] = 1;
+				_timersLeft[timerId] = 1u;
 			}
 			break;
-		case 3:
-			_timersLeft[3] = 0;
+		case kActorTimerMovementTrack:
+			_timersLeft[kActorTimerMovementTrack] = 0u;
 			if (_movementTrack->isPaused()) {
-				_timersLeft[3] = 1;
+				_timersLeft[kActorTimerMovementTrack] = 1u;
 			} else {
 				movementTrackNext(false);
 			}
 			break;
-		case 4:
+		case kActorTimerClueExchange:
 			// Exchange clues between actors
 			acquireCluesByRelations();
-			_timersLeft[4] = _timer4RemainDefault;
+			_timersLeft[kActorTimerClueExchange] = _timer4RemainDefault;
 			break;
-		case 5:
+		case kActorTimerAnimationFrame:
 			// Actor animation frame timer
 			break;
-		case 6:
+		case kActorTimerRunningStaminaFPS:
 			if (isRunning()) {
 				if (_fps > 15) {
 					int newFps = _fps - 2;
@@ -242,7 +300,7 @@ void Actor::timerUpdate(int timerId) {
 					setFPS(newFps);
 				}
 			}
-			_timersLeft[6] = 200;
+			_timersLeft[kActorTimerRunningStaminaFPS] = 200u;
 			break;
 		}
 	}
@@ -250,10 +308,9 @@ void Actor::timerUpdate(int timerId) {
 
 void Actor::movementTrackNext(bool omitAiScript) {
 	bool hasNextMovement;
-	int waypointSetId;
 	bool running;
 	int angle;
-	int delay;
+	int32 delay;
 	int waypointId;
 	Vector3 waypointPosition;
 	bool arrived;
@@ -267,7 +324,7 @@ void Actor::movementTrackNext(bool omitAiScript) {
 		if (angle == -1) {
 			angle = 0;
 		}
-		waypointSetId = _vm->_waypoints->getSetId(waypointId);
+		int waypointSetId = _vm->_waypoints->getSetId(waypointId);
 		_vm->_waypoints->getXYZ(waypointId, &waypointPosition.x, &waypointPosition.y, &waypointPosition.z);
 		if (_setId == waypointSetId && waypointSetId == _vm->_actors[0]->_setId) {
 			stopWalking(false);
@@ -288,7 +345,7 @@ void Actor::movementTrackNext(bool omitAiScript) {
 			if (delay > 1) {
 				changeAnimationMode(kAnimationModeIdle, false);
 			}
-			timerStart(3, delay);
+			timerStart(kActorTimerMovementTrack, delay);
 		}
 		//return true;
 	} else {
@@ -328,16 +385,16 @@ void Actor::movementTrackWaypointReached() {
 				_movementTrackDelayOnNextWaypoint = 1;
 			}
 			if (_vm->_aiScripts->reachedMovementTrackWaypoint(_id, _movementTrackWalkingToWaypointId)) {
-				int delay = _movementTrackDelayOnNextWaypoint;
+				int32 delay = _movementTrackDelayOnNextWaypoint;
 				if (delay > 1) {
 					changeAnimationMode(kAnimationModeIdle, false);
 					delay = _movementTrackDelayOnNextWaypoint; // todo: analyze if movement is changed in some aiscript->ChangeAnimationMode?
 				}
-				timerStart(3, delay);
+				timerStart(kActorTimerMovementTrack, delay);
 			}
 		}
 		_movementTrackWalkingToWaypointId = -1;
-		_movementTrackDelayOnNextWaypoint = 0;
+		_movementTrackDelayOnNextWaypoint =  0;
 	}
 }
 
@@ -366,19 +423,19 @@ void Actor::setAtWaypoint(int waypointId, int angle, int moving, bool retired) {
 	setAtXYZ(waypointPosition, angle, true, moving, retired);
 }
 
-bool Actor::loopWalk(const Vector3 &destination, int destinationOffset, bool interruptible, bool runFlag, const Vector3 &start, float targetWidth, float targetSize, bool a8, bool *isRunningFlag, bool async) {
+bool Actor::loopWalk(const Vector3 &destination, int proximity, bool interruptible, bool runFlag, const Vector3 &start, float targetWidth, float targetSize, bool mustReach, bool *isRunningFlag, bool async) {
 	*isRunningFlag = false;
 
-	if (destinationOffset > 0) {
+	if (proximity > 0) {
 		float dist = distance(_position, destination);
-		if (dist - targetSize <= destinationOffset) {
+		if (dist - targetSize <= proximity) {
 			return false;
 		}
 	}
 
-	if (a8 && !async && _id != kActorMcCoy && destinationOffset <= 24) {
+	if (mustReach && !async && _id != kActorMcCoy && proximity <= 24) {
 		if (distance(_vm->_playerActor->_position, destination) <= 24.0f) {
-			_vm->_playerActor->walkToNearestPoint(destination, 48.0f);
+			_vm->_playerActor->stepAway(destination, 48.0f);
 		}
 	}
 
@@ -388,18 +445,18 @@ bool Actor::loopWalk(const Vector3 &destination, int destinationOffset, bool int
 
 	Vector3 destinationX(destination);
 
-	if (destinationOffset > 0) {
-		walkFindU2(&destinationX, targetWidth, destinationOffset, targetSize, _position, destination);
+	if (proximity > 0) {
+		findNearestPosition(&destinationX, targetWidth, proximity, targetSize, _position, destination);
 	}
 
-	bool walking = walkTo(runFlag, destinationX, a8);
+	bool walking = walkTo(runFlag, destinationX, mustReach);
 
 	if (async) {
 		return false;
 	}
 
-	if (!walking && destinationOffset > 0) {
-		walking = walkTo(runFlag, destination, a8);
+	if (!walking && proximity > 0) {
+		walking = walkTo(runFlag, destination, mustReach);
 	}
 
 	if (!walking) {
@@ -418,8 +475,8 @@ bool Actor::loopWalk(const Vector3 &destination, int destinationOffset, bool int
 		_vm->playerLosesControl();
 	}
 
-	if (a8) {
-		_inWalkLoop = true;
+	if (mustReach) {
+		_mustReachWalkDestination = true;
 	}
 
 	bool wasInterrupted = false;
@@ -433,44 +490,57 @@ bool Actor::loopWalk(const Vector3 &destination, int destinationOffset, bool int
 			wasInterrupted = true;
 		}
 	}
-	if (a8) {
-		_inWalkLoop = false;
+
+	if (mustReach) {
+		_mustReachWalkDestination = false;
 	}
+
 	if (interruptible) {
 		_vm->_isWalkingInterruptible = false;
 	} else {
 		_vm->playerGainsControl();
 	}
-	if (!wasInterrupted && destinationOffset == 0 && !_vm->_playerActorIdle) {
+
+#if BLADERUNNER_ORIGINAL_BUGS
+	if (!wasInterrupted && proximity == 0 && !_vm->_playerActorIdle) {
 		setAtXYZ(destination, _facing, true, false, false);
 	}
+#else
+	if (!wasInterrupted && proximity == 0
+	    && (_id == kActorMcCoy && !_vm->_playerActorIdle)
+	    && !isRetired()
+	) {
+		setAtXYZ(destination, _facing, true, false, false);
+	}
+#endif // BLADERUNNER_ORIGINAL_BUGS
+
 	if (_id != kActorMcCoy) {
 		_vm->_mouse->enable();
 	}
+
 	return wasInterrupted;
 }
 
-bool Actor::walkTo(bool runFlag, const Vector3 &destination, bool a3) {
+bool Actor::walkTo(bool runFlag, const Vector3 &destination, bool mustReach) {
 	bool arrived;
-
-	return _walkInfo->setup(_id, runFlag, _position, destination, a3, &arrived);
+	return _walkInfo->setup(_id, runFlag, _position, destination, mustReach, &arrived);
 }
 
-bool Actor::loopWalkToActor(int otherActorId, int destinationOffset, int interruptible, bool runFlag, bool a5, bool *isRunningFlag) {
-	return loopWalk(_vm->_actors[otherActorId]->_position, destinationOffset, interruptible, runFlag, _position, 24.0f, 24.0f, a5, isRunningFlag, false);
+bool Actor::loopWalkToActor(int otherActorId, int proximity, int interruptible, bool runFlag, bool mustReach, bool *isRunningFlag) {
+	return loopWalk(_vm->_actors[otherActorId]->_position, proximity, interruptible, runFlag, _position, 24.0f, 24.0f, mustReach, isRunningFlag, false);
 }
 
-bool Actor::loopWalkToItem(int itemId, int destinationOffset, int interruptible, bool runFlag, bool a5, bool *isRunningFlag) {
+bool Actor::loopWalkToItem(int itemId, int proximity, int interruptible, bool runFlag, bool mustReach, bool *isRunningFlag) {
 	float x, y, z;
 	int width, height;
 	_vm->_items->getXYZ(itemId, &x, &y, &z);
 	_vm->_items->getWidthHeight(itemId, &width, &height);
 	Vector3 itemPosition(x, y, z);
 
-	return loopWalk(itemPosition, destinationOffset, interruptible, runFlag, _position, width, 24.0f, a5, isRunningFlag, false);
+	return loopWalk(itemPosition, proximity, interruptible, runFlag, _position, width, 24.0f, mustReach, isRunningFlag, false);
 }
 
-bool Actor::loopWalkToSceneObject(const Common::String &objectName, int destinationOffset, bool interruptible, bool runFlag, bool a5, bool *isRunningFlag) {
+bool Actor::loopWalkToSceneObject(const Common::String &objectName, int proximity, bool interruptible, bool runFlag, bool mustReach, bool *isRunningFlag) {
 	int sceneObject = _vm->_scene->_set->findObject(objectName);
 	if (sceneObject < 0) {
 		return true;
@@ -506,35 +576,35 @@ bool Actor::loopWalkToSceneObject(const Common::String &objectName, int destinat
 	if (d < closestDistance) {
 		closestX = x0;
 		closestZ = z1;
-		closestDistance = d;
 	}
+
 	bool inWalkbox;
 	float y = _vm->_scene->_set->getAltitudeAtXZ(closestX, closestZ, &inWalkbox);
 	Vector3 destination(closestX, y, closestZ);
 
-	return loopWalk(destination, destinationOffset, interruptible, runFlag, _position, 0.0f, 24.0f, a5, isRunningFlag, false);
+	return loopWalk(destination, proximity, interruptible, runFlag, _position, 0.0f, 24.0f, mustReach, isRunningFlag, false);
 }
 
-bool Actor::loopWalkToWaypoint(int waypointId, int destinationOffset, int interruptible, bool runFlag, bool a5, bool *isRunningFlag) {
+bool Actor::loopWalkToWaypoint(int waypointId, int proximity, int interruptible, bool runFlag, bool mustReach, bool *isRunningFlag) {
 	Vector3 waypointPosition;
 	_vm->_waypoints->getXYZ(waypointId, &waypointPosition.x, &waypointPosition.y, &waypointPosition.z);
-	return loopWalk(waypointPosition, destinationOffset, interruptible, runFlag, _position, 0.0f, 24.0f, a5, isRunningFlag, false);
+	return loopWalk(waypointPosition, proximity, interruptible, runFlag, _position, 0.0f, 24.0f, mustReach, isRunningFlag, false);
 }
 
-bool Actor::loopWalkToXYZ(const Vector3 &destination, int destinationOffset, bool interruptible, bool runFlag, bool a5, bool *isRunningFlag) {
-	return loopWalk(destination, destinationOffset, interruptible, runFlag, _position, 0.0f, 24.0f, a5, isRunningFlag, false);
+bool Actor::loopWalkToXYZ(const Vector3 &destination, int proximity, bool interruptible, bool runFlag, bool mustReach, bool *isRunningFlag) {
+	return loopWalk(destination, proximity, interruptible, runFlag, _position, 0.0f, 24.0f, mustReach, isRunningFlag, false);
 }
 
-bool Actor::asyncWalkToWaypoint(int waypointId, int destinationOffset, bool runFlag, bool a5) {
+bool Actor::asyncWalkToWaypoint(int waypointId, int proximity, bool runFlag, bool mustReach) {
 	bool running;
 	Vector3 waypointPosition;
 	_vm->_waypoints->getXYZ(waypointId, &waypointPosition.x, &waypointPosition.y, &waypointPosition.z);
-	return loopWalk(waypointPosition, destinationOffset, false, runFlag, _position, 0.0f, 24.0f, a5, &running, true);
+	return loopWalk(waypointPosition, proximity, false, runFlag, _position, 0.0f, 24.0f, mustReach, &running, true);
 }
 
-void Actor::asyncWalkToXYZ(const Vector3 &destination, int destinationOffset, bool runFlag, int a6) {
+void Actor::asyncWalkToXYZ(const Vector3 &destination, int proximity, bool runFlag, bool mustReach) {
 	bool running;
-	loopWalk(destination, destinationOffset, false, runFlag, _position, 0.0f, 24.0f, a6, &running, true);
+	loopWalk(destination, proximity, false, runFlag, _position, 0.0f, 24.0f, mustReach, &running, true);
 }
 
 void Actor::run() {
@@ -542,20 +612,24 @@ void Actor::run() {
 }
 
 bool Actor::tick(bool forceDraw, Common::Rect *screenRect) {
-	int timeLeft = 0;
+	uint32 timeLeft = 0u;
 	bool needsUpdate = false;
 	if (_fps > 0) {
-		timerUpdate(5);
-		timeLeft = timerLeft(5);
-		needsUpdate = timeLeft <= 0;
+		timerUpdate(kActorTimerAnimationFrame);
+		timeLeft = timerLeft(kActorTimerAnimationFrame);
+		needsUpdate = (timeLeft == 0); // original was <= 0, with timeLeft int
+	} else if (_fps == 0) {
+		needsUpdate = false;
 	} else if (forceDraw) {
 		needsUpdate = true;
-		timeLeft = 0;
+		timeLeft = 0u;
 	}
 
 	if (needsUpdate) {
 		int newAnimation = 0, newFrame = 0;
 		_vm->_aiScripts->updateAnimation(_id, &newAnimation, &newFrame);
+
+		assert(newFrame >= 0);
 
 		if (_animationId != newAnimation) {
 			if (_fps != 0 && _fps != -1) {
@@ -582,13 +656,13 @@ bool Actor::tick(bool forceDraw, Common::Rect *screenRect) {
 
 			_targetFacing = -1;
 
-			bool walked = _walkInfo->tick(_id, -positionChange.y, false);
+			bool walkInterrupted = _walkInfo->tick(_id, -positionChange.y, _mustReachWalkDestination);
 
 			Vector3 pos;
 			int facing;
 			_walkInfo->getCurrentPosition(_id, &pos, &facing);
 			setAtXYZ(pos, facing, false, _isMoving, false);
-			if (walked) {
+			if (walkInterrupted) {
 				_vm->_actors[_id]->changeAnimationMode(kAnimationModeIdle);
 
 				movementTrackWaypointReached();
@@ -603,12 +677,12 @@ bool Actor::tick(bool forceDraw, Common::Rect *screenRect) {
 				int facingChange = angleChange * (512.0f / M_PI);
 				if (facingChange != 0) {
 					_facing = _facing - facingChange;
-					if (_facing < 0) {
+					while (_facing < 0) {
 						_facing += 1024;
 					}
 
-					if (_facing >= 1024) {
-						_facing = _facing - 1024;
+					while (_facing >= 1024) {
+						_facing -= 1024;
 					}
 				}
 			}
@@ -656,11 +730,11 @@ bool Actor::tick(bool forceDraw, Common::Rect *screenRect) {
 	}
 
 	if (needsUpdate) {
-		int nextFrameTime = timeLeft + _frameMs;
+		int nextFrameTime = (int)(timeLeft + _frameMs); // Should be ok
 		if (nextFrameTime <= 0) {
 			nextFrameTime = 1;
 		}
-		timerStart(5, nextFrameTime);
+		timerStart(kActorTimerAnimationFrame, nextFrameTime);
 	}
 	if (_targetFacing >= 0) {
 		if (_targetFacing == _facing) {
@@ -680,10 +754,20 @@ void Actor::tickCombat() {
 
 bool Actor::draw(Common::Rect *screenRect) {
 	Vector3 drawPosition(_position.x, -_position.z, _position.y + 2.0);
+
+#if !BLADERUNNER_ORIGINAL_BUGS
+	// In the original game, Moraji appears to be floating above the ground a bit
+	if (_id == kActorMoraji && _setId == kSetDR01_DR02_DR04) {
+		drawPosition.z -= 6.0f;
+	}
+#endif
+
 	float drawAngle = M_PI - _facing * (M_PI / 512.0f);
 	float drawScale = _scale;
 
-	// TODO: Handle SHORTY mode
+	if (_vm->_shortyMode) {
+		drawScale = 0.7f;
+	}
 
 	_vm->_sliceRenderer->drawInWorld(_animationId, _animationFrame, drawPosition, drawAngle, drawScale, _vm->_surfaceFront, _vm->_zbuffer->getData());
 	_vm->_sliceRenderer->getScreenRectangle(screenRect, _animationId, _animationFrame, drawPosition, drawAngle, drawScale);
@@ -755,7 +839,15 @@ void Actor::setFacing(int facing, bool halfOrSet) {
 		}
 	}
 
-	_facing = (_facing + offset) % 1024;
+	_facing += offset;
+
+	while (_facing < 0) {
+		_facing += 1024;
+	}
+
+	while (_facing >= 1024) {
+		_facing -= 1024;
+	}
 }
 
 void Actor::setBoundingBox(const Vector3 &position, bool retired) {
@@ -798,7 +890,7 @@ void Actor::stopWalking(bool value) {
 	}
 
 	if (isWalking()) {
-		_walkInfo->stop(_id, true, _animationModeCombatIdle, 0);
+		_walkInfo->stop(_id, true, _animationModeCombatIdle, kAnimationModeIdle);
 	} else if (inCombat()) {
 		changeAnimationMode(_animationModeCombatIdle, false);
 	} else {
@@ -884,7 +976,7 @@ void Actor::modifyFriendlinessToOther(int otherActorId, signed int change) {
 }
 
 void Actor::setFriendlinessToOther(int otherActorId, int friendliness) {
-	_friendlinessToOther[otherActorId] = friendliness;
+	_friendlinessToOther[otherActorId] = CLIP(friendliness, 0, 100);
 }
 
 bool Actor::checkFriendlinessAndHonesty(int otherActorId) {
@@ -903,19 +995,19 @@ bool Actor::checkFriendlinessAndHonesty(int otherActorId) {
 }
 
 void Actor::setHonesty(int honesty) {
-	_honesty = honesty;
+	_honesty = CLIP(honesty, 0, 100);
 }
 
 void Actor::setIntelligence(int intelligence) {
-	_intelligence = intelligence;
+	_intelligence = CLIP(intelligence, 0, 100);
 }
 
 void Actor::setStability(int stability) {
-	_stability = stability;
+	_stability = CLIP(stability, 0, 100);
 }
 
 void Actor::setCombatAggressiveness(int combatAggressiveness) {
-	_combatAggressiveness = combatAggressiveness;
+	_combatAggressiveness = CLIP(combatAggressiveness, 0, 100);
 }
 
 void Actor::setInvisible(bool isInvisible) {
@@ -950,6 +1042,10 @@ bool Actor::getFlagDamageAnimIfMoving() const {
 	return _damageAnimIfMoving;
 }
 
+int Actor::getSitcomRatio() const {
+	return _sitcomRatio;
+}
+
 void Actor::retire(bool retired, int width, int height, int retiredByActorId) {
 	_isRetired = retired;
 	_retiredWidth = MAX(width, 0);
@@ -968,15 +1064,18 @@ void Actor::setTarget(bool target) {
 }
 
 void Actor::setCurrentHP(int hp) {
-	_currentHP = hp;
+	_currentHP = CLIP(hp, 0, 100);
 	if (hp > 0) {
 		retire(false, 0, 0, -1);
 	}
 }
 
 void Actor::setHealth(int hp, int maxHp) {
-	_currentHP = hp;
-	_maxHP = maxHp;
+	if (hp > maxHp) {
+		hp = maxHp;
+	}
+	_currentHP = CLIP(hp,    0, 100);
+	_maxHP     = CLIP(maxHp, 0, 100);
 	if (hp > 0) {
 		retire(false, 0, 0, -1);
 	}
@@ -994,13 +1093,13 @@ void Actor::modifyMaxHP(signed int change) {
 }
 
 
-void Actor::combatModeOn(int initialState, bool rangedAttack, int enemyId, int waypointType, int animationModeCombatIdle, int animationModeCombatWalk, int animationModeCombatRun, int fleeRatio, int coverRatio, int actionRatio, int damage, int range, bool unstoppable) {
+void Actor::combatModeOn(int initialState, bool rangedAttack, int enemyId, int waypointType, int animationModeCombatIdle, int animationModeCombatWalk, int animationModeCombatRun, int fleeRatio, int coverRatio, int attackRatio, int damage, int range, bool unstoppable) {
 	_animationModeCombatIdle = animationModeCombatIdle;
 	_animationModeCombatWalk = animationModeCombatWalk;
 	_animationModeCombatRun = animationModeCombatRun;
 	_inCombat = true;
-	if (_id != kActorMcCoy) {
-		_combatInfo->combatOn(_id, initialState, rangedAttack, enemyId, waypointType, fleeRatio, coverRatio, actionRatio, damage, range, unstoppable);
+	if (_id != kActorMcCoy && enemyId != -1) {
+		_combatInfo->combatOn(_id, initialState, rangedAttack, enemyId, waypointType, fleeRatio, coverRatio, attackRatio, damage, range, unstoppable);
 	}
 	stopWalking(false);
 	changeAnimationMode(_animationModeCombatIdle, false);
@@ -1065,6 +1164,10 @@ int Actor::getAnimationMode() const {
 	return _animationMode;
 }
 
+int Actor::getAnimationId() const {
+	return _animationId;
+}
+
 void Actor::setGoal(int goalNumber) {
 	int oldGoalNumber = _goalNumber;
 	_goalNumber = goalNumber;
@@ -1083,19 +1186,20 @@ int Actor::getGoal() const {
 void Actor::speechPlay(int sentenceId, bool voiceOver) {
 	Common::String name = Common::String::format( "%02d-%04d%s.AUD", _id, sentenceId, _vm->_languageCode.c_str());
 
-	int balance = 0;
+	int pan = 0;
 	if (!voiceOver && _id != BladeRunnerEngine::kActorVoiceOver) {
-		// Vector3 pos = _vm->_view->_frameViewMatrix * _position;
-		int screenX = 320; //, screenY = 0;
-		//TODO: transform to screen space using fov;
-		balance = 127 * (2 * screenX - 640) / 640;
-		balance = CLIP<int>(balance, -127, 127);
+		Vector3 screenPosition = _vm->_view->calculateScreenPosition(_position);
+		pan = (75 * (2 *  CLIP<int>(screenPosition.x, 0, 640) - 640)) / 640; // map [0..640] to [-75..75]
 	}
 
-	_vm->_audioSpeech->playSpeech(name, balance);
+	_vm->_subtitles->loadInGameSubsText(_id, sentenceId);
+	_vm->_subtitles->show();
+
+	_vm->_audioSpeech->playSpeech(name, pan);
 }
 
 void Actor::speechStop() {
+	_vm->_subtitles->hide();
 	_vm->_audioSpeech->stopSpeech();
 }
 
@@ -1127,7 +1231,8 @@ bool Actor::hasClue(int clueId) const {
 	return _clues->isAcquired(clueId);
 }
 
-void Actor::copyClues(int actorId) {
+bool Actor::copyClues(int actorId) {
+	bool newCluesAcquired = false;
 	Actor *otherActor = _vm->_actors[actorId];
 	for (int i = 0; i < (int)_vm->_gameInfo->getClueCount(); i++) {
 		if (hasClue(i) && !_clues->isPrivate(i) && otherActor->canAcquireClue(i) && !otherActor->hasClue(i)) {
@@ -1136,8 +1241,10 @@ void Actor::copyClues(int actorId) {
 				fromActorId = _clues->getFromActorId(i);
 			}
 			otherActor->acquireClue(i, false, fromActorId);
+			newCluesAcquired = true;
 		}
 	}
+	return newCluesAcquired;
 }
 
 void Actor::acquireCluesByRelations() {
@@ -1154,12 +1261,12 @@ void Actor::acquireCluesByRelations() {
 
 int Actor::soundVolume() const {
 	float dist = distanceFromView(_vm->_view);
-	return 35.0f * CLIP(1.0f - (dist / 1200.0f), 0.0f, 1.0f);
+	return (35 * CLIP<int>(100 - (dist / 12), 0, 100)) / 100; // map [0..1200] to [35..0]
 }
 
-int Actor::soundBalance() const {
+int Actor::soundPan() const {
 	Vector3 screenPosition = _vm->_view->calculateScreenPosition(_position);
-	return 35.0f * (CLIP(screenPosition.x / 640.0f, 0.0f, 1.0f) * 2.0f - 1.0f);
+	return (35 * (2 * CLIP<int>(screenPosition.x, 0, 640) - 640)) / 640; // map [0..640] to [-35..35]
 }
 
 bool Actor::isObstacleBetween(const Vector3 &target) {
@@ -1178,76 +1285,86 @@ int Actor::findTargetUnderMouse(BladeRunnerEngine *vm, int mouseX, int mouseY) {
 	return -1;
 }
 
-bool Actor::walkFindU1(const Vector3 &startPosition, const Vector3 &targetPosition, float size, Vector3 *newDestination) {
-	newDestination->x = 0.0f;
-	newDestination->y = 0.0f;
-	newDestination->z = 0.0f;
-	int facing = angle_1024(targetPosition, startPosition);
-	int facing1 = 0;
+bool Actor::findEmptyPositionAround(const Vector3 &startPosition, const Vector3 &targetPosition, float size, Vector3 *emptyPosition) {
+	emptyPosition->x = 0.0f;
+	emptyPosition->y = 0.0f;
+	emptyPosition->z = 0.0f;
 
-	int facing2 = facing;
-	int facing3 = 0;
+	int facingLeft = angle_1024(targetPosition, startPosition);
+	int facingRight = facingLeft;
+
+	int facingLeftCounter = 0;
+	int facingRightCounter = 0;
+
 	while (true) {
-		float rotatedX = targetPosition.x + size * _vm->_sinTable1024->at(facing);
-		float rotatedZ = targetPosition.z - size * _vm->_cosTable1024->at(facing);
+		float rotatedX = targetPosition.x + size * _vm->_sinTable1024->at(facingLeft);
+		float rotatedZ = targetPosition.z - size * _vm->_cosTable1024->at(facingLeft);
 
-		if (!_walkInfo->isXYZEmpty(rotatedX, targetPosition.y, rotatedZ, _id)) {
+		if (!_walkInfo->isXYZOccupied(rotatedX, targetPosition.y, rotatedZ, _id)) {
 			if (_vm->_scene->_set->findWalkbox(rotatedX, rotatedZ) >= 0) {
-				newDestination->x = rotatedX;
-				newDestination->y = targetPosition.y;
-				newDestination->z = rotatedZ;
+				emptyPosition->x = rotatedX;
+				emptyPosition->y = targetPosition.y;
+				emptyPosition->z = rotatedZ;
 				return true;
 			}
-		} else {
-			facing += 20;
-			if (facing > 1024) {
-				facing -= 1024;
+		} else { // looks like a bug as it might not find anything when there is no walkbox at this angle
+			facingLeft += 20;
+#if BLADERUNNER_ORIGINAL_BUGS
+			if (facingLeft > 1024) {
+				facingLeft -= 1024;
 			}
-			facing3 += 20;
+#else
+			// if facingLeft + 20 == 1024 then it could cause the assertion fault
+			// in common/sinetables.cpp for SineTable::at(int index) -> assert((index >= 0) && (index < _nPoints))
+			if (facingLeft >= 1024) {
+				facingLeft -= 1024;
+			}
+#endif
+			facingLeftCounter += 20;
 		}
 
-		rotatedX = size * _vm->_sinTable1024->at(facing2) + targetPosition.x;
-		rotatedZ = size * _vm->_cosTable1024->at(facing2) + targetPosition.z;
+		rotatedX = size * _vm->_sinTable1024->at(facingRight) + targetPosition.x;
+		rotatedZ = size * _vm->_cosTable1024->at(facingRight) + targetPosition.z;
 
-		if (!_walkInfo->isXYZEmpty(rotatedX, targetPosition.y, rotatedZ, _id)) {
+		if (!_walkInfo->isXYZOccupied(rotatedX, targetPosition.y, rotatedZ, _id)) {
 			if (_vm->_scene->_set->findWalkbox(rotatedX, rotatedZ) >= 0) {
-				newDestination->x = rotatedX;
-				newDestination->y = targetPosition.y;
-				newDestination->z = rotatedZ;
+				emptyPosition->x = rotatedX;
+				emptyPosition->y = targetPosition.y;
+				emptyPosition->z = rotatedZ;
 				return true;
 			}
-		} else {
-			facing2 -= 20;
-			if (facing2 < 0) {
-				facing2 += 1024;
+		} else { // looks like a bug as it might not find anything when there is no walkbox at this angle
+			facingRight -= 20;
+			if (facingRight < 0) {
+				facingRight += 1024;
 			}
-			facing1 += 20;
+			facingRightCounter += 20;
 		}
 
-		if (facing3 > 1024 && facing1 > 1024) {
+		if (facingLeftCounter > 1024 && facingRightCounter > 1024) {
 			return false;
 		}
 	}
 }
 
-bool Actor::walkFindU2(Vector3 *newDestination, float targetWidth, int destinationOffset, float targetSize, const Vector3 &startPosition, const Vector3 &targetPosition) {
-	newDestination->x = 0.0f;
-	newDestination->y = 0.0f;
-	newDestination->z = 0.0f;
-	float size = destinationOffset + targetSize * 0.5f + targetWidth * 0.5f;
+bool Actor::findNearestPosition(Vector3 *nearestPosition, float targetWidth, int proximity, float targetSize, const Vector3 &startPosition, const Vector3 &targetPosition) {
+	nearestPosition->x = 0.0f;
+	nearestPosition->y = 0.0f;
+	nearestPosition->z = 0.0f;
+	float size = proximity + targetSize * 0.5f + targetWidth * 0.5f;
 	float distance = (startPosition - targetPosition).length() - targetWidth * 0.5f - targetSize * 0.5f;
 	if (size < distance) {
-		return walkFindU1(startPosition, targetPosition, size, newDestination);
+		return findEmptyPositionAround(startPosition, targetPosition, size, nearestPosition);
 	} else {
-		*newDestination = targetPosition;
+		*nearestPosition = targetPosition;
 		return true;
 	}
 }
 
-bool Actor::walkToNearestPoint(const Vector3 &destination, float distance) {
+bool Actor::stepAway(const Vector3 &destination, float distance) {
 	Vector3 out;
 	bool running;
-	if (_walkInfo->findNearestEmptyPosition(_id, destination, distance, out)) {
+	if (_walkInfo->findEmptyPositionAround(_id, destination, distance, out)) {
 		loopWalk(out, 0, false, false, _position, 0.0f, 24.0f, false, &running, false);
 		return true;
 	}
@@ -1300,17 +1417,18 @@ void Actor::save(SaveFileWriteStream &f) {
 	f.writeInt(_retiredWidth);
 	f.writeInt(_retiredHeight);
 	f.writeInt(_damageAnimIfMoving);
-	f.writeInt(0); // TODO: _actorFieldU6
-	f.writeInt(0); // TODO: _actorFieldU7
+	f.writeInt(0);
+	f.writeInt(0);
 	f.writeFloat(_scale);
 
-	for (int i = 0; i < 7; ++i) {
+	for (int i = 0; i < kActorTimers; ++i) {
 		f.writeInt(_timersLeft[i]);
 	}
 
 	uint32 now = _vm->_time->getPauseStart();
-	for (int i = 0; i < 7; ++i) {
-		f.writeInt(now - _timersLast[i]);
+	for (int i = 0; i < kActorTimers; ++i) {
+		// this effectively stores the next timeDiff to be applied to timer i (in timerUpdate)
+		f.writeInt(now - _timersLast[i]); // Unsigned difference is intentional
 	}
 
 	int actorCount = _vm->_gameInfo->getActorCount();
@@ -1339,7 +1457,7 @@ void Actor::load(SaveFileReadStream &f) {
 	_position = f.readVector3();
 	_facing = f.readInt();
 	_targetFacing = f.readInt();
-	_timer4RemainDefault = f.readInt();
+	_timer4RemainDefault = f.readUint32LE();
 
 	_honesty = f.readInt();
 	_intelligence = f.readInt();
@@ -1379,17 +1497,22 @@ void Actor::load(SaveFileReadStream &f) {
 	_retiredWidth = f.readInt();
 	_retiredHeight = f.readInt();
 	_damageAnimIfMoving = f.readInt();
-	f.skip(4); // TODO: _actorFieldU6
-	f.skip(4); // TODO: _actorFieldU7
+	f.skip(4);
+	f.skip(4);
 	_scale = f.readFloat();
 
-	for (int i = 0; i < 7; ++i) {
-		_timersLeft[i] = f.readInt();
+	for (int i = 0; i < kActorTimers; ++i) {
+		_timersLeft[i] = f.readUint32LE();
+	}
+	// Bugfix: Special initialization case for timer 4 (kActorTimerClueExchange) when its value is restored as 0
+	// This should be harmless, but will remedy any broken save-games where the timer 4 was saved as 0.
+	if (_timersLeft[kActorTimerClueExchange] == 0u) {
+		_timersLeft[kActorTimerClueExchange] = _timer4RemainDefault;
 	}
 
 	uint32 now = _vm->_time->getPauseStart();
-	for (int i = 0; i < 7; ++i) {
-		_timersLast[i] = now - f.readInt();
+	for (int i = 0; i < kActorTimers; ++i) {
+		_timersLast[i] = now - f.readUint32LE(); // we require an unsigned difference here, since _timersLast is essentially keeping time
 	}
 
 	int actorCount = _vm->_gameInfo->getActorCount();

@@ -28,11 +28,19 @@
 namespace Glk {
 namespace Frotz {
 
+class FrotzScreen;
+
 /**
  * Frotz interpreter for Z-code games
  */
 class Frotz : public Processor {
+	friend class FrotzScreen;
 protected:
+	/**
+	 * Setup the video mode
+	 */
+	virtual void initGraphicsMode();
+
 	/**
 	 * Create the screen class
 	 */
@@ -61,17 +69,28 @@ public:
 	/**
 	 * Execute the game
 	 */
-	virtual void runGame(Common::SeekableReadStream *gameFile) override;
+	virtual void runGame() override;
 
 	/**
-	 * Load a savegame from the passed stream
+	 * Load a savegame from a given slot
 	 */
-	virtual Common::Error loadGameData(strid_t file) override;
+	virtual Common::Error loadGameState(int slot) override;
 
 	/**
-	 * Save the game to the passed stream
+	 * Save the game to a given slot
 	 */
-	virtual Common::Error saveGameData(strid_t file, const Common::String &desc) override;
+	virtual Common::Error saveGameState(int slot, const Common::String &desc) override;
+
+	/**
+	 * Loading method not used for Frotz sub-engine
+	 */
+	virtual Common::Error readSaveData(Common::SeekableReadStream *rs) override { return Common::kReadingFailed; }
+
+	/**
+	 * Saving method not used for Frotz sub-engine
+	 */
+	virtual Common::Error writeGameData(Common::WriteStream *ws) override { return Common::kWritingFailed; }
+
 };
 
 extern Frotz *g_vm;
