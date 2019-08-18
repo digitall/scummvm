@@ -98,17 +98,8 @@ bool SoundEntry::checkPlaying() {
 }
 
 void SoundEntry::setVolumeAndPan() const {
-	// Compute volume and pan
-
-	int32 volume = (int32)(-10000.0f - _multiplier * 0.01f * _volume * 0.01f * getSound()->getGlobalVolume() * -10000.0f);
-	int32 pan = (int32)(-10000.0f - (_pan + 100.0f) * -100.0f);
-
-	// Convert volume and panning
-	convertVolumeFrom(volume);
-	convertPan(pan);
-
-	getSound()->getMixer()->setChannelVolume(_handle, (byte)volume);
-	getSound()->getMixer()->setChannelBalance(_handle, (byte)pan);
+	getSound()->getMixer()->setChannelVolume(_handle, (byte)(_volume * _multiplier * 0.01f));
+	getSound()->getMixer()->setChannelBalance(_handle, (byte)_pan);
 }
 
 SoundFormat SoundEntry::getFormat(Common::String filename) {
@@ -124,60 +115,6 @@ SoundFormat SoundEntry::getFormat(Common::String filename) {
 		return kSoundFormatWAS;
 
 	return kSoundFormatInvalid;
-}
-
-//////////////////////////////////////////////////////////////////////////
-// Conversion functions
-//
-// Those are from engines/agos/sound.cpp (FIXME: Move to common code?)
-//////////////////////////////////////////////////////////////////////////
-
-void SoundEntry::convertVolumeFrom(int32 &vol) {
-	// DirectSound was originally used, which specifies volume
-	// and panning differently than ScummVM does, using a logarithmic scale
-	// rather than a linear one.
-	//
-	// Volume is a value between -10,000 and 0.
-	//
-	// In both cases, the -10,000 represents -100 dB. When panning, only
-	// one speaker's volume is affected - just like in ScummVM - with
-	// negative values affecting the left speaker, and positive values
-	// affecting the right speaker. Thus -10,000 means the left speaker is
-	// silent.
-
-	int32 v = CLIP(vol, -10000, 0);
-	if (v) {
-		vol = (int)((double)Audio::Mixer::kMaxChannelVolume * pow(10.0, (double)v / 2000.0) + 0.5);
-	} else {
-		vol = Audio::Mixer::kMaxChannelVolume;
-	}
-}
-
-void SoundEntry::convertVolumeTo(int32 &vol) {
-	vol = (int32)(log10(vol / (double)Audio::Mixer::kMaxChannelVolume) - 0.5) * 2000;
-}
-
-void SoundEntry::convertPan(int32 &pan) {
-	// DirectSound was originally used, which specifies volume
-	// and panning differently than ScummVM does, using a logarithmic scale
-	// rather than a linear one.
-	//
-	// Panning is a value between -10,000 and 10,000.
-	//
-	// In both cases, the -10,000 represents -100 dB. When panning, only
-	// one speaker's volume is affected - just like in ScummVM - with
-	// negative values affecting the left speaker, and positive values
-	// affecting the right speaker. Thus -10,000 means the left speaker is
-	// silent.
-
-	int32 p = CLIP(pan, -10000, 10000);
-	if (p < 0) {
-		pan = (int)(255.0 * pow(10.0, (double)p / 2000.0) + 127.5);
-	} else if (p > 0) {
-		pan = (int)(255.0 * pow(10.0, (double)p / -2000.0) - 127.5);
-	} else {
-		pan = 0;
-	}
 }
 
 #pragma endregion

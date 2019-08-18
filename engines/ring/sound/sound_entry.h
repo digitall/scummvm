@@ -64,31 +64,6 @@ public:
 
 	static SoundFormat getFormat(Common::String filename);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Conversion functions
-	//////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Convert volume to a ScummVM mixer value
-	 *
-	 * @param [in,out] vol The volume.
-	 */
-	static void convertVolumeFrom(int32 &vol);
-
-	/**
-	 * Convert ScummVM mixer value to a volume
-	 *
-	 * @param [in,out] vol The volume.
-	 */
-	static void convertVolumeTo(int32 &vol);
-
-	/**
-	 * Convert pan.
-	 *
-	 * @param [in,out] pan The pan.
-	 */
-	static void convertPan(int32 &pan);
-
 protected:
 	SoundType      _type;
 	Common::String _name;

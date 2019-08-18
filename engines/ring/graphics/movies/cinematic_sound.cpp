@@ -91,30 +91,17 @@ void CinematicSound::play() {
 	if (!_audioStream)
 		error("[CinematicSound::play] Audiostream not initialized properly");
 
-	// Get sound volume
-	int32 vol = _volume * -10000.0f;
-	SoundEntry::convertVolumeFrom(vol);
-
 	// Play sound
-	getSound()->getMixer()->setChannelVolume(_handle, vol);
+	getSound()->getMixer()->setChannelVolume(_handle, _volume);
 	getSound()->getMixer()->playStream(Audio::Mixer::kPlainSoundType, &_handle, _audioStream);
 
 	_isPlaying = true;
 }
 
 void CinematicSound::setVolume(int32 volume) {
-	_volume = volume * 0.01f;
+	_volume = volume;
 
-	if (_volume < 0.0f)
-		_volume = 0.0f;
-
-	if (_volume > 1.0f)
-		_volume = 1.0f;
-
-	int32 vol = _volume * -10000.0f;
-	SoundEntry::convertVolumeFrom(vol);
-
-	getSound()->getMixer()->setChannelVolume(_handle, vol);
+	getSound()->getMixer()->setChannelVolume(_handle, _volume);
 }
 
 void CinematicSound::queueBuffer(Common::SeekableReadStream *stream) {
