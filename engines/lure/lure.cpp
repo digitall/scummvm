@@ -55,6 +55,10 @@ Common::Error LureEngine::init() {
 	_initialized = false;
 	_saveLoadAllowed = false;
 
+	const char* quick = "QUICK";
+	const char* test = "TEST";
+	debug(1, "%s", Common::String::format("%d %s %s", 1, quick, test).c_str());
+
 	initGraphics(FULL_SCREEN_WIDTH, FULL_SCREEN_HEIGHT);
 
 	// Check the version of the lure.dat file
