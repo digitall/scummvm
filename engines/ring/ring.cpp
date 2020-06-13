@@ -302,7 +302,7 @@ bool RingEngine::isMultiLanguage() const {
 }
 
 bool RingEngine::hasFeature(EngineFeature f) const {
-	return (f == kSupportsRTL) ||
+	return (f == kSupportsReturnToLauncher) ||
 	       (f == kSupportsSubtitleOptions);
 }
 
