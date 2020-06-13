@@ -206,13 +206,14 @@ void Dialog::parseLyrics(Common::String line) {
 	dialogLine->line2 = lines.nextToken();
 
 	// Special case for Greek language (ascii code 160: Greek lower case iota with dialytika in codepage 869)
-	for (Common::String::iterator c = dialogLine->line1.begin(); c != dialogLine->line1.end(); ++c)
+	/*for (Common::String::iterator c = dialogLine->line1.begin(); c != dialogLine->line1.end(); ++c)
 		if (*c == 'á')
 			*c = ' ';
 
 	for (Common::String::iterator c = dialogLine->line2.begin(); c != dialogLine->line2.end(); ++c)
 		if (*c == 'á')
 			*c = ' ';
+	*/
 
 	_lines.push_back(dialogLine);
 }
