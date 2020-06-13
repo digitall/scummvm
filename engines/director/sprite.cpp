@@ -22,28 +22,45 @@
 
 #include "director/director.h"
 #include "director/cast.h"
-#include "director/score.h"
 #include "director/sprite.h"
+
+#include "director/score.h"
+
+#include "graphics/macgui/macwidget.h"
 
 namespace Director {
 
 Sprite::Sprite() {
+	_scriptId = 0;
+	_scriptCastIndex = 0;
+	_colorcode = 0;
+	_blendAmount = 0;
+	_unk3 = 0;
+
 	_enabled = false;
-	_trails = 0;
-	_width = 0;
+	_castId = 0;
+	_castIndex = 0;
+	_spriteType = kInactiveSprite;
+	_castType = kCastTypeNull;
+	_inkData = 0;
 	_ink = kInkTypeCopy;
-	_flags = 0;
+	_trails = 0;
+
+	_cast = nullptr;
+
+	_thickness = 0;
+	_dirty = false;
+	_width = 0;
 	_height = 0;
-	_castId = 0;
 	_constraint = 0;
-	_moveable = 0;
-	_castId = 0;
+	_moveable = false;
+	_editable = false;
+	_puppet = false;
+	_immediate = false;
 	_backColor = 255;
 	_foreColor = 0;
-	_left = 0;
-	_right = 0;
-	_top = 0;
-	_bottom = 0;
+
+	_blend = 0;
 	_visible = false;
 	_movieRate = 0;
 	_movieTime = 0;
@@ -51,78 +68,206 @@ Sprite::Sprite() {
 	_stopTime = 0;
 	_volume = 0;
 	_stretch = 0;
-	_type = kInactiveSprite;
-
-	_bitmapCast = nullptr;
-	_textCast = nullptr;
-	_buttonCast = nullptr;
-	_shapeCast = nullptr;
-
-	_blend = 0;
-	_lineSize = 1;
-
-	_x1 = 0;
-	_x2 = 0;
-	_scriptId = 0;
-	_flags2 = 0;
-	_unk2 = 0;
-	_unk3 = 0;
-	_spriteType = 0;
-}
-
-Sprite::Sprite(const Sprite &sprite) {
-	_enabled = sprite._enabled;
-	_castId = sprite._castId;
-	_flags = sprite._flags;
-	_trails = sprite._trails;
-	_ink = sprite._ink;
-	_width = sprite._width;
-	_height = sprite._height;
-	_startPoint.x = sprite._startPoint.x;
-	_startPoint.y = sprite._startPoint.y;
-	_backColor = sprite._backColor;
-	_foreColor = sprite._foreColor;
-	_left = sprite._left;
-	_right = sprite._right;
-	_top = sprite._top;
-	_bottom = sprite._bottom;
-	_visible = sprite._visible;
-	_movieRate = sprite._movieRate;
-	_movieTime = sprite._movieTime;
-	_stopTime = sprite._stopTime;
-	_volume = sprite._volume;
-	_stretch = sprite._stretch;
-	_type = sprite._type;
-
-	_bitmapCast = sprite._bitmapCast;
-	_shapeCast = sprite._shapeCast;
-	_textCast = sprite._textCast;
-	_buttonCast = sprite._buttonCast;
-
-	_constraint = sprite._constraint;
-	_moveable = sprite._moveable;
-	_blend = sprite._blend;
-	_startTime = sprite._startTime;
-	_lineSize = sprite._lineSize;
-
-	_x1 = sprite._x1;
-	_x2 = sprite._x2;
-	_scriptId = sprite._scriptId;
-	_flags2 = sprite._flags2;
-	_unk2 = sprite._unk2;
-	_unk3 = sprite._unk3;
-	_spriteType = sprite._spriteType;
 }
 
 Sprite::~Sprite() {
-	if (_bitmapCast) 
-		delete _bitmapCast;
-	if (_shapeCast) 
-		delete _shapeCast;
-	if (_textCast) 
-		delete _textCast;
-	if (_buttonCast) 
-		delete _buttonCast;
 }
+
+void Sprite::updateCast() {
+	if (!_cast)
+		return;
+
+	if (!_cast->_widget) {
+		if (_cast->_type == kCastText && (_spriteType == kButtonSprite || _spriteType == kCheckboxSprite || _spriteType == kRadioButtonSprite)) {
+			// WORKAROUND: In D2/D3 there can be text casts that have button
+			// information set in the sprite.
+			warning("Sprite::updateCast: Working around D2/3 button glitch");
+			_cast->_type = kCastButton;
+			((TextCast *)_cast)->_buttonType = (ButtonType)(_spriteType - 8);
+		}
+
+		_cast->createWidget();
+	}
+
+	int offsetx, offsety = 0;
+	if (_cast->_type == kCastBitmap) {
+		BitmapCast *bc = (BitmapCast *)_cast;
+		offsety = bc->_initialRect.top - bc->_regY;
+		offsetx = bc->_initialRect.left - bc->_regX;
+	}
+
+	if (_cast && _cast->_widget)
+		_cast->_widget->_dims.moveTo(_currentPoint.x + offsetx, _currentPoint.y + offsety);
+
+	if (_cast->isEditable() != _editable && !_puppet)
+		_cast->setEditable(_editable);
+}
+
+void Sprite::translate(Common::Point delta, bool moveTo) {
+	_currentPoint += delta;
+
+	if (_cast && _cast->_widget) {
+		if (moveTo)
+			_cast->_widget->_dims.translate(delta.x, delta.y);
+		else
+			_cast->_widget->_dims.moveTo(delta.x, delta.y);
+	}
+
+	_dirty = true;
+}
+
+bool Sprite::isDirty() {
+	return _dirty || (_cast && _cast->isModified());
+}
+
+void Sprite::setClean() {
+	_dirty = false;
+	if (_cast)
+		_cast->_modified = false;
+}
+
+uint16 Sprite::getPattern() {
+	switch (_spriteType) {
+	case kRectangleSprite:
+	case kRoundedRectangleSprite:
+	case kOvalSprite:
+	case kLineTopBottomSprite:
+	case kLineBottomTopSprite:
+	case kOutlinedRectangleSprite:
+	case kOutlinedRoundedRectangleSprite:
+	case kOutlinedOvalSprite:
+		return _castId;
+
+	case kCastMemberSprite:
+		switch (_cast->_type) {
+		case kCastShape:
+			return ((ShapeCast *)_cast)->_pattern;
+			break;
+		default:
+			warning("Sprite::getPattern(): Unhandled cast type: %d", _cast->_type);
+			break;
+		}
+		// fallthrough
+	default:
+		return 0;
+	}
+}
+
+void Sprite::setPattern(uint16 pattern) {
+	switch (_spriteType) {
+	case kRectangleSprite:
+	case kRoundedRectangleSprite:
+	case kOvalSprite:
+	case kLineTopBottomSprite:
+	case kLineBottomTopSprite:
+	case kOutlinedRectangleSprite:
+	case kOutlinedRoundedRectangleSprite:
+	case kOutlinedOvalSprite:
+		_castId = pattern;
+		break;
+
+	case kCastMemberSprite:
+		// TODO
+		warning("Sprite::setPattern(): kCastMemberSprite");
+		return;
+
+	default:
+		return;
+	}
+}
+
+void Sprite::setCast(uint16 castId) {
+	Cast *member = g_director->getCastMember(castId);
+	_castType = kCastTypeNull;
+	_castId = castId;
+
+	if (castId == 0)
+		return;
+
+	if (member)
+		_cast = member;
+	else {
+		warning("Sprite::setCast: Cast id %d has null member", castId);
+	}
+
+	if (g_director->getVersion() < 4) {
+		switch (_spriteType) {
+		case kBitmapSprite:
+			_castType = kCastBitmap;
+			break;
+		case kRectangleSprite:
+		case kRoundedRectangleSprite:
+		case kOvalSprite:
+		case kLineTopBottomSprite:
+		case kLineBottomTopSprite:
+		case kOutlinedRectangleSprite:
+		case kOutlinedRoundedRectangleSprite:
+		case kOutlinedOvalSprite:
+		case kCastMemberSprite:
+			if (_cast) {
+				switch (_cast->_type) {
+				case kCastButton:
+					_castType = kCastButton;
+					break;
+				default:
+					_castType = kCastShape;
+					break;
+				}
+			} else {
+				_castType = kCastShape;
+
+				g_director->getCurrentScore()->_loadedCast->setVal(_castId, new ShapeCast());
+			}
+			break;
+		case kTextSprite:
+			_castType = kCastText;
+			break;
+		case kButtonSprite:
+		case kCheckboxSprite:
+		case kRadioButtonSprite:
+			_castType = kCastButton;
+
+			break;
+		default:
+			warning("Sprite::setCast(): Unhandled sprite type %d", _spriteType);
+			break;
+		}
+	} else {
+		if (!member) {
+			debugC(1, kDebugImages, "Sprite::setCast(): Cast id %d not found", _castId);
+		} else {
+			_castType = member->_type;
+		}
+	}
+
+
+	_dirty = true;
+}
+
+Common::Rect Sprite::getBbox() {
+	Common::Rect result;
+	if (_castId == 0) {
+		return result;
+	}
+
+	if (_castType == kCastShape) {
+		// WORKAROUND: Shape widgets not fully implemented.
+		result = Common::Rect(_currentPoint.x, _currentPoint.y, _currentPoint.x + _width, _currentPoint.y + _height);
+	} else {
+		result = _cast && _cast->_widget ? _cast->_widget->getDimensions() : Common::Rect(0, 0, _width, _height);
+	}
+
+	result.moveTo(_currentPoint.x, _currentPoint.y);
+
+	if (_cast && _castType == kCastBitmap) {
+		BitmapCast *bc = (BitmapCast *)_cast;
+		int offsety = bc->_initialRect.top - bc->_regY;
+		int offsetx = bc->_initialRect.left - bc->_regX;
+		result.translate(offsetx, offsety);
+	}
+
+	return result;
+}
+
 
 } // End of namespace Director

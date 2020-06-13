@@ -26,6 +26,7 @@
 #include "bladerunner/chapters.h"
 #include "bladerunner/subtitles.h"
 #include "bladerunner/vqa_player.h"
+#include "bladerunner/time.h"
 
 #include "common/debug.h"
 #include "common/events.h"
@@ -35,7 +36,7 @@ namespace BladeRunner {
 
 OuttakePlayer::OuttakePlayer(BladeRunnerEngine *vm) {
 	_vm = vm;
-	_surfaceVideo.create(_vm->_surfaceBack.w, _vm->_surfaceBack.h, screenPixelFormat());
+	_surfaceVideo.create(_vm->_surfaceBack.w, _vm->_surfaceBack.h, _vm->_surfaceBack.format);
 }
 
 OuttakePlayer::~OuttakePlayer() {
@@ -87,8 +88,6 @@ void OuttakePlayer::play(const Common::String &name, bool noLocalization, int co
 			_vm->_subtitles->tickOuttakes(_vm->_surfaceFront);
 			_vm->blitToScreen(_vm->_surfaceFront);
 		}
-
-		_vm->_system->delayMillis(10);
 	}
 
 	_vm->_vqaIsPlaying = false;

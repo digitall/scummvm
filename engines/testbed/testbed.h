@@ -43,18 +43,24 @@ enum {
 class TestbedEngine : public Engine {
 public:
 	TestbedEngine(OSystem *syst);
-	~TestbedEngine();
+	~TestbedEngine() override;
 
-	virtual Common::Error run();
+	Common::Error run() override;
+
+	/**
+	 * Invokes configured testsuites.
+	 */
+	static void pushTestsuites(Common::Array<Testsuite *> &testsuiteList);
 
 	/**
 	 * Invokes configured testsuites.
 	 */
 	void invokeTestsuites(TestbedConfigManager &cfMan);
 
-	bool hasFeature(EngineFeature f) const;
+	bool hasFeature(EngineFeature f) const override;
 
 private:
+	void checkForAllAchievements();
 	Common::Array<Testsuite *> _testsuiteList;
 };
 
@@ -62,9 +68,9 @@ class TestbedExitDialog : public TestbedInteractionDialog {
 public:
 	TestbedExitDialog(Common::Array<Testsuite *> &testsuiteList) : TestbedInteractionDialog(80, 40, 500, 330),
 	_testsuiteList(testsuiteList) {}
-	~TestbedExitDialog() {}
+	~TestbedExitDialog() override {}
 	void init();
-	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
 	void run() { runModal(); }
 private:
 	Common::Array<Testsuite *> &_testsuiteList;

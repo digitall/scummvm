@@ -40,7 +40,7 @@ class InventoryMgr;
 class Actor : public NamedObject {
 public:
 	Actor();
-	~Actor();
+	~Actor() override;
 
 	void deserialize(Archive &archive) override;
 
@@ -50,21 +50,21 @@ public:
 	virtual void init(bool paused);
 	bool initPalette(Director *director);
 
-	void toConsole() override;
+	void toConsole() const override;
 
-	bool isPlaying() { return !_isActionEnded; }
+	bool isPlaying() const { return !_isActionEnded; }
 	virtual void pause(bool paused);
 
 	void endAction() { _isActionEnded = true; }
 
-	virtual bool isSupporting() { return false; }
-	virtual bool isCursor() { return false; }
+	virtual bool isSupporting() const { return false; }
+	virtual bool isCursor() const { return false; }
 
-	virtual bool isLeftClickHandlers() { return false; }
-	virtual bool isUseClickHandlers(InventoryItem *item) { return false; }
+	virtual bool isLeftClickHandlers() const { return false; }
+	virtual bool isUseClickHandlers(InventoryItem *item) const { return false; }
 
-	virtual void onMouseOver(const Common::Point point, CursorMgr *mgr);
-	virtual void onMouseOverWithItem(const Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr);
+	virtual void onMouseOver(Common::Point point, CursorMgr *mgr);
+	virtual void onMouseOverWithItem(Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr);
 
 	virtual void onTimerMessage() {}
 	virtual void onLeftClickMessage() {}
@@ -72,20 +72,20 @@ public:
 
 	Action *findAction(const Common::String &name);
 
-	Action *getAction() const { return _action; }
-	Page *getPage() const { return _page; }
+	Action *getAction() { return _action; }
+	const Action *getAction() const { return _action; }
+	Page *getPage() { return _page; }
+	const Page *getPage() const { return _page; }
 
 	InventoryMgr *getInventoryMgr() const;
 
-	virtual const Common::String &getPDALink() const;
+	virtual Common::String getPDALink() const;
 
-	virtual const Common::String &getLocation() const;
+	virtual Common::String getLocation() const;
 
 	void setAction(const Common::String &name) { setAction(findAction(name)); }
 	void setAction(Action *newAction);
 	void setAction(Action *newAction, bool loadingSave);
-
-	void setPage(Page *page) { _page = page;}
 
 protected:
 	Page *_page;

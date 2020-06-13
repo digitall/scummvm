@@ -44,11 +44,14 @@ public:
 		_windowWidth(0),
 		_windowHeight(0),
 		_overlayVisible(false),
-		_gameScreenShakeOffset(0),
+		_gameScreenShakeXOffset(0),
+		_gameScreenShakeYOffset(0),
 		_forceRedraw(false),
 		_cursorVisible(false),
 		_cursorX(0),
 		_cursorY(0),
+		_xdpi(90),
+		_ydpi(90),
 		_cursorNeedsRedraw(false),
 		_cursorLastInActiveArea(true) {}
 
@@ -74,13 +77,17 @@ public:
 		_forceRedraw = true;
 	}
 
-	virtual void setShakePos(int shakeOffset) override {
-		if (_gameScreenShakeOffset != shakeOffset) {
-			_gameScreenShakeOffset = shakeOffset;
+	virtual void setShakePos(int shakeXOffset, int shakeYOffset) override {
+		if (_gameScreenShakeXOffset != shakeXOffset || _gameScreenShakeYOffset != shakeYOffset) {
+			_gameScreenShakeXOffset = shakeXOffset;
+			_gameScreenShakeYOffset = shakeYOffset;
 			recalculateDisplayAreas();
 			_cursorNeedsRedraw = true;
 		}
 	}
+
+	int getWindowWidth() const { return _windowWidth; }
+	int getWindowHeight() const { return _windowHeight; }
 
 protected:
 	/**
@@ -93,7 +100,7 @@ protected:
 	 * Backend-specific implementation for updating internal surfaces that need
 	 * to reflect the new window size.
 	 */
-	virtual void handleResizeImpl(const int width, const int height) = 0;
+	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) = 0;
 
 	/**
 	 * Converts the given point from the active virtual screen's coordinate
@@ -172,10 +179,12 @@ protected:
 	 * @param width The new width of the window, excluding window decoration.
 	 * @param height The new height of the window, excluding window decoration.
 	 */
-	void handleResize(const int width, const int height) {
+	void handleResize(const int width, const int height, const int xdpi, const int ydpi) {
 		_windowWidth = width;
 		_windowHeight = height;
-		handleResizeImpl(width, height);
+		_xdpi = xdpi;
+		_ydpi = ydpi;
+		handleResizeImpl(width, height, xdpi, ydpi);
 	}
 
 	/**
@@ -214,7 +223,7 @@ protected:
 	 */
 	virtual void setSystemMousePosition(const int x, const int y) = 0;
 
-	virtual bool showMouse(const bool visible) override {
+	virtual bool showMouse(bool visible) override {
 		if (_cursorVisible == visible) {
 			return visible;
 		}
@@ -231,7 +240,7 @@ protected:
 	 * @param x	The new X position of the mouse in virtual screen coordinates.
 	 * @param y	The new Y position of the mouse in virtual screen coordinates.
 	 */
-	void warpMouse(const int x, const int y) override {
+	void warpMouse(int x, int y) override {
 		// Check active coordinate instead of window coordinate to avoid warping
 		// the mouse if it is still within the same virtual pixel
 		const Common::Point virtualCursor = convertWindowToVirtual(_cursorX, _cursorY);
@@ -276,15 +285,25 @@ protected:
 	int _windowHeight;
 
 	/**
+	 * The DPI of the window.
+	 */
+	int _xdpi, _ydpi;
+
+	/**
 	 * Whether the overlay (i.e. launcher, including the out-of-game launcher)
 	 * is visible or not.
 	 */
 	bool _overlayVisible;
 
 	/**
-	 * The offset by which the screen is moved vertically.
+	 * The offset by which the screen is moved horizontally.
 	 */
-	int _gameScreenShakeOffset;
+	int _gameScreenShakeXOffset;
+
+	/**
+	* The offset by which the screen is moved vertically.
+	*/
+	int _gameScreenShakeYOffset;
 
 	/**
 	 * The scaled draw rectangle for the game surface within the window.
@@ -389,9 +408,9 @@ private:
 					width = fracToInt(height * displayAspect);
 			}
 		}
-
-		drawRect.left = ((_windowWidth - width) / 2);
-		drawRect.top = ((_windowHeight - height) / 2) + _gameScreenShakeOffset;
+		
+		drawRect.left = ((_windowWidth - width) / 2) + _gameScreenShakeXOffset * width / getWidth();
+		drawRect.top = ((_windowHeight - height) / 2) + _gameScreenShakeYOffset * height / getHeight();
 		drawRect.setWidth(width);
 		drawRect.setHeight(height);
 	}

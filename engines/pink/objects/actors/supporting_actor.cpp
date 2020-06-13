@@ -38,7 +38,7 @@ void SupportingActor::deserialize(Archive &archive) {
 	_handlerMgr.deserialize(archive);
 }
 
-void SupportingActor::toConsole() {
+void SupportingActor::toConsole() const {
 	debugC(6, kPinkDebugLoadingObjects, "SupportingActor: _name = %s, _location=%s, _pdaLink=%s, _cursor=%s",
 		  _name.c_str(), _location.c_str(), _pdaLink.c_str(), _cursor.c_str());
 	for (uint i = 0; i < _actions.size(); ++i) {
@@ -47,15 +47,15 @@ void SupportingActor::toConsole() {
 	_handlerMgr.toConsole();
 }
 
-bool SupportingActor::isLeftClickHandlers() {
-	return _handlerMgr.isLeftClickHandler(this);
+bool SupportingActor::isLeftClickHandlers() const {
+	return _handlerMgr.findSuitableHandlerLeftClick(this);
 }
 
-bool SupportingActor::isUseClickHandlers(InventoryItem *item) {
-	return _handlerMgr.isUseClickHandler(this, item->getName());
+bool SupportingActor::isUseClickHandlers(InventoryItem *item) const {
+	return _handlerMgr.findSuitableHandlerUseClick(this, item->getName());
 }
 
-void SupportingActor::onMouseOver(const Common::Point point, CursorMgr *mgr) {
+void SupportingActor::onMouseOver(Common::Point point, CursorMgr *mgr) {
 	if (isLeftClickHandlers()) {
 		if (!_cursor.empty())
 			mgr->setCursor(_cursor, point);
@@ -65,9 +65,9 @@ void SupportingActor::onMouseOver(const Common::Point point, CursorMgr *mgr) {
 		Actor::onMouseOver(point, mgr);
 }
 
-void SupportingActor::onMouseOverWithItem(const Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
+void SupportingActor::onMouseOverWithItem(Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
 	Common::String item = itemName;
-	if (_handlerMgr.isUseClickHandler(this, itemName))
+	if (_handlerMgr.findSuitableHandlerUseClick(this, itemName))
 		item += kClickable;
 	cursorMgr->setCursor(kHoldingItemCursor, point, item);
 }
@@ -84,11 +84,11 @@ void SupportingActor::onUseClickMessage(InventoryItem *item, InventoryMgr *mgr) 
 	_handlerMgr.onUseClickMessage(this, item, mgr);
 }
 
-const Common::String &SupportingActor::getLocation() const {
+Common::String SupportingActor::getLocation() const {
 	return _location;
 }
 
-const Common::String &SupportingActor::getPDALink() const {
+Common::String SupportingActor::getPDALink() const {
 	return _pdaLink;
 }
 

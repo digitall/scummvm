@@ -69,27 +69,22 @@ void EventsManager::pollEvents() {
 		_priorScreenRefreshTime = timer;
 		g_vm->_screen->update();
 	}
+
 	if (timer >= (_priorFrameCounterTime + GAME_FRAME_TIME)) {
 		// Time to build up next game frame
 		_priorFrameCounterTime = timer;
 		nextFrame();
 	}
 
+	// Event handling
 	Common::Event event;
 	while (g_system->getEventManager()->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_QUIT:
-		case Common::EVENT_RTL:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 			return;
 		case Common::EVENT_KEYDOWN:
-			// Check for debugger
-			if (event.kbd.keycode == Common::KEYCODE_d && (event.kbd.flags & Common::KBD_CTRL)) {
-				// Attach to the debugger
-				_vm->_debugger->attach();
-				_vm->_debugger->onFrame();
-			} else {
-				addEvent(event.kbd);
-			}
+			addEvent(event.kbd);
 			break;
 		case Common::EVENT_MOUSEMOVE:
 			_mousePos = event.mouse;
@@ -207,9 +202,6 @@ void EventsManager::waitForPress() {
 void EventsManager::nextFrame() {
 	++_frameCounter;
 	++_playTime;
-
-	// Allow debugger to update
-	_vm->_debugger->update();
 
 	// Update the screen
 	_vm->_screen->update();

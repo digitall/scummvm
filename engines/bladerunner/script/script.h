@@ -127,13 +127,14 @@ protected:
 	void Item_Flag_As_Target(int itemId);
 	void Item_Flag_As_Non_Target(int itemId);
 	void Item_Pickup_Spin_Effect(int animationId, int x, int y);
+	void Item_Pickup_Spin_Effect_From_Actor(int animationId, int actorId, int xOffset = 0, int yOffset = 0); // new for restored content mostly
 	bool Item_Query_Visible(int itemId);
 	void Set_Subtitle_Text_On_Screen(Common::String displayText);
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
-	void Screen_Effect_Skip(int effectInc);
-	void Screen_Effect_Restore(int effectInc);
-	void Screen_Effect_Restore_All();
+	void Screen_Effect_Skip(int effectInc, bool forceExtraSceneFrameSkip);
+	void Screen_Effect_Restore(int effectInc, bool forceExtraSceneFrameSkip);
+	void Screen_Effect_Restore_All(bool forceExtraSceneFrameSkip);
 #endif // BLADERUNNER_ORIGINAL_BUGS
 	int Animation_Open();
 	int Animation_Close();
@@ -162,7 +163,7 @@ protected:
 	int Global_Variable_Increment(int, int);
 	int Global_Variable_Decrement(int, int);
 	int Random_Query(int min, int max);
-	void Sound_Play(int id, int volume, int panFrom, int panTo, int priority);
+	void Sound_Play(int id, int volume, int panStart, int panEnd, int priority);
 	void Sound_Play_Speech_Line(int actorId, int sentenceId, int volume, int a4, int priority);
 	void Sound_Left_Footstep_Walk(int actorId);
 	void Sound_Right_Footstep_Walk(int actorId);

@@ -149,6 +149,7 @@ enum GlobalVar {
 	kGlobalVarPreviousRoomNo = 12,
 	kGlobalVarNewRoomNo      = 13,
 	kGlobalVarScore          = 15,
+	kGlobalVarVersion        = 27,
 	kGlobalVarGK2MusicVolume = 76, // 0 to 127
 	kGlobalVarPhant2SecondaryVolume = 76, // 0 to 127
 	kGlobalVarFastCast             = 84, // SCI16
@@ -180,7 +181,7 @@ enum GlobalVar {
 	kGlobalVarShivers1Score        = 349,
 	kGlobalVarQFG4Flags            = 500,
 	kGlobalVarHoyle5MusicVolume    = 897,
-	kkGlobalVarHoyle5ResponseTime  = 899
+	kGlobalVarHoyle5ResponseTime  = 899
 };
 
 /** Number of kernel calls in between gcs; should be < 50000 */

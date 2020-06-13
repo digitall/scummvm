@@ -118,23 +118,23 @@ class TownsMidiInputChannel : public MidiChannel {
 friend class TownsMidiOutputChannel;
 public:
 	TownsMidiInputChannel(MidiDriver_TOWNS *driver, int chanIndex);
-	~TownsMidiInputChannel();
+	~TownsMidiInputChannel() override;
 
-	MidiDriver *device() { return _driver; }
-	byte getNumber() { return _chanIndex; }
+	MidiDriver *device() override { return _driver; }
+	byte getNumber() override { return _chanIndex; }
 	bool allocate();
-	void release();
+	void release() override;
 
-	void send(uint32 b);
+	void send(uint32 b) override;
 
-	void noteOff(byte note);
-	void noteOn(byte note, byte velocity);
-	void programChange(byte program);
-	void pitchBend(int16 bend);
-	void controlChange(byte control, byte value);
-	void pitchBendFactor(byte value);
-	void priority(byte value);
-	void sysEx_customInstrument(uint32 type, const byte *instr);
+	void noteOff(byte note) override;
+	void noteOn(byte note, byte velocity) override;
+	void programChange(byte program) override;
+	void pitchBend(int16 bend) override;
+	void controlChange(byte control, byte value) override;
+	void pitchBendFactor(byte value) override;
+	void priority(byte value) override;
+	void sysEx_customInstrument(uint32 type, const byte *instr) override;
 
 private:
 	void controlModulationWheel(byte value);
@@ -827,7 +827,7 @@ const uint8 TownsMidiInputChannel::_programAdjustLevel[] = {
 
 MidiDriver_TOWNS::MidiDriver_TOWNS(Audio::Mixer *mixer) : _timerProc(0), _timerProcPara(0), _channels(0), _out(0),
 	_baseTempo(10080), _chanState(0), _operatorLevelTable(0), _tickCounter(0), _rand(1), _allocCurPos(0), _isOpen(false) {
-	_intf = new TownsAudioInterface(mixer, this);
+	_intf = new TownsAudioInterface(mixer, this, true);
 
 	_channels = new TownsMidiInputChannel*[32];
 	for (int i = 0; i < 32; i++)

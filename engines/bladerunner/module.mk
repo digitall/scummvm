@@ -24,6 +24,7 @@ MODULE_OBJS = \
 	decompress_lzo.o \
 	detection.o \
 	dialogue_menu.o \
+	framelimiter.o \
 	fog.o \
 	font.o \
 	game_flags.o \
@@ -264,7 +265,6 @@ MODULE_OBJS = \
 	ui/kia_section_save.o \
 	ui/kia_section_settings.o \
 	ui/kia_section_suspects.o \
-	ui/kia_shapes.o \
 	ui/scores.o \
 	ui/spinner.o \
 	ui/ui_check_box.o \
@@ -273,6 +273,7 @@ MODULE_OBJS = \
 	ui/ui_input_box.o \
 	ui/ui_scroll_box.o \
 	ui/ui_slider.o \
+	ui/ui_dropdown.o \
 	ui/vk.o \
 	view.o \
 	vqa_decoder.o \

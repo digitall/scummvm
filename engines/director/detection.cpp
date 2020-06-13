@@ -24,10 +24,8 @@
 
 #include "engines/advancedDetector.h"
 
+#include "common/file.h"
 #include "common/config-manager.h"
-#include "common/savefile.h"
-#include "common/system.h"
-#include "common/textconsole.h"
 
 #include "director/director.h"
 
@@ -36,12 +34,16 @@ namespace Director {
 struct DirectorGameDescription {
 	ADGameDescription desc;
 
-	DirectorGameID gameID;
+	DirectorGameGID gameGID;
 	uint16 version;
 };
 
-DirectorGameID DirectorEngine::getGameID() const {
-	return _gameDescription->gameID;
+DirectorGameGID DirectorEngine::getGameGID() const {
+	return _gameDescription->gameGID;
+}
+
+const char *DirectorEngine::getGameId() const {
+	return _gameDescription->desc.gameId;
 }
 
 Common::Platform DirectorEngine::getPlatform() const {
@@ -64,28 +66,84 @@ Common::String DirectorEngine::getEXEName() const {
 }
 
 bool DirectorEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL);
+	return false;
+		//(f == kSupportsReturnToLauncher);
 }
 
 } // End of Namespace Director
 
 static const PlainGameDescriptor directorGames[] = {
-	{ "director",	"Macromedia Director Game" },
-	{ "directortest",	"Macromedia Director Test Target" },
-	{ "theapartment",	"The Apartment, Interactive demo" },
-	{ "gundam0079",	"Gundam 0079: The War for Earth" },
-	{ "jewels",		"Jewels of the Oracle" },
-	{ "jman",		"The Journeyman Project" },
-	{ "majestic",	"Majestic Part I: Alien Encounter" },
-	{ "mediaband",	"Meet Mediaband" },
-	{ "melements",	"Masters of the Elements" },
-	{ "spyclub",	"Spy Club" },
-	{ "amber",		"AMBER: Journeys Beyond"},
-	{ "vvvampire",	"Victor Vector & Yondo: The Vampire's Coffin"},
-	{ "vvdinosaur",	"Victor Vector & Yondo: The Last Dinosaur Egg"},
-	{ "warlock", 	"Spaceship Warlock"},
-	{ "ernie",		"Ernie"},
+	{ "director",			"Macromedia Director Game" },
+	{ "directortest",		"Macromedia Director Test Target" },
+	{ "directortest-all",	"Macromedia Director All Movies Test Target" },
+	{ "theapartment",		"The Apartment, Interactive demo" },
+
+	{ "alexworld",			"ALeX-WORLD"},
+	{ "alice",				"Alice: An Interactive Museum"},
+	{ "amandastories",		"AmandaStories"},
+	{ "amber",				"AMBER: Journeys Beyond"},
+	{ "ataripack",			"Activision's Atari 2600 Action Pack"},
+	{ "beyondthewall",		"Beyond the Wall of Stars"},
+	{ "chaos",				"The C.H.A.O.S. Continuum"},
+	{ "chopsuey",   		"Chop Suey" },
+	{ "daedalus",			"The Daedalus Encounter"},
+	{ "earthwormjim",		"Earthworm Jim"},
+	{ "ernie",				"Ernie"},
+	{ "gadget",				"Gadget: Invention, Travel, & Adventure"},
+	{ "gundam0079",			"Gundam 0079: The War for Earth" },
+	{ "hyperblade",			"HyperBlade" },
+	{ "id4p1",     			"iD4 Mission Disk 1 - Alien Supreme Commander" },
+	{ "id4p2",      		"iD4 Mission Disk 2 - Alien Science Officer" },
+	{ "id4p3",      		"iD4 Mission Disk 3 - Warrior Alien" },
+	{ "id4p4",      		"iD4 Mission Disk 4 - Alien Navigator" },
+	{ "id4p5",      		"iD4 Mission Disk 5 - Captain Steve Hiller" },
+	{ "id4p6",      		"iD4 Mission Disk 6 - Dave's Computer" },
+	{ "id4p7",      		"iD4 Mission Disk 7 - President Whitmore" },
+	{ "id4p8",      		"iD4 Mission Disk 8 - Alien Attack Fighter" },
+	{ "id4p9",      		"iD4 Mission Disk 9 - FA-18 Fighter Jet" },
+	{ "id4p10",     		"iD4 Mission Disk 10 - Alien Bomber" },
+	{ "id4p11",     		"iD4 Mission Disk 11 - Area 51" },
+	{ "ironhelix",			"Iron Helix" },
+	{ "jewels",				"Jewels of the Oracle" },
+	{ "jman",				"The Journeyman Project" },
+	{ "jman2",				"The Journeyman Project 2: Buried in Time" },
+	{ "lion",				"Lion" },
+	{ "lzone",				"L-ZONE"},
+	{ "madmac",				"Mad Mac Cartoons"},
+	{ "majestic",			"Majestic Part I: Alien Encounter" },
+	{ "maze",				"The Riddle of the Maze"},
+	{ "mechwarrior2",		"MechWarrior 2" },
+	{ "mediaband",			"Meet Mediaband" },
+	{ "melements",			"Masters of the Elements" },
+	{ "muppets",			"Muppet Treasure Island" },
+	{ "murderbrett",		"Who Killed Brett Penance?"},
+	{ "murdermagic",		"The Magic Death"},
+	{ "murdersam",			"Who Killed Sam Rupert?"},
+	{ "murdertaylor",		"Who Killed Taylor French? The Case of the Undressed Reporter"},
+	{ "pitfall",			"Pitfall: The Mayan Adventure" },
+	{ "refixion1",			"Refixion"},
+	{ "refixion2",			"Refixion II: Museum or Hospital"},
+	{ "refixion3",			"Refixion III: The Reindeer Story"},
+	{ "rodney",				"Rodney's Funscreen"},
+	{ "santafe1",			"Santa Fe Mysteries: The Elk Moon Murder"},
+	{ "screamingmetal",		"Screaming Metal"},
+	{ "shanghai",			"Shanghai: Great Moments"},
+	{ "snh",				"A Silly Noisy House"},
+	{ "spyclub",			"Spy Club" },
+	{ "spycraft",			"Spycraft: The Great Game" },
+	{ "the7colors",			"The Seven Colors: Legend of PSY-S City"},
+	{ "tri3dtrial",			"Tri-3D-Trial"},
+	{ "vvcyber",			"Victor Vector & Yondo: The Cyberplasm Formula"},
+	{ "vvdinosaur",			"Victor Vector & Yondo: The Last Dinosaur Egg"},
+	{ "vvharp",				"Victor Vector & Yondo: The Hypnotic Harp"},
+	{ "vvvampire",			"Victor Vector & Yondo: The Vampire's Coffin"},
+	{ "warlock", 			"Spaceship Warlock"},
+	{ "wrath",				"Wrath of the Gods"},
+	{ "xanthus",			"Xanthus"},
+	{ "ybr1",				"Yellow Brick Road"},
+	{ "ybr2",				"Yellow Brick Road II"},
+	{ "ybr3",				"Yellow Brick Road III"},
+	{ "znemesis",			"Zork Nemesis: The Forbidden Lands"},
 	{ 0, 0 }
 };
 
@@ -99,21 +157,24 @@ static const char *directoryGlobs[] = {
 class DirectorMetaEngine : public AdvancedMetaEngine {
 public:
 	DirectorMetaEngine() : AdvancedMetaEngine(Director::gameDescriptions, sizeof(Director::DirectorGameDescription), directorGames) {
-		_singleId = "director";
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	virtual const char *getName() const {
+	const char *getEngineId() const override {
+		return "director";
+	}
+
+	const char *getName() const override {
 		return "Macromedia Director";
 	}
 
-	virtual const char *getOriginalCopyright() const {
-		return "Macromedia Director (C) Macromedia";
+	const char *getOriginalCopyright() const override {
+		return "Macromedia Director (C) 1990-1995 Macromedia";
 	}
 
 	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
 };
 
 bool DirectorMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
@@ -154,7 +215,7 @@ ADDetectedGame DirectorMetaEngine::fallbackDetect(const FileMap &allFiles, const
 	desc->desc.guiOptions = GUIO0();
 	desc->desc.filesDescriptions[0].fileName = 0;
 	desc->version = 0;
-	desc->gameID = Director::GID_GENERIC;
+	desc->gameGID = Director::GID_GENERIC;
 
 	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
 		if (file->isDirectory())
@@ -181,6 +242,7 @@ ADDetectedGame DirectorMetaEngine::fallbackDetect(const FileMap &allFiles, const
 		uint32 tag = f.readUint32LE();
 
 		switch (tag) {
+		case MKTAG('P', 'J', '9', '3'):
 		case MKTAG('3', '9', 'J', 'P'):
 			desc->version = 4;
 			break;

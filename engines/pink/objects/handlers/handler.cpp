@@ -37,7 +37,7 @@ void Handler::deserialize(Archive &archive) {
 	_sideEffects.deserialize(archive);
 }
 
-bool Handler::isSuitable(Actor *actor) {
+bool Handler::isSuitable(const Actor *actor) const {
 	for (uint i = 0; i < _conditions.size(); ++i) {
 		if (!_conditions[i]->evaluate(actor))
 			return false;
@@ -81,35 +81,15 @@ void HandlerSequences::handle(Actor *actor) {
 	Sequence *sequence = sequencer->findSequence(_sequences[index]);
 
 	assert(sequence);
-	sequencer->authorSequence(sequence, 0);
 
-	execute(sequence);
+	authorSequence(sequencer, sequence);
 }
 
-void HandlerStartPage::execute(Sequence *sequence) {
-	sequence->allowSkipping();
+void HandlerSequences::authorSequence(Sequencer *sequencer, Sequence *sequence) {
+	sequencer->authorSequence(sequence, false);
 }
 
-void HandlerStartPage::toConsole() {
-	debugC(6, kPinkDebugLoadingObjects, "HandlerStartPage:");
-
-	debugC(6, kPinkDebugLoadingObjects, "\tSideEffects:");
-	for (uint i = 0; i < _sideEffects.size(); ++i) {
-		_sideEffects[i]->toConsole();
-	}
-
-	debugC(6, kPinkDebugLoadingObjects, "\tConditions:");
-	for (uint i = 0; i < _conditions.size(); ++i) {
-		_conditions[i]->toConsole();
-	}
-
-	debugC(6, kPinkDebugLoadingObjects, "\tSequences:");
-	for (uint i = 0; i < _sequences.size(); ++i) {
-		debugC(6, kPinkDebugLoadingObjects, "\t\t%s", _sequences[i].c_str());
-	}
-}
-
-void HandlerLeftClick::toConsole() {
+void HandlerLeftClick::toConsole() const {
 	debugC(6, kPinkDebugLoadingObjects, "HandlerLeftClick:");
 
 	debugC(6, kPinkDebugLoadingObjects, "\tSideEffects:");
@@ -134,7 +114,7 @@ void HandlerUseClick::deserialize(Archive &archive) {
 	_recepient = archive.readString();
 }
 
-void HandlerUseClick::toConsole() {
+void HandlerUseClick::toConsole() const {
 	debugC(6, kPinkDebugLoadingObjects, "HandlerUseClick: _inventoryItem=%s, _recepient=%s", _inventoryItem.c_str(), _recepient.c_str());
 	debugC(6, kPinkDebugLoadingObjects, "\tSideEffects:");
 	for (uint i = 0; i < _sideEffects.size(); ++i) {
@@ -150,6 +130,50 @@ void HandlerUseClick::toConsole() {
 	for (uint i = 0; i < _sequences.size(); ++i) {
 		debugC(6, kPinkDebugLoadingObjects, "\t\t%s", _sequences[i].c_str());
 	}
+}
+
+void HandlerTimerActions::deserialize(Archive &archive) {
+	Handler::deserialize(archive);
+	_actions.deserialize(archive);
+}
+
+void HandlerTimerActions::toConsole() const {
+	debugC(6, kPinkDebugLoadingObjects, "HandlerTimerActions:");
+
+	debugC(6, kPinkDebugLoadingObjects, "\tSideEffects:");
+	for (uint i = 0; i < _sideEffects.size(); ++i) {
+		_sideEffects[i]->toConsole();
+	}
+
+	debugC(6, kPinkDebugLoadingObjects, "\tConditions:");
+	for (uint i = 0; i < _conditions.size(); ++i) {
+		_conditions[i]->toConsole();
+	}
+
+	debugC(6, kPinkDebugLoadingObjects, "\tActions:");
+	for (uint i = 0; i < _actions.size(); ++i) {
+		debugC(6, kPinkDebugLoadingObjects, "\t\t%s", _actions[i].c_str());
+	}
+}
+
+void HandlerTimerActions::handle(Actor *actor) {
+	Handler::handle(actor);
+	if (!actor->isPlaying() && !_actions.empty()) {
+		Common::RandomSource &rnd = actor->getPage()->getGame()->getRnd();
+		uint index = rnd.getRandomNumber(_actions.size() - 1);
+		Action *action = actor->findAction(_actions[index]);
+		assert(action);
+		actor->setAction(action);
+	}
+}
+
+void HandlerStartPage::authorSequence(Sequencer *sequencer, Sequence *sequence) {
+	HandlerSequences::authorSequence(sequencer, sequence);
+	sequence->allowSkipping();
+}
+
+void HandlerTimerSequences::authorSequence(Sequencer *sequencer, Sequence *sequence) {
+	sequencer->authorParallelSequence(sequence, false);
 }
 
 } // End of namespace Pink

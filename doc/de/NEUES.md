@@ -2,20 +2,187 @@ Umfangreichere Informationen über die Änderungen des aktuellen experimentellen
 Programmcodes finden Sie auf Englisch unter:
         https://github.com/scummvm/scummvm/commits/
 
-#### 2.1.0 (??.??.2019)
+#### 2.2.0 (DD.MM.YYYY)
+
+ Allgemein:
+   - Alle Engines unterstützen nun automatisch gespeicherte Spielstände.
+   - Fehler starten nun den Debugger, anstatt ScummVM einfach abstürzen zu lassen.
+   - Artikel werden bei der Sortierung der Spiele im Launcher nicht mehr berücksichtigt.
+   - Hebräisch wird nun korrekt in der Benutzeroberfläche dargestellt (benötigt die FriBiDi-Bibliothek).
+
+ Dreamweb:
+   - Unterstützung für russische Fan-Übersetzung hinzugefügt.
+   - Animationsgeschwindigkeit korrigiert.
+
+ Kyra:
+   - Unterstützung für die PC-98-Version von Eye of the Beholder I hinzugefügt.
+   - Unterstützung für die spanische Version von Eye of the Beholder I und II, Legend of Kyrandia 1 (Fan-Übersetzung auf CD-ROM) und Legend of Kyrandia 2 (Disketten-Version und Fan-Übersetzung auf CD-ROM) hinzugefügt.
+
+ Prince:
+   - Fehlerhafte Anzeige der Item-Beschreibungen im Inventar korrigiert.
+   - Englischsprachige Übersetzung hinzugefügt.
+
+ Queen:
+   - Fehler beim Laden von Spielständen aus dem Launcher heraus korrigiert.
+
+ SCUMM:
+   - Fehlerhafte Farbpalette korrigiert, die zu falscher Darstellung in der NES-Version von Maniac Mansion führt.
+   - Darstellung der Taschenlampe in der NES-Version von Maniac Mansion entspricht nun dem Original.
+   - Bisherige NES-Farbpalette durch genauere NTSC-Palette von Mesen ersetzt.
+   - Neue Option zur Benutzeroberfläche hinzugefügt, welche die Auswahl einer Farbpalette basierend auf dem NES Classic erlaubt.
+   - Farbpalette in der Apple //gs-Version von Maniac Mansion verbessert.
+   - Absturz beim Betreten der Garage in der Apple //gs-Version von Maniac Mansion behoben.
+
+ Sky:
+   - Synchronisation der Musik-Lautstärke zwischen dem nativen Einstellungs-Dialog des Spiels und der ScummVM-Konfiguration korrigiert.
+
+ Sword1:
+   - Unterstützung für lokalisierte Menüs in der russischen Version der Novy Disk Trilogy hinzugefügt.
+
+ Wintermute:
+   - System zur Verfolgung von Errungenschaften hinzugefügt, für mehr als 10 Spiele verfügbar.
+
+ Xeen:
+   - Fehlendes Sprite hinzugefügt, welches dargestellt werden soll, wenn ein Gegner von einem Energie-Strahl getroffen wird.
+   - Das Spiel friert nun nicht mehr wegen fehlerhafter Mob-Daten an der Spitze des Hexenturms ein.
+   - Absturz beim Laden einige Spielstände aus dem Launcher heraus korrigiert.
+   - Die Quelle in Nightshadow kann nun geheilt werden.
+   - Fehler beim Laden einiger Items behoben.
+
+ Linux-Portierung:
+   - Anstelle des Datei-Browsers von ScummVM kann nun der Datei-Browser des Betriebssystems verwendet werden.
+
+
+#### 2.1.2 "Fixing Powerful Windows" (31.03.2020)
+
+ Windows-Portierung:
+   - Fehler korrigiert, der zu einer Update-Schleife des Sparkle-Updaters geführt hat.
+
+ MacOS X-Portierung:
+   - Fehler behoben, der dazu führt, dass ScummVM beim Start unter Mac OS X 10.5 und älter einfriert.
+   - Anwendungs-Icon unter Mac OS X 10.5 und älter korrigiert.
+
+
+#### 2.1.1 ":More sheep:" (31.01.2020)
+
+ Allgemein:
+   - Absturz beim Wechsel zwischen einigen Sprachen der Benutzeroberfläche korrigiert.
+   - Ein Druck auf die ESC-Taste speichert nicht mehr irrtümlich Einstellungen im Optionen-Dialog ab.
+   - Verbesserte Audio-Wiedergabe für FM-TOWNS/PC-98.
+   - Unterstützung für Griechisch in der Benutzeroberfläche verbessert.
+
+ Netzwerk:
+   - Verbesserte Fehlerbehandlung.
+   - Spielstände werden nur wenn nötig heruntergeladen.
+
+ Bladerunner:
+   - Fehlerhafte Savestates in einigen Szenen korrigiert.
+   - Unterstützung für 120 FPS hinzugefügt.
+   - Unterstützung für Thumbnails verbessert.
+   - Unterstützung für virtuelle Keyboards im Speicherbildschirm auf betroffenen Plattformen hinzugefügt.
+
+ Kyra:
+   - End-Sequenz der Amiga-Version von EOB1 korrigiert (wird nur abgespielt, wenn alle Bonus-Quests erfüllt sind.
+   - Die Häufigkeit, mit der Monster in EOB1 Gegenstände fallen lassen wurde korrigiert.
+   - Geheimer Geheimtrank in Legend of Kyrandia 2 kann nun genutzt werden.
+   - Sound-Probleme in Legend of Kyrandia 2 korrigiert.
+   - Grafikfehler in Legend of Kyrandia 1 und 3, EOB1 und den FM-TOWNS-Versionen von EOB1 und EOB2 korrigiert.
+
+ Mohawk:
+   - Änderungen in den Spiele-Optionen werden nun über Sitzungen hinweg gespeichert.
+
+ Queen:
+   - Neu aufgetretener Fehler im Zusammenhang mit dem Dialog des Portiers behoben.
+
+ SCI:
+   - Zahlreiche Skript-Korrekturen in CAMELOT, ECO2, GK1, GK2, KQ7,
+     PHANT1, PQ1VG, QFG3, QFG4, SQ5 und SQ6.
+   - Unterstützung für den zensierten Modus in Phantasmagoria 1 hinzugefügt.
+   - Unterstützung für die polische Version von LSL7 hinzugefügt.
+   - Unterstützung für die italienische Version von GK2 hinzugefügt.
+   - Unterstützung für die portugiesische Version von GK2 hinzugefügt.
+   - Unterstützung für die russische Version von KQ7 hinzugefügt.
+   - Unterstützung für die russische Version von SQ1VGA hinzugefügt.
+   - Unterstützung für von Fans erstellte Untertitel für GK2 hinzugefügt.
+
+ SCUMM:
+   - Unterstützung für Pajama2 (UK-Version) hinzugefügt.
+
+ Supernova:
+   - F5 kann nun im Hauptmenü genutzt werden.
+
+ Toltecs:
+   - Unterstützung für die tschechische Version hinzugefügt.
+   - Fehler behoben, der dazu geführt hat, dass Spiele-Menüs bei der Rückker zum Launcher nicht geschlossen wurden.
+
+ Wintermute:
+   - Mehrere fehlende Spiel-Varianten und Demos zu den Erkennungstabellen hinzugefügt.
+   - Neu aufgetretener Fehler im Zusammenhang mit dem Stack-Handling behoben.
+   - Das Verhalten von Edit-Boxen wurde korrigiert.
+   - Verbesserung der Unterstützung von chinesischen Spielversionen.
+
+ Xeen:
+   - Anzeige von Goldmünzen und Edelsteinen auf der Nintendo Switch korrigiert.
+   - Ausgänge zur Taverne in Swords of Xeen korrigiert.
+   - Absturz beim Laden von Deep Mine Alpha in der CD-Version von World of Xeen behoben.
+
+ GUI:
+   - Der Reiter zum Anpassen der MIDI-Optionen wird nicht mehr angezeigt, wenn das Spiel kein MIDI unterstützt.
+
+ Alle Portierungen:
+   - Bildschirmdarstellung in einigen Bildschirm-Modi korrigiert.
+
+ 3DS-Portierung:
+   - Erhebliche Verbesserungen.
+
+ AmigaOS4-Portierung:
+   - Kleinere Verbesserung (stack cookie, Build-Automatisierung).
+
+ Android-Portierung:
+   - Verbesserung der Dateisystem-Navigation.
+   - HiDPI-Displays werden nun korrekt unterstützt.
+   - Verbesserung der Keyboard-Unterstützung.
+
+ iOS-Portierung:
+   - Der Startbildschirm-Indikator wird nun automatisch auf dem iPhone X und späteren Modellen versteckt.
+
+ MacOS X-Portierung:
+   - Verbesserte Unterstützung für den "Dark Mode".
+
+ RISC OS-Portierung:
+   - Absturz behoben, der auftritt, wenn auf ein nicht verfügbares Laufwerk zugegriffen wird.
+   - Versions-Anforderungen für DigitalRenderer reduziert.
+
+ Switch-Portierung:
+   - Cloud-Integration hinzugefügt.
+
+ OpenPandora-Portierung:
+   - Kleinere Verbesserungen.
+
+ Windows-Portierung:
+   - Unterstützung für Sprachausgabe in der Benutzeroberfläche (Text-to-Speech) hinzugefügt.
+   - Bildschirmfotos können nun auch in Ordnern mit Unicode-Zeichen gespeichert werden.
+
+
+#### 2.1.0 "Electric Sheep" (13.10.2019)
 
  Neue Spiele:
    - Unterstützung für Blade Runner hinzugefügt.
+   - Unterstützung für Duckman: The Graphic Adventure of a Private Dick hinzugefügt.
    - Unterstützung für Hoyle Bridge hinzugefügt.
    - Unterstützung für Hoyle Children's Collection hinzugefügt.
    - Unterstützung für Hoyle Classic Games hinzugefügt.
    - Unterstützung für Hoyle Solitaire hinzugefügt.
+   - Unterstützung für Hyperspace Delivery Boy! hinzugefügt.
    - Unterstützung für Might and Magic IV - Clouds of Xeen hinzugefügt.
    - Unterstützung für Might and Magic V - Darkside of Xeen hinzugefügt.
    - Unterstützung für Might and Magic - World of Xeen hinzugefügt.
    - Unterstützung für Might and Magic - World of Xeen 2 CD Talkie (mit Sprachausgabe) hinzugefügt.
    - Unterstützung für Might and Magic - Swords of Xeen hinzugefügt.
+   - Unterstützung für Mission Supernova Teil 1: Das Schicksal des Horst Hummel hinzugefügt.
+   - Unterstützung für Mission Supernova Teil 2: Der Doppelgänger hinzugefügt.
    - Unterstützung für Quest for Glory: Shadows of Darkness hinzugefügt.
+   - Unterstützung für The Prince and the Coward hinzugefügt.
    - Unterstützung für Versailles 1685 hinzugefügt.
 
  Neue Portierungen:
@@ -29,6 +196,13 @@ Programmcodes finden Sie auf Englisch unter:
      gesteuert wird.
    - Code der Roland MT-32-Emulation auf Munt 2.3.0 aktualisiert.
    - Unbekannte Spiele-Versionen können nun einfacher gemeldet werden.
+   - Spielstände können nun in einer Cloud synchronisiert werden.
+   - Unterstützung für Text-to-Speech als Bedienungshilfe auf einigen Plattformen hinzugefügt.
+
+ ADL:
+   - Verbesserung der Farbtreue.
+   - TV-Emulationsmodus hinzugefügt.
+   - Unterstützung für das WOZ-Dateiformat hinzugefügt.
 
  Drascula:
    - Fehler beim Laden eines in Kapitel 1 gespeicherten Spielstands korrigiert.
@@ -53,9 +227,18 @@ Programmcodes finden Sie auf Englisch unter:
    - Benutzerfreundlichkeit für einige Puzzles in Myst und Riven verbessert.
    - Korrektur mehrerer Abstürze, Grafik- und Sound-Fehler in Myst und Riven.
 
+ Mortevielle:
+   - Unterstützung für Sprach-Synthese auf einigen Plattformen hinzugefügt.
+
  SCI:
-   - Absturz in Police Quest IV: Open Season behoben.
-   - Grafikeffekte in Quest for Glory I (VGA) verbessert.
+   - Unterstützung für LarryScale, eine qualitativ hochwertige Skalierung für Leisure Suit Larry 7, hinzugefügt.
+   - Korrektur von über 100 Fehlern in den Original-Skripten von CAMELOT, ECO1, ECO2,
+     FREDDYPHARKAS, GK1, HOYLES, ICEMAN, KQ6, LB1, LB2, LONGBOW, LSL6,
+     MOTHERGOOSE256, PQ3, PQ4, QFG1VGA, QFG4 und SQ4.
+   - Ein Fehler in ScummVM 2.0.0, der zu Lade-Problemen bei den Macintosh-Versionen von
+     Freddy Pharkas, King's Quest 6 und Quest for Glory 1 (VGA) führte, wurde behoben.
+   - Absturz in der Macintosh-Version von Freddy Pharkas behoben. Das Spiel kann nun abgeschlossen werden.
+   - Fehler beim Laden automatisch gespeicherter Spielstände behoben.
 
  SCUMM:
    - Lippensynchronisation für v6- und v7+-Spiele hinzugefügt.
@@ -70,7 +253,7 @@ Programmcodes finden Sie auf Englisch unter:
    - Sound-Treiber für die Amiga-Versionen von Monkey Island 2 und Indiana Jones and the Fate of Atlantis hinzugefügt.
 
  Sherlock:
-   - Absturz in der spanischen Version behoben, der auftritt, wenn mit der Dame im Geschäft des 
+   - Absturz in der spanischen Version behoben, der auftritt, wenn mit der Dame im Geschäft des
      Schneiders gesprochen wird.
 
  SKY:
@@ -108,13 +291,22 @@ Programmcodes finden Sie auf Englisch unter:
    - Grafikfehler in Zork: Grand Inquisitor behoben.
    - Benötigte Schriftarten werden nun zusammen mit ScummVM ausgeliefert.
 
+ Android-Portierung:
+   - Die Android-Portierung verwendet nun den OpenGL Grafik-Manager.
+   - Button zum Einblenden der virtuellen Tastatur hinzugefügt.
+   - Unterstützung für die Zwischenablage hinzugefügt.
+   - Der Touchpad-Modus kann nun über eine eigene GUI-Option aktiviert werden.
+   - Externe Speichermedien können nun genutzt werden.
+
  iOS-Portierung:
+   - Unterstützung für Smart Keyboard hinzugefügt.
    - Drei-Finger-Wischgeste hinzugefügt, um Pfeiltasten zu simulieren.
    - Zoom-Gesten hinzugefügt, um die virtuelle Tastatur ein- und auszublenden.
    - Zusätzliche Tastensymbole, die nicht auf der Tastatur vorhanden sind, werden oberhalb der Tastatur eingeblendet.
 
  macOS-Portierung:
    - Anstelle des ScummVM-Dateibrowsers kommt nun der Betriebssystem-Dateibrowser zum Einsatz.
+   - Die Dokumentation kann nun über das Hilfe-Menü aufgerufen werden.
 
  PS Vita-Portierung:
    - Unterstützung für Touch-Steuerung hinzugefügt.
@@ -286,7 +478,7 @@ Programmcodes finden Sie auf Englisch unter:
      abgespielt werden.
    - Fehler behoben, der verursacht, dass sich die Caponier nicht tarnen, wenn der blaue
      Kristall in Zak McKracken verwendet wird.
-   - Fehler in Maniac Mansion behoben, der verursacht, dass Dr. Fred in der 
+   - Fehler in Maniac Mansion behoben, der verursacht, dass Dr. Fred in der
      Labor-Zwischensequenz in die falsche Richtung schaut.
    - Fehler behoben, der verursacht, dass in V0 und V1-Spielen die Charaktere eine Zeile
      zu hoch dargstellt werden.
@@ -334,7 +526,8 @@ Programmcodes finden Sie auf Englisch unter:
      automatisch das erste Gerät ausgewählt.
    - Verhalten des Datei-Browsers verbessert.
 
-#### 1.9.0 (17.10.2016)
+#### 1.9.0 "Myst-ery U.F.O.s release" (17.10.2016)
+
  Neue Spiele:
    - Unterstützung für Myst hinzugefügt.
    - Unterstützung für Myst: Masterpiece Edition hinzugefügt.
@@ -405,7 +598,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Unterstützung für automatische Aktualisierungen über WinSparkle hinzugefügt.
 
 
-#### 1.8.1 (25.05.2016)
+#### 1.8.1 "Where Is Your Android?" (25.05.2016)
+
  Neue Portierungen:
    - Portierung für den Nintendo 3DS hinzugefügt.
    - Portierung für Android SDL hinzugefügt.
@@ -492,7 +686,8 @@ Programmcodes finden Sie auf Englisch unter:
  GCW0-Portierung:
    - Verbesserte Unterstützung für die in ScummVM integrierte Dokumentation.
 
-#### 1.8.0 (04.03.2016)
+#### 1.8.0 "Lost with Sherlock" (04.03.2016)
+
  Neue Spiele:
    - Unterstützung für Rex Nebular and the Cosmic Gender Bender hinzugefügt.
    - Unterstützung für Sfinx hinzugefügt.
@@ -597,7 +792,8 @@ Programmcodes finden Sie auf Englisch unter:
  Tinsel:
    - Unterstützung für AdLib-Musik in Discworld 1 verbessert.
 
-#### 1.7.0 (21.07.2014)
+#### 1.7.0 "The Neverrelease" (21.07.2014)
+
  Neue Spiele:
    - Unterstützung für Chivalry is Not Dead hinzugefügt.
    - Unterstützung für Return to Ringworld hinzugefügt.
@@ -697,7 +893,8 @@ Programmcodes finden Sie auf Englisch unter:
  Tizen-Portierung:
    - Die BADA-Portierung wurde mit Tizen zusammengeführt/aktualisiert.
 
-#### 1.6.0 (31.05.2013)
+#### 1.6.0 "+4 to engines" (31.05.2013)
+
  Neue Spiele:
    - Unterstützung für 3 Skulls of the Toltecs hinzugefügt.
    - Unterstützung für Eye of the Beholder hinzugefügt.
@@ -790,7 +987,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Unterstützung hinzugefügt für verbesserte Musik von James Woodcock.
      http://www.jameswoodcock.co.uk/category/scummvm-music-enhancement-project/
 
-#### 1.5.0 (27.07.2012)
+#### 1.5.0 "Picnic Basket" (27.07.2012)
+
  Neue Spiele:
    - Unterstützung für Backyard Baseball 2003 hinzugefügt.
    - Unterstützung für Blue Force hinzugefügt.
@@ -866,7 +1064,8 @@ Programmcodes finden Sie auf Englisch unter:
      (Die Stapelverarbeitungsdatei migration.bat kann verwendet werden, um die
      Spielstände vom alten Standard-Verzeichnis in das neue zu kopieren.)
 
-#### 1.4.1 (27.01.2012)
+#### 1.4.1 "Subwoofer Release" (27.01.2012)
+
  AGOS:
    - Das Laden von Videos direkt aus InstallShield-Archiven in der
      Windows-Version von Floyd - Es gibt noch Helden korrigiert.
@@ -898,7 +1097,8 @@ Programmcodes finden Sie auf Englisch unter:
      nicht alle Kanäle zurückgesetzt wurden und somit einige Noten falsch
      klangen.
 
-#### 1.4.0 (11.11.2011)
+#### 1.4.0 "10th Anniversary" (11.11.2011)
+
  Neue Spiele:
    - Unterstützung für Lands of Lore: The Throne of Chaos hinzugefügt.
    - Unterstützung für Blue's Birthday Adventure hinzugefügt.
@@ -964,7 +1164,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Plugins bei Android 3.x repariert.
    - Standardmäßigen Speicherort für Spielstände auf SD-Karte verschoben.
 
-#### 1.3.1 (12.07.2011)
+#### 1.3.1 "All Your Pitches" (12.07.2011)
+
  Allgemein:
    - Audiogeräte-Erkennung und Zurückgreifen auf Alternativen verbessert.
      Es sollten keine stillen Fehler mehr aufgrund ungültiger Audiogeräte
@@ -992,7 +1193,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Grafikfehler in FM-TOWNS-Versionen von Spielen auf ARM-Geräten beseitigt
      (Android, iPhone, usw.).
 
-#### 1.3.0 (28.05.2011)
+#### 1.3.0 "Runner" (28.05.2011)
+
  Neue Spiele:
    - Unterstützung für Backyard Baseball hinzugefügt.
    - Unterstützung für Backyard Baseball 2001 hinzugefügt.
@@ -1148,7 +1350,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Unterstützung für ladbare Module hinzugefügt.
    - 16-Bit-Mauszeiger in HE-Spielen korrigiert.
 
-#### 1.2.1 (19.12.2010)
+#### 1.2.1 "Bork Bork Bork" (19.12.2010)
+
  Allgemein:
    - Ungarische Übersetzung hinzugefügt.
    - Brasilianisch-portugiesische Übersetzung hinzugefügt.
@@ -1163,7 +1366,8 @@ Programmcodes finden Sie auf Englisch unter:
  Lure:
    - Mehrere Bewegungsfehler bei Nicht-Spielern beseitigt.
 
-#### 1.2.0 (15.10.2010)
+#### 1.2.0 "FaSCInating release" (15.10.2010)
+
  Neue Spiele:
    - Unterstützung für Fascination hinzugefügt.
 
@@ -1302,7 +1506,8 @@ Programmcodes finden Sie auf Englisch unter:
    - System von GP2XWIZ in GPH umbenannt, um die Bandbreite der unterstützten
      Geräte besser wiederzuspiegeln.
 
-#### 1.1.1 (02.05.2010)
+#### 1.1.1 "Better version" (02.05.2010)
+
  Neue Portierungen:
    - Portierung für Nintendo 64 hinzugefügt. (Eigentlich schon in 1.1.0
      hinzugefügt, aber es wurde vergessen, dies zu erwähnen.)
@@ -1355,7 +1560,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Neue virtuelle Tastatur hinzugefügt, die für schnelle D-Pad-Eingabe
      optimiert ist.
 
-#### 1.1.0 (04.04.2010)
+#### 1.1.0 "Beta quadrant" (04.04.2010)
+
  Neue Spiele:
    - Unterstützung für Blue's Art Time Activities hinzugefügt.
    - Unterstützung für Blue's Reading Time Activities hinzugefügt.
@@ -1395,7 +1601,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Unterstützung für Kanji-Renderung in japanischer Version von
      Monkey Island Sega CD hinzugefügt.
 
-#### 1.0.0 (15.11.2009)
+#### 1.0.0 "Shiny Logo" (15.11.2009)
+
  Neue Portierungen:
    - Portierung für MotoEZX und MotoMAGX hinzugefügt.
 
@@ -1480,7 +1687,8 @@ Programmcodes finden Sie auf Englisch unter:
  WinCE-Portierung:
    - Kompatibilität mit VGA-Geräten verbessert.
 
-#### 1.0.0rc1 (31.08.2009)
+#### 1.0.0rc1 "Grog XD" (31.08.2009)
+
  Neue Spiele:
    - Unterstützung für Discworld hinzugefügt.
    - Unterstützung für Discworld 2 - Vermutlich vermisst hinzugefügt.
@@ -1545,7 +1753,8 @@ Programmcodes finden Sie auf Englisch unter:
      Geräte mit höherer Farbentiefe)
    - Unterstützung für MPEG-2 und FLAC eingestellt.
 
-#### 0.13.1 (27.04.2009)
+#### 0.13.1 "SAGA returns" (27.04.2009)
+
  AGOS:
    - Absturz nach Wiedergabe von OmniTV-Video in Floyd - Es gibt noch Helden
      beseitigt.
@@ -1599,7 +1808,8 @@ Programmcodes finden Sie auf Englisch unter:
  WinCE-Portierung:
    - Problem behoben, das bei VGA-Geräten zu zufälligen Abstürzen führen konnte.
 
-#### 0.13.0 (28.02.2009)
+#### 0.13.0 "More Guests" (28.02.2009)
+
  Allgemein:
    - MIDI-Treiber für Atari ST / FreeMint hinzugefügt.
    - „Laden“-Schaltfläche zu Startmenü hinzugefügt (nicht von allen Engines
@@ -1637,7 +1847,8 @@ Programmcodes finden Sie auf Englisch unter:
  SCUMM:
    - Funkspruch-Effekt in The Dig integriert.
 
-#### 0.12.0 (31.08.2008)
+#### 0.12.0 "&nbsp;" (31.08.2008)
+
  Neue Spiele:
    - Unterstützung für The Legend of Kyrandia: Book Two: Hand of Fate
      hinzugefügt.
@@ -1678,7 +1889,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Unterstützung für AdLib-MIDI-Kombination in Monkey Island 1
      (Diskettenversion) hinzugefügt.
 
-#### 0.11.1 (29.02.2008)
+#### 0.11.1 "Fixed exist()nce" (29.02.2008)
+
  SCUMM:
    - Verbesserungen für Untersystem von Digital iMUSE. Dies behebt verschiedene
      Störungen in The Curse of Monkey Island.
@@ -1712,7 +1924,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Palettenstörung in Erben der Erde beseitigt, wenn man die Karte anschaut,
      während man sich am Dock befindet.
 
-#### 0.11.0 (15.01.2008)
+#### 0.11.0 "Your Palindrome" (15.01.2008)
+
  Neue Spiele:
    - Unterstützung für Elvira: Mistress of the Dark hinzugefügt.
    - Unterstützung für Elvira 2: The Jaws of Cerberus hinzugefügt.
@@ -1804,7 +2017,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Unterstützung für F200-Touchscreen
    - Verschiedene Fehler in Eingabe-Code beseitigt.
 
-#### 0.10.0 (20.06.2007)
+#### 0.X.0 "Tic-tac-toe edition" (20.06.2007)
+
  Neue Spiele:
    - Engine Cinematique evo 1 hinzugefügt. Momentan wird nur Future Wars
      unterstützt.
@@ -1904,7 +2118,8 @@ Programmcodes finden Sie auf Englisch unter:
    - PalmOS Porting SDK wird nun verwendet, was die Verwendung der
      Standardbibliotheken der Programmiersprache C ermöglicht.
 
-#### 0.9.1 (29.10.2006)
+#### 0.9.1 "PalmOS revived" (29.10.2006)
+
  Neue Portierungen:
    - Portierung für Nintendo DS hinzugefügt.
    - Portierung für GP2X hinzugefügt.
@@ -1968,7 +2183,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Mehrere Fehler beseitigt.
    - Unterstützung für 2002-basierende Geräte wieder hinzugefügt.
 
-#### 0.9.0 (25.06.2006)
+#### 0.9.0 "The OmniBrain loves you" (25.06.2006)
+
  Neue Spiele:
    - Kyra-Engine hinzugefügt (für die Kyrandia-Reihe). Momentan wird nur der
      erste Teil der Reihe unterstützt.
@@ -2030,7 +2246,8 @@ Programmcodes finden Sie auf Englisch unter:
    - Hinzugefügt: Überall: Modus für umgekehrtes Querformat
    - Beseitigt: PocketPC: Dialoge abgeschnitten/nicht neu gezeichnet
 
-#### 0.8.2 (08.02.2006)
+#### 0.8.2 "Broken Broken Sword 2" (08.02.2006)
+
  Allgemein:
    - Zusammensetzen von OS-X-Paket bei Verwendung von GCC 3.3 repariert.
 
@@ -2050,7 +2267,8 @@ Programmcodes finden Sie auf Englisch unter:
    - QVGA-Smartphone-Erkennung repariert (diesmal wirklich :p).
    - Problem mit Doppelrechtsklick bei Smartphone behoben.
 
-#### 0.8.1 (31.01.2006)
+#### 0.8.1 "Codename: missing" (31.01.2006)
+
  Allgemein:
    - Kompilierung mit GCC 2.95 repariert.
    - LaTex-Dokumentation repariert.

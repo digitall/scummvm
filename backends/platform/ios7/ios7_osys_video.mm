@@ -36,7 +36,7 @@
 
 - (void)alertView:(UIAlertView *)alertView willDismissWithButtonIndex:(NSInteger)buttonIndex {
 	OSystem_iOS7::sharedInstance()->quit();
-	exit(1);
+	abort();
 }
 
 @end
@@ -59,6 +59,24 @@ void OSystem_iOS7::fatalError() {
 	else {
 		OSystem::fatalError();
 	}
+}
+
+void OSystem_iOS7::logMessage(LogMessageType::Type type, const char *message) {
+	FILE *output = 0;
+
+	if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
+		output = stdout;
+	else
+		output = stderr;
+
+	if (type == LogMessageType::kError) {
+		_lastErrorMessage = message;
+		NSString *messageString = [NSString stringWithUTF8String:message];
+		NSLog(@"%@", messageString);
+	}
+
+	fputs(message, output);
+	fflush(output);
 }
 
 void OSystem_iOS7::engineInit() {
@@ -138,7 +156,8 @@ void OSystem_iOS7::initSize(uint width, uint height, const Graphics::PixelFormat
 
 	_videoContext->screenWidth = width;
 	_videoContext->screenHeight = height;
-	_videoContext->shakeOffsetY = 0;
+	_videoContext->shakeXOffset = 0;
+	_videoContext->shakeYOffset = 0;
 
 	// In case we use the screen texture as frame buffer we reset the pixels
 	// pointer here to avoid freeing the screen texture.
@@ -354,9 +373,10 @@ void OSystem_iOS7::unlockScreen() {
 	dirtyFullScreen();
 }
 
-void OSystem_iOS7::setShakePos(int shakeOffset) {
-	//printf("setShakePos(%i)\n", shakeOffset);
-	_videoContext->shakeOffsetY = shakeOffset;
+void OSystem_iOS7::setShakePos(int shakeXOffset, int shakeYOffset) {
+	//printf("setShakePos(%i, %i)\n", shakeXOffset, shakeYOffset);
+	_videoContext->shakeXOffset = shakeXOffset;
+	_videoContext->shakeYOffset = shakeYOffset;
 	execute_on_main_thread(^ {
 		[[iOS7AppDelegate iPhoneView] setViewTransformation];
 	});

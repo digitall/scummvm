@@ -166,6 +166,8 @@ public:
 	 */
 	String getBaseFileName() const { return _baseFileName; }
 
+	void setBaseFileName(Common::String str) { _baseFileName = str; }
+
 	/**
 	 * Return list of resource IDs with specified type ID
 	 */
@@ -180,6 +182,11 @@ public:
 	 * Load from stream in MacBinary format
 	 */
 	bool loadFromMacBinary(SeekableReadStream &stream);
+
+	/**
+	 * Dump contents of the archive to ./dumps directory
+	 */
+	 void dumpRaw();
 
 private:
 	SeekableReadStream *_stream;
@@ -220,6 +227,15 @@ private:
 		uint16 typeOffset;
 		uint16 nameOffset;
 		uint16 numTypes;
+
+		void reset() {
+			resAttr = 0;
+			typeOffset = 0;
+			nameOffset = 0;
+			numTypes = 0;
+		}
+
+		ResMap() { reset(); }
 	};
 
 	struct ResType {

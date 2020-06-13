@@ -341,17 +341,6 @@ int main(int argc, char *argv[]) {
 			cout << "    " << i->description << '\n';
 	}
 
-	// Check if the keymapper and the event recorder are enabled simultaneously
-	bool keymapperEnabled = false;
-	for (FeatureList::const_iterator i = setup.features.begin(); i != setup.features.end(); ++i) {
-		if (i->enable && !strcmp(i->name, "keymapper"))
-			keymapperEnabled = true;
-		if (i->enable && !strcmp(i->name, "eventrecorder") && keymapperEnabled) {
-			std::cerr << "ERROR: The keymapper and the event recorder cannot be enabled simultaneously currently, please disable one of the two\n";
-			return -1;
-		}
-	}
-
 	// Check if tools and tests are enabled simultaneously
 	if (setup.devTools && setup.tests) {
 		std::cerr << "ERROR: The tools and tests projects cannot be created simultaneously\n";
@@ -390,15 +379,17 @@ int main(int argc, char *argv[]) {
 #endif
 	}
 
-	bool updatesEnabled = false, curlEnabled = false, sdlnetEnabled = false;
+	bool updatesEnabled = false, curlEnabled = false, sdlnetEnabled = false, ttsEnabled = false;
 	for (FeatureList::const_iterator i = setup.features.begin(); i != setup.features.end(); ++i) {
 		if (i->enable) {
-			if (!strcmp(i->name, "updates"))
+			if (!updatesEnabled && !strcmp(i->name, "updates"))
 				updatesEnabled = true;
-			else if (!strcmp(i->name, "libcurl"))
+			else if (!curlEnabled && !strcmp(i->name, "libcurl"))
 				curlEnabled = true;
-			else if (!strcmp(i->name, "sdlnet"))
+			else if (!sdlnetEnabled && !strcmp(i->name, "sdlnet"))
 				sdlnetEnabled = true;
+			else if (!ttsEnabled && !strcmp(i->name, "tts"))
+				ttsEnabled = true;
 		}
 	}
 
@@ -420,6 +411,9 @@ int main(int argc, char *argv[]) {
 		}
 		if (sdlnetEnabled) {
 			setup.libraries.push_back("iphlpapi");
+		}
+		if (ttsEnabled) {
+			setup.libraries.push_back("sapi");
 		}
 		setup.libraries.push_back("winmm");
 	}
@@ -1053,6 +1047,7 @@ const Feature s_features[] = {
 	// Libraries
 	{      "libz",        "USE_ZLIB", "zlib",             true,  "zlib (compression) support" },
 	{       "mad",         "USE_MAD", "libmad",           true,  "libmad (MP3) support" },
+	{   "fribidi",     "USE_FRIBIDI", "fribidi",          true,  "BiDi support" },
 	{       "ogg",         "USE_OGG", "libogg_static",    true,  "Ogg support" },
 	{    "vorbis",      "USE_VORBIS", "libvorbisfile_static libvorbis_static", true, "Vorbis support" },
 	{    "tremor",      "USE_TREMOR", "libtremor", false, "Tremor support" },
@@ -1082,13 +1077,13 @@ const Feature s_features[] = {
 	{           "cloud",                     "USE_CLOUD",  "", true,  "Cloud integration support" },
 	{     "translation",               "USE_TRANSLATION",  "", true,  "Translation support" },
 	{          "vkeybd",                 "ENABLE_VKEYBD",  "", false, "Virtual keyboard support"},
-	{       "keymapper",              "ENABLE_KEYMAPPER",  "", false, "Keymapper support"},
 	{   "eventrecorder",          "ENABLE_EVENTRECORDER",  "", false, "Event recorder support"},
 	{         "updates",                   "USE_UPDATES",  "", false, "Updates support"},
 	{         "dialogs",                "USE_SYSDIALOGS",  "", true,  "System dialogs support"},
 	{      "langdetect",                "USE_DETECTLANG",  "", true,  "System language detection support" }, // This feature actually depends on "translation", there
 	                                                                                                         // is just no current way of properly detecting this...
-	{    "text-console", "USE_TEXT_CONSOLE_FOR_DEBUGGER",  "", false, "Text console debugger" } // This feature is always applied in xcode projects
+	{    "text-console", "USE_TEXT_CONSOLE_FOR_DEBUGGER",  "", false, "Text console debugger" }, // This feature is always applied in xcode projects
+	{             "tts",                       "USE_TTS",  "", true,  "Text to speech support"}
 };
 
 const Tool s_tools[] = {

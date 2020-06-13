@@ -127,7 +127,7 @@ void MystCursorManager::setCursor(uint16 id) {
 
 		// We're using the screen palette for the original game, but we need
 		// to use this for any 8bpp cursor in ME.
-		if (_vm->getFeatures() & GF_ME)
+		if (_vm->isGameVariant(GF_ME))
 			CursorMan.replaceCursorPalette(mhkSurface->getPalette(), 0, 256);
 	} else {
 		Graphics::PixelFormat pixelFormat = g_system->getScreenFormat();
@@ -140,36 +140,6 @@ void MystCursorManager::setDefaultCursor() {
 }
 
 #endif
-
-NECursorManager::NECursorManager(const Common::String &appName) {
-	_exe = new Common::NEResources();
-
-	if (!_exe->loadFromEXE(appName)) {
-		// Not all have cursors anyway, so this is not a problem
-		delete _exe;
-		_exe = nullptr;
-	}
-}
-
-NECursorManager::~NECursorManager() {
-	delete _exe;
-}
-
-void NECursorManager::setCursor(uint16 id) {
-	if (_exe) {
-		Graphics::WinCursorGroup *cursorGroup = Graphics::WinCursorGroup::createCursorGroup(*_exe, id);
-
-		if (cursorGroup) {
-			Graphics::Cursor *cursor = cursorGroup->cursors[0].cursor;
-			CursorMan.replaceCursor(cursor);
-			delete cursorGroup;
-			return;
-		}
-	}
-
-	// Last resort (not all have cursors)
-	setDefaultCursor();
-}
 
 MacCursorManager::MacCursorManager(const Common::String &appName) {
 	if (!appName.empty()) {
@@ -241,14 +211,32 @@ void LivingBooksCursorManager_v2::setCursor(const Common::String &name) {
 		setCursor(id);
 }
 
-PECursorManager::PECursorManager(const Common::String &appName) {
-	Common::PEResources exe;
-	if (!exe.loadFromEXE(appName)) {
-		// Not all have cursors anyway, so this is not a problem
-		return;
+NECursorManager::NECursorManager(const Common::String &appName) {
+	Common::NEResources *exe = new Common::NEResources();
+	if (exe->loadFromEXE(appName)) {
+		// Not all have cursors anyway, so it's not a problem if this fails
+		loadCursors(exe);
 	}
+	delete exe;
+}
 
-	const Common::Array<Common::WinResourceID> cursorGroups = exe.getNameList(Common::kWinGroupCursor);
+PECursorManager::PECursorManager(const Common::String &appName) {
+	Common::PEResources *exe = new Common::PEResources();
+	if (exe->loadFromEXE(appName)) {
+		// Not all have cursors anyway, so it's not a problem if this fails
+		loadCursors(exe);
+	}
+	delete exe;
+}
+
+WinCursorManager::~WinCursorManager() {
+	for (uint i = 0; i < _cursors.size(); i++) {
+		delete _cursors[i].cursorGroup;
+	}
+}
+
+void WinCursorManager::loadCursors(Common::WinResources *exe) {
+	const Common::Array<Common::WinResourceID> cursorGroups = exe->getIDList(Common::kWinGroupCursor);
 
 	_cursors.resize(cursorGroups.size());
 	for (uint i = 0; i < cursorGroups.size(); i++) {
@@ -257,13 +245,7 @@ PECursorManager::PECursorManager(const Common::String &appName) {
 	}
 }
 
-PECursorManager::~PECursorManager() {
-	for (uint i = 0; i < _cursors.size(); i++) {
-		delete _cursors[i].cursorGroup;
-	}
-}
-
-void PECursorManager::setCursor(uint16 id) {
+void WinCursorManager::setCursor(uint16 id) {
 	for (uint i = 0; i < _cursors.size(); i++) {
 		if (_cursors[i].id == id) {
 			Graphics::Cursor *cursor = _cursors[i].cursorGroup->cursors[0].cursor;

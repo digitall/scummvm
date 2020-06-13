@@ -25,6 +25,7 @@
 #include "common/gui_options.h"
 #include "common/savefile.h"
 #include "sci/engine/features.h"
+#include "sci/engine/file.h"
 #include "sci/engine/guest_additions.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/savegame.h"
@@ -114,6 +115,9 @@ bool GuestAdditions::shouldSyncAudioToScummVM() const {
 			return true;
 		} else if (gameId == GID_GK2 && objName == "soundSlider") {
 			return true;
+		} else if (gameId == GID_HOYLE5 && objName == "volumeSliderF") {
+			// Hoyle5 has a second control panel with a different slider name
+			return true;
 		} else if (gameId == GID_KQ7 && (objName == "volumeUp" ||
 										 objName == "volumeDown")) {
 			return true;
@@ -165,7 +169,7 @@ void GuestAdditions::writeVarHook(const int type, const int index, const reg_t v
 				syncGK1StartupVolumeFromScummVM(index, value);
 			} else if (g_sci->getGameId() == GID_HOYLE5 && index == kGlobalVarHoyle5MusicVolume) {
 				syncHoyle5VolumeFromScummVM((ConfMan.getInt("music_volume") + 1) * kHoyle5VolumeMax / Audio::Mixer::kMaxMixerVolume);
-			} else if (g_sci->getGameId() == GID_HOYLE5 && index == kkGlobalVarHoyle5ResponseTime && value.getOffset() == 0) {
+			} else if (g_sci->getGameId() == GID_HOYLE5 && index == kGlobalVarHoyle5ResponseTime && value.getOffset() == 0) {
 				// WORKAROUND: Global 899 contains the response time value,
 				// which may have values between 1 and 15. There is a script
 				// bug when loading values from game.opt, where this variable
@@ -399,7 +403,8 @@ void GuestAdditions::patchGameSaveRestoreSCI16() const {
 		uint16 selectorId = patchObjectSave->getFuncSelector(methodNr);
 		Common::String methodName = _kernel->getSelectorName(selectorId);
 		if (methodName == "save") {
-			if (g_sci->getGameId() != GID_FAIRYTALES) {	// Fairy Tales saves automatically without a dialog
+			if (g_sci->getGameId() != GID_FAIRYTALES &&  // Fairy Tales saves automatically without a dialog
+				g_sci->getGameId() != GID_QFG3) { // QFG3 does automatic saving in Glory:save
 					patchKSaveRestore(_segMan, patchObjectSave->getFunction(methodNr), kernelIdSave);
 			}
 			break;
@@ -443,7 +448,7 @@ void GuestAdditions::patchGameSaveRestoreTorin(Script &script) const {
 
 	if (g_sci->isBE()) {
 		SWAP(patchPtr[1], patchPtr[2]);
-		SWAP(patchPtr[8], patchPtr[9]);
+		SWAP(patchPtr[7], patchPtr[8]);
 	}
 }
 
@@ -522,6 +527,10 @@ reg_t GuestAdditions::kScummVMSaveLoad(EngineState *s, int argc, reg_t *argv) co
 
 	if (g_sci->getGameId() == GID_RAMA) {
 		return promptSaveRestoreRama(s, argc, argv);
+	}
+
+	if (g_sci->getGameId() == GID_HOYLE5) {
+		return promptSaveRestoreHoyle5(s, argc, argv);
 	}
 
 	return promptSaveRestoreDefault(s, argc, argv);
@@ -662,12 +671,28 @@ reg_t GuestAdditions::promptSaveRestoreRama(EngineState *s, int argc, reg_t *arg
 	return make_reg(0, saveIndex);
 }
 
-int GuestAdditions::runSaveRestore(const bool isSave, reg_t outDescription, const int forcedSaveNo) const {
-	int saveNo;
-	Common::String descriptionString;
+int GuestAdditions::runSaveRestore(const bool isSave, reg_t outDescription, const int forcedSaveId) const {
+	assert(!(isSave && outDescription.isNull()));
 
-	if (!isSave && forcedSaveNo != -1) {
-		saveNo = forcedSaveNo;
+	Common::String descriptionString;
+	int saveId = runSaveRestore(isSave, descriptionString, forcedSaveId);
+
+	if (!outDescription.isNull()) {
+		if (_segMan->isObject(outDescription)) {
+			outDescription = readSelector(_segMan, outDescription, SELECTOR(data));
+		}
+		SciArray &description = *_segMan->lookupArray(outDescription);
+		description.fromString(descriptionString);
+	}
+
+	return saveId;
+}
+
+int GuestAdditions::runSaveRestore(const bool isSave, Common::String &outDescription, const int forcedSaveId) const {
+	int saveId;
+
+	if (!isSave && forcedSaveId != -1) {
+		saveId = forcedSaveId;
 	} else {
 		const char *title;
 		const char *action;
@@ -680,34 +705,30 @@ int GuestAdditions::runSaveRestore(const bool isSave, reg_t outDescription, cons
 		}
 
 		GUI::SaveLoadChooser dialog(title, action, isSave);
-		saveNo = dialog.runModalWithCurrentTarget();
-		if (saveNo != -1) {
-			descriptionString = dialog.getResultString();
-			if (descriptionString.empty()) {
-				descriptionString = dialog.createDefaultSaveDescription(saveNo - 1);
+		saveId = dialog.runModalWithCurrentTarget();
+		if (saveId != -1) {
+			outDescription = dialog.getResultString();
+			if (outDescription.empty()) {
+				outDescription = dialog.createDefaultSaveDescription(saveId - 1);
 			}
 		}
 	}
 
-	assert(!isSave || !outDescription.isNull());
-	if (!outDescription.isNull()) {
-		if (_segMan->isObject(outDescription)) {
-			outDescription = readSelector(_segMan, outDescription, SELECTOR(data));
-		}
-		SciArray &description = *_segMan->lookupArray(outDescription);
-		description.fromString(descriptionString);
-	}
+	// The autosave slot in ScummVM takes up slot 0, but in SCI the first
+	// non-autosave save game number needs to be 0, so reduce the save
+	// number here to match what would come from the normal SCI save/restore
+	// dialog. Wrap slot 0 around to kMaxShiftedSaveId so that it remains
+	// a legal SCI value.
+	saveId = shiftScummVMToSciSaveId(saveId);
 
-	if (saveNo > 0) {
-		// The autosave slot in ScummVM takes up slot 0, but in SCI the first
-		// non-autosave save game number needs to be 0, so reduce the save
-		// number here to match what would come from the normal SCI save/restore
-		// dialog. There is additional special code for handling the autosave
-		// game inside of kRestoreGame32.
-		saveNo -= kSaveIdShift;
-	}
+	return saveId;
+}
 
-	return saveNo;
+reg_t GuestAdditions::promptSaveRestoreHoyle5(EngineState *s, int argc, reg_t *argv) const {
+	assert(argc == 2);
+	Common::String callerName = s->_segMan->getObjectName(s->r_acc);
+	const bool isSave = (callerName == "Save");
+	return make_reg(0, runSaveRestore(isSave, argc > 0 ? argv[0] : NULL_REG, s->_delayedRestoreGameId));
 }
 
 #endif
@@ -740,6 +761,16 @@ bool GuestAdditions::restoreFromLauncher() const {
 			return false;
 		}
 
+		// Delayed restore should not happen in LSL6 hires or PQ4 until the room number is set.
+		//  LSL6:restore and pq4:restore assume the room number has already been set, but the
+		//  Mac versions of these game add a call to kGetEvent in the games' init method before
+		//  the initial call to newRoom. If the room number isn't set yet then LSL6 doesn't
+		//  allow the restore and PQ4 sends a message to an invalid object.
+		if ((g_sci->getGameId() == GID_LSL6HIRES || g_sci->getGameId() == GID_PQ4) &&
+			_state->variables[VAR_GLOBAL][kGlobalVarCurrentRoomNo] == NULL_REG) {
+			return false;
+		}
+
 		_restoring = true;
 
 		// Any events queued up before the game restore can cause accidental
@@ -760,10 +791,24 @@ bool GuestAdditions::restoreFromLauncher() const {
 			reg_t args[] = { make_reg(0, _state->_delayedRestoreGameId - kSaveIdShift) };
 			invokeSelector(g_sci->getGameObject(), SELECTOR(restore), 1, args);
 		} else {
+			int saveId = _state->_delayedRestoreGameId;
+
 			// When `Game::restore` is invoked, it will call to `Restore::doit`
 			// which will automatically return the `_delayedRestoreGameId` instead
 			// of prompting the user for a save game
 			invokeSelector(g_sci->getGameObject(), SELECTOR(restore));
+
+			// initialize KQ7 Mac's global save state by recording the save id
+			//  and description. this is necessary for subsequent saves to work
+			//  after restoring from launcher.
+			if (g_sci->getGameId() == GID_KQ7 && g_sci->getPlatform() == Common::kPlatformMacintosh) {
+				_state->_kq7MacSaveGameId = saveId;
+
+				SavegameDesc savegameDesc;
+				if (fillSavegameDesc(g_sci->getSavegameName(saveId), savegameDesc)) {
+					_state->_kq7MacSaveGameDescription = savegameDesc.name;
+				}
+			}
 
 			// The normal save game system resets _delayedRestoreGameId with a
 			// call to `EngineState::reset`, but RAMA uses a custom save game
@@ -818,6 +863,7 @@ void GuestAdditions::syncMessageTypeFromScummVM() const {
 		break;
 #endif
 	case kMessageTypeSyncStrategyNone:
+	default:
 		break;
 	}
 }
@@ -858,6 +904,21 @@ void GuestAdditions::syncMessageTypeFromScummVMUsingDefaultStrategy() const {
 			_state->variables[VAR_GLOBAL][globalNumber] |= (int16)0x8000;
 		} else {
 			_state->variables[VAR_GLOBAL][globalNumber] &= (int16)~0x8000;
+		}
+	}
+
+	if (g_sci->getGameId() == GID_SQ6) {
+		// The SQ6 control panel buttons for speech and text only update
+		//  their states when clicked so they need synchronization.
+		const reg_t iconSpeech = _segMan->findObjectByName("iconSpeech");
+		if (!iconSpeech.isNull()) {
+			const reg_t iconCel = make_reg(0, (value & kMessageTypeSpeech) ? 2 : 0);
+			writeSelector(_segMan, iconSpeech, SELECTOR(mainCel), iconCel);
+		}
+		const reg_t iconText = _segMan->findObjectByName("iconText");
+		if (!iconText.isNull()) {
+			const reg_t iconCel = make_reg(0, (value & kMessageTypeSubtitles) ? 2 : 0);
+			writeSelector(_segMan, iconText, SELECTOR(mainCel), iconCel);
 		}
 	}
 #endif
@@ -916,6 +977,7 @@ void GuestAdditions::syncMessageTypeToScummVM(const int index, const reg_t value
 		// LSL6hires synchronisation happens via send_selector
 #endif
 	case kMessageTypeSyncStrategyNone:
+	default:
 		break;
 	}
 }
@@ -1302,6 +1364,8 @@ void GuestAdditions::syncAudioVolumeGlobalsToScummVM(const int index, const reg_
 			case kGlobalVarTorinSpeechVolume:
 				ConfMan.setInt("speech_volume", volume);
 				break;
+			default:
+				break;
 			}
 		}
 		break;
@@ -1404,17 +1468,22 @@ void GuestAdditions::syncGK2UI() const {
 }
 
 void GuestAdditions::syncHoyle5UI(const int16 musicVolume) const {
-	const reg_t sliderId = _segMan->findObjectByName("volumeSlider");
-	if (!sliderId.isNull()) {
-		const int16 yPosition = 167 - musicVolume * 145 / 10;
-		writeSelectorValue(_segMan, sliderId, SELECTOR(y), yPosition);
+	// Hoyle5 has two control panels with different slider names
+	const reg_t sliders[] = { _segMan->findObjectByName("volumeSlider"),
+							  _segMan->findObjectByName("volumeSliderF") };
+	for (int i = 0; i < ARRAYSIZE(sliders); ++i) {
+		const reg_t sliderId = sliders[i];
+		if (!sliderId.isNull()) {
+			const int16 yPosition = 167 - musicVolume * 145 / 10;
+			writeSelectorValue(_segMan, sliderId, SELECTOR(y), yPosition);
 
-		// There does not seem to be any good way to learn whether the
-		// volume slider is visible (and thus eligible for
-		// kUpdateScreenItem)
-		const reg_t planeId = readSelector(_segMan, sliderId, SELECTOR(plane));
-		if (g_sci->_gfxFrameout->getPlanes().findByObject(planeId) != nullptr) {
-			g_sci->_gfxFrameout->kernelUpdateScreenItem(sliderId);
+			// There does not seem to be any good way to learn whether the
+			// volume slider is visible (and thus eligible for
+			// kUpdateScreenItem)
+			const reg_t planeId = readSelector(_segMan, sliderId, SELECTOR(plane));
+			if (g_sci->_gfxFrameout->getPlanes().findByObject(planeId) != nullptr) {
+				g_sci->_gfxFrameout->kernelUpdateScreenItem(sliderId);
+			}
 		}
 	}
 }

@@ -51,8 +51,6 @@ bool MortevielleEngine::keyPressed() {
 		_lastGameFrame = g_system->getMillis();
 
 		_screenSurface->updateScreen();
-
-		_debugger->onFrame();
 	}
 
 	// Delay briefly to keep CPU usage down
@@ -118,12 +116,7 @@ void MortevielleEngine::addKeypress(Common::Event &evt) {
 	// Character to add
 	char ch = evt.kbd.ascii;
 
-	// Check for debugger
-	if ((evt.kbd.keycode == Common::KEYCODE_d) && (evt.kbd.flags & Common::KBD_CTRL)) {
-		// Attach to the debugger
-		_debugger->attach();
-		_debugger->onFrame();
-	} else if ((evt.kbd.keycode >= Common::KEYCODE_a) && (evt.kbd.keycode <= Common::KEYCODE_z)) {
+	if ((evt.kbd.keycode >= Common::KEYCODE_a) && (evt.kbd.keycode <= Common::KEYCODE_z)) {
 		// Handle alphabetic keys
 		if (evt.kbd.hasFlags(Common::KBD_CTRL))
 			ch = evt.kbd.keycode - Common::KEYCODE_a + 1;
@@ -239,8 +232,6 @@ void MortevielleEngine::delay(int amount) {
 		if (g_system->getMillis() > (_lastGameFrame + GAME_FRAME_DELAY)) {
 			_lastGameFrame = g_system->getMillis();
 			_screenSurface->updateScreen();
-
-			_debugger->onFrame();
 		}
 
 		g_system->delayMillis(10);
@@ -1330,7 +1321,6 @@ void MortevielleEngine::displayDiningRoom() {
  * @remarks	Originally called 'sparl'
  */
 void MortevielleEngine::startDialog(int16 rep) {
-	const int haut[9] = { 0, 0, 1, -3, 6, -2, 2, 7, -1 };
 	int key;
 
 	assert(rep >= 0);
@@ -1342,7 +1332,7 @@ void MortevielleEngine::startDialog(int16 rep) {
 
 	key = 0;
 	do {
-		_soundManager->startSpeech(rep, haut[_caff - 69], 0);
+		_soundManager->startSpeech(rep, _caff - 69, 0);
 		key = _dialogManager->waitForF3F8();
 		if (shouldQuit())
 			return;
@@ -2291,6 +2281,8 @@ void MortevielleEngine::prepareRoom() {
 			case CHAPEL:
 				setRandomPresenceChapel(_coreVar._faithScore);
 				break;
+			default:
+				break;
 			}
 			if ((_savedBitIndex != 0) && (_currBitIndex != 10))
 				_savedBitIndex = _currBitIndex;
@@ -2831,6 +2823,8 @@ int MortevielleEngine::getPresence(int roomId) {
 			case CHAPEL:
 				pres = getPresenceStatsChapel(h);
 				break;
+			default:
+				break;
 			}
 			pres += _coreVar._faithScore;
 			rand = getRandomNumber(1, 100);
@@ -2856,6 +2850,8 @@ int MortevielleEngine::getPresence(int roomId) {
 					break;
 				case CHAPEL:
 					pres = setPresenceChapel(h);
+					break;
+				default:
 					break;
 				}
 				retVal = pres;
@@ -2940,6 +2936,8 @@ void MortevielleEngine::drawPicture() {
 			case WELL:
 				if (_coreVar._wellObjectId != 0)
 					displayAnimFrame(1, 1);
+				break;
+			default:
 				break;
 			}
 		}

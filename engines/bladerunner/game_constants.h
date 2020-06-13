@@ -222,7 +222,7 @@ enum Clues {
 	kClueCrazylegsInterview1               = 116,
 	kClueCrazylegsInterview2               = 117,
 	kClueLichenDogWrapper                  = 118,
-	kClueRequisitionForm                   = 119,
+	kClueRequisitionForm                   = 119, // original: Never acquired
 	kClueScaryChair                        = 120,
 	kClueIzosStashRaided                   = 121,
 	kClueHomelessManInterview1             = 122,
@@ -230,7 +230,7 @@ enum Clues {
 	kClueHomelessManKid                    = 124,
 	kClueFolder                            = 125,
 	kClueGuzzaFramedMcCoy                  = 126,
-	kClueOriginalShippingForm              = 127,
+	kClueOriginalShippingForm              = 127, // original: Never acquired
 	kClueOriginalRequisitionForm           = 128,
 	kClueCandyWrapper                      = 129,
 	kClueGordoBlabs                        = 130,
@@ -369,9 +369,9 @@ enum Clues {
 	kClueKingstonKitchenBox2               = 263, // ESPER hard-copy
 	kClueCrystalsCigarette                 = 264,
 	kClueSpinnerKeys                       = 265,
-	kClueAct2Ended                         = 266,
-	kClueAct3Ended                         = 267,
-	kClueAct4Ended                         = 268,
+	kClueAct2Ended                         = 266, // is acquired but never checked. Has no type and seems like a placeholder
+	kClueAct3Ended                         = 267, // unused
+	kClueAct4Ended                         = 268, // unused
 	kClueExpertBomber                      = 269,
 	kClueAmateurBomber                     = 270,
 	kClueVKLucyReplicant                   = 271,
@@ -578,7 +578,7 @@ enum Flags {
 	kFlagPS05toPS06                           = 136,
 	kFlagCT04HomelessTalk                     = 137,
 	kFlagPS07KleinInsulted                    = 138,
-	// 139 is never used
+	kFlagMcCoyTalkedToBulletBobAboutHasan     = 139, // Re-purposed. Original: 139 is never used
 	// 140 is never used
 	kFlagRC51Available                        = 141,
 	kFlagNotUsed142                           = 142, // is never checked
@@ -596,7 +596,7 @@ enum Flags {
 	kFlagTB02toTB03                           = 154, // is never checked
 	kFlagTB03toTB02                           = 155,
 	kFlagPS07KleinInsultedTalk                = 156,
-	// 157 is never used
+	kFlagSergeantWallsMazeInstructions        = 157, // Re-purposed. Original: 157 is never used
 	kFlagSergeantWallsBuzzInDone              = 158,
 	kFlagPS04GuzzaTalkZubenRetired            = 159,
 	kFlagPS04GuzzaTalkZubenEscaped            = 160,
@@ -685,7 +685,7 @@ enum Flags {
 	// 243 is never used
 	// 244 is never used
 	// 245 is never used
-	// 246 is never used
+	kFlagWrongInvestigation                   = 246, // Re-purposed. Original: 246 is never used
 	kFlagArrivedFromSpinner1                  = 247,
 	kFlagSpinnerAtCT01                        = 248,
 	kFlagSpinnerAtRC01                        = 249,
@@ -1039,8 +1039,8 @@ enum Flags {
 	kFlagUG16FolderFound                      = 597,
 	kFlagUG07ClovisCaughtMcCoy                = 598,
 	kFlagKIAPrivacyAddonIntro                 = 599,
-	kFlagUG16LutherLanceTalkReplicants1       = 600,
-	kFlagUG16LutherLanceTalkReplicants2       = 601,
+	kFlagUG16LutherLanceTalkReplicants        = 600,
+	kFlagUG16LutherLanceTalkHumans            = 601,
 	// 602 is never used
 	kFlagSteeleAimingAtGordo                  = 603,
 	kFlagNR03McCoyThrownOut                   = 604,
@@ -1107,7 +1107,7 @@ enum Flags {
 	kFlagUG19Available                        = 665,
 	kFlagMcCoyFreedOfAccusations              = 666,
 	// 667 is never used
-	// 668 is never used
+	kFlagUG13OriginalRequisitionFormPlaced    = 668, // Re-purposed. Original: 668 is never used
 	kFlagKP02DispatchOnToxicKipple            = 669, // Re-purposed. Original: 669 is never used
 	kFlagCallWithGuzza                        = 670,
 	kFlagUG18GuzzaScene                       = 671,
@@ -1186,7 +1186,9 @@ enum Variables {
 	kVariablePoliceMazePS13TargetCounter   = 13,
 	kVariableMcCoyEvidenceMissed           = 14,
 	// variable 15 has no use
-	// variables 16 - 18 are not used
+	kVariableFishDealerBanterTalk          = 16, // Re-purposed. Original: not used
+	kVariableInsectDealerBanterTalk        = 17, // Re-purposed. Original: not used
+	kVariableHasanBanterTalk               = 18, // Re-purposed. Original: not used
 	kVariableIzoShot                       = 19, // has no use
 	// variables 20 - 23 are not used
 	kVariableBobShot                       = 24, // has no use
@@ -1822,6 +1824,16 @@ enum GameModelAnimations {
 	// 671 - 681: Howie Lee animations
 	// 682 - 687: Fish Dealer animations
 	// 688 - 697: Dino Klein animations
+	kModelAnimationKleinWalking                    = 688,
+	kModelAnimationKleinStandingIdle               = 689,
+	kModelAnimationKleinTalkScratchBackOfHead      = 690,
+	kModelAnimationKleinWorkingOnInstruments       = 691,
+	kModelAnimationKleinTalkSmallLeftHandMove      = 692,
+	kModelAnimationKleinTalkRightHandTouchFace     = 693,
+	kModelAnimationKleinTalkWideHandMotion         = 694,
+	kModelAnimationKleinTalkSuggestOrAsk           = 695,
+	kModelAnimationKleinTalkDismissive             = 696,
+	kModelAnimationKleinTalkRaisingBothHands       = 697,
 	// 698 - 704: Murray animations
 	// 705 - 715: Hawker's Barkeep animations
 	// 716 - 721: Holloway animations
@@ -1876,6 +1888,18 @@ enum GameModelAnimations {
 	// 908 - 917: Mutant 3 animations
 	// 918 - 919: Taffy Patron (Gordo's hostage) animations
 	// 920 - 930: Hasan animations
+	kModelAnimationHasanTalkWipeFaceLeftHand01    = 920, // UNUSED
+	kModelAnimationHasanIdleSlightMovement        = 921,
+	kModelAnimationHasanTalkSuggest               = 922,
+	kModelAnimationHasanTakingABiteSnakeMove      = 923,
+	kModelAnimationHasanTalkPointingRightHand     = 924, // UNUSED
+	kModelAnimationHasanTalkMovingBothHands       = 925,
+	kModelAnimationHasanTalkLeftRightLeftGesture  = 926,
+	kModelAnimationHasanTalkRaiseHandSnakeMove    = 927,
+	kModelAnimationHasanTalkMovingBothHandsAndNod = 928,
+	kModelAnimationHasanTalkWipeFaceLeftHand02    = 929, // (almost) identical to 920 (same number of frames too)
+	kModelAnimationHasanTalkUpset                 = 930,
+	// 931 - 996: Item animations
 	kModelAnimationBadge                       = 931,
 	kModelAnimationBomb                        = 932,
 	kModelAnimationCandy                       = 933,
@@ -1904,7 +1928,7 @@ enum GameModelAnimations {
 	kModelAnimationMaggieBracelet              = 956,
 	kModelAnimationGrigoriansNote              = 957,
 	kModelAnimationOriginalRequisitionForm     = 958,
-	kModelAnimationOriginalShippingForm        = 959,
+	kModelAnimationOriginalShippingForm        = 959, // original: Never placed in game world
 	kModelAnimationPowerSource                 = 960,
 	kModelAnimationCollectionReceipt           = 961,
 	kModelAnimationRequisitionForm             = 962,
@@ -2496,6 +2520,15 @@ enum GoalZuben {
 	kGoalZubenGone                = 599
 };
 
+enum GoalHasan {
+	kGoalHasanDefault                         =   0,
+	kGoalHasanIsAway                          = 300, // original final goal for Hasan
+	kGoalHasanIsWalkingAroundIsAtAR02         = 301, // new goal for restored content
+	kGoalHasanIsWalkingAroundStayAwayFromAR02 = 302, // new goal for restored content
+	kGoalHasanIsWalkingAroundStaysAtAR02      = 303, // new goal for restored content
+	kGoalHasanIsWalkingAroundIsAway           = 304  // new goal for restored content
+};
+
 enum GoalOfficerLeary {
 	kGoalOfficerLearyDefault                          =   0,
 	kGoalOfficerLearyRC01WalkToCrowd                  =   1,
@@ -2583,15 +2616,17 @@ enum GoalDeskClerk {
 };
 
 enum GoalKlein {
-	kGoalKleinDefault               =   0,
-	kGoalKleinMovingInLab01         =   1,
-	kGoalKleinMovingInLab02         =   2,
-	kGoalKleinGotoLabSpeaker        =   3,
-	kGoalKleinIsAnnoyedByMcCoyInit  =   4,
-	kGoalKleinIsAnnoyedByMcCoy01    =   5,
-	kGoalKleinIsAnnoyedByMcCoy02    =   6,
-	kGoalKleinIsAnnoyedByMcCoyFinal =   7,
-	kGoalKleinAwayAtEndOfActOne     = 100
+	kGoalKleinDefault                 =   0,
+	kGoalKleinMovingInLab01           =   1,
+	kGoalKleinMovingInLab02           =   2,
+	kGoalKleinGotoLabSpeaker          =   3,
+	kGoalKleinIsAnnoyedByMcCoyInit    =   4,
+	kGoalKleinIsAnnoyedByMcCoy01      =   5,
+	kGoalKleinIsAnnoyedByMcCoy02      =   6,
+	kGoalKleinIsAnnoyedByMcCoyFinal   =   7,
+	kGoalKleinIsAnnoyedByMcCoyPreInit =   8, // new goal
+	kGoalKleinAwayAtEndOfActOne       = 100,
+	kGoalKleinAwayAtEndOfActThree     = 299  // new goal for restored content purposes
 };
 
 enum GoalHolloway {

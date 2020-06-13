@@ -21,7 +21,6 @@
  */
 
 #include "bladerunner/script/ai_script.h"
-
 namespace BladeRunner {
 
 AIScriptGordo::AIScriptGordo(BladeRunnerEngine *vm) : AIScriptBase(vm) {
@@ -228,15 +227,15 @@ void AIScriptGordo::ClickedByPlayer() {
 	//return false;
 }
 
-void AIScriptGordo::EnteredScene(int sceneId) {
+void AIScriptGordo::EnteredSet(int setId) {
 	// return false;
 }
 
-void AIScriptGordo::OtherAgentEnteredThisScene(int otherActorId) {
+void AIScriptGordo::OtherAgentEnteredThisSet(int otherActorId) {
 	// return false;
 }
 
-void AIScriptGordo::OtherAgentExitedThisScene(int otherActorId) {
+void AIScriptGordo::OtherAgentExitedThisSet(int otherActorId) {
 	// return false;
 }
 
@@ -543,7 +542,7 @@ bool AIScriptGordo::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		break;
 
 	case kGoalGordoNR02TalkAboutMcCoy:
-		Actor_Force_Stop_Walking(0);
+		Actor_Force_Stop_Walking(kActorMcCoy);
 		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
 		Actor_Says(kActorGordo, 720, 16);
 		Actor_Says(kActorGordo, 730, 18);
@@ -731,7 +730,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 					_animationFrame = _frameMin;
 					_frameDelta = 1;
 				}
-				_counter++;
+				++_counter;
 			} else {
 				_animationFrame += _frameDelta;
 				_counterTarget = 0;
@@ -766,7 +765,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 			break;
 		case 1:
 			*animation = 117;
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(117)) {
 				*animation = 116;
 				_animationFrame = 0;
@@ -775,7 +774,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 			break;
 		case 2:
 			*animation = 118;
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(118)) {
 				*animation = 116;
 				_animationFrame = 0;
@@ -824,7 +823,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 	case 2:
 		*animation = 114;
 		if (Random_Query(0, 1)) {
-			_animationFrame++;
+			++_animationFrame;
 		}
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
@@ -833,7 +832,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 3:
 		*animation = 115;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(115)) {
 			*animation = 116;
 			_animationState = 0;
@@ -849,7 +848,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 			*animation = 116;
 			_animationState = 0;
 		} else {
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 				_animationFrame = 0;
 			}
@@ -858,7 +857,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 5:
 		*animation = 121;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(121)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -868,7 +867,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 6:
 		*animation = 122;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(122)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -878,7 +877,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 7:
 		*animation = 123;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(123)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -888,7 +887,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 8:
 		*animation = 124;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(124)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -898,7 +897,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 9:
 		*animation = 125;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(125)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -908,7 +907,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 10:
 		*animation = 126;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(126)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -918,7 +917,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 11:
 		*animation = 127;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(127)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -928,7 +927,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 12:
 		*animation = 127;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(127)) {
 			*animation = 120;
 			_animationFrame = 0;
@@ -938,7 +937,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 13:
 		*animation = 114;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(114)) {
 			_animationFrame = 0;
 		}
@@ -946,7 +945,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 14:
 		*animation = 103;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(103)) {
 			*animation = 93;
 			_animationFrame = 0;
@@ -956,7 +955,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 15:
 		*animation = 104;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(104)) {
 			*animation = 116;
 			_animationFrame = 0;
@@ -966,7 +965,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 16:
 		*animation = 93;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(93)) {
 			_animationFrame = 0;
 		}
@@ -977,7 +976,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 18:
 		*animation = 105;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame == 1) {
 			Sound_Play_Speech_Line(kActorGordo, Random_Query(0, 1) ? 9010 : 9015, 75, 0, 99);
 		}
@@ -994,7 +993,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 19:
 		*animation = 111;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(111)) {
 			*animation = 116;
 			_animationFrame = 0;
@@ -1005,7 +1004,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 20:
 		*animation = 112;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(112)) {
 			*animation = 116;
 			_animationFrame = 0;
@@ -1016,7 +1015,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 21:
 		*animation = 96;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(96)) {
 			*animation = 93;
 			_animationFrame = 0;
@@ -1027,7 +1026,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 22:
 		*animation = 97;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(97)) {
 			*animation = 93;
 			_animationFrame = 0;
@@ -1039,7 +1038,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 	case 23:
 		*animation = 113;
 		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(113) - 1) {
-			_animationFrame++;
+			++_animationFrame;
 		}
 		break;
 
@@ -1052,7 +1051,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 25:
 		*animation = 107;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(107)) {
 			_animationFrame = 0;
 		}
@@ -1060,7 +1059,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 26:
 		*animation = 108;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(108)) {
 			_animationFrame = 0;
 		}
@@ -1068,7 +1067,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 27:
 		*animation = 98;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(98)) {
 			_animationFrame = 0;
 		}
@@ -1076,7 +1075,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 28:
 		*animation = 99;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(99)) {
 			_animationFrame = 0;
 		}
@@ -1084,7 +1083,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 29:
 		*animation = 109;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(109)) {
 			_animationFrame = 0;
 		}
@@ -1092,7 +1091,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 30:
 		*animation = 110;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(110)) {
 			_animationFrame = 0;
 		}
@@ -1100,7 +1099,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 31:
 		*animation = 101;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(101)) {
 			_animationFrame = 0;
 		}
@@ -1108,7 +1107,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 32:
 		*animation = 102;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(102)) {
 			_animationFrame = 0;
 		}
@@ -1116,7 +1115,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 33:
 		*animation = 106;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(106)) {
 			*animation = 93;
 			_animationState = 16;
@@ -1131,7 +1130,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 34:
 		*animation = 119;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(119)) {
 			if (Game_Flag_Query(kFlagNR02GordoLeaveLighter)) {
 				Game_Flag_Reset(kFlagNR02GordoLeaveLighter);
@@ -1151,7 +1150,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 35:
 		*animation = 128;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(128)) {
 			_animationFrame = 0;
 		}
@@ -1164,7 +1163,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 			_animationState = 35;
 		} else {
 			*animation = 129;
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(129)) {
 				_animationFrame = 0;
 			}
@@ -1178,7 +1177,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 			_animationState = 35;
 		} else {
 			*animation = 130;
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(130)) {
 				_animationFrame = 0;
 			}
@@ -1187,7 +1186,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 38:
 		*animation = 131;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame == 7) {
 			if (Actor_Query_Goal_Number(kActorGordo) == kGoalGordoNR01HostageDie) {
 				Actor_Set_Goal_Number(kActorTaffyPatron, 255);
@@ -1205,7 +1204,7 @@ bool AIScriptGordo::UpdateAnimation(int *animation, int *frame) {
 
 	case 39:
 		*animation = 132;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame == 6) {
 			Actor_Set_Goal_Number(kActorTaffyPatron, 250);
 			Actor_Change_Animation_Mode(kActorGordo, kAnimationModeCombatDie);
@@ -1575,12 +1574,23 @@ void AIScriptGordo::FledCombat() {
 void AIScriptGordo::talkToMcCoyInCity() {
 	Player_Loses_Control();
 	Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
-	if (!Game_Flag_Query(kFlagGordoTalk1)) {
+	if (!Game_Flag_Query(kFlagGordoTalk1)
+	    && (!_vm->_cutContent
+	        || Actor_Query_Inch_Distance_From_Actor(kActorMcCoy, kActorGordo) <= 330)
+	) {
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorMcCoy, 6460, 12);
 		AI_Movement_Track_Pause(kActorGordo);
 		Loop_Actor_Walk_To_Actor(kActorGordo, kActorMcCoy, 36, false, false);
 		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
 		Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
+#else
+		Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
+		AI_Movement_Track_Pause(kActorGordo);
+		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
+		Actor_Says(kActorMcCoy, 6460, 12);
+		Loop_Actor_Walk_To_Actor(kActorGordo, kActorMcCoy, 36, false, false);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorGordo, 890, 14);
 		Actor_Says(kActorMcCoy, 6465, 15);
 		Actor_Says(kActorGordo, 900, 13);
@@ -1596,15 +1606,26 @@ void AIScriptGordo::talkToMcCoyInCity() {
 		Actor_Says(kActorGordo, 970, 12);
 		AI_Movement_Track_Unpause(kActorGordo);
 		Game_Flag_Set(kFlagGordoTalk1);
-	} else if ( Game_Flag_Query(kFlagDR05BombExploded)
-	       && !Actor_Clue_Query(kActorMcCoy, kClueGordoInterview1)
-	       && !Actor_Clue_Query(kActorMcCoy, kClueGordoInterview2)
+	} else if (Game_Flag_Query(kFlagDR05BombExploded)
+	           && !Actor_Clue_Query(kActorMcCoy, kClueGordoInterview1)
+	           && !Actor_Clue_Query(kActorMcCoy, kClueGordoInterview2)
+	           && (!_vm->_cutContent
+	               || Actor_Query_Inch_Distance_From_Actor(kActorMcCoy, kActorGordo) <= 330)
 	) {
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorMcCoy, 6485, 12);
 		AI_Movement_Track_Pause(kActorGordo);
 		Loop_Actor_Walk_To_Actor(kActorGordo, kActorMcCoy, 48, false, false);
 		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
 		Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
+#else
+		Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
+		AI_Movement_Track_Pause(kActorGordo);
+		Actor_Says(kActorMcCoy, 6485, 12);
+		// better for Gordo to turn delayed (after McCoy asks about the bombing) in this question
+		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
+		Loop_Actor_Walk_To_Actor(kActorGordo, kActorMcCoy, 48, false, false);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		if (Game_Flag_Query(kFlagGordoIsReplicant)) {
 			Actor_Says(kActorGordo, 1010, 12);
 			Actor_Says(kActorMcCoy, 6495, 14);
@@ -1623,12 +1644,23 @@ void AIScriptGordo::talkToMcCoyInCity() {
 			Actor_Clue_Acquire(kActorMcCoy, kClueGordoInterview2, false, kActorGordo);
 		}
 		AI_Movement_Track_Unpause(kActorGordo);
-	} else if (!Game_Flag_Query(kFlagGordoTalk2)) {
-		Actor_Says(kActorMcCoy, 6490, 14);
+	} else if (!Game_Flag_Query(kFlagGordoTalk2)
+	           && (!_vm->_cutContent
+	               || Actor_Query_Inch_Distance_From_Actor(kActorMcCoy, kActorGordo) <= 330)
+	) {
+#if BLADERUNNER_ORIGINAL_BUGS
+		Actor_Says(kActorMcCoy, 6490, 12);
 		AI_Movement_Track_Pause(kActorGordo);
 		Loop_Actor_Walk_To_Actor(kActorGordo, kActorMcCoy, 60, false, false);
 		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
 		Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
+#else
+		Actor_Face_Actor(kActorMcCoy, kActorGordo, true);
+		AI_Movement_Track_Pause(kActorGordo);
+		Actor_Face_Actor(kActorGordo, kActorMcCoy, true);
+		Actor_Says(kActorMcCoy, 6490, 12);
+		Loop_Actor_Walk_To_Actor(kActorGordo, kActorMcCoy, 60, false, false);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorGordo, 990, 13);
 		Actor_Says(kActorGordo, 1000, 15);
 		Game_Flag_Set(kFlagGordoTalk2);

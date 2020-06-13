@@ -34,14 +34,15 @@
 #include "backends/platform/3ds/sprite.h"
 #include "common/rect.h"
 #include "common/queue.h"
+#include "engines/engine.h"
 
 #define TICKS_PER_MSEC 268123
 
 namespace _3DS {
 
-enum {
-	GFX_LINEAR = 0,
-	GFX_NEAREST = 1
+enum MagnifyMode {
+	MODE_MAGON,
+	MODE_MAGOFF,
 };
 
 enum InputMode {
@@ -49,12 +50,49 @@ enum InputMode {
 	MODE_DRAG,
 };
 
-static const OSystem::GraphicsMode s_graphicsModes[] = {
-	{"default", "Default Test", GFX_LINEAR},
-	{ 0, 0, 0 }
+enum GraphicsModeID {
+	RGBA8,
+	RGB565,
+	RGB555,
+	RGB5A1,
+	CLUT8
 };
 
-class OSystem_3DS : public EventsBaseBackend, public PaletteManager {
+enum TransactionState {
+	kTransactionNone = 0,
+	kTransactionActive = 1,
+	kTransactionRollback = 2
+};
+
+
+struct TransactionDetails {
+	bool formatChanged, modeChanged;
+
+	TransactionDetails() {
+		formatChanged = false;
+		modeChanged = false;
+	}
+};
+
+typedef struct GfxMode3DS {
+	Graphics::PixelFormat surfaceFormat;
+	GPU_TEXCOLOR textureFormat;
+	uint32 textureTransferFlags;
+} GfxMode3DS;
+
+struct GfxState {
+	bool setup;
+	GraphicsModeID gfxModeID;
+	const GfxMode3DS *gfxMode;
+
+	GfxState() {
+		setup = false;
+		gfxModeID = CLUT8;
+	}
+};
+
+
+class OSystem_3DS : public EventsBaseBackend, public PaletteManager, public Common::EventObserver {
 public:
 	OSystem_3DS();
 	virtual ~OSystem_3DS();
@@ -68,7 +106,11 @@ public:
 	virtual void setFeatureState(OSystem::Feature f, bool enable);
 	virtual bool getFeatureState(OSystem::Feature f);
 
-	virtual bool pollEvent(Common::Event &event);
+	bool pollEvent(Common::Event &event) override;
+	bool notifyEvent(const Common::Event &event) override;
+	Common::HardwareInputSet *getHardwareInputSet() override;
+	Common::KeymapArray getGlobalKeymaps() override;
+	Common::KeymapperDefaultBindings *getKeymapperDefaultBindings() override;
 
 	virtual uint32 getMillis(bool skipRecord = false);
 	virtual void delayMillis(uint msecs);
@@ -88,23 +130,22 @@ public:
 	virtual void quit();
 
 	virtual Common::String getDefaultConfigFileName();
+	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority) override;
 
 	// Graphics
-	virtual const OSystem::GraphicsMode *getSupportedGraphicsModes() const;
-	int getDefaultGraphicsMode() const;
-	bool setGraphicsMode(int mode);
-	void resetGraphicsScale();
-	int getGraphicsMode() const;
 	inline Graphics::PixelFormat getScreenFormat() const { return _pfGame; }
 	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const;
 	void initSize(uint width, uint height,
 	              const Graphics::PixelFormat *format = NULL);
-	virtual int getScreenChangeID() const { return 0; };
+	virtual int getScreenChangeID() const { return _screenChangeId; };
+	GraphicsModeID chooseMode(Graphics::PixelFormat *format);
+	bool setGraphicsMode(GraphicsModeID modeID);
 
 	void beginGFXTransaction();
 	OSystem::TransactionError endGFXTransaction();
 	int16 getHeight(){ return _gameHeight; }
 	int16 getWidth(){ return _gameWidth; }
+	float getScaleRatio() const;
 	void setPalette(const byte *colors, uint start, uint num);
 	void grabPalette(byte *colors, uint start, uint num) const;
 	void copyRectToScreen(const void *buf, int pitch, int x, int y, int w,
@@ -112,7 +153,7 @@ public:
 	Graphics::Surface *lockScreen();
 	void unlockScreen();
 	void updateScreen();
-	void setShakePos(int shakeOffset);
+	void setShakePos(int shakeXOffset, int shakeYOffset);
 	void setFocusRectangle(const Common::Rect &rect);
 	void clearFocusRectangle();
 	void showOverlay();
@@ -124,7 +165,8 @@ public:
 	                       int h);
 	virtual int16 getOverlayHeight();
 	virtual int16 getOverlayWidth();
-	virtual void displayMessageOnOSD(const char *msg);
+	void displayMessageOnOSD(const char *msg) override;
+	void displayActivityIconOnOSD(const Graphics::Surface *icon) override;
 
 	bool showMouse(bool visible);
 	void warpMouse(int x, int y);
@@ -135,20 +177,24 @@ public:
 
 	// Transform point from touchscreen coords into gamescreen coords
 	void transformPoint(touchPosition &point);
+	// Clip point to gamescreen coords
+	void clipPoint(touchPosition &point);
 
 	void setCursorDelta(float deltaX, float deltaY);
 
 	void updateFocus();
+	void updateMagnify();
 	void updateConfig();
 	void updateSize();
 
 private:
-	void initGraphics();
-	void destroyGraphics();
+	void init3DSGraphics();
+	void destroy3DSGraphics();
 	void initAudio();
 	void destroyAudio();
 	void initEvents();
 	void destroyEvents();
+	void runOptionsDialog();
 
 	void flushGameScreen();
 	void flushCursor();
@@ -165,19 +211,34 @@ private:
 	Thread audioThread;
 
 	// Graphics
-	Graphics::PixelFormat _pfGame;
-	Graphics::PixelFormat _pfGameTexture;
+	GraphicsModeID _graphicsModeID;
+	TransactionState _transactionState;
+	TransactionDetails _transactionDetails;
+
+	GfxState _gfxState, _oldGfxState;
+	Graphics::PixelFormat _pfDefaultTexture;
+	Graphics::PixelFormat _pfGame, _oldPfGame;
 	Graphics::PixelFormat _pfCursor;
 	byte _palette[3 * 256];
 	byte _cursorPalette[3 * 256];
 
 	Graphics::Surface _gameScreen;
+	bool _gameTextureDirty;
 	Sprite _gameTopTexture;
 	Sprite _gameBottomTexture;
 	Sprite _overlay;
+	Sprite _activityIcon;
+	Sprite _osdMessage;
 
-	int _screenShakeOffset;
+	enum {
+		kOSDMessageDuration = 800
+	};
+	uint32 _osdMessageEndTime;
+
+	int _screenShakeXOffset;
+	int _screenShakeYOffset;
 	bool _overlayVisible;
+	int _screenChangeId;
 
 	DVLB_s *_dvlb;
 	shaderProgram_s _program;
@@ -211,10 +272,21 @@ private:
 	bool _cursorPaletteEnabled;
 	bool _cursorVisible;
 	bool _cursorScalable;
-	float _cursorX, _cursorY;
+	float _cursorScreenX, _cursorScreenY;
+	float _cursorOverlayX, _cursorOverlayY;
 	float _cursorDeltaX, _cursorDeltaY;
 	int _cursorHotspotX, _cursorHotspotY;
 	uint32 _cursorKeyColor;
+
+	// Magnify
+	MagnifyMode _magnifyMode;
+	u16 _magX, _magY;
+	u16 _magWidth, _magHeight;
+	u16 _magCenterX, _magCenterY;
+
+public:
+	// Pause
+	PauseToken _sleepPauseToken;
 };
 
 } // namespace _3DS

@@ -32,12 +32,8 @@
 
 class OpenGLSdlGraphicsManager : public OpenGL::OpenGLGraphicsManager, public SdlGraphicsManager {
 public:
-	OpenGLSdlGraphicsManager(uint desktopWidth, uint desktopHeight, SdlEventSource *eventSource, SdlWindow *window);
+	OpenGLSdlGraphicsManager(SdlEventSource *eventSource, SdlWindow *window);
 	virtual ~OpenGLSdlGraphicsManager();
-
-	// GraphicsManager API
-	virtual void activateManager() override;
-	virtual void deactivateManager() override;
 
 	virtual bool hasFeature(OSystem::Feature f) const override;
 	virtual void setFeatureState(OSystem::Feature f, bool enable) override;
@@ -60,7 +56,7 @@ protected:
 
 	virtual void *getProcAddress(const char *name) const override;
 
-	virtual void handleResizeImpl(const int width, const int height) override;
+	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) override;
 
 	virtual bool saveScreenshot(const Common::String &filename) const override;
 
@@ -114,8 +110,6 @@ private:
 
 	uint _desiredFullscreenWidth;
 	uint _desiredFullscreenHeight;
-
-	bool isHotkey(const Common::Event &event) const;
 };
 
 #endif

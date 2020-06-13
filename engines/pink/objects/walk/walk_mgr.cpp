@@ -20,6 +20,8 @@
  *
  */
 
+#include "common/math.h"
+
 #include "pink/archive.h"
 #include "pink/cel_decoder.h"
 #include "pink/pink.h"
@@ -52,7 +54,7 @@ WalkLocation *WalkMgr::findLocation(const Common::String &name) {
 	return nullptr;
 }
 
-void WalkMgr::toConsole() {
+void WalkMgr::toConsole() const {
 	debugC(6, kPinkDebugLoadingObjects, "WalkMgr:");
 	for (uint i = 0; i < _locations.size(); ++i) {
 		_locations[i]->toConsole();
@@ -110,7 +112,7 @@ WalkAction *WalkMgr::getWalkAction() {
 double WalkMgr::getLengthBetweenLocations(WalkLocation *first, WalkLocation *second) {
 	Coordinates firstCoord = getLocationCoordinates(first->getName());
 	Coordinates secondCoord = getLocationCoordinates(second->getName());
-	return hypot(secondCoord.point.x - firstCoord.point.x, secondCoord.point.y - firstCoord.point.y);
+	return Common::hypotenuse(secondCoord.point.x - firstCoord.point.x, secondCoord.point.y - firstCoord.point.y);
 }
 
 Coordinates WalkMgr::getLocationCoordinates(const Common::String &locationName) {

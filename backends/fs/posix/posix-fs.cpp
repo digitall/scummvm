@@ -33,7 +33,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_srandom
 
 #include "backends/fs/posix/posix-fs.h"
-#include "backends/fs/stdiostream.h"
+#include "backends/fs/posix/posix-iostream.h"
 #include "common/algorithm.h"
 
 #include <sys/param.h>
@@ -57,6 +57,9 @@
 #include <os2.h>
 #endif
 
+#if defined(__ANDROID__) && !defined(ANDROIDSDL)
+#include "backends/platform/android/jni-android.h"
+#endif
 
 bool POSIXFilesystemNode::exists() const {
 	return access(_path.c_str(), F_OK) == 0;
@@ -190,6 +193,23 @@ bool POSIXFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, boo
 	}
 #endif
 
+#if defined(__ANDROID__) && !defined(ANDROIDSDL)
+	if (_path == "/") {
+		Common::Array<Common::String> list = JNI::getAllStorageLocations();
+		for (Common::Array<Common::String>::const_iterator it = list.begin(), end = list.end(); it != end; ++it) {
+			POSIXFilesystemNode *entry = new POSIXFilesystemNode();
+
+			entry->_isDirectory = true;
+			entry->_isValid = true;
+			entry->_displayName = *it;
+			++it;
+			entry->_path = *it;
+			myList.push_back(entry);
+		}
+		return true;
+	}
+#endif
+
 	DIR *dirp = opendir(_path.c_str());
 	struct dirent *dp;
 
@@ -292,11 +312,11 @@ AbstractFSNode *POSIXFilesystemNode::getParent() const {
 }
 
 Common::SeekableReadStream *POSIXFilesystemNode::createReadStream() {
-	return StdioStream::makeFromPath(getPath(), false);
+	return PosixIoStream::makeFromPath(getPath(), false);
 }
 
 Common::WriteStream *POSIXFilesystemNode::createWriteStream() {
-	return StdioStream::makeFromPath(getPath(), true);
+	return PosixIoStream::makeFromPath(getPath(), true);
 }
 
 bool POSIXFilesystemNode::createDirectory() {

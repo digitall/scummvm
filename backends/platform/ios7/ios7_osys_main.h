@@ -74,7 +74,7 @@ protected:
 	// For use with the mouse texture
 	uint16  _gamePaletteRGBA5551[256];
 
-	struct timeval _startTime;
+	CFTimeInterval _startTime;
 	uint32 _timeSuspended;
 
 	bool _mouseCursorPaletteEnabled;
@@ -161,7 +161,7 @@ public:
 	virtual void updateScreen();
 	virtual Graphics::Surface *lockScreen();
 	virtual void unlockScreen();
-	virtual void setShakePos(int shakeOffset);
+	virtual void setShakePos(int shakeXOffset, int shakeYOffset);
 
 	virtual void showOverlay();
 	virtual void hideOverlay();

@@ -60,6 +60,8 @@ namespace {
 #define LOL_KYRA2_DEMO_FLAGS FLAGS(true, false, false, false, false, false, false, false, false, Kyra::GI_KYRA2)
 
 #define EOB_FLAGS FLAGS(false, false, false, false, false, false, false, false, false, Kyra::GI_EOB1)
+#define EOB_SPANISH_FLAGS FLAGS(false, false, false, true, false, false, false, false, false, Kyra::GI_EOB1)
+#define EOB_PC98_FLAGS FLAGS(false, false, false, false, true, true, false, false, false, Kyra::GI_EOB1)
 #define EOB2_FLAGS FLAGS(false, false, false, false, false, false, false, false, false, Kyra::GI_EOB2)
 #define EOB2_FMTOWNS_FLAGS FLAGS(false, false, false, false, true, false, true, false, false, Kyra::GI_EOB2)
 
@@ -365,12 +367,41 @@ const KYRAGameDescription adGameDescs[] = {
 		KYRA1_CD_FLAGS
 	},
 
+	{ // Spanish fan translation
+		{
+			"kyra1",
+			"CD",
+			AD_ENTRY1("GEMCUT.PAK", "d9fb36376939f3d31ec2c3746ff6da1b"),
+			Common::ES_ESP,
+			Common::kPlatformDOS,
+			ADGF_CD,
+			GUIO4(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIPCSPK, GUIO_RENDERVGA)
+		},
+		KYRA1_CD_FLAGS
+	},
+
 	{ // Kyra 1 Mac CD as mentioned in fr #2766454 "KYRA1: Add support for Macintosh CD" by nnooiissee
 		{
 			"kyra1",
 			"CD",
 			{
 				{ "GEMCUT.PAK", 0, "d3d4b281cd357230aabcec46843d04bd", -1 },
+				{ "BEAD.CPS", 0, "3038466f65b7751451844707187aa401", -1 },
+				{ NULL, 0, NULL, 0 }
+			},
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_CD,
+			GUIO0()
+		},
+		KYRA1_CD_FLAGS
+	},
+	{ // Polish fan translation of Macintosh CD version
+		{
+			"kyra1",
+			"CD",
+			{
+				{ "GEMCUT.PAK", 0, "8ddf09fd6bfafdb27b4cf31c5a6fc91d", -1 },
 				{ "BEAD.CPS", 0, "3038466f65b7751451844707187aa401", -1 },
 				{ NULL, 0, NULL, 0 }
 			},
@@ -511,6 +542,19 @@ const KYRAGameDescription adGameDescs[] = {
 			"Extracted",
 			AD_ENTRY1("FATE.PAK", "e0a70c31b022cb4bb3061890020fc27c"),
 			Common::IT_ITA,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO6(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA)
+		},
+		KYRA2_FLOPPY_FLAGS
+	},
+
+	{ // Floppy version extracted
+		{
+			"kyra2",
+			"Extracted",
+			AD_ENTRY1("FATE.PAK", "7c6c82f9beac616d2f4accf65c448162"),
+			Common::ES_ESP,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
 			GUIO6(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA)
@@ -670,6 +714,20 @@ const KYRAGameDescription adGameDescs[] = {
 			GUIO5(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA)
 		},
 		KYRA2_CD_FAN_FLAGS(Common::RU_RUS, Common::EN_ANY)
+	},
+
+	// Spanish fan translation
+	{ // CD version
+		{
+			"kyra2",
+			"CD",
+			AD_ENTRY1("FATE.PAK", "943f6d7fc9a8f0ed15d0a0b5c1f221b0"),
+			Common::ES_ESP,
+			Common::kPlatformDOS,
+			ADGF_DROPLANGUAGE | ADGF_CD,
+			GUIO5(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA)
+		},
+		KYRA2_CD_FAN_FLAGS(Common::ES_ESP, Common::EN_ANY)
 	},
 
 	{ // Interactive Demo
@@ -1129,7 +1187,7 @@ const KYRAGameDescription adGameDescs[] = {
 		LOL_CD_FLAGS
 	},
 
-	// Russian fan translation
+	// Russian fan translation. Version 1. 03.01.2011
 	{
 		{
 			"lol",
@@ -1140,6 +1198,42 @@ const KYRAGameDescription adGameDescs[] = {
 				{ 0, 0, 0, 0 }
 			},
 			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_DROPLANGUAGE | ADGF_CD,
+			GUIO7(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GAMEOPTION_LOL_SCROLLING, GAMEOPTION_LOL_CURSORS)
+		},
+		LOL_CD_FAN_FLAGS(Common::RU_RUS, Common::DE_DEU)
+	},
+
+	// Russian fan translation. Version 2. 06.07.2014
+	{
+		{
+			"lol",
+			"CD",
+			{
+				{ "GENERAL.PAK", 0, "19354b0f464295c38c801d30588df062", -1 },
+				{ "L01.PAK", 0, "d9b9644b709de55f990d5ef73e0f6d44", -1 },
+				{ 0, 0, 0, 0 }
+			},
+			Common::RU_RUS,
+			Common::kPlatformDOS,
+			ADGF_DROPLANGUAGE | ADGF_CD,
+			GUIO7(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GAMEOPTION_LOL_SCROLLING, GAMEOPTION_LOL_CURSORS)
+		},
+		LOL_CD_FAN_FLAGS(Common::RU_RUS, Common::DE_DEU)
+	},
+
+	// Russian fan translation. Version 24.02.2019
+	{
+		{
+			"lol",
+			"CD",
+			{
+				{ "GENERAL.PAK", 0, "19354b0f464295c38c801d30588df062", -1 },
+				{ "L01.PAK", 0, "8aa1860a3e9f84c6f11118a0181bcfaf", -1 },
+				{ 0, 0, 0, 0 }
+			},
+			Common::RU_RUS,
 			Common::kPlatformDOS,
 			ADGF_DROPLANGUAGE | ADGF_CD,
 			GUIO7(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GAMEOPTION_LOL_SCROLLING, GAMEOPTION_LOL_CURSORS)
@@ -1283,6 +1377,23 @@ const KYRAGameDescription adGameDescs[] = {
 			GUIO7(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GAMEOPTION_LOL_SCROLLING, GAMEOPTION_LOL_CURSORS)
 		},
 		LOL_CD_FAN_FLAGS(Common::IT_ITA, Common::EN_ANY)
+	},
+
+	{
+		{
+			"lol",
+			"CD",
+			{
+				{ "LEVEL01.FRE", 0, "3f5a8856e86b8bc6207becd73426017c", -1 },
+				{ "LEVEL02.FRE", 0, "03cf8239fd4b4ead22e6b771af84b036", -1 },
+				{ 0, 0, 0, 0 }
+			},
+			Common::ES_ESP,
+			Common::kPlatformDOS,
+			ADGF_DROPLANGUAGE | ADGF_CD,
+			GUIO7(GUIO_MIDIADLIB, GUIO_MIDIMT32, GUIO_MIDIGM, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GAMEOPTION_LOL_SCROLLING, GAMEOPTION_LOL_CURSORS)
+		},
+		LOL_CD_FAN_FLAGS(Common::ES_ESP, Common::FR_FRA)
 	},
 
 	{
@@ -1617,7 +1728,7 @@ const KYRAGameDescription adGameDescs[] = {
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO8(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
+			GUIO9(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_MIDIPCJR, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
 		},
 		EOB_FLAGS
 	},
@@ -1633,7 +1744,7 @@ const KYRAGameDescription adGameDescs[] = {
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO8(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
+			GUIO9(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_MIDIPCJR, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
 		},
 		EOB_FLAGS
 	},
@@ -1649,9 +1760,25 @@ const KYRAGameDescription adGameDescs[] = {
 			Common::IT_ITA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
-			GUIO8(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
+			GUIO9(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_MIDIPCJR, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
 		},
 		EOB_FLAGS
+	},
+
+	{	// Spanish version
+		{
+			"eob",
+			0,
+			{
+				{ "EOBDATA3.PAK", 0, "a7800a8ea8251f678530eb952de7b815", -1 },
+				{ 0, 0, 0, 0 }
+			},
+			Common::ES_ESP,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO9(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_MIDIPCJR, GUIO_RENDERVGA, GUIO_RENDEREGA, GUIO_RENDERCGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
+		},
+		EOB_SPANISH_FLAGS
 	},
 
 	{
@@ -1688,6 +1815,22 @@ const KYRAGameDescription adGameDescs[] = {
 
 	{
 		{
+			"eob",
+			0,
+			{
+				{ "BRICK3.BIN", 0, "7fb13157102accf6ddb806d5ad36c833", -1 },
+				{ 0, 0, 0, 0 }
+			},
+			Common::JA_JPN,
+			Common::kPlatformPC98,
+			ADGF_NO_FLAGS,
+			GUIO4(GUIO_NOSPEECH, GUIO_MIDIPC98, GUIO_RENDERPC9801, GAMEOPTION_EOB_HPGRAPHS)
+		},
+		EOB_PC98_FLAGS
+	},
+
+	{
+		{
 			"eob2",
 			0,
 			{
@@ -1711,6 +1854,22 @@ const KYRAGameDescription adGameDescs[] = {
 				{ 0, 0, 0, 0 }
 			},
 			Common::DE_DEU,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO7(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GUIO_RENDEREGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)
+		},
+		EOB2_FLAGS
+	},
+
+	{ // Spanish version
+		{
+			"eob2",
+			0,
+			{
+				{ "LEVEL15.INF", 0, "099c683dc4e66171b19b64ea3e90aa12", -1 },
+				{ 0, 0, 0, 0 }
+			},
+			Common::ES_ESP,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
 			GUIO7(GUIO_NOSPEECH, GUIO_MIDIADLIB, GUIO_MIDIPCSPK, GUIO_RENDERVGA, GUIO_RENDEREGA, GAMEOPTION_EOB_HPGRAPHS, GAMEOPTION_EOB_MOUSESWAP)

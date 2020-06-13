@@ -61,15 +61,15 @@ void AIScriptRajif::ClickedByPlayer() {
 	//return false;
 }
 
-void AIScriptRajif::EnteredScene(int sceneId) {
+void AIScriptRajif::EnteredSet(int setId) {
 	// return false;
 }
 
-void AIScriptRajif::OtherAgentEnteredThisScene(int otherActorId) {
+void AIScriptRajif::OtherAgentEnteredThisSet(int otherActorId) {
 	// return false;
 }
 
-void AIScriptRajif::OtherAgentExitedThisScene(int otherActorId) {
+void AIScriptRajif::OtherAgentExitedThisSet(int otherActorId) {
 	// return false;
 }
 
@@ -97,7 +97,7 @@ bool AIScriptRajif::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 	if (newGoalNumber == 300) {
 		Actor_Put_In_Set(kActorRajif, kSetMA02_MA04);
 		Actor_Set_At_XYZ(kActorRajif, -73.34f, -140.40f, 342.0f, 300);
-		Actor_Change_Animation_Mode(kActorRajif, 0);
+		Actor_Change_Animation_Mode(kActorRajif, kAnimationModeIdle);
 		return true;
 	}
 
@@ -114,13 +114,13 @@ bool AIScriptRajif::UpdateAnimation(int *animation, int *frame) {
 	if (_animationState <= 1) {
 		if (_animationState) {
 			*animation = 751;
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(751)) {
 				_animationFrame = 0;
 			}
 		} else { // bug in original. Both branches are equal
 			*animation = 751;
-			_animationFrame++;
+			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(751)) {
 				_animationFrame = 0;
 			}

@@ -50,13 +50,13 @@
 #include "bladerunner/ui/kia_section_pogo.h"
 #include "bladerunner/ui/kia_section_save.h"
 #include "bladerunner/ui/kia_section_suspects.h"
-#include "bladerunner/ui/kia_shapes.h"
 #include "bladerunner/ui/ui_image_picker.h"
 #include "bladerunner/vqa_player.h"
 #include "bladerunner/subtitles.h"
 
 #include "common/str.h"
 #include "common/keyboard.h"
+#include "common/debug.h"
 
 namespace BladeRunner {
 
@@ -67,7 +67,8 @@ KIA::KIA(BladeRunnerEngine *vm) {
 
 	_script = new KIAScript(_vm);
 	_log = new KIALog(_vm);
-	_shapes = new KIAShapes(_vm);
+	_shapes = new Shapes(_vm);
+	_playerPhotographs = new Shapes(_vm);
 
 	_forceOpen = false;
 	_currentSectionId = kKIASectionNone;
@@ -77,7 +78,6 @@ KIA::KIA(BladeRunnerEngine *vm) {
 	_playerVqaFrame = 0;
 	_playerVisualizerState = 0;
 	_playerPhotographId = -1;
-	_playerPhotograph = nullptr;
 	_playerSliceModelId = -1;
 	_playerSliceModelAngle = 0.0f;
 	_timeLast = _vm->_time->currentSystem();
@@ -93,7 +93,7 @@ KIA::KIA(BladeRunnerEngine *vm) {
 
 	// original imageCount was 22. We add +1 to have a description box for objects in cut content
 	// We don't have separated cases here, for _vm->_cutContent since that causes assertion fault if
-	// loading a "restoed content" save game in a "original game" version
+	// loading a "restored content" save game in a "original game" version
 	_buttons = new UIImagePicker(_vm, 23);
 
 	_crimesSection     = new KIASectionCrimes(_vm, _vm->_playerActor->_clues);
@@ -128,9 +128,9 @@ KIA::~KIA() {
 	delete _diagnosticSection;
 	delete _pogoSection;
 	_playerImage.free();
-	delete _playerPhotograph;
 	delete _buttons;
 	delete _shapes;
+	delete _playerPhotographs;
 	delete _log;
 	delete _script;
 }
@@ -332,9 +332,10 @@ void KIA::tick() {
 		if (_playerSliceModelId != -1) {
 			_vm->_sliceRenderer->drawOnScreen(_playerSliceModelId, 0, 585, 80, _playerSliceModelAngle, 100.0, _vm->_surfaceFront);
 		} else if (_playerPhotographId != -1) {
-			int width  = _playerPhotograph->getWidth();
-			int height  = _playerPhotograph->getHeight();
-			_playerPhotograph->draw(_vm->_surfaceFront, 590 - width / 2, 80 - height / 2);
+			const Shape *playerPhotograph = _playerPhotographs->get(_playerPhotographId);
+			int width  = playerPhotograph->getWidth();
+			int height  = playerPhotograph->getHeight();
+			playerPhotograph->draw(_vm->_surfaceFront, 590 - width / 2, 80 - height / 2);
 		} else if (_playerImage.getPixels() != nullptr) {
 			_vm->_surfaceFront.fillRect(Common::Rect(549, 49, 631, 111), _vm->_surfaceFront.format.RGBToColor(255, 255, 255));
 			_vm->_surfaceFront.copyRectToSurface(_playerImage.getPixels(), _playerImage.pitch, 550, 50, _playerImage.w,  _playerImage.h);
@@ -383,7 +384,6 @@ void KIA::tick() {
 	_vm->_subtitles->tick(_vm->_surfaceFront);
 
 	_vm->blitToScreen(_vm->_surfaceFront);
-	_vm->_system->delayMillis(10);
 
 	_timeLast = timeNow;
 }
@@ -551,10 +551,6 @@ void KIA::playerReset() {
 
 	_playerActorDialogueQueueSize = _playerActorDialogueQueuePosition;
 	_playerSliceModelId = -1;
-	if (_playerPhotographId != -1) {
-		delete _playerPhotograph;
-		_playerPhotograph = nullptr;
-	}
 	_playerPhotographId = -1;
 	_playerImage.free();
 	_playerActorDialogueState = 0;
@@ -583,20 +579,57 @@ void KIA::playSliceModel(int sliceModelId) {
 }
 
 void KIA::playPhotograph(int photographId) {
-	if (_playerPhotographId != -1) {
-		delete _playerPhotograph;
-		_playerPhotograph = nullptr;
-	}
 	if (_playerVqaFrame == 8) {
 		_vm->_audioPlayer->playAud(_vm->_gameInfo->getSfxTrack(kSfxBEEP1), 70, 0, 0, 50, 0);
 	}
 	_playerPhotographId = photographId;
-	_playerPhotograph = new Shape(_vm);
-	_playerPhotograph->open("photos.shp", photographId);
 }
 
 void KIA::playImage(const Graphics::Surface &image) {
 	_playerImage.copyFrom(image);
+	_playerImage.convertToInPlace(screenPixelFormat());
+}
+
+const char *KIA::scrambleSuspectsName(const char *name) {
+	static char buffer[32];
+
+	unsigned char *bufferPtr = (unsigned char *)buffer;
+	const unsigned char *namePtr = (const unsigned char *)name;
+
+	for (int i = 0 ; i < 6; ++i) {
+		if (_vm->_language == Common::RU_RUS && _vm->_russianCP1251) {
+			// Algorithm added by Siberian Studio in R4 patch
+			if (*namePtr >= 0xC0) {
+				unsigned char upper = *namePtr & 0xDF;
+				if (upper < 201) {
+					*bufferPtr++ = upper - 143; /* Map А-И to 1-9 */
+				} else {
+					*bufferPtr++ = upper - 136; /* Map Й-Я to A-W */
+				}
+			} else {
+				*bufferPtr++ = '0';
+			}
+		} else {
+			if (Common::isAlpha(*namePtr)) {
+				char upper = toupper(*namePtr);
+				if ( upper < 'J' ) {
+					*bufferPtr++ = upper - 16; /* Map A-I to 1-9 */
+				} else {
+					*bufferPtr++ = upper - 9;  /* Map J-Z to A-Q */
+				}
+			} else {
+				*bufferPtr++ = '0';
+			}
+		}
+		if (*namePtr) {
+			++namePtr;
+		}
+		if (i == 1) {
+			*bufferPtr++ = '-';
+		}
+	}
+	*bufferPtr = 0;
+	return buffer;
 }
 
 void KIA::mouseDownCallback(int buttonId, void *callbackData) {
@@ -621,7 +654,23 @@ void KIA::mouseDownCallback(int buttonId, void *callbackData) {
 	case 14:
 		self->_vm->_audioPlayer->playAud(self->_vm->_gameInfo->getSfxTrack(kSfxBUTN5P), 70, 0, 0, 50, 0);
 		if (buttonId == 12) {
-			self->_vm->_audioPlayer->playAud(self->_vm->_gameInfo->getSfxTrack(kSfxSHUTDOWN), 70, 0, 0, 50, 0);
+			int endTrackId = self->_vm->_audioPlayer->playAud(self->_vm->_gameInfo->getSfxTrack(kSfxSHUTDOWN), 70, 0, 0, 50, 0);
+
+			self->_vm->_surfaceFront.fillRect(Common::Rect(0, 0, 640, 480), 0);
+			self->_vm->blitToScreen(self->_vm->_surfaceFront);
+
+			if (endTrackId != -1) {
+				// wait until the full clip has played (similar to the original)
+				uint32 timeNow = self->_vm->_time->currentSystem();
+				uint32 waittime = 16;
+				while (self->_vm->_audioPlayer->isActive(endTrackId)) {
+					if (self->_vm->_noDelayMillisFramelimiter) {
+						while (self->_vm->_time->currentSystem() - timeNow < waittime) { }
+					} else {
+						self->_vm->_system->delayMillis(waittime);
+					}
+				}
+			}
 		}
 		break;
 	case 15:
@@ -686,11 +735,12 @@ void KIA::init() {
 		playPrivateAddon();
 	}
 
-	_shapes->load();
+	_shapes->load("kiaopt.shp");
+	_playerPhotographs->load("photos.shp");
+
 	_buttons->activate(nullptr, nullptr, mouseDownCallback, mouseUpCallback, this);
 	_vm->_mouse->setCursor(0);
 	if (_playerVqaPlayer == nullptr) {
-
 		_playerVqaPlayer = new VQAPlayer(_vm, &_vm->_surfaceFront, "kiaover.vqa");
 		_playerVqaPlayer->open();
 		_playerVqaPlayer->setLoop(0, -1, kLoopSetModeJustStart, nullptr, nullptr);
@@ -718,18 +768,13 @@ void KIA::unload() {
 	_buttons->deactivate();
 
 	_shapes->unload();
+	_playerPhotographs->unload();
 
-	if (_mainVqaPlayer) {
-		_mainVqaPlayer->close();
-		delete _mainVqaPlayer;
-		_mainVqaPlayer = nullptr;
-	}
+	delete _mainVqaPlayer;
+	_mainVqaPlayer = nullptr;
 
-	if (_playerVqaPlayer) {
-		_playerVqaPlayer->close();
-		delete _playerVqaPlayer;
-		_playerVqaPlayer = nullptr;
-	}
+	delete _playerVqaPlayer;
+	_playerVqaPlayer = nullptr;
 
 	_vm->closeArchive("MODE.MIX");
 

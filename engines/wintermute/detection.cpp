@@ -25,6 +25,7 @@
 #include "engines/wintermute/game_description.h"
 #include "engines/wintermute/base/base_persistence_manager.h"
 
+#include "common/achievements.h"
 #include "common/config-manager.h"
 #include "common/error.h"
 #include "common/fs.h"
@@ -33,7 +34,9 @@
 
 #include "engines/metaengine.h"
 
+#include "engines/wintermute/achievements_tables.h"
 #include "engines/wintermute/detection_tables.h"
+#include "engines/wintermute/keymapper_tables.h"
 
 namespace Wintermute {
 
@@ -76,7 +79,7 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };
 
-static char s_fallbackGameIdBuf[256];
+static char s_fallbackExtraBuf[256];
 
 static const char *directoryGlobs[] = {
 	"language", // To detect the various languages
@@ -88,16 +91,23 @@ static const char *directoryGlobs[] = {
 class WintermuteMetaEngine : public AdvancedMetaEngine {
 public:
 	WintermuteMetaEngine() : AdvancedMetaEngine(Wintermute::gameDescriptions, sizeof(WMEGameDescription), Wintermute::wintermuteGames, gameGuiOptions) {
-		_singleId = "wintermute";
+		// Use kADFlagUseExtraAsHint to distinguish between SD and HD versions
+		// of J.U.L.I.A. when their datafiles sit in the same directory (e.g. in Steam distribution).
+		_flags = kADFlagUseExtraAsHint;
 		_guiOptions = GUIO3(GUIO_NOMIDI, GAMEOPTION_SHOW_FPS, GAMEOPTION_BILINEAR);
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
-	virtual const char *getName() const {
+
+	const char *getEngineId() const override {
+		return "wintermute";
+	}
+
+	const char *getName() const override {
 		return "Wintermute";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getOriginalCopyright() const override {
 		return "Copyright (C) 2011 Jan Nedoma";
 	}
 
@@ -110,36 +120,44 @@ public:
 		s_fallbackDesc.gameId = "wintermute";
 		s_fallbackDesc.guiOptions = GUIO0();
 
-		if (allFiles.contains("data.dcp")) {
-			Common::String name, caption;
-			if (WintermuteEngine::getGameInfo(fslist, name, caption)) {
-				for (uint32 i = 0; i < name.size(); i++) {
-					// Replace spaces (and other non-alphanumerics) with underscores
-					if (!Common::isAlnum(name[(int32)i])) {
-						name.setChar('_', (uint32)i);
-					}
-				}
-				// Prefix to avoid collisions with actually known games
-				name = "wmeunk-" + name;
-				Common::strlcpy(s_fallbackGameIdBuf, name.c_str(), sizeof(s_fallbackGameIdBuf) - 1);
-				s_fallbackDesc.gameId = s_fallbackGameIdBuf;
-				if (caption != name) {
-					caption += " (unknown version) ";
-					char *offset = s_fallbackGameIdBuf + name.size() + 1;
-					uint32 remainingLength = (sizeof(s_fallbackGameIdBuf) - 1) - (name.size() + 1);
-					Common::strlcpy(offset, caption.c_str(), remainingLength);
-					s_fallbackDesc.extra = offset;
-					s_fallbackDesc.flags |= ADGF_USEEXTRAASTITLE;
-				}
-
-				return ADDetectedGame(&s_fallbackDesc);
-			} // Fall through to return 0;
+		if (!allFiles.contains("data.dcp")) {
+			return ADDetectedGame();
 		}
 
-		return ADDetectedGame();
+		Common::String name, caption;
+		if (!WintermuteEngine::getGameInfo(fslist, name, caption)) {
+			return ADDetectedGame();
+		}
+
+		Common::String extra = caption;
+		if (extra.empty()) {
+			extra = name;
+		}
+
+		if (!extra.empty()) {
+			Common::strlcpy(s_fallbackExtraBuf, extra.c_str(), sizeof(s_fallbackExtraBuf) - 1);
+			s_fallbackDesc.extra = s_fallbackExtraBuf;
+			s_fallbackDesc.flags |= ADGF_USEEXTRAASTITLE;
+			s_fallbackDesc.flags |= ADGF_AUTOGENTARGET;
+		}
+
+		ADDetectedGame game(&s_fallbackDesc);
+
+		for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
+			if (file->isDirectory()) continue;
+			if (!file->getName().hasSuffixIgnoreCase(".dcp")) continue;
+
+			FileProperties tmp;
+			if (getFileProperties(file->getParent(), allFiles, s_fallbackDesc, file->getName(), tmp)) {
+				game.hasUnknownFiles = true;
+				game.matchedFiles[file->getName()] = tmp;
+			}
+		}
+
+		return game;
 	}
 
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override {
 		assert(syst);
 		assert(engine);
 		const WMEGameDescription *gd = (const WMEGameDescription *)desc;
@@ -147,7 +165,7 @@ public:
 		return true;
 	}
 
-	bool hasFeature(MetaEngineFeature f) const {
+	bool hasFeature(MetaEngineFeature f) const override {
 		switch (f) {
 		case MetaEngine::kSupportsListSaves:
 			return true;
@@ -166,7 +184,7 @@ public:
 		}
 	}
 
-	SaveStateList listSaves(const char *target) const {
+	SaveStateList listSaves(const char *target) const override {
 		SaveStateList saves;
 		Wintermute::BasePersistenceManager pm(target, true);
 		for (int i = 0; i < getMaximumSaveSlot(); i++) {
@@ -179,22 +197,62 @@ public:
 		return saves;
 	}
 
-	int getMaximumSaveSlot() const {
+	int getMaximumSaveSlot() const override {
 		return 100;
 	}
 
-	void removeSaveState(const char *target, int slot) const {
+	void removeSaveState(const char *target, int slot) const override {
 		Wintermute::BasePersistenceManager pm(target, true);
 		pm.deleteSaveSlot(slot);
 	}
 
-	virtual SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const {
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override {
 		Wintermute::BasePersistenceManager pm(target, true);
 		SaveStateDescriptor retVal;
 		retVal.setDescription("Invalid savegame");
 		pm.getSaveStateDesc(slot, retVal);
 		return retVal;
 	}
+
+	const Common::AchievementsInfo getAchievementsInfo(const Common::String &target) const override {
+		Common::String gameId = ConfMan.get("gameid", target);
+
+		// HACK: "juliauntold" is a DLC of "juliastars", they share the same achievements list
+		if (gameId == "juliauntold") {
+			gameId = "juliastars";
+		}
+
+		Common::AchievementsPlatform platform = Common::STEAM_ACHIEVEMENTS;
+		if (ConfMan.get("extra", target).contains("GOG")) {
+			platform = Common::GALAXY_ACHIEVEMENTS;
+		}
+
+		// "(gameId, platform) -> result" search
+		Common::AchievementsInfo result;
+		for (const AchievementDescriptionList *i = achievementDescriptionList; i->gameId; i++) {
+			if (i->gameId == gameId && i->platform == platform) {
+				result.platform = i->platform;
+				result.appId = i->appId;
+				for (const Common::AchievementDescription *it = i->descriptions; it->id; it++) {
+					result.descriptions.push_back(*it);
+				}
+				break;
+			}
+		}
+		return result;
+	}
+	
+	Common::KeymapArray initKeymaps(const char *target) const override {
+		Common::String gameId = ConfMan.get("gameid", target);
+		const char *gameDescr = "Unknown WME game";
+		for (const PlainGameDescriptor *it = Wintermute::wintermuteGames; it->gameId ; it++ ) {
+			if (gameId == it->gameId) {
+				gameDescr = it->description;
+			}
+		}
+		return getWintermuteKeymaps(target, gameId, gameDescr);
+	}
+
 };
 
 } // End of namespace Wintermute

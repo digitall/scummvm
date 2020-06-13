@@ -26,6 +26,7 @@
 #include "base/plugins.h"
 
 #include "testbed/testbed.h"
+#include "testbed/testsuite.h"
 
 static const PlainGameDescriptor testbed_setting[] = {
 	{ "testbed", "Testbed: The Backend Testing Framework" },
@@ -40,7 +41,7 @@ static const ADGameDescription testbedDescriptions[] = {
 		Common::EN_ANY,
 		Common::kPlatformDOS,
 		ADGF_NO_FLAGS,
-		GUIO0()
+		GUIO1(GUIO_NOLAUNCHLOAD)
 	},
 	AD_TABLE_END_MARKER
 };
@@ -49,23 +50,47 @@ class TestbedMetaEngine : public AdvancedMetaEngine {
 public:
 	TestbedMetaEngine() : AdvancedMetaEngine(testbedDescriptions, sizeof(ADGameDescription), testbed_setting) {
 		_md5Bytes = 512;
-		_singleId = "testbed";
 	}
 
-	virtual const char *getName() const {
+	const char *getEngineId() const override {
+		return "testbed";
+	}
+
+	const char *getName() const override {
 		return "TestBed: The Backend Testing Framework";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getOriginalCopyright() const override {
 		return "Copyright (C) ScummVM";
 	}
 
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription * /* desc */) const {
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription * /* desc */) const override {
 		// Instantiate Engine even if the game data is not found.
 		*engine = new Testbed::TestbedEngine(syst);
 		return true;
 	}
 
+	const Common::AchievementsInfo getAchievementsInfo(const Common::String &target) const override {
+		Common::AchievementsInfo result;
+		result.platform = Common::UNK_ACHIEVEMENTS;
+		result.appId = "testbed";
+		Common::AchievementDescription final = {"EVERYTHINGWORKS", true, "Everything works!", "Completed all available testsuites"};
+		result.descriptions.push_back(final);
+
+		Common::Array<Testbed::Testsuite *> testsuiteList;
+		Testbed::TestbedEngine::pushTestsuites(testsuiteList);
+		for (Common::Array<Testbed::Testsuite *>::const_iterator i = testsuiteList.begin(); i != testsuiteList.end(); ++i) {
+			Common::AchievementDescription it = {(*i)->getName(), false, (*i)->getDescription(), 0};
+			result.descriptions.push_back(it);
+			delete (*i);
+		}
+
+		return result;
+	}
+	
+	bool hasFeature(MetaEngineFeature f) const override {
+		return false;
+	}
 };
 
 #if PLUGIN_ENABLED_DYNAMIC(TESTBED)

@@ -50,11 +50,17 @@ public:
 	OptionsDialog();
 	~OptionsDialog();
 
-protected:
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
-	void updateConfigManager();
+	// GuiObject API
+	void reflowLayout() override;
 
-	GUI::SliderWidget *_sensitivity;
+	bool getShowCursor() const;
+	bool getSnapToBorder() const;
+	bool getStretchToFit() const;
+	int getSensitivity() const;
+	int getScreen() const;
+protected:
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+
 	GUI::CheckboxWidget *_showCursorCheckbox;
 	GUI::CheckboxWidget *_snapToBorderCheckbox;
 	GUI::CheckboxWidget *_stretchToFitCheckbox;

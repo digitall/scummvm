@@ -20,8 +20,6 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_exit
-
 #include "backends/modular-backend.h"
 
 #include "backends/graphics/graphics.h"
@@ -29,6 +27,7 @@
 #include "gui/EventRecorder.h"
 
 #include "audio/mixer.h"
+#include "common/timer.h"
 #include "graphics/pixelformat.h"
 
 ModularBackend::ModularBackend()
@@ -44,6 +43,9 @@ ModularBackend::~ModularBackend() {
 	_graphicsManager = 0;
 	delete _mixer;
 	_mixer = 0;
+	// _timerManager needs to be deleted before _mutexManager to avoid a crash.
+	delete _timerManager;
+	_timerManager = 0;
 	delete _mutexManager;
 	_mutexManager = 0;
 }
@@ -83,6 +85,10 @@ int ModularBackend::getGraphicsMode() const {
 
 const OSystem::GraphicsMode *ModularBackend::getSupportedShaders() const {
 	return _graphicsManager->getSupportedShaders();
+}
+
+int ModularBackend::getDefaultShader() const {
+	return _graphicsManager->getDefaultShader();
 }
 
 bool ModularBackend::setShader(int id) {
@@ -185,8 +191,8 @@ void ModularBackend::updateScreen() {
 #endif
 }
 
-void ModularBackend::setShakePos(int shakeOffset) {
-	_graphicsManager->setShakePos(shakeOffset);
+void ModularBackend::setShakePos(int shakeXOffset, int shakeYOffset) {
+	_graphicsManager->setShakePos(shakeXOffset, shakeYOffset);
 }
 void ModularBackend::setFocusRectangle(const Common::Rect& rect) {
 	_graphicsManager->setFocusRectangle(rect);
@@ -276,8 +282,4 @@ void ModularBackend::displayMessageOnOSD(const char *msg) {
 
 void ModularBackend::displayActivityIconOnOSD(const Graphics::Surface *icon) {
 	_graphicsManager->displayActivityIconOnOSD(icon);
-}
-
-void ModularBackend::quit() {
-	exit(0);
 }

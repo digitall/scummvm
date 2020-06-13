@@ -38,7 +38,7 @@ public:
 
 	void deserialize(Archive &archive) override;
 
-	void toConsole() override;
+	void toConsole() const override;
 
 	void update() override;
 
@@ -58,7 +58,7 @@ class ActionSfx : public Object {
 public:
 	void deserialize(Archive &archive) override;
 
-	void toConsole() override;
+	void toConsole() const override;
 
 	void play();
 	void end();
@@ -69,7 +69,7 @@ private:
 	ActionPlayWithSfx *_sprite;
 	Common::String _sfxName;
 	Sound _sound;
-	int32 _volume;
+	byte _volume;
 	int32 _frame;
 };
 

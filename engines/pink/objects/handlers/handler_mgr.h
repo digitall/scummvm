@@ -39,22 +39,20 @@ class Actor;
 
 class HandlerMgr : public Object {
 public:
-	virtual ~HandlerMgr();
-	virtual void deserialize(Archive &archive);
+	~HandlerMgr() override;
+	void deserialize(Archive &archive) override;
 
-	virtual void toConsole();
+	void toConsole() const override;
 
-	bool isLeftClickHandler(Actor *actor);
-	bool isUseClickHandler(Actor *actor, const Common::String &itemName);
+	HandlerUseClick *findSuitableHandlerUseClick(const Actor *actor, const Common::String &itemName) const;
+	HandlerLeftClick *findSuitableHandlerLeftClick(const Actor *actor) const;
 
 	void onTimerMessage(Actor *actor);
 	void onLeftClickMessage(Actor *actor);
 	void onUseClickMessage(Actor *actor, InventoryItem *item, InventoryMgr *mgr);
 
 private:
-	Handler *findSuitableHandlerTimer(Actor *actor);
-	HandlerLeftClick *findSuitableHandlerLeftClick(Actor *actor);
-	HandlerUseClick *findSuitableHandlerUseClick(Actor *actor, InventoryItem *item);
+	Handler *findSuitableHandlerTimer(const Actor *actor);
 
 	Array<HandlerLeftClick *> _leftClickHandlers;
 	Array<HandlerUseClick *> _useClickHandlers;

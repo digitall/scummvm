@@ -60,8 +60,8 @@ void insertPrioQueue(TimerSlot *head, TimerSlot *newSlot) {
 	}
 }
 
-
 DefaultTimerManager::DefaultTimerManager() :
+	_timerCallbackNext(0),
 	_head(0) {
 
 	_head = new TimerSlot();
@@ -83,6 +83,10 @@ void DefaultTimerManager::handler() {
 	Common::StackLock lock(_mutex);
 
 	uint32 curTime = g_system->getMillis(true);
+
+	// On slow systems this could still be run after destructor
+	if (!_head)
+		return;
 
 	// Repeat as long as there is a TimerSlot that is scheduled to fire.
 	TimerSlot *slot = _head->next;
@@ -110,6 +114,16 @@ void DefaultTimerManager::handler() {
 	}
 }
 
+void DefaultTimerManager::checkTimers(uint32 interval) {
+	uint32 curTime = g_system->getMillis();
+
+	// Timer checking & firing
+	if (curTime >= _timerCallbackNext) {
+		handler();
+		_timerCallbackNext = curTime + interval;
+	}
+}
+
 bool DefaultTimerManager::installTimerProc(TimerProc callback, int32 interval, void *refCon, const Common::String &id, bool allowDuplicate) {
 	assert(interval > 0);
 	Common::StackLock lock(_mutex);
@@ -119,16 +133,16 @@ bool DefaultTimerManager::installTimerProc(TimerProc callback, int32 interval, v
 			error("Different callbacks are referred by same name (%s)", id.c_str());
 		}
 	}
-
 	// Check for duplicated callbacks
 	if (!allowDuplicate) {
-		for (TimerSlotMap::const_iterator i = _callbacks.begin(); i != _callbacks.end(); ++i) {
+		TimerSlotMap::const_iterator i;
+
+		for (i = _callbacks.begin(); i != _callbacks.end(); ++i) {
 			if (i->_value == callback) {
-				error("Same callback is referred by different names (%s vs %s)", i->_key.c_str(), id.c_str());
+				error("Same callback added twice (old name: %s, new name: %s)", i->_key.c_str(), id.c_str());
 			}
 		}
 	}
-
 	_callbacks[id] = callback;
 
 	TimerSlot *slot = new TimerSlot;
@@ -166,7 +180,7 @@ void DefaultTimerManager::removeTimerProc(TimerProc callback) {
 	// callbacks.
 	//
 	// Another issues occurs when one plays a game with ALSA as music driver,
-	// does RTL and starts a different engine game with ALSA as music driver.
+	// returns to launcher and starts a different engine game with ALSA as music driver.
 	// In this case the MPU401 code will add different timer procs with the
 	// same name, resulting in two different callbacks added with the same
 	// name and causing installTimerProc to error out.

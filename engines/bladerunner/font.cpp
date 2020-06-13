@@ -60,7 +60,7 @@ Font* Font::load(BladeRunnerEngine *vm, const Common::String &fileName, int spac
 	}
 
 	font->_characters.resize(font->_characterCount);
-	for (uint32 i = 0; i < font->_characterCount; i++) {
+	for (uint32 i = 0; i < font->_characterCount; ++i) {
 		font->_characters[i].x = stream->readUint32LE();
 		font->_characters[i].y = stream->readUint32LE();
 		font->_characters[i].width = stream->readUint32LE();
@@ -68,7 +68,7 @@ Font* Font::load(BladeRunnerEngine *vm, const Common::String &fileName, int spac
 		font->_characters[i].dataOffset = stream->readUint32LE();
 	}
 
-	for (int i = 0; i < font->_dataSize; i++) {
+	for (int i = 0; i < font->_dataSize; ++i) {
 		font->_data[i] = stream->readUint16LE();
 	}
 
@@ -92,7 +92,6 @@ void Font::reset() {
 	_screenHeight = 0;
 	_spacing = 0;
 	_useFontColor = false;
-	_intersperse = 0;
 
 	_characters.clear();
 }
@@ -118,13 +117,9 @@ void Font::drawChar(Graphics::Surface *dst, uint32 chr, int x, int y, uint32 col
 		return;
 	}
 
-	uint16 *dstPtr = (uint16 *)dst->getBasePtr(CLIP(x + _characters[characterIndex].x, 0, dst->w - 1), CLIP(y + _characters[characterIndex].y, 0, dst->h - 1));
 	uint16 *srcPtr = &_data[_characters[characterIndex].dataOffset];
 	int width = _characters[characterIndex].width;
 	int height = _characters[characterIndex].height;
-	if (_intersperse && y & 1) {
-		dstPtr += dst->pitch / 2;
-	}
 
 	int endY = height + y - 1;
 	int currentY = y;
@@ -145,26 +140,20 @@ void Font::drawChar(Graphics::Surface *dst, uint32 chr, int x, int y, uint32 col
 		int endX = width + x - 1;
 		while (currentX <= endX && currentX < dst->w) {
 			uint8 a, r, g, b;
-			gameDataPixelFormat().colorToARGB(*srcPtr, a, r, g, b);
+			getGameDataColor(*srcPtr, a, r, g, b);
 			if (!a) { // Alpha is inversed
+				uint32 outColor = color;
 				if (_useFontColor) {
 					// Ignore the alpha in the output as it is inversed in the input
-					*dstPtr = dst->format.RGBToColor(r, g, b);
-				} else {
-					*dstPtr = (uint16)color;
+					outColor = dst->format.RGBToColor(r, g, b);
 				}
+				void *dstPtr = dst->getBasePtr(CLIP(currentX + _characters[characterIndex].x, 0, dst->w - 1), CLIP(currentY + _characters[characterIndex].y, 0, dst->h - 1));
+				drawPixel(*dst, dstPtr, outColor);
 			}
-			dstPtr++;
-			srcPtr++;
-			currentX++;
+			++srcPtr;
+			++currentX;
 		}
-		dstPtr += dst->pitch / 2 - width;
-		if (_intersperse) {
-			srcPtr += width;
-			dstPtr += dst->pitch / 2;
-			currentY++;
-		}
-		currentY++;
+		++currentY;
 	}
 }
 

@@ -59,25 +59,23 @@ public:
 	};
 
 	MidiPlayer_Fb01(SciVersion version);
-	virtual ~MidiPlayer_Fb01();
+	~MidiPlayer_Fb01() override;
 
-	int open(ResourceManager *resMan);
-	void close();
-	void initTrack(SciSpan<const byte>& header);
-	void send(uint32 b);
-	void sysEx(const byte *msg, uint16 length);
-	bool hasRhythmChannel() const { return false; }
-	byte getPlayId() const;
-	int getPolyphony() const { return _version <= SCI_VERSION_0_LATE ? 8 : 9; }
-	void setVolume(byte volume);
-	int getVolume();
-	void playSwitch(bool play);
+	int open(ResourceManager *resMan) override;
+	void close() override;
+	void initTrack(SciSpan<const byte>& header) override;
+	void send(uint32 b) override;
+	void sysEx(const byte *msg, uint16 length) override;
+	bool hasRhythmChannel() const override { return false; }
+	byte getPlayId() const override;
+	int getPolyphony() const override { return _version <= SCI_VERSION_0_LATE ? 8 : 9; }
+	void setVolume(byte volume) override;
+	int getVolume() override;
+	void playSwitch(bool play) override;
 
 	bool isOpen() const { return _isOpen; }
-	void lockMutex() { _mutex.lock(); }
-	void unlockMutex() { _mutex.unlock(); }
 
-	const char *reportMissingFiles() { return _missingFiles; }
+	const char *reportMissingFiles() override { return _missingFiles; }
 
 private:
 	void noteOn(int channel, int note, int velocity);
@@ -133,7 +131,6 @@ private:
 	int _numParts;
 
 	bool _isOpen;
-	Common::Mutex _mutex;
 
 	Channel _channels[16];
 	Voice _voices[kVoices];
@@ -141,7 +138,7 @@ private:
 	Common::TimerManager::TimerProc _timerProc;
 	void *_timerParam;
 	static void midiTimerCallback(void *p);
-	void setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc);
+	void setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) override;
 
 	const char *_missingFiles;
 	static const char _requiredFiles[2][12];
@@ -161,7 +158,6 @@ MidiPlayer_Fb01::MidiPlayer_Fb01(SciVersion version) : MidiPlayer(version), _pla
 MidiPlayer_Fb01::~MidiPlayer_Fb01() {
 	if (_driver)
 		_driver->setTimerCallback(NULL, NULL);
-	Common::StackLock lock(_mutex);
 	close();
 	delete _driver;
 }
@@ -510,8 +506,6 @@ void MidiPlayer_Fb01::midiTimerCallback(void *p) {
 
 	MidiPlayer_Fb01 *m = (MidiPlayer_Fb01 *)p;
 
-	m->lockMutex();
-
 	if (!m->isOpen())
 		return;
 
@@ -523,12 +517,9 @@ void MidiPlayer_Fb01::midiTimerCallback(void *p) {
 
 	if (m->_timerProc)
 		m->_timerProc(m->_timerParam);
-
-	m->unlockMutex();
 }
 
 void MidiPlayer_Fb01::setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) {
-	Common::StackLock lock(_mutex);
 	_driver->setTimerCallback(NULL, NULL);
 
 	_timerParam = timer_param;
@@ -640,7 +631,6 @@ int MidiPlayer_Fb01::open(ResourceManager *resMan) {
 void MidiPlayer_Fb01::close() {
 	if (_driver)
 		_driver->setTimerCallback(NULL, NULL);
-	Common::StackLock lock(_mutex);
 	_isOpen = false;
 	if (_driver)
 		_driver->close();

@@ -31,6 +31,7 @@
 #include "DCLauncherDialog.h"
 #include <common/config-manager.h>
 #include <common/memstream.h>
+#include <common/endian.h>
 
 #include "audio/mixer_intern.h"
 
@@ -42,7 +43,7 @@ const char *gGameName;
 OSystem_Dreamcast::OSystem_Dreamcast()
   : _devpoll(0), screen(NULL), mouse(NULL), overlay(NULL), _softkbd(this),
     _ms_buf(NULL), _mixer(NULL),
-    _current_shake_pos(0), _aspect_stretch(false), _softkbd_on(false),
+    _current_shake_x_pos(0), _current_shake_y_pos(0), _aspect_stretch(false), _softkbd_on(false),
     _softkbd_motion(0), _enable_cursor_palette(false), _screenFormat(0)
 {
   memset(screen_tx, 0, sizeof(screen_tx));
@@ -58,7 +59,7 @@ void OSystem_Dreamcast::initBackend()
   _timerManager = new DefaultTimerManager();
 
   uint sampleRate = initSound();
-  _mixer = new Audio::MixerImpl(this, sampleRate);
+  _mixer = new Audio::MixerImpl(sampleRate);
   _mixer->setReady(true);
 
   _audiocdManager = new DCCDManager();
@@ -90,8 +91,11 @@ static bool find_track(int track, int &first_sec, int &last_sec)
   return false;
 }
 
-bool DCCDManager::play(int track, int numLoops, int startFrame, int duration, bool onlyEmulate) {
-	DefaultAudioCDManager::play(track, numLoops, startFrame, duration, onlyEmulate);
+bool DCCDManager::play(int track, int numLoops, int startFrame, int duration, bool onlyEmulate,
+		Audio::Mixer::SoundType soundType) {
+	// Prefer emulation
+	if (DefaultAudioCDManager::play(track, numLoops, startFrame, duration, onlyEmulate, soundType))
+		return true;
 
 	// If we're playing now return here
 	if (isPlaying()) {
@@ -295,8 +299,8 @@ namespace DC_Flash {
       if(!(bm[(b>>3)&63] & (0x80>>(b&7)))) {
 	if((r = syscall_read_flash(info[0] + ((b+1) << 6), buf, 64))<0)
 	  return r;
-	else if((s=*(unsigned short *)(buf+0)) == sec &&
-		flash_crc(buf, 62) == *(unsigned short *)(buf+62)) {
+	else if((s=READ_LE_UINT16(buf+0)) == sec &&
+		flash_crc(buf, 62) == READ_LE_UINT16(buf+62)) {
 	  memcpy(dst+(s-sec)*60, buf+2, 60);
 	  got=1;
 	}
@@ -365,28 +369,31 @@ int main()
 
 int DCLauncherDialog::runModal()
 {
-  char *base = NULL, *dir = NULL;
+  char *engineId = NULL, *gameId = NULL, *dir = NULL;
   Common::Language language = Common::UNK_LANG;
   Common::Platform platform = Common::kPlatformUnknown;
 
-  if (!selectGame(base, dir, language, platform, icon))
+  if (!selectGame(engineId, gameId, dir, language, platform, icon))
     g_system->quit();
 
   // Set the game path.
-  ConfMan.addGameDomain(base);
+  ConfMan.addGameDomain(gameId);
+  ConfMan.set("engineid", engineId, gameId);
+  ConfMan.set("gameid", gameId, gameId);
+
   if (dir != NULL)
-    ConfMan.set("path", dir, base);
+    ConfMan.set("path", dir, gameId);
 
   // Set the game language.
   if (language != Common::UNK_LANG)
-    ConfMan.set("language", Common::getLanguageCode(language), base);
+    ConfMan.set("language", Common::getLanguageCode(language), gameId);
 
   // Set the game platform.
   if (platform != Common::kPlatformUnknown)
-    ConfMan.set("platform", Common::getPlatformCode(platform), base);
+    ConfMan.set("platform", Common::getPlatformCode(platform), gameId);
 
   // Set the target.
-  ConfMan.setActiveDomain(base);
+  ConfMan.setActiveDomain(gameId);
 
   return 0;
 }

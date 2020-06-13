@@ -32,6 +32,10 @@
 
 namespace Xeen {
 
+enum {
+	kAutoSaveSlot = 0
+};
+
 struct XeenSavegameHeader {
 	uint8 _version;
 	Common::String _saveName;
@@ -45,12 +49,6 @@ class SavesManager {
 private:
 	Common::String _targetName;
 private:
-	/**
-	 * Support method that generates a savegame name
-	 * @param slot		Slot number
-	 */
-	Common::String generateSaveName(int slot);
-
 	/**
 	 * Initializes a new savegame
 	 */
@@ -80,7 +78,12 @@ public:
 	/**
 	 * Save the game
 	 */
-	Common::Error saveGameState(int slot, const Common::String &desc);
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false);
+
+	/**
+	 * Does an autosave
+	 */
+	void doAutosave();
 
 	/**
 	 * Sets up a new game

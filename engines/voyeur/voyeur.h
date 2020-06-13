@@ -157,8 +157,8 @@ private:
 	void centerMansionView();
 protected:
 	// Engine APIs
-	virtual Common::Error run();
-	virtual bool hasFeature(EngineFeature f) const;
+	Common::Error run() override;
+	bool hasFeature(EngineFeature f) const override;
 public:
 	BoltFile *_bVoy;
 	Debugger *_debugger;
@@ -195,7 +195,7 @@ public:
 	int _loadGameSlot;
 public:
 	VoyeurEngine(OSystem *syst, const VoyeurGameDescription *gameDesc);
-	virtual ~VoyeurEngine();
+	~VoyeurEngine() override;
 	void GUIError(const Common::String &msg);
 
 	uint32 getFeatures() const;
@@ -205,11 +205,10 @@ public:
 	bool getIsDemo() const;
 
 	int getRandomNumber(int maxNumber);
-	Common::String generateSaveName(int slotNumber);
-	virtual bool canLoadGameStateCurrently();
-	virtual bool canSaveGameStateCurrently();
-	virtual Common::Error loadGameState(int slot);
-	virtual Common::Error saveGameState(int slot, const Common::String &desc);
+	bool canLoadGameStateCurrently() override;
+	bool canSaveGameStateCurrently() override;
+	Common::Error loadGameState(int slot) override;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	void loadGame(int slot);
 
 	void playRL2Video(const Common::String &filename);
@@ -232,10 +231,6 @@ public:
 	 */
 	void playAudio(int audioId);
 
-	/**
-	 * Saves the last time the game was played
-	 */
-	void saveLastInplay();
 	void makeViewFinder();
 	void makeViewFinderP();
 	void initIFace();
@@ -296,7 +291,7 @@ public:
 	void showEndingNews();
 };
 
-#define VOYEUR_SAVEGAME_VERSION 2
+#define VOYEUR_SAVEGAME_VERSION 3
 
 /**
  * Header for Voyeur savegame files

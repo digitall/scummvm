@@ -111,7 +111,13 @@ bool SaveFileManager::readHeader(Common::SeekableReadStream &in, SaveFileHeader 
 		return false;
 	}
 
-	header._name = s.readStringSz(kNameLength);
+	if (header._version < 3) {
+		// this includes versions 0 and 1 here (even though they are non-existent)
+		header._name = s.readStringSz(kNameLengthV2);
+	} else {
+		// Version 3
+		header._name = s.readStringSz(kNameLength);
+	}
 
 	header._year   = s.readUint16LE();
 	header._month  = s.readUint16LE();
@@ -146,11 +152,13 @@ bool SaveFileManager::readHeader(Common::SeekableReadStream &in, SaveFileHeader 
 
 		s.skip(4); //skip size;
 
-		void *thumbnailData = malloc(kThumbnailSize); // freed by ScummVM's smartptr
-		s.read(thumbnailData, kThumbnailSize);
+		uint16 *thumbnailData = (uint16*)malloc(kThumbnailSize); // freed by ScummVM's smartptr
+		for (uint i = 0; i < kThumbnailSize / 2; ++i) {
+			thumbnailData[i] = s.readUint16LE();
+		}
 
 		header._thumbnail->init(80, 60, 160, thumbnailData, gameDataPixelFormat());
-		header._thumbnail->convertToInPlace(screenPixelFormat());
+
 		s.seek(pos);
 	}
 

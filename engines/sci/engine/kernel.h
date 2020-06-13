@@ -250,7 +250,7 @@ private:
 	/**
 	 * Maps kernel functions.
 	 */
-	void mapFunctions();
+	void mapFunctions(GameFeatures *features);
 
 	ResourceManager *_resMan;
 	SegManager *_segMan;
@@ -448,7 +448,7 @@ reg_t kRobotShowFrame(EngineState *s, int argc, reg_t *argv);
 reg_t kRobotGetFrameSize(EngineState *s, int argc, reg_t *argv);
 reg_t kRobotPlay(EngineState *s, int argc, reg_t *argv);
 reg_t kRobotGetIsFinished(EngineState *s, int argc, reg_t *argv);
-reg_t kRobotGetIsPlaying(EngineState *s, int argc, reg_t *argv);
+reg_t kRobotGetIsInitialized(EngineState *s, int argc, reg_t *argv);
 reg_t kRobotClose(EngineState *s, int argc, reg_t *argv);
 reg_t kRobotGetCue(EngineState *s, int argc, reg_t *argv);
 reg_t kRobotPause(EngineState *s, int argc, reg_t *argv);
@@ -463,6 +463,10 @@ reg_t kPlayVMDIgnorePalettes(EngineState *s, int argc, reg_t *argv);
 reg_t kPlayVMDGetStatus(EngineState *s, int argc, reg_t *argv);
 reg_t kPlayVMDPlayUntilEvent(EngineState *s, int argc, reg_t *argv);
 reg_t kPlayVMDShowCursor(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDStartBlob(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDStopBlobs(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDAddBlob(EngineState *s, int argc, reg_t *argv);
+reg_t kPlayVMDDeleteBlob(EngineState *s, int argc, reg_t *argv);
 reg_t kPlayVMDSetBlackoutArea(EngineState *s, int argc, reg_t *argv);
 reg_t kPlayVMDRestrictPalette(EngineState *s, int argc, reg_t *argv);
 reg_t kPlayVMDSetPlane(EngineState *s, int argc, reg_t *argv);
@@ -581,6 +585,7 @@ reg_t kListAllTrue(EngineState *s, int argc, reg_t *argv);
 reg_t kListSort(EngineState *s, int argc, reg_t *argv);
 
 reg_t kEditText(EngineState *s, int argc, reg_t *argv);
+reg_t kInputText(EngineState *s, int argc, reg_t *argv);
 reg_t kSetScroll(EngineState *s, int argc, reg_t *argv);
 
 reg_t kPaletteSetFromResource32(EngineState *s, int argc, reg_t *argv);
@@ -644,10 +649,8 @@ reg_t kDeleteLine(EngineState *s, int argc, reg_t *argv);
 
 reg_t kWinDLL(EngineState *s, int argc, reg_t *argv);
 
-#ifdef ENABLE_SCI32_MAC
-// Phantasmagoria Mac Special Kernel Function
-reg_t kDoSoundPhantasmagoriaMac(EngineState *s, int argc, reg_t *argv);
-#endif
+// SCI 2.1 Middle Mac modified kDoSound
+reg_t kDoSoundMac32(EngineState *s, int argc, reg_t *argv);
 
 // SCI3 Kernel functions
 reg_t kPlayDuck(EngineState *s, int argc, reg_t *argv);
@@ -723,6 +726,7 @@ reg_t kFileIOFindFirst(EngineState *s, int argc, reg_t *argv);
 reg_t kFileIOFindNext(EngineState *s, int argc, reg_t *argv);
 reg_t kFileIOExists(EngineState *s, int argc, reg_t *argv);
 reg_t kFileIORename(EngineState *s, int argc, reg_t *argv);
+reg_t kFileIOCopy(EngineState *s, int argc, reg_t *argv);
 #ifdef ENABLE_SCI32
 reg_t kFileIOReadByte(EngineState *s, int argc, reg_t *argv);
 reg_t kFileIOWriteByte(EngineState *s, int argc, reg_t *argv);

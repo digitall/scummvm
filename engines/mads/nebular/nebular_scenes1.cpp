@@ -21,6 +21,7 @@
  */
 
 #include "common/scummsys.h"
+#include "common/math.h"
 #include "mads/mads.h"
 #include "mads/scene.h"
 #include "mads/nebular/nebular_scenes.h"
@@ -1375,14 +1376,14 @@ void Scene103::step() {
 
 	case 72: {
 		Common::Point pt = _vm->_game->_player._playerPos;
-		int dist = _vm->hypotenuse(pt.x - 58, pt.y - 93);
+		int dist = Common::hypotenuse(pt.x - 58, pt.y - 93);
 		_vm->_sound->command(27, (dist * -128 / 378) + 127);
 		}
 		break;
 
 	case 73: {
 		Common::Point pt = _vm->_game->_player._playerPos;
-		int dist = _vm->hypotenuse(pt.x - 266, pt.y - 81);
+		int dist = Common::hypotenuse(pt.x - 266, pt.y - 81);
 		_vm->_sound->command(27, (dist * -127 / 378) + 127);
 		}
 		break;
@@ -1393,15 +1394,15 @@ void Scene103::step() {
 
 	if (_scene->_frameStartTime >= _updateClock) {
 		Common::Point pt = _vm->_game->_player._playerPos;
-		int dist = _vm->hypotenuse(pt.x - 79, pt.y - 137);
+		int dist = Common::hypotenuse(pt.x - 79, pt.y - 137);
 		_vm->_sound->command(29, (dist * -127 / 378) + 127);
 
 		pt = _vm->_game->_player._playerPos;
-		dist = _vm->hypotenuse(pt.x - 69, pt.y - 80);
+		dist = Common::hypotenuse(pt.x - 69, pt.y - 80);
 		_vm->_sound->command(30, (dist * -127 / 378) + 127);
 
 		pt = _vm->_game->_player._playerPos;
-		dist = _vm->hypotenuse(pt.x - 266, pt.y - 138);
+		dist = Common::hypotenuse(pt.x - 266, pt.y - 138);
 		_vm->_sound->command(32, (dist * -127 / 378) + 127);
 
 		_updateClock = _scene->_frameStartTime + _vm->_game->_player._ticksAmount;
@@ -2534,6 +2535,9 @@ void Scene109::step() {
 			case 71:
 				_scene->_reloadSceneFlag = true;
 				break;
+
+			default:
+				break;
 			}
 		}
 	}
@@ -2640,6 +2644,9 @@ void Scene109::actions() {
 							_hoovicDifficultFl = (_game._difficulty == DIFFICULTY_HARD);
 							_globals._spriteIndexes[8] = _scene->_sprites.addSprites(formAnimName('H', (_hoovicDifficultFl ? 3 : 1)));
 							break;
+
+						default:
+							break;
 						}
 
 						_vm->_palette->refreshSceneColors();
@@ -2669,6 +2676,8 @@ void Scene109::actions() {
 							_globals._sequenceIndexes[2] = _scene->_sequences.addSpriteCycle(_globals._spriteIndexes[2], false, 4, 1, 0, 0);
 							_scene->_sequences.addSubEntry(_globals._sequenceIndexes[2], SEQUENCE_TRIGGER_SPRITE, 2, 2);
 							_hoovicTrigger = 3;
+							break;
+						default:
 							break;
 						}
 						break;
@@ -2774,6 +2783,9 @@ void Scene109::actions() {
 					case 8:
 						_globals._sequenceIndexes[3] = _scene->_sequences.addSpriteCycle(_globals._spriteIndexes[3], false, 7, 1, 0, 0);
 						_scene->_sequences.setAnimRange(_globals._sequenceIndexes[3], 5, 16);
+						break;
+
+					default:
 						break;
 					}
 					_action._inProgress = false;
@@ -2927,6 +2939,8 @@ void Scene110::actions() {
 			_game._player._visible = true;
 			_game._player._stepEnabled = true;
 			_scene->_nextSceneId = 111;
+			break;
+		default:
 			break;
 		}
 	} else if ((_action._lookFlag) || _action.isAction(VERB_LOOK, NOUN_CAVE))
@@ -3089,6 +3103,9 @@ void Scene111::actions() {
 
 		case 1:
 			_scene->_nextSceneId = 110;
+			break;
+
+		default:
 			break;
 		}
 	} else if (_action.isAction(VERB_LOOK, NOUN_CAVE_FLOOR))

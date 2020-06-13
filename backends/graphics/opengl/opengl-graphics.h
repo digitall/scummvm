@@ -68,8 +68,6 @@ public:
 	virtual bool setGraphicsMode(int mode) override;
 	virtual int getGraphicsMode() const override;
 
-	virtual void resetGraphicsScale() override {}
-
 #ifdef USE_RGB_COLOR
 	virtual Graphics::PixelFormat getScreenFormat() const override;
 	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
@@ -309,7 +307,7 @@ protected:
 
 	virtual bool gameNeedsAspectRatioCorrection() const override;
 	virtual void recalculateDisplayAreas() override;
-	virtual void handleResizeImpl(const int width, const int height) override;
+	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) override;
 
 	/**
 	 * The default pixel format of the backend.

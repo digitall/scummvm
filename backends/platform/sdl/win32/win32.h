@@ -49,11 +49,13 @@ protected:
 	virtual Common::String getDefaultConfigFileName();
 	virtual Common::String getDefaultLogFileName();
 
-	// Override createAudioCDManager() to get our Mac-specific
+	// Override createAudioCDManager() to get our Windows-specific
 	// version.
 	virtual AudioCDManager *createAudioCDManager();
 	
 	HWND getHwnd() { return ((SdlWindow_Win32*)_window)->getHwnd(); }
+
+	virtual char *convertEncoding(const char *to, const char *from, const char *string, size_t length);
 };
 
 #endif

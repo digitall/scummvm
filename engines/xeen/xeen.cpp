@@ -70,7 +70,7 @@ XeenEngine::XeenEngine(OSystem *syst, const XeenGameDescription *gameDesc)
 
 XeenEngine::~XeenEngine() {
 	delete _combat;
-	delete _debugger;
+	//_debugger is deleted by Engine
 	delete _events;
 	delete _interface;
 	delete _locations;
@@ -97,6 +97,7 @@ bool XeenEngine::initialize() {
 	_resources = new Resources();
 	_combat = new Combat(this);
 	_debugger = new Debugger(this);
+	setDebugger(_debugger);
 	_events = new EventsManager(this);
 	_interface = new Interface(this);
 	_locations = new LocationManager();
@@ -183,7 +184,7 @@ int XeenEngine::getRandomNumber(int minNumber, int maxNumber) {
 	return getRandomNumber(maxNumber - minNumber) + minNumber;
 }
 
-Common::Error XeenEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error XeenEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	return _saves->saveGameState(slot, desc);
 }
 
@@ -199,6 +200,11 @@ bool XeenEngine::canLoadGameStateCurrently() {
 bool XeenEngine::canSaveGameStateCurrently() {
 	return _mode != MODE_COMBAT && _mode != MODE_STARTUP && _mode != MODE_SCRIPT_IN_PROGRESS
 		&& (_map->mazeData()._mazeFlags & RESTRICTION_SAVE) == 0;
+}
+
+bool XeenEngine::canSaveAutosaveCurrently() {
+	return canSaveGameStateCurrently() &&
+		(_map && !(_map->mazeData()._mazeFlags & RESTRICTION_SAVE));
 }
 
 void XeenEngine::playGame() {
@@ -266,7 +272,7 @@ void XeenEngine::gameLoop() {
 			// Load any pending savegame
 			int saveSlot = _loadSaveSlot;
 			_loadSaveSlot = -1;
-			_saves->loadGameState(saveSlot);
+			(void)_saves->loadGameState(saveSlot);
 			_interface->drawParty(true);
 		}
 
@@ -320,6 +326,10 @@ void XeenEngine::saveSettings() {
 
 	ConfMan.setInt("final_score", _finalScore);
 	ConfMan.flushToDisk();
+}
+
+void XeenEngine::GUIError(const Common::String &msg) {
+	GUIErrorMessage(msg);
 }
 
 } // End of namespace Xeen

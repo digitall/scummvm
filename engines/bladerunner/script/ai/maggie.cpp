@@ -213,13 +213,13 @@ void AIScriptMaggie::ClickedByPlayer() {
 	return; // true
 }
 
-void AIScriptMaggie::EnteredScene(int sceneId) {
+void AIScriptMaggie::EnteredSet(int setId) {
 }
 
-void AIScriptMaggie::OtherAgentEnteredThisScene(int otherActorId) {
+void AIScriptMaggie::OtherAgentEnteredThisSet(int otherActorId) {
 }
 
-void AIScriptMaggie::OtherAgentExitedThisScene(int otherActorId) {
+void AIScriptMaggie::OtherAgentExitedThisSet(int otherActorId) {
 	if (otherActorId == kActorMcCoy
 	 && Actor_Query_Which_Set_In(kActorMaggie) == kSetMA02_MA04
 	 && Global_Variable_Query(kVariableChapter) < 4
@@ -271,6 +271,17 @@ bool AIScriptMaggie::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 	case kGoalMaggieMA02GetFed:
 		Player_Loses_Control();
 		AI_Movement_Track_Flush(kActorMaggie);
+#if BLADERUNNER_ORIGINAL_BUGS
+#else
+		// Allows McCoy to perform both animated turns (first towards the BAR-MAIN and then towards Maggie)
+		// when Maggie is already too close
+		// original bug: When Maggie is close McCoy would alternate between
+		// - turning to Maggie and throw food at her
+		// - only performing the turn toward the BAR-MAIN and "throw" food to wrong direction
+		if (Actor_Query_Inch_Distance_From_Actor(kActorMaggie, kActorMcCoy) <= 85) {
+			Delay(500);
+		}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		Loop_Actor_Walk_To_Actor(kActorMaggie, kActorMcCoy, 48, false, false);
 		Actor_Face_Actor(kActorMcCoy, kActorMaggie, true);
 		Actor_Face_Actor(kActorMaggie, kActorMcCoy, false);
@@ -398,7 +409,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateExploding:
 		*animation = 874;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(874) - 1) {
 			_animationState = kMaggieStateDeadExploded;
 			_animationFrame = Slice_Animation_Query_Number_Of_Frames(*animation) - 1;
@@ -409,7 +420,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateBombJumping:
 		*animation = 873;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(873)) {
 			_animationState = kMaggieStateBombIdle;
 			_animationFrame = 0;
@@ -420,7 +431,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateBombWalk:
 		*animation = 872;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(872)) {
 			_animationFrame = 0;
 		}
@@ -428,7 +439,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateBombIdle:
 		*animation = 875;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(875)) {
 			_animationFrame = 0;
 		}
@@ -436,7 +447,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateWakingUp:
 		*animation = 876;
-		_animationFrame--;
+		--_animationFrame;
 		if (_animationFrame > 0) {
 			break;
 		}
@@ -463,7 +474,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateGoingToSleep:
 		*animation = 876;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(876) - 1) {
 			_animationState = kMaggieStateSleeping;
 			Actor_Set_Goal_Number(kActorMaggie, kGoalMaggieMA02Sleep);
@@ -472,7 +483,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateStandingUp:
 		*animation = 868;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(868)) {
 			*animation = 864;
 			_animationState = kMaggieStateIdle;
@@ -488,7 +499,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateLayingIdle:
 		*animation = 867;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(867)) {
 			_animationFrame = 0;
 		}
@@ -496,7 +507,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateLayingDown:
 		*animation = 866;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(866)) {
 			_animationState = kMaggieStateLayingIdle;
 			_animationFrame = 0;
@@ -509,10 +520,10 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateHappyB:
 		*animation = 865;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(865)) {
 			_animationFrame = 0;
-			var_45F3F8--;
+			--var_45F3F8;
 			if (var_45F3F8 <= 0) {
 				Actor_Change_Animation_Mode(kActorMaggie, kAnimationModeIdle);
 				*animation = 864;
@@ -526,9 +537,9 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 			// one of kSfxDOGBARK1, kSfxDOGBARK3
 			Sound_Play(Random_Query(kSfxDOGBARK1, kSfxDOGBARK3), 50, 0, 0, 50);
 		}
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			var_45F3FC--;
+			--var_45F3FC;
 			if (var_45F3FC <= 0) {
 				Actor_Change_Animation_Mode(kActorMaggie, kAnimationModeIdle);
 				*animation = 864;
@@ -540,7 +551,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateJumping:
 		*animation = 869;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(869)) {
 			Actor_Change_Animation_Mode(kActorMaggie, kAnimationModeIdle);
 			*animation = 864;
@@ -551,7 +562,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateWalking:
 		*animation = 863;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(863)) {
 			_animationFrame = 0;
 		}
@@ -559,7 +570,7 @@ bool AIScriptMaggie::UpdateAnimation(int *animation, int *frame) {
 
 	case kMaggieStateIdle:
 		*animation = 864;
-		_animationFrame++;
+		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(864)) {
 			_animationFrame = 0;
 		}

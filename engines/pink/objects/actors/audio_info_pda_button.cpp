@@ -27,18 +27,18 @@
 
 namespace Pink {
 
-void AudioInfoPDAButton::toConsole()  {
+void AudioInfoPDAButton::toConsole() const {
 	debugC(6, kPinkDebugLoadingObjects, "AudioInfoPDAButton: _name = %s", _name.c_str());
 	for (uint i = 0; i < _actions.size(); ++i) {
 		_actions[i]->toConsole();
 	}
 }
 
-void AudioInfoPDAButton::onMouseOver(const Common::Point point, CursorMgr *mgr)  {
+void AudioInfoPDAButton::onMouseOver(Common::Point point, CursorMgr *mgr)  {
 	mgr->setCursor(kClickableFirstFrameCursor, point, Common::String());
 }
 
-void AudioInfoPDAButton::onMouseOverWithItem(const Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
+void AudioInfoPDAButton::onMouseOverWithItem(Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
 	onMouseOver(point, cursorMgr);
 }
 

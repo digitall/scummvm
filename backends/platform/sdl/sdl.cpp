@@ -28,6 +28,7 @@
 #include "common/taskbar.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
+#include "common/encoding.h"
 
 #include "backends/saves/default/default-saves.h"
 
@@ -39,7 +40,8 @@
 #endif
 
 #include "backends/events/default/default-events.h"
-#include "backends/events/sdl/sdl-events.h"
+#include "backends/events/sdl/legacy-sdl-events.h"
+#include "backends/keymapper/hardware-input.h"
 #include "backends/mutex/sdl/sdl-mutex.h"
 #include "backends/timer/sdl/sdl-timer.h"
 #include "backends/graphics/surfacesdl/surfacesdl-graphics.h"
@@ -67,8 +69,6 @@
 OSystem_SDL::OSystem_SDL()
 	:
 #ifdef USE_OPENGL
-	_desktopWidth(0),
-	_desktopHeight(0),
 	_graphicsModes(),
 	_graphicsMode(0),
 	_firstGLMode(0),
@@ -83,10 +83,8 @@ OSystem_SDL::OSystem_SDL()
 	_logger(0),
 	_mixerManager(0),
 	_eventSource(0),
+	_eventSourceWrapper(nullptr),
 	_window(0) {
-
-	ConfMan.registerDefault("kbdmouse_speed", 3);
-	ConfMan.registerDefault("joystick_deadzone", 3);
 }
 
 OSystem_SDL::~OSystem_SDL() {
@@ -107,6 +105,8 @@ OSystem_SDL::~OSystem_SDL() {
 	_window = 0;
 	delete _eventManager;
 	_eventManager = 0;
+	delete _eventSourceWrapper;
+	_eventSourceWrapper = nullptr;
 	delete _eventSource;
 	_eventSource = 0;
 	delete _audiocdManager;
@@ -148,16 +148,6 @@ void OSystem_SDL::init() {
 	// Disable OS cursor
 	SDL_ShowCursor(SDL_DISABLE);
 
-	if (!_logger)
-		_logger = new Backends::Log::Log(this);
-
-	if (_logger) {
-		Common::WriteStream *logFile = createLogFile();
-		if (logFile)
-			_logger->open(logFile);
-	}
-
-
 	// Creates the early needed managers, if they don't exist yet
 	// (we check for this to allow subclasses to provide their own).
 	if (_mutexManager == 0)
@@ -178,8 +168,7 @@ bool OSystem_SDL::hasFeature(Feature f) {
 	if (f == kFeatureClipboardSupport) return true;
 #endif
 	if (f == kFeatureJoystickDeadzone || f == kFeatureKbdMouseSpeed) {
-		bool joystickSupportEnabled = ConfMan.getInt("joystick_num") >= 0;
-		return joystickSupportEnabled;
+		return _eventSource->isJoystickConnected();
 	}
 	return ModularBackend::hasFeature(f);
 }
@@ -188,8 +177,19 @@ void OSystem_SDL::initBackend() {
 	// Check if backend has not been initialized
 	assert(!_inited);
 
+	if (!_logger)
+		_logger = new Backends::Log::Log(this);
+
+	if (_logger) {
+		Common::WriteStream *logFile = createLogFile();
+		if (logFile)
+			_logger->open(logFile);
+	}
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	const char *sdlDriverName = SDL_GetCurrentVideoDriver();
+	// Allow the screen to turn off
+	SDL_EnableScreenSaver();
 #else
 	const int maxNameLen = 20;
 	char sdlDriverName[maxNameLen];
@@ -200,36 +200,18 @@ void OSystem_SDL::initBackend() {
 
 	// Create the default event source, in case a custom backend
 	// manager didn't provide one yet.
-	if (_eventSource == 0)
+	if (!_eventSource)
 		_eventSource = new SdlEventSource();
 
-	if (_eventManager == nullptr) {
-		DefaultEventManager *eventManager = new DefaultEventManager(_eventSource);
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-		// SDL 2 generates its own keyboard repeat events.
-		eventManager->setGenerateKeyRepeatEvents(false);
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
+	// SDL 1 does not generate its own keyboard repeat events.
+	assert(!_eventSourceWrapper);
+	_eventSourceWrapper = makeKeyboardRepeatingEventSource(_eventSource);
 #endif
-		_eventManager = eventManager;
-	}
 
-
-#ifdef USE_OPENGL
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_DisplayMode displayMode;
-	if (!SDL_GetDesktopDisplayMode(0, &displayMode)) {
-		_desktopWidth  = displayMode.w;
-		_desktopHeight = displayMode.h;
+	if (!_eventManager) {
+		_eventManager = new DefaultEventManager(_eventSourceWrapper ? _eventSourceWrapper : _eventSource);
 	}
-#else
-	// Query the desktop resolution. We simply hope nothing tried to change
-	// the resolution so far.
-	const SDL_VideoInfo *videoInfo = SDL_GetVideoInfo();
-	if (videoInfo && videoInfo->current_w > 0 && videoInfo->current_h > 0) {
-		_desktopWidth  = videoInfo->current_w;
-		_desktopHeight = videoInfo->current_h;
-	}
-#endif
-#endif
 
 	if (_graphicsManager == 0) {
 #ifdef USE_OPENGL
@@ -246,7 +228,7 @@ void OSystem_SDL::initBackend() {
 			Common::String gfxMode(ConfMan.get("gfx_mode"));
 			for (uint i = _firstGLMode; i < _graphicsModeIds.size(); ++i) {
 				if (!scumm_stricmp(_graphicsModes[i].name, gfxMode.c_str())) {
-					_graphicsManager = new OpenGLSdlGraphicsManager(_desktopWidth, _desktopHeight, _eventSource, _window);
+					_graphicsManager = new OpenGLSdlGraphicsManager(_eventSource, _window);
 					_graphicsMode = i;
 					break;
 				}
@@ -296,6 +278,8 @@ void OSystem_SDL::initBackend() {
 void OSystem_SDL::engineInit() {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	dynamic_cast<SdlGraphicsManager *>(_graphicsManager)->unlockWindowSize();
+	// Disable screen saver when engine starts
+	SDL_DisableScreenSaver();
 #endif
 #ifdef USE_TASKBAR
 	// Add the started engine to the list of recent tasks
@@ -304,16 +288,19 @@ void OSystem_SDL::engineInit() {
 	// Set the overlay icon the current running engine
 	_taskbarManager->setOverlayIcon(ConfMan.getActiveDomainName(), ConfMan.get("description"));
 #endif
+	_eventSource->setEngineRunning(true);
 }
 
 void OSystem_SDL::engineDone() {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	dynamic_cast<SdlGraphicsManager *>(_graphicsManager)->unlockWindowSize();
+	SDL_EnableScreenSaver();
 #endif
 #ifdef USE_TASKBAR
 	// Remove overlay icon
 	_taskbarManager->setOverlayIcon("", "");
 #endif
+	_eventSource->setEngineRunning(false);
 }
 
 void OSystem_SDL::initSDL() {
@@ -328,7 +315,7 @@ void OSystem_SDL::initSDL() {
 		if (ConfMan.hasKey("disable_sdl_parachute"))
 			sdlFlags |= SDL_INIT_NOPARACHUTE;
 
-		// Initialize SDL (SDL Subsystems are initiliazed in the corresponding sdl managers)
+		// Initialize SDL (SDL Subsystems are initialized in the corresponding sdl managers)
 		if (SDL_Init(sdlFlags) == -1)
 			error("Could not initialize SDL: %s", SDL_GetError());
 
@@ -388,6 +375,28 @@ void OSystem_SDL::fatalError() {
 	exit(1);
 }
 
+Common::KeymapArray OSystem_SDL::getGlobalKeymaps() {
+	Common::KeymapArray globalMaps = ModularBackend::getGlobalKeymaps();
+
+	SdlGraphicsManager *graphicsManager = dynamic_cast<SdlGraphicsManager *>(_graphicsManager);
+	globalMaps.push_back(graphicsManager->getKeymap());
+
+	return globalMaps;
+}
+
+Common::HardwareInputSet *OSystem_SDL::getHardwareInputSet() {
+	using namespace Common;
+
+	CompositeHardwareInputSet *inputSet = new CompositeHardwareInputSet();
+	inputSet->addHardwareInputSet(new MouseHardwareInputSet(defaultMouseButtons));
+	inputSet->addHardwareInputSet(new KeyboardHardwareInputSet(defaultKeys, defaultModifiers));
+
+	if (_eventSource->isJoystickConnected()) {
+		inputSet->addHardwareInputSet(new JoystickHardwareInputSet(defaultJoystickButtons, defaultJoystickAxes));
+	}
+
+	return inputSet;
+}
 
 void OSystem_SDL::logMessage(LogMessageType::Type type, const char *message) {
 	// First log to stdout/stderr
@@ -411,7 +420,11 @@ Common::WriteStream *OSystem_SDL::createLogFile() {
 	// of a failure, we know that no log file is open.
 	_logFilePath.clear();
 
-	Common::String logFile = getDefaultLogFileName();
+	Common::String logFile;
+	if (ConfMan.hasKey("logfile"))
+		logFile = ConfMan.get("logfile");
+	else
+		logFile = getDefaultLogFileName();
 	if (logFile.empty())
 		return nullptr;
 
@@ -456,18 +469,14 @@ Common::String OSystem_SDL::getSystemLanguage() const {
 #endif // USE_DETECTLANG
 }
 
-bool OSystem_SDL::hasTextInClipboard() {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+bool OSystem_SDL::hasTextInClipboard() {
 	return SDL_HasClipboardText() == SDL_TRUE;
-#else
-	return false;
-#endif
 }
 
 Common::String OSystem_SDL::getTextFromClipboard() {
 	if (!hasTextInClipboard()) return "";
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 	char *text = SDL_GetClipboardText();
 	// The string returned by SDL is in UTF-8. Convert to the
 	// current TranslationManager encoding or ISO-8859-1.
@@ -484,13 +493,9 @@ Common::String OSystem_SDL::getTextFromClipboard() {
 	SDL_free(text);
 
 	return strText;
-#else
-	return "";
-#endif
 }
 
 bool OSystem_SDL::setTextInClipboard(const Common::String &text) {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 	// The encoding we need to use is UTF-8. Assume we currently have the
 	// current TranslationManager encoding or ISO-8859-1.
 #ifdef USE_TRANSLATION
@@ -504,10 +509,8 @@ bool OSystem_SDL::setTextInClipboard(const Common::String &text) {
 		return status == 0;
 	}
 	return SDL_SetClipboardText(text.c_str()) == 0;
-#else
-	return false;
-#endif
 }
+#endif
 
 uint32 OSystem_SDL::getMillis(bool skipRecord) {
 	uint32 millis = SDL_GetTicks();
@@ -641,7 +644,7 @@ bool OSystem_SDL::setGraphicsMode(int mode) {
 		debug(1, "switching to OpenGL graphics");
 		sdlGraphicsManager->deactivateManager();
 		delete _graphicsManager;
-		_graphicsManager = sdlGraphicsManager = new OpenGLSdlGraphicsManager(_desktopWidth, _desktopHeight, _eventSource, _window);
+		_graphicsManager = sdlGraphicsManager = new OpenGLSdlGraphicsManager(_eventSource, _window);
 
 		switchedManager = true;
 	}
@@ -705,7 +708,7 @@ void OSystem_SDL::setupGraphicsModes() {
 	assert(_defaultSDLMode != -1);
 
 	_firstGLMode = _graphicsModes.size();
-	manager = new OpenGLSdlGraphicsManager(_desktopWidth, _desktopHeight, _eventSource, _window);
+	manager = new OpenGLSdlGraphicsManager(_eventSource, _window);
 	srcMode = manager->getSupportedGraphicsModes();
 	defaultMode = manager->getDefaultGraphicsMode();
 	while (srcMode->name) {
@@ -735,36 +738,50 @@ void OSystem_SDL::setupGraphicsModes() {
 }
 #endif
 
+char *OSystem_SDL::convertEncoding(const char *to, const char *from, const char *string, size_t length) {
+#if SDL_VERSION_ATLEAST(1, 2, 10)
+	int zeroBytes = 1;
+	if (Common::String(from).hasPrefixIgnoreCase("utf-16"))
+		zeroBytes = 2;
+	else if (Common::String(from).hasPrefixIgnoreCase("utf-32"))
+		zeroBytes = 4;
+
+	char *result;
+	// SDL_iconv_string() takes char * instead of const char * as it's third parameter
+	// with some older versions of SDL.
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-int SDL_SetColors(SDL_Surface *surface, SDL_Color *colors, int firstcolor, int ncolors) {
-	if (surface->format->palette) {
-		return !SDL_SetPaletteColors(surface->format->palette, colors, firstcolor, ncolors) ? 1 : 0;
-	} else {
-		return 0;
+	result = SDL_iconv_string(to, from, string, length + zeroBytes);
+#else
+	char *stringCopy = (char *) calloc(sizeof(char), length + zeroBytes);
+	memcpy(stringCopy, string, length);
+	result = SDL_iconv_string(to, from, stringCopy, length + zeroBytes);
+	free(stringCopy);
+#endif // SDL_VERSION_ATLEAST(2, 0, 0)
+	if (result == nullptr)
+		return nullptr;
+
+	// We need to copy the result, so that we can use SDL_free()
+	// on the string returned by SDL_iconv_string() and free()
+	// can then be used on the copyed and returned string.
+	// Sometimes free() and SDL_free() aren't compatible and
+	// using free() instead of SDL_free() can cause crashes.
+	size_t newLength = Common::Encoding::stringLength(result, to);
+	zeroBytes = 1;
+	if (Common::String(to).hasPrefixIgnoreCase("utf-16"))
+		zeroBytes = 2;
+	else if (Common::String(to).hasPrefixIgnoreCase("utf-32"))
+		zeroBytes = 4;
+	char *finalResult = (char *) malloc(newLength + zeroBytes);
+	if (!finalResult) {
+		warning("Could not allocate memory for encoding conversion");
+		SDL_free(result);
+		return nullptr;
 	}
+	memcpy(finalResult, result, newLength + zeroBytes);
+	SDL_free(result);
+	return finalResult;
+#else
+	return ModularBackend::convertEncoding(to, from, string, length);
+#endif // SDL_VERSION_ATLEAST(1, 2, 10)
 }
-
-int SDL_SetAlpha(SDL_Surface *surface, Uint32 flag, Uint8 alpha) {
-	if (SDL_SetSurfaceAlphaMod(surface, alpha)) {
-		return -1;
-	}
-
-	if (alpha == 255 || !flag) {
-		if (SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE)) {
-			return -1;
-		}
-	} else {
-		if (SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_BLEND)) {
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-#undef SDL_SetColorKey
-int SDL_SetColorKey_replacement(SDL_Surface *surface, Uint32 flag, Uint32 key) {
-	return SDL_SetColorKey(surface, SDL_TRUE, key) ? -1 : 0;
-}
-#endif
 

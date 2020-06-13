@@ -34,6 +34,7 @@
 #include "bladerunner/crimes_database.h"
 #include "bladerunner/debugger.h"
 #include "bladerunner/dialogue_menu.h"
+#include "bladerunner/framelimiter.h"
 #include "bladerunner/font.h"
 #include "bladerunner/game_flags.h"
 #include "bladerunner/game_info.h"
@@ -82,6 +83,7 @@
 #include "common/events.h"
 #include "common/savefile.h"
 #include "common/system.h"
+#include "common/debug.h"
 #include "common/debug-channels.h"
 #include "common/translation.h"
 #include "gui/message.h"
@@ -90,6 +92,7 @@
 #include "engines/advancedDetector.h"
 
 #include "graphics/pixelformat.h"
+#include "audio/mididrv.h"
 
 namespace BladeRunner {
 
@@ -99,8 +102,9 @@ BladeRunnerEngine::BladeRunnerEngine(OSystem *syst, const ADGameDescription *des
 
 	DebugMan.addDebugChannel(kDebugScript, "Script", "Debug the scripts");
 
-	_windowIsActive = true;
-	_gameIsRunning  = true;
+	_windowIsActive     = true;
+	_gameIsRunning      = true;
+	_gameJustLaunched   = true;
 
 	_vqaIsPlaying       = false;
 	_vqaStopIsRequested = false;
@@ -108,11 +112,18 @@ BladeRunnerEngine::BladeRunnerEngine(OSystem *syst, const ADGameDescription *des
 	_actorIsSpeaking           = false;
 	_actorSpeakStopIsRequested = false;
 
-	_subtitlesEnabled = false;
+	_subtitlesEnabled             = false;
 
-	_sitcomMode       = false;
-	_shortyMode       = false;
-	_cutContent       = Common::String(desc->gameId).contains("bladerunner-final");
+	_surfaceFrontCreated          = false;
+	_surfaceBackCreated           = false;
+
+	_sitcomMode                   = false;
+	_shortyMode                   = false;
+	_noDelayMillisFramelimiter    = false;
+	_framesPerSecondMax           = false;
+	_disableStaminaDrain          = false;
+	_cutContent                   = Common::String(desc->gameId).contains("bladerunner-final");
+	_validBootParam               = false;
 
 	_playerLosesControlCounter = 0;
 
@@ -132,8 +143,6 @@ BladeRunnerEngine::BladeRunnerEngine(OSystem *syst, const ADGameDescription *des
 	_walkSoundId      = -1;
 	_walkSoundVolume  = 0;
 	_walkSoundPan     = 0;
-
-	_crimesDatabase = nullptr;
 
 	_language = desc->language;
 	switch (desc->language) {
@@ -168,6 +177,7 @@ BladeRunnerEngine::BladeRunnerEngine(OSystem *syst, const ADGameDescription *des
 	_obstacles               = nullptr;
 	_sceneScript             = nullptr;
 	_time                    = nullptr;
+	_framelimiter            = nullptr;
 	_gameInfo                = nullptr;
 	_waypoints               = nullptr;
 	_gameVars                = nullptr;
@@ -212,10 +222,12 @@ BladeRunnerEngine::BladeRunnerEngine(OSystem *syst, const ADGameDescription *des
 	_crimesDatabase          = nullptr;
 	_scene                   = nullptr;
 	_aiScripts               = nullptr;
+	_shapes                  = nullptr;
 	for (int i = 0; i != kActorCount; ++i) {
 		_actors[i]           = nullptr;
 	}
 	_debugger                = nullptr;
+
 	walkingReset();
 
 	_actorUpdateCounter  = 0;
@@ -223,11 +235,12 @@ BladeRunnerEngine::BladeRunnerEngine(OSystem *syst, const ADGameDescription *des
 }
 
 BladeRunnerEngine::~BladeRunnerEngine() {
+	shutdown();
 }
 
 bool BladeRunnerEngine::hasFeature(EngineFeature f) const {
 	return
-		f == kSupportsRTL ||
+		f == kSupportsReturnToLauncher ||
 		f == kSupportsLoadingDuringRuntime ||
 		f == kSupportsSavingDuringRuntime;
 }
@@ -278,7 +291,7 @@ bool BladeRunnerEngine::canSaveGameStateCurrently() {
 		!_elevator->isOpen();
 }
 
-Common::Error BladeRunnerEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error BladeRunnerEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	Common::OutSaveFile *saveFile = BladeRunner::SaveFileManager::openForSaving(_targetName, slot);
 	if (saveFile == nullptr || saveFile->err()) {
 		delete saveFile;
@@ -310,7 +323,6 @@ void BladeRunnerEngine::pauseEngineIntern(bool pause) {
 }
 
 Common::Error BladeRunnerEngine::run() {
-
 	Common::Array<Common::String> missingFiles;
 	if (!checkFiles(missingFiles)) {
 		Common::String missingFileStr = "";
@@ -320,29 +332,40 @@ Common::Error BladeRunnerEngine::run() {
 			}
 			missingFileStr += missingFiles[i];
 		}
-
+		// shutting down
 		return Common::Error(Common::kNoGameDataFoundError, missingFileStr);
 	}
 
-	Graphics::PixelFormat format = screenPixelFormat();
-	initGraphics(640, 480, &format);
+	Common::List<Graphics::PixelFormat> tmpSupportedFormatsList = g_system->getSupportedFormats();
+	if (!tmpSupportedFormatsList.empty()) {
+		_screenPixelFormat = tmpSupportedFormatsList.front();
+	} else {
+		// Workaround for reported issue whereby in the AndroidSDL port
+		// some devices would crash with a segmentation fault due to an empty supported formats list.
+		// TODO: A better fix for getSupportedFormats() - maybe figure why in only some device it might return an empty list
+		//
+		// Use this as a fallback format - Should be a format supported by Android port
+		_screenPixelFormat = Graphics::PixelFormat(2, 5, 5, 5, 1, 11, 6, 1, 0);
+	}
+	debug("Using pixel format: %s", _screenPixelFormat.toString().c_str());
+	initGraphics(640, 480, &_screenPixelFormat);
 
 	_system->showMouse(true);
 
 	bool hasSavegames = !SaveFileManager::list(_targetName).empty();
 
 	if (!startup(hasSavegames)) {
-		shutdown();
+		// shutting down
 		return Common::Error(Common::kUnknownError, _("Failed to initialize resources"));
 	}
-
 
 	// improvement: Use a do-while() loop to handle the normal end-game state
 	// so that the game won't exit abruptly after end credits
 	do {
 		// additional code for gracefully handling end-game after _endCredits->show()
-		_gameOver = false;
-		_gameIsRunning = true;
+		_gameOver         = false;
+		_gameIsRunning    = true;
+		_gameJustLaunched = true;
 		// reset ammo amounts
 		_settings->reset();
 		// need to clear kFlagKIAPrivacyAddon to remove Bob's Privacy Addon for KIA
@@ -359,27 +382,32 @@ Common::Error BladeRunnerEngine::run() {
 		}
 		// end of additional code for gracefully handling end-game
 
-		if (ConfMan.hasKey("save_slot") && ConfMan.getInt("save_slot") != -1) {
-			// when loading from ScummVM main menu, we should emulate
-			// the Kia pause/resume in order to get a valid "current" time when the game
-			// is actually loaded (assuming delays can be introduced by a popup warning dialogue)
-			if (!_time->isLocked()) {
-				_time->pause();
+		if (_validBootParam) {
+			// clear the flag, so that after a possible game gameOver / end-game
+			// it won't be true again; just to be safe and avoid potential side-effects
+			_validBootParam = false;
+		} else {
+			if (ConfMan.hasKey("save_slot") && ConfMan.getInt("save_slot") != -1) {
+				// when loading from ScummVM main menu, we should emulate
+				// the Kia pause/resume in order to get a valid "current" time when the game
+				// is actually loaded (assuming delays can be introduced by a popup warning dialogue)
+				if (!_time->isLocked()) {
+					_time->pause();
+				}
+				loadGameState(ConfMan.getInt("save_slot"));
+				ConfMan.set("save_slot", "-1");
+				if (_time->isLocked()) {
+					_time->resume();
+				}
+			} else if (hasSavegames) {
+				_kia->_forceOpen = true;
+				_kia->open(kKIASectionLoad);
 			}
-			loadGameState(ConfMan.getInt("save_slot"));
-			ConfMan.set("save_slot", "-1");
-			if (_time->isLocked()) {
-				_time->resume();
-			}
-		} else if (hasSavegames) {
-			_kia->_forceOpen = true;
-			_kia->open(kKIASectionLoad);
 		}
-		// TODO: why is game starting new game here when everything is done in startup?
+		// TODO: why is the game starting a new game here when everything is done in startup?
 		//  else {
 		// 	newGame(kGameDifficultyMedium);
 		// }
-
 		gameLoop();
 
 		_mouse->disable();
@@ -400,8 +428,7 @@ Common::Error BladeRunnerEngine::run() {
 		}
 	} while (_gameOver); // if main game loop ended and _gameOver == false, then shutdown
 
-	shutdown();
-
+	// shutting down
 	return Common::kNoError;
 }
 
@@ -453,8 +480,26 @@ bool BladeRunnerEngine::checkFiles(Common::Array<Common::String> &missingFiles) 
 }
 
 bool BladeRunnerEngine::startup(bool hasSavegames) {
-	// These are static objects in original game
+	// Assign default values to the ScummVM configuration manager, in case settings are missing
+	ConfMan.registerDefault("subtitles", "true");
+	ConfMan.registerDefault("sfx_volume", 192);
+	ConfMan.registerDefault("music_volume", 192);
+	ConfMan.registerDefault("speech_volume", 192);
+	ConfMan.registerDefault("mute", "false");
+	ConfMan.registerDefault("speech_mute", "false");
+	ConfMan.registerDefault("sitcom", "false");
+	ConfMan.registerDefault("shorty", "false");
+	ConfMan.registerDefault("nodelaymillisfl", "false");
+	ConfMan.registerDefault("frames_per_secondfl", "false");
+	ConfMan.registerDefault("disable_stamina_drain", "false");
 
+	_sitcomMode                = ConfMan.getBool("sitcom");
+	_shortyMode                = ConfMan.getBool("shorty");
+	_noDelayMillisFramelimiter = ConfMan.getBool("nodelaymillisfl");
+	_framesPerSecondMax        = ConfMan.getBool("frames_per_secondfl");
+	_disableStaminaDrain       = ConfMan.getBool("disable_stamina_drain");
+
+	// These are static objects in original game
 	_screenEffects = new ScreenEffects(this, 0x8000);
 
 	_endCredits = new EndCredits(this);
@@ -474,13 +519,19 @@ bool BladeRunnerEngine::startup(bool hasSavegames) {
 	_sceneScript = new SceneScript(this);
 
 	_debugger = new Debugger(this);
+	setDebugger(_debugger);
 
 	// This is the original startup in the game
 
 	_surfaceFront.create(640, 480, screenPixelFormat());
+	_surfaceFrontCreated = true;
 	_surfaceBack.create(640, 480, screenPixelFormat());
+	_surfaceBackCreated = true;
 
 	_time = new Time(this);
+
+//	debug("_framesPerSecondMax:: %s", _framesPerSecondMax? "true" : "false");
+	_framelimiter = new Framelimiter(this, _framesPerSecondMax? 120 : 60);
 
 	// Try to load the SUBTITLES.MIX first, before Startup.MIX
 	// allows overriding any identically named resources (such as the original font files and as a bonus also the TRE files for the UI and dialogue menu)
@@ -546,20 +597,22 @@ bool BladeRunnerEngine::startup(bool hasSavegames) {
 
 	_ambientSounds = new AmbientSounds(this);
 
-	// Assign default values to the ScummVM configuration manager, in case settings are missing
-	ConfMan.registerDefault("subtitles", "true");
-	ConfMan.registerDefault("sfx_volume", 192);
-	ConfMan.registerDefault("music_volume", 192);
-	ConfMan.registerDefault("speech_volume", 192);
-	ConfMan.registerDefault("mute", "false");
-	ConfMan.registerDefault("speech_mute", "false");
+	// Query the selected music device (defaults to MT_AUTO device).
+	Common::String selDevStr = ConfMan.hasKey("music_driver") ? ConfMan.get("music_driver") : Common::String("auto");
+	MidiDriver::DeviceHandle dev = MidiDriver::getDeviceHandle(selDevStr.empty() ? Common::String("auto") : selDevStr);
+	//
+	// We just respect the "No Music" choice (or an invalid choice)
+	//
+	// We're lenient with all the invalid/ irrelevant choices in the Audio Driver dropdown
+	// TODO Ideally these controls (OptionsDialog::addAudioControls()) ie. "Music Device" and "Adlib Emulator"
+	//      should not appear in games like Blade Runner, since they are largely irrelevant
+	//      and may cause confusion when combined/ conflicting with the global settings
+	//      which are by default applied, if the user does not explicitly override them.
+	_noMusicDriver = (MidiDriver::getMusicType(dev) == MT_NULL || MidiDriver::getMusicType(dev) == MT_INVALID);
 
-	// get value from the ScummVM configuration manager
-	syncSoundSettings();
-
-	_sitcomMode = ConfMan.getBool("sitcom");
-	_shortyMode = ConfMan.getBool("shorty");
 	// BLADE.INI was read here, but it was replaced by ScummVM configuration
+	//
+	syncSoundSettings();
 
 	_chapters = new Chapters(this);
 	if (!_chapters)
@@ -588,8 +641,16 @@ bool BladeRunnerEngine::startup(bool hasSavegames) {
 	_actors[kActorVoiceOver] = new Actor(this, kActorVoiceOver);
 	_playerActor = _actors[_gameInfo->getPlayerId()];
 
-	_playerActor->setFPS(15);
+	_playerActor->setFPS(15); // this seems redundant
+#if BLADERUNNER_ORIGINAL_BUGS
 	_playerActor->timerStart(kActorTimerRunningStaminaFPS, 200);
+#else
+	// Make code here similar to the bugfix in newGame in that
+	// we only start the timer in vanilla game mode (not Restored Content mode)
+	if (!_cutContent) {
+		_playerActor->timerStart(kActorTimerRunningStaminaFPS, 200);
+	}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 
 	_policeMaze = new PoliceMaze(this);
 
@@ -621,8 +682,10 @@ bool BladeRunnerEngine::startup(bool hasSavegames) {
 	if (!_textOptions->open("OPTIONS"))
 		return false;
 
+	_russianCP1251 = ((uint8)_textOptions->getText(0)[0]) == 209;
+
 	_dialogueMenu = new DialogueMenu(this);
-	if (!_dialogueMenu->loadText("DLGMENU"))
+	if (!_dialogueMenu->loadResources())
 		return false;
 
 	_suspectsDatabase = new SuspectsDatabase(this, _gameInfo->getSuspectCount());
@@ -637,11 +700,8 @@ bool BladeRunnerEngine::startup(bool hasSavegames) {
 
 	_mainFont = Font::load(this, "KIA6PT.FON", 1, false);
 
-	for (int i = 0; i != 43; ++i) {
-		Shape *shape = new Shape(this);
-		shape->open("SHAPES.SHP", i);
-		_shapes.push_back(shape);
-	}
+	_shapes = new Shapes(this);
+	_shapes->load("SHAPES.SHP");
 
 	_esper = new ESPER(this);
 
@@ -675,7 +735,6 @@ bool BladeRunnerEngine::startup(bool hasSavegames) {
 	_aiScripts = new AIScripts(this, actorCount);
 
 	initChapterAndScene();
-
 	return true;
 }
 
@@ -694,21 +753,35 @@ void BladeRunnerEngine::initChapterAndScene() {
 
 	if (ConfMan.hasKey("boot_param")) {
 		int param = ConfMan.getInt("boot_param"); // CTTTSSS
-		int chapter = param / 1000000;
-		param -= chapter * 1000000;
-		int set = param / 1000;
-		param -= set * 1000;
-		int scene = param;
+		if (param < 1000000 || param >= 6000000) {
+			debug("Invalid boot parameter. Valid format is: CTTTSSS");
+		} else {
+			int chapter = param / 1000000;
+			param -= chapter * 1000000;
+			int set = param / 1000;
+			param -= set * 1000;
+			int scene = param;
 
-		_settings->setChapter(chapter);
-		_settings->setNewSetAndScene(set, scene);
-	} else {
+			// init chapter to default first chapter (required by dbgAttemptToLoadChapterSetScene())
+			_settings->setChapter(1);
+			_validBootParam = _debugger->dbgAttemptToLoadChapterSetScene(chapter, set, scene);
+			if (_validBootParam) {
+				debug("Explicitly loading Chapter: %d Set: %d Scene: %d", chapter, set, scene);
+			} else {
+				debug("Invalid combination of Chapter Set and Scene ids");
+			}
+		}
+	}
+
+	if (!_validBootParam) {
 		_settings->setChapter(1);
 		_settings->setNewSetAndScene(_gameInfo->getInitialSetId(), _gameInfo->getInitialSceneId());
 	}
 }
 
 void BladeRunnerEngine::shutdown() {
+	DebugMan.clearAllDebugChannels();
+
 	_mixer->stopAll();
 
 	// BLADE.INI as updated here
@@ -737,10 +810,8 @@ void BladeRunnerEngine::shutdown() {
 	delete _esper;
 	_esper = nullptr;
 
-	for (uint i = 0; i != _shapes.size(); ++i) {
-		delete _shapes[i];
-	}
-	_shapes.clear();
+	delete _shapes;
+	_shapes = nullptr;
 
 	delete _mainFont;
 	_mainFont = nullptr;
@@ -787,10 +858,18 @@ void BladeRunnerEngine::shutdown() {
 	delete _policeMaze;
 	_policeMaze = nullptr;
 
+	// don't delete _playerActor since that is handled
+	// in the loop over _actors below
 	_playerActor = nullptr;
+
 	delete _actors[kActorVoiceOver];
 	_actors[kActorVoiceOver] = nullptr;
-	int actorCount = (int)_gameInfo->getActorCount();
+
+	int actorCount = kActorCount;
+	if (_gameInfo) {
+		actorCount = (int)_gameInfo->getActorCount();
+	}
+
 	for (int i = 0; i < actorCount; ++i) {
 		delete _actors[i];
 		_actors[i] = nullptr;
@@ -826,12 +905,11 @@ void BladeRunnerEngine::shutdown() {
 		closeArchive("MODE.MIX");
 	}
 
-	if (_chapters) {
-		if (_chapters->hasOpenResources())
-			_chapters->closeResources();
-		delete _chapters;
-		_chapters = nullptr;
+	if (_chapters && _chapters->hasOpenResources()) {
+		_chapters->closeResources();
 	}
+	delete _chapters;
+	_chapters = nullptr;
 
 	delete _ambientSounds;
 	_ambientSounds = nullptr;
@@ -887,20 +965,29 @@ void BladeRunnerEngine::shutdown() {
 	if (isArchiveOpen("SUBTITLES.MIX")) {
 		closeArchive("SUBTITLES.MIX");
 	}
-	if (_subtitles) {
-		delete _subtitles;
-		_subtitles = nullptr;
-	}
+
+	delete _subtitles;
+	_subtitles = nullptr;
+
+	delete _framelimiter;
+	_framelimiter = nullptr;
 
 	delete _time;
 	_time = nullptr;
 
-	_surfaceBack.free();
-	_surfaceFront.free();
+	// guard the free() call to Surface::free() will boolean flags
+	// since according to free() documentation:
+	// it should only be used, when "the Surface data was created via
+	// create! Otherwise this function has undefined behavior."
+	if (_surfaceBackCreated)
+		_surfaceBack.free();
+
+	if (_surfaceFrontCreated)
+		_surfaceFront.free();
 
 	// These are static objects in original game
 
-	delete _debugger;
+	//delete _debugger;	Debugger deletion is handled by Engine
 	_debugger = nullptr;
 
 	delete _sceneScript;
@@ -964,6 +1051,7 @@ void BladeRunnerEngine::gameLoop() {
 }
 
 void BladeRunnerEngine::gameTick() {
+
 	handleEvents();
 
 	if (!_gameIsRunning || !_windowIsActive) {
@@ -1085,7 +1173,17 @@ void BladeRunnerEngine::gameTick() {
 	}
 
 	if (_debugger->_viewZBuffer) {
-		_surfaceFront.copyRectToSurface(_zbuffer->getData(), 1280, 0, 0, 640, 480);
+		// The surface front pixel format is 32 bit now,
+		// but the _zbuffer->getData() still returns 16bit pixels
+		// We need to copy pixel by pixel, converting each pixel from 16 to 32bit
+		for (int y = 0; y < 480; ++y) {
+			for (int x = 0; x < 640; ++x) {
+				uint8 a, r, g, b;
+				getGameDataColor(_zbuffer->getData()[y*640 + x], a, r, g, b);
+				void   *dstPixel = _surfaceFront.getBasePtr(x, y);
+				drawPixel(_surfaceFront, dstPixel, _surfaceFront.format.ARGBToColor(a, r, g, b));
+			}
+		}
 	}
 
 	_mouse->tick(p.x, p.y);
@@ -1111,16 +1209,14 @@ void BladeRunnerEngine::gameTick() {
 	if (!_gameOver) {
 		blitToScreen(_surfaceFront);
 	}
-
-	_system->delayMillis(10);
 }
 
 void BladeRunnerEngine::actorsUpdate() {
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
 	uint32 timeNow = _time->current();
-	// Don't update actors more than 60 times per second
-	if (timeNow - _actorUpdateTimeLast < 1000 / 60) {
+	// Don't update actors more than 60 or 120 times per second
+	if (timeNow - _actorUpdateTimeLast < 1000u / ( _framesPerSecondMax? 120u : 60u)) {
 		return;
 	}
 	_actorUpdateTimeLast = timeNow;
@@ -1138,7 +1234,7 @@ void BladeRunnerEngine::actorsUpdate() {
 		return;
 	}
 
-	for (int i = 0; i < actorCount; i++) {
+	for (int i = 0; i < actorCount; ++i) {
 		Actor *actor = _actors[i];
 		if (actor->getSetId() == setId || i == _actorUpdateCounter) {
 			_aiScripts->update(i);
@@ -1173,6 +1269,18 @@ void BladeRunnerEngine::walkingReset() {
 void BladeRunnerEngine::handleEvents() {
 	if (shouldQuit()) {
 		_gameIsRunning = false;
+		return;
+	}
+
+	// This flag check is to skip the first call of handleEvents() in gameTick().
+	// This prevents a "hack" whereby the player could press Esc quickly and enter the KIA screen,
+	// even in the case when no save games for the game exist. In such case the game is supposed
+	// to immediately play the intro video and subsequently start a new game of medium difficulty. 
+	// It does not expect the player to enter KIA beforehand, which causes side-effects and unforeseen behavior. 
+	// Note: eventually we will support the option to launch into KIA in any case, 
+	// but not via the "hack" way that is fixed here.
+	if (_gameJustLaunched) {
+		_gameJustLaunched = false;
 		return;
 	}
 
@@ -1237,12 +1345,6 @@ void BladeRunnerEngine::handleKeyUp(Common::Event &event) {
 }
 
 void BladeRunnerEngine::handleKeyDown(Common::Event &event) {
-	if ((event.kbd.keycode == Common::KEYCODE_d) && (event.kbd.flags & Common::KBD_CTRL)) {
-		getDebugger()->attach();
-		getDebugger()->onFrame();
-		return;
-	}
-
 	if (_vqaIsPlaying && (event.kbd.keycode == Common::KEYCODE_ESCAPE || event.kbd.keycode == Common::KEYCODE_RETURN)) {
 		_vqaStopIsRequested = true;
 		_vqaIsPlaying = false;
@@ -1419,7 +1521,7 @@ void BladeRunnerEngine::handleMouseAction(int x, int y, bool mainButton, bool bu
 
 		if (_debugger->_showMouseClickInfo) {
 			// Region has highest priority when overlapping
-			debug("Mouse: %02.2f, %02.2f, %02.2f", scenePosition.x, scenePosition.y, scenePosition.z);
+			debug("Mouse: %02.2f, %02.2f, %02.2f at ScreenX: %d ScreenY: %d", scenePosition.x, scenePosition.y, scenePosition.z, x, y);
 			if ((sceneObjectId < kSceneObjectOffsetActors || sceneObjectId >= kSceneObjectOffsetItems) && exitIndex >= 0) {
 				debug("Clicked on Region-Exit=%d", exitIndex);
 			} else if (regionIndex >= 0) {
@@ -1647,7 +1749,7 @@ void BladeRunnerEngine::handleMouseClickEmpty(int x, int y, Vector3 &scenePositi
 		}
 
 		bool shouldRun = _playerActor->isRunning();
-		if (_mouseClickTimeDiff <= 10000 && xDist < 10 && yDist < 10) {
+		if (_mouseClickTimeDiff <= 10000 && xDist <= 10 && yDist <= 10) {
 			shouldRun = true;
 		}
 
@@ -1891,10 +1993,17 @@ void BladeRunnerEngine::syncSoundSettings() {
 	_mixer->setVolumeForSoundType(_mixer->kSpeechSoundType, ConfMan.getInt("speech_volume"));
 	// debug("syncSoundSettings: Volumes synced as Music: %d, Sfx: %d, Speech: %d", ConfMan.getInt("music_volume"), ConfMan.getInt("sfx_volume"), ConfMan.getInt("speech_volume"));
 
+	if (_noMusicDriver) {
+		// This affects *only* the music muting.
+		_mixer->muteSoundType(_mixer->kMusicSoundType, true);
+	}
+
 	bool allSoundIsMuted = false;
 	if (ConfMan.hasKey("mute")) {
 		allSoundIsMuted = ConfMan.getBool("mute");
-		_mixer->muteSoundType(_mixer->kMusicSoundType, allSoundIsMuted);
+		if (!_noMusicDriver) {
+			_mixer->muteSoundType(_mixer->kMusicSoundType, allSoundIsMuted);
+		}
 		_mixer->muteSoundType(_mixer->kSFXSoundType, allSoundIsMuted);
 		_mixer->muteSoundType(_mixer->kSpeechSoundType, allSoundIsMuted);
 	}
@@ -1905,6 +2014,7 @@ void BladeRunnerEngine::syncSoundSettings() {
 		// but we need to mute the speech
 		_mixer->muteSoundType(_mixer->kSpeechSoundType, ConfMan.getBool("speech_mute"));
 	}
+
 	// write-back to ini file for persistence
 	ConfMan.flushToDisk(); // TODO Or maybe call this only when game is shut down?
 }
@@ -1919,13 +2029,22 @@ void BladeRunnerEngine::setSubtitlesEnabled(bool newVal) {
 }
 
 Common::SeekableReadStream *BladeRunnerEngine::getResourceStream(const Common::String &name) {
+	// If the file is extracted from MIX files use it directly, it is used by Russian translation patched by Siberian Studio
+	if (Common::File::exists(name)) {
+		Common::File directFile;
+		if (directFile.open(name)) {
+			Common::SeekableReadStream *stream = directFile.readStream(directFile.size());
+			directFile.close();
+			return stream;
+		}
+	}
+
 	for (int i = 0; i != kArchiveCount; ++i) {
 		if (!_archives[i].isOpen()) {
 			continue;
 		}
 
 		// debug("getResource: Searching archive %s for %s.", _archives[i].getName().c_str(), name.c_str());
-
 		Common::SeekableReadStream *stream = _archives[i].createReadStreamForMember(name);
 		if (stream) {
 			return stream;
@@ -2008,7 +2127,12 @@ bool BladeRunnerEngine::saveGame(Common::WriteStream &stream, Graphics::Surface 
 	SaveFileWriteStream s(memoryStream);
 
 	thumbnail.convertToInPlace(gameDataPixelFormat());
-	s.write(thumbnail.getPixels(), SaveFileManager::kThumbnailSize);
+
+	uint16* thumbnailData = (uint16*)thumbnail.getPixels();
+	for (uint i = 0; i < SaveFileManager::kThumbnailSize / 2; ++i) {
+		s.writeUint16LE(thumbnailData[i]);
+	}
+
 	s.writeFloat(1.0f);
 	_settings->save(s);
 	_scene->save(s);
@@ -2091,8 +2215,9 @@ bool BladeRunnerEngine::loadGame(Common::SeekableReadStream &stream) {
 
 	_gameIsLoading = true;
 	_settings->setLoadingGame();
+
 	s.skip(SaveFileManager::kThumbnailSize); // skip the thumbnail
-	s.skip(4);// always float 1.0, but never used
+	s.skip(4);// always float 1.0, but never used, assuming it's the game version
 	_settings->load(s);
 	_scene->load(s);
 	_scene->_exits->load(s);
@@ -2169,7 +2294,18 @@ void BladeRunnerEngine::newGame(int difficulty) {
 	for (uint i = 0; i < _gameInfo->getActorCount(); ++i) {
 		_actors[i]->setup(i);
 	}
-	_actors[kActorVoiceOver]->setup(99);
+	_actors[kActorVoiceOver]->setup(kActorVoiceOver);
+
+#if BLADERUNNER_ORIGINAL_BUGS
+#else
+	// Special settings for McCoy that are in BladeRunnerEngine::startup()
+	// but are overridden here, resulting to the stamina counter
+	// never being initialized in the original game
+	_playerActor->setFPS(15); // this seems redundant
+	if (!_cutContent) {
+		_playerActor->timerStart(kActorTimerRunningStaminaFPS, 200);
+	}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 
 	for (uint i = 0; i < _gameInfo->getSuspectCount(); ++i) {
 		_suspectsDatabase->get(i)->reset();
@@ -2236,6 +2372,7 @@ void BladeRunnerEngine::ISez(const Common::String &str) {
 }
 
 void BladeRunnerEngine::blitToScreen(const Graphics::Surface &src) const {
+	_framelimiter->wait();
 	_system->copyRectToScreen(src.getPixels(), src.pitch, 0, 0, src.w, src.h);
 	_system->updateScreen();
 }
@@ -2248,20 +2385,16 @@ Graphics::Surface BladeRunnerEngine::generateThumbnail() const {
 		for (int x = 0; x < thumbnail.w; ++x) {
 			uint8 r, g, b;
 
-			uint16  srcPixel = *(const uint16 *)_surfaceFront.getBasePtr(CLIP(x * 8, 0, _surfaceFront.w - 1), CLIP(y * 8, 0, _surfaceFront.h - 1) );
-			uint16 *dstPixel = (uint16 *)thumbnail.getBasePtr(CLIP(x, 0, thumbnail.w - 1), CLIP(y, 0, thumbnail.h - 1));
+			uint32  srcPixel = READ_UINT32(_surfaceFront.getBasePtr(CLIP(x * 8, 0, _surfaceFront.w - 1), CLIP(y * 8, 0, _surfaceFront.h - 1)));
+			void   *dstPixel = thumbnail.getBasePtr(CLIP(x, 0, thumbnail.w - 1), CLIP(y, 0, thumbnail.h - 1));
 
 			// Throw away alpha channel as it is not needed
 			_surfaceFront.format.colorToRGB(srcPixel, r, g, b);
-			*dstPixel = thumbnail.format.RGBToColor(r, g, b);
+			drawPixel(thumbnail, dstPixel, thumbnail.format.RGBToColor(r, g, b));
 		}
 	}
 
 	return thumbnail;
-}
-
-GUI::Debugger *BladeRunnerEngine::getDebugger() {
-	return _debugger;
 }
 
 Common::String BladeRunnerEngine::getTargetName() const {

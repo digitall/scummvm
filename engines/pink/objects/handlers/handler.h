@@ -36,10 +36,10 @@ class Actor;
 
 class Handler : public Object {
 public:
-	~Handler();
-	virtual void deserialize(Archive &archive);
+	~Handler() override;
+	void deserialize(Archive &archive) override;
 	virtual void handle(Actor *actor);
-	bool isSuitable(Actor *actor);
+	bool isSuitable(const Actor *actor) const;
 
 protected:
 	void executeSideEffects(Actor *actor);
@@ -49,47 +49,54 @@ protected:
 };
 
 class Sequence;
+class Sequencer;
 
 class HandlerSequences : public Handler {
 public:
-	virtual void deserialize(Archive &archive);
-	virtual void handle(Actor *actor);
+	void deserialize(Archive &archive) override;
+	void handle(Actor *actor) override;
 
 protected:
-	virtual void execute(Sequence *sequence) = 0;
+	virtual void authorSequence(Sequencer *sequencer, Sequence *sequence);
 
+protected:
 	StringArray _sequences;
 };
 
 class HandlerStartPage : public HandlerSequences {
-public:
-	virtual void toConsole();
-
-private:
-	virtual void execute(Sequence *sequence);
+	void authorSequence(Sequencer *sequencer, Sequence *sequence) override;
 };
 
 class HandlerLeftClick : public HandlerSequences {
 public:
-	virtual void toConsole();
-
-private:
-	virtual void execute(Sequence *sequence) {}
+	void toConsole() const override;
 };
 
 class HandlerUseClick : public HandlerSequences {
 public:
-	virtual void deserialize(Archive &archive);
-	virtual void toConsole();
+	void deserialize(Archive &archive) override;
+	void toConsole() const override;
 
 	const Common::String &getInventoryItem() const { return _inventoryItem; }
 	const Common::String &getRecepient() const { return _recepient; }
 
 private:
-	virtual void execute(Sequence *sequence) {};
-
 	Common::String _inventoryItem;
 	Common::String _recepient;
+};
+
+class HandlerTimerActions : public Handler {
+public:
+	void toConsole() const override;
+	void deserialize(Archive &archive) override;
+	void handle(Actor *actor) override;
+
+private:
+	StringArray _actions;
+};
+
+class HandlerTimerSequences : public HandlerSequences {
+	void authorSequence(Sequencer *sequencer, Sequence *sequence) override;
 };
 
 } // End of namespace Pink

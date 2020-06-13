@@ -37,8 +37,8 @@ void InitScript::SCRIPT_Initialize_Game() {
 
 	Init_Globals();
 	Init_Game_Flags();
-	Init_Clues();
-	Init_Clues2();
+	Init_Clues();  // Inits clues DB entries for McCoy (clues that McCoy can acquire)
+	Init_Clues2(); // Inits clues DB for everyone else (clues that the other actors, including the "Mainframe" (kActorVoiceover) can acquire)
 	Init_World_Waypoints();
 	Init_SDB();
 	Init_CDB();
@@ -1138,6 +1138,12 @@ void InitScript::Init_Clues2() {
 	Actor_Clue_Add_To_Database(kActorKlein, kClueHollowayInterview, 65, false, false, -1);
 	Actor_Clue_Add_To_Database(kActorKlein, kClueRunciterConfession1, 65, false, false, -1);
 	Actor_Clue_Add_To_Database(kActorKlein, kClueRunciterConfession2, 65, false, false, -1);
+	if (_vm->_cutContent) {
+		Actor_Clue_Add_To_Database(kActorKlein, kClueShellCasings, 65, false, false, -1);
+		Actor_Clue_Add_To_Database(kActorKlein, kClueChromeDebris, 65, false, false, -1);
+		Actor_Clue_Add_To_Database(kActorKlein, kClueOfficersStatement, 65, false, false, -1);
+		Actor_Clue_Add_To_Database(kActorKlein, kCluePaintTransfer, 65, false, false, -1);
+	}
 	Actor_Clue_Add_To_Database(kActorMurray, kClueMcCoyShotZubenInTheBack, 55, false, false, -1);
 	Actor_Clue_Add_To_Database(kActorMurray, kClueMcCoyIsAnnoying, 55, false, false, -1);
 	Actor_Clue_Add_To_Database(kActorMurray, kClueMcCoyIsKind, 70, false, false, -1);
@@ -2118,7 +2124,7 @@ void InitScript::Init_World_Waypoints() {
 	World_Waypoint_Set(433, kSetUG09, 115.0f, 156.0f, -310.0f);
 	World_Waypoint_Set(434, kSetUG09, -57.0f, 156.0f, -306.0f);
 	World_Waypoint_Set(435, kSetUG09, -121.0f, 156.0f, -426.0f);
-	World_Waypoint_Set(436, kSetUG18, -274.74f, 0.0f, 464.75f); // A bug? redundant? 436 is also set as a kSetUG18 waypoin in Sadik's AI script. Different co-ordinates
+	World_Waypoint_Set(436, kSetUG18, -274.74f, 0.0f, 464.75f); // A bug? redundant? 436 is also set as a kSetUG18 waypoint in Sadik's AI script. Different co-ordinates
 	World_Waypoint_Set(437, kSetHF05, 271.97f, 40.63f, 18.4f);
 	World_Waypoint_Set(438, kSetHF05, 203.97f, 40.63f, 18.4f);
 	World_Waypoint_Set(439, kSetNR05_NR08, -1273.27f, 0.32f, 126.92f);
@@ -2236,6 +2242,7 @@ void InitScript::Init_World_Waypoints() {
 	World_Waypoint_Set(551, kSetKP05_KP06, -737.31f, 0.0f, -145.05f);
 	// 552 - UNUSED
 	// 553 - kSetRC03 - Izo AI script
+	// 554 - kSetAR01_AR02 - Hasan AI script (new)
 }
 
 void InitScript::Init_SDB() {
@@ -2593,6 +2600,11 @@ void InitScript::Init_CDB() {
 	CDB_Set_Clue_Asset_Type(kClueChessTable, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueStaggeredbyPunches, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueMaggieBracelet, kClueTypeObject);
+	if (_vm->_cutContent) {
+		CDB_Set_Clue_Asset_Type(kClueGarterSnake, kClueTypeObject);
+		CDB_Set_Clue_Asset_Type(kClueGoldfish, kClueTypeObject);
+		CDB_Set_Clue_Asset_Type(kClueSlug, kClueTypeObject);
+	}
 	CDB_Set_Clue_Asset_Type(kClueEnvelope, kClueTypeObject);
 	CDB_Set_Clue_Asset_Type(kClueIzosFriend, kClueTypePhotograph);
 	CDB_Set_Clue_Asset_Type(kClueChinaBarSecurityPhoto, kClueTypePhotograph);
@@ -2908,14 +2920,7 @@ void InitScript::Init_Actor_Stability() {
 
 void InitScript::Init_Actor_Health() {
 	Actor_Set_Health(kActorMcCoy, 50, 50);
-	Actor_Set_Health(kActorSteele, 50, 50);
-	Actor_Set_Health(kActorGordo, 50, 50);
-	Actor_Set_Health(kActorDektora, 50, 50);
 	Actor_Set_Health(kActorGuzza, 50, 50);
-	Actor_Set_Health(kActorClovis, 50, 50);
-	Actor_Set_Health(kActorLucy, 50, 50);
-	Actor_Set_Health(kActorIzo, 50, 50);
-	Actor_Set_Health(kActorSadik, 50, 50);
 	Actor_Set_Health(kActorCrazylegs, 50, 50);
 	Actor_Set_Health(kActorLuther, 50, 50);
 	Actor_Set_Health(kActorGrigorian, 50, 50);
@@ -2926,12 +2931,9 @@ void InitScript::Init_Actor_Health() {
 	Actor_Set_Health(kActorInsectDealer, 50, 50);
 	Actor_Set_Health(kActorTyrellGuard, 50, 50);
 	Actor_Set_Health(kActorEarlyQ, 50, 50);
-	Actor_Set_Health(kActorZuben, 50, 50);
 	Actor_Set_Health(kActorHasan, 50, 50);
 	Actor_Set_Health(kActorMarcus, 50, 50);
 	Actor_Set_Health(kActorMia, 50, 50);
-	Actor_Set_Health(kActorOfficerLeary, 50, 50);
-	Actor_Set_Health(kActorOfficerGrayford, 50, 50);
 	Actor_Set_Health(kActorHanoi, 50, 50);
 	Actor_Set_Health(kActorBaker, 50, 50);
 	Actor_Set_Health(kActorDeskClerk, 50, 50);
@@ -2971,16 +2973,20 @@ void InitScript::Init_Actor_Health() {
 	Actor_Set_Health(kActorGenwalkerA, 50, 50);
 	Actor_Set_Health(kActorGenwalkerB, 50, 50);
 	Actor_Set_Health(kActorGenwalkerC, 50, 50);
-	Actor_Set_Health(kActorZuben, 80, 80);
+
+	// The health of all who can be Replicants will again be set further below
+	// (excluding LutherLance)
+	Actor_Set_Health(kActorSteele, 60, 60);
 	Actor_Set_Health(kActorGordo, 40, 40);
+	Actor_Set_Health(kActorDektora, 60, 60);
+	Actor_Set_Health(kActorClovis, 90, 90);
 	Actor_Set_Health(kActorLucy, 20, 20);
 	Actor_Set_Health(kActorIzo, 50, 50);
-	Actor_Set_Health(kActorDektora, 60, 60);
-	Actor_Set_Health(kActorSteele, 60, 60);
 	Actor_Set_Health(kActorSadik, 60, 60);
-	Actor_Set_Health(kActorClovis, 90, 90);
+	Actor_Set_Health(kActorZuben, 80, 80);
 	Actor_Set_Health(kActorOfficerLeary, 40, 40);
 	Actor_Set_Health(kActorOfficerGrayford, 50, 50);
+
 	Actor_Set_Health(kActorMutant1, 30, 30);
 	Actor_Set_Health(kActorMutant2, 50, 50);
 	Actor_Set_Health(kActorMutant3, 20, 20);

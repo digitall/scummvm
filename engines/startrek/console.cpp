@@ -30,6 +30,7 @@ namespace StarTrek {
 Console::Console(StarTrekEngine *vm) : GUI::Debugger(), _vm(vm) {
 	registerCmd("room",			WRAP_METHOD(Console, Cmd_Room));
 	registerCmd("actions",		WRAP_METHOD(Console, Cmd_Actions));
+	registerCmd("text",			WRAP_METHOD(Console, Cmd_Text));
 }
 
 Console::~Console() {
@@ -44,6 +45,7 @@ bool Console::Cmd_Room(int argc, const char **argv) {
 	}
 
 	_vm->_missionToLoad = argv[1];
+	_vm->_missionToLoad.toUppercase();
 	_vm->_roomIndexToLoad = atoi(argv[2]);
 	_vm->runAwayMission();
 
@@ -55,6 +57,7 @@ bool Console::Cmd_Actions(int argc, const char **argv) {
 
 	if (argc == 3) {
 		Common::String missionName = argv[1];
+		missionName.toUppercase();
 		int roomIndex = atoi(argv[2]);
 
 		screenName = missionName + (char)(roomIndex + '0');
@@ -78,6 +81,30 @@ bool Console::Cmd_Actions(int argc, const char **argv) {
 	}
 
 	delete rdfFile;
+
+	return true;
+}
+
+bool Console::Cmd_Text(int argc, const char **argv) {
+	typedef Common::HashMap<int, Common::String>::iterator MessageIterator;
+
+	debugPrintf("\nLook messages\n");
+	debugPrintf("-------------\n");
+	for (MessageIterator i = _vm->_room->_lookMessages.begin(); i != _vm->_room->_lookMessages.end(); ++i) {
+		debugPrintf("%i: %s\n", i->_key, i->_value.c_str());
+	}
+
+	debugPrintf("\nLook with talker messages\n");
+	debugPrintf("-------------------------\n");
+	for (MessageIterator i = _vm->_room->_lookWithTalkerMessages.begin(); i != _vm->_room->_lookWithTalkerMessages.end(); ++i) {
+		debugPrintf("%i: %s\n", i->_key, i->_value.c_str());
+	}
+
+	debugPrintf("\nTalk messages\n");
+	debugPrintf("-------------\n");
+	for (MessageIterator i = _vm->_room->_talkMessages.begin(); i != _vm->_room->_talkMessages.end(); ++i) {
+		debugPrintf("%i: %s\n", i->_key, i->_value.c_str());
+	}
 
 	return true;
 }

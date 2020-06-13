@@ -71,7 +71,7 @@ class MessageReaderV2 : public MessageReader {
 public:
 	MessageReaderV2(const SciSpan<const byte> &data) : MessageReader(data, 6, 4) { }
 
-	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) override {
 		SciSpan<const byte> recordPtr = _data.subspan(_headerSize);
 
 		for (uint i = 0; i < _messageCount; i++) {
@@ -99,7 +99,7 @@ class MessageReaderV3 : public MessageReader {
 public:
 	MessageReaderV3(const SciSpan<const byte> &data) : MessageReader(data, 8, 10) { }
 
-	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) override {
 		SciSpan<const byte> recordPtr = _data.subspan(_headerSize);
 		for (uint i = 0; i < _messageCount; i++) {
 			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)
@@ -127,7 +127,7 @@ class MessageReaderV4 : public MessageReader {
 public:
 	MessageReaderV4(const SciSpan<const byte> &data) : MessageReader(data, 10, 11) { }
 
-	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) override {
 		SciSpan<const byte> recordPtr = _data.subspan(_headerSize);
 		for (uint i = 0; i < _messageCount; i++) {
 			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)
@@ -151,14 +151,14 @@ public:
 	}
 };
 
-#ifdef ENABLE_SCI32_MAC
+#ifdef ENABLE_SCI32
 // SCI32 Mac decided to add an extra byte (currently unknown in meaning) between
 // the talker and the string...
 class MessageReaderV4_MacSCI32 : public MessageReader {
 public:
 	MessageReaderV4_MacSCI32(const SciSpan<const byte> &data) : MessageReader(data, 10, 12) { }
 
-	bool findRecord(const MessageTuple &tuple, MessageRecord &record) {
+	bool findRecord(const MessageTuple &tuple, MessageRecord &record) override {
 		SciSpan<const byte> recordPtr = _data.subspan(_headerSize);
 		for (uint i = 0; i < _messageCount; i++) {
 			if ((recordPtr[0] == tuple.noun) && (recordPtr[1] == tuple.verb)
@@ -211,8 +211,6 @@ bool MessageState::getRecord(CursorStack &stack, bool recurse, MessageRecord &re
 	case 4:
 #ifdef ENABLE_SCI32
 	case 5: // v5 seems to be compatible with v4
-#endif
-#ifdef ENABLE_SCI32_MAC
 		// SCI32 Mac is different than SCI32 DOS/Win here
 		if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2_1_EARLY)
 			reader = new MessageReaderV4_MacSCI32(*res);
@@ -434,6 +432,12 @@ bool MessageState::stringStage(Common::String &outstr, const Common::String &inS
 				index++;
 
 			return true;
+		}
+
+		// For Russian we allow all upper characters
+		if (g_sci->getLanguage() == Common::RU_RUS) {
+			if (((byte)inStr[i] >= 'a') || ((inStr[i] >= '0') && (inStr[i] <= '9') && (getSciVersion() < SCI_VERSION_2)))
+				return false;
 		}
 
 		// If we find a lowercase character or a digit, it's not a stage direction

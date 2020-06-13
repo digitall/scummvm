@@ -62,6 +62,8 @@ void AgiEngine::setVar(int16 varNr, byte newValue) {
 	case VM_VAR_VOLUME:
 		setVolumeViaScripts(newValue);
 		break;
+	default:
+		break;
 	}
 }
 
@@ -210,12 +212,6 @@ void AgiEngine::inGameTimerReset(uint32 newPlayTime) {
 }
 void AgiEngine::inGameTimerResetPassedCycles() {
 	_passedPlayTimeCycles = 0;
-}
-void AgiEngine::inGameTimerPause() {
-	pauseEngine(true);
-}
-void AgiEngine::inGameTimerResume() {
-	pauseEngine(false);
 }
 uint32 AgiEngine::inGameTimerGet() {
 	return getTotalPlayTime();

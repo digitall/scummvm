@@ -73,6 +73,7 @@ class DialogueMenu;
 class Elevator;
 class EndCredits;
 class ESPER;
+class Framelimiter;
 class Font;
 class GameFlags;
 class GameInfo;
@@ -90,7 +91,7 @@ class SceneObjects;
 class SceneScript;
 class Scores;
 class Settings;
-class Shape;
+class Shapes;
 class SliceAnimations;
 class SliceRenderer;
 class Spinner;
@@ -98,7 +99,6 @@ class Subtitles;
 class SuspectsDatabase;
 class TextResource;
 class Time;
-class KIAShapes;
 class Vector3;
 class View;
 class VK;
@@ -110,6 +110,7 @@ public:
 	static const int kArchiveCount = 12; // +2 to original value (10) to accommodate for SUBTITLES.MIX and one extra resource file, to allow for capability of loading all VQAx.MIX and the MODE.MIX file (debug purposes)
 	static const int kActorCount =  100;
 	static const int kActorVoiceOver = kActorCount - 1;
+
 	// Incremental number to keep track of significant revisions of the ScummVM bladerunner engine
 	// that could potentially introduce incompatibilities with old save files or require special actions to restore compatibility
 	// This is stored in game global variable "kVariableGameVersion"
@@ -125,6 +126,8 @@ public:
 
 	Common::String   _languageCode;
 	Common::Language _language;
+	bool             _russianCP1251;
+	bool             _noMusicDriver; // If "Music Device" is set to "No Music" from Audio tab
 
 	ActorDialogueQueue *_actorDialogueQueue;
 	ScreenEffects      *_screenEffects;
@@ -165,6 +168,7 @@ public:
 	SuspectsDatabase   *_suspectsDatabase;
 	Time               *_time;
 	View               *_view;
+	Framelimiter       *_framelimiter;
 	VK                 *_vk;
 	Waypoints          *_waypoints;
 	int                *_gameVars;
@@ -177,13 +181,17 @@ public:
 	TextResource       *_textVK;
 	TextResource       *_textOptions;
 
-	Common::Array<Shape*> _shapes;
+	Shapes *_shapes;
 
 	Actor *_actors[kActorCount];
 	Actor *_playerActor;
 
+	Graphics::PixelFormat _screenPixelFormat;
+
 	Graphics::Surface  _surfaceFront;
 	Graphics::Surface  _surfaceBack;
+	bool               _surfaceFrontCreated;
+	bool               _surfaceBackCreated;
 
 	ZBuffer           *_zbuffer;
 
@@ -201,6 +209,7 @@ public:
 	bool _actorIsSpeaking;
 	bool _actorSpeakStopIsRequested;
 	bool _gameOver;
+	bool _gameJustLaunched;
 	int  _gameAutoSaveTextId;
 	bool _gameIsAutoSaving;
 	bool _gameIsLoading;
@@ -210,7 +219,11 @@ public:
 	bool _subtitlesEnabled;  // tracks the state of whether subtitles are enabled or disabled from ScummVM GUI option or KIA checkbox (the states are synched)
 	bool _sitcomMode;
 	bool _shortyMode;
+	bool _noDelayMillisFramelimiter;
+	bool _framesPerSecondMax;
+	bool _disableStaminaDrain;
 	bool _cutContent;
+	bool _validBootParam;
 
 	int _walkSoundId;
 	int _walkSoundVolume;
@@ -238,18 +251,20 @@ public:
 	int    _actorUpdateCounter;
 	uint32 _actorUpdateTimeLast;
 
+	uint32 _timeOfMainGameLoopTickPrevious;
+
 private:
 	MIXArchive _archives[kArchiveCount];
 
 public:
 	BladeRunnerEngine(OSystem *syst, const ADGameDescription *desc);
-	~BladeRunnerEngine();
+	~BladeRunnerEngine() override;
 
 	bool hasFeature(EngineFeature f) const override;
 	bool canLoadGameStateCurrently() override;
 	Common::Error loadGameState(int slot) override;
 	bool canSaveGameStateCurrently() override;
-	Common::Error saveGameState(int slot, const Common::String &desc) override;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	void pauseEngineIntern(bool pause) override;
 
 	Common::Error run() override;
@@ -293,7 +308,7 @@ public:
 	bool closeArchive(const Common::String &name);
 	bool isArchiveOpen(const Common::String &name) const;
 
-	void syncSoundSettings();
+	void syncSoundSettings() override;
 	bool isSubtitlesEnabled();
 	void setSubtitlesEnabled(bool newVal);
 
@@ -314,7 +329,6 @@ public:
 	void blitToScreen(const Graphics::Surface &src) const;
 	Graphics::Surface generateThumbnail() const;
 
-	GUI::Debugger *getDebugger();
 	Common::String getTargetName() const;
 };
 
@@ -322,9 +336,36 @@ static inline const Graphics::PixelFormat gameDataPixelFormat() {
 	return Graphics::PixelFormat(2, 5, 5, 5, 1, 10, 5, 0, 15);
 }
 
+static inline void getGameDataColor(uint16 color, uint8 &a, uint8 &r, uint8 &g, uint8 &b) {
+	// gameDataPixelFormat().colorToARGB(vqaColor, a, r, g, b);
+	// using pixel format functions is too slow on some ports because of runtime checks
+	uint8 r5 = (color >> 10) & 0x1F;
+	uint8 g5 = (color >>  5) & 0x1F;
+	uint8 b5 = (color      ) & 0x1F;
+	a = color >> 15;
+	r = (r5 << 3) | (r5 >> 2);
+	g = (g5 << 3) | (g5 >> 2);
+	b = (b5 << 3) | (b5 >> 2);
+}
+
 static inline const Graphics::PixelFormat screenPixelFormat() {
-	// Should be a format supported by Android port
-	return Graphics::PixelFormat(2, 5, 5, 5, 1, 11, 6, 1, 0);
+	return ((BladeRunnerEngine*)g_engine)->_screenPixelFormat;
+}
+
+static inline void drawPixel(Graphics::Surface &surface, void* dst, uint32 value) {
+	switch (surface.format.bytesPerPixel) {
+		case 1:
+			*(uint8*)dst = (uint8)value;
+			break;
+		case 2:
+			*(uint16*)dst = (uint16)value;
+			break;
+		case 4:
+			*(uint32*)dst = (uint32)value;
+			break;
+		default:
+			break;
+	}
 }
 
 void blit(const Graphics::Surface &src, Graphics::Surface &dst);

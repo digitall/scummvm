@@ -31,10 +31,6 @@
 #include "backends/events/gph/gph-events.h"
 #include "backends/graphics/gph/gph-graphics.h"
 
-#ifndef PATH_MAX
-#define PATH_MAX 255
-#endif
-
 class OSystem_GPH : public OSystem_POSIX {
 public:
 	OSystem_GPH();
@@ -43,11 +39,15 @@ public:
 	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority);
 	void initBackend();
 	void quit();
+	bool hasFeature(Feature f);
 
 protected:
 	bool _inited;
 	bool _initedSDL;
 	virtual void initSDL();
+
+private:
+	Common::String getCurrentDirectory();
 };
 
 #endif

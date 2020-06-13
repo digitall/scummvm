@@ -52,21 +52,21 @@ class PDAButtonActor : public Actor {
 public:
 	void deserialize(Archive &archive) override;
 
-	void toConsole() override;
+	void toConsole() const override;
 
 	void init(bool paused) override;
 
-	void onMouseOver(const Common::Point point, CursorMgr *mgr) override;
+	void onMouseOver(Common::Point point, CursorMgr *mgr) override;
 
 	void onLeftClickMessage() override;
 
 private:
-	bool isActive();
+	bool isActive() const;
 
 	Command _command;
 
-	int _x;
-	int _y;
+	int16 _x;
+	int16 _y;
 
 	bool _hideOnStop;
 	bool _opaque;

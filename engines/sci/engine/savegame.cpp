@@ -421,22 +421,43 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 	if (getSciVersion() >= SCI_VERSION_2) {
 		g_sci->_video32->beforeSaveLoadWithSerializer(s);
 	}
+
+	if (getSciVersion() >= SCI_VERSION_2 &&
+		s.isLoading() &&
+		g_sci->getPlatform() == Common::kPlatformMacintosh) {
+		g_sci->_gfxFrameout->deletePlanesForMacRestore();
+	}
 #endif
 
 	_segMan->saveLoadWithSerializer(s);
 
 	g_sci->_soundCmd->syncPlayList(s);
 
-#ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
+#ifdef ENABLE_SCI32
 		g_sci->_gfxPalette32->saveLoadWithSerializer(s);
 		g_sci->_gfxRemap32->saveLoadWithSerializer(s);
 		g_sci->_gfxCursor32->saveLoadWithSerializer(s);
 		g_sci->_audio32->saveLoadWithSerializer(s);
 		g_sci->_video32->saveLoadWithSerializer(s);
-	} else
 #endif
+	} else {
 		g_sci->_gfxPalette16->saveLoadWithSerializer(s);
+	}
+
+	// Stop any currently playing audio when loading.
+	// Loading is not normally allowed while audio is being played in SCI games.
+	// Stopping sounds is needed in ScummVM, as the player may load via
+	// Control - F5 at any point, even while a sound is playing.
+	if (s.isLoading()) {
+		if (getSciVersion() >= SCI_VERSION_2) {
+#ifdef ENABLE_SCI32
+			g_sci->_audio32->stop(kAllChannels);
+#endif
+		} else {
+			g_sci->_audio->stopAllAudio();
+		}
+	}
 }
 
 void Vocabulary::saveLoadWithSerializer(Common::Serializer &s) {
@@ -668,6 +689,7 @@ void MusicEntry::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsSint16LE(fadeStep);
 	s.syncAsSint32LE(fadeTicker);
 	s.syncAsSint32LE(fadeTickerStep);
+	s.syncAsByte(stopAfterFading, VER(45));
 	s.syncAsByte(status);
 	if (s.getVersion() >= 32)
 		s.syncAsByte(playBed);
@@ -730,7 +752,7 @@ void SoundCommandParser::reconstructPlayList() {
 			if (_soundVersion >= SCI_VERSION_1_EARLY)
 				writeSelectorValue(_segMan, entry->soundObj, SELECTOR(vol), entry->volume);
 
-			processPlaySound(entry->soundObj, entry->playBed);
+			processPlaySound(entry->soundObj, entry->playBed, true);
 		}
 	}
 }
@@ -1174,6 +1196,33 @@ void SegManager::reconstructClones() {
 
 #pragma mark -
 
+bool gamestate_save(EngineState *s, int saveId, const Common::String &savename, const Common::String &version) {
+	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
+	const Common::String filename = g_sci->getSavegameName(saveId);
+
+	Common::OutSaveFile *saveStream = saveFileMan->openForSaving(filename);
+	if (saveStream == nullptr) {
+		warning("Error opening savegame \"%s\" for writing", filename.c_str());
+		return false;
+	}
+
+	if (!gamestate_save(s, saveStream, savename, version)) {
+		warning("Saving the game failed");
+		saveStream->finalize();
+		delete saveStream;
+		return false;
+	}
+
+	saveStream->finalize();
+	if (saveStream->err()) {
+		warning("Writing the savegame failed");
+		delete saveStream;
+		return false;
+	}
+
+	delete saveStream;
+	return true;
+}
 
 bool gamestate_save(EngineState *s, Common::WriteStream *fh, const Common::String &savename, const Common::String &version) {
 	Common::Serializer ser(nullptr, fh);
@@ -1190,10 +1239,51 @@ bool gamestate_save(EngineState *s, Common::WriteStream *fh, const Common::Strin
 	return true;
 }
 
-extern void showScummVMDialog(const Common::String &message);
+extern int showScummVMDialog(const Common::String& message, const char* altButton = nullptr, bool alignCenter = true);
 
 void gamestate_afterRestoreFixUp(EngineState *s, int savegameId) {
 	switch (g_sci->getGameId()) {
+	case GID_CAMELOT: {
+		// WORKAROUND: CAMELOT depends on its dynamic menu state persisting. The menu items'
+		//  enabled states determines when the player can draw or sheathe their sword and
+		//  open a purse. If these aren't updated then the player may be unable to perform
+		//  necessary actions, or may be able to perform unexpected ones that break the game.
+		//  Since we don't persist menu state (yet) we need to recreate it from game state.
+		//
+		// - Action \ Open Purse: Enabled while one of the purses is in inventory.
+		// - Action \ Draw Sword: Enabled while flag 3 is set, unless disabled by room scripts.
+		// * The text "Draw Sword" toggles to "Sheathe Sword" depending on global 124,
+		//   but this is only cosmetic. Exported proc #1 in script 997 refreshes this
+		//   when the sword status or room changes.
+		//
+		// After evaluating all the scripts that disable the sword, we enforce the few
+		//  that prevent breaking the game: room 50 under the aqueduct and sitting with
+		//  the scholar while in room 82 (ego view 84).
+		//
+		// FIXME: Save and restore full menu state as SSCI did and don't apply these
+		//  workarounds when restoring saves that contain menu state.
+
+		// Action \ Open Purse
+		reg_t enablePurse = NULL_REG;
+		Common::Array<reg_t> purses = s->_segMan->findObjectsByName("purse");
+		reg_t ego = s->variables[VAR_GLOBAL][0];
+		for (uint i = 0; i < purses.size(); ++i) {
+			reg_t purseOwner = readSelector(s->_segMan, purses[i], SELECTOR(owner));
+			if (purseOwner == ego) {
+				enablePurse = TRUE_REG;
+				break;
+			}
+		}
+		g_sci->_gfxMenu->kernelSetAttribute(1281 >> 8, 1281 & 0xFF, SCI_MENU_ATTRIBUTE_ENABLED, enablePurse);
+
+		// Action \ Draw Sword
+		bool hasSword = (s->variables[VAR_GLOBAL][250].getOffset() & 0x1000); // flag 3
+		bool underAqueduct = (s->variables[VAR_GLOBAL][11].getOffset() == 50);
+		bool sittingWithScholar = (readSelectorValue(s->_segMan, ego, SELECTOR(view)) == 84);
+		reg_t enableSword = (hasSword && !underAqueduct && !sittingWithScholar) ? TRUE_REG : NULL_REG;
+		g_sci->_gfxMenu->kernelSetAttribute(1283 >> 8, 1283 & 0xFF, SCI_MENU_ATTRIBUTE_ENABLED, enableSword);
+		break;
+	}
 	case GID_MOTHERGOOSE:
 		// WORKAROUND: Mother Goose SCI0
 		//  Script 200 / rm200::newRoom will set global C5h directly right after creating a child to the
@@ -1280,6 +1370,23 @@ void gamestate_afterRestoreFixUp(EngineState *s, int savegameId) {
 	default:
 		break;
 	}
+}
+
+bool gamestate_restore(EngineState *s, int saveId) {
+	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
+	const Common::String filename = g_sci->getSavegameName(saveId);
+	Common::SeekableReadStream *saveStream = saveFileMan->openForLoading(filename);
+
+	if (saveStream == nullptr) {
+		warning("Savegame #%d not found", saveId);
+		return false;
+	}
+
+	gamestate_restore(s, saveStream);
+	delete saveStream;
+
+	gamestate_afterRestoreFixUp(s, saveId);
+	return true;
 }
 
 void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {

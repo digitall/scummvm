@@ -33,7 +33,7 @@ public:
 	~ActionSound() override;
 	void deserialize(Archive &archive) override;
 
-	void toConsole() override;
+	void toConsole() const override;
 
 	void start() override;
 	void end() override;
@@ -45,7 +45,7 @@ public:
 private:
 	Common::String _fileName;
 	Sound _sound;
-	uint32 _volume;
+	byte _volume;
 	bool _isLoop;
 	bool _isBackground;
 };

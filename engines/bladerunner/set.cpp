@@ -134,7 +134,7 @@ bool Set::open(const Common::String &name) {
 }
 
 void Set::addObjectsToScene(SceneObjects *sceneObjects) const {
-	for (int i = 0; i < _objectCount; i++) {
+	for (int i = 0; i < _objectCount; ++i) {
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
 		overrideSceneObjectInfo(i); // For bugfixes with respect to clickable/targetable box positioning/bounding box
@@ -168,14 +168,14 @@ bool Set::isXZInWalkbox(float x, float z, const Walkbox &walkbox) {
 
 	float lastX = walkbox.vertices[walkbox.vertexCount - 1].x;
 	float lastZ = walkbox.vertices[walkbox.vertexCount - 1].z;
-	for (int i = 0; i < walkbox.vertexCount; i++) {
+	for (int i = 0; i < walkbox.vertexCount; ++i) {
 		float currentX = walkbox.vertices[i].x;
 		float currentZ = walkbox.vertices[i].z;
 
 		if ((currentZ > z && z >= lastZ) || (currentZ <= z && z < lastZ)) {
 			float lineX = (lastX - currentX) / (lastZ - currentZ) * (z - currentZ) + currentX;
 			if (x < lineX)
-				found++;
+				++found;
 		}
 		lastX = currentX;
 		lastZ = currentZ;
@@ -432,7 +432,7 @@ void Set::load(SaveFileReadStream &f) {
 /**
 * Used for bugfixes mainly with respect to bad box positioning / bounding box fixes
 * TODO If we have many such cases, perhaps we could use a lookup table
-*		using sceneId, objectId (or name) as keys
+*      using sceneId, objectId (or name) as keys
 */
 void Set::overrideSceneObjectInfo(int objectId) const {
 	switch (_vm->_scene->getSceneId()) {
@@ -450,6 +450,16 @@ void Set::overrideSceneObjectInfo(int objectId) const {
 			_objects[objectId].bbox.setXYZ(-76.48f, -1239.31f, 108308.19f, -56.32f, -1191.11f, 108326.42f);
 		} else if (objectId == 16 && _objects[objectId].name == "POLE_ROP02") {
 			_objects[objectId].bbox.setXYZ(-75.17f, -1239.29f, 108340.13f, -56.32f, -1221.16f, 108365.65f);
+		}
+		break;
+	case kSceneCT02:
+		// prevent McCoy from moving "around and behind" the map
+		if (objectId == 18 && _objects[objectId].name == "BACK-DOOR") {
+			_objects[objectId].bbox.setXYZ(-177.95f, -145.11f, -86.25f, -130.13f, -49.00f, -4.74f);
+		} else if (objectId == 19 && _objects[objectId].name == "BACKWALL") {
+			_objects[objectId].bbox.setXYZ(-323.10f, -162.41f, -16.25f, -177.95f, 160.29f, -4.74f);
+		} else if (objectId == 7 && _objects[objectId].name == "LFTSTOVE-1") {
+			_objects[objectId].bbox.setXYZ(-315.17f, -145.11f, 171.93f, -282.86f, -103.98f, 225.29f);
 		}
 		break;
 	case kSceneCT04:
@@ -551,7 +561,7 @@ void Set::setupNewObjectInSet(Common::String objName, BoundingBox objBbox) {
 	_objects[objectId].isHotMouse  = 0;
 	_objects[objectId].unknown1    = 0;
 	_objects[objectId].isTarget    = 0; // init as false - Can be changed in Scene script eg. SceneLoaded() with (Un_)Combat_Target_Object
-	_objectCount++;
+	++_objectCount;
 }
 /**
 * Used for adding objects in a Set mainly to fix a few "McCoy walking to places he should not" issues
@@ -566,6 +576,19 @@ void Set::patchInAdditionalObjectsInSet() {
 	Common::String custObjName;
 	BoundingBox bbox;
 	switch (_vm->_scene->getSceneId()) {
+	case kSceneBB09:
+		bbox = BoundingBox(406.12f, -9.18f, 140.87f, 440.04f, 172.49f, 165.33f);
+		custObjName = "BACKWALL1";
+		setupNewObjectInSet(custObjName, bbox);
+		bbox = BoundingBox(400.12f, -9.18f, 208.87f, 440.04f, 182.49f, 231.33f);
+		custObjName = "BACKWALL2";
+		setupNewObjectInSet(custObjName, bbox);
+		break;
+	case kSceneCT02:
+		bbox = BoundingBox(-130.13f, -162.41f, -16.25f, -81.74f, 160.29f, -4.74f);
+		custObjName = "BACKWALL2";
+		setupNewObjectInSet(custObjName, bbox);
+		break;
 	case kSceneHF06:
 		// block clicking / path access to northern part of the scene
 		// which causes McCoy and Police officers/ rats to go behind the map
@@ -590,9 +613,6 @@ void Set::patchInAdditionalObjectsInSet() {
 		// add missing buzzer button to annoy Klein
 		bbox = BoundingBox(530.16f, 48.44f, -570.13f, 550.41f, 50.46f, -558.77f);
 		custObjName = "L.MOUSE";
-		setupNewObjectInSet(custObjName, bbox);
-		bbox = BoundingBox(541.18f, 28.95f, -566.66f, 555.18f, 44.46f, -548.79f);
-		custObjName = "L.MOUSE2";
 		setupNewObjectInSet(custObjName, bbox);
 		break;
 

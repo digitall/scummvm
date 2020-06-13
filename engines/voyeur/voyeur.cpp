@@ -84,7 +84,7 @@ VoyeurEngine::~VoyeurEngine() {
 	delete _screen;
 	delete _filesManager;
 	delete _eventsManager;
-	delete _debugger;
+	//_debugger is deleted by Engine
 }
 
 Common::Error VoyeurEngine::run() {
@@ -120,6 +120,7 @@ void VoyeurEngine::ESP_Init() {
 
 void VoyeurEngine::globalInitBolt() {
 	_debugger = new Debugger(this);
+	setDebugger(_debugger);
 	_eventsManager = new EventsManager(this);
 	_filesManager = new FilesManager(this);
 	_screen = new Screen(this);
@@ -163,7 +164,7 @@ bool VoyeurEngine::doHeadTitle() {
 
 	if (_loadGameSlot == -1) {
 		// Show starting screen
-		if (_bVoy->getBoltGroup(0x500)) {
+		if (!getIsDemo() && _bVoy->getBoltGroup(0x500)) {
 			showConversionScreen();
 			_bVoy->freeBoltGroup(0x500);
 
@@ -178,11 +179,13 @@ bool VoyeurEngine::doHeadTitle() {
 				return false;
 		}
 
-		// Show the title screen
-		_eventsManager->getMouseInfo();
-		showTitleScreen();
-		if (shouldQuit())
-			return false;
+		if (!getIsDemo()) {
+			// Show the title screen
+			_eventsManager->getMouseInfo();
+			showTitleScreen();
+			if (shouldQuit())
+				return false;
+		}
 
 		// Opening
 		_eventsManager->getMouseInfo();
@@ -247,7 +250,7 @@ bool VoyeurEngine::doLock() {
 	byte *wrongVoc = _filesManager->fload("wrong.voc", &wrongVocSize);
 
 	if (_bVoy->getBoltGroup(0x700)) {
-		Common::String password = "3333";
+		Common::String password = ConfMan.hasKey("lockCode") ? ConfMan.get("lockCode") : "3333";
 
 		_screen->_backgroundPage = _bVoy->getPictureResource(0x700);
 		_screen->_backColors = _bVoy->getCMapResource(0x701);
@@ -358,6 +361,7 @@ bool VoyeurEngine::doLock() {
 				if ((password.empty() && displayString.empty()) || (password != displayString)) {
 					_screen->_vPort->setupViewPort();
 					password = displayString;
+					ConfMan.setAndFlush("lockCode", password);
 					displayString = "";
 					continue;
 				}
@@ -670,10 +674,6 @@ void VoyeurEngine::doTransitionCard(const Common::String &time, const Common::St
 	flipPageAndWait();
 }
 
-void VoyeurEngine::saveLastInplay() {
-	// No implementation in ScummVM version
-}
-
 void VoyeurEngine::flipPageAndWait() {
 	_screen->_vPort->_flags |= DISPFLAG_8;
 	_screen->flipPage();
@@ -745,10 +745,6 @@ void VoyeurEngine::showEndingNews() {
 
 /*------------------------------------------------------------------------*/
 
-Common::String VoyeurEngine::generateSaveName(int slot) {
-	return Common::String::format("%s.%03d", _targetName.c_str(), slot);
-}
-
 /**
  * Returns true if it is currently okay to restore a game
  */
@@ -773,7 +769,7 @@ Common::Error VoyeurEngine::loadGameState(int slot) {
 
 void VoyeurEngine::loadGame(int slot) {
 	// Open up the save file
-	Common::InSaveFile *saveFile = g_system->getSavefileManager()->openForLoading(generateSaveName(slot));
+	Common::InSaveFile *saveFile = g_system->getSavefileManager()->openForLoading(getSaveStateName(slot));
 	if (!saveFile)
 		return;
 
@@ -805,9 +801,9 @@ void VoyeurEngine::loadGame(int slot) {
 /**
  * Save the game to the given slot index, and with the given name
  */
-Common::Error VoyeurEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error VoyeurEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	// Open the save file for writing
-	Common::OutSaveFile *saveFile = g_system->getSavefileManager()->openForSaving(generateSaveName(slot));
+	Common::OutSaveFile *saveFile = g_system->getSavefileManager()->openForSaving(getSaveStateName(slot));
 	if (!saveFile)
 		return Common::kCreatingFileFailed;
 

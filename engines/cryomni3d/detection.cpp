@@ -23,6 +23,8 @@
 #include "base/plugins.h"
 
 #include "engines/advancedDetector.h"
+#include "common/file.h"
+#include "common/md5.h"
 #include "common/savefile.h"
 #include "common/system.h"
 #include "common/textconsole.h"
@@ -65,11 +67,9 @@ Common::Language CryOmni3DEngine::getLanguage() const {
 
 bool CryOmni3DEngine::hasFeature(EngineFeature f) const {
 	return
-	    (f == kSupportsRTL)
-	    || (f == kSupportsSubtitleOptions);
+		(f == kSupportsReturnToLauncher)
+		|| (f == kSupportsSubtitleOptions);
 }
-
-} // End of Namespace CryOmni3D
 
 static const PlainGameDescriptor cryomni3DGames[] = {
 	{"versailles", "Versailles 1685"},
@@ -85,42 +85,46 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 class CryOmni3DMetaEngine : public AdvancedMetaEngine {
 public:
 	CryOmni3DMetaEngine() : AdvancedMetaEngine(CryOmni3D::gameDescriptions,
-		        sizeof(CryOmni3D::CryOmni3DGameDescription), cryomni3DGames, optionsList) {
-		//_singleId = "cryomni3d";
-		_maxScanDepth = 2;
+				sizeof(CryOmni3DGameDescription), cryomni3DGames, optionsList) {
+		_directoryGlobs = directoryGlobs;
+		_maxScanDepth = 5;
 	}
 
 	ADDetectedGame fallbackDetect(const FileMap &allFiles,
-	                              const Common::FSList &fslist) const override {
-		return detectGameFilebased(allFiles, fslist, CryOmni3D::fileBased);
+								  const Common::FSList &fslist) const override {
+		return detectGameFilebased(allFiles, fslist, fileBased);
 	}
 
-	virtual const char *getName() const {
+	const char *getEngineId() const override {
+		return "cryomni3d";
+	}
+
+	const char *getName() const override {
 		return "Cryo Omni3D";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getOriginalCopyright() const override {
 		return "Cryo game Engine (C) 1997-2002 Cryo Interactive";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const { return 999; }
-	virtual void removeSaveState(const char *target, int slot) const;
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override { return 999; }
+	void removeSaveState(const char *target, int slot) const override;
 };
 
 bool CryOmni3DMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
-	    (f == kSupportsListSaves)
-	    || (f == kSupportsLoadingDuringStartup)
-	    || (f == kSupportsDeleteSave)
-	    || (f == kSimpleSavesNames);
+		(f == kSupportsListSaves)
+		|| (f == kSupportsLoadingDuringStartup)
+		|| (f == kSupportsDeleteSave)
+		|| (f == kSimpleSavesNames);
 }
 
 SaveStateList CryOmni3DMetaEngine::listSaves(const char *target) const {
 	// Replicate constant here to shorten lines
-	static const uint kSaveDescriptionLen = CryOmni3D::CryOmni3DEngine::kSaveDescriptionLen;
+	static const uint kSaveDescriptionLen = CryOmni3DEngine::kSaveDescriptionLen;
 	SaveStateList saveList;
 
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
@@ -134,7 +138,7 @@ SaveStateList CryOmni3DMetaEngine::listSaves(const char *target) const {
 	int slotNum;
 
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end();
-	        ++file) {
+			++file) {
 		// Obtain the last 4 digits of the filename, since they correspond to the save slot
 		slotNum = atoi(file->c_str() + file->size() - 4);
 
@@ -159,14 +163,14 @@ void CryOmni3DMetaEngine::removeSaveState(const char *target, int slot) const {
 }
 
 bool CryOmni3DMetaEngine::createInstance(OSystem *syst, Engine **engine,
-        const ADGameDescription *desc) const {
-	const CryOmni3D::CryOmni3DGameDescription *gd = (const CryOmni3D::CryOmni3DGameDescription *)desc;
+		const ADGameDescription *desc) const {
+	const CryOmni3DGameDescription *gd = (const CryOmni3DGameDescription *)desc;
 
 	if (gd) {
 		switch (gd->gameType) {
-		case CryOmni3D::GType_VERSAILLES:
+		case GType_VERSAILLES:
 #ifdef ENABLE_VERSAILLES
-			*engine = new CryOmni3D::Versailles::CryOmni3DEngine_Versailles(syst, gd);
+			*engine = new Versailles::CryOmni3DEngine_Versailles(syst, gd);
 			break;
 #else
 			warning("Versailles support not compiled in");
@@ -180,8 +184,10 @@ bool CryOmni3DMetaEngine::createInstance(OSystem *syst, Engine **engine,
 	return (gd != 0);
 }
 
+} // End of Namespace CryOmni3D
+
 #if PLUGIN_ENABLED_DYNAMIC(CRYOMNI3D)
-REGISTER_PLUGIN_DYNAMIC(CRYOMNI3D, PLUGIN_TYPE_ENGINE, CryOmni3DMetaEngine);
+REGISTER_PLUGIN_DYNAMIC(CRYOMNI3D, PLUGIN_TYPE_ENGINE, CryOmni3D::CryOmni3DMetaEngine);
 #else
-REGISTER_PLUGIN_STATIC(CRYOMNI3D, PLUGIN_TYPE_ENGINE, CryOmni3DMetaEngine);
+REGISTER_PLUGIN_STATIC(CRYOMNI3D, PLUGIN_TYPE_ENGINE, CryOmni3D::CryOmni3DMetaEngine);
 #endif

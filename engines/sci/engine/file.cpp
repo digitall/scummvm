@@ -348,12 +348,15 @@ void listSavegames(Common::Array<SavegameDesc> &saves) {
 	for (Common::StringArray::const_iterator iter = saveNames.begin(); iter != saveNames.end(); ++iter) {
 		const Common::String &filename = *iter;
 
-#ifdef ENABLE_SCI32
-		const int id = strtol(filename.end() - 3, NULL, 10);
-		if (id == kNewGameId || id == kAutoSaveId) {
-			continue;
+		// exclude new game and autosave slots, except for QFG3/4,
+		//  whose autosave should appear as a normal saved game
+		if (g_sci->getGameId() != GID_QFG3 && 
+			g_sci->getGameId() != GID_QFG4) {
+			const int id = strtol(filename.end() - 3, NULL, 10);
+			if (id == kNewGameId || id == kAutoSaveId) {
+				continue;
+			}
 		}
-#endif
 
 		SavegameDesc desc;
 		if (fillSavegameDesc(filename, desc)) {
@@ -441,6 +444,24 @@ Common::MemoryReadStream *makeCatalogue(const uint maxNumSaves, const uint gameN
 
 	return new Common::MemoryReadStream(data, dataSize, DisposeAfterUse::YES);
 }
+
+int shiftSciToScummVMSaveId(int saveId) {
+	if (saveId == kMaxShiftedSaveId) {
+		return 0;
+	} else if (saveId >= 0) {
+		return saveId + kSaveIdShift;
+	}
+	return saveId;
+}
+
+int shiftScummVMToSciSaveId(int saveId) {
+	if (saveId == 0) {
+		return kMaxShiftedSaveId;
+	} else if (saveId > 0) {
+		return saveId - kSaveIdShift;
+	}
+	return saveId;
+}
 #endif
 
 FileHandle::FileHandle() : _in(0), _out(0) {
@@ -474,10 +495,9 @@ void DirSeeker::addAsVirtualFiles(Common::String title, Common::String fileMask)
 		// Sort all filenames alphabetically
 		Common::sort(foundFiles.begin(), foundFiles.end());
 
-		_files.push_back(title);
-		_virtualFiles.push_back("");
 		Common::StringArray::iterator it;
 		Common::StringArray::iterator it_end = foundFiles.end();
+		bool titleAdded = false;
 
 		for (it = foundFiles.begin(); it != it_end; it++) {
 			Common::String regularFilename = *it;
@@ -488,6 +508,13 @@ void DirSeeker::addAsVirtualFiles(Common::String title, Common::String fileMask)
 			delete testfile;
 			if (testfileSize > 1024) // check, if larger than 1k. in that case its a saved game.
 				continue; // and we dont want to have those in the list
+
+			if (!titleAdded) {
+				_files.push_back(title);
+				_virtualFiles.push_back("");
+				titleAdded = true;
+			}
+
 			// We need to remove the prefix for display purposes
 			_files.push_back(wrappedFilename);
 			// but remember the actual name as well

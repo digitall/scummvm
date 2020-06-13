@@ -278,17 +278,13 @@ void GameManager::processInput(Common::KeyState &state) {
 		_vm->setTextSpeed();
 		break;
 	case Common::KEYCODE_F5:
-		// load/save
+		_vm->openMainMenuDialog();
 		break;
 	case Common::KEYCODE_x:
 		if (state.flags & Common::KBD_ALT) {
 			if (_vm->quitGameDialog())
 				_vm->quitGame();
 		}
-		break;
-	case Common::KEYCODE_d:
-		if (state.flags & Common::KBD_CTRL)
-			_vm->_console->attach();
 		break;
 	default:
 		break;
@@ -417,6 +413,7 @@ void GameManager::processInput() {
 				_inventoryScroll += 2;
 			break;
 		case onNone:
+		default:
 			break;
 		}
 
@@ -502,6 +499,7 @@ void GameManager::processInput() {
 				break;
 			case onObject:
 			case onNone:
+			default:
 				// Fallthrough
 				break;
 			}
@@ -539,6 +537,7 @@ void GameManager::processInput() {
 				_currentInputObject = _currentRoom->getObject(_mouseField);
 				break;
 			case onNone:
+			default:
 				break;
 			}
 		}
@@ -804,9 +803,9 @@ void GameManager::saveTime() {
 
 void GameManager::screenShake() {
 	for (int i = 0; i < 12; ++i) {
-		_vm->_system->setShakePos(8);
+		_vm->_system->setShakePos(0, 8);
 		wait(1);
-		_vm->_system->setShakePos(0);
+		_vm->_system->setShakePos(0, 0);
 		wait(1);
 	}
 }
@@ -834,7 +833,7 @@ void GameManager::edit(Common::String &input, int x, int y, uint length) {
 	bool isEditing = true;
 	uint cursorIndex = input.size();
 	// NOTE: Pixels for char needed = kFontWidth + 2px left and right side bearing
-	int overdrawWidth;
+	int overdrawWidth = 0;
 	Color background = kColorBlack;
 
 	if (_vm->_MSPart == 1) {

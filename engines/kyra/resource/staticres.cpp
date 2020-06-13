@@ -39,7 +39,7 @@
 
 namespace Kyra {
 
-#define RESFILE_VERSION 94
+#define RESFILE_VERSION 101
 
 namespace {
 bool checkKyraDat(Common::SeekableReadStream *file) {
@@ -952,7 +952,7 @@ void KyraEngine_LoK::loadMainScreen(int page) {
 		_screen->loadBitmap("MAIN15.CPS", page, page, &_screen->getPalette(0));
 	else if (_flags.lang == Common::EN_ANY || _flags.lang == Common::JA_JPN || (_flags.isTalkie && _flags.lang == Common::IT_ITA))
 		_screen->loadBitmap("MAIN_ENG.CPS", page, page, 0);
-	else if (_flags.lang == Common::FR_FRA)
+	else if (_flags.lang == Common::FR_FRA || (_flags.lang == Common::ES_ESP && _flags.isTalkie)  /* Spanish fan made over French CD version */ )
 		_screen->loadBitmap("MAIN_FRE.CPS", page, page, 0);
 	else if (_flags.lang == Common::DE_DEU)
 		_screen->loadBitmap("MAIN_GER.CPS", page, page, 0);
@@ -970,21 +970,21 @@ void KyraEngine_LoK::loadMainScreen(int page) {
 		_screen->setInterfacePalette(_screen->getPalette(1), 0x3F, 0x3F, 0x3F);
 
 		// TODO: Move this to a better place
-		_screen->enableInterfacePalette(true);
+		_screen->enableDualPaletteMode(136);
 	}
 }
 
 void KyraEngine_HoF::initStaticResource() {
 	_ingamePakList = _staticres->loadStrings(k2IngamePakFiles, _ingamePakListSize);
 	_ingameSoundList = _staticres->loadStrings(k2IngameSfxFiles, _ingameSoundListSize);
-	_ingameSoundIndex = (const uint16 *)_staticres->loadRawData(k2IngameSfxIndex, _ingameSoundIndexSize);
+	_ingameSoundIndex = (const int16*)_staticres->loadRawData(k2IngameSfxIndex, _ingameSoundIndexSize);
 	_musicFileListIntro = _staticres->loadStrings(k2SeqplayIntroTracks, _musicFileListIntroSize);
 	_musicFileListIngame = _staticres->loadStrings(k2IngameTracks, _musicFileListIngameSize);
 	_musicFileListFinale = _staticres->loadStrings(k2SeqplayFinaleTracks, _musicFileListFinaleSize);
 	_cdaTrackTableIntro = _staticres->loadRawData(k2SeqplayIntroCDA, _cdaTrackTableIntroSize);
 	_cdaTrackTableIngame = _staticres->loadRawData(k2IngameCDA, _cdaTrackTableIngameSize);
 	_cdaTrackTableFinale = _staticres->loadRawData(k2SeqplayFinaleCDA, _cdaTrackTableFinaleSize);
-	_ingameTalkObjIndex = (const uint16 *)_staticres->loadRawData(k2IngameTalkObjIndex, _ingameTalkObjIndexSize);
+	_ingameTalkObjIndex = (const uint16*)_staticres->loadRawData(k2IngameTalkObjIndex, _ingameTalkObjIndexSize);
 	_ingameTimJpStr = _staticres->loadStrings(k2IngameTimJpStrings, _ingameTimJpStrSize);
 	_itemAnimDefinition = _staticres->loadItemAnimDefinition(k2IngameShapeAnimData, _itemAnimDefinitionSize);
 
@@ -1468,6 +1468,31 @@ const int8 KyraEngine_HoF::_pcSpkSfxMap[] = {
 };
 
 const int KyraEngine_HoF::_pcSpkSfxMapSize = ARRAYSIZE(KyraEngine_HoF::_pcSpkSfxMap);
+
+const int16 KyraEngine_HoF::_keyboardSounds[190] = {
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1, 201,  -1, 184,  73,
+
+	 74, 212,  78, 184, 104, 185,  99, 102,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1, 121, 108,  20,
+
+	 22,  25, 168, 171, 207, 174,  38,  39,  40,  41,
+	 44, 109,  46, 178, 180,  53, 181,  56, 106, 182,
+	 59,  62,  183, -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+	 -1,  -1,  -1,  -1,  92,  15, 107, 191,  -1, 134,
+	 -1, 197,  -1, 205, 152, 139,  -1,  -1,  -1,  -1
+};
 
 void KyraEngine_HoF::initInventoryButtonList() {
 	delete[] _inventoryButtons;

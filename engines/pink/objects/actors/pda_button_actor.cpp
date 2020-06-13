@@ -56,7 +56,7 @@ void PDAButtonActor::deserialize(Archive &archive) {
 	_command.arg = archive.readString();
 }
 
-void PDAButtonActor::toConsole() {
+void PDAButtonActor::toConsole() const {
 	debugC(6, kPinkDebugLoadingObjects, "PDAButtonActor: _name = %s, _x = %u _y = %u _hideOnStop = %u, _opaque = %u, _commandType = %u, _arg = %s",
 		  _name.c_str(), _x, _y, _hideOnStop, _opaque, (int)_command.type, _command.arg.c_str());
 }
@@ -67,14 +67,14 @@ void PDAButtonActor::onLeftClickMessage() {
 	}
 }
 
-void PDAButtonActor::onMouseOver(const Common::Point point, CursorMgr *mgr) {
+void PDAButtonActor::onMouseOver(Common::Point point, CursorMgr *mgr) {
 	if (_command.type == Command::kNull || !isActive())
 		mgr->setCursor(kPDADefaultCursor, point, Common::String());
 	else
 		mgr->setCursor(kPDAClickableFirstFrameCursor, point, Common::String());
 }
 
-bool PDAButtonActor::isActive() {
+bool PDAButtonActor::isActive() const {
 	return _action && _action->getName() != "Inactive";
 }
 

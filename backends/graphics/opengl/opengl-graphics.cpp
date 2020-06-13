@@ -33,6 +33,8 @@
 #include "common/translation.h"
 #include "common/algorithm.h"
 #include "common/file.h"
+#include "gui/debugger.h"
+#include "engines/engine.h"
 #ifdef USE_OSD
 #include "common/tokenizer.h"
 #include "common/rect.h"
@@ -48,6 +50,10 @@
 #include "image/png.h"
 #else
 #include "image/bmp.h"
+#endif
+
+#ifdef USE_TTS
+#include "common/text-to-speech.h"
 #endif
 
 namespace OpenGL {
@@ -232,6 +238,7 @@ const OSystem::GraphicsMode glStretchModes[] = {
 	{"pixel-perfect", _s("Pixel-perfect scaling"), STRETCH_INTEGRAL},
 	{"fit", _s("Fit to window"), STRETCH_FIT},
 	{"stretch", _s("Stretch to window"), STRETCH_STRETCH},
+	{"fit_force_aspect", _s("Fit to window (4:3)"), STRETCH_FIT_FORCE_ASPECT},
 	{nullptr, nullptr, 0}
 };
 
@@ -432,7 +439,8 @@ void OpenGLGraphicsManager::initSize(uint width, uint height, const Graphics::Pi
 
 	_currentState.gameWidth = width;
 	_currentState.gameHeight = height;
-	_gameScreenShakeOffset = 0;
+	_gameScreenShakeXOffset = 0;
+	_gameScreenShakeYOffset = 0;
 }
 
 int16 OpenGLGraphicsManager::getWidth() const {
@@ -448,11 +456,6 @@ void OpenGLGraphicsManager::copyRectToScreen(const void *buf, int pitch, int x, 
 }
 
 void OpenGLGraphicsManager::fillScreen(uint32 col) {
-	// FIXME: This does not conform to the OSystem specs because fillScreen
-	// is always taking CLUT8 color values and use color indexed mode. This is,
-	// however, plain odd and probably was a forgotten when we introduced
-	// RGB support. Thus, we simply do the "sane" thing here and hope OSystem
-	// gets fixed one day.
 	_gameScreen->fill(col);
 }
 
@@ -470,6 +473,11 @@ void OpenGLGraphicsManager::updateScreen() {
 		_osdIconSurface->updateGLTexture();
 	}
 #endif
+
+	// If there's an active debugger, update it
+	GUI::Debugger *debugger = g_engine ? g_engine->getDebugger() : nullptr;
+	if (debugger)
+		debugger->onFrame();
 
 	// We only update the screen when there actually have been any changes.
 	if (   !_forceRedraw
@@ -509,8 +517,10 @@ void OpenGLGraphicsManager::updateScreen() {
 
 	// Second step: Draw the overlay if visible.
 	if (_overlayVisible) {
+		int dstX = (_windowWidth - _overlayDrawRect.width()) / 2;
+		int dstY = (_windowHeight - _overlayDrawRect.height()) / 2;
 		_backBuffer.enableBlend(Framebuffer::kBlendModeTraditionalTransparency);
-		g_context.getActivePipeline()->drawTexture(_overlay->getGLTexture(), 0, 0, _overlayDrawRect.width(), _overlayDrawRect.height());
+		g_context.getActivePipeline()->drawTexture(_overlay->getGLTexture(), dstX, dstY, _overlayDrawRect.width(), _overlayDrawRect.height());
 	}
 
 	// Third step: Draw the cursor if visible.
@@ -780,7 +790,7 @@ void OpenGLGraphicsManager::displayMessageOnOSD(const char *msg) {
 	_osdMessageChangeRequest = true;
 
 	_osdMessageNextData = msg;
-#endif
+#endif // USE_OSD
 }
 
 #ifdef USE_OSD
@@ -842,6 +852,14 @@ void OpenGLGraphicsManager::osdMessageUpdateSurface() {
 	_osdMessageAlpha = kOSDMessageInitialAlpha;
 	_osdMessageFadeStartTime = g_system->getMillis() + kOSDMessageFadeOutDelay;
 
+#ifdef USE_TTS
+	if (ConfMan.hasKey("tts_enabled", "scummvm") &&
+			ConfMan.getBool("tts_enabled", "scummvm")) {
+		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+		if (ttsMan)
+			ttsMan->say(_osdMessageNextData);
+	}
+#endif // USE_TTS
 	// Clear the text update request
 	_osdMessageNextData.clear();
 	_osdMessageChangeRequest = false;
@@ -897,7 +915,7 @@ void OpenGLGraphicsManager::grabPalette(byte *colors, uint start, uint num) cons
 	memcpy(colors, _gamePalette + start * 3, num * 3);
 }
 
-void OpenGLGraphicsManager::handleResizeImpl(const int width, const int height) {
+void OpenGLGraphicsManager::handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) {
 	// Setup backbuffer size.
 	_backBuffer.setDimensions(width, height);
 
@@ -929,6 +947,10 @@ void OpenGLGraphicsManager::handleResizeImpl(const int width, const int height) 
 	// GUI has working layouts.
 	overlayWidth = MAX<uint>(overlayWidth, 256);
 	overlayHeight = MAX<uint>(overlayHeight, 200);
+
+	// HACK: Reduce the size of the overlay on high DPI screens.
+	overlayWidth = fracToInt(overlayWidth * (intToFrac(90) / xdpi));
+	overlayHeight = fracToInt(overlayHeight * (intToFrac(90) / ydpi));
 
 	if (!_overlay || _overlay->getFormat() != _defaultFormatAlpha) {
 		delete _overlay;
@@ -996,7 +1018,7 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 
 	// Refresh the output screen dimensions if some are set up.
 	if (_windowWidth != 0 && _windowHeight != 0) {
-		handleResize(_windowWidth, _windowHeight);
+		handleResize(_windowWidth, _windowHeight, _xdpi, _ydpi);
 	}
 
 	// TODO: Should we try to convert textures into one of those formats if
@@ -1263,6 +1285,16 @@ void OpenGLGraphicsManager::recalculateCursorScaling() {
 
 		_cursorHotspotYScaled = fracToInt(_cursorHotspotYScaled * screenScaleFactorY);
 		_cursorHeightScaled   = fracToInt(_cursorHeightScaled   * screenScaleFactorY);
+	} else {
+		const frac_t screenScaleFactorX = intToFrac(90) / _xdpi;
+		const frac_t screenScaleFactorY = intToFrac(90) / _ydpi;
+
+		// FIXME: Replace this with integer maths
+		_cursorHotspotXScaled /= fracToDouble(screenScaleFactorX);
+		_cursorWidthScaled    /= fracToDouble(screenScaleFactorX);
+
+		_cursorHotspotYScaled /= fracToDouble(screenScaleFactorY);
+		_cursorHeightScaled   /= fracToDouble(screenScaleFactorY);
 	}
 }
 
@@ -1278,12 +1310,12 @@ bool OpenGLGraphicsManager::saveScreenshot(const Common::String &filename) const
 
 	// A line of a BMP image must have a size divisible by 4.
 	// We calculate the padding bytes needed here.
-	// Since we use a 3 byte per pixel mode, we can use width % 4 here, since
-	// it is equal to 4 - (width * 3) % 4. (4 - (width * Bpp) % 4, is the
-	// usual way of computing the padding bytes required).
+	// Since we use a 4 byte per pixel mode, we can use 0 here, since it is
+	// equal to (4 - (width * 4)) % 4. (4 - (width * Bpp)) % 4, is the usual
+	// way of computing the padding bytes required).
 	// GL_PACK_ALIGNMENT is 4, so this line padding is required for PNG too
-	const uint linePaddingSize = width % 4;
-	const uint lineSize        = width * 3 + linePaddingSize;
+	const uint linePaddingSize = 0;
+	const uint lineSize        = width * 4 + linePaddingSize;
 
 	Common::DumpFile out;
 	if (!out.open(filename)) {
@@ -1292,19 +1324,21 @@ bool OpenGLGraphicsManager::saveScreenshot(const Common::String &filename) const
 
 	Common::Array<uint8> pixels;
 	pixels.resize(lineSize * height);
-	GL_CALL(glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, &pixels.front()));
+	GL_CALL(glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &pixels.front()));
 
 #ifdef SCUMM_LITTLE_ENDIAN
-	const Graphics::PixelFormat format(3, 8, 8, 8, 0, 0, 8, 16, 0);
+	const Graphics::PixelFormat format(4, 8, 8, 8, 8, 0, 8, 16, 24);
 #else
-	const Graphics::PixelFormat format(3, 8, 8, 8, 0, 16, 8, 0, 0);
+	const Graphics::PixelFormat format(4, 8, 8, 8, 8, 24, 16, 8, 0);
 #endif
 	Graphics::Surface data;
 	data.init(width, height, lineSize, &pixels.front(), format);
+	data.flipVertical(Common::Rect(width, height));
+
 #ifdef USE_PNG
-	return Image::writePNG(out, data, true);
+	return Image::writePNG(out, data);
 #else
-	return Image::writeBMP(out, data, true);
+	return Image::writeBMP(out, data);
 #endif
 }
 

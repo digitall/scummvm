@@ -77,7 +77,6 @@ ObjectType &operator^=(ObjectType &a, ObjectType b) {
 
 SupernovaEngine::SupernovaEngine(OSystem *syst)
 	: Engine(syst)
-	, _console(nullptr)
 	, _gm(nullptr)
 	, _sound(nullptr)
 	, _resMan(nullptr)
@@ -107,7 +106,6 @@ SupernovaEngine::~SupernovaEngine() {
 	DebugMan.clearAllDebugChannels();
 
 	delete _sleepAutoSave;
-	delete _console;
 	delete _gm;
 	delete _sound;
 	delete _resMan;
@@ -121,7 +119,6 @@ Common::Error SupernovaEngine::run() {
 		uint32 start = _system->getMillis();
 		_gm->updateEvents();
 		_gm->executeRoom();
-		_console->onFrame();
 		_system->updateScreen();
 		int end = _delay - (_system->getMillis() - start);
 		if (end > 0)
@@ -151,7 +148,7 @@ void SupernovaEngine::init() {
 		_gm = new GameManager1(this, _sound);
 	else if (_MSPart == 2)
 		_gm = new GameManager2(this, _sound);
-	_console = new Console(this, _gm);
+	setDebugger(new Console(this, _gm));
 
 	setTotalPlayTime(0);
 
@@ -164,7 +161,7 @@ void SupernovaEngine::init() {
 
 bool SupernovaEngine::hasFeature(EngineFeature f) const {
 	switch (f) {
-	case kSupportsRTL:
+	case kSupportsReturnToLauncher:
 		return true;
 	case kSupportsLoadingDuringRuntime:
 		return true;
@@ -357,6 +354,11 @@ void SupernovaEngine::setTextSpeed() {
 	int boxWidth = stringWidth > 110 ? stringWidth : 110;
 	int boxHeight = 27;
 
+	// Disable improved mode temporarilly so that Key 1-5 are received below
+	// instead of being mapped to action selection.
+	bool hasImprovedMode = _improved;
+	_improved = false;
+
 	_gm->animationOff();
 	_gm->saveTime();
 	saveScreen(boxX, boxY, boxWidth, boxHeight);
@@ -398,6 +400,8 @@ void SupernovaEngine::setTextSpeed() {
 	restoreScreen();
 	_gm->loadTime();
 	_gm->animationOn();
+
+	_improved = hasImprovedMode;
 }
 
 void SupernovaEngine::showHelpScreen1() {
@@ -468,7 +472,7 @@ Common::SeekableReadStream *SupernovaEngine::getBlockFromDatFile(Common::String 
 		return nullptr;
 	}
 
-	uint32 gameBlockSize;
+	uint32 gameBlockSize = 0;
 	while (!f.eos()) {
 		int part = f.readByte();
 		gameBlockSize = f.readUint32LE();
@@ -494,7 +498,8 @@ Common::SeekableReadStream *SupernovaEngine::getBlockFromDatFile(Common::String 
 			return f.readStream(size);
 		} else {
 			f.skip(size);
-			readSize += size;
+			// size + 4 bytes for id + 4 bytes for lang + 4 bytes for size
+			readSize += size + 12;
 		}
 	}
 
@@ -661,7 +666,7 @@ bool SupernovaEngine::canSaveGameStateCurrently() {
 	return _allowSaveGame && _gm->canSaveGameStateCurrently();
 }
 
-Common::Error SupernovaEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error SupernovaEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	return (saveGame(slot, desc) ? Common::kNoError : Common::kWritingFailed);
 }
 
@@ -686,9 +691,21 @@ bool SupernovaEngine::deserialize(Common::ReadStream *in, int version) {
 	return true;
 }
 
+Common::String SupernovaEngine::getSaveStateName(int slot) const {
+	if (_MSPart == 1)
+		return Common::String::format("msn_save.%03d", slot);
+	else if (_MSPart == 2)
+		return Common::String::format("ms2_save.%03d", slot);
+
+	return "";
+}
+
 bool SupernovaEngine::loadGame(int slot) {
 	if (slot < 0)
 		return false;
+
+	// Stop any sound currently playing.
+	_sound->stop();
 
 	// Make sure no message is displayed as this would otherwise delay the
 	// switch to the new location until a mouse click.
@@ -705,11 +722,7 @@ bool SupernovaEngine::loadGame(int slot) {
 		// continue to try to load it from there.
 	}
 
-	Common::String filename;
-	if (_MSPart == 1)
-		filename = Common::String::format("msn_save.%03d", slot);
-	else if (_MSPart == 2)
-		filename = Common::String::format("ms2_save.%03d", slot);
+	Common::String filename = getSaveStateName(slot);
 	Common::InSaveFile *savefile = _saveFileMan->openForLoading(filename);
 	if (!savefile)
 		return false;
@@ -772,12 +785,7 @@ bool SupernovaEngine::saveGame(int slot, const Common::String &description) {
 		return true;
 	}
 
-	Common::String filename;
-	if (_MSPart == 1)
-		filename = Common::String::format("msn_save.%03d", slot);
-	else if (_MSPart == 2)
-		filename = Common::String::format("ms2_save.%03d", slot);
-
+	Common::String filename = getSaveStateName(slot);
 	Common::OutSaveFile *savefile = _saveFileMan->openForSaving(filename);
 	if (!savefile)
 		return false;

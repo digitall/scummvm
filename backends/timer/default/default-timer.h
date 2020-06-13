@@ -38,6 +38,8 @@ private:
 	TimerSlot *_head;
 	TimerSlotMap _callbacks;
 
+	uint32 _timerCallbackNext;
+
 public:
 	DefaultTimerManager();
 	virtual ~DefaultTimerManager();
@@ -49,6 +51,12 @@ public:
 	 * Timer callback, to be invoked at regular time intervals by the backend.
 	 */
 	void handler();
+
+	/*
+	 * Ensure that the callback is called at regular time intervals.
+	 * Should be called from pollEvents() on backends without threads.
+	 */
+	void checkTimers(uint32 interval = 10);
 };
 
 #endif

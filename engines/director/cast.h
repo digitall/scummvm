@@ -23,151 +23,159 @@
 #ifndef DIRECTOR_CAST_H
 #define DIRECTOR_CAST_H
 
-#include "common/rect.h"
-#include "common/substream.h"
 #include "director/archive.h"
-#include "graphics/surface.h"
+#include "director/types.h"
+
+#include "graphics/font.h"
+
+namespace Graphics {
+struct Surface;
+class MacText;
+class MacWindowManager;
+class MacButton;
+class MacWidget;
+}
+
+namespace Common {
+class SeekableReadStream;
+class ReadStreamEndian;
+}
+
+namespace Image {
+class ImageDecoder;
+}
 
 namespace Director {
 
 class Stxt;
-class CachedMacText;
-
-enum CastType {
-	kCastTypeNull = 0,
-	kCastBitmap = 1,
-	kCastFilmLoop = 2,
-	kCastText = 3,
-	kCastPalette = 4,
-	kCastPicture = 5,
-	kCastSound = 6,
-	kCastButton = 7,
-	kCastShape = 8,
-	kCastMovie = 9,
-	kCastDigitalVideo = 10,
-	kCastLingoScript = 11,
-	kCastRTE = 12
-};
+class SNDDecoder;
 
 class Cast {
 public:
-	CastType type;
-	Common::Rect initialRect;
-	Common::Rect boundingRect;
-	Common::Array<Resource> children;
+	Cast();
+	virtual ~Cast() {};
+	virtual bool isEditable() { return false; }
+	virtual bool setEditable(bool editable) { return false; }
+	virtual bool isModified() { return _modified; }
+	virtual void createWidget();
 
-	const Graphics::Surface *surface;
+	virtual void setColors(int *fgcolor, int *bgcolor) { return; }
+	virtual void getColors(int *fgcolor, int *bgcolor) { return; }
 
-	byte modified;
+	CastType _type;
+	Common::Rect _initialRect;
+	Common::Rect _boundingRect;
+	Common::Array<Resource> _children;
+
+	bool _modified;
+	bool _hilite;
+
+	Graphics::MacWidget *_widget;
 };
 
 class BitmapCast : public Cast {
 public:
-	BitmapCast(Common::ReadStreamEndian &stream, uint32 castTag, uint16 version = 2);
+	BitmapCast(Common::ReadStreamEndian &stream, uint32 castTag, uint16 version);
+	~BitmapCast();
+	virtual void createWidget() override;
+	// virtual void setColors(int *fgcolor, int *bgcolor) override;
 
-	uint16 regX;
-	uint16 regY;
-	uint8 flags;
-	uint16 someFlaggyThing;
-	uint16 unk1, unk2;
+	Image::ImageDecoder *_img;
 
-	uint16 bitsPerPixel;
+	uint16 _pitch;
+	uint16 _regX;
+	uint16 _regY;
+	uint8 _flags;
+	uint16 _bytes;
+	uint16 _clut;
 
-	uint32 tag;
+	uint16 _bitsPerPixel;
+
+	uint32 _tag;
 };
 
-enum ShapeType {
-	kShapeRectangle,
-	kShapeRoundRect,
-	kShapeOval,
-	kShapeLine
+class SoundCast : public Cast {
+public:
+	SoundCast(Common::ReadStreamEndian &stream, uint16 version);
+
+	bool _looping;
+	SNDDecoder *_audio;
 };
 
 class ShapeCast : public Cast {
 public:
-	ShapeCast(Common::ReadStreamEndian &stream, uint16 version = 2);
+	ShapeCast(Common::ReadStreamEndian &stream, uint16 version);
+	ShapeCast();
 
-	ShapeType shapeType;
-	uint16 pattern;
-	byte fgCol;
-	byte bgCol;
-	byte fillType;
-	byte lineThickness;
-	byte lineDirection;
-};
-
-enum TextType {
-	kTextTypeAdjustToFit,
-	kTextTypeScrolling,
-	kTextTypeFixed
-};
-
-enum TextAlignType {
-	kTextAlignRight = -1,
-	kTextAlignLeft,
-	kTextAlignCenter
-};
-
-enum TextFlag {
-	kTextFlagEditable,
-	kTextFlagAutoTab,
-	kTextFlagDoNotWrap
-};
-
-enum SizeType {
-	kSizeNone,
-	kSizeSmallest,
-	kSizeSmall,
-	kSizeMedium,
-	kSizeLarge,
-	kSizeLargest
+	ShapeType _shapeType;
+	uint16 _pattern;
+	byte _fgCol;
+	byte _bgCol;
+	byte _fillType;
+	byte _lineThickness;
+	byte _lineDirection;
+	InkType _ink;
 };
 
 class TextCast : public Cast {
 public:
-	TextCast(Common::ReadStreamEndian &stream, uint16 version = 2);
+	TextCast(Common::ReadStreamEndian &stream, uint16 version, bool asButton = false);
+	virtual void setColors(int *fgcolor, int *bgcolor) override;
+	virtual void getColors(int *fgcolor, int *bgcolor) override;
 
-	SizeType borderSize;
-	SizeType gutterSize;
-	SizeType boxShadow;
+	void setText(const char *text);
+	virtual void createWidget() override;
 
-	byte flags1;
-	uint32 fontId;
-	uint16 fontSize;
-	TextType textType;
-	TextAlignType textAlign;
-	SizeType textShadow;
-	byte textSlant;
-	Common::Array<TextFlag> textFlags;
-	uint16 palinfo1, palinfo2, palinfo3;
+	virtual bool isModified() override;
+	virtual bool isEditable() override;
+	virtual bool setEditable(bool editable) override;
+	Graphics::TextAlign getAlignment();
+
+	uint getBackColor() { return _bgcolor; }
+	uint getForeColor() { return _fgcolor; }
+
+	SizeType _borderSize;
+	SizeType _gutterSize;
+	SizeType _boxShadow;
+
+	byte _flags;
+	uint32 _fontId;
+	uint16 _fontSize;
+	TextType _textType;
+	TextAlignType _textAlign;
+	SizeType _textShadow;
+	byte _textSlant;
+	byte _textFlags;
+	uint16 _bgpalinfo1, _bgpalinfo2, _bgpalinfo3;
+	uint16 _fgpalinfo1, _fgpalinfo2, _fgpalinfo3;
+	ButtonType _buttonType;
 
 	Common::String _ftext;
+	Common::String _ptext;
 	void importStxt(const Stxt *stxt);
 	void importRTE(byte* text);
-	CachedMacText *cachedMacText;
-};
 
-enum ButtonType {
-	kTypeButton,
-	kTypeCheckBox,
-	kTypeRadio
-};
+	Common::String getText();
 
-class ButtonCast : public TextCast {
-public:
-	ButtonCast(Common::ReadStreamEndian &stream, uint16 version = 2);
-
-	ButtonType buttonType;
+private:
+	uint _bgcolor;
+	uint _fgcolor;
 };
 
 class ScriptCast : public Cast {
 public:
-	ScriptCast(Common::ReadStreamEndian &stream, uint16 version = 2);
+	ScriptCast(Common::ReadStreamEndian &stream, uint16 version);
 
-	uint32 id;
+	uint32 _id;
+	ScriptType _scriptType;
 };
 
+class RTECast : public TextCast {
+public:
+	RTECast(Common::ReadStreamEndian &stream, uint16 version);
 
+	void loadChunks();
+};
 
 struct CastInfo {
 	Common::String script;

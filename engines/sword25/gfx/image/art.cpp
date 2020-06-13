@@ -31,6 +31,7 @@
 
 /* Various utility functions RLL finds useful. */
 
+#include "common/math.h"
 #include "common/textconsole.h"
 
 #include "sword25/gfx/image/art.h"
@@ -365,8 +366,8 @@ static void art_vpath_render_bez(ArtVpath **p_vpath, int *pn, int *pn_max,
 		 * the other two control points are the same as the start point,
 		 * too.
 		 */
-		if (!(hypot(x1 - x0, y1 - y0) < 0.001
-		        && hypot(x2 - x0, y2 - y0) < 0.001))
+		if (!(Common::hypotenuse(x1 - x0, y1 - y0) < 0.001
+		        && Common::hypotenuse(x2 - x0, y2 - y0) < 0.001))
 			subDivide = true;
 	} else {
 		/* we can avoid subdivision if:
@@ -487,6 +488,8 @@ ArtVpath *art_bez_path_to_vec(const ArtBpath *bez, double flatness) {
 			                     flatness);
 			x = bez[bez_index].x3;
 			y = bez[bez_index].y3;
+			break;
+		default:
 			break;
 		}
 	} while (bez[bez_index++].code != ART_END);
@@ -767,6 +770,8 @@ static void render_cap(ArtVpath **p_result, int *pn_result, int *pn_result_max,
 		                    ART_LINETO,
 		                    vpath[i1].x + dlx0 - dly0,
 		                    vpath[i1].y + dly0 + dlx0);
+		break;
+	default:
 		break;
 	}
 }

@@ -36,19 +36,21 @@ static long g_lastTick = 0;
 static int g_frames = 0;
 #endif
 
+void printError(const char *error_message) {
+	NSString *messageString = [NSString stringWithUTF8String:error_message];
+	NSLog(@"%@", messageString);
+	fprintf(stderr, "%s\n", error_message);
+}
+
 #define printOpenGLError() printOglError(__FILE__, __LINE__)
 
-int printOglError(const char *file, int line) {
-	int retCode = 0;
-
-	// returns 1 if an OpenGL error occurred, 0 otherwise.
+void printOglError(const char *file, int line) {
 	GLenum glErr = glGetError();
 	while (glErr != GL_NO_ERROR) {
-		fprintf(stderr, "glError: %u (%s: %d)\n", glErr, file, line);
-		retCode = 1;
+		Common::String error = Common::String::format("glError: %u (%s: %d)", glErr, file, line);
+		printError(error.c_str());
 		glErr = glGetError();
 	}
-	return retCode;
 }
 
 bool iOS7_isBigDevice() {
@@ -118,8 +120,8 @@ uint getSizeNextPOT(uint size) {
 
 	// In case creating the OpenGL ES context failed, we will error out here.
 	if (_context == nil) {
-		fprintf(stderr, "Could not create OpenGL ES context\n");
-		exit(-1);
+		printError("Could not create OpenGL ES context.");
+		abort();
 	}
 
 	if ([EAGLContext setCurrentContext:_context]) {
@@ -192,22 +194,9 @@ uint getSizeNextPOT(uint size) {
 - (void)createOverlaySurface {
 	uint overlayWidth = (uint) MAX(_renderBufferWidth, _renderBufferHeight);
 	uint overlayHeight = (uint) MIN(_renderBufferWidth, _renderBufferHeight);
-
-	if (iOS7_isBigDevice()) {
-		// On really big displays, like the iPad Pro, we scale the interface down
-		// so that the controls are not too small..
-		while (overlayHeight > 1024) {
-			overlayWidth /= 2;
-			overlayHeight /= 2;
-		}
-	}
-	else {
-		// On small devices, we force the user interface to use the small theme
-		while (overlayHeight > 480) {
-			overlayWidth /= 2;
-			overlayHeight /= 2;
-		}
-	}
+	float hdpi_scaler = [UIScreen mainScreen].scale;
+	overlayWidth = (uint)(overlayWidth / hdpi_scaler);
+	overlayHeight = (uint)(overlayHeight / hdpi_scaler);
 
 	_videoContext.overlayWidth = overlayWidth;
 	_videoContext.overlayHeight = overlayHeight;
@@ -255,9 +244,8 @@ uint getSizeNextPOT(uint size) {
 	if (compileSuccess == GL_FALSE) {
 		GLchar messages[256];
 		glGetShaderInfoLog(shaderHandle, sizeof(messages), 0, &messages[0]);
-		NSString *messageString = [NSString stringWithUTF8String:messages];
-		NSLog(@"%@", messageString);
-		exit(1);
+		printError(messages);
+		abort();
 	}
 
 	return shaderHandle;
@@ -266,7 +254,8 @@ uint getSizeNextPOT(uint size) {
 - (void)compileShaders {
 	const char *vertexPrg =
 			"uniform vec2 ScreenSize;"
-			"uniform float Shake;"
+			"uniform float ShakeX;"
+			"uniform float ShakeY;"
 			""
 			"attribute vec2 Position;"
 			"attribute vec2 TexCoord;"
@@ -277,7 +266,7 @@ uint getSizeNextPOT(uint size) {
 			"void main(void) {"
 			"	DestColor = vec4(Position.x, Position.y, 0, 1);"
 			"	o_TexCoord = TexCoord;"
-			"	gl_Position = vec4((Position.x / ScreenSize.x) * 2.0 - 1.0, (1.0 - (Position.y + Shake) / ScreenSize.y) * 2.0 - 1.0, 0, 1);"
+			"	gl_Position = vec4(((Position.x + ShakeX) / ScreenSize.x) * 2.0 - 1.0, (1.0 - (Position.y + ShakeY) / ScreenSize.y) * 2.0 - 1.0, 0, 1);"
 			"}";
 
 	const char *fragmentPrg =
@@ -302,14 +291,15 @@ uint getSizeNextPOT(uint size) {
 	glGetProgramiv(programHandle, GL_LINK_STATUS, &linkSuccess);
 	if (linkSuccess == GL_FALSE) {
 		printOpenGLError();
-		exit(1);
+		abort();
 	}
 
 	glUseProgram(programHandle);
 
 	_screenSizeSlot = (GLuint) glGetUniformLocation(programHandle, "ScreenSize");
 	_textureSlot = (GLuint) glGetUniformLocation(programHandle, "Texture");
-	_shakeSlot = (GLuint) glGetUniformLocation(programHandle, "Shake");
+	_shakeXSlot = (GLuint) glGetUniformLocation(programHandle, "ShakeX");
+	_shakeYSlot = (GLuint) glGetUniformLocation(programHandle, "ShakeY");
 
 	_positionSlot = (GLuint) glGetAttribLocation(programHandle, "Position");
 	_textureCoordSlot = (GLuint) glGetAttribLocation(programHandle, "TexCoord");
@@ -454,7 +444,8 @@ uint getSizeNextPOT(uint size) {
 	_overlayTexture = 0;
 	_mouseCursorTexture = 0;
 
-	_scaledShakeOffsetY = 0;
+	_scaledShakeXOffset = 0;
+	_scaledShakeYOffset = 0;
 
 	_firstTouch = NULL;
 	_secondTouch = NULL;
@@ -868,9 +859,11 @@ uint getSizeNextPOT(uint size) {
 - (void)setViewTransformation {
 	// Scale the shake offset according to the overlay size. We need this to
 	// adjust the overlay mouse click coordinates when an offset is set.
-	_scaledShakeOffsetY = (int)(_videoContext.shakeOffsetY / (GLfloat)_videoContext.screenHeight * CGRectGetHeight(_overlayRect));
+	_scaledShakeXOffset = (int)(_videoContext.shakeXOffset / (GLfloat)_videoContext.screenWidth * CGRectGetWidth(_overlayRect));
+	_scaledShakeYOffset = (int)(_videoContext.shakeYOffset / (GLfloat)_videoContext.screenHeight * CGRectGetHeight(_overlayRect));
 
-	glUniform1f(_shakeSlot, _scaledShakeOffsetY);
+	glUniform1f(_shakeXSlot, _scaledShakeXOffset);
+	glUniform1f(_shakeYSlot, _scaledShakeYOffset);
 }
 
 - (void)clearColorBuffer {
@@ -909,23 +902,25 @@ uint getSizeNextPOT(uint size) {
 	point.y *= self.contentScaleFactor;
 
 	CGRect *area;
-	int width, height, offsetY;
+	int width, height, offsetX, offsetY;
 	if (_videoContext.overlayVisible) {
 		area = &_overlayRect;
 		width = _videoContext.overlayWidth;
 		height = _videoContext.overlayHeight;
-		offsetY = _scaledShakeOffsetY;
+		offsetX = _scaledShakeXOffset;
+		offsetY = _scaledShakeYOffset;
 	} else {
 		area = &_gameScreenRect;
 		width = _videoContext.screenWidth;
 		height = _videoContext.screenHeight;
-		offsetY = _videoContext.shakeOffsetY;
+		offsetX = _videoContext.shakeXOffset;
+		offsetY = _videoContext.shakeYOffset;
 	}
 
 	point.x = (point.x - CGRectGetMinX(*area)) / CGRectGetWidth(*area);
 	point.y = (point.y - CGRectGetMinY(*area)) / CGRectGetHeight(*area);
 
-	*x = (int)(point.x * width);
+	*x = (int)(point.x * width + offsetX);
 	// offsetY describes the translation of the screen in the upward direction,
 	// thus we need to add it here.
 	*y = (int)(point.y * height + offsetY);

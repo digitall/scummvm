@@ -68,13 +68,14 @@ public:
 	 * @see addTest()
 	 */
 	GFXTestSuite();
-	~GFXTestSuite() {}
-	const char *getName() const {
+	~GFXTestSuite() override {}
+	const char *getName() const override {
 		return "GFX";
 	}
-	const char *getDescription() const {
+	const char *getDescription() const override {
 		return "Graphics Subsystem";
 	}
+	void prepare() override;
 	static void setCustomColor(uint r, uint g, uint b);
 
 private:

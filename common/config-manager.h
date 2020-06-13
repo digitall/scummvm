@@ -89,10 +89,8 @@ public:
 	/** The transient (pseudo) domain. */
 	static char const *const kTransientDomain;
 
-#ifdef ENABLE_KEYMAPPER
 	/** The name of keymapper domain used to store the key maps */
 	static char const *const kKeymapperDomain;
-#endif
 
 #ifdef USE_CLOUD
 	/** The name of cloud domain used to store user's tokens */
@@ -119,6 +117,12 @@ public:
 	bool				hasKey(const String &key) const;
 	const String &		get(const String &key) const;
 	void				set(const String &key, const String &value);
+
+	/**
+	 * Update a configuration entry for the active domain and flush
+	 * the configuration file to disk if the value changed
+	 */
+	void				setAndFlush(const String &key, const Common::String &value);
 
 #if 1
 	//
@@ -189,9 +193,7 @@ private:
 	Domain			_appDomain;
 	Domain			_defaultsDomain;
 
-#ifdef ENABLE_KEYMAPPER
 	Domain			_keymapperDomain;
-#endif
 
 #ifdef USE_CLOUD
 	Domain			_cloudDomain;

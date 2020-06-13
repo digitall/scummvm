@@ -115,14 +115,14 @@ void Resources::addToCache(const Common::String &packName, const Common::String 
 	_resourceCache.push_back(entry);
 }
 
-void Resources::openPackage(const Common::String &fileName) {
+bool Resources::openPackage(const Common::String &fileName) {
 	debugC(1, kDebugResource, "openPackage(%s)", fileName.c_str());
 
 	Common::File file;
 	bool opened = file.open(fileName);
 
 	if (!opened)
-		return;
+		return false;
 
 	PakFile *pakFile = new PakFile();
 	pakFile->open(&file, fileName);
@@ -130,6 +130,7 @@ void Resources::openPackage(const Common::String &fileName) {
 	file.close();
 
 	_pakFiles.push_back(pakFile);
+	return true;
 }
 
 void Resources::closePackage(const Common::String &fileName) {
@@ -273,7 +274,7 @@ void PakFile::open(Common::SeekableReadStream *rs, const Common::String &packNam
 		currentPos += 4 + nameSize;
 
 		PakFile::File newFile;
-		strcpy(newFile._name, name);
+		Common::strlcpy(newFile._name, name, sizeof(newFile._name));
 		newFile._offset = offset;
 		newFile._size = nextOffset - offset;
 		_numFiles++;

@@ -102,7 +102,7 @@ bool ScummEngine::canLoadGameStateCurrently() {
 	return (VAR_MAINMENU_KEY == 0xFF || VAR(VAR_MAINMENU_KEY) != 0);
 }
 
-Common::Error ScummEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error ScummEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	requestSave(slot, desc);
 	return Common::kNoError;
 }
@@ -195,7 +195,7 @@ bool ScummEngine::saveState(Common::WriteStream *out, bool writeHeader) {
 bool ScummEngine::saveState(int slot, bool compat, Common::String &filename) {
 	bool saveFailed = false;
 
-	pauseEngine(true);
+	PauseToken pt = pauseEngine();
 
 	Common::WriteStream *out = openSaveFileForWriting(slot, compat, filename);
 	if (!out) {
@@ -214,8 +214,6 @@ bool ScummEngine::saveState(int slot, bool compat, Common::String &filename) {
 		debug(1, "State save as '%s' FAILED", filename.c_str());
 	else
 		debug(1, "State saved as '%s'", filename.c_str());
-
-	pauseEngine(false);
 
 	return !saveFailed;
 }
@@ -1147,7 +1145,7 @@ void ScummEngine::saveLoadWithSerializer(Common::Serializer &s) {
 
 	// When loading, reset the ShakePos. Fixes one part of bug #7141
 	if (s.isLoading() && s.getVersion() >= VER(10))
-		_system->setShakePos(0);
+		_system->setShakePos(0, 0);
 
 	// When loading, move the mouse to the saved mouse position.
 	if (s.isLoading() && s.getVersion() >= VER(20)) {

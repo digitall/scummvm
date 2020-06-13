@@ -69,7 +69,9 @@ public:
 
 	VideoPlayer(EventManager *eventMan, Video::VideoDecoder *decoder = nullptr) :
 		_eventMan(eventMan),
-		_decoder(decoder)
+		_decoder(decoder),
+		_needsUpdate(false),
+		_currentFrame(nullptr)
 #ifdef USE_RGB_COLOR
 		,
 		_hqVideoMode(false)
@@ -171,6 +173,18 @@ protected:
 	 */
 	Common::Rect _drawRect;
 
+	/**
+	 * If true, playUntilEvent() will immediately render a frame.
+	 * Used by VMDPlayer when censorship blobs are added or removed in Phant1
+	 * in order to immediately update the screen upon resuming playback.
+	 */
+	bool _needsUpdate;
+
+	/**
+	 * Current frame rendered by playUntilEvent() 
+	 */
+	const Graphics::Surface* _currentFrame;
+
 #ifdef USE_RGB_COLOR
 	/**
 	 * Whether or not the player is currently in high-quality video rendering
@@ -237,7 +251,7 @@ public:
 	 */
 	IOStatus play(const int16 from, const int16 to, const int16 showStyle, const bool cue);
 
-	virtual EventFlags playUntilEvent(const EventFlags flags, const uint32 maxSleepMs = 0xFFFFFFFF) override;
+	EventFlags playUntilEvent(const EventFlags flags, const uint32 maxSleepMs = 0xFFFFFFFF) override;
 
 	/**
 	 * Stops playback and closes the currently open AVI stream.
@@ -259,6 +273,23 @@ private:
 	 * Playback status of the player.
 	 */
 	AVIStatus _status;
+};
+
+#pragma mark -
+#pragma mark QuickTimePlayer
+
+/**
+ * QuickTimePlayer is used to play QuickTime animations.
+ * Used by Mac version of KQ7.
+ */
+class QuickTimePlayer : public VideoPlayer {
+public:
+	QuickTimePlayer(EventManager *eventMan);
+	
+	/**
+	 * Plays a QuickTime animation with the given file name
+	 */
+	void play(const Common::String& fileName);
 };
 
 #pragma mark -
@@ -302,7 +333,7 @@ public:
 	};
 
 	VMDPlayer(EventManager *eventMan, SegManager *segMan);
-	virtual ~VMDPlayer();
+	~VMDPlayer() override;
 
 private:
 	SegManager *_segMan;
@@ -370,8 +401,8 @@ private:
 	 */
 	int _lastYieldedFrameNo;
 
-	virtual EventFlags playUntilEvent(const EventFlags flags, const uint32 = 0xFFFFFFFF) override;
-	virtual EventFlags checkForEvent(const EventFlags flags) override;
+	EventFlags playUntilEvent(const EventFlags flags, const uint32 = 0xFFFFFFFF) override;
+	EventFlags checkForEvent(const EventFlags flags) override;
 
 #pragma mark -
 #pragma mark VMDPlayer - Rendering
@@ -391,12 +422,12 @@ protected:
 	/**
 	 * Renders a frame of video to the output bitmap.
 	 */
-	virtual void renderFrame(const Graphics::Surface &nextFrame) const override;
+	void renderFrame(const Graphics::Surface &nextFrame) const override;
 
 	/**
 	 * Updates the system with palette data from the video.
 	 */
-	virtual void submitPalette(const uint8 palette[256 * 3]) const override;
+	void submitPalette(const uint8 palette[256 * 3]) const override;
 
 private:
 	/**
@@ -486,7 +517,7 @@ private:
 	 * video, but this will require additional work in GfxFrameout and
 	 * GfxCursor32 since the internal buffer and cursor code are 8bpp only.
 	 */
-	virtual bool shouldStartHQVideo() const override {
+	bool shouldStartHQVideo() const override {
 		if (!VideoPlayer::shouldStartHQVideo()) {
 			return false;
 		}
@@ -614,6 +645,37 @@ private:
 	 * Whether or not the mouse cursor should be shown during playback.
 	 */
 	bool _showCursor;
+
+#pragma mark -
+#pragma mark VMDPlayer - Censorship blobs
+public:
+	/**
+	 * Censorship blobs are pixelated rectangles which are added and removed by
+	 * game scripts. Phant1 is the only game known to use this and always sets a
+	 * blockSize of 10. Each block's color comes from the pixel in the upper left
+	 * corner of the block's location.
+	 */
+	int16 addBlob(int16 blockSize, int16 top, int16 left, int16 bottom, int16 right);
+	void deleteBlobs();
+	void deleteBlob(int16 blobNumber);
+
+private:
+	enum {
+		kMaxBlobs = 10
+	};
+
+	struct Blob {
+		int16 blobNumber;
+		int16 blockSize;
+		int16 top;
+		int16 left;
+		int16 bottom;
+		int16 right;
+	};
+
+	Common::List<Blob> _blobs;
+
+	void drawBlobs(Graphics::Surface& frame) const;
 };
 
 #pragma mark -
@@ -664,7 +726,7 @@ public:
 	}
 
 protected:
-	virtual bool shouldStartHQVideo() const override {
+	bool shouldStartHQVideo() const override {
 		if (!VideoPlayer::shouldStartHQVideo() || _blackLines) {
 			return false;
 		}
@@ -672,7 +734,7 @@ protected:
 		return true;
 	}
 
-	virtual void renderFrame(const Graphics::Surface &nextFrame) const override;
+	void renderFrame(const Graphics::Surface &nextFrame) const override;
 
 private:
 	/**
@@ -719,15 +781,17 @@ public:
 	Video32(SegManager *segMan, EventManager *eventMan) :
 	_SEQPlayer(eventMan),
 	_AVIPlayer(eventMan),
+	_QuickTimePlayer(eventMan),
 	_VMDPlayer(eventMan, segMan),
 	_robotPlayer(segMan),
 	_duckPlayer(eventMan, segMan) {}
 
 	void beforeSaveLoadWithSerializer(Common::Serializer &ser);
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 
 	SEQPlayer &getSEQPlayer() { return _SEQPlayer; }
 	AVIPlayer &getAVIPlayer() { return _AVIPlayer; }
+	QuickTimePlayer &getQuickTimePlayer() { return _QuickTimePlayer; }
 	VMDPlayer &getVMDPlayer() { return _VMDPlayer; }
 	RobotDecoder &getRobotPlayer() { return _robotPlayer; }
 	DuckPlayer &getDuckPlayer() { return _duckPlayer; }
@@ -735,6 +799,7 @@ public:
 private:
 	SEQPlayer _SEQPlayer;
 	AVIPlayer _AVIPlayer;
+	QuickTimePlayer _QuickTimePlayer;
 	VMDPlayer _VMDPlayer;
 	RobotDecoder _robotPlayer;
 	DuckPlayer _duckPlayer;

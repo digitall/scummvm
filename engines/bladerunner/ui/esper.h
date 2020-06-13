@@ -33,6 +33,7 @@ namespace BladeRunner {
 class BladeRunnerEngine;
 class Font;
 class Shape;
+class Shapes;
 class VQAPlayer;
 class UIImagePicker;
 class ESPERScript;
@@ -101,9 +102,9 @@ class ESPER {
 	VQAPlayer *_vqaPlayerPhoto;
 	int        _vqaLastFrame;
 
-	Shape                 *_shapeButton;
-	Common::Array<Shape *> _shapesPhotos;
-	Shape                 *_shapeThumbnail;
+	Shapes *_shapesButtons;
+	Shapes *_shapesPhotos;
+	const Shape *_shapeThumbnail;
 
 	Photo _photos[kPhotoCount];
 	int   _photoIdSelected;
@@ -244,9 +245,9 @@ private:
 
 	void flashViewport();
 
-	void copyImageScale(Graphics::Surface *src, Common::Rect srcRect, Graphics::Surface *dst, Common::Rect dstRect);
-	void copyImageBlur(Graphics::Surface *src, Common::Rect srcRect, Graphics::Surface *dst, Common::Rect dstRect, float u);
-	void copyImageBlit(Graphics::Surface *src, Common::Rect srcRect, Graphics::Surface *dst, Common::Rect dstRect);
+	void copyImageScale(Graphics::Surface &src, Common::Rect srcRect, Graphics::Surface &dst, Common::Rect dstRect);
+	void copyImageBlur(Graphics::Surface &src, Common::Rect srcRect, Graphics::Surface &dst, Common::Rect dstRect, float u);
+	void copyImageBlit(Graphics::Surface &src, Common::Rect srcRect, Graphics::Surface &dst, Common::Rect dstRect);
 
 	void tickSound();
 	void tickScroll();

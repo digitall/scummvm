@@ -55,12 +55,12 @@ public:
 
 	void deserialize(Archive &archive) override;
 
-	void toConsole() override;
+	void toConsole() const override;
 
 	void loadState(Archive &archive);
 	void saveState(Archive &archive);
 
-	virtual void init(bool paused);
+	void init(bool paused) override;
 
 	void start(bool isHandler);
 
@@ -69,22 +69,22 @@ public:
 	void loadPDA(const Common::String &pageName);
 
 	void onKeyboardButtonClick(Common::KeyCode code);
-	void onLeftButtonClick(const Common::Point point);
+	void onLeftButtonClick(Common::Point point);
 	void onLeftButtonUp();
-	void onRightButtonClick(const Common::Point point);
+	virtual void onRightButtonClick(Common::Point point);
 
-	void onMouseMove(const Common::Point point);
+	void onMouseMove(Common::Point point);
 
-	void onMouseOverWithItem(const Common::Point point, const Common::String &itemName, Pink::CursorMgr *cursorMgr) override;
-	void onMouseOver(const Common::Point point, CursorMgr *mgr) override;
+	void onMouseOverWithItem(Common::Point point, const Common::String &itemName, Pink::CursorMgr *cursorMgr) override;
+	void onMouseOver(Common::Point point, CursorMgr *mgr) override;
 
-	virtual void onLeftClickMessage() override;
+	void onLeftClickMessage() override;
 	virtual void onVariableSet() {}
 	void onInventoryClosed(bool isItemClicked);
 	void onWalkEnd(const Common::String &stopName);
 	void onPDAClose();
 
-	bool isInteractingWith(Actor *actor);
+	bool isInteractingWith(const Actor *actor) const;
 
 	void setNextExecutors(const Common::String &nextModule, const Common::String &nextPage);
 
@@ -92,14 +92,14 @@ public:
 
 	AudioInfoMgr *getAudioInfoMgr() { return &_audioInfoMgr; }
 
-	Actor *getActorByPoint(const Common::Point point);
+	Actor *getActorByPoint(Common::Point point);
 
 	Actor *findActor(const Common::String &name);
 
 protected:
 	void forceUpdateCursor();
 
-	virtual void updateCursor(const Common::Point point);
+	virtual void updateCursor(Common::Point point);
 
 	virtual void sendUseClickMessage(Actor *actor);
 	void sendLeftClickMessage(Actor *actor);
@@ -130,7 +130,7 @@ protected:
 
 class ParlSqPink : public LeadActor {
 public:
-	void toConsole() override;
+	void toConsole() const override;
 
 protected:
 	WalkLocation *getWalkDestination() override;
@@ -138,13 +138,15 @@ protected:
 
 class PubPink : public LeadActor {
 public:
-	void toConsole() override;
+	void toConsole() const override;
+
+	void onRightButtonClick(Common::Point point) override;
 
 	void onLeftClickMessage() override;
 	void onVariableSet() override;
 
 protected:
-	void updateCursor(const Common::Point point) override;
+	void updateCursor(Common::Point point) override;
 
 	void sendUseClickMessage(Actor *actor) override;
 

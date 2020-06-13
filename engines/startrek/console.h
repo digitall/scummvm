@@ -32,13 +32,14 @@ class StarTrekEngine;
 class Console : public GUI::Debugger {
 public:
 	Console(StarTrekEngine *vm);
-	virtual ~Console(void);
+	~Console(void) override;
 
 private:
 	StarTrekEngine *_vm;
 
 	bool Cmd_Room(int argc, const char **argv);
 	bool Cmd_Actions(int argc, const char **argv);
+	bool Cmd_Text(int argc, const char **argv);
 
 	Common::String EventToString(uint32 action);
 	Common::String ItemToString(byte index);
