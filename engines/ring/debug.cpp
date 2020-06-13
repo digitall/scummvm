@@ -201,8 +201,6 @@ void Debugger::postEnter() {
 
 	// Clear action
 	_action = kActionNone;
-
-	_engine->pauseEngine(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
