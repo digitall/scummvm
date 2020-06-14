@@ -122,7 +122,7 @@ public:
 	uint32 getFrameRate()               override { return _header.frameRate; }
 	byte getChannels(uint32 index)      override { return _soundConfigs[index].channels; }
 	byte getBitsPerSample(uint32 index) override { return _soundConfigs[index].bitsPerSample; }
-	byte getSamplesPerSec(uint32 index) override { return _soundConfigs[index].samplesPerSec; }
+	uint32 getSamplesPerSec(uint32 index) override { return _soundConfigs[index].samplesPerSec; }
 
 private:
 	Cinematic2         *_cinematic;

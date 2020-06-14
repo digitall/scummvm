@@ -70,7 +70,7 @@ public:
 	uint32 getFrameRate()         override { return _header.frameRate; }
 	byte getChannels(uint32)      override { return _header.channels; }
 	byte getBitsPerSample(uint32) override { return _header.bitsPerSample; }
-	byte getSamplesPerSec(uint32) override { return _header.samplesPerSec; }
+	uint32 getSamplesPerSec(uint32) override { return _header.samplesPerSec; }
 
 private:
 	Cinematic1 *_cinematic;

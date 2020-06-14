@@ -55,7 +55,7 @@ public:
 	virtual uint32 getFrameRate() = 0;
 	virtual byte getChannels(uint32 index) = 0;
 	virtual byte getBitsPerSample(uint32 index) = 0;
-	virtual byte getSamplesPerSec(uint32 index) = 0;
+	virtual uint32 getSamplesPerSec(uint32 index) = 0;
 };
 
 } // End of namespace Ring
