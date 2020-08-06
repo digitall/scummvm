@@ -29,17 +29,30 @@ namespace Audio {
 	class AudioStream;
 	class SoundHandle;
 	class PCSpeaker;
-	class SeekableAudioStream;
+	class RewindableAudioStream;
 }
 
 namespace Director {
+
+struct FadeParams {
+	int startVol;
+	int targetVol;
+	int totalTicks;
+	int startTicks;
+	int lapsedTicks;
+	bool fadeIn;
+
+	FadeParams(int sv, int tv, int tt, int st, bool f) :
+		startVol(sv), targetVol(tv), totalTicks(tt), startTicks(st), lapsedTicks(0), fadeIn(f) {}
+};
 
 struct SoundChannel {
 	Audio::SoundHandle handle;
 	int lastPlayingCast;
 	byte volume;
+	FadeParams *fade;
 
-	SoundChannel(): handle(), lastPlayingCast(0), volume(255) {}
+	SoundChannel(): handle(), lastPlayingCast(0), volume(255), fade(nullptr) {}
 };
 
 class DirectorSound {
@@ -57,28 +70,42 @@ public:
 	~DirectorSound();
 
 	SoundChannel *getChannel(uint8 soundChannel);
-	void playWAV(Common::String filename, uint8 soundChannel);
-	void playAIFF(Common::String filename, uint8 soundChannel);
 	void playFile(Common::String filename, uint8 soundChannel);
 	void playMCI(Audio::AudioStream &stream, uint32 from, uint32 to);
 	void playStream(Audio::AudioStream &stream, uint8 soundChannel);
 	void playCastMember(int castId, uint8 soundChannel, bool allowRepeat = true);
 	void systemBeep();
+
+	void registerFade(uint8 soundChannel, bool fadeIn, int ticks);
+	bool fadeChannel(uint8 soundChannel);
+
 	bool isChannelActive(uint8 soundChannel);
 	int lastPlayingCast(uint8 soundChannel);
 	void stopSound(uint8 soundChannel);
 	void stopSound();
+
+private:
+	bool isChannelValid(uint8 soundChannel);
+	void cancelFade(uint8 soundChannel);
 };
 
+class AudioDecoder {
+public:
+	virtual ~AudioDecoder() {};
+public:
+	virtual Audio::RewindableAudioStream *getAudioStream(DisposeAfterUse::Flag disposeAfterUse = DisposeAfterUse::YES) = 0;
+	virtual Audio::AudioStream *getLoopingAudioStream();
+};
 
-class SNDDecoder {
+class SNDDecoder : public AudioDecoder {
 public:
 	SNDDecoder();
 	~SNDDecoder();
 
 	bool loadStream(Common::SeekableSubReadStreamEndian &stream);
-	Audio::SeekableAudioStream *getAudioStream();
-	Audio::AudioStream *getLoopingAudioStream();
+	bool processCommands(Common::SeekableSubReadStreamEndian &stream);
+	bool processBufferCommand(Common::SeekableSubReadStreamEndian &stream);
+	Audio::RewindableAudioStream *getAudioStream(DisposeAfterUse::Flag disposeAfterUse = DisposeAfterUse::YES);
 
 private:
 	byte *_data;
@@ -86,6 +113,19 @@ private:
 	uint32 _size;
 	uint16 _rate;
 	byte _flags;
+};
+
+class AudioFileDecoder: public AudioDecoder {
+public:
+	AudioFileDecoder(Common::String &path): _path(path) {};
+	~AudioFileDecoder() {};
+
+	void setPath(Common::String &path);
+
+	Audio::RewindableAudioStream *getAudioStream(DisposeAfterUse::Flag disposeAfterUse = DisposeAfterUse::YES);
+
+private:
+	Common::String _path;
 };
 
 } // End of namespace Director

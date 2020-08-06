@@ -284,7 +284,7 @@ String &String::operator=(char c) {
 }
 
 String &String::operator+=(const char *str) {
-	if (_str <= str && str <= _str + _size)
+	if (pointerInOwnBuffer(str))
 		return operator+=(String(str));
 
 	int len = strlen(str);
@@ -295,6 +295,16 @@ String &String::operator+=(const char *str) {
 		_size += len;
 	}
 	return *this;
+}
+
+bool String::pointerInOwnBuffer(const char *str) const {
+	//compared pointers must be in the same array or UB
+	//cast to intptr however is IB
+	//which includes comparision of the values
+	uintptr ownBuffStart = (uintptr)_str;
+	uintptr ownBuffEnd = (uintptr)(_str + _size);
+	uintptr candidateAddr = (uintptr)str;
+	return ownBuffStart <= candidateAddr && candidateAddr <= ownBuffEnd;
 }
 
 String &String::operator+=(const String &str) {
@@ -1322,4 +1332,23 @@ char *scumm_strdup(const char *in) {
 		strcpy(out, in);
 	}
 	return out;
+}
+
+//  Portable implementation of strcasestr.
+const char *scumm_strcasestr(const char *s, const char *find) {
+	char c, sc;
+	size_t len;
+
+	if ((c = *find++) != 0) {
+		c = (char)tolower((unsigned char)c);
+		len = strlen(find);
+		do {
+			do {
+				if ((sc = *s++) == 0)
+					return (NULL);
+			} while ((char)tolower((unsigned char)sc) != c);
+		} while (scumm_strnicmp(s, find, len) != 0);
+		s--;
+	}
+	return s;
 }

@@ -27,7 +27,6 @@ namespace Director {
 
 namespace LC {
 	void c_xpop();
-	void c_printtop();
 
 	Datum mapBinaryOp(Datum (*func)(Datum &, Datum &), Datum &d1, Datum &d2);
 	Datum addData(Datum &d1, Datum &d2);
@@ -48,8 +47,8 @@ namespace LC {
 	void c_not();
 
 	void c_ampersand();
-	void c_after();
-	void c_before();
+	void c_putafter();
+	void c_putbefore();
 	void c_concat();
 	void c_contains();
 	void c_starts();
@@ -66,6 +65,7 @@ namespace LC {
 	void c_wordOf();
 	void c_wordToOf();
 
+	void c_constpush();
 	void c_intpush();
 	void c_voidpush();
 	void c_floatpush();
@@ -91,9 +91,8 @@ namespace LC {
 	void c_themenuentitypush();
 	void c_theentityassign();
 	void c_themenuitementityassign();
-	void c_objectfieldpush();
-	void c_objectfieldassign();
-	void c_objectrefpush();
+	void c_objectproppush();
+	void c_objectpropassign();
 
 	void c_whencode();
 	void c_tell();
@@ -113,10 +112,11 @@ namespace LC {
 	void c_le();
 	void c_jump();
 	void c_jumpifz();
-	void c_call();
+	void c_callcmd();
+	void c_callfunc();
 
-	void call(const Symbol &targetSym, int nargs, Datum target = Datum());
-	void call(const Common::String &name, int nargs);
+	void call(const Symbol &targetSym, int nargs, bool allowRetVal);
+	void call(const Common::String &name, int nargs, bool allowRetVal);
 
 	void c_procret();
 
@@ -126,7 +126,6 @@ namespace LC {
 	void c_gotoloop();
 	void c_gotonext();
 	void c_gotoprevious();
-	void c_property();
 
 	void c_play();
 
@@ -146,11 +145,10 @@ namespace LC {
 	void cb_globalpush();
 	void cb_list();
 	void cb_localcall();
-	void cb_methodcall();
+	void cb_objectcall();
 	void cb_objectfieldassign();
 	void cb_objectfieldpush();
 	void cb_objectpush();
-	void cb_tellcall();
 	void cb_theassign();
 	void cb_theassign2();
 	void cb_thepush();

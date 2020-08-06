@@ -34,30 +34,29 @@
 namespace Graphics {
 
 MacButton::MacButton(MacButtonType buttonType, TextAlign textAlignment, MacWidget *parent, int x, int y, int w, int h, MacWindowManager *wm, const Common::U32String &s, const MacFont *macFont, int fgcolor, int bgcolor) :
-	MacText(parent, x, y, w, h, wm, s, macFont, fgcolor, bgcolor, w, textAlignment) {
+	MacText(parent, x, y, w, h, wm, s, macFont, fgcolor, bgcolor, w, textAlignment), _pd(Graphics::MacPlotData(_composeSurface, nullptr, &_wm->getPatterns(), 1, 0, 0, 1, 0, true)) {
 
 	_buttonType = buttonType;
 
-	int offset;
 	switch (buttonType) {
 	case kCheckBox:
-		offset = 16;
+		_alignOffset.x += 16;
+		_dims.right += 16;
 		break;
 	case kRound:
-		offset = 4;
-		_dims.top -= 2;
-		_dims.bottom += 2;
+		_alignOffset.x += 2;
 		_alignOffset.y += 2;
+		_dims.right += 2;
+		_dims.bottom += 4;
 		break;
 	case kRadio:
-		offset = 16;
+		_alignOffset.x += 16;
+		_dims.right += 16;
 		break;
 	}
 
-	_alignOffset.x += offset;
-	_dims.right += offset;
 	_composeSurface->create(_dims.width(), _dims.height());
-	_maskSurface->create(_dims.width(), _dims.height());
+	_composeSurface->clear(_bgcolor);
 }
 
 void MacButton::setActive(bool active) {
@@ -75,16 +74,18 @@ void MacButton::invertOuter() {
 	switch (_buttonType) {
 	case kCheckBox: {
 		Common::Rect c = Common::Rect(r.left + 1, r.top + 3, r.left + 9, r.top + 11);
-		Graphics::drawRect(c, 0, Graphics::macInvertPixel, _composeSurface);
+		Graphics::drawRect(c, 0, Graphics::macDrawPixel, &_pd);
 	}
 		break;
 	case kRound:
-		Graphics::drawRoundRect(r, 4, 0, true, Graphics::macInvertPixel, _composeSurface);
+		Graphics::drawRoundRect(r, 4, 0, true, Graphics::macDrawPixel, &_pd);
 		break;
 	case kRadio:
-		Graphics::drawEllipse(r.left + 1, r.top + 3, r.left + 10, r.top + 12, 0, false, Graphics::macInvertPixel, _composeSurface);
+		Graphics::drawEllipse(r.left + 1, r.top + 3, r.left + 10, r.top + 12, 0, false, Graphics::macDrawPixel, &_pd);
 		break;
 	}
+
+	_contentIsDirty = true;
 }
 
 void MacButton::invertInner() {
@@ -92,27 +93,28 @@ void MacButton::invertInner() {
 
 	switch (_buttonType) {
 	case kCheckBox:
-		Graphics::drawLine(r.left + 1, r.top + 3, r.left + 9, r.top + 11, 0, Graphics::macInvertPixel, _composeSurface);
-		Graphics::drawLine(r.left + 1, r.top + 11, r.left + 9, r.top + 3, 0, Graphics::macInvertPixel, _composeSurface);
-		Graphics::macInvertPixel(5, 7, 0, _composeSurface);
+		Graphics::drawLine(r.left + 1, r.top + 3, r.left + 9, r.top + 11, 0, Graphics::macDrawPixel, &_pd);
+		Graphics::drawLine(r.left + 1, r.top + 11, r.left + 9, r.top + 3, 0, Graphics::macDrawPixel, &_pd);
+		Graphics::macDrawPixel(5, 7, 0, &_pd);
 		break;
 	case kRound:
 		break;
 	case kRadio:
-		Graphics::drawEllipse(r.left + 3, r.top + 5, r.left + 8, r.top + 10, 0, true, Graphics::macInvertPixel, _composeSurface);
+		Graphics::drawEllipse(r.left + 3, r.top + 5, r.left + 8, r.top + 10, 0, true, Graphics::macDrawPixel, &_pd);
 		break;
 	}
+
+	_contentIsDirty = true;
 }
 
 bool MacButton::draw(bool forceRedraw) {
-	if (!_contentIsDirty && !forceRedraw)
+	if ((!_contentIsDirty && !forceRedraw) || _active)
 		return false;
 
-	_maskSurface->clear(0);
 	MacText::draw();
 
 	Common::Rect r(_dims.width() - 1, _dims.height() - 1);
-	Graphics::MacPlotData pd(_composeSurface, _maskSurface, &_wm->getPatterns(), 1, 0, 0, 1, 0);
+	Graphics::MacPlotData pd(_composeSurface, nullptr, &_wm->getPatterns(), 1, 0, 0, 1, 0);
 
 	switch (_buttonType) {
 	case kCheckBox: {
@@ -128,7 +130,6 @@ bool MacButton::draw(bool forceRedraw) {
 		break;
 	}
 
-	_contentIsDirty = false;
 	return true;
 }
 
@@ -147,6 +148,8 @@ bool MacButton::processEvent(Common::Event &event) {
 		if (_wm->_mouseDown) {
 			if (_wm->_mode & kWMModeButtonDialogStyle)
 				return true;
+			else if (!_dims.contains(_wm->_lastClickPos))
+				return false;
 
 			setActive(true);
 		}
@@ -162,6 +165,10 @@ bool MacButton::processEvent(Common::Event &event) {
 		warning("MacButton:: processEvent: Event not handled");
 	}
 	return false;
+}
+
+Common::Point MacButton::calculateOffset() {
+	return Common::Point(_alignOffset.x + _border + _gutter, _alignOffset.y + _border + _gutter/2);
 }
 
 } // End of namespace Graphics

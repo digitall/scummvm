@@ -24,6 +24,7 @@
 #include "ultima/ultima8/graphics/palette_fader_process.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/graphics/palette.h"
+#include "ultima/ultima8/kernel/core_app.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -67,7 +68,7 @@ PaletteFaderProcess::PaletteFaderProcess(uint32 col32, bool from,
 	}
 }
 
-PaletteFaderProcess::PaletteFaderProcess(int16 from[12], int16 to[12],
+PaletteFaderProcess::PaletteFaderProcess(const int16 from[12], const int16 to[12],
         int priority_, int frames) : _priority(priority_),
 	_counter(frames), _maxCounter(frames) {
 	int i;
@@ -141,21 +142,33 @@ uint32 PaletteFaderProcess::I_fadeToPaletteTransform(const uint8 *args,
 	return Kernel::get_instance()->addProcess(_fader);
 }
 
-uint32 PaletteFaderProcess::I_fadeToBlack(const uint8 * /*args*/,
-        unsigned int /*argsize*/) {
+uint32 PaletteFaderProcess::I_fadeToBlack(const uint8 *args,
+        unsigned int argsize) {
 	if (_fader && _fader->_priority > 0x7FFF) return 0;
 	else if (_fader) _fader->terminate();
 
-	_fader = new PaletteFaderProcess(0x00000000, false, 0x7FFF, 30, true);
+	int nsteps = (GAME_IS_U8 ? 30 : 40);
+	if (argsize > 0) {
+		ARG_UINT16(n);
+		nsteps = n;
+	}
+
+	_fader = new PaletteFaderProcess(0x00000000, false, 0x7FFF, nsteps, true);
 	return Kernel::get_instance()->addProcess(_fader);
 }
 
-uint32 PaletteFaderProcess::I_fadeFromBlack(const uint8 * /*args*/,
-        unsigned int /*argsize*/) {
+uint32 PaletteFaderProcess::I_fadeFromBlack(const uint8 *args,
+        unsigned int argsize) {
 	if (_fader && _fader->_priority > 0x7FFF) return 0;
 	else if (_fader) _fader->terminate();
 
-	_fader = new PaletteFaderProcess(0x00000000, true, 0x7FFF, 30, false);
+	int nsteps = (GAME_IS_U8 ? 30 : 40);
+	if (argsize > 0) {
+		ARG_UINT16(n);
+		nsteps = n;
+	}
+
+	_fader = new PaletteFaderProcess(0x00000000, true, 0x7FFF, nsteps, false);
 	return Kernel::get_instance()->addProcess(_fader);
 }
 
@@ -185,6 +198,61 @@ uint32 PaletteFaderProcess::I_lightningBolt(const uint8 * /*args*/,
 	_fader = new PaletteFaderProcess(0x3FCFCFCF, true, -1, 10, false);
 	return Kernel::get_instance()->addProcess(_fader);
 }
+
+static const int16 NoFadeMatrix[] = {0x800, 0, 0, 0,
+					0, 0x800, 0, 0,
+					0, 0, 0x800, 0
+};
+// Transform used in Crusader is Yib.  We only care about Y:
+// Y = (r * 0.299 + g * 0.587 + b * 0.114)
+static const int16 GreyFadeMatrix[] = {612, 1202, 233, 0,
+					612, 1202, 233, 0,
+					612, 1202, 233, 0
+};
+static const int16 AllBlackMatrix[] = {0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0
+};
+
+uint32 PaletteFaderProcess::I_fadeToGreyScale(const uint8 * /*args*/,
+unsigned int /*argsize*/) {
+	if (_fader && _fader->_priority > 0x7FFF) return 0;
+	else if (_fader) _fader->terminate();
+
+	_fader = new PaletteFaderProcess(NoFadeMatrix, GreyFadeMatrix, 0x7FFF, 1);
+	return Kernel::get_instance()->addProcess(_fader);
+}
+
+uint32 PaletteFaderProcess::I_jumpToGreyScale(const uint8 * /*args*/,
+        unsigned int /*argsize*/) {
+	if (_fader && _fader->_priority > 0x7FFF) return 0;
+	else if (_fader) _fader->terminate();
+
+	PaletteManager::get_instance()->transformPalette(PaletteManager::Pal_Game,
+													 GreyFadeMatrix);
+	return 0;
+}
+
+uint32 PaletteFaderProcess::I_jumpToAllBlack(const uint8 * /*args*/,
+        unsigned int /*argsize*/) {
+	if (_fader && _fader->_priority > 0x7FFF) return 0;
+	else if (_fader) _fader->terminate();
+
+	PaletteManager::get_instance()->transformPalette(PaletteManager::Pal_Game,
+													 AllBlackMatrix);
+	return 0;
+}
+
+uint32 PaletteFaderProcess::I_jumpToNormalPalette(const uint8 * /*args*/,
+        unsigned int /*argsize*/) {
+	if (_fader && _fader->_priority > 0x7FFF) return 0;
+	else if (_fader) _fader->terminate();
+
+	PaletteManager::get_instance()->transformPalette(PaletteManager::Pal_Game,
+													 NoFadeMatrix);
+	return 0;
+}
+
 
 } // End of namespace Ultima8
 } // End of namespace Ultima

@@ -58,7 +58,7 @@ if ($mode eq "") {
 $Text::Wrap::unexpand = 0;
 if ($mode eq "TEXT") {
 	$Text::Wrap::columns = 78;
-	$max_name_width = 28; # The maximal width of a name.
+	$max_name_width = 29; # The maximal width of a name.
 } elsif ($mode eq "CPP") {
 	$Text::Wrap::columns = 48;	# Approx.
 }
@@ -727,6 +727,9 @@ begin_credits("Credits");
 			begin_section("Director");
 				add_person("Eugene Sandulenko", "sev", "");
 				add_person("Dmitry Iskrich", "", "");
+				add_person("Dylan Servilla", "djsrv", "");
+				add_person("Nathanael Gentry", "npjg", "");
+				add_person("Roland van Laar", "rvanlaar", "");
 				add_person("Scott Percival", "moralrecordings", "");
 				add_person("Steven Hoefel", "", "");
 				add_person("Tobia Tesan", "", "");
@@ -891,7 +894,7 @@ begin_credits("Credits");
 				add_person("Matthew Hoops", "clone2727", "(retired)");
 			end_section();
 
-            begin_section("Petka");
+			begin_section("Petka");
 				add_person("Andrei Prykhodko", "whiterandrek", "");
 				add_person("Eugene Sandulenko", "sev", "");
 			end_section();

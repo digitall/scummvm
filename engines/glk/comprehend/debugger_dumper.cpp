@@ -40,6 +40,7 @@ DebuggerDumper::DebuggerDumper() : _game(nullptr) {
 	_opcodes[OPCODE_CURRENT_OBJECT_TAKEABLE] = "current_object_takeable";
 	_opcodes[OPCODE_CURRENT_OBJECT_NOT_TAKEABLE] = "current_object_not_takeable";
 
+	_opcodes[OPCODE_CURRENT_OBJECT_NOT_IN_ROOM] = "current_object_not_in_room";
 	_opcodes[OPCODE_CURRENT_OBJECT_IS_NOWHERE] = "current_object_is_nowhere";
 
 	_opcodes[OPCODE_CURRENT_OBJECT_NOT_PRESENT] = "current_object_not_present";
@@ -52,7 +53,7 @@ DebuggerDumper::DebuggerDumper() : _game(nullptr) {
 	_opcodes[OPCODE_OR] = "or";
 	_opcodes[OPCODE_IN_ROOM] = "in_room";
 	_opcodes[OPCODE_VAR_EQ] = "var_eq";
-	_opcodes[OPCODE_OBJECT_NOT_VALID] = "object_not_valid";
+	_opcodes[OPCODE_CURRENT_OBJECT_NOT_VALID] = "current_object_not_valid";
 	_opcodes[OPCODE_INVENTORY_FULL] = "inventory_full";
 	_opcodes[OPCODE_OBJECT_PRESENT] = "object_present";
 	_opcodes[OPCODE_ELSE] = "else";
@@ -77,7 +78,7 @@ DebuggerDumper::DebuggerDumper() : _game(nullptr) {
 	_opcodes[OPCODE_VAR_SUB] = "var_sub";
 	_opcodes[OPCODE_SET_OBJECT_DESCRIPTION] = "set_object_description";
 	_opcodes[OPCODE_SET_OBJECT_LONG_DESCRIPTION] = "set_object_long_description";
-	_opcodes[OPCODE_MOVE] = "move";
+	_opcodes[OPCODE_MOVE_DEFAULT] = "move_default";
 	_opcodes[OPCODE_PRINT] = "print";
 	_opcodes[OPCODE_REMOVE_OBJECT] = "remove_object";
 	_opcodes[OPCODE_SET_FLAG] = "set_flag";
@@ -89,7 +90,7 @@ DebuggerDumper::DebuggerDumper() : _game(nullptr) {
 	_opcodes[OPCODE_SET_ROOM_GRAPHIC] = "set_room_graphic";
 	_opcodes[OPCODE_SET_OBJECT_GRAPHIC] = "set_object_graphic";
 	_opcodes[OPCODE_REMOVE_CURRENT_OBJECT] = "remove_current_object";
-	_opcodes[OPCODE_DO_VERB] = "do_verb";
+	_opcodes[OPCODE_MOVE_DIR] = "move_dir";
 	_opcodes[OPCODE_VAR_INC] = "var_inc";
 	_opcodes[OPCODE_VAR_DEC] = "var_dec";
 	_opcodes[OPCODE_MOVE_CURRENT_OBJECT_TO_ROOM] = "move_current_object_to_room";
@@ -101,10 +102,11 @@ DebuggerDumper::DebuggerDumper() : _game(nullptr) {
 	_opcodes[OPCODE_DRAW_ROOM] = "draw_room";
 	_opcodes[OPCODE_DRAW_OBJECT] = "draw_object";
 	_opcodes[OPCODE_WAIT_KEY] = "wait_key";
+	_opcodes[OPCODE_TEST_FALSE] = "test_false";
 }
 
 Common::String DebuggerDumper::dumpInstruction(ComprehendGame *game,
-        FunctionState *func_state, Instruction *instr) {
+        const FunctionState *func_state, const Instruction *instr) {
 	uint i;
 	int str_index, str_table;
 	uint8 *opcode_map, opcode;
@@ -112,24 +114,24 @@ Common::String DebuggerDumper::dumpInstruction(ComprehendGame *game,
 
 	if (func_state)
 		line = Common::String::format("[or=%d,and=%d,test=%d,else=%d]",
-		                              func_state->or_count, func_state->_and,
-		                              func_state->test_result, func_state->else_result);
+		                              func_state->_orCount, func_state->_and,
+		                              func_state->_testResult, func_state->_elseResult);
 
 	opcode_map = game->_opcodeMap;
-	opcode = opcode_map[instr->opcode];
+	opcode = opcode_map[instr->_opcode];
 
-	line += Common::String::format("  [%.2x] ", instr->opcode);
+	line += Common::String::format("  [%.2x] ", instr->_opcode);
 	if (_opcodes.contains(opcode))
 		line += _opcodes[opcode];
 	else
 		line += "unknown";
 
-	if (instr->nr_operands) {
+	if (instr->_nr_operands) {
 		line += "(";
-		for (i = 0; i < instr->nr_operands; i++)
+		for (i = 0; i < instr->_nr_operands; i++)
 			line += Common::String::format("%.2x%s",
-			                               instr->operand[i],
-			                               i == (instr->nr_operands - 1) ? ")" : ", ");
+			                               instr->_operand[i],
+			                               i == (instr->_nr_operands - 1) ? ")" : ", ");
 	}
 
 	switch (opcode) {
@@ -139,18 +141,18 @@ Common::String DebuggerDumper::dumpInstruction(ComprehendGame *game,
 	case OPCODE_SET_OBJECT_LONG_DESCRIPTION:
 
 		if (opcode == OPCODE_PRINT) {
-			str_index = instr->operand[0];
-			str_table = instr->operand[1];
+			str_index = instr->_operand[0];
+			str_table = instr->_operand[1];
 		} else {
-			str_index = instr->operand[1];
-			str_table = instr->operand[2];
+			str_index = instr->_operand[1];
+			str_table = instr->_operand[2];
 		}
 
 		line += Common::String::format(" %s", game->instrStringLookup(str_index, str_table).c_str());
 		break;
 
 	case OPCODE_SET_STRING_REPLACEMENT:
-		line += Common::String::format(" %s", game->_replaceWords[instr->operand[0] - 1].c_str());
+		line += Common::String::format(" %s", game->_replaceWords[instr->_operand[0] - 1].c_str());
 		break;
 	}
 
@@ -159,72 +161,45 @@ Common::String DebuggerDumper::dumpInstruction(ComprehendGame *game,
 }
 
 void DebuggerDumper::dumpFunctions() {
-	Function *func;
-	uint i, j;
+	uint i;
 
 	print("Functions (%u entries)\n", _game->_functions.size());
-	for (i = 0; i < _game->_functions.size(); i++) {
-		func = &_game->_functions[i];
+	for (i = 0; i < _game->_functions.size(); i++)
+		dumpFunction(i);
+}
 
-		print("[%.4x] (%u instructions)\n", i, (uint)func->nr_instructions);
-		for (j = 0; j < func->nr_instructions; j++) {
-			Common::String line = dumpInstruction(_game, NULL, &func->instructions[j]);
-			print("%s", line.c_str());
-		}
-		print("\n");
+void DebuggerDumper::dumpFunction(uint functionNum) {
+	const Function &func = _game->_functions[functionNum];
+
+	print("[%.4x] (%u instructions)\n", functionNum, func.size());
+	for (uint i = 0; i < func.size(); i++) {
+		Common::String line = dumpInstruction(_game, NULL, &func[i]);
+		print("%s", line.c_str());
 	}
+
+	print("\n");
 }
 
 void DebuggerDumper::dumpActionTable() {
 	Action *action;
-	Word *word;
 	uint i, j;
 
-	print("Action table (%u entries)\n", _game->_actions.size());
-	for (i = 0; i < _game->_actions.size(); i++) {
-		action = &_game->_actions[i];
+	print("Action tables: %u tables\n", _game->_actions.size());
 
-		print("(");
-		for (j = 0; j < 4; j++) {
-			if (j < action->nr_words) {
-				switch (action->word_type[j]) {
-				case WORD_TYPE_VERB:
-					print("v");
-					break;
-				case WORD_TYPE_JOIN:
-					print("j");
-					break;
-				case WORD_TYPE_NOUN_MASK:
-					print("n");
-					break;
-				default:
-					print("?");
-					break;
-				}
-			} else {
-				print(" ");
-			}
+	for (uint tableNum = 0; tableNum < _game->_actions.size(); ++tableNum) {
+		ActionTable &table = _game->_actions[tableNum];
+
+		print("Action table #u (%u entries)\n", tableNum, table.size());
+		for (i = 0; i < table.size(); i++) {
+			action = &table[i];
+
+			print(" [%.4x] ", i);
+
+			for (j = 0; j < action->_nr_words; j++)
+				print("%.2x ", action->_words[j]);
+
+			print("-> %.4x\n", action->_function);
 		}
-
-		print(") [%.4x] ", i);
-
-		for (j = 0; j < action->nr_words; j++)
-			print("%.2x:%.2x ",
-			      action->word[j], action->word_type[j]);
-
-		print("| ");
-
-		for (j = 0; j < action->nr_words; j++) {
-			word = find_dict_word_by_index(_game, action->word[j],
-			                               action->word_type[j]);
-			if (word)
-				print("%-6s ", word->_word);
-			else
-				print("%.2x:%.2x  ", action->word[j],
-				      action->word_type[j]);
-		}
-
-		print("-> %.4x\n", action->function);
 	}
 }
 
@@ -272,13 +247,13 @@ void DebuggerDumper::dumpWordMap() {
 
 		for (j = 0; j < 3; j++) {
 			word[j] = dict_find_word_by_index_type(
-			              _game, map->word[j].index, map->word[j].type);
+			              _game, map->_word[j]._index, map->_word[j]._type);
 			if (word[j])
 				snprintf(str[j], sizeof(str[j]),
 				         "%s", word[j]->_word);
 			else
 				snprintf(str[j], sizeof(str[j]), "%.2x:%.2x ",
-				         map->word[j].index, map->word[j].type);
+				         map->_word[j]._index, map->_word[j]._type);
 		}
 
 		print("  [%.2x] %-6s %-6s -> %-6s\n",
@@ -296,18 +271,18 @@ void DebuggerDumper::dumpRooms() {
 		room = &_game->_rooms[i];
 
 		print("  [%.2x] flags=%.2x, graphic=%.2x\n",
-		      i, room->flags, room->graphic);
-		print("    %s\n", _game->stringLookup(room->string_desc).c_str());
+		      i, room->_flags, room->_graphic);
+		print("    %s\n", _game->stringLookup(room->_stringDesc).c_str());
 		print("    n: %.2x  s: %.2x  e: %.2x  w: %.2x\n",
-		      room->direction[DIRECTION_NORTH],
-		      room->direction[DIRECTION_SOUTH],
-		      room->direction[DIRECTION_EAST],
-		      room->direction[DIRECTION_WEST]);
+		      room->_direction[DIRECTION_NORTH],
+		      room->_direction[DIRECTION_SOUTH],
+		      room->_direction[DIRECTION_EAST],
+		      room->_direction[DIRECTION_WEST]);
 		print("    u: %.2x  d: %.2x  i: %.2x  o: %.2x\n",
-		      room->direction[DIRECTION_UP],
-		      room->direction[DIRECTION_DOWN],
-		      room->direction[DIRECTION_IN],
-		      room->direction[DIRECTION_OUT]);
+		      room->_direction[DIRECTION_UP],
+		      room->_direction[DIRECTION_DOWN],
+		      room->_direction[DIRECTION_IN],
+		      room->_direction[DIRECTION_OUT]);
 		print("\n");
 	}
 }
@@ -321,22 +296,22 @@ void DebuggerDumper::dumpItems() {
 		item = &_game->_items[i];
 
 		print("  [%.2x] %s\n", i + 1,
-		      item->string_desc ? _game->stringLookup(item->string_desc).c_str() : "");
+		      item->_stringDesc ? _game->stringLookup(item->_stringDesc).c_str() : "");
 		if (_game->_comprehendVersion == 2)
 			print("    long desc: %s\n",
-			      _game->stringLookup(item->long_string).c_str());
+			      _game->stringLookup(item->_longString).c_str());
 
 		print("    words: ");
 		for (j = 0; j < _game->_nr_words; j++)
-			if (_game->_words[j]._index == item->word &&
+			if (_game->_words[j]._index == item->_word &&
 			        (_game->_words[j]._type & WORD_TYPE_NOUN_MASK))
 				print("%s ", _game->_words[j]._word);
 		print("\n");
 		print("    flags=%.2x (takeable=%d, weight=%d)\n",
-		      item->flags, !!(item->flags & ITEMF_CAN_TAKE),
-		      (item->flags & ITEMF_WEIGHT_MASK));
+		      item->_flags, !!(item->_flags & ITEMF_CAN_TAKE),
+		      (item->_flags & ITEMF_WEIGHT_MASK));
 		print("    room=%.2x, graphic=%.2x\n",
-		      item->room, item->graphic);
+		      item->_room, item->_graphic);
 		print("\n");
 	}
 }
@@ -375,14 +350,7 @@ void DebuggerDumper::dumpHeader() {
 
 	print("Game header:\n");
 	print("  magic:                %.4x\n", header->magic);
-	print("  action(vvnn):         %.4x\n", header->addr_actions_vvnn);
-	print("  actions(?):\n");
-	print("  actions(vnjn):        %.4x\n", header->addr_actions_vnjn);
-	print("  actions(vjn):         %.4x\n", header->addr_actions_vjn);
-	print("  actions(vdn):         %.4x\n", header->addr_actions_vdn);
-	print("  actions(vnn):         %.4x\n", header->addr_actions_vnn);
-	print("  actions(vn):          %.4x\n", header->addr_actions_vn);
-	print("  actions(v):           %.4x\n", header->addr_actions_v);
+
 	print("  functions:            %.4x\n", header->addr_vm);
 	print("  dictionary:           %.4x\n", header->addr_dictionary);
 	print("  word map pairs:       %.4x\n", header->addr_word_map);
@@ -425,7 +393,7 @@ void DebuggerDumper::dumpState() {
 	print("\n");
 }
 
-bool DebuggerDumper::dumpGameData(ComprehendGame *game, const Common::String &type) {
+bool DebuggerDumper::dumpGameData(ComprehendGame *game, const Common::String &type, int param) {
 	_game = game;
 
 	if (type == "header")
@@ -446,6 +414,8 @@ bool DebuggerDumper::dumpGameData(ComprehendGame *game, const Common::String &ty
 		dumpActionTable();
 	else if (type == "functions")
 		dumpFunctions();
+	else if (type == "function")
+		dumpFunction(param);
 	else if (type == "replace_words")
 		dumpReplaceWords();
 	else if (type == "state")

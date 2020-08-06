@@ -51,7 +51,6 @@ enum {
 
 enum {
 	OPCODE_UNKNOWN,
-	OPCODE_TEST_FALSE,
 	OPCODE_HAVE_OBJECT,
 	OPCODE_OR,
 	OPCODE_IN_ROOM,
@@ -60,7 +59,7 @@ enum {
 	OPCODE_OBJECT_PRESENT,
 	OPCODE_ELSE,
 	OPCODE_OBJECT_IN_ROOM,
-	OPCODE_OBJECT_NOT_VALID,
+	OPCODE_CURRENT_OBJECT_NOT_VALID,
 	OPCODE_INVENTORY_FULL,
 	OPCODE_TEST_FLAG,
 	OPCODE_CURRENT_OBJECT_IN_ROOM,
@@ -70,12 +69,13 @@ enum {
 	OPCODE_TEST_ROOM_FLAG,
 	OPCODE_NOT_HAVE_OBJECT,
 	OPCODE_NOT_IN_ROOM,
-	OPCODE_CURRENT_OBJECT_IS_NOWHERE,
-	OPCODE_OBJECT_NOT_PRESENT,
+	OPCODE_CURRENT_OBJECT_NOT_IN_ROOM,
 	OPCODE_OBJECT_NOT_IN_ROOM,
 	OPCODE_TEST_NOT_FLAG,
 	OPCODE_NOT_HAVE_CURRENT_OBJECT,
 	OPCODE_OBJECT_IS_NOWHERE,
+	OPCODE_OBJECT_NOT_PRESENT,
+	OPCODE_CURRENT_OBJECT_IS_NOWHERE,
 	OPCODE_CURRENT_OBJECT_NOT_PRESENT,
 	OPCODE_CURRENT_OBJECT_NOT_TAKEABLE,
 	OPCODE_TEST_NOT_ROOM_FLAG,
@@ -90,7 +90,7 @@ enum {
 	OPCODE_VAR_SUB,
 	OPCODE_SET_OBJECT_DESCRIPTION,
 	OPCODE_SET_OBJECT_LONG_DESCRIPTION,
-	OPCODE_MOVE,
+	OPCODE_MOVE_DEFAULT,
 	OPCODE_MOVE_DIRECTION,
 	OPCODE_PRINT,
 	OPCODE_REMOVE_OBJECT,
@@ -106,7 +106,7 @@ enum {
 	OPCODE_SET_ROOM_GRAPHIC,
 	OPCODE_SET_OBJECT_GRAPHIC,
 	OPCODE_REMOVE_CURRENT_OBJECT,
-	OPCODE_DO_VERB,
+	OPCODE_MOVE_DIR,
 	OPCODE_VAR_INC,
 	OPCODE_VAR_DEC,
 	OPCODE_MOVE_CURRENT_OBJECT_TO_ROOM,
@@ -117,7 +117,8 @@ enum {
 	OPCODE_CURRENT_IS_OBJECT,
 	OPCODE_DRAW_ROOM,
 	OPCODE_DRAW_OBJECT,
-	OPCODE_WAIT_KEY
+	OPCODE_WAIT_KEY,
+	OPCODE_TEST_FALSE
 };
 
 /* Game state update flags */
@@ -155,11 +156,16 @@ enum {
 
 /* Special rooms */
 #define ROOM_INVENTORY 0x00
+#define ROOM_CONTAINER 0xfe
 #define ROOM_NOWHERE 0xff
 
 /* Item flags */
-#define ITEMF_WEIGHT_MASK (0x3)
-#define ITEMF_CAN_TAKE (1 << 3)
+enum ItemFlag {
+	ITEMF_WEIGHT_MASK = 0x3,
+	ITEMF_CAN_TAKE    = 1 << 3,
+	ITEMF_UNKNOWN     = 1 << 6,
+	ITEMF_INVISIBLE   = 1 << 7
+};
 
 /* Word types */
 #define WORD_TYPE_VERB 0x01
@@ -172,12 +178,12 @@ enum {
                              WORD_TYPE_NOUN | WORD_TYPE_NOUN_PLURAL)
 
 struct FunctionState {
-	bool test_result;
-	bool else_result;
-	unsigned or_count;
+	bool _testResult;
+	bool _elseResult;
+	uint _orCount;
 	bool _and;
-	bool in_command;
-	bool executed;
+	bool _inCommand;
+	bool _executed;
 
 	FunctionState() {
 		clear();
@@ -187,10 +193,10 @@ struct FunctionState {
 };
 
 struct Room {
-	uint8 direction[NR_DIRECTIONS];
-	uint8 flags;
-	uint8 graphic;
-	uint16 string_desc;
+	uint8 _direction[NR_DIRECTIONS];
+	uint8 _flags;
+	uint8 _graphic;
+	uint16 _stringDesc;
 
 	Room() {
 		clear();
@@ -200,12 +206,12 @@ struct Room {
 };
 
 struct Item {
-	uint16 string_desc;
-	uint16 long_string; /* Only used by version 2 */
-	uint8 room;
-	uint8 flags;
-	uint8 word;
-	uint8 graphic;
+	uint16 _stringDesc;
+	uint16 _longString; /* Only used by version 2 */
+	uint8 _room;
+	uint8 _flags;
+	uint8 _word;
+	uint8 _graphic;
 
 	Item() {
 		clear();
@@ -216,37 +222,45 @@ struct Item {
 	void synchronize(Common::Serializer &s);
 };
 
-struct Word {
-	char _word[7];
+struct WordIndex {
 	uint8 _index;
 	uint8 _type;
-
-	Word() {
-		clear();
-	}
-
-	void clear();
-
-	void load(FileBuffer *fb);
-};
-
-struct WordIndex {
-	uint8 index;
-	uint8 type;
 
 	WordIndex() {
 		clear();
 	}
 
 	void clear() {
-		index = type = 0;
+		_index = _type = 0;
 	}
+
+	bool operator==(WordIndex &src) {
+		return _index == src._index && _type == src._type;
+	}
+
+	bool operator()() const {
+		return _index != 0;
+	}
+};
+
+struct Word : public WordIndex {
+	char _word[7];
+
+	Word() : WordIndex() {
+		Word::clear();
+	}
+
+	void clear();
+
+	void load(FileBuffer *fb);
+
+	Word &operator=(const WordIndex &src);
 };
 
 struct WordMap {
 	/* <word[0]>, <word[1]> == <word[2]> */
-	WordIndex word[3];
-	uint8 flags;
+	WordIndex _word[3];
+	uint8 _flags;
 
 	WordMap() {
 		clear();
@@ -256,12 +270,9 @@ struct WordMap {
 };
 
 struct Action {
-	int type;
-	size_t nr_words;
-	// FIXME - use struct word_index here.
-	uint8 word[4];
-	uint8 word_type[4];
-	uint16 function;
+	size_t _nr_words;
+	uint8 _words[4];
+	uint16 _function;
 
 	Action() {
 		clear();
@@ -271,10 +282,10 @@ struct Action {
 };
 
 struct Instruction {
-	uint8 opcode;
-	size_t nr_operands;
-	uint8 operand[3];
-	bool is_command;
+	uint8 _opcode;
+	size_t _nr_operands;
+	uint8 _operand[3];
+	bool _isCommand;
 
 	Instruction() {
 		clear();
@@ -283,27 +294,19 @@ struct Instruction {
 	void clear();
 };
 
-struct Function {
-	Instruction instructions[0x100];
-	size_t nr_instructions;
-
-	Function() {
-		clear();
-	}
-
-	void clear();
-};
+typedef Common::Array<Instruction> Function;
 
 typedef Common::StringArray StringTable;
 
 struct StringFile {
-	Common::String filename;
-	uint32 base_offset;
-	uint32 end_offset;
+	Common::String _filename;
+	uint32 _baseOffset;
+	uint32 _endOffset;
 
-	StringFile() : base_offset(0), end_offset(0) {
-	}
-	StringFile(const Common::String &fname, uint32 baseOfs, uint32 endO = 0) : filename(fname), base_offset(baseOfs), end_offset(endO) {
+	StringFile() : _baseOffset(0), _endOffset(0) {
+	} 
+	StringFile(const char *fname, uint32 baseOfs = 0, uint32 endO = 0) :
+		_filename(fname), _baseOffset(baseOfs), _endOffset(endO) {
 	}
 };
 
@@ -324,18 +327,12 @@ struct GameHeader {
 
 	uint16 addr_dictionary;
 	uint16 addr_word_map;
+	uint16 addr_word_map_target;
 
 	uint16 addr_strings;
 	uint16 addr_strings_end;
 
-	uint16 addr_actions_vvnn;
-	uint16 addr_actions_unknown;
-	uint16 addr_actions_vnjn;
-	uint16 addr_actions_vjn;
-	uint16 addr_actions_vdn;
-	uint16 addr_actions_vnn;
-	uint16 addr_actions_vn;
-	uint16 addr_actions_v;
+	uint16 addr_actions[7];
 
 	uint16 addr_vm; // FIXME - functions
 
@@ -345,6 +342,8 @@ struct GameHeader {
 
 	void clear();
 };
+
+typedef Common::Array<Action> ActionTable;
 
 class GameData {
 private:
@@ -360,7 +359,7 @@ protected:
 public:
 	GameHeader _header;
 
-	unsigned _comprehendVersion;
+	uint _comprehendVersion;
 
 	Common::Array<Room> _rooms;
 	uint8 _currentRoom;
@@ -381,7 +380,7 @@ public:
 	uint _updateFlags;
 
 	Common::Array<WordMap> _wordMaps;
-	Common::Array<Action> _actions;
+	Common::Array<ActionTable> _actions;
 	Common::Array<Function> _functions;
 	Common::StringArray _replaceWords;
 
@@ -397,19 +396,12 @@ private:
 	}
 
 	void load_extra_string_files();
-	void load_extra_string_file(StringFile *string_file);
+	void load_extra_string_file(const StringFile &stringFile);
 	void parse_header_le16(FileBuffer *fb, uint16 *val);
 	uint8 parse_vm_instruction(FileBuffer *fb, Instruction *instr);
 	void parse_function(FileBuffer *fb, Function *func);
 	void parse_vm(FileBuffer *fb);
-	void parse_action_table_vvnn(FileBuffer *fb);
-	void parse_action_table_vnjn(FileBuffer *fb);
-	void parse_action_table_vjn(FileBuffer *fb);
-	void parse_action_table_vdn(FileBuffer *fb);
-	void parse_action_table_vnn(FileBuffer *fb);
-	void parse_action_table_vn(FileBuffer *fb);
-	void parse_action_table_v(FileBuffer *fb);
-	void parse_action_table(FileBuffer *fb);
+	void parse_action_tables(FileBuffer *fb);
 	void parse_dictionary(FileBuffer *fb);
 	void parse_word_map(FileBuffer *fb);
 	void parse_items(FileBuffer *fb);
@@ -427,7 +419,7 @@ private:
 	 */
 	Common::String parseString(FileBuffer *fb);
 
-	void parse_string_table(FileBuffer *fb, unsigned start_addr,
+	void parse_string_table(FileBuffer *fb, uint start_addr,
 		uint32 end_addr, StringTable *table);
 	void parse_variables(FileBuffer *fb);
 	void parse_flags(FileBuffer *fb);
@@ -452,8 +444,6 @@ public:
 
 	void clearGame();
 	void loadGame();
-	//void restoreGame(ComprehendGame *game, const char *filename);
-	//void saveGame(const char *filename);
 };
 
 } // namespace Comprehend

@@ -1901,8 +1901,27 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::IT_ITA, Common::kPlatformDOS, 0, GUIO_STD16	},
 
-	// King's Quest 6 - English DOS CD (from the King's Quest Collection)
-	// Executable scanning reports "1.cfs.158", VERSION file reports "1.034 9/11/94 - KQ6 version 1.000.00G"
+	// King's Quest 6 - English DOS CD (supplied by trembyle)
+	// Executable scanning reports "1.cfs.158", VERSION file reports "1.000.000"
+	// SCI interpreter version 1.001.054
+	{"kq6", "CD", {
+		{"resource.map", 0, "db35b0094083f81bfb0239a7a5410313", 9215},
+		{"resource.000", 0, "233394a5f33b475ae5975e7e9a420865", 8376008},
+		{"resource.msg", 0, "3cf5de44de36191f109d425b8450efc8", 259510},
+		AD_LISTEND},
+		Common::EN_ANY, Common::kPlatformDOS, ADGF_CD, GUIO4(GAMEOPTION_HIGH_RESOLUTION_GRAPHICS, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+
+	// King's Quest 6 - English Windows CD (supplied by trembyle)
+	// Executable scanning reports "1.001.069", VERSION file reports "1.000.000"
+	{"kq6", "CD", {
+		{"resource.map", 0, "db35b0094083f81bfb0239a7a5410313", 9215},
+		{"resource.000", 0, "233394a5f33b475ae5975e7e9a420865", 8376008},
+		{"resource.msg", 0, "3cf5de44de36191f109d425b8450efc8", 259510},
+		AD_LISTEND},
+		Common::EN_ANY, Common::kPlatformWindows, ADGF_CD, GUIO6(GUIO_NOASPECT, GAMEOPTION_HIGH_RESOLUTION_GRAPHICS, GAMEOPTION_KQ6_WINDOWS_CURSORS, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+
+	// King's Quest 6 - English DOS CD (same version included in King's Quest Collection)
+	// Executable scanning reports "1.cfs.158", VERSION file reports "1.000.00G"
 	// SCI interpreter version 1.001.054
 	{"kq6", "CD", {
 		{"resource.map", 0, "7a550ebfeae2575ca00d47703a6a774c", 9215},
@@ -1910,9 +1929,8 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformDOS, ADGF_CD, GUIO4(GAMEOPTION_HIGH_RESOLUTION_GRAPHICS, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
 
-	// King's Quest 6 - English Windows CD (from the King's Quest Collection)
-	// Executable scanning reports "1.cfs.158", VERSION file reports "1.034 9/11/94 - KQ6 version 1.000.00G"
-	// SCI interpreter version 1.001.054
+	// King's Quest 6 - English Windows CD (same version included in King's Quest Collection)
+	// Executable scanning reports "1.001.069", VERSION file reports "1.000.00G"
 	{"kq6", "CD", {
 		{"resource.map", 0, "7a550ebfeae2575ca00d47703a6a774c", 9215},
 		{"resource.000", 0, "233394a5f33b475ae5975e7e9a420865", 8376352},
@@ -2444,6 +2462,27 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		AD_LISTEND},
 		Common::EN_ANY, Common::kPlatformAtariST, 0, GUIO_STD16_UNDITHER	},
 
+	// Larry 2 - Polish DOS (from Polish Leisure Suit Larry Collection, official release)
+	// Game version 1.002.000
+	// SCI interpreter version 0.000.409, localized resources are all patch files.
+	// resource_patcher.cpp depends on this entry to fix corrupt Polish fonts.
+	{"lsl2", "", {
+		{"resource.map", 0, "42258cf767a8ebaa9e66b6151a80e601", 5628},
+		{"resource.001", 0, "4a24443a25e2b1492462a52809605dc2", 143847},
+		{"resource.002", 0, "4a24443a25e2b1492462a52809605dc2", 348331},
+		{"resource.003", 0, "4a24443a25e2b1492462a52809605dc2", 236550},
+		{"resource.004", 0, "4a24443a25e2b1492462a52809605dc2", 204861},
+		{"resource.005", 0, "4a24443a25e2b1492462a52809605dc2", 277732},
+		{"resource.006", 0, "4a24443a25e2b1492462a52809605dc2", 345683},
+		// Polish fonts
+		{"font.000",     0, "8b65d8ee6d6041f3ac387d32c759165f", 1919},
+		{"font.001",     0, "48356355a52bb14df7bdaa253d20b26a", 1705},
+		{"font.004",     0, "3ce72dd3e8396f7d0fb81a37f4966a8a", 1458},
+		{"font.007",     0, "29afa8f8d5a211b15885b8f4d90cc2ee", 4029},
+		{"font.999",     0, "54801847b35893632a131171b9cebc15", 1368},
+		AD_LISTEND},
+		Common::PL_POL, Common::kPlatformDOS, 0, GUIO_STD16_UNDITHER	},
+
 	// Larry 3 - English Amiga (from www.back2roots.org)
 	// Executable scanning reports "1.002.032"
 	// SCI interpreter version 0.000.685
@@ -2607,6 +2646,26 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.007", 0, "65f1bdaa20f6d0470e9d969f22473873", 308982},
 		AD_LISTEND},
 		Common::FR_FRA, Common::kPlatformDOS, ADGF_ADDENGLISH, GUIO_STD16	},
+
+	// Larry 3 - Polish DOS (from Polish Leisure Suit Larry Collection, official release)
+	// Game version 1.021
+	// SCI interpreter version 0.000.572, localized resources are all patch files.
+	// resource_patcher.cpp depends on this entry to fix corrupt Polish fonts.
+	{"lsl3", "", {
+		{"resource.map", 0, "0b6bd3e039682830a51c5755c06591db", 5916},
+		{"resource.001", 0, "f18441027154292836b973c655fa3175", 456722},
+		{"resource.002", 0, "f18441027154292836b973c655fa3175", 578024},
+		{"resource.003", 0, "f18441027154292836b973c655fa3175", 506807},
+		{"resource.004", 0, "f18441027154292836b973c655fa3175", 513651},
+		// Polish fonts
+		{"font.000",     0, "8b65d8ee6d6041f3ac387d32c759165f", 1919},
+		{"font.001",     0, "48356355a52bb14df7bdaa253d20b26a", 1705},
+		{"font.004",     0, "3ce72dd3e8396f7d0fb81a37f4966a8a", 1458},
+		{"font.007",     0, "4341dc13d2be54bf80bb1cbd59aede4c", 4757},
+		{"font.009",     0, "aec40fb5c623ba23bd12123edcf84d7f", 3683},
+		{"font.999",     0, "54801847b35893632a131171b9cebc15", 1368},
+		AD_LISTEND},
+		Common::PL_POL, Common::kPlatformDOS, 0, GUIO_STD16_UNDITHER	},
 
 	// Larry 5 - English Amiga
 	// Executable scanning reports "1.004.023"
@@ -2819,7 +2878,7 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"Data1", 0, "482e6bcdda3a89390d5c4bcbfb5896b4", 2754907},
 		{"Data2", 0, "ba0799a45076780dfbceb8fce4c549c9", 5846345},
 		AD_LISTEND},
-		Common::EN_ANY, Common::kPlatformMacintosh, ADGF_MACRESFORK, GUIO_STD16_MAC },
+		Common::EN_ANY, Common::kPlatformMacintosh, ADGF_MACRESFORK | ADGF_UNSTABLE, GUIO_STD16_MAC },
 
 	// Crazy Nick's Software Picks: Leisure Suit Larry's Casino - English DOS (from the Leisure Suit Larry Collection)
 	// Executable scanning reports "1.001.029", VERSION file reports "1.000"
@@ -4853,7 +4912,7 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.002", 0, "0d8dfe42683b46f3131823233a91ce6a", 794072},
 		{"resource.003", 0, "0d8dfe42683b46f3131823233a91ce6a", 776536},
 		AD_LISTEND},
-		Common::EN_ANY, Common::kPlatformMacintosh, 0, GUIO_STD16_MAC_UNDITHER },
+		Common::EN_ANY, Common::kPlatformMacintosh, ADGF_UNSTABLE, GUIO_STD16_MAC_UNDITHER },
 
 	// Space Quest 3 - German DOS (from Tobis87, also includes english language)
 	// SCI interpreter version 0.000.453 (?)
@@ -4888,7 +4947,7 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 		{"resource.003", 0, "0d8dfe42683b46f3131823233a91ce6a", 776554},
 		{"resource.004", 0, "0d8dfe42683b46f3131823233a91ce6a", 787066},
 		AD_LISTEND},
-		Common::EN_ANY, Common::kPlatformMacintosh, 0, GUIO_STD16_UNDITHER	},
+		Common::EN_ANY, Common::kPlatformMacintosh, ADGF_UNSTABLE, GUIO_STD16_UNDITHER	},
 
 	// Space Quest 4 - English Amiga
 	// Executable scanning reports "1.004.024"

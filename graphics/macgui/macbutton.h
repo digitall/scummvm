@@ -30,6 +30,7 @@ namespace Graphics {
 
 class MacWidget;
 class MacText;
+struct MacPlotData;
 
 enum MacButtonType {
 	kRound,
@@ -48,9 +49,11 @@ public:
 	virtual bool draw(ManagedSurface *g, bool forceRedraw = false) override;
 	virtual bool draw(bool forceRedraw = false) override;
 	virtual bool processEvent(Common::Event &event) override;
+	virtual Common::Point calculateOffset() override;
 
 private:
 	MacButtonType _buttonType;
+	MacPlotData _pd;
 };
 
 } // End of namespace Graphics

@@ -39,36 +39,39 @@ struct GameStrings;
 struct Sentence;
 
 class ComprehendGame : public GameData, public OpcodeMap {
+private:
+	bool _ended;
 public:
 	const GameStrings *_gameStrings;
 
 private:
-	WordIndex *is_word_pair(Word *word1, Word *word2);
-	Item *get_item_by_noun(Word *noun);
-	void update_graphics();
+	Item *get_item_by_noun(byte noun);
 	void describe_objects_in_current_room();
-	void update();
-	void move_to(uint8 room);
 	void func_set_test_result(FunctionState *func_state, bool value);
 	size_t num_objects_in_room(int room);
-	void eval_instruction(FunctionState *func_state, Instruction *instr,
-		Word *verb, Word *noun);
+	void eval_instruction(FunctionState *func_state, const Instruction *instr,
+		const Sentence *sentence);
 	void skip_whitespace(char **p);
 	void skip_non_whitespace(char **p);
 	bool handle_sentence(Sentence *sentence);
+	bool handle_sentence(uint tableNum, Sentence *sentence, Common::Array<byte> &words);
 	void read_sentence(char **line, Sentence *sentence);
+	void parse_sentence_word_pairs(Sentence *sentence);
 	void doBeforeTurn();
 	void doAfterTurn();
 	void read_input();
+	void doMovementVerb(uint verbNum);
+	bool isItemPresent(Item *item) const;
 
 protected:
 	void game_save();
 	void game_restore();
-	void game_restart();
+	void game_restart() {
+		_ended = true;
+	}
+	virtual bool handle_restart();
 	int console_get_key();
 	void console_println(const char *text);
-	Room *get_room(uint16 index);
-	Item *get_item(uint16 index);
 	void move_object(Item *item, int new_room);
 
 	/*
@@ -80,7 +83,7 @@ protected:
 	 * is reached. Otherwise the commands instructions are skipped over and the
 	 * next test sequence (if there is one) is tried.
 	 */
-	void eval_function(Function *func, Word *verb, Word *noun);
+	void eval_function(const Function &func, const Sentence *sentence);
 
 	void parse_header(FileBuffer *fb) override {
 		GameData::parse_header(fb);
@@ -93,9 +96,7 @@ public:
 
 	virtual void beforeGame() {}
 	virtual void beforePrompt() {}
-	virtual bool beforeTurn() {
-		return false;
-	}
+	virtual void beforeTurn() {}
 	virtual bool afterTurn() {
 		return false;
 	}
@@ -104,26 +105,24 @@ public:
 	}
 	virtual void handleSpecialOpcode(uint8 operand) {}
 
-	void synchronizeSave(Common::Serializer &s);
+	virtual void synchronizeSave(Common::Serializer &s);
 
 	Common::String stringLookup(uint16 index);
 	Common::String instrStringLookup(uint8 index, uint8 table);
 
 	void playGame();
+
+	void move_to(uint8 room);
+	Room *get_room(uint16 index);
+	Item *get_item(uint16 index);
+	void update();
+	void update_graphics();
+
+	/**
+	 * Gets a random number
+	 */
+	uint getRandomNumber(uint max) const;
 };
-
-void console_println(ComprehendGame *game, const char *text);
-int console_get_key(void);
-
-Item *get_item(ComprehendGame *game, uint16 index);
-void move_object(ComprehendGame *game, Item *item, int new_room);
-void eval_function(ComprehendGame *game, Function *func,
-                   Word *verb, Word *noun);
-
-void comprehend_play_game(ComprehendGame *game);
-void game_save(ComprehendGame *game);
-void game_restore(ComprehendGame *game);
-void game_restart(ComprehendGame *game);
 
 } // namespace Comprehend
 } // namespace Glk

@@ -46,7 +46,7 @@ Comprehend *g_comprehend;
 
 Comprehend::Comprehend(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gameDesc), _topWindow(nullptr), _bottomWindow(nullptr),
 	_drawSurface(nullptr), _game(nullptr), _pics(nullptr), _saveSlot(-1),
-	_graphicsEnabled(true), _drawFlags(0) {
+	_graphicsEnabled(true), _drawFlags(0), _disableSaves(false) {
 	g_comprehend = this;
 }
 
@@ -63,6 +63,11 @@ void Comprehend::initGraphicsMode() {
 	initGraphics(640, 400, &pixelFormat);
 }
 
+void Comprehend::createConfiguration() {
+	GlkAPI::createConfiguration();
+	switchToWhiteOnBlack();
+}
+
 void Comprehend::runGame() {
 	initialize();
 
@@ -76,22 +81,11 @@ void Comprehend::runGame() {
 }
 
 void Comprehend::initialize() {
-	// Set up the GLK windows
-	g_conf->_wMarginX = 0;
-	g_conf->_wMarginY = 0;
-	g_conf->_tMarginY = 4;
-
 	_bottomWindow = (TextBufferWindow *)glk_window_open(0, 0, 0, wintype_TextBuffer, 1);
 	glk_set_window(_bottomWindow);
 
-	togglePictureVisibility();
+	showGraphics();
 	_topWindow->fillRect(0, Rect(0, 0, _topWindow->_w, _topWindow->_h));
-
-	const Graphics::PixelFormat pixelFormat = g_system->getScreenFormat();
-	_bottomWindow->_stream->setZColors(
-		pixelFormat.RGBToColor(0xff, 0xff, 0xff),
-		pixelFormat.RGBToColor(0, 0, 0)
-	);
 
 	// Initialize drawing surface, and the archive that abstracts
 	// the room and item graphics as as individual files
@@ -154,6 +148,7 @@ void Comprehend::readLine(char *buffer, size_t maxLen) {
 
 int Comprehend::readChar() {
 	glk_request_char_event(_bottomWindow);
+	setDisableSaves(true);
 
 	event_t ev;
 	while (ev.type != evtype_CharInput) {
@@ -165,6 +160,7 @@ int Comprehend::readChar() {
 		}
 	}
 
+	setDisableSaves(false);
 	return ev.val1;
 }
 
@@ -210,20 +206,25 @@ void Comprehend::clearScreen(bool isBright) {
 	drawPicture(isBright ? BRIGHT_ROOM : DARK_ROOM);
 }
 
-void Comprehend::togglePictureVisibility() {
+void Comprehend::toggleGraphics() {
 	if (_topWindow) {
 		// Remove the picture window
 		glk_window_close(_topWindow);
 		_topWindow = nullptr;
+		_graphicsEnabled = false;
 	} else {
 		// Create the window again
+		showGraphics();
+	}
+}
+
+void Comprehend::showGraphics() {
+	if (!_topWindow) {
 		_topWindow = (GraphicsWindow *)glk_window_open(_bottomWindow,
 			winmethod_Above | winmethod_Fixed,
 			160 * SCALE_FACTOR, wintype_Graphics, 2);
+		_graphicsEnabled = true;
 	}
-
-	_graphicsEnabled = _topWindow != nullptr;
-	print(_("Picture window toggled\n"));
 }
 
 } // namespace Comprehend

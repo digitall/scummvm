@@ -31,13 +31,30 @@ namespace Comprehend {
 class CrimsonCrownGame : public ComprehendGame {
 private:
 	uint _diskNum;
+	uint _newDiskNum;
 
+private:
+	/**
+	 * Cutscene triggered when looking at crystal ball
+	 */
+	void crystalBallCutscene();
+
+	/**
+	 * Start of throneroom cutscene
+	 */
+	void throneCutscene();
+
+protected:
+	bool handle_restart() override;
 public:
 	CrimsonCrownGame();
 	~CrimsonCrownGame() override {}
 
+	void beforeGame() override;
 	void beforePrompt() override;
+	void beforeTurn() override;
 	void handleSpecialOpcode(uint8 operand) override;
+	void synchronizeSave(Common::Serializer &s) override;
 
 	void setupDisk(uint diskNum);
 };

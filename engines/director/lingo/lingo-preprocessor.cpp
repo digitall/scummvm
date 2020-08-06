@@ -21,12 +21,12 @@
  */
 
 #include "director/director.h"
+#include "director/movie.h"
 #include "director/lingo/lingo.h"
 
 namespace Director {
 
 Common::String preprocessWhen(Common::String in, bool *changed);
-Common::String preprocessReturn(Common::String in);
 Common::String preprocessPlay(Common::String in);
 Common::String preprocessSound(Common::String in);
 
@@ -41,9 +41,17 @@ static Common::String nexttok(const char *s, const char **newP = nullptr) {
 	while (*s && (*s == ' ' || *s == '\t' || *s == '\xC2')) // If we see a whitespace
 		s++;
 
-	if (Common::isAlnum(*s)) {
+	if (*s == '"') { // If it is a string then scan till end quote
+		res += *s++;
+
+		while (*s && *s != '"')
+			res += *s++;
+
+		if (*s == '"')
+			res += *s++;
+	} else if (Common::isAlnum(*s) || *s == '#' || *s == '.') {
 		// Now copy everything till whitespace
-		while (*s && (Common::isAlnum(*s) || *s == '.'))
+		while (*s && (Common::isAlnum(*s) || *s == '.' || *s == '#' || *s == '_'))
 			res += *s++;
 	} else {
 		while (*s && isspec(*s))
@@ -67,10 +75,17 @@ static Common::String prevtok(const char *s, const char *lineStart, const char *
 			break;
 		}
 
-	// Now copy everything till whitespace
-	if (Common::isAlnum(*s)) {
+	if (*s == '"') { // If it is a string then scan till end quote
+		res += *s--;
+
+		while (s >= lineStart && *s != '"')
+			res = *s-- + res;
+
+		if (*s == '"')
+			res = *s-- + res;
+	} else if (Common::isAlnum(*s)) { 	// Now copy everything till whitespace
 		// Now copy everything till whitespace
-		while (s >= lineStart && (Common::isAlnum(*s) || *s == '.'))
+		while (s >= lineStart && (Common::isAlnum(*s) || *s == '.' || *s == '#' || *s == '_'))
 			res = *s-- + res;
 	} else {
 		while (s >= lineStart && isspec(*s))
@@ -111,7 +126,7 @@ static const char *findtokstart(const char *start, const char *token) {
 	return ptr;
 }
 
-Common::String Lingo::codePreprocessor(const char *s, ScriptType type, uint16 id, bool simple) {
+Common::String Lingo::codePreprocessor(const char *s, LingoArchive *archive, ScriptType type, uint16 id, bool simple) {
 	Common::String res;
 
 	// We start from processing the continuation synbols
@@ -134,8 +149,12 @@ Common::String Lingo::codePreprocessor(const char *s, ScriptType type, uint16 id
 	s = tmp.c_str();
 
 	// Strip comments
+	bool inString = false;
 	while (*s) {
-		if (*s == '-' && *(s + 1) == '-') { // At the end of the line we will have \0
+		if (*s == '"')
+			inString = !inString;
+
+		if (!inString && *s == '-' && *(s + 1) == '-') { // At the end of the line we will have \0
 			while (*s && *s != '\n')
 				s++;
 		}
@@ -209,7 +228,7 @@ Common::String Lingo::codePreprocessor(const char *s, ScriptType type, uint16 id
 		}
 		debugC(2, kDebugParse | kDebugPreprocess, "line: %d                         '%s'", iflevel, line.c_str());
 
-		if (type == kMovieScript && _vm->getVersion() <= 3 && !defFound) {
+		if (!defFound && (type == kMovieScript || type == kCastScript) && (_vm->getVersion() <= 3 || _vm->getCurrentMovie()->_allowOutdatedLingo)) {
 			tok = nexttok(line.c_str());
 			if (tok.equals("macro") || tok.equals("factory") || tok.equals("on")) {
 				defFound = true;
@@ -222,13 +241,12 @@ Common::String Lingo::codePreprocessor(const char *s, ScriptType type, uint16 id
 			}
 		}
 
-		res1 = patchLingoCode(res1, type, id, linenumber);
+		res1 = patchLingoCode(res1, archive, type, id, linenumber);
 
 		bool changed = false;
 		res1 = preprocessWhen(res1, &changed);
 
 		if (!changed) {
-			res1 = preprocessReturn(res1);
 			res1 = preprocessPlay(res1);
 			res1 = preprocessSound(res1);
 		}
@@ -406,26 +424,6 @@ Common::String Lingo::codePreprocessor(const char *s, ScriptType type, uint16 id
 	return res;
 }
 
-#ifndef strcasestr
-const char *strcasestr(const char *s, const char *find) {
-	char c, sc;
-	size_t len;
-
-	if ((c = *find++) != 0) {
-		c = (char)tolower((unsigned char)c);
-		len = strlen(find);
-		do {
-			do {
-				if ((sc = *s++) == 0)
-					return (NULL);
-			} while ((char)tolower((unsigned char)sc) != c);
-		} while (scumm_strnicmp(s, find, len) != 0);
-		s--;
-	}
-	return s;
-}
-#endif
-
 // when ID then statement -> when ID then "statement"
 Common::String preprocessWhen(Common::String in, bool *changed) {
 	Common::String res, next;
@@ -433,7 +431,7 @@ Common::String preprocessWhen(Common::String in, bool *changed) {
 	const char *beg = ptr;
 	const char *nextPtr;
 
-	while ((ptr = strcasestr(beg, "when")) != NULL) {
+	while ((ptr = scumm_strcasestr(beg, "when")) != NULL) {
 		if (ptr != findtokstart(in.c_str(), ptr)) { // If we're in the middle of a word
 			res += *beg++;
 			continue;
@@ -496,50 +494,6 @@ Common::String preprocessWhen(Common::String in, bool *changed) {
 	return res;
 }
 
-// "hello" & return && "world" -> "hello" & scummvm_return && "world"
-//
-// This is to let the grammar not confuse RETURN constant with
-// return command
-Common::String preprocessReturn(Common::String in) {
-	Common::String res, prev, next;
-	const char *ptr = in.c_str();
-	const char *beg = ptr;
-
-	while ((ptr = strcasestr(beg, "return")) != NULL) {
-		if (ptr != findtokstart(in.c_str(), ptr)) { // If we're in the middle of a word
-			res += *beg++;
-			continue;
-		}
-
-		res += Common::String(beg, ptr);
-
-		if (ptr == beg)
-			prev = "";
-		else
-			prev = prevtok(ptr - 1, beg);
-
-		next = nexttok(ptr + 6); // end of 'return'
-
-		debugC(2, kDebugParse | kDebugPreprocess, "RETURN: prevtok: %s nexttok: %s", prev.c_str(), next.c_str());
-
-		if (prev.hasSuffix("&") || prev.hasSuffix("&&") || prev.hasSuffix("=") ||
-				next.hasPrefix("&") || next.hasPrefix("&&") || prev.hasSuffix(",") ||
-				next.hasPrefix(")")) {
-			res += "scummvm_"; // Turn it into scummvm_return
-		}
-
-		res += *ptr++; // We advance one character, so 'eturn' is left
-		beg = ptr;
-	}
-
-	res += Common::String(beg);
-
-	if (in.size() != res.size())
-		debugC(2, kDebugParse | kDebugPreprocess, "RETURN: in: %s\nout: %s", in.c_str(), res.c_str());
-
-	return res;
-}
-
 // play done -> play #done
 Common::String preprocessPlay(Common::String in) {
 	Common::String res, next;
@@ -547,7 +501,7 @@ Common::String preprocessPlay(Common::String in) {
 	const char *beg = ptr;
 	const char *nextPtr;
 
-	while ((ptr = strcasestr(beg, "play")) != NULL) {
+	while ((ptr = scumm_strcasestr(beg, "play")) != NULL) {
 		if (ptr != findtokstart(in.c_str(), ptr)) { // If we're in the middle of a word
 			res += *beg++;
 			continue;
@@ -594,7 +548,7 @@ Common::String preprocessSound(Common::String in) {
 	const char *beg = ptr;
 	const char *nextPtr;
 
-	while ((ptr = strcasestr(beg, "sound")) != NULL) {
+	while ((ptr = scumm_strcasestr(beg, "sound")) != NULL) {
 		if (ptr != findtokstart(in.c_str(), ptr)) { // If we're in the middle of a word
 			res += *beg++;
 			continue;

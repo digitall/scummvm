@@ -221,6 +221,7 @@ BaseSoftRenderSurface::BaseSoftRenderSurface(int w, int h) :
 	_rttTex->w = _width;
 	_rttTex->h = _height;
 	_rttTex->_format = TEX_FMT_NATIVE;
+	_rttTex->format = RenderSurface::getPixelFormat();
 	_rttTex->pitch = _pitch;
 	_rttTex->CalcLOG2s();
 
@@ -267,8 +268,7 @@ bool BaseSoftRenderSurface::BeginPainting() {
 	_lockCount++;
 
 	if (_pixels00 == nullptr) {
-		// TODO: SetLastError(GR_SOFT_ERROR_LOCKED_NULL_PIXELS, "Surface Locked with NULL BaseSoftRenderSurface::_pixels pointer!");
-		perr << "Error: Surface Locked with NULL BaseSoftRenderSurface::_pixels pointer!" << Std::endl;
+		error("Error: Surface Locked with NULL BaseSoftRenderSurface::_pixels pointer!");
 		return false;
 	}
 
@@ -289,8 +289,7 @@ bool BaseSoftRenderSurface::BeginPainting() {
 bool BaseSoftRenderSurface::EndPainting() {
 	// Already Unlocked
 	if (!_lockCount) {
-		// TODO: SetLastError(GR_SOFT_ERROR_BEGIN_END_MISMATCH, "BeginPainting()/EndPainting() Mismatch!");
-		perr << "Error: BeginPainting()/EndPainting() Mismatch!" << Std::endl;
+		error("Error: BeginPainting()/EndPainting() Mismatch!");
 		return false;
 	}
 
@@ -335,8 +334,10 @@ Texture *BaseSoftRenderSurface::GetSurfaceAsTexture() {
 //
 // Desc: Create a palette of colours native to the surface
 //
-void BaseSoftRenderSurface::CreateNativePalette(Palette *palette) {
-	for (int i = 0; i < 256; i++) {
+void BaseSoftRenderSurface::CreateNativePalette(Palette *palette, int maxindex) {
+	if (maxindex == 0)
+		maxindex = 256;
+	for (int i = 0; i < maxindex; i++) {
 		int32 r, g, b;
 
 		// Normal palette

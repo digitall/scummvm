@@ -50,6 +50,7 @@ class Comprehend : public GlkAPI {
 private:
 	int _saveSlot; ///< Save slot when loading savegame from launcher
 	bool _graphicsEnabled;
+	bool _disableSaves;
 public:
 	GraphicsWindow *_topWindow;
 	TextBufferWindow *_bottomWindow;
@@ -79,6 +80,11 @@ private:
 	 */
 	void createGame();
 
+protected:
+	/**
+	 * Loads the configuration
+	 */
+	void createConfiguration() override;
 public:
 	/**
 	 * Constructor
@@ -158,13 +164,43 @@ public:
 	/**
 	 * Toggles whether the picture window is visible
 	 */
-	void togglePictureVisibility();
+	void toggleGraphics();
+
+	/**
+	 * Ensures the picture window is visible
+	 */
+	void showGraphics();
 
 	/**
 	 * Returns true if the graphics area is visible
 	 */
 	bool isGraphicsEnabled() const {
 		return _graphicsEnabled;
+	}
+
+	ComprehendGame *getGame() const {
+		return _game;
+	}
+
+	/**
+	 * Returns true if a savegame can be loaded
+	 */
+	bool canLoadGameStateCurrently() override {
+		return !_disableSaves && GlkAPI::canLoadGameStateCurrently();
+	}
+
+	/**
+	 * Returns true if the game can be saved
+	 */
+	bool canSaveGameStateCurrently() override {
+		return !_disableSaves && GlkAPI::canSaveGameStateCurrently();
+	}
+
+	/**
+	 * Set whether saving and loading is currently available
+	 */
+	void setDisableSaves(bool flag) {
+		_disableSaves = flag;
 	}
 };
 

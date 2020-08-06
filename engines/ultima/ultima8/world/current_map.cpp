@@ -28,9 +28,10 @@
 #include "ultima/ultima8/world/egg.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/world.h"
-#include "ultima/ultima8/misc/rect.h"
+#include "ultima/ultima8/world/world_point.h"
 #include "ultima/ultima8/world/container.h"
 #include "ultima/ultima8/usecode/uc_list.h"
+#include "ultima/ultima8/usecode/uc_machine.h"
 #include "ultima/ultima8/graphics/shape_info.h"
 #include "ultima/ultima8/world/teleport_egg.h"
 #include "ultima/ultima8/world/egg_hatcher_process.h"
@@ -40,6 +41,8 @@
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/gumps/game_map_gump.h"
 #include "ultima/ultima8/misc/direction.h"
+#include "ultima/ultima8/misc/direction_util.h"
+#include "ultima/ultima8/misc/rect.h"
 #include "ultima/ultima8/world/get_object.h"
 
 namespace Ultima {
@@ -61,6 +64,10 @@ CurrentMap::CurrentMap() : _currentMap(0), _eggHatcher(0),
 		_mapChunkSize = 1024;
 	} else {
 		CANT_HAPPEN_MSG("Unknown game type in CurrentMap constructor.");
+	}
+
+	for (unsigned int i = 0; i < MAP_NUM_TARGET_ITEMS; i++) {
+		_targets[i] = 0;
 	}
 }
 
@@ -277,6 +284,80 @@ void CurrentMap::removeItem(Item *item) {
 	item->getLocation(ix, iy, iz);
 
 	removeItemFromList(item, ix, iy);
+}
+
+void CurrentMap::addTargetItem(const Item *item) {
+	assert(item);
+	// The game also maintains a count of non-zero targets, but it
+	// seems to serve little purpose so we just update.
+	ObjId id = item->getObjId();
+	for (int i = 0; i < MAP_NUM_TARGET_ITEMS; i++) {
+		if (_targets[i] == 0) {
+			_targets[i] = id;
+			return;
+		}
+	}
+}
+
+void CurrentMap::removeTargetItem(const Item *item) {
+	assert(item);
+	ObjId id = item->getObjId();
+	for (int i = 0; i < MAP_NUM_TARGET_ITEMS; i++) {
+		if (_targets[i] == id) {
+			_targets[i] = 0;
+			return;
+		}
+	}
+}
+
+
+Item *CurrentMap::findBestTargetItem(int32 x, int32 y, Direction dir, DirectionMode dirmode) {
+	// "best" means:
+	// Shape info SI_OCCL
+	// isNPC
+	// Closest
+	// in that order.
+	bool bestisnpc = false;
+	bool bestisoccl = false;
+	Item *bestitem = nullptr;
+	int bestdist = 0xffff;
+
+	for (int i = 0; i < MAP_NUM_TARGET_ITEMS; i++) {
+		if (_targets[i] == 0)
+			continue;
+		Item *item = getItem(_targets[i]);
+		// FIXME: this should probably always be non-null,
+		// but if it's not the item disappeared - remove it from the list.
+		// If we fix this, this function can be const.
+		if (!item) {
+			_targets[i] = 0;
+			continue;
+		}
+		const ShapeInfo *si = item->getShapeInfo();
+		bool isoccl = si->_flags & ShapeInfo::SI_OCCL;
+
+		int32 ix, iy, iz;
+		item->getLocation(ix, iy, iz);
+		Direction itemdir = Direction_GetWorldDir(iy - y, ix - x, dirmode);
+		if (itemdir != dir)
+			continue;
+
+		const Actor *actor = dynamic_cast<const Actor *>(item);
+		if ((bestisoccl && !isoccl) || (bestisnpc && !actor) || !item->isOnScreen())
+			continue;
+
+		int xdiff = abs(x - ix);
+		int ydiff = abs(y - iy);
+		int dist = MAX(xdiff, ydiff);
+
+		if (dist < bestdist) {
+			bestitem = item;
+			bestdist = dist;
+			bestisoccl = isoccl;
+			bestisnpc = (actor != nullptr);
+		}
+	}
+	return bestitem;
 }
 
 
@@ -603,7 +684,7 @@ const Std::list<Item *> *CurrentMap::getItemList(int32 gx, int32 gy) const {
 bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
                                  uint32 shape,
                                  ObjId item, const Item **support,
-                                 ObjId *roof) const {
+                                 ObjId *roof, const Item **blocker) const {
 	const ShapeInfo *si = GameData::get_instance()->
 	                getMainShapes()->getShapeInfo(shape);
 	int32 xd, yd, zd;
@@ -613,18 +694,18 @@ bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
 	return isValidPosition(x, y, z,
 	                       INT_MAX_VALUE / 2, INT_MAX_VALUE / 2, INT_MAX_VALUE / 2,
 	                       xd, yd, zd,
-	                       si->_flags, item, support, roof);
+	                       si->_flags, item, support, roof, blocker);
 }
 
 bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
                                  int xd, int yd, int zd,
                                  uint32 shapeflags,
-                                 ObjId item_, const Item **support_,
-                                 ObjId *roof_) const {
+                                 ObjId item, const Item **support,
+                                 ObjId *roof, const Item **blocker) const {
 	return isValidPosition(x, y, z,
 	                       INT_MAX_VALUE / 2, INT_MAX_VALUE / 2, INT_MAX_VALUE / 2,
 	                       xd, yd, zd,
-	                       shapeflags, item_, support_, roof_);
+	                       shapeflags, item, support, roof, blocker);
 }
 
 
@@ -633,13 +714,14 @@ bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
                                  int xd, int yd, int zd,
                                  uint32 shapeflags,
                                  ObjId item_, const Item **support_,
-                                 ObjId *roof_) const {
+                                 ObjId *roof_, const Item **blocker_) const {
 	const uint32 flagmask = (ShapeInfo::SI_SOLID | ShapeInfo::SI_DAMAGING |
 	                         ShapeInfo::SI_ROOF);
 	const uint32 blockflagmask = (ShapeInfo::SI_SOLID | ShapeInfo::SI_DAMAGING);
 
 	bool valid = true;
 	const Item *support = nullptr;
+	const Item *blocker = nullptr;
 	ObjId roof = 0;
 	int32 roofz = INT_MAX_VALUE;
 
@@ -660,7 +742,7 @@ bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
 				if (item->hasExtFlags(Item::EXT_SPRITE))
 					continue;
 
-				ShapeInfo *si = item->getShapeInfo();
+				const ShapeInfo *si = item->getShapeInfo();
 				//!! need to check is_sea() and is_land() maybe?
 				if (!(si->_flags & flagmask))
 					continue; // not an interesting item
@@ -692,6 +774,9 @@ bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
 #if 0
 					item->dumpInfo();
 #endif
+					if (blocker == nullptr) {
+						blocker = item;
+					}
 					valid = false;
 				}
 
@@ -716,6 +801,8 @@ bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
 
 	if (support_)
 		*support_ = support;
+	if (blocker_)
+		*blocker_ = blocker;
 	if (roof_)
 		*roof_ = roof;
 
@@ -723,16 +810,16 @@ bool CurrentMap::isValidPosition(int32 x, int32 y, int32 z,
 }
 
 bool CurrentMap::scanForValidPosition(int32 x, int32 y, int32 z, const Item *item,
-                                      int movedir, bool wantsupport,
+                                      Direction movedir, bool wantsupport,
                                       int32 &tx, int32 &ty, int32 &tz) {
 	// TODO: clean this up. Currently the mask arrays are filled with more
 	// data than is actually used.
 	const uint32 blockflagmask = (ShapeInfo::SI_SOLID | ShapeInfo::SI_DAMAGING) & item->getShapeInfo()->_flags;
 
-	int searchdir = (movedir + 2) % 4;
+	Direction searchdir = static_cast<Direction>(((int)movedir + 2) % 4);
 
-	bool xdir = (x_fact[searchdir] != 0);
-	bool ydir = (y_fact[searchdir] != 0);
+	bool xdir = (Direction_XFactor(searchdir) != 0);
+	bool ydir = (Direction_YFactor(searchdir) != 0);
 
 	// mark everything as valid, but without support
 	uint32 validmask[17];
@@ -750,7 +837,6 @@ bool CurrentMap::scanForValidPosition(int32 x, int32 y, int32 z, const Item *ite
 	// the positive  x/y directions, with the exception of searchdir 1,
 	// in which case positive horiz points in the (positive x, negative y)
 	// direction.
-
 
 	// next, we'll loop over all objects in the area, and mark the areas
 	// overlapped and supported by each object
@@ -883,8 +969,8 @@ bool CurrentMap::scanForValidPosition(int32 x, int32 y, int32 z, const Item *ite
 // Do a sweepTest of an item from start to end point.
 // dims is the bounding box size.
 // item is the item that we are checking to move
-// blocking_only forces us to check against blocking _items only.
-// skip will skip all _items until item num skip is reached
+// blocking_only forces us to check against blocking items only.
+// skip will skip all items until item num skip is reached
 // Returns item hit or 0 if no hit.
 // end is set to the colision point
 bool CurrentMap::sweepTest(const int32 start[3], const int32 end[3],
@@ -961,7 +1047,7 @@ bool CurrentMap::sweepTest(const int32 start[3], const int32 end[3],
 
 				// If the objects overlapped at the start, ignore collision.
 				// The -1 and +1 portions are to still consider collisions
-				// for _items which were merely touching at the start for all
+				// for items which were merely touching at the start for all
 				// intents and purposes, but partially overlapped due to an
 				// off-by-one error (hypothetically, but they do happen so
 				// protect against it).
@@ -1197,15 +1283,28 @@ bool CurrentMap::load(Common::ReadStream *rs, uint32 version) {
 	return true;
 }
 
-uint32 CurrentMap::I_canExistAt(const uint8 *args, unsigned int /*argsize*/) {
+uint32 CurrentMap::I_canExistAt(const uint8 *args, unsigned int argsize) {
 	ARG_UINT16(shape);
 	ARG_UINT16(x);
 	ARG_UINT16(y);
 	ARG_UINT16(z);
-	//!! TODO: figure these out
-	ARG_UINT16(unk1); // is either 1 or 4
-	ARG_UINT16(unk2); // looks like it could be an objid
-	ARG_UINT16(unk3); // always zero
+	if (argsize > 8) {
+		//!! TODO: figure these out
+		ARG_UINT16(unk1); // is either 1 or 4
+		ARG_UINT16(unk2); // looks like it could be an objid
+		ARG_UINT16(unk3); // always zero
+	}
+
+	if (GAME_IS_CRUSADER) {
+		x *= 2;
+		y *= 2;
+	}
+
+	//
+	// TODO: The crusader version of this function actually checks by
+	// changing the shapeinfo of shape 0x31A to match the target
+	// shape.  For a first level approximation, this is the same.
+	//
 
 	const CurrentMap *cm = World::get_instance()->getCurrentMap();
 	bool valid = cm->isValidPosition(x, y, z, shape, 0, 0, 0);
@@ -1215,6 +1314,30 @@ uint32 CurrentMap::I_canExistAt(const uint8 *args, unsigned int /*argsize*/) {
 	else
 		return 0;
 }
+
+uint32 CurrentMap::I_canExistAtPoint(const uint8 *args, unsigned int /*argsize*/) {
+	ARG_UINT16(unk1);
+	ARG_UINT16(unk2);
+	ARG_UINT16(shape);
+	ARG_WORLDPOINT(pt);
+
+	if (shape > 0x800)
+		return 0;
+
+	if (GAME_IS_CRUSADER) {
+		pt.setX(pt.getX() * 2);
+		pt.setY(pt.getY() * 2);
+	}
+
+	const CurrentMap *cm = World::get_instance()->getCurrentMap();
+	bool valid = cm->isValidPosition(pt.getX(), pt.getY(), pt.getZ(), shape, 0, 0, 0);
+
+	if (valid)
+		return 1;
+	else
+		return 0;
+}
+
 
 } // End of namespace Ultima8
 } // End of namespace Ultima

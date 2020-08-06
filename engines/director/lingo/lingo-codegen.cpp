@@ -43,14 +43,13 @@
 // ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 // THIS SOFTWARE.
 
-#include "director/director.h"
-#include "director/cast.h"
-#include "director/score.h"
-#include "director/lingo/lingo.h"
-#include "director/lingo/lingo-builtins.h"
-#include "director/lingo/lingo-code.h"
+#include "common/endian.h"
 
-#include "director/util.h"
+#include "director/director.h"
+#include "director/lingo/lingo.h"
+#include "director/lingo/lingo-code.h"
+#include "director/lingo/lingo-object.h"
+#include "director/lingo/lingo-gr.h"
 
 namespace Director {
 
@@ -64,7 +63,7 @@ void Lingo::cleanLocalVars() {
 	g_lingo->_localvars = nullptr;
 }
 
-Symbol Lingo::define(Common::String &name, int nargs, ScriptData *code, Common::Array<Common::String> *argNames, Common::Array<Common::String> *varNames, Object *factory) {
+Symbol ScriptContext::define(Common::String &name, int nargs, ScriptData *code, Common::Array<Common::String> *argNames, Common::Array<Common::String> *varNames) {
 	Symbol sym;
 	sym.name = new Common::String(name);
 	sym.type = HANDLER;
@@ -73,43 +72,35 @@ Symbol Lingo::define(Common::String &name, int nargs, ScriptData *code, Common::
 	sym.maxArgs = nargs;
 	sym.argNames = argNames;
 	sym.varNames = varNames;
-	sym.ctx = _currentScriptContext;
-	sym.archiveIndex = _archiveIndex;
+	sym.ctx = this;
+	sym.archive = _archive;
 
 	if (debugChannelSet(1, kDebugCompile)) {
 		uint pc = 0;
 		while (pc < sym.u.defn->size()) {
 			uint spc = pc;
-			Common::String instr = g_lingo->decodeInstruction(sym.u.defn, pc, &pc);
+			Common::String instr = g_lingo->decodeInstruction(_archive, sym.u.defn, pc, &pc);
 			debugC(1, kDebugCompile, "[%5d] %s", spc, instr.c_str());
 		}
 		debugC(1, kDebugCompile, "<end define code>");
 	}
 
-	if (factory) {
-		if (factory->methods.contains(name)) {
-			warning("Redefining method '%s' on factory '%s'", name.c_str(), factory->name->c_str());
+	if (!g_lingo->_eventHandlerTypeIds.contains(name)) {
+		_functionHandlers[name] = sym;
+		if (_scriptType == kMovieScript && _archive && !_archive->functionHandlers.contains(name)) {
+			_archive->functionHandlers[name] = sym;
 		}
-		factory->methods[name] = sym;
 	} else {
-		Symbol existing = getHandler(name);
-		if (existing.type != VOID)
-			warning("Redefining handler '%s'", name.c_str());
-
-		if (!_eventHandlerTypeIds.contains(name)) {
-			_archives[_archiveIndex].functionHandlers[name] = sym;
-		} else {
-			_archives[_archiveIndex].eventHandlers[ENTITY_INDEX(_eventHandlerTypeIds[name], _currentEntityId)] = sym;
-		}
+		_eventHandlers[g_lingo->_eventHandlerTypeIds[name]] = sym;
 	}
 
 	return sym;
 }
 
-Symbol Lingo::codeDefine(Common::String &name, int start, int nargs, Object *factory, int end, bool removeCode) {
-	debugC(1, kDebugCompile, "codeDefine(\"%s\"(len: %d), %d, %d, \"%s\", %d) entity: %d",
-			name.c_str(), _currentAssembly->size() - 1, start, nargs, (factory ? factory->name->c_str() : ""),
-			end, _currentEntityId);
+Symbol Lingo::codeDefine(Common::String &name, int start, int nargs, int end, bool removeCode) {
+	if (debugChannelSet(-1, kDebugFewFramesOnly) || debugChannelSet(1, kDebugCompile))
+		debug("codeDefine(\"%s\"(len: %d), %d, %d, %d)",
+			name.c_str(), _currentAssembly->size() - 1, start, nargs, end);
 
 	if (end == -1)
 		end = _currentAssembly->size();
@@ -124,7 +115,8 @@ Symbol Lingo::codeDefine(Common::String &name, int start, int nargs, Object *fac
 		if (it->_value == kVarLocal)
 			varNames->push_back(Common::String(it->_key));
 	}
-	Symbol sym = define(name, nargs, code, argNames, varNames, factory);
+
+	Symbol sym = _assemblyContext->define(name, nargs, code, argNames, varNames);
 
 	if (debugChannelSet(1, kDebugCompile)) {
 		debug("Function vars");
@@ -221,8 +213,28 @@ int Lingo::codeSetImmediate(bool state) {
 	return res;
 }
 
+int Lingo::codeCmd(Common::String *s, int numpar) {
+	// Insert current line number to our asserts
+	if (s->equalsIgnoreCase("scummvmAssert") || s->equalsIgnoreCase("scummvmAssertEqual")) {
+		g_lingo->code1(LC::c_intpush);
+		g_lingo->codeInt(g_lingo->_linenumber);
+
+		numpar++;
+	}
+
+	int ret = g_lingo->code1(LC::c_callcmd);
+
+	g_lingo->codeString(s->c_str());
+
+	inst num = 0;
+	WRITE_UINT32(&num, numpar);
+	g_lingo->code1(num);
+
+	return ret;
+}
+
 int Lingo::codeFunc(Common::String *s, int numpar) {
-	int ret = g_lingo->code1(LC::c_call);
+	int ret = g_lingo->code1(LC::c_callfunc);
 
 	g_lingo->codeString(s->c_str());
 
@@ -264,7 +276,7 @@ void Lingo::processIf(int toplabel, int endlabel) {
 	}
 }
 
-void Lingo::varCreate(const Common::String &name, bool global, SymbolHash *localvars) {
+void Lingo::varCreate(const Common::String &name, bool global, DatumHash *localvars) {
 	if (localvars == nullptr) {
 		localvars = _localvars;
 	}
@@ -273,7 +285,7 @@ void Lingo::varCreate(const Common::String &name, bool global, SymbolHash *local
 		if (global)
 			warning("varCreate: variable %s is local, not global", name.c_str());
 		return;
-	} else if (_currentMe.type == OBJECT && _currentMe.u.obj->hasVar(name)) {
+	} else if (_currentMe.type == OBJECT && _currentMe.u.obj->hasProp(name)) {
 		if (global)
 			warning("varCreate: variable %s is instance or property, not global", name.c_str());
 		return;
@@ -284,26 +296,21 @@ void Lingo::varCreate(const Common::String &name, bool global, SymbolHash *local
 	}
 
 	if (global) {
-		_globalvars[name] = Symbol();
-		_globalvars[name].name = new Common::String(name);
+		_globalvars[name] = Datum();
 		_globalvars[name].type = INT;
 		_globalvars[name].u.i = 0;
 	} else {
-		(*localvars)[name] = Symbol();
-		(*localvars)[name].name = new Common::String(name);
+		(*localvars)[name] = Datum();
 	}
 }
 
 void Lingo::codeFactory(Common::String &name) {
-	Object *obj = new Object(name, kFactoryObj);
-
-	_currentFactory = obj;
+	// FIXME: The factory's context should not be tied to the LingoArchive
+	// but bytecode needs it to resolve names
+	_assemblyContext->setName(name);
+	_assemblyContext->setFactory(true);
 	if (!_globalvars.contains(name)) {
-		_globalvars[name] = Symbol();
-		_globalvars[name].name = new Common::String(name);
-		_globalvars[name].global = true;
-		_globalvars[name].type = OBJECT;
-		_globalvars[name].u.obj = obj;
+		_globalvars[name] = _assemblyContext;
 	} else {
 		warning("Factory '%s' already defined", name.c_str());
 	}

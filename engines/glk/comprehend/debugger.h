@@ -41,6 +41,26 @@ private:
 	 */
 	bool cmdFloodfills(int argc, const char **argv);
 
+	/**
+	 * Sets or lists the current room
+	 */
+	bool cmdRoom(int argc, const char **argv);
+
+	/**
+	 * Sets or lists the room for an item
+	 */
+	bool cmdItemRoom(int argc, const char **argv);
+
+	/**
+	 * Find a string given a partial specified
+	 */
+	bool cmdFindString(int argc, const char **argv);
+
+	/**
+	 * Draw an image to the screen
+	 */
+	bool cmdDraw(int argc, const char **argv);
+
 protected:
 	void print(const char *fmt, ...) override;
 

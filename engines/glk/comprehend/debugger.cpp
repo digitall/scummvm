@@ -33,6 +33,10 @@ Debugger::Debugger() : Glk::Debugger() {
 	g_debugger = this;
 	registerCmd("dump", WRAP_METHOD(Debugger, cmdDump));
 	registerCmd("floodfills", WRAP_METHOD(Debugger, cmdFloodfills));
+	registerCmd("room", WRAP_METHOD(Debugger, cmdRoom));
+	registerCmd("itemroom", WRAP_METHOD(Debugger, cmdItemRoom));
+	registerCmd("findstring", WRAP_METHOD(Debugger, cmdFindString));
+	registerCmd("draw", WRAP_METHOD(Debugger, cmdDraw));
 }
 
 Debugger::~Debugger() {
@@ -46,13 +50,15 @@ void Debugger::print(const char *fmt, ...) {
 	va_end(argp);
 
 	debugPrintf("%s", msg.c_str());
+	debugN("%s", msg.c_str());
 }
 
 bool Debugger::cmdDump(int argc, const char **argv) {
-	Common::String param = (argc == 2) ? argv[1] : "";
+	Common::String type = (argc >= 2) ? argv[1] : "";
+	uint param = (argc == 3) ? strToInt(argv[2]) : 0;
 	ComprehendGame *game = g_comprehend->_game;
 
-	if (!dumpGameData(game, param))
+	if (!dumpGameData(game, type, param))
 		debugPrintf("Unknown dump option\n");
 
 	return true;
@@ -69,6 +75,82 @@ bool Debugger::cmdFloodfills(int argc, const char **argv) {
 
 	return true;
 }
+
+bool Debugger::cmdRoom(int argc, const char **argv) {
+	ComprehendGame *game = g_comprehend->getGame();
+
+	if (argc == 1) {
+		debugPrintf("Current room = %d\n", game->_currentRoom);
+		return true;
+	} else {
+		game->move_to(strToInt(argv[1]));
+		game->update_graphics();
+		return false;
+	}
+}
+
+bool Debugger::cmdItemRoom(int argc, const char **argv) {
+	ComprehendGame *game = g_comprehend->getGame();
+
+	if (argc == 1) {
+		debugPrintf("itemroom <item> [<room>]\n");
+	} else {
+		Item *item = game->get_item(strToInt(argv[1]));
+
+		if (argc == 2) {
+			debugPrintf("Item room = %d\n", item->_room);
+		} else {
+			int room = strToInt(argv[2]);
+			if (room == 0)
+				room = game->_currentRoom;
+			bool visibleChange = item->_room == game->_currentRoom ||
+				room == game->_currentRoom;
+
+			item->_room = room;
+
+			if (visibleChange) {
+				game->_updateFlags |= UPDATE_GRAPHICS_ITEMS;
+				game->update_graphics();
+			}
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Debugger::cmdFindString(int argc, const char **argv) {
+	ComprehendGame *game = g_comprehend->getGame();
+
+	if (argc == 1) {
+		debugPrintf("findstring <string>\n");
+
+	} else {
+		for (int arrNum = 0; arrNum < 2; ++arrNum) {
+			const StringTable &table = (arrNum == 0) ? game->_strings : game->_strings2;
+			const char *name = (arrNum == 0) ? "_strings" : "_strings2";
+
+			for (uint idx = 0; idx < table.size(); ++idx) {
+				if (table[idx].contains(argv[1]))
+					debugPrintf("%s[%u] = %s\n", name, idx, table[idx].c_str());
+			}
+		}
+	}
+
+	return true;
+}
+
+bool Debugger::cmdDraw(int argc, const char **argv) {
+	if (argc == 1) {
+		debugPrintf("draw <number>\n");
+		return true;
+	} else {
+		g_comprehend->drawLocationPicture(strToInt(argv[1]), true);
+		return false;
+	}
+}
+
 
 } // namespace Comprehend
 } // namespace Glk

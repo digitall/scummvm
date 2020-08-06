@@ -40,7 +40,7 @@ class MacWindowManager;
 class MacWidget {
 
 public:
-	MacWidget(MacWidget *parent, int x, int y, int w, int h, bool focusable, uint16 border = 0, uint16 gutter = 0, uint16 shadow = 0);
+	MacWidget(MacWidget *parent, int x, int y, int w, int h, MacWindowManager *wm, bool focusable, uint16 border = 0, uint16 gutter = 0, uint16 shadow = 0, uint fgcolor = 0, uint bgcolor= 0xff);
 	virtual ~MacWidget();
 
 	/**
@@ -81,7 +81,6 @@ public:
 	void removeWidget(MacWidget *child, bool del = true);
 
 	Graphics::ManagedSurface *getSurface() { return _composeSurface; }
-	Graphics::ManagedSurface *getMask() { return _maskSurface; }
 
 protected:
 	uint16 _border;
@@ -91,7 +90,6 @@ protected:
 	int _fgcolor, _bgcolor;
 
 	Graphics::ManagedSurface *_composeSurface;
-	Graphics::ManagedSurface *_maskSurface;
 
 public:
 	bool _focusable;
@@ -102,6 +100,7 @@ public:
 
 	Common::Rect _dims;
 
+	MacWindowManager *_wm;
 	MacWidget *_parent;
 	Common::Array<MacWidget *> _children;
 };

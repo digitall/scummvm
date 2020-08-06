@@ -28,12 +28,40 @@
 namespace Glk {
 namespace Comprehend {
 
+enum RoomId {
+	ROOM_CLAY_HUT = 7,
+	ROOM_FIELD = 26
+};
+
+enum RoomFlag {
+	ROOMFLAG_FOREST = 1 << 0,
+	ROOMFLAG_WEREWOLF = 1 << 6,
+	ROOMFLAG_VAMPIRE = 1 << 7
+};
+
+enum ItemId {
+	ITEM_GOBLIN = 9,
+	ITEM_SILVER_BULLET = 21,
+	ITEM_BLACK_CAT = 23,
+	ITEM_WEREWOLF = 33,
+	ITEM_VAMPIRE = 38
+};
+
+struct TransylvaniaMonster {
+	uint8 _object;
+	uint8 _deadFlag;
+	uint _roomAllowFlag;
+	uint _minTurnsBefore;
+	uint _randomness;
+};
+
+
 const TransylvaniaMonster TransylvaniaGame::WEREWOLF = {
-	0x21, 7, (1 << 6), 5, 5
+	ITEM_WEREWOLF, 7, ROOMFLAG_WEREWOLF, 10, 190
 };
 
 const TransylvaniaMonster TransylvaniaGame::VAMPIRE = {
-	0x26, 5, (1 << 7), 0, 5
+	ITEM_VAMPIRE, 5, ROOMFLAG_VAMPIRE, 0, 200
 };
 
 static const GameStrings TR_STRINGS = {
@@ -41,14 +69,15 @@ static const GameStrings TR_STRINGS = {
 };
 
 
-TransylvaniaGame::TransylvaniaGame() : ComprehendGame() {
+TransylvaniaGame::TransylvaniaGame() : ComprehendGame(),
+		_miceReleased(false) {
 	_gameDataFile = "tr.gda";
 
-	_stringFiles.push_back(StringFile("MA.MS1", 0x88));
-	_stringFiles.push_back(StringFile("MB.MS1", 0x88));
-	_stringFiles.push_back(StringFile("MC.MS1", 0x88));
-	_stringFiles.push_back(StringFile("MD.MS1", 0x88));
-	_stringFiles.push_back(StringFile("ME.MS1", 0x88));
+	_stringFiles.push_back("MA.MS1");
+	_stringFiles.push_back("MB.MS1");
+	_stringFiles.push_back("MC.MS1");
+	_stringFiles.push_back("MD.MS1");
+	_stringFiles.push_back("ME.MS1");
 
 	_locationGraphicFiles.push_back("RA.MS1");
 	_locationGraphicFiles.push_back("RB.MS1");
@@ -62,35 +91,44 @@ TransylvaniaGame::TransylvaniaGame() : ComprehendGame() {
 	_gameStrings = &TR_STRINGS;
 }
 
-void TransylvaniaGame::updateMonster(const TransylvaniaMonster *monsterInfo) {
+bool TransylvaniaGame::updateMonster(const TransylvaniaMonster *monsterInfo) {
 	Item *monster;
 	Room *room;
 	uint16 turn_count;
 
 	room = &_rooms[_currentRoom];
-	turn_count = _variables[VAR_TURN_COUNT];
+	if (!(room->_flags & monsterInfo->_roomAllowFlag))
+		return false;
 
-	monster = get_item(monsterInfo->object);
-	if (monster->room == _currentRoom) {
+	turn_count = _variables[VAR_TURN_COUNT];
+	monster = get_item(monsterInfo->_object);
+
+	if (monster->_room == _currentRoom) {
 		// The monster is in the current room - leave it there
-		return;
+		return true;
 	}
 
-	if ((room->flags & monsterInfo->room_allow_flag) &&
-	        !_flags[monsterInfo->dead_flag] &&
-	        turn_count > monsterInfo->min_turns_before) {
+	if (!_flags[monsterInfo->_deadFlag] &&
+	        turn_count > monsterInfo->_minTurnsBefore) {
 		/*
 		 * The monster is alive and allowed to move to the current
 		 * room. Randomly decide whether on not to. If not, move
 		 * it back to limbo.
 		 */
-		if ((g_comprehend->getRandomNumber(0x7fffffff) % monsterInfo->randomness) == 0) {
+		if (getRandomNumber(255) > monsterInfo->_randomness) {
 			move_object(monster, _currentRoom);
-			_variables[0xf] = turn_count + 1;
+			_variables[15] = turn_count + 1;
 		} else {
 			move_object(monster, ROOM_NOWHERE);
 		}
 	}
+
+	return true;
+}
+
+bool TransylvaniaGame::isMonsterInRoom(const TransylvaniaMonster *monsterInfo) {
+	Item *monster = get_item(monsterInfo->_object);
+	return monster->_room == _currentRoom;
 }
 
 int TransylvaniaGame::roomIsSpecial(unsigned room_index,
@@ -99,56 +137,114 @@ int TransylvaniaGame::roomIsSpecial(unsigned room_index,
 
 	if (room_index == 0x28) {
 		if (roomDescString)
-			*roomDescString = room->string_desc;
+			*roomDescString = room->_stringDesc;
 		return ROOM_IS_DARK;
 	}
 
 	return ROOM_IS_NORMAL;
 }
 
-bool TransylvaniaGame::beforeTurn() {
-	updateMonster(&WEREWOLF);
-	updateMonster(&VAMPIRE);
-	return false;
+void TransylvaniaGame::beforeTurn() {
+	if (!isMonsterInRoom(&WEREWOLF) && !isMonsterInRoom(&VAMPIRE)) {
+		if (_currentRoom == ROOM_CLAY_HUT) {
+			Item *blackCat = get_item(ITEM_BLACK_CAT);
+			if (blackCat->_room == _currentRoom && getRandomNumber(255) >= 128)
+				console_println(_strings[109].c_str());
+			return;
+
+		} else if (_currentRoom == ROOM_FIELD) {
+			Item *goblin = get_item(ITEM_GOBLIN);
+			if (goblin->_room == _currentRoom)
+				console_println(_strings[94 + getRandomNumber(3)].c_str());
+			return;
+
+		}
+	}
+
+	if (updateMonster(&WEREWOLF) || updateMonster(&VAMPIRE))
+		return;
+
+	Room *room = &_rooms[_currentRoom];
+	if ((room->_flags & ROOMFLAG_FOREST) && (_variables[VAR_TURN_COUNT] % 255) >= 4
+			&& getRandomNumber(255) < 40) {
+		int stringNum = _miceReleased ? 108 : 107;
+		console_println(_strings[stringNum].c_str());
+
+		// Until the mice are released, an eagle moves player to a random room
+		if (!_miceReleased) {
+			// Get new room to get moved to
+			int roomNum = getRandomNumber(3) + 1;
+			if (roomNum == _currentRoom)
+				roomNum += 15;
+
+			move_to(roomNum);
+
+			// Make sure Werwolf and Vampire aren't present
+			get_item(ITEM_WEREWOLF)->_room = 0xff;
+			get_item(ITEM_VAMPIRE)->_room = 0xff;
+		}
+	}
+}
+
+void TransylvaniaGame::synchronizeSave(Common::Serializer &s) {
+	ComprehendGame::synchronizeSave(s);
+	s.syncAsByte(_miceReleased);
+
+	// As a post-step, ensure the vampire and werewolf aren't present
+	get_item(ITEM_WEREWOLF)->_room = 0xff;
+	get_item(ITEM_VAMPIRE)->_room = 0xff;
 }
 
 void TransylvaniaGame::handleSpecialOpcode(uint8 operand) {
 	switch (operand) {
-	case 0x01:
-		// FIXME: Called when the mice are dropped and the cat chases them.
+	case 1:
+		// Mice have been released
+		_miceReleased = true;
 		break;
 
-	case 0x02:
-		// FIXME: Called when the gun is fired
+	case 2:
+		// Gun is fired. Drop the bullet in a random room
+		get_item(ITEM_SILVER_BULLET)->_room = getRandomNumber(7) + 1;
+		_updateFlags |= UPDATE_GRAPHICS;
 		break;
 
-	case 0x06:
+	case 3:
+	case 4:
+		// Game over - failure
+		console_println(_strings2[138].c_str());
+		game_restart();
+		break;
+
+	case 5:
+		// Won the game
+		g_comprehend->showGraphics();
+		g_comprehend->drawLocationPicture(40);
+		game_restart();
+		break;
+
+	case 6:
 		game_save();
 		break;
 
-	case 0x07:
+	case 7:
 		game_restore();
 		break;
 
-	case 0x03:
-	// Game over - failure
-	// fall through
-	case 0x05:
-	// Won the game
-	// fall through
-	case 0x08:
+	case 8:
 		// Restart game
 		game_restart();
 		break;
 
-	case 0x09:
-		/*
-		 * Show the Zin screen in reponse to doing 'sing some enchanted
-		 * evening' in his cabin.
-		 */
+	case 9:
+		// Show the Zin screen in reponse to doing
+		// 'sing some enchanted evening' in his cabin.
+		g_comprehend->showGraphics();
 		g_comprehend->drawLocationPicture(41);
 		console_get_key();
 		_updateFlags |= UPDATE_GRAPHICS;
+		break;
+
+	default:
 		break;
 	}
 }
@@ -160,6 +256,7 @@ void TransylvaniaGame::handleSpecialOpcode(uint8 operand) {
 
 void TransylvaniaGame::beforeGame() {
 	char buffer[128];
+	g_comprehend->setDisableSaves(true);
 
 	// Draw the title
 	g_comprehend->drawPicture(TITLE_IMAGE);
@@ -174,6 +271,8 @@ void TransylvaniaGame::beforeGame() {
 	// And your next of kin - This isn't stored by the game
 	console_println(_strings[0x21].c_str());
 	READ_LINE;
+
+	g_comprehend->setDisableSaves(false);
 }
 
 } // namespace Comprehend

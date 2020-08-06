@@ -4,19 +4,37 @@ Programmcodes finden Sie auf Englisch unter:
 
 #### 2.2.0 (DD.MM.YYYY)
 
+ Neue Spiele:
+   - Unterstützung für die englische Übersetzung von "Prince and the Coward" hinzugefügt.
+   - Unterstützung für Ultima IV - Quest of the Avatar hinzugefügt.
+   - Unterstützung für Ultima VI - The False Prophet hinzugefügt.
+   - Unterstützung für Ultima VIII - Pagan hinzugefügt.
+   - Unterstützung für Spiele von Interactive Fiction hinzugefügt, basierend auf folgenden Engines:
+     ADRIFT (außer Version 5), AdvSys, AGT, Alan 2 & 3
+     Archetype (neu implementiert für Glk, basierend auf dem originalen Pascal-Quellcode)
+     Hugo, JACL, Level 9, Magnetic Scrolls, Quest, Scott Adams,
+     ZCode (alle ZCode-Spiele, außer Infocom graphical version 6).
+     Aktuell werden mehr als 1600 Spiele erkannt und unterstützt.
+
  Allgemein:
    - Alle Engines unterstützen nun automatisch gespeicherte Spielstände.
-   - Fehler starten nun den Debugger, anstatt ScummVM einfach abstürzen zu lassen.
+   - Fehler werden nun im Debugger angezeigt, anstatt ScummVM einfach abstürzen zu lassen.
    - Artikel werden bei der Sortierung der Spiele im Launcher nicht mehr berücksichtigt.
    - Hebräisch wird nun korrekt in der Benutzeroberfläche dargestellt (benötigt die FriBiDi-Bibliothek).
+  - Code der Roland MT-32-Emulation auf Munt 2.4.0 aktualisiert.
 
  Dreamweb:
    - Unterstützung für russische Fan-Übersetzung hinzugefügt.
    - Animationsgeschwindigkeit korrigiert.
 
  Kyra:
+   - Unterstützung für die SegaCD-Version von Eye of the Beholder I (mit CD-Audio, animierten
+     Zwischensequenzen und der Karten-Funktion) hinzugefügt.
    - Unterstützung für die PC-98-Version von Eye of the Beholder I hinzugefügt.
-   - Unterstützung für die spanische Version von Eye of the Beholder I und II, Legend of Kyrandia 1 (Fan-Übersetzung auf CD-ROM) und Legend of Kyrandia 2 (Disketten-Version und Fan-Übersetzung auf CD-ROM) hinzugefügt.
+   - Unterstützung für die spanische Version von Eye of the Beholder I und II, Legend of Kyrandia 
+     (Fan-Übersetzung auf CD-ROM) und Legend of Kyrandia 2 (Disketten-Version und Fan-Übersetzung
+     auf CD-ROM hinzugefügt. Unterstützung für die spanische Version von Lands of Lore (Disketten-Version
+     und Fan-Übersetzung auf CD-ROM) korrigiert.
 
  Prince:
    - Fehlerhafte Anzeige der Item-Beschreibungen im Inventar korrigiert.

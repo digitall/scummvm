@@ -563,19 +563,6 @@ static byte winPalette[768] = {
 };
 
 
-static PaletteV4 director4Palettes[] = {
-	{-1, macPalette, 256},
-	{-2, rainbowPalette, 256},
-	{-3, grayscalePalette, 256},
-	{-4, pastelsPalette, 256},
-	{-5, vividPalette, 256},
-	{-6, ntscPalette, 256},
-	{-7, metallicPalette, 256},
-	{-101, winPalette, 256},
-	{0, nullptr, 0}
-};
-
-
 static byte director3Patterns[][8] = {
 	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 	{ 0xFF, 0xFF, 0x77, 0xFF, 0xFF, 0xFF, 0x77, 0xFF },
@@ -754,19 +741,50 @@ Graphics::MacPatterns &DirectorEngine::getPatterns() {
 	return _director3QuickDrawPatterns;
 }
 
-void DirectorEngine::loadPalettes() {
-	for (PaletteV4 *pal = director4Palettes; pal->id != 0; pal++) {
-		_director4Palettes[pal->id] = pal;
-	}
+void DirectorEngine::loadDefaultPalettes() {
+	_loadedPalettes[kClutSystemMac] = PaletteV4(kClutSystemMac, macPalette, 256);
+	_loadedPalettes[kClutRainbow] = PaletteV4(kClutRainbow, rainbowPalette, 256);
+	_loadedPalettes[kClutGrayscale] = PaletteV4(kClutGrayscale, grayscalePalette, 256);
+	_loadedPalettes[kClutPastels] = PaletteV4(kClutPastels, pastelsPalette, 256);
+	_loadedPalettes[kClutVivid] = PaletteV4(kClutVivid, vividPalette, 256);
+	_loadedPalettes[kClutNTSC] = PaletteV4(kClutNTSC, ntscPalette, 256);
+	_loadedPalettes[kClutMetallic] = PaletteV4(kClutMetallic, metallicPalette, 256);
+	_loadedPalettes[kClutSystemWin] = PaletteV4(kClutSystemWin, winPalette, 256);
 }
 
-void DirectorEngine::setPalette(int id) {
-	if (!_director4Palettes.contains(id)) {
-		warning("setPalette(): no palette with matching id %d", id);
-		return;
+PaletteV4 *DirectorEngine::getPalette(int id) {
+	if (!_loadedPalettes.contains(id)) {
+		warning("DirectorEngine::addPalette(): Palette %d not found", id);
+		return nullptr;
 	}
-	PaletteV4 *pal = _director4Palettes[id];
-	setPalette(pal->palette, pal->length);
+
+	return &_loadedPalettes[id];
+}
+
+void DirectorEngine::addPalette(int id, byte *palette, int length) {
+	if (id < 0) {
+		warning("DirectorEngine::addPalette(): Negative palette ids reserved for default palettes");
+		return;
+	} else if (_loadedPalettes.contains(id)) {
+		delete[] _loadedPalettes[id].palette;
+	}
+
+	_loadedPalettes[id] = PaletteV4(id, palette, length);
+}
+
+bool DirectorEngine::setPalette(int id) {
+	if (id == 0) {
+		// Palette id of 0 is unused
+		return false;
+	} else if (!_loadedPalettes.contains(id)) {
+		warning("setPalette(): no palette with matching id %d", id);
+		return false;
+	}
+
+	PaletteV4 pal = _loadedPalettes[id];
+	setPalette(pal.palette, pal.length);
+
+	return true;
 }
 
 void DirectorEngine::setPalette(byte *palette, uint16 count) {
@@ -775,6 +793,13 @@ void DirectorEngine::setPalette(byte *palette, uint16 count) {
 	_currentPaletteLength = count;
 
 	_wm->passPalette(palette, count);
+}
+
+void DirectorEngine::clearPalettes() {
+	for (Common::HashMap<int, PaletteV4>::iterator it = _loadedPalettes.begin(); it != _loadedPalettes.end(); ++it) {
+		if (it->_value.id > 0)
+			delete[] it->_value.palette;
+	}
 }
 
 void DirectorEngine::setCursor(int type) {
@@ -792,5 +817,187 @@ void DirectorEngine::setCursor(int type) {
 		break;
 	}
 }
+
+void DirectorEngine::draw() {
+	_wm->renderZoomBox(true);
+	_wm->draw();
+	g_system->updateScreen();
+}
+
+void inkDrawPixel(int x, int y, int src, void *data) {
+	DirectorPlotData *p = (DirectorPlotData *)data;
+
+	if (!p->destRect.contains(x, y))
+		return;
+
+	byte *dst;
+	byte tmpDst;
+
+	dst = (byte *)p->dst->getBasePtr(x, y);
+
+	if (p->ms) {
+		// Get the pixel that macDrawPixel will give us, but store it to apply the
+		// ink later.
+		tmpDst = *dst;
+		Graphics::macDrawPixel(x, y, src, p->ms->pd);
+		src = *dst;
+
+		*dst = tmpDst;
+	} else if (p->alpha) {
+		// Sprite blend does not respect colourization; defaults to matte ink
+		byte rSrc, gSrc, bSrc;
+		byte rDst, gDst, bDst;
+
+		g_director->_wm->decomposeColor(src, rSrc, gSrc, bSrc);
+		g_director->_wm->decomposeColor(*dst, rDst, gDst, bDst);
+
+		double alpha = (double)p->alpha / 100.0;
+		rDst = static_cast<byte>((rSrc * alpha) + (rDst * (1.0 - alpha)));
+		gDst = static_cast<byte>((gSrc * alpha) + (gDst * (1.0 - alpha)));
+		bDst = static_cast<byte>((bSrc * alpha) + (bDst * (1.0 - alpha)));
+
+		*dst = p->_wm->findBestColor(rDst, gDst, bDst);
+		return;
+	}
+
+ 	switch (p->ink) {
+	case kInkTypeBackgndTrans:
+		if (src == p->backColor)
+			break;
+		// fall through
+	case kInkTypeMatte:
+	case kInkTypeMask:
+		// Only unmasked pixels make it here, so copy them straight
+	case kInkTypeCopy: {
+		if (p->applyColor) {
+			// TODO: Improve the efficiency of this composition
+			byte rSrc, gSrc, bSrc;
+			byte rDst, gDst, bDst;
+			byte rFor, gFor, bFor;
+			byte rBak, gBak, bBak;
+
+			g_director->_wm->decomposeColor(src, rSrc, gSrc, bSrc);
+			g_director->_wm->decomposeColor(*dst, rDst, gDst, bDst);
+			g_director->_wm->decomposeColor(p->foreColor, rFor, gFor, bFor);
+			g_director->_wm->decomposeColor(p->backColor, rBak, gBak, bBak);
+
+			*dst = p->_wm->findBestColor((rSrc | rFor) & (~rSrc | rBak),
+																	 (gSrc | gFor) & (~gSrc | gBak),
+																	 (bSrc | bFor) & (~bSrc | bBak));
+		} else {
+			*dst = src;
+		}
+		break;
+	}
+	case kInkTypeNotCopy:
+		if (p->applyColor) {
+			// TODO: Improve the efficiency of this composition
+			byte rSrc, gSrc, bSrc;
+			byte rDst, gDst, bDst;
+			byte rFor, gFor, bFor;
+			byte rBak, gBak, bBak;
+
+			g_director->_wm->decomposeColor(src, rSrc, gSrc, bSrc);
+			g_director->_wm->decomposeColor(*dst, rDst, gDst, bDst);
+			g_director->_wm->decomposeColor(p->foreColor, rFor, gFor, bFor);
+			g_director->_wm->decomposeColor(p->backColor, rBak, gBak, bBak);
+
+			*dst = p->_wm->findBestColor((~rSrc | rFor) & (rSrc | rBak),
+																	 (~gSrc | gFor) & (gSrc | gBak),
+																	 (~bSrc | bFor) & (bSrc | bBak));
+		} else {
+			*dst = src;
+		}
+		break;
+	case kInkTypeTransparent:
+		*dst = p->applyColor ? (~src & p->foreColor) | (*dst & src) : (*dst & src);
+		break;
+	case kInkTypeNotTrans:
+		*dst = p->applyColor ? (src & p->foreColor) | (*dst & ~src) : (*dst & ~src);
+		break;
+	case kInkTypeReverse:
+		*dst ^= ~(src);
+		break;
+	case kInkTypeNotReverse:
+		*dst ^= src;
+		break;
+	case kInkTypeGhost:
+		*dst = p->applyColor ? (src | p->backColor) & (*dst | ~src) : (*dst | ~src);
+		break;
+	case kInkTypeNotGhost:
+		*dst = p->applyColor ? (~src | p->backColor) & (*dst | src) : *dst | src;
+		break;
+		// Arithmetic ink types
+	default: {
+		if (src != p->colorWhite) {
+			byte rSrc, gSrc, bSrc;
+			byte rDst, gDst, bDst;
+
+			g_director->_wm->decomposeColor(src, rSrc, gSrc, bSrc);
+			g_director->_wm->decomposeColor(*dst, rDst, gDst, bDst);
+
+			switch (p->ink) {
+			case kInkTypeBlend:
+					*dst = p->_wm->findBestColor((rSrc + rDst) / 2, (gSrc + gDst) / 2, (bSrc + bDst) / 2);
+				break;
+			case kInkTypeAddPin:
+					*dst = p->_wm->findBestColor(MIN((rSrc + rDst), p->colorWhite), MIN((gSrc + gDst), p->colorWhite), MIN((bSrc + bDst), p->colorWhite));
+				break;
+			case kInkTypeAdd:
+					*dst = p->_wm->findBestColor(abs(rSrc + rDst) % p->colorWhite + 1, abs(gSrc + gDst) % p->colorWhite + 1, abs(bSrc + bDst) % p->colorWhite + 1);
+				break;
+			case kInkTypeSubPin:
+					*dst = p->_wm->findBestColor(MAX(rSrc - rDst, 0), MAX(gSrc - gDst, 0), MAX(bSrc - bDst, 0));
+				break;
+			case kInkTypeLight:
+					*dst = p->_wm->findBestColor(MAX(rSrc, rDst), MAX(gSrc, gDst), MAX(bSrc, bDst));
+				break;
+			case kInkTypeSub:
+					*dst = p->_wm->findBestColor(abs(rSrc - rDst) % p->colorWhite + 1, abs(gSrc - gDst) % p->colorWhite + 1, abs(bSrc - bDst) % p->colorWhite + 1);
+				break;
+			case kInkTypeDark:
+					*dst = p->_wm->findBestColor(MIN(rSrc, rDst), MIN(gSrc, gDst), MIN(bSrc, bDst));
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	}
+}
+
+void DirectorPlotData::setApplyColor() {
+	applyColor = false;
+
+	if (foreColor == colorBlack && backColor == colorWhite)
+		applyColor = false;
+
+	switch (ink) {
+	case kInkTypeReverse:
+	case kInkTypeNotReverse:
+	case kInkTypeAddPin:
+	case kInkTypeAdd:
+ 	case kInkTypeSubPin:
+	case kInkTypeLight:
+	case kInkTypeSub:
+	case kInkTypeDark:
+	case kInkTypeBackgndTrans:
+		applyColor = false;
+	default:
+		break;
+	}
+
+	if (foreColor != colorBlack) {
+		if (ink != kInkTypeGhost && ink != kInkTypeNotGhost)
+			applyColor = true;
+	}
+
+	if (backColor != colorWhite) {
+		if (ink != kInkTypeTransparent &&
+				ink != kInkTypeNotTrans)
+			applyColor = true;
+	}
+}
+
 
 }

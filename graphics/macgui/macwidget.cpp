@@ -27,27 +27,24 @@
 
 namespace Graphics {
 
-	MacWidget::MacWidget(MacWidget *parent, int x, int y, int w, int h, bool focusable, uint16 border, uint16 gutter, uint16 shadow) :
-	_focusable(focusable), _parent(parent), _border(border), _gutter(gutter), _shadow(shadow) {
+MacWidget::MacWidget(MacWidget *parent, int x, int y, int w, int h, MacWindowManager *wm, bool focusable, uint16 border, uint16 gutter, uint16 shadow, uint fgcolor, uint bgcolor) :
+	_focusable(focusable), _parent(parent), _border(border), _gutter(gutter), _shadow(shadow), _wm(wm) {
 	_contentIsDirty = true;
 	_priority = 0;
 
 	_dims.left = x;
-	_dims.right = x + w + 2 * border + 2 * gutter + shadow + 1;
+	_dims.right = x + w + (2 * border) + (2 * gutter) + shadow;
 	_dims.top = y;
-	_dims.bottom = y + h + 2 * border + gutter + shadow;
+	_dims.bottom = y + h + (2 * border) + gutter + shadow;
+
+	_fgcolor = fgcolor;
+	_bgcolor = bgcolor;
 
 	if (parent)
 		parent->_children.push_back(this);
 
-	_composeSurface = nullptr;
-	_maskSurface = nullptr;
-
 	_composeSurface = new ManagedSurface(_dims.width(), _dims.height());
-	_composeSurface->clear(255);
-
-	_maskSurface = new ManagedSurface(_dims.width(), _dims.height());
-	_maskSurface->clear(0);
+	_composeSurface->clear(_bgcolor);
 
 	_active = false;
 	_editable = false;
@@ -56,6 +53,14 @@ namespace Graphics {
 MacWidget::~MacWidget() {
 	if (_parent)
 		_parent->removeWidget(this, false);
+
+	if (_wm)
+		_wm->clearWidgetRefs(this);
+
+	if (_composeSurface) {
+		_composeSurface->free();
+		delete _composeSurface;
+	}
 }
 
 void MacWidget::setActive(bool active) {
@@ -123,8 +128,10 @@ MacWidget *MacWidget::findEventHandler(Common::Event &event, int dx, int dy) {
 
 				for (uint i = 0; i < _children.size(); i++) {
 					MacWidget *res = _children[i]->findEventHandler(event, dx + _dims.left, dy + _dims.top);
-					if (res && res->_priority > priority)
+					if (res && res->_priority > priority) {
+						priority = res->_priority;
 						widget = res;
+					}
 				}
 				return widget ? widget : this;
 			}

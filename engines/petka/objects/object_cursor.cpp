@@ -25,7 +25,6 @@
 #include "common/system.h"
 #include "common/events.h"
 
-#include "graphics/colormasks.h"
 #include "graphics/surface.h"
 
 #include "petka/flc.h"
@@ -78,7 +77,7 @@ void QObjectCursor::update(int time) {
 		return;
 	FlicDecoder *flc = g_vm->resMgr()->loadFlic(_resourceId);
 	_time += time;
-	while (flc && _time >= flc->getDelay()) {
+	while (flc && _time >= (int32)flc->getDelay()) {
 		flc->setFrame(-1);
 		g_vm->videoSystem()->addDirtyRect(Common::Point(_x, _y), flc->getBounds());
 		_time -= flc->getDelay();

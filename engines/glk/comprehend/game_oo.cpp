@@ -61,7 +61,7 @@ int OOToposGame::roomIsSpecial(unsigned room_index,
 	Room *room = &_rooms[room_index];
 
 	// Is the room dark
-	if ((room->flags & OO_ROOM_FLAG_DARK) &&
+	if ((room->_flags & OO_ROOM_FLAG_DARK) &&
 	        !(_flags[OO_FLAG_FLASHLIGHT_ON])) {
 		if (roomDescString)
 			*roomDescString = 0xb3;
@@ -79,7 +79,7 @@ int OOToposGame::roomIsSpecial(unsigned room_index,
 	return ROOM_IS_NORMAL;
 }
 
-bool OOToposGame::beforeTurn() {
+void OOToposGame::beforeTurn() {
 	// FIXME: Probably doesn't work correctly with restored games
 	static bool flashlight_was_on = false, googles_were_worn = false;
 	Room *room = &_rooms[_currentRoom];
@@ -89,7 +89,7 @@ bool OOToposGame::beforeTurn() {
 	 * was switch off or on.
 	 */
 	if (_flags[OO_FLAG_FLASHLIGHT_ON] != flashlight_was_on &&
-	        (room->flags & OO_ROOM_FLAG_DARK)) {
+	        (room->_flags & OO_ROOM_FLAG_DARK)) {
 		flashlight_was_on = _flags[OO_FLAG_FLASHLIGHT_ON];
 		_updateFlags |= UPDATE_GRAPHICS | UPDATE_ROOM_DESC;
 	}
@@ -103,8 +103,6 @@ bool OOToposGame::beforeTurn() {
 		googles_were_worn = _flags[OO_FLAG_WEARING_GOGGLES];
 		_updateFlags |= UPDATE_GRAPHICS | UPDATE_ROOM_DESC;
 	}
-
-	return false;
 }
 
 void OOToposGame::handleSpecialOpcode(uint8 operand) {

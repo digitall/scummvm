@@ -86,7 +86,6 @@ namespace LB {
 	void b_voidP(int nargs);
 
 	void b_alert(int nargs);
-	void b_birth(int nargs);
 	void b_clearGlobals(int nargs);
 	void b_cursor(int nargs);
 	void b_framesToHMS(int nargs);
@@ -144,11 +143,13 @@ namespace LB {
 	void b_shutDown(int nargs);
 	void b_startTimer(int nargs);
 	void b_return(int nargs);
+	void b_returnNumber(int nargs);
 
 	void b_closeDA(int nargs);
 	void b_closeResFile(int nargs);
 	void b_closeXlib(int nargs);
 	void b_getNthFileNameInFolder(int nargs);
+	void b_open(int nargs);
 	void b_openDA(int nargs);
 	void b_openResFile(int nargs);
 	void b_openXlib(int nargs);
@@ -166,11 +167,6 @@ namespace LB {
 	void b_rect(int nargs);
 	void b_union(int nargs);
 
-	void b_close(int nargs);
-	void b_forget(int nargs);
-	void b_inflate(int nargs);
-	void b_moveToBack(int nargs);
-	void b_moveToFront(int nargs);
 	void b_window(int nargs);
 
 	void b_beep(int nargs);
@@ -201,6 +197,9 @@ namespace LB {
 	void b_lastitemof(int nargs);
 	void b_lastlineof(int nargs);
 	void b_lastwordof(int nargs);
+
+	void b_scummvmassert(int nargs);
+	void b_scummvmassertequal(int nargs);
 
 } // End of namespace LB
 

@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.6.2.  */
+/* A Bison parser, made by GNU Bison 3.7.1.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -62,7 +62,7 @@ extern int yydebug;
     RECT = 263,                    /* RECT  */
     ARRAY = 264,                   /* ARRAY  */
     OBJECT = 265,                  /* OBJECT  */
-    REFERENCE = 266,               /* REFERENCE  */
+    FIELDREF = 266,                /* FIELDREF  */
     LEXERROR = 267,                /* LEXERROR  */
     PARRAY = 268,                  /* PARRAY  */
     INT = 269,                     /* INT  */
@@ -73,19 +73,19 @@ extern int yydebug;
     THEMENUITEMENTITY = 274,       /* THEMENUITEMENTITY  */
     THEMENUITEMSENTITY = 275,      /* THEMENUITEMSENTITY  */
     FLOAT = 276,                   /* FLOAT  */
-    BLTIN = 277,                   /* BLTIN  */
-    FBLTIN = 278,                  /* FBLTIN  */
-    RBLTIN = 279,                  /* RBLTIN  */
-    THEFBLTIN = 280,               /* THEFBLTIN  */
-    ID = 281,                      /* ID  */
-    STRING = 282,                  /* STRING  */
-    HANDLER = 283,                 /* HANDLER  */
-    SYMBOL = 284,                  /* SYMBOL  */
-    ENDCLAUSE = 285,               /* ENDCLAUSE  */
-    tPLAYACCEL = 286,              /* tPLAYACCEL  */
-    tMETHOD = 287,                 /* tMETHOD  */
-    THEOBJECTFIELD = 288,          /* THEOBJECTFIELD  */
-    THEOBJECTREF = 289,            /* THEOBJECTREF  */
+    THEFUNC = 277,                 /* THEFUNC  */
+    THEFUNCINOF = 278,             /* THEFUNCINOF  */
+    VARID = 279,                   /* VARID  */
+    STRING = 280,                  /* STRING  */
+    SYMBOL = 281,                  /* SYMBOL  */
+    ENDCLAUSE = 282,               /* ENDCLAUSE  */
+    tPLAYACCEL = 283,              /* tPLAYACCEL  */
+    tMETHOD = 284,                 /* tMETHOD  */
+    THEOBJECTPROP = 285,           /* THEOBJECTPROP  */
+    tCAST = 286,                   /* tCAST  */
+    tFIELD = 287,                  /* tFIELD  */
+    tSCRIPT = 288,                 /* tSCRIPT  */
+    tWINDOW = 289,                 /* tWINDOW  */
     tDOWN = 290,                   /* tDOWN  */
     tELSE = 291,                   /* tELSE  */
     tELSIF = 292,                  /* tELSIF  */
@@ -147,7 +147,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 162 "engines/director/lingo/lingo-gr.y"
+#line 180 "engines/director/lingo/lingo-gr.y"
 
 	Common::String *s;
 	int i;
@@ -158,16 +158,11 @@ union YYSTYPE
 	Director::DatumArray *arr;
 
 	struct {
-		Common::String *os;
-		int oe;
-	} objectfield;
-
-	struct {
 		Common::String *obj;
-		Common::String *field;
-	} objectref;
+		Common::String *prop;
+	} objectprop;
 
-#line 171 "engines/director/lingo/lingo-gr.h"
+#line 166 "engines/director/lingo/lingo-gr.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -47,6 +47,7 @@ enum MusicType {
 	MT_APPLEIIGS,		// Apple IIGS
 	MT_TOWNS,			// FM-TOWNS
 	MT_PC98,			// PC98
+	MT_SEGACD,			// SegaCD
 	MT_GM,				// General MIDI
 	MT_MT32,			// MT-32
 	MT_GS				// Roland GS
@@ -77,11 +78,12 @@ enum MidiDriverFlags {
 	MDT_AMIGA       = 1 << 5,
 	MDT_APPLEIIGS   = 1 << 6,
 	MDT_TOWNS       = 1 << 7,		// FM-TOWNS: Maps to MT_TOWNS
-	MDT_PC98        = 1 << 8,		// FM-TOWNS: Maps to MT_PC98
-	MDT_MIDI        = 1 << 9,		// Real MIDI
-	MDT_PREFER_MT32 = 1 << 10,		// MT-32 output is preferred
-	MDT_PREFER_GM   = 1 << 11,		// GM output is preferred
-	MDT_PREFER_FLUID= 1 << 12		// FluidSynth driver is preferred
+	MDT_PC98        = 1 << 8,		// PC-98: Maps to MT_PC98
+	MDT_SEGACD		= 1 << 9,
+	MDT_MIDI        = 1 << 10,		// Real MIDI
+	MDT_PREFER_MT32 = 1 << 11,		// MT-32 output is preferred
+	MDT_PREFER_GM   = 1 << 12,		// GM output is preferred
+	MDT_PREFER_FLUID= 1 << 13		// FluidSynth driver is preferred
 };
 
 /**
@@ -125,7 +127,7 @@ public:
 	void send(int8 source, byte status, byte firstOp, byte secondOp);
 
 	/**
-	 * Transmit a sysEx to the midi device.
+	 * Transmit a SysEx to the MIDI device.
 	 *
 	 * The given msg MUST NOT contain the usual SysEx frame, i.e.
 	 * do NOT include the leading 0xF0 and the trailing 0xF7.
@@ -136,6 +138,20 @@ public:
 	 */
 	virtual void sysEx(const byte *msg, uint16 length) { }
 
+	/**
+	 * Transmit a SysEx to the MIDI device and return the necessary
+	 * delay until the next SysEx event in milliseconds.
+	 *
+	 * This can be used to implement an alternate delay method than the
+	 * OSystem::delayMillis function used by most sysEx implementations.
+	 * Note that not every driver needs a delay, or supports this method.
+	 * In this case, 0 is returned and the driver itself will do a delay 
+	 * if necessary.
+	 *
+	 * For information on the SysEx data requirements, see the sysEx method.
+	 */
+	virtual uint16 sysExNoDelay(const byte *msg, uint16 length) { sysEx(msg, length); return 0; }
+
 	// TODO: Document this.
 	virtual void metaEvent(byte type, byte *data, uint16 length) { }
 
@@ -145,6 +161,32 @@ public:
 	 * ignored.
 	 */
 	virtual void metaEvent(int8 source, byte type, byte *data, uint16 length) { metaEvent(type, data, length); }
+
+	/**
+	 * Stops all currently active notes. Specify stopSustainedNotes if
+	 * the MIDI data makes use of the sustain controller to also stop
+	 * sustained notes.
+	 *
+	 * Usually, the MIDI parser tracks active notes and terminates them
+	 * when playback is stopped. This method should be used as a backup
+	 * to silence the MIDI output in case the MIDI parser makes a
+	 * mistake when tracking acive notes. It can also be used when
+	 * quitting or pausing a game.
+	 *
+	 * By default, this method sends an All Notes Off message and, if
+	 * stopSustainedNotes is true, a Sustain off message on all MIDI
+	 * channels. Driver implementations can override this if they want
+	 * to implement this functionality in a different way.
+	 */
+	virtual void stopAllNotes(bool stopSustainedNotes = false);
+
+	/**
+	 * A driver implementation might need time to prepare playback of
+	 * a track. Use this function to check if the driver is ready to
+	 * receive MIDI events.
+	 */
+	virtual bool isReady() { return true; }
+
 protected:
 
 	/**
@@ -233,6 +275,8 @@ protected:
 	bool _reversePanning;
 	// True if GS percussion channel volume should be scaled to match MT-32 volume.
 	bool _scaleGSPercussionVolumeToMT32;
+	// The currently selected GS instrument bank / variation for each channel.
+	byte _gsBank[16];
 
 private:
 	// If detectDevice() detects MT32 and we have a preferred MT32 device
@@ -244,7 +288,9 @@ private:
 
 public:
 	MidiDriver() : _reversePanning(false),
-					_scaleGSPercussionVolumeToMT32(false) { }
+					_scaleGSPercussionVolumeToMT32(false) {
+		memset(_gsBank, 0, sizeof(_gsBank));
+	}
 	virtual ~MidiDriver() { }
 
 	static const byte _mt32ToGm[128];
@@ -347,6 +393,18 @@ public:
 
 	// Does this driver accept soundFont data?
 	virtual bool acceptsSoundFontData() { return false; }
+
+protected:
+	/**
+	 * Checks if the currently selected GS bank / instrument variation
+	 * on the specified channel is valid for the specified patch.
+	 * If this is not the case, the correct bank will be returned which
+	 * can be set by sending a bank select message. If no correction is
+	 * needed, 0xFF will be returned.
+	 * This emulates the fallback functionality of the Roland SC-55 v1.2x,
+	 * on which some games rely to correct wrong bank selects.
+	 */
+	byte correctInstrumentBank(byte outputChannel, byte patchId);
 };
 
 class MidiChannel {

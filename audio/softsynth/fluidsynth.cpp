@@ -126,6 +126,7 @@ void MidiDriver_FluidSynth::setStr(const char *name, const char *val) {
 
 // Soundfont memory loader callback functions.
 
+#if defined(FLUIDSYNTH_VERSION_MAJOR) && FLUIDSYNTH_VERSION_MAJOR > 1
 static void *SoundFontMemLoader_open(const char *filename) {
 	void *p;
 	if (filename[0] != '&') {
@@ -136,7 +137,7 @@ static void *SoundFontMemLoader_open(const char *filename) {
 }
 
 static int SoundFontMemLoader_read(void *buf, int count, void *handle) {
-	return ((Common::SeekableReadStream *) handle)->read(buf, count) == count ? FLUID_OK : FLUID_FAILED;
+	return ((Common::SeekableReadStream *) handle)->read(buf, count) == (uint32)count ? FLUID_OK : FLUID_FAILED;
 }
 
 static int SoundFontMemLoader_seek(void *handle, long offset, int origin) {
@@ -151,6 +152,7 @@ static int SoundFontMemLoader_close(void *handle) {
 static long SoundFontMemLoader_tell(void *handle) {
 	return ((Common::SeekableReadStream *) handle)->pos();
 }
+#endif
 
 int MidiDriver_FluidSynth::open() {
 	if (_isOpen)

@@ -28,27 +28,23 @@
 namespace Glk {
 namespace Comprehend {
 
-struct TransylvaniaMonster {
-	uint8 object;
-	uint8 dead_flag;
-	unsigned min_turns_before;
-	unsigned room_allow_flag;
-	unsigned randomness;
-};
+struct TransylvaniaMonster;
 
 class TransylvaniaGame : public ComprehendGame {
 private:
 	static const TransylvaniaMonster WEREWOLF;
 	static const TransylvaniaMonster VAMPIRE;
+	bool _miceReleased;
 
-	void updateMonster(const TransylvaniaMonster *monsterInfo);
-
+	bool updateMonster(const TransylvaniaMonster *monsterInfo);
+	bool isMonsterInRoom(const TransylvaniaMonster *monsterInfo);
 public:
 	TransylvaniaGame();
 	~TransylvaniaGame() override {}
 
 	void beforeGame() override;
-	bool beforeTurn() override;
+	void beforeTurn() override;
+	void synchronizeSave(Common::Serializer &s) override;
 	int roomIsSpecial(unsigned room_index, unsigned *roomDescString) override;
 	void handleSpecialOpcode(uint8 operand) override;
 };

@@ -49,6 +49,7 @@ struct MacFontRun {
 	uint16 palinfo1;
 	uint16 palinfo2;
 	uint16 palinfo3;
+	uint16 fgcolor;
 
 	const Font *font;
 	MacWindowManager *wm;
@@ -74,6 +75,7 @@ struct MacFontRun {
 		palinfo1  = palinfo1_;
 		palinfo2  = palinfo2_;
 		palinfo3  = palinfo3_;
+		fgcolor   = wm_->findBestColor(palinfo1_ & 0xff, palinfo2_ & 0xff, palinfo3_ & 0xff);
 		font      = nullptr;
 	}
 
@@ -162,7 +164,7 @@ public:
 
 	void setAlignOffset(TextAlign align);
 	TextAlign getAlign() { return _textAlignment; }
-	Common::Point calculateOffset();
+	virtual Common::Point calculateOffset();
 	virtual void setActive(bool active) override;
 	void setEditable(bool editable);
 
@@ -185,9 +187,12 @@ public:
 	Common::U32String getTextChunk(int startRow, int startCol, int endRow, int endCol, bool formatted = false, bool newlines = true);
 
 	Common::U32String getSelection(bool formatted = false, bool newlines = true);
+	uint getSelectionIndex(bool start);
 	void clearSelection();
 	Common::U32String cutSelection();
 	const SelectedText *getSelectedText() { return &_selectedText; }
+
+	void setSelection(int pos, bool start);
 
 	Common::U32String getEditedString();
 
@@ -244,8 +249,6 @@ public:
 
 protected:
 	Common::Point _alignOffset;
-
-	MacWindowManager *_wm;
 
 	Common::U32String _str;
 	const MacFont *_macFont;

@@ -36,6 +36,8 @@ namespace Comprehend {
 struct Sentence {
 	Word _words[4];
 	size_t _nr_words;
+	byte _formattedWords[6];
+	byte _specialOpcodeVal2;
 
 	Sentence() {
 		clear();
@@ -45,14 +47,95 @@ struct Sentence {
 		return _nr_words == 0;
 	}
 
-	void clear() {
-		for (uint idx = 0; idx < 4; ++idx)
-			_words[idx].clear();
-		_nr_words = 0;
-	}
+	void clear();
+
+	/**
+	 * Splits up the array of _words into a _formattedWords
+	 * array, placing the words in appropriate noun, verb, etc.
+	 * positions appropriately
+	 */
+	void format();
 };
 
-ComprehendGame::ComprehendGame() : _gameStrings(nullptr) {
+void Sentence::clear() {
+	for (uint idx = 0; idx < 4; ++idx)
+		_words[idx].clear();
+	for (uint idx = 0; idx < 6; ++idx)
+		_formattedWords[idx] = 0;
+
+	_nr_words = 0;
+	_specialOpcodeVal2 = 0;
+}
+
+void Sentence::format() {
+	for (uint idx = 0; idx < 6; ++idx)
+		_formattedWords[idx] = 0;
+	byte wordTypes[5] = { 0, 0, 0, 0, 0 };
+
+	for (uint idx = 0; idx < _nr_words; ++idx) {
+		const Word &w = _words[idx];
+
+		if (w._type & 8) {
+			if (w._type < 24) {
+				int index, type;
+
+				if (w._type & 0xf0 & wordTypes[2]) {
+					index = _formattedWords[2];
+					type = wordTypes[2];
+				} else if (w._type & 0xf0 & wordTypes[3]) {
+					index = _formattedWords[3];
+					type = wordTypes[3];
+				} else {
+					continue;
+				}
+
+				if (!_formattedWords[2]) {
+					_formattedWords[2] = index;
+					wordTypes[2] = type;
+				} else if (!_formattedWords[3]) {
+					_formattedWords[3] = index;
+					wordTypes[3] = type;
+				}
+			} else {
+				if (w._type == 8)
+					_specialOpcodeVal2 = 1;
+				else if (w._type == 9)
+					_specialOpcodeVal2 = 2;
+			}
+		} else {
+			int val = w._type & 0xf0;
+
+			if (val) {
+				if ((w._type & 1) && !_formattedWords[0]) {
+					_formattedWords[0] = w._index;
+				} else if (!_formattedWords[2]) {
+					_formattedWords[2] = w._index;
+					wordTypes[2] = val;
+				} else if (!_formattedWords[3]) {
+					_formattedWords[3] = w._index;
+					wordTypes[3] = val;
+				}
+			} else if (w._type & 1) {
+				if (!_formattedWords[0]) {
+					_formattedWords[0] = w._index;
+				} else if (!_formattedWords[1]) {
+					_formattedWords[1] = w._index;
+				}
+			} else if (w._type == 2) {
+				if (!_formattedWords[4])
+					_formattedWords[4] = w._index;
+			} else if (w._type == 4) {
+				if (!_formattedWords[5])
+					_formattedWords[5] = w._index;
+			}
+		}
+	}
+}
+
+/*-------------------------------------------------------*/
+
+
+ComprehendGame::ComprehendGame() : _gameStrings(nullptr), _ended(false) {
 }
 
 ComprehendGame::~ComprehendGame() {
@@ -78,12 +161,12 @@ void ComprehendGame::synchronizeSave(Common::Serializer &s) {
 	assert(nr_rooms == _rooms.size());
 
 	for (i = 1; i < _rooms.size(); ++i) {
-		s.syncAsUint16LE(_rooms[i].string_desc);
+		s.syncAsUint16LE(_rooms[i]._stringDesc);
 		for (dir = 0; dir < NR_DIRECTIONS; dir++)
-			s.syncAsByte(_rooms[i].direction[dir]);
+			s.syncAsByte(_rooms[i]._direction[dir]);
 
-		s.syncAsByte(_rooms[i].flags);
-		s.syncAsByte(_rooms[i].graphic);
+		s.syncAsByte(_rooms[i]._flags);
+		s.syncAsByte(_rooms[i]._graphic);
 	}
 
 	// Objects
@@ -198,14 +281,7 @@ void ComprehendGame::console_println(const char *text) {
 
 		if (!word || !word_len)
 			continue;
-#ifdef DEPRECATED
-		/* Print this word */
-		if (line_length + word_len > console_winsize.ws_col) {
-			/* Too long - insert a line break */
-			g_comprehend->print("\n");
-			line_length = 0;
-		}
-#endif
+
 		Common::String wordStr(word, word_len);
 		g_comprehend->print("%s", wordStr.c_str());
 
@@ -282,37 +358,25 @@ void ComprehendGame::game_restore() {
 	(void)g_comprehend->loadGameState(c - '0');
 }
 
-void ComprehendGame::game_restart() {
+bool ComprehendGame::handle_restart() {
 	console_println(stringLookup(_gameStrings->game_restart).c_str());
-	console_get_key();
+	_ended = false;
 
-	loadGame();
-	_updateFlags = UPDATE_ALL;
-}
-
-WordIndex *ComprehendGame::is_word_pair(Word *word1, Word *word2) {
-	WordMap *map;
-	uint i;
-
-	/* Check if this is a word pair */
-	for (i = 0; i < _wordMaps.size(); i++) {
-		map = &_wordMaps[i];
-
-		if (map->word[0].index == word1->_index &&
-		        map->word[0].type == word1->_type &&
-		        map->word[1].index == word2->_index &&
-		        map->word[1].type == word2->_type)
-			return &map->word[2];
+	if (tolower(console_get_key()) == 'r') {
+		loadGame();
+		_updateFlags = UPDATE_ALL;
+		return true;
+	} else {
+		g_comprehend->quitGame();
+		return false;
 	}
-
-	return nullptr;
 }
 
-Item *ComprehendGame::get_item_by_noun(Word *noun) {
+Item *ComprehendGame::get_item_by_noun(byte noun) {
 	uint i;
 
-	if (!noun || !(noun->_type & WORD_TYPE_NOUN_MASK))
-		return NULL;
+	if (!noun)
+		return nullptr;
 
 	/*
 	 * FIXME - in oo-topos the word 'box' matches more than one object
@@ -320,7 +384,7 @@ Item *ComprehendGame::get_item_by_noun(Word *noun) {
 	 *         to drop the latter because this will match the former.
 	 */
 	for (i = 0; i < _items.size(); i++)
-		if (_items[i].word == noun->_index)
+		if (_items[i]._word == noun)
 			return &_items[i];
 
 	return NULL;
@@ -351,7 +415,7 @@ void ComprehendGame::update_graphics() {
 	default:
 		if (_updateFlags & UPDATE_GRAPHICS) {
 			room = get_room(_currentRoom);
-			g_comprehend->drawLocationPicture(room->graphic - 1);
+			g_comprehend->drawLocationPicture(room->_graphic - 1);
 		}
 
 		if ((_updateFlags & UPDATE_GRAPHICS) ||
@@ -359,9 +423,9 @@ void ComprehendGame::update_graphics() {
 			for (i = 0; i < _items.size(); i++) {
 				item = &_items[i];
 
-				if (item->room == _currentRoom &&
-				        item->graphic != 0)
-					g_comprehend->drawItemPicture(item->graphic - 1);
+				if (item->_room == _currentRoom &&
+				        item->_graphic != 0)
+					g_comprehend->drawItemPicture(item->_graphic - 1);
 			}
 		}
 		break;
@@ -376,8 +440,8 @@ void ComprehendGame::describe_objects_in_current_room() {
 	for (i = 0; i < _items.size(); i++) {
 		item = &_items[i];
 
-		if (item->room == _currentRoom &&
-		        item->string_desc != 0)
+		if (item->_room == _currentRoom && item->_stringDesc != 0
+				&& !(item->_flags & ITEMF_INVISIBLE))
 			count++;
 	}
 
@@ -387,9 +451,9 @@ void ComprehendGame::describe_objects_in_current_room() {
 		for (i = 0; i < _items.size(); i++) {
 			item = &_items[i];
 
-			if (item->room == _currentRoom &&
-			        item->string_desc != 0)
-				console_println(stringLookup(item->string_desc).c_str());
+			if (item->_room == _currentRoom && item->_stringDesc != 0
+					&& !(item->_flags & ITEMF_INVISIBLE))
+				console_println(stringLookup(item->_stringDesc).c_str());
 		}
 	}
 }
@@ -401,17 +465,14 @@ void ComprehendGame::update() {
 	update_graphics();
 
 	/* Check if the room is special (dark, too bright, etc) */
-	room_desc_string = room->string_desc;
+	room_desc_string = room->_stringDesc;
 	room_type = roomIsSpecial(_currentRoom,
 	                                &room_desc_string);
 
 	if (_updateFlags & UPDATE_ROOM_DESC)
 		console_println(stringLookup(room_desc_string).c_str());
 
-	// TODO: Transylvania at least doesn't describe items in the room explicitly.
-	// Determine which games actually do so
-	if ((_updateFlags & UPDATE_ITEM_LIST) && _comprehendVersion == 2 &&
-	        room_type == ROOM_IS_NORMAL)
+	if ((_updateFlags & UPDATE_ITEM_LIST) && room_type == ROOM_IS_NORMAL)
 		describe_objects_in_current_room();
 
 	_updateFlags = 0;
@@ -427,20 +488,20 @@ void ComprehendGame::move_to(uint8 room) {
 }
 
 void ComprehendGame::func_set_test_result(FunctionState *func_state, bool value) {
-	if (func_state->or_count == 0) {
+	if (func_state->_orCount == 0) {
 		/* And */
 		if (func_state->_and) {
 			if (!value)
-				func_state->test_result = false;
+				func_state->_testResult = false;
 		} else {
-			func_state->test_result = value;
+			func_state->_testResult = value;
 			func_state->_and = true;
 		}
 
 	} else {
 		/* Or */
 		if (value)
-			func_state->test_result = value;
+			func_state->_testResult = value;
 	}
 }
 
@@ -448,19 +509,19 @@ size_t ComprehendGame::num_objects_in_room(int room) {
 	size_t count = 0, i;
 
 	for (i = 0; i < _items.size(); i++)
-		if (_items[i].room == room)
+		if (_items[i]._room == room)
 			count++;
 
 	return count;
 }
 
 void ComprehendGame::move_object(Item *item, int new_room) {
-	unsigned obj_weight = item->flags & ITEMF_WEIGHT_MASK;
+	unsigned obj_weight = item->_flags & ITEMF_WEIGHT_MASK;
 
-	if (item->room == new_room)
+	if (item->_room == new_room)
 		return;
 
-	if (item->room == ROOM_INVENTORY) {
+	if (item->_room == ROOM_INVENTORY) {
 		/* Removed from player's inventory */
 		_variables[VAR_INVENTORY_WEIGHT] -= obj_weight;
 	}
@@ -469,7 +530,7 @@ void ComprehendGame::move_object(Item *item, int new_room) {
 		_variables[VAR_INVENTORY_WEIGHT] += obj_weight;
 	}
 
-	if (item->room == _currentRoom) {
+	if (item->_room == _currentRoom) {
 		/* Item moved away from the current room */
 		_updateFlags |= UPDATE_GRAPHICS;
 
@@ -482,13 +543,14 @@ void ComprehendGame::move_object(Item *item, int new_room) {
 		                       UPDATE_ITEM_LIST);
 	}
 
-	item->room = new_room;
+	item->_room = new_room;
 }
 
 void ComprehendGame::eval_instruction(FunctionState *func_state,
-                             Instruction *instr,
-                             Word *verb, Word *noun) {
+		const Instruction *instr, const Sentence *sentence) {
 	const byte *opcode_map = _opcodeMap;
+	byte verb = sentence ? sentence->_formattedWords[0] : 0;
+	byte noun = sentence ? sentence->_formattedWords[2] : 0;
 	Room *room;
 	Item *item;
 	uint16 index;
@@ -499,10 +561,10 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 
 	if (DebugMan.isDebugChannelEnabled(kDebugScripts)) {
 		Common::String line;
-		if (!instr->is_command) {
+		if (!instr->_isCommand) {
 			line += "? ";
 		} else {
-			if (func_state->test_result)
+			if (func_state->_testResult)
 				line += "+ ";
 			else
 				line += "- ";
@@ -512,58 +574,58 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		debugC(kDebugScripts, "%s", line.c_str());
 	}
 
-	if (func_state->or_count)
-		func_state->or_count--;
+	if (func_state->_orCount)
+		func_state->_orCount--;
 
-	if (instr->is_command) {
+	if (instr->_isCommand) {
 		bool do_command;
 
-		func_state->in_command = true;
-		do_command = func_state->test_result;
+		func_state->_inCommand = true;
+		do_command = func_state->_testResult;
 
-		if (func_state->or_count != 0)
+		if (func_state->_orCount != 0)
 			g_comprehend->print("Warning: or_count == %d\n",
-			                    func_state->or_count);
-		func_state->or_count = 0;
+			                    func_state->_orCount);
+		func_state->_orCount = 0;
 
 		if (!do_command)
 			return;
 
-		func_state->else_result = false;
-		func_state->executed = true;
+		func_state->_elseResult = false;
+		func_state->_executed = true;
 
 	} else {
-		if (func_state->in_command) {
+		if (func_state->_inCommand) {
 			/* Finished command sequence - clear test result */
-			func_state->in_command = false;
-			func_state->test_result = false;
+			func_state->_inCommand = false;
+			func_state->_testResult = false;
 			func_state->_and = false;
 		}
 	}
 
-	switch (opcode_map[instr->opcode]) {
+	switch (opcode_map[instr->_opcode]) {
 	case OPCODE_VAR_ADD:
-		_variables[instr->operand[0]] +=
-		    _variables[instr->operand[1]];
+		_variables[instr->_operand[0]] +=
+		    _variables[instr->_operand[1]];
 		break;
 
 	case OPCODE_VAR_SUB:
-		_variables[instr->operand[0]] -=
-		    _variables[instr->operand[1]];
+		_variables[instr->_operand[0]] -=
+		    _variables[instr->_operand[1]];
 		break;
 
 	case OPCODE_VAR_INC:
-		_variables[instr->operand[0]]++;
+		_variables[instr->_operand[0]]++;
 		break;
 
 	case OPCODE_VAR_DEC:
-		_variables[instr->operand[0]]--;
+		_variables[instr->_operand[0]]--;
 		break;
 
 	case OPCODE_VAR_EQ:
 		func_set_test_result(func_state,
-		                     _variables[instr->operand[0]] ==
-		                     _variables[instr->operand[1]]);
+		                     _variables[instr->_operand[0]] ==
+		                     _variables[instr->_operand[1]]);
 		break;
 
 	case OPCODE_TURN_TICK:
@@ -572,94 +634,88 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 
 	case OPCODE_PRINT:
 		console_println(instrStringLookup(
-		                    instr->operand[0], instr->operand[1])
+		                    instr->_operand[0], instr->_operand[1])
 		                .c_str());
 		break;
 
 	case OPCODE_TEST_NOT_ROOM_FLAG:
 		func_set_test_result(func_state,
-		                     !(room->flags & instr->operand[0]));
+		                     !(room->_flags & instr->_operand[0]));
 		break;
 
 	case OPCODE_TEST_ROOM_FLAG:
 		func_set_test_result(func_state,
-		                     room->flags & instr->operand[0]);
+		                     room->_flags & instr->_operand[0]);
 		break;
 
 	case OPCODE_NOT_IN_ROOM:
 		func_set_test_result(func_state,
-		                     _currentRoom != instr->operand[0]);
+		                     _currentRoom != instr->_operand[0]);
 		break;
 
 	case OPCODE_IN_ROOM:
 		func_set_test_result(func_state,
-		                     _currentRoom == instr->operand[0]);
+		                     _currentRoom == instr->_operand[0]);
 		break;
 
 	case OPCODE_MOVE_TO_ROOM:
-		if (instr->operand[0] == 0xff) {
-			/*
-			 * FIXME - Not sure what this is for. Transylvania
-			 * uses it in the 'go north' case when in room
-			 * 0x01 or 0x0c, and Oo-Topos uses it when you shoot
-			 * the alien. Ignore it for now.
-			 */
-			break;
-		}
-
-		move_to(instr->operand[0]);
+		if (instr->_operand[0] != 0xff)
+			move_to(instr->_operand[0]);
 		break;
 
-	case OPCODE_MOVE:
-		/* Move in the direction dictated by the current verb */
-		if (verb->_index - 1 >= NR_DIRECTIONS)
-			error("Bad verb %d:%d in move",
-			      verb->_index, verb->_type);
+	case OPCODE_MOVE_DEFAULT:
+		// Move in the direction dictated by the current verb
+		if (verb - 1 >= NR_DIRECTIONS)
+			error("Bad verb %d in move", verb);
 
-		if (room->direction[verb->_index - 1])
-			move_to(room->direction[verb->_index - 1]);
+		if (room->_direction[verb - 1])
+			move_to(room->_direction[verb - 1]);
 		else
 			console_println(stringLookup(STRING_CANT_GO).c_str());
 		break;
 
 	case OPCODE_MOVE_DIRECTION:
-		if (room->direction[instr->operand[0] - 1])
-			move_to(room->direction[instr->operand[0] - 1]);
+		if (room->_direction[instr->_operand[0] - 1])
+			move_to(room->_direction[instr->_operand[0] - 1]);
 		else
 			console_println(stringLookup(STRING_CANT_GO).c_str());
 		break;
 
 	case OPCODE_ELSE:
-		func_state->test_result = func_state->else_result;
+		func_state->_testResult = func_state->_elseResult;
 		break;
 
 	case OPCODE_MOVE_OBJECT_TO_CURRENT_ROOM:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		move_object(item, _currentRoom);
 		break;
 
 	case OPCODE_OBJECT_IN_ROOM:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		func_set_test_result(func_state,
-		                     item->room == instr->operand[1]);
+		                     item->_room == instr->_operand[1]);
 		break;
 
 	case OPCODE_OBJECT_NOT_IN_ROOM:
-		item = get_item(instr->operand[0] - 1);
-		func_set_test_result(func_state,
-		                     item->room != instr->operand[1]);
+		item = get_item(instr->_operand[0] - 1);
+		func_set_test_result(func_state, !item || item->_room != _currentRoom);
+		break;
+
+	case OPCODE_CURRENT_OBJECT_NOT_IN_ROOM:
+		item = get_item_by_noun(noun);
+		func_set_test_result(func_state, !item || item->_room != _currentRoom);
 		break;
 
 	case OPCODE_MOVE_OBJECT_TO_ROOM:
-		item = get_item(instr->operand[0] - 1);
-		move_object(item, instr->operand[1]);
+		item = get_item(instr->_operand[0] - 1);
+		move_object(item, instr->_operand[1]);
 		break;
 
 	case OPCODE_INVENTORY_FULL:
 		item = get_item_by_noun(noun);
 		func_set_test_result(func_state,
 		                     _variables[VAR_INVENTORY_WEIGHT] +
-		                     (item->flags & ITEMF_WEIGHT_MASK) >
+		                     (item->_flags & ITEMF_WEIGHT_MASK) >
 		                     _variables[VAR_INVENTORY_LIMIT]);
 		break;
 
@@ -669,7 +725,7 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		 * FIXME - unsure what the single operand is for.
 		 */
 		item = get_item_by_noun(noun);
-		g_comprehend->print("%s\n", stringLookup(item->long_string).c_str());
+		g_comprehend->print("%s\n", stringLookup(item->_longString).c_str());
 		break;
 
 	case OPCODE_CURRENT_OBJECT_IN_ROOM:
@@ -680,8 +736,7 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 			for (i = 0; i < _items.size(); i++) {
 				Item *itemP = &_items[i];
 
-				if (itemP->word == noun->_index &&
-				        itemP->room == instr->operand[0]) {
+				if (itemP->_word == noun && itemP->_room == instr->_operand[0]) {
 					test = true;
 					break;
 				}
@@ -691,47 +746,37 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		func_set_test_result(func_state, test);
 		break;
 
-	case OPCODE_CURRENT_OBJECT_NOT_PRESENT:
-		/* FIXME - use common code for these two ops */
-		item = get_item_by_noun(noun);
-		if (item)
-			func_set_test_result(func_state,
-			                     item->room != _currentRoom);
-		else
-			func_set_test_result(func_state, true);
-		break;
-
 	case OPCODE_CURRENT_OBJECT_PRESENT:
 		item = get_item_by_noun(noun);
 		if (item)
 			func_set_test_result(func_state,
-			                     item->room == _currentRoom);
+			                     item->_room == _currentRoom);
 		else
 			func_set_test_result(func_state, false);
 		break;
 
 	case OPCODE_HAVE_OBJECT:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		func_set_test_result(func_state,
-		                     item->room == ROOM_INVENTORY);
+		                     item->_room == ROOM_INVENTORY);
 		break;
 
 	case OPCODE_NOT_HAVE_CURRENT_OBJECT:
 		item = get_item_by_noun(noun);
 		func_set_test_result(func_state,
-		                     !item || item->room != ROOM_INVENTORY);
+		                     !item || item->_room != ROOM_INVENTORY);
 		break;
 
 	case OPCODE_HAVE_CURRENT_OBJECT:
 		item = get_item_by_noun(noun);
 		func_set_test_result(func_state,
-		                     item->room == ROOM_INVENTORY);
+		                     item->_room == ROOM_INVENTORY);
 		break;
 
 	case OPCODE_NOT_HAVE_OBJECT:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		func_set_test_result(func_state,
-		                     item->room != ROOM_INVENTORY);
+		                     item->_room != ROOM_INVENTORY);
 		break;
 
 	case OPCODE_CURRENT_OBJECT_TAKEABLE:
@@ -740,7 +785,7 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 			func_set_test_result(func_state, false);
 		else
 			func_set_test_result(func_state,
-			                     (item->flags & ITEMF_CAN_TAKE));
+			                     (item->_flags & ITEMF_CAN_TAKE));
 		break;
 
 	case OPCODE_CURRENT_OBJECT_NOT_TAKEABLE:
@@ -749,46 +794,42 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 			func_set_test_result(func_state, true);
 		else
 			func_set_test_result(func_state,
-			                     !(item->flags & ITEMF_CAN_TAKE));
+			                     !(item->_flags & ITEMF_CAN_TAKE));
+		break;
+
+	case OPCODE_OBJECT_IS_NOWHERE:
+		item = get_item(instr->_operand[0] - 1);
+		func_set_test_result(func_state, item->_room == ROOM_NOWHERE);
 		break;
 
 	case OPCODE_CURRENT_OBJECT_IS_NOWHERE:
 		item = get_item_by_noun(noun);
-		if (!item)
-			func_set_test_result(func_state, false);
-		else
-			func_set_test_result(func_state,
-			                     item->room == ROOM_NOWHERE);
-		break;
-
-	case OPCODE_OBJECT_IS_NOWHERE:
-		item = get_item(instr->operand[0] - 1);
-		func_set_test_result(func_state,
-		                     item->room == ROOM_NOWHERE);
+		func_set_test_result(func_state, item && item->_room == ROOM_NOWHERE);
 		break;
 
 	case OPCODE_OBJECT_IS_NOT_NOWHERE:
-		item = get_item(instr->operand[0] - 1);
-		func_set_test_result(func_state,
-		                     item->room != ROOM_NOWHERE);
+		item = get_item(instr->_operand[0] - 1);
+		func_set_test_result(func_state, item->_room != ROOM_NOWHERE);
+		break;
+
+	case OPCODE_CURRENT_OBJECT_NOT_PRESENT:
+		item = get_item_by_noun(noun);
+		func_set_test_result(func_state, !isItemPresent(item));
 		break;
 
 	case OPCODE_OBJECT_NOT_PRESENT:
-		item = get_item(instr->operand[0] - 1);
-		func_set_test_result(func_state,
-		                     item->room != _currentRoom);
+		item = get_item(instr->_operand[0] - 1);
+		func_set_test_result(func_state, !isItemPresent(item));
 		break;
 
 	case OPCODE_OBJECT_PRESENT:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		func_set_test_result(func_state,
-		                     item->room == _currentRoom);
+		                     item->_room == _currentRoom);
 		break;
 
-	case OPCODE_OBJECT_NOT_VALID:
-		/* FIXME - should be called OPCODE_CURRENT_OBJECT_NOT_VALID */
-		func_set_test_result(func_state, !noun ||
-		                     (noun->_type & WORD_TYPE_NOUN_MASK) == 0);
+	case OPCODE_CURRENT_OBJECT_NOT_VALID:
+		func_set_test_result(func_state, !noun);
 		break;
 
 	case OPCODE_CURRENT_IS_OBJECT:
@@ -802,7 +843,7 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		break;
 
 	case OPCODE_REMOVE_OBJECT:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		move_object(item, ROOM_NOWHERE);
 		break;
 
@@ -821,25 +862,25 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		console_println(stringLookup(STRING_INVENTORY).c_str());
 		for (i = 0; i < _items.size(); i++) {
 			item = &_items[i];
-			if (item->room == ROOM_INVENTORY)
+			if (item->_room == ROOM_INVENTORY)
 				g_comprehend->print("%s\n",
-				                    stringLookup(item->string_desc).c_str());
+				                    stringLookup(item->_stringDesc).c_str());
 		}
 		break;
 
 	case OPCODE_INVENTORY_ROOM:
-		count = num_objects_in_room(instr->operand[0]);
+		count = num_objects_in_room(instr->_operand[0]);
 		if (count == 0) {
-			console_println(stringLookup(instr->operand[1] + 1).c_str());
+			console_println(stringLookup(instr->_operand[1] + 1).c_str());
 			break;
 		}
 
-		console_println(stringLookup(instr->operand[1]).c_str());
+		console_println(stringLookup(instr->_operand[1]).c_str());
 		for (i = 0; i < _items.size(); i++) {
 			item = &_items[i];
-			if (item->room == instr->operand[0])
+			if (item->_room == instr->_operand[0])
 				g_comprehend->print("%s\n",
-				                    stringLookup(item->string_desc).c_str());
+				                    stringLookup(item->_stringDesc).c_str());
 		}
 		break;
 
@@ -848,11 +889,11 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		if (!item)
 			error("Bad current object\n");
 
-		move_object(item, instr->operand[0]);
+		move_object(item, instr->_operand[0]);
 		break;
 
 	case OPCODE_DROP_OBJECT:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		move_object(item, _currentRoom);
 		break;
 
@@ -873,99 +914,95 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		break;
 
 	case OPCODE_TAKE_OBJECT:
-		item = get_item(instr->operand[0] - 1);
+		item = get_item(instr->_operand[0] - 1);
 		move_object(item, ROOM_INVENTORY);
 		break;
 
 	case OPCODE_TEST_FLAG:
 		func_set_test_result(func_state,
-		                     _flags[instr->operand[0]]);
+		                     _flags[instr->_operand[0]]);
 		break;
 
 	case OPCODE_TEST_NOT_FLAG:
 		func_set_test_result(func_state,
-		                     !_flags[instr->operand[0]]);
+		                     !_flags[instr->_operand[0]]);
 		break;
 
 	case OPCODE_CLEAR_FLAG:
-		_flags[instr->operand[0]] = false;
+		_flags[instr->_operand[0]] = false;
 		break;
 
 	case OPCODE_SET_FLAG:
-		_flags[instr->operand[0]] = true;
+		_flags[instr->_operand[0]] = true;
 		break;
 
 	case OPCODE_OR:
-		if (func_state->or_count) {
-			func_state->or_count += 2;
+		if (func_state->_orCount) {
+			func_state->_orCount += 2;
 		} else {
-			func_state->test_result = false;
-			func_state->or_count += 3;
+			func_state->_testResult = false;
+			func_state->_orCount += 3;
 		}
 		break;
 
 	case OPCODE_SET_OBJECT_DESCRIPTION:
-		item = get_item(instr->operand[0] - 1);
-		item->string_desc = (instr->operand[2] << 8) | instr->operand[1];
+		item = get_item(instr->_operand[0] - 1);
+		item->_stringDesc = (instr->_operand[2] << 8) | instr->_operand[1];
 		break;
 
 	case OPCODE_SET_OBJECT_LONG_DESCRIPTION:
-		item = get_item(instr->operand[0] - 1);
-		item->long_string = (instr->operand[2] << 8) | instr->operand[1];
+		item = get_item(instr->_operand[0] - 1);
+		item->_longString = (instr->_operand[2] << 8) | instr->_operand[1];
 		break;
 
 	case OPCODE_SET_ROOM_DESCRIPTION:
-		room = get_room(instr->operand[0]);
-		switch (instr->operand[2]) {
+		room = get_room(instr->_operand[0]);
+		switch (instr->_operand[2]) {
 		case 0x80:
-			room->string_desc = instr->operand[1];
+			room->_stringDesc = instr->_operand[1];
 			break;
 		case 0x81:
-			room->string_desc = instr->operand[1] + 0x100;
+			room->_stringDesc = instr->_operand[1] + 0x100;
 			break;
 		case 0x82:
-			room->string_desc = instr->operand[1] + 0x200;
+			room->_stringDesc = instr->_operand[1] + 0x200;
 			break;
 		default:
 			error("Bad string desc %.2x:%.2x\n",
-			      instr->operand[1], instr->operand[2]);
+			      instr->_operand[1], instr->_operand[2]);
 			break;
 		}
 		break;
 
 	case OPCODE_SET_OBJECT_GRAPHIC:
-		item = get_item(instr->operand[0] - 1);
-		item->graphic = instr->operand[1];
-		if (item->room == _currentRoom)
+		item = get_item(instr->_operand[0] - 1);
+		item->_graphic = instr->_operand[1];
+		if (item->_room == _currentRoom)
 			_updateFlags |= UPDATE_GRAPHICS;
 		break;
 
 	case OPCODE_SET_ROOM_GRAPHIC:
-		room = get_room(instr->operand[0]);
-		room->graphic = instr->operand[1];
-		if (instr->operand[0] == _currentRoom)
+		room = get_room(instr->_operand[0]);
+		room->_graphic = instr->_operand[1];
+		if (instr->_operand[0] == _currentRoom)
 			_updateFlags |= UPDATE_GRAPHICS;
 		break;
 
 	case OPCODE_CALL_FUNC:
-		index = instr->operand[0];
-		if (instr->operand[1] == 0x81)
+		index = instr->_operand[0];
+		if (instr->_operand[1] == 0x81)
 			index += 256;
 		if (index >= _functions.size())
 			error("Bad function %.4x >= %.4x\n",
 			      index, _functions.size());
 
 		debugC(kDebugScripts, "Calling subfunction %.4x", index);
-		eval_function(&_functions[index], verb, noun);
+		eval_function(_functions[index], sentence);
 		break;
 
 	case OPCODE_TEST_FALSE:
-		/*
-		 * FIXME - not sure what this is for. In Transylvania
-		 * it is opcode 0x50 and is used when attempting to
-		 * take the bar in the cellar. If it returns true then
-		 * the response is "there's none here".
-		 */
+		// The original had two opcodes mapped to the same code that does
+		// a test, but ignores the result, and is always false
 		func_set_test_result(func_state, false);
 		break;
 
@@ -983,10 +1020,13 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		break;
 
 	case OPCODE_SET_STRING_REPLACEMENT:
-		_currentReplaceWord = instr->operand[0] - 1;
+		_currentReplaceWord = instr->_operand[0] - 1;
 		break;
 
 	case OPCODE_SET_CURRENT_NOUN_STRING_REPLACEMENT:
+		#if 1
+		error("TODO: OPCODE_SET_CURRENT_NOUN_STRING_REPLACEMENT");
+		#else
 		/*
 		 * FIXME - Not sure what the operand is for,
 		 * maybe capitalisation?
@@ -999,14 +1039,15 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 			_currentReplaceWord = 1;
 		else
 			_currentReplaceWord = 2;
+		#endif
 		break;
 
 	case OPCODE_DRAW_ROOM:
-		g_comprehend->drawLocationPicture(instr->operand[0] - 1);
+		g_comprehend->drawLocationPicture(instr->_operand[0] - 1);
 		break;
 
 	case OPCODE_DRAW_OBJECT:
-		g_comprehend->drawItemPicture(instr->operand[0] - 1);
+		g_comprehend->drawItemPicture(instr->_operand[0] - 1);
 		break;
 
 	case OPCODE_WAIT_KEY:
@@ -1014,35 +1055,35 @@ void ComprehendGame::eval_instruction(FunctionState *func_state,
 		break;
 
 	case OPCODE_SPECIAL:
-		/* Game specific opcode */
-		handleSpecialOpcode(instr->operand[0]);
+		// Game specific opcode
+		handleSpecialOpcode(instr->_operand[0]);
+		break;
+
+	case OPCODE_MOVE_DIR:
+		doMovementVerb(instr->_operand[0]);
 		break;
 
 	default:
-		if (instr->opcode & 0x80) {
-			debugC(kDebugScripts,
-			       "Unhandled command opcode %.2x",
-			       instr->opcode);
+		if (instr->_opcode & 0x80) {
+			warning("Unhandled command opcode %.2x", instr->_opcode);
 		} else {
-			debugC(kDebugScripts,
-			       "Unhandled test opcode %.2x - returning false",
-			       instr->opcode);
+			warning("Unhandled test opcode %.2x - returning false",
+			    instr->_opcode);
 			func_set_test_result(func_state, false);
 		}
 		break;
 	}
 }
 
-void ComprehendGame::eval_function(Function *func,
-                   Word *verb, Word *noun) {
+void ComprehendGame::eval_function(const Function &func, const Sentence *sentence) {
 	FunctionState func_state;
 	uint i;
 
-	func_state.else_result = true;
-	func_state.executed = false;
+	func_state._elseResult = true;
+	func_state._executed = false;
 
-	for (i = 0; i < func->nr_instructions; i++) {
-		if (func_state.executed && !func->instructions[i].is_command) {
+	for (i = 0; i < func.size(); i++) {
+		if (func_state._executed && !func[i]._isCommand) {
 			/*
 			 * At least one command has been executed and the
 			 * current instruction is a test. Exit the function.
@@ -1050,8 +1091,7 @@ void ComprehendGame::eval_function(Function *func,
 			break;
 		}
 
-		eval_instruction(&func_state, &func->instructions[i],
-		                 verb, noun);
+		eval_instruction(&func_state, &func[i], sentence);
 	}
 }
 
@@ -1066,10 +1106,6 @@ void ComprehendGame::skip_non_whitespace(char **p) {
 }
 
 bool ComprehendGame::handle_sentence(Sentence *sentence) {
-	Function *func;
-	Action *action;
-	uint i, j;
-
 	if (sentence->empty())
 		return false;
 
@@ -1078,40 +1114,106 @@ bool ComprehendGame::handle_sentence(Sentence *sentence) {
 		return true;
 	}
 
-	/* Find a matching action */
-	for (i = 0; i < _actions.size(); i++) {
-		action = &_actions[i];
+	// Set up default sentence
+	Common::Array<byte> words;
+	const byte *src = &sentence->_formattedWords[0];
 
-		if (action->type == ACTION_VERB_OPT_NOUN &&
-		        sentence->_nr_words > action->nr_words + 1)
-			continue;
-		if (action->type != ACTION_VERB_OPT_NOUN &&
-		        sentence->_nr_words != action->nr_words)
-			continue;
+	if (src[1] && src[3]) {
+		words.clear();
 
-		/*
-		 * If all words in a sentence match those for an action then
-		 * run that action's function.
-		 */
-		for (j = 0; j < action->nr_words; j++) {
-			if (sentence->_words[j]._index == action->word[j] &&
-			        (sentence->_words[j]._type & action->word_type[j]))
-				continue;
+		for (int idx = 0; idx < 4; ++idx)
+			words.push_back(src[idx]);
 
-			/* Word didn't match */
-			break;
-		}
-		if (j == action->nr_words) {
-			/* Match */
-			func = &_functions[action->function];
-			eval_function(func,
-			              &sentence->_words[0], &sentence->_words[1]);
+		if (handle_sentence(0, sentence, words))
+			return true;
+	}
+
+	if (src[1]) {
+		words.clear();
+
+		for (int idx = 0; idx < 3; ++idx)
+			words.push_back(src[idx]);
+
+		if (handle_sentence(1, sentence, words))
+			return true;
+	}
+
+	if (src[3] && src[4]) {
+		words.clear();
+
+		words.push_back(src[4]);
+		words.push_back(src[0]);
+		words.push_back(src[2]);
+		words.push_back(src[3]);
+
+		if (handle_sentence(2, sentence, words))
+			return true;
+	}
+
+	if (src[4]) {
+		words.clear();
+
+		words.push_back(src[4]);
+		words.push_back(src[0]);
+		words.push_back(src[2]);
+
+		if (handle_sentence(3, sentence, words))
+			return true;
+	}
+
+	if (src[3]) {
+		words.clear();
+
+		words.push_back(src[0]);
+		words.push_back(src[2]);
+		words.push_back(src[3]);
+
+ 		if (handle_sentence(4, sentence, words))
+			return true;
+	}
+
+	if (src[2]) {
+		words.clear();
+
+		words.push_back(src[0]);
+		words.push_back(src[2]);
+
+		if (handle_sentence(5, sentence, words))
+			return true;
+	}
+
+	if (src[0]) {
+		words.clear();
+		words.push_back(src[0]);
+
+		if (handle_sentence(6, sentence, words))
+			return true;
+	}
+
+	console_println(stringLookup(STRING_DONT_UNDERSTAND).c_str());
+	return false;
+}
+
+bool ComprehendGame::handle_sentence(uint tableNum, Sentence *sentence, Common::Array<byte> &words) {
+	const ActionTable &table = _actions[tableNum];
+
+	for (uint i = 0; i < table.size(); i++) {
+		const Action &action = table[i];
+
+		// Check for a match on the words of the action
+		bool isMatch = true;
+		for (uint idx = 0; idx < action._nr_words && isMatch; ++idx)
+			isMatch = action._words[idx] == words[idx];
+
+		if (isMatch) {
+			// Match
+			const Function &func = _functions[action._function];
+			eval_function(func, sentence);
 			return true;
 		}
 	}
 
-	/* No matching action */
-	console_println(stringLookup(STRING_DONT_UNDERSTAND).c_str());
+	// No matching action
 	return false;
 }
 
@@ -1119,9 +1221,7 @@ void ComprehendGame::read_sentence(char **line,
                           Sentence *sentence) {
 	bool sentence_end = false;
 	char *word_string, *p = *line;
-	WordIndex *pair;
 	Word *word;
-	int index;
 
 	sentence->clear();
 	while (1) {
@@ -1149,27 +1249,44 @@ void ComprehendGame::read_sentence(char **line,
 
 		sentence->_nr_words++;
 
-		if (sentence->_nr_words > 1) {
-			index = sentence->_nr_words;
-
-			/* See if this word and the previous are a word pair */
-			pair = is_word_pair(&sentence->_words[index - 2],
-			                    &sentence->_words[index - 1]);
-			if (pair) {
-				sentence->_words[index - 2]._index = pair->index;
-				sentence->_words[index - 2]._type = pair->type;
-				strcpy(sentence->_words[index - 2]._word,
-				       "[PAIR]");
-				sentence->_nr_words--;
-			}
-		}
-
 		if (sentence->_nr_words >= ARRAY_SIZE(sentence->_words) ||
 		        sentence_end)
 			break;
 	}
 
+	parse_sentence_word_pairs(sentence);
+	sentence->format();
+
 	*line = p;
+}
+
+void ComprehendGame::parse_sentence_word_pairs(Sentence *sentence) {
+	if (sentence->_nr_words < 2)
+		return;
+
+	// Iterate through the pairs
+	for (uint idx = 0; idx < _wordMaps.size(); ++idx) {
+		for (int firstWord = 0; firstWord < (int)sentence->_nr_words - 1; ++firstWord) {
+			for (int secondWord = firstWord + 1; secondWord < (int)sentence->_nr_words; ) {
+				if (sentence->_words[firstWord] == _wordMaps[idx]._word[0] &&
+					sentence->_words[secondWord] == _wordMaps[idx]._word[1]) {
+					// Found a word pair match
+					// Delete the second word
+					for (; secondWord < (int)sentence->_nr_words - 1; ++secondWord)
+						sentence->_words[secondWord] = sentence->_words[secondWord + 1];
+
+					sentence->_words[sentence->_nr_words - 1].clear();
+					sentence->_nr_words--;
+
+					// Replace the first word with the target
+					sentence->_words[firstWord] = _wordMaps[idx]._word[2];
+				} else {
+					// Move to next word
+					++secondWord;
+				}
+			}
+		}
+	}
 }
 
 void ComprehendGame::doBeforeTurn() {
@@ -1177,7 +1294,7 @@ void ComprehendGame::doBeforeTurn() {
 	beforeTurn();
 
 	// Run the each turn functions
-	eval_function(&_functions[0], NULL, NULL);
+	eval_function(_functions[0], nullptr);
 
 	update();
 }
@@ -1194,6 +1311,8 @@ void ComprehendGame::read_input() {
 
 	beforePrompt();
 	doBeforeTurn();
+	if (_ended)
+		return;
 
 	// If we're in full screen text, we can afford a blank row between
 	// any game response and the next line of text
@@ -1210,7 +1329,9 @@ void ComprehendGame::read_input() {
 			break;
 
 		// Empty line, so toggle picture window visibility
-		g_comprehend->togglePictureVisibility();
+		g_comprehend->toggleGraphics();
+		g_comprehend->print(_("Picture window toggled\n"));
+
 		_updateFlags |= UPDATE_GRAPHICS;
 		update_graphics();
 		continue;
@@ -1240,8 +1361,34 @@ void ComprehendGame::playGame() {
 		beforeGame();
 
 	_updateFlags = (uint)UPDATE_ALL;
-	while (!g_comprehend->shouldQuit())
+	while (!g_comprehend->shouldQuit()) {
 		read_input();
+
+		if (_ended && !handle_restart())
+			break;
+	}
+}
+
+uint ComprehendGame::getRandomNumber(uint max) const {
+	return g_comprehend->getRandomNumber(max);
+}
+
+void ComprehendGame::doMovementVerb(uint verbNum) {
+	assert(verbNum >= 1 && verbNum <= NR_DIRECTIONS);
+	Room *room = get_room(_currentRoom);
+	byte newRoom = room->_direction[verbNum - 1];
+
+	if (newRoom)
+		move_to(newRoom);
+	else
+		console_println(_strings[0].c_str());
+}
+
+bool ComprehendGame::isItemPresent(Item *item) const {
+	return item && (
+		item->_room == _currentRoom || item->_room == ROOM_INVENTORY
+		|| item->_room == ROOM_CONTAINER
+	);
 }
 
 } // namespace Comprehend

@@ -144,7 +144,7 @@ void ShapeViewerGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool /*s
 				uint8 px_g = shape_->getPalette()->_palette[rawpx * 3 + 1];
 				uint8 px_b = shape_->getPalette()->_palette[rawpx * 3 + 2];
 				
-				sprintf(buf2, "px: (%d, %d): %d (%d, %d, %d)", relx, rely, rawpx, px_r, px_g, px_b);
+				sprintf(buf2, "px: (%d/%d, %d/%d): %d (%d, %d, %d)", relx, frame->_xoff, rely, frame->_yoff, rawpx, px_r, px_g, px_b);
 				rendtext = font->renderText(buf2, remaining);
 				rendtext->draw(surf, 20, 25);
 				delete rendtext;
@@ -163,7 +163,7 @@ void ShapeViewerGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool /*s
 		char buf4[128];
 		char buf5[128];
 		char buf6[512];
-		ShapeInfo *info = mainshapes->getShapeInfo(_curShape);
+		const ShapeInfo *info = mainshapes->getShapeInfo(_curShape);
 		if (info) {
 			sprintf(buf3, "x: %d, y: %d, z: %d\n flags: 0x%04X, family: %d",
 					info->_x, info->_y, info->_z, info->_flags, info->_family);

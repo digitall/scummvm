@@ -40,6 +40,7 @@ private:
 
 private:
 	void dumpFunctions();
+	void dumpFunction(uint functionNum);
 	void dumpActionTable();
 	static int wordIndexCompare(const void *a, const void *b);
 	void dumpDictionary();
@@ -64,9 +65,10 @@ public:
 	virtual ~DebuggerDumper() {}
 
 	Common::String dumpInstruction(ComprehendGame *game,
-	                               FunctionState *func_state, Instruction *instr);
+		const FunctionState *func_state, const Instruction *instr);
 
-	bool dumpGameData(ComprehendGame *game, const Common::String &type);
+	bool dumpGameData(ComprehendGame *game, const Common::String &type,
+		int param = 0);
 };
 
 } // namespace Comprehend
