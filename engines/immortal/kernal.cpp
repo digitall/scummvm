@@ -851,7 +851,7 @@ void ImmortalEngine::fade(uint16 pal[], int dir, int delay) {
 	// Originally used a branch, but this is functionally identical and much cleaner
 	count = dir * 256;
 
-	while ((count >= 0) && (count <= 256)) {
+	while (count <= 256) {
 		fadePal(pal, count, target);
 		Immortal::Utilities::delay8(delay);
 		setColors(target);
@@ -962,6 +962,7 @@ void ImmortalEngine::fixPause() {
 				musicUnPause(_themeID);
 				break;
 			}
+			// fall through
 		default:
 			musicPause(_themeID);
 			break;
@@ -974,6 +975,7 @@ void ImmortalEngine::fixPause() {
 				musicUnPause(_combatID);
 				break;
 			}
+			// fall through
 		default:
 			musicPause(_combatID);
 			break;

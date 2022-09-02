@@ -82,8 +82,8 @@ bool inside(int x1, int y1, int a, int x2, int y2);
 bool insideRect(int x, int y, int r);
 void addSprite(Sprite *sprites, uint16 vpX, uint16 vpY, int num, DataSprite *d, int img, uint16 x, uint16 y, uint16 p);
 
-}; // namespace Util
+} // namespace Util
 
-}; // namespace Immortal
+} // namespace Immortal
 
 #endif

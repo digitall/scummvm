@@ -79,8 +79,8 @@ void ImmortalEngine::initStoryDynamic() {
 	 * including spawn point and entry/exit points
 	 */ 
 	int univRoom = 4;               // The room the player starts in when beginning this level
-	uint8 univRoomX = 512;
-	uint8 univRoomY = 416;
+	uint16 univRoomX = 512;
+	uint16 univRoomY = 416;
 
 	_stories[0]._level = 0;
 	_stories[0]._part  = 1;

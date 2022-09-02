@@ -49,11 +49,11 @@ void ImmortalEngine::restartLogic() {
 	cycleFreeAll();
 	levelInit();
 	//roomInit();		<-- will be run in constructor of room
-	//monstInit();		<-- room.initMonsters()		\
-	//objectInit();		<-- room.initObjects()
-	//doorInit();		<-- room.initDoors()		 |- probably all get run from room constructor
-	//sparkInit();		<-- room.initSparks()
-	//bulletInit();		<-- room.initProjectiles()	/
+	//monstInit();		<-- room.initMonsters()     --
+	//objectInit();		<-- room.initObjects()       |
+	//doorInit();		<-- room.initDoors()         |- probably all get run from room constructor
+	//sparkInit();		<-- room.initSparks()        |
+	//bulletInit();		<-- room.initProjectiles()  --
 	//objectInit(); 	<-- again? Odd...
 	//genericSpriteInit();	<-- room.initGenSprites()
 
@@ -172,6 +172,7 @@ int ImmortalEngine::keyOrButton() {
 		switch (_pressedAction) {
 			case kActionKey:
 				button = _pressedAction;
+				break;
 			case kActionFire:
 			case kActionButton:
 				button = 13;
@@ -444,16 +445,19 @@ void ImmortalEngine::makeCertificate() {
 			if (true/*room.monster[kPlayerID].hasObject(wowCharmType)*/) {
 				_certificate[kCertInvLo] |= 4;
 			}
+			break;
 
 		case 3:
 			if (true/*room.monster[kPlayerID].hasObject(faceRingType)*/) {
 				_certificate[kCertInvLo] |= 1;
 			}
+			break;
 
 		case 4:
 			if (true/*room.monster[kPlayerID].hasObject(coffeeType)*/) {
 				_certificate[kCertInvLo] |= 2;
 			}
+			break;
 
 		case 7:
 			if (true/*room.monster[kPlayerID].hasObject(bronzeType)*/) {
@@ -467,6 +471,7 @@ void ImmortalEngine::makeCertificate() {
 			if (true/*room.monster[kPlayerID].hasObject(antiType)*/) {
 				_certificate[kCertInvLo] |= 4;
 			}
+			break;
 
 		default:
 			_lastCertLen = 13;

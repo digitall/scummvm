@@ -284,6 +284,7 @@ void ProDOSDisk::searchDirectory(DirHeader *h, uint16 p, uint16 n, Common::Strin
 			_disk.seek(n * kBlockSize);
 			p = _disk.readUint16LE();
 			n = _disk.readUint16LE();
+			debug("p: %u n: %d", p, n);
 		}
 
 		FileEntry fileEntry;

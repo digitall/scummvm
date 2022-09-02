@@ -46,7 +46,7 @@ void Room::flameFreeAll() {
 }
 
 void Room::flameDrawAll(uint16 vX, uint16 vY, int nS) {
-	for (int i = 0; i < _fset.size(); i++) {
+	for (uint i = 0; i < _fset.size(); i++) {
 		univAddSprite(vX, vY, nS, _fset[i]._x, _fset[i]._y, _cycPtrs[_cycles[_fset[i]._c]._cycList]._sName, cycleGetFrame(_fset[i]._c), 0);
 		if (cycleAdvance(_fset[i]._c) == true) {
 			cycleFree(_fset[i]._c);
@@ -60,7 +60,7 @@ bool Room::roomLighted() {
 	return true;
 
 	// Very simple, just checks every torch and if any of them are lit, we say the room is lit
-	for (int i = 0; i < _fset.size(); i++) {
+	for (uint i = 0; i < _fset.size(); i++) {
 		if (_fset[i]._p != kFlameOff) {
 			return true;
 		}
@@ -77,7 +77,7 @@ void Room::lightTorch(int x, int y) {
 	 * check both x,y and flame pattern. Neato.
 	 */
 
-	for (int i = 0; i < _fset.size(); i++) {
+	for (uint i = 0; i < _fset.size(); i++) {
 		if (_fset[i]._p == kFlameOff) {
 			if (Immortal::Utilities::inside(x, y, kLightTorchX, _fset[i]._x + 16, _fset[i]._y + 8)) {
 				_fset[i]._p = kFlameNormal;
@@ -88,7 +88,7 @@ void Room::lightTorch(int x, int y) {
 }
 
 void Room::flameSetRoom(Common::Array<SFlame> allFlames) {
-	for (int i = 0; i < allFlames.size(); i++) {
+	for (uint i = 0; i < allFlames.size(); i++) {
 		Flame f;
 		f._p = allFlames[i]._p;
 		f._x = allFlames[i]._x;
