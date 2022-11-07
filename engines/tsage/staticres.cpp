@@ -71,7 +71,7 @@ char const *const DEFAULT_SCENE_HOTSPOT = "That accomplishes nothing.";
 char const *const SAVE_ERROR_MSG = "Error occurred saving game. Please do not try to restore this game!";
 char const *const SAVING_NOT_ALLOWED_MSG = "Saving is not allowed at this time.";
 char const *const RESTORING_NOT_ALLOWED_MSG = "Restoring is not allowed at this time.";
-char const *const INV_EMPTY_MSG = "You have nothing in your possesion.";
+char const *const INV_EMPTY_MSG = "You have nothing in your possession.";
 
 char const *const QUIT_CONFIRM_MSG = "Do you want to quit playing this game?";
 char const *const RESTART_MSG = "Do you want to restart this game?";
