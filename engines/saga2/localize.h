@@ -66,8 +66,8 @@ namespace Saga2 {
 #define PHILLIP_BROSTATE    "Phillip is: "
 #define KEVIN_BROSTATE      "Kevin is: "
 
-#define ON_AGRESS           "Agression: On"
-#define OFF_AGRESS          "Agression: Off"
+#define ON_AGRESS           "Aggression: On"
+#define OFF_AGRESS          "Aggression: Off"
 
 #define NO_ARMOR            "No Armor Worn"
 #define DESC_ARMOR          "Absorb:%d, Reduce:/%d, Defense:+%d"
