@@ -135,7 +135,7 @@ CodePoint TokenReader::readChar() {
 TokenId TokenReader::readTokenId() {
 	const char Whitespace[] = {' ', '\t', '\v', '\r', '\f'};
 	const char Whitespace2[] = {' ', '\t', '\v', '\r', '\f', '#', '\n'};
-	if (_off < _text.size()) {
+	if (_off < (int)_text.size()) {
 		char c = readChar();
 		switch (c) {
 		case '\n':

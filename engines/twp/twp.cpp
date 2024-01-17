@@ -747,7 +747,7 @@ Common::Error TwpEngine::run() {
 								actors.push_back(slot->actor);
 							}
 						}
-                        size_t index = find(actors, _actor) + 1;
+						size_t index = find(actors, _actor) + 1;
 						if (index >= actors.size())
 							index -= actors.size();
 						setActor(actors[index], true);

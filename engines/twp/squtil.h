@@ -23,6 +23,7 @@
 #define TWP_SQUTIL_H
 
 #include "squirrel/squirrel.h"
+#include "utility" // FIXME: Remove usage of standard library i.e. std:: prefixed and replace with Common alternatives
 #include "common/str.h"
 #include "common/util.h"
 #include "twp/twp.h"

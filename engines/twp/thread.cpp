@@ -230,6 +230,8 @@ bool Cutscene::update(float elapsed) {
 	case csQuit:
 		return true;
 	}
+
+	return false;
 }
 
 bool Cutscene::hasOverride() const {

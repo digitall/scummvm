@@ -35,7 +35,7 @@ typedef void SelectFunc(int id);
 
 // This is where all the information about the actor icon stands
 struct ActorSwitcherSlot {
-	ActorSwitcherSlot(const Common::String& icon, Color back, Color frame, SelectFunc* selectFunc, int id = 0);
+	ActorSwitcherSlot(const Common::String& icon_, Color back_, Color frame_, SelectFunc* selectFunc_, int id_ = 0);
 
 	void select();
 

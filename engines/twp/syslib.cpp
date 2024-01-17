@@ -180,13 +180,13 @@ static SQInteger breakhere(HSQUIRRELVM v) {
 		int numFrames;
 		if (SQ_FAILED(sqget(v, 2, numFrames)))
 			return sq_throwerror(v, "failed to get numFrames");
-		return breakfunc(v, [&](ThreadBase *t) { ((Thread *)t)->_numFrames = numFrames; });
+		return breakfunc(v, [&](ThreadBase *tb) { ((Thread *)tb)->_numFrames = numFrames; });
 	}
 	if (t == OT_FLOAT) {
 		float time;
 		if (SQ_FAILED(sqget(v, 2, time)))
 			return sq_throwerror(v, "failed to get time");
-		return breakfunc(v, [&](ThreadBase *t) { ((Thread *)t)->_waitTime = time; });
+		return breakfunc(v, [&](ThreadBase *tb) { ((Thread *)tb)->_waitTime = time; });
 	}
 	return sq_throwerror(v, Common::String::format("failed to get numFrames (wrong type = {%d})", t).c_str());
 }

@@ -287,7 +287,7 @@ void Anim::setAnim(const ObjectAnimation *anim, float fps, bool loop, bool insta
 }
 
 void Anim::trigSound() {
-	if ((_anim->triggers.size() > 0) && _frameIndex < _anim->triggers.size()) {
+	if ((_anim->triggers.size() > 0) && (_frameIndex < _anim->triggers.size())) {
 		const Common::String &trigger = _anim->triggers[_frameIndex];
 		if ((trigger.size() > 0) && trigger != "null") {
 			_obj->trig(trigger);
@@ -304,7 +304,7 @@ void Anim::update(float elapsed) {
 		_elapsed += elapsed;
 		if (_elapsed > _frameDuration) {
 			_elapsed = 0;
-			if (_frameIndex < _frames.size() - 1) {
+			if (_frameIndex < (int)_frames.size() - 1) {
 				_frameIndex++;
 				trigSound();
 			} else if (_loop) {
@@ -315,7 +315,7 @@ void Anim::update(float elapsed) {
 			}
 		}
 		if (_anim->offsets.size() > 0) {
-			Math::Vector2d off = _frameIndex < _anim->offsets.size() ? _anim->offsets[_frameIndex] : Math::Vector2d();
+			Math::Vector2d off = _frameIndex < (int)_anim->offsets.size() ? _anim->offsets[_frameIndex] : Math::Vector2d();
 			if (_obj->getFacing() == FACE_LEFT) {
 				off.setX(-off.getX());
 			}
@@ -337,7 +337,7 @@ void Anim::update(float elapsed) {
 }
 
 void Anim::drawCore(Math::Matrix4 trsf) {
-	if (_frameIndex < _frames.size()) {
+	if (_frameIndex < (int)_frames.size()) {
 		const Common::String &frame = _frames[_frameIndex];
 		bool flipX = _obj->getFacing() == FACE_LEFT;
 		if (_sheet.size() == 0) {

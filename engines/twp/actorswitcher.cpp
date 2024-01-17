@@ -32,12 +32,12 @@
 
 namespace Twp {
 
-ActorSwitcherSlot::ActorSwitcherSlot(const Common::String &icon, Color back, Color frame, SelectFunc *selectFunc, int id) {
-	this->icon = icon;
-	this->back = back;
-	this->frame = frame;
-	this->selectFunc = selectFunc;
-	this->id = id;
+ActorSwitcherSlot::ActorSwitcherSlot(const Common::String &icon_, Color back_, Color frame_, SelectFunc *selectFunc_, int id_) {
+	this->icon = icon_;
+	this->back = back_;
+	this->frame = frame_;
+	this->selectFunc = selectFunc_;
+	this->id = id_;
 }
 
 void ActorSwitcherSlot::select() {

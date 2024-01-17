@@ -457,7 +457,8 @@ Common::JSONValue *GGHashMapDecoder::open(Common::SeekableReadStream *s) {
 		return nullptr;
 	}
 	_stream = s;
-	(void)s->readUint32LE();
+	/*uint32 numEntries =*/ (void)s->readUint32LE();
+
 	if (!_readPlo(s, _offsets))
 		return nullptr;
 	return readHash();
