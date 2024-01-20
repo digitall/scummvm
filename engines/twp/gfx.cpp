@@ -351,12 +351,16 @@ void Gfx::drawPrimitives(uint32 primitivesType, Vertex *vertices, int v_size, ui
 
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _vbo));
 
-		GL_CALL(glEnableVertexAttribArray(0));
-		GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0));
-		GL_CALL(glEnableVertexAttribArray(2));
-		GL_CALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(2 * sizeof(float))));
-		GL_CALL(glEnableVertexAttribArray(1));
-		GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(6 * sizeof(float))));
+		int posLoc = glGetAttribLocation(_defaultShader.program, "a_position");
+		int colLoc = glGetAttribLocation(_defaultShader.program, "a_color");
+		int texCoordsLoc = glGetAttribLocation(_defaultShader.program, "a_texCoords");
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _vbo));
+		GL_CALL(glEnableVertexAttribArray(posLoc));
+		GL_CALL(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0));
+		GL_CALL(glEnableVertexAttribArray(colLoc));
+		GL_CALL(glVertexAttribPointer(colLoc, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(2 * sizeof(float))));
+		GL_CALL(glEnableVertexAttribArray(texCoordsLoc));
+		GL_CALL(glVertexAttribPointer(texCoordsLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(6 * sizeof(float))));
 
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _vbo));
 		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * v_size, vertices, GL_STREAM_DRAW));
