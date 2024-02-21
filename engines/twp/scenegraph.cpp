@@ -95,11 +95,12 @@ void Node::removeChild(Node *child) {
 }
 
 void Node::clear() {
-	if (_children.size() > 0) {
-		Common::Array<Node *> children(_children);
-		for (size_t i = 0; i < children.size(); i++) {
-			children[i]->remove();
-		}
+	if (_children.empty())
+		return;
+
+	Common::Array<Node *> children(_children);
+	for (size_t i = 0; i < children.size(); i++) {
+		children[i]->remove();
 	}
 	_children.clear();
 }
@@ -107,6 +108,13 @@ void Node::clear() {
 void Node::remove() {
 	if (_parent)
 		_parent->removeChild(this);
+
+	if (_children.empty())
+		return;
+
+	for (size_t i = 0; i < _children.size(); i++) {
+		_children[i]->_parent = nullptr;
+	}
 }
 
 void Node::setColor(Color c) {
