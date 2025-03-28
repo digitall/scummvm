@@ -23,6 +23,7 @@
 #include "graphics/framelimiter.h"
 #include "fitd/detection.h"
 #include "fitd/console.h"
+#include "fitd/gfx.h"
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
@@ -47,7 +48,6 @@ FitdEngine::FitdEngine(OSystem *syst, const ADGameDescription *gameDesc) : Engin
 }
 
 FitdEngine::~FitdEngine() {
-	delete _screen;
 }
 
 uint32 FitdEngine::getFeatures() const {
@@ -143,21 +143,21 @@ static void computePalette(byte* inPalette, byte* outPalette, int coef)
     }
 }
 
-static void fadeInPhys(Graphics::Screen* screen, int step,int start)
+static void fadeInPhys(int step,int start)
 {
     byte localPalette[0x300];
-	byte currentGamePalette[0x300];
 	Common::Event e;
-	screen->getPalette(currentGamePalette);
 
 	Graphics::FrameLimiter limiter(g_system, 25);
 	for (int i = 0; i < 256; i += step) {
 		while (g_system->getEventManager()->pollEvent(e)) {
 		}
 
-		computePalette(currentGamePalette,localPalette,i);
-		screen->setPalette(localPalette);
-		screen->update();
+		// computePalette(currentGamePalette,localPalette,i);
+		// gfx_setPalette(localPalette);
+		gfx_refreshFrontTextureBuffer();
+		gfx_draw();
+		g_system->updateScreen();
 
 		// Delay for a bit. All events loops should have a delay
 		// to prevent the system being unduly loaded
@@ -168,8 +168,8 @@ static void fadeInPhys(Graphics::Screen* screen, int step,int start)
 
 Common::Error FitdEngine::run() {
 	// Initialize 320x200 paletted graphics mode
-	initGraphics(320, 200);
-	_screen = new Graphics::Screen();
+	initGraphics3d(320, 200);
+	gfx_init();
 
 	// Set the engine's debugger console
 	setDebugger(new Console());
@@ -182,8 +182,9 @@ Common::Error FitdEngine::run() {
 	char *ptr = openData("ITD_RESS.PAK", 2);
 	char *palPtr = openData("ITD_RESS.PAK", 1);
 
-	_screen->setPalette((const byte *)palPtr);
-	memcpy(_screen->getBasePtr(0, 0), ptr + 770, 320 * 200);
+	gfx_setPalette((const byte *)palPtr);
+	memcpy(frontBuffer, ptr+770, 64000);
+	gfx_copyBlockPhys(frontBuffer,0,0,320,200);
 
 	char *samplePtr = openData("LISTSAMP.PAK", 6);
 
@@ -192,7 +193,7 @@ Common::Error FitdEngine::run() {
 	Audio::SeekableAudioStream* voc = Audio::makeVOCStream(&memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
 	_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
 
-	fadeInPhys(_screen, 8, 0);
+	fadeInPhys(8, 0);
 
 	// // Simple event handling loop
 	Common::Event e;
