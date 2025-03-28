@@ -3,6 +3,7 @@ MODULE := engines/fitd
 MODULE_OBJS = \
 	console.o \
 	fitd.o \
+	gfx.o \
 	metaengine.o \
 	unpack.o
 
