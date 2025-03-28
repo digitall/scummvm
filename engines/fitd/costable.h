@@ -19,33 +19,14 @@
  *
  */
 
-#ifndef FITD_GFX_H
-#define FITD_GFX_H
+#ifndef FITD_COSTABLE_H
+#define FITD_COSTABLE_H
 
 #include "common/scummsys.h"
 
 namespace Fitd {
 
-#define INFO_TRI 1
-#define INFO_ANIM 2
-#define INFO_TORTUE 4
-#define INFO_OPTIMISE 8
-
-extern byte currentGamePalette[256*3];
-extern byte frontBuffer[320 * 200];
-
-void gfx_init();
-void gfx_draw();
-void gfx_setPalette(const byte *palette);
-void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
-void gfx_refreshFrontTextureBuffer();
-
-void setupCameraProjection(int centerX, int centerY, int x, int y, int z);
-void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int time);
-int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr);
-
-void osystem_fillPoly(float* buffer, int numPoint, unsigned char color,byte polyType);
-void osystem_flushPendingPrimitives();
-}; // namespace Fitd
+extern const int16 cosTable[];
+}
 
 #endif

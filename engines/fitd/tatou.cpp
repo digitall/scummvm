@@ -17,35 +17,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- */
+*/
 
-#ifndef FITD_GFX_H
-#define FITD_GFX_H
-
-#include "common/scummsys.h"
+#include "fitd/gfx.h"
+#include "fitd/tatou.h"
+#include "common/events.h"
+#include "graphics/framelimiter.h"
 
 namespace Fitd {
 
-#define INFO_TRI 1
-#define INFO_ANIM 2
-#define INFO_TORTUE 4
-#define INFO_OPTIMISE 8
+void fadeInPhys(int step, int start) {
+	byte localPalette[0x300];
+	Common::Event e;
 
-extern byte currentGamePalette[256*3];
-extern byte frontBuffer[320 * 200];
+	Graphics::FrameLimiter limiter(g_system, 25);
+	for (int i = 0; i < 256; i += step) {
+		while (g_system->getEventManager()->pollEvent(e)) {
+		}
 
-void gfx_init();
-void gfx_draw();
-void gfx_setPalette(const byte *palette);
-void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
-void gfx_refreshFrontTextureBuffer();
+		// computePalette(currentGamePalette,localPalette,i);
+		// gfx_setPalette(localPalette);
+		gfx_refreshFrontTextureBuffer();
+		gfx_draw();
+		g_system->updateScreen();
 
-void setupCameraProjection(int centerX, int centerY, int x, int y, int z);
-void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int time);
-int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr);
+		// Delay for a bit. All events loops should have a delay
+		// to prevent the system being unduly loaded
+		limiter.delayBeforeSwap();
+		limiter.startFrame();
+	}
+}
 
-void osystem_fillPoly(float* buffer, int numPoint, unsigned char color,byte polyType);
-void osystem_flushPendingPrimitives();
-}; // namespace Fitd
-
-#endif
+}

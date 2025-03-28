@@ -17,35 +17,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- */
+*/
 
-#ifndef FITD_GFX_H
-#define FITD_GFX_H
+#ifndef FITD_COMMON_H
+#define FITD_COMMON_H
 
 #include "common/scummsys.h"
 
 namespace Fitd {
 
-#define INFO_TRI 1
-#define INFO_ANIM 2
-#define INFO_TORTUE 4
-#define INFO_OPTIMISE 8
+ // Endian safe read functions
+inline uint16 READ_LE_U16(const void *p) {
+	const uint8 *data = (const uint8 *)p;
+	return (uint16)((data[1] << 8) | data[0]);
+}
 
-extern byte currentGamePalette[256*3];
-extern byte frontBuffer[320 * 200];
+inline uint16 READ_LE_S16(const void *p) {
+	return (uint16)READ_LE_U16(p);
+}
 
-void gfx_init();
-void gfx_draw();
-void gfx_setPalette(const byte *palette);
-void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
-void gfx_refreshFrontTextureBuffer();
+inline uint32 READ_LE_U32(const void *p) {
+	const uint8 *data = (const uint8 *)p;
+	return (uint32)(((uint32)data[3] << 24) | ((uint32)data[2] << 16) | ((uint32)data[1] << 8) | (uint32)data[0]);
+}
 
-void setupCameraProjection(int centerX, int centerY, int x, int y, int z);
-void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int time);
-int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr);
+inline uint8 READ_LE_U8(void *ptr) {
+	return *(uint8 *)ptr;
+}
 
-void osystem_fillPoly(float* buffer, int numPoint, unsigned char color,byte polyType);
-void osystem_flushPendingPrimitives();
-}; // namespace Fitd
+inline int8 READ_LE_S8(void *ptr) {
+	return *(int8 *)ptr;
+}
+
+}
 
 #endif
