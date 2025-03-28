@@ -24,6 +24,7 @@
 #include "fitd/detection.h"
 #include "fitd/console.h"
 #include "fitd/gfx.h"
+#include "fitd/tatou.h"
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
@@ -131,44 +132,42 @@ static char *openData(const char *fileName, int index) {
 	return ptr;
 }
 
-static void computePalette(byte* inPalette, byte* outPalette, int coef)
-{
-    int i;
-
-    for(i=0;i<256;i++)
-    {
-        *(outPalette++) = ((*(inPalette++))*coef)>> 8;
-        *(outPalette++) = ((*(inPalette++))*coef)>> 8;
-        *(outPalette++) = ((*(inPalette++))*coef)>> 8;
-    }
-}
-
-static void fadeInPhys(int step,int start)
-{
-    byte localPalette[0x300];
+void waitMs(uint timeMs) {
+	uint time = 0;
+	// Simple event handling loop
 	Common::Event e;
-
 	Graphics::FrameLimiter limiter(g_system, 25);
-	for (int i = 0; i < 256; i += step) {
+	while (!g_engine->shouldQuit() && time < timeMs) {
 		while (g_system->getEventManager()->pollEvent(e)) {
 		}
-
-		// computePalette(currentGamePalette,localPalette,i);
-		// gfx_setPalette(localPalette);
-		gfx_refreshFrontTextureBuffer();
-		gfx_draw();
-		g_system->updateScreen();
 
 		// Delay for a bit. All events loops should have a delay
 		// to prevent the system being unduly loaded
 		limiter.delayBeforeSwap();
+
+		time += limiter.getLastFrameDuration();
 		limiter.startFrame();
 	}
 }
 
+static void playSound(int num) {
+	byte *samplePtr = (byte *)openData("LISTSAMP.PAK", num);
+	Audio::SoundHandle handle;
+	Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
+	Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
+	g_engine->_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
+}
+
+static void clearScreenTatou(void) {
+	int i;
+
+	for (i = 0; i < 45120; i++) {
+		frontBuffer[i] = 0;
+	}
+}
+
 Common::Error FitdEngine::run() {
-	// Initialize 320x200 paletted graphics mode
-	initGraphics3d(320, 200);
+	initGraphics3d(320 * 4, 200 * 4);
 	gfx_init();
 
 	// Set the engine's debugger console
@@ -179,26 +178,62 @@ Common::Error FitdEngine::run() {
 	if (saveSlot != -1)
 		(void)loadGameState(saveSlot);
 
+	char *tatou3d = openData("ITD_RESS.PAK", 0);
 	char *ptr = openData("ITD_RESS.PAK", 2);
 	char *palPtr = openData("ITD_RESS.PAK", 1);
 
+	setupCameraProjection(160, 100, 128, 500, 490);
 	gfx_setPalette((const byte *)palPtr);
-	memcpy(frontBuffer, ptr+770, 64000);
-	gfx_copyBlockPhys(frontBuffer,0,0,320,200);
-
-	char *samplePtr = openData("LISTSAMP.PAK", 6);
-
-	Audio::SoundHandle handle;
-	Common::MemoryReadStream memStream((byte*)samplePtr, 30834);
-	Audio::SeekableAudioStream* voc = Audio::makeVOCStream(&memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::NO);
-	_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
+	memcpy(frontBuffer, ptr + 770, 64000);
+	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 
 	fadeInPhys(8, 0);
+	waitMs(3000);
 
-	// // Simple event handling loop
-	Common::Event e;
+	playSound(6);
+
+	clearScreenTatou();
+	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+	gfx_refreshFrontTextureBuffer();
+	gfx_draw();
+	g_system->updateScreen();
+
+	int unk1 = 8;
+	int rotation = 256;
+	int time = 8920;
+	setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
+	affObjet(0, 0, 0, 0, 0, 0, tatou3d);
+	g_system->updateScreen();
 
 	Graphics::FrameLimiter limiter(g_system, 25);
+	Common::Event e;
+	while (!shouldQuit()) {
+		while (g_system->getEventManager()->pollEvent(e)) {
+		}
+		time+=25;
+
+		// if (time > 16000)
+		// 	break;
+
+		rotation -= 8;
+
+		clearScreenTatou();
+		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+		gfx_refreshFrontTextureBuffer();
+
+		setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
+
+		gfx_draw();
+		affObjet(0, 0, 0, 0, 0, 0, tatou3d);
+		g_system->updateScreen();
+
+		// Delay for a bit. All events loops should have a delay
+		// to prevent the system being unduly loaded
+		limiter.delayBeforeSwap();
+		limiter.startFrame();
+	}
+
+	// Simple event handling loop
 	while (!shouldQuit()) {
 		while (g_system->getEventManager()->pollEvent(e)) {
 		}

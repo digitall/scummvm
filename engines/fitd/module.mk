@@ -1,11 +1,15 @@
 MODULE := engines/fitd
 
 MODULE_OBJS = \
+	costable.o \
 	console.o \
 	fitd.o \
 	gfx.o \
+	hqr.o \
 	metaengine.o \
-	unpack.o
+	tatou.o \
+	unpack.o \
+	vars.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_FITD), DYNAMIC_PLUGIN)
