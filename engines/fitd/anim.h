@@ -33,7 +33,7 @@
 namespace Fitd {
 
 int initAnim(int animNum,int animType, int animInfo);
-int sSetAnimObjet(int frame, char* anim, char* body);
+int setAnimObjet(int frame, char* anim, char* body);
 int16 setInterAnimObjet(int frame, char* animPtr, char* bodyPtr);
 int16 getNbFramesAnim(char* animPtr);
 void initBufferAnim(Common::Array<int16>& animBuffer, char* bodyPtr);

@@ -19,12 +19,18 @@
  *
  */
 
+#include "fitd/aitd1.h"
 #include "fitd/costable.h"
 #include "fitd/common.h"
+#include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
+#include "fitd/pak.h"
+#include "fitd/room.h"
+#include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "common/debug.h"
+#include "common/util.h"
 #include "graphics/opengl/context.h"
 #include "graphics/opengl/debug.h"
 #include "graphics/opengl/shader.h"
@@ -40,6 +46,8 @@ namespace Fitd {
 
 #define NUM_MAX_VERTEX_IN_PRIM 64
 #define NUM_MAX_PRIM_ENTRY 500
+
+int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER*3];
 
 struct Vector2 {
 	float x;
@@ -625,13 +633,13 @@ void osystem_flushPendingPrimitives() {
 	}
 }
 
-static void setPosCamera(int x, int y, int z) {
+void setPosCamera(int x, int y, int z) {
 	translateX = x;
 	translateY = y;
 	translateZ = z;
 }
 
-static void setAngleCamera(int x, int y, int z) {
+void setAngleCamera(int x, int y, int z) {
 	transformX = x & 0x3FF;
 	if (transformX) {
 		transformXCos = cosTable[transformX];
@@ -1087,7 +1095,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 			 }
 
 			 memcpy(outBuffer,renderBuffer+10*bestIdx,10);
-			 *(s16*)(renderBuffer+10*bestIdx) = -32000;
+			 *(int16*)(renderBuffer+10*bestIdx) = -32000;
 			 outBuffer+=10;
 		 }
 		 source = sortedBuffer;
@@ -1173,84 +1181,26 @@ void flushScreen(void) {
 	}
 }
 
-void setupCamera() {
+void osystem_createMask(const uint8* mask, int roomId, int maskId, unsigned char* refImage, int maskX1, int maskY1, int maskX2, int maskY2)
+{
+	assert(false);
+}
+
+void osystem_stopModelRender()
+{
+    osystem_flushPendingPrimitives();
+}
+
+void osystem_setClip(float left, float top, float right, float bottom){
 	assert(0);
-	// 	int x;
-	// 	int y;
-	// 	int z;
-	// 	cameraDataStruct* pCamera;
+}
 
-	// 	freezeTime();
+void osystem_drawMask(int roomId, int maskId) {
+	assert(0);
+}
 
-	// 	currentCamera = startGameVar1;
-
-	// 	assert(startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
-
-	// 	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
-	// 	if(g_gameId >= JACK)
-	// 	{
-	// 		loadMask(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
-	// 	}
-	// 	else
-	// 	{
-	// 		createAITD1Mask();
-	// 	}
-	// 	cameraBackgroundChanged = true;
-
-	// 	pCamera = cameraDataTable[currentCamera];
-
-	// 	SetAngleCamera(pCamera->alpha,pCamera->beta,pCamera->gamma);
-
-	// #ifdef FITD_DEBUGGER
-	// 	if(debuggerVar_topCamera)
-	// 		SetAngleCamera(0x100,0,0);
-	// #endif
-
-	// 	x = (pCamera->x - roomDataTable[currentRoom].worldX)*10;
-	// 	y = (roomDataTable[currentRoom].worldY - pCamera->y)*10;
-	// 	z = (roomDataTable[currentRoom].worldZ - pCamera->z)*10;
-
-	// #ifdef FITD_DEBUGGER
-	// 	if(debuggerVar_topCamera)
-	// 	{
-	// 		if(currentCameraTargetActor != -1)
-	// 		{
-	// 			x = objectTable[currentCameraTargetActor].worldX + objectTable[currentCameraTargetActor].stepX;
-	// 			y = debufferVar_topCameraZoom;
-	// 			z = objectTable[currentCameraTargetActor].worldZ + objectTable[currentCameraTargetActor].stepZ;
-	// 		}
-	// 	}
-	// #endif
-	// 	SetPosCamera(x,y,z); // setup camera position
-
-	// 	setupCameraProjection(160,100,pCamera->focal1,pCamera->focal2,pCamera->focal3); // setup focale
-
-	// #ifdef FITD_DEBUGGER
-	// 	if(debuggerVar_topCamera)
-	// 		setupCameraProjection(160,100,1000,100,100); // setup focale
-	// #endif
-
-	// 	setupCameraSub1();
-	// 	updateAllActorAndObjects();
-	// 	createActorList();
-	// 	//  setupCameraSub3();
-	// 	setupCameraSub4();
-	// 	/*  setupCameraSub5();
-	// 	*/
-	// 	if(flagInitView==2)
-	// 	{
-	// 		flagRedraw = 2;
-	// 	}
-	// 	else
-	// 	{
-	// 		if(flagRedraw!=2)
-	// 		{
-	// 			flagRedraw = 1;
-	// 		}
-	// 	}
-
-	// 	flagInitView = 0;
-	// 	unfreezeTime();
+void osystem_clearClip() {
+	assert(0);
 }
 
 } // namespace Fitd

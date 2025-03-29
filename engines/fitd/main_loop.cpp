@@ -19,8 +19,19 @@
  *
  */
 
-#include "common/scummsys.h"
+#include "fitd/actor_list.h"
+#include "fitd/anim.h"
+#include "fitd/anim_action.h"
+#include "fitd/common.h"
+#include "fitd/floor.h"
+#include "fitd/gfx.h"
+#include "fitd/inventory.h"
+#include "fitd/life.h"
 #include "fitd/main_loop.h"
+#include "fitd/system_menu.h"
+#include "fitd/tatou.h"
+#include "fitd/vars.h"
+#include "common/scummsys.h"
 
 namespace Fitd {
 
@@ -58,251 +69,159 @@ void updatePendingEvents(void) {
 }
 
 void mainLoop(int allowSystemMenu, int deltaTime) {
-	assert(0);
-	//     bool bLoop = true;
+	bool bLoop = true;
 
-	//     while(bLoop)
-	//     {
-	// 		process_events();
+	while (bLoop) {
+		process_events();
 
-	//         localKey = key;
-	//         localJoyD = JoyD;
-	//         localClick = Click;
+		localKey = key;
+		localJoyD = JoyD;
+		localClick = Click;
 
-	//         if(localKey)
-	//         {
-	//             if(localKey == 0x1B)
-	//             {
-	//                 while(key==0x1B)
-	//                 {
-	//                     process_events();
-	//                 }
-	//                 processSystemMenu();
-	//                 while(key==0x1B || key == 0x1C)
-	//                 {
-	//                     process_events();
-	//                     localKey = key;
-	//                 }
-	//             }
+		if (localKey) {
+			if (localKey == 0x1B) {
+				while (key == 0x1B) {
+					process_events();
+				}
+				processSystemMenu();
+				while (key == 0x1B || key == 0x1C) {
+					process_events();
+					localKey = key;
+				}
+			}
 
-	//             if(localKey == 0x1C || localKey == 0x17)
-	//             {
-	//                 if(allowSystemMenu == 0)
-	//                 {
-	//                     break;
-	//                 }
+			if (localKey == 0x1C || localKey == 0x17) {
+				if (allowSystemMenu == 0) {
+					break;
+				}
 
-	//                 if(statusScreenAllowed)
-	//                 {
-	//                     processInventory();
-	//                 }
-	//             }
-	//         }
-	//         else
-	//         {
-	//             //      input5 = 0;
-	//         }
+				if (statusScreenAllowed) {
+					processInventory();
+				}
+			}
+		} else {
+			//      input5 = 0;
+		}
 
-	//         if(localClick)
-	//         {
-	//             if(!allowSystemMenu)
-	//             {
-	//                 break;
-	//             }
+		if (localClick) {
+			if (!allowSystemMenu) {
+				break;
+			}
 
-	//             action = 0x2000;
-	//         }
-	//         else
-	//         {
-	//             action = 0;
-	//         }
+			action = 0x2000;
+		} else {
+			action = 0;
+		}
 
-	//         executeFoundLife(inHandTable[currentInventory]);
+		executeFoundLife(inHandTable[currentInventory]);
 
-	//         if(changeFloor == 0)
-	//         {
-	//             if(g_gameId == AITD1)
-	//             {
-	//                 if(CVars[getCVarsIdx(LIGHT_OBJECT)] == -1)
-	//                 {
-	//                     //        mainVar2 = 2000;
-	//                     //        mainVar3 = 2000;
-	//                 }
-	//             }
+		if (changeFloor == 0) {
+			if (CVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
+				//        mainVar2 = 2000;
+				//        mainVar3 = 2000;
+			}
 
-	//             currentProcessedActorPtr = objectTable;
+			currentProcessedActorPtr = objectTable;
 
-	//             for(currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++)
-	//             {
-	//                 if(currentProcessedActorPtr->indexInWorld >= 0)
-	//                 {
-	//                     currentProcessedActorPtr->COL_BY = -1;
-	//                     currentProcessedActorPtr->HIT_BY = -1;
-	//                     currentProcessedActorPtr->HIT = -1;
-	//                     currentProcessedActorPtr->HARD_DEC = -1;
-	//                     currentProcessedActorPtr->HARD_COL = -1;
-	//                 }
+			for (currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++) {
+				if (currentProcessedActorPtr->indexInWorld >= 0) {
+					currentProcessedActorPtr->COL_BY = -1;
+					currentProcessedActorPtr->HIT_BY = -1;
+					currentProcessedActorPtr->HIT = -1;
+					currentProcessedActorPtr->HARD_DEC = -1;
+					currentProcessedActorPtr->HARD_COL = -1;
+				}
 
-	//                 currentProcessedActorPtr++;
-	//             }
+				currentProcessedActorPtr++;
+			}
 
-	//             currentProcessedActorPtr = objectTable;
-	//             for(currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++)
-	//             {
-	//                 if(currentProcessedActorPtr->indexInWorld >= 0)
-	//                 {
-	//                     int flag = currentProcessedActorPtr->_flags;
+			currentProcessedActorPtr = objectTable;
+			for (currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++) {
+				if (currentProcessedActorPtr->indexInWorld >= 0) {
+					int flag = currentProcessedActorPtr->_flags;
 
-	//                     if((flag & AF_ANIMATED) || (g_gameId >= AITD2 && flag & 0x200))
-	//                     {
-	//                         updateAnimation();
-	//                     }
-	//                     if(flag & AF_TRIGGER)
-	//                     {
-	//                         processActor2();
-	//                     }
+					if ((flag & AF_ANIMATED)) {
+						updateAnimation();
+					}
+					if (flag & AF_TRIGGER) {
+						processActor2();
+					}
 
-	//                     if(currentProcessedActorPtr->animActionType)
-	//                     {
-	//                         GereFrappe();
-	//                     }
-	//                 }
+					if (currentProcessedActorPtr->animActionType) {
+						gereFrappe();
+					}
+				}
 
-	//                 currentProcessedActorPtr++;
-	//             }
+				currentProcessedActorPtr++;
+			}
 
-	//             currentProcessedActorPtr = objectTable;
-	//             for(currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++)
-	//             {
-	//                 if(currentProcessedActorPtr->indexInWorld >= 0)
-	//                 {
-	//                     if(currentProcessedActorPtr->life != -1)
-	//                     {
-	//                         switch(g_gameId)
-	//                         {
-	//                         case AITD2:
-	//                         case AITD3:
-	//                         case TIMEGATE:
-	//                             {
-	//                                 if(currentProcessedActorPtr->lifeMode&3)
-	//                                     if(!(currentProcessedActorPtr->lifeMode&4))
-	//                                         processLife(currentProcessedActorPtr->life, false);
-	//                                 break;
-	//                             }
-	// 						case JACK:
-	//                         case AITD1:
-	//                             {
-	//                                 if(currentProcessedActorPtr->life != -1)
-	//                                     if(currentProcessedActorPtr->lifeMode != -1)
-	//                                         processLife(currentProcessedActorPtr->life, false);
-	//                                 break;
-	//                             }
-	//                         }
-	//                     }
-	//                 }
+			currentProcessedActorPtr = objectTable;
+			for (currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++) {
+				if (currentProcessedActorPtr->indexInWorld >= 0) {
+					if (currentProcessedActorPtr->life != -1) {
 
-	//                 if(changeFloor)
-	//                     break;
+						if (currentProcessedActorPtr->life != -1) {
+							if (currentProcessedActorPtr->lifeMode != -1) {
+								processLife(currentProcessedActorPtr->life, false);
+							}
+						}
+					}
+				}
 
-	//                 currentProcessedActorPtr++;
-	//             }
+				if (changeFloor)
+					break;
 
-	//             if(giveUp)
-	//                 break;
-	//         }
+				currentProcessedActorPtr++;
+			}
 
-	//         if(changeFloor)
-	//         {
-	//             loadFloor(newFloor);
-	//         }
+			if (giveUp)
+				break;
+		}
 
-	//         if(needChangeRoom)
-	//         {
-	// 			loadRoom(newRoom);
-	//             setupCamera();
-	//         }
-	//         else
-	//         {
-	//             checkIfCameraChangeIsRequired();
-	//             if(g_gameId >= AITD2)
-	//             {
-	//                 int tempCurrentCamera;
+		if (changeFloor) {
+			loadFloor(newFloor);
+		}
 
-	//                 tempCurrentCamera = currentCamera;
+		if (needChangeRoom) {
+			loadRoom(newRoom);
+			setupCamera();
+		} else {
+			checkIfCameraChangeIsRequired();
+			if (flagInitView) {
+				setupCamera();
+			}
+		}
 
-	//                 currentCamera = startGameVar1;
+		//    if(FlagGenereActiveList)
+		{
+			updateAllActorAndObjects();
+		}
 
-	// 				currentProcessedActorPtr = objectTable;
-	//                 for(currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++)
-	//                 {
-	//                     if(currentProcessedActorPtr->indexInWorld >= 0)
-	//                     {
-	//                         if(currentProcessedActorPtr->life != -1)
-	//                         {
-	//                             if(currentProcessedActorPtr->_flags & 0x200)
-	//                             {
-	//                                 if(currentProcessedActorPtr->lifeMode&3)
-	//                                     if(!(currentProcessedActorPtr->lifeMode&4))
-	//                                     {
-	//                                         processLife(currentProcessedActorPtr->life, false);
-	//                                         actorTurnedToObj = 1;
-	//                                     }
-	//                             }
-	//                         }
-	//                     }
+		//    if(actorTurnedToObj)
+		{
+			createActorList();
+		}
 
-	//                     if(changeFloor)
-	//                         break;
+		sortActorList();
 
-	// 					currentProcessedActorPtr++;
-	//                 }
+		//    if(FlagRefreshAux2)
+		{
+			//      setupCameraSub4();
+		}
 
-	//                 if(giveUp)
-	//                     break;
+		//    mainLoopSub1();
 
-	//                 currentCamera = tempCurrentCamera;
-	//             }
-	//             if(flagInitView
-	// #ifdef FITD_DEBUGGER
-	//                || debuggerVar_topCamera
-	// #endif
-	//                )
-	//             {
-	//                 setupCamera();
-	//             }
-	//         }
+		// osystem_delay(100);
 
-	//         //    if(FlagGenereActiveList)
-	//         {
-	//             updateAllActorAndObjects();
-	//         }
+		mainDraw(flagRedraw);
 
-	//         //    if(actorTurnedToObj)
-	//         {
-	//             createActorList();
-	//         }
+		updatePendingEvents();
+	}
 
-	//         sortActorList();
+	//  mainLoopVar1 = 0;
+	//  shakingState = 0;
 
-	//         //    if(FlagRefreshAux2)
-	//         {
-	//             //      setupCameraSub4();
-	//         }
-
-	//         //    mainLoopSub1();
-
-	//         //osystem_delay(100);
-
-	//         mainDraw(flagRedraw);
-
-	//         updatePendingEvents();
-	//     }
-
-	//     //  mainLoopVar1 = 0;
-	//     //  shakingState = 0;
-
-	//     //  stopShaking();
-	//     //  stopSounds();
+	//  stopShaking();
+	//  stopSounds();
 }
-
 } // namespace Fitd

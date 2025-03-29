@@ -615,4 +615,14 @@ sBody *getBodyFromPtr(void *ptr) {
 	return createBodyFromPtr(ptr);
 }
 
+sAnimation *getAnimationFromPtr(void *ptr) {
+	for (int i = 0; i < vAnimations.size(); i++) {
+		if (vAnimations[i]->m_raw == ptr) {
+			return vAnimations[i];
+		}
+	}
+
+	return createAnimationFromPtr(ptr);
+}
+
 } // namespace Fitd

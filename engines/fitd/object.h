@@ -19,13 +19,15 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+ #ifndef FITD_OBJECT_H
+ #define FITD_OBJECT_H
+
+#include "common/scummsys.h"
 
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
+int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animtype, int animInfo);
 
-} // namespace Fitd
+}
+
 #endif

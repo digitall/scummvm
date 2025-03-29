@@ -60,8 +60,9 @@ char *loadPak(const char *fileName, int index) {
 	pakInfoStruct pakInfo;
 	readPakInfo(&pakInfo, f);
 	if (pakInfo.offset) {
-		Common::String name = f.readString();
-		debug("Loading %s\n", name.c_str());
+		char nameBuffer[256] = "";
+		f.read(nameBuffer,pakInfo.offset);
+		debug("Loading %s\n", nameBuffer+2);
 	}
 
 	char *ptr = 0;

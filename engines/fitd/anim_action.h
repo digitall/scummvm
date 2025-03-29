@@ -19,13 +19,13 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+#ifndef FITD_ANIMACTION_H
+#define FITD_ANIMACTION_H
 
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
+void gereFrappe(void);
 
-} // namespace Fitd
+}
+
 #endif

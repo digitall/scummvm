@@ -63,6 +63,8 @@ enum enumCVars {
 	UNKNOWN_CVAR // for table padding, shouldn't be called !
 };
 
+#define TYPE_MASK 0x1D1
+
 #define ANIM_ONCE             0
 #define ANIM_REPEAT           1
 #define ANIM_UNINTERRUPTABLE  2
@@ -145,6 +147,19 @@ int checkObjectCollisions(int actorIdx, ZVStruct* zvPtr);
 void walkStep(int angle1, int angle2, int angle3);
 void menuWaitVSync();
 void executeFoundLife(int objIdx);
+void updateAllActorAndObjects();
+void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma);
+void processActor2();
+void createActorList();
+void mainDraw(int flagFlip);
+void checkIfCameraChangeIsRequired(void);
+void setMoveMode(int trackMode, int trackNumber);
+void hit(int animNumber, int arg_2, int arg_4, int arg_6, int hitForce, int arg_A);
+struct interpolatedValue;
+void InitRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr);
+int16 updateActorRotation(interpolatedValue* rotatePtr);
+void deleteObject(int objIdx);
+void take(int objIdx);
 
 } // namespace Fitd
 
