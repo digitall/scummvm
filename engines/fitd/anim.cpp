@@ -32,7 +32,7 @@ struct Hash<void *> {
 		return (uint)(uint64)s;
 	}
 };
-}
+} // namespace Common
 
 namespace Fitd {
 
