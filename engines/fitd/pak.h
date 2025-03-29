@@ -19,18 +19,15 @@
  *
  */
 
+#ifndef FITD_PAK_H
+#define FITD_PAK_H
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
-
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
+char *loadPak(const char *fileName, int index);
+int loadPak(const char *name, int index, char *ptr);
+int getPakSize(const char *name, int index);
 
 } // namespace Fitd
+
+#endif
