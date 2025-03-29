@@ -19,13 +19,11 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+#ifndef FITD_SYSTEMMENU_H
+#define FITD_SYSTEMMENU_H
 
 namespace Fitd {
+void processSystemMenu(void);
+}
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
-
-} // namespace Fitd
 #endif

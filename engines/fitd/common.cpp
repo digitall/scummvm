@@ -19,15 +19,23 @@
  *
  */
 
+#include "fitd/aitd1.h"
 #include "fitd/common.h"
+#include "fitd/costable.h"
 #include "fitd/file_access.h"
+#include "fitd/floor.h"
 #include "fitd/font.h"
+#include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
+#include "fitd/life.h"
+#include "fitd/main_loop.h"
+#include "fitd/object.h"
 #include "fitd/pak.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
+#include "fitd/zv.h"
 #include "common/file.h"
 
 namespace Fitd {
@@ -559,24 +567,23 @@ void startGame(int startupFloor, int startupRoom, int allowSystemMenu) {
 	initEngine();
 
 	initVars();
-	assert(false);
 
-	// loadFloor(startupFloor);
+	loadFloor(startupFloor);
 
-	// currentCamera = -1;
+	currentCamera = -1;
 
-	// loadRoom(startupRoom);
+	loadRoom(startupRoom);
 
-	// startGameVar1 = 0;
-	// flagInitView = 2;
+	startGameVar1 = 0;
+	flagInitView = 2;
 
-	// setupCamera();
+	setupCamera();
 
-	// mainLoop(allowSystemMenu, 1);
+	mainLoop(allowSystemMenu, 1);
 
-	// /*freeScene();
+	/*freeScene();
 
-	// fadeOut(8,0);*/
+	fadeOut(8,0);*/
 }
 
 void freeAll(void) {
@@ -657,90 +664,1293 @@ void menuWaitVSync() {
 }
 
 void executeFoundLife(int objIdx) {
-	assert(0);
-	// int var_2;
-	// int actorIdx;
-	// int lifeOffset;
-	// int currentActorIdx;
-	// int currentActorLifeIdx;
-	// int currentActorLifeNum;
-	// int foundLife;
-	// tObject *currentActorPtr;
-	// tObject *currentActorLifePtr;
+	int var_2;
+	int actorIdx;
+	int lifeOffset;
+	int currentActorIdx;
+	int currentActorLifeIdx;
+	int currentActorLifeNum;
+	int foundLife;
+	tObject *currentActorPtr;
+	tObject *currentActorLifePtr;
 
-	// if (objIdx == -1)
-	// 	return;
+	if (objIdx == -1)
+		return;
 
-	// foundLife = ListWorldObjets[objIdx].foundLife;
+	foundLife = ListWorldObjets[objIdx].foundLife;
 
-	// if (ListWorldObjets[objIdx].foundLife == -1)
-	// 	return;
+	if (ListWorldObjets[objIdx].foundLife == -1)
+		return;
 
-	// currentActorPtr = currentProcessedActorPtr;
-	// currentActorIdx = currentProcessedActorIdx;
-	// currentActorLifeIdx = currentLifeActorIdx;
-	// currentActorLifePtr = currentLifeActorPtr;
-	// currentActorLifeNum = currentLifeNum;
+	currentActorPtr = currentProcessedActorPtr;
+	currentActorIdx = currentProcessedActorIdx;
+	currentActorLifeIdx = currentLifeActorIdx;
+	currentActorLifePtr = currentLifeActorPtr;
+	currentActorLifeNum = currentLifeNum;
 
-	// if (currentLifeNum != -1) {
-	// 	lifeOffset = (currentLifePtr - HQR_Get(listLife, currentActorLifeNum)) / 2;
-	// }
+	if (currentLifeNum != -1) {
+		lifeOffset = (currentLifePtr - HQR_Get(listLife, currentActorLifeNum)) / 2;
+	}
 
-	// var_2 = 0;
+	var_2 = 0;
 
-	// actorIdx = ListWorldObjets[objIdx].objIndex;
+	actorIdx = ListWorldObjets[objIdx].objIndex;
 
-	// if (actorIdx == -1) {
-	// 	tObject *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
-	// 	int currentActorEntry = NUM_MAX_OBJECT - 1;
+	if (actorIdx == -1) {
+		tObject *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
+		int currentActorEntry = NUM_MAX_OBJECT - 1;
 
-	// 	while (currentActorEntry >= 0) {
-	// 		if (currentActorEntryPtr->indexInWorld == -1)
-	// 			break;
+		while (currentActorEntry >= 0) {
+			if (currentActorEntryPtr->indexInWorld == -1)
+				break;
 
-	// 		currentActorEntryPtr--;
-	// 		currentActorEntry--;
-	// 	}
+			currentActorEntryPtr--;
+			currentActorEntry--;
+		}
 
-	// 	if (currentActorEntry == -1) // no space, we will have to overwrite the last actor !
-	// 	{
-	// 		currentActorEntry = NUM_MAX_OBJECT - 1;
-	// 		currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
-	// 	}
+		if (currentActorEntry == -1) // no space, we will have to overwrite the last actor !
+		{
+			currentActorEntry = NUM_MAX_OBJECT - 1;
+			currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
+		}
 
-	// 	actorIdx = currentActorEntry;
-	// 	var_2 = 1;
+		actorIdx = currentActorEntry;
+		var_2 = 1;
 
-	// 	currentProcessedActorPtr = &objectTable[actorIdx];
-	// 	currentLifeActorPtr = &objectTable[actorIdx];
-	// 	currentProcessedActorIdx = actorIdx;
-	// 	currentLifeActorIdx = actorIdx;
+		currentProcessedActorPtr = &objectTable[actorIdx];
+		currentLifeActorPtr = &objectTable[actorIdx];
+		currentProcessedActorIdx = actorIdx;
+		currentLifeActorIdx = actorIdx;
 
-	// 	currentProcessedActorPtr->indexInWorld = objIdx;
-	// 	currentProcessedActorPtr->life = -1;
-	// 	currentProcessedActorPtr->bodyNum = -1;
-	// 	currentProcessedActorPtr->_flags = 0;
-	// 	currentProcessedActorPtr->trackMode = -1;
-	// 	currentProcessedActorPtr->room = -1;
-	// 	currentProcessedActorPtr->lifeMode = -1;
-	// 	currentProcessedActorPtr->ANIM = -1;
-	// }
+		currentProcessedActorPtr->indexInWorld = objIdx;
+		currentProcessedActorPtr->life = -1;
+		currentProcessedActorPtr->bodyNum = -1;
+		currentProcessedActorPtr->_flags = 0;
+		currentProcessedActorPtr->trackMode = -1;
+		currentProcessedActorPtr->room = -1;
+		currentProcessedActorPtr->lifeMode = -1;
+		currentProcessedActorPtr->ANIM = -1;
+	}
 
-	// processLife(foundLife, true);
+	processLife(foundLife, true);
 
-	// if (var_2) {
-	// 	currentProcessedActorPtr->indexInWorld = -1;
-	// }
+	if (var_2) {
+		currentProcessedActorPtr->indexInWorld = -1;
+	}
 
-	// currentProcessedActorPtr = currentActorPtr;
-	// currentProcessedActorIdx = currentActorIdx;
-	// currentLifeActorIdx = currentActorLifeIdx;
-	// currentLifeActorPtr = currentActorLifePtr;
+	currentProcessedActorPtr = currentActorPtr;
+	currentProcessedActorIdx = currentActorIdx;
+	currentLifeActorIdx = currentActorLifeIdx;
+	currentLifeActorPtr = currentActorLifePtr;
 
-	// if (currentActorLifeNum != -1) {
-	// 	currentLifeNum = currentActorLifeNum;
-	// 	currentLifePtr = HQR_Get(listLife, currentLifeNum) + lifeOffset * 2;
-	// }
+	if (currentActorLifeNum != -1) {
+		currentLifeNum = currentActorLifeNum;
+		currentLifePtr = HQR_Get(listLife, currentLifeNum) + lifeOffset * 2;
+	}
+}
+
+static int isInViewList(int value) {
+	char *ptr = currentCameraVisibilityList;
+	int var;
+
+	while ((var = *(ptr++)) != -1) {
+		if (value == var) {
+			return (1);
+		}
+	}
+
+	return (0);
+}
+
+void setMoveMode(int trackMode, int trackNumber) {
+	currentProcessedActorPtr->trackMode = trackMode;
+
+	switch (trackMode) {
+	case 2: {
+		currentProcessedActorPtr->trackNumber = trackNumber;
+		currentProcessedActorPtr->MARK = -1;
+		break;
+	}
+	case 3: {
+		currentProcessedActorPtr->trackNumber = trackNumber;
+		currentProcessedActorPtr->positionInTrack = 0;
+		currentProcessedActorPtr->MARK = -1;
+		break;
+	}
+	}
+}
+
+static void deleteObjet(int index) // remove actor
+{
+	tObject *actorPtr = &objectTable[index];
+
+	if (actorPtr->indexInWorld == -2) // flow
+	{
+		actorPtr->indexInWorld = -1;
+
+		if (actorPtr->ANIM == 4) {
+			CVars[getCVarsIdx(FOG_FLAG)] = 0;
+		}
+
+		// HQ_Free_Malloc(HQ_Memory,actorPtr->FRAME);
+	} else {
+		if (actorPtr->indexInWorld >= 0) {
+			tWorldObject *objectPtr = &ListWorldObjets[actorPtr->indexInWorld];
+
+			objectPtr->objIndex = -1;
+			actorPtr->indexInWorld = -1;
+
+			objectPtr->body = actorPtr->bodyNum;
+			objectPtr->anim = actorPtr->ANIM;
+			objectPtr->frame = actorPtr->FRAME;
+			objectPtr->animType = actorPtr->animType;
+			objectPtr->animInfo = actorPtr->animInfo;
+			objectPtr->flags = actorPtr->_flags & ~AF_BOXIFY;
+			objectPtr->flags |= AF_SPECIAL * actorPtr->dynFlags; // ugly hack, need rewrite
+			objectPtr->life = actorPtr->life;
+			objectPtr->lifeMode = actorPtr->lifeMode;
+			objectPtr->trackMode = actorPtr->trackMode;
+
+			if (objectPtr->trackMode) {
+				objectPtr->trackNumber = actorPtr->trackNumber;
+				objectPtr->positionInTrack = actorPtr->positionInTrack;
+			}
+
+			objectPtr->x = actorPtr->roomX + actorPtr->stepX;
+			objectPtr->y = actorPtr->roomY + actorPtr->stepY;
+			objectPtr->z = actorPtr->roomZ + actorPtr->stepZ;
+
+			objectPtr->alpha = actorPtr->alpha;
+			objectPtr->beta = actorPtr->beta;
+			objectPtr->gamma = actorPtr->gamma;
+
+			objectPtr->stage = actorPtr->stage;
+			objectPtr->room = actorPtr->room;
+
+			actorTurnedToObj = 1;
+		}
+	}
+}
+
+void updateAllActorAndObjects() {
+	int i;
+	tObject *currentActor = objectTable;
+	tWorldObject *currentObject;
+
+	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+		if (currentActor->indexInWorld != -1) {
+			if (currentActor->stage == g_currentFloor) {
+				if (currentActor->life != -1) {
+					switch (currentActor->lifeMode) {
+					case 0: {
+						break;
+					}
+					case 1: {
+						if (currentActor->room != currentRoom) {
+							deleteObjet(i);
+						}
+						break;
+					}
+					case 2: {
+						if (!isInViewList(currentActor->room)) {
+							deleteObjet(i);
+						}
+						break;
+					}
+					default: {
+						deleteObjet(i);
+						break;
+					}
+					}
+				} else {
+					if (!isInViewList(currentActor->room)) {
+						deleteObjet(i);
+					}
+				}
+			} else {
+				deleteObjet(i);
+			}
+		}
+
+		currentActor++;
+	}
+
+	currentObject = &ListWorldObjets[0];
+
+	for (i = 0; i < maxObjects; i++) {
+		if (currentObject->objIndex != -1) {
+			if (currentWorldTarget == i) {
+				currentCameraTargetActor = currentObject->objIndex;
+			}
+		} else {
+			if (currentObject->stage == g_currentFloor) {
+				if (currentObject->life != -1) {
+					if (currentObject->lifeMode != -1) {
+						int actorIdx;
+
+						switch (currentObject->lifeMode) {
+						case 1: {
+							if (currentObject->room != currentRoom) {
+								currentObject++;
+								continue;
+							}
+							break;
+						}
+						case 2: {
+							if (!isInViewList(currentObject->room)) {
+								currentObject++;
+								continue;
+							}
+							break;
+						}
+						}
+
+						// int var_C = currentObject->flags & 0xFFDF;
+						// int var_E = currentObject->field_2;
+						// int var_A = currentObject->anim;
+
+					addObject:
+						actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
+													 currentObject->flags & 0xFFDF,
+													 currentObject->x, currentObject->y, currentObject->z,
+													 currentObject->stage, currentObject->room,
+													 currentObject->alpha, currentObject->beta, currentObject->gamma,
+													 currentObject->anim,
+													 currentObject->frame, currentObject->animType, currentObject->animInfo);
+
+						currentObject->objIndex = actorIdx;
+
+						if (actorIdx != -1) {
+							currentProcessedActorPtr = &objectTable[actorIdx];
+							currentProcessedActorIdx = actorIdx;
+
+							if (currentWorldTarget == i) {
+								currentCameraTargetActor = currentProcessedActorIdx;
+							}
+
+							currentProcessedActorPtr->dynFlags = (currentObject->flags & 0x20) / 0x20; // recheck
+							currentProcessedActorPtr->life = currentObject->life;
+							currentProcessedActorPtr->lifeMode = currentObject->lifeMode;
+
+							currentProcessedActorPtr->indexInWorld = i;
+
+							setMoveMode(currentObject->trackMode, currentObject->trackNumber);
+
+							currentProcessedActorPtr->positionInTrack = currentObject->positionInTrack;
+
+							actorTurnedToObj = 1;
+						}
+					}
+				} else {
+					if (isInViewList(currentObject->room))
+						goto addObject;
+				}
+			}
+		}
+
+		currentObject++;
+	}
+
+	//  FlagGenereActiveList = 0;
+
+	// TODO: object update
+}
+
+// setup visibility list
+static void setupCameraSub1() {
+	uint32 i;
+	int j;
+	int var_10;
+
+	char *dataTabPos = currentCameraVisibilityList;
+
+	*dataTabPos = -1;
+
+	// visibility list: add linked rooms
+	for (i = 0; i < roomDataTable[currentRoom].numSceZone; i++) {
+		if (roomDataTable[currentRoom].sceZoneTable[i].type == 0) {
+			var_10 = roomDataTable[currentRoom].sceZoneTable[i].parameter;
+			if (!isInViewList(var_10)) {
+				*(dataTabPos++) = var_10;
+				*(dataTabPos) = -1;
+			}
+		}
+	}
+
+	// visibility list: add room seen by the current camera
+	for (j = 0; j < cameraDataTable[currentCamera]->numViewedRooms; j++) {
+		if (!isInViewList(cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx)) {
+			*(dataTabPos++) = (char)cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx;
+			*(dataTabPos) = -1;
+		}
+	}
+}
+
+static void setupCameraSub4(void) {
+	fastCopyScreen(aux, aux2);
+
+	// TODO: implementer la suite
+}
+
+static void loadCamera(int cameraIdx) {
+	int useSpecial = -1;
+
+	Common::String name = Common::String::format("CAMERA%02d.PAK", g_currentFloor);
+	// strcat(name,".PAK");
+
+	// if(g_gameId == AITD1)
+	{
+		if (CVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
+			switch (g_currentFloor) {
+			case 6: {
+				if (cameraIdx == 0) {
+					useSpecial = AITD1_CAM06000;
+				}
+				if (cameraIdx == 5) {
+					useSpecial = AITD1_CAM06005;
+				}
+				if (cameraIdx == 8) {
+					useSpecial = AITD1_CAM06008;
+				}
+				break;
+			}
+			case 7: {
+				if (cameraIdx == 0) {
+					useSpecial = AITD1_CAM07000;
+				}
+				if (cameraIdx == 1) {
+					useSpecial = AITD1_CAM07001;
+				}
+				break;
+			}
+			}
+		}
+
+		if (useSpecial != -1) {
+			name = "ITD_RESS.PAK";
+			cameraIdx = useSpecial;
+		}
+	}
+
+	if (!loadPak(name.c_str(), cameraIdx, aux)) {
+		error("Cannot load pak %s", name.c_str());
+	}
+}
+
+struct maskStruct {
+	uint16 x1;
+	uint16 y1;
+	uint16 x2;
+	uint16 y2;
+	uint16 deltaX;
+	uint16 deltaY;
+
+	uint8 mask[320 * 200];
+};
+
+maskStruct g_maskBuffers[10][10];
+extern unsigned char *polyBackBuffer;
+void fillpoly(int16 *datas, int n, unsigned char c);
+
+static void createAITD1Mask() {
+	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
+		cameraViewedRoomStruct *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
+
+		char *data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		char *data = data2;
+		data += 2;
+
+		int numMask = *(int16 *)(data2);
+
+		for (int maskIdx = 0; maskIdx < numMask; maskIdx++) {
+			maskStruct *pDestMask = &g_maskBuffers[viewedRoomIdx][maskIdx];
+			memset(pDestMask->mask, 0, 320 * 200);
+			polyBackBuffer = &pDestMask->mask[0];
+
+			char *src = data2 + *(uint16 *)(data + 2);
+
+			int numMaskZone = *(int16 *)(data);
+
+			int minX = 319;
+			int maxX = 0;
+			int minY = 199;
+			int maxY = 0;
+
+			/*if(isBgOverlayRequired( actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
+			actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
+			data+4,
+			*(int16*)(data) ))*/
+			{
+				int numMaskPoly = *(int16 *)src;
+				src += 2;
+
+				for (int maskPolyIdx = 0; maskPolyIdx < numMaskPoly; maskPolyIdx++) {
+					int numPoints = *(int16 *)(src);
+					src += 2;
+
+					memcpy(cameraBuffer, src, numPoints * 4);
+
+					fillpoly((int16 *)src, numPoints, 0xFF);
+
+					for (int verticeId = 0; verticeId < numPoints; verticeId++) {
+						short verticeX = *(short *)(src + verticeId * 4 + 0);
+						short verticeY = *(short *)(src + verticeId * 4 + 2);
+
+						minX = MIN(minX, (int)verticeX);
+						minY = MIN(minY, (int)verticeY);
+						maxX = MAX(maxX, (int)verticeX);
+						maxY = MAX(maxY, (int)verticeY);
+					}
+
+					src += numPoints * 4;
+					// drawBgOverlaySub2(param);
+				}
+
+				//      blitOverlay(src);
+
+				polyBackBuffer = nullptr;
+			}
+
+			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (unsigned char *)aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
+
+			int numOverlay = *(int16 *)(data);
+			data += 2;
+			data += ((numOverlay * 4) + 1) * 2;
+		}
+	}
+
+	polyBackBuffer = NULL;
+}
+
+static int checkActorInRoom(int room) {
+	int i;
+
+	for (i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
+		if (cameraDataTable[currentCamera]->viewedRoomTable[i].viewedRoomIdx == room) {
+			return (1);
+		}
+	}
+
+	return (0);
+}
+
+void createActorList() {
+	int i;
+	tObject *actorPtr;
+
+	numActorInList = 0;
+
+	actorPtr = objectTable;
+
+	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+		if (actorPtr->indexInWorld != -1 && actorPtr->bodyNum != -1) {
+			if (checkActorInRoom(actorPtr->room)) {
+				sortedActorTable[numActorInList] = i;
+				if (!(actorPtr->_flags & (AF_SPECIAL & AF_ANIMATED))) {
+					actorPtr->_flags |= AF_BOXIFY;
+					//  FlagRefreshAux2 = 1;
+				}
+				numActorInList++;
+			}
+		}
+
+		actorPtr++;
+	}
+}
+
+void setupCamera() {
+	int x;
+	int y;
+	int z;
+	cameraDataStruct *pCamera;
+
+	freezeTime();
+
+	currentCamera = startGameVar1;
+
+	assert(startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
+
+	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+
+	createAITD1Mask();
+	cameraBackgroundChanged = true;
+
+	pCamera = cameraDataTable[currentCamera];
+
+	setAngleCamera(pCamera->alpha, pCamera->beta, pCamera->gamma);
+
+	x = (pCamera->x - roomDataTable[currentRoom].worldX) * 10;
+	y = (roomDataTable[currentRoom].worldY - pCamera->y) * 10;
+	z = (roomDataTable[currentRoom].worldZ - pCamera->z) * 10;
+
+	setPosCamera(x, y, z); // setup camera position
+
+	setupCameraProjection(160, 100, pCamera->focal1, pCamera->focal2, pCamera->focal3); // setup focale
+
+	setupCameraSub1();
+	updateAllActorAndObjects();
+	createActorList();
+	//  setupCameraSub3();
+	setupCameraSub4();
+	/*  setupCameraSub5();
+	 */
+	if (flagInitView == 2) {
+		flagRedraw = 2;
+	} else {
+		if (flagRedraw != 2) {
+			flagRedraw = 1;
+		}
+	}
+
+	flagInitView = 0;
+	unfreezeTime();
+}
+
+bool pointRotateEnable = true;
+
+int pointRotateCosX;
+int pointRotateSinX;
+int pointRotateCosY;
+int pointRotateSinY;
+int pointRotateCosZ;
+int pointRotateSinZ;
+
+static void setupPointRotate(int alpha, int beta, int gamma) {
+	pointRotateEnable = true;
+
+	pointRotateCosX = cosTable[alpha & 0x3FF];
+	pointRotateSinX = cosTable[((alpha & 0x3FF) + 0x100) & 0x3FF];
+
+	pointRotateCosY = cosTable[beta & 0x3FF];
+	pointRotateSinY = cosTable[((beta & 0x3FF) + 0x100) & 0x3FF];
+
+	pointRotateCosZ = cosTable[gamma & 0x3FF];
+	pointRotateSinZ = cosTable[((gamma & 0x3FF) + 0x100) & 0x3FF];
+}
+
+static void pointRotate(int x, int y, int z, int *destX, int *destY, int *destZ) {
+	if (pointRotateEnable) {
+		{
+			int tempX = x;
+			int tempY = y;
+			x = ((((tempX * pointRotateSinZ) - (tempY * pointRotateCosZ))) >> 16) << 1;
+			y = ((((tempX * pointRotateCosZ) + (tempY * pointRotateSinZ))) >> 16) << 1;
+		}
+
+		{
+			int tempX = x;
+			int tempZ = z;
+
+			x = ((((tempX * pointRotateSinY) - (tempZ * pointRotateCosY))) >> 16) << 1;
+			z = ((((tempX * pointRotateCosY) + (tempZ * pointRotateSinY))) >> 16) << 1;
+		}
+
+		{
+			int tempY = y;
+			int tempZ = z;
+			y = ((((tempY * pointRotateSinX) - (tempZ * pointRotateCosX))) >> 16) << 1;
+			z = ((((tempY * pointRotateCosX) + (tempZ * pointRotateSinX))) >> 16) << 1;
+		}
+
+		*destX = x;
+		*destY = y;
+		*destZ = z;
+	}
+}
+
+static void zvRotSub(int X, int Y, int Z, int alpha, int beta, int gamma) {
+	if (alpha || beta || gamma) {
+		setupPointRotate(alpha, beta, gamma);
+		pointRotate(X, Y, Z, &animMoveX, &animMoveY, &animMoveZ);
+	} else {
+		animMoveX = X;
+		animMoveY = Y;
+		animMoveZ = Z;
+	}
+}
+
+void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
+	int X1 = 32000;
+	int Y1 = 32000;
+	int Z1 = 32000;
+
+	int X2 = -32000;
+	int Y2 = -32000;
+	int Z2 = -32000;
+
+	int i;
+	int tempX;
+	int tempY;
+	int tempZ;
+
+	giveZVObjet(bodyPtr, zvPtr);
+
+	for (i = 0; i < 8; i++) {
+		switch (i) {
+		case 0: {
+			tempX = zvPtr->ZVX1;
+			tempY = zvPtr->ZVY1;
+			tempZ = zvPtr->ZVZ1;
+			break;
+		}
+		case 1: {
+			tempZ = zvPtr->ZVZ2;
+			break;
+		}
+		case 2: {
+			tempX = zvPtr->ZVX2;
+			break;
+		}
+		case 3: {
+			tempZ = zvPtr->ZVZ1;
+			break;
+		}
+		case 4: {
+			tempY = zvPtr->ZVY2;
+			break;
+		}
+		case 5: {
+			tempX = zvPtr->ZVX1;
+			break;
+		}
+		case 6: {
+			tempZ = zvPtr->ZVZ2;
+			break;
+		}
+		case 7: {
+			tempX = zvPtr->ZVX2;
+			break;
+		}
+		}
+
+		zvRotSub(tempX, tempY, tempZ, alpha, beta, gamma);
+
+		if (animMoveX < X1)
+			X1 = animMoveX;
+
+		if (animMoveX > X2)
+			X2 = animMoveX;
+
+		if (animMoveY < Y1)
+			Y1 = animMoveY;
+
+		if (animMoveY > Y2)
+			Y2 = animMoveY;
+
+		if (animMoveZ < Z1)
+			Z1 = animMoveZ;
+
+		if (animMoveZ > Z2)
+			Z2 = animMoveZ;
+	}
+
+	zvPtr->ZVX1 = X1;
+	zvPtr->ZVX2 = X2;
+	zvPtr->ZVY1 = Y1;
+	zvPtr->ZVY2 = Y2;
+	zvPtr->ZVZ1 = Z1;
+	zvPtr->ZVZ2 = Z2;
+}
+
+int checkZvCollision(ZVStruct *zvPtr1, ZVStruct *zvPtr2) {
+	if (zvPtr1->ZVX1 >= zvPtr2->ZVX2)
+		return 0;
+
+	if (zvPtr2->ZVX1 >= zvPtr1->ZVX2)
+		return 0;
+
+	if (zvPtr1->ZVY1 >= zvPtr2->ZVY2)
+		return 0;
+
+	if (zvPtr2->ZVY1 >= zvPtr1->ZVY2)
+		return 0;
+
+	if (zvPtr1->ZVZ1 >= zvPtr2->ZVZ2)
+		return 0;
+
+	if (zvPtr2->ZVZ1 >= zvPtr1->ZVZ2)
+		return 0;
+
+	return 1;
+}
+
+static bool isPointInZV(int x, int y, int z, ZVStruct *pZV) {
+	if (pZV->ZVX1 <= x && pZV->ZVX2 >= x) {
+		if (pZV->ZVY1 <= y && pZV->ZVY2 >= y) {
+			if (pZV->ZVZ1 <= z && pZV->ZVZ2 >= z) {
+				return (true);
+			}
+		}
+	}
+
+	return false;
+}
+
+void processActor2() {
+	bool onceMore = false;
+	bool flagFloorChange = false;
+	int zoneIdx = 0;
+
+	do {
+		onceMore = false;
+		roomDataStruct *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
+		for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
+			sceZoneStruct *pCurrentZone = &pRoomData->sceZoneTable[i];
+
+			if (isPointInZV(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+							currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY,
+							currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+							&pCurrentZone->zv)) {
+				switch (pCurrentZone->type) {
+				case 0: {
+					int x;
+					int y;
+					int z;
+
+					int oldRoom = currentProcessedActorPtr->room;
+
+					currentProcessedActorPtr->room = (short)pCurrentZone->parameter;
+
+					x = (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[oldRoom].worldX) * 10;
+					y = (roomDataTable[currentProcessedActorPtr->room].worldY - roomDataTable[oldRoom].worldY) * 10;
+					z = (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[oldRoom].worldZ) * 10;
+
+					currentProcessedActorPtr->roomX -= x;
+					currentProcessedActorPtr->roomY += y;
+					currentProcessedActorPtr->roomZ += z;
+
+					currentProcessedActorPtr->zv.ZVX1 -= x;
+					currentProcessedActorPtr->zv.ZVX2 -= x;
+
+					currentProcessedActorPtr->zv.ZVY1 += y;
+					currentProcessedActorPtr->zv.ZVY2 += y;
+
+					currentProcessedActorPtr->zv.ZVZ1 += z;
+					currentProcessedActorPtr->zv.ZVZ2 += z;
+
+					onceMore = true;
+					if (currentProcessedActorIdx == currentCameraTargetActor) {
+						needChangeRoom = 1;
+						newRoom = (short)pCurrentZone->parameter;
+
+					} else {
+						actorTurnedToObj = 1;
+					}
+
+					startChrono(&currentProcessedActorPtr->ROOM_CHRONO);
+
+					break;
+				}
+				case 8: {
+					assert(0);
+					// assert(g_gameId != AITD1);
+					// if (g_gameId != AITD1) {
+					// 	currentProcessedActorPtr->hardMat = (short)pCurrentZone->parameter;
+					// }
+					break;
+				}
+				case 9: // Scenar
+				{
+					currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+					break;
+				}
+				case 10: // stage
+				{
+					int life;
+
+					life = ListWorldObjets[currentProcessedActorPtr->indexInWorld].floorLife;
+
+					if (life == -1)
+						return;
+
+					currentProcessedActorPtr->life = life;
+
+					currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+					flagFloorChange = true;
+					break;
+				}
+				}
+
+				return;
+			}
+			if (onceMore)
+				break;
+		}
+	} while (onceMore);
+}
+
+static void getHotPoint(int hotPointIdx, char *bodyPtr, point3dStruct *hotPoint) {
+	int16 flag;
+
+	flag = *(int16 *)bodyPtr;
+	bodyPtr += 2;
+
+	if (flag & 2) {
+		int16 offset;
+		bodyPtr += 12;
+
+		offset = *(int16 *)bodyPtr;
+		bodyPtr += 2;
+		bodyPtr += offset;
+
+		offset = *(int16 *)bodyPtr; // num points
+		bodyPtr += 2;
+		bodyPtr += offset * 6; // skip point buffer
+
+		offset = *(int16 *)bodyPtr; // num bones
+		bodyPtr += 2;
+		bodyPtr += offset * 2; // skip bone buffer
+
+		assert(hotPointIdx < offset);
+
+		if (hotPointIdx < offset) {
+			int pointIdx;
+			int16 *source;
+
+			if (flag & INFO_OPTIMISE) {
+				bodyPtr += hotPointIdx * 0x18;
+			} else {
+				bodyPtr += hotPointIdx * 16;
+			}
+
+			pointIdx = *(int16 *)(bodyPtr + 4); // first point
+
+			// ASSERT(pointIdx > 0 && pointIdx < 1200);
+
+			source = (int16 *)(((char *)pointBuffer) + pointIdx);
+
+			hotPoint->x = source[0];
+			hotPoint->y = source[1];
+			hotPoint->z = source[2];
+		} else {
+			hotPoint->x = 0;
+			hotPoint->y = 0;
+			hotPoint->z = 0;
+		}
+	} else {
+		hotPoint->x = 0;
+		hotPoint->y = 0;
+		hotPoint->z = 0;
+	}
+}
+
+static void mainDrawSub2(int actorIdx) // draw flow
+{
+	// actorStruct* actorPtr = &actorTable[actorIdx];
+
+	// char* data = printTextSub2(hqrUnk, actorPtr->FRAME);
+
+	// TODO: finish
+}
+
+static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, char *data, int param) {
+	int i;
+	for (i = 0; i < param; i++) {
+		////////////////////////////////////// DEBUG
+		//  drawOverlayZone(data, 80);
+		/////////////////////////////////////
+
+		int zoneX1 = *(int16 *)(data);
+		int zoneZ1 = *(int16 *)(data + 2);
+		int zoneX2 = *(int16 *)(data + 4);
+		int zoneZ2 = *(int16 *)(data + 6);
+
+		if (X1 >= zoneX1 && Z1 >= zoneZ1 && X2 <= zoneX2 && Z2 <= zoneZ2) {
+			return (1);
+		}
+
+		data += 0x8;
+	}
+
+	return (0);
+}
+
+static void drawBgOverlay(tObject *actorPtr) {
+	char *data;
+	char *data2;
+
+	int numOverlayZone;
+
+	actorPtr->screenXMin = BBox3D1;
+	actorPtr->screenYMin = BBox3D2;
+	actorPtr->screenXMax = BBox3D3;
+	actorPtr->screenYMax = BBox3D4;
+
+	// if(actorPtr->trackMode != 1)
+	//	return;
+
+	setClip(BBox3D1, BBox3D2, BBox3D3, BBox3D4);
+
+	cameraDataStruct *pCamera = cameraDataTable[currentCamera];
+
+	// look for the correct room data of that camera
+	cameraViewedRoomStruct *pcameraViewedRoomData = NULL;
+	int relativeCameraIndex = -1;
+	for (int i = 0; i < pCamera->numViewedRooms; i++) {
+		if (pCamera->viewedRoomTable[i].viewedRoomIdx == actorPtr->room) {
+			pcameraViewedRoomData = &pCamera->viewedRoomTable[i];
+			relativeCameraIndex = i;
+			break;
+		}
+	}
+	if (pcameraViewedRoomData == NULL)
+		return;
+
+	data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+	data = data2;
+	data += 2;
+
+	numOverlayZone = *(int16 *)(data2);
+
+	for (int i = 0; i < numOverlayZone; i++) {
+		int numOverlay;
+		char *src = data2 + *(uint16 *)(data + 2);
+
+		if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
+								actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
+								data + 4,
+								*(int16 *)(data))) {
+			osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
+			osystem_drawMask(relativeCameraIndex, i);
+			osystem_clearClip();
+
+			/*
+			int j;
+			numOverlay = *(s16*)src;
+			src += 2;
+
+			for(j=0;j<numOverlay;j++)
+			{
+			int param = *(s16*)(src);
+			src+=2;
+
+			memcpy(cameraBuffer, src, param*4);
+
+			src+=param*4;
+
+			drawBgOverlaySub2(param);
+			}
+			*/
+
+			//      blitOverlay(src);
+		}
+
+		numOverlay = *(int16 *)(data);
+		data += 2;
+		data += ((numOverlay * 4) + 1) * 2;
+	}
+
+	setClip(0, 0, 319, 199);
+}
+
+static int drawTextOverlay(void) {
+	int var_14 = 0;
+	int var_10 = 183;
+	messageStruct *currentMessage;
+
+	BBox3D4 = 199;
+	BBox3D1 = 319;
+	BBox3D3 = 0;
+
+	currentMessage = messageTable;
+
+	if (lightOff == 0) {
+		int i;
+
+		for (i = 0; i < 5; i++) {
+			if (currentMessage->string) {
+				int width = currentMessage->string->width;
+				int X = 160 - width / 2;
+				int Y = X + width;
+
+				if (X < BBox3D1) {
+					BBox3D1 = X;
+				}
+
+				if (Y > BBox3D3) {
+					BBox3D3 = Y;
+				}
+
+				if ((currentMessage->time++) > 55) {
+					currentMessage->string = NULL;
+				} else {
+					if (currentMessage->time < 26) {
+						extSetFont(PtrFont, 16);
+					} else {
+						extSetFont(PtrFont, 16 + (currentMessage->time - 26) / 2);
+					}
+
+					renderText(X, var_10 + 1, logicalScreen, currentMessage->string->textPtr);
+				}
+
+				var_10 -= 16;
+				var_14 = 1;
+			}
+
+			currentMessage++;
+		}
+	} else {
+	}
+
+	BBox3D2 = var_10;
+	return (var_14);
+}
+
+void mainDraw(int flagFlip) {
+	int i;
+	// if(flagFlip == 2)
+	{
+		if (cameraBackgroundChanged) {
+			gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+			cameraBackgroundChanged = false;
+		}
+	}
+
+	if (flagFlip == 0) {
+		// restoreDirtyRects();
+	} else {
+		genVar5 = 0;
+		fastCopyScreen(aux2, logicalScreen);
+	}
+
+	// osystem_drawBackground();
+
+	setClip(0, 0, 319, 199);
+	genVar6 = 0;
+
+	// osystem_startModelRender();
+
+	for (i = 0; i < numActorInList; i++) {
+		int currentDrawActor = sortedActorTable[i];
+		tObject *actorPtr;
+
+		actorPtr = &objectTable[currentDrawActor];
+
+		// this is commented out to draw actors incrusted in background
+		// if(actorPtr->_flags & (AF_ANIMATED + AF_DRAWABLE + AF_SPECIAL))
+		{
+			actorPtr->_flags &= ~AF_DRAWABLE;
+
+			if (actorPtr->_flags & AF_SPECIAL) {
+				mainDrawSub2(currentDrawActor);
+			} else {
+				char *bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
+
+				if (HQ_Load) {
+					//          initAnimInBody(actorPtr->FRAME, HQR_Get(listAnim, actorPtr->ANIM), bodyPtr);
+				}
+
+				affObjet(actorPtr->worldX + actorPtr->stepX, actorPtr->worldY + actorPtr->stepY, actorPtr->worldZ + actorPtr->stepZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, bodyPtr);
+
+				if (actorPtr->animActionType != 0) {
+					if (actorPtr->hotPointID != -1) {
+						getHotPoint(actorPtr->hotPointID, bodyPtr, &actorPtr->hotPoint);
+					}
+				}
+			}
+
+			if (BBox3D1 < 0)
+				BBox3D1 = 0;
+			if (BBox3D3 > 319)
+				BBox3D3 = 319;
+			if (BBox3D2 < 0)
+				BBox3D2 = 0;
+			if (BBox3D4 > 199)
+				BBox3D4 = 199;
+
+			if (BBox3D1 <= 319 && BBox3D2 <= 199 && BBox3D3 >= 0 && BBox3D4 >= 0) // is the character on screen ?
+			{
+				{
+					if (actorPtr->indexInWorld == CVars[getCVarsIdx(LIGHT_OBJECT)]) {
+						lightX = (BBox3D3 + BBox3D1) / 2;
+						lightY = (BBox3D4 + BBox3D2) / 2;
+					}
+				}
+
+#ifdef FITD_DEBUGGER
+				if (backgroundMode == backgroundModeEnum_2D)
+#endif
+				{
+					// if(g_gameId == AITD1)
+					drawBgOverlay(actorPtr);
+				}
+				// addToRedrawBox();
+			} else {
+				actorPtr->screenYMax = -1;
+				actorPtr->screenXMax = -1;
+				actorPtr->screenYMin = -1;
+				actorPtr->screenXMin = -1;
+			}
+		}
+	}
+
+	osystem_stopModelRender();
+
+	if (drawTextOverlay()) {
+		// addToRedrawBox();
+	}
+
+	if (!lightOff) {
+		if (flagFlip) {
+			if (flagFlip == 2 || lightVar2) {
+				// makeBlackPalette();
+				//  osystem_flip(NULL);
+				fadeInPhys(0x10, 0);
+				lightVar2 = 0;
+			} else {
+				// osystem_flip(NULL);
+			}
+		} else {
+			// mainDrawSub1();
+		}
+	} else {
+	}
+
+	//    osystem_stopFrame();
+
+	//	osystem_flip(NULL);
+
+	flagRedraw = 0;
+}
+
+static int testCrossProduct(int x1, int z1, int x2, int z2, int x3, int z3, int x4, int z4) {
+	int returnFlag = 0;
+
+	int xAB = x1 - x2;
+	int yCD = z3 - z4;
+	int xCD = x3 - x4;
+	int yAB = z1 - z2;
+
+	int xAC = x1 - x3;
+	int yAC = z1 - z3;
+
+	int DotProduct = (xAB * yCD) - (xCD * yAC);
+
+	if (DotProduct) {
+		int Dda = xAC * yCD - xCD * yAC;
+		int Dmu = -xAB * yAC + xAC * yAB;
+
+		if (DotProduct < 0) {
+			DotProduct = -DotProduct;
+			Dda = -Dda;
+			Dmu = -Dmu;
+		}
+
+		if (Dda >= 0 && Dmu >= 0 && DotProduct >= Dda && DotProduct >= Dmu)
+			returnFlag = 1;
+	}
+
+	return (returnFlag);
+}
+
+static int isInPoly(int x1, int x2, int z1, int z2, cameraViewedRoomStruct *pCameraZoneDef) {
+	int xMid = (x1 + x2) / 2;
+	int zMid = (z1 + z2) / 2;
+
+	int i;
+
+	for (i = 0; i < pCameraZoneDef->numCoverZones; i++) {
+		int j;
+		int flag = 0;
+
+		for (j = 0; j < pCameraZoneDef->coverZones[i].numPoints; j++) {
+			int zoneX1;
+			int zoneZ1;
+			int zoneX2;
+			int zoneZ2;
+
+			zoneX1 = pCameraZoneDef->coverZones[i].pointTable[j].x;
+			zoneZ1 = pCameraZoneDef->coverZones[i].pointTable[j].y;
+			zoneX2 = pCameraZoneDef->coverZones[i].pointTable[j + 1].x;
+			zoneZ2 = pCameraZoneDef->coverZones[i].pointTable[j + 1].y;
+
+			if (testCrossProduct(xMid, zMid, xMid - 10000, zMid, zoneX1, zoneZ1, zoneX2, zoneZ2)) {
+				flag |= 1;
+			}
+
+			if (testCrossProduct(xMid, zMid, xMid + 10000, zMid, zoneX1, zoneZ1, zoneX2, zoneZ2)) {
+				flag |= 2;
+			}
+		}
+
+		if (flag == 3) {
+			return (1);
+		}
+	}
+
+	return (0);
+}
+
+static int findBestCamera(void) {
+	int foundAngle = 32000;
+	int foundCamera = -1;
+
+	tObject *actorPtr = &objectTable[currentCameraTargetActor];
+
+	int x1 = actorPtr->zv.ZVX1 / 10;
+	int x2 = actorPtr->zv.ZVX2 / 10;
+	int z1 = actorPtr->zv.ZVZ1 / 10;
+	int z2 = actorPtr->zv.ZVZ2 / 10;
+
+	int i;
+
+	for (i = 0; i < numCameraInRoom; i++) {
+		assert(i < NUM_MAX_CAMERA_IN_ROOM);
+		if (currentCameraZoneList[i])
+			if (isInPoly(x1, x2, z1, z2, currentCameraZoneList[i])) // if in camera zone ?
+			{
+				// we try to select the best camera that looks behind the player
+				int newAngle = actorPtr->beta + (((cameraDataTable[i]->beta) + 0x200) & 0x3FF);
+
+				if (newAngle < 0) {
+					newAngle = -newAngle;
+				}
+
+				if (newAngle < foundAngle) {
+					foundAngle = newAngle;
+					foundCamera = i;
+				}
+			}
+	}
+
+	return (foundCamera);
+}
+
+void checkIfCameraChangeIsRequired(void) {
+	int localCurrentCam = currentCamera;
+	int newCamera;
+
+	if (currentCamera != -1) {
+		tObject *actorPtr;
+		int zvx1;
+		int zvx2;
+		int zvz1;
+		int zvz2;
+
+		actorPtr = &objectTable[currentCameraTargetActor];
+
+		zvx1 = actorPtr->zv.ZVX1 / 10;
+		zvx2 = actorPtr->zv.ZVX2 / 10;
+
+		zvz1 = actorPtr->zv.ZVZ1 / 10;
+		zvz2 = actorPtr->zv.ZVZ2 / 10;
+
+		if (isInPoly(zvx1, zvx2, zvz1, zvz2, currentCameraZoneList[currentCamera])) // is still in current camera zone ?
+		{
+			return;
+		}
+	}
+
+	newCamera = findBestCamera(); // find new camera
+
+	if (newCamera != -1) {
+		localCurrentCam = newCamera;
+	}
+
+	if (currentCamera != localCurrentCam) {
+		startGameVar1 = localCurrentCam;
+		flagInitView = 1;
+	}
 }
 
 } // namespace Fitd

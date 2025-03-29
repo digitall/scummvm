@@ -719,7 +719,7 @@ void initBufferAnim(Common::Array<int16> &buffer, char *bodyPtr) {
 	}
 }
 
-int16 GetNbFramesAnim(char *animPtr) {
+int16 getNbFramesAnim(char *animPtr) {
 	return (*(int16 *)animPtr);
 }
 
@@ -791,7 +791,7 @@ void PatchInterStep(char **bodyPtr, int bp, int bx) // local
 	(*bodyPtr) += 2;
 }
 
-int16 SetInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
+int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 	int numOfBonesInAnim = *(int16 *)(animPtr + 2);
 	uint16 keyframeLength;
 	uint16 timeOfKeyframeStart;

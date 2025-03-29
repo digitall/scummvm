@@ -19,13 +19,18 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+#ifndef FITD_ZV_H
+#define FITD_ZV_H
 
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
+struct ZVStruct;
+void getZvCube(char *bodyPtr, ZVStruct *zvPtr);
+void giveZVObjet(char* bodyPtr, ZVStruct* zvPtr);
+void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
+void makeDefaultZV(ZVStruct* zvPtr);
+void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
 
-} // namespace Fitd
+}
+
 #endif

@@ -19,13 +19,25 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+#ifndef FITD_SEQUENCE_H
+#define FITD_SEQUENCE_H
 
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
+#define NUM_MAX_SEQUENCE_PARAM 30
+
+struct sequenceParamStruct {
+	unsigned int frame;
+	unsigned int sample;
+};
+
+typedef struct sequenceParamStruct sequenceParamStruct;
+
+extern int numSequenceParam;
+
+extern sequenceParamStruct sequenceParams[NUM_MAX_SEQUENCE_PARAM];
+
+void convertPaletteIfRequired(unsigned char *lpalette);
 
 } // namespace Fitd
 #endif

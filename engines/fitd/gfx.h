@@ -40,6 +40,8 @@ void gfx_setPalette(const byte *palette);
 void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
 void gfx_refreshFrontTextureBuffer();
 
+void setPosCamera(int x, int y, int z);
+void setAngleCamera(int x, int y, int z);
 void setupCameraProjection(int centerX, int centerY, int x, int y, int z);
 void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int time);
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr);
@@ -52,11 +54,21 @@ void setupCamera();
 void osystem_drawBackground();
 void osystem_fillPoly(float *buffer, int numPoint, unsigned char color, byte polyType);
 void osystem_flushPendingPrimitives();
+void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
+void osystem_drawMask(int roomId, int maskId);
+void osystem_setClip(float left, float top, float right, float bottom);
+void osystem_clearClip();
+void osystem_stopModelRender();
 
 extern int BBox3D1;
 extern int BBox3D2;
 extern int BBox3D3;
 extern int BBox3D4;
+
+#define NUM_MAX_POINT_IN_POINT_BUFFER 800
+#define NUM_MAX_BONES 50
+
+extern int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER*3];
 }; // namespace Fitd
 
 #endif

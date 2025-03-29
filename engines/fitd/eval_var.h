@@ -19,13 +19,15 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+#ifndef FITD_EVALVAR_H
+#define FITD_EVALVAR_H
+
+#include "common/scummsys.h"
 
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
-
+int evalVar(const char *name = NULL);
+int evalVar2(const char *name = NULL);
 } // namespace Fitd
+
 #endif

@@ -19,13 +19,21 @@
  *
  */
 
-#ifndef FITD_FILEACCESS_H
-#define FITD_FILEACCESS_H
+ #ifndef _FITD_FLOOR_H_
+ #define _FITD_FLOOR_H_
+
+ #include "fitd/room.h"
+ #include "common/scummsys.h"
+ #include "common/array.h"
 
 namespace Fitd {
 
-char *loadFromItd(const char *name);
-char *checkLoadMallocPak(const char *name, int index);
+extern Common::Array<cameraDataStruct> g_currentFloorCameraData;
+extern uint32 g_currentFloorRoomRawDataSize;
+extern uint32 g_currentFloorNumCamera;
 
-} // namespace Fitd
+void loadFloor(int floorNumber);
+}
+
 #endif
+
