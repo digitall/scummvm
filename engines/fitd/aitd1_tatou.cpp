@@ -161,24 +161,23 @@ int make3dTatou(void) {
 	free(tatou3d);
 	free(tatou2d);
 
-	// TODO:
-	// if(key || Click || JoyD)
-	// {
-	//     while(key)
-	//     {
-	//       process_events();
-	//     }
+	if(key || Click || JoyD)
+	{
+	    while(key)
+	    {
+	      process_events();
+	    }
 
-	//     fadeOutPhys(32,0);
-	//     copyPalette((byte*)paletteBackup,currentGamePalette);
-	//     return(1);
-	// }
-	// else
-	// {
-	//     FadeOutPhys(16,0);
-	//     copyPalette((byte*)paletteBackup,currentGamePalette);
-	//     return(0);
-	// }
+	    fadeOutPhys(32,0);
+	    copyPalette((byte*)paletteBackup,currentGamePalette);
+	    return(1);
+	}
+	else
+	{
+	    fadeOutPhys(16,0);
+	    copyPalette((byte*)paletteBackup,currentGamePalette);
+	    return(0);
+	}
 
 	return (0);
 }
