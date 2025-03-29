@@ -19,21 +19,28 @@
  *
  */
 
+#ifndef FITD_INVENTORY_H
+#define FITD_INVENTORY_H
+
+#include "common/scummsys.h"
+
+#define INVENTORY_SIZE 30
+#define NUM_MAX_INVENTORY 2
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
+extern int16 currentInventory;
+extern int16 numObjInInventoryTable[NUM_MAX_INVENTORY];
+extern int16 inHandTable[NUM_MAX_INVENTORY];
+extern int16 inventoryTable[NUM_MAX_INVENTORY][INVENTORY_SIZE];
 
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
+extern int statusLeft;
+extern int statusTop;
+extern int statusRight;
+extern int statusBottom;
 
-struct sAnimation;
-sAnimation* getAnimationFromPtr(void* ptr);
+void processInventory(void);
 
 } // namespace Fitd
+
+#endif

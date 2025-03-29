@@ -267,7 +267,7 @@ void gfx_deinit() {
 	delete backgroundShader;
 }
 
-void gfx_draw() {
+void osystem_drawBackground() {
 	GL_CALL(glClearColor(0.f, 0.f, 0.f, 1.f));
 	GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
@@ -1137,6 +1137,120 @@ void setupCameraProjection(int centerX, int centerY, int x, int y, int z) {
 	cameraPerspective = x;
 	cameraFovX = y;
 	cameraFovY = z;
+}
+
+void setClip(int left, int top, int right, int bottom) {
+	clipLeft = left;
+	clipTop = top;
+	clipRight = right;
+	clipBottom = bottom;
+}
+
+void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
+{
+	int width = x2 - x1 + 1;
+	int height = y2 - y1 + 1;
+
+	char *dest = logicalScreen + y1 * 320 + x1;
+
+	int i;
+	int j;
+
+	for (i = 0; i < height; i++) {
+		for (j = 0; j < width; j++) {
+			*(dest++) = color;
+		}
+
+		dest += 320 - width;
+	}
+}
+
+void flushScreen(void) {
+	for (int i = 0; i < 200; i++) {
+		for (int j = 0; j < 320; j++) {
+			*(logicalScreen + i * 320 + j) = 0;
+		}
+	}
+}
+
+void setupCamera() {
+	assert(0);
+	// 	int x;
+	// 	int y;
+	// 	int z;
+	// 	cameraDataStruct* pCamera;
+
+	// 	freezeTime();
+
+	// 	currentCamera = startGameVar1;
+
+	// 	assert(startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
+
+	// 	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+	// 	if(g_gameId >= JACK)
+	// 	{
+	// 		loadMask(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+	// 	}
+	// 	else
+	// 	{
+	// 		createAITD1Mask();
+	// 	}
+	// 	cameraBackgroundChanged = true;
+
+	// 	pCamera = cameraDataTable[currentCamera];
+
+	// 	SetAngleCamera(pCamera->alpha,pCamera->beta,pCamera->gamma);
+
+	// #ifdef FITD_DEBUGGER
+	// 	if(debuggerVar_topCamera)
+	// 		SetAngleCamera(0x100,0,0);
+	// #endif
+
+	// 	x = (pCamera->x - roomDataTable[currentRoom].worldX)*10;
+	// 	y = (roomDataTable[currentRoom].worldY - pCamera->y)*10;
+	// 	z = (roomDataTable[currentRoom].worldZ - pCamera->z)*10;
+
+	// #ifdef FITD_DEBUGGER
+	// 	if(debuggerVar_topCamera)
+	// 	{
+	// 		if(currentCameraTargetActor != -1)
+	// 		{
+	// 			x = objectTable[currentCameraTargetActor].worldX + objectTable[currentCameraTargetActor].stepX;
+	// 			y = debufferVar_topCameraZoom;
+	// 			z = objectTable[currentCameraTargetActor].worldZ + objectTable[currentCameraTargetActor].stepZ;
+	// 		}
+	// 	}
+	// #endif
+	// 	SetPosCamera(x,y,z); // setup camera position
+
+	// 	setupCameraProjection(160,100,pCamera->focal1,pCamera->focal2,pCamera->focal3); // setup focale
+
+	// #ifdef FITD_DEBUGGER
+	// 	if(debuggerVar_topCamera)
+	// 		setupCameraProjection(160,100,1000,100,100); // setup focale
+	// #endif
+
+	// 	setupCameraSub1();
+	// 	updateAllActorAndObjects();
+	// 	createActorList();
+	// 	//  setupCameraSub3();
+	// 	setupCameraSub4();
+	// 	/*  setupCameraSub5();
+	// 	*/
+	// 	if(flagInitView==2)
+	// 	{
+	// 		flagRedraw = 2;
+	// 	}
+	// 	else
+	// 	{
+	// 		if(flagRedraw!=2)
+	// 		{
+	// 			flagRedraw = 1;
+	// 		}
+	// 	}
+
+	// 	flagInitView = 0;
+	// 	unfreezeTime();
 }
 
 } // namespace Fitd

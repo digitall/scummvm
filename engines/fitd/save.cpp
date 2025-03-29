@@ -1,0 +1,976 @@
+
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "fitd/save.h"
+#include "fitd/vars.h"
+
+namespace Fitd {
+unsigned int currentSaveEntrySize;
+
+// void *getSaveEntry(int index) {
+// 	currentSaveEntrySize = saveTable[index].size;
+
+// 	return (saveTable[index].ptr);
+// }
+
+// void loadInterpolatedValue(interpolatedValue *pRotateStruct, Common::File& f) {
+// 	assert(sizeof(pRotateStruct->oldAngle) == 2);
+// 	fread(&pRotateStruct->oldAngle, 2, 1, fHandle);
+
+// 	assert(sizeof(pRotateStruct->newAngle) == 2);
+// 	fread(&pRotateStruct->newAngle, 2, 1, fHandle);
+
+// 	assert(sizeof(pRotateStruct->param) == 2);
+// 	fread(&pRotateStruct->param, 2, 1, fHandle);
+
+// 	assert(sizeof(pRotateStruct->timeOfRotate) == 4);
+// 	fread(&pRotateStruct->timeOfRotate, 2, 1, fHandle);
+// }
+
+// void saveInterpolatedValue(interpolatedValue *pRotateStruct, FILE *fHandle) {
+// 	assert(sizeof(pRotateStruct->oldAngle) == 2);
+// 	fwrite(&pRotateStruct->oldAngle, 2, 1, fHandle);
+
+// 	assert(sizeof(pRotateStruct->newAngle) == 2);
+// 	fwrite(&pRotateStruct->newAngle, 2, 1, fHandle);
+
+// 	assert(sizeof(pRotateStruct->param) == 2);
+// 	fwrite(&pRotateStruct->param, 2, 1, fHandle);
+
+// 	assert(sizeof(pRotateStruct->timeOfRotate) == 4);
+// 	fwrite(&pRotateStruct->timeOfRotate, 2, 1, fHandle);
+// }
+
+// int loadSave(int saveNumber) {
+// 	char buffer[256];
+// 	FILE *fHandle;
+// 	unsigned int var28;
+// 	int var_E;
+// 	int var_16;
+// 	unsigned int offsetToVars;
+// 	u16 tempVarSize;
+// 	unsigned int offsetToActors;
+// 	int i;
+// 	int oldNumMaxObj;
+
+// 	sprintf(buffer, "SAVE%d.ITD", saveNumber);
+
+// 	fHandle = fopen(buffer, "rb");
+
+// 	if (!fHandle) {
+// 		return (0);
+// 	}
+
+// 	initEngine();
+// 	initVars();
+
+// 	fseek(fHandle, 8, SEEK_SET);
+
+// 	fread(&var28, 4, 1, fHandle);
+
+// 	var28 = ((var28 & 0xFF) << 24) | ((var28 & 0xFF00) << 8) | ((var28 & 0xFF0000) >> 8) | ((var28 & 0xFF000000) >> 24);
+
+// 	fseek(fHandle, var28, SEEK_SET);
+
+// 	assert(sizeof(currentRoom) == 2);
+// 	fread(&currentRoom, 2, 1, fHandle);
+
+// 	assert(sizeof(g_currentFloor) == 2);
+// 	fread(&g_currentFloor, 2, 1, fHandle);
+
+// 	assert(sizeof(currentCamera) == 2);
+// 	fread(&currentCamera, 2, 1, fHandle);
+
+// 	assert(sizeof(currentWorldTarget) == 2);
+// 	fread(&currentWorldTarget, 2, 1, fHandle);
+
+// 	assert(sizeof(currentCameraTargetActor) == 2);
+// 	fread(&currentCameraTargetActor, 2, 1, fHandle);
+
+// 	assert(sizeof(maxObjects) == 2);
+// 	fread(&maxObjects, 2, 1, fHandle);
+
+// 	if (g_gameId == AITD1) {
+// 		oldNumMaxObj = maxObjects;
+// 		maxObjects = 300; // fix for save engine..
+// 	}
+
+// 	for (i = 0; i < maxObjects; i++) {
+// 		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
+// 		fread(&ListWorldObjets[i].objIndex, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].body) == 2);
+// 		fread(&ListWorldObjets[i].body, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].flags) == 2);
+// 		fread(&ListWorldObjets[i].flags, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].typeZV) == 2);
+// 		fread(&ListWorldObjets[i].typeZV, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].foundBody) == 2);
+// 		fread(&ListWorldObjets[i].foundBody, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].foundName) == 2);
+// 		fread(&ListWorldObjets[i].foundName, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].flags2) == 2);
+// 		fread(&ListWorldObjets[i].flags2, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].foundLife) == 2);
+// 		fread(&ListWorldObjets[i].foundLife, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].x) == 2);
+// 		fread(&ListWorldObjets[i].x, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].y) == 2);
+// 		fread(&ListWorldObjets[i].y, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].z) == 2);
+// 		fread(&ListWorldObjets[i].z, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].alpha) == 2);
+// 		fread(&ListWorldObjets[i].alpha, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].beta) == 2);
+// 		fread(&ListWorldObjets[i].beta, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].gamma) == 2);
+// 		fread(&ListWorldObjets[i].gamma, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].stage) == 2);
+// 		fread(&ListWorldObjets[i].stage, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].room) == 2);
+// 		fread(&ListWorldObjets[i].room, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].lifeMode) == 2);
+// 		fread(&ListWorldObjets[i].lifeMode, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].life) == 2);
+// 		fread(&ListWorldObjets[i].life, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].floorLife) == 2);
+// 		fread(&ListWorldObjets[i].floorLife, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].anim) == 2);
+// 		fread(&ListWorldObjets[i].anim, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].frame) == 2);
+// 		fread(&ListWorldObjets[i].frame, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].animType) == 2);
+// 		fread(&ListWorldObjets[i].animType, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].animInfo) == 2);
+// 		fread(&ListWorldObjets[i].animInfo, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].trackMode) == 2);
+// 		fread(&ListWorldObjets[i].trackMode, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].trackNumber) == 2);
+// 		fread(&ListWorldObjets[i].trackNumber, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].positionInTrack) == 2);
+// 		fread(&ListWorldObjets[i].positionInTrack, 2, 1, fHandle);
+// 	}
+
+// 	if (g_gameId == AITD1) {
+// 		maxObjects = oldNumMaxObj;
+// 	}
+
+// 	if (g_gameId == AITD1) {
+// 		assert(CVars.size() == 45);
+// 	}
+
+// 	for (i = 0; i < CVars.size(); i++) {
+// 		assert(sizeof(CVars[i]) == 2);
+// 		fread(&CVars[i], 2, 1, fHandle);
+// 	}
+
+// 	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
+// 		assert(sizeof(inHandTable[inventoryId]) == 2);
+// 		fread(&inHandTable[inventoryId], 2, 1, fHandle);
+
+// 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
+// 		fread(&numObjInInventoryTable[inventoryId], 2, 1, fHandle);
+
+// 		if (g_gameId == AITD1) {
+// 			assert(INVENTORY_SIZE == 30);
+// 		}
+
+// 		for (i = 0; i < INVENTORY_SIZE; i++) {
+// 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
+// 			fread(&inventoryTable[inventoryId][i], 2, 1, fHandle);
+// 		}
+// 	}
+
+// 	assert(sizeof(statusScreenAllowed) == 2);
+// 	fread(&statusScreenAllowed, 2, 1, fHandle);
+
+// 	assert(sizeof(giveUp) == 2);
+// 	fread(&giveUp, 2, 1, fHandle);
+
+// 	assert(sizeof(lightOff) == 2);
+// 	fread(&lightOff, 2, 1, fHandle);
+
+// 	assert(sizeof(shakingAmplitude) == 2);
+// 	fread(&shakingAmplitude, 2, 1, fHandle);
+
+// 	assert(sizeof(shakeVar1) == 2);
+// 	fread(&shakeVar1, 2, 1, fHandle);
+
+// 	assert(sizeof(timer) == 4);
+// 	fread(&timer, 4, 1, fHandle);
+
+// 	assert(sizeof(timerFreeze1) == 4);
+// 	fread(&timerFreeze1, 4, 1, fHandle);
+
+// 	assert(sizeof(currentMusic) == 2);
+// 	fread(&currentMusic, 2, 1, fHandle);
+
+// 	// timerFreeze = 1;
+
+// 	var_E = currentCamera;
+
+// 	loadFloor(g_currentFloor);
+// 	currentCamera = -1;
+// 	loadRoom(currentRoom);
+// 	var_16 = currentMusic;
+// 	currentMusic = -1;
+// 	playMusic(var_16);
+
+// 	fseek(fHandle, 12, SEEK_SET);
+// 	fread(&offsetToVars, 4, 1, fHandle);
+// 	offsetToVars = ((offsetToVars & 0xFF) << 24) | ((offsetToVars & 0xFF00) << 8) | ((offsetToVars & 0xFF0000) >> 8) | ((offsetToVars & 0xFF000000) >> 24);
+// 	fseek(fHandle, offsetToVars, SEEK_SET);
+
+// 	fread(&tempVarSize, 2, 1, fHandle);
+// 	varSize = tempVarSize;
+
+// 	fread(vars, varSize, 1, fHandle);
+
+// 	if (g_gameId == AITD1) {
+// 		configureHqrHero(listBody, listBodySelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
+// 		configureHqrHero(listAnim, listAnimSelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
+// 	} else {
+// 		/*
+// 		configureHqrHero(listBody,0);
+// 		configureHqrHero(listAnim,0);
+// 		*/
+// 	}
+
+// 	fseek(fHandle, 16, SEEK_SET);
+// 	fread(&offsetToActors, 4, 1, fHandle);
+// 	offsetToVars = ((offsetToActors & 0xFF) << 24) | ((offsetToActors & 0xFF00) << 8) | ((offsetToActors & 0xFF0000) >> 8) | ((offsetToActors & 0xFF000000) >> 24);
+// 	fseek(fHandle, offsetToVars, SEEK_SET);
+
+// 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+// 		assert(sizeof(objectTable[i].indexInWorld) == 2);
+// 		fread(&objectTable[i].indexInWorld, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].bodyNum) == 2);
+// 		fread(&objectTable[i].bodyNum, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i]._flags) == 2);
+// 		fread(&objectTable[i]._flags, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].dynFlags) == 2);
+// 		fread(&objectTable[i].dynFlags, 2, 1, fHandle);
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVX1) == 2);
+// 		fread(&objectTable[i].zv.ZVX1, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVX1 = (s16)objectTable[i].zv.ZVX1;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVX2) == 2);
+// 		fread(&objectTable[i].zv.ZVX2, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVX2 = (s16)objectTable[i].zv.ZVX2;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVY1) == 2);
+// 		fread(&objectTable[i].zv.ZVY1, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVY1 = (s16)objectTable[i].zv.ZVY1;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVY2) == 2);
+// 		fread(&objectTable[i].zv.ZVY2, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVY2 = (s16)objectTable[i].zv.ZVY2;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVZ1) == 2);
+// 		fread(&objectTable[i].zv.ZVZ1, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVZ1 = (s16)objectTable[i].zv.ZVZ1;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVZ2) == 2);
+// 		fread(&objectTable[i].zv.ZVZ2, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVZ2 = (s16)objectTable[i].zv.ZVZ2;
+
+// 		assert(sizeof(objectTable[i].screenXMin) == 2);
+// 		fread(&objectTable[i].screenXMin, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenYMin) == 2);
+// 		fread(&objectTable[i].screenYMin, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenXMax) == 2);
+// 		fread(&objectTable[i].screenXMax, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenYMax) == 2);
+// 		fread(&objectTable[i].screenYMax, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].roomX) == 2);
+// 		fread(&objectTable[i].roomX, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].roomY) == 2);
+// 		fread(&objectTable[i].roomY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].roomZ) == 2);
+// 		fread(&objectTable[i].roomZ, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].worldX) == 2);
+// 		fread(&objectTable[i].worldX, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].worldY) == 2);
+// 		fread(&objectTable[i].worldY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].worldZ) == 2);
+// 		fread(&objectTable[i].worldZ, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].alpha) == 2);
+// 		fread(&objectTable[i].alpha, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].beta) == 2);
+// 		fread(&objectTable[i].beta, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].gamma) == 2);
+// 		fread(&objectTable[i].gamma, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].room) == 2);
+// 		fread(&objectTable[i].room, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stage) == 2);
+// 		fread(&objectTable[i].stage, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].lifeMode) == 2);
+// 		fread(&objectTable[i].lifeMode, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].life) == 2);
+// 		fread(&objectTable[i].life, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].CHRONO) == 4);
+// 		fread(&objectTable[i].CHRONO, 4, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].ROOM_CHRONO) == 4);
+// 		fread(&objectTable[i].ROOM_CHRONO, 4, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].ANIM) == 2);
+// 		fread(&objectTable[i].ANIM, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animType) == 2);
+// 		fread(&objectTable[i].animType, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animInfo) == 2);
+// 		fread(&objectTable[i].animInfo, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].newAnim) == 2);
+// 		fread(&objectTable[i].newAnim, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].newAnimType) == 2);
+// 		fread(&objectTable[i].newAnimType, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].newAnimInfo) == 2);
+// 		fread(&objectTable[i].newAnimInfo, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].FRAME) == 2);
+// 		fread(&objectTable[i].FRAME, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].numOfFrames) == 2);
+// 		fread(&objectTable[i].numOfFrames, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].END_FRAME) == 2);
+// 		fread(&objectTable[i].END_FRAME, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].END_ANIM) == 2);
+// 		fread(&objectTable[i].END_ANIM, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].trackMode) == 2);
+// 		fread(&objectTable[i].trackMode, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].trackNumber) == 2);
+// 		fread(&objectTable[i].trackNumber, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].MARK) == 2);
+// 		fread(&objectTable[i].MARK, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].positionInTrack) == 2);
+// 		fread(&objectTable[i].positionInTrack, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stepX) == 2);
+// 		fread(&objectTable[i].stepX, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stepY) == 2);
+// 		fread(&objectTable[i].stepY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stepZ) == 2); // 45
+// 		fread(&objectTable[i].stepZ, 2, 1, fHandle);
+
+// 		loadInterpolatedValue(&objectTable[i].YHandler, fHandle);
+
+// 		assert(sizeof(objectTable[i].falling) == 2);
+// 		fread(&objectTable[i].falling, 2, 1, fHandle);
+
+// 		loadInterpolatedValue(&objectTable[i].rotate, fHandle);
+
+// 		assert(sizeof(objectTable[i].direction) == 2);
+// 		fread(&objectTable[i].direction, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].speed) == 2);
+// 		fread(&objectTable[i].speed, 2, 1, fHandle);
+
+// 		loadInterpolatedValue(&objectTable[i].speedChange, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL[0]) == 2);
+// 		fread(&objectTable[i].COL[0], 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL[1]) == 2);
+// 		fread(&objectTable[i].COL[1], 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL[2]) == 2);
+// 		fread(&objectTable[i].COL[2], 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL_BY) == 2);
+// 		fread(&objectTable[i].COL_BY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HARD_DEC) == 2);
+// 		fread(&objectTable[i].HARD_DEC, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HARD_COL) == 2);
+// 		fread(&objectTable[i].HARD_COL, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HIT) == 2);
+// 		fread(&objectTable[i].HIT, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HIT_BY) == 2);
+// 		fread(&objectTable[i].HIT_BY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionType) == 2);
+// 		fread(&objectTable[i].animActionType, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionANIM) == 2);
+// 		fread(&objectTable[i].animActionANIM, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionFRAME) == 2);
+// 		fread(&objectTable[i].animActionFRAME, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionParam) == 2);
+// 		fread(&objectTable[i].animActionParam, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hitForce) == 2);
+// 		fread(&objectTable[i].hitForce, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPointID) == 2);
+// 		fread(&objectTable[i].hotPointID, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPoint.x) == 2);
+// 		fread(&objectTable[i].hotPoint.x, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPoint.y) == 2);
+// 		fread(&objectTable[i].hotPoint.x, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPoint.z) == 2);
+// 		fread(&objectTable[i].hotPoint.x, 2, 1, fHandle);
+// 	}
+// 	fclose(fHandle);
+
+// 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+// 		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
+// 			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
+
+// 			if (objectTable[i].ANIM != -1) {
+// 				char *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
+// 				SetAnimObjet(objectTable[i].FRAME, animPtr, bodyPtr);
+// 			}
+// 		}
+// 	}
+
+// 	startGameVar1 = var_E;
+
+// 	return (1);
+// }
+
+int restoreSave(int arg0, int arg1) {
+	assert(0);
+	// 	int selectedSave;
+	// 	//  restoreSaveVar1 = arg0;
+
+	// 	if (arg1 == 0) {
+	// 		flushScreen();
+	// 		osystem_flip(NULL);
+	// 		FadeInPhys(0x40, 0);
+	// 	}
+
+	// 	selectedSave = parseAllSaves(0);
+
+	// 	if (arg1 == 0) {
+	// 		//  fadeOut(8,0);
+	// 	}
+
+	// 	if (selectedSave == -1) {
+	// 		return (0);
+	// 	}
+
+	// 	if (arg1 == 0) {
+	// 		// freeScene();
+	// 	}
+
+	// 	return (loadSave(selectedSave));
+}
+
+// int makeSaveFile(int entry) {
+// 	FILE *fHandle;
+// 	char buffer[100];
+// 	int i;
+// 	unsigned long int var28 = 0;
+// 	int temp;
+// 	int oldNumMaxObj;
+
+// 	if (g_gameId == AITD1) {
+// 		for (i = 0; i < NUM_MAX_OBJECT; i++) {
+// 			if (objectTable[i].indexInWorld == -1)
+// 				;
+
+// 			if (objectTable[i].ANIM == 4) {
+// 				CVars[getCVarsIdx(FOG_FLAG)] = 0;
+// 				HQ_Free_Malloc(HQ_Memory, objectTable[i].FRAME);
+// 			}
+// 		}
+// 	}
+
+// 	sprintf(buffer, "SAVE%d.ITD", entry);
+
+// 	fHandle = fopen(buffer, "wb+");
+
+// 	if (!fHandle)
+// 		return 0;
+
+// 	fwrite(&var28, 4, 1, fHandle);
+// 	fwrite(&var28, 4, 1, fHandle);
+
+// 	var28 = ftell(fHandle) + 12;
+// 	var28 = ((var28 & 0xFF) << 24) | ((var28 & 0xFF00) << 8) | ((var28 & 0xFF0000) >> 8) | ((var28 & 0xFF000000) >> 24);
+
+// 	fwrite(&var28, 4, 1, fHandle);
+
+// 	fwrite(&var28, 4, 1, fHandle);
+// 	fwrite(&var28, 4, 1, fHandle);
+
+// 	assert(sizeof(currentRoom) == 2);
+// 	fwrite(&currentRoom, 2, 1, fHandle);
+
+// 	assert(sizeof(g_currentFloor) == 2);
+// 	fwrite(&g_currentFloor, 2, 1, fHandle);
+
+// 	assert(sizeof(currentCamera) == 2);
+// 	fwrite(&currentCamera, 2, 1, fHandle);
+
+// 	assert(sizeof(currentWorldTarget) == 2);
+// 	fwrite(&currentWorldTarget, 2, 1, fHandle);
+
+// 	assert(sizeof(currentCameraTargetActor) == 2);
+// 	fwrite(&currentCameraTargetActor, 2, 1, fHandle);
+
+// 	assert(sizeof(maxObjects) == 2);
+// 	fwrite(&maxObjects, 2, 1, fHandle);
+
+// 	if (g_gameId == AITD1) {
+// 		oldNumMaxObj = maxObjects;
+// 		maxObjects = 300; // fix for save engine..
+// 	}
+
+// 	for (i = 0; i < maxObjects; i++) {
+// 		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
+// 		fwrite(&ListWorldObjets[i].objIndex, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].body) == 2);
+// 		fwrite(&ListWorldObjets[i].body, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].flags) == 2);
+// 		fwrite(&ListWorldObjets[i].flags, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].typeZV) == 2);
+// 		fwrite(&ListWorldObjets[i].typeZV, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].foundBody) == 2);
+// 		fwrite(&ListWorldObjets[i].foundBody, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].foundName) == 2);
+// 		fwrite(&ListWorldObjets[i].foundName, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].flags2) == 2);
+// 		fwrite(&ListWorldObjets[i].flags2, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].foundLife) == 2);
+// 		fwrite(&ListWorldObjets[i].foundLife, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].x) == 2);
+// 		fwrite(&ListWorldObjets[i].x, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].y) == 2);
+// 		fwrite(&ListWorldObjets[i].y, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].z) == 2);
+// 		fwrite(&ListWorldObjets[i].z, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].alpha) == 2);
+// 		fwrite(&ListWorldObjets[i].alpha, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].beta) == 2);
+// 		fwrite(&ListWorldObjets[i].beta, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].gamma) == 2);
+// 		fwrite(&ListWorldObjets[i].gamma, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].stage) == 2);
+// 		fwrite(&ListWorldObjets[i].stage, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].room) == 2);
+// 		fwrite(&ListWorldObjets[i].room, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].lifeMode) == 2);
+// 		fwrite(&ListWorldObjets[i].lifeMode, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].life) == 2);
+// 		fwrite(&ListWorldObjets[i].life, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].floorLife) == 2);
+// 		fwrite(&ListWorldObjets[i].floorLife, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].anim) == 2);
+// 		fwrite(&ListWorldObjets[i].anim, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].frame) == 2);
+// 		fwrite(&ListWorldObjets[i].frame, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].animType) == 2);
+// 		fwrite(&ListWorldObjets[i].animType, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].animInfo) == 2);
+// 		fwrite(&ListWorldObjets[i].animInfo, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].trackMode) == 2);
+// 		fwrite(&ListWorldObjets[i].trackMode, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].trackNumber) == 2);
+// 		fwrite(&ListWorldObjets[i].trackNumber, 2, 1, fHandle);
+
+// 		assert(sizeof(ListWorldObjets[i].positionInTrack) == 2);
+// 		fwrite(&ListWorldObjets[i].positionInTrack, 2, 1, fHandle);
+// 	}
+
+// 	if (g_gameId == AITD1) {
+// 		maxObjects = oldNumMaxObj;
+// 	}
+
+// 	if (g_gameId == AITD1) {
+// 		assert(CVars.size() == 45);
+// 	}
+
+// 	for (i = 0; i < CVars.size(); i++) {
+// 		assert(sizeof(CVars[i]) == 2);
+// 		fwrite(&CVars[i], 2, 1, fHandle);
+// 	}
+
+// 	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
+// 		assert(sizeof(inHandTable[inventoryId]) == 2);
+// 		fwrite(&inHandTable[inventoryId], 2, 1, fHandle);
+
+// 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
+// 		fwrite(&numObjInInventoryTable[inventoryId], 2, 1, fHandle);
+
+// 		if (g_gameId == AITD1) {
+// 			assert(INVENTORY_SIZE == 30);
+// 		}
+
+// 		for (i = 0; i < INVENTORY_SIZE; i++) {
+// 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
+// 			fwrite(&inventoryTable[inventoryId][i], 2, 1, fHandle);
+// 		}
+// 	}
+
+// 	assert(sizeof(statusScreenAllowed) == 2);
+// 	fwrite(&statusScreenAllowed, 2, 1, fHandle);
+
+// 	assert(sizeof(giveUp) == 2);
+// 	fwrite(&giveUp, 2, 1, fHandle);
+
+// 	assert(sizeof(lightOff) == 2);
+// 	fwrite(&lightOff, 2, 1, fHandle);
+
+// 	assert(sizeof(shakingAmplitude) == 2);
+// 	fwrite(&shakingAmplitude, 2, 1, fHandle);
+
+// 	assert(sizeof(shakeVar1) == 2);
+// 	fwrite(&shakeVar1, 2, 1, fHandle);
+
+// 	assert(sizeof(timer) == 4);
+// 	fwrite(&timer, 4, 1, fHandle);
+
+// 	assert(sizeof(timerFreeze1) == 4);
+// 	fwrite(&timerFreeze1, 4, 1, fHandle);
+
+// 	assert(sizeof(currentMusic) == 2);
+// 	fwrite(&currentMusic, 2, 1, fHandle);
+
+// 	// timerFreeze = 1;
+
+// 	var28 = ftell(fHandle);
+// 	temp = var28;
+// 	fseek(fHandle, 12, SEEK_SET);
+// 	var28 = ((var28 & 0xFF) << 24) | ((var28 & 0xFF00) << 8) | ((var28 & 0xFF0000) >> 8) | ((var28 & 0xFF000000) >> 24);
+// 	fwrite(&var28, 4, 1, fHandle);
+// 	fseek(fHandle, temp, SEEK_SET);
+
+// 	fwrite(&varSize, 2, 1, fHandle);
+// 	fwrite(vars, varSize, 1, fHandle);
+
+// 	var28 = ftell(fHandle);
+// 	temp = var28;
+// 	fseek(fHandle, 16, SEEK_SET);
+// 	var28 = ((var28 & 0xFF) << 24) | ((var28 & 0xFF00) << 8) | ((var28 & 0xFF0000) >> 8) | ((var28 & 0xFF000000) >> 24);
+// 	fwrite(&var28, 4, 1, fHandle);
+// 	fseek(fHandle, temp, SEEK_SET);
+
+// 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+// 		assert(sizeof(objectTable[i].indexInWorld) == 2);
+// 		fwrite(&objectTable[i].indexInWorld, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].bodyNum) == 2);
+// 		fwrite(&objectTable[i].bodyNum, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i]._flags) == 2);
+// 		fwrite(&objectTable[i]._flags, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].dynFlags) == 2);
+// 		fwrite(&objectTable[i].dynFlags, 2, 1, fHandle);
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVX1) == 2);
+// 		fwrite(&objectTable[i].zv.ZVX1, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVX1 = (s16)objectTable[i].zv.ZVX1;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVX2) == 2);
+// 		fwrite(&objectTable[i].zv.ZVX2, 2, 1, fHandle);
+// 		objectTable[i].zv.ZVX2 = (s16)objectTable[i].zv.ZVX2;
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVY1) == 2);
+// 		fwrite(&objectTable[i].zv.ZVY1, 2, 1, fHandle);
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVY2) == 2);
+// 		fwrite(&objectTable[i].zv.ZVY2, 2, 1, fHandle);
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVZ1) == 2);
+// 		fwrite(&objectTable[i].zv.ZVZ1, 2, 1, fHandle);
+
+// 		//    assert(sizeof(actorTable[i].zv.ZVZ2) == 2);
+// 		fwrite(&objectTable[i].zv.ZVZ2, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenXMin) == 2);
+// 		fwrite(&objectTable[i].screenXMin, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenYMin) == 2);
+// 		fwrite(&objectTable[i].screenYMin, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenXMax) == 2);
+// 		fwrite(&objectTable[i].screenXMax, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].screenYMax) == 2);
+// 		fwrite(&objectTable[i].screenYMax, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].roomX) == 2);
+// 		fwrite(&objectTable[i].roomX, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].roomY) == 2);
+// 		fwrite(&objectTable[i].roomY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].roomZ) == 2);
+// 		fwrite(&objectTable[i].roomZ, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].worldX) == 2);
+// 		fwrite(&objectTable[i].worldX, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].worldY) == 2);
+// 		fwrite(&objectTable[i].worldY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].worldZ) == 2);
+// 		fwrite(&objectTable[i].worldZ, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].alpha) == 2);
+// 		fwrite(&objectTable[i].alpha, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].beta) == 2);
+// 		fwrite(&objectTable[i].beta, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].gamma) == 2);
+// 		fwrite(&objectTable[i].gamma, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].room) == 2);
+// 		fwrite(&objectTable[i].room, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stage) == 2);
+// 		fwrite(&objectTable[i].stage, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].lifeMode) == 2);
+// 		fwrite(&objectTable[i].lifeMode, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].life) == 2);
+// 		fwrite(&objectTable[i].life, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].CHRONO) == 4);
+// 		fwrite(&objectTable[i].CHRONO, 4, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].ROOM_CHRONO) == 4);
+// 		fwrite(&objectTable[i].ROOM_CHRONO, 4, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].ANIM) == 2);
+// 		fwrite(&objectTable[i].ANIM, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animType) == 2);
+// 		fwrite(&objectTable[i].animType, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animInfo) == 2);
+// 		fwrite(&objectTable[i].animInfo, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].newAnim) == 2);
+// 		fwrite(&objectTable[i].newAnim, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].newAnimType) == 2);
+// 		fwrite(&objectTable[i].newAnimType, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].newAnimInfo) == 2);
+// 		fwrite(&objectTable[i].newAnimInfo, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].FRAME) == 2);
+// 		fwrite(&objectTable[i].FRAME, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].numOfFrames) == 2);
+// 		fwrite(&objectTable[i].numOfFrames, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].END_FRAME) == 2);
+// 		fwrite(&objectTable[i].END_FRAME, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].END_ANIM) == 2);
+// 		fwrite(&objectTable[i].END_ANIM, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].trackMode) == 2);
+// 		fwrite(&objectTable[i].trackMode, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].trackNumber) == 2);
+// 		fwrite(&objectTable[i].trackNumber, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].MARK) == 2);
+// 		fwrite(&objectTable[i].MARK, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].positionInTrack) == 2);
+// 		fwrite(&objectTable[i].positionInTrack, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stepX) == 2);
+// 		fwrite(&objectTable[i].stepX, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stepY) == 2);
+// 		fwrite(&objectTable[i].stepY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].stepZ) == 2); // 45
+// 		fwrite(&objectTable[i].stepZ, 2, 1, fHandle);
+
+// 		saveInterpolatedValue(&objectTable[i].YHandler, fHandle);
+
+// 		assert(sizeof(objectTable[i].falling) == 2);
+// 		fwrite(&objectTable[i].falling, 2, 1, fHandle);
+
+// 		saveInterpolatedValue(&objectTable[i].rotate, fHandle);
+
+// 		assert(sizeof(objectTable[i].direction) == 2);
+// 		fwrite(&objectTable[i].direction, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].speed) == 2);
+// 		fwrite(&objectTable[i].speed, 2, 1, fHandle);
+
+// 		saveInterpolatedValue(&objectTable[i].speedChange, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL[0]) == 2);
+// 		fwrite(&objectTable[i].COL[0], 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL[1]) == 2);
+// 		fwrite(&objectTable[i].COL[1], 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL[2]) == 2);
+// 		fwrite(&objectTable[i].COL[2], 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].COL_BY) == 2);
+// 		fwrite(&objectTable[i].COL_BY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HARD_DEC) == 2);
+// 		fwrite(&objectTable[i].HARD_DEC, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HARD_COL) == 2);
+// 		fwrite(&objectTable[i].HARD_COL, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HIT) == 2);
+// 		fwrite(&objectTable[i].HIT, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].HIT_BY) == 2);
+// 		fwrite(&objectTable[i].HIT_BY, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionType) == 2);
+// 		fwrite(&objectTable[i].animActionType, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionANIM) == 2);
+// 		fwrite(&objectTable[i].animActionANIM, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionFRAME) == 2);
+// 		fwrite(&objectTable[i].animActionFRAME, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].animActionParam) == 2);
+// 		fwrite(&objectTable[i].animActionParam, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hitForce) == 2);
+// 		fwrite(&objectTable[i].hitForce, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPointID) == 2);
+// 		fwrite(&objectTable[i].hotPointID, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPoint.x) == 2);
+// 		fwrite(&objectTable[i].hotPoint.x, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPoint.y) == 2);
+// 		fwrite(&objectTable[i].hotPoint.x, 2, 1, fHandle);
+
+// 		assert(sizeof(objectTable[i].hotPoint.z) == 2);
+// 		fwrite(&objectTable[i].hotPoint.x, 2, 1, fHandle);
+// 	}
+
+// 	fclose(fHandle);
+
+// 	return 1;
+// }
+
+int makeSave(int arg0) {
+	assert(0);
+	// return (makeSaveFile(0));
+}
+
+} // namespace Fitd

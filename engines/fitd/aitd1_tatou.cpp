@@ -24,6 +24,7 @@
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
+#include "fitd/input.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "common/scummsys.h"
@@ -39,14 +40,15 @@ static void clearScreenTatou(void) {
 
 uint32 lastFrameTime = 0;
 
-static void process_events() {
+void process_events() {
 	osystem_flushPendingPrimitives();
 	g_system->updateScreen();
-	gfx_draw();
+	osystem_drawBackground();
 
-	Common::Event e;
-	while (g_system->getEventManager()->pollEvent(e)) {
-	}
+	// Common::Event e;
+	// while (g_system->getEventManager()->pollEvent(e)) {
+	// }
+	readKeyboard();
 	timeGlobal = g_engine->getTotalPlayTime();
 	timer = timeGlobal;
 }

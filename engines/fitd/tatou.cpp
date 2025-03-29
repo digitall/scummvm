@@ -20,6 +20,7 @@
  */
 
 #include "fitd/fitd.h"
+#include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/tatou.h"
 #include "fitd/hqr.h"
@@ -43,24 +44,40 @@ static void computePalette(byte *inPalette, byte *outPalette, int coef) {
 
 void fadeInPhys(int step, int start) {
 	byte localPalette[0x300];
-	Common::Event e;
 
-	Graphics::FrameLimiter limiter(g_system, 25);
-	for (int i = 0; i < 256; i += step) {
-		while (g_system->getEventManager()->pollEvent(e)) {
+	freezeTime();
+
+	if (fadeState == 2) // only used for the ending ?
+	{
+	} else {
+		for (int i = 0; i < 256; i += step) {
+			process_events();
+			computePalette(currentGamePalette, localPalette, i);
+			gfx_setPalette(localPalette);
+			gfx_refreshFrontTextureBuffer();
+			osystem_drawBackground();
 		}
+	}
 
+	fadeState = 1;
+
+	unfreezeTime();
+}
+
+void fadeOutPhys(int var1, int var2) {
+	byte localPalette[0x300];
+
+	freezeTime();
+
+	for (int i = 256; i >= 0; i -= var1) {
+		process_events();
 		computePalette(currentGamePalette, localPalette, i);
 		gfx_setPalette(localPalette);
 		gfx_refreshFrontTextureBuffer();
-		gfx_draw();
-		g_system->updateScreen();
-
-		// Delay for a bit. All events loops should have a delay
-		// to prevent the system being unduly loaded
-		limiter.delayBeforeSwap();
-		limiter.startFrame();
+		osystem_drawBackground();
 	}
+
+	unfreezeTime();
 }
 
 void playSound(int num) {

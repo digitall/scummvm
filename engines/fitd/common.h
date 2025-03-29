@@ -63,12 +63,18 @@ enum enumCVars {
 	UNKNOWN_CVAR // for table padding, shouldn't be called !
 };
 
+#define ANIM_ONCE             0
+#define ANIM_REPEAT           1
+#define ANIM_UNINTERRUPTABLE  2
+#define ANIM_RESET            4
+
 typedef enum enumCVars enumCVars;
 
 extern int AITD1KnownCVars[];
 extern int* currentCVarTable;
 
 int getCVarsIdx(int);
+int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int shadow);
 
 //////////////////////
 
@@ -90,6 +96,18 @@ int getCVarsIdx(int);
 #define DEAD_PERSO 15
 
 //////////////////
+
+//////////////// GAME SPECIFIC DEFINES
+
+#define NUM_MAX_CAMERA_IN_ROOM 20
+//#define NUM_MAX_OBJ         300
+#define NUM_MAX_OBJECT       50
+#define NUM_MAX_TEXT        40
+#define NUM_MAX_MESSAGE     5
+
+
+// 250
+#define NUM_MAX_TEXT_ENTRY  1000
 
 // Endian safe read functions
 inline uint16 READ_LE_U16(const void *p) {
@@ -113,6 +131,20 @@ inline uint8 READ_LE_U8(void *ptr) {
 inline int8 READ_LE_S8(void *ptr) {
 	return *(int8 *)ptr;
 }
+
+void startGame(int startupEtage, int startupRoom, int allowSystemMenu);
+void freeAll(void);
+void addActorToBgInscrust(int actorIdx);
+void removeFromBGIncrust(int actorIdx);
+
+struct ZVStruct;
+void copyZv(ZVStruct *source, ZVStruct *dest);
+void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom);
+int checkZvCollision(ZVStruct* zvPtr1,ZVStruct* zvPtr2);
+int checkObjectCollisions(int actorIdx, ZVStruct* zvPtr);
+void walkStep(int angle1, int angle2, int angle3);
+void menuWaitVSync();
+void executeFoundLife(int objIdx);
 
 } // namespace Fitd
 

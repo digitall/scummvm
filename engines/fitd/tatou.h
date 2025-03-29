@@ -27,10 +27,12 @@ namespace Fitd {
 int make3dTatou(void);
 void startChrono(unsigned int* chrono);
 int evalChrono(unsigned int* chrono);
+void process_events(void);
 void paletteFill(void* palette, byte r, byte g, byte b);
 void copyPalette(byte* source, byte* dest);
 void fastCopyScreen(void* source, void* dest);
 void fadeInPhys(int step, int start);
+void fadeOutPhys(int var1, int var2);
 void playSound(int num);
 
 }

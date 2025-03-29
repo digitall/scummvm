@@ -19,8 +19,9 @@
  *
  */
 
- namespace Fitd {
+namespace Fitd {
 
-char* checkLoadMallocPak(const char* name, int index);
+char *loadFromItd(const char *name);
+char *checkLoadMallocPak(const char *name, int index);
 
 } // namespace Fitd

@@ -19,21 +19,11 @@
  *
  */
 
+ #ifndef FITD_INPUT_H
+ #define FITD_INPUT_H
+
 namespace Fitd {
+void readKeyboard(void);
+}
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
-
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
-
-struct sAnimation;
-sAnimation* getAnimationFromPtr(void* ptr);
-
-} // namespace Fitd
+#endif
