@@ -48,7 +48,7 @@ char *loadPak(const char *fileName, int index) {
 	f.readUint32LE();
 	uint32 fileOffset = f.readUint32LE();
 	uint32 numFiles = (fileOffset / 4) - 2;
-	assert(index < numFiles);
+	assert(index <= numFiles);
 	uint32 idOffset = (index + 1) * 4;
 	f.seek(idOffset, SEEK_SET);
 	fileOffset = f.readUint32LE();

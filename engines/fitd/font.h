@@ -19,21 +19,21 @@
  *
  */
 
+#ifndef _FITD_FONT_H_
+#define _FITD_FONT_H_
+
+#include "common/scummsys.h"
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
-
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
-
-struct sAnimation;
-sAnimation* getAnimationFromPtr(void* ptr);
+extern int fontHeight;
+void extSetFont(char *fontData, int color);
+void setFontSpace(int interWordSpace, int interLetterSpace);
+int extGetSizeFont(char *string);
+void renderText(int x, int y, char *surface, const char *string);
+void selectedMessage(int x, int y, int index, int color1, int color2);
+void simpleMessage(int x, int y, int index, int color);
 
 } // namespace Fitd
+
+#endif

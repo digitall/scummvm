@@ -19,21 +19,27 @@
  *
  */
 
+#ifndef FITD_ANIM_H
+#define FITD_ANIM_H
+
+#define INFO_TRI 1
+#define INFO_ANIM 2
+#define INFO_TORTUE 4
+#define INFO_OPTIMISE 8
+
+#include "common/scummsys.h"
+#include "common/array.h"
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
+int initAnim(int animNum,int animType, int animInfo);
+int sSetAnimObjet(int frame, char* anim, char* body);
+int16 setInterAnimObjet(int frame, char* animPtr, char* bodyPtr);
+int16 getNbFramesAnim(char* animPtr);
+void initBufferAnim(Common::Array<int16>& animBuffer, char* bodyPtr);
+void updateAnimation(void);
+void initCopyBox(char* var0, char* var1);
 
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
+}
 
-struct sAnimation;
-sAnimation* getAnimationFromPtr(void* ptr);
-
-} // namespace Fitd
+#endif

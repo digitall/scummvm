@@ -47,7 +47,7 @@ typedef struct point3dStruct point3dStruct;
 struct textEntryStruct
 {
     int16 index;
-    uint8* textPtr;
+    char* textPtr;
     int16 width;
 };
 
@@ -71,7 +71,7 @@ typedef struct saveEntry saveEntry;
 
 struct regularTextEntryStruct
 {
-    uint8* textPtr;
+    char* textPtr;
     int16 width;
 };
 
@@ -291,7 +291,7 @@ extern Common::Array<Common::Array<int16>> BufferAnim;
 
 extern char* logicalScreen;
 
-extern int screenBufferSize;
+// extern int screenBufferSize;
 extern int unkScreenVar2;
 
 extern Common::Array<int16> CVars;
@@ -317,7 +317,7 @@ extern int WindowX2;
 extern int WindowY2;
 
 extern textEntryStruct* tabTextes;
-extern uint8* systemTextes;
+extern char* systemTextes;
 
 extern "C" {
     extern char JoyD;
@@ -328,8 +328,10 @@ extern char localKey;
 extern char localJoyD;
 extern char localClick;
 
-extern char languageNameString[];
-extern const Common::Array<Common::String> languageNameTable;
+#define LANGUAGE_NAME_SIZE 5
+
+extern const char* languageNameString;
+extern const char* languageNameTable[];
 
 extern regularTextEntryStruct textTable[40];
 

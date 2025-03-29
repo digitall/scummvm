@@ -19,21 +19,59 @@
  *
  */
 
+#include "fitd/fitd.h"
+#include "fitd/input.h"
+#include "fitd/vars.h"
+#include "common/events.h"
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
+void handleKeyDown(Common::Event &event) {
+	switch (event.kbd.keycode) {
+	case Common::KEYCODE_RETURN:
+		key = 0x1C;
+		break;
+	case Common::KEYCODE_ESCAPE:
+		key = 0x1B;
+		break;
+	case Common::KEYCODE_UP:
+		JoyD |= 1;
+		break;
 
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
+	case Common::KEYCODE_DOWN:
+		JoyD |= 2;
+		break;
 
-struct sAnimation;
-sAnimation* getAnimationFromPtr(void* ptr);
+	case Common::KEYCODE_RIGHT:
+		JoyD |= 8;
+		break;
 
+	case Common::KEYCODE_LEFT:
+		JoyD |= 4;
+		break;
+	case Common::KEYCODE_SPACE:
+		Click = 1;
+		break;
+	}
+}
+
+void readKeyboard(void) {
+	JoyD = 0;
+	Click = 0;
+	key = 0;
+
+	if (g_engine->shouldQuit()) {
+		return;
+	}
+
+	Common::Event event;
+	while (g_system->getEventManager()->pollEvent(event)) {
+
+		switch (event.type) {
+		case Common::EventType::EVENT_KEYDOWN:
+			handleKeyDown(event);
+			break;
+		}
+	}
+}
 } // namespace Fitd

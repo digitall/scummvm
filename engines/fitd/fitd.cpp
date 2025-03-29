@@ -23,7 +23,9 @@
 #include "fitd/common.h"
 #include "fitd/console.h"
 #include "fitd/detection.h"
+#include "fitd/file_access.h"
 #include "fitd/fitd.h"
+#include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/pak.h"
@@ -89,7 +91,7 @@ static void loadPalette(void) {
 	// to finish
 }
 
-int* currentCVarTable = NULL;
+int *currentCVarTable = NULL;
 int getCVarsIdx(enumCVars searchedType) {
 	// TODO: optimize by reversing the table....
 	for (int i = 0; i < CVars.size(); i++) {
@@ -109,6 +111,105 @@ int getCVarsIdx(int searchedType) {
 	return getCVarsIdx((enumCVars)searchedType);
 }
 
+static void setupScreen(void) {
+	logicalScreen = (char *)malloc(64800);
+
+	// screenBufferSize = 64800;
+
+	// unkScreenVar2 = 3;
+
+	// TODO: remain of screen init
+}
+
+void allocTextes(void) {
+	int currentIndex;
+	char *currentPosInTextes;
+	int textCounter;
+	int stringIndex;
+	char *stringPtr;
+	int textLength;
+
+	tabTextes = (textEntryStruct *)malloc(NUM_MAX_TEXT_ENTRY * sizeof(textEntryStruct)); // 2000 = 250 * 8
+
+	assert(tabTextes);
+
+	if (!tabTextes) {
+		error("TabTextes");
+	}
+
+	// setup languageNameString
+	// if(g_gameId == AITD3)
+	// {
+	// 	strcpy(languageNameString,"TEXTES");
+	// }
+	// else
+	{
+		for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
+			Common::File f;
+			if (f.exists(languageNameTable[i])) {
+				languageNameString = languageNameTable[i];
+				break;
+			}
+		}
+	}
+
+	if (!languageNameString) {
+		error("Unable to detect language file..\n");
+		assert(0);
+	}
+
+	systemTextes = (char *)checkLoadMallocPak(languageNameString, 0); // todo: use real language name
+	textLength = getPakSize(languageNameString, 0);
+
+	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
+		tabTextes[currentIndex].index = -1;
+		tabTextes[currentIndex].textPtr = NULL;
+		tabTextes[currentIndex].width = 0;
+	}
+
+	currentPosInTextes = systemTextes;
+
+	textCounter = 0;
+
+	while (currentPosInTextes < systemTextes + textLength) {
+		currentIndex = *(currentPosInTextes++);
+
+		if (currentIndex == 26)
+			break;
+
+		if (currentIndex == '@') // start of string marker
+		{
+			stringIndex = 0;
+
+			while ((currentIndex = *(currentPosInTextes++)) >= '0' && currentIndex <= '9') // parse string number
+			{
+				stringIndex = stringIndex * 10 + currentIndex - 48;
+			}
+
+			if (currentIndex == ':') // start of string
+			{
+				stringPtr = currentPosInTextes;
+
+				do {
+					currentPosInTextes++;
+				} while ((unsigned char)*(currentPosInTextes - 1) >= ' '); // detect the end of the string
+
+				*(currentPosInTextes - 1) = 0; // add the end of string
+
+				tabTextes[textCounter].index = stringIndex;
+				tabTextes[textCounter].textPtr = stringPtr;
+				tabTextes[textCounter].width = extGetSizeFont(stringPtr);
+
+				textCounter++;
+			}
+
+			if (currentIndex == 26) {
+				return;
+			}
+		}
+	}
+}
+
 Common::Error FitdEngine::run() {
 	initGraphics3d(320 * 4, 200 * 4);
 
@@ -125,6 +226,8 @@ Common::Error FitdEngine::run() {
 	if (saveSlot != -1)
 		(void)loadGameState(saveSlot);
 
+	setupScreen();
+
 	aux = (char *)malloc(65068);
 	if (!aux) {
 		error("Failed to alloc Aux");
@@ -137,23 +240,23 @@ Common::Error FitdEngine::run() {
 
 	// InitCopyBox(aux2,logicalScreen);
 
-	// PtrFont = checkLoadMallocPak("ITD_RESS",5);
-	//  ExtSetFont(PtrFont, 14);
-	//  SetFontSpace(2,0);
-	//  PtrCadre = CheckLoadMallocPak("ITD_RESS",4);
-	//  ptrPrioritySample = loadFromItd("PRIORITY.ITD");
+	PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 5);
+	extSetFont(PtrFont, 14);
+	setFontSpace(2, 0);
+	PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 4);
+	PtrPrioritySample = loadFromItd("PRIORITY.ITD");
 
 	// read cvars definitions
 	{
 		Common::File f;
 		f.open("DEFINES.ITD");
 		for (int i = 0; i < CVars.size(); i++) {
-		    CVars[i] = f.readSint16BE();
+			CVars[i] = f.readSint16BE();
 		}
 		f.close();
 	}
 
-	// allocTextes();
+	allocTextes();
 	listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
 	listSamp = HQR_InitRessource("LISTSAMP.PAK", 64000, 30);
 	HQ_Memory = HQR_Init(10000, 50);

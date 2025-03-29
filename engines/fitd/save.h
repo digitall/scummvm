@@ -1,3 +1,4 @@
+
 /* ScummVM - Graphic Adventure Engine
  *
  * ScummVM is the legal property of its developers, whose names
@@ -19,21 +20,14 @@
  *
  */
 
+#ifndef FITD_SAVE_H
+#define FITD_SAVE_H
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
+int loadSave(int saveNumber);
+int restoreSave(int arg0, int arg1);
+int makeSave(int arg0);
+}
 
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
-
-struct sAnimation;
-sAnimation* getAnimationFromPtr(void* ptr);
-
-} // namespace Fitd
+#endif

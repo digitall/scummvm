@@ -76,6 +76,103 @@ char localClick;
 
 Common::Array<int16> CVars;
 
+int turnPageFlag;
+
+char* logicalScreen;
+
+int fadeState;
+
+char* PtrPrioritySample;
+char* PtrFont;
+char* PtrCadre;
+
+int LastPriority;
+int LastSample;
+
+int clipLeft = 0;
+int clipTop = 0;
+int clipRight = 319;
+int clipBottom = 119;
+
+const char* languageNameString = NULL;
+const char* languageNameTable[LANGUAGE_NAME_SIZE] =
+{
+    "FRANCAIS.PAK",
+    "ITALIANO.PAK",
+    "ENGLISH.PAK",
+    "ESPAGNOL.PAK",
+    "DEUTSCH.PAK",
+};
+char* systemTextes;
+regularTextEntryStruct textTable[NUM_MAX_TEXT];
+textEntryStruct* tabTextes;
+
+char* currentFoundBody;
+int currentFoundBodyIdx;
+int statusVar1;
+
+messageStruct messageTable[NUM_MAX_MESSAGE];
+
+int16 currentMusic;
+int action;
+
+boxStruct genVar2[15]; // recheckSize
+boxStruct genVar4[50];
+boxStruct *genVar1;
+boxStruct *genVar3;
+
+int16 currentRoom;
+int flagInitView;
+int numCameraInRoom;
+int numCameraZone;
+char* cameraZoneData;
+int numRoomZone;
+char* roomZoneData;
+char* room_PtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+int startGameVar1;
+
+int WindowX1;
+int WindowY1;
+int WindowX2;
+int WindowY2;
+
+char* screenSm1;
+char* screenSm2;
+char* screenSm3;
+char* screenSm4;
+char* screenSm5;
+
+tObject objectTable[NUM_MAX_OBJECT];
+int16 currentWorldTarget;
+
+int16 maxObjects;
+
+const char* listBodySelect[] = {
+    "LISTBODY.PAK",
+    "LISTBOD2.PAK",
+};
+
+const char* listAnimSelect[] = {
+    "LISTANIM.PAK",
+    "LISTANI2.PAK",
+};
+
+Common::Array<tWorldObject> ListWorldObjets;
+
+int16* vars;
+int varSize;
+int fileSize;
+
+int genVar5;
+int genVar6;
+int nextSample;
+int nextMusic;
+int16 currentCameraTargetActor;
+int16 giveUp;
+int16 lightOff;
+int lightVar2;
+int16 statusScreenAllowed;
+
 void sBody::sync()
 {
     uint8* ptr = (uint8*)m_raw;
