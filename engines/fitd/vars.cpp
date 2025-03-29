@@ -44,6 +44,38 @@ int translateZ;
 
 float renderPointList[6400];
 
+unsigned int timer;
+unsigned int timeGlobal;
+
+hqrEntryStruct* listBody;
+hqrEntryStruct* listAnim;
+hqrEntryStruct* listLife;
+hqrEntryStruct* listTrack;
+hqrEntryStruct* listMatrix;
+
+int HQ_Load = 0;
+int lightX = 4000;
+int lightY = -2000;
+
+hqrEntryStruct* listMus;
+hqrEntryStruct* listSamp;
+
+hqrEntryStruct* HQ_Memory;
+
+char* aux;
+char* aux2;
+
+int hqrKeyGen = 0;
+
+char JoyD = 0;
+char Click = 0;
+char key = 0;
+char localKey;
+char localJoyD;
+char localClick;
+
+Common::Array<int16> CVars;
+
 void sBody::sync()
 {
     uint8* ptr = (uint8*)m_raw;

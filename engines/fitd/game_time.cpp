@@ -19,18 +19,32 @@
  *
  */
 
+#include "fitd/game_time.h"
+#include "fitd/vars.h"
+
 namespace Fitd {
 
-struct hqrEntryStruct;
-char *HQR_Get(hqrEntryStruct *hqrPtr, int index);
-int HQ_Malloc(hqrEntryStruct* hqrPtr,int size);
-char* HQ_PtrMalloc(hqrEntryStruct* hqrPtr, int index);
-hqrEntryStruct* HQR_InitRessource(const char* name, int size, int numEntries);
-hqrEntryStruct* HQR_Init(int size,int numEntry);
-void HQR_Reset(hqrEntryStruct* hqrPtr);
-void HQR_Free(hqrEntryStruct* hqrPtr);
+int timerSaved = false;
+unsigned int timerSavedValue = 0;
 
-struct sBody;
-sBody *getBodyFromPtr(void *ptr);
+void freezeTime(void)
+{
+    if(timerSaved==0)
+    {
+        timerSavedValue = timeGlobal;
+    }
+	timerSaved++;
+}
 
-} // namespace Fitd
+void unfreezeTime(void)
+{
+	assert(timerSaved);
+	timerSaved--;
+    if(timerSaved == 0)
+    {
+        timeGlobal = timerSavedValue;
+		timer = timeGlobal;
+    }
+}
+
+}

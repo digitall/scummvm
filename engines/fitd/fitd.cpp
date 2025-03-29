@@ -19,25 +19,25 @@
  *
  */
 
-#include "fitd/fitd.h"
-#include "graphics/framelimiter.h"
-#include "fitd/detection.h"
+#include "fitd/aitd1.h"
+#include "fitd/common.h"
 #include "fitd/console.h"
+#include "fitd/detection.h"
+#include "fitd/fitd.h"
 #include "fitd/gfx.h"
+#include "fitd/hqr.h"
+#include "fitd/pak.h"
 #include "fitd/tatou.h"
+#include "fitd/unpack.h"
+#include "fitd/vars.h"
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/events.h"
 #include "common/system.h"
-#include "engines/util.h"
-#include "graphics/paletteman.h"
 #include "common/file.h"
-#include "unpack.h"
-#include "audio/mixer.h"
-#include "audio/decoders/raw.h"
-#include "audio/decoders/voc.h"
-#include "common/memstream.h"
+#include "engines/util.h"
+#include "graphics/framelimiter.h"
 
 namespace Fitd {
 
@@ -59,79 +59,6 @@ Common::String FitdEngine::getGameId() const {
 	return _gameDescription->gameId;
 }
 
-typedef struct pakInfoStruct // warning: allignement unsafe
-{
-	int32 discSize;
-	int32 uncompressedSize;
-	char compressionFlag;
-	char info5;
-	int16 offset;
-} pakInfoStruct;
-
-static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
-	pPakInfo->discSize = f.readSint32LE();
-	pPakInfo->uncompressedSize = f.readSint32LE();
-	pPakInfo->compressionFlag = f.readByte();
-	pPakInfo->info5 = f.readByte();
-	pPakInfo->offset = f.readSint16LE();
-}
-
-static char *openData(const char *fileName, int index) {
-	Common::File f;
-	f.open(fileName);
-	f.readUint32LE();
-	uint32 fileOffset = f.readUint32LE();
-	uint32 numFiles = (fileOffset / 4) - 2;
-	assert(index < numFiles);
-	uint32 idOffset = (index + 1) * 4;
-	f.seek(idOffset, SEEK_SET);
-	fileOffset = f.readUint32LE();
-	f.seek(fileOffset, SEEK_SET);
-	uint32 additionalDescriptorSize = f.readUint32LE();
-	if (additionalDescriptorSize) {
-		f.seek(additionalDescriptorSize - 4, SEEK_CUR);
-	}
-	pakInfoStruct pakInfo;
-	readPakInfo(&pakInfo, f);
-	if (pakInfo.offset) {
-		Common::String name = f.readString();
-		debug("Loading %s\n", name.c_str());
-	}
-
-	char *ptr = 0;
-	switch (pakInfo.compressionFlag) {
-	case 0: {
-		ptr = (char *)malloc(pakInfo.discSize);
-		f.read(ptr, pakInfo.discSize);
-		break;
-	}
-	case 1: {
-		char *compressedDataPtr = (char *)malloc(pakInfo.discSize);
-		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = (char *)malloc(pakInfo.uncompressedSize);
-
-		PAK_explode((unsigned char *)compressedDataPtr, (unsigned char *)ptr, pakInfo.discSize, pakInfo.uncompressedSize, pakInfo.info5);
-
-		free(compressedDataPtr);
-		break;
-	}
-	case 4: {
-		char *compressedDataPtr = (char *)malloc(pakInfo.discSize);
-		f.read(compressedDataPtr, pakInfo.discSize);
-		ptr = (char *)malloc(pakInfo.uncompressedSize);
-
-		PAK_deflate((unsigned char *)compressedDataPtr, (unsigned char *)ptr, pakInfo.discSize, pakInfo.uncompressedSize);
-
-		free(compressedDataPtr);
-		break;
-	}
-	default:
-		assert(false);
-		break;
-	}
-	return ptr;
-}
-
 void waitMs(uint timeMs) {
 	uint time = 0;
 	// Simple event handling loop
@@ -150,24 +77,44 @@ void waitMs(uint timeMs) {
 	}
 }
 
-static void playSound(int num) {
-	byte *samplePtr = (byte *)openData("LISTSAMP.PAK", num);
-	Audio::SoundHandle handle;
-	Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
-	Audio::SeekableAudioStream *voc = Audio::makeVOCStream(memStream, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
-	g_engine->_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
+static void loadPalette(void) {
+	unsigned char localPalette[768];
+
+	loadPak("ITD_RESS.PAK", 3, aux);
+	copyPalette((byte *)aux, currentGamePalette);
+
+	copyPalette(currentGamePalette, localPalette);
+	//  fadeInSub1(localPalette);
+
+	// to finish
 }
 
-static void clearScreenTatou(void) {
-	int i;
+int* currentCVarTable = NULL;
+int getCVarsIdx(enumCVars searchedType) {
+	// TODO: optimize by reversing the table....
+	for (int i = 0; i < CVars.size(); i++) {
+		if (currentCVarTable[i] == -1) {
+			assert(0);
+		}
 
-	for (i = 0; i < 45120; i++) {
-		frontBuffer[i] = 0;
+		if (currentCVarTable[i] == searchedType)
+			return i;
 	}
+
+	assert(0);
+	return 0;
+}
+
+int getCVarsIdx(int searchedType) {
+	return getCVarsIdx((enumCVars)searchedType);
 }
 
 Common::Error FitdEngine::run() {
 	initGraphics3d(320 * 4, 200 * 4);
+
+	CVars.resize(45);
+	currentCVarTable = AITD1KnownCVars;
+
 	gfx_init();
 
 	// Set the engine's debugger console
@@ -178,71 +125,43 @@ Common::Error FitdEngine::run() {
 	if (saveSlot != -1)
 		(void)loadGameState(saveSlot);
 
-	char *tatou3d = openData("ITD_RESS.PAK", 0);
-	char *ptr = openData("ITD_RESS.PAK", 2);
-	char *palPtr = openData("ITD_RESS.PAK", 1);
-
-	setupCameraProjection(160, 100, 128, 500, 490);
-	gfx_setPalette((const byte *)palPtr);
-	memcpy(frontBuffer, ptr + 770, 64000);
-	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
-
-	fadeInPhys(8, 0);
-	waitMs(3000);
-
-	playSound(6);
-
-	clearScreenTatou();
-	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
-	gfx_refreshFrontTextureBuffer();
-	gfx_draw();
-	g_system->updateScreen();
-
-	int unk1 = 8;
-	int rotation = 256;
-	int time = 8920;
-	setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
-	affObjet(0, 0, 0, 0, 0, 0, tatou3d);
-	g_system->updateScreen();
-
-	Graphics::FrameLimiter limiter(g_system, 25);
-	Common::Event e;
-	while (!shouldQuit()) {
-		while (g_system->getEventManager()->pollEvent(e)) {
-		}
-		time+=25;
-
-		// if (time > 16000)
-		// 	break;
-
-		rotation -= 8;
-
-		clearScreenTatou();
-		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
-		gfx_refreshFrontTextureBuffer();
-
-		setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
-
-		gfx_draw();
-		affObjet(0, 0, 0, 0, 0, 0, tatou3d);
-		g_system->updateScreen();
-
-		// Delay for a bit. All events loops should have a delay
-		// to prevent the system being unduly loaded
-		limiter.delayBeforeSwap();
-		limiter.startFrame();
+	aux = (char *)malloc(65068);
+	if (!aux) {
+		error("Failed to alloc Aux");
 	}
 
-	// Simple event handling loop
-	while (!shouldQuit()) {
-		while (g_system->getEventManager()->pollEvent(e)) {
-		}
-
-		// Delay for a bit. All events loops should have a delay
-		// to prevent the system being unduly loaded
-		limiter.delayBeforeSwap();
-		limiter.startFrame();
+	aux2 = (char *)malloc(65068);
+	if (!aux2) {
+		error("Failed to alloc Aux2");
 	}
+
+	// InitCopyBox(aux2,logicalScreen);
+
+	// PtrFont = checkLoadMallocPak("ITD_RESS",5);
+	//  ExtSetFont(PtrFont, 14);
+	//  SetFontSpace(2,0);
+	//  PtrCadre = CheckLoadMallocPak("ITD_RESS",4);
+	//  ptrPrioritySample = loadFromItd("PRIORITY.ITD");
+
+	// read cvars definitions
+	{
+		Common::File f;
+		f.open("DEFINES.ITD");
+		for (int i = 0; i < CVars.size(); i++) {
+		    CVars[i] = f.readSint16BE();
+		}
+		f.close();
+	}
+
+	// allocTextes();
+	listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
+	listSamp = HQR_InitRessource("LISTSAMP.PAK", 64000, 30);
+	HQ_Memory = HQR_Init(10000, 50);
+
+	paletteFill(currentGamePalette, 0, 0, 0);
+	loadPalette();
+
+	startAITD1();
 
 	return Common::kNoError;
 }

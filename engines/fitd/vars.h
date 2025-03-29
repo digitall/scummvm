@@ -89,7 +89,7 @@ typedef struct hqrSubEntryStruct hqrSubEntryStruct;
 
 struct hqrEntryStruct
 {
-    char string[10];
+    Common::String string;
     uint16 maxFreeData;
     uint16 sizeFreeData;
     uint16 numMaxEntry;

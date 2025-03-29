@@ -19,18 +19,172 @@
  *
  */
 
-#ifndef FITD_HQR_H
-#define FITD_HQR_H
-
 #include "fitd/common.h"
 #include "fitd/hqr.h"
-#include "fitd/vars.h"
+#include "fitd/game_time.h"
 #include "fitd/gfx.h"
+#include "fitd/pak.h"
+#include "fitd/vars.h"
 #include "common/array.h"
 
 namespace Fitd {
 
 Common::Array<sBody *> vBodies;
+Common::Array<sAnimation *> vAnimations;
+
+hqrSubEntryStruct *quickFindEntry(int index, int numMax, hqrSubEntryStruct *ptr) // no RE. Original was probably faster
+{
+	int i;
+
+	for (i = 0; i < numMax; i++) {
+		if ((ptr[i].key == index) && ptr[i].ptr) {
+			return (&ptr[i]);
+		}
+	}
+
+	return (NULL);
+}
+
+hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries) {
+	int i;
+	hqrEntryStruct *dest;
+
+	dest = (hqrEntryStruct *)malloc(sizeof(hqrEntryStruct));
+
+	if (!dest)
+		return NULL;
+
+	numEntries = 2000;
+
+	dest->string = name;
+
+	dest->sizeFreeData = size;
+	dest->maxFreeData = size;
+	dest->numMaxEntry = numEntries;
+	dest->numUsedEntry = 0;
+	dest->entries = (hqrSubEntryStruct *)malloc(numEntries * sizeof(hqrSubEntryStruct));
+
+	for (i = 0; i < numEntries; i++) {
+		dest->entries[i].ptr = NULL;
+	}
+
+	return (dest);
+}
+
+int HQ_Malloc(hqrEntryStruct *hqrPtr, int size) {
+	hqrSubEntryStruct *dataPtr1;
+	hqrSubEntryStruct *dataPtr2;
+	int key;
+	int entryNum;
+
+	if (hqrPtr->sizeFreeData < size)
+		return (-1);
+
+	entryNum = hqrPtr->numUsedEntry;
+
+	dataPtr1 = dataPtr2 = hqrPtr->entries;
+
+	key = hqrKeyGen;
+
+	dataPtr1[entryNum].key = key;
+
+	//  dataPtr1[entryNum].offset = hqrPtr->maxFreeData - hqrPtr->sizeFreeData;
+	dataPtr1[entryNum].size = size;
+	dataPtr1[entryNum].ptr = (char *)malloc(size);
+
+	hqrPtr->numUsedEntry++;
+	hqrPtr->sizeFreeData -= size;
+
+	hqrKeyGen++;
+
+	return (key);
+}
+
+char *HQ_PtrMalloc(hqrEntryStruct *hqrPtr, int index) {
+	hqrSubEntryStruct *ptr;
+	hqrSubEntryStruct *dataPtr;
+
+	if (index < 0)
+		return NULL;
+
+	dataPtr = hqrPtr->entries;
+
+	ptr = quickFindEntry(index, hqrPtr->numUsedEntry, dataPtr);
+
+	if (!ptr)
+		return NULL;
+
+	return (ptr->ptr);
+}
+
+void moveHqrEntry(hqrEntryStruct *hqrPtr, int index) {
+	/*  hqrSubEntryStruct* hqrSubPtr = (hqrSubEntryStruct*)(((char*)hqrPtr)+sizeof(hqrEntryStruct));
+	hqrSubEntryStruct* hqrSubPtr2 = hqrSubPtr;
+
+	int size = hqrSubPtr[index].size;
+
+	if(hqrPtr->numUsedEntry - 1 > index ) //if not last entry
+	{
+	char* dest = hqrPtr->dataPtr + hqrSubPtr2[index].offset;
+	char* src = dest + size;
+
+	memcpy(dest,src,hqrPtr->dataPtr + hqrPtr->maxFreeData - src);
+
+	dest = (char*)&hqrSubPtr2[index];
+	src = (char*)&hqrSubPtr2[index+1];
+	memcpy(dest,src,hqrPtr->numMaxEntry-(index+1) * sizeof(hqrSubEntryStruct));
+	}*/
+
+	int size = hqrPtr->entries[index].size;
+
+	free(hqrPtr->entries[index].ptr);
+
+	hqrPtr->numUsedEntry--;
+	hqrPtr->sizeFreeData += size;
+}
+
+sAnimation *createAnimationFromPtr(void *ptr) {
+	uint8 *animPtr = (uint8 *)ptr;
+
+	sAnimation *pAnimation = new sAnimation;
+
+	pAnimation->m_raw = ptr;
+	pAnimation->m_numFrames = READ_LE_U16(animPtr);
+	animPtr += 2;
+	pAnimation->m_numGroups = READ_LE_U16(animPtr);
+	animPtr += 2;
+
+	pAnimation->m_frames.resize(pAnimation->m_numFrames);
+	for (int i = 0; i < pAnimation->m_numFrames; i++) {
+		sFrame *pFrame = &pAnimation->m_frames[i];
+
+		pFrame->m_timestamp = READ_LE_U16(animPtr);
+		animPtr += 2;
+		pFrame->m_animStep[0] = READ_LE_S16(animPtr);
+		animPtr += 2;
+		pFrame->m_animStep[1] = READ_LE_S16(animPtr);
+		animPtr += 2;
+		pFrame->m_animStep[2] = READ_LE_S16(animPtr);
+		animPtr += 2;
+
+		pFrame->m_groups.resize(pAnimation->m_numGroups);
+		for (int j = 0; j < pAnimation->m_numGroups; j++) {
+			sGroupState *pGroup = &pFrame->m_groups[i];
+
+			pGroup->m_type = READ_LE_S16(animPtr);
+			animPtr += 2;
+			pGroup->m_delta[0] = READ_LE_S16(animPtr);
+			animPtr += 2;
+			pGroup->m_delta[1] = READ_LE_S16(animPtr);
+			animPtr += 2;
+			pGroup->m_delta[2] = READ_LE_S16(animPtr);
+			animPtr += 2;
+		}
+	}
+
+	vAnimations.push_back(pAnimation);
+	return pAnimation;
+}
 
 static sBody *createBodyFromPtr(void *ptr) {
 	uint8 *bodyBuffer = (uint8 *)ptr;
@@ -256,6 +410,201 @@ static sBody *createBodyFromPtr(void *ptr) {
 	return newBody;
 }
 
+char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
+	hqrSubEntryStruct *foundEntry;
+
+	if (index < 0)
+		return NULL;
+
+	foundEntry = quickFindEntry(index, hqrPtr->numUsedEntry, hqrPtr->entries);
+
+	if (foundEntry) {
+		foundEntry->lastTimeUsed = timer;
+		HQ_Load = 0;
+
+		return (foundEntry->ptr);
+	} else {
+		/*    int size;
+		unsigned int time;
+		char* ptr;
+
+		freezeTime();
+		size = getPakSize(hqrPtr->string,index);
+
+		if(size>=hqrPtr->maxFreeData)
+		{
+		theEnd(1,hqrPtr->string);
+		}
+
+		time = timer;
+
+		foundEntry = hqrSubPtr;
+
+		while(size>hqrPtr->sizeFreeData || hqrPtr->numUsedEntry>= hqrPtr->numMaxEntry)
+		{
+		int bestEntry = 0;
+		unsigned int bestTime = 0;
+		int entryIdx = 0;
+
+		for(entryIdx = 0; entryIdx<hqrPtr->numUsedEntry; entryIdx++)
+		{
+		if(time - foundEntry[entryIdx].lastTimeUsed > bestTime)
+		{
+		bestTime = time - foundEntry[entryIdx].lastTimeUsed;
+		bestEntry = entryIdx;
+		}
+		}
+
+		moveHqrEntry(hqrPtr,bestEntry);
+		}
+
+		ptr = hqrPtr->dataPtr + (hqrPtr->maxFreeData - hqrPtr->sizeFreeData);
+
+		if(!loadPakToPtr(hqrPtr->string,index,ptr))
+		{
+		theEnd(1,hqrPtr->string);
+		}
+
+		hqrVar1 = 1;
+
+		foundEntry[hqrPtr->numUsedEntry].key = index;
+		foundEntry[hqrPtr->numUsedEntry].lastTimeUsed = timer;
+		foundEntry[hqrPtr->numUsedEntry].offset = hqrPtr->maxFreeData - hqrPtr->sizeFreeData;
+		foundEntry[hqrPtr->numUsedEntry].size = size;
+
+		hqrPtr->numUsedEntry++;
+		hqrPtr->sizeFreeData -= size;
+
+		unfreezeTime();*/
+
+		int size;
+		unsigned int time;
+		char *ptr;
+		int i;
+
+		freezeTime();
+		size = getPakSize(hqrPtr->string.c_str(), index);
+
+		if (size == 0)
+			return NULL;
+
+		if (size >= hqrPtr->maxFreeData) {
+			error("%s", hqrPtr->string.c_str());
+		}
+
+		time = timer;
+
+		for (i = 0; i < hqrPtr->numMaxEntry; i++) {
+			if (hqrPtr->entries[i].ptr == NULL) {
+				foundEntry = &hqrPtr->entries[i];
+				break;
+			}
+		}
+
+		assert(foundEntry);
+
+		//    foundEntry = hqrSubPtr;
+
+		HQ_Load = 1;
+
+		foundEntry->key = index;
+		foundEntry->lastTimeUsed = timer;
+		// foundEntry[hqrPtr->numUsedEntry].offset = hqrPtr->maxFreeData - hqrPtr->sizeFreeData;
+		foundEntry->size = size;
+		foundEntry->ptr = (char *)malloc(size);
+
+		ptr = foundEntry->ptr;
+
+		loadPak(hqrPtr->string.c_str(), index, foundEntry->ptr);
+
+		hqrPtr->numUsedEntry++;
+		hqrPtr->sizeFreeData -= size;
+
+		unfreezeTime();
+
+		return (ptr);
+	}
+}
+
+hqrEntryStruct *HQR_Init(int size, int numEntry) {
+	int i;
+	hqrEntryStruct *dest;
+	char *dest2;
+
+	assert(size > 0);
+	assert(numEntry > 0);
+
+	dest = (hqrEntryStruct *)malloc(sizeof(hqrEntryStruct));
+
+	numEntry = 2000;
+
+	assert(dest);
+
+	if (!dest)
+		return NULL;
+
+	dest2 = (char *)malloc(size);
+
+	assert(dest2);
+
+	if (!dest2) {
+		free(dest);
+		return NULL;
+	}
+
+	dest->string = "_MEMORY_";
+
+	dest->sizeFreeData = size;
+	dest->maxFreeData = size;
+	dest->numMaxEntry = numEntry;
+	dest->numUsedEntry = 0;
+	dest->entries = (hqrSubEntryStruct *)malloc(numEntry * sizeof(hqrSubEntryStruct));
+
+	for (i = 0; i < numEntry; i++) {
+		dest->entries[i].ptr = NULL;
+	}
+
+	return (dest);
+}
+
+void HQR_Reset(hqrEntryStruct *hqrPtr) {
+	hqrPtr->sizeFreeData = hqrPtr->maxFreeData;
+	hqrPtr->numUsedEntry = 0;
+
+	if (hqrPtr == listBody) {
+		for (int i = 0; i < vBodies.size(); i++) {
+			delete vBodies[i];
+		}
+		vBodies.resize(0);
+	}
+
+	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
+		if (hqrPtr->entries[i].ptr)
+			free(hqrPtr->entries[i].ptr);
+
+		hqrPtr->entries[i].ptr = NULL;
+	}
+}
+
+void HQR_Free(hqrEntryStruct *hqrPtr) {
+	if (!hqrPtr)
+		return;
+
+	if (hqrPtr == listBody) {
+		for (int i = 0; i < vBodies.size(); i++) {
+			delete vBodies[i];
+		}
+		vBodies.clear();
+	}
+
+	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
+		if (hqrPtr->entries[i].ptr)
+			free(hqrPtr->entries[i].ptr);
+	}
+
+	free(hqrPtr);
+}
+
 sBody *getBodyFromPtr(void *ptr) {
 	for (int i = 0; i < vBodies.size(); i++) {
 		if (vBodies[i]->m_raw == ptr) {
@@ -267,5 +616,3 @@ sBody *getBodyFromPtr(void *ptr) {
 }
 
 } // namespace Fitd
-
-#endif
