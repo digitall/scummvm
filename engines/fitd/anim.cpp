@@ -22,6 +22,7 @@
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/hqr.h"
+#include "fitd/room.h"
 #include "fitd/vars.h"
 #include "common/hashmap.h"
 
@@ -250,420 +251,420 @@ int manageFall(int actorIdx, ZVStruct *zvPtr) {
 }
 
 void updateAnimation(void) {
-	assert(0);
-	// int oldStepZ = 0;
-	// int oldStepY = 0;
-	// int oldStepX = 0;
-	// int stepZ = 0;
-	// int stepY = 0;
-	// int stepX = 0;
-	// int16 localTable[3];
-	// ZVStruct zvLocal;
-	// ZVStruct *zvPtr;
-
-	// int newAnim = currentProcessedActorPtr->newAnim;
-
-	// if (newAnim != -1) // next anim ?
-	// {
-	// 	if (newAnim == -2) // completely stop anim and add actor to background
-	// 	{
-	// 		addActorToBgInscrust(currentProcessedActorIdx);
-	// 		currentProcessedActorPtr->newAnim = -1;
-	// 		currentProcessedActorPtr->newAnimType = 0;
-	// 		currentProcessedActorPtr->newAnimInfo = -1;
-	// 		currentProcessedActorPtr->END_ANIM = 1;
-
-	// 		return;
-	// 	}
-
-	// 	if (currentProcessedActorPtr->END_FRAME == 0) {
-	// 		currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
-	// 		currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
-
-	// 		currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
-	// 		currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
-
-	// 		currentProcessedActorPtr->stepX = 0;
-	// 		currentProcessedActorPtr->stepZ = 0;
-
-	// 		currentProcessedActorPtr->animNegX = 0;
-	// 		currentProcessedActorPtr->animNegY = 0;
-	// 		currentProcessedActorPtr->animNegZ = 0;
-	// 	}
-
-	// 	initBufferAnim(BufferAnim[bufferAnimCounter], HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
-
-	// 	bufferAnimCounter++;
-	// 	if (bufferAnimCounter == NB_BUFFER_ANIM)
-	// 		bufferAnimCounter = 0;
-
-	// 	currentProcessedActorPtr->ANIM = newAnim;
-	// 	currentProcessedActorPtr->animType = currentProcessedActorPtr->newAnimType;
-	// 	currentProcessedActorPtr->animInfo = currentProcessedActorPtr->newAnimInfo;
-	// 	currentProcessedActorPtr->newAnim = -1;
-	// 	currentProcessedActorPtr->newAnimType = 0;
-	// 	currentProcessedActorPtr->newAnimInfo = -1;
-	// 	currentProcessedActorPtr->END_ANIM = 0;
-	// 	currentProcessedActorPtr->FRAME = 0;
-
-	// 	currentProcessedActorPtr->numOfFrames = getNbFramesAnim(HQR_Get(listAnim, newAnim));
-	// }
-
-	// if (currentProcessedActorPtr->ANIM == -1) // no animation
-	// {
-	// 	currentProcessedActorPtr->END_FRAME = 0;
-	// 	if (currentProcessedActorPtr->speed == 0) {
-	// 		int numObjectCollisions = checkObjectCollisions(currentProcessedActorIdx, &currentProcessedActorPtr->zv);
-
-	// 		for (int i = 0; i < numObjectCollisions; i++) {
-	// 			objectTable[currentProcessedActorPtr->COL[i]].COL_BY = currentProcessedActorIdx; // collision with current actor
-	// 		}
-
-	// 		oldStepY = 0;
-	// 		oldStepZ = 0;
-	// 		stepX = 0;
-	// 		stepZ = 0;
-	// 		stepY = 0;
-	// 	} else {
-	// 		oldStepX = currentProcessedActorPtr->stepX;
-	// 		oldStepY = currentProcessedActorPtr->stepY;
-	// 		oldStepZ = currentProcessedActorPtr->stepZ;
-
-	// 		animStepY = 0;
-	// 		animStepX = 0;
-
-	// 		animStepZ = evaluateReal(&currentProcessedActorPtr->speedChange);
-
-	// 		walkStep(0, animStepZ, currentProcessedActorPtr->beta);
-
-	// 		stepX = animMoveX - oldStepX;
-	// 		stepZ = animMoveZ - oldStepZ;
-	// 		stepY = 0;
-	// 	}
-	// } else // animation
-	// {
-	// 	oldStepX = currentProcessedActorPtr->stepX;
-	// 	oldStepY = currentProcessedActorPtr->stepY;
-	// 	oldStepZ = currentProcessedActorPtr->stepZ;
-
-	// 	currentProcessedActorPtr->END_FRAME = setInterAnimObjet(currentProcessedActorPtr->FRAME, HQR_Get(listAnim, currentProcessedActorPtr->ANIM), HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
-
-	// 	walkStep(animStepX, animStepZ, currentProcessedActorPtr->beta);
-
-	// 	stepX = animMoveX + currentProcessedActorPtr->animNegX - oldStepX;
-	// 	stepZ = animMoveZ + currentProcessedActorPtr->animNegZ - oldStepZ;
-	// }
-
-	// if (currentProcessedActorPtr->YHandler.param) // currently falling ?
-	// {
-	// 	if (currentProcessedActorPtr->YHandler.param != -1) {
-	// 		stepY = evaluateReal(&currentProcessedActorPtr->YHandler) - oldStepY;
-	// 	} else // stop falling
-	// 	{
-	// 		stepY = currentProcessedActorPtr->YHandler.newAngle - oldStepY;
-
-	// 		currentProcessedActorPtr->YHandler.param = 0;
-	// 		currentProcessedActorPtr->YHandler.newAngle = 0;
-	// 		currentProcessedActorPtr->YHandler.oldAngle = 0;
-	// 	}
-	// } else {
-	// 	stepY = 0;
-	// }
-
-	// memcpy(localTable, currentProcessedActorPtr->COL, 6);
-
-	// if (stepX || stepY || stepZ) // start of movement management
-	// {
-	// 	zvPtr = &currentProcessedActorPtr->zv;
-	// 	copyZv(&currentProcessedActorPtr->zv, &zvLocal);
-
-	// 	zvLocal.ZVX1 += stepX;
-	// 	zvLocal.ZVX2 += stepX;
-
-	// 	zvLocal.ZVY1 += stepY;
-	// 	zvLocal.ZVY2 += stepY;
-
-	// 	zvLocal.ZVZ1 += stepZ;
-	// 	zvLocal.ZVZ2 += stepZ;
-
-	// 	if (currentProcessedActorPtr->dynFlags & 1) // hard collision enabled for actor ?
-	// 	{
-	// 		int numCol = AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]);
-
-	// 		for (int i = 0; i < numCol; i++) {
-	// 			hardColStruct *pHardCol = hardColTable[i];
-
-	// 			if (pHardCol->type == 9) {
-	// 				currentProcessedActorPtr->HARD_COL = (short)pHardCol->parameter;
-	// 			}
-
-	// 			if (pHardCol->type == 3) {
-	// 				currentProcessedActorPtr->HARD_COL = 255;
-	// 			}
-
-	// 			if (g_gameId == AITD1 || (g_gameId >= JACK && (pHardCol->type != 10 || currentProcessedActorIdx != currentCameraTargetActor))) {
-	// 				if (stepX || stepZ) // move on the X or Z axis ? update to avoid entering the hard col
-	// 				{
-	// 					// ZVStruct tempZv;
-
-	// 					hardColStepX = stepX;
-	// 					hardColStepZ = stepZ;
-
-	// 					handleCollision(zvPtr, &zvLocal, &pHardCol->zv);
-
-	// 					currentProcessedActorPtr->animNegX += hardColStepX - stepX;
-	// 					currentProcessedActorPtr->animNegZ += hardColStepZ - stepZ;
-
-	// 					zvLocal.ZVX1 += hardColStepX - stepX;
-	// 					zvLocal.ZVX2 += hardColStepX - stepX;
-	// 					zvLocal.ZVZ1 += hardColStepZ - stepZ;
-	// 					zvLocal.ZVZ2 += hardColStepZ - stepZ;
-
-	// 					stepX = hardColStepX;
-	// 					stepZ = hardColStepZ;
-	// 				}
-
-	// 				if (stepY) {
-	// 					// assert(0); //not implemented
-	// 				}
-	// 			}
-	// 		}
-	// 	} else // no hard collision -> just update the flag without performing the position update
-	// 	{
-	// 		if (AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room])) {
-	// 			currentProcessedActorPtr->HARD_COL = 1;
-	// 		} else {
-	// 			currentProcessedActorPtr->HARD_COL = 0;
-	// 		}
-	// 	}
-
-	// 	int numCol = checkObjectCollisions(currentProcessedActorIdx, &zvLocal); // get the number of actor/actor collision
-
-	// 	for (int j = 0; j < numCol; j++) // process the actor/actor collision
-	// 	{
-	// 		int collisionIndex = currentProcessedActorPtr->COL[j];
-
-	// 		tObject *actorTouchedPtr = &objectTable[collisionIndex];
-
-	// 		actorTouchedPtr->COL_BY = currentProcessedActorIdx;
-
-	// 		ZVStruct *touchedZv = &actorTouchedPtr->zv;
-
-	// 		if (actorTouchedPtr->_flags & AF_FOUNDABLE) // takable
-	// 		{
-	// 			if (currentProcessedActorPtr->trackMode == 1 /*&& ((gameId == AITD1 && defines.field_1E == 0) || (gameId >= JACK && defines.field_6 == 0))*/) // TODO: check if character isn't dead...
-	// 			{
-	// 				foundObject(actorTouchedPtr->indexInWorld, 0);
-	// 			}
-	// 		} else {
-	// 			if (actorTouchedPtr->_flags & AF_MOVABLE) // can be pushed ?
-	// 			{
-	// 				ZVStruct localZv2;
-
-	// 				bool isPushPossible = true;
-
-	// 				copyZv(touchedZv, &localZv2);
-
-	// 				localZv2.ZVX1 += stepX;
-	// 				localZv2.ZVX2 += stepX;
-
-	// 				localZv2.ZVZ1 += stepZ;
-	// 				localZv2.ZVZ2 += stepZ;
-
-	// 				if (!AsmCheckListCol(&localZv2, &roomDataTable[currentProcessedActorPtr->room])) {
-	// 					if (checkObjectCollisions(collisionIndex, &localZv2)) {
-	// 						isPushPossible = false;
-	// 					}
-	// 				} else {
-	// 					isPushPossible = false;
-	// 				}
-
-	// 				if (!isPushPossible) {
-	// 					if (stepX || stepZ) // if we're trying to move
-	// 					{
-	// 						if (actorTouchedPtr->room != currentProcessedActorPtr->room) {
-	// 							ZVStruct localZv3;
-
-	// 							copyZv(touchedZv, &localZv3);
-
-	// 							getZvRelativePosition(&localZv3, actorTouchedPtr->room, currentProcessedActorPtr->room);
-
-	// 							hardColStepX = stepX;
-	// 							hardColStepZ = stepZ;
-
-	// 							handleCollision(zvPtr, &zvLocal, &localZv3);
-
-	// 							stepX = hardColStepX;
-	// 							stepZ = hardColStepZ;
-	// 						} else {
-	// 							hardColStepX = stepX;
-	// 							hardColStepZ = stepZ;
-
-	// 							handleCollision(zvPtr, &zvLocal, touchedZv); // manage as hard collision
-
-	// 							stepX = hardColStepX;
-	// 							stepZ = hardColStepZ;
-	// 						}
-	// 					}
-	// 				} else // push succeed
-	// 				{
-	// 					if (actorTouchedPtr->_flags & AF_BOXIFY) {
-	// 						removeFromBGIncrust(collisionIndex);
-	// 					}
-
-	// 					actorTouchedPtr->_flags |= AF_ANIMATED;
-
-	// 					actorTouchedPtr->worldX += stepX; // apply push to object
-	// 					actorTouchedPtr->worldZ += stepZ;
-
-	// 					actorTouchedPtr->roomX += stepX;
-	// 					actorTouchedPtr->roomZ += stepZ;
-
-	// 					copyZv(&localZv2, touchedZv);
-	// 				}
-	// 			} else {
-	// 				// can't be pushed
-	// 				if (currentProcessedActorPtr->dynFlags & 1) {
-	// 					if (stepX || stepZ) // if moving
-	// 					{
-	// 						if (actorTouchedPtr->room == currentProcessedActorPtr->room) // same room -> easy case
-	// 						{
-	// 							hardColStepX = stepX;
-	// 							hardColStepZ = stepZ;
-
-	// 							handleCollision(zvPtr, &zvLocal, touchedZv); // manage as hard collision
-
-	// 							stepX = hardColStepX;
-	// 							stepZ = hardColStepZ;
-	// 						} else // different room
-	// 						{
-	// 							ZVStruct localZv3;
-
-	// 							copyZv(touchedZv, &localZv3);
-
-	// 							getZvRelativePosition(&localZv3, actorTouchedPtr->room, currentProcessedActorPtr->room);
-
-	// 							hardColStepX = stepX;
-	// 							hardColStepZ = stepZ;
-
-	// 							handleCollision(zvPtr, &zvLocal, &localZv3); // manage as hard collision
-
-	// 							stepX = hardColStepX;
-	// 							stepZ = hardColStepZ;
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	} // end of actor/actor collision
-
-	// 	currentProcessedActorPtr->stepX = stepX + oldStepX;
-	// 	currentProcessedActorPtr->stepY = stepY + oldStepY;
-	// 	currentProcessedActorPtr->stepZ = stepZ + oldStepZ;
-
-	// 	currentProcessedActorPtr->zv.ZVX1 += stepX;
-	// 	currentProcessedActorPtr->zv.ZVX2 += stepX;
-
-	// 	currentProcessedActorPtr->zv.ZVY1 += stepY;
-	// 	currentProcessedActorPtr->zv.ZVY2 += stepY;
-
-	// 	currentProcessedActorPtr->zv.ZVZ1 += stepZ;
-	// 	currentProcessedActorPtr->zv.ZVZ2 += stepZ;
-	// } // end of movement management
-
-	// if (!currentProcessedActorPtr->YHandler.param) {
-	// 	// fall management ?
-	// 	currentProcessedActorPtr->worldY += currentProcessedActorPtr->stepY;
-	// 	currentProcessedActorPtr->roomY += currentProcessedActorPtr->stepY;
-
-	// 	currentProcessedActorPtr->stepY = 0;
-
-	// 	if (currentProcessedActorPtr->_flags & AF_FALLABLE) {
-	// 		zvPtr = &currentProcessedActorPtr->zv;
-
-	// 		copyZv(zvPtr, &zvLocal);
-
-	// 		zvLocal.ZVY2 += 100;
-
-	// 		if (currentProcessedActorPtr->roomY < -10 && !AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
-	// 			InitRealValue(0, 2000, 40, &currentProcessedActorPtr->YHandler);
-	// 		} else {
-	// 			currentProcessedActorPtr->falling = 0;
-	// 		}
-	// 	}
-	// } else {
-	// 	if ((currentProcessedActorPtr->YHandler.param != -1) && (currentProcessedActorPtr->_flags & AF_FALLABLE)) {
-	// 		currentProcessedActorPtr->falling = 1;
-	// 	}
-	// }
-
-	// for (int i = 0; i < 3; i++) {
-	// 	int collisionIndex = localTable[i];
-
-	// 	if (collisionIndex != -1) {
-	// 		tObject *actorTouchedPtr = &objectTable[collisionIndex];
-
-	// 		if (actorTouchedPtr->_flags & AF_MOVABLE) {
-	// 			int i;
-
-	// 			for (i = 0; i < 3; i++) {
-	// 				if (currentProcessedActorPtr->COL[i] == collisionIndex)
-	// 					break;
-	// 			}
-
-	// 			if (i == 3) {
-	// 				actorTouchedPtr->_flags &= ~AF_ANIMATED;
-	// 				addActorToBgInscrust(collisionIndex);
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	// if (currentProcessedActorPtr->END_FRAME) // key frame change
-	// {
-	// 	currentProcessedActorPtr->FRAME++;
-
-	// 	if (currentProcessedActorPtr->FRAME >= currentProcessedActorPtr->numOfFrames) // end of anim ?
-	// 	{
-	// 		currentProcessedActorPtr->END_ANIM = 1; // end of anim
-	// 		currentProcessedActorPtr->FRAME = 0;    // restart anim
-
-	// 		if (!(currentProcessedActorPtr->animType & 1) && (currentProcessedActorPtr->newAnim == -1)) // is another anim waiting ?
-	// 		{
-	// 			currentProcessedActorPtr->animType &= 0xFFFD;
-
-	// 			InitAnim(currentProcessedActorPtr->animInfo, 1, -1);
-	// 		}
-	// 	}
-	// 	currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
-	// 	currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
-
-	// 	currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
-	// 	currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
-
-	// 	currentProcessedActorPtr->stepX = 0;
-	// 	currentProcessedActorPtr->stepZ = 0;
-
-	// 	currentProcessedActorPtr->animNegX = 0;
-	// 	currentProcessedActorPtr->animNegY = 0;
-	// 	currentProcessedActorPtr->animNegZ = 0;
-	// } else // not the end of anim
-	// {
-	// 	if ((currentProcessedActorPtr->ANIM == -1) && (currentProcessedActorPtr->speed != 0) && (currentProcessedActorPtr->speedChange.param == 0)) {
-	// 		currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
-	// 		currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
-
-	// 		currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
-	// 		currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
-
-	// 		currentProcessedActorPtr->stepX = 0;
-	// 		currentProcessedActorPtr->stepZ = 0;
-
-	// 		InitRealValue(0, currentProcessedActorPtr->speed, 60, &currentProcessedActorPtr->speedChange);
-	// 	}
-
-	// 	currentProcessedActorPtr->END_ANIM = 0;
-	// }
+	int oldStepZ = 0;
+	int oldStepY = 0;
+	int oldStepX = 0;
+	int stepZ = 0;
+	int stepY = 0;
+	int stepX = 0;
+	int16 localTable[3];
+	ZVStruct zvLocal;
+	ZVStruct *zvPtr;
+
+	int newAnim = currentProcessedActorPtr->newAnim;
+
+	if (newAnim != -1) // next anim ?
+	{
+		if (newAnim == -2) // completely stop anim and add actor to background
+		{
+			addActorToBgInscrust(currentProcessedActorIdx);
+			currentProcessedActorPtr->newAnim = -1;
+			currentProcessedActorPtr->newAnimType = 0;
+			currentProcessedActorPtr->newAnimInfo = -1;
+			currentProcessedActorPtr->END_ANIM = 1;
+
+			return;
+		}
+
+		if (currentProcessedActorPtr->END_FRAME == 0) {
+			currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
+			currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
+
+			currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
+			currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
+
+			currentProcessedActorPtr->stepX = 0;
+			currentProcessedActorPtr->stepZ = 0;
+
+			currentProcessedActorPtr->animNegX = 0;
+			currentProcessedActorPtr->animNegY = 0;
+			currentProcessedActorPtr->animNegZ = 0;
+		}
+
+		initBufferAnim(BufferAnim[bufferAnimCounter], HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
+
+		bufferAnimCounter++;
+		if (bufferAnimCounter == NB_BUFFER_ANIM)
+			bufferAnimCounter = 0;
+
+		currentProcessedActorPtr->ANIM = newAnim;
+		currentProcessedActorPtr->animType = currentProcessedActorPtr->newAnimType;
+		currentProcessedActorPtr->animInfo = currentProcessedActorPtr->newAnimInfo;
+		currentProcessedActorPtr->newAnim = -1;
+		currentProcessedActorPtr->newAnimType = 0;
+		currentProcessedActorPtr->newAnimInfo = -1;
+		currentProcessedActorPtr->END_ANIM = 0;
+		currentProcessedActorPtr->FRAME = 0;
+
+		currentProcessedActorPtr->numOfFrames = getNbFramesAnim(HQR_Get(listAnim, newAnim));
+	}
+
+	if (currentProcessedActorPtr->ANIM == -1) // no animation
+	{
+		currentProcessedActorPtr->END_FRAME = 0;
+		if (currentProcessedActorPtr->speed == 0) {
+			int numObjectCollisions = checkObjectCollisions(currentProcessedActorIdx, &currentProcessedActorPtr->zv);
+
+			for (int i = 0; i < numObjectCollisions; i++) {
+				objectTable[currentProcessedActorPtr->COL[i]].COL_BY = currentProcessedActorIdx; // collision with current actor
+			}
+
+			oldStepY = 0;
+			oldStepZ = 0;
+			stepX = 0;
+			stepZ = 0;
+			stepY = 0;
+		} else {
+			oldStepX = currentProcessedActorPtr->stepX;
+			oldStepY = currentProcessedActorPtr->stepY;
+			oldStepZ = currentProcessedActorPtr->stepZ;
+
+			animStepY = 0;
+			animStepX = 0;
+
+			animStepZ = evaluateReal(&currentProcessedActorPtr->speedChange);
+
+			walkStep(0, animStepZ, currentProcessedActorPtr->beta);
+
+			stepX = animMoveX - oldStepX;
+			stepZ = animMoveZ - oldStepZ;
+			stepY = 0;
+		}
+	} else // animation
+	{
+		oldStepX = currentProcessedActorPtr->stepX;
+		oldStepY = currentProcessedActorPtr->stepY;
+		oldStepZ = currentProcessedActorPtr->stepZ;
+
+		currentProcessedActorPtr->END_FRAME = setInterAnimObjet(currentProcessedActorPtr->FRAME, HQR_Get(listAnim, currentProcessedActorPtr->ANIM), HQR_Get(listBody, currentProcessedActorPtr->bodyNum));
+
+		walkStep(animStepX, animStepZ, currentProcessedActorPtr->beta);
+
+		stepX = animMoveX + currentProcessedActorPtr->animNegX - oldStepX;
+		stepZ = animMoveZ + currentProcessedActorPtr->animNegZ - oldStepZ;
+	}
+
+	if (currentProcessedActorPtr->YHandler.param) // currently falling ?
+	{
+		if (currentProcessedActorPtr->YHandler.param != -1) {
+			stepY = evaluateReal(&currentProcessedActorPtr->YHandler) - oldStepY;
+		} else // stop falling
+		{
+			stepY = currentProcessedActorPtr->YHandler.newAngle - oldStepY;
+
+			currentProcessedActorPtr->YHandler.param = 0;
+			currentProcessedActorPtr->YHandler.newAngle = 0;
+			currentProcessedActorPtr->YHandler.oldAngle = 0;
+		}
+	} else {
+		stepY = 0;
+	}
+
+	memcpy(localTable, currentProcessedActorPtr->COL, 6);
+
+	if (stepX || stepY || stepZ) // start of movement management
+	{
+		zvPtr = &currentProcessedActorPtr->zv;
+		copyZv(&currentProcessedActorPtr->zv, &zvLocal);
+
+		zvLocal.ZVX1 += stepX;
+		zvLocal.ZVX2 += stepX;
+
+		zvLocal.ZVY1 += stepY;
+		zvLocal.ZVY2 += stepY;
+
+		zvLocal.ZVZ1 += stepZ;
+		zvLocal.ZVZ2 += stepZ;
+
+		if (currentProcessedActorPtr->dynFlags & 1) // hard collision enabled for actor ?
+		{
+			int numCol = AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]);
+
+			for (int i = 0; i < numCol; i++) {
+				hardColStruct *pHardCol = hardColTable[i];
+
+				if (pHardCol->type == 9) {
+					currentProcessedActorPtr->HARD_COL = (short)pHardCol->parameter;
+				}
+
+				if (pHardCol->type == 3) {
+					currentProcessedActorPtr->HARD_COL = 255;
+				}
+
+				// if (g_gameId == AITD1 || (g_gameId >= JACK && (pHardCol->type != 10 || currentProcessedActorIdx != currentCameraTargetActor)))
+				{
+					if (stepX || stepZ) // move on the X or Z axis ? update to avoid entering the hard col
+					{
+						// ZVStruct tempZv;
+
+						hardColStepX = stepX;
+						hardColStepZ = stepZ;
+
+						handleCollision(zvPtr, &zvLocal, &pHardCol->zv);
+
+						currentProcessedActorPtr->animNegX += hardColStepX - stepX;
+						currentProcessedActorPtr->animNegZ += hardColStepZ - stepZ;
+
+						zvLocal.ZVX1 += hardColStepX - stepX;
+						zvLocal.ZVX2 += hardColStepX - stepX;
+						zvLocal.ZVZ1 += hardColStepZ - stepZ;
+						zvLocal.ZVZ2 += hardColStepZ - stepZ;
+
+						stepX = hardColStepX;
+						stepZ = hardColStepZ;
+					}
+
+					if (stepY) {
+						// assert(0); //not implemented
+					}
+				}
+			}
+		} else // no hard collision -> just update the flag without performing the position update
+		{
+			if (AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room])) {
+				currentProcessedActorPtr->HARD_COL = 1;
+			} else {
+				currentProcessedActorPtr->HARD_COL = 0;
+			}
+		}
+
+		int numCol = checkObjectCollisions(currentProcessedActorIdx, &zvLocal); // get the number of actor/actor collision
+
+		for (int j = 0; j < numCol; j++) // process the actor/actor collision
+		{
+			int collisionIndex = currentProcessedActorPtr->COL[j];
+
+			tObject *actorTouchedPtr = &objectTable[collisionIndex];
+
+			actorTouchedPtr->COL_BY = currentProcessedActorIdx;
+
+			ZVStruct *touchedZv = &actorTouchedPtr->zv;
+
+			if (actorTouchedPtr->_flags & AF_FOUNDABLE) // takable
+			{
+				if (currentProcessedActorPtr->trackMode == 1 /*&& ((gameId == AITD1 && defines.field_1E == 0) || (gameId >= JACK && defines.field_6 == 0))*/) // TODO: check if character isn't dead...
+				{
+					foundObject(actorTouchedPtr->indexInWorld, 0);
+				}
+			} else {
+				if (actorTouchedPtr->_flags & AF_MOVABLE) // can be pushed ?
+				{
+					ZVStruct localZv2;
+
+					bool isPushPossible = true;
+
+					copyZv(touchedZv, &localZv2);
+
+					localZv2.ZVX1 += stepX;
+					localZv2.ZVX2 += stepX;
+
+					localZv2.ZVZ1 += stepZ;
+					localZv2.ZVZ2 += stepZ;
+
+					if (!AsmCheckListCol(&localZv2, &roomDataTable[currentProcessedActorPtr->room])) {
+						if (checkObjectCollisions(collisionIndex, &localZv2)) {
+							isPushPossible = false;
+						}
+					} else {
+						isPushPossible = false;
+					}
+
+					if (!isPushPossible) {
+						if (stepX || stepZ) // if we're trying to move
+						{
+							if (actorTouchedPtr->room != currentProcessedActorPtr->room) {
+								ZVStruct localZv3;
+
+								copyZv(touchedZv, &localZv3);
+
+								getZvRelativePosition(&localZv3, actorTouchedPtr->room, currentProcessedActorPtr->room);
+
+								hardColStepX = stepX;
+								hardColStepZ = stepZ;
+
+								handleCollision(zvPtr, &zvLocal, &localZv3);
+
+								stepX = hardColStepX;
+								stepZ = hardColStepZ;
+							} else {
+								hardColStepX = stepX;
+								hardColStepZ = stepZ;
+
+								handleCollision(zvPtr, &zvLocal, touchedZv); // manage as hard collision
+
+								stepX = hardColStepX;
+								stepZ = hardColStepZ;
+							}
+						}
+					} else // push succeed
+					{
+						if (actorTouchedPtr->_flags & AF_BOXIFY) {
+							removeFromBGIncrust(collisionIndex);
+						}
+
+						actorTouchedPtr->_flags |= AF_ANIMATED;
+
+						actorTouchedPtr->worldX += stepX; // apply push to object
+						actorTouchedPtr->worldZ += stepZ;
+
+						actorTouchedPtr->roomX += stepX;
+						actorTouchedPtr->roomZ += stepZ;
+
+						copyZv(&localZv2, touchedZv);
+					}
+				} else {
+					// can't be pushed
+					if (currentProcessedActorPtr->dynFlags & 1) {
+						if (stepX || stepZ) // if moving
+						{
+							if (actorTouchedPtr->room == currentProcessedActorPtr->room) // same room -> easy case
+							{
+								hardColStepX = stepX;
+								hardColStepZ = stepZ;
+
+								handleCollision(zvPtr, &zvLocal, touchedZv); // manage as hard collision
+
+								stepX = hardColStepX;
+								stepZ = hardColStepZ;
+							} else // different room
+							{
+								ZVStruct localZv3;
+
+								copyZv(touchedZv, &localZv3);
+
+								getZvRelativePosition(&localZv3, actorTouchedPtr->room, currentProcessedActorPtr->room);
+
+								hardColStepX = stepX;
+								hardColStepZ = stepZ;
+
+								handleCollision(zvPtr, &zvLocal, &localZv3); // manage as hard collision
+
+								stepX = hardColStepX;
+								stepZ = hardColStepZ;
+							}
+						}
+					}
+				}
+			}
+		} // end of actor/actor collision
+
+		currentProcessedActorPtr->stepX = stepX + oldStepX;
+		currentProcessedActorPtr->stepY = stepY + oldStepY;
+		currentProcessedActorPtr->stepZ = stepZ + oldStepZ;
+
+		currentProcessedActorPtr->zv.ZVX1 += stepX;
+		currentProcessedActorPtr->zv.ZVX2 += stepX;
+
+		currentProcessedActorPtr->zv.ZVY1 += stepY;
+		currentProcessedActorPtr->zv.ZVY2 += stepY;
+
+		currentProcessedActorPtr->zv.ZVZ1 += stepZ;
+		currentProcessedActorPtr->zv.ZVZ2 += stepZ;
+	} // end of movement management
+
+	if (!currentProcessedActorPtr->YHandler.param) {
+		// fall management ?
+		currentProcessedActorPtr->worldY += currentProcessedActorPtr->stepY;
+		currentProcessedActorPtr->roomY += currentProcessedActorPtr->stepY;
+
+		currentProcessedActorPtr->stepY = 0;
+
+		if (currentProcessedActorPtr->_flags & AF_FALLABLE) {
+			zvPtr = &currentProcessedActorPtr->zv;
+
+			copyZv(zvPtr, &zvLocal);
+
+			zvLocal.ZVY2 += 100;
+
+			if (currentProcessedActorPtr->roomY < -10 && !AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
+				InitRealValue(0, 2000, 40, &currentProcessedActorPtr->YHandler);
+			} else {
+				currentProcessedActorPtr->falling = 0;
+			}
+		}
+	} else {
+		if ((currentProcessedActorPtr->YHandler.param != -1) && (currentProcessedActorPtr->_flags & AF_FALLABLE)) {
+			currentProcessedActorPtr->falling = 1;
+		}
+	}
+
+	for (int i = 0; i < 3; i++) {
+		int collisionIndex = localTable[i];
+
+		if (collisionIndex != -1) {
+			tObject *actorTouchedPtr = &objectTable[collisionIndex];
+
+			if (actorTouchedPtr->_flags & AF_MOVABLE) {
+				int i;
+
+				for (i = 0; i < 3; i++) {
+					if (currentProcessedActorPtr->COL[i] == collisionIndex)
+						break;
+				}
+
+				if (i == 3) {
+					actorTouchedPtr->_flags &= ~AF_ANIMATED;
+					addActorToBgInscrust(collisionIndex);
+				}
+			}
+		}
+	}
+
+	if (currentProcessedActorPtr->END_FRAME) // key frame change
+	{
+		currentProcessedActorPtr->FRAME++;
+
+		if (currentProcessedActorPtr->FRAME >= currentProcessedActorPtr->numOfFrames) // end of anim ?
+		{
+			currentProcessedActorPtr->END_ANIM = 1; // end of anim
+			currentProcessedActorPtr->FRAME = 0;    // restart anim
+
+			if (!(currentProcessedActorPtr->animType & 1) && (currentProcessedActorPtr->newAnim == -1)) // is another anim waiting ?
+			{
+				currentProcessedActorPtr->animType &= 0xFFFD;
+
+				initAnim(currentProcessedActorPtr->animInfo, 1, -1);
+			}
+		}
+		currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
+		currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
+
+		currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
+		currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
+
+		currentProcessedActorPtr->stepX = 0;
+		currentProcessedActorPtr->stepZ = 0;
+
+		currentProcessedActorPtr->animNegX = 0;
+		currentProcessedActorPtr->animNegY = 0;
+		currentProcessedActorPtr->animNegZ = 0;
+	} else // not the end of anim
+	{
+		if ((currentProcessedActorPtr->ANIM == -1) && (currentProcessedActorPtr->speed != 0) && (currentProcessedActorPtr->speedChange.param == 0)) {
+			currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
+			currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
+
+			currentProcessedActorPtr->worldZ += currentProcessedActorPtr->stepZ;
+			currentProcessedActorPtr->roomZ += currentProcessedActorPtr->stepZ;
+
+			currentProcessedActorPtr->stepX = 0;
+			currentProcessedActorPtr->stepZ = 0;
+
+			InitRealValue(0, currentProcessedActorPtr->speed, 60, &currentProcessedActorPtr->speedChange);
+		}
+
+		currentProcessedActorPtr->END_ANIM = 0;
+	}
 }
 
 void initBufferAnim(Common::Array<int16> &buffer, char *bodyPtr) {

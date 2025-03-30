@@ -21,6 +21,7 @@
 
 #include "fitd/common.h"
 #include "fitd/eval_var.h"
+#include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
@@ -30,6 +31,7 @@
 #include "common/debug.h"
 
 namespace Fitd {
+
 int getPosRelTable[] = {4, 1, 8, 2, 4, 1, 8, 0};
 
 int getMatrix(int param1, int actorIdx, int param2) {
@@ -400,7 +402,7 @@ int evalVar(const char *name) {
 			case 0x1C: {
 				int temp = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
-				return (rand() % temp);
+				return (g_engine->getRandomNumber(temp));
 				break;
 			}
 			case 0x1D: {
@@ -771,7 +773,7 @@ int evalVar2(const char *name) {
 			case 0x1C: {
 				int temp = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
-				return (rand() % temp);
+				return (g_engine->getRandomNumber(temp));
 				break;
 			}
 			case 0x1D: {

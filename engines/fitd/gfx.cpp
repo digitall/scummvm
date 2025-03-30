@@ -47,7 +47,23 @@ namespace Fitd {
 #define NUM_MAX_VERTEX_IN_PRIM 64
 #define NUM_MAX_PRIM_ENTRY 500
 
-int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER*3];
+int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
+
+int numOfPoints;
+int numOfBones;
+
+int16 cameraSpaceBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
+
+bool boneRotateX;
+bool boneRotateY;
+bool boneRotateZ;
+
+int boneRotateXCos;
+int boneRotateXSin;
+int boneRotateYCos;
+int boneRotateYSin;
+int boneRotateZCos;
+int boneRotateZSin;
 
 struct Vector2 {
 	float x;
@@ -89,12 +105,34 @@ typedef struct primEntryStruct {
 	rendererPointStruct vertices[NUM_MAX_VERTEX_IN_PRIM];
 } primEntryStruct;
 
+struct sphereVertex {
+	float X;
+	float Y;
+	float Z;
+
+	float U;
+	float V;
+
+	float centerX;
+	float centerY;
+	float size;
+	float material;
+};
+
 primEntryStruct primTable[NUM_MAX_PRIM_ENTRY];
 
+polyVertex noiseVertices[NUM_MAX_NOISE_VERTICES];
 polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
+polyVertex transparentVertices[NUM_MAX_TRANSPARENT_VERTICES];
 polyVertex rampVertices[NUM_MAX_RAMP_VERTICES];
+sphereVertex sphereVertices[NUM_MAX_SPHERES_VERTICES];
+
 int numUsedFlatVertices = 0;
+int numUsedNoiseVertices = 0;
+int numUsedTransparentVertices = 0;
 int numUsedRampVertices = 0;
+int numUsedSpheres = 0;
+
 bool noModelRotation;
 
 int modelCosAlpha;
@@ -132,6 +170,17 @@ int BBox3D4 = 0;
 int renderX;
 int renderY;
 int renderZ;
+
+struct maskStruct {
+	GLuint maskTexture = 0;
+	GLuint vertexBuffer = 0;
+	int maskX1;
+	int maskY1;
+	int maskX2;
+	int maskY2;
+};
+
+Common::Array<Common::Array<maskStruct> > maskTextures; // [room][mask]
 
 const char *bgVSSrc = R"(
 attribute vec2 a_position;
@@ -180,26 +229,68 @@ void main()
     gl_FragColor.a = 1.0;
 })";
 
+const char *noisePSSrc = R"(
+varying vec2 v_texCoords;
+uniform sampler2D u_palette;
+void main()
+{
+	float color = v_texCoords.x * 15.0;
+	float bank = v_texCoords.y * 15.0;
+	float cidx = (bank * 16.0 + color) / 255.0;
+
+	gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+	gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+	gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+	gl_FragColor.a = 1.0;
+})";
+
 const char *rampPSSrc = R"(
-	varying vec2 v_texCoords;
-	uniform sampler2D u_palette;
-	void main()
-	{
-		float color = v_texCoords.x;
-		color = mod(color, 2.0);
-		if(color > 1.0) {
-			color = 1.0 - (color - 1.0);
-		}
+varying vec2 v_texCoords;
+uniform sampler2D u_palette;
+void main()
+{
+	float color = v_texCoords.x;
+	color = mod(color, 2.0);
+	if(color > 1.0) {
+		color = 1.0 - (color - 1.0);
+	}
 
-		color = color * 15.0;
-		float bank = v_texCoords.y * 15.0;
-		float cidx = (bank * 16.0 + color) / 255.0;
+	color = color * 15.0;
+	float bank = v_texCoords.y * 15.0;
+	float cidx = (bank * 16.0 + color) / 255.0;
 
-		gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
-		gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
-		gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
-		gl_FragColor.a = 1.0;
-	})";
+	gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+	gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+	gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+	gl_FragColor.a = 1.0;
+})";
+
+const char *maskVSSrc = R"(
+attribute vec2 a_position;
+attribute vec2 a_texCoords;
+varying vec2 v_texCoords;
+void main() {
+	gl_Position = vec4(a_position.x/160.0-1.0, 1.0-a_position.y/100.0, 0.0, 1.0);
+	v_texCoords = a_texCoords;
+})";
+
+const char *maskPSSrc = R"(
+varying vec2 v_texCoords;
+uniform sampler2D u_maskPalette;
+uniform sampler2D u_palette;
+uniform sampler2D u_background;
+void main()
+{
+	vec4 rawMask = texture(u_maskPalette, v_texCoords);
+	if(rawMask.r == 0.0)
+		discard;
+
+	float cidx = texture(u_background, v_texCoords.xy).r;
+	gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+	gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+	gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+	gl_FragColor.a = 1.0;
+})";
 
 GLuint g_backgroundTexture = 0;
 GLuint g_paletteTexture = 0;
@@ -211,7 +302,9 @@ byte physicalScreen[320 * 200];
 byte physicalScreenRGB[320 * 200 * 3];
 OpenGL::Shader *backgroundShader = NULL;
 OpenGL::Shader *flatShader = NULL;
+OpenGL::Shader *noiseShader = NULL;
 OpenGL::Shader *rampShader = NULL;
+OpenGL::Shader *maskShader = NULL;
 GLuint vbo = 0;
 GLuint ebo = 0;
 
@@ -257,6 +350,14 @@ void gfx_init() {
 	flatShader->use();
 	GL_CALL(glUniform1i(flatShader->getUniformLocation("u_palette"), 0));
 
+	// create noise shader
+	noiseShader = new OpenGL::Shader();
+	noiseShader->loadFromStrings("flatShader", flatVSSrc, noisePSSrc, attributes, 110);
+	noiseShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
+	noiseShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	noiseShader->use();
+	GL_CALL(glUniform1i(noiseShader->getUniformLocation("u_palette"), 0));
+
 	// create ramp shader
 	rampShader = new OpenGL::Shader();
 	rampShader->loadFromStrings("rampShader", flatVSSrc, rampPSSrc, attributes, 110);
@@ -264,6 +365,16 @@ void gfx_init() {
 	rampShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
 	rampShader->use();
 	GL_CALL(glUniform1i(rampShader->getUniformLocation("u_palette"), 0));
+
+	// create mask shader
+	maskShader = new OpenGL::Shader();
+	maskShader->loadFromStrings("maskShader", bgVSSrc, maskPSSrc, attributes, 110);
+	maskShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
+	maskShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	maskShader->use();
+	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_maskPalette"), 0));
+	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_palette"), 1));
+	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_background"), 2));
 }
 
 void gfx_deinit() {
@@ -275,10 +386,14 @@ void gfx_deinit() {
 	delete backgroundShader;
 }
 
-void osystem_drawBackground() {
+void osystem_startFrame() {
 	GL_CALL(glClearColor(0.f, 0.f, 0.f, 1.f));
 	GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
+	osystem_drawBackground();
+}
+
+void osystem_drawBackground() {
 	Vertex vertices[] = {
 		{{-1.f, -1.f}, {0.f, 1.f}},
 		{{1.f, 1.f}, {1.f, 0.f}},
@@ -428,60 +543,58 @@ void osystem_fillPoly(float *buffer, int numPoint, unsigned char color, uint8 po
 	}
 	case 1: // dither (pierre/tele)
 	{
-		// polyVertex *pVertex = &noiseVertices[numUsedNoiseVertices];
-		// numUsedNoiseVertices += (numPoint - 2) * 3;
-		// assert(numUsedNoiseVertices < NUM_MAX_NOISE_VERTICES);
+		polyVertex *pVertex = &noiseVertices[numUsedNoiseVertices];
+		numUsedNoiseVertices += (numPoint - 2) * 3;
+		assert(numUsedNoiseVertices < NUM_MAX_NOISE_VERTICES);
 
-		// for (int i = 0; i < numPoint; i++) {
-		// 	if (i >= 3) {
-		// 		memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
-		// 		pVertex++;
-		// 		memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
-		// 		pVertex++;
-		// 	}
+		for (int i = 0; i < numPoint; i++) {
+			if (i >= 3) {
+				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				pVertex++;
+				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				pVertex++;
+			}
 
-		// 	pVertex->X = buffer[i * 3 + 0];
-		// 	pVertex->Y = buffer[i * 3 + 1];
-		// 	pVertex->Z = buffer[i * 3 + 2];
+			pVertex->X = buffer[i * 3 + 0];
+			pVertex->Y = buffer[i * 3 + 1];
+			pVertex->Z = buffer[i * 3 + 2];
 
-		// 	pVertex->U = (pVertex->X / 320.f) * 50.f + polyMinX * 1.2f + polyMaxX;
-		// 	pVertex->V = (pVertex->Y / 200.f) * 50.f + polyMinY * 0.7f + polyMaxY;
+			pVertex->U = (pVertex->X / 320.f) * 50.f + polyMinX * 1.2f + polyMaxX;
+			pVertex->V = (pVertex->Y / 200.f) * 50.f + polyMinY * 0.7f + polyMaxY;
 
-		// 	int bank = (color & 0xF0) >> 4;
-		// 	int startColor = color & 0xF;
-		// 	float colorf = startColor;
-		// 	pVertex->U = colorf / 15.f;
-		// 	pVertex->V = bank / 15.f;
-		// 	pVertex++;
-		// }
-		assert(false);
+			int bank = (color & 0xF0) >> 4;
+			int startColor = color & 0xF;
+			float colorf = startColor;
+			pVertex->U = colorf / 15.f;
+			pVertex->V = bank / 15.f;
+			pVertex++;
+		}
 		break;
 	}
 	case 2: // trans
 	{
-		assert(false);
-		// polyVertex *pVertex = &transparentVertices[numUsedTransparentVertices];
-		// numUsedTransparentVertices += (numPoint - 2) * 3;
-		// assert(numUsedTransparentVertices < NUM_MAX_TRANSPARENT_VERTICES);
+		polyVertex *pVertex = &transparentVertices[numUsedTransparentVertices];
+		numUsedTransparentVertices += (numPoint - 2) * 3;
+		assert(numUsedTransparentVertices < NUM_MAX_TRANSPARENT_VERTICES);
 
-		// for (int i = 0; i < numPoint; i++) {
-		// 	if (i >= 3) {
-		// 		memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
-		// 		pVertex++;
-		// 		memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
-		// 		pVertex++;
-		// 	}
+		for (int i = 0; i < numPoint; i++) {
+			if (i >= 3) {
+				memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
+				pVertex++;
+				memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
+				pVertex++;
+			}
 
-		// 	pVertex->X = buffer[i * 3 + 0];
-		// 	pVertex->Y = buffer[i * 3 + 1];
-		// 	pVertex->Z = buffer[i * 3 + 2];
+			pVertex->X = buffer[i * 3 + 0];
+			pVertex->Y = buffer[i * 3 + 1];
+			pVertex->Z = buffer[i * 3 + 2];
 
-		// 	pVertex->R = RGB_Pal[color * 3];
-		// 	pVertex->G = RGB_Pal[color * 3 + 1];
-		// 	pVertex->B = RGB_Pal[color * 3 + 2];
-		// 	pVertex->A = 128;
-		// 	pVertex++;
-		// }
+			pVertex->R = RGB_Pal[color * 3];
+			pVertex->G = RGB_Pal[color * 3 + 1];
+			pVertex->B = RGB_Pal[color * 3 + 2];
+			pVertex->A = 128;
+			pVertex++;
+		}
 		break;
 	}
 	case 4: // copper (ramps top to bottom)
@@ -610,6 +723,28 @@ void osystem_flushPendingPrimitives() {
 		numUsedFlatVertices = 0;
 	}
 
+	if (numUsedNoiseVertices) {
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * numUsedNoiseVertices, noiseVertices, GL_STREAM_DRAW));
+
+		noiseShader->use();
+
+		GL_CALL(glActiveTexture(GL_TEXTURE0));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, numUsedNoiseVertices));
+		GL_CALL(glActiveTexture(GL_TEXTURE0));
+
+		noiseShader->unbind();
+
+		glDisable(GL_DEPTH_TEST);
+
+		numUsedNoiseVertices = 0;
+	}
+
 	if (numUsedRampVertices) {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
@@ -631,6 +766,8 @@ void osystem_flushPendingPrimitives() {
 
 		numUsedRampVertices = 0;
 	}
+	numUsedSpheres = 0;
+	numUsedTransparentVertices = 0;
 }
 
 void setPosCamera(int x, int y, int z) {
@@ -668,7 +805,7 @@ void setAngleCamera(int x, int y, int z) {
 	}
 }
 
-static void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut) {
+void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut) {
 	if (x) {
 		int var1 = (((cosTable[(x + 0x100) & 0x3FF] * y) << 1) & 0xFFFF0000) - (((cosTable[x & 0x3FF] * z) << 1) & 0xFFFF0000);
 		int var2 = (((cosTable[x & 0x3FF] * y) << 1) & 0xFFFF0000) + (((cosTable[(x + 0x100) & 0x3FF] * z) << 1) & 0xFFFF0000);
@@ -749,9 +886,345 @@ static void transformPoint(float *ax, float *bx, float *cx) {
 	*cx = (float)Z;
 }
 
+static void TranslateGroupe(int transX, int transY, int transZ, const sGroup *ptr) {
+	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
+
+	for (int i = 0; i < ptr->m_numVertices; i++) {
+		*(ptrSource++) += transX;
+		*(ptrSource++) += transY;
+		*(ptrSource++) += transZ;
+	}
+}
+
+static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const sGroup *ptr) {
+	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
+
+	for (int i = 0; i < ptr->m_numVertices; i++) {
+		*(ptrSource++) = (*(ptrSource) * (zoomX + 256)) / 256;
+		*(ptrSource++) = (*(ptrSource) * (zoomY + 256)) / 256;
+		*(ptrSource++) = (*(ptrSource) * (zoomZ + 256)) / 256;
+	}
+}
+
+static void InitGroupeRot(int transX, int transY, int transZ) {
+	if (transX) {
+		boneRotateXCos = cosTable[transX & 0x3FF];
+		boneRotateXSin = cosTable[(transX + 0x100) & 0x3FF];
+
+		boneRotateX = true;
+	} else {
+		boneRotateX = false;
+	}
+
+	if (transY) {
+		boneRotateYCos = cosTable[transY & 0x3FF];
+		boneRotateYSin = cosTable[(transY + 0x100) & 0x3FF];
+
+		boneRotateY = true;
+	} else {
+		boneRotateY = false;
+	}
+
+	if (transZ) {
+		boneRotateZCos = cosTable[transZ & 0x3FF];
+		boneRotateZSin = cosTable[(transZ + 0x100) & 0x3FF];
+
+		boneRotateZ = true;
+	} else {
+		boneRotateZ = false;
+	}
+}
+
+static void RotateList(int16 *pointPtr, int numOfPoint) {
+	for (int i = 0; i < numOfPoint; i++) {
+		int x = *(int16 *)pointPtr;
+		int y = *(int16 *)(pointPtr + 1);
+		int z = *(int16 *)(pointPtr + 2);
+
+		if (boneRotateY) {
+			int tempX = x;
+			int tempZ = z;
+
+			x = ((((tempX * boneRotateYSin) - (tempZ * boneRotateYCos))) >> 16) << 1;
+			z = ((((tempX * boneRotateYCos) + (tempZ * boneRotateYSin))) >> 16) << 1;
+		}
+
+		if (boneRotateX) {
+			int tempY = y;
+			int tempZ = z;
+			y = ((((tempY * boneRotateXSin) - (tempZ * boneRotateXCos))) >> 16) << 1;
+			z = ((((tempY * boneRotateXCos) + (tempZ * boneRotateXSin))) >> 16) << 1;
+		}
+
+		if (boneRotateZ) {
+			int tempX = x;
+			int tempY = y;
+			x = ((((tempX * boneRotateZSin) - (tempY * boneRotateZCos))) >> 16) << 1;
+			y = ((((tempX * boneRotateZCos) + (tempY * boneRotateZSin))) >> 16) << 1;
+		}
+
+		*(int16 *)(pointPtr) = x;
+		*(int16 *)(pointPtr + 1) = y;
+		*(int16 *)(pointPtr + 2) = z;
+
+		pointPtr += 3;
+	}
+}
+
+static void RotateGroupeOptimise(const sGroup *ptr) {
+	if (ptr->m_numGroup) // if group number is 0
+	{
+		int baseBone = ptr->m_start;
+		int numPoints = ptr->m_numVertices;
+
+		RotateList(pointBuffer + baseBone * 3, numPoints);
+	}
+}
+
+static void RotateGroupe(sGroup *ptr) {
+	int baseBone = ptr->m_start;
+	int numPoints = ptr->m_numVertices;
+	int temp;
+	int temp2;
+
+	RotateList(pointBuffer + baseBone * 3, numPoints);
+
+	temp = ptr->m_numGroup; // group number
+
+	temp2 = numOfBones - temp;
+
+	do {
+		if (ptr->m_orgGroup == temp) // is it on of this group child
+		{
+			RotateGroupe(ptr); // yes, so apply the transformation to him
+		}
+
+		ptr++;
+	} while (--temp2);
+}
+
 static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
-	// TODO:
-	assert(false);
+	renderX = x - translateX;
+	renderY = y;
+	renderZ = z - translateZ;
+
+	assert(pBody->m_vertices.size() < NUM_MAX_POINT_IN_POINT_BUFFER);
+
+	for (int i = 0; i < pBody->m_vertices.size(); i++) {
+		pointBuffer[i * 3 + 0] = pBody->m_vertices[i].x;
+		pointBuffer[i * 3 + 1] = pBody->m_vertices[i].y;
+		pointBuffer[i * 3 + 2] = pBody->m_vertices[i].z;
+	}
+
+	numOfPoints = pBody->m_vertices.size();
+	numOfBones = pBody->m_groupOrder.size();
+	assert(numOfBones < NUM_MAX_BONES);
+
+	if (pBody->m_flags & INFO_OPTIMISE) {
+		for (int i = 0; i < pBody->m_groupOrder.size(); i++) {
+			int boneDataOffset = pBody->m_groupOrder[i];
+			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
+
+			switch (pGroup->m_state.m_type) {
+			case 1:
+				if (pGroup->m_state.m_delta[0] || pGroup->m_state.m_delta[1] || pGroup->m_state.m_delta[2]) {
+					TranslateGroupe(pGroup->m_state.m_delta[0], pGroup->m_state.m_delta[1], pGroup->m_state.m_delta[2], pGroup);
+				}
+				break;
+			case 2:
+				if (pGroup->m_state.m_delta[0] || pGroup->m_state.m_delta[1] || pGroup->m_state.m_delta[2]) {
+					ZoomGroupe(pGroup->m_state.m_delta[0], pGroup->m_state.m_delta[1], pGroup->m_state.m_delta[2], pGroup);
+				}
+				break;
+			}
+
+			InitGroupeRot(pGroup[0].m_state.m_rotateDelta[0], pGroup[0].m_state.m_rotateDelta[1], pGroup[0].m_state.m_rotateDelta[2]);
+			RotateGroupeOptimise(pGroup);
+		}
+	} else {
+		pBody->m_groups[0].m_state.m_delta[0] = alpha;
+		pBody->m_groups[0].m_state.m_delta[1] = beta;
+		pBody->m_groups[0].m_state.m_delta[2] = gamma;
+
+		for (int i = 0; i < pBody->m_groups.size(); i++) {
+			int boneDataOffset = pBody->m_groupOrder[i];
+			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
+
+			int transX = pGroup->m_state.m_delta[0];
+			int transY = pGroup->m_state.m_delta[1];
+			int transZ = pGroup->m_state.m_delta[2];
+
+			if (transX || transY || transZ) {
+				switch (pGroup->m_state.m_type) {
+				case 0: {
+					InitGroupeRot(transX, transY, transZ);
+					RotateGroupe(pGroup);
+					break;
+				}
+				case 1: {
+					TranslateGroupe(transX, transY, transZ, pGroup);
+					break;
+				}
+				case 2: {
+					ZoomGroupe(transX, transY, transZ, pGroup);
+					break;
+				}
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < pBody->m_groups.size(); i++) {
+		const sGroup *pGroup = &pBody->m_groups[i];
+
+		int j;
+
+		int point1;
+		int point2;
+
+		const int16 *ptr1;
+		int16 *ptr2;
+
+		int number;
+
+		int ax;
+		int bx;
+		int dx;
+
+		point1 = pGroup->m_baseVertices * 6;
+		point2 = pGroup->m_start * 6;
+
+		assert(point1 % 2 == 0);
+		assert(point2 % 2 == 0);
+
+		point1 /= 2;
+		point2 /= 2;
+
+		assert(point1 / 3 < NUM_MAX_POINT_IN_POINT_BUFFER);
+		assert(point2 / 3 < NUM_MAX_POINT_IN_POINT_BUFFER);
+
+		ptr1 = (int16 *)&pointBuffer[point1];
+		ptr2 = (int16 *)&pointBuffer[point2];
+
+		number = pGroup->m_numVertices;
+
+		ax = ptr1[0];
+		bx = ptr1[1];
+		dx = ptr1[2];
+
+		for (j = 0; j < number; j++) {
+			*(ptr2++) += ax;
+			*(ptr2++) += bx;
+			*(ptr2++) += dx;
+		}
+	}
+
+	if (modelFlags & INFO_OPTIMISE) {
+		InitGroupeRot(alpha, beta, gamma);
+		RotateList(pointBuffer, numOfPoints);
+	}
+
+	{
+		char *ptr = (char *)pointBuffer;
+		int16 *outPtr = cameraSpaceBuffer;
+		int k = numOfPoints;
+
+		float *outPtr2;
+
+		for (int i = 0; i < numOfPoints; i++) {
+			float X = *(int16 *)ptr;
+			float Y = *(int16 *)(ptr + 2);
+			float Z = *(int16 *)(ptr + 4);
+			ptr += 6;
+
+			X += renderX;
+			Y += renderY;
+			Z += renderZ;
+
+#if defined(AITD_UE4)
+			*(outPtr++) = (int16)X;
+			*(outPtr++) = (int16)Y;
+			*(outPtr++) = (int16)Z;
+#else
+			if (Y > 10000) // height clamp
+			{
+				*(outPtr++) = -10000;
+				*(outPtr++) = -10000;
+				*(outPtr++) = -10000;
+			} else {
+				Y -= translateY;
+
+				transformPoint(&X, &Y, &Z);
+
+				*(outPtr++) = (int16)X;
+				*(outPtr++) = (int16)Y;
+				*(outPtr++) = (int16)Z;
+			}
+#endif
+		}
+
+		ptr = (char *)cameraSpaceBuffer;
+		outPtr2 = renderPointList;
+
+		do {
+			float X;
+			float Y;
+			float Z;
+
+			X = *(int16 *)ptr;
+			ptr += 2;
+			Y = *(int16 *)ptr;
+			ptr += 2;
+			Z = *(int16 *)ptr;
+			ptr += 2;
+
+#if defined(AITD_UE4)
+			*(outPtr2++) = X;
+			*(outPtr2++) = Y;
+			*(outPtr2++) = Z;
+#else
+			Z += cameraPerspective;
+
+			if (Z <= 50) // clipping
+			{
+				*(outPtr2++) = -10000;
+				*(outPtr2++) = -10000;
+				*(outPtr2++) = -10000;
+			} else {
+				float transformedX = ((X * cameraFovX) / Z) + cameraCenterX;
+				float transformedY;
+
+				*(outPtr2++) = transformedX;
+
+				if (transformedX < BBox3D1)
+					BBox3D1 = (int)transformedX;
+
+				if (transformedX > BBox3D3)
+					BBox3D3 = (int)transformedX;
+
+				transformedY = ((Y * cameraFovY) / Z) + cameraCenterY;
+
+				*(outPtr2++) = transformedY;
+
+				if (transformedY < BBox3D2)
+					BBox3D2 = (int)transformedY;
+
+				if (transformedY > BBox3D4)
+					BBox3D4 = (int)transformedY;
+
+				*(outPtr2++) = Z;
+			}
+#endif
+
+			k--;
+			if (k == 0) {
+				return (1);
+			}
+
+		} while (renderVar1 == 0);
+	}
+
+	return (0);
 }
 
 static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
@@ -909,13 +1382,93 @@ static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
 }
 
 static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out) {
-	// TODO:
-	assert(false);
+	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+
+	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
+
+	pCurrentPrimEntry->type = primType;
+	pCurrentPrimEntry->numOfVertices = 1;
+	pCurrentPrimEntry->color = ptr->m_color;
+	pCurrentPrimEntry->material = ptr->m_material;
+
+	float depth = 32000.f;
+	{
+		uint16 pointIndex;
+		pointIndex = ptr->m_points[0] * 6;
+		assert((pointIndex % 2) == 0);
+		pCurrentPrimEntry->vertices[0].X = renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[0].Y = renderPointList[(pointIndex / 2) + 1];
+		pCurrentPrimEntry->vertices[0].Z = renderPointList[(pointIndex / 2) + 2];
+
+		depth = pCurrentPrimEntry->vertices[0].Z;
+	}
+
+#if !defined(AITD_UE4)
+	if (depth > 100)
+#endif
+	{
+		positionInPrimEntry++;
+
+		numOfPrimitiveToRender++;
+		assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
+	}
 }
 
-static void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
-	// TODO:
-	assert(false);
+void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr) {
+	sBody *pBody = getBodyFromPtr(bodyPtr);
+
+	BBox3D1 = 0x7FFF;
+	BBox3D2 = 0x7FFF;
+
+	BBox3D3 = -0x7FFF;
+	BBox3D4 = -0x7FFF;
+
+	renderVar1 = 0;
+
+	numOfPrimitiveToRender = 0;
+
+	renderVar2 = renderBuffer;
+
+	modelFlags = pBody->m_flags;
+
+	if (modelFlags & INFO_ANIM) {
+		pBody->sync();
+		animNuage(x, y, z, alpha, beta, gamma, pBody);
+	}
+}
+
+void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
+	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+
+	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
+
+	pCurrentPrimEntry->type = primTypeEnum_Sphere;
+	pCurrentPrimEntry->numOfVertices = 1;
+	pCurrentPrimEntry->color = ptr->m_color;
+	pCurrentPrimEntry->material = ptr->m_material;
+	pCurrentPrimEntry->size = ptr->m_size;
+
+	float depth = 32000.f;
+	{
+		uint16 pointIndex;
+		pointIndex = ptr->m_points[0] * 6;
+		assert((pointIndex % 2) == 0);
+		pCurrentPrimEntry->vertices[0].X = renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[0].Y = renderPointList[(pointIndex / 2) + 1];
+		pCurrentPrimEntry->vertices[0].Z = renderPointList[(pointIndex / 2) + 2];
+
+		depth = pCurrentPrimEntry->vertices[0].Z;
+	}
+
+#if !defined(AITD_UE4)
+	if (depth > 100)
+#endif
+	{
+		positionInPrimEntry++;
+
+		numOfPrimitiveToRender++;
+		assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
+	}
 }
 
 typedef void (*renderFunction)(primEntryStruct *buffer);
@@ -933,26 +1486,31 @@ void renderPoly(primEntryStruct *pEntry) // poly
 
 void renderZixel(primEntryStruct *pEntry) // point
 {
-	// TODO:
-	assert(false);
+	float pointSize = 20.f;
+	float transformedSize = ((pointSize * (float)cameraFovX) / (float)(pEntry->vertices[0].Z + cameraPerspective));
+
+	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
 void renderPoint(primEntryStruct *pEntry) // point
 {
-	// TODO:
-	assert(false);
+	float pointSize = 0.3f; // TODO: better way to compute that?
+	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, pointSize);
 }
 
 void renderBigPoint(primEntryStruct *pEntry) // point
 {
-	// TODO:
-	assert(false);
+	float bigPointSize = 2.f; // TODO: better way to compute that?
+	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, bigPointSize);
 }
 
 void renderSphere(primEntryStruct *pEntry) // sphere
 {
-	// TODO:
-	assert(false);
+	float transformedSize;
+
+	transformedSize = (((float)pEntry->size * (float)cameraFovX) / (float)(pEntry->vertices[0].Z + cameraPerspective));
+
+	osystem_drawSphere(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
 renderFunction renderFunctions[] = {
@@ -1181,26 +1739,171 @@ void flushScreen(void) {
 	}
 }
 
-void osystem_createMask(const uint8* mask, int roomId, int maskId, unsigned char* refImage, int maskX1, int maskY1, int maskX2, int maskY2)
-{
-	assert(false);
+void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
+	if (maskTextures.size() < roomId + 1) {
+		maskTextures.resize(roomId + 1);
+	}
+	if (maskTextures[roomId].size() < maskId + 1) {
+		maskTextures[roomId].resize(maskId + 1);
+	}
+
+	if (maskTextures[roomId][maskId].maskTexture) {
+		glDeleteTextures(1, &maskTextures[roomId][maskId].maskTexture);
+		maskTextures[roomId][maskId].maskTexture = 0;
+	}
+
+	if (maskTextures[roomId][maskId].vertexBuffer) {
+		glDeleteBuffers(1, &maskTextures[roomId][maskId].vertexBuffer);
+		maskTextures[roomId][maskId].vertexBuffer = 0;
+	}
+
+	GL_CALL(glGenTextures(1, &maskTextures[roomId][maskId].maskTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, maskTextures[roomId][maskId].maskTexture));
+	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, mask));
+
+	maskTextures[roomId][maskId].maskX1 = maskX1;
+	maskTextures[roomId][maskId].maskX2 = maskX2 + 1;
+	maskTextures[roomId][maskId].maskY1 = maskY1;
+	maskTextures[roomId][maskId].maskY2 = maskY2 + 1;
+
+	struct sVertice {
+		float position[3];
+		float texcoord[2];
+	} vertexBuffer[4];
+
+	GLuint vbo;
+	GL_CALL(glGenBuffers(1, &vbo));
+	maskShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sVertice), (uint32)0);
+	maskShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sVertice), (uint32)(3 * sizeof(float)));
+
+	float X1 = maskTextures[roomId][maskId].maskX1;
+	float X2 = maskTextures[roomId][maskId].maskX2;
+	float Y1 = maskTextures[roomId][maskId].maskY1;
+	float Y2 = maskTextures[roomId][maskId].maskY2;
+
+	float maskZ = 0.f;
+
+	sVertice *pVertices = vertexBuffer;
+	pVertices->position[0] = X1;
+	pVertices->position[1] = Y2;
+	pVertices->position[2] = maskZ;
+	pVertices->texcoord[0] = X1 / 320.f;
+	pVertices->texcoord[1] = Y2 / 200.f;
+	pVertices++;
+	pVertices->position[0] = X1;
+	pVertices->position[1] = Y1;
+	pVertices->position[2] = maskZ;
+	pVertices->texcoord[0] = X1 / 320.f;
+	pVertices->texcoord[1] = Y1 / 200.f;
+	pVertices++;
+	pVertices->position[0] = X2;
+	pVertices->position[1] = Y2;
+	pVertices->position[2] = maskZ;
+	pVertices->texcoord[0] = X2 / 320.f;
+	pVertices->texcoord[1] = Y2 / 200.f;
+	pVertices++;
+	pVertices->position[0] = X2;
+	pVertices->position[1] = Y1;
+	pVertices->position[2] = maskZ;
+	pVertices->texcoord[0] = X2 / 320.f;
+	pVertices->texcoord[1] = Y1 / 200.f;
+
+	maskTextures[roomId][maskId].vertexBuffer = vbo;
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(sVertice) * 4, vertexBuffer, GL_STREAM_DRAW));
 }
 
-void osystem_stopModelRender()
-{
-    osystem_flushPendingPrimitives();
+void osystem_stopModelRender() {
+	osystem_flushPendingPrimitives();
 }
 
-void osystem_setClip(float left, float top, float right, float bottom){
-	assert(0);
+void osystem_setClip(float left, float top, float right, float bottom) {
+	// TODO: assert(0);
 }
 
 void osystem_drawMask(int roomId, int maskId) {
-	assert(0);
+	// if (g_gameId == TIMEGATE)
+	//     return;
+
+	if (!maskTextures[roomId][maskId].maskTexture)
+		return;
+
+	if (!maskTextures[roomId][maskId].vertexBuffer)
+		return;
+
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, maskTextures[roomId][maskId].vertexBuffer));
+
+	maskShader->use();
+
+	GL_CALL(glActiveTexture(GL_TEXTURE0));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, maskTextures[roomId][maskId].maskTexture));
+
+	GL_CALL(glActiveTexture(GL_TEXTURE1));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+
+	GL_CALL(glActiveTexture(GL_TEXTURE2));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_backgroundTexture));
+
+	GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+	GL_CALL(glActiveTexture(GL_TEXTURE0));
+
+	maskShader->unbind();
 }
 
 void osystem_clearClip() {
-	assert(0);
+	// TODO: aassert(0);
+}
+
+void osystem_flip(unsigned char *videoBuffer) {
+	osystem_flushPendingPrimitives();
+}
+
+void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+	sphereVertex corners[4];
+	corners[0].X = X + size;
+	corners[0].Y = Y + size;
+	corners[0].Z = Z;
+
+	corners[1].X = X + size;
+	corners[1].Y = Y - size;
+	corners[1].Z = Z;
+
+	corners[2].X = X - size;
+	corners[2].Y = Y - size;
+	corners[2].Z = Z;
+
+	corners[3].X = X - size;
+	corners[3].Y = Y + size;
+	corners[3].Z = Z;
+
+	const int mapping[] = {
+		0, 1, 2,
+		0, 2, 3};
+
+	for (int i = 0; i < 2 * 3; i++) {
+		sphereVertex *pVertex = &sphereVertices[numUsedSpheres];
+		numUsedSpheres++;
+		assert(numUsedSpheres < NUM_MAX_SPHERES_VERTICES);
+
+		pVertex->X = corners[mapping[i]].X;
+		pVertex->Y = corners[mapping[i]].Y;
+		pVertex->Z = corners[mapping[i]].Z;
+		pVertex->U = (color & 0xF) / 15.f;
+		pVertex->V = ((color & 0xF0) >> 4) / 15.f;
+		pVertex->size = size;
+		pVertex->centerX = X;
+		pVertex->centerY = Y;
+		pVertex->material = material;
+	}
+}
+
+void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+	osystem_drawPoint(X, Y, Z, color, material, size);
 }
 
 } // namespace Fitd

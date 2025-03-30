@@ -97,8 +97,7 @@ void processSystemMenu(void) {
 	while (!exitMenu) {
 		AffOptionList(currentSelectedEntry);
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
-		// osystem_startFrame();
-		osystem_drawBackground();
+		osystem_startFrame();
 		process_events();
 		flushScreen();
 		osystem_drawBackground();
@@ -162,7 +161,7 @@ void processSystemMenu(void) {
 			}
 		}
 
-		// osystem_flip(NULL);
+		osystem_flip(NULL);
 	}
 
 	// fadeOut(32,2);

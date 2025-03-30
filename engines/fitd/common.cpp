@@ -20,6 +20,8 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/aitd_box.h"
+#include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/costable.h"
 #include "fitd/file_access.h"
@@ -36,6 +38,7 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
+#include "common/debug.h"
 #include "common/file.h"
 
 namespace Fitd {
@@ -507,8 +510,8 @@ static void initEngine(void) {
 
 	CVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
 
-	listLife = HQR_InitRessource("LISTLIFE", 65000, 100);
-	listTrack = HQR_InitRessource("LISTTRAK", 20000, 100);
+	listLife = HQR_InitRessource("LISTLIFE.PAK", 65000, 100);
+	listTrack = HQR_InitRessource("LISTTRAK.PAK", 20000, 100);
 
 	// TODO: missing dos memory check here
 
@@ -638,17 +641,16 @@ void copyZv(ZVStruct *source, ZVStruct *dest) {
 }
 
 void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom) {
-	assert(0);
-	// unsigned int Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
-	// unsigned int Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
-	// unsigned int Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
+	unsigned int Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
+	unsigned int Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
+	unsigned int Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
 
-	// zvPtr->ZVX1 -= Xdif;
-	// zvPtr->ZVX2 -= Xdif;
-	// zvPtr->ZVY1 += Ydif;
-	// zvPtr->ZVY2 += Ydif;
-	// zvPtr->ZVZ1 += Zdif;
-	// zvPtr->ZVZ2 += Zdif;
+	zvPtr->ZVX1 -= Xdif;
+	zvPtr->ZVX2 -= Xdif;
+	zvPtr->ZVY1 += Ydif;
+	zvPtr->ZVY2 += Ydif;
+	zvPtr->ZVZ1 += Zdif;
+	zvPtr->ZVZ2 += Zdif;
 }
 
 void initCopyBox(char *var0, char *var1) {
@@ -1794,7 +1796,7 @@ void mainDraw(int flagFlip) {
 		if (flagFlip) {
 			if (flagFlip == 2 || lightVar2) {
 				// makeBlackPalette();
-				//  osystem_flip(NULL);
+				 osystem_flip(NULL);
 				fadeInPhys(0x10, 0);
 				lightVar2 = 0;
 			} else {
@@ -1951,6 +1953,812 @@ void checkIfCameraChangeIsRequired(void) {
 		startGameVar1 = localCurrentCam;
 		flagInitView = 1;
 	}
+}
+
+void readBook(int index, int type) {
+	freezeTime();
+
+	// switch(g_gameId)
+	// {
+	// case AITD1:
+	aitd1_readBook(index, type);
+	// 	break;
+	// case JACK:
+	// 	JACK_ReadBook(index, type);
+	// 	break;
+	// case AITD2:
+	// 	AITD2_ReadBook(index, type);
+	// 	break;
+	// default:
+	// 	assert(0);
+
+	// }
+
+	unfreezeTime();
+}
+
+int findObjectInInventory(int objIdx) {
+	for (int i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
+		if (inventoryTable[currentInventory][i] == objIdx) {
+			return (i);
+		}
+	}
+
+	return (-1);
+}
+
+void makeMessage(int messageIdx) {
+	textEntryStruct *messagePtr;
+
+	messagePtr = getTextFromIdx(messageIdx);
+
+	if (messagePtr) {
+		int i;
+
+		for (i = 0; i < 5; i++) {
+			if (messageTable[i].string == messagePtr) {
+				messageTable[i].time = 0;
+				return;
+			}
+		}
+
+		for (i = 0; i < 5; i++) {
+			if (messageTable[i].string == NULL) {
+				messageTable[i].string = messagePtr;
+				messageTable[i].time = 0;
+				return;
+			}
+		}
+	}
+}
+
+void cleanClip() {
+	for (int x = clipLeft; x < clipRight; x++) {
+		for (int y = clipTop; y < clipBottom; y++) {
+			logicalScreen[y * 320 + x] = 0;
+		}
+	}
+}
+
+void drawFoundObect(int menuState, int objectName, int zoomFactor) {
+	cleanClip();
+
+	setCameraTarget(0, 0, 0, 60, statusVar1, 0, zoomFactor);
+
+	affObjet(0, 0, 0, 0, 0, 0, HQR_Get(listBody, currentFoundBodyIdx));
+
+	simpleMessage(160, WindowY1, 20, 1);
+	simpleMessage(160, WindowY1 + 16, objectName, 1);
+	simpleMessage(160, WindowY1 + 16, objectName, 1);
+
+	switch (menuState) {
+	case 0: {
+		selectedMessage(130, WindowY2 - 16, 21, 1, 4);
+		simpleMessage(190, WindowY2 - 16, 22, 4);
+		break;
+	}
+	case 1: {
+		simpleMessage(130, WindowY2 - 16, 21, 4);
+		selectedMessage(190, WindowY2 - 16, 22, 1, 4);
+		break;
+	}
+	case 2: {
+		selectedMessage(160, WindowY2 - 16, 10, 1, 4);
+		break;
+	}
+	}
+}
+
+void foundObject(int objIdx, int param) {
+	tWorldObject *objPtr;
+	int var_C = 0;
+	int var_6 = 1;
+	int i;
+	int var_A = 15000;
+	int var_8 = -200;
+
+	if (objIdx < 0)
+		return;
+
+	if (param == 2) {
+		debug("foundObject with param == 2\n");
+	}
+
+	objPtr = &ListWorldObjets[objIdx];
+
+	if (param != 0 && (objPtr->flags2 & 0xC000)) {
+		return;
+	}
+
+	if (objPtr->trackNumber) {
+		if (timer - objPtr->trackNumber < 300) // prevent from reopening the window every frame
+			return;
+	}
+
+	objPtr->trackNumber = 0;
+
+	freezeTime();
+	//  setupShaking(1000); // probably to remove the shaking when in foundObject screen
+
+	int weight = 0;
+	for (i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
+		weight += ListWorldObjets[inventoryTable[currentInventory][i]].positionInTrack;
+	}
+
+	if (objPtr->positionInTrack + weight > CVars[getCVarsIdx(MAX_WEIGHT_LOADABLE)] || numObjInInventoryTable[currentInventory] + 1 == 30) {
+		var_6 = 3;
+	}
+
+	currentFoundBodyIdx = objPtr->foundBody;
+	currentFoundBody = HQR_Get(listBody, currentFoundBodyIdx);
+
+	setupCameraProjection(160, 100, 128, 300, 298);
+
+	statusVar1 = 0;
+
+	memset(frontBuffer, 0, 320 * 200);
+	fastCopyScreen(frontBuffer, logicalScreen);
+
+	affBigCadre(160, 100, 240, 120);
+
+	drawFoundObect(var_6, objPtr->foundName, var_A);
+	osystem_flip(NULL);
+
+	input5 = 1;
+
+	while (!var_C) {
+		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+
+		process_events();
+		osystem_drawBackground();
+
+		localKey = key;
+		localJoyD = JoyD;
+		localClick = Click;
+
+		if (!input5) {
+			if (localKey == 1) {
+				if (var_6 != 2) {
+					var_6 = 0;
+				}
+
+				var_C = 1;
+			}
+			if (var_6 != 2) {
+				if (localJoyD & 4) {
+					var_6 = 0;
+				}
+
+				if (localJoyD & 8) {
+					var_6 = 1;
+				}
+			}
+
+			if (localKey == 28 || localClick != 0) {
+				while (key) {
+					process_events();
+				}
+
+				var_C = 1;
+			}
+		} else {
+			if (!localKey && !localJoyD && !localClick)
+				input5 = 0;
+		}
+
+		statusVar1 -= 8;
+
+		var_A += var_8; // zoom / dezoom
+
+		if (var_A > 8000) // zoom management
+			var_8 = -var_8;
+
+		if (var_A < 25000)
+			var_8 = -var_8;
+
+		drawFoundObect(var_6, objPtr->foundName, var_A);
+
+		//    menuWaitVSync();
+	}
+
+	unfreezeTime();
+
+	if (var_6 == 1) {
+		take(objIdx);
+	} else {
+		objPtr->trackNumber = timer;
+	}
+
+	while (key && Click) {
+		process_events();
+	}
+
+	localJoyD = 0;
+	localKey = 0;
+	localClick = 0;
+
+	//  if(mainLoopVar1 != 0)
+	{
+		// setupShaking(-600);
+	}
+
+	flagInitView = 1;
+}
+
+void DeleteInventoryObjet(int objIdx) {
+	int inventoryIdx;
+
+	inventoryIdx = findObjectInInventory(objIdx);
+
+	if (inventoryIdx != -1) {
+		memmove(&inventoryTable[currentInventory][inventoryIdx], &inventoryTable[currentInventory][inventoryIdx + 1], (30 - inventoryIdx - 1) * 2);
+
+		numObjInInventoryTable[currentInventory]--;
+	}
+
+	ListWorldObjets[objIdx].flags2 &= 0x7FFF;
+}
+
+void PutAtObjet(int objIdx, int objIdxToPutAt) {
+	tWorldObject *objPtr = &ListWorldObjets[objIdx];
+	tWorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
+
+	if (objPtrToPutAt->objIndex != -1) {
+		tObject *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
+
+		DeleteInventoryObjet(objIdx);
+
+		if (objPtr->objIndex == -1) {
+			objPtr->x = actorToPutAtPtr->roomX;
+			objPtr->y = actorToPutAtPtr->roomY;
+			objPtr->z = actorToPutAtPtr->roomZ;
+			objPtr->room = actorToPutAtPtr->room;
+			objPtr->stage = actorToPutAtPtr->stage;
+			objPtr->alpha = actorToPutAtPtr->alpha;
+			objPtr->beta = actorToPutAtPtr->beta;
+			objPtr->gamma = actorToPutAtPtr->gamma;
+
+			objPtr->flags2 |= 0x4000;
+			objPtr->flags |= 0x80;
+
+			//      FlagGenereActiveList = 1;
+			//      FlagRefreshAux2 = 1;
+		} else {
+			currentProcessedActorPtr->roomX = actorToPutAtPtr->roomX;
+			currentProcessedActorPtr->roomY = actorToPutAtPtr->roomY;
+			currentProcessedActorPtr->roomZ = actorToPutAtPtr->roomZ;
+			currentProcessedActorPtr->room = actorToPutAtPtr->room;
+			currentProcessedActorPtr->stage = actorToPutAtPtr->stage;
+			currentProcessedActorPtr->alpha = actorToPutAtPtr->alpha;
+			currentProcessedActorPtr->beta = actorToPutAtPtr->beta;
+			currentProcessedActorPtr->gamma = actorToPutAtPtr->gamma;
+
+			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
+
+			//      FlagGenereActiveList = 1;
+			//      FlagRefreshAux2 = 1;
+		}
+
+	} else {
+		DeleteInventoryObjet(objIdx);
+
+		if (objPtr->objIndex == -1) {
+			objPtr->x = objPtrToPutAt->x;
+			objPtr->y = objPtrToPutAt->y;
+			objPtr->z = objPtrToPutAt->z;
+			objPtr->room = objPtrToPutAt->room;
+			objPtr->stage = objPtrToPutAt->stage;
+			objPtr->alpha = objPtrToPutAt->alpha;
+			objPtr->beta = objPtrToPutAt->beta;
+			objPtr->gamma = objPtrToPutAt->gamma;
+
+			objPtr->flags2 |= 0x4000;
+			objPtr->flags |= 0x80;
+
+			//      FlagGenereActiveList = 1;
+			//      FlagRefreshAux2 = 1;
+		} else {
+			currentProcessedActorPtr->roomX = objPtrToPutAt->x;
+			currentProcessedActorPtr->roomY = objPtrToPutAt->y;
+			currentProcessedActorPtr->roomZ = objPtrToPutAt->z;
+			currentProcessedActorPtr->room = objPtrToPutAt->room;
+			currentProcessedActorPtr->stage = objPtrToPutAt->stage;
+			currentProcessedActorPtr->alpha = objPtrToPutAt->alpha;
+			currentProcessedActorPtr->beta = objPtrToPutAt->beta;
+			currentProcessedActorPtr->gamma = objPtrToPutAt->gamma;
+
+			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+			ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags |= 0x80;
+
+			//      FlagGenereActiveList = 1;
+			//      FlagRefreshAux2 = 1;
+		}
+	}
+}
+
+void deleteObject(int objIdx) {
+	tWorldObject *objPtr;
+	int actorIdx;
+	tObject *actorPtr;
+
+	objPtr = &ListWorldObjets[objIdx];
+	actorIdx = objPtr->objIndex;
+
+	if (actorIdx != -1) {
+		actorPtr = &objectTable[actorIdx];
+
+		actorPtr->room = -1;
+		actorPtr->stage = -1;
+
+		//    FlagGenereActiveList = 1;
+
+		if (actorPtr->_flags & AF_BOXIFY) {
+			removeFromBGIncrust(actorIdx);
+		}
+	}
+
+	objPtr->room = -1;
+	objPtr->stage = -1;
+
+	DeleteInventoryObjet(objIdx);
+}
+
+void InitRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr) {
+	rotatePtr->oldAngle = beta;
+	rotatePtr->newAngle = newBeta;
+	rotatePtr->param = param;
+	rotatePtr->timeOfRotate = timer;
+}
+
+int16 updateActorRotation(interpolatedValue *rotatePtr) {
+	int timeDif;
+	int angleDif;
+
+	if (!rotatePtr->param)
+		return (rotatePtr->newAngle);
+
+	timeDif = timer - rotatePtr->timeOfRotate;
+
+	if (timeDif > rotatePtr->param) {
+		rotatePtr->param = 0;
+		return (rotatePtr->newAngle);
+	}
+
+	angleDif = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
+
+	if (angleDif <= 0x200) {
+		if (angleDif >= -0x200) {
+			int angle = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
+			return (rotatePtr->oldAngle & 0x3FF) + (angle * timeDif) / rotatePtr->param;
+		} else {
+			int16 angle = ((rotatePtr->newAngle & 0x3FF) + 0x400) - ((rotatePtr->oldAngle & 0x3FF));
+			return (((rotatePtr->oldAngle & 0x3FF)) + ((angle * timeDif) / rotatePtr->param));
+		}
+	} else {
+		int angle = (rotatePtr->newAngle & 0x3FF) - ((rotatePtr->oldAngle & 0x3FF) + 0x400);
+		return ((angle * timeDif) / rotatePtr->param) + ((rotatePtr->oldAngle & 0x3FF));
+	}
+}
+
+int16 computeDistanceToPoint(int x1, int z1, int x2, int z2) {
+	// int axBackup = x1;
+	x1 -= x2;
+	if ((int16)x1 < 0) {
+		x1 = -(int16)x1;
+	}
+
+	z1 -= z2;
+	if ((int16)z1 < 0) {
+		z1 = -(int16)z1;
+	}
+
+	if ((x1 + z1) > 0xFFFF) {
+		return (0x7D00);
+	} else {
+		return (x1 + z1);
+	}
+}
+
+int AsmCheckListCol(ZVStruct *zvPtr, roomDataStruct *pRoomData) {
+	uint16 i;
+	int hardColVar = 0;
+	hardColStruct *pCurrentEntry = pRoomData->hardColTable;
+
+	for (i = 0; i < pRoomData->numHardCol; i++) {
+		if (((pCurrentEntry->zv.ZVX1) < (zvPtr->ZVX2)) && ((zvPtr->ZVX1) < (pCurrentEntry->zv.ZVX2))) {
+			if (((pCurrentEntry->zv.ZVY1) < (zvPtr->ZVY2)) && ((zvPtr->ZVY1) < (pCurrentEntry->zv.ZVY2))) {
+				if (((pCurrentEntry->zv.ZVZ1) < (zvPtr->ZVZ2)) && ((zvPtr->ZVZ1) < (pCurrentEntry->zv.ZVZ2))) {
+					assert(hardColVar < 10);
+					hardColTable[hardColVar++] = pCurrentEntry;
+				}
+			}
+		}
+
+		pCurrentEntry++;
+	}
+
+	return hardColVar;
+}
+
+void hit(int animNumber, int arg_2, int arg_4, int arg_6, int hitForce, int arg_A) {
+	if (initAnim(animNumber, 0, arg_A)) {
+		currentProcessedActorPtr->animActionANIM = animNumber;
+		currentProcessedActorPtr->animActionFRAME = arg_2;
+		currentProcessedActorPtr->animActionType = 1;
+		currentProcessedActorPtr->animActionParam = arg_6;
+		currentProcessedActorPtr->hotPointID = arg_4;
+		currentProcessedActorPtr->hitForce = hitForce;
+	}
+}
+
+void take(int objIdx) {
+	tWorldObject *objPtr = &ListWorldObjets[objIdx];
+
+	if (numObjInInventoryTable[currentInventory] == 0) {
+		inventoryTable[currentInventory][0] = objIdx;
+	} else {
+		int i;
+
+		for (i = numObjInInventoryTable[currentInventory]; i > 0; i--) {
+			inventoryTable[currentInventory][i + 1] = inventoryTable[currentInventory][i];
+		}
+
+		inventoryTable[currentInventory][1] = objIdx;
+	}
+
+	numObjInInventoryTable[currentInventory]++;
+
+	action = 0x800;
+
+	executeFoundLife(objIdx);
+
+	if (objPtr->objIndex != -1) {
+		deleteObjet(objPtr->objIndex);
+	}
+
+	objPtr->flags2 &= 0xBFFF;
+	objPtr->flags2 |= 0x8000;
+
+	objPtr->room = -1;
+	objPtr->stage = -1;
+}
+
+void walkStep(int angle1, int angle2, int angle3) {
+	rotate(angle3, angle1, angle2, &animMoveZ, &animMoveX);
+}
+
+static void hardColSuB1Sub1(int flag) {
+	switch (flag) {
+	case 1:
+	case 2: {
+		hardColStepZ = 0;
+		break;
+	}
+	case 4:
+	case 8: {
+		hardColStepX = 0;
+		break;
+	}
+	default: {
+		break;
+	}
+	}
+}
+
+void handleCollision(ZVStruct *startZv, ZVStruct *zvPtr2, ZVStruct *zvPtr3) {
+	int32 flag = 0;
+	int32 var_8;
+	int32 halfX;
+	int32 halfZ;
+	int32 var_A;
+	int32 var_6;
+
+	if (startZv->ZVX2 > zvPtr3->ZVX1) {
+		if (zvPtr3->ZVX2 <= startZv->ZVX1) {
+			flag = 8;
+		}
+	} else {
+		flag = 4;
+	}
+
+	if (startZv->ZVZ2 > zvPtr3->ZVZ1) {
+		if (startZv->ZVZ1 >= zvPtr3->ZVZ2) {
+			flag |= 2;
+		}
+	} else {
+		flag |= 1;
+	}
+
+	if (flag == 5 || flag == 9 || flag == 6 || flag == 10) {
+		var_8 = 2;
+	} else {
+		if (!flag) {
+			var_8 = 0;
+
+			hardColStepZ = 0;
+			hardColStepX = 0;
+
+			return;
+		} else {
+			var_8 = 1;
+		}
+	}
+
+	halfX = (zvPtr2->ZVX1 + zvPtr2->ZVX2) / 2;
+	halfZ = (zvPtr2->ZVZ1 + zvPtr2->ZVZ2) / 2;
+
+	if (zvPtr3->ZVX1 > halfX) {
+		var_A = 4;
+	} else {
+		if (zvPtr3->ZVX2 < halfX) {
+			var_A = 0;
+		} else {
+			var_A = 8;
+		}
+	}
+
+	if (zvPtr3->ZVZ1 > halfZ) {
+		var_A |= 1;
+	} else {
+		if (zvPtr3->ZVZ2 < halfZ) {
+			var_A |= 0; // once again, not that much usefull
+		} else {
+			var_A |= 2;
+		}
+	}
+
+	if (var_A == 5 || var_A == 9 || var_A == 6 || var_A == 10) {
+		var_6 = 2;
+	} else {
+		if (!var_A) {
+			var_6 = 0;
+		} else {
+			var_6 = 1;
+		}
+	}
+
+	if (var_8 == 1) {
+		hardColSuB1Sub1(flag);
+		return;
+	}
+
+	if (var_6 == 1 && (var_A & flag)) {
+		hardColSuB1Sub1(var_A);
+		return;
+	}
+
+	if (var_A == flag || flag == 15) {
+		int Xmod = abs(zvPtr2->ZVX1 - startZv->ZVX1); // recheck
+		int Zmod = abs(zvPtr2->ZVZ1 - startZv->ZVZ1);
+
+		if (Xmod > Zmod) {
+			hardColStepZ = 0;
+		} else {
+			hardColStepX = 0;
+		}
+	} else {
+		if (!var_6 || (var_6 == 1 && !(var_A & flag))) {
+			hardColStepZ = 0;
+			hardColStepX = 0;
+		} else {
+			hardColSuB1Sub1(flag & var_A);
+		}
+	}
+}
+
+void addActorToBgInscrust(int actorIdx) {
+	objectTable[actorIdx]._flags |= AF_BOXIFY + AF_DRAWABLE;
+	objectTable[actorIdx]._flags &= ~AF_ANIMATED;
+
+	// FlagRefreshAux2 = 1;
+}
+
+int checkObjectCollisions(int actorIdx, ZVStruct *zvPtr) {
+	int currentCollisionSlot = 0;
+	tObject *currentActor = objectTable;
+	int actorRoom = objectTable[actorIdx].room;
+
+	for (int i = 0; i < 3; i++) {
+		currentProcessedActorPtr->COL[i] = -1;
+	}
+
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
+		if (currentActor->indexInWorld != -1 && i != actorIdx) {
+			ZVStruct *currentActorZv = &currentActor->zv;
+
+			if (currentActor->room != actorRoom) {
+				ZVStruct localZv;
+
+				copyZv(zvPtr, &localZv);
+
+				getZvRelativePosition(&localZv, actorRoom, currentActor->room);
+
+				if (checkZvCollision(&localZv, currentActorZv)) {
+					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
+
+					if (currentCollisionSlot == 3)
+						return (3);
+				}
+			} else {
+				if (checkZvCollision(zvPtr, currentActorZv)) {
+					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
+
+					if (currentCollisionSlot == 3)
+						return (3);
+				}
+			}
+		}
+		currentActor++;
+	}
+
+	return (currentCollisionSlot);
+}
+
+int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, int room, int param) {
+	ZVStruct localZv;
+	int foundFlag = -2;
+	int tempX;
+	int tempZ;
+
+	localZv.ZVX1 = X - param;
+	localZv.ZVX2 = X + param;
+	localZv.ZVY1 = Y - param;
+	localZv.ZVY2 = Y + param;
+	localZv.ZVZ1 = Z - param;
+	localZv.ZVZ2 = Z + param;
+
+	walkStep(param * 2, 0, beta);
+
+	while (foundFlag == -2) {
+		localZv.ZVX1 += animMoveX;
+		localZv.ZVX2 += animMoveX;
+
+		localZv.ZVZ1 += animMoveZ;
+		localZv.ZVZ2 += animMoveZ;
+
+		tempX = X;
+		tempZ = Z;
+
+		X += animMoveX;
+		Z += animMoveZ;
+
+		if (X > 20000 || X < -20000 || Z > 20000 || Z < -20000) {
+			foundFlag = -1;
+			break;
+		}
+
+		if (AsmCheckListCol(&localZv, &roomDataTable[room]) <= 0) {
+			foundFlag = -1;
+		} else {
+			tObject *currentActorPtr = objectTable;
+
+			int i;
+
+			for (i = 0; i < NUM_MAX_OBJECT; i++) {
+				if (currentActorPtr->indexInWorld != -1 && i != actorIdx && !(currentActorPtr->_flags & AF_SPECIAL)) {
+					ZVStruct *zvPtr = &currentActorPtr->zv;
+
+					if (room != currentActorPtr->room) {
+						ZVStruct localZv2;
+
+						copyZv(&localZv, &localZv2);
+						getZvRelativePosition(&localZv2, room, currentActorPtr->room);
+
+						if (!checkZvCollision(&localZv2, zvPtr)) {
+							currentActorPtr++;
+							continue;
+						}
+					} else {
+						if (!checkZvCollision(&localZv, zvPtr)) {
+							currentActorPtr++;
+							continue;
+						}
+					}
+
+					foundFlag = i;
+					break;
+				}
+
+				currentActorPtr++;
+			}
+		}
+	}
+
+	animMoveX = tempX;
+	animMoveY = Y;
+	animMoveZ = tempZ;
+
+	return (foundFlag);
+}
+
+void throwStoppedAt(int x, int z) {
+	int x2;
+	int y2;
+	int z2;
+	int foundPosition;
+	int step;
+
+	ZVStruct zvCopy;
+	ZVStruct zvLocal;
+	uint8 *bodyPtr;
+
+	bodyPtr = (uint8 *)HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
+
+	giveZVObjet((char *)bodyPtr, &zvLocal);
+
+	x2 = x;
+	y2 = (currentProcessedActorPtr->roomY / 2000) * 2000;
+	z2 = z;
+
+	foundPosition = 0;
+	step = 0;
+
+	while (!foundPosition) {
+		walkStep(0, -step, currentProcessedActorPtr->beta + 0x200);
+		copyZv(&zvLocal, &zvCopy);
+
+		x2 = x + animMoveX;
+		z2 = z + animMoveZ;
+
+		zvCopy.ZVX1 += x2;
+		zvCopy.ZVX2 += x2;
+
+		zvCopy.ZVY1 += y2;
+		zvCopy.ZVY2 += y2;
+
+		zvCopy.ZVZ1 += z2;
+		zvCopy.ZVZ2 += z2;
+
+		if (!AsmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
+			foundPosition = 1;
+		}
+
+		if (foundPosition) {
+			if (y2 < -500) {
+				zvCopy.ZVY1 += 100; // is the object reachable ? (100 is Carnby height. If hard col at Y + 100, carnby can't reach that spot)
+				zvCopy.ZVY2 += 100;
+
+				if (!AsmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
+					y2 += 2000;
+					foundPosition = 0;
+				} else {
+					zvCopy.ZVY1 -= 100;
+					zvCopy.ZVY2 -= 100;
+				}
+			}
+		} else {
+			step += 100;
+		}
+	}
+
+	currentProcessedActorPtr->worldX = x2;
+	currentProcessedActorPtr->roomX = x2;
+	currentProcessedActorPtr->worldY = y2;
+	currentProcessedActorPtr->roomY = y2;
+	currentProcessedActorPtr->worldZ = z2;
+	currentProcessedActorPtr->roomZ = z2;
+
+	currentProcessedActorPtr->stepX = 0;
+	currentProcessedActorPtr->stepZ = 0;
+
+	currentProcessedActorPtr->animActionType = 0;
+	currentProcessedActorPtr->speed = 0;
+	currentProcessedActorPtr->gamma = 0;
+
+	giveZVObjet((char *)bodyPtr, &currentProcessedActorPtr->zv);
+
+	currentProcessedActorPtr->zv.ZVX1 += x2;
+	currentProcessedActorPtr->zv.ZVX2 += x2;
+	currentProcessedActorPtr->zv.ZVY1 += y2;
+	currentProcessedActorPtr->zv.ZVY2 += y2;
+	currentProcessedActorPtr->zv.ZVZ1 += z2;
+	currentProcessedActorPtr->zv.ZVZ2 += z2;
+
+	ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 |= 0x4000;
+	ListWorldObjets[currentProcessedActorPtr->indexInWorld].flags2 &= 0xEFFF;
+
+	addActorToBgInscrust(currentProcessedActorIdx);
 }
 
 } // namespace Fitd

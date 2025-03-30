@@ -10,6 +10,7 @@ MODULE_OBJS = \
 	costable.o \
 	common.o \
 	console.o \
+	eval_var.o \
 	file_access.o \
 	fitd.o \
 	font.o \
@@ -23,14 +24,17 @@ MODULE_OBJS = \
 	lines.o \
 	main_loop.o \
 	metaengine.o \
+	music.o \
 	object.o \
 	pak.o \
 	polys.o \
 	room.o \
 	save.o \
+	sequence.o \
 	startup_menu.o \
 	system_menu.o \
 	tatou.o \
+	track.o \
 	unpack.o \
 	vars.o \
 	zv.o

@@ -39,17 +39,16 @@ static void clearScreenTatou(void) {
 }
 
 uint32 lastFrameTime = 0;
+#define FRAMES_PER_SECOND 25
 
 void process_events() {
 	osystem_flushPendingPrimitives();
 	g_system->updateScreen();
-	osystem_drawBackground();
+	osystem_startFrame();
 
-	// Common::Event e;
-	// while (g_system->getEventManager()->pollEvent(e)) {
-	// }
 	readKeyboard();
-	timeGlobal = g_engine->getTotalPlayTime();
+	// TODO: fix this
+	timeGlobal = g_engine->getTotalPlayTime() / (100 / FRAMES_PER_SECOND);
 	timer = timeGlobal;
 }
 
@@ -161,22 +160,18 @@ int make3dTatou(void) {
 	free(tatou3d);
 	free(tatou2d);
 
-	if(key || Click || JoyD)
-	{
-	    while(key)
-	    {
-	      process_events();
-	    }
+	if (key || Click || JoyD) {
+		while (key) {
+			process_events();
+		}
 
-	    fadeOutPhys(32,0);
-	    copyPalette((byte*)paletteBackup,currentGamePalette);
-	    return(1);
-	}
-	else
-	{
-	    fadeOutPhys(16,0);
-	    copyPalette((byte*)paletteBackup,currentGamePalette);
-	    return(0);
+		fadeOutPhys(32, 0);
+		copyPalette((byte *)paletteBackup, currentGamePalette);
+		return (1);
+	} else {
+		fadeOutPhys(16, 0);
+		copyPalette((byte *)paletteBackup, currentGamePalette);
+		return (0);
 	}
 
 	return (0);

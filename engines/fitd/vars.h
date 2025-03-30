@@ -498,7 +498,8 @@ extern int16 shakeVar1;
 extern int16 shakingAmplitude;
 extern unsigned int timerFreeze1;
 
-// extern hardColStruct* hardColTable[10];
+struct hardColStruct;
+extern hardColStruct *hardColTable[10];
 
 extern int16 hardColStepX;
 extern int16 hardColStepZ;
