@@ -25,6 +25,19 @@
 
 namespace Fitd {
 
+Common::Array<Common::Array<int16> > BufferAnim;
+int16 hardColStepX;
+int16 hardColStepZ;
+int bufferAnimCounter = 0;
+
+hardColStruct *hardColTable[10];
+ZVStruct hardClip;
+
+int angleCompX;
+int angleCompZ;
+int angleCompBeta;
+
+int musicConfigured;
 int musicEnabled;
 
 int16 newRoom;
@@ -258,6 +271,22 @@ void sBody::sync() {
 			ptr += 8;
 		}
 	}
+}
+
+int16 readNextArgument(const char *name) {
+	int16 value = *(int16 *)(currentLifePtr);
+	currentLifePtr += 2;
+
+	// if (name)
+	// {
+	//     appendFormated("%s:%d, ",name, value);
+	// }
+	// else
+	// {
+	//     appendFormated("%d, ", value);
+	// }
+
+	return value;
 }
 
 } // namespace Fitd

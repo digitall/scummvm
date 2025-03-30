@@ -50,7 +50,10 @@ void affSpfI(int x, int y, int param, char* gfx);
 void fillBox(int x1, int y1, int x2, int y2, char color); // fast recode. No RE
 void flushScreen(void);
 void setupCamera();
+void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut);
+void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char* bodyPtr);
 
+void osystem_startFrame();
 void osystem_drawBackground();
 void osystem_fillPoly(float *buffer, int numPoint, unsigned char color, byte polyType);
 void osystem_flushPendingPrimitives();
@@ -59,11 +62,16 @@ void osystem_drawMask(int roomId, int maskId);
 void osystem_setClip(float left, float top, float right, float bottom);
 void osystem_clearClip();
 void osystem_stopModelRender();
+void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size);
+void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
+void osystem_flip(unsigned char *videoBuffer);
 
 extern int BBox3D1;
 extern int BBox3D2;
 extern int BBox3D3;
 extern int BBox3D4;
+
+extern int numOfPoints;
 
 #define NUM_MAX_POINT_IN_POINT_BUFFER 800
 #define NUM_MAX_BONES 50

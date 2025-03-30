@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/console.h"
 #include "fitd/detection.h"
@@ -28,6 +29,7 @@
 #include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
+#include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/tatou.h"
 #include "fitd/unpack.h"
@@ -228,6 +230,11 @@ Common::Error FitdEngine::run() {
 
 	setupScreen();
 
+	if (!initMusicDriver()) {
+		musicConfigured = 0;
+		musicEnabled = 0;
+	}
+
 	aux = (char *)malloc(65068);
 	if (!aux) {
 		error("Failed to alloc Aux");
@@ -238,7 +245,11 @@ Common::Error FitdEngine::run() {
 		error("Failed to alloc Aux2");
 	}
 
-	// InitCopyBox(aux2,logicalScreen);
+	initCopyBox(aux2, logicalScreen);
+	BufferAnim.resize(NB_BUFFER_ANIM);
+	for (int i = 0; i < NB_BUFFER_ANIM; i++) {
+		BufferAnim[i].resize(SIZE_BUFFER_ANIM);
+	}
 
 	PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 5);
 	extSetFont(PtrFont, 14);

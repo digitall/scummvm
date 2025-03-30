@@ -24,8 +24,11 @@
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
+#include "fitd/font.h"
 #include "fitd/gfx.h"
+#include "fitd/life.h"
 #include "fitd/main_loop.h"
+#include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/save.h"
 #include "fitd/startup_menu.h"
@@ -53,6 +56,97 @@ int AITD1KnownCVars[] = {
 	DEAD_PERSO,
 	-1};
 
+enumLifeMacro AITD1LifeMacroTable[] =
+	{
+		LM_DO_MOVE,
+		LM_ANIM_ONCE,
+		LM_ANIM_ALL_ONCE,
+		LM_BODY,
+		LM_IF_EGAL,
+		LM_IF_DIFFERENT,
+		LM_IF_SUP_EGAL,
+		LM_IF_SUP,
+		LM_IF_INF_EGAL,
+		LM_IF_INF,
+		LM_GOTO,
+		LM_RETURN,
+		LM_END,
+		LM_ANIM_REPEAT,
+		LM_ANIM_MOVE,
+		LM_MOVE,
+		LM_HIT,
+		LM_MESSAGE,
+		LM_MESSAGE_VALUE,
+		LM_VAR,
+		LM_INC,
+		LM_DEC,
+		LM_ADD,
+		LM_SUB,
+		LM_LIFE_MODE,
+		LM_SWITCH,
+		LM_CASE,
+		LM_CAMERA,
+		LM_START_CHRONO,
+		LM_MULTI_CASE,
+		LM_FOUND,
+		LM_LIFE,
+		LM_DELETE,
+		LM_TAKE,
+		LM_IN_HAND,
+		LM_READ,
+		LM_ANIM_SAMPLE,
+		LM_SPECIAL,
+		LM_DO_REAL_ZV,
+		LM_SAMPLE,
+		LM_TYPE,
+		LM_GAME_OVER,
+		LM_MANUAL_ROT,
+		LM_RND_FREQ,
+		LM_MUSIC,
+		LM_SET_BETA,
+		LM_DO_ROT_ZV,
+		LM_STAGE,
+		LM_FOUND_NAME,
+		LM_FOUND_FLAG,
+		LM_FOUND_LIFE,
+		LM_CAMERA_TARGET,
+		LM_DROP,
+		LM_FIRE,
+		LM_TEST_COL,
+		LM_FOUND_BODY,
+		LM_SET_ALPHA,
+		LM_STOP_BETA,
+		LM_DO_MAX_ZV,
+		LM_PUT,
+		LM_C_VAR,
+		LM_DO_NORMAL_ZV,
+		LM_DO_CARRE_ZV,
+		LM_SAMPLE_THEN,
+		LM_LIGHT,
+		LM_SHAKING,
+		LM_INVENTORY,
+		LM_FOUND_WEIGHT,
+		LM_UP_COOR_Y,
+		LM_SPEED,
+		LM_PUT_AT,
+		LM_DEF_ZV,
+		LM_HIT_OBJECT,
+		LM_GET_HARD_CLIP,
+		LM_ANGLE,
+		LM_REP_SAMPLE,
+		LM_THROW,
+		LM_WATER,
+		LM_PICTURE,
+		LM_STOP_SAMPLE,
+		LM_NEXT_MUSIC,
+		LM_FADE_MUSIC,
+		LM_STOP_HIT_OBJECT,
+		LM_COPY_ANGLE,
+		LM_END_SEQUENCE,
+		LM_SAMPLE_THEN_REPEAT,
+		LM_WAIT_GAME_OVER,
+};
+
 int makeIntroScreens(void) {
 	char *data;
 	unsigned int chrono;
@@ -62,7 +156,7 @@ int makeIntroScreens(void) {
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
 	memcpy(logicalScreen, frontBuffer, 320 * 200);
-	// osystem_flip(NULL);
+	osystem_flip(NULL);
 	free(data);
 	loadPak("ITD_RESS.PAK", AITD1_LIVRE, aux);
 	startChrono(&chrono);
@@ -216,15 +310,15 @@ int choosePerso(void) {
 }
 
 void startAITD1() {
-	// fontHeight = 16;
-	// g_gameUseCDA = true;
+	fontHeight = 16;
+	g_gameUseCDA = true;
 	gfx_setPalette(currentGamePalette);
 
 	if (!make3dTatou()) {
 		makeIntroScreens();
 	}
 
-	while (1) {
+	while (!g_engine->shouldQuit()) {
 		int startupMenuResult = processStartupMenu();
 		switch (startupMenuResult) {
 		case -1: // timeout
@@ -289,6 +383,34 @@ void startAITD1() {
 			break;
 		}
 		}
+	}
+}
+
+void aitd1_readBook(int index, int type) {
+	switch (type) {
+	case 0: // READ_MESSAGE
+	{
+		loadPak("ITD_RESS.PAK", AITD1_LETTRE, aux);
+		turnPageFlag = 0;
+		lire(index, 60, 10, 245, 190, 0, 26, 0);
+		break;
+	}
+	case 1: // READ_BOOK
+	{
+		loadPak("ITD_RESS.PAK", AITD1_LIVRE, aux);
+		turnPageFlag = 1;
+		lire(index, 48, 2, 260, 197, 0, 26, 0);
+		break;
+	}
+	case 2: // READ_CARNET
+	{
+		loadPak("ITD_RESS.PAK", AITD1_CARNET, aux);
+		turnPageFlag = 0;
+		lire(index, 50, 20, 250, 199, 0, 26, 0);
+		break;
+	}
+	default:
+		assert(0);
 	}
 }
 

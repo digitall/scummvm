@@ -57,18 +57,18 @@ int processStartupMenu(void) {
 
 	drawStartupMenu(0);
 
-	osystem_drawBackground();
+	osystem_startFrame();
 	// osystem_stopFrame();
 	gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
-	osystem_drawBackground();
-	// osystem_flip(NULL);
+
+	osystem_flip(NULL);
 	fadeInPhys(16, 0);
 	startChrono(&chrono);
 
 	while (evalChrono(&chrono) <= 0x10000) // exit loop only if time out or if choice made
 	{
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
-		osystem_drawBackground();
+		osystem_startFrame();
 
 		if (selectedEntry != -1 || evalChrono(&chrono) > 0x10000) {
 			break;
@@ -86,7 +86,7 @@ int processStartupMenu(void) {
 			}
 
 			drawStartupMenu(currentSelectedEntry);
-			// osystem_flip(NULL);
+			osystem_flip(NULL);
 			//      menuWaitVSync();
 
 			startChrono(&chrono);
@@ -106,7 +106,7 @@ int processStartupMenu(void) {
 
 			drawStartupMenu(currentSelectedEntry);
 			// menuWaitVSync();
-			// osystem_flip(NULL);
+			osystem_flip(NULL);
 
 			startChrono(&chrono);
 
@@ -120,7 +120,7 @@ int processStartupMenu(void) {
 			selectedEntry = currentSelectedEntry;
 		}
 		// osystem_stopFrame();
-		// osystem_flip(NULL);
+		osystem_flip(NULL);
 	}
 
 	if (selectedEntry == 2) // if exit game, do not fade

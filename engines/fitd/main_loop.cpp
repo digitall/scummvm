@@ -23,6 +23,7 @@
 #include "fitd/anim.h"
 #include "fitd/anim_action.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/gfx.h"
 #include "fitd/inventory.h"
@@ -38,8 +39,7 @@ namespace Fitd {
 int mainLoopSwitch = 0;
 
 void updatePendingEvents(void) {
-	assert(0);
-	//     // TODO: miss pending events here
+	// TODO: miss pending events here
 
 	//     if(currentMusic!=-1)
 	//     {
@@ -71,7 +71,7 @@ void updatePendingEvents(void) {
 void mainLoop(int allowSystemMenu, int deltaTime) {
 	bool bLoop = true;
 
-	while (bLoop) {
+	while (bLoop && !g_engine->shouldQuit()) {
 		process_events();
 
 		localKey = key;

@@ -188,7 +188,7 @@ void renderText(int x, int y, char *surface, const char *string) {
 	}
 }
 
-static textEntryStruct *getTextFromIdx(int index) {
+textEntryStruct *getTextFromIdx(int index) {
 	int currentIndex;
 
 	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {

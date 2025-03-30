@@ -42,6 +42,21 @@ static void readPakInfo(pakInfoStruct *pPakInfo, Common::File &f) {
 	pPakInfo->offset = f.readSint16LE();
 }
 
+unsigned int PAK_getNumFiles(const char* name)
+{
+    Common::File f;
+    f.open(name);
+
+    f.seek(4,SEEK_CUR);
+    uint32 fileOffset = f.readUint32LE();
+// #ifdef MACOSX
+//     fileOffset = READ_LE_U32(&fileOffset);
+// #endif
+    f.close();
+
+    return((fileOffset/4)-2);
+}
+
 char *loadPak(const char *fileName, int index) {
 	Common::File f;
 	f.open(fileName);
@@ -62,7 +77,7 @@ char *loadPak(const char *fileName, int index) {
 	if (pakInfo.offset) {
 		char nameBuffer[256] = "";
 		f.read(nameBuffer,pakInfo.offset);
-		debug("Loading %s\n", nameBuffer+2);
+		debug("Loading %s", nameBuffer+2);
 	}
 
 	char *ptr = 0;
