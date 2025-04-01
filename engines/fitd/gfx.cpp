@@ -1550,7 +1550,6 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 			BBox3D2 = 32000;
 			return (2);
 		}
-		return 0;
 	} else if (!(modelFlags & INFO_TORTUE)) {
 		if (!rotateNuage(x, y, z, alpha, beta, gamma, pBody)) {
 			BBox3D3 = -32000;
