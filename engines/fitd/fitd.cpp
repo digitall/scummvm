@@ -23,6 +23,7 @@
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/console.h"
+#include "fitd/debugtools.h"
 #include "fitd/detection.h"
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
@@ -215,6 +216,14 @@ void allocTextes(void) {
 Common::Error FitdEngine::run() {
 	initGraphics3d(320 * 4, 200 * 4);
 
+#ifdef USE_IMGUI
+	ImGuiCallbacks callbacks;
+	callbacks.init = onImGuiInit;
+	callbacks.render = onImGuiRender;
+	callbacks.cleanup = onImGuiCleanup;
+	_system->setImGuiCallbacks(callbacks);
+#endif
+
 	CVars.resize(45);
 	currentCVarTable = AITD1KnownCVars;
 
@@ -276,6 +285,10 @@ Common::Error FitdEngine::run() {
 	loadPalette();
 
 	startAITD1();
+
+#ifdef USE_IMGUI
+	_system->setImGuiCallbacks(ImGuiCallbacks());
+#endif
 
 	return Common::kNoError;
 }

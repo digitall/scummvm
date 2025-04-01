@@ -39,6 +39,12 @@ MODULE_OBJS = \
 	vars.o \
 	zv.o
 
+ifdef USE_IMGUI
+MODULE_OBJS += \
+	debugtools.o \
+
+endif
+
 # This module can be built as a plugin
 ifeq ($(ENABLE_FITD), DYNAMIC_PLUGIN)
 PLUGIN := 1

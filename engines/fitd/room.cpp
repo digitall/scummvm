@@ -50,13 +50,26 @@ int getNumberOfRoom() {
 	int i;
 	int j = 0;
 
-	int numMax = (((READ_LE_U32(g_currentFloorRoomRawData)) / 4));
+	// if (g_gameId >= AITD3) {
+	// 	char buffer[256];
 
-	for (i = 0; i < numMax; i++) {
-		if (g_currentFloorRoomRawDataSize >= READ_LE_U32(g_currentFloorRoomRawData + i * 4)) {
-			j++;
-		} else {
-			return j;
+	// 	if (g_gameId == AITD3) {
+	// 		sprintf(buffer, "SAL%02d", g_currentFloor);
+	// 	} else {
+	// 		sprintf(buffer, "ETAGE%02d", g_currentFloor);
+	// 	}
+
+	// 	return PAK_getNumFiles(buffer);
+	// } else
+	{
+		int numMax = (((READ_LE_U32(g_currentFloorRoomRawData)) / 4));
+
+		for (i = 0; i < numMax; i++) {
+			if (g_currentFloorRoomRawDataSize >= READ_LE_U32(g_currentFloorRoomRawData + i * 4)) {
+				j++;
+			} else {
+				return j;
+			}
 		}
 	}
 	return j;
@@ -84,9 +97,12 @@ void loadRoom(int roomNumber) {
 		oldCameraIdx = roomDataTable[currentRoom].cameraIdxTable[currentCamera];
 	}
 
-	cameraPtr = (char *)getRoomData(roomNumber); // TODO: obsolete
-	roomDataPtr = getRoomData(roomNumber);
-	pCurrentRoomData = getRoomData(roomNumber);
+	// if (g_gameId < AITD3)
+	{
+		cameraPtr = (char *)getRoomData(roomNumber); // TODO: obsolete
+		roomDataPtr = getRoomData(roomNumber);
+		pCurrentRoomData = getRoomData(roomNumber);
+	}
 
 	currentRoom = roomNumber;
 
@@ -121,7 +137,10 @@ void loadRoom(int roomNumber) {
 			newAbsCamera = currentCameraIdx;
 		}
 
-		room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
+		// if (g_gameId < AITD3)
+		{
+			room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
+		}
 
 		cameraDataTable[i] = &(g_currentFloorCameraData[currentCameraIdx]);
 

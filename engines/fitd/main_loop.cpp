@@ -116,9 +116,12 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 		executeFoundLife(inHandTable[currentInventory]);
 
 		if (changeFloor == 0) {
-			if (CVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
-				//        mainVar2 = 2000;
-				//        mainVar3 = 2000;
+			// if (g_gameId == AITD1)
+			{
+				if (CVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
+					//        mainVar2 = 2000;
+					//        mainVar3 = 2000;
+				}
 			}
 
 			currentProcessedActorPtr = objectTable;
@@ -140,6 +143,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 				if (currentProcessedActorPtr->indexInWorld >= 0) {
 					int flag = currentProcessedActorPtr->_flags;
 
+					// if ((flag & AF_ANIMATED) || (g_gameId >= AITD2 && flag & 0x200)) {
 					if ((flag & AF_ANIMATED)) {
 						updateAnimation();
 					}
@@ -159,12 +163,24 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 			for (currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++) {
 				if (currentProcessedActorPtr->indexInWorld >= 0) {
 					if (currentProcessedActorPtr->life != -1) {
-
-						if (currentProcessedActorPtr->life != -1) {
-							if (currentProcessedActorPtr->lifeMode != -1) {
-								processLife(currentProcessedActorPtr->life, false);
-							}
-						}
+						// switch (g_gameId) {
+						// case AITD2:
+						// case AITD3:
+						// case TIMEGATE: {
+						// 	if (currentProcessedActorPtr->lifeMode & 3)
+						// 		if (!(currentProcessedActorPtr->lifeMode & 4))
+						// 			processLife(currentProcessedActorPtr->life, false);
+						// 	break;
+						// }
+						// case JACK:
+						// case AITD1:
+						// {
+							if (currentProcessedActorPtr->life != -1)
+								if (currentProcessedActorPtr->lifeMode != -1)
+									processLife(currentProcessedActorPtr->life, false);
+							// break;
+						// }
+						// }
 					}
 				}
 
@@ -187,7 +203,43 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 			setupCamera();
 		} else {
 			checkIfCameraChangeIsRequired();
-			if (flagInitView) {
+			// if (g_gameId >= AITD2) {
+			// 	int tempCurrentCamera;
+
+			// 	tempCurrentCamera = currentCamera;
+
+			// 	currentCamera = startGameVar1;
+
+			// 	currentProcessedActorPtr = objectTable;
+			// 	for (currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++) {
+			// 		if (currentProcessedActorPtr->indexInWorld >= 0) {
+			// 			if (currentProcessedActorPtr->life != -1) {
+			// 				if (currentProcessedActorPtr->_flags & 0x200) {
+			// 					if (currentProcessedActorPtr->lifeMode & 3)
+			// 						if (!(currentProcessedActorPtr->lifeMode & 4)) {
+			// 							processLife(currentProcessedActorPtr->life, false);
+			// 							actorTurnedToObj = 1;
+			// 						}
+			// 				}
+			// 			}
+			// 		}
+
+			// 		if (changeFloor)
+			// 			break;
+
+			// 		currentProcessedActorPtr++;
+			// 	}
+
+			// 	if (giveUp)
+			// 		break;
+
+			// 	currentCamera = tempCurrentCamera;
+			// }
+			if (flagInitView
+#ifdef FITD_DEBUGGER
+				|| debuggerVar_topCamera
+#endif
+			) {
 				setupCamera();
 			}
 		}

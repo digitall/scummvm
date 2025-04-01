@@ -29,6 +29,7 @@
     1.0  05 Oct 04  C. Voila        First release
 */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -496,7 +497,7 @@ int PAK_explode(unsigned char * srcBuffer, unsigned char * dstBuffer, unsigned i
   G.ucsize = uncompressedSize;
 
   bl = 7;
-  bd = (compressedSize > 200000L) ? 8 : 7; // TODO : Totalement FOIREUX, � v�rifier
+  bd = (compressedSize > 200000L) ? 8 : 7; // TODO : Totalement FOIREUX, à vérifier
 
   if(flags & 4) {    // With literal tree--minimum match length is 3
     bb = 9;
@@ -560,5 +561,5 @@ int PAK_deflate(unsigned char * srcBuffer, unsigned char * dstBuffer, unsigned i
 void PAK_Error(char * txt) {
   printf("%s", txt);
   getchar();
-//   assert(0);
+  assert(0);
 }

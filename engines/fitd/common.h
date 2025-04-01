@@ -124,15 +124,15 @@ inline int16 READ_LE_S16(const void *p) {
 
 inline uint32 READ_LE_U32(const void *p) {
 	const uint8 *data = (const uint8 *)p;
-	return (uint32)(((uint32)data[3] << 24) | ((uint32)data[2] << 16) | ((uint32)data[1] << 8) | (uint32)data[0]);
+	return ((uint32)data[3] << 24) | ((uint32)data[2] << 16) | ((uint32)data[1] << 8) | (uint32)data[0];
 }
 
-inline uint8 READ_LE_U8(void *ptr) {
-	return *(uint8 *)ptr;
+inline uint8 READ_LE_U8(const void *ptr) {
+	return *(const uint8 *)ptr;
 }
 
-inline int8 READ_LE_S8(void *ptr) {
-	return *(int8 *)ptr;
+inline int8 READ_LE_S8(const void *ptr) {
+	return (int8)READ_LE_U8(ptr);
 }
 
 void startGame(int startupEtage, int startupRoom, int allowSystemMenu);

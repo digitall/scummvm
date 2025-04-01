@@ -323,7 +323,7 @@ void startAITD1() {
 		switch (startupMenuResult) {
 		case -1: // timeout
 		{
-			CVars[getCVarsIdx(CHOOSE_PERSO)] = g_engine->getRandomNumber(0xFFFFFFFF) & 1;
+			CVars[getCVarsIdx(CHOOSE_PERSO)] = g_engine->getRandomNumber(1);
 			startGame(7, 1, 0);
 
 			if (!make3dTatou()) {
