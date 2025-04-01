@@ -30,6 +30,7 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "common/debug.h"
+#include "common/scummsys.h"
 #include "common/util.h"
 #include "graphics/opengl/context.h"
 #include "graphics/opengl/debug.h"
@@ -155,12 +156,6 @@ char *renderVar2 = NULL;
 int modelFlags = 0;
 
 char primBuffer[30000];
-
-int cameraCenterX;
-int cameraCenterY;
-int cameraPerspective;
-int cameraFovX;
-int cameraFovY;
 
 int BBox3D1 = 0;
 int BBox3D2 = 0;
@@ -295,7 +290,6 @@ void main()
 GLuint g_backgroundTexture = 0;
 GLuint g_paletteTexture = 0;
 
-byte currentGamePalette[256 * 3];
 byte RGB_Pal[256 * 3];
 byte frontBuffer[320 * 200];
 byte physicalScreen[320 * 200];
@@ -368,9 +362,7 @@ void gfx_init() {
 
 	// create mask shader
 	maskShader = new OpenGL::Shader();
-	maskShader->loadFromStrings("maskShader", bgVSSrc, maskPSSrc, attributes, 110);
-	maskShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	maskShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	maskShader->loadFromStrings("maskShader", maskVSSrc, maskPSSrc, attributes, 110);
 	maskShader->use();
 	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_maskPalette"), 0));
 	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_palette"), 1));
@@ -559,9 +551,6 @@ void osystem_fillPoly(float *buffer, int numPoint, unsigned char color, uint8 po
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			pVertex->U = (pVertex->X / 320.f) * 50.f + polyMinX * 1.2f + polyMaxX;
-			pVertex->V = (pVertex->Y / 200.f) * 50.f + polyMinY * 0.7f + polyMaxY;
-
 			int bank = (color & 0xF0) >> 4;
 			int startColor = color & 0xF;
 			float colorf = startColor;
@@ -741,7 +730,6 @@ void osystem_flushPendingPrimitives() {
 		noiseShader->unbind();
 
 		glDisable(GL_DEPTH_TEST);
-
 		numUsedNoiseVertices = 0;
 	}
 
@@ -1740,6 +1728,7 @@ void flushScreen(void) {
 }
 
 void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
+	return;
 	if (maskTextures.size() < roomId + 1) {
 		maskTextures.resize(roomId + 1);
 	}
@@ -1822,11 +1811,42 @@ void osystem_stopModelRender() {
 	osystem_flushPendingPrimitives();
 }
 
+void gameScreenToViewport(float *X, float *Y) {
+	(*X) = (*X) * 4.f;
+	(*Y) = (*Y) * 4.f;
+
+	(*Y) = 800.f - (*Y);
+}
+
 void osystem_setClip(float left, float top, float right, float bottom) {
-	// TODO: assert(0);
+	float x1 = left - 1;
+	float y1 = bottom + 1;
+	float x2 = right + 1;
+	float y2 = top - 1;
+
+	gameScreenToViewport(&x1, &y1);
+	gameScreenToViewport(&x2, &y2);
+
+	float width = x2 - x1;
+	float height = y2 - y1;
+
+	float currentScissor[4];
+	currentScissor[0] = ((left - 1) / 320.f) * 320.f;
+	currentScissor[1] = ((top - 1) / 200.f) * 200.f;
+	currentScissor[2] = ((right - left + 2) / 320.f) * 320.f;
+	currentScissor[3] = ((bottom - top + 2) / 200.f) * 200.f;
+
+	currentScissor[0] = MAX(currentScissor[0], 0.f);
+	currentScissor[1] = MAX(currentScissor[1], 0.f);
+
+	return;
+	// TODO: later
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(currentScissor[0], currentScissor[1], currentScissor[2], currentScissor[3]);
 }
 
 void osystem_drawMask(int roomId, int maskId) {
+	return;
 	// if (g_gameId == TIMEGATE)
 	//     return;
 
@@ -1856,7 +1876,11 @@ void osystem_drawMask(int roomId, int maskId) {
 }
 
 void osystem_clearClip() {
-	// TODO: aassert(0);
+
+	return;
+	// TODO: later
+	glScissor(0, 0, 320, 200);
+	glDisable(GL_SCISSOR_TEST);
 }
 
 void osystem_flip(unsigned char *videoBuffer) {

@@ -43,7 +43,11 @@ int getMatrix(int param1, int actorIdx, int param2) {
 	matrixPtr += (objectTable[actorIdx].hardMat - 1) * matrixWidth;
 	matrixPtr += (objectTable[param2].hardMat - 1);
 
-	return *(char *)matrixPtr;
+	// if(g_gameId == AITD3)
+	{
+		return *(unsigned char*)matrixPtr;
+	}
+    return *(char*)matrixPtr;
 }
 
 int getPosRel(tObject *actor1, tObject *actor2) {
@@ -163,6 +167,10 @@ int testZvEndAnim(tObject *actorPtr, char *animPtr, int param) {
 int evalVar(const char *name) {
 	int var1;
 
+    // if(g_gameId >= JACK)
+    // {
+    //     return evalVar2(name);
+    // }
 	var1 = *(int16 *)(currentLifePtr);
 	currentLifePtr += 2;
 
@@ -401,8 +409,9 @@ int evalVar(const char *name) {
 			}
 			case 0x1C: {
 				int temp = *(int16 *)currentLifePtr;
+				assert(temp > 0);
 				currentLifePtr += 2;
-				return (g_engine->getRandomNumber(temp));
+				return (g_engine->getRandomNumber(temp-1));
 				break;
 			}
 			case 0x1D: {
@@ -772,8 +781,9 @@ int evalVar2(const char *name) {
 			}
 			case 0x1C: {
 				int temp = *(int16 *)currentLifePtr;
+				assert(temp > 0);
 				currentLifePtr += 2;
-				return (g_engine->getRandomNumber(temp));
+				return (g_engine->getRandomNumber(temp-1));
 				break;
 			}
 			case 0x1D: {

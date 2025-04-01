@@ -184,7 +184,7 @@ int InitSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 		currentActorPtr->ANIM = mode;
 
-		*(int16 *)flowPtr = localSpecialTable[g_engine->getRandomNumber(3)]; // type ? color ?
+		*(int16 *)flowPtr = localSpecialTable[g_engine->getRandomNumber(2)]; // type ? color ?
 		flowPtr += 2;
 		*(int16 *)flowPtr = 30; // num of points
 		flowPtr += 2;
@@ -485,7 +485,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 				} else {
 					int opcodeLocated;
 
-					opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+                    // if (g_gameId == AITD1)
+                    {
+                        opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+                    }
+                    // else
+                    // {
+                    //     opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
+                    // }
 
 					switch (opcodeLocated) {
 						////////////////////////////////////////////////////////////////////////
@@ -521,6 +528,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 						currentLifePtr += 2;
 						ListWorldObjets[var_6].animInfo = -1;
 						ListWorldObjets[var_6].animType = ANIM_REPEAT;
+						// if (g_gameId >= JACK)
+                        //    ListWorldObjets[var_6].frame = 0;
 						break;
 					}
 					case LM_ANIM_ALL_ONCE: {
@@ -663,7 +672,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 			int opcodeLocated;
 		processOpcode:
 
-			opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+			//if (g_gameId == AITD1)
+            {
+				opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+			}
+			// else
+            // {
+            //     opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
+            // }
 
 			switch (opcodeLocated) {
 			case LM_BODY: {
@@ -679,7 +695,13 @@ void processLife(int lifeNum, bool callFoundLife) {
 							char *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
 							char *pBody;
 
-							pBody = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
+                            // if (g_gameId >= JACK)
+                            // {
+                            //     /*                  if (bFlagDecal)
+                            //     gereDecal(); */
+                            // }
+
+                            pBody = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
 
 							/*    if(gameId >= JACK)
 							{
@@ -711,6 +733,11 @@ void processLife(int lifeNum, bool callFoundLife) {
 					char *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
 					char *pBody;
 
+                    // if (g_gameId >= JACK)
+                    // {
+                    //     /*                  if (bFlagDecal)
+                    //     gereDecal(); */
+                    // }
 					pBody = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
 
 					setAnimObjet(0, pAnim, pBody);
@@ -1036,8 +1063,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_DO_MOVE: {
 				// appendFormated("LM_DO_MOVE ");
-				processTrack();
-
+                // if (g_gameId == AITD1)
+                {
+                    processTrack();
+                }
+                // else
+                // {
+                //     processTrack2();
+                // }
 				break;
 			}
 			case LM_ANIM_MOVE: {

@@ -30,7 +30,8 @@ namespace Common {
 template<>
 struct Hash<void *> {
 	uint operator()(void *s) const {
-		return (uint)(uint64)s;
+		uint64 u = (uint64) s;
+		return ((u >> 32) & 0xFFFFFFFF) ^ (u & 0xFFFFFFFF);
 	}
 };
 } // namespace Common
@@ -193,17 +194,40 @@ int initAnim(int animNum, int animType, int animInfo) {
 		return 1;
 	}
 
-	if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
-		return (0);
+	// if(g_gameId == AITD1)
+	{
+		if(currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
+			return(0);
 
-	if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
-		return (0);
+		if(currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
+			return(0);
+	}
+	// else
+	// {
+	// 	if(currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
+	// 	{
+	// 		if(currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
+	// 		{
+	// 			return 0;
+	// 		}
+	// 		else
+	// 		{
+	// 			currentProcessedActorPtr->animInfo = animNum;
+	// 			return 1;
+	// 		}
+	// 	}
+	// }
 
 	currentProcessedActorPtr->newAnim = animNum;
 	currentProcessedActorPtr->newAnimType = animType;
 	currentProcessedActorPtr->newAnimInfo = animInfo;
 
-	return (1);
+	// if(g_gameId != AITD1)
+	// {
+	// 	currentProcessedActorPtr->FRAME = 0;
+	// }
+
+    return(1);
 }
 
 int evaluateReal(interpolatedValue *data) {

@@ -29,6 +29,7 @@
 #include "fitd/vars.h"
 #include "common/scummsys.h"
 #include "common/events.h"
+#include "graphics/framelimiter.h"
 
 namespace Fitd {
 
@@ -38,17 +39,20 @@ static void clearScreenTatou(void) {
 	}
 }
 
-uint32 lastFrameTime = 0;
-#define FRAMES_PER_SECOND 25
-
 void process_events() {
+	Common::Event e;
+	while (g_system->getEventManager()->pollEvent(e)) {
+	}
+
+	// TODO: fix this
+	uint32 timeIncrease = 1;
+
 	osystem_flushPendingPrimitives();
 	g_system->updateScreen();
 	osystem_startFrame();
 
 	readKeyboard();
-	// TODO: fix this
-	timeGlobal = g_engine->getTotalPlayTime() / (100 / FRAMES_PER_SECOND);
+	timeGlobal += timeIncrease;
 	timer = timeGlobal;
 }
 

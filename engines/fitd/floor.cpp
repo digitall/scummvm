@@ -48,13 +48,16 @@ void loadFloor(int floorNumber) {
 
 	g_currentFloor = floorNumber;
 
-	Common::String floorFileName = Common::String::format("ETAGE%02d.pak", floorNumber);
+	// if (g_gameId < AITD3)
+	{
+		Common::String floorFileName = Common::String::format("ETAGE%02d.pak", floorNumber);
 
-	g_currentFloorRoomRawDataSize = getPakSize(floorFileName.c_str(), 0);
-	g_currentFloorCameraRawDataSize = getPakSize(floorFileName.c_str(), 1);
+		g_currentFloorRoomRawDataSize = getPakSize(floorFileName.c_str(), 0);
+		g_currentFloorCameraRawDataSize = getPakSize(floorFileName.c_str(), 1);
 
-	g_currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
-	g_currentFloorCameraRawData = checkLoadMallocPak(floorFileName.c_str(), 1);
+		g_currentFloorRoomRawData = checkLoadMallocPak(floorFileName.c_str(), 0);
+		g_currentFloorCameraRawData = checkLoadMallocPak(floorFileName.c_str(), 1);
+	}
 
 	currentCamera = -1;
 	needChangeRoom = 1;
@@ -82,7 +85,25 @@ void loadFloor(int floorNumber) {
 			roomDataTable = (roomDataStruct *)malloc(sizeof(roomDataStruct));
 		}
 
-		roomData = (uint8 *)(g_currentFloorRoomRawData + READ_LE_U32(g_currentFloorRoomRawData + i * 4));
+		// if(g_gameId >= AITD3)
+		// {
+		//     char buffer[256];
+		//
+		//             if(g_gameId == AITD3)
+		//          {
+		//           sprintf(buffer,"SAL%02d",floorNumber);
+		//    }
+		//    else
+		//  {
+		//   sprintf(buffer,"ETAGE%02d",floorNumber);
+		//  }
+		//
+		//      roomData = (u8*)CheckLoadMallocPak(buffer,i);
+		// }
+		// else
+		{
+			roomData = (uint8 *)(g_currentFloorRoomRawData + READ_LE_U32(g_currentFloorRoomRawData + i * 4));
+		}
 		currentRoomDataPtr = &roomDataTable[i];
 
 		currentRoomDataPtr->worldX = READ_LE_S16(roomData + 4);
@@ -162,19 +183,32 @@ void loadFloor(int floorNumber) {
 	/////////////////////////////////////////////////
 	// camera stuff
 
-	int maxExpectedNumberOfCamera = ((READ_LE_U32(g_currentFloorCameraRawData)) / 4);
+	// if (g_gameId >= AITD3) {
+	// 	char buffer[256];
 
-	expectedNumberOfCamera = 0;
+	// 	if (g_gameId == AITD3) {
+	// 		sprintf(buffer, "CAM%02d", floorNumber);
+	// 	} else {
+	// 		sprintf(buffer, "CAMSAL%02d", floorNumber);
+	// 	}
 
-	int minOffset = 0;
+	// 	expectedNumberOfCamera = PAK_getNumFiles(buffer);
+	// } else
+	{
+		int maxExpectedNumberOfCamera = ((READ_LE_U32(g_currentFloorCameraRawData)) / 4);
 
-	for (int i = 0; i < maxExpectedNumberOfCamera; i++) {
-		int offset = READ_LE_U32(g_currentFloorCameraRawData + i * 4);
-		if (offset > minOffset) {
-			minOffset = offset;
-			expectedNumberOfCamera++;
-		} else {
-			break;
+		expectedNumberOfCamera = 0;
+
+		int minOffset = 0;
+
+		for (int i = 0; i < maxExpectedNumberOfCamera; i++) {
+			int offset = READ_LE_U32(g_currentFloorCameraRawData + i * 4);
+			if (offset > minOffset) {
+				minOffset = offset;
+				expectedNumberOfCamera++;
+			} else {
+				break;
+			}
 		}
 	}
 
@@ -187,13 +221,31 @@ void loadFloor(int floorNumber) {
 		unsigned int offset;
 		unsigned char *currentCameraData;
 
-		offset = READ_LE_U32(g_currentFloorCameraRawData + i * 4);
+		// if (g_gameId >= AITD3) {
+		// 	char buffer[256];
+
+		// 	if (g_gameId == AITD3) {
+		// 		sprintf(buffer, "CAM%02d", floorNumber);
+		// 	} else {
+		// 		sprintf(buffer, "CAMSAL%02d", floorNumber);
+		// 	}
+
+		// 	offset = 0;
+		// 	g_currentFloorCameraRawDataSize = 1;
+		// 	currentCameraData = (unsigned char *)CheckLoadMallocPak(buffer, i);
+		// } else
+		{
+			offset = READ_LE_U32(g_currentFloorCameraRawData + i * 4);
+		}
 
 		// load cameras
 		if (offset < g_currentFloorCameraRawDataSize) {
 			unsigned char *backupDataPtr;
 
-			currentCameraData = (unsigned char *)(g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + i * 4));
+			// if(g_gameId<AITD3)
+			{
+				currentCameraData = (unsigned char *)(g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + i * 4));
+			}
 
 			backupDataPtr = currentCameraData;
 
@@ -226,14 +278,55 @@ void loadFloor(int floorNumber) {
 				pCurrentCameraViewedRoom->offsetToMask = READ_LE_U16(currentCameraData + 0x02);
 				pCurrentCameraViewedRoom->offsetToCover = READ_LE_U16(currentCameraData + 0x04);
 
-				pCurrentCameraViewedRoom->offsetToHybrids = 0;
-				pCurrentCameraViewedRoom->offsetCamOptims = 0;
-				pCurrentCameraViewedRoom->lightX = READ_LE_U16(currentCameraData + 0x06);
-				pCurrentCameraViewedRoom->lightY = READ_LE_U16(currentCameraData + 0x08);
-				pCurrentCameraViewedRoom->lightZ = READ_LE_U16(currentCameraData + 0x0A);
+				// if (g_gameId == AITD1)
+				{
+					pCurrentCameraViewedRoom->offsetToHybrids = 0;
+					pCurrentCameraViewedRoom->offsetCamOptims = 0;
+					pCurrentCameraViewedRoom->lightX = READ_LE_U16(currentCameraData + 0x06);
+					pCurrentCameraViewedRoom->lightY = READ_LE_U16(currentCameraData + 0x08);
+					pCurrentCameraViewedRoom->lightZ = READ_LE_U16(currentCameraData + 0x0A);
+				}
+				// else {
+				// 	pCurrentCameraViewedRoom->offsetToHybrids = READ_LE_U16(currentCameraData + 0x06);
+				// 	pCurrentCameraViewedRoom->offsetCamOptims = READ_LE_U16(currentCameraData + 0x08);
+				// 	pCurrentCameraViewedRoom->lightX = READ_LE_U16(currentCameraData + 0x0A);
+				// 	pCurrentCameraViewedRoom->lightY = READ_LE_U16(currentCameraData + 0x0C);
+				// 	pCurrentCameraViewedRoom->lightZ = READ_LE_U16(currentCameraData + 0x0E);
+				// }
 
 				// load camera mask
 				unsigned char *pMaskData = NULL;
+				// if (g_gameId >= JACK) {
+				// 	pMaskData = backupDataPtr + g_currentFloorCameraData[i].viewedRoomTable[k].offsetToMask;
+
+				// 	// for this camera, how many masks zone
+				// 	pCurrentCameraViewedRoom->numMask = READ_LE_U16(pMaskData);
+				// 	pMaskData += 2;
+
+				// 	pCurrentCameraViewedRoom->masks = (cameraMaskStruct *)malloc(sizeof(cameraMaskStruct) * pCurrentCameraViewedRoom->numMask);
+				// 	memset(pCurrentCameraViewedRoom->masks, 0, sizeof(cameraMaskStruct) * pCurrentCameraViewedRoom->numMask);
+
+				// 	for (int k = 0; k < pCurrentCameraViewedRoom->numMask; k++) {
+				// 		cameraMaskStruct *pCurrentCameraMask = &pCurrentCameraViewedRoom->masks[k];
+
+				// 		// for this overlay zone, how many
+				// 		pCurrentCameraMask->numTestRect = READ_LE_U16(pMaskData);
+				// 		pMaskData += 2;
+
+				// 		pCurrentCameraMask->rectTests = (rectTestStruct *)malloc(sizeof(rectTestStruct) * pCurrentCameraMask->numTestRect);
+				// 		memset(pCurrentCameraMask->rectTests, 0, sizeof(rectTestStruct) * pCurrentCameraMask->numTestRect);
+
+				// 		for (int j = 0; j < pCurrentCameraMask->numTestRect; j++) {
+				// 			rectTestStruct *pCurrentRectTest = &pCurrentCameraMask->rectTests[j];
+
+				// 			pCurrentRectTest->zoneX1 = READ_LE_S16(pMaskData);
+				// 			pCurrentRectTest->zoneZ1 = READ_LE_S16(pMaskData + 2);
+				// 			pCurrentRectTest->zoneX2 = READ_LE_S16(pMaskData + 4);
+				// 			pCurrentRectTest->zoneZ2 = READ_LE_S16(pMaskData + 6);
+				// 			pMaskData += 8;
+				// 		}
+				// 	}
+				// }
 				// load camera cover
 				{
 					unsigned char *pZoneData;
@@ -274,7 +367,16 @@ void loadFloor(int floorNumber) {
 					}
 				}
 
-				currentCameraData += 0x0C;
+				// if (g_gameId == AITD1)
+				{
+					currentCameraData += 0x0C;
+				}
+				// else {
+				// 	currentCameraData += 0x10;
+				// }
+				// if (g_gameId == TIMEGATE) {
+				// 	currentCameraData += 6;
+				// }
 			}
 		} else {
 			break;
