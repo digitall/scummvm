@@ -55,11 +55,36 @@ void handleKeyDown(Common::Event &event) {
 	}
 }
 
-void readKeyboard(void) {
-	JoyD = 0;
-	Click = 0;
-	key = 0;
+void handleKeyUp(Common::Event &event) {
+	switch (event.kbd.keycode) {
+	case Common::KEYCODE_RETURN:
+		key &= ~0x1C;
+		break;
+	case Common::KEYCODE_ESCAPE:
+		key &= ~0x1B;
+		break;
+	case Common::KEYCODE_UP:
+		JoyD &= ~1;
+		break;
 
+	case Common::KEYCODE_DOWN:
+		JoyD &= ~2;
+		break;
+
+	case Common::KEYCODE_RIGHT:
+		JoyD &= ~8;
+		break;
+
+	case Common::KEYCODE_LEFT:
+		JoyD &= ~4;
+		break;
+	case Common::KEYCODE_SPACE:
+		Click &= ~1;
+		break;
+	}
+}
+
+void readKeyboard(void) {
 	if (g_engine->shouldQuit()) {
 		return;
 	}
@@ -70,6 +95,11 @@ void readKeyboard(void) {
 		switch (event.type) {
 		case Common::EventType::EVENT_KEYDOWN:
 			handleKeyDown(event);
+			break;
+		case Common::EventType::EVENT_KEYUP:
+			handleKeyUp(event);
+			break;
+		default:
 			break;
 		}
 	}
