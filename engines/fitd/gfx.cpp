@@ -1727,7 +1727,6 @@ void flushScreen(void) {
 }
 
 void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
-	return;
 	if (maskTextures.size() < roomId + 1) {
 		maskTextures.resize(roomId + 1);
 	}
@@ -1764,11 +1763,6 @@ void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char
 		float texcoord[2];
 	} vertexBuffer[4];
 
-	GLuint vbo;
-	GL_CALL(glGenBuffers(1, &vbo));
-	maskShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sVertice), (uint32)0);
-	maskShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sVertice), (uint32)(3 * sizeof(float)));
-
 	float X1 = maskTextures[roomId][maskId].maskX1;
 	float X2 = maskTextures[roomId][maskId].maskX2;
 	float Y1 = maskTextures[roomId][maskId].maskY1;
@@ -1801,8 +1795,8 @@ void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char
 	pVertices->texcoord[0] = X2 / 320.f;
 	pVertices->texcoord[1] = Y1 / 200.f;
 
-	maskTextures[roomId][maskId].vertexBuffer = vbo;
-	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	GL_CALL(glGenBuffers(1, &maskTextures[roomId][maskId].vertexBuffer));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, maskTextures[roomId][maskId].vertexBuffer));
 	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(sVertice) * 4, vertexBuffer, GL_STREAM_DRAW));
 }
 
@@ -1845,7 +1839,6 @@ void osystem_setClip(float left, float top, float right, float bottom) {
 }
 
 void osystem_drawMask(int roomId, int maskId) {
-	return;
 	// if (g_gameId == TIMEGATE)
 	//     return;
 
@@ -1855,8 +1848,11 @@ void osystem_drawMask(int roomId, int maskId) {
 	if (!maskTextures[roomId][maskId].vertexBuffer)
 		return;
 
+	glDepthMask(GL_FALSE);
 	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, maskTextures[roomId][maskId].vertexBuffer));
 
+	maskShader->enableVertexAttribute("a_position", maskTextures[roomId][maskId].vertexBuffer, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)0);
+	maskShader->enableVertexAttribute("a_texCoords", maskTextures[roomId][maskId].vertexBuffer, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)(3 * sizeof(float)));
 	maskShader->use();
 
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
@@ -1872,12 +1868,10 @@ void osystem_drawMask(int roomId, int maskId) {
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
 
 	maskShader->unbind();
+	glDepthMask(GL_TRUE);
 }
 
 void osystem_clearClip() {
-
-	return;
-	// TODO: later
 	glScissor(0, 0, 320, 200);
 	glDisable(GL_SCISSOR_TEST);
 }
