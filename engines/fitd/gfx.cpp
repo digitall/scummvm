@@ -224,6 +224,7 @@ void main()
     gl_FragColor.a = 1.0;
 })";
 
+// TODO: fix this, today it's the same as flat PS
 const char *noisePSSrc = R"(
 varying vec2 v_texCoords;
 uniform sampler2D u_palette;
@@ -287,6 +288,69 @@ void main()
 	gl_FragColor.a = 1.0;
 })";
 
+const char *sphereVSSrc = R"(
+attribute vec3 a_position;
+attribute vec2 a_texCoords;
+attribute vec4 a_texCoords2;
+varying vec2 v_texCoords;
+varying vec4 v_sphereParams;
+varying vec3 v_screenSpacePosition;
+
+void main()
+{
+    gl_Position = vec4(a_position.x/160.0-1.0, 1.0-a_position.y/100.0, a_position.z/40960.0, 1.0);
+    v_texCoords = a_texCoords;
+    v_sphereParams = a_texCoords2;
+    v_screenSpacePosition = a_position.xyz;
+})";
+
+const char *spherePSSrc = R"(
+varying vec2 v_texCoords;
+varying vec4 v_sphereParams;
+varying vec3 v_screenSpacePosition;
+uniform sampler2D u_palette;
+
+void main()
+{
+    vec2 sphereCenter = v_sphereParams.xy;
+    float sphereSize = v_sphereParams.z;
+    float fDistanceToCenter = length(v_screenSpacePosition.xy - sphereCenter);
+    if(fDistanceToCenter > sphereSize)
+        discard;
+
+    float color = v_texCoords.x * 15.0;
+    float bank = v_texCoords.y * 15.0;
+    int material = int(v_sphereParams.w);
+
+    if(material == 0) { // flat
+        float cidx = (bank * 16.0 + color) / 255.0;
+        gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+        gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+        gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+        gl_FragColor.a = 1.0;
+    } else if(material == 2) { // transparent
+        float cidx = (bank * 16.0 + color) / 255.0;
+        gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+        gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+        gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+        gl_FragColor.a = 0.5;
+    } else if(material == 3) { // marbre
+        vec2 normalizedPosition = (v_screenSpacePosition.xy - sphereCenter.xy) / sphereSize;
+        float angle = asin(normalizedPosition.y);
+        float distanceToCircleOnScanline = cos(angle) - normalizedPosition.x; // value is in 0/2 range
+        distanceToCircleOnScanline /= 2.0; // remap to 0 / 1
+        color = (1.0 - distanceToCircleOnScanline) * 15.0;
+
+        float cidx = (bank * 16.0 + color) / 255.0;
+        gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+        gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+        gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+        gl_FragColor.a = 1.0;
+    } else {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+})";
+
 GLuint g_backgroundTexture = 0;
 GLuint g_paletteTexture = 0;
 
@@ -299,6 +363,7 @@ OpenGL::Shader *flatShader = NULL;
 OpenGL::Shader *noiseShader = NULL;
 OpenGL::Shader *rampShader = NULL;
 OpenGL::Shader *maskShader = NULL;
+OpenGL::Shader *sphereShader = NULL;
 GLuint vbo = 0;
 GLuint ebo = 0;
 
@@ -367,6 +432,16 @@ void gfx_init() {
 	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_maskPalette"), 0));
 	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_palette"), 1));
 	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_background"), 2));
+
+	// create sphere shader
+	const char *sphere_attributes[] = {"a_position", "a_texCoords", "a_texCoords2", nullptr};
+	sphereShader = new OpenGL::Shader();
+	sphereShader->loadFromStrings("sphereShader", sphereVSSrc, spherePSSrc, sphere_attributes, 110);
+	sphereShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)0);
+	sphereShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(3 * sizeof(float)));
+	sphereShader->enableVertexAttribute("a_texCoords2", vbo, 4, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(5 * sizeof(float)));
+	sphereShader->use();
+	GL_CALL(glUniform1i(sphereShader->getUniformLocation("u_palette"), 0));
 }
 
 void gfx_deinit() {
@@ -374,8 +449,12 @@ void gfx_deinit() {
 	GL_CALL(glDeleteTextures(1, &g_paletteTexture));
 	GL_CALL(glDeleteBuffers(1, &ebo));
 	GL_CALL(glDeleteBuffers(1, &vbo));
-	delete flatShader;
 	delete backgroundShader;
+	delete flatShader;
+	delete noiseShader;
+	delete rampShader;
+	delete maskShader;
+	delete sphereShader;
 }
 
 void osystem_startFrame() {
@@ -754,7 +833,30 @@ void osystem_flushPendingPrimitives() {
 
 		numUsedRampVertices = 0;
 	}
-	numUsedSpheres = 0;
+
+	if(numUsedSpheres)
+    {
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(sphereVertex) * numUsedSpheres, sphereVertices, GL_STREAM_DRAW));
+
+		sphereShader->use();
+
+		GL_CALL(glActiveTexture(GL_TEXTURE0));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, numUsedSpheres));
+		GL_CALL(glActiveTexture(GL_TEXTURE0));
+
+		sphereShader->unbind();
+
+		glDisable(GL_DEPTH_TEST);
+
+		numUsedSpheres = 0;
+    }
+
 	numUsedTransparentVertices = 0;
 }
 
