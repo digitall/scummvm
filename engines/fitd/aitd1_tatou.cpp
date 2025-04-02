@@ -40,10 +40,6 @@ static void clearScreenTatou(void) {
 }
 
 void process_events() {
-	Common::Event e;
-	while (g_system->getEventManager()->pollEvent(e)) {
-	}
-
 	// TODO: fix this
 	uint32 timeIncrease = 1;
 
@@ -158,7 +154,7 @@ int make3dTatou(void) {
 
 			break;
 		}
-	} while (1);
+	} while (!g_engine->shouldQuit());
 
 	free(tatouPal);
 	free(tatou3d);
