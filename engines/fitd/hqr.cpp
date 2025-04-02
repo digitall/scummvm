@@ -169,7 +169,7 @@ sAnimation *createAnimationFromPtr(void *ptr) {
 
 		pFrame->m_groups.resize(pAnimation->m_numGroups);
 		for (int j = 0; j < pAnimation->m_numGroups; j++) {
-			sGroupState *pGroup = &pFrame->m_groups[i];
+			sGroupState *pGroup = &pFrame->m_groups[j];
 
 			pGroup->m_type = READ_LE_S16(animPtr);
 			animPtr += 2;
