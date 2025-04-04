@@ -75,6 +75,7 @@ enum enumCVars {
 typedef enum enumCVars enumCVars;
 
 extern int AITD1KnownCVars[];
+extern int AITD2KnownCVars[];
 extern int *currentCVarTable;
 
 int getCVarsIdx(int);

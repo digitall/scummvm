@@ -4,6 +4,7 @@ MODULE_OBJS = \
 	actor_list.o \
 	aitd1.o \
 	aitd2.o \
+	aitd3.o \
 	aitd_box.o \
 	aitd1_tatou.o \
 	anim.o \

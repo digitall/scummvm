@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd2.h"
+#include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
@@ -224,9 +225,9 @@ void processInventory(void) {
 	case GID_AITD2:
 		drawInventoryAITD2();
 		break;
-	// case GID_AITD3:
-	// 	drawInventoryAITD3();
-	// 	break;
+	case GID_AITD3:
+		drawInventoryAITD3();
+		break;
 	default:
 		assert(0);
 	}
