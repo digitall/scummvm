@@ -23,6 +23,7 @@
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/game_time.h"
+#include "fitd/pak.h"
 #include "fitd/room.h"
 
 namespace Fitd {
@@ -51,18 +52,17 @@ int getNumberOfRoom() {
 	int i;
 	int j = 0;
 
-	// if (g_engine->getGameId() >= GID_AITD3) {
-	// 	char buffer[256];
+	if (g_engine->getGameId() >= GID_AITD3) {
+		Common::String buffer;
 
-	// 	if (g_engine->getGameId() == GID_AITD3) {
-	// 		sprintf(buffer, "SAL%02d", g_currentFloor);
-	// 	} else {
-	// 		sprintf(buffer, "ETAGE%02d", g_currentFloor);
-	// 	}
+		if (g_engine->getGameId() > GID_AITD3) {
+			buffer = Common::String::format("SAL%02d.PAK", g_currentFloor);
+		} else {
+			buffer = Common::String::format("ETAGE%02d.PAK", g_currentFloor);
+		}
 
-	// 	return PAK_getNumFiles(buffer);
-	// } else
-	{
+		return PAK_getNumFiles(buffer.c_str());
+	} else {
 		int numMax = (((READ_LE_U32(g_currentFloorRoomRawData)) / 4));
 
 		for (i = 0; i < numMax; i++) {
@@ -98,8 +98,7 @@ void loadRoom(int roomNumber) {
 		oldCameraIdx = roomDataTable[currentRoom].cameraIdxTable[currentCamera];
 	}
 
-	if (g_engine->getGameId() < GID_AITD3)
-	{
+	if (g_engine->getGameId() < GID_AITD3) {
 		cameraPtr = (char *)getRoomData(roomNumber); // TODO: obsolete
 		roomDataPtr = getRoomData(roomNumber);
 		pCurrentRoomData = getRoomData(roomNumber);
@@ -138,8 +137,7 @@ void loadRoom(int roomNumber) {
 			newAbsCamera = currentCameraIdx;
 		}
 
-		if (g_engine->getGameId() < GID_AITD3)
-		{
+		if (g_engine->getGameId() < GID_AITD3) {
 			room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
 		}
 

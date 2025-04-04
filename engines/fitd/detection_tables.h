@@ -25,6 +25,7 @@ const PlainGameDescriptor fitdGames[] = {
 	{ "aitd1", "Alone in the Dark" },
 	{ "jack", "Jack in the Dark" },
 	{ "aitd2", "Alone in the Dark 2" },
+	{ "aitd3", "Alone in the Dark 3" },
 	{ 0, 0 }
 };
 
@@ -65,7 +66,18 @@ const FitdGameDescription gameDescriptions[] = {
 		},
 		GID_AITD2
 	},
-
+	{
+		{
+			"aitd3",
+			nullptr,
+			AD_ENTRY1s("AN1.PAK", "a9c4fbbc60042f6bdc4ca63d8f8badcd", 306902),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NONE)
+		},
+		GID_AITD3
+	},
 	AD_TABLE_END_MARKER
 };
 

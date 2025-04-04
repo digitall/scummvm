@@ -87,7 +87,7 @@ void loadFloor(int floorNumber) {
 
 		if (g_engine->getGameId() >= GID_AITD3) {
 			Common::String buffer;
-			if (g_engine->getGameId() == GID_AITD3) {
+			if (g_engine->getGameId() > GID_AITD3) {
 				buffer = Common::String::format("SAL%02d.PAK", floorNumber);
 			} else {
 				buffer = Common::String::format("ETAGE%02d.PAK", floorNumber);
@@ -180,7 +180,7 @@ void loadFloor(int floorNumber) {
 		Common::String buffer;
 
 		if (g_engine->getGameId() == GID_AITD3) {
-			buffer = Common::String::format("CAM%02d.PAK", floorNumber);
+			buffer = Common::String::format("CAMERA%02d.PAK", floorNumber);
 		} else {
 			buffer = Common::String::format("CAMSAL%02d.PAK", floorNumber);
 		}
@@ -217,7 +217,7 @@ void loadFloor(int floorNumber) {
 			Common::String buffer;
 
 			if (g_engine->getGameId() == GID_AITD3) {
-				buffer = Common::String::format("CAM%02d.PAK", floorNumber);
+				buffer = Common::String::format("CAMERA%02d.PAK", floorNumber);
 			} else {
 				buffer = Common::String::format("CAMSAL%02d.PAK", floorNumber);
 			}

@@ -21,7 +21,7 @@
 
 #include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
-#include "fitd/jack.h"
+#include "fitd/aitd3.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/console.h"
@@ -32,6 +32,7 @@
 #include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
+#include "fitd/jack.h"
 #include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/save.h"
@@ -140,11 +141,9 @@ void allocTextes(void) {
 	}
 
 	// setup languageNameString
-	// if(g_engine->getGameId() == GID_AITD3)
-	// {
-	// 	strcpy(languageNameString,"TEXTES");
-	// }
-	// else
+	// if (g_engine->getGameId() == GID_AITD3) {
+	// 	languageNameString = "TEXTES.PAK";
+	// } else
 	{
 		for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
 			Common::File f;
@@ -223,8 +222,20 @@ Common::Error FitdEngine::run() {
 	// 	_system->setImGuiCallbacks(callbacks);
 	// #endif
 
-	CVars.resize(45);
-	currentCVarTable = AITD1KnownCVars;
+	switch (getGameId()) {
+	case GID_AITD1:
+		CVars.resize(45);
+		currentCVarTable = AITD1KnownCVars;
+		break;
+	case GID_JACK:
+	case GID_AITD2:
+	case GID_AITD3:
+		CVars.resize(70);
+		currentCVarTable = AITD2KnownCVars;
+		break;
+	default:
+		break;
+	}
 
 	gfx_init();
 
@@ -255,17 +266,16 @@ Common::Error FitdEngine::run() {
 	}
 
 	switch (getGameId()) {
-	// case GID_AITD3:
-	// 	{
-	// 		FILE* fHandle = fopen("font.bin", "rb");
-	// 		fseek(fHandle, 0, SEEK_END);
-	// 		int fontSize = ftell(fHandle);
-	// 		PtrFont = (char*)malloc(fontSize);
-	// 		fseek(fHandle, 0, SEEK_SET);
-	// 		fread(PtrFont, fontSize, 1, fHandle);
-	// 		fclose(fHandle);
-	// 		break;
-	// 	}
+	case GID_AITD3: {
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		// Common::File f;
+		// f.open("font.bin");
+		// int fontSize = f.size();
+		// PtrFont = (char *)malloc(fontSize);
+		// f.read(PtrFont, fontSize);
+		// f.close();
+		break;
+	}
 	case GID_JACK:
 	case GID_AITD2: {
 		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
@@ -343,9 +353,9 @@ Common::Error FitdEngine::run() {
 	case GID_AITD2:
 		startAITD2(saveSlot);
 		break;
-	// case GID_AITD3:
-	// 	startAITD3(saveSlot);
-	// 	break;
+	case GID_AITD3:
+		startAITD3(saveSlot);
+		break;
 	// case GID_TIMEGATE:
 	// 	startGame(0, 5, 1);
 	// 	break;
