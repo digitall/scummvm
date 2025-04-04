@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/aitd2.h"
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
@@ -122,9 +123,9 @@ void renderInventoryObject(int arg) {
 		renderText(statusLeft + 4, statusTop + 4, logicalScreen, buffer.c_str());
 	}
 	switch (g_engine->getGameId()) {
-	// case GID_AITD2:
-	// 	redrawInventorySpriteAITD2();
-	// 	break;
+	case GID_AITD2:
+		redrawInventorySpriteAITD2();
+		break;
 	default:
 		break;
 	}
@@ -166,9 +167,9 @@ void drawInventoryActions(int arg) {
 	}
 
 	switch (g_engine->getGameId()) {
-	// case GID_AITD2:
-	// 	redrawInventorySpriteAITD2();
-	// 	break;
+	case GID_AITD2:
+		redrawInventorySpriteAITD2();
+		break;
 	default:
 		break;
 	}
@@ -220,9 +221,9 @@ void processInventory(void) {
 		setupCameraProjection(((statusRight - statusLeft) / 2) + statusLeft, ((statusBottom - statusTop) / 2) + statusTop, 128, 400, 390);
 
 		break;
-	// case GID_AITD2:
-	// 	drawInventoryAITD2();
-	// 	break;
+	case GID_AITD2:
+		drawInventoryAITD2();
+		break;
 	// case GID_AITD3:
 	// 	drawInventoryAITD3();
 	// 	break;
