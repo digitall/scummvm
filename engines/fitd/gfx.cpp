@@ -305,10 +305,11 @@ void main()
 		discard;
 
 	float cidx = texture(u_background, v_texCoords.xy).r;
-	gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+	// gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+	gl_FragColor.r = 1.0;
 	gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
 	gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
-	gl_FragColor.a = 1.0;
+	gl_FragColor.a = 0.5;
 })";
 
 const char *sphereVSSrc = R"(
@@ -333,6 +334,10 @@ varying vec4 v_sphereParams;
 varying vec3 v_screenSpacePosition;
 uniform sampler2D u_palette;
 
+float noise(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
 void main()
 {
     vec2 sphereCenter = v_sphereParams.xy;
@@ -346,6 +351,14 @@ void main()
     int material = int(v_sphereParams.w);
 
     if(material == 0) { // flat
+        float cidx = (bank * 16.0 + color) / 255.0;
+        gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
+        gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
+        gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
+        gl_FragColor.a = 1.0;
+    } else if(material == 1) { // dither
+		float n = noise(v_screenSpacePosition.xy);
+		color = ((v_texCoords.x + n) * 15.0) / 2.0;
         float cidx = (bank * 16.0 + color) / 255.0;
         gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
         gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
