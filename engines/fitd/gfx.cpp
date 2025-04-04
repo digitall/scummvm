@@ -32,6 +32,7 @@
 #include "common/debug.h"
 #include "common/scummsys.h"
 #include "common/util.h"
+#include "graphics/surface.h"
 #include "graphics/opengl/context.h"
 #include "graphics/opengl/debug.h"
 #include "graphics/opengl/shader.h"
@@ -834,8 +835,7 @@ void osystem_flushPendingPrimitives() {
 		numUsedRampVertices = 0;
 	}
 
-	if(numUsedSpheres)
-    {
+	if (numUsedSpheres) {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
@@ -855,7 +855,7 @@ void osystem_flushPendingPrimitives() {
 		glDisable(GL_DEPTH_TEST);
 
 		numUsedSpheres = 0;
-    }
+	}
 
 	numUsedTransparentVertices = 0;
 }
@@ -2023,6 +2023,20 @@ void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, f
 
 void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
 	osystem_drawPoint(X, Y, Z, color, material, size);
+}
+
+Graphics::Surface *gfx_capture() {
+	Graphics::Surface *s = new Graphics::Surface();
+#ifdef SCUMM_BIG_ENDIAN
+	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
+#else
+	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#endif
+	s->create(320 * 4, 200 * 4, format);
+	glReadPixels(0, 0, 320 * 4, 200 * 4, GL_RGBA, GL_UNSIGNED_BYTE, s->getPixels());
+	Common::Rect rect(0, 0, 320 * 4, 200 * 4);
+	s->flipVertical(rect);
+	return s;
 }
 
 } // namespace Fitd

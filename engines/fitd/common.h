@@ -135,6 +135,8 @@ inline int8 READ_LE_S8(const void *ptr) {
 	return (int8)READ_LE_U8(ptr);
 }
 
+void initEngine(void);
+void initVars(void);
 void startGame(int startupEtage, int startupRoom, int allowSystemMenu);
 void freeAll(void);
 void addActorToBgInscrust(int actorIdx);

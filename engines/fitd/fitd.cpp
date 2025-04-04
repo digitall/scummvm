@@ -32,6 +32,7 @@
 #include "fitd/hqr.h"
 #include "fitd/music.h"
 #include "fitd/pak.h"
+#include "fitd/save.h"
 #include "fitd/tatou.h"
 #include "fitd/unpack.h"
 #include "fitd/vars.h"
@@ -216,13 +217,13 @@ void allocTextes(void) {
 Common::Error FitdEngine::run() {
 	initGraphics3d(320 * 4, 200 * 4);
 
-#ifdef USE_IMGUI
-	ImGuiCallbacks callbacks;
-	callbacks.init = onImGuiInit;
-	callbacks.render = onImGuiRender;
-	callbacks.cleanup = onImGuiCleanup;
-	_system->setImGuiCallbacks(callbacks);
-#endif
+// #ifdef USE_IMGUI
+// 	ImGuiCallbacks callbacks;
+// 	callbacks.init = onImGuiInit;
+// 	callbacks.render = onImGuiRender;
+// 	callbacks.cleanup = onImGuiCleanup;
+// 	_system->setImGuiCallbacks(callbacks);
+// #endif
 
 	CVars.resize(45);
 	currentCVarTable = AITD1KnownCVars;
@@ -231,11 +232,6 @@ Common::Error FitdEngine::run() {
 
 	// Set the engine's debugger console
 	setDebugger(new Console());
-
-	// If a savegame was selected from the launcher, load it
-	int saveSlot = ConfMan.getInt("save_slot");
-	if (saveSlot != -1)
-		(void)loadGameState(saveSlot);
 
 	setupScreen();
 
@@ -284,7 +280,9 @@ Common::Error FitdEngine::run() {
 	paletteFill(currentGamePalette, 0, 0, 0);
 	loadPalette();
 
-	startAITD1();
+	// If a savegame was selected from the launcher, load it
+	int saveSlot = ConfMan.getInt("save_slot");
+	startAITD1(saveSlot);
 
 #ifdef USE_IMGUI
 	_system->setImGuiCallbacks(ImGuiCallbacks());
@@ -293,15 +291,13 @@ Common::Error FitdEngine::run() {
 	return Common::kNoError;
 }
 
-Common::Error FitdEngine::syncGame(Common::Serializer &s) {
-	// The Serializer has methods isLoading() and isSaving()
-	// if you need to specific steps; for example setting
-	// an array size after reading it's length, whereas
-	// for saving it would write the existing array's length
-	int dummy = 0;
-	s.syncAsUint32LE(dummy);
+Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
+	return loadSave(stream) == 1 ? Common::kNoError : Common::kReadingFailed;
+}
 
-	return Common::kNoError;
+Common::Error FitdEngine::saveGameStream(Common::WriteStream *stream, bool isAutosave) {
+	// Default to returning an error when not implemented
+	return makeSave(stream) == 1 ? Common::kNoError : Common::kWritingFailed;
 }
 
 } // End of namespace Fitd

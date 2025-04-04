@@ -531,7 +531,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	return (demoMode);
 }
 
-static void initEngine(void) {
+void initEngine(void) {
 	uint8 *pObjectData;
 	uint8 *pObjectDataBackup;
 	unsigned long int objectDataSize;
@@ -549,7 +549,13 @@ static void initEngine(void) {
 	maxObjects = READ_LE_U16(pObjectData);
 	pObjectData += 2;
 
-	ListWorldObjets.resize(maxObjects);
+	// if(g_gameId == AITD1)
+	{
+		ListWorldObjets.resize(300);
+	}
+	//  else {
+	// 	ListWorldObjets.resize(maxObjects);
+	// }
 
 	for (int i = 0; i < maxObjects; i++) {
 		ListWorldObjets[i].objIndex = READ_LE_U16(pObjectData);
@@ -700,7 +706,7 @@ static void initVarsSub1(void) {
 	}
 }
 
-static void initVars() {
+void initVars() {
 	giveUp = 0;
 
 	currentInventory = 0;

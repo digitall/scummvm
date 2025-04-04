@@ -20,10 +20,14 @@
  */
 
 #include "common/translation.h"
+#include "graphics/scaler.h"
+#include "graphics/thumbnail.h"
 
 #include "fitd/metaengine.h"
 #include "fitd/detection.h"
 #include "fitd/fitd.h"
+#include "fitd/gfx.h"
+#include "fitd/system_menu.h"
 
 namespace Fitd {
 
@@ -60,6 +64,15 @@ Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 bool FitdMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return checkExtendedSaves(f) ||
 		(f == kSupportsLoadingDuringStartup);
+}
+
+void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
+	Graphics::Surface *scaledSavedScreen = scale(*Fitd::savedSurface, kThumbnailWidth, kThumbnailHeight2);
+	assert(scaledSavedScreen);
+	thumb.copyFrom(*scaledSavedScreen);
+
+	scaledSavedScreen->free();
+	delete scaledSavedScreen;
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(FITD)
