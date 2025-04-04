@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/aitd2.h"
 #include "fitd/jack.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
@@ -339,6 +340,15 @@ Common::Error FitdEngine::run() {
 	case GID_JACK:
 		startJACK(saveSlot);
 		break;
+	case GID_AITD2:
+		startAITD2(saveSlot);
+		break;
+	// case GID_AITD3:
+	// 	startAITD3(saveSlot);
+	// 	break;
+	// case GID_TIMEGATE:
+	// 	startGame(0, 5, 1);
+	// 	break;
 	default:
 		error("Unknown game");
 		break;

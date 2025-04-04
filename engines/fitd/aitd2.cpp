@@ -231,7 +231,7 @@ int AITD2MusicToTrackMapping[21] = {
 void startAITD2(int saveSlot) {
 	fontHeight = 14;
 	g_gameUseCDA = true;
-	pAITD2InventorySprite = loadPak("ITD_RESS", AITD2_SPRITES_INVENTAIRE);
+	pAITD2InventorySprite = loadPak("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE);
 	assert(pAITD2InventorySprite);
 
 	if (saveSlot == -1) {

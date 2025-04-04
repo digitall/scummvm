@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/aitd2.h"
 #include "fitd/fitd.h"
 #include "fitd/jack.h"
 #include "fitd/aitd_box.h"
@@ -288,8 +289,8 @@ void readBook(int index, int type) {
 		JACK_ReadBook(index, type);
 		break;
 	case GID_AITD2:
-		// AITD2_ReadBook(index, type);
-		// break;
+		AITD2_ReadBook(index, type);
+		break;
 	default:
 		assert(0);
 	}
