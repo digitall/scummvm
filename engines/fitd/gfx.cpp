@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/anim.h"
 #include "fitd/costable.h"
 #include "fitd/common.h"
 #include "fitd/game_time.h"
@@ -48,6 +49,7 @@ namespace Fitd {
 
 #define NUM_MAX_VERTEX_IN_PRIM 64
 #define NUM_MAX_PRIM_ENTRY 500
+#define NUM_MAX_BONES 50
 
 int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
 
@@ -263,7 +265,7 @@ void main()
 })";
 
 const char *maskVSSrc = R"(
-attribute vec2 a_position;
+attribute vec3 a_position;
 attribute vec2 a_texCoords;
 varying vec2 v_texCoords;
 void main() {
@@ -549,7 +551,7 @@ void gfx_refreshFrontTextureBuffer() {
 	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, physicalScreen));
 }
 
-void osystem_fillPoly(float *buffer, int numPoint, unsigned char color, uint8 polyType) {
+static void osystem_fillPoly(float *buffer, int numPoint, unsigned char color, uint8 polyType) {
 #define MAX_POINTS_PER_POLY 50
 	// float UVArray[MAX_POINTS_PER_POLY];
 
@@ -1906,38 +1908,28 @@ void osystem_stopModelRender() {
 	osystem_flushPendingPrimitives();
 }
 
-void gameScreenToViewport(float *X, float *Y) {
-	(*X) = (*X) * 4.f;
-	(*Y) = (*Y) * 4.f;
-
-	(*Y) = 800.f - (*Y);
-}
 
 void osystem_setClip(float left, float top, float right, float bottom) {
-	float x1 = left - 1;
-	float y1 = bottom + 1;
-	float x2 = right + 1;
-	float y2 = top - 1;
-
-	gameScreenToViewport(&x1, &y1);
-	gameScreenToViewport(&x2, &y2);
-
-	float width = x2 - x1;
-	float height = y2 - y1;
 
 	float currentScissor[4];
-	currentScissor[0] = ((left - 1) / 320.f) * 320.f;
-	currentScissor[1] = ((top - 1) / 200.f) * 200.f;
-	currentScissor[2] = ((right - left + 2) / 320.f) * 320.f;
-	currentScissor[3] = ((bottom - top + 2) / 200.f) * 200.f;
+	currentScissor[0] = ((left - 1) / 320.f) * 1280.f;
+	currentScissor[1] = ((top - 1) / 200.f) * 800.f;
+	currentScissor[2] = ((right - left + 2) / 320.f) * 1280.f;
+	currentScissor[3] = ((bottom - top + 2) / 200.f) * 800.f;
 
 	currentScissor[0] = MAX(currentScissor[0], 0.f);
 	currentScissor[1] = MAX(currentScissor[1], 0.f);
 
 	return;
 	// TODO: later
+
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(currentScissor[0], currentScissor[1], currentScissor[2], currentScissor[3]);
+}
+
+void osystem_clearClip() {
+	glScissor(0, 0, 320.f * 4.f, 200.f * 4.f);
+	glDisable(GL_SCISSOR_TEST);
 }
 
 void osystem_drawMask(int roomId, int maskId) {
@@ -1971,11 +1963,6 @@ void osystem_drawMask(int roomId, int maskId) {
 
 	maskShader->unbind();
 	glDepthMask(GL_TRUE);
-}
-
-void osystem_clearClip() {
-	glScissor(0, 0, 320, 200);
-	glDisable(GL_SCISSOR_TEST);
 }
 
 void osystem_flip(unsigned char *videoBuffer) {

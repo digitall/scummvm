@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/hqr.h"
 #include "fitd/game_time.h"
