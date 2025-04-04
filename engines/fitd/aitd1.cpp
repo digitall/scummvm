@@ -309,17 +309,17 @@ int choosePerso(void) {
 	return (choice);
 }
 
-void startAITD1() {
+void startAITD1(int saveSlot) {
 	fontHeight = 16;
 	g_gameUseCDA = true;
 	gfx_setPalette(currentGamePalette);
 
-	if (!make3dTatou()) {
+	if (saveSlot == -1 && !make3dTatou()) {
 		makeIntroScreens();
 	}
 
 	while (!g_engine->shouldQuit()) {
-		int startupMenuResult = processStartupMenu();
+		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 		switch (startupMenuResult) {
 		case -1: // timeout
 		{
@@ -350,14 +350,13 @@ void startAITD1() {
 
 				startGame(0, 0, 1);
 			}
-
 			break;
 		}
 		case 1: // continue
 		{
 			// here, original would ask for protection
 
-			if (restoreSave(12, 0)) {
+			if (g_engine->loadGameState(saveSlot != -1 ? saveSlot : 1).getCode() == Common::kNoError) {
 				// here, original would quit if protection flag was false
 
 				//          updateShaking();

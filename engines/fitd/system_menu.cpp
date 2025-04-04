@@ -21,6 +21,7 @@
 
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
@@ -37,6 +38,7 @@
 namespace Fitd {
 
 int input5;
+Graphics::Surface *savedSurface = NULL;
 
 void AffOption(int n, int num, int selected) {
 	int y = WindowY1 + ((WindowY2 - WindowY1) / 2) - (NB_OPTIONS * SIZE_FONT) / 2 + (n * SIZE_FONT);
@@ -84,6 +86,7 @@ void processSystemMenu(void) {
 	int currentSelectedEntry;
 
 	freezeTime();
+	savedSurface = gfx_capture();
 	// pauseShaking();
 
 	if (lightOff) {
@@ -94,7 +97,7 @@ void processSystemMenu(void) {
 
 	currentSelectedEntry = 0;
 
-	while (!exitMenu) {
+	while (!exitMenu && !g_engine->shouldQuit()) {
 		AffOptionList(currentSelectedEntry);
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
@@ -120,15 +123,18 @@ void processSystemMenu(void) {
 						exitMenu = 1;
 						break;
 					case 1: // save
-						makeSave(45);
+						g_engine->saveGameState(1, "", false);
 						break;
 					case 2: // load
-						if (restoreSave(46, 1)) {
+						if (g_engine->loadGameState(1).getCode() == Common::kNoError) {
 							flagInitView = 2;
 							unfreezeTime();
 							// updateShaking();
 							return;
 						}
+						break;
+					case 6: // quit
+						g_engine->quitGame();
 						break;
 					}
 				} else {
@@ -165,7 +171,7 @@ void processSystemMenu(void) {
 	}
 
 	// fadeOut(32,2);
-	while (key || JoyD || Click) {
+	while ((key || JoyD || Click) && !g_engine->shouldQuit()) {
 		process_events();
 	}
 	localKey = localClick = localJoyD = 0;

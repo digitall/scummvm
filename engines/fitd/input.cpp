@@ -52,6 +52,8 @@ void handleKeyDown(Common::Event &event) {
 	case Common::KEYCODE_SPACE:
 		Click = 1;
 		break;
+	default:
+		break;
 	}
 }
 
@@ -80,6 +82,8 @@ void handleKeyUp(Common::Event &event) {
 		break;
 	case Common::KEYCODE_SPACE:
 		Click &= ~1;
+		break;
+	default:
 		break;
 	}
 }

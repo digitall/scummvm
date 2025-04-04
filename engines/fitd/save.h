@@ -23,11 +23,15 @@
 #ifndef FITD_SAVE_H
 #define FITD_SAVE_H
 
+namespace Common {
+class SeekableReadStream;
+class WriteStream;
+} // namespace Common
+
 namespace Fitd {
 
-int loadSave(int saveNumber);
-int restoreSave(int arg0, int arg1);
-int makeSave(int arg0);
-}
+int loadSave(Common::SeekableReadStream *in);
+int makeSave(Common::WriteStream *out);
+} // namespace Fitd
 
 #endif

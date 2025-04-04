@@ -21,6 +21,7 @@
 
 #include "fitd/file_access.h"
 #include "fitd/pak.h"
+#include "fitd/vars.h"
 #include "common/file.h"
 #include "common/textconsole.h"
 
@@ -31,7 +32,7 @@ char *loadFromItd(const char *name) {
 
 	Common::File f;
 	f.open(name);
-	int64 fileSize = f.size();
+	fileSize = f.size();
 	ptr = (char *)malloc(fileSize);
 
 	if (!ptr) {

@@ -22,8 +22,13 @@
 #ifndef FITD_SYSTEMMENU_H
 #define FITD_SYSTEMMENU_H
 
+namespace Graphics {
+struct Surface;
+}
+
 namespace Fitd {
 void processSystemMenu(void);
-}
+extern Graphics::Surface *savedSurface;
+} // namespace Fitd
 
 #endif

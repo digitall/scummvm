@@ -24,6 +24,9 @@
 
 #include "common/scummsys.h"
 
+namespace Graphics {
+struct Surface;
+}
 namespace Fitd {
 
 #define INFO_TRI 1
@@ -31,7 +34,7 @@ namespace Fitd {
 #define INFO_TORTUE 4
 #define INFO_OPTIMISE 8
 
-extern byte currentGamePalette[256*3];
+extern byte currentGamePalette[256 * 3];
 extern byte frontBuffer[320 * 200];
 
 void gfx_init();
@@ -39,6 +42,7 @@ void gfx_draw();
 void gfx_setPalette(const byte *palette);
 void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
 void gfx_refreshFrontTextureBuffer();
+Graphics::Surface *gfx_capture();
 
 void setPosCamera(int x, int y, int z);
 void setAngleCamera(int x, int y, int z);
@@ -46,12 +50,12 @@ void setupCameraProjection(int centerX, int centerY, int x, int y, int z);
 void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int time);
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr);
 void setClip(int left, int top, int right, int bottom);
-void affSpfI(int x, int y, int param, char* gfx);
+void affSpfI(int x, int y, int param, char *gfx);
 void fillBox(int x1, int y1, int x2, int y2, char color); // fast recode. No RE
 void flushScreen(void);
 void setupCamera();
 void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut);
-void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char* bodyPtr);
+void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr);
 
 void osystem_startFrame();
 void osystem_drawBackground();
@@ -76,7 +80,7 @@ extern int numOfPoints;
 #define NUM_MAX_POINT_IN_POINT_BUFFER 800
 #define NUM_MAX_BONES 50
 
-extern int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER*3];
+extern int16 pointBuffer[NUM_MAX_POINT_IN_POINT_BUFFER * 3];
 }; // namespace Fitd
 
 #endif

@@ -84,7 +84,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 					process_events();
 				}
 				processSystemMenu();
-				while (key == 0x1B || key == 0x1C) {
+				while ((key == 0x1B || key == 0x1C) && !g_engine->shouldQuit()) {
 					process_events();
 					localKey = key;
 				}
@@ -175,10 +175,10 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 						// case JACK:
 						// case AITD1:
 						// {
-							if (currentProcessedActorPtr->life != -1)
-								if (currentProcessedActorPtr->lifeMode != -1)
-									processLife(currentProcessedActorPtr->life, false);
-							// break;
+						if (currentProcessedActorPtr->life != -1)
+							if (currentProcessedActorPtr->lifeMode != -1)
+								processLife(currentProcessedActorPtr->life, false);
+						// break;
 						// }
 						// }
 					}
