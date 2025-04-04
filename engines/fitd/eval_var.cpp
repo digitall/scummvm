@@ -729,7 +729,7 @@ int evalVar2(const char *name) {
 			}
 			case 0x13: {
 				if (localJoyD & 4)
-					return 4;
+ 					return 4;
 				if (localJoyD & 8)
 					return 8;
 				if (localJoyD & 1)

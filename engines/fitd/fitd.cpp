@@ -85,7 +85,11 @@ void waitMs(uint timeMs) {
 static void loadPalette(void) {
 	unsigned char localPalette[768];
 
-	loadPak("ITD_RESS.PAK", 3, aux);
+	if (g_engine->getGameId() == GID_AITD2) {
+		loadPak("ITD_RESS.PAK", 59, aux);
+	} else {
+		loadPak("ITD_RESS.PAK", 3, aux);
+	}
 	copyPalette((byte *)aux, currentGamePalette);
 
 	copyPalette(currentGamePalette, localPalette);
@@ -247,6 +251,8 @@ Common::Error FitdEngine::run() {
 	if (!initMusicDriver()) {
 		musicConfigured = 0;
 		musicEnabled = 0;
+		soundToggle = 0;
+		detailToggle = 0;
 	}
 
 	aux = (char *)malloc(65068);

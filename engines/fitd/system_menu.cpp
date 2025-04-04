@@ -29,6 +29,7 @@
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
+#include "audio/mixer.h"
 
 #define NB_OPTIONS 7
 #define SELECT_COUL 0xF
@@ -73,8 +74,8 @@ void AffOptionList(int selectedStringNumber) {
 	AffOption(1, 45, selectedStringNumber);
 	AffOption(2, 46, selectedStringNumber);
 	AffOption(3, 41 + musicEnabled, selectedStringNumber);
-	AffOption(4, 43 /*+soundToggle*/, selectedStringNumber);
-	AffOption(5, 49 /*+detailToggle*/, selectedStringNumber);
+	AffOption(4, 43 + soundToggle, selectedStringNumber);
+	AffOption(5, 49 + detailToggle, selectedStringNumber);
 	AffOption(6, 47, selectedStringNumber);
 
 	menuWaitVSync();
@@ -132,6 +133,16 @@ void processSystemMenu(void) {
 							// updateShaking();
 							return;
 						}
+						break;
+					case 3: // music
+						musicEnabled = musicEnabled ? 0 : 1;
+						break;
+					case 4: // sound
+						soundToggle = soundToggle ? 0 : 1;
+						g_engine->_mixer->muteSoundType(Audio::Mixer::kSFXSoundType, soundToggle ? false : true);
+						break;
+					case 5: // details
+						detailToggle = detailToggle ? 0 : 1;
 						break;
 					case 6: // quit
 						g_engine->quitGame();

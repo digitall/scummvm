@@ -34,6 +34,8 @@ hqrEntryStruct* HQ_Memory;
 int videoMode;
 int musicConfigured;
 int musicEnabled;
+int soundToggle;
+int detailToggle;
 
 char* aux;
 char* aux2;

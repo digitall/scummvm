@@ -280,6 +280,8 @@ extern hqrEntryStruct* listSamp;
 extern int videoMode;
 extern int musicConfigured;
 extern int musicEnabled;
+extern int soundToggle;
+extern int detailToggle;
 
 extern char* aux;
 extern char* aux2;

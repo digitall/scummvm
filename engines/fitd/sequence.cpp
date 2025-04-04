@@ -166,7 +166,7 @@ void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 	Common::String buffer;
 	if (g_engine->getGameId() == GID_AITD2)
 	{
-	    buffer = sequenceListAITD2[sequenceIdx];
+	    buffer = Common::String::format("%s.PAK", sequenceListAITD2[sequenceIdx]);
 	}
 	else if (g_engine->getGameId() == GID_AITD3)
 	{
