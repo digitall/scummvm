@@ -1176,9 +1176,9 @@ void playMusic(int musicNumber) {
 
 // 	int trackNumber = musicNumber;
 
-// 	// if (g_gameId == AITD2) {
-// 	// 	trackNumber = AITD2MusicToTrackMapping[musicNumber];
-// 	// }
+// if (g_engine->getGameId() == GID_AITD2) {
+// 	trackNumber = AITD2MusicToTrackMapping[musicNumber];
+// }
 
 // 	if (osystem_playTrack(trackNumber))
 // 		return;

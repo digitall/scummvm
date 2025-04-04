@@ -20,6 +20,8 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/fitd.h"
+#include "fitd/jack.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
@@ -35,6 +37,7 @@
 #include "fitd/main_loop.h"
 #include "fitd/object.h"
 #include "fitd/pak.h"
+#include "fitd/sequence.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
@@ -42,6 +45,107 @@
 #include "common/file.h"
 
 namespace Fitd {
+
+const unsigned char defaultPalette[0x30] = {
+	0x00,
+	0x00,
+	0x00,
+	0x3F,
+	0x3F,
+	0x3F,
+	0x0C,
+	0x0C,
+	0x0E,
+	0x30,
+	0x2F,
+	0x3F,
+	0x23,
+	0x2C,
+	0x23,
+	0x2A,
+	0x1D,
+	0x2A,
+	0x2A,
+	0x21,
+	0x18,
+	0x3F,
+	0x05,
+	0x2A,
+	0x12,
+	0x14,
+	0x18,
+	0x31,
+	0x15,
+	0x17,
+	0x15,
+	0x25,
+	0x15,
+	0x15,
+	0x2F,
+	0x3F,
+	0x3F,
+	0x22,
+	0x15,
+	0x2B,
+	0x15,
+	0x3F,
+	0x3F,
+	0x3F,
+	0x21,
+	0x3F,
+	0x3F,
+	0x3F};
+
+const unsigned char defaultPaletteAITD3[0x30] =
+	{
+		0x00,
+		0x00,
+		0x00,
+		0xFC,
+		0xFC,
+		0xFC,
+		0x30,
+		0x30,
+		0x38,
+		0xC0,
+		0xBC,
+		0xFC,
+		0x78,
+		0x58,
+		0x3C,
+		0x00,
+		0x00,
+		0x00,
+		0xF0,
+		0x70,
+		0x10,
+		0xFC,
+		0xFC,
+		0xFC,
+		0x48,
+		0x50,
+		0x60,
+		0xC4,
+		0x54,
+		0x5C,
+		0x54,
+		0x94,
+		0x54,
+		0x54,
+		0xBC,
+		0xFC,
+		0xFC,
+		0x88,
+		0x54,
+		0xAC,
+		0x54,
+		0xFC,
+		0xFC,
+		0xFC,
+		0xFC,
+		0xFC,
+		0xFC,
+		0xF8};
 
 void executeFoundLife(int objIdx) {
 	int var_2;
@@ -176,21 +280,19 @@ static void turnPageBackward() {
 void readBook(int index, int type) {
 	freezeTime();
 
-	// switch(g_gameId)
-	// {
-	// case AITD1:
-	aitd1_readBook(index, type);
-	// 	break;
-	// case JACK:
-	// 	JACK_ReadBook(index, type);
-	// 	break;
-	// case AITD2:
-	// 	AITD2_ReadBook(index, type);
-	// 	break;
-	// default:
-	// 	assert(0);
-
-	// }
+	switch (g_engine->getGameId()) {
+	case GID_AITD1:
+		aitd1_readBook(index, type);
+		break;
+	case GID_JACK:
+		JACK_ReadBook(index, type);
+		break;
+	case GID_AITD2:
+		// AITD2_ReadBook(index, type);
+		// break;
+	default:
+		assert(0);
+	}
 
 	unfreezeTime();
 }
@@ -549,13 +651,11 @@ void initEngine(void) {
 	maxObjects = READ_LE_U16(pObjectData);
 	pObjectData += 2;
 
-	// if(g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		ListWorldObjets.resize(300);
+	} else {
+		ListWorldObjets.resize(maxObjects);
 	}
-	//  else {
-	// 	ListWorldObjets.resize(maxObjects);
-	// }
 
 	for (int i = 0; i < maxObjects; i++) {
 		ListWorldObjets[i].objIndex = READ_LE_U16(pObjectData);
@@ -636,11 +736,10 @@ void initEngine(void) {
 		ListWorldObjets[i].positionInTrack = READ_LE_U16(pObjectData);
 		pObjectData += 2;
 
-		// if(g_gameId >= JACK)
-		//{
-		//	ListWorldObjets[i].mark = READ_LE_U16(pObjectData);
-		//	pObjectData+=2;
-		// }
+		if (g_engine->getGameId() >= GID_JACK) {
+			ListWorldObjets[i].mark = READ_LE_U16(pObjectData);
+			pObjectData += 2;
+		}
 		ListWorldObjets[i].flags |= 0x20;
 	}
 
@@ -650,8 +749,7 @@ void initEngine(void) {
 
 	varSize = fileSize;
 
-	// if(g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		choosePersoBackup = CVars[getCVarsIdx(CHOOSE_PERSO)]; // backup hero selection
 	}
 
@@ -668,8 +766,7 @@ void initEngine(void) {
 	}
 	//////////////////////////////////////////////
 
-	// if(g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		CVars[getCVarsIdx(CHOOSE_PERSO)] = choosePersoBackup;
 	}
 
@@ -678,24 +775,20 @@ void initEngine(void) {
 
 	// TODO: missing dos memory check here
 
-	// if(g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		listBody = HQR_InitRessource(listBodySelect[CVars[getCVarsIdx(CHOOSE_PERSO)]], 37000, 50); // was calculated from free mem size
 		listAnim = HQR_InitRessource(listAnimSelect[CVars[getCVarsIdx(CHOOSE_PERSO)]], 30000, 80); // was calculated from free mem size
+	} else {
+		listBody = HQR_InitRessource("LISTBODY.PAK", 37000, 50); // was calculated from free mem size
+		listAnim = HQR_InitRessource("LISTANIM.PAK", 30000, 80); // was calculated from free mem size
+
+		listMatrix = HQR_InitRessource("LISTMAT.PAK", 64000, 5);
 	}
-	// else
-	//{
-	//	listBody = HQR_InitRessource("LISTBODY",37000, 50); // was calculated from free mem size
-	//	listAnim = HQR_InitRessource("LISTANIM",30000, 80); // was calculated from free mem size
-	//
-	//	listMatrix = HQR_InitRessource("LISTMAT",64000,5);
-	// }
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		objectTable[i].indexInWorld = -1;
 	}
 
-	// if(g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		currentWorldTarget = CVars[getCVarsIdx(WORLD_NUM_PERSO)];
 	}
 }
@@ -747,8 +840,7 @@ static void loadCamera(int cameraIdx) {
 	Common::String name = Common::String::format("CAMERA%02d.PAK", g_currentFloor);
 	// strcat(name,".PAK");
 
-	// if(g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		if (CVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
 			switch (g_currentFloor) {
 			case 6: {
@@ -785,27 +877,22 @@ static void loadCamera(int cameraIdx) {
 		error("Cannot load pak %s", name.c_str());
 	}
 
-	// if(g_gameId == AITD3)
-	// {
-	// 	memmove(aux,aux+4,64000+0x300);
-	// }
+	if (g_engine->getGameId() == GID_AITD3) {
+		memmove(aux, aux + 4, 64000 + 0x300);
+	}
 
-	// if(g_gameId >= JACK)
-	// {
-	// 	copyPalette((unsigned char*)aux+64000,currentGamePalette);
+	if (g_engine->getGameId() >= GID_JACK) {
+		copyPalette((unsigned char *)aux + 64000, currentGamePalette);
 
-	// 	if(g_gameId == AITD3)
-	// 	{
-	// 		//memcpy(palette,defaultPaletteAITD3,0x30);
-	// 	}
-	// 	else
-	// 	{
-	// 		memcpy(currentGamePalette,defaultPalette,0x30);
-	// 		convertPaletteIfRequired((unsigned char*)currentGamePalette);
-	// 	}
+		if (g_engine->getGameId() == GID_AITD3) {
+			// memcpy(palette,defaultPaletteAITD3,0x30);
+		} else {
+			memcpy(currentGamePalette, defaultPalette, 0x30);
+			convertPaletteIfRequired((unsigned char *)currentGamePalette);
+		}
 
-	// 	osystem_setPalette(currentGamePalette);
-	// }
+		gfx_setPalette(currentGamePalette);
+	}
 }
 
 struct maskStruct {
@@ -820,6 +907,71 @@ struct maskStruct {
 };
 
 maskStruct g_maskBuffers[10][10];
+
+static void loadMask(int cameraIdx) {
+	if (g_engine->getGameId() == GID_TIMEGATE)
+		return;
+
+	Common::String name = Common::String::format("MASK%02d.PAK", g_currentFloor);
+
+	if (g_MaskPtr) {
+		free(g_MaskPtr);
+	}
+
+	g_MaskPtr = (unsigned char *)loadPak(name.c_str(), cameraIdx);
+
+	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
+		cameraViewedRoomStruct *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
+		unsigned char *pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i * 4);
+
+		for (int j = 0; j < pRoomView->numMask; j++) {
+			unsigned char *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
+
+			maskStruct *pDestMask = &g_maskBuffers[i][j];
+
+			memset(pDestMask->mask, 0, 320 * 200);
+
+			pDestMask->x1 = READ_LE_U16(pMaskData);
+			pMaskData += 2;
+			pDestMask->y1 = READ_LE_U16(pMaskData);
+			pMaskData += 2;
+			pDestMask->x2 = READ_LE_U16(pMaskData);
+			pMaskData += 2;
+			pDestMask->y2 = READ_LE_U16(pMaskData);
+			pMaskData += 2;
+			pDestMask->deltaX = READ_LE_U16(pMaskData);
+			pMaskData += 2;
+			pDestMask->deltaY = READ_LE_U16(pMaskData);
+			pMaskData += 2;
+
+			assert(pDestMask->deltaX == pDestMask->x2 - pDestMask->x1 + 1);
+			assert(pDestMask->deltaY == pDestMask->y2 - pDestMask->y1 + 1);
+
+			for (int k = 0; k < pDestMask->deltaY; k++) {
+				uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
+				pMaskData += 2;
+
+				unsigned char *pSourceBuffer = (unsigned char *)aux;
+
+				int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
+
+				for (int l = 0; l < uNumEntryForLine; l++) {
+					unsigned char uNumSkip = *(pMaskData++);
+					unsigned char uNumCopy = *(pMaskData++);
+
+					offset += uNumSkip;
+
+					for (int m = 0; m < uNumCopy; m++) {
+						pDestMask->mask[offset] = 0xFF;
+						offset++;
+					}
+				}
+			}
+
+			osystem_createMask(pDestMask->mask, i, j, (unsigned char *)aux, pDestMask->x1, pDestMask->y1, pDestMask->x2, pDestMask->y2);
+		}
+	}
+}
 
 void fillpoly(int16 *datas, int n, unsigned char c);
 extern unsigned char *polyBackBuffer;
@@ -1025,10 +1177,9 @@ static void deleteObjet(int index) // remove actor
 			if (objectPtr->trackMode) {
 				objectPtr->trackNumber = actorPtr->trackNumber;
 				objectPtr->positionInTrack = actorPtr->positionInTrack;
-				// if(g_gameId != AITD1)
-				//{
-				//	objectPtr->mark = actorPtr->MARK;
-				// }
+				if (g_engine->getGameId() != GID_AITD1) {
+					objectPtr->mark = actorPtr->MARK;
+				}
 			}
 
 			objectPtr->x = actorPtr->roomX + actorPtr->stepX;
@@ -1226,10 +1377,10 @@ void updateAllActorAndObjects() {
 	tObject *currentActor = objectTable;
 	tWorldObject *currentObject;
 
-	// if (g_gameId > JACK) {
-	// 	updateAllActorAndObjectsAITD2();
-	// 	return;
-	// }
+	if (g_engine->getGameId() > GID_JACK) {
+		// updateAllActorAndObjectsAITD2();
+		return;
+	}
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (currentActor->indexInWorld != -1) {
 			if (currentActor->stage == g_currentFloor) {
@@ -1398,10 +1549,9 @@ void setupCamera() {
 	assert(startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
 
 	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
-	// if (g_gameId >= JACK) {
-	// 	loadMask(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
-	// } else
-	{
+	if (g_engine->getGameId() >= GID_JACK) {
+		loadMask(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
+	} else {
 		createAITD1Mask();
 	}
 	cameraBackgroundChanged = true;
@@ -1615,8 +1765,7 @@ static void drawBgOverlay(tObject *actorPtr) {
 	if (pcameraViewedRoomData == NULL)
 		return;
 
-	// if (g_gameId == AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
 		data = data2;
 		data += 2;
@@ -1660,28 +1809,27 @@ static void drawBgOverlay(tObject *actorPtr) {
 			data += 2;
 			data += ((numOverlay * 4) + 1) * 2;
 		}
+	} else {
+		for (int i = 0; i < pcameraViewedRoomData->numMask; i++) {
+			cameraMaskStruct *pMaskZones = &pcameraViewedRoomData->masks[i];
+
+			for (int j = 0; j < pMaskZones->numTestRect; j++) {
+				rectTestStruct *pRect = &pMaskZones->rectTests[j];
+
+				int actorX1 = actorPtr->zv.ZVX1 / 10;
+				int actorX2 = actorPtr->zv.ZVX2 / 10;
+				int actorZ1 = actorPtr->zv.ZVZ1 / 10;
+				int actorZ2 = actorPtr->zv.ZVZ2 / 10;
+
+				if (actorX1 >= pRect->zoneX1 && actorZ1 >= pRect->zoneZ1 && actorX2 <= pRect->zoneX2 && actorZ2 <= pRect->zoneZ2) {
+					osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
+					osystem_drawMask(relativeCameraIndex, i);
+					osystem_clearClip();
+					break;
+				}
+			}
+		}
 	}
-	// else {
-	// 	for (int i = 0; i < pcameraViewedRoomData->numMask; i++) {
-	// 		cameraMaskStruct *pMaskZones = &pcameraViewedRoomData->masks[i];
-
-	// 		for (int j = 0; j < pMaskZones->numTestRect; j++) {
-	// 			rectTestStruct *pRect = &pMaskZones->rectTests[j];
-
-	// 			int actorX1 = actorPtr->zv.ZVX1 / 10;
-	// 			int actorX2 = actorPtr->zv.ZVX2 / 10;
-	// 			int actorZ1 = actorPtr->zv.ZVZ1 / 10;
-	// 			int actorZ2 = actorPtr->zv.ZVZ2 / 10;
-
-	// 			if (actorX1 >= pRect->zoneX1 && actorZ1 >= pRect->zoneZ1 && actorX2 <= pRect->zoneX2 && actorZ2 <= pRect->zoneZ2) {
-	// 				osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
-	// 				osystem_drawMask(relativeCameraIndex, i);
-	// 				osystem_clearClip();
-	// 				break;
-	// 			}
-	// 		}
-	// 	}
-	// }
 	setClip(0, 0, 319, 199);
 }
 
@@ -1815,8 +1963,7 @@ void mainDraw(int flagFlip) {
 
 			if (BBox3D1 <= 319 && BBox3D2 <= 199 && BBox3D3 >= 0 && BBox3D4 >= 0) // is the character on screen ?
 			{
-				// if(g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					if (actorPtr->indexInWorld == CVars[getCVarsIdx(LIGHT_OBJECT)]) {
 						lightX = (BBox3D3 + BBox3D1) / 2;
 						lightY = (BBox3D4 + BBox3D2) / 2;
@@ -1827,8 +1974,8 @@ void mainDraw(int flagFlip) {
 				if (backgroundMode == backgroundModeEnum_2D)
 #endif
 				{
-					// if(g_gameId == AITD1)
-					drawBgOverlay(actorPtr);
+					if (g_engine->getGameId() == GID_AITD1)
+						drawBgOverlay(actorPtr);
 				}
 				// addToRedrawBox();
 			} else {
@@ -2502,6 +2649,8 @@ void processActor2() {
 					if (currentProcessedActorIdx == currentCameraTargetActor) {
 						needChangeRoom = 1;
 						newRoom = (short)pCurrentZone->parameter;
+						if (g_engine->getGameId() > GID_AITD1)
+							loadRoom(newRoom);
 
 					} else {
 						actorTurnedToObj = 1;
@@ -2512,16 +2661,17 @@ void processActor2() {
 					break;
 				}
 				case 8: {
-					assert(0);
-					// assert(g_gameId != AITD1);
-					// if (g_gameId != AITD1) {
-					// 	currentProcessedActorPtr->hardMat = (short)pCurrentZone->parameter;
-					// }
+					assert(g_engine->getGameId() != GID_AITD1);
+					if (g_engine->getGameId() != GID_AITD1) {
+						currentProcessedActorPtr->hardMat = (short)pCurrentZone->parameter;
+					}
 					break;
 				}
 				case 9: // Scenar
 				{
-					currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+					if ((g_engine->getGameId() == GID_AITD1) || !flagFloorChange) {
+						currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
+					}
 					break;
 				}
 				case 10: // stage
@@ -2541,7 +2691,8 @@ void processActor2() {
 				}
 				}
 
-				return;
+				if (g_engine->getGameId() == GID_AITD1) // AITD1 stops at the first zone
+					return;
 			}
 			if (onceMore)
 				break;

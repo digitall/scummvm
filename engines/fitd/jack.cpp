@@ -19,54 +19,44 @@
  *
  */
 
+#include "fitd/common.h"
+#include "fitd/font.h"
+#include "fitd/gfx.h"
+#include "fitd/jack.h"
+#include "fitd/pak.h"
+#include "fitd/sequence.h"
+#include "fitd/tatou.h"
+#include "fitd/vars.h"
+
 namespace Fitd {
+// ITD_RESS mapping
+#define JACK_CADRE_SPF 0
+#define JACK_ITDFONT 1
+#define JACK_LIVRE 2
+#define JACK_IM_EXT_JACK 3
 
-const PlainGameDescriptor fitdGames[] = {
-	{ "aitd1", "Alone in the Dark" },
-	{ "jack", "Jack in the Dark" },
-	{ "aitd2", "Alone in the Dark 2" },
-	{ 0, 0 }
-};
+void startJACK(int saveSlot) {
+	fontHeight = 16; // TODO: check
+	startGame(16, 1, 1);
+}
 
-const FitdGameDescription gameDescriptions[] = {
+void JACK_ReadBook(int index, int type) {
+	switch (type) {
+	case 1: // READ_BOOK
 	{
-		{
-			"aitd1",
-			nullptr,
-			AD_ENTRY1s("LISTBOD2.PAK", "7c86683ab53991ad694ebffec56a8ea3", 268430),
-			Common::EN_ANY,
-			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
-		},
-		GID_AITD1
-	},
-	{
-		{
-			"jack",
-			nullptr,
-			AD_ENTRY1s("PERE.PAK", "6ae91d1842fc70f6f2c449016328fe31", 296437),
-			Common::EN_ANY,
-			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
-		},
-		GID_JACK
-	},
-	{
-		{
-			"aitd2",
-			nullptr,
-			AD_ENTRY1s("MER.PAK", "0b27a44028286f7b5aa99a744d601b09", 79049),
-			Common::EN_ANY,
-			Common::kPlatformDOS,
-			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
-		},
-		GID_AITD2
-	},
-
-	AD_TABLE_END_MARKER
-};
-
-} // End of namespace Fitd
+		unsigned char *pImage = (unsigned char *)loadPak("ITD_RESS.PAK", JACK_LIVRE);
+		memcpy(aux, pImage, 320 * 200);
+		unsigned char *lpalette = pImage + 320 * 200;
+		convertPaletteIfRequired(lpalette);
+		copyPalette(lpalette, currentGamePalette);
+		gfx_setPalette(lpalette);
+		free(pImage);
+		turnPageFlag = 1;
+		lire(index, 60, 10, 245, 190, 0, 124, 124);
+		break;
+	}
+	default:
+		assert(0);
+	}
+}
+} // namespace Fitd

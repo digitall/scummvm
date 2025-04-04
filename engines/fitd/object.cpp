@@ -21,6 +21,7 @@
 
 #include "fitd/anim.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/object.h"
@@ -95,10 +96,10 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->COL_BY = -1;
 	actorPtr->HARD_DEC = -1;
 	actorPtr->HARD_COL = -1;
-    // if(g_gameId != AITD1)
-    // {
-    //     actorPtr->hardMat = -1;
-    // }
+    if(g_engine->getGameId() != GID_AITD1)
+    {
+        actorPtr->hardMat = -1;
+    }
 
 	actorPtr->rotate.oldAngle = 0;
 	actorPtr->rotate.newAngle = 0;

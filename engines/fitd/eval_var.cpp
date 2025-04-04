@@ -43,7 +43,7 @@ int getMatrix(int param1, int actorIdx, int param2) {
 	matrixPtr += (objectTable[actorIdx].hardMat - 1) * matrixWidth;
 	matrixPtr += (objectTable[param2].hardMat - 1);
 
-	// if(g_gameId == AITD3)
+	if(g_engine->getGameId() == GID_AITD3)
 	{
 		return *(unsigned char*)matrixPtr;
 	}
@@ -167,10 +167,10 @@ int testZvEndAnim(tObject *actorPtr, char *animPtr, int param) {
 int evalVar(const char *name) {
 	int var1;
 
-    // if(g_gameId >= JACK)
-    // {
-    //     return evalVar2(name);
-    // }
+    if(g_engine->getGameId() >= GID_JACK)
+    {
+        return evalVar2(name);
+    }
 	var1 = *(int16 *)(currentLifePtr);
 	currentLifePtr += 2;
 

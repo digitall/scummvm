@@ -26,6 +26,22 @@
 
 namespace Fitd {
 
+enum FitdGameId {
+	GID_NONE		= 0,
+	GID_AITD1		= 1,
+	GID_JACK		= 2,
+	GID_AITD2		= 3,
+	GID_AITD3		= 4,
+	GID_TIMEGATE	= 5,
+};
+
+struct FitdGameDescription {
+	AD_GAME_DESCRIPTION_HELPERS(desc);
+
+	ADGameDescription desc;
+	FitdGameId gameId;
+};
+
 enum FitdDebugChannels {
 	kDebugGraphics = 1,
 	kDebugPath,
@@ -36,13 +52,13 @@ enum FitdDebugChannels {
 
 extern const PlainGameDescriptor fitdGames[];
 
-extern const ADGameDescription gameDescriptions[];
+// extern const Fitd::FitdGameDescription gameDescriptions[];
 
 #define GAMEOPTION_ORIGINAL_SAVELOAD GUIO_GAMEOPTIONS1
 
 } // End of namespace Fitd
 
-class FitdMetaEngineDetection : public AdvancedMetaEngineDetection<ADGameDescription> {
+class FitdMetaEngineDetection : public AdvancedMetaEngineDetection<Fitd::FitdGameDescription> {
 	static const DebugChannelDef debugFlagList[];
 
 public:

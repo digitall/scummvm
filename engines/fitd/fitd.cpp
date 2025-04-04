@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd1.h"
+#include "fitd/jack.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/console.h"
@@ -49,19 +50,15 @@ namespace Fitd {
 
 FitdEngine *g_engine;
 
-FitdEngine::FitdEngine(OSystem *syst, const ADGameDescription *gameDesc) : Engine(syst),
-																		   _gameDescription(gameDesc), _randomSource("Fitd") {
+FitdEngine::FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc) : Engine(syst),
+																			 _gameDescription(gameDesc), _randomSource("Fitd") {
 	g_engine = this;
 }
 
 FitdEngine::~FitdEngine() {
 }
 
-uint32 FitdEngine::getFeatures() const {
-	return _gameDescription->flags;
-}
-
-Common::String FitdEngine::getGameId() const {
+FitdGameId FitdEngine::getGameId() const {
 	return _gameDescription->gameId;
 }
 
@@ -142,7 +139,7 @@ void allocTextes(void) {
 	}
 
 	// setup languageNameString
-	// if(g_gameId == AITD3)
+	// if(g_engine->getGameId() == GID_AITD3)
 	// {
 	// 	strcpy(languageNameString,"TEXTES");
 	// }
@@ -217,13 +214,13 @@ void allocTextes(void) {
 Common::Error FitdEngine::run() {
 	initGraphics3d(320 * 4, 200 * 4);
 
-// #ifdef USE_IMGUI
-// 	ImGuiCallbacks callbacks;
-// 	callbacks.init = onImGuiInit;
-// 	callbacks.render = onImGuiRender;
-// 	callbacks.cleanup = onImGuiCleanup;
-// 	_system->setImGuiCallbacks(callbacks);
-// #endif
+	// #ifdef USE_IMGUI
+	// 	ImGuiCallbacks callbacks;
+	// 	callbacks.init = onImGuiInit;
+	// 	callbacks.render = onImGuiRender;
+	// 	callbacks.cleanup = onImGuiCleanup;
+	// 	_system->setImGuiCallbacks(callbacks);
+	// #endif
 
 	CVars.resize(45);
 	currentCVarTable = AITD1KnownCVars;
@@ -256,10 +253,62 @@ Common::Error FitdEngine::run() {
 		BufferAnim[i].resize(SIZE_BUFFER_ANIM);
 	}
 
-	PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 5);
+	switch (getGameId()) {
+	// case GID_AITD3:
+	// 	{
+	// 		FILE* fHandle = fopen("font.bin", "rb");
+	// 		fseek(fHandle, 0, SEEK_END);
+	// 		int fontSize = ftell(fHandle);
+	// 		PtrFont = (char*)malloc(fontSize);
+	// 		fseek(fHandle, 0, SEEK_SET);
+	// 		fread(PtrFont, fontSize, 1, fHandle);
+	// 		fclose(fHandle);
+	// 		break;
+	// 	}
+	case GID_JACK:
+	case GID_AITD2: {
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		/*
+		int fontSize = getPakSize("ITD_RESS",1);
+		FILE* fhandle = fopen("font.bin", "wb+");
+		fwrite(fontData, fontSize, 1, fhandle);
+		fclose(fhandle);*/
+		break;
+	}
+	case GID_AITD1: {
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 5);
+		break;
+	}
+	case GID_TIMEGATE:
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 2);
+		break;
+	default:
+		assert(0);
+	}
+
 	extSetFont(PtrFont, 14);
-	setFontSpace(2, 0);
-	PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 4);
+
+	if (getGameId() == GID_AITD1) {
+		setFontSpace(2, 0);
+	} else {
+		setFontSpace(2, 1);
+	}
+
+	switch (getGameId()) {
+	case GID_JACK:
+	case GID_AITD2:
+	case GID_AITD3: {
+		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 0);
+		break;
+	}
+	case GID_AITD1: {
+		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 4);
+		break;
+	}
+	default:
+		break;
+	}
+
 	PtrPrioritySample = loadFromItd("PRIORITY.ITD");
 
 	// read cvars definitions
@@ -274,7 +323,7 @@ Common::Error FitdEngine::run() {
 
 	allocTextes();
 	listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
-	listSamp = HQR_InitRessource("LISTSAMP.PAK", 64000, 30);
+	listSamp = HQR_InitRessource(getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
 	HQ_Memory = HQR_Init(10000, 50);
 
 	paletteFill(currentGamePalette, 0, 0, 0);
@@ -282,7 +331,18 @@ Common::Error FitdEngine::run() {
 
 	// If a savegame was selected from the launcher, load it
 	int saveSlot = ConfMan.getInt("save_slot");
-	startAITD1(saveSlot);
+
+	switch (getGameId()) {
+	case GID_AITD1:
+		startAITD1(saveSlot);
+		break;
+	case GID_JACK:
+		startJACK(saveSlot);
+		break;
+	default:
+		error("Unknown game");
+		break;
+	}
 
 #ifdef USE_IMGUI
 	_system->setImGuiCallbacks(ImGuiCallbacks());

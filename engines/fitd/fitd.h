@@ -42,25 +42,16 @@ struct FitdGameDescription;
 
 class FitdEngine : public Engine {
 private:
-	const ADGameDescription *_gameDescription;
+	const FitdGameDescription *_gameDescription;
 	Common::RandomSource _randomSource;
 protected:
 	// Engine APIs
 	Common::Error run() override;
 public:
-	FitdEngine(OSystem *syst, const ADGameDescription *gameDesc);
+	FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc);
 	~FitdEngine() override;
 
-	uint32 getFeatures() const;
-
-	/**
-	 * Returns the game Id
-	 */
-	Common::String getGameId() const;
-
-	/**
-	 * Gets a random number
-	 */
+	FitdGameId getGameId() const;
 	uint32 getRandomNumber(uint maxNum) {
 		return _randomSource.getRandomNumber(maxNum);
 	}

@@ -21,6 +21,7 @@
 
 #include "fitd/anim.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/room.h"
 #include "fitd/vars.h"
@@ -30,7 +31,7 @@ namespace Common {
 template<>
 struct Hash<void *> {
 	uint operator()(void *s) const {
-		uint64 u = (uint64) s;
+		uint64 u = (uint64)s;
 		return ((u >> 32) & 0xFFFFFFFF) ^ (u & 0xFFFFFFFF);
 	}
 };
@@ -166,6 +167,10 @@ int initAnim(int animNum, int animType, int animInfo) {
 			currentProcessedActorPtr->animType = animType;
 			currentProcessedActorPtr->animInfo = animInfo;
 
+			if (g_engine->getGameId() > GID_AITD1) {
+				currentProcessedActorPtr->FRAME = 0;
+			}
+
 			return 1;
 		} else {
 			currentProcessedActorPtr->animType = animType;
@@ -191,43 +196,38 @@ int initAnim(int animNum, int animType, int animInfo) {
 		currentProcessedActorPtr->newAnim = animNum;
 		currentProcessedActorPtr->newAnimType = animType;
 		currentProcessedActorPtr->newAnimInfo = animInfo;
+		if (g_engine->getGameId() > GID_AITD1) {
+			currentProcessedActorPtr->FRAME = 0;
+		}
 		return 1;
 	}
 
-	// if(g_gameId == AITD1)
-	{
-		if(currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
-			return(0);
+	if (g_engine->getGameId() == GID_AITD1) {
+		if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
+			return (0);
 
-		if(currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
-			return(0);
+		if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
+			return (0);
+	} else {
+		if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE) {
+			if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE) {
+				return 0;
+			} else {
+				currentProcessedActorPtr->animInfo = animNum;
+				return 1;
+			}
+		}
 	}
-	// else
-	// {
-	// 	if(currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
-	// 	{
-	// 		if(currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
-	// 		{
-	// 			return 0;
-	// 		}
-	// 		else
-	// 		{
-	// 			currentProcessedActorPtr->animInfo = animNum;
-	// 			return 1;
-	// 		}
-	// 	}
-	// }
 
 	currentProcessedActorPtr->newAnim = animNum;
 	currentProcessedActorPtr->newAnimType = animType;
 	currentProcessedActorPtr->newAnimInfo = animInfo;
 
-	// if(g_gameId != AITD1)
-	// {
-	// 	currentProcessedActorPtr->FRAME = 0;
-	// }
+	if (g_engine->getGameId() != GID_AITD1) {
+		currentProcessedActorPtr->FRAME = 0;
+	}
 
-    return(1);
+	return (1);
 }
 
 int evaluateReal(interpolatedValue *data) {
@@ -425,8 +425,7 @@ void updateAnimation(void) {
 					currentProcessedActorPtr->HARD_COL = 255;
 				}
 
-				// if (g_gameId == AITD1 || (g_gameId >= JACK && (pHardCol->type != 10 || currentProcessedActorIdx != currentCameraTargetActor)))
-				{
+				if (g_engine->getGameId() == GID_AITD1 || (g_engine->getGameId() >= GID_JACK && (pHardCol->type != 10 || currentProcessedActorIdx != currentCameraTargetActor))) {
 					if (stepX || stepZ) // move on the X or Z axis ? update to avoid entering the hard col
 					{
 						// ZVStruct tempZv;

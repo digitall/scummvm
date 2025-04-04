@@ -20,6 +20,7 @@
  */
 
 #include "fitd/actor_list.h"
+#include "fitd/fitd.h"
 #include "fitd/common.h"
 #include "fitd/vars.h"
 #include "common/scummsys.h"
@@ -62,8 +63,7 @@ int sortCompareFunction(const void *param1, const void *param2) {
 	y1 = ((((actor1ZvPtr->ZVY1 + actor1ZvPtr->ZVY2) / 2) - 2000) / 2000) * 2000;
 	y2 = ((((actor2ZvPtr->ZVY1 + actor2ZvPtr->ZVY2) / 2) - 2000) / 2000) * 2000;
 
-	// if ((y1 == y2) || (g_gameId >= JACK)) // both y in the same range
-	if ((y1 == y2) ) // both y in the same range
+	if ((y1 == y2) || (g_engine->getGameId() >= GID_JACK)) // both y in the same range
 	{
 		if (
 			((actor1ZvPtr->ZVX1 > actor2ZvPtr->ZVX1) && (actor1ZvPtr->ZVX1 < actor2ZvPtr->ZVX2)) ||

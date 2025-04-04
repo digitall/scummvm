@@ -20,6 +20,7 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/game_time.h"
 #include "fitd/room.h"
@@ -50,10 +51,10 @@ int getNumberOfRoom() {
 	int i;
 	int j = 0;
 
-	// if (g_gameId >= AITD3) {
+	// if (g_engine->getGameId() >= GID_AITD3) {
 	// 	char buffer[256];
 
-	// 	if (g_gameId == AITD3) {
+	// 	if (g_engine->getGameId() == GID_AITD3) {
 	// 		sprintf(buffer, "SAL%02d", g_currentFloor);
 	// 	} else {
 	// 		sprintf(buffer, "ETAGE%02d", g_currentFloor);
@@ -97,7 +98,7 @@ void loadRoom(int roomNumber) {
 		oldCameraIdx = roomDataTable[currentRoom].cameraIdxTable[currentCamera];
 	}
 
-	// if (g_gameId < AITD3)
+	if (g_engine->getGameId() < GID_AITD3)
 	{
 		cameraPtr = (char *)getRoomData(roomNumber); // TODO: obsolete
 		roomDataPtr = getRoomData(roomNumber);
@@ -137,7 +138,7 @@ void loadRoom(int roomNumber) {
 			newAbsCamera = currentCameraIdx;
 		}
 
-		// if (g_gameId < AITD3)
+		if (g_engine->getGameId() < GID_AITD3)
 		{
 			room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
 		}

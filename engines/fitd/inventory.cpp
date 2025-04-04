@@ -21,6 +21,7 @@
 
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
@@ -52,9 +53,20 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 	int currentObj;
 	tWorldObject *objPtr;
 
-	affBigCadre(160, 50, 320, 100);
-	y = WindowY1 + 1;
+	if (g_engine->getGameId() <= GID_JACK) {
+		affBigCadre(160, 50, 320, 100);
+		y = WindowY1 + 1;
+	} else {
+		setClip(27, 25, 292, 98);
+		fillBox(27, 25, 292, 98, 0);
 
+		WindowX1 = 30;
+		WindowY1 = 27;
+		WindowX2 = 288;
+		WindowY2 = 95;
+
+		y = 28;
+	}
 	for (i = 0; i < 5; i++) {
 		if (startIdx >= numObjInInventoryTable[currentInventory])
 			break;
@@ -64,11 +76,15 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 		objPtr = &ListWorldObjets[currentObj];
 
 		if (startIdx == selectIdx) {
-			if (selectColor == 15) {
-				fillBox(0xA, y, 0x135, y + 0x10, 0x64);
-			}
+			if (g_engine->getGameId() <= GID_JACK) {
+				if (selectColor == 15) {
+					fillBox(0xA, y, 0x135, y + 0x10, 0x64);
+				}
 
-			selectedMessage(160, y, objPtr->foundName, selectColor, 4);
+				selectedMessage(160, y, objPtr->foundName, selectColor, 4);
+			} else {
+				simpleMessage(160, y, objPtr->foundName, selectColor);
+			}
 
 			var_8 = currentObj;
 		} else {
@@ -105,6 +121,13 @@ void renderInventoryObject(int arg) {
 		buffer = Common::String::format("%d", vars[arg]);
 		renderText(statusLeft + 4, statusTop + 4, logicalScreen, buffer.c_str());
 	}
+	switch (g_engine->getGameId()) {
+	// case GID_AITD2:
+	// 	redrawInventorySpriteAITD2();
+	// 	break;
+	default:
+		break;
+	}
 
 	menuWaitVSync();
 }
@@ -112,19 +135,42 @@ void renderInventoryObject(int arg) {
 void drawInventoryActions(int arg) {
 	int y = 0;
 
-	affBigCadre(240, 150, 160, 100);
-	y = 150 - ((numInventoryActions << 4) / 2);
+	if (g_engine->getGameId() <= GID_JACK) {
+		affBigCadre(240, 150, 160, 100);
+		y = 150 - ((numInventoryActions << 4) / 2);
+	} else {
+		setClip(162, 100, 292, 174);
+		fillBox(162, 100, 292, 174, 0);
+
+		WindowX1 = 166;
+		WindowY1 = 104;
+		WindowX2 = 288;
+		WindowY2 = 170;
+
+		y = 139 - ((numInventoryActions * fontHeight) / 2);
+	}
 
 	for (int i = 0; i < numInventoryActions; i++) {
 		if (arg == i) {
-			fillBox(170, y, 309, y + 16, 100);
-			selectedMessage(240, y, inventoryActionTable[i], 15, 4);
-
+			if (g_engine->getGameId() <= GID_JACK) {
+				fillBox(170, y, 309, y + 16, 100);
+				selectedMessage(240, y, inventoryActionTable[i], 15, 4);
+			} else {
+				simpleMessage(240, y, inventoryActionTable[i], 1);
+			}
 		} else {
 			simpleMessage(240, y, inventoryActionTable[i], 4);
 		}
 
 		y += fontHeight;
+	}
+
+	switch (g_engine->getGameId()) {
+	// case GID_AITD2:
+	// 	redrawInventorySpriteAITD2();
+	// 	break;
+	default:
+		break;
 	}
 }
 
@@ -161,15 +207,28 @@ void processInventory(void) {
 		// makeBlackPalette();
 	}
 
-	affBigCadre(80, 150, 160, 100);
+	switch (g_engine->getGameId()) {
+	case GID_AITD1:
+	case GID_JACK:
+		affBigCadre(80, 150, 160, 100);
 
-	statusLeft = WindowX1;
-	statusTop = WindowY1;
-	statusRight = WindowX2;
-	statusBottom = WindowY2;
+		statusLeft = WindowX1;
+		statusTop = WindowY1;
+		statusRight = WindowX2;
+		statusBottom = WindowY2;
 
-	setupCameraProjection(((statusRight - statusLeft) / 2) + statusLeft, ((statusBottom - statusTop) / 2) + statusTop, 128, 400, 390);
+		setupCameraProjection(((statusRight - statusLeft) / 2) + statusLeft, ((statusBottom - statusTop) / 2) + statusTop, 128, 400, 390);
 
+		break;
+	// case GID_AITD2:
+	// 	drawInventoryAITD2();
+	// 	break;
+	// case GID_AITD3:
+	// 	drawInventoryAITD3();
+	// 	break;
+	default:
+		assert(0);
+	}
 	while (!exitMenu) {
 		/*
 		osystem_CopyBlockPhys((unsigned char*)backbuffer,0,0,320,200);

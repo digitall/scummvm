@@ -23,7 +23,6 @@
 #include "graphics/scaler.h"
 #include "graphics/thumbnail.h"
 
-#include "fitd/metaengine.h"
 #include "fitd/detection.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
@@ -48,6 +47,15 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 
 } // End of namespace Fitd
 
+class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
+public:
+	const char *getName() const override;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const override;
+	bool hasFeature(MetaEngineFeature f) const override;
+	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override;
+	void getSavegameThumbnail(Graphics::Surface &thumb) override;
+};
+
 const char *FitdMetaEngine::getName() const {
 	return "fitd";
 }
@@ -56,7 +64,7 @@ const ADExtraGuiOptionsMap *FitdMetaEngine::getAdvancedExtraGuiOptions() const {
 	return Fitd::optionsList;
 }
 
-Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
+Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const {
 	*engine = new Fitd::FitdEngine(syst, desc);
 	return Common::kNoError;
 }

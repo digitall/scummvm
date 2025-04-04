@@ -41,7 +41,7 @@ static void clearScreenTatou(void) {
 
 void process_events() {
 	// TODO: fix this
-	uint32 timeIncrease = 1;
+	uint32 timeIncrease = 2;
 
 	osystem_flushPendingPrimitives();
 	g_system->updateScreen();
