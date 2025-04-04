@@ -20,6 +20,7 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/pak.h"
 #include "fitd/sequence.h"
@@ -29,22 +30,22 @@
 namespace Fitd {
 
 void convertPaletteIfRequired(unsigned char *lpalette) {
-	// if(g_gameId >= JACK && g_gameId < AITD3)
-	// {
-	//     int i;
-	//     unsigned char* ptr2 = lpalette;
-	//     for(i=0;i<256;i++)
-	//     {
-	//         int j;
-	//         for(j=0;j<3;j++)
-	//         {
-	//             unsigned int composante = *(ptr2);
-	//             composante*=255;
-	//             composante/=63;
-	//             *(ptr2++) = composante&0xFF;
-	//         }
-	//     }
-	// }
+	if(g_engine->getGameId() >= GID_JACK && g_engine->getGameId() < GID_AITD3)
+	{
+	    int i;
+	    unsigned char* ptr2 = lpalette;
+	    for(i=0;i<256;i++)
+	    {
+	        int j;
+	        for(j=0;j<3;j++)
+	        {
+	            unsigned int composante = *(ptr2);
+	            composante*=255;
+	            composante/=63;
+	            *(ptr2++) = composante&0xFF;
+	        }
+	    }
+	}
 }
 
 const char *sequenceListAITD2[] =
@@ -163,15 +164,15 @@ void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 	unsigned char localPalette[0x300];
 
 	Common::String buffer;
-	// if (g_gameId == AITD2)
-	// {
-	//     buffer = sequenceListAITD2[sequenceIdx];
-	// }
-	// else if (g_gameId == AITD3)
-	// {
-	//     buffer = Common::String::format("AN%d.PAK", sequenceIdx);
-	// }
-	// else
+	if (g_engine->getGameId() == GID_AITD2)
+	{
+	    buffer = sequenceListAITD2[sequenceIdx];
+	}
+	else if (g_engine->getGameId() == GID_AITD3)
+	{
+	    buffer = Common::String::format("AN%d.PAK", sequenceIdx);
+	}
+	else
 	{
 		assert(0);
 	}

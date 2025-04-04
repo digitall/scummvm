@@ -3,6 +3,7 @@ MODULE := engines/fitd
 MODULE_OBJS = \
 	actor_list.o \
 	aitd1.o \
+	aitd2.o \
 	aitd_box.o \
 	aitd1_tatou.o \
 	anim.o \
@@ -20,6 +21,7 @@ MODULE_OBJS = \
 	hqr.o \
 	input.o \
 	inventory.o \
+	jack.o \
 	life.o \
 	lines.o \
 	main_loop.o \

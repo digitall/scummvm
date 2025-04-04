@@ -22,6 +22,7 @@
 
 #include "fitd/anim.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
@@ -100,7 +101,7 @@ int loadSave(Common::SeekableReadStream *in) {
 	assert(sizeof(maxObjects) == 2);
 	maxObjects = in->readSint16LE();
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		oldNumMaxObj = maxObjects;
 		maxObjects = 300; // fix for save engine..
@@ -186,12 +187,12 @@ int loadSave(Common::SeekableReadStream *in) {
 		ListWorldObjets[i].positionInTrack = in->readSint16LE();
 	}
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		maxObjects = oldNumMaxObj;
 	}
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		assert(CVars.size() == 45);
 	}
@@ -208,7 +209,7 @@ int loadSave(Common::SeekableReadStream *in) {
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		numObjInInventoryTable[inventoryId] = in->readSint16LE();
 
-		// if (g_gameId == AITD1)
+		if (g_engine->getGameId() == GID_AITD1)
 		{
 			assert(INVENTORY_SIZE == 30);
 		}
@@ -264,18 +265,18 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	in->read(vars, varSize);
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		// TODO ?
 		// configureHqrHero(listBody, listBodySelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
 		// configureHqrHero(listAnim, listAnimSelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
 	}
-	//  else {
-	// 	/*
-	// 	configureHqrHero(listBody,0);
-	// 	configureHqrHero(listAnim,0);
-	// 	*/
-	// }
+	 else {
+		/*
+		configureHqrHero(listBody,0);
+		configureHqrHero(listAnim,0);
+		*/
+	}
 
 	in->seek(16, SEEK_SET);
 	offsetToActors = in->readUint32LE();
@@ -515,7 +516,7 @@ int makeSave(Common::WriteStream *out) {
 	uint32 var28 = 0;
 	int oldNumMaxObj;
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		for (i = 0; i < NUM_MAX_OBJECT; i++) {
 			if (objectTable[i].indexInWorld == -1)
@@ -557,7 +558,7 @@ int makeSave(Common::WriteStream *out) {
 	assert(sizeof(maxObjects) == 2);
 	out->writeSint16LE(maxObjects);
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		oldNumMaxObj = maxObjects;
 		maxObjects = 300; // fix for save engine..
@@ -643,12 +644,12 @@ int makeSave(Common::WriteStream *out) {
 		out->writeSint16LE(ListWorldObjets[i].positionInTrack);
 	}
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		maxObjects = oldNumMaxObj;
 	}
 
-	// if (g_gameId == AITD1)
+	if (g_engine->getGameId() == GID_AITD1)
 	{
 		assert(CVars.size() == 45);
 	}
@@ -665,7 +666,7 @@ int makeSave(Common::WriteStream *out) {
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		out->writeSint16LE(numObjInInventoryTable[inventoryId]);
 
-		// if (g_gameId == AITD1)
+		if (g_engine->getGameId() == GID_AITD1)
 		{
 			assert(INVENTORY_SIZE == 30);
 		}

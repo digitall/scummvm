@@ -1933,7 +1933,7 @@ void osystem_clearClip() {
 }
 
 void osystem_drawMask(int roomId, int maskId) {
-	// if (g_gameId == TIMEGATE)
+	// if (g_engine->getGameId() == GID_TIMEGATE)
 	//     return;
 
 	if (!maskTextures[roomId][maskId].maskTexture)

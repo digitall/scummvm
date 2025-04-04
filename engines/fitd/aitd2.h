@@ -19,18 +19,15 @@
  *
  */
 
-#ifndef FITD_METAENGINE_H
-#define FITD_METAENGINE_H
+#ifndef FITD_AITD2_H
+#define FITD_AITD2_H
 
-#include "engines/advancedDetector.h"
+namespace Fitd {
+void startAITD2(int saveSlot);
+void drawInventoryAITD2();
+void redrawInventorySpriteAITD2();
+void AITD2_ReadBook(int index, int type);
 
-class FitdMetaEngine : public AdvancedMetaEngine<ADGameDescription> {
-public:
-	const char *getName() const override;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	bool hasFeature(MetaEngineFeature f) const override;
-	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override;
-	void getSavegameThumbnail(Graphics::Surface &thumb) override;
-};
-
-#endif // FITD_METAENGINE_H
+extern int AITD2MusicToTrackMapping[21];
+} // namespace Fitd
+#endif

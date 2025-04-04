@@ -21,6 +21,7 @@
 
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
+#include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/vars.h"
 
@@ -38,8 +39,8 @@ void afficheSprite(int left, int top, int index, char *gfxData) {
 	int i;
 	int j;
 
-	// if(g_gameId >= AITD3)
-	//     return;
+	if(g_engine->getGameId() >= GID_AITD3)
+	     return;
 
 	outPtr = logicalScreen + top * 320 + left;
 	inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignement unsafe
@@ -74,8 +75,8 @@ void affSpfI(int left, int top, int index, char *gfxData) {
 	int i;
 	int j;
 
-	// if(g_gameId >= AITD3)
-	// 	return;
+	if(g_engine->getGameId() >= GID_AITD3)
+	 	return;
 
 	outPtr = logicalScreen + top * 320 + left;
 	inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignement unsafe

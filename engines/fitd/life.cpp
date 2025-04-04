@@ -312,6 +312,10 @@ void setStage(int newStage, int newRoomLocal, int X, int Y, int Z) {
 	currentProcessedActorPtr->stage = newStage;
 	currentProcessedActorPtr->room = newRoomLocal;
 
+	if (g_engine->getGameId() != GID_AITD1) {
+		currentProcessedActorPtr->hardMat = -1;
+	}
+
 	animX = currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
 	animY = currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
 	animZ = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
@@ -485,14 +489,11 @@ void processLife(int lifeNum, bool callFoundLife) {
 				} else {
 					int opcodeLocated;
 
-                    // if (g_gameId == AITD1)
-                    {
-                        opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
-                    }
-                    // else
-                    // {
-                    //     opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
-                    // }
+					if (g_engine->getGameId() == GID_AITD1) {
+						opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+					} else {
+						opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
+					}
 
 					switch (opcodeLocated) {
 						////////////////////////////////////////////////////////////////////////
@@ -521,6 +522,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 						ListWorldObjets[var_6].animInfo = *(int16 *)(currentLifePtr);
 						currentLifePtr += 2;
 						ListWorldObjets[var_6].animType = ANIM_ONCE;
+						if (g_engine->getGameId() >= GID_JACK)
+							ListWorldObjets[var_6].frame = 0;
 						break;
 					}
 					case LM_ANIM_REPEAT: {
@@ -528,8 +531,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 						currentLifePtr += 2;
 						ListWorldObjets[var_6].animInfo = -1;
 						ListWorldObjets[var_6].animType = ANIM_REPEAT;
-						// if (g_gameId >= JACK)
-                        //    ListWorldObjets[var_6].frame = 0;
+						if (g_engine->getGameId() >= GID_JACK)
+							ListWorldObjets[var_6].frame = 0;
 						break;
 					}
 					case LM_ANIM_ALL_ONCE: {
@@ -538,11 +541,12 @@ void processLife(int lifeNum, bool callFoundLife) {
 						ListWorldObjets[var_6].animInfo = *(int16 *)(currentLifePtr);
 						currentLifePtr += 2;
 						ListWorldObjets[var_6].animType = ANIM_ONCE | ANIM_UNINTERRUPTABLE;
+						if (g_engine->getGameId() >= GID_JACK)
+							ListWorldObjets[var_6].frame = 0;
 						break;
 					}
 					case LM_ANIM_RESET: {
-						// assert(g_gameId >= JACK);
-						assert(0);
+						assert(g_engine->getGameId() >= GID_JACK);
 						ListWorldObjets[var_6].anim = *(int16 *)(currentLifePtr);
 						currentLifePtr += 2;
 						ListWorldObjets[var_6].animInfo = *(int16 *)(currentLifePtr);
@@ -562,9 +566,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 						ListWorldObjets[var_6].positionInTrack = 0;
 
-						// if (g_gameId > AITD1) {
-						// 	ListWorldObjets[var_6].mark = -1;
-						// }
+						if (g_engine->getGameId() > GID_AITD1) {
+							ListWorldObjets[var_6].mark = -1;
+						}
 						break;
 					}
 					case LM_ANGLE: {
@@ -672,14 +676,11 @@ void processLife(int lifeNum, bool callFoundLife) {
 			int opcodeLocated;
 		processOpcode:
 
-			//if (g_gameId == AITD1)
-            {
+			if (g_engine->getGameId() == GID_AITD1) {
 				opcodeLocated = AITD1LifeMacroTable[currentOpcode & 0x7FFF];
+			} else {
+				opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
 			}
-			// else
-            // {
-            //     opcodeLocated = AITD2LifeMacroTable[currentOpcode & 0x7FFF];
-            // }
 
 			switch (opcodeLocated) {
 			case LM_BODY: {
@@ -695,15 +696,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 							char *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
 							char *pBody;
 
-                            // if (g_gameId >= JACK)
-                            // {
-                            //     /*                  if (bFlagDecal)
-                            //     gereDecal(); */
-                            // }
+							if (g_engine->getGameId() >= GID_JACK) {
+								/*                  if (bFlagDecal)
+								gereDecal(); */
+							}
 
-                            pBody = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
+							pBody = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
 
-							/*    if(gameId >= JACK)
+							/*    if(gameId >= GID_JACK)
 							{
 							setInterAnimObject2(currentProcessedActorPtr->FRAME, pAnim, pBody, TRUE, Objet->AnimDecal);
 							}
@@ -733,11 +733,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 					char *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
 					char *pBody;
 
-                    // if (g_gameId >= JACK)
-                    // {
-                    //     /*                  if (bFlagDecal)
-                    //     gereDecal(); */
-                    // }
+					if (g_engine->getGameId() >= GID_JACK) {
+						/*                  if (bFlagDecal)
+						gereDecal(); */
+					}
 					pBody = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
 
 					setAnimObjet(0, pAnim, pBody);
@@ -831,19 +830,19 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				currentProcessedActorPtr->_flags = (currentProcessedActorPtr->_flags & ~AF_MASK) + lifeTempVar1;
 
-				// if (g_gameId > AITD1) {
-				// 	if (lifeTempVar2 & 1) {
-				// 		if (!(lifeTempVar1 & 1)) {
-				// 			addActorToBgInscrust(currentProcessedActorIdx);
-				// 		}
-				// 	}
+				if (g_engine->getGameId() > GID_AITD1) {
+					if (lifeTempVar2 & 1) {
+						if (!(lifeTempVar1 & 1)) {
+							addActorToBgInscrust(currentProcessedActorIdx);
+						}
+					}
 
-				// 	if (lifeTempVar1 & 1) {
-				// 		if (!(lifeTempVar2 & 8)) {
-				// 			removeFromBGIncrust(currentProcessedActorIdx);
-				// 		}
-				// 	}
-				// }
+					if (lifeTempVar1 & 1) {
+						if (!(lifeTempVar2 & 8)) {
+							removeFromBGIncrust(currentProcessedActorIdx);
+						}
+					}
+				}
 
 				break;
 			}
@@ -936,8 +935,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_FIRE: // FIRE
 			{
 				// appendFormated("LM_FIRE ");
-				// if (g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					int fireAnim;
 					int shootFrame;
 					int emitPoint;
@@ -953,27 +951,26 @@ void processLife(int lifeNum, bool callFoundLife) {
 					nextAnim = readNextArgument("NextAnim");
 
 					fire(fireAnim, shootFrame, emitPoint, zvSize, hitForce, nextAnim);
+				} else // use an emitter model
+				{
+					int fireAnim;
+					int shootFrame;
+					int emitPoint;
+					int emitModel;
+					int zvSize;
+					int hitForce;
+					int nextAnim;
+
+					fireAnim = evalVar("Anim");
+					shootFrame = readNextArgument("Frame");
+					emitPoint = readNextArgument("EmitPoint");
+					emitModel = readNextArgument("EmitModel");
+					zvSize = readNextArgument("ZVSize");
+					hitForce = readNextArgument("Force");
+					nextAnim = evalVar();
+
+					fire(fireAnim, shootFrame, emitPoint, zvSize, hitForce, nextAnim); // todo: implement emit model
 				}
-				//  else // use an emitter model
-				// {
-				// 	int fireAnim;
-				// 	int shootFrame;
-				// 	int emitPoint;
-				// 	int emitModel;
-				// 	int zvSize;
-				// 	int hitForce;
-				// 	int nextAnim;
-
-				// 	fireAnim = evalVar("Anim");
-				// 	shootFrame = readNextArgument("Frame");
-				// 	emitPoint = readNextArgument("EmitPoint");
-				// 	emitModel = readNextArgument("EmitModel");
-				// 	zvSize = readNextArgument("ZVSize");
-				// 	hitForce = readNextArgument("Force");
-				// 	nextAnim = evalVar();
-
-				// 	fire(fireAnim, shootFrame, emitPoint, zvSize, hitForce, nextAnim); // todo: implement emit model
-				// }
 
 				break;
 			}
@@ -1063,14 +1060,11 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_DO_MOVE: {
 				// appendFormated("LM_DO_MOVE ");
-                // if (g_gameId == AITD1)
-                {
-                    processTrack();
-                }
-                // else
-                // {
-                //     processTrack2();
-                // }
+				if (g_engine->getGameId() == GID_AITD1) {
+					processTrack();
+				} else {
+					processTrack2();
+				}
 				break;
 			}
 			case LM_ANIM_MOVE: {
@@ -1090,13 +1084,11 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_MANUAL_ROT: // MANUAL_ROT
 			{
 				// appendFormated("LM_MANUAL_ROT ");
-				// if (g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					GereManualRot(240);
+				} else {
+					GereManualRot(90);
 				}
-				//  else {
-				// 	GereManualRot(90);
-				// }
 				break;
 			}
 			case LM_SET_BETA: // SET_BETA
@@ -1204,13 +1196,11 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_LIFE_MODE ");
 				lifeTempVar1 = readNextArgument("lifeMode");
 
-				// if (g_gameId <= JACK)
-				{
+				if (g_engine->getGameId() <= GID_JACK) {
 					lifeTempVar2 = currentProcessedActorPtr->lifeMode;
+				} else {
+					lifeTempVar2 = currentProcessedActorPtr->lifeMode & 3;
 				}
-				// else {
-				// 	lifeTempVar2 = currentProcessedActorPtr->lifeMode & 3;
-				// }
 
 				if (lifeTempVar1 != lifeTempVar2) {
 					currentProcessedActorPtr->lifeMode = lifeTempVar1;
@@ -1221,18 +1211,16 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_DELETE: // DELETE
 			{
 				// appendFormated("LM_DELETE ");
-				// if (g_gameId <= JACK)
-				{
+				if (g_engine->getGameId() <= GID_JACK) {
 					lifeTempVar1 = readNextArgument("ObjectId");
+				} else {
+					lifeTempVar1 = evalVar("ObjectId");
 				}
-				//  else {
-				// 	lifeTempVar1 = evalVar("ObjectId");
-				// }
 
 				deleteObject(lifeTempVar1);
 
 				if (ListWorldObjets[lifeTempVar1].foundBody != -1) {
-					// if (g_gameId == AITD1) // TODO: check, really useful ?
+					if (g_engine->getGameId() == GID_AITD1) // TODO: check, really useful ?
 					{
 						ListWorldObjets[lifeTempVar1].flags2 &= 0x7FFF;
 					}
@@ -1310,47 +1298,43 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_FOUND ");
 				lifeTempVar1 = readNextArgument("ObjectId");
 
-				// if (g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					foundObject(lifeTempVar1, 1);
+				} else {
+					if (callFoundLife) {
+						foundObject(lifeTempVar1, 2);
+					} else {
+						foundObject(lifeTempVar1, 1);
+					}
 				}
-				// else {
-				// 	if (callFoundLife) {
-				// 		foundObject(lifeTempVar1, 2);
-				// 	} else {
-				// 		foundObject(lifeTempVar1, 1);
-				// 	}
-				// }
 
 				break;
 			}
 			case LM_TAKE: // TAKE
 			{
 				// appendFormated("LM_TAKE ");
-				// if (g_gameId >= TIMEGATE) {
-				// 	int arg0 = evalVar();
-				// 	int arg1 = readNextArgument();
-				// 	int arg2 = readNextArgument();
-				// 	int arg3 = readNextArgument();
-				// } else {
-				lifeTempVar1 = readNextArgument("ObjectId");
+				if (g_engine->getGameId() >= GID_TIMEGATE) {
+					int arg0 = evalVar();
+					int arg1 = readNextArgument();
+					int arg2 = readNextArgument();
+					int arg3 = readNextArgument();
+				} else {
+					lifeTempVar1 = readNextArgument("ObjectId");
 
-				take(lifeTempVar1);
-				// }
+					take(lifeTempVar1);
+				}
 
 				break;
 			}
 			case LM_IN_HAND: // IN_HAND
 			{
 				// appendFormated("LM_IN_HAND ");
-				// if (g_gameId <= JACK)
-				{
+				if (g_engine->getGameId() <= GID_JACK) {
 					inHandTable[currentInventory] = *(int16 *)(currentLifePtr);
 					currentLifePtr += 2;
+				} else {
+					inHandTable[currentInventory] = evalVar();
 				}
-				// else {
-				// 	inHandTable[currentInventory] = evalVar();
-				// }
 				break;
 			}
 			case LM_DROP: // DROP
@@ -1470,8 +1454,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				lifeTempVar2 = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
 
-				// if (g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					currentLifePtr += 2; // AITD1 CD has an extra digit, related to the VOC files to play for the text?
 				}
 
@@ -1479,8 +1462,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				readBook(lifeTempVar2 + 1, lifeTempVar1);
 
-				// if (g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					fadeOutPhys(4, 0);
 				}
 
@@ -1532,9 +1514,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_ANIM_SAMPLE ");
 				lifeTempVar1 = evalVar();
 
-				// if (g_gameId == TIMEGATE) {
-				// 	currentLifePtr += 2;
-				// }
+				if (g_engine->getGameId() == GID_TIMEGATE) {
+					currentLifePtr += 2;
+				}
 
 				lifeTempVar2 = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
@@ -1571,17 +1553,15 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_SAMPLE ");
 				int sampleNumber;
 
-				// if (g_gameId == TIMEGATE) {
-				// 	sampleNumber = evalVar();
-				// 	readNextArgument();
-				// } else if (g_gameId <= JACK)
-				{
+				if (g_engine->getGameId() == GID_TIMEGATE) {
 					sampleNumber = evalVar();
+					readNextArgument();
+				} else if (g_engine->getGameId() <= GID_JACK) {
+					sampleNumber = evalVar();
+				} else {
+					sampleNumber = *(int16 *)(currentLifePtr);
+					currentLifePtr += 2;
 				}
-				// else {
-				// 	sampleNumber = *(int16 *)(currentLifePtr);
-				// 	currentLifePtr += 2;
-				// }
 
 				playSound(sampleNumber);
 				// setSampleFreq(0);
@@ -1590,14 +1570,12 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_REP_SAMPLE: // sample TODO!
 			{
 				// appendFormated("LM_REP_SAMPLE ");
-				// if ((g_gameId == AITD1) || (g_gameId == TIMEGATE))
-				{
+				if ((g_engine->getGameId() == GID_AITD1) || (g_engine->getGameId() == GID_TIMEGATE)) {
 					evalVar();
 					currentLifePtr += 2;
+				} else {
+					currentLifePtr += 4;
 				}
-				// else {
-				// 	currentLifePtr += 4;
-				// }
 				// printf("LM_REP_SAMPLE\n");
 				break;
 			}
@@ -1606,36 +1584,34 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_STOP_SAMPLE ");
 				// printf("LM_STOP_SAMPLE\n");
 
-				// if (g_gameId == TIMEGATE) {
-				// 	readNextArgument();
-				// }
+				if (g_engine->getGameId() == GID_TIMEGATE) {
+					readNextArgument();
+				}
 
 				break;
 			}
 			case LM_SAMPLE_THEN: // todo
 			{
 				// appendFormated("LM_SAMPLE_THEN ");
-				// if (g_gameId == AITD1)
-				{
+				if (g_engine->getGameId() == GID_AITD1) {
 					playSound(evalVar());
 					nextSample = evalVar();
+				} else {
+					int newSample;
+
+					if (g_engine->getGameId() == GID_JACK) {
+						newSample = evalVar();
+						nextSample = evalVar();
+					} else {
+						newSample = *(int16 *)currentLifePtr;
+						currentLifePtr += 2;
+
+						nextSample = *(int16 *)currentLifePtr;
+						currentLifePtr += 2;
+					}
+
+					playSound(newSample);
 				}
-				// else {
-				// 	int newSample;
-
-				// 	if (g_gameId == JACK) {
-				// 		newSample = evalVar();
-				// 		nextSample = evalVar();
-				// 	} else {
-				// 		newSample = *(int16 *)currentLifePtr;
-				// 		currentLifePtr += 2;
-
-				// 		nextSample = *(int16 *)currentLifePtr;
-				// 		currentLifePtr += 2;
-				// 	}
-
-				// 	playSound(newSample);
-				// }
 				// printf("LM_SAMPLE_THEN\n");
 				// setSampleFreq(0);
 				break;
@@ -1704,8 +1680,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				lifeTempVar1 = 2 - ((*(int16 *)(currentLifePtr)) << 1);
 				currentLifePtr += 2;
 
-				// if (g_gameId >= JACK || (!CVars[getCVarsIdx((enumCVars)KILLED_SORCERER)]))
-				if (!CVars[getCVarsIdx((enumCVars)KILLED_SORCERER)]) {
+				if (g_engine->getGameId() >= GID_JACK || (!CVars[getCVarsIdx((enumCVars)KILLED_SORCERER)])) {
 					if (lightOff != lifeTempVar1) {
 						lightOff = lifeTempVar1;
 						lightVar2 = 1;
@@ -1763,8 +1738,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 					lifeTempVar2 = ListWorldObjets[lifeTempVar1].objIndex;
 
 					if (lifeTempVar2 != -1) {
-						// if (g_gameId == AITD1)
-						{
+						if (g_engine->getGameId() == GID_AITD1) {
 							currentWorldTarget = lifeTempVar1;
 							currentCameraTargetActor = lifeTempVar2;
 
@@ -1774,27 +1748,26 @@ void processLife(int lifeNum, bool callFoundLife) {
 								needChangeRoom = 1;
 								newRoom = lifeTempVar3;
 							}
+						} else {
+							// security case, the target actor may be still be in list while already changed of stage
+							// TODO: check if AITD1 could use the same code (quite probable as it's only security)
+							if (objectTable[lifeTempVar2].stage != g_currentFloor) {
+								currentWorldTarget = lifeTempVar1;
+								changeFloor = 1;
+								newFloor = objectTable[lifeTempVar2].stage;
+								newRoom = objectTable[lifeTempVar2].room;
+							} else {
+								currentWorldTarget = lifeTempVar1;
+								currentCameraTargetActor = lifeTempVar2;
+
+								lifeTempVar3 = objectTable[currentCameraTargetActor].room;
+
+								if (lifeTempVar3 != currentRoom) {
+									needChangeRoom = 1;
+									newRoom = lifeTempVar3;
+								}
+							}
 						}
-						// else {
-						// 	// security case, the target actor may be still be in list while already changed of stage
-						// 	// TODO: check if AITD1 could use the same code (quite probable as it's only security)
-						// 	if (objectTable[lifeTempVar2].stage != g_currentFloor) {
-						// 		currentWorldTarget = lifeTempVar1;
-						// 		changeFloor = 1;
-						// 		newFloor = objectTable[lifeTempVar2].stage;
-						// 		newRoom = objectTable[lifeTempVar2].room;
-						// 	} else {
-						// 		currentWorldTarget = lifeTempVar1;
-						// 		currentCameraTargetActor = lifeTempVar2;
-
-						// 		lifeTempVar3 = objectTable[currentCameraTargetActor].room;
-
-						// 		if (lifeTempVar3 != currentRoom) {
-						// 			needChangeRoom = 1;
-						// 			newRoom = lifeTempVar3;
-						// 		}
-						// 	}
-						// }
 					} else // different stage
 					{
 						currentWorldTarget = lifeTempVar1;
@@ -1821,12 +1794,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 				int delay = readNextArgument("delay");
 
 				int sampleId;
-				// if (g_gameId == TIMEGATE)
-				// {
-				// 	sampleId = evalVar("sampleId");
-				// 	readNextArgument();
-				// } else
-				{
+				if (g_engine->getGameId() == GID_TIMEGATE) {
+					sampleId = evalVar("sampleId");
+					readNextArgument();
+				} else {
 					sampleId = readNextArgument("sampleId");
 				}
 
@@ -1834,14 +1805,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				loadPak("ITD_RESS.PAK", pictureIndex, aux);
 
-				// if (g_gameId > AITD1) {
-				// 	FadeOutPhys(0x10, 0);
-				// 	unsigned char lpalette[0x300];
-				// 	copyPalette((unsigned char *)aux + 64000, lpalette);
-				// 	convertPaletteIfRequired(lpalette);
-				// 	copyPalette(lpalette, currentGamePalette);
-				// 	setPalette(lpalette);
-				// }
+				if (g_engine->getGameId() > GID_AITD1) {
+					fadeOutPhys(0x10, 0);
+					unsigned char lpalette[0x300];
+					copyPalette((unsigned char *)aux + 64000, lpalette);
+					convertPaletteIfRequired(lpalette);
+					copyPalette(lpalette, currentGamePalette);
+					gfx_setPalette(lpalette);
+				}
 
 				fastCopyScreen(aux, frontBuffer);
 				gfx_copyBlockPhys((unsigned char *)frontBuffer, 0, 0, 320, 200);
@@ -1868,9 +1839,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				flagInitView = 1;
 
-				// if (g_gameId > AITD1) {
-				// 	FadeOutPhys(0x10, 0);
-				// }
+				if (g_engine->getGameId() > GID_AITD1) {
+					fadeOutPhys(0x10, 0);
+				}
 				break;
 			}
 			case LM_PLAY_SEQUENCE: // sequence
@@ -1921,7 +1892,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_PROTECT: // protection opcode
 			{
 				assert(0);
-				// assert(g_gameId != TIMEGATE);
+				// assert(g_engine->getGameId() != GID_TIMEGATE);
 				// appendFormated("LM_PROTECT ");
 				// printf("LM_PROTECT\n");
 				// protection = 1;
@@ -2230,8 +2201,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_DO_ROT_CLUT: // DO_ROT_CLUT
 			{
 				// appendFormated("LM_DO_ROT_CLUT ");
-				assert(0);
-				// assert(g_gameId == TIMEGATE);
+				assert(g_engine->getGameId() == GID_TIMEGATE);
 
 				int arg0 = readNextArgument();
 				int arg1 = readNextArgument();
@@ -2240,8 +2210,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_START_FADE_IN_MUSIC_LOOP: {
 				// appendFormated("LM_START_FADE_IN_MUSIC_LOOP ");
-				assert(0);
-				// assert(g_gameId == TIMEGATE);
+				assert(g_engine->getGameId() == GID_TIMEGATE);
 
 				int arg0 = readNextArgument();
 				int arg1 = readNextArgument();
