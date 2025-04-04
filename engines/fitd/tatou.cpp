@@ -81,7 +81,9 @@ void fadeOutPhys(int var1, int var2) {
 }
 
 void playSound(int num) {
-	// TODO: if g_engine->getGameId() == GID_TIMEGATE) => "SAMPLES.PAK"
+	if (num == -1)
+		return;
+
 	byte *samplePtr = (byte *)HQR_Get(listSamp, num);
 	Audio::SoundHandle handle;
 	Common::MemoryReadStream *memStream = new Common::MemoryReadStream(samplePtr, 30834);
