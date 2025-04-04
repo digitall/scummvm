@@ -19,8 +19,8 @@
  *
  */
 
+#include "fitd/anim.h"
 #include "fitd/common.h"
-#include "fitd/gfx.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
