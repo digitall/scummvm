@@ -227,13 +227,33 @@ void main()
     gl_FragColor.a = 1.0;
 })";
 
+const char *noiseVSSrc = R"(
+	attribute vec3 a_position;
+	attribute vec2 a_texCoords;
+	varying vec2 v_position;
+	varying vec2 v_texCoords;
+
+	void main()
+	{
+		gl_Position = vec4(a_position.x/160.0-1.0, 1.0-a_position.y/100.0, a_position.z/40960.0, 1.0);
+		v_texCoords = a_texCoords;
+		v_position = a_position.xy;
+	})";
+
 // TODO: fix this, today it's the same as flat PS
 const char *noisePSSrc = R"(
 varying vec2 v_texCoords;
+varying vec2 v_position;
 uniform sampler2D u_palette;
+
+float noise(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
 void main()
 {
-	float color = v_texCoords.x * 15.0;
+	float n = noise(v_position);
+	float color = ((v_texCoords.x + n) * 15.0) / 2.0;
 	float bank = v_texCoords.y * 15.0;
 	float cidx = (bank * 16.0 + color) / 255.0;
 
@@ -414,7 +434,7 @@ void gfx_init() {
 
 	// create noise shader
 	noiseShader = new OpenGL::Shader();
-	noiseShader->loadFromStrings("flatShader", flatVSSrc, noisePSSrc, attributes, 110);
+	noiseShader->loadFromStrings("flatShader", noiseVSSrc, noisePSSrc, attributes, 110);
 	noiseShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
 	noiseShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
 	noiseShader->use();
@@ -1233,11 +1253,6 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 			Y += renderY;
 			Z += renderZ;
 
-#if defined(AITD_UE4)
-			*(outPtr++) = (int16)X;
-			*(outPtr++) = (int16)Y;
-			*(outPtr++) = (int16)Z;
-#else
 			if (Y > 10000) // height clamp
 			{
 				*(outPtr++) = -10000;
@@ -1252,7 +1267,6 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 				*(outPtr++) = (int16)Y;
 				*(outPtr++) = (int16)Z;
 			}
-#endif
 		}
 
 		ptr = (char *)cameraSpaceBuffer;
@@ -1270,11 +1284,6 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 			Z = *(int16 *)ptr;
 			ptr += 2;
 
-#if defined(AITD_UE4)
-			*(outPtr2++) = X;
-			*(outPtr2++) = Y;
-			*(outPtr2++) = Z;
-#else
 			Z += cameraPerspective;
 
 			if (Z <= 50) // clipping
@@ -1306,7 +1315,6 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 
 				*(outPtr2++) = Z;
 			}
-#endif
 
 			k--;
 			if (k == 0) {
@@ -1381,11 +1389,6 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 		Y += renderY;
 		Z += renderZ;
 
-#if defined(AITD_UE4)
-		*(outPtr++) = X;
-		*(outPtr++) = Y;
-		*(outPtr++) = Z;
-#else
 		if (Y > 10000) // height clamp
 		{
 			*(outPtr++) = -10000;
@@ -1427,7 +1430,6 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 			 *(outPtr++) = Y;
 			 *(outPtr++) = Z; */
 		}
-#endif
 	}
 	return (1);
 }
@@ -1462,10 +1464,7 @@ static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
 			depth = pCurrentPrimEntry->vertices[i].Z;
 	}
 
-#if !defined(AITD_UE4)
-	if (depth > 100)
-#endif
-	{
+	if (depth > 100) {
 		positionInPrimEntry++;
 
 		numOfPrimitiveToRender++;
@@ -1495,10 +1494,7 @@ static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out
 		depth = pCurrentPrimEntry->vertices[0].Z;
 	}
 
-#if !defined(AITD_UE4)
-	if (depth > 100)
-#endif
-	{
+	if (depth > 100) {
 		positionInPrimEntry++;
 
 		numOfPrimitiveToRender++;
@@ -1552,10 +1548,7 @@ void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
 		depth = pCurrentPrimEntry->vertices[0].Z;
 	}
 
-#if !defined(AITD_UE4)
-	if (depth > 100)
-#endif
-	{
+	if (depth > 100) {
 		positionInPrimEntry++;
 
 		numOfPrimitiveToRender++;
@@ -1711,7 +1704,6 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 			break;
 		default:
 			return 0;
-			assert(0);
 		}
 	}
 
@@ -1907,7 +1899,6 @@ void osystem_createMask(const uint8 *mask, int roomId, int maskId, unsigned char
 void osystem_stopModelRender() {
 	osystem_flushPendingPrimitives();
 }
-
 
 void osystem_setClip(float left, float top, float right, float bottom) {
 
