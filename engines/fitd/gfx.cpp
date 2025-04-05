@@ -305,8 +305,7 @@ void main()
 		discard;
 
 	float cidx = texture(u_background, v_texCoords.xy).r;
-	// gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
-	gl_FragColor.r = 1.0;
+	gl_FragColor.r = texture(u_palette, vec2(0.0, cidx)).r;
 	gl_FragColor.g = texture(u_palette, vec2(0.5, cidx)).r;
 	gl_FragColor.b = texture(u_palette, vec2(1.0, cidx)).r;
 	gl_FragColor.a = 0.5;
@@ -1924,11 +1923,8 @@ void osystem_setClip(float left, float top, float right, float bottom) {
 	currentScissor[0] = MAX(currentScissor[0], 0.f);
 	currentScissor[1] = MAX(currentScissor[1], 0.f);
 
-	return;
-	// TODO: later
-
 	glEnable(GL_SCISSOR_TEST);
-	glScissor(currentScissor[0], currentScissor[1], currentScissor[2], currentScissor[3]);
+	glScissor(currentScissor[0],800.f-currentScissor[3]-currentScissor[1],currentScissor[2],currentScissor[3]);
 }
 
 void osystem_clearClip() {

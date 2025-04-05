@@ -2167,8 +2167,8 @@ void mainDraw(int flagFlip) {
 				if (backgroundMode == backgroundModeEnum_2D)
 #endif
 				{
-					if (g_engine->getGameId() == GID_AITD1)
-						drawBgOverlay(actorPtr);
+					// if (g_engine->getGameId() == GID_AITD1)
+					drawBgOverlay(actorPtr);
 				}
 				// addToRedrawBox();
 			} else {
