@@ -26,6 +26,10 @@
 
 namespace Fitd {
 
+enum FitdDebugChannels {
+	kDebugConsole	= 1,
+};
+
 enum FitdGameId {
 	GID_NONE		= 0,
 	GID_AITD1		= 1,
@@ -42,44 +46,8 @@ struct FitdGameDescription {
 	FitdGameId gameId;
 };
 
-enum FitdDebugChannels {
-	kDebugGraphics = 1,
-	kDebugPath,
-	kDebugScan,
-	kDebugFilePath,
-	kDebugScript,
-};
-
 extern const PlainGameDescriptor fitdGames[];
 
-// extern const Fitd::FitdGameDescription gameDescriptions[];
-
-#define GAMEOPTION_ORIGINAL_SAVELOAD GUIO_GAMEOPTIONS1
-
 } // End of namespace Fitd
-
-class FitdMetaEngineDetection : public AdvancedMetaEngineDetection<Fitd::FitdGameDescription> {
-	static const DebugChannelDef debugFlagList[];
-
-public:
-	FitdMetaEngineDetection();
-	~FitdMetaEngineDetection() override {}
-
-	const char *getName() const override {
-		return "fitd";
-	}
-
-	const char *getEngineName() const override {
-		return "Free in the dark";
-	}
-
-	const char *getOriginalCopyright() const override {
-		return "Alone in the dark (C)";
-	}
-
-	const DebugChannelDef *getDebugChannels() const override {
-		return debugFlagList;
-	}
-};
 
 #endif // FITD_DETECTION_H

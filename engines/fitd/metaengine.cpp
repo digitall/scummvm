@@ -28,40 +28,16 @@
 #include "fitd/gfx.h"
 #include "fitd/system_menu.h"
 
-namespace Fitd {
-
-static const ADExtraGuiOptionsMap optionsList[] = {
-	{
-		GAMEOPTION_ORIGINAL_SAVELOAD,
-		{
-			_s("Use original save/load screens"),
-			_s("Use the original save/load screens instead of the ScummVM ones"),
-			"original_menus",
-			false,
-			0,
-			0
-		}
-	},
-	AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
-} // End of namespace Fitd
-
 class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:
 	const char *getName() const override;
 	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const override;
 	bool hasFeature(MetaEngineFeature f) const override;
-	const ADExtraGuiOptionsMap *getAdvancedExtraGuiOptions() const override;
 	void getSavegameThumbnail(Graphics::Surface &thumb) override;
 };
 
 const char *FitdMetaEngine::getName() const {
 	return "fitd";
-}
-
-const ADExtraGuiOptionsMap *FitdMetaEngine::getAdvancedExtraGuiOptions() const {
-	return Fitd::optionsList;
 }
 
 Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const {
