@@ -119,6 +119,7 @@ void processSystemMenu(void) {
 			if (!input5) {
 				if (localKey == 0x1C || localClick) // enter
 				{
+					key &= ~0x1C;
 					switch (currentSelectedEntry) {
 					case 0: // exit menu
 						exitMenu = 1;
@@ -136,6 +137,7 @@ void processSystemMenu(void) {
 						break;
 					case 3: // music
 						musicEnabled = musicEnabled ? 0 : 1;
+						g_engine->_mixer->muteSoundType(Audio::Mixer::kMusicSoundType, musicEnabled ? false : true);
 						break;
 					case 4: // sound
 						soundToggle = soundToggle ? 0 : 1;
