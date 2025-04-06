@@ -29,12 +29,32 @@
 #include "fitd/detection.h"
 #include "fitd/detection_tables.h"
 
+class FitdMetaEngineDetection : public AdvancedMetaEngineDetection<Fitd::FitdGameDescription> {
+	static const DebugChannelDef debugFlagList[];
+
+public:
+	FitdMetaEngineDetection();
+	~FitdMetaEngineDetection() override {}
+
+	const char *getName() const override {
+		return "fitd";
+	}
+
+	const char *getEngineName() const override {
+		return "Free in the dark";
+	}
+
+	const char *getOriginalCopyright() const override {
+		return "Alone in the dark (C)";
+	}
+
+	const DebugChannelDef *getDebugChannels() const override {
+		return debugFlagList;
+	}
+};
+
 const DebugChannelDef FitdMetaEngineDetection::debugFlagList[] = {
-	{ Fitd::kDebugGraphics, "Graphics", "Graphics debug level" },
-	{ Fitd::kDebugPath, "Path", "Pathfinding debug level" },
-	{ Fitd::kDebugFilePath, "FilePath", "File path debug level" },
-	{ Fitd::kDebugScan, "Scan", "Scan for unrecognised games" },
-	{ Fitd::kDebugScript, "Script", "Enable debug script dump" },
+	{Fitd::kDebugConsole, "imgui", "Show ImGui debug window (if available)"},
 	DEBUG_CHANNEL_END
 };
 

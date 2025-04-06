@@ -19,10 +19,12 @@
  *
  */
 
+#include "fitd/detection.h"
 #include "fitd/debugtools.h"
 #include "fitd/gfx.h"
 #include "fitd/room.h"
 #include "backends/imgui/imgui.h"
+#include "common/debug.h"
 
 namespace Fitd {
 
@@ -131,6 +133,7 @@ static void drawObjects() {
 	}
 	ImGui::End();
 
+	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Active objects");
 
 	if (ListWorldObjets.size()) {
@@ -237,10 +240,10 @@ void onImGuiInit() {
 }
 
 void onImGuiRender() {
-	// if (!debugChannelSet(-1, kDebugConsole)) {
-	// 	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoMouse;
-	// 	return;
-	// }
+	if (!debugChannelSet(-1, kDebugConsole)) {
+		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoMouse;
+		return;
+	}
 
 	ImGui::GetIO().ConfigFlags &= ~(ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoMouse);
 	drawCamera();
