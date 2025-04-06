@@ -38,7 +38,7 @@ int getMatrix(int param1, int actorIdx, int param2) {
 	unsigned char *matrixPtr = (unsigned char *)HQR_Get(listMatrix, param1);
 
 	int matrixWidth = *matrixPtr++;
-	int matrixHeigh = *matrixPtr++;
+	(void)*matrixPtr++;
 
 	matrixPtr += (objectTable[actorIdx].hardMat - 1) * matrixWidth;
 	matrixPtr += (objectTable[param2].hardMat - 1);
@@ -115,7 +115,7 @@ int testZvEndAnim(tObject *actorPtr, char *animPtr, int param) {
 	int16 var_16;
 	int16 var_14;
 	int16 var_E = 0;
-	int16 var_12 = 0;
+	// int16 var_12 = 0;
 	int16 var_10 = param;
 	int16 var_18;
 	ZVStruct localZv;
@@ -130,7 +130,7 @@ int testZvEndAnim(tObject *actorPtr, char *animPtr, int param) {
 
 	for (var_18 = 0; var_18 < var_16; var_18++) {
 		animPtr += 2;
-		var_12 += *(int16 *)animPtr;
+		// var_12 += *(int16 *)animPtr;
 		animPtr += 2;
 		animPtr += 2;
 		var_E += *(int16 *)animPtr; // step depth

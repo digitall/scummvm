@@ -299,7 +299,7 @@ int choosePerso(void) {
 		}
 		}
 
-		if (localKey && 0x1C) {
+		if (localKey & 0x1C) {
 			choiceMade = 1;
 		}
 	}

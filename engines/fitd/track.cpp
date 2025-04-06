@@ -220,7 +220,7 @@ void processTrack(void) {
 
 			int roomNumber = followedActorPtr->room;
 			int x = followedActorPtr->roomX;
-			int y = followedActorPtr->roomY;
+			// int y = followedActorPtr->roomY;
 			int z = followedActorPtr->roomZ;
 			int angleModif;
 
@@ -228,7 +228,7 @@ void processTrack(void) {
 				char *link = getRoomLink(currentProcessedActorPtr->room, roomNumber);
 
 				x = *(int16 *)(link) + (((*(int16 *)(link + 2)) - (*(int16 *)(link))) / 2);
-				y = *(int16 *)(link + 4) + (((*(int16 *)(link + 6)) - (*(int16 *)(link + 4))) / 2);
+				// y = *(int16 *)(link + 4) + (((*(int16 *)(link + 6)) - (*(int16 *)(link + 4))) / 2);
 				z = *(int16 *)(link + 8) + (((*(int16 *)(link + 10)) - (*(int16 *)(link + 8))) / 2);
 			}
 
@@ -315,7 +315,6 @@ void processTrack(void) {
 		{
 			int roomNumber = *(int16 *)(trackPtr);
 			int x;
-			int y;
 			int z;
 			unsigned int distanceToPoint;
 
@@ -323,7 +322,6 @@ void processTrack(void) {
 
 			x = *(int16 *)(trackPtr);
 			trackPtr += 2;
-			y = 0;
 			z = *(int16 *)(trackPtr);
 			trackPtr += 2;
 
@@ -368,7 +366,6 @@ void processTrack(void) {
 			int x;
 			int y;
 			int z;
-			unsigned int distanceToPoint;
 
 			trackPtr += 2;
 
@@ -515,7 +512,6 @@ void processTrack(void) {
 			int z;
 			int objX;
 			int objY;
-			int objZ;
 
 			x = *(int16 *)(trackPtr);
 			trackPtr += 2;
@@ -526,7 +522,7 @@ void processTrack(void) {
 
 			objX = ListWorldObjets[currentProcessedActorPtr->indexInWorld].x;
 			objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
-			objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
+			// objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
 
 			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
 				int propX = makeProportional(objY, y, x - objX, (currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX) - objX);
@@ -575,7 +571,6 @@ void processTrack(void) {
 			int x;
 			int y;
 			int z;
-			int objX;
 			int objY;
 			int objZ;
 
@@ -586,7 +581,6 @@ void processTrack(void) {
 			z = *(int16 *)(trackPtr);
 			trackPtr += 2;
 
-			objX = ListWorldObjets[currentProcessedActorPtr->indexInWorld].x;
 			objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
 			objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
 
@@ -803,7 +797,6 @@ void processTrack2(void) {
 		{
 			int roomNumber = *(int16 *)(trackPtr);
 			int x;
-			int y;
 			int z;
 			unsigned int distanceToPoint;
 
@@ -811,7 +804,6 @@ void processTrack2(void) {
 
 			x = *(int16 *)(trackPtr);
 			trackPtr += 2;
-			y = 0;
 			z = *(int16 *)(trackPtr);
 			trackPtr += 2;
 

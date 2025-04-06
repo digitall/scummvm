@@ -116,8 +116,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 		executeFoundLife(inHandTable[currentInventory]);
 
 		if (changeFloor == 0) {
-			if (g_engine->getGameId() == GID_AITD1)
-			{
+			if (g_engine->getGameId() == GID_AITD1) {
 				if (CVars[getCVarsIdx(LIGHT_OBJECT)] == -1) {
 					//        mainVar2 = 2000;
 					//        mainVar3 = 2000;
@@ -172,13 +171,14 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 							break;
 						}
 						case GID_JACK:
-						case GID_AITD1:
-						{
-						if (currentProcessedActorPtr->life != -1)
-							if (currentProcessedActorPtr->lifeMode != -1)
-								processLife(currentProcessedActorPtr->life, false);
-						break;
+						case GID_AITD1: {
+							if (currentProcessedActorPtr->life != -1)
+								if (currentProcessedActorPtr->lifeMode != -1)
+									processLife(currentProcessedActorPtr->life, false);
+							break;
 						}
+						default:
+							break;
 						}
 					}
 				}

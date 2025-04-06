@@ -70,7 +70,7 @@ void gereFrappe(void) {
 		if (currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = WAIT_FRAPPE_FRAME;
 		}
-		[[fallthrough]];
+		// [[fallthrough]];
 	case WAIT_FRAPPE_FRAME:
 		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = NO_FRAPPE;
@@ -83,24 +83,17 @@ void gereFrappe(void) {
 		return;
 
 	case FRAPPE_OK: {
-		int x;
-		int y;
-		int z;
-		int range;
-		int collision;
-		int i;
-		ZVStruct rangeZv;
-
 		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = 0;
 		}
 
-		x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-		y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-		z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+		int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
+		int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
+		int z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
 
-		range = currentProcessedActorPtr->animActionParam;
+		int range = currentProcessedActorPtr->animActionParam;
 
+		ZVStruct rangeZv;
 		rangeZv.ZVX1 = x - range;
 		rangeZv.ZVX2 = x + range;
 		rangeZv.ZVY1 = y - range;
@@ -110,9 +103,9 @@ void gereFrappe(void) {
 
 		// drawProjectedBox(rangeZv.ZVX1,rangeZv.ZVX2,rangeZv.ZVY1,rangeZv.ZVY2,rangeZv.ZVZ1,rangeZv.ZVZ2,60,255);
 
-		collision = checkObjectCollisions(currentProcessedActorIdx, &rangeZv);
+		int collision = checkObjectCollisions(currentProcessedActorIdx, &rangeZv);
 
-		for (i = 0; i < collision; i++) {
+		for (int i = 0; i < collision; i++) {
 			tObject *actorPtr2;
 
 			currentProcessedActorPtr->HIT = currentProcessedActorPtr->COL[i];
@@ -214,9 +207,9 @@ void gereFrappe(void) {
 				if (currentProcessedActorPtr->FRAME == currentProcessedActorPtr->animActionFRAME) {
 					currentProcessedActorPtr->animActionType = 7;
 
-					int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-					int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-					int z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+					x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
+					y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
+					z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
 
 					DeleteInventoryObjet(objIdx);
 
@@ -241,18 +234,15 @@ void gereFrappe(void) {
 	}
 	case 7: // THROW
 	{
-		int x;
-		int y;
-		int z;
 		int objIdx;
 		int actorIdx;
 		tObject *actorPtr;
 
 		currentProcessedActorPtr->animActionType = 0;
 
-		x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
-		y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
-		z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
+		int x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x + currentProcessedActorPtr->stepX;
+		int y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
+		int z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
 
 		objIdx = currentProcessedActorPtr->animActionParam;
 

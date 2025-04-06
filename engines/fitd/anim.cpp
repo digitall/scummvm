@@ -42,8 +42,6 @@ namespace Fitd {
 Common::HashMap<void *, char *> g_bodyBufferMap;
 
 int setAnimObjet(int frame, char *anim, char *body) {
-	sAnimation *pAnimation = getAnimationFromPtr(anim);
-
 	int16 temp;
 	int16 ax;
 	int16 cx;
@@ -628,14 +626,13 @@ void updateAnimation(void) {
 			tObject *actorTouchedPtr = &objectTable[collisionIndex];
 
 			if (actorTouchedPtr->_flags & AF_MOVABLE) {
-				int i;
-
-				for (i = 0; i < 3; i++) {
-					if (currentProcessedActorPtr->COL[i] == collisionIndex)
+				int j;
+				for (j = 0; j < 3; j++) {
+					if (currentProcessedActorPtr->COL[j] == collisionIndex)
 						break;
 				}
 
-				if (i == 3) {
+				if (j == 3) {
 					actorTouchedPtr->_flags &= ~AF_ANIMATED;
 					addActorToBgInscrust(collisionIndex);
 				}

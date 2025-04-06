@@ -902,8 +902,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_ANIM_HYBRIDE_ONCE: {
 				// appendFormated("LM_ANIM_HYBRIDE_ONCE ");
 				// TODO
-				int anim = readNextArgument("Anim");
-				int body = readNextArgument("Body?");
+				(void)readNextArgument("Anim");
+				(void)readNextArgument("Body?");
 
 				// printf("LM_ANIM_HYBRIDE_ONCE(anim:%d, body:%d)\n", anim, body);
 				break;
@@ -911,8 +911,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_ANIM_HYBRIDE_REPEAT: {
 				// appendFormated("LM_ANIM_HYBRIDE_REPEAT ");
 				// TODO
-				int anim = readNextArgument("Anim");
-				int body = readNextArgument("Body?");
+				(void)readNextArgument("Anim");
+				(void)readNextArgument("Body?");
 
 				// printf("LM_ANIM_HYBRIDE_REPEAT(anim:%d, body:%d)\n", anim, body);
 				break;
@@ -956,7 +956,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 					int fireAnim;
 					int shootFrame;
 					int emitPoint;
-					int emitModel;
+					// int emitModel;
 					int zvSize;
 					int hitForce;
 					int nextAnim;
@@ -964,7 +964,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 					fireAnim = evalVar("Anim");
 					shootFrame = readNextArgument("Frame");
 					emitPoint = readNextArgument("EmitPoint");
-					emitModel = readNextArgument("EmitModel");
+					// emitModel = readNextArgument("EmitModel");
 					zvSize = readNextArgument("ZVSize");
 					hitForce = readNextArgument("Force");
 					nextAnim = evalVar();
@@ -1314,10 +1314,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 			{
 				// appendFormated("LM_TAKE ");
 				if (g_engine->getGameId() >= GID_TIMEGATE) {
-					int arg0 = evalVar();
-					int arg1 = readNextArgument();
-					int arg2 = readNextArgument();
-					int arg3 = readNextArgument();
+					(void)evalVar();
+					(void)readNextArgument();
+					(void)readNextArgument();
+					(void)readNextArgument();
 				} else {
 					lifeTempVar1 = readNextArgument("ObjectId");
 
@@ -1535,14 +1535,13 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_2D_ANIM_SAMPLE: {
 				// appendFormated("LM_2D_ANIM_SAMPLE ");
-				int sampleNumber;
-				int animNumber;
-				int frameNumber;
+				// int sampleNumber;
+				// int animNumber;
 
-				sampleNumber = evalVar();
-				animNumber = *(int16 *)(currentLifePtr);
+				// sampleNumber = evalVar();
+				// animNumber = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
-				frameNumber = *(int16 *)(currentLifePtr);
+				// frameNumber = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
 
 				// printf("LM_2D_ANIM_SAMPLE(sampleNumber %d, animNumber %d, frameNumber %d)\n", sampleNumber, animNumber, frameNumber);
@@ -2203,20 +2202,20 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_DO_ROT_CLUT ");
 				assert(g_engine->getGameId() == GID_TIMEGATE);
 
-				int arg0 = readNextArgument();
-				int arg1 = readNextArgument();
-				int arg2 = readNextArgument();
+				(void)readNextArgument();
+				(void)readNextArgument();
+				(void)readNextArgument();
 				break;
 			}
 			case LM_START_FADE_IN_MUSIC_LOOP: {
 				// appendFormated("LM_START_FADE_IN_MUSIC_LOOP ");
 				assert(g_engine->getGameId() == GID_TIMEGATE);
 
-				int arg0 = readNextArgument();
-				int arg1 = readNextArgument();
-				int arg2 = readNextArgument();
-				int arg3 = readNextArgument();
-				int arg4 = readNextArgument();
+				(void)readNextArgument();
+				(void)readNextArgument();
+				(void)readNextArgument();
+				(void)readNextArgument();
+				(void)readNextArgument();
 				// int arg5 = readNextArgument();
 				break;
 			}

@@ -78,7 +78,7 @@ const FitdGameDescription gameDescriptions[] = {
 		},
 		GID_AITD3
 	},
-	AD_TABLE_END_MARKER
+	{AD_TABLE_END_MARKER, GID_NONE}
 };
 
 } // End of namespace Fitd

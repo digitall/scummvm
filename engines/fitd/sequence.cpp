@@ -156,8 +156,6 @@ void unapckSequenceFrame(unsigned char *source, unsigned char *dest) {
 
 void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 
-	int frames = 0; /* Number of frames displayed */
-
 	int var_4 = 1;
 	int quitPlayback = 0;
 	int nextFrame = 1;
@@ -184,7 +182,7 @@ void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 		int sequenceParamIdx;
 
 		while (currentFrameId < nextFrame) {
-			frames++;
+			// frames++;
 
 			timer = timeGlobal;
 

@@ -131,7 +131,6 @@ int loadPak(const char* name, int index, char* ptr)
 int getPakSize(const char* name, int index)
 {
     int32 fileOffset;
-    int32 additionalDescriptorSize;
     pakInfoStruct pakInfo;
     int32 size=0;
 
@@ -143,7 +142,7 @@ int getPakSize(const char* name, int index)
 	fileOffset = f.readSint32LE();
 	f.seek(fileOffset, SEEK_SET);
 
-	additionalDescriptorSize = f.readSint32LE();
+	(void)f.readSint32LE();
 	readPakInfo(&pakInfo, f);
 
 	f.seek(pakInfo.offset, SEEK_CUR);
