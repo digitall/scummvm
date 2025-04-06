@@ -26,7 +26,7 @@
 
 namespace Fitd {
 
-void handleKeyDown(Common::Event &event) {
+static void handleKeyDown(const Common::Event &event) {
 	switch (event.kbd.keycode) {
 	case Common::KEYCODE_RETURN:
 		key = 0x1C;
@@ -57,7 +57,7 @@ void handleKeyDown(Common::Event &event) {
 	}
 }
 
-void handleKeyUp(Common::Event &event) {
+static void handleKeyUp(const Common::Event &event) {
 	switch (event.kbd.keycode) {
 	case Common::KEYCODE_RETURN:
 		key &= ~0x1C;
@@ -89,12 +89,8 @@ void handleKeyUp(Common::Event &event) {
 }
 
 void readKeyboard(void) {
-	if (g_engine->shouldQuit()) {
-		return;
-	}
-
 	Common::Event event;
-	while (g_system->getEventManager()->pollEvent(event)) {
+	while (!g_engine->shouldQuit() && g_system->getEventManager()->pollEvent(event)) {
 
 		switch (event.type) {
 		case Common::EventType::EVENT_KEYDOWN:
