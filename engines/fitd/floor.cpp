@@ -294,8 +294,8 @@ void loadFloor(int floorNumber) {
 					pCurrentCameraViewedRoom->masks = (cameraMaskStruct *)malloc(sizeof(cameraMaskStruct) * pCurrentCameraViewedRoom->numMask);
 					memset(pCurrentCameraViewedRoom->masks, 0, sizeof(cameraMaskStruct) * pCurrentCameraViewedRoom->numMask);
 
-					for (int k = 0; k < pCurrentCameraViewedRoom->numMask; k++) {
-						cameraMaskStruct *pCurrentCameraMask = &pCurrentCameraViewedRoom->masks[k];
+					for (int l = 0; l < pCurrentCameraViewedRoom->numMask; l++) {
+						cameraMaskStruct *pCurrentCameraMask = &pCurrentCameraViewedRoom->masks[l];
 
 						// for this overlay zone, how many
 						pCurrentCameraMask->numTestRect = READ_LE_U16(pMaskData);

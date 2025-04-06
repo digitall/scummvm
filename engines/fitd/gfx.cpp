@@ -960,9 +960,9 @@ static void transformPoint(float *ax, float *bx, float *cx) {
 	int Y = (int)*bx;
 	int Z = (int)*cx;
 	{
-		int *ax = &X;
-		int *bx = &Y;
-		int *cx = &Z;
+		int *iax = &X;
+		int *ibx = &Y;
+		int *icx = &Z;
 
 		{
 			int x;
@@ -970,23 +970,23 @@ static void transformPoint(float *ax, float *bx, float *cx) {
 			int z;
 
 			if (transformUseY) {
-				x = (((((*ax) * transformYSin) - ((*cx) * transformYCos))) / 0x10000) << 1;
-				z = (((((*ax) * transformYCos) + ((*cx) * transformYSin))) / 0x10000) << 1;
+				x = (((((*iax) * transformYSin) - ((*icx) * transformYCos))) / 0x10000) << 1;
+				z = (((((*iax) * transformYCos) + ((*icx) * transformYSin))) / 0x10000) << 1;
 			} else {
-				x = (*ax);
-				z = (*cx);
+				x = (*iax);
+				z = (*icx);
 			}
 
 			// si = x
 			// ax = z
 
 			if (transformUseX) {
-				int tempY = (*bx);
+				int tempY = (*ibx);
 				int tempZ = z;
 				y = ((((tempY * transformXSin) - (tempZ * transformXCos))) / 0x10000) << 1;
 				z = ((((tempY * transformXCos) + (tempZ * transformXSin))) / 0x10000) << 1;
 			} else {
-				y = (*bx);
+				y = (*ibx);
 			}
 
 			// cx = y
@@ -999,9 +999,9 @@ static void transformPoint(float *ax, float *bx, float *cx) {
 				y = ((((tempX * transformZCos) + (tempY * transformZSin))) / 0x10000) << 1;
 			}
 
-			*ax = x;
-			*bx = y;
-			*cx = z;
+			*iax = x;
+			*ibx = y;
+			*icx = z;
 		}
 	}
 
@@ -1024,9 +1024,12 @@ static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const sGroup *ptr) {
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
-		*(ptrSource++) = (*(ptrSource) * (zoomX + 256)) / 256;
-		*(ptrSource++) = (*(ptrSource) * (zoomY + 256)) / 256;
-		*(ptrSource++) = (*(ptrSource) * (zoomZ + 256)) / 256;
+		*ptrSource = (*ptrSource * (zoomX + 256)) / 256;
+		ptrSource++;
+		*ptrSource = (*ptrSource * (zoomY + 256)) / 256;
+		ptrSource++;
+		*ptrSource = (*ptrSource * (zoomZ + 256)) / 256;
+		ptrSource++;
 	}
 }
 
@@ -1146,8 +1149,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 
 	if (pBody->m_flags & INFO_OPTIMISE) {
 		for (int i = 0; i < pBody->m_groupOrder.size(); i++) {
-			int boneDataOffset = pBody->m_groupOrder[i];
-			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
+			const sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			switch (pGroup->m_state.m_type) {
 			case 1:
@@ -1171,7 +1173,6 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		pBody->m_groups[0].m_state.m_delta[2] = gamma;
 
 		for (int i = 0; i < pBody->m_groups.size(); i++) {
-			int boneDataOffset = pBody->m_groupOrder[i];
 			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			int transX = pGroup->m_state.m_delta[0];

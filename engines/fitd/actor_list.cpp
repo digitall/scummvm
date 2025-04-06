@@ -39,11 +39,11 @@ int sortCompareFunction(const void *param1, const void *param2) {
 	int y1;
 	int y2;
 
-	assert(*(int *)param1 >= 0 && *(int *)param1 < NUM_MAX_OBJECT);
-	assert(*(int *)param2 >= 0 && *(int *)param2 < NUM_MAX_OBJECT);
+	assert(*(const int *)param1 >= 0 && *(const int *)param1 < NUM_MAX_OBJECT);
+	assert(*(const int *)param2 >= 0 && *(const int *)param2 < NUM_MAX_OBJECT);
 
-	actor1Ptr = &objectTable[*(int *)param1];
-	actor2Ptr = &objectTable[*(int *)param2];
+	actor1Ptr = &objectTable[*(const int *)param1];
+	actor2Ptr = &objectTable[*(const int *)param2];
 
 	actor1ZvPtr = &actor1Ptr->zv;
 	actor2ZvPtr = &actor2Ptr->zv;

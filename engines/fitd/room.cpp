@@ -82,7 +82,6 @@ void loadRoom(int roomNumber) {
 	int cameraVar1;
 	int cameraVar2;
 	int oldCameraIdx;
-	roomDefStruct *roomDataPtr;
 
 	freezeTime();
 
@@ -100,7 +99,6 @@ void loadRoom(int roomNumber) {
 
 	if (g_engine->getGameId() < GID_AITD3) {
 		cameraPtr = (char *)getRoomData(roomNumber); // TODO: obsolete
-		roomDataPtr = getRoomData(roomNumber);
 		pCurrentRoomData = getRoomData(roomNumber);
 	}
 
@@ -124,7 +122,6 @@ void loadRoom(int roomNumber) {
 	assert(numCameraInRoom < NUM_MAX_CAMERA_IN_ROOM);
 
 	int newNumCamera = 0;
-	int newAbsCamera = -1;
 
 	// load the new camera table and try to keep the same camera (except if changing floor)
 	for (i = 0; i < numCameraInRoom; i++) {
@@ -134,7 +131,7 @@ void loadRoom(int roomNumber) {
 
 		if (oldCameraIdx == currentCameraIdx) {
 			newNumCamera = i;
-			newAbsCamera = currentCameraIdx;
+			// newAbsCamera = currentCameraIdx;
 		}
 
 		if (g_engine->getGameId() < GID_AITD3) {

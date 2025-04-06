@@ -897,7 +897,6 @@ void configChannel(uint8 value, uint8 *data) {
 }
 
 void changeOuputLevel(uint8 value, uint8 *data, int bp) {
-	int keyScaleLevel;
 	int outputLevel;
 
 	if (value == 0xFF)
@@ -911,19 +910,10 @@ void changeOuputLevel(uint8 value, uint8 *data, int bp) {
 
 	assert((outputLevel & 0x3F) == outputLevel);
 
-	keyScaleLevel = data[0] & 0xC0;
-
 	sendAdlib(0x40 + value, (data[0] & 0xC0) | (outputLevel & 0x3F));
 }
 
 void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement *element) {
-	char al;
-	uint16 dx;
-	uint16 bp;
-
-	uint8 operator1;
-	uint8 operator2;
-
 	if ((element2->var4 & 0x40) != element->var2) {
 		element->var2 = element2->var4 & 0x40;
 
@@ -945,8 +935,8 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 		element->var7 = 0x9C;
 	}
 
-	operator1 = channelTable[element2->index * 2];
-	operator2 = channelTable[(element2->index * 2) + 1];
+	uint8 operator1 = channelTable[element2->index * 2];
+	uint8 operator2 = channelTable[(element2->index * 2) + 1];
 
 	if (operator1 == 0xFF && operator2 == 0xFF) // do we have an operator ?
 		return;
@@ -966,17 +956,16 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 
 	// Ouput level handling
 
-	al = element2->var1D - element2->var1E;
+	char al = element2->var1D - element2->var1E;
 
 	if (al < 0)
 		al = 0;
 
 	if (element->var5 != al) {
-		int dx;
 
 		element->var5 = al;
 
-		dx = element2->var1D;
+		int dx = element2->var1D;
 
 		if (operator2 == 0xFF) {
 			dx = element->var5;
@@ -991,7 +980,7 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 
 	////
 
-	bp = dx = element2->var17;
+	uint16 bp = element2->var17;
 
 	if (element2->var17 != element->var7) {
 		element->var7 = element2->var17;

@@ -144,8 +144,6 @@ void renderText(int x, int y, char *surface, const char *string) {
 
 			fontSm8 = fontVar6;
 
-			ch;
-
 			for (ch = fontSm1; ch > 0; ch--) {
 				if (bp >= 200)
 					return;

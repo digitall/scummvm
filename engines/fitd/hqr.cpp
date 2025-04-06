@@ -74,8 +74,7 @@ hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries) {
 
 int HQ_Malloc(hqrEntryStruct *hqrPtr, int size) {
 	hqrSubEntryStruct *dataPtr1;
-	hqrSubEntryStruct *dataPtr2;
-	int key;
+	int hq_key;
 	int entryNum;
 
 	if (hqrPtr->sizeFreeData < size)
@@ -83,13 +82,12 @@ int HQ_Malloc(hqrEntryStruct *hqrPtr, int size) {
 
 	entryNum = hqrPtr->numUsedEntry;
 
-	dataPtr1 = dataPtr2 = hqrPtr->entries;
+	dataPtr1 = hqrPtr->entries;
 
-	key = hqrKeyGen;
+	hq_key = hqrKeyGen;
 
-	dataPtr1[entryNum].key = key;
+	dataPtr1[entryNum].key = hq_key;
 
-	//  dataPtr1[entryNum].offset = hqrPtr->maxFreeData - hqrPtr->sizeFreeData;
 	dataPtr1[entryNum].size = size;
 	dataPtr1[entryNum].ptr = (char *)malloc(size);
 
@@ -98,7 +96,7 @@ int HQ_Malloc(hqrEntryStruct *hqrPtr, int size) {
 
 	hqrKeyGen++;
 
-	return (key);
+	return hq_key;
 }
 
 char *HQ_PtrMalloc(hqrEntryStruct *hqrPtr, int index) {
@@ -479,7 +477,6 @@ char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
 		unfreezeTime();*/
 
 		int size;
-		unsigned int time;
 		char *ptr;
 		int i;
 
@@ -492,8 +489,6 @@ char *HQR_Get(hqrEntryStruct *hqrPtr, int index) {
 		if (size >= hqrPtr->maxFreeData) {
 			error("%s", hqrPtr->string.c_str());
 		}
-
-		time = timer;
 
 		for (i = 0; i < hqrPtr->numMaxEntry; i++) {
 			if (hqrPtr->entries[i].ptr == NULL) {

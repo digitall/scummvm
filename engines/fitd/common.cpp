@@ -97,56 +97,56 @@ const unsigned char defaultPalette[0x30] = {
 	0x3F,
 	0x3F};
 
-const unsigned char defaultPaletteAITD3[0x30] =
-	{
-		0x00,
-		0x00,
-		0x00,
-		0xFC,
-		0xFC,
-		0xFC,
-		0x30,
-		0x30,
-		0x38,
-		0xC0,
-		0xBC,
-		0xFC,
-		0x78,
-		0x58,
-		0x3C,
-		0x00,
-		0x00,
-		0x00,
-		0xF0,
-		0x70,
-		0x10,
-		0xFC,
-		0xFC,
-		0xFC,
-		0x48,
-		0x50,
-		0x60,
-		0xC4,
-		0x54,
-		0x5C,
-		0x54,
-		0x94,
-		0x54,
-		0x54,
-		0xBC,
-		0xFC,
-		0xFC,
-		0x88,
-		0x54,
-		0xAC,
-		0x54,
-		0xFC,
-		0xFC,
-		0xFC,
-		0xFC,
-		0xFC,
-		0xFC,
-		0xF8};
+// const unsigned char defaultPaletteAITD3[0x30] =
+// 	{
+// 		0x00,
+// 		0x00,
+// 		0x00,
+// 		0xFC,
+// 		0xFC,
+// 		0xFC,
+// 		0x30,
+// 		0x30,
+// 		0x38,
+// 		0xC0,
+// 		0xBC,
+// 		0xFC,
+// 		0x78,
+// 		0x58,
+// 		0x3C,
+// 		0x00,
+// 		0x00,
+// 		0x00,
+// 		0xF0,
+// 		0x70,
+// 		0x10,
+// 		0xFC,
+// 		0xFC,
+// 		0xFC,
+// 		0x48,
+// 		0x50,
+// 		0x60,
+// 		0xC4,
+// 		0x54,
+// 		0x5C,
+// 		0x54,
+// 		0x94,
+// 		0x54,
+// 		0x54,
+// 		0xBC,
+// 		0xFC,
+// 		0xFC,
+// 		0x88,
+// 		0x54,
+// 		0xAC,
+// 		0x54,
+// 		0xFC,
+// 		0xFC,
+// 		0xFC,
+// 		0xFC,
+// 		0xFC,
+// 		0xFC,
+// 		0xF8};
 
 void executeFoundLife(int objIdx) {
 	int var_2;
@@ -952,7 +952,7 @@ static void loadMask(int cameraIdx) {
 				uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
 				pMaskData += 2;
 
-				unsigned char *pSourceBuffer = (unsigned char *)aux;
+				// unsigned char *pSourceBuffer = (unsigned char *)aux;
 
 				int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
@@ -994,7 +994,7 @@ static void createAITD1Mask() {
 
 			char *src = data2 + *(uint16 *)(data + 2);
 
-			int numMaskZone = *(int16 *)(data);
+			// int numMaskZone = *(int16 *)(data);
 
 			int minX = 319;
 			int maxX = 0;
@@ -1967,7 +1967,7 @@ static void drawBgOverlay(tObject *actorPtr) {
 
 		for (int i = 0; i < numOverlayZone; i++) {
 			int numOverlay;
-			char *src = data2 + *(uint16 *)(data + 2);
+			// char *src = data2 + *(uint16 *)(data + 2);
 
 			if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
 									actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
@@ -2799,7 +2799,7 @@ static bool isPointInZV(int x, int y, int z, ZVStruct *pZV) {
 void processActor2() {
 	bool onceMore = false;
 	bool flagFloorChange = false;
-	int zoneIdx = 0;
+	// int zoneIdx = 0;
 
 	do {
 		onceMore = false;
