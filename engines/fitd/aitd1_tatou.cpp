@@ -130,7 +130,7 @@ int make3dTatou(void) {
 			gfx_setPalette(currentGamePalette);
 			gfx_copyBlockPhys((byte *)frontBuffer, 0, 0, 320, 200);
 
-			while (key == 0 && Click == 0 && JoyD == 0) // boucle de rotation du tatou
+			while (!g_engine->shouldQuit() && key == 0 && Click == 0 && JoyD == 0) // boucle de rotation du tatou
 			{
 				process_events();
 

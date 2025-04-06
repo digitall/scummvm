@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd_box.h"
+#include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/startup_menu.h"
@@ -67,6 +68,10 @@ int processStartupMenu(void) {
 
 	while (evalChrono(&chrono) <= 0x10000) // exit loop only if time out or if choice made
 	{
+		if(g_engine->shouldQuit()) {
+			selectedEntry = 2;
+		}
+
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 
@@ -115,7 +120,7 @@ int processStartupMenu(void) {
 			}
 		}
 
-		if (key == 28 || (key != 28 && Click != 0)) // select current entry
+		if ((key == 28) || (Click != 0)) // select current entry
 		{
 			selectedEntry = currentSelectedEntry;
 		}
