@@ -249,7 +249,7 @@ void processInventory(void) {
 			antiBounce = 0;
 		}
 
-		if (localKey == 1) {
+		if (localKey == 1 || localKey == 0x1B) {
 			choice = 0;
 			exitMenu = 1;
 		}
