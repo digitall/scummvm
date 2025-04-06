@@ -170,7 +170,7 @@ int makeIntroScreens(void) {
 
 		time = evalChrono(&chrono);
 
-		if (time >= 0x30)
+		if (g_engine->shouldQuit() || time >= 0x30)
 			break;
 
 	} while (key == 0 && Click == 0);
@@ -314,7 +314,7 @@ void startAITD1(int saveSlot) {
 	g_gameUseCDA = true;
 	gfx_setPalette(currentGamePalette);
 
-	if (saveSlot == -1 && !make3dTatou()) {
+	if (saveSlot == -1 && !make3dTatou() && !g_engine->shouldQuit()) {
 		makeIntroScreens();
 	}
 

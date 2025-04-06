@@ -328,7 +328,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	//  LastSample = -1;
 	//  LastPriority = -1;
 
-	while (!quit) {
+	while (!g_engine->shouldQuit() && !quit) {
 		char *ptrt;
 		int currentTextY;
 		fastCopyScreen(aux, logicalScreen);
