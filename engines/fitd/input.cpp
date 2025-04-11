@@ -83,6 +83,9 @@ static void handleKeyUp(const Common::Event &event) {
 	case Common::KEYCODE_SPACE:
 		Click &= ~1;
 		break;
+	case Common::KEYCODE_d:
+		Debug = !Debug;
+		break;
 	default:
 		break;
 	}

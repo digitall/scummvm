@@ -73,6 +73,7 @@ char* systemTextes;
 
 char JoyD = 0;
 char Click = 0;
+bool Debug = false;
 char key = 0;
 char localKey;
 char localJoyD;

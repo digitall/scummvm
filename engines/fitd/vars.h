@@ -325,6 +325,7 @@ extern "C" {
     extern char JoyD;
 };
 extern char Click;
+extern bool Debug;
 extern char key;
 extern char localKey;
 extern char localJoyD;
