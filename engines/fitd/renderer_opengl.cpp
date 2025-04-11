@@ -325,7 +325,7 @@ static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
-Graphics::Surface *renderer_capture();
+static Graphics::Surface *renderer_capture();
 
 Renderer createOpenGLRenderer() {
 	return Renderer{
@@ -344,6 +344,7 @@ Renderer createOpenGLRenderer() {
 		.drawMask = renderer_drawMask,
 		.drawPoint = renderer_drawPoint,
 		.updateScreen = renderer_updateScreen,
+		.capture = renderer_capture,
 	};
 }
 

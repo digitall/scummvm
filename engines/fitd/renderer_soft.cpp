@@ -98,7 +98,7 @@ static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
-Graphics::Surface *renderer_capture();
+static Graphics::Surface *renderer_capture();
 
 Renderer createSoftwareRenderer() {
 	return Renderer{
@@ -117,6 +117,7 @@ Renderer createSoftwareRenderer() {
 		.drawMask = renderer_drawMask,
 		.drawPoint = renderer_drawPoint,
 		.updateScreen = renderer_updateScreen,
+		.capture = renderer_capture,
 	};
 }
 
@@ -928,6 +929,28 @@ static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 mat
 
 static void renderer_updateScreen() {
 	g_engine->_screen->update();
+}
+
+Graphics::Surface *renderer_capture() {
+	Graphics::Surface *s = new Graphics::Surface();
+#ifdef SCUMM_BIG_ENDIAN
+	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
+#else
+	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#endif
+	s->create(320, 200, format);
+	byte *src = _state->physicalScreen;
+	byte *dst = (byte *)s->getPixels();
+	byte *pal = _state->RGB_Pal;
+	for (int i = 0; i < 320 * 200; i++) {
+		dst[0] = pal[*src * 3];
+		dst[1] = pal[*src * 3 + 1];
+		dst[2] = pal[*src * 3 + 2];
+		dst[3] = 0xFF;
+		dst += 4;
+		src++;
+	}
+	return s;
 }
 
 } // namespace Fitd
