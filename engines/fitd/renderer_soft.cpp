@@ -19,15 +19,14 @@
  *
  */
 
-// #define STB_IMAGE_WRITE_IMPLEMENTATION
-// #include "stb_image_write.h"
-
 #include "fitd/fitd.h"
 #include "fitd/renderer.h"
 #include "fitd/input.h"
 #include "fitd/vars.h"
 #include "engines/util.h"
 #include "graphics/surface.h"
+
+#define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
 namespace Fitd {
 
@@ -70,7 +69,6 @@ struct State {
 	byte physicalScreen[320 * 200];
 	byte physicalScreenRGB[320 * 200 * 3];
 	float zBuffer[320 * 200];
-	float tmpZBuffer[320 * 200];
 	byte RGB_Pal[256 * 3];
 
 	int16 polyMinX;
@@ -691,25 +689,27 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	if (g_engine->shouldQuit())
 		return;
 
+	if (!prepare_poly(buffer, _state->flatVertices, numPoint))
+		return;
+
+	if (_state->polyMinY == _state->polyMaxY && _state->polyMinX == _state->polyMaxX)
+		return;
+
+	assert(_state->polyMinY >= 0);
+	assert(_state->polyMaxY < 200);
+	assert(_state->polyMinX >= 0);
+	assert(_state->polyMaxX < 320);
+	int16 y = _state->polyMinY;
+	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
+	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
+	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
+	const float *pVerticZmin = &_state->tabVerticZmin[y];
+	const float *pVerticZmax = &_state->tabVerticZmax[y];
+	float *zBuffer = &_state->zBuffer[y * 320];
+
 	switch (polyType) {
-	default:
 	case 0: // flat (triste)
 	{
-		if (!prepare_poly(buffer, _state->flatVertices, numPoint))
-			return;
-
-		assert(_state->polyMinY >= 0);
-		assert(_state->polyMaxY < 200);
-		assert(_state->polyMinX >= 0);
-		assert(_state->polyMaxX < 320);
-		int16 y = _state->polyMinY;
-		byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
-		const int16 *pVerticXmin = &_state->tabVerticXmin[y];
-		const int16 *pVerticXmax = &_state->tabVerticXmax[y];
-		const float *pVerticZmin = &_state->tabVerticZmin[y];
-		const float *pVerticZmax = &_state->tabVerticZmax[y];
-		float *zBuffer = &_state->zBuffer[y * 320];
-
 		for (; y <= _state->polyMaxY; y++) {
 			int16 xMin = *pVerticXmin++;
 			const int16 xMax = *pVerticXmax++;
@@ -743,167 +743,186 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 		}
 		break;
 	}
-		// case 1: // dither (pierre/tele)
-		// {
-		// 	polyVertex *pVertex = &noiseVertices[numUsedNoiseVertices];
-		// 	numUsedNoiseVertices += (numPoint - 2) * 3;
-		// 	assert(numUsedNoiseVertices < NUM_MAX_NOISE_VERTICES);
+	case 1: // dither (pierre/tele)
+	{
+		int16 acc = 17371;
 
-		// 	for (int i = 0; i < numPoint; i++) {
-		// 		if (i >= 3) {
-		// 			memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
-		// 			pVertex++;
-		// 			memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
-		// 			pVertex++;
-		// 		}
+		for (; y <= _state->polyMaxY; y++) {
+			int16 xMin = *pVerticXmin++;
+			const int16 xMax = *pVerticXmax++;
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
+			byte col = xMin;
 
-		// 		pVertex->X = buffer[i * 3 + 0];
-		// 		pVertex->Y = buffer[i * 3 + 1];
-		// 		pVertex->Z = buffer[i * 3 + 2];
+			byte *pDest = pDestLine + xMin;
+			float z = zMin;
+			for (int16 x = xMin; x <= xMax; x++) {
+				col = ((col + acc) & 0xFF03) + (uint16)color;
+				acc = ROL16(acc, 2) + 1;
+				if (z < zBuffer[x]) {
+					*pDest++ = (byte)col;
+					zBuffer[x] = z;
+				}
+				z += dz;
+			}
 
-		// 		// int bank = (color & 0xF0) >> 4;
-		// 		// int startColor = color & 0xF;
-		// 		// float colorf = startColor;
-		// 		// pVertex->U = colorf / 15.f;
-		// 		// pVertex->V = bank / 15.f;
-		// 		pVertex->R = RGB_Pal[color * 3];
-		// 		pVertex->G = RGB_Pal[color * 3 + 1];
-		// 		pVertex->B = RGB_Pal[color * 3 + 2];
-		// 		pVertex++;
-		// 	}
-		// 	break;
-		// }
-		// case 2: // trans
-		// {
-		// 	polyVertex *pVertex = &transparentVertices[numUsedTransparentVertices];
-		// 	numUsedTransparentVertices += (numPoint - 2) * 3;
-		// 	assert(numUsedTransparentVertices < NUM_MAX_TRANSPARENT_VERTICES);
+			pDestLine += 320;
+			zBuffer += 320;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
+		}
+		break;
+	}
+	case 2: // trans
+	{
+		// TODO: fix this, it should be drawn last
+		// actually, we should render all polygons in flush method and draw transparent polygons last
+		for (; y <= _state->polyMaxY; y++) {
+			int16 xMin = *pVerticXmin++;
+			const int16 xMax = *pVerticXmax++;
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
 
-		// 	for (int i = 0; i < numPoint; i++) {
-		// 		if (i >= 3) {
-		// 			memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
-		// 			pVertex++;
-		// 			memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
-		// 			pVertex++;
-		// 		}
+			byte *pDest = pDestLine + xMin;
+			float z = zMin;
+			for (int16 x = xMin; x <= xMax; x++) {
+				if (z < zBuffer[x]) {
+					*pDest = (byte)color | (*pDest & 0x0F);
+					pDest++;
+					zBuffer[x] = z;
+				}
+				z += dz;
+			}
 
-		// 		pVertex->X = buffer[i * 3 + 0];
-		// 		pVertex->Y = buffer[i * 3 + 1];
-		// 		pVertex->Z = buffer[i * 3 + 2];
+			pDestLine += 320;
+			zBuffer += 320;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
+		}
+		break;
+	}
+	case 4: // copper (ramps top to bottom)
+	{
+		int32 sens = 1;
+		for (; y <= _state->polyMaxY; y++) {
+			int16 xMin = *pVerticXmin++;
+			const int16 xMax = *pVerticXmax++;
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
 
-		// 		pVertex->R = RGB_Pal[color * 3];
-		// 		pVertex->G = RGB_Pal[color * 3 + 1];
-		// 		pVertex->B = RGB_Pal[color * 3 + 2];
-		// 		pVertex->A = 128;
-		// 		pVertex++;
-		// 	}
-		// 	break;
-		// }
-		// case 4: // copper (ramps top to bottom)
-		// case 5: // copper2 (ramps top to bottom, 2 scanline per color)
-		// {
-		// 	if(!prepare_poly(buffer, _state->flatVertices, numPoint))
-		// 	return;
+			byte *pDest = pDestLine + xMin;
+			float z = zMin;
+			for (int16 x = xMin; x <= xMax; x++) {
+				if (z < zBuffer[x]) {
+					*pDest++ = (byte)color;
+					zBuffer[x] = z;
+				}
+				z += dz;
+			}
 
-		// 	assert(_state->polyMinY >= 0);
-		// 	assert(_state->polyMaxY < 200);
-		// 	assert(_state->polyMinX >= 0);
-		// 	assert(_state->polyMaxX < 320);
-		// 	int16 y = _state->polyMinY;
-		// 	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
-		// 	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
-		// 	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
+			color += sens;
+			if (!(color & 0xF)) {
+				sens = -sens;
+				if (sens < 0) {
+					color += sens;
+				}
+			}
 
-		// 	for (; y <= _state->polyMaxY; y++) {
-		// 		int16 xMin = *pVerticXmin++;
-		// 		const int16 xMax = *pVerticXmax++;
-		// 		byte *pDest = pDestLine + xMin;
+			pDestLine += 320;
+			zBuffer += 320;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
+		}
+		break;
+	}
+	case 5: // copper2 (ramps top to bottom, 2 scanline per color)
+	{
+		int32 sens = 1;
+		int32 line = 2;
 
-		// 		for (int x = xMin; x <= xMax; x++) {
-		// 			*pDest++ = (byte)color;
-		// 		}
+		for (; y <= _state->polyMaxY; y++) {
+			int16 xMin = *pVerticXmin++;
+			const int16 xMax = *pVerticXmax++;
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
 
-		// 		pDestLine += 320;
-		// 		// if (xMin <= xMax) {
-		// 		// 	g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y2), xMax - xMin + 1, 1));
-		// 		// 	renderer_updateScreen();
-		// 		// 	readKeyboard();
-		// 		// 	if (g_engine->shouldQuit())
-		// 		// 		return;
-		// 		// }
-		// 	}
-		// 	break;
-		// }
+			byte *pDest = pDestLine + xMin;
+			float z = zMin;
+			for (int16 x = xMin; x <= xMax; x++) {
+				if (z < zBuffer[x]) {
+					*pDest++ = (byte)color;
+					zBuffer[x] = z;
+				}
+				z += dz;
+			}
+
+			line--;
+			if (!line) {
+				line = 2;
+				color += sens;
+				if (!(color & 0xF)) {
+					sens = -sens;
+					if (sens < 0) {
+						color += sens;
+					}
+				}
+			}
+
+			pDestLine += 320;
+			zBuffer += 320;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
+		}
+		break;
+	}
+		// TODO:
 		// case 3: // marbre (ramp left to right)
-		// {
-		// 	polyVertex *pVertex = &rampVertices[numUsedRampVertices];
-		// 	numUsedRampVertices += (numPoint - 2) * 3;
-		// 	assert(numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
-
-		// 	float colorStep = 15.f / polyWidth;
-
-		// 	int bank = (color & 0xF0) >> 4;
-		// 	int startColor = color & 0xF;
-
-		// 	assert(startColor == 0);
-
-		// 	for (int i = 0; i < numPoint; i++) {
-		// 		if (i >= 3) {
-		// 			memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
-		// 			pVertex++;
-		// 			memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
-		// 			pVertex++;
-		// 		}
-
-		// 		pVertex->X = buffer[i * 3 + 0];
-		// 		pVertex->Y = buffer[i * 3 + 1];
-		// 		pVertex->Z = buffer[i * 3 + 2];
-
-		// 		float colorf = startColor + colorStep * (pVertex->X - polyMinX);
-
-		// 		pVertex->U = colorf / 15.f;
-		// 		pVertex->V = bank / 15.f;
-		// 		pVertex++;
-		// 	}
-		// 	break;
-		// }
 		// case 6: // marbre2 (ramp right to left)
-		// {
-		// 	polyVertex *pVertex = &rampVertices[numUsedRampVertices];
-		// 	numUsedRampVertices += (numPoint - 2) * 3;
-		// 	assert(numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
-
-		// 	float colorStep = 15.f / polyWidth;
-
-		// 	int bank = (color & 0xF0) >> 4;
-		// 	int startColor = color & 0xF;
-
-		// 	assert(startColor == 0);
-
-		// 	for (int i = 0; i < numPoint; i++) {
-		// 		if (i >= 3) {
-		// 			memcpy(pVertex, &pVertex[-3], sizeof(polyVertex));
-		// 			pVertex++;
-		// 			memcpy(pVertex, &pVertex[-2], sizeof(polyVertex));
-		// 			pVertex++;
-		// 		}
-
-		// 		pVertex->X = buffer[i * 3 + 0];
-		// 		pVertex->Y = buffer[i * 3 + 1];
-		// 		pVertex->Z = buffer[i * 3 + 2];
-
-		// 		float colorf = startColor + colorStep * (pVertex->X - polyMinX);
-
-		// 		pVertex->U = 1.f - colorf / 15.f;
-		// 		pVertex->V = bank / 15.f;
-		// 		pVertex++;
-		// 	}
-		// 	break;
-		// }
 	}
 }
 
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+	// TODO:
 }
 
 static void renderer_updateScreen() {
