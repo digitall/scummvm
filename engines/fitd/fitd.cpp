@@ -216,19 +216,15 @@ void allocTextes(void) {
 }
 
 Common::Error FitdEngine::run() {
-	if (!g_system->hasFeature(OSystem::kFeatureShadersForGame)) {
-		return Common::Error(Common::kUnknownError, "ALone in the Dark requires OpenGL with shaders which is not supported on your system");
-	}
+	gfx_init();
 
-	initGraphics3d(320 * 4, 200 * 4);
-
-	#ifdef USE_IMGUI
-		ImGuiCallbacks callbacks;
-		callbacks.init = onImGuiInit;
-		callbacks.render = onImGuiRender;
-		callbacks.cleanup = onImGuiCleanup;
-		_system->setImGuiCallbacks(callbacks);
-	#endif
+#ifdef USE_IMGUI
+	ImGuiCallbacks callbacks;
+	callbacks.init = onImGuiInit;
+	callbacks.render = onImGuiRender;
+	callbacks.cleanup = onImGuiCleanup;
+	_system->setImGuiCallbacks(callbacks);
+#endif
 
 	switch (getGameId()) {
 	case GID_AITD1:
@@ -245,7 +241,6 @@ Common::Error FitdEngine::run() {
 		break;
 	}
 
-	gfx_init();
 
 	// Set the engine's debugger console
 	setDebugger(new Console());

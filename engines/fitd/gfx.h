@@ -62,6 +62,7 @@ void osystem_stopModelRender();
 void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size);
 void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
 void osystem_flip(unsigned char *videoBuffer);
+void osystem_updateScreen();
 
 extern int BBox3D1;
 extern int BBox3D2;

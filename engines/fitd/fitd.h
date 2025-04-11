@@ -48,6 +48,7 @@ protected:
 	// Engine APIs
 	Common::Error run() override;
 public:
+	Graphics::Screen *_screen = nullptr;
 	FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc);
 	~FitdEngine() override;
 
