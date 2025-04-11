@@ -218,7 +218,7 @@ int16 readNextArgument(const char *name) {
 bool cameraBackgroundChanged = false;
 int flagRedraw;
 
-float renderPointList[6400];
+int16 renderPointList[6400];
 
 int numActorInList;
 int sortedActorTable[NUM_MAX_OBJECT];

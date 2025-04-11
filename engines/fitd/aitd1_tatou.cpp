@@ -44,7 +44,8 @@ void process_events() {
 	uint32 timeIncrease = 2;
 
 	osystem_flushPendingPrimitives();
-	g_system->updateScreen();
+
+	osystem_updateScreen();
 	osystem_startFrame();
 
 	readKeyboard();
@@ -119,7 +120,6 @@ int make3dTatou(void) {
 
 			setCameraTarget(0, 0, 0, unk1, rotation, 0, time);
 
-			affObjet(0, 0, 0, 0, 0, 0, tatou3d);
 
 			// blitScreenTatou();
 			gfx_copyBlockPhys((byte *)frontBuffer, 0, 0, 320, 200);
@@ -129,6 +129,8 @@ int make3dTatou(void) {
 			copyPalette(tatouPal, currentGamePalette);
 			gfx_setPalette(currentGamePalette);
 			gfx_copyBlockPhys((byte *)frontBuffer, 0, 0, 320, 200);
+
+			affObjet(0, 0, 0, 0, 0, 0, tatou3d);
 
 			while (!g_engine->shouldQuit() && key == 0 && Click == 0 && JoyD == 0) // boucle de rotation du tatou
 			{

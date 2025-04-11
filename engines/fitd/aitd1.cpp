@@ -204,7 +204,7 @@ int choosePerso(void) {
 
 	initCopyBox(aux, logicalScreen);
 
-	while (choiceMade == 0) {
+	while (!g_engine->shouldQuit() && choiceMade == 0) {
 		process_events();
 		osystem_drawBackground();
 

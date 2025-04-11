@@ -450,7 +450,7 @@ int16 readNextArgument(const char* name = NULL);
 extern bool cameraBackgroundChanged;
 extern int flagRedraw;
 
-extern float renderPointList[6400];
+extern int16 renderPointList[6400];
 
 extern int numActorInList;
 extern int sortedActorTable[NUM_MAX_OBJECT];
