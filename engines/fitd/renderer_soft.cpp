@@ -34,6 +34,7 @@ namespace Fitd {
 enum {
 	NUM_MAX_FLAT_VERTICES = 5000 * 3,
 	MAX_POINTS_PER_POLY = 50,
+	NUM_MAX_MASKS = 32,
 };
 
 struct polyVertex {
@@ -42,12 +43,28 @@ struct polyVertex {
 	int16 Z;
 };
 
+struct Mask {
+	int16 roomId;
+	int16 maskId;
+	int16 maskX1;
+	int16 maskY1;
+	int16 maskX2;
+	int16 maskY2;
+	byte mask[320 * 200];
+};
+
+struct ClipMask {
+	int16 x;
+	int16 y;
+	int16 w;
+	int16 h;
+};
+
 struct State {
 	int16 tabVerticXmin[200];
 	int16 tabVerticXmax[200];
 	float tabVerticZmin[200]; // TODO: improve his, this not necessary to store all these data
 	float tabVerticZmax[200];
-	float currentScissor[4];
 	polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
 	polyVertex tmpVertices[NUM_MAX_FLAT_VERTICES];
 	byte physicalScreen[320 * 200];
@@ -60,6 +77,10 @@ struct State {
 	int16 polyMaxX;
 	int16 polyMinY;
 	int16 polyMaxY;
+
+	ClipMask clipMask;
+	Mask masks[NUM_MAX_MASKS];
+	uint16 numMasks = 0;
 };
 
 static State *_state = NULL;
@@ -179,27 +200,71 @@ static void renderer_flushPendingPrimitives() {
 }
 
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
+	Mask *pMask = NULL;
+	size_t i;
+	for (i = 0; i < _state->numMasks; i++) {
+		pMask = &_state->masks[i];
+		if (pMask->roomId == roomId && pMask->maskId == maskId) {
+			break;
+		}
+	}
+
+	// no existing mask match, create a new one
+	if (i == _state->numMasks) {
+		pMask = &_state->masks[_state->numMasks++];
+		assert(_state->numMasks < NUM_MAX_MASKS);
+	}
+
+	pMask->roomId = roomId;
+	pMask->maskId = maskId;
+	pMask->maskX1 = maskX1;
+	pMask->maskY1 = maskY1;
+	pMask->maskX2 = maskX2;
+	pMask->maskY2 = maskY2;
+	memcpy(pMask->mask, mask, sizeof(byte) * 320 * 200);
 }
 
 static void renderer_setClip(float left, float top, float right, float bottom) {
 
-	_state->currentScissor[0] = ((left - 1) / 320.f) * 320.f;
-	_state->currentScissor[1] = ((top - 1) / 200.f) * 200.f;
-	_state->currentScissor[2] = ((right - left + 2) / 320.f) * 320.f;
-	_state->currentScissor[3] = ((bottom - top + 2) / 200.f) * 200.f;
+	_state->clipMask.x = left - 1;
+	_state->clipMask.y = top - 1;
+	_state->clipMask.w = right - left + 2;
+	_state->clipMask.h = bottom - top + 2;
 
-	_state->currentScissor[0] = MAX(_state->currentScissor[0], 0.f);
-	_state->currentScissor[1] = MAX(_state->currentScissor[1], 0.f);
+	_state->clipMask.x = MAX(_state->clipMask.x, (int16)0);
+	_state->clipMask.y = MAX(_state->clipMask.y, (int16)0);
 }
 
 static void renderer_clearClip() {
-	_state->currentScissor[0] = 0;
-	_state->currentScissor[1] = 0;
-	_state->currentScissor[2] = 320.f;
-	_state->currentScissor[3] = 200.f;
+	_state->clipMask.x = 0;
+	_state->clipMask.y = 0;
+	_state->clipMask.x = 320;
+	_state->clipMask.w = 200;
 }
 
 static void renderer_drawMask(int roomId, int maskId) {
+	for (size_t i = 0; i < _state->numMasks; i++) {
+		Mask *pMask = &_state->masks[i];
+		if (pMask->roomId == roomId && pMask->maskId == maskId) {
+			byte *s = (byte *)g_engine->_screen->getBasePtr(_state->clipMask.x, _state->clipMask.y);
+			byte *p = &_state->physicalScreen[_state->clipMask.y * 320 + _state->clipMask.x];
+			byte *m = &pMask->mask[_state->clipMask.y * 320 + _state->clipMask.x];
+			for (size_t h = 0; h < _state->clipMask.h; h++) {
+				for (size_t w = 0; w < _state->clipMask.w; w++) {
+					if (*m) {
+						*s = *p;
+					}
+					m++;
+					p++;
+					s++;
+				}
+				m += 320 - _state->clipMask.w;
+				p += 320 - _state->clipMask.w;
+				s += 320 - _state->clipMask.w;
+			}
+			return;
+		}
+	}
 }
 
 static int16 leftClip(polyVertex **polys, int16 num) {
@@ -648,7 +713,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 		for (; y <= _state->polyMaxY; y++) {
 			int16 xMin = *pVerticXmin++;
 			const int16 xMax = *pVerticXmax++;
-			float  zMin = *pVerticZmin++;
+			float zMin = *pVerticZmin++;
 			const float zMax = *pVerticZmax++;
 			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
 			assert(zMin >= 0);
