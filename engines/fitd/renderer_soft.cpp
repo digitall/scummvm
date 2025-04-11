@@ -25,6 +25,7 @@
 #include "fitd/fitd.h"
 #include "fitd/renderer.h"
 #include "fitd/input.h"
+#include "fitd/vars.h"
 #include "engines/util.h"
 #include "graphics/surface.h"
 
@@ -38,16 +39,21 @@ enum {
 struct polyVertex {
 	int16 X;
 	int16 Y;
+	int16 Z;
 };
 
 struct State {
 	int16 tabVerticXmin[200];
 	int16 tabVerticXmax[200];
+	float tabVerticZmin[200]; // TODO: improve his, this not necessary to store all these data
+	float tabVerticZmax[200];
 	float currentScissor[4];
 	polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
 	polyVertex tmpVertices[NUM_MAX_FLAT_VERTICES];
 	byte physicalScreen[320 * 200];
 	byte physicalScreenRGB[320 * 200 * 3];
+	float zBuffer[320 * 200];
+	float tmpZBuffer[320 * 200];
 	byte RGB_Pal[256 * 3];
 
 	int16 polyMinX;
@@ -113,6 +119,9 @@ static void renderer_deinit() {
 static void renderer_startFrame() {
 	g_engine->_screen->clear();
 	g_engine->_screen->clearDirtyRects();
+	for (int i = 0; i < 320 * 200; i++) {
+		_state->zBuffer[i] = __FLT_MAX__;
+	}
 }
 
 static void renderer_drawBackground() {
@@ -233,10 +242,12 @@ static int16 leftClip(polyVertex **polys, int16 num) {
 
 			const int32 dx = p1->X - p0->X;
 			const int32 dy = p1->Y - p0->Y;
+			const int32 dz = p1->Z - p0->Z;
 			const int32 dxClip = 0 - p0->X;
 
-			pTabPolyClip->Y = (int16)(p0->Y + ((dxClip * dy) / dx));
 			pTabPolyClip->X = (int16)0;
+			pTabPolyClip->Y = (int16)(p0->Y + ((dxClip * dy) / dx));
+			pTabPolyClip->Z = (p0->Z + ((float)(dxClip * dz) / dx));
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -288,10 +299,12 @@ static int16 rightClip(polyVertex **polys, int16 num) {
 
 			const int32 dx = p1->X - p0->X;
 			const int32 dy = p1->Y - p0->Y;
+			const int32 dz = p1->Z - p0->Z;
 			const int32 dxClip = 319 - p0->X;
 
-			pTabPolyClip->Y = (int16)(p0->Y + ((dxClip * dy) / dx));
 			pTabPolyClip->X = (int16)319;
+			pTabPolyClip->Y = (int16)(p0->Y + ((dxClip * dy) / dx));
+			pTabPolyClip->Z = (p0->Z + ((float)(dxClip * dz) / dx));
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -343,10 +356,12 @@ static int16 topClip(polyVertex **polys, int16 num) {
 
 			const int32 dx = p1->X - p0->X;
 			const int32 dy = p1->Y - p0->Y;
+			const int32 dz = p1->Z - p0->Z;
 			const int32 dyClip = 0 - p0->Y;
 
 			pTabPolyClip->X = (int16)(p0->X + ((dyClip * dx) / dy));
 			pTabPolyClip->Y = (int16)0;
+			pTabPolyClip->Z = (p0->Z + ((float)(dyClip * dz) / dy));
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -398,10 +413,12 @@ static int16 bottomClip(polyVertex **polys, int16 num) {
 
 			const int32 dx = p1->X - p0->X;
 			const int32 dy = p1->Y - p0->Y;
+			const int32 dz = p1->Z - p0->Z;
 			const int32 dyClip = 199 - p0->Y;
 
 			pTabPolyClip->X = (int16)(p0->X + ((dyClip * dx) / dy));
 			pTabPolyClip->Y = (int16)199;
+			pTabPolyClip->Z = (p0->Z + ((float)(dyClip * dz) / dy));
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -437,6 +454,7 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 		if (!clippedNum) {
 			return 0;
 		}
+		_state->polyMinY = 0;
 		hasBeenClipped = true;
 	}
 	if (_state->polyMaxY > 199) {
@@ -444,24 +462,11 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 		if (!clippedNum) {
 			return 0;
 		}
+		_state->polyMaxY = 199;
 		hasBeenClipped = true;
 	}
 
 	if (hasBeenClipped) {
-		// search the new Ymin or Ymax
-		_state->polyMinY = INT16_MAX;
-		_state->polyMaxY = INT16_MIN;
-
-		for (int32 n = 0; n < num; ++n) {
-			if (polys[0][n].Y < _state->polyMinY) {
-				_state->polyMinY = polys[0][n].Y;
-			}
-
-			if (polys[0][n].Y > _state->polyMaxY) {
-				_state->polyMaxY = polys[0][n].Y;
-			}
-		}
-
 		if (_state->polyMinY >= _state->polyMaxY) {
 			return 0; // No valid polygon after clipping
 		}
@@ -477,6 +482,7 @@ static void poly_setMinMax(polyVertex *pTabPoly, int16 num) {
 	const polyVertex *p0;
 	const polyVertex *p1;
 	int16 *pVertic;
+	float *pZ;
 	for (int i = 0; i < num; i++, pTabPoly++) {
 		p0 = pTabPoly;
 		p1 = p0 + 1;
@@ -495,7 +501,8 @@ static void poly_setMinMax(polyVertex *pTabPoly, int16 num) {
 				incY = -1;
 			}
 
-			pVertic = &_state->tabVerticXmin[p0->Y];
+			pVertic = &_state->tabVerticXmax[p0->Y];
+			pZ = &_state->tabVerticZmax[p0->Y];
 		} else if (dy < 0) {
 			dy = -dy;
 
@@ -507,22 +514,27 @@ static void poly_setMinMax(polyVertex *pTabPoly, int16 num) {
 				incY = -1;
 			}
 
-			pVertic = &_state->tabVerticXmax[p0->Y];
+			pVertic = &_state->tabVerticXmin[p0->Y];
+			pZ = &_state->tabVerticZmin[p0->Y];
 		}
 
 		dx = (p1->X - p0->X) << 16;
-
 		step = dx / dy;
 		reminder = ((dx % dy) >> 1) + 0x7FFF;
+		float dz = (float)(p1->Z - p0->Z) / dy;
 
 		dx = step >> 16; // recovery part high division (entire)
 		step &= 0xFFFF;  // preserves lower part (mantissa)
 		x = p0->X;
+		float z = p0->Z;
 
 		for (y = dy; y >= 0; --y) {
 			*pVertic = (int16)x;
+			*pZ = z;
 			assert(x >= 0);
 			assert(x < 320);
+			assert(z >= 0);
+			assert(z < 32000);
 			pVertic += incY;
 			x += dx;
 			reminder += step;
@@ -530,6 +542,8 @@ static void poly_setMinMax(polyVertex *pTabPoly, int16 num) {
 				x += reminder >> 16;
 				reminder &= 0xFFFF;
 			}
+			pZ += incY;
+			z += dz;
 		}
 	}
 }
@@ -563,8 +577,28 @@ static int16 prepare_poly(const int16 *buffer, polyVertex *pTabPoly, int16 num) 
 	for (int i = 0; i < num; i++) {
 		pVertex->X = buffer[i * 3 + 0];
 		pVertex->Y = buffer[i * 3 + 1];
+		pVertex->Z = buffer[i * 3 + 2];
 		pVertex++;
 	}
+
+	// num = 4;
+	// polyVertex *pVertex = pTabPoly;
+	// pVertex->X = -24;
+	// pVertex->Y = 1;
+	// pVertex->Z = 379;
+	// pVertex++;
+	// pVertex->X = 0;
+	// pVertex->Y = 10;
+	// pVertex->Z = 439;
+	// pVertex++;
+	// pVertex->X = -10;
+	// pVertex->Y = 13;
+	// pVertex->Z = 411;
+	// pVertex++;
+	// pVertex->X = -23;
+	// pVertex->Y = 15;
+	// pVertex->Z = 381;
+	// pVertex++;
 
 	set_boundingBox(pTabPoly, num);
 
@@ -596,7 +630,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	default:
 	case 0: // flat (triste)
 	{
-		if(!prepare_poly(buffer, _state->flatVertices, numPoint))
+		if (!prepare_poly(buffer, _state->flatVertices, numPoint))
 			return;
 
 		assert(_state->polyMinY >= 0);
@@ -607,24 +641,40 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 		byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
 		const int16 *pVerticXmin = &_state->tabVerticXmin[y];
 		const int16 *pVerticXmax = &_state->tabVerticXmax[y];
+		const float *pVerticZmin = &_state->tabVerticZmin[y];
+		const float *pVerticZmax = &_state->tabVerticZmax[y];
+		float *zBuffer = &_state->zBuffer[y * 320];
 
 		for (; y <= _state->polyMaxY; y++) {
 			int16 xMin = *pVerticXmin++;
 			const int16 xMax = *pVerticXmax++;
-			byte *pDest = pDestLine + xMin;
+			float  zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
 
-			for (int x = xMin; x <= xMax; x++) {
-				*pDest++ = (byte)color;
+			byte *pDest = pDestLine + xMin;
+			float z = zMin;
+			for (int16 x = xMin; x <= xMax; x++) {
+				if (z < zBuffer[x]) {
+					*pDest++ = (byte)color;
+					zBuffer[x] = z;
+				}
+				z += dz;
 			}
 
 			pDestLine += 320;
-			// if (xMin <= xMax) {
-			// 	g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y2), xMax - xMin + 1, 1));
-			// 	renderer_updateScreen();
-			// 	readKeyboard();
-			// 	if (g_engine->shouldQuit())
-			// 		return;
-			// }
+			zBuffer += 320;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
 		}
 		break;
 	}
