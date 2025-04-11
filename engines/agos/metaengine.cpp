@@ -195,14 +195,14 @@ SaveStateList AgosMetaEngine::listSaves(const char *target) const {
 	filenames = saveFileMan->listSavefiles(pattern);
 
 	SaveStateList saveList;
-	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+	for (const auto &file : filenames) {
 		// Obtain the last 3 digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + file->size() - 3);
+		int slotNum = atoi(file.c_str() + file.size() - 3);
 
 		if (slotNum >= 0 && slotNum <= 999) {
-			Common::InSaveFile *in = saveFileMan->openForLoading(*file);
+			Common::InSaveFile *in = saveFileMan->openForLoading(file);
 			if (in) {
-				saveDesc = file->c_str();
+				saveDesc = file.c_str();
 				saveList.push_back(SaveStateDescriptor(this, slotNum, saveDesc));
 				delete in;
 			}
@@ -310,6 +310,14 @@ Common::KeymapArray AgosMetaEngine::initKeymaps(const char *target) const {
 		act->addDefaultInputMapping("RIGHT");
 		act->addDefaultInputMapping("JOY_RIGHT");
 		gameKeyMap->addAction(act);
+
+		if (gameId == "waxworks") {
+			act = new Action("TOGGLEFIGHTMODE", _("Toggle fight mode")); // KEYCODE_F
+			act->setCustomEngineActionEvent(kActionToggleFightMode);
+			act->addDefaultInputMapping("f");
+			act->addDefaultInputMapping("JOY_LEFT_SHOULDER");
+			gameKeyMap->addAction(act);
+		}
 	}
 
 	if (gameId == "simon1" || gameId == "simon2") {

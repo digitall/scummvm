@@ -75,7 +75,9 @@ void Room703::init() {
 		break;
 
 	case 706:
-		player_first_walk(0, 300, 9, 130, 318, 8, true);
+		// Strangerke - Original code use a final direction of 9, but it looks wrong (looking down left).
+		// I changed it to 3 (just like in the room 706 for example) so it doesn't look weird
+		player_first_walk(0, 300, 3, 130, 318, 3, true);
 		break;
 
 	case 707:
@@ -139,10 +141,10 @@ void Room703::pre_parser() {
 }
 
 void Room703::parser() {
-	bool lookFl = player_said_any("look", "look at");
-	bool talkFl = player_said_any("talk", "talk to");
-	bool takeFl = player_said("take");
-	bool gearFl = player_said_any("push", "pull", "gear", "open", "close");
+	const bool lookFl = player_said_any("look", "look at");
+	const bool talkFl = player_said_any("talk", "talk to");
+	const bool takeFl = player_said("take");
+	const bool gearFl = player_said_any("push", "pull", "gear", "open", "close");
 
 	if (player_said("conv703a")) {
 		if (_G(kernel).trigger == 90)
@@ -372,7 +374,7 @@ void Room703::parser() {
 
 			case 3:
 			case 9:
-				_ripLooksDownSeries = series_load("RIP LOOKS DOWN POS3", -1, nullptr);
+				_ripLooksDownSeries = series_load("RIP TREK LOOK DOWN POS3", -1, nullptr);
 				keyValue = 22;
 
 				break;

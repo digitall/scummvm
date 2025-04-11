@@ -2413,19 +2413,27 @@ void Gdi::drawBitmap(const byte *ptr, VirtScreen *vs, int x, const int y, const 
 
 #if 0
 		// HACK: blit mask(s) onto normal screen. Useful to debug masking
+		int bytesPerStrip = (_vm->_game.features & GF_16BIT_COLOR) ? 16 : 8;
+
 		for (int i = 0; i < numzbuf; i++) {
+
 			byte *dst1, *dst2;
 
-			dst1 = dst2 = (byte *)vs->getPixels(0,0) + y * vs->pitch + x * 8;
+			dst1 = dst2 = (byte *)vs->getPixels(0,0) + y * vs->pitch + x * bytesPerStrip;
 			if (vs->hasTwoBuffers)
-				dst2 = vs->backBuf + y * vs->pitch + x * 8;
+				dst2 = vs->backBuf + y * vs->pitch + x * bytesPerStrip;
 			byte *mask_ptr = getMaskBuffer(x, y, i);
 
 			for (int h = 0; h < height; h++) {
 				int maskbits = *mask_ptr;
 				for (int j = 0; j < 8; j++) {
-					if (maskbits & 0x80)
-						dst1[j] = dst2[j] = 12 + i;
+					if (maskbits & 0x80) {
+						if (bytesPerStrip == 16) {
+							WRITE_UINT16(dst1 + j * 2, _vm->_16BitPalette[12 + i]);
+							WRITE_UINT16(dst2 + j * 2, _vm->_16BitPalette[12 + i]);
+						} else
+							dst1[j] = dst2[j] = 12 + i;
+					}
 					maskbits <<= 1;
 				}
 				dst1 += vs->pitch;
@@ -2498,11 +2506,12 @@ bool Gdi::drawStrip(byte *dstPtr, VirtScreen *vs, int x, int y, const int width,
 
 	// WORKAROUND: In the French VGA floppy version of MI1, the easter egg
 	// poking fun at Sierra has a dark blue background instead of white,
-	// which causes similar legibility issues (the other VGA floppy
-	// translations are fine, and the French VGA Amiga and CD releases
-	// fixed this).
-
-	else if (_vm->_game.id == GID_MONKEY_VGA &&
+	// which causes legibility issues (similar to the ones with the sign
+	// about the dogs "only sleeping", which we already fix elsewhere).
+	//
+	// The other VGA floppy translations are fine, and the issue was
+	// fixed in the French VGA Amiga and CD releases.
+	if (_vm->_game.id == GID_MONKEY_VGA &&
 			_vm->_language == Common::FR_FRA &&
 			_vm->_game.platform != Common::kPlatformAmiga &&
 			_vm->_currentRoom == 11 &&
@@ -2778,16 +2787,23 @@ void Gdi::drawBMAPBg(const byte *ptr, VirtScreen *vs) {
 
 #if 0
 		// HACK: blit mask(s) onto normal screen. Useful to debug masking
-		for (int i = 0; i < numzbuf; i++) {
-			byte *dst1 = (byte *)vs->pixels + stripnr * 8;
-			byte *dst2 = vs->backBuf + stripnr * 8;
+		int bytesPerStrip = (_vm->_game.features & GF_16BIT_COLOR) ? 16 : 8;
 
-			mask_ptr = getMaskBuffer(stripnr, 0, i);
+		for (int i = 0; i < numzbuf; i++) {
+			byte *dst1 = (byte *)vs->getPixels(0, 0) + stripnr * bytesPerStrip;
+			byte *dst2 = vs->backBuf + stripnr * bytesPerStrip;
+
+			byte *mask_ptr = getMaskBuffer(stripnr, 0, i);
 			for (int h = 0; h < vs->h; h++) {
 				int maskbits = *mask_ptr;
 				for (int j = 0; j < 8; j++) {
-					if (maskbits & 0x80)
-						dst1[j] = dst2[j] = 12 + i;
+					if (maskbits & 0x80) {
+						if (bytesPerStrip == 16) {
+							WRITE_UINT16(dst1 + j * 2, _vm->_16BitPalette[12 + i]);
+							WRITE_UINT16(dst2 + j * 2, _vm->_16BitPalette[12 + i]);
+						} else
+							dst1[j] = dst2[j] = 12 + i;
+					}
 					maskbits <<= 1;
 				}
 				dst1 += vs->pitch;

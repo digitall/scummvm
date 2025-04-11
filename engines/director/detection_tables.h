@@ -82,7 +82,11 @@ static const PlainGameDescriptor directorGames[] = {
 	{ "beautyorbeast",		"Beauty or the Beast" },
 	{ "betterd",			"The Better Dead Ratification" },
 	{ "beyondthewall",		"Beyond the Wall of Stars" },
-	{ "biblechamps",		"Bible Champions: The Birth of Jesus" },
+	{ "biblechamps", 		"Bible Champions: The Birth of Jesus" },
+	{ "bidule1", 			"La Boîte à bidules de l'oncle Ernest" },
+	{ "bidule2", 			"Le Bidulo Trésor de l'oncle Ernest" },
+	{ "bidule3", 			"Big Bang Bidule chez l'oncle Ernest" },
+	{ "bidule4", 			"La Boîte à bidules : Mission bidule WX-755" },
 	{ "bioscopia",			"Bioscopia: Where Science Conquers Evil" },
 	{ "birdlife",			"Shelley Duvall's It's a Bird's Life" },
 	{ "blinddate",			"National Lampoon's Blind Date" },
@@ -93,6 +97,7 @@ static const PlainGameDescriptor directorGames[] = {
 	{ "blinkyprint",		"Print & Play with Blinky Bill" },
 	{ "blinkyps",			"Blinky Bill: Play and Learn - Preschool" },
 	{ "blinkyy1",			"Blinky Bill: Play and Learn - Year 1" },
+	{ "blockhead",			"Blockhead" },
 	{ "bobcastle",			"Bob the Builder: Bob's Castle Adventure" },
 	{ "bodypark",			"Body Park" },
 	{ "brer",				"Brer Rabbit and the Wonderful Tar Baby" },
@@ -345,6 +350,7 @@ static const PlainGameDescriptor directorGames[] = {
 	{ "moominhide",			"Hide and Seek with Moomin"},
 	{ "moominparty",		"The Great Moomin Party" },
 	{ "morebugs",			"More Bugs in Boxes" },
+	{ "mortalus",			"Mortalus: The Quest for Immortality" },
 	{ "mrsquack",			"Reading with Peter Cottontail: The Story of Mrs. Quack" },
 	{ "mummy",				"Mummy: Tomb of the Pharaoh" },
 	{ "muppetkidsearly5",	"Muppets Kids Early Learning Series Volume 5: Sound Patterns: Phonics" },
@@ -475,6 +481,7 @@ static const PlainGameDescriptor directorGames[] = {
 	{ "takeru",				"Buichi Terasawa's Takeru: Letter of the Law" },
 	{ "teamxtreme1",		"Operation: Weather Disaster" },
 	{ "teamxtreme2",		"Operation: Eco-Nightmare" },
+	{ "teazle",				"Teazle" },
 	{ "the7colors",			"The Seven Colors: Legend of PSY・S City" }, // English fan translation
 	{ "timmysafari",		"Timmy's Safari Adventure" },
 	{ "tkkg1",				"A Case for TKKG 1: Jennifer is Missing" },
@@ -945,6 +952,7 @@ static const PlainGameDescriptor directorGames[] = {
 	{ "tomlisaindiens",		"Tom et Lisa: les Indiens" },
 
 	// German titles
+	{ "advkal",				"Advents-Kalender: 24 Spiele & Geschichten" },
 	{ "albert4",			"Onkel Albert und der verschwundene Tempel" },
 	{ "albert5",			"Onkel Albert und der Fluch der Statue" },
 	{ "addybuschugarten",	"Addy Buschu: Im Zaubergarten" },  // AKA Ein toller Tag - Jonas im Zaubergarten
@@ -1850,67 +1858,67 @@ namespace Director {
 
 #define SUPPORT_STATUS ADGF_UNSTABLE
 
-#define GENGAME1_(t,e,f,m,s,l,p,fl,v)				{ { t, e, AD_ENTRY1s(f, m, s), l, p, (fl | SUPPORT_STATUS), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
-#define GENGAME1t_(t,e,f,m,s,l,p,fl,v)				{ { t, e, AD_ENTRY1s(f, m, s), l, p, (fl | SUPPORT_STATUS | ADGF_TAILMD5), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
-#define GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,p,fl,v)	{ { t, e, AD_ENTRY2s(f1, m1, s1, f2, m2, s2), l, p, (fl | SUPPORT_STATUS), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
-#define GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,l,p,fl,v)	{ { t, e, AD_ENTRY2s(f1, m1, s1, f2, m2, s2), l, p, (fl | SUPPORT_STATUS | ADGF_TAILMD5), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
+#define GENGAME1_(t,e,f,m,s,l,p,fl,v)				{ { t, e, AD_ENTRY1s(f, m, s), l, p, ((fl) | SUPPORT_STATUS), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
+#define GENGAME1t_(t,e,f,m,s,l,p,fl,v)				{ { t, e, AD_ENTRY1s(f, m, s), l, p, ((fl) | SUPPORT_STATUS | ADGF_TAILMD5), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
+#define GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,p,fl,v)	{ { t, e, AD_ENTRY2s(f1, m1, s1, f2, m2, s2), l, p, ((fl) | SUPPORT_STATUS), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
+#define GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,l,p,fl,v)	{ { t, e, AD_ENTRY2s(f1, m1, s1, f2, m2, s2), l, p, ((fl) | SUPPORT_STATUS | ADGF_TAILMD5), GUIO1(GUIO_NOASPECT) }, GID_GENERIC, v }
 
-#define MACGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,ADGF_MACRESFORK,v)
-#define MACGAME1f(t,e,f,m,s,v,fl)   GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(fl|ADGF_MACRESFORK),v)
-#define MACGAME1t(t,e,f,m,s,v)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,ADGF_MACRESFORK,v)
-#define MACGAME1tf(t,e,f,m,s,v,fl)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(fl|ADGF_MACRESFORK),v)
-#define PIPGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformPippin,ADGF_MACRESFORK,v)
-#define PIPGAME1f(t,e,f,m,s,v,fl)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformPippin,(fl|ADGF_MACRESFORK),v)
+#define MACGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK),v)
+#define MACGAME1f(t,e,f,m,s,v,fl)   GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,((fl)|ADGF_MACRESFORK),v)
+#define MACGAME1t(t,e,f,m,s,v)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK),v)
+#define MACGAME1tf(t,e,f,m,s,v,fl)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|(fl)|ADGF_MACRESFORK),v)
+#define PIPGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformPippin,(GF_GAMMA|ADGF_MACRESFORK),v)
+#define PIPGAME1f(t,e,f,m,s,v,fl)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformPippin,(GF_GAMMA|(fl)|ADGF_MACRESFORK),v)
 #define WINGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
-#define WINGAME1f(t,e,f,m,s,v,fl)   GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,(fl|ADGF_NO_FLAGS),v)
+#define WINGAME1f(t,e,f,m,s,v,fl)   GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,((fl)|ADGF_NO_FLAGS),v)
 #define WINGAME1t(t,e,f,m,s,v)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
-#define WINGAME1tf(t,e,f,m,s,v,fl)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,(fl|ADGF_NO_FLAGS),v)
+#define WINGAME1tf(t,e,f,m,s,v,fl)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,((fl)|ADGF_NO_FLAGS),v)
 #define FMTGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformFMTowns,ADGF_NO_FLAGS,v)
 #define SHKGAME1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformShockwave,ADGF_NO_FLAGS,v)
-#define MACDEMO1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(ADGF_MACRESFORK|ADGF_DEMO),v)
-#define MACDEMO1t(t,e,f,m,s,v)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(ADGF_MACRESFORK|ADGF_DEMO),v)
+#define MACDEMO1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK|ADGF_DEMO),v)
+#define MACDEMO1t(t,e,f,m,s,v)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK|ADGF_DEMO),v)
 #define WINDEMO1(t,e,f,m,s,v)	GENGAME1_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,ADGF_DEMO,v)
 #define WINDEMO1t(t,e,f,m,s,v)	GENGAME1t_(t,e,f,m,s,Common::EN_ANY,Common::kPlatformWindows,ADGF_DEMO,v)
-#define MACGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,ADGF_MACRESFORK,v)
-#define MACGAME1f_l(t,e,f,m,s,l,v,fl) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(fl|ADGF_MACRESFORK),v)
-#define PIPGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformPippin,ADGF_MACRESFORK,v)
+#define MACGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK),v)
+#define MACGAME1f_l(t,e,f,m,s,l,v,fl) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(GF_GAMMA|(fl)|ADGF_MACRESFORK),v)
+#define PIPGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformPippin,(GF_GAMMA|ADGF_MACRESFORK),v)
 #define WINGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
 #define WINGAME1f_l(t,e,f,m,s,l,v,fl) GENGAME1_(t,e,f,m,s,l,Common::kPlatformWindows,fl,v)
 #define WINGAME1t_l(t,e,f,m,s,l,v) GENGAME1t_(t,e,f,m,s,l,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
 #define WINGAME1tf_l(t,e,f,m,s,l,v,fl) GENGAME1t_(t,e,f,m,s,l,Common::kPlatformWindows,fl,v)
-#define MACGAME1t_l(t,e,f,m,s,l,v) GENGAME1t_(t,e,f,m,s,l,Common::kPlatformMacintosh,ADGF_MACRESFORK,v)
+#define MACGAME1t_l(t,e,f,m,s,l,v) GENGAME1t_(t,e,f,m,s,l,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK),v)
 #define FMTGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformFMTowns,ADGF_NO_FLAGS,v)
 #define SHKGAME1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformShockwave,ADGF_NO_FLAGS,v)
-#define MACDEMO1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(ADGF_MACRESFORK|ADGF_DEMO),v)
-#define MACDEMO1f_l(t,e,f,m,s,l,v,fl) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(fl|ADGF_MACRESFORK|ADGF_DEMO),v)
-#define PIPDEMO1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformPippin,(ADGF_MACRESFORK|ADGF_DEMO),v)
+#define MACDEMO1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK|ADGF_DEMO),v)
+#define MACDEMO1f_l(t,e,f,m,s,l,v,fl) GENGAME1_(t,e,f,m,s,l,Common::kPlatformMacintosh,(GF_GAMMA|(fl)|ADGF_MACRESFORK|ADGF_DEMO),v)
+#define PIPDEMO1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformPippin,(GF_GAMMA|ADGF_MACRESFORK|ADGF_DEMO),v)
 #define WINDEMO1_l(t,e,f,m,s,l,v) GENGAME1_(t,e,f,m,s,l,Common::kPlatformWindows,ADGF_DEMO,v)
 #define WINDEMO1t_l(t,e,f,m,s,l,v) GENGAME1t_(t,e,f,m,s,l,Common::kPlatformWindows,ADGF_DEMO,v)
 
-#define MACGAME2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,ADGF_MACRESFORK,v)
-#define MACGAME2f(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(fl|ADGF_MACRESFORK),v)
-#define MACGAME2tf(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(fl|ADGF_MACRESFORK),v)
-#define PIPGAME2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformPippin,ADGF_MACRESFORK,v)
+#define MACGAME2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK),v)
+#define MACGAME2f(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|(fl)|ADGF_MACRESFORK),v)
+#define MACGAME2tf(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|(fl)|ADGF_MACRESFORK),v)
+#define PIPGAME2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformPippin,(GF_GAMMA|ADGF_MACRESFORK),v)
 #define WINGAME2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
-#define WINGAME2f(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,(fl|ADGF_NO_FLAGS),v)
-#define WINGAME2f_l(t,e,f1,m1,s1,f2,m2,s2,l,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,(fl|ADGF_NO_FLAGS),v)
+#define WINGAME2f(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,((fl)|ADGF_NO_FLAGS),v)
+#define WINGAME2f_l(t,e,f1,m1,s1,f2,m2,s2,l,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,((fl)|ADGF_NO_FLAGS),v)
 #define WINGAME2t(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
-#define WINGAME2tf(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,(fl|ADGF_NO_FLAGS),v)
+#define WINGAME2tf(t,e,f1,m1,s1,f2,m2,s2,v,fl)	GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,((fl)|ADGF_NO_FLAGS),v)
 #define FMTGAME2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformFMTowns,ADGF_NO_FLAGS,v)
-#define MACDEMO2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(ADGF_MACRESFORK|ADGF_DEMO),v)
+#define MACDEMO2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK|ADGF_DEMO),v)
 #define WINDEMO2(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,ADGF_DEMO,v)
 #define WINDEMO2t(t,e,f1,m1,s1,f2,m2,s2,v)	GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,ADGF_DEMO,v)
-#define WINDEMO2f(t,e,f1,m1,s1,f2,m2,s2,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,(fl|ADGF_DEMO),v)
-#define MACGAME2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformMacintosh,ADGF_MACRESFORK,v)
-#define PIPGAME2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformPippin,ADGF_MACRESFORK,v)
+#define WINDEMO2f(t,e,f1,m1,s1,f2,m2,s2,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,Common::EN_ANY,Common::kPlatformWindows,((fl)|ADGF_DEMO),v)
+#define MACGAME2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK),v)
+#define PIPGAME2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformPippin,(GF_GAMMA|ADGF_MACRESFORK),v)
 #define WINGAME2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
-#define MACGAME2f_l(t,e,f1,m1,s1,f2,m2,s2,l,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformMacintosh, (fl|ADGF_MACRESFORK), v)
+#define MACGAME2f_l(t,e,f1,m1,s1,f2,m2,s2,l,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformMacintosh, (GF_GAMMA|(fl)|ADGF_MACRESFORK), v)
 #define WINGAME2t_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,ADGF_NO_FLAGS,v)
 #define FMTGAME2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformFMTowns,ADGF_NO_FLAGS,v)
-#define MACDEMO2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformMacintosh,(ADGF_MACRESFORK|ADGF_DEMO),v)
+#define MACDEMO2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformMacintosh,(GF_GAMMA|ADGF_MACRESFORK|ADGF_DEMO),v)
 #define WINDEMO2_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,ADGF_DEMO,v)
 #define WINDEMO2t_l(t,e,f1,m1,s1,f2,m2,s2,l,v) GENGAME2t_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,ADGF_DEMO,v)
-#define WINDEMO2f_l(t,e,f1,m1,s1,f2,m2,s2,l,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,(fl|ADGF_DEMO),v)
+#define WINDEMO2f_l(t,e,f1,m1,s1,f2,m2,s2,l,v,fl) GENGAME2_(t,e,f1,m1,s1,f2,m2,s2,l,Common::kPlatformWindows,((fl)|ADGF_DEMO),v)
 
 static const DirectorGameDescription gameDescriptions[] = {
 	// Execute all *.lingo files in game directory
@@ -2290,6 +2298,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 	// Rodem expects to be able to track the mouse cursor outside the
 	// window, which is impossible in ScummVM. Giving it a virtual
 	// desktop allows it to work like it would have on the original OS.
+	MACDEMO1f_l("henachoco05", "Demo", "xn--u9jyjb2hm5dx340eyb5b", "3731a1d809be07929da1f5d691ee3c97", 290398, Common::JA_JPN, 402, GF_DESKTOP|GF_640x480),
+	// Decomposed variant of the above
+	MACDEMO1f_l("henachoco05", "Demo", "xn--u9j8db1pc8mra5f3580fectc", "3731a1d809be07929da1f5d691ee3c97", 290398, Common::JA_JPN, 402, GF_DESKTOP|GF_640x480),
 	MACGAME1f_l("henachoco05", "", "yaken", "3731a1d809be07929da1f5d691ee3c97", 290398, Common::JA_JPN, 402, GF_DESKTOP|GF_640x480),
 	MACGAME1f_l("henachoco05", "Itachoco Taizen 2 rerelease", "yaken", "bb5f4d592c872f610291074fbf34376f", 290434, Common::JA_JPN, 402, GF_DESKTOP|GF_640x480),
 	WINGAME1f_l("henachoco05", "", "YAKEN.EXE", "1f9b0ef872de7b84063a53b2a1083c60", 2103629, Common::JA_JPN, 400, GF_DESKTOP|GF_640x480),
@@ -3654,7 +3665,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	// BackPacker (Windows, Swedish)
 	// Reported via TRAC #14819
-	WINGAME1_l("backpacker", "", "BACKPACK.EXE", "t:8e6fb18a41a9baff740aecd4ce68e100", 698999, Common::SE_SWE, 404),
+	WINGAME1_l("backpacker", "", "BACKPACK.EXE", "t:8e6fb18a41a9baff740aecd4ce68e100", 698999, Common::SV_SWE, 404),
 
 	// Both Mac and Win english versions require installation to extract executable
 	// Russian version appears to be identical with only assets replaced
@@ -3995,7 +4006,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACDEMO1("defendinghuman", "Demo", "Donald A Norman", "77f4098988d5386794d1530065f514cd", 301669, 400),
 
 	// Mac executable is Derrat Sorcerum™ v1.0.3
-	MACGAME1("derratsorcerum", "", "xn--Derrat Sorcerum v1.0.3-h40n", "a546ef2b921a9b48fd93928f1a505f22", 483506, 404),
+	MACGAME1("derratsorcerum", "", "xn--Derrat Sorcerum v1.0.3 -tnf/xn--Derrat Sorcerum v1.0.3-h40n", "tr:107ae11bce211dc0abd62d9f43184b27", 483506, 404),
 	MACDEMO1("derratsorcerum", "Demo", "Derrat Sorcerum Demo v1.0.3", "a546ef2b921a9b48fd93928f1a505f22", 483506, 404),
 
 	// Both Mac and Win versions require installation to extract executable
@@ -4420,13 +4431,13 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME2_l("hamsterland1", "", "xn--Hamsterland-t35f", "r:bcd3c718db258701496b3c5bcb827ef2", 483518,
 								   "MEDIA/AIRDK",		   "d:ad98bbbd724e31a8a125e284a74d0241", 8425546, Common::DA_DNK, 404),
 	MACGAME2_l("hamsterland1", "", "xn--Hamsterland-t35f", "r:bcd3c718db258701496b3c5bcb827ef2", 483518,
-								   "MEDIA/AIRSW",		   "d:410efb55564b8eb2042eea61d0f8025b", 7588828, Common::SE_SWE, 404),
+								   "MEDIA/AIRSW",		   "d:410efb55564b8eb2042eea61d0f8025b", 7588828, Common::SV_SWE, 404),
 	MACGAME2_l("hamsterland1", "", "Hamsterland",		   "r:bcd3c718db258701496b3c5bcb827ef2", 483518,
 								   "MEDIA/AIRNL",		   "d:369dbec85b84239ea1ee10d647723243", 8426154, Common::NL_NLD, 404),
 	WINGAME2_l("hamsterland1", "", "HAMSTER.EXE",		   "d:2bb6e93d9aab502f46dbf163d51eb785", 785327,
 								   "MEDIA/AIRDK",		   "d:ad98bbbd724e31a8a125e284a74d0241", 8425546, Common::DA_DNK, 404),
 	WINGAME2_l("hamsterland1", "", "HAMSTER.EXE",		   "d:2bb6e93d9aab502f46dbf163d51eb785", 785327,
-								   "MEDIA/AIRSW",		   "d:410efb55564b8eb2042eea61d0f8025b", 7588828, Common::SE_SWE, 404),
+								   "MEDIA/AIRSW",		   "d:410efb55564b8eb2042eea61d0f8025b", 7588828, Common::SV_SWE, 404),
 	WINGAME2_l("hamsterland1", "", "HAMSTER.EXE",		   "d:11669580c1f85b8caa4cd02373e7c947", 785221,
 								   "MEDIA/AIRNL",		   "d:369dbec85b84239ea1ee10d647723243", 8426154, Common::NL_NLD, 404),
 	WINGAME2_l("hamsterland1", "", "HAMSTER.EXE",		   "d:a0d2cfdf10ec14c00338329277bc8acc", 727653,
@@ -4868,8 +4879,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("lobomau", "", "LOBO.EXE", "162d4d1aaf42b6e8d7dfc520e5de2bed", 201828999, Common::PT_BRA, 400),
 
 	MACGAME1("louiscatorze", "", "Louis Cat Orze/Louis Catorze", "r:2c7d0c0d55cbe3f622c7d68cedb671e0", 486698, 404),
-	WINGAME2("louiscatorze", "", "LOUIS.EXE",		   "21610856ba0f75598624edd58291600b", 719433,
-								 "LOUIS/V0ASTART.DIR", "65586336bda5bdc737c1ad420b0d403b", 2019106, 404),
+	WINGAME2("louiscatorze", "", "LCO/LOUIS.EXE",	   "t:cf4ba6186525654f10baf9091358b9c1",  719433,
+								 "LOUIS/V0ASTART.DIR", "t:47410892477fcdd0474e7faaeb6013bb", 2019106, 404),
 
 	MACGAME1("louvre", "", "Louvre 5 Mo", "r:a685f1809706f42bff5f3ee94f606065", 483518, 404),
 	WINGAME2("louvre", "", "LOUVRE.EXE",  "f575ed4b37c05ab4249f9d6d3c3d7e17", 698829,
@@ -5234,12 +5245,12 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("negi1", "", "NEGI.EXE",		   "t:295224cdc826db343629e7741f5163af", 751189, Common::JA_JPN, 400),
 
 	// Rest of screensavers are D5
-	MACGAME1("nekojiruudonss", "Ashi", "ASHI", "bc1822fcc8cf27e2ffb1028c691fb06d", 395020, 402),
-	MACGAME1("nekojiruudonss", "Chin", "CHIN", "bc1822fcc8cf27e2ffb1028c691fb06d", 395020, 402),
-	MACGAME1("nekojiruudonss", "Doga", "DOGA", "bc1822fcc8cf27e2ffb1028c691fb06d", 395020, 402),
-	MACGAME1("nekojiruudonss", "Guruguru", "GURUGURU", "bc1822fcc8cf27e2ffb1028c691fb06d", 395020, 402),
-	MACGAME1("nekojiruudonss", "Nezumi", "NEZUMI", "bc1822fcc8cf27e2ffb1028c691fb06d", 395020, 402),
-	MACGAME1("nekojiruudonss", "Zikansa", "ZIKANSA", "bc1822fcc8cf27e2ffb1028c691fb06d", 395020, 402),
+	MACGAME1("nekojiruudonss", "Ashi", "MAC_SS/ASHI", "rt:d0e486f0886a5e7c7e922f6c048c3b21", 395020, 402),
+	MACGAME1("nekojiruudonss", "Chin", "MAC_SS/CHIN", "rt:7991380065db7c920eb0fc8266b0bc1d", 395020, 402),
+	MACGAME1("nekojiruudonss", "Doga", "MAC_SS/DOGA", "rt:e7a7804546f048604e69de5e994c2db2", 395020, 402),
+	MACGAME1("nekojiruudonss", "Guruguru", "MAC_SS/GURUGURU", "rt:9a73c0c58eeb1c18d3c89bf602956233", 395020, 402),
+	MACGAME1("nekojiruudonss", "Nezumi", "MAC_SS/NEZUMI", "rt:861825b02fd52f36edb668ddda5e131a", 395020, 402),
+	MACGAME1("nekojiruudonss", "Zikansa", "MAC_SS/ZIKANSA", "rt:f69037c2120c87454157d5bf29af6dd5", 395020, 402),
 
 	// Main app isn't Director.
 	// Original filename 'Nendo デモムービー'
@@ -5745,8 +5756,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	// Macromedia 4.0.4. But dumping that version still gives you the
 	// lindblad.exe file, and I assume all the data files are functionally
 	// the same, even if they have resource and data forks.
-	MACGAME1_l("singingbirdbook", "", "xn--Den Sjungande Fgelboken-y8b", "r:fc608944b366a5f450fa6f11625ce75f", 482582, Common::SE_SWE, 404),
-	WINGAME1_l("singingbirdbook", "", "lindblad.exe",					 "t:713376834e4e94d87ad931a66c3575fc", 698995, Common::SE_SWE, 404),
+	MACGAME1_l("singingbirdbook", "", "xn--Den Sjungande Fgelboken-y8b", "r:fc608944b366a5f450fa6f11625ce75f", 482582, Common::SV_SWE, 404),
+	WINGAME1_l("singingbirdbook", "", "lindblad.exe",					 "t:713376834e4e94d87ad931a66c3575fc", 698995, Common::SV_SWE, 404),
 
 	// Published by Pearson in association with the Ski Club of Great Britain
 	WINDEMO2("skieurope96", "Demo", "SKI.EXE",			 "t:d2400ece3e4d9032c99b02c9c19d9ec0", 696861,
@@ -6181,7 +6192,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	// Heksenspul met Hennie de heks en de kat Helmer (NL); Häxan Hekla (SE)
 	// Published in the UK by Oxford University Press
 	WINGAME1_l("winniewitch", "", "HENNIE.EXE", "25b6c57704b8a2913cfa5d7f30adbc9a", 967339, Common::NL_NLD, 400),
-	WINGAME1t_l("winniewitch", "", "HEKLA.EXE", "4ccad55d613b194bc69684ebe3e03777", 698139, Common::SE_SWE, 404),
+	WINGAME1t_l("winniewitch", "", "HEKLA.EXE", "4ccad55d613b194bc69684ebe3e03777", 698139, Common::SV_SWE, 404),
 	WINDEMO2("winniewitch", "Demo", "WINNIE.EXE",	"t:1f6282585e73580385172356ba47ced3", 977277,
 									"BATHROOM.DIR", "f:c69da5b6ea5c713a8e7d435af76d5c48", 351807, 404),
 
@@ -6311,7 +6322,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINDEMO2("acaciarevise", "Demo", "PCDEMO.EXE", "t:203616f3f18a0f2a1a326ac1f6944028", 943091,
 									 "BOX.DXR",	   "d:4d927655e9eb3bacc47c982f6d9ebc57", 149458, 501),
 
-	WINGAME1t_l("acneattack", "", "Acne.exe", "9ec3d648c42e41cc2263d3c643d7ad1e", 1905311, Common::SE_SWE, 501),
+	WINGAME1t_l("acneattack", "", "Acne.exe", "9ec3d648c42e41cc2263d3c643d7ad1e", 1905311, Common::SV_SWE, 501),
 
 	MACGAME1_l("activamulti3", "", "Activa PowerPC", "r:fd575975c95541073f86481fa82ccacb", 107835, Common::PT_PRT, 500),
 	WINGAME1_l("activamulti3", "", "ACTIVA95.EXE",	 "t:11169628bb31f04c362957a6c5486694", 1410367, Common::PT_PRT, 500),
@@ -6405,7 +6416,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	// Requires installation, installer is also Director
 	WINGAME1_l("backpacker2", "", "BP2NEW.EXE", "842014a812b454620f64b860fd7211f0", 940821, Common::NB_NOR, 501),
-	WINGAME1t_l("backpacker2", "", "BP2NEW.EXE", "8320e90992dffe88d21d39743ed7b89e", 1418983, Common::SE_SWE, 501),
+	WINGAME1t_l("backpacker2", "", "BP2NEW.EXE", "8320e90992dffe88d21d39743ed7b89e", 1418983, Common::SV_SWE, 501),
 
 	// BackPacker Junior - Multilingual version
 	// Swedish, Norwegian, Danish, English
@@ -6428,7 +6439,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	// Brazilian version was released on CD Expert Kids nº 19 (1999)
 	WINGAME1("bananasfun", "",   "BIP32.EXE",      "1a7acbba10a7246ba58c1d53fc7203f5", 1410665, 501),
 	MACGAME1_l("bananasfun", "", "It's Fun Time!", "07f19d8ae16dd1ffab68540c78fa0b8b", 719743, Common::PT_BRA, 501),
-	MACGAME1_l("bananasfun", "", "It’s Fun Time!", "231d3041df162be4a0ddd36a74eb03b6", 719743, Common::SE_SWE, 501),
+	MACGAME1_l("bananasfun", "", "It’s Fun Time!", "231d3041df162be4a0ddd36a74eb03b6", 719743, Common::SV_SWE, 501),
 
 	// Original filename is 'バンド魂'
 	MACGAME1_l("banddamashii", "", "xn--gdkn9hz648b", "2e75b0d7a218c71d5dd00a27eb755f00", 718756, Common::JA_JPN, 501),
@@ -6460,6 +6471,10 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	MACGAME1("blinkyballoon", "", "Balloon",	 "r:0c0109b03fd29253e5d74c314911fa7f",  719005, 501),
 	WINGAME1("blinkyballoon", "", "BALLN95.EXE", "t:7a6e8152e71b82816b8742cc8e1cb453", 1427375, 501),
+
+	// Designed by Arc Media Works
+	MACGAME1("blockhead", "", "BLOCK/Interactive Puzzle Blockhead", "tr:e835f5af0cc44a8bdedd79124a0b89b0", 719005, 500),
+	WINGAME1("blockhead", "", "BLOCK/BLOCK32.EXE", "t:75150c6b4b8951d36c4503ca53830370", 1411181, 501),
 
 	WINGAME1t_l("bluesango", "", "BLUESANG.EXE", "08e531b980ebfb343201400add17b68e", 2143080, Common::JA_JPN, 501),
 
@@ -6680,11 +6695,11 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1_l("epson96", "", "EPSON'96", "c7de2891be2a39e6552807db386faae6", 703181, Common::JA_JPN, 500),
 	WINGAME1t_l("epson96", "", "EPSON96.EXE", "f535d4df97b64fcefa85667ce59012de", 2264365, Common::JA_JPN, 500),
 
-	MACGAME1_l("ernie", "",		"Ernie (PPC)", "rt:4f371bd6db45be8d5650e73e7e2651b3", 106955, Common::SE_SWE, 501),
+	MACGAME1_l("ernie", "",		"Ernie (PPC)", "rt:4f371bd6db45be8d5650e73e7e2651b3", 106955, Common::SV_SWE, 501),
 	WINGAME2_l("ernie", "",		"Ernie.exe",   "t:5b5c34933594af422baa9344b07e0b6a", 1417481,
-		 						"DE_SOTO.DXR", "d:b8ab4a513cd1bf38f050b3763dad5bc9", 1319006, Common::SE_SWE, 501),
+		 						"DE_SOTO.DXR", "d:b8ab4a513cd1bf38f050b3763dad5bc9", 1319006, Common::SV_SWE, 501),
 	WINDEMO2_l("ernie", "Demo", "ERNIE.EXE",   "t:f569e83701a85d4184984fcac0e75962", 1417371,
-	 							"BAYONNE.DXR", "d:2b35be507e19c44a9789b2f28117935b", 2975348, Common::SE_SWE, 500),
+	 							"BAYONNE.DXR", "d:2b35be507e19c44a9789b2f28117935b", 2975348, Common::SV_SWE, 500),
 
 	// "Explore Space" 5 CD Bundle
 	MACGAME2("explorespace1", "", "Solar",				 "231d3041df162be4a0ddd36a74eb03b6", 719005,
@@ -6963,7 +6978,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME2("kidsbiblepaul", "", "Startup.exe",		   "t:db89c88c444f41b95cf5a36599dc9c5c", 1410395,
 								  "PAULDISC/DISCPAUL.DXR", "f:33e2ce00c9ff1dbcc7a7fd05809571ed", 6766086, 501),
 
-	WINGAME1tf_l("kosmopolska", "", "Kosmopol.exe", "0259a0a907883c8750d662d59fda1ef3", 1416549, Common::SE_SWE, 501, GF_32BPP),
+	WINGAME1tf_l("kosmopolska", "", "Kosmopol.exe", "0259a0a907883c8750d662d59fda1ef3", 1416549, Common::SV_SWE, 501, GF_32BPP),
 
 	MACGAME1("maccubed", "Disc 1", "Let's Go! Arcade", "5b3a7fa45ec7655c5f9b7fe39ae37a11", 705357, 500),
 	MACGAME1("maccubed", "Disc 2", "Let's Go! Games", "5b3a7fa45ec7655c5f9b7fe39ae37a11", 705357, 500),
@@ -7023,8 +7038,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1_l("mecadrill", "", "xn--2bk5af5f2e0ctd/xn--2bk9a5e9d0bg", "16f51fc148898582fcdb6f58456ceb52", 719636, Common::JA_JPN, 501),
 	WINGAME1t_l("mecadrill", "", "MECA/MECA95.EXE", "ff76ffa3616a1acb82f6b12bc94bec64", 1390011, Common::JA_JPN, 505),
 
-	MACGAME1_l("microphonefiend", "8", "Microphone Fiend8", "bfd348abd981acae64c13d5e5e4d9540", 719785, Common::JA_JPN, 501),
-	MACGAME1_l("microphonefiend", "16", "Microphone Fiend16", "d8f16d8e1dbd01ebf1f74f028b16a126", 117830, Common::JA_JPN, 501),
+	MACGAME1f_l("microphonefiend", "8", "MF8/Microphone Fiend8", "tr:b2229850cb4e8ccb977c2f7c25650d6c", 719785, Common::JA_JPN, 501, GF_DESKTOP|GF_640x480),
+	MACGAME1f_l("microphonefiend", "16", "MF16/Microphone Fiend16", "tr:f2cb0ca9bce3a7fad18ba9f7c8c9f400", 117830, Common::JA_JPN, 501, GF_DESKTOP|GF_640x480),
 
 	// On hybrid CD with Joystick (France) covermount
 	// Original filename is CD Mieux-Mieux N°16
@@ -7070,11 +7085,11 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME2t_l("moominparty", "Windows 3.1", "MUMIN31.EXE", 	  "92fc805cebf17a05026b508293afd0c4", 938553,
 									  		  "hd_data/MENU.DXR", "21d9332d7345fddebcab25b8482e7cfb", 5064032, Common::NB_NOR, 501),
 	MACGAME2_l("moominparty", "", "Fest i Mumindalen", "231d3041df162be4a0ddd36a74eb03b6", 719033,
-								  "HD_DATA/MENU.Dxr",  "2ad2b9e9477bdc7d48959b8df8830fd5", 5072990, Common::SE_SWE, 501),
+								  "HD_DATA/MENU.Dxr",  "2ad2b9e9477bdc7d48959b8df8830fd5", 5072990, Common::SV_SWE, 501),
 	WINGAME2t_l("moominparty", "Windows 95",  "Mumin95.exe", 	  "f11b230993af8dba0fd2efa0d3271c89", 1416715,
-									  	      "hd_data/MENU.DXR", "4809a8c0c7c064f3ea0dbd6844260c67", 5072990, Common::SE_SWE, 501),
+									  	      "hd_data/MENU.DXR", "4809a8c0c7c064f3ea0dbd6844260c67", 5072990, Common::SV_SWE, 501),
 	WINGAME2t_l("moominparty", "Windows 3.1", "MUMIN31.EXE", 	  "92fc805cebf17a05026b508293afd0c4", 938553,
-									  		  "HD_DATA/MENU.DXR", "4809a8c0c7c064f3ea0dbd6844260c67", 5072990, Common::SE_SWE, 501),
+									  		  "HD_DATA/MENU.DXR", "4809a8c0c7c064f3ea0dbd6844260c67", 5072990, Common::SV_SWE, 501),
 	MACGAME2_l("moominparty", "", "Suuri Muumijuhla", "250a5349ecb5d19b4352b5d11095f24b", 719033,
 								  "HD_DATA/MENU.Dxr",  "f4b8f898cb03062f0d2e94b5c9922879", 5070544, Common::FI_FIN, 501),
 	WINGAME2t_l("moominparty", "Windows 95",  "Mumin95.exe", 	  "f11b230993af8dba0fd2efa0d3271c89", 1416715,
@@ -7092,6 +7107,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 										"TRAVEL/BAL_GX_F.MOV", "d:93ed396925332df6e302a67af8bc5e13", 139037, Common::NL_NLD, 500),
 	WINGAME2_l("moordspel", "32-bit",   "32/MOORD32.EXE",	   "t:a49f750a7fdf751840f6766e9faab17c", 2625425,
 										"TRAVEL/BAL_GX_F.MOV", "d:93ed396925332df6e302a67af8bc5e13", 139037, Common::NL_NLD, 500),
+
+	WINGAME1("mortalus", "", "Mortalus.exe", "t:187624cbacaa5bc77af89aefe9fe7345", 1397537, 500),
+	MACGAME1("mortalus", "", "Mortalus", "tr:55f5fbaa02a937ce6346017941e1d439", 705445, 500),
 
 	WINGAME1("msn", "Preview", "MSNPREV8.EXE", "1a7acbba10a7246ba58c1d53fc7203f5", 5215403, 501),
 
@@ -7123,45 +7141,45 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1t_l("negi3", "", "NEGI_3.EXE", "da9cee84ee984174c52d359132ad4ac6", 929342, Common::JA_JPN, 501),
 
 	// Other screensavers are D4
-	MACGAME1("nekojiruudonss", "Diginya", "DIGINYA", "82def1f3b9980018ed9b662893884546", 873267, 501),
-	MACGAME1("nekojiruudonss", "Firekoro", "FIREKORO", "82def1f3b9980018ed9b662893884546", 873268, 501),
-	MACGAME1("nekojiruudonss", "Indozin", "INDOZIN", "82def1f3b9980018ed9b662893884546", 873267, 501),
-	MACGAME1("nekojiruudonss", "Itachi", "ITACHI", "82def1f3b9980018ed9b662893884546", 873266, 501),
-	MACGAME1("nekojiruudonss", "Koma", "KOMA", "82def1f3b9980018ed9b662893884546", 873265, 501),
-	MACGAME1("nekojiruudonss", "Komatta", "KOMATTA", "82def1f3b9980018ed9b662893884546", 873267, 501),
-	MACGAME1("nekojiruudonss", "Koropeta", "KOROPETA", "82def1f3b9980018ed9b662893884546", 873308, 501),
-	MACGAME1("nekojiruudonss", "N_N", "N_N", "82def1f3b9980018ed9b662893884546", 873263, 501),
-	MACGAME1("nekojiruudonss", "Noguchi", "NOGUCHI", "82def1f3b9980018ed9b662893884546", 873267, 501),
-	MACGAME1("nekojiruudonss", "Saru", "SARU", "82def1f3b9980018ed9b662893884546", 873264, 501),
-	MACGAME1("nekojiruudonss", "Taikyoku", "TAIKYOKU", "82def1f3b9980018ed9b662893884546", 873308, 501),
-	WINGAME1t("nekojiruudonss", "Diginya", "DIGINYA.EXE", "f8ffb68095f80fd385f1ba9d4c76ec26", 1601138, 501),
-	WINGAME1t("nekojiruudonss", "Firekoro", "FIREKORO.EXE", "af297fb6a0f204af5ef1e47c9b9b7830", 1541948, 501),
-	WINGAME1t("nekojiruudonss", "Indo", "INDO.EXE", "88212f81d6ed89d66666c647f483020f", 1613050, 501),  // Indozin?
-	WINGAME1t("nekojiruudonss", "Install1", "INSTALL1.EXE", "8a9fb7cd79b396bf0a4a915e60e629c3", 1857700, 501),  // Ashi?
-	WINGAME1t("nekojiruudonss", "Install2", "INSTALL2.EXE", "9f7c7d17c44c4baeaf26d03803236f12", 1827410, 501),  // Chin?
-	WINGAME1t("nekojiruudonss", "Install3", "INSTALL3.EXE", "e088934cd3f7324c7290b34c0c8e8a96", 1834716, 501),  // Doga?
-	WINGAME1t("nekojiruudonss", "Install4", "INSTALL4.EXE", "d49af229d14bbe19cb4b16134dd21e72", 1861494, 501),  // Guruguru?
-	WINGAME1t("nekojiruudonss", "Install5", "INSTALL5.EXE", "5a98fe24a8920fe304111958c10cebf6", 1791866, 501),  // Nezumi?
-	WINGAME1t("nekojiruudonss", "Install6", "INSTALL6.EXE", "e0813c040f52a3697bf985d4d0ff44aa", 2560174, 501),  // Zikansa?
-	WINGAME1t("nekojiruudonss", "Itachi", "ITACHI.EXE", "a12d5ae1b9080b9c573e867b5033ce6d", 1897196, 501),
-	WINGAME1t("nekojiruudonss", "Koma", "KOMA.EXE", "78f7d8806360e12c04cc508ae7d063ab", 1674152, 501),
-	WINGAME1t("nekojiruudonss", "Komatta", "KOMATTA.EXE", "1060c4d7606374365bd937519ec6f71f", 1741794, 501),
-	WINGAME1t("nekojiruudonss", "Koropeta", "KOROPETA.EXE", "9d7ee4a0ab7b822e476fb597f6a32155", 1893820, 501),
-	WINGAME1t("nekojiruudonss", "N_N", "N_N.EXE", "a02a23cbe6b3079592ecebce8107ac39", 1539396, 501),
-	WINGAME1t("nekojiruudonss", "Noguchi", "NOGUCHI.EXE", "ff9d22ae7dbcf5a19dc40736dc98a322", 1789020, 501),
-	WINGAME1t("nekojiruudonss", "Saru", "SARU.EXE", "11300003a98cede0fdde607aba6212ec", 1556846, 501),
-	WINGAME1t("nekojiruudonss", "Taikyoku", "TAIKYOKU.EXE", "37352ac6d45277dbe9ed0beb05e680df", 1660674, 501),
-	MACDEMO1("nekojiruudonss", "Diginya sample", "DIGINYA", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Firekoro sample", "FIREKORO", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Indozin sample", "INDOZIN", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Itachi sample", "ITACHI", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Koma sample", "KOMA", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Komatta sample", "KOMATTA", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Koropeta sample", "KOROPETA", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "N_N sample", "N_N", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Noguchi sample", "NOGUCHI", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Saru sample", "SARU", "82def1f3b9980018ed9b662893884546", 717613, 501),
-	MACDEMO1("nekojiruudonss", "Taikyoku sample", "TAIKYOKU", "82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACGAME1("nekojiruudonss", "Diginya", "MAC_SS/DIGINYA", "rt:d9117b4d69af46ec9812dd0cddaa3e9d", 873267, 501),
+	MACGAME1("nekojiruudonss", "Firekoro", "MAC_SS/FIREKORO", "rt:fab38676dcae25a5ef580aa78590528f", 873268, 501),
+	MACGAME1("nekojiruudonss", "Indozin", "MAC_SS/INDOZIN", "rt:405675dce0f6bc140d7d1cc15981d5f0", 873267, 501),
+	MACGAME1("nekojiruudonss", "Itachi", "MAC_SS/ITACHI", "rt:b7879aad3aaf516c035d0a18ece05445", 873266, 501),
+	MACGAME1("nekojiruudonss", "Koma", "MAC_SS/KOMA", "rt:7b51bf156a3dedd0e879f8a3f970c6c4", 873265, 501),
+	MACGAME1("nekojiruudonss", "Komatta", "MAC_SS/KOMATTA", "rt:cd20f7159cfd4d3028ebbed7875a07a7", 873267, 501),
+	MACGAME1("nekojiruudonss", "Koropeta", "MAC_SS/KOROPETA", "rt:f337ad7ee6124175145d6a92377a400f", 873308, 501),
+	MACGAME1("nekojiruudonss", "N_N", "MAC_SS/N_N", "rt:9b6ba37a8b3f89008f5600f7d0448221", 873263, 501),
+	MACGAME1("nekojiruudonss", "Noguchi", "MAC_SS/NOGUCHI", "rt:5fcb696b34f950438ded5a30c98211c4", 873267, 501),
+	MACGAME1("nekojiruudonss", "Saru", "MAC_SS/SARU", "rt:4c6410e22f3d9add2315a8a1bfb61f84", 873264, 501),
+	MACGAME1("nekojiruudonss", "Taikyoku", "MAC_SS/TAIKYOKU", "rt:6b29bf0ec09d66b6bc523f532d14191f", 873308, 501),
+	WINGAME1("nekojiruudonss", "Diginya", "WIN_SS/DIGINYA.EXE", "t:f8ffb68095f80fd385f1ba9d4c76ec26", 1601138, 501),
+	WINGAME1("nekojiruudonss", "Firekoro", "WIN_SS/FIREKORO.EXE", "t:af297fb6a0f204af5ef1e47c9b9b7830", 1541948, 501),
+	WINGAME1("nekojiruudonss", "Indo", "WIN_SS/INDO.EXE", "t:88212f81d6ed89d66666c647f483020f", 1613050, 501),  // Indozin?
+	WINGAME1("nekojiruudonss", "Install1", "WIN_SS/INSTALL1.EXE", "t:8a9fb7cd79b396bf0a4a915e60e629c3", 1857700, 501),  // Ashi?
+	WINGAME1("nekojiruudonss", "Install2", "WIN_SS/INSTALL2.EXE", "t:9f7c7d17c44c4baeaf26d03803236f12", 1827410, 501),  // Chin?
+	WINGAME1("nekojiruudonss", "Install3", "WIN_SS/INSTALL3.EXE", "t:e088934cd3f7324c7290b34c0c8e8a96", 1834716, 501),  // Doga?
+	WINGAME1("nekojiruudonss", "Install4", "WIN_SS/INSTALL4.EXE", "t:d49af229d14bbe19cb4b16134dd21e72", 1861494, 501),  // Guruguru?
+	WINGAME1("nekojiruudonss", "Install5", "WIN_SS/INSTALL5.EXE", "t:5a98fe24a8920fe304111958c10cebf6", 1791866, 501),  // Nezumi?
+	WINGAME1("nekojiruudonss", "Install6", "WIN_SS/INSTALL6.EXE", "t:e0813c040f52a3697bf985d4d0ff44aa", 2560174, 501),  // Zikansa?
+	WINGAME1("nekojiruudonss", "Itachi", "WIN_SS/ITACHI.EXE", "t:a12d5ae1b9080b9c573e867b5033ce6d", 1897196, 501),
+	WINGAME1("nekojiruudonss", "Koma", "WIN_SS/KOMA.EXE", "t:78f7d8806360e12c04cc508ae7d063ab", 1674152, 501),
+	WINGAME1("nekojiruudonss", "Komatta", "WIN_SS/KOMATTA.EXE", "t:1060c4d7606374365bd937519ec6f71f", 1741794, 501),
+	WINGAME1("nekojiruudonss", "Koropeta", "WIN_SS/KOROPETA.EXE", "t:9d7ee4a0ab7b822e476fb597f6a32155", 1893820, 501),
+	WINGAME1("nekojiruudonss", "N_N", "WIN_SS/N_N.EXE", "t:a02a23cbe6b3079592ecebce8107ac39", 1539396, 501),
+	WINGAME1("nekojiruudonss", "Noguchi", "WIN_SS/NOGUCHI.EXE", "t:ff9d22ae7dbcf5a19dc40736dc98a322", 1789020, 501),
+	WINGAME1("nekojiruudonss", "Saru", "WIN_SS/SARU.EXE", "t:11300003a98cede0fdde607aba6212ec", 1556846, 501),
+	WINGAME1("nekojiruudonss", "Taikyoku", "WIN_SS/TAIKYOKU.EXE", "t:37352ac6d45277dbe9ed0beb05e680df", 1660674, 501),
+	MACDEMO1("nekojiruudonss", "Diginya sample", "SAMPLE/DIGINYA", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Firekoro sample", "SAMPLE/FIREKORO", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Indozin sample", "SAMPLE/INDOZIN", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Itachi sample", "SAMPLE/ITACHI", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Koma sample", "SAMPLE/KOMA", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Komatta sample", "SAMPLE/KOMATTA", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Koropeta sample", "SAMPLE/KOROPETA", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "N_N sample", "SAMPLE/N_N", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Noguchi sample", "SAMPLE/NOGUCHI", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Saru sample", "SAMPLE/SARU", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
+	MACDEMO1("nekojiruudonss", "Taikyoku sample", "SAMPLE/TAIKYOKU", "r:82def1f3b9980018ed9b662893884546", 717613, 501),
 
 	// Found on PC World (Czechia) Sept 2003
 	WINGAME2_l("nemcina", "", "START_32.EXE",	  "t:8f4c8e7a2872fd933018a2727c70cbb8",  1710313,
@@ -7252,7 +7270,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1_l("petepilotti2", "", "Pete Pilotti", "rt:6eec77ef9ebd74d3c500162939240539",  705445, Common::FI_FIN, 500),
 	WINGAME1_l("petepilotti2", "", "ALOITA95.EXE", "t:deac65743764402a2a81b955fa0b0d07",  1410713, Common::FI_FIN, 500),
 
-	WINGAME1_l("pettson1", "", "PETT32.EXE", "1a7acbba10a7246ba58c1d53fc7203f5", 1430755, Common::SE_SWE, 501),
+	WINGAME1_l("pettson1", "", "PETT32.EXE", "1a7acbba10a7246ba58c1d53fc7203f5", 1430755, Common::SV_SWE, 501),
 
 	// From Japanese Star Trek: Borg DVD (2000)
 	WINGAME1_l("picarddossier", "DVD", "OMNIBORG.EXE",	"t:312801acbcbedcb6825414dad03538e8", 1501528, Common::JA_JPN, 501),
@@ -7274,7 +7292,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME2_l("pingu1", "",	"PINGU.EXE",	"2e62abdad839e42068afdcd0644d7dcf", 917473,
 								"PINTITLE.DXR", "3c4192601421a1eee08bb6b8f0c33b84", 481270, Common::PT_BRA, 500),
 	WINGAME2t_l("pingu1", "",	"PINGU.EXE",	"828102166219aa43f00c7cd72c0a4fc9", 917473,
-								"Pintitle.dxr", "f9a790a2bd485d634bf638bfd3db18a0", 524602, Common::SE_SWE, 500),
+								"Pintitle.dxr", "f9a790a2bd485d634bf638bfd3db18a0", 524602, Common::SV_SWE, 500),
 
 	// Included with pingu1. Contains no text nor speech.
 	// Mac version uses a different projector for each screen saver
@@ -7412,7 +7430,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME2f_l("safecracker", "", "xn--SafeCracker PPC (SPA)-ob4m", "rt:4596cfa67cecddc475ec09748ec54000", 397827,
 								  "SC_DATA/MAIN_SPA.Dxr",			"d:76183fa661413d200ce0154c968a3627", 6409022, Common::ES_ESP, 501, GF_32BPP),
 	MACGAME2f_l("safecracker", "", "xn--SafeCracker PPC (SWE)-ob4m", "rt:4596cfa67cecddc475ec09748ec54000", 397827,
-								  "SC_DATA/MAIN_SWE.Dxr",			"d:e4976c37b4cfbb8111f0919595b0dea2", 6383684, Common::SE_SWE, 501, GF_32BPP),
+								  "SC_DATA/MAIN_SWE.Dxr",			"d:e4976c37b4cfbb8111f0919595b0dea2", 6383684, Common::SV_SWE, 501, GF_32BPP),
 	WINGAME2f("safecracker", "", "sc_eng.exe",						"t:01871e94a5d9b0fad2b063b486cda3f1", 1415977,
 								  "SC_DATA/Main_eng.dxr",			"ecc8f8b40956ad36041b5492ec5a4577", 6491010, 501, GF_32BPP),
 	WINDEMO2f("safecracker", "Demo", "sc_demo.exe",						"t:edec426e8e11231c8fad68f607ec4e0b", 1415543,
@@ -7640,6 +7658,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	MACGAME1_l("teddybear", "", "Teddy Bear/Teddy Bear", "r:f117b8395c4859d11b9c02c741e22cea",  704537, Common::FR_FRA, 500),
 	WINGAME1_l("teddybear", "", "INSTALL/BEAR95.EXE",	 "t:8a5534267338a82b6fc959037af3df95", 1394051, Common::FR_FRA, 500),
+
+	WINGAME1("teazle", "",		"TEAZLE.EXE",	"t:b6d3a1d0f44fa23f544569cf97d98126", 1420271, 500),
+	MACGAME1("teazle", "",		"TZPL01",		"tr:50b6f06b9dfad624252d34f5ee8cd877", 112402, 500),
 
 	MACGAME1("tenchijukebox", "8-bit",	"Tenchi Muyo Jukebox 8 bit", "r:0c7bbb4b24823e5ab871cb4c1d6f3710", 482610, 404),
 	MACGAME1("tenchijukebox", "16-bit", "Tenchi Muyo Jukebox 16 bit", "r:0c7bbb4b24823e5ab871cb4c1d6f3710", 482610, 404),
@@ -7892,7 +7913,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1_l("boitearire", "", "Zlurp", "e402b347a9cf682d2154c70cfefdbf26", 115776, Common::JA_JPN, 601),
 	WINGAME1t_l("boitearire", "", "ZLURP.EXE", "cf81c34b261e9bc9e4af4dffa9298b5f", 1710871, Common::JA_JPN, 600),
 
-	WINGAME1_l("brspel", "", "START.EXE", "t:8d1bfc4ea72c1892412f2ecabb96c990", 3465523, Common::SE_SWE, 650),
+	WINGAME1_l("brspel", "", "START.EXE", "t:8d1bfc4ea72c1892412f2ecabb96c990", 3465523, Common::SV_SWE, 650),
 
 	MACGAME1("carmenmath", "", "Carmen Math Detective", "65063397536553c4f6ff2a6c07194bf7", 1420730, 602),
 	WINGAME1t("carmenmath", "", "CMD32.EXE", "75c2569890b01e3d701b2784c25c2866", 1552305, 602),
@@ -7985,7 +8006,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1("disney97", "", "Sampler PPC", "r:41fa2186d635be3094403c75b5f44d4b", 115419, 600),
 	WINGAME1("disney97", "", "SAMP32.EXE", "t:2f87d92076446eaee551d3937e458f86", 1791900, 600),
 
-	WINGAME1_l("djuphavsjakten", "", "havsjakt.exe", "t:be2c0a9467f789d24d48fff77b1dd1c2", 250258, Common::SE_SWE, 602),
+	WINGAME1_l("djuphavsjakten", "", "havsjakt.exe", "t:be2c0a9467f789d24d48fff77b1dd1c2", 250258, Common::SV_SWE, 602),
 
 	WINGAME1("dsteps", "", "dsteps.exe", "t:b5a55743e8931e6cbfbdefb3b6d39403", 2187456, 600),
 
@@ -8189,7 +8210,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	WINGAME1("hamletmurder", "", "PMHamlet.exe", "a593079aecf5bd938ce75264cac24b2d", 1873557, 600),
 
-	WINGAME1t_l("historia", "", "HISTORIA.EXE", "1c213a176ea0441a145ebf6f1f5b9f66", 1508366, Common::SE_SWE, 600),
+	WINGAME1t_l("historia", "", "HISTORIA.EXE", "1c213a176ea0441a145ebf6f1f5b9f66", 1508366, Common::SV_SWE, 600),
 
 	WINGAME2t("im7s7s", "", "start.exe", "be7baec9613a6e07c6acdaad2c12a90f", 2931014,
 							"more/seventh.dxr", "8f809a4856310c3fc44ac73be59ee365", 45067836, 650),
@@ -8432,7 +8453,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 									"Titel.dxr",	"e8b13e9e34dcfbdd4481f7f0b8209903", 1134260, Common::DE_DEU, 650),
 	WINGAME1_l("okaytruehero", "",	"ok39932.exe",	"1b8d78ddca650041b8997cac7af3184b", 1883584, Common::DE_DEU, 650),
 
-	WINGAME1t_l("onsalakorv", "", "onsala.EXE", "41d87422d7c0f48886a99a7fe05ba1c0", 1713409, Common::SE_SWE, 650),
+	WINGAME1t_l("onsalakorv", "", "onsala.EXE", "41d87422d7c0f48886a99a7fe05ba1c0", 1713409, Common::SV_SWE, 650),
 
 //	MACGAME1_l("ozawaken", "v1.2", "Ozawa-Ken1.2", "8d83064402198a909b0abcebc6b46d2b", 118562, Common::JA_JPN, 602),
 
@@ -8450,14 +8471,14 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1t_l("pettson1", "", "GUBBEN.EXE",		"9ee9a4d1112db68a3a64f26d043518a3",   1341473, Common::NB_NOR, 600),
 
 	WINGAME2_l("pettson2", "", "START32.EXE", "518a98696fe1122e08410b0f157f21bf", 1723219,
-							   "START.DXR",	  "18d333b1b9b02d76b35a07252046d295", 37384, Common::SE_SWE, 602),
+							   "START.DXR",	  "18d333b1b9b02d76b35a07252046d295", 37384, Common::SV_SWE, 602),
 	WINGAME2t_l("pettson2", "", "START32.EXE", "28eec06adcc3671e6bc67c27c58976d1", 2986791,
 	           "Pinnspel.dxr", "c1e66de74590ba3ad88ea1650b8cfd80", 5085428, Common::DE_DEU, 602),
 
 	// German version is D7
-	MACGAME1_l("pettsonjk", "", "Starta kalendern",		 "98f39f06e78cc7d3e20b498d30f737b6", 1029165, Common::SE_SWE, 600),
+	MACGAME1_l("pettsonjk", "", "Starta kalendern",		 "98f39f06e78cc7d3e20b498d30f737b6", 1029165, Common::SV_SWE, 600),
 	MACGAME1_l("pettsonjk", "", "Pesosen joulukalenteri", "3aaab7a6b2cbcc767f839bd6d8d3dd26", 1032582, Common::FI_FIN, 602),
-	WINGAME1_l("pettsonjk", "", "PETWIN95.EXE", "a593079aecf5bd938ce75264cac24b2d", 1702396, Common::SE_SWE, 600),
+	WINGAME1_l("pettsonjk", "", "PETWIN95.EXE", "a593079aecf5bd938ce75264cac24b2d", 1702396, Common::SV_SWE, 600),
 	WINGAME1_l("pettsonjk", "", "PETWIN95.EXE", "518a98696fe1122e08410b0f157f21bf", 1738188, Common::FI_FIN, 602),
 
 	// Global Software Products catalogue # 1282B (1999) and 1282C (Favourites, 2006)
@@ -8509,8 +8530,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("polis1", "", "Poliisi/Poliisi.exe",	  "t:c3d9cca8b19547b3b2665d802b12988f", 1514881, Common::FI_FIN, 600),
 	MACGAME1_l("polis1", "", "KRIPOS/KRIPOS",		  "r:921df0a5f150a57b621baa2cace66e12", 1032397, Common::NB_NOR, 650),
 	WINGAME1_l("polis1", "", "Kripos/Kripos.exe",	  "t:c3d9cca8b19547b3b2665d802b12988f", 1514881, Common::NB_NOR, 600),
-	MACGAME1_l("polis1", "", "POLIS/POLIS",			  "r:921df0a5f150a57b621baa2cace66e12", 1032397, Common::SE_SWE, 650),
-	WINGAME1_l("polis1", "", "Polis/Polis.exe",		  "t:c3d9cca8b19547b3b2665d802b12988f", 1514881, Common::SE_SWE, 600),
+	MACGAME1_l("polis1", "", "POLIS/POLIS",			  "r:921df0a5f150a57b621baa2cace66e12", 1032397, Common::SV_SWE, 650),
+	WINGAME1_l("polis1", "", "Polis/Polis.exe",		  "t:c3d9cca8b19547b3b2665d802b12988f", 1514881, Common::SV_SWE, 600),
 
 	MACGAME1("poohlearn", "", "Learning Demos",	   "r:83b232d2d02d9238e481019eb93e7194",	2510, 650),
 	WINGAME2("poohlearn", "", "demos.exe",		   "t:0400d8f799f482204ef276e7086e88ce", 2313191,
@@ -8532,9 +8553,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 	// Original file name is RealPool™
 	MACGAME1("realpool", "", "xn--RealPool-on5d", "269b100b24bda808238eb6feb183781f", 114791, 600),
 
-	MACGAME1_l("requiem", "", "Requiem",	 "r:996eca6a1e73c99493ea7e553f2e0db6", 1030510, Common::SE_SWE, 601),
+	MACGAME1_l("requiem", "", "Requiem",	 "r:996eca6a1e73c99493ea7e553f2e0db6", 1030510, Common::SV_SWE, 601),
 	WINGAME2_l("requiem", "", "Requiem.exe", "t:bdd6110d880b41f29b8e98f9c4406eb6", 1515454,
-							  "shared.cxt",	 "d:ba83f08d73fff192b3e3affeb533cfaa", 9218580, Common::SE_SWE, 601),
+							  "shared.cxt",	 "d:ba83f08d73fff192b3e3affeb533cfaa", 9218580, Common::SV_SWE, 601),
 
 	// American Revolutionary War
 	MACGAME2("revwar", "", "BEGIN",		   "2806e0d1bac713be5677a62b425d3c98", 1030361,
@@ -8553,7 +8574,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	WINGAME1t_l("rymdjakten", "Romjakten", "ROMJAKT.EXE", "c4259b2ecfd421bd28f29b8a6ddf42f3", 1522656, Common::NB_NOR, 602),
 	MACGAME1t_l("rymdjakten", "Romjakten", "Romjakten", "960f8041921e1ca6c0781cb0f17abc25", 1032378, Common::NB_NOR, 602),
-	WINGAME1t_l("rymdjakten", "Rymdjakten", "RYMDJAKT.EXE", "t:1e615177d45ff193f2b0f452daced90f", 1517271, Common::SE_SWE, 602),
+	WINGAME1t_l("rymdjakten", "Rymdjakten", "RYMDJAKT.EXE", "t:1e615177d45ff193f2b0f452daced90f", 1517271, Common::SV_SWE, 602),
 
 	// Found on Let's Play with "Sakura"
 	// This directly runs the screen savers available on the CD
@@ -8757,8 +8778,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME2t("xfua", "", "X-FILES.EXE", "44a15040c26429c13411859d6fd03bbf", 1719387,
 						  "LAUNCH.DXR",	 "e44000f96f5e329da90d25779cb14995", 30096, 602),
 
-	MACGAME1_l("xtown1", "", "GIFTET", "7a36d53490a07ddc212b65cad9ed11f3", 116103, Common::SE_SWE, 650),
-	WINGAME1t_l("xtown1", "", "GIFTET.EXE", "dd8c395cb1b40eee169f022b16a1c0bd", 1521398, Common::SE_SWE, 600),
+	MACGAME1_l("xtown1", "", "GIFTET", "7a36d53490a07ddc212b65cad9ed11f3", 116103, Common::SV_SWE, 650),
+	WINGAME1t_l("xtown1", "", "GIFTET.EXE", "dd8c395cb1b40eee169f022b16a1c0bd", 1521398, Common::SV_SWE, 600),
 
 	// Original Mac filename is 妖怪図鑑2
 	MACGAME1_l("yokai400", "", "xn--2-we0by4fq4jlr4e", "d14bf1f7a413df29a04b8fbc7a0fe81f", 1033551, Common::JA_JPN, 601),
@@ -8769,6 +8790,10 @@ static const DirectorGameDescription gameDescriptions[] = {
 // Macromedia Director v7
 //
 //////////////////////////////////////////////////
+
+	// Published by Online Multimedia GmbH (2000)
+	WINGAME2_l("advkal", "", "Advent.exe",		"t:f0187286b3aad2c24534f339eeaf4221", 1981844,
+							 "Shared/Tage.cxt", "t:9f152c3c977b84ef9c2b983c6b780cbd", 1481815, Common::DE_DEU, 702),
 
 	MACGAME2_l("affaires1", "", "Start Me", "0944b962ebb00f4b5d5149d220f8449b", 125495,
 								"Main - 7.dxr", "4fa7c071ea2e934eaf9d6f4ef3205ecf", 13068189, Common::FR_FRA, 702),
@@ -8812,6 +8837,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 							"DATEN/SPIELST.DXR", "d:24139a522420d2c6e3f4d0aa502f5936", 2250124, Common::DE_DEU, 702),
 	WINGAME2_l("bibi2", "", "Start.exe",		 "t:cb85c409b1d935e1745478e378074acb", 1820386,
 							"DATEN/SPIELST.DXR", "d:24139a522420d2c6e3f4d0aa502f5936", 2250124, Common::DE_DEU, 702),
+	
+	WINGAME1_l("bidule1", "", "Boitabidules.exe", "t:98831ff6cdc4dc7e74d2660f69db0b49", 3118660, Common::FR_FRA, 702),
+	WINGAME1_l("bidule1", "", "Spielzeugkiste.exe", "t:62ed98ed023e7993b24c5183c7f8354c", 2355933, Common::DE_DEU, 702),
 
 	// Finnish title is Ville & Lilli: Mielikuvitus vauhdissa
 	// Developer website calls this Double Trouble: Crazy Cool Kindergarten,
@@ -8971,10 +8999,10 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	// All of the installers also use Director
 	// Mac filename is Starta Jönssonligan
-	MACGAME1_l("jonssonligan1", "", "toInstall/xn--Starta Jnssonligan-k3b", "rt:02dd75fb8d3e7fd133d372c5e5039675",  113494, Common::SE_SWE, 702),
-	WINGAME1_l("jonssonligan1", "", "toInstall/xn--Jnssonligan.exe-8sb",	 "t:f9299bd39817cbfadad4affa1187777d", 2432602, Common::SE_SWE, 702),
+	MACGAME1_l("jonssonligan1", "", "toInstall/xn--Starta Jnssonligan-k3b", "rt:02dd75fb8d3e7fd133d372c5e5039675",  113494, Common::SV_SWE, 702),
+	WINGAME1_l("jonssonligan1", "", "toInstall/xn--Jnssonligan.exe-8sb",	 "t:f9299bd39817cbfadad4affa1187777d", 2432602, Common::SV_SWE, 702),
 
-	WINGAME1_l("jonssonligan2", "", "toInstall/xn--Jnssonligan gr p djupet.exe-glcd70c", "t:d03373091170b4c569311293aa238c5e", 3374107, Common::SE_SWE, 702),
+	WINGAME1_l("jonssonligan2", "", "toInstall/xn--Jnssonligan gr p djupet.exe-glcd70c", "t:d03373091170b4c569311293aa238c5e", 3374107, Common::SV_SWE, 702),
 
 	// Plays QuickTime movie then opens webpage (still works in 2021)
 	WINGAME2("jsa", "Demo", "Projector.exe", "7c18c9a6af2694156bf09ed195c1ab09", 2289485,
@@ -9064,8 +9092,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1_l("pettsonjk", "", "Findus3", "0944b962ebb00f4b5d5149d220f8449b", 115401, Common::DE_DEU, 702),
 	WINGAME1_l("pettsonjk", "", "FINDUS3.EXE", "7c18c9a6af2694156bf09ed195c1ab09", 6268578, Common::DE_DEU, 702),
 
-	MACGAME1_l("pettsonjs", "", "Julpettson", "0944b962ebb00f4b5d5149d220f8449b", 115004, Common::SE_SWE, 702),
-	WINGAME1_l("pettsonjs", "", "Julstart.exe", "7c18c9a6af2694156bf09ed195c1ab09", 2610931, Common::SE_SWE, 702),
+	MACGAME1_l("pettsonjs", "", "Julpettson", "0944b962ebb00f4b5d5149d220f8449b", 115004, Common::SV_SWE, 702),
+	WINGAME1_l("pettsonjs", "", "Julstart.exe", "7c18c9a6af2694156bf09ed195c1ab09", 2610931, Common::SV_SWE, 702),
 
 	// German title is Physikus - Das Abenteuer aus der Welt der Naturwissenschaften
 	MACGAME1("physicus", "",   "Physicus", "r:5d3f89e052320f8ce140451c730e232b", 114389, 702),
@@ -9077,8 +9105,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINDEMO2("planetstrass", "Demo", "Planet.exe", "t:a053c117847a545ef72aecb425fed9e7", 15434606,
 									 "strass.jpg", "d:d76c7387399626e7a3daef54cbcd6451",	39135, 702),
 
-	MACGAME1_l("polis2", "", "POLIS 2/POLIS 2", "r:fa52f0136cde568a46249ce74f01a324", 110474, Common::SE_SWE, 700),
-	WINGAME1_l("polis2", "", "Media/Polis 2.exe", "t:0ca1211f8c76a8b4b09266762edc8fc9", 2678147, Common::SE_SWE, 700),
+	MACGAME1_l("polis2", "", "POLIS 2/POLIS 2", "r:fa52f0136cde568a46249ce74f01a324", 110474, Common::SV_SWE, 700),
+	WINGAME1_l("polis2", "", "Media/Polis 2.exe", "t:0ca1211f8c76a8b4b09266762edc8fc9", 2678147, Common::SV_SWE, 700),
 	MACGAME1_l("polis2", "", "Kripos 2", "fa52f0136cde568a46249ce74f01a324", 111690, Common::NB_NOR, 700),
 	WINGAME1_l("polis2", "", "Kripos2m.exe", "f790bb1816a6f89567d6f5671b751bf5", 3461770, Common::NB_NOR, 700),
 
@@ -9198,9 +9226,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME2("webmaster", "", "Webmaster.exe",  "t:b757ff13f0f10c94b1b9fc5f2ceac6ec", 1820594,
 							  "Data/chaos.dxr", "d:1d3e9f04eb1ba627d8b0bba826a042f4",  556601, 702),
 
-	MACGAME1_l("xtown2", "", "xn--CROSSTOWN NGELN-n5a/xn--ngeln-xla", "0944b962ebb00f4b5d5149d220f8449b", 116140, Common::SE_SWE, 702),
+	MACGAME1_l("xtown2", "", "xn--CROSSTOWN NGELN-n5a/xn--ngeln-xla", "0944b962ebb00f4b5d5149d220f8449b", 116140, Common::SV_SWE, 702),
 	WINGAME2t_l("xtown2", "", "ANGEL.EXE", 		  "ea43a06fe305ceaa2ca2ba16feaee320", 2212330,
-							  "DATA_S/START.DXR", "9e83bf4d2b1606bd0d26ea8949f0e21e", 72799, Common::SE_SWE, 700),
+							  "DATA_S/START.DXR", "9e83bf4d2b1606bd0d26ea8949f0e21e", 72799, Common::SV_SWE, 700),
 
 	// Found on アクティブマスコット・ハイジ (Heidi Desktop Mascot)
 	// Create cards using ZUIYO's new characters Popee and Beast
@@ -9268,8 +9296,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("albert4", "", "LeTemplePerdu.exe", "t:2b9c32cd62e50a34db9f8ae6abb5abe0", 2425732, Common::FR_FRA, 851),
 	WINGAME1_l("albert4", "", "VerschwundeneTempel.exe", "t:2b9c32cd62e50a34db9f8ae6abb5abe0", 6224892, Common::DE_DEU, 851),
 
-	MACGAME1_l("alfons", "", "Alfons", "08c9ea94f6469e71ae0c71987bbf6323", 199733, Common::SE_SWE, 851),
-	WINGAME1_l("alfons", "", "Alfons.exe", "02913e7deeab4ece4ae44ad521082d4e", 2166668, Common::SE_SWE, 851),
+	MACGAME1_l("alfons", "", "Alfons", "08c9ea94f6469e71ae0c71987bbf6323", 199733, Common::SV_SWE, 851),
+	WINGAME1_l("alfons", "", "Alfons.exe", "02913e7deeab4ece4ae44ad521082d4e", 2166668, Common::SV_SWE, 851),
 
 	// Developed by Almajarra المجرة
 	WINGAME2_l("alhisab", "", "Start.exe",	  "c163f36141579ee374f7b4b2bddee95a", 2117096,
@@ -9297,9 +9325,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	// Windows autorun.exe is also Director
 	// "autorun.exe", "60a23965ff21326edf26fbb9e8f268ca", 2461710, 800
-	MACGAME1_l("balticmission", "", "xn--Dra denna mapp till hrddisken-grc/Baltic Mission", "4ea5fc09f79eee6dded94dc40f303779", 219073, Common::SE_SWE, 800),
-	WINGAME1_l("balticmission", "Hard Drive", "Baltic Mission.exe", "t:06575527a84aa9e0dca4a756855e3935", 2563087, Common::SE_SWE, 800),
-	WINGAME1_l("balticmission", "CD", "install/Baltic Mission.exe", "t:06575527a84aa9e0dca4a756855e3935", 2563068, Common::SE_SWE, 800),
+	MACGAME1_l("balticmission", "", "xn--Dra denna mapp till hrddisken-grc/Baltic Mission", "4ea5fc09f79eee6dded94dc40f303779", 219073, Common::SV_SWE, 800),
+	WINGAME1_l("balticmission", "Hard Drive", "Baltic Mission.exe", "t:06575527a84aa9e0dca4a756855e3935", 2563087, Common::SV_SWE, 800),
+	WINGAME1_l("balticmission", "CD", "install/Baltic Mission.exe", "t:06575527a84aa9e0dca4a756855e3935", 2563068, Common::SV_SWE, 800),
 
 	MACDEMO2("balto2", "Trailer", "MacBolto",  "r:08c9ea94f6469e71ae0c71987bbf6323", 155481,
 								  "Bolto.dir", "d:51f2f057462cd1fceb73ede5d898f905", 43362, 850),
@@ -9432,10 +9460,10 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("garygadget3", "", "program files/terzio/Flugzeuge bauen/WillyFlug.exe",   "70a7b053c1a60617d3baace061fcba54", 9158814, Common::DE_DEU, 800),
 	WINGAME1_l("garygadget3", "", "program files/terzio/Flugzeuge bauen/WillyFlug.exe", "t:9bb0e7542f504b0b2d4f77260eaf8826", 9157600, Common::DE_DEU, 800),
 	WINGAME1_l("garygadget3", "", "Start_Mulle.exe", "t:f0f897006aa8930c52a7aa329a7a2344", 5133106, Common::NB_NOR, 800),
-	WINGAME1_l("garygadget3", "", "Start_Mulle.exe", "t:7cc7a9428ef6b73161cd2a82ee82c067", 6143474, Common::SE_SWE, 850),
+	WINGAME1_l("garygadget3", "", "Start_Mulle.exe", "t:7cc7a9428ef6b73161cd2a82ee82c067", 6143474, Common::SV_SWE, 850),
 	// Plays a short advertisement video
 	WINGAME2_l("garygadget3", "Scan Ad", "Scan.exe",	  "t:b0354a2ad7560b84eea46ffb6a029976", 2334404,
-										 "ScanMovie.avi", "d:efad0f73c4c77513d220d604f0ab2eda", 19338750, Common::SE_SWE, 850),
+										 "ScanMovie.avi", "d:efad0f73c4c77513d220d604f0ab2eda", 19338750, Common::SV_SWE, 850),
 
 	// Mac installers also use Director
 	// Win versions need installation
@@ -9443,12 +9471,12 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME2_l("garygadget4", "", "ToHD/MulleHus",	  "r:a44511b8ff0e46b4f9c85dd1cb58d458", 156795,
 								  "Movies/01.dxr",	  "d:d191871e77e3e0a18976457142d818c0", 44530, Common::FI_FIN, 851),
 	MACGAME2_l("garygadget4", "", "ToHD/MulleHus",	  "r:a44511b8ff0e46b4f9c85dd1cb58d458", 156795,
-								  "Movies/01.dxr",	  "d:300c4d6e5591dd6faa74d0d4280c96fe", 44718, Common::SE_SWE, 851),
+								  "Movies/01.dxr",	  "d:300c4d6e5591dd6faa74d0d4280c96fe", 44718, Common::SV_SWE, 851),
 	MACGAME2_l("garygadget4", "", "ToHD/MulleHus",	  "r:a44511b8ff0e46b4f9c85dd1cb58d458", 156795,
 								  "Movies/01.dxr",	  "d:a443d3493ad279d26ce08814d8636d97", 44658, Common::FI_FIN, 851),
 	MACGAME2_l("garygadget4", "", "ToHD/MulleHus",	  "r:a44511b8ff0e46b4f9c85dd1cb58d458", 156795,
-								  "Movies/01.dxr",	  "d:bc776ee31fa7e4426d128ef8bceb4cc1", 44846, Common::SE_SWE, 851),
-	WINGAME1_l("garygadget4", "", "MulleHus.exe",	  "0c81c84ca4966313ad27d47daba44537", 3760882, Common::SE_SWE, 851),
+								  "Movies/01.dxr",	  "d:bc776ee31fa7e4426d128ef8bceb4cc1", 44846, Common::SV_SWE, 851),
+	WINGAME1_l("garygadget4", "", "MulleHus.exe",	  "0c81c84ca4966313ad27d47daba44537", 3760882, Common::SV_SWE, 851),
 	WINGAME1_l("garygadget4", "", "MulleHus.exe",	  "0c81c84ca4966313ad27d47daba44537", 3793560, Common::FI_FIN, 851),
 
 	// Mac OS X and Windows versions are D9
@@ -9637,8 +9665,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("pettson2", "", "pettstart.exe",   "518a98696fe1122e08410b0f157f21bf", 1534912, Common::NL_NLD, 851),
 	MACGAME1_l("pettson2", "", "Spelen",	   "124ee629902a66fe1fb20b18ae4a1788", 3924112, Common::NL_NLD, 851),
 
-	MACGAME1_l("pettson3", "",	   "Pettson3",	   "4ea5fc09f79eee6dded94dc40f303779", 211841, Common::SE_SWE, 800),
-	WINGAME1_l("pettson3", "",	   "Pettson3.exe", "1c753fb8361ba617ae6142fcdd12d3d5", 2443868, Common::SE_SWE, 800),
+	MACGAME1_l("pettson3", "",	   "Pettson3",	   "4ea5fc09f79eee6dded94dc40f303779", 211841, Common::SV_SWE, 800),
+	WINGAME1_l("pettson3", "",	   "Pettson3.exe", "1c753fb8361ba617ae6142fcdd12d3d5", 2443868, Common::SV_SWE, 800),
 
 	WINGAME1t_l("pettson4", "", "Findus4.exe", "34a951dd3b5e4e9aad58798d3eee8a69", 2253756, Common::DE_DEU, 800),
 
@@ -9676,9 +9704,9 @@ static const DirectorGameDescription gameDescriptions[] = {
 
 	//Requires installation
 	WINGAME2_l("polis3", "",		 "polis3.exe",				 "e24d4bab978b1a5c2326d2c56cf4d781", 3901334,
-									 "polis3.dxr",				 "3dea9440d719e76e1be194554580751a", 365957, Common::SE_SWE, 800),
+									 "polis3.dxr",				 "3dea9440d719e76e1be194554580751a", 365957, Common::SV_SWE, 800),
 	WINGAME2_l("polis3", "Launcher", "launcher.exe",			 "402a7987696daf894708bd448b4d66ae", 946176,
-									 "data/video/introfilm.bin", "767f5ad8cdf8cb021b03eb881b879e22", 4425728, Common::SE_SWE, 800),
+									 "data/video/introfilm.bin", "767f5ad8cdf8cb021b03eb881b879e22", 4425728, Common::SV_SWE, 800),
 	// unconfirmed version (spanish?)
 	WINGAME2_l("polis3", "", "launcher.exe", "0c81c84ca4966313ad27d47daba44537", 2860282,
 							 "polis3.dxr",	 "1a391250c502a1f55da5a4d0438b493d", 3533782, Common::ES_ESP, 851),
@@ -9814,8 +9842,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 								"Songbird Symphony.CDQ", "8383a2142c38600d464847409b76db5a", 5925, 850),
 	WINGAME1("songbird", "ECD", "solitudes.exe",		 "c163f36141579ee374f7b4b2bddee95a", 2118995, 850),
 
-	MACGAME1_l("speltajm", "", "Trazan & Banarne", "r:4ea5fc09f79eee6dded94dc40f303779", 196935, Common::SE_SWE, 800),
-	WINGAME1_l("speltajm", "", "Trazan & Banarne.exe", "t:00a3e2aecf8a07a5dd532bf8fdce390c", 2895014, Common::SE_SWE, 800),
+	MACGAME1_l("speltajm", "", "Trazan & Banarne", "r:4ea5fc09f79eee6dded94dc40f303779", 196935, Common::SV_SWE, 800),
+	WINGAME1_l("speltajm", "", "Trazan & Banarne.exe", "t:00a3e2aecf8a07a5dd532bf8fdce390c", 2895014, Common::SV_SWE, 800),
 
 	WINGAME1("spykids3d", "", "Spy Kids 3D.exe", "c163f36141579ee374f7b4b2bddee95a", 1314722, 850),
 
@@ -9833,7 +9861,7 @@ static const DirectorGameDescription gameDescriptions[] = {
 									 "Natural Stress Relief II.CDQ", "18256d220db28ca68c8907d5ac590190", 12912, 850),
 
 	WINGAME2_l("sverigejakten", "", "STARTW95.EXE", "t:13b9b8939b4d35841805f97b9b298216", 2293279,
-									"DATA.CST", "t:5e63fa8c7a77ee41e0a6c294758140c2", 5616, Common ::SE_SWE, 851),
+									"DATA.CST", "t:5e63fa8c7a77ee41e0a6c294758140c2", 5616, Common ::SV_SWE, 851),
 
 	// ein Fall für TKKG: Das geheimnisvolle Testament (bilingual DE/EN)
 	MACGAME2("tkkg8", "", "TKKG-Start", "8c1b4ddb1adff89deaba119f7cf8df7b", 197195,
@@ -9948,6 +9976,12 @@ static const DirectorGameDescription gameDescriptions[] = {
 	WINGAME1_l("barbswanlake", "", "SwanLake/SwanLake.exe", "d:310659620631c126edb6943af1f83e38", 4096651, Common::FR_FRA, 900),
 	WINDEMO1("barbswanlake", "Demo", "SwanLake.exe", "t:e658f3c6cbf08ee92cc37fcbf9b0dbcb", 2385166, 900),
 
+	WINGAME1_l("bidule2", "", "BiduloTresor.exe", "t:fafbbdc6df43f3f202c72cb9a2be71f9", 2186440, Common::FR_FRA, 900),
+	WINGAME2_l("bidule2", "", "Albert.exe", "t:fafbbdc6df43f3f202c72cb9a2be71f9", 2186440,
+							  "bidulotresor.ico", "t:9eadaf2bb45331b971c17a64df02fc3f", 6254, Common::DE_DEU, 900),
+
+	WINGAME1_l("bidule3", "", "BAB3.exe", "t:b20e949f87452719e4b214f9e2fe3487", 2185800, Common::FR_FRA, 900),
+
 	WINGAME1_l("bpapao", "", "bpapao.exe", "c612aa43e7ef55aa4fd2e1085fb1ef7a", 4829907, Common::PT_BRA, 900),
 
 	WINGAME1("bobcastle", "", "Bob's Castle Adventure.exe", "c612aa43e7ef55aa4fd2e1085fb1ef7a", 887534, 900),
@@ -10021,8 +10055,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 	MACGAME1t_l("pettson2", "MacOSX", "Gubben2 (OS X)", "1768526c25ae041638f02312852dbe2b", 287790, Common::NB_NOR, 900),
 
 	// Original filenames are Spökmaskinen (OS X) and Spökmaskinen.exe
-	MACGAME1_l("pettson4", "", "Spokmaskinen (OS X)", "d483e955df901222145267d2ad729ea2", 284153, Common::SE_SWE, 900),
-	WINGAME1_l("pettson4", "", "Spokmaskinen.exe", "627d23c658a36a3b6d0053a6dcda1a37", 2330628, Common::SE_SWE, 900),
+	MACGAME1_l("pettson4", "", "Spokmaskinen (OS X)", "d483e955df901222145267d2ad729ea2", 284153, Common::SV_SWE, 900),
+	WINGAME1_l("pettson4", "", "Spokmaskinen.exe", "627d23c658a36a3b6d0053a6dcda1a37", 2330628, Common::SV_SWE, 900),
 
 	MACGAME1_l("pixeline9", "", "Pixeline - I Det Vilde Westen", "bb6be483050bd1524c5440229b595f7a", 236019, Common::DA_DNK, 900),
 	MACGAME1_l("pixeline9", "OS X", "Pixeline - Mac OS X", 		 "4a522e1da5d5b8570e3ab625945b19cf", 234733, Common::DA_DNK, 900),
@@ -10111,6 +10145,8 @@ static const DirectorGameDescription gameDescriptions[] = {
 									  "Files/ba-01_A01.dxr", "d:cb38821091082aeb097e88551b791e05", 9946435, 1010),
 	WINGAME2("babarcoins", "",		  "Start.exe",			 "t:0c40cc1af54fd3c0d06bf5e79bc7075a", 2659300,
 									  "FILES/ba-01_A01.dxr", "d:cb38821091082aeb097e88551b791e05", 9946435, 1010),
+
+	WINGAME1_l("bidule4", "", "BAB4.exe", "t:4ff5d572c2555b49d231015883183900", 2689236, Common::FR_FRA, 1010),
 
 	//Another rerelease
 	WINGAME1_l("bioscopia", "", "Biolab.exe", "t:ec275332cc5b0b2b7d82938b440e1df1", 2672901, Common::DE_DEU, 1010),

@@ -239,6 +239,9 @@ void Section8Room::parser() {
 				break;
 
 			case 30:
+				// The original wasn't terminating the machine before starting a new, leading in a double animation during the duration of this second animation.
+				// This call has been added to fix the issue
+				terminateMachine(_ripPushMach);
 				switch (_currentRoom) {
 				case 804:
 					_ripPushMach = series_plain_play("RIP ATTEMPTS CHAR PUSH", 1, 2, 100, 0, 5, 40, true);
@@ -867,7 +870,10 @@ void Section8Room::daemon() {
 			series_unload(_ripLooksAround);
 			series_unload(_mctdSerie);
 			_meiHandsBehindBack = series_load("MEI CHIEN HANDS BEHIND BACK", -1, nullptr);
-			setGlobals3(_mctdSerie, 17, 17);
+			// The original was calling setGlobals3 using _mctdSerie, which has just been unloaded
+			// Using the other series (often used with frame 17 in other calls) avoids the crash and improve the animation,
+			// which is a good sign it's what was supposed to be done
+			setGlobals3(_meiHandsBehindBack, 17, 17);
 			sendWSMessage_3840000(_mcTrekMach, -1);
 			kernel_timing_trigger(imath_ranged_rand(7200, 14400), 5, nullptr);
 		}

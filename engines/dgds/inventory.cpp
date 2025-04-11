@@ -124,6 +124,8 @@ void Inventory::drawHeader(Graphics::ManagedSurface &surf) {
 		title = "INVENTORY";
 	else if (DgdsEngine::getInstance()->getGameLang() == Common::DE_DEU)
 		title = "INVENTAR";
+	else if (DgdsEngine::getInstance()->getGameLang() == Common::FR_FRA)
+		title = "INVENTAIRE";
 	else
 		error("Unsupported language %d", DgdsEngine::getInstance()->getGameLang());
 
@@ -334,7 +336,7 @@ void Inventory::mouseUpdate(const Common::Point &pt) {
 			close();
 		}
 	} else {
-		engine->setMouseCursor(kDgdsMouseGameDefault);
+		engine->getScene()->mouseUpdate(pt);
 	}
 }
 
@@ -461,6 +463,8 @@ void Inventory::mouseLUp(const Common::Point &pt) {
 				break;
 			}
 		}
+	} else {
+		engine->getScene()->mouseLUp(pt);
 	}
 }
 

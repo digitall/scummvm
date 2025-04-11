@@ -185,6 +185,16 @@ Widget *Widget::findWidgetInChain(Widget *w, const char *name) {
 	return nullptr;
 }
 
+Widget *Widget::findWidgetInChain(Widget *w, uint32 type) {
+	while (w) {
+		if (w->_type == type) {
+			return w;
+		}
+		w = w->_next;
+	}
+	return nullptr;
+}
+
 bool Widget::containsWidgetInChain(Widget *w, Widget *search) {
 	while (w) {
 		if (w == search || w->containsWidget(search))
@@ -264,9 +274,9 @@ uint8 Widget::parseHotkey(const Common::U32String &label) {
 Common::U32String Widget::cleanupHotkey(const Common::U32String &label) {
 	Common::U32String res("");
 
-	for (Common::U32String::const_iterator itr = label.begin(); itr != label.end(); itr++) {
-		if (*itr != '~') {
-			res += *itr;
+	for (const auto &itr : label) {
+		if (itr != '~') {
+			res += itr;
 		}
 	}
 

@@ -549,16 +549,27 @@ void ScummEngine_v5::o5_actorOps() {
 			// CD animation uses colors 1-3, where the floppy
 			// version uses 2, 3, and 9.
 			//
-			// We don't touch the colours in general - the Special
-			// edition have pretty much made them canon anyway -
-			// but for the Smirk close-up we want the same colors
-			// as the floppy version.
+			// So we have to adjust which colors are remapped. We
+			// also need to make sure they are remapped to the
+			// correct colors, because not only does the GUI occupy
+			// some colors, apparently the FM Towns version has a
+			// different palette altogether. So we look up the
+			// closest available color to the ones we want.
+			//
+			// We could use this to get back the original smoke
+			// colors for other scenes as well, but we currently do
+			// not. The Special Edition kept the new colors too.
 
 			if (_game.id == GID_MONKEY && _currentRoom == 76 && enhancementEnabled(kEnhVisualChanges)) {
 				if (i == 3)
 					i = 1;
 				else if (i == 9)
 					i = 3;
+
+				if (j == 3)
+					j = findClosestPaletteColor(_currentPalette, 256, 0, 171, 171);
+				else if (j == 7)
+					j = findClosestPaletteColor(_currentPalette, 256, 171, 171, 171);
 			}
 
 			// WORKAROUND for original bug. The original interpreter has a color fix for CGA mode which can be seen
@@ -690,6 +701,28 @@ void ScummEngine_v5::o5_add() {
 	int a;
 	getResultPos();
 	a = getVarOrDirectWord(PARAM_1);
+
+	// WORKAROUND: In the Sega CD version of MI1, there are some cases
+	// where conversation options are invisible. This is because where it
+	// thinks it's increasing Var[229] by a number of pixels, it's actually
+	// increasing it by a number of lines, pushing the text off-screen.
+	//
+	// We fix this by changing Var[229] += 8 to Var[229] += 1.
+
+	if (_game.id == GID_MONKEY && _game.platform == Common::kPlatformSegaCD && _resultVarNumber == 229 && a == 8 && enhancementEnabled(kEnhSubFmtCntChanges)) {
+		int scriptNr = vm.slot[_currentScript].number;
+
+		// Room 35 - Talking to the Men of Low Moral Fiber (pirates),
+		// telling them that the governor has been kidnapped. Two of
+		// the conversation options are off-screen.
+		//
+		// Room 19 - Talking to your crew aboard the ship. The last
+		// conversation option is off-screen.
+
+		if ((scriptNr == 216 && _currentRoom == 35) ||
+		    (scriptNr == 204 && _currentRoom == 19))
+			a = 1;
+	}
 
 	// WORKAROUND bug #994: This works around a script bug in LoomCD. To
 	// understand the reasoning behind this, compare script 210 and 218 in
@@ -1716,7 +1749,17 @@ void ScummEngine_v5::o5_notEqualZero() {
 			}
 		}
 	} else {
-		a = getVar();
+		int var = fetchScriptWord();
+		a = readVar(var);
+
+		// WORKAROUND: There is a message for when Guybrush first
+		// enters the hold where he remarks that the whole thing reeks
+		// of monkeys. But the way it's scripted, the message is only
+		// shown if it has already been shown.
+
+		if ((_game.id == GID_MONKEY || _game.id == GID_MONKEY_VGA || _game.id == GID_MONKEY_EGA) && _roomResource == 8 && vm.slot[_currentScript].number == 10002 && var == 0x8000 + 321 && enhancementEnabled(kEnhRestoredContent)) {
+			a = !a;
+		}
 	}
 
 	jumpRelative(a != 0);
@@ -2328,11 +2371,12 @@ void ScummEngine_v5::o5_roomOps() {
 			_opcode = fetchScriptByte();
 			d = getVarOrDirectByte(PARAM_1);
 
-			// WORKAROUND: The CD version of Monkey Island 1 will
-			// set a couple of default colors, presumably for the
-			// GUI to use. But in the close-up of captain Smirk,
-			// we want the original color 3 for the cigar smoke. It
-			// should be ok since there is no GUI in this scene.
+			// WORKAROUND: The CD versions of Monkey Island 1 may
+			// set a few colors, presumably for the GUI. But this is
+			// the close-up of captain Smirk, so it doesn't need all
+			// of those colors. Only the ones used by the dialog
+			// boxes and such. The others we may need for the cigar
+			// smoke.
 
 			if (_game.id == GID_MONKEY && _currentRoom == 76 && d == 3 && enhancementEnabled(kEnhVisualChanges)) {
 				// Do nothing
@@ -3328,7 +3372,7 @@ void ScummEngine_v5::decodeParseString() {
 			// requires changing the color of the background, not the
 			// text.
 			//
-			// See also the related Gdi::drawStrip() workaround.
+			// See also the related ScummEngine::startScene() workaround.
 
 			else if (_game.id == GID_MONKEY &&
 					!(_game.features & GF_ULTIMATE_TALKIE) &&

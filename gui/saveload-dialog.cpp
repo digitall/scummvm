@@ -948,8 +948,8 @@ void SaveLoadChooserGrid::open() {
 	if (_saveMode) {
 		int lastSlot = -1;
 		_nextFreeSaveSlot = -1;
-		for (SaveStateList::const_iterator x = _saveList.begin(); x != _saveList.end(); ++x) {
-			const int curSlot = x->getSaveSlot();
+		for (const auto &x : _saveList) {
+			const int curSlot = x.getSaveSlot();
 
 			// In case there was a gap found use the slot.
 			if (lastSlot + 1 < curSlot) {

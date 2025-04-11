@@ -427,11 +427,11 @@ static int detectVersion(Common::String gameID) {
 	} else if (gameID == "nupogodi3" && g_engine->getLanguage() == Common::CS_CZE) {
 		return 20031014;		// QDSCR_TEXT_DB = 184, d864cc279 (repo-vss)
 	} else if (gameID == "nupogodi3" && g_engine->getLanguage() == Common::LT_LTU) {
-		return 20031206;		// QDSCR_TEXT_DB = 185
+		return 20031206;		// QDSCR_TEXT_DB = 185, 6c43cda6bf
 	} else if (gameID == "pilots3") {
-		return 20040519;		// QDSCR_GAME_TITLE = 203
+		return 20040519;		// QDSCR_GAME_TITLE = 203, b34ca47148
 	} else if (gameID == "rybalka") {
-		return 20040601;		// QDSCR_GAME_TITLE = 206
+		return 20040601;		// QDSCR_GAME_TITLE = 206, 9e41b636f6c9
 	} else if (gameID == "pilots3d") {
 		return 20040601;		// QDSCR_GAME_TITLE = 206
 	} else if (gameID == "pilots3d-2") {
@@ -443,7 +443,7 @@ static int detectVersion(Common::String gameID) {
 	} else if (gameID == "3mice1" && (g_engine->getFeatures() & ADGF_DEMO)) {
 		return 20060129;		// QDSCR_SCREEN_TRANSFORM = 232
 	} else if (gameID == "3mice1") {
-		return 20060715;		// QDSCR_SCREEN_TRANSFORM = 232
+		return 20060715;		// QDSCR_SCREEN_TRANSFORM = 232, 54f9af2166
 	} else if (gameID == "shveik") {
 		return 20070503;		// QDSCR_GAME_TITLE = 231, QDSCR_RESOURCE_COMPRESSION = 243
 	} else if (gameID == "klepa") {
