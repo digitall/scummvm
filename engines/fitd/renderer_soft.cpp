@@ -78,7 +78,7 @@ struct State {
 
 	ClipMask clipMask;
 	Mask masks[NUM_MAX_MASKS];
-	uint16 numMasks = 0;
+	uint16 numMasks;
 };
 
 static State *_state = NULL;
@@ -122,11 +122,9 @@ Renderer createSoftwareRenderer() {
 
 static void renderer_init() {
 	_state = (State *)malloc(sizeof(State));
+	_state->numMasks = 0;
 	initGraphics(320, 200);
 	g_engine->_screen = new Graphics::Screen(320, 200);
-
-	memset(_state->tabVerticXmin, 0, sizeof(int16) * 200);
-	memset(_state->tabVerticXmax, 0, sizeof(int16) * 200);
 }
 
 static void renderer_deinit() {
@@ -224,13 +222,16 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte 
 
 static void renderer_setClip(float left, float top, float right, float bottom) {
 
-	_state->clipMask.x = left - 1;
-	_state->clipMask.y = top - 1;
-	_state->clipMask.w = right - left + 2;
-	_state->clipMask.h = bottom - top + 2;
+	_state->clipMask.x = left;
+	_state->clipMask.y = top;
+	_state->clipMask.w = right - left;
+	_state->clipMask.h = bottom - top;
 
-	_state->clipMask.x = MAX(_state->clipMask.x, (int16)0);
-	_state->clipMask.y = MAX(_state->clipMask.y, (int16)0);
+	_state->clipMask.x = CLIP(_state->clipMask.x, (int16)0, (int16)320);
+	_state->clipMask.y = CLIP(_state->clipMask.y, (int16)0, (int16)200);
+
+	_state->clipMask.w = CLIP(_state->clipMask.w, (int16)0, (int16)(320 - _state->clipMask.x));
+	_state->clipMask.h = CLIP(_state->clipMask.h, (int16)0, (int16)(200 - _state->clipMask.y));
 }
 
 static void renderer_clearClip() {
