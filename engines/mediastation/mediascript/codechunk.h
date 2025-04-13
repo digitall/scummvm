@@ -26,8 +26,7 @@
 #include "common/stream.h"
 
 #include "mediastation/datafile.h"
-#include "mediastation/mediascript/variable.h"
-#include "mediastation/mediascript/operand.h"
+#include "mediastation/mediascript/scriptvalue.h"
 #include "mediastation/mediascript/scriptconstants.h"
 
 namespace MediaStation {
@@ -37,19 +36,38 @@ public:
 	CodeChunk(Common::SeekableReadStream &chunk);
 	~CodeChunk();
 
-	Operand execute(Common::Array<Operand> *args = nullptr, Common::Array<Operand> *locals = nullptr);
-
-	static Operand callBuiltInMethod(BuiltInMethod method, Operand &self, Common::Array<Operand> &args);
+	ScriptValue executeNextBlock();
+	ScriptValue execute(Common::Array<ScriptValue> *args = nullptr);
 
 private:
-	Operand executeNextStatement();
-	Operand callFunction(uint functionId, uint parameterCount);
-	Operand getVariable(uint32 id, VariableScope scope);
-	void putVariable(uint32 id, VariableScope scope, Operand &value);
+	void skipNextBlock();
 
-	bool _weOwnLocals = false;
-	Common::Array<Operand> *_locals = nullptr;
-	Common::Array<Operand> *_args = nullptr;
+	ScriptValue evaluateExpression();
+	ScriptValue evaluateExpression(ExpressionType expressionType);
+	ScriptValue evaluateOperation();
+	ScriptValue evaluateValue();
+	ScriptValue evaluateVariable();
+
+	ScriptValue *readAndReturnVariable();
+
+	void evaluateIf();
+	void evaluateIfElse();
+	ScriptValue evaluateAssign();
+	ScriptValue evaluateBinaryOperation(Opcode op);
+	ScriptValue evaluateUnaryOperation();
+	ScriptValue evaluateFunctionCall(bool isIndirect = false);
+	ScriptValue evaluateFunctionCall(uint functionId, uint paramCount);
+	ScriptValue evaluateMethodCall(bool isIndirect = false);
+	ScriptValue evaluateMethodCall(BuiltInMethod method, uint paramCount);
+	void evaluateDeclareLocals();
+	ScriptValue evaluateReturn();
+	void evaluateReturnNoValue();
+	void evaluateWhileLoop();
+
+	static const uint MAX_LOOP_ITERATION_COUNT = 1000;
+	bool _returnImmediately = false;
+	Common::Array<ScriptValue> _locals;
+	Common::Array<ScriptValue> *_args = nullptr;
 	Common::SeekableReadStream *_bytecode = nullptr;
 };
 

@@ -63,11 +63,6 @@ MediaStationEngine::~MediaStationEngine() {
 		delete it->_value;
 	}
 	_loadedContexts.clear();
-
-	for (auto it = _variables.begin(); it != _variables.end(); ++it) {
-		delete it->_value;
-	}
-	_variables.clear();
 }
 
 Asset *MediaStationEngine::getAssetById(uint assetId) {
@@ -95,6 +90,16 @@ Function *MediaStationEngine::getFunctionById(uint functionId) {
 		Function *function = it->_value->getFunctionById(functionId);
 		if (function != nullptr) {
 			return function;
+		}
+	}
+	return nullptr;
+}
+
+ScriptValue *MediaStationEngine::getVariable(uint variableId) {
+	for (auto it = _loadedContexts.begin(); it != _loadedContexts.end(); ++it) {
+		ScriptValue *variable = it->_value->getVariable(variableId);
+		if (variable != nullptr) {
+			return variable;
 		}
 	}
 	return nullptr;
@@ -394,7 +399,9 @@ void MediaStationEngine::addPlayingAsset(Asset *assetToAdd) {
 	g_engine->_assetsPlaying.push_back(assetToAdd);
 }
 
-Operand MediaStationEngine::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args) {
+ScriptValue MediaStationEngine::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
+	ScriptValue returnValue;
+
 	switch (methodId) {
 	case kBranchToScreenMethod: {
 		assert(args.size() >= 1);
@@ -402,16 +409,16 @@ Operand MediaStationEngine::callMethod(BuiltInMethod methodId, Common::Array<Ope
 			// TODO: Figure out what the rest of the args can be.
 			warning("MediaStationEngine::callMethod(): branchToScreen got more than one arg");
 		}
-		uint32 contextId = args[0].getAssetId();
+		uint32 contextId = args[0].asAssetId();
 		_requestedScreenBranchId = contextId;
-		return Operand();
+		return returnValue;
 	}
 
 	case kReleaseContextMethod: {
 		assert(args.size() == 1);
-		uint32 contextId = args[0].getAssetId();
+		uint32 contextId = args[0].asAssetId();
 		_requestedContextReleaseId.push_back(contextId);
-		return Operand();
+		return returnValue;
 	}
 
 	default:
@@ -506,26 +513,27 @@ Asset *MediaStationEngine::findAssetToAcceptMouseEvents() {
 	return intersectingAsset;
 }
 
-Operand MediaStationEngine::callBuiltInFunction(BuiltInFunction function, Common::Array<Operand> &args) {
+ScriptValue MediaStationEngine::callBuiltInFunction(BuiltInFunction function, Common::Array<ScriptValue> &args) {
+	ScriptValue returnValue;
+
 	switch (function) {
 	case kEffectTransitionFunction:
 	case kEffectTransitionOnSyncFunction: {
 		// TODO: effectTransitionOnSync should be split out into its own function.
 		effectTransition(args);
-		return Operand();
+		return returnValue;
 	}
 
 	case kDrawingFunction: {
 		// Not entirely sure what this function does, but it seems like a way to
 		// call into some drawing functions built into the IBM/Crayola executable.
 		warning("MediaStationEngine::callBuiltInFunction(): Built-in drawing function not implemented");
-		return Operand();
+		return returnValue;
 	}
 
 	case kUnk1Function: {
 		warning("MediaStationEngine::callBuiltInFunction(): Function 10 not implemented");
-		Operand returnValue = Operand(kOperandTypeLiteral1);
-		returnValue.putInteger(1);
+		returnValue.setToFloat(1.0);
 		return returnValue;
 	}
 

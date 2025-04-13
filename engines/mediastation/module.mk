@@ -22,11 +22,11 @@ MODULE_OBJS = \
 	datafile.o \
 	datum.o \
 	mediascript/codechunk.o \
+	mediascript/collection.o \
 	mediascript/eventhandler.o \
 	mediascript/function.o \
-	mediascript/operand.o \
 	mediascript/scriptconstants.o \
-	mediascript/variable.o \
+	mediascript/scriptvalue.o \
 	mediastation.o \
 	metaengine.o \
 	transitions.o

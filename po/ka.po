@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 2.8.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2025-04-08 19:53+0000\n"
-"PO-Revision-Date: 2025-04-11 10:18+0000\n"
+"POT-Creation-Date: 2025-04-13 06:56+0000\n"
+"PO-Revision-Date: 2025-04-12 06:18+0000\n"
 "Last-Translator: NorwayFun <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <https://translations.scummvm.org/projects/scummvm/"
 "scummvm/ka/>\n"
@@ -5600,7 +5600,7 @@ msgstr ""
 
 #: engines/agi/metaengine.cpp:159
 msgid "Use Hercules hires font"
-msgstr ""
+msgstr "ფონტის Hercules გამოყენება"
 
 #: engines/agi/metaengine.cpp:160
 msgid "Uses Hercules hires font, when font file is available."
@@ -5608,7 +5608,7 @@ msgstr ""
 
 #: engines/agi/metaengine.cpp:171
 msgid "Pause when entering commands"
-msgstr ""
+msgstr "დაყოვნება ბრძანებების შეყვანისას"
 
 #: engines/agi/metaengine.cpp:172
 msgid ""
@@ -5754,7 +5754,7 @@ msgstr ""
 
 #: engines/agos/metaengine.cpp:88 engines/sci/detection_options.h:95
 msgid "Prefer digital sound effects"
-msgstr ""
+msgstr "უპირატესობის მინიჭება ციფრული ხმის ეფექტებისთვის"
 
 #: engines/agos/metaengine.cpp:89 engines/sci/detection_options.h:96
 msgid "Prefer digital sound effects instead of synthesized ones"
@@ -6150,7 +6150,7 @@ msgstr "Escape"
 msgid "Open inventory"
 msgstr "ინვენტარის გახსნა"
 
-#: engines/bbvs/metaengine.cpp:124 engines/dgds/metaengine.cpp:81
+#: engines/bbvs/metaengine.cpp:124 engines/dgds/metaengine.cpp:83
 #: engines/scumm/help.cpp:167 engines/scumm/help.cpp:231
 #: engines/tinsel/metaengine.cpp:300 engines/tsage/metaengine.cpp:206
 msgid "Look"
@@ -6352,7 +6352,7 @@ msgstr "KIA-ის მონაცემთა ბაზის გახსნ�
 #. and allows submitting a selected existing save game for deletion.
 #: engines/bladerunner/metaengine.cpp:282
 msgid "Delete Selected Saved Game"
-msgstr ""
+msgstr "მონიშნული შენახული თამაშის წაშლა"
 
 #. I18N: This keymap allows scrolling texts and lists upwards
 #: engines/bladerunner/metaengine.cpp:296
@@ -6374,7 +6374,7 @@ msgstr "სამხილის კონფიდენციალობი�
 #. In Blade Runner's official localizations, there is a description of this keymap
 #. on the KIA Help Page, under Keyboard Shortcuts. In the English version it is
 #. SAVE GAME
-#: engines/bladerunner/metaengine.cpp:330 engines/dgds/metaengine.cpp:73
+#: engines/bladerunner/metaengine.cpp:330 engines/dgds/metaengine.cpp:75
 #: engines/freescape/games/castle/castle.cpp:246
 #: engines/freescape/games/dark/dark.cpp:186
 #: engines/freescape/games/driller/driller.cpp:133
@@ -6387,7 +6387,7 @@ msgstr "თამაშის შენახვა"
 #. In Blade Runner's official localizations, there is a description of this keymap
 #. on the KIA Help Page, under Keyboard Shortcuts. In the English version it is
 #. LOAD GAME
-#: engines/bladerunner/metaengine.cpp:339 engines/dgds/metaengine.cpp:72
+#: engines/bladerunner/metaengine.cpp:339 engines/dgds/metaengine.cpp:74
 #: engines/freescape/games/castle/castle.cpp:251
 #: engines/freescape/games/dark/dark.cpp:191
 #: engines/freescape/games/driller/driller.cpp:138
@@ -6882,39 +6882,39 @@ msgstr "ბრძანების შეცვლა"
 msgid "Time Advance"
 msgstr "დროის გადაწევა"
 
-#: engines/dgds/metaengine.cpp:74
+#: engines/dgds/metaengine.cpp:76
 msgid "Toggle Menu"
 msgstr "მენიუს გადართვა"
 
-#: engines/dgds/metaengine.cpp:75
+#: engines/dgds/metaengine.cpp:77
 msgid "Toggle Clock"
 msgstr "საათის გადართვა"
 
-#: engines/dgds/metaengine.cpp:76
+#: engines/dgds/metaengine.cpp:78
 msgid "Next dialog / menu item"
 msgstr ""
 
-#: engines/dgds/metaengine.cpp:77
+#: engines/dgds/metaengine.cpp:79
 msgid "Previous dialog / menu item"
 msgstr "წინა დიალოგი / მენიუს პუნქტი"
 
-#: engines/dgds/metaengine.cpp:78
+#: engines/dgds/metaengine.cpp:80
 msgid "Next object"
 msgstr "შემდეგი ობიექტი"
 
-#: engines/dgds/metaengine.cpp:79
+#: engines/dgds/metaengine.cpp:81
 msgid "Previous object"
 msgstr "წინა ობიექტი"
 
-#: engines/dgds/metaengine.cpp:80
+#: engines/dgds/metaengine.cpp:82
 msgid "Pick up / Operate"
 msgstr "აღება / მართვა"
 
-#: engines/dgds/metaengine.cpp:82
+#: engines/dgds/metaengine.cpp:84
 msgid "Activate Inventory Object"
 msgstr "ინვენტარის ობიექტის გააქტიურება"
 
-#: engines/dgds/metaengine.cpp:85 engines/got/metaengine.cpp:90
+#: engines/dgds/metaengine.cpp:87 engines/got/metaengine.cpp:90
 msgid "Game Keys"
 msgstr "თამაშის მალსახმობები"
 
@@ -6995,7 +6995,7 @@ msgstr ""
 
 #: engines/dreamweb/metaengine.cpp:60
 msgid "Use bright palette mode"
-msgstr ""
+msgstr "კაშკაშა პალიტრის რეჟიმის გამოყენება"
 
 #: engines/dreamweb/metaengine.cpp:61
 msgid "Display graphics using the game's bright palette"
@@ -7035,7 +7035,7 @@ msgstr "დემო რეჟიმის გამორთვა"
 
 #: engines/freescape/metaengine.cpp:76
 msgid "Never activate demo mode"
-msgstr ""
+msgstr "დემო რეჟიმი არასდროს გააქტიურდეს"
 
 #: engines/freescape/metaengine.cpp:86
 msgid "Disable sensors"
@@ -7055,11 +7055,11 @@ msgstr "მოთამაშე ვერ გადავარდება"
 
 #: engines/freescape/metaengine.cpp:108
 msgid "Invert Y-axis on mouse"
-msgstr ""
+msgstr "Y ღერძის ინვერსია თაგუნაზე"
 
 #: engines/freescape/metaengine.cpp:109
 msgid "Use alternative camera controls"
-msgstr ""
+msgstr "კამერის ალტერნატიული კონტროლის გამოყენება"
 
 #: engines/freescape/metaengine.cpp:119
 msgid "Authentic graphics"
@@ -7429,7 +7429,7 @@ msgstr ""
 
 #: engines/grim/metaengine.cpp:37
 msgid "Load user patch (unsupported)"
-msgstr ""
+msgstr "მომხმარებლის პაჩის გამოყენება (მხარდაჭერილი არაა)"
 
 #: engines/grim/metaengine.cpp:38
 msgid ""
@@ -7720,7 +7720,7 @@ msgstr ""
 
 #: engines/hypno/metaengine.cpp:44
 msgid "Enable infinite health cheat"
-msgstr ""
+msgstr "უსასრულო სიცოცხლის ჩიტის ჩართვა"
 
 #: engines/hypno/metaengine.cpp:45
 msgid "Player health will never decrease (except for game over scenes)."
@@ -7728,7 +7728,7 @@ msgstr ""
 
 #: engines/hypno/metaengine.cpp:55
 msgid "Enable infinite ammo cheat"
-msgstr ""
+msgstr "უსასრულო ტყვიების ჩიტის ჩართვა"
 
 #: engines/hypno/metaengine.cpp:56
 msgid "Player ammo will never decrease."
@@ -7877,7 +7877,7 @@ msgstr ""
 #. I18N: L/R stands for Left/Right
 #: engines/kyra/metaengine.cpp:147
 msgid "Fight Button L/R Swap"
-msgstr ""
+msgstr "მარჯვენა/მარცხენა ბრძოლის ღილაკების მიმოცვლა"
 
 #: engines/kyra/metaengine.cpp:148
 msgid "Left button to attack, right button to pick up items"

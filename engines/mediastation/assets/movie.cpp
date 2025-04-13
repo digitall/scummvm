@@ -186,77 +186,81 @@ Movie::~Movie() {
 	_footers.clear();
 }
 
-Operand Movie::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args) {
+ScriptValue Movie::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
+	ScriptValue returnValue;
+
 	switch (methodId) {
 	case kTimePlayMethod: {
 		assert(args.empty());
 		timePlay();
-		return Operand();
+		return returnValue;
 	}
 
 	case kSpatialShowMethod: {
 		assert(args.empty());
 		spatialShow();
-		return Operand();
+		return returnValue;
 	}
 
 	case kTimeStopMethod: {
 		assert(args.empty());
 		timeStop();
-		return Operand();
+		return returnValue;
 	}
 
 	case kSpatialHideMethod: {
 		assert(args.empty());
 		spatialHide();
-		return Operand();
+		return returnValue;
 	}
 
 	case kIsVisibleMethod: {
 		assert(args.empty());
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(_isShowing);
+		returnValue.setToBool(_isShowing);
 		return returnValue;
 	}
 
 	case kSpatialCenterMoveToMethod: {
 		assert(args.size() == 2);
-		spatialCenterMoveTo(args[0].getInteger(), args[1].getInteger());
-		return Operand();
+		int x = static_cast<int>(args[0].asFloat());
+		int y = static_cast<int>(args[1].asFloat());
+		spatialCenterMoveTo(x, y);
+		return returnValue;
 	}
 
 	case kSpatialMoveToMethod: {
 		assert(args.size() == 2);
-		spatialMoveTo(args[0].getInteger(), args[1].getInteger());
-		return Operand();
+		int x = static_cast<int>(args[0].asFloat());
+		int y = static_cast<int>(args[1].asFloat());
+		spatialMoveTo(x, y);
+		return returnValue;
 	}
 
 	case kIsPlayingMethod: {
 		assert(args.empty());
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(static_cast<uint>(_isPlaying));
+		returnValue.setToBool(_isPlaying);
 		return returnValue;
 	}
 
 	case kXPositionMethod: {
 		assert(args.empty());
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(_header->_boundingBox->left);
+		double left = static_cast<double>(_header->_boundingBox->left);
+		returnValue.setToFloat(left);
 		return returnValue;
 
 	}
 
 	case kYPositionMethod: {
 		assert(args.empty());
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(_header->_boundingBox->top);
+		double top = static_cast<double>(_header->_boundingBox->top);
+		returnValue.setToFloat(top);
 		return returnValue;
 	}
 
 	case kSetDissolveFactorMethod: {
 		assert(args.size() == 1);
 		warning("Movie::callMethod(): setDissolveFactor not implemented yet");
-		return Operand();
+		return returnValue;
 	}
 
 	default:

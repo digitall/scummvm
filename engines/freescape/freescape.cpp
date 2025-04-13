@@ -489,14 +489,14 @@ void FreescapeEngine::resetInput() {
 	rotate(0, 0);
 }
 
-Common::Point FreescapeEngine::crossairPosToMousePos(const Common::Point crossairPos) {
+Common::Point FreescapeEngine::crossairPosToMousePos(const Common::Point &crossairPos) {
 	Common::Point mousePos;
 	mousePos.x = g_system->getWidth() * crossairPos.x / _screenW;
 	mousePos.y = g_system->getHeight() * crossairPos.y / _screenH;
 	return mousePos;
 }
 
-Common::Point FreescapeEngine::mousePosToCrossairPos(const Common::Point mousePos) {
+Common::Point FreescapeEngine::mousePosToCrossairPos(const Common::Point &mousePos) {
 	Common::Point crossairPos;
 	crossairPos.x = _screenW * mousePos.x / g_system->getWidth();
 	crossairPos.y = _screenH * mousePos.y / g_system->getHeight();
@@ -1088,7 +1088,7 @@ Common::Error FreescapeEngine::loadGameStreamExtended(Common::SeekableReadStream
 	return Common::kNoError;
 }
 
-void FreescapeEngine::insertTemporaryMessage(const Common::String message, int deadline) {
+void FreescapeEngine::insertTemporaryMessage(const Common::String &message, int deadline) {
 	_temporaryMessages.insert_at(0, message);
 	_temporaryMessageDeadlines.insert_at(0, deadline);
 }
@@ -1114,7 +1114,7 @@ byte *FreescapeEngine::getPaletteFromNeoImage(Common::SeekableReadStream *stream
 	Image::NeoDecoder decoder;
 	decoder.loadStream(*stream);
 	byte *palette = (byte *)malloc(16 * 3 * sizeof(byte));
-	memcpy(palette, decoder.getPalette(), 16 * 3 * sizeof(byte));
+	decoder.getPalette().grab(palette, 0, 16);
 	return palette;
 }
 
@@ -1124,7 +1124,7 @@ Graphics::ManagedSurface *FreescapeEngine::loadAndConvertNeoImage(Common::Seekab
 	decoder.loadStream(*stream);
 	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
 	surface->copyFrom(*decoder.getSurface());
-	surface->convertToInPlace(_gfx->_currentPixelFormat, decoder.getPalette(), decoder.getPaletteColorCount());
+	surface->convertToInPlace(_gfx->_currentPixelFormat, decoder.getPalette().data(), decoder.getPalette().size());
 	return surface;
 }
 
@@ -1133,7 +1133,7 @@ Graphics::ManagedSurface *FreescapeEngine::loadAndConvertDoodleImage(Common::See
 	decoder.loadStreams(*bitmap, *color1, *color2);
 	Graphics::ManagedSurface *surface = new Graphics::ManagedSurface();
 	surface->copyFrom(*decoder.getSurface());
-	surface->convertToInPlace(_gfx->_currentPixelFormat, decoder.getPalette(), decoder.getPaletteColorCount());
+	surface->convertToInPlace(_gfx->_currentPixelFormat, decoder.getPalette().data(), decoder.getPalette().size());
 	return surface;
 }
 

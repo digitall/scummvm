@@ -85,58 +85,59 @@ Sprite::~Sprite() {
 	_frames.clear();
 }
 
-Operand Sprite::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args) {
+ScriptValue Sprite::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
+	ScriptValue returnValue;
+
 	switch (methodId) {
 	case kSpatialShowMethod: {
 		assert(args.empty());
 		spatialShow();
-		return Operand();
+		return returnValue;
 	}
 
 	case kSpatialHideMethod: {
 		assert(args.empty());
 		spatialHide();
-		return Operand();
+		return returnValue;
 	}
 
 	case kTimePlayMethod: {
 		assert(args.empty());
 		timePlay();
-		return Operand();
+		return returnValue;
 	}
 
 	case kTimeStopMethod: {
 		assert(args.empty());
 		timeStop();
-		return Operand();
+		return returnValue;
 	}
 
 	case kMovieResetMethod: {
 		assert(args.empty());
 		movieReset();
-		return Operand();
+		return returnValue;
 	}
 
 	case kSetCurrentClipMethod: {
 		assert(args.size() <= 1);
-		if (args.size() == 1 && args[0].getInteger() != 0) {
-			error("Sprite::callMethod(): (%d) setClip() called with unhandled arg: %d", _header->_id, args[0].getInteger());
+		if (args.size() == 1 && args[0].asParamToken() != 0) {
+			error("Sprite::callMethod(): (%d) setClip() called with unhandled arg: %d", _header->_id, args[0].asParamToken());
 		}
 		setCurrentClip();
-		return Operand();
+		return returnValue;
 	}
 
 	case kSetSpriteFrameByIdMethod: {
 		assert(args.size() == 1);
-		uint32 externalFrameId = args[0].getInteger();
+		uint32 externalFrameId = args[0].asParamToken();
 		uint32 internalFrameId = _header->_spriteFrameMapping.getVal(externalFrameId);
 		showFrame(_frames[internalFrameId]);
-		return Operand();
+		return returnValue;
 	}
 
 	case kIsPlayingMethod: {
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(static_cast<int>(_isPlaying));
+		returnValue.setToBool(_isPlaying);
 		return returnValue;
 	}
 
@@ -149,8 +150,8 @@ Operand Sprite::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args)
 		}
 
 		// Update the location and mark the new location dirty.
-		int newXAdjust = args[0].getInteger();
-		int newYAdjust = args[1].getInteger();
+		int newXAdjust = static_cast<int>(args[0].asFloat());
+		int newYAdjust = static_cast<int>(args[1].asFloat());
 		if (_xAdjust != newXAdjust || _yAdjust != newYAdjust) {
 			debugC(5, kDebugGraphics, "Sprite::callMethod(): (%d) Moving sprite to (%d, %d)", _header->_id, newXAdjust, newYAdjust);
 			_xAdjust = newXAdjust;
@@ -160,7 +161,7 @@ Operand Sprite::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args)
 			}
 		}
 
-		return Operand();
+		return returnValue;
 	}
 
 	default:

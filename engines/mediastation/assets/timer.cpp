@@ -26,24 +26,25 @@
 
 namespace MediaStation {
 
-Operand Timer::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args) {
+ScriptValue Timer::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
+	ScriptValue returnValue;
+
 	switch (methodId) {
 	case kTimePlayMethod: {
 		assert(args.size() == 0);
 		timePlay();
-		return Operand();
+		return returnValue;
 	}
 
 	case kTimeStopMethod: {
 		assert(args.size() == 0);
 		timeStop();
-		return Operand();
+		return returnValue;
 	}
 
 	case kIsPlayingMethod: {
 		assert(args.size() == 0);
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(static_cast<int>(_isActive));
+		returnValue.setToBool(_isActive);
 		return returnValue;
 	}
 
@@ -68,9 +69,8 @@ void Timer::timePlay() {
 	// through each of the timer event handlers to figure it out?
 	_duration = 0;
 	for (EventHandler *timeEvent : _header->_timeHandlers) {
-		// TODO: Centralize this converstion to milliseconds, as the same logic
-		// is being used in several places.
-		double timeEventInFractionalSeconds = timeEvent->_argumentValue.u.f;
+		// Indeed float, not time.
+		double timeEventInFractionalSeconds = timeEvent->_argumentValue.asFloat();
 		uint timeEventInMilliseconds = timeEventInFractionalSeconds * 1000;
 		if (timeEventInMilliseconds > _duration) {
 			_duration = timeEventInMilliseconds;

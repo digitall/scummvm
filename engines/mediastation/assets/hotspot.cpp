@@ -68,39 +68,40 @@ bool Hotspot::isInside(const Common::Point &pointToCheck) {
 	return ((rcross % 2) == 1);
 }
 
-Operand Hotspot::callMethod(BuiltInMethod methodId, Common::Array<Operand> &args) {
+ScriptValue Hotspot::callMethod(BuiltInMethod methodId, Common::Array<ScriptValue> &args) {
+	ScriptValue returnValue;
+
 	switch (methodId) {
 	case kMouseActivateMethod: {
 		assert(args.empty());
 		_isActive = true;
 		g_engine->addPlayingAsset(this);
 		g_engine->_needsHotspotRefresh = true;
-		return Operand();
+		return returnValue;
 	}
 
 	case kMouseDeactivateMethod: {
 		assert(args.empty());
 		_isActive = false;
 		g_engine->_needsHotspotRefresh = true;
-		return Operand();
+		return returnValue;
 	}
 
 	case kIsActiveMethod: {
 		assert(args.empty());
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(static_cast<int>(_isActive));
+		returnValue.setToBool(_isActive);
 		return returnValue;
 	}
 
 	case kTriggerAbsXPositionMethod: {
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(g_engine->_mousePos.x);
+		double mouseX = static_cast<double>(g_engine->_mousePos.x);
+		returnValue.setToFloat(mouseX);
 		return returnValue;
 	}
 
 	case kTriggerAbsYPositionMethod: {
-		Operand returnValue(kOperandTypeLiteral1);
-		returnValue.putInteger(g_engine->_mousePos.y);
+		double mouseY = static_cast<double>(g_engine->_mousePos.y);
+		returnValue.setToFloat(mouseY);
 		return returnValue;
 	}
 
