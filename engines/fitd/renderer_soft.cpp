@@ -521,7 +521,6 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 		if (!clippedNum) {
 			return 0;
 		}
-		_state->polyMinY = 0;
 		hasBeenClipped = true;
 	}
 	if (_state->polyMaxY >= HEIGHT) {
@@ -529,11 +528,24 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 		if (!clippedNum) {
 			return 0;
 		}
-		_state->polyMaxY = (HEIGHT - 1);
 		hasBeenClipped = true;
 	}
 
 	if (hasBeenClipped) {
+		// search the new Ymin or Ymax
+		_state->polyMinY = 32767;
+		_state->polyMaxY = -32768;
+
+		for (int32 n = 0; n < clippedNum; ++n) {
+			if (polys[0][n].Y < _state->polyMinY) {
+				_state->polyMinY = polys[0][n].Y;
+			}
+
+			if (polys[0][n].Y > _state->polyMaxY) {
+				_state->polyMaxY = polys[0][n].Y;
+			}
+		}
+
 		if (_state->polyMinY >= _state->polyMaxY) {
 			return 0; // No valid polygon after clipping
 		}
