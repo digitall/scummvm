@@ -929,9 +929,114 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 		}
 		break;
 	}
-		// TODO:
-		// case 3: // marbre (ramp left to right)
-		// case 6: // marbre2 (ramp right to left)
+	case 3: // marbre (ramp left to right)
+	{
+		byte start = (color & 0x0F);
+		byte bank = color & 0xF0;
+		for (; y <= _state->polyMaxY; y++) {
+			int16 xMin = *pVerticXmin++;
+			const int16 xMax = *pVerticXmax++;
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
+
+			byte *pDest = pDestLine + xMin;
+
+			int32 step;
+			int32 dx = xMax - xMin;
+			float z = zMin;
+
+			if (dx == 0) {
+				if (z < zBuffer[xMin]) {
+					// just one
+					*pDest = bank | start;
+				}
+				pDest++;
+			} else if (dx > 0) {
+				step = 15 / (dx + 1);
+				color = start;
+
+				for (int16 x = xMin; x <= xMax; x++) {
+					if (z < zBuffer[x]) {
+						*pDest = bank | color;
+						zBuffer[x] = z;
+					}
+					color += step;
+					pDest++;
+					z += dz;
+				}
+			}
+
+			pDestLine += WIDTH;
+			zBuffer += WIDTH;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
+		}
+		break;
+	}
+	case 6: // marbre2 (ramp right to left)
+	{
+		byte start = (color & 0x0F);
+		byte bank = color & 0xF0;
+		for (; y <= _state->polyMaxY; y++) {
+			int16 xMin = *pVerticXmin++;
+			const int16 xMax = *pVerticXmax++;
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+			assert(zMin >= 0);
+			assert(zMin < 32000);
+			assert(zMax >= 0);
+			assert(zMax < 32000);
+
+			byte *pDest = pDestLine + xMin;
+
+			int32 step;
+			int32 dx = xMax - xMin;
+			float z = zMin;
+
+			if (dx == 0) {
+				if (z < zBuffer[xMin]) {
+					// just one
+					*pDest = bank | start;
+				}
+				pDest++;
+			} else if (dx > 0) {
+				step = 15 / (dx + 1);
+				color = start;
+
+				for (int16 x = xMin; x <= xMax; x++) {
+					if (z < zBuffer[x]) {
+						*pDest = bank | (15 - color);
+						zBuffer[x] = z;
+					}
+					color += step;
+					pDest++;
+					z += dz;
+				}
+			}
+
+			pDestLine += WIDTH;
+			zBuffer += WIDTH;
+			if (Debug && xMin <= xMax) {
+				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+				renderer_updateScreen();
+				readKeyboard();
+				if (g_engine->shouldQuit())
+					return;
+			}
+		}
+		break;
+	}
 	}
 }
 
