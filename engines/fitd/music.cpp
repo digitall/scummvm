@@ -20,9 +20,15 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/aitd2.h"
+#include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/music.h"
 #include "fitd/vars.h"
+#define HAS_YM3812 1
+#include "fitd/opl/fmopl.h"
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 
 namespace Fitd {
 bool g_gameUseCDA = false;
@@ -509,9 +515,8 @@ uint8 *currentMusicPtr3 = NULL;
 uint8 generalVolume = 0;
 
 void sendAdlib(int regIdx, int value) {
-	assert(0);
-	// YM3812Write(0, 0, regIdx);
-	// YM3812Write(0, 1, value);
+	YM3812Write(0, 0, regIdx);
+	YM3812Write(0, 1, value);
 }
 
 #define musicSync 1500
@@ -519,31 +524,30 @@ int musicTimer = 0;
 int nextUpdateTimer = musicSync;
 
 int musicUpdate(void *udata, uint8 *stream, int len) {
-	assert(0);
-	// if (OPLinitialized) {
-	// 	int fillStatus = 0;
+	if (OPLinitialized) {
+		int fillStatus = 0;
 
-	// 	while (fillStatus < len) {
-	// 		int timeBeforNextUpdate = nextUpdateTimer - musicTimer;
+		while (fillStatus < len) {
+			int timeBeforNextUpdate = nextUpdateTimer - musicTimer;
 
-	// 		if (timeBeforNextUpdate > (len - fillStatus)) {
-	// 			timeBeforNextUpdate = len - fillStatus;
-	// 		}
+			if (timeBeforNextUpdate > (len - fillStatus)) {
+				timeBeforNextUpdate = len - fillStatus;
+			}
 
-	// 		if (timeBeforNextUpdate) // generate
-	// 		{
-	// 			YM3812UpdateOne(0, (int16 *)(stream + fillStatus), (timeBeforNextUpdate) / 2);
-	// 			fillStatus += timeBeforNextUpdate;
-	// 			musicTimer += timeBeforNextUpdate;
-	// 		}
+			if (timeBeforNextUpdate) // generate
+			{
+				YM3812UpdateOne(0, (int16 *)(stream + fillStatus), (timeBeforNextUpdate) / 2);
+				fillStatus += timeBeforNextUpdate;
+				musicTimer += timeBeforNextUpdate;
+			}
 
-	// 		if (musicTimer == nextUpdateTimer) {
-	// 			callMusicUpdate();
+			if (musicTimer == nextUpdateTimer) {
+				callMusicUpdate();
 
-	// 			nextUpdateTimer += musicSync;
-	// 		}
-	// 	}
-	// }
+				nextUpdateTimer += musicSync;
+			}
+		}
+	}
 
 	return 0;
 }
@@ -673,27 +677,26 @@ int musicLoad(void *ptr) {
 }
 
 int initialialize(void *dummy) {
-	// TODO:
-	// int i;
+	int i;
 
-	// // OPLBuildTables(FMOPL_ENV_BITS_HQ, FMOPL_EG_ENT_HQ);
+	// OPLBuildTables(FMOPL_ENV_BITS_HQ, FMOPL_EG_ENT_HQ);
 
-	// YM3812Init(1, OPL_INTERNAL_FREQ, 44100);
-	// /*  virtualOpl = OPLCreate(OPL_TYPE_YM3812, OPL_INTERNAL_FREQ, 44100);
+	YM3812Init(1, OPL_INTERNAL_FREQ, 44100);
+	/*  virtualOpl = OPLCreate(OPL_TYPE_YM3812, OPL_INTERNAL_FREQ, 44100);
 
-	// if(!virtualOpl)
-	// return 0; */
+	if(!virtualOpl)
+	return 0; */
 
-	// for (i = 0; i < 11; i++) {
-	// 	channelTable2[i].var4 |= 0x20;
-	// 	channelTable2[i].var2->var4 |= 0x20;
+	for (i = 0; i < 11; i++) {
+		channelTable2[i].var4 |= 0x20;
+		channelTable2[i].var2->var4 |= 0x20;
 
-	// 	createDefaultChannel(i);
-	// }
+		createDefaultChannel(i);
+	}
 
-	// musicStart(NULL);
+	musicStart(NULL);
 
-	// OPLinitialized = 1;
+	OPLinitialized = 1;
 
 	return 0;
 }
@@ -1156,46 +1159,59 @@ int fadeMusic(int param1, int param2, int param3) {
 	return callMusicDrv(5, &fadeParam);
 }
 
+class AdLibStream : public Audio::AudioStream {
+public:
+	int readBuffer(int16 *buffer, const int numSamples) override {
+		// YM3812UpdateOne(0, buffer, numSamples);
+		musicUpdate(NULL, (uint8 *)buffer, numSamples * 2);
+		return numSamples;
+	}
+
+	bool isStereo() const override { return false; }
+	int getRate() const override { return 44100; }
+	bool endOfData() const override { return _end; }
+
+private:
+	bool _end = false;
+};
+
 void playMusic(int musicNumber) {
+	if (currentMusic == musicNumber)
+		return;
+
+	int trackNumber = musicNumber;
+
+	if (g_engine->getGameId() == GID_AITD2) {
+		trackNumber = AITD2MusicToTrackMapping[musicNumber];
+	}
+
 	// TODO:
-// 	if (currentMusic == musicNumber)
-// 		return;
+	// if (osystem_playTrack(trackNumber))
+	// 	return;
 
-// 	currentMusic = musicNumber;
+	//  if(musicEnabled)
+	{
+		if(currentMusic != trackNumber)
+		{
+			currentMusic = trackNumber;
 
-// 	int trackNumber = musicNumber;
+			if (trackNumber >= 0) {
+				fadeMusic(0, 0, 0x40);
 
-// if (g_engine->getGameId() == GID_AITD2) {
-// 	trackNumber = AITD2MusicToTrackMapping[musicNumber];
-// }
+				char* musicPtr = HQR_Get(listMus, trackNumber);
 
-// 	if (osystem_playTrack(trackNumber))
-// 		return;
+				if (musicPtr) {
+					loadMusic(0, musicPtr);
 
-// 	//  if(musicEnabled)
-// 	{
-// 		// if(currentMusic != musicNumber)
-// 		{
-// 			char *musicPtr;
-
-// 			currentMusic = musicNumber;
-
-// 			if (musicNumber >= 0) {
-// 				fadeMusic(0, 0, 0x40);
-
-// 				musicPtr = HQR_Get(listMus, musicNumber);
-
-// 				if (musicPtr) {
-// 					loadMusic(0, musicPtr);
-
-// 					fadeMusic(musicVolume, 0, 0x80);
-// #ifndef TARGET_OS_IPHONE
-// 					osystem_playAdlib();
-// #endif
-// 				}
-// 			}
-// 		}
-// 	}
+					fadeMusic(musicVolume, 0, 0x80);
+					// osystem_playAdlib();
+					Audio::SoundHandle handle;
+					AdLibStream *stream = new AdLibStream();
+					g_engine->_mixer->playStream(Audio::Mixer::kMusicSoundType, &handle, stream);
+				}
+			}
+		}
+	}
 }
 
 int updateLoop = 0;
@@ -1209,8 +1225,7 @@ void callMusicUpdate(void) {
 }
 
 void destroyMusicDriver(void) {
-	assert(0);
-	// YM3812Shutdown();
+	YM3812Shutdown();
 }
 
 } // namespace Fitd
