@@ -782,7 +782,8 @@ void executeMusicCommand(channelTable2Element *entry) {
 		entry->var18 = 0;
 	} else {
 		if (entry->var1A != entry->var1D) {
-			assert(0);
+			//assert(0);
+			warning("Issue in executeMusicCommand: entry->var1A != entry->var1D");
 		}
 
 		entry->varE--; // voice delay
