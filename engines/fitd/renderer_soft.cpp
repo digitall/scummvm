@@ -728,9 +728,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 			const float zMax = *pVerticZmax++;
 			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
 			assert(zMin >= 0);
-			assert(zMin < 32000);
 			assert(zMax >= 0);
-			assert(zMax < 32000);
 
 			byte *pDest = pDestLine + xMin;
 			float z = zMin;
@@ -1040,8 +1038,102 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	}
 }
 
-static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size) {
-	// TODO:
+static bool inCircle(int pX, int pY, int cX, int cY, float radius) {
+	int dx = ABS(pX - cX);
+	int dy = ABS(pY - cY);
+	return (dx * dx + dy * dy <= radius * radius);
+}
+
+static bool computeSphere(float sx, float sy, float sz, float radius) {
+	if (radius <= 0) {
+		return false;
+	}
+	int16 left = (int16)(sx - radius);
+	int16 right = (int16)(sx + radius);
+	int16 bottom = (int16)(sy + radius);
+	int16 top = (int16)(sy - radius);
+	const Common::Rect &clip = Common::Rect(0, 0, WIDTH - 1, HEIGHT - 1);
+	int16 cleft = clip.left;
+	int16 cright = clip.right;
+	int16 ctop = clip.top;
+	int16 cbottom = clip.bottom;
+
+	if (left < cleft) {
+		left = cleft;
+	}
+	if (bottom > cbottom) {
+		bottom = cbottom;
+	}
+	if (right > cright) {
+		right = cright;
+	}
+	if (top < ctop) {
+		top = ctop;
+	}
+
+	for (int16 y = top; y <= bottom; y++) {
+		_state->tabVerticXmin[y] = INT16_MAX;
+		_state->tabVerticXmax[y] = INT16_MIN;
+		_state->tabVerticZmin[y] = sz;
+		_state->tabVerticZmax[y] = sz;
+		bool inside = false;
+		for (int16 x = left; x <= right; x++) {
+			if (inCircle(x, y, sx, sy, radius)) {
+				inside = true;
+				_state->tabVerticXmin[y] = MIN(x, _state->tabVerticXmin[y]);
+				_state->tabVerticXmax[y] = MAX(x, _state->tabVerticXmax[y]);
+			}
+		}
+		if(!inside) {
+			_state->tabVerticXmin[y] = 0;
+			_state->tabVerticXmax[y] = 0;
+			_state->tabVerticZmin[y] = __FLT_MAX__;
+			_state->tabVerticZmax[y] = __FLT_MAX__;
+		}
+	}
+
+	_state->polyMinY = top;
+	_state->polyMaxY = bottom;
+
+	return true;
+}
+
+static void renderer_drawPoint(float sX, float sY, float sZ, uint8 color, uint8 material, float size) {
+	if (computeSphere(sX, sY, sZ, size)) {
+		int16 y = _state->polyMinY;
+		byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
+		const float *pVerticZmin = &_state->tabVerticZmin[y];
+		const float *pVerticZmax = &_state->tabVerticZmax[y];
+		float *zBuffer = &_state->zBuffer[y * WIDTH];
+		const int16 *xMins = &_state->tabVerticXmin[y];
+		const int16 *xMaxs = &_state->tabVerticXmax[y];
+
+		for (; y <= _state->polyMaxY; y++) {
+			const int16 xMin = *xMins++;
+			const int16 xMax = *xMaxs++;
+			assert(xMin >= 0);
+			assert(xMin < WIDTH);
+			assert(xMax >= 0);
+			assert(xMax < WIDTH);
+			float zMin = *pVerticZmin++;
+			const float zMax = *pVerticZmax++;
+			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+
+			byte *pDest = pDestLine + xMin;
+			float z = zMin;
+			for (int16 x = xMin; x <= xMax; x++) {
+				if (z < zBuffer[x]) {
+					*pDest = (byte)color;
+					zBuffer[x] = z;
+				}
+				pDest++;
+				z += dz;
+			}
+
+			pDestLine += WIDTH;
+			zBuffer += WIDTH;
+		}
+	}
 }
 
 static void renderer_updateScreen() {
