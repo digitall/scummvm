@@ -694,6 +694,242 @@ static int16 prepare_poly(const int16 *buffer, polyVertex *pTabPoly, int16 num) 
 	return num;
 }
 
+struct FlatRenderState {
+	byte color;
+} _flatState;
+
+static void none_nextLine(int16 xMin, int16 xMax) {
+}
+
+static void flat_init(byte c) {
+	_flatState.color = c;
+}
+
+static void flat_render(byte *dst) {
+	*dst = _flatState.color;
+}
+
+static void trans_init(byte c) {
+	_flatState.color = c;
+}
+
+static void trans_render(byte *dst) {
+	*dst = *dst | _flatState.color;
+}
+
+struct DitherRenderState {
+	int16 acc;
+	byte initColor;
+	uint16 color;
+} _ditherState;
+
+void dither_init(byte c) {
+	_ditherState.acc = 17371;
+	_ditherState.initColor = c;
+	_ditherState.color = c;
+}
+
+void dither_render(byte *dst) {
+	_ditherState.color = ((_ditherState.color + _ditherState.acc) & 0xFF03) + _ditherState.initColor;
+	_ditherState.acc = ROL16(_ditherState.acc, 2) + 1;
+
+	*dst = _ditherState.color;
+}
+
+struct MarbleRenderState {
+	byte start;
+	byte bank;
+	byte color;
+	int32 step;
+} _marbleState;
+
+void marble_init(byte c) {
+	_marbleState.start = (c & 0x0F);
+	_marbleState.bank = c & 0xF0;
+}
+
+void marble_nextLine(int16 xMin, int16 xMax) {
+	int32 dx = xMax - xMin;
+	_marbleState.step = 15 / (dx + 1);
+	_marbleState.color = _marbleState.start;
+}
+
+void marble_render(byte *dst) {
+	*dst = _marbleState.bank | _marbleState.color;
+	_marbleState.color += _marbleState.step;
+}
+
+void marble2_render(byte *dst) {
+	*dst = _marbleState.bank | (15 - _marbleState.color);
+	_marbleState.color += _marbleState.step;
+}
+
+struct CopperRenderState {
+	int8 sens;
+	byte color;
+} _copperState;
+
+void copper_init(byte c) {
+	_copperState.sens = 1;
+	_copperState.color = c - 1;
+}
+
+void copper_nextLine(int16 xMin, int16 xMax) {
+	_copperState.color += _copperState.sens;
+	if (!(_copperState.color & 0xF)) {
+		_copperState.sens = -_copperState.sens;
+		if (_copperState.sens < 0) {
+			_copperState.color += _copperState.sens;
+		}
+	}
+}
+
+void copper_render(byte *dst) {
+	*dst = _copperState.color;
+}
+
+struct Copper2RenderState {
+	int8 sens;
+	byte color;
+	int32 line;
+} _copper2State;
+
+void copper2_init(byte c) {
+	_copper2State.sens = 1;
+	_copper2State.color = c;
+	_copper2State.line = 2;
+}
+
+void copper2_nextLine(int16 xMin, int16 xMax) {
+	_copper2State.line--;
+	if (!_copper2State.line) {
+		_copper2State.line = 2;
+		_copper2State.color += _copper2State.sens;
+		if (!(_copper2State.color & 0xF)) {
+			_copper2State.sens = -_copper2State.sens;
+			if (_copper2State.sens < 0) {
+				_copper2State.color += _copper2State.sens;
+			}
+		}
+	}
+}
+
+void copper2_render(byte *dst) {
+	*dst = _copper2State.color;
+}
+
+struct MaterialRender {
+	void (*init)(byte color);
+	void (*render)(byte *dst);
+	void (*nextLine)(int16 xMin, int16 xMax);
+};
+
+static void render(byte color, uint8 polyType) {
+	assert(_state->polyMinY >= 0);
+	assert(_state->polyMaxY < HEIGHT);
+	int16 y = _state->polyMinY;
+	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
+	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
+	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
+	const float *pVerticZmin = &_state->tabVerticZmin[y];
+	const float *pVerticZmax = &_state->tabVerticZmax[y];
+	float *zBuffer = &_state->zBuffer[y * WIDTH];
+	MaterialRender matRender;
+
+	switch (polyType) {
+	case 0: {
+		// flat (triste)
+		matRender.init = flat_init;
+		matRender.render = flat_render;
+		matRender.nextLine = none_nextLine;
+		break;
+	}
+	case 1: {
+		// dither (pierre/tele)
+		matRender.init = dither_init;
+		matRender.render = dither_render;
+		matRender.nextLine = none_nextLine;
+		break;
+	}
+	case 2: {
+		// TODO: fix this, it should be drawn last
+		// trans
+		matRender.init = trans_init;
+		matRender.render = trans_render;
+		matRender.nextLine = none_nextLine;
+		break;
+	}
+	case 3: {
+		// marbre (ramp left to right)
+		matRender.init = marble_init;
+		matRender.render = marble_render;
+		matRender.nextLine = marble_nextLine;
+		break;
+	}
+	case 4: {
+		// copper (ramps top to bottom)
+		matRender.init = copper_init;
+		matRender.render = copper_render;
+		matRender.nextLine = copper_nextLine;
+		break;
+	}
+	case 5: {
+		// copper2 (ramps top to bottom, 2 scanline per color)
+		matRender.init = copper2_init;
+		matRender.render = copper2_render;
+		matRender.nextLine = copper2_nextLine;
+		break;
+	}
+	case 6: {
+		// marbre (ramp right to left)
+		matRender.init = marble_init;
+		matRender.render = marble2_render;
+		matRender.nextLine = marble_nextLine;
+		break;
+	}
+	default: {
+		// flat (triste)
+		matRender.init = flat_init;
+		matRender.render = flat_render;
+		matRender.nextLine = none_nextLine;
+		break;
+	}
+	}
+
+	matRender.init(color);
+	for (; y <= _state->polyMaxY; y++) {
+		int16 xMin = *pVerticXmin++;
+		const int16 xMax = *pVerticXmax++;
+		float zMin = *pVerticZmin++;
+		const float zMax = *pVerticZmax++;
+		float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+		assert(zMin >= 0);
+		assert(zMax >= 0);
+
+		byte *pDest = pDestLine + xMin;
+		float z = zMin;
+		matRender.nextLine(xMin, xMax);
+		for (int16 x = xMin; x <= xMax; x++) {
+			if (z < zBuffer[x]) {
+				matRender.render(pDest);
+				zBuffer[x] = z;
+			}
+			pDest++;
+			z += dz;
+		}
+
+		pDestLine += WIDTH;
+		zBuffer += WIDTH;
+		if (Debug && xMin <= xMax) {
+			g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+			renderer_updateScreen();
+			readKeyboard();
+			if (g_engine->shouldQuit())
+				return;
+		}
+	}
+}
+
 static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uint8 polyType) {
 	assert(numPoint < MAX_POINTS_PER_POLY);
 
@@ -706,336 +942,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	if (_state->polyMinY == _state->polyMaxY && _state->polyMinX == _state->polyMaxX)
 		return;
 
-	assert(_state->polyMinY >= 0);
-	assert(_state->polyMaxY < HEIGHT);
 	assert(_state->polyMinX >= 0);
 	assert(_state->polyMaxX < WIDTH);
-	int16 y = _state->polyMinY;
-	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
-	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
-	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
-	const float *pVerticZmin = &_state->tabVerticZmin[y];
-	const float *pVerticZmax = &_state->tabVerticZmax[y];
-	float *zBuffer = &_state->zBuffer[y * WIDTH];
-
-	switch (polyType) {
-	case 0: // flat (triste)
-	{
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMax >= 0);
-
-			byte *pDest = pDestLine + xMin;
-			float z = zMin;
-			for (int16 x = xMin; x <= xMax; x++) {
-				if (z < zBuffer[x]) {
-					*pDest = (byte)color;
-					zBuffer[x] = z;
-				}
-				pDest++;
-				z += dz;
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	case 1: // dither (pierre/tele)
-	{
-		int16 acc = 17371;
-
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMin < 32000);
-			assert(zMax >= 0);
-			assert(zMax < 32000);
-			byte col = xMin;
-
-			byte *pDest = pDestLine + xMin;
-			float z = zMin;
-			for (int16 x = xMin; x <= xMax; x++) {
-				col = ((col + acc) & 0xFF03) + (uint16)color;
-				acc = ROL16(acc, 2) + 1;
-				if (z < zBuffer[x]) {
-					*pDest = (byte)col;
-					zBuffer[x] = z;
-				}
-				pDest++;
-				z += dz;
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	case 2: // trans
-	{
-		// TODO: fix this, it should be drawn last
-		// actually, we should render all polygons in flush method and draw transparent polygons last
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMin < 32000);
-			assert(zMax >= 0);
-			assert(zMax < 32000);
-
-			byte *pDest = pDestLine + xMin;
-			float z = zMin;
-			for (int16 x = xMin; x <= xMax; x++) {
-				if (z < zBuffer[x]) {
-					*pDest = (byte)color | (*pDest & 0x0F);
-					zBuffer[x] = z;
-				}
-				pDest++;
-				z += dz;
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	case 4: // copper (ramps top to bottom)
-	{
-		int32 sens = 1;
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMin < 32000);
-			assert(zMax >= 0);
-			assert(zMax < 32000);
-
-			byte *pDest = pDestLine + xMin;
-			float z = zMin;
-			for (int16 x = xMin; x <= xMax; x++) {
-				if (z < zBuffer[x]) {
-					*pDest = (byte)color;
-					zBuffer[x] = z;
-				}
-				pDest++;
-				z += dz;
-			}
-
-			color += sens;
-			if (!(color & 0xF)) {
-				sens = -sens;
-				if (sens < 0) {
-					color += sens;
-				}
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	case 5: // copper2 (ramps top to bottom, 2 scanline per color)
-	{
-		int32 sens = 1;
-		int32 line = 2;
-
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMin < 32000);
-			assert(zMax >= 0);
-			assert(zMax < 32000);
-
-			byte *pDest = pDestLine + xMin;
-			float z = zMin;
-			for (int16 x = xMin; x <= xMax; x++) {
-				if (z < zBuffer[x]) {
-					*pDest++ = (byte)color;
-					zBuffer[x] = z;
-				}
-				z += dz;
-			}
-
-			line--;
-			if (!line) {
-				line = 2;
-				color += sens;
-				if (!(color & 0xF)) {
-					sens = -sens;
-					if (sens < 0) {
-						color += sens;
-					}
-				}
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	case 3: // marbre (ramp left to right)
-	{
-		byte start = (color & 0x0F);
-		byte bank = color & 0xF0;
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMin < 32000);
-			assert(zMax >= 0);
-			assert(zMax < 32000);
-
-			byte *pDest = pDestLine + xMin;
-
-			int32 step;
-			int32 dx = xMax - xMin;
-			float z = zMin;
-
-			if (dx == 0) {
-				if (z < zBuffer[xMin]) {
-					// just one
-					*pDest = bank | start;
-				}
-				pDest++;
-			} else if (dx > 0) {
-				step = 15 / (dx + 1);
-				color = start;
-
-				for (int16 x = xMin; x <= xMax; x++) {
-					if (z < zBuffer[x]) {
-						*pDest = bank | color;
-						zBuffer[x] = z;
-					}
-					color += step;
-					pDest++;
-					z += dz;
-				}
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	case 6: // marbre2 (ramp right to left)
-	{
-		byte start = (color & 0x0F);
-		byte bank = color & 0xF0;
-		for (; y <= _state->polyMaxY; y++) {
-			int16 xMin = *pVerticXmin++;
-			const int16 xMax = *pVerticXmax++;
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-			assert(zMin >= 0);
-			assert(zMin < 32000);
-			assert(zMax >= 0);
-			assert(zMax < 32000);
-
-			byte *pDest = pDestLine + xMin;
-
-			int32 step;
-			int32 dx = xMax - xMin;
-			float z = zMin;
-
-			if (dx == 0) {
-				if (z < zBuffer[xMin]) {
-					// just one
-					*pDest = bank | start;
-				}
-				pDest++;
-			} else if (dx > 0) {
-				step = 15 / (dx + 1);
-				color = start;
-
-				for (int16 x = xMin; x <= xMax; x++) {
-					if (z < zBuffer[x]) {
-						*pDest = bank | (15 - color);
-						zBuffer[x] = z;
-					}
-					color += step;
-					pDest++;
-					z += dz;
-				}
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-			if (Debug && xMin <= xMax) {
-				g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-				renderer_updateScreen();
-				readKeyboard();
-				if (g_engine->shouldQuit())
-					return;
-			}
-		}
-		break;
-	}
-	}
+	render(color, polyType);
 }
 
 static bool inCircle(int pX, int pY, int cX, int cY, float radius) {
@@ -1084,7 +993,7 @@ static bool computeSphere(float sx, float sy, float sz, float radius) {
 				_state->tabVerticXmax[y] = MAX(x, _state->tabVerticXmax[y]);
 			}
 		}
-		if(!inside) {
+		if (!inside) {
 			_state->tabVerticXmin[y] = 0;
 			_state->tabVerticXmax[y] = 0;
 			_state->tabVerticZmin[y] = __FLT_MAX__;
@@ -1100,39 +1009,7 @@ static bool computeSphere(float sx, float sy, float sz, float radius) {
 
 static void renderer_drawPoint(float sX, float sY, float sZ, uint8 color, uint8 material, float size) {
 	if (computeSphere(sX, sY, sZ, size)) {
-		int16 y = _state->polyMinY;
-		byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
-		const float *pVerticZmin = &_state->tabVerticZmin[y];
-		const float *pVerticZmax = &_state->tabVerticZmax[y];
-		float *zBuffer = &_state->zBuffer[y * WIDTH];
-		const int16 *xMins = &_state->tabVerticXmin[y];
-		const int16 *xMaxs = &_state->tabVerticXmax[y];
-
-		for (; y <= _state->polyMaxY; y++) {
-			const int16 xMin = *xMins++;
-			const int16 xMax = *xMaxs++;
-			assert(xMin >= 0);
-			assert(xMin < WIDTH);
-			assert(xMax >= 0);
-			assert(xMax < WIDTH);
-			float zMin = *pVerticZmin++;
-			const float zMax = *pVerticZmax++;
-			float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-
-			byte *pDest = pDestLine + xMin;
-			float z = zMin;
-			for (int16 x = xMin; x <= xMax; x++) {
-				if (z < zBuffer[x]) {
-					*pDest = (byte)color;
-					zBuffer[x] = z;
-				}
-				pDest++;
-				z += dz;
-			}
-
-			pDestLine += WIDTH;
-			zBuffer += WIDTH;
-		}
+		render(color, material);
 	}
 }
 
