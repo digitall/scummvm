@@ -25,11 +25,11 @@
 
 namespace Fitd {
 
-char* currentFoundBody;
+char *currentFoundBody;
 int currentFoundBodyIdx;
 int statusVar1;
 
-hqrEntryStruct* HQ_Memory;
+hqrEntryStruct *HQ_Memory;
 
 int videoMode;
 int musicConfigured;
@@ -37,28 +37,28 @@ int musicEnabled;
 int soundToggle;
 int detailToggle;
 
-char* aux;
-char* aux2;
-Common::Array<Common::Array<int16>> BufferAnim;
+char *aux;
+char *aux2;
+Common::Array<Common::Array<int16> > BufferAnim;
 
-char* logicalScreen;
+char *logicalScreen;
 
 int screenBufferSize;
 int unkScreenVar2;
 
 Common::Array<int16> CVars;
 
-char* PtrPrioritySample;
+char *PtrPrioritySample;
 
-char* PtrFont;
+char *PtrFont;
 
-char* PtrCadre;
+char *PtrCadre;
 
-unsigned char currentGamePalette[256*3];
+unsigned char currentGamePalette[256 * 3];
 
-//OSystem osystem;
+// OSystem osystem;
 
-char rgbaBuffer[320*200*4];
+char rgbaBuffer[320 * 200 * 4];
 
 unsigned int timer;
 unsigned int timeGlobal;
@@ -68,8 +68,8 @@ int WindowY1;
 int WindowX2;
 int WindowY2;
 
-textEntryStruct* tabTextes;
-char* systemTextes;
+textEntryStruct *tabTextes;
+char *systemTextes;
 
 char JoyD = 0;
 char Click = 0;
@@ -79,13 +79,20 @@ char localKey;
 char localJoyD;
 char localClick;
 
-const char *languageNameTable[LANGUAGE_NAME_SIZE] =
-	{
-		"FRANCAIS.PAK",
-		"ITALIANO.PAK",
-		"ENGLISH.PAK",
-		"ESPAGNOL.PAK",
-		"DEUTSCH.PAK",
+const char *languageNameTable[LANGUAGE_NAME_SIZE] = {
+	"FRANCAIS.PAK",
+	"ITALIANO.PAK",
+	"ENGLISH.PAK",
+	"ESPAGNOL.PAK",
+	"DEUTSCH.PAK",
+};
+
+const char *languageShortNameTable[LANGUAGE_NAME_SIZE] = {
+	"fr",
+	"it",
+	"en",
+	"es",
+	"de",
 };
 
 const char *languageNameString = NULL;
@@ -96,11 +103,11 @@ int turnPageFlag;
 
 int hqrKeyGen = 0;
 
-char* screenSm1;
-char* screenSm2;
-char* screenSm3;
-char* screenSm4;
-char* screenSm5;
+char *screenSm1;
+char *screenSm2;
+char *screenSm3;
+char *screenSm4;
+char *screenSm5;
 
 tObject objectTable[NUM_MAX_OBJECT];
 
@@ -108,17 +115,17 @@ int16 currentWorldTarget;
 
 int fileSize;
 
-hqrEntryStruct* listBody;
-hqrEntryStruct* listAnim;
-hqrEntryStruct* listLife;
-hqrEntryStruct* listTrack;
-hqrEntryStruct* listMatrix;
+hqrEntryStruct *listBody;
+hqrEntryStruct *listAnim;
+hqrEntryStruct *listLife;
+hqrEntryStruct *listTrack;
+hqrEntryStruct *listMatrix;
 
 int16 maxObjects;
 
 Common::Array<tWorldObject> ListWorldObjets;
 
-int16* vars;
+int16 *vars;
 
 int varSize;
 
@@ -144,25 +151,25 @@ int LastPriority;
 int LastSample;
 int16 statusScreenAllowed;
 
-char* g_currentFloorRoomRawData = NULL;
-char* g_currentFloorCameraRawData = NULL;
+char *g_currentFloorRoomRawData = NULL;
+char *g_currentFloorCameraRawData = NULL;
 
 int changeFloor;
 int16 currentCamera;
 int16 g_currentFloor;
 int needChangeRoom;
 
-char* cameraPtr;
-roomDefStruct* pCurrentRoomData;
+char *cameraPtr;
+roomDefStruct *pCurrentRoomData;
 
 int16 currentRoom;
 int flagInitView;
 int numCameraInRoom;
 int numCameraZone;
-char* cameraZoneData;
+char *cameraZoneData;
 int numRoomZone;
-char* roomZoneData;
-char* room_PtrCamera[NUM_MAX_CAMERA_IN_ROOM];
+char *roomZoneData;
+char *room_PtrCamera[NUM_MAX_CAMERA_IN_ROOM];
 int startGameVar1;
 
 int transformX;
@@ -193,13 +200,13 @@ char currentCameraVisibilityList[30];
 int actorTurnedToObj = 0;
 
 int currentProcessedActorIdx;
-tObject* currentProcessedActorPtr;
+tObject *currentProcessedActorPtr;
 
 int currentLifeActorIdx;
-tObject* currentLifeActorPtr;
+tObject *currentLifeActorPtr;
 int currentLifeNum;
 
-char* currentLifePtr;
+char *currentLifePtr;
 
 int16 readNextArgument(const char *name) {
 	int16 value = *(int16 *)(currentLifePtr);
@@ -241,9 +248,9 @@ int animStepX;
 int animStepZ;
 int animStepY;
 
-char* animVar1;
-char* animVar3;
-char* animVar4;
+char *animVar1;
+char *animVar3;
+char *animVar4;
 
 int16 newFloor;
 
@@ -254,9 +261,9 @@ char cameraBuffer2[256];
 char cameraBuffer3[400];
 char cameraBuffer4[400];
 
-char* cameraBufferPtr = cameraBuffer;
-char* cameraBuffer2Ptr = cameraBuffer2;
-char* cameraBuffer3Ptr = cameraBuffer3;
+char *cameraBufferPtr = cameraBuffer;
+char *cameraBuffer2Ptr = cameraBuffer2;
+char *cameraBuffer3Ptr = cameraBuffer3;
 
 int overlaySize1;
 int overlaySize2;
@@ -265,13 +272,11 @@ int bgOverlayVar1;
 
 int16 newRoom;
 
-
-
 int16 shakeVar1;
 int16 shakingAmplitude;
 unsigned int timerFreeze1;
 
-hardColStruct* hardColTable[10];
+hardColStruct *hardColTable[10];
 
 int16 hardColStepX;
 int16 hardColStepZ;
@@ -298,10 +303,10 @@ int clipTop = 0;
 int clipRight = 319;
 int clipBottom = 119;
 
-unsigned char* g_MaskPtr = NULL;
+unsigned char *g_MaskPtr = NULL;
 
-hqrEntryStruct* listMus;
-hqrEntryStruct* listSamp;
+hqrEntryStruct *listMus;
+hqrEntryStruct *listSamp;
 
 #if defined(FITD_DEBUGGER)
 backgroundModeEnum backgroundMode = backgroundModeEnum_2D;

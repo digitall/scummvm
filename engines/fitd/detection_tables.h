@@ -35,10 +35,10 @@ const FitdGameDescription gameDescriptions[] = {
 			"aitd1",
 			nullptr,
 			AD_ENTRY1s("LISTBOD2.PAK", "7c86683ab53991ad694ebffec56a8ea3", 268430),
-			Common::EN_ANY,
+			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
+			GUIO1(GUIO_NOMIDI)
 		},
 		GID_AITD1
 	},
@@ -47,10 +47,10 @@ const FitdGameDescription gameDescriptions[] = {
 			"jack",
 			nullptr,
 			AD_ENTRY1s("PERE.PAK", "6ae91d1842fc70f6f2c449016328fe31", 296437),
-			Common::EN_ANY,
+			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
+			GUIO1(GUIO_NOMIDI)
 		},
 		GID_JACK
 	},
@@ -59,10 +59,10 @@ const FitdGameDescription gameDescriptions[] = {
 			"aitd2",
 			nullptr,
 			AD_ENTRY1s("MER.PAK", "0b27a44028286f7b5aa99a744d601b09", 79049),
-			Common::EN_ANY,
+			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
+			GUIO1(GUIO_NOMIDI)
 		},
 		GID_AITD2
 	},
@@ -71,10 +71,10 @@ const FitdGameDescription gameDescriptions[] = {
 			"aitd3",
 			nullptr,
 			AD_ENTRY1s("AN1.PAK", "a9c4fbbc60042f6bdc4ca63d8f8badcd", 306902),
-			Common::EN_ANY,
+			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NONE)
+			GUIO1(GUIO_NOMIDI)
 		},
 		GID_AITD3
 	},
