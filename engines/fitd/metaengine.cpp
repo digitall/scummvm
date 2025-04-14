@@ -39,6 +39,7 @@ public:
 	bool hasFeature(MetaEngineFeature f) const override final;
 	void getSavegameThumbnail(Graphics::Surface &thumb) override final;
 	Common::Array<Common::Keymap *> initKeymaps(const char *target) const override final;
+	void registerDefaultSettings(const Common::String &) const override final;
 };
 
 const char *FitdMetaEngine::getName() const {
@@ -52,7 +53,7 @@ Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 
 bool FitdMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return checkExtendedSaves(f) ||
-		(f == kSupportsLoadingDuringStartup);
+		   (f == kSupportsLoadingDuringStartup);
 }
 
 void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
@@ -103,6 +104,10 @@ Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) 
 	}
 
 	return Common::Keymap::arrayOf(engineKeyMap);
+}
+
+void FitdMetaEngine::registerDefaultSettings(const Common::String &) const {
+	ConfMan.registerDefault("language", "en");
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(FITD)

@@ -335,6 +335,7 @@ extern char localClick;
 
 extern const char* languageNameString;
 extern const char* languageNameTable[];
+extern const char* languageShortNameTable[];
 
 extern regularTextEntryStruct textTable[40];
 

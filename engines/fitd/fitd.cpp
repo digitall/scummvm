@@ -149,9 +149,10 @@ void allocTextes(void) {
 	// 	languageNameString = "TEXTES.PAK";
 	// } else
 	{
+		Common::String lang(ConfMan.get("language"));
 		for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
 			Common::File f;
-			if (f.exists(languageNameTable[i])) {
+			if (lang == languageShortNameTable[i] && f.exists(languageNameTable[i])) {
 				languageNameString = languageNameTable[i];
 				break;
 			}
@@ -240,7 +241,6 @@ Common::Error FitdEngine::run() {
 	default:
 		break;
 	}
-
 
 	// Set the engine's debugger console
 	setDebugger(new Console());
