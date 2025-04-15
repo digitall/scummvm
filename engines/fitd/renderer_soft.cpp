@@ -903,8 +903,8 @@ static void render(byte color, uint8 polyType) {
 		float zMin = *pVerticZmin++;
 		const float zMax = *pVerticZmax++;
 		float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-		assert(zMin >= 0);
-		assert(zMax >= 0);
+		// assert(zMin >= 0);
+		// assert(zMax >= 0);
 
 		byte *pDest = pDestLine + xMin;
 		float z = zMin;

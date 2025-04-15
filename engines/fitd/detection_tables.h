@@ -38,7 +38,7 @@ const FitdGameDescription gameDescriptions[] = {
 			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GUIO_RENDERVGA)
 		},
 		GID_AITD1
 	},
@@ -50,7 +50,7 @@ const FitdGameDescription gameDescriptions[] = {
 			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GUIO_RENDERVGA)
 		},
 		GID_JACK
 	},
@@ -62,7 +62,7 @@ const FitdGameDescription gameDescriptions[] = {
 			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GUIO_RENDERVGA)
 		},
 		GID_AITD2
 	},
@@ -74,7 +74,7 @@ const FitdGameDescription gameDescriptions[] = {
 			Common::UNK_LANG,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
-			GUIO1(GUIO_NOMIDI)
+			GUIO2(GUIO_NOMIDI, GUIO_RENDERVGA)
 		},
 		GID_AITD3
 	},
