@@ -36,6 +36,7 @@
 #include "fitd/vars.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
+#include "common/rendermode.h"
 #include "common/scummsys.h"
 #include "common/util.h"
 #include "graphics/renderer.h"
@@ -115,39 +116,17 @@ int renderZ;
 Renderer renderer;
 byte frontBuffer[320 * 200];
 
-Graphics::RendererType determinateRenderType() {
-	Common::String rendererConfig = ConfMan.get("renderer");
-	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(rendererConfig);
-	Graphics::RendererType matchingRendererType = Graphics::Renderer::getBestMatchingAvailableType(
-		desiredRendererType,
-#if defined(USE_OPENGL_SHADERS)
-		Graphics::kRendererTypeOpenGLShaders |
-#endif
-			0);
-
-	if (matchingRendererType != desiredRendererType && desiredRendererType != Graphics::kRendererTypeDefault) {
-		// Display a warning if unable to use the desired renderer
-		warning("Unable to create a '%s' renderer", rendererConfig.c_str());
-	}
-
-#if defined(USE_OPENGL_SHADERS)
-	if (matchingRendererType == Graphics::kRendererTypeOpenGLShaders)
-		return matchingRendererType;
-#endif
-
-	return Graphics::kRendererTypeDefault;
-}
-
 void gfx_init() {
-	switch (determinateRenderType()) {
-	// TODO: later
-	// case Graphics::kRendererTypeOpenGLShaders:
-	// 	renderer = createOpenGLRenderer();
-	// 	break;
-	default:
+	Common::RenderMode configRenderMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
+#if defined(USE_OPENGL_SHADERS)
+	if (configRenderMode == Common::kRenderVGA || !g_system->hasFeature(OSystem::kFeatureShadersForGame)) {
 		renderer = createSoftwareRenderer();
-		break;
+	} else {
+		renderer = createOpenGLRenderer();
 	}
+#else
+	renderer = createSoftwareRenderer();
+#endif
 	renderer.init();
 }
 
