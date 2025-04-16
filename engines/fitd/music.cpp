@@ -20,6 +20,7 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
@@ -31,6 +32,35 @@
 #include "audio/mixer.h"
 
 namespace Fitd {
+// tracks availables: [0-7]
+// found: 0, 1, 5, 7
+// 0: game start (explore #1)
+// 1: monster 1 attack
+// 5: dead
+// 7: opening
+// available: 2, 3, 4, 6
+// 2: explore #2
+// 3: danube bleu
+// 4: danse macabre
+// 6: fin ?
+static int AITD1MusicToTrackMapping[15] = {
+	-1, // 0: ?
+	1,  // 1: ?
+	7,  // 2: opening
+	-1, // 3: ?
+	0,  // 4: game start
+	-1, // 5:
+	-1, // 6:
+	2,  // 7: explore #2
+	5,  // 8: dead
+	-1, // 9:
+	-1, // 10:
+	-1, // 11
+	1,  // 12: monster 1 attack
+	1,  // 13: monster 2 attack
+	1,  // 14: 3rd floor
+};
+
 bool g_gameUseCDA = false;
 
 int musicVolume = 0x7F;
@@ -514,6 +544,19 @@ uint8 *currentMusicPtr2 = NULL;
 uint8 *currentMusicPtr3 = NULL;
 uint8 generalVolume = 0;
 
+class AdLibStream : public Audio::AudioStream {
+public:
+	int readBuffer(int16 *buffer, const int numSamples) override {
+		// YM3812UpdateOne(0, buffer, numSamples);
+		musicUpdate(NULL, (uint8 *)buffer, numSamples * 2);
+		return numSamples;
+	}
+
+	bool isStereo() const override { return false; }
+	int getRate() const override { return 44100; }
+	bool endOfData() const override { return false; }
+};
+
 void sendAdlib(int regIdx, int value) {
 	YM3812Write(0, 0, regIdx);
 	YM3812Write(0, 1, value);
@@ -698,6 +741,10 @@ int initialialize(void *dummy) {
 
 	OPLinitialized = 1;
 
+	Audio::SoundHandle handle;
+	AdLibStream *stream = new AdLibStream();
+	g_engine->_mixer->playStream(Audio::Mixer::kMusicSoundType, &handle, stream);
+
 	return 0;
 }
 
@@ -782,7 +829,7 @@ void executeMusicCommand(channelTable2Element *entry) {
 		entry->var18 = 0;
 	} else {
 		if (entry->var1A != entry->var1D) {
-			//assert(0);
+			// assert(0);
 			warning("Issue in executeMusicCommand: entry->var1A != entry->var1D");
 		}
 
@@ -1160,55 +1207,37 @@ int fadeMusic(int param1, int param2, int param3) {
 	return callMusicDrv(5, &fadeParam);
 }
 
-class AdLibStream : public Audio::AudioStream {
-public:
-	int readBuffer(int16 *buffer, const int numSamples) override {
-		// YM3812UpdateOne(0, buffer, numSamples);
-		musicUpdate(NULL, (uint8 *)buffer, numSamples * 2);
-		return numSamples;
-	}
-
-	bool isStereo() const override { return false; }
-	int getRate() const override { return 44100; }
-	bool endOfData() const override { return _end; }
-
-private:
-	bool _end = false;
-};
-
 void playMusic(int musicNumber) {
 	if (currentMusic == musicNumber)
 		return;
 
 	int trackNumber = musicNumber;
 
-	if (g_engine->getGameId() == GID_AITD2) {
+	if (g_engine->getGameId() == GID_AITD1) {
+		if (musicNumber < 0 || musicNumber >= 15 || AITD1MusicToTrackMapping[musicNumber] == -1) {
+			debug("playMusic(%d) not implemented", musicNumber);
+			return;
+		}
+		trackNumber = AITD1MusicToTrackMapping[musicNumber];
+	} else if (g_engine->getGameId() == GID_AITD2) {
 		trackNumber = AITD2MusicToTrackMapping[musicNumber];
 	}
 
-	// TODO:
-	// if (osystem_playTrack(trackNumber))
-	// 	return;
-
-	//  if(musicEnabled)
+	// if (musicEnabled)
 	{
-		if(currentMusic != trackNumber)
-		{
+		if (currentMusic != trackNumber) {
 			currentMusic = trackNumber;
 
 			if (trackNumber >= 0) {
 				fadeMusic(0, 0, 0x40);
 
-				char* musicPtr = HQR_Get(listMus, trackNumber);
+				char *musicPtr = HQR_Get(listMus, trackNumber);
 
 				if (musicPtr) {
 					loadMusic(0, musicPtr);
 
 					fadeMusic(musicVolume, 0, 0x80);
 					// osystem_playAdlib();
-					Audio::SoundHandle handle;
-					AdLibStream *stream = new AdLibStream();
-					g_engine->_mixer->playStream(Audio::Mixer::kMusicSoundType, &handle, stream);
 				}
 			}
 		}
