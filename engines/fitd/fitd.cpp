@@ -39,6 +39,7 @@
 #include "fitd/tatou.h"
 #include "fitd/unpack.h"
 #include "fitd/vars.h"
+#include "audio/mixer.h"
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
@@ -247,12 +248,11 @@ Common::Error FitdEngine::run() {
 
 	setupScreen();
 
-	if (!initMusicDriver()) {
-		musicConfigured = 0;
-		musicEnabled = 0;
-		soundToggle = 0;
-		detailToggle = 0;
-	}
+	initMusicDriver();
+	musicConfigured = 1;
+	musicEnabled = _mixer->isSoundTypeMuted(Audio::Mixer::kMusicSoundType) ? 0 : 1;
+	soundToggle = _mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
+	detailToggle = 1;
 
 	aux = (char *)malloc(65068);
 	if (!aux) {
