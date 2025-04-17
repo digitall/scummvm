@@ -891,6 +891,24 @@ renderFunction renderFunctions[] = {
 	renderZixel,
 };
 
+/// @brief Sort primitives by material, the transparent primitives have to be last.
+/// @param prim1 First primitive to test.
+/// @param prim2 Second primitive to test.
+/// @return 0 if equals, -1 if primitive has to be first else 1.
+static int primCompare(const void *prim1, const void *prim2) {
+	const primEntryStruct *p1 = (const primEntryStruct *)prim1;
+	const primEntryStruct *p2 = (const primEntryStruct *)prim2;
+	if (p1->material == p2->material)
+		return 0;
+	if (p1->material == 2)
+		return 1;
+	if (p2->material == 2)
+		return -1;
+	if (p1->material > p2->material)
+		return -1;
+	return 1;
+}
+
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr) {
 	sBody *pBody = getBodyFromPtr(modelPtr);
 	char *ptr = (char *)modelPtr;
@@ -1025,6 +1043,9 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 
 #endif
 #endif
+	if(numOfPrimitiveToRender) {
+		qsort(primTable, numOfPrimitiveToRender, sizeof(primEntryStruct), primCompare);
+	}
 
 	//
 
