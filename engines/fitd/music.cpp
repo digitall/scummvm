@@ -33,32 +33,33 @@
 
 namespace Fitd {
 // tracks availables: [0-7]
-// found: 0, 1, 5, 7
-// 0: game start (explore #1)
-// 1: monster 1 attack
-// 5: dead
-// 7: opening
-// available: 2, 3, 4, 6
-// 2: explore #2
-// 3: danube bleu
-// 4: danse macabre
-// 6: fin ?
-static int AITD1MusicToTrackMapping[15] = {
-	-1, // 0: ?
-	1,  // 1: ?
-	7,  // 2: opening
-	-1, // 3: ?
-	0,  // 4: game start
-	-1, // 5:
-	-1, // 6:
-	2,  // 7: explore #2
-	5,  // 8: dead
-	-1, // 9:
-	-1, // 10:
-	-1, // 11
+// 0: Exploring derceto
+// 1: Evil approaches
+// 2: Suspense and intimidation
+// 3: Blue Danube
+// 4: Dance of Death
+// 5: Dead Opus Posthumous 69 Nr 1
+// 6: Ending
+// 7: intro sequence
+static int AITD1MusicToTrackMapping[18] = {
+	-1, // 00: ?
+	-1, // 01: ?
+	7,  // 02: intro sequence
+	-1, // 03: intro sequence (alternative)
+	0,  // 04: exploring (start)
+	-1, // 05: exploring (boomy)
+	-1, // 06: unused (eerie)
+	2,  // 07: exploring (ambient)
+	5,  // 08: dead
+	6,  // 09: good ending
+	-1, // 10: escape
+	-1, // 11: underground
 	1,  // 12: monster 1 attack
 	1,  // 13: monster 2 attack
-	1,  // 14: 3rd floor
+	1,  // 14: string cacophony (dangerous areas)
+	3,  // 15: Blue Danube
+	5,  // 16: Opus Posthumous 69 Nr 1
+	4,  // 17: Dance of Death
 };
 
 bool g_gameUseCDA = false;
@@ -1214,7 +1215,7 @@ void playMusic(int musicNumber) {
 	int trackNumber = musicNumber;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		if (musicNumber < 0 || musicNumber >= 15 || AITD1MusicToTrackMapping[musicNumber] == -1) {
+		if (musicNumber < 0 || musicNumber >= 18 || AITD1MusicToTrackMapping[musicNumber] == -1) {
 			debug("playMusic(%d) not implemented", musicNumber);
 			return;
 		}
