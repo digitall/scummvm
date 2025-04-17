@@ -836,6 +836,11 @@ static void render(byte color, uint8 polyType) {
 	float *zBuffer = &_state->zBuffer[y * WIDTH];
 	MaterialRender matRender;
 
+	if(!detailToggle) {
+		// if low details -> flat
+		polyType = 0;
+	}
+
 	switch (polyType) {
 	case 0: {
 		// flat (triste)
@@ -852,7 +857,6 @@ static void render(byte color, uint8 polyType) {
 		break;
 	}
 	case 2: {
-		// TODO: fix this, it should be drawn last
 		// trans
 		matRender.init = trans_init;
 		matRender.render = trans_render;
