@@ -91,6 +91,12 @@ void playSound(int num) {
 	g_engine->_mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, voc);
 }
 
+void makeBlackPalette() {
+	byte pal[256 * 3];
+	memset(pal, 0, 256 * 3);
+	gfx_setPalette(pal);
+}
+
 void paletteFill(void *palette, byte r, byte g, byte b) {
 	unsigned char *paletteLocal = (unsigned char *)palette;
 	int offset = 0;

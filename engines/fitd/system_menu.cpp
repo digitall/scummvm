@@ -113,7 +113,7 @@ void processSystemMenu(void) {
 	// pauseShaking();
 
 	if (lightOff) {
-		// makeBlackPalette();
+		makeBlackPalette();
 	}
 
 	// clearScreenSystemMenu(unkScreenVar,aux2);

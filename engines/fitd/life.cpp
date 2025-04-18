@@ -1535,16 +1535,13 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_2D_ANIM_SAMPLE: {
 				// appendFormated("LM_2D_ANIM_SAMPLE ");
-				// int sampleNumber;
-				// int animNumber;
-
-				// sampleNumber = evalVar();
-				// animNumber = *(int16 *)(currentLifePtr);
+				int sampleNumber = evalVar();
+				int16 animNumber = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
-				// frameNumber = *(int16 *)(currentLifePtr);
+				int16 frameNumber = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
 
-				// printf("LM_2D_ANIM_SAMPLE(sampleNumber %d, animNumber %d, frameNumber %d)\n", sampleNumber, animNumber, frameNumber);
+				debug("LM_2D_ANIM_SAMPLE(sampleNumber %d, animNumber %d, frameNumber %d)\n", sampleNumber, animNumber, frameNumber);
 
 				break; // TODO: implement
 			}
@@ -1683,6 +1680,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 					if (lightOff != lifeTempVar1) {
 						lightOff = lifeTempVar1;
 						lightVar2 = 1;
+
+						if(lightOff) {
+							makeBlackPalette();
+						}
 					}
 				}
 

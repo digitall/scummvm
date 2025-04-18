@@ -2193,7 +2193,7 @@ void mainDraw(int flagFlip) {
 	if (!lightOff) {
 		if (flagFlip) {
 			if (flagFlip == 2 || lightVar2) {
-				// makeBlackPalette();
+				makeBlackPalette();
 				osystem_flip(NULL);
 				fadeInPhys(0x10, 0);
 				lightVar2 = 0;
