@@ -206,7 +206,7 @@ void processInventory(void) {
 	// pauseShaking();
 
 	if (lightOff != 0) {
-		// makeBlackPalette();
+		makeBlackPalette();
 	}
 
 	switch (g_engine->getGameId()) {
