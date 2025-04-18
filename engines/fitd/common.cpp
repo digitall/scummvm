@@ -2183,7 +2183,11 @@ void mainDraw(int flagFlip) {
 	osystem_stopModelRender();
 
 	if (drawTextOverlay()) {
-		// addToRedrawBox();
+		gfx_copyBlockPhys((unsigned char *)logicalScreen, BBox3D1, BBox3D2, BBox3D3, BBox3D4);
+	} else {
+		// TODO: check if it's okay
+		fastCopyScreen(aux, logicalScreen);
+		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 	}
 
 	if (!lightOff) {
@@ -3161,20 +3165,17 @@ void startGame(int startupFloor, int startupRoom, int allowSystemMenu) {
 }
 
 static int drawTextOverlay(void) {
-	int var_14 = 0;
-	int var_10 = 183;
-	messageStruct *currentMessage;
+	int hasText = 0;
+	int y = 183;
 
 	BBox3D4 = 199;
 	BBox3D1 = 319;
 	BBox3D3 = 0;
 
-	currentMessage = messageTable;
+	messageStruct *currentMessage = messageTable;
 
 	if (lightOff == 0) {
-		int i;
-
-		for (i = 0; i < 5; i++) {
+		for (int i = 0; i < 5; i++) {
 			if (currentMessage->string) {
 				int width = currentMessage->string->width;
 				int X = 160 - width / 2;
@@ -3197,20 +3198,19 @@ static int drawTextOverlay(void) {
 						extSetFont(PtrFont, 16 + (currentMessage->time - 26) / 2);
 					}
 
-					renderText(X, var_10 + 1, logicalScreen, currentMessage->string->textPtr);
+					renderText(X, y + 1, logicalScreen, currentMessage->string->textPtr);
 				}
 
-				var_10 -= 16;
-				var_14 = 1;
+				y -= 16;
+				hasText = 1;
 			}
 
 			currentMessage++;
 		}
-	} else {
 	}
 
-	BBox3D2 = var_10;
-	return (var_14);
+	BBox3D2 = y;
+	return hasText;
 }
 
 void makeMessage(int messageIdx) {
