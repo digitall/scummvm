@@ -103,24 +103,24 @@ static void renderer_updateScreen();
 static Graphics::Surface *renderer_capture();
 
 Renderer createSoftwareRenderer() {
-	return Renderer{
-		.init = renderer_init,
-		.deinit = renderer_deinit,
-		.startFrame = renderer_startFrame,
-		.drawBackground = renderer_drawBackground,
-		.setPalette = renderer_setPalette,
-		.copyBlockPhys = renderer_copyBlockPhys,
-		.fillPoly = renderer_fillPoly,
-		.refreshFrontTextureBuffer = renderer_refreshFrontTextureBuffer,
-		.flushPendingPrimitives = renderer_flushPendingPrimitives,
-		.createMask = renderer_createMask,
-		.setClip = renderer_setClip,
-		.clearClip = renderer_clearClip,
-		.drawMask = renderer_drawMask,
-		.drawPoint = renderer_drawPoint,
-		.updateScreen = renderer_updateScreen,
-		.capture = renderer_capture,
-	};
+	Renderer r;
+	r.init = renderer_init;
+	r.deinit = renderer_deinit;
+	r.startFrame = renderer_startFrame;
+	r.drawBackground = renderer_drawBackground;
+	r.setPalette = renderer_setPalette;
+	r.copyBlockPhys = renderer_copyBlockPhys;
+	r.fillPoly = renderer_fillPoly;
+	r.refreshFrontTextureBuffer = renderer_refreshFrontTextureBuffer;
+	r.flushPendingPrimitives = renderer_flushPendingPrimitives;
+	r.createMask = renderer_createMask;
+	r.setClip = renderer_setClip;
+	r.clearClip = renderer_clearClip;
+	r.drawMask = renderer_drawMask;
+	r.drawPoint = renderer_drawPoint;
+	r.updateScreen = renderer_updateScreen;
+	r.capture = renderer_capture;
+	return r;
 }
 
 static void renderer_init() {

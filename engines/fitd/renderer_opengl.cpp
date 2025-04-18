@@ -36,7 +36,7 @@
 #define NUM_MAX_SPHERES_VERTICES 3000
 
 namespace Fitd {
-const char *bgVSSrc = R"(
+static const char *bgVSSrc = R"(
 		attribute vec2 a_position;
 		attribute vec2 a_texCoords;
 		varying vec2 v_texCoords;
@@ -45,7 +45,7 @@ const char *bgVSSrc = R"(
 			v_texCoords = a_texCoords;
 		})";
 
-const char *bgPSShader = R"(
+static const char *bgPSShader = R"(
 		varying vec2 v_texCoords;
 		uniform sampler2D u_background;
 		uniform sampler2D u_palette;
@@ -57,7 +57,7 @@ const char *bgPSShader = R"(
 			gl_FragColor = vec4(r, g, b, 1.0);
 		})";
 
-const char *flatVSSrc = R"(
+static const char *flatVSSrc = R"(
 		attribute vec3 a_position;
 		attribute vec2 a_texCoords;
 		varying vec2 v_texCoords;
@@ -68,7 +68,7 @@ const char *flatVSSrc = R"(
 			v_texCoords = a_texCoords;
 		})";
 
-const char *flatPSSrc = R"(
+static const char *flatPSSrc = R"(
 		varying vec2 v_texCoords;
 		uniform sampler2D u_palette;
 		void main()
@@ -83,7 +83,7 @@ const char *flatPSSrc = R"(
 			gl_FragColor.a = 1.0;
 		})";
 
-const char *noiseVSSrc = R"(
+static const char *noiseVSSrc = R"(
 			attribute vec3 a_position;
 			attribute vec2 a_texCoords;
 			varying vec2 v_position;
@@ -96,7 +96,7 @@ const char *noiseVSSrc = R"(
 				v_position = a_position.xy;
 			})";
 
-const char *noisePSSrc = R"(
+static const char *noisePSSrc = R"(
 		varying vec2 v_texCoords;
 		varying vec2 v_position;
 		uniform sampler2D u_palette;
@@ -113,7 +113,7 @@ const char *noisePSSrc = R"(
 			gl_FragColor.a = 1.0;
 		})";
 
-const char *rampPSSrc = R"(
+static const char *rampPSSrc = R"(
 		varying vec2 v_texCoords;
 		uniform sampler2D u_palette;
 		void main()
@@ -134,7 +134,7 @@ const char *rampPSSrc = R"(
 			gl_FragColor.a = 1.0;
 		})";
 
-const char *maskVSSrc = R"(
+static const char *maskVSSrc = R"(
 		attribute vec3 a_position;
 		attribute vec2 a_texCoords;
 		varying vec2 v_texCoords;
@@ -143,7 +143,7 @@ const char *maskVSSrc = R"(
 			v_texCoords = a_texCoords;
 		})";
 
-const char *maskPSSrc = R"(
+static const char *maskPSSrc = R"(
 		varying vec2 v_texCoords;
 		uniform sampler2D u_maskPalette;
 		uniform sampler2D u_palette;
@@ -161,7 +161,7 @@ const char *maskPSSrc = R"(
 			gl_FragColor.a = 0.5;
 		})";
 
-const char *sphereVSSrc = R"(
+static const char *sphereVSSrc = R"(
 		attribute vec3 a_position;
 		attribute vec2 a_texCoords;
 		attribute vec4 a_texCoords2;
@@ -177,7 +177,7 @@ const char *sphereVSSrc = R"(
 			v_screenSpacePosition = a_position.xyz;
 		})";
 
-const char *spherePSSrc = R"(
+static const char *spherePSSrc = R"(
 		varying vec2 v_texCoords;
 		varying vec4 v_sphereParams;
 		varying vec3 v_screenSpacePosition;
@@ -284,31 +284,33 @@ struct sphereVertex {
 	float material;
 };
 
-static polyVertex noiseVertices[NUM_MAX_NOISE_VERTICES];
-static polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
-static polyVertex transparentVertices[NUM_MAX_TRANSPARENT_VERTICES];
-static polyVertex rampVertices[NUM_MAX_RAMP_VERTICES];
-static sphereVertex sphereVertices[NUM_MAX_SPHERES_VERTICES];
-static int numUsedFlatVertices = 0;
-static int numUsedNoiseVertices = 0;
-static int numUsedTransparentVertices = 0;
-static int numUsedRampVertices = 0;
-static int numUsedSpheres = 0;
+static struct State {
+	polyVertex noiseVertices[NUM_MAX_NOISE_VERTICES];
+	polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
+	polyVertex transparentVertices[NUM_MAX_TRANSPARENT_VERTICES];
+	polyVertex rampVertices[NUM_MAX_RAMP_VERTICES];
+	sphereVertex sphereVertices[NUM_MAX_SPHERES_VERTICES];
+	int numUsedFlatVertices;
+	int numUsedNoiseVertices;
+	int numUsedTransparentVertices;
+	int numUsedRampVertices;
+	int numUsedSpheres;
+	GLuint g_backgroundTexture = 0;
+	GLuint g_paletteTexture = 0;
+	OpenGL::Shader *backgroundShader = NULL;
+	OpenGL::Shader *flatShader = NULL;
+	OpenGL::Shader *noiseShader = NULL;
+	OpenGL::Shader *rampShader = NULL;
+	OpenGL::Shader *maskShader = NULL;
+	OpenGL::Shader *sphereShader = NULL;
+	GLuint vbo = 0;
+	GLuint ebo = 0;
+	Common::Array<Common::Array<maskStruct> > maskTextures; // [room][mask]
+	byte physicalScreen[320 * 200];
+	byte physicalScreenRGB[320 * 200 * 3];
+	byte RGB_Pal[256 * 3];
 
-static GLuint g_backgroundTexture = 0;
-static GLuint g_paletteTexture = 0;
-static OpenGL::Shader *backgroundShader = NULL;
-static OpenGL::Shader *flatShader = NULL;
-static OpenGL::Shader *noiseShader = NULL;
-static OpenGL::Shader *rampShader = NULL;
-static OpenGL::Shader *maskShader = NULL;
-static OpenGL::Shader *sphereShader = NULL;
-static GLuint vbo = 0;
-static GLuint ebo = 0;
-static Common::Array<Common::Array<maskStruct> > maskTextures; // [room][mask]
-static byte physicalScreen[320 * 200];
-static byte physicalScreenRGB[320 * 200 * 3];
-static byte RGB_Pal[256 * 3];
+} *_state;
 
 static void renderer_init();
 static void renderer_deinit();
@@ -328,35 +330,54 @@ static void renderer_updateScreen();
 static Graphics::Surface *renderer_capture();
 
 Renderer createOpenGLRenderer() {
-	return Renderer{
-		.init = renderer_init,
-		.deinit = renderer_deinit,
-		.startFrame = renderer_startFrame,
-		.drawBackground = renderer_drawBackground,
-		.setPalette = renderer_setPalette,
-		.copyBlockPhys = renderer_copyBlockPhys,
-		.fillPoly = renderer_fillPoly,
-		.refreshFrontTextureBuffer = renderer_refreshFrontTextureBuffer,
-		.flushPendingPrimitives = renderer_flushPendingPrimitives,
-		.createMask = renderer_createMask,
-		.setClip = renderer_setClip,
-		.clearClip = renderer_clearClip,
-		.drawMask = renderer_drawMask,
-		.drawPoint = renderer_drawPoint,
-		.updateScreen = renderer_updateScreen,
-		.capture = renderer_capture,
-	};
+	Renderer r;
+	r.init = renderer_init;
+	r.deinit = renderer_deinit;
+	r.startFrame = renderer_startFrame;
+	r.drawBackground = renderer_drawBackground;
+	r.setPalette = renderer_setPalette;
+	r.copyBlockPhys = renderer_copyBlockPhys;
+	r.fillPoly = renderer_fillPoly;
+	r.refreshFrontTextureBuffer = renderer_refreshFrontTextureBuffer;
+	r.flushPendingPrimitives = renderer_flushPendingPrimitives;
+	r.createMask = renderer_createMask;
+	r.setClip = renderer_setClip;
+	r.clearClip = renderer_clearClip;
+	r.drawMask = renderer_drawMask;
+	r.drawPoint = renderer_drawPoint;
+	r.updateScreen = renderer_updateScreen;
+	r.capture = renderer_capture;
+	return r;
 }
 
 static void renderer_init() {
 	initGraphics3d(320 * 4, 200 * 4);
 
-	GL_CALL(glGenBuffers(1, &vbo));
-	GL_CALL(glGenBuffers(1, &ebo));
+	_state = (State *)malloc(sizeof(State));
+	_state->numUsedFlatVertices = 0;
+	_state->numUsedNoiseVertices = 0;
+	_state->numUsedTransparentVertices = 0;
+	_state->numUsedRampVertices = 0;
+	_state->numUsedSpheres = 0;
+	_state->g_backgroundTexture = 0;
+	_state->g_paletteTexture = 0;
+	_state->g_backgroundTexture = 0;
+	_state->g_paletteTexture = 0;
+	_state->backgroundShader = NULL;
+	_state->flatShader = NULL;
+	_state->noiseShader = NULL;
+	_state->rampShader = NULL;
+	_state->maskShader = NULL;
+	_state->sphereShader = NULL;
+	_state->vbo = 0;
+	_state->ebo = 0;
+
+	GL_CALL(glGenBuffers(1, &_state->vbo));
+	GL_CALL(glGenBuffers(1, &_state->ebo));
 
 	// create background texture
-	GL_CALL(glGenTextures(1, &g_backgroundTexture));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_backgroundTexture));
+	GL_CALL(glGenTextures(1, &_state->g_backgroundTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
@@ -365,8 +386,8 @@ static void renderer_init() {
 	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, 0));
 
 	// create palette texture
-	GL_CALL(glGenTextures(1, &g_paletteTexture));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+	GL_CALL(glGenTextures(1, &_state->g_paletteTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
@@ -375,69 +396,70 @@ static void renderer_init() {
 	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 3, 256, 0, GL_RED, GL_UNSIGNED_BYTE, 0));
 
 	// create background shader
-	backgroundShader = new OpenGL::Shader();
+	_state->backgroundShader = new OpenGL::Shader();
 	const char *attributes[] = {"a_position", "a_texCoords", nullptr};
-	backgroundShader->loadFromStrings("backgroundShader", bgVSSrc, bgPSShader, attributes, 110);
-	backgroundShader->enableVertexAttribute("a_position", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (uint32)0);
-	backgroundShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (uint32)(2 * sizeof(float)));
-	backgroundShader->use();
-	GL_CALL(glUniform1i(backgroundShader->getUniformLocation("u_background"), 0));
-	GL_CALL(glUniform1i(backgroundShader->getUniformLocation("u_palette"), 1));
+	_state->backgroundShader->loadFromStrings("backgroundShader", bgVSSrc, bgPSShader, attributes, 110);
+	_state->backgroundShader->enableVertexAttribute("a_position", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (uint32)0);
+	_state->backgroundShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (uint32)(2 * sizeof(float)));
+	_state->backgroundShader->use();
+	GL_CALL(glUniform1i(_state->backgroundShader->getUniformLocation("u_background"), 0));
+	GL_CALL(glUniform1i(_state->backgroundShader->getUniformLocation("u_palette"), 1));
 
 	// create flat shader
-	flatShader = new OpenGL::Shader();
-	flatShader->loadFromStrings("flatShader", flatVSSrc, flatPSSrc, attributes, 110);
-	flatShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	flatShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
-	flatShader->use();
-	GL_CALL(glUniform1i(flatShader->getUniformLocation("u_palette"), 0));
+	_state->flatShader = new OpenGL::Shader();
+	_state->flatShader->loadFromStrings("flatShader", flatVSSrc, flatPSSrc, attributes, 110);
+	_state->flatShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
+	_state->flatShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	_state->flatShader->use();
+	GL_CALL(glUniform1i(_state->flatShader->getUniformLocation("u_palette"), 0));
 
 	// create noise shader
-	noiseShader = new OpenGL::Shader();
-	noiseShader->loadFromStrings("flatShader", noiseVSSrc, noisePSSrc, attributes, 110);
-	noiseShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	noiseShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
-	noiseShader->use();
-	GL_CALL(glUniform1i(noiseShader->getUniformLocation("u_palette"), 0));
+	_state->noiseShader = new OpenGL::Shader();
+	_state->noiseShader->loadFromStrings("flatShader", noiseVSSrc, noisePSSrc, attributes, 110);
+	_state->noiseShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
+	_state->noiseShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	_state->noiseShader->use();
+	GL_CALL(glUniform1i(_state->noiseShader->getUniformLocation("u_palette"), 0));
 
 	// create ramp shader
-	rampShader = new OpenGL::Shader();
-	rampShader->loadFromStrings("rampShader", flatVSSrc, rampPSSrc, attributes, 110);
-	rampShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	rampShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
-	rampShader->use();
-	GL_CALL(glUniform1i(rampShader->getUniformLocation("u_palette"), 0));
+	_state->rampShader = new OpenGL::Shader();
+	_state->rampShader->loadFromStrings("rampShader", flatVSSrc, rampPSSrc, attributes, 110);
+	_state->rampShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
+	_state->rampShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	_state->rampShader->use();
+	GL_CALL(glUniform1i(_state->rampShader->getUniformLocation("u_palette"), 0));
 
 	// create mask shader
-	maskShader = new OpenGL::Shader();
-	maskShader->loadFromStrings("maskShader", maskVSSrc, maskPSSrc, attributes, 110);
-	maskShader->use();
-	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_maskPalette"), 0));
-	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_palette"), 1));
-	GL_CALL(glUniform1i(maskShader->getUniformLocation("u_background"), 2));
+	_state->maskShader = new OpenGL::Shader();
+	_state->maskShader->loadFromStrings("maskShader", maskVSSrc, maskPSSrc, attributes, 110);
+	_state->maskShader->use();
+	GL_CALL(glUniform1i(_state->maskShader->getUniformLocation("u_maskPalette"), 0));
+	GL_CALL(glUniform1i(_state->maskShader->getUniformLocation("u_palette"), 1));
+	GL_CALL(glUniform1i(_state->maskShader->getUniformLocation("u_background"), 2));
 
 	// create sphere shader
 	const char *sphere_attributes[] = {"a_position", "a_texCoords", "a_texCoords2", nullptr};
-	sphereShader = new OpenGL::Shader();
-	sphereShader->loadFromStrings("sphereShader", sphereVSSrc, spherePSSrc, sphere_attributes, 110);
-	sphereShader->enableVertexAttribute("a_position", vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)0);
-	sphereShader->enableVertexAttribute("a_texCoords", vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(3 * sizeof(float)));
-	sphereShader->enableVertexAttribute("a_texCoords2", vbo, 4, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(5 * sizeof(float)));
-	sphereShader->use();
-	GL_CALL(glUniform1i(sphereShader->getUniformLocation("u_palette"), 0));
+	_state->sphereShader = new OpenGL::Shader();
+	_state->sphereShader->loadFromStrings("sphereShader", sphereVSSrc, spherePSSrc, sphere_attributes, 110);
+	_state->sphereShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)0);
+	_state->sphereShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(3 * sizeof(float)));
+	_state->sphereShader->enableVertexAttribute("a_texCoords2", _state->vbo, 4, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(5 * sizeof(float)));
+	_state->sphereShader->use();
+	GL_CALL(glUniform1i(_state->sphereShader->getUniformLocation("u_palette"), 0));
 }
 
 static void renderer_deinit() {
-	GL_CALL(glDeleteTextures(1, &g_backgroundTexture));
-	GL_CALL(glDeleteTextures(1, &g_paletteTexture));
-	GL_CALL(glDeleteBuffers(1, &ebo));
-	GL_CALL(glDeleteBuffers(1, &vbo));
-	delete backgroundShader;
-	delete flatShader;
-	delete noiseShader;
-	delete rampShader;
-	delete maskShader;
-	delete sphereShader;
+	GL_CALL(glDeleteTextures(1, &_state->g_backgroundTexture));
+	GL_CALL(glDeleteTextures(1, &_state->g_paletteTexture));
+	GL_CALL(glDeleteBuffers(1, &_state->ebo));
+	GL_CALL(glDeleteBuffers(1, &_state->vbo));
+	delete _state->backgroundShader;
+	delete _state->flatShader;
+	delete _state->noiseShader;
+	delete _state->rampShader;
+	delete _state->maskShader;
+	delete _state->sphereShader;
+	free(_state);
 }
 
 static void renderer_startFrame() {
@@ -456,33 +478,33 @@ static void renderer_drawBackground() {
 		0, 3, 1};
 	assert(sizeof(Vertex) == 4 * sizeof(float));
 
-	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
 	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 4, vertices, GL_STREAM_DRAW));
-	GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo));
+	GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _state->ebo));
 	GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * 6, indices, GL_STREAM_DRAW));
 
-	backgroundShader->use();
+	_state->backgroundShader->use();
 
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_backgroundTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
 	GL_CALL(glActiveTexture(GL_TEXTURE1));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
 	GL_CALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-	backgroundShader->unbind();
+	_state->backgroundShader->unbind();
 }
 
 static void renderer_setPalette(const byte *palette) {
-	memcpy(RGB_Pal, palette, 256 * 3);
+	memcpy(_state->RGB_Pal, palette, 256 * 3);
 
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
-	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 3, 256, GL_RED, GL_UNSIGNED_BYTE, RGB_Pal));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
+	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 3, 256, GL_RED, GL_UNSIGNED_BYTE, _state->RGB_Pal));
 }
 
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom) {
-	unsigned char *out = physicalScreenRGB;
+	unsigned char *out = _state->physicalScreenRGB;
 	unsigned char *in = (unsigned char *)&videoBuffer[0] + left + top * 320;
 
 	int i;
@@ -498,147 +520,147 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 
 	for (i = top; i < bottom; i++) {
 		in = (unsigned char *)&videoBuffer[0] + left + i * 320;
-		unsigned char *out2 = physicalScreen + left + i * 320;
+		unsigned char *out2 = _state->physicalScreen + left + i * 320;
 		for (j = left; j < right; j++) {
 			unsigned char color = *(in++);
 
-			*(out++) = RGB_Pal[color * 3];
-			*(out++) = RGB_Pal[color * 3 + 1];
-			*(out++) = RGB_Pal[color * 3 + 2];
+			*(out++) = _state->RGB_Pal[color * 3];
+			*(out++) = _state->RGB_Pal[color * 3 + 1];
+			*(out++) = _state->RGB_Pal[color * 3 + 2];
 
 			*(out2++) = color;
 		}
 	}
 
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_backgroundTexture));
-	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, physicalScreen));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
+	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, _state->physicalScreen));
 }
 
 static void renderer_refreshFrontTextureBuffer() {
-	byte *out = physicalScreenRGB;
-	byte *in = physicalScreen;
+	byte *out = _state->physicalScreenRGB;
+	byte *in = _state->physicalScreen;
 
 	for (int i = 0; i < 200 * 320; i++) {
 		unsigned char color = *(in++);
-		*(out++) = RGB_Pal[color * 3];
-		*(out++) = RGB_Pal[color * 3 + 1];
-		*(out++) = RGB_Pal[color * 3 + 2];
+		*(out++) = _state->RGB_Pal[color * 3];
+		*(out++) = _state->RGB_Pal[color * 3 + 1];
+		*(out++) = _state->RGB_Pal[color * 3 + 2];
 	}
 
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_backgroundTexture));
-	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, physicalScreen));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
+	GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 200, GL_RED, GL_UNSIGNED_BYTE, _state->physicalScreen));
 }
 
 static void renderer_flushPendingPrimitives() {
-	if (numUsedFlatVertices) {
+	if (_state->numUsedFlatVertices) {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
-		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * numUsedFlatVertices, flatVertices, GL_STREAM_DRAW));
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * _state->numUsedFlatVertices, _state->flatVertices, GL_STREAM_DRAW));
 
-		flatShader->use();
+		_state->flatShader->use();
 
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
-		GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
-		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, numUsedFlatVertices));
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, _state->numUsedFlatVertices));
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-		flatShader->unbind();
+		_state->flatShader->unbind();
 
 		glDisable(GL_DEPTH_TEST);
-		numUsedFlatVertices = 0;
+		_state->numUsedFlatVertices = 0;
 	}
 
-	if (numUsedNoiseVertices) {
+	if (_state->numUsedNoiseVertices) {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
-		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * numUsedNoiseVertices, noiseVertices, GL_STREAM_DRAW));
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * _state->numUsedNoiseVertices, _state->noiseVertices, GL_STREAM_DRAW));
 
-		noiseShader->use();
+		_state->noiseShader->use();
 
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
-		GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
-		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, numUsedNoiseVertices));
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, _state->numUsedNoiseVertices));
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-		noiseShader->unbind();
+		_state->noiseShader->unbind();
 
 		glDisable(GL_DEPTH_TEST);
-		numUsedNoiseVertices = 0;
+		_state->numUsedNoiseVertices = 0;
 	}
 
-	if (numUsedRampVertices) {
+	if (_state->numUsedRampVertices) {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
-		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * numUsedRampVertices, rampVertices, GL_STREAM_DRAW));
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(polyVertex) * _state->numUsedRampVertices, _state->rampVertices, GL_STREAM_DRAW));
 
-		rampShader->use();
+		_state->rampShader->use();
 
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
-		GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D,_state-> g_paletteTexture));
 
-		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, numUsedRampVertices));
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, _state->numUsedRampVertices));
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-		rampShader->unbind();
+		_state->rampShader->unbind();
 
 		glDisable(GL_DEPTH_TEST);
 
-		numUsedRampVertices = 0;
+		_state->numUsedRampVertices = 0;
 	}
 
-	if (numUsedSpheres) {
+	if (_state->numUsedSpheres) {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 
-		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(sphereVertex) * numUsedSpheres, sphereVertices, GL_STREAM_DRAW));
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->vbo));
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(sphereVertex) * _state->numUsedSpheres, _state->sphereVertices, GL_STREAM_DRAW));
 
-		sphereShader->use();
+		_state->sphereShader->use();
 
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
-		GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
-		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, numUsedSpheres));
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, _state->numUsedSpheres));
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-		sphereShader->unbind();
+		_state->sphereShader->unbind();
 
 		glDisable(GL_DEPTH_TEST);
 
-		numUsedSpheres = 0;
+		_state->numUsedSpheres = 0;
 	}
 
-	numUsedTransparentVertices = 0;
+	_state->numUsedTransparentVertices = 0;
 }
 
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
-	if (maskTextures.size() < roomId + 1) {
-		maskTextures.resize(roomId + 1);
+	if (_state->maskTextures.size() < roomId + 1) {
+		_state->maskTextures.resize(roomId + 1);
 	}
-	if (maskTextures[roomId].size() < maskId + 1) {
-		maskTextures[roomId].resize(maskId + 1);
-	}
-
-	if (maskTextures[roomId][maskId].maskTexture) {
-		glDeleteTextures(1, &maskTextures[roomId][maskId].maskTexture);
-		maskTextures[roomId][maskId].maskTexture = 0;
+	if (_state->maskTextures[roomId].size() < maskId + 1) {
+		_state->maskTextures[roomId].resize(maskId + 1);
 	}
 
-	if (maskTextures[roomId][maskId].vertexBuffer) {
-		glDeleteBuffers(1, &maskTextures[roomId][maskId].vertexBuffer);
-		maskTextures[roomId][maskId].vertexBuffer = 0;
+	if (_state->maskTextures[roomId][maskId].maskTexture) {
+		glDeleteTextures(1, &_state->maskTextures[roomId][maskId].maskTexture);
+		_state->maskTextures[roomId][maskId].maskTexture = 0;
 	}
 
-	GL_CALL(glGenTextures(1, &maskTextures[roomId][maskId].maskTexture));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, maskTextures[roomId][maskId].maskTexture));
+	if (_state->maskTextures[roomId][maskId].vertexBuffer) {
+		glDeleteBuffers(1, &_state->maskTextures[roomId][maskId].vertexBuffer);
+		_state->maskTextures[roomId][maskId].vertexBuffer = 0;
+	}
+
+	GL_CALL(glGenTextures(1, &_state->maskTextures[roomId][maskId].maskTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->maskTextures[roomId][maskId].maskTexture));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
@@ -646,20 +668,20 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsig
 	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
 	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, mask));
 
-	maskTextures[roomId][maskId].maskX1 = maskX1;
-	maskTextures[roomId][maskId].maskX2 = maskX2 + 1;
-	maskTextures[roomId][maskId].maskY1 = maskY1;
-	maskTextures[roomId][maskId].maskY2 = maskY2 + 1;
+	_state->maskTextures[roomId][maskId].maskX1 = maskX1;
+	_state->maskTextures[roomId][maskId].maskX2 = maskX2 + 1;
+	_state->maskTextures[roomId][maskId].maskY1 = maskY1;
+	_state->maskTextures[roomId][maskId].maskY2 = maskY2 + 1;
 
 	struct sVertice {
 		float position[3];
 		float texcoord[2];
 	} vertexBuffer[4];
 
-	float X1 = maskTextures[roomId][maskId].maskX1;
-	float X2 = maskTextures[roomId][maskId].maskX2;
-	float Y1 = maskTextures[roomId][maskId].maskY1;
-	float Y2 = maskTextures[roomId][maskId].maskY2;
+	float X1 = _state->maskTextures[roomId][maskId].maskX1;
+	float X2 = _state->maskTextures[roomId][maskId].maskX2;
+	float Y1 = _state->maskTextures[roomId][maskId].maskY1;
+	float Y2 = _state->maskTextures[roomId][maskId].maskY2;
 
 	float maskZ = 0.f;
 
@@ -688,8 +710,8 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsig
 	pVertices->texcoord[0] = X2 / 320.f;
 	pVertices->texcoord[1] = Y1 / 200.f;
 
-	GL_CALL(glGenBuffers(1, &maskTextures[roomId][maskId].vertexBuffer));
-	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, maskTextures[roomId][maskId].vertexBuffer));
+	GL_CALL(glGenBuffers(1, &_state->maskTextures[roomId][maskId].vertexBuffer));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->maskTextures[roomId][maskId].vertexBuffer));
 	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(sVertice) * 4, vertexBuffer, GL_STREAM_DRAW));
 }
 
@@ -717,32 +739,32 @@ static void renderer_drawMask(int roomId, int maskId) {
 	if (g_engine->getGameId() == GID_TIMEGATE)
 		return;
 
-	if (!maskTextures[roomId][maskId].maskTexture)
+	if (!_state->maskTextures[roomId][maskId].maskTexture)
 		return;
 
-	if (!maskTextures[roomId][maskId].vertexBuffer)
+	if (!_state->maskTextures[roomId][maskId].vertexBuffer)
 		return;
 
 	glDepthMask(GL_FALSE);
-	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, maskTextures[roomId][maskId].vertexBuffer));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->maskTextures[roomId][maskId].vertexBuffer));
 
-	maskShader->enableVertexAttribute("a_position", maskTextures[roomId][maskId].vertexBuffer, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)0);
-	maskShader->enableVertexAttribute("a_texCoords", maskTextures[roomId][maskId].vertexBuffer, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)(3 * sizeof(float)));
-	maskShader->use();
+	_state->maskShader->enableVertexAttribute("a_position", _state->maskTextures[roomId][maskId].vertexBuffer, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)0);
+	_state->maskShader->enableVertexAttribute("a_texCoords", _state->maskTextures[roomId][maskId].vertexBuffer, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)(3 * sizeof(float)));
+	_state->maskShader->use();
 
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, maskTextures[roomId][maskId].maskTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->maskTextures[roomId][maskId].maskTexture));
 
 	GL_CALL(glActiveTexture(GL_TEXTURE1));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_paletteTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
 	GL_CALL(glActiveTexture(GL_TEXTURE2));
-	GL_CALL(glBindTexture(GL_TEXTURE_2D, g_backgroundTexture));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
 
 	GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-	maskShader->unbind();
+	_state->maskShader->unbind();
 	glDepthMask(GL_TRUE);
 }
 
@@ -785,9 +807,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	default:
 	case 0: // flat (triste)
 	{
-		polyVertex *pVertex = &flatVertices[numUsedFlatVertices];
-		numUsedFlatVertices += (numPoint - 2) * 3;
-		assert(numUsedFlatVertices < NUM_MAX_FLAT_VERTICES);
+		polyVertex *pVertex = &_state->flatVertices[_state->numUsedFlatVertices];
+		_state->numUsedFlatVertices += (numPoint - 2) * 3;
+		assert(_state->numUsedFlatVertices < NUM_MAX_FLAT_VERTICES);
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
@@ -812,9 +834,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	}
 	case 1: // dither (pierre/tele)
 	{
-		polyVertex *pVertex = &noiseVertices[numUsedNoiseVertices];
-		numUsedNoiseVertices += (numPoint - 2) * 3;
-		assert(numUsedNoiseVertices < NUM_MAX_NOISE_VERTICES);
+		polyVertex *pVertex = &_state->noiseVertices[_state->numUsedNoiseVertices];
+		_state->numUsedNoiseVertices += (numPoint - 2) * 3;
+		assert(_state->numUsedNoiseVertices < NUM_MAX_NOISE_VERTICES);
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
@@ -839,9 +861,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	}
 	case 2: // trans
 	{
-		polyVertex *pVertex = &transparentVertices[numUsedTransparentVertices];
-		numUsedTransparentVertices += (numPoint - 2) * 3;
-		assert(numUsedTransparentVertices < NUM_MAX_TRANSPARENT_VERTICES);
+		polyVertex *pVertex = &_state->transparentVertices[_state->numUsedTransparentVertices];
+		_state->numUsedTransparentVertices += (numPoint - 2) * 3;
+		assert(_state->numUsedTransparentVertices < NUM_MAX_TRANSPARENT_VERTICES);
 
 		for (int i = 0; i < numPoint; i++) {
 			if (i >= 3) {
@@ -855,9 +877,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			pVertex->R = RGB_Pal[color * 3];
-			pVertex->G = RGB_Pal[color * 3 + 1];
-			pVertex->B = RGB_Pal[color * 3 + 2];
+			pVertex->R = _state->RGB_Pal[color * 3];
+			pVertex->G = _state->RGB_Pal[color * 3 + 1];
+			pVertex->B = _state->RGB_Pal[color * 3 + 2];
 			pVertex->A = 128;
 			pVertex++;
 		}
@@ -866,9 +888,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	case 4: // copper (ramps top to bottom)
 	case 5: // copper2 (ramps top to bottom, 2 scanline per color)
 	{
-		polyVertex *pVertex = &rampVertices[numUsedRampVertices];
-		numUsedRampVertices += (numPoint - 2) * 3;
-		assert(numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
+		polyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
+		_state->numUsedRampVertices += (numPoint - 2) * 3;
+		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
 		int bank = (color & 0xF0) >> 4;
 		int startColor = color & 0xF;
@@ -899,9 +921,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	}
 	case 3: // marbre (ramp left to right)
 	{
-		polyVertex *pVertex = &rampVertices[numUsedRampVertices];
-		numUsedRampVertices += (numPoint - 2) * 3;
-		assert(numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
+		polyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
+		_state->numUsedRampVertices += (numPoint - 2) * 3;
+		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
 		float colorStep = 15.f / polyWidth;
 
@@ -932,9 +954,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	}
 	case 6: // marbre2 (ramp right to left)
 	{
-		polyVertex *pVertex = &rampVertices[numUsedRampVertices];
-		numUsedRampVertices += (numPoint - 2) * 3;
-		assert(numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
+		polyVertex *pVertex = &_state->rampVertices[_state->numUsedRampVertices];
+		_state->numUsedRampVertices += (numPoint - 2) * 3;
+		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
 		float colorStep = 15.f / polyWidth;
 
@@ -989,9 +1011,9 @@ static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 mat
 		0, 2, 3};
 
 	for (int i = 0; i < 2 * 3; i++) {
-		sphereVertex *pVertex = &sphereVertices[numUsedSpheres];
-		numUsedSpheres++;
-		assert(numUsedSpheres < NUM_MAX_SPHERES_VERTICES);
+		sphereVertex *pVertex = &_state->sphereVertices[_state->numUsedSpheres];
+		_state->numUsedSpheres++;
+		assert(_state->numUsedSpheres < NUM_MAX_SPHERES_VERTICES);
 
 		pVertex->X = corners[mapping[i]].X;
 		pVertex->Y = corners[mapping[i]].Y;
