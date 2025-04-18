@@ -126,6 +126,7 @@ Renderer createSoftwareRenderer() {
 static void renderer_init() {
 	_state = (State *)malloc(sizeof(State));
 	_state->numMasks = 0;
+	renderer_clearClip();
 	initGraphics(WIDTH, HEIGHT);
 	g_engine->_screen = new Graphics::Screen(WIDTH, HEIGHT);
 }
@@ -233,8 +234,8 @@ static void renderer_setClip(float left, float top, float right, float bottom) {
 	_state->clipMask.x = CLIP(_state->clipMask.x, (int16)0, (int16)WIDTH);
 	_state->clipMask.y = CLIP(_state->clipMask.y, (int16)0, (int16)HEIGHT);
 
-	_state->clipMask.w = CLIP(_state->clipMask.w, (int16)0, (int16)(WIDTH - _state->clipMask.x));
-	_state->clipMask.h = CLIP(_state->clipMask.h, (int16)0, (int16)(HEIGHT - _state->clipMask.y));
+	_state->clipMask.w = CLIP(_state->clipMask.w, (int16)0, (int16)(WIDTH - _state->clipMask.x - 1));
+	_state->clipMask.h = CLIP(_state->clipMask.h, (int16)0, (int16)(HEIGHT - _state->clipMask.y - 1));
 }
 
 static void renderer_clearClip() {
@@ -505,7 +506,6 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 		if (!clippedNum) {
 			return 0;
 		}
-		_state->polyMinX = 0;
 		hasBeenClipped = true;
 	}
 	if (_state->polyMaxX >= WIDTH) {
@@ -513,7 +513,6 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 		if (!clippedNum) {
 			return 0;
 		}
-		_state->polyMaxX = (WIDTH - 1);
 		hasBeenClipped = true;
 	}
 	if (_state->polyMinY < 0) {
@@ -554,7 +553,8 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 	return clippedNum;
 }
 
-static void poly_setMinMax(polyVertex *pTabPoly, int16 num) {
+static void poly_setMinMax(polyVertex *pPolys, int16 num) {
+	polyVertex *pTabPoly = pPolys;
 	int32 incY = -1;
 	float *pZ;
 	for (int i = 0; i < num; i++, pTabPoly++) {
@@ -620,6 +620,30 @@ static void poly_setMinMax(polyVertex *pTabPoly, int16 num) {
 			pZ += incY;
 			z += dz;
 		}
+	}
+
+	// fix issue when vertices have the same Y
+	if (_state->polyMinY == _state->polyMaxY) {
+		pTabPoly = pPolys;
+		_state->tabVerticXmin[_state->polyMinY] = INT16_MAX;
+		_state->tabVerticXmax[_state->polyMinY] = INT16_MIN;
+		_state->tabVerticZmin[_state->polyMinY] = INT16_MAX;
+		_state->tabVerticZmax[_state->polyMinY] = INT16_MIN;
+		for (int i = 0; i < num; i++, pTabPoly++) {
+			const polyVertex *p0 = pTabPoly;
+			if (p0->X < _state->tabVerticXmin[_state->polyMinY])
+				_state->tabVerticXmin[_state->polyMinY] = p0->X;
+			if (p0->X > _state->tabVerticXmax[_state->polyMinY])
+				_state->tabVerticXmax[_state->polyMinY] = p0->X;
+			if (p0->Z < _state->tabVerticXmin[_state->polyMinY])
+				_state->tabVerticZmin[_state->polyMinY] = p0->Z;
+			if (p0->Z > _state->tabVerticXmax[_state->polyMinY])
+				_state->tabVerticZmax[_state->polyMinY] = p0->Z;
+		}
+		assert(_state->tabVerticXmin[_state->polyMinY] >= 0);
+		assert(_state->tabVerticXmin[_state->polyMaxY] < WIDTH);
+		assert(_state->tabVerticXmax[_state->polyMinY] >= 0);
+		assert(_state->tabVerticXmax[_state->polyMaxY] < WIDTH);
 	}
 }
 
@@ -836,7 +860,7 @@ static void render(byte color, uint8 polyType) {
 	float *zBuffer = &_state->zBuffer[y * WIDTH];
 	MaterialRender matRender;
 
-	if(!detailToggle) {
+	if (!detailToggle) {
 		// if low details -> flat
 		polyType = 0;
 	}
@@ -909,6 +933,10 @@ static void render(byte color, uint8 polyType) {
 		float dz = (zMax - zMin) / MAX(1, xMax - xMin);
 		// assert(zMin >= 0);
 		// assert(zMax >= 0);
+		assert(xMin >= 0);
+		assert(xMin < WIDTH);
+		assert(xMax >= 0);
+		assert(xMax < WIDTH);
 
 		byte *pDest = pDestLine + xMin;
 		float z = zMin;
@@ -946,8 +974,6 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	if (_state->polyMinY == _state->polyMaxY && _state->polyMinX == _state->polyMaxX)
 		return;
 
-	assert(_state->polyMinX >= 0);
-	assert(_state->polyMaxX < WIDTH);
 	render(color, polyType);
 }
 
