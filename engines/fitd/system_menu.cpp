@@ -30,6 +30,7 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "audio/mixer.h"
+#include "graphics/scaler.h"
 
 #define NB_OPTIONS 7
 #define SELECT_COUL 0xF
@@ -51,6 +52,27 @@ void AffOption(int n, int num, int selected) {
 	}
 }
 
+static void scaleDownImage(char *src) {
+	const int srcWidth = 320;
+	const int srcHeight = 200;
+	const int srcPitch = srcWidth;
+
+	const int x = 28;
+	const int y = 28;
+	const int dstWidth = 104;
+	const int dstHeight = 64;
+	const int dstPitch = dstWidth;
+	byte dstImg[dstWidth * dstHeight];
+	Graphics::scaleBlit(dstImg, (const byte *)src, dstPitch, srcPitch, dstWidth, dstHeight, srcWidth, srcHeight, Graphics::PixelFormat::createFormatCLUT8());
+	const char *in = (const char *)dstImg;
+	for (int i = y; i < y + dstHeight; i++) {
+		char *out = logicalScreen + x + i * srcWidth;
+		for (int j = x; j < x + dstWidth; j++) {
+			*(out++) = *(in++);
+		}
+	}
+}
+
 void AffOptionList(int selectedStringNumber) {
 	affBigCadre(160, 100, 320, 200);
 
@@ -61,7 +83,7 @@ void AffOptionList(int selectedStringNumber) {
 
 	affBigCadre(80, 55, 120, 70);
 
-	// scaleDownImage(40,35,aux2);
+	scaleDownImage(aux2);
 
 	WindowY1 = backupTop;
 	WindowY2 = backupBottom;
