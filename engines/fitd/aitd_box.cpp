@@ -213,29 +213,30 @@ void affBigCadre2(int x, int y, int width, int height) {
 
 	afficheSprite(currentLeftPosition, currentTopPosition, 0, PtrCadre); // draw top left corner
 
-	while (1) // draw top bar
-	{
+	// draw top bar
+	while (1) {
 		currentLeftPosition += 30;
 
-		if (right - 30 <= currentLeftPosition)
+		if ((right - 30) <= currentLeftPosition)
 			break;
 
 		afficheSprite(currentLeftPosition, currentTopPosition, 4, PtrCadre);
 	}
 
-	afficheSprite(320 - 30, currentTopPosition, 1, PtrCadre); // draw top right corner
+	afficheSprite(right - 30, currentTopPosition, 1, PtrCadre); // draw top right corner
 
 	currentLeftPosition = left;
+	currentTopPosition += 30;
 
 	// draw left/right bars
-	currentTopPosition += 30;
-	afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
-	afficheSprite(320 - 17, currentTopPosition, 7, PtrCadre);
-	currentTopPosition += 11;
-	afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
-	afficheSprite(320 - 17, currentTopPosition, 7, PtrCadre);
-	currentTopPosition += 11;
+	while (1) {
+		afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
+		afficheSprite(right - 17, currentTopPosition, 7, PtrCadre);
+		currentTopPosition += 11;
 
+		if ((bottom - 41) <= currentTopPosition)
+			break;
+	}
 	currentLeftPosition = left;
 
 	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
@@ -244,18 +245,18 @@ void affBigCadre2(int x, int y, int width, int height) {
 	{
 		currentLeftPosition += 30;
 
-		if (right - 30 <= currentLeftPosition)
+		if ((right - 30) <= currentLeftPosition)
 			break;
 
 		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, PtrCadre);
 	}
 
-	afficheSprite(320 - 30, currentTopPosition, 3, PtrCadre); // draw bottom right corner
+	afficheSprite(right - 30, currentTopPosition, 3, PtrCadre); // draw bottom right corner
 
-	WindowX1 = left + 16;
-	WindowY1 = top + 16;
-	WindowX2 = right - 17;
-	WindowY2 = bottom - 17;
+	WindowX1 = left + 14;
+	WindowY1 = top + 10;
+	WindowX2 = right - 14;
+	WindowY2 = bottom - 16;
 
 	fillBox(WindowX1, WindowY1, WindowX2, WindowY2, 0);
 	setClip(WindowX1, WindowY1, WindowX2, WindowY2);

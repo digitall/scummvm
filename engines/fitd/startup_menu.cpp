@@ -30,10 +30,10 @@
 namespace Fitd {
 
 void aitd2DrawStartupMenu(int selectedEntry) {
-	int currentY = 76;
+	int currentY = 72;
 	int currentTextNum = 0;
 
-	affBigCadre2(160, 100, 320, 90);
+	affBigCadre2(160, 100, 320, 80);
 
 	while (currentTextNum < 3) {
 		if (currentTextNum == selectedEntry) // hilight selected entry

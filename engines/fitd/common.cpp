@@ -2406,14 +2406,18 @@ void foundObject(int objIdx, int param) {
 	memset(frontBuffer, 0, 320 * 200);
 	fastCopyScreen(frontBuffer, logicalScreen);
 
-	affBigCadre(160, 100, 240, 120);
+	if (g_engine->getGameId() == GID_AITD1) {
+		affBigCadre(160, 100, 240, 120);
+	} else {
+		affBigCadre2(160, 100, 240, 120);
+	}
 
 	drawFoundObect(var_6, objPtr->foundName, var_A);
 	osystem_flip(NULL);
 
 	input5 = 1;
 
-	while (!var_C) {
+	while (!var_C && !g_engine->shouldQuit()) {
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 
 		process_events();

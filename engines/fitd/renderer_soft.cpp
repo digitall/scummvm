@@ -952,13 +952,13 @@ static void render(byte color, uint8 polyType) {
 
 		pDestLine += WIDTH;
 		zBuffer += WIDTH;
-		if (Debug && xMin <= xMax) {
-			g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-			renderer_updateScreen();
-			readKeyboard();
-			if (g_engine->shouldQuit())
-				return;
-		}
+		// if (Debug && xMin <= xMax) {
+		// 	g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+		// 	renderer_updateScreen();
+		// 	readKeyboard();
+		// 	if (g_engine->shouldQuit())
+		// 		return;
+		// }
 	}
 }
 
