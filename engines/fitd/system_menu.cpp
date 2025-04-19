@@ -25,7 +25,9 @@
 #include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
+#include "fitd/pak.h"
 #include "fitd/save.h"
+#include "fitd/sequence.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
@@ -73,7 +75,42 @@ static void scaleDownImage(char *src) {
 	}
 }
 
+void aitd2AffOption(int n, int num, int selected) {
+	int y = 34 + (n * fontHeight);
+	if (n == selected) {
+		selectedMessage(160, y, num, 1, MENU_COUL);
+	} else {
+		simpleMessage(160, y, num, MENU_COUL);
+	}
+}
+
+void aitd2DisplayOptions(int selectedStringNumber) {
+	loadPak("ITD_RESS.PAK", 17, logicalScreen);
+	unsigned char lpalette[0x300];
+	copyPalette((unsigned char *)logicalScreen + 64000, lpalette);
+	convertPaletteIfRequired(lpalette);
+	copyPalette(lpalette, currentGamePalette);
+	gfx_setPalette(lpalette);
+
+	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
+
+	aitd2AffOption(0, 48, selectedStringNumber);
+	aitd2AffOption(1, 45, selectedStringNumber);
+	aitd2AffOption(2, 46, selectedStringNumber);
+	aitd2AffOption(3, 41 + musicEnabled, selectedStringNumber);
+	aitd2AffOption(4, 43 + soundToggle, selectedStringNumber);
+	aitd2AffOption(5, 49 + detailToggle, selectedStringNumber);
+	aitd2AffOption(6, 47, selectedStringNumber);
+
+	menuWaitVSync();
+}
+
 void AffOptionList(int selectedStringNumber) {
+	if (g_engine->getGameId() == GID_AITD2) {
+		aitd2DisplayOptions(selectedStringNumber);
+		return;
+	}
+
 	affBigCadre(160, 100, 320, 200);
 
 	int backupTop = WindowY1;

@@ -39,8 +39,8 @@ void afficheSprite(int left, int top, int index, char *gfxData) {
 	int i;
 	int j;
 
-	if(g_engine->getGameId() >= GID_AITD3)
-	     return;
+	if (g_engine->getGameId() >= GID_AITD3)
+		return;
 
 	outPtr = logicalScreen + top * 320 + left;
 	inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignement unsafe
@@ -75,8 +75,8 @@ void affSpfI(int left, int top, int index, char *gfxData) {
 	int i;
 	int j;
 
-	if(g_engine->getGameId() >= GID_AITD3)
-	 	return;
+	if (g_engine->getGameId() >= GID_AITD3)
+		return;
 
 	outPtr = logicalScreen + top * 320 + left;
 	inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignement unsafe
@@ -183,6 +183,79 @@ void affBigCadre(int x, int y, int width, int height) {
 	WindowY1 = top + 8;
 	WindowX2 = right - 9;
 	WindowY2 = bottom - 9;
+
+	fillBox(WindowX1, WindowY1, WindowX2, WindowY2, 0);
+	setClip(WindowX1, WindowY1, WindowX2, WindowY2);
+}
+
+void affBigCadre2(int x, int y, int width, int height) {
+	int top;
+	int right;
+	int left;
+	int bottom;
+
+	int currentLeftPosition;
+	int currentTopPosition;
+
+	int halfWidth;
+	int halfHeight;
+
+	setClip(0, 0, 319, 199);
+
+	halfWidth = width / 2;
+	currentLeftPosition = left = x - halfWidth;
+
+	halfHeight = height / 2;
+	currentTopPosition = top = y - halfHeight;
+
+	right = x + halfWidth;
+	bottom = y + halfHeight;
+
+	afficheSprite(currentLeftPosition, currentTopPosition, 0, PtrCadre); // draw top left corner
+
+	while (1) // draw top bar
+	{
+		currentLeftPosition += 30;
+
+		if (right - 30 <= currentLeftPosition)
+			break;
+
+		afficheSprite(currentLeftPosition, currentTopPosition, 4, PtrCadre);
+	}
+
+	afficheSprite(320 - 30, currentTopPosition, 1, PtrCadre); // draw top right corner
+
+	currentLeftPosition = left;
+
+	// draw left/right bars
+	currentTopPosition += 30;
+	afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
+	afficheSprite(320 - 17, currentTopPosition, 7, PtrCadre);
+	currentTopPosition += 11;
+	afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
+	afficheSprite(320 - 17, currentTopPosition, 7, PtrCadre);
+	currentTopPosition += 11;
+
+	currentLeftPosition = left;
+
+	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
+
+	while (1) // draw bottom bar
+	{
+		currentLeftPosition += 30;
+
+		if (right - 30 <= currentLeftPosition)
+			break;
+
+		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, PtrCadre);
+	}
+
+	afficheSprite(320 - 30, currentTopPosition, 3, PtrCadre); // draw bottom right corner
+
+	WindowX1 = left + 16;
+	WindowY1 = top + 16;
+	WindowX2 = right - 17;
+	WindowY2 = bottom - 17;
 
 	fillBox(WindowX1, WindowY1, WindowX2, WindowY2, 0);
 	setClip(WindowX1, WindowY1, WindowX2, WindowY2);

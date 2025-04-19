@@ -29,7 +29,32 @@
 
 namespace Fitd {
 
+void aitd2DrawStartupMenu(int selectedEntry) {
+	int currentY = 76;
+	int currentTextNum = 0;
+
+	affBigCadre2(160, 100, 320, 90);
+
+	while (currentTextNum < 3) {
+		if (currentTextNum == selectedEntry) // hilight selected entry
+		{
+			fillBox(17, currentY, 302, currentY + fontHeight, 100);
+			selectedMessage(160, currentY, currentTextNum + 11, 15, 4);
+		} else {
+			simpleMessage(160, currentY, currentTextNum + 11, 4);
+		}
+
+		currentY += fontHeight; // next line
+		currentTextNum++;       // next text
+	}
+}
+
 void drawStartupMenu(int selectedEntry) {
+	if (g_engine->getGameId() == GID_AITD2) {
+		aitd2DrawStartupMenu(selectedEntry);
+		return;
+	}
+
 	int currentY = 76;
 	int currentTextNum = 0;
 
@@ -68,7 +93,7 @@ int processStartupMenu(void) {
 
 	while (evalChrono(&chrono) <= 0x10000) // exit loop only if time out or if choice made
 	{
-		if(g_engine->shouldQuit()) {
+		if (g_engine->shouldQuit()) {
 			selectedEntry = 2;
 		}
 
