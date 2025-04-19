@@ -99,8 +99,7 @@ int loadSave(Common::SeekableReadStream *in) {
 	assert(sizeof(maxObjects) == 2);
 	maxObjects = in->readSint16LE();
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		oldNumMaxObj = maxObjects;
 		maxObjects = 300; // fix for save engine..
 	}
@@ -185,13 +184,11 @@ int loadSave(Common::SeekableReadStream *in) {
 		ListWorldObjets[i].positionInTrack = in->readSint16LE();
 	}
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		maxObjects = oldNumMaxObj;
 	}
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		assert(CVarsSize == 45);
 	}
 
@@ -207,8 +204,7 @@ int loadSave(Common::SeekableReadStream *in) {
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		numObjInInventoryTable[inventoryId] = in->readSint16LE();
 
-		if (g_engine->getGameId() == GID_AITD1)
-		{
+		if (g_engine->getGameId() == GID_AITD1) {
 			assert(INVENTORY_SIZE == 30);
 		}
 
@@ -262,13 +258,11 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	in->read(vars, varSize);
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		// TODO ?
 		// configureHqrHero(listBody, listBodySelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
 		// configureHqrHero(listAnim, listAnimSelect[CVars[getCVarsIdx(CHOOSE_PERSO)]]);
-	}
-	 else {
+	} else {
 		/*
 		configureHqrHero(listBody,0);
 		configureHqrHero(listAnim,0);
@@ -512,8 +506,7 @@ int makeSave(Common::WriteStream *out) {
 	uint32 var28 = 0;
 	int oldNumMaxObj;
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		for (i = 0; i < NUM_MAX_OBJECT; i++) {
 			if (objectTable[i].indexInWorld == -1)
 				;
@@ -532,10 +525,27 @@ int makeSave(Common::WriteStream *out) {
 	const uint32 currentRoomOffset = 20;
 	out->writeUint32BE(currentRoomOffset);
 
-	const uint32 varsOffset = g_engine->getGameId() == GID_AITD1 ? 19838 : 2036;
+	uint32 varsOffset = 0;
+	uint32 objsOffset = 0;
+	switch (g_engine->getGameId()) {
+	case GID_AITD1:
+		varsOffset = 19838;
+		objsOffset = 20254;
+		break;
+	case GID_JACK:
+		varsOffset = 2036;
+		objsOffset = 2142;
+		break;
+	case GID_AITD2:
+		varsOffset = 19144;
+		objsOffset = 20110;
+		break;
+	default:
+		// TODO:
+		assert(0);
+		break;
+	}
 	out->writeUint32BE(varsOffset);
-
-	const uint32 objsOffset = g_engine->getGameId() == GID_AITD1 ? 20254 : 2142;
 	out->writeUint32BE(objsOffset);
 
 	assert(sizeof(currentRoom) == 2);
@@ -556,8 +566,7 @@ int makeSave(Common::WriteStream *out) {
 	assert(sizeof(maxObjects) == 2);
 	out->writeSint16LE(maxObjects);
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		oldNumMaxObj = maxObjects;
 		maxObjects = 300; // fix for save engine..
 	}
@@ -642,13 +651,11 @@ int makeSave(Common::WriteStream *out) {
 		out->writeSint16LE(ListWorldObjets[i].positionInTrack);
 	}
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		maxObjects = oldNumMaxObj;
 	}
 
-	if (g_engine->getGameId() == GID_AITD1)
-	{
+	if (g_engine->getGameId() == GID_AITD1) {
 		assert(CVarsSize == 45);
 	}
 
@@ -664,8 +671,7 @@ int makeSave(Common::WriteStream *out) {
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		out->writeSint16LE(numObjInInventoryTable[inventoryId]);
 
-		if (g_engine->getGameId() == GID_AITD1)
-		{
+		if (g_engine->getGameId() == GID_AITD1) {
 			assert(INVENTORY_SIZE == 30);
 		}
 
