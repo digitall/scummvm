@@ -77,9 +77,7 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	in->seek(8, SEEK_SET);
 
-	var28 = in->readUint32LE();
-
-	var28 = ((var28 & 0xFF) << 24) | ((var28 & 0xFF00) << 8) | ((var28 & 0xFF0000) >> 8) | ((var28 & 0xFF000000) >> 24);
+	var28 = in->readUint32BE();
 
 	in->seek(var28, SEEK_SET);
 
@@ -256,8 +254,7 @@ int loadSave(Common::SeekableReadStream *in) {
 	playMusic(var_16);
 
 	in->seek(12, SEEK_SET);
-	offsetToVars = in->readUint32LE();
-	offsetToVars = ((offsetToVars & 0xFF) << 24) | ((offsetToVars & 0xFF00) << 8) | ((offsetToVars & 0xFF0000) >> 8) | ((offsetToVars & 0xFF000000) >> 24);
+	offsetToVars = in->readUint32BE();
 	in->seek(offsetToVars, SEEK_SET);
 
 	tempVarSize = in->readUint16LE();
@@ -279,9 +276,8 @@ int loadSave(Common::SeekableReadStream *in) {
 	}
 
 	in->seek(16, SEEK_SET);
-	offsetToActors = in->readUint32LE();
-	offsetToVars = ((offsetToActors & 0xFF) << 24) | ((offsetToActors & 0xFF00) << 8) | ((offsetToActors & 0xFF0000) >> 8) | ((offsetToActors & 0xFF000000) >> 24);
-	in->seek(offsetToVars, SEEK_SET);
+	offsetToActors = in->readUint32BE();
+	in->seek(offsetToActors, SEEK_SET);
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		assert(sizeof(objectTable[i].indexInWorld) == 2);
@@ -533,12 +529,14 @@ int makeSave(Common::WriteStream *out) {
 	out->writeUint32LE(var28);
 	out->writeUint32LE(var28);
 
-	var28 = 20;
-	var28 = ((var28 & 0xFF) << 24) | ((var28 & 0xFF00) << 8) | ((var28 & 0xFF0000) >> 8) | ((var28 & 0xFF000000) >> 24);
+	const uint32 currentRoomOffset = 20;
+	out->writeUint32BE(currentRoomOffset);
 
-	out->writeUint32LE(var28);
-	out->writeUint32LE(2118975488); // fot aitd1
-	out->writeUint32LE(508493824);  // fot aitd1
+	const uint32 varsOffset = g_engine->getGameId() == GID_AITD1 ? 19838 : 2036;
+	out->writeUint32BE(varsOffset);
+
+	const uint32 objsOffset = g_engine->getGameId() == GID_AITD1 ? 20254 : 2142;
+	out->writeUint32BE(objsOffset);
 
 	assert(sizeof(currentRoom) == 2);
 	out->writeSint16LE(currentRoom);
@@ -703,7 +701,8 @@ int makeSave(Common::WriteStream *out) {
 
 	// timerFreeze = 1;
 
-	for (i = 0; i < 19838 - 15870; i++) {
+	uint32 pos = out->pos();
+	for (i = 0; i < varsOffset - pos; i++) {
 		out->writeByte(0);
 	}
 
