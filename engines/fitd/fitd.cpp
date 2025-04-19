@@ -102,7 +102,7 @@ static void loadPalette(void) {
 int *currentCVarTable = NULL;
 int getCVarsIdx(enumCVars searchedType) {
 	// TODO: optimize by reversing the table....
-	for (int i = 0; i < CVars.size(); i++) {
+	for (int i = 0; i < CVarsSize; i++) {
 		if (currentCVarTable[i] == -1) {
 			assert(0);
 		}
@@ -230,13 +230,13 @@ Common::Error FitdEngine::run() {
 
 	switch (getGameId()) {
 	case GID_AITD1:
-		CVars.resize(45);
+		CVarsSize = 45;
 		currentCVarTable = AITD1KnownCVars;
 		break;
 	case GID_JACK:
 	case GID_AITD2:
 	case GID_AITD3:
-		CVars.resize(70);
+		CVarsSize = 70;
 		currentCVarTable = AITD2KnownCVars;
 		break;
 	default:
@@ -265,10 +265,6 @@ Common::Error FitdEngine::run() {
 	}
 
 	initCopyBox(aux2, logicalScreen);
-	BufferAnim.resize(NB_BUFFER_ANIM);
-	for (int i = 0; i < NB_BUFFER_ANIM; i++) {
-		BufferAnim[i].resize(SIZE_BUFFER_ANIM);
-	}
 
 	switch (getGameId()) {
 	case GID_AITD3: {
@@ -331,7 +327,7 @@ Common::Error FitdEngine::run() {
 	{
 		Common::File f;
 		f.open("DEFINES.ITD");
-		for (int i = 0; i < CVars.size(); i++) {
+		for (int i = 0; i < CVarsSize; i++) {
 			CVars[i] = f.readSint16BE();
 		}
 		f.close();
@@ -372,6 +368,13 @@ Common::Error FitdEngine::run() {
 #ifdef USE_IMGUI
 	_system->setImGuiCallbacks(ImGuiCallbacks());
 #endif
+
+	g_engine->_mixer->stopAll();
+
+	destroyMusicDriver();
+
+	gfx_deinit();
+	freeAll();
 
 	return Common::kNoError;
 }

@@ -289,14 +289,15 @@ extern char* aux2;
 #define NB_BUFFER_ANIM 25 // AITD1 was  20
 #define SIZE_BUFFER_ANIM (8*41) // AITD1 was 4*31
 
-extern Common::Array<Common::Array<int16>> BufferAnim;
+extern int16 BufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
 
 extern char* logicalScreen;
 
 // extern int screenBufferSize;
 extern int unkScreenVar2;
 
-extern Common::Array<int16> CVars;
+extern int16 CVars[70];
+extern uint8 CVarsSize;
 
 extern char* PtrPrioritySample;
 

@@ -32,14 +32,14 @@
 
 namespace Fitd {
 
-int initAnim(int animNum,int animType, int animInfo);
-int setAnimObjet(int frame, char* anim, char* body);
-int16 setInterAnimObjet(int frame, char* animPtr, char* bodyPtr);
-int16 getNbFramesAnim(char* animPtr);
-void initBufferAnim(Common::Array<int16>& animBuffer, char* bodyPtr);
+int initAnim(int animNum, int animType, int animInfo);
+int setAnimObjet(int frame, char *anim, char *body);
+int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr);
+int16 getNbFramesAnim(char *animPtr);
+void initBufferAnim(int16 *animBuffer, char *bodyPtr);
 void updateAnimation(void);
-void initCopyBox(char* var0, char* var1);
+void initCopyBox(char *var0, char *var1);
 
-}
+} // namespace Fitd
 
 #endif

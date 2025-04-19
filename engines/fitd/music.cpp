@@ -732,8 +732,12 @@ int initialialize(void *dummy) {
 	return 0; */
 
 	for (i = 0; i < 11; i++) {
-		channelTable2[i].var4 |= 0x20;
+		channelTable2[i].var4 |= 0x60;
 		channelTable2[i].var2->var4 |= 0x20;
+		channelTable2[i].dataPtr = NULL;
+		channelTable2[i].commandPtr = NULL;
+		channelTable3[i].dataPtr = NULL;
+		channelTable3[i].commandPtr = NULL;
 
 		createDefaultChannel(i);
 	}

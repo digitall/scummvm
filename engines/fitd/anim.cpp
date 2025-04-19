@@ -39,7 +39,7 @@ struct Hash<void *> {
 
 namespace Fitd {
 
-Common::HashMap<void *, char *> g_bodyBufferMap;
+static Common::HashMap<void *, char *> g_bodyBufferMap;
 
 int setAnimObjet(int frame, char *anim, char *body) {
 	int16 temp;
@@ -687,8 +687,8 @@ void updateAnimation(void) {
 	}
 }
 
-void initBufferAnim(Common::Array<int16> &buffer, char *bodyPtr) {
-	Common::Array<int16>::iterator bufferIt = buffer.begin();
+void initBufferAnim(int16* buffer, char *bodyPtr) {
+	int16* bufferIt = buffer;
 
 	int flag = *(int16 *)bodyPtr;
 	if (flag & 2) {

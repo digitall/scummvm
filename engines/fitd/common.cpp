@@ -244,32 +244,19 @@ void initCopyBox(char *var0, char *var1) {
 }
 
 void freeAll(void) {
-	/*  HQR_Free(hqrUnk);
-
 	HQR_Free(listSamp);
-
 	HQR_Free(listMus);
-
-	free(languageData);
+	HQR_Free(HQ_Memory);
+	HQR_Free(listLife);
+	HQR_Free(listTrack);
+	HQR_Free(listBody);
+	HQR_Free(listAnim);
+	HQR_Free(listMatrix);
 
 	free(tabTextes);
-
-	free(priority);
-
-	free(aitdBoxGfx);
-
-	free(fontData);
-
-	free(bufferAnim);
-
-	if(aux != aux3)
-	{
+	free(PtrPrioritySample);
 	free(aux);
-	}
-
-	free(aux2);*/
-
-	// TODO: implement all the code that restore the interrupts & all
+	free(aux2);
 }
 
 static void turnPageForward() {
@@ -758,10 +745,10 @@ void initEngine(void) {
 
 	///////////////////////////////////////////////
 	{
-		f.read(&CVars[0], CVars.size() * 2);
+		f.read(&CVars[0], CVarsSize * 2);
 		f.close();
 
-		for (int i = 0; i < CVars.size(); i++) {
+		for (int i = 0; i < CVarsSize; i++) {
 			CVars[i] = ((CVars[i] & 0xFF) << 8) | ((CVars[i] & 0xFF00) >> 8);
 		}
 	}

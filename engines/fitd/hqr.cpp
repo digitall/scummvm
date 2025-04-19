@@ -593,6 +593,13 @@ void HQR_Free(hqrEntryStruct *hqrPtr) {
 		vBodies.clear();
 	}
 
+	if (hqrPtr == listAnim) {
+		for (int i = 0; i < vAnimations.size(); i++) {
+			delete vAnimations[i];
+		}
+		vAnimations.clear();
+	}
+
 	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
 		if (hqrPtr->entries[i].ptr)
 			free(hqrPtr->entries[i].ptr);

@@ -33,6 +33,7 @@ extern byte currentGamePalette[256 * 3];
 extern byte frontBuffer[320 * 200];
 
 void gfx_init();
+void gfx_deinit();
 void gfx_setPalette(const byte *palette);
 void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
 void gfx_refreshFrontTextureBuffer();

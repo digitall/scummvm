@@ -194,10 +194,10 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	if (g_engine->getGameId() == GID_AITD1)
 	{
-		assert(CVars.size() == 45);
+		assert(CVarsSize == 45);
 	}
 
-	for (i = 0; i < CVars.size(); i++) {
+	for (i = 0; i < CVarsSize; i++) {
 		assert(sizeof(CVars[i]) == 2);
 		CVars[i] = in->readSint16LE();
 	}
@@ -651,10 +651,10 @@ int makeSave(Common::WriteStream *out) {
 
 	if (g_engine->getGameId() == GID_AITD1)
 	{
-		assert(CVars.size() == 45);
+		assert(CVarsSize == 45);
 	}
 
-	for (i = 0; i < CVars.size(); i++) {
+	for (i = 0; i < CVarsSize; i++) {
 		assert(sizeof(CVars[i]) == 2);
 		out->writeSint16LE(CVars[i]);
 	}

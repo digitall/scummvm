@@ -39,14 +39,15 @@ int detailToggle;
 
 char *aux;
 char *aux2;
-Common::Array<Common::Array<int16> > BufferAnim;
+int16 BufferAnim[NB_BUFFER_ANIM][SIZE_BUFFER_ANIM];
 
 char *logicalScreen;
 
 int screenBufferSize;
 int unkScreenVar2;
 
-Common::Array<int16> CVars;
+int16 CVars[70];
+uint8 CVarsSize = 0;
 
 char *PtrPrioritySample;
 
@@ -115,11 +116,11 @@ int16 currentWorldTarget;
 
 int fileSize;
 
-hqrEntryStruct *listBody;
-hqrEntryStruct *listAnim;
-hqrEntryStruct *listLife;
-hqrEntryStruct *listTrack;
-hqrEntryStruct *listMatrix;
+hqrEntryStruct *listBody = NULL;
+hqrEntryStruct *listAnim = NULL;
+hqrEntryStruct *listLife = NULL;
+hqrEntryStruct *listTrack = NULL;
+hqrEntryStruct *listMatrix = NULL;
 
 int16 maxObjects;
 

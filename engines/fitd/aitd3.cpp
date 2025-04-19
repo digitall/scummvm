@@ -110,7 +110,6 @@ void startAITD3(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			freeAll();
 			g_engine->quitGame();
 
 			break;

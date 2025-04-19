@@ -31,7 +31,7 @@ namespace Fitd {
 uint32 g_currentFloorRoomRawDataSize = 0;
 uint32 g_currentFloorCameraRawDataSize;
 uint32 g_currentFloorNumCamera = 0;
-Common::Array<cameraDataStruct> g_currentFloorCameraData;
+cameraDataStruct g_currentFloorCameraData[40];
 
 void loadFloor(int floorNumber) {
 	int expectedNumberOfRoom;
@@ -204,8 +204,7 @@ void loadFloor(int floorNumber) {
 		}
 	}
 
-	g_currentFloorCameraData.clear();
-	g_currentFloorCameraData.resize(expectedNumberOfCamera);
+	assert(expectedNumberOfCamera < 40);
 
 	int i;
 	for (i = 0; i < expectedNumberOfCamera; i++) {

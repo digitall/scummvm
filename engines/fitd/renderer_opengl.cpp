@@ -353,7 +353,7 @@ Renderer createOpenGLRenderer() {
 static void renderer_init() {
 	initGraphics3d(320 * 4, 200 * 4);
 
-	_state = (State *)malloc(sizeof(State));
+	_state = new State;
 	_state->numUsedFlatVertices = 0;
 	_state->numUsedNoiseVertices = 0;
 	_state->numUsedTransparentVertices = 0;
@@ -459,7 +459,7 @@ static void renderer_deinit() {
 	delete _state->rampShader;
 	delete _state->maskShader;
 	delete _state->sphereShader;
-	free(_state);
+	delete _state;
 }
 
 static void renderer_startFrame() {
