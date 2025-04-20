@@ -234,7 +234,7 @@ void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 			}
 
 			for (sequenceParamIdx = 0; sequenceParamIdx < numSequenceParam; sequenceParamIdx++) {
-				if (sequenceParams[sequenceParamIdx].frame == currentFrameId) {
+				if (sequenceParams[sequenceParamIdx].frame == (uint)currentFrameId) {
 					playSound(sequenceParams[sequenceParamIdx].sample);
 				}
 			}

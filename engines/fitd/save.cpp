@@ -502,14 +502,13 @@ int loadSave(Common::SeekableReadStream *in) {
 }
 
 int makeSave(Common::WriteStream *out) {
-	int i;
 	uint32 var28 = 0;
 	int oldNumMaxObj = 0;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		for (i = 0; i < NUM_MAX_OBJECT; i++) {
-			if (objectTable[i].indexInWorld == -1)
-				;
+		for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
+			//if (objectTable[i].indexInWorld == -1) {
+			//}
 
 			if (objectTable[i].ANIM == 4) {
 				CVars[getCVarsIdx(FOG_FLAG)] = 0;
@@ -571,7 +570,7 @@ int makeSave(Common::WriteStream *out) {
 		maxObjects = 300; // fix for save engine..
 	}
 
-	for (i = 0; i < maxObjects; i++) {
+	for (int16 i = 0; i < maxObjects; i++) {
 		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
 		out->writeSint16LE(ListWorldObjets[i].objIndex);
 
@@ -659,7 +658,7 @@ int makeSave(Common::WriteStream *out) {
 		assert(CVarsSize == 45);
 	}
 
-	for (i = 0; i < CVarsSize; i++) {
+	for (uint i = 0; i < CVarsSize; i++) {
 		assert(sizeof(CVars[i]) == 2);
 		out->writeSint16LE(CVars[i]);
 	}
@@ -675,7 +674,7 @@ int makeSave(Common::WriteStream *out) {
 			assert(INVENTORY_SIZE == 30);
 		}
 
-		for (i = 0; i < INVENTORY_SIZE; i++) {
+		for (uint i = 0; i < INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
 			out->writeSint16LE(inventoryTable[inventoryId][i]);
 		}
@@ -708,7 +707,7 @@ int makeSave(Common::WriteStream *out) {
 	// timerFreeze = 1;
 
 	uint32 pos = out->pos();
-	for (i = 0; i < varsOffset - pos; i++) {
+	for (uint i = 0; i < varsOffset - pos; i++) {
 		out->writeByte(0);
 	}
 
@@ -717,7 +716,7 @@ int makeSave(Common::WriteStream *out) {
 
 	// pos = 20254
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
 		assert(sizeof(objectTable[i].indexInWorld) == 2);
 		out->writeSint16LE(objectTable[i].indexInWorld);
 

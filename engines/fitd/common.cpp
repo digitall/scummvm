@@ -1544,7 +1544,6 @@ void updateAllActorAndObjectsAITD2() {
 						}
 					}
 				} else {
-					int di = 0;
 					if (isInViewList(currentObject->room))
 						goto addObject;
 				}
@@ -1731,7 +1730,7 @@ void setupCamera() {
 
 	currentCamera = startGameVar1;
 
-	assert(startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
+	assert((uint32)startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
 
 	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
 	if (g_engine->getGameId() >= GID_JACK) {

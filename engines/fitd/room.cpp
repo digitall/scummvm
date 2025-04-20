@@ -129,7 +129,7 @@ void loadRoom(int roomNumber) {
 
 		assert(currentCameraIdx <= g_currentFloorNumCamera);
 
-		if (oldCameraIdx == currentCameraIdx) {
+		if ((uint)oldCameraIdx == currentCameraIdx) {
 			newNumCamera = i;
 			// newAbsCamera = currentCameraIdx;
 		}

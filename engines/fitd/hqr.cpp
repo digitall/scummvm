@@ -320,7 +320,7 @@ static sBody *createBodyFromPtr(void *ptr) {
 			newBody->m_primitives[i].m_even = READ_LE_U8(bodyBuffer);
 			bodyBuffer += 1;
 			newBody->m_primitives[i].m_points.resize(2);
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				newBody->m_primitives[i].m_points[j] = READ_LE_U16(bodyBuffer) / 6;
 				bodyBuffer += 2;
 			}
@@ -332,7 +332,7 @@ static sBody *createBodyFromPtr(void *ptr) {
 			bodyBuffer += 1;
 			newBody->m_primitives[i].m_color = READ_LE_U8(bodyBuffer);
 			bodyBuffer += 1;
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				newBody->m_primitives[i].m_points[j] = READ_LE_U16(bodyBuffer) / 6;
 				bodyBuffer += 2;
 			}
@@ -347,7 +347,7 @@ static sBody *createBodyFromPtr(void *ptr) {
 			newBody->m_primitives[i].m_even = READ_LE_U8(bodyBuffer);
 			bodyBuffer += 1;
 			newBody->m_primitives[i].m_points.resize(1);
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				newBody->m_primitives[i].m_points[j] = READ_LE_U16(bodyBuffer) / 6;
 				bodyBuffer += 2;
 			}
@@ -362,7 +362,7 @@ static sBody *createBodyFromPtr(void *ptr) {
 			newBody->m_primitives[i].m_size = READ_LE_U16(bodyBuffer);
 			bodyBuffer += 2;
 			newBody->m_primitives[i].m_points.resize(1);
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				newBody->m_primitives[i].m_points[j] = READ_LE_U16(bodyBuffer) / 6;
 				bodyBuffer += 2;
 			}
@@ -374,7 +374,7 @@ static sBody *createBodyFromPtr(void *ptr) {
 			bodyBuffer += 1;
 			newBody->m_primitives[i].m_color = READ_LE_U8(bodyBuffer);
 			bodyBuffer += 1;
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				newBody->m_primitives[i].m_points[j] = READ_LE_U16(bodyBuffer) / 6;
 				bodyBuffer += 2;
 			}
@@ -387,12 +387,12 @@ static sBody *createBodyFromPtr(void *ptr) {
 			bodyBuffer += 1;
 			newBody->m_primitives[i].m_color = READ_LE_U8(bodyBuffer);
 			bodyBuffer += 1;
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				newBody->m_primitives[i].m_points[j] = READ_LE_U16(bodyBuffer) / 6;
 				bodyBuffer += 2;
 			}
 			// load UVS?
-			for (int j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
+			for (uint j = 0; j < newBody->m_primitives[i].m_points.size(); j++) {
 				READ_LE_U8(bodyBuffer);
 				bodyBuffer += 1;
 				READ_LE_U8(bodyBuffer);
@@ -568,13 +568,13 @@ void HQR_Reset(hqrEntryStruct *hqrPtr) {
 	hqrPtr->numUsedEntry = 0;
 
 	if (hqrPtr == listBody) {
-		for (int i = 0; i < vBodies.size(); i++) {
+		for (uint i = 0; i < vBodies.size(); i++) {
 			delete vBodies[i];
 		}
 		vBodies.resize(0);
 	}
 
-	for (int i = 0; i < hqrPtr->numMaxEntry; i++) {
+	for (uint i = 0; i < hqrPtr->numMaxEntry; i++) {
 		if (hqrPtr->entries[i].ptr)
 			free(hqrPtr->entries[i].ptr);
 
@@ -587,14 +587,14 @@ void HQR_Free(hqrEntryStruct *hqrPtr) {
 		return;
 
 	if (hqrPtr == listBody) {
-		for (int i = 0; i < vBodies.size(); i++) {
+		for (uint i = 0; i < vBodies.size(); i++) {
 			delete vBodies[i];
 		}
 		vBodies.clear();
 	}
 
 	if (hqrPtr == listAnim) {
-		for (int i = 0; i < vAnimations.size(); i++) {
+		for (uint i = 0; i < vAnimations.size(); i++) {
 			delete vAnimations[i];
 		}
 		vAnimations.clear();
@@ -609,7 +609,7 @@ void HQR_Free(hqrEntryStruct *hqrPtr) {
 }
 
 sBody *getBodyFromPtr(void *ptr) {
-	for (int i = 0; i < vBodies.size(); i++) {
+	for (uint i = 0; i < vBodies.size(); i++) {
 		if (vBodies[i]->m_raw == ptr) {
 			return vBodies[i];
 		}
@@ -619,7 +619,7 @@ sBody *getBodyFromPtr(void *ptr) {
 }
 
 sAnimation *getAnimationFromPtr(void *ptr) {
-	for (int i = 0; i < vAnimations.size(); i++) {
+	for (uint i = 0; i < vAnimations.size(); i++) {
 		if (vAnimations[i]->m_raw == ptr) {
 			return vAnimations[i];
 		}

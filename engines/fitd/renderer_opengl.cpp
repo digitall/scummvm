@@ -642,10 +642,10 @@ static void renderer_flushPendingPrimitives() {
 }
 
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
-	if (_state->maskTextures.size() < roomId + 1) {
+	if (_state->maskTextures.size() < (uint)(roomId + 1)) {
 		_state->maskTextures.resize(roomId + 1);
 	}
-	if (_state->maskTextures[roomId].size() < maskId + 1) {
+	if (_state->maskTextures[roomId].size() < (uint)(maskId + 1)) {
 		_state->maskTextures[roomId].resize(maskId + 1);
 	}
 

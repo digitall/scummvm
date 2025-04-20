@@ -869,7 +869,7 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 	bx = ax;
 	bodyPtr += bx * 2; // skip group order table
 
-	if (numOfBonesInAnim > pBody->m_groupOrder.size()) {
+	if ((uint)numOfBonesInAnim > pBody->m_groupOrder.size()) {
 		numOfBonesInAnim = pBody->m_groupOrder.size();
 	}
 

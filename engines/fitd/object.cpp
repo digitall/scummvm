@@ -200,8 +200,8 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	{
 		bool bFound = false;
 
-		for (int hardColIdx = 0; hardColIdx < roomDataTable[room].numHardCol; hardColIdx++) {
-			if ((roomDataTable[room].hardColTable[hardColIdx].type == 9) && (roomDataTable[room].hardColTable[hardColIdx].parameter == hardZvIdx)) {
+		for (uint hardColIdx = 0; hardColIdx < roomDataTable[room].numHardCol; hardColIdx++) {
+			if ((roomDataTable[room].hardColTable[hardColIdx].type == 9) && (roomDataTable[room].hardColTable[hardColIdx].parameter == (uint32)hardZvIdx)) {
 				copyZv(&roomDataTable[room].hardColTable[hardColIdx].zv, zvPtr);
 
 				x = 0;
