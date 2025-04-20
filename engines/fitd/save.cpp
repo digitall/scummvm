@@ -69,7 +69,6 @@ int loadSave(Common::SeekableReadStream *in) {
 	unsigned int offsetToVars;
 	uint16 tempVarSize;
 	unsigned int offsetToActors;
-	int i;
 	int oldNumMaxObj;
 
 	initEngine();
@@ -107,7 +106,7 @@ int loadSave(Common::SeekableReadStream *in) {
 		maxObjects = 300; // fix for save engine..
 	}
 
-	for (i = 0; i < maxObjects; i++) {
+	for (int i = 0; i < maxObjects; i++) {
 		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
 		ListWorldObjets[i].objIndex = in->readSint16LE();
 
@@ -197,7 +196,7 @@ int loadSave(Common::SeekableReadStream *in) {
 		assert(CVars.size() == 45);
 	}
 
-	for (i = 0; i < CVars.size(); i++) {
+	for (unsigned int i = 0; i < CVars.size(); i++) {
 		assert(sizeof(CVars[i]) == 2);
 		CVars[i] = in->readSint16LE();
 	}
@@ -214,7 +213,7 @@ int loadSave(Common::SeekableReadStream *in) {
 			assert(INVENTORY_SIZE == 30);
 		}
 
-		for (i = 0; i < INVENTORY_SIZE; i++) {
+		for (unsigned int i = 0; i < INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
 			inventoryTable[inventoryId][i] = in->readSint16LE();
 		}
@@ -283,7 +282,7 @@ int loadSave(Common::SeekableReadStream *in) {
 	offsetToVars = ((offsetToActors & 0xFF) << 24) | ((offsetToActors & 0xFF00) << 8) | ((offsetToActors & 0xFF0000) >> 8) | ((offsetToActors & 0xFF000000) >> 24);
 	in->seek(offsetToVars, SEEK_SET);
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (unsigned int i = 0; i < NUM_MAX_OBJECT; i++) {
 		assert(sizeof(objectTable[i].indexInWorld) == 2);
 		objectTable[i].indexInWorld = in->readSint16LE();
 
@@ -495,7 +494,7 @@ int loadSave(Common::SeekableReadStream *in) {
 		objectTable[i].hotPoint.x = in->readSint16LE();
 	}
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (unsigned int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
 			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
 
@@ -512,13 +511,12 @@ int loadSave(Common::SeekableReadStream *in) {
 }
 
 int makeSave(Common::WriteStream *out) {
-	int i;
 	uint32 var28 = 0;
 	int oldNumMaxObj;
 
 	if (g_engine->getGameId() == GID_AITD1)
 	{
-		for (i = 0; i < NUM_MAX_OBJECT; i++) {
+		for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
 			if (objectTable[i].indexInWorld == -1)
 				;
 
@@ -564,7 +562,7 @@ int makeSave(Common::WriteStream *out) {
 		maxObjects = 300; // fix for save engine..
 	}
 
-	for (i = 0; i < maxObjects; i++) {
+	for (int i = 0; i < maxObjects; i++) {
 		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
 		out->writeSint16LE(ListWorldObjets[i].objIndex);
 
@@ -654,12 +652,12 @@ int makeSave(Common::WriteStream *out) {
 		assert(CVars.size() == 45);
 	}
 
-	for (i = 0; i < CVars.size(); i++) {
+	for (uint i = 0; i < CVars.size(); i++) {
 		assert(sizeof(CVars[i]) == 2);
 		out->writeSint16LE(CVars[i]);
 	}
 
-	for (int inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
+	for (uint inventoryId = 0; inventoryId < NUM_MAX_INVENTORY; inventoryId++) {
 		assert(sizeof(inHandTable[inventoryId]) == 2);
 		out->writeSint16LE(inHandTable[inventoryId]);
 
@@ -671,7 +669,7 @@ int makeSave(Common::WriteStream *out) {
 			assert(INVENTORY_SIZE == 30);
 		}
 
-		for (i = 0; i < INVENTORY_SIZE; i++) {
+		for (uint i = 0; i < INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
 			out->writeSint16LE(inventoryTable[inventoryId][i]);
 		}
@@ -703,7 +701,7 @@ int makeSave(Common::WriteStream *out) {
 
 	// timerFreeze = 1;
 
-	for (i = 0; i < 19838 - 15870; i++) {
+	for (uint i = 0; i < 19838 - 15870; i++) {
 		out->writeByte(0);
 	}
 
@@ -712,7 +710,7 @@ int makeSave(Common::WriteStream *out) {
 
 	// pos = 20254
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
 		assert(sizeof(objectTable[i].indexInWorld) == 2);
 		out->writeSint16LE(objectTable[i].indexInWorld);
 

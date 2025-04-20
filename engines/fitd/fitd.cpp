@@ -102,7 +102,7 @@ static void loadPalette(void) {
 int *currentCVarTable = NULL;
 int getCVarsIdx(enumCVars searchedType) {
 	// TODO: optimize by reversing the table....
-	for (int i = 0; i < CVars.size(); i++) {
+	for (uint i = 0; i < CVars.size(); i++) {
 		if (currentCVarTable[i] == -1) {
 			assert(0);
 		}
@@ -331,7 +331,7 @@ Common::Error FitdEngine::run() {
 	{
 		Common::File f;
 		f.open("DEFINES.ITD");
-		for (int i = 0; i < CVars.size(); i++) {
+		for (uint i = 0; i < CVars.size(); i++) {
 			CVars[i] = f.readSint16BE();
 		}
 		f.close();

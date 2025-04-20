@@ -761,7 +761,7 @@ void initEngine(void) {
 		f.read(&CVars[0], CVars.size() * 2);
 		f.close();
 
-		for (int i = 0; i < CVars.size(); i++) {
+		for (uint i = 0; i < CVars.size(); i++) {
 			CVars[i] = ((CVars[i] & 0xFF) << 8) | ((CVars[i] & 0xFF00) >> 8);
 		}
 	}
@@ -785,7 +785,7 @@ void initEngine(void) {
 
 		listMatrix = HQR_InitRessource("LISTMAT.PAK", 64000, 5);
 	}
-	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
 		objectTable[i].indexInWorld = -1;
 	}
 
@@ -1739,7 +1739,7 @@ void setupCamera() {
 
 	currentCamera = startGameVar1;
 
-	assert(startGameVar1 < roomDataTable[currentRoom].numCameraInRoom);
+	assert(startGameVar1 < (int)roomDataTable[currentRoom].numCameraInRoom);
 
 	loadCamera(roomDataTable[currentRoom].cameraIdxTable[startGameVar1]);
 	if (g_engine->getGameId() >= GID_JACK) {

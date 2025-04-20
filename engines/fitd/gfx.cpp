@@ -406,7 +406,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 
 	assert(pBody->m_vertices.size() < NUM_MAX_POINT_IN_POINT_BUFFER);
 
-	for (int i = 0; i < pBody->m_vertices.size(); i++) {
+	for (uint i = 0; i < pBody->m_vertices.size(); i++) {
 		pointBuffer[i * 3 + 0] = pBody->m_vertices[i].x;
 		pointBuffer[i * 3 + 1] = pBody->m_vertices[i].y;
 		pointBuffer[i * 3 + 2] = pBody->m_vertices[i].z;
@@ -417,7 +417,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 	assert(numOfBones < NUM_MAX_BONES);
 
 	if (pBody->m_flags & INFO_OPTIMISE) {
-		for (int i = 0; i < pBody->m_groupOrder.size(); i++) {
+		for (uint i = 0; i < pBody->m_groupOrder.size(); i++) {
 			const sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			switch (pGroup->m_state.m_type) {
@@ -441,7 +441,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		pBody->m_groups[0].m_state.m_delta[1] = beta;
 		pBody->m_groups[0].m_state.m_delta[2] = gamma;
 
-		for (int i = 0; i < pBody->m_groups.size(); i++) {
+		for (uint i = 0; i < pBody->m_groups.size(); i++) {
 			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
 			int transX = pGroup->m_state.m_delta[0];
@@ -468,7 +468,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		}
 	}
 
-	for (int i = 0; i < pBody->m_groups.size(); i++) {
+	for (uint i = 0; i < pBody->m_groups.size(); i++) {
 		const sGroup *pGroup = &pBody->m_groups[i];
 
 		int j;
@@ -633,7 +633,7 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 
 	outPtr = renderPointList;
 
-	for (int i = 0; i < pBody->m_vertices.size(); i++) {
+	for (uint i = 0; i < pBody->m_vertices.size(); i++) {
 		int16 X = pBody->m_vertices[i].x;
 		int16 Y = pBody->m_vertices[i].y;
 		int16 Z = pBody->m_vertices[i].z;

@@ -158,7 +158,7 @@ char *getRoomLink(unsigned int room1, unsigned int room2) {
 		if (*(int16 *)(zoneData + 14) == 4) {
 			bestZone = zoneData;
 
-			if (*(int16 *)(zoneData + 12) == room2) {
+			if (*(int16 *)(zoneData + 12) == (int16)room2) {
 				return bestZone;
 			}
 		}

@@ -26,7 +26,6 @@
 #include "fitd/hqr.h"
 #include "fitd/music.h"
 #include "fitd/vars.h"
-#define HAS_YM3812 1
 #include "fitd/opl/fmopl.h"
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
@@ -77,8 +76,6 @@ struct FM_OPL *virtualOpl;
 char OPLinitialized = 0;
 
 #define OPL_INTERNAL_FREQ 3579545
-
-void callMusicUpdate(void);
 
 struct channelTable2Element {
 	uint16 index;

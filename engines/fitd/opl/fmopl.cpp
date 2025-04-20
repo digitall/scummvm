@@ -74,8 +74,6 @@ Revision History:
 #include "common/scummsys.h"
 #include "common/debug.h"
 
-#define HAS_YM3812 1
-
 #ifndef INLINE
 # ifdef _MSC_VER
 #   define INLINE __inline
@@ -725,7 +723,7 @@ INLINE void advance_lfo(FM_OPL *OPL)
 
 	/* LFO */
 	OPL->lfo_am_cnt += OPL->lfo_am_inc;
-	if (OPL->lfo_am_cnt >= (LFO_AM_TAB_ELEMENTS<<LFO_SH) )	/* lfo_am_table is 210 elements long */
+	if ((int)OPL->lfo_am_cnt >= (LFO_AM_TAB_ELEMENTS<<LFO_SH) )	/* lfo_am_table is 210 elements long */
 		OPL->lfo_am_cnt -= (LFO_AM_TAB_ELEMENTS<<LFO_SH);
 
 	tmp = lfo_am_table[ OPL->lfo_am_cnt >> LFO_SH ];
@@ -1688,7 +1686,7 @@ static void OPLWriteReg(FM_OPL *OPL, int r, int v)
 			}
 		}
 		/* update */
-		if(CH->block_fnum != block_fnum)
+		if((int)CH->block_fnum != block_fnum)
 		{
 			UINT8 block  = block_fnum >> 10;
 

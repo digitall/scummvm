@@ -70,7 +70,7 @@ void gereFrappe(void) {
 		if (currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = WAIT_FRAPPE_FRAME;
 		}
-		// [[fallthrough]];
+		// fall through
 	case WAIT_FRAPPE_FRAME:
 		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = NO_FRAPPE;
