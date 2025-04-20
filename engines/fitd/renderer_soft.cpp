@@ -25,6 +25,7 @@
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
 #include "graphics/surface.h"
+#include "math/utils.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
