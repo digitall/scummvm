@@ -685,6 +685,8 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 			transformPoint(&X, &Y, &Z);
 
 			Z += cameraPerspective;
+			if (Z == 0)
+				Z = 1;
 
 			transformedX = ((X * cameraFovX) / Z) + cameraCenterX;
 

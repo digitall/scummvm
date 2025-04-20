@@ -19,6 +19,8 @@
  *
  */
 
+#include "fitd/life.h"
+#include "common/debug.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/eval_var.h"
@@ -27,7 +29,6 @@
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
-#include "fitd/life.h"
 #include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/room.h"
@@ -36,7 +37,6 @@
 #include "fitd/track.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
-#include "common/debug.h"
 
 namespace Fitd {
 
@@ -113,7 +113,7 @@ int InitSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 	int16 localSpecialTable[4];
 	tObject *currentActorPtr;
 	int i;
-	ZVStruct *actorZvPtr;
+	ZVStruct *actorZvPtr = NULL;
 
 	memcpy(localSpecialTable, specialTable, 8);
 
@@ -1681,7 +1681,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 						lightOff = lifeTempVar1;
 						lightVar2 = 1;
 
-						if(lightOff) {
+						if (lightOff) {
 							makeBlackPalette();
 						}
 					}

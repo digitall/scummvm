@@ -19,15 +19,15 @@
  *
  */
 
+#include "fitd/renderer_opengl.h"
+#include "engines/util.h"
 #include "fitd/fitd.h"
 #include "fitd/renderer.h"
-#include "fitd/renderer_opengl.h"
 #include "graphics/opengl/context.h"
 #include "graphics/opengl/debug.h"
 #include "graphics/opengl/shader.h"
 #include "graphics/opengl/system_headers.h"
 #include "graphics/surface.h"
-#include "engines/util.h"
 
 #define NUM_MAX_FLAT_VERTICES 5000 * 3
 #define NUM_MAX_NOISE_VERTICES 2000 * 3
@@ -604,7 +604,7 @@ static void renderer_flushPendingPrimitives() {
 		_state->rampShader->use();
 
 		GL_CALL(glActiveTexture(GL_TEXTURE0));
-		GL_CALL(glBindTexture(GL_TEXTURE_2D,_state-> g_paletteTexture));
+		GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
 		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, _state->numUsedRampVertices));
 		GL_CALL(glActiveTexture(GL_TEXTURE0));

@@ -78,9 +78,9 @@ int getNumberOfRoom() {
 
 void loadRoom(int roomNumber) {
 	int i;
-	int cameraVar0;
-	int cameraVar1;
-	int cameraVar2;
+	int cameraVar0 = 0;
+	int cameraVar1 = 0;
+	int cameraVar2 = 0;
 	int oldCameraIdx;
 
 	freezeTime();

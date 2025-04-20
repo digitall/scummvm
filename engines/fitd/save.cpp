@@ -20,6 +20,8 @@
  *
  */
 
+#include "fitd/save.h"
+#include "common/stream.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
@@ -28,9 +30,7 @@
 #include "fitd/inventory.h"
 #include "fitd/music.h"
 #include "fitd/room.h"
-#include "fitd/save.h"
 #include "fitd/vars.h"
-#include "common/stream.h"
 
 namespace Fitd {
 
@@ -70,7 +70,7 @@ int loadSave(Common::SeekableReadStream *in) {
 	uint16 tempVarSize;
 	unsigned int offsetToActors;
 	int i;
-	int oldNumMaxObj;
+	int oldNumMaxObj = 0;
 
 	initEngine();
 	initVars();
@@ -504,7 +504,7 @@ int loadSave(Common::SeekableReadStream *in) {
 int makeSave(Common::WriteStream *out) {
 	int i;
 	uint32 var28 = 0;
-	int oldNumMaxObj;
+	int oldNumMaxObj = 0;
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		for (i = 0; i < NUM_MAX_OBJECT; i++) {

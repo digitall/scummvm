@@ -19,11 +19,11 @@
  *
  */
 
-#include "fitd/fitd.h"
-#include "fitd/renderer.h"
-#include "fitd/input.h"
-#include "fitd/vars.h"
 #include "engines/util.h"
+#include "fitd/fitd.h"
+#include "fitd/input.h"
+#include "fitd/renderer.h"
+#include "fitd/vars.h"
 #include "graphics/surface.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
@@ -141,7 +141,7 @@ static void renderer_startFrame() {
 	g_engine->_screen->clear();
 	g_engine->_screen->clearDirtyRects();
 	for (int i = 0; i < WIDTH * HEIGHT; i++) {
-		_state->zBuffer[i] = __FLT_MAX__;
+		_state->zBuffer[i] = FLT_MAX;
 	}
 }
 
@@ -556,11 +556,11 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 	polyVertex *pTabPoly = pPolys;
 	int32 incY = -1;
-	float *pZ;
+	float *pZ = NULL;
 	for (int i = 0; i < num; i++, pTabPoly++) {
 		const polyVertex *p0 = pTabPoly;
 		const polyVertex *p1 = p0 + 1;
-		int16 *pVertic;
+		int16 *pVertic = NULL;
 
 		int32 dy = p1->Y - p0->Y;
 		if (dy == 0) {
@@ -940,7 +940,9 @@ static void render(byte color, uint8 polyType) {
 
 		byte *pDest = pDestLine + xMin;
 		float z = zMin;
-		matRender.nextLine(xMin, xMax);
+		if (xMin <= xMax) {
+			matRender.nextLine(xMin, xMax);
+		}
 		for (int16 x = xMin; x <= xMax; x++) {
 			if (z < zBuffer[x]) {
 				matRender.render(pDest);
@@ -1026,8 +1028,8 @@ static bool computeSphere(float sx, float sy, float sz, float radius) {
 		if (!inside) {
 			_state->tabVerticXmin[y] = 0;
 			_state->tabVerticXmax[y] = 0;
-			_state->tabVerticZmin[y] = __FLT_MAX__;
-			_state->tabVerticZmax[y] = __FLT_MAX__;
+			_state->tabVerticZmin[y] = FLT_MAX;
+			_state->tabVerticZmax[y] = FLT_MAX;
 		}
 	}
 

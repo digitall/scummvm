@@ -210,7 +210,7 @@ void loadFloor(int floorNumber) {
 	for (i = 0; i < expectedNumberOfCamera; i++) {
 		int k;
 		unsigned int offset;
-		unsigned char *currentCameraData;
+		unsigned char *currentCameraData = NULL;
 
 		if (g_engine->getGameId() >= GID_AITD3) {
 			Common::String buffer;

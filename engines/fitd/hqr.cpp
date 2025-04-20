@@ -50,7 +50,7 @@ hqrEntryStruct *HQR_InitRessource(const char *name, int size, int numEntries) {
 	int i;
 	hqrEntryStruct *dest;
 
-	dest = (hqrEntryStruct *)malloc(sizeof(hqrEntryStruct));
+	dest = new hqrEntryStruct;
 
 	if (!dest)
 		return NULL;
@@ -530,7 +530,7 @@ hqrEntryStruct *HQR_Init(int size, int numEntry) {
 	assert(size > 0);
 	assert(numEntry > 0);
 
-	dest = (hqrEntryStruct *)malloc(sizeof(hqrEntryStruct));
+	dest = new hqrEntryStruct;
 
 	numEntry = 2000;
 
@@ -544,7 +544,7 @@ hqrEntryStruct *HQR_Init(int size, int numEntry) {
 	assert(dest2);
 
 	if (!dest2) {
-		free(dest);
+		delete dest;
 		return NULL;
 	}
 
@@ -605,7 +605,7 @@ void HQR_Free(hqrEntryStruct *hqrPtr) {
 			free(hqrPtr->entries[i].ptr);
 	}
 
-	free(hqrPtr);
+	delete hqrPtr;
 }
 
 sBody *getBodyFromPtr(void *ptr) {

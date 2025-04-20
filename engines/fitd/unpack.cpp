@@ -482,7 +482,7 @@ int PAK_explode(unsigned char * srcBuffer, unsigned char * dstBuffer, unsigned i
   PAK_huft * tb;        /* literal code table */
   PAK_huft * tl;        /* length code table */
   PAK_huft * td;        /* distance code table */
-  unsigned bb;          /* bits for tb */
+  unsigned bb = 0;      /* bits for tb */
   unsigned bl;          /* bits for tl */
   unsigned bd;          /* bits for td */
   unsigned bdl;         /* number of uncoded lower distance bits */

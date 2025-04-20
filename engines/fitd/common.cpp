@@ -19,21 +19,23 @@
  *
  */
 
+#include "fitd/common.h"
+#include "common/debug.h"
+#include "common/file.h"
 #include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
-#include "fitd/fitd.h"
-#include "fitd/jack.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
-#include "fitd/common.h"
 #include "fitd/costable.h"
 #include "fitd/file_access.h"
+#include "fitd/fitd.h"
 #include "fitd/floor.h"
 #include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
+#include "fitd/jack.h"
 #include "fitd/life.h"
 #include "fitd/main_loop.h"
 #include "fitd/object.h"
@@ -42,8 +44,6 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
-#include "common/debug.h"
-#include "common/file.h"
 
 namespace Fitd {
 
@@ -151,7 +151,7 @@ const unsigned char defaultPalette[0x30] = {
 void executeFoundLife(int objIdx) {
 	int var_2;
 	int actorIdx;
-	int lifeOffset;
+	int lifeOffset = 0;
 	int currentActorIdx;
 	int currentActorLifeIdx;
 	int currentActorLifeNum;
@@ -379,11 +379,11 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 							assert(0); // when is this used?
 									   /*  var_C = printTextSub3(currentTextIdx,aux2);
 									   var_A = printTextSub4(currentTextIdx,aux2);
-
+		   
 									   if(currentTextY + var_A > bottom)
 									   {
 									   var_1C2 = var_1BE;
-
+		   
 									   goto pageChange;
 									   }
 									   else
@@ -626,7 +626,7 @@ void initEngine(void) {
 	uint8 *pObjectDataBackup;
 	unsigned long int objectDataSize;
 	Common::File f;
-	int choosePersoBackup;
+	int choosePersoBackup = 0;
 
 	f.open("OBJETS.ITD");
 	objectDataSize = f.size();
@@ -1259,9 +1259,9 @@ void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
 	int Z2 = -32000;
 
 	int i;
-	int tempX;
-	int tempY;
-	int tempZ;
+	int tempX = 0;
+	int tempY = 0;
+	int tempZ = 0;
 
 	giveZVObjet(bodyPtr, zvPtr);
 
@@ -1482,6 +1482,10 @@ void updateAllActorAndObjectsAITD2() {
 							}
 							break;
 						}
+						default: {
+							di = 0;
+							break;
+						}
 						}
 
 						if (!di) {
@@ -1540,6 +1544,7 @@ void updateAllActorAndObjectsAITD2() {
 						}
 					}
 				} else {
+					int di = 0;
 					if (isInViewList(currentObject->room))
 						goto addObject;
 				}

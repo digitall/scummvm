@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/inventory.h"
 #include "fitd/aitd2.h"
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
@@ -28,7 +29,6 @@
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
-#include "fitd/inventory.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 
@@ -50,7 +50,7 @@ int16 inventoryActionTable[5];
 int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 	int y = WindowY1 + 1;
 	int var_6 = startIdx;
-	int var_8;
+	int var_8 = 0;
 	int i;
 	int currentObj;
 	tWorldObject *objPtr;
@@ -182,9 +182,9 @@ void processInventory(void) {
 	int firstTime = 1;
 	unsigned int chrono;
 	int lastSelectedObjectIdx;
-	int selectedWorldObjectIdx;
+	int selectedWorldObjectIdx = 0;
 	int selectedObjectIdx;
-	int selectedActions;
+	int selectedActions = 0;
 	int firstObjectDisplayedIdx;
 	int antiBounce;
 	int modeSelect;
