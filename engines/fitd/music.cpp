@@ -30,6 +30,7 @@
 #include "fitd/opl/fmopl.h"
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
+#include "common/debug.h"
 
 namespace Fitd {
 // tracks availables: [0-7]

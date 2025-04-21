@@ -23,6 +23,7 @@
 #include "fitd/input.h"
 #include "fitd/vars.h"
 #include "common/events.h"
+#include "common/system.h"
 
 namespace Fitd {
 

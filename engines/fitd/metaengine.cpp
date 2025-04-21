@@ -57,6 +57,7 @@ bool FitdMetaEngine::hasFeature(MetaEngineFeature f) const {
 }
 
 void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
+	assert(Fitd::savedSurface);
 	Graphics::Surface *scaledSavedScreen = scale(*Fitd::savedSurface, kThumbnailWidth, kThumbnailHeight2);
 	assert(scaledSavedScreen);
 	thumb.copyFrom(*scaledSavedScreen);

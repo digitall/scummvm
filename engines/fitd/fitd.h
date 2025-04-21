@@ -23,18 +23,13 @@
 #define FITD_H
 
 #include "common/scummsys.h"
-#include "common/system.h"
-#include "common/error.h"
-#include "common/fs.h"
-#include "common/hash-str.h"
 #include "common/random.h"
-#include "common/serializer.h"
-#include "common/util.h"
 #include "engines/engine.h"
-#include "engines/savestate.h"
-#include "graphics/screen.h"
-
 #include "fitd/detection.h"
+
+namespace Graphics {
+class Screen;
+}
 
 namespace Fitd {
 
@@ -53,24 +48,12 @@ public:
 	~FitdEngine() override;
 
 	FitdGameId getGameId() const;
-	uint32 getRandomNumber(uint maxNum) {
-		return _randomSource.getRandomNumber(maxNum);
-	}
+	uint32 getRandomNumber(uint maxNum);
 
-	bool hasFeature(EngineFeature f) const override {
-		return
-		    (f == kSupportsLoadingDuringRuntime) ||
-		    (f == kSupportsSavingDuringRuntime) ||
-			(f == kSupportsReturnToLauncher) ||
-			(f == kSupportsChangingOptionsDuringRuntime);
-	};
+	bool hasFeature(EngineFeature f) const override final;
 
-	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override {
-		return true;
-	}
-	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override {
-		return true;
-	}
+	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override final;
+	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override final;
 
 private:
 	Common::Error loadGameStream(Common::SeekableReadStream *stream) override final;

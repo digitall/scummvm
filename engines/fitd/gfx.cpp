@@ -38,6 +38,7 @@
 #include "common/debug.h"
 #include "common/rendermode.h"
 #include "common/scummsys.h"
+#include "common/system.h"
 #include "common/util.h"
 #include "graphics/renderer.h"
 

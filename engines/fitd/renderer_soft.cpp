@@ -24,6 +24,7 @@
 #include "fitd/input.h"
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
+#include "graphics/screen.h"
 #include "graphics/surface.h"
 #include "math/utils.h"
 

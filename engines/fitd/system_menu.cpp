@@ -33,6 +33,7 @@
 #include "fitd/vars.h"
 #include "audio/mixer.h"
 #include "graphics/scaler.h"
+#include "graphics/screen.h"
 
 #define NB_OPTIONS 7
 #define SELECT_COUL 0xF

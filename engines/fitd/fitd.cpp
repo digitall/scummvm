@@ -36,6 +36,7 @@
 #include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/save.h"
+#include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/unpack.h"
 #include "fitd/vars.h"
@@ -63,24 +64,6 @@ FitdEngine::~FitdEngine() {
 
 FitdGameId FitdEngine::getGameId() const {
 	return _gameDescription->gameId;
-}
-
-void waitMs(uint timeMs) {
-	uint time = 0;
-	// Simple event handling loop
-	Common::Event e;
-	Graphics::FrameLimiter limiter(g_system, 25);
-	while (!g_engine->shouldQuit() && time < timeMs) {
-		while (g_system->getEventManager()->pollEvent(e)) {
-		}
-
-		// Delay for a bit. All events loops should have a delay
-		// to prevent the system being unduly loaded
-		limiter.delayBeforeSwap();
-
-		time += limiter.getLastFrameDuration();
-		limiter.startFrame();
-	}
 }
 
 static void loadPalette(void) {
@@ -379,11 +362,30 @@ Common::Error FitdEngine::run() {
 	return Common::kNoError;
 }
 
+uint32 FitdEngine::getRandomNumber(uint maxNum) {
+	return _randomSource.getRandomNumber(maxNum);
+}
+
+bool FitdEngine::hasFeature(EngineFeature f) const {
+	return (f == kSupportsLoadingDuringRuntime) ||
+		   (f == kSupportsSavingDuringRuntime) ||
+		   (f == kSupportsReturnToLauncher) ||
+		   (f == kSupportsChangingOptionsDuringRuntime);
+};
+
+bool FitdEngine::canLoadGameStateCurrently(Common::U32String *msg) {
+	return true;
+}
+bool FitdEngine::canSaveGameStateCurrently(Common::U32String *msg) {
+	return true;
+}
+
 Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
 	return loadSave(stream) == 1 ? Common::kNoError : Common::kReadingFailed;
 }
 
 Common::Error FitdEngine::saveGameStream(Common::WriteStream *stream, bool isAutosave) {
+	savedSurface = gfx_capture();
 	// Default to returning an error when not implemented
 	return makeSave(stream) == 1 ? Common::kNoError : Common::kWritingFailed;
 }

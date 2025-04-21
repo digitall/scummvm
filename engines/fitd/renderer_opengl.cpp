@@ -20,9 +20,10 @@
  */
 
 #include "fitd/renderer_opengl.h"
-#include "engines/util.h"
 #include "fitd/fitd.h"
 #include "fitd/renderer.h"
+#include "common/system.h"
+#include "engines/util.h"
 #include "graphics/opengl/context.h"
 #include "graphics/opengl/debug.h"
 #include "graphics/opengl/shader.h"
