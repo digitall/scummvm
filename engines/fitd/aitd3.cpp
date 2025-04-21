@@ -69,7 +69,6 @@ namespace Fitd {
 #define START_OPTIONS_INVENTAIRE 23 /* num message.eng */
 
 void startAITD3(int saveSlot) {
-	g_gameUseCDA = true;
 	// if (saveSlot == -1) {
 	// 	startGame(1, 0, 0);
 	// }

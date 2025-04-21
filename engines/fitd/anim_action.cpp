@@ -43,6 +43,25 @@ namespace Fitd {
 #define THROW_OBJECT 9
 #define WAIT_FRAPPE_FRAME 10
 
+static int getCVarsIdx(enumCVars searchedType) {
+	// TODO: optimize by reversing the table....
+	for (int i = 0; i < CVarsSize; i++) {
+		if (currentCVarTable[i] == -1) {
+			assert(0);
+		}
+
+		if (currentCVarTable[i] == searchedType)
+			return i;
+	}
+
+	assert(0);
+	return 0;
+}
+
+int getCVarsIdx(int searchedType) {
+	return getCVarsIdx((enumCVars)searchedType);
+}
+
 static sceZoneStruct *processActor2Sub(int x, int y, int z, const roomDataStruct *pRoomData) {
 	uint32 i;
 	sceZoneStruct *pCurrentZone;
@@ -137,7 +156,7 @@ void gereFrappe(void) {
 	{
 		int touchedActor;
 
-		InitSpecialObjet(3,
+		initSpecialObjet(3,
 						 currentProcessedActorPtr->roomX + currentProcessedActorPtr->hotPoint.x,
 						 currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y,
 						 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z,
@@ -159,11 +178,11 @@ void gereFrappe(void) {
 
 		if (touchedActor == -1) // no one has been touched
 		{
-			InitSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, NULL);
+			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, NULL);
 
 			currentProcessedActorPtr->animActionType = 0;
 		} else {
-			InitSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, NULL);
+			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, NULL);
 
 			currentProcessedActorPtr->hotPoint.x = animMoveX - currentProcessedActorPtr->roomX;
 			currentProcessedActorPtr->hotPoint.y = animMoveY - currentProcessedActorPtr->roomY;
@@ -200,9 +219,9 @@ void gereFrappe(void) {
 			rangeZv.ZVZ1 += z;
 			rangeZv.ZVZ2 += z;
 
-			if (AsmCheckListCol(&rangeZv, &roomDataTable[currentProcessedActorPtr->room])) {
+			if (asmCheckListCol(&rangeZv, &roomDataTable[currentProcessedActorPtr->room])) {
 				currentProcessedActorPtr->animActionType = 0;
-				PutAtObjet(objIdx, currentProcessedActorPtr->indexInWorld);
+				putAtObjet(objIdx, currentProcessedActorPtr->indexInWorld);
 			} else {
 				if (currentProcessedActorPtr->FRAME == currentProcessedActorPtr->animActionFRAME) {
 					currentProcessedActorPtr->animActionType = 7;
@@ -211,7 +230,7 @@ void gereFrappe(void) {
 					y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->hotPoint.y + currentProcessedActorPtr->stepY;
 					z = currentProcessedActorPtr->roomZ + currentProcessedActorPtr->hotPoint.z + currentProcessedActorPtr->stepZ;
 
-					DeleteInventoryObjet(objIdx);
+					deleteInventoryObjet(objIdx);
 
 					objPtr->x = x;
 					objPtr->y = y;
@@ -282,7 +301,7 @@ void gereFrappe(void) {
 		actorPtr->hotPointID = -1;
 		actorPtr->speed = 3000;
 
-		InitRealValue(0, actorPtr->speed, 60, &actorPtr->speedChange);
+		initRealValue(0, actorPtr->speed, 60, &actorPtr->speedChange);
 
 		break;
 	}
@@ -437,7 +456,7 @@ void gereFrappe(void) {
 				}
 			}
 
-			if (AsmCheckListCol(&rangeZv, &roomDataTable[currentProcessedActorPtr->room])) {
+			if (asmCheckListCol(&rangeZv, &roomDataTable[currentProcessedActorPtr->room])) {
 				currentProcessedActorPtr->hotPoint.x = 0;
 				currentProcessedActorPtr->hotPoint.y = 0;
 				currentProcessedActorPtr->hotPoint.z = 0;

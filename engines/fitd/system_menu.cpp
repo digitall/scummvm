@@ -103,7 +103,6 @@ void aitd2DisplayOptions(int selectedStringNumber) {
 	aitd2AffOption(5, 49 + detailToggle, selectedStringNumber);
 	aitd2AffOption(6, 47, selectedStringNumber);
 
-	menuWaitVSync();
 }
 
 void AffOptionList(int selectedStringNumber) {
@@ -138,7 +137,6 @@ void AffOptionList(int selectedStringNumber) {
 	AffOption(5, 49 + detailToggle, selectedStringNumber);
 	AffOption(6, 47, selectedStringNumber);
 
-	menuWaitVSync();
 }
 
 void processSystemMenu(void) {

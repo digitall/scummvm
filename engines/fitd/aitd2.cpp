@@ -205,32 +205,8 @@ enumLifeMacro AITD2LifeMacroTable[] =
 		LM_REP_SAMPLE_N_TIME,        // 118
 };
 
-int AITD2MusicToTrackMapping[21] = {
-	21,
-	9,
-	7,
-	5,
-	4,
-	18,
-	8,
-	10,
-	14,
-	11,
-	12,
-	6,
-	13,
-	20,
-	15,
-	2,
-	3,
-	16,
-	17,
-	19,
-	22};
-
 void startAITD2(int saveSlot) {
 	fontHeight = 14;
-	g_gameUseCDA = true;
 	pAITD2InventorySprite = loadPak("ITD_RESS.PAK", AITD2_SPRITES_INVENTAIRE);
 	assert(pAITD2InventorySprite);
 

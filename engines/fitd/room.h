@@ -28,37 +28,28 @@
 
 namespace Fitd {
 
-struct hardColStruct;
-typedef struct hardColStruct hardColStruct;
-
-struct hardColStruct {
+typedef struct hardColStruct {
 	ZVStruct zv;
 	uint32 type;
 	uint32 parameter;
-};
+} hardColStruct;
 
-struct sceZoneStruct {
+typedef struct sceZoneStruct {
 	ZVStruct zv;
 	uint32 type;
 	uint32 parameter;
-};
+} sceZoneStruct;
 
-typedef struct sceZoneStruct sceZoneStruct;
-
-struct cameraZonePointStruct {
+typedef struct cameraZonePointStruct {
 	int16 x;
 	int16 y;
-};
+} cameraZonePointStruct;
 
-typedef struct cameraZonePointStruct cameraZonePointStruct;
-
-struct cameraZoneEntryStruct {
+typedef struct cameraZoneEntryStruct {
 	uint16 numPoints;
 
 	cameraZonePointStruct *pointTable;
-};
-
-typedef struct cameraZoneEntryStruct cameraZoneEntryStruct;
+} cameraZoneEntryStruct;
 
 struct rectTestStruct {
 	int16 zoneX1;
@@ -105,7 +96,7 @@ struct cameraDataStruct {
 	cameraViewedRoomStruct *viewedRoomTable;
 };
 
-struct roomDataStruct {
+typedef struct roomDataStruct {
 	uint32 numCameraInRoom;
 
 	uint32 numHardCol;
@@ -119,8 +110,7 @@ struct roomDataStruct {
 	int32 worldZ;
 
 	uint16 *cameraIdxTable;
-};
-typedef struct roomDataStruct roomDataStruct;
+} roomDataStruct;
 
 extern cameraDataStruct *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 extern cameraViewedRoomStruct *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];

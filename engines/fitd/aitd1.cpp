@@ -311,7 +311,6 @@ int choosePerso(void) {
 
 void startAITD1(int saveSlot) {
 	fontHeight = 16;
-	g_gameUseCDA = true;
 	gfx_setPalette(currentGamePalette);
 
 	if (saveSlot == -1 && !make3dTatou() && !g_engine->shouldQuit()) {

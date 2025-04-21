@@ -32,6 +32,8 @@
 #include "audio/mixer.h"
 #include "common/debug.h"
 
+#define OPL_INTERNAL_FREQ 3579545
+
 namespace Fitd {
 // tracks availables: [0-7]
 // 0: Exploring derceto
@@ -42,7 +44,7 @@ namespace Fitd {
 // 5: Dead Opus Posthumous 69 Nr 1
 // 6: Ending
 // 7: intro sequence
-static int AITD1MusicToTrackMapping[18] = {
+static const int AITD1MusicToTrackMapping[18] = {
 	-1, // 00: ?
 	-1, // 01: ?
 	7,  // 02: intro sequence
@@ -63,23 +65,38 @@ static int AITD1MusicToTrackMapping[18] = {
 	4,  // 17: Dance of Death
 };
 
-bool g_gameUseCDA = false;
+static const int AITD2MusicToTrackMapping[21] = {
+	21,
+	9,
+	7,
+	5,
+	4,
+	18,
+	8,
+	10,
+	14,
+	11,
+	12,
+	6,
+	13,
+	20,
+	15,
+	2,
+	3,
+	16,
+	17,
+	19,
+	22};
 
 int musicVolume = 0x7F;
-
-unsigned int musicChrono;
+int updateLoop = 0;
+int oldTimer = 0;
+uint musicChrono;
+char OPLinitialized = 0;
 
 typedef int (*musicDrvFunctionType)(void *ptr);
 
-#ifndef AITD_UE4
-struct FM_OPL *virtualOpl;
-#endif
-
-char OPLinitialized = 0;
-
-#define OPL_INTERNAL_FREQ 3579545
-
-struct channelTable2Element {
+typedef struct channelTable2Element {
 	uint16 index;
 	struct channelTable2Element *var2;
 	uint16 var4;
@@ -97,13 +114,11 @@ struct channelTable2Element {
 	uint8 var1C;
 	uint8 var1D;
 	uint8 var1E;
-};
-
-typedef struct channelTable2Element channelTable2Element;
+} channelTable2Element;
 
 typedef void (*musicCommandType)(channelTable2Element *entry, int param, uint8 *ptr);
 
-struct channelTableElement {
+typedef struct channelTableElement {
 	uint16 var0;
 	uint16 var2;
 	uint8 var4;
@@ -111,9 +126,7 @@ struct channelTableElement {
 	uint8 var6;
 	uint8 var7;
 	uint16 var8;
-};
-
-typedef struct channelTableElement channelTableElement;
+} channelTableElement;
 
 channelTableElement channelDataTable[11] =
 	{
@@ -163,57 +176,55 @@ channelTable2Element channelTable2[11] =
 
 unsigned char regBDConf = 0xC0;
 
-unsigned char channelTableMelodic[] =
-	{
-		0x00,
-		0x03,
-		0x01,
-		0x04,
-		0x02,
-		0x05,
-		0x08,
-		0x0B,
-		0x09,
-		0x0C,
-		0x0A,
-		0x0D,
-		0x10,
-		0x13,
-		0x11,
-		0x14,
-		0x12,
-		0x15,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF};
+unsigned char channelTableMelodic[] = {
+	0x00,
+	0x03,
+	0x01,
+	0x04,
+	0x02,
+	0x05,
+	0x08,
+	0x0B,
+	0x09,
+	0x0C,
+	0x0A,
+	0x0D,
+	0x10,
+	0x13,
+	0x11,
+	0x14,
+	0x12,
+	0x15,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF};
 
-unsigned char channelTableRythme[] =
-	{
-		0x00,
-		0x03,
-		0x01,
-		0x04,
-		0x02,
-		0x05,
-		0x08,
-		0x0B,
-		0x09,
-		0x0C,
-		0x0A,
-		0x0D,
-		0x10,
-		0x13,
-		0x14,
-		0xFF,
-		0x12,
-		0xFF,
-		0x15,
-		0xFF,
-		0x11,
-		0xFF};
+unsigned char channelTableRythme[] = {
+	0x00,
+	0x03,
+	0x01,
+	0x04,
+	0x02,
+	0x05,
+	0x08,
+	0x0B,
+	0x09,
+	0x0C,
+	0x0A,
+	0x0D,
+	0x10,
+	0x13,
+	0x14,
+	0xFF,
+	0x12,
+	0xFF,
+	0x15,
+	0xFF,
+	0x11,
+	0xFF};
 
 unsigned char *channelTable;
 
@@ -544,6 +555,9 @@ uint8 *currentMusicPtr2 = NULL;
 uint8 *currentMusicPtr3 = NULL;
 uint8 generalVolume = 0;
 
+static int musicUpdate(void *udata, uint8 *stream, int len);
+static void callMusicUpdate(void);
+
 class AdLibStream : public Audio::AudioStream {
 public:
 	int readBuffer(int16 *buffer, const int numSamples) override {
@@ -566,7 +580,7 @@ void sendAdlib(int regIdx, int value) {
 int musicTimer = 0;
 int nextUpdateTimer = musicSync;
 
-int musicUpdate(void *udata, uint8 *stream, int len) {
+static int musicUpdate(void *udata, uint8 *stream, int len) {
 	if (OPLinitialized) {
 		int fillStatus = 0;
 
@@ -720,17 +734,9 @@ int musicLoad(void *ptr) {
 }
 
 int initialialize(void *dummy) {
-	int i;
-
-	// OPLBuildTables(FMOPL_ENV_BITS_HQ, FMOPL_EG_ENT_HQ);
-
 	YM3812Init(1, OPL_INTERNAL_FREQ, 44100);
-	/*  virtualOpl = OPLCreate(OPL_TYPE_YM3812, OPL_INTERNAL_FREQ, 44100);
 
-	if(!virtualOpl)
-	return 0; */
-
-	for (i = 0; i < 11; i++) {
+	for (int i = 0; i < 11; i++) {
 		channelTable2[i].var4 |= 0x60;
 		channelTable2[i].var2->var4 |= 0x20;
 		channelTable2[i].dataPtr = NULL;
@@ -1248,11 +1254,7 @@ void playMusic(int musicNumber) {
 	}
 }
 
-int updateLoop = 0;
-
-int oldTimer = 0;
-
-void callMusicUpdate(void) {
+static void callMusicUpdate(void) {
 	if (OPLinitialized) {
 		callMusicDrv(0, NULL);
 	}

@@ -25,7 +25,7 @@
 namespace Fitd {
 void processTrack(void);
 void processTrack2(void);
-void GereManualRot(int param);
+void gereManualRot(int param);
 } // namespace Fitd
 
 #endif

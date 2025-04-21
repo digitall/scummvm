@@ -83,24 +83,6 @@ static void loadPalette(void) {
 }
 
 int *currentCVarTable = NULL;
-int getCVarsIdx(enumCVars searchedType) {
-	// TODO: optimize by reversing the table....
-	for (int i = 0; i < CVarsSize; i++) {
-		if (currentCVarTable[i] == -1) {
-			assert(0);
-		}
-
-		if (currentCVarTable[i] == searchedType)
-			return i;
-	}
-
-	assert(0);
-	return 0;
-}
-
-int getCVarsIdx(int searchedType) {
-	return getCVarsIdx((enumCVars)searchedType);
-}
 
 static void setupScreen(void) {
 	logicalScreen = (char *)malloc(64800);

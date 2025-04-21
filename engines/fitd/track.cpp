@@ -93,7 +93,7 @@ int computeAngleModificatorToPosition(int x1, int z1, int beta, int x2, int z2) 
 	}
 }
 
-void GereManualRot(int param) {
+void gereManualRot(int param) {
 	if (localJoyD & 4) {
 		if (currentProcessedActorPtr->direction != 1) {
 			currentProcessedActorPtr->rotate.param = 0;
@@ -105,9 +105,9 @@ void GereManualRot(int param) {
 			int oldBeta = currentProcessedActorPtr->beta;
 
 			if (currentProcessedActorPtr->speed == 0) {
-				InitRealValue(oldBeta, oldBeta + 0x100, param / 2, &currentProcessedActorPtr->rotate);
+				initRealValue(oldBeta, oldBeta + 0x100, param / 2, &currentProcessedActorPtr->rotate);
 			} else {
-				InitRealValue(oldBeta, oldBeta + 0x100, param, &currentProcessedActorPtr->rotate);
+				initRealValue(oldBeta, oldBeta + 0x100, param, &currentProcessedActorPtr->rotate);
 			}
 		}
 
@@ -124,9 +124,9 @@ void GereManualRot(int param) {
 			int oldBeta = currentProcessedActorPtr->beta;
 
 			if (currentProcessedActorPtr->speed == 0) {
-				InitRealValue(oldBeta, oldBeta - 0x100, param / 2, &currentProcessedActorPtr->rotate);
+				initRealValue(oldBeta, oldBeta - 0x100, param / 2, &currentProcessedActorPtr->rotate);
 			} else {
-				InitRealValue(oldBeta, oldBeta - 0x100, param, &currentProcessedActorPtr->rotate);
+				initRealValue(oldBeta, oldBeta - 0x100, param, &currentProcessedActorPtr->rotate);
 			}
 		}
 
@@ -173,7 +173,7 @@ void processTrack(void) {
 	switch (currentProcessedActorPtr->trackMode) {
 	case 1: // manual
 	{
-		GereManualRot(60);
+		gereManualRot(60);
 		if (localJoyD & 1) // forward
 		{
 			if (timer - lastTimeForward < 10 && currentProcessedActorPtr->speed != 4) // start running ?
@@ -237,7 +237,7 @@ void processTrack(void) {
 														   currentProcessedActorPtr->beta, x, z);
 
 			if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-				InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+				initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
 			}
 
 			currentProcessedActorPtr->direction = angleModif;
@@ -343,7 +343,7 @@ void processTrack(void) {
 																   x, z);
 
 				if ((currentProcessedActorPtr->rotate.param == 0) || (currentProcessedActorPtr->direction != angleModif)) {
-					InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif * 64), 15, &currentProcessedActorPtr->rotate);
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif * 64), 15, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -396,11 +396,11 @@ void processTrack(void) {
 					x, z);
 
 				if (currentProcessedActorPtr->YHandler.param == 0) {
-					InitRealValue(0, y - (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY), time, &currentProcessedActorPtr->YHandler);
+					initRealValue(0, y - (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY), time, &currentProcessedActorPtr->YHandler);
 				}
 
 				if ((currentProcessedActorPtr->rotate.param == 0) || (currentProcessedActorPtr->direction != angleModif)) {
-					InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif * 256), 60, &currentProcessedActorPtr->rotate);
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif * 256), 60, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -459,7 +459,7 @@ void processTrack(void) {
 			}
 
 			if (!currentProcessedActorPtr->rotate.param) {
-				InitRealValue(currentProcessedActorPtr->beta, betaDif, 120, &currentProcessedActorPtr->rotate);
+				initRealValue(currentProcessedActorPtr->beta, betaDif, 120, &currentProcessedActorPtr->rotate);
 			}
 
 			currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
@@ -541,7 +541,7 @@ void processTrack(void) {
 															   x, z);
 
 				if (!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->direction != angleModif) {
-					InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -602,7 +602,7 @@ void processTrack(void) {
 															   x, z);
 
 				if (!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->direction != angleModif) {
-					InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -659,7 +659,7 @@ void processTrack2(void) {
 	switch (currentProcessedActorPtr->trackMode) {
 	case 1: // manual
 	{
-		GereManualRot(60);
+		gereManualRot(60);
 		if (localJoyD & 1) // forward
 		{
 			if (timer - lastTimeForward < 10 && currentProcessedActorPtr->speed != 4)
@@ -719,7 +719,7 @@ void processTrack2(void) {
 														   currentProcessedActorPtr->beta, x, z);
 
 			if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-				InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
+				initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
 			}
 
 			currentProcessedActorPtr->direction = angleModif;
@@ -824,7 +824,7 @@ void processTrack2(void) {
 																   x, z);
 
 				if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
-					InitRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 6), 15, &currentProcessedActorPtr->rotate);
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 6), 15, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -873,7 +873,7 @@ void processTrack2(void) {
 			}
 
 			if (!currentProcessedActorPtr->rotate.param) {
-				InitRealValue(currentProcessedActorPtr->beta, betaDif, 120, &currentProcessedActorPtr->rotate);
+				initRealValue(currentProcessedActorPtr->beta, betaDif, 120, &currentProcessedActorPtr->rotate);
 			}
 
 			currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);

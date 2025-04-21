@@ -41,6 +41,8 @@ namespace Fitd {
 
 static Common::HashMap<void *, char *> g_bodyBufferMap;
 
+static void initBufferAnim(int16 *buffer, char *bodyPtr);
+
 int setAnimObjet(int frame, char *anim, char *body) {
 	int16 temp;
 	int16 ax;
@@ -410,7 +412,7 @@ void updateAnimation(void) {
 
 		if (currentProcessedActorPtr->dynFlags & 1) // hard collision enabled for actor ?
 		{
-			int numCol = AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]);
+			int numCol = asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]);
 
 			for (int i = 0; i < numCol; i++) {
 				hardColStruct *pHardCol = hardColTable[i];
@@ -452,7 +454,7 @@ void updateAnimation(void) {
 			}
 		} else // no hard collision -> just update the flag without performing the position update
 		{
-			if (AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room])) {
+			if (asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room])) {
 				currentProcessedActorPtr->HARD_COL = 1;
 			} else {
 				currentProcessedActorPtr->HARD_COL = 0;
@@ -492,7 +494,7 @@ void updateAnimation(void) {
 					localZv2.ZVZ1 += stepZ;
 					localZv2.ZVZ2 += stepZ;
 
-					if (!AsmCheckListCol(&localZv2, &roomDataTable[currentProcessedActorPtr->room])) {
+					if (!asmCheckListCol(&localZv2, &roomDataTable[currentProcessedActorPtr->room])) {
 						if (checkObjectCollisions(collisionIndex, &localZv2)) {
 							isPushPossible = false;
 						}
@@ -607,8 +609,8 @@ void updateAnimation(void) {
 
 			zvLocal.ZVY2 += 100;
 
-			if (currentProcessedActorPtr->roomY < -10 && !AsmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
-				InitRealValue(0, 2000, 40, &currentProcessedActorPtr->YHandler);
+			if (currentProcessedActorPtr->roomY < -10 && !asmCheckListCol(&zvLocal, &roomDataTable[currentProcessedActorPtr->room]) && !manageFall(currentProcessedActorIdx, &zvLocal)) {
+				initRealValue(0, 2000, 40, &currentProcessedActorPtr->YHandler);
 			} else {
 				currentProcessedActorPtr->falling = 0;
 			}
@@ -680,14 +682,14 @@ void updateAnimation(void) {
 			currentProcessedActorPtr->stepX = 0;
 			currentProcessedActorPtr->stepZ = 0;
 
-			InitRealValue(0, currentProcessedActorPtr->speed, 60, &currentProcessedActorPtr->speedChange);
+			initRealValue(0, currentProcessedActorPtr->speed, 60, &currentProcessedActorPtr->speedChange);
 		}
 
 		currentProcessedActorPtr->END_ANIM = 0;
 	}
 }
 
-void initBufferAnim(int16* buffer, char *bodyPtr) {
+static void initBufferAnim(int16* buffer, char *bodyPtr) {
 	int16* bufferIt = buffer;
 
 	int flag = *(int16 *)bodyPtr;

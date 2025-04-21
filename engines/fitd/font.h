@@ -26,13 +26,22 @@
 
 namespace Fitd {
 
+typedef struct textEntryStruct {
+	int16 index;
+	char *textPtr;
+	int16 width;
+} textEntryStruct;
+
 extern int fontHeight;
+extern textEntryStruct *tabTextes;
+
 void extSetFont(char *fontData, int color);
 void setFontSpace(int interWordSpace, int interLetterSpace);
 int extGetSizeFont(char *string);
 void renderText(int x, int y, char *surface, const char *string);
 void selectedMessage(int x, int y, int index, int color1, int color2);
 void simpleMessage(int x, int y, int index, int color);
+textEntryStruct *getTextFromIdx(int index);
 
 } // namespace Fitd
 

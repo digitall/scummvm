@@ -61,15 +61,14 @@ unsigned char currentGamePalette[256 * 3];
 
 char rgbaBuffer[320 * 200 * 4];
 
-unsigned int timer;
-unsigned int timeGlobal;
+uint timer;
+uint timeGlobal;
 
 int WindowX1;
 int WindowY1;
 int WindowX2;
 int WindowY2;
 
-textEntryStruct *tabTextes;
 char *systemTextes;
 
 char JoyD = 0;
@@ -97,6 +96,8 @@ const char *languageShortNameTable[LANGUAGE_NAME_SIZE] = {
 };
 
 const char *languageNameString = NULL;
+
+#define NUM_MAX_TEXT 40
 
 regularTextEntryStruct textTable[NUM_MAX_TEXT];
 

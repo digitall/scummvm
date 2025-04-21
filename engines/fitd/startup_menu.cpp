@@ -49,7 +49,7 @@ void aitd2DrawStartupMenu(int selectedEntry) {
 	}
 }
 
-void drawStartupMenu(int selectedEntry) {
+static void drawStartupMenu(int selectedEntry) {
 	if (g_engine->getGameId() == GID_AITD2) {
 		aitd2DrawStartupMenu(selectedEntry);
 		return;

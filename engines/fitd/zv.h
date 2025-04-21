@@ -22,13 +22,32 @@
 #ifndef FITD_ZV_H
 #define FITD_ZV_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
-struct ZVStruct;
+typedef struct ZVStruct
+{
+	int32 ZVX1;
+	int32 ZVX2;
+	int32 ZVY1;
+	int32 ZVY2;
+	int32 ZVZ1;
+	int32 ZVZ2;
+} ZVStruct;
+
 void getZvCube(char *bodyPtr, ZVStruct *zvPtr);
 void giveZVObjet(char* bodyPtr, ZVStruct* zvPtr);
 void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
 void makeDefaultZV(ZVStruct* zvPtr);
+struct roomDataStruct;
+int asmCheckListCol(const ZVStruct *zvPtr, const roomDataStruct *pRoomData);
+void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVStruct *zvPtr3);
+void copyZv(const ZVStruct *source, ZVStruct *dest);
+void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom);
+int checkZvCollision(const ZVStruct *zvPtr1, const ZVStruct *zvPtr2);
+int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr);
+void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma);
 
 }
 

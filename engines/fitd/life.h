@@ -24,7 +24,7 @@
 
 namespace Fitd {
 
-enum enumLifeMacro {
+typedef enum enumLifeMacro {
 	LM_INVALID = -1,
 	LM_DO_MOVE = 0,
 	LM_ANIM_ONCE,
@@ -152,24 +152,16 @@ enum enumLifeMacro {
 	LM_FADE_OUT_MUSIC_STOP,      // 116
 	LM_MUSIC_ALTER_TEMPO,        // 117
 	LM_REP_SAMPLE_N_TIME,        // 118
-};
-
-typedef enum enumLifeMacro enumLifeMacro;
+} enumLifeMacro;
 
 extern enumLifeMacro AITD1LifeMacroTable[];
 extern enumLifeMacro AITD2LifeMacroTable[];
 
 struct ZVStruct;
 struct tObject;
+
 void processLife(int lifeNum, bool callFoundLife);
-int InitSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr);
-void animMove(int a, int b, int c, int d, int e, int f, int g);
-void doRealZv(tObject *actorPtr);
-void setStage(int newStage, int newRoomLocal, int X, int Y, int Z);
-void fire(int fireAnim, int X, int Y, int Z, int hitForce, int nextAnim);
-void put(int x, int y, int z, int room, int stage, int alpha, int beta, int gamma, int idx);
-void getHardClip();
-void throwObj(int animThrow, int frameThrow, int arg_4, int objToThrowIdx, int throwRotated, int throwForce, int animNext);
+int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr);
 
 } // namespace Fitd
 #endif

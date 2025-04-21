@@ -25,6 +25,7 @@
 #include "common/scummsys.h"
 #include "common/array.h"
 #include "common/str.h"
+#include "fitd/zv.h"
 
 namespace Fitd {
 
@@ -44,14 +45,7 @@ struct point3dStruct
 
 typedef struct point3dStruct point3dStruct;
 
-struct textEntryStruct
-{
-    int16 index;
-    char* textPtr;
-    int16 width;
-};
-
-typedef struct textEntryStruct textEntryStruct;
+struct textEntryStruct;
 
 struct messageStruct
 {
@@ -76,40 +70,6 @@ struct regularTextEntryStruct
 };
 
 typedef struct regularTextEntryStruct regularTextEntryStruct;
-
-struct hqrSubEntryStruct
-{
-    int16 key;
-    int16 size;
-    unsigned int lastTimeUsed;
-    char* ptr;
-};
-
-typedef struct hqrSubEntryStruct hqrSubEntryStruct;
-
-struct hqrEntryStruct
-{
-    Common::String string;
-    uint16 maxFreeData;
-    uint16 sizeFreeData;
-    uint16 numMaxEntry;
-    uint16 numUsedEntry;
-    hqrSubEntryStruct* entries;
-};
-
-typedef struct hqrEntryStruct hqrEntryStruct;
-
-struct ZVStruct
-{
-    int32 ZVX1;
-    int32 ZVX2;
-    int32 ZVY1;
-    int32 ZVY2;
-    int32 ZVZ1;
-    int32 ZVZ2;
-};
-
-typedef struct ZVStruct ZVStruct;
 
 struct interpolatedValue
 {
@@ -272,8 +232,9 @@ struct roomDefStruct
 
 typedef struct roomDefStruct roomDefStruct;
 
-extern hqrEntryStruct* HQ_Memory;
+struct hqrEntryStruct;
 
+extern hqrEntryStruct* HQ_Memory;
 extern hqrEntryStruct* listMus;
 extern hqrEntryStruct* listSamp;
 
@@ -319,7 +280,6 @@ extern int WindowY1;
 extern int WindowX2;
 extern int WindowY2;
 
-extern textEntryStruct* tabTextes;
 extern char* systemTextes;
 
 extern "C" {

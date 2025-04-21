@@ -131,7 +131,6 @@ void renderInventoryObject(int arg) {
 		break;
 	}
 
-	menuWaitVSync();
 }
 
 void drawInventoryActions(int arg) {
@@ -258,7 +257,6 @@ void processInventory(void) {
 			if (antiBounce < 1) {
 				if ((localKey == 0x1C) || (localClick != 0) || (localJoyD == 0xC)) {
 					DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
-					menuWaitVSync();
 					gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 					modeSelect = 1;
 					lastSelectedObjectIdx = -1;
@@ -365,7 +363,6 @@ void processInventory(void) {
 				if (lastSelectedObjectIdx != selectedActions) {
 					lastSelectedObjectIdx = selectedActions;
 					drawInventoryActions(lastSelectedObjectIdx);
-					menuWaitVSync();
 				}
 			}
 		}

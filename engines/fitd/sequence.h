@@ -26,12 +26,10 @@ namespace Fitd {
 
 #define NUM_MAX_SEQUENCE_PARAM 30
 
-struct sequenceParamStruct {
+typedef struct sequenceParamStruct {
 	unsigned int frame;
 	unsigned int sample;
-};
-
-typedef struct sequenceParamStruct sequenceParamStruct;
+} sequenceParamStruct;
 
 extern int numSequenceParam;
 

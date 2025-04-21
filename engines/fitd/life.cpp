@@ -19,16 +19,20 @@
  *
  */
 
-#include "fitd/life.h"
 #include "common/debug.h"
+#include "fitd/aitd1.h"
+#include "fitd/aitd2.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/eval_var.h"
 #include "fitd/fitd.h"
+#include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
+#include "fitd/jack.h"
+#include "fitd/life.h"
 #include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/room.h"
@@ -47,11 +51,47 @@ int numSequenceParam = 0;
 
 sequenceParamStruct sequenceParams[NUM_MAX_SEQUENCE_PARAM];
 
+static const char *sequenceListAITD2[] =
+	{
+		"BATL",
+		"GRAP",
+		"CLE1",
+		"CLE2",
+		"COOK",
+		"EXPL",
+		"FALA",
+		"FAL2",
+		"GLIS",
+		"GREN",
+		"JEND",
+		"MANI",
+		"MER",
+		"TORD",
+		"PANT",
+		"VERE",
+		"PL21",
+		"PL22",
+		"ENDX",
+		"SORT",
+		"EFER",
+		"STAR",
+		"MEDU",
+		"PROL",
+		"GRAS",
+		"STRI",
+		"ITRO",
+		"BILL",
+		"PIRA",
+		"PIR2",
+		"VENT",
+		"FIN",
+		"LAST"};
+
 void resetRotateParam(void) {
 	currentProcessedActorPtr->rotate.param = 0;
 }
 
-void throwObj(int animThrow, int frameThrow, int arg_4, int objToThrowIdx, int throwRotated, int throwForce, int animNext) {
+static void throwObj(int animThrow, int frameThrow, int arg_4, int objToThrowIdx, int throwRotated, int throwForce, int animNext) {
 	if (initAnim(animThrow, 2, animNext)) {
 		currentProcessedActorPtr->animActionANIM = animThrow;
 		currentProcessedActorPtr->animActionFRAME = frameThrow;
@@ -68,7 +108,7 @@ void throwObj(int animThrow, int frameThrow, int arg_4, int objToThrowIdx, int t
 	}
 }
 
-void put(int x, int y, int z, int room, int stage, int alpha, int beta, int gamma, int idx) {
+static void put(int x, int y, int z, int room, int stage, int alpha, int beta, int gamma, int idx) {
 	tWorldObject *objPtr = &ListWorldObjets[idx];
 
 	objPtr->x = x;
@@ -82,7 +122,7 @@ void put(int x, int y, int z, int room, int stage, int alpha, int beta, int gamm
 	objPtr->beta = beta;
 	objPtr->gamma = gamma;
 
-	DeleteInventoryObjet(idx);
+	deleteInventoryObjet(idx);
 
 	objPtr->flags2 |= 0x4000;
 
@@ -91,10 +131,10 @@ void put(int x, int y, int z, int room, int stage, int alpha, int beta, int gamm
 }
 
 void drop(int worldIdx, int worldSource) {
-	PutAtObjet(worldIdx, worldSource);
+	putAtObjet(worldIdx, worldSource);
 }
 
-void fire(int fireAnim, int X, int Y, int Z, int hitForce, int nextAnim) {
+static void fire(int fireAnim, int X, int Y, int Z, int hitForce, int nextAnim) {
 	if (initAnim(fireAnim, 2, nextAnim)) {
 		currentProcessedActorPtr->animActionANIM = fireAnim;
 		currentProcessedActorPtr->animActionFRAME = X;
@@ -109,7 +149,7 @@ int randRange(int min, int max) {
 	return min + g_engine->getRandomNumber(max - min);
 }
 
-int InitSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr) {
+int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr) {
 	int16 localSpecialTable[4];
 	tObject *currentActorPtr;
 	int i;
@@ -223,7 +263,7 @@ int InitSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 	return (i);
 }
 
-void getHardClip() {
+static void getHardClip() {
 	ZVStruct *zvPtr = &currentProcessedActorPtr->zv;
 	char *etageData = (char *)getRoomData(currentProcessedActorPtr->room);
 	int16 numEntry;
@@ -266,7 +306,7 @@ void getHardClip() {
 	hardClip.ZVZ2 = -32000;
 }
 
-void animMove(int animStand, int animWalk, int animRun, int animStop, int animBackward, int animTurnRight, int animTurnLeft) {
+static void animMove(int animStand, int animWalk, int animRun, int animStop, int animBackward, int animTurnRight, int animTurnLeft) {
 	if (currentProcessedActorPtr->speed == 5) {
 		initAnim(animRun, 1, -1);
 	}
@@ -304,7 +344,7 @@ void animMove(int animStand, int animWalk, int animRun, int animStop, int animBa
 	}
 }
 
-void setStage(int newStage, int newRoomLocal, int X, int Y, int Z) {
+static void setStage(int newStage, int newRoomLocal, int X, int Y, int Z) {
 	int animX;
 	int animY;
 	int animZ;
@@ -404,7 +444,7 @@ void setupRealZv(ZVStruct *zvPtr) {
 	}
 }
 
-void doRealZv(tObject *actorPtr) {
+static void doRealZv(tObject *actorPtr) {
 	ZVStruct *zvPtr;
 
 	computeScreenBox(0, 0, 0, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, HQR_Get(listBody, actorPtr->bodyNum));
@@ -437,6 +477,272 @@ void doRealZv(tObject *actorPtr) {
 // 	strcat(currentDebugLifeLine, buff);
 // }
 // #endif
+
+static void hit(int animNumber, int arg_2, int arg_4, int arg_6, int hitForce, int arg_A) {
+	if (initAnim(animNumber, 0, arg_A)) {
+		currentProcessedActorPtr->animActionANIM = animNumber;
+		currentProcessedActorPtr->animActionFRAME = arg_2;
+		currentProcessedActorPtr->animActionType = 1;
+		currentProcessedActorPtr->animActionParam = arg_6;
+		currentProcessedActorPtr->hotPointID = arg_4;
+		currentProcessedActorPtr->hitForce = hitForce;
+	}
+}
+
+static void deleteObject(int objIdx) {
+	tWorldObject *objPtr;
+	int actorIdx;
+	tObject *actorPtr;
+
+	objPtr = &ListWorldObjets[objIdx];
+	actorIdx = objPtr->objIndex;
+
+	if (actorIdx != -1) {
+		actorPtr = &objectTable[actorIdx];
+
+		actorPtr->room = -1;
+		actorPtr->stage = -1;
+
+		//    FlagGenereActiveList = 1;
+
+		if (actorPtr->_flags & AF_BOXIFY) {
+			removeFromBGIncrust(actorIdx);
+		}
+	}
+
+	objPtr->room = -1;
+	objPtr->stage = -1;
+
+	deleteInventoryObjet(objIdx);
+}
+
+static void readBook(int index, int type) {
+	freezeTime();
+
+	switch (g_engine->getGameId()) {
+	case GID_AITD1:
+		aitd1_readBook(index, type);
+		break;
+	case GID_JACK:
+		JACK_ReadBook(index, type);
+		break;
+	case GID_AITD2:
+		AITD2_ReadBook(index, type);
+		break;
+	default:
+		assert(0);
+	}
+
+	unfreezeTime();
+}
+
+static void makeMessage(int messageIdx) {
+	textEntryStruct *messagePtr = getTextFromIdx(messageIdx);
+
+	if (messagePtr) {
+		for (int i = 0; i < 5; i++) {
+			if (messageTable[i].string == messagePtr) {
+				messageTable[i].time = 0;
+				return;
+			}
+		}
+
+		for (int i = 0; i < 5; i++) {
+			if (messageTable[i].string == NULL) {
+				messageTable[i].string = messagePtr;
+				messageTable[i].time = 0;
+				return;
+			}
+		}
+	}
+}
+
+static void unpackSequenceFrame(unsigned char *source, unsigned char *dest) {
+	unsigned char byteCode;
+
+	byteCode = *(source++);
+
+	while (byteCode) {
+		if (!(--byteCode)) // change pixel or skip pixel
+		{
+			unsigned char changeColor;
+
+			changeColor = *(source++);
+
+			if (changeColor) {
+				*(dest++) = changeColor;
+			} else {
+				dest++;
+			}
+		} else if (!(--byteCode)) // change 2 pixels or skip 2 pixels
+		{
+			unsigned char changeColor;
+
+			changeColor = *(source++);
+
+			if (changeColor) {
+				*(dest++) = changeColor;
+				*(dest++) = changeColor;
+			} else {
+				dest += 2;
+			}
+		} else if (!(--byteCode)) // fill or skip
+		{
+			unsigned char size;
+			unsigned char fillColor;
+
+			size = *(source++);
+			fillColor = *(source++);
+
+			if (fillColor) {
+				int i;
+
+				for (i = 0; i < size; i++) {
+					*(dest++) = fillColor;
+				}
+			} else {
+				dest += size;
+			}
+		} else // large fill of skip
+		{
+			uint16 size;
+			unsigned char fillColor;
+
+			size = READ_LE_U16(source);
+			source += 2;
+			fillColor = *(source++);
+
+			if (fillColor) {
+				int i;
+
+				for (i = 0; i < size; i++) {
+					*(dest++) = fillColor;
+				}
+			} else {
+				dest += size;
+			}
+		}
+
+		byteCode = *(source++);
+	}
+}
+
+static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
+
+	int var_4 = 1;
+	int quitPlayback = 0;
+	int nextFrame = 1;
+	unsigned char localPalette[0x300];
+
+	Common::String buffer;
+	if (g_engine->getGameId() == GID_AITD2)
+	{
+	    buffer = Common::String::format("%s.PAK", sequenceListAITD2[sequenceIdx]);
+	}
+	else if (g_engine->getGameId() == GID_AITD3)
+	{
+	    buffer = Common::String::format("AN%d.PAK", sequenceIdx);
+	}
+	else
+	{
+		assert(0);
+	}
+
+	int numMaxFrames = PAK_getNumFiles(buffer.c_str());
+
+	while (!quitPlayback) {
+		int currentFrameId = 0;
+		int sequenceParamIdx;
+
+		while (currentFrameId < nextFrame) {
+			// frames++;
+
+			timer = timeGlobal;
+
+			if (currentFrameId >= numMaxFrames) {
+				quitPlayback = 1;
+				break;
+			}
+
+			if (!loadPak(buffer.c_str(), currentFrameId, logicalScreen)) {
+				error("Error loading pak %s", buffer.c_str());
+			}
+
+			if (!currentFrameId) // first frame
+			{
+				memcpy(localPalette, logicalScreen, 0x300); // copy palette
+				memcpy(aux, logicalScreen + 0x300, 64000);
+				nextFrame = READ_LE_U16(logicalScreen + 64768);
+
+				convertPaletteIfRequired(localPalette);
+
+				if (var_4 != 0) {
+					/*      if(fadeStart & 1)
+					{
+					fadeOut(0x10,0);
+					}
+					if(fadeStart & 4)
+					{
+					//memset(palette,0,0); // fade from black
+					fadeInSub1(localPalette);
+					flipOtherPalette(palette);
+					} */
+
+					gfx_setPalette(localPalette);
+					copyPalette(localPalette, currentGamePalette);
+				}
+			} else // not first frame
+			{
+				uint32 frameSize;
+
+				frameSize = READ_LE_U32(logicalScreen);
+
+				if (frameSize < 64000) // key frame
+				{
+					unpackSequenceFrame((unsigned char *)logicalScreen + 4, (unsigned char *)aux);
+				} else // delta frame
+				{
+					fastCopyScreen(logicalScreen, aux);
+				}
+			}
+
+			for (sequenceParamIdx = 0; sequenceParamIdx < numSequenceParam; sequenceParamIdx++) {
+				if (sequenceParams[sequenceParamIdx].frame == (uint)currentFrameId) {
+					playSound(sequenceParams[sequenceParamIdx].sample);
+				}
+			}
+
+			// TODO: here, timming management
+			// TODO: fade management
+
+			gfx_copyBlockPhys((unsigned char *)aux, 0, 0, 320, 200);
+
+			osystem_drawBackground();
+
+			currentFrameId++;
+
+			for (int i = 0; i < 5; i++) // display the frame 5 times (original seems to wait 5 sync)
+			{
+				process_events();
+			}
+
+			if (key) {
+				// stopSample();
+				quitPlayback = 1;
+				break;
+			}
+		}
+
+		fadeOutVar--;
+
+		if (fadeOutVar == 0) {
+			quitPlayback = 1;
+		}
+	}
+
+	flagInitView = 2;
+}
+
 
 void processLife(int lifeNum, bool callFoundLife) {
 	int exitLife = 0;
@@ -1085,9 +1391,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 			{
 				// appendFormated("LM_MANUAL_ROT ");
 				if (g_engine->getGameId() == GID_AITD1) {
-					GereManualRot(240);
+					gereManualRot(240);
 				} else {
-					GereManualRot(90);
+					gereManualRot(90);
 				}
 				break;
 			}
@@ -1099,7 +1405,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				if (currentProcessedActorPtr->beta != lifeTempVar1) {
 					if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->rotate.newAngle != lifeTempVar1) {
-						InitRealValue(currentProcessedActorPtr->beta, lifeTempVar1, lifeTempVar2, &currentProcessedActorPtr->rotate);
+						initRealValue(currentProcessedActorPtr->beta, lifeTempVar1, lifeTempVar2, &currentProcessedActorPtr->rotate);
 					}
 
 					currentProcessedActorPtr->beta = updateActorRotation(&currentProcessedActorPtr->rotate);
@@ -1115,7 +1421,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				if (currentProcessedActorPtr->alpha != lifeTempVar1) {
 					if (currentProcessedActorPtr->rotate.param == 0 || lifeTempVar1 != currentProcessedActorPtr->rotate.newAngle) {
-						InitRealValue(currentProcessedActorPtr->alpha, lifeTempVar1, lifeTempVar2, &currentProcessedActorPtr->rotate);
+						initRealValue(currentProcessedActorPtr->alpha, lifeTempVar1, lifeTempVar2, &currentProcessedActorPtr->rotate);
 					}
 
 					currentProcessedActorPtr->alpha = updateActorRotation(&currentProcessedActorPtr->rotate);
@@ -1176,7 +1482,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_UP_COOR_Y: // UP_COOR_Y
 			{
 				// appendFormated("LM_UP_COOR_Y ");
-				InitRealValue(0, -2000, -1, &currentProcessedActorPtr->YHandler);
+				initRealValue(0, -2000, -1, &currentProcessedActorPtr->YHandler);
 				break;
 			}
 			////////////////////////////////////////////////////////////////////////
@@ -1237,7 +1543,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				switch (lifeTempVar1) {
 				case 0: // evaporate
 				{
-					InitSpecialObjet(0,
+					initSpecialObjet(0,
 									 currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 									 currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY,
 									 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
@@ -1253,7 +1559,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				{
 					currentProcessedActorPtr = &objectTable[currentProcessedActorPtr->HIT_BY];
 
-					InitSpecialObjet(1,
+					initSpecialObjet(1,
 									 currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX + currentProcessedActorPtr->hotPoint.x,
 									 currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY + currentProcessedActorPtr->hotPoint.y,
 									 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ + currentProcessedActorPtr->hotPoint.z,
@@ -1270,7 +1576,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				}
 				case 4: // cigar smoke
 				{
-					InitSpecialObjet(4,
+					initSpecialObjet(4,
 									 currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 									 currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY,
 									 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
@@ -1403,7 +1709,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 				objIdx2 = *(int16 *)currentLifePtr;
 				currentLifePtr += 2;
 
-				PutAtObjet(objIdx1, objIdx2);
+				putAtObjet(objIdx1, objIdx2);
 				break;
 			}
 			case LM_FOUND_NAME: // FOUND_NAME

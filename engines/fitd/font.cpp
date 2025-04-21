@@ -20,10 +20,12 @@
  */
 
 #include "fitd/common.h"
+#include "fitd/font.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
 
+textEntryStruct *tabTextes;
 int fontHeight = 16;
 
 char *fontVar1 = NULL;

@@ -24,7 +24,6 @@
 
 namespace Fitd {
 
-void drawStartupMenu(int selectedEntry);
 int processStartupMenu(void);
 
 }

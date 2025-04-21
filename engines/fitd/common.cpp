@@ -265,26 +265,6 @@ static void turnPageForward() {
 static void turnPageBackward() {
 }
 
-void readBook(int index, int type) {
-	freezeTime();
-
-	switch (g_engine->getGameId()) {
-	case GID_AITD1:
-		aitd1_readBook(index, type);
-		break;
-	case GID_JACK:
-		JACK_ReadBook(index, type);
-		break;
-	case GID_AITD2:
-		AITD2_ReadBook(index, type);
-		break;
-	default:
-		assert(0);
-	}
-
-	unfreezeTime();
-}
-
 int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int shadow) {
 	bool lastPageReached = false;
 	char tabString[] = "    ";
@@ -379,11 +359,11 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 							assert(0); // when is this used?
 									   /*  var_C = printTextSub3(currentTextIdx,aux2);
 									   var_A = printTextSub4(currentTextIdx,aux2);
-		   
+
 									   if(currentTextY + var_A > bottom)
 									   {
 									   var_1C2 = var_1BE;
-		   
+
 									   goto pageChange;
 									   }
 									   else
@@ -1186,156 +1166,6 @@ static void deleteObjet(int index) // remove actor
 	}
 }
 
-bool pointRotateEnable = true;
-
-int pointRotateCosX;
-int pointRotateSinX;
-int pointRotateCosY;
-int pointRotateSinY;
-int pointRotateCosZ;
-int pointRotateSinZ;
-
-static void setupPointRotate(int alpha, int beta, int gamma) {
-	pointRotateEnable = true;
-
-	pointRotateCosX = cosTable[alpha & 0x3FF];
-	pointRotateSinX = cosTable[((alpha & 0x3FF) + 0x100) & 0x3FF];
-
-	pointRotateCosY = cosTable[beta & 0x3FF];
-	pointRotateSinY = cosTable[((beta & 0x3FF) + 0x100) & 0x3FF];
-
-	pointRotateCosZ = cosTable[gamma & 0x3FF];
-	pointRotateSinZ = cosTable[((gamma & 0x3FF) + 0x100) & 0x3FF];
-}
-
-static void pointRotate(int x, int y, int z, int *destX, int *destY, int *destZ) {
-	if (pointRotateEnable) {
-		{
-			int tempX = x;
-			int tempY = y;
-			x = ((((tempX * pointRotateSinZ) - (tempY * pointRotateCosZ))) >> 16) << 1;
-			y = ((((tempX * pointRotateCosZ) + (tempY * pointRotateSinZ))) >> 16) << 1;
-		}
-
-		{
-			int tempX = x;
-			int tempZ = z;
-
-			x = ((((tempX * pointRotateSinY) - (tempZ * pointRotateCosY))) >> 16) << 1;
-			z = ((((tempX * pointRotateCosY) + (tempZ * pointRotateSinY))) >> 16) << 1;
-		}
-
-		{
-			int tempY = y;
-			int tempZ = z;
-			y = ((((tempY * pointRotateSinX) - (tempZ * pointRotateCosX))) >> 16) << 1;
-			z = ((((tempY * pointRotateCosX) + (tempZ * pointRotateSinX))) >> 16) << 1;
-		}
-
-		*destX = x;
-		*destY = y;
-		*destZ = z;
-	}
-}
-
-static void zvRotSub(int X, int Y, int Z, int alpha, int beta, int gamma) {
-	if (alpha || beta || gamma) {
-		setupPointRotate(alpha, beta, gamma);
-		pointRotate(X, Y, Z, &animMoveX, &animMoveY, &animMoveZ);
-	} else {
-		animMoveX = X;
-		animMoveY = Y;
-		animMoveZ = Z;
-	}
-}
-
-void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
-	int X1 = 32000;
-	int Y1 = 32000;
-	int Z1 = 32000;
-
-	int X2 = -32000;
-	int Y2 = -32000;
-	int Z2 = -32000;
-
-	int i;
-	int tempX = 0;
-	int tempY = 0;
-	int tempZ = 0;
-
-	giveZVObjet(bodyPtr, zvPtr);
-
-	for (i = 0; i < 8; i++) {
-		switch (i) {
-		case 0: {
-			tempX = zvPtr->ZVX1;
-			tempY = zvPtr->ZVY1;
-			tempZ = zvPtr->ZVZ1;
-			break;
-		}
-		case 1: {
-			tempZ = zvPtr->ZVZ2;
-			break;
-		}
-		case 2: {
-			tempX = zvPtr->ZVX2;
-			break;
-		}
-		case 3: {
-			tempZ = zvPtr->ZVZ1;
-			break;
-		}
-		case 4: {
-			tempY = zvPtr->ZVY2;
-			break;
-		}
-		case 5: {
-			tempX = zvPtr->ZVX1;
-			break;
-		}
-		case 6: {
-			tempZ = zvPtr->ZVZ2;
-			break;
-		}
-		case 7: {
-			tempX = zvPtr->ZVX2;
-			break;
-		}
-		}
-
-		zvRotSub(tempX, tempY, tempZ, alpha, beta, gamma);
-
-		if (animMoveX < X1)
-			X1 = animMoveX;
-
-		if (animMoveX > X2)
-			X2 = animMoveX;
-
-		if (animMoveY < Y1)
-			Y1 = animMoveY;
-
-		if (animMoveY > Y2)
-			Y2 = animMoveY;
-
-		if (animMoveZ < Z1)
-			Z1 = animMoveZ;
-
-		if (animMoveZ > Z2)
-			Z2 = animMoveZ;
-	}
-
-	zvPtr->ZVX1 = X1;
-	zvPtr->ZVX2 = X2;
-	zvPtr->ZVY1 = Y1;
-	zvPtr->ZVY2 = Y2;
-	zvPtr->ZVZ1 = Z1;
-	zvPtr->ZVZ2 = Z2;
-}
-
-void copyZv(ZVStruct *source, ZVStruct *dest) {
-	memcpy(dest, source, sizeof(ZVStruct));
-}
-
 static void setupCameraSub4(void) {
 	fastCopyScreen(aux, aux2);
 
@@ -1790,7 +1620,7 @@ int16 computeDistanceToPoint(int x1, int z1, int x2, int z2) {
 	}
 }
 
-void InitRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr) {
+void initRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr) {
 	rotatePtr->oldAngle = beta;
 	rotatePtr->newAngle = newBeta;
 	rotatePtr->param = param;
@@ -1855,7 +1685,7 @@ int findObjectInInventory(int objIdx) {
 	return (-1);
 }
 
-void DeleteInventoryObjet(int objIdx) {
+void deleteInventoryObjet(int objIdx) {
 	int inventoryIdx;
 
 	inventoryIdx = findObjectInInventory(objIdx);
@@ -1867,33 +1697,6 @@ void DeleteInventoryObjet(int objIdx) {
 	}
 
 	ListWorldObjets[objIdx].flags2 &= 0x7FFF;
-}
-
-void deleteObject(int objIdx) {
-	tWorldObject *objPtr;
-	int actorIdx;
-	tObject *actorPtr;
-
-	objPtr = &ListWorldObjets[objIdx];
-	actorIdx = objPtr->objIndex;
-
-	if (actorIdx != -1) {
-		actorPtr = &objectTable[actorIdx];
-
-		actorPtr->room = -1;
-		actorPtr->stage = -1;
-
-		//    FlagGenereActiveList = 1;
-
-		if (actorPtr->_flags & AF_BOXIFY) {
-			removeFromBGIncrust(actorIdx);
-		}
-	}
-
-	objPtr->room = -1;
-	objPtr->stage = -1;
-
-	DeleteInventoryObjet(objIdx);
 }
 
 static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, char *data, int param) {
@@ -2215,82 +2018,6 @@ void addActorToBgInscrust(int actorIdx) {
 	// FlagRefreshAux2 = 1;
 }
 
-int checkZvCollision(ZVStruct *zvPtr1, ZVStruct *zvPtr2) {
-	if (zvPtr1->ZVX1 >= zvPtr2->ZVX2)
-		return 0;
-
-	if (zvPtr2->ZVX1 >= zvPtr1->ZVX2)
-		return 0;
-
-	if (zvPtr1->ZVY1 >= zvPtr2->ZVY2)
-		return 0;
-
-	if (zvPtr2->ZVY1 >= zvPtr1->ZVY2)
-		return 0;
-
-	if (zvPtr1->ZVZ1 >= zvPtr2->ZVZ2)
-		return 0;
-
-	if (zvPtr2->ZVZ1 >= zvPtr1->ZVZ2)
-		return 0;
-
-	return 1;
-}
-
-void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom) {
-	unsigned int Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
-	unsigned int Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
-	unsigned int Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
-
-	zvPtr->ZVX1 -= Xdif;
-	zvPtr->ZVX2 -= Xdif;
-	zvPtr->ZVY1 += Ydif;
-	zvPtr->ZVY2 += Ydif;
-	zvPtr->ZVZ1 += Zdif;
-	zvPtr->ZVZ2 += Zdif;
-}
-
-int checkObjectCollisions(int actorIdx, ZVStruct *zvPtr) {
-	int currentCollisionSlot = 0;
-	tObject *currentActor = objectTable;
-	int actorRoom = objectTable[actorIdx].room;
-
-	for (int i = 0; i < 3; i++) {
-		currentProcessedActorPtr->COL[i] = -1;
-	}
-
-	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
-		if (currentActor->indexInWorld != -1 && i != actorIdx) {
-			ZVStruct *currentActorZv = &currentActor->zv;
-
-			if (currentActor->room != actorRoom) {
-				ZVStruct localZv;
-
-				copyZv(zvPtr, &localZv);
-
-				getZvRelativePosition(&localZv, actorRoom, currentActor->room);
-
-				if (checkZvCollision(&localZv, currentActorZv)) {
-					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
-
-					if (currentCollisionSlot == 3)
-						return (3);
-				}
-			} else {
-				if (checkZvCollision(zvPtr, currentActorZv)) {
-					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
-
-					if (currentCollisionSlot == 3)
-						return (3);
-				}
-			}
-		}
-		currentActor++;
-	}
-
-	return (currentCollisionSlot);
-}
-
 void cleanClip() {
 	for (int x = clipLeft; x < clipRight; x++) {
 		for (int y = clipTop; y < clipBottom; y++) {
@@ -2498,149 +2225,6 @@ void foundObject(int objIdx, int param) {
 	}
 
 	flagInitView = 1;
-}
-
-static void hardColSuB1Sub1(int flag) {
-	switch (flag) {
-	case 1:
-	case 2: {
-		hardColStepZ = 0;
-		break;
-	}
-	case 4:
-	case 8: {
-		hardColStepX = 0;
-		break;
-	}
-	default: {
-		break;
-	}
-	}
-}
-
-void handleCollision(ZVStruct *startZv, ZVStruct *zvPtr2, ZVStruct *zvPtr3) {
-	int32 flag = 0;
-	int32 var_8;
-	int32 halfX;
-	int32 halfZ;
-	int32 var_A;
-	int32 var_6;
-
-	if (startZv->ZVX2 > zvPtr3->ZVX1) {
-		if (zvPtr3->ZVX2 <= startZv->ZVX1) {
-			flag = 8;
-		}
-	} else {
-		flag = 4;
-	}
-
-	if (startZv->ZVZ2 > zvPtr3->ZVZ1) {
-		if (startZv->ZVZ1 >= zvPtr3->ZVZ2) {
-			flag |= 2;
-		}
-	} else {
-		flag |= 1;
-	}
-
-	if (flag == 5 || flag == 9 || flag == 6 || flag == 10) {
-		var_8 = 2;
-	} else {
-		if (!flag) {
-			var_8 = 0;
-
-			hardColStepZ = 0;
-			hardColStepX = 0;
-
-			return;
-		} else {
-			var_8 = 1;
-		}
-	}
-
-	halfX = (zvPtr2->ZVX1 + zvPtr2->ZVX2) / 2;
-	halfZ = (zvPtr2->ZVZ1 + zvPtr2->ZVZ2) / 2;
-
-	if (zvPtr3->ZVX1 > halfX) {
-		var_A = 4;
-	} else {
-		if (zvPtr3->ZVX2 < halfX) {
-			var_A = 0;
-		} else {
-			var_A = 8;
-		}
-	}
-
-	if (zvPtr3->ZVZ1 > halfZ) {
-		var_A |= 1;
-	} else {
-		if (zvPtr3->ZVZ2 < halfZ) {
-			var_A |= 0; // once again, not that much usefull
-		} else {
-			var_A |= 2;
-		}
-	}
-
-	if (var_A == 5 || var_A == 9 || var_A == 6 || var_A == 10) {
-		var_6 = 2;
-	} else {
-		if (!var_A) {
-			var_6 = 0;
-		} else {
-			var_6 = 1;
-		}
-	}
-
-	if (var_8 == 1) {
-		hardColSuB1Sub1(flag);
-		return;
-	}
-
-	if (var_6 == 1 && (var_A & flag)) {
-		hardColSuB1Sub1(var_A);
-		return;
-	}
-
-	if (var_A == flag || flag == 15) {
-		int Xmod = abs(zvPtr2->ZVX1 - startZv->ZVX1); // recheck
-		int Zmod = abs(zvPtr2->ZVZ1 - startZv->ZVZ1);
-
-		if (Xmod > Zmod) {
-			hardColStepZ = 0;
-		} else {
-			hardColStepX = 0;
-		}
-	} else {
-		if (!var_6 || (var_6 == 1 && !(var_A & flag))) {
-			hardColStepZ = 0;
-			hardColStepX = 0;
-		} else {
-			hardColSuB1Sub1(flag & var_A);
-		}
-	}
-}
-
-int AsmCheckListCol(ZVStruct *zvPtr, roomDataStruct *pRoomData) {
-	uint16 i;
-	int hardColVar = 0;
-	hardColStruct *pCurrentEntry = pRoomData->hardColTable;
-
-	for (i = 0; i < pRoomData->numHardCol; i++) {
-		if (((pCurrentEntry->zv.ZVX1) < (zvPtr->ZVX2)) && ((zvPtr->ZVX1) < (pCurrentEntry->zv.ZVX2))) {
-			if (((pCurrentEntry->zv.ZVY1) < (zvPtr->ZVY2)) && ((zvPtr->ZVY1) < (pCurrentEntry->zv.ZVY2))) {
-				if (((pCurrentEntry->zv.ZVZ1) < (zvPtr->ZVZ2)) && ((zvPtr->ZVZ1) < (pCurrentEntry->zv.ZVZ2))) {
-					assert(hardColVar < 10);
-					hardColTable[hardColVar++] = pCurrentEntry;
-				}
-			}
-		}
-
-		pCurrentEntry++;
-	}
-
-	return hardColVar;
-}
-
-void menuWaitVSync() {
 }
 
 static int testCrossProduct(int x1, int z1, int x2, int z2, int x3, int z3, int x4, int z4) {
@@ -2925,7 +2509,7 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 			break;
 		}
 
-		if (AsmCheckListCol(&localZv, &roomDataTable[room]) <= 0) {
+		if (asmCheckListCol(&localZv, &roomDataTable[room]) <= 0) {
 			foundFlag = -1;
 		} else {
 			tObject *currentActorPtr = objectTable;
@@ -2969,14 +2553,14 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 	return (foundFlag);
 }
 
-void PutAtObjet(int objIdx, int objIdxToPutAt) {
+void putAtObjet(int objIdx, int objIdxToPutAt) {
 	tWorldObject *objPtr = &ListWorldObjets[objIdx];
 	tWorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
 
 	if (objPtrToPutAt->objIndex != -1) {
 		tObject *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
 
-		DeleteInventoryObjet(objIdx);
+		deleteInventoryObjet(objIdx);
 
 		if (objPtr->objIndex == -1) {
 			objPtr->x = actorToPutAtPtr->roomX;
@@ -3011,7 +2595,7 @@ void PutAtObjet(int objIdx, int objIdxToPutAt) {
 		}
 
 	} else {
-		DeleteInventoryObjet(objIdx);
+		deleteInventoryObjet(objIdx);
 
 		if (objPtr->objIndex == -1) {
 			objPtr->x = objPtrToPutAt->x;
@@ -3085,7 +2669,7 @@ void throwStoppedAt(int x, int z) {
 		zvCopy.ZVZ1 += z2;
 		zvCopy.ZVZ2 += z2;
 
-		if (!AsmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
+		if (!asmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
 			foundPosition = 1;
 		}
 
@@ -3094,7 +2678,7 @@ void throwStoppedAt(int x, int z) {
 				zvCopy.ZVY1 += 100; // is the object reachable ? (100 is Carnby height. If hard col at Y + 100, carnby can't reach that spot)
 				zvCopy.ZVY2 += 100;
 
-				if (!AsmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
+				if (!asmCheckListCol(&zvCopy, &roomDataTable[currentProcessedActorPtr->room])) {
 					y2 += 2000;
 					foundPosition = 0;
 				} else {
@@ -3206,42 +2790,6 @@ static int drawTextOverlay(void) {
 
 	BBox3D2 = y;
 	return hasText;
-}
-
-void makeMessage(int messageIdx) {
-	textEntryStruct *messagePtr;
-
-	messagePtr = getTextFromIdx(messageIdx);
-
-	if (messagePtr) {
-		int i;
-
-		for (i = 0; i < 5; i++) {
-			if (messageTable[i].string == messagePtr) {
-				messageTable[i].time = 0;
-				return;
-			}
-		}
-
-		for (i = 0; i < 5; i++) {
-			if (messageTable[i].string == NULL) {
-				messageTable[i].string = messagePtr;
-				messageTable[i].time = 0;
-				return;
-			}
-		}
-	}
-}
-
-void hit(int animNumber, int arg_2, int arg_4, int arg_6, int hitForce, int arg_A) {
-	if (initAnim(animNumber, 0, arg_A)) {
-		currentProcessedActorPtr->animActionANIM = animNumber;
-		currentProcessedActorPtr->animActionFRAME = arg_2;
-		currentProcessedActorPtr->animActionType = 1;
-		currentProcessedActorPtr->animActionParam = arg_6;
-		currentProcessedActorPtr->hotPointID = arg_4;
-		currentProcessedActorPtr->hitForce = hitForce;
-	}
 }
 
 } // namespace Fitd

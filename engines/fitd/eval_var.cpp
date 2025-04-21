@@ -150,14 +150,14 @@ int testZvEndAnim(tObject *actorPtr, char *animPtr, int param) {
 	localZv.ZVZ1 += animMoveZ;
 	localZv.ZVZ2 += animMoveZ;
 
-	if (AsmCheckListCol(&localZv, &roomDataTable[actorPtr->room])) {
+	if (asmCheckListCol(&localZv, &roomDataTable[actorPtr->room])) {
 		return (0);
 	}
 
 	localZv.ZVY1 += 100;
 	localZv.ZVY2 += 100;
 
-	if (AsmCheckListCol(&localZv, &roomDataTable[actorPtr->room])) {
+	if (asmCheckListCol(&localZv, &roomDataTable[actorPtr->room])) {
 		return (1);
 	}
 
