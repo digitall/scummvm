@@ -248,14 +248,14 @@ static void renderer_clearClip() {
 }
 
 static void renderer_drawMask(int roomId, int maskId) {
-	for (size_t i = 0; i < _state->numMasks; i++) {
+	for (uint16 i = 0; i < _state->numMasks; i++) {
 		Mask *pMask = &_state->masks[i];
 		if (pMask->roomId == roomId && pMask->maskId == maskId) {
 			byte *s = (byte *)g_engine->_screen->getBasePtr(_state->clipMask.x, _state->clipMask.y);
 			byte *p = &_state->physicalScreen[_state->clipMask.y * WIDTH + _state->clipMask.x];
 			byte *m = &pMask->mask[_state->clipMask.y * WIDTH + _state->clipMask.x];
-			for (size_t h = 0; h < _state->clipMask.h; h++) {
-				for (size_t w = 0; w < _state->clipMask.w; w++) {
+			for (int16 h = 0; h < _state->clipMask.h; h++) {
+				for (int16 w = 0; w < _state->clipMask.w; w++) {
 					if (*m) {
 						*s = *p;
 					}

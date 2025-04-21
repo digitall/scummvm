@@ -79,8 +79,6 @@ char OPLinitialized = 0;
 
 #define OPL_INTERNAL_FREQ 3579545
 
-void callMusicUpdate(void);
-
 struct channelTable2Element {
 	uint16 index;
 	struct channelTable2Element *var2;

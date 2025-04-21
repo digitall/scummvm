@@ -29,7 +29,6 @@ void getZvCube(char *bodyPtr, ZVStruct *zvPtr);
 void giveZVObjet(char* bodyPtr, ZVStruct* zvPtr);
 void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
 void makeDefaultZV(ZVStruct* zvPtr);
-void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
 
 }
 

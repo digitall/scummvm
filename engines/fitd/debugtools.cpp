@@ -95,7 +95,7 @@ static void drawObjects() {
 
 			ImGui::Separator();
 
-			if (selectedWorldObject > ListWorldObjets.size())
+			if ((uint)selectedWorldObject > ListWorldObjets.size())
 				selectedWorldObject = ListWorldObjets.size() - 1;
 
 			tWorldObject *pWorldObject = &ListWorldObjets[selectedWorldObject];
