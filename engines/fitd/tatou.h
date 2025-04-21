@@ -24,10 +24,10 @@
 
 namespace Fitd {
 
-int make3dTatou(void);
+int make3dTatou();
 void startChrono(unsigned int* chrono);
 int evalChrono(unsigned int* chrono);
-void process_events(void);
+void process_events();
 void makeBlackPalette();
 void paletteFill(void *palette, byte r, byte g, byte b);
 void copyPalette(byte* source, byte* dest);

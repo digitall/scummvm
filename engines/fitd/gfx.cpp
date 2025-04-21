@@ -19,28 +19,23 @@
  *
  */
 
-#include "fitd/aitd1.h"
-#include "fitd/anim.h"
-#include "fitd/costable.h"
-#include "fitd/common.h"
-#include "fitd/fitd.h"
-#include "fitd/game_time.h"
 #include "fitd/gfx.h"
-#include "fitd/hqr.h"
-#include "fitd/pak.h"
-#include "fitd/renderer.h"
-#include "fitd/renderer_opengl.h"
-#include "fitd/renderer_soft.h"
-#include "fitd/room.h"
-#include "fitd/tatou.h"
-#include "fitd/vars.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/rendermode.h"
 #include "common/scummsys.h"
 #include "common/system.h"
 #include "common/util.h"
-#include "graphics/renderer.h"
+#include "fitd/anim.h"
+#include "fitd/common.h"
+#include "fitd/costable.h"
+#include "fitd/fitd.h"
+#include "fitd/hqr.h"
+#include "fitd/renderer.h"
+#include "fitd/renderer_opengl.h"
+#include "fitd/renderer_soft.h"
+#include "fitd/room.h"
+#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -100,7 +95,7 @@ int numOfPrimitiveToRender = 0;
 
 char renderBuffer[3261];
 
-char *renderVar2 = NULL;
+char *renderVar2 = nullptr;
 
 int modelFlags = 0;
 
@@ -118,7 +113,7 @@ Renderer renderer;
 byte frontBuffer[320 * 200];
 
 void gfx_init() {
-	Common::RenderMode configRenderMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
+	const Common::RenderMode configRenderMode = Common::parseRenderMode(ConfMan.get("render_mode").c_str());
 #if defined(USE_OPENGL_SHADERS)
 	if (configRenderMode == Common::kRenderVGA || !g_system->hasFeature(OSystem::kFeatureShadersForGame)) {
 		renderer = createSoftwareRenderer();
@@ -174,7 +169,7 @@ void setAngleCamera(int x, int y, int z) {
 	transformX = x & 0x3FF;
 	if (transformX) {
 		transformXCos = cosTable[transformX];
-		transformXSin = cosTable[(transformX + 0x100) & 0x3FF];
+		transformXSin = cosTable[transformX + 0x100 & 0x3FF];
 		transformUseX = true;
 	} else {
 		transformUseX = false;
@@ -183,7 +178,7 @@ void setAngleCamera(int x, int y, int z) {
 	transformY = y & 0x3FF;
 	if (transformY) {
 		transformYCos = cosTable[transformY];
-		transformYSin = cosTable[(transformY + 0x100) & 0x3FF];
+		transformYSin = cosTable[transformY + 0x100 & 0x3FF];
 		transformUseY = true;
 	} else {
 		transformUseY = false;
@@ -192,7 +187,7 @@ void setAngleCamera(int x, int y, int z) {
 	transformZ = z & 0x3FF;
 	if (transformZ) {
 		transformZCos = cosTable[transformZ];
-		transformZSin = cosTable[(transformZ + 0x100) & 0x3FF];
+		transformZSin = cosTable[transformZ + 0x100 & 0x3FF];
 		transformUseZ = true;
 	} else {
 		transformUseZ = false;
@@ -201,8 +196,8 @@ void setAngleCamera(int x, int y, int z) {
 
 void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut) {
 	if (x) {
-		int var1 = (((cosTable[(x + 0x100) & 0x3FF] * y) << 1) & 0xFFFF0000) - (((cosTable[x & 0x3FF] * z) << 1) & 0xFFFF0000);
-		int var2 = (((cosTable[x & 0x3FF] * y) << 1) & 0xFFFF0000) + (((cosTable[(x + 0x100) & 0x3FF] * z) << 1) & 0xFFFF0000);
+		const int var1 = ((cosTable[x + 0x100 & 0x3FF] * y) << 1 & 0xFFFF0000) - ((cosTable[x & 0x3FF] * z) << 1 & 0xFFFF0000);
+		const int var2 = ((cosTable[x & 0x3FF] * y) << 1 & 0xFFFF0000) + ((cosTable[x + 0x100 & 0x3FF] * z) << 1 & 0xFFFF0000);
 
 		*yOut = var1 >> 16;
 		*xOut = var2 >> 16;
@@ -226,9 +221,9 @@ void setCameraTarget(int x, int y, int z, int alpha, int beta, int gamma, int ti
 }
 
 static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
-	int X = (int)*ax;
-	int Y = (int)*bx;
-	int Z = (int)*cx;
+	int X = *ax;
+	int Y = *bx;
+	int Z = *cx;
 	{
 		int *iax = &X;
 		int *ibx = &Y;
@@ -240,33 +235,33 @@ static void transformPoint(int16 *ax, int16 *bx, int16 *cx) {
 			int z;
 
 			if (transformUseY) {
-				x = (((((*iax) * transformYSin) - ((*icx) * transformYCos))) / 0x10000) << 1;
-				z = (((((*iax) * transformYCos) + ((*icx) * transformYSin))) / 0x10000) << 1;
+				x = ((*iax * transformYSin - *icx * transformYCos) / 0x10000) << 1;
+				z = ((*iax * transformYCos + *icx * transformYSin) / 0x10000) << 1;
 			} else {
-				x = (*iax);
-				z = (*icx);
+				x = *iax;
+				z = *icx;
 			}
 
 			// si = x
 			// ax = z
 
 			if (transformUseX) {
-				int tempY = (*ibx);
-				int tempZ = z;
-				y = ((((tempY * transformXSin) - (tempZ * transformXCos))) / 0x10000) << 1;
-				z = ((((tempY * transformXCos) + (tempZ * transformXSin))) / 0x10000) << 1;
+				const int tempY = *ibx;
+				const int tempZ = z;
+				y = ((tempY * transformXSin - tempZ * transformXCos) / 0x10000) << 1;
+				z = ((tempY * transformXCos + tempZ * transformXSin) / 0x10000) << 1;
 			} else {
-				y = (*ibx);
+				y = *ibx;
 			}
 
 			// cx = y
 			// bx = z
 
 			if (transformUseZ) {
-				int tempX = x;
-				int tempY = y;
-				x = ((((tempX * transformZSin) - (tempY * transformZCos))) / 0x10000) << 1;
-				y = ((((tempX * transformZCos) + (tempY * transformZSin))) / 0x10000) << 1;
+				const int tempX = x;
+				const int tempY = y;
+				x = ((tempX * transformZSin - tempY * transformZCos) / 0x10000) << 1;
+				y = ((tempX * transformZCos + tempY * transformZSin) / 0x10000) << 1;
 			}
 
 			*iax = x;
@@ -284,9 +279,9 @@ static void TranslateGroupe(int transX, int transY, int transZ, const sGroup *pt
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
-		*(ptrSource++) += transX;
-		*(ptrSource++) += transY;
-		*(ptrSource++) += transZ;
+		*ptrSource++ += transX;
+		*ptrSource++ += transY;
+		*ptrSource++ += transZ;
 	}
 }
 
@@ -294,11 +289,11 @@ static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const sGroup *ptr) {
 	int16 *ptrSource = &pointBuffer[ptr->m_start * 3];
 
 	for (int i = 0; i < ptr->m_numVertices; i++) {
-		*ptrSource = (*ptrSource * (zoomX + 256)) / 256;
+		*ptrSource = *ptrSource * (zoomX + 256) / 256;
 		ptrSource++;
-		*ptrSource = (*ptrSource * (zoomY + 256)) / 256;
+		*ptrSource = *ptrSource * (zoomY + 256) / 256;
 		ptrSource++;
-		*ptrSource = (*ptrSource * (zoomZ + 256)) / 256;
+		*ptrSource = *ptrSource * (zoomZ + 256) / 256;
 		ptrSource++;
 	}
 }
@@ -306,7 +301,7 @@ static void ZoomGroupe(int zoomX, int zoomY, int zoomZ, const sGroup *ptr) {
 static void InitGroupeRot(int transX, int transY, int transZ) {
 	if (transX) {
 		boneRotateXCos = cosTable[transX & 0x3FF];
-		boneRotateXSin = cosTable[(transX + 0x100) & 0x3FF];
+		boneRotateXSin = cosTable[transX + 0x100 & 0x3FF];
 
 		boneRotateX = true;
 	} else {
@@ -315,7 +310,7 @@ static void InitGroupeRot(int transX, int transY, int transZ) {
 
 	if (transY) {
 		boneRotateYCos = cosTable[transY & 0x3FF];
-		boneRotateYSin = cosTable[(transY + 0x100) & 0x3FF];
+		boneRotateYSin = cosTable[transY + 0x100 & 0x3FF];
 
 		boneRotateY = true;
 	} else {
@@ -324,7 +319,7 @@ static void InitGroupeRot(int transX, int transY, int transZ) {
 
 	if (transZ) {
 		boneRotateZCos = cosTable[transZ & 0x3FF];
-		boneRotateZSin = cosTable[(transZ + 0x100) & 0x3FF];
+		boneRotateZSin = cosTable[transZ + 0x100 & 0x3FF];
 
 		boneRotateZ = true;
 	} else {
@@ -334,35 +329,35 @@ static void InitGroupeRot(int transX, int transY, int transZ) {
 
 static void RotateList(int16 *pointPtr, int numOfPoint) {
 	for (int i = 0; i < numOfPoint; i++) {
-		int x = *(int16 *)pointPtr;
-		int y = *(int16 *)(pointPtr + 1);
-		int z = *(int16 *)(pointPtr + 2);
+		int x = *pointPtr;
+		int y = *(pointPtr + 1);
+		int z = *(pointPtr + 2);
 
 		if (boneRotateY) {
-			int tempX = x;
-			int tempZ = z;
+			const int tempX = x;
+			const int tempZ = z;
 
-			x = ((((tempX * boneRotateYSin) - (tempZ * boneRotateYCos))) >> 16) << 1;
-			z = ((((tempX * boneRotateYCos) + (tempZ * boneRotateYSin))) >> 16) << 1;
+			x = ((tempX * boneRotateYSin - tempZ * boneRotateYCos) >> 16) << 1;
+			z = ((tempX * boneRotateYCos + tempZ * boneRotateYSin) >> 16) << 1;
 		}
 
 		if (boneRotateX) {
-			int tempY = y;
-			int tempZ = z;
-			y = ((((tempY * boneRotateXSin) - (tempZ * boneRotateXCos))) >> 16) << 1;
-			z = ((((tempY * boneRotateXCos) + (tempZ * boneRotateXSin))) >> 16) << 1;
+			const int tempY = y;
+			const int tempZ = z;
+			y = ((tempY * boneRotateXSin - tempZ * boneRotateXCos) >> 16) << 1;
+			z = ((tempY * boneRotateXCos + tempZ * boneRotateXSin) >> 16) << 1;
 		}
 
 		if (boneRotateZ) {
-			int tempX = x;
-			int tempY = y;
-			x = ((((tempX * boneRotateZSin) - (tempY * boneRotateZCos))) >> 16) << 1;
-			y = ((((tempX * boneRotateZCos) + (tempY * boneRotateZSin))) >> 16) << 1;
+			const int tempX = x;
+			const int tempY = y;
+			x = ((tempX * boneRotateZSin - tempY * boneRotateZCos) >> 16) << 1;
+			y = ((tempX * boneRotateZCos + tempY * boneRotateZSin) >> 16) << 1;
 		}
 
-		*(int16 *)(pointPtr) = x;
-		*(int16 *)(pointPtr + 1) = y;
-		*(int16 *)(pointPtr + 2) = z;
+		*pointPtr = x;
+		*(pointPtr + 1) = y;
+		*(pointPtr + 2) = z;
 
 		pointPtr += 3;
 	}
@@ -371,24 +366,22 @@ static void RotateList(int16 *pointPtr, int numOfPoint) {
 static void RotateGroupeOptimise(const sGroup *ptr) {
 	if (ptr->m_numGroup) // if group number is 0
 	{
-		int baseBone = ptr->m_start;
-		int numPoints = ptr->m_numVertices;
+		const int baseBone = ptr->m_start;
+		const int numPoints = ptr->m_numVertices;
 
 		RotateList(pointBuffer + baseBone * 3, numPoints);
 	}
 }
 
 static void RotateGroupe(sGroup *ptr) {
-	int baseBone = ptr->m_start;
-	int numPoints = ptr->m_numVertices;
-	int temp;
-	int temp2;
+	const int baseBone = ptr->m_start;
+	const int numPoints = ptr->m_numVertices;
 
 	RotateList(pointBuffer + baseBone * 3, numPoints);
 
-	temp = ptr->m_numGroup; // group number
+	const int temp = ptr->m_numGroup; // group number
 
-	temp2 = numOfBones - temp;
+	int temp2 = numOfBones - temp;
 
 	do {
 		if (ptr->m_orgGroup == temp) // is it on of this group child
@@ -445,9 +438,9 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		for (uint i = 0; i < pBody->m_groups.size(); i++) {
 			sGroup *pGroup = &pBody->m_groups[pBody->m_groupOrder[i]];
 
-			int transX = pGroup->m_state.m_delta[0];
-			int transY = pGroup->m_state.m_delta[1];
-			int transZ = pGroup->m_state.m_delta[2];
+			const int transX = pGroup->m_state.m_delta[0];
+			const int transY = pGroup->m_state.m_delta[1];
+			const int transZ = pGroup->m_state.m_delta[2];
 
 			if (transX || transY || transZ) {
 				switch (pGroup->m_state.m_type) {
@@ -472,22 +465,8 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 	for (uint i = 0; i < pBody->m_groups.size(); i++) {
 		const sGroup *pGroup = &pBody->m_groups[i];
 
-		int j;
-
-		int point1;
-		int point2;
-
-		const int16 *ptr1;
-		int16 *ptr2;
-
-		int number;
-
-		int ax;
-		int bx;
-		int dx;
-
-		point1 = pGroup->m_baseVertices * 6;
-		point2 = pGroup->m_start * 6;
+		int point1 = pGroup->m_baseVertices * 6;
+		int point2 = pGroup->m_start * 6;
 
 		assert(point1 % 2 == 0);
 		assert(point2 % 2 == 0);
@@ -498,19 +477,19 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		assert(point1 / 3 < NUM_MAX_POINT_IN_POINT_BUFFER);
 		assert(point2 / 3 < NUM_MAX_POINT_IN_POINT_BUFFER);
 
-		ptr1 = (int16 *)&pointBuffer[point1];
-		ptr2 = (int16 *)&pointBuffer[point2];
+		const int16 *ptr1 = &pointBuffer[point1];
+		int16 *ptr2 = &pointBuffer[point2];
 
-		number = pGroup->m_numVertices;
+		const int number = pGroup->m_numVertices;
 
-		ax = ptr1[0];
-		bx = ptr1[1];
-		dx = ptr1[2];
+		const int ax = ptr1[0];
+		const int bx = ptr1[1];
+		const int dx = ptr1[2];
 
-		for (j = 0; j < number; j++) {
-			*(ptr2++) += ax;
-			*(ptr2++) += bx;
-			*(ptr2++) += dx;
+		for (int j = 0; j < number; j++) {
+			*ptr2++ += ax;
+			*ptr2++ += bx;
+			*ptr2++ += dx;
 		}
 	}
 
@@ -524,8 +503,6 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 		int16 *outPtr = cameraSpaceBuffer;
 		int k = numOfPoints;
 
-		int16 *outPtr2;
-
 		for (int i = 0; i < numOfPoints; i++) {
 			int16 X = *(int16 *)ptr;
 			int16 Y = *(int16 *)(ptr + 2);
@@ -538,47 +515,43 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 
 			if (Y > 10000) // height clamp
 			{
-				*(outPtr++) = -10000;
-				*(outPtr++) = -10000;
-				*(outPtr++) = -10000;
+				*outPtr++ = -10000;
+				*outPtr++ = -10000;
+				*outPtr++ = -10000;
 			} else {
 				Y -= translateY;
 
 				transformPoint(&X, &Y, &Z);
 
-				*(outPtr++) = (int16)X;
-				*(outPtr++) = (int16)Y;
-				*(outPtr++) = (int16)Z;
+				*outPtr++ = X;
+				*outPtr++ = Y;
+				*outPtr++ = Z;
 			}
 		}
 
 		ptr = (char *)cameraSpaceBuffer;
-		outPtr2 = renderPointList;
+		int16 *outPtr2 = renderPointList;
 
 		do {
-			int16 X;
-			int16 Y;
-			int16 Z;
 
-			X = *(int16 *)ptr;
+			const int16 X = *(int16 *)ptr;
 			ptr += 2;
-			Y = *(int16 *)ptr;
+			const int16 Y = *(int16 *)ptr;
 			ptr += 2;
-			Z = *(int16 *)ptr;
+			int16 Z = *(int16 *)ptr;
 			ptr += 2;
 
 			Z += cameraPerspective;
 
 			if (Z <= 50) // clipping
 			{
-				*(outPtr2++) = -10000;
-				*(outPtr2++) = -10000;
-				*(outPtr2++) = -10000;
+				*outPtr2++ = -10000;
+				*outPtr2++ = -10000;
+				*outPtr2++ = -10000;
 			} else {
-				int16 transformedX = ((X * cameraFovX) / Z) + cameraCenterX;
-				int16 transformedY;
+				const int16 transformedX = X * cameraFovX / Z + cameraCenterX;
 
-				*(outPtr2++) = transformedX;
+				*outPtr2++ = transformedX;
 
 				if (transformedX < BBox3D1)
 					BBox3D1 = (int)transformedX;
@@ -586,9 +559,9 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 				if (transformedX > BBox3D3)
 					BBox3D3 = (int)transformedX;
 
-				transformedY = ((Y * cameraFovY) / Z) + cameraCenterY;
+				const int16 transformedY = Y * cameraFovY / Z + cameraCenterY;
 
-				*(outPtr2++) = transformedY;
+				*outPtr2++ = transformedY;
 
 				if (transformedY < BBox3D2)
 					BBox3D2 = (int)transformedY;
@@ -596,22 +569,21 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 				if (transformedY > BBox3D4)
 					BBox3D4 = (int)transformedY;
 
-				*(outPtr2++) = Z;
+				*outPtr2++ = Z;
 			}
 
 			k--;
 			if (k == 0) {
-				return (1);
+				return 1;
 			}
 
 		} while (renderVar1 == 0);
 	}
 
-	return (0);
+	return 0;
 }
 
 static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
-	int16 *outPtr;
 
 	renderX = x - translateX;
 	renderY = y;
@@ -623,16 +595,16 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 		noModelRotation = false;
 
 		modelCosAlpha = cosTable[alpha & 0x3FF];
-		modelSinAlpha = cosTable[(alpha + 0x100) & 0x3FF];
+		modelSinAlpha = cosTable[alpha + 0x100 & 0x3FF];
 
 		modelCosBeta = cosTable[beta & 0x3FF];
-		modelSinBeta = cosTable[(beta + 0x100) & 0x3FF];
+		modelSinBeta = cosTable[beta + 0x100 & 0x3FF];
 
 		modelCosGamma = cosTable[gamma & 0x3FF];
-		modelSinGamma = cosTable[(gamma + 0x100) & 0x3FF];
+		modelSinGamma = cosTable[gamma + 0x100 & 0x3FF];
 	}
 
-	outPtr = renderPointList;
+	int16 *outPtr = renderPointList;
 
 	for (uint i = 0; i < pBody->m_vertices.size(); i++) {
 		int16 X = pBody->m_vertices[i].x;
@@ -642,29 +614,29 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 		if (!noModelRotation) {
 			// Y rotation
 			{
-				int16 tempX = X;
-				int16 tempZ = Z;
+				const int16 tempX = X;
+				const int16 tempZ = Z;
 
-				X = (((modelSinBeta * tempX) - (modelCosBeta * tempZ)) / 65536.f) * 2.f;
-				Z = (((modelCosBeta * tempX) + (modelSinBeta * tempZ)) / 65536.f) * 2.f;
+				X = (modelSinBeta * tempX - modelCosBeta * tempZ) / 65536.f * 2.f;
+				Z = (modelCosBeta * tempX + modelSinBeta * tempZ) / 65536.f * 2.f;
 			}
 
 			// Z rotation
 			{
-				int16 tempX = X;
-				int16 tempY = Y;
+				const int16 tempX = X;
+				const int16 tempY = Y;
 
-				X = (((modelSinGamma * tempX) - (modelCosGamma * tempY)) / 65536.f) * 2.f;
-				Y = (((modelCosGamma * tempX) + (modelSinGamma * tempY)) / 65536.f) * 2.f;
+				X = (modelSinGamma * tempX - modelCosGamma * tempY) / 65536.f * 2.f;
+				Y = (modelCosGamma * tempX + modelSinGamma * tempY) / 65536.f * 2.f;
 			}
 
 			// X rotation
 			{
-				int16 tempY = Y;
-				int16 tempZ = Z;
+				const int16 tempY = Y;
+				const int16 tempZ = Z;
 
-				Y = (((modelSinAlpha * tempY) - (modelCosAlpha * tempZ)) / 65536.f) * 2.f;
-				Z = (((modelCosAlpha * tempY) + (modelSinAlpha * tempZ)) / 65536.f) * 2.f;
+				Y = (modelSinAlpha * tempY - modelCosAlpha * tempZ) / 65536.f * 2.f;
+				Z = (modelCosAlpha * tempY + modelSinAlpha * tempZ) / 65536.f * 2.f;
 			}
 		}
 
@@ -674,12 +646,10 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 
 		if (Y > 10000) // height clamp
 		{
-			*(outPtr++) = -10000;
-			*(outPtr++) = -10000;
-			*(outPtr++) = -10000;
+			*outPtr++ = -10000;
+			*outPtr++ = -10000;
+			*outPtr++ = -10000;
 		} else {
-			int16 transformedX;
-			int16 transformedY;
 
 			Y -= translateY;
 
@@ -689,9 +659,9 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 			if (Z == 0)
 				Z = 1;
 
-			transformedX = ((X * cameraFovX) / Z) + cameraCenterX;
+			const int16 transformedX = X * cameraFovX / Z + cameraCenterX;
 
-			*(outPtr++) = transformedX;
+			*outPtr++ = transformedX;
 
 			if (transformedX < BBox3D1)
 				BBox3D1 = (int)transformedX;
@@ -699,9 +669,9 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 			if (transformedX > BBox3D3)
 				BBox3D3 = (int)transformedX;
 
-			transformedY = ((Y * cameraFovY) / Z) + cameraCenterY;
+			const int16 transformedY = Y * cameraFovY / Z + cameraCenterY;
 
-			*(outPtr++) = transformedY;
+			*outPtr++ = transformedY;
 
 			if (transformedY < BBox3D2)
 				BBox3D2 = (int)transformedY;
@@ -709,14 +679,14 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 			if (transformedY > BBox3D4)
 				BBox3D4 = (int)transformedY;
 
-			*(outPtr++) = Z;
+			*outPtr++ = Z;
 
 			/*  *(outPtr++) = X;
 			 *(outPtr++) = Y;
 			 *(outPtr++) = Z; */
 		}
 	}
-	return (1);
+	return 1;
 }
 
 static void processPrim_Line(int primType, sPrimitive *ptr, char **out) {
@@ -735,15 +705,14 @@ static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
 	float depth = 32000.f;
 	assert(pCurrentPrimEntry->numOfVertices < NUM_MAX_VERTEX_IN_PRIM);
 	for (int i = 0; i < pCurrentPrimEntry->numOfVertices; i++) {
-		uint16 pointIndex;
 
-		pointIndex = ptr->m_points[i] * 6;
+		const uint16 pointIndex = ptr->m_points[i] * 6;
 
-		assert((pointIndex % 2) == 0);
+		assert(pointIndex % 2 == 0);
 
 		pCurrentPrimEntry->vertices[i].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[i].Y = renderPointList[(pointIndex / 2) + 1];
-		pCurrentPrimEntry->vertices[i].Z = renderPointList[(pointIndex / 2) + 2];
+		pCurrentPrimEntry->vertices[i].Y = renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[i].Z = renderPointList[pointIndex / 2 + 2];
 
 		if (pCurrentPrimEntry->vertices[i].Z < depth)
 			depth = pCurrentPrimEntry->vertices[i].Z;
@@ -769,12 +738,11 @@ static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out
 
 	float depth = 32000.f;
 	{
-		uint16 pointIndex;
-		pointIndex = ptr->m_points[0] * 6;
-		assert((pointIndex % 2) == 0);
+		const uint16 pointIndex = ptr->m_points[0] * 6;
+		assert(pointIndex % 2 == 0);
 		pCurrentPrimEntry->vertices[0].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[0].Y = renderPointList[(pointIndex / 2) + 1];
-		pCurrentPrimEntry->vertices[0].Z = renderPointList[(pointIndex / 2) + 2];
+		pCurrentPrimEntry->vertices[0].Y = renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[0].Z = renderPointList[pointIndex / 2 + 2];
 
 		depth = pCurrentPrimEntry->vertices[0].Z;
 	}
@@ -823,12 +791,11 @@ void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
 
 	float depth = 32000.f;
 	{
-		uint16 pointIndex;
-		pointIndex = ptr->m_points[0] * 6;
-		assert((pointIndex % 2) == 0);
+		const uint16 pointIndex = ptr->m_points[0] * 6;
+		assert(pointIndex % 2 == 0);
 		pCurrentPrimEntry->vertices[0].X = renderPointList[pointIndex / 2];
-		pCurrentPrimEntry->vertices[0].Y = renderPointList[(pointIndex / 2) + 1];
-		pCurrentPrimEntry->vertices[0].Z = renderPointList[(pointIndex / 2) + 2];
+		pCurrentPrimEntry->vertices[0].Y = renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[0].Z = renderPointList[pointIndex / 2 + 2];
 
 		depth = pCurrentPrimEntry->vertices[0].Z;
 	}
@@ -856,29 +823,28 @@ void renderPoly(primEntryStruct *pEntry) // poly
 
 void renderZixel(primEntryStruct *pEntry) // point
 {
-	float pointSize = 20.f;
-	float transformedSize = ((pointSize * (float)cameraFovX) / (float)(pEntry->vertices[0].Z + cameraPerspective));
+	const float pointSize = 20.f;
+	const float transformedSize = pointSize * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
 
 	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
 void renderPoint(primEntryStruct *pEntry) // point
 {
-	float pointSize = 0.3f; // TODO: better way to compute that?
+	const float pointSize = 0.3f; // TODO: better way to compute that?
 	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, pointSize);
 }
 
 void renderBigPoint(primEntryStruct *pEntry) // point
 {
-	float bigPointSize = 2.f; // TODO: better way to compute that?
+	const float bigPointSize = 2.f; // TODO: better way to compute that?
 	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, bigPointSize);
 }
 
 void renderSphere(primEntryStruct *pEntry) // sphere
 {
-	float transformedSize;
 
-	transformedSize = (((float)pEntry->size * (float)cameraFovX) / (float)(pEntry->vertices[0].Z + cameraPerspective));
+	const float transformedSize = (float)pEntry->size * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
 
 	osystem_drawSphere(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
@@ -914,8 +880,7 @@ static int primCompare(const void *prim1, const void *prim2) {
 
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr) {
 	sBody *pBody = getBodyFromPtr(modelPtr);
-	char *ptr = (char *)modelPtr;
-	int numPrim;
+	const char *ptr = (char *)modelPtr;
 	int i;
 	char *out;
 
@@ -948,7 +913,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 			BBox3D4 = -32000;
 			BBox3D1 = 32000;
 			BBox3D2 = 32000;
-			return (2);
+			return 2;
 		}
 	} else if (!(modelFlags & INFO_TORTUE)) {
 		if (!rotateNuage(x, y, z, alpha, beta, gamma, pBody)) {
@@ -956,7 +921,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 			BBox3D4 = -32000;
 			BBox3D1 = 32000;
 			BBox3D2 = 32000;
-			return (2);
+			return 2;
 		}
 	} else {
 		debug("unsupported model type prerenderFlag4 in renderer !\n");
@@ -965,17 +930,17 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		BBox3D4 = -32000;
 		BBox3D1 = 32000;
 		BBox3D2 = 32000;
-		return (2);
+		return 2;
 	}
 
-	numPrim = pBody->m_primitives.size();
+	const int numPrim = pBody->m_primitives.size();
 
 	if (!numPrim) {
 		BBox3D3 = -32000;
 		BBox3D4 = -32000;
 		BBox3D1 = 32000;
 		BBox3D2 = 32000;
-		return (2);
+		return 2;
 	}
 
 	out = primBuffer;
@@ -983,7 +948,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 	// create the list of all primitives to render
 	for (i = 0; i < numPrim; i++) {
 		sPrimitive *pPrimitive = &pBody->m_primitives[i];
-		primTypeEnum primType = pPrimitive->m_type;
+		const primTypeEnum primType = pPrimitive->m_type;
 
 		switch (primType) {
 		case primTypeEnum_Line:
@@ -1046,7 +1011,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 
 #endif
 #endif
-	if(numOfPrimitiveToRender) {
+	if (numOfPrimitiveToRender) {
 		qsort(primTable, numOfPrimitiveToRender, sizeof(primEntryStruct), primCompare);
 	}
 
@@ -1057,7 +1022,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 		BBox3D4 = -32000;
 		BBox3D1 = 32000;
 		BBox3D2 = 32000;
-		return (1); // model ok, but out of screen
+		return 1; // model ok, but out of screen
 	}
 
 	//  source += 10 * 1;
@@ -1082,7 +1047,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 	//
 
 	osystem_flushPendingPrimitives();
-	return (0);
+	return 0;
 }
 
 void setupCameraProjection(int centerX, int centerY, int x, int y, int z) {
@@ -1103,24 +1068,21 @@ void setClip(int left, int top, int right, int bottom) {
 
 void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
 {
-	int width = x2 - x1 + 1;
-	int height = y2 - y1 + 1;
+	const int width = x2 - x1 + 1;
+	const int height = y2 - y1 + 1;
 
 	char *dest = logicalScreen + y1 * 320 + x1;
 
-	int i;
-	int j;
-
-	for (i = 0; i < height; i++) {
-		for (j = 0; j < width; j++) {
-			*(dest++) = color;
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			*dest++ = color;
 		}
 
 		dest += 320 - width;
 	}
 }
 
-void flushScreen(void) {
+void flushScreen() {
 	for (int i = 0; i < 200; i++) {
 		for (int j = 0; j < 320; j++) {
 			*(logicalScreen + i * 320 + j) = 0;

@@ -28,9 +28,7 @@
 #include "fitd/gfx.h"
 #include "fitd/life.h"
 #include "fitd/main_loop.h"
-#include "fitd/music.h"
 #include "fitd/pak.h"
-#include "fitd/save.h"
 #include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
@@ -147,16 +145,15 @@ enumLifeMacro AITD1LifeMacroTable[] =
 		LM_WAIT_GAME_OVER,
 };
 
-int makeIntroScreens(void) {
-	char *data;
+int makeIntroScreens() {
 	unsigned int chrono;
 
-	data = loadPak("ITD_RESS.PAK", AITD1_TITRE);
+	char *data = loadPak("ITD_RESS.PAK", AITD1_TITRE);
 	fastCopyScreen(data + 770, frontBuffer);
 	gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 	fadeInPhys(8, 0);
 	memcpy(logicalScreen, frontBuffer, 320 * 200);
-	osystem_flip(NULL);
+	osystem_flip(nullptr);
 	free(data);
 	loadPak("ITD_RESS.PAK", AITD1_LIVRE, aux);
 	startChrono(&chrono);
@@ -164,13 +161,12 @@ int makeIntroScreens(void) {
 	osystem_drawBackground();
 
 	do {
-		int time;
 
 		process_events();
 
-		time = evalChrono(&chrono);
+		const int time = evalChrono(&chrono);
 
-		if (g_engine->shouldQuit() || time >= 0x30)
+		if (Engine::shouldQuit() || time >= 0x30)
 			break;
 
 	} while (key == 0 && Click == 0);
@@ -183,7 +179,7 @@ int makeIntroScreens(void) {
 	turnPageFlag = 1;
 	lire(CVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, 0);
 
-	return (0);
+	return 0;
 }
 
 static void copyBox_Aux_Log(int x1, int y1, int x2, int y2) {
@@ -197,14 +193,14 @@ static void copyBox_Aux_Log(int x1, int y1, int x2, int y2) {
 	}
 }
 
-int choosePerso(void) {
+int choosePerso() {
 	int choice = 0;
-	int firsttime = 1;
+	int firstTime = 1;
 	int choiceMade = 0;
 
 	initCopyBox(aux, logicalScreen);
 
-	while (!g_engine->shouldQuit() && choiceMade == 0) {
+	while (!Engine::shouldQuit() && choiceMade == 0) {
 		process_events();
 		osystem_drawBackground();
 
@@ -225,14 +221,14 @@ int choosePerso(void) {
 		fastCopyScreen(logicalScreen, frontBuffer);
 		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
 
-		if (firsttime != 0) {
+		if (firstTime != 0) {
 			fadeInPhys(0x40, 0);
 
 			do {
 				process_events();
 			} while (Click || key);
 
-			firsttime = 0;
+			firstTime = 0;
 		}
 
 		while ((localKey = key) != 28 && Click == 0) // process input
@@ -269,7 +265,7 @@ int choosePerso(void) {
 			if (localKey == 1) {
 				initCopyBox(aux2, logicalScreen);
 				fadeOutPhys(0x40, 0);
-				return (-1);
+				return -1;
 			}
 		}
 
@@ -297,6 +293,8 @@ int choosePerso(void) {
 			CVars[getCVarsIdx(CHOOSE_PERSO)] = 0;
 			break;
 		}
+		default:
+			assert(0);
 		}
 
 		if (localKey & 0x1C) {
@@ -306,18 +304,18 @@ int choosePerso(void) {
 
 	fadeOutPhys(64, 0);
 	initCopyBox(aux2, logicalScreen);
-	return (choice);
+	return choice;
 }
 
 void startAITD1(int saveSlot) {
 	fontHeight = 16;
 	gfx_setPalette(currentGamePalette);
 
-	if (saveSlot == -1 && !make3dTatou() && !g_engine->shouldQuit()) {
+	if (saveSlot == -1 && !make3dTatou() && !Engine::shouldQuit()) {
 		makeIntroScreens();
 	}
 
-	while (!g_engine->shouldQuit()) {
+	while (!Engine::shouldQuit()) {
 		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 		switch (startupMenuResult) {
 		case -1: // timeout
@@ -375,10 +373,12 @@ void startAITD1(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			g_engine->quitGame();
+			Engine::quitGame();
 
 			break;
 		}
+		default:
+			assert(0);
 		}
 	}
 }

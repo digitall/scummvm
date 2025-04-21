@@ -25,7 +25,7 @@
 #include "common/debug.h"
 
 namespace Fitd {
-typedef struct pakInfoStruct // warning: allignement unsafe
+typedef struct pakInfoStruct // warning: allignment unsafe
 {
 	int32 discSize;
 	int32 uncompressedSize;
@@ -54,7 +54,7 @@ unsigned int PAK_getNumFiles(const char* name)
 // #endif
     f.close();
 
-    return((fileOffset/4)-2);
+    return fileOffset / 4 - 2;
 }
 
 char *loadPak(const char *fileName, int index) {
@@ -62,7 +62,7 @@ char *loadPak(const char *fileName, int index) {
 	f.open(fileName);
 	f.readUint32LE();
 	uint32 fileOffset = f.readUint32LE();
-	uint32 numFiles = (fileOffset / 4) - 2;
+	uint32 numFiles = fileOffset / 4 - 2;
 	assert((uint32)index <= numFiles);
 	uint32 idOffset = (index + 1) * 4;
 	f.seek(idOffset, SEEK_SET);
@@ -80,7 +80,7 @@ char *loadPak(const char *fileName, int index) {
 		debug("Loading %s", nameBuffer+2);
 	}
 
-	char *ptr = 0;
+	char *ptr = nullptr;
 	switch (pakInfo.compressionFlag) {
 	case 0: {
 		ptr = (char *)malloc(pakInfo.discSize);
@@ -117,21 +117,19 @@ char *loadPak(const char *fileName, int index) {
 
 int loadPak(const char* name, int index, char* ptr)
 {
-    char* lptr;
 
-    lptr = loadPak(name,index);
+	char *lptr = loadPak(name, index);
 
     memcpy(ptr,lptr,getPakSize(name,index));
 
     free(lptr);
 
-    return(1);
+    return 1;
 }
 
 int getPakSize(const char* name, int index)
 {
-    int32 fileOffset;
-    pakInfoStruct pakInfo;
+	pakInfoStruct pakInfo;
     int32 size=0;
 
 	Common::File f;
@@ -139,7 +137,7 @@ int getPakSize(const char* name, int index)
 
 	f.seek((index+1)*4, SEEK_SET);
 
-	fileOffset = f.readSint32LE();
+	int32 fileOffset = f.readSint32LE();
 	f.seek(fileOffset, SEEK_SET);
 
 	(void)f.readSint32LE();

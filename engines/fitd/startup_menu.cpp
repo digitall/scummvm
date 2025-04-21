@@ -61,7 +61,7 @@ static void drawStartupMenu(int selectedEntry) {
 	affBigCadre(160, 100, 320, 80);
 
 	while (currentTextNum < 3) {
-		if (currentTextNum == selectedEntry) // hilight selected entry
+		if (currentTextNum == selectedEntry) // highlight selected entry
 		{
 			fillBox(10, currentY, 309, currentY + 16, 100);
 			selectedMessage(160, currentY, currentTextNum + 11, 15, 4);
@@ -74,7 +74,7 @@ static void drawStartupMenu(int selectedEntry) {
 	}
 }
 
-int processStartupMenu(void) {
+int processStartupMenu() {
 	int currentSelectedEntry = 0;
 	unsigned int chrono;
 	int selectedEntry = -1;
@@ -87,13 +87,13 @@ int processStartupMenu(void) {
 	// osystem_stopFrame();
 	gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 
-	osystem_flip(NULL);
+	osystem_flip(nullptr);
 	fadeInPhys(16, 0);
 	startChrono(&chrono);
 
 	while (evalChrono(&chrono) <= 0x10000) // exit loop only if time out or if choice made
 	{
-		if (g_engine->shouldQuit()) {
+		if (Engine::shouldQuit()) {
 			selectedEntry = 2;
 		}
 
@@ -116,7 +116,7 @@ int processStartupMenu(void) {
 			}
 
 			drawStartupMenu(currentSelectedEntry);
-			osystem_flip(NULL);
+			osystem_flip(nullptr);
 			//      menuWaitVSync();
 
 			startChrono(&chrono);
@@ -136,7 +136,7 @@ int processStartupMenu(void) {
 
 			drawStartupMenu(currentSelectedEntry);
 			// menuWaitVSync();
-			osystem_flip(NULL);
+			osystem_flip(nullptr);
 
 			startChrono(&chrono);
 
@@ -145,12 +145,12 @@ int processStartupMenu(void) {
 			}
 		}
 
-		if ((key == 28) || (Click != 0)) // select current entry
+		if (key == 28 || Click != 0) // select current entry
 		{
 			selectedEntry = currentSelectedEntry;
 		}
 		// osystem_stopFrame();
-		osystem_flip(NULL);
+		osystem_flip(nullptr);
 	}
 
 	if (selectedEntry == 2) // if exit game, do not fade
@@ -162,7 +162,7 @@ int processStartupMenu(void) {
 		process_events();
 	}
 
-	return (selectedEntry);
+	return selectedEntry;
 }
 
 } // namespace Fitd

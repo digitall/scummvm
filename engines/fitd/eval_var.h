@@ -22,12 +22,10 @@
 #ifndef FITD_EVALVAR_H
 #define FITD_EVALVAR_H
 
-#include "common/scummsys.h"
-
 namespace Fitd {
 
-int evalVar(const char *name = NULL);
-int evalVar2(const char *name = NULL);
+int evalVar(const char *name = nullptr);
+int evalVar2(const char *name = nullptr);
 } // namespace Fitd
 
 #endif

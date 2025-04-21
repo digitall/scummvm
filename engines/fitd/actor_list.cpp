@@ -60,24 +60,24 @@ int sortCompareFunction(const void *param1, const void *param2) {
 		actor2ZvPtr = &localZv2;
 	}
 
-	y1 = ((((actor1ZvPtr->ZVY1 + actor1ZvPtr->ZVY2) / 2) - 2000) / 2000) * 2000;
-	y2 = ((((actor2ZvPtr->ZVY1 + actor2ZvPtr->ZVY2) / 2) - 2000) / 2000) * 2000;
+	y1 = ((actor1ZvPtr->ZVY1 + actor1ZvPtr->ZVY2) / 2 - 2000) / 2000 * 2000;
+	y2 = ((actor2ZvPtr->ZVY1 + actor2ZvPtr->ZVY2) / 2 - 2000) / 2000 * 2000;
 
-	if ((y1 == y2) || (g_engine->getGameId() >= GID_JACK)) // both y in the same range
+	if (y1 == y2 || g_engine->getGameId() >= GID_JACK) // both y in the same range
 	{
 		if (
-			((actor1ZvPtr->ZVX1 > actor2ZvPtr->ZVX1) && (actor1ZvPtr->ZVX1 < actor2ZvPtr->ZVX2)) ||
-			((actor1ZvPtr->ZVX2 > actor2ZvPtr->ZVX1) && (actor1ZvPtr->ZVX2 < actor2ZvPtr->ZVX2)) ||
-			((actor2ZvPtr->ZVX1 > actor1ZvPtr->ZVX1) && (actor2ZvPtr->ZVX1 < actor1ZvPtr->ZVX2)) ||
-			((actor2ZvPtr->ZVX2 > actor1ZvPtr->ZVX1) && (actor2ZvPtr->ZVX2 < actor1ZvPtr->ZVX2))) {
+			(actor1ZvPtr->ZVX1 > actor2ZvPtr->ZVX1 && actor1ZvPtr->ZVX1 < actor2ZvPtr->ZVX2) ||
+			(actor1ZvPtr->ZVX2 > actor2ZvPtr->ZVX1 && actor1ZvPtr->ZVX2 < actor2ZvPtr->ZVX2) ||
+			(actor2ZvPtr->ZVX1 > actor1ZvPtr->ZVX1 && actor2ZvPtr->ZVX1 < actor1ZvPtr->ZVX2) ||
+			(actor2ZvPtr->ZVX2 > actor1ZvPtr->ZVX1 && actor2ZvPtr->ZVX2 < actor1ZvPtr->ZVX2)) {
 			flag |= 1;
 		}
 
 		if (
-			((actor1ZvPtr->ZVZ1 > actor2ZvPtr->ZVZ1) && (actor1ZvPtr->ZVZ1 < actor2ZvPtr->ZVZ2)) ||
-			((actor1ZvPtr->ZVZ2 > actor2ZvPtr->ZVZ1) && (actor1ZvPtr->ZVZ2 < actor2ZvPtr->ZVZ2)) ||
-			((actor2ZvPtr->ZVZ1 > actor1ZvPtr->ZVZ1) && (actor2ZvPtr->ZVZ1 < actor1ZvPtr->ZVZ2)) ||
-			((actor2ZvPtr->ZVZ2 > actor1ZvPtr->ZVZ1) && (actor2ZvPtr->ZVZ2 < actor1ZvPtr->ZVZ2))) {
+			(actor1ZvPtr->ZVZ1 > actor2ZvPtr->ZVZ1 && actor1ZvPtr->ZVZ1 < actor2ZvPtr->ZVZ2) ||
+			(actor1ZvPtr->ZVZ2 > actor2ZvPtr->ZVZ1 && actor1ZvPtr->ZVZ2 < actor2ZvPtr->ZVZ2) ||
+			(actor2ZvPtr->ZVZ1 > actor1ZvPtr->ZVZ1 && actor2ZvPtr->ZVZ1 < actor1ZvPtr->ZVZ2) ||
+			(actor2ZvPtr->ZVZ2 > actor1ZvPtr->ZVZ1 && actor2ZvPtr->ZVZ2 < actor1ZvPtr->ZVZ2)) {
 			flag |= 2;
 		}
 
@@ -124,14 +124,14 @@ int sortCompareFunction(const void *param1, const void *param2) {
 	}
 
 	if (distance1 > distance2) {
-		return (-1);
+		return -1;
 	}
 
 	if (distance1 < distance2) {
-		return (1);
+		return 1;
 	}
 
-	return (0);
+	return 0;
 }
 
 void sortActorList() {

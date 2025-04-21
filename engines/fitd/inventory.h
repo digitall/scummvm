@@ -39,7 +39,7 @@ extern int statusTop;
 extern int statusRight;
 extern int statusBottom;
 
-void processInventory(void);
+void processInventory();
 
 } // namespace Fitd
 

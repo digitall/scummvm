@@ -95,7 +95,7 @@ const char *languageShortNameTable[LANGUAGE_NAME_SIZE] = {
 	"de",
 };
 
-const char *languageNameString = NULL;
+const char *languageNameString = nullptr;
 
 #define NUM_MAX_TEXT 40
 
@@ -117,11 +117,11 @@ int16 currentWorldTarget;
 
 int fileSize;
 
-hqrEntryStruct *listBody = NULL;
-hqrEntryStruct *listAnim = NULL;
-hqrEntryStruct *listLife = NULL;
-hqrEntryStruct *listTrack = NULL;
-hqrEntryStruct *listMatrix = NULL;
+hqrEntryStruct *listBody = nullptr;
+hqrEntryStruct *listAnim = nullptr;
+hqrEntryStruct *listLife = nullptr;
+hqrEntryStruct *listTrack = nullptr;
+hqrEntryStruct *listMatrix = nullptr;
 
 int16 maxObjects;
 
@@ -153,8 +153,8 @@ int LastPriority;
 int LastSample;
 int16 statusScreenAllowed;
 
-char *g_currentFloorRoomRawData = NULL;
-char *g_currentFloorCameraRawData = NULL;
+char *g_currentFloorRoomRawData = nullptr;
+char *g_currentFloorCameraRawData = nullptr;
 
 int changeFloor;
 int16 currentCamera;
@@ -211,7 +211,7 @@ int currentLifeNum;
 char *currentLifePtr;
 
 int16 readNextArgument(const char *name) {
-	int16 value = *(int16 *)(currentLifePtr);
+	const int16 value = *(int16 *)currentLifePtr;
 	currentLifePtr += 2;
 
 	// if (name)
@@ -305,23 +305,19 @@ int clipTop = 0;
 int clipRight = 319;
 int clipBottom = 119;
 
-unsigned char *g_MaskPtr = NULL;
+unsigned char *g_MaskPtr = nullptr;
 
 hqrEntryStruct *listMus;
 hqrEntryStruct *listSamp;
 
-#if defined(FITD_DEBUGGER)
-backgroundModeEnum backgroundMode = backgroundModeEnum_2D;
-#endif
-
 void sBody::sync() {
-	uint8 *ptr = (uint8 *)m_raw;
+	const uint8 *ptr = (uint8 *)m_raw;
 
 	ptr += 2;                        // skip the flag
 	ptr += 12;                       // skip the ZV
 	ptr += READ_LE_S16(ptr) + 2;     // skip scratch buffer
 	ptr += READ_LE_S16(ptr) * 6 + 2; // skip vertices
-	uint16 numGroups = READ_LE_U16(ptr);
+	const uint16 numGroups = READ_LE_U16(ptr);
 	ptr += numGroups * 2 + 2; // skip group order
 
 	assert(numGroups == m_groups.size());

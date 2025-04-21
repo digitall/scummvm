@@ -47,7 +47,7 @@ int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr
 void setClip(int left, int top, int right, int bottom);
 void affSpfI(int x, int y, int param, char *gfx);
 void fillBox(int x1, int y1, int x2, int y2, char color); // fast recode. No RE
-void flushScreen(void);
+void flushScreen();
 void setupCamera();
 void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut);
 void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr);

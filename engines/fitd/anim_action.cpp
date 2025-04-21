@@ -63,16 +63,14 @@ int getCVarsIdx(int searchedType) {
 }
 
 static sceZoneStruct *processActor2Sub(int x, int y, int z, const roomDataStruct *pRoomData) {
-	uint32 i;
-	sceZoneStruct *pCurrentZone;
 
-	pCurrentZone = pRoomData->sceZoneTable;
+	sceZoneStruct *pCurrentZone = pRoomData->sceZoneTable;
 
-	for (i = 0; i < pRoomData->numSceZone; i++) {
+	for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 		if (pCurrentZone->zv.ZVX1 <= x && pCurrentZone->zv.ZVX2 >= x) {
 			if (pCurrentZone->zv.ZVY1 <= y && pCurrentZone->zv.ZVY2 >= y) {
 				if (pCurrentZone->zv.ZVZ1 <= z && pCurrentZone->zv.ZVZ2 >= z) {
-					return (pCurrentZone);
+					return pCurrentZone;
 				}
 			}
 		}
@@ -80,17 +78,16 @@ static sceZoneStruct *processActor2Sub(int x, int y, int z, const roomDataStruct
 		pCurrentZone++;
 	}
 
-	return (NULL);
+	return nullptr;
 }
 
-void gereFrappe(void) {
+void gereFrappe() {
 	switch (currentProcessedActorPtr->animActionType) {
-	case WAIT_FRAPPE_ANIM:
-		if (currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
+	case WAIT_FRAPPE_FRAME:
+		if (currentProcessedActorPtr->animActionType == WAIT_FRAPPE_ANIM && currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = WAIT_FRAPPE_FRAME;
 		}
-		// [[fallthrough]];
-	case WAIT_FRAPPE_FRAME:
+
 		if (currentProcessedActorPtr->ANIM != currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = NO_FRAPPE;
 			return;
@@ -165,7 +162,7 @@ void gereFrappe(void) {
 						 0,
 						 currentProcessedActorPtr->beta,
 						 0,
-						 NULL);
+						 nullptr);
 
 		touchedActor = checkLineProjectionWithActors(
 			currentProcessedActorIdx,
@@ -178,11 +175,11 @@ void gereFrappe(void) {
 
 		if (touchedActor == -1) // no one has been touched
 		{
-			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, NULL);
+			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, nullptr);
 
 			currentProcessedActorPtr->animActionType = 0;
 		} else {
-			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, NULL);
+			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, nullptr);
 
 			currentProcessedActorPtr->hotPoint.x = animMoveX - currentProcessedActorPtr->roomX;
 			currentProcessedActorPtr->hotPoint.y = animMoveY - currentProcessedActorPtr->roomY;

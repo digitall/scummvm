@@ -89,7 +89,7 @@ static void drawObjects() {
 	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("World objects")) {
 
-		if (ListWorldObjets.size()) {
+		if (!ListWorldObjets.empty()) {
 			static int selectedWorldObject = 0;
 			ImGui::InputInt("Index", &selectedWorldObject);
 

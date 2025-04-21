@@ -38,7 +38,7 @@ namespace Fitd {
 
 int mainLoopSwitch = 0;
 
-void updatePendingEvents(void) {
+void updatePendingEvents() {
 	// TODO: miss pending events here
 
 	//     if(currentMusic!=-1)
@@ -69,9 +69,7 @@ void updatePendingEvents(void) {
 }
 
 void mainLoop(int allowSystemMenu, int deltaTime) {
-	bool bLoop = true;
-
-	while (bLoop && !g_engine->shouldQuit()) {
+	while (!Engine::shouldQuit()) {
 		process_events();
 
 		localKey = key;
@@ -84,7 +82,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 					process_events();
 				}
 				processSystemMenu();
-				while ((key == 0x1B || key == 0x1C) && !g_engine->shouldQuit()) {
+				while ((key == 0x1B || key == 0x1C) && !Engine::shouldQuit()) {
 					process_events();
 					localKey = key;
 				}
@@ -140,9 +138,9 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 			currentProcessedActorPtr = objectTable;
 			for (currentProcessedActorIdx = 0; currentProcessedActorIdx < NUM_MAX_OBJECT; currentProcessedActorIdx++) {
 				if (currentProcessedActorPtr->indexInWorld >= 0) {
-					int flag = currentProcessedActorPtr->_flags;
+					const int flag = currentProcessedActorPtr->_flags;
 
-					if ((flag & AF_ANIMATED) || (g_engine->getGameId() >= GID_AITD2 && flag & 0x200)) {
+					if (flag & AF_ANIMATED || (g_engine->getGameId() >= GID_AITD2 && flag & 0x200)) {
 						updateAnimation();
 					}
 					if (flag & AF_TRIGGER) {
@@ -203,9 +201,8 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 		} else {
 			checkIfCameraChangeIsRequired();
 			if (g_engine->getGameId() >= GID_AITD2) {
-				int tempCurrentCamera;
 
-				tempCurrentCamera = currentCamera;
+				const int tempCurrentCamera = currentCamera;
 
 				currentCamera = startGameVar1;
 

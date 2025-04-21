@@ -19,14 +19,19 @@
  *
  */
 
-#include "fitd/common.h"
+#include "audio/mixer.h"
+#include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/file.h"
+#include "common/system.h"
 #include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
+#include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
-#include "fitd/costable.h"
+#include "fitd/common.h"
+#include "fitd/console.h"
+#include "fitd/debugtools.h"
 #include "fitd/file_access.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
@@ -38,6 +43,7 @@
 #include "fitd/jack.h"
 #include "fitd/life.h"
 #include "fitd/main_loop.h"
+#include "fitd/music.h"
 #include "fitd/object.h"
 #include "fitd/pak.h"
 #include "fitd/sequence.h"
@@ -149,40 +155,32 @@ const unsigned char defaultPalette[0x30] = {
 // 		0xF8};
 
 void executeFoundLife(int objIdx) {
-	int var_2;
-	int actorIdx;
 	int lifeOffset = 0;
-	int currentActorIdx;
-	int currentActorLifeIdx;
-	int currentActorLifeNum;
-	int foundLife;
-	tObject *currentActorPtr;
-	tObject *currentActorLifePtr;
 
 	if (objIdx == -1)
 		return;
 
-	foundLife = ListWorldObjets[objIdx].foundLife;
+	const int foundLife = ListWorldObjets[objIdx].foundLife;
 
 	if (ListWorldObjets[objIdx].foundLife == -1)
 		return;
 
-	currentActorPtr = currentProcessedActorPtr;
-	currentActorIdx = currentProcessedActorIdx;
-	currentActorLifeIdx = currentLifeActorIdx;
-	currentActorLifePtr = currentLifeActorPtr;
-	currentActorLifeNum = currentLifeNum;
+	tObject *currentActorPtr = currentProcessedActorPtr;
+	const int currentActorIdx = currentProcessedActorIdx;
+	const int currentActorLifeIdx = currentLifeActorIdx;
+	tObject *currentActorLifePtr = currentLifeActorPtr;
+	const int currentActorLifeNum = currentLifeNum;
 
 	if (currentLifeNum != -1) {
 		lifeOffset = (currentLifePtr - HQR_Get(listLife, currentActorLifeNum)) / 2;
 	}
 
-	var_2 = 0;
+	int var_2 = 0;
 
-	actorIdx = ListWorldObjets[objIdx].objIndex;
+	int actorIdx = ListWorldObjets[objIdx].objIndex;
 
 	if (actorIdx == -1) {
-		tObject *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
+		const tObject *currentActorEntryPtr = &objectTable[NUM_MAX_OBJECT - 1];
 		int currentActorEntry = NUM_MAX_OBJECT - 1;
 
 		while (currentActorEntry >= 0) {
@@ -243,7 +241,7 @@ void initCopyBox(char *var0, char *var1) {
 	screenSm5 = var1;
 }
 
-void freeAll(void) {
+void freeAll() {
 	HQR_Free(listSamp);
 	HQR_Free(listMus);
 	HQR_Free(HQ_Memory);
@@ -275,17 +273,15 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	int var_1C3;
 	char *ptrpage[100];
 	int currentTextIdx;
-	int maxStringWidth;
-	char *textPtr;
 
 	extSetFont(PtrFont, color);
 
-	maxStringWidth = endx - startx + 4;
+	const int maxStringWidth = endx - startx + 4;
 
-	int textIndexMalloc = HQ_Malloc(HQ_Memory, getPakSize(languageNameString, index) + 300);
-	textPtr = (char *)HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
+	const int textIndexMalloc = HQ_Malloc(HQ_Memory, getPakSize(languageNameString, index) + 300);
+	char *textPtr = HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
 
-	if (!loadPak(languageNameString, index, (char *)textPtr)) {
+	if (!loadPak(languageNameString, index, textPtr)) {
 		error("Failed to load pak %s", languageNameString);
 	}
 
@@ -296,15 +292,13 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	//  LastPriority = -1;
 
 	while (!g_engine->shouldQuit() && !quit) {
-		char *ptrt;
-		int currentTextY;
 		fastCopyScreen(aux, logicalScreen);
 		process_events();
 		setClip(startx, top, endx, bottom);
 
-		ptrt = ptrpage[page];
+		char *ptrt = ptrpage[page];
 
-		currentTextY = top;
+		int currentTextY = top;
 		lastPageReached = false;
 
 		while (currentTextY <= bottom - 16) {
@@ -324,7 +318,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 					// char* var_1BE = var_1C2;
 					ptrt++;
 
-					switch (*(ptrt++)) {
+					switch (*ptrt++) {
 					case 'P': // page change
 					{
 						if (currentTextY > top) // Hu ?
@@ -351,7 +345,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 						currentTextIdx = 0;
 
 						while (*ptrt >= '0' && *ptrt <= '9') {
-							currentTextIdx = (currentTextIdx * 10 + *ptrt - 48);
+							currentTextIdx = currentTextIdx * 10 + *ptrt - 48;
 							ptrt++;
 						}
 
@@ -381,7 +375,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				currentText->textPtr = ptrt;
 
 				do {
-					var_1C3 = *((unsigned char *)ptrt++);
+					var_1C3 = *(unsigned char *)ptrt++;
 				} while (var_1C3 > ' '); // go to the end of the string
 
 				*(ptrt - 1) = 0; // add end of string marker to cut the word
@@ -412,7 +406,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 					break;
 				}
 
-				if (((var_1C3 == 13) || (var_1C3 == 0)) && (*ptrt < ' ')) {
+				if ((var_1C3 == 13 || var_1C3 == 0) && *ptrt < ' ') {
 					++ptrt;
 					if (*ptrt == 0xD) {
 						ptrt += 2;
@@ -436,13 +430,13 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 			if (line_type & 8) // center
 			{
-				currentTextX = startx + ((maxStringWidth - var_1BA) / 2);
+				currentTextX = startx + (maxStringWidth - var_1BA) / 2;
 			} else {
 				currentTextX = startx;
 			}
 
 			for (int i = 0; i < numWordInLine; i++) {
-				renderText(currentTextX, currentTextY, logicalScreen, currentText->textPtr);
+				renderText(currentTextX, currentTextY, currentText->textPtr);
 				currentTextX += currentText->width + interWordSpace; // add inter word space
 				currentText++;
 			}
@@ -525,12 +519,12 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				localJoyD = JoyD;
 				localClick = Click;
 
-				if ((localKey == 1) || localClick) {
+				if (localKey == 1 || localClick) {
 					quit = 1;
 					break;
 				}
 
-				if ((demoMode == 2) && (localKey == 0x1C)) {
+				if (demoMode == 2 && localKey == 0x1C) {
 					quit = 1;
 					break;
 				}
@@ -598,20 +592,18 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 	// HQ_Free_Malloc(HQ_Memory, textIndexMalloc);
 
-	return (demoMode);
+	return demoMode;
 }
 
-void initEngine(void) {
+void initEngine() {
 	uint8 *pObjectData;
-	uint8 *pObjectDataBackup;
-	unsigned long int objectDataSize;
 	Common::File f;
 	int choosePersoBackup = 0;
 
 	f.open("OBJETS.ITD");
-	objectDataSize = f.size();
+	const unsigned long int objectDataSize = f.size();
 
-	pObjectDataBackup = pObjectData = (uint8 *)malloc(objectDataSize);
+	uint8 *pObjectDataBackup = pObjectData = (uint8 *)malloc(objectDataSize);
 	assert(pObjectData);
 	f.read(pObjectData, objectDataSize);
 	f.close();
@@ -729,7 +721,7 @@ void initEngine(void) {
 		f.close();
 
 		for (int i = 0; i < CVarsSize; i++) {
-			CVars[i] = ((CVars[i] & 0xFF) << 8) | ((CVars[i] & 0xFF00) >> 8);
+			CVars[i] = (CVars[i] & 0xFF) << 8 | (CVars[i] & 0xFF00) >> 8;
 		}
 	}
 	//////////////////////////////////////////////
@@ -761,9 +753,9 @@ void initEngine(void) {
 	}
 }
 
-static void initVarsSub1(void) {
+static void initVarsSub1() {
 	for (int i = 0; i < 5; i++) {
-		messageTable[i].string = NULL;
+		messageTable[i].string = nullptr;
 	}
 }
 
@@ -803,12 +795,12 @@ void initVars() {
 }
 
 static void loadCamera(int cameraIdx) {
-	int useSpecial = -1;
 
 	Common::String name = Common::String::format("CAMERA%02d.PAK", g_currentFloor);
 	// strcat(name,".PAK");
 
 	if (g_engine->getGameId() == GID_AITD1) {
+		int useSpecial = -1;
 		if (CVars[getCVarsIdx(KILLED_SORCERER)] == 1) {
 			switch (g_currentFloor) {
 			case 6: {
@@ -856,7 +848,7 @@ static void loadCamera(int cameraIdx) {
 			// memcpy(palette,defaultPaletteAITD3,0x30);
 		} else {
 			memcpy(currentGamePalette, defaultPalette, 0x30);
-			convertPaletteIfRequired((unsigned char *)currentGamePalette);
+			convertPaletteIfRequired(currentGamePalette);
 		}
 
 		gfx_setPalette(currentGamePalette);
@@ -880,7 +872,7 @@ static void loadMask(int cameraIdx) {
 	if (g_engine->getGameId() == GID_TIMEGATE)
 		return;
 
-	Common::String name = Common::String::format("MASK%02d.PAK", g_currentFloor);
+	const Common::String name = Common::String::format("MASK%02d.PAK", g_currentFloor);
 
 	if (g_MaskPtr) {
 		free(g_MaskPtr);
@@ -889,11 +881,11 @@ static void loadMask(int cameraIdx) {
 	g_MaskPtr = (unsigned char *)loadPak(name.c_str(), cameraIdx);
 
 	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
-		cameraViewedRoomStruct *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
+		const cameraViewedRoomStruct *pRoomView = &cameraDataTable[currentCamera]->viewedRoomTable[i];
 		unsigned char *pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i * 4);
 
 		for (int j = 0; j < pRoomView->numMask; j++) {
-			unsigned char *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
+			const unsigned char *pMaskData = pViewedRoomMask + READ_LE_U32(pViewedRoomMask + j * 4);
 
 			maskStruct *pDestMask = &g_maskBuffers[i][j];
 
@@ -916,7 +908,7 @@ static void loadMask(int cameraIdx) {
 			assert(pDestMask->deltaY == pDestMask->y2 - pDestMask->y1 + 1);
 
 			for (int k = 0; k < pDestMask->deltaY; k++) {
-				uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
+				const uint16 uNumEntryForLine = READ_LE_U16(pMaskData);
 				pMaskData += 2;
 
 				// unsigned char *pSourceBuffer = (unsigned char *)aux;
@@ -924,8 +916,8 @@ static void loadMask(int cameraIdx) {
 				int offset = pDestMask->x1 + pDestMask->y1 * 320 + k * 320;
 
 				for (int l = 0; l < uNumEntryForLine; l++) {
-					unsigned char uNumSkip = *(pMaskData++);
-					unsigned char uNumCopy = *(pMaskData++);
+					const unsigned char uNumSkip = *pMaskData++;
+					const unsigned char uNumCopy = *pMaskData++;
 
 					offset += uNumSkip;
 
@@ -946,13 +938,13 @@ extern unsigned char *polyBackBuffer;
 
 static void createAITD1Mask() {
 	for (int viewedRoomIdx = 0; viewedRoomIdx < cameraDataTable[currentCamera]->numViewedRooms; viewedRoomIdx++) {
-		cameraViewedRoomStruct *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
+		const cameraViewedRoomStruct *pcameraViewedRoomData = &cameraDataTable[currentCamera]->viewedRoomTable[viewedRoomIdx];
 
 		char *data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
 		char *data = data2;
 		data += 2;
 
-		int numMask = *(int16 *)(data2);
+		const int numMask = *(int16 *)data2;
 
 		for (int maskIdx = 0; maskIdx < numMask; maskIdx++) {
 			maskStruct *pDestMask = &g_maskBuffers[viewedRoomIdx][maskIdx];
@@ -973,11 +965,11 @@ static void createAITD1Mask() {
 			data+4,
 			*(int16*)(data) ))*/
 			{
-				int numMaskPoly = *(int16 *)src;
+				const int numMaskPoly = *(int16 *)src;
 				src += 2;
 
 				for (int maskPolyIdx = 0; maskPolyIdx < numMaskPoly; maskPolyIdx++) {
-					int numPoints = *(int16 *)(src);
+					const int numPoints = *(int16 *)src;
 					src += 2;
 
 					memcpy(cameraBuffer, src, numPoints * 4);
@@ -985,8 +977,8 @@ static void createAITD1Mask() {
 					fillpoly((int16 *)src, numPoints, 0xFF);
 
 					for (int verticeId = 0; verticeId < numPoints; verticeId++) {
-						short verticeX = *(short *)(src + verticeId * 4 + 0);
-						short verticeY = *(short *)(src + verticeId * 4 + 2);
+						const short verticeX = *(short *)(src + verticeId * 4 + 0);
+						const short verticeY = *(short *)(src + verticeId * 4 + 2);
 
 						minX = MIN(minX, (int)verticeX);
 						minY = MIN(minY, (int)verticeY);
@@ -1005,9 +997,9 @@ static void createAITD1Mask() {
 
 			osystem_createMask(pDestMask->mask, viewedRoomIdx, maskIdx, (unsigned char *)aux, minX - 1, minY - 1, maxX + 1, maxY + 1);
 
-			int numOverlay = *(int16 *)(data);
+			const int numOverlay = *(int16 *)data;
 			data += 2;
-			data += ((numOverlay * 4) + 1) * 2;
+			data += (numOverlay * 4 + 1) * 2;
 		}
 
 		/*		unsigned char* pViewedRoomMask = g_MaskPtr + READ_LE_U32(g_MaskPtr + i*4);
@@ -1065,48 +1057,45 @@ static void createAITD1Mask() {
 		}*/
 	}
 
-	polyBackBuffer = NULL;
+	polyBackBuffer = nullptr;
 }
 
 static int isInViewList(int value) {
-	char *ptr = currentCameraVisibilityList;
+	const char *ptr = currentCameraVisibilityList;
 	int var;
 
-	while ((var = *(ptr++)) != -1) {
+	while ((var = *ptr++) != -1) {
 		if (value == var) {
-			return (1);
+			return 1;
 		}
 	}
 
-	return (0);
+	return 0;
 }
 
 // setup visibility list
 static void setupCameraSub1() {
-	uint32 i;
-	int j;
-	int var_10;
 
 	char *dataTabPos = currentCameraVisibilityList;
 
 	*dataTabPos = -1;
 
 	// visibility list: add linked rooms
-	for (i = 0; i < roomDataTable[currentRoom].numSceZone; i++) {
+	for (uint32 i = 0; i < roomDataTable[currentRoom].numSceZone; i++) {
 		if (roomDataTable[currentRoom].sceZoneTable[i].type == 0) {
-			var_10 = roomDataTable[currentRoom].sceZoneTable[i].parameter;
+			const int var_10 = roomDataTable[currentRoom].sceZoneTable[i].parameter;
 			if (!isInViewList(var_10)) {
-				*(dataTabPos++) = var_10;
-				*(dataTabPos) = -1;
+				*dataTabPos++ = var_10;
+				*dataTabPos = -1;
 			}
 		}
 	}
 
 	// visibility list: add room seen by the current camera
-	for (j = 0; j < cameraDataTable[currentCamera]->numViewedRooms; j++) {
+	for (int j = 0; j < cameraDataTable[currentCamera]->numViewedRooms; j++) {
 		if (!isInViewList(cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx)) {
-			*(dataTabPos++) = (char)cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx;
-			*(dataTabPos) = -1;
+			*dataTabPos++ = (char)cameraDataTable[currentCamera]->viewedRoomTable[j].viewedRoomIdx;
+			*dataTabPos = -1;
 		}
 	}
 }
@@ -1166,7 +1155,7 @@ static void deleteObjet(int index) // remove actor
 	}
 }
 
-static void setupCameraSub4(void) {
+static void setupCameraSub4() {
 	fastCopyScreen(aux, aux2);
 
 	// TODO: implementer la suite
@@ -1193,12 +1182,12 @@ void setMoveMode(int trackMode, int trackNumber) {
 int16 cameraVisibilityVar = 0;
 
 int IsInCamera(int roomNumber) {
-	int numZone = cameraDataTable[currentCamera]->numViewedRooms;
+	const int numZone = cameraDataTable[currentCamera]->numViewedRooms;
 
 	for (int i = 0; i < numZone; i++) {
 		if (cameraDataTable[currentCamera]->viewedRoomTable[i].viewedRoomIdx == roomNumber) {
 			cameraVisibilityVar = i;
-			return (1);
+			return 1;
 		}
 	}
 
@@ -1211,7 +1200,6 @@ int IsInCamRectTestAITD2(int X, int Z) // TODO: not 100% exact
 {
 	// if(changeCameraSub1(X,X,Z,Z,&cameraDataTable[currentCamera]->cameraZoneDefTable[cameraVisibilityVar]))
 	return 1;
-
 	return 0;
 }
 
@@ -1284,7 +1272,6 @@ void updateAllActorAndObjectsAITD2() {
 			if (currentObject->stage == g_currentFloor) {
 				if (currentObject->life != -1) {
 					if (currentObject->lifeMode != -1) {
-						int actorIdx;
 						int di;
 
 						switch (currentObject->lifeMode & 3) {
@@ -1338,13 +1325,13 @@ void updateAllActorAndObjectsAITD2() {
 						// int var_E = currentObject->field_2;
 						// int var_A = currentObject->anim;
 					addObject:
-						actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
-													 currentObject->flags & 0xFFDF,
-													 currentObject->x, currentObject->y, currentObject->z,
-													 currentObject->stage, currentObject->room,
-													 currentObject->alpha, currentObject->beta, currentObject->gamma,
-													 currentObject->anim,
-													 currentObject->frame, currentObject->animType, currentObject->animInfo);
+						const int actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
+														 currentObject->flags & 0xFFDF,
+														 currentObject->x, currentObject->y, currentObject->z,
+														 currentObject->stage, currentObject->room,
+														 currentObject->alpha, currentObject->beta, currentObject->gamma,
+														 currentObject->anim,
+														 currentObject->frame, currentObject->animType, currentObject->animInfo);
 
 						currentObject->objIndex = actorIdx;
 
@@ -1388,8 +1375,7 @@ void updateAllActorAndObjectsAITD2() {
 
 void updateAllActorAndObjects() {
 	int i;
-	tObject *currentActor = objectTable;
-	tWorldObject *currentObject;
+	const tObject *currentActor = objectTable;
 
 	if (g_engine->getGameId() > GID_JACK) {
 		updateAllActorAndObjectsAITD2();
@@ -1433,7 +1419,7 @@ void updateAllActorAndObjects() {
 		currentActor++;
 	}
 
-	currentObject = &ListWorldObjets[0];
+	tWorldObject *currentObject = &ListWorldObjets[0];
 
 	for (i = 0; i < maxObjects; i++) {
 		if (currentObject->objIndex != -1) {
@@ -1444,7 +1430,6 @@ void updateAllActorAndObjects() {
 			if (currentObject->stage == g_currentFloor) {
 				if (currentObject->life != -1) {
 					if (currentObject->lifeMode != -1) {
-						int actorIdx;
 
 						switch (currentObject->lifeMode) {
 						case 1: {
@@ -1468,13 +1453,13 @@ void updateAllActorAndObjects() {
 						// int var_A = currentObject->anim;
 
 					addObject:
-						actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
-													 currentObject->flags & 0xFFDF,
-													 currentObject->x, currentObject->y, currentObject->z,
-													 currentObject->stage, currentObject->room,
-													 currentObject->alpha, currentObject->beta, currentObject->gamma,
-													 currentObject->anim,
-													 currentObject->frame, currentObject->animType, currentObject->animInfo);
+						const int actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
+														 currentObject->flags & 0xFFDF,
+														 currentObject->x, currentObject->y, currentObject->z,
+														 currentObject->stage, currentObject->room,
+														 currentObject->alpha, currentObject->beta, currentObject->gamma,
+														 currentObject->anim,
+														 currentObject->frame, currentObject->animType, currentObject->animInfo);
 
 						currentObject->objIndex = actorIdx;
 
@@ -1515,26 +1500,23 @@ void updateAllActorAndObjects() {
 }
 
 static int checkActorInRoom(int room) {
-	int i;
 
-	for (i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
+	for (int i = 0; i < cameraDataTable[currentCamera]->numViewedRooms; i++) {
 		if (cameraDataTable[currentCamera]->viewedRoomTable[i].viewedRoomIdx == room) {
-			return (1);
+			return 1;
 		}
 	}
 
-	return (0);
+	return 0;
 }
 
 void createActorList() {
-	int i;
-	tObject *actorPtr;
 
 	numActorInList = 0;
 
-	actorPtr = objectTable;
+	tObject *actorPtr = objectTable;
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (actorPtr->indexInWorld != -1 && actorPtr->bodyNum != -1) {
 			if (checkActorInRoom(actorPtr->room)) {
 				sortedActorTable[numActorInList] = i;
@@ -1551,10 +1533,6 @@ void createActorList() {
 }
 
 void setupCamera() {
-	int x;
-	int y;
-	int z;
-	cameraDataStruct *pCamera;
 
 	freezeTime();
 
@@ -1570,13 +1548,13 @@ void setupCamera() {
 	}
 	cameraBackgroundChanged = true;
 
-	pCamera = cameraDataTable[currentCamera];
+	const cameraDataStruct *pCamera = cameraDataTable[currentCamera];
 
 	setAngleCamera(pCamera->alpha, pCamera->beta, pCamera->gamma);
 
-	x = (pCamera->x - roomDataTable[currentRoom].worldX) * 10;
-	y = (roomDataTable[currentRoom].worldY - pCamera->y) * 10;
-	z = (roomDataTable[currentRoom].worldZ - pCamera->z) * 10;
+	const int x = (pCamera->x - roomDataTable[currentRoom].worldX) * 10;
+	const int y = (roomDataTable[currentRoom].worldY - pCamera->y) * 10;
+	const int z = (roomDataTable[currentRoom].worldZ - pCamera->z) * 10;
 
 	setPosCamera(x, y, z); // setup camera position
 
@@ -1613,10 +1591,10 @@ int16 computeDistanceToPoint(int x1, int z1, int x2, int z2) {
 		z1 = -(int16)z1;
 	}
 
-	if ((x1 + z1) > 0xFFFF) {
-		return (0x7D00);
+	if (x1 + z1 > 0xFFFF) {
+		return 0x7D00;
 	} else {
-		return (x1 + z1);
+		return x1 + z1;
 	}
 }
 
@@ -1628,32 +1606,30 @@ void initRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *ro
 }
 
 int16 updateActorRotation(interpolatedValue *rotatePtr) {
-	int timeDif;
-	int angleDif;
 
 	if (!rotatePtr->param)
-		return (rotatePtr->newAngle);
+		return rotatePtr->newAngle;
 
-	timeDif = timer - rotatePtr->timeOfRotate;
+	const int timeDif = timer - rotatePtr->timeOfRotate;
 
 	if (timeDif > rotatePtr->param) {
 		rotatePtr->param = 0;
-		return (rotatePtr->newAngle);
+		return rotatePtr->newAngle;
 	}
 
-	angleDif = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
+	const int angleDif = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
 
 	if (angleDif <= 0x200) {
 		if (angleDif >= -0x200) {
-			int angle = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
-			return (rotatePtr->oldAngle & 0x3FF) + (angle * timeDif) / rotatePtr->param;
+			const int angle = (rotatePtr->newAngle & 0x3FF) - (rotatePtr->oldAngle & 0x3FF);
+			return (rotatePtr->oldAngle & 0x3FF) + angle * timeDif / rotatePtr->param;
 		} else {
-			int16 angle = ((rotatePtr->newAngle & 0x3FF) + 0x400) - ((rotatePtr->oldAngle & 0x3FF));
-			return (((rotatePtr->oldAngle & 0x3FF)) + ((angle * timeDif) / rotatePtr->param));
+			const int16 angle = (rotatePtr->newAngle & 0x3FF) + 0x400 - (rotatePtr->oldAngle & 0x3FF);
+			return (rotatePtr->oldAngle & 0x3FF) + angle * timeDif / rotatePtr->param;
 		}
 	} else {
-		int angle = (rotatePtr->newAngle & 0x3FF) - ((rotatePtr->oldAngle & 0x3FF) + 0x400);
-		return ((angle * timeDif) / rotatePtr->param) + ((rotatePtr->oldAngle & 0x3FF));
+		const int angle = (rotatePtr->newAngle & 0x3FF) - ((rotatePtr->oldAngle & 0x3FF) + 0x400);
+		return angle * timeDif / rotatePtr->param + (rotatePtr->oldAngle & 0x3FF);
 	}
 }
 
@@ -1678,17 +1654,16 @@ void removeFromBGIncrust(int actorIdx) {
 int findObjectInInventory(int objIdx) {
 	for (int i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
 		if (inventoryTable[currentInventory][i] == objIdx) {
-			return (i);
+			return i;
 		}
 	}
 
-	return (-1);
+	return -1;
 }
 
 void deleteInventoryObjet(int objIdx) {
-	int inventoryIdx;
 
-	inventoryIdx = findObjectInInventory(objIdx);
+	const int inventoryIdx = findObjectInInventory(objIdx);
 
 	if (inventoryIdx != -1) {
 		memmove(&inventoryTable[currentInventory][inventoryIdx], &inventoryTable[currentInventory][inventoryIdx + 1], (30 - inventoryIdx - 1) * 2);
@@ -1700,32 +1675,27 @@ void deleteInventoryObjet(int objIdx) {
 }
 
 static int isBgOverlayRequired(int X1, int X2, int Z1, int Z2, char *data, int param) {
-	int i;
-	for (i = 0; i < param; i++) {
+	for (int i = 0; i < param; i++) {
 		////////////////////////////////////// DEBUG
 		//  drawOverlayZone(data, 80);
 		/////////////////////////////////////
 
-		int zoneX1 = *(int16 *)(data);
-		int zoneZ1 = *(int16 *)(data + 2);
-		int zoneX2 = *(int16 *)(data + 4);
-		int zoneZ2 = *(int16 *)(data + 6);
+		const int zoneX1 = *(int16 *)data;
+		const int zoneZ1 = *(int16 *)(data + 2);
+		const int zoneX2 = *(int16 *)(data + 4);
+		const int zoneZ2 = *(int16 *)(data + 6);
 
 		if (X1 >= zoneX1 && Z1 >= zoneZ1 && X2 <= zoneX2 && Z2 <= zoneZ2) {
-			return (1);
+			return 1;
 		}
 
 		data += 0x8;
 	}
 
-	return (0);
+	return 0;
 }
 
 static void drawBgOverlay(tObject *actorPtr) {
-	char *data;
-	char *data2;
-
-	int numOverlayZone;
 
 	actorPtr->screenXMin = BBox3D1;
 	actorPtr->screenYMin = BBox3D2;
@@ -1737,10 +1707,10 @@ static void drawBgOverlay(tObject *actorPtr) {
 
 	setClip(BBox3D1, BBox3D2, BBox3D3, BBox3D4);
 
-	cameraDataStruct *pCamera = cameraDataTable[currentCamera];
+	const cameraDataStruct *pCamera = cameraDataTable[currentCamera];
 
 	// look for the correct room data of that camera
-	cameraViewedRoomStruct *pcameraViewedRoomData = NULL;
+	const cameraViewedRoomStruct *pcameraViewedRoomData = nullptr;
 	int relativeCameraIndex = -1;
 	for (int i = 0; i < pCamera->numViewedRooms; i++) {
 		if (pCamera->viewedRoomTable[i].viewedRoomIdx == actorPtr->room) {
@@ -1749,24 +1719,23 @@ static void drawBgOverlay(tObject *actorPtr) {
 			break;
 		}
 	}
-	if (pcameraViewedRoomData == NULL)
+	if (pcameraViewedRoomData == nullptr)
 		return;
 
 	if (g_engine->getGameId() == GID_AITD1) {
-		data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
-		data = data2;
+		char *data2 = room_PtrCamera[currentCamera] + pcameraViewedRoomData->offsetToMask;
+		char *data = data2;
 		data += 2;
 
-		numOverlayZone = *(int16 *)(data2);
+		const int numOverlayZone = *(int16 *)data2;
 
 		for (int i = 0; i < numOverlayZone; i++) {
-			int numOverlay;
 			// char *src = data2 + *(uint16 *)(data + 2);
 
 			if (isBgOverlayRequired(actorPtr->zv.ZVX1 / 10, actorPtr->zv.ZVX2 / 10,
 									actorPtr->zv.ZVZ1 / 10, actorPtr->zv.ZVZ2 / 10,
 									data + 4,
-									*(int16 *)(data))) {
+									*(int16 *)data)) {
 				osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
 				osystem_drawMask(relativeCameraIndex, i);
 				osystem_clearClip();
@@ -1792,21 +1761,21 @@ static void drawBgOverlay(tObject *actorPtr) {
 				//      blitOverlay(src);
 			}
 
-			numOverlay = *(int16 *)(data);
+			const int numOverlay = *(int16 *)data;
 			data += 2;
-			data += ((numOverlay * 4) + 1) * 2;
+			data += (numOverlay * 4 + 1) * 2;
 		}
 	} else {
 		for (int i = 0; i < pcameraViewedRoomData->numMask; i++) {
-			cameraMaskStruct *pMaskZones = &pcameraViewedRoomData->masks[i];
+			const cameraMaskStruct *pMaskZones = &pcameraViewedRoomData->masks[i];
 
 			for (int j = 0; j < pMaskZones->numTestRect; j++) {
-				rectTestStruct *pRect = &pMaskZones->rectTests[j];
+				const rectTestStruct *pRect = &pMaskZones->rectTests[j];
 
-				int actorX1 = actorPtr->zv.ZVX1 / 10;
-				int actorX2 = actorPtr->zv.ZVX2 / 10;
-				int actorZ1 = actorPtr->zv.ZVZ1 / 10;
-				int actorZ2 = actorPtr->zv.ZVZ2 / 10;
+				const int actorX1 = actorPtr->zv.ZVX1 / 10;
+				const int actorX2 = actorPtr->zv.ZVX2 / 10;
+				const int actorZ1 = actorPtr->zv.ZVZ1 / 10;
+				const int actorZ2 = actorPtr->zv.ZVZ2 / 10;
 
 				if (actorX1 >= pRect->zoneX1 && actorZ1 >= pRect->zoneZ1 && actorX2 <= pRect->zoneX2 && actorZ2 <= pRect->zoneZ2) {
 					osystem_setClip(clipLeft, clipTop, clipRight, clipBottom);
@@ -1830,16 +1799,14 @@ static void mainDrawSub2(int actorIdx) // draw flow
 }
 
 static void getHotPoint(int hotPointIdx, char *bodyPtr, point3dStruct *hotPoint) {
-	int16 flag;
 
-	flag = *(int16 *)bodyPtr;
+	const int16 flag = *(int16 *)bodyPtr;
 	bodyPtr += 2;
 
 	if (flag & 2) {
-		int16 offset;
 		bodyPtr += 12;
 
-		offset = *(int16 *)bodyPtr;
+		int16 offset = *(int16 *)bodyPtr;
 		bodyPtr += 2;
 		bodyPtr += offset;
 
@@ -1854,8 +1821,6 @@ static void getHotPoint(int hotPointIdx, char *bodyPtr, point3dStruct *hotPoint)
 		assert(hotPointIdx < offset);
 
 		if (hotPointIdx < offset) {
-			int pointIdx;
-			int16 *source;
 
 			if (flag & INFO_OPTIMISE) {
 				bodyPtr += hotPointIdx * 0x18;
@@ -1863,11 +1828,11 @@ static void getHotPoint(int hotPointIdx, char *bodyPtr, point3dStruct *hotPoint)
 				bodyPtr += hotPointIdx * 16;
 			}
 
-			pointIdx = *(int16 *)(bodyPtr + 4); // first point
+			const int pointIdx = *(int16 *)(bodyPtr + 4); // first point
 
 			// ASSERT(pointIdx > 0 && pointIdx < 1200);
 
-			source = (int16 *)(((char *)pointBuffer) + pointIdx);
+			const int16 *source = (int16 *)((char *)pointBuffer + pointIdx);
 
 			hotPoint->x = source[0];
 			hotPoint->y = source[1];
@@ -1884,10 +1849,9 @@ static void getHotPoint(int hotPointIdx, char *bodyPtr, point3dStruct *hotPoint)
 	}
 }
 
-static int drawTextOverlay(void);
+static int drawTextOverlay();
 
 void mainDraw(int flagFlip) {
-	int i;
 	// if(flagFlip == 2)
 	{
 		if (cameraBackgroundChanged) {
@@ -1910,11 +1874,10 @@ void mainDraw(int flagFlip) {
 
 	// osystem_startModelRender();
 
-	for (i = 0; i < numActorInList; i++) {
-		int currentDrawActor = sortedActorTable[i];
-		tObject *actorPtr;
+	for (int i = 0; i < numActorInList; i++) {
+		const int currentDrawActor = sortedActorTable[i];
 
-		actorPtr = &objectTable[currentDrawActor];
+		tObject *actorPtr = &objectTable[currentDrawActor];
 
 		// this is commented out to draw actors incrusted in background
 		// if(actorPtr->_flags & (AF_ANIMATED + AF_DRAWABLE + AF_SPECIAL))
@@ -1957,9 +1920,6 @@ void mainDraw(int flagFlip) {
 					}
 				}
 
-#ifdef FITD_DEBUGGER
-				if (backgroundMode == backgroundModeEnum_2D)
-#endif
 				{
 					// if (g_engine->getGameId() == GID_AITD1)
 					drawBgOverlay(actorPtr);
@@ -1988,7 +1948,7 @@ void mainDraw(int flagFlip) {
 		if (flagFlip) {
 			if (flagFlip == 2 || lightVar2) {
 				makeBlackPalette();
-				osystem_flip(NULL);
+				osystem_flip(nullptr);
 				fadeInPhys(0x10, 0);
 				lightVar2 = 0;
 			} else {
@@ -2061,9 +2021,8 @@ void take(int objIdx) {
 	if (numObjInInventoryTable[currentInventory] == 0) {
 		inventoryTable[currentInventory][0] = objIdx;
 	} else {
-		int i;
 
-		for (i = numObjInInventoryTable[currentInventory]; i > 0; i--) {
+		for (int i = numObjInInventoryTable[currentInventory]; i > 0; i--) {
 			inventoryTable[currentInventory][i + 1] = inventoryTable[currentInventory][i];
 		}
 
@@ -2088,10 +2047,8 @@ void take(int objIdx) {
 }
 
 void foundObject(int objIdx, int param) {
-	tWorldObject *objPtr;
 	int var_C = 0;
 	int var_6 = 1;
-	int i;
 	int var_A = 15000;
 	int var_8 = -200;
 
@@ -2102,9 +2059,9 @@ void foundObject(int objIdx, int param) {
 		debug("foundObject with param == 2\n");
 	}
 
-	objPtr = &ListWorldObjets[objIdx];
+	tWorldObject *objPtr = &ListWorldObjets[objIdx];
 
-	if (param != 0 && (objPtr->flags2 & 0xC000)) {
+	if (param != 0 && objPtr->flags2 & 0xC000) {
 		return;
 	}
 
@@ -2119,7 +2076,7 @@ void foundObject(int objIdx, int param) {
 	//  setupShaking(1000); // probably to remove the shaking when in foundObject screen
 
 	int weight = 0;
-	for (i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
+	for (int i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
 		weight += ListWorldObjets[inventoryTable[currentInventory][i]].positionInTrack;
 	}
 
@@ -2144,7 +2101,7 @@ void foundObject(int objIdx, int param) {
 	}
 
 	drawFoundObect(var_6, objPtr->foundName, var_A);
-	osystem_flip(NULL);
+	osystem_flip(nullptr);
 
 	input5 = 1;
 
@@ -2230,15 +2187,15 @@ void foundObject(int objIdx, int param) {
 static int testCrossProduct(int x1, int z1, int x2, int z2, int x3, int z3, int x4, int z4) {
 	int returnFlag = 0;
 
-	int xAB = x1 - x2;
-	int yCD = z3 - z4;
-	int xCD = x3 - x4;
-	int yAB = z1 - z2;
+	const int xAB = x1 - x2;
+	const int yCD = z3 - z4;
+	const int xCD = x3 - x4;
+	const int yAB = z1 - z2;
 
-	int xAC = x1 - x3;
-	int yAC = z1 - z3;
+	const int xAC = x1 - x3;
+	const int yAC = z1 - z3;
 
-	int DotProduct = (xAB * yCD) - (xCD * yAC);
+	int DotProduct = xAB * yCD - xCD * yAC;
 
 	if (DotProduct) {
 		int Dda = xAC * yCD - xCD * yAC;
@@ -2254,29 +2211,22 @@ static int testCrossProduct(int x1, int z1, int x2, int z2, int x3, int z3, int 
 			returnFlag = 1;
 	}
 
-	return (returnFlag);
+	return returnFlag;
 }
 
 static int isInPoly(int x1, int x2, int z1, int z2, cameraViewedRoomStruct *pCameraZoneDef) {
-	int xMid = (x1 + x2) / 2;
-	int zMid = (z1 + z2) / 2;
+	const int xMid = (x1 + x2) / 2;
+	const int zMid = (z1 + z2) / 2;
 
-	int i;
-
-	for (i = 0; i < pCameraZoneDef->numCoverZones; i++) {
-		int j;
+	for (int i = 0; i < pCameraZoneDef->numCoverZones; i++) {
 		int flag = 0;
 
-		for (j = 0; j < pCameraZoneDef->coverZones[i].numPoints; j++) {
-			int zoneX1;
-			int zoneZ1;
-			int zoneX2;
-			int zoneZ2;
+		for (int j = 0; j < pCameraZoneDef->coverZones[i].numPoints; j++) {
 
-			zoneX1 = pCameraZoneDef->coverZones[i].pointTable[j].x;
-			zoneZ1 = pCameraZoneDef->coverZones[i].pointTable[j].y;
-			zoneX2 = pCameraZoneDef->coverZones[i].pointTable[j + 1].x;
-			zoneZ2 = pCameraZoneDef->coverZones[i].pointTable[j + 1].y;
+			const int zoneX1 = pCameraZoneDef->coverZones[i].pointTable[j].x;
+			const int zoneZ1 = pCameraZoneDef->coverZones[i].pointTable[j].y;
+			const int zoneX2 = pCameraZoneDef->coverZones[i].pointTable[j + 1].x;
+			const int zoneZ2 = pCameraZoneDef->coverZones[i].pointTable[j + 1].y;
 
 			if (testCrossProduct(xMid, zMid, xMid - 10000, zMid, zoneX1, zoneZ1, zoneX2, zoneZ2)) {
 				flag |= 1;
@@ -2288,33 +2238,31 @@ static int isInPoly(int x1, int x2, int z1, int z2, cameraViewedRoomStruct *pCam
 		}
 
 		if (flag == 3) {
-			return (1);
+			return 1;
 		}
 	}
 
-	return (0);
+	return 0;
 }
 
-static int findBestCamera(void) {
+static int findBestCamera() {
 	int foundAngle = 32000;
 	int foundCamera = -1;
 
-	tObject *actorPtr = &objectTable[currentCameraTargetActor];
+	const tObject *actorPtr = &objectTable[currentCameraTargetActor];
 
-	int x1 = actorPtr->zv.ZVX1 / 10;
-	int x2 = actorPtr->zv.ZVX2 / 10;
-	int z1 = actorPtr->zv.ZVZ1 / 10;
-	int z2 = actorPtr->zv.ZVZ2 / 10;
+	const int x1 = actorPtr->zv.ZVX1 / 10;
+	const int x2 = actorPtr->zv.ZVX2 / 10;
+	const int z1 = actorPtr->zv.ZVZ1 / 10;
+	const int z2 = actorPtr->zv.ZVZ2 / 10;
 
-	int i;
-
-	for (i = 0; i < numCameraInRoom; i++) {
+	for (int i = 0; i < numCameraInRoom; i++) {
 		assert(i < NUM_MAX_CAMERA_IN_ROOM);
 		if (currentCameraZoneList[i])
 			if (isInPoly(x1, x2, z1, z2, currentCameraZoneList[i])) // if in camera zone ?
 			{
 				// we try to select the best camera that looks behind the player
-				int newAngle = actorPtr->beta + (((cameraDataTable[i]->beta) + 0x200) & 0x3FF);
+				int newAngle = actorPtr->beta + (cameraDataTable[i]->beta + 0x200 & 0x3FF);
 
 				if (newAngle < 0) {
 					newAngle = -newAngle;
@@ -2327,27 +2275,21 @@ static int findBestCamera(void) {
 			}
 	}
 
-	return (foundCamera);
+	return foundCamera;
 }
 
-void checkIfCameraChangeIsRequired(void) {
+void checkIfCameraChangeIsRequired() {
 	int localCurrentCam = currentCamera;
-	int newCamera;
 
 	if (currentCamera != -1) {
-		tObject *actorPtr;
-		int zvx1;
-		int zvx2;
-		int zvz1;
-		int zvz2;
 
-		actorPtr = &objectTable[currentCameraTargetActor];
+		const tObject *actorPtr = &objectTable[currentCameraTargetActor];
 
-		zvx1 = actorPtr->zv.ZVX1 / 10;
-		zvx2 = actorPtr->zv.ZVX2 / 10;
+		const int zvx1 = actorPtr->zv.ZVX1 / 10;
+		const int zvx2 = actorPtr->zv.ZVX2 / 10;
 
-		zvz1 = actorPtr->zv.ZVZ1 / 10;
-		zvz2 = actorPtr->zv.ZVZ2 / 10;
+		const int zvz1 = actorPtr->zv.ZVZ1 / 10;
+		const int zvz2 = actorPtr->zv.ZVZ2 / 10;
 
 		if (isInPoly(zvx1, zvx2, zvz1, zvz2, currentCameraZoneList[currentCamera])) // is still in current camera zone ?
 		{
@@ -2355,7 +2297,7 @@ void checkIfCameraChangeIsRequired(void) {
 		}
 	}
 
-	newCamera = findBestCamera(); // find new camera
+	const int newCamera = findBestCamera(); // find new camera
 
 	if (newCamera != -1) {
 		localCurrentCam = newCamera;
@@ -2371,7 +2313,7 @@ static bool isPointInZV(int x, int y, int z, ZVStruct *pZV) {
 	if (pZV->ZVX1 <= x && pZV->ZVX2 >= x) {
 		if (pZV->ZVY1 <= y && pZV->ZVY2 >= y) {
 			if (pZV->ZVZ1 <= z && pZV->ZVZ2 >= z) {
-				return (true);
+				return true;
 			}
 		}
 	}
@@ -2386,7 +2328,7 @@ void processActor2() {
 
 	do {
 		onceMore = false;
-		roomDataStruct *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
+		const roomDataStruct *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
 		for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 			sceZoneStruct *pCurrentZone = &pRoomData->sceZoneTable[i];
 
@@ -2396,17 +2338,14 @@ void processActor2() {
 							&pCurrentZone->zv)) {
 				switch (pCurrentZone->type) {
 				case 0: {
-					int x;
-					int y;
-					int z;
 
-					int oldRoom = currentProcessedActorPtr->room;
+					const int oldRoom = currentProcessedActorPtr->room;
 
 					currentProcessedActorPtr->room = (short)pCurrentZone->parameter;
 
-					x = (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[oldRoom].worldX) * 10;
-					y = (roomDataTable[currentProcessedActorPtr->room].worldY - roomDataTable[oldRoom].worldY) * 10;
-					z = (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[oldRoom].worldZ) * 10;
+					const int x = (roomDataTable[currentProcessedActorPtr->room].worldX - roomDataTable[oldRoom].worldX) * 10;
+					const int y = (roomDataTable[currentProcessedActorPtr->room].worldY - roomDataTable[oldRoom].worldY) * 10;
+					const int z = (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[oldRoom].worldZ) * 10;
 
 					currentProcessedActorPtr->roomX -= x;
 					currentProcessedActorPtr->roomY += y;
@@ -2445,16 +2384,15 @@ void processActor2() {
 				}
 				case 9: // Scenar
 				{
-					if ((g_engine->getGameId() == GID_AITD1) || !flagFloorChange) {
+					if (g_engine->getGameId() == GID_AITD1 || !flagFloorChange) {
 						currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
 					}
 					break;
 				}
 				case 10: // stage
 				{
-					int life;
 
-					life = ListWorldObjets[currentProcessedActorPtr->indexInWorld].floorLife;
+					const int life = ListWorldObjets[currentProcessedActorPtr->indexInWorld].floorLife;
 
 					if (life == -1)
 						return;
@@ -2514,11 +2452,9 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 		} else {
 			tObject *currentActorPtr = objectTable;
 
-			int i;
-
-			for (i = 0; i < NUM_MAX_OBJECT; i++) {
+			for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 				if (currentActorPtr->indexInWorld != -1 && i != actorIdx && !(currentActorPtr->_flags & AF_SPECIAL)) {
-					ZVStruct *zvPtr = &currentActorPtr->zv;
+					const ZVStruct *zvPtr = &currentActorPtr->zv;
 
 					if (room != currentActorPtr->room) {
 						ZVStruct localZv2;
@@ -2550,15 +2486,15 @@ int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, i
 	animMoveY = Y;
 	animMoveZ = tempZ;
 
-	return (foundFlag);
+	return foundFlag;
 }
 
 void putAtObjet(int objIdx, int objIdxToPutAt) {
 	tWorldObject *objPtr = &ListWorldObjets[objIdx];
-	tWorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
+	const tWorldObject *objPtrToPutAt = &ListWorldObjets[objIdxToPutAt];
 
 	if (objPtrToPutAt->objIndex != -1) {
-		tObject *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
+		const tObject *actorToPutAtPtr = &objectTable[objPtrToPutAt->objIndex];
 
 		deleteInventoryObjet(objIdx);
 
@@ -2632,26 +2568,20 @@ void putAtObjet(int objIdx, int objIdxToPutAt) {
 }
 
 void throwStoppedAt(int x, int z) {
-	int x2;
-	int y2;
-	int z2;
-	int foundPosition;
-	int step;
 
 	ZVStruct zvCopy;
 	ZVStruct zvLocal;
-	uint8 *bodyPtr;
 
-	bodyPtr = (uint8 *)HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
+	uint8 *bodyPtr = (uint8 *)HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
 
 	giveZVObjet((char *)bodyPtr, &zvLocal);
 
-	x2 = x;
-	y2 = (currentProcessedActorPtr->roomY / 2000) * 2000;
-	z2 = z;
+	int x2 = x;
+	int y2 = currentProcessedActorPtr->roomY / 2000 * 2000;
+	int z2 = z;
 
-	foundPosition = 0;
-	step = 0;
+	int foundPosition = 0;
+	int step = 0;
 
 	while (!foundPosition) {
 		walkStep(0, -step, currentProcessedActorPtr->beta + 0x200);
@@ -2743,7 +2673,7 @@ void startGame(int startupFloor, int startupRoom, int allowSystemMenu) {
 	fadeOut(8,0);*/
 }
 
-static int drawTextOverlay(void) {
+static int drawTextOverlay() {
 	int hasText = 0;
 	int y = 183;
 
@@ -2756,9 +2686,9 @@ static int drawTextOverlay(void) {
 	if (lightOff == 0) {
 		for (int i = 0; i < 5; i++) {
 			if (currentMessage->string) {
-				int width = currentMessage->string->width;
-				int X = 160 - width / 2;
-				int Y = X + width;
+				const int width = currentMessage->string->width;
+				const int X = 160 - width / 2;
+				const int Y = X + width;
 
 				if (X < BBox3D1) {
 					BBox3D1 = X;
@@ -2768,8 +2698,8 @@ static int drawTextOverlay(void) {
 					BBox3D3 = Y;
 				}
 
-				if ((currentMessage->time++) > 55) {
-					currentMessage->string = NULL;
+				if (currentMessage->time++ > 55) {
+					currentMessage->string = nullptr;
 				} else {
 					if (currentMessage->time < 26) {
 						extSetFont(PtrFont, 16);
@@ -2777,7 +2707,7 @@ static int drawTextOverlay(void) {
 						extSetFont(PtrFont, 16 + (currentMessage->time - 26) / 2);
 					}
 
-					renderText(X, y + 1, logicalScreen, currentMessage->string->textPtr);
+					renderText(X, y + 1, currentMessage->string->textPtr);
 				}
 
 				y -= 16;
@@ -2790,6 +2720,264 @@ static int drawTextOverlay(void) {
 
 	BBox3D2 = y;
 	return hasText;
+}
+
+static void setupScreen() {
+	logicalScreen = (char *)malloc(64800);
+
+	// screenBufferSize = 64800;
+
+	// unkScreenVar2 = 3;
+
+	// TODO: remain of screen init
+}
+
+static void loadPalette() {
+	unsigned char localPalette[768];
+
+	if (g_engine->getGameId() == GID_AITD2) {
+		loadPak("ITD_RESS.PAK", 59, aux);
+	} else {
+		loadPak("ITD_RESS.PAK", 3, aux);
+	}
+	copyPalette((byte *)aux, currentGamePalette);
+
+	copyPalette(currentGamePalette, localPalette);
+	//  fadeInSub1(localPalette);
+
+	// to finish
+}
+
+static void allocTextes() {
+	int currentIndex;
+
+	tabTextes = (textEntryStruct *)malloc(NUM_MAX_TEXT_ENTRY * sizeof(textEntryStruct)); // 2000 = 250 * 8
+
+	assert(tabTextes);
+
+	if (!tabTextes) {
+		error("TabTextes");
+	}
+
+	// setup languageNameString
+	// if (g_engine->getGameId() == GID_AITD3) {
+	// 	languageNameString = "TEXTES.PAK";
+	// } else
+	{
+		const Common::String lang(ConfMan.get("language"));
+		for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
+			Common::File f;
+			if (lang == languageShortNameTable[i] && f.exists(languageNameTable[i])) {
+				languageNameString = languageNameTable[i];
+				break;
+			}
+		}
+	}
+
+	if (!languageNameString) {
+		error("Unable to detect language file..\n");
+		assert(0);
+	}
+
+	systemTextes = checkLoadMallocPak(languageNameString, 0); // todo: use real language name
+	const int textLength = getPakSize(languageNameString, 0);
+
+	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
+		tabTextes[currentIndex].index = -1;
+		tabTextes[currentIndex].textPtr = nullptr;
+		tabTextes[currentIndex].width = 0;
+	}
+
+	char *currentPosInTextes = systemTextes;
+
+	int textCounter = 0;
+
+	while (currentPosInTextes < systemTextes + textLength) {
+		currentIndex = *currentPosInTextes++;
+
+		if (currentIndex == 26)
+			break;
+
+		if (currentIndex == '@') // start of string marker
+		{
+			int stringIndex = 0;
+
+			while ((currentIndex = *currentPosInTextes++) >= '0' && currentIndex <= '9') // parse string number
+			{
+				stringIndex = stringIndex * 10 + currentIndex - 48;
+			}
+
+			if (currentIndex == ':') // start of string
+			{
+				char *stringPtr = currentPosInTextes;
+
+				do {
+					currentPosInTextes++;
+				} while ((unsigned char)*(currentPosInTextes - 1) >= ' '); // detect the end of the string
+
+				*(currentPosInTextes - 1) = 0; // add the end of string
+
+				tabTextes[textCounter].index = stringIndex;
+				tabTextes[textCounter].textPtr = stringPtr;
+				tabTextes[textCounter].width = extGetSizeFont(stringPtr);
+
+				textCounter++;
+			}
+
+			if (currentIndex == 26) {
+				return;
+			}
+		}
+	}
+}
+
+void runGame() {
+	gfx_init();
+
+#ifdef USE_IMGUI
+	ImGuiCallbacks callbacks;
+	callbacks.init = onImGuiInit;
+	callbacks.render = onImGuiRender;
+	callbacks.cleanup = onImGuiCleanup;
+	g_system->setImGuiCallbacks(callbacks);
+#endif
+
+	switch (g_engine->getGameId()) {
+	case GID_AITD1:
+		CVarsSize = 45;
+		currentCVarTable = AITD1KnownCVars;
+		break;
+	case GID_JACK:
+	case GID_AITD2:
+	case GID_AITD3:
+		CVarsSize = 70;
+		currentCVarTable = AITD2KnownCVars;
+		break;
+	default:
+		break;
+	}
+
+	// Set the engine's debugger console
+	g_engine->setDebugger(new Console());
+
+	setupScreen();
+
+	initMusicDriver();
+	musicConfigured = 1;
+	musicEnabled = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kMusicSoundType) ? 0 : 1;
+	soundToggle = g_engine->_mixer->isSoundTypeMuted(Audio::Mixer::kSFXSoundType) ? 0 : 1;
+	detailToggle = 1;
+
+	aux = (char *)malloc(65068);
+	if (!aux) {
+		error("Failed to alloc Aux");
+	}
+
+	aux2 = (char *)malloc(65068);
+	if (!aux2) {
+		error("Failed to alloc Aux2");
+	}
+
+	initCopyBox(aux2, logicalScreen);
+
+	switch (g_engine->getGameId()) {
+	case GID_AITD3: {
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		break;
+	}
+	case GID_JACK:
+	case GID_AITD2: {
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 1);
+		break;
+	}
+	case GID_AITD1: {
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 5);
+		break;
+	}
+	case GID_TIMEGATE:
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 2);
+		break;
+	default:
+		assert(0);
+	}
+
+	extSetFont(PtrFont, 14);
+
+	if (g_engine->getGameId() == GID_AITD1) {
+		setFontSpace(2, 0);
+	} else {
+		setFontSpace(2, 1);
+	}
+
+	switch (g_engine->getGameId()) {
+	case GID_JACK:
+	case GID_AITD2:
+	case GID_AITD3: {
+		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 0);
+		break;
+	}
+	case GID_AITD1: {
+		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 4);
+		break;
+	}
+	default:
+		break;
+	}
+
+	PtrPrioritySample = loadFromItd("PRIORITY.ITD");
+
+	// read cvars definitions
+	{
+		Common::File f;
+		f.open("DEFINES.ITD");
+		for (int i = 0; i < CVarsSize; i++) {
+			CVars[i] = f.readSint16BE();
+		}
+		f.close();
+	}
+
+	allocTextes();
+	listMus = HQR_InitRessource("LISTMUS.PAK", 110000, 40);
+	listSamp = HQR_InitRessource(g_engine->getGameId() == GID_TIMEGATE ? "SAMPLES.PAK" : "LISTSAMP.PAK", 64000, 30);
+	HQ_Memory = HQR_Init(10000, 50);
+
+	paletteFill(currentGamePalette, 0, 0, 0);
+	loadPalette();
+
+	// If a savegame was selected from the launcher, load it
+	const int saveSlot = ConfMan.getInt("save_slot");
+
+	switch (g_engine->getGameId()) {
+	case GID_AITD1:
+		startAITD1(saveSlot);
+		break;
+	case GID_JACK:
+		startJACK(saveSlot);
+		break;
+	case GID_AITD2:
+		startAITD2(saveSlot);
+		break;
+	case GID_AITD3:
+		startAITD3(saveSlot);
+		break;
+	// case GID_TIMEGATE:
+	// 	startGame(0, 5, 1);
+	// 	break;
+	default:
+		error("Unknown game");
+		break;
+	}
+
+#ifdef USE_IMGUI
+	g_system->setImGuiCallbacks(ImGuiCallbacks());
+#endif
+
+	g_engine->_mixer->stopAll();
+
+	destroyMusicDriver();
+
+	gfx_deinit();
+	freeAll();
 }
 
 } // namespace Fitd

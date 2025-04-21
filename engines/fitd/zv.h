@@ -36,8 +36,8 @@ typedef struct ZVStruct
 	int32 ZVZ2;
 } ZVStruct;
 
-void getZvCube(char *bodyPtr, ZVStruct *zvPtr);
-void giveZVObjet(char* bodyPtr, ZVStruct* zvPtr);
+void getZvCube(const char *bodyPtr, ZVStruct *zvPtr);
+void giveZVObjet(const char * bodyPtr, ZVStruct* zvPtr);
 void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
 void makeDefaultZV(ZVStruct* zvPtr);
 struct roomDataStruct;

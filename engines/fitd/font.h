@@ -38,7 +38,7 @@ extern textEntryStruct *tabTextes;
 void extSetFont(char *fontData, int color);
 void setFontSpace(int interWordSpace, int interLetterSpace);
 int extGetSizeFont(char *string);
-void renderText(int x, int y, char *surface, const char *string);
+void renderText(int x, int y, const char *string);
 void selectedMessage(int x, int y, int index, int color1, int color2);
 void simpleMessage(int x, int y, int index, int color);
 textEntryStruct *getTextFromIdx(int index);

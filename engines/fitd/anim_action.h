@@ -24,7 +24,7 @@
 
 namespace Fitd {
 
-void gereFrappe(void);
+void gereFrappe();
 
 }
 

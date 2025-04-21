@@ -113,7 +113,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 // Endian safe read functions
 inline uint16 READ_LE_U16(const void *p) {
 	const uint8 *data = (const uint8 *)p;
-	return (uint16)((data[1] << 8) | data[0]);
+	return (uint16)(data[1] << 8 | data[0]);
 }
 
 inline int16 READ_LE_S16(const void *p) {
@@ -122,7 +122,7 @@ inline int16 READ_LE_S16(const void *p) {
 
 inline uint32 READ_LE_U32(const void *p) {
 	const uint8 *data = (const uint8 *)p;
-	return ((uint32)data[3] << 24) | ((uint32)data[2] << 16) | ((uint32)data[1] << 8) | (uint32)data[0];
+	return (uint32)data[3] << 24 | (uint32)data[2] << 16 | (uint32)data[1] << 8 | (uint32)data[0];
 }
 
 inline uint8 READ_LE_U8(const void *ptr) {
@@ -133,10 +133,10 @@ inline int8 READ_LE_S8(const void *ptr) {
 	return (int8)READ_LE_U8(ptr);
 }
 
-void initEngine(void);
-void initVars(void);
+void initEngine();
+void initVars();
 void startGame(int startupEtage, int startupRoom, int allowSystemMenu);
-void freeAll(void);
+void freeAll();
 void addActorToBgInscrust(int actorIdx);
 void removeFromBGIncrust(int actorIdx);
 
@@ -146,7 +146,7 @@ void updateAllActorAndObjects();
 void processActor2();
 void createActorList();
 void mainDraw(int flagFlip);
-void checkIfCameraChangeIsRequired(void);
+void checkIfCameraChangeIsRequired();
 void setMoveMode(int trackMode, int trackNumber);
 struct interpolatedValue;
 void initRealValue(int16 beta, int16 newBeta, int16 param, interpolatedValue *rotatePtr);
@@ -158,6 +158,7 @@ int16 computeDistanceToPoint(int x1, int z1, int x2, int z2);
 int checkLineProjectionWithActors(int actorIdx, int X, int Y, int Z, int beta, int room, int param);
 void throwStoppedAt(int x, int z);
 void deleteInventoryObjet(int objIdx);
+void runGame();
 
 } // namespace Fitd
 

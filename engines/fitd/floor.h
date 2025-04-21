@@ -24,7 +24,6 @@
 
  #include "fitd/room.h"
  #include "common/scummsys.h"
- #include "common/array.h"
 
 namespace Fitd {
 

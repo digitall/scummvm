@@ -63,12 +63,6 @@ static void saveInterpolatedValue(interpolatedValue *pRotateStruct, Common::Writ
 }
 
 int loadSave(Common::SeekableReadStream *in) {
-	unsigned int var28;
-	int var_E;
-	int var_16;
-	unsigned int offsetToVars;
-	uint16 tempVarSize;
-	unsigned int offsetToActors;
 	int i;
 	int oldNumMaxObj = 0;
 
@@ -77,7 +71,7 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	in->seek(8, SEEK_SET);
 
-	var28 = in->readUint32BE();
+	const unsigned int var28 = in->readUint32BE();
 
 	in->seek(var28, SEEK_SET);
 
@@ -240,20 +234,20 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	// timerFreeze = 1;
 
-	var_E = currentCamera;
+	const int var_E = currentCamera;
 
 	loadFloor(g_currentFloor);
 	currentCamera = -1;
 	loadRoom(currentRoom);
-	var_16 = currentMusic;
+	const int var_16 = currentMusic;
 	currentMusic = -1;
 	playMusic(var_16);
 
 	in->seek(12, SEEK_SET);
-	offsetToVars = in->readUint32BE();
+	const unsigned int offsetToVars = in->readUint32BE();
 	in->seek(offsetToVars, SEEK_SET);
 
-	tempVarSize = in->readUint16LE();
+	const uint16 tempVarSize = in->readUint16LE();
 	varSize = tempVarSize;
 
 	in->read(vars, varSize);
@@ -270,7 +264,7 @@ int loadSave(Common::SeekableReadStream *in) {
 	}
 
 	in->seek(16, SEEK_SET);
-	offsetToActors = in->readUint32BE();
+	const unsigned int offsetToActors = in->readUint32BE();
 	in->seek(offsetToActors, SEEK_SET);
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -498,11 +492,11 @@ int loadSave(Common::SeekableReadStream *in) {
 
 	startGameVar1 = var_E;
 
-	return (1);
+	return 1;
 }
 
 int makeSave(Common::WriteStream *out) {
-	uint32 var28 = 0;
+	const uint32 var28 = 0;
 	int oldNumMaxObj = 0;
 
 	if (g_engine->getGameId() == GID_AITD1) {
@@ -706,7 +700,7 @@ int makeSave(Common::WriteStream *out) {
 
 	// timerFreeze = 1;
 
-	uint32 pos = out->pos();
+	const uint32 pos = out->pos();
 	for (uint i = 0; i < varsOffset - pos; i++) {
 		out->writeByte(0);
 	}

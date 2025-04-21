@@ -24,8 +24,8 @@
 
 namespace Fitd {
 
-void freezeTime(void);
-void unfreezeTime(void);
+void freezeTime();
+void unfreezeTime();
 
 }
 

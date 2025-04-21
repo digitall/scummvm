@@ -20,12 +20,12 @@
  */
 
 #include "fitd/anim.h"
+#include "common/hashmap.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/room.h"
 #include "fitd/vars.h"
-#include "common/hashmap.h"
 
 namespace Common {
 template<>
@@ -44,27 +44,20 @@ static Common::HashMap<void *, char *> g_bodyBufferMap;
 static void initBufferAnim(int16 *buffer, char *bodyPtr);
 
 int setAnimObjet(int frame, char *anim, char *body) {
-	int16 temp;
-	int16 ax;
-	int16 cx;
-	int16 bx;
-	char *saveAnim;
-	int i;
-	int flag;
 
-	flag = (*(int16 *)body);
+	const int flag = *(int16 *)body;
 
-	temp = *(int16 *)anim;
+	const int16 temp = *(int16 *)anim;
 	anim += 2;
 
 	if (frame >= temp) {
-		return (0);
+		return 0;
 	}
 
-	ax = *(int16 *)anim;
+	int16 ax = *(int16 *)anim;
 	anim += 2;
 
-	cx = ax;
+	int16 cx = ax;
 
 	if (flag & INFO_OPTIMISE) {
 		ax = ((ax << 4) + 8) * frame;
@@ -78,7 +71,7 @@ int setAnimObjet(int frame, char *anim, char *body) {
 	animKeyframeLength = animCurrentTime;
 
 	if (!(flag & 2)) {
-		return (0);
+		return 0;
 	}
 
 	body += 14;
@@ -90,7 +83,7 @@ int setAnimObjet(int frame, char *anim, char *body) {
 	body += 2;
 
 	ax = *(int16 *)body;
-	bx = ax;
+	int16 bx = ax;
 
 	body += (((ax << 1) + bx) << 1) + 2;
 
@@ -103,35 +96,35 @@ int setAnimObjet(int frame, char *anim, char *body) {
 
 	body += 10;
 
-	saveAnim = anim;
+	char *saveAnim = anim;
 
 	anim += 8;
 
-	for (i = 0; i < cx; i++) {
-		*(int16 *)(body) = *(int16 *)(anim);
+	for (int i = 0; i < cx; i++) {
+		*(int16 *)body = *(int16 *)anim;
 		body += 2;
 		anim += 2;
-		*(int16 *)(body) = *(int16 *)(anim);
+		*(int16 *)body = *(int16 *)anim;
 		body += 2;
 		anim += 2;
-		*(int16 *)(body) = *(int16 *)(anim);
+		*(int16 *)body = *(int16 *)anim;
 		body += 2;
 		anim += 2;
-		*(int16 *)(body) = *(int16 *)(anim);
+		*(int16 *)body = *(int16 *)anim;
 		body += 2;
 		anim += 2;
 
 		if (flag & INFO_OPTIMISE) {
-			*(int16 *)(body) = *(int16 *)(anim);
+			*(int16 *)body = *(int16 *)anim;
 			body += 2;
 			anim += 2;
-			*(int16 *)(body) = *(int16 *)(anim);
+			*(int16 *)body = *(int16 *)anim;
 			body += 2;
 			anim += 2;
-			*(int16 *)(body) = *(int16 *)(anim);
+			*(int16 *)body = *(int16 *)anim;
 			body += 2;
 			anim += 2;
-			*(int16 *)(body) = *(int16 *)(anim);
+			*(int16 *)body = *(int16 *)anim;
 			body += 2;
 			anim += 2;
 		}
@@ -150,7 +143,7 @@ int setAnimObjet(int frame, char *anim, char *body) {
 	animStepZ = *(int16 *)anim;
 	anim += 2;
 
-	return (1);
+	return 1;
 }
 
 int initAnim(int animNum, int animType, int animInfo) {
@@ -181,7 +174,7 @@ int initAnim(int animNum, int animType, int animInfo) {
 
 	if (animNum == -1) {
 		currentProcessedActorPtr->newAnim = -2;
-		return (1);
+		return 1;
 	}
 
 	if (!(currentProcessedActorPtr->_flags & AF_ANIMATED)) {
@@ -204,10 +197,10 @@ int initAnim(int animNum, int animType, int animInfo) {
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE)
-			return (0);
+			return 0;
 
 		if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE)
-			return (0);
+			return 0;
 	} else {
 		if (currentProcessedActorPtr->animType & ANIM_UNINTERRUPTABLE) {
 			if (currentProcessedActorPtr->newAnimType & ANIM_UNINTERRUPTABLE) {
@@ -227,7 +220,7 @@ int initAnim(int animNum, int animType, int animInfo) {
 		currentProcessedActorPtr->FRAME = 0;
 	}
 
-	return (1);
+	return 1;
 }
 
 int evaluateReal(interpolatedValue *data) {
@@ -239,19 +232,18 @@ int evaluateReal(interpolatedValue *data) {
 		return data->newAngle;
 	}
 
-	return ((((data->newAngle - data->oldAngle) * (timer - data->timeOfRotate)) / data->param) + data->oldAngle);
+	return (data->newAngle - data->oldAngle) * (timer - data->timeOfRotate) / data->param + data->oldAngle;
 }
 
 int manageFall(int actorIdx, ZVStruct *zvPtr) {
 	int fallResult = 0;
-	int i;
-	int room = objectTable[actorIdx].room;
+	const int room = objectTable[actorIdx].room;
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		tObject *currentTestedActorPtr = &objectTable[i];
 
 		if (currentTestedActorPtr->indexInWorld != -1 && i != actorIdx) {
-			ZVStruct *testedZv = &currentTestedActorPtr->zv;
+			const ZVStruct *testedZv = &currentTestedActorPtr->zv;
 
 			if (currentTestedActorPtr->room != room) {
 				ZVStruct localZv;
@@ -271,10 +263,10 @@ int manageFall(int actorIdx, ZVStruct *zvPtr) {
 		}
 	}
 
-	return (fallResult);
+	return fallResult;
 }
 
-void updateAnimation(void) {
+void updateAnimation() {
 	int oldStepZ = 0;
 	int oldStepY = 0;
 	int oldStepX = 0;
@@ -616,7 +608,7 @@ void updateAnimation(void) {
 			}
 		}
 	} else {
-		if ((currentProcessedActorPtr->YHandler.param != -1) && (currentProcessedActorPtr->_flags & AF_FALLABLE)) {
+		if (currentProcessedActorPtr->YHandler.param != -1 && currentProcessedActorPtr->_flags & AF_FALLABLE) {
 			currentProcessedActorPtr->falling = 1;
 		}
 	}
@@ -651,7 +643,7 @@ void updateAnimation(void) {
 			currentProcessedActorPtr->END_ANIM = 1; // end of anim
 			currentProcessedActorPtr->FRAME = 0;    // restart anim
 
-			if (!(currentProcessedActorPtr->animType & 1) && (currentProcessedActorPtr->newAnim == -1)) // is another anim waiting ?
+			if (!(currentProcessedActorPtr->animType & 1) && currentProcessedActorPtr->newAnim == -1) // is another anim waiting ?
 			{
 				currentProcessedActorPtr->animType &= 0xFFFD;
 
@@ -672,7 +664,7 @@ void updateAnimation(void) {
 		currentProcessedActorPtr->animNegZ = 0;
 	} else // not the end of anim
 	{
-		if ((currentProcessedActorPtr->ANIM == -1) && (currentProcessedActorPtr->speed != 0) && (currentProcessedActorPtr->speedChange.param == 0)) {
+		if (currentProcessedActorPtr->ANIM == -1 && currentProcessedActorPtr->speed != 0 && currentProcessedActorPtr->speedChange.param == 0) {
 			currentProcessedActorPtr->worldX += currentProcessedActorPtr->stepX;
 			currentProcessedActorPtr->roomX += currentProcessedActorPtr->stepX;
 
@@ -689,15 +681,12 @@ void updateAnimation(void) {
 	}
 }
 
-static void initBufferAnim(int16* buffer, char *bodyPtr) {
-	int16* bufferIt = buffer;
+static void initBufferAnim(int16 *buffer, char *bodyPtr) {
+	int16 *bufferIt = buffer;
 
-	int flag = *(int16 *)bodyPtr;
+	const int flag = *(int16 *)bodyPtr;
 	if (flag & 2) {
 		char *source = bodyPtr + 0x10;
-		int16 ax;
-		int cx;
-		int i;
 
 		*(uint16 *)(source + 4) = (uint16)timer;
 
@@ -705,21 +694,21 @@ static void initBufferAnim(int16* buffer, char *bodyPtr) {
 
 		source += *(int16 *)(source - 2);
 
-		ax = *(int16 *)(source);
+		int16 ax = *(int16 *)source;
 
-		ax = (((ax * 2) + ax) * 2) + 2;
+		ax = (ax * 2 + ax) * 2 + 2;
 
 		source += ax;
 
-		cx = *(int16 *)source;
+		const int cx = *(int16 *)source;
 
 		source += cx * 2;
 
 		bufferIt += 4;
 		source += 10;
 
-		for (i = 0; i < cx; i++) {
-			bufferIt[0] = *(int16 *)(source);
+		for (int i = 0; i < cx; i++) {
+			bufferIt[0] = *(int16 *)source;
 			bufferIt[1] = *(int16 *)(source + 2);
 			bufferIt[2] = *(int16 *)(source + 4);
 			bufferIt[3] = *(int16 *)(source + 6);
@@ -728,7 +717,7 @@ static void initBufferAnim(int16* buffer, char *bodyPtr) {
 			source += 8;
 
 			if (flag & INFO_OPTIMISE) {
-				bufferIt[0] = *(int16 *)(source);
+				bufferIt[0] = *(int16 *)source;
 				bufferIt[1] = *(int16 *)(source + 2);
 				bufferIt[2] = *(int16 *)(source + 4);
 				bufferIt[3] = *(int16 *)(source + 6);
@@ -743,114 +732,104 @@ static void initBufferAnim(int16* buffer, char *bodyPtr) {
 }
 
 int16 getNbFramesAnim(char *animPtr) {
-	return (*(int16 *)animPtr);
+	return *(int16 *)animPtr;
 }
 
 int16 PatchType(char **bodyPtr) // local
 {
-	int16 temp = *(int16 *)animVar1;
+	const int16 temp = *(int16 *)animVar1;
 
 	animVar1 += 2;
 
 	animVar4 += 2;
 
-	*(int16 *)(*bodyPtr) = temp;
-	(*bodyPtr) += 2;
+	*(int16 *)*bodyPtr = temp;
+	*bodyPtr += 2;
 
-	return (temp);
+	return temp;
 }
 
 void PatchInterAngle(char **bodyPtr, int bp, int bx) // local
 {
 	int16 oldRotation = *(int16 *)animVar4;
-	int16 newRotation;
-	int16 diff;
 
 	animVar4 += 2;
 
-	newRotation = *(int16 *)animVar1;
+	int16 newRotation = *(int16 *)animVar1;
 	animVar1 += 2;
 
-	diff = newRotation - oldRotation;
+	const int16 diff = newRotation - oldRotation;
 
 	if (diff == 0) {
-		*(int16 *)(*bodyPtr) = newRotation;
+		*(int16 *)*bodyPtr = newRotation;
 	} else {
 		if (diff <= 0x200) {
 			if (diff >= -0x200) {
-				*(int16 *)(*bodyPtr) = ((diff * bp) / bx) + oldRotation;
+				*(int16 *)*bodyPtr = diff * bp / bx + oldRotation;
 			} else {
 				newRotation += 0x400;
 				newRotation -= oldRotation;
 
-				*(int16 *)(*bodyPtr) = ((newRotation * bp) / bx) + oldRotation;
+				*(int16 *)*bodyPtr = newRotation * bp / bx + oldRotation;
 			}
 		} else {
 			oldRotation += 0x400;
 			newRotation -= oldRotation;
 
-			*(int16 *)(*bodyPtr) = ((newRotation * bp) / bx) + oldRotation;
+			*(int16 *)*bodyPtr = newRotation * bp / bx + oldRotation;
 		}
 	}
 
-	(*bodyPtr) += 2;
+	*bodyPtr += 2;
 }
 
 void PatchInterStep(char **bodyPtr, int bp, int bx) // local
 {
-	int16 cx = *(int16 *)animVar4;
-	int16 ax;
+	const int16 cx = *(int16 *)animVar4;
 	animVar4 += 2;
 
-	ax = *(int16 *)animVar1;
+	const int16 ax = *(int16 *)animVar1;
 	animVar1 += 2;
 
 	if (ax == cx) {
-		*(int16 *)(*bodyPtr) = ax;
+		*(int16 *)*bodyPtr = ax;
 	} else {
-		*(int16 *)(*bodyPtr) = (((ax - cx) * bp) / bx) + cx;
+		*(int16 *)*bodyPtr = (ax - cx) * bp / bx + cx;
 	}
 
-	(*bodyPtr) += 2;
+	*bodyPtr += 2;
 }
 
 int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 	int numOfBonesInAnim = *(int16 *)(animPtr + 2);
-	uint16 keyframeLength;
-	uint16 timeOfKeyframeStart;
-	int ax;
-	uint16 bx;
-	uint16 time;
-	int bp;
-	int flag;
 
-	sBody *pBody = getBodyFromPtr(bodyPtr);
+	const sBody *pBody = getBodyFromPtr(bodyPtr);
 
-	flag = pBody->m_flags;
+	const int flag = pBody->m_flags;
 
 	animPtr += 4;
 
 	if (flag & INFO_OPTIMISE) {
 		animPtr += ((numOfBonesInAnim << 4) + 8) * frame; // seek to keyframe
 	} else {
-		animPtr += ((numOfBonesInAnim + 1) * 8) * frame; // seek to keyframe
+		animPtr += (numOfBonesInAnim + 1) * 8 * frame; // seek to keyframe
 	}
 
 	// animVar1 = ptr to the current keyFrame
 	animVar1 = animPtr;
 
-	keyframeLength = *(uint16 *)animPtr; // keyframe length
+	const uint16 keyframeLength = *(uint16 *)animPtr; // keyframe length
 
 	if (!(pBody->m_flags & INFO_ANIM)) // do not anim if the model can't be animated
 	{
-		return (0);
+		return 0;
 	}
 
 	bodyPtr += 16; // skip the flags, ZV, scratch buffer size
 
 	animVar3 = bodyPtr; // this is the scratch buffer
 
-	timeOfKeyframeStart = *(uint16 *)(bodyPtr + 4); // time of start of keyframe
+	const uint16 timeOfKeyframeStart = *(uint16 *)(bodyPtr + 4); // time of start of keyframe
 
 	char *animBufferPtr = g_bodyBufferMap[bodyPtr];
 
@@ -863,12 +842,12 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 
 	bodyPtr += *(int16 *)(bodyPtr - 2); // skip over scratch buffer
 
-	ax = *(int16 *)bodyPtr; // num vertices
-	ax = (ax * 6) + 2;
+	int ax = *(int16 *)bodyPtr; // num vertices
+	ax = ax * 6 + 2;
 	bodyPtr += ax; // skip the vertices
 
 	ax = *(int16 *)bodyPtr; // num of group order
-	bx = ax;
+	uint16 bx = ax;
 	bodyPtr += bx * 2; // skip group order table
 
 	if ((uint)numOfBonesInAnim > pBody->m_groupOrder.size()) {
@@ -877,10 +856,10 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 
 	bodyPtr += 10; // skip bone 0
 
-	time = (uint16)timer - timeOfKeyframeStart;
+	const uint16 time = (uint16)timer - timeOfKeyframeStart;
 
 	bx = keyframeLength;
-	bp = time;
+	const int bp = time;
 
 	if (time < keyframeLength) // interpolate keyframe
 	{
@@ -945,15 +924,15 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 
 		animVar1 += 2;
 
-		animStepX = ((*(int16 *)(animVar1)) * bp) / bx;     // X
-		animStepY = ((*(int16 *)(animVar1 + 2)) * bp) / bx; // Y
-		animStepZ = ((*(int16 *)(animVar1 + 4)) * bp) / bx; // Z
+		animStepX = *(int16 *)animVar1 * bp / bx;       // X
+		animStepY = *(int16 *)(animVar1 + 2) * bp / bx; // Y
+		animStepZ = *(int16 *)(animVar1 + 4) * bp / bx; // Z
 
 		animVar1 += 6;
 
 		animCurrentTime = bx;
 		animKeyframeLength = bp;
-		return (0);
+		return 0;
 	} else // change keyframe
 	{
 		char *tempBx = animVar1;
@@ -962,7 +941,7 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 		si += 8;
 
 		do {
-			*(int16 *)(bodyPtr) = *(int16 *)(si);
+			*(int16 *)bodyPtr = *(int16 *)si;
 			*(int16 *)(bodyPtr + 2) = *(int16 *)(si + 2);
 			*(int16 *)(bodyPtr + 4) = *(int16 *)(si + 4);
 			*(int16 *)(bodyPtr + 6) = *(int16 *)(si + 6);
@@ -971,7 +950,7 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 			si += 8;
 
 			if (flag & INFO_OPTIMISE) {
-				*(int16 *)(bodyPtr) = *(int16 *)(si);
+				*(int16 *)bodyPtr = *(int16 *)si;
 				*(int16 *)(bodyPtr + 2) = *(int16 *)(si + 2);
 				*(int16 *)(bodyPtr + 4) = *(int16 *)(si + 4);
 				*(int16 *)(bodyPtr + 6) = *(int16 *)(si + 6);
@@ -993,12 +972,12 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 		animCurrentTime = bx;
 		animKeyframeLength = bx;
 
-		animStepX = *(int16 *)(tempBx);
+		animStepX = *(int16 *)tempBx;
 		animStepY = *(int16 *)(tempBx + 2);
 		animStepZ = *(int16 *)(tempBx + 4);
 
 		tempBx += 6;
-		return (1);
+		return 1;
 	}
 }
 } // namespace Fitd

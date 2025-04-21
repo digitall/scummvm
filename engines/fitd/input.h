@@ -23,7 +23,7 @@
  #define FITD_INPUT_H
 
 namespace Fitd {
-void readKeyboard(void);
+void readKeyboard();
 }
 
 #endif

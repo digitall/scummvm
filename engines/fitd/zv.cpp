@@ -34,29 +34,29 @@ static int pointRotateSinY;
 static int pointRotateCosZ;
 static int pointRotateSinZ;
 
-void getZvCube(char *bodyPtr, ZVStruct *zvPtr) {
+void getZvCube(const char *bodyPtr, ZVStruct *zvPtr) {
 	const int16 *ptr = (const int16 *)(bodyPtr + 2);
 
-	zvPtr->ZVX1 = *(ptr++);
-	zvPtr->ZVX2 = *(ptr++);
-	zvPtr->ZVY1 = *(ptr++);
-	zvPtr->ZVY2 = *(ptr++);
-	zvPtr->ZVZ1 = *(ptr++);
-	zvPtr->ZVZ2 = *(ptr++);
+	zvPtr->ZVX1 = *ptr++;
+	zvPtr->ZVX2 = *ptr++;
+	zvPtr->ZVY1 = *ptr++;
+	zvPtr->ZVY2 = *ptr++;
+	zvPtr->ZVZ1 = *ptr++;
+	zvPtr->ZVZ2 = *ptr++;
 
 	zvPtr->ZVZ2 = zvPtr->ZVX2 = (zvPtr->ZVX2 + zvPtr->ZVZ2) / 2;
 	zvPtr->ZVX1 = zvPtr->ZVZ1 = -zvPtr->ZVZ2;
 }
 
-void giveZVObjet(char *bodyPtr, ZVStruct *zvPtr) {
+void giveZVObjet(const char *bodyPtr, ZVStruct *zvPtr) {
 	const int16 *ptr = (const int16 *)(bodyPtr + 2);
 
-	zvPtr->ZVX1 = *(ptr++);
-	zvPtr->ZVX2 = *(ptr++);
-	zvPtr->ZVY1 = *(ptr++);
-	zvPtr->ZVY2 = *(ptr++);
-	zvPtr->ZVZ1 = *(ptr++);
-	zvPtr->ZVZ2 = *(ptr++);
+	zvPtr->ZVX1 = *ptr++;
+	zvPtr->ZVX2 = *ptr++;
+	zvPtr->ZVY1 = *ptr++;
+	zvPtr->ZVY2 = *ptr++;
+	zvPtr->ZVZ1 = *ptr++;
+	zvPtr->ZVZ2 = *ptr++;
 }
 
 void makeDefaultZV(ZVStruct *zvPtr) {
@@ -105,9 +105,9 @@ int asmCheckListCol(const ZVStruct *zvPtr, const roomDataStruct *pRoomData) {
 	hardColStruct *pCurrentEntry = pRoomData->hardColTable;
 
 	for (uint16 i = 0; i < pRoomData->numHardCol; i++) {
-		if (((pCurrentEntry->zv.ZVX1) < (zvPtr->ZVX2)) && ((zvPtr->ZVX1) < (pCurrentEntry->zv.ZVX2))) {
-			if (((pCurrentEntry->zv.ZVY1) < (zvPtr->ZVY2)) && ((zvPtr->ZVY1) < (pCurrentEntry->zv.ZVY2))) {
-				if (((pCurrentEntry->zv.ZVZ1) < (zvPtr->ZVZ2)) && ((zvPtr->ZVZ1) < (pCurrentEntry->zv.ZVZ2))) {
+		if (pCurrentEntry->zv.ZVX1 < zvPtr->ZVX2 && zvPtr->ZVX1 < pCurrentEntry->zv.ZVX2) {
+			if (pCurrentEntry->zv.ZVY1 < zvPtr->ZVY2 && zvPtr->ZVY1 < pCurrentEntry->zv.ZVY2) {
+				if (pCurrentEntry->zv.ZVZ1 < zvPtr->ZVZ2 && zvPtr->ZVZ1 < pCurrentEntry->zv.ZVZ2) {
 					assert(hardColVar < 10);
 					hardColTable[hardColVar++] = pCurrentEntry;
 				}
@@ -215,14 +215,14 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		return;
 	}
 
-	if (var_6 == 1 && (var_A & flag)) {
+	if (var_6 == 1 && var_A & flag) {
 		hardColSuB1Sub1(var_A);
 		return;
 	}
 
 	if (var_A == flag || flag == 15) {
-		int Xmod = abs(zvPtr2->ZVX1 - startZv->ZVX1); // recheck
-		int Zmod = abs(zvPtr2->ZVZ1 - startZv->ZVZ1);
+		const int Xmod = abs(zvPtr2->ZVX1 - startZv->ZVX1); // recheck
+		const int Zmod = abs(zvPtr2->ZVZ1 - startZv->ZVZ1);
 
 		if (Xmod > Zmod) {
 			hardColStepZ = 0;
@@ -244,9 +244,9 @@ void copyZv(const ZVStruct *source, ZVStruct *dest) {
 }
 
 void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom) {
-	unsigned int Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
-	unsigned int Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
-	unsigned int Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
+	const unsigned int Xdif = 10 * (roomDataTable[destRoom].worldX - roomDataTable[startRoom].worldX);
+	const unsigned int Ydif = 10 * (roomDataTable[destRoom].worldY - roomDataTable[startRoom].worldY);
+	const unsigned int Zdif = 10 * (roomDataTable[destRoom].worldZ - roomDataTable[startRoom].worldZ);
 
 	zvPtr->ZVX1 -= Xdif;
 	zvPtr->ZVX2 -= Xdif;
@@ -281,7 +281,7 @@ int checkZvCollision(const ZVStruct *zvPtr1, const ZVStruct *zvPtr2) {
 int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 	int currentCollisionSlot = 0;
 	tObject *currentActor = objectTable;
-	int actorRoom = objectTable[actorIdx].room;
+	const int actorRoom = objectTable[actorIdx].room;
 
 	for (int i = 0; i < 3; i++) {
 		currentProcessedActorPtr->COL[i] = -1;
@@ -289,7 +289,7 @@ int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (currentActor->indexInWorld != -1 && i != actorIdx) {
-			ZVStruct *currentActorZv = &currentActor->zv;
+			const ZVStruct *currentActorZv = &currentActor->zv;
 
 			if (currentActor->room != actorRoom) {
 				ZVStruct localZv;
@@ -302,58 +302,58 @@ int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr) {
 					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
 
 					if (currentCollisionSlot == 3)
-						return (3);
+						return 3;
 				}
 			} else {
 				if (checkZvCollision(zvPtr, currentActorZv)) {
 					currentProcessedActorPtr->COL[currentCollisionSlot++] = i;
 
 					if (currentCollisionSlot == 3)
-						return (3);
+						return 3;
 				}
 			}
 		}
 		currentActor++;
 	}
 
-	return (currentCollisionSlot);
+	return currentCollisionSlot;
 }
 
 static void setupPointRotate(int alpha, int beta, int gamma) {
 	pointRotateEnable = true;
 
 	pointRotateCosX = cosTable[alpha & 0x3FF];
-	pointRotateSinX = cosTable[((alpha & 0x3FF) + 0x100) & 0x3FF];
+	pointRotateSinX = cosTable[(alpha & 0x3FF) + 0x100 & 0x3FF];
 
 	pointRotateCosY = cosTable[beta & 0x3FF];
-	pointRotateSinY = cosTable[((beta & 0x3FF) + 0x100) & 0x3FF];
+	pointRotateSinY = cosTable[(beta & 0x3FF) + 0x100 & 0x3FF];
 
 	pointRotateCosZ = cosTable[gamma & 0x3FF];
-	pointRotateSinZ = cosTable[((gamma & 0x3FF) + 0x100) & 0x3FF];
+	pointRotateSinZ = cosTable[(gamma & 0x3FF) + 0x100 & 0x3FF];
 }
 
 static void pointRotate(int x, int y, int z, int *destX, int *destY, int *destZ) {
 	if (pointRotateEnable) {
 		{
-			int tempX = x;
-			int tempY = y;
-			x = ((((tempX * pointRotateSinZ) - (tempY * pointRotateCosZ))) >> 16) << 1;
-			y = ((((tempX * pointRotateCosZ) + (tempY * pointRotateSinZ))) >> 16) << 1;
+			const int tempX = x;
+			const int tempY = y;
+			x = ((tempX * pointRotateSinZ - tempY * pointRotateCosZ) >> 16) << 1;
+			y = ((tempX * pointRotateCosZ + tempY * pointRotateSinZ) >> 16) << 1;
 		}
 
 		{
-			int tempX = x;
-			int tempZ = z;
+			const int tempX = x;
+			const int tempZ = z;
 
-			x = ((((tempX * pointRotateSinY) - (tempZ * pointRotateCosY))) >> 16) << 1;
-			z = ((((tempX * pointRotateCosY) + (tempZ * pointRotateSinY))) >> 16) << 1;
+			x = ((tempX * pointRotateSinY - tempZ * pointRotateCosY) >> 16) << 1;
+			z = ((tempX * pointRotateCosY + tempZ * pointRotateSinY) >> 16) << 1;
 		}
 
 		{
-			int tempY = y;
-			int tempZ = z;
-			y = ((((tempY * pointRotateSinX) - (tempZ * pointRotateCosX))) >> 16) << 1;
-			z = ((((tempY * pointRotateCosX) + (tempZ * pointRotateSinX))) >> 16) << 1;
+			const int tempY = y;
+			const int tempZ = z;
+			y = ((tempY * pointRotateSinX - tempZ * pointRotateCosX) >> 16) << 1;
+			z = ((tempY * pointRotateCosX + tempZ * pointRotateSinX) >> 16) << 1;
 		}
 
 		*destX = x;

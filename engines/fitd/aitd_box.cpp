@@ -28,35 +28,24 @@
 namespace Fitd {
 
 void afficheSprite(int left, int top, int index, char *gfxData) {
-	char *outPtr;
-	char *inPtr;
-
-	int width;
-	int height;
-
-	int offset;
-
-	int i;
-	int j;
-
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	outPtr = logicalScreen + top * 320 + left;
-	inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignement unsafe
+	char *outPtr = logicalScreen + top * 320 + left;
+	const char *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
 
 	inPtr += 4;
 
-	width = READ_LE_U16(inPtr); // alignement unsafe
+	const int width = READ_LE_U16(inPtr); // alignment unsafe
 	inPtr += 2;
-	height = READ_LE_U16(inPtr); // alignement unsafe
+	const int height = READ_LE_U16(inPtr); // alignment unsafe
 	inPtr += 2;
 
-	offset = 320 - width;
+	const int offset = 320 - width;
 
-	for (i = 0; i < height; i++) {
-		for (j = 0; j < width; j++) {
-			*(outPtr++) = *(inPtr++);
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			*outPtr++ = *inPtr++;
 		}
 
 		outPtr += offset;
@@ -64,37 +53,26 @@ void afficheSprite(int left, int top, int index, char *gfxData) {
 }
 
 void affSpfI(int left, int top, int index, char *gfxData) {
-	char *outPtr;
-	char *inPtr;
-
-	int width;
-	int height;
-
-	int offset;
-
-	int i;
-	int j;
-
 	if (g_engine->getGameId() >= GID_AITD3)
 		return;
 
-	outPtr = logicalScreen + top * 320 + left;
-	inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignement unsafe
+	char *outPtr = logicalScreen + top * 320 + left;
+	const char *inPtr = gfxData + READ_LE_U16(index * 2 + gfxData); // alignment unsafe
 
 	inPtr += 4;
 
-	width = READ_LE_U16(inPtr); // alignement unsafe
+	const int width = READ_LE_U16(inPtr); // alignment unsafe
 	inPtr += 2;
-	height = READ_LE_U16(inPtr); // alignement unsafe
+	const int height = READ_LE_U16(inPtr); // alignment unsafe
 	inPtr += 2;
 
-	offset = 320 - width;
+	const int offset = 320 - width;
 
-	for (i = 0; i < height; i++) {
-		for (j = 0; j < width; j++) {
-			char color = *(inPtr++);
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			const char color = *inPtr++;
 			if (color) {
-				*(outPtr) = color;
+				*outPtr = color;
 			}
 			outPtr++;
 		}
@@ -105,30 +83,22 @@ void affSpfI(int left, int top, int index, char *gfxData) {
 
 void affBigCadre(int x, int y, int width, int height) {
 	int top;
-	int right;
 	int left;
-	int bottom;
-
-	int currentLeftPosition;
-	int currentTopPosition;
-
-	int halfWidth;
-	int halfHeight;
 
 	setClip(0, 0, 319, 199);
 
-	halfWidth = width / 2;
-	currentLeftPosition = left = x - halfWidth;
+	const int halfWidth = width / 2;
+	int currentLeftPosition = left = x - halfWidth;
 
-	halfHeight = height / 2;
-	currentTopPosition = top = y - halfHeight;
+	const int halfHeight = height / 2;
+	int currentTopPosition = top = y - halfHeight;
 
-	right = x + halfWidth;
-	bottom = y + halfHeight;
+	const int right = x + halfWidth;
+	const int bottom = y + halfHeight;
 
 	afficheSprite(currentLeftPosition, currentTopPosition, 0, PtrCadre); // draw top left corner
 
-	while (1) // draw top bar
+	while (true) // draw top bar
 	{
 		currentLeftPosition += 20;
 
@@ -142,7 +112,7 @@ void affBigCadre(int x, int y, int width, int height) {
 
 	currentLeftPosition = left;
 
-	while (1) // draw left bar
+	while (true) // draw left bar
 	{
 		currentTopPosition += 20;
 
@@ -165,7 +135,7 @@ void affBigCadre(int x, int y, int width, int height) {
 
 	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
 
-	while (1) // draw bottom bar
+	while (true) // draw bottom bar
 	{
 		currentLeftPosition += 20;
 
@@ -190,34 +160,26 @@ void affBigCadre(int x, int y, int width, int height) {
 
 void affBigCadre2(int x, int y, int width, int height) {
 	int top;
-	int right;
 	int left;
-	int bottom;
-
-	int currentLeftPosition;
-	int currentTopPosition;
-
-	int halfWidth;
-	int halfHeight;
 
 	setClip(0, 0, 319, 199);
 
-	halfWidth = width / 2;
-	currentLeftPosition = left = x - halfWidth;
+	const int halfWidth = width / 2;
+	int currentLeftPosition = left = x - halfWidth;
 
-	halfHeight = height / 2;
-	currentTopPosition = top = y - halfHeight;
+	const int halfHeight = height / 2;
+	int currentTopPosition = top = y - halfHeight;
 
-	right = x + halfWidth;
-	bottom = y + halfHeight;
+	const int right = x + halfWidth;
+	const int bottom = y + halfHeight;
 
 	afficheSprite(currentLeftPosition, currentTopPosition, 0, PtrCadre); // draw top left corner
 
 	// draw top bar
-	while (1) {
+	while (true) {
 		currentLeftPosition += 30;
 
-		if ((right - 30) <= currentLeftPosition)
+		if (right - 30 <= currentLeftPosition)
 			break;
 
 		afficheSprite(currentLeftPosition, currentTopPosition, 4, PtrCadre);
@@ -229,23 +191,23 @@ void affBigCadre2(int x, int y, int width, int height) {
 	currentTopPosition += 30;
 
 	// draw left/right bars
-	while (1) {
+	while (true) {
 		afficheSprite(currentLeftPosition, currentTopPosition, 6, PtrCadre);
 		afficheSprite(right - 17, currentTopPosition, 7, PtrCadre);
 		currentTopPosition += 11;
 
-		if ((bottom - 41) <= currentTopPosition)
+		if (bottom - 41 <= currentTopPosition)
 			break;
 	}
 	currentLeftPosition = left;
 
 	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
 
-	while (1) // draw bottom bar
+	while (true) // draw bottom bar
 	{
 		currentLeftPosition += 30;
 
-		if ((right - 30) <= currentLeftPosition)
+		if (right - 30 <= currentLeftPosition)
 			break;
 
 		afficheSprite(currentLeftPosition, currentTopPosition + 13, 5, PtrCadre);

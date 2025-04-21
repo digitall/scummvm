@@ -20,8 +20,6 @@
  */
 
 #include "fitd/common.h"
-#include "fitd/aitd1.h"
-#include "fitd/aitd2.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/music.h"
@@ -98,7 +96,7 @@ typedef int (*musicDrvFunctionType)(void *ptr);
 
 typedef struct channelTable2Element {
 	uint16 index;
-	struct channelTable2Element *var2;
+	channelTable2Element *var2;
 	uint16 var4;
 	uint8 *dataPtr;
 	uint8 *commandPtr;
@@ -147,31 +145,31 @@ extern channelTable2Element channelTable2[11];
 
 channelTable2Element channelTable3[11] =
 	{
-		{0, &channelTable2[0], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{1, &channelTable2[1], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{2, &channelTable2[2], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{3, &channelTable2[3], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{4, &channelTable2[4], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{5, &channelTable2[5], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{6, &channelTable2[6], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{7, &channelTable2[7], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{8, &channelTable2[8], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{9, &channelTable2[9], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{10, &channelTable2[10], 0x8040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0}};
+		{0, &channelTable2[0], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{1, &channelTable2[1], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{2, &channelTable2[2], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{3, &channelTable2[3], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{4, &channelTable2[4], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{5, &channelTable2[5], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{6, &channelTable2[6], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{7, &channelTable2[7], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{8, &channelTable2[8], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{9, &channelTable2[9], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{10, &channelTable2[10], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0}};
 
 channelTable2Element channelTable2[11] =
 	{
-		{0, &channelTable3[0], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{1, &channelTable3[1], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{2, &channelTable3[2], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{3, &channelTable3[3], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{4, &channelTable3[4], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{5, &channelTable3[5], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{6, &channelTable3[6], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{7, &channelTable3[7], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{8, &channelTable3[8], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{9, &channelTable3[9], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{10, &channelTable3[10], 0x0040, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{0, &channelTable3[0], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{1, &channelTable3[1], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{2, &channelTable3[2], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{3, &channelTable3[3], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{4, &channelTable3[4], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{5, &channelTable3[5], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{6, &channelTable3[6], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{7, &channelTable3[7], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{8, &channelTable3[8], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{9, &channelTable3[9], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+		{10, &channelTable3[10], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
 };
 
 unsigned char regBDConf = 0xC0;
@@ -550,19 +548,19 @@ uint16 *globTable[13] =
 
 unsigned char musicParam1 = 0;
 
-uint8 *currentMusicPtr = NULL;
-uint8 *currentMusicPtr2 = NULL;
-uint8 *currentMusicPtr3 = NULL;
+uint8 *currentMusicPtr = nullptr;
+uint8 *currentMusicPtr2 = nullptr;
+uint8 *currentMusicPtr3 = nullptr;
 uint8 generalVolume = 0;
 
 static int musicUpdate(void *udata, uint8 *stream, int len);
-static void callMusicUpdate(void);
+static void callMusicUpdate();
 
 class AdLibStream : public Audio::AudioStream {
 public:
 	int readBuffer(int16 *buffer, const int numSamples) override {
 		// YM3812UpdateOne(0, buffer, numSamples);
-		musicUpdate(NULL, (uint8 *)buffer, numSamples * 2);
+		musicUpdate(nullptr, (uint8 *)buffer, numSamples * 2);
 		return numSamples;
 	}
 
@@ -587,13 +585,13 @@ static int musicUpdate(void *udata, uint8 *stream, int len) {
 		while (fillStatus < len) {
 			int timeBeforNextUpdate = nextUpdateTimer - musicTimer;
 
-			if (timeBeforNextUpdate > (len - fillStatus)) {
+			if (timeBeforNextUpdate > len - fillStatus) {
 				timeBeforNextUpdate = len - fillStatus;
 			}
 
 			if (timeBeforNextUpdate) // generate
 			{
-				YM3812UpdateOne(0, (int16 *)(stream + fillStatus), (timeBeforNextUpdate) / 2);
+				YM3812UpdateOne(0, (int16 *)(stream + fillStatus), timeBeforNextUpdate / 2);
 				fillStatus += timeBeforNextUpdate;
 				musicTimer += timeBeforNextUpdate;
 			}
@@ -624,18 +622,12 @@ void resetChannelFrequency(int channelIdx) {
 }
 
 void setupChannelFrequency(int channelIdx, int cl, int dx, int bp) {
-	uint16 *di;
-	uint16 frequency;
-	uint8 frequencyLow;
-	uint8 frequencyHigh;
-
-	uint8 blockNumber;
 
 	if (!(bp & 0x8000)) {
 		sendAdlib(0xB0 + channelIdx, 0);
 	}
 
-	di = globTable[cl & 0xF];
+	const uint16 *di = globTable[cl & 0xF];
 
 	if (bp & 0x80) {
 		// assert(0);
@@ -645,15 +637,15 @@ void setupChannelFrequency(int channelIdx, int cl, int dx, int bp) {
 		dx = 0x40;
 	}
 
-	frequency = di[bp & 0xFF];
+	const uint16 frequency = di[bp & 0xFF];
 
-	frequencyLow = frequency & 0xFF;
+	const uint8 frequencyLow = frequency & 0xFF;
 
 	sendAdlib(0xA0 + channelIdx, frequencyLow);
 
-	blockNumber = (cl & 0x70) >> 2;
+	const uint8 blockNumber = (cl & 0x70) >> 2;
 
-	frequencyHigh = ((frequency >> 8) & 0x3) | blockNumber;
+	uint8 frequencyHigh = ((frequency >> 8) & 0x3) | blockNumber;
 
 	if (!(dx & 0x40)) {
 		frequencyHigh |= 0x20; // set key on
@@ -697,14 +689,12 @@ int musicStart(void *dummy) {
 }
 
 int musicLoad(void *ptr) {
-	int i;
-	uint8 flag1;
 
 	uint8 *musicPtr = (uint8 *)ptr;
 
 	channelTable = channelTableMelodic;
 
-	flag1 = musicPtr[0x3C] & 0xC0;
+	uint8 flag1 = musicPtr[0x3C] & 0xC0;
 	musicParam1 = musicPtr[0x3D];
 
 	if (!musicParam1) {
@@ -714,15 +704,14 @@ int musicLoad(void *ptr) {
 
 	regBDConf = flag1;
 
-	for (i = 0; i < 11; i++) {
-		unsigned long int offset;
+	for (int i = 0; i < 11; i++) {
 
-		offset = READ_LE_U32(musicPtr + i * 4 + 8);
+		const unsigned long int offset = READ_LE_U32(musicPtr + i * 4 + 8);
 
 		if (offset) {
 			channelTable2[i].dataPtr = musicPtr + offset;
 		} else {
-			channelTable2[i].dataPtr = NULL;
+			channelTable2[i].dataPtr = nullptr;
 		}
 
 		channelTable2[i].var4 |= 0x40;
@@ -739,15 +728,15 @@ int initialialize(void *dummy) {
 	for (int i = 0; i < 11; i++) {
 		channelTable2[i].var4 |= 0x60;
 		channelTable2[i].var2->var4 |= 0x20;
-		channelTable2[i].dataPtr = NULL;
-		channelTable2[i].commandPtr = NULL;
-		channelTable3[i].dataPtr = NULL;
-		channelTable3[i].commandPtr = NULL;
+		channelTable2[i].dataPtr = nullptr;
+		channelTable2[i].commandPtr = nullptr;
+		channelTable3[i].dataPtr = nullptr;
+		channelTable3[i].commandPtr = nullptr;
 
 		createDefaultChannel(i);
 	}
 
-	musicStart(NULL);
+	musicStart(nullptr);
 
 	OPLinitialized = 1;
 
@@ -782,9 +771,8 @@ void command0(channelTable2Element *entry, int param, uint8 *ptr) {
 }
 
 void command1(channelTable2Element *entry, int param, uint8 *ptr) {
-	uint16 ax;
 
-	ax = READ_LE_U16(ptr - 1);
+	const uint16 ax = READ_LE_U16(ptr - 1);
 
 	entry->var10 = entry->varE = ax + entry->var13;
 
@@ -869,55 +857,53 @@ void applyDirectFrequency(int index, int param1, int param2, int param3) {
 	if (musicParam1) {
 		setupChannelFrequency(index, param1, param2, param3);
 		return;
-	} else {
-		int ah;
+	}
 
-		if (index < 6) {
-			setupChannelFrequency(index, param1, param2, param3);
-			return;
-		}
+	if (index < 6) {
+		setupChannelFrequency(index, param1, param2, param3);
+		return;
+	}
 
-		if (index == 6) {
-			setupChannelFrequency(index, param1, 0x40, param3);
-		} else if (index == 8 && !(param1 & 0x80)) {
-			int indexBackup = index;
-			int param1Backup = param1;
+	if (index == 6) {
+		setupChannelFrequency(index, param1, 0x40, param3);
+	} else if (index == 8 && !(param1 & 0x80)) {
+		const int indexBackup = index;
+		const int param1Backup = param1;
 
-			setupChannelFrequency(8, param1, 0x40, param3);
-			{
-				int al = param1 & 0x70;
+		setupChannelFrequency(8, param1, 0x40, param3);
+		{
+			int al = param1 & 0x70;
 
-				index = 7;
+			index = 7;
 
-				param1 &= 0xF;
-				param1 += 7;
+			param1 &= 0xF;
+			param1 += 7;
 
-				if (param1 >= 0xC) {
-					param1 -= 0xC;
+			if (param1 >= 0xC) {
+				param1 -= 0xC;
 
-					if (al != 0x70)
-						al += 0x10;
-				}
-
-				setupChannelFrequency(index, param1, 0x40, param3);
+				if (al != 0x70)
+					al += 0x10;
 			}
 
-			param1 = param1Backup;
-			index = indexBackup;
+			setupChannelFrequency(index, param1, 0x40, param3);
 		}
 
-		ah = (~(smallTable[index - 6])) & regBDConf;
+		param1 = param1Backup;
+		index = indexBackup;
+	}
+
+	int ah = ~smallTable[index - 6] & regBDConf;
+
+	sendAdlib(0xBD, ah);
+
+	if (!(param2 & 0x40) && !(param1 & 0x80)) {
+		ah |= smallTable[index - 6];
 
 		sendAdlib(0xBD, ah);
-
-		if (!(param2 & 0x40) && !(param1 & 0x80)) {
-			ah |= smallTable[index - 6];
-
-			sendAdlib(0xBD, ah);
-		}
-
-		regBDConf = ah;
 	}
+
+	regBDConf = ah;
 }
 
 unsigned char smallData2[] =
@@ -958,16 +944,15 @@ void configChannel(uint8 value, uint8 *data) {
 }
 
 void changeOuputLevel(uint8 value, uint8 *data, int bp) {
-	int outputLevel;
 
 	if (value == 0xFF)
 		return;
 
 	data++;
 
-	outputLevel = (*data) & 0x3F;
+	int outputLevel = *data & 0x3F;
 
-	outputLevel = 0x3F - ((((outputLevel * bp) * 2) + 0x7F) / 0xFE);
+	outputLevel = 0x3F - (outputLevel * bp * 2 + 0x7F) / 0xFE;
 
 	assert((outputLevel & 0x3F) == outputLevel);
 
@@ -988,7 +973,7 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 	if (element2->var4 & 0x40)
 		return;
 
-	if ((element->var8 & 1) || (element->var8 != (element2->var4 & 0x8000))) {
+	if (element->var8 & 1 || element->var8 != (element2->var4 & 0x8000)) {
 		element->var8 = element2->var4 & 0x8000;
 		element->var5 = 0xFF;
 		element->var4 = 0xFF;
@@ -996,8 +981,8 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 		element->var7 = 0x9C;
 	}
 
-	uint8 operator1 = channelTable[element2->index * 2];
-	uint8 operator2 = channelTable[(element2->index * 2) + 1];
+	const uint8 operator1 = channelTable[element2->index * 2];
+	const uint8 operator2 = channelTable[element2->index * 2 + 1];
 
 	if (operator1 == 0xFF && operator2 == 0xFF) // do we have an operator ?
 		return;
@@ -1006,10 +991,10 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 	{
 		element->var4 = element2->var12;
 
-		configChannel(operator1, (currentMusicPtr2 + 0xD * element2->var12) + 1);
+		configChannel(operator1, currentMusicPtr2 + 0xD * element2->var12 + 1);
 
 		if (operator2 != 0xFF) {
-			configChannel(operator2, (currentMusicPtr2 + 0xD * element2->var12) + 7);
+			configChannel(operator2, currentMusicPtr2 + 0xD * element2->var12 + 7);
 		}
 
 		element->var5 = 0xFF;
@@ -1035,7 +1020,7 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 		changeOuputLevel(operator1, currentMusicPtr2 + 0xD * element2->var12, dx);
 
 		if (operator2 != 0xFF) {
-			changeOuputLevel(operator2, (currentMusicPtr2 + 0xD * element2->var12) + 6, element->var5);
+			changeOuputLevel(operator2, currentMusicPtr2 + 0xD * element2->var12 + 6, element->var5);
 		}
 	}
 
@@ -1060,20 +1045,17 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 }
 
 int update(void *dummy) {
-	int i;
-
-	channelTable2Element *si;
 
 	if (generalVolume & 0xFF) {
 		return 0;
 	}
 
-	for (i = 0; i < 11; i++) {
+	for (int i = 0; i < 11; i++) {
 		currentMusicPtr2 = currentMusicPtr;
 
 		executeMusicCommand(&channelTable2[i]);
 
-		si = &channelTable2[i];
+		channelTable2Element *si = &channelTable2[i];
 
 		if (channelTable2[i].var4 & 4) {
 			currentMusicPtr2 = currentMusicPtr3;
@@ -1089,24 +1071,19 @@ int update(void *dummy) {
 }
 
 int musicFade(void *param) {
-	int i;
-	int cx;
-	int si;
-	int dx;
-	int bp;
 
-	cx = ((int *)param)[0];
-	si = ((int *)param)[1];
-	dx = ((int *)param)[2];
+	int cx = ((int *)param)[0];
+	int si = ((int *)param)[1];
+	const int dx = ((int *)param)[2];
 
-	bp = si;
+	int bp = si;
 
 	si = -1;
 
 	if (!bp)
 		bp = 0x7FF;
 
-	for (i = 0; i < 11; i++) {
+	for (int i = 0; i < 11; i++) {
 		//  if((bp&i))
 		{
 			if (channelTable2[i].dataPtr) {
@@ -1176,16 +1153,16 @@ musicDrvFunctionType musicDrvFunc[14] =
 		initialialize,
 		musicStart,
 		musicLoad,
-		NULL,
+		nullptr,
 		musicFade,
-		NULL,
-		NULL,
+		nullptr,
+		nullptr,
 		getSignature,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
 };
 
 int callMusicDrv(int commandArg, void *ptr) {
@@ -1196,15 +1173,15 @@ int callMusicDrv(int commandArg, void *ptr) {
 	return musicDrvFunc[commandArg](ptr);
 }
 
-int initMusicDriver(void) {
-	callMusicDrv(1, NULL);
+int initMusicDriver() {
+	callMusicDrv(1, nullptr);
 
-	return callMusicDrv(8, NULL);
+	return callMusicDrv(8, nullptr);
 }
 
 void loadMusic(int param, char *musicPtr) {
 	callMusicDrv(3, musicPtr);
-	callMusicDrv(2, NULL);
+	callMusicDrv(2, nullptr);
 }
 
 int fadeParam[3];
@@ -1254,13 +1231,13 @@ void playMusic(int musicNumber) {
 	}
 }
 
-static void callMusicUpdate(void) {
+static void callMusicUpdate() {
 	if (OPLinitialized) {
-		callMusicDrv(0, NULL);
+		callMusicDrv(0, nullptr);
 	}
 }
 
-void destroyMusicDriver(void) {
+void destroyMusicDriver() {
 	YM3812Shutdown();
 }
 

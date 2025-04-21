@@ -48,12 +48,9 @@ int numInventoryActions;
 int16 inventoryActionTable[5];
 
 int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
-	int y = WindowY1 + 1;
-	int var_6 = startIdx;
+	int y;
+	const int var_6 = startIdx;
 	int var_8 = 0;
-	int i;
-	int currentObj;
-	tWorldObject *objPtr;
 
 	if (g_engine->getGameId() <= GID_JACK) {
 		affBigCadre(160, 50, 320, 100);
@@ -69,13 +66,13 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 
 		y = 28;
 	}
-	for (i = 0; i < 5; i++) {
+	for (int i = 0; i < 5; i++) {
 		if (startIdx >= numObjInInventoryTable[currentInventory])
 			break;
 
-		currentObj = inventoryTable[currentInventory][startIdx];
+		const int currentObj = inventoryTable[currentInventory][startIdx];
 
-		objPtr = &ListWorldObjets[currentObj];
+		const tWorldObject *objPtr = &ListWorldObjets[currentObj];
 
 		if (startIdx == selectIdx) {
 			if (g_engine->getGameId() <= GID_JACK) {
@@ -105,7 +102,7 @@ int DrawListObjets(int startIdx, int selectIdx, int selectColor) {
 		affSpfI(298, 74, 9, PtrCadre);
 	}
 
-	return (var_8);
+	return var_8;
 }
 
 void renderInventoryObject(int arg) {
@@ -121,7 +118,7 @@ void renderInventoryObject(int arg) {
 		Common::String buffer;
 		extSetFont(PtrFont, 4);
 		buffer = Common::String::format("%d", vars[arg]);
-		renderText(statusLeft + 4, statusTop + 4, logicalScreen, buffer.c_str());
+		renderText(statusLeft + 4, statusTop + 4, buffer.c_str());
 	}
 	switch (g_engine->getGameId()) {
 	case GID_AITD2:
@@ -138,7 +135,7 @@ void drawInventoryActions(int arg) {
 
 	if (g_engine->getGameId() <= GID_JACK) {
 		affBigCadre(240, 150, 160, 100);
-		y = 150 - ((numInventoryActions << 4) / 2);
+		y = 150 - (numInventoryActions << 4) / 2;
 	} else {
 		setClip(162, 100, 292, 174);
 		fillBox(162, 100, 292, 174, 0);
@@ -148,7 +145,7 @@ void drawInventoryActions(int arg) {
 		WindowX2 = 288;
 		WindowY2 = 170;
 
-		y = 139 - ((numInventoryActions * fontHeight) / 2);
+		y = 139 - numInventoryActions * fontHeight / 2;
 	}
 
 	for (int i = 0; i < numInventoryActions; i++) {
@@ -175,29 +172,22 @@ void drawInventoryActions(int arg) {
 	}
 }
 
-void processInventory(void) {
+void processInventory() {
 	int exitMenu = 0;
 	int choice = 0;
 	int firstTime = 1;
 	unsigned int chrono;
-	int lastSelectedObjectIdx;
 	int selectedWorldObjectIdx = 0;
-	int selectedObjectIdx;
 	int selectedActions = 0;
-	int firstObjectDisplayedIdx;
-	int antiBounce;
-	int modeSelect;
-	int var_C;
-	int numActionForObject;
 
 	if (!numObjInInventoryTable[currentInventory])
 		return;
 
-	firstObjectDisplayedIdx = 0;
-	lastSelectedObjectIdx = -1;
-	selectedObjectIdx = 0;
-	modeSelect = 0;
-	antiBounce = 2;
+	int firstObjectDisplayedIdx = 0;
+	int lastSelectedObjectIdx = -1;
+	int selectedObjectIdx = 0;
+	int modeSelect = 0;
+	int antiBounce = 2;
 
 	statusVar1 = 0;
 
@@ -218,7 +208,7 @@ void processInventory(void) {
 		statusRight = WindowX2;
 		statusBottom = WindowY2;
 
-		setupCameraProjection(((statusRight - statusLeft) / 2) + statusLeft, ((statusBottom - statusTop) / 2) + statusTop, 128, 400, 390);
+		setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
 
 		break;
 	case GID_AITD2:
@@ -255,7 +245,7 @@ void processInventory(void) {
 
 		if (modeSelect == 0) {
 			if (antiBounce < 1) {
-				if ((localKey == 0x1C) || (localClick != 0) || (localJoyD == 0xC)) {
+				if (localKey == 0x1C || localClick != 0 || localJoyD == 0xC) {
 					DrawListObjets(firstObjectDisplayedIdx, selectedObjectIdx, 14);
 					gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 					modeSelect = 1;
@@ -263,28 +253,27 @@ void processInventory(void) {
 					selectedActions = 0;
 					antiBounce = 2;
 					continue;
-				} else {
-					if (localJoyD & 1 && selectedObjectIdx > 0) {
-						selectedObjectIdx--;
-					}
+				}
+				if (localJoyD & 1 && selectedObjectIdx > 0) {
+					selectedObjectIdx--;
+				}
 
-					if (localJoyD & 2 && selectedObjectIdx < (numObjInInventoryTable[currentInventory] - 1)) {
-						selectedObjectIdx++;
-					}
+				if (localJoyD & 2 && selectedObjectIdx < numObjInInventoryTable[currentInventory] - 1) {
+					selectedObjectIdx++;
+				}
 
-					if (firstObjectDisplayedIdx + 5 <= selectedObjectIdx) {
-						firstObjectDisplayedIdx++;
-					}
+				if (firstObjectDisplayedIdx + 5 <= selectedObjectIdx) {
+					firstObjectDisplayedIdx++;
+				}
 
-					if (selectedObjectIdx < firstObjectDisplayedIdx) {
-						firstObjectDisplayedIdx--;
-					}
+				if (selectedObjectIdx < firstObjectDisplayedIdx) {
+					firstObjectDisplayedIdx--;
+				}
 
-					if (localKey || localJoyD || localClick) {
-						if (antiBounce == 0) {
-							antiBounce = 1;
-							startChrono(&chrono);
-						}
+				if (localKey || localJoyD || localClick) {
+					if (antiBounce == 0) {
+						antiBounce = 1;
+						startChrono(&chrono);
 					}
 				}
 			} else {
@@ -302,13 +291,13 @@ void processInventory(void) {
 
 				currentFoundBody = HQR_Get(listBody, currentFoundBodyIdx);
 
-				var_C = ListWorldObjets[selectedWorldObjectIdx].flags2;
+				const int var_C = ListWorldObjets[selectedWorldObjectIdx].flags2;
 
 				numInventoryActions = 0;
-				numActionForObject = 0;
+				int numActionForObject = 0;
 
 				while (numActionForObject < 11) {
-					if (var_C & (1 << numActionForObject)) {
+					if (var_C & 1 << numActionForObject) {
 						if (numInventoryActions < 5) {
 							inventoryActionTable[numInventoryActions++] = numActionForObject + 23;
 						}
@@ -343,7 +332,7 @@ void processInventory(void) {
 					selectedActions--;
 				}
 
-				if (localJoyD & 2 && selectedActions < (numInventoryActions - 1)) {
+				if (localJoyD & 2 && selectedActions < numInventoryActions - 1) {
 					selectedActions++;
 				}
 

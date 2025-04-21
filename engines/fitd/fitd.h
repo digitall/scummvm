@@ -22,8 +22,8 @@
 #ifndef FITD_H
 #define FITD_H
 
-#include "common/scummsys.h"
 #include "common/random.h"
+#include "common/scummsys.h"
 #include "engines/engine.h"
 #include "fitd/detection.h"
 
@@ -39,9 +39,11 @@ class FitdEngine : public Engine {
 private:
 	const FitdGameDescription *_gameDescription;
 	Common::RandomSource _randomSource;
+
 protected:
 	// Engine APIs
 	Common::Error run() override;
+
 public:
 	Graphics::Screen *_screen = nullptr;
 	FitdEngine(OSystem *syst, const FitdGameDescription *gameDesc);
@@ -50,14 +52,14 @@ public:
 	FitdGameId getGameId() const;
 	uint32 getRandomNumber(uint maxNum);
 
-	bool hasFeature(EngineFeature f) const override final;
+	bool hasFeature(EngineFeature f) const final;
 
-	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override final;
-	bool canSaveGameStateCurrently(Common::U32String *msg = nullptr) override final;
+	bool canLoadGameStateCurrently(Common::U32String *msg) final;
+	bool canSaveGameStateCurrently(Common::U32String *msg) final;
 
 private:
-	Common::Error loadGameStream(Common::SeekableReadStream *stream) override final;
-	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave = false) override final;
+	Common::Error loadGameStream(Common::SeekableReadStream *stream) final;
+	Common::Error saveGameStream(Common::WriteStream *stream, bool isAutosave) final;
 };
 
 extern FitdEngine *g_engine;

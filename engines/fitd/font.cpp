@@ -28,15 +28,12 @@ namespace Fitd {
 textEntryStruct *tabTextes;
 int fontHeight = 16;
 
-char *fontVar1 = NULL;
+char *fontVar1 = nullptr;
 int16 fontSm1 = 0;
 int16 fontSm2 = 0x1234;
-char *fontVar4 = NULL;
-extern char *fontVar4;
-char *fontVar5 = NULL;
-extern char *fontVar5;
+char *fontVar4 = nullptr;
+char *fontVar5 = nullptr;
 int16 currentFontColor = 0;
-extern int16 currentFontColor;
 int16 g_fontInterWordSpace = 2;
 int16 g_fontInterLetterSpace = 1;
 int16 fontSm3 = 18;
@@ -48,16 +45,14 @@ int16 fontSm9 = 0x80;
 byte flagTable[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 void extSetFont(char *fontData, int color) {
-	int16 tempDx;
-	int16 tempAxFlip;
 
 	fontVar1 = fontData; // fontPtr
 
-	tempDx = READ_LE_S16(fontData); // alignement
+	const int16 tempDx = READ_LE_S16(fontData); // alignment
 	fontData += 2;
 
-	fontSm1 = *(fontData++);         // character height
-	fontSm2 = *(byte *)(fontData++); // character size
+	fontSm1 = *fontData++;         // character height
+	fontSm2 = *(byte *)fontData++; // character size
 
 	if (!fontSm2) {
 		fontSm2 = READ_LE_S16(fontData);
@@ -65,10 +60,10 @@ void extSetFont(char *fontData, int color) {
 
 	fontData += 2;
 
-	tempAxFlip = READ_LE_S16(fontData);
+	int16 tempAxFlip = READ_LE_S16(fontData);
 	fontData += 2;
 
-	tempAxFlip = ((tempAxFlip & 0xFF) << 8) | ((tempAxFlip & 0xFF00) >> 8);
+	tempAxFlip = (tempAxFlip & 0xFF) << 8 | (tempAxFlip & 0xFF00) >> 8;
 
 	fontVar4 = fontData;
 
@@ -88,12 +83,10 @@ int extGetSizeFont(char *string) {
 	int width = 0;
 	byte character;
 
-	while ((character = *(string++))) {
-		char *dataPtr;
-		uint16 data;
+	while ((character = *string++)) {
 
-		dataPtr = fontVar5 + character * 2;
-		data = READ_LE_S16(dataPtr);
+		const char *dataPtr = fontVar5 + character * 2;
+		uint16 data = READ_LE_S16(dataPtr);
 
 		data >>= 4;
 
@@ -107,46 +100,40 @@ int extGetSizeFont(char *string) {
 		width += data;
 	}
 
-	return (width);
+	return width;
 }
 
-void renderText(int x, int y, char *surface, const char *string) {
+void renderText(int x, int y, const char *string) {
 	byte character;
 
 	fontVar6 = x;
 	fontSm7 = y;
 
-	while ((character = *(string++))) {
-		char *dataPtr;
-		uint16 data;
-		uint16 dx;
+	while ((character = *string++)) {
 
-		dataPtr = fontVar5 + character * 2;
-		data = READ_LE_U16(dataPtr);
+		const char *dataPtr = fontVar5 + character * 2;
+		uint16 data = READ_LE_U16(dataPtr);
 
-		data = ((data & 0xFF) << 8) | ((data & 0xFF00) >> 8);
+		data = (data & 0xFF) << 8 | (data & 0xFF00) >> 8;
 
-		dx = data;
+		uint16 dx = data;
 
 		data >>= 12;
 
 		if (data & 0xF) // real character (width != 0)
 		{
-			char *characterPtr;
-			int bp;
-			int ch;
 
 			dx &= 0xFFF;
 
-			characterPtr = (dx >> 3) + fontVar4;
+			const char *characterPtr = (dx >> 3) + fontVar4;
 
 			fontSm9 = flagTable[dx & 7];
 
-			bp = fontSm7;
+			int bp = fontSm7;
 
 			fontSm8 = fontVar6;
 
-			for (ch = fontSm1; ch > 0; ch--) {
+			for (int ch = fontSm1; ch > 0; ch--) {
 				if (bp >= 200)
 					return;
 				char *outPtr = logicalScreen + bp * 320 + fontSm8;
@@ -156,13 +143,11 @@ void renderText(int x, int y, char *surface, const char *string) {
 
 				int al = *characterPtr;
 
-				int bx;
-
 				bp++;
 
-				for (bx = 0; cl > 0; cl--) {
+				for (int bx = 0; cl > 0; cl--) {
 					if (dh & al) {
-						*(outPtr) = (char)fontSm3;
+						*outPtr = (char)fontSm3;
 					}
 
 					outPtr++;
@@ -189,49 +174,46 @@ void renderText(int x, int y, char *surface, const char *string) {
 }
 
 textEntryStruct *getTextFromIdx(int index) {
-	int currentIndex;
 
-	for (currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
+	for (int currentIndex = 0; currentIndex < NUM_MAX_TEXT_ENTRY; currentIndex++) {
 		if (tabTextes[currentIndex].index == index) {
-			return (&tabTextes[currentIndex]);
+			return &tabTextes[currentIndex];
 		}
 	}
 
-	return (NULL);
+	return nullptr;
 }
 
 void selectedMessage(int x, int y, int index, int color1, int color2) {
-	textEntryStruct *entryPtr;
-	char *textPtr;
 
-	entryPtr = getTextFromIdx(index);
+	const textEntryStruct *entryPtr = getTextFromIdx(index);
 
 	if (!entryPtr)
 		return;
 
-	x -= (entryPtr->width / 2); // center
+	x -= entryPtr->width / 2; // center
 
-	textPtr = entryPtr->textPtr;
+	const char *textPtr = entryPtr->textPtr;
 
 	extSetFont(PtrFont, color2);
-	renderText(x, y + 1, logicalScreen, textPtr);
+	renderText(x, y + 1, textPtr);
 
 	extSetFont(PtrFont, color1);
-	renderText(x, y, logicalScreen, textPtr);
+	renderText(x, y, textPtr);
 }
 
 void simpleMessage(int x, int y, int index, int color) {
-	textEntryStruct *entryPtr = getTextFromIdx(index);
+	const textEntryStruct *entryPtr = getTextFromIdx(index);
 
 	if (!entryPtr)
 		return;
 
-	x -= (entryPtr->width / 2); // center
+	x -= entryPtr->width / 2; // center
 
-	char *textPtr = entryPtr->textPtr;
+	const char *textPtr = entryPtr->textPtr;
 
 	extSetFont(PtrFont, color);
 
-	renderText(x, y + 1, logicalScreen, textPtr);
+	renderText(x, y + 1, textPtr);
 }
 } // namespace Fitd

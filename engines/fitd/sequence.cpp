@@ -19,27 +19,20 @@
  *
  */
 
-#include "fitd/common.h"
 #include "fitd/fitd.h"
-#include "fitd/gfx.h"
-#include "fitd/pak.h"
 #include "fitd/sequence.h"
-#include "fitd/tatou.h"
-#include "fitd/vars.h"
 
 namespace Fitd {
 
 void convertPaletteIfRequired(unsigned char *lpalette) {
 	if (g_engine->getGameId() >= GID_JACK && g_engine->getGameId() < GID_AITD3) {
-		int i;
 		unsigned char *ptr2 = lpalette;
-		for (i = 0; i < 256; i++) {
-			int j;
-			for (j = 0; j < 3; j++) {
-				unsigned int composante = *(ptr2);
+		for (int i = 0; i < 256; i++) {
+			for (int j = 0; j < 3; j++) {
+				unsigned int composante = *ptr2;
 				composante *= 255;
 				composante /= 63;
-				*(ptr2++) = composante & 0xFF;
+				*ptr2++ = composante & 0xFF;
 			}
 		}
 	}

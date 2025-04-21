@@ -28,17 +28,15 @@
 #include "audio/decoders/raw.h"
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
-#include "common/events.h"
 #include "common/memstream.h"
-#include "graphics/framelimiter.h"
 
 namespace Fitd {
 
 static void computePalette(byte *inPalette, byte *outPalette, int coef) {
 	for (int i = 0; i < 256; i++) {
-		*(outPalette++) = ((*(inPalette++)) * coef) >> 8;
-		*(outPalette++) = ((*(inPalette++)) * coef) >> 8;
-		*(outPalette++) = ((*(inPalette++)) * coef) >> 8;
+		*outPalette++ = (*inPalette++ * coef) >> 8;
+		*outPalette++ = (*inPalette++ * coef) >> 8;
+		*outPalette++ = (*inPalette++ * coef) >> 8;
 	}
 }
 
@@ -92,8 +90,7 @@ void playSound(int num) {
 }
 
 void makeBlackPalette() {
-	byte pal[256 * 3];
-	memset(pal, 0, 256 * 3);
+	byte pal[256 * 3] = {};
 	gfx_setPalette(pal);
 }
 
@@ -128,7 +125,7 @@ void startChrono(unsigned int *chrono) {
 }
 
 int evalChrono(unsigned int *chrono) {
-	return (timer - *chrono);
+	return timer - *chrono;
 }
 
 } // namespace Fitd

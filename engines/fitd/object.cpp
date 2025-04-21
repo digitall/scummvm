@@ -22,7 +22,6 @@
 #include "fitd/object.h"
 #include "common/debug.h"
 #include "fitd/anim.h"
-#include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
@@ -35,10 +34,8 @@ namespace Fitd {
 
 int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animtype, int animInfo) {
 	int i;
-	int j;
 	tObject *actorPtr = objectTable;
-	char *bodyPtr = NULL;
-	ZVStruct *zvPtr;
+	char *bodyPtr = nullptr;
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (actorPtr->indexInWorld == -1)
@@ -89,7 +86,7 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->stepY = 0;
 	actorPtr->stepZ = 0;
 
-	for (j = 0; j < 3; j++) {
+	for (int j = 0; j < 3; j++) {
 		actorPtr->COL[j] = -1;
 	}
 
@@ -161,7 +158,7 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	startChrono(&actorPtr->ROOM_CHRONO);
 	startChrono(&actorPtr->CHRONO);
 
-	zvPtr = &actorPtr->zv;
+	ZVStruct *zvPtr = &actorPtr->zv;
 
 	switch (typeZv) {
 	case 0: {
@@ -201,7 +198,7 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 		bool bFound = false;
 
 		for (uint hardColIdx = 0; hardColIdx < roomDataTable[room].numHardCol; hardColIdx++) {
-			if ((roomDataTable[room].hardColTable[hardColIdx].type == 9) && (roomDataTable[room].hardColTable[hardColIdx].parameter == (uint32)hardZvIdx)) {
+			if (roomDataTable[room].hardColTable[hardColIdx].type == 9 && roomDataTable[room].hardColTable[hardColIdx].parameter == (uint32)hardZvIdx) {
 				copyZv(&roomDataTable[room].hardColTable[hardColIdx].zv, zvPtr);
 
 				x = 0;
@@ -233,7 +230,6 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 		debug("Unsupported ZV type in copyObjectToActor\n");
 		debug("var1: %d\n", typeZv);
 		assert(0);
-		break;
 	}
 	}
 
@@ -246,6 +242,6 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	zvPtr->ZVZ1 += z;
 	zvPtr->ZVZ2 += z;
 
-	return (i);
+	return i;
 }
 } // namespace Fitd

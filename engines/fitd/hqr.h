@@ -19,6 +19,9 @@
  *
  */
 
+#ifndef HQR_H
+#define HQR_H
+
 #include "common/str.h"
 
 namespace Fitd {
@@ -55,3 +58,5 @@ struct sAnimation;
 sAnimation *getAnimationFromPtr(void *ptr);
 
 } // namespace Fitd
+
+#endif

@@ -27,7 +27,7 @@ struct Surface;
 }
 
 namespace Fitd {
-void processSystemMenu(void);
+void processSystemMenu();
 extern Graphics::Surface *savedSurface;
 } // namespace Fitd
 

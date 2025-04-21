@@ -22,8 +22,6 @@
 #ifndef FITD_TINYGLRENDERER_H
 #define FITD_TINYGLRENDERER_H
 
-#include "common/scummsys.h"
-
 namespace Graphics {
 struct Surface;
 }

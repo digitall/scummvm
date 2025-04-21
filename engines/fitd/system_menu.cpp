@@ -26,13 +26,11 @@
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/pak.h"
-#include "fitd/save.h"
 #include "fitd/sequence.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "audio/mixer.h"
-#include "graphics/scaler.h"
 #include "graphics/screen.h"
 
 #define NB_OPTIONS 7
@@ -43,10 +41,10 @@
 namespace Fitd {
 
 int input5;
-Graphics::Surface *savedSurface = NULL;
+Graphics::Surface *savedSurface = nullptr;
 
 void AffOption(int n, int num, int selected) {
-	int y = WindowY1 + ((WindowY2 - WindowY1) / 2) - (NB_OPTIONS * SIZE_FONT) / 2 + (n * SIZE_FONT);
+	int y = WindowY1 + (WindowY2 - WindowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
 
 	if (n == selected) {
 		selectedMessage(160, y, num, SELECT_COUL, MENU_COUL);
@@ -55,7 +53,7 @@ void AffOption(int n, int num, int selected) {
 	}
 }
 
-static void scaleDownImage(char *src) {
+static void scaleDownImage(const char *src) {
 	const int srcWidth = 320;
 	const int srcHeight = 200;
 	const int srcPitch = srcWidth;
@@ -71,13 +69,13 @@ static void scaleDownImage(char *src) {
 	for (int i = y; i < y + dstHeight; i++) {
 		char *out = logicalScreen + x + i * srcWidth;
 		for (int j = x; j < x + dstWidth; j++) {
-			*(out++) = *(in++);
+			*out++ = *in++;
 		}
 	}
 }
 
 void aitd2AffOption(int n, int num, int selected) {
-	int y = 34 + (n * fontHeight);
+	int y = 34 + n * fontHeight;
 	if (n == selected) {
 		selectedMessage(160, y, num, 1, MENU_COUL);
 	} else {
@@ -139,10 +137,9 @@ void AffOptionList(int selectedStringNumber) {
 
 }
 
-void processSystemMenu(void) {
+void processSystemMenu() {
 	// int entry = -1;
 	int exitMenu = 0;
-	int currentSelectedEntry;
 
 	freezeTime();
 	savedSurface = gfx_capture();
@@ -154,9 +151,9 @@ void processSystemMenu(void) {
 
 	// clearScreenSystemMenu(unkScreenVar,aux2);
 
-	currentSelectedEntry = 0;
+	int currentSelectedEntry = 0;
 
-	while (!exitMenu && !g_engine->shouldQuit()) {
+	while (!exitMenu && !Engine::shouldQuit()) {
 		AffOptionList(currentSelectedEntry);
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
@@ -205,7 +202,7 @@ void processSystemMenu(void) {
 						detailToggle = detailToggle ? 0 : 1;
 						break;
 					case 6: // quit
-						g_engine->quitGame();
+						Engine::quitGame();
 						break;
 					}
 				} else {
@@ -238,11 +235,11 @@ void processSystemMenu(void) {
 			}
 		}
 
-		osystem_flip(NULL);
+		osystem_flip(nullptr);
 	}
 
 	// fadeOut(32,2);
-	while ((key || JoyD || Click) && !g_engine->shouldQuit()) {
+	while ((key || JoyD || Click) && !Engine::shouldQuit()) {
 		process_events();
 	}
 	localKey = localClick = localJoyD = 0;

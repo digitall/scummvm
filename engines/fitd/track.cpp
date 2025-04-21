@@ -25,7 +25,6 @@
 #include "fitd/room.h"
 #include "fitd/track.h"
 #include "fitd/vars.h"
-#include "common/debug.h"
 
 namespace Fitd {
 #define TL_INIT_COOR 0
@@ -51,7 +50,7 @@ namespace Fitd {
 #define TL_CLOSE 20
 
 int makeProportional(int x1, int x2, int y1, int y2) {
-	return x1 + ((x2 - x1) * y2) / y1;
+	return x1 + (x2 - x1) * y2 / y1;
 }
 
 int computeAngleModificatorToPositionSub1(int ax) {
@@ -66,31 +65,27 @@ int computeAngleModificatorToPositionSub1(int ax) {
 	yOut -= xOut;
 
 	if (yOut == 0)
-		return (0);
+		return 0;
 
 	if (yOut > 0)
-		return (1);
-	else
-		return (-1);
+		return 1;
+	return -1;
 }
 
 int computeAngleModificatorToPosition(int x1, int z1, int beta, int x2, int z2) {
-	int resultMin;
-	int resultMax;
 
 	angleCompX = x2 - x1;
 	angleCompZ = z2 - z1;
 	angleCompBeta = beta;
 
-	resultMin = computeAngleModificatorToPositionSub1(beta - 4);
-	resultMax = computeAngleModificatorToPositionSub1(beta + 4);
+	const int resultMin = computeAngleModificatorToPositionSub1(beta - 4);
+	const int resultMax = computeAngleModificatorToPositionSub1(beta + 4);
 
 	if (resultMax == -1 && resultMin == 1) // in the middle
 	{
-		return (computeAngleModificatorToPositionSub1(beta));
-	} else {
-		return (((resultMax + resultMin) + 1) >> 1);
+		return computeAngleModificatorToPositionSub1(beta);
 	}
+	return (resultMax + resultMin + 1) >> 1;
 }
 
 void gereManualRot(int param) {
@@ -102,7 +97,7 @@ void gereManualRot(int param) {
 		currentProcessedActorPtr->direction = 1;
 
 		if (currentProcessedActorPtr->rotate.param == 0) {
-			int oldBeta = currentProcessedActorPtr->beta;
+			const int oldBeta = currentProcessedActorPtr->beta;
 
 			if (currentProcessedActorPtr->speed == 0) {
 				initRealValue(oldBeta, oldBeta + 0x100, param / 2, &currentProcessedActorPtr->rotate);
@@ -121,7 +116,7 @@ void gereManualRot(int param) {
 		currentProcessedActorPtr->direction = -1;
 
 		if (currentProcessedActorPtr->rotate.param == 0) {
-			int oldBeta = currentProcessedActorPtr->beta;
+			const int oldBeta = currentProcessedActorPtr->beta;
 
 			if (currentProcessedActorPtr->speed == 0) {
 				initRealValue(oldBeta, oldBeta - 0x100, param / 2, &currentProcessedActorPtr->rotate);
@@ -143,18 +138,15 @@ void gereManualRot(int param) {
 unsigned int lastTimeForward = 0;
 
 char *getRoomLink(unsigned int room1, unsigned int room2) {
-	int i;
-	int16 numOfZones;
 	char *zoneData = (char *)getRoomData(room1);
-	char *bestZone;
 
-	zoneData += *(int16 *)(zoneData);
-	numOfZones = *(int16 *)zoneData;
+	zoneData += *(int16 *)zoneData;
+	const int16 numOfZones = *(int16 *)zoneData;
 	zoneData += 2;
 
-	bestZone = zoneData;
+	char *bestZone = zoneData;
 
-	for (i = 0; i < numOfZones; i++) {
+	for (int i = 0; i < numOfZones; i++) {
 		if (*(int16 *)(zoneData + 14) == 4) {
 			bestZone = zoneData;
 
@@ -169,7 +161,7 @@ char *getRoomLink(unsigned int room1, unsigned int room2) {
 	return bestZone;
 }
 
-void processTrack(void) {
+void processTrack() {
 	switch (currentProcessedActorPtr->trackMode) {
 	case 1: // manual
 	{
@@ -190,7 +182,7 @@ void processTrack(void) {
 
 			lastTimeForward = timer;
 		} else {
-			if ((currentProcessedActorPtr->speed > 0) && (currentProcessedActorPtr->speed <= 4)) {
+			if (currentProcessedActorPtr->speed > 0 && currentProcessedActorPtr->speed <= 4) {
 				currentProcessedActorPtr->speed--;
 			} else {
 				currentProcessedActorPtr->speed = 0;
@@ -210,31 +202,30 @@ void processTrack(void) {
 	}
 	case 2: // follow
 	{
-		int followedActorIdx = ListWorldObjets[currentProcessedActorPtr->trackNumber].objIndex;
+		const int followedActorIdx = ListWorldObjets[currentProcessedActorPtr->trackNumber].objIndex;
 
 		if (followedActorIdx == -1) {
 			currentProcessedActorPtr->direction = 0;
 			currentProcessedActorPtr->speed = 0;
 		} else {
-			tObject *followedActorPtr = &objectTable[followedActorIdx];
+			const tObject *followedActorPtr = &objectTable[followedActorIdx];
 
-			int roomNumber = followedActorPtr->room;
+			const int roomNumber = followedActorPtr->room;
 			int x = followedActorPtr->roomX;
 			// int y = followedActorPtr->roomY;
 			int z = followedActorPtr->roomZ;
-			int angleModif;
 
 			if (currentProcessedActorPtr->room != roomNumber) {
 				char *link = getRoomLink(currentProcessedActorPtr->room, roomNumber);
 
-				x = *(int16 *)(link) + (((*(int16 *)(link + 2)) - (*(int16 *)(link))) / 2);
+				x = *(int16 *)link + (*(int16 *)(link + 2) - *(int16 *)link) / 2;
 				// y = *(int16 *)(link + 4) + (((*(int16 *)(link + 6)) - (*(int16 *)(link + 4))) / 2);
-				z = *(int16 *)(link + 8) + (((*(int16 *)(link + 10)) - (*(int16 *)(link + 8))) / 2);
+				z = *(int16 *)(link + 8) + (*(int16 *)(link + 10) - *(int16 *)(link + 8)) / 2;
 			}
 
-			angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-														   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-														   currentProcessedActorPtr->beta, x, z);
+			const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+															   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+															   currentProcessedActorPtr->beta, x, z);
 
 			if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
 				initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
@@ -255,11 +246,10 @@ void processTrack(void) {
 	case 3: // track
 	{
 		char *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
-		int16 trackMacro;
 
 		trackPtr += currentProcessedActorPtr->positionInTrack * 2;
 
-		trackMacro = *(int16 *)trackPtr;
+		const int16 trackMacro = *(int16 *)trackPtr;
 		trackPtr += 2;
 
 		// printf("Track macro %X\n",trackMacro);
@@ -267,7 +257,7 @@ void processTrack(void) {
 		switch (trackMacro) {
 		case TL_INIT_COOR: // warp
 		{
-			int roomNumber = *(int16 *)(trackPtr);
+			const int roomNumber = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			if (currentProcessedActorPtr->room != roomNumber) {
@@ -286,11 +276,11 @@ void processTrack(void) {
 			currentProcessedActorPtr->zv.ZVZ1 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
 			currentProcessedActorPtr->zv.ZVZ2 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			currentProcessedActorPtr->worldX -= (int16)((roomDataTable[currentRoom].worldX - roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
@@ -313,16 +303,13 @@ void processTrack(void) {
 		}
 		case TL_GOTO: // goToPosition
 		{
-			int roomNumber = *(int16 *)(trackPtr);
-			int x;
-			int z;
-			unsigned int distanceToPoint;
+			const int roomNumber = *(int16 *)trackPtr;
 
 			trackPtr += 2;
 
-			x = *(int16 *)(trackPtr);
+			int x = *(int16 *)trackPtr;
 			trackPtr += 2;
-			z = *(int16 *)(trackPtr);
+			int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			if (roomNumber != currentProcessedActorPtr->room) {
@@ -331,19 +318,19 @@ void processTrack(void) {
 				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
 			}
 
-			distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-													 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-													 x, z);
+			const unsigned int distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+																  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+																  x, z);
 
 			if (distanceToPoint >= DISTANCE_TO_POINT_TRESSHOLD) // not yet at position
 			{
-				int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
 																   currentProcessedActorPtr->beta,
 																   x, z);
 
-				if ((currentProcessedActorPtr->rotate.param == 0) || (currentProcessedActorPtr->direction != angleModif)) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif * 64), 15, &currentProcessedActorPtr->rotate);
+				if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - angleModif * 64, 15, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -362,20 +349,17 @@ void processTrack(void) {
 		}
 		case TL_GOTO_3D: // goToPosition
 		{
-			int roomNumber = *(int16 *)(trackPtr);
-			int x;
-			int y;
-			int z;
+			const int roomNumber = *(int16 *)trackPtr;
 
 			trackPtr += 2;
 
-			x = *(int16 *)(trackPtr);
+			int x = *(int16 *)trackPtr;
 			trackPtr += 2;
-			y = *(int16 *)(trackPtr);
+			int y = *(int16 *)trackPtr;
 			trackPtr += 2;
-			z = *(int16 *)(trackPtr);
+			int z = *(int16 *)trackPtr;
 			trackPtr += 2;
-			int time = *(int16 *)(trackPtr);
+			const int time = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			if (roomNumber != currentProcessedActorPtr->room) {
@@ -386,10 +370,10 @@ void processTrack(void) {
 			}
 
 			// reached position?
-			if ((y == currentProcessedActorPtr->roomY) && (computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX, currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ, x, z) < DISTANCE_TO_POINT_TRESSHOLD)) {
+			if (y == currentProcessedActorPtr->roomY && computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX, currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ, x, z) < DISTANCE_TO_POINT_TRESSHOLD) {
 				currentProcessedActorPtr->positionInTrack += 6;
 			} else {
-				int angleModif = computeAngleModificatorToPosition(
+				const int angleModif = computeAngleModificatorToPosition(
 					currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 					currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
 					currentProcessedActorPtr->beta,
@@ -399,8 +383,8 @@ void processTrack(void) {
 					initRealValue(0, y - (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY), time, &currentProcessedActorPtr->YHandler);
 				}
 
-				if ((currentProcessedActorPtr->rotate.param == 0) || (currentProcessedActorPtr->direction != angleModif)) {
-					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif * 256), 60, &currentProcessedActorPtr->rotate);
+				if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
+					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - angleModif * 256, 60, &currentProcessedActorPtr->rotate);
 				}
 
 				currentProcessedActorPtr->direction = angleModif;
@@ -427,7 +411,7 @@ void processTrack(void) {
 		}
 		case TL_MARK: // MARK
 		{
-			currentProcessedActorPtr->MARK = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->MARK = *(int16 *)trackPtr;
 			trackPtr += 2;
 			currentProcessedActorPtr->positionInTrack += 2;
 			break;
@@ -449,10 +433,10 @@ void processTrack(void) {
 		}
 		case TL_SET_ANGLE: // TL_SET_ANGLE
 		{
-			int betaDif = *(int16 *)(trackPtr);
+			const int betaDif = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (((currentProcessedActorPtr->beta - betaDif) & 1023) > 512) {
+			if ((currentProcessedActorPtr->beta - betaDif & 1023) > 512) {
 				currentProcessedActorPtr->direction = 1; // left
 			} else {
 				currentProcessedActorPtr->direction = -1; // right
@@ -495,7 +479,7 @@ void processTrack(void) {
 			break;
 		}
 		case TL_MEMO_COOR: {
-			int objNum = currentProcessedActorPtr->indexInWorld;
+			const int objNum = currentProcessedActorPtr->indexInWorld;
 
 			ListWorldObjets[objNum].x = currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX;
 			ListWorldObjets[objNum].y = currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY;
@@ -507,38 +491,32 @@ void processTrack(void) {
 		}
 		case TL_GOTO_3DX: // walk up/down stairs on X
 		{
-			int x;
-			int y;
-			int z;
-			int objX;
-			int objY;
 
-			x = *(int16 *)(trackPtr);
+			const int x = *(int16 *)trackPtr;
 			trackPtr += 2;
-			y = *(int16 *)(trackPtr);
+			const int y = *(int16 *)trackPtr;
 			trackPtr += 2;
-			z = *(int16 *)(trackPtr);
+			const int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			objX = ListWorldObjets[currentProcessedActorPtr->indexInWorld].x;
-			objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
+			const int objX = ListWorldObjets[currentProcessedActorPtr->indexInWorld].x;
+			const int objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
 			// objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
 
 			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
-				int propX = makeProportional(objY, y, x - objX, (currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX) - objX);
+				const int propX = makeProportional(objY, y, x - objX, currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX - objX);
 
-				int difY = propX - currentProcessedActorPtr->worldY;
-				int angleModif;
+				const int difY = propX - currentProcessedActorPtr->worldY;
 
 				currentProcessedActorPtr->worldY += difY;
 				currentProcessedActorPtr->roomY += difY;
 				currentProcessedActorPtr->zv.ZVY1 += difY;
 				currentProcessedActorPtr->zv.ZVY2 += difY;
 
-				angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-															   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-															   currentProcessedActorPtr->beta,
-															   x, z);
+				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+																   currentProcessedActorPtr->beta,
+																   x, z);
 
 				if (!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->direction != angleModif) {
 					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
@@ -553,7 +531,7 @@ void processTrack(void) {
 				}
 
 			} else {
-				int difY = y - currentProcessedActorPtr->worldY;
+				const int difY = y - currentProcessedActorPtr->worldY;
 
 				currentProcessedActorPtr->stepY = 0;
 				currentProcessedActorPtr->worldY += difY;
@@ -568,38 +546,31 @@ void processTrack(void) {
 		}
 		case TL_GOTO_3DZ: // walk up/down stairs on Z
 		{
-			int x;
-			int y;
-			int z;
-			int objY;
-			int objZ;
 
-			x = *(int16 *)(trackPtr);
+			const int x = *(int16 *)trackPtr;
 			trackPtr += 2;
-			y = *(int16 *)(trackPtr);
+			const int y = *(int16 *)trackPtr;
 			trackPtr += 2;
-			z = *(int16 *)(trackPtr);
+			const int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
-			objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
+			const int objY = ListWorldObjets[currentProcessedActorPtr->indexInWorld].y;
+			const int objZ = ListWorldObjets[currentProcessedActorPtr->indexInWorld].z;
 
 			if (currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY < y - 100 || currentProcessedActorPtr->roomY + currentProcessedActorPtr->stepY > y + 100) {
-				int propZ = makeProportional(objY, y, z - objZ, (currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ) - objZ);
+				const int propZ = makeProportional(objY, y, z - objZ, currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ - objZ);
 
-				int difY = propZ - currentProcessedActorPtr->worldY;
-
-				int angleModif;
+				const int difY = propZ - currentProcessedActorPtr->worldY;
 
 				currentProcessedActorPtr->worldY += difY;
 				currentProcessedActorPtr->roomY += difY;
 				currentProcessedActorPtr->zv.ZVY1 += difY;
 				currentProcessedActorPtr->zv.ZVY2 += difY;
 
-				angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-															   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-															   currentProcessedActorPtr->beta,
-															   x, z);
+				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+																   currentProcessedActorPtr->beta,
+																   x, z);
 
 				if (!currentProcessedActorPtr->rotate.param || currentProcessedActorPtr->direction != angleModif) {
 					initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
@@ -614,7 +585,7 @@ void processTrack(void) {
 				}
 
 			} else {
-				int difY = y - currentProcessedActorPtr->worldY;
+				const int difY = y - currentProcessedActorPtr->worldY;
 
 				currentProcessedActorPtr->stepY = 0;
 				currentProcessedActorPtr->worldY += difY;
@@ -629,11 +600,11 @@ void processTrack(void) {
 		}
 		case TL_ANGLE: // rotate
 		{
-			currentProcessedActorPtr->alpha = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->alpha = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->beta = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->beta = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->gamma = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->gamma = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			currentProcessedActorPtr->direction = 0;
@@ -655,7 +626,7 @@ void processTrack(void) {
 	currentProcessedActorPtr->beta &= 0x3FF;
 }
 
-void processTrack2(void) {
+void processTrack2() {
 	switch (currentProcessedActorPtr->trackMode) {
 	case 1: // manual
 	{
@@ -692,19 +663,18 @@ void processTrack2(void) {
 	}
 	case 2: // follow
 	{
-		int followedActorIdx = ListWorldObjets[currentProcessedActorPtr->trackNumber].objIndex;
+		const int followedActorIdx = ListWorldObjets[currentProcessedActorPtr->trackNumber].objIndex;
 
 		if (followedActorIdx == -1) {
 			currentProcessedActorPtr->direction = 0;
 			currentProcessedActorPtr->speed = 0;
 		} else {
-			tObject *followedActorPtr = &objectTable[followedActorIdx];
+			const tObject *followedActorPtr = &objectTable[followedActorIdx];
 
-			int roomNumber = followedActorPtr->room;
-			int x = followedActorPtr->roomX;
+			const int roomNumber = followedActorPtr->room;
+			const int x = followedActorPtr->roomX;
 			// int y = followedActorPtr->roomY;
-			int z = followedActorPtr->roomZ;
-			int angleModif;
+			const int z = followedActorPtr->roomZ;
 
 			if (currentProcessedActorPtr->room != roomNumber) {
 				/*  char* link = getRoomLink(currentProcessedActorPtr->room,roomNumber);
@@ -714,9 +684,9 @@ void processTrack2(void) {
 				z = *(int16*)(link+8)+(((*(int16*)(link+10))-(*(int16 *)(link+8))) / 2); */
 			}
 
-			angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-														   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-														   currentProcessedActorPtr->beta, x, z);
+			const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+															   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+															   currentProcessedActorPtr->beta, x, z);
 
 			if (currentProcessedActorPtr->rotate.param == 0 || currentProcessedActorPtr->direction != angleModif) {
 				initRealValue(currentProcessedActorPtr->beta, currentProcessedActorPtr->beta - (angleModif << 8), 60, &currentProcessedActorPtr->rotate);
@@ -737,11 +707,10 @@ void processTrack2(void) {
 	case 3: // track
 	{
 		char *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
-		int16 trackMacro;
 
 		trackPtr += currentProcessedActorPtr->positionInTrack * 2;
 
-		trackMacro = *(int16 *)trackPtr;
+		const int16 trackMacro = *(int16 *)trackPtr;
 		trackPtr += 2;
 
 		// printf("Track macro %X\n",trackMacro);
@@ -749,7 +718,7 @@ void processTrack2(void) {
 		switch (trackMacro) {
 		case 0: // warp
 		{
-			int roomNumber = *(int16 *)(trackPtr);
+			const int roomNumber = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			if (currentProcessedActorPtr->room != roomNumber) {
@@ -768,11 +737,11 @@ void processTrack2(void) {
 			currentProcessedActorPtr->zv.ZVZ1 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
 			currentProcessedActorPtr->zv.ZVZ2 -= currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ;
 
-			currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->worldX = currentProcessedActorPtr->roomX = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->worldY = currentProcessedActorPtr->roomY = *(int16 *)trackPtr;
 			trackPtr += 2;
-			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->worldZ = currentProcessedActorPtr->roomZ = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			currentProcessedActorPtr->worldX -= (int16)((roomDataTable[currentRoom].worldX - roomDataTable[currentProcessedActorPtr->room].worldX) * 10);
@@ -795,16 +764,13 @@ void processTrack2(void) {
 		}
 		case 1: // goToPosition
 		{
-			int roomNumber = *(int16 *)(trackPtr);
-			int x;
-			int z;
-			unsigned int distanceToPoint;
+			const int roomNumber = *(int16 *)trackPtr;
 
 			trackPtr += 2;
 
-			x = *(int16 *)(trackPtr);
+			int x = *(int16 *)trackPtr;
 			trackPtr += 2;
-			z = *(int16 *)(trackPtr);
+			int z = *(int16 *)trackPtr;
 			trackPtr += 2;
 
 			if (roomNumber != currentProcessedActorPtr->room) {
@@ -812,13 +778,13 @@ void processTrack2(void) {
 				z += (roomDataTable[currentProcessedActorPtr->room].worldZ - roomDataTable[roomNumber].worldZ) * 10;
 			}
 
-			distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
-													 currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
-													 x, z);
+			const unsigned int distanceToPoint = computeDistanceToPoint(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+																  currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
+																  x, z);
 
 			if (distanceToPoint >= DISTANCE_TO_POINT_TRESSHOLD) // not yet at position
 			{
-				int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
+				const int angleModif = computeAngleModificatorToPosition(currentProcessedActorPtr->roomX + currentProcessedActorPtr->stepX,
 																   currentProcessedActorPtr->roomZ + currentProcessedActorPtr->stepZ,
 																   currentProcessedActorPtr->beta,
 																   x, z);
@@ -854,7 +820,7 @@ void processTrack2(void) {
 		}
 		case 4: // MARK
 		{
-			currentProcessedActorPtr->MARK = *(int16 *)(trackPtr);
+			currentProcessedActorPtr->MARK = *(int16 *)trackPtr;
 			trackPtr += 2;
 			currentProcessedActorPtr->positionInTrack += 2;
 			break;
@@ -863,10 +829,10 @@ void processTrack2(void) {
 			break;
 		}
 		case 0x6: {
-			int betaDif = *(int16 *)(trackPtr);
+			const int betaDif = *(int16 *)trackPtr;
 			trackPtr += 2;
 
-			if (((currentProcessedActorPtr->beta - betaDif) & 0x3FF) > 0x200) {
+			if ((currentProcessedActorPtr->beta - betaDif & 0x3FF) > 0x200) {
 				currentProcessedActorPtr->direction = 1;
 			} else {
 				currentProcessedActorPtr->direction = -1;

@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd2.h"
+#include "common/scummsys.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
@@ -27,16 +28,14 @@
 #include "fitd/inventory.h"
 #include "fitd/life.h"
 #include "fitd/main_loop.h"
-#include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/sequence.h"
 #include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
-#include "common/scummsys.h"
 
 namespace Fitd {
-char *pAITD2InventorySprite = NULL;
+char *pAITD2InventorySprite = nullptr;
 
 // ITD_RESS mapping
 #define AITD2_CADRE_SPF 0
@@ -214,8 +213,8 @@ void startAITD2(int saveSlot) {
 		startGame(8, 0, 0); // intro
 	}
 
-	while (!g_engine->shouldQuit()) {
-		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
+	while (!Engine::shouldQuit()) {
+		const int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 
 		switch (startupMenuResult) {
 		case -1: // timeout
@@ -225,7 +224,6 @@ void startAITD2(int saveSlot) {
 		case 0: // new game
 		{
 			startGame(8, 7, 1);
-
 			break;
 		}
 		case 1: // continue
@@ -248,10 +246,11 @@ void startAITD2(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			g_engine->quitGame();
-
+			Engine::quitGame();
 			break;
 		}
+		default:
+			assert(0);
 		}
 	}
 }
@@ -276,14 +275,14 @@ void drawInventoryAITD2() {
 	statusRight = 159;
 	statusBottom = 174;
 
-	setupCameraProjection(((statusRight - statusLeft) / 2) + statusLeft, ((statusBottom - statusTop) / 2) + statusTop, 128, 400, 390);
+	setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
 }
 
 int TabXSprite[3] = {127, 118, 124};
 int TabYSprite[3] = {136, 104, 131};
 
 void redrawInventorySpriteAITD2() {
-	int inventoryType = CVars[getCVarsIdx(TYPE_INVENTAIRE)];
+	const int inventoryType = CVars[getCVarsIdx(TYPE_INVENTAIRE)];
 
 	affSpfI(TabXSprite[inventoryType], TabYSprite[inventoryType], inventoryType, pAITD2InventorySprite);
 }

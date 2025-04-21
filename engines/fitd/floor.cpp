@@ -67,7 +67,7 @@ void loadFloor(int floorNumber) {
 
 	if (roomDataTable) {
 		free(roomDataTable);
-		roomDataTable = NULL;
+		roomDataTable = nullptr;
 	}
 
 	expectedNumberOfRoom = getNumberOfRoom();
@@ -138,7 +138,7 @@ void loadFloor(int floorNumber) {
 				hardColData += 0x10;
 			}
 		} else {
-			currentRoomDataPtr->hardColTable = NULL;
+			currentRoomDataPtr->hardColTable = nullptr;
 		}
 
 		// sce zone read
@@ -168,7 +168,7 @@ void loadFloor(int floorNumber) {
 				sceZoneData += 0x10;
 			}
 		} else {
-			currentRoomDataPtr->sceZoneTable = NULL;
+			currentRoomDataPtr->sceZoneTable = nullptr;
 		}
 	}
 	///////////////////////////////////
@@ -187,7 +187,7 @@ void loadFloor(int floorNumber) {
 
 		expectedNumberOfCamera = PAK_getNumFiles(buffer.c_str());
 	} else {
-		int maxExpectedNumberOfCamera = ((READ_LE_U32(g_currentFloorCameraRawData)) / 4);
+		int maxExpectedNumberOfCamera = READ_LE_U32(g_currentFloorCameraRawData) / 4;
 
 		expectedNumberOfCamera = 0;
 
@@ -208,9 +208,8 @@ void loadFloor(int floorNumber) {
 
 	int i;
 	for (i = 0; i < expectedNumberOfCamera; i++) {
-		int k;
 		unsigned int offset;
-		unsigned char *currentCameraData = NULL;
+		unsigned char *currentCameraData = nullptr;
 
 		if (g_engine->getGameId() >= GID_AITD3) {
 			Common::String buffer;
@@ -230,6 +229,7 @@ void loadFloor(int floorNumber) {
 
 		// load cameras
 		if (offset < g_currentFloorCameraRawDataSize) {
+			int k;
 			unsigned char *backupDataPtr;
 
 			if (g_engine->getGameId() < GID_AITD3) {
@@ -282,7 +282,7 @@ void loadFloor(int floorNumber) {
 				}
 
 				// load camera mask
-				unsigned char *pMaskData = NULL;
+				unsigned char *pMaskData = nullptr;
 				if (g_engine->getGameId() >= GID_JACK) {
 					pMaskData = backupDataPtr + g_currentFloorCameraData[i].viewedRoomTable[k].offsetToMask;
 

@@ -28,9 +28,9 @@ namespace Fitd {
 
 extern uint musicChrono;
 
-int initMusicDriver(void);
+int initMusicDriver();
 void playMusic(int musicNumber);
-void destroyMusicDriver(void);
+void destroyMusicDriver();
 int fadeMusic(int param1, int param2, int param3);
 
 } // namespace Fitd

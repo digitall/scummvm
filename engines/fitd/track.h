@@ -23,8 +23,8 @@
 #define FITD_TRACK_H
 
 namespace Fitd {
-void processTrack(void);
-void processTrack2(void);
+void processTrack();
+void processTrack2();
 void gereManualRot(int param);
 } // namespace Fitd
 

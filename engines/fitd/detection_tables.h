@@ -26,7 +26,7 @@ const PlainGameDescriptor fitdGames[] = {
 	{ "jack", "Jack in the Dark" },
 	{ "aitd2", "Alone in the Dark 2" },
 	{ "aitd3", "Alone in the Dark 3" },
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 const FitdGameDescription gameDescriptions[] = {

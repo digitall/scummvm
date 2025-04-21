@@ -23,7 +23,7 @@
 
 namespace Fitd {
 
-Console::Console() : GUI::Debugger() {
+Console::Console() {
 	registerCmd("test",   WRAP_METHOD(Console, Cmd_test));
 }
 

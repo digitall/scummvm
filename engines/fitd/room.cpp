@@ -40,7 +40,7 @@ etageVar1 -> table for camera data
 
 */
 
-roomDataStruct *roomDataTable = NULL;
+roomDataStruct *roomDataTable = nullptr;
 cameraDataStruct *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 cameraViewedRoomStruct *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
 
@@ -63,7 +63,7 @@ int getNumberOfRoom() {
 
 		return PAK_getNumFiles(buffer.c_str());
 	} else {
-		int numMax = (((READ_LE_U32(g_currentFloorRoomRawData)) / 4));
+		int numMax = READ_LE_U32(g_currentFloorRoomRawData) / 4;
 
 		for (i = 0; i < numMax; i++) {
 			if (g_currentFloorRoomRawDataSize >= READ_LE_U32(g_currentFloorRoomRawData + i * 4)) {
@@ -138,7 +138,7 @@ void loadRoom(int roomNumber) {
 			room_PtrCamera[i] = g_currentFloorCameraRawData + READ_LE_U32(g_currentFloorCameraRawData + currentCameraIdx * 4);
 		}
 
-		cameraDataTable[i] = &(g_currentFloorCameraData[currentCameraIdx]);
+		cameraDataTable[i] = &g_currentFloorCameraData[currentCameraIdx];
 
 		currentCameraIdx = cameraDataTable[i]->numViewedRooms;
 

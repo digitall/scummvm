@@ -19,8 +19,8 @@
  *
  */
 
-#include "backends/keymapper/keymapper.h"
 #include "backends/keymapper/action.h"
+#include "backends/keymapper/keymapper.h"
 #include "backends/keymapper/standard-actions.h"
 #include "common/translation.h"
 #include "graphics/scaler.h"
@@ -29,17 +29,16 @@
 #include "fitd/actions.h"
 #include "fitd/detection.h"
 #include "fitd/fitd.h"
-#include "fitd/gfx.h"
 #include "fitd/system_menu.h"
 
 class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:
-	const char *getName() const override final;
-	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const override final;
-	bool hasFeature(MetaEngineFeature f) const override final;
-	void getSavegameThumbnail(Graphics::Surface &thumb) override final;
-	Common::Array<Common::Keymap *> initKeymaps(const char *target) const override final;
-	void registerDefaultSettings(const Common::String &) const override final;
+	const char *getName() const final;
+	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const final;
+	bool hasFeature(MetaEngineFeature f) const final;
+	void getSavegameThumbnail(Graphics::Surface &thumb) final;
+	Common::Array<Common::Keymap *> initKeymaps(const char *target) const final;
+	void registerDefaultSettings(const Common::String &) const final;
 };
 
 const char *FitdMetaEngine::getName() const {
@@ -53,7 +52,7 @@ Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 
 bool FitdMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return checkExtendedSaves(f) ||
-		   (f == kSupportsLoadingDuringStartup);
+		   f == kSupportsLoadingDuringStartup;
 }
 
 void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
@@ -84,7 +83,7 @@ Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) 
 		{Common::kStandardActionMoveRight, _s("Right"), Fitd::kMoveRight, "RIGHT|JOY_LEFT_STICK_X+", Common::EVENT_INVALID, Common::KEYCODE_RIGHT},
 		{Common::kStandardActionMoveUp, _s("Up"), Fitd::kMoveUp, "UP|JOY_LEFT_STICK_Y-", Common::EVENT_INVALID, Common::KEYCODE_UP},
 		{Common::kStandardActionMoveDown, _s("Down"), Fitd::kMoveDown, "DOWN|JOY_LEFT_STICK_Y+", Common::EVENT_INVALID, Common::KEYCODE_DOWN},
-		{0, 0, Fitd::kDefaultAction, {}, Common::EVENT_INVALID, Common::KEYCODE_INVALID}};
+		{nullptr, nullptr, Fitd::kDefaultAction, {}, Common::EVENT_INVALID, Common::KEYCODE_INVALID}};
 
 	Common::Action *act;
 	for (int i = 0; actions[i].name; i++) {

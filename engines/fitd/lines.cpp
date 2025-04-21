@@ -26,11 +26,10 @@ namespace Fitd {
 #define ENTER
 #define LEAVE
 
-unsigned char *polyBackBuffer = NULL;
+unsigned char *polyBackBuffer = nullptr;
 
 void swapFunc(int *a, int *b) {
-	int temp;
-	temp = *a;
+	const int temp = *a;
 	*a = *b;
 	*b = temp;
 }
@@ -46,26 +45,24 @@ void pixel(int x, int y, unsigned char c) {
 }
 
 void hline(int x1, int x2, int y, unsigned char c) {
-	int i;
 
-	for (i = x1; i < (x2 + 1); i++) {
+	for (int i = x1; i < x2 + 1; i++) {
 		pixel(i, y, c);
 	}
 }
 
 void vline(int x, int y1, int y2, unsigned char c) {
-	int i;
 
-	for (i = y1; i < (y2 + 1); i++) {
+	for (int i = y1; i < y2 + 1; i++) {
 		pixel(x, i, c);
 	}
 }
 
 void bsubline_1(int x1, int y1, int x2, int y2, unsigned char c) {
-	int x, y, ddx, ddy, e;
-	ddx = abs(x2 - x1);
-	ddy = abs(y2 - y1) << 1;
-	e = ddx - ddy;
+	int x, y;
+	int ddx = abs(x2 - x1);
+	const int ddy = abs(y2 - y1) << 1;
+	int e = ddx - ddy;
 	ddx <<= 1;
 
 	if (x1 > x2) {
@@ -89,10 +86,10 @@ void bsubline_1(int x1, int y1, int x2, int y2, unsigned char c) {
 }
 
 void bsubline_2(int x1, int y1, int x2, int y2, unsigned char c) {
-	int x, y, ddx, ddy, e;
-	ddx = abs(x2 - x1) << 1;
-	ddy = abs(y2 - y1);
-	e = ddy - ddx;
+	int x, y;
+	const int ddx = abs(x2 - x1) << 1;
+	int ddy = abs(y2 - y1);
+	int e = ddy - ddx;
 	ddy <<= 1;
 
 	if (y1 > y2) {
@@ -116,10 +113,10 @@ void bsubline_2(int x1, int y1, int x2, int y2, unsigned char c) {
 }
 
 void bsubline_3(int x1, int y1, int x2, int y2, unsigned char c) {
-	int x, y, ddx, ddy, e;
-	ddx = abs(x1 - x2) << 1;
-	ddy = abs(y2 - y1);
-	e = ddy - ddx;
+	int x, y;
+	const int ddx = abs(x1 - x2) << 1;
+	int ddy = abs(y2 - y1);
+	int e = ddy - ddx;
 	ddy <<= 1;
 
 	if (y1 > y2) {
@@ -143,10 +140,10 @@ void bsubline_3(int x1, int y1, int x2, int y2, unsigned char c) {
 }
 
 void bsubline_4(int x1, int y1, int x2, int y2, unsigned char c) {
-	int x, y, ddx, ddy, e;
-	ddy = abs(y2 - y1) << 1;
-	ddx = abs(x1 - x2);
-	e = ddx - ddy;
+	int x, y;
+	const int ddy = abs(y2 - y1) << 1;
+	int ddx = abs(x1 - x2);
+	int e = ddx - ddy;
 	ddx <<= 1;
 
 	if (x1 > x2) {
@@ -166,8 +163,7 @@ void bsubline_4(int x1, int y1, int x2, int y2, unsigned char c) {
 }
 
 void line(int x1, int y1, int x2, int y2, unsigned char c) {
-	float k;
-	if ((x1 == x2) && (y1 == y2)) {
+	if (x1 == x2 && y1 == y2) {
 		pixel(x1, y1, c);
 		return;
 	}
@@ -182,13 +178,13 @@ void line(int x1, int y1, int x2, int y2, unsigned char c) {
 		return;
 	}
 
-	k = (float)(y2 - y1) / (float)(x2 - x1);
+	const float k = (float)(y2 - y1) / (float)(x2 - x1);
 
-	if ((k >= 0) && (k <= 1)) {
+	if (k >= 0 && k <= 1) {
 		bsubline_1(x1, y1, x2, y2, c);
 	} else if (k > 1) {
 		bsubline_2(x1, y1, x2, y2, c);
-	} else if ((k < 0) && (k >= -1)) {
+	} else if (k < 0 && k >= -1) {
 		bsubline_4(x1, y1, x2, y2, c);
 	} else {
 		bsubline_3(x1, y1, x2, y2, c);

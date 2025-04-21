@@ -298,12 +298,12 @@ static struct State {
 	int numUsedSpheres;
 	GLuint g_backgroundTexture = 0;
 	GLuint g_paletteTexture = 0;
-	OpenGL::Shader *backgroundShader = NULL;
-	OpenGL::Shader *flatShader = NULL;
-	OpenGL::Shader *noiseShader = NULL;
-	OpenGL::Shader *rampShader = NULL;
-	OpenGL::Shader *maskShader = NULL;
-	OpenGL::Shader *sphereShader = NULL;
+	OpenGL::Shader *backgroundShader = nullptr;
+	OpenGL::Shader *flatShader = nullptr;
+	OpenGL::Shader *noiseShader = nullptr;
+	OpenGL::Shader *rampShader = nullptr;
+	OpenGL::Shader *maskShader = nullptr;
+	OpenGL::Shader *sphereShader = nullptr;
 	GLuint vbo = 0;
 	GLuint ebo = 0;
 	Common::Array<Common::Array<maskStruct> > maskTextures; // [room][mask]
@@ -364,12 +364,12 @@ static void renderer_init() {
 	_state->g_paletteTexture = 0;
 	_state->g_backgroundTexture = 0;
 	_state->g_paletteTexture = 0;
-	_state->backgroundShader = NULL;
-	_state->flatShader = NULL;
-	_state->noiseShader = NULL;
-	_state->rampShader = NULL;
-	_state->maskShader = NULL;
-	_state->sphereShader = NULL;
+	_state->backgroundShader = nullptr;
+	_state->flatShader = nullptr;
+	_state->noiseShader = nullptr;
+	_state->rampShader = nullptr;
+	_state->maskShader = nullptr;
+	_state->sphereShader = nullptr;
 	_state->vbo = 0;
 	_state->ebo = 0;
 
@@ -384,7 +384,7 @@ static void renderer_init() {
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, 0));
+	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 320, 200, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
 
 	// create palette texture
 	GL_CALL(glGenTextures(1, &_state->g_paletteTexture));
@@ -394,14 +394,14 @@ static void renderer_init() {
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 	GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 	GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 3, 256, 0, GL_RED, GL_UNSIGNED_BYTE, 0));
+	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 3, 256, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
 
 	// create background shader
 	_state->backgroundShader = new OpenGL::Shader();
 	const char *attributes[] = {"a_position", "a_texCoords", nullptr};
 	_state->backgroundShader->loadFromStrings("backgroundShader", bgVSSrc, bgPSShader, attributes, 110);
-	_state->backgroundShader->enableVertexAttribute("a_position", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (uint32)0);
-	_state->backgroundShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (uint32)(2 * sizeof(float)));
+	_state->backgroundShader->enableVertexAttribute("a_position", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	_state->backgroundShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 2 * sizeof(float));
 	_state->backgroundShader->use();
 	GL_CALL(glUniform1i(_state->backgroundShader->getUniformLocation("u_background"), 0));
 	GL_CALL(glUniform1i(_state->backgroundShader->getUniformLocation("u_palette"), 1));
@@ -409,24 +409,24 @@ static void renderer_init() {
 	// create flat shader
 	_state->flatShader = new OpenGL::Shader();
 	_state->flatShader->loadFromStrings("flatShader", flatVSSrc, flatPSSrc, attributes, 110);
-	_state->flatShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	_state->flatShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	_state->flatShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 0);
+	_state->flatShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 3 * sizeof(float));
 	_state->flatShader->use();
 	GL_CALL(glUniform1i(_state->flatShader->getUniformLocation("u_palette"), 0));
 
 	// create noise shader
 	_state->noiseShader = new OpenGL::Shader();
 	_state->noiseShader->loadFromStrings("flatShader", noiseVSSrc, noisePSSrc, attributes, 110);
-	_state->noiseShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	_state->noiseShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	_state->noiseShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 0);
+	_state->noiseShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 3 * sizeof(float));
 	_state->noiseShader->use();
 	GL_CALL(glUniform1i(_state->noiseShader->getUniformLocation("u_palette"), 0));
 
 	// create ramp shader
 	_state->rampShader = new OpenGL::Shader();
 	_state->rampShader->loadFromStrings("rampShader", flatVSSrc, rampPSSrc, attributes, 110);
-	_state->rampShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)0);
-	_state->rampShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), (uint32)(3 * sizeof(float)));
+	_state->rampShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 0);
+	_state->rampShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(polyVertex), 3 * sizeof(float));
 	_state->rampShader->use();
 	GL_CALL(glUniform1i(_state->rampShader->getUniformLocation("u_palette"), 0));
 
@@ -442,9 +442,9 @@ static void renderer_init() {
 	const char *sphere_attributes[] = {"a_position", "a_texCoords", "a_texCoords2", nullptr};
 	_state->sphereShader = new OpenGL::Shader();
 	_state->sphereShader->loadFromStrings("sphereShader", sphereVSSrc, spherePSSrc, sphere_attributes, 110);
-	_state->sphereShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)0);
-	_state->sphereShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(3 * sizeof(float)));
-	_state->sphereShader->enableVertexAttribute("a_texCoords2", _state->vbo, 4, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), (uint32)(5 * sizeof(float)));
+	_state->sphereShader->enableVertexAttribute("a_position", _state->vbo, 3, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), 0);
+	_state->sphereShader->enableVertexAttribute("a_texCoords", _state->vbo, 2, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), 3 * sizeof(float));
+	_state->sphereShader->enableVertexAttribute("a_texCoords2", _state->vbo, 4, GL_FLOAT, GL_FALSE, sizeof(sphereVertex), 5 * sizeof(float));
 	_state->sphereShader->use();
 	GL_CALL(glUniform1i(_state->sphereShader->getUniformLocation("u_palette"), 0));
 }
@@ -469,12 +469,12 @@ static void renderer_startFrame() {
 }
 
 static void renderer_drawBackground() {
-	Vertex vertices[] = {
+	const Vertex vertices[] = {
 		{{-1.f, -1.f}, {0.f, 1.f}},
 		{{1.f, 1.f}, {1.f, 0.f}},
 		{{1.f, -1.f}, {1.f, 1.f}},
 		{{-1.f, 1.f}, {0.f, 0.f}}};
-	uint32 indices[] = {
+	const uint32 indices[] = {
 		0, 1, 2,
 		0, 3, 1};
 	assert(sizeof(Vertex) == 4 * sizeof(float));
@@ -491,7 +491,7 @@ static void renderer_drawBackground() {
 	GL_CALL(glActiveTexture(GL_TEXTURE1));
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_paletteTexture));
 
-	GL_CALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+	GL_CALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
 
 	_state->backgroundShader->unbind();
@@ -506,10 +506,7 @@ static void renderer_setPalette(const byte *palette) {
 
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom) {
 	unsigned char *out = _state->physicalScreenRGB;
-	unsigned char *in = (unsigned char *)&videoBuffer[0] + left + top * 320;
-
-	int i;
-	int j;
+	const unsigned char *in = &videoBuffer[0] + left + top * 320;
 
 	while ((right - left) % 4) {
 		right++;
@@ -519,17 +516,17 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 		bottom++;
 	}
 
-	for (i = top; i < bottom; i++) {
-		in = (unsigned char *)&videoBuffer[0] + left + i * 320;
+	for (int i = top; i < bottom; i++) {
+		in = &videoBuffer[0] + left + i * 320;
 		unsigned char *out2 = _state->physicalScreen + left + i * 320;
-		for (j = left; j < right; j++) {
-			unsigned char color = *(in++);
+		for (int j = left; j < right; j++) {
+			const unsigned char color = *in++;
 
-			*(out++) = _state->RGB_Pal[color * 3];
-			*(out++) = _state->RGB_Pal[color * 3 + 1];
-			*(out++) = _state->RGB_Pal[color * 3 + 2];
+			*out++ = _state->RGB_Pal[color * 3];
+			*out++ = _state->RGB_Pal[color * 3 + 1];
+			*out++ = _state->RGB_Pal[color * 3 + 2];
 
-			*(out2++) = color;
+			*out2++ = color;
 		}
 	}
 
@@ -539,13 +536,13 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 
 static void renderer_refreshFrontTextureBuffer() {
 	byte *out = _state->physicalScreenRGB;
-	byte *in = _state->physicalScreen;
+	const byte *in = _state->physicalScreen;
 
 	for (int i = 0; i < 200 * 320; i++) {
-		unsigned char color = *(in++);
-		*(out++) = _state->RGB_Pal[color * 3];
-		*(out++) = _state->RGB_Pal[color * 3 + 1];
-		*(out++) = _state->RGB_Pal[color * 3 + 2];
+		const unsigned char color = *in++;
+		*out++ = _state->RGB_Pal[color * 3];
+		*out++ = _state->RGB_Pal[color * 3 + 1];
+		*out++ = _state->RGB_Pal[color * 3 + 2];
 	}
 
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, _state->g_backgroundTexture));
@@ -679,12 +676,12 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsig
 		float texcoord[2];
 	} vertexBuffer[4];
 
-	float X1 = _state->maskTextures[roomId][maskId].maskX1;
-	float X2 = _state->maskTextures[roomId][maskId].maskX2;
-	float Y1 = _state->maskTextures[roomId][maskId].maskY1;
-	float Y2 = _state->maskTextures[roomId][maskId].maskY2;
+	const float X1 = _state->maskTextures[roomId][maskId].maskX1;
+	const float X2 = _state->maskTextures[roomId][maskId].maskX2;
+	const float Y1 = _state->maskTextures[roomId][maskId].maskY1;
+	const float Y2 = _state->maskTextures[roomId][maskId].maskY2;
 
-	float maskZ = 0.f;
+	const float maskZ = 0.f;
 
 	sVertice *pVertices = vertexBuffer;
 	pVertices->position[0] = X1;
@@ -719,10 +716,10 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsig
 static void renderer_setClip(float left, float top, float right, float bottom) {
 
 	float currentScissor[4];
-	currentScissor[0] = ((left - 1) / 320.f) * 1280.f;
-	currentScissor[1] = ((top - 1) / 200.f) * 800.f;
-	currentScissor[2] = ((right - left + 2) / 320.f) * 1280.f;
-	currentScissor[3] = ((bottom - top + 2) / 200.f) * 800.f;
+	currentScissor[0] = (left - 1) / 320.f * 1280.f;
+	currentScissor[1] = (top - 1) / 200.f * 800.f;
+	currentScissor[2] = (right - left + 2) / 320.f * 1280.f;
+	currentScissor[3] = (bottom - top + 2) / 200.f * 800.f;
 
 	currentScissor[0] = MAX(currentScissor[0], 0.f);
 	currentScissor[1] = MAX(currentScissor[1], 0.f);
@@ -749,8 +746,8 @@ static void renderer_drawMask(int roomId, int maskId) {
 	glDepthMask(GL_FALSE);
 	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, _state->maskTextures[roomId][maskId].vertexBuffer));
 
-	_state->maskShader->enableVertexAttribute("a_position", _state->maskTextures[roomId][maskId].vertexBuffer, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)0);
-	_state->maskShader->enableVertexAttribute("a_texCoords", _state->maskTextures[roomId][maskId].vertexBuffer, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (uint32)(3 * sizeof(float)));
+	_state->maskShader->enableVertexAttribute("a_position", _state->maskTextures[roomId][maskId].vertexBuffer, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+	_state->maskShader->enableVertexAttribute("a_texCoords", _state->maskTextures[roomId][maskId].vertexBuffer, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 	_state->maskShader->use();
 
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
@@ -782,8 +779,8 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	float polyMaxY = 0.f;
 
 	for (int i = 0; i < numPoint; i++) {
-		float X = buffer[3 * i + 0];
-		float Y = buffer[3 * i + 1];
+		const float X = buffer[3 * i + 0];
+		const float Y = buffer[3 * i + 1];
 
 		if (X > polyMaxX)
 			polyMaxX = X;
@@ -824,9 +821,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			int bank = (color & 0xF0) >> 4;
-			int startColor = color & 0xF;
-			float colorf = startColor;
+			const int bank = (color & 0xF0) >> 4;
+			const int startColor = color & 0xF;
+			const float colorf = startColor;
 			pVertex->U = colorf / 15.f;
 			pVertex->V = bank / 15.f;
 			pVertex++;
@@ -851,9 +848,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			int bank = (color & 0xF0) >> 4;
-			int startColor = color & 0xF;
-			float colorf = startColor;
+			const int bank = (color & 0xF0) >> 4;
+			const int startColor = color & 0xF;
+			const float colorf = startColor;
 			pVertex->U = colorf / 15.f;
 			pVertex->V = bank / 15.f;
 			pVertex++;
@@ -893,8 +890,8 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 		_state->numUsedRampVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
-		int bank = (color & 0xF0) >> 4;
-		int startColor = color & 0xF;
+		const int bank = (color & 0xF0) >> 4;
+		const int startColor = color & 0xF;
 		float colorStep = 1; // TODO: this should be the scanline ratio for the current resolution to original resolution
 		if (polyType == 5) {
 			colorStep *= 0.5; // to stretch the ramp by 2 for copper2
@@ -912,7 +909,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			float colorf = startColor + colorStep * (pVertex->Y - polyMinY);
+			const float colorf = startColor + colorStep * (pVertex->Y - polyMinY);
 
 			pVertex->U = colorf / 15.f;
 			pVertex->V = bank / 15.f;
@@ -926,10 +923,10 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 		_state->numUsedRampVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
-		float colorStep = 15.f / polyWidth;
+		const float colorStep = 15.f / polyWidth;
 
-		int bank = (color & 0xF0) >> 4;
-		int startColor = color & 0xF;
+		const int bank = (color & 0xF0) >> 4;
+		const int startColor = color & 0xF;
 
 		assert(startColor == 0);
 
@@ -945,7 +942,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			float colorf = startColor + colorStep * (pVertex->X - polyMinX);
+			const float colorf = startColor + colorStep * (pVertex->X - polyMinX);
 
 			pVertex->U = colorf / 15.f;
 			pVertex->V = bank / 15.f;
@@ -959,10 +956,10 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 		_state->numUsedRampVertices += (numPoint - 2) * 3;
 		assert(_state->numUsedRampVertices < NUM_MAX_RAMP_VERTICES);
 
-		float colorStep = 15.f / polyWidth;
+		const float colorStep = 15.f / polyWidth;
 
-		int bank = (color & 0xF0) >> 4;
-		int startColor = color & 0xF;
+		const int bank = (color & 0xF0) >> 4;
+		const int startColor = color & 0xF;
 
 		assert(startColor == 0);
 
@@ -978,7 +975,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 			pVertex->Y = buffer[i * 3 + 1];
 			pVertex->Z = buffer[i * 3 + 2];
 
-			float colorf = startColor + colorStep * (pVertex->X - polyMinX);
+			const float colorf = startColor + colorStep * (pVertex->X - polyMinX);
 
 			pVertex->U = 1.f - colorf / 15.f;
 			pVertex->V = bank / 15.f;
@@ -1041,7 +1038,7 @@ Graphics::Surface *renderer_capture() {
 #endif
 	s->create(320 * 4, 200 * 4, format);
 	glReadPixels(0, 0, 320 * 4, 200 * 4, GL_RGBA, GL_UNSIGNED_BYTE, s->getPixels());
-	Common::Rect rect(0, 0, 320 * 4, 200 * 4);
+	const Common::Rect rect(0, 0, 320 * 4, 200 * 4);
 	s->flipVertical(rect);
 	return s;
 }

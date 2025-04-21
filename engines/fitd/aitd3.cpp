@@ -22,14 +22,10 @@
 #include "fitd/aitd3.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
-#include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/inventory.h"
-#include "fitd/life.h"
 #include "fitd/main_loop.h"
-#include "fitd/music.h"
 #include "fitd/pak.h"
-#include "fitd/sequence.h"
 #include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
@@ -73,7 +69,7 @@ void startAITD3(int saveSlot) {
 	// 	startGame(1, 0, 0);
 	// }
 
-	while (!g_engine->shouldQuit()) {
+	while (!Engine::shouldQuit()) {
 		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;
 
 		switch (startupMenuResult) {
@@ -109,10 +105,11 @@ void startAITD3(int saveSlot) {
 		}
 		case 2: // exit
 		{
-			g_engine->quitGame();
+			Engine::quitGame();
 
 			break;
 		}
+		default:assert(0);
 		}
 	}
 }
@@ -137,6 +134,6 @@ void drawInventoryAITD3() {
 	statusRight = 159;
 	statusBottom = 174;
 
-	setupCameraProjection(((statusRight - statusLeft) / 2) + statusLeft, ((statusBottom - statusTop) / 2) + statusTop, 128, 400, 390);
+	setupCameraProjection((statusRight - statusLeft) / 2 + statusLeft, (statusBottom - statusTop) / 2 + statusTop, 128, 400, 390);
 }
 } // namespace Fitd

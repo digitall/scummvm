@@ -21,7 +21,6 @@
 
 #include "engines/util.h"
 #include "fitd/fitd.h"
-#include "fitd/input.h"
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
 #include "graphics/screen.h"
@@ -85,7 +84,7 @@ struct State {
 	uint16 numMasks;
 };
 
-static State *_state = NULL;
+static State *_state = nullptr;
 
 static void renderer_init();
 static void renderer_deinit();
@@ -105,7 +104,7 @@ static void renderer_updateScreen();
 static Graphics::Surface *renderer_capture();
 
 Renderer createSoftwareRenderer() {
-	Renderer r;
+	Renderer r{};
 	r.init = renderer_init;
 	r.deinit = renderer_deinit;
 	r.startFrame = renderer_startFrame;
@@ -136,7 +135,7 @@ static void renderer_init() {
 static void renderer_deinit() {
 	delete g_engine->_screen;
 	free(_state);
-	_state = NULL;
+	_state = nullptr;
 }
 
 static void renderer_startFrame() {
@@ -161,7 +160,6 @@ static void renderer_setPalette(const byte *palette) {
 
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom) {
 	byte *out = _state->physicalScreenRGB;
-	const byte *in = (const byte *)&videoBuffer[0] + left + top * WIDTH;
 
 	while ((right - left) % 4) {
 		right++;
@@ -172,16 +170,16 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 	}
 
 	for (int i = top; i < bottom; i++) {
-		in = (const byte *)&videoBuffer[0] + left + i * WIDTH;
+		const byte *in = (const byte *)&videoBuffer[0] + left + i * WIDTH;
 		byte *out2 = _state->physicalScreen + left + i * WIDTH;
 		for (int j = left; j < right; j++) {
-			byte color = *(in++);
+			const byte color = *in++;
 
-			*(out++) = _state->RGB_Pal[color * 3];
-			*(out++) = _state->RGB_Pal[color * 3 + 1];
-			*(out++) = _state->RGB_Pal[color * 3 + 2];
+			*out++ = _state->RGB_Pal[color * 3];
+			*out++ = _state->RGB_Pal[color * 3 + 1];
+			*out++ = _state->RGB_Pal[color * 3 + 2];
 
-			*(out2++) = color;
+			*out2++ = color;
 		}
 	}
 }
@@ -191,10 +189,10 @@ static void renderer_refreshFrontTextureBuffer() {
 	const byte *in = _state->physicalScreen;
 
 	for (int i = 0; i < HEIGHT * WIDTH; i++) {
-		byte color = *(in++);
-		*(out++) = _state->RGB_Pal[color * 3];
-		*(out++) = _state->RGB_Pal[color * 3 + 1];
-		*(out++) = _state->RGB_Pal[color * 3 + 2];
+		const byte color = *in++;
+		*out++ = _state->RGB_Pal[color * 3];
+		*out++ = _state->RGB_Pal[color * 3 + 1];
+		*out++ = _state->RGB_Pal[color * 3 + 2];
 	}
 }
 
@@ -202,7 +200,7 @@ static void renderer_flushPendingPrimitives() {
 }
 
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2) {
-	Mask *pMask = NULL;
+	Mask *pMask = nullptr;
 	size_t i;
 	for (i = 0; i < _state->numMasks; i++) {
 		pMask = &_state->masks[i];
@@ -252,8 +250,8 @@ static void renderer_drawMask(int roomId, int maskId) {
 		Mask *pMask = &_state->masks[i];
 		if (pMask->roomId == roomId && pMask->maskId == maskId) {
 			byte *s = (byte *)g_engine->_screen->getBasePtr(_state->clipMask.x, _state->clipMask.y);
-			byte *p = &_state->physicalScreen[_state->clipMask.y * WIDTH + _state->clipMask.x];
-			byte *m = &pMask->mask[_state->clipMask.y * WIDTH + _state->clipMask.x];
+			const byte *p = &_state->physicalScreen[_state->clipMask.y * WIDTH + _state->clipMask.x];
+			const byte *m = &pMask->mask[_state->clipMask.y * WIDTH + _state->clipMask.x];
 			for (int16 h = 0; h < _state->clipMask.h; h++) {
 				for (int16 w = 0; w < _state->clipMask.w; w++) {
 					if (*m) {
@@ -290,7 +288,7 @@ static int16 leftClip(polyVertex **polys, int16 num) {
 		// 0x01 : point 0 clipped
 		// 0x02 : point 1 clipped
 		// 0x03 : both clipped
-		uint8 clipFlag = (p1->X < 0) ? 2 : 0;
+		uint8 clipFlag = p1->X < 0 ? 2 : 0;
 
 		if (p0->X < 0) {
 			if (clipFlag) {
@@ -316,8 +314,8 @@ static int16 leftClip(polyVertex **polys, int16 num) {
 			const int32 dxClip = 0 - p0->X;
 
 			pTabPolyClip->X = (int16)0;
-			pTabPolyClip->Y = (int16)(p0->Y + ((dxClip * dy) / dx));
-			pTabPolyClip->Z = (p0->Z + ((float)(dxClip * dz) / dx));
+			pTabPolyClip->Y = (int16)(p0->Y + dxClip * dy / dx);
+			pTabPolyClip->Z = p0->Z + (float)(dxClip * dz) / dx;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -347,7 +345,7 @@ static int16 rightClip(polyVertex **polys, int16 num) {
 		// 0x01 : point 0 clipped
 		// 0x02 : point 1 clipped
 		// 0x03 : both clipped
-		uint8 clipFlag = (p1->X >= WIDTH) ? 2 : 0;
+		uint8 clipFlag = p1->X >= WIDTH ? 2 : 0;
 
 		if (p0->X >= WIDTH) {
 			if (clipFlag) {
@@ -370,11 +368,11 @@ static int16 rightClip(polyVertex **polys, int16 num) {
 			const int32 dx = p1->X - p0->X;
 			const int32 dy = p1->Y - p0->Y;
 			const int32 dz = p1->Z - p0->Z;
-			const int32 dxClip = (WIDTH - 1) - p0->X;
+			const int32 dxClip = WIDTH - 1 - p0->X;
 
 			pTabPolyClip->X = (int16)(WIDTH - 1);
-			pTabPolyClip->Y = (int16)(p0->Y + ((dxClip * dy) / dx));
-			pTabPolyClip->Z = (p0->Z + ((float)(dxClip * dz) / dx));
+			pTabPolyClip->Y = (int16)(p0->Y + dxClip * dy / dx);
+			pTabPolyClip->Z = p0->Z + (float)(dxClip * dz) / dx;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -404,7 +402,7 @@ static int16 topClip(polyVertex **polys, int16 num) {
 		// 0x01 : point 0 clipped
 		// 0x02 : point 1 clipped
 		// 0x03 : both clipped
-		uint8 clipFlag = (p1->Y < 0) ? 2 : 0;
+		uint8 clipFlag = p1->Y < 0 ? 2 : 0;
 
 		if (p0->Y < 0) {
 			if (clipFlag) {
@@ -429,9 +427,9 @@ static int16 topClip(polyVertex **polys, int16 num) {
 			const int32 dz = p1->Z - p0->Z;
 			const int32 dyClip = 0 - p0->Y;
 
-			pTabPolyClip->X = (int16)(p0->X + ((dyClip * dx) / dy));
+			pTabPolyClip->X = (int16)(p0->X + dyClip * dx / dy);
 			pTabPolyClip->Y = (int16)0;
-			pTabPolyClip->Z = (p0->Z + ((float)(dyClip * dz) / dy));
+			pTabPolyClip->Z = p0->Z + (float)(dyClip * dz) / dy;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -461,7 +459,7 @@ static int16 bottomClip(polyVertex **polys, int16 num) {
 		// 0x01 : point 0 clipped
 		// 0x02 : point 1 clipped
 		// 0x03 : both clipped
-		uint8 clipFlag = (p1->Y >= HEIGHT) ? 2 : 0;
+		uint8 clipFlag = p1->Y >= HEIGHT ? 2 : 0;
 
 		if (p0->Y >= HEIGHT) {
 			if (clipFlag) {
@@ -484,11 +482,11 @@ static int16 bottomClip(polyVertex **polys, int16 num) {
 			const int32 dx = p1->X - p0->X;
 			const int32 dy = p1->Y - p0->Y;
 			const int32 dz = p1->Z - p0->Z;
-			const int32 dyClip = (HEIGHT - 1) - p0->Y;
+			const int32 dyClip = HEIGHT - 1 - p0->Y;
 
-			pTabPolyClip->X = (int16)(p0->X + ((dyClip * dx) / dy));
+			pTabPolyClip->X = (int16)(p0->X + dyClip * dx / dy);
 			pTabPolyClip->Y = (int16)(HEIGHT - 1);
-			pTabPolyClip->Z = (p0->Z + ((float)(dyClip * dz) / dy));
+			pTabPolyClip->Z = p0->Z + (float)(dyClip * dz) / dy;
 
 			++pTabPolyClip;
 			++newNbPoints;
@@ -558,11 +556,11 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 	polyVertex *pTabPoly = pPolys;
 	int32 incY = -1;
-	float *pZ = NULL;
+	float *pZ = nullptr;
 	for (int i = 0; i < num; i++, pTabPoly++) {
 		const polyVertex *p0 = pTabPoly;
 		const polyVertex *p1 = p0 + 1;
-		int16 *pVertic = NULL;
+		int16 *pVertic = nullptr;
 
 		int32 dy = p1->Y - p0->Y;
 		if (dy == 0) {
@@ -598,7 +596,7 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 		int32 dx = (p1->X - p0->X) << 16;
 		int32 step = dx / dy;
 		int32 reminder = ((dx % dy) >> 1) + 0x7FFF;
-		float dz = (float)(p1->Z - p0->Z) / dy;
+		const float dz = (float)(p1->Z - p0->Z) / dy;
 
 		dx = step >> 16; // recovery part high division (entire)
 		step &= 0xFFFF;  // preserves lower part (mantissa)
@@ -756,7 +754,7 @@ void dither_init(byte c) {
 }
 
 void dither_render(byte *dst) {
-	_ditherState.color = ((_ditherState.color + _ditherState.acc) & 0xFF03) + _ditherState.initColor;
+	_ditherState.color = (_ditherState.color + _ditherState.acc & 0xFF03) + _ditherState.initColor;
 	_ditherState.acc = ROL16(_ditherState.acc, 2) + 1;
 
 	*dst = _ditherState.color;
@@ -770,12 +768,12 @@ struct MarbleRenderState {
 } _marbleState;
 
 void marble_init(byte c) {
-	_marbleState.start = (c & 0x0F);
+	_marbleState.start = c & 0x0F;
 	_marbleState.bank = c & 0xF0;
 }
 
 void marble_nextLine(int16 xMin, int16 xMax) {
-	int32 dx = xMax - xMin;
+	const int32 dx = xMax - xMin;
 	_marbleState.step = 15 / (dx + 1);
 	_marbleState.color = _marbleState.start;
 }
@@ -786,7 +784,7 @@ void marble_render(byte *dst) {
 }
 
 void marble2_render(byte *dst) {
-	*dst = _marbleState.bank | (15 - _marbleState.color);
+	*dst = _marbleState.bank | 15 - _marbleState.color;
 	_marbleState.color += _marbleState.step;
 }
 
@@ -928,11 +926,11 @@ static void render(byte color, uint8 polyType) {
 
 	matRender.init(color);
 	for (; y <= _state->polyMaxY; y++) {
-		int16 xMin = *pVerticXmin++;
+		const int16 xMin = *pVerticXmin++;
 		const int16 xMax = *pVerticXmax++;
-		float zMin = *pVerticZmin++;
+		const float zMin = *pVerticZmin++;
 		const float zMax = *pVerticZmax++;
-		float dz = (zMax - zMin) / MAX(1, xMax - xMin);
+		const float dz = (zMax - zMin) / MAX(1, xMax - xMin);
 		// assert(zMin >= 0);
 		// assert(zMax >= 0);
 		assert(xMin >= 0);
@@ -982,9 +980,9 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 }
 
 static bool inCircle(int pX, int pY, int cX, int cY, float radius) {
-	int dx = ABS(pX - cX);
-	int dy = ABS(pY - cY);
-	return (dx * dx + dy * dy <= radius * radius);
+	const int dx = ABS(pX - cX);
+	const int dy = ABS(pY - cY);
+	return dx * dx + dy * dy <= radius * radius;
 }
 
 static bool computeSphere(float sx, float sy, float sz, float radius) {
@@ -996,10 +994,10 @@ static bool computeSphere(float sx, float sy, float sz, float radius) {
 	int16 bottom = (int16)(sy + radius);
 	int16 top = (int16)(sy - radius);
 	const Common::Rect &clip = Common::Rect(0, 0, WIDTH - 1, HEIGHT - 1);
-	int16 cleft = clip.left;
-	int16 cright = clip.right;
-	int16 ctop = clip.top;
-	int16 cbottom = clip.bottom;
+	const int16 cleft = clip.left;
+	const int16 cright = clip.right;
+	const int16 ctop = clip.top;
+	const int16 cbottom = clip.bottom;
 
 	if (left < cleft) {
 		left = cleft;
@@ -1059,9 +1057,9 @@ Graphics::Surface *renderer_capture() {
 	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
 #endif
 	s->create(WIDTH, HEIGHT, format);
-	byte *src = _state->physicalScreen;
+	const byte *src = _state->physicalScreen;
 	byte *dst = (byte *)s->getPixels();
-	byte *pal = _state->RGB_Pal;
+	const byte *pal = _state->RGB_Pal;
 	for (int i = 0; i < WIDTH * HEIGHT; i++) {
 		dst[0] = pal[*src * 3];
 		dst[1] = pal[*src * 3 + 1];
