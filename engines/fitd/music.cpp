@@ -19,22 +19,57 @@
  *
  */
 
+#include "fitd/music.h"
+#include "audio/fmopl.h"
+#include "common/debug.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/hqr.h"
-#include "fitd/music.h"
 #include "fitd/vars.h"
-#define HAS_YM3812 1
-#include "fitd/opl/fmopl.h"
-#include "audio/audiostream.h"
-#include "audio/mixer.h"
-#include "common/debug.h"
-
-#define OPL_INTERNAL_FREQ 3579545
 
 namespace Fitd {
-// tracks availables: [0-7]
-// 0: Exploring derceto
+
+typedef struct ChannelTable2Element {
+	uint16 index;
+	ChannelTable2Element *var2;
+	uint16 var4;
+	uint8 *dataPtr;
+	uint8 *commandPtr;
+	int16 varE;
+	uint16 var10;
+	uint8 var12;
+	uint16 var13;
+	uint16 var15;
+	uint8 var17;
+	uint16 var18;
+	uint8 var1A;
+	uint8 var1B;
+	uint8 var1C;
+	uint8 var1D;
+	uint8 var1E;
+} ChannelTable2Element;
+
+typedef struct ChannelTableElement {
+	uint16 var0;
+	uint16 var2;
+	uint8 var4;
+	uint8 var5;
+	uint8 var6;
+	uint8 var7;
+	uint16 var8;
+} ChannelTableElement;
+
+static void callMusicUpdate();
+
+struct MusicUpdater : Common::Functor0<void> {
+	~MusicUpdater() final {}
+
+	bool isValid() const final { return true; }
+	void operator()() const final { callMusicUpdate(); }
+};
+
+// tracks available: [0-7]
+// 0: Exploring Derceto
 // 1: Evil approaches
 // 2: Suspense and intimidation
 // 3: Blue Danube
@@ -86,95 +121,63 @@ static const int AITD2MusicToTrackMapping[21] = {
 	19,
 	22};
 
-int musicVolume = 0x7F;
-int updateLoop = 0;
-int oldTimer = 0;
+static const int musicVolume = 0x7F;
+static char OPLinitialized = 0;
+static OPL::OPL *_opl;
+static unsigned char regBDConf = 0xC0;
+static uint8 musicParam1 = 0;
+static uint8 *currentMusicPtr = nullptr;
+static uint8 *currentMusicPtr2 = nullptr;
+static uint8 *currentMusicPtr3 = nullptr;
+static uint8 generalVolume = 0;
+static int fadeParam[3];
 uint musicChrono;
-char OPLinitialized = 0;
 
-typedef int (*musicDrvFunctionType)(void *ptr);
+static const uint8 smallTable[] = {0x10, 8, 4, 2, 1};
 
-typedef struct channelTable2Element {
-	uint16 index;
-	channelTable2Element *var2;
-	uint16 var4;
-	uint8 *dataPtr;
-	uint8 *commandPtr;
-	int16 varE;
-	uint16 var10;
-	uint8 var12;
-	uint16 var13;
-	uint16 var15;
-	uint8 var17;
-	uint16 var18;
-	uint8 var1A;
-	uint8 var1B;
-	uint8 var1C;
-	uint8 var1D;
-	uint8 var1E;
-} channelTable2Element;
+static ChannelTableElement channelDataTable[11] = {
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
+	{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF}};
 
-typedef void (*musicCommandType)(channelTable2Element *entry, int param, uint8 *ptr);
+extern ChannelTable2Element channelTable2[11];
 
-typedef struct channelTableElement {
-	uint16 var0;
-	uint16 var2;
-	uint8 var4;
-	uint8 var5;
-	uint8 var6;
-	uint8 var7;
-	uint16 var8;
-} channelTableElement;
+static ChannelTable2Element channelTable3[11] = {
+	{0, &channelTable2[0], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{1, &channelTable2[1], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{2, &channelTable2[2], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{3, &channelTable2[3], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{4, &channelTable2[4], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{5, &channelTable2[5], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{6, &channelTable2[6], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{7, &channelTable2[7], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{8, &channelTable2[8], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{9, &channelTable2[9], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{10, &channelTable2[10], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0}};
 
-channelTableElement channelDataTable[11] =
-	{
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF},
-		{0xFFFF, 0x40, 0xFF, 0xFF, 0xFF, 0x9C, 0xFFFF}};
-
-extern channelTable2Element channelTable3[11];
-extern channelTable2Element channelTable2[11];
-
-channelTable2Element channelTable3[11] =
-	{
-		{0, &channelTable2[0], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{1, &channelTable2[1], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{2, &channelTable2[2], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{3, &channelTable2[3], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{4, &channelTable2[4], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{5, &channelTable2[5], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{6, &channelTable2[6], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{7, &channelTable2[7], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{8, &channelTable2[8], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{9, &channelTable2[9], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{10, &channelTable2[10], 0x8040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0}};
-
-channelTable2Element channelTable2[11] =
-	{
-		{0, &channelTable3[0], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{1, &channelTable3[1], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{2, &channelTable3[2], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{3, &channelTable3[3], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{4, &channelTable3[4], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{5, &channelTable3[5], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{6, &channelTable3[6], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{7, &channelTable3[7], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{8, &channelTable3[8], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{9, &channelTable3[9], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
-		{10, &channelTable3[10], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+ChannelTable2Element channelTable2[11] = {
+	{0, &channelTable3[0], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{1, &channelTable3[1], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{2, &channelTable3[2], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{3, &channelTable3[3], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{4, &channelTable3[4], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{5, &channelTable3[5], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{6, &channelTable3[6], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{7, &channelTable3[7], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{8, &channelTable3[8], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{9, &channelTable3[9], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
+	{10, &channelTable3[10], 0x0040, nullptr, nullptr, 0, 0, 0, 0, 0, 0, 0, 0x7F, 1, 1, 0x7F, 0},
 };
 
-unsigned char regBDConf = 0xC0;
-
-unsigned char channelTableMelodic[] = {
+static const uint8 channelTableMelodic[] = {
 	0x00,
 	0x03,
 	0x01,
@@ -200,7 +203,7 @@ unsigned char channelTableMelodic[] = {
 	0xFF,
 	0xFF};
 
-unsigned char channelTableRythme[] = {
+static const uint8 channelRhythms[] = {
 	0x00,
 	0x03,
 	0x01,
@@ -224,10 +227,10 @@ unsigned char channelTableRythme[] = {
 	0x11,
 	0xFF};
 
-unsigned char *channelTable;
+static const uint8 *channelTable;
 
 // global table is 300 entry long
-uint16 globTableEntry[300] = {
+static const uint16 globTableEntry[300] = {
 	0x157,
 	0x158,
 	0x159,
@@ -530,84 +533,75 @@ uint16 globTableEntry[300] = {
 	0x2B0,
 };
 
-uint16 *globTable[13] =
-	{
-		&globTableEntry[0],
-		&globTableEntry[25],
-		&globTableEntry[50],
-		&globTableEntry[75],
-		&globTableEntry[100],
-		&globTableEntry[125],
-		&globTableEntry[150],
-		&globTableEntry[175],
-		&globTableEntry[200],
-		&globTableEntry[225],
-		&globTableEntry[250],
-		&globTableEntry[275],
+static const uint8 smallData2[] = {
+	0,
+	1,
+	2,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	3,
+	4,
+	5,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	6,
+	7,
+	8,
+	0xFF,
+	0xFF,
+	0xFF,
 };
 
-unsigned char musicParam1 = 0;
-
-uint8 *currentMusicPtr = nullptr;
-uint8 *currentMusicPtr2 = nullptr;
-uint8 *currentMusicPtr3 = nullptr;
-uint8 generalVolume = 0;
-
-static int musicUpdate(void *udata, uint8 *stream, int len);
-static void callMusicUpdate();
-
-class AdLibStream : public Audio::AudioStream {
-public:
-	int readBuffer(int16 *buffer, const int numSamples) override {
-		// YM3812UpdateOne(0, buffer, numSamples);
-		musicUpdate(nullptr, (uint8 *)buffer, numSamples * 2);
-		return numSamples;
-	}
-
-	bool isStereo() const override { return false; }
-	int getRate() const override { return 44100; }
-	bool endOfData() const override { return false; }
+static const uint16 *globTable[13] = {
+	&globTableEntry[0],
+	&globTableEntry[25],
+	&globTableEntry[50],
+	&globTableEntry[75],
+	&globTableEntry[100],
+	&globTableEntry[125],
+	&globTableEntry[150],
+	&globTableEntry[175],
+	&globTableEntry[200],
+	&globTableEntry[225],
+	&globTableEntry[250],
+	&globTableEntry[275],
 };
 
-void sendAdlib(int regIdx, int value) {
-	YM3812Write(0, 0, regIdx);
-	YM3812Write(0, 1, value);
+static void command0(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void command1(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void command2(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void command3(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void command4(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void command5(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void command6(ChannelTable2Element *entry, int param, uint8 *ptr);
+static void commandNop(ChannelTable2Element *entry, int param, uint8 *ptr);
+
+typedef void (*musicCommandType)(ChannelTable2Element *entry, int param, uint8 *ptr);
+
+static const musicCommandType musicCommandTable[10] = {
+	command0,
+	command1,
+	command2,
+	command3,
+	command4,
+	command5,
+	command6,
+	commandNop,
+	commandNop,
+	commandNop,
+};
+
+static void sendAdlib(int regIdx, int value) {
+	_opl->writeReg(regIdx, value);
 }
 
-#define musicSync 1500
-int musicTimer = 0;
-int nextUpdateTimer = musicSync;
-
-static int musicUpdate(void *udata, uint8 *stream, int len) {
-	if (OPLinitialized) {
-		int fillStatus = 0;
-
-		while (fillStatus < len) {
-			int timeBeforNextUpdate = nextUpdateTimer - musicTimer;
-
-			if (timeBeforNextUpdate > len - fillStatus) {
-				timeBeforNextUpdate = len - fillStatus;
-			}
-
-			if (timeBeforNextUpdate) // generate
-			{
-				YM3812UpdateOne(0, (int16 *)(stream + fillStatus), timeBeforNextUpdate / 2);
-				fillStatus += timeBeforNextUpdate;
-				musicTimer += timeBeforNextUpdate;
-			}
-
-			if (musicTimer == nextUpdateTimer) {
-				callMusicUpdate();
-
-				nextUpdateTimer += musicSync;
-			}
-		}
-	}
-
-	return 0;
-}
-
-void createDefaultChannel(int index) {
+static void createDefaultChannel(int index) {
 	channelDataTable[index].var5 = 0xFF;
 	channelDataTable[index].var4 = 0xFF;
 	channelDataTable[index].var2 = 0x40;
@@ -616,12 +610,12 @@ void createDefaultChannel(int index) {
 	channelDataTable[index].var8 = 0xFFFF;
 }
 
-void resetChannelFrequency(int channelIdx) {
+static void resetChannelFrequency(int channelIdx) {
 	sendAdlib(0xA0 + channelIdx, 0);
 	sendAdlib(0xB0 + channelIdx, 0);
 }
 
-void setupChannelFrequency(int channelIdx, int cl, int dx, int bp) {
+static void setupChannelFrequency(int channelIdx, int cl, int dx, int bp) {
 
 	if (!(bp & 0x8000)) {
 		sendAdlib(0xB0 + channelIdx, 0);
@@ -654,23 +648,21 @@ void setupChannelFrequency(int channelIdx, int cl, int dx, int bp) {
 	sendAdlib(0xB0 + channelIdx, frequencyHigh);
 }
 
-int musicStart(void *dummy) {
-	int i;
-
+static int musicStart() {
 	sendAdlib(1, 0x20);
 	sendAdlib(8, 0);
 	sendAdlib(0xBD, regBDConf);
 
-	for (i = 0; i < 18; i++) {
+	for (int i = 0; i < 18; i++) {
 		sendAdlib(0x60 + channelTableMelodic[i], 0xFF);
 		sendAdlib(0x80 + channelTableMelodic[i], 0xFF);
 	}
 
-	for (i = 0; i < 9; i++) {
+	for (int i = 0; i < 9; i++) {
 		resetChannelFrequency(i);
 	}
 
-	for (i = 0; i < 11; i++) {
+	for (int i = 0; i < 11; i++) {
 		createDefaultChannel(i);
 	}
 
@@ -688,7 +680,7 @@ int musicStart(void *dummy) {
 	return 0;
 }
 
-int musicLoad(void *ptr) {
+static int musicLoad(void *ptr) {
 
 	uint8 *musicPtr = (uint8 *)ptr;
 
@@ -699,7 +691,7 @@ int musicLoad(void *ptr) {
 
 	if (!musicParam1) {
 		flag1 |= 0x20;
-		channelTable = channelTableRythme;
+		channelTable = channelRhythms;
 	}
 
 	regBDConf = flag1;
@@ -722,39 +714,10 @@ int musicLoad(void *ptr) {
 	return 0;
 }
 
-int initialialize(void *dummy) {
-	YM3812Init(1, OPL_INTERNAL_FREQ, 44100);
-
-	for (int i = 0; i < 11; i++) {
-		channelTable2[i].var4 |= 0x60;
-		channelTable2[i].var2->var4 |= 0x20;
-		channelTable2[i].dataPtr = nullptr;
-		channelTable2[i].commandPtr = nullptr;
-		channelTable3[i].dataPtr = nullptr;
-		channelTable3[i].commandPtr = nullptr;
-
-		createDefaultChannel(i);
-	}
-
-	musicStart(nullptr);
-
-	OPLinitialized = 1;
-
-	Audio::SoundHandle handle;
-	AdLibStream *stream = new AdLibStream();
-	g_engine->_mixer->playStream(Audio::Mixer::kMusicSoundType, &handle, stream);
-
-	return 0;
+static void commandNop(ChannelTable2Element *entry, int param, uint8 *ptr) {
 }
 
-int getSignature(void *dummy) {
-	return 0;
-}
-
-void commandNop(channelTable2Element *entry, int param, uint8 *ptr) {
-}
-
-void command0(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command0(ChannelTable2Element *entry, int param, uint8 *ptr) {
 	entry->var4 |= 2;
 
 	if (entry->var4 & 0x20) {
@@ -770,7 +733,7 @@ void command0(channelTable2Element *entry, int param, uint8 *ptr) {
 	entry->var2->var4 &= 0xFFFB;
 }
 
-void command1(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command1(ChannelTable2Element *entry, int param, uint8 *ptr) {
 
 	const uint16 ax = READ_LE_U16(ptr - 1);
 
@@ -779,44 +742,28 @@ void command1(channelTable2Element *entry, int param, uint8 *ptr) {
 	entry->commandPtr++;
 }
 
-void command2(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command2(ChannelTable2Element *entry, int param, uint8 *ptr) {
 	entry->var18++;
 	entry->var15 = param;
 }
 
-void command3(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command3(ChannelTable2Element *entry, int param, uint8 *ptr) {
 	entry->var12 = param;
 }
 
-void command4(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command4(ChannelTable2Element *entry, int param, uint8 *ptr) {
 	entry->var1E = param;
 }
 
-void command5(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command5(ChannelTable2Element *entry, int param, uint8 *ptr) {
 	entry->var17 = param;
 }
 
-void command6(channelTable2Element *entry, int param, uint8 *ptr) {
+static void command6(ChannelTable2Element *entry, int param, uint8 *ptr) {
 	assert(0);
 }
 
-musicCommandType musicCommandTable[10] =
-	{
-		command0,
-		command1,
-		command2,
-		command3,
-		command4,
-		command5,
-		command6,
-		commandNop,
-		commandNop,
-		commandNop,
-};
-
-void executeMusicCommand(channelTable2Element *entry) {
-	uint16 opcode;
-
+static void executeMusicCommand(ChannelTable2Element *entry) {
 	if (entry->var4 & 0x40)
 		return;
 
@@ -840,6 +787,7 @@ void executeMusicCommand(channelTable2Element *entry) {
 		}
 	}
 
+	uint16 opcode;
 	do {
 		opcode = READ_LE_U16(entry->commandPtr);
 		entry->commandPtr += 2;
@@ -851,9 +799,7 @@ void executeMusicCommand(channelTable2Element *entry) {
 	} while (!(opcode & 0x80));
 }
 
-uint8 smallTable[] = {0x10, 8, 4, 2, 1};
-
-void applyDirectFrequency(int index, int param1, int param2, int param3) {
+static void applyDirectFrequency(int index, int param1, int param2, int param3) {
 	if (musicParam1) {
 		setupChannelFrequency(index, param1, param2, param3);
 		return;
@@ -906,33 +852,7 @@ void applyDirectFrequency(int index, int param1, int param2, int param3) {
 	regBDConf = ah;
 }
 
-unsigned char smallData2[] =
-	{
-		0,
-		1,
-		2,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF,
-		3,
-		4,
-		5,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF,
-		0xFF,
-		6,
-		7,
-		8,
-		0xFF,
-		0xFF,
-		0xFF,
-};
-
-void configChannel(uint8 value, uint8 *data) {
+static void configChannel(uint8 value, const uint8 *data) {
 	if (smallData2[value] != 0xFF) {
 		sendAdlib(0xC0 + smallData2[value], data[2]);
 	}
@@ -943,7 +863,7 @@ void configChannel(uint8 value, uint8 *data) {
 	sendAdlib(0xE0 + value, data[3]); //  Waveform Select
 }
 
-void changeOuputLevel(uint8 value, uint8 *data, int bp) {
+static void changeOutputLevel(uint8 value, uint8 *data, int bp) {
 
 	if (value == 0xFF)
 		return;
@@ -959,7 +879,7 @@ void changeOuputLevel(uint8 value, uint8 *data, int bp) {
 	sendAdlib(0x40 + value, (data[0] & 0xC0) | (outputLevel & 0x3F));
 }
 
-void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement *element) {
+static void applyMusicCommandToOPL(ChannelTable2Element *element2, ChannelTableElement *element) {
 	if ((element2->var4 & 0x40) != element->var2) {
 		element->var2 = element2->var4 & 0x40;
 
@@ -1017,10 +937,10 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 			dx = element->var5;
 		}
 
-		changeOuputLevel(operator1, currentMusicPtr2 + 0xD * element2->var12, dx);
+		changeOutputLevel(operator1, currentMusicPtr2 + 0xD * element2->var12, dx);
 
 		if (operator2 != 0xFF) {
-			changeOuputLevel(operator2, currentMusicPtr2 + 0xD * element2->var12 + 6, element->var5);
+			changeOutputLevel(operator2, currentMusicPtr2 + 0xD * element2->var12 + 6, element->var5);
 		}
 	}
 
@@ -1044,33 +964,7 @@ void applyMusicCommandToOPL(channelTable2Element *element2, channelTableElement 
 	applyDirectFrequency(element2->index, element->var0 & 0xFF, element2->var4, bp);
 }
 
-int update(void *dummy) {
-
-	if (generalVolume & 0xFF) {
-		return 0;
-	}
-
-	for (int i = 0; i < 11; i++) {
-		currentMusicPtr2 = currentMusicPtr;
-
-		executeMusicCommand(&channelTable2[i]);
-
-		channelTable2Element *si = &channelTable2[i];
-
-		if (channelTable2[i].var4 & 4) {
-			currentMusicPtr2 = currentMusicPtr3;
-
-			si = channelTable2[i].var2;
-			executeMusicCommand(channelTable2[i].var2);
-		}
-
-		applyMusicCommandToOPL(si, &channelDataTable[i]);
-	}
-
-	return 0;
-}
-
-int musicFade(void *param) {
+static int musicFade(void *param) {
 
 	int cx = ((int *)param)[0];
 	int si = ((int *)param)[1];
@@ -1147,51 +1041,62 @@ int musicFade(void *param) {
 	return si;
 }
 
-musicDrvFunctionType musicDrvFunc[14] =
-	{
-		update,
-		initialialize,
-		musicStart,
-		musicLoad,
-		nullptr,
-		musicFade,
-		nullptr,
-		nullptr,
-		getSignature,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-};
+static void callMusicUpdate() {
+	if (OPLinitialized) {
+		if (generalVolume & 0xFF) {
+			return;
+		}
 
-int callMusicDrv(int commandArg, void *ptr) {
-	if (!musicDrvFunc[commandArg]) {
-		assert(0);
+		for (int i = 0; i < 11; i++) {
+			currentMusicPtr2 = currentMusicPtr;
+
+			executeMusicCommand(&channelTable2[i]);
+
+			ChannelTable2Element *si = &channelTable2[i];
+
+			if (channelTable2[i].var4 & 4) {
+				currentMusicPtr2 = currentMusicPtr3;
+
+				si = channelTable2[i].var2;
+				executeMusicCommand(channelTable2[i].var2);
+			}
+
+			applyMusicCommandToOPL(si, &channelDataTable[i]);
+		}
 	}
-
-	return musicDrvFunc[commandArg](ptr);
 }
 
 int initMusicDriver() {
-	callMusicDrv(1, nullptr);
+	_opl = OPL::Config::create();
+	if (_opl) {
+		_opl->init();
+		OPLinitialized = 1;
+	}
 
-	return callMusicDrv(8, nullptr);
+	for (int i = 0; i < 11; i++) {
+		channelTable2[i].var4 |= 0x60;
+		channelTable2[i].var2->var4 |= 0x20;
+		channelTable2[i].dataPtr = nullptr;
+		channelTable2[i].commandPtr = nullptr;
+		channelTable3[i].dataPtr = nullptr;
+		channelTable3[i].commandPtr = nullptr;
+
+		createDefaultChannel(i);
+	}
+
+	musicStart();
+
+	_opl->start(new MusicUpdater(), 60);
+
+	return 0;
 }
-
-void loadMusic(int param, char *musicPtr) {
-	callMusicDrv(3, musicPtr);
-	callMusicDrv(2, nullptr);
-}
-
-int fadeParam[3];
 
 int fadeMusic(int param1, int param2, int param3) {
 	fadeParam[0] = param1;
 	fadeParam[1] = param2;
 	fadeParam[2] = param3;
 
-	return callMusicDrv(5, &fadeParam);
+	return musicFade(fadeParam);
 }
 
 void playMusic(int musicNumber) {
@@ -1221,7 +1126,8 @@ void playMusic(int musicNumber) {
 				char *musicPtr = HQR_Get(listMus, trackNumber);
 
 				if (musicPtr) {
-					loadMusic(0, musicPtr);
+					musicLoad(musicPtr);
+					musicStart();
 
 					fadeMusic(musicVolume, 0, 0x80);
 					// osystem_playAdlib();
@@ -1231,14 +1137,8 @@ void playMusic(int musicNumber) {
 	}
 }
 
-static void callMusicUpdate() {
-	if (OPLinitialized) {
-		callMusicDrv(0, nullptr);
-	}
-}
-
 void destroyMusicDriver() {
-	YM3812Shutdown();
+	delete _opl;
 }
 
 } // namespace Fitd

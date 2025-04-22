@@ -1,9 +1,6 @@
 MODULE := engines/fitd
 
-BUILD_YM3812 := 1
-
 MODULE_OBJS = \
-	opl/fmopl.o \
 	actor_list.o \
 	aitd1.o \
 	aitd2.o \
