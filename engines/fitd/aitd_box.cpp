@@ -196,11 +196,12 @@ void affBigCadre2(int x, int y, int width, int height) {
 		afficheSprite(right - 17, currentTopPosition, 7, PtrCadre);
 		currentTopPosition += 11;
 
-		if (bottom - 41 <= currentTopPosition)
+		if (bottom - 38 <= currentTopPosition)
 			break;
 	}
 	currentLeftPosition = left;
 
+	currentTopPosition = bottom - 30;
 	afficheSprite(currentLeftPosition, currentTopPosition, 2, PtrCadre); // draw bottom left corner
 
 	while (true) // draw bottom bar
@@ -215,10 +216,10 @@ void affBigCadre2(int x, int y, int width, int height) {
 
 	afficheSprite(right - 30, currentTopPosition, 3, PtrCadre); // draw bottom right corner
 
-	WindowX1 = left + 14;
-	WindowY1 = top + 10;
+	WindowX1 = left + 17;
+	WindowY1 = top + 16;
 	WindowX2 = right - 14;
-	WindowY2 = bottom - 16;
+	WindowY2 = bottom - 18;
 
 	fillBox(WindowX1, WindowY1, WindowX2, WindowY2, 0);
 	setClip(WindowX1, WindowY1, WindowX2, WindowY2);

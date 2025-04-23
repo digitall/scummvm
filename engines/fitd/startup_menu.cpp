@@ -19,27 +19,27 @@
  *
  */
 
+#include "fitd/startup_menu.h"
 #include "fitd/aitd_box.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
-#include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
 
 void aitd2DrawStartupMenu(int selectedEntry) {
-	int currentY = 72;
+	int currentY = 79;
 	int currentTextNum = 0;
 
 	affBigCadre2(160, 100, 320, 80);
 
 	while (currentTextNum < 3) {
-		if (currentTextNum == selectedEntry) // hilight selected entry
+		if (currentTextNum == selectedEntry) // highlight selected entry
 		{
-			fillBox(17, currentY, 302, currentY + fontHeight, 100);
-			selectedMessage(160, currentY, currentTextNum + 11, 15, 4);
+			fillBox(17, currentY, 303, currentY + fontHeight, 100);
+			selectedMessage(160, currentY + 1, currentTextNum + 11, 15, 4);
 		} else {
 			simpleMessage(160, currentY, currentTextNum + 11, 4);
 		}
