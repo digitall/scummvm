@@ -351,7 +351,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 							ptrt++;
 						}
 
-						if (loadPak("ITD_RESS.PAK", 9, aux2)) {
+						if (loadPak("ITD_RESS.PAK", AITD1_TEXT_GRAPH, aux2)) {
 							assert(0); // when is this used?
 									   /*  var_C = printTextSub3(currentTextIdx,aux2);
 									   var_A = printTextSub4(currentTextIdx,aux2);
@@ -796,7 +796,6 @@ void initVars() {
 static void loadCamera(int cameraIdx) {
 
 	Common::String name = Common::String::format("CAMERA%02d.PAK", g_currentFloor);
-	// strcat(name,".PAK");
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		int useSpecial = -1;
@@ -2093,7 +2092,7 @@ void foundObject(int objIdx, int param) {
 	memset(frontBuffer, 0, 320 * 200);
 	fastCopyScreen(frontBuffer, logicalScreen);
 
-	if (g_engine->getGameId() == GID_AITD1) {
+	if (g_engine->getGameId() == GID_AITD1 || g_engine->getGameId() == GID_JACK) {
 		affBigCadre(160, 100, 240, 120);
 	} else {
 		affBigCadre2(160, 100, 240, 120);
@@ -2737,7 +2736,7 @@ static void loadPalette() {
 	if (g_engine->getGameId() == GID_AITD2) {
 		loadPak("ITD_RESS.PAK", 59, aux);
 	} else {
-		loadPak("ITD_RESS.PAK", 3, aux);
+		loadPak("ITD_RESS.PAK", AITD1_PALETTE_JEU, aux);
 	}
 	copyPalette((byte *)aux, currentGamePalette);
 
@@ -2890,7 +2889,7 @@ void runGame() {
 		break;
 	}
 	case GID_AITD1: {
-		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", 5);
+		PtrFont = checkLoadMallocPak("ITD_RESS.PAK", AITD1_ITDFONT);
 		break;
 	}
 	case GID_TIMEGATE:
@@ -2916,7 +2915,7 @@ void runGame() {
 		break;
 	}
 	case GID_AITD1: {
-		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", 4);
+		PtrCadre = checkLoadMallocPak("ITD_RESS.PAK", AITD1_CADRE_SPF);
 		break;
 	}
 	default:
