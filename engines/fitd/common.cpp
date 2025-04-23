@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/common.h"
 #include "audio/mixer.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
@@ -29,7 +30,6 @@
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
-#include "fitd/common.h"
 #include "fitd/console.h"
 #include "fitd/debugtools.h"
 #include "fitd/file_access.h"
@@ -249,7 +249,9 @@ void freeAll() {
 	HQR_Free(listTrack);
 	HQR_Free(listBody);
 	HQR_Free(listAnim);
-	HQR_Free(listMatrix);
+	if (g_engine->getGameId() != GID_AITD1) {
+		HQR_Free(listMatrix);
+	}
 
 	free(tabTextes);
 	free(PtrPrioritySample);
@@ -291,7 +293,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	//  LastSample = -1;
 	//  LastPriority = -1;
 
-	while (!g_engine->shouldQuit() && !quit) {
+	while (!Engine::shouldQuit() && !quit) {
 		fastCopyScreen(aux, logicalScreen);
 		process_events();
 		setClip(startx, top, endx, bottom);
@@ -313,7 +315,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 
 			int interWordSpace = 0;
 
-			while (true) {
+			while (!Engine::shouldQuit()) {
 				while (*ptrt == '#') {
 					// char* var_1BE = var_1C2;
 					ptrt++;
@@ -487,9 +489,9 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 			} else {
 				if (turnPageFlag) {
 					turnPageForward();
-				} else {
-					gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 				}
+				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+				osystem_drawBackground();
 			}
 
 			firstpage = 0;
@@ -500,12 +502,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				} else {
 					turnPageBackward();
 				}
-			} else {
-				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 			}
+			gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+			osystem_drawBackground();
 		}
-
-		osystem_drawBackground();
 
 		if (demoMode != 1) // mode != 1: normal behavior (user can flip pages)
 		{
@@ -513,7 +513,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				process_events();
 			} while (key || JoyD || Click);
 
-			while (1) {
+			while (!Engine::shouldQuit()) {
 				process_events();
 				localKey = key;
 				localJoyD = JoyD;
@@ -541,11 +541,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 							LastPriority = -1;
 						}
 						break;
-					} else {
-						if (localKey == 0x1C) {
-							quit = 1;
-							break;
-						}
+					}
+					if (localKey == 0x1C) {
+						quit = 1;
+						break;
 					}
 				}
 
@@ -1326,12 +1325,12 @@ void updateAllActorAndObjectsAITD2() {
 						// int var_A = currentObject->anim;
 					addObject:
 						const int actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
-														 currentObject->flags & 0xFFDF,
-														 currentObject->x, currentObject->y, currentObject->z,
-														 currentObject->stage, currentObject->room,
-														 currentObject->alpha, currentObject->beta, currentObject->gamma,
-														 currentObject->anim,
-														 currentObject->frame, currentObject->animType, currentObject->animInfo);
+															   currentObject->flags & 0xFFDF,
+															   currentObject->x, currentObject->y, currentObject->z,
+															   currentObject->stage, currentObject->room,
+															   currentObject->alpha, currentObject->beta, currentObject->gamma,
+															   currentObject->anim,
+															   currentObject->frame, currentObject->animType, currentObject->animInfo);
 
 						currentObject->objIndex = actorIdx;
 
@@ -1454,12 +1453,12 @@ void updateAllActorAndObjects() {
 
 					addObject:
 						const int actorIdx = copyObjectToActor(currentObject->body, currentObject->typeZV, currentObject->foundName,
-														 currentObject->flags & 0xFFDF,
-														 currentObject->x, currentObject->y, currentObject->z,
-														 currentObject->stage, currentObject->room,
-														 currentObject->alpha, currentObject->beta, currentObject->gamma,
-														 currentObject->anim,
-														 currentObject->frame, currentObject->animType, currentObject->animInfo);
+															   currentObject->flags & 0xFFDF,
+															   currentObject->x, currentObject->y, currentObject->z,
+															   currentObject->stage, currentObject->room,
+															   currentObject->alpha, currentObject->beta, currentObject->gamma,
+															   currentObject->anim,
+															   currentObject->frame, currentObject->animType, currentObject->animInfo);
 
 						currentObject->objIndex = actorIdx;
 
@@ -2105,7 +2104,7 @@ void foundObject(int objIdx, int param) {
 
 	input5 = 1;
 
-	while (!var_C && !g_engine->shouldQuit()) {
+	while (!var_C && !Engine::shouldQuit()) {
 		gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
 
 		process_events();
