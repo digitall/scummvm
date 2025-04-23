@@ -83,6 +83,7 @@ static sceZoneStruct *processActor2Sub(int x, int y, int z, const roomDataStruct
 
 void gereFrappe() {
 	switch (currentProcessedActorPtr->animActionType) {
+	case WAIT_FRAPPE_ANIM:
 	case WAIT_FRAPPE_FRAME:
 		if (currentProcessedActorPtr->animActionType == WAIT_FRAPPE_ANIM && currentProcessedActorPtr->ANIM == currentProcessedActorPtr->animActionANIM) {
 			currentProcessedActorPtr->animActionType = WAIT_FRAPPE_FRAME;

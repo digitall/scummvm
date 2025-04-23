@@ -19,6 +19,7 @@
  *
  */
 
+#include "fitd/life.h"
 #include "common/debug.h"
 #include "fitd/aitd1.h"
 #include "fitd/aitd2.h"
@@ -32,7 +33,6 @@
 #include "fitd/hqr.h"
 #include "fitd/inventory.h"
 #include "fitd/jack.h"
-#include "fitd/life.h"
 #include "fitd/music.h"
 #include "fitd/pak.h"
 #include "fitd/room.h"
@@ -698,7 +698,6 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 	flagInitView = 2;
 }
 
-
 void processLife(int lifeNum, bool callFoundLife) {
 	int exitLife = 0;
 	// int switchVal = 0;
@@ -1214,21 +1213,13 @@ void processLife(int lifeNum, bool callFoundLife) {
 					fire(fireAnim, shootFrame, emitPoint, zvSize, hitForce, nextAnim);
 				} else // use an emitter model
 				{
-					int fireAnim;
-					int shootFrame;
-					int emitPoint;
-					// int emitModel;
-					int zvSize;
-					int hitForce;
-					int nextAnim;
-
-					fireAnim = evalVar("Anim");
-					shootFrame = readNextArgument("Frame");
-					emitPoint = readNextArgument("EmitPoint");
-					// emitModel = readNextArgument("EmitModel");
-					zvSize = readNextArgument("ZVSize");
-					hitForce = readNextArgument("Force");
-					nextAnim = evalVar();
+					int fireAnim = evalVar("Anim");
+					int shootFrame = readNextArgument("Frame");
+					int emitPoint = readNextArgument("EmitPoint");
+					/*int emitModel = */ readNextArgument("EmitModel");
+					int zvSize = readNextArgument("ZVSize");
+					int hitForce = readNextArgument("Force");
+					int nextAnim = evalVar();
 
 					fire(fireAnim, shootFrame, emitPoint, zvSize, hitForce, nextAnim); // todo: implement emit model
 				}
