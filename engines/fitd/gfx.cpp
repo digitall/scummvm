@@ -25,16 +25,13 @@
 #include "common/rendermode.h"
 #include "common/scummsys.h"
 #include "common/system.h"
-#include "common/util.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/costable.h"
-#include "fitd/fitd.h"
 #include "fitd/hqr.h"
 #include "fitd/renderer.h"
 #include "fitd/renderer_opengl.h"
 #include "fitd/renderer_soft.h"
-#include "fitd/room.h"
 #include "fitd/vars.h"
 
 namespace Fitd {
@@ -196,8 +193,8 @@ void setAngleCamera(int x, int y, int z) {
 
 void rotate(unsigned int x, unsigned int y, unsigned int z, int *xOut, int *yOut) {
 	if (x) {
-		const int var1 = ((cosTable[x + 0x100 & 0x3FF] * y) << 1 & 0xFFFF0000) - ((cosTable[x & 0x3FF] * z) << 1 & 0xFFFF0000);
-		const int var2 = ((cosTable[x & 0x3FF] * y) << 1 & 0xFFFF0000) + ((cosTable[x + 0x100 & 0x3FF] * z) << 1 & 0xFFFF0000);
+		const int var1 = (((cosTable[(x + 0x100) & 0x3FF] * y) << 1) & 0xFFFF0000) - (((cosTable[x & 0x3FF] * z) << 1) & 0xFFFF0000);
+		const int var2 = (((cosTable[x & 0x3FF] * y) << 1) & 0xFFFF0000) + (((cosTable[(x + 0x100) & 0x3FF] * z) << 1) & 0xFFFF0000);
 
 		*yOut = var1 >> 16;
 		*xOut = var2 >> 16;
