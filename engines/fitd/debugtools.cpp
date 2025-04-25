@@ -19,12 +19,15 @@
  *
  */
 
-#include "fitd/detection.h"
-#include "fitd/debugtools.h"
-#include "fitd/gfx.h"
-#include "fitd/room.h"
 #include "backends/imgui/imgui.h"
 #include "common/debug.h"
+#include "fitd/debugger/dbg_vars.h"
+#include "fitd/debugger/dbg_utils.h"
+#include "fitd/debugger/dbg_pak.h"
+#include "fitd/debugtools.h"
+#include "fitd/detection.h"
+#include "fitd/gfx.h"
+#include "fitd/room.h"
 
 namespace Fitd {
 
@@ -33,10 +36,6 @@ typedef struct ImGuiState {
 } ImGuiState;
 
 ImGuiState *_state = nullptr;
-
-static void InputS16(const char *name, int16 *value) {
-	ImGui::InputScalar(name, ImGuiDataType_S16, value);
-}
 
 static void drawCamera() {
 	if (!_state->showCamera)
@@ -248,6 +247,8 @@ void onImGuiRender() {
 	ImGui::GetIO().ConfigFlags &= ~(ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoMouse);
 	drawCamera();
 	drawObjects();
+	drawVars();
+	drawPak();
 }
 
 void onImGuiCleanup() {

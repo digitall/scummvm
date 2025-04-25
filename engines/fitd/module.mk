@@ -47,6 +47,9 @@ MODULE_OBJS = \
 ifdef USE_IMGUI
 MODULE_OBJS += \
 	debugtools.o \
+	debugger/dbg_pak.o \
+	debugger/dbg_utils.o \
+	debugger/dbg_vars.o \
 
 endif
 
