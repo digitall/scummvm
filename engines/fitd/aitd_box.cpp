@@ -196,7 +196,7 @@ void affBigCadre2(int x, int y, int width, int height) {
 		afficheSprite(right - 17, currentTopPosition, 7, PtrCadre);
 		currentTopPosition += 11;
 
-		if (bottom - 38 <= currentTopPosition)
+		if (bottom - 30 <= currentTopPosition)
 			break;
 	}
 	currentLeftPosition = left;
