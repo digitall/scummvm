@@ -1067,6 +1067,18 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				break;
 			}
+		case LM_DO_MAX_ZV: {
+				getZvMax(HQR_Get(listBody, currentProcessedActorPtr->bodyNum), &currentProcessedActorPtr->zv);
+
+				currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX;
+				currentProcessedActorPtr->zv.ZVX2 += currentProcessedActorPtr->roomX;
+				currentProcessedActorPtr->zv.ZVY1 += currentProcessedActorPtr->roomY;
+				currentProcessedActorPtr->zv.ZVY2 += currentProcessedActorPtr->roomY;
+				currentProcessedActorPtr->zv.ZVZ1 += currentProcessedActorPtr->roomZ;
+				currentProcessedActorPtr->zv.ZVZ2 += currentProcessedActorPtr->roomZ;
+
+				break;
+			}
 			case LM_DO_CARRE_ZV: // DO_CARRE_ZV
 			{
 				// appendFormated("LM_DO_CARRE_ZV ");
