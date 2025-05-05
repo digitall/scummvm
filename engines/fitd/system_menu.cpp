@@ -53,15 +53,13 @@ void AffOption(int n, int num, int selected) {
 	}
 }
 
-static void scaleDownImage(const char *src) {
+static void scaleDownImage(int16 x, int16 y, const char *src) {
 	const int srcWidth = 320;
 	const int srcHeight = 200;
 	const int srcPitch = srcWidth;
 
-	const int x = 28;
-	const int y = 28;
-	const int dstWidth = 104;
-	const int dstHeight = 64;
+	const int dstWidth = 80;
+	const int dstHeight = 50;
 	const int dstPitch = dstWidth;
 	byte dstImg[dstWidth * dstHeight];
 	Graphics::scaleBlit(dstImg, (const byte *)src, dstPitch, srcPitch, dstWidth, dstHeight, srcWidth, srcHeight, Graphics::PixelFormat::createFormatCLUT8());
@@ -118,7 +116,7 @@ void AffOptionList(int selectedStringNumber) {
 
 	affBigCadre(80, 55, 120, 70);
 
-	scaleDownImage(aux2);
+	scaleDownImage(40, 35, aux2);
 
 	WindowY1 = backupTop;
 	WindowY2 = backupBottom;
