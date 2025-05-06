@@ -207,7 +207,7 @@ static int makeIntroScreens() {
 	LastSample = -1;
 	LastPriority = 0; */
 	turnPageFlag = 1;
-	lire(CVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, 0);
+	lire(CVars[getCVarsIdx(TEXTE_CREDITS)] + 1, 48, 2, 260, 197, 1, 26, -1);
 
 	return 0;
 }
@@ -309,7 +309,7 @@ int choosePerso() {
 			loadPak("ITD_RESS.PAK", AITD1_FOND_INTRO, aux);
 			copyBox_Aux_Log(160, 0, 319, 199);
 			fastCopyScreen(logicalScreen, aux);
-			lire(CVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 0);
+			lire(CVars[getCVarsIdx(INTRO_HERITIERE)] + 1, 165, 5, 314, 194, 2, 15, 1);
 			CVars[getCVarsIdx(CHOOSE_PERSO)] = 1;
 			break;
 		}
@@ -413,27 +413,27 @@ void startAITD1(int saveSlot) {
 	}
 }
 
-void aitd1_readBook(int index, int type) {
+void aitd1_readBook(int index, int type, int shadow) {
 	switch (type) {
 	case 0: // READ_MESSAGE
 	{
 		loadPak("ITD_RESS.PAK", AITD1_LETTRE, aux);
 		turnPageFlag = 0;
-		lire(index, 60, 10, 245, 190, 0, 26, 0);
+		lire(index, 60, 10, 245, 190, 0, 26, shadow);
 		break;
 	}
 	case 1: // READ_BOOK
 	{
 		loadPak("ITD_RESS.PAK", AITD1_LIVRE, aux);
 		turnPageFlag = 1;
-		lire(index, 48, 2, 260, 197, 0, 26, 0);
+		lire(index, 48, 2, 260, 197, 0, 26, shadow);
 		break;
 	}
 	case 2: // READ_CARNET
 	{
 		loadPak("ITD_RESS.PAK", AITD1_CARNET, aux);
 		turnPageFlag = 0;
-		lire(index, 50, 20, 250, 199, 0, 26, 0);
+		lire(index, 50, 20, 250, 199, 0, 26, shadow);
 		break;
 	}
 	default:

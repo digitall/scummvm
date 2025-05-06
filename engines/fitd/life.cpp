@@ -487,12 +487,12 @@ static void deleteObject(int objIdx) {
 	deleteInventoryObjet(objIdx);
 }
 
-static void readBook(int index, int type) {
+static void readBook(int index, int type, int shadow) {
 	freezeTime();
 
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		aitd1_readBook(index, type);
+		aitd1_readBook(index, type, shadow);
 		break;
 	case GID_JACK:
 		JACK_ReadBook(index, type);
@@ -1050,8 +1050,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				break;
 			}
-			case LM_DO_ROT_ZV: // DO_ROT_ZV
-			{
+			case LM_DO_ROT_ZV: {
 				// appendFormated("LM_DO_ROT_ZV ");
 				getZvRot(HQR_Get(listBody, currentProcessedActorPtr->bodyNum), &currentProcessedActorPtr->zv,
 						 currentProcessedActorPtr->alpha,
@@ -1067,7 +1066,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				break;
 			}
-		case LM_DO_MAX_ZV: {
+			case LM_DO_MAX_ZV: {
 				getZvMax(HQR_Get(listBody, currentProcessedActorPtr->bodyNum), &currentProcessedActorPtr->zv);
 
 				currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX;
@@ -1719,12 +1718,13 @@ void processLife(int lifeNum, bool callFoundLife) {
 				currentLifePtr += 2;
 
 				if (g_engine->getGameId() == GID_AITD1) {
+					lifeTempVar3 = *(int16 *)currentLifePtr;
 					currentLifePtr += 2; // AITD1 CD has an extra digit, related to the VOC files to play for the text?
 				}
 
 				fadeOutPhys(0x20, 0);
 
-				readBook(lifeTempVar2 + 1, lifeTempVar1);
+				readBook(lifeTempVar2 + 1, lifeTempVar1, lifeTempVar3);
 
 				if (g_engine->getGameId() == GID_AITD1) {
 					fadeOutPhys(4, 0);

@@ -20,6 +20,8 @@
  */
 
 #include "fitd/common.h"
+#include "audio/decoders/raw.h"
+#include "audio/decoders/voc.h"
 #include "audio/mixer.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
@@ -265,7 +267,7 @@ static void turnPageForward() {
 static void turnPageBackward() {
 }
 
-int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int shadow) {
+int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int perso) {
 	bool lastPageReached = false;
 	char tabString[] = "    ";
 	int firstpage = 1;
@@ -275,6 +277,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	int var_1C3;
 	char *ptrpage[100];
 	int currentTextIdx;
+	Audio::SoundHandle handle;
 
 	extSetFont(PtrFont, color);
 
@@ -507,6 +510,25 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 			osystem_drawBackground();
 		}
 
+		if (perso != -1) {
+			Audio::QueuingAudioStream *queuing_audio_stream = nullptr;
+			int part = 0;
+			while (true) {
+				g_engine->_mixer->stopHandle(handle);
+				Common::String fileName(Common::String::format("%02d%02d%02d.VOC", perso, page, part++));
+				Common::File *f = new Common::File();
+				f->open(fileName.c_str());
+				if (!f->isOpen())
+					break;
+				Audio::SeekableAudioStream *voc = Audio::makeVOCStream(f, Audio::FLAG_UNSIGNED, DisposeAfterUse::YES);
+				if (!queuing_audio_stream) {
+					queuing_audio_stream = Audio::makeQueuingAudioStream(voc->getRate(), voc->isStereo());
+				}
+				queuing_audio_stream->queueAudioStream(voc);
+			}
+			g_engine->_mixer->playStream(Audio::Mixer::kSpeechSoundType, &handle, queuing_audio_stream);
+		}
+
 		if (demoMode != 1) // mode != 1: normal behavior (user can flip pages)
 		{
 			do {
@@ -589,6 +611,7 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 		}
 	}
 
+	g_engine->_mixer->stopHandle(handle);
 	// HQ_Free_Malloc(HQ_Memory, textIndexMalloc);
 
 	return demoMode;

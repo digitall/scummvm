@@ -79,7 +79,7 @@ extern int AITD2KnownCVars[];
 extern int *currentCVarTable;
 
 int getCVarsIdx(int);
-int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int shadow);
+int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int perso);
 
 //////////////////////
 
