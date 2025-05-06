@@ -145,7 +145,37 @@ enumLifeMacro AITD1LifeMacroTable[] =
 		LM_WAIT_GAME_OVER,
 };
 
-int makeIntroScreens() {
+static void makeSlideshow() {
+	byte backupPalette[768];
+	char *image = nullptr;
+	uint chrono = 0;
+	copyPalette(currentGamePalette, backupPalette);
+	flushScreen();
+	for (int i = 0; i < 15; i++) {
+		if (i == 0) {
+			image = loadPak("ITD_RESS.PAK", AITD1_TITRE);
+		} else {
+			image = loadPak("PRESENT.PAK", i);
+		}
+		paletteFill(currentGamePalette, 0, 0, 0);
+		gfx_setPalette(currentGamePalette);
+		copyPalette((byte *)image + 2, currentGamePalette);
+		fastCopyScreen(image + 770, frontBuffer);
+		gfx_copyBlockPhys(frontBuffer, 0, 0, 320, 200);
+		fadeInPhys(8, 0);
+		startChrono(&chrono);
+
+		while (evalChrono(&chrono) < 180) {
+			process_events();
+		}
+
+		fadeOutPhys(16, 0);
+		free(image);
+	}
+	copyPalette(backupPalette, currentGamePalette);
+}
+
+static int makeIntroScreens() {
 	unsigned int chrono;
 
 	char *data = loadPak("ITD_RESS.PAK", AITD1_TITRE);
@@ -325,7 +355,7 @@ void startAITD1(int saveSlot) {
 
 			if (!make3dTatou()) {
 				if (!makeIntroScreens()) {
-					// makeSlideshow();
+					makeSlideshow();
 				}
 			}
 
