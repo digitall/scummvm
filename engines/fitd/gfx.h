@@ -65,6 +65,9 @@ void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, f
 void osystem_flip(unsigned char *videoBuffer);
 void osystem_updateScreen();
 
+void copyBoxLogPhys(int x0, int y0, int x1, int y1);
+void copyBlock(byte *in, byte *out, int left, int top, int right, int bottom);
+
 extern int BBox3D1;
 extern int BBox3D2;
 extern int BBox3D3;

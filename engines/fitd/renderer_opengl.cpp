@@ -328,6 +328,7 @@ static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
+static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
 static Graphics::Surface *renderer_capture();
 
 Renderer createOpenGLRenderer() {
@@ -347,6 +348,7 @@ Renderer createOpenGLRenderer() {
 	r.drawMask = renderer_drawMask;
 	r.drawPoint = renderer_drawPoint;
 	r.updateScreen = renderer_updateScreen;
+	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
 	r.capture = renderer_capture;
 	return r;
 }
@@ -1027,6 +1029,10 @@ static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 mat
 
 static void renderer_updateScreen() {
 	g_system->updateScreen();
+}
+
+static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
+	// TODO:
 }
 
 Graphics::Surface *renderer_capture() {

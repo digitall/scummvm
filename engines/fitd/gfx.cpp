@@ -19,7 +19,7 @@
  *
  */
 
-#include "fitd/gfx.h"
+
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/rendermode.h"
@@ -28,6 +28,7 @@
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/costable.h"
+#include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/renderer.h"
 #include "fitd/renderer_opengl.h"
@@ -1065,6 +1066,10 @@ void setClip(int left, int top, int right, int bottom) {
 
 void fillBox(int x1, int y1, int x2, int y2, char color) // fast recode. No RE
 {
+	x1 = CLIP(x1, 0, 320);
+	x2 = CLIP(x2, 0, 320);
+	y1 = CLIP(y1, 0, 199);
+	y2 = CLIP(y2, 0, 199);
 	const int width = x2 - x1 + 1;
 	const int height = y2 - y1 + 1;
 
@@ -1118,6 +1123,31 @@ void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, f
 
 void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
 	osystem_drawPoint(X, Y, Z, color, material, size);
+}
+
+void copyBoxLogPhys(int left, int top, int right, int bottom) {
+	renderer.copyBoxLogPhys(left, top, right, bottom);
+}
+
+void copyBlock(byte *in, byte *out, int left, int top, int right, int bottom) {
+
+	while ((right - left) % 4) {
+		right++;
+	}
+
+	while ((bottom - top) % 4) {
+		bottom++;
+	}
+
+	for (int i = top; i < bottom; i++) {
+		const byte *in2 = in + left + i * 320;
+		byte *out2 = out + left + i * 320;
+
+		for (int j = left; j < right; j++) {
+			const byte color = *in2++;
+			*out2++ = color;
+		}
+	}
 }
 
 void osystem_updateScreen() {

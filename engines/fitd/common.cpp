@@ -44,6 +44,7 @@
 #include "fitd/inventory.h"
 #include "fitd/jack.h"
 #include "fitd/life.h"
+#include "fitd/lines.h"
 #include "fitd/main_loop.h"
 #include "fitd/music.h"
 #include "fitd/object.h"
@@ -52,6 +53,7 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
+#include "gob/detection/detection.h"
 
 namespace Fitd {
 
@@ -261,10 +263,75 @@ void freeAll() {
 	free(aux2);
 }
 
+static void drawGradient(int x1, int x2) {
+	int right = x1 + (x2 - x1) / 2;
+	int left = x1 + 1;
+	fillBox(left, 0, right, 199, 19);
+	left = right;
+	right += (x2 - right) / 2;
+	fillBox(left, 0, right, 199, 20);
+	left = right;
+	right += (x2 - right) / 2;
+	fillBox(left, 0, right, 199, 21);
+	left = right;
+	right += (x2 - right) / 2;
+	fillBox(left, 0, right, 199, 22);
+	left = right;
+	right += (x2 - right) / 2;
+	fillBox(left, 0, right, 199, 23);
+	fillBox(right, 0, x2, 199, 24);
+}
+
 static void turnPageForward() {
+	setClip(0, 0, 319, 199);
+	gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+	char *saveLogicalScreen = logicalScreen;
+	logicalScreen = (char *)&frontBuffer[0];
+	polyBackBuffer = &frontBuffer[0];
+	int i = 20;
+	int left = 260;
+	int right = 319;
+	while (right > -1) {
+		fastCopyScreen(saveLogicalScreen, frontBuffer);
+		right = 280 - (i / 2);
+		line(left, 0, left, 199, 16);
+		drawGradient(left + 1, right);
+		if (right < -2) {
+			copyBoxLogPhys(0, 0, right + 21, 199);
+		} else {
+			copyBoxLogPhys(left + 1, 0, right + 21, 199);
+		}
+		i += 10;
+		left -= 10;
+	}
+	logicalScreen = saveLogicalScreen;
 }
 
 static void turnPageBackward() {
+	setClip(0, 0, 319, 199);
+
+	char *saveLogicalScreen = logicalScreen;
+	logicalScreen = (char *)&frontBuffer[0];
+	polyBackBuffer = &frontBuffer[0];
+	int si = -540;
+	int di = 820;
+	do {
+		if (si >= 20) {
+			copyBlock((byte *)saveLogicalScreen, frontBuffer, 0, 0, si - 19, 199);
+			copyBoxLogPhys(0, 0, 280, 199);
+		}
+
+		line(si, 0, si, 199, 16);
+		drawGradient(si + 1, 280 - (di / 2));
+		di -= 10;
+		si += 10;
+	} while (si < 260);
+	copyBoxLogPhys(si - 20, 0, 319, 199);
+
+	logicalScreen = saveLogicalScreen;
+
+	gfx_copyBlockPhys((unsigned char *)saveLogicalScreen, 0, 0, 320, 200);
+	osystem_drawBackground();
 }
 
 int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int color, int perso) {
@@ -492,9 +559,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 			} else {
 				if (turnPageFlag) {
 					turnPageForward();
+				} else {
+					gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+					osystem_drawBackground();
 				}
-				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
-				osystem_drawBackground();
 			}
 
 			firstpage = 0;
@@ -505,9 +573,10 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 				} else {
 					turnPageBackward();
 				}
+			} else {
+				gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
+				osystem_drawBackground();
 			}
-			gfx_copyBlockPhys((unsigned char *)logicalScreen, 0, 0, 320, 200);
-			osystem_drawBackground();
 		}
 
 		if (perso != -1) {

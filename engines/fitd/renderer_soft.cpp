@@ -101,6 +101,7 @@ static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
+static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
 static Graphics::Surface *renderer_capture();
 
 Renderer createSoftwareRenderer() {
@@ -120,6 +121,7 @@ Renderer createSoftwareRenderer() {
 	r.drawMask = renderer_drawMask;
 	r.drawPoint = renderer_drawPoint;
 	r.updateScreen = renderer_updateScreen;
+	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
 	r.capture = renderer_capture;
 	return r;
 }
@@ -159,7 +161,6 @@ static void renderer_setPalette(const byte *palette) {
 }
 
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom) {
-	byte *out = _state->physicalScreenRGB;
 
 	while ((right - left) % 4) {
 		right++;
@@ -172,6 +173,8 @@ static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int rig
 	for (int i = top; i < bottom; i++) {
 		const byte *in = (const byte *)&videoBuffer[0] + left + i * WIDTH;
 		byte *out2 = _state->physicalScreen + left + i * WIDTH;
+		byte *out = _state->physicalScreenRGB + left * 3 + i * WIDTH * 3;
+
 		for (int j = left; j < right; j++) {
 			const byte color = *in++;
 
@@ -1046,6 +1049,31 @@ static void renderer_drawPoint(float sX, float sY, float sZ, uint8 color, uint8 
 }
 
 static void renderer_updateScreen() {
+	g_engine->_screen->update();
+}
+
+static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
+	byte* dst = (byte*)g_engine->_screen->getBasePtr(0,0);
+
+	while ((right - left) % 4) {
+		right++;
+	}
+
+	while ((bottom - top) % 4) {
+		bottom++;
+	}
+
+	for (int i = top; i < bottom; i++) {
+		const byte *in = (const byte *)&frontBuffer[0] + left + i * 320;
+		byte *out2 = dst + left + i * 320;
+
+		for (int j = left; j < right; j++) {
+			const byte color = *in++;
+
+			*out2++ = color;
+		}
+	}
+	g_engine->_screen->addDirtyRect(Common::Rect(left,top,right,bottom));
 	g_engine->_screen->update();
 }
 
