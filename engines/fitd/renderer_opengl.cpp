@@ -320,6 +320,7 @@ static void renderer_drawBackground();
 static void renderer_setPalette(const byte *palette);
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
 static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char color, uint8 polyType);
+static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color);
 static void renderer_refreshFrontTextureBuffer();
 static void renderer_flushPendingPrimitives();
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsigned char *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
@@ -340,6 +341,7 @@ Renderer createOpenGLRenderer() {
 	r.setPalette = renderer_setPalette;
 	r.copyBlockPhys = renderer_copyBlockPhys;
 	r.fillPoly = renderer_fillPoly;
+	r.renderLine = renderer_renderLine;
 	r.refreshFrontTextureBuffer = renderer_refreshFrontTextureBuffer;
 	r.flushPendingPrimitives = renderer_flushPendingPrimitives;
 	r.createMask = renderer_createMask;
@@ -1025,6 +1027,10 @@ static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 mat
 		pVertex->centerY = Y;
 		pVertex->material = material;
 	}
+}
+
+static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color) {
+	// TODO:
 }
 
 static void renderer_updateScreen() {

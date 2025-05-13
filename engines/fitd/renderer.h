@@ -31,12 +31,13 @@ struct Surface;
 namespace Fitd {
 
 struct Renderer {
-	void (*init) ();
-	void (*deinit) ();
-	void (*startFrame) ();
-	void (*drawBackground) ();
-	void (*setPalette) (const byte *palette);
+	void (*init)();
+	void (*deinit)();
+	void (*startFrame)();
+	void (*drawBackground)();
+	void (*setPalette)(const byte *palette);
 	void (*copyBlockPhys)(byte *videoBuffer, int left, int top, int right, int bottom);
+	void (*renderLine)(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color);
 	void (*fillPoly)(const int16 *buffer, int numPoint, unsigned char color, uint8 polyType);
 	void (*refreshFrontTextureBuffer)();
 	void (*flushPendingPrimitives)();

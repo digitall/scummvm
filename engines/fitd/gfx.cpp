@@ -19,7 +19,7 @@
  *
  */
 
-
+#include "fitd/gfx.h"
 #include "common/config-manager.h"
 #include "common/debug.h"
 #include "common/rendermode.h"
@@ -28,7 +28,6 @@
 #include "fitd/anim.h"
 #include "fitd/common.h"
 #include "fitd/costable.h"
-#include "fitd/gfx.h"
 #include "fitd/hqr.h"
 #include "fitd/renderer.h"
 #include "fitd/renderer_opengl.h"
@@ -72,6 +71,7 @@ typedef struct primEntryStruct {
 	uint16 numOfVertices;
 	primTypeEnum type;
 	rendererPointStruct vertices[NUM_MAX_VERTEX_IN_PRIM];
+	float depth;
 } primEntryStruct;
 
 primEntryStruct primTable[NUM_MAX_PRIM_ENTRY];
@@ -581,7 +581,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 	return 0;
 }
 
-static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
+int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
 
 	renderX = x - translateX;
 	renderY = y;
@@ -688,6 +688,35 @@ static int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBod
 }
 
 static void processPrim_Line(int primType, sPrimitive *ptr, char **out) {
+	primEntryStruct *pCurrentPrimEntry = &primTable[positionInPrimEntry];
+
+	assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
+
+	pCurrentPrimEntry->type = primTypeEnum_Line;
+	pCurrentPrimEntry->numOfVertices = ptr->m_points.size();
+	pCurrentPrimEntry->color = ptr->m_color;
+	pCurrentPrimEntry->material = ptr->m_material;
+
+	float minDepth = 32000.f;
+	float depth = -32000.f;
+	for (int i = 0; i < pCurrentPrimEntry->numOfVertices; i++) {
+		const uint16 pointIndex = ptr->m_points[i] * 6;
+		assert(pointIndex % 2 == 0);
+		pCurrentPrimEntry->vertices[i].X = renderPointList[pointIndex / 2];
+		pCurrentPrimEntry->vertices[i].Y = renderPointList[pointIndex / 2 + 1];
+		pCurrentPrimEntry->vertices[i].Z = renderPointList[pointIndex / 2 + 2];
+
+		depth = MAX(depth, (float)pCurrentPrimEntry->vertices[i].Z);
+		minDepth = MIN(minDepth, (float)pCurrentPrimEntry->vertices[i].Z);
+	}
+	pCurrentPrimEntry->depth = depth;
+
+	if (minDepth > 100) {
+		positionInPrimEntry++;
+
+		numOfPrimitiveToRender++;
+		assert(positionInPrimEntry < NUM_MAX_PRIM_ENTRY);
+	}
 }
 
 static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
@@ -700,7 +729,8 @@ static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
 	pCurrentPrimEntry->color = ptr->m_color;
 	pCurrentPrimEntry->material = ptr->m_material;
 
-	float depth = 32000.f;
+	float minDepth = 32000.f;
+	float depth = -32000.f;
 	assert(pCurrentPrimEntry->numOfVertices < NUM_MAX_VERTEX_IN_PRIM);
 	for (int i = 0; i < pCurrentPrimEntry->numOfVertices; i++) {
 
@@ -712,11 +742,16 @@ static void processPrim_Poly(int primType, sPrimitive *ptr, char **out) {
 		pCurrentPrimEntry->vertices[i].Y = renderPointList[pointIndex / 2 + 1];
 		pCurrentPrimEntry->vertices[i].Z = renderPointList[pointIndex / 2 + 2];
 
-		if (pCurrentPrimEntry->vertices[i].Z < depth)
+		if (pCurrentPrimEntry->vertices[i].Z > depth) {
 			depth = pCurrentPrimEntry->vertices[i].Z;
+		}
+		if (pCurrentPrimEntry->vertices[i].Z < minDepth) {
+			minDepth = pCurrentPrimEntry->vertices[i].Z;
+		}
 	}
+	pCurrentPrimEntry->depth = depth;
 
-	if (depth > 100) {
+	if (minDepth > 100) {
 		positionInPrimEntry++;
 
 		numOfPrimitiveToRender++;
@@ -734,7 +769,7 @@ static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out
 	pCurrentPrimEntry->color = ptr->m_color;
 	pCurrentPrimEntry->material = ptr->m_material;
 
-	float depth = 32000.f;
+	float depth = -32000.f;
 	{
 		const uint16 pointIndex = ptr->m_points[0] * 6;
 		assert(pointIndex % 2 == 0);
@@ -742,7 +777,8 @@ static void processPrim_Point(primTypeEnum primType, sPrimitive *ptr, char **out
 		pCurrentPrimEntry->vertices[0].Y = renderPointList[pointIndex / 2 + 1];
 		pCurrentPrimEntry->vertices[0].Z = renderPointList[pointIndex / 2 + 2];
 
-		depth = pCurrentPrimEntry->vertices[0].Z;
+		depth = MAX(depth, (float)pCurrentPrimEntry->vertices[0].Z);
+		pCurrentPrimEntry->depth = depth;
 	}
 
 	if (depth > 100) {
@@ -787,7 +823,7 @@ void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
 	pCurrentPrimEntry->material = ptr->m_material;
 	pCurrentPrimEntry->size = ptr->m_size;
 
-	float depth = 32000.f;
+	float depth = -32000.f;
 	{
 		const uint16 pointIndex = ptr->m_points[0] * 6;
 		assert(pointIndex % 2 == 0);
@@ -795,7 +831,8 @@ void processPrim_Sphere(int primType, sPrimitive *ptr, char **out) {
 		pCurrentPrimEntry->vertices[0].Y = renderPointList[pointIndex / 2 + 1];
 		pCurrentPrimEntry->vertices[0].Z = renderPointList[pointIndex / 2 + 2];
 
-		depth = pCurrentPrimEntry->vertices[0].Z;
+		depth = MAX(depth, (float)pCurrentPrimEntry->vertices[0].Z);
+		pCurrentPrimEntry->depth = depth;
 	}
 
 	if (depth > 100) {
@@ -810,8 +847,7 @@ typedef void (*renderFunction)(primEntryStruct *buffer);
 
 void renderLine(primEntryStruct *pEntry) // line
 {
-	// TODO:
-	assert(false);
+	renderer.renderLine(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->vertices[1].X, pEntry->vertices[1].Y, pEntry->vertices[1].Z, pEntry->color);
 }
 
 void renderPoly(primEntryStruct *pEntry) // poly
@@ -841,7 +877,6 @@ void renderBigPoint(primEntryStruct *pEntry) // point
 
 void renderSphere(primEntryStruct *pEntry) // sphere
 {
-
 	const float transformedSize = (float)pEntry->size * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
 
 	osystem_drawSphere(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
@@ -865,15 +900,7 @@ renderFunction renderFunctions[] = {
 static int primCompare(const void *prim1, const void *prim2) {
 	const primEntryStruct *p1 = (const primEntryStruct *)prim1;
 	const primEntryStruct *p2 = (const primEntryStruct *)prim2;
-	if (p1->material == p2->material)
-		return 0;
-	if (p1->material == 2)
-		return 1;
-	if (p2->material == 2)
-		return -1;
-	if (p1->material > p2->material)
-		return -1;
-	return 1;
+	return (int)p2->depth - (int)p1->depth;
 }
 
 int affObjet(int x, int y, int z, int alpha, int beta, int gamma, void *modelPtr) {

@@ -25,7 +25,7 @@
 #include "fitd/vars.h"
 #include "graphics/screen.h"
 #include "graphics/surface.h"
-#include "math/utils.h"
+#include "lines.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
@@ -65,13 +65,10 @@ struct ClipMask {
 struct State {
 	int16 tabVerticXmin[HEIGHT];
 	int16 tabVerticXmax[HEIGHT];
-	float tabVerticZmin[HEIGHT]; // TODO: improve his, this not necessary to store all these data
-	float tabVerticZmax[HEIGHT];
 	polyVertex flatVertices[NUM_MAX_FLAT_VERTICES];
 	polyVertex tmpVertices[NUM_MAX_FLAT_VERTICES];
 	byte physicalScreen[WIDTH * HEIGHT];
 	byte physicalScreenRGB[WIDTH * HEIGHT * 3];
-	float zBuffer[WIDTH * HEIGHT];
 	byte RGB_Pal[256 * 3];
 
 	int16 polyMinX;
@@ -93,6 +90,7 @@ static void renderer_drawBackground();
 static void renderer_setPalette(const byte *palette);
 static void renderer_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
 static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uint8 polyType);
+static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color);
 static void renderer_refreshFrontTextureBuffer();
 static void renderer_flushPendingPrimitives();
 static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte *refImage, int maskX1, int maskY1, int maskX2, int maskY2);
@@ -113,6 +111,7 @@ Renderer createSoftwareRenderer() {
 	r.setPalette = renderer_setPalette;
 	r.copyBlockPhys = renderer_copyBlockPhys;
 	r.fillPoly = renderer_fillPoly;
+	r.renderLine = renderer_renderLine;
 	r.refreshFrontTextureBuffer = renderer_refreshFrontTextureBuffer;
 	r.flushPendingPrimitives = renderer_flushPendingPrimitives;
 	r.createMask = renderer_createMask;
@@ -143,9 +142,6 @@ static void renderer_deinit() {
 static void renderer_startFrame() {
 	g_engine->_screen->clear();
 	g_engine->_screen->clearDirtyRects();
-	for (int i = 0; i < WIDTH * HEIGHT; i++) {
-		_state->zBuffer[i] = FLT_MAX;
-	}
 }
 
 static void renderer_drawBackground() {
@@ -559,7 +555,6 @@ static int16 poly_clip(polyVertex **polys, int16 num) {
 static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 	polyVertex *pTabPoly = pPolys;
 	int32 incY = -1;
-	float *pZ = nullptr;
 	for (int i = 0; i < num; i++, pTabPoly++) {
 		const polyVertex *p0 = pTabPoly;
 		const polyVertex *p1 = p0 + 1;
@@ -580,7 +575,6 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 			}
 
 			pVertic = &_state->tabVerticXmax[p0->Y];
-			pZ = &_state->tabVerticZmax[p0->Y];
 		} else if (dy < 0) {
 			dy = -dy;
 
@@ -593,26 +587,20 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 			}
 
 			pVertic = &_state->tabVerticXmin[p0->Y];
-			pZ = &_state->tabVerticZmin[p0->Y];
 		}
 
 		int32 dx = (p1->X - p0->X) << 16;
 		int32 step = dx / dy;
 		int32 reminder = ((dx % dy) >> 1) + 0x7FFF;
-		const float dz = (float)(p1->Z - p0->Z) / dy;
 
 		dx = step >> 16; // recovery part high division (entire)
 		step &= 0xFFFF;  // preserves lower part (mantissa)
 		int32 x = p0->X;
-		float z = p0->Z;
 
 		for (int32 y = 0; y <= dy; y++) {
 			*pVertic = (int16)x;
-			*pZ = z;
 			assert(x >= 0);
 			assert(x < WIDTH);
-			assert(z >= 0);
-			assert(z < 32000);
 			pVertic += incY;
 			x += dx;
 			reminder += step;
@@ -620,8 +608,6 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 				x += reminder >> 16;
 				reminder &= 0xFFFF;
 			}
-			pZ += incY;
-			z += dz;
 		}
 	}
 
@@ -630,18 +616,12 @@ static void poly_setMinMax(polyVertex *pPolys, int16 num) {
 		pTabPoly = pPolys;
 		_state->tabVerticXmin[_state->polyMinY] = INT16_MAX;
 		_state->tabVerticXmax[_state->polyMinY] = INT16_MIN;
-		_state->tabVerticZmin[_state->polyMinY] = INT16_MAX;
-		_state->tabVerticZmax[_state->polyMinY] = INT16_MIN;
 		for (int i = 0; i < num; i++, pTabPoly++) {
 			const polyVertex *p0 = pTabPoly;
 			if (p0->X < _state->tabVerticXmin[_state->polyMinY])
 				_state->tabVerticXmin[_state->polyMinY] = p0->X;
 			if (p0->X > _state->tabVerticXmax[_state->polyMinY])
 				_state->tabVerticXmax[_state->polyMinY] = p0->X;
-			if (p0->Z < _state->tabVerticXmin[_state->polyMinY])
-				_state->tabVerticZmin[_state->polyMinY] = p0->Z;
-			if (p0->Z > _state->tabVerticXmax[_state->polyMinY])
-				_state->tabVerticZmax[_state->polyMinY] = p0->Z;
 		}
 		assert(_state->tabVerticXmin[_state->polyMinY] >= 0);
 		assert(_state->tabVerticXmin[_state->polyMaxY] < WIDTH);
@@ -858,9 +838,6 @@ static void render(byte color, uint8 polyType) {
 	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, y);
 	const int16 *pVerticXmin = &_state->tabVerticXmin[y];
 	const int16 *pVerticXmax = &_state->tabVerticXmax[y];
-	const float *pVerticZmin = &_state->tabVerticZmin[y];
-	const float *pVerticZmax = &_state->tabVerticZmax[y];
-	float *zBuffer = &_state->zBuffer[y * WIDTH];
 	MaterialRender matRender;
 
 	if (!detailToggle) {
@@ -931,39 +908,28 @@ static void render(byte color, uint8 polyType) {
 	for (; y <= _state->polyMaxY; y++) {
 		const int16 xMin = *pVerticXmin++;
 		const int16 xMax = *pVerticXmax++;
-		const float zMin = *pVerticZmin++;
-		const float zMax = *pVerticZmax++;
-		const float dz = (zMax - zMin) / MAX(1, xMax - xMin);
-		// assert(zMin >= 0);
-		// assert(zMax >= 0);
-		assert(xMin >= 0);
-		assert(xMin < WIDTH);
-		assert(xMax >= 0);
-		assert(xMax < WIDTH);
 
+		if (xMin < 0 || xMin >= WIDTH || xMax < 0 || xMax >= WIDTH) {
+			pDestLine += WIDTH;
+			continue;
+		}
 		byte *pDest = pDestLine + xMin;
-		float z = zMin;
 		if (xMin <= xMax) {
 			matRender.nextLine(xMin, xMax);
 		}
 		for (int16 x = xMin; x <= xMax; x++) {
-			if (z < zBuffer[x]) {
-				matRender.render(pDest);
-				zBuffer[x] = z;
-			}
+			matRender.render(pDest);
 			pDest++;
-			z += dz;
 		}
 
 		pDestLine += WIDTH;
-		zBuffer += WIDTH;
-		// if (Debug && xMin <= xMax) {
-		// 	g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
-		// 	renderer_updateScreen();
-		// 	readKeyboard();
-		// 	if (g_engine->shouldQuit())
-		// 		return;
-		// }
+		//  if (Debug && xMin <= xMax) {
+		//  	g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(xMin, y), xMax - xMin + 1, 1));
+		//  	renderer_updateScreen();
+		//  	readKeyboard();
+		//  	if (g_engine->shouldQuit())
+		//  		return;
+		//  }
 	}
 }
 
@@ -982,13 +948,19 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, byte color, uin
 	render(color, polyType);
 }
 
+static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color) {
+	byte *pDestLine = (uint8 *)g_engine->_screen->getBasePtr(0, 0);
+	polyBackBuffer = pDestLine;
+	line(x1, y1, x2, y2, color);
+}
+
 static bool inCircle(int pX, int pY, int cX, int cY, float radius) {
 	const int dx = ABS(pX - cX);
 	const int dy = ABS(pY - cY);
 	return dx * dx + dy * dy <= radius * radius;
 }
 
-static bool computeSphere(float sx, float sy, float sz, float radius) {
+static bool computeSphere(float sx, float sy, float radius) {
 	if (radius <= 0) {
 		return false;
 	}
@@ -1018,21 +990,11 @@ static bool computeSphere(float sx, float sy, float sz, float radius) {
 	for (int16 y = top; y <= bottom; y++) {
 		_state->tabVerticXmin[y] = INT16_MAX;
 		_state->tabVerticXmax[y] = INT16_MIN;
-		_state->tabVerticZmin[y] = sz;
-		_state->tabVerticZmax[y] = sz;
-		bool inside = false;
 		for (int16 x = left; x <= right; x++) {
 			if (inCircle(x, y, sx, sy, radius)) {
-				inside = true;
 				_state->tabVerticXmin[y] = MIN(x, _state->tabVerticXmin[y]);
 				_state->tabVerticXmax[y] = MAX(x, _state->tabVerticXmax[y]);
 			}
-		}
-		if (!inside) {
-			_state->tabVerticXmin[y] = 0;
-			_state->tabVerticXmax[y] = 0;
-			_state->tabVerticZmin[y] = FLT_MAX;
-			_state->tabVerticZmax[y] = FLT_MAX;
 		}
 	}
 
@@ -1042,9 +1004,27 @@ static bool computeSphere(float sx, float sy, float sz, float radius) {
 	return true;
 }
 
+static void drawPoint(int16 x, int16 y, uint8 color) {
+	if (x >= clipLeft && x < clipRight && y >= clipTop && y < clipBottom) {
+		g_engine->_screen->setPixel(x, y, color);
+		g_engine->_screen->addDirtyRect(Common::Rect(Common::Point(x, y), 1, 1));
+	}
+}
+
 static void renderer_drawPoint(float sX, float sY, float sZ, uint8 color, uint8 material, float size) {
-	if (computeSphere(sX, sY, sZ, size)) {
-		render(color, material);
+	if (size == 2.f) {
+		// big point
+		drawPoint(sX, sY, color);
+		drawPoint(sX + 1, sY, color);
+		drawPoint(sX + 1, sY + 1, color);
+		drawPoint(sX, sY + 1, color);
+	} else if (size == 0.3f) {
+		// point
+		drawPoint(sX, sY, color);
+	} else {
+		if (computeSphere(sX, sY, size)) {
+			render(color, material);
+		}
 	}
 }
 
@@ -1053,7 +1033,7 @@ static void renderer_updateScreen() {
 }
 
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
-	byte* dst = (byte*)g_engine->_screen->getBasePtr(0,0);
+	byte *dst = (byte *)g_engine->_screen->getBasePtr(0, 0);
 
 	while ((right - left) % 4) {
 		right++;
@@ -1073,7 +1053,7 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
 			*out2++ = color;
 		}
 	}
-	g_engine->_screen->addDirtyRect(Common::Rect(left,top,right,bottom));
+	g_engine->_screen->addDirtyRect(Common::Rect(left, top, right, bottom));
 	g_engine->_screen->update();
 }
 
