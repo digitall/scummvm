@@ -746,8 +746,8 @@ void dither_render(byte *dst) {
 struct MarbleRenderState {
 	byte start;
 	byte bank;
-	byte color;
-	int32 step;
+	float color;
+	float step;
 } _marbleState;
 
 void marble_init(byte c) {
@@ -756,43 +756,45 @@ void marble_init(byte c) {
 }
 
 void marble_nextLine(int16 xMin, int16 xMax) {
-	const int32 dx = xMax - xMin;
-	_marbleState.step = 15 / (dx + 1);
+	const int dx = xMax - xMin;
+	_marbleState.step = 15.f / static_cast<float>(dx + 1);
 	_marbleState.color = _marbleState.start;
 }
 
 void marble_render(byte *dst) {
-	*dst = _marbleState.bank | _marbleState.color;
+	*dst = _marbleState.bank | ((static_cast<byte>(_marbleState.color)) & 0x0F);
 	_marbleState.color += _marbleState.step;
 }
 
 void marble2_render(byte *dst) {
-	*dst = _marbleState.bank | 15 - _marbleState.color;
+	*dst = _marbleState.bank | (15 - ((static_cast<byte>(_marbleState.color)) & 0x0F));
 	_marbleState.color += _marbleState.step;
 }
 
 struct CopperRenderState {
 	int8 sens;
 	byte color;
+	byte bank;
 } _copperState;
 
 void copper_init(byte c) {
 	_copperState.sens = 1;
-	_copperState.color = c - 1;
+	_copperState.bank = c & 0xF0;
+	_copperState.color = (c - 1) & 0x0F;
 }
 
 void copper_nextLine(int16 xMin, int16 xMax) {
 	_copperState.color += _copperState.sens;
-	if (!(_copperState.color & 0xF)) {
-		_copperState.sens = -_copperState.sens;
-		if (_copperState.sens < 0) {
-			_copperState.color += _copperState.sens;
-		}
+	if (_copperState.color == 16) {
+		_copperState.color = 15;
+		_copperState.sens = -1;
+	} else if (_copperState.color == 0) {
+		_copperState.sens = 1;
 	}
 }
 
 void copper_render(byte *dst) {
-	*dst = _copperState.color;
+	*dst = _copperState.bank | _copperState.color;
 }
 
 struct Copper2RenderState {
@@ -831,7 +833,7 @@ struct MaterialRender {
 	void (*nextLine)(int16 xMin, int16 xMax);
 };
 
-static void render(byte color, uint8 polyType) {
+static void render(byte color, uint8 material) {
 	assert(_state->polyMinY >= 0);
 	assert(_state->polyMaxY < HEIGHT);
 	int16 y = _state->polyMinY;
@@ -842,10 +844,10 @@ static void render(byte color, uint8 polyType) {
 
 	if (!detailToggle) {
 		// if low details -> flat
-		polyType = 0;
+		material = 0;
 	}
 
-	switch (polyType) {
+	switch (material) {
 	case 0: {
 		// flat (triste)
 		matRender.init = flat_init;
