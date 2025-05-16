@@ -19,10 +19,10 @@
  *
  */
 
+#include "fitd/zv.h"
 #include "fitd/costable.h"
 #include "fitd/room.h"
 #include "fitd/vars.h"
-#include "fitd/zv.h"
 
 namespace Fitd {
 
@@ -122,13 +122,13 @@ int asmCheckListCol(const ZVStruct *zvPtr, const roomDataStruct *pRoomData) {
 
 static void hardColSuB1Sub1(int flag) {
 	switch (flag) {
-	case 1:
-	case 2: {
+	case 0:
+	case 1: {
 		hardColStepZ = 0;
 		break;
 	}
-	case 4:
-	case 8: {
+	case 3:
+	case 7: {
 		hardColStepX = 0;
 		break;
 	}
@@ -184,9 +184,9 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		var_A = 4;
 	} else {
 		if (zvPtr3->ZVX2 < halfX) {
-			var_A = 0;
-		} else {
 			var_A = 8;
+		} else {
+			var_A = 0;
 		}
 	}
 
@@ -194,8 +194,6 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		var_A |= 1;
 	} else {
 		if (zvPtr3->ZVZ2 < halfZ) {
-			var_A |= 0; // once again, not that much usefull
-		} else {
 			var_A |= 2;
 		}
 	}
@@ -220,7 +218,7 @@ void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVSt
 		return;
 	}
 
-	if (var_A == flag || flag == 15) {
+	if (var_A == flag || ((flag + var_A) != 15)) {
 		const int Xmod = abs(zvPtr2->ZVX1 - startZv->ZVX1); // recheck
 		const int Zmod = abs(zvPtr2->ZVZ1 - startZv->ZVZ1);
 
