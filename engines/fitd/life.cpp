@@ -151,13 +151,13 @@ int randRange(int min, int max) {
 
 int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr) {
 	int16 localSpecialTable[4];
-	int i;
 	ZVStruct *actorZvPtr = nullptr;
 
 	memcpy(localSpecialTable, specialTable, 8);
 
 	tObject *currentActorPtr = objectTable;
 
+	int i;
 	for (i = 0; i < NUM_MAX_OBJECT; i++) // count the number of active actors
 	{
 		if (currentActorPtr->indexInWorld == -1)
@@ -202,8 +202,6 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 	switch (mode) {
 	case 0: // evaporate
 	{
-		int j;
-
 		actorZvPtr->ZVX1 -= X;
 		actorZvPtr->ZVX2 -= X;
 		actorZvPtr->ZVY1 -= Y;
@@ -227,7 +225,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 		*(int16 *)flowPtr = 30; // num of points
 		flowPtr += 2;
 
-		for (j = 0; j < 30; j++) {
+		for (int j = 0; j < 30; j++) {
 			*(int16 *)flowPtr = randRange(actorZvPtr->ZVX1, actorZvPtr->ZVX2); // X
 			flowPtr += 2;
 			*(int16 *)flowPtr = randRange(actorZvPtr->ZVY1, actorZvPtr->ZVY2); // Y
@@ -236,10 +234,10 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 			flowPtr += 2;
 		}
 
-		for (j = 0; j < 30; j++) {
-			*(int16 *)flowPtr = randRange(150, 300); // ?
+		for (int j = 0; j < 30; j++) {
+			*(int16 *)flowPtr = randRange(150, 300); // size
 			flowPtr += 2;
-			*(int16 *)flowPtr = randRange(30, 80); // ?
+			*(int16 *)flowPtr = randRange(30, 80); // dy
 			flowPtr += 2;
 		}
 
@@ -249,6 +247,50 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 		actorZvPtr->ZVY2 = Y - 1;
 		actorZvPtr->ZVZ1 = Z - 10;
 		actorZvPtr->ZVZ2 = Z + 10;
+
+		break;
+	}
+	case 1: // blood
+	case 2: // debris
+	{
+		actorZvPtr->ZVX1 = X;
+		actorZvPtr->ZVX2 = X;
+		actorZvPtr->ZVY1 = 0;
+		actorZvPtr->ZVY2 = 0;
+		actorZvPtr->ZVZ1 = Z;
+		actorZvPtr->ZVZ2 = Z;
+
+		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 304);
+
+		char *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+
+		if (!flowPtr) {
+			currentActorPtr->indexInWorld = -1;
+			return -1;
+		}
+
+		currentActorPtr->ANIM = mode;
+
+		*(int16 *)flowPtr = mode == 1 ? 85 : 15; // color
+		flowPtr += 2;
+		*(int16 *)flowPtr = 30; // num of points
+		flowPtr += 2;
+
+		for (int j = 0; j < 30; j++) {
+			*(int16 *)flowPtr = randRange(-100, 100); // X
+			flowPtr += 2;
+			*(int16 *)flowPtr = randRange(-100, 100); // Y
+			flowPtr += 2;
+			*(int16 *)flowPtr = randRange(-100, 100); // Z
+			flowPtr += 2;
+		}
+
+		for (int j = 0; j < 30; j++) {
+			*(int16 *)flowPtr = randRange(0, 1023); // gamma?
+			flowPtr += 2;
+			*(int16 *)flowPtr = randRange(-50, 10); // dy
+			flowPtr += 2;
+		}
 
 		break;
 	}
@@ -862,6 +904,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 						break;
 					}
 					case LM_TEST_COL: {
+						// TODO: check this
 						if (*(int16 *)currentLifePtr) {
 							ListWorldObjets[var_6].flags |= 0x20;
 						} else {
@@ -1078,8 +1121,19 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 				break;
 			}
-			case LM_DO_CARRE_ZV: // DO_CARRE_ZV
-			{
+			case LM_DO_NORMAL_ZV: {
+				giveZVObjet(HQR_Get(listBody, currentProcessedActorPtr->bodyNum), &currentProcessedActorPtr->zv);
+
+				currentProcessedActorPtr->zv.ZVX1 += currentProcessedActorPtr->roomX;
+				currentProcessedActorPtr->zv.ZVX2 += currentProcessedActorPtr->roomX;
+				currentProcessedActorPtr->zv.ZVY1 += currentProcessedActorPtr->roomY;
+				currentProcessedActorPtr->zv.ZVY2 += currentProcessedActorPtr->roomY;
+				currentProcessedActorPtr->zv.ZVZ1 += currentProcessedActorPtr->roomZ;
+				currentProcessedActorPtr->zv.ZVZ2 += currentProcessedActorPtr->roomZ;
+
+				break;
+			}
+			case LM_DO_CARRE_ZV: {
 				// appendFormated("LM_DO_CARRE_ZV ");
 				getZvCube(HQR_Get(listBody, currentProcessedActorPtr->bodyNum), &currentProcessedActorPtr->zv);
 
@@ -1525,7 +1579,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 									 0,
 									 -currentProcessedActorPtr->beta,
 									 0,
-									 nullptr);
+									 &currentProcessedActorPtr->zv);
 
 					currentProcessedActorPtr = currentLifeActorPtr;
 

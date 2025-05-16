@@ -581,7 +581,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 	return 0;
 }
 
-int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
+int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num, int16 *vertices) {
 
 	renderX = x - translateX;
 	renderY = y;
@@ -604,10 +604,10 @@ int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBod
 
 	int16 *outPtr = renderPointList;
 
-	for (uint i = 0; i < pBody->m_vertices.size(); i++) {
-		int16 X = pBody->m_vertices[i].x;
-		int16 Y = pBody->m_vertices[i].y;
-		int16 Z = pBody->m_vertices[i].z;
+	for (uint i = 0; i < num; i++) {
+		int16 X = vertices[i * 3];
+		int16 Y = vertices[i * 3 + 1];
+		int16 Z = vertices[i * 3 + 2];
 
 		if (!noModelRotation) {
 			// Y rotation
@@ -640,7 +640,6 @@ int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBod
 
 		X += renderX;
 		Y += renderY;
-		Z += renderZ;
 
 		if (Y > 10000) // height clamp
 		{
@@ -650,6 +649,7 @@ int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBod
 		} else {
 
 			Y -= translateY;
+			Z += renderZ;
 
 			transformPoint(&X, &Y, &Z);
 
@@ -685,6 +685,10 @@ int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBod
 		}
 	}
 	return 1;
+}
+
+int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
+	rotateNuage2(x, y, z, alpha, beta, gamma, pBody->m_vertices.size(), &pBody->m_vertices[0].x);
 }
 
 static void processPrim_Line(int primType, sPrimitive *ptr, char **out) {

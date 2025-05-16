@@ -20,6 +20,7 @@
  */
 
 #include "fitd/anim_action.h"
+#include "common/debug.h"
 #include "fitd/common.h"
 #include "fitd/hqr.h"
 #include "fitd/life.h"
@@ -27,7 +28,6 @@
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 #include "fitd/zv.h"
-#include "common/debug.h"
 
 namespace Fitd {
 
@@ -163,7 +163,7 @@ void gereFrappe() {
 						 0,
 						 currentProcessedActorPtr->beta,
 						 0,
-						 nullptr);
+						 &currentProcessedActorPtr->zv);
 
 		touchedActor = checkLineProjectionWithActors(
 			currentProcessedActorIdx,
@@ -176,11 +176,11 @@ void gereFrappe() {
 
 		if (touchedActor == -1) // no one has been touched
 		{
-			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, nullptr);
+			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, &currentProcessedActorPtr->zv);
 
 			currentProcessedActorPtr->animActionType = 0;
 		} else {
-			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, nullptr);
+			initSpecialObjet(2, animMoveX, animMoveY, animMoveZ, currentProcessedActorPtr->stage, currentProcessedActorPtr->room, 0, -currentProcessedActorPtr->beta, 0, &currentProcessedActorPtr->zv);
 
 			currentProcessedActorPtr->hotPoint.x = animMoveX - currentProcessedActorPtr->roomX;
 			currentProcessedActorPtr->hotPoint.y = animMoveY - currentProcessedActorPtr->roomY;

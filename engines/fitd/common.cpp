@@ -1879,11 +1879,102 @@ static void drawBgOverlay(tObject *actorPtr) {
 	setClip(0, 0, 319, 199);
 }
 
-static void mainDrawSub2(int actorIdx) // draw flow
-{
-	// actorStruct* actorPtr = &actorTable[actorIdx];
+static void calcXYZNuage(int16 x, int y, int16 z, int16 alpha, int16 beta, int16 gamma, char *modelPtr) {
+	rotateNuage2(x, y, z, alpha, beta, gamma, *(int16 *)modelPtr, (int16 *)(modelPtr + 2));
+}
 
-	// char* data = printTextSub2(hqrUnk, actorPtr->FRAME);
+static void drawSpecialObject(int actorIdx) {
+	tObject *actorPtr = &objectTable[actorIdx];
+
+	char *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
+	char *orgFlowPtr = flowPtr;
+	if (!flowPtr)
+		return;
+
+	switch (actorPtr->ANIM) {
+	case 0: { // evaporate
+		const int16 color = *(int16 *)flowPtr;
+		flowPtr += 2;
+		actorPtr->beta += 8;
+		int16 *flowPointList = (int16 *)flowPtr;
+		calcXYZNuage(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, flowPtr);
+		// skip point list
+		int16 *flowAnimList = (int16 *)(flowPtr + 2 + 6 * (*flowPointList));
+
+		const int16 *pPointList = renderPointList;
+		bool freeData = true;
+
+		const int16 numPoints = flowPointList[0];
+		flowPointList++;
+
+		for (int i = 0; i < numPoints; ++i) {
+			const int16 size = flowAnimList[0];
+			if (size > 0) {
+				freeData = false;
+				const int16 z = pPointList[2];
+				if (z > 300) {
+					// TODO: calc the correct size
+					osystem_drawSphere(pPointList[0], pPointList[1], z, color, 3, 20);
+				}
+				flowAnimList[0] -= 5;                // size -= 5
+				flowPointList[1] -= flowAnimList[1]; // y -= dy
+			}
+			flowAnimList += 2;
+			flowPointList += 3;
+			pPointList += 3;
+		}
+
+		if (freeData) {
+			// HQR_FreeMalloc(HQ_Memory, actorPtr->FRAME)
+			actorPtr->indexInWorld = -1;
+			actorTurnedToObj = 1;
+		}
+		break;
+	}
+	case 1: // blood
+	case 2: // debris
+	{
+		const int16 color = *(int16 *)flowPtr;
+		flowPtr += 2;
+		int16 *flowPointList = (int16 *)flowPtr;
+		calcXYZNuage(actorPtr->worldX, 0, actorPtr->worldZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, flowPtr);
+		// skip point list
+		int16 *flowAnimList = (int16 *)(flowPtr + 2 + 6 * (*flowPointList));
+
+		const int16 *pPointList = renderPointList;
+		bool freeData = true;
+		const int16 numPoints = flowPointList[0];
+		flowPointList++;
+
+		for (int i = 0; i < numPoints; ++i) {
+			const int16 y = flowPointList[1];
+			if (y >= 0) {
+				freeData = false;
+				if (pPointList[2] > 100) {
+					osystem_drawPoint(pPointList[0], pPointList[1], pPointList[2], color, 0, 0.3f);
+				}
+				flowAnimList[1] += 6;
+				walkStep(10, 0, flowAnimList[0]);
+				flowPointList[0] += animMoveX;
+				flowPointList[1] += flowAnimList[1];
+				flowPointList[2] += animMoveZ;
+			}
+			flowAnimList += 2;
+			flowPointList += 3;
+			pPointList += 3;
+		}
+
+		if (freeData) {
+			// HQR_FreeMalloc(HQ_Memory, actorPtr->FRAME);
+			actorPtr->indexInWorld = -1;
+			actorTurnedToObj = 1;
+		}
+		break;
+	}
+	default:
+		warning("drawSpecialObject ANIM=%d not implemented", actorPtr->ANIM);
+		break;
+	}
 
 	// TODO: finish
 }
@@ -1970,17 +2061,17 @@ void mainDraw(int flagFlip) {
 		tObject *actorPtr = &objectTable[currentDrawActor];
 
 		// this is commented out to draw actors incrusted in background
-		// if(actorPtr->_flags & (AF_ANIMATED + AF_DRAWABLE + AF_SPECIAL))
+		// if(actorPtr->_flags & (AF_ANIMATED | AF_DRAWABLE | AF_SPECIAL))
 		{
 			actorPtr->_flags &= ~AF_DRAWABLE;
 
 			if (actorPtr->_flags & AF_SPECIAL) {
-				mainDrawSub2(currentDrawActor);
+				drawSpecialObject(currentDrawActor);
 			} else {
 				char *bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
 
 				if (HQ_Load) {
-					//          initAnimInBody(actorPtr->FRAME, HQR_Get(listAnim, actorPtr->ANIM), bodyPtr);
+					// setAnimObjet(actorPtr->FRAME, HQR_Get(listAnim, actorPtr->ANIM), bodyPtr);
 				}
 
 				affObjet(actorPtr->worldX + actorPtr->stepX, actorPtr->worldY + actorPtr->stepY, actorPtr->worldZ + actorPtr->stepZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, bodyPtr);
