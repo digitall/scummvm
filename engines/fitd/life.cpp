@@ -200,8 +200,8 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 	}
 
 	switch (mode) {
-	case 0: // evaporate
-	{
+	case 0: {
+		// evaporate
 		actorZvPtr->ZVX1 -= X;
 		actorZvPtr->ZVX2 -= X;
 		actorZvPtr->ZVY1 -= Y;
@@ -294,8 +294,19 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 		break;
 	}
+	case 3: {
+		// muzzle flash
+		currentActorPtr->ANIM = mode;
+		actorZvPtr->ZVX1 = X;
+		actorZvPtr->ZVX2 = X;
+		actorZvPtr->ZVY1 = Y;
+		actorZvPtr->ZVY2 = Y;
+		actorZvPtr->ZVZ1 = Z;
+		actorZvPtr->ZVZ2 = Z;
+		break;
+	}
 	default: {
-		debug("Unsupported case %d in createFlow\n", mode);
+		debug("Unsupported case %d in initSpecialObjet\n", mode);
 	}
 	}
 

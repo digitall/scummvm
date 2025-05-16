@@ -1887,9 +1887,6 @@ static void drawSpecialObject(int actorIdx) {
 	tObject *actorPtr = &objectTable[actorIdx];
 
 	char *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
-	char *orgFlowPtr = flowPtr;
-	if (!flowPtr)
-		return;
 
 	switch (actorPtr->ANIM) {
 	case 0: { // evaporate
@@ -1969,6 +1966,13 @@ static void drawSpecialObject(int actorIdx) {
 			actorPtr->indexInWorld = -1;
 			actorTurnedToObj = 1;
 		}
+		break;
+	}
+	case 3: {
+		// muzzle flash
+		flowPtr = HQR_Get(listBody, CVars[getCVarsIdx(BODY_FLAMME)]);
+		affObjet(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, 0, actorPtr->beta, 0, flowPtr);
+		actorPtr->indexInWorld = -1;
 		break;
 	}
 	default:
