@@ -21,7 +21,7 @@
 
 #include "fitd/fitd.h"
 #include "common/config-manager.h"
-#include "common/file.h"
+#include "common/savefile.h"
 #include "common/scummsys.h"
 #include "common/system.h"
 #include "fitd/common.h"
@@ -68,7 +68,7 @@ bool FitdEngine::canLoadGameStateCurrently(Common::U32String *msg) {
 	return true;
 }
 bool FitdEngine::canSaveGameStateCurrently(Common::U32String *msg) {
-	return true;
+	return g_engine->_canSaveGame;
 }
 
 Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
@@ -76,9 +76,28 @@ Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
 }
 
 Common::Error FitdEngine::saveGameStream(Common::WriteStream *stream, bool isAutosave) {
-	savedSurface = gfx_capture();
 	// Default to returning an error when not implemented
 	return makeSave(stream) == 1 ? Common::kNoError : Common::kWritingFailed;
+}
+
+Common::Error FitdEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
+	Common::Error result = Engine::saveGameState(slot, desc, isAutosave);
+	if (result.getCode() != Common::kNoError)
+		return result;
+
+	Common::OutSaveFile *saveFile = _saveFileMan->openForSaving(Common::String::format("%s%02d.ITD", _targetName.c_str(), slot), false);
+	if (!saveFile)
+		return Common::kWritingFailed;
+
+	makeSave(saveFile);
+	saveFile->finalize();
+	delete saveFile;
+
+	return result;
+}
+
+SaveStateList FitdEngine::listSaveFiles() const {
+	return getMetaEngine()->listSaves(_targetName.c_str());
 }
 
 } // End of namespace Fitd

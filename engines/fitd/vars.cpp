@@ -277,6 +277,7 @@ int16 newRoom;
 int16 shakeVar1;
 int16 shakingAmplitude;
 unsigned int timerFreeze1;
+int timerSaved = 0;
 
 hardColStruct *hardColTable[10];
 

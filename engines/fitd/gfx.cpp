@@ -1185,8 +1185,4 @@ void osystem_updateScreen() {
 	renderer.updateScreen();
 }
 
-Graphics::Surface *gfx_capture() {
-	return renderer.capture();
-}
-
 } // namespace Fitd

@@ -37,7 +37,6 @@ void gfx_deinit();
 void gfx_setPalette(const byte *palette);
 void gfx_copyBlockPhys(byte *videoBuffer, int left, int top, int right, int bottom);
 void gfx_refreshFrontTextureBuffer();
-Graphics::Surface *gfx_capture();
 
 void setPosCamera(int x, int y, int z);
 void setAngleCamera(int x, int y, int z);

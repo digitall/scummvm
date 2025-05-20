@@ -22,23 +22,25 @@
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymapper.h"
 #include "backends/keymapper/standard-actions.h"
+#include "common/savefile.h"
+#include "common/system.h"
 #include "common/translation.h"
+#include "graphics/managed_surface.h"
 #include "graphics/scaler.h"
-#include "graphics/thumbnail.h"
 
 #include "fitd/actions.h"
 #include "fitd/detection.h"
 #include "fitd/fitd.h"
-#include "fitd/system_menu.h"
+#include "fitd/vars.h"
 
 class FitdMetaEngine : public AdvancedMetaEngine<Fitd::FitdGameDescription> {
 public:
 	const char *getName() const final;
 	Common::Error createInstance(OSystem *syst, Engine **engine, const Fitd::FitdGameDescription *desc) const final;
 	bool hasFeature(MetaEngineFeature f) const final;
-	void getSavegameThumbnail(Graphics::Surface &thumb) final;
 	Common::Array<Common::Keymap *> initKeymaps(const char *target) const final;
 	void registerDefaultSettings(const Common::String &) const final;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 const char *FitdMetaEngine::getName() const {
@@ -53,16 +55,6 @@ Common::Error FitdMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 bool FitdMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return checkExtendedSaves(f) ||
 		   f == kSupportsLoadingDuringStartup;
-}
-
-void FitdMetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
-	assert(Fitd::savedSurface);
-	Graphics::Surface *scaledSavedScreen = scale(*Fitd::savedSurface, kThumbnailWidth, kThumbnailHeight2);
-	assert(scaledSavedScreen);
-	thumb.copyFrom(*scaledSavedScreen);
-
-	scaledSavedScreen->free();
-	delete scaledSavedScreen;
 }
 
 Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) const {
@@ -108,6 +100,47 @@ Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) 
 
 void FitdMetaEngine::registerDefaultSettings(const Common::String &) const {
 	ConfMan.registerDefault("language", "en");
+}
+
+SaveStateDescriptor FitdMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
+	SaveStateDescriptor desc = MetaEngine::querySaveMetaInfos(target, slot);
+	if (desc.isValid())
+		return desc;
+
+	Common::String saveGameFileName(getSavegameFile(slot, target));
+	Common::InSaveFile *f = g_system->getSavefileManager()->openForLoading(saveGameFileName);
+	if (f) {
+
+		desc = SaveStateDescriptor(this, slot, "?");
+
+		const uint32 thumbOffset = f->readUint32BE();       // offset to thumbnail start
+		const uint32 descriptionOffset = f->readUint32BE(); // offset to savegame description
+		f->seek(thumbOffset, SEEK_SET);
+		byte thumbnailData[80 * 50];
+		f->read(thumbnailData, sizeof(thumbnailData));
+
+		f->seek(descriptionOffset, SEEK_SET);
+		Common::String savegameDesc(f->readString());
+
+		// TODO: do it only once
+		//loadPalette(target, palette);
+
+		Graphics::ManagedSurface thumbnail;
+		thumbnail.create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
+		thumbnail.setPalette(Fitd::currentGamePalette, 0, 256);
+		memcpy(thumbnail.getBasePtr(0, 0), thumbnailData, sizeof(thumbnailData));
+
+		Graphics::Surface *thumbnailSmall = new Graphics::Surface();
+		createThumbnail(thumbnailSmall, &thumbnail);
+		desc.setThumbnail(thumbnailSmall);
+		desc.setDescription(savegameDesc);
+
+		delete f;
+
+		return desc;
+	}
+
+	return SaveStateDescriptor();
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(FITD)

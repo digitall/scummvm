@@ -20,12 +20,11 @@
  */
 
 #include "engines/util.h"
+#include "graphics/screen.h"
 #include "fitd/fitd.h"
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
-#include "graphics/screen.h"
-#include "graphics/surface.h"
-#include "lines.h"
+#include "fitd/lines.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
@@ -100,7 +99,6 @@ static void renderer_drawMask(int roomId, int maskId);
 static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
-static Graphics::Surface *renderer_capture();
 
 Renderer createSoftwareRenderer() {
 	Renderer r{};
@@ -121,7 +119,6 @@ Renderer createSoftwareRenderer() {
 	r.drawPoint = renderer_drawPoint;
 	r.updateScreen = renderer_updateScreen;
 	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
-	r.capture = renderer_capture;
 	return r;
 }
 
@@ -1057,28 +1054,6 @@ static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
 	}
 	g_engine->_screen->addDirtyRect(Common::Rect(left, top, right, bottom));
 	g_engine->_screen->update();
-}
-
-Graphics::Surface *renderer_capture() {
-	Graphics::Surface *s = new Graphics::Surface();
-#ifdef SCUMM_BIG_ENDIAN
-	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
-#else
-	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
-#endif
-	s->create(WIDTH, HEIGHT, format);
-	const byte *src = _state->physicalScreen;
-	byte *dst = (byte *)s->getPixels();
-	const byte *pal = _state->RGB_Pal;
-	for (int i = 0; i < WIDTH * HEIGHT; i++) {
-		dst[0] = pal[*src * 3];
-		dst[1] = pal[*src * 3 + 1];
-		dst[2] = pal[*src * 3 + 2];
-		dst[3] = 0xFF;
-		dst += 4;
-		src++;
-	}
-	return s;
 }
 
 } // namespace Fitd

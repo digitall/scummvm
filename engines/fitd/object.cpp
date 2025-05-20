@@ -82,6 +82,10 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 	actorPtr->newAnimType = 0;
 	actorPtr->newAnimInfo = -1;
 
+	actorPtr->animNegX = 0;
+	actorPtr->animNegY = 0;
+	actorPtr->animNegZ = 0;
+
 	actorPtr->stepX = 0;
 	actorPtr->stepY = 0;
 	actorPtr->stepZ = 0;

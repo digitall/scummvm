@@ -536,4 +536,8 @@ sAnimation *getAnimationFromPtr(void *ptr) {
 	return createAnimationFromPtr(ptr);
 }
 
+void HQ_Name(hqrEntryStruct * ptr, const char * name) {
+	ptr->string = name;
+}
+
 } // namespace Fitd

@@ -24,12 +24,10 @@
 
 namespace Fitd {
 
-static int timerSaved = false;
-static unsigned int timerSavedValue = 0;
 
 void freezeTime() {
 	if (timerSaved == 0) {
-		timerSavedValue = timeGlobal;
+		timerFreeze1 = timeGlobal;
 	}
 	timerSaved++;
 }
@@ -38,7 +36,7 @@ void unfreezeTime() {
 	assert(timerSaved);
 	timerSaved--;
 	if (timerSaved == 0) {
-		timeGlobal = timerSavedValue;
+		timeGlobal = timerFreeze1;
 		timer = timeGlobal;
 	}
 }

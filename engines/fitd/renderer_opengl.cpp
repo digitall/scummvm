@@ -351,7 +351,6 @@ Renderer createOpenGLRenderer() {
 	r.drawPoint = renderer_drawPoint;
 	r.updateScreen = renderer_updateScreen;
 	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
-	r.capture = renderer_capture;
 	return r;
 }
 
@@ -1039,20 +1038,6 @@ static void renderer_updateScreen() {
 
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom) {
 	// TODO:
-}
-
-Graphics::Surface *renderer_capture() {
-	Graphics::Surface *s = new Graphics::Surface();
-#ifdef SCUMM_BIG_ENDIAN
-	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
-#else
-	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
-#endif
-	s->create(320 * 4, 200 * 4, format);
-	glReadPixels(0, 0, 320 * 4, 200 * 4, GL_RGBA, GL_UNSIGNED_BYTE, s->getPixels());
-	const Common::Rect rect(0, 0, 320 * 4, 200 * 4);
-	s->flipVertical(rect);
-	return s;
 }
 
 } // namespace Fitd

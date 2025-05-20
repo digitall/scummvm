@@ -48,7 +48,6 @@ struct Renderer {
 	void (*drawPoint)(float X, float Y, float Z, uint8 color, uint8 material, float size);
 	void (*copyBoxLogPhys)(int left, int top, int right, int bottom);
 	void (*updateScreen)();
-	Graphics::Surface *(*capture)();
 };
 
 } // namespace Fitd

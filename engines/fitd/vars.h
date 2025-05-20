@@ -431,6 +431,7 @@ extern const char *listAnimSelect[];
 extern int16 shakeVar1;
 extern int16 shakingAmplitude;
 extern unsigned int timerFreeze1;
+extern int timerSaved;
 
 struct hardColStruct;
 extern hardColStruct *hardColTable[10];

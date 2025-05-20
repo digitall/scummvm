@@ -844,7 +844,7 @@ void initEngine() {
 	}
 }
 
-static void initVarsSub1() {
+static void clearMessageList() {
 	for (int i = 0; i < 5; i++) {
 		messageTable[i].string = nullptr;
 	}
@@ -882,7 +882,9 @@ void initVars() {
 
 	statusScreenAllowed = 1;
 
-	initVarsSub1();
+	clearMessageList();
+
+	g_engine->_canSaveGame = true;
 }
 
 static void loadCamera(int cameraIdx) {
@@ -1216,7 +1218,7 @@ static void deleteObjet(int index) // remove actor
 			objectPtr->animType = actorPtr->animType;
 			objectPtr->animInfo = actorPtr->animInfo;
 			objectPtr->flags = actorPtr->_flags & ~AF_BOXIFY;
-			objectPtr->flags |= AF_SPECIAL * actorPtr->dynFlags; // ugly hack, need rewrite
+			objectPtr->flags |= (AF_SPECIAL * actorPtr->dynFlags); // ugly hack, need rewrite
 			objectPtr->life = actorPtr->life;
 			objectPtr->lifeMode = actorPtr->lifeMode;
 			objectPtr->trackMode = actorPtr->trackMode;
@@ -1887,6 +1889,7 @@ static void drawSpecialObject(int actorIdx) {
 	tObject *actorPtr = &objectTable[actorIdx];
 
 	char *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
+	if (!flowPtr) return;
 
 	switch (actorPtr->ANIM) {
 	case 0: { // evaporate
@@ -2586,7 +2589,7 @@ void processActor2() {
 
 					currentProcessedActorPtr->HARD_DEC = (short)pCurrentZone->parameter;
 					flagFloorChange = true;
-					break;
+					return;
 				}
 				}
 

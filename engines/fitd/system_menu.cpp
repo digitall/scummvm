@@ -19,6 +19,10 @@
  *
  */
 
+#include "audio/mixer.h"
+#include "common/savefile.h"
+#include "graphics/screen.h"
+
 #include "fitd/aitd_box.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
@@ -30,8 +34,6 @@
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
-#include "audio/mixer.h"
-#include "graphics/screen.h"
 
 #define NB_OPTIONS 7
 #define SELECT_COUL 0xF
@@ -41,7 +43,6 @@
 namespace Fitd {
 
 int input5;
-Graphics::Surface *savedSurface = nullptr;
 
 void AffOption(int n, int num, int selected) {
 	int y = WindowY1 + (WindowY2 - WindowY1) / 2 - NB_OPTIONS * SIZE_FONT / 2 + n * SIZE_FONT;
@@ -53,9 +54,7 @@ void AffOption(int n, int num, int selected) {
 	}
 }
 
-static void scaleDownImage(int16 x, int16 y, const char *src) {
-	const int srcWidth = 320;
-	const int srcHeight = 200;
+void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const char *src, char *out, int outWidth) {
 	const int srcPitch = srcWidth;
 
 	const int dstWidth = 80;
@@ -65,11 +64,15 @@ static void scaleDownImage(int16 x, int16 y, const char *src) {
 	Graphics::scaleBlit(dstImg, (const byte *)src, dstPitch, srcPitch, dstWidth, dstHeight, srcWidth, srcHeight, Graphics::PixelFormat::createFormatCLUT8());
 	const char *in = (const char *)dstImg;
 	for (int i = y; i < y + dstHeight; i++) {
-		char *out = logicalScreen + x + i * srcWidth;
+		char *o = out + x + i * outWidth;
 		for (int j = x; j < x + dstWidth; j++) {
-			*out++ = *in++;
+			*o++ = *in++;
 		}
 	}
+}
+
+static void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const char *src) {
+	scaleDownImage(srcWidth, srcHeight, x, y, src, logicalScreen, 320);
 }
 
 void aitd2AffOption(int n, int num, int selected) {
@@ -98,7 +101,6 @@ void aitd2DisplayOptions(int selectedStringNumber) {
 	aitd2AffOption(4, 43 + soundToggle, selectedStringNumber);
 	aitd2AffOption(5, 49 + detailToggle, selectedStringNumber);
 	aitd2AffOption(6, 47, selectedStringNumber);
-
 }
 
 void AffOptionList(int selectedStringNumber) {
@@ -116,7 +118,7 @@ void AffOptionList(int selectedStringNumber) {
 
 	affBigCadre(80, 55, 120, 70);
 
-	scaleDownImage(40, 35, aux2);
+	scaleDownImage(320, 200, 40, 35, aux2);
 
 	WindowY1 = backupTop;
 	WindowY2 = backupBottom;
@@ -132,7 +134,101 @@ void AffOptionList(int selectedStringNumber) {
 	AffOption(4, 43 + soundToggle, selectedStringNumber);
 	AffOption(5, 49 + detailToggle, selectedStringNumber);
 	AffOption(6, 47, selectedStringNumber);
+}
 
+static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, int selectedSlot) {
+	int y = 55;
+	extSetFont(PtrFont, 14);
+	selectedMessage(160, 0, menuChoice, SELECT_COUL, MENU_COUL);
+
+	if (saveStateList.empty()) {
+		setClip(0, 0, 319, 199);
+		fillBox(0, y - 2, 319, y + 18, 100);
+		affBigCadre(70, y, 120, 70);
+		setClip(0, 0, 319, 199);
+		return;
+	}
+
+	for (int i = 0; i < MIN(6, (int)saveStateList.size()); ++i) {
+		Common::String desc(saveStateList[i].getDescription().encode(Common::kASCII));
+		if (i == selectedSlot) {
+			setClip(0, 0, 319, 199);
+			fillBox(0, y - 2, 319, y + 18, 100);
+			affBigCadre(70, y, 120, 70);
+			setClip(0, 0, 319, 199);
+			const Graphics::Surface *s = saveStateList[i].getThumbnail();
+			const Graphics::Surface *d = s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), 0, 256, currentGamePalette, 256);
+			scaleDownImage(d->w, d->h, 30, y - 20, (const char *)d->getBasePtr(0, 0));
+			renderText(140, y, desc.c_str());
+		} else {
+			renderText(140, y, desc.c_str());
+		}
+		y += 20;
+	}
+}
+
+static int chooseSavegame(int menuChoice) {
+	int selectedSlot = 0;
+	SaveStateList saveStateList(g_engine->listSaveFiles());
+
+	const int maxSavegameCount = MIN((int)saveStateList.size(), 6);
+	while (!Engine::shouldQuit()) {
+		drawSavegames(menuChoice, saveStateList, selectedSlot);
+		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+		osystem_startFrame();
+		process_events();
+		flushScreen();
+		osystem_drawBackground();
+
+		if (JoyD & 1) // up key
+		{
+			selectedSlot--;
+			if (selectedSlot < 0) {
+				selectedSlot = maxSavegameCount - 1;
+			}
+
+			while (!Engine::shouldQuit() && JoyD) {
+				process_events();
+			}
+		}
+
+		if (JoyD & 2) // down key
+		{
+			selectedSlot++;
+			if (selectedSlot == maxSavegameCount) {
+				selectedSlot = 0;
+			}
+
+			while (!Engine::shouldQuit() && JoyD) {
+				process_events();
+			}
+		}
+
+		if (key == 27) {
+			return -1;
+		}
+
+		if (key == 28 || Click != 0) // select current entry
+		{
+			return saveStateList[selectedSlot].getSaveSlot();
+		}
+	}
+	return -1;
+}
+
+bool showLoadMenu(int menuChoice) {
+	fadeInPhys(0x40, 0);
+
+	const int selectedSlot = chooseSavegame(menuChoice);
+	// fadeOutPhys(8, 0);
+	//  freeAll();
+	if (selectedSlot != -1 && g_engine->loadGameState(selectedSlot).getCode() == Common::kNoError) {
+		flagInitView = 2;
+		unfreezeTime();
+		// updateShaking();
+		return true;
+	}
+	return false;
 }
 
 void processSystemMenu() {
@@ -140,7 +236,6 @@ void processSystemMenu() {
 	int exitMenu = 0;
 
 	freezeTime();
-	savedSurface = gfx_capture();
 	// pauseShaking();
 
 	if (lightOff) {
@@ -181,12 +276,8 @@ void processSystemMenu() {
 						g_engine->saveGameState(1, "", false);
 						break;
 					case 2: // load
-						if (g_engine->loadGameState(1).getCode() == Common::kNoError) {
-							flagInitView = 2;
-							unfreezeTime();
-							// updateShaking();
+						if (showLoadMenu(46))
 							return;
-						}
 						break;
 					case 3: // music
 						musicEnabled = musicEnabled ? 0 : 1;

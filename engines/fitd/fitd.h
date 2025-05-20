@@ -39,6 +39,8 @@ class FitdEngine : public Engine {
 private:
 	const FitdGameDescription *_gameDescription;
 	Common::RandomSource _randomSource;
+public:
+	bool _canSaveGame = false;
 
 protected:
 	// Engine APIs
@@ -56,6 +58,8 @@ public:
 
 	bool canLoadGameStateCurrently(Common::U32String *msg) final;
 	bool canSaveGameStateCurrently(Common::U32String *msg) final;
+	SaveStateList listSaveFiles() const;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) final;
 
 private:
 	Common::Error loadGameStream(Common::SeekableReadStream *stream) final;

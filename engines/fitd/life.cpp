@@ -977,7 +977,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 					}
 					////////////////////////////////////////////////////////////////////////
 					default: {
-						error("Unsupported opcode %X when actor isn't in floor\n", currentOpcode & 0x7FFF);
+						error("Unsupported opcode 0x%X when actor isn't in floor\n", currentOpcode & 0x7FFF);
 						break;
 					}
 					}

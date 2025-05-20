@@ -22,13 +22,16 @@
 #ifndef FITD_SYSTEMMENU_H
 #define FITD_SYSTEMMENU_H
 
+#include "common/scummsys.h"
+
 namespace Graphics {
 struct Surface;
 }
 
 namespace Fitd {
+bool showLoadMenu(int menuChoice);
 void processSystemMenu();
-extern Graphics::Surface *savedSurface;
+void scaleDownImage(int16 srcWidth, int16 srcHeight, int16 x, int16 y, const char *src, char *out, int outWidth);
 } // namespace Fitd
 
 #endif

@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd1.h"
+
 #include "fitd/aitd_box.h"
 #include "fitd/anim.h"
 #include "fitd/common.h"
@@ -30,8 +31,10 @@
 #include "fitd/main_loop.h"
 #include "fitd/pak.h"
 #include "fitd/startup_menu.h"
+#include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
+#include "game_time.h"
 
 namespace Fitd {
 
@@ -383,7 +386,15 @@ void startAITD1(int saveSlot) {
 		{
 			// here, original would ask for protection
 
-			if (g_engine->loadGameState(saveSlot != -1 ? saveSlot : 1).getCode() == Common::kNoError) {
+			if (saveSlot == -1) {
+				freezeTime();
+				if (showLoadMenu(12)) {
+					setupCamera();
+					mainLoop(1, 1);
+					//          freeScene();
+					fadeOutPhys(8, 0);
+				}
+			} else if (g_engine->loadGameState(saveSlot).getCode() == Common::kNoError) {
 				// here, original would quit if protection flag was false
 
 				//          updateShaking();
