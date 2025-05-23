@@ -64,27 +64,191 @@ static void saveInterpolatedValue(interpolatedValue *pRotateStruct, Common::Writ
 	out->writeUint16LE(pRotateStruct->timeOfRotate); // TODO: check this
 }
 
-// int loadJack(Common::SeekableReadStream *in) {
-// 	int i;
-// 	int oldNumMaxObj = 0;
-//
-// 	initEngine();
-// 	initVars();
-//
-// 	/*const uint32 imgOffset = */ in->readUint32BE(); // offset to thumbnail start
-// 	const uint32 palOffset = in->readUint32BE(); // offset to palette
-// 	/*const uint32 descOffset = */ in->readUint32BE();
-// 	const uint32 varsOffset = in->readUint32BE();
-// 	const uint32 objsOffset = in->readUint32BE();
-//
-// 	in->seek(palOffset, SEEK_SET);
-//
-// 	in->read(currentGamePalette, 768);
-//
-// 	// TODO:
-// }
+static int loadJack(Common::SeekableReadStream *in) {
+	initEngine();
+	initVars();
 
-int loadSaveOthers(Common::SeekableReadStream *in) {
+	/*const uint32 imgOffset = */ in->readUint32BE(); // offset to thumbnail start
+	const uint32 palOffset = in->readUint32BE();      // offset to palette
+	/*const uint32 descOffset = */ in->readUint32BE();
+	const uint32 roomOffset = in->readUint32BE();
+	const uint32 varsOffset = in->readUint32BE();
+
+	in->seek(palOffset, SEEK_SET);
+	in->read(currentGamePalette, 768);
+
+	in->seek(roomOffset, SEEK_SET);
+	currentRoom = in->readSint16LE();
+	g_currentFloor = in->readSint16LE();
+	currentCamera = in->readSint16LE();
+	currentWorldTarget = in->readSint16LE();
+	currentCameraTargetActor = in->readSint16LE();
+	maxObjects = in->readSint16LE();
+	for (int i = 0; i < 300; i++) {
+		ListWorldObjets[i].objIndex = in->readSint16LE();
+		ListWorldObjets[i].body = in->readSint16LE();
+		ListWorldObjets[i].flags = in->readSint16LE();
+		ListWorldObjets[i].typeZV = in->readSint16LE();
+		ListWorldObjets[i].foundBody = in->readSint16LE();
+		ListWorldObjets[i].foundName = in->readSint16LE();
+		ListWorldObjets[i].flags2 = in->readSint16LE();
+		ListWorldObjets[i].foundLife = in->readSint16LE();
+		ListWorldObjets[i].x = in->readSint16LE();
+		ListWorldObjets[i].y = in->readSint16LE();
+		ListWorldObjets[i].z = in->readSint16LE();
+		ListWorldObjets[i].alpha = in->readSint16LE();
+		ListWorldObjets[i].beta = in->readSint16LE();
+		ListWorldObjets[i].gamma = in->readSint16LE();
+		ListWorldObjets[i].stage = in->readSint16LE();
+		ListWorldObjets[i].room = in->readSint16LE();
+		ListWorldObjets[i].lifeMode = in->readSint16LE();
+		ListWorldObjets[i].life = in->readSint16LE();
+		ListWorldObjets[i].floorLife = in->readSint16LE();
+		ListWorldObjets[i].anim = in->readSint16LE();
+		ListWorldObjets[i].frame = in->readSint16LE();
+		ListWorldObjets[i].animType = in->readSint16LE();
+		ListWorldObjets[i].animInfo = in->readSint16LE();
+		ListWorldObjets[i].trackMode = in->readSint16LE();
+		ListWorldObjets[i].trackNumber = in->readSint16LE();
+		ListWorldObjets[i].positionInTrack = in->readSint16LE();
+		ListWorldObjets[i].mark = in->readSint16LE();
+	}
+
+	assert(CVarsSize == 15);
+	for (int i = 0; i < CVarsSize; i++) {
+		CVars[i] = in->readSint16LE();
+	}
+
+	inHandTable[0] = in->readSint16LE();
+	in->readSint16LE(); // TODO: what is this ? always -1 ?
+	numObjInInventoryTable[0] = in->readSint32LE();
+
+	for (int i = 0; i < INVENTORY_SIZE; i++) {
+		inventoryTable[0][i] = in->readSint16LE();
+	}
+
+	statusScreenAllowed = in->readSint16LE();
+	giveUp = in->readSint16LE();
+	lightOff = in->readSint16LE();
+	shakingAmplitude = in->readSint16LE();
+	shakeVar1 = in->readSint16LE();
+	timer = in->readUint32LE();
+	timerFreeze1 = in->readUint32LE();
+	currentMusic = in->readSint16LE();
+
+	const int var_E = currentCamera;
+
+	loadFloor(g_currentFloor);
+	currentCamera = -1;
+	loadRoom(currentRoom);
+	const int var_16 = currentMusic;
+	currentMusic = -1;
+	playMusic(var_16);
+
+	in->seek(varsOffset, SEEK_SET);
+	const uint16 tempVarSize = in->readUint16LE();
+	varSize = tempVarSize;
+	in->read(vars, varSize);
+
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
+		objectTable[i].indexInWorld = in->readSint16LE();
+		objectTable[i].bodyNum = in->readSint16LE();
+		objectTable[i]._flags = in->readUint16LE();
+		objectTable[i].dynFlags = in->readSint16LE();
+		objectTable[i].zv.ZVX1 = in->readSint16LE();
+		objectTable[i].zv.ZVX2 = in->readSint16LE();
+		objectTable[i].zv.ZVY1 = in->readSint16LE();
+		objectTable[i].zv.ZVY2 = in->readSint16LE();
+		objectTable[i].zv.ZVZ1 = in->readSint16LE();
+		objectTable[i].zv.ZVZ2 = in->readSint16LE();
+		objectTable[i].screenXMin = in->readSint16LE();
+		objectTable[i].screenYMin = in->readSint16LE();
+		objectTable[i].screenXMax = in->readSint16LE();
+		objectTable[i].screenYMax = in->readSint16LE();
+		objectTable[i].roomX = in->readSint16LE();
+		objectTable[i].roomY = in->readSint16LE();
+		objectTable[i].roomZ = in->readSint16LE();
+		objectTable[i].worldX = in->readSint16LE();
+		objectTable[i].worldY = in->readSint16LE();
+		objectTable[i].worldZ = in->readSint16LE();
+		objectTable[i].alpha = in->readSint16LE();
+		objectTable[i].beta = in->readSint16LE();
+		objectTable[i].gamma = in->readSint16LE();
+		objectTable[i].stage = in->readSint16LE();
+		objectTable[i].room = in->readSint16LE();
+		objectTable[i].lifeMode = in->readSint16LE();
+		objectTable[i].life = in->readSint16LE();
+		objectTable[i].CHRONO = in->readUint32LE();
+		objectTable[i].ROOM_CHRONO = in->readUint32LE();
+		objectTable[i].ANIM = in->readSint16LE();
+		objectTable[i].animType = in->readSint16LE();
+		objectTable[i].animInfo = in->readSint16LE();
+		in->readSint16LE(); // TODO: what is this ?
+		in->readSint16LE(); // TODO: what is that ?
+		objectTable[i].newAnim = in->readSint16LE();
+		objectTable[i].newAnimType = in->readSint16LE();
+		objectTable[i].newAnimInfo = in->readSint16LE();
+		objectTable[i].FRAME = in->readSint16LE();
+		objectTable[i].numOfFrames = in->readSint16LE();
+		objectTable[i].END_FRAME = in->readSint16LE();
+		objectTable[i].END_ANIM = in->readSint16LE();
+		in->readSint32LE(); // TODO: and this ? a time ?
+		objectTable[i].trackMode = in->readSint16LE();
+		objectTable[i].trackNumber = in->readSint16LE();
+		objectTable[i].MARK = in->readSint16LE();
+		objectTable[i].positionInTrack = in->readSint16LE();
+		objectTable[i].stepX = in->readSint16LE();
+		objectTable[i].stepY = in->readSint16LE();
+		objectTable[i].stepZ = in->readSint16LE();
+		objectTable[i].animNegX = in->readSint16LE();
+		objectTable[i].animNegY = in->readSint16LE();
+		objectTable[i].animNegZ = in->readSint16LE();
+		loadInterpolatedValue(&objectTable[i].YHandler, in);
+		objectTable[i].falling = in->readSint16LE();
+		loadInterpolatedValue(&objectTable[i].rotate, in);
+		objectTable[i].direction = in->readSint16LE();
+		objectTable[i].speed = in->readSint16LE();
+		loadInterpolatedValue(&objectTable[i].speedChange, in);
+		objectTable[i].COL[0] = in->readSint16LE();
+		objectTable[i].COL[1] = in->readSint16LE();
+		objectTable[i].COL[2] = in->readSint16LE();
+		objectTable[i].COL_BY = in->readSint16LE();
+		objectTable[i].HARD_DEC = in->readSint16LE();
+		objectTable[i].HARD_COL = in->readSint16LE();
+		objectTable[i].HIT = in->readSint16LE();
+		objectTable[i].HIT_BY = in->readSint16LE();
+		objectTable[i].animActionType = in->readSint16LE();
+		objectTable[i].animActionANIM = in->readSint16LE();
+		objectTable[i].animActionFRAME = in->readSint16LE();
+		objectTable[i].animActionParam = in->readSint16LE();
+		objectTable[i].hitForce = in->readSint16LE();
+		objectTable[i].hotPointID = in->readSint16LE();
+		in->readSint16LE(); // TODO: and this ?
+		objectTable[i].hotPoint.x = in->readSint16LE();
+		objectTable[i].hotPoint.y = in->readSint16LE();
+		objectTable[i].hotPoint.z = in->readSint16LE();
+
+		objectTable[i].hardMat = in->readSint16LE();
+		in->readSint16LE(); // TODO: and this ?
+	}
+
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
+		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
+			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
+
+			if (objectTable[i].ANIM != -1) {
+				char *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
+				setAnimObjet(objectTable[i].FRAME, animPtr, bodyPtr);
+			}
+		}
+	}
+
+	startGameVar1 = var_E;
+
+	return 1;
+}
+
+static int loadSaveOthers(Common::SeekableReadStream *in) {
 	int i;
 	int oldNumMaxObj = 0;
 
@@ -117,7 +281,7 @@ int loadSaveOthers(Common::SeekableReadStream *in) {
 
 	if (g_engine->getGameId() == GID_AITD1) {
 		oldNumMaxObj = maxObjects;
-		maxObjects = 300; // fix for save engine..
+		maxObjects = 300; // fix for save engine...
 	}
 
 	for (i = 0; i < maxObjects; i++) {
@@ -219,10 +383,6 @@ int loadSaveOthers(Common::SeekableReadStream *in) {
 
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		numObjInInventoryTable[inventoryId] = in->readSint16LE();
-
-		if (g_engine->getGameId() == GID_AITD1) {
-			assert(INVENTORY_SIZE == 30);
-		}
 
 		for (i = 0; i < INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
@@ -495,10 +655,10 @@ int loadSaveOthers(Common::SeekableReadStream *in) {
 		objectTable[i].hotPoint.x = in->readSint16LE();
 
 		assert(sizeof(objectTable[i].hotPoint.y) == 2);
-		objectTable[i].hotPoint.x = in->readSint16LE();
+		objectTable[i].hotPoint.y = in->readSint16LE();
 
 		assert(sizeof(objectTable[i].hotPoint.z) == 2);
-		objectTable[i].hotPoint.x = in->readSint16LE();
+		objectTable[i].hotPoint.z = in->readSint16LE();
 	}
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -517,7 +677,7 @@ int loadSaveOthers(Common::SeekableReadStream *in) {
 	return 1;
 }
 
-int loadAitd1(Common::SeekableReadStream *in) {
+static int loadAitd1(Common::SeekableReadStream *in) {
 	int i;
 	int oldNumMaxObj = 0;
 
@@ -657,11 +817,7 @@ int loadAitd1(Common::SeekableReadStream *in) {
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		numObjInInventoryTable[inventoryId] = in->readSint16LE();
 
-		if (g_engine->getGameId() == GID_AITD1) {
-			assert(INVENTORY_SIZE == 30);
-		}
-
-		for (i = 0; i < INVENTORY_SIZE; i++) {
+		for (i = 0; i < AITD1_INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
 			inventoryTable[inventoryId][i] = in->readSint16LE();
 		}
@@ -931,10 +1087,10 @@ int loadAitd1(Common::SeekableReadStream *in) {
 		objectTable[i].hotPoint.x = in->readSint16LE();
 
 		assert(sizeof(objectTable[i].hotPoint.y) == 2);
-		objectTable[i].hotPoint.x = in->readSint16LE();
+		objectTable[i].hotPoint.y = in->readSint16LE();
 
 		assert(sizeof(objectTable[i].hotPoint.z) == 2);
-		objectTable[i].hotPoint.x = in->readSint16LE();
+		objectTable[i].hotPoint.z = in->readSint16LE();
 	}
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -953,17 +1109,18 @@ int loadAitd1(Common::SeekableReadStream *in) {
 	return 1;
 }
 
-int loadSave(Common::SeekableReadStream *in) {
+int loadGame(Common::SeekableReadStream *in) {
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
 		return loadAitd1(in);
+	case GID_JACK:
+		return loadJack(in);
 	default:
 		return loadSaveOthers(in);
 	}
 }
 
-int makeSaveAitd1(Common::WriteStream *out) {
-	const uint32 var28 = 0;
+static int saveAitd1(Common::WriteStream *out) {
 	int oldNumMaxObj = 0;
 
 	for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
@@ -1112,9 +1269,7 @@ int makeSaveAitd1(Common::WriteStream *out) {
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		out->writeSint16LE(numObjInInventoryTable[inventoryId]);
 
-		assert(INVENTORY_SIZE == 30);
-
-		for (uint i = 0; i < INVENTORY_SIZE; i++) {
+		for (uint i = 0; i < AITD1_INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
 			out->writeSint16LE(inventoryTable[inventoryId][i]);
 		}
@@ -1353,10 +1508,171 @@ int makeSaveAitd1(Common::WriteStream *out) {
 		out->writeSint16LE(objectTable[i].hotPoint.x);
 
 		assert(sizeof(objectTable[i].hotPoint.y) == 2);
-		out->writeSint16LE(objectTable[i].hotPoint.x);
+		out->writeSint16LE(objectTable[i].hotPoint.y);
 
 		assert(sizeof(objectTable[i].hotPoint.z) == 2);
+		out->writeSint16LE(objectTable[i].hotPoint.z);
+	}
+
+	return 1;
+}
+
+static int saveJack(Common::WriteStream *out) {
+	out->writeUint32BE(20);    // image offset
+	out->writeUint32BE(4020);  // pal offset
+	out->writeUint32BE(4788);  // desc offset
+	out->writeUint32BE(4820);  // room offset
+	out->writeUint32BE(21190); // vars offset
+
+	char img[4000];
+	scaleDownImage(320, 200, 0, 0, aux2, img, 80);
+	out->write(img, 4000);
+
+	out->write(currentGamePalette, 768);
+
+	// TODO: name
+	memset(img, 0, 32);
+	out->write(img, 32);
+
+	out->writeSint16LE(currentRoom);
+	out->writeSint16LE(g_currentFloor);
+	out->writeSint16LE(currentCamera);
+	out->writeSint16LE(currentWorldTarget);
+	out->writeSint16LE(currentCameraTargetActor);
+	out->writeSint16LE(maxObjects);
+
+	for (int16 i = 0; i < 300; i++) {
+		out->writeSint16LE(ListWorldObjets[i].objIndex);
+		out->writeSint16LE(ListWorldObjets[i].body);
+		out->writeSint16LE(ListWorldObjets[i].flags);
+		out->writeSint16LE(ListWorldObjets[i].typeZV);
+		out->writeSint16LE(ListWorldObjets[i].foundBody);
+		out->writeSint16LE(ListWorldObjets[i].foundName);
+		out->writeSint16LE(ListWorldObjets[i].flags2);
+		out->writeSint16LE(ListWorldObjets[i].foundLife);
+		out->writeSint16LE(ListWorldObjets[i].x);
+		out->writeSint16LE(ListWorldObjets[i].y);
+		out->writeSint16LE(ListWorldObjets[i].z);
+		out->writeSint16LE(ListWorldObjets[i].alpha);
+		out->writeSint16LE(ListWorldObjets[i].beta);
+		out->writeSint16LE(ListWorldObjets[i].gamma);
+		out->writeSint16LE(ListWorldObjets[i].stage);
+		out->writeSint16LE(ListWorldObjets[i].room);
+		out->writeSint16LE(ListWorldObjets[i].lifeMode);
+		out->writeSint16LE(ListWorldObjets[i].life);
+		out->writeSint16LE(ListWorldObjets[i].floorLife);
+		out->writeSint16LE(ListWorldObjets[i].anim);
+		out->writeSint16LE(ListWorldObjets[i].frame);
+		out->writeSint16LE(ListWorldObjets[i].animType);
+		out->writeSint16LE(ListWorldObjets[i].animInfo);
+		out->writeSint16LE(ListWorldObjets[i].trackMode);
+		out->writeSint16LE(ListWorldObjets[i].trackNumber);
+		out->writeSint16LE(ListWorldObjets[i].positionInTrack);
+		out->writeSint16LE(ListWorldObjets[i].mark);
+	}
+
+	for (uint i = 0; i < 15; i++) {
+		out->writeSint16LE(CVars[i]);
+	}
+
+	out->writeSint16LE(inHandTable[0]);
+	out->writeSint16LE(-1); // ?
+	out->writeSint32LE(numObjInInventoryTable[0]);
+	for (uint i = 0; i < INVENTORY_SIZE; i++) {
+		out->writeSint16LE(inventoryTable[0][i]);
+	}
+
+	out->writeSint16LE(statusScreenAllowed);
+	out->writeSint16LE(giveUp);
+	out->writeSint16LE(lightOff);
+	out->writeSint16LE(shakingAmplitude);
+	out->writeSint16LE(shakeVar1);
+	out->writeUint32LE(timer);
+	out->writeUint32LE(timerFreeze1);
+	out->writeSint16LE(currentMusic);
+
+	out->writeUint16LE(varSize);
+	out->write(vars, varSize);
+
+	for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
+		out->writeSint16LE(objectTable[i].indexInWorld);
+		out->writeSint16LE(objectTable[i].bodyNum);
+		out->writeUint16LE(objectTable[i]._flags);
+		out->writeSint16LE(objectTable[i].dynFlags);
+		out->writeSint16LE((int16)objectTable[i].zv.ZVX1);
+		out->writeSint16LE((int16)objectTable[i].zv.ZVX2);
+		out->writeSint16LE((int16)objectTable[i].zv.ZVY1);
+		out->writeSint16LE((int16)objectTable[i].zv.ZVY2);
+		out->writeSint16LE((int16)objectTable[i].zv.ZVZ1);
+		out->writeSint16LE((int16)objectTable[i].zv.ZVZ2);
+		out->writeSint16LE(objectTable[i].screenXMin);
+		out->writeSint16LE(objectTable[i].screenYMin);
+		out->writeSint16LE(objectTable[i].screenXMax);
+		out->writeSint16LE(objectTable[i].screenYMax);
+		out->writeSint16LE(objectTable[i].roomX);
+		out->writeSint16LE(objectTable[i].roomY);
+		out->writeSint16LE(objectTable[i].roomZ);
+		out->writeSint16LE(objectTable[i].worldX);
+		out->writeSint16LE(objectTable[i].worldY);
+		out->writeSint16LE(objectTable[i].worldZ);
+		out->writeSint16LE(objectTable[i].alpha);
+		out->writeSint16LE(objectTable[i].beta);
+		out->writeSint16LE(objectTable[i].gamma);
+		out->writeSint16LE(objectTable[i].stage);
+		out->writeSint16LE(objectTable[i].room);
+		out->writeSint16LE(objectTable[i].lifeMode);
+		out->writeSint16LE(objectTable[i].life);
+		out->writeUint32LE(objectTable[i].CHRONO);
+		out->writeUint32LE(objectTable[i].ROOM_CHRONO);
+		out->writeSint16LE(objectTable[i].ANIM);
+		out->writeSint16LE(objectTable[i].animType);
+		out->writeSint16LE(objectTable[i].animInfo);
+		out->writeSint16LE(0); // ?
+		out->writeSint16LE(0); // ?
+		out->writeSint16LE(objectTable[i].newAnim);
+		out->writeSint16LE(objectTable[i].newAnimType);
+		out->writeSint16LE(objectTable[i].newAnimInfo);
+		out->writeSint16LE(objectTable[i].FRAME);
+		out->writeSint16LE(objectTable[i].numOfFrames);
+		out->writeSint16LE(objectTable[i].END_FRAME);
+		out->writeSint16LE(objectTable[i].END_ANIM);
+		out->writeSint32LE(0); // time ?
+		out->writeSint16LE(objectTable[i].trackMode);
+		out->writeSint16LE(objectTable[i].trackNumber);
+		out->writeSint16LE(objectTable[i].MARK);
+		out->writeSint16LE(objectTable[i].positionInTrack);
+		out->writeSint16LE(objectTable[i].stepX);
+		out->writeSint16LE(objectTable[i].stepY);
+		out->writeSint16LE(objectTable[i].stepZ);
+		out->writeSint16LE(objectTable[i].animNegX);
+		out->writeSint16LE(objectTable[i].animNegY);
+		out->writeSint16LE(objectTable[i].animNegZ);
+		saveInterpolatedValue(&objectTable[i].YHandler, out);
+		out->writeSint16LE(objectTable[i].falling);
+		saveInterpolatedValue(&objectTable[i].rotate, out);
+		out->writeSint16LE(objectTable[i].direction);
+		out->writeSint16LE(objectTable[i].speed);
+		saveInterpolatedValue(&objectTable[i].speedChange, out);
+		out->writeSint16LE(objectTable[i].COL[0]);
+		out->writeSint16LE(objectTable[i].COL[1]);
+		out->writeSint16LE(objectTable[i].COL[2]);
+		out->writeSint16LE(objectTable[i].COL_BY);
+		out->writeSint16LE(objectTable[i].HARD_DEC);
+		out->writeSint16LE(objectTable[i].HARD_COL);
+		out->writeSint16LE(objectTable[i].HIT);
+		out->writeSint16LE(objectTable[i].HIT_BY);
+		out->writeSint16LE(objectTable[i].animActionType);
+		out->writeSint16LE(objectTable[i].animActionANIM);
+		out->writeSint16LE(objectTable[i].animActionFRAME);
+		out->writeSint16LE(objectTable[i].animActionParam);
+		out->writeSint16LE(objectTable[i].hitForce);
+		out->writeSint16LE(objectTable[i].hotPointID);
+		out->writeSint16LE(0);
 		out->writeSint16LE(objectTable[i].hotPoint.x);
+		out->writeSint16LE(objectTable[i].hotPoint.y);
+		out->writeSint16LE(objectTable[i].hotPoint.z);
+		out->writeSint16LE(objectTable[i].hardMat);
+		out->writeSint16LE(0);
 	}
 
 	return 1;
@@ -1530,10 +1846,6 @@ int makeSaveOthers(Common::WriteStream *out) {
 
 		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
 		out->writeSint16LE(numObjInInventoryTable[inventoryId]);
-
-		if (g_engine->getGameId() == GID_AITD1) {
-			assert(INVENTORY_SIZE == 30);
-		}
 
 		for (uint i = 0; i < INVENTORY_SIZE; i++) {
 			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
@@ -1779,19 +2091,21 @@ int makeSaveOthers(Common::WriteStream *out) {
 		out->writeSint16LE(objectTable[i].hotPoint.x);
 
 		assert(sizeof(objectTable[i].hotPoint.y) == 2);
-		out->writeSint16LE(objectTable[i].hotPoint.x);
+		out->writeSint16LE(objectTable[i].hotPoint.y);
 
 		assert(sizeof(objectTable[i].hotPoint.z) == 2);
-		out->writeSint16LE(objectTable[i].hotPoint.x);
+		out->writeSint16LE(objectTable[i].hotPoint.z);
 	}
 
 	return 1;
 }
 
-int makeSave(Common::WriteStream *out) {
+int saveGame(Common::WriteStream *out) {
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		return makeSaveAitd1(out);
+		return saveAitd1(out);
+	case GID_JACK:
+		return saveJack(out);
 	default:
 		return makeSaveOthers(out);
 	}

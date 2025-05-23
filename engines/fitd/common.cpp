@@ -702,7 +702,7 @@ void initEngine() {
 	maxObjects = READ_LE_U16(pObjectData);
 	pObjectData += 2;
 
-	if (g_engine->getGameId() == GID_AITD1) {
+	if (g_engine->getGameId() == GID_AITD1 || g_engine->getGameId() == GID_JACK) {
 		ListWorldObjets.resize(300);
 	} else {
 		ListWorldObjets.resize(maxObjects);
@@ -3036,6 +3036,9 @@ void runGame() {
 		currentCVarTable = AITD1KnownCVars;
 		break;
 	case GID_JACK:
+		CVarsSize = 15;
+		currentCVarTable = AITD2KnownCVars;
+		break;
 	case GID_AITD2:
 	case GID_AITD3:
 		CVarsSize = 70;

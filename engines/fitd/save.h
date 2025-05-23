@@ -30,8 +30,8 @@ class WriteStream;
 
 namespace Fitd {
 
-int loadSave(Common::SeekableReadStream *in);
-int makeSave(Common::WriteStream *out);
+int loadGame(Common::SeekableReadStream *in);
+int saveGame(Common::WriteStream *out);
 } // namespace Fitd
 
 #endif

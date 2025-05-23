@@ -150,6 +150,7 @@ typedef struct tObject {
 
 	// aitd2
 	int16 hardMat;
+	int16 field_A8;
 } tObject;
 
 typedef struct tWorldObject {

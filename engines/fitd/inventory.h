@@ -24,7 +24,8 @@
 
 #include "common/scummsys.h"
 
-#define INVENTORY_SIZE 30
+#define AITD1_INVENTORY_SIZE 30
+#define INVENTORY_SIZE 50
 #define NUM_MAX_INVENTORY 2
 
 namespace Fitd {

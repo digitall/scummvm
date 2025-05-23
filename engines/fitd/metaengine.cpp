@@ -113,21 +113,34 @@ SaveStateDescriptor FitdMetaEngine::querySaveMetaInfos(const char *target, int s
 
 		desc = SaveStateDescriptor(this, slot, "?");
 
-		const uint32 thumbOffset = f->readUint32BE();       // offset to thumbnail start
-		const uint32 descriptionOffset = f->readUint32BE(); // offset to savegame description
-		f->seek(thumbOffset, SEEK_SET);
 		byte thumbnailData[80 * 50];
-		f->read(thumbnailData, sizeof(thumbnailData));
+		byte palette[768];
+		Common::String savegameDesc;
+		if (!strcmp(target, "aitd1")) {
+			const uint32 thumbOffset = f->readUint32BE();       // offset to thumbnail
+			const uint32 descriptionOffset = f->readUint32BE(); // offset to description
+			f->seek(thumbOffset, SEEK_SET);
+			f->read(thumbnailData, sizeof(thumbnailData));
 
-		f->seek(descriptionOffset, SEEK_SET);
-		Common::String savegameDesc(f->readString());
+			f->seek(descriptionOffset, SEEK_SET);
+			savegameDesc = f->readString();
 
-		// TODO: do it only once
-		//loadPalette(target, palette);
+			memcpy(palette, Fitd::currentGamePalette, 768);
+		} else {
+			const uint32 thumbOffset = f->readUint32BE(); // offset to thumbnail
+			const uint32 palOffset = f->readUint32BE();   // offset to palette
+			const uint32 descOffset = f->readUint32BE();  // offset to description
+			f->seek(thumbOffset, SEEK_SET);
+			f->read(thumbnailData, sizeof(thumbnailData));
+			f->seek(palOffset, SEEK_SET);
+			f->read(palette, sizeof(palette));
+			f->seek(descOffset, SEEK_SET);
+			savegameDesc = f->readString();
+		}
 
 		Graphics::ManagedSurface thumbnail;
 		thumbnail.create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
-		thumbnail.setPalette(Fitd::currentGamePalette, 0, 256);
+		thumbnail.setPalette(palette, 0, 256);
 		memcpy(thumbnail.getBasePtr(0, 0), thumbnailData, sizeof(thumbnailData));
 
 		Graphics::Surface *thumbnailSmall = new Graphics::Surface();

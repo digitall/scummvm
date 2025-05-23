@@ -72,12 +72,12 @@ bool FitdEngine::canSaveGameStateCurrently(Common::U32String *msg) {
 }
 
 Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
-	return loadSave(stream) == 1 ? Common::kNoError : Common::kReadingFailed;
+	return loadGame(stream) == 1 ? Common::kNoError : Common::kReadingFailed;
 }
 
 Common::Error FitdEngine::saveGameStream(Common::WriteStream *stream, bool isAutosave) {
 	// Default to returning an error when not implemented
-	return makeSave(stream) == 1 ? Common::kNoError : Common::kWritingFailed;
+	return saveGame(stream) == 1 ? Common::kNoError : Common::kWritingFailed;
 }
 
 Common::Error FitdEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
@@ -89,7 +89,7 @@ Common::Error FitdEngine::saveGameState(int slot, const Common::String &desc, bo
 	if (!saveFile)
 		return Common::kWritingFailed;
 
-	makeSave(saveFile);
+	saveGame(saveFile);
 	saveFile->finalize();
 	delete saveFile;
 
