@@ -121,7 +121,7 @@ int asmCheckListCol(const ZVStruct *zvPtr, const roomDataStruct *pRoomData) {
 }
 
 static void hardColSuB1Sub1(int flag) {
-	switch (flag) {
+	switch (flag - 1) {
 	case 0:
 	case 1: {
 		hardColStepZ = 0;
@@ -130,9 +130,6 @@ static void hardColSuB1Sub1(int flag) {
 	case 3:
 	case 7: {
 		hardColStepX = 0;
-		break;
-	}
-	default: {
 		break;
 	}
 	}

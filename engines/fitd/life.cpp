@@ -915,11 +915,10 @@ void processLife(int lifeNum, bool callFoundLife) {
 						break;
 					}
 					case LM_TEST_COL: {
-						// TODO: check this
 						if (*(int16 *)currentLifePtr) {
-							ListWorldObjets[var_6].typeZV |= 0x1;
+							ListWorldObjets[var_6].flags |= 0x20;
 						} else {
-							ListWorldObjets[var_6].typeZV &= ~0xFFFE;
+							ListWorldObjets[var_6].flags &= 0xFFDF;
 						}
 
 						currentLifePtr += 2;
