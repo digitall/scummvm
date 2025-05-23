@@ -68,8 +68,8 @@ Common::Array<Common::Keymap *> FitdMetaEngine::initKeymaps(const char *target) 
 		Common::EventType event;
 		Common::KeyCode key;
 	} actions[] = {
-		{"ACTION", _s("Action (Fight/Open/Search/Shut/Push/Jump)"), Fitd::kDefaultAction, "MOUSE_LEFT|JOY_A", Common::EVENT_LBUTTONDOWN, Common::KEYCODE_SPACE},
-		{"VALIDATE", _s("Validate"), Fitd::kValidate, "MOUSE_RIGHT|JOY_B", Common::EVENT_LBUTTONDOWN, Common::KEYCODE_RETURN},
+		{"ACTION", _s("Action (Fight/Open/Search/Shut/Push/Jump)"), Fitd::kDefaultAction, "JOY_A", Common::EVENT_INVALID, Common::KEYCODE_SPACE},
+		{"VALIDATE", _s("Validate"), Fitd::kValidate, "JOY_B", Common::EVENT_INVALID, Common::KEYCODE_RETURN},
 		{"PARAMETER_SCREEN", _s("Parameter screen"), Fitd::kParameterScreen, "JOY_LEFT_TRIGGER", Common::EVENT_INVALID, Common::KEYCODE_ESCAPE},
 		{Common::kStandardActionMoveLeft, _s("Left"), Fitd::kMoveLeft, "LEFT|JOY_LEFT_STICK_X-", Common::EVENT_INVALID, Common::KEYCODE_LEFT},
 		{Common::kStandardActionMoveRight, _s("Right"), Fitd::kMoveRight, "RIGHT|JOY_LEFT_STICK_X+", Common::EVENT_INVALID, Common::KEYCODE_RIGHT},
