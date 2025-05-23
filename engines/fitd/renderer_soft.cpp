@@ -20,11 +20,11 @@
  */
 
 #include "engines/util.h"
-#include "graphics/screen.h"
 #include "fitd/fitd.h"
+#include "fitd/lines.h"
 #include "fitd/renderer.h"
 #include "fitd/vars.h"
-#include "fitd/lines.h"
+#include "graphics/screen.h"
 
 #define ROL16(x, b) (((x) << (b)) | ((x) >> (16 - (b))))
 
@@ -96,7 +96,9 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, byte 
 static void renderer_setClip(float left, float top, float right, float bottom);
 static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
-static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
+static void renderer_drawPoint(float X, float Y, float Z, uint8 color);
+static void renderer_drawBigPoint(float X, float Y, float Z, uint8 color);
+static void renderer_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size);
 static void renderer_updateScreen();
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
 
@@ -117,6 +119,9 @@ Renderer createSoftwareRenderer() {
 	r.clearClip = renderer_clearClip;
 	r.drawMask = renderer_drawMask;
 	r.drawPoint = renderer_drawPoint;
+	r.drawBigPoint = renderer_drawBigPoint;
+	r.drawSphere = renderer_drawSphere;
+	r.drawZixel = renderer_drawSphere;
 	r.updateScreen = renderer_updateScreen;
 	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
 	return r;
@@ -1010,20 +1015,20 @@ static void drawPoint(int16 x, int16 y, uint8 color) {
 	}
 }
 
-static void renderer_drawPoint(float sX, float sY, float sZ, uint8 color, uint8 material, float size) {
-	if (size == 2.f) {
-		// big point
-		drawPoint(sX, sY, color);
-		drawPoint(sX + 1, sY, color);
-		drawPoint(sX + 1, sY + 1, color);
-		drawPoint(sX, sY + 1, color);
-	} else if (size == 0.3f) {
-		// point
-		drawPoint(sX, sY, color);
-	} else {
-		if (computeSphere(sX, sY, size)) {
-			render(color, material);
-		}
+static void renderer_drawBigPoint(float sX, float sY, float sZ, uint8 color) {
+	drawPoint(sX, sY, color);
+	drawPoint(sX + 1, sY, color);
+	drawPoint(sX + 1, sY + 1, color);
+	drawPoint(sX, sY + 1, color);
+}
+
+static void renderer_drawPoint(float sX, float sY, float sZ, uint8 color) {
+	drawPoint(sX, sY, color);
+}
+
+static void renderer_drawSphere(float sX, float sY, float sZ, uint8 color, uint8 material, float size) {
+	if (computeSphere(sX, sY, size)) {
+		render(color, material);
 	}
 }
 

@@ -1951,7 +1951,7 @@ static void drawSpecialObject(int actorIdx) {
 			if (y >= 0) {
 				freeData = false;
 				if (pPointList[2] > 100) {
-					osystem_drawPoint(pPointList[0], pPointList[1], pPointList[2], color, 0, 0.3f);
+					osystem_drawPoint(pPointList[0], pPointList[1], pPointList[2], color);
 				}
 				flowAnimList[1] += 6;
 				walkStep(10, 0, flowAnimList[0]);

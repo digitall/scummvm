@@ -20,15 +20,14 @@
  */
 
 #include "fitd/renderer_opengl.h"
-#include "fitd/fitd.h"
-#include "fitd/renderer.h"
 #include "common/system.h"
 #include "engines/util.h"
+#include "fitd/fitd.h"
+#include "fitd/renderer.h"
 #include "graphics/opengl/context.h"
 #include "graphics/opengl/debug.h"
 #include "graphics/opengl/shader.h"
 #include "graphics/opengl/system_headers.h"
-#include "graphics/surface.h"
 
 #define NUM_MAX_FLAT_VERTICES 5000 * 3
 #define NUM_MAX_NOISE_VERTICES 2000 * 3
@@ -327,10 +326,11 @@ static void renderer_createMask(const uint8 *mask, int roomId, int maskId, unsig
 static void renderer_setClip(float left, float top, float right, float bottom);
 static void renderer_clearClip();
 static void renderer_drawMask(int roomId, int maskId);
-static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
+static void renderer_drawPoint(float X, float Y, float Z, uint8 color);
+static void renderer_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size);
+static void renderer_drawBigPoint(float X, float Y, float Z, uint8 color);
 static void renderer_updateScreen();
 static void renderer_copyBoxLogPhys(int left, int top, int right, int bottom);
-static Graphics::Surface *renderer_capture();
 
 Renderer createOpenGLRenderer() {
 	Renderer r;
@@ -349,6 +349,8 @@ Renderer createOpenGLRenderer() {
 	r.clearClip = renderer_clearClip;
 	r.drawMask = renderer_drawMask;
 	r.drawPoint = renderer_drawPoint;
+	r.drawBigPoint = renderer_drawBigPoint;
+	r.drawZixel = renderer_drawZixel;
 	r.updateScreen = renderer_updateScreen;
 	r.copyBoxLogPhys = renderer_copyBoxLogPhys;
 	return r;
@@ -989,7 +991,7 @@ static void renderer_fillPoly(const int16 *buffer, int numPoint, unsigned char c
 	}
 }
 
-static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+static void drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size) {
 	sphereVertex corners[4];
 	corners[0].X = X + size;
 	corners[0].Y = Y + size;
@@ -1024,8 +1026,20 @@ static void renderer_drawPoint(float X, float Y, float Z, uint8 color, uint8 mat
 		pVertex->size = size;
 		pVertex->centerX = X;
 		pVertex->centerY = Y;
-		pVertex->material = material;
+		pVertex->material = 0;
 	}
+}
+
+static void renderer_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+	drawPoint(X, Y, Z, color, material, size);
+}
+
+static void renderer_drawPoint(float X, float Y, float Z, uint8 color) {
+	drawPoint(X, Y, Z, color, 0, 1);
+}
+
+static void renderer_drawBigPoint(float X, float Y, float Z, uint8 color) {
+	drawPoint(X, Y, Z, color, 0, 2);
 }
 
 static void renderer_renderLine(int16 x1, int16 y1, int16 z1, int16 x2, int16 y2, int16 z2, uint8 color) {

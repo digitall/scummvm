@@ -688,7 +688,7 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 }
 
 int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody *pBody) {
-	rotateNuage2(x, y, z, alpha, beta, gamma, pBody->m_vertices.size(), &pBody->m_vertices[0].x);
+	return rotateNuage2(x, y, z, alpha, beta, gamma, pBody->m_vertices.size(), &pBody->m_vertices[0].x);
 }
 
 static void processPrim_Line(int primType, sPrimitive *ptr, char **out) {
@@ -864,19 +864,17 @@ void renderZixel(primEntryStruct *pEntry) // point
 	const float pointSize = 20.f;
 	const float transformedSize = pointSize * (float)cameraFovX / (float)(pEntry->vertices[0].Z + cameraPerspective);
 
-	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
+	osystem_drawZixel(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, transformedSize);
 }
 
 void renderPoint(primEntryStruct *pEntry) // point
 {
-	const float pointSize = 0.3f; // TODO: better way to compute that?
-	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, pointSize);
+	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
 }
 
 void renderBigPoint(primEntryStruct *pEntry) // point
 {
-	const float bigPointSize = 2.f; // TODO: better way to compute that?
-	osystem_drawPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color, pEntry->material, bigPointSize);
+	osystem_drawBigPoint(pEntry->vertices[0].X, pEntry->vertices[0].Y, pEntry->vertices[0].Z, pEntry->color);
 }
 
 void renderSphere(primEntryStruct *pEntry) // sphere
@@ -1148,12 +1146,20 @@ void osystem_flip(unsigned char *videoBuffer) {
 	osystem_flushPendingPrimitives();
 }
 
-void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size) {
-	renderer.drawPoint(X, Y, Z, color, material, size);
+void osystem_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size) {
+	renderer.drawZixel(X, Y, Z, color, material, size);
+}
+
+void osystem_drawPoint(float X, float Y, float Z, uint8 color) {
+	renderer.drawPoint(X, Y, Z, color);
+}
+
+void osystem_drawBigPoint(float X, float Y, float Z, uint8 color) {
+	renderer.drawPoint(X, Y, Z, color);
 }
 
 void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size) {
-	osystem_drawPoint(X, Y, Z, color, material, size);
+	renderer.drawSphere(X, Y, Z, color, material, size);
 }
 
 void copyBoxLogPhys(int left, int top, int right, int bottom) {

@@ -63,7 +63,9 @@ void osystem_setClip(float left, float top, float right, float bottom);
 void osystem_clearClip();
 void osystem_stopModelRender();
 void osystem_drawSphere(float X, float Y, float Z, uint8 color, uint8 material, float size);
-void osystem_drawPoint(float X, float Y, float Z, uint8 color, uint8 material, float size);
+void osystem_drawZixel(float X, float Y, float Z, uint8 color, uint8 material, float size);
+void osystem_drawPoint(float X, float Y, float Z, uint8 color);
+void osystem_drawBigPoint(float X, float Y, float Z, uint8 color);
 void osystem_flip(unsigned char *videoBuffer);
 void osystem_updateScreen();
 

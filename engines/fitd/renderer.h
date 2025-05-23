@@ -45,7 +45,10 @@ struct Renderer {
 	void (*setClip)(float left, float top, float right, float bottom);
 	void (*clearClip)();
 	void (*drawMask)(int roomId, int maskId);
-	void (*drawPoint)(float X, float Y, float Z, uint8 color, uint8 material, float size);
+	void (*drawPoint)(float X, float Y, float Z, uint8 color);
+	void (*drawBigPoint)(float X, float Y, float Z, uint8 color);
+	void (*drawZixel)(float X, float Y, float Z, uint8 color, uint8 material, float size);
+	void (*drawSphere)(float X, float Y, float Z, uint8 color, uint8 material, float size);
 	void (*copyBoxLogPhys)(int left, int top, int right, int bottom);
 	void (*updateScreen)();
 };
