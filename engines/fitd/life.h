@@ -162,6 +162,9 @@ struct tObject;
 
 void processLife(int lifeNum, bool callFoundLife);
 int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alpha, int beta, int gamma, ZVStruct *zvPtr);
+void setWaterHeight(int height);
+void saveAmbiance();
+void restoreAmbiance();
 
 } // namespace Fitd
 #endif

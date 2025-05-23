@@ -751,6 +751,29 @@ static void playSequence(int sequenceIdx, int fadeStart, int fadeOutVar) {
 	flagInitView = 2;
 }
 
+void setWaterHeight(int height) {
+	waterHeight = height;
+}
+
+void saveAmbiance() {
+	saveFlagRotPal = flagRotPal;
+	saveShakeVar1 = shakeVar1;
+	shakeVar1 = 0;
+	flagRotPal = 0;
+	// TODO: clearShake();
+	setWaterHeight(10000);
+}
+
+void restoreAmbiance() {
+	flagRotPal = saveFlagRotPal;
+	shakeVar1 = saveShakeVar1;
+	if (saveFlagRotPal) {
+		setWaterHeight(-600);
+	} else {
+		setWaterHeight(10000);
+	}
+}
+
 void processLife(int lifeNum, bool callFoundLife) {
 	int exitLife = 0;
 	// int switchVal = 0;
@@ -2042,17 +2065,14 @@ void processLife(int lifeNum, bool callFoundLife) {
 				// appendFormated("LM_WATER ");
 				// TODO: Warning, AITD1/AITD2 diff
 				// printf("LM_WATER\n");
-				//          mainLoopVar1 = shakeVar1 = *(int16*)(currentLifePtr);
+				flagRotPal = saveFlagRotPal = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
 
-				/*          if(mainLoopVar1)
-				{
-				//setupShaking(-600);
+				if (flagRotPal) {
+					setWaterHeight(-600);
+				} else {
+					setWaterHeight(1000);
 				}
-				else
-				{
-				//setupShaking(1000);
-				} */
 
 				break;
 			}

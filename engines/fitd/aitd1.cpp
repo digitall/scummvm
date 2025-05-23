@@ -397,7 +397,7 @@ void startAITD1(int saveSlot) {
 			} else if (g_engine->loadGameState(saveSlot).getCode() == Common::kNoError) {
 				// here, original would quit if protection flag was false
 
-				//          updateShaking();
+				restoreAmbiance();
 
 				flagInitView = 2;
 

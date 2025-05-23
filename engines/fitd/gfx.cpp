@@ -511,7 +511,7 @@ static int animNuage(int x, int y, int z, int alpha, int beta, int gamma, sBody 
 			Y += renderY;
 			Z += renderZ;
 
-			if (Y > 10000) // height clamp
+			if (Y > waterHeight) // height clamp
 			{
 				*outPtr++ = -10000;
 				*outPtr++ = -10000;
@@ -641,7 +641,7 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 		X += renderX;
 		Y += renderY;
 
-		if (Y > 10000) // height clamp
+		if (Y > waterHeight) // height clamp
 		{
 			*outPtr++ = -10000;
 			*outPtr++ = -10000;

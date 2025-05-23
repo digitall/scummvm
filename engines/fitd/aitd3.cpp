@@ -20,6 +20,7 @@
  */
 
 #include "fitd/aitd3.h"
+
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/gfx.h"
@@ -29,6 +30,7 @@
 #include "fitd/startup_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
+#include "life.h"
 
 namespace Fitd {
 #define AITD3_CADRE_SPF 0
@@ -88,7 +90,7 @@ void startAITD3(int saveSlot) {
 		case 1: // continue
 		{
 			if (g_engine->loadGameState(saveSlot != -1 ? saveSlot : 1).getCode() == Common::kNoError) {
-				//          updateShaking();
+				restoreAmbiance();
 
 				flagInitView = 2;
 

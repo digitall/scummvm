@@ -275,9 +275,14 @@ int bgOverlayVar1;
 int16 newRoom;
 
 int16 shakeVar1;
+int16 saveShakeVar1;
 int16 shakingAmplitude;
 unsigned int timerFreeze1;
 int timerSaved = 0;
+
+int16 flagRotPal;
+int16 saveFlagRotPal;
+int16 waterHeight = 10000;
 
 hardColStruct *hardColTable[10];
 

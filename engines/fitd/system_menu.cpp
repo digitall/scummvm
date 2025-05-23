@@ -29,6 +29,7 @@
 #include "fitd/font.h"
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
+#include "fitd/life.h"
 #include "fitd/pak.h"
 #include "fitd/sequence.h"
 #include "fitd/system_menu.h"
@@ -223,9 +224,6 @@ bool showLoadMenu(int menuChoice) {
 	// fadeOutPhys(8, 0);
 	//  freeAll();
 	if (selectedSlot != -1 && g_engine->loadGameState(selectedSlot).getCode() == Common::kNoError) {
-		flagInitView = 2;
-		unfreezeTime();
-		// updateShaking();
 		return true;
 	}
 	return false;
@@ -236,7 +234,7 @@ void processSystemMenu() {
 	int exitMenu = 0;
 
 	freezeTime();
-	// pauseShaking();
+	saveAmbiance();
 
 	if (lightOff) {
 		makeBlackPalette();
@@ -276,8 +274,12 @@ void processSystemMenu() {
 						g_engine->saveGameState(1, "", false);
 						break;
 					case 2: // load
-						if (showLoadMenu(46))
+						if (showLoadMenu(46)) {
+							flagInitView = 2;
+							unfreezeTime();
+							restoreAmbiance();
 							return;
+						}
 						break;
 					case 3: // music
 						musicEnabled = musicEnabled ? 0 : 1;

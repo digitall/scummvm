@@ -19,6 +19,8 @@
  *
  */
 
+#include "fitd/main_loop.h"
+#include "common/scummsys.h"
 #include "fitd/actor_list.h"
 #include "fitd/anim.h"
 #include "fitd/anim_action.h"
@@ -28,11 +30,9 @@
 #include "fitd/gfx.h"
 #include "fitd/inventory.h"
 #include "fitd/life.h"
-#include "fitd/main_loop.h"
 #include "fitd/system_menu.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
-#include "common/scummsys.h"
 
 namespace Fitd {
 
@@ -266,7 +266,7 @@ void mainLoop(int allowSystemMenu, int deltaTime) {
 		updatePendingEvents();
 	}
 
-	//  mainLoopVar1 = 0;
+	flagRotPal = 0;
 	//  shakingState = 0;
 
 	//  stopShaking();

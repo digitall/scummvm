@@ -1889,7 +1889,8 @@ static void drawSpecialObject(int actorIdx) {
 	tObject *actorPtr = &objectTable[actorIdx];
 
 	char *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
-	if (!flowPtr) return;
+	if (!flowPtr)
+		return;
 
 	switch (actorPtr->ANIM) {
 	case 0: { // evaporate
@@ -2261,7 +2262,7 @@ void foundObject(int objIdx, int param) {
 	objPtr->trackNumber = 0;
 
 	freezeTime();
-	//  setupShaking(1000); // probably to remove the shaking when in foundObject screen
+	setWaterHeight(1000);
 
 	int weight = 0;
 	for (int i = 0; i < numObjInInventoryTable[currentInventory]; i++) {
@@ -2364,9 +2365,8 @@ void foundObject(int objIdx, int param) {
 	localKey = 0;
 	localClick = 0;
 
-	//  if(mainLoopVar1 != 0)
-	{
-		// setupShaking(-600);
+	if (flagRotPal != 0) {
+		setWaterHeight(-600);
 	}
 
 	flagInitView = 1;

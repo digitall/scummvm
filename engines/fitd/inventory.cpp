@@ -20,6 +20,7 @@
  */
 
 #include "fitd/inventory.h"
+
 #include "fitd/aitd2.h"
 #include "fitd/aitd3.h"
 #include "fitd/aitd_box.h"
@@ -29,6 +30,7 @@
 #include "fitd/game_time.h"
 #include "fitd/gfx.h"
 #include "fitd/hqr.h"
+#include "fitd/life.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
 
@@ -192,7 +194,7 @@ void processInventory() {
 	statusVar1 = 0;
 
 	freezeTime();
-	// pauseShaking();
+	saveAmbiance();
 
 	if (lightOff != 0) {
 		makeBlackPalette();
@@ -384,6 +386,6 @@ void processInventory() {
 		executeFoundLife(selectedObjectIdx);
 	}
 
-	// updateShaking();
+	restoreAmbiance();
 }
 } // namespace Fitd
