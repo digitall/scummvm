@@ -957,11 +957,11 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 		assert(sizeof(objectTable[i].gamma) == 2);
 		objectTable[i].gamma = in->readSint16LE();
 
-		assert(sizeof(objectTable[i].room) == 2);
-		objectTable[i].room = in->readSint16LE();
-
 		assert(sizeof(objectTable[i].stage) == 2);
 		objectTable[i].stage = in->readSint16LE();
+
+		assert(sizeof(objectTable[i].room) == 2);
+		objectTable[i].room = in->readSint16LE();
 
 		assert(sizeof(objectTable[i].lifeMode) == 2);
 		objectTable[i].lifeMode = in->readSint16LE();
@@ -1378,11 +1378,11 @@ static int saveAitd1(Common::WriteStream *out) {
 		assert(sizeof(objectTable[i].gamma) == 2);
 		out->writeSint16LE(objectTable[i].gamma);
 
-		assert(sizeof(objectTable[i].room) == 2);
-		out->writeSint16LE(objectTable[i].room);
-
 		assert(sizeof(objectTable[i].stage) == 2);
 		out->writeSint16LE(objectTable[i].stage);
+
+		assert(sizeof(objectTable[i].room) == 2);
+		out->writeSint16LE(objectTable[i].room);
 
 		assert(sizeof(objectTable[i].lifeMode) == 2);
 		out->writeSint16LE(objectTable[i].lifeMode);
@@ -1961,11 +1961,11 @@ int makeSaveOthers(Common::WriteStream *out) {
 		assert(sizeof(objectTable[i].gamma) == 2);
 		out->writeSint16LE(objectTable[i].gamma);
 
-		assert(sizeof(objectTable[i].room) == 2);
-		out->writeSint16LE(objectTable[i].room);
-
 		assert(sizeof(objectTable[i].stage) == 2);
 		out->writeSint16LE(objectTable[i].stage);
+
+		assert(sizeof(objectTable[i].room) == 2);
+		out->writeSint16LE(objectTable[i].room);
 
 		assert(sizeof(objectTable[i].lifeMode) == 2);
 		out->writeSint16LE(objectTable[i].lifeMode);
