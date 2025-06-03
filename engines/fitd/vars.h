@@ -431,7 +431,6 @@ extern const char *listAnimSelect[];
 
 extern int16 shakeVar1;
 extern int16 saveShakeVar1;
-extern int16 shakingAmplitude;
 extern unsigned int timerFreeze1;
 extern int timerSaved;
 

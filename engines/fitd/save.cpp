@@ -130,8 +130,8 @@ static int loadJack(Common::SeekableReadStream *in) {
 	statusScreenAllowed = in->readSint16LE();
 	giveUp = in->readSint16LE();
 	lightOff = in->readSint16LE();
-	shakingAmplitude = in->readSint16LE();
-	shakeVar1 = in->readSint16LE();
+	saveShakeVar1 = in->readSint16LE();
+	saveFlagRotPal = in->readSint16LE();
 	timer = in->readUint32LE();
 	timerFreeze1 = in->readUint32LE();
 	currentMusic = in->readSint16LE();
@@ -399,11 +399,11 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 	assert(sizeof(lightOff) == 2);
 	lightOff = in->readSint16LE();
 
-	assert(sizeof(shakingAmplitude) == 2);
-	shakingAmplitude = in->readSint16LE();
+	assert(sizeof(saveShakeVar1) == 2);
+	saveShakeVar1 = in->readSint16LE();
 
-	assert(sizeof(shakeVar1) == 2);
-	shakeVar1 = in->readSint16LE();
+	assert(sizeof(saveFlagRotPal) == 2);
+	saveFlagRotPal = in->readSint16LE();
 
 	assert(sizeof(timer) == 4);
 	timer = in->readUint32LE();
@@ -678,7 +678,6 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 }
 
 static int loadAitd1(Common::SeekableReadStream *in) {
-	int i;
 	int oldNumMaxObj = 0;
 
 	initEngine();
@@ -716,7 +715,7 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 		maxObjects = 300; // fix for save engine..
 	}
 
-	for (i = 0; i < maxObjects; i++) {
+	for (int i = 0; i < maxObjects; i++) {
 		assert(sizeof(ListWorldObjets[i].objIndex) == 2);
 		ListWorldObjets[i].objIndex = in->readSint16LE();
 
@@ -804,23 +803,16 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 		assert(CVarsSize == 45);
 	}
 
-	for (i = 0; i < CVarsSize; i++) {
+	for (int i = 0; i < CVarsSize; i++) {
 		assert(sizeof(CVars[i]) == 2);
 		CVars[i] = in->readSint16LE();
 	}
 
-	const int maxInventory = g_engine->getGameId() == GID_AITD1 ? 1 : NUM_MAX_INVENTORY;
-	for (int inventoryId = 0; inventoryId < maxInventory; inventoryId++) {
-		assert(sizeof(inHandTable[inventoryId]) == 2);
-		inHandTable[inventoryId] = in->readSint16LE();
+	inHandTable[0] = in->readSint16LE();
+	numObjInInventoryTable[0] = in->readSint16LE();
 
-		assert(sizeof(numObjInInventoryTable[inventoryId]) == 2);
-		numObjInInventoryTable[inventoryId] = in->readSint16LE();
-
-		for (i = 0; i < AITD1_INVENTORY_SIZE; i++) {
-			assert(sizeof(inventoryTable[inventoryId][i]) == 2);
-			inventoryTable[inventoryId][i] = in->readSint16LE();
-		}
+	for (int i = 0; i < AITD1_INVENTORY_SIZE; i++) {
+		inventoryTable[0][i] = in->readSint16LE();
 	}
 
 	assert(sizeof(statusScreenAllowed) == 2);
@@ -832,11 +824,11 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	assert(sizeof(lightOff) == 2);
 	lightOff = in->readSint16LE();
 
-	assert(sizeof(shakingAmplitude) == 2);
-	shakingAmplitude = in->readSint16LE();
+	assert(sizeof(saveShakeVar1) == 2);
+	saveShakeVar1 = in->readSint16LE();
 
-	assert(sizeof(shakeVar1) == 2);
-	shakeVar1 = in->readSint16LE();
+	assert(sizeof(saveFlagRotPal) == 2);
+	saveFlagRotPal = in->readSint16LE();
 
 	assert(sizeof(timer) == 4);
 	timer = in->readUint32LE();
@@ -881,7 +873,7 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 	const unsigned int offsetToActors = in->readUint32BE();
 	in->seek(offsetToActors, SEEK_SET);
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		assert(sizeof(objectTable[i].indexInWorld) == 2);
 		objectTable[i].indexInWorld = in->readSint16LE();
 
@@ -1093,7 +1085,7 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 		objectTable[i].hotPoint.z = in->readSint16LE();
 	}
 
-	for (i = 0; i < NUM_MAX_OBJECT; i++) {
+	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
 			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
 
@@ -1284,11 +1276,11 @@ static int saveAitd1(Common::WriteStream *out) {
 	assert(sizeof(lightOff) == 2);
 	out->writeSint16LE(lightOff);
 
-	assert(sizeof(shakingAmplitude) == 2);
-	out->writeSint16LE(shakingAmplitude);
+	assert(sizeof(saveShakeVar1) == 2);
+	out->writeSint16LE(saveShakeVar1);
 
-	assert(sizeof(shakeVar1) == 2);
-	out->writeSint16LE(shakeVar1);
+	assert(sizeof(saveFlagRotPal) == 2);
+	out->writeSint16LE(saveFlagRotPal);
 
 	assert(sizeof(timer) == 4);
 	out->writeUint32LE(timer);
@@ -1585,8 +1577,8 @@ static int saveJack(Common::WriteStream *out) {
 	out->writeSint16LE(statusScreenAllowed);
 	out->writeSint16LE(giveUp);
 	out->writeSint16LE(lightOff);
-	out->writeSint16LE(shakingAmplitude);
-	out->writeSint16LE(shakeVar1);
+	out->writeSint16LE(saveShakeVar1);
+	out->writeSint16LE(saveFlagRotPal);
 	out->writeUint32LE(timer);
 	out->writeUint32LE(timerFreeze1);
 	out->writeSint16LE(currentMusic);
@@ -1862,11 +1854,11 @@ int makeSaveOthers(Common::WriteStream *out) {
 	assert(sizeof(lightOff) == 2);
 	out->writeSint16LE(lightOff);
 
-	assert(sizeof(shakingAmplitude) == 2);
-	out->writeSint16LE(shakingAmplitude);
+	assert(sizeof(saveShakeVar1) == 2);
+	out->writeSint16LE(saveShakeVar1);
 
-	assert(sizeof(shakeVar1) == 2);
-	out->writeSint16LE(shakeVar1);
+	assert(sizeof(saveFlagRotPal) == 2);
+	out->writeSint16LE(saveFlagRotPal);
 
 	assert(sizeof(timer) == 4);
 	out->writeUint32LE(timer);

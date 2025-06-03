@@ -2192,13 +2192,12 @@ void processLife(int lifeNum, bool callFoundLife) {
 			{
 				// appendFormated("LM_SHAKING ");
 				// printf("LM_SHAKING\n");
-				// shakingState = shakingAmplitude = *(int16*)(currentLifePtr);
+				saveShakeVar1 = shakeVar1 = *(int16 *)(currentLifePtr);
 				currentLifePtr += 2;
 
-				/*          if(shakingState==0)
-				{
-				stopShaking();
-				} */
+				if (shakeVar1 == 0) {
+					stopShaking();
+				}
 				break;
 			}
 			case LM_PLUIE: {

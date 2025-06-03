@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/system.h"
 #include "fitd/aitd1.h"
 #include "fitd/common.h"
 #include "fitd/file_access.h"
@@ -27,7 +28,6 @@
 #include "fitd/input.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
-#include "common/scummsys.h"
 
 namespace Fitd {
 
@@ -37,11 +37,22 @@ static void clearScreenTatou() {
 	}
 }
 
+static int shakeTime = 4;
+
 void process_events() {
 	// TODO: fix this
 	const uint32 timeIncrease = 2;
 
 	osystem_flushPendingPrimitives();
+
+	if (shakeVar1) {
+		shakeTime = (shakeTime + 1) % 6;
+		if (shakeTime == 0) {
+			g_system->setShakePos(0, 2);
+		} else {
+			g_system->setShakePos(0, -2);
+		}
+	}
 
 	osystem_updateScreen();
 	osystem_startFrame();
