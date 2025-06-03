@@ -22,6 +22,8 @@
 #ifndef FITD_LIFE_H
 #define FITD_LIFE_H
 
+#include "common/scummsys.h"
+
 namespace Fitd {
 
 typedef enum enumLifeMacro {
@@ -165,6 +167,8 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 void setWaterHeight(int height);
 void saveAmbiance();
 void restoreAmbiance();
+void fadeLevelDestPal(byte *pal1, byte *pal2, int coef);
+void stopShaking();
 
 } // namespace Fitd
 #endif

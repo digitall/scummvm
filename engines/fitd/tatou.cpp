@@ -19,16 +19,17 @@
  *
  */
 
-#include "fitd/fitd.h"
-#include "fitd/game_time.h"
-#include "fitd/gfx.h"
-#include "fitd/tatou.h"
-#include "fitd/hqr.h"
-#include "fitd/vars.h"
 #include "audio/decoders/raw.h"
 #include "audio/decoders/voc.h"
 #include "audio/mixer.h"
 #include "common/memstream.h"
+#include "fitd/fitd.h"
+#include "fitd/game_time.h"
+#include "fitd/gfx.h"
+#include "fitd/hqr.h"
+#include "fitd/life.h"
+#include "fitd/tatou.h"
+#include "fitd/vars.h"
 
 namespace Fitd {
 
@@ -45,8 +46,16 @@ void fadeInPhys(int step, int start) {
 
 	freezeTime();
 
-	if (fadeState == 2) // only used for the ending ?
-	{
+	if (fadeState == 2) {
+		// only used for the end sequence
+		for (int i = 256; i >= 0; i -= 16) {
+			process_events();
+			paletteFill(localPalette, 0xFF, 0, 0);
+			fadeLevelDestPal(currentGamePalette, localPalette, i);
+			gfx_setPalette(localPalette);
+			gfx_refreshFrontTextureBuffer();
+			osystem_drawBackground();
+		}
 	} else {
 		for (int i = 0; i < 256; i += step) {
 			process_events();

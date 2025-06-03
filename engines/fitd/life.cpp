@@ -774,6 +774,154 @@ void restoreAmbiance() {
 	}
 }
 
+void stopShaking() {}
+
+void fadeLevelDestPal(byte *pal1, byte *pal2, int coef) {
+	for (int i = 0; i < 3 * 256; i++) {
+		int color = *pal1 + (*pal2 - *pal1) * (coef / 256.0);
+		*pal2 = color;
+		pal1++;
+		pal2++;
+	}
+}
+
+static void setFadePalette(byte *pal1, byte *pal2, int coef) {
+	fadeLevelDestPal(pal1, pal2, coef);
+	gfx_setPalette(pal2);
+}
+
+static void affCbm(byte *p1, byte *p2) {
+	do {
+		int n = *p1;
+		p1++;
+		if (n == 0) {
+			return;
+		}
+		n--;
+		if (n == 0) {
+			n = *p1;
+			p1++;
+			if (n == 0) {
+				p2++;
+			} else {
+				*p2++ = n;
+			}
+		} else {
+			n--;
+			if (n == 0) {
+				n = *p1;
+				p1++;
+				if (n == 0) {
+					p2 += 2;
+				} else {
+					*p2++ = n;
+					*p2++ = n;
+				}
+			} else {
+				n--;
+				if (n == 0) {
+					n = *p1;
+					p1++;
+					int c = *p1;
+					p1++;
+					if (c == 0) {
+						p2 += n;
+					} else {
+						for (int i = 0; i < n; ++i) {
+							*p2++ = c;
+						}
+					}
+				} else {
+					n = *(uint16 *)p1;
+					p1 += 2;
+					int c = *p1;
+					p1++;
+					if (c == 0) {
+						p2 += n;
+					} else {
+						for (int i = 0; i < n; ++i) {
+							*p2++ = c;
+						}
+					}
+				}
+			}
+		}
+	} while (true);
+
+}
+
+static void endSequence() {
+	loadPak("CAMERA06.PAK", 7, aux);
+	gfx_copyBlockPhys((byte *)aux, 0, 0, 320, 200);
+	osystem_drawBackground();
+	osystem_updateScreen();
+
+	loadPak("ENDSEQ.PAK", 0, aux);
+	fastCopyScreen(aux + 770, aux2);
+
+	byte pal1[256 * 3];
+	byte pal2[256 * 3];
+	for (int i = 0; i < 256; ++i) {
+		process_events();
+		copyPalette((byte *)aux + 2, pal2);
+		setFadePalette(currentGamePalette, pal2, i);
+	}
+	gfx_copyBlockPhys((byte *)aux2, 0, 0, 320, 200);
+	osystem_drawBackground();
+	osystem_updateScreen();
+
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 1; j < 12; ++j) {
+			process_events();
+			fastCopyScreen(aux2, logicalScreen);
+			loadPak("ENDSEQ.PAK", j, aux);
+			affCbm((byte *)aux, (byte *)logicalScreen);
+			gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+			osystem_drawBackground();
+			osystem_updateScreen();
+		}
+	}
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 12; j < 23; ++j) {
+			process_events();
+			fastCopyScreen(aux2, logicalScreen);
+			loadPak("ENDSEQ.PAK", j, aux);
+			affCbm((byte *)aux, (byte *)logicalScreen);
+			gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+			osystem_drawBackground();
+			osystem_updateScreen();
+		}
+	}
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 23; j < 32; ++j) {
+			process_events();
+			fastCopyScreen(aux2, logicalScreen);
+			loadPak("ENDSEQ.PAK", j, aux);
+			affCbm((byte *)aux, (byte *)logicalScreen);
+			gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+			osystem_drawBackground();
+			osystem_updateScreen();
+		}
+	}
+	for (int i = 0; i < 256; i += 32) {
+		process_events();
+		paletteFill(pal1, 255, 255, 0);
+		setFadePalette(pal2, pal1, i);
+	}
+	memset(logicalScreen, 0, 320 * 200);
+	gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
+	osystem_drawBackground();
+	osystem_updateScreen();
+	paletteFill(pal2, 255, 255, 0);
+	for (int i = 0; i < 256; i += 16) {
+		process_events();
+		paletteFill(pal1, 255, 0, 0);
+		setFadePalette(pal2, pal1, i);
+	}
+	fadeState = 2;
+	flagInitView = 2;
+}
+
 void processLife(int lifeNum, bool callFoundLife) {
 	int exitLife = 0;
 	// int switchVal = 0;
@@ -2305,8 +2453,9 @@ void processLife(int lifeNum, bool callFoundLife) {
 			case LM_END_SEQUENCE: // ENDING
 			{
 				// appendFormated("LM_END_SEQUENCE ");
-				// TODO!
-				// printf("LM_END_SEQUENCE\n");
+				freezeTime();
+				endSequence();
+				unfreezeTime();
 				break;
 			}
 			////////////////////////////////////////////////////////////////////////
