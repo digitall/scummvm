@@ -427,8 +427,10 @@ void updateAnimation() {
 
 						handleCollision(zvPtr, &zvLocal, &pHardCol->zv);
 
-						currentProcessedActorPtr->animNegX += hardColStepX - stepX;
-						currentProcessedActorPtr->animNegZ += hardColStepZ - stepZ;
+						if (g_engine->getGameId() != GID_AITD1) {
+							currentProcessedActorPtr->animNegX += hardColStepX - stepX;
+							currentProcessedActorPtr->animNegZ += hardColStepZ - stepZ;
+						}
 
 						zvLocal.ZVX1 += hardColStepX - stepX;
 						zvLocal.ZVX2 += hardColStepX - stepX;
