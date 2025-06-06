@@ -305,6 +305,27 @@ void gereFrappe() {
 	}
 	case 8: // HIT_OBJ
 	{
+		ZVStruct zv;
+		copyZv(&currentProcessedActorPtr->zv, &zv);
+		zv.ZVX1 -= 10;
+		zv.ZVX2 += 10;
+		zv.ZVY1 -= 10;
+		zv.ZVY2 += 10;
+		zv.ZVZ1 -= 10;
+		zv.ZVZ2 += 10;
+		const int numCol = checkObjectCollisions(currentProcessedActorIdx, &zv);
+		if (numCol) {
+			for (int i = 0; i < numCol; ++i) {
+				int hitObjIndex = currentProcessedActorPtr->COL[i];
+				currentProcessedActorPtr->hotPoint.x = 0;
+				currentProcessedActorPtr->hotPoint.y = 0;
+				currentProcessedActorPtr->hotPoint.z = 0;
+				currentProcessedActorPtr->HIT = hitObjIndex;
+				tObject *hitObj = &objectTable[hitObjIndex];
+				hitObj->HIT_BY = currentProcessedActorIdx;
+				hitObj->hitForce = currentProcessedActorPtr->hitForce;
+			}
+		}
 		break;
 	}
 	case 9: // during throw
