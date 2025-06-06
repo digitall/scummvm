@@ -1914,8 +1914,8 @@ static void drawSpecialObject(int actorIdx) {
 				freeData = false;
 				const int16 z = pPointList[2];
 				if (z > 300) {
-					// TODO: calc the correct size
-					osystem_drawSphere(pPointList[0], pPointList[1], z, color, 3, 20);
+					const float transformedSize = size * (float)cameraFovX / (float)(z + cameraPerspective);
+					osystem_drawSphere(pPointList[0], pPointList[1], z, color, 3, transformedSize);
 				}
 				flowAnimList[0] -= 5;                // size -= 5
 				flowPointList[1] -= flowAnimList[1]; // y -= dy
