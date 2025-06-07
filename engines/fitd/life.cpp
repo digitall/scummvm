@@ -305,6 +305,47 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 		actorZvPtr->ZVZ2 = Z;
 		break;
 	}
+	case 4: {
+		// cigar smoke
+		CVars[getCVarsIdx(FOG_FLAG)] = 1;
+		actorZvPtr->ZVX1 = X;
+		actorZvPtr->ZVX2 = X;
+		actorZvPtr->ZVY1 = Y;
+		actorZvPtr->ZVY2 = Y;
+		actorZvPtr->ZVZ1 = Z;
+		actorZvPtr->ZVZ2 = Z;
+
+		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 246);
+
+		char *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		if (!flowPtr) {
+			currentActorPtr->indexInWorld = -1;
+			return -1;
+		}
+
+		currentActorPtr->ANIM = 4;
+		uint32 *chrono = (uint32 *)flowPtr;
+		unsigned int tmpChrono;
+		startChrono(&tmpChrono);
+		*chrono = tmpChrono;
+		flowPtr += 4;
+
+		for (int j = 0; j < 20; ++j) {
+			*(int16 *)flowPtr = randRange(-2000, 2000);
+			flowPtr += 2;
+			*(int16 *)flowPtr = 0;
+			flowPtr += 2;
+			*(int16 *)flowPtr = randRange(-2000, 2000);
+			flowPtr += 2;
+		}
+		actorZvPtr->ZVX1 = X - 10;
+		actorZvPtr->ZVX2 = X + 10;
+		actorZvPtr->ZVY1 = Y - 200;
+		actorZvPtr->ZVY2 = Y - 200;
+		actorZvPtr->ZVZ1 = Z - 10;
+		actorZvPtr->ZVZ2 = Z + 10;
+		break;
+	}
 	default: {
 		debug("Unsupported case %d in initSpecialObjet\n", mode);
 	}

@@ -1885,6 +1885,29 @@ static void calcXYZNuage(int16 x, int y, int16 z, int16 alpha, int16 beta, int16
 	rotateNuage2(x, y, z, alpha, beta, gamma, *(int16 *)modelPtr, (int16 *)(modelPtr + 2));
 }
 
+static int16 regleTrois(int i1, int i2, int i3, int i4) {
+	return i1 + (((i2 - i1) * i4) / i3);
+}
+
+static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
+	int siSaved = si;
+	SWAP(si, ax);
+	SWAP(ax, dx);
+	if (ax) {
+		ax *= bx;
+	}
+	if (cx != 0) {
+		SWAP(ax, cx);
+		ax *= si;
+		ax += cx;
+	}
+	SWAP(ax, si);
+	ax *= bx;
+	dx += si;
+	si = siSaved;
+	return ax;
+}
+
 static void drawSpecialObject(int actorIdx) {
 	tObject *actorPtr = &objectTable[actorIdx];
 
@@ -1977,6 +2000,72 @@ static void drawSpecialObject(int actorIdx) {
 		flowPtr = HQR_Get(listBody, CVars[getCVarsIdx(BODY_FLAMME)]);
 		affObjet(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, 0, actorPtr->beta, 0, flowPtr);
 		actorPtr->indexInWorld = -1;
+		break;
+	}
+	case 4: {
+		// cigar smoke
+		const uint32 *chronoPtr = (uint32 *)flowPtr;
+		unsigned int tmpChrono = *chronoPtr;
+		const uint chrono = evalChrono(&tmpChrono);
+		const int16 chrono1 = (int16)((chrono & 0xFFFF0000) >> 16);
+		const int16 chrono2 = (int16)(chrono & 0x0000FFFF);
+		flowPtr += 4;
+		char *flowPtrSaved = flowPtr;
+		flowPtr += 120; // skip 20 * x,y,z
+		char *flowPtrSaved2 = flowPtr;
+		*(int16 *)flowPtr = 20; // number of points
+		flowPtr += 2;
+		for (int j = 0; j < 20; ++j) {
+			int16 x = *(int16 *)flowPtrSaved;
+			int16 z = *(int16 *)(flowPtrSaved + 4);
+			*(int16 *)flowPtr = regleTrois(0, x, 600, chrono2);
+			*(int16 *)(flowPtr + 2) = -200;
+			*(int16 *)(flowPtr + 4) = regleTrois(0, z, 600, chrono2);
+			flowPtr += 6;
+			flowPtrSaved += 6;
+		}
+		flowPtr = flowPtrSaved2;
+		actorPtr->beta += 4;
+		calcXYZNuage(actorPtr->worldX, actorPtr->worldY, actorPtr->worldZ, actorPtr->alpha, actorPtr->beta, actorPtr->gamma, flowPtr);
+
+		if (CVars[getCVarsIdx(FOG_FLAG)] == 2) {
+			CVars[getCVarsIdx(FOG_FLAG)] = 3;
+		}
+
+		if (chrono1 >= 0) {
+			if (chrono1 != 0 || chrono2 >= 480) {
+				if (CVars[getCVarsIdx(FOG_FLAG)] == 1) {
+					CVars[getCVarsIdx(FOG_FLAG)] = 2;
+				}
+			}
+		}
+		int16 size;
+		if (chrono1 > 0 || (chrono1 == 0 && chrono2 > 540)) {
+			size = sub_104B7(20, 5, 0, 660 - chrono2, 660 - chrono1);
+		} else {
+			size = chrono2;
+		}
+
+		const int16 *pPointList = renderPointList;
+		for (int i = 0; i < 20; ++i) {
+			int x = pPointList[0];
+			int y = pPointList[1];
+			int z = pPointList[2];
+			if (z > 10) {
+				const float transformedSize = (float)size * (float)cameraFovX / (float)(z + cameraPerspective);
+				osystem_drawSphere(x, y, z, 176, 2, transformedSize);
+			}
+			pPointList += 3;
+		}
+
+		if (chrono1 >= 0) {
+			if (chrono1 != 0 || chrono2 >= 660) {
+				CVars[getCVarsIdx(FOG_FLAG)] = 0;
+				// TODO: HQR_Free
+				actorPtr->indexInWorld = -1;
+				actorTurnedToObj = 1;
+			}
+		}
 		break;
 	}
 	default:
