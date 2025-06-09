@@ -601,7 +601,7 @@ static void readBook(int index, int type, int shadow) {
 	unfreezeTime();
 }
 
-static void makeMessage(int messageIdx) {
+void makeMessage(int messageIdx) {
 	textEntryStruct *messagePtr = getTextFromIdx(messageIdx);
 
 	if (messagePtr) {

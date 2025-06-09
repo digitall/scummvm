@@ -23,6 +23,8 @@
 #ifndef FITD_SAVE_H
 #define FITD_SAVE_H
 
+#include "common/str.h"
+
 namespace Common {
 class SeekableReadStream;
 class WriteStream;
@@ -31,7 +33,7 @@ class WriteStream;
 namespace Fitd {
 
 int loadGame(Common::SeekableReadStream *in);
-int saveGame(Common::WriteStream *out);
+int saveGame(Common::WriteStream *out, const Common::String& desc);
 } // namespace Fitd
 
 #endif

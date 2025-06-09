@@ -256,6 +256,8 @@ extern char *systemTextes;
 
 extern char JoyD;
 extern char Click;
+extern bool Backspace;
+extern uint16 Character;
 extern bool Debug;
 extern char key;
 extern char localKey;

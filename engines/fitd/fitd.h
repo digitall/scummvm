@@ -39,6 +39,7 @@ class FitdEngine : public Engine {
 private:
 	const FitdGameDescription *_gameDescription;
 	Common::RandomSource _randomSource;
+	Common::String _saveDesc;
 public:
 	bool _canSaveGame = false;
 

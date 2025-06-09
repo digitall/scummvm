@@ -1112,10 +1112,12 @@ int loadGame(Common::SeekableReadStream *in) {
 	}
 }
 
-static int saveAitd1(Common::WriteStream *out) {
+static int saveAitd1(Common::WriteStream *out, const Common::String& desc) {
 	int oldNumMaxObj = 0;
 
+	// For safety, destroy special objects before mallocs
 	for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
+		// For Special objects
 		if (objectTable[i].indexInWorld == -2) {
 			objectTable[i].indexInWorld = -1;
 			if (objectTable[i].ANIM == 4) {
@@ -1139,6 +1141,7 @@ static int saveAitd1(Common::WriteStream *out) {
 
 	// 4020: name
 	memset(img, 0, 32);
+	memcpy(img, desc.c_str(), desc.size());
 	out->write(img, 32);
 
 	// 4052: room offset
@@ -1509,7 +1512,7 @@ static int saveAitd1(Common::WriteStream *out) {
 	return 1;
 }
 
-static int saveJack(Common::WriteStream *out) {
+static int saveJack(Common::WriteStream *out, const Common::String& desc) {
 	out->writeUint32BE(20);    // image offset
 	out->writeUint32BE(4020);  // pal offset
 	out->writeUint32BE(4788);  // desc offset
@@ -1522,8 +1525,8 @@ static int saveJack(Common::WriteStream *out) {
 
 	out->write(currentGamePalette, 768);
 
-	// TODO: name
 	memset(img, 0, 32);
+	memcpy(img, desc.c_str(), desc.size());
 	out->write(img, 32);
 
 	out->writeSint16LE(currentRoom);
@@ -1670,21 +1673,9 @@ static int saveJack(Common::WriteStream *out) {
 	return 1;
 }
 
-int makeSaveOthers(Common::WriteStream *out) {
+int makeSaveOthers(Common::WriteStream *out, const Common::String& desc) {
 	const uint32 var28 = 0;
 	int oldNumMaxObj = 0;
-
-	if (g_engine->getGameId() == GID_AITD1) {
-		for (uint i = 0; i < NUM_MAX_OBJECT; i++) {
-			// if (objectTable[i].indexInWorld == -1) {
-			// }
-
-			if (objectTable[i].ANIM == 4) {
-				CVars[getCVarsIdx(FOG_FLAG)] = 0;
-				// HQ_Free_Malloc(HQ_Memory, objectTable[i].FRAME);
-			}
-		}
-	}
 
 	// Common::String buffer(Common::String::format("SAVE%d.ITD", entry));
 	out->writeUint32LE(var28);
@@ -2092,14 +2083,14 @@ int makeSaveOthers(Common::WriteStream *out) {
 	return 1;
 }
 
-int saveGame(Common::WriteStream *out) {
+int saveGame(Common::WriteStream *out, const Common::String& desc) {
 	switch (g_engine->getGameId()) {
 	case GID_AITD1:
-		return saveAitd1(out);
+		return saveAitd1(out, desc);
 	case GID_JACK:
-		return saveJack(out);
+		return saveJack(out, desc);
 	default:
-		return makeSaveOthers(out);
+		return makeSaveOthers(out, desc);
 	}
 }
 } // namespace Fitd

@@ -158,7 +158,13 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 			affBigCadre(70, y, 120, 70);
 			setClip(0, 0, 319, 199);
 			const Graphics::Surface *s = saveStateList[i].getThumbnail();
-			const Graphics::Surface *d = s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), 0, 256, currentGamePalette, 256);
+			Graphics::Surface *d;
+			if (s) {
+				d = s->convertTo(Graphics::PixelFormat::createFormatCLUT8(), 0, 256, currentGamePalette, 256);
+			} else {
+				d = new Graphics::Surface();
+				d->create(80, 50, Graphics::PixelFormat::createFormatCLUT8());
+			}
 			scaleDownImage(d->w, d->h, 30, y - 20, (const char *)d->getBasePtr(0, 0));
 			renderText(140, y, desc.c_str());
 		} else {
@@ -168,24 +174,60 @@ static void drawSavegames(int menuChoice, const SaveStateList &saveStateList, in
 	}
 }
 
-static int chooseSavegame(int menuChoice) {
+static void drawEditString(const char *string, const int selectedSlot) {
+	const int size = extGetSizeFont(string);
+	const int y = (selectedSlot & ~0x4000) * 20 + 55;
+	if (selectedSlot & 0x4000) {
+		fillBox(140, y, 319, y + 16, 100);
+	} else {
+		fillBox(140, y, size + 160, y + 16, 100);
+	}
+	renderText(140, y, string);
+	fillBox(size + 141, y, size + 144, y + 16, 15);
+}
+
+static int chooseSavegame(const int menuChoice, const bool save, Common::String &desc) {
 	int selectedSlot = 0;
+	bool edit = false;
+
 	SaveStateList saveStateList(g_engine->listSaveFiles());
+	if (save && saveStateList.size() < 6) {
+		saveStateList.emplace_back(SaveStateDescriptor());
+	}
 
 	const int maxSavegameCount = MIN((int)saveStateList.size(), 6);
+	if (selectedSlot < saveStateList.size()) {
+		desc = saveStateList[selectedSlot].getDescription();
+	}
+
 	while (!Engine::shouldQuit()) {
 		drawSavegames(menuChoice, saveStateList, selectedSlot);
+		if (save) {
+			drawEditString(desc.c_str(), selectedSlot + (edit ? 0x4000 : 0));
+			if (edit) {
+				scaleDownImage(320, 200, 30, 35 + selectedSlot * 20, aux2);
+			}
+		}
 		gfx_copyBlockPhys((byte *)logicalScreen, 0, 0, 320, 200);
 		osystem_startFrame();
 		process_events();
 		flushScreen();
 		osystem_drawBackground();
 
-		if (JoyD & 1) // up key
-		{
+		if (JoyD & 1) {
+			// up key
+			edit = false;
 			selectedSlot--;
 			if (selectedSlot < 0) {
 				selectedSlot = maxSavegameCount - 1;
+			}
+
+			if (selectedSlot < 0) {
+				selectedSlot = 0;
+			}
+
+			if (selectedSlot < saveStateList.size()) {
+				desc = saveStateList[selectedSlot].getDescription();
 			}
 
 			while (!Engine::shouldQuit() && JoyD) {
@@ -193,15 +235,20 @@ static int chooseSavegame(int menuChoice) {
 			}
 		}
 
-		if (JoyD & 2) // down key
-		{
+		if (JoyD & 2) {
+			// down key
+			edit = false;
 			selectedSlot++;
-			if (selectedSlot == maxSavegameCount) {
+			if (selectedSlot >= maxSavegameCount) {
 				selectedSlot = 0;
 			}
 
 			while (!Engine::shouldQuit() && JoyD) {
 				process_events();
+			}
+
+			if (selectedSlot < saveStateList.size()) {
+				desc = saveStateList[selectedSlot].getDescription();
 			}
 		}
 
@@ -209,9 +256,36 @@ static int chooseSavegame(int menuChoice) {
 			return -1;
 		}
 
-		if (key == 28 || Click != 0) // select current entry
-		{
-			return saveStateList[selectedSlot].getSaveSlot();
+		if (key == 28 || (!save && Click != 0)) {
+			// select current entry
+			return selectedSlot;
+		}
+
+		if (save) {
+			if (Backspace) {
+				edit = true;
+				desc.deleteLastChar();
+
+				while (!Engine::shouldQuit() && Backspace) {
+					process_events();
+				}
+			}
+			if (Character >= 32 && Character < 184) {
+				if (!edit) {
+					edit = true;
+					desc.clear();
+				}
+				if (desc.size() < 32) {
+					desc.insertChar(Character, desc.size());
+					if (extGetSizeFont(desc.c_str()) >= (300 - 140)) {
+						desc.deleteLastChar();
+					}
+				}
+
+				while (!Engine::shouldQuit() && Character) {
+					process_events();
+				}
+			}
 		}
 	}
 	return -1;
@@ -220,13 +294,27 @@ static int chooseSavegame(int menuChoice) {
 bool showLoadMenu(int menuChoice) {
 	fadeInPhys(0x40, 0);
 
-	const int selectedSlot = chooseSavegame(menuChoice);
+	Common::String desc;
+	const int selectedSlot = chooseSavegame(menuChoice, false, desc);
 	// fadeOutPhys(8, 0);
 	//  freeAll();
 	if (selectedSlot != -1 && g_engine->loadGameState(selectedSlot).getCode() == Common::kNoError) {
 		return true;
 	}
 	return false;
+}
+
+static bool showSaveMenu(int menuChoice) {
+	Common::String desc;
+	const int selectedSlot = chooseSavegame(menuChoice, true, desc);
+	if (selectedSlot == -1)
+		return false;
+	if (g_engine->saveGameState(selectedSlot, desc, false).getCode() == Common::kNoError) {
+		makeMessage(51);
+	} else {
+		makeMessage(52);
+	}
+	return true;
 }
 
 void processSystemMenu() {
@@ -271,7 +359,9 @@ void processSystemMenu() {
 						exitMenu = 1;
 						break;
 					case 1: // save
-						g_engine->saveGameState(1, "", false);
+						if (showSaveMenu(45)) {
+							exitMenu = 1;
+						}
 						break;
 					case 2: // load
 						if (showLoadMenu(46)) {

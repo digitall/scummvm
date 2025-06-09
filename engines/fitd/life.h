@@ -169,6 +169,7 @@ void saveAmbiance();
 void restoreAmbiance();
 void fadeLevelDestPal(byte *pal1, byte *pal2, int coef);
 void stopShaking();
+void makeMessage(int messageIdx);
 
 } // namespace Fitd
 #endif

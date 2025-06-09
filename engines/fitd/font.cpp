@@ -79,7 +79,7 @@ void setFontSpace(int interWordSpace, int interLetterSpace) {
 	g_fontInterLetterSpace = interLetterSpace;
 }
 
-int extGetSizeFont(char *string) {
+int extGetSizeFont(const char *string) {
 	int width = 0;
 	byte character;
 

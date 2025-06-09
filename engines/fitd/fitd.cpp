@@ -77,10 +77,11 @@ Common::Error FitdEngine::loadGameStream(Common::SeekableReadStream *stream) {
 
 Common::Error FitdEngine::saveGameStream(Common::WriteStream *stream, bool isAutosave) {
 	// Default to returning an error when not implemented
-	return saveGame(stream) == 1 ? Common::kNoError : Common::kWritingFailed;
+	return saveGame(stream, _saveDesc) == 1 ? Common::kNoError : Common::kWritingFailed;
 }
 
 Common::Error FitdEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
+	_saveDesc = desc;
 	Common::Error result = Engine::saveGameState(slot, desc, isAutosave);
 	if (result.getCode() != Common::kNoError)
 		return result;
@@ -89,7 +90,7 @@ Common::Error FitdEngine::saveGameState(int slot, const Common::String &desc, bo
 	if (!saveFile)
 		return Common::kWritingFailed;
 
-	saveGame(saveFile);
+	saveGame(saveFile, desc);
 	saveFile->finalize();
 	delete saveFile;
 
