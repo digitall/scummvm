@@ -107,56 +107,55 @@ const unsigned char defaultPalette[0x30] = {
 	0x3F,
 	0x3F};
 
-// const unsigned char defaultPaletteAITD3[0x30] =
-// 	{
-// 		0x00,
-// 		0x00,
-// 		0x00,
-// 		0xFC,
-// 		0xFC,
-// 		0xFC,
-// 		0x30,
-// 		0x30,
-// 		0x38,
-// 		0xC0,
-// 		0xBC,
-// 		0xFC,
-// 		0x78,
-// 		0x58,
-// 		0x3C,
-// 		0x00,
-// 		0x00,
-// 		0x00,
-// 		0xF0,
-// 		0x70,
-// 		0x10,
-// 		0xFC,
-// 		0xFC,
-// 		0xFC,
-// 		0x48,
-// 		0x50,
-// 		0x60,
-// 		0xC4,
-// 		0x54,
-// 		0x5C,
-// 		0x54,
-// 		0x94,
-// 		0x54,
-// 		0x54,
-// 		0xBC,
-// 		0xFC,
-// 		0xFC,
-// 		0x88,
-// 		0x54,
-// 		0xAC,
-// 		0x54,
-// 		0xFC,
-// 		0xFC,
-// 		0xFC,
-// 		0xFC,
-// 		0xFC,
-// 		0xFC,
-// 		0xF8};
+const unsigned char defaultPaletteAITD3[0x30] = {
+	0x00,
+	0x00,
+	0x00,
+	0xFC,
+	0xFC,
+	0xFC,
+	0x30,
+	0x30,
+	0x38,
+	0xC0,
+	0xBC,
+	0xFC,
+	0x78,
+	0x58,
+	0x3C,
+	0x00,
+	0x00,
+	0x00,
+	0xF0,
+	0x70,
+	0x10,
+	0xFC,
+	0xFC,
+	0xFC,
+	0x48,
+	0x50,
+	0x60,
+	0xC4,
+	0x54,
+	0x5C,
+	0x54,
+	0x94,
+	0x54,
+	0x54,
+	0xBC,
+	0xFC,
+	0xFC,
+	0x88,
+	0x54,
+	0xAC,
+	0x54,
+	0xFC,
+	0xFC,
+	0xFC,
+	0xFC,
+	0xFC,
+	0xFC,
+	0xF8};
 
 void executeFoundLife(int objIdx) {
 	int lifeOffset = 0;
@@ -930,18 +929,22 @@ static void loadCamera(int cameraIdx) {
 	}
 
 	if (g_engine->getGameId() == GID_AITD3) {
-		memmove(aux, aux + 4, 64000 + 0x300);
+		// memmove(aux, aux + 4, 64000 + 0x300);
 	}
 
 	if (g_engine->getGameId() >= GID_JACK) {
 		copyPalette((unsigned char *)aux + 64000, currentGamePalette);
 
 		if (g_engine->getGameId() == GID_AITD3) {
-			// memcpy(palette,defaultPaletteAITD3,0x30);
+			for (int i = 0; i < 16; i++) {
+				currentGamePalette[i * 3 + 0] = defaultPaletteAITD3[i * 3 + 0];
+				currentGamePalette[i * 3 + 1] = defaultPaletteAITD3[i * 3 + 1];
+				currentGamePalette[i * 3 + 2] = defaultPaletteAITD3[i * 3 + 2];
+			}
 		} else {
 			memcpy(currentGamePalette, defaultPalette, 0x30);
-			convertPaletteIfRequired(currentGamePalette);
 		}
+		convertPaletteIfRequired(currentGamePalette);
 
 		gfx_setPalette(currentGamePalette);
 	}
@@ -2605,7 +2608,7 @@ void processActor2() {
 
 	do {
 		onceMore = false;
-		const roomDataStruct *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
+		roomDataStruct *pRoomData = &roomDataTable[currentProcessedActorPtr->room];
 		for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 			sceZoneStruct *pCurrentZone = &pRoomData->sceZoneTable[i];
 
@@ -3036,18 +3039,12 @@ static void allocTextes() {
 		error("TabTextes");
 	}
 
-	// setup languageNameString
-	// if (g_engine->getGameId() == GID_AITD3) {
-	// 	languageNameString = "TEXTES.PAK";
-	// } else
-	{
-		const Common::String lang(ConfMan.get("language"));
-		for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
-			Common::File f;
-			if (lang == languageShortNameTable[i] && f.exists(languageNameTable[i])) {
-				languageNameString = languageNameTable[i];
-				break;
-			}
+	const Common::String lang(ConfMan.get("language"));
+	for (int i = 0; i < LANGUAGE_NAME_SIZE; i++) {
+		Common::File f;
+		if (lang == languageShortNameTable[i] && f.exists(languageNameTable[i])) {
+			languageNameString = languageNameTable[i];
+			break;
 		}
 	}
 

@@ -62,9 +62,9 @@ int getCVarsIdx(int searchedType) {
 	return getCVarsIdx((enumCVars)searchedType);
 }
 
-static sceZoneStruct *processActor2Sub(int x, int y, int z, const roomDataStruct *pRoomData) {
+static sceZoneStruct *processActor2Sub(int x, int y, int z, roomDataStruct *pRoomData) {
 
-	sceZoneStruct *pCurrentZone = pRoomData->sceZoneTable;
+	sceZoneStruct *pCurrentZone = pRoomData->sceZoneTable.data();
 
 	for (uint32 i = 0; i < pRoomData->numSceZone; i++) {
 		if (pCurrentZone->zv.ZVX1 <= x && pCurrentZone->zv.ZVX2 >= x) {

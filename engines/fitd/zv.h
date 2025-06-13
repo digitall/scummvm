@@ -41,7 +41,7 @@ void giveZVObjet(const char * bodyPtr, ZVStruct* zvPtr);
 void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
 void makeDefaultZV(ZVStruct* zvPtr);
 struct roomDataStruct;
-int asmCheckListCol(const ZVStruct *zvPtr, const roomDataStruct *pRoomData);
+int asmCheckListCol(const ZVStruct *zvPtr, roomDataStruct *pRoomData);
 void handleCollision(const ZVStruct *startZv, const ZVStruct *zvPtr2, const ZVStruct *zvPtr3);
 void copyZv(const ZVStruct *source, ZVStruct *dest);
 void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom);

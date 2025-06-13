@@ -27,9 +27,8 @@
 
 namespace Fitd {
 
-extern cameraDataStruct g_currentFloorCameraData[40];
+extern Common::Array<cameraDataStruct> g_currentFloorCameraData;
 extern uint32 g_currentFloorRoomRawDataSize;
-extern uint32 g_currentFloorNumCamera;
 
 void loadFloor(int floorNumber);
 }

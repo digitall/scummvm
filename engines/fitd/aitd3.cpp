@@ -67,9 +67,9 @@ namespace Fitd {
 #define START_OPTIONS_INVENTAIRE 23 /* num message.eng */
 
 void startAITD3(int saveSlot) {
-	// if (saveSlot == -1) {
-	// 	startGame(1, 0, 0);
-	// }
+	if (saveSlot == -1) {
+		startGame(1, 0, 0);
+	}
 
 	while (!Engine::shouldQuit()) {
 		int startupMenuResult = saveSlot == -1 ? processStartupMenu() : 1;

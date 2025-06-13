@@ -1100,6 +1100,8 @@ int fadeMusic(int param1, int param2, int param3) {
 }
 
 void playMusic(int musicNumber) {
+	if (g_engine->getGameId() == GID_AITD3) // TODO:
+		return;
 	if (currentMusic == musicNumber)
 		return;
 

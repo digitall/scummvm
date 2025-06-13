@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/file.h"
 #include "fitd/common.h"
 #include "fitd/fitd.h"
 #include "fitd/floor.h"
@@ -40,7 +41,7 @@ etageVar1 -> table for camera data
 
 */
 
-roomDataStruct *roomDataTable = nullptr;
+Common::Array<roomDataStruct> roomDataTable;
 cameraDataStruct *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 cameraViewedRoomStruct *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
 
@@ -52,17 +53,7 @@ int getNumberOfRoom() {
 	int i;
 	int j = 0;
 
-	if (g_engine->getGameId() >= GID_AITD3) {
-		Common::String buffer;
-
-		if (g_engine->getGameId() > GID_AITD3) {
-			buffer = Common::String::format("SAL%02d.PAK", g_currentFloor);
-		} else {
-			buffer = Common::String::format("ETAGE%02d.PAK", g_currentFloor);
-		}
-
-		return PAK_getNumFiles(buffer.c_str());
-	} else {
+	if (g_currentFloorRoomRawData) {
 		int numMax = READ_LE_U32(g_currentFloorRoomRawData) / 4;
 
 		for (i = 0; i < numMax; i++) {
@@ -72,8 +63,17 @@ int getNumberOfRoom() {
 				return j;
 			}
 		}
+		return j;
 	}
-	return j;
+	if (Common::File::exists(Common::String::format("ETAGE%02d.PAK", g_currentFloor).c_str())) {
+		return PAK_getNumFiles(Common::String::format("ETAGE%02d", g_currentFloor).c_str());
+	}
+	if (Common::File::exists(Common::String::format("SAL%02d.PAK", g_currentFloor).c_str())) {
+		return PAK_getNumFiles(Common::String::format("SAL%02d", g_currentFloor).c_str());
+	}
+	assert(0);
+
+	return 0;
 }
 
 void loadRoom(int roomNumber) {
@@ -127,7 +127,7 @@ void loadRoom(int roomNumber) {
 	for (i = 0; i < numCameraInRoom; i++) {
 		unsigned int currentCameraIdx = roomDataTable[currentRoom].cameraIdxTable[i]; // indexes are between the roomDefStruct and the first zone data
 
-		assert(currentCameraIdx <= g_currentFloorNumCamera);
+		assert(currentCameraIdx <= 40);
 
 		if ((uint)oldCameraIdx == currentCameraIdx) {
 			newNumCamera = i;

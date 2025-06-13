@@ -100,9 +100,9 @@ void getZvMax(char *bodyPtr, ZVStruct *zvPtr) {
 	zvPtr->ZVZ2 = x2;
 }
 
-int asmCheckListCol(const ZVStruct *zvPtr, const roomDataStruct *pRoomData) {
+int asmCheckListCol(const ZVStruct *zvPtr, roomDataStruct *pRoomData) {
 	int hardColVar = 0;
-	hardColStruct *pCurrentEntry = pRoomData->hardColTable;
+	hardColStruct *pCurrentEntry = pRoomData->hardColTable.data();
 
 	for (uint16 i = 0; i < pRoomData->numHardCol; i++) {
 		if (pCurrentEntry->zv.ZVX1 < zvPtr->ZVX2 && zvPtr->ZVX1 < pCurrentEntry->zv.ZVX2) {

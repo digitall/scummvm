@@ -60,7 +60,7 @@ struct rectTestStruct {
 
 struct cameraMaskStruct {
 	uint16 numTestRect;
-	rectTestStruct *rectTests;
+	Common::Array<rectTestStruct> rectTests;
 };
 
 struct cameraViewedRoomStruct {
@@ -74,9 +74,9 @@ struct cameraViewedRoomStruct {
 	int16 lightZ;
 
 	uint16 numMask;
-	cameraMaskStruct *masks;
+	Common::Array<cameraMaskStruct> masks;
 	uint16 numCoverZones;
-	cameraZoneEntryStruct *coverZones;
+	Common::Array<cameraZoneEntryStruct> coverZones;
 };
 
 struct cameraDataStruct {
@@ -93,28 +93,28 @@ struct cameraDataStruct {
 	int16 focal3;
 
 	uint16 numViewedRooms;
-	cameraViewedRoomStruct *viewedRoomTable;
+	Common::Array<cameraViewedRoomStruct> viewedRoomTable;
 };
 
 typedef struct roomDataStruct {
 	uint32 numCameraInRoom;
 
 	uint32 numHardCol;
-	hardColStruct *hardColTable;
+	Common::Array<hardColStruct> hardColTable;
 
 	uint32 numSceZone;
-	sceZoneStruct *sceZoneTable;
+	Common::Array<sceZoneStruct> sceZoneTable;
 
 	int32 worldX;
 	int32 worldY;
 	int32 worldZ;
 
-	uint16 *cameraIdxTable;
+	Common::Array<uint16> cameraIdxTable;
 } roomDataStruct;
 
 extern cameraDataStruct *cameraDataTable[NUM_MAX_CAMERA_IN_ROOM];
 extern cameraViewedRoomStruct *currentCameraZoneList[NUM_MAX_CAMERA_IN_ROOM];
-extern roomDataStruct *roomDataTable;
+extern Common::Array<roomDataStruct> roomDataTable;
 
 roomDefStruct *getRoomData(int roomNumber);
 void loadRoom(int roomNumber);

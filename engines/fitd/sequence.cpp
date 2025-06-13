@@ -25,7 +25,7 @@
 namespace Fitd {
 
 void convertPaletteIfRequired(unsigned char *lpalette) {
-	if (g_engine->getGameId() >= GID_JACK && g_engine->getGameId() < GID_AITD3) {
+	if (g_engine->getGameId() >= GID_JACK && g_engine->getGameId() <= GID_AITD3) {
 		unsigned char *ptr2 = lpalette;
 		for (int i = 0; i < 256; i++) {
 			for (int j = 0; j < 3; j++) {
