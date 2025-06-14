@@ -20,12 +20,15 @@
  */
 
 #include "fitd/startup_menu.h"
+
 #include "fitd/aitd_box.h"
 #include "fitd/fitd.h"
 #include "fitd/font.h"
 #include "fitd/gfx.h"
 #include "fitd/tatou.h"
 #include "fitd/vars.h"
+#include "pak.h"
+#include "sequence.h"
 
 namespace Fitd {
 
@@ -55,22 +58,27 @@ static void drawStartupMenu(int selectedEntry) {
 		return;
 	}
 
+	if (g_engine->getGameId() == GID_AITD3) {
+		loadPak("ITD_RESS.PAK", 13, logicalScreen);
+	} else {
+		affBigCadre(160, 100, 320, 80);
+	}
+
 	int currentY = 76;
-	int currentTextNum = 0;
-
-	affBigCadre(160, 100, 320, 80);
-
-	while (currentTextNum < 3) {
-		if (currentTextNum == selectedEntry) // highlight selected entry
+	for (int i = 0; i < 3; i++) {
+		if (i == selectedEntry) // highlight selected entry
 		{
-			fillBox(10, currentY, 309, currentY + 16, 100);
-			selectedMessage(160, currentY, currentTextNum + 11, 15, 4);
+			if (g_engine->getGameId() == GID_AITD3) {
+				selectedMessage(160, currentY + 1, i + 11, 1, 4);
+			} else {
+				fillBox(10, currentY, 309, currentY + 16, 100);
+				selectedMessage(160, currentY, i + 11, 15, 4);
+			}
 		} else {
-			simpleMessage(160, currentY, currentTextNum + 11, 4);
+			simpleMessage(160, currentY, i + 11, 4);
 		}
 
-		currentY += 16;   // next line
-		currentTextNum++; // next text
+		currentY += 16; // next line
 	}
 }
 
@@ -81,6 +89,14 @@ int processStartupMenu() {
 
 	flushScreen();
 
+	if (g_engine->getGameId() == GID_AITD3) {
+		loadPak("ITD_RESS.PAK", 47, aux);
+		byte lpalette[768];
+		copyPalette((byte *)aux, lpalette);
+		convertPaletteIfRequired(lpalette);
+		copyPalette(lpalette, currentGamePalette);
+		gfx_setPalette(lpalette);
+	}
 	drawStartupMenu(0);
 
 	osystem_startFrame();
