@@ -604,7 +604,7 @@ int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num,
 
 	int16 *outPtr = renderPointList;
 
-	for (uint i = 0; i < num; i++) {
+	for (int16 i = 0; i < num; i++) {
 		int16 X = vertices[i * 3];
 		int16 Y = vertices[i * 3 + 1];
 		int16 Z = vertices[i * 3 + 2];

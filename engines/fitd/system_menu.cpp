@@ -195,7 +195,7 @@ static int chooseSavegame(const int menuChoice, const bool save, Common::String 
 		saveStateList.emplace_back(SaveStateDescriptor());
 	}
 
-	const int maxSavegameCount = MIN((int)saveStateList.size(), 6);
+	const uint maxSavegameCount = MIN(saveStateList.size(), 6U);
 	if (selectedSlot < saveStateList.size()) {
 		desc = saveStateList[selectedSlot].getDescription();
 	}

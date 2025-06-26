@@ -748,6 +748,7 @@ int evalVar2(const char *name) {
 		}
 		}
 	}
+	return -1;
 }
 
 } // namespace Fitd

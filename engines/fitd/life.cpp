@@ -1996,6 +1996,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 				if (g_engine->getGameId() == GID_AITD1) {
 					lifeTempVar3 = *(int16 *)currentLifePtr;
 					currentLifePtr += 2; // AITD1 CD has an extra digit, related to the VOC files to play for the text?
+				} else {
+					lifeTempVar3 = -1;
 				}
 
 				fadeOutPhys(0x20, 0);

@@ -76,7 +76,7 @@
 	 uint32 fileOffset = f.readUint32LE();
 	 uint32 numFiles = fileOffset / 4 - 2;
 
-	 for (int i = 0; i < numFiles; ++i) {
+	 for (uint32 i = 0; i < numFiles; ++i) {
 		 uint32 idOffset = (i + 1) * 4;
 		 f.seek(idOffset, SEEK_SET);
 		 fileOffset = f.readUint32LE();
@@ -144,7 +144,7 @@
 				 ImGui::TableHeadersRow();
 
 				 static const char *compressions[] = {"None", "Explode", "??", "??", "Deflate"};
-				 for (int i = 0; i < _infos.size(); ++i) {
+				 for (uint i = 0; i < _infos.size(); ++i) {
 					 ImGui::PushID(i);
 					 ImGui::TableNextColumn();
 					 Common::String sizeText(toHumanReadableBytes(_infos[i].discSize));
