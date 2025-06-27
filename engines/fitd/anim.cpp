@@ -39,11 +39,11 @@ struct Hash<void *> {
 
 namespace Fitd {
 
-static Common::HashMap<void *, char *> g_bodyBufferMap;
+static Common::HashMap<void *, byte *> g_bodyBufferMap;
 
-static void initBufferAnim(int16 *buffer, char *bodyPtr);
+static void initBufferAnim(int16 *buffer, byte *bodyPtr);
 
-int setAnimObjet(int frame, char *anim, char *body) {
+int setAnimObjet(int frame, byte *anim, byte *body) {
 
 	const int flag = *(int16 *)body;
 
@@ -96,7 +96,7 @@ int setAnimObjet(int frame, char *anim, char *body) {
 
 	body += 10;
 
-	char *saveAnim = anim;
+	byte *saveAnim = anim;
 
 	anim += 8;
 
@@ -683,16 +683,16 @@ void updateAnimation() {
 	}
 }
 
-static void initBufferAnim(int16 *buffer, char *bodyPtr) {
+static void initBufferAnim(int16 *buffer, byte *bodyPtr) {
 	int16 *bufferIt = buffer;
 
 	const int flag = *(int16 *)bodyPtr;
 	if (flag & 2) {
-		char *source = bodyPtr + 0x10;
+		byte *source = bodyPtr + 0x10;
 
 		*(uint16 *)(source + 4) = (uint16)timer;
 
-		g_bodyBufferMap[source] = (char *)&buffer[0];
+		g_bodyBufferMap[source] = (byte *)&buffer[0];
 
 		source += *(int16 *)(source - 2);
 
@@ -733,11 +733,11 @@ static void initBufferAnim(int16 *buffer, char *bodyPtr) {
 	}
 }
 
-int16 getNbFramesAnim(char *animPtr) {
+int16 getNbFramesAnim(byte *animPtr) {
 	return *(int16 *)animPtr;
 }
 
-int16 PatchType(char **bodyPtr) // local
+int16 PatchType(byte **bodyPtr) // local
 {
 	const int16 temp = *(int16 *)animVar1;
 
@@ -751,7 +751,7 @@ int16 PatchType(char **bodyPtr) // local
 	return temp;
 }
 
-void PatchInterAngle(char **bodyPtr, int bp, int bx) // local
+void PatchInterAngle(byte **bodyPtr, int bp, int bx) // local
 {
 	int16 oldRotation = *(int16 *)animVar4;
 
@@ -785,7 +785,7 @@ void PatchInterAngle(char **bodyPtr, int bp, int bx) // local
 	*bodyPtr += 2;
 }
 
-void PatchInterStep(char **bodyPtr, int bp, int bx) // local
+void PatchInterStep(byte **bodyPtr, int bp, int bx) // local
 {
 	const int16 cx = *(int16 *)animVar4;
 	animVar4 += 2;
@@ -802,7 +802,7 @@ void PatchInterStep(char **bodyPtr, int bp, int bx) // local
 	*bodyPtr += 2;
 }
 
-int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
+int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr) {
 	int numOfBonesInAnim = *(int16 *)(animPtr + 2);
 
 	const Body *pBody = getBodyFromPtr(bodyPtr);
@@ -833,7 +833,7 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 
 	const uint16 timeOfKeyframeStart = *(uint16 *)(bodyPtr + 4); // time of start of keyframe
 
-	char *animBufferPtr = g_bodyBufferMap[bodyPtr];
+	byte *animBufferPtr = g_bodyBufferMap[bodyPtr];
 
 	if (!animBufferPtr) {
 		animBufferPtr = animVar1;
@@ -865,7 +865,7 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 
 	if (time < keyframeLength) // interpolate keyframe
 	{
-		char *animVar1Backup = animVar1;
+		byte *animVar1Backup = animVar1;
 		// skip bone 0 anim
 		animVar4 += 8; // anim buffer
 		animVar1 += 8; // current keyframe ptr
@@ -937,8 +937,8 @@ int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr) {
 		return 0;
 	} else // change keyframe
 	{
-		char *tempBx = animVar1;
-		char *si = animVar1;
+		byte *tempBx = animVar1;
+		byte *si = animVar1;
 
 		si += 8;
 

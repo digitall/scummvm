@@ -81,7 +81,7 @@ int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 	dataPtr1[entryNum].key = hq_key;
 
 	dataPtr1[entryNum].size = size;
-	dataPtr1[entryNum].ptr = (char *)malloc(size);
+	dataPtr1[entryNum].ptr = (byte *)malloc(size);
 
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;
@@ -91,7 +91,7 @@ int HQ_Malloc(HqrEntry *hqrPtr, int size) {
 	return hq_key;
 }
 
-char *HQ_PtrMalloc(HqrEntry *hqrPtr, int index) {
+byte *HQ_PtrMalloc(HqrEntry *hqrPtr, int index) {
 
 	if (index < 0)
 		return nullptr;
@@ -381,7 +381,7 @@ static Body *createBodyFromPtr(void *ptr) {
 	return newBody;
 }
 
-char *HQR_Get(HqrEntry *hqrPtr, int index) {
+byte *HQR_Get(HqrEntry *hqrPtr, int index) {
 
 	if (index < 0)
 		return nullptr;
@@ -419,11 +419,11 @@ char *HQR_Get(HqrEntry *hqrPtr, int index) {
 	foundEntry->key = index;
 	foundEntry->lastTimeUsed = timer;
 	foundEntry->size = size;
-	foundEntry->ptr = (char *)malloc(size);
+	foundEntry->ptr = (byte *)malloc(size);
 
-	char *ptr = foundEntry->ptr;
+	byte *ptr = foundEntry->ptr;
 
-	pakLoad(hqrPtr->string.c_str(), index, foundEntry->ptr);
+	pakLoad(hqrPtr->string.c_str(), index, (char*)foundEntry->ptr);
 
 	hqrPtr->numUsedEntry++;
 	hqrPtr->sizeFreeData -= size;

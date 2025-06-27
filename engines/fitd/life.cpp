@@ -211,7 +211,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 304);
 
-		char *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		byte *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
 
 		if (!flowPtr) {
 			currentActorPtr->indexInWorld = -1;
@@ -262,7 +262,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 304);
 
-		char *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		byte *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
 
 		if (!flowPtr) {
 			currentActorPtr->indexInWorld = -1;
@@ -317,7 +317,7 @@ int initSpecialObjet(int mode, int X, int Y, int Z, int stage, int room, int alp
 
 		currentActorPtr->FRAME = HQ_Malloc(HQ_Memory, 246);
 
-		char *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
+		byte *flowPtr = HQ_PtrMalloc(HQ_Memory, currentActorPtr->FRAME);
 		if (!flowPtr) {
 			currentActorPtr->indexInWorld = -1;
 			return -1;
@@ -1218,8 +1218,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 
 					if (currentProcessedActorPtr->_flags & AF_ANIMATED) {
 						if (currentProcessedActorPtr->ANIM != -1 && currentProcessedActorPtr->bodyNum != -1) {
-							char *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
-							char *pBody;
+							byte *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
+							byte *pBody;
 
 							if (g_engine->getGameId() >= GID_JACK) {
 								/*                  if (bFlagDecal)
@@ -1255,8 +1255,8 @@ void processLife(int lifeNum, bool callFoundLife) {
 				currentProcessedActorPtr->bodyNum = param1;
 
 				if (currentProcessedActorPtr->_flags & AF_ANIMATED) {
-					char *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
-					char *pBody;
+					byte *pAnim = HQR_Get(listAnim, currentProcessedActorPtr->ANIM);
+					byte *pBody;
 
 					if (g_engine->getGameId() >= GID_JACK) {
 						/*                  if (bFlagDecal)
@@ -1586,9 +1586,7 @@ void processLife(int lifeNum, bool callFoundLife) {
 			}
 			case LM_CONTINUE_TRACK: {
 				// appendFormated("LM_CONTINUE_TRACK ");
-				char *ptr;
-
-				ptr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
+				byte *ptr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
 
 				ptr += currentProcessedActorPtr->positionInTrack * 2;
 

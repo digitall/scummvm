@@ -234,10 +234,10 @@ static int loadJack(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
-			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
+			byte *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
 
 			if (objectTable[i].ANIM != -1) {
-				char *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
+				byte *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
 				setAnimObjet(objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}
@@ -663,10 +663,10 @@ static int loadSaveOthers(Common::SeekableReadStream *in) {
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
-			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
+			byte *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
 
 			if (objectTable[i].ANIM != -1) {
-				char *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
+				byte *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
 				setAnimObjet(objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}
@@ -1087,10 +1087,10 @@ static int loadAitd1(Common::SeekableReadStream *in) {
 
 	for (int i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (objectTable[i].indexInWorld != -1 && objectTable[i].bodyNum != -1) {
-			char *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
+			byte *bodyPtr = HQR_Get(listBody, objectTable[i].bodyNum);
 
 			if (objectTable[i].ANIM != -1) {
-				char *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
+				byte *animPtr = HQR_Get(listAnim, objectTable[i].ANIM);
 				setAnimObjet(objectTable[i].FRAME, animPtr, bodyPtr);
 			}
 		}

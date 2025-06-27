@@ -108,7 +108,7 @@ int calcDist(int X1, int Y1, int Z1, int X2, int Y2, int Z2) {
 	return Xdist + Ydist + Zdist; // recheck overflow
 }
 
-int testZvEndAnim(const Object *actorPtr, char *animPtr, int param) {
+int testZvEndAnim(const Object *actorPtr, byte *animPtr, int param) {
 	int16 var_E = 0;
 	// int16 var_12 = 0;
 	const int16 var_10 = param;

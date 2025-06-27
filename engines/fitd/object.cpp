@@ -35,7 +35,7 @@ namespace Fitd {
 int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int x, int y, int z, int stage, int room, int alpha, int beta, int gamma, int anim, int frame, int animType, int animInfo) {
 	int i;
 	Object *actorPtr = objectTable;
-	char *bodyPtr = nullptr;
+	byte *bodyPtr = nullptr;
 
 	for (i = 0; i < NUM_MAX_OBJECT; i++) {
 		if (actorPtr->indexInWorld == -1)
@@ -126,7 +126,7 @@ int copyObjectToActor(int body, int typeZv, int hardZvIdx, int16 objectType, int
 		bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
 
 		if (anim != -1) {
-			char *animPtr = HQR_Get(listAnim, anim);
+			byte *animPtr = HQR_Get(listAnim, anim);
 
 			setAnimObjet(frame, animPtr, bodyPtr);
 

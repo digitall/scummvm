@@ -794,7 +794,7 @@ static void processPrim_Point(PrimType primType, Primitive *ptr, char **out) {
 	}
 }
 
-void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr) {
+void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, byte *bodyPtr) {
 	Body *pBody = getBodyFromPtr(bodyPtr);
 
 	BBox3D1 = 0x7FFF;

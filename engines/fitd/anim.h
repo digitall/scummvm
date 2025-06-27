@@ -32,9 +32,9 @@
 namespace Fitd {
 
 int initAnim(int animNum, int animType, int animInfo);
-int setAnimObjet(int frame, char *anim, char *body);
-int16 setInterAnimObjet(int frame, char *animPtr, char *bodyPtr);
-int16 getNbFramesAnim(char *animPtr);
+int setAnimObjet(int frame, byte *anim, byte *body);
+int16 setInterAnimObjet(int frame, byte *animPtr, byte *bodyPtr);
+int16 getNbFramesAnim(byte *animPtr);
 void updateAnimation();
 
 } // namespace Fitd

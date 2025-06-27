@@ -25,7 +25,7 @@
 
 namespace Fitd {
 
-char *currentFoundBody;
+byte *currentFoundBody;
 int currentFoundBodyIdx;
 int statusVar1;
 
@@ -204,7 +204,7 @@ int currentLifeActorIdx;
 Object *currentLifeActorPtr;
 int currentLifeNum;
 
-char *currentLifePtr;
+byte *currentLifePtr;
 
 int16 readNextArgument(const char *name) {
 	const int16 value = *(int16 *)currentLifePtr;
@@ -246,9 +246,9 @@ int animStepX;
 int animStepZ;
 int animStepY;
 
-char *animVar1;
-char *animVar3;
-char *animVar4;
+byte *animVar1;
+byte *animVar3;
+byte *animVar4;
 
 int16 newFloor;
 

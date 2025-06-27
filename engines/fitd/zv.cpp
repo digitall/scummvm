@@ -34,7 +34,7 @@ static int pointRotateSinY;
 static int pointRotateCosZ;
 static int pointRotateSinZ;
 
-void getZvCube(const char *bodyPtr, ZVStruct *zvPtr) {
+void getZvCube(const byte *bodyPtr, ZVStruct *zvPtr) {
 	const int16 *ptr = (const int16 *)(bodyPtr + 2);
 
 	zvPtr->ZVX1 = *ptr++;
@@ -48,7 +48,7 @@ void getZvCube(const char *bodyPtr, ZVStruct *zvPtr) {
 	zvPtr->ZVX1 = zvPtr->ZVZ1 = -zvPtr->ZVZ2;
 }
 
-void giveZVObjet(const char *bodyPtr, ZVStruct *zvPtr) {
+void giveZVObjet(const byte *bodyPtr, ZVStruct *zvPtr) {
 	const int16 *ptr = (const int16 *)(bodyPtr + 2);
 
 	zvPtr->ZVX1 = *ptr++;
@@ -70,7 +70,7 @@ void makeDefaultZV(ZVStruct *zvPtr) {
 	zvPtr->ZVZ2 = 100;
 }
 
-void getZvMax(char *bodyPtr, ZVStruct *zvPtr) {
+void getZvMax(byte *bodyPtr, ZVStruct *zvPtr) {
 	int x1;
 	int x2;
 	int z1;
@@ -368,7 +368,7 @@ static void zvRotSub(int X, int Y, int Z, int alpha, int beta, int gamma) {
 	}
 }
 
-void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
+void getZvRot(byte *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma) {
 	int X1 = 32000;
 	int Y1 = 32000;
 	int Z1 = 32000;

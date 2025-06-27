@@ -31,7 +31,7 @@ namespace Fitd {
 #define NUM_MAX_OBJECT 50
 #define NUM_MAX_CAMERA_IN_ROOM 20
 
-extern char *currentFoundBody;
+extern byte *currentFoundBody;
 extern int currentFoundBodyIdx;
 extern int statusVar1;
 
@@ -372,7 +372,7 @@ extern int currentLifeActorIdx;
 extern Object *currentLifeActorPtr;
 extern int currentLifeNum;
 
-extern char *currentLifePtr;
+extern byte *currentLifePtr;
 
 int16 readNextArgument(const char *name = nullptr);
 
@@ -398,9 +398,9 @@ extern int animMoveZ;
 extern int animStepZ;
 extern int animStepX;
 extern int animStepY;
-extern char *animVar1;
-extern char *animVar3;
-extern char *animVar4;
+extern byte *animVar1;
+extern byte *animVar3;
+extern byte *animVar4;
 
 extern int16 newFloor;
 

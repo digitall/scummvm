@@ -36,9 +36,9 @@ typedef struct ZVStruct
 	int32 ZVZ2;
 } ZVStruct;
 
-void getZvCube(const char *bodyPtr, ZVStruct *zvPtr);
-void giveZVObjet(const char * bodyPtr, ZVStruct* zvPtr);
-void getZvMax(char* bodyPtr, ZVStruct* zvPtr);
+void getZvCube(const byte *bodyPtr, ZVStruct *zvPtr);
+void giveZVObjet(const byte * bodyPtr, ZVStruct* zvPtr);
+void getZvMax(byte* bodyPtr, ZVStruct* zvPtr);
 void makeDefaultZV(ZVStruct* zvPtr);
 struct RoomData;
 int asmCheckListCol(const ZVStruct *zvPtr, RoomData *pRoomData);
@@ -47,7 +47,7 @@ void copyZv(const ZVStruct *source, ZVStruct *dest);
 void getZvRelativePosition(ZVStruct *zvPtr, int startRoom, int destRoom);
 int checkZvCollision(const ZVStruct *zvPtr1, const ZVStruct *zvPtr2);
 int checkObjectCollisions(int actorIdx, const ZVStruct *zvPtr);
-void getZvRot(char *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma);
+void getZvRot(byte *bodyPtr, ZVStruct *zvPtr, int alpha, int beta, int gamma);
 
 }
 

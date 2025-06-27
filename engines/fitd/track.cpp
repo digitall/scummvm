@@ -245,7 +245,7 @@ void processTrack() {
 	}
 	case 3: // track
 	{
-		char *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
+		byte *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
 
 		trackPtr += currentProcessedActorPtr->positionInTrack * 2;
 
@@ -706,7 +706,7 @@ void processTrack2() {
 	}
 	case 3: // track
 	{
-		char *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
+		byte *trackPtr = HQR_Get(listTrack, currentProcessedActorPtr->trackNumber);
 
 		trackPtr += currentProcessedActorPtr->positionInTrack * 2;
 

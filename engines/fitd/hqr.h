@@ -31,7 +31,7 @@ typedef struct HqrSubEntry
     int16 key;
     int16 size;
     uint lastTimeUsed;
-    char* ptr;
+    byte* ptr;
 } HqrSubEntry;
 
 typedef struct HqrEntry {
@@ -43,9 +43,9 @@ typedef struct HqrEntry {
 	HqrSubEntry *entries;
 } HqrEntry;
 
-char *HQR_Get(HqrEntry *hqrPtr, int index);
+byte *HQR_Get(HqrEntry *hqrPtr, int index);
 int HQ_Malloc(HqrEntry *hqrPtr, int size);
-char *HQ_PtrMalloc(HqrEntry *hqrPtr, int index);
+byte *HQ_PtrMalloc(HqrEntry *hqrPtr, int index);
 void HQ_Name(HqrEntry * ptr, const char * name);
 HqrEntry *HQR_InitRessource(const char *name, int size, int numEntries);
 HqrEntry *HQR_Init(int size, int numEntry);

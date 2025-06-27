@@ -341,14 +341,14 @@ int lire(int index, int startx, int top, int endx, int bottom, int demoMode, int
 	const int maxStringWidth = endx - startx + 4;
 
 	const int textIndexMalloc = HQ_Malloc(HQ_Memory, pakGetPakSize(languageNameString, index) + 300);
-	char *textPtr = HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
+	byte *textPtr = HQ_PtrMalloc(HQ_Memory, textIndexMalloc);
 
-	if (!pakLoad(languageNameString, index, textPtr)) {
+	if (!pakLoad(languageNameString, index, (char *)textPtr)) {
 		error("Failed to load pak %s", languageNameString);
 	}
 
 	memset(ptrpage, 0, sizeof(char *) * 100);
-	ptrpage[0] = textPtr;
+	ptrpage[0] = (char *)textPtr;
 
 	//  LastSample = -1;
 	//  LastPriority = -1;
@@ -1875,7 +1875,7 @@ static void drawBgOverlay(Object *actorPtr) {
 	setClip(0, 0, 319, 199);
 }
 
-static void calcXYZNuage(int16 x, int y, int16 z, int16 alpha, int16 beta, int16 gamma, char *modelPtr) {
+static void calcXYZNuage(int16 x, int y, int16 z, int16 alpha, int16 beta, int16 gamma, byte *modelPtr) {
 	rotateNuage2(x, y, z, alpha, beta, gamma, *(int16 *)modelPtr, (int16 *)(modelPtr + 2));
 }
 
@@ -1905,7 +1905,7 @@ static int sub_104B7(int si, int ax, int dx, int bx, int cx) {
 static void drawSpecialObject(int actorIdx) {
 	Object *actorPtr = &objectTable[actorIdx];
 
-	char *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
+	byte *flowPtr = HQ_PtrMalloc(HQ_Memory, actorPtr->FRAME);
 	if (!flowPtr)
 		return;
 
@@ -2004,9 +2004,9 @@ static void drawSpecialObject(int actorIdx) {
 		const int16 chrono1 = (int16)((chrono & 0xFFFF0000) >> 16);
 		const int16 chrono2 = (int16)(chrono & 0x0000FFFF);
 		flowPtr += 4;
-		char *flowPtrSaved = flowPtr;
+		byte *flowPtrSaved = flowPtr;
 		flowPtr += 120; // skip 20 * x,y,z
-		char *flowPtrSaved2 = flowPtr;
+		byte *flowPtrSaved2 = flowPtr;
 		*(int16 *)flowPtr = 20; // number of points
 		flowPtr += 2;
 		for (int j = 0; j < 20; ++j) {
@@ -2070,7 +2070,7 @@ static void drawSpecialObject(int actorIdx) {
 	// TODO: finish
 }
 
-static void getHotPoint(int hotPointIdx, char *bodyPtr, Point3d *hotPoint) {
+static void getHotPoint(int hotPointIdx, byte *bodyPtr, Point3d *hotPoint) {
 
 	const int16 flag = *(int16 *)bodyPtr;
 	bodyPtr += 2;
@@ -2159,7 +2159,7 @@ void mainDraw(int flagFlip) {
 			if (actorPtr->_flags & AF_SPECIAL) {
 				drawSpecialObject(currentDrawActor);
 			} else {
-				char *bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
+				byte *bodyPtr = HQR_Get(listBody, actorPtr->bodyNum);
 
 				if (HQ_Load) {
 					// setAnimObjet(actorPtr->FRAME, HQR_Get(listAnim, actorPtr->ANIM), bodyPtr);
@@ -2843,9 +2843,9 @@ void throwStoppedAt(int x, int z) {
 	ZVStruct zvCopy;
 	ZVStruct zvLocal;
 
-	uint8 *bodyPtr = (uint8 *)HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
+	uint8 *bodyPtr = HQR_Get(listBody, currentProcessedActorPtr->bodyNum);
 
-	giveZVObjet((char *)bodyPtr, &zvLocal);
+	giveZVObjet(bodyPtr, &zvLocal);
 
 	int x2 = x;
 	int y2 = currentProcessedActorPtr->roomY / 2000 * 2000;
@@ -2906,7 +2906,7 @@ void throwStoppedAt(int x, int z) {
 	currentProcessedActorPtr->speed = 0;
 	currentProcessedActorPtr->gamma = 0;
 
-	giveZVObjet((char *)bodyPtr, &currentProcessedActorPtr->zv);
+	giveZVObjet(bodyPtr, &currentProcessedActorPtr->zv);
 
 	currentProcessedActorPtr->zv.ZVX1 += x2;
 	currentProcessedActorPtr->zv.ZVX2 += x2;
@@ -3078,7 +3078,7 @@ static void allocTextes() {
 
 				do {
 					currentPosInTextes++;
-				} while ((byte)*(currentPosInTextes - 1) >= ' '); // detect the end of the string
+				} while ((byte) * (currentPosInTextes - 1) >= ' '); // detect the end of the string
 
 				*(currentPosInTextes - 1) = 0; // add the end of string
 

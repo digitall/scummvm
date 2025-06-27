@@ -1125,7 +1125,7 @@ void playMusic(int musicNumber) {
 			if (trackNumber >= 0) {
 				fadeMusic(0, 0, 0x40);
 
-				char *musicPtr = HQR_Get(listMus, trackNumber);
+				byte *musicPtr = HQR_Get(listMus, trackNumber);
 
 				if (musicPtr) {
 					musicLoad(musicPtr);

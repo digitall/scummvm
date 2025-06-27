@@ -49,7 +49,7 @@ void fillBox(int x1, int y1, int x2, int y2, char color); // fast recode. No RE
 void flushScreen();
 void setupCamera();
 void rotate(uint x, uint y, uint z, int *xOut, int *yOut);
-void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, char *bodyPtr);
+void computeScreenBox(int x, int y, int z, int alpha, int beta, int gamma, byte *bodyPtr);
 struct Body;
 int rotateNuage(int x, int y, int z, int alpha, int beta, int gamma, Body *pBody);
 int rotateNuage2(int x, int y, int z, int alpha, int beta, int gamma, int16 num, int16 *vertices);
